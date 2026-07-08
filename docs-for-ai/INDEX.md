@@ -170,7 +170,7 @@
 | 理解 nop-task（任务/逻辑流） | `03-modules/nop-task.md`（含 xbiz 绑定、事务模型、VFS 动态更新、step 写法、与 nop-wf/BizModel/状态机/nop-rule 的分工） |
 | 用 task flow 编排复杂业务流程 | `03-modules/nop-task.md`（xbiz action 绑定 task flow，或 Java 调 ITaskFlowManager） |
 | 理解 nop-wf（工作流/BPM） | `03-modules/nop-wf.md` + `06-extensibility/nop-wf-as-example.md`（作为平台可扩展机制案例） + `02-core-guides/workflow-configuration.md`（配置参考） + `03-runbooks/build-approval-flow.md`（审批流构建） + `03-runbooks/enable-approval-on-entity.md`（实体审批能力集成；架构背景见平台设计文档中的可审批实体集成设计） |
-| 理解 nop-batch（批处理） | `03-modules/nop-batch.md` |
+| 理解 nop-batch（批处理） | `03-modules/nop-batch.md` + `02-core-guides/batch-dsl.md`（DSL 配置参考）+ `04-reference/xdefs/batch.xdef`（DSL 权威定义） |
 | 理解 nop-job（定时任务：本地模式 + 分布式模式） | `03-modules/nop-job.md` |
 | 理解 nop-ai（AI 集成/LLM/Agent/RAG） | `03-modules/nop-ai.md` |
 | 理解 nop-dyn（动态表单/实体） | `03-modules/nop-dyn.md` |

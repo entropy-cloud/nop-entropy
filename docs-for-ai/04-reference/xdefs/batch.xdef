@@ -1,0 +1,215 @@
+<!--
+@concurrency 同时启动多少个线程去并行处理。设置了concurrency的情况下，还需要设置executor才会真正并行执行，否则会使用SyncExecutor在当前线程上串行执行
+@retryOneByOne 重试的时候是否逐个重试，还是一整批重试
+@singleMode表示批量读取数据，然后逐条处理、消费，而不是批量消费。
+@rateLimit 每秒最多处理多少条记录
+@jitterRatio 多线程执行时，如果每个线程处理的batchSize都相同，则可能导致同时读取数据库和同时写数据库，产生资源征用。 通过设置一个随机比例，将每个线程处理的batchSize动态调整为originalBatchSize * (1
+                   + jitterRatio * random)， 使得每个线程的每个批次的负载随机化，从而破坏潜在的同步效应。
+-->
+<batch taskName="string" taskVersion="long" batchSize="!int" concurrency="!int=0" retryOneByOne="boolean=false"
+       singleMode="boolean=false" singleSession="boolean" saveState="boolean"
+       transactionScope="enum:io.nop.batch.core.BatchTransactionScope"
+       rateLimit="double" jitterRatio="double" allowStartIfComplete="boolean" startLimit="!int=0"
+       useBatchRequestGenerator="!boolean=false" xdef:ref="BatchListenersModel"
+       executor="bean-name" xdef:name="BatchTaskModel" xdef:bean-package="io.nop.batch.dsl.model"
+       asyncProcessor="boolean" asyncProcessTimeout="duration" snapshotBuilder="bean-name"
+       x:schema="/nop/schema/xdef.xdef" xmlns:x="/nop/schema/xdsl.xdef"
+       xdef:model-name-prop="taskName" xdef:model-version-prop="taskVersion"
+       xmlns:xdef="/nop/schema/xdef.xdef"
+>
+
+    <param name="!var-name" displayName="string" xdef:name="BatchParamModel" defaultValue="any"
+           type="generic-type" mandatory="!boolean=false" xdef:unique-attr="name">
+        <description>string</description>
+        <schema xdef:ref="../schema/schema.xdef"/>
+    </param>
+
+    <!-- taskKey用于区分taskName相同的不同执行实例。同样的taskName+taskKey只允许执行一次 -->
+    <taskKeyExpr>xpl-fn:(batchTaskCtx)=>string</taskKeyExpr>
+
+    <!--
+    @onlySaveLastError 如果为true，则只保存最后一次执行失败的信息，否则保存所有执行失败的信息
+    @recordKeyExpr 用于生成记录的唯一标识，用于判断记录是否已经处理过。如果recordKeyExpr为空，则认为所有记录都是新的。
+    @recordInfoExpr 用于生成记录的附加信息，用于在历史记录表中保存。
+    -->
+    <historyStore bean="bean-name" xdef:name="BatchHistoryStoreModel"
+                  onlySaveLastError="!boolean=false">
+        <recordKeyExpr>xpl-fn:(record)=>string</recordKeyExpr>
+        <recordInfoExpr>xpl-fn:(record)=>any</recordInfoExpr>
+    </historyStore>
+
+    <retryPolicy maxRetryCount="int" retryDelay="int" maxRetryDelay="int" xdef:name="BatchRetryPolicyModel"
+                 exponentialDelay="boolean=true" jitterRatio="double=0.3">
+        <exceptionFilter>xpl-fn:(err)=>boolean</exceptionFilter>
+    </retryPolicy>
+
+    <loadRetryPolicy xdef:ref="BatchRetryPolicyModel"/>
+
+    <skipPolicy maxSkipCount="long" xdef:name="BatchSkipPolicyModel">
+        <exceptionFilter>xpl-fn:(err)=>boolean</exceptionFilter>
+    </skipPolicy>
+
+    <inputSorter xdef:ref="/nop/schema/query/order-by.xdef"/>
+
+    <xdef:define xdef:name="BatchListenersModel">
+        <onTaskBegin>xpl-fn:(batchTaskCtx)=>void</onTaskBegin>
+        <onBeforeTaskEnd>xpl-fn:(batchTaskCtx)=>void</onBeforeTaskEnd>
+        <onTaskEnd>xpl-fn:(batchTaskCtx,err)=>void</onTaskEnd>
+
+        <onChunkBegin>xpl-fn:(batchChunkCtx)=>void</onChunkBegin>
+        <onBeforeChunkEnd>xpl-fn:(batchChunkCtx)=>void</onBeforeChunkEnd>
+        <onChunkEnd>xpl-fn:(batchChunkCtx,err)=>void</onChunkEnd>
+
+        <onChunkTryBegin>xpl-fn:(items, batchChunkCtx)=>void</onChunkTryBegin>
+        <onChunkTryEnd>xpl-fn:(batchChunkCtx, err)=>void</onChunkTryEnd>
+
+        <onLoadBegin>xpl-fn:(batchSize,batchChunkCtx)=>void</onLoadBegin>
+        <onLoadEnd>xpl-fn:(batchChunkCtx, err)=>void</onLoadEnd>
+
+        <onConsumeBegin>xpl-fn:(items, batchChunkCtx)=>void</onConsumeBegin>
+        <onConsumeEnd>xpl-fn:(batchChunkCtx, err)=>void</onConsumeEnd>
+    </xdef:define>
+
+    <!--
+
+    -->
+    <loader bean="bean-name" xdef:name="BatchLoaderModel" aggregator="bean-name" saveState="boolean"
+            xdef:ref="BatchListenersModel" xdef:mandatory="true">
+
+        <!-- 提供分区自动拆分能力 -->
+        <dispatcher xdef:name="BatchLoaderDispatcherModel"
+                    fetchThreadCount="!int=0" loadBatchSize="!int=100" executor="bean-name"
+                    partitionIndexField="prop-path">
+            <!-- 如果没有指定partitionIndexField，可以执行代码动态计算得到partitionIndex -->
+            <partitionFn>xpl-fn:(item,batchTaskCtx)=>int</partitionFn>
+        </dispatcher>
+
+        <!--
+        当resourceIO/newRecordInputProvider/fileModelPath都没有指定的时候，会使用CsvResourceIO
+
+        @filePath 用于定位数据文件。支持表达式，支持使用${}引用变量
+        @encoding 文件编码，缺省值为UTF-8
+        @resourceLocator 用于定位filePath对应的数据文件。如果不指定，则使用ZipResourceLocator
+        @resourceIO 指定resourceIO对应的bean的名称。用于读取数据文件，如果不指定，则使用newRecordInputProvider，或者根据fileModelPath自动生成
+        @maxCount 读取的最大记录数，缺省值为-1，表示不限制
+        @fileModelPath 文件模型路径。当没有指定resourceIO和newRecordInputProvider时，根据fileModelPath自动生成resourceIO
+        -->
+        <file-reader filePath="!t-expr" xdef:name="BatchFileReaderModel" encoding="t-expr"
+                     csvFormat="string"
+                     resourceLocator="bean-name" resourceIO="bean-name" maxCountExpr="expr" fileModelPath="v-path">
+            <!-- 动态创建resourceIO -->
+            <newRecordInputProvider>xpl</newRecordInputProvider>
+
+            <filter>xpl-fn:(item,batchTaskCtx)=>boolean</filter>
+
+            <!--
+            仅当使用缺省的CsvResourceIO时会使用这里的配置，它用于指定从数据文件中导入哪些列，如果不指定，则导入所有列。假定数据文件的第一行是列名
+            -->
+            <headers>csv-list</headers>
+            <headerLabels>csv-list</headerLabels>
+            <headersNormalizer>xpl-fn:(headers,headerRows)=>List</headersNormalizer>
+        </file-reader>
+
+        <excel-reader filePath="!t-expr" xdef:name="BatchExcelReaderModel" templatePath="v-path" headerRowCount="int"
+                      dataSheetName="string" headerSheetName="string" trailerSheetName="string">
+            <filter>xpl-fn:(item,batchTaskCtx)=>boolean</filter>
+
+            <headers>csv-list</headers>
+            <headerLabels>csv-list</headerLabels>
+            <headersNormalizer>xpl-fn:(headers,headerRows)=>List</headersNormalizer>
+        </excel-reader>
+
+        <!--
+        @partitionIndexField 实体上的分区标识。如果设置了这个字段，且IBatchTaskContext传入了partitionRange参数，则会自动追加分区过滤条件
+        -->
+        <orm-reader xdef:name="BatchOrmReaderModel" batchLoadProps="csv-list" partitionIndexField="prop-path"
+                    entityName="class-name">
+            <eql>xpl-sql</eql>
+            <query>xpl-node</query>
+        </orm-reader>
+
+        <jdbc-reader querySpace="string" fetchSize="int" sqlName="string" maxRows="long" maxFieldSize="int"
+                     queryTimeout="int" partitionIndexField="prop-path"
+                     rowMapper="bean-name" streaming="!boolean=false" xdef:name="BatchJdbcReaderModel">
+            <sql>xpl-sql</sql>
+            <query>xpl-node</query>
+        </jdbc-reader>
+
+        <generator genModelPath="v-path" xdef:name="BatchGeneratorModel" totalCountExpr="!expr"/>
+
+        <!-- reader读取到items集合之后会调用afterLoad回调函数对结果进行加工 -->
+        <afterLoad>xpl-fn:(items, batchLoadCtx)=>void</afterLoad>
+
+        <source>xpl-fn:(batchSize,batchChunkCtx)=>List</source>
+
+        <provider>xpl-fn:(batchTaskCtx)=>any</provider>
+
+        <adapter>xpl-fn:(loader)=>any</adapter>
+
+    </loader>
+
+    <processor bean="bean-name" name="!var-name" order="!int=0"
+               xdef:unique-attr="name" xdef:name="BatchProcessorModel" xdef:ref="BatchListenersModel">
+        <filter>xpl-fn:(item,batchChunkCtx)=>boolean</filter>
+        <source>xpl-fn:(item,consume,batchChunkCtx)=>void</source>
+        <provider>xpl-fn:(batchTaskCtx)=>any</provider>
+        <adapter>xpl-fn:(processor)=>any</adapter>
+    </processor>
+
+    <!-- 选择每一个item所对应的consumer，返回tag列表。 -->
+    <tagger bean="bean-name" xdef:name="BatchTaggerModel">
+        <source>xpl-fn:(item,batchChunkCtx)=>Collection</source>
+    </tagger>
+
+    <!--
+    @forTag 用于匹配tagger所返回的标签。如果没有设置，则表示不受tagger匹配影响，总是消费item
+    -->
+    <consumer bean="bean-name" name="!var-name" order="!int=0" forTag="string"
+              xdef:unique-attr="name" xdef:name="BatchConsumerModel" xdef:ref="BatchListenersModel"
+              aggregator="bean-name" metaProvider="bean-name">
+        <filter>xpl-fn:(item,batchChunkCtx)=>boolean</filter>
+
+        <file-writer filePath="!t-expr" xdef:name="BatchFileWriterModel" encoding="t-expr"
+                     csvFormat="string"
+                     resourceLocator="bean-name" resourceIO="bean-name" fileModelPath="v-path">
+            <newRecordOutputProvider>xpl</newRecordOutputProvider>
+            <headers>csv-list</headers>
+            <headerLabels>csv-list</headerLabels>
+        </file-writer>
+
+        <excel-writer filePath="!t-expr" xdef:name="BatchExcelWriterModel" templatePath="v-path"
+                      dataSheetName="string" headerSheetName="string" trailerSheetName="string" headerRowCount="int">
+            <headers>csv-list</headers>
+            <headerLabels>csv-list</headerLabels>
+        </excel-writer>
+
+        <orm-writer entityName="!class-name" xdef:name="BatchOrmWriterModel" allowUpdate="!boolean=false"
+                    allowInsert="!boolean=true">
+            <keyFields>csv-set</keyFields>
+        </orm-writer>
+
+        <jdbc-writer querySpace="string" tableName="!string" xdef:name="BatchJdbcWriterModel"
+                     allowUpdate="!boolean=false"
+                     allowInsert="!boolean=true">
+            <keyFields>csv-set</keyFields>
+            <!--
+             @stdSqlType SQL 类型，可选值：io.nop.commons.type.StdSqlType 枚举
+             @stdDataType 数据类型，可选值：io.nop.commons.type.StdDataType 枚举
+             -->
+            <fields xdef:body-type="list" xdef:key-attr="name">
+                <field name="!string" from="string" stdSqlType="!std-sql-type" stdDataType="std-data-type"
+                       xdef:name="BatchWriteFieldModel"/>
+            </fields>
+        </jdbc-writer>
+
+        <!-- 实际写入之前执行transformer进行结构转换。实际保存的是返回的结果对象。如果transformer的返回值是null，则忽略这个条目 -->
+        <transformer>xpl-fn:(item,batchChunkCtx)=>any</transformer>
+
+        <provider>xpl-fn:(batchTaskCtx)=>any</provider>
+
+        <source>xpl-fn:(items,batchChunkCtx)=>void</source>
+
+        <adapter>xpl-fn:(consumer)=>any</adapter>
+    </consumer>
+
+</batch>

@@ -14,7 +14,7 @@
 - **扩展字段(EAV)**：实体-属性-值的动态扩展字段
 - **分布式锁**：数据库锁，带过期时间
 - **集群选举**：Leader 选举
-- **事件队列**：数据库 outbox 事件服务，普通事件按分区串行消费，广播事件按 subscriber cursor 恢复
+- **事件队列**：数据库 outbox 事件服务，`nop-sys-dao` 提供事件存储与触发原语；普通事件可由 `nop-batch-sys` 以 batch trigger 方式扫描执行，广播事件按 subscriber cursor 恢复
 - **字段级变更日志**：`NopSysChangeLog` + `OrmEntityChangeLogInterceptor`，实体加 `tagSet="audit"` 自动记录字段级 old→new，默认启用
 - **通用 ORM 拦截器**：`IOrmInterceptor` + `orm-interceptor.xml` 配置式回调，提供应用层 trigger 机制
 
@@ -49,7 +49,7 @@
 | **分布式锁** | 注入 `ILockService.tryLock/unlock` | 见下方"分布式锁" |
 | **扩展字段(EAV)** | 实体 `tagSet="use-ext-field"` + `NopSysExtField` | `../02-core-guides/orm-model-design.md` |
 | **国际化(i18n)** | ORM 列 `i18n-en:displayName` + `NopSysI18n` | `../02-core-guides/orm-model-design.md` |
-| **事件队列** | `SysDaoMessageService`（普通事件 shared queue + 广播 event stream） | 见下方"事件队列" |
+| **事件队列** | `SysDaoMessageService`（事件存储 + 广播消费 + 普通事件触发原语） / `nop-batch-sys`（普通事件 batch trigger） | 见下方"事件队列" |
 | **字段级变更日志（ChangeLog）** | 实体加 `tagSet="audit"` → 自动记字段级 old→new 到 `NopSysChangeLog`；列加 `tagSet="no-audit"` 排除 | **`../03-runbooks/audit-field-changes.md`**（声明式开关 / 查询历史 / TTL / 反模式） |
 | **通用 ORM 拦截器（应用层 trigger）** | 注册 `IOrmInterceptor` 或写 `orm-interceptor.xml` 配置式回调（per-entity + 8 hook + XPL） | **`../03-runbooks/orm-interceptor-trigger.md`**（trigger 概念 / 两种实现 / 与 BizModel 钩子选型） |
 
@@ -79,10 +79,11 @@ lockService.unlock("order_lock", "lock_group", holderId);
 ## 事件队列
 
 - 同一数据库事务内发布的本地 outbox 能力，不依赖外部 MQ
-- 普通事件：`nop_sys_event`，按 `partitionIndex` 稳定路由，同一分区内串行，至少一次，失败阻塞该分区头部
+- 普通事件：`nop_sys_event`，按 `partitionIndex` 稳定路由，至少一次；`nop-sys-dao` 负责 shared queue + lease + 重排队语义，`nop-batch-sys` 可用 batch trigger 方式周期扫描并触发执行
 - 广播事件：`nop_sys_broadcast_event` + `nop_sys_broadcast_cursor`，按 `subscriberId + topic` 持久化 cursor 与 lease，重启后从 `lastConsumedEventId` 恢复
 - 普通事件与广播事件都只保证 at-least-once；listener 必须自行幂等
 - `partitionIndex` 默认来自 `bizObjName + '|' + bizKey` 的 stable short hash；没有顺序键时退化为 topic hash，不保证同键顺序
+- batch trigger 只是普通事件的一种触发执行机制，不改变 event row 状态机；成功/失败仍回写到 `nop_sys_event` 行本身（如 `PROCESSED`、`WAITING + scheduleTime + retryTimes`）
 
 ## 字段级变更日志与 ORM 拦截器
 
@@ -110,6 +111,7 @@ nop-sys 内置字段级变更日志（`NopSysChangeLog` + `OrmEntityChangeLogInt
 |------|------|
 | ORM 模型 | `nop-sys/model/nop-sys.orm.xml` |
 | 事件队列实现 | `nop-sys/nop-sys-dao/src/main/java/io/nop/sys/dao/message/SysDaoMessageService.java` |
+| 普通事件 batch trigger | `nop-batch/nop-batch-sys/src/main/java/io/nop/batch/sys/SysEventBatchTrigger.java` |
 | 序列号生成器 | `nop-sys/nop-sys-dao/src/main/java/io/nop/sys/dao/seq/SysSequenceGenerator.java` |
 | 编码规则生成器 | `nop-sys/nop-sys-dao/src/main/java/io/nop/sys/dao/coderule/SysCodeRuleGenerator.java` |
 | Bean 注册 | `nop-sys/nop-sys-dao/src/main/resources/_vfs/nop/sys/beans/app-dao.beans.xml` |
