@@ -166,6 +166,17 @@ DSL = Delta x-extends Generator<DSLx>
 
 典型场景：工作流引擎的 OA 会签节点——底层引擎只有普通步骤节点 + Join 合并节点，会签的 UI 简化配置由 `x:post-extends` 在编译期展开为底层引擎可识别的模型。
 
+## Union schema 的 subtype 约定
+
+当 schema kind 为 `UNION` 时，运行时对象与 XDSL transform 都依赖显式 subtype 字段路由到具体子 schema：
+
+- `subTypeProp` 指定判别字段名。
+- 子 schema 的 `typeValue` 是可匹配的 subtype 值。
+- 路由顺序为：先精确匹配 `typeValue`，再回退到 `typeValue="*"` 的 fallback schema。
+- `subTypeProp` 缺失或找不到匹配子 schema 时，属于契约错误，应报错而不是静默跳过。
+
+这意味着 union 不是“逐个 oneOf 试跑直到通过”的宽松校验模式，而是显式判别字段驱动的单路由模式。
+
 ### `x:config` — 引入标签库和常量
 
 `<x:config>` 是所有 XDSL 模型的公共语法（定义在 `xdsl.xdef` 中），在合并过程完成后执行，用于通过 `<c:import>` 引入标签库和 Java 类定义，使其在模型的 XPL 表达式中可用：

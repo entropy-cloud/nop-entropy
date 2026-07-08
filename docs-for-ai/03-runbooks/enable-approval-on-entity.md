@@ -1,7 +1,7 @@
 # 让业务实体具备审批能力
 
 > **前置阅读**：[`02-core-guides/workflow-configuration.md`](../02-core-guides/workflow-configuration.md)（理解 step/transition/action/listener）
-> **设计原理**：可审批实体集成设计（Status: final，设计文档在内部分析目录）
+> **设计原理**：平台设计文档中的"可审批实体集成设计"（可审批实体集成的架构背景与约束）
 
 本文以具体步骤说明如何让一个业务实体（如订单、申请单）获得标准化的审批能力（提交/通过/驳回/撤回/反审核），并与 nop-wf 审批流串联。
 
@@ -205,7 +205,7 @@ WORKFLOW 模式:
 
 ## 参考
 
-- 设计原理：可审批实体集成设计文档（内部分析目录）
+- 设计原理：平台设计文档中的"可审批实体集成设计"
 - 审批流模式配置：[`build-approval-flow.md`](build-approval-flow.md)（会签/或签/分支/驳回等 15 个示例）
 - wf 配置参考：[`02-core-guides/workflow-configuration.md`](../02-core-guides/workflow-configuration.md)
 - 服务层编写：[`02-core-guides/service-layer.md`](../02-core-guides/service-layer.md)

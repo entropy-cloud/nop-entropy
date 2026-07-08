@@ -93,7 +93,7 @@
 | 判断错误处理和错误码写法 | `02-core-guides/error-handling.md` |
 | **理解工作流 XML 配置（step/transition/action/assignment）** | **`02-core-guides/workflow-configuration.md`** |
 | **构建审批流（串签/并签/会签/驳回/抄送等）** | **`03-runbooks/build-approval-flow.md`** |
-| **让业务实体具备审批能力（use-approval tag、IApprovableBiz、objMeta 流程配置、wf 回调）** | **`03-runbooks/enable-approval-on-entity.md`** |
+| **让业务实体具备审批能力（use-approval tag、IApprovableBiz、objMeta 流程配置、wf 回调）** | **`03-runbooks/enable-approval-on-entity.md`**（设计原理见平台设计文档中的可审批实体集成设计） |
 | 判断并发控制与事务边界 | `02-core-guides/concurrency-and-transactions.md` |
 | 查询当前仓库代码风格 | `02-core-guides/code-style.md` |
 | 理解外部应用模块开发 | `02-core-guides/external-app-development.md` |
@@ -110,6 +110,7 @@
 | 理解 VFS 路径解析与资源加载 | `02-core-guides/vfs-and-resource-resolution.md` |
 | 做 Delta 定制 | `02-core-guides/delta-customization.md` |
 | 编写 XDef / XDSL 文件 | `02-core-guides/xdef-and-xdsl.md` |
+| 理解 XDef/XDSL 中 union schema 的 subtype 路由与校验规则 | `02-core-guides/xdef-and-xdsl.md` |
 | 理解 XLang / XPL / xrun / xgen 基本写法 + XScript 语法与 `xpl\`...\`` 标签模板 + **xbiz action source 内置变量**（`svcCtx`/`$context`/`thisObj`/全局变量） | `02-core-guides/xlang-and-xpl-basics.md` |
 | 定制 index.html 扩展注入 | `02-core-guides/index-html-extensions.md` |
 | 编写测试 | `02-core-guides/testing.md` |
@@ -130,6 +131,7 @@
 | 新增跨模块 Biz 接口 | `03-runbooks/add-cross-module-biz-interface.md` |
 | 选择 Entity / BizModel / Processor | `03-runbooks/choose-entity-bizmodel-processor.md` |
 | 实现复杂业务流程 | `03-runbooks/implement-complex-business-flow.md` |
+| 理解 Record Mapping（字段映射、类型转换、条件校验、gateway `bodyMapping`） | `02-core-guides/record-mapping.md` |
 | 自定义查询 | `03-runbooks/custom-query-with-querybean.md` |
 | 扩展 CRUD 钩子 | `03-runbooks/extend-crud-with-hooks.md` |
 | 新增 BizLoader 字段 | `03-runbooks/add-bizloader-field.md` |
@@ -162,11 +164,12 @@
 | **记录字段级变更日志 / 字段级审计** | **`03-runbooks/audit-field-changes.md`**（实体加 `tagSet="audit"` 自动记 old→new 到 `NopSysChangeLog`，默认启用） |
 | **用 ORM 拦截器实现应用层 trigger / 拦截所有写路径** | **`03-runbooks/orm-interceptor-trigger.md`**（`IOrmInterceptor` + `orm-interceptor.xml` 配置式回调，trigger 概念与选型） |
 | **生成报表 / 单据打印（含套打）** | **`03-runbooks/generate-report.md`**（XPT 单元格展开语法 + 数据集 + 三种输出 xlsx/pdf/html + 套打 `ExcelImage.print=false` + 调用范例） |
+| **理解 Record Mapping DSL（`when`/`mandatory`/`schema`/`itemMapping`/gateway `bodyMapping`）** | **`02-core-guides/record-mapping.md`** |
 | 理解 nop-report（报表引擎） | `03-modules/nop-report.md` |
 | 理解 nop-rule（规则引擎：决策树/矩阵、二重 DSL、Excel 编辑） | `03-modules/nop-rule.md` |
 | 理解 nop-task（任务/逻辑流） | `03-modules/nop-task.md`（含 xbiz 绑定、事务模型、VFS 动态更新、step 写法、与 nop-wf/BizModel/状态机/nop-rule 的分工） |
 | 用 task flow 编排复杂业务流程 | `03-modules/nop-task.md`（xbiz action 绑定 task flow，或 Java 调 ITaskFlowManager） |
-| 理解 nop-wf（工作流/BPM） | `03-modules/nop-wf.md` + `06-extensibility/nop-wf-as-example.md`（作为平台可扩展机制案例） + `02-core-guides/workflow-configuration.md`（配置参考） + `03-runbooks/build-approval-flow.md`（审批流构建） + `03-runbooks/enable-approval-on-entity.md`（实体审批能力集成） |
+| 理解 nop-wf（工作流/BPM） | `03-modules/nop-wf.md` + `06-extensibility/nop-wf-as-example.md`（作为平台可扩展机制案例） + `02-core-guides/workflow-configuration.md`（配置参考） + `03-runbooks/build-approval-flow.md`（审批流构建） + `03-runbooks/enable-approval-on-entity.md`（实体审批能力集成；架构背景见平台设计文档中的可审批实体集成设计） |
 | 理解 nop-batch（批处理） | `03-modules/nop-batch.md` |
 | 理解 nop-job（定时任务：本地模式 + 分布式模式） | `03-modules/nop-job.md` |
 | 理解 nop-ai（AI 集成/LLM/Agent/RAG） | `03-modules/nop-ai.md` |
