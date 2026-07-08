@@ -25,9 +25,9 @@
    - 消费时按 `partitionIndex` 切分 worker 负责范围，**分区内严格串行，分区间允许并行**。
    - 普通事件不追求全局顺序，只追求“同一分区内顺序”。
 
-5. `nop-batch` 的分区思想应**部分复用、而不是直接复用整个执行引擎**：
-   - **复用**：`StringHelper.shortHash`、`IntRangeBean.shortRange()`、`WeightedPartitionAssigner`、`IntRangeSet`、`partitionIndexField + partitionRange` 这一套分区约定。
-   - **不复用**：chunk、processor/consumer DSL、batch task state、record result、loader/consumer 生命周期。`sys-event` 是长期运行的消息泵，不是一次性批任务。
+5. `sys-event` 对 `nop-batch` 的正确复用边界是：**`nop-sys-dao` 只提供事件存储与触发原语，普通事件的 batch 扫描触发器放在反向依赖 `nop-sys` 的扩展模块中**：
+   - **复用**：`StringHelper.shortHash`、`IntRangeBean.shortRange()`、`IntRangeSet`、`WeightedPartitionAssigner`、`PartitionDispatchLoaderProvider/PartitionDispatchQueue`，以及通过 batch trigger 周期触发一次扫描的运行模式。
+   - **边界**：`nop-sys-dao` 内不直接依赖 `nop-batch`；batch 只作为外部触发执行机制存在，event row 状态机、lease、retry/reschedule 仍保留在 `sys-event` 自己的存储与处理原语中。
 
 6. 这次重构的目标不是引入 Kafka 级别的外部 MQ，而是在现有数据库事务发布模型上，把**广播可靠性**和**普通事件并行性**补成两个清晰的本地基线。
 
@@ -38,10 +38,10 @@
 ### 2.1 当前 live baseline（2026-07-08）
 
 - `SysDaoMessageService.sendAsync()` / `sendMultiAsync()` 现在按 topic 语义分流：广播消息写 `NopSysBroadcastEvent`，普通消息写 `NopSysEvent`。
-- `NopSysEvent` 保留为普通事件队列表，新增 `leaseOwner` / `leaseExpireTime`，并用 `eventStatus=WAITING|CLAIMED|PROCESSED|FAILED` 表达 row-level lease 与重试状态。
+- `NopSysEvent` 目前仍是普通事件队列表，但 row-level `CLAIMED` 并不是目标架构；普通事件的最终目标语义应回到 partition ownership + worker 内微队列顺序执行，而不是把“正在处理”状态下沉到 event row。
 - 广播消费 `processBroadcastEvent()` 现在围绕 `NopSysBroadcastCursor` 做 subscriber cursor + lease，重启恢复真源来自持久化 `lastConsumedEventId`，不再依赖 JVM 内存游标。
-- 普通事件消费 `processNonBroadcastEvent()` 现在按 `assignedPartitions` 过滤、按分区头 claim，并在单次扫描窗口内保持“每分区最多一条 in-flight event”的 bounded execution 语义。
-- focused regression tests 已覆盖发送路由、稳定分区键、广播 cursor 推进/失败阻塞，以及普通事件分区头阻塞与 `ConsumeLater` 重排队基线。
+- 普通事件消费 `processNonBroadcastEvent()` 当前实现仍在向目标语义收敛中；设计基线要求它最终对齐 `nop-batch` 的 partition dispatch 模式：先决定 worker 负责的 `IntRangeSet`，再在 worker 内按 partition 微队列顺序执行，不直接把 partition ownership 建模成 event row `CLAIMED`。
+- focused regression tests 已覆盖发送路由、稳定分区键、广播 cursor 推进/失败阻塞，以及普通事件失败后通过 `ConsumeLater` 重排队的基线。
 
 ### 2.2 当前设计为什么不够
 
@@ -224,11 +224,17 @@ for each partition:
 
 #### 3.3.4 分区内顺序如何保证
 
-普通事件不要求全局 FIFO，只要求分区内 FIFO。实现约束：
+普通事件不要求全局 FIFO，只要求分区内 FIFO。这里应直接对齐 `nop-batch` 的成熟做法：
 
-1. 抢占任务时必须按 `partitionIndex + eventId` 维持单分区串行。
-2. 若某分区最早事件失败且进入重试，该分区后续事件默认**不得越过它继续执行**。
-3. 因而 worker 侧的并行度单位应是“分区”，而不是“单事件”。
+1. **先做 partition dispatch，再做 chunk/process**。`nop-batch` 的 `PartitionDispatchLoaderProvider` / `AsyncFetchPartitionDispatchLoaderProvider` 会先按 `partitionFn` 把记录拆到多个 `PartitionDispatchQueue.PartitionQueue`，然后保证“相同 partition 的记录不会同时由两个线程处理”。
+2. **同一 partition 的顺序保证来自 worker 内微队列，不来自 event row `CLAIMED`**。`PartitionDispatchQueue` 用 `threadId + queue` 维护 partition 归属，只有当前负责该 partition 的线程会继续消费它；同一 partition 可以在不同时间切换线程，但不会并发执行。
+3. **`sys-event` 只应复用这层执行模式，不应照搬 batch chunk 语义**。也就是说，普通事件应把“同一 partition 只能顺序执行”建模成执行器行为，而不是数据库里额外新增 `CLAIMED` 状态或 partition 占用表。
+
+因此普通事件的实现约束应修正为：
+
+1. 抢占任务时必须先按 `assignedPartitions` 过滤，再把候选事件派发到 partition 微队列。
+2. 若某条事件处理失败，平台层默认将其改写为未来 `scheduleTime` / `retryTimes` 后重新入队，而不是在执行器层引入 partition head blocking。
+3. worker 侧的并行度单位应是“分区”，而不是“单事件”或“数据库 claim 行”。
 
 伪代码：
 
@@ -241,15 +247,13 @@ for each owned partition P in parallel:
             mark PROCESSED
         else if retryable:
             reschedule same row
-            stop partition P until next scan
         else:
-            mark FAILED
-            stop partition P until operator / policy resolves
+            mark FAILED or reschedule by business policy
 ```
 
-这本质上是“每个 partition 一条串行消息流”，而不是 `nop-batch` 的“一个 chunk 里多条记录一起提交”。
+这本质上是“每个 partition 上的消息优先落到同一 worker 微队列中执行”，执行模式应借鉴 `nop-batch` 的 `PartitionDispatchQueue`；但失败后的是否延后、是否放弃、是否补偿由消息处理逻辑自己决定，而不是平台层强制 head blocking。
 
-### 3.4 与 nop-batch 的关系：复用分区基建，不复用 batch 语义
+### 3.4 与 nop-batch 的关系：普通事件可借 batch 外壳，但确认语义仍归事件层
 
 #### 3.4.1 可以直接复用的部分
 
@@ -260,20 +264,23 @@ for each owned partition P in parallel:
 3. `IntRangeBean` / `IntRangeSet` 的表达与序列化
 4. `WeightedPartitionAssigner` 的按权重切分
 5. ORM/JDBC loader 根据 `partitionRange` 自动加 `BETWEEN` 过滤的约定
+6. `PartitionDispatchLoaderProvider` / `AsyncFetchPartitionDispatchLoaderProvider` 这类“partition 先派发、队列内顺序执行”的执行模式
+7. 通过 `nop-job` 或 `IScheduledExecutor` 把一次扫描周期包装成可重复触发执行的外层调度方式
 
-这些都应该直接复用，避免重复发明“分区值域、range 格式、worker 切分算法”。
+这些都应该直接复用，避免重复发明“分区值域、range 格式、worker 切分算法、周期扫描调度壳”。
 
 #### 3.4.2 不应直接复用的部分
 
-`nop-batch` 中不适合直接搬到 `sys-event` 的，不是“批量抓取”这种优化手法，而是把 **chunk completion 当作正确性边界** 的那部分语义：
+`nop-batch` 中不适合直接搬到 `sys-event` 的，不是“批量抓取”这种优化手法，也不是“定时触发一次扫描”这种外层壳，而是把 **chunk completion 当作正确性边界** 的那部分语义：
 
-1. **Chunk completion 不是事件确认边界**：
-   - 普通事件的正确性边界是“单 event + 分区连续成功前缀”。
-   - 广播事件的正确性边界是“单 event + subscriber cursor 连续成功前缀”。
-   - 例如一个分区预取 10 条，前 6 条成功、第 7 条失败，正确结果是只确认前 6 条，并阻塞该分区后续事件；不应把这 10 条视为一个统一 completion 单位。
-2. **Processor/Consumer DSL**：事件监听是长期存在的订阅逻辑，不是一次性批任务图。
-3. **Batch task / record result 不是必要中心模型**：普通事件已经有自己的一行一状态模型；广播又需要 subscriber cursor。`NopBatchTask` / `NopBatchRecordResult` 可以提供参考，但不应反过来主导事件语义。
-4. **saveState / completedIndex 恢复不是事件恢复主模型**：是否持久化 batch task state、是否维护 `completedIndex` 都可以作为实现选择，但广播恢复首先看 cursor，普通事件恢复首先看消息状态与 lease，而不是 batch 的 completedIndex。
+1. **Chunk completion 不是唯一事件确认边界**：
+   - 普通事件的运行时结果应落到每条 event row 的状态更新上，例如成功改 `PROCESSED`，失败写 `retryTime` / `retryTimes` 后等待下轮扫描。
+   - 广播事件的确认边界仍是“单 event + subscriber cursor 连续成功前缀”。
+   - 因此一个 chunk 可以作为批量 flush / 批量提交的优化单位，但不能只记录 chunk 成败而丢掉逐条 event outcome。
+2. **Processor/Consumer DSL 不是事件 listener 契约本身**：普通事件可以在实现层被包装成“扫描一批待处理事件的 batch”，但 listener 注册、topic 路由、cursor / retry 语义仍应由 `sys-event` 自己定义，而不是暴露成 batch DSL。
+3. **Batch task / record result 不是必要中心模型**：普通事件不应直接复用 `NopBatchTask` / `NopBatchRecordResult` 作为运行时真源；这些对象围绕“任务实例 + chunk 结果”组织，而普通事件是常驻共享队列。
+4. **saveState / completedIndex 恢复不是事件恢复主模型**：广播恢复首先看 cursor，普通事件恢复首先看队列状态与重试字段，而不是 batch 的 completedIndex。
+5. **不直接复用 `nop-task` 承载整个 sys-event 生命周期**：可以用 `nop-job` 或 `IScheduledExecutor` 周期拉起一次普通事件扫描，但不应把 `sys-event` 整体重定义成长期运行的 batch task graph。
 
 #### 3.4.3 可以复用的执行优化
 
@@ -288,9 +295,10 @@ for each owned partition P in parallel:
 
 因此裁定为：
 
-- **不直接把 `sys-event` 建模成一个 `nop-batch` 任务**。
-- **可以复用执行 helper，但不能让 chunk completion 成为 event ack 语义**。
-- **抽取或共用“分区基础设施”与“批量执行优化”层**即可，事件层自己保有消息语义、重试语义和监听器模型。
+- **普通事件可以实现成“周期调度的 batch 扫描器”**，外层由 `nop-job` 或 `IScheduledExecutor.scheduleWithFixedDelay()` 触发一轮扫描。
+- **应直接借鉴 `nop-batch` 已证明可行的 partition dispatch + 微队列顺序执行模式**。
+- **可以复用执行 helper，也可以把一批 event 的状态更新做成 chunk flush，但不能只剩 chunk 成败、丢掉逐条 event outcome。**
+- **抽取或共用“分区基础设施”“周期扫描壳”和“partition dispatch 执行模式”即可，事件层自己保有消息语义、重试语义和监听器模型。**
 
 如果后续代码层要复用实现，优先抽象以下轻量接口，而不是复用整个 batch runtime：
 
@@ -328,9 +336,9 @@ for each owned partition P in parallel:
 
 #### 普通事件
 
-- 某个分区头部事件失败，会阻塞该分区后续事件。
-- 其他分区不受影响。
-- 重试仍然复用 `scheduleTime + retryTimes` 这一类延迟重试字段是合理的，但 lease 字段需要补齐，避免 worker 崩溃后长期悬空。
+- 某条事件失败后，默认通过更新 `scheduleTime + retryTimes` 延迟重试，而不是在平台层引入 partition head blocking。
+- 业务如果确实要求“后续消息不能越过前序失败消息”，应在 listener / 业务状态机层自行判定并返回重试，而不是把该约束固化到基础设施层。
+- lease 字段仍需要补齐，避免 worker 崩溃后长期悬空。
 
 ### 3.7 迁移约束
 
@@ -339,7 +347,7 @@ for each owned partition P in parallel:
 1. 已有同事务发布能力不能丢。
 2. 广播不能再依赖 JVM 内存游标。
 3. 普通事件发布端必须停止随机分区默认值。
-4. 普通事件 worker 需要明确的 partition ownership；当前最小 live baseline 通过 `assignedPartitions + row lease + partition head scan` 落地，而不是额外的 ownership 表。
+4. 普通事件 worker 需要明确的 partition ownership；当前最小 live baseline 通过 `assignedPartitions + row lease + partition scan` 落地，而不是额外的 ownership 表。
 5. 文档与代码都要明确：系统提供的是**至少一次**语义，业务 listener 如需抗重复必须做幂等。
 
 ---
@@ -354,9 +362,9 @@ for each owned partition P in parallel:
 
 4. **普通事件继续随机写 `partitionIndex`**：随机分布提升了均衡性，但破坏了同键顺序，不能作为默认策略。
 
-5. **直接复用整个 `nop-batch` runtime 做事件消费**：事件队列是常驻、低延迟、按消息确认的系统；batch 是按任务生命周期驱动的 chunk 引擎，抽象层次不同。
+5. **直接把事件确认语义简化成“只看 chunk 成败”**：普通事件可以借 batch 的扫描与分区执行外壳，但必须保留逐条 event outcome；不能因为外层长得像 batch，就只剩 chunk runtime 状态。
 
-6. **为了吞吐让普通事件失败时跳过分区头部继续处理后续事件**：这会破坏分区内顺序，也会让“前后因果相关”的事件乱序落地。
+6. **在平台层引入 partition head blocking 作为默认机制**：这会把失败重试、补偿和业务乱序容忍度固化到基础设施层，反而放大复杂度。默认策略应是处理失败后改写 `scheduleTime` 重新投递，由业务逻辑自己决定如何保证幂等和顺序。
 
 7. **把目标做成恰好一次**：在当前数据库 outbox + listener 回调模型下，exactly-once 成本过高，也不符合平台其他模块的默认语义。owner-doc 明确坚持 at-least-once + 幂等 listener。
 
@@ -365,5 +373,5 @@ for each owned partition P in parallel:
 ## 五、与已有设计的关系
 
 - 与 `docs-for-ai/03-modules/nop-sys.md` 的关系：后者当前只描述“分区扫描、支持延迟事件”的使用层摘要；本设计补的是平台开发侧的可靠性与并发语义基线。实现落地后，`nop-sys.md` 需要同步更新为“广播 / 普通事件分离”。
-- 与 `docs-for-ai/03-modules/nop-batch.md` 的关系：`sys-event` 复用的是 partition range 约定和 worker 切分思想，不复用 batch 的 chunk runtime。
-- 与 `ai-dev/design/nop-job/worker-assignment-design.md` 的关系：普通事件的 worker ownership、`IntRangeSet`、`WeightedPartitionAssigner`、short-range 值域直接沿用该文档已经论证过的分区基线，但事件消费的执行单元是“分区消息流”而非 job task。
+- 与 `docs-for-ai/03-modules/nop-batch.md` 的关系：`sys-event` 中普通事件可借用 batch 的周期扫描外壳、partition range 约定、worker 切分思想以及 chunk flush 优化，但不把事件结果简化成只看 chunk 成败。
+- 与 `ai-dev/design/nop-job/worker-assignment-design.md` 的关系：普通事件的 worker ownership、`IntRangeSet`、`WeightedPartitionAssigner`、short-range 值域直接沿用该文档已经论证过的分区基线，但失败后默认是重设调度时间再次扫描，而不是在基础设施层固化 head blocking。

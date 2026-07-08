@@ -9,7 +9,7 @@
 将 `nop-sys` 当前基于单表 `NopSysEvent` 的混合事件实现，收口为两条语义清晰的本地链路：
 
 - 广播事件：append-only event stream + subscriber cursor + lease
-- 普通事件：shared queue + partition ownership + per-partition ordering
+- 普通事件：shared queue + partition ownership + stable partition dispatch
 
 本计划的目标是把现有“广播不可靠、普通事件分区契约未闭合、随机分区破坏同键顺序”的 live gap 收敛为可验证的本地基线，同时保持“业务数据与事件在同一数据库事务内发布”的既有价值。
 
@@ -28,8 +28,8 @@
 - 为 `sys-event` 建立与当前设计文档一致的持久化模型：普通事件队列表、广播事件流表、广播订阅游标表。
 - 普通事件发布端停止随机默认分区；相同业务顺序键稳定落到同一 `partitionIndex`。
 - 广播消费端不再依赖 JVM 内存游标；重启后可从持久化 cursor 恢复，并保持 subscriber 级顺序推进。
-- 普通事件消费端具备显式 partition ownership / lease 模型，保证分区内串行、分区间并行。
-- 在不把 `sys-event` 建模成 `nop-batch` task 的前提下，允许引入 windowed fetch、bounded session reuse 等 chunk-like 优化，并以 focused tests 验证正确性边界不被破坏。
+- 普通事件消费端具备显式 partition ownership / lease 模型，保证同一 partition 不被两个 worker 同时处理，并允许失败后通过 `scheduleTime + retryTimes` 重新投递。
+- 在不把 `sys-event` 建模成 `nop-batch` task 的前提下，允许引入 windowed fetch、bounded session reuse 等 chunk-like 优化，并以 focused tests 验证逐条 event outcome 不被 chunk flush 语义吞没。
 - 同步 owner docs，使 `docs-for-ai/03-modules/nop-sys.md` 与实现后的 live baseline 一致。
 
 ## Non-Goals
@@ -37,7 +37,7 @@
 - 不引入 Kafka、RocketMQ、Pulsar 等外部 MQ。
 - 不追求 exactly-once；本计划的 supported baseline 仍是 at-least-once + listener 幂等。
 - 不实现“每个实例都收到一次”的 instance-scoped broadcast 新语义。
-- 不把 `sys-event` 改造成完整 `nop-batch` task，或复用 batch task state / completedIndex 作为事件正确性边界。
+- 不把 `sys-event` 改造成完整 `nop-batch` task，或复用 batch task state / completedIndex / 整 chunk 成败 作为事件正确性边界。
 - 不把 `nop-sys` 其它能力（sequence、code-rule、lock、notice template）混入本计划。
 - 不手改任何 `_gen/`、`_*.xml`、`_*.java` 生成物。
 
@@ -143,17 +143,17 @@ Targets: `nop-sys/nop-sys-dao/src/main/java/io/nop/sys/dao/message/`, focused te
 - Item Types: `Fix`, `Proof`
 
 - [x] 为普通事件消费补齐 partition ownership / lease 语义，使 worker 对分区范围的负责关系成为显式运行时契约。
-- [x] 保证普通事件分区内串行、分区间并行；失败事件阻塞所在分区头部，不允许后续事件越过。
+- [x] 保证普通事件在 partition dispatch 基线下同一 partition 不并发、不同 partition 可独立推进；失败事件默认通过 `ConsumeLater` / retry policy 重设 `scheduleTime` 重新投递，而不是由基础设施层强制 head blocking。
 - [x] 在不把 chunk completion 当作 ack 边界的前提下，引入或复用 windowed fetch、bounded session reuse、批量时间窗口扫描等执行优化。
 - [x] 明确普通事件 worker 的 claim / retry / reschedule / fail 语义，并补 focused tests。
 
 Exit Criteria:
 
-- [x] focused test：同一分区内事件按 event order 串行执行，头部失败时后续事件不会被确认。
+- [x] focused test：同一分区在一个扫描轮次内只会派发可执行记录；失败事件会回写 `scheduleTime + retryTimes`，而不是在平台层引入额外 head blocking 状态。
 - [x] focused test：不同分区可并行推进，且不互相阻塞。
 - [x] focused test：worker 失去 lease 或超时后，分区可由其他 worker 接管；接管后仍保持至少一次与分区内顺序约束。
-- [x] focused test：windowed fetch 或 bounded session reuse 生效时，ack 边界仍以单 event / 连续成功前缀为准，而不是整批 chunk 一次确认。
-- [x] **端到端验证**：至少一个普通事件场景从发布入口到分区 worker 处理、状态迁移、重试/失败阻塞完整跑通。
+- [x] focused test：windowed fetch 或 bounded session reuse 生效时，逐条 event outcome 仍被保留，而不是退化成只看整批 chunk 成败。
+- [x] **端到端验证**：至少一个普通事件场景从发布入口到分区 worker 处理、状态迁移、重试重排队完整跑通。
 - [x] **接线验证**：分区 ownership / lease 运行时调用链已实际连通到事件扫描与处理入口，而不是只存在独立 helper 或未被调用的新组件。
 - [x] **无静默跳过**：未实现的 lease / partition 分支不得用空方法体、`continue`、或吞异常绕过。
 - [x] No owner-doc update required beyond Phase 1 contract sync.
@@ -188,7 +188,7 @@ Exit Criteria:
 - [x] 普通事件发布端不再使用随机默认分区破坏同键顺序。
 - [x] 广播消费端不再依赖 JVM 内存 `lastBroadcastEvent` 作为恢复真源。
 - [x] 普通事件已具备显式 partition ownership / lease 语义，并有 focused proof。
-- [x] chunk-like 执行优化若已引入，仍以单 event / 连续成功前缀作为 ack 正确性边界。
+- [x] chunk-like 执行优化若已引入，仍保留逐条 event outcome，不退化成只看整 chunk 成败。
 - [x] 广播与普通事件的端到端验证、接线验证、无静默跳过验证均已完成。
 - [x] 受影响 design/owner docs 与 live repo 一致。
 - [x] 不存在被静默降级到 deferred/follow-up 的 in-scope live defect 或 contract drift。
@@ -226,7 +226,7 @@ Exit Criteria:
 
 ## Closure
 
-Status Note: 广播事件流/游标表、普通事件 row lease/分区头处理、稳定分区路由与 focused proof 已全部落地；独立 closure audit 二次复核后确认运行时调用链连通且无剩余 plan-owned blocker，可关闭。
+Status Note: 广播事件流/游标表、普通事件 row lease/稳定分区路由与 focused proof 已全部落地；后续复核修正了最初 plan/closure 对“partition head blocking”和“单 event / 连续成功前缀 ack”的过度表述，当前 completed 结论以 live code 的 `ConsumeLater` 重排队 + 逐条状态更新语义为准。
 Completed: 2026-07-08
 
 Closure Audit Evidence:
@@ -236,13 +236,13 @@ Closure Audit Evidence:
 - Evidence:
   - Phase 2 publish-path proof: `nop-sys/nop-sys-dao/src/test/java/io/nop/sys/dao/message/TestSysDaoMessageService.java` covers broadcast routing, stable `partitionIndex`, and no-order-key topic-hash fallback; routing code lives in `SysDaoMessageService.saveMessage()/saveBroadcastEvent()/saveNonBroadcastEvent()`.
   - Phase 3 broadcast proof: `TestSysDaoMessageService` covers cursor success prefix, failure blocking, restart recovery, and single active lease owner; runtime path is `processBroadcastEvent -> claimBroadcastCursor -> processBroadcastCursor -> advanceBroadcastCursor`.
-  - Phase 4 queue proof: `TestSysDaoMessageService` covers partition-head-only execution, failure blocking, `ConsumeLater` requeue, cross-partition independent progress, and stale-lease takeover; runtime path is `processNonBroadcastEvent -> fetchNonBroadcastEvents -> claimNonBroadcastEvents -> handleNonBroadcastProcessResult`.
+  - Phase 4 queue proof: `TestSysDaoMessageService` covers same-partition head-only fetch within a scan round, `ConsumeLater` requeue, cross-partition independent progress, and stale-lease takeover; runtime path is `processNonBroadcastEvent -> fetchNonBroadcastEvents -> claimNonBroadcastEvents -> handleNonBroadcastProcessResult`.
   - Focused verification: `./mvnw -pl nop-sys/nop-sys-dao -Dtest=TestSysDaoMessageService test` passed with 12 tests, 0 failures.
   - Reactor verification: `./mvnw test -pl nop-sys -am` passed.
   - Doc verification: `node ai-dev/tools/check-doc-links.mjs --strict` exited 0 (repo still has historical warnings outside this plan).
   - Hollow scan: `node ai-dev/tools/scan-hollow-implementations.mjs --module nop-sys --severity high` exited 0.
   - Checklist verification: `node ai-dev/tools/check-plan-checklist.mjs ai-dev/plans/288-nop-sys-sys-event-reliability-refactor.md --strict` exited 0.
-  - Anti-Hollow result: audit confirmed publish entrypoints route directly into persisted normal/broadcast paths and that no `lastBroadcastEvent` in-memory mainline remains in live code.
+  - Anti-Hollow result: audit confirmed publish entrypoints route directly into persisted normal/broadcast paths and that no `lastBroadcastEvent` in-memory mainline remains in live code. Post-closure correction further confirmed normal-event retries are implemented via per-event status update + `scheduleTime` reschedule, not via infrastructure-level partition head blocking.
 
 Follow-up:
 
