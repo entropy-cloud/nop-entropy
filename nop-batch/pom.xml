@@ -31,5 +31,6 @@
         <module>nop-batch-dsl</module>
         <module>nop-batch-exp</module>
         <module>nop-batch-biz</module>
+        <module>nop-batch-sys</module>
     </modules>
 </project>
