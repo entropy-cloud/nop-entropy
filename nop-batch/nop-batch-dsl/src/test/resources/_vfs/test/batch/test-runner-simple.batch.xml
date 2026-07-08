@@ -1,0 +1,16 @@
+<batch taskName="test.simple" batchSize="10"
+       x:schema="/nop/schema/task/batch.xdef" xmlns:x="/nop/schema/xdsl.xdef">
+
+    <loader>
+        <source>
+            return [1,2,3,4,5];
+        </source>
+    </loader>
+
+    <consumer name="all">
+        <source>
+            logInfo("items={}",items);
+        </source>
+    </consumer>
+
+</batch>

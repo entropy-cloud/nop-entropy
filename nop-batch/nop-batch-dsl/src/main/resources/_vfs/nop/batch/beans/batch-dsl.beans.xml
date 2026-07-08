@@ -2,4 +2,6 @@
 <beans x:schema="/nop/schema/beans.xdef" xmlns:x="/nop/schema/xdsl.xdef">
 
     <bean id="nopBatchTaskManager" class="io.nop.batch.dsl.manager.BatchTaskManagerImpl"/>
+
+    <bean id="nopBatchTaskRunner" class="io.nop.batch.dsl.runner.BatchTaskRunner"/>
 </beans>
