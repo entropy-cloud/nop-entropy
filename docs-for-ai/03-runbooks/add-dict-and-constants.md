@@ -65,6 +65,21 @@ public interface OrderConstants {
 }
 ```
 
+### 5. 在 API 中使用 _label 字段
+
+字典字段在 GraphQL/REST API 中**自动生成 `_label` 字段**，前端 selection 直接取：
+
+```text
+GET /r/NopAuthUser__findPage?@selection=status,status_label
+```
+
+返回：
+```json
+{ "status": "APPROVED", "status_label": "已审核" }
+```
+
+详见 `../02-core-guides/api-and-graphql.md` §字典字段的自动 _label 字段。
+
 ## 常见字典值参考
 
 | 类别 | 推荐值 |

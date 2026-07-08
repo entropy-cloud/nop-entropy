@@ -688,3 +688,4 @@ _vfs/_init-data/
 - `../03-runbooks/create-new-entity.md` — 新建实体 runbook
 - `../03-runbooks/add-field-and-validation.md` — 新增字段 runbook
 - `../03-runbooks/add-dict-and-constants.md` — 新增字典 runbook
+- `./api-and-graphql.md` §字典字段的自动 _label 字段 — 字典字段的 _label 在 GraphQL/REST 响应中的格式与 selection 写法

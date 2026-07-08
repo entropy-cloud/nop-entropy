@@ -96,6 +96,37 @@
 5. `GET` 场景会通过 `@args` 和普通 query 参数做特殊处理。
 6. 可通过 `?selection=field1,field2{subField}` 指定字段选择。
 
+### 字典字段的自动 _label 字段
+
+当字段在 XMeta（或 ORM column 的 `ext:dict`）中配置了 dict，`DefaultMetaPostExtends` 的 `GenDictLabelFields` 会在编译期自动：
+
+1. 在原字段上标记 `graphql:labelProp="{name}_label"`
+2. 生成对应的 `{name}_label` 内部字段，设置 `graphql:dictName="{dict}"` 和 `graphql:dictValueProp="{name}"`
+
+**结果**：每个 dict 字段在 GraphQL/REST 响应中自动附带一个 `_label` 显示文本字段。
+
+**selection 写法**：使用扁平的 `_label` 字段名，**不是** `{value,label}` 子对象语法：
+
+```text
+# ✅ 正确——dict 字段是扁平标量
+/r/NopAuthUser__findPage?@selection=status,status_label
+
+# ❌ 错误——dict 字段不是关联对象，不支持子 selection
+/r/NopAuthUser__findPage?@selection=status{value,label}
+```
+
+**响应示例**：
+```json
+{
+  "status": "APPROVED",
+  "status_label": "已审核"
+}
+```
+
+**机制**：label 值由 `DictLabelFetcher` 在查询时调用 `DictBean.getLabelByValue()` 实时解析。默认 `nop.core.dict.return-normalized-label=true` 时 label 格式为 `"{value}-{label}"`（如 `"APPROVED-已审核"`），设为 `false` 则只返回显示文本。
+
+**多对多关联的 label**：`graphql:labelProp` 同样适用，如 `relatedRoleList_ids` 自动生成 `relatedRoleList_label`（逗号拼接的角色名称列表）。
+
 补充说明：仓库里的生成型 typed API 目前是明显偏 `POST` 风格的，即使是 `@BizQuery` 生成接口也常见 `POST`，不要把通用 adapter 行为和 typed API 代码生成结果混为一谈。
 
 ## 内容感知调用（`/p/`）详细规则
