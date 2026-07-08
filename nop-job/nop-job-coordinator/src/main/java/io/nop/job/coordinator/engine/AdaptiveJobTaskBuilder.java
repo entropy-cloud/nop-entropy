@@ -74,22 +74,39 @@ public class AdaptiveJobTaskBuilder implements IJobTaskBuilder {
         List<WorkerLoad> workers = loadProvider.getWorkerLoads(serviceName);
         AssignmentPlan plan = strategy.assign(taskCost, workers);
 
-        if (plan.isEmpty()) {
+        if (plan == null || plan.isEmpty()) {
             throw new NopException(ERR_JOB_NO_FITTING_WORKER)
                     .param(ARG_TASK_COST, taskCost.toString())
                     .param("serviceName", serviceName);
         }
 
+        if (plan.getAssignments().size() != 1) {
+            throw new IllegalStateException("AdaptiveJobTaskBuilder requires exactly one assignment, got "
+                    + plan.getAssignments().size());
+        }
+
         Assignment assignment = plan.getAssignments().get(0);
+        if (assignment == null) {
+            throw new IllegalStateException("AdaptiveJobTaskBuilder received null assignment");
+        }
+        if (assignment.getWorkerInstanceId() == null || assignment.getWorkerInstanceId().isBlank()) {
+            throw new IllegalStateException("AdaptiveJobTaskBuilder requires non-blank workerInstanceId");
+        }
+
+        ResourceVector assignedCost = assignment.getCost() != null ? assignment.getCost() : taskCost;
 
         NopJobTask task = new NopJobTask();
         task.setJobFireId(fire.getJobFireId());
         task.setTaskNo(1);
         task.setTaskStatus(_NopJobCoreConstants.TASK_STATUS_WAITING);
         task.setWorkerInstanceId(assignment.getWorkerInstanceId());
+        task.setTargetHost(assignment.getTargetHost());
+        task.setShardingIndex(assignment.getShardingIndex());
+        task.setShardingTotal(assignment.getShardingTotal());
+        task.setPartitionRange(assignment.getPartitionRange());
         task.setPartitionIndex(fire.getPartitionIndex());
-        task.setCostCpu(taskCost.getCpu());
-        task.setCostMemory(taskCost.getMemory());
+        task.setCostCpu(assignedCost.getCpu());
+        task.setCostMemory(assignedCost.getMemory());
         if (schedule != null) {
             task.setPriority(schedule.getPriority());
         }

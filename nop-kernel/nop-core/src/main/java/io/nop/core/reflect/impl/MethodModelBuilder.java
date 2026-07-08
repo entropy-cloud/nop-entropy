@@ -126,7 +126,8 @@ public class MethodModelBuilder {
         return args;
     }
 
-    // 宏函数必须是静态函数，标记了@Macro注解，且具有两个参数，分别为IEvalScope和ASTNode类型，返回类型必须是ASTNode
+    // 宏函数必须是静态函数，标记了@Macro注解，且具有两个参数，分别为IEvalScope(或其子类型)
+    // 和ASTNode类型，返回类型必须是ASTNode。
     private boolean isMacroFunction(Method method) {
         if (!Modifier.isStatic(method.getModifiers()))
             return false;

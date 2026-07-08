@@ -16,6 +16,10 @@ import io.nop.job.api.resource.ResourceVector;
 @DataBean
 public class Assignment {
     private String workerInstanceId;
+    private String targetHost;
+    private Integer shardingIndex;
+    private Integer shardingTotal;
+    private String partitionRange;
     private ResourceVector cost;
 
     public String getWorkerInstanceId() {
@@ -24,6 +28,38 @@ public class Assignment {
 
     public void setWorkerInstanceId(String workerInstanceId) {
         this.workerInstanceId = workerInstanceId;
+    }
+
+    public String getTargetHost() {
+        return targetHost;
+    }
+
+    public void setTargetHost(String targetHost) {
+        this.targetHost = targetHost;
+    }
+
+    public Integer getShardingIndex() {
+        return shardingIndex;
+    }
+
+    public void setShardingIndex(Integer shardingIndex) {
+        this.shardingIndex = shardingIndex;
+    }
+
+    public Integer getShardingTotal() {
+        return shardingTotal;
+    }
+
+    public void setShardingTotal(Integer shardingTotal) {
+        this.shardingTotal = shardingTotal;
+    }
+
+    public String getPartitionRange() {
+        return partitionRange;
+    }
+
+    public void setPartitionRange(String partitionRange) {
+        this.partitionRange = partitionRange;
     }
 
     public ResourceVector getCost() {

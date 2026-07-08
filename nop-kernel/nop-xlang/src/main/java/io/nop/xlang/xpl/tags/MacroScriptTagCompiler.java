@@ -27,7 +27,10 @@ import java.util.Arrays;
 import java.util.List;
 
 import static io.nop.xlang.XLangErrors.ARG_NODE;
+import static io.nop.xlang.XLangErrors.ARG_LANG;
+import static io.nop.xlang.XLangErrors.ARG_SCRIPT_LANGS;
 import static io.nop.xlang.XLangErrors.ERR_XPL_SCRIPT_NOT_ALLOW_CHILD;
+import static io.nop.xlang.XLangErrors.ERR_XPL_UNKNOWN_SCRIPT_LANG;
 import static io.nop.xlang.xpl.XplConstants.LANG_NAME;
 import static io.nop.xlang.xpl.utils.XplParseHelper.checkArgNames;
 import static io.nop.xlang.xpl.utils.XplParseHelper.getAttrLiteral;
@@ -64,7 +67,9 @@ public class MacroScriptTagCompiler implements IXplTagCompiler {
             return null;
         }
 
-        throw new UnsupportedOperationException("not supported");
+        throw new NopEvalException(ERR_XPL_UNKNOWN_SCRIPT_LANG)
+                .param(ARG_LANG, lang)
+                .param(ARG_SCRIPT_LANGS, "xlang");
     }
     // resume CPD analysis - CPD-ON
 }

@@ -161,7 +161,7 @@ public class LocalMessageService implements IMessageService {
         this.invokeMessageListener(topic, message, options);
     }
 
-    public ConsumeContext invokeMessageListener(String topic, Object message, MessageSendOptions options) {
+    public void invokeMessageListener(String topic, Object message, MessageSendOptions options) {
         List<Subscription> subscriptions = consumers.get(topic);
         if (subscriptions != null) {
             ConsumeContext context = new ConsumeContext(topic);
@@ -170,26 +170,14 @@ public class LocalMessageService implements IMessageService {
                     continue;
                 IMessageConsumer consumer = subscription.consumer;
                 try {
-                    Object ret = consumer.onMessage(topic, message, context);
-                    if (ret instanceof CompletionStage) {
-                        ((CompletionStage<?>) ret).whenComplete((r, e) -> {
-                            if (e != null) {
-                                LOG.error("nop.message.consumer-error:topic={},message={},error={}", topic, message, e);
-                            } else {
-                                handleMessageResult(r, topic, message, context);
-                            }
-                        });
-                    } else {
-                        handleMessageResult(ret, topic, message, context);
-                    }
+                    Object ret = FutureHelper.getResult(consumer.onMessage(topic, message, context));
+                    handleMessageResult(ret, topic, message, context);
                 } catch (Exception e) {
-                    LOG.error("nop.message.consumer-error:topic={},message={}", topic, message, e);
+                    LOG.error("nop.message.consumer-failed:topic={},message={}", topic, message, e);
                 }
             }
-            return context;
         } else {
             LOG.debug("nop.message.ignore-message-when-no-consumer:topic={},message={}", topic, message);
-            return null;
         }
     }
 

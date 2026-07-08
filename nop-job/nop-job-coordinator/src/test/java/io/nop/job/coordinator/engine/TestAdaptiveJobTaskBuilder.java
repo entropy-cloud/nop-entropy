@@ -1,8 +1,9 @@
 package io.nop.job.coordinator.engine;
 
 import io.nop.api.core.exceptions.NopException;
-import io.nop.cluster.discovery.IDiscoveryClient;
 import io.nop.cluster.discovery.ServiceInstance;
+import io.nop.core.lang.json.JsonTool;
+import io.nop.core.reflect.bean.BeanTool;
 import io.nop.job.api.resource.ResourceVector;
 import io.nop.job.dao.entity.NopJobFire;
 import io.nop.job.dao.entity.NopJobSchedule;
@@ -11,7 +12,11 @@ import io.nop.job.dao.store.IJobScheduleStore;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -51,6 +56,12 @@ public class TestAdaptiveJobTaskBuilder {
     }
 
     @Test
+    void testMissingLoadProviderThrowsException() {
+        NopException ex = assertThrows(NopException.class, () -> new AdaptiveJobTaskBuilder().buildTasks(createFire("svc")));
+        assertTrue(ex.getErrorCode().contains("worker-capacity-provider-required"));
+    }
+
+    @Test
     void testNormalAssignmentWritesWorkerInstanceId() {
         WorkerLoad load = new WorkerLoad();
         ServiceInstance inst = new ServiceInstance();
@@ -66,6 +77,150 @@ public class TestAdaptiveJobTaskBuilder {
         assertEquals(1, tasks.size());
         assertEquals("best-worker", tasks.get(0).getWorkerInstanceId(),
                 "Task workerInstanceId must be set to the assigned worker");
+    }
+
+    @Test
+    void testAssignmentMetadataAndAssignmentCostAreMappedToTask() {
+        builder.setLoadProvider(new MockLoadProvider(List.of()));
+        builder.setStrategy((taskCost, workers) -> {
+            Assignment assignment = new Assignment();
+            assignment.setWorkerInstanceId("best-worker");
+            assignment.setTargetHost("10.0.0.8:8080");
+            assignment.setShardingIndex(2);
+            assignment.setShardingTotal(5);
+            assignment.setPartitionRange("100,50");
+            assignment.setCost(new ResourceVector(1200, 2400));
+            return new AssignmentPlan(List.of(assignment));
+        });
+
+        NopJobTask task = builder.buildTasks(createFire("svc")).get(0);
+        assertEquals("best-worker", task.getWorkerInstanceId());
+        assertEquals("10.0.0.8:8080", task.getTargetHost());
+        assertEquals(2, task.getShardingIndex());
+        assertEquals(5, task.getShardingTotal());
+        assertEquals("100,50", task.getPartitionRange());
+        assertEquals(1200, task.getCostCpu());
+        assertEquals(2400, task.getCostMemory());
+    }
+
+    @Test
+    void testAssignmentNullCostFallsBackToScheduleCost() {
+        builder.setLoadProvider(new MockLoadProvider(List.of()));
+        builder.setStrategy((taskCost, workers) -> {
+            Assignment assignment = new Assignment();
+            assignment.setWorkerInstanceId("best-worker");
+            return new AssignmentPlan(List.of(assignment));
+        });
+
+        NopJobTask task = builder.buildTasks(createFire("svc")).get(0);
+        assertEquals(500, task.getCostCpu());
+        assertEquals(500, task.getCostMemory());
+    }
+
+    @Test
+    void testMultipleAssignmentsFailFast() {
+        builder.setLoadProvider(new MockLoadProvider(List.of()));
+        builder.setStrategy((taskCost, workers) -> new AssignmentPlan(List.of(new Assignment(), new Assignment())));
+
+        IllegalStateException ex = assertThrows(IllegalStateException.class,
+                () -> builder.buildTasks(createFire("svc")));
+        assertTrue(ex.getMessage().contains("exactly one assignment"));
+    }
+
+    @Test
+    void testNullAssignmentFailsFast() {
+        builder.setLoadProvider(new MockLoadProvider(List.of()));
+        builder.setStrategy((taskCost, workers) -> new AssignmentPlan(Collections.singletonList(null)));
+
+        IllegalStateException ex = assertThrows(IllegalStateException.class,
+                () -> builder.buildTasks(createFire("svc")));
+        assertTrue(ex.getMessage().contains("null assignment"));
+    }
+
+    @Test
+    void testBlankWorkerInstanceIdFailsFast() {
+        builder.setLoadProvider(new MockLoadProvider(List.of()));
+        builder.setStrategy((taskCost, workers) -> {
+            Assignment assignment = new Assignment();
+            assignment.setWorkerInstanceId("   ");
+            return new AssignmentPlan(List.of(assignment));
+        });
+
+        IllegalStateException ex = assertThrows(IllegalStateException.class,
+                () -> builder.buildTasks(createFire("svc")));
+        assertTrue(ex.getMessage().contains("workerInstanceId"));
+    }
+
+    @Test
+    void testAssignmentPlanRetainsTypedAssignmentMetadata() {
+        Assignment assignment = new Assignment();
+        assignment.setWorkerInstanceId("worker-2");
+        assignment.setTargetHost("10.0.0.2:8080");
+        assignment.setShardingIndex(2);
+        assignment.setShardingTotal(4);
+        assignment.setPartitionRange("100,50");
+
+        AssignmentPlan plan = new AssignmentPlan(new ArrayList<>(List.of(assignment)));
+        Assignment actual = plan.getAssignments().get(0);
+
+        assertEquals("worker-2", actual.getWorkerInstanceId());
+        assertEquals("10.0.0.2:8080", actual.getTargetHost());
+        assertEquals(2, actual.getShardingIndex());
+        assertEquals(4, actual.getShardingTotal());
+        assertEquals("100,50", actual.getPartitionRange());
+    }
+
+    @Test
+    void testAssignmentJsonParsingRetainsTypedMetadata() {
+        String json = "{"
+                + "workerInstanceId:'worker-json',"
+                + "targetHost:'10.0.0.9:8080',"
+                + "shardingIndex:3,"
+                + "shardingTotal:6,"
+                + "partitionRange:'120,40',"
+                + "cost:{cpu:700,memory:1400}"
+                + "}";
+        Assignment assignment = JsonTool.parseBeanFromText(json, Assignment.class);
+
+        assertEquals("worker-json", assignment.getWorkerInstanceId());
+        assertEquals("10.0.0.9:8080", assignment.getTargetHost());
+        assertEquals(3, assignment.getShardingIndex());
+        assertEquals(6, assignment.getShardingTotal());
+        assertEquals("120,40", assignment.getPartitionRange());
+        assertEquals(700, assignment.getCost().getCpu());
+        assertEquals(1400, assignment.getCost().getMemory());
+    }
+
+    @Test
+    void testAssignmentBeanToolBuildBeanRetainsTypedMetadata() {
+        Assignment assignment = BeanTool.buildBean(Map.of(
+                "workerInstanceId", "worker-map",
+                "targetHost", "10.0.0.10:8080",
+                "shardingIndex", 4,
+                "shardingTotal", 8,
+                "partitionRange", "160,20",
+                "cost", Map.of("cpu", 900, "memory", 1800)
+        ), Assignment.class);
+
+        assertEquals("worker-map", assignment.getWorkerInstanceId());
+        assertEquals("10.0.0.10:8080", assignment.getTargetHost());
+        assertEquals(4, assignment.getShardingIndex());
+        assertEquals(8, assignment.getShardingTotal());
+        assertEquals("160,20", assignment.getPartitionRange());
+        assertEquals(900, assignment.getCost().getCpu());
+        assertEquals(1800, assignment.getCost().getMemory());
+    }
+
+    @Test
+    void testAssignmentPlanEmptyOnNullList() {
+        AssignmentPlan plan = new AssignmentPlan(null);
+        assertTrue(plan.isEmpty());
+    }
+
+    @Test
+    void testAssignmentInvalidMetadataTypeFailsLoudly() {
+        Assignment assignment = new Assignment();
+        assertThrows(ClassCastException.class, () -> assignment.setShardingIndex((Integer) (Object) Map.of("bad", true)));
     }
 
     /**

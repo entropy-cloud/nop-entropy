@@ -481,6 +481,11 @@ public class TemplateFileGenerator {
      * @return true表示允许重新生成，否则该文件不用重新生成，可以直接跳过处理
      */
     protected boolean isAllowWrite(IResource tplFile, IResource targetFile, String targetPath, boolean textFile) {
+        if (!isTplFile(tplFile)) {
+            return forceOverride || !targetFile.exists() || targetFile.getName().startsWith(XGEN_FILE_PREFIX)
+                    || targetPath.contains(XGEN_FILE_DIR) || targetPath.startsWith("_gen/");
+        }
+
         if (forceOverride || !targetFile.exists())
             return true;
 

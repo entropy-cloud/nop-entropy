@@ -12,6 +12,7 @@ import io.nop.core.initialize.CoreInitialization;
 import io.nop.core.lang.xml.XNode;
 import io.nop.core.reflect.IClassModel;
 import io.nop.core.reflect.ReflectionManager;
+import io.nop.core.type.IGenericType;
 import io.nop.core.type.PredefinedGenericTypes;
 import io.nop.core.unittest.BaseTestCase;
 import io.nop.xlang.xdef.IXDefinition;
@@ -95,7 +96,8 @@ public class TestXMetaRef extends BaseTestCase {
         assertTrue(objMeta.getDefine("XplTag") != null);
 
         for (IObjSchema schema : objMeta.getDefinedObjSchemas()) {
-            assertTrue(schema.getType() != PredefinedGenericTypes.ANY_TYPE);
+            IGenericType type = schema.getType();
+            assertTrue(type != null && type != PredefinedGenericTypes.ANY_TYPE);
         }
 
         IObjSchema schema = objMeta.getDefine("XplTagLib");
@@ -117,7 +119,7 @@ public class TestXMetaRef extends BaseTestCase {
         IObjMeta objMeta = SchemaLoader.loadXMeta("/nop/schema/beans.xdef");
         ISchema propValue = objMeta.getDefine("BeanPropValue");
         ISchema body = propValue.getProp("body").getSchema();
-        assertEquals("IBeanPropValue", body.getType().getSimpleClassName());
+        assertEquals("IBeanPropValue", body.getSimpleClassName());
     }
 
     @Test

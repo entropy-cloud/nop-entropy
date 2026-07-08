@@ -188,14 +188,17 @@ public class JobDispatcherScannerImpl implements IJobDispatcherScanner {
                     List<NopJobTask> tasks = builder.buildTasks(fire);
                     NopJobSchedule schedule = scheduleStore.loadSchedule(fire.getJobScheduleId());
                     for (NopJobTask task : tasks) {
-                        // Normalize null → 0: schedule cost/priority are nullable Integer.
-                        // Without this, dispatcher overwrites builder values with null,
-                        // which causes worker fit-check NPE (AR-84) and SQL SUM to skip
-                        // rows (AR-95). Single point of normalization; builder paths that
-                        // already set non-null values are unaffected.
-                        task.setCostCpu(normalizeCost(schedule.getTaskCostCpu()));
-                        task.setCostMemory(normalizeCost(schedule.getTaskCostMemory()));
-                        task.setPriority(normalizeCost(schedule.getPriority()));
+                        // Preserve builder-set values (for example bestFit assignment cost), and only
+                        // fill unset cost/priority from schedule defaults while still normalizing null → 0.
+                        if (task.getCostCpu() == null) {
+                            task.setCostCpu(normalizeCost(schedule.getTaskCostCpu()));
+                        }
+                        if (task.getCostMemory() == null) {
+                            task.setCostMemory(normalizeCost(schedule.getTaskCostMemory()));
+                        }
+                        if (task.getPriority() == null) {
+                            task.setPriority(normalizeCost(schedule.getPriority()));
+                        }
                     }
                     fireStore.insertTasksAndMarkFireDispatching(fire, tasks);
                     dispatchedCount++;

@@ -201,6 +201,89 @@ public class TestJobCoordinatorScanner extends JunitBaseTestCase {
         assertEquals(0, task.getPriority());
     }
 
+    @Test
+    public void testBestFitAssignmentMetadataAndAssignmentCostEndToEnd() {
+        rememberOriginalBeanContainer();
+
+        AdaptiveJobTaskBuilder bestFitBuilder = new AdaptiveJobTaskBuilder();
+        bestFitBuilder.setScheduleStore(scheduleStore);
+        bestFitBuilder.setLoadProvider(serviceName -> List.of());
+        bestFitBuilder.setStrategy((taskCost, workers) -> {
+            Assignment assignment = new Assignment();
+            assignment.setWorkerInstanceId("worker-bestfit");
+            assignment.setTargetHost("10.1.1.8:8080");
+            assignment.setShardingIndex(1);
+            assignment.setShardingTotal(4);
+            assignment.setPartitionRange("20,10");
+            assignment.setCost(new ResourceVector(120, 340));
+            return new AssignmentPlan(List.of(assignment));
+        });
+
+        StaticBeanContainer container = new StaticBeanContainer();
+        container.registerBean("nopJobTaskBuilder_bestFit", bestFitBuilder);
+        BeanContainer.registerInstance(container);
+
+        NopJobSchedule schedule = newSchedule("sched-bestfit-meta", "job-bestfit-meta");
+        schedule.setTaskCostCpu(900);
+        schedule.setTaskCostMemory(1800);
+        schedule.setPriority(7);
+        daoProvider.daoFor(NopJobSchedule.class).saveEntityDirectly(schedule);
+        NopJobFire fire = newWaitingBestFitFire(schedule, "svc-meta");
+        daoProvider.daoFor(NopJobFire.class).saveEntityDirectly(fire);
+
+        JobDispatcherScannerImpl dispatcher = newDispatcher(10);
+        dispatcher.scanOnce();
+
+        NopJobTask task = daoProvider.daoFor(NopJobTask.class).findAll().stream()
+                .filter(item -> fire.getJobFireId().equals(item.getJobFireId()))
+                .findFirst()
+                .orElseThrow();
+        assertEquals("worker-bestfit", task.getWorkerInstanceId());
+        assertEquals("10.1.1.8:8080", task.getTargetHost());
+        assertEquals(1, task.getShardingIndex());
+        assertEquals(4, task.getShardingTotal());
+        assertEquals("20,10", task.getPartitionRange());
+        assertEquals(120, task.getCostCpu(), "assignment cost must survive dispatcher normalization");
+        assertEquals(340, task.getCostMemory(), "assignment cost must survive dispatcher normalization");
+        assertEquals(7, task.getPriority(), "builder-set schedule priority must be preserved");
+    }
+
+    @Test
+    public void testDispatcherPreservesBuilderSetCostAndPriority() {
+        rememberOriginalBeanContainer();
+        StaticBeanContainer container = new StaticBeanContainer();
+        container.registerBean("nopJobTaskBuilder_bestFit", (IJobTaskBuilder) fire -> {
+            NopJobTask task = new NopJobTask();
+            task.setJobFireId(fire.getJobFireId());
+            task.setTaskNo(1);
+            task.setTaskStatus(TASK_STATUS_WAITING);
+            task.setPartitionIndex(fire.getPartitionIndex());
+            task.setCostCpu(111);
+            task.setCostMemory(222);
+            task.setPriority(9);
+            return List.of(task);
+        });
+        BeanContainer.registerInstance(container);
+
+        NopJobSchedule schedule = newSchedule("sched-preserve-builder", "job-preserve-builder");
+        schedule.setTaskCostCpu(700);
+        schedule.setTaskCostMemory(800);
+        schedule.setPriority(3);
+        daoProvider.daoFor(NopJobSchedule.class).saveEntityDirectly(schedule);
+        NopJobFire fire = newWaitingBestFitFire(schedule, "svc-preserve");
+        daoProvider.daoFor(NopJobFire.class).saveEntityDirectly(fire);
+
+        runDispatcher();
+
+        NopJobTask task = daoProvider.daoFor(NopJobTask.class).findAll().stream()
+                .filter(item -> fire.getJobFireId().equals(item.getJobFireId()))
+                .findFirst()
+                .orElseThrow();
+        assertEquals(111, task.getCostCpu());
+        assertEquals(222, task.getCostMemory());
+        assertEquals(9, task.getPriority());
+    }
+
     private void runPlanner() {
         JobPlannerScannerImpl planner = new JobPlannerScannerImpl();
         planner.setScheduleStore(scheduleStore);

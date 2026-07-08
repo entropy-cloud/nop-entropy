@@ -7,16 +7,20 @@
  */
 package io.nop.job.coordinator.engine;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
+import io.nop.api.core.annotations.data.DataBean;
+
 import java.util.Collections;
 import java.util.List;
 
 /**
  * 任务分配计划。空 plan 表示没有 fitting worker。
  */
+@DataBean
 public class AssignmentPlan {
     private final List<Assignment> assignments;
 
-    public AssignmentPlan(List<Assignment> assignments) {
+    public AssignmentPlan(@JsonProperty("assignments") List<Assignment> assignments) {
         this.assignments = assignments != null ? assignments : Collections.emptyList();
     }
 

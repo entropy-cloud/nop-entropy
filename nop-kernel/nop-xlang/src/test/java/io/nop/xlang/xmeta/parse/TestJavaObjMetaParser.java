@@ -8,6 +8,7 @@
 package io.nop.xlang.xmeta.parse;
 
 import io.nop.core.resource.IResource;
+import io.nop.core.type.IGenericType;
 import io.nop.core.unittest.BaseTestCase;
 import io.nop.xlang.xmeta.IObjPropMeta;
 import io.nop.xlang.xmeta.ISchema;

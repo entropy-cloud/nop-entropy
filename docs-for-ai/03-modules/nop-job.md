@@ -201,7 +201,7 @@ public class MyJobInvoker implements IJobInvoker {
 
 > **bean 命名约定**：Worker 通过 `DefaultJobInvokerResolver` 解析 invoker，bean 名固定前缀为 `nopJobInvoker_`，后缀为作业记录中的 `executorKind` 字段值。上面的例子对应 `executorKind = myJob`。参考 `nop-job-service` 内置的 `nopJobInvoker_rpc`、`nopJobInvoker_rpcBroadcast`、`nopJobInvoker_test`。
 
-> **dispatchMode 路由**：`nop_job_fire.dispatch_mode` 决定 task 拆分方式，dispatcher 用 bean 名 `nopJobTaskBuilder_<dispatchMode>` 解析（如 `partition`/`broadcast`/`bestFit`）。`dispatchMode ∈ {null, blank, "single"}` 时按 `executorKind` 路由再 fallback 到默认 single builder；**非 single 的 dispatchMode 若对应 bean 未注册则显式失败**（抛 `nop.err.job.dispatch-mode-not-implemented`，由 per-fire 隔离捕获、fire 留 DISPATCHING 由超时检查器回收），不静默退化为单例。单个 fire 派发失败不波及同批次其余 fire。
+> **dispatchMode 路由**：`nop_job_fire.dispatch_mode` 决定 task 拆分方式，dispatcher 用 bean 名 `nopJobTaskBuilder_<dispatchMode>` 解析（如 `partition`/`broadcast`/`bestFit`）。`dispatchMode ∈ {null, blank, "single"}` 时按 `executorKind` 路由再 fallback 到默认 single builder；**非 single 的 dispatchMode 若对应 bean 未注册则显式失败**（抛 `nop.err.job.dispatch-mode-not-implemented`，由 per-fire 隔离捕获、fire 留 DISPATCHING 由超时检查器回收），不静默退化为单例。单个 fire 派发失败不波及同批次其余 fire。`bestFit` 当前只支持单 task 语义：strategy 必须返回且只返回一个 assignment；多 assignment 会 fail fast。
 
 **步骤 2：创建 NopJobSchedule 记录**
 
@@ -288,9 +288,11 @@ public interface IJobInvoker {
 
 **NopJobFire 关键字段**：`triggerSource`（SCHEDULE/MANUAL/RECOVERY）、`fireStatus`、`durationMs`。
 
-**NopJobTask 关键字段**：`taskStatus`、`shardingIndex`/`shardingTotal`、`progress`、`costCpu`（CPU 毫核，资源限制用）、`costMemory`（内存 MB）、`priority`（优先级，越大越优先）。
+**NopJobTask 关键字段**：`taskStatus`、`workerInstanceId`、`targetHost`、`partitionRange`、`shardingIndex`/`shardingTotal`、`progress`、`costCpu`（CPU 毫核，资源限制用）、`costMemory`（内存 MB）、`priority`（优先级，越大越优先）。
 
-> **cost/priority 归一约定**：dispatcher 落库 task 行时，对 schedule 中可空的 `taskCostCpu`/`taskCostMemory`/`priority` 做 null→0 归一（`JobDispatcherScannerImpl.scanOnce` 单点）。worker fit-check 亦对历史脏行（null cost）防御性归一为 0。因此 task 行的 `costCpu`/`costMemory`/`priority` 恒非 null，未配置时为 0。
+> **bestFit assignment 元数据约定**：`AdaptiveJobTaskBuilder` 只把 typed assignment 元数据映射到已有 task 列：`workerInstanceId`、`targetHost`、`shardingIndex`、`shardingTotal`、`partitionRange`。不使用无约束 `Map<String,Object>` 承载框架级路由字段。
+
+> **cost/priority 归一约定**：dispatcher 落库 task 行时，会保留 builder 已明确设置的 `costCpu`、`costMemory`、`priority`；仅当这些列为 null 时才从 schedule 的 `taskCostCpu`/`taskCostMemory`/`priority` 填充，并对剩余空值做 null→0 归一（`JobDispatcherScannerImpl.scanOnce` 单点）。因此 task 行的 `costCpu`/`costMemory`/`priority` 恒非 null，未配置时为 0；bestFit 路径若 strategy 返回了 `Assignment.cost`，该值会进入最终 task cost，而不会被 dispatcher 覆盖。
 
 > **capacity 配置语义**（worker `nop.job.capacity.cpu/memory` 配置或 `ServiceInstance.metadata`，两侧一致）：`0` 或未声明 → 视为"未设/无限"（`MAX_VALUE`，退化为 count-based）；负数视为配置错误抛异常（不静默退化为拒绝一切的黑洞 worker）。`nop.job.fetch.enforce-attribution=true` 用于 dedicated worker 池；single 模式 task 的 `workerInstanceId` 留 NULL（走 competing-consumer IS NULL 分支被任意 worker 认领，含分离部署），认领后被设为认领 worker 的 hostId。
 

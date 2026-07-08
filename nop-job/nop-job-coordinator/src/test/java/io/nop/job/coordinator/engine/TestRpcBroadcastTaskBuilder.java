@@ -35,6 +35,7 @@ public class TestRpcBroadcastTaskBuilder {
 
     private ServiceInstance createInstance(String host, int port, boolean healthy, boolean enabled) {
         ServiceInstance inst = new ServiceInstance();
+        inst.setInstanceId(host + ":" + port);
         inst.setAddr(host);
         inst.setPort(port);
         inst.setHealthy(healthy);
@@ -121,6 +122,7 @@ public class TestRpcBroadcastTaskBuilder {
             assertEquals(i + 1, tasks.get(i).getTaskNo());
             assertEquals(3, tasks.get(i).getShardingTotal());
             assertEquals(i, tasks.get(i).getShardingIndex());
+            assertEquals("h" + (i + 1) + ":" + (8080 + i), tasks.get(i).getWorkerInstanceId());
         }
     }
 
