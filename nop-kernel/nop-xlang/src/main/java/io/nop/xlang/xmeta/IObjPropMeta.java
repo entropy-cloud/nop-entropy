@@ -178,8 +178,6 @@ public interface IObjPropMeta
      */
     // String getHint();
 
-    // String getPlaceholder();
-
     Set<String> getTagSet();
 
     ObjConditionExpr getAutoExpr();

@@ -18,6 +18,7 @@ import io.nop.xlang.xmeta.IObjSchema;
 import io.nop.xlang.xmeta.ISchema;
 import io.nop.xlang.xmeta.ISchemaLoader;
 import io.nop.xlang.xmeta.ISchemaNode;
+import io.nop.xlang.xmeta.IUnionSchema;
 import io.nop.xlang.xmeta.SimpleSchemaValidator;
 import io.nop.xlang.xmeta.utils.ObjMetaPropHelper;
 
@@ -27,12 +28,16 @@ import java.util.Map;
 import static io.nop.xlang.XLangErrors.ARG_BIZ_OBJ_NAME;
 import static io.nop.xlang.XLangErrors.ARG_DICT_NAME;
 import static io.nop.xlang.XLangErrors.ARG_PROP_NAME;
+import static io.nop.xlang.XLangErrors.ARG_SUB_TYPE_PROP;
+import static io.nop.xlang.XLangErrors.ARG_SUB_TYPE_VALUE;
 import static io.nop.xlang.XLangErrors.ARG_VALUE;
 import static io.nop.xlang.XLangErrors.ARG_VALUE_CLASS;
 import static io.nop.xlang.XLangErrors.ERR_SCHEMA_MANDATORY_PROP_IS_EMPTY;
 import static io.nop.xlang.XLangErrors.ERR_SCHEMA_PROP_VALUE_NOT_COLLECTION;
 import static io.nop.xlang.XLangErrors.ERR_SCHEMA_PROP_VALUE_NOT_IN_DICT;
 import static io.nop.xlang.XLangErrors.ERR_SCHEMA_PROP_VALUE_NOT_MAP;
+import static io.nop.xlang.XLangErrors.ERR_SCHEMA_UNION_NO_SUB_SCHEMA_DEFINITION;
+import static io.nop.xlang.XLangErrors.ERR_SCHEMA_UNION_SUB_TYPE_PROP_IS_EMPTY;
 
 public class SchemaBasedValidator {
     static SchemaBasedValidator _instance = new SchemaBasedValidator();
@@ -43,7 +48,9 @@ public class SchemaBasedValidator {
 
     public void validate(ISchema schema, String bizObjName, String propName, Object value, FieldSelectionBean selection,
                          ValidationContext ctx) {
-        if (schema.isObjSchema()) {
+        if (schema.isUnionSchema()) {
+            validateUnion((IUnionSchema) schema, bizObjName, propName, value, selection, ctx);
+        } else if (schema.isObjSchema()) {
             validateObject(schema, bizObjName, value, selection, ctx);
         } else if (schema.isListSchema()) {
             if (!(value instanceof Collection)) {
@@ -87,6 +94,31 @@ public class SchemaBasedValidator {
                 }
             }
         }
+    }
+
+    protected void validateUnion(IUnionSchema schema, String bizObjName, String propName, Object value,
+                                 FieldSelectionBean selection, ValidationContext ctx) {
+        String subTypeProp = schema.getSubTypeProp();
+        Object typeValue = BeanTool.instance().getProperty(value, subTypeProp);
+        if (typeValue == null || StringHelper.isEmptyObject(typeValue)) {
+            ctx.addError(ERR_SCHEMA_UNION_SUB_TYPE_PROP_IS_EMPTY)
+                    .param(ARG_BIZ_OBJ_NAME, bizObjName)
+                    .param(ARG_PROP_NAME, propName)
+                    .param(ARG_SUB_TYPE_PROP, subTypeProp);
+            return;
+        }
+
+        ISchema subSchema = getUnionSubSchema(schema, typeValue.toString());
+        if (subSchema == null) {
+            ctx.addError(ERR_SCHEMA_UNION_NO_SUB_SCHEMA_DEFINITION)
+                    .param(ARG_BIZ_OBJ_NAME, bizObjName)
+                    .param(ARG_PROP_NAME, propName)
+                    .param(ARG_SUB_TYPE_PROP, subTypeProp)
+                    .param(ARG_SUB_TYPE_VALUE, typeValue);
+            return;
+        }
+
+        validate(subSchema, bizObjName, propName, value, selection, ctx);
     }
 
     public void validateMap(ISchema itemSchema, String bizObjName, Map<String, ?> map,
@@ -175,6 +207,21 @@ public class SchemaBasedValidator {
     protected DictBean getDict(String dictName, ValidationContext ctx) {
         ICache<Object, Object> cache = ctx.getCache();
         return DictProvider.instance().requireDict(ctx.getLocale(), dictName, cache, ctx);
+    }
+
+    protected ISchema getUnionSubSchema(IUnionSchema schema, String typeValue) {
+        if (schema.getOneOf() == null || schema.getOneOf().isEmpty())
+            return null;
+
+        ISchema unknownSchema = null;
+        for (ISchema subSchema : schema.getOneOf()) {
+            if ("*".equals(subSchema.getTypeValue())) {
+                unknownSchema = subSchema;
+            }
+            if (typeValue.equals(subSchema.getTypeValue()))
+                return subSchema;
+        }
+        return unknownSchema;
     }
 
     protected ISchema getRefSchema(ISchema schema, ValidationContext ctx) {

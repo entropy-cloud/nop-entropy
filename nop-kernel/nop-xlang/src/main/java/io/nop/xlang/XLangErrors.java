@@ -1028,6 +1028,15 @@ public interface XLangErrors {
     ErrorCode ERR_SCHEMA_PROP_VALUE_NOT_MAP =
             define("nop.err.schema.prop-value-not-map","属性[{propName}]的值不是Map类型", ARG_PROP_NAME);
 
+    ErrorCode ERR_SCHEMA_UNION_SUB_TYPE_PROP_IS_EMPTY =
+            define("nop.err.schema.union-sub-type-prop-is-empty",
+                    "属性[{propName}]的union子类型属性[{subTypeProp}]的值不能为空", ARG_PROP_NAME, ARG_SUB_TYPE_PROP);
+
+    ErrorCode ERR_SCHEMA_UNION_NO_SUB_SCHEMA_DEFINITION =
+            define("nop.err.schema.union-no-sub-schema-definition",
+                    "属性[{propName}]的union类型没有找到针对子类型[{subTypeValue}]的子定义", ARG_PROP_NAME,
+                    ARG_SUB_TYPE_PROP, ARG_SUB_TYPE_VALUE);
+
     ErrorCode ERR_SCHEMA_PROP_NOT_MATCH_PATTERN =
             define("nop.err.schema.prop-not-match-pattern", "属性[{propName}]的值不满足格式要求",
                     ARG_PROP_NAME, ARG_PATTERN);

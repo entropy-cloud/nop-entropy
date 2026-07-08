@@ -1,6 +1,4 @@
-package io.nop.rpc.model.validate;
-
-import io.nop.xlang.xmeta.validate.ValidationContext;
+package io.nop.xlang.xmeta.validate;
 
 public interface IMessageValidator {
     void validate(String messageType, Object message, ValidationContext validationContext);
