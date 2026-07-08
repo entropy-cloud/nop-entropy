@@ -55,6 +55,7 @@ import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.function.Function;
 
 public class SysDaoMessageService extends LifeCycleSupport implements IMessageService {
     static final Logger LOG = LoggerFactory.getLogger(SysDaoMessageService.class);
@@ -257,6 +258,22 @@ public class SysDaoMessageService extends LifeCycleSupport implements IMessageSe
         return retryPolicy.getRetryDelay(exception, count, this);
     }
 
+    public int getFetchSize() {
+        return fetchSize;
+    }
+
+    public List<NopSysEvent> fetchExecutableNonBroadcastEvents(int batchSize) {
+        return fetchNonBroadcastEvents(batchSize);
+    }
+
+    public void processClaimedNonBroadcastEvent(NopSysEvent event) {
+        processNonBroadcastEvent(event);
+    }
+
+    public <R, T> T runInNewTransaction(Function<R, T> fn, R request, TransactionPropagation propagation) {
+        return fn.apply(request);
+    }
+
     protected void processBroadcastEvent() {
         ensureStartTimeInitialized();
         Set<String> topics = getBroadcastTopics();
@@ -289,6 +306,10 @@ public class SysDaoMessageService extends LifeCycleSupport implements IMessageSe
     }
 
     protected List<NopSysEvent> fetchNonBroadcastEvents() {
+        return fetchNonBroadcastEvents(fetchSize * 4);
+    }
+
+    protected List<NopSysEvent> fetchNonBroadcastEvents(int batchSize) {
         ensureStartTimeInitialized();
         Set<String> topics = localService.getNonBroadcastTopics();
         if (topics.isEmpty())
@@ -298,8 +319,6 @@ public class SysDaoMessageService extends LifeCycleSupport implements IMessageSe
         long now = dao.getDbEstimatedClock().getMaxCurrentTimeMillis();
         Map<Integer, NopSysEvent> heads = new LinkedHashMap<>();
         long offset = 0;
-        int batchSize = fetchSize * 4;
-
         while (countExecutableHeads(heads) < fetchSize) {
             QueryBean query = new QueryBean();
             query.setOffset(offset);

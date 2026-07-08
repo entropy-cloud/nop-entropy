@@ -7,7 +7,6 @@
     <dicts>
         <dict label="事件状态" name="core/sys-event-status" valueType="int" i18n-en:label="Sys Event Status">
             <option code="WAITING" label="待处理" value="0"/>
-            <option code="CLAIMED" label="已认领" value="5"/>
             <option code="PROCESSED" label="已处理" value="10"/>
             <option code="EXPIRED" description="已超时" label="已过期" value="20"/>
             <option code="FAILED" description="经过多次尝试后仍然处理失败" label="已失败" value="30"/>
