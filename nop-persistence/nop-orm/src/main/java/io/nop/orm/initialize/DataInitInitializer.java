@@ -14,6 +14,7 @@ import io.nop.dao.jdbc.IJdbcTemplate;
 import io.nop.orm.IOrmEntity;
 import io.nop.orm.IOrmSessionFactory;
 import io.nop.orm.IOrmTemplate;
+import io.nop.orm.impl.OrmTemplateImpl;
 import io.nop.orm.model.IColumnModel;
 import io.nop.orm.model.IEntityModel;
 import io.nop.orm.model.IOrmModel;
@@ -62,9 +63,21 @@ public class DataInitInitializer {
         this.dataLocation = dataLocation;
     }
 
+    private void ensureOrmTemplateSessionFactory() {
+        if (ormTemplate instanceof OrmTemplateImpl) {
+            OrmTemplateImpl impl = (OrmTemplateImpl) ormTemplate;
+            if (impl.getSessionFactory() == null) {
+                impl.setSessionFactory(ormSessionFactory);
+                LOG.info("nop.orm.init-database-data: patch ormTemplate.sessionFactory");
+            }
+        }
+    }
+
     @PostConstruct
     public void init() {
         LOG.info("nop.orm.init-database-data: location={}", dataLocation);
+
+        ensureOrmTemplateSessionFactory();
 
         IOrmModel ormModel = ormSessionFactory.getOrmModel();
         Collection<? extends IEntityModel> tables = ormModel.getEntityModelsInTopoOrder();
