@@ -1,7 +1,12 @@
 package io.nop.job.coordinator.engine;
 
+import io.nop.autotest.junit.JunitBaseTestCase;
+import io.nop.api.core.annotations.autotest.NopTestConfig;
+import io.nop.api.core.annotations.core.OptionalBoolean;
+import io.nop.dao.api.IDaoProvider;
 import io.nop.job.dao.entity.NopJobFire;
 import io.nop.job.dao.entity.NopJobTask;
+import jakarta.inject.Inject;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
@@ -9,11 +14,16 @@ import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-public class TestDefaultJobTaskBuilder {
+@NopTestConfig(localDb = true, initDatabaseSchema = OptionalBoolean.TRUE)
+public class TestDefaultJobTaskBuilder extends JunitBaseTestCase {
+
+    @Inject
+    IDaoProvider daoProvider;
 
     @Test
     void testBuildSingleTask() {
         DefaultJobTaskBuilder builder = new DefaultJobTaskBuilder();
+        builder.setDaoProvider(daoProvider);
 
         NopJobFire fire = new NopJobFire();
         fire.setJobFireId("fire-1");
@@ -29,12 +39,16 @@ public class TestDefaultJobTaskBuilder {
         assertEquals(1, task.getTaskNo());
         assertEquals(0, task.getTaskStatus());
         assertEquals((short) 1, task.getPartitionIndex());
-        assertNotNull(task.getTaskPayloadComponent().get_jsonMap());
+        // taskPayload is the task-level params slot; default single task carries none.
+        assertNull(task.getTaskPayload());
+        // Effective params = fire snapshot (fire passed explicitly, as in worker/cancel paths).
+        assertEquals("myService", task.getEffectiveParams(fire).get("serviceName"));
     }
 
     @Test
     void testBuildWithNullSnapshots() {
         DefaultJobTaskBuilder builder = new DefaultJobTaskBuilder();
+        builder.setDaoProvider(daoProvider);
 
         NopJobFire fire = new NopJobFire();
         fire.setJobFireId("fire-2");
@@ -43,7 +57,9 @@ public class TestDefaultJobTaskBuilder {
         List<NopJobTask> tasks = builder.buildTasks(fire);
 
         assertEquals(1, tasks.size());
-        assertNotNull(tasks.get(0).getTaskPayloadComponent().get_jsonMap());
+        NopJobTask task = tasks.get(0);
+        assertNull(task.getTaskPayload());
+        assertTrue(task.getEffectiveParams(fire).isEmpty());
     }
 
     /**
@@ -53,6 +69,7 @@ public class TestDefaultJobTaskBuilder {
     @Test
     void testSingleTaskLeavesWorkerInstanceIdNull() {
         DefaultJobTaskBuilder builder = new DefaultJobTaskBuilder();
+        builder.setDaoProvider(daoProvider);
 
         NopJobFire fire = new NopJobFire();
         fire.setJobFireId("fire-ar91");

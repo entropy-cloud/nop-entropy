@@ -122,7 +122,7 @@ public class NopJobFireBizModel extends CrudBizModel<NopJobFire> implements INop
         long now = scheduleStore.getCurrentTime();
         Timestamp fireTime = new Timestamp(now);
 
-        NopJobFire fire = new NopJobFire();
+        NopJobFire fire = newEntity();
         fire.setJobScheduleId(schedule.getJobScheduleId());
         fire.setNamespaceId(schedule.getNamespaceId());
         fire.setGroupId(schedule.getGroupId());

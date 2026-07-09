@@ -15,7 +15,7 @@ import io.nop.job.api.execution.JobFireResult;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
@@ -149,7 +149,7 @@ public class BeanMethodJobInvoker implements IJobInvoker {
     }
 
     Map<String, Object> extractMethodParams(Map<String, Object> params) {
-        Map<String, Object> result = new HashMap<>(params);
+        Map<String, Object> result = new LinkedHashMap<>(params);
         result.remove(PARAM_BEAN_NAME);
         result.remove(PARAM_METHOD_NAME);
         return result;

@@ -6,6 +6,7 @@ import io.nop.api.core.beans.IntRangeSet;
 import io.nop.api.core.config.AppConfig;
 import io.nop.commons.concurrent.executor.GlobalExecutors;
 import io.nop.commons.concurrent.executor.IScheduledExecutor;
+import io.nop.dao.api.IDaoProvider;
 import io.nop.job.api.spec.TriggerSpec;
 import io.nop.job.core.ITriggerEvalContext;
 import io.nop.job.core._NopJobCoreConstants;
@@ -35,6 +36,7 @@ public class JobPlannerScannerImpl implements IJobPlannerScanner {
     private IJobScheduleStore scheduleStore;
     private IJobPlannerMetrics plannerMetrics = new EmptyJobPlannerMetrics();
     private JobPartitionResolver partitionResolver;
+    private IDaoProvider daoProvider;
     private int scanIntervalMs = 5000;
     private int batchSize = 100;
     private long planningTimeoutMs = 60000;
@@ -53,6 +55,11 @@ public class JobPlannerScannerImpl implements IJobPlannerScanner {
     @Inject
     public void setPartitionResolver(JobPartitionResolver partitionResolver) {
         this.partitionResolver = partitionResolver;
+    }
+
+    @Inject
+    public void setDaoProvider(IDaoProvider daoProvider) {
+        this.daoProvider = daoProvider;
     }
 
     @InjectValue("@cfg:nop.job.coordinator.planner.scan-interval-ms|5000")
@@ -209,7 +216,7 @@ public class JobPlannerScannerImpl implements IJobPlannerScanner {
     }
 
     private NopJobFire buildFire(NopJobSchedule schedule, Timestamp dueFireTime) {
-        NopJobFire fire = new NopJobFire();
+        NopJobFire fire = daoProvider.daoFor(NopJobFire.class).newEntity();
         fire.setJobScheduleId(schedule.getJobScheduleId());
         fire.setNamespaceId(schedule.getNamespaceId());
         fire.setGroupId(schedule.getGroupId());

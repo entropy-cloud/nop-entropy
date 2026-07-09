@@ -1,11 +1,16 @@
 package io.nop.job.coordinator.engine;
 
 import io.nop.api.core.beans.IntRangeSet;
+import io.nop.api.core.annotations.autotest.NopTestConfig;
+import io.nop.api.core.annotations.core.OptionalBoolean;
+import io.nop.autotest.junit.JunitBaseTestCase;
+import io.nop.dao.api.IDaoProvider;
 import io.nop.job.core._NopJobCoreConstants;
 import io.nop.job.dao.entity.NopJobFire;
 import io.nop.job.dao.entity.NopJobSchedule;
 import io.nop.job.dao.store.IJobScheduleStore;
 import io.nop.job.coordinator.metrics.EmptyJobPlannerMetrics;
+import jakarta.inject.Inject;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -19,7 +24,11 @@ import java.util.Set;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-public class TestBlockStrategies {
+@NopTestConfig(localDb = true, initDatabaseSchema = OptionalBoolean.TRUE)
+public class TestBlockStrategies extends JunitBaseTestCase {
+
+    @Inject
+    IDaoProvider daoProvider;
 
     private JobPlannerScannerImpl planner;
     private CountingScheduleStore scheduleStore;
@@ -28,6 +37,7 @@ public class TestBlockStrategies {
     @BeforeEach
     void setUp() {
         planner = new JobPlannerScannerImpl();
+        planner.setDaoProvider(daoProvider);
         scheduleStore = new CountingScheduleStore();
         planner.setScheduleStore(scheduleStore);
         planner.setPlannerMetrics(new EmptyJobPlannerMetrics());

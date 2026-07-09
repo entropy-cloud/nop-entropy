@@ -61,13 +61,12 @@ public class DefaultJobCancelHandler implements IJobCancelHandler {
     }
 
     private static Map<String, Object> resolveJobParams(NopJobSchedule schedule, NopJobFire fire, NopJobTask task) {
-        Map<String, Object> jobParams = fire.getJobParamsSnapshotComponent().get_jsonMap();
-        if (jobParams != null) {
-            jobParams = new HashMap<>(jobParams);
-        }
-        if (jobParams == null) {
+        Map<String, Object> jobParams = task.getEffectiveParams(fire);
+        if (jobParams.isEmpty() && schedule != null) {
             Map<String, Object> scheduleParams = schedule.getJobParamsComponent().get_jsonMap();
-            jobParams = scheduleParams == null ? new HashMap<>() : new HashMap<>(scheduleParams);
+            if (scheduleParams != null) {
+                jobParams = new HashMap<>(scheduleParams);
+            }
         }
 
         if (task.getTargetHost() != null && !task.getTargetHost().isBlank()) {

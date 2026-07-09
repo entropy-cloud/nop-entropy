@@ -1,7 +1,6 @@
 package io.nop.job.retry.adapter;
 
 import io.nop.api.core.beans.ApiRequest;
-import io.nop.api.core.exceptions.NopException;
 import io.nop.job.api.retry.IJobRetryBridge;
 import io.nop.job.api.retry.JobFireFailedEvent;
 import io.nop.retry.api.IRetryEngine;
@@ -10,7 +9,7 @@ import jakarta.inject.Inject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.Map;
 
 public class NopRetryJobRetryBridge implements IJobRetryBridge {
@@ -41,7 +40,7 @@ public class NopRetryJobRetryBridge implements IJobRetryBridge {
                     .withNamespaceId(event.getNamespaceId())
                     .withGroupId(event.getGroupId());
 
-            Map<String, Object> data = new HashMap<>();
+            Map<String, Object> data = new LinkedHashMap<>();
             data.put("jobFireId", event.getJobFireId());
             data.put("jobScheduleId", event.getJobScheduleId());
             data.put("jobName", event.getJobName());

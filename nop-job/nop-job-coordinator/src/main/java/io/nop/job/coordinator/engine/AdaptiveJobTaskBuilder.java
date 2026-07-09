@@ -8,6 +8,7 @@
 package io.nop.job.coordinator.engine;
 
 import io.nop.api.core.exceptions.NopException;
+import io.nop.dao.api.IDaoProvider;
 import io.nop.job.api.resource.ResourceVector;
 import io.nop.job.core._NopJobCoreConstants;
 import io.nop.job.dao.entity.NopJobFire;
@@ -16,6 +17,7 @@ import io.nop.job.dao.entity.NopJobTask;
 import io.nop.job.dao.store.IJobScheduleStore;
 import jakarta.inject.Inject;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
@@ -23,8 +25,11 @@ import static io.nop.job.core.JobCoreErrors.ARG_TASK_COST;
 import static io.nop.job.core.JobCoreErrors.ERR_JOB_NO_FITTING_WORKER;
 
 /**
- * Best-fit 派发的 task builder：调用 {@link IWorkerLoadProvider} 获取 worker 负载，
- * 通过 {@link IWorkerAssignmentStrategy} 决策最优 worker，显式写 task.workerInstanceId。
+ * 基于 worker 负载的 task builder：调用 {@link IWorkerLoadProvider} 获取 worker 负载，
+ * 通过可配置的 {@link IWorkerAssignmentStrategy} 决策任务分配，为每个 {@link Assignment} 生成一个 task。
+ * <p>
+ * 默认策略 {@link LeastLoadedStrategy} 选最空闲的单个 worker（返回 1 个 assignment）。
+ * 自定义策略可返回多个 assignment（如广播到所有 worker），builder 会为每个 assignment 生成一个 task。
  * <p>
  * 无 fitting worker 时抛 {@link NopException}（不静默 fallback）。
  * serviceName 缺失时 fallback 到 {@link DefaultJobTaskBuilder}。
@@ -35,6 +40,7 @@ public class AdaptiveJobTaskBuilder implements IJobTaskBuilder {
     private IWorkerAssignmentStrategy strategy = new LeastLoadedStrategy();
     private IJobScheduleStore scheduleStore;
     private final IJobTaskBuilder fallback = new DefaultJobTaskBuilder();
+    private IDaoProvider daoProvider;
 
     @Inject
     public void setLoadProvider(IWorkerLoadProvider loadProvider) {
@@ -44,6 +50,14 @@ public class AdaptiveJobTaskBuilder implements IJobTaskBuilder {
     @Inject
     public void setScheduleStore(IJobScheduleStore scheduleStore) {
         this.scheduleStore = scheduleStore;
+    }
+
+    @Inject
+    public void setDaoProvider(IDaoProvider daoProvider) {
+        this.daoProvider = daoProvider;
+        if (fallback instanceof DefaultJobTaskBuilder) {
+            ((DefaultJobTaskBuilder) fallback).setDaoProvider(daoProvider);
+        }
     }
 
     public void setStrategy(IWorkerAssignmentStrategy strategy) {
@@ -80,38 +94,39 @@ public class AdaptiveJobTaskBuilder implements IJobTaskBuilder {
                     .param("serviceName", serviceName);
         }
 
-        if (plan.getAssignments().size() != 1) {
-            throw new IllegalStateException("AdaptiveJobTaskBuilder requires exactly one assignment, got "
-                    + plan.getAssignments().size());
+        List<Assignment> assignments = plan.getAssignments();
+        List<NopJobTask> tasks = new ArrayList<>(assignments.size());
+
+        for (int i = 0; i < assignments.size(); i++) {
+            Assignment assignment = assignments.get(i);
+            if (assignment == null) {
+                throw new IllegalStateException("AdaptiveJobTaskBuilder received null assignment at index " + i);
+            }
+            if (assignment.getWorkerInstanceId() == null || assignment.getWorkerInstanceId().isBlank()) {
+                throw new IllegalStateException("AdaptiveJobTaskBuilder requires non-blank workerInstanceId at index " + i);
+            }
+
+            ResourceVector assignedCost = assignment.getCost() != null ? assignment.getCost() : taskCost;
+
+            NopJobTask task = daoProvider.daoFor(NopJobTask.class).newEntity();
+            task.setJobFireId(fire.getJobFireId());
+            task.setTaskNo(i + 1);
+            task.setTaskStatus(_NopJobCoreConstants.TASK_STATUS_WAITING);
+            task.setWorkerInstanceId(assignment.getWorkerInstanceId());
+            task.setTargetHost(assignment.getTargetHost());
+            task.setShardingIndex(assignment.getShardingIndex());
+            task.setShardingTotal(assignment.getShardingTotal());
+            task.setPartitionRange(assignment.getPartitionRange());
+            task.setPartitionIndex(fire.getPartitionIndex());
+            task.setCostCpu(assignedCost.getCpu());
+            task.setCostMemory(assignedCost.getMemory());
+            if (schedule != null) {
+                task.setPriority(schedule.getPriority());
+            }
+            tasks.add(task);
         }
 
-        Assignment assignment = plan.getAssignments().get(0);
-        if (assignment == null) {
-            throw new IllegalStateException("AdaptiveJobTaskBuilder received null assignment");
-        }
-        if (assignment.getWorkerInstanceId() == null || assignment.getWorkerInstanceId().isBlank()) {
-            throw new IllegalStateException("AdaptiveJobTaskBuilder requires non-blank workerInstanceId");
-        }
-
-        ResourceVector assignedCost = assignment.getCost() != null ? assignment.getCost() : taskCost;
-
-        NopJobTask task = new NopJobTask();
-        task.setJobFireId(fire.getJobFireId());
-        task.setTaskNo(1);
-        task.setTaskStatus(_NopJobCoreConstants.TASK_STATUS_WAITING);
-        task.setWorkerInstanceId(assignment.getWorkerInstanceId());
-        task.setTargetHost(assignment.getTargetHost());
-        task.setShardingIndex(assignment.getShardingIndex());
-        task.setShardingTotal(assignment.getShardingTotal());
-        task.setPartitionRange(assignment.getPartitionRange());
-        task.setPartitionIndex(fire.getPartitionIndex());
-        task.setCostCpu(assignedCost.getCpu());
-        task.setCostMemory(assignedCost.getMemory());
-        if (schedule != null) {
-            task.setPriority(schedule.getPriority());
-        }
-
-        return List.of(task);
+        return tasks;
     }
 
     private static ResourceVector resolveCost(NopJobSchedule schedule) {

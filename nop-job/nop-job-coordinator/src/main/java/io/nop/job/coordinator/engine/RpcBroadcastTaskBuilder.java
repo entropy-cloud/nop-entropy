@@ -9,6 +9,7 @@ package io.nop.job.coordinator.engine;
 
 import io.nop.cluster.discovery.IDiscoveryClient;
 import io.nop.cluster.discovery.ServiceInstance;
+import io.nop.dao.api.IDaoProvider;
 import io.nop.job.core._NopJobCoreConstants;
 import io.nop.job.dao.entity.NopJobFire;
 import io.nop.job.dao.entity.NopJobTask;
@@ -33,10 +34,19 @@ public class RpcBroadcastTaskBuilder implements IJobTaskBuilder {
 
     private IDiscoveryClient discoveryClient;
     private final IJobTaskBuilder fallback = new DefaultJobTaskBuilder();
+    private IDaoProvider daoProvider;
 
     @Inject
     public void setDiscoveryClient(@Nullable IDiscoveryClient discoveryClient) {
         this.discoveryClient = discoveryClient;
+    }
+
+    @Inject
+    public void setDaoProvider(IDaoProvider daoProvider) {
+        this.daoProvider = daoProvider;
+        if (fallback instanceof DefaultJobTaskBuilder) {
+            ((DefaultJobTaskBuilder) fallback).setDaoProvider(daoProvider);
+        }
     }
 
     @Override
@@ -72,7 +82,7 @@ public class RpcBroadcastTaskBuilder implements IJobTaskBuilder {
         for (int i = 0; i < total; i++) {
             ServiceInstance instance = healthyInstances.get(i);
 
-            NopJobTask task = new NopJobTask();
+            NopJobTask task = daoProvider.daoFor(NopJobTask.class).newEntity();
             task.setJobFireId(fire.getJobFireId());
             task.setTaskNo(i + 1);
             task.setTaskStatus(_NopJobCoreConstants.TASK_STATUS_WAITING);

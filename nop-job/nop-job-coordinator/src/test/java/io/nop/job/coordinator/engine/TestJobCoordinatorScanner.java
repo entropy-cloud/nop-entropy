@@ -87,6 +87,12 @@ public class TestJobCoordinatorScanner extends JunitBaseTestCase {
         }
     }
 
+    private DefaultJobTaskBuilder defaultBuilder() {
+        DefaultJobTaskBuilder b = new DefaultJobTaskBuilder();
+        b.setDaoProvider(daoProvider);
+        return b;
+    }
+
     @Test
     public void testScheduleToFireToTask() {
         NopJobSchedule schedule = newSchedule("schedule-1", "job-1");
@@ -95,6 +101,7 @@ public class TestJobCoordinatorScanner extends JunitBaseTestCase {
 
         JobPlannerScannerImpl planner = new JobPlannerScannerImpl();
         planner.setScheduleStore(scheduleStore);
+        planner.setDaoProvider(daoProvider);
         planner.setBatchSize(10);
         planner.setPlanningTimeoutMs(1000);
         planner.setAssignedPartitions("1");
@@ -116,7 +123,7 @@ public class TestJobCoordinatorScanner extends JunitBaseTestCase {
 
         JobDispatcherScannerImpl dispatcher = new JobDispatcherScannerImpl();
         dispatcher.setFireStore(fireStore);
-        dispatcher.setDefaultTaskBuilder(new DefaultJobTaskBuilder());
+        dispatcher.setDefaultTaskBuilder(defaultBuilder());
         dispatcher.setBatchSize(10);
         dispatcher.setLockTimeoutMs(1000);
         dispatcher.setAssignedPartitions("1");
@@ -207,6 +214,7 @@ public class TestJobCoordinatorScanner extends JunitBaseTestCase {
 
         AdaptiveJobTaskBuilder bestFitBuilder = new AdaptiveJobTaskBuilder();
         bestFitBuilder.setScheduleStore(scheduleStore);
+        bestFitBuilder.setDaoProvider(daoProvider);
         bestFitBuilder.setLoadProvider(serviceName -> List.of());
         bestFitBuilder.setStrategy((taskCost, workers) -> {
             Assignment assignment = new Assignment();
@@ -287,6 +295,7 @@ public class TestJobCoordinatorScanner extends JunitBaseTestCase {
     private void runPlanner() {
         JobPlannerScannerImpl planner = new JobPlannerScannerImpl();
         planner.setScheduleStore(scheduleStore);
+        planner.setDaoProvider(daoProvider);
         planner.setBatchSize(10);
         planner.setPlanningTimeoutMs(1000);
         planner.setAssignedPartitions("1");
@@ -296,7 +305,7 @@ public class TestJobCoordinatorScanner extends JunitBaseTestCase {
     private void runDispatcher() {
         JobDispatcherScannerImpl dispatcher = new JobDispatcherScannerImpl();
         dispatcher.setFireStore(fireStore);
-        dispatcher.setDefaultTaskBuilder(new DefaultJobTaskBuilder());
+        dispatcher.setDefaultTaskBuilder(defaultBuilder());
         dispatcher.setBatchSize(10);
         dispatcher.setLockTimeoutMs(1000);
         dispatcher.setAssignedPartitions("1");
@@ -477,6 +486,7 @@ public class TestJobCoordinatorScanner extends JunitBaseTestCase {
         // Shared bestFit builder: load provider恒报 worker 空闲（reserved=ZERO），模拟 stale-read 竞态
         AdaptiveJobTaskBuilder bestFitBuilder = new AdaptiveJobTaskBuilder();
         bestFitBuilder.setScheduleStore(scheduleStore);
+        bestFitBuilder.setDaoProvider(daoProvider);
         bestFitBuilder.setLoadProvider(serviceName -> {
             WorkerLoad load = new WorkerLoad();
             ServiceInstance inst = new ServiceInstance();
@@ -542,6 +552,7 @@ public class TestJobCoordinatorScanner extends JunitBaseTestCase {
         // bestFit builder 共用同一 provider 实例（与 app-engine.beans.xml 的 ref="workerLoadProvider" 一致）
         AdaptiveJobTaskBuilder bestFitBuilder = new AdaptiveJobTaskBuilder();
         bestFitBuilder.setScheduleStore(scheduleStore);
+        bestFitBuilder.setDaoProvider(daoProvider);
         bestFitBuilder.setLoadProvider(recording);
 
         StaticBeanContainer container = new StaticBeanContainer();
@@ -581,6 +592,7 @@ public class TestJobCoordinatorScanner extends JunitBaseTestCase {
         // 注册带 mock discovery client 的 PartitionTaskBuilder（2 个 healthy worker → 2 分片）
         PartitionTaskBuilder partitionBuilder = new PartitionTaskBuilder();
         partitionBuilder.setScheduleStore(scheduleStore);
+        partitionBuilder.setDaoProvider(daoProvider);
         partitionBuilder.setDiscoveryClient(new io.nop.cluster.discovery.IDiscoveryClient() {
             @Override
             public List<ServiceInstance> getInstances(String serviceName) {
@@ -658,7 +670,7 @@ public class TestJobCoordinatorScanner extends JunitBaseTestCase {
     private JobDispatcherScannerImpl newDispatcher(int batchSize) {
         JobDispatcherScannerImpl dispatcher = new JobDispatcherScannerImpl();
         dispatcher.setFireStore(fireStore);
-        dispatcher.setDefaultTaskBuilder(new DefaultJobTaskBuilder());
+        dispatcher.setDefaultTaskBuilder(defaultBuilder());
         dispatcher.setBatchSize(batchSize);
         dispatcher.setLockTimeoutMs(1000);
         dispatcher.setAssignedPartitions("1");
@@ -929,6 +941,7 @@ public class TestJobCoordinatorScanner extends JunitBaseTestCase {
 
         JobPlannerScannerImpl planner = new JobPlannerScannerImpl();
         planner.setScheduleStore(scheduleStore);
+        planner.setDaoProvider(daoProvider);
         planner.setBatchSize(10);
         planner.setPlanningTimeoutMs(1000);
         planner.setAssignedPartitions("1");
@@ -966,6 +979,7 @@ public class TestJobCoordinatorScanner extends JunitBaseTestCase {
 
         JobPlannerScannerImpl planner = new JobPlannerScannerImpl();
         planner.setScheduleStore(scheduleStore);
+        planner.setDaoProvider(daoProvider);
         planner.setBatchSize(10);
         planner.setPlanningTimeoutMs(1000);
         planner.setAssignedPartitions("1");
@@ -1008,6 +1022,7 @@ public class TestJobCoordinatorScanner extends JunitBaseTestCase {
 
         JobPlannerScannerImpl planner = new JobPlannerScannerImpl();
         planner.setScheduleStore(scheduleStore);
+        planner.setDaoProvider(daoProvider);
         planner.setBatchSize(10);
         planner.setPlanningTimeoutMs(1000);
         planner.setAssignedPartitions("1");
@@ -1020,7 +1035,7 @@ public class TestJobCoordinatorScanner extends JunitBaseTestCase {
 
         JobDispatcherScannerImpl dispatcher = new JobDispatcherScannerImpl();
         dispatcher.setFireStore(fireStore);
-        dispatcher.setDefaultTaskBuilder(new DefaultJobTaskBuilder());
+        dispatcher.setDefaultTaskBuilder(defaultBuilder());
         dispatcher.setBatchSize(10);
         dispatcher.setLockTimeoutMs(1000);
         dispatcher.setAssignedPartitions("1");
@@ -1136,6 +1151,7 @@ public class TestJobCoordinatorScanner extends JunitBaseTestCase {
 
         JobPlannerScannerImpl planner = new JobPlannerScannerImpl();
         planner.setScheduleStore(scheduleStore);
+        planner.setDaoProvider(daoProvider);
         planner.setBatchSize(10);
         planner.setPlanningTimeoutMs(1000);
         planner.setAssignedPartitions("1");
@@ -1169,6 +1185,7 @@ public class TestJobCoordinatorScanner extends JunitBaseTestCase {
 
          JobPlannerScannerImpl planner = new JobPlannerScannerImpl();
          planner.setScheduleStore(scheduleStore);
+        planner.setDaoProvider(daoProvider);
          planner.setBatchSize(10);
          planner.setPlanningTimeoutMs(1000);
          planner.setAssignedPartitions("1");

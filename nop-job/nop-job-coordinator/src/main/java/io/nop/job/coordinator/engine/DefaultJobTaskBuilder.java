@@ -1,21 +1,29 @@
 package io.nop.job.coordinator.engine;
 
+import io.nop.dao.api.IDaoProvider;
 import io.nop.job.core._NopJobCoreConstants;
 import io.nop.job.dao.entity.NopJobFire;
 import io.nop.job.dao.entity.NopJobTask;
+import jakarta.inject.Inject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.Collections;
 import java.util.List;
-import java.util.Map;
 
 public class DefaultJobTaskBuilder implements IJobTaskBuilder {
     static final Logger LOG = LoggerFactory.getLogger(DefaultJobTaskBuilder.class);
 
+    private IDaoProvider daoProvider;
+
+    @Inject
+    public void setDaoProvider(IDaoProvider daoProvider) {
+        this.daoProvider = daoProvider;
+    }
+
     @Override
     public List<NopJobTask> buildTasks(NopJobFire fire) {
-        NopJobTask task = new NopJobTask();
+        NopJobTask task = daoProvider.daoFor(NopJobTask.class).newEntity();
         task.setJobFireId(fire.getJobFireId());
         task.setTaskNo(1);
         task.setTaskStatus(_NopJobCoreConstants.TASK_STATUS_WAITING);
@@ -28,18 +36,10 @@ public class DefaultJobTaskBuilder implements IJobTaskBuilder {
         // hostId, so SUSPICIOUS liveness detection (which only applies to RUNNING tasks) is unaffected.
         task.setWorkerInstanceId(null);
 
-        // targetHost is reserved for future use: populate when a naming service
-        // is available to resolve workerInstanceId to a network address.
-        task.getTaskPayloadComponent().set_jsonValue(Map.of(
-                "jobFireId", fire.getJobFireId(),
-                "jobParamsSnapshot", emptyIfNull(fire.getJobParamsSnapshotComponent().get_jsonMap())
-        ));
+        // 这里可以设置专门针对task的参数，它们将和fire中的参数合并，最终成为执行参数
+        task.setTaskPayload(null);
         task.setPartitionIndex(fire.getPartitionIndex());
 
         return Collections.singletonList(task);
-    }
-
-    private Map<String, Object> emptyIfNull(Map<String, Object> map) {
-        return map == null ? Map.of() : map;
     }
 }

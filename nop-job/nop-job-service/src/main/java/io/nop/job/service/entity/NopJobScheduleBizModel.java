@@ -229,7 +229,7 @@ public class NopJobScheduleBizModel extends CrudBizModel<NopJobSchedule> impleme
         long now = scheduleStore.getCurrentTime();
         Timestamp fireTime = new Timestamp(now);
 
-        NopJobFire fire = new NopJobFire();
+        NopJobFire fire = daoProvider().daoFor(NopJobFire.class).newEntity();
         fire.setJobScheduleId(schedule.getJobScheduleId());
         fire.setNamespaceId(schedule.getNamespaceId());
         fire.setGroupId(schedule.getGroupId());

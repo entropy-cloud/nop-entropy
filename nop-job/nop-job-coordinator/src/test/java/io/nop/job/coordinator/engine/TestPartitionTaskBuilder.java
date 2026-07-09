@@ -1,13 +1,18 @@
 package io.nop.job.coordinator.engine;
 
+import io.nop.autotest.junit.JunitBaseTestCase;
+import io.nop.api.core.annotations.autotest.NopTestConfig;
+import io.nop.api.core.annotations.core.OptionalBoolean;
 import io.nop.api.core.beans.IntRangeBean;
 import io.nop.api.core.beans.IntRangeSet;
 import io.nop.cluster.discovery.IDiscoveryClient;
 import io.nop.cluster.discovery.ServiceInstance;
+import io.nop.dao.api.IDaoProvider;
 import io.nop.job.dao.entity.NopJobFire;
 import io.nop.job.dao.entity.NopJobSchedule;
 import io.nop.job.dao.entity.NopJobTask;
 import io.nop.job.dao.store.IJobScheduleStore;
+import jakarta.inject.Inject;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -22,7 +27,11 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-public class TestPartitionTaskBuilder {
+@NopTestConfig(localDb = true, initDatabaseSchema = OptionalBoolean.TRUE)
+public class TestPartitionTaskBuilder extends JunitBaseTestCase {
+
+    @Inject
+    IDaoProvider daoProvider;
 
     private PartitionTaskBuilder builder;
     private MockScheduleStore scheduleStore;
@@ -30,6 +39,7 @@ public class TestPartitionTaskBuilder {
     @BeforeEach
     void setUp() {
         builder = new PartitionTaskBuilder();
+        builder.setDaoProvider(daoProvider);
         scheduleStore = new MockScheduleStore();
         builder.setScheduleStore(scheduleStore);
     }

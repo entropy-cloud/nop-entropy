@@ -1,14 +1,19 @@
 package io.nop.job.coordinator.engine;
 
 import io.nop.api.core.exceptions.NopException;
+import io.nop.autotest.junit.JunitBaseTestCase;
+import io.nop.api.core.annotations.autotest.NopTestConfig;
+import io.nop.api.core.annotations.core.OptionalBoolean;
 import io.nop.cluster.discovery.ServiceInstance;
 import io.nop.core.lang.json.JsonTool;
 import io.nop.core.reflect.bean.BeanTool;
+import io.nop.dao.api.IDaoProvider;
 import io.nop.job.api.resource.ResourceVector;
 import io.nop.job.dao.entity.NopJobFire;
 import io.nop.job.dao.entity.NopJobSchedule;
 import io.nop.job.dao.entity.NopJobTask;
 import io.nop.job.dao.store.IJobScheduleStore;
+import jakarta.inject.Inject;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -20,13 +25,18 @@ import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-public class TestAdaptiveJobTaskBuilder {
+@NopTestConfig(localDb = true, initDatabaseSchema = OptionalBoolean.TRUE)
+public class TestAdaptiveJobTaskBuilder extends JunitBaseTestCase {
+
+    @Inject
+    IDaoProvider daoProvider;
 
     private AdaptiveJobTaskBuilder builder;
 
     @BeforeEach
     void setUp() {
         builder = new AdaptiveJobTaskBuilder();
+        builder.setDaoProvider(daoProvider);
         builder.setScheduleStore(new MockScheduleStore());
     }
 
@@ -118,13 +128,23 @@ public class TestAdaptiveJobTaskBuilder {
     }
 
     @Test
-    void testMultipleAssignmentsFailFast() {
+    void testMultipleAssignmentsCreateMultipleTasks() {
         builder.setLoadProvider(new MockLoadProvider(List.of()));
-        builder.setStrategy((taskCost, workers) -> new AssignmentPlan(List.of(new Assignment(), new Assignment())));
+        builder.setStrategy((taskCost, workers) -> {
+            Assignment a1 = new Assignment();
+            a1.setWorkerInstanceId("w1");
+            Assignment a2 = new Assignment();
+            a2.setWorkerInstanceId("w2");
+            return new AssignmentPlan(List.of(a1, a2));
+        });
 
-        IllegalStateException ex = assertThrows(IllegalStateException.class,
-                () -> builder.buildTasks(createFire("svc")));
-        assertTrue(ex.getMessage().contains("exactly one assignment"));
+        List<NopJobTask> tasks = builder.buildTasks(createFire("svc"));
+
+        assertEquals(2, tasks.size(), "multiple assignments should create one task per assignment");
+        assertEquals(1, tasks.get(0).getTaskNo());
+        assertEquals(2, tasks.get(1).getTaskNo());
+        assertEquals("w1", tasks.get(0).getWorkerInstanceId());
+        assertEquals("w2", tasks.get(1).getWorkerInstanceId());
     }
 
     @Test

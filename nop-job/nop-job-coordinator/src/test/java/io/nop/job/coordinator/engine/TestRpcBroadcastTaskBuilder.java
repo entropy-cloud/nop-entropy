@@ -1,9 +1,14 @@
 package io.nop.job.coordinator.engine;
 
+import io.nop.autotest.junit.JunitBaseTestCase;
+import io.nop.api.core.annotations.autotest.NopTestConfig;
+import io.nop.api.core.annotations.core.OptionalBoolean;
 import io.nop.cluster.discovery.IDiscoveryClient;
 import io.nop.cluster.discovery.ServiceInstance;
+import io.nop.dao.api.IDaoProvider;
 import io.nop.job.dao.entity.NopJobFire;
 import io.nop.job.dao.entity.NopJobTask;
+import jakarta.inject.Inject;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -16,13 +21,18 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-public class TestRpcBroadcastTaskBuilder {
+@NopTestConfig(localDb = true, initDatabaseSchema = OptionalBoolean.TRUE)
+public class TestRpcBroadcastTaskBuilder extends JunitBaseTestCase {
+
+    @Inject
+    IDaoProvider daoProvider;
 
     private RpcBroadcastTaskBuilder builder;
 
     @BeforeEach
     void setUp() {
         builder = new RpcBroadcastTaskBuilder();
+        builder.setDaoProvider(daoProvider);
     }
 
     private NopJobFire createFire(String serviceName) {

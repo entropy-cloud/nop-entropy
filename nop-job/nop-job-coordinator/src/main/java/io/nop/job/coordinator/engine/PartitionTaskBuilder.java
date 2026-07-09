@@ -8,6 +8,7 @@
 package io.nop.job.coordinator.engine;
 
 import io.nop.api.core.beans.IntRangeBean;
+import io.nop.dao.api.IDaoProvider;
 import io.nop.cluster.assigner.IPartitionAssigner;
 import io.nop.cluster.assigner.WeightedPartitionAssigner;
 import io.nop.cluster.discovery.IDiscoveryClient;
@@ -50,6 +51,15 @@ public class PartitionTaskBuilder implements IJobTaskBuilder {
     private IPartitionAssigner partitionAssigner = new WeightedPartitionAssigner();
     private IJobScheduleStore scheduleStore;
     private final IJobTaskBuilder fallback = new DefaultJobTaskBuilder();
+    private IDaoProvider daoProvider;
+
+    @Inject
+    public void setDaoProvider(IDaoProvider daoProvider) {
+        this.daoProvider = daoProvider;
+        if (fallback instanceof DefaultJobTaskBuilder) {
+            ((DefaultJobTaskBuilder) fallback).setDaoProvider(daoProvider);
+        }
+    }
 
     @Inject
     public void setDiscoveryClient(@Nullable IDiscoveryClient discoveryClient) {
@@ -105,7 +115,7 @@ public class PartitionTaskBuilder implements IJobTaskBuilder {
             ServiceInstance instance = selected.get(i);
             IntRangeBean range = ranges.get(i);
 
-            NopJobTask task = new NopJobTask();
+            NopJobTask task = daoProvider.daoFor(NopJobTask.class).newEntity();
             task.setJobFireId(fire.getJobFireId());
             task.setTaskNo(i + 1);
             task.setTaskStatus(_NopJobCoreConstants.TASK_STATUS_WAITING);

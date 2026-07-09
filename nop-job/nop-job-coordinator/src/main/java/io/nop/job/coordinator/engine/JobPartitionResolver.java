@@ -21,7 +21,6 @@ public class JobPartitionResolver {
     private INamingService namingService;
     private String serviceName;
     private boolean enableCluster;
-    private long stableWindowMs = 30000;
     private IntRangeSet assignedPartitions;
 
     private volatile List<ServiceInstance> lastSeenServers;
@@ -45,11 +44,6 @@ public class JobPartitionResolver {
         this.enableCluster = enableCluster;
     }
 
-    @InjectValue("@cfg:nop.job.cluster.stable-window-ms|30000")
-    public void setStableWindowMs(long stableWindowMs) {
-        this.stableWindowMs = stableWindowMs;
-    }
-
     public void setAssignedPartitions(String partitions) {
         if (partitions != null && !partitions.isEmpty()) {
             this.assignedPartitions = IntRangeSet.parse(partitions);
@@ -65,6 +59,11 @@ public class JobPartitionResolver {
             return null;
         }
 
+        long now = CoreMetrics.currentTimeMillis();
+        if (cachedPartitions != null && (now - lastResolveTime) < CACHE_TTL_MS) {
+            return cachedPartitions;
+        }
+
         String svcName = serviceName != null && !serviceName.isEmpty()
                 ? serviceName : AppConfig.appName();
         List<ServiceInstance> servers = namingService.getInstances(svcName);
@@ -74,18 +73,6 @@ public class JobPartitionResolver {
 
         List<ServiceInstance> sorted = new ArrayList<>(servers);
         sorted.sort(Comparator.comparing(ServiceInstance::getInstanceId));
-
-        if (isUnstable(sorted)) {
-            cachedPartitions = null;
-            LOG.info("nop.job.cluster.instances-unstable:count={},waiting-stable-window={}ms",
-                    sorted.size(), stableWindowMs);
-            return null;
-        }
-
-        long now = CoreMetrics.currentTimeMillis();
-        if (cachedPartitions != null && (now - lastResolveTime) < CACHE_TTL_MS) {
-            return cachedPartitions;
-        }
 
         String myInstanceId = AppConfig.hostId();
         IntRangeBean myRange = PartitionAssignHelper.getMyRange(sorted, myInstanceId);
@@ -99,37 +86,5 @@ public class JobPartitionResolver {
         cachedPartitions = result;
         lastResolveTime = now;
         return result;
-    }
-
-    private boolean isUnstable(List<ServiceInstance> current) {
-        List<ServiceInstance> prev = this.lastSeenServers;
-        this.lastSeenServers = current;
-
-        if (prev == null) {
-            this.lastChangeTime = CoreMetrics.currentTimeMillis();
-            return true;
-        }
-
-        if (current.size() != prev.size()) {
-            this.lastChangeTime = CoreMetrics.currentTimeMillis();
-            return true;
-        }
-
-        for (int i = 0; i < current.size(); i++) {
-            if (!current.get(i).getInstanceId().equals(prev.get(i).getInstanceId())) {
-                this.lastChangeTime = CoreMetrics.currentTimeMillis();
-                return true;
-            }
-        }
-
-        if (this.lastChangeTime > 0) {
-            long elapsed = CoreMetrics.currentTimeMillis() - this.lastChangeTime;
-            if (elapsed < stableWindowMs) {
-                return true;
-            }
-            this.lastChangeTime = 0;
-        }
-
-        return false;
     }
 }

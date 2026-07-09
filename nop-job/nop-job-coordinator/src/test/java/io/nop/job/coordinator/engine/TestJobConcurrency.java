@@ -293,6 +293,7 @@ public class TestJobConcurrency extends JunitBaseTestCase {
     private JobPlannerScannerImpl newPlanner() {
         JobPlannerScannerImpl planner = new JobPlannerScannerImpl();
         planner.setScheduleStore(scheduleStore);
+        planner.setDaoProvider(daoProvider);
         planner.setBatchSize(10);
         planner.setPlanningTimeoutMs(60000);
         planner.setAssignedPartitions("1");
@@ -302,7 +303,9 @@ public class TestJobConcurrency extends JunitBaseTestCase {
     private JobDispatcherScannerImpl newDispatcher() {
         JobDispatcherScannerImpl dispatcher = new JobDispatcherScannerImpl();
         dispatcher.setFireStore(fireStore);
-        dispatcher.setDefaultTaskBuilder(new DefaultJobTaskBuilder());
+        DefaultJobTaskBuilder defaultBuilder = new DefaultJobTaskBuilder();
+        defaultBuilder.setDaoProvider(daoProvider);
+        dispatcher.setDefaultTaskBuilder(defaultBuilder);
         dispatcher.setBatchSize(10);
         dispatcher.setLockTimeoutMs(1000);
         dispatcher.setAssignedPartitions("1");

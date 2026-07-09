@@ -139,14 +139,12 @@ public class DefaultJobExecutionContextBuilder implements IJobExecutionContextBu
         }
 
         private static Map<String, Object> resolveJobParams(NopJobSchedule schedule, NopJobFire fire, NopJobTask task) {
-            Map<String, Object> jobParams = fire.getJobParamsSnapshotComponent().get_jsonMap();
-            if (jobParams == null) {
-                jobParams = schedule.getJobParamsComponent().get_jsonMap();
-            }
-            if (jobParams == null) {
-                jobParams = new HashMap<>();
-            } else {
-                jobParams = new HashMap<>(jobParams);
+            Map<String, Object> jobParams = task.getEffectiveParams(fire);
+            if (jobParams.isEmpty() && schedule != null) {
+                Map<String, Object> scheduleParams = schedule.getJobParamsComponent().get_jsonMap();
+                if (scheduleParams != null) {
+                    jobParams = new HashMap<>(scheduleParams);
+                }
             }
 
             // Inject targetHost as header so that RpcJobInvoker can propagate it.

@@ -187,7 +187,7 @@ public class JobScheduleStoreImpl implements IJobScheduleStore {
             long now = scheduleDao().getDbEstimatedClock().getMaxCurrentTimeMillis();
             Timestamp fireTime = new Timestamp(now);
 
-            NopJobFire newFire = new NopJobFire();
+            NopJobFire newFire = fireDao().newEntity();
             newFire.setJobScheduleId(schedule.getJobScheduleId());
             newFire.setNamespaceId(schedule.getNamespaceId());
             newFire.setGroupId(schedule.getGroupId());
