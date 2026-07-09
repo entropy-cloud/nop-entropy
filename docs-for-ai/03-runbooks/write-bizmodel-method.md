@@ -85,7 +85,7 @@ item.setGoodsId(goodsId);
 orderGoodsBiz.saveEntity(item, "create", context);
 ```
 
-> **禁止 `new Order()` / `new OrderGoods()`**：实体可能被 Delta 机制扩展为派生类。`newEntity()` 通过 DAO 创建实例，确保返回正确的派生类。创建自身实体用 `newEntity()`（继承自 `CrudBizModel`），创建其他实体用 `xxxBiz.newEntity()`。
+> **禁止 `new Order()` / `new OrderGoods()`**。除 Delta 派生类理由外，还有一个运行时理由：`newEntity()` 经 DAO 会 `orm_attach` enhancer + 注入 entityModel，这是关联懒加载、组件绑定（`JsonOrmComponent` 等）、dirty 跟踪的前置条件；直接 `new` 出的 detached 实体这些机制失效（如 `getOrder()` 抛 `requireEnhancer`）。创建自身实体用 `newEntity()`（继承自 `CrudBizModel`），创建其他实体用 `xxxBiz.newEntity()`。
 
 > **`save(Map)` vs `saveEntity(entity)`**：`save(Map, context)` 用于前端传入的 `Map<String, Object>` 数据；`saveEntity(entity, action, context)` 用于 BizModel 内部已持有实体对象时直接持久化。两者都含权限检查和 afterEntityChange 触发。
 

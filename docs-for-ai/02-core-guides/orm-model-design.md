@@ -669,6 +669,19 @@ _vfs/_init-data/
 - `<join>` 中的 `leftProp` 是当前实体的列，`rightProp` 是被引用实体的列
 - 标准约定：子表的 FK 列名为 `xxxId`（如 `orderId`），对应的 to-one `name` 为 `xxx`（如 `order`）
 
+### 运行时语义：关联的透明懒加载
+
+声明 `<to-one>`/`<to-many>` 后，codegen 生成类型化 getter（如 `task.getJobFire()`、`order.getOrderGoods()`）。**访问这些 getter 即透明触发懒加载，与 JPA 一致**：
+
+- **触发时机**：getter 首次被调用时，ORM 引擎按外键值发起一次查询加载关联对象，无需手动查数据库。
+- **前置条件**：实体必须 **orm-attached**（经 `dao`/`session` 从数据库加载，持有 `IOrmEntityEnhancer`）。在打开的 session 内（如 `@SingleSession` 方法、BizModel 请求线程）访问才有效。
+- **缓存复用**：关联对象一旦在当前 session 加载过，再次访问 getter 复用同一实例，**不会重复查询**。
+- **detached 实体不可用**：直接 `new NopXxx()` 构造的实体未 attach，访问关联 getter 会抛 `requireEnhancer`。**根因是实体不该 `new`**——应通过 `dao.newEntity()` / `xxxBiz.newEntity()` 创建（经 DAO 会 `orm_attach` enhancer + 注入 entityModel，懒加载、组件绑定等机制才能工作）。
+  - **测试也应走** `daoProvider.daoFor(NopXxx.class).newEntity()`（继承 `JunitBaseTestCase` 即可注入 `IDaoProvider`），而非 `new NopXxx()`。仅在确实拿不到 DAO 的纯单元场景，才用 `entity.setJobFire(fire)` 手动链接关系作为权宜之计。
+  - **生产代码**中调用方已持有被关联实体时，可把它作为**方法参数显式传入**（如 `getEffectiveParams(fire)`），避免引入对懒加载的隐式依赖。
+
+> **判别要点**：调用方已持有被关联实体（如 `fire` 已作为参数传入）时，**直接传参**比走关联 getter 懒加载更稳、更省——关联懒加载是为"只有一端引用"的场景设计的。
+
 ### `ref-*` 属性：AI 时代不需要
 
 `refPropName`、`refDisplayName`、`ref-i18n-en:displayName` 都是平台在**只有一端关系声明时**自动推定反向关联的辅助属性：

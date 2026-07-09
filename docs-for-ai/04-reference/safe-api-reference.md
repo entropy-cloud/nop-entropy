@@ -195,7 +195,9 @@ NopAuthUser user = dao().findFirstByExample(example);
 | 已拿到实体后删除 | `deleteEntity(entity, actionName, context)` |
 | 按 id 删除 | `delete(id, context)` |
 
-> **必须用 `newEntity()` 而不是 `new Order()`**：实体可能被 Delta 机制扩展为派生类。`newEntity()` 通过 DAO 创建实例，确保返回正确的派生类。直接 `new` 会丢失 Delta 增强的字段和行为。
+> **必须用 `newEntity()` 而不是 `new Order()`**。两个理由：
+> 1. **Delta 派生类（静态类型）**：实体可能被 Delta 机制扩展为派生类。`newEntity()` 经 DAO 创建，返回正确的派生类；直接 `new` 会丢失 Delta 增强的字段和行为。
+> 2. **ORM 运行时能力（动态）**：`newEntity()` 经 DAO 会 `orm_attach` enhancer 并注入 entityModel，这是关联懒加载、`JsonOrmComponent` 等组件绑定、dirty 跟踪等 ORM 机制的**前置条件**。直接 `new` 出的是 detached/transient 实体，这些机制全部失效——例如访问 to-one getter（`getOrder()`）会抛 `requireEnhancer`。
 
 > **`save` vs `saveEntity` 区别**：
 > - `save(Map, context)` 接收前端传入的 `Map<String, Object>`，经 xmeta 校验和 `OrmEntityCopier` 拷贝到实体后持久化。适用于 GraphQL/REST 前端请求。

@@ -55,6 +55,7 @@ private ApiResponse<?> executeRpc(GraphQLOperationType opType, String action, Ap
 1. `JunitAutoTestCase` 需要类级别 `@NopTestConfig`。
 2. `JunitBaseTestCase` 不强制要求 `@NopTestConfig`；仓库里也存在不加该注解的普通测试。
 3. 只有需要本地库、测试配置、测试 beans 或快照相关能力时再加。
+4. **关键触发规则**：一旦 `JunitBaseTestCase` 测试 `@Inject` 了会拉起 `nopDataSource` bean 的依赖——`IDaoProvider`、`IOrmSessionFactory`、任何 `dao()`/`daoFor(...)`，或经 `newEntity()` 创建 ORM 实体——就**必须**加 `@NopTestConfig(localDb = true, initDatabaseSchema = OptionalBoolean.TRUE)`。否则容器初始化抛 `配置[nop.datasource.driver-class-name]的值为空`。判别口诀：**测试里用到 `IDaoProvider` / `dao` / `newEntity()`，就加 `@NopTestConfig(localDb = true)`。**
 
 ## `@NopTestConfig` 的关键点
 
