@@ -8,11 +8,11 @@
 package io.nop.job.coordinator.engine;
 
 import io.nop.api.core.beans.IntRangeBean;
-import io.nop.dao.api.IDaoProvider;
 import io.nop.cluster.assigner.IPartitionAssigner;
 import io.nop.cluster.assigner.WeightedPartitionAssigner;
 import io.nop.cluster.discovery.IDiscoveryClient;
 import io.nop.cluster.discovery.ServiceInstance;
+import io.nop.dao.api.IDaoProvider;
 import io.nop.job.core._NopJobCoreConstants;
 import io.nop.job.dao.entity.NopJobFire;
 import io.nop.job.dao.entity.NopJobSchedule;
@@ -120,6 +120,7 @@ public class PartitionTaskBuilder implements IJobTaskBuilder {
             task.setTaskNo(i + 1);
             task.setTaskStatus(_NopJobCoreConstants.TASK_STATUS_WAITING);
             task.setWorkerInstanceId(instance.getInstanceId());
+            task.setTargetHost(instance.getHost());
             task.setPartitionIndex(fire.getPartitionIndex());
             task.setShardingIndex(i);
             task.setShardingTotal(n);

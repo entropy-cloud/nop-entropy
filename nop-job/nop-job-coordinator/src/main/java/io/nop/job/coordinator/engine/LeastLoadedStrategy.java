@@ -7,6 +7,7 @@
  */
 package io.nop.job.coordinator.engine;
 
+import io.nop.cluster.discovery.ServiceInstance;
 import io.nop.job.api.resource.ResourceVector;
 
 import java.util.List;
@@ -50,8 +51,11 @@ public class LeastLoadedStrategy implements IWorkerAssignmentStrategy {
         if (best == null) {
             return AssignmentPlan.empty();
         }
+
+        ServiceInstance instance = best.getInstance();
         Assignment assignment = new Assignment();
-        assignment.setWorkerInstanceId(best.getInstance().getInstanceId());
+        assignment.setWorkerInstanceId(instance.getInstanceId());
+        assignment.setTargetHost(instance.getHost());
         assignment.setCost(taskCost);
         return new AssignmentPlan(List.of(assignment));
     }

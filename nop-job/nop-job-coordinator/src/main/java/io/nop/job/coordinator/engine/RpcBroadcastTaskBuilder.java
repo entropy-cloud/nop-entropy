@@ -90,7 +90,7 @@ public class RpcBroadcastTaskBuilder implements IJobTaskBuilder {
             task.setPartitionIndex(fire.getPartitionIndex());
 
             // Dispatch routing: columns instead of JSON payload
-            task.setTargetHost(instance.getAddr() + ":" + instance.getPort());
+            task.setTargetHost(instance.getHost());
             task.setShardingIndex(i);
             task.setShardingTotal(total);
 
