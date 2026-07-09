@@ -33,7 +33,6 @@ import io.nop.message.core.local.LocalMessageService;
 import io.nop.orm.dao.IOrmEntityDao;
 import io.nop.sys.dao.NopSysDaoException;
 import io.nop.sys.dao.NopSysDaoConstants;
-import io.nop.sys.dao.entity.NopSysBroadcastCursor;
 import io.nop.sys.dao.entity.NopSysBroadcastEvent;
 import io.nop.sys.dao.entity.NopSysEvent;
 import jakarta.inject.Inject;
@@ -80,6 +79,8 @@ public class SysDaoMessageService extends LifeCycleSupport implements IMessageSe
 
     private Future<?> checkBroadcastFuture;
     private Future<?> checkNonBroadcastFuture;
+
+    private BroadcastEventProcessor broadcastProcessor;
 
     private long minProcessDelay = 10000;
 
@@ -275,34 +276,40 @@ public class SysDaoMessageService extends LifeCycleSupport implements IMessageSe
     }
 
     protected void processBroadcastEvent() {
-        ensureStartTimeInitialized();
-        Set<String> topics = getBroadcastTopics();
-        for (String topic : topics) {
-            for (SubscriptionState subscription : getBroadcastSubscriptions(topic)) {
-                NopSysBroadcastCursor cursor = claimBroadcastCursor(subscription);
-                if (cursor == null) {
-                    continue;
-                }
+        ensureBroadcastProcessor();
+        broadcastProcessor.process();
+    }
 
-                try {
-                    processBroadcastCursor(subscription, cursor);
-                } catch (Exception e) {
-                    recordBroadcastCursorError(cursor, e);
-                }
-            }
+    private void ensureBroadcastProcessor() {
+        if (broadcastProcessor == null) {
+            broadcastProcessor = new BroadcastEventProcessor(
+                    daoProvider,
+                    this::getBroadcastTopics,
+                    this::dispatchBroadcastToSubscribers,
+                    fetchSize,
+                    startGap
+            );
         }
     }
 
-    protected List<NopSysBroadcastEvent> fetchBroadcastEvents(String topic, Long lastConsumedEventId) {
-        IEntityDao<NopSysBroadcastEvent> dao = broadcastDao();
-        QueryBean query = new QueryBean();
-        query.setLimit(fetchSize);
-        query.addFilter(FilterBeans.eq(NopSysBroadcastEvent.PROP_NAME_eventTopic, topic));
-        if (lastConsumedEventId != null) {
-            query.addFilter(FilterBeans.gt(NopSysBroadcastEvent.PROP_NAME_eventId, lastConsumedEventId));
+    private void dispatchBroadcastToSubscribers(String topic, NopSysBroadcastEvent event) {
+        List<SubscriptionState> subscriptions = getBroadcastSubscriptions(topic);
+        if (subscriptions == null || subscriptions.isEmpty()) {
+            LOG.debug("nop.message.ignore-broadcast-when-no-subscriber:topic={}", topic);
+            return;
         }
-        query.addOrderField(NopSysBroadcastEvent.PROP_NAME_eventId, false);
-        return dao.findAllByQuery(query);
+
+        for (SubscriptionState subscription : subscriptions) {
+            try {
+                Object ret = invokeConsumer(subscription.consumer, event.getEventTopic(),
+                        fromBroadcastEvent(event), null, true);
+                if (ret instanceof ConsumeLater) {
+                    LOG.warn("nop.message.broadcast-consume-later-ignored:topic={}", topic);
+                }
+            } catch (Exception e) {
+                LOG.error("nop.message.consume-broadcast-event-error:topic={}", topic, e);
+            }
+        }
     }
 
     protected List<NopSysEvent> fetchNonBroadcastEvents() {
@@ -397,10 +404,6 @@ public class SysDaoMessageService extends LifeCycleSupport implements IMessageSe
         return (IOrmEntityDao<NopSysBroadcastEvent>) daoProvider.daoFor(NopSysBroadcastEvent.class);
     }
 
-    protected IOrmEntityDao<NopSysBroadcastCursor> broadcastCursorDao() {
-        return (IOrmEntityDao<NopSysBroadcastCursor>) daoProvider.daoFor(NopSysBroadcastCursor.class);
-    }
-
     protected void ensureStartTimeInitialized() {
         if (startTime != null) {
             return;
@@ -488,104 +491,6 @@ public class SysDaoMessageService extends LifeCycleSupport implements IMessageSe
             return Collections.emptyList();
         }
         return states;
-    }
-
-    @Transactional(propagation = TransactionPropagation.REQUIRES_NEW)
-    protected NopSysBroadcastCursor claimBroadcastCursor(SubscriptionState subscription) {
-        IOrmEntityDao<NopSysBroadcastCursor> dao = broadcastCursorDao();
-        QueryBean query = new QueryBean();
-        query.setLimit(1);
-        query.addFilter(FilterBeans.eq(NopSysBroadcastCursor.PROP_NAME_subscriberId, subscription.subscriberId));
-        query.addFilter(FilterBeans.eq(NopSysBroadcastCursor.PROP_NAME_eventTopic, subscription.topic));
-
-        NopSysBroadcastCursor cursor = dao.findFirstByQuery(query);
-        long now = dao.getDbEstimatedClock().getMaxCurrentTimeMillis();
-        if (cursor == null) {
-            cursor = dao.newEntity();
-            cursor.setSubscriberId(subscription.subscriberId);
-            cursor.setEventTopic(subscription.topic);
-            cursor.setLeaseOwner(getHostId());
-            cursor.setLeaseExpireTime(new Timestamp(now + leaseTimeout));
-            try {
-                dao.saveEntityDirectly(cursor);
-                return cursor;
-            } catch (Exception e) {
-                NopSysBroadcastCursor existing = findBroadcastCursor(subscription.subscriberId, subscription.topic);
-                if (existing == null) {
-                    throw e;
-                }
-                cursor = existing;
-            }
-        }
-
-        if (!canTakeLease(cursor.getLeaseOwner(), cursor.getLeaseExpireTime(), now)) {
-            return null;
-        }
-
-        cursor.setLeaseOwner(getHostId());
-        cursor.setLeaseExpireTime(new Timestamp(now + leaseTimeout));
-        return dao.tryUpdateWithVersionCheck(cursor) ? cursor : null;
-    }
-
-    protected NopSysBroadcastCursor findBroadcastCursor(String subscriberId, String topic) {
-        IOrmEntityDao<NopSysBroadcastCursor> dao = broadcastCursorDao();
-        QueryBean query = new QueryBean();
-        query.setLimit(1);
-        query.addFilter(FilterBeans.eq(NopSysBroadcastCursor.PROP_NAME_subscriberId, subscriberId));
-        query.addFilter(FilterBeans.eq(NopSysBroadcastCursor.PROP_NAME_eventTopic, topic));
-        return dao.findFirstByQuery(query);
-    }
-
-    protected void processBroadcastCursor(SubscriptionState subscription, NopSysBroadcastCursor cursor) {
-        List<NopSysBroadcastEvent> events = fetchBroadcastEvents(subscription.topic, cursor.getLastConsumedEventId());
-        for (NopSysBroadcastEvent event : events) {
-            Object ret = invokeConsumer(subscription.consumer, event.getEventTopic(), fromBroadcastEvent(event), null, true);
-            if (ret instanceof ConsumeLater) {
-                throw new NopSysDaoException("Broadcast consumer returned ConsumeLater for topic=" + subscription.topic);
-            }
-            advanceBroadcastCursor(cursor, event.getEventId(), null);
-        }
-    }
-
-    @Transactional(propagation = TransactionPropagation.REQUIRES_NEW)
-    protected void advanceBroadcastCursor(NopSysBroadcastCursor cursor, Long eventId, String error) {
-        IOrmEntityDao<NopSysBroadcastCursor> dao = broadcastCursorDao();
-        NopSysBroadcastCursor current = dao.requireEntityById(cursor.orm_id());
-        if (eventId != null) {
-            Long currentId = current.getLastConsumedEventId();
-            if (currentId != null && eventId < currentId) {
-                throw new NopSysDaoException("Broadcast cursor cannot move backwards: current=" + currentId + ", next=" + eventId);
-            }
-            current.setLastConsumedEventId(eventId);
-            current.setLastConsumeTime(new Timestamp(dao.getDbEstimatedClock().getMaxCurrentTimeMillis()));
-            current.setLastError(null);
-        } else {
-            current.setLastError(error);
-        }
-        current.setLeaseOwner(getHostId());
-        current.setLeaseExpireTime(new Timestamp(dao.getDbEstimatedClock().getMaxCurrentTimeMillis() + leaseTimeout));
-        dao.updateEntityDirectly(current);
-    }
-
-    protected void recordBroadcastCursorError(NopSysBroadcastCursor cursor, Exception e) {
-        try {
-            advanceBroadcastCursor(cursor, null, e.getMessage());
-        } catch (Exception ex) {
-            LOG.error("nop.message.update-broadcast-cursor-error:subscriberId={},topic={}",
-                    cursor.getSubscriberId(), cursor.getEventTopic(), ex);
-        }
-        LOG.error("nop.message.consume-broadcast-event-error:subscriberId={},topic={}",
-                cursor.getSubscriberId(), cursor.getEventTopic(), e);
-    }
-
-    protected boolean canTakeLease(String leaseOwner, Timestamp leaseExpireTime, long now) {
-        if (StringHelper.isEmpty(leaseOwner)) {
-            return true;
-        }
-        if (getHostId().equals(leaseOwner)) {
-            return true;
-        }
-        return leaseExpireTime == null || leaseExpireTime.getTime() <= now;
     }
 
     protected String getHostId() {

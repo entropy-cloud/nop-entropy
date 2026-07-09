@@ -227,23 +227,6 @@ CREATE TABLE nop_sys_broadcast_event(
   constraint PK_nop_sys_broadcast_event primary key (EVENT_ID)
 )CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_as_cs;
 
-CREATE TABLE nop_sys_broadcast_cursor(
-  SID VARCHAR(200) NOT NULL    COMMENT '主键',
-  SUBSCRIBER_ID VARCHAR(150) NOT NULL    COMMENT '订阅者ID',
-  EVENT_TOPIC VARCHAR(100) NOT NULL    COMMENT '事件主题',
-  LAST_CONSUMED_EVENT_ID BIGINT NULL    COMMENT '最后消费事件ID',
-  LEASE_OWNER VARCHAR(100) NULL    COMMENT '租约持有者',
-  LEASE_EXPIRE_TIME DATETIME(3) NULL    COMMENT '租约过期时间',
-  LAST_CONSUME_TIME DATETIME(3) NULL    COMMENT '最后消费时间',
-  LAST_ERROR VARCHAR(4000) NULL    COMMENT '最后错误',
-  VERSION BIGINT NOT NULL    COMMENT '数据版本',
-  CREATED_BY VARCHAR(50) NOT NULL    COMMENT '创建人',
-  CREATE_TIME DATETIME(3) DEFAULT CURRENT_TIMESTAMP(3)  NOT NULL    COMMENT '创建时间',
-  UPDATED_BY VARCHAR(50) NOT NULL    COMMENT '修改人',
-  UPDATE_TIME DATETIME(3) DEFAULT CURRENT_TIMESTAMP(3)  NOT NULL    COMMENT '修改时间',
-  constraint PK_nop_sys_broadcast_cursor primary key (SID)
-)CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_as_cs;
-
 CREATE TABLE nop_sys_service_instance(
   INSTANCE_ID VARCHAR(50) NOT NULL    COMMENT '服务实例ID',
   SERVICE_NAME VARCHAR(100) NOT NULL    COMMENT '服务名',
@@ -366,8 +349,6 @@ CREATE TABLE nop_sys_obj_tag(
    ALTER TABLE nop_sys_event COMMENT '普通事件队列';
                 
    ALTER TABLE nop_sys_broadcast_event COMMENT '广播事件流';
-                
-   ALTER TABLE nop_sys_broadcast_cursor COMMENT '广播订阅游标';
                 
    ALTER TABLE nop_sys_service_instance COMMENT '服务实例';
                 

@@ -1,6 +1,5 @@
 entity:
   label:
-    NopSysBroadcastCursor: 广播订阅游标
     NopSysBroadcastEvent: 广播事件流
     NopSysChangeLog: 变更跟踪日志
     NopSysCheckerRecord: MakerChecker审批记录
@@ -22,20 +21,6 @@ entity:
     NopSysVariable: 系统变量
 prop:
   label:
-    NopSysBroadcastCursor:
-      createTime: 创建时间
-      createdBy: 创建人
-      eventTopic: 事件主题
-      lastConsumeTime: 最后消费时间
-      lastConsumedEventId: 最后消费事件ID
-      lastError: 最后错误
-      leaseExpireTime: 租约过期时间
-      leaseOwner: 租约持有者
-      sid: 主键
-      subscriberId: 订阅者ID
-      updateTime: 修改时间
-      updatedBy: 修改人
-      version: 数据版本
     NopSysBroadcastEvent:
       bizDate: 业务日期
       bizKey: 业务标识

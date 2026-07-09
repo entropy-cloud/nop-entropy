@@ -1,7 +1,7 @@
 # sys-event 架构设计
 
-**日期**：2026-07-07
-**范围**：`nop-sys` 的事件存储与消费模型，涉及 `nop-sys.orm.xml`、`SysDaoMessageService`、广播订阅方状态持久化、普通事件分区并行消费
+**日期**：2026-07-07（更新于 2026-07-09）
+**范围**：`nop-sys` 的事件存储与消费模型，涉及 `nop-sys.orm.xml`、`SysDaoMessageService`、广播事件 `findNext` 时间窗口消费、普通事件分区并行消费
 **状态**：active baseline
 **关联**：`../nop-job/worker-assignment-design.md`、`../../docs-for-ai/03-modules/nop-sys.md`、`../../docs-for-ai/03-modules/nop-batch.md`
 
@@ -9,55 +9,68 @@
 
 ## 一、设计结论
 
-1. `sys-event` 必须拆成两条独立链路：
-   - **广播事件**：一个事件会被多个订阅实例各自消费，存储与状态跟踪必须按“事件流 + 订阅游标”建模。
-   - **普通事件**：一个事件只应被某一个 consumer group 中的一个 worker 处理，存储与状态跟踪必须按“共享队列 + 分区串行”建模。
+1. `sys-event` 必须拆成两条独立链路，且广播与普通事件的消费逻辑应拆分到各自独立的处理器类中：
+   - **广播事件**：append-only 事件流表 + `findNext` keyset pagination + 内存游标 + 时间窗口过滤。不持久化消费进度，不做分布式锁。
+   - **普通事件**：共享队列 + `partitionIndex` 分区归属 + lease + 状态迁移。存储与状态跟踪按"共享队列 + 分区串行"建模。
 
-2. 广播事件与普通事件**不能继续共用 `nop_sys_event` 一张表作为唯一真源**。当前 `isBroadcast` 只是在同表上分支处理，无法给广播语义提供独立的可靠性约束，也迫使普通事件扫描与广播扫描共享索引和字段语义。
+2. 广播事件与普通事件**不能继续共用 `nop_sys_event` 一张表作为唯一真源**。广播事件需要独立的 append-only 事件流表。
 
-3. 广播事件采用 **outbox + subscriber cursor** 模型：
+3. 广播事件采用 **outbox + `findNext` 时间窗口** 模型：
    - 事件流表只追加，不在成功消费后修改事件行。
-   - 每个广播订阅者持久化自己的消费游标与 lease。
-   - “按顺序执行且不遗漏”的语义绑定到“单个 subscriber 对单个 topic 分区按 eventId 串行推进 cursor”。
+   - 每台服务器在内存中维护上次处理的最后一条实体，通过 `IEntityDao.findNext(lastEntity, filter, null, limit)` 做 keyset pagination，按 PK (`eventId`) 单调推进。
+   - 过滤条件限定时间窗口：`eventTime >= startTime AND eventTime <= now`，其中 `startTime = clock.getMinCurrentTimeMillis() - startGap`。
+   - 重启后内存游标丢失，从时间窗口起点重新消费，业务自行处理重复。
+   - 消费失败不阻塞后续事件，记录错误日志后跳过。
 
 4. 普通事件保留共享队列语义，但显式提升 `partitionIndex` 为第一等公民：
    - 发布时稳定计算 `partitionIndex`，同一业务键必须稳定落同一分区。
    - 消费时按 `partitionIndex` 切分 worker 负责范围，**分区内严格串行，分区间允许并行**。
-   - 普通事件不追求全局顺序，只追求“同一分区内顺序”。
+   - 普通事件不追求全局顺序，只追求"同一分区内顺序"。
 
-5. `sys-event` 对 `nop-batch` 的正确复用边界是：**`nop-sys-dao` 只提供事件存储与触发原语，普通事件的 batch 扫描触发器放在反向依赖 `nop-sys` 的扩展模块中**：
+5. 广播消费处理器（`BroadcastEventProcessor`）与普通事件消费处理器应各自独立成类，`SysDaoMessageService` 作为 `IMessageService` 门面，负责发送路由、订阅注册和生命周期管理，将两类消费逻辑委托给各自的处理器。
+
+6. `sys-event` 对 `nop-batch` 的正确复用边界是：**`nop-sys-dao` 只提供事件存储与触发原语，普通事件的 batch 扫描触发器放在反向依赖 `nop-sys` 的扩展模块中**：
    - **复用**：`StringHelper.shortHash`、`IntRangeBean.shortRange()`、`IntRangeSet`、`WeightedPartitionAssigner`、`PartitionDispatchLoaderProvider/PartitionDispatchQueue`，以及通过 batch trigger 周期触发一次扫描的运行模式。
    - **边界**：`nop-sys-dao` 内不直接依赖 `nop-batch`；batch 只作为外部触发执行机制存在，event row 状态机、lease、retry/reschedule 仍保留在 `sys-event` 自己的存储与处理原语中。
 
-6. 这次重构的目标不是引入 Kafka 级别的外部 MQ，而是在现有数据库事务发布模型上，把**广播可靠性**和**普通事件并行性**补成两个清晰的本地基线。
+7. 这次重构的目标不是引入 Kafka 级别的外部 MQ，而是在现有数据库事务发布模型上，把**广播实用性**和**普通事件并行性**补成两个清晰的本地基线。
 
 ---
 
 ## 二、背景与动机
 
-### 2.1 当前 live baseline（2026-07-08）
+### 2.1 当前 live baseline（2026-07-09）
 
-- `SysDaoMessageService.sendAsync()` / `sendMultiAsync()` 现在按 topic 语义分流：广播消息写 `NopSysBroadcastEvent`，普通消息写 `NopSysEvent`。
-- `NopSysEvent` 目前仍是普通事件队列表，但 row-level `CLAIMED` 并不是目标架构；普通事件的最终目标语义应回到 partition ownership + worker 内微队列顺序执行，而不是把“正在处理”状态下沉到 event row。
-- 广播消费 `processBroadcastEvent()` 现在围绕 `NopSysBroadcastCursor` 做 subscriber cursor + lease，重启恢复真源来自持久化 `lastConsumedEventId`，不再依赖 JVM 内存游标。
-- 普通事件消费 `processNonBroadcastEvent()` 当前实现仍在向目标语义收敛中；设计基线要求它最终对齐 `nop-batch` 的 partition dispatch 模式：先决定 worker 负责的 `IntRangeSet`，再在 worker 内按 partition 微队列顺序执行，不直接把 partition ownership 建模成 event row `CLAIMED`。
-- focused regression tests 已覆盖发送路由、稳定分区键、广播 cursor 推进/失败阻塞，以及普通事件失败后通过 `ConsumeLater` 重排队的基线。
+- `SysDaoMessageService.sendAsync()` / `sendMultiAsync()` 按 topic 语义分流：广播消息（`bro-` 前缀）写 `NopSysBroadcastEvent`，普通消息写 `NopSysEvent`。
+- 广播消费 `processBroadcastEvent()` 当前围绕 `NopSysBroadcastCursor` 做 subscriber cursor + lease。这一设计在实际使用中存在根本性语义错配（见 2.2），本设计裁定改为 `findNext` + 时间窗口 + 内存游标模型。
+- 普通事件消费 `processNonBroadcastEvent()` 已具备 partition 扫描 + lease claim + `ConsumeLater` 重排队的基本语义。
+- 广播与普通事件消费逻辑当前混在 `SysDaoMessageService` 一个 722 行的类中，本设计裁定拆分为独立的处理器类。
 
-### 2.2 当前设计为什么不够
+### 2.2 广播 cursor 模型为什么不够
 
-#### 广播侧
+当前广播消费围绕 `NopSysBroadcastCursor`（subscriberId + topic → lastConsumedEventId + lease）建模。这一设计存在三个根本性问题：
 
-当前广播语义存在三个结构性缺口：
+#### 问题一：广播场景的 subscriberId 无法稳定绑定到"每台服务器"
 
-1. **游标不持久化**：`lastBroadcastEvent` 是 JVM 内存状态，不是系统真源。进程重启、扩缩容、部署漂移后无法证明“不遗漏”。
-2. **多实例重复/跳过边界模糊**：当前每个实例都各扫一遍广播表，但没有“订阅者身份 + 游标 + lease”的持久协作模型。
-3. **事件行被复用为消费状态**：广播本质是“一条事件被多个订阅者独立推进”，单行 `eventStatus` 无法表达多订阅者进度。
+广播的核心用例是**缓存失效、状态同步**等 fan-out 通知：每台服务器都需要独立处理每条广播事件。这意味着每台服务器需要自己的消费进度。
 
-#### 普通事件侧
+- 如果 `subscriberId` 绑定到 `AppConfig.hostId()`，由于 `hostId()` 在未配置时为随机 UUID（每次启动不同），重启后会产生全新游标，`lastConsumedEventId=null`，从 eventId=0 全量回放历史事件——对临时性广播事件（缓存失效）完全无意义。
+- 如果 `subscriberId` 固定为业务名称（如 `subscribeName="cache-refresher"`），则多台服务器共享一个游标，退化成竞争消费，只有一台机器处理，不是真正的广播。
+- 即使 `subscriberId` 绑定到稳定的实例标识（如配置的 pod name），持久化 cursor 也会积累垃圾记录（每次部署变更都可能留下无用游标），且对缓存失效这类 ephemeral 语义来说，持久化进度是过度设计。
 
-当前普通事件语义也有两个缺口：
+#### 问题二：eventId-based cursor 假设从头消费
 
-1. **并发模型过弱**：只有简单轮询 + optimistic update，没有“分区归属、worker 负责范围、分区内串行”的显式模型。
+持久化 cursor 以 `lastConsumedEventId` 单调推进，新 cursor 从 `eventId=0` 开始。但广播事件的典型场景不需要历史回放——服务器重启后只需要"启动时间附近"的事件，更老的事件早已过期（缓存已被后续失效覆盖，或服务启动时全量加载）。
+
+#### 问题三：lease + 失败阻塞与广播语义冲突
+
+当前设计中，subscriber 处理失败时 cursor 不推进，后续事件被阻塞。但广播事件（尤其是缓存失效）是 fire-and-forget 语义——一条失效失败不应阻塞后续失效，否则会导致缓存一致性问题扩大化。
+
+### 2.3 普通事件侧的缺口
+
+当前普通事件语义有两个缺口：
+
+1. **并发模型过弱**：只有简单轮询 + optimistic update，没有"分区归属、worker 负责范围、分区内串行"的显式模型。
 2. **`partitionIndex` 语义未闭合**：发布端有时按 biz key hash 写入，有时随机写入；消费端又不按 partition range 拉取，导致字段存在但不构成契约。
 
 ---
@@ -70,90 +83,105 @@
 
 因此重构只改变“落库后的存储模型和消费模型”，不改变“业务侧调用 `IMessageService` 进行同事务发布”的总路线。
 
-### 3.2 广播事件：事件流与订阅游标分离
+### 3.2 广播事件：append-only 事件流 + `findNext` 时间窗口消费
 
 #### 3.2.1 数据模型
 
-广播至少拆成两类持久对象：
+广播只需要一类持久化对象：
 
-1. **Broadcast Event Stream**
+1. **Broadcast Event Stream**（`NopSysBroadcastEvent`）
    - 一行代表一次已经提交的广播事件。
-   - 关键语义字段：`eventId`、`topic`、`eventTime`、`payload`、`headers`、`bizKey`、`bizObjName`。
+   - 关键语义字段：`eventId`（PK，自增）、`eventTopic`、`eventTime`、`eventName`、`eventHeaders`、`eventData`、`bizKey`、`bizObjName`、`bizDate`。
    - 行只追加，除 TTL 清理外不更新状态。
 
-2. **Broadcast Subscriber Cursor**
-   - 一行代表“某个订阅者对某个 topic/stream 分区的消费进度”。
-   - 关键语义字段：`subscriberId`、`topic`、`lastConsumedEventId`、`leaseOwner`、`leaseExpireTime`、`lastConsumeTime`、`lastError`。
+**不再需要 `NopSysBroadcastCursor` 表。** 广播消费进度不持久化到数据库，而是通过 `IEntityDao.findNext()` 的 keyset pagination 在内存中维护。
+#### 3.2.2 `findNext` keyset pagination 机制
 
-这里的 `subscriberId` 不是进程随机值，而是**稳定的订阅身份**。它至少要能区分：
+`IEntityDao.findNext(T lastEntity, ITreeBean filter, List<OrderFieldBean> orderBy, int limit)` 是 DAO 层提供的 keyset pagination 方法：
 
-- 哪个逻辑订阅者（listener bean / consumer name）
-- 哪个实例副本在执行该订阅者（仅体现在 leaseOwner，不体现在 subscriberId 本身）
+- **`lastEntity`**：上一批处理的最后一条实体，作为游标。`null` 时从头开始。
+- **filter**：附加 WHERE 条件（如 `eventTopic = ?`、`eventTime >= ?`）。
+- **orderBy**：排序字段（PK 列总是被追加，保证全序）。
+- 对于单主键实体（`NopSysBroadcastEvent` 的 PK 为 `eventId`），生成的 SQL 为：
 
-#### 3.2.2 顺序与不遗漏保证
-
-广播的可靠语义定义为：
-
-> 对于固定的 `subscriberId + topic`，系统按 `eventId` 升序处理事件。只有当 `eventId = N` 的处理结果被确认成功后，`lastConsumedEventId` 才能推进到 `N`。重启、抢占、重试之后，订阅者会从持久化 cursor 的下一个 eventId 继续，因此不会遗漏；最多允许重复处理最后一个未确认成功的事件。
-
-也就是：
-
-- **顺序保证**：来自 `lastConsumedEventId -> next eventId` 的串行推进
-- **不遗漏保证**：来自“cursor 持久化后再推进”
-- **故障语义**：至少一次，不是恰好一次
-
-#### 3.2.3 单订阅者执行算法
-
-伪代码：
-
-```text
-loop for subscriberId + topic:
-    claim cursor row by lease
-    load cursor.lastConsumedEventId = X
-    fetch next events where eventId > X order by eventId asc limit N
-
-    for event in events:
-        invoke listener(event)
-        if success:
-            update cursor.lastConsumedEventId = event.eventId
-            update cursor.lastConsumeTime
-        else:
-            record lastError
-            stop loop for this subscriber
+```sql
+SELECT o FROM NopSysBroadcastEvent o
+WHERE o.eventTopic = ?
+  AND o.eventTime >= ?     -- startTime
+  AND o.eventTime <= ?     -- now (maxEstimatedTime)
+  AND o.eventId > ?        -- lastEntity.eventId
+ORDER BY o.eventId
+LIMIT ?
 ```
 
-关键约束：
+- `lastEntity = null` 时，`eventId > ?` 条件不生成，从 filter 匹配的第一条开始。
+- 这不是 OFFSET 分页，没有深翻页性能退化问题。
 
-1. **一个 `subscriberId + topic` 在任一时刻只允许一个 lease owner 执行**。
-2. **cursor 只能单调递增**，不允许回退。
-3. **cursor 更新与“本次 listener 成功”绑定**；未成功不推进。
-4. **同一 subscriber 不做多线程并发拉取**；广播顺序优先于吞吐。
+#### 3.2.3 消费模型与时间窗口
 
-#### 3.2.4 广播如何支持多实例和扩缩容
+每台服务器独立运行广播消费，不做分布式协调：
 
-广播需要区分两层身份：
+```text
+on startup:
+    startTime = clock.getMinCurrentTimeMillis() - startGap
+    lastEvent[topic] = null   // 内存游标，重启后重置
 
-1. **逻辑订阅者身份**：谁应该看到这类广播。
-2. **运行实例身份**：当前由哪台机器代替这个逻辑订阅者执行。
+each cycle:
+    for each broadcast topic:
+        filter = eventTopic = topic
+               AND eventTime >= startTime
+               AND eventTime <= clock.getMaxCurrentTimeMillis()
+        batch = dao.findNext(lastEvent[topic], filter, null, fetchSize)
 
-设计裁定：
+        for event in batch:
+            try:
+                invoke listener(event)
+            catch Exception:
+                log error, do NOT block
 
-- `subscriberId` 应绑定到**逻辑订阅者**，例如 `serviceName:listenerBean:topic`。
-- `leaseOwner` 绑定到**当前实例**，例如 `instanceId`。
-- 同一服务横向扩容时，多个实例竞争同一个 `subscriberId` 的 lease，但最终只有一个实例持有。这样可以避免“一组完全同构的服务副本都各消费一次同一广播”造成意外倍增。
+        if batch not empty:
+            lastEvent[topic] = batch.last()
+```
 
-如果未来确实需要“每个实例都收到一次”的广播，必须作为**不同语义**单独建模，例如 instance-scoped broadcast，而不能复用当前的 service-scoped reliable broadcast。
+关键设计决策：
 
-#### 3.2.5 为什么不能继续只靠 `bro-` topic + 内存游标
+1. **内存游标**：`lastEvent[topic]` 仅存在于 JVM 内存中，防止运行期间重复消费同一批事件。重启后丢失，从时间窗口起点重新消费。
+2. **时间窗口下限**（`startTime`）：启动时设定为 `clock.getMinCurrentTimeMillis() - startGap`。`startGap`（默认 5 秒）补偿应用与数据库之间的时钟偏差，确保不遗漏启动前刚提交的事件。重启后自然跳过历史事件。
+3. **时间窗口上限**（`clock.getMaxCurrentTimeMillis()`）：只消费已提交的事件，避免读到未完成事务的脏数据。
+4. **PK 排序**：`eventId` 自增，与插入顺序一致，近似等于 `eventTime` 顺序。无需额外指定 orderBy。
+5. **失败不阻塞**：消费异常时记录日志后继续处理下一条事件，不暂停、不重试、不阻塞后续事件。广播事件的 fire-and-forget 语义优先于单条事件的可靠投递。
+6. **业务幂等**：重启后时间窗口内的事件可能被重复消费，业务 listener 必须容忍重复（如缓存失效天然幂等）。
 
-因为这只能表达“我现在想扫哪些 topic”，表达不了：
+#### 3.2.4 为什么不持久化消费进度
 
-- 某个 subscriber 已经处理到哪条
-- 某个实例是否仍持有执行权
-- 某次重启之后应该从哪条恢复
-- 某个 subscriber 卡在错误上时是否阻塞后续事件
+广播事件的核心用例（缓存失效、状态同步）具有以下特征：
 
-这些都是广播“按顺序且不遗漏”所必需的持久事实。
+- **临时性**：一条缓存失效事件在产生后很快失去意义——后续的失效会覆盖它，或缓存条目自然过期。
+- **全量重建**：服务器启动时通常全量加载状态（如缓存预热），不需要回放历史广播事件。
+- **幂等性**：重复消费同一条广播事件不会产生错误结果（缓存多失效一次无副作用）。
+
+因此持久化消费进度（cursor 表）带来的复杂性远大于其价值：
+- 不需要"不遗漏历史"的保证，因为历史事件本身无意义。
+- 不需要分布式锁，因为每台服务器独立消费。
+- 不需要 cursor 表的运维和清理。
+
+系统提供的语义是 **at-least-once + 时间窗口**：重启后可能重复消费窗口内事件，但绝不会遗漏启动后产生的新事件。
+
+#### 3.2.5 与"可靠顺序广播"的关系
+
+本设计明确放弃"持久化 subscriber cursor 保证严格不遗漏"的广播语义。如果业务场景确实需要：
+- **跨重启不遗漏任何历史事件**——应使用专业 MQ（Kafka 等），而不是数据库 outbox。
+- **严格顺序消费**——广播事件按 `eventId` 顺序投递，但失败不阻塞、不重试，因此不保证严格顺序处理成功。
+
+数据库 outbox 广播的定位是**轻量级 fan-out 通知**，不是替代 MQ 的可靠消息总线。
+
+#### 3.2.6 处理器拆分
+
+广播消费逻辑应从 `SysDaoMessageService` 中独立为 `BroadcastEventProcessor` 类。拆分动机：
+
+- 广播与非广播在状态管理、并发控制、失败处理上几乎没有共用逻辑，仅共享基础设施（daoProvider、timer、hostId）。
+- 当前 `SysDaoMessageService` 已达 722 行，两类逻辑混在一起降低可读性和可测试性。
+- 拆分后 `SysDaoMessageService` 作为 `IMessageService` 门面，负责发送路由（`bro-` 前缀 → 广播）、订阅注册和生命周期管理，将消费委托给各自的处理器。
 
 ### 3.3 普通事件：共享队列 + 分区串行
 
@@ -275,11 +303,11 @@ for each owned partition P in parallel:
 
 1. **Chunk completion 不是唯一事件确认边界**：
    - 普通事件的运行时结果应落到每条 event row 的状态更新上，例如成功改 `PROCESSED`，失败写 `retryTime` / `retryTimes` 后等待下轮扫描。
-   - 广播事件的确认边界仍是“单 event + subscriber cursor 连续成功前缀”。
+   - 广播事件不跟踪逐条确认状态（fire-and-forget），因此 chunk completion 对广播完全没有意义。
    - 因此一个 chunk 可以作为批量 flush / 批量提交的优化单位，但不能只记录 chunk 成败而丢掉逐条 event outcome。
-2. **Processor/Consumer DSL 不是事件 listener 契约本身**：普通事件可以在实现层被包装成“扫描一批待处理事件的 batch”，但 listener 注册、topic 路由、cursor / retry 语义仍应由 `sys-event` 自己定义，而不是暴露成 batch DSL。
-3. **Batch task / record result 不是必要中心模型**：普通事件不应直接复用 `NopBatchTask` / `NopBatchRecordResult` 作为运行时真源；这些对象围绕“任务实例 + chunk 结果”组织，而普通事件是常驻共享队列。
-4. **saveState / completedIndex 恢复不是事件恢复主模型**：广播恢复首先看 cursor，普通事件恢复首先看队列状态与重试字段，而不是 batch 的 completedIndex。
+2. **Processor/Consumer DSL 不是事件 listener 契约本身**：普通事件可以在实现层被包装成"扫描一批待处理事件的 batch"，但 listener 注册、topic 路由、retry 语义仍应由 `sys-event` 自己定义，而不是暴露成 batch DSL。
+3. **Batch task / record result 不是必要中心模型**：普通事件不应直接复用 `NopBatchTask` / `NopBatchRecordResult` 作为运行时真源；这些对象围绕"任务实例 + chunk 结果"组织，而普通事件是常驻共享队列。
+4. **saveState / completedIndex 恢复不是事件恢复主模型**：广播恢复通过时间窗口 + `findNext` 内存游标实现，普通事件恢复通过队列状态与重试字段，而不是 batch 的 completedIndex。
 5. **不直接复用 `nop-task` 承载整个 sys-event 生命周期**：可以用 `nop-job` 或 `IScheduledExecutor` 周期拉起一次普通事件扫描，但不应把 `sys-event` 整体重定义成长期运行的 batch task graph。
 
 #### 3.4.3 可以复用的执行优化
@@ -310,34 +338,31 @@ for each owned partition P in parallel:
 
 ### 3.5 广播与普通事件的表设计边界
 
-建议最终形成三类表，而不是“一张事件表打所有语义补丁”：
+最终形成两类表，而不是"一张事件表打所有语义补丁"：
 
-1. **普通事件表**
+1. **普通事件表**（`NopSysEvent`）
    - 面向 shared queue
    - 主关注点：分区、lease、重试、状态迁移
 
-2. **广播事件流表**
+2. **广播事件流表**（`NopSysBroadcastEvent`）
    - 面向 append-only event stream
    - 主关注点：顺序扫描、TTL、payload 保存
 
-3. **广播订阅游标表**
-   - 面向 subscriber progress
-   - 主关注点：cursor、lease、错误状态
-
-是否保留现有 `NopSysEvent` 名称不是核心问题；核心问题是**语义上必须拆成这三类对象**。如果为了迁移平滑，第一阶段也可以先保留旧表名给普通事件，同时新增广播专用表与 cursor 表，但最终 owner-doc 基线必须按三类对象思考，而不是按 `isBroadcast` thinking。
+**不再需要广播订阅游标表。** 广播消费进度通过 `findNext` 的内存游标维护，重启后从时间窗口起点重新消费，业务自行处理重复。
 
 ### 3.6 失败、重试与阻塞策略
 
 #### 广播事件
 
-- 某个 subscriber 处理失败，只阻塞**它自己的 cursor**。
-- 其他 subscriber 的 cursor 可独立前进。
-- 同一 subscriber 对该 topic 后续事件默认不得越过失败事件，否则会破坏顺序语义。
+- 消费失败**不阻塞**后续事件。
+- 单条事件处理异常时记录错误日志后跳过，立即继续处理下一条。
+- 不重试、不暂停、不阻塞——广播事件的 fire-and-forget 语义优先于单条事件的可靠投递。
+- 业务 listener 如需更强保证，应自行实现幂等和补偿逻辑。
 
 #### 普通事件
 
 - 某条事件失败后，默认通过更新 `scheduleTime + retryTimes` 延迟重试，而不是在平台层引入 partition head blocking。
-- 业务如果确实要求“后续消息不能越过前序失败消息”，应在 listener / 业务状态机层自行判定并返回重试，而不是把该约束固化到基础设施层。
+- 业务如果确实要求"后续消息不能越过前序失败消息"，应在 listener / 业务状态机层自行判定并返回重试，而不是把该约束固化到基础设施层。
 - lease 字段仍需要补齐，避免 worker 崩溃后长期悬空。
 
 ### 3.7 迁移约束
@@ -345,33 +370,37 @@ for each owned partition P in parallel:
 迁移需要遵守以下硬约束：
 
 1. 已有同事务发布能力不能丢。
-2. 广播不能再依赖 JVM 内存游标。
+2. 广播消费进度不持久化到数据库；通过 `findNext` 内存游标 + 时间窗口维护。
 3. 普通事件发布端必须停止随机分区默认值。
 4. 普通事件 worker 需要明确的 partition ownership；当前最小 live baseline 通过 `assignedPartitions + row lease + partition scan` 落地，而不是额外的 ownership 表。
 5. 文档与代码都要明确：系统提供的是**至少一次**语义，业务 listener 如需抗重复必须做幂等。
+6. 广播消费逻辑应独立为 `BroadcastEventProcessor` 类，与普通事件处理器分离。
 
 ---
 
 ## 四、拒绝了什么
 
-1. **继续共用一张 `nop_sys_event` 表，只是在 `isBroadcast` 分支上继续打补丁**：这会把“共享队列”和“广播事件流”两种根本不同的状态机继续揉在一起，无法清晰建模 subscriber cursor。
+1. **继续共用一张 `nop_sys_event` 表，只是在 `isBroadcast` 分支上继续打补丁**：这会把"共享队列"和"广播事件流"两种根本不同的状态机继续揉在一起。
 
-2. **广播直接按每实例 fan-out 为多条普通事件**：这会让广播事件数量与实例数线性膨胀，并把“订阅者进度”隐藏成消息复制，扩缩容和实例漂移时更难校正。
+2. **广播直接按每实例 fan-out 为多条普通事件**：这会让广播事件数量与实例数线性膨胀，并把消费进度隐藏成消息复制，扩缩容和实例漂移时更难校正。
 
-3. **广播允许同一 subscriber 并行处理多条事件**：吞吐会更高，但无法保证严格顺序推进 cursor。
+3. **广播持久化 subscriber cursor + lease 模型**：`hostId()` 在未配置时为随机 UUID，无法稳定绑定到每台服务器；固定 subscriberId 又退化为竞争消费。持久化 cursor 对缓存失效等临时性事件是过度设计，且 cursor 表会积累垃圾记录。已改为 `findNext` 内存游标 + 时间窗口。
 
-4. **普通事件继续随机写 `partitionIndex`**：随机分布提升了均衡性，但破坏了同键顺序，不能作为默认策略。
+4. **广播消费失败时阻塞后续事件**：广播事件是 fire-and-forget 语义，一条失败不应阻塞后续事件。阻塞会导致缓存一致性问题扩大化。
 
-5. **直接把事件确认语义简化成“只看 chunk 成败”**：普通事件可以借 batch 的扫描与分区执行外壳，但必须保留逐条 event outcome；不能因为外层长得像 batch，就只剩 chunk runtime 状态。
+5. **普通事件继续随机写 `partitionIndex`**：随机分布提升了均衡性，但破坏了同键顺序，不能作为默认策略。
 
-6. **在平台层引入 partition head blocking 作为默认机制**：这会把失败重试、补偿和业务乱序容忍度固化到基础设施层，反而放大复杂度。默认策略应是处理失败后改写 `scheduleTime` 重新投递，由业务逻辑自己决定如何保证幂等和顺序。
+6. **直接把事件确认语义简化成"只看 chunk 成败"**：普通事件可以借 batch 的扫描与分区执行外壳，但必须保留逐条 event outcome；不能因为外层长得像 batch，就只剩 chunk runtime 状态。
 
-7. **把目标做成恰好一次**：在当前数据库 outbox + listener 回调模型下，exactly-once 成本过高，也不符合平台其他模块的默认语义。owner-doc 明确坚持 at-least-once + 幂等 listener。
+7. **在平台层引入 partition head blocking 作为默认机制**：这会把失败重试、补偿和业务乱序容忍度固化到基础设施层，反而放大复杂度。默认策略应是处理失败后改写 `scheduleTime` 重新投递，由业务逻辑自己决定如何保证幂等和顺序。
+
+8. **把目标做成恰好一次**：在当前数据库 outbox + listener 回调模型下，exactly-once 成本过高，也不符合平台其他模块的默认语义。owner-doc 明确坚持 at-least-once + 幂等 listener。
 
 ---
 
 ## 五、与已有设计的关系
 
-- 与 `docs-for-ai/03-modules/nop-sys.md` 的关系：后者当前只描述“分区扫描、支持延迟事件”的使用层摘要；本设计补的是平台开发侧的可靠性与并发语义基线。实现落地后，`nop-sys.md` 需要同步更新为“广播 / 普通事件分离”。
+- 与 `docs-for-ai/03-modules/nop-sys.md` 的关系：后者描述使用者视角的 `nop-sys` 能力；本设计补的是平台开发侧的广播消费模型（`findNext` + 时间窗口）与普通事件并发语义基线。
 - 与 `docs-for-ai/03-modules/nop-batch.md` 的关系：`sys-event` 中普通事件可借用 batch 的周期扫描外壳、partition range 约定、worker 切分思想以及 chunk flush 优化，但不把事件结果简化成只看 chunk 成败。
 - 与 `ai-dev/design/nop-job/worker-assignment-design.md` 的关系：普通事件的 worker ownership、`IntRangeSet`、`WeightedPartitionAssigner`、short-range 值域直接沿用该文档已经论证过的分区基线，但失败后默认是重设调度时间再次扫描，而不是在基础设施层固化 head blocking。
+- 与 `IEntityDao.findNext()` 的关系：广播消费复用 DAO 层的 keyset pagination 能力（`findNext(lastEntity, filter, orderBy, limit)`），不重新实现分页逻辑。该方法对单主键实体生成 `WHERE pk > lastEntity.pk ORDER BY pk LIMIT N`，`lastEntity = null` 时从头开始。

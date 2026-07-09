@@ -10,7 +10,7 @@
 ### 必读路径
 
 1. `sys-event-architecture.md`
-   - `sys-event` 的架构基线：广播事件与普通事件拆分存储、可靠顺序广播、普通事件按 `partitionIndex` 并行消费、与 `nop-batch` 的复用边界
+   - `sys-event` 的架构基线：广播事件采用 `findNext` keyset pagination + 内存游标 + 时间窗口消费（不持久化 cursor），普通事件按 `partitionIndex` 并行消费、与 `nop-batch` 的复用边界、处理器类拆分
 
 2. `compact-ext-field-design.md`
    - `nop-sys` 紧凑扩展字段的配置表、ORM 集成契约与使用边界
@@ -26,6 +26,6 @@
 
 ## 职责边界
 
-- `sys-event-architecture.md` 回答“`sys-event` 应该如何分层、如何持久化、如何保证广播不遗漏、普通事件如何并发消费”。
+- `sys-event-architecture.md` 回答“`sys-event` 应该如何分层、广播事件如何通过 findNext + 时间窗口消费、普通事件如何并发消费”。
 - `compact-ext-field-design.md` 回答“紧凑扩展字段如何建模、如何与 ORM 集成、业务如何使用”。
 - 本目录不记录实现过程、迁移日志、测试结果；这些进入 `ai-dev/logs/`、`ai-dev/plans/` 或 `ai-dev/analysis/`。

@@ -9,10 +9,6 @@ options:
     value: 0
     description: 
   
-  - label: 已认领
-    value: 5
-    description: 
-  
   - label: 已处理
     value: 10
     description: 

@@ -1,9 +1,5 @@
 site:
   resource:
-    FNPT:NopSysBroadcastCursor:mutation:
-      displayName: Modify Broadcast Cursor
-    FNPT:NopSysBroadcastCursor:query:
-      displayName: Query Broadcast Cursor
     FNPT:NopSysBroadcastEvent:mutation:
       displayName: Modify Broadcast Event Stream
     FNPT:NopSysBroadcastEvent:query:
@@ -80,8 +76,6 @@ site:
       displayName: Modify System Variable
     FNPT:NopSysVariable:query:
       displayName: Query System Variable
-    NopSysBroadcastCursor-main:
-      displayName: Broadcast Cursor
     NopSysBroadcastEvent-main:
       displayName: Broadcast Event Stream
     NopSysChangeLog-main:

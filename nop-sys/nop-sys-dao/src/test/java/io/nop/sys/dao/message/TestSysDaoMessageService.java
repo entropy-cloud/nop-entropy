@@ -13,7 +13,6 @@ import io.nop.dao.api.IDaoProvider;
 import io.nop.dao.api.IEntityDao;
 import io.nop.message.core.MessageCoreConstants;
 import io.nop.sys.dao.NopSysDaoConstants;
-import io.nop.sys.dao.entity.NopSysBroadcastCursor;
 import io.nop.sys.dao.entity.NopSysBroadcastEvent;
 import io.nop.sys.dao.entity.NopSysEvent;
 import jakarta.inject.Inject;
@@ -23,12 +22,10 @@ import org.junit.jupiter.api.Test;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -162,141 +159,114 @@ public class TestSysDaoMessageService extends JunitBaseTestCase {
     }
 
     @Test
-    public void testBroadcastCursorPersistsAfterSuccess() {
+    public void testBroadcastProcessesEventsByEventIdOrder() {
         List<String> processed = new ArrayList<>();
-        MessageSubscribeOptions options = new MessageSubscribeOptions();
-        options.setSubscribeName("sub-order-broadcast");
+        service.subscribe("bro-order-created", recordingConsumer(processed), null);
+
+        service.send("bro-order-created", request("Order", "A-100", "evt-1"), null);
+        service.send("bro-order-created", request("Order", "A-100", "evt-2"), null);
+        service.send("bro-order-created", request("Order", "A-100", "evt-3"), null);
+
+        service.processBroadcastEvent();
+
+        assertEquals(List.of("evt-1", "evt-2", "evt-3"), processed);
+    }
+
+    @Test
+    public void testBroadcastInMemoryCursorPreventsReprocessing() {
+        List<String> processed = new ArrayList<>();
+        service.subscribe("bro-order-created", recordingConsumer(processed), null);
+
+        service.send("bro-order-created", request("Order", "A-100", "evt-1"), null);
+        service.send("bro-order-created", request("Order", "A-100", "evt-2"), null);
+
+        service.processBroadcastEvent();
+        service.processBroadcastEvent();
+
+        assertEquals(List.of("evt-1", "evt-2"), processed);
+    }
+
+    @Test
+    public void testBroadcastMultiSubscriberFanOut() {
+        List<String> processedA = new ArrayList<>();
+        List<String> processedB = new ArrayList<>();
+        service.subscribe("bro-order-created", recordingConsumer(processedA), null);
+        service.subscribe("bro-order-created", recordingConsumer(processedB), null);
+
+        service.send("bro-order-created", request("Order", "A-100", "evt-1"), null);
+
+        service.processBroadcastEvent();
+
+        assertEquals(List.of("evt-1"), processedA);
+        assertEquals(List.of("evt-1"), processedB);
+    }
+
+    @Test
+    public void testBroadcastConsumeLaterIgnored() {
+        AtomicInteger attempts = new AtomicInteger();
+        List<String> processed = new ArrayList<>();
         service.subscribe("bro-order-created", new IMessageConsumer() {
             @Override
             public Object onMessage(String topic, Object message, IMessageConsumeContext context) {
                 ApiRequest<Map<String, Object>> request = (ApiRequest<Map<String, Object>>) message;
-                processed.add(String.valueOf(request.getData().get("id")));
+                String id = String.valueOf(request.getData().get("id"));
+                if (attempts.getAndIncrement() == 0) {
+                    return new ConsumeLater(50);
+                }
+                processed.add(id);
                 return null;
             }
-        }, options);
+        }, null);
 
         service.send("bro-order-created", request("Order", "A-100", "evt-1"), null);
         service.send("bro-order-created", request("Order", "A-100", "evt-2"), null);
 
         service.processBroadcastEvent();
 
-        List<NopSysBroadcastCursor> cursors = daoProvider.daoFor(NopSysBroadcastCursor.class).findAll();
-        assertEquals(List.of("evt-1", "evt-2"), processed);
-        assertEquals(1, cursors.size());
-        assertNotNull(cursors.get(0).getLastConsumedEventId());
-        assertNull(cursors.get(0).getLastError());
+        assertEquals(List.of("evt-2"), processed);
     }
 
     @Test
-    public void testBroadcastRecoveryUsesPersistedCursor() {
-        List<String> processed = new ArrayList<>();
-        MessageSubscribeOptions options = new MessageSubscribeOptions();
-        options.setSubscribeName("sub-order-recovery");
-        service.subscribe("bro-order-created", recordingConsumer(processed), options);
-
-        service.send("bro-order-created", request("Order", "A-100", "evt-1"), null);
-        service.processBroadcastEvent();
-
-        NopSysBroadcastCursor cursor = daoProvider.daoFor(NopSysBroadcastCursor.class).findAll().get(0);
-        cursor.setLeaseExpireTime(new java.sql.Timestamp(System.currentTimeMillis() - 1000));
-        daoProvider.daoFor(NopSysBroadcastCursor.class).updateEntityDirectly(cursor);
-
-        TestableSysDaoMessageService restarted = newService("worker-B", "0,32767");
-        restarted.subscribe("bro-order-created", recordingConsumer(processed), options);
-        restarted.send("bro-order-created", request("Order", "A-100", "evt-2"), null);
-        restarted.processBroadcastEvent();
-
-        assertEquals(List.of("evt-1", "evt-2"), processed);
-    }
-
-    @Test
-    public void testBroadcastRecoveryAfterGapLargerThanStartGapStillWorks() {
-        List<String> processed = new ArrayList<>();
-        MessageSubscribeOptions options = new MessageSubscribeOptions();
-        options.setSubscribeName("sub-order-gap-recovery");
-        service.subscribe("bro-order-created", recordingConsumer(processed), options);
-
-        service.send("bro-order-created", request("Order", "A-100", "evt-1"), null);
-        service.processBroadcastEvent();
-
-        service.send("bro-order-created", request("Order", "A-100", "evt-2"), null);
-
-        NopSysBroadcastCursor cursor = daoProvider.daoFor(NopSysBroadcastCursor.class).findAll().stream()
-                .filter(it -> Objects.equals(it.getSubscriberId(), "sub-order-gap-recovery"))
-                .findFirst().orElseThrow();
-        cursor.setLeaseExpireTime(new java.sql.Timestamp(System.currentTimeMillis() - 1000));
-        daoProvider.daoFor(NopSysBroadcastCursor.class).updateEntityDirectly(cursor);
-
-        TestableSysDaoMessageService restarted = newService("worker-C", "0,32767");
-        restarted.setStartGap(1);
-        restarted.subscribe("bro-order-created", recordingConsumer(processed), options);
-        restarted.processBroadcastEvent();
-
-        assertEquals(List.of("evt-1", "evt-2"), processed);
-    }
-
-    @Test
-    public void testBroadcastFailureDoesNotAdvanceCursorPastFailedEvent() {
+    public void testBroadcastFailureDoesNotBlockSubsequent() {
         AtomicInteger attempts = new AtomicInteger();
-        MessageSubscribeOptions options = new MessageSubscribeOptions();
-        options.setSubscribeName("sub-order-broadcast-fail");
+        List<String> processed = new ArrayList<>();
         service.subscribe("bro-order-created", new IMessageConsumer() {
             @Override
             public Object onMessage(String topic, Object message, IMessageConsumeContext context) {
+                ApiRequest<Map<String, Object>> request = (ApiRequest<Map<String, Object>>) message;
+                String id = String.valueOf(request.getData().get("id"));
                 if (attempts.getAndIncrement() == 0) {
-                    throw new IllegalStateException("first fail");
+                    throw new IllegalStateException("boom");
                 }
+                processed.add(id);
                 return null;
             }
-        }, options);
+        }, null);
 
         service.send("bro-order-created", request("Order", "A-100", "evt-1"), null);
         service.send("bro-order-created", request("Order", "A-100", "evt-2"), null);
 
         service.processBroadcastEvent();
 
-        NopSysBroadcastCursor cursor = daoProvider.daoFor(NopSysBroadcastCursor.class).findAll().get(0);
-        assertNull(cursor.getLastConsumedEventId());
-        assertNotNull(cursor.getLastError());
+        assertEquals(List.of("evt-2"), processed);
     }
 
     @Test
-    public void testBroadcastLeaseAllowsOnlySingleActiveOwner() {
-        MessageSubscribeOptions options = new MessageSubscribeOptions();
-        options.setSubscribeName("sub-order-lease");
+    public void testBroadcastRestartReplaysTimeWindow() {
+        List<String> processed = new ArrayList<>();
+        service.subscribe("bro-order-created", recordingConsumer(processed), null);
 
-        TestableSysDaoMessageService workerA = newService("worker-A", "0,32767");
-        TestableSysDaoMessageService workerB = newService("worker-B", "0,32767");
-        workerA.subscribe("bro-order-created", (topic, message, context) -> null, options);
-        workerB.subscribe("bro-order-created", (topic, message, context) -> null, options);
+        service.send("bro-order-created", request("Order", "A-100", "evt-1"), null);
+        service.processBroadcastEvent();
 
-        workerA.send("bro-order-created", request("Order", "A-100", "evt-1"), null);
-        NopSysBroadcastCursor cursorA = workerA.claimBroadcastCursor(workerA.getBroadcastSubscriptions("bro-order-created").get(0));
-        NopSysBroadcastCursor cursorB = workerB.claimBroadcastCursor(workerB.getBroadcastSubscriptions("bro-order-created").get(0));
+        TestableSysDaoMessageService restarted = newService("worker-B", "0,32767");
+        restarted.subscribe("bro-order-created", recordingConsumer(processed), null);
+        restarted.send("bro-order-created", request("Order", "A-100", "evt-2"), null);
+        restarted.processBroadcastEvent();
 
-        assertNotNull(cursorA);
-        assertNull(cursorB);
-    }
-
-    @Test
-    public void testBroadcastCursorUniquenessForSubscriberAndTopic() {
-        MessageSubscribeOptions options = new MessageSubscribeOptions();
-        options.setSubscribeName("sub-order-unique");
-
-        TestableSysDaoMessageService workerA = newService("worker-A", "0,32767");
-        TestableSysDaoMessageService workerB = newService("worker-B", "0,32767");
-        workerA.subscribe("bro-order-created", (topic, message, context) -> null, options);
-        workerB.subscribe("bro-order-created", (topic, message, context) -> null, options);
-
-        workerA.send("bro-order-created", request("Order", "A-100", "evt-1"), null);
-        workerA.processBroadcastEvent();
-
-        List<NopSysBroadcastCursor> cursors = daoProvider.daoFor(NopSysBroadcastCursor.class).findAll();
-        long count = cursors.stream()
-                .filter(it -> Objects.equals(it.getSubscriberId(), "sub-order-unique"))
-                .filter(it -> Objects.equals(it.getEventTopic(), "bro-order-created"))
-                .count();
-        assertEquals(1, count);
+        // evt-1 appears twice: once consumed by original service,
+        // once re-consumed by restarted service (memory cursor lost, within time window)
+        assertEquals(List.of("evt-1", "evt-1", "evt-2"), processed);
     }
 
     @Test

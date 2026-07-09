@@ -227,23 +227,6 @@ CREATE TABLE nop_sys_broadcast_event(
   constraint PK_nop_sys_broadcast_event primary key (event_id)
 );
 
-CREATE TABLE nop_sys_broadcast_cursor(
-  sid VARCHAR(200) NOT NULL ,
-  subscriber_id VARCHAR(150) NOT NULL ,
-  event_topic VARCHAR(100) NOT NULL ,
-  last_consumed_event_id INT8  ,
-  lease_owner VARCHAR(100)  ,
-  lease_expire_time TIMESTAMP  ,
-  last_consume_time TIMESTAMP  ,
-  last_error VARCHAR(4000)  ,
-  version INT8 NOT NULL ,
-  created_by VARCHAR(50) NOT NULL ,
-  create_time TIMESTAMP NOT NULL ,
-  updated_by VARCHAR(50) NOT NULL ,
-  update_time TIMESTAMP NOT NULL ,
-  constraint PK_nop_sys_broadcast_cursor primary key (sid)
-);
-
 CREATE TABLE nop_sys_service_instance(
   instance_id VARCHAR(50) NOT NULL ,
   service_name VARCHAR(100) NOT NULL ,
@@ -718,34 +701,6 @@ CREATE TABLE nop_sys_obj_tag(
       COMMENT ON COLUMN nop_sys_broadcast_event.updated_by IS '修改人';
                     
       COMMENT ON COLUMN nop_sys_broadcast_event.update_time IS '修改时间';
-                    
-      COMMENT ON TABLE nop_sys_broadcast_cursor IS '广播订阅游标';
-                
-      COMMENT ON COLUMN nop_sys_broadcast_cursor.sid IS '主键';
-                    
-      COMMENT ON COLUMN nop_sys_broadcast_cursor.subscriber_id IS '订阅者ID';
-                    
-      COMMENT ON COLUMN nop_sys_broadcast_cursor.event_topic IS '事件主题';
-                    
-      COMMENT ON COLUMN nop_sys_broadcast_cursor.last_consumed_event_id IS '最后消费事件ID';
-                    
-      COMMENT ON COLUMN nop_sys_broadcast_cursor.lease_owner IS '租约持有者';
-                    
-      COMMENT ON COLUMN nop_sys_broadcast_cursor.lease_expire_time IS '租约过期时间';
-                    
-      COMMENT ON COLUMN nop_sys_broadcast_cursor.last_consume_time IS '最后消费时间';
-                    
-      COMMENT ON COLUMN nop_sys_broadcast_cursor.last_error IS '最后错误';
-                    
-      COMMENT ON COLUMN nop_sys_broadcast_cursor.version IS '数据版本';
-                    
-      COMMENT ON COLUMN nop_sys_broadcast_cursor.created_by IS '创建人';
-                    
-      COMMENT ON COLUMN nop_sys_broadcast_cursor.create_time IS '创建时间';
-                    
-      COMMENT ON COLUMN nop_sys_broadcast_cursor.updated_by IS '修改人';
-                    
-      COMMENT ON COLUMN nop_sys_broadcast_cursor.update_time IS '修改时间';
                     
       COMMENT ON TABLE nop_sys_service_instance IS '服务实例';
                 

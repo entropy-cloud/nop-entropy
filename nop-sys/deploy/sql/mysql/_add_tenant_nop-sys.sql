@@ -25,8 +25,6 @@ alter table nop_sys_event add NOP_TENANT_ID VARCHAR(32) DEFAULT '0' NOT NULL;
 
 alter table nop_sys_broadcast_event add NOP_TENANT_ID VARCHAR(32) DEFAULT '0' NOT NULL;
 
-alter table nop_sys_broadcast_cursor add NOP_TENANT_ID VARCHAR(32) DEFAULT '0' NOT NULL;
-
 alter table nop_sys_service_instance add NOP_TENANT_ID VARCHAR(32) DEFAULT '0' NOT NULL;
 
 alter table nop_sys_change_log add NOP_TENANT_ID VARCHAR(32) DEFAULT '0' NOT NULL;
@@ -77,9 +75,6 @@ alter table nop_sys_event add primary key (NOP_TENANT_ID, EVENT_ID);
 
 alter table nop_sys_broadcast_event drop primary key;
 alter table nop_sys_broadcast_event add primary key (NOP_TENANT_ID, EVENT_ID);
-
-alter table nop_sys_broadcast_cursor drop primary key;
-alter table nop_sys_broadcast_cursor add primary key (NOP_TENANT_ID, SID);
 
 alter table nop_sys_service_instance drop primary key;
 alter table nop_sys_service_instance add primary key (NOP_TENANT_ID, INSTANCE_ID);

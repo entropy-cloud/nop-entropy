@@ -1,6 +1,5 @@
 entity:
   label:
-    NopSysBroadcastCursor: Broadcast Cursor
     NopSysBroadcastEvent: Broadcast Event Stream
     NopSysChangeLog: Change Log
     NopSysCheckerRecord: Maker Checker Record
@@ -22,20 +21,6 @@ entity:
     NopSysVariable: System Variable
 prop:
   label:
-    NopSysBroadcastCursor:
-      sid: SID
-      subscriberId: Subscriber ID
-      eventTopic: Event Topic
-      lastConsumedEventId: Last Consumed Event ID
-      leaseOwner: Lease Owner
-      leaseExpireTime: Lease Expire Time
-      lastConsumeTime: Last Consume Time
-      lastError: Last Error
-      version: Version
-      createdBy: Created By
-      createTime: Create Time
-      updatedBy: Updated By
-      updateTime: Update Time
     NopSysBroadcastEvent:
       eventId: Event ID
       eventTopic: Event Topic

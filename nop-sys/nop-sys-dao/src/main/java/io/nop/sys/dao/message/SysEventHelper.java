@@ -63,10 +63,6 @@ public class SysEventHelper {
         fillEventFields(event, payload);
     }
 
-    public static int resolvePartitionIndex(String topic, Object message) {
-        return resolvePartitionIndex(toEventPayload(topic, message, System.currentTimeMillis()));
-    }
-
     private static int resolvePartitionIndex(EventPayload payload) {
         if (!StringHelper.isEmpty(payload.bizObjName) && !StringHelper.isEmpty(payload.bizKey)) {
             return StringHelper.shortHash(payload.bizObjName + '|' + payload.bizKey);

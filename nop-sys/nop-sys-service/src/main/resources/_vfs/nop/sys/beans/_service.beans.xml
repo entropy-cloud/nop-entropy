@@ -101,14 +101,6 @@
         <property name="bizObjName" value="NopSysBroadcastEvent"/>
     </bean>
 
-    <bean id="io.nop.sys.service.entity.NopSysBroadcastCursorBizModel" ioc:type="@bean:id" ioc:default="true"/>
-
-    <bean id="biz_NopSysBroadcastCursor" class="io.nop.biz.proxy.BizProxyFactoryBean"
-          ioc:type="io.nop.sys.biz.INopSysBroadcastCursorBiz" ioc:force-lazy-property="true" lazy-init="true"
-          primary="true">
-        <property name="bizObjName" value="NopSysBroadcastCursor"/>
-    </bean>
-
     <bean id="io.nop.sys.service.entity.NopSysServiceInstanceBizModel" ioc:type="@bean:id" ioc:default="true"/>
 
     <bean id="biz_NopSysServiceInstance" class="io.nop.biz.proxy.BizProxyFactoryBean"

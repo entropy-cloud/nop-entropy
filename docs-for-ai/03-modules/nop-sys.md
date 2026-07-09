@@ -14,7 +14,7 @@
 - **扩展字段(EAV)**：实体-属性-值的动态扩展字段
 - **分布式锁**：数据库锁，带过期时间
 - **集群选举**：Leader 选举
-- **事件队列**：数据库 outbox 事件服务，`nop-sys-dao` 提供事件存储与触发原语；普通事件可由 `nop-batch-sys` 以 batch trigger 方式扫描执行，广播事件按 subscriber cursor 恢复
+- **事件队列**：数据库 outbox 事件服务，`nop-sys-dao` 提供事件存储与触发原语；普通事件可由 `nop-batch-sys` 以 batch trigger 方式扫描执行，广播事件通过 `findNext` keyset pagination + 内存游标 + 时间窗口消费
 - **字段级变更日志**：`NopSysChangeLog` + `OrmEntityChangeLogInterceptor`，实体加 `tagSet="audit"` 自动记录字段级 old→new，默认启用
 - **通用 ORM 拦截器**：`IOrmInterceptor` + `orm-interceptor.xml` 配置式回调，提供应用层 trigger 机制
 
@@ -35,8 +35,7 @@
 | NopSysLock | `nop_sys_lock` | 分布式锁 |
 | NopSysClusterLeader | `nop_sys_cluster_leader` | 集群 Leader |
 | NopSysEvent | `nop_sys_event` | 普通事件队列（shared queue + 分区串行 + lease） |
-| NopSysBroadcastEvent | `nop_sys_broadcast_event` | 广播事件流（append-only） |
-| NopSysBroadcastCursor | `nop_sys_broadcast_cursor` | 广播订阅游标（subscriber cursor + lease） |
+| NopSysBroadcastEvent | `nop_sys_broadcast_event` | 广播事件流（append-only，`findNext` + 时间窗口消费） |
 | NopSysChangeLog | `nop_sys_change_log` | 字段级变更日志（每 dirty 字段一行：propName/oldValue/newValue/operatorId 等） |
 
 ## 主要能力入口
@@ -80,7 +79,7 @@ lockService.unlock("order_lock", "lock_group", holderId);
 
 - 同一数据库事务内发布的本地 outbox 能力，不依赖外部 MQ
 - 普通事件：`nop_sys_event`，按 `partitionIndex` 稳定路由，至少一次；`nop-sys-dao` 负责 shared queue + lease + 重排队语义，`nop-batch-sys` 可用 batch trigger 方式周期扫描并触发执行
-- 广播事件：`nop_sys_broadcast_event` + `nop_sys_broadcast_cursor`，按 `subscriberId + topic` 持久化 cursor 与 lease，重启后从 `lastConsumedEventId` 恢复
+- 广播事件：`nop_sys_broadcast_event`，通过 `findNext` keyset pagination + 内存游标 + 时间窗口消费，不持久化消费进度，重启后从时间窗口起点重新消费（at-least-once），消费失败不阻塞后续事件
 - 普通事件与广播事件都只保证 at-least-once；listener 必须自行幂等
 - `partitionIndex` 默认来自 `bizObjName + '|' + bizKey` 的 stable short hash；没有顺序键时退化为 topic hash，不保证同键顺序
 - batch trigger 只是普通事件的一种触发执行机制，不改变 event row 状态机；成功/失败仍回写到 `nop_sys_event` 行本身（如 `PROCESSED`、`WAITING + scheduleTime + retryTimes`）
