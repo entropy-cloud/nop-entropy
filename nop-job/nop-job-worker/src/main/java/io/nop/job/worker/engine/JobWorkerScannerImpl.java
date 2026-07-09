@@ -5,12 +5,11 @@ import io.nop.api.core.annotations.orm.SingleSession;
 import io.nop.api.core.beans.IntRangeSet;
 import io.nop.api.core.config.AppConfig;
 import io.nop.api.core.exceptions.NopException;
-import io.nop.commons.concurrent.executor.GlobalExecutors;
-import io.nop.commons.concurrent.executor.IScheduledExecutor;
 import io.nop.core.lang.json.JsonTool;
 import io.nop.job.api.execution.IJobExecutionContext;
 import io.nop.job.api.execution.IJobInvoker;
 import io.nop.job.api.resource.ResourceVector;
+import io.nop.job.core.AbstractBatchScanner;
 import io.nop.job.dao.entity.NopJobFire;
 import io.nop.job.dao.entity.NopJobSchedule;
 import io.nop.job.dao.entity.NopJobTask;
@@ -29,14 +28,11 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.Future;
-import java.util.concurrent.TimeUnit;
 
 import static io.nop.job.core.JobCoreErrors.ERR_JOB_INVOKER_RETURNED_NULL;
 
-public class JobWorkerScannerImpl implements IJobWorkerScanner {
+public class JobWorkerScannerImpl extends AbstractBatchScanner implements IJobWorkerScanner {
     static final Logger LOG = LoggerFactory.getLogger(JobWorkerScannerImpl.class);
-    static final int OVERFETCH_FACTOR = 3;
 
     private IJobTaskStore taskStore;
     private IJobFireStore fireStore;
@@ -45,14 +41,10 @@ public class JobWorkerScannerImpl implements IJobWorkerScanner {
     private IJobExecutionContextBuilder executionContextBuilder;
     private IWorkerCapacityProvider capacityProvider;
     private IJobWorkerMetrics workerMetrics = new EmptyJobWorkerMetrics();
-    private int scanIntervalMs = 5000;
-    private int batchSize = 100;
     private long lockTimeoutMs = 60000;
     private int maxConcurrency = 0;
     private boolean enforceAttribution = false;
     private IntRangeSet assignedPartitions;
-    private volatile boolean running;
-    private Future<?> scanFuture;
 
     @Inject
     public void setTaskStore(IJobTaskStore taskStore) {
@@ -133,43 +125,27 @@ public class JobWorkerScannerImpl implements IJobWorkerScanner {
     }
 
     @Override
-    public synchronized void startScanning() {
-        if (running) {
-            return;
-        }
-        running = true;
-        scanFuture = getExecutor().scheduleWithFixedDelay(this::doScan, 0, scanIntervalMs, TimeUnit.MILLISECONDS);
+    protected void onScanFailed(Exception e) {
+        LOG.error("nop.job.worker.scan-failed", e);
     }
 
     @Override
-    public synchronized void stopScanning() {
-        running = false;
-        if (scanFuture != null) {
-            scanFuture.cancel(false);
-            scanFuture = null;
-        }
+    protected void scanOnce() {
+        super.scanOnce();
     }
 
+    @Override
     @SingleSession
-    protected void doScan() {
-        if (!running) {
-            return;
-        }
-
-        scanOnce();
-    }
-
-    void scanOnce() {
-        try {
-            int effectiveBatchSize = batchSize;
+    protected boolean scanBatch() {
+        int effectiveBatchSize = batchSize;
 
             // 1. Count-based ceiling (backward-compatible hard cap)
             if (maxConcurrency > 0) {
                 long runningCount = taskStore.countInFlightTasks(AppConfig.hostId());
                 int remaining = maxConcurrency - (int) runningCount;
                 if (remaining <= 0) {
-                    workerMetrics.onRejected((int) runningCount);
-                    return;
+                workerMetrics.onRejected((int) runningCount);
+                return false;
                 }
                 effectiveBatchSize = Math.min(batchSize, remaining);
             }
@@ -182,15 +158,14 @@ public class JobWorkerScannerImpl implements IJobWorkerScanner {
                 LOG.warn("nop.job.worker.resource-exhausted:cpu={},mem={}",
                         myRemaining.getCpu(), myRemaining.getMemory());
                 workerMetrics.onRejected(0);
-                return;
+                return false;
             }
 
-            // 3. Overfetch candidates, client-side fit filter
-            int overfetchBatchSize = effectiveBatchSize * OVERFETCH_FACTOR;
+            // 3. Fetch candidates, client-side fit filter
             List<NopJobTask> candidates = taskStore.fetchWaitingTasks(
-                    overfetchBatchSize, assignedPartitions, AppConfig.hostId(), enforceAttribution);
+                    batchSize, assignedPartitions, AppConfig.hostId(), enforceAttribution);
             if (candidates.isEmpty()) {
-                return;
+                return false;
             }
 
             String myHostId = AppConfig.hostId();
@@ -233,7 +208,7 @@ public class JobWorkerScannerImpl implements IJobWorkerScanner {
                 LOG.warn("nop.job.worker.no-fitting-candidate:candidateCount={},remainingCpu={},remainingMem={}",
                         candidates.size(), myRemaining.getCpu(), myRemaining.getMemory());
                 workerMetrics.onRejected(0);
-                return;
+                return false;
             }
 
             // 4. CAS grab (unchanged)
@@ -251,9 +226,8 @@ public class JobWorkerScannerImpl implements IJobWorkerScanner {
                     workerMetrics.onTaskExecuteFailed(1);
                 }
             }
-        } catch (Exception e) {
-            LOG.error("nop.job.worker.scan-failed", e);
-        }
+
+        return !lockedTasks.isEmpty() && candidates.size() >= batchSize;
     }
 
     private void executeTask(NopJobTask task) {
@@ -428,10 +402,6 @@ public class JobWorkerScannerImpl implements IJobWorkerScanner {
         if (!taskStore.updateTask(freshTask)) {
             LOG.warn("nop.job.worker.complete-task-failure-update-conflict:taskId={}", freshTask.getJobTaskId());
         }
-    }
-
-    protected IScheduledExecutor getExecutor() {
-        return GlobalExecutors.globalTimer().executeOn(GlobalExecutors.globalWorker());
     }
 
     private static int normalizeCost(Integer value) {

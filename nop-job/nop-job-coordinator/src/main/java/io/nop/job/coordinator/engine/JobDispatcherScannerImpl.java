@@ -6,29 +6,26 @@ import io.nop.api.core.beans.IntRangeSet;
 import io.nop.api.core.config.AppConfig;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.api.core.ioc.BeanContainer;
-import io.nop.commons.concurrent.executor.GlobalExecutors;
-import io.nop.commons.concurrent.executor.IScheduledExecutor;
+import io.nop.job.core.AbstractBatchScanner;
+import io.nop.job.coordinator.metrics.EmptyJobDispatcherMetrics;
+import io.nop.job.coordinator.metrics.IJobDispatcherMetrics;
 import io.nop.job.dao.entity.NopJobFire;
 import io.nop.job.dao.entity.NopJobSchedule;
 import io.nop.job.dao.entity.NopJobTask;
 import io.nop.job.dao.store.IJobFireStore;
 import io.nop.job.dao.store.IJobScheduleStore;
-import io.nop.job.coordinator.metrics.EmptyJobDispatcherMetrics;
-import io.nop.job.coordinator.metrics.IJobDispatcherMetrics;
 import jakarta.inject.Inject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.List;
-import java.util.concurrent.Future;
-import java.util.concurrent.TimeUnit;
 
 import static io.nop.job.core.JobCoreErrors.ARG_DISPATCH_MODE;
 import static io.nop.job.core.JobCoreErrors.ARG_JOB_FIRE_ID;
 import static io.nop.job.core.JobCoreErrors.ERR_JOB_DISPATCH_MODE_NOT_IMPLEMENTED;
 import static io.nop.job.core.JobCoreErrors.ERR_JOB_NO_FITTING_WORKER;
 
-public class JobDispatcherScannerImpl implements IJobDispatcherScanner {
+public class JobDispatcherScannerImpl extends AbstractBatchScanner implements IJobDispatcherScanner {
     static final Logger LOG = LoggerFactory.getLogger(JobDispatcherScannerImpl.class);
     static final String TASK_BUILDER_PREFIX = "nopJobTaskBuilder_";
 
@@ -38,12 +35,8 @@ public class JobDispatcherScannerImpl implements IJobDispatcherScanner {
     private IJobDispatcherMetrics dispatcherMetrics = new EmptyJobDispatcherMetrics();
     private JobPartitionResolver partitionResolver;
     private IWorkerLoadProvider workerLoadProvider;
-    private int scanIntervalMs = 5000;
-    private int batchSize = 100;
     private long lockTimeoutMs = 60000;
     private long noWorkerBackoffMs = 30000;
-    private volatile boolean running;
-    private Future<?> scanFuture;
 
     @Inject
     public void setFireStore(IJobFireStore fireStore) {
@@ -71,7 +64,7 @@ public class JobDispatcherScannerImpl implements IJobDispatcherScanner {
 
     /**
      * AR-96：可选注入 worker load provider，用于在 scanOnce 批处理作用域内做 per-scan 缓存
-     *（bestFit 派发的服务发现 + 聚合不随 fire 数线性增长）。未启用 bestFit 时可不注入。
+     * （bestFit 派发的服务发现 + 聚合不随 fire 数线性增长）。未启用 bestFit 时可不注入。
      */
     @Inject
     public void setWorkerLoadProvider(@jakarta.annotation.Nullable IWorkerLoadProvider workerLoadProvider) {
@@ -94,6 +87,15 @@ public class JobDispatcherScannerImpl implements IJobDispatcherScanner {
                     "nop.job.dispatcher.batch-size must be >= 1, got " + batchSize);
         }
         this.batchSize = batchSize;
+    }
+
+    @InjectValue("@cfg:nop.job.coordinator.dispatcher.max-scan-loops|1000")
+    public void setMaxScanLoops(int maxScanLoops) {
+        if (maxScanLoops < 1) {
+            throw new IllegalArgumentException(
+                    "nop.job.coordinator.dispatcher.max-scan-loops must be >= 1, got " + maxScanLoops);
+        }
+        this.maxScanLoops = maxScanLoops;
     }
 
     @InjectValue("@cfg:nop.job.coordinator.dispatcher.lock-timeout-ms|60000")
@@ -128,68 +130,44 @@ public class JobDispatcherScannerImpl implements IJobDispatcherScanner {
     }
 
     @Override
-    public synchronized void startScanning() {
-        if (running) {
-            return;
-        }
-        running = true;
-        scanFuture = getExecutor().scheduleWithFixedDelay(this::doScan, 0, scanIntervalMs, TimeUnit.MILLISECONDS);
+    protected void onScanFailed(Exception e) {
+        LOG.error("nop.job.dispatcher.scan-failed", e);
     }
 
     @Override
-    public synchronized void stopScanning() {
-        running = false;
-        if (scanFuture != null) {
-            scanFuture.cancel(false);
-            scanFuture = null;
-        }
+    protected void scanOnce() {
+        super.scanOnce();
     }
 
+    @Override
     @SingleSession
-    protected void doScan() {
-        if (!running) {
-            return;
+    protected boolean scanBatch() {
+        IntRangeSet partitions = partitionResolver != null ? partitionResolver.resolvePartitions() : null;
+        var fires = fireStore.fetchWaitingFires(batchSize, partitions);
+        if (fires.isEmpty()) {
+            return false;
         }
 
-        scanOnce();
-    }
+        dispatcherMetrics.onWaitingFires(fires.size());
 
-    void scanOnce() {
+        var locked = fireStore.tryLockFiresForDispatch(fires, AppConfig.hostId(), lockTimeoutMs);
+
+        int conflictCount = fires.size() - locked.size();
+        if (conflictCount > 0) {
+            dispatcherMetrics.onDispatchConflicts(conflictCount);
+        }
+
+        int dispatchedCount = 0;
+        if (workerLoadProvider != null) {
+            workerLoadProvider.beginScan();
+        }
         try {
-            IntRangeSet partitions = partitionResolver != null ? partitionResolver.resolvePartitions() : null;
-            var fires = fireStore.fetchWaitingFires(batchSize, partitions);
-            if (fires.isEmpty()) {
-                return;
-            }
-
-            dispatcherMetrics.onWaitingFires(fires.size());
-
-            var locked = fireStore.tryLockFiresForDispatch(fires, AppConfig.hostId(), lockTimeoutMs);
-
-            int conflictCount = fires.size() - locked.size();
-            if (conflictCount > 0) {
-                dispatcherMetrics.onDispatchConflicts(conflictCount);
-            }
-
-            int dispatchedCount = 0;
-            // AR-96: snapshot worker loads once per scan so bestFit dispatch (AdaptiveJobTaskBuilder →
-            // loadProvider.getWorkerLoads per fire) reuses discovery + aggregation across the batch
-            // instead of re-querying per fire.
-            if (workerLoadProvider != null) {
-                workerLoadProvider.beginScan();
-            }
-            try {
-                for (NopJobFire fire : locked) {
-                // per-fire isolation (AR-86): a single fire's failure (deleted schedule, no-fitting-worker,
-                // etc.) must NOT abort the remaining fires in this batch — they were already pre-locked to
-                // DISPATCHING and would otherwise sit stuck until the 5-min dispatch-timeout.
+            for (NopJobFire fire : locked) {
                 try {
                     IJobTaskBuilder builder = resolveTaskBuilder(fire);
                     List<NopJobTask> tasks = builder.buildTasks(fire);
                     NopJobSchedule schedule = scheduleStore.loadSchedule(fire.getJobScheduleId());
                     for (NopJobTask task : tasks) {
-                        // Preserve builder-set values (for example bestFit assignment cost), and only
-                        // fill unset cost/priority from schedule defaults while still normalizing null → 0.
                         if (task.getCostCpu() == null) {
                             task.setCostCpu(normalizeCost(schedule.getTaskCostCpu()));
                         }
@@ -204,16 +182,11 @@ public class JobDispatcherScannerImpl implements IJobDispatcherScanner {
                     dispatchedCount++;
                 } catch (NopException e) {
                     if (isNoFittingWorker(e)) {
-                        // transient (all workers currently full): revert DISPATCHING→WAITING with backoff
-                        // so the fire is retried later, instead of being stranded DISPATCHING until the
-                        // dispatch-timeout marks it FAILED (fail-vs-defer).
                         long backoffUntil = scheduleStore.getCurrentTime() + Math.max(noWorkerBackoffMs, 1L);
                         boolean reverted = fireStore.revertDispatchingFireToWaiting(fire, backoffUntil);
                         LOG.warn("nop.job.dispatcher.no-fitting-worker-revert:fireId={},backoffMs={},reverted={}",
                                 fire.getJobFireId(), noWorkerBackoffMs, reverted);
                     } else {
-                        // e.g. schedule deleted (requireEntityById threw): leave fire DISPATCHING; the
-                        // timeout checker's scanDispatchTimeouts will recycle it (TIMEOUT/FAILED).
                         LOG.error("nop.job.dispatcher.fire-dispatch-failed:fireId={}", fire.getJobFireId(), e);
                     }
                     dispatcherMetrics.onFireDispatchFailed(1);
@@ -226,14 +199,13 @@ public class JobDispatcherScannerImpl implements IJobDispatcherScanner {
             if (dispatchedCount > 0) {
                 dispatcherMetrics.onFiresDispatched(dispatchedCount);
             }
-            } finally {
-                if (workerLoadProvider != null) {
-                    workerLoadProvider.endScan();
-                }
+        } finally {
+            if (workerLoadProvider != null) {
+                workerLoadProvider.endScan();
             }
-        } catch (Exception e) {
-            LOG.error("nop.job.dispatcher.scan-failed", e);
         }
+
+        return fires.size() >= batchSize;
     }
 
     private static boolean isNoFittingWorker(NopException e) {
@@ -267,10 +239,6 @@ public class JobDispatcherScannerImpl implements IJobDispatcherScanner {
             }
         }
         return defaultTaskBuilder;
-    }
-
-    protected IScheduledExecutor getExecutor() {
-        return GlobalExecutors.globalTimer().executeOn(GlobalExecutors.globalWorker());
     }
 
     private static int normalizeCost(Integer value) {

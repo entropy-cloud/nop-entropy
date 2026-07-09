@@ -4,10 +4,9 @@ import io.nop.api.core.annotations.ioc.InjectValue;
 import io.nop.api.core.annotations.orm.SingleSession;
 import io.nop.api.core.beans.IntRangeSet;
 import io.nop.api.core.config.AppConfig;
-import io.nop.commons.concurrent.executor.GlobalExecutors;
-import io.nop.commons.concurrent.executor.IScheduledExecutor;
 import io.nop.dao.api.IDaoProvider;
 import io.nop.job.api.spec.TriggerSpec;
+import io.nop.job.core.AbstractBatchScanner;
 import io.nop.job.core.ITriggerEvalContext;
 import io.nop.job.core._NopJobCoreConstants;
 import io.nop.job.core.trigger.JobTriggerCalculator;
@@ -26,22 +25,16 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.Future;
-import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
-public class JobPlannerScannerImpl implements IJobPlannerScanner {
+public class JobPlannerScannerImpl extends AbstractBatchScanner implements IJobPlannerScanner {
     static final Logger LOG = LoggerFactory.getLogger(JobPlannerScannerImpl.class);
 
     private IJobScheduleStore scheduleStore;
     private IJobPlannerMetrics plannerMetrics = new EmptyJobPlannerMetrics();
     private JobPartitionResolver partitionResolver;
     private IDaoProvider daoProvider;
-    private int scanIntervalMs = 5000;
-    private int batchSize = 100;
     private long planningTimeoutMs = 60000;
-    private volatile boolean running;
-    private Future<?> scanFuture;
 
     @Inject
     public void setScheduleStore(IJobScheduleStore scheduleStore) {
@@ -98,39 +91,23 @@ public class JobPlannerScannerImpl implements IJobPlannerScanner {
     }
 
     @Override
-    public synchronized void startScanning() {
-        if (running) {
-            return;
-        }
-        running = true;
-        scanFuture = getExecutor().scheduleWithFixedDelay(this::doScan, 0, scanIntervalMs, TimeUnit.MILLISECONDS);
+    protected void onScanFailed(Exception e) {
+        LOG.error("nop.job.planner.scan-failed", e);
     }
 
     @Override
-    public synchronized void stopScanning() {
-        running = false;
-        if (scanFuture != null) {
-            scanFuture.cancel(false);
-            scanFuture = null;
-        }
+    protected void scanOnce() {
+        super.scanOnce();
     }
 
+    @Override
     @SingleSession
-    protected void doScan() {
-        if (!running) {
-            return;
+    protected boolean scanBatch() {
+        IntRangeSet partitions = partitionResolver != null ? partitionResolver.resolvePartitions() : null;
+        List<NopJobSchedule> schedules = scheduleStore.fetchDueSchedules(batchSize, partitions);
+        if (schedules.isEmpty()) {
+            return false;
         }
-
-        scanOnce();
-    }
-
-    void scanOnce() {
-        try {
-            IntRangeSet partitions = partitionResolver != null ? partitionResolver.resolvePartitions() : null;
-            List<NopJobSchedule> schedules = scheduleStore.fetchDueSchedules(batchSize, partitions);
-            if (schedules.isEmpty()) {
-                return;
-            }
 
             Map<String, Timestamp> dueFireTimes = new HashMap<>(schedules.size());
             for (NopJobSchedule schedule : schedules) {
@@ -210,9 +187,8 @@ public class JobPlannerScannerImpl implements IJobPlannerScanner {
                 scheduleStore.insertFireAndAdvanceSchedule(schedule, fire, nextFireTime,
                         _NopJobCoreConstants.FIRE_STATUS_WAITING);
             }
-        } catch (Exception e) {
-            LOG.error("nop.job.planner.scan-failed", e);
-        }
+
+        return schedules.size() >= batchSize;
     }
 
     private NopJobFire buildFire(NopJobSchedule schedule, Timestamp dueFireTime) {
@@ -299,9 +275,5 @@ public class JobPlannerScannerImpl implements IJobPlannerScanner {
 
     private int defaultInt(Integer value) {
         return value == null ? 0 : value;
-    }
-
-    protected IScheduledExecutor getExecutor() {
-        return GlobalExecutors.globalTimer().executeOn(GlobalExecutors.globalWorker());
     }
 }
