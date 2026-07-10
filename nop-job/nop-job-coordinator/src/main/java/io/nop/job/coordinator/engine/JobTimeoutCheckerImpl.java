@@ -6,11 +6,10 @@ import io.nop.api.core.beans.IntRangeSet;
 import io.nop.api.core.config.AppConfig;
 import io.nop.cluster.discovery.ServiceInstance;
 import io.nop.cluster.naming.INamingService;
-import io.nop.commons.concurrent.executor.GlobalExecutors;
-import io.nop.commons.concurrent.executor.IScheduledExecutor;
 import io.nop.core.exceptions.ErrorMessageManager;
 import io.nop.job.api.alarm.IJobAlarmHandler;
 import io.nop.job.api.alarm.JobAlarmEvent;
+import io.nop.job.core.AbstractBatchScanner;
 import io.nop.job.core._NopJobCoreConstants;
 
 import static io.nop.job.core.JobCoreErrors.ERR_JOB_SCHEDULE_DELETED;
@@ -31,10 +30,8 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.Future;
-import java.util.concurrent.TimeUnit;
 
-public class JobTimeoutCheckerImpl implements IJobTimeoutChecker {
+public class JobTimeoutCheckerImpl extends AbstractBatchScanner implements IJobTimeoutChecker {
     static final Logger LOG = LoggerFactory.getLogger(JobTimeoutCheckerImpl.class);
 
     private IJobTaskStore taskStore;
@@ -44,13 +41,9 @@ public class JobTimeoutCheckerImpl implements IJobTimeoutChecker {
     private IJobAlarmHandler alarmHandler;
     private INamingService namingService;
     private JobPartitionResolver partitionResolver;
-    private int scanIntervalMs = 5000;
-    private int batchSize = 100;
     private long dispatchTimeoutMs = 300000;
     private long executionTimeoutMs = -1;
     private long taskDispatchWaitTimeoutMs = 600000;
-    private volatile boolean running;
-    private Future<?> scanFuture;
 
     @Inject
     public void setTaskStore(IJobTaskStore taskStore) {
@@ -137,41 +130,23 @@ public class JobTimeoutCheckerImpl implements IJobTimeoutChecker {
     }
 
     @Override
-    public synchronized void startScanning() {
-        if (running) {
-            return;
-        }
-        running = true;
-        scanFuture = getExecutor().scheduleWithFixedDelay(this::doScan, 0, scanIntervalMs, TimeUnit.MILLISECONDS);
+    protected void onScanFailed(Exception e) {
+        LOG.error("nop.job.timeout.scan-failed", e);
     }
 
     @Override
-    public synchronized void stopScanning() {
-        running = false;
-        if (scanFuture != null) {
-            scanFuture.cancel(false);
-            scanFuture = null;
-        }
+    protected void scanOnce() {
+        super.scanOnce();
     }
 
+    @Override
     @SingleSession
-    protected void doScan() {
-        if (!running) {
-            return;
-        }
-
-        scanOnce();
-    }
-
-    void scanOnce() {
-        try {
-            IntRangeSet partitions = partitionResolver != null ? partitionResolver.resolvePartitions() : null;
-            scanTaskTimeouts(partitions);
-            scanDispatchTimeouts(partitions);
-            scanStaleWaitingTasks(partitions);
-        } catch (Exception e) {
-            LOG.error("nop.job.timeout.scan-failed", e);
-        }
+    protected boolean scanBatch() {
+        IntRangeSet partitions = partitionResolver != null ? partitionResolver.resolvePartitions() : null;
+        scanTaskTimeouts(partitions);
+        scanDispatchTimeouts(partitions);
+        scanStaleWaitingTasks(partitions);
+        return false;
     }
 
     /**
@@ -517,9 +492,5 @@ public class JobTimeoutCheckerImpl implements IJobTimeoutChecker {
 
     private long defaultLong(Long value) {
         return value == null ? 0L : value;
-    }
-
-    protected IScheduledExecutor getExecutor() {
-        return GlobalExecutors.globalTimer().executeOn(GlobalExecutors.globalWorker());
     }
 }

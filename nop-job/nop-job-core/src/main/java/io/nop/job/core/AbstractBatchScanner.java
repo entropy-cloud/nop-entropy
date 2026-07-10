@@ -22,7 +22,7 @@ public abstract class AbstractBatchScanner {
 
     protected int scanIntervalMs = 5000;
     protected int batchSize = 100;
-    protected int maxScanLoops = 100;
+    protected int maxScanLoops = 1000;
     protected volatile boolean running;
     protected Future<?> scanFuture;
 

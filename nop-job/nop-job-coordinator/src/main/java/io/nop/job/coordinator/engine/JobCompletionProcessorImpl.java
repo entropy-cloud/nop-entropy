@@ -3,8 +3,6 @@ package io.nop.job.coordinator.engine;
 import io.nop.api.core.annotations.ioc.InjectValue;
 import io.nop.api.core.annotations.orm.SingleSession;
 import io.nop.api.core.beans.IntRangeSet;
-import io.nop.commons.concurrent.executor.GlobalExecutors;
-import io.nop.commons.concurrent.executor.IScheduledExecutor;
 import io.nop.commons.util.DateHelper;
 import io.nop.core.exceptions.ErrorMessageManager;
 import io.nop.job.api.alarm.IJobAlarmHandler;
@@ -12,44 +10,38 @@ import io.nop.job.api.alarm.JobAlarmEvent;
 import io.nop.job.api.retry.IJobRetryBridge;
 import io.nop.job.api.retry.JobFireFailedEvent;
 import io.nop.job.api.spec.TriggerSpec;
+import io.nop.job.coordinator.metrics.IJobCompletionMetrics;
+import io.nop.job.coordinator.metrics.JobCompletionMetricsImpl;
+import io.nop.job.core.AbstractBatchScanner;
 import io.nop.job.core.ITriggerEvalContext;
-import io.nop.job.core._NopJobCoreConstants;
 import io.nop.job.core.JobCoreErrors;
+import io.nop.job.core._NopJobCoreConstants;
 import io.nop.job.core.trigger.JobTriggerCalculator;
-import io.nop.job.dao.helper.TriggerSpecHelper;
 import io.nop.job.dao.entity.NopJobFire;
 import io.nop.job.dao.entity.NopJobSchedule;
 import io.nop.job.dao.entity.NopJobTask;
+import io.nop.job.dao.helper.TriggerSpecHelper;
 import io.nop.job.dao.store.IJobFireStore;
 import io.nop.job.dao.store.IJobScheduleStore;
 import io.nop.job.dao.store.IJobTaskStore;
-import io.nop.job.coordinator.metrics.EmptyJobCompletionMetrics;
-import io.nop.job.coordinator.metrics.IJobCompletionMetrics;
 import jakarta.inject.Inject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.sql.Timestamp;
-import java.util.Collections;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.Future;
-import java.util.concurrent.TimeUnit;
 
-public class JobCompletionProcessorImpl implements IJobCompletionProcessor {
+public class JobCompletionProcessorImpl extends AbstractBatchScanner implements IJobCompletionProcessor {
     static final Logger LOG = LoggerFactory.getLogger(JobCompletionProcessorImpl.class);
 
     private IJobFireStore fireStore;
     private IJobScheduleStore scheduleStore;
     private IJobTaskStore taskStore;
-    private IJobCompletionMetrics completionMetrics = new EmptyJobCompletionMetrics();
+    private IJobCompletionMetrics completionMetrics = new JobCompletionMetricsImpl();
     private IJobRetryBridge retryBridge = new io.nop.job.coordinator.retry.NoOpJobRetryBridge();
     private IJobAlarmHandler alarmHandler = new io.nop.job.coordinator.alarm.NoOpJobAlarmHandler();
     private JobPartitionResolver partitionResolver;
-    private int scanIntervalMs = 5000;
-    private int batchSize = 100;
-    private volatile boolean running;
-    private Future<?> scanFuture;
 
     @Inject
     public void setFireStore(IJobFireStore fireStore) {
@@ -112,52 +104,38 @@ public class JobCompletionProcessorImpl implements IJobCompletionProcessor {
     }
 
     @Override
-    public synchronized void startScanning() {
-        if (running) {
-            return;
-        }
-        running = true;
-        scanFuture = getExecutor().scheduleWithFixedDelay(this::doScan, 0, scanIntervalMs, TimeUnit.MILLISECONDS);
+    protected void onScanFailed(Exception e) {
+        LOG.error("nop.job.completion.scan-failed", e);
     }
 
     @Override
-    public synchronized void stopScanning() {
-        running = false;
-        if (scanFuture != null) {
-            scanFuture.cancel(false);
-            scanFuture = null;
-        }
+    protected void scanOnce() {
+        super.scanOnce();
     }
 
+    @Override
     @SingleSession
-    protected void doScan() {
-        if (!running) {
-            return;
+    protected boolean scanBatch() {
+        IntRangeSet partitions = partitionResolver != null ? partitionResolver.resolvePartitions() : null;
+        List<NopJobFire> fires = fireStore.fetchRunningFires(batchSize, partitions);
+        if (fires.isEmpty()) {
+            return false;
         }
-
-        scanOnce();
-    }
-
-    void scanOnce() {
-        try {
-            IntRangeSet partitions = partitionResolver != null ? partitionResolver.resolvePartitions() : null;
-            List<NopJobFire> fires = fireStore.fetchRunningFires(batchSize, partitions);
-            int completedCount = 0;
-            for (NopJobFire fire : fires) {
-                try {
-                    if (tryCompleteFireAndGetStatus(fire) != null) {
-                        completedCount++;
-                    }
-                } catch (Exception e) {
-                    LOG.warn("nop.job.completion.fire-complete-failed:fireId={}", fire.getJobFireId(), e);
+        int completedCount = 0;
+        for (NopJobFire fire : fires) {
+            try {
+                if (tryCompleteFireAndGetStatus(fire) != null) {
+                    completedCount++;
                 }
+            } catch (Exception e) {
+                LOG.warn("nop.job.completion.fire-complete-failed:fireId={}", fire.getJobFireId(), e);
             }
-            if (completedCount > 0) {
-                completionMetrics.onFiresCompleted(completedCount);
-            }
-        } catch (Exception e) {
-            LOG.error("nop.job.completion.scan-failed", e);
         }
+        if (completedCount > 0) {
+            completionMetrics.onFiresCompleted(completedCount);
+        }
+
+        return fires.size() >= batchSize;
     }
 
     private Integer tryCompleteFireAndGetStatus(NopJobFire fire) {
@@ -446,10 +424,6 @@ public class JobCompletionProcessorImpl implements IJobCompletionProcessor {
 
     private int defaultInt(Integer value) {
         return value == null ? 0 : value;
-    }
-
-    protected IScheduledExecutor getExecutor() {
-        return GlobalExecutors.globalTimer().executeOn(GlobalExecutors.globalWorker());
     }
 
     private static final class FireCompletionDecision {
