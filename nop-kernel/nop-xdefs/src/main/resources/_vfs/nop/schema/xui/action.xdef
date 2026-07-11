@@ -59,7 +59,6 @@
                 <disabledOn>string</disabledOn>
                 <visibleOn>string</visibleOn>
                 <action id="!string" xdef:ref="UiActionModel" xdef:unique-attr="id"/>
-                <onEvent>xjson-map</onEvent>
             </actionGroup>
         </actions>
     </dialog>
@@ -68,5 +67,9 @@
 
     <feedback xdef:ref="UiDialogModel"/>
 
+    <!-- AMIS框架专用，Flux不使用 -->
     <onEvent>xjson-map</onEvent>
+
+    <!-- flux框架使用，不使用onEvent -->
+    <onClick>xjson-map</onClick>
 </action>

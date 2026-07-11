@@ -123,13 +123,6 @@ public abstract class _UiActionGroupModel extends io.nop.core.resource.component
     
     /**
      *  
-     * xml name: onEvent
-     * 
-     */
-    private java.util.Map<java.lang.String,java.lang.Object> _onEvent ;
-    
-    /**
-     *  
      * xml name: size
      * 
      */
@@ -469,29 +462,6 @@ public abstract class _UiActionGroupModel extends io.nop.core.resource.component
     
     /**
      * 
-     * xml name: onEvent
-     *  
-     */
-    
-    public java.util.Map<java.lang.String,java.lang.Object> getOnEvent(){
-      return _onEvent;
-    }
-
-    
-    public void setOnEvent(java.util.Map<java.lang.String,java.lang.Object> value){
-        checkAllowChange();
-        
-        this._onEvent = value;
-           
-    }
-
-    
-    public boolean hasOnEvent(){
-        return this._onEvent != null && !this._onEvent.isEmpty();
-    }
-    
-    /**
-     * 
      * xml name: size
      *  
      */
@@ -598,7 +568,6 @@ public abstract class _UiActionGroupModel extends io.nop.core.resource.component
         out.putNotNull("id",this.getId());
         out.putNotNull("label",this.getLabel());
         out.putNotNull("level",this.getLevel());
-        out.putNotNull("onEvent",this.getOnEvent());
         out.putNotNull("size",this.getSize());
         out.putNotNull("trigger",this.getTrigger());
         out.putNotNull("type",this.getType());
@@ -629,7 +598,6 @@ public abstract class _UiActionGroupModel extends io.nop.core.resource.component
         instance.setId(this.getId());
         instance.setLabel(this.getLabel());
         instance.setLevel(this.getLevel());
-        instance.setOnEvent(this.getOnEvent());
         instance.setSize(this.getSize());
         instance.setTrigger(this.getTrigger());
         instance.setType(this.getType());

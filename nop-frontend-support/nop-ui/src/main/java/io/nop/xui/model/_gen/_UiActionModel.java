@@ -229,14 +229,14 @@ public abstract class _UiActionModel extends io.nop.core.resource.component.Abst
     /**
      *  
      * xml name: onClick
-     * 点击事件的响应函数，内容为js代码。上下文中存在props变量
+     * flux框架使用，不使用onEvent
      */
-    private java.lang.String _onClick ;
+    private java.util.Map<java.lang.String,java.lang.Object> _onClick ;
     
     /**
      *  
      * xml name: onEvent
-     * 
+     * AMIS框架专用，Flux不使用
      */
     private java.util.Map<java.lang.String,java.lang.Object> _onEvent ;
     
@@ -901,15 +901,15 @@ public abstract class _UiActionModel extends io.nop.core.resource.component.Abst
     /**
      * 
      * xml name: onClick
-     *  点击事件的响应函数，内容为js代码。上下文中存在props变量
+     *  flux框架使用，不使用onEvent
      */
     
-    public java.lang.String getOnClick(){
+    public java.util.Map<java.lang.String,java.lang.Object> getOnClick(){
       return _onClick;
     }
 
     
-    public void setOnClick(java.lang.String value){
+    public void setOnClick(java.util.Map<java.lang.String,java.lang.Object> value){
         checkAllowChange();
         
         this._onClick = value;
@@ -917,10 +917,14 @@ public abstract class _UiActionModel extends io.nop.core.resource.component.Abst
     }
 
     
+    public boolean hasOnClick(){
+        return this._onClick != null && !this._onClick.isEmpty();
+    }
+    
     /**
      * 
      * xml name: onEvent
-     *  
+     *  AMIS框架专用，Flux不使用
      */
     
     public java.util.Map<java.lang.String,java.lang.Object> getOnEvent(){
