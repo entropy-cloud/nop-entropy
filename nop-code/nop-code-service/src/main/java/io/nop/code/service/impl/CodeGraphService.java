@@ -3,6 +3,7 @@ package io.nop.code.service.impl;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.Deque;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -19,26 +20,33 @@ import java.util.stream.Collectors;
 
 import io.nop.api.core.beans.FilterBeans;
 import io.nop.api.core.beans.query.QueryBean;
+import io.nop.code.core.entrypoint.EntryPointScorer;
 import io.nop.code.core.graph.CallGraph;
+import io.nop.code.core.graph.CodeCallGraph;
 import io.nop.code.core.graph.SymbolTable;
 import io.nop.code.core.model.*;
 import io.nop.code.core.util.BfsNode;
+import io.nop.code.core.util.ExtDataHelper;
 import io.nop.code.dao.entity.NopCodeCall;
 import io.nop.code.dao.entity.NopCodeDependency;
 import io.nop.code.dao.entity.NopCodeInheritance;
 import io.nop.code.dao.entity.NopCodeSymbol;
-import io.nop.code.graph.community.CommunityDetector;
-import io.nop.code.graph.critical.CriticalNodeAnalyzer;
-import io.nop.code.graph.critical.CriticalNodeResult;
-import io.nop.code.graph.diff.GraphDiffer;
-import io.nop.code.graph.diff.GraphSnapshot;
-import io.nop.code.graph.entrypoint.EntryPointScorer;
-import io.nop.code.graph.export.GraphExporter;
-import io.nop.code.graph.impact.ImpactAnalyzer;
-import io.nop.code.graph.knowledge.KnowledgeGapAnalyzer;
-import io.nop.code.graph.knowledge.KnowledgeGapResult;
 import io.nop.code.api.dto.*;
+import io.nop.code.service.graph.KnowledgeGapAnalyzer;
+import io.nop.code.service.graph.KnowledgeGapResult;
 import io.nop.code.service.util.CodeSymbolConverter;
+import io.nop.graph.algorithm.BetweennessCentrality;
+import io.nop.graph.algorithm.GraphExporter;
+import io.nop.graph.algorithm.GraphDiffer;
+import io.nop.graph.algorithm.ImpactPropagator;
+import io.nop.graph.algorithm.LeidenDetector;
+import io.nop.graph.api.CommunityInfo;
+import io.nop.graph.api.CommunityResult;
+import io.nop.graph.api.GraphDiff;
+import io.nop.graph.api.ImpactConfig;
+import io.nop.graph.api.ImpactResult;
+import io.nop.graph.api.ImpactedNode;
+import io.nop.graph.api.LeidenConfig;
 import io.nop.dao.api.IDaoProvider;
 import io.nop.dao.api.IEntityDao;
 import org.slf4j.Logger;
@@ -64,9 +72,8 @@ class CodeGraphService {
         SymbolTable symbolTable = cacheManager.getOrRebuildSymbolTable(indexId, daoProvider,
                 CodeSymbolConverter::toCodeSymbol);
         if (symbolTable.size() == 0) return null;
-        CommunityDetector.CommunityDetectionResult result =
-                new CommunityDetector().detectCommunities(callGraph, symbolTable);
-        return convertCommunityResult(result);
+        CommunityResult result = runCommunityDetection(callGraph);
+        return convertCommunityResult(result, symbolTable);
     }
 
     GraphAnalysisResultDTO getGraphAnalysis(String indexId, int topN) {
@@ -117,11 +124,31 @@ class CodeGraphService {
         SymbolTable symbolTable = cacheManager.getOrRebuildSymbolTable(indexId, daoProvider,
                 CodeSymbolConverter::toCodeSymbol);
         int maxDepth = depth > 0 ? depth : 3;
+
         CodeSymbol symbol = symbolTable.getById(symbolId);
-        String qualifiedName = symbol != null ? symbol.getQualifiedName() : symbolId;
-        ImpactAnalyzer.ImpactResult result =
-                new ImpactAnalyzer().analyzeImpact(qualifiedName, callGraph, symbolTable, maxDepth);
-        return convertImpactResult(result);
+        String nodeId;
+        String qualifiedName;
+        if (symbol != null) {
+            nodeId = symbol.getId();
+            qualifiedName = symbol.getQualifiedName();
+        } else {
+            CodeSymbol fuzzy = findSymbolByQualifiedName(symbolTable, symbolId);
+            if (fuzzy != null) {
+                nodeId = fuzzy.getId();
+                qualifiedName = fuzzy.getQualifiedName();
+            } else {
+                ImpactResultDTO dto = new ImpactResultDTO();
+                dto.setTargetSymbolId(symbolId);
+                dto.setTargetQualifiedName(symbolId);
+                dto.setRiskLevel("not-found");
+                return dto;
+            }
+        }
+
+        ImpactResult result = ImpactPropagator.propagate(
+                new CodeCallGraph(callGraph), nodeId,
+                ImpactConfig.create().setMaxDepth(maxDepth));
+        return convertImpactResult(result, symbolTable, qualifiedName);
     }
 
     CriticalNodeResultDTO getCriticalNodes(String indexId, int topN) {
@@ -140,12 +167,17 @@ class CodeGraphService {
             dto.setBridgeNodes(Collections.emptyList());
             return dto;
         }
-        CriticalNodeResult result = new CriticalNodeAnalyzer().analyze(callGraph, symbolTable, topN);
+        Set<String> nodeSet = callGraph.getAllNodeIds();
+        int totalNodes = symbolTable.size();
         CriticalNodeResultDTO dto = new CriticalNodeResultDTO();
-        dto.setTotalNodes(result.getTotalNodes());
-        dto.setTopN(result.getTopN());
-        dto.setHubNodes(convertNodeScores(result.getHubNodes()));
-        dto.setBridgeNodes(convertNodeScores(result.getBridgeNodes()));
+        dto.setTotalNodes(totalNodes);
+        dto.setTopN(topN);
+        dto.setHubNodes(computeHubNodeScores(callGraph, symbolTable, topN));
+        if (nodeSet.isEmpty()) {
+            dto.setBridgeNodes(Collections.emptyList());
+        } else {
+            dto.setBridgeNodes(computeBridgeNodeScores(callGraph, symbolTable, topN, nodeSet));
+        }
         return dto;
     }
 
@@ -155,8 +187,7 @@ class CodeGraphService {
                 (g, e) -> g.addEdge(e.getCallerId(), e.getCalleeId()));
         SymbolTable symbolTable = cacheManager.getOrRebuildSymbolTable(indexId, daoProvider,
                 CodeSymbolConverter::toCodeSymbol);
-        CommunityDetector.CommunityDetectionResult communities =
-                new CommunityDetector().detectCommunities(callGraph, symbolTable);
+        CommunityResult communities = runCommunityDetection(callGraph);
         KnowledgeGapResult result = new KnowledgeGapAnalyzer().analyze(callGraph, symbolTable, communities);
         KnowledgeGapResultDTO dto = new KnowledgeGapResultDTO();
         dto.setIsolatedSymbols(result.getIsolatedSymbols().stream()
@@ -172,11 +203,12 @@ class CodeGraphService {
                 (g, e) -> g.addEdge(e.getCallerId(), e.getCalleeId()));
         SymbolTable symbolTable = cacheManager.getOrRebuildSymbolTable(indexId, daoProvider,
                 CodeSymbolConverter::toCodeSymbol);
-        CommunityDetector.CommunityDetectionResult communities = null;
+        Set<String> nodeSet = callGraph.getAllNodeIds();
+        CommunityResult communities = null;
         if (communityView) {
-            communities = new CommunityDetector().detectCommunities(callGraph, symbolTable);
+            communities = runCommunityDetection(callGraph);
         }
-        return new GraphExporter().export(callGraph, symbolTable, format, communityView, communities);
+        return GraphExporter.export(new CodeCallGraph(callGraph), nodeSet, format, communities);
     }
 
     GraphDiffDTO diffGraph(String baselineIndexId, String targetIndexId) {
@@ -190,19 +222,22 @@ class CodeGraphService {
                     baselineSymbolTable.size(), MAX_NODES_FOR_COMMUNITY_DETECTION);
             return new GraphDiffDTO();
         }
-        CommunityDetector.CommunityDetectionResult baselineCommunities =
-                new CommunityDetector().detectCommunities(baselineCallGraph, baselineSymbolTable);
-        GraphSnapshot baseline = GraphDiffer.buildSnapshot(baselineCallGraph, baselineCommunities);
+
+        Set<String> baselineNodes = baselineCallGraph.getAllNodeIds();
+        CommunityResult baselineCommunities = runCommunityDetection(baselineCallGraph);
+        Map<String, Integer> baselineCommunityMap = buildCommunityMap(baselineCommunities);
 
         CallGraph targetCallGraph = cacheManager.getOrRebuildCallGraph(targetIndexId, daoProvider,
                 (g, e) -> g.addEdge(e.getCallerId(), e.getCalleeId()));
         SymbolTable targetSymbolTable = cacheManager.getOrRebuildSymbolTable(targetIndexId, daoProvider,
                 CodeSymbolConverter::toCodeSymbol);
-        CommunityDetector.CommunityDetectionResult targetCommunities =
-                new CommunityDetector().detectCommunities(targetCallGraph, targetSymbolTable);
-        GraphSnapshot target = GraphDiffer.buildSnapshot(targetCallGraph, targetCommunities);
+        Set<String> targetNodes = targetCallGraph.getAllNodeIds();
+        CommunityResult targetCommunities = runCommunityDetection(targetCallGraph);
+        Map<String, Integer> targetCommunityMap = buildCommunityMap(targetCommunities);
 
-        io.nop.code.graph.diff.GraphDiff diff = new GraphDiffer().diff(baseline, target);
+        GraphDiff diff = GraphDiffer.diffWithCommunities(
+                new CodeCallGraph(baselineCallGraph), baselineNodes, baselineCommunityMap,
+                new CodeCallGraph(targetCallGraph), targetNodes, targetCommunityMap);
         return convertGraphDiff(diff);
     }
 
@@ -408,25 +443,36 @@ class CodeGraphService {
         return inh;
     }
 
-    private CommunityDetectionResultDTO convertCommunityResult(
-            CommunityDetector.CommunityDetectionResult result) {
+    private CommunityResult runCommunityDetection(CallGraph callGraph) {
+        Set<String> nodeSet = callGraph.getAllNodeIds();
+        if (nodeSet.size() < 2) {
+            return new CommunityResult(Collections.emptyList(), nodeSet.size(), 0, 0, 0, "LEIDEN", 0);
+        }
+        LeidenConfig config = LeidenConfig.create()
+                .setResolution(0.1)
+                .setMaxIterations(10)
+                .setTimeoutMs(60000);
+        return LeidenDetector.detect(new CodeCallGraph(callGraph), nodeSet, config);
+    }
+
+    private CommunityDetectionResultDTO convertCommunityResult(CommunityResult result, SymbolTable symbolTable) {
         CommunityDetectionResultDTO dto = new CommunityDetectionResultDTO();
         dto.setTotalSymbols(result.getTotalSymbols());
         dto.setTotalCommunities(result.getTotalCommunities());
         dto.setAverageCohesion(result.getAverageCohesion());
-        dto.setAlgorithmUsed(result.getAlgorithmUsed() != null
-                ? result.getAlgorithmUsed().name() : null);
+        dto.setAlgorithmUsed(result.getAlgorithmUsed());
         dto.setModularity(result.getModularity());
         dto.setProcessingTimeMs(result.getProcessingTimeMs());
         List<CommunityDTO> communities = new ArrayList<>();
-        for (CommunityDetector.Community community : result.getCommunities()) {
+        for (CommunityInfo comm : result.getCommunities()) {
             CommunityDTO c = new CommunityDTO();
-            c.setId(community.getId());
-            c.setLabel(community.getLabel());
-            c.setSymbolIds(community.getSymbolIds());
-            c.setSymbolCount(community.getSymbolCount());
-            c.setCohesion(community.getCohesion());
-            c.setDominantPackage(community.getDominantPackage());
+            c.setId(String.valueOf(comm.getId()));
+            c.setSymbolIds(new ArrayList<>(comm.getNodeIds()));
+            c.setSymbolCount(comm.getNodeCount());
+            c.setCohesion(comm.getCohesion());
+            String dominantPackage = findDominantPackage(comm.getNodeIds(), symbolTable);
+            c.setDominantPackage(dominantPackage);
+            c.setLabel(generateCommunityLabel(dominantPackage, comm.getNodeCount()));
             communities.add(c);
         }
         dto.setCommunities(communities);
@@ -444,40 +490,91 @@ class CodeGraphService {
         return node;
     }
 
-    private ImpactResultDTO convertImpactResult(ImpactAnalyzer.ImpactResult result) {
+    private ImpactResultDTO convertImpactResult(ImpactResult result, SymbolTable symbolTable,
+                                                  String qualifiedName) {
         ImpactResultDTO dto = new ImpactResultDTO();
-        dto.setTargetSymbolId(result.getTargetSymbolId());
-        dto.setTargetQualifiedName(result.getTargetQualifiedName());
+        dto.setTargetSymbolId(result.getTargetNodeId());
+        dto.setTargetQualifiedName(qualifiedName);
         dto.setRiskLevel(result.getRiskLevel());
         dto.setUpstream(result.getUpstream().stream()
-                .map(this::toImpactedSymbol).collect(Collectors.toList()));
+                .map(node -> toImpactedSymbolDTO(node, symbolTable))
+                .collect(Collectors.toList()));
         dto.setDownstream(result.getDownstream().stream()
-                .map(this::toImpactedSymbol).collect(Collectors.toList()));
+                .map(node -> toImpactedSymbolDTO(node, symbolTable))
+                .collect(Collectors.toList()));
         return dto;
     }
 
-    private ImpactedSymbolDTO toImpactedSymbol(ImpactAnalyzer.ImpactedSymbol symbol) {
+    private ImpactedSymbolDTO toImpactedSymbolDTO(ImpactedNode node, SymbolTable symbolTable) {
         ImpactedSymbolDTO dto = new ImpactedSymbolDTO();
-        dto.setSymbolId(symbol.getSymbolId());
-        dto.setQualifiedName(symbol.getQualifiedName());
-        dto.setName(symbol.getName());
-        dto.setKind(symbol.getKind() != null ? symbol.getKind().name() : null);
-        dto.setDepth(symbol.getDepth());
-        dto.setFilePath(symbol.getFilePath());
+        dto.setSymbolId(node.getNodeId());
+        dto.setDepth(node.getDepth());
+        CodeSymbol symbol = symbolTable.getById(node.getNodeId());
+        if (symbol != null) {
+            dto.setQualifiedName(symbol.getQualifiedName());
+            dto.setName(symbol.getName());
+            dto.setKind(symbol.getKind() != null ? symbol.getKind().name() : null);
+            dto.setFilePath(ExtDataHelper.extractFilePath(symbol.getExtData()));
+        } else {
+            dto.setQualifiedName(node.getNodeId());
+        }
         return dto;
     }
 
-    private List<CriticalNodeScoreDTO> convertNodeScores(List<CriticalNodeResult.NodeScore> scores) {
-        return scores.stream().map(ns -> {
-            CriticalNodeScoreDTO dto = new CriticalNodeScoreDTO();
-            dto.setSymbolId(ns.getSymbolId());
-            dto.setQualifiedName(ns.getQualifiedName());
-            dto.setScore(ns.getScore());
-            dto.setInDegree(ns.getInDegree());
-            dto.setOutDegree(ns.getOutDegree());
-            dto.setTotalDegree(ns.getTotalDegree());
-            return dto;
-        }).collect(Collectors.toList());
+    private List<CriticalNodeScoreDTO> computeHubNodeScores(CallGraph callGraph, SymbolTable symbolTable, int topN) {
+        Map<String, int[]> degrees = new HashMap<>();
+        for (String caller : callGraph.getAllNodeIds()) {
+            int[] deg = degrees.computeIfAbsent(caller, k -> new int[2]);
+            List<String> callees = callGraph.getCallees(caller);
+            deg[1] += callees.size();
+            for (String callee : callees) {
+                int[] calleeDeg = degrees.computeIfAbsent(callee, k -> new int[2]);
+                calleeDeg[0]++;
+            }
+        }
+        return degrees.entrySet().stream()
+                .map(entry -> {
+                    String nodeId = entry.getKey();
+                    int inDeg = entry.getValue()[0];
+                    int outDeg = entry.getValue()[1];
+                    int totalDeg = inDeg + outDeg;
+                    CriticalNodeScoreDTO dto = new CriticalNodeScoreDTO();
+                    dto.setSymbolId(nodeId);
+                    dto.setInDegree(inDeg);
+                    dto.setOutDegree(outDeg);
+                    dto.setTotalDegree(totalDeg);
+                    dto.setScore(totalDeg);
+                    CodeSymbol sym = symbolTable.getById(nodeId);
+                    dto.setQualifiedName(sym != null ? sym.getQualifiedName() : nodeId);
+                    return dto;
+                })
+                .sorted(Comparator.comparingDouble(CriticalNodeScoreDTO::getScore).reversed())
+                .limit(topN)
+                .collect(Collectors.toList());
+    }
+
+    private List<CriticalNodeScoreDTO> computeBridgeNodeScores(CallGraph callGraph, SymbolTable symbolTable,
+                                                                int topN, Set<String> nodeSet) {
+        Map<String, Double> betweennessScores = BetweennessCentrality.compute(new CodeCallGraph(callGraph), nodeSet);
+        return betweennessScores.entrySet().stream()
+                .map(entry -> {
+                    String nodeId = entry.getKey();
+                    double betweenness = entry.getValue();
+                    CriticalNodeScoreDTO dto = new CriticalNodeScoreDTO();
+                    dto.setSymbolId(nodeId);
+                    dto.setScore(betweenness);
+                    List<String> callees = callGraph.getCallees(nodeId);
+                    List<String> callers = callGraph.getCallers(nodeId);
+                    dto.setInDegree(callers.size());
+                    dto.setOutDegree(callees.size());
+                    dto.setTotalDegree(callers.size() + callees.size());
+                    CodeSymbol sym = symbolTable.getById(nodeId);
+                    dto.setQualifiedName(sym != null ? sym.getQualifiedName() : nodeId);
+                    return dto;
+                })
+                .sorted(Comparator.comparingDouble(CriticalNodeScoreDTO::getScore).reversed())
+                .limit(topN)
+                .collect(Collectors.toList());
     }
 
     private IsolatedSymbolDTO toIsolatedSymbolDTO(KnowledgeGapResult.IsolatedSymbol iso) {
@@ -499,25 +596,101 @@ class CodeGraphService {
         return dto;
     }
 
-    private GraphDiffDTO convertGraphDiff(io.nop.code.graph.diff.GraphDiff diff) {
+    private GraphDiffDTO convertGraphDiff(GraphDiff diff) {
         GraphDiffDTO dto = new GraphDiffDTO();
         dto.setAddedNodes(diff.getAddedNodes());
         dto.setRemovedNodes(diff.getRemovedNodes());
         dto.setAddedEdges(diff.getAddedEdges().stream()
-                .map(e -> new EdgeKeyDTO(e.getSource(), e.getTarget()))
+                .map(e -> new EdgeKeyDTO(e.getSourceId(), e.getTargetId()))
                 .collect(Collectors.toSet()));
         dto.setRemovedEdges(diff.getRemovedEdges().stream()
-                .map(e -> new EdgeKeyDTO(e.getSource(), e.getTarget()))
+                .map(e -> new EdgeKeyDTO(e.getSourceId(), e.getTargetId()))
                 .collect(Collectors.toSet()));
         dto.setCommunityChanges(diff.getCommunityChanges().stream()
                 .map(cc -> {
                     CommunityChangeDTO c = new CommunityChangeDTO();
                     c.setNodeId(cc.getNodeId());
-                    c.setOldCommunity(cc.getOldCommunity());
-                    c.setNewCommunity(cc.getNewCommunity());
+                    c.setOldCommunity(String.valueOf(cc.getOldCommunity()));
+                    c.setNewCommunity(String.valueOf(cc.getNewCommunity()));
                     return c;
                 }).collect(Collectors.toList()));
         return dto;
+    }
+
+    private String findDominantPackage(Set<String> nodeIds, SymbolTable symbolTable) {
+        Map<String, Integer> packageCount = new HashMap<>();
+        for (String nodeId : nodeIds) {
+            CodeSymbol symbol = symbolTable.getById(nodeId);
+            if (symbol != null && symbol.getQualifiedName() != null) {
+                String pkg = extractPackage(symbol.getQualifiedName());
+                packageCount.merge(pkg, 1, Integer::sum);
+            }
+        }
+        return packageCount.entrySet().stream()
+                .max(Map.Entry.comparingByValue())
+                .map(Map.Entry::getKey)
+                .orElse("unknown");
+    }
+
+    private static String extractPackage(String qualifiedName) {
+        int lastDot = qualifiedName.lastIndexOf('.');
+        if (lastDot > 0) {
+            String className = qualifiedName.substring(0, lastDot);
+            int secondLastDot = className.lastIndexOf('.');
+            if (secondLastDot > 0) {
+                return className.substring(0, secondLastDot);
+            }
+            return className;
+        }
+        return "default";
+    }
+
+    private static String generateCommunityLabel(String dominantPackage, int nodeCount) {
+        if (!"unknown".equals(dominantPackage) && !"default".equals(dominantPackage)) {
+            String[] parts = dominantPackage.split("\\.");
+            if (parts.length >= 2) {
+                return parts[parts.length - 2] + "." + parts[parts.length - 1];
+            } else if (parts.length == 1) {
+                return parts[0];
+            }
+        }
+        return "cluster_" + nodeCount;
+    }
+
+    private static CodeSymbol findSymbolByQualifiedName(SymbolTable symbolTable, String qualifiedName) {
+        CodeSymbol exact = symbolTable.getByQualifiedName(qualifiedName);
+        if (exact != null) {
+            return exact;
+        }
+        int parenIndex = qualifiedName.indexOf('(');
+        if (parenIndex > 0) {
+            String withoutParams = qualifiedName.substring(0, parenIndex);
+            CodeSymbol exactWithoutParams = symbolTable.getByQualifiedName(withoutParams);
+            if (exactWithoutParams != null) {
+                return exactWithoutParams;
+            }
+            CodeSymbol bestMatch = null;
+            for (CodeSymbol symbol : symbolTable.getAll()) {
+                if (symbol.getQualifiedName() != null &&
+                    symbol.getQualifiedName().startsWith(withoutParams + ".")) {
+                    if (bestMatch == null) {
+                        bestMatch = symbol;
+                    }
+                }
+            }
+            return bestMatch;
+        }
+        return null;
+    }
+
+    private Map<String, Integer> buildCommunityMap(CommunityResult result) {
+        Map<String, Integer> map = new HashMap<>();
+        for (CommunityInfo comm : result.getCommunities()) {
+            for (String nodeId : comm.getNodeIds()) {
+                map.put(nodeId, comm.getId());
+            }
+        }
+        return map;
     }
 
     DepGraphDTO getDeps(String indexId, String filePath, int depth) {

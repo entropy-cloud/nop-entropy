@@ -23,7 +23,7 @@ import io.nop.code.core.graph.SymbolTable;
 import io.nop.code.core.model.CodeSymbol;
 import io.nop.code.core.model.CodeSymbolKind;
 import io.nop.code.core.util.ExtDataHelper;
-import io.nop.code.graph.entrypoint.EntryPointScorer;
+import io.nop.code.core.entrypoint.EntryPointScorer;
 public class FlowDetector implements IFlowDetector {
 
     private static final Logger LOG = LoggerFactory.getLogger(FlowDetector.class);
