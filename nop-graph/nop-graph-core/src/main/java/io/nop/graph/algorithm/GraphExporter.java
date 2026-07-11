@@ -15,6 +15,7 @@ import org.jgrapht.graph.DefaultEdge;
 import org.jgrapht.nio.ExportException;
 import org.jgrapht.nio.graphml.GraphMLExporter;
 
+import io.nop.api.core.exceptions.NopException;
 import io.nop.graph.api.CommunityResult;
 import io.nop.graph.api.Edge;
 import io.nop.graph.api.IGraph;
@@ -76,7 +77,7 @@ public final class GraphExporter {
         try {
             exporter.exportGraph(jgraph, writer);
         } catch (ExportException e) {
-            throw new RuntimeException("GraphML export failed", e);
+            throw new NopException("nop.err.graph.export-failed", e, false, true);
         }
         return writer.toString();
     }
