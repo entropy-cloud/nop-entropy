@@ -291,7 +291,7 @@ biz.approve(id) / biz.reject(id)
 
 - `approval-flow-design.md` — 引擎能做什么（审批流核心模式）
 - `extensions-design.md` — 如何扩展引擎
-- `nop-entropy/docs-for-ai/02-core-guides/workflow-configuration.md` — wf 配置参考（step/transition/action/listener）
-- `nop-entropy/docs-for-ai/03-runbooks/enable-approval-on-entity.md` — 实操指南：让业务实体具备审批能力
-- `nop-entropy/docs-for-ai/03-runbooks/build-approval-flow.md` — 审批流模式配置（会签/或签/分支等）
+- `../../../docs-for-ai/02-core-guides/workflow-configuration.md` — wf 配置参考（step/transition/action/listener）
+- `../../../docs-for-ai/03-runbooks/enable-approval-on-entity.md` — 实操指南：让业务实体具备审批能力
+- `../../../docs-for-ai/03-runbooks/build-approval-flow.md` — 审批流模式配置（会签/或签/分支等）
 - 源码锚点：`WfRuntime.triggerEvent`、`WorkflowEngineImpl.bindBizEntityFlowId`/`changeBizEntityState`、`wf.xdef`（`bizEntityFlowIdProp`/`listeners`）、`nop_wf_instance.wfId`

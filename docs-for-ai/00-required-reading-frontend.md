@@ -11,7 +11,8 @@
 | 文档 | 为什么必读 | 不读会怎样 |
 |------|-----------|-----------|
 | `00-start-here/application-project-defaults.md` | 决策顺序（Model→Delta→Java）、view.xml 三层模型 | 优先级搞反，手改生成物 |
-| `02-core-guides/view-and-page-customization.md` | view.xml 三层模型、bounded-merge、x:prototype 模式、生成物与定制物关系 | **编辑生成物（_gen/ 目录）→下次重新生成被覆盖**；merge 策略选错→定制丢失或冲突 |
+| `02-core-guides/frontend-rendering-pipeline.md` | 页面生成管线、两阶段生成、XView 三层模型、bounded-merge、x:prototype 模式 | **编辑生成物（_gen/ 目录）→下次重新生成被覆盖**；merge 策略选错→定制丢失或冲突 |
+| `02-core-guides/view-and-page-customization.md` | 快速参考：view.xml 结构、生成物位置、常见坑 | 找不到 view.xml 中 grid/form/page 的写法 |
 
 ## 按场景选读
 
@@ -55,6 +56,13 @@
 | `03-runbooks/add-runtime-or-related-page.md` | 运行态或关联页 |
 | `03-runbooks/add-bizloader-field.md` | BizLoader 字段 |
 | `03-runbooks/extend-api-with-delta-bizloader.md` | Delta 扩展 API 返回字段 |
+
+### 渲染框架选择
+
+| 文档 | 场景 |
+|------|------|
+| `02-core-guides/amis-rendering.md` | AMIS 渲染管线（默认）`(AMIS)` |
+| `02-core-guides/flux-rendering.md` | Flux 渲染管线（渐进替代）`(Flux)` |
 
 ### index.html 扩展
 

@@ -45,7 +45,7 @@
 |----------|---------|---------|
 | **模型设计** | **`00-required-reading-model-design.md`** | `02-core-guides/orm-model-design.md` |
 | **后台开发** | **`00-required-reading-backend.md`** | `02-core-guides/service-layer.md` |
-| **前台开发** | **`00-required-reading-frontend.md`** | `02-core-guides/view-and-page-customization.md` |
+| **前台开发** | **`00-required-reading-frontend.md`** | `02-core-guides/frontend-rendering-pipeline.md`（通用）、`02-core-guides/amis-rendering.md`（AMIS）、`02-core-guides/flux-rendering.md`（Flux） |
 | **权限开发** | **`02-core-guides/auth-and-permissions.md`** | 同左（操作权限、数据权限、菜单资源） |
 | **单元/集成测试** | **`00-required-reading-testing.md`** | `02-core-guides/testing.md` |
 | **E2E 测试** | **`00-required-reading-e2e-testing.md`** | `02-core-guides/e2e-testing.md` |
@@ -93,12 +93,15 @@
 | 判断错误处理和错误码写法 | `02-core-guides/error-handling.md` |
 | **理解工作流 XML 配置（step/transition/action/assignment）** | **`02-core-guides/workflow-configuration.md`** |
 | **构建审批流（串签/并签/会签/驳回/抄送等）** | **`03-runbooks/build-approval-flow.md`** |
-| **让业务实体具备审批能力（use-approval tag、IApprovableBiz、objMeta 流程配置、wf 回调）** | **`03-runbooks/enable-approval-on-entity.md`**（设计原理见 `ai-dev/design/nop-wf/approvable-entity-design.md`） |
+| **让业务实体具备审批能力（use-approval tag、IApprovableBiz、objMeta 流程配置、wf 回调）** | **`03-runbooks/enable-approval-on-entity.md`** |
 | 判断并发控制与事务边界 | `02-core-guides/concurrency-and-transactions.md` |
 | 查询当前仓库代码风格 | `02-core-guides/code-style.md` |
 | 理解外部应用模块开发 | `02-core-guides/external-app-development.md` |
 | 编写或维护应用项目业务 owner docs | `02-core-guides/application-project-docs-and-domain-design.md` |
-| 定制 view / page 页面 | `02-core-guides/view-and-page-customization.md` |
+| 理解页面生成管线（框架无关） | `02-core-guides/frontend-rendering-pipeline.md` |
+| 定制 view / page 页面（快速参考） | `02-core-guides/view-and-page-customization.md` |
+| AMIS 渲染细节 | `02-core-guides/amis-rendering.md` |
+| Flux 渲染细节 | `02-core-guides/flux-rendering.md` |
 | 查复杂页面 DSL 配置模式 | `02-core-guides/page-dsl-pattern-catalog.md` |
 | 查外部应用页面 DSL 示例代码片段 | `02-core-guides/external-app-examples.md` |
 | 理解认证与权限控制 | `02-core-guides/auth-and-permissions.md` |
@@ -162,7 +165,7 @@
 | 理解 nop-rule（规则引擎：决策树/矩阵、二重 DSL、Excel 编辑） | `03-modules/nop-rule.md` |
 | 理解 nop-task（任务/逻辑流） | `03-modules/nop-task.md`（含 xbiz 绑定、事务模型、VFS 动态更新、step 写法、与 nop-wf/BizModel/状态机/nop-rule 的分工） |
 | 用 task flow 编排复杂业务流程 | `03-modules/nop-task.md`（xbiz action 绑定 task flow，或 Java 调 ITaskFlowManager） |
-| 理解 nop-wf（工作流/BPM） | `03-modules/nop-wf.md` + `06-extensibility/nop-wf-as-example.md`（作为平台可扩展机制案例） + `02-core-guides/workflow-configuration.md`（配置参考） + `03-runbooks/build-approval-flow.md`（审批流构建） + `03-runbooks/enable-approval-on-entity.md`（实体审批能力集成，设计见 `ai-dev/design/nop-wf/approvable-entity-design.md`） |
+| 理解 nop-wf（工作流/BPM） | `03-modules/nop-wf.md` + `06-extensibility/nop-wf-as-example.md`（作为平台可扩展机制案例） + `02-core-guides/workflow-configuration.md`（配置参考） + `03-runbooks/build-approval-flow.md`（审批流构建） + `03-runbooks/enable-approval-on-entity.md`（实体审批能力集成） |
 | 理解 nop-batch（批处理） | `03-modules/nop-batch.md` |
 | 理解 nop-job（定时任务：本地模式 + 分布式模式） | `03-modules/nop-job.md` |
 | 理解 nop-ai（AI 集成/LLM/Agent/RAG） | `03-modules/nop-ai.md` |
