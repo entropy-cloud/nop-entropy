@@ -610,7 +610,6 @@
                     "labelWidth", "submitText",
                     "inheritData", "promptPageLeave",
                     "interval","checkInterval", "initCheckInterval",
-                    "initFetch", "silentPolling", "canAccessSuperData",
                     "initFetchOn","stopAutoRefreshWhen",
                      "rules"]);
                 return attrs;
