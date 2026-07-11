@@ -134,6 +134,9 @@ public class DeltaResourceStoreBuilder implements IDeltaResourceStoreBuilder {
                 if (fileName.startsWith("~"))
                     return;
 
+                if(fileName.equals(".DS_Store"))
+                    return;
+
                 LOG.trace("nop.vfs.add:path={},url={}", path, url);
                 if (ReflectionManager.instance().isRecordForNativeImage()) {
                     classPathFiles.add(path);
@@ -157,6 +160,9 @@ public class DeltaResourceStoreBuilder implements IDeltaResourceStoreBuilder {
                     path = path.substring(prefixLength);
                     String fileName = StringHelper.fileFullName(path);
                     if (fileName.startsWith("~"))
+                        return;
+
+                    if(fileName.equals(".DS_Store"))
                         return;
 
                     LOG.trace("nop.vfs.add-ext:path={},url={}", path, url);
@@ -204,6 +210,9 @@ public class DeltaResourceStoreBuilder implements IDeltaResourceStoreBuilder {
                         public TreeVisitResult beginNodeState(ResourceTreeVisitState state) {
                             IResource res = state.getCurrent();
                             if (res.getName().startsWith("~"))
+                                return TreeVisitResult.CONTINUE;
+
+                            if(res.getName().equals(".DS_Store"))
                                 return TreeVisitResult.CONTINUE;
 
                             if (res.isDirectory()) {

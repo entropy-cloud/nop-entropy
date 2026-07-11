@@ -35,6 +35,10 @@ public class FileScanHelper {
         scanZip(file, entryPath, (zipFile, entry) -> {
             if (entry.getName().endsWith("/"))
                 return;
+
+            if(entry.getName().endsWith("/.DS_Store"))
+                return;
+
             String path = StringHelper.appendPath(basePath, entry.getName().substring(normalizeEntry.length()));
             LOG.trace("nop.vfs.add-zip-entry:path={},entry={},file={}", path, entry.getName(), file.getName());
             IResource resource = new ZipEntryResource(path, file, entry);
