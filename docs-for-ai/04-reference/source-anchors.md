@@ -28,6 +28,8 @@
 | `EXT-005` | `nop-kernel/nop-xlang/src/main/java/io/nop/xlang/functions/GlobalFunctions.java` (`loadDeltaJson`) | JSON/YAML 类模型同样可复用 Delta 机制，不局限于 XML DSL |
 | `EXT-006` | `nop-kernel/nop-xlang/src/main/java/io/nop/xlang/xpl/xlib/XplLibTagCompiler.java` (`isAllowedUnknownAttr`) | 编译器对带名字空间的属性默认放宽校验；除显式 `checkNs` 外，这些属性可作为扩展属性参与编译期元编程 |
 | `EXT-007` | `nop-kernel/nop-xlang/src/main/resources/_vfs/nop/core/xlib/meta-gen.xlib` + `meta-prop.xlib` + `nop-frontend-support/nop-web/src/main/resources/_vfs/nop/web/xlib/control.xlib` | 扩展属性驱动的编译期元编程真实案例：读取节点上的名字空间属性并展开 meta / control 等标准结构 |
+| `EXT-008` | `nop-frontend-support/nop-web/src/main/resources/_vfs/nop/web/xlib/flux-control.xlib` | Flux 控件映射库：75 个 `{mode}-{type}` 标签，替代 control.xlib 输出 Flux JSON 控件 |
+| `EXT-009` | `nop-frontend-support/nop-web/src/main/resources/_vfs/nop/web/xlib/flux-web.xlib` + `flux-web/` 目录 | Flux 页面生成库：37 个标签，替代 web.xlib 输出 Flux 页面 JSON；`NormalizeAction` 实现 onClick 优先透传 + AMIS actionType 到 Flux ActionSchema 转换 |
 | `BIZ-001` | `nop-persistence/nop-orm/src/main/java/io/nop/orm/biz/ICrudBiz.java` | 标准 CRUD 业务接口契约 |
 | `BIZ-002` | `nop-service-framework/nop-biz/src/main/java/io/nop/biz/crud/CrudBizModel.java` | 实体型服务默认基类 |
 | `BIZ-003` | `CrudBizModel#requireEntity` | 普通 BizModel 获取实体的安全路径 |

@@ -4,10 +4,14 @@
     <c:script>
         let objMeta = metaInfo.objMeta;
         let enDisplayName = objMeta.getExtProp('i18n-en:displayName') || objMeta['i18n-en:displayName'] || '';
+        let renderer = objMeta.getExtProp('web:renderer') || objMeta['ext:web-renderer'] || '';
     </c:script>
 
     <objMeta>${objMeta.resourceStdPath()}</objMeta>
-    <controlLib>/nop/web/xlib/control.xlib</controlLib>
+    <c:choose>
+        <c:when test="${renderer == 'flux'}"><controlLib>/nop/web/xlib/flux-control.xlib</controlLib></c:when>
+        <c:otherwise><controlLib>/nop/web/xlib/control.xlib</controlLib></c:otherwise>
+    </c:choose>
 
     <c:print>
         <x:gen-extends>

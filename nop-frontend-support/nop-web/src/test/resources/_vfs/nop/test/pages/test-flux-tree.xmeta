@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<meta x:schema="/nop/schema/xmeta.xdef" xmlns:x="/nop/schema/xdsl.xdef">
+    <tree parentProp="parentId" childrenProp="children" rootParentValue="0"/>
+    <props>
+        <prop name="id" displayName="ID" type="String" mandatory="true"/>
+        <prop name="name" displayName="Name" type="String" mandatory="true"/>
+        <prop name="parentId" displayName="Parent" type="String" insertable="true" updatable="true">
+            <schema domain="tree-parent"/>
+        </prop>
+        <prop name="order" displayName="Order" type="Integer"/>
+    </props>
+</meta>

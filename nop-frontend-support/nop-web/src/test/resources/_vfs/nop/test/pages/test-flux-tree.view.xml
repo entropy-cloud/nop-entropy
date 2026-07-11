@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<view bizObjName="TestFluxTree" x:schema="/nop/schema/xui/xview.xdef" xmlns:x="/nop/schema/xdsl.xdef">
+    <objMeta>test-flux-tree.xmeta</objMeta>
+    <controlLib>/nop/web/xlib/flux-control.xlib</controlLib>
+
+    <grids>
+        <grid id="list">
+            <cols>
+                <col id="name" sortable="true"/>
+                <col id="parentId" sortable="true"/>
+            </cols>
+        </grid>
+        <grid id="tree-list" x:prototype="list">
+            <selection>children @TreeChildren(max:5)</selection>
+        </grid>
+    </grids>
+
+    <forms>
+        <form id="query" editMode="query">
+            <layout>
+                name
+            </layout>
+        </form>
+        <form id="asideFilter" editMode="query" x:prototype="query"/>
+        <form id="edit" editMode="edit">
+            <layout>
+                name
+                parentId
+            </layout>
+        </form>
+        <form id="add" editMode="add" x:prototype="edit"/>
+        <form id="view" editMode="view" x:prototype="edit"/>
+    </forms>
+
+    <pages>
+        <crud name="main" grid="tree-list" asideFilterForm="asideFilter" filterForm="query">
+            <table loadDataOnce="true" sortable="false" pager="none">
+                <api url="@query:TestFluxTree__findList?filter_parentId=__null"
+                     gql:selection="{@listSelection}"/>
+            </table>
+            <listActions>
+                <action id="add-button" level="primary" label="Add" icon="fa fa-plus">
+                    <dialog page="add"/>
+                </action>
+            </listActions>
+            <rowActions>
+                <action id="row-view-button" level="primary" label="View">
+                    <dialog page="view"/>
+                </action>
+            </rowActions>
+        </crud>
+
+        <simple name="add" form="add">
+            <api url="@mutation:TestFluxTree__save/id"/>
+        </simple>
+        <simple name="view" form="view">
+            <initApi url="@query:TestFluxTree__get?id=$id" gql:selection="{@formSelection}"/>
+        </simple>
+    </pages>
+</view>

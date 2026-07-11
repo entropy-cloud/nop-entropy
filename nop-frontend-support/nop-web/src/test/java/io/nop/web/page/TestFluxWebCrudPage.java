@@ -138,4 +138,33 @@ public class TestFluxWebCrudPage extends JunitBaseTestCase {
         }
         assertTrue(hasConfirmGuard, "row-delete-button should have confirm guard from confirmText");
     }
+
+    @Test
+    public void testTreeParentPickerRendersFluxTreeSelect() {
+        String path = "/nop/test/pages/test-flux-tree.page.yaml";
+        Map<String, Object> page = pageProvider.getPage(path, "");
+        String json = JSON.serialize(page, true);
+        System.out.println("Flux tree page JSON:\n" + json);
+
+        assertNotNull(page, "tree page should not be null");
+
+        String bodyJson = JSON.serialize(page.get("body"), true);
+        assertTrue(bodyJson.contains("tree-select"), "tree page should contain tree-select control");
+
+        assertFalse(json.contains("\"visibleOn\""), "Flux JSON should not contain visibleOn");
+        assertFalse(json.contains("\"staticOn\""), "Flux JSON should not contain staticOn");
+    }
+
+    @Test
+    public void testFluxExpressionCompatibility() {
+        String path = "/nop/test/pages/test-flux-crud.page.yaml";
+        Map<String, Object> page = pageProvider.getPage(path, "");
+        String json = JSON.serialize(page, true);
+
+        assertTrue(json.contains("@query:") || json.contains("@mutation:"),
+                "Flux JSON should contain @query/@mutation API markers");
+
+        assertFalse(json.contains("visibleOn"), "No AMIS visibleOn");
+        assertFalse(json.contains("disabledOn"), "No AMIS disabledOn");
+    }
 }
