@@ -1,0 +1,3 @@
+x:gen-extends: |
+  <flux-web:GenPage view="test-flux-crud.view.xml" page="main"
+                    xpl:lib="/nop/web/xlib/flux-web.xlib" />

@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<meta x:schema="/nop/schema/xmeta.xdef" xmlns:x="/nop/schema/xdsl.xdef">
+    <props>
+        <prop name="id" displayName="ID" type="String" mandatory="true">
+            <schema precision="100"/>
+        </prop>
+        <prop name="name" displayName="Name" type="String"/>
+        <prop name="status" displayName="Status" type="Integer">
+            <schema dict="active-status"/>
+        </prop>
+        <prop name="active" displayName="Active" type="Integer">
+            <schema domain="boolFlag"/>
+        </prop>
+    </props>
+</meta>

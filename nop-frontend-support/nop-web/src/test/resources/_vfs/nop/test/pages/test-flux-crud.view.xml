@@ -1,0 +1,69 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<view bizObjName="TestFluxCrud" x:schema="/nop/schema/xui/xview.xdef" xmlns:x="/nop/schema/xdsl.xdef">
+    <objMeta>test-flux-crud.xmeta</objMeta>
+    <controlLib>/nop/web/xlib/flux-control.xlib</controlLib>
+
+    <grids>
+        <grid id="list">
+            <cols>
+                <col id="id" mandatory="true" sortable="true"/>
+                <col id="name" sortable="true"/>
+                <col id="status" sortable="true"/>
+                <col id="active" sortable="true"/>
+            </cols>
+        </grid>
+    </grids>
+
+    <forms>
+        <form id="query" editMode="query">
+            <layout>
+                name
+                status
+            </layout>
+        </form>
+        <form id="asideFilter" editMode="query" x:prototype="query"/>
+        <form id="edit" editMode="edit">
+            <layout>
+                name
+                status
+                active
+            </layout>
+        </form>
+        <form id="add" editMode="add" x:prototype="edit"/>
+        <form id="view" editMode="view" x:prototype="edit"/>
+    </forms>
+
+    <pages>
+        <crud name="main" grid="list" asideFilterForm="asideFilter" filterForm="query">
+            <table autoFillHeight="true">
+                <api url="@query:TestFluxCrud__findPage" gql:selection="{@pageSelection}"/>
+            </table>
+            <listActions>
+                <action id="add-button" level="primary" label="Add" icon="fa fa-plus">
+                    <dialog page="add"/>
+                </action>
+                <action id="batch-delete-button" label="Batch Delete" batch="true">
+                    <api url="@mutation:TestFluxCrud__batchDelete?ids=$ids"/>
+                    <confirmText>Confirm batch delete?</confirmText>
+                </action>
+            </listActions>
+            <rowActions>
+                <action id="row-view-button" level="primary" label="View">
+                    <dialog page="view"/>
+                </action>
+                <action id="row-delete-button" level="danger" label="Delete">
+                    <api url="@mutation:TestFluxCrud__delete?id=$id"/>
+                    <confirmText>Confirm delete?</confirmText>
+                </action>
+            </rowActions>
+        </crud>
+
+        <simple name="add" form="add">
+            <api url="@mutation:TestFluxCrud__save/id"/>
+        </simple>
+        <simple name="view" form="view">
+            <initApi url="@query:TestFluxCrud__get?id=$id" gql:selection="{@formSelection}"/>
+        </simple>
+    </pages>
+</view>

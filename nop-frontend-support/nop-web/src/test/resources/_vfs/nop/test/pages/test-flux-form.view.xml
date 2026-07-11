@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<view x:schema="/nop/schema/xui/xview.xdef" xmlns:x="/nop/schema/xdsl.xdef">
+    <objMeta>test-flux-form.xmeta</objMeta>
+    <controlLib>/nop/web/xlib/flux-control.xlib</controlLib>
+    <forms>
+        <form id="edit" editMode="edit" title="Edit Form">
+            <layout>
+                name
+                age
+                email
+                status
+                active
+            </layout>
+        </form>
+
+        <form id="view" editMode="view" title="View Form">
+            <layout>
+                name
+                age
+                email
+                status
+                active
+            </layout>
+        </form>
+    </forms>
+
+</view>

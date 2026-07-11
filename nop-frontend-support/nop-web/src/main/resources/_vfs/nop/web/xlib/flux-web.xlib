@@ -1,0 +1,929 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<lib x:schema="/nop/schema/xlib.xdef" xmlns:x="/nop/schema/xdsl.xdef"
+     xmlns:thisLib="thisLib" xmlns:c="c" xmlns:j="j" xmlns:xpl="xpl">
+    <tags>
+        <GenPage outputMode="xjson">
+            <attr name="view" mandatory="true" type="String" stdDomain="v-path"/>
+            <attr name="page" mandatory="true" type="String"/>
+            <attr name="forPicker" type="Boolean" optional="true"/>
+            <attr name="fixedProps" optional="true" stdDomain="csv-set"/>
+
+            <source>
+                <c:include src="flux-web/impl_GenPage.xpl"/>
+            </source>
+        </GenPage>
+
+        <GenPageDefault outputMode="xjson">
+            <attr name="viewModel" mandatory="true" implicit="true"/>
+            <attr name="pageModel" mandatory="true" implicit="true"/>
+            <attr name="objMeta" implicit="true" />
+            <attr name="controlLib" implicit="true" />
+
+            <source>
+                <c:throw errorCode="nop.err.web.unknown-page-type" params="${{type:pageModel.type}}"/>
+            </source>
+        </GenPageDefault>
+
+        <GenForm outputMode="xjson">
+            <attr name="view" mandatory="true" type="String" stdDomain="v-path"/>
+            <attr name="form" mandatory="true" type="string"/>
+            <attr name="skipForm" optional="true" type="boolean"/>
+            <attr name="fixedProps" optional="true" stdDomain="csv-set"/>
+
+            <slot name="default" outputMode="xjson">
+                <arg name="objMeta"/>
+                <arg name="formModel"/>
+                <arg name="formSelection"/>
+            </slot>
+
+            <source>
+                <c:include src="flux-web/impl_GenForm.xpl"/>
+            </source>
+        </GenForm>
+
+        <GenFormImpl outputMode="xjson">
+            <attr name="formModel"/>
+            <attr name="objMeta"/>
+            <attr name="genScope"/>
+            <attr name="skipForm" optional="true"/>
+            <attr name="i18nRoot" implicit="true"/>
+            <attr name="bizObjName" implicit="true"/>
+            <attr name="controlLib" implicit="true"/>
+            <attr name="fixedProps" optional="true" stdDomain="csv-set"/>
+
+            <source>
+                <form name="${formModel.id}" xpl:attrs="xpl('thisLib:FluxFormDefaultAttrs',formModel)"
+                      xpl:skipIf="skipForm">
+
+                    <thisLib:GenFormBody formModel="${formModel}" objMeta="${objMeta}"/>
+                </form>
+            </source>
+        </GenFormImpl>
+
+        <GenGrid outputMode="xjson">
+            <attr name="view" mandatory="true" type="String" stdDomain="v-path"/>
+            <attr name="grid" mandatory="true" type="string"/>
+            <attr name="fixedProps" optional="true" stdDomain="csv-set"/>
+
+            <source>
+                <c:include src="flux-web/impl_GenGrid.xpl"/>
+            </source>
+        </GenGrid>
+
+        <GenGridImpl outputMode="xjson">
+            <attr name="gridModel"/>
+            <attr name="objMeta"/>
+            <attr name="genScope"/>
+            <attr name="bizObjName" implicit="true"/>
+            <attr name="i18nRoot" implicit="true"/>
+            <attr name="controlLib" implicit="true"/>
+            <attr name="ignoreCols" implicit="true" optional="true" stdDomain="csv-set"/>
+
+            <source>
+                <crud xpl:attrs="xpl('thisLib:FluxGridDefaultAttrs', gridModel)">
+                    <initApi xpl:attrs="xpl('thisLib:NormalizeApi',gridModel.initApi,genScope)"
+                             xpl:if="gridModel.initApi"/>
+                    <api xpl:attrs="xpl('thisLib:NormalizeApi',gridModel.api,genScope)"/>
+
+                    <saveOrderApi xpl:attrs="xpl('thisLib:NormalizeApi',gridModel.saveOrderApi,genScope)"
+                                  xpl:if="gridModel.saveOrderApi"/>
+
+                    <columns j:list="true">
+                        <thisLib:GenGridCols gridModel="${gridModel}" objMeta="${objMeta}" ignoreCols="${ignoreCols}"/>
+                    </columns>
+                </crud>
+            </source>
+        </GenGridImpl>
+
+        <!-- Form Body -->
+        <GenFormBody outputMode="xjson">
+            <attr name="formModel"/>
+            <attr name="objMeta"/>
+            <attr name="bizObjName" implicit="true"/>
+            <attr name="i18nRoot" implicit="true"/>
+            <attr name="controlLib" implicit="true"/>
+            <attr name="fixedProps" implicit="true" optional="true"/>
+
+            <source>
+                <body j:list="true">
+                    <c:choose>
+                        <when test="${formModel.layoutControl=='tabs'}">
+                            <thisLib:GenLayoutTabs layoutGroups="${formModel.layout.groups}" id="${formModel.id}-tabs"/>
+                        </when>
+                        <when test="${formModel.layout.simpleTable}">
+                            <thisLib:GenFormTable formTable="${formModel.layout.firstTable}"/>
+                        </when>
+                        <otherwise>
+                            <thisLib:GenLayoutGroups layoutGroups="${formModel.layout.groups}"/>
+                        </otherwise>
+                    </c:choose>
+                </body>
+            </source>
+        </GenFormBody>
+
+        <GenAccordion outputMode="xjson">
+            <attr name="formModel"/>
+            <attr name="objMeta"/>
+            <attr name="bizObjName" implicit="true"/>
+            <attr name="i18nRoot" implicit="true"/>
+            <attr name="controlLib" implicit="true"/>
+            <attr name="fixedProps" implicit="true" optional="true"/>
+            <source>
+                <collapse accordion="@:true" activeKey="${['1']}" id="${formModel.id}">
+                    <thisLib:GenAccordionBody layoutGroups="${formModel.layout.groups}"/>
+                </collapse>
+            </source>
+        </GenAccordion>
+
+        <GenAccordionBody outputMode="xjson">
+            <attr name="layoutGroups"/>
+            <attr name="formModel" implicit="true"/>
+            <attr name="objMeta" implicit="true"/>
+            <attr name="bizObjName" implicit="true"/>
+            <attr name="i18nRoot" implicit="true"/>
+            <attr name="controlLib" implicit="true"/>
+            <attr name="fixedProps" implicit="true" optional="true"/>
+
+            <source>
+                <body>
+                    <c:for var="formTable" items="${layoutGroups}" index="index">
+                        <collapse key="${index}" header="${formTable.label}" id="${formTable.id || 'collapse-'+index}">
+                            <body>
+                                <c:for var="formRow" items="${formTable.rows}" index="rowIndex">
+                                    <thisLib:GenFormRow formRow="${formRow}" rowIndex="${rowIndex}"/>
+                                </c:for>
+                            </body>
+                        </collapse>
+                    </c:for>
+                </body>
+            </source>
+        </GenAccordionBody>
+
+        <GenLayoutGroups outputMode="xjson">
+            <attr name="layoutGroups"/>
+            <attr name="formModel" implicit="true"/>
+            <attr name="objMeta" implicit="true"/>
+            <attr name="bizObjName" implicit="true"/>
+            <attr name="i18nRoot" implicit="true"/>
+            <attr name="controlLib" implicit="true"/>
+            <attr name="fixedProps" implicit="true" optional="true"/>
+
+            <source>
+                <c:for var="group" items="${layoutGroups}">
+                    <thisLib:GenFormTable formTable="${group}"/>
+                </c:for>
+            </source>
+        </GenLayoutGroups>
+
+        <GenLayoutTabs outputMode="xjson">
+            <attr name="layoutGroups"/>
+            <attr name="id" optional="true" />
+            <attr name="formModel" implicit="true"/>
+            <attr name="objMeta" implicit="true"/>
+            <attr name="bizObjName" implicit="true"/>
+            <attr name="i18nRoot" implicit="true"/>
+            <attr name="controlLib" implicit="true"/>
+            <attr name="fixedProps" implicit="true" optional="true"/>
+
+            <source>
+                <tabs id="${id}">
+                    <tabs j:list="true">
+                        <c:for var="formTable" items="${layoutGroups}">
+                            <c:script>
+                                const groupModel = formModel.getCell(formTable.id);
+                            </c:script>
+
+                            <_ title="@i18n:forms.${i18nRoot}.${formModel.id}.${formTable.id}|${formTable.label}" name="${formTable.id}">
+                                <visible>${groupModel?.visibleOn}</visible>
+                                <tab j:list="true">
+                                    <c:for var="formRow" items="${formTable.rows}" index="rowIndex">
+                                        <thisLib:GenFormRow formRow="${formRow}" rowIndex="${rowIndex}"/>
+                                    </c:for>
+                                </tab>
+                            </_>
+                        </c:for>
+                    </tabs>
+                </tabs>
+            </source>
+        </GenLayoutTabs>
+
+        <GenFormTable outputMode="xjson">
+            <attr name="formTable"/>
+            <attr name="formModel" implicit="true"/>
+            <attr name="objMeta" implicit="true"/>
+            <attr name="bizObjName" implicit="true"/>
+            <attr name="i18nRoot" implicit="true"/>
+            <attr name="controlLib" implicit="true"/>
+            <attr name="fixedProps" implicit="true" optional="true"/>
+
+            <source>
+                <c:choose>
+                    <when test="${formTable.label}">
+                        <c:script>
+                            const groupModel = formModel.getCell(formTable.id);
+                        </c:script>
+                        <fieldset id="${formTable.id}" collapsable="${formTable.foldable}"
+                                  collapsed="${formTable.folded}">
+                            <title>@i18n:forms.${i18nRoot}.${formModel.id}.${formTable.id}|${formTable.label}</title>
+                            <visible>${groupModel?.visibleOn}</visible>
+                            <body>
+                                <c:for var="formRow" items="${formTable.rows}" index="rowIndex">
+                                    <thisLib:GenFormRow formRow="${formRow}" rowIndex="${rowIndex}"/>
+                                </c:for>
+                            </body>
+                        </fieldset>
+                    </when>
+                    <when test="${formTable.id and !formTable.autoId}">
+                        <c:script>
+                            const groupModel = formModel.getCell(formTable.id);
+                        </c:script>
+                        <container id="${formTable.id}" direction="vertical">
+                            <visible>${groupModel?.visibleOn}</visible>
+                            <body>
+                                <c:for var="formRow" items="${formTable.rows}" index="rowIndex">
+                                    <thisLib:GenFormRow formRow="${formRow}" rowIndex="${rowIndex}"/>
+                                </c:for>
+                            </body>
+                        </container>
+                    </when>
+                    <otherwise>
+                        <c:for var="formRow" items="${formTable.rows}" index="rowIndex">
+                            <thisLib:GenFormRow formRow="${formRow}" rowIndex="${rowIndex}"/>
+                        </c:for>
+                    </otherwise>
+                </c:choose>
+            </source>
+        </GenFormTable>
+
+        <GenFormRow outputMode="xjson">
+            <attr name="formRow"/>
+            <attr name="rowIndex"/>
+            <attr name="formModel" implicit="true"/>
+            <attr name="objMeta" implicit="true"/>
+            <attr name="bizObjName" implicit="true"/>
+            <attr name="i18nRoot" implicit="true"/>
+            <attr name="controlLib" implicit="true"/>
+            <attr name="fixedProps" implicit="true" optional="true"/>
+
+            <source>
+                <c:choose>
+                    <when test="${formRow.colCount == 0}">
+                        <separator name="row-${rowIndex}"/>
+                    </when>
+                    <otherwise>
+                        <flex id="row-${_.pluck(formRow.cells,'id').join('-')}">
+                            <body>
+                                <c:for var="formCell" items="${formRow.cells}">
+                                    <thisLib:GenFormCell formCell="${formCell}"/>
+                                </c:for>
+                            </body>
+                        </flex>
+                    </otherwise>
+                </c:choose>
+            </source>
+        </GenFormRow>
+
+        <GenFormCell outputMode="xjson">
+            <attr name="formCell"/>
+            <attr name="formModel" implicit="true"/>
+            <attr name="objMeta" implicit="true"/>
+            <attr name="bizObjName" implicit="true"/>
+            <attr name="i18nRoot" implicit="true"/>
+            <attr name="controlLib" implicit="true"/>
+            <attr name="fixedProps" implicit="true" optional="true"/>
+
+            <source>
+                <c:choose>
+                    <when test="${formCell.type == 'group'}">
+                        <thisLib:GenFormTable formTable="${formCell.table}"/>
+                    </when>
+                    <otherwise>
+                        <thisLib:GenFormSimpleCell formCell="${formCell}" xpl:return="cell"/>
+                        <c:script>
+                            $out.appendChild(location(),"_",cell)
+                        </c:script>
+                    </otherwise>
+                </c:choose>
+            </source>
+        </GenFormCell>
+
+        <GenFormSimpleCell outputMode="none">
+            <attr name="formCell"/>
+            <attr name="formModel" implicit="true"/>
+            <attr name="objMeta" implicit="true"/>
+            <attr name="bizObjName" implicit="true"/>
+            <attr name="i18nRoot" implicit="true"/>
+            <attr name="controlLib" implicit="true"/>
+            <attr name="fixedProps" implicit="true" optional="true" stdDomain="csv-set"/>
+
+            <source>
+                <c:script><![CDATA[
+                    let cellModel = formModel.getCell(formCell.id);
+                    let propMeta = objMeta?.getProp(cellModel?.prop || formCell.id);
+                    let rd = formCell.readonly || cellModel?.readonly
+                                 || (!cellModel?.custom  and (formModel.editMode == 'update' or formModel.editMode == 'edit') && propMeta && !propMeta?.updatable)
+                                 || (!cellModel?.custom and formModel.editMode == 'add' && propMeta && !propMeta?.insertable);
+
+                    if(!rd and fixedProps?.contains(formCell.id)){
+                       rd = true;
+                       $out.appendChild(location(),"_hidden",{name:formCell.id})
+                    }
+
+                    let mode = cellModel?.editMode || (rd? 'view' : formModel.editMode) || 'view'
+                    const labelKey = '@i18n:cell.'+i18nRoot+"."+formCell.id+(cellModel?.label ? '' : ',prop.label.'
+                           +bizObjName+'.'+propMeta?.name);
+                    let label =  labelKey.$i18n(cellModel?.label || propMeta?.displayName);
+
+                    let mandatory = cellModel?.mandatory ?? propMeta?.mandatory;
+                    if(mode.startsWith('query'))
+                        mandatory = cellModel?.mandatory ?? propMeta?.['ui:queryMandatory']
+
+                    let filterOp = cellModel?.filterOp || propMeta?.['ui:filterOp']
+                              || cellModel?.['ui:filterOp'] || propMeta?.['xui:defaultFilterOp']
+
+                    const placeholderKey = '@i18n:cells.'+i18nRoot+'.'+formCell.id + ".$placeholder";
+                    let placeholder = cellModel?.placeholder
+                    let hint = cellModel?.hint
+
+                    let cell = {
+                        name: (mode.startsWith('query') and !formCell.id.startsWith('v_')?
+                                    'filter_' + formCell.id + (filterOp ? '__'+filterOp:'')
+                                    : formCell.id),
+                        placeholder: placeholder ? placeholderKey.$i18n(placeholder) :
+                            (formCell.hideLabel ? label : null) ,
+                        label: formCell.hideLabel? '' : label,
+                        required: mandatory ?  true : null,
+                        hint: hint && ('@i18n:cells.'+i18nRoot+"."+formCell.id + ".$hint").$i18n(hint),
+                        disabled: cellModel?.disabledOn,
+                        visible: cellModel?.visibleOn,
+                        flex: cellModel?.columnRatio ?? formModel?.defaultColumnRatio,
+                        submitOnChange: cellModel?.submitOnChange ?? formModel?.submitOnChange,
+                        desc: cellModel?.desc && ('@i18n:cells.'+i18nRoot+"."+formCell.id + ".$desc").$i18n(cellModel.desc)
+                    };
+
+                    if(cellModel){
+                        if(cellModel['xui:permissions'])
+                           cell['xui:permissions'] = cellModel['xui:permissions'];
+                        if(cellModel['xui:roles'])
+                           cell['xui:roles'] = cellModel['xui:roles'];
+                    }
+
+                    let cellXpl = cellModel?.genControl;
+                    let control = null;
+
+                    if(cellXpl != null){
+                        control = eval(cellXpl,{dispMeta:cellModel,propMeta,bizObjName, objMeta,editMode:mode,mandatory});
+                    }else if(cellModel?.view){
+                        control = xpl `<thisLib:GenDispView dispMeta="${cellModel}" editMode="${mode}"
+                                           mandatory="${mandatory}" />`
+                    }else{
+                        control = xpl `<thisLib:DefaultControl dispMeta="${cellModel}" editMode="${mode}"
+                                            mandatory="${mandatory}" /> `;
+                    }
+                    if(control != null){
+                        cell.putAll(control);
+                    }
+                    return cell;
+                ]]></c:script>
+            </source>
+        </GenFormSimpleCell>
+
+        <GenGridCols outputMode="xjson">
+            <attr name="gridModel" mandatory="true"/>
+            <attr name="objMeta" optional="true"/>
+            <attr name="ignoreCols" optional="true"/>
+            <attr name="bizObjName" implicit="true"/>
+            <attr name="i18nRoot" implicit="true"/>
+            <attr name="controlLib" implicit="true"/>
+            <attr name="editMode" optional="true"/>
+            <attr name="filterForm" optional="true" />
+
+            <source>
+                <c:for var="col" items="${gridModel.cols}" index="colIndex">
+                    <c:script>
+                        if(col.hidden) continue;
+                        if(ignoreCols and ignoreCols.contains(col.id)) continue;
+                    </c:script>
+                    <thisLib:GenGridCol colModel="${col}" objMeta="${objMeta}" colIndex="${colIndex}"
+                                        editMode="${editMode}" filterForm="${filterForm}"/>
+                </c:for>
+            </source>
+        </GenGridCols>
+
+        <GenGridCol outputMode="xjson">
+            <attr name="bizObjName" implicit="true"/>
+            <attr name="i18nRoot" implicit="true"/>
+            <attr name="colModel"/>
+            <attr name="colIndex"/>
+            <attr name="objMeta"/>
+            <attr name="editMode" optional="true"/>
+            <attr name="filterForm" optional="true" />
+            <attr name="gridModel" implicit="true"/>
+            <attr name="controlLib" implicit="true"/>
+
+            <source>
+                <c:script><![CDATA[
+                    let propMeta = objMeta?.getProp(colModel.prop || colModel.id);
+
+                    let searchable = null;
+                    if(filterForm and propMeta){
+                        let formCell = filterForm.getLayoutCellById(propMeta.name);
+                        if(formCell)
+                           searchable = xpl('thisLib:GenFormSimpleCell',{formCell,formModel:filterForm,fixedProps:null})
+                    }
+
+                    let col = {
+                        name:colModel.id,
+                        label: '@i18n:col.'+i18nRoot+"."+colModel.id+(colModel.label ? '|'+colModel.label : ",prop.label."+bizObjName+"."+propMeta?.name+"|"+propMeta?.displayName),
+                        sortable: gridModel.sortable != false and colModel.sortable,
+                        width: (colModel.width?.$isNumber() ? colModel.width.$parseNumber(): colModel.width) || xpl('thisLib:GetColDefaultWidth',colModel,propMeta),
+                        toggled:true,
+                        align: colModel.align || xpl('thisLib:GetColDefaultAlign',colModel,propMeta),
+                        fixed: colModel.fixed || (colIndex == 0?'left':null),
+                        groupName: colModel.groupName,
+                        className: colModel.className,
+                        labelClassName: colModel.labelClassName,
+                        classNameExpr:colModel.classNameExpr,
+                        visible: colModel.visibleOn,
+                        disabled: colModel.disabledOn,
+                        breakpoint: colModel.breakpoint,
+                        backgroundScale: colModel['xui:backgroundScale'],
+                        searchable: searchable,
+                        remark: colModel.desc && ('@i18n:col.'+i18nRoot+"."+colModel.id + ".$desc").$i18n(colModel.desc),
+                        hint: colModel.hint && ('@i18n:col.'+i18nRoot+"."+colModel.id + ".$hint").$i18n(colModel.hint)
+                    };
+                    if(colModel['xui:permissions'])
+                       col['xui:permissions'] = colModel['xui:permissions'];
+                    if(colModel['xui:roles'])
+                       col['xui:roles'] = colModel['xui:roles'];
+
+                    let colXpl = colModel.genControl;
+                    let control = null;
+                    let mode = editMode || colModel.editMode || gridModel.editMode || 'list-view'
+                    if(colXpl != null){
+                        control = eval(colXpl,{ dispMeta:colModel,objMeta, propMeta,
+                              mandatory: colModel.mandatory ?? propMeta?.mandatory,
+                            editMode:mode,bizObjName,objMeta});
+                    }else if(colModel.view){
+                        control = xpl `<thisLib:GenDispView dispMeta="${colModel}" editMode="${mode}"
+                                           mandatory="${colModel.mandatory ?? propMeta.mandatory}" />`
+                    }else{
+                        control = xpl `<thisLib:DefaultControl dispMeta="${colModel}" editMode="${mode}"
+                                           mandatory="${colModel.mandatory ?? propMeta.mandatory}" />`
+                    }
+                    if(control != null){
+                        col.putAll(control);
+                    }
+                    $out.appendChild(location(),"_",col)
+                ]]></c:script>
+            </source>
+        </GenGridCol>
+
+        <GenDispView outputMode="none">
+            <attr name="dispMeta"/>
+            <attr name="propMeta" implicit="true"/>
+            <attr name="objMeta" implicit="true"/>
+            <attr name="editMode"/>
+            <attr name="controlLib" implicit="true"/>
+            <attr name="mandatory"/>
+
+            <source>
+                <c:script>
+                    import io.nop.web.page.WebPageHelper;
+
+                    let refView = dispMeta.view;
+                </c:script>
+                <c:choose>
+                    <when test="${refView.path.endsWith('.view.xml')}">
+                        <c:choose>
+                            <when test="${refView.page}">
+                                <c:collect outputMode="xjson" xpl:return="genPage">
+                                    <thisLib:GenPage view="${refView.path}" page="${refView.page}"/>
+                                </c:collect>
+                                <c:script>
+                                    return genPage;
+                                </c:script>
+                            </when>
+                            <when test="${refView.grid}">
+                                <c:script>
+                                    let genPage;
+                                </c:script>
+                                <c:choose>
+                                    <when test="${editMode?.endsWith('view')}">
+                                        <thisLib:GenTable view="${refView.path}" grid="${refView.grid}"
+                                                          editMode="${editMode}"
+                                                          xpl:return="genPage"/>
+                                    </when>
+                                    <otherwise>
+                                        <thisLib:GenInputTable view="${refView.path}" grid="${refView.grid}"
+                                                               editMode="${editMode}"
+                                                               addable="${refView.addable}"
+                                                               removable="${refView.removable}"
+                                                               editable="${refView.editable}"
+                                                               xpl:return="genPage"/>
+                                    </otherwise>
+                                </c:choose>
+
+                                <c:script>
+                                    return genPage;
+                                </c:script>
+                            </when>
+                            <when test="${refView.form}">
+                                <c:throw errorCode="nop.err.not-impl"/>
+                            </when>
+                            <otherwise>
+                                <c:throw errorCode="nop.err.invalid-ref-view-config"/>
+                            </otherwise>
+                        </c:choose>
+                    </when>
+                    <otherwise>
+                        <c:script>
+                            return WebPageHelper.internalLoadPage(refView.path);
+                        </c:script>
+                    </otherwise>
+                </c:choose>
+            </source>
+        </GenDispView>
+
+        <GetColDefaultWidth>
+            <attr name="colModel"/>
+            <attr name="propMeta"/>
+
+            <source><![CDATA[
+                const dataType = propMeta?.stdDataType?.toString();
+                if(dataType == 'timestamp')
+                    return "160px"
+            ]]></source>
+        </GetColDefaultWidth>
+
+        <GetColDefaultAlign>
+            <attr name="colModel"/>
+            <attr name="propMeta"/>
+
+            <source><![CDATA[
+                if(propMeta?.schema?.domain == 'boolFlag')
+                    return "center"
+            ]]></source>
+        </GetColDefaultAlign>
+
+        <DefaultControl>
+            <attr name="bizObjName" implicit="true"/>
+            <attr name="dispMeta"/>
+            <attr name="propMeta" implicit="true"/>
+            <attr name="objMeta" implicit="true"/>
+            <attr name="editMode"/>
+            <attr name="controlLib" implicit="true"/>
+            <attr name="mandatory"/>
+
+            <source>
+                <c:script><![CDATA[
+                    import io.nop.xui.utils.XuiHelper;
+                    const tag = XuiHelper.getControlTag(controlLib, dispMeta, propMeta, objMeta,editMode);
+                    tag.generateXjson({bizObjName,dispMeta,objMeta,propMeta,editMode,controlLib,mandatory})
+                ]]></c:script>
+            </source>
+        </DefaultControl>
+
+        <NormalizeApi>
+            <attr name="api"/>
+            <attr name="genScope"/>
+
+            <source><![CDATA[
+                if(!api) return null;
+
+                return _.filterNull({...api,
+                    url:api.url.$renderTemplateForScope("{@","}",genScope),
+                    "gql:selection": api['gql:selection']?.$renderTemplateForScope('{@','}',genScope),
+                    data: api.withFormData ? genScope.formData : api.data
+                })
+            ]]></source>
+        </NormalizeApi>
+
+        <FluxFormDefaultAttrs>
+            <attr name="formModel"/>
+            <source><![CDATA[
+                const attrs = _.pickNotNull(formModel, ["className","bodyClassName",
+                    "submitOnChange","submitOnInit",
+                    "resetAfterSubmit","reload","target","persistData",
+                    "persistDataKeys", "preventEnterSubmit",
+                    "labelWidth", "submitText",
+                    "inheritData", "promptPageLeave",
+                    "interval","checkInterval", "initCheckInterval",
+                    "initFetch", "silentPolling", "canAccessSuperData",
+                    "initFetchOn","stopAutoRefreshWhen",
+                     "rules"]);
+                return attrs;
+            ]]></source>
+        </FluxFormDefaultAttrs>
+
+        <GetFormDefaultSize>
+            <attr name="formModel"/>
+            <source><![CDATA[
+                const cellCount = formModel.cellCount;
+                if(cellCount < 5)
+                   return 'sm';
+                return cellCount >= 20 ? 'lg' : 'md'
+            ]]></source>
+        </GetFormDefaultSize>
+
+        <FluxPageDefaultAttrs>
+            <attr name="pageModel"/>
+            <attr name="i18nRoot" implicit="true"/>
+
+            <source><![CDATA[
+                const attrs = _.pickNotNull(pageModel,[
+                    "name","className",
+                    "headerClassName","bodyClassName",
+                    "initFetch","interval","silentPolling",
+                    "stopAutoRefreshWhen","data"
+                ]);
+
+                function i18n_key(key){
+                   return ('@i18n:pages.'+i18nRoot+'.'+pageModel.name+'.'+key).$i18n(pageModel[key])
+                }
+                if(pageModel.title)
+                    attrs.put('title', i18n_key('title'));
+                if(pageModel.subTitle)
+                    attrs.put('subTitle', i18n_key('subTitle'));
+                if(pageModel.remark)
+                    attrs.put('remark',i18n_key('remark'));
+                return attrs;
+            ]]></source>
+        </FluxPageDefaultAttrs>
+
+        <FluxGridDefaultAttrs>
+            <attr name="gridModel"/>
+            <source><![CDATA[
+                const attrs = _.pickNotNull(gridModel, ["className",
+                     "columnNum", "affixHeader","checkOnItemClick",
+                     "selectable", "multiple", "combineNum",
+                     "combineFromIndex", "placeholder", "rowClassName",
+                     "headerClassName", "footerClassName","toolbarClassName",
+                     "stopAutoRefreshWhen","itemCheckableOn",
+                     "prefixRow", "affixRow", "affixRowClassName",
+                     "affixRowClassNameExpr", "prefixRowClassName","prefixRowClassNameExpr",
+                    ]);
+                return attrs;
+            ]]></source>
+        </FluxGridDefaultAttrs>
+
+        <GenValidator>
+            <attr name="metaPath" stdDomain="v-path" mandatory="true"/>
+
+            <source>
+                <c:include src="std/impl_GenValidator.xpl"/>
+            </source>
+        </GenValidator>
+
+        <HiddenAndLabel>
+            <attr name="hiddenProp"/>
+            <attr name="labelProp"/>
+
+            <source>
+                <container>
+                    <body>
+                        <_hidden name="${hiddenProp}"/>
+                        <text text="${'$'}{${labelProp}}"/>
+                    </body>
+                </container>
+            </source>
+        </HiddenAndLabel>
+
+        <AutoGenerateFilter outputMode="xjson">
+            <attr name="pageModel" implicit="true" />
+
+            <source>
+                <autoGenerateFilter xpl:if="pageModel.autoGenerateFilter"
+                                    columnsNum="${pageModel.autoGenerateFilter.columnsNum || $config.var('nop.xui.crud.auto-filter-col-num') || 4}"
+                                    showBtnToolbar="${pageModel.autoGenerateFilter.showBtnToolbar ?? false}"
+                                    defaultCollapsed="${pageModel.autoGenerateFilter.defaultCollapsed}" />
+            </source>
+        </AutoGenerateFilter>
+
+        <NormalizeAction outputMode="none">
+            <attr name="action"/>
+            <attr name="genScope"/>
+            <attr name="viewModel" implicit="true"/>
+
+            <source><![CDATA[
+                import io.nop.api.core.exceptions.NopException;
+
+                let result = _.delete({...action}, ['actionType','type','actions','api','dialog','drawer','feedback','confirmText','initApi','onEvent']);
+
+                const iconOnly = action.iconOnly && action.icon;
+                result.label = iconOnly ? null : action.label;
+                result.icon = action.icon;
+                result.level = iconOnly ? null : action.level;
+                result.tooltip = iconOnly ? action.label : null;
+
+                if(action.onClick != null){
+                    result.onClick = action.onClick;
+                    return _.filterNull(result);
+                }
+
+                let actionType = action.actionType;
+                if(!actionType){
+                    if(action.dialog) actionType = 'dialog';
+                    else if(action.drawer) actionType = 'drawer';
+                    else actionType = 'ajax';
+                }
+
+                let scope = genScope || {};
+                let then = [];
+
+                let whenGuard = null;
+                if(action.confirmText){
+                    whenGuard = { message: action.confirmText };
+                }
+
+                if(actionType == 'ajax' || action.api){
+                    let api = action.api;
+                    if(api){
+                        then.push(_.filterNull({
+                            type: 'api',
+                            url: api.url.$renderTemplateForScope('{@','}',scope),
+                            "gql:selection": api['gql:selection']?.$renderTemplateForScope('{@','}',scope),
+                            method: api.method,
+                            data: api.withFormData ? scope.formData : api.data
+                        }));
+                    }
+                } else if(actionType == 'dialog'){
+                    let dialog = xpl('thisLib:LoadPage', action.dialog.page, action.dialog, scope.fixedProps);
+                    then.push({ type: 'dialog', dialog });
+                } else if(actionType == 'drawer'){
+                    let drawer = xpl('thisLib:LoadPage', (action.drawer||action.dialog).page,
+                                    action.drawer||action.dialog, scope.fixedProps);
+                    then.push({ type: 'drawer', drawer });
+                } else if(actionType == 'reload'){
+                    then.push(_.filterNull({ type: 'component', action: 'reload', target: action.target }));
+                } else if(actionType == 'close'){
+                    then.push({ type: 'component', action: 'close' });
+                } else if(actionType == 'copy'){
+                    then.push(_.filterNull({ type: 'set-value', copyFormat: action.copyFormat, content: action.content }));
+                } else if(actionType == 'toast'){
+                    then.push(_.filterNull({ type: 'toast', content: action.content }));
+                } else if(actionType == 'link'){
+                    then.push(_.filterNull({ type: 'link', link: action.link }));
+                } else if(actionType == 'url'){
+                    then.push(_.filterNull({ type: 'url', url: action.url, blank: action.blank }));
+                } else {
+                    throw new NopException("Unsupported actionType: " + actionType);
+                }
+
+                if(action.feedback?.page){
+                    let feedback = xpl('thisLib:LoadPage', action.feedback.page, action.feedback);
+                    then.push({ type: 'dialog', dialog: feedback });
+                }
+
+                if(whenGuard){
+                    result.onClick = { type: 'confirm', when: whenGuard, then };
+                } else {
+                    result.onClick = then.length == 1 ? then[0] : { type: 'sequence', then };
+                }
+
+                return _.filterNull(result);
+            ]]></source>
+        </NormalizeAction>
+
+        <GenAction outputMode="xjson" ignoreUnknownAttrs="true">
+            <attr name="view" mandatory="true" type="String" stdDomain="v-path"/>
+            <attr name="genScope" optional="true"/>
+            <slot name="default" slotType="node"/>
+
+            <source>
+                <c:script>
+                    import io.nop.xlang.xmeta.SchemaLoader;
+
+                    const node = slot_default.cloneInstance();
+                    node.removeAttr('view');
+                    node.removeAttr('genScope');
+                    node.setTagName('action');
+
+                    const xdef = SchemaLoader.loadXDefinition('/nop/schema/xui/action.xdef');
+                    SchemaLoader.validateNode(node,xdef,true);
+                </c:script>
+                <action xpl:attrs="${xpl('thisLib:NormalizeAction',node.toXJson(),null)}"/>
+            </source>
+        </GenAction>
+
+        <GenActions outputMode="xjson">
+            <attr name="actions"/>
+            <attr name="genScope"/>
+            <attr name="viewModel" implicit="true"/>
+
+            <source>
+                <c:for var="action" items="${actions}">
+                    <c:choose>
+                        <when test="${action.type == 'actionGroup'}">
+                            <dropdown-button id="${action.id}"
+                                             xpl:attrs="_.delete({...action,
+                                             buttons:action.actions.map(a=>{...xpl('thisLib:NormalizeAction',a,genScope),type:'button'})},
+                                             ['type','actions'])"/>
+                        </when>
+                        <otherwise>
+                            <button id="${action.id}" xpl:attrs="xpl('thisLib:NormalizeAction',action,genScope)"/>
+                        </otherwise>
+                    </c:choose>
+                </c:for>
+            </source>
+        </GenActions>
+
+        <LoadPage outputMode="none">
+            <attr name="page" mandatory="true"/>
+            <attr name="dialog" optional="true"/>
+            <attr name="fixedProps" optional="true"/>
+            <attr name="viewModel" implicit="true"/>
+
+            <source><![CDATA[
+               import io.nop.core.resource.ResourceHelper;
+
+               const dlgProps = _.pickNotNull(dialog,["closeOnEsc","closeOnOutside","size","height",
+                    "width","showCloseButton","actions","title"]) || {};
+               if(dlgProps?.actions?.length > 0){
+                   dlgProps.actions = dlgProps.actions.map(a=>xpl('thisLib:NormalizeAction',a,{}));
+               }else{
+                   dlgProps.remove('actions');
+               }
+               if(dialog?.noActions)
+                   dlgProps.actions = []
+
+               if(page.endsWith('.page.yaml')){
+                  const pageJson = { 'x:extends': viewModel.resourcePath().$absolutePath(page),...dlgProps};
+                  if(dialog?.data){
+                     pageJson.data = dialog.data
+                  }
+                  return pageJson;
+               }
+
+               let path = viewModel.resourcePath().$filePath().$appendPath(page+'.page.yaml')
+               const resource = ResourceHelper.resolve(path);
+               if(resource.exists()){
+                  return  { 'x:extends': path, ...dlgProps}
+               }
+
+               const gen = xpl `<c:collect outputMode="xjson">
+                                  <thisLib:GenPage view="${viewModel.resourcePath()}" page="${page}" fixedProps="${fixedProps}" />
+                               </c:collect>`
+               if(dlgProps != null)
+                   gen.putAll(dlgProps);
+               if(dialog?.data){
+                   gen.put('data',{...gen.data,...dialog.data})
+               }
+               return gen;
+            ]]></source>
+        </LoadPage>
+
+        <GenInputTable outputMode="xjson">
+            <attr name="view" mandatory="true"/>
+            <attr name="grid" mandatory="true"/>
+            <attr name="editMode" optional="true"/>
+            <attr name="removable" optional="true"/>
+            <attr name="addable" optional="true"/>
+            <attr name="editable" optional="true"/>
+
+            <source>
+                <c:include src="flux-web/init_grid_gen_scope.xpl"/>
+                <array-editor removable="${removable ?? gridModel['ui:removable']?.$toBoolean() ?? true}"
+                             addable="${addable ?? gridModel['ui:addable']?.$toBoolean() ?? true}"
+                             editable="${editable ?? gridModel['ui:editable']?.$toBoolean() ?? true}"
+                             showIndex="@:true">
+                    <columns j:list="true">
+                        <thisLib:GenGridCols gridModel="${gridModel}" objMeta="${objMeta}" editMode="${editMode}"/>
+                    </columns>
+                </array-editor>
+            </source>
+        </GenInputTable>
+
+        <GenTable outputMode="xjson">
+            <attr name="view" mandatory="true"/>
+            <attr name="grid" mandatory="true"/>
+            <attr name="editMode" optional="true"/>
+
+            <source>
+                <c:include src="flux-web/init_grid_gen_scope.xpl"/>
+                <table>
+                    <columns j:list="true">
+                        <thisLib:GenGridCols gridModel="${gridModel}" objMeta="${objMeta}" editMode="${editMode}"/>
+                    </columns>
+                </table>
+            </source>
+        </GenTable>
+
+        <FluxTabsDefaultAttrs outputMode="none">
+            <attr name="pageModel"/>
+            <source><![CDATA[
+                return _.pickNotNull(pageModel,["tabsMode", "tabsClassName",
+                "closeable", "draggable", "mountOnEnter","unmountOnExit"])
+            ]]></source>
+        </FluxTabsDefaultAttrs>
+
+        <FluxTabDefaultAttrs outputMode="none">
+            <attr name="tabModel"/>
+            <source><![CDATA[
+                return _.pickNotNull(tabModel,["icon", "title","iconPosition","name",
+                    "unmountOnExit", "hash","reload", "className", "disabled"])
+            ]]></source>
+        </FluxTabDefaultAttrs>
+    </tags>
+</lib>
