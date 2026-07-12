@@ -4,6 +4,7 @@
 当前有两个渲染实现：`AMIS`（默认）和 `Flux`（渐进替代），分别见 `amis-rendering.md` 和 `flux-rendering.md`。
 
 > **如果你已经知道要改 `view.xml` / `page.yaml`**，快速参考见 `view-and-page-customization.md`。
+> **如果你需要 form layout 分组/折叠/Tab/查询运算符等 DSL 语法**，见 `layout-syntax-reference.md`。
 > **如果你需要复杂页面模式**，见 `page-dsl-pattern-catalog.md`。
 > **如果不确定该走哪条文档路径**，先看 `../03-runbooks/admin-page-development-roadmap.md`。
 

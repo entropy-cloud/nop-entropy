@@ -100,6 +100,7 @@
 | 编写或维护应用项目业务 owner docs | `02-core-guides/application-project-docs-and-domain-design.md` |
 | 理解页面生成管线（框架无关） | `02-core-guides/frontend-rendering-pipeline.md` |
 | 定制 view / page 页面（快速参考） | `02-core-guides/view-and-page-customization.md` |
+| **查 form layout DSL 完整语法（分组、折叠、Tab、跨列、查询运算符）** | **`02-core-guides/layout-syntax-reference.md`** |
 | AMIS 渲染细节 | `02-core-guides/amis-rendering.md` |
 | Flux 渲染细节 | `02-core-guides/flux-rendering.md` |
 | 查复杂页面 DSL 配置模式 | `02-core-guides/page-dsl-pattern-catalog.md` |

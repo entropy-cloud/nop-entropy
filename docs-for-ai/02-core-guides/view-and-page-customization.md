@@ -82,8 +82,9 @@ AI 需要先记住三层：
 | 需求 | 默认修改位置 |
 |------|-------------|
 | 列表列顺序、显隐、标签 | `grid/cols` |
-| 表单布局、只读、必填、子表 | `form/layout` 和 `form/cells` |
-| 查询表单 | `form id="query"` |
+| 表单布局、只读、必填、子表 | `form/layout` 和 `form/cells`（完整 layout DSL 语法见 `./layout-syntax-reference.md`） |
+| 表单字段分组、折叠、Tab 布局 | `form/layout` 分组语法 + `form/layoutControl`（见 `./layout-syntax-reference.md`） |
+| 查询表单 | `form id="query"`（查询运算符配置见 `./layout-syntax-reference.md` §10） |
 | 列表按钮、行按钮 | `pages/crud/listActions`、`rowActions` |
 | 页面初始化 API、跳转、弹窗 | `pages/*` 下对应 page 定义 |
 
@@ -116,6 +117,8 @@ AI 需要先记住三层：
     </cells>
 </form>
 ```
+
+`<layout>` 内部的文本是一个 DSL，支持字段分组、折叠、跨列、Tab 布局等。完整语法见 **`./layout-syntax-reference.md`**。
 
 ### Form cells 与 objMeta 校验
 

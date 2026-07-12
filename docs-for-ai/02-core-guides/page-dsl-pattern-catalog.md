@@ -11,8 +11,9 @@
 ## 先记住
 
 1. 普通 CRUD 改动先看 `view-and-page-customization.md`。
-2. 需要复杂页面拼装时，再来本页找现成模式。
-3. 优先复用已有 DSL 模式，不要一上来就手搓大段框架 JSON。
+2. 需要 form layout 分组/折叠/Tab 语法，看 `layout-syntax-reference.md`。
+3. 需要复杂页面拼装时，再来本页找现成模式。
+4. 优先复用已有 DSL 模式，不要一上来就手搓大段框架 JSON。
 
 ## 高价值模式总表
 
