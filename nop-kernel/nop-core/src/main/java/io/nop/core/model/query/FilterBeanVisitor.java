@@ -65,6 +65,8 @@ public class FilterBeanVisitor<T> {
 
         FilterOp filterOp = getFilterOp(op);
         if (filterOp == null) {
+            if (op.equals(CoreConstants.DUMMY_TAG_NAME) || op.equals(CoreConstants.FILTER_TAG_NAME))
+                return visitAnd(filter, scope);
             return visitUnknown(op, filter, scope);
         }
 

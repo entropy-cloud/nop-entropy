@@ -234,12 +234,12 @@ public class QueryBean implements Serializable, ICloneable {
 
         TreeBean tree = FilterBeans.normalizeFilterBean(filter);
         if (tree == null)
-            return null;
+            return this;
 
         if (this.filter == null) {
             this.filter = tree;
         } else {
-            this.filter = FilterBeans.and(this.filter, tree);
+            this.filter = FilterBeans.and(FilterBeans.normalizeFilterBean(this.filter), tree);
         }
         return this;
     }
