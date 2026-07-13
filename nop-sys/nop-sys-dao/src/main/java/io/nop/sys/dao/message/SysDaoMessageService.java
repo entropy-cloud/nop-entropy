@@ -75,6 +75,8 @@ public class SysDaoMessageService extends LifeCycleSupport implements IMessageSe
 
     private IRetryPolicy<SysDaoMessageService> retryPolicy = new RetryPolicy<>();
 
+    private Map<String, IRetryPolicy<SysDaoMessageService>> topicRetryPolicies = new ConcurrentHashMap<>();
+
     private Timestamp startTime;
 
     private Future<?> checkBroadcastFuture;
@@ -103,6 +105,10 @@ public class SysDaoMessageService extends LifeCycleSupport implements IMessageSe
 
     public void setRetryPolicy(IRetryPolicy<SysDaoMessageService> retryPolicy) {
         this.retryPolicy = retryPolicy;
+    }
+
+    public void setTopicRetryPolicies(Map<String, IRetryPolicy<SysDaoMessageService>> topicRetryPolicies) {
+        this.topicRetryPolicies = topicRetryPolicies;
     }
 
     public void setMinProcessDelay(long minProcessDelay) {
@@ -198,7 +204,9 @@ public class SysDaoMessageService extends LifeCycleSupport implements IMessageSe
                     k -> getHostId(),
                     (event, exception) -> {
                         int count = event.getRetryTimes() != null ? event.getRetryTimes() : 0;
-                        return retryPolicy.getRetryDelay(exception, count, this);
+                        IRetryPolicy<SysDaoMessageService> policy = topicRetryPolicies
+                                .getOrDefault(event.getEventTopic(), retryPolicy);
+                        return policy.getRetryDelay(exception, count, this);
                     },
                     fetchSize,
                     leaseTimeout,
