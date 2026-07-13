@@ -2,13 +2,13 @@ package io.nop.sys.dao.message;
 
 import io.nop.api.core.annotations.txn.TransactionPropagation;
 import io.nop.api.core.annotations.txn.Transactional;
-import io.nop.api.core.config.AppConfig;
 import io.nop.api.core.beans.ApiRequest;
 import io.nop.api.core.beans.FilterBeans;
 import io.nop.api.core.beans.IntRangeBean;
 import io.nop.api.core.beans.IntRangeSet;
 import io.nop.api.core.beans.TreeBean;
 import io.nop.api.core.beans.query.QueryBean;
+import io.nop.api.core.config.AppConfig;
 import io.nop.api.core.message.Acknowledge;
 import io.nop.api.core.message.ConsumeLater;
 import io.nop.api.core.message.IMessageConsumeContext;
@@ -31,8 +31,8 @@ import io.nop.dao.api.IDaoProvider;
 import io.nop.dao.api.IEntityDao;
 import io.nop.message.core.local.LocalMessageService;
 import io.nop.orm.dao.IOrmEntityDao;
-import io.nop.sys.dao.NopSysDaoException;
 import io.nop.sys.dao.NopSysDaoConstants;
+import io.nop.sys.dao.NopSysDaoException;
 import io.nop.sys.dao.entity.NopSysBroadcastEvent;
 import io.nop.sys.dao.entity.NopSysEvent;
 import jakarta.inject.Inject;
@@ -42,18 +42,16 @@ import org.slf4j.LoggerFactory;
 import java.sql.Timestamp;
 import java.time.Duration;
 import java.time.temporal.ChronoUnit;
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.CompletionStage;
-import java.util.concurrent.Future;
-import java.util.concurrent.TimeUnit;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 
 public class SysDaoMessageService extends LifeCycleSupport implements IMessageService {
@@ -69,6 +67,8 @@ public class SysDaoMessageService extends LifeCycleSupport implements IMessageSe
 
     private Duration checkSimpleEventInterval = Duration.of(500, ChronoUnit.MILLIS);
 
+    private int maxScanLoops = 1000;
+
     private int fetchSize = 100;
 
     private int startGap = 5000;
@@ -81,6 +81,10 @@ public class SysDaoMessageService extends LifeCycleSupport implements IMessageSe
     private Future<?> checkNonBroadcastFuture;
 
     private BroadcastEventProcessor broadcastProcessor;
+
+    private NonBroadcastEventProcessor nonBroadcastProcessor;
+
+    private boolean nonBroadcastAutoScanEnabled = true;
 
     private long minProcessDelay = 10000;
 
@@ -121,6 +125,14 @@ public class SysDaoMessageService extends LifeCycleSupport implements IMessageSe
         this.startGap = startGap;
     }
 
+    public void setMaxScanLoops(int maxScanLoops) {
+        this.maxScanLoops = maxScanLoops;
+    }
+
+    public void setNonBroadcastAutoScanEnabled(boolean nonBroadcastAutoScanEnabled) {
+        this.nonBroadcastAutoScanEnabled = nonBroadcastAutoScanEnabled;
+    }
+
     public void setCheckBroadcastEventInterval(Duration checkBroadcastEventInterval) {
         this.checkBroadcastEventInterval = checkBroadcastEventInterval;
     }
@@ -156,8 +168,12 @@ public class SysDaoMessageService extends LifeCycleSupport implements IMessageSe
         checkBroadcastFuture = timer.executeOn(executor).scheduleWithFixedDelay(this::processBroadcastEvent,
                 checkBroadcastEventInterval.toMillis(), checkBroadcastEventInterval.toMillis(), TimeUnit.MILLISECONDS);
 
-        checkNonBroadcastFuture = timer.executeOn(executor).scheduleWithFixedDelay(this::processNonBroadcastEvent,
-                checkSimpleEventInterval.toMillis(), checkSimpleEventInterval.toMillis(), TimeUnit.MILLISECONDS);
+        if (nonBroadcastAutoScanEnabled) {
+            checkNonBroadcastFuture = timer.executeOn(executor).scheduleWithFixedDelay(this::processNonBroadcastEvent,
+                    checkSimpleEventInterval.toMillis(), checkSimpleEventInterval.toMillis(), TimeUnit.MILLISECONDS);
+        } else {
+            LOG.info("nop.sys.message.non-broadcast-auto-scan-disabled");
+        }
     }
 
     @Override
@@ -169,102 +185,52 @@ public class SysDaoMessageService extends LifeCycleSupport implements IMessageSe
     }
 
     protected void processNonBroadcastEvent() {
-        List<NopSysEvent> events = fetchNonBroadcastEvents();
-        if (events.isEmpty()) {
-            return;
-        }
+        ensureNonBroadcastProcessor();
+        nonBroadcastProcessor.process();
+    }
 
-        List<NopSysEvent> claimed = claimNonBroadcastEvents(events);
-        if (claimed.isEmpty()) {
-            return;
-        }
-
-        for (NopSysEvent event : claimed) {
-            processNonBroadcastEvent(event);
+    private void ensureNonBroadcastProcessor() {
+        if (nonBroadcastProcessor == null) {
+            nonBroadcastProcessor = new NonBroadcastEventProcessor(
+                    daoProvider,
+                    localService::getNonBroadcastTopics,
+                    event -> invokeDurableConsumers(event.getEventTopic(), event.toApiRequest(), null, false),
+                    k -> getHostId(),
+                    exception -> retryPolicy.getRetryDelay(exception, 0, this),
+                    fetchSize,
+                    leaseTimeout,
+                    minProcessDelay,
+                    assignedPartitions
+            );
         }
     }
 
     @Transactional(propagation = TransactionPropagation.REQUIRES_NEW)
     public List<NopSysEvent> claimNonBroadcastEvents(List<NopSysEvent> events) {
-        IOrmEntityDao<NopSysEvent> dao = dao();
-        IEstimatedClock clock = dao.getDbEstimatedClock();
-        long now = clock.getMaxCurrentTimeMillis();
-
-        for (NopSysEvent event : events) {
-            event.setEventStatus(NopSysDaoConstants.SYS_EVENT_STATUS_CLAIMED);
-            event.setLeaseOwner(getHostId());
-            event.setLeaseExpireTime(new Timestamp(now + leaseTimeout));
-            event.setProcessTime(new Timestamp(now));
-        }
-
-        return dao.tryUpdateManyWithVersionCheck(events);
+        ensureNonBroadcastProcessor();
+        return nonBroadcastProcessor.claim(events);
     }
 
     protected void processNonBroadcastEvent(NopSysEvent event) {
-        try {
-            Object ret = invokeDurableConsumers(event.getEventTopic(), event.toApiRequest(), null, false);
-            handleNonBroadcastProcessResult(event, ret, null);
-        } catch (Exception e) {
-            handleNonBroadcastProcessResult(event, null, e);
-        }
-    }
-
-    protected void handleNonBroadcastProcessResult(NopSysEvent event, Object ret, Exception err) {
-        IEntityDao<NopSysEvent> dao = dao();
-        try {
-            if (err != null) {
-                handleProcessEventError(dao, event, err);
-                return;
-            }
-
-            if (ret instanceof ConsumeLater) {
-                long delay = Math.max(minProcessDelay, ((ConsumeLater) ret).getDelay());
-                event.setEventStatus(NopSysDaoConstants.SYS_EVENT_STATUS_WAITING);
-                event.setLeaseOwner(null);
-                event.setLeaseExpireTime(null);
-                event.setScheduleTime(new Timestamp(dao.getDbEstimatedClock().getMaxCurrentTimeMillis() + delay));
-                event.incRetryTimes();
-            } else {
-                event.setEventStatus(NopSysDaoConstants.SYS_EVENT_STATUS_PROCESSED);
-                event.setLeaseOwner(null);
-                event.setLeaseExpireTime(null);
-            }
-            dao.updateEntityDirectly(event);
-        } catch (Exception e) {
-            LOG.error("nop.err.sys.process-event-fail", e);
-            try {
-                handleProcessEventError(dao, event, e);
-            } catch (Exception e2) {
-                LOG.error("nop.err.sys.handle-process-event-error-fail", e2);
-            }
-        }
-    }
-
-    protected void handleProcessEventError(IEntityDao<NopSysEvent> dao, NopSysEvent event, Throwable exception) {
-        long delay = getRetryDelay(exception, event);
-        if (delay < 0) {
-            event.setEventStatus(NopSysDaoConstants.SYS_EVENT_STATUS_FAILED);
-        } else {
-            event.setEventStatus(NopSysDaoConstants.SYS_EVENT_STATUS_WAITING);
-            event.setLeaseOwner(null);
-            event.setLeaseExpireTime(null);
-            event.setScheduleTime(new Timestamp(dao.getDbEstimatedClock().getMaxCurrentTimeMillis() + delay));
-            event.incRetryTimes();
-        }
-        dao.updateEntityDirectly(event);
-    }
-
-    protected long getRetryDelay(Throwable exception, NopSysEvent event) {
-        int count = event.getRetryTimes() == null ? 0 : event.getRetryTimes();
-        return retryPolicy.getRetryDelay(exception, count, this);
+        ensureNonBroadcastProcessor();
+        nonBroadcastProcessor.process(event);
     }
 
     public int getFetchSize() {
         return fetchSize;
     }
 
+    public long getEventDaoEstimatedMaxTime() {
+        return dao().getDbEstimatedClock().getMaxCurrentTimeMillis();
+    }
+
+    public IDaoProvider getDaoProvider() {
+        return daoProvider;
+    }
+
     public List<NopSysEvent> fetchExecutableNonBroadcastEvents(int batchSize) {
-        return fetchNonBroadcastEvents(batchSize);
+        ensureNonBroadcastProcessor();
+        return nonBroadcastProcessor.fetchCandidates(batchSize);
     }
 
     public void processClaimedNonBroadcastEvent(NopSysEvent event) {
@@ -286,6 +252,7 @@ public class SysDaoMessageService extends LifeCycleSupport implements IMessageSe
                     daoProvider,
                     this::getBroadcastTopics,
                     this::dispatchBroadcastToSubscribers,
+                    maxScanLoops,
                     fetchSize,
                     startGap
             );
@@ -310,86 +277,6 @@ public class SysDaoMessageService extends LifeCycleSupport implements IMessageSe
                 LOG.error("nop.message.consume-broadcast-event-error:topic={}", topic, e);
             }
         }
-    }
-
-    protected List<NopSysEvent> fetchNonBroadcastEvents() {
-        return fetchNonBroadcastEvents(fetchSize * 4);
-    }
-
-    protected List<NopSysEvent> fetchNonBroadcastEvents(int batchSize) {
-        ensureStartTimeInitialized();
-        Set<String> topics = localService.getNonBroadcastTopics();
-        if (topics.isEmpty())
-            return Collections.emptyList();
-
-        IEntityDao<NopSysEvent> dao = dao();
-        long now = dao.getDbEstimatedClock().getMaxCurrentTimeMillis();
-        Map<Integer, NopSysEvent> heads = new LinkedHashMap<>();
-        long offset = 0;
-        while (countExecutableHeads(heads) < fetchSize) {
-            QueryBean query = new QueryBean();
-            query.setOffset(offset);
-            query.setLimit(batchSize);
-            query.addFilter(FilterBeans.in(NopSysEvent.PROP_NAME_eventTopic, topics));
-            query.addFilter(FilterBeans.eq(NopSysEvent.PROP_NAME_isBroadcast, false));
-            query.addFilter(FilterBeans.in(NopSysEvent.PROP_NAME_eventStatus,
-                    List.of(NopSysDaoConstants.SYS_EVENT_STATUS_WAITING, NopSysDaoConstants.SYS_EVENT_STATUS_CLAIMED)));
-            query.addFilter(FilterBeans.le(NopSysEvent.PROP_NAME_scheduleTime, new Timestamp(now)));
-            addPartitionFilter(query, assignedPartitions, NopSysEvent.PROP_NAME_partitionIndex);
-            query.addOrderField(NopSysEvent.PROP_NAME_partitionIndex, false);
-            query.addOrderField(NopSysEvent.PROP_NAME_processTime, false);
-            query.addOrderField(NopSysEvent.PROP_NAME_eventId, false);
-
-            List<NopSysEvent> candidates = dao.findPageByQuery(query);
-            if (candidates.isEmpty()) {
-                break;
-            }
-
-            for (NopSysEvent event : candidates) {
-                Integer partitionIndex = event.getPartitionIndex();
-                if (heads.containsKey(partitionIndex)) {
-                    continue;
-                }
-
-                if (event.getEventStatus() == NopSysDaoConstants.SYS_EVENT_STATUS_CLAIMED && !isExpiredLease(event, now)) {
-                    heads.put(partitionIndex, null);
-                    continue;
-                }
-
-                heads.put(partitionIndex, event);
-                if (countExecutableHeads(heads) >= fetchSize) {
-                    break;
-                }
-            }
-
-            if (candidates.size() < batchSize || countExecutableHeads(heads) >= fetchSize) {
-                break;
-            }
-            offset += candidates.size();
-        }
-
-        List<NopSysEvent> result = new ArrayList<>();
-        for (NopSysEvent event : heads.values()) {
-            if (event != null) {
-                result.add(event);
-            }
-        }
-        return result;
-    }
-
-    protected boolean isExpiredLease(NopSysEvent event, long now) {
-        Timestamp leaseExpireTime = event.getLeaseExpireTime();
-        return leaseExpireTime == null || leaseExpireTime.getTime() <= now;
-    }
-
-    protected int countExecutableHeads(Map<Integer, NopSysEvent> heads) {
-        int count = 0;
-        for (NopSysEvent event : heads.values()) {
-            if (event != null) {
-                count++;
-            }
-        }
-        return count;
     }
 
     protected Set<String> getBroadcastTopics() {
@@ -532,18 +419,6 @@ public class SysDaoMessageService extends LifeCycleSupport implements IMessageSe
 
     public String getAckTopic(String topic) {
         return "ack-" + topic;
-    }
-
-    protected void addPartitionFilter(QueryBean query, IntRangeSet partitions, String partitionProp) {
-        if (partitions == null || partitions.isEmpty()) {
-            return;
-        }
-
-        List<TreeBean> rangeFilters = new ArrayList<>();
-        for (IntRangeBean range : partitions.getRanges()) {
-            rangeFilters.add(FilterBeans.between(partitionProp, range.getOffset(), range.getLast()));
-        }
-        query.addFilter(FilterBeans.or(rangeFilters));
     }
 
     @Override

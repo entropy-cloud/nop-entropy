@@ -35,6 +35,8 @@
 
 7. 这次重构的目标不是引入 Kafka 级别的外部 MQ，而是在现有数据库事务发布模型上，把**广播实用性**和**普通事件并行性**补成两个清晰的本地基线。
 
+8. **普通事件处理应抽象为 `NonBroadcastEventProcessor` 处理器类**，与广播事件对称提取，并通过配置开关控制是否由 `SysDaoMessageService` 自动周期扫描触发。关闭自动扫描后，复杂场景由外部 `nop-job` 调度 `nop-batch` 批量引擎驱动消费，`NonBroadcastEventProcessor` 作为批处理 Loader/Processor 的委托层提供候选事件获取、claim 和执行能力。
+
 ---
 
 ## 二、背景与动机
@@ -327,6 +329,7 @@ for each owned partition P in parallel:
 - **应直接借鉴 `nop-batch` 已证明可行的 partition dispatch + 微队列顺序执行模式**。
 - **可以复用执行 helper，也可以把一批 event 的状态更新做成 chunk flush，但不能只剩 chunk 成败、丢掉逐条 event outcome。**
 - **抽取或共用“分区基础设施”“周期扫描壳”和“partition dispatch 执行模式”即可，事件层自己保有消息语义、重试语义和监听器模型。**
+- **`nop-batch-sys` 模块作为 nop-batch 与 nop-sys 的桥接层**，提供 `SysEventBatchTrigger` 实现。该 Trigger 通过 batch DSL（`.batch.xml`）定义执行路径，绕过 `BatchTaskRunner` 直接使用 `IBatchTaskManager` API 加载 DSL 任务并注入 `partitionRange`。外层由 `nop-job` 通过 `scheduler.yaml` YAML 配置调度周期触发。
 
 如果后续代码层要复用实现，优先抽象以下轻量接口，而不是复用整个 batch runtime：
 
@@ -374,8 +377,248 @@ for each owned partition P in parallel:
 3. 普通事件发布端必须停止随机分区默认值。
 4. 普通事件 worker 需要明确的 partition ownership；当前最小 live baseline 通过 `assignedPartitions + row lease + partition scan` 落地，而不是额外的 ownership 表。
 5. 文档与代码都要明确：系统提供的是**至少一次**语义，业务 listener 如需抗重复必须做幂等。
-6. 广播消费逻辑应独立为 `BroadcastEventProcessor` 类，与普通事件处理器分离。
+6. 广播消费逻辑应独立为 `BroadcastEventProcessor` 类，普通事件消费逻辑应独立为 `NonBroadcastEventProcessor` 类，与 `SysDaoMessageService` 门面分离。
+7. `SysDaoMessageService` 需提供开关（如 `nonBroadcastAutoScanEnabled`）控制是否启动内建定时器自动扫描普通事件。默认开启以兼容现有行为，关闭后由外部 `nop-job` + `nop-batch` 驱动消费。
+8. `NonBroadcastEventProcessor` 需提供公开方法供 `SysEventBatchTrigger` 调用（获取候选事件、claim、处理），不得将内部逻辑硬编码在 `SysDaoMessageService` 的定时任务中。
+9. `nop-batch-sys` 的 `SysEventBatchTrigger` 应使用 batch DSL（`.batch.xml`）而非 `BatchTaskBuilder` 编程式组装，通过 `BatchTaskRunner` 加载执行。
+10. **`NonBroadcastEventProcessor.fetchCandidates()` 禁止使用 OFFSET 分页**。简单模式下使用 `findNext` keyset pagination（tick 内游标）；batch DSL 模式下 `OrmQueryBatchLoaderProvider` 自动处理 `findNext`。
 
+### 3.8 普通事件处理器提取与自动扫描开关
+
+#### 3.8.1 动机
+
+当前普通事件消费逻辑直接嵌入 `SysDaoMessageService`，通过 `checkNonBroadcastFuture`（定时器，默认 500ms 间隔）驱动。存在两个缺口：
+
+1. **消费引擎不可替换**：自动扫描的逻辑与 `SysDaoMessageService` 生命周期强耦合，无法关闭后由外部引擎（`nop-batch`）接管。
+2. **处理器未独立提取**：`fetchNonBroadcastEvents()`、`claimNonBroadcastEvents()`、`processNonBroadcastEvent()` 等方法虽然是可调用的公开方法，但整体消费流程（定时触发 → fetch → claim → process → handleResult）不是一个可独立组装和测试的处理器类。
+
+#### 3.8.2 `NonBroadcastEventProcessor` 设计
+
+提取后的 `NonBroadcastEventProcessor` 职责：
+
+```text
+NonBroadcastEventProcessor
+  - fetchCandidates(lastEvent, fetchSize) → List<NopSysEvent>
+      按 assignedPartitions + topic + eventStatus 过滤，使用 findNext keyset pagination
+      以 eventId 为游标单调推进，无 OFFSET 深翻页问题
+  - claim(List<NopSysEvent>) → List<NopSysEvent>
+      乐观锁 claim，设置 status=CLAIMED + leaseOwner + leaseExpireTime
+  - process(NopSysEvent, BiConsumer<String, NopSysEvent>)
+      调用 dispatchCallback，处理结果回写 DB（PROCESSED / WAITING / FAILED）
+  - handleResult(NopSysEvent, Object, Throwable)
+      根据 listener 返回值和异常状态决定最终状态迁移
+```
+
+**关键变更：fetchCandidates 使用 `findNext` 替代 OFFSET 分页**
+
+当前 `fetchNonBroadcastEvents()` 在循环中使用 `query.setOffset(offset)` 做 OFFSET 分页（`offset += candidates.size()`），在大偏移量时存在性能退化问题。改为 `IEntityDao.findNext(lastEntity, filter, orderBy, limit)` keyset pagination，只需在单个 tick 内保存游标：
+
+```text
+// 每个 tick 内：
+lastEntity = null
+loop:
+    candidates = dao.findNext(lastEntity, filter, orderBy, fetchSize)
+    if candidates.isEmpty(): break
+    // 按 partitionIndex 去重（只取每个分区的头部事件）
+    for event in candidates:
+        idx = event.partitionIndex
+        if already have head for idx: continue
+        if active lease on idx: mark blocked, continue
+        heads.put(idx, event)
+        if enough heads: break
+    lastEntity = candidates.last()
+    if enough heads: break
+```
+
+filter 条件：
+- `eventTopic IN (subscribed_topics)`
+- `isBroadcast = false`
+- `eventStatus IN (WAITING, CLAIMED)` — CLAIMED 用于捡回过期 lease 的事件
+- `scheduleTime <= now`
+- `partitionIndex BETWEEN assignedRange.offset AND assignedRange.last`
+
+orderBy：`partitionIndex ASC, processTime ASC, eventId ASC`
+
+与 `BroadcastEventProcessor` 的对称性：
+
+| 维度 | BroadcastEventProcessor | NonBroadcastEventProcessor |
+|------|------------------------|---------------------------|
+| 游标 | 全局 `lastEvent`（跨 tick 持久） | tick 内 `lastEntity`，跨 tick 不持久 |
+| 状态持久化 | 无（fire-and-forget） | 每行状态迁移（WAITING → CLAIMED → PROCESSED/FAILED） |
+| 并行策略 | 单线程全局扫描 | 分区内串行，分区间并行 |
+| 失败处理 | 跳过不阻塞 | 重试（`ConsumeLater` / retryTimes / reschedule） |
+| 依赖 batch | 否 | 可选（`nop-batch` 作为外部执行引擎） |
+
+#### 3.8.3 自动扫描开关
+
+`SysDaoMessageService` 增加配置属性：
+
+```xml
+<property name="nonBroadcastAutoScanEnabled" value="@cfg:nop.sys.message.non-broadcast-auto-scan-enabled|true" />
+```
+
+- **默认开启**：保持现有行为，`doStart()` 启动 `checkNonBroadcastFuture` 定时器。
+- **关闭时**：不在 `doStart()` 中创建定时任务。外部通过 `NonBroadcastEventProcessor` 的 API 手动触发消费。消费入口仍可通过 `processNonBroadcastEvent()` 暴露，但其内部调用委托给 `NonBroadcastEventProcessor`。
+
+```text
+doStart():
+    if nonBroadcastAutoScanEnabled:
+        checkNonBroadcastFuture = timer.scheduleWithFixedDelay(this::processNonBroadcastEvent, ...)
+    else:
+        LOG.info("non-broadcast auto scan disabled, external driver expected")
+    // broadcast auto scan 不受影响，始终开启
+```
+
+#### 3.8.4 nop-job + nop-batch 集成路径（batch DSL）
+
+**禁止手工 `BatchTaskBuilder` 编程式组装。** 必须使用 batch DSL（`.batch.xml` 文件），以便自动注册为 `IBatchTaskManager` 可加载的 bean，复用 batch dispatcher 的 bean 注册机制。
+
+##### batch DSL 定义
+
+在 `nop-batch-sys` 模块的 `resources/_vfs/nop/batch-task/` 下放置任务定义文件。DSL 的 loader/processor/consumer 通过 `<source>` XPL 委托 `SysDaoMessageService` 方法，保留 partition-head 去重和 lease 阻塞语义：
+
+```xml
+<!-- resources/_vfs/nop/batch-task/sys-event/non-broadcast-consumer.batch.xml -->
+<batch taskName="sys-event.non-broadcast-consumer"
+       batchSize="100"
+       transactionScope="process"
+       x:schema="/nop/schema/task/batch.xdef"
+       xmlns:x="/nop/schema/xdsl.xdef">
+
+    <loader>
+        <source>
+            const svc = $scope.messageService;
+            return svc.fetchExecutableNonBroadcastEvents(100);
+        </source>
+    </loader>
+
+    <processor name="claim">
+        <source>
+            const svc = $scope.messageService;
+            const claimed = svc.claimNonBroadcastEvents([item]);
+            if (!claimed.isEmpty()) {
+                consume(claimed.get(0));
+            }
+        </source>
+    </processor>
+
+    <consumer name="all">
+        <source>
+            const svc = $scope.messageService;
+            items.forEach(event => svc.processClaimedNonBroadcastEvent(event));
+        </source>
+    </consumer>
+</batch>
+```
+
+关键机制：
+
+1. **loader 委托 `fetchExecutableNonBroadcastEvents`**：内部调用 `NonBroadcastEventProcessor.fetchCandidates()`，使用 `findNext` keyset pagination + partition-head 去重 + active lease 阻塞。
+2. **processor 委托 `claimNonBroadcastEvents`**：乐观锁 claim，设置 `status=CLAIMED + leaseOwner + leaseExpireTime`。claim 失败（乐观锁冲突）的事件不传给 consumer。
+3. **consumer 委托 `processClaimedNonBroadcastEvent`**：逐条调用 listener + `handleResult`，更新 event row 状态（`PROCESSED` / `WAITING + scheduleTime + retryTimes` / `FAILED`）。
+4. **`transactionScope="process"`**：claim 和消费在同一事务中，与现有 `claimNonBroadcastEvents` 的 `REQUIRES_NEW` 语义一致。
+5. **`$scope.messageService`**：由 `SysEventBatchTrigger` 在执行前通过 `context.getEvalScope().setLocalValue("messageService", svc)` 注入。
+
+##### SysEventBatchTrigger 简化
+
+`SysEventBatchTrigger` 不再使用 `BatchTaskBuilder` 手工组装。由于 `BatchTaskRunner.executeAsync()` 内部创建 context 且不暴露 `setPartitionRange()` hook，因此 trigger 需绕过 runner，直接使用 `IBatchTaskManager` API：
+
+```java
+public class SysEventBatchTrigger {
+    @Inject
+    private IBatchTaskManager batchTaskManager;
+
+    @Inject
+    private SysDaoMessageService messageService;
+
+    private IntRangeSet assignedPartitions = IntRangeBean.shortRange().toRangeSet();
+
+    public void processNonBroadcastEvent() {
+        IBeanProvider beanProvider = BeanContainer.instance();
+        IBatchTask task = batchTaskManager.loadBatchTaskFromPath(
+            "/nop/batch-task/sys-event/non-broadcast-consumer.batch.xml", beanProvider);
+
+        IBatchTaskContext context = batchTaskManager.newBatchTaskContext();
+
+        // 注入 messageService 到 eval scope，供 DSL 的 <source> XPL 使用
+        if (assignedPartitions != null && !assignedPartitions.isEmpty()) {
+            IntRangeBean range = assignedPartitions.getFirstBegin() != null
+                ? IntRangeBean.build(assignedPartitions.getFirstBegin(),
+                                     assignedPartitions.getLastEnd())
+                : IntRangeBean.shortRange();
+            context.setPartitionRange(range);
+        }
+
+        task.execute(context);
+    }
+}
+```
+
+这一绕过 runner 的模式与 `batch.xlib` 的 `Execute` 标签完全一致，是框架内部处理 `partitionRange` 注入的标准做法。
+
+`nop-batch-sys` 需新增 beans 文件（`_vfs/nop/batch/beans/app-batch-sys.beans.xml`）注册 `sysEventBatchTrigger` bean，使 `nop-job` 的 `BeanMethodJobInvoker` 可通过 bean name 解析调用。
+
+##### nop-job 调度集成
+
+`nop-job` 通过 YAML 配置调度，参照 `nop-wf-scheduler` 的 `scheduler.yaml` 模式。在 `nop-batch-sys` 模块的 `_vfs/nop/job/conf/` 下新增调度定义（或通过 Delta 扩展已有 scheduler.yaml）：
+
+```yaml
+# resources/_vfs/nop/job/conf/scheduler.yaml (或通过 Delta 扩展)
+enabled: true
+jobs:
+  - jobName: sys-event-batch-consumer
+    displayName: Sys Event Non-Broadcast Consumer
+    jobGroup: nop-sys
+    trigger:
+      cronExpr: "0/5 * * * * ?"
+    invoker:
+      bean: sysEventBatchTrigger
+      method: processNonBroadcastEvent
+```
+
+`nop-job-local` 的 `LocalJobConfigLoader` 会加载此 YAML，通过 `BeanMethodJobInvoker` 调用 `sysEventBatchTrigger.processNonBroadcastEvent()`。
+
+##### nop-job 调度集成（上文已述）
+
+nop-job 调度通过 YAML 配置（`scheduler.yaml`）实现，参见上文 `SysEventBatchTrigger` 节中的 YAML 示例。`nop-job` 不使用 XML 标签定义调度。
+
+完整执行链路：
+
+```text
+nop-job scheduler (cron: every 5s)
+    └ BeanMethodJobInvoker
+        └ SysEventBatchTrigger.processNonBroadcastEvent()
+            └ BatchTaskRunner.executeAsync("/nop/batch-task/...")
+                └ IBatchTaskManager.loadBatchTaskFromPath()
+                └ BatchTask.executeAsync()
+                    └ [loader]   svc.fetchExecutableNonBroadcastEvents()  // findNext + partition-head
+                    └ [processor] svc.claimNonBroadcastEvents()  // 乐观锁 claim
+                    └ [consumer]  svc.processClaimedNonBroadcastEvent()  // listener + handleResult
+```
+
+关键设计特点：
+
+1. **DSL 作为唯一入口**：batch 任务定义在 `.batch.xml` 文件中，loader/processor/consumer 通过 `<source>` XPL 委托 `SysDaoMessageService` 方法。
+2. **`NonBroadcastEventProcessor.fetchCandidates()` 提供 keyset pagination**：通过 `findNext` 实现，禁止 OFFSET 深翻页。partition-head 去重和 lease 阻塞语义保留在 processor 内部，DSL 层不重复实现。
+3. **逐条 outcome 通过 `processClaimedNonBroadcastEvent` 保证**：consumer 内部逐条调用 `handleResult`，更新 event row 状态（PROCESSED / WAITING / FAILED）。
+4. **`nop-job` 提供调度可观测性**：`NopJobFire` / `NopJobTask` 记录每次执行历史，支持失败告警和手动触发。
+5. **分区并行通过 batch 引擎本地机制实现**：无需 `nop-job` 的分布式 `PartitionTaskBuilder`，batch DSL 的 `PartitionDispatchLoaderProvider` 在同一进程内完成分区 dispatch。
+
+#### 3.8.5 双模式共存
+
+两种模式可共存于同一部署中，通过 `nonBroadcastAutoScanEnabled` 控制：
+
+| 模式 | autoScan | 驱动方式 | 批处理加载方式 | 适用场景 |
+|------|----------|----------|--------------|----------|
+| 简单模式 | true（默认） | `SysDaoMessageService` 内建定时器 | `NonBroadcastEventProcessor` 内联 `findNext` | 小流量、默认部署 |
+| Batch 模式 | false | `nop-job` + `nop-batch` DSL | `NonBroadcastEventProcessor.fetchCandidates()` via `<source>` XPL + `.batch.xml` | 大流量、需调度可观测性 |
+
+两种模式共享 `NonBroadcastEventProcessor` 的 `claim` / `process` / `handleResult` 核心逻辑，仅在触发方式上分流：
+
+- **简单模式**：`NonBroadcastEventProcessor` 内联调用 `fetchCandidates` + `claim` + `process` + `handleResult`，使用 `findNext` 做 tick 内 keyset pagination。
+- **Batch 模式**：batch DSL 的 loader/processor/consumer 通过 `<source>` XPL 委托 `SysDaoMessageService` 方法，内部复用 `NonBroadcastEventProcessor` 的 `fetchCandidates` / `claim` / `process` 能力。
+
+不存在双发风险，因为事件状态机（WAITING → CLAIMED → PROCESSED）天然防重入：同一事件只能被 claim 一次，无论触发源是谁。
 ---
 
 ## 四、拒绝了什么

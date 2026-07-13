@@ -11,9 +11,7 @@ import org.slf4j.LoggerFactory;
 
 import java.sql.Timestamp;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.BiConsumer;
 import java.util.function.Supplier;
 
@@ -26,18 +24,21 @@ public class BroadcastEventProcessor {
 
     private final int fetchSize;
     private final int startGap;
+    private final int maxScanLoops;
 
     private Timestamp startTime;
-    private final Map<String, NopSysBroadcastEvent> lastEventMap = new ConcurrentHashMap<>();
+    private NopSysBroadcastEvent lastEvent;
 
     public BroadcastEventProcessor(IDaoProvider daoProvider,
                                    Supplier<Set<String>> topicsProvider,
                                    BiConsumer<String, NopSysBroadcastEvent> dispatchCallback,
+                                   int maxScanLoops,
                                    int fetchSize,
                                    int startGap) {
         this.daoProvider = daoProvider;
         this.topicsProvider = topicsProvider;
         this.dispatchCallback = dispatchCallback;
+        this.maxScanLoops = maxScanLoops;
         this.fetchSize = fetchSize;
         this.startGap = startGap;
     }
@@ -45,45 +46,37 @@ public class BroadcastEventProcessor {
     public void process() {
         ensureStartTimeInitialized();
         Set<String> topics = topicsProvider.get();
-        for (String topic : topics) {
-            try {
-                processTopic(topic);
-            } catch (Exception e) {
-                LOG.error("nop.message.process-broadcast-topic-error:topic={}", topic, e);
+        if (topics.isEmpty())
+            return;
+
+        IOrmEntityDao<NopSysBroadcastEvent> dao = broadcastDao();
+
+        for (int i = 0; i < maxScanLoops; i++) {
+            long now = dao.getDbEstimatedClock().getMaxCurrentTimeMillis();
+
+            TreeBean filter = FilterBeans.and(
+                    FilterBeans.in(NopSysBroadcastEvent.PROP_NAME_eventTopic, topics),
+                    FilterBeans.ge(NopSysBroadcastEvent.PROP_NAME_eventTime, startTime),
+                    FilterBeans.le(NopSysBroadcastEvent.PROP_NAME_eventTime, new Timestamp(now))
+            );
+
+            List<NopSysBroadcastEvent> batch = dao.findNext(lastEvent, filter, null, fetchSize);
+            if (batch.isEmpty())
+                return;
+
+            for (NopSysBroadcastEvent event : batch) {
+                dispatchCallback.accept(event.getEventTopic(), event);
             }
+
+            lastEvent = batch.get(batch.size() - 1);
         }
     }
 
     private void ensureStartTimeInitialized() {
-        if (startTime != null) {
+        if (startTime != null)
             return;
-        }
         IEstimatedClock clock = broadcastDao().getDbEstimatedClock();
         startTime = new Timestamp(clock.getMinCurrentTimeMillis() - startGap);
-    }
-
-    private void processTopic(String topic) {
-        IOrmEntityDao<NopSysBroadcastEvent> dao = broadcastDao();
-        long now = dao.getDbEstimatedClock().getMaxCurrentTimeMillis();
-
-        TreeBean filter = FilterBeans.and(
-                FilterBeans.eq(NopSysBroadcastEvent.PROP_NAME_eventTopic, topic),
-                FilterBeans.ge(NopSysBroadcastEvent.PROP_NAME_eventTime, startTime),
-                FilterBeans.le(NopSysBroadcastEvent.PROP_NAME_eventTime, new Timestamp(now))
-        );
-
-        NopSysBroadcastEvent last = lastEventMap.get(topic);
-        List<NopSysBroadcastEvent> batch = dao.findNext(last, filter, null, fetchSize);
-
-        if (batch.isEmpty()) {
-            return;
-        }
-
-        for (NopSysBroadcastEvent event : batch) {
-            dispatchCallback.accept(topic, event);
-        }
-
-        lastEventMap.put(topic, batch.get(batch.size() - 1));
     }
 
     @SuppressWarnings("unchecked")

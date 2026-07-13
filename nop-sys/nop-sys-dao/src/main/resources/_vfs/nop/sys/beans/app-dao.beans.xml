@@ -33,6 +33,7 @@
         <ioc:condition>
             <if-property name="nop.cluster.message-service.sys-dao-message-service.enabled"/>
         </ioc:condition>
+        <property name="nonBroadcastAutoScanEnabled" value="@cfg:nop.sys.message.non-broadcast-auto-scan-enabled|true" />
     </bean>
 
     <bean id="nopOrmEntityChangeLogInterceptor" class="io.nop.sys.dao.log.OrmEntityChangeLogInterceptor"
