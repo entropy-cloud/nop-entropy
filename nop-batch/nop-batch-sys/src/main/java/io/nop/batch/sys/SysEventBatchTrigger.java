@@ -1,76 +1,66 @@
 package io.nop.batch.sys;
 
-import io.nop.api.core.annotations.txn.TransactionPropagation;
-import io.nop.batch.core.BatchDispatchConfig;
-import io.nop.batch.core.BatchTaskBuilder;
-import io.nop.batch.core.BatchTransactionScope;
-import io.nop.batch.core.IBatchLoaderProvider;
-import io.nop.batch.core.IBatchProcessorProvider;
+import io.nop.api.core.beans.IntRangeBean;
+import io.nop.api.core.beans.IntRangeSet;
+import io.nop.api.core.ioc.BeanContainer;
 import io.nop.batch.core.IBatchTask;
-import io.nop.batch.core.impl.BatchTaskContextImpl;
-import io.nop.commons.functional.IFunctionInvoker;
-import io.nop.sys.dao.entity.NopSysEvent;
+import io.nop.batch.core.IBatchTaskContext;
+import io.nop.batch.core.manager.IBatchTaskManager;
 import io.nop.sys.dao.message.SysDaoMessageService;
-
-import java.util.Collections;
-import java.util.List;
+import jakarta.inject.Inject;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class SysEventBatchTrigger {
-    private final SysDaoMessageService messageService;
+    static final Logger LOG = LoggerFactory.getLogger(SysEventBatchTrigger.class);
 
-    public SysEventBatchTrigger(SysDaoMessageService messageService) {
+    public static final String TASK_PATH = "/nop/batch-task/sys-event/non-broadcast-consumer.batch.xml";
+
+    private IBatchTaskManager batchTaskManager;
+
+    private SysDaoMessageService messageService;
+
+    private IntRangeSet assignedPartitions;
+
+    @Inject
+    public void setBatchTaskManager(IBatchTaskManager batchTaskManager) {
+        this.batchTaskManager = batchTaskManager;
+    }
+
+    public void setMessageService(SysDaoMessageService messageService) {
         this.messageService = messageService;
     }
 
+    public void setAssignedPartitions(IntRangeSet assignedPartitions) {
+        this.assignedPartitions = assignedPartitions;
+    }
+
     public void processNonBroadcastEvent() {
-        buildTask().execute(new BatchTaskContextImpl());
-    }
+        SysDaoMessageService svc = messageService;
+        if (svc == null) {
+            svc = (SysDaoMessageService) BeanContainer.tryGetBean("nopSysDaoMessageService");
+        }
+        if (svc == null) {
+            throw new IllegalStateException("nopSysDaoMessageService bean not found and messageService not set directly");
+        }
 
-    protected IBatchTask buildTask() {
-        BatchTaskBuilder<NopSysEvent, NopSysEvent> builder = new BatchTaskBuilder<>();
-        builder.taskName("sysEvent.processNonBroadcastEvent");
-        builder.batchSize(messageService.getFetchSize());
-        builder.concurrency(1);
-        builder.transactionScope(BatchTransactionScope.consume);
-        builder.transactionalInvoker(newRequiresNewInvoker());
-        builder.dispatchConfig(buildDispatchConfig());
-        builder.loader(newLoaderProvider());
-        builder.processor(newProcessorProvider());
-        builder.consumer(ctx -> (items, chunkCtx) -> {
-            for (NopSysEvent event : items) {
-                messageService.processClaimedNonBroadcastEvent(event);
-            }
-        });
-        return builder.buildTask();
-    }
+        IBatchTask task = batchTaskManager.loadBatchTaskFromPath(TASK_PATH, BeanContainer.instance());
 
-    protected BatchDispatchConfig<NopSysEvent> buildDispatchConfig() {
-        BatchDispatchConfig<NopSysEvent> config = new BatchDispatchConfig<>();
-        config.setLoadBatchSize(Math.max(messageService.getFetchSize() * 4, messageService.getFetchSize()));
-        config.setPartitionFn((event, ctx) -> event.getPartitionIndex());
-        return config;
-    }
+        IBatchTaskContext context = batchTaskManager.newBatchTaskContext();
 
-    protected IBatchLoaderProvider<NopSysEvent> newLoaderProvider() {
-        return taskCtx -> (batchSize, chunkCtx) -> messageService.fetchExecutableNonBroadcastEvents(
-                Math.max(batchSize, messageService.getFetchSize() * 4));
-    }
+        // partitionRange 使 OrmQueryBatchLoaderProvider 自动追加 partitionIndex BETWEEN 过滤
+        if (assignedPartitions != null && !assignedPartitions.isEmpty()) {
+            IntRangeBean range = IntRangeBean.build(
+                    assignedPartitions.getFirstBegin(),
+                    assignedPartitions.getLastEnd());
+            context.setPartitionRange(range);
+        } else {
+            context.setPartitionRange(IntRangeBean.shortRange());
+        }
 
-    protected IBatchProcessorProvider<NopSysEvent, NopSysEvent> newProcessorProvider() {
-        return taskCtx -> (event, consumer, chunkCtx) -> {
-            List<NopSysEvent> claimed = messageService.claimNonBroadcastEvents(Collections.singletonList(event));
-            if (!claimed.isEmpty()) {
-                consumer.accept(claimed.get(0));
-            }
-        };
-    }
+        // 注入 messageService 到 eval scope，供 DSL processor/consumer 的 <source> XPL 使用
+        context.getEvalScope().setLocalValue("messageService", svc);
 
-    protected IFunctionInvoker newRequiresNewInvoker() {
-        return new IFunctionInvoker() {
-            @Override
-            public <R, T> T invoke(java.util.function.Function<R, T> fn, R request) {
-                return messageService.runInNewTransaction(fn, request, TransactionPropagation.REQUIRES_NEW);
-            }
-        };
+        task.execute(context);
     }
 }

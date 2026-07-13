@@ -1,0 +1,10 @@
+enabled: true
+jobs:
+  - jobName: sys-event-batch-consumer
+    displayName: Sys Event Non-Broadcast Consumer
+    jobGroup: nop-sys
+    trigger:
+      cronExpr: "0/5 * * * * ?"
+    invoker:
+      bean: sysEventBatchTrigger
+      method: processNonBroadcastEvent

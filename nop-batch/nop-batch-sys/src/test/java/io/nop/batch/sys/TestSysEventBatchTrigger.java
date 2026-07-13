@@ -30,6 +30,9 @@ public class TestSysEventBatchTrigger extends JunitBaseTestCase {
     @Inject
     IDaoProvider daoProvider;
 
+    @Inject
+    SysEventBatchTrigger batchTrigger;
+
     private SysDaoMessageService service;
 
     @BeforeEach
@@ -40,6 +43,9 @@ public class TestSysEventBatchTrigger extends JunitBaseTestCase {
         service.setFetchSize(20);
         service.setMinProcessDelay(1);
         service.setLeaseTimeout(1000);
+
+        batchTrigger.setMessageService(service);
+        batchTrigger.setAssignedPartitions(IntRangeSet.parse("0,32767"));
     }
 
     @Test
@@ -50,7 +56,7 @@ public class TestSysEventBatchTrigger extends JunitBaseTestCase {
         service.send("order-created", request("Order", "A-100", "evt-a1"), null);
         service.send("order-created", request("Order", "B-200", "evt-b1"), null);
 
-        new SysEventBatchTrigger(service).processNonBroadcastEvent();
+        batchTrigger.processNonBroadcastEvent();
 
         assertEquals(Set.of("evt-a1", "evt-b1"), Set.copyOf(processed));
     }
@@ -66,7 +72,7 @@ public class TestSysEventBatchTrigger extends JunitBaseTestCase {
 
         service.send("order-created", request("Order", "A-100", "evt-1"), null);
 
-        new SysEventBatchTrigger(service).processNonBroadcastEvent();
+        batchTrigger.processNonBroadcastEvent();
 
         IEntityDao<NopSysEvent> eventDao = daoProvider.daoFor(NopSysEvent.class);
         NopSysEvent event = eventDao.findAll().get(0);
@@ -94,10 +100,10 @@ public class TestSysEventBatchTrigger extends JunitBaseTestCase {
         return request;
     }
 
-    private static class TestableSysDaoMessageService extends SysDaoMessageService {
+    public static class TestableSysDaoMessageService extends SysDaoMessageService {
         private final String hostId;
 
-        private TestableSysDaoMessageService(String hostId) {
+        public TestableSysDaoMessageService(String hostId) {
             this.hostId = hostId;
         }
 

@@ -1,0 +1,45 @@
+<batch taskName="sys-event.non-broadcast-consumer"
+       batchSize="100"
+       transactionScope="process"
+       x:schema="/nop/schema/task/batch.xdef"
+       xmlns:x="/nop/schema/xdsl.xdef">
+
+    <loader>
+        <orm-reader entityName="io.nop.sys.dao.entity.NopSysEvent"
+                    partitionIndexField="partitionIndex">
+            <query>
+                <filter>
+                    <eq name="isBroadcast" value="false"/>
+                    <in name="eventStatus" value="0,5"/>
+                </filter>
+                <orderBy>
+                    <field name="partitionIndex"/>
+                    <field name="processTime"/>
+                    <field name="eventId"/>
+                </orderBy>
+            </query>
+        </orm-reader>
+    </loader>
+
+    <processor name="claim">
+        <source>
+            const svc = $scope.messageService;
+            const now = svc.getEventDaoEstimatedMaxTime();
+            if (item.scheduleTime &amp;&amp; item.scheduleTime.time > now) {
+                return;
+            }
+            const claimed = svc.claimNonBroadcastEvents([item]);
+            if (!claimed.isEmpty()) {
+                consume(claimed.get(0));
+            }
+        </source>
+    </processor>
+
+    <consumer name="all">
+        <source>
+            const svc = $scope.messageService;
+            items.forEach(event => svc.processClaimedNonBroadcastEvent(event));
+        </source>
+    </consumer>
+
+</batch>
