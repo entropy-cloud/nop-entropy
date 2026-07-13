@@ -335,9 +335,9 @@
                            +bizObjName+'.'+propMeta?.name);
                     let label =  labelKey.$i18n(cellModel?.label || propMeta?.displayName);
 
-                    let mandatory = cellModel?.mandatory ?? propMeta?.mandatory;
+                    let mandatory = formCell.mandatory || cellModel?.mandatory ?? propMeta?.mandatory;
                     if(mode.startsWith('query'))
-                        mandatory = cellModel?.mandatory ?? propMeta?.['ui:queryMandatory']
+                        mandatory = formCell.mandatory || cellModel?.mandatory ?? propMeta?.['ui:queryMandatory']
 
                     let filterOp = cellModel?.filterOp || propMeta?.['ui:filterOp']
                               || cellModel?.['ui:filterOp'] || propMeta?.['xui:defaultFilterOp']
@@ -353,10 +353,12 @@
                         placeholder: placeholder ? placeholderKey.$i18n(placeholder) :
                             (formCell.hideLabel ? label : null) ,
                         label: formCell.hideLabel? '' : label,
-                        required: mandatory ?  true : null,
+                        required: cellModel?.requiredOn || (mandatory ?  true : null),
+                        readOnly: cellModel?.readonlyOn || (rd ? true : null),
                         hint: hint && ('@i18n:cells.'+i18nRoot+"."+formCell.id + ".$hint").$i18n(hint),
                         disabled: cellModel?.disabledOn,
                         visible: cellModel?.visibleOn,
+                        hiddenFieldPolicy: cellModel?.clearValueOnHidden != null ? { clearValueWhenHidden: cellModel.clearValueOnHidden } : null,
                         flex: cellModel?.columnRatio ?? formModel?.defaultColumnRatio,
                         submitOnChange: cellModel?.submitOnChange ?? formModel?.submitOnChange,
                         desc: cellModel?.desc && ('@i18n:cells.'+i18nRoot+"."+formCell.id + ".$desc").$i18n(cellModel.desc)
@@ -612,6 +614,8 @@
                     "interval","checkInterval", "initCheckInterval",
                     "initFetchOn","stopAutoRefreshWhen",
                      "rules"]);
+                if(formModel.initFetch != null)
+                   attrs.put('autoInit', formModel.initFetch);
                 return attrs;
             ]]></source>
         </FluxFormDefaultAttrs>
@@ -634,6 +638,8 @@
                 const attrs = _.pickNotNull(pageModel,[
                     "name","className",
                     "headerClassName","bodyClassName",
+                    "asideMinWidth","asideMaxWidth",
+                    "asideSticky","asideClassName",
                     "initFetch","interval","silentPolling",
                     "stopAutoRefreshWhen","data"
                 ]);
@@ -647,6 +653,8 @@
                     attrs.put('subTitle', i18n_key('subTitle'));
                 if(pageModel.remark)
                     attrs.put('remark',i18n_key('remark'));
+                if(pageModel.asideResizor != null)
+                    attrs.put('asideResizable', pageModel.asideResizor);
                 return attrs;
             ]]></source>
         </FluxPageDefaultAttrs>

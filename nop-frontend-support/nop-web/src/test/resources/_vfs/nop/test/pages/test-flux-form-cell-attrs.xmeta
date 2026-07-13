@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<meta x:schema="/nop/schema/xmeta.xdef" xmlns:x="/nop/schema/xdsl.xdef">
+    <props>
+        <prop name="name" displayName="Name" type="String">
+            <schema precision="100"/>
+        </prop>
+        <prop name="email" displayName="Email" type="String">
+            <schema domain="email"/>
+        </prop>
+        <prop name="status" displayName="Status" type="Integer">
+            <schema dict="active-status"/>
+        </prop>
+    </props>
+</meta>

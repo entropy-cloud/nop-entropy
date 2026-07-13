@@ -35,7 +35,8 @@
     </forms>
 
     <pages>
-        <crud name="main" grid="list" asideFilterForm="asideFilter" filterForm="query">
+        <crud name="main" grid="list" asideFilterForm="asideFilter" filterForm="query"
+              asideSticky="true" asideResizor="true" asideMinWidth="200" asideMaxWidth="500" asideClassName="my-aside">
             <table autoFillHeight="true">
                 <api url="@query:TestFluxCrud__findPage" gql:selection="{@pageSelection}"/>
             </table>

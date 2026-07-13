@@ -4,7 +4,7 @@
     <objMeta>test-flux-form.xmeta</objMeta>
     <controlLib>/nop/web/xlib/flux-control.xlib</controlLib>
     <forms>
-        <form id="edit" editMode="edit" title="Edit Form">
+        <form id="edit" editMode="edit" title="Edit Form" initFetch="false">
             <layout>
                 name
                 age

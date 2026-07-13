@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<view x:schema="/nop/schema/xui/xview.xdef" xmlns:x="/nop/schema/xdsl.xdef">
+    <objMeta>test-flux-form-cell-attrs.xmeta</objMeta>
+    <controlLib>/nop/web/xlib/flux-control.xlib</controlLib>
+    <forms>
+        <form id="edit" editMode="edit" title="Cell Attrs Form">
+            <layout>
+                name
+                email
+            </layout>
+            <cells>
+                <cell id="name" clearValueOnHidden="true">
+                    <requiredOn>${status == 1}</requiredOn>
+                </cell>
+                <cell id="email">
+                    <requiredOn>${a == b}</requiredOn>
+                    <readonlyOn>${status == 2}</readonlyOn>
+                </cell>
+            </cells>
+        </form>
+    </forms>
+</view>

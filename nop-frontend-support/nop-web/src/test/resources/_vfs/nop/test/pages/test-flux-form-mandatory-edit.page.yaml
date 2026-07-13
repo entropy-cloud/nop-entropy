@@ -1,0 +1,3 @@
+x:gen-extends: |
+  <flux-web:GenForm view="test-flux-form-mandatory.view.xml" form="edit"
+                    xpl:lib="/nop/web/xlib/flux-web.xlib" />

@@ -167,4 +167,25 @@ public class TestFluxWebCrudPage extends JunitBaseTestCase {
         assertFalse(json.contains("visibleOn"), "No AMIS visibleOn");
         assertFalse(json.contains("disabledOn"), "No AMIS disabledOn");
     }
+
+    @Test
+    public void testAsidePropertiesAreEmittedInFlux() {
+        String path = "/nop/test/pages/test-flux-crud.page.yaml";
+        Map<String, Object> page = pageProvider.getPage(path, "");
+        String json = JSON.serialize(page, true);
+        System.out.println("Flux CRUD page JSON (aside emitted test):\n" + json);
+
+        assertTrue(json.contains("\"asideSticky\""),
+                "Flux PageDefaultAttrs should emit asideSticky (Flux PageSchema supports it)");
+        assertTrue(json.contains("\"asideResizable\""),
+                "Flux PageDefaultAttrs should emit asideResizable (Flux naming for AMIS asideResizor)");
+        assertFalse(json.contains("\"asideResizor\""),
+                "Flux JSON must NOT contain AMIS naming asideResizor (renamed to asideResizable)");
+        assertTrue(json.contains("\"asideMinWidth\""),
+                "Flux PageDefaultAttrs should emit asideMinWidth");
+        assertTrue(json.contains("\"asideMaxWidth\""),
+                "Flux PageDefaultAttrs should emit asideMaxWidth");
+        assertTrue(json.contains("\"asideClassName\""),
+                "Flux PageDefaultAttrs should emit asideClassName");
+    }
 }

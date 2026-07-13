@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<view x:schema="/nop/schema/xui/xview.xdef" xmlns:x="/nop/schema/xdsl.xdef">
+    <objMeta>test-flux-form-mandatory.xmeta</objMeta>
+    <controlLib>/nop/web/xlib/flux-control.xlib</controlLib>
+    <forms>
+        <form id="edit" editMode="edit" title="Edit Form">
+            <layout>
+                *email[Email]
+                name
+            </layout>
+        </form>
+
+        <form id="edit-override" editMode="edit" title="Edit Override Form">
+            <layout>
+                *fieldA
+            </layout>
+        </form>
+
+        <form id="query" editMode="query" title="Query Form">
+            <layout>
+                *status[Status]
+            </layout>
+        </form>
+
+        <form id="edit-no-star" editMode="edit" title="Edit No Star">
+            <layout>
+                name
+            </layout>
+        </form>
+    </forms>
+</view>
