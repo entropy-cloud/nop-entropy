@@ -1,13 +1,11 @@
 package io.nop.sys.dao.message;
 
-import io.nop.api.core.beans.ApiRequest;
 import io.nop.api.core.beans.FilterBeans;
 import io.nop.api.core.beans.IntRangeBean;
 import io.nop.api.core.beans.IntRangeSet;
 import io.nop.api.core.beans.TreeBean;
 import io.nop.api.core.message.ConsumeLater;
 import io.nop.api.core.time.IEstimatedClock;
-import io.nop.commons.util.retry.IRetryPolicy;
 import io.nop.dao.api.IDaoProvider;
 import io.nop.dao.api.IEntityDao;
 import io.nop.orm.dao.IOrmEntityDao;
@@ -23,6 +21,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.BiFunction;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
@@ -33,7 +32,7 @@ public class NonBroadcastEventProcessor {
     private final Supplier<Set<String>> topicsProvider;
     private final Function<NopSysEvent, Object> dispatchCallback;
     private final Function<String, String> hostIdProvider;
-    private final Function<Throwable, Long> retryDelayProvider;
+    private final BiFunction<NopSysEvent, Throwable, Long> retryDelayProvider;
 
     private final int fetchSize;
     private final long leaseTimeout;
@@ -44,7 +43,7 @@ public class NonBroadcastEventProcessor {
                                       Supplier<Set<String>> topicsProvider,
                                       Function<NopSysEvent, Object> dispatchCallback,
                                       Function<String, String> hostIdProvider,
-                                      Function<Throwable, Long> retryDelayProvider,
+                                      BiFunction<NopSysEvent, Throwable, Long> retryDelayProvider,
                                       int fetchSize,
                                       long leaseTimeout,
                                       long minProcessDelay,
@@ -197,7 +196,7 @@ public class NonBroadcastEventProcessor {
     }
 
     private void handleProcessEventError(IEntityDao<NopSysEvent> dao, NopSysEvent event, Throwable exception) {
-        Long delay = retryDelayProvider.apply(exception);
+        Long delay = retryDelayProvider.apply(event, exception);
         long effectiveDelay = delay != null ? delay : -1;
         if (effectiveDelay < 0) {
             event.setEventStatus(NopSysDaoConstants.SYS_EVENT_STATUS_FAILED);

@@ -196,7 +196,10 @@ public class SysDaoMessageService extends LifeCycleSupport implements IMessageSe
                     localService::getNonBroadcastTopics,
                     event -> invokeDurableConsumers(event.getEventTopic(), event.toApiRequest(), null, false),
                     k -> getHostId(),
-                    exception -> retryPolicy.getRetryDelay(exception, 0, this),
+                    (event, exception) -> {
+                        int count = event.getRetryTimes() != null ? event.getRetryTimes() : 0;
+                        return retryPolicy.getRetryDelay(exception, count, this);
+                    },
                     fetchSize,
                     leaseTimeout,
                     minProcessDelay,
