@@ -8,6 +8,7 @@ import io.nop.api.core.message.ConsumeLater;
 import io.nop.api.core.message.IMessageConsumeContext;
 import io.nop.api.core.message.IMessageConsumer;
 import io.nop.autotest.junit.JunitBaseTestCase;
+import io.nop.batch.dsl.runner.IBatchTaskRunner;
 import io.nop.dao.api.IDaoProvider;
 import io.nop.dao.api.IEntityDao;
 import io.nop.sys.dao.NopSysDaoConstants;
@@ -25,44 +26,44 @@ import java.util.Set;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 
-@NopTestConfig(localDb = true, initDatabaseSchema = OptionalBoolean.TRUE)
+@NopTestConfig(localDb = true, initDatabaseSchema = OptionalBoolean.TRUE,
+        testConfigFile = "classpath:test.properties")
 public class TestSysEventBatchTrigger extends JunitBaseTestCase {
     @Inject
     IDaoProvider daoProvider;
 
     @Inject
-    SysEventBatchTrigger batchTrigger;
+    SysDaoMessageService nopSysDaoMessageService;
+
+    @Inject
+    IBatchTaskRunner batchTaskRunner;
 
     private SysDaoMessageService service;
 
     @BeforeEach
     public void setUp() {
-        service = new TestableSysDaoMessageService("worker-A");
-        service.setDaoProvider(daoProvider);
+        service = nopSysDaoMessageService;
         service.setAssignedPartitions(IntRangeSet.parse("0,32767"));
         service.setFetchSize(20);
         service.setMinProcessDelay(1);
         service.setLeaseTimeout(1000);
-
-        batchTrigger.setMessageService(service);
-        batchTrigger.setAssignedPartitions(IntRangeSet.parse("0,32767"));
     }
 
     @Test
-    public void testBatchTriggerProcessesDifferentPartitionsIndependently() {
+    public void testBatchConsumerProcessesDifferentPartitions() {
         List<String> processed = new ArrayList<>();
         service.subscribe("order-created", recordingConsumer(processed), null);
 
         service.send("order-created", request("Order", "A-100", "evt-a1"), null);
         service.send("order-created", request("Order", "B-200", "evt-b1"), null);
 
-        batchTrigger.processNonBroadcastEvent();
+        batchTaskRunner.execute("/nop/batch-task/sys-event/non-broadcast-consumer.batch.xml");
 
         assertEquals(Set.of("evt-a1", "evt-b1"), Set.copyOf(processed));
     }
 
     @Test
-    public void testBatchTriggerRequeuesConsumeLater() {
+    public void testBatchConsumerRequeuesConsumeLater() {
         service.subscribe("order-created", new IMessageConsumer() {
             @Override
             public Object onMessage(String topic, Object message, IMessageConsumeContext context) {
@@ -72,7 +73,7 @@ public class TestSysEventBatchTrigger extends JunitBaseTestCase {
 
         service.send("order-created", request("Order", "A-100", "evt-1"), null);
 
-        batchTrigger.processNonBroadcastEvent();
+        batchTaskRunner.execute("/nop/batch-task/sys-event/non-broadcast-consumer.batch.xml");
 
         IEntityDao<NopSysEvent> eventDao = daoProvider.daoFor(NopSysEvent.class);
         NopSysEvent event = eventDao.findAll().get(0);
@@ -98,18 +99,5 @@ public class TestSysEventBatchTrigger extends JunitBaseTestCase {
         io.nop.api.core.util.ApiHeaders.setSvcName(request, bizObjName);
         io.nop.api.core.util.ApiHeaders.setBizKey(request, bizKey);
         return request;
-    }
-
-    public static class TestableSysDaoMessageService extends SysDaoMessageService {
-        private final String hostId;
-
-        public TestableSysDaoMessageService(String hostId) {
-            this.hostId = hostId;
-        }
-
-        @Override
-        protected String getHostId() {
-            return hostId;
-        }
     }
 }

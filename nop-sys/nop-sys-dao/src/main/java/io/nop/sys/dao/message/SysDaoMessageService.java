@@ -3,11 +3,8 @@ package io.nop.sys.dao.message;
 import io.nop.api.core.annotations.txn.TransactionPropagation;
 import io.nop.api.core.annotations.txn.Transactional;
 import io.nop.api.core.beans.ApiRequest;
-import io.nop.api.core.beans.FilterBeans;
 import io.nop.api.core.beans.IntRangeBean;
 import io.nop.api.core.beans.IntRangeSet;
-import io.nop.api.core.beans.TreeBean;
-import io.nop.api.core.beans.query.QueryBean;
 import io.nop.api.core.config.AppConfig;
 import io.nop.api.core.message.Acknowledge;
 import io.nop.api.core.message.ConsumeLater;
@@ -31,7 +28,6 @@ import io.nop.dao.api.IDaoProvider;
 import io.nop.dao.api.IEntityDao;
 import io.nop.message.core.local.LocalMessageService;
 import io.nop.orm.dao.IOrmEntityDao;
-import io.nop.sys.dao.NopSysDaoConstants;
 import io.nop.sys.dao.NopSysDaoException;
 import io.nop.sys.dao.entity.NopSysBroadcastEvent;
 import io.nop.sys.dao.entity.NopSysEvent;
@@ -236,13 +232,16 @@ public class SysDaoMessageService extends LifeCycleSupport implements IMessageSe
         return dao().getDbEstimatedClock().getMaxCurrentTimeMillis();
     }
 
-    public IDaoProvider getDaoProvider() {
-        return daoProvider;
+    public Timestamp getEstimatedNow() {
+        return new Timestamp(getEventDaoEstimatedMaxTime());
     }
 
-    public List<NopSysEvent> fetchExecutableNonBroadcastEvents() {
-        ensureNonBroadcastProcessor();
-        return nonBroadcastProcessor.fetchCandidates();
+    public Set<String> getNonBroadcastTopics() {
+        return localService.getNonBroadcastTopics();
+    }
+
+    public IDaoProvider getDaoProvider() {
+        return daoProvider;
     }
 
     public void processClaimedNonBroadcastEvent(NopSysEvent event) {
@@ -302,15 +301,6 @@ public class SysDaoMessageService extends LifeCycleSupport implements IMessageSe
     protected IOrmEntityDao<NopSysBroadcastEvent> broadcastDao() {
         return (IOrmEntityDao<NopSysBroadcastEvent>) daoProvider.daoFor(NopSysBroadcastEvent.class);
     }
-
-    protected void ensureStartTimeInitialized() {
-        if (startTime != null) {
-            return;
-        }
-        IEstimatedClock clock = dao().getDbEstimatedClock();
-        startTime = new Timestamp(clock.getMinCurrentTimeMillis() - startGap);
-    }
-
 
     @Override
     public CompletionStage<Void> sendAsync(String topic, Object message, MessageSendOptions options) {

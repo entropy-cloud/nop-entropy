@@ -6,54 +6,44 @@
        xmlns:c="c">
 
     <loader>
-        <orm-reader entityName="io.nop.sys.dao.entity.NopSysEvent"
-                    partitionIndexField="partitionIndex">
+        <orm-reader entityName="io.nop.sys.dao.entity.NopSysEvent">
             <query>
                 <filter>
-                    <eq name="isBroadcast" value="false"/>
-                    <in name="eventStatus" value="0,5"/>
+                    <c:script>
+                        import io.nop.sys.dao.NopSysDaoConstants;
+                        const messageService = inject('nopSysDaoMessageService');
+                        const endTime = messageService.getEstimatedNow();
+                    </c:script>
+                    <and>
+                        <in name="eventTopic" value="${messageService.getNonBroadcastTopics()}"/>
+                        <or>
+                            <and>
+                                <eq name="eventStatus" value="${NopSysDaoConstants.SYS_EVENT_STATUS_WAITING}"/>
+                                <le name="scheduleTime" value="${endTime}"/>
+                            </and>
+                            <and>
+                                <eq name="eventStatus" value="${NopSysDaoConstants.SYS_EVENT_STATUS_CLAIMED}"/>
+                                <le name="leaseExpireTime" value="${endTime}"/>
+                            </and>
+                        </or>
+                    </and>
                 </filter>
-                <orderBy>
-                    <field name="partitionIndex"/>
-                    <field name="processTime"/>
-                    <field name="eventId"/>
-                </orderBy>
             </query>
         </orm-reader>
 
-        <afterLoad>
-            <c:script><![CDATA[
-                const svc = $scope.messageService;
-                if (!items || items.size() == 0) return;
-                const now = svc.getEventDaoEstimatedMaxTime();
-                const available = [];
-                for (let i = 0; i < items.size(); i++) {
-                    const evt = items.get(i);
-                    const isWaiting = evt.eventStatus == 0
-                        && (!evt.scheduleTime || evt.scheduleTime.getTime() <= now);
-                    const isExpiredClaimed = evt.eventStatus == 5
-                        && evt.leaseExpireTime && evt.leaseExpireTime.getTime() <= now;
-                    if (isWaiting || isExpiredClaimed) {
-                        available.push(evt);
-                    }
-                }
-                if (available.length == 0) {
-                    items.clear();
-                    return;
-                }
-                const claimed = svc.claimNonBroadcastEvents(available);
-                items.clear();
-                for (let j = 0; j < claimed.size(); j++) {
-                    items.add(claimed.get(j));
-                }
-            ]]></c:script>
-        </afterLoad>
+        <afterLoad><![CDATA[
+            if (!items || items.isEmpty()) return;
+            const svc = inject('nopSysDaoMessageService');
+            const claimed = svc.claimNonBroadcastEvents(items);
+            items.clear();
+            items.addAll(claimed);
+        ]]></afterLoad>
     </loader>
 
-    <consumer name="process">
-        <source>
-            const svc = $scope.messageService;
-            items.forEach(event => svc.processClaimedNonBroadcastEvent(event));
-        </source>
-    </consumer>
+    <processor name="process">
+        <source><![CDATA[
+            const svc = inject('nopSysDaoMessageService');
+            svc.processClaimedNonBroadcastEvent(item);
+        ]]></source>
+    </processor>
 </batch>

@@ -6,5 +6,8 @@ jobs:
     trigger:
       cronExpr: "0/5 * * * * ?"
     invoker:
-      bean: sysEventBatchTrigger
-      method: processNonBroadcastEvent
+      bean: nopBatchTaskRunner
+      method: executeAsync
+    params:
+      taskPath: /nop/batch-task/sys-event/non-broadcast-consumer.batch.xml
+      params: {}

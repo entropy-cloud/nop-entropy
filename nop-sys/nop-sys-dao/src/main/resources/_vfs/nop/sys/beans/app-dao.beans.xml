@@ -34,6 +34,10 @@
             <if-property name="nop.cluster.message-service.sys-dao-message-service.enabled"/>
         </ioc:condition>
         <property name="nonBroadcastAutoScanEnabled" value="@cfg:nop.sys.message.non-broadcast-auto-scan-enabled|true" />
+        <property name="topicRetryPolicies">
+            <ioc:collect-beans as-map="true" name-prefix="nopTopicRetryPolicy_"
+                               by-type="io.nop.commons.util.retry.IRetryPolicy"/>
+        </property>
     </bean>
 
     <bean id="nopOrmEntityChangeLogInterceptor" class="io.nop.sys.dao.log.OrmEntityChangeLogInterceptor"

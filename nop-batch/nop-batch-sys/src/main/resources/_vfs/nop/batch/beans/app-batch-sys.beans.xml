@@ -1,9 +1,0 @@
-<?xml version="1.0" encoding="UTF-8" ?>
-<beans x:schema="/nop/schema/beans.xdef" xmlns:x="/nop/schema/xdsl.xdef" xmlns:ioc="ioc"
-       x:dump="true">
-
-    <bean id="sysEventBatchTrigger" class="io.nop.batch.sys.SysEventBatchTrigger">
-        <property name="batchTaskManager" ref="nopBatchTaskManager"/>
-    </bean>
-
-</beans>
