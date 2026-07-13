@@ -1,18 +1,1 @@
 enabled: true
-jobs:
-  - jobName: wf-due-task-scan
-    displayName: Workflow Due Task Scan
-    jobGroup: nop-wf
-    trigger:
-      cronExpr: "0 0/1 * * * ?"
-    invoker:
-      bean: wfTaskScanner
-      method: scanDueTasks
-  - jobName: wf-remind-task-scan
-    displayName: Workflow Remind Task Scan
-    jobGroup: nop-wf
-    trigger:
-      cronExpr: "0 0/5 * * * ?"
-    invoker:
-      bean: wfTaskScanner
-      method: scanRemindTasks

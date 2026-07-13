@@ -1,13 +1,1 @@
 enabled: true
-jobs:
-  - jobName: sys-event-batch-consumer
-    displayName: Sys Event Non-Broadcast Consumer
-    jobGroup: nop-sys
-    trigger:
-      cronExpr: "0/5 * * * * ?"
-    invoker:
-      bean: nopBatchTaskRunner
-      method: executeAsync
-    params:
-      taskPath: /nop/batch-task/sys-event/non-broadcast-consumer.batch.xml
-      params: {}

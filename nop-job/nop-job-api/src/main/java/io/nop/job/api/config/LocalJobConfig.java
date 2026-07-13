@@ -15,6 +15,7 @@ public class LocalJobConfig {
     private LocalInvokerConfig invoker;
     private Map<String, Object> params;
     private boolean onceTask;
+    private boolean enabled;
 
     public String getJobName() {
         return jobName;
@@ -78,5 +79,13 @@ public class LocalJobConfig {
 
     public void setOnceTask(boolean onceTask) {
         this.onceTask = onceTask;
+    }
+
+    public boolean isEnabled() {
+        return enabled;
+    }
+
+    public void setEnabled(boolean enabled) {
+        this.enabled = enabled;
     }
 }

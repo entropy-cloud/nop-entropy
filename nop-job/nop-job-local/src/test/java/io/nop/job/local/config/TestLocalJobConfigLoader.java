@@ -5,10 +5,12 @@ import io.nop.job.api.JobDetail;
 import io.nop.job.api.JobState;
 import io.nop.job.api.config.LocalInvokerConfig;
 import io.nop.job.api.config.LocalJobConfig;
+import io.nop.job.api.config.LocalSchedulerConfig;
 import io.nop.job.api.spec.JobSpec;
 import io.nop.job.api.spec.TriggerSpec;
 import org.junit.jupiter.api.Test;
 
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -21,6 +23,8 @@ public class TestLocalJobConfigLoader {
         boolean activated;
         boolean deactivated;
         JobSpec lastAddedJob;
+        final List<JobSpec> addedJobs = new ArrayList<>();
+        final List<String> addedJobNames = new ArrayList<>();
 
         @Override
         public void activate() {
@@ -35,6 +39,8 @@ public class TestLocalJobConfigLoader {
         @Override
         public void addJob(JobSpec spec, boolean allowUpdate) {
             this.lastAddedJob = spec;
+            this.addedJobs.add(spec);
+            this.addedJobNames.add(spec.getJobName());
         }
 
         @Override
@@ -211,5 +217,135 @@ public class TestLocalJobConfigLoader {
         loader.destroy();
 
         assertTrue(scheduler.deactivated);
+    }
+
+    @Test
+    void testDisabledJobIsSkipped() {
+        LocalJobConfig disabled = jobConfig("disabled-job");
+        disabled.setEnabled(false);
+
+        LocalSchedulerConfig config = new LocalSchedulerConfig();
+        config.setEnabled(true);
+        config.setJobs(List.of(disabled));
+
+        SchedulerSpy scheduler = new SchedulerSpy();
+        LocalJobConfigLoader loader = newLoader(scheduler);
+        loader.applySchedulerConfig(config);
+
+        assertTrue(scheduler.activated);
+        assertTrue(scheduler.addedJobs.isEmpty(), "disabled job must not be registered");
+    }
+
+    @Test
+    void testEnabledJobIsRegistered() {
+        LocalJobConfig enabled = jobConfig("enabled-job");
+        enabled.setEnabled(true);
+
+        LocalSchedulerConfig config = new LocalSchedulerConfig();
+        config.setEnabled(true);
+        config.setJobs(List.of(enabled));
+
+        SchedulerSpy scheduler = new SchedulerSpy();
+        LocalJobConfigLoader loader = newLoader(scheduler);
+        loader.applySchedulerConfig(config);
+
+        assertEquals(List.of("enabled-job"), scheduler.addedJobNames);
+    }
+
+    @Test
+    void testDefaultEnabledIsFalse() {
+        // 不显式 setEnabled 时，Java 默认值应为 false，确保所有 job 必须显式开启
+        LocalJobConfig job = jobConfig("default-job");
+        assertFalse(job.isEnabled(), "LocalJobConfig.enabled must default to false");
+
+        LocalSchedulerConfig config = new LocalSchedulerConfig();
+        config.setEnabled(true);
+        config.setJobs(List.of(job));
+
+        SchedulerSpy scheduler = new SchedulerSpy();
+        LocalJobConfigLoader loader = newLoader(scheduler);
+        loader.applySchedulerConfig(config);
+
+        assertTrue(scheduler.addedJobs.isEmpty(), "job without explicit enabled=true must not be registered");
+    }
+
+    @Test
+    void testMixedEnabledDisabledJobs() {
+        LocalJobConfig a = jobConfig("job-a");
+        a.setEnabled(true);
+        LocalJobConfig b = jobConfig("job-b");
+        b.setEnabled(false);
+        LocalJobConfig c = jobConfig("job-c");
+        // c 不显式 setEnabled，应被视为 false
+
+        LocalSchedulerConfig config = new LocalSchedulerConfig();
+        config.setEnabled(true);
+        config.setJobs(List.of(a, b, c));
+
+        SchedulerSpy scheduler = new SchedulerSpy();
+        LocalJobConfigLoader loader = newLoader(scheduler);
+        loader.applySchedulerConfig(config);
+
+        assertEquals(List.of("job-a"), scheduler.addedJobNames, "only job-a should be registered");
+    }
+
+    @Test
+    void testDuplicateJobNameIsSkipped() {
+        // 同名 job 第二个应被跳过（覆盖 registerJob 的 job-duplicate 分支）
+        LocalJobConfig first = jobConfig("dup");
+        first.setEnabled(true);
+        LocalJobConfig second = jobConfig("dup");
+        second.setEnabled(true);
+
+        LocalSchedulerConfig config = new LocalSchedulerConfig();
+        config.setEnabled(true);
+        config.setJobs(List.of(first, second));
+
+        SchedulerSpy scheduler = new SchedulerSpy();
+        LocalJobConfigLoader loader = newLoader(scheduler);
+        loader.applySchedulerConfig(config);
+
+        assertEquals(1, scheduler.addedJobs.size(), "duplicate jobName must be deduplicated");
+    }
+
+    @Test
+    void testEmptyJobNameIsSkipped() {
+        LocalJobConfig noName = jobConfig("");
+        noName.setEnabled(true);
+
+        LocalSchedulerConfig config = new LocalSchedulerConfig();
+        config.setEnabled(true);
+        config.setJobs(List.of(noName));
+
+        SchedulerSpy scheduler = new SchedulerSpy();
+        LocalJobConfigLoader loader = newLoader(scheduler);
+        loader.applySchedulerConfig(config);
+
+        assertTrue(scheduler.addedJobs.isEmpty(), "job without jobName must be skipped");
+    }
+
+    @Test
+    void testScanJobConfigsReturnsEmptyWhenVfsUnavailable() {
+        // VFS 未初始化时，scanJobConfigs 应静默返回空列表而不是抛异常
+        LocalJobConfigLoader loader = newLoader(new SchedulerSpy());
+        List<io.nop.job.api.config.LocalJobConfig> jobs = loader.scanJobConfigs("/some/nonexistent/dir/");
+        assertNotNull(jobs);
+        assertTrue(jobs.isEmpty());
+    }
+
+    private static LocalJobConfigLoader newLoader(SchedulerSpy scheduler) {
+        LocalJobConfigLoader loader = new LocalJobConfigLoader();
+        loader.setScheduler(scheduler);
+        return loader;
+    }
+
+    private static LocalJobConfig jobConfig(String name) {
+        LocalJobConfig cfg = new LocalJobConfig();
+        cfg.setJobName(name);
+        LocalInvokerConfig invoker = new LocalInvokerConfig();
+        invoker.setBean("myService");
+        invoker.setMethod("doWork");
+        cfg.setInvoker(invoker);
+        return cfg;
     }
 }
