@@ -240,9 +240,9 @@ public class SysDaoMessageService extends LifeCycleSupport implements IMessageSe
         return daoProvider;
     }
 
-    public List<NopSysEvent> fetchExecutableNonBroadcastEvents(int batchSize) {
+    public List<NopSysEvent> fetchExecutableNonBroadcastEvents() {
         ensureNonBroadcastProcessor();
-        return nonBroadcastProcessor.fetchCandidates(batchSize);
+        return nonBroadcastProcessor.fetchCandidates();
     }
 
     public void processClaimedNonBroadcastEvent(NopSysEvent event) {
