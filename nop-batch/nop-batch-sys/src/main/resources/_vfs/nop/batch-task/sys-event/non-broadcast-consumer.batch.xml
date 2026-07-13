@@ -2,7 +2,8 @@
        batchSize="100"
        transactionScope="process"
        x:schema="/nop/schema/task/batch.xdef"
-       xmlns:x="/nop/schema/xdsl.xdef">
+       xmlns:x="/nop/schema/xdsl.xdef"
+       xmlns:c="c">
 
     <loader>
         <orm-reader entityName="io.nop.sys.dao.entity.NopSysEvent"
@@ -19,27 +20,40 @@
                 </orderBy>
             </query>
         </orm-reader>
+
+        <afterLoad>
+            <c:script><![CDATA[
+                const svc = $scope.messageService;
+                if (!items || items.size() == 0) return;
+                const now = svc.getEventDaoEstimatedMaxTime();
+                const available = [];
+                for (let i = 0; i < items.size(); i++) {
+                    const evt = items.get(i);
+                    const isWaiting = evt.eventStatus == 0
+                        && (!evt.scheduleTime || evt.scheduleTime.getTime() <= now);
+                    const isExpiredClaimed = evt.eventStatus == 5
+                        && evt.leaseExpireTime && evt.leaseExpireTime.getTime() <= now;
+                    if (isWaiting || isExpiredClaimed) {
+                        available.push(evt);
+                    }
+                }
+                if (available.length == 0) {
+                    items.clear();
+                    return;
+                }
+                const claimed = svc.claimNonBroadcastEvents(available);
+                items.clear();
+                for (let j = 0; j < claimed.size(); j++) {
+                    items.add(claimed.get(j));
+                }
+            ]]></c:script>
+        </afterLoad>
     </loader>
 
-    <processor name="claim">
-        <source>
-            const svc = $scope.messageService;
-            const now = svc.getEventDaoEstimatedMaxTime();
-            if (item.scheduleTime &amp;&amp; item.scheduleTime.time > now) {
-                return;
-            }
-            const claimed = svc.claimNonBroadcastEvents([item]);
-            if (!claimed.isEmpty()) {
-                consume(claimed.get(0));
-            }
-        </source>
-    </processor>
-
-    <consumer name="all">
+    <consumer name="process">
         <source>
             const svc = $scope.messageService;
             items.forEach(event => svc.processClaimedNonBroadcastEvent(event));
         </source>
     </consumer>
-
 </batch>
