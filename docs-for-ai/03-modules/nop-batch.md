@@ -234,7 +234,7 @@ task steps:
 - 批量报表生成
 - 批量消息发送
 - 过账兜底扫描（processor 调用 I*Biz）
-- sys-event 普通事件触发器（`nop-batch-sys` 反向依赖 `nop-sys-dao`，batch 仅负责周期扫描与触发执行）
+- sys-event 普通事件触发器（`nop-batch-sys` 反向依赖 `nop-sys-dao`，通过 batch DSL `.batch.xml` + `IBatchTaskManager` + `findNext` keyset pagination 周期扫描与触发执行；`SysEventBatchTrigger` 绕过 `BatchTaskRunner` 直接使用 `IBatchTaskManager` API 加载 DSL 任务）
 - 资产折旧批量计提
 - 银行流水导入
 

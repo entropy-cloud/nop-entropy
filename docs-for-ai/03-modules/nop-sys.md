@@ -78,11 +78,14 @@ lockService.unlock("order_lock", "lock_group", holderId);
 ## 事件队列
 
 - 同一数据库事务内发布的本地 outbox 能力，不依赖外部 MQ
-- 普通事件：`nop_sys_event`，按 `partitionIndex` 稳定路由，至少一次；`nop-sys-dao` 负责 shared queue + lease + 重排队语义，`nop-batch-sys` 可用 batch trigger 方式周期扫描并触发执行
+- 普通事件：`nop_sys_event`，按 `partitionIndex` 稳定路由，至少一次；`nop-sys-dao` 负责 shared queue + lease + 重排队语义，`nop-batch-sys` 通过 batch DSL（`.batch.xml`）+ `IBatchTaskManager` + `findNext` keyset pagination 周期扫描并触发执行
+- 普通事件支持两种触发模式：simple mode（`SysDaoMessageService` 内建定时器）和 batch mode（`nop-job` 调度 `SysEventBatchTrigger` 执行 batch DSL）；通过 `nonBroadcastAutoScanEnabled` 开关切换
+- 普通事件扫描禁止使用 OFFSET 分页；simple mode 和 batch mode 都基于 `findNext` keyset pagination
 - 广播事件：`nop_sys_broadcast_event`，通过 `findNext` keyset pagination + 内存游标 + 时间窗口消费，不持久化消费进度，重启后从时间窗口起点重新消费（at-least-once），消费失败不阻塞后续事件
 - 普通事件与广播事件都只保证 at-least-once；listener 必须自行幂等
 - `partitionIndex` 默认来自 `bizObjName + '|' + bizKey` 的 stable short hash；没有顺序键时退化为 topic hash，不保证同键顺序
 - batch trigger 只是普通事件的一种触发执行机制，不改变 event row 状态机；成功/失败仍回写到 `nop_sys_event` 行本身（如 `PROCESSED`、`WAITING + scheduleTime + retryTimes`）
+- batch DSL 是 `nop-batch-sys` 的支持基线，不再使用编程式 `BatchTaskBuilder`；`SysEventBatchTrigger` 通过 `IBatchTaskManager` 加载 `.batch.xml`，DSL 中的 loader/processor/consumer 通过 `<source>` XPL 委托 `SysDaoMessageService` 方法
 
 ## 字段级变更日志与 ORM 拦截器
 
