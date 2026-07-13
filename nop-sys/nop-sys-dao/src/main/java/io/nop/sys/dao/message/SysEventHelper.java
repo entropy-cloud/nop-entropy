@@ -53,7 +53,6 @@ public class SysEventHelper {
         event.setEventStatus(0);
         event.setProcessTime(event.getEventTime());
         event.setScheduleTime(event.getEventTime());
-        event.setIsBroadcast(topic.startsWith(TOPIC_PREFIX_BROADCAST));
         event.setPartitionIndex(resolvePartitionIndex(payload));
         event.setRetryTimes(0);
     }

@@ -86,7 +86,7 @@ public class NonBroadcastEventProcessor {
 
         TreeBean filter = FilterBeans.and(
                 FilterBeans.in(NopSysEvent.PROP_NAME_eventTopic, topics),
-                FilterBeans.eq(NopSysEvent.PROP_NAME_isBroadcast, false),
+
                 FilterBeans.or(
                         FilterBeans.and(
                                 FilterBeans.eq(NopSysEvent.PROP_NAME_eventStatus,

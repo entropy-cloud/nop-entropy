@@ -61,10 +61,6 @@ public class _NopSysEvent extends DynamicOrmEntity{
     public static final String PROP_NAME_scheduleTime = "scheduleTime";
     public static final int PROP_ID_scheduleTime = 10;
     
-    /* 是否广播: IS_BROADCAST BOOLEAN */
-    public static final String PROP_NAME_isBroadcast = "isBroadcast";
-    public static final int PROP_ID_isBroadcast = 11;
-    
     /* 业务对象名: BIZ_OBJ_NAME VARCHAR */
     public static final String PROP_NAME_bizObjName = "bizObjName";
     public static final int PROP_ID_bizObjName = 12;
@@ -155,9 +151,6 @@ public class _NopSysEvent extends DynamicOrmEntity{
           PROP_ID_TO_NAME[PROP_ID_scheduleTime] = PROP_NAME_scheduleTime;
           PROP_NAME_TO_ID.put(PROP_NAME_scheduleTime, PROP_ID_scheduleTime);
       
-          PROP_ID_TO_NAME[PROP_ID_isBroadcast] = PROP_NAME_isBroadcast;
-          PROP_NAME_TO_ID.put(PROP_NAME_isBroadcast, PROP_ID_isBroadcast);
-      
           PROP_ID_TO_NAME[PROP_ID_bizObjName] = PROP_NAME_bizObjName;
           PROP_NAME_TO_ID.put(PROP_NAME_bizObjName, PROP_ID_bizObjName);
       
@@ -226,9 +219,6 @@ public class _NopSysEvent extends DynamicOrmEntity{
     
     /* 调度时间: SCHEDULE_TIME */
     private java.sql.Timestamp _scheduleTime;
-    
-    /* 是否广播: IS_BROADCAST */
-    private java.lang.Boolean _isBroadcast;
     
     /* 业务对象名: BIZ_OBJ_NAME */
     private java.lang.String _bizObjName;
@@ -369,9 +359,6 @@ public class _NopSysEvent extends DynamicOrmEntity{
         
             case PROP_ID_scheduleTime:
                return getScheduleTime();
-        
-            case PROP_ID_isBroadcast:
-               return getIsBroadcast();
         
             case PROP_ID_bizObjName:
                return getBizObjName();
@@ -517,16 +504,6 @@ public class _NopSysEvent extends DynamicOrmEntity{
                        err-> newTypeConversionError(PROP_NAME_scheduleTime));
                }
                setScheduleTime(typedValue);
-               break;
-            }
-        
-            case PROP_ID_isBroadcast:{
-               java.lang.Boolean typedValue = null;
-               if(value != null){
-                   typedValue = ConvertHelper.toBoolean(value,
-                       err-> newTypeConversionError(PROP_NAME_isBroadcast));
-               }
-               setIsBroadcast(typedValue);
                break;
             }
         
@@ -725,13 +702,6 @@ public class _NopSysEvent extends DynamicOrmEntity{
             case PROP_ID_scheduleTime:{
                onInitProp(propId);
                this._scheduleTime = (java.sql.Timestamp)value;
-               
-               break;
-            }
-        
-            case PROP_ID_isBroadcast:{
-               onInitProp(propId);
-               this._isBroadcast = (java.lang.Boolean)value;
                
                break;
             }
@@ -1012,25 +982,6 @@ public class _NopSysEvent extends DynamicOrmEntity{
         if(onPropSet(PROP_ID_scheduleTime,value)){
             this._scheduleTime = value;
             internalClearRefs(PROP_ID_scheduleTime);
-            
-        }
-    }
-    
-    /**
-     * 是否广播: IS_BROADCAST
-     */
-    public final java.lang.Boolean getIsBroadcast(){
-         onPropGet(PROP_ID_isBroadcast);
-         return _isBroadcast;
-    }
-
-    /**
-     * 是否广播: IS_BROADCAST
-     */
-    public final void setIsBroadcast(java.lang.Boolean value){
-        if(onPropSet(PROP_ID_isBroadcast,value)){
-            this._isBroadcast = value;
-            internalClearRefs(PROP_ID_isBroadcast);
             
         }
     }

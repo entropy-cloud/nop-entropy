@@ -381,8 +381,6 @@ class NopSysEvent{
 
   Timestamp scheduleTime; //调度时间
 
-  Boolean isBroadcast; //是否广播
-
   String bizObjName; //业务对象名
 
   String bizKey; //业务标识

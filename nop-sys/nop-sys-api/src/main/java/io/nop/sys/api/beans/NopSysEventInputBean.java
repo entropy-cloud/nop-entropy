@@ -152,20 +152,6 @@
         }
 
 
-        private Boolean _isBroadcast;
-
-    
-        @PropMeta(propId=11)
-    
-        public Boolean getIsBroadcast(){
-            return _isBroadcast;
-        }
-
-        public void setIsBroadcast(Boolean value){
-            this._isBroadcast = value;
-        }
-
-
         private String _bizObjName;
 
     

@@ -59,10 +59,6 @@
               queryable="true" sortable="true" insertable="true" updatable="true">
             <schema type="java.sql.Timestamp"/>
         </prop>
-        <prop name="isBroadcast" displayName="是否广播" propId="11" i18n-en:displayName="Is Broadcast" mandatory="true"
-              queryable="true" sortable="true" insertable="true" updatable="true">
-            <schema type="java.lang.Boolean"/>
-        </prop>
         <prop name="bizObjName" displayName="业务对象名" propId="12" i18n-en:displayName="BizObjName" queryable="true"
               sortable="true" insertable="true" updatable="true">
             <schema type="java.lang.String" precision="100"/>

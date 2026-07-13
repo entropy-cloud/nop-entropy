@@ -48,9 +48,6 @@
                 <!--调度时间-->
                 <col id="scheduleTime" mandatory="true" sortable="true"/>
 
-                <!--是否广播-->
-                <col id="isBroadcast" mandatory="true" sortable="true"/>
-
                 <!--业务对象名-->
                 <col id="bizObjName" sortable="true"/>
 
@@ -96,12 +93,12 @@
  eventData[数据] selection[字段选择]
  eventTime[事件时间] eventStatus[事件状态]
  processTime[处理时间] scheduleTime[调度时间]
- isBroadcast[是否广播] bizObjName[业务对象名]
- bizKey[业务标识] bizDate[业务日期]
- partitionIndex[数据分区] retryTimes[重试次数]
- leaseOwner[租约持有者] leaseExpireTime[租约过期时间]
- createdBy[创建人] createTime[创建时间]
- updatedBy[修改人] updateTime[修改时间]
+ bizObjName[业务对象名] bizKey[业务标识]
+ bizDate[业务日期] partitionIndex[数据分区]
+ retryTimes[重试次数] leaseOwner[租约持有者]
+ leaseExpireTime[租约过期时间] createdBy[创建人]
+ createTime[创建时间] updatedBy[修改人]
+ updateTime[修改时间] 
 </layout>
         </form>
         <form id="add" editMode="add" title="新增-普通事件队列" i18n-en:title="Add System Event" x:prototype="edit"/>
@@ -112,10 +109,10 @@
  eventData[数据] selection[字段选择]
  eventTime[事件时间] eventStatus[事件状态]
  processTime[处理时间] scheduleTime[调度时间]
- isBroadcast[是否广播] bizObjName[业务对象名]
- bizKey[业务标识] bizDate[业务日期]
- partitionIndex[数据分区] retryTimes[重试次数]
- leaseOwner[租约持有者] leaseExpireTime[租约过期时间]
+ bizObjName[业务对象名] bizKey[业务标识]
+ bizDate[业务日期] partitionIndex[数据分区]
+ retryTimes[重试次数] leaseOwner[租约持有者]
+ leaseExpireTime[租约过期时间] 
 </layout>
         </form>
         <form id="query" editMode="query" title="查询条件" i18n-en:title="Query Condition" x:abstract="true"/>

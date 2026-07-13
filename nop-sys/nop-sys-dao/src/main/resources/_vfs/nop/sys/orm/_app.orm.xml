@@ -529,8 +529,6 @@
                         i18n-en:displayName="Process Time"/>
                 <column code="SCHEDULE_TIME" displayName="调度时间" mandatory="true" name="scheduleTime" propId="10"
                         stdDataType="timestamp" stdSqlType="TIMESTAMP" i18n-en:displayName="Schedule Time"/>
-                <column code="IS_BROADCAST" displayName="是否广播" mandatory="true" name="isBroadcast" propId="11"
-                        stdDataType="boolean" stdSqlType="BOOLEAN" i18n-en:displayName="Is Broadcast"/>
                 <column code="BIZ_OBJ_NAME" displayName="业务对象名" name="bizObjName" precision="100" propId="12"
                         stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="BizObjName"/>
                 <column code="BIZ_KEY" displayName="业务标识" name="bizKey" precision="50" propId="13" stdDataType="string"

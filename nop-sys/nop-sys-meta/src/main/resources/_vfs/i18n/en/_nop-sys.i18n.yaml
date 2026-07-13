@@ -154,7 +154,6 @@ prop:
       eventStatus_label: null
       processTime: Process Time
       scheduleTime: Schedule Time
-      isBroadcast: Is Broadcast
       bizObjName: BizObjName
       bizKey: BizKey
       bizDate: Biz Date

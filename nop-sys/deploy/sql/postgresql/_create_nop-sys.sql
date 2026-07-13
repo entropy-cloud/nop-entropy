@@ -192,7 +192,6 @@ CREATE TABLE nop_sys_event(
   event_status INT4 NOT NULL ,
   process_time TIMESTAMP NOT NULL ,
   schedule_time TIMESTAMP NOT NULL ,
-  is_broadcast BOOLEAN NOT NULL ,
   biz_obj_name VARCHAR(100)  ,
   biz_key VARCHAR(50)  ,
   biz_date DATE NOT NULL ,
@@ -643,8 +642,6 @@ CREATE TABLE nop_sys_obj_tag(
       COMMENT ON COLUMN nop_sys_event.process_time IS '处理时间';
                     
       COMMENT ON COLUMN nop_sys_event.schedule_time IS '调度时间';
-                    
-      COMMENT ON COLUMN nop_sys_event.is_broadcast IS '是否广播';
                     
       COMMENT ON COLUMN nop_sys_event.biz_obj_name IS '业务对象名';
                     

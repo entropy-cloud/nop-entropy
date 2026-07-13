@@ -192,7 +192,6 @@ CREATE TABLE nop_sys_event(
   EVENT_STATUS INTEGER NOT NULL ,
   PROCESS_TIME TIMESTAMP NOT NULL ,
   SCHEDULE_TIME TIMESTAMP NOT NULL ,
-  IS_BROADCAST CHAR(1) NOT NULL ,
   BIZ_OBJ_NAME VARCHAR2(100)  ,
   BIZ_KEY VARCHAR2(50)  ,
   BIZ_DATE DATE NOT NULL ,
@@ -643,8 +642,6 @@ CREATE TABLE nop_sys_obj_tag(
       COMMENT ON COLUMN nop_sys_event.PROCESS_TIME IS '处理时间';
                     
       COMMENT ON COLUMN nop_sys_event.SCHEDULE_TIME IS '调度时间';
-                    
-      COMMENT ON COLUMN nop_sys_event.IS_BROADCAST IS '是否广播';
                     
       COMMENT ON COLUMN nop_sys_event.BIZ_OBJ_NAME IS '业务对象名';
                     

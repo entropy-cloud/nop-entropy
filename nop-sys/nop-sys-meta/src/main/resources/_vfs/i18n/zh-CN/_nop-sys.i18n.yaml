@@ -156,7 +156,6 @@ prop:
       eventStatus_label: 事件状态
       eventTime: 事件时间
       eventTopic: 事件主题
-      isBroadcast: 是否广播
       leaseExpireTime: 租约过期时间
       leaseOwner: 租约持有者
       partitionIndex: 数据分区
