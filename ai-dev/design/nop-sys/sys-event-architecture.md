@@ -556,7 +556,9 @@ public class SysEventBatchTrigger {
 
 这一绕过 runner 的模式与 `batch.xlib` 的 `Execute` 标签完全一致，是框架内部处理 `partitionRange` 注入的标准做法。
 
-`nop-batch-sys` 需新增 beans 文件（`_vfs/nop/batch/beans/app-batch-sys.beans.xml`）注册 `sysEventBatchTrigger` bean，使 `nop-job` 的 `BeanMethodJobInvoker` 可通过 bean name 解析调用。
+> **设计演进**：以下章节描述的 `sysEventBatchTrigger` bean + `processNonBroadcastEvent()` 入口已在后续重构中移除。当前实际实现改为 `scheduler.yaml` 直接通过 `nopBatchTaskRunner.executeAsync` 加载 `.batch.xml` 任务，不再需要 `SysEventBatchTrigger.java` 与对应的 batch-sys beans 文件。下文保留原设计推导过程作为历史记录，但代码示例与执行链路以最新源码为准（参见 `docs-for-ai/03-modules/nop-sys.md` 与 `docs-for-ai/03-modules/nop-job.md`）。
+
+`nop-batch-sys` 原计划新增 beans 文件注册 `sysEventBatchTrigger` bean（路径位于 `_vfs/nop/batch/beans/` 下，**该文件已在后续重构中删除**），使 `nop-job` 的 `BeanMethodJobInvoker` 可通过 bean name 解析调用。
 
 ##### nop-job 调度集成
 

@@ -397,6 +397,8 @@ I18nMessageManager.getMessage(locale, key, default)
 
 ### `@i18n:` 前缀语法（XMeta / XView / XJson）
 
+> `@i18n:` 是 `@`-prefix value resolver 体系的一员，所有 `@`-prefix resolver（`@cfg:`、`@i18n:`、`@var:` 等）共享同一套加载期求值机制。完整规则与内置 resolver 列表见 `./value-resolvers.md`，本节只讲 `@i18n:` 在消息/i18n 场景的具体用法。
+
 在 XMeta、XView、页面 JSON 等文件中使用 `@i18n:` 前缀引用 i18n key：
 
 ```yaml

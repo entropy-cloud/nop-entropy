@@ -89,6 +89,7 @@
 | 判断 DTO / JSON / message bean 写法 | `02-core-guides/dto-json-and-message-beans.md` |
 | 判断报表和通知集成默认路线 | `02-core-guides/reporting-and-notification-integration.md` |
 | 判断 IoC 注入和配置写法 | `02-core-guides/ioc-and-config.md` |
+| 理解 `@cfg:` / `@i18n:` 等 `@`-prefix value resolver（YAML/JSON/XML DSL 加载阶段一次性求值） | `02-core-guides/value-resolvers.md` |
 | 理解模型加载后的 `INeedInit` 初始化约定 | `02-core-guides/model-init-and-ineedinit.md` |
 | 判断错误处理和错误码写法 | `02-core-guides/error-handling.md` |
 | **理解工作流 XML 配置（step/transition/action/assignment）** | **`02-core-guides/workflow-configuration.md`** |

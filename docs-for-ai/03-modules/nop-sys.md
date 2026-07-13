@@ -113,7 +113,7 @@ nop-sys 内置字段级变更日志（`NopSysChangeLog` + `OrmEntityChangeLogInt
 |------|------|
 | ORM 模型 | `nop-sys/model/nop-sys.orm.xml` |
 | 事件队列实现 | `nop-sys/nop-sys-dao/src/main/java/io/nop/sys/dao/message/SysDaoMessageService.java` |
-| 普通事件 batch trigger | `nop-batch/nop-batch-sys/src/main/java/io/nop/batch/sys/SysEventBatchTrigger.java` |
+| 普通事件 batch 调度入口 | `nop-batch/nop-batch-sys/src/main/resources/_vfs/nop/batch-task/sys-event/non-broadcast-consumer.batch.xml` + `nop-batch/nop-batch-sys/src/main/resources/_vfs/nop/job/conf/scheduler.yaml`（scheduler 直接调用 `nopBatchTaskRunner.executeAsync`） |
 | 序列号生成器 | `nop-sys/nop-sys-dao/src/main/java/io/nop/sys/dao/seq/SysSequenceGenerator.java` |
 | 编码规则生成器 | `nop-sys/nop-sys-dao/src/main/java/io/nop/sys/dao/coderule/SysCodeRuleGenerator.java` |
 | Bean 注册 | `nop-sys/nop-sys-dao/src/main/resources/_vfs/nop/sys/beans/app-dao.beans.xml` |
