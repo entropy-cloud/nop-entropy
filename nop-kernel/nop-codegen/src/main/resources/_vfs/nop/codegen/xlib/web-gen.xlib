@@ -8,6 +8,8 @@
 
             <source>
                 <c:script><![CDATA[
+                    props = props.filter(prop => !(prop.name == 'id' and prop.containsTag('seq-default')));
+
                     function cell(prop){
                         if(!prop) return
                         return prop.name + '[' + prop.displayName?.$escapeJson()?.$replace(']','_') + ']'

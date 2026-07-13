@@ -9,8 +9,8 @@
 
     <objMeta>${objMeta.resourceStdPath()}</objMeta>
     <c:choose>
-        <c:when test="${renderer == 'flux'}"><controlLib>/nop/web/xlib/flux-control.xlib</controlLib></c:when>
-        <c:otherwise><controlLib>/nop/web/xlib/control.xlib</controlLib></c:otherwise>
+        <when test="${renderer == 'flux'}"><controlLib>/nop/web/xlib/flux-control.xlib</controlLib></when>
+        <otherwise><controlLib>/nop/web/xlib/control.xlib</controlLib></otherwise>
     </c:choose>
 
     <c:print>

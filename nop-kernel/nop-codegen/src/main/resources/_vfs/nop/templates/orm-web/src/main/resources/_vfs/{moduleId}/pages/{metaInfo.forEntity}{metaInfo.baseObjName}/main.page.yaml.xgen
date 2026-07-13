@@ -4,14 +4,14 @@
     let renderer = objMeta.getExtProp('web:renderer') || objMeta['ext:web-renderer'] || '';
 </c:script>
 <c:choose>
-    <c:when test="${renderer == 'flux'}"><c:out escape="none"><![CDATA[
+    <when test="${renderer == 'flux'}"><c:out escape="none"><![CDATA[
 x:gen-extends: |
     <flux-web:GenPage view="${metaInfo.objName}.view.xml" page="main" xpl:lib="/nop/web/xlib/flux-web.xlib" />
-]]></c:out></c:when>
-    <c:otherwise><c:out escape="none"><![CDATA[
+]]></c:out></when>
+    <otherwise><c:out escape="none"><![CDATA[
 x:gen-extends: |
     <web:GenPage view="${metaInfo.objName}.view.xml" page="main" xpl:lib="/nop/web/xlib/web.xlib" />
-]]></c:out></c:otherwise>
+]]></c:out></otherwise>
 </c:choose>
 
 </c:unit>

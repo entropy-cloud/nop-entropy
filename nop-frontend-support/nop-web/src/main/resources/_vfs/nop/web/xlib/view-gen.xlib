@@ -43,6 +43,7 @@
                         <c:for var="prop" items="${schema.props}">
                             <c:script>
                                 if(prop.internal) continue;
+                                if(prop.name == 'id' &amp;&amp; prop.tagSet?.contains('seq-default')) continue;
                             </c:script>
                             ${prop.name}[${prop.displayName || prop.name}]
                         </c:for>
