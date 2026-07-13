@@ -1505,6 +1505,17 @@
 /nop/web/beans/web-defaults.beans.xml
 /nop/web/xlib/api-web.xlib
 /nop/web/xlib/control.xlib
+/nop/web/xlib/flux-control.xlib
+/nop/web/xlib/flux-web.xlib
+/nop/web/xlib/flux-web/grid_crud.xpl
+/nop/web/xlib/flux-web/impl_GenForm.xpl
+/nop/web/xlib/flux-web/impl_GenGrid.xpl
+/nop/web/xlib/flux-web/impl_GenPage.xpl
+/nop/web/xlib/flux-web/init_grid_gen_scope.xpl
+/nop/web/xlib/flux-web/page_crud.xpl
+/nop/web/xlib/flux-web/page_picker.xpl
+/nop/web/xlib/flux-web/page_simple.xpl
+/nop/web/xlib/flux-web/page_tabs.xpl
 /nop/web/xlib/ofd-gen.xlib
 /nop/web/xlib/ofd-gen/impl_GenerateCss.xpl
 /nop/web/xlib/ofd-gen/impl_GenerateForm.xpl

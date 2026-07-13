@@ -1159,7 +1159,14 @@
     "allPublicFields": true,
     "allPublicMethods": true,
     "fields": [],
-    "methods": [],
+    "methods": [
+      {
+        "name": "appendHeaders",
+        "parameterTypes": [
+          "java.lang.StringBuilder"
+        ]
+      }
+    ],
     "name": "io.nop.api.core.beans.ApiMessage"
   },
   {
