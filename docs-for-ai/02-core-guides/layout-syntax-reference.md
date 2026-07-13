@@ -4,7 +4,7 @@
 
 如果你只需要改字段标签或增删几个字段，看 `view-and-page-customization.md` 的 Form 章节即可。如果你需要**字段分组、折叠、跨列、Tab 布局、查询运算符配置**，本文档是权威参考。
 
-> 本文以 AMIS 渲染器（`web.xlib`）的实现为准。
+> 本文同时适用于 **AMIS（`web.xlib`）和 Flux（`flux-web.xlib`）** 两种渲染器。所有语法（`*` 必填、`@` 只读、`!` 隐藏标签、跨列、分组、Tab、查询运算符）在两种渲染器下行为一致，除非显式标注 `(AMIS only)` 或 `(Flux only)`。Flux 渲染器特定的属性命名映射（`requiredOn` → `required`、`readonlyOn` → `readOnly`、`clearValueOnHidden` → `hiddenFieldPolicy.clearValueWhenHidden`、`initFetch` → `autoInit`、`asideResizor` → `asideResizable`）和已确认不支持的 form 属性（`silentPolling`/`wrapWithPanel`/`canAccessSuperData`）见 `flux-rendering.md` 的 AMIS vs Flux 差异表。
 
 ## 最小示例
 
