@@ -209,6 +209,7 @@ public class SysDaoMessageService extends LifeCycleSupport implements IMessageSe
                         return policy.getRetryDelay(exception, count, this);
                     },
                     fetchSize,
+                    maxScanLoops,
                     leaseTimeout,
                     minProcessDelay,
                     assignedPartitions

@@ -35,6 +35,7 @@ public class NonBroadcastEventProcessor {
     private final BiFunction<NopSysEvent, Throwable, Long> retryDelayProvider;
 
     private final int fetchSize;
+    private final int maxScanLoops;
     private final long leaseTimeout;
     private final long minProcessDelay;
     private final IntRangeSet assignedPartitions;
@@ -45,6 +46,7 @@ public class NonBroadcastEventProcessor {
                                       Function<String, String> hostIdProvider,
                                       BiFunction<NopSysEvent, Throwable, Long> retryDelayProvider,
                                       int fetchSize,
+                                      int maxScanLoops,
                                       long leaseTimeout,
                                       long minProcessDelay,
                                       IntRangeSet assignedPartitions) {
@@ -54,24 +56,27 @@ public class NonBroadcastEventProcessor {
         this.hostIdProvider = hostIdProvider;
         this.retryDelayProvider = retryDelayProvider;
         this.fetchSize = fetchSize;
+        this.maxScanLoops = maxScanLoops;
         this.leaseTimeout = leaseTimeout;
         this.minProcessDelay = minProcessDelay;
         this.assignedPartitions = assignedPartitions;
     }
 
     public void process() {
-        List<NopSysEvent> events = fetchCandidates();
-        if (events.isEmpty()) {
-            return;
-        }
+        for (int i = 0; i < maxScanLoops; i++) {
+            List<NopSysEvent> events = fetchCandidates();
+            if (events.isEmpty()) {
+                return;
+            }
 
-        List<NopSysEvent> claimed = claim(events);
-        if (claimed.isEmpty()) {
-            return;
-        }
+            List<NopSysEvent> claimed = claim(events);
+            if (claimed.isEmpty()) {
+                return;
+            }
 
-        for (NopSysEvent event : claimed) {
-            process(event);
+            for (NopSysEvent event : claimed) {
+                process(event);
+            }
         }
     }
 
