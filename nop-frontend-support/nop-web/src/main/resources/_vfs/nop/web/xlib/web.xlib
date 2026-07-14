@@ -325,6 +325,9 @@
 
             <source>
                 <c:choose>
+                    <when test="${formCell.proxyCell}">
+                        <!-- do nothing-->
+                    </when>
                     <when test="${formCell.type == 'group'}">
                         <thisLib:GenFormTable formTable="${formCell.table}"/>
                     </when>
