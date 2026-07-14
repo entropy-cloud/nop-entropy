@@ -106,7 +106,9 @@ public class ChooseTagCompiler implements IXplTagCompiler {
         checkArgNames(node, WHEN_ATTRS);
         Expression test = requireAttrExpr(node, TEST_NAME, cp, scope);
         Expression body = cp.parseTagBody(node, scope);
-        return IfStatement.valueOf(node.getLocation(), test, body, null,false);
+        if (body == null)
+            body = Literal.nullValue(node.getLocation());
+        return IfStatement.valueOf(node.getLocation(), test, body, null, false);
     }
 
     IConditionalExpression checkConditional(XNode node, Expression expr) {
