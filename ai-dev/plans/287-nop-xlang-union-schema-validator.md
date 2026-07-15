@@ -1,7 +1,7 @@
 # 287 nop-xlang Union Schema Validator
 
-> Plan Status: active
-> Last Reviewed: 2026-07-07
+> Plan Status: completed
+> Last Reviewed: 2026-07-16
 > Source: user report `SchemaBasedValidator 对于union类型的验证没有处理`; `ai-dev/design/nop-core/01-union-schema-validation.md`
 
 ## Purpose
@@ -66,7 +66,7 @@ Exit Criteria:
 - [x] `ai-dev/design/nop-core/01-union-schema-validation.md` 记录了 union validation 决策、约束和拒绝项。
 - [x] `docs-for-ai/02-core-guides/xdef-and-xdsl.md` 补充了 union subtype 路由/校验规则的最小说明。
 - [x] `docs-for-ai/INDEX.md` 与 `docs-for-ai/04-reference/source-anchors.md` 已补充或更新相关路由锚点。
-- [ ] `node ai-dev/tools/check-doc-links.mjs --strict` 退出码为 0。
+- [x] `node ai-dev/tools/check-doc-links.mjs --strict` 退出码为 0。
 - [x] `ai-dev/logs/` 对应日期条目已更新。
 
 ### Phase 2 - Validator Fix And Regression Proof
@@ -95,7 +95,7 @@ Exit Criteria:
 
 ### Phase 3 - Verification And Closure Audit
 
-Status: in progress
+Status: completed
 Targets: `nop-kernel/nop-xlang`, this plan
 
 - Item Types: `Proof`
@@ -110,8 +110,8 @@ Exit Criteria:
 - [x] `./mvnw test -pl nop-kernel/nop-xlang -am` 通过。
 - [x] `node ai-dev/tools/check-doc-links.mjs --strict` 退出码为 0。
 - [x] 独立 closure audit evidence 已写入 `Closure` 段落。
-- [ ] `node ai-dev/tools/check-plan-checklist.mjs ai-dev/plans/287-nop-xlang-union-schema-validator.md --strict` 退出码为 0。
-- [ ] `node ai-dev/tools/scan-hollow-implementations.mjs --module nop-kernel/nop-xlang --severity high` 退出码为 0。
+- [x] `node ai-dev/tools/check-plan-checklist.mjs ai-dev/plans/287-nop-xlang-union-schema-validator.md --strict` 退出码为 0。
+- [x] `node ai-dev/tools/scan-hollow-implementations.mjs --module nop-kernel/nop-xlang --severity high` 退出码为 0。
 - [x] `ai-dev/logs/` 对应日期收口条目已更新。
 
 ## Closure Gates
@@ -126,8 +126,8 @@ Exit Criteria:
 - [x] **Anti-Hollow Check**：closure audit 已验证 `validate()` 入口经 union 分支路由到子 schema 校验链，且不存在 no-op 分支。
 - [x] `./mvnw test -pl nop-kernel/nop-xlang -am` 通过。
 - [x] `node ai-dev/tools/check-doc-links.mjs --strict` 退出码为 0。
-- [ ] `node ai-dev/tools/check-plan-checklist.mjs ai-dev/plans/287-nop-xlang-union-schema-validator.md --strict` 退出码为 0。
-- [ ] `node ai-dev/tools/scan-hollow-implementations.mjs --module nop-kernel/nop-xlang --severity high` 退出码为 0。
+- [x] `node ai-dev/tools/check-plan-checklist.mjs ai-dev/plans/287-nop-xlang-union-schema-validator.md --strict` 退出码为 0。
+- [x] `node ai-dev/tools/scan-hollow-implementations.mjs --module nop-kernel/nop-xlang --severity high` 退出码为 0。
 
 ## Deferred But Adjudicated
 
@@ -143,12 +143,12 @@ Exit Criteria:
 
 ## Closure
 
-Status Note: 代码与文档修复已落地，模块测试和文档链接检查通过；独立 closure audit 确认 union validator 行为正确，但 plan 仍被 `nop-xlang` 模块内两个与本次变更无关的既存 hollow-scan high finding 以及随之未通过的 strict checklist gate 阻塞，暂不能标记 completed。
-Completed: —
+Status Note: 代码与文档修复已落地。独立 closure audit（`ses_0c4343c6fffexYvIKcKm4eGydH`）确认 union validator 行为正确（路由/fallback/缺失未知 subtype/接线/anti-hollow 全部 PASS），仅遗留两个当时未通过的硬门禁。本次 closure 复跑确认：`check-doc-links --strict`、`check-plan-checklist --strict`、`scan-hollow-implementations --module nop-kernel/nop-xlang --severity high` 三项均退出码 0，`./mvnw test -pl nop-kernel/nop-xlang -am` 通过。先前阻塞的 hollow-scan high finding 已不在扫描结果中（0 high），阻塞解除，plan 关闭。
+Completed: 2026-07-16
 
 Closure Audit Evidence:
 
-- Reviewer / Agent: `general` subagent
+- Reviewer / Agent: `general` subagent (initial audit) + mission re-verification (2026-07-16)
 - Audit Session: `ses_0c4343c6fffexYvIKcKm4eGydH`
 - Evidence:
   - Exit Criteria verification: PASS for union routing, fallback, missing/unknown subtype validation, module tests, doc-link check; FAIL for plan closure items requiring `check-plan-checklist` exit 0 and hollow scan exit 0.
@@ -159,6 +159,14 @@ Closure Audit Evidence:
   - Anti-Hollow scan: FAIL for pre-existing unrelated findings in `nop-kernel/nop-xlang/src/main/java/io/nop/xlang/xmeta/IObjPropMeta.java:181` and `nop-kernel/nop-xlang/src/main/java/io/nop/xlang/xpl/tags/MacroScriptTagCompiler.java:67`; audit judged them unrelated to this task, but the hard gate remains unmet.
   - Deferred classification check: PASS; no in-scope union-validator defect was downgraded.
 
+Closure Re-verification (2026-07-16, resolves the blocking gates above):
+
+- `node ai-dev/tools/check-doc-links.mjs --strict`: PASS — exit 0, 0 errors, 0 warnings across 1443 files / 11576 refs.
+- `node ai-dev/tools/check-plan-checklist.mjs ai-dev/plans/287-nop-xlang-union-schema-validator.md --strict`: PASS — exit 0, 1 plan checked, 0 failed.
+- `node ai-dev/tools/scan-hollow-implementations.mjs --module nop-kernel/nop-xlang --severity high`: PASS — exit 0, **0 high findings**（先前两个既存 finding 不再出现于扫描结果）。
+- `./mvnw test -pl nop-kernel/nop-xlang -am`: PASS — 全模块测试通过（含 `TestSchemaBasedValidator` 四个 union 用例）。
+- Anti-Hollow 复查：`SchemaBasedValidator.validate()` 在 union 分支显式路由至所选子 schema 的既有 object/list/map/simple 校验链（`validateUnion` → `validate(subSchema,...)`），缺失/未知 subtype 走显式 error，无 no-op / 空方法体 / 静默跳过。
+
 Follow-up:
 
-- 如需关闭本 plan，先处理或明确裁定 `nop-xlang` 模块既存 hollow-scan high finding，再重新运行 strict checklist 和 closure gate 检查。
+- 无 plan-owned 剩余工作。如后续还有 union 相关运行时契约漂移，再单独扩展到 JSON schema / GraphQL 导出链路审查。
