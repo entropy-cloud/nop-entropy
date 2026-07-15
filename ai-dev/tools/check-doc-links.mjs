@@ -21,7 +21,6 @@ const MODULE_PREFIX_RE = new RegExp(
 
 const MD_LINK_RE = /\[([^\]]*)\]\(([^)]+)\)/g;
 const BACKTICK_PATH_RE = /`([a-zA-Z0-9_][a-zA-Z0-9_./\-]*\.(?:md|xml|json|yaml|yml|java|txt|sh|cmd|mjs|js|properties|sql|graphql|g4|xlsx|xls|csv|ts|css|scss|html|kt|groovy|gradle|toml|py))`/g;
-const HEADING_ANCHOR_RE = /#[a-z0-9-]+$/;
 const URL_RE = /^(?:https?|mailto|ftp):/;
 const ELLIPSIS_SEGMENT_RE = /\/\.\.\.(?:\/|$)/;
 
@@ -132,6 +131,36 @@ function shouldSkip(rawTarget, ext) {
   return false;
 }
 
+// 将 fenced code block（``` 或 ~~~ 包裹）的内容置空，保留换行以维持行号。
+// 这样代码块内的 DSL/示例文本（如 `*@remark[备注](2)`）不会被误判为 markdown 链接或路径引用。
+function maskCodeBlocks(content) {
+  const lines = content.split('\n');
+  let inFence = false;
+  let fenceChar = '';
+  for (let i = 0; i < lines.length; i++) {
+    const fenceMatch = lines[i].match(/^\s*(```+|~~~+)/);
+    if (fenceMatch) {
+      const ch = fenceMatch[1][0];
+      if (!inFence) {
+        inFence = true;
+        fenceChar = ch;
+        lines[i] = '';
+        continue;
+      }
+      if (ch === fenceChar) {
+        inFence = false;
+        fenceChar = '';
+        lines[i] = '';
+        continue;
+      }
+    }
+    if (inFence) {
+      lines[i] = '';
+    }
+  }
+  return lines.join('\n');
+}
+
 function extractReferences(content) {
   const refs = [];
   const seen = new Set();
@@ -147,29 +176,34 @@ function extractReferences(content) {
     refs.push({ rawTarget, type, line, ext });
   }
 
+  const masked = maskCodeBlocks(content);
   let m;
   MD_LINK_RE.lastIndex = 0;
-  while ((m = MD_LINK_RE.exec(content)) !== null) {
+  while ((m = MD_LINK_RE.exec(masked)) !== null) {
     let target = m[2].trim();
-    target = target.replace(HEADING_ANCHOR_RE, '');
+    // 处理页内锚点：# 开头为纯页内锚点（无文件目标，直接跳过）；
+    // path#anchor 形式则截取 # 之前作为文件路径。支持 CJK 锚点。
+    const hashIdx = target.indexOf('#');
+    if (hashIdx === 0) continue;
+    if (hashIdx > 0) target = target.substring(0, hashIdx).trim();
     if (!target || URL_RE.test(target)) continue;
     if (SKIP_MD_LINK_TARGETS.has(target)) continue;
-    const line = content.substring(0, m.index).split('\n').length;
+    const line = masked.substring(0, m.index).split('\n').length;
     addRef(target, 'md-link', line);
   }
 
   BACKTICK_PATH_RE.lastIndex = 0;
-  while ((m = BACKTICK_PATH_RE.exec(content)) !== null) {
+  while ((m = BACKTICK_PATH_RE.exec(masked)) !== null) {
     const target = m[1];
     if (URL_RE.test(target)) continue;
-    const line = content.substring(0, m.index).split('\n').length;
+    const line = masked.substring(0, m.index).split('\n').length;
     addRef(target, 'backtick-path', line);
   }
 
   BACKTICK_DIR_RE.lastIndex = 0;
-  while ((m = BACKTICK_DIR_RE.exec(content)) !== null) {
+  while ((m = BACKTICK_DIR_RE.exec(masked)) !== null) {
     const target = m[1];
-    const line = content.substring(0, m.index).split('\n').length;
+    const line = masked.substring(0, m.index).split('\n').length;
     if (!target.match(/\.[a-z]{1,4}$/)) {
       addRef(target, 'backtick-dir', line);
     } else {
@@ -281,6 +315,7 @@ function checkBoundaryViolation(resolvedRel, sourceType, sourceRel, ext) {
 // 历史/归档文件：引用的源码/设计文档可能已被重构或移动，不应回溯修正
 function isHistoricalFile(sourceRel) {
   if (sourceRel.startsWith('ai-dev/logs/')) return true;
+  if (sourceRel.startsWith('ai-dev/lessons/')) return true;
   if (sourceRel.startsWith('ai-dev/analysis/')) return true;
   if (sourceRel.startsWith('ai-dev/audits/')) return true;
   if (/\/archived?\//.test(sourceRel)) return true;
