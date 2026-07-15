@@ -1,0 +1,80 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<meta x:schema="/nop/schema/xmeta.xdef" xmlns:x="/nop/schema/xdsl.xdef" xmlns:i18n-en="i18n-en" xmlns:ext="ext"
+      xmlns:xpl="xpl" ext:model="orm" ext:icon="file-code" xmlns:c="c" xmlns:graphql="graphql" xmlns:meta-gen="meta-gen"
+      xmlns:biz="biz" displayName="ORM模型" i18n-en:displayName="Meta ORM Model" xmlns:ui="ui" xmlns:orm="orm">
+
+    <entityName>io.nop.metadata.dao.entity.NopMetaOrmModel</entityName>
+
+    <primaryKey>ormModelId</primaryKey>
+
+    <x:gen-extends>
+        <meta-gen:DefaultMetaGenExtends xpl:lib="/nop/core/xlib/meta-gen.xlib"/>
+    </x:gen-extends>
+
+    <x:post-extends>
+        <meta-gen:DefaultMetaPostExtends xpl:lib="/nop/core/xlib/meta-gen.xlib"/>
+    </x:post-extends>
+
+    <keys/>
+
+    <props>
+        <prop name="ormModelId" displayName="模型ID" propId="1" i18n-en:displayName="ORM Model Id" tagSet="seq"
+              mandatory="true" queryable="true" sortable="true" insertable="true" updatable="false">
+            <schema type="java.lang.String" precision="32"/>
+        </prop>
+        <prop name="metaModuleId" displayName="模块版本ID" propId="2" i18n-en:displayName="Meta Module Id" mandatory="true"
+              queryable="true" sortable="true" insertable="true" updatable="true" ext:relation="metaModule">
+            <schema type="java.lang.String" precision="32"/>
+        </prop>
+        <prop name="modelName" displayName="模型名" propId="3" i18n-en:displayName="Model Name" mandatory="true"
+              queryable="true" sortable="true" insertable="true" updatable="true">
+            <schema type="java.lang.String" precision="100"/>
+        </prop>
+        <prop name="isDelta" displayName="是否Delta" propId="4" i18n-en:displayName="Is Delta" mandatory="true"
+              queryable="true" sortable="true" insertable="true" updatable="true" defaultValue="0">
+            <schema domain="boolFlag" type="java.lang.Byte"/>
+        </prop>
+        <prop name="sourceContent" displayName="原始内容" propId="5" i18n-en:displayName="Source Content" queryable="true"
+              sortable="true" insertable="true" updatable="true">
+            <schema domain="mediumtext" type="java.lang.String" precision="16777216"/>
+        </prop>
+        <prop name="importedAt" displayName="导入时间" propId="6" i18n-en:displayName="Imported At" queryable="true"
+              sortable="true" insertable="true" updatable="true">
+            <schema type="java.sql.Timestamp"/>
+        </prop>
+        <prop name="version" displayName="数据版本" propId="7" i18n-en:displayName="Version" mandatory="true"
+              queryable="true" sortable="true" insertable="false" updatable="false" internal="true">
+            <schema domain="version" type="java.lang.Long"/>
+        </prop>
+        <prop name="createdBy" displayName="创建人" propId="8" i18n-en:displayName="Created By" mandatory="true"
+              queryable="true" sortable="true" insertable="false" updatable="false">
+            <schema domain="createdBy" type="java.lang.String" precision="50"/>
+        </prop>
+        <prop name="createTime" displayName="创建时间" propId="9" i18n-en:displayName="Create Time" mandatory="true"
+              queryable="true" sortable="true" insertable="false" updatable="false">
+            <schema domain="createTime" type="java.sql.Timestamp"/>
+        </prop>
+        <prop name="updatedBy" displayName="修改人" propId="10" i18n-en:displayName="Updated By" mandatory="true"
+              queryable="true" sortable="true" insertable="false" updatable="false">
+            <schema domain="updatedBy" type="java.lang.String" precision="50"/>
+        </prop>
+        <prop name="updateTime" displayName="修改时间" propId="11" i18n-en:displayName="Update Time" mandatory="true"
+              queryable="true" sortable="true" insertable="false" updatable="false">
+            <schema domain="updateTime" type="java.sql.Timestamp"/>
+        </prop>
+        <prop name="remark" displayName="备注" propId="12" i18n-en:displayName="Remark" queryable="true" sortable="true"
+              insertable="true" updatable="true">
+            <schema domain="remark" type="java.lang.String" precision="200"/>
+        </prop>
+        <prop name="metaModule" displayName="元数据模块" i18n-en:displayName="Meta Module" tagSet="pub,ref-pub"
+              ext:kind="to-one" internal="true" queryable="true" ext:joinLeftProp="metaModuleId"
+              ext:joinRightProp="metaModuleId" ext:joinRightDisplayProp="displayName" insertable="false"
+              updatable="false" mandatory="true" lazy="true">
+            <schema bizObjName="NopMetaModule"/>
+        </prop>
+        <prop name="metaModule.displayName" displayName="元数据模块" i18n-en:displayName="Meta Module" internal="true"
+              queryable="true" sortable="true" lazy="true">
+            <schema type="String"/>
+        </prop>
+    </props>
+</meta>

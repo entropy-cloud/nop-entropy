@@ -1,0 +1,23 @@
+# __XGEN_FORCE_OVERRIDE__
+label: 血缘来源
+locale: zh-CN
+valueType: string
+description: 
+options:
+
+  - label: 手工录入
+    value: manual
+    description: 
+  
+  - label: SQL解析
+    value: sql_parse
+    description: 
+  
+  - label: OpenLineage
+    value: open_lineage
+    description: 
+  
+  - label: Hook采集
+    value: hook
+    description: 
+  

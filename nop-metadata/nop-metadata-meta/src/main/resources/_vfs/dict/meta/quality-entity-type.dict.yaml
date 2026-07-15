@@ -1,0 +1,19 @@
+# __XGEN_FORCE_OVERRIDE__
+label: 质量对象类型
+locale: zh-CN
+valueType: string
+description: 
+options:
+
+  - label: 字段
+    value: field
+    description: 
+  
+  - label: 表
+    value: table
+    description: 
+  
+  - label: 数据库
+    value: database
+    description: 
+  

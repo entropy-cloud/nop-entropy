@@ -1,0 +1,31 @@
+# __XGEN_FORCE_OVERRIDE__
+label: 聚合函数
+locale: zh-CN
+valueType: string
+description: 
+options:
+
+  - label: 求和
+    value: sum
+    description: 
+  
+  - label: 计数
+    value: count
+    description: 
+  
+  - label: 平均
+    value: avg
+    description: 
+  
+  - label: 最小值
+    value: min
+    description: 
+  
+  - label: 最大值
+    value: max
+    description: 
+  
+  - label: 去重计数
+    value: countDistinct
+    description: 
+  

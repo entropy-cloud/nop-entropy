@@ -1,0 +1,19 @@
+# __XGEN_FORCE_OVERRIDE__
+label: 质量严重级别
+locale: zh-CN
+valueType: string
+description: 
+options:
+
+  - label: 提示
+    value: INFO
+    description: 
+  
+  - label: 警告
+    value: WARNING
+    description: 
+  
+  - label: 错误
+    value: ERROR
+    description: 
+  

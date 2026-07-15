@@ -1,0 +1,19 @@
+{
+  "joinId": "",
+  "metaTableId": "",
+  "joinType": "",
+  "joinType_label": "",
+  "leftEntityId": "",
+  "rightEntityId": "",
+  "leftField": "",
+  "rightField": "",
+  "alias": "",
+  "version": 0,
+  "createdBy": "",
+  "createTime": "2000-01-01 14:00:00",
+  "updatedBy": "",
+  "updateTime": "2000-01-01 14:00:00",
+  "remark": "",
+  "metaTable": null,
+  "metaTable.displayName": ""
+}

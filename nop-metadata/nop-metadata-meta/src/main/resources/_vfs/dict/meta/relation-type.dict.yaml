@@ -1,0 +1,15 @@
+# __XGEN_FORCE_OVERRIDE__
+label: 关系类型
+locale: zh-CN
+valueType: string
+description: 
+options:
+
+  - label: 一对一/多对一
+    value: to-one
+    description: 
+  
+  - label: 一对多
+    value: to-many
+    description: 
+  

@@ -1,0 +1,23 @@
+# __XGEN_FORCE_OVERRIDE__
+label: 数据源类型
+locale: zh-CN
+valueType: string
+description: 
+options:
+
+  - label: JDBC数据库
+    value: jdbc
+    description: 
+  
+  - label: HTTP接口
+    value: http
+    description: 
+  
+  - label: REST接口
+    value: rest
+    description: 
+  
+  - label: 文件
+    value: file
+    description: 
+  

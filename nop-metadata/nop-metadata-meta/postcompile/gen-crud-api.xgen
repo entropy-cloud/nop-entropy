@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<c:script>
+// CRUD API generation is disabled by default.
+// To enable, uncomment the following code or pass generateCrudApi=true.
+/*
+codeGenerator.withTplDir('/nop/templates/crud-api')
+    .withTargetDir("../nop-metadata-api/src/main/java")
+    .execute("/", { moduleId: "nop/metadata", apiPackageName: "io.nop.metadata.api" }, $scope);
+*/
+</c:script>

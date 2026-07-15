@@ -1,0 +1,22 @@
+{
+  "dimensionId": "",
+  "metaTableId": "",
+  "dimensionName": "",
+  "displayName": "",
+  "entityFieldId": "",
+  "dimensionType": "",
+  "dimensionType_label": "",
+  "granularity": "",
+  "format": "",
+  "sortOrder": 0,
+  "extConfig": "",
+  "version": 0,
+  "createdBy": "",
+  "createTime": "2000-01-01 14:00:00",
+  "updatedBy": "",
+  "updateTime": "2000-01-01 14:00:00",
+  "remark": "",
+  "metaTable": null,
+  "metaTable.displayName": "",
+  "extConfigComponent": null
+}

@@ -1,0 +1,20 @@
+{
+  "pipelineId": "",
+  "metaModuleId": "",
+  "pipelineName": "",
+  "displayName": "",
+  "pipelineType": "",
+  "pipelineType_label": "",
+  "sourceSql": "",
+  "schedule": "",
+  "extConfig": "",
+  "version": 0,
+  "createdBy": "",
+  "createTime": "2000-01-01 14:00:00",
+  "updatedBy": "",
+  "updateTime": "2000-01-01 14:00:00",
+  "remark": "",
+  "metaModule": null,
+  "metaModule.displayName": "",
+  "extConfigComponent": null
+}

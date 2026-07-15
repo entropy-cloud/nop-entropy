@@ -1,0 +1,35 @@
+# __XGEN_FORCE_OVERRIDE__
+label: 质量规则类型
+locale: zh-CN
+valueType: string
+description: 
+options:
+
+  - label: 非空检查
+    value: not_null
+    description: 
+  
+  - label: 唯一性检查
+    value: unique
+    description: 
+  
+  - label: 范围检查
+    value: range
+    description: 
+  
+  - label: 正则匹配
+    value: regex
+    description: 
+  
+  - label: 自定义SQL
+    value: custom_sql
+    description: 
+  
+  - label: 新鲜度检查
+    value: freshness
+    description: 
+  
+  - label: 行数检查
+    value: volume
+    description: 
+  

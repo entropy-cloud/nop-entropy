@@ -1,0 +1,23 @@
+# __XGEN_FORCE_OVERRIDE__
+label: 管道类型
+locale: zh-CN
+valueType: string
+description: 
+options:
+
+  - label: ETL
+    value: etl
+    description: 
+  
+  - label: SQL处理
+    value: sql
+    description: 
+  
+  - label: API拉取
+    value: api
+    description: 
+  
+  - label: 手工
+    value: manual
+    description: 
+  

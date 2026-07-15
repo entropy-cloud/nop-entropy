@@ -1,0 +1,23 @@
+# __XGEN_FORCE_OVERRIDE__
+label: 质量结果状态
+locale: zh-CN
+valueType: string
+description: 
+options:
+
+  - label: 通过
+    value: PASS
+    description: 
+  
+  - label: 失败
+    value: FAIL
+    description: 
+  
+  - label: 执行异常
+    value: ERROR
+    description: 
+  
+  - label: 跳过
+    value: SKIP
+    description: 
+  

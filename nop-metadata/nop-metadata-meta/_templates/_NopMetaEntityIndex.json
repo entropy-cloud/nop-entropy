@@ -1,0 +1,19 @@
+{
+  "indexId": "",
+  "metaEntityId": "",
+  "isDelta": 0,
+  "indexName": "",
+  "displayName": "",
+  "indexType": "",
+  "uniqueIndex": 0,
+  "indexColumns": "",
+  "version": 0,
+  "createdBy": "",
+  "createTime": "2000-01-01 14:00:00",
+  "updatedBy": "",
+  "updateTime": "2000-01-01 14:00:00",
+  "remark": "",
+  "metaEntity": null,
+  "metaEntity.displayName": "",
+  "indexColumnsComponent": null
+}

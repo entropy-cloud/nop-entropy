@@ -1,0 +1,156 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<view x:schema="/nop/schema/xui/xview.xdef" bizObjName="NopMetaTable" xmlns:i18n-en="i18n-en"
+      xmlns:x="/nop/schema/xdsl.xdef" xmlns:j="j" xmlns:c="c" xmlns:gql="gql" xmlns:view-gen="view-gen" xmlns:xpl="xpl">
+
+    <objMeta>/nop/metadata/model/NopMetaTable/NopMetaTable.xmeta</objMeta>
+
+    <controlLib>/nop/web/xlib/control.xlib</controlLib>
+
+    <x:gen-extends>
+        <view-gen:DefaultViewGenExtends xpl:lib="/nop/web/xlib/view-gen.xlib"/>
+    </x:gen-extends>
+
+    <x:post-extends>
+        <view-gen:DefaultViewPostExtends xpl:lib="/nop/web/xlib/view-gen.xlib"/>
+    </x:post-extends>
+
+    <grids>
+        <grid id="list" x:abstract="true">
+            <cols>
+
+                <!--逻辑表ID-->
+                <col id="metaTableId" mandatory="true" sortable="true"/>
+
+                <!--模块版本ID-->
+                <col id="metaModuleId" mandatory="true" sortable="true"/>
+
+                <!--表名-->
+                <col id="tableName" mandatory="true" sortable="true"/>
+
+                <!--显示名-->
+                <col id="displayName" sortable="true"/>
+
+                <!--表类型-->
+                <col id="tableType" mandatory="true" sortable="true"/>
+
+                <!--查询空间-->
+                <col id="querySpace" sortable="true"/>
+
+                <!--来源SQL-->
+                <col id="sourceSql" sortable="true"/>
+
+                <!--主要实体ID-->
+                <col id="baseEntityId" sortable="true"/>
+
+                <!--描述-->
+                <col id="description" sortable="true"/>
+
+                <!--合成SQL-->
+                <col id="buildSql" sortable="true"/>
+
+                <!--创建人-->
+                <col id="createdBy" mandatory="true" sortable="true"/>
+
+                <!--创建时间-->
+                <col id="createTime" mandatory="true" sortable="true"/>
+
+                <!--修改人-->
+                <col id="updatedBy" mandatory="true" sortable="true"/>
+
+                <!--修改时间-->
+                <col id="updateTime" mandatory="true" sortable="true"/>
+
+                <!--备注-->
+                <col id="remark" sortable="true"/>
+            </cols>
+        </grid>
+        <grid id="pick-list" x:prototype="list" x:abstract="true"/>
+    </grids>
+
+    <forms>
+        <form id="view" editMode="view" title="查看-逻辑表" i18n-en:title="View Meta Table">
+            <layout>
+ metaTableId[逻辑表ID] metaModuleId[模块版本ID]
+ tableName[表名] displayName[显示名]
+ tableType[表类型] querySpace[查询空间]
+ sourceSql[来源SQL] baseEntityId[主要实体ID]
+ description[描述] buildSql[合成SQL]
+ createdBy[创建人] createTime[创建时间]
+ updatedBy[修改人] updateTime[修改时间]
+ remark[备注] 
+</layout>
+        </form>
+        <form id="add" editMode="add" title="新增-逻辑表" i18n-en:title="Add Meta Table" x:prototype="edit"/>
+        <form id="edit" editMode="edit" title="编辑-逻辑表" i18n-en:title="Edit Meta Table">
+            <layout>
+ metaTableId[逻辑表ID] metaModuleId[模块版本ID]
+ tableName[表名] displayName[显示名]
+ tableType[表类型] querySpace[查询空间]
+ sourceSql[来源SQL] baseEntityId[主要实体ID]
+ description[描述] buildSql[合成SQL]
+ remark[备注] 
+</layout>
+        </form>
+        <form id="query" editMode="query" title="查询条件" i18n-en:title="Query Condition" x:abstract="true"/>
+        <form id="asideFilter" editMode="query" x:abstract="true" submitOnChange="true"/>
+        <form id="batchUpdate" editMode="edit" x:abstract="true" title="修改-逻辑表" i18n-en:title="Update Meta Table"/>
+    </forms>
+
+    <pages>
+        <crud name="view-list" grid="list" asideFilterForm="asideFilter" filterForm="query" x:abstract="true">
+            <table autoFillHeight="true">
+                <api url="@query:NopMetaTable__findPage" gql:selection="{@pageSelection}"/>
+            </table>
+        </crud>
+        <crud name="main" grid="list" asideFilterForm="asideFilter" filterForm="query" x:abstract="true">
+            <table autoFillHeight="true">
+                <api url="@query:NopMetaTable__findPage" gql:selection="{@pageSelection}"/>
+            </table>
+            <listActions>
+                <action id="batch-delete-button" label="@i18n:common.batchDelete" batch="true">
+                    <api url="@mutation:NopMetaTable__batchDelete?ids=$ids"/>
+                    <confirmText>@i18n:common.confirmBatchDelete</confirmText>
+                </action>
+                <action id="add-button" level="primary" label="@i18n:common.add" icon="fa fa-plus pull-left">
+                    <dialog page="add"/>
+                </action>
+            </listActions>
+            <rowActions>
+                <action id="row-view-button" level="primary" label="@i18n:common.view">
+                    <dialog page="view"/>
+                </action>
+                <action id="row-update-button" level="primary" label="@i18n:common.edit" x:abstract="true">
+                    <dialog page="update"/>
+                </action>
+                <action id="row-delete-button" level="danger" label="@i18n:common.delete" x:abstract="true">
+                    <api url="@mutation:NopMetaTable__delete?id=$id"/>
+                    <confirmText>@i18n:common.confirmDelete</confirmText>
+                </action>
+                <actionGroup id="row-more-button" label="@i18n:common.more" level="primary">
+                    <action id="row-update-button" label="@i18n:common.edit">
+                        <dialog page="update"/>
+                    </action>
+                    <action id="row-delete-button" label="@i18n:common.delete">
+                        <api url="@mutation:NopMetaTable__delete?id=$id"/>
+                        <confirmText>@i18n:common.confirmDelete</confirmText>
+                    </action>
+                </actionGroup>
+            </rowActions>
+        </crud>
+        <picker name="picker" grid="pick-list" asideFilterForm="asideFilter" filterForm="query" x:abstract="true">
+            <table noOperations="true">
+                <api url="@query:NopMetaTable__findPage" gql:selection="{@pageSelection}"/>
+            </table>
+        </picker>
+        <simple name="add" form="add">
+            <api url="@mutation:NopMetaTable__save/id"/>
+        </simple>
+        <simple name="view" form="view">
+            <initApi url="@query:NopMetaTable__get?id=$id" gql:selection="{@formSelection}"/>
+        </simple>
+        <simple name="update" form="edit">
+            <initApi url="@query:NopMetaTable__get?id=$id" gql:selection="{@formSelection}"/>
+            <api url="@mutation:NopMetaTable__update/id?id=$id" withFormData="true"/>
+        </simple>
+    </pages>
+</view>

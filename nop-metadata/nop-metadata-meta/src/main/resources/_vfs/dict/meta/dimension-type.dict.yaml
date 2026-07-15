@@ -1,0 +1,19 @@
+# __XGEN_FORCE_OVERRIDE__
+label: 维度类型
+locale: zh-CN
+valueType: string
+description: 
+options:
+
+  - label: 分类
+    value: categorical
+    description: 
+  
+  - label: 时间
+    value: temporal
+    description: 
+  
+  - label: 地理
+    value: geographical
+    description: 
+  

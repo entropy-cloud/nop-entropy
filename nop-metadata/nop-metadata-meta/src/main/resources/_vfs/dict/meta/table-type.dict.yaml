@@ -1,0 +1,15 @@
+# __XGEN_FORCE_OVERRIDE__
+label: 逻辑表类型
+locale: zh-CN
+valueType: string
+description: 
+options:
+
+  - label: 实体表
+    value: entity
+    description: 
+  
+  - label: SQL视图
+    value: sql
+    description: 
+  

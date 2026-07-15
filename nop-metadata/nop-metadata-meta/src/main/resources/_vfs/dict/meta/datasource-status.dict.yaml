@@ -1,0 +1,15 @@
+# __XGEN_FORCE_OVERRIDE__
+label: 数据源状态
+locale: zh-CN
+valueType: string
+description: 
+options:
+
+  - label: 已禁用
+    value: DISABLED
+    description: 
+  
+  - label: 启用
+    value: ACTIVE
+    description: 
+  

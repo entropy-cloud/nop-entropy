@@ -1,0 +1,20 @@
+{
+  "qualityResultId": "",
+  "qualityRuleId": "",
+  "executeTime": "2000-01-01 14:00:00",
+  "status": "",
+  "status_label": "",
+  "actualValue": 0.0,
+  "expectedValue": 0.0,
+  "message": "",
+  "details": "",
+  "version": 0,
+  "createdBy": "",
+  "createTime": "2000-01-01 14:00:00",
+  "updatedBy": "",
+  "updateTime": "2000-01-01 14:00:00",
+  "remark": "",
+  "qualityRule": null,
+  "qualityRule.displayName": "",
+  "detailsComponent": null
+}

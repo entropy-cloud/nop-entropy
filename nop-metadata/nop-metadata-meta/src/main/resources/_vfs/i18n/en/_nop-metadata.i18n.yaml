@@ -1,0 +1,487 @@
+entity:
+  label:
+    NopMetaDataSource: Meta Datasource
+    NopMetaDict: Meta Dict
+    NopMetaDictItem: Meta Dict Item
+    NopMetaDomain: Meta Domain
+    NopMetaEntity: Meta Entity
+    NopMetaEntityField: Meta Entity Field
+    NopMetaEntityIndex: Meta Entity Index
+    NopMetaEntityRelation: Meta Entity Relation
+    NopMetaEntityUniqueKey: Meta Entity Unique Key
+    NopMetaLineageEdge: Meta Lineage Edge
+    NopMetaModule: Meta Module
+    NopMetaOrmModel: Meta ORM Model
+    NopMetaPipeline: Meta Pipeline
+    NopMetaQualityResult: Meta Quality Result
+    NopMetaQualityRule: Meta Quality Rule
+    NopMetaSemanticType: Meta Semantic Type
+    NopMetaTable: Meta Table
+    NopMetaTableDimension: Meta Table Dimension
+    NopMetaTableFilter: Meta Table Filter
+    NopMetaTableJoin: Meta Table Join
+    NopMetaTableMeasure: Meta Table Measure
+prop:
+  label:
+    NopMetaDataSource:
+      dataSourceId: Datasource Id
+      querySpace: Query Space
+      name: Name
+      displayName: Display Name
+      datasourceType: Datasource Type
+      datasourceType_label: null
+      connectionConfig: Connection Config
+      status: Status
+      status_label: null
+      version: Version
+      createdBy: Created By
+      createTime: Create Time
+      updatedBy: Updated By
+      updateTime: Update Time
+      remark: Remark
+      connectionConfigComponent: null
+    NopMetaDict:
+      metaDictId: Meta Dict Id
+      ormModelId: ORM Model Id
+      isDelta: Is Delta
+      dictName: Dict Name
+      label: Label
+      valueType: Value Type
+      locale: Locale
+      staticDict: Static
+      normalized: Normalized
+      deprecated: Deprecated
+      internal: Internal
+      tagSet: Tag Set
+      version: Version
+      createdBy: Created By
+      createTime: Create Time
+      updatedBy: Updated By
+      updateTime: Update Time
+      remark: Remark
+      ormModel: ORM Model
+    NopMetaDictItem:
+      dictItemId: Dict Item Id
+      metaDictId: Meta Dict Id
+      itemValue: Item Value
+      itemLabel: Item Label
+      itemCode: Item Code
+      itemGroup: Item Group
+      description: Description
+      sortOrder: Sort Order
+      deprecated: Deprecated
+      internal: Internal
+      version: Version
+      createdBy: Created By
+      createTime: Create Time
+      updatedBy: Updated By
+      updateTime: Update Time
+      remark: Remark
+      metaDict: Meta Dict
+    NopMetaDomain:
+      metaDomainId: Meta Domain Id
+      ormModelId: ORM Model Id
+      isDelta: Is Delta
+      domainName: Domain Name
+      displayName: Display Name
+      description: Description
+      stdDomain: Std Domain
+      stdDataType: Std Data Type
+      stdSqlType: Std Sql Type
+      precision: Precision
+      scale: Scale
+      validationPattern: Validation Pattern
+      defaultValue: Default Value
+      isGlobal: Is Global
+      sourceModuleId: Source Module Id
+      tagSet: Tag Set
+      extConfig: Ext Config
+      version: Version
+      createdBy: Created By
+      createTime: Create Time
+      updatedBy: Updated By
+      updateTime: Update Time
+      remark: Remark
+      ormModel: ORM Model
+      extConfigComponent: null
+    NopMetaEntity:
+      metaEntityId: Meta Entity Id
+      ormModelId: ORM Model Id
+      isDelta: Is Delta
+      entityName: Entity Name
+      tableName: Table Name
+      displayName: Display Name
+      className: Class Name
+      tagSet: Tag Set
+      querySpace: Query Space
+      persistDriver: Persist Driver
+      useTenant: Use Tenant
+      useRevision: Use Revision
+      useLogicalDelete: Use Logical Delete
+      notGenCode: Not Gen Code
+      createrProp: Creater Prop
+      createTimeProp: Create Time Prop
+      updaterProp: Updater Prop
+      updateTimeProp: Update Time Prop
+      versionProp: Version Prop
+      delFlagProp: Del Flag Prop
+      deleteVersionProp: Delete Version Prop
+      dbCatalog: DB Catalog
+      dbSchema: DB Schema
+      extConfig: Ext Config
+      version: Version
+      createdBy: Created By
+      createTime: Create Time
+      updatedBy: Updated By
+      updateTime: Update Time
+      remark: Remark
+      ormModel: ORM Model
+      extConfigComponent: null
+    NopMetaEntityField:
+      entityFieldId: Entity Field Id
+      metaEntityId: Meta Entity Id
+      isDelta: Is Delta
+      fieldName: Field Name
+      columnCode: Column Code
+      propId: Prop Id
+      stdDataType: Std Data Type
+      stdSqlType: Std Sql Type
+      precision: Precision
+      scale: Scale
+      mandatory: Mandatory
+      primaryField: Primary
+      lazy: Lazy
+      insertable: Insertable
+      updatable: Updatable
+      domain: Domain
+      stdDomain: Std Domain
+      fixedValue: Fixed Value
+      defaultValue: Default Value
+      semanticType: Semantic Type
+      tagSet: Tag Set
+      displayName: Display Name
+      comment: Comment
+      nativeSqlType: Native Sql Type
+      extConfig: Ext Config
+      version: Version
+      createdBy: Created By
+      createTime: Create Time
+      updatedBy: Updated By
+      updateTime: Update Time
+      remark: Remark
+      metaEntity: Meta Entity
+      metaEntity.displayName: Meta Entity
+      extConfigComponent: null
+    NopMetaEntityIndex:
+      indexId: Index Id
+      metaEntityId: Meta Entity Id
+      isDelta: Is Delta
+      indexName: Index Name
+      displayName: Display Name
+      indexType: Index Type
+      uniqueIndex: Unique
+      indexColumns: Index Columns
+      version: Version
+      createdBy: Created By
+      createTime: Create Time
+      updatedBy: Updated By
+      updateTime: Update Time
+      remark: Remark
+      metaEntity: Meta Entity
+      metaEntity.displayName: Meta Entity
+      indexColumnsComponent: null
+    NopMetaEntityRelation:
+      relationId: Relation Id
+      metaEntityId: Meta Entity Id
+      isDelta: Is Delta
+      relationName: Relation Name
+      relationType: Relation Type
+      relationType_label: null
+      refEntityName: Ref Entity Name
+      refPropName: Ref Prop Name
+      cascadeDelete: Cascade Delete
+      autoCascadeDelete: Auto Cascade Delete
+      queryable: Queryable
+      embedded: Embedded
+      notGenCode: Not Gen Code
+      tagSet: Tag Set
+      joinConditions: Join Conditions
+      version: Version
+      createdBy: Created By
+      createTime: Create Time
+      updatedBy: Updated By
+      updateTime: Update Time
+      remark: Remark
+      metaEntity: Meta Entity
+      metaEntity.displayName: Meta Entity
+      joinConditionsComponent: null
+    NopMetaEntityUniqueKey:
+      uniqueKeyId: Unique Key Id
+      metaEntityId: Meta Entity Id
+      isDelta: Is Delta
+      ukName: UK Name
+      displayName: Display Name
+      columns: Columns
+      constraintName: Constraint Name
+      tagSet: Tag Set
+      version: Version
+      createdBy: Created By
+      createTime: Create Time
+      updatedBy: Updated By
+      updateTime: Update Time
+      remark: Remark
+      metaEntity: Meta Entity
+      metaEntity.displayName: Meta Entity
+    NopMetaLineageEdge:
+      lineageEdgeId: Lineage Edge Id
+      sourceTableId: Source Table Id
+      targetTableId: Target Table Id
+      sourceColumn: Source Column
+      targetColumn: Target Column
+      transformType: Transform Type
+      transformType_label: null
+      transformExpr: Transform Expression
+      lineageSource: Lineage Source
+      lineageSource_label: null
+      pipelineId: Pipeline Id
+      confidence: Confidence
+      extConfig: Ext Config
+      version: Version
+      createdBy: Created By
+      createTime: Create Time
+      updatedBy: Updated By
+      updateTime: Update Time
+      remark: Remark
+      extConfigComponent: null
+    NopMetaModule:
+      metaModuleId: Meta Module Id
+      moduleId: Module Id
+      moduleName: Module Name
+      displayName: Display Name
+      moduleVersion: Module Version
+      baseModuleId: Base Module Id
+      status: Status
+      status_label: null
+      mavenGroupId: Maven Group Id
+      mavenArtifactId: Maven Artifact Id
+      mavenVersion: Maven Version
+      gitRepoPath: Git Repo Path
+      gitBranch: Git Branch
+      gitCommitId: Git Commit Id
+      importedAt: Imported At
+      extConfig: Ext Config
+      version: Version
+      createdBy: Created By
+      createTime: Create Time
+      updatedBy: Updated By
+      updateTime: Update Time
+      remark: Remark
+      extConfigComponent: null
+    NopMetaOrmModel:
+      ormModelId: ORM Model Id
+      metaModuleId: Meta Module Id
+      modelName: Model Name
+      isDelta: Is Delta
+      sourceContent: Source Content
+      importedAt: Imported At
+      version: Version
+      createdBy: Created By
+      createTime: Create Time
+      updatedBy: Updated By
+      updateTime: Update Time
+      remark: Remark
+      metaModule: Meta Module
+      metaModule.displayName: Meta Module
+    NopMetaPipeline:
+      pipelineId: Pipeline Id
+      metaModuleId: Meta Module Id
+      pipelineName: Pipeline Name
+      displayName: Display Name
+      pipelineType: Pipeline Type
+      pipelineType_label: null
+      sourceSql: Source Sql
+      schedule: Schedule
+      extConfig: Ext Config
+      version: Version
+      createdBy: Created By
+      createTime: Create Time
+      updatedBy: Updated By
+      updateTime: Update Time
+      remark: Remark
+      metaModule: Meta Module
+      metaModule.displayName: Meta Module
+      extConfigComponent: null
+    NopMetaQualityResult:
+      qualityResultId: Quality Result Id
+      qualityRuleId: Quality Rule Id
+      executeTime: Execute Time
+      status: Status
+      status_label: null
+      actualValue: Actual Value
+      expectedValue: Expected Value
+      message: Message
+      details: Details
+      version: Version
+      createdBy: Created By
+      createTime: Create Time
+      updatedBy: Updated By
+      updateTime: Update Time
+      remark: Remark
+      qualityRule: Quality Rule
+      qualityRule.displayName: Quality Rule
+      detailsComponent: null
+    NopMetaQualityRule:
+      qualityRuleId: Quality Rule Id
+      ruleName: Rule Name
+      displayName: Display Name
+      ruleType: Rule Type
+      ruleType_label: null
+      entityType: Entity Type
+      entityType_label: null
+      entityId: Entity Id
+      severity: Severity
+      severity_label: null
+      sqlExpression: Sql Expression
+      threshold: Threshold
+      params: Params
+      extConfig: Ext Config
+      version: Version
+      createdBy: Created By
+      createTime: Create Time
+      updatedBy: Updated By
+      updateTime: Update Time
+      remark: Remark
+      paramsComponent: null
+      extConfigComponent: null
+    NopMetaSemanticType:
+      semanticTypeId: Semantic Type Id
+      typeName: Type Name
+      displayName: Display Name
+      description: Description
+      applicableTo: Applicable To
+      extConfig: Ext Config
+      version: Version
+      createdBy: Created By
+      createTime: Create Time
+      updatedBy: Updated By
+      updateTime: Update Time
+      remark: Remark
+      applicableToComponent: null
+      extConfigComponent: null
+    NopMetaTable:
+      metaTableId: Meta Table Id
+      metaModuleId: Meta Module Id
+      tableName: Table Name
+      displayName: Display Name
+      tableType: Table Type
+      tableType_label: null
+      querySpace: Query Space
+      sourceSql: Source Sql
+      baseEntityId: Base Entity Id
+      description: Description
+      buildSql: Build Sql
+      version: Version
+      createdBy: Created By
+      createTime: Create Time
+      updatedBy: Updated By
+      updateTime: Update Time
+      remark: Remark
+      metaModule: Meta Module
+      metaModule.displayName: Meta Module
+    NopMetaTableDimension:
+      dimensionId: Dimension Id
+      metaTableId: Meta Table Id
+      dimensionName: Dimension Name
+      displayName: Display Name
+      entityFieldId: Entity Field Id
+      dimensionType: Dimension Type
+      dimensionType_label: null
+      granularity: Granularity
+      format: Format
+      sortOrder: Sort Order
+      extConfig: Ext Config
+      version: Version
+      createdBy: Created By
+      createTime: Create Time
+      updatedBy: Updated By
+      updateTime: Update Time
+      remark: Remark
+      metaTable: Meta Table
+      metaTable.displayName: Meta Table
+      extConfigComponent: null
+    NopMetaTableFilter:
+      filterId: Filter Id
+      metaTableId: Meta Table Id
+      filterName: Filter Name
+      displayName: Display Name
+      definition: Definition
+      description: Description
+      isDefault: Is Default
+      extConfig: Ext Config
+      version: Version
+      createdBy: Created By
+      createTime: Create Time
+      updatedBy: Updated By
+      updateTime: Update Time
+      remark: Remark
+      metaTable: Meta Table
+      metaTable.displayName: Meta Table
+      definitionComponent: null
+      extConfigComponent: null
+    NopMetaTableJoin:
+      joinId: Join Id
+      metaTableId: Meta Table Id
+      joinType: Join Type
+      joinType_label: null
+      leftEntityId: Left Entity Id
+      rightEntityId: Right Entity Id
+      leftField: Left Field
+      rightField: Right Field
+      alias: Alias
+      version: Version
+      createdBy: Created By
+      createTime: Create Time
+      updatedBy: Updated By
+      updateTime: Update Time
+      remark: Remark
+      metaTable: Meta Table
+      metaTable.displayName: Meta Table
+    NopMetaTableMeasure:
+      measureId: Measure Id
+      metaTableId: Meta Table Id
+      measureName: Measure Name
+      displayName: Display Name
+      entityFieldId: Entity Field Id
+      aggFunc: Aggregate Function
+      aggFunc_label: null
+      expression: Expression
+      format: Format
+      currencyUnit: Currency Unit
+      description: Description
+      extConfig: Ext Config
+      version: Version
+      createdBy: Created By
+      createTime: Create Time
+      updatedBy: Updated By
+      updateTime: Update Time
+      remark: Remark
+      metaTable: Meta Table
+      metaTable.displayName: Meta Table
+      extConfigComponent: null
+dict:
+  label:
+    meta/module-status: Module Status
+    meta/datasource-status: Datasource Status
+    meta/datasource-type: Datasource Type
+    meta/table-type: Table Type
+    meta/relation-type: Relation Type
+    meta/dimension-type: Dimension Type
+    meta/agg-func: Aggregate Function
+    meta/join-type: Join Type
+    meta/lineage-transform: Lineage Transform Type
+    meta/lineage-source: Lineage Source
+    meta/pipeline-type: Pipeline Type
+    meta/quality-rule-type: Quality Rule Type
+    meta/quality-entity-type: Quality Entity Type
+    meta/quality-severity: Quality Severity
+    meta/quality-result-status: Quality Result Status

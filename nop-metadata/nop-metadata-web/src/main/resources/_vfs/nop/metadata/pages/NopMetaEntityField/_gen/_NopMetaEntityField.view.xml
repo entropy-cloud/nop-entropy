@@ -1,0 +1,216 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<view x:schema="/nop/schema/xui/xview.xdef" bizObjName="NopMetaEntityField" xmlns:i18n-en="i18n-en"
+      xmlns:x="/nop/schema/xdsl.xdef" xmlns:j="j" xmlns:c="c" xmlns:gql="gql" xmlns:view-gen="view-gen" xmlns:xpl="xpl">
+
+    <objMeta>/nop/metadata/model/NopMetaEntityField/NopMetaEntityField.xmeta</objMeta>
+
+    <controlLib>/nop/web/xlib/control.xlib</controlLib>
+
+    <x:gen-extends>
+        <view-gen:DefaultViewGenExtends xpl:lib="/nop/web/xlib/view-gen.xlib"/>
+    </x:gen-extends>
+
+    <x:post-extends>
+        <view-gen:DefaultViewPostExtends xpl:lib="/nop/web/xlib/view-gen.xlib"/>
+    </x:post-extends>
+
+    <grids>
+        <grid id="list" x:abstract="true">
+            <cols>
+
+                <!--字段ID-->
+                <col id="entityFieldId" mandatory="true" sortable="true"/>
+
+                <!--实体ID-->
+                <col id="metaEntityId" mandatory="true" sortable="true"/>
+
+                <!--是否Delta-->
+                <col id="isDelta" mandatory="true" sortable="true"/>
+
+                <!--属性名-->
+                <col id="fieldName" mandatory="true" sortable="true"/>
+
+                <!--列名-->
+                <col id="columnCode" sortable="true"/>
+
+                <!--属性序号-->
+                <col id="propId" ui:number="true" sortable="true"/>
+
+                <!--数据类型-->
+                <col id="stdDataType" sortable="true"/>
+
+                <!--SQL类型-->
+                <col id="stdSqlType" sortable="true"/>
+
+                <!--精度-->
+                <col id="precision" ui:number="true" sortable="true"/>
+
+                <!--标度-->
+                <col id="scale" ui:number="true" sortable="true"/>
+
+                <!--必填-->
+                <col id="mandatory" sortable="true"/>
+
+                <!--主键-->
+                <col id="primaryField" sortable="true"/>
+
+                <!--懒加载-->
+                <col id="lazy" sortable="true"/>
+
+                <!--可插入-->
+                <col id="insertable" sortable="true"/>
+
+                <!--可更新-->
+                <col id="updatable" sortable="true"/>
+
+                <!--域-->
+                <col id="domain" sortable="true"/>
+
+                <!--标准域-->
+                <col id="stdDomain" sortable="true"/>
+
+                <!--固定值-->
+                <col id="fixedValue" sortable="true"/>
+
+                <!--默认值-->
+                <col id="defaultValue" sortable="true"/>
+
+                <!--语义类型-->
+                <col id="semanticType" sortable="true"/>
+
+                <!--标签集-->
+                <col id="tagSet" sortable="true"/>
+
+                <!--显示名-->
+                <col id="displayName" sortable="true"/>
+
+                <!--注释-->
+                <col id="comment" sortable="true"/>
+
+                <!--原生SQL类型-->
+                <col id="nativeSqlType" sortable="true"/>
+
+                <!--扩展配置-->
+                <col id="extConfig" sortable="true"/>
+
+                <!--创建人-->
+                <col id="createdBy" mandatory="true" sortable="true"/>
+
+                <!--创建时间-->
+                <col id="createTime" mandatory="true" sortable="true"/>
+
+                <!--修改人-->
+                <col id="updatedBy" mandatory="true" sortable="true"/>
+
+                <!--修改时间-->
+                <col id="updateTime" mandatory="true" sortable="true"/>
+
+                <!--备注-->
+                <col id="remark" sortable="true"/>
+            </cols>
+        </grid>
+        <grid id="pick-list" x:prototype="list" x:abstract="true"/>
+    </grids>
+
+    <forms>
+        <form id="view" editMode="view" title="查看-实体字段" i18n-en:title="View Meta Entity Field">
+            <layout>
+ entityFieldId[字段ID] metaEntityId[实体ID]
+ isDelta[是否Delta] fieldName[属性名]
+ columnCode[列名] propId[属性序号]
+ stdDataType[数据类型] stdSqlType[SQL类型]
+ precision[精度] scale[标度]
+ mandatory[必填] primaryField[主键]
+ lazy[懒加载] insertable[可插入]
+ updatable[可更新] domain[域]
+ stdDomain[标准域] fixedValue[固定值]
+ defaultValue[默认值] semanticType[语义类型]
+ tagSet[标签集] displayName[显示名]
+ comment[注释] nativeSqlType[原生SQL类型]
+ extConfig[扩展配置] createdBy[创建人]
+ createTime[创建时间] updatedBy[修改人]
+ updateTime[修改时间] remark[备注]
+</layout>
+        </form>
+        <form id="add" editMode="add" title="新增-实体字段" i18n-en:title="Add Meta Entity Field" x:prototype="edit"/>
+        <form id="edit" editMode="edit" title="编辑-实体字段" i18n-en:title="Edit Meta Entity Field">
+            <layout>
+ entityFieldId[字段ID] metaEntityId[实体ID]
+ isDelta[是否Delta] fieldName[属性名]
+ columnCode[列名] propId[属性序号]
+ stdDataType[数据类型] stdSqlType[SQL类型]
+ precision[精度] scale[标度]
+ mandatory[必填] primaryField[主键]
+ lazy[懒加载] insertable[可插入]
+ updatable[可更新] domain[域]
+ stdDomain[标准域] fixedValue[固定值]
+ defaultValue[默认值] semanticType[语义类型]
+ tagSet[标签集] displayName[显示名]
+ comment[注释] nativeSqlType[原生SQL类型]
+ extConfig[扩展配置] remark[备注]
+</layout>
+        </form>
+        <form id="query" editMode="query" title="查询条件" i18n-en:title="Query Condition" x:abstract="true"/>
+        <form id="asideFilter" editMode="query" x:abstract="true" submitOnChange="true"/>
+        <form id="batchUpdate" editMode="edit" x:abstract="true" title="修改-实体字段"
+              i18n-en:title="Update Meta Entity Field"/>
+    </forms>
+
+    <pages>
+        <crud name="view-list" grid="list" asideFilterForm="asideFilter" filterForm="query" x:abstract="true">
+            <table autoFillHeight="true">
+                <api url="@query:NopMetaEntityField__findPage" gql:selection="{@pageSelection}"/>
+            </table>
+        </crud>
+        <crud name="main" grid="list" asideFilterForm="asideFilter" filterForm="query" x:abstract="true">
+            <table autoFillHeight="true">
+                <api url="@query:NopMetaEntityField__findPage" gql:selection="{@pageSelection}"/>
+            </table>
+            <listActions>
+                <action id="batch-delete-button" label="@i18n:common.batchDelete" batch="true">
+                    <api url="@mutation:NopMetaEntityField__batchDelete?ids=$ids"/>
+                    <confirmText>@i18n:common.confirmBatchDelete</confirmText>
+                </action>
+                <action id="add-button" level="primary" label="@i18n:common.add" icon="fa fa-plus pull-left">
+                    <dialog page="add"/>
+                </action>
+            </listActions>
+            <rowActions>
+                <action id="row-view-button" level="primary" label="@i18n:common.view">
+                    <dialog page="view"/>
+                </action>
+                <action id="row-update-button" level="primary" label="@i18n:common.edit" x:abstract="true">
+                    <dialog page="update"/>
+                </action>
+                <action id="row-delete-button" level="danger" label="@i18n:common.delete" x:abstract="true">
+                    <api url="@mutation:NopMetaEntityField__delete?id=$id"/>
+                    <confirmText>@i18n:common.confirmDelete</confirmText>
+                </action>
+                <actionGroup id="row-more-button" label="@i18n:common.more" level="primary">
+                    <action id="row-update-button" label="@i18n:common.edit">
+                        <dialog page="update"/>
+                    </action>
+                    <action id="row-delete-button" label="@i18n:common.delete">
+                        <api url="@mutation:NopMetaEntityField__delete?id=$id"/>
+                        <confirmText>@i18n:common.confirmDelete</confirmText>
+                    </action>
+                </actionGroup>
+            </rowActions>
+        </crud>
+        <picker name="picker" grid="pick-list" asideFilterForm="asideFilter" filterForm="query" x:abstract="true">
+            <table noOperations="true">
+                <api url="@query:NopMetaEntityField__findPage" gql:selection="{@pageSelection}"/>
+            </table>
+        </picker>
+        <simple name="add" form="add">
+            <api url="@mutation:NopMetaEntityField__save/id"/>
+        </simple>
+        <simple name="view" form="view">
+            <initApi url="@query:NopMetaEntityField__get?id=$id" gql:selection="{@formSelection}"/>
+        </simple>
+        <simple name="update" form="edit">
+            <initApi url="@query:NopMetaEntityField__get?id=$id" gql:selection="{@formSelection}"/>
+            <api url="@mutation:NopMetaEntityField__update/id?id=$id" withFormData="true"/>
+        </simple>
+    </pages>
+</view>

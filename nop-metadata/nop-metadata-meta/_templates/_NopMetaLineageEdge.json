@@ -1,0 +1,22 @@
+{
+  "lineageEdgeId": "",
+  "sourceTableId": "",
+  "targetTableId": "",
+  "sourceColumn": "",
+  "targetColumn": "",
+  "transformType": "",
+  "transformType_label": "",
+  "transformExpr": "",
+  "lineageSource": "",
+  "lineageSource_label": "",
+  "pipelineId": "",
+  "confidence": 0.0,
+  "extConfig": "",
+  "version": 0,
+  "createdBy": "",
+  "createTime": "2000-01-01 14:00:00",
+  "updatedBy": "",
+  "updateTime": "2000-01-01 14:00:00",
+  "remark": "",
+  "extConfigComponent": null
+}

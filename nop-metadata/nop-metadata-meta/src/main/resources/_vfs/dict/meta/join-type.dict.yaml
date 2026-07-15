@@ -1,0 +1,19 @@
+# __XGEN_FORCE_OVERRIDE__
+label: 关联类型
+locale: zh-CN
+valueType: string
+description: 
+options:
+
+  - label: 内连接
+    value: inner
+    description: 
+  
+  - label: 左连接
+    value: left
+    description: 
+  
+  - label: 右连接
+    value: right
+    description: 
+  

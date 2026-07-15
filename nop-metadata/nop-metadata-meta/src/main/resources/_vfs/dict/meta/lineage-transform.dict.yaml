@@ -1,0 +1,19 @@
+# __XGEN_FORCE_OVERRIDE__
+label: 血缘转换类型
+locale: zh-CN
+valueType: string
+description: 
+options:
+
+  - label: 直接映射
+    value: direct
+    description: 
+  
+  - label: 派生
+    value: derived
+    description: 
+  
+  - label: 聚合
+    value: aggregated
+    description: 
+  

@@ -1,0 +1,21 @@
+{
+  "metaDictId": "",
+  "ormModelId": "",
+  "isDelta": 0,
+  "dictName": "",
+  "label": "",
+  "valueType": "",
+  "locale": "",
+  "staticDict": 0,
+  "normalized": 0,
+  "deprecated": 0,
+  "internal": 0,
+  "tagSet": "",
+  "version": 0,
+  "createdBy": "",
+  "createTime": "2000-01-01 14:00:00",
+  "updatedBy": "",
+  "updateTime": "2000-01-01 14:00:00",
+  "remark": "",
+  "ormModel": null
+}
