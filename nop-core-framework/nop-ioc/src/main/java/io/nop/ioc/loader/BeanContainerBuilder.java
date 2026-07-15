@@ -96,6 +96,10 @@ public class BeanContainerBuilder implements IBeanContainerBuilder {
 
     @Override
     public IBeanContainerBuilder addResource(IResource resource) {
+        String stdPath = resource.getStdPath();
+        if (stdPath != null && !this.beans.addImported(stdPath))
+            return this;
+
         BeansModel beans = (BeansModel) new DslModelParser(IocConstants.XDEF_BEANS).parseFromResource(resource);
         this.beans.merge(buildDefinition(beans, null));
         return this;
