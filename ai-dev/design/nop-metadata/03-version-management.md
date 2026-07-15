@@ -39,12 +39,13 @@ nop-app-mall v1 (delta, released)  — x:extends="nop-auth"，只写增量
 
 ### 1.3 版本号策略
 
-**决策**: 版本号使用 long 整数（单调递增），不用语义版本号。
+**决策**: 版本号使用 long 整数（单调递增），不用语义版本号。版本号在 **import 时**分配为 `max(moduleVersion for same moduleId) + 1`（首个版本为 1）；release 只改 status，不改 version。
 
 **理由**:
 - 语义版本号（1.2.3）在 Maven 中用于依赖解析，在 nop-metadata 中用于对比和排序
-- long 更简单：`version = lastVersion + 1`，不需要解析规则
+- long 更简单：`version = maxVersion + 1`，不需要解析规则
 - Delta 链的深度不受版本号格式约束
+- import 时递增是与唯一键 `UK_NOP_META_MODULE_ID_VER(moduleId, moduleVersion)` 兼容的唯一方案：若每次 import 都设 version=1，重复导入同一 moduleId 必然冲突；若 release 时才递增，则多个 drafting 记录共用 version=1 也冲突。import 时递增 + release 时固化（不可变）。
 
 ---
 
@@ -158,21 +159,27 @@ MetaOrmModel
 ### 4.1 模块导入流程
 
 ```
-orm.xml → 解析 → MetaOrmModel(isDelta=true)
-               → MetaOrmModel(isDelta=false, 合并后)
-               → MetaEntity/Field/Relation/Dict (跟随 MetaOrmModel)
-               → MetaTable (自动为每个 MetaEntity 创建)
+orm.xml → buildModule(moduleVersion = max(same moduleId)+1, status=DRAFTING)
+        → persistModelGraph(delta, isDelta=true)   [DslNodeLoader filtered，未展开 x:extends]
+        → persistModelGraph(full, isDelta=false)   [OrmModelLoader，展开 x:extends]
+        → 每组：NopMetaOrmModel → NopMetaEntity/Field/Relation/UK/Index + NopMetaDomain/Dict + NopMetaTable
 ```
+
+- 导入时同时存储 delta 定义（isDelta=true）和 full 定义（isDelta=false），共用同一 `metaModuleId`。
+- `moduleVersion` 在 import 时递增（见 §1.3），解决唯一键 `(moduleId, moduleVersion)` 冲突。
+- `baseModuleId` 从 `x:extends` 推导，base 模块未导入时为 null。
 
 ### 4.2 版本发布
 
 ```
 1. 用户在 UI 上选择模块版本
-2. 检查所有 MetaOrmModel 的 status = released
+2. 检查 MetaModule.status = drafting（只有 drafting 可发布）
 3. 设置 MetaModule.status = released
-4. version 字段发布后不可变
-5. 发布 MetaModuleChangedEvent 事件
+4. version 字段在 import 时已分配，发布后不可变
+5. 发布 MetaModuleChangedEvent 事件（事件模型实体未建模，当前为 non-blocking follow-up）
 ```
+
+> **修正**：原 §4.2 第 2 步写"检查所有 MetaOrmModel 的 status = released"，但 MetaOrmModel 不再有 status 字段（status 在 MetaModule 上），此处修正为"检查 MetaModule.status = drafting"。
 
 ### 4.3 版本废弃
 
@@ -181,6 +188,28 @@ orm.xml → 解析 → MetaOrmModel(isDelta=true)
 2. 设置 MetaModule.status = deprecated
 3. 该版本下的模型仍然可查，但标记为已废弃
 ```
+
+### 4.4 releaseModule action 契约
+
+**签名**: `@BizMutation releaseModule(@Name("metaModuleId") String id, IServiceContext context)` → 返回 `NopMetaModule`
+
+**行为**:
+
+1. 按 `metaModuleId` 加载 NopMetaModule；不存在则抛 `NopException`（ErrorCode `metadata.module-not-found`，`.param("metaModuleId", id)`）
+2. 校验 `status == "DRAFTING"`；非 drafting 抛 `NopException`（ErrorCode `metadata.module-not-drafting`，`.param("status", currentStatus)`）
+3. 设 `status = "RELEASED"`，保存（`dao().updateEntity(module)`）
+4. 返回更新后的 NopMetaModule
+
+**不变量**:
+
+- version 不在 release 时递增（version 在 import 时分配，见 §1.3）
+- 已 RELEASED 的模块再次调用 releaseModule 抛异常（不可变性：拒绝重复 release，不静默返回）
+- "不可变"仅指 releaseModule 拒绝重复 release；通用 CRUD 路径的不可变性强制为后续 plan（标准 CRUD 仍可修改已发布模块数据）
+
+**ErrorCode**（在 `NopMetaModuleBizModel` 内 inline 定义，nop-metadata 无独立 Errors 类）:
+
+- `metadata.module-not-found`: "Module not found: {metaModuleId}"
+- `metadata.module-not-drafting`: "Module is not in drafting status: {status}"
 
 ---
 
