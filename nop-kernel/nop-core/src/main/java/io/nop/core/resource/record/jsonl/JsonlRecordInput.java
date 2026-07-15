@@ -77,10 +77,10 @@ public class JsonlRecordInput<T> implements IRecordInput<T> {
         try {
             String line;
             while ((line = br.readLine()) != null) {
-                if (StringHelper.isBlank(line))
-                    continue;
-                nextLine = line;
-                return true;
+                if (!StringHelper.isBlank(line)) {
+                    nextLine = line;
+                    return true;
+                }
             }
             return false;
         } catch (IOException e) {

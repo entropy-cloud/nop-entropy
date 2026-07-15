@@ -43,6 +43,7 @@ public class PrintTagCompiler implements IXplTagCompiler {
                 if (!node.hasChild()) {
                     return TextOutputExpression.valueOf(node.content().getLocation(), node.contentText());
                 }
+                // fall through to xml
             case xml:
                 String xml = node.innerXml();
                 return TextOutputExpression.valueOf(node.content().getLocation(), xml);

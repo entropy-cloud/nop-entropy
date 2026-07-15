@@ -46,8 +46,7 @@ public class FreezableMap<K, V> extends ObservableMap<K, V> implements IFreezabl
         }
     }
 
-    @Override
-    public Object clone() {
+    public FreezableMap<K, V> cloneInstance() {
         return new FreezableMap<>(new LinkedHashMap<>(this));
     }
 }

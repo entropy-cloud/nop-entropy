@@ -292,7 +292,7 @@ public class DateHelper {
             try {
                 DateTimeFormatter formatter = buildFormatter(pattern);
                 return LocalDate.parse(s, formatter);
-            } catch (Exception ignore) { // NOSONAR
+            } catch (Exception expected) {
             }
         }
         return null;

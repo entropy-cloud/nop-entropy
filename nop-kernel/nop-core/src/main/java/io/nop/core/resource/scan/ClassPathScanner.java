@@ -122,8 +122,7 @@ public class ClassPathScanner {
                 //JarEntry jarEntry = jarCon.getJarEntry();
                 closeJarFile = !jarCon.getUseCaches();
             }
-        } catch (Exception e) {
-            // IGNORE
+        } catch (Exception expected) {
         }
 
         if (jarFile == null) {

@@ -314,8 +314,7 @@ public class DefaultTaskExecutionQueue extends LifeCycleSupport implements ITask
                 state.getPromise().get(remaining, TimeUnit.MILLISECONDS);
             } catch (java.util.concurrent.TimeoutException e) {
                 return false;
-            } catch (java.util.concurrent.ExecutionException e) {
-                // 忽略执行异常，继续等待其他任务
+            } catch (java.util.concurrent.ExecutionException expected) {
             }
         }
 

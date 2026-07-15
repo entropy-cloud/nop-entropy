@@ -33,8 +33,7 @@ public class RecordBeanModelBuilder {
         Method m = null;
         try {
             m = Class.class.getMethod("getRecordComponents");
-        } catch (NoSuchMethodException e) {
-            // Java < 16
+        } catch (NoSuchMethodException expected) {
         }
         GET_RECORD_COMPONENTS = m;
     }

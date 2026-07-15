@@ -464,8 +464,7 @@ public class ReflectionManager implements IBeanModelManager, IGenericTypeBuilder
         java.lang.reflect.Method m = null;
         try {
             m = Class.class.getMethod("isRecord");
-        } catch (NoSuchMethodException e) {
-            // Java < 16
+        } catch (NoSuchMethodException expected) {
         }
         IS_RECORD_METHOD = m;
     }

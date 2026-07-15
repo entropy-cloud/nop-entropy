@@ -285,16 +285,4 @@ public class AESTextCipher implements ITextCipher, IStreamCipher {
         }
     }
 
-    public static void main(String[] args) throws Exception {
-        Cipher cipher = Cipher.getInstance("AES/CBC/PKCS5Padding");
-        String iv = "1234567890123456";
-        String key = "1234567890123456";
-        SecretKeySpec secretKeySpec = new SecretKeySpec(key.getBytes(StandardCharsets.UTF_8), "AES");
-        IvParameterSpec ivParameterSpec = new IvParameterSpec(iv.getBytes(StandardCharsets.UTF_8));
-
-        cipher.init(Cipher.DECRYPT_MODE, secretKeySpec, ivParameterSpec);
-        byte[] input = Base64.getDecoder().decode("XUKkXg/gHviLfrsF1mHrVg==");
-        String output = new String(cipher.doFinal(input), StandardCharsets.UTF_8);
-        System.out.println(output);
-    }
 }

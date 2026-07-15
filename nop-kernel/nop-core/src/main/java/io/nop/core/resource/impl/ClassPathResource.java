@@ -119,8 +119,7 @@ public class ClassPathResource extends AbstractResource {
         try {
             conn = url.openConnection();
             this.length = conn.getContentLengthLong();
-        } catch (Exception e) {
-            // ignore
+        } catch (Exception expected) {
         }
     }
 

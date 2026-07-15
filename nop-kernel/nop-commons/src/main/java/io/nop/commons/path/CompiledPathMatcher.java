@@ -131,7 +131,9 @@ public class CompiledPathMatcher implements ICompiledPathMatcher {
                     }
                 }
                 foundIdx = pathIdxStart + i;
-                break;
+                if (foundIdx != -1) {
+                    break;
+                }
             }
 
             if (foundIdx == -1) {

@@ -225,10 +225,12 @@ public class StringTrie<T> {
                             node.object = value;
                             break;
                         case UNIQUE:
-                            if (node.object == null) {
-                                node.object = value;
-                                break;
+                            if (node.object != null) {
+                                throw new NopException(ERR_TEXT_TRIE_KEY_ALREADY_EXISTS).param(ARG_KEY, str).param(
+                                        ARG_VALUE, value);
                             }
+                            node.object = value;
+                            break;
                         default:
                             throw new NopException(ERR_TEXT_TRIE_KEY_ALREADY_EXISTS).param(ARG_KEY, str).param(ARG_VALUE,
                                     value);

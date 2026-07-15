@@ -56,7 +56,7 @@ public interface Seq<T> {
     default void consumeTillStop(Consumer<T> consumer) {
         try {
             consume(consumer);
-        } catch (StopException ignore) {
+        } catch (StopException expected) {
         }
     }
 

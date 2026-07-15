@@ -51,7 +51,7 @@ public class CacheConfig implements Serializable {
         this.useMetrics = config.useMetrics;
     }
 
-    public CacheConfig clone() {
+    public CacheConfig cloneInstance() {
         return new CacheConfig(this);
     }
 

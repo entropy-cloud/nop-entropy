@@ -340,7 +340,9 @@ public class AntPathMatcher implements IPathMatcher {
                     }
                 }
                 foundIdx = pathIdxStart + i;
-                break;
+                if (foundIdx != -1) {
+                    break;
+                }
             }
 
             if (foundIdx == -1) {
@@ -523,13 +525,14 @@ public class AntPathMatcher implements IPathMatcher {
         for (int segment = 0; segment < patternParts.length; segment++) {
             String patternPart = patternParts[segment];
             if (patternPart.indexOf('*') > -1 || patternPart.indexOf('?') > -1) {
-                for (; segment < pathParts.length; segment++) {
+                for (int j = segment; j < pathParts.length; j++) {
                     if (pathStarted || (segment == 0 && !pattern.startsWith(this.pathSeparator))) {
                         builder.append(this.pathSeparator);
                     }
-                    builder.append(pathParts[segment]);
+                    builder.append(pathParts[j]);
                     pathStarted = true;
                 }
+                segment = patternParts.length;
             }
         }
 
