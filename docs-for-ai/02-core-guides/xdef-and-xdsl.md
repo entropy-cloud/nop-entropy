@@ -75,10 +75,32 @@ XDef 的目标不是再造一层与最终 DSL 完全不同的 schema，而是让
 </services>
 ```
 
+**重要规则：`key-attr` 指定的属性必须在子节点上显式声明，且类型必须与 `xdef:ref` 继承的类型一致**
+
+`xdef:key-attr="name"` 要求每个子节点必须有 `name` 属性。这个校验发生在 `xdef:ref` 解析之前，因此必须显式声明。声明的类型必须与 `xdef:ref` 继承的类型完全一致：
+
+```xml
+<!-- ✅ 正确：类型 !xml-name 与 pattern.xdef 中的 name="!xml-name" 一致 -->
+<patterns xdef:key-attr="name" xdef:body-type="list">
+    <pattern name="!xml-name" xdef:ref="pattern.xdef"/>
+</patterns>
+
+<!-- ❌ 错误：类型 !string 与 pattern.xdef 中的 name="!xml-name" 不一致 -->
+<patterns xdef:key-attr="name" xdef:body-type="list">
+    <pattern name="!string" xdef:ref="pattern.xdef"/>
+</patterns>
+
+<!-- ❌ 错误：缺少 name 声明，key-attr 校验会失败 -->
+<patterns xdef:key-attr="name" xdef:body-type="list">
+    <pattern xdef:ref="pattern.xdef"/>
+</patterns>
+```
+
 ### 4. 复用结构使用 `xdef:name` / `xdef:ref`
 
-- `xdef:name` 给结构命名
-- `xdef:ref` 在同文件或外部文件中复用结构
+- `xdef:name` 给结构命名，可在同文件或外部文件中通过 `xdef:ref` 引用
+- `xdef:ref` 继承被引用结构的 body-type、子节点定义等
+- 属性声明必须在使用 `xdef:ref` 的节点上显式写出，且**类型必须与被引用定义一致**
 
 ### 5. 逗号分隔字符串集合优先用 `csv-set`
 
@@ -104,6 +126,24 @@ XDef 的目标不是再造一层与最终 DSL 完全不同的 schema，而是让
 2. 如果文本值和 `name()` 不一致，覆写 `toString()` 返回协议值。
 
 仓库里的很多枚举还会提供 `@StaticFactoryMethod` 的解析入口；如果周边代码已经这样写，继续沿用该风格。
+
+**枚举类型语法**：
+
+```xml
+<!-- 可选枚举，无默认值 -->
+<partition name="enum:io.nop.stream.core.execution.plan.PartitionPolicy"/>
+
+<!-- 可选枚举，带默认值 -->
+<partition name="enum:io.nop.stream.core.execution.plan.PartitionPolicy=FORWARD"/>
+
+<!-- 必填枚举，无默认值 -->
+<partition name="!enum:io.nop.stream.core.execution.plan.PartitionPolicy"/>
+
+<!-- 必填枚举，带默认值 -->
+<partition name="!enum:io.nop.stream.core.execution.plan.PartitionPolicy=FORWARD"/>
+```
+
+注意：`!` 必须放在 `enum:` 前面，不能放在 `=` 后面。默认值不是必须的，Java 代码可以自行处理。
 
 ## x-extends 合并算法：App = Delta x-extends Generator\<DSL\>
 
