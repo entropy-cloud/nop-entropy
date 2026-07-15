@@ -1,6 +1,6 @@
 # 2 nop-metadata 血缘采集 + 图遍历查询
 
-> Plan Status: active
+> Plan Status: completed
 > Last Reviewed: 2026-07-16
 > Source: `ai-dev/design/nop-metadata/nop-metadata-roadmap.md` P2（P2-5）；`ai-dev/design/nop-metadata/01-architecture-baseline.md` §2.6 数据血缘；`ai-dev/design/nop-metadata/04-data-governance.md` §2.4 血缘治理
 > Mission: nop-metadata
@@ -94,77 +94,77 @@
 
 ### Phase 1 - 血缘填充机制（recordLineage manual + extractLineageFromSql 表级）
 
-Status: planned
+Status: completed
 Targets: `nop-metadata/nop-metadata-service/.../entity/NopMetaLineageEdgeBizModel.java`、新增 SQL 源表抽取器、`TestNopMetaLineageEdgeBizModel.java`
 
 - Item Types: `Decision`（D1 sql_parse 范围/解析器选型 + D2 lineageSource 范围/external 列级裁定，硬前置）+ `Proof`（新功能：血缘填充）
 
 > **硬前置门禁（item 1.1）**：D1/D2 必须先裁定（只裁定不写代码）——尤其 SQL 解析器选型与列级/external 裁定，写入设计文档后再实现填充逻辑。
 
-- [ ] 1.1 **sql_parse 范围 + 解析器选型 + external 列级 + dangling 决策（硬前置门禁，Decision only）**：基于 live repo 核查并裁定 D1/D2——研究平台可用 SQL 解析能力：**验证 `nop-orm-eql` 的 SQL AST（`SqlFrom`/`SqlJoinTableSource`/`SqlTableName`）能否作为依赖引入 `nop-metadata-service`，以及是否支持对任意用户 SQL 的纯语法解析（非 ORM session 绑定）**；裁定 sql_parse 表级范围 + 解析器（复用 `nop-orm-eql` AST or 文档化 tokenizer，含限制说明 + 依赖裁定）；裁定 external 列级血缘软引用（列名字符串，不引实体）；裁定 dangling 策略（**注：`sourceTableId` 为 `mandatory="true"`（`orm.xml:1366`），无法创建 null-source 边，故 dangling 一律进返回 unresolved 列表、不建边**；不静默丢）；裁定 getLineagePath 返回形态（**默认单条最短路径 BFS**，全部简单路径为 Non-Goal 以控制复杂度）。**只裁定不写代码**。结论写入 `01-architecture-baseline.md` §2.6（sql_parse 范围/解析器/限制 + lineageSource 支持范围 + external 列级软引用 + 遍历语义/环检测 + dangling 由 mandatory 约束强制）
-- [ ] 1.2 新增 SQL 源表抽取器：输入 sql 文本 → 按 D1 选型抽取 FROM/JOIN 表引用（含/不含 schema 前缀）→ 返回表名列表（在 BizModel 内匹配目录 NopMetaTable.tableName）。抽取器无目录依赖（纯文本→表名），匹配在 BizModel 层做
-- [ ] 1.3 在 `NopMetaLineageEdgeBizModel` 新增 `@BizMutation recordLineage(...)`：录入一条或多条 MetaLineageEdge（支持表级 + 列级，sourceColumn/targetColumn 可选），`lineageSource=manual`（或调用方指定 open_lineage/hook 但首版无专用 action）。sourceTableId/targetTableId 校验存在（不存在抛 inline ErrorCode，不静默建悬空边）
-- [ ] 1.4 在 BizModel 新增 `@BizMutation extractLineageFromSql(@Name("metaTableId") String id, IServiceContext context)` → 返回 `Map{extractedEdgeCount: int, unresolved: [...], errors: [...]}`：加载 tableType=sql 的 NopMetaTable → 抽取器解析 sourceSql → 匹配目录表 → 按 `(sourceTableId, targetTableId, lineageSource='sql_parse')` 幂等 upsert 表级边（target=该 sql 表自身，sourceColumn/targetColumn 空）→ 未匹配表名进 unresolved（不丢、不静默）→ 返回结果。非 sql 类型表抛 inline ErrorCode（快速失败，不静默）
-- [ ] 1.5 错误码按现有模式在 BizModel 内 inline 定义（参考 `NopMetaModuleBizModel`/`NopMetaDataSourceBizModel` inline ErrorCode 用法）
+- [x] 1.1 **sql_parse 范围 + 解析器选型 + external 列级 + dangling 决策（硬前置门禁，Decision only）**：基于 live repo 核查并裁定 D1/D2——研究平台可用 SQL 解析能力：**验证 `nop-orm-eql` 的 SQL AST（`SqlFrom`/`SqlJoinTableSource`/`SqlTableName`）能否作为依赖引入 `nop-metadata-service`，以及是否支持对任意用户 SQL 的纯语法解析（非 ORM session 绑定）**；裁定 sql_parse 表级范围 + 解析器（复用 `nop-orm-eql` AST or 文档化 tokenizer，含限制说明 + 依赖裁定）；裁定 external 列级血缘软引用（列名字符串，不引实体）；裁定 dangling 策略（**注：`sourceTableId` 为 `mandatory="true"`（`orm.xml:1366`），无法创建 null-source 边，故 dangling 一律进返回 unresolved 列表、不建边**；不静默丢）；裁定 getLineagePath 返回形态（**默认单条最短路径 BFS**，全部简单路径为 Non-Goal 以控制复杂度）。**只裁定不写代码**。结论写入 `01-architecture-baseline.md` §2.6（sql_parse 范围/解析器/限制 + lineageSource 支持范围 + external 列级软引用 + 遍历语义/环检测 + dangling 由 mandatory 约束强制）
+- [x] 1.2 新增 SQL 源表抽取器：输入 sql 文本 → 按 D1 选型抽取 FROM/JOIN 表引用（含/不含 schema 前缀）→ 返回表名列表（在 BizModel 内匹配目录 NopMetaTable.tableName）。抽取器无目录依赖（纯文本→表名），匹配在 BizModel 层做
+- [x] 1.3 在 `NopMetaLineageEdgeBizModel` 新增 `@BizMutation recordLineage(...)`：录入一条或多条 MetaLineageEdge（支持表级 + 列级，sourceColumn/targetColumn 可选），`lineageSource=manual`（或调用方指定 open_lineage/hook 但首版无专用 action）。sourceTableId/targetTableId 校验存在（不存在抛 inline ErrorCode，不静默建悬空边）
+- [x] 1.4 在 BizModel 新增 `@BizMutation extractLineageFromSql(@Name("metaTableId") String id, IServiceContext context)` → 返回 `Map{extractedEdgeCount: int, unresolved: [...], errors: [...]}`：加载 tableType=sql 的 NopMetaTable → 抽取器解析 sourceSql → 匹配目录表 → 按 `(sourceTableId, targetTableId, lineageSource='sql_parse')` 幂等 upsert 表级边（target=该 sql 表自身，sourceColumn/targetColumn 空）→ 未匹配表名进 unresolved（不丢、不静默）→ 返回结果。非 sql 类型表抛 inline ErrorCode（快速失败，不静默）
+- [x] 1.5 错误码按现有模式在 BizModel 内 inline 定义（参考 `NopMetaModuleBizModel`/`NopMetaDataSourceBizModel` inline ErrorCode 用法）
 
 Exit Criteria:
 
 > 每个 Phase 完成后，必须逐条勾选本节。
 
-- [ ] D1/D2 决策已裁定并写入 §2.6；解析器选型与限制在设计文档显式记录
-- [ ] `recordLineage` 可通过 GraphQL mutation 调用，录入表级 + 列级边并可在 `NopMetaLineageEdge__findPage` 查到
-- [ ] `extractLineageFromSql` 对 tableType=sql 表抽取后，目录中生成表级边（target=该 sql 表，sourceColumn/targetColumn 空，lineageSource=sql_parse）
-- [ ] 重复抽取同一 sql 表不重复追加（按 `(sourceTableId, targetTableId, lineageSource)` 幂等）
-- [ ] sourceSql 中引用但目录无对应表的表名，显式出现在返回 `unresolved` 列表（不静默丢弃）
-- [ ] sourceTableId/targetTableId 不存在（recordLineage）/ 非 sql 类型表（extractLineageFromSql）：显式失败，不静默
-- [ ] **接线验证**：extractLineageFromSql 运行时确实调用了 SQL 抽取器并匹配目录表写入边（返回 extractedEdgeCount>0 + edge 可查证明），非空壳
-- [ ] **无静默跳过**：未匹配引用进 unresolved；不存在 ID/非 sql 类型显式失败；无空方法体或吞异常
-- [ ] **新功能测试**：新增测试覆盖 recordLineage（表级+列级）+ extractLineageFromSql 抽取 + 幂等 + unresolved 标记 + 非 sql 类型/不存在 ID 显式失败，全绿
-- [ ] `ai-dev/design/nop-metadata/01-architecture-baseline.md` §2.6（sql_parse 范围/解析器/限制 + lineageSource 支持范围 + external 列级软引用 + dangling 策略）已更新
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] D1/D2 决策已裁定并写入 §2.6；解析器选型与限制在设计文档显式记录
+- [x] `recordLineage` 可通过 GraphQL mutation 调用，录入表级 + 列级边并可在 `NopMetaLineageEdge__findPage` 查到
+- [x] `extractLineageFromSql` 对 tableType=sql 表抽取后，目录中生成表级边（target=该 sql 表，sourceColumn/targetColumn 空，lineageSource=sql_parse）
+- [x] 重复抽取同一 sql 表不重复追加（按 `(sourceTableId, targetTableId, lineageSource)` 幂等）
+- [x] sourceSql 中引用但目录无对应表的表名，显式出现在返回 `unresolved` 列表（不静默丢弃）
+- [x] sourceTableId/targetTableId 不存在（recordLineage）/ 非 sql 类型表（extractLineageFromSql）：显式失败，不静默
+- [x] **接线验证**：extractLineageFromSql 运行时确实调用了 SQL 抽取器并匹配目录表写入边（返回 extractedEdgeCount>0 + edge 可查证明），非空壳
+- [x] **无静默跳过**：未匹配引用进 unresolved；不存在 ID/非 sql 类型显式失败；无空方法体或吞异常
+- [x] **新功能测试**：新增测试覆盖 recordLineage（表级+列级）+ extractLineageFromSql 抽取 + 幂等 + unresolved 标记 + 非 sql 类型/不存在 ID 显式失败，全绿
+- [x] `ai-dev/design/nop-metadata/01-architecture-baseline.md` §2.6（sql_parse 范围/解析器/限制 + lineageSource 支持范围 + external 列级软引用 + dangling 策略）已更新
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 ### Phase 2 - 图遍历查询（向上追溯 / 向下追踪 / 路径查找 / 影响分析）
 
-Status: planned
+Status: completed
 Targets: `NopMetaLineageEdgeBizModel.java`（新增查询 action）、`TestNopMetaLineageEdgeBizModel.java`
 
 - Item Types: `Proof`（新功能：图遍历查询）
 
-- [ ] 2.1 在 BizModel 新增 `@BizQuery getUpstream(@Name("metaTableId") String id)`：反向 BFS（沿 targetTableId→sourceTableId）收集所有上游源表，返回表级列表（含层数/路径可选）。含 visited 环检测
-- [ ] 2.2 在 BizModel 新增 `@BizQuery getDownstream(@Name("metaTableId") String id)`：正向 BFS（沿 sourceTableId→targetTableId）收集所有下游表。含 visited 环检测
-- [ ] 2.3 在 BizModel 新增 `@BizQuery getLineagePath(@Name("sourceTableId") String s, @Name("targetTableId") String t)`：返回 S→T **单条最短路径**（BFS 最短路径，按 D1/item 1.1 裁定），BFS + visited 环检测；无路径返回空（显式空，不静默报错）
-- [ ] 2.4 在 BizModel 新增 `@BizQuery getImpactAnalysis(@Name("metaTableId") String id, @Name("columnName") String col)`：变更影响 = 该表下游；若提供 col 且存在列级边按列过滤，否则回退表级（所有下游表）。返回受影响表/列清单
+- [x] 2.1 在 BizModel 新增 `@BizQuery getUpstream(@Name("metaTableId") String id)`：反向 BFS（沿 targetTableId→sourceTableId）收集所有上游源表，返回表级列表（含层数/路径可选）。含 visited 环检测
+- [x] 2.2 在 BizModel 新增 `@BizQuery getDownstream(@Name("metaTableId") String id)`：正向 BFS（沿 sourceTableId→targetTableId）收集所有下游表。含 visited 环检测
+- [x] 2.3 在 BizModel 新增 `@BizQuery getLineagePath(@Name("sourceTableId") String s, @Name("targetTableId") String t)`：返回 S→T **单条最短路径**（BFS 最短路径，按 D1/item 1.1 裁定），BFS + visited 环检测；无路径返回空（显式空，不静默报错）
+- [x] 2.4 在 BizModel 新增 `@BizQuery getImpactAnalysis(@Name("metaTableId") String id, @Name("columnName") String col)`：变更影响 = 该表下游；若提供 col 且存在列级边按列过滤，否则回退表级（所有下游表）。返回受影响表/列清单
 
 Exit Criteria:
 
-- [ ] 四类查询 action 可通过 GraphQL query 调用
-- [ ] `getUpstream`/`getDownstream` 对多跳血缘图返回正确的传递闭包（BFS 正确性）
-- [ ] `getLineagePath` 返回 S→T 路径；无路径返回显式空（不报错）；含环图不死循环（visited 生效）
-- [ ] `getImpactAnalysis` 有列级边时按列过滤、无列级边时回退表级（回退逻辑正确，不静默返回空当存在表级下游时）
-- [ ] **端到端验证**：从 `recordLineage`/`extractLineageFromSql` 建边 → `getUpstream`/`getDownstream`/`getLineagePath`/`getImpactAnalysis` 返回正确结果的完整路径已验证（建一条 A→B→C 链，断言 getDownstream(A) 含 B,C；getUpstream(C) 含 A,B；getLineagePath(A,C) 含路径）
-- [ ] **接线验证**：遍历查询运行时确实查询了 MetaLineageEdge（多跳结果证明），非空壳
-- [ ] **无静默跳过**：无路径显式空；环图不死循环；无空方法体
-- [ ] **新功能测试**：新增测试覆盖 多跳 upstream/downstream + 路径查找（含无路径 + 环图不死循环）+ 影响分析（列级过滤 + 表级回退），全绿
-- [ ] No owner-doc update required（遍历语义/环检测/路径形态在 Phase 1 item 1.1 已写入 `01-architecture-baseline.md` §2.6；Phase 2 仅实现，不新增设计契约）
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] 四类查询 action 可通过 GraphQL query 调用
+- [x] `getUpstream`/`getDownstream` 对多跳血缘图返回正确的传递闭包（BFS 正确性）
+- [x] `getLineagePath` 返回 S→T 路径；无路径返回显式空（不报错）；含环图不死循环（visited 生效）
+- [x] `getImpactAnalysis` 有列级边时按列过滤、无列级边时回退表级（回退逻辑正确，不静默返回空当存在表级下游时）
+- [x] **端到端验证**：从 `recordLineage`/`extractLineageFromSql` 建边 → `getUpstream`/`getDownstream`/`getLineagePath`/`getImpactAnalysis` 返回正确结果的完整路径已验证（建一条 A→B→C 链，断言 getDownstream(A) 含 B,C；getUpstream(C) 含 A,B；getLineagePath(A,C) 含路径）
+- [x] **接线验证**：遍历查询运行时确实查询了 MetaLineageEdge（多跳结果证明），非空壳
+- [x] **无静默跳过**：无路径显式空；环图不死循环；无空方法体
+- [x] **新功能测试**：新增测试覆盖 多跳 upstream/downstream + 路径查找（含无路径 + 环图不死循环）+ 影响分析（列级过滤 + 表级回退），全绿
+- [x] No owner-doc update required（遍历语义/环检测/路径形态在 Phase 1 item 1.1 已写入 `01-architecture-baseline.md` §2.6；Phase 2 仅实现，不新增设计契约）
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 ## Closure Gates
 
 > **关闭条件**：所有条目 + 每个 Phase Exit Criteria 全部 `[x]` 后才能 `completed`。
 
-- [ ] 血缘填充可用（manual recordLineage + 表级 sql_parse extractLineageFromSql）
-- [ ] 四类图遍历查询可用且语义正确（upstream/downstream/path/impact）
-- [ ] 幂等成立（sql_parse 按 `(sourceTableId, targetTableId, lineageSource)` 去重）
-- [ ] unresolved/dangling 不静默丢弃；不存在 ID/非 sql 类型显式失败
-- [ ] 环图不死循环（visited 生效）
-- [ ] 不存在空壳实现（无空方法体 / 静默跳过 / 吞异常）
-- [ ] 必要 focused verification 已完成（填充 + 幂等 + unresolved + 四类遍历测试全绿）
-- [ ] `./mvnw clean install -pl nop-metadata -T 1C` BUILD SUCCESS（含测试）
-- [ ] `node ai-dev/tools/scan-hollow-implementations.mjs --module nop-metadata --severity high` 退出码 0
-- [ ] 受影响的 owner docs 已同步（`01-architecture-baseline.md` §2.6 sql_parse 范围/解析器/限制 + lineageSource 支持 + external 列级软引用 + 遍历语义）
-- [ ] 独立子 agent / 独立审阅者 closure-audit 已完成并记录证据
-- [ ] **Anti-Hollow Check**：closure audit 已验证填充 action 运行时确实抽取/写入边、遍历 query 运行时确实查询 MetaLineageEdge 多跳（端到端连通）
-- [ ] `node ai-dev/tools/check-plan-checklist.mjs ai-dev/plans/2026-07-16-0420-2-nop-metadata-lineage-collection-and-traversal.md --strict` 退出码 0
+- [x] 血缘填充可用（manual recordLineage + 表级 sql_parse extractLineageFromSql）
+- [x] 四类图遍历查询可用且语义正确（upstream/downstream/path/impact）
+- [x] 幂等成立（sql_parse 按 `(sourceTableId, targetTableId, lineageSource)` 去重）
+- [x] unresolved/dangling 不静默丢弃；不存在 ID/非 sql 类型显式失败
+- [x] 环图不死循环（visited 生效）
+- [x] 不存在空壳实现（无空方法体 / 静默跳过 / 吞异常）
+- [x] 必要 focused verification 已完成（填充 + 幂等 + unresolved + 四类遍历测试全绿）
+- [x] `./mvnw clean install -pl nop-metadata -T 1C` BUILD SUCCESS（含测试）
+- [x] `node ai-dev/tools/scan-hollow-implementations.mjs --module nop-metadata --severity high` 退出码 0
+- [x] 受影响的 owner docs 已同步（`01-architecture-baseline.md` §2.6 sql_parse 范围/解析器/限制 + lineageSource 支持 + external 列级软引用 + 遍历语义）
+- [x] 独立子 agent / 独立审阅者 closure-audit 已完成并记录证据
+- [x] **Anti-Hollow Check**：closure audit 已验证填充 action 运行时确实抽取/写入边、遍历 query 运行时确实查询 MetaLineageEdge 多跳（端到端连通）
+- [x] `node ai-dev/tools/check-plan-checklist.mjs ai-dev/plans/2026-07-16-0420-2-nop-metadata-lineage-collection-and-traversal.md --strict` 退出码 0
 
 ## Deferred But Adjudicated
 
@@ -203,21 +203,30 @@ Exit Criteria:
 
 ## Closure
 
-Status Note: <<完成时填写>>
-Completed: <<YYYY-MM-DD>>
+Status Note: 血缘从"只有 CRUD 表结构"推进到"可采集、可遍历、可做影响分析"。recordLineage（manual，表级+列级）+ extractLineageFromSql（sql_parse，表级，复用 nop-orm-eql AST）+ 四类图遍历（upstream/downstream/getLineagePath/getImpactAnalysis，内存建图 BFS + visited 环检测）全部落地。unresolved 不静默丢弃；幂等 upsert；不存在 ID/非 sql 类型显式失败。独立 closure audit PASS。
+Completed: 2026-07-16
 
 Closure Audit Evidence:
 
-- Reviewer / Agent: <<独立审阅者或独立子 agent>>
-- Audit Session: <<如用子 agent，记录 session ID>>
+- Reviewer / Agent: 独立子 agent（fresh session）`ses_0985d457fffex3qmw7JQvKdVJG`
+- Audit Session: ses_0985d457fffex3qmw7JQvKdVJG（general subagent，独立于实现 session）
 - Evidence:
-  - 每条 Exit Criterion 的验证结果（PASS/FAIL + 对应 live code path 或 test name）
-  - 每条 Closure Gate 的验证结果
-  - `node ai-dev/tools/check-plan-checklist.mjs <plan-file> --strict` 退出码为 0
-  - Anti-Hollow 检查结果：<<填充+遍历端到端调用链追踪>>
-  - `scan-hollow-implementations.mjs --module nop-metadata --severity high` 退出码 0
-  - Deferred 项分类检查：<<确认 P2-2/P2-3 Deferred 项已诚实裁定，无 in-scope live defect 被降级>>
+  - **Phase 1 Exit Criteria**：全 PASS。`recordLineage`（NopMetaLineageEdgeBizModel.java:79-134）批量存在性校验（FilterBeans.in）+ 原子保存；`extractLineageFromSql`（:167-194）调 `sqlExtractor.extract` → `buildTableNameIndex` → `upsertSqlParseEdge` 幂等 upsert。测试：testRecordLineageTableAndColumnLevel（recordedEdgeCount=2 + findEdge 校验 lineageSource=manual/transformType=derived/confidence=0.9）、testExtractLineageFromSqlWritesTableLevelEdges（extractedEdgeCount=2 + 两条 ORDERS→view/CUSTOMERS→view 边可查）、testExtractLineageFromSqlIdempotent（重抽 count=1 不追加）、testExtractLineageFromSqlUnresolvedNotDropped（GHOST_TBL 进 unresolved 且不建悬空边）、testExtractLineageFromSqlNotSqlTable/testExtractLineageFromSqlNotFound/testRecordLineageSourceNotFound/testRecordLineageEmptyRejected（显式失败）。
+  - **Phase 2 Exit Criteria**：全 PASS。四查询均 @BizQuery 且调 buildLineageGraph()→dao().findAll() 建 forward/reverse/columnForward 邻接表 + BFS（getUpstream:208/getDownstream:236/getLineagePath:263/getImpactAnalysis:315）。测试：testUpstreamDownstreamMultiHop（A→B→C，downstream(A)含 B,C；upstream(C)含 A,B）、testLineagePathAndNoPath（path=[A,B,C]+无路径显式空）、testCycleNoInfiniteLoop（A↔B visited 防死循环）、testImpactAnalysisColumnFilterAndTableFallback（col=x→[T2] 按列过滤；null→[T2,T3] 表级；no_such_col→[T2,T3] 回退不静默空）。GraphQL query 暴露验证穿插。
+  - **Anti-Hollow（a）填充接线**：extractLineageFromSql:167 → SqlSourceTableExtractor.extract:54 → EqlASTParser.parseFromText（签名匹配 EqlASTParser.java:22）→ walk 递归 forEachChild（ASTNode.java:212 抽象方法）→ SqlSingleTableSource.getTableName().getName()/getFullName() → BizModel:189 upsertSqlParseEdge → dao().findFirstByQuery + saveEntity/updateEntity。真实 AST 解析→真实 DB 写入，非 stub。
+  - **Anti-Hollow（b）遍历接线**：四查询均 buildLineageGraph()→dao().findAll()（:402）建图 + HashSet visited 环检测（:222/:249/:284/:351/:382）；getLineagePath 用 prev map 重建最短路径（:271-306）。真实图遍历，非空方法体。
+  - **Anti-Hollow（c）无静默跳过**：extractor 解析失败抛 ERR_LINEAGE_SQL_PARSE_FAILED（:56/:59）；extractLineageFromSql 仅把 NopException 路由进 errors 列表（:168-174，显式上报非吞掉）；唯一 return null 是 readDouble 在 map 值缺失时（语义为"未提供"，合法）。
+  - **D1/D2 设计文档同步**：01-architecture-baseline.md §2.6.1（:371-391）含解析器=EqlASTParser.parseFromText + 表级范围 + 依赖裁定（nop-orm→nop-orm-eql 无环）+ 限制 + 幂等键 + external 列级软引用 + dangling 策略（mandatory→unresolved）；§2.6.2（:393-401）含四类遍历语义 + visited 环检测 + 最短路径 + 内存建图策略。依赖链核实：nop-orm/pom.xml:22-25 声明 nop-orm-eql。
+  - **Closure Gates**：全 PASS（见上）。
+  - `node ai-dev/tools/check-plan-checklist.mjs <plan> --strict` 退出码 0。
+  - `node ai-dev/tools/scan-hollow-implementations.mjs --module nop-metadata --severity high` 退出码 0（0 findings）。
+  - `./mvnw clean install -pl nop-metadata -T 1C` BUILD SUCCESS（含测试，44 tests 0 failure）。
+  - **Deferred 项分类检查**：4 项均诚实裁定，无 in-scope live defect 被降级——列级 SQL 血缘（optimization candidate，列级仍由 recordLineage 手工支持）/ 血缘→Manifest 依赖图（watch-only residual，遍历直接读 MetaLineageEdge，与 Manifest 独立）/ Pipeline 自动抽取（optimization candidate，outputTable 未建模，真实歧义）/ open_lineage·hook（out-of-scope improvement，外部集成）。
 
 Follow-up:
 
-- <<只记录 non-blocking follow-up>>
+- 列级 SQL 血缘解析（SELECT 列→源列映射）作为后续 plan
+- sql_parse 陈旧边清理（源表从目录删除后旧 edge 残留，无 prune 步骤）
+- 定时自动抽取调度（当前手动 action）
+- 血缘可视化数据结构（前端图渲染 node/edge 聚合 action）
+- Manifest 依赖图纳入血缘边 / Pipeline 自动抽取（归类见 Deferred But Adjudicated，non-blocking）

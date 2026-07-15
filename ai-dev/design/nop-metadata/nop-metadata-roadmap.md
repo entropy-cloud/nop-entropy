@@ -1,6 +1,6 @@
 # nop-metadata Implementation Roadmap
 
-> Last Updated: 2026-07-16 (P2-4 completed via plan 0420-1; P2-5 plan active: 0420-2; P2-3 completed via plan 0225-3; P1+ completed via plans 294+295; Phase 1 import engine via plan 292)
+> Last Updated: 2026-07-16 (P2-5 completed via plan 0420-2; P2-4 completed via plan 0420-1; P2-3 completed via plan 0225-3; P1+ completed via plans 294+295; Phase 1 import engine via plan 292)
 > Source: 设计体系 `ai-dev/design/nop-metadata/`（00-vision ~ 10-event-model）；`01-architecture-baseline.md` 为架构权威
 
 ## Purpose
@@ -94,7 +94,7 @@
 | P2-2 | **外部表元数据同步**：从已注册数据源扫描表结构，写入 MetaTable(tableType=external) + 列结构 JSON（方案 A+A2，见 `01-architecture-baseline.md` §2.5.1） | done |
 | P2-3 | **MetaManifest 快照**（新实体）：导入时生成完整元数据快照（模块/模型/实体/依赖图），参考 dbt Manifest | done |
 | P2-4 | **MetaCatalog 运行时收集**（新实体）：从数据库收集运行时统计（行数/大小/索引/分区），参考 dbt Catalog | done |
-| P2-5 | **血缘采集**：MetaLineageEdge 填充机制（sql_parse / open_lineage / hook），向上追溯 + 向下追踪 + 影响分析 + 路径查找 | planned |
+| P2-5 | **血缘采集**：MetaLineageEdge 填充机制（manual + sql_parse 表级，复用 nop-orm-eql AST），向上追溯 + 向下追踪 + 影响分析 + 路径查找（见 `01-architecture-baseline.md` §2.6.1/§2.6.2） | done |
 | P2-6 | **质量规则执行引擎**：MetaQualityRule 执行（not_null/unique/range/regex/freshness/volume/custom_sql），写入 MetaQualityResult 时序结果 | todo |
 | P2-7 | **数据剖析**：profiling 规则类型，值分布/统计指标/异常值检测，参考 Apache Griffin | todo |
 
@@ -199,8 +199,8 @@ graph TD
 非 roadmap 内容已拆分到各自归属，本文件不重复维护：
 
 - **设计文档** → `ai-dev/design/nop-metadata/`（00-vision ~ 10-event-model，共 11 份编号文档 + README）
-- **已完成 plan** → `292`（Phase 1 导入引擎）；`293`（设计一致性修复）；`294`（P1+ 导入引擎完整性）；`295`（P1+ Delta 展开 + 版本发布）；`2026-07-16-0225-1`（P2-1 数据源注册+连接验证）；`2026-07-16-0225-2`（P2-2 外部表同步）；`2026-07-16-0225-3`（P2-3 Manifest 快照）
-- **活跃 plan** → `ai-dev/plans/2026-07-16-0420-2-nop-metadata-lineage-collection-and-traversal.md`（P2-5 血缘采集+遍历，active）；`ai-dev/plans/2026-07-16-0420-1-nop-metadata-catalog-runtime-collection.md`（P2-4 Catalog 运行时收集，completed）
+- **已完成 plan** → `292`（Phase 1 导入引擎）；`293`（设计一致性修复）；`294`（P1+ 导入引擎完整性）；`295`（P1+ Delta 展开 + 版本发布）；`2026-07-16-0225-1`（P2-1 数据源注册+连接验证）；`2026-07-16-0225-2`（P2-2 外部表同步）；`2026-07-16-0225-3`（P2-3 Manifest 快照）；`2026-07-16-0420-1`（P2-4 Catalog 运行时收集）；`2026-07-16-0420-2`（P2-5 血缘采集+遍历）
+- **活跃 plan** → （无；P2 阶段 P2-1~P2-5 全部完成，下一阶段 P2-6 质量规则执行引擎待启动）
 - **设计决策** → `01-architecture-baseline.md` §一 设计结论 + §七 拒绝清单
 - **待定问题** → `01-architecture-baseline.md` §八 待定问题
 - **Gap 分析** → `02-gap-analysis.md`（对比 DataHub/OpenMetadata/Atlas/Amundsen/Marquez）

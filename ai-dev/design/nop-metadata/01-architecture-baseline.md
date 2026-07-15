@@ -368,6 +368,38 @@ MetaPipeline                     — 数据处理管道
 - **影响分析**: 列级变更影响范围（哪些下游列会受影响）
 - **路径查找**: 两表之间的血缘路径
 
+#### 2.6.1 血缘采集（P2-5 裁定）
+
+**边存储形态**：`sourceTableId`/`targetTableId` 是 plain string（存 `NopMetaTable.metaTableId`），**无 ORM to-one 关系**——遍历时按列值查询（`IX_NOP_META_LINEAGE_SOURCE` on sourceTableId / `IX_NOP_META_LINEAGE_TARGET` on targetTableId）。
+
+**血缘来源（lineageSource）支持范围**：
+- 首版支持 `manual`（`recordLineage` 手工录入，表级+列级）+ `sql_parse`（`extractLineageFromSql`，表级）。
+- `open_lineage`/`hook` 保留 dict 值，首版**无专用自动填充 action**；允许通过 `recordLineage` 手工指定这两个来源（不拒绝），后续增量。
+
+**sql_parse 范围与解析器（表级 only）**：
+- 范围：仅**表级**——从 `NopMetaTable.sourceSql`（tableType=sql）的 FROM/JOIN 子句抽取源表引用，匹配目录 `NopMetaTable.tableName`，创建表级边（sourceColumn/targetColumn 留空）。target = 该 sql 表自身。**列级 SQL 解析（SELECT 列→源列映射）不在首版**，复杂度过高。
+- 解析器：复用平台 `nop-orm-eql` 的 `EqlASTParser.parseFromText(text)`（纯语法解析，返回 `SqlProgram` AST）。依赖裁定：`nop-orm`（`nop-metadata-dao` 依赖它）已直接依赖 `nop-orm-eql`，故 AST 解析器**已传递可用**于 `nop-metadata-service`，无需新增 pom 依赖，也无循环依赖（`nop-orm-eql` 仅依赖 `nop-orm-model`+`nop-dao`+`nop-core`，不反向依赖 `nop-orm`）。纯语法解析不绑定 ORM session——session 绑定的 `resolvedTableMeta` 解析是独立 compile 阶段，此处不调用，仅取 `SqlTableName.getName()`/`getFullName()`（含 schema 前缀）。
+- 限制（显式记录）：不展开 CTE 别名、子查询别名、动态 SQL；未匹配到目录表的引用记 unresolved（不丢）。
+- 幂等：按 `(sourceTableId, targetTableId, lineageSource='sql_parse')` 去重 upsert（更新而非无限追加）。
+
+**列级血缘对 external 表的裁定（收口 P2-2 Deferred）**：
+- external 表列以 JSON 存 buildSql（A2，无字段实体）。列级血缘对 external 列**以列名字符串软引用**（sourceColumn/targetColumn 存列名），**不引入** external 字段实体（避免 ORM 结构变更 Protected Area）。
+- 血缘边的列引用对所有 tableType 一致：**软引用**（列名字符串），不强制 FK 到字段实体（entity 列虽可关联 MetaEntityField，但血缘边不建硬 FK）。
+
+**dangling（未解析引用）策略（不得静默丢弃）**：
+- sql_parse 抽取的表引用若匹配不到目录表，该引用放入返回 `unresolved: [...]` 列表（原表名显式保留）+ **edge 暂不创建**。
+- 约束原因：`sourceTableId` 为 `mandatory="true"`（`nop-metadata.orm.xml` NopMetaLineageEdge 列定义），ORM 层无法创建 null-source 边，故 dangling 一律进 unresolved 列表、不建悬空边——此约束由 schema 决定，非可选。日志记录 unresolved 计数。
+
+#### 2.6.2 图遍历语义（P2-5 裁定）
+
+遍历基于 MetaLineageEdge 边的有向图，边方向 `source → target`（数据从 source 流向 target）：
+
+- **getUpstream(metaTableId)**：反向 BFS（沿 targetTableId→sourceTableId），收集所有能到达给定表的上游源表。含 visited 环检测。
+- **getDownstream(metaTableId)**：正向 BFS（沿 sourceTableId→targetTableId），收集给定表能到达的所有下游表。含 visited 环检测。
+- **getLineagePath(sourceTableId, targetTableId)**：返回 S→T **单条最短路径**（BFS 最短路径 + visited 环检测防死循环）。返回全部简单路径为 Non-Goal（循环图中成本/复杂度过高）。无路径返回显式空（不报错）。
+- **getImpactAnalysis(metaTableId, columnName?)**：变更影响 = 该表下游；若提供 columnName 且存在列级边（sourceColumn/targetColumn）则按列过滤，否则回退表级（该表所有下游表）。
+- **BFS 查询策略**：一次性 `findAllByQuery` 全量 MetaLineageEdge 在内存建图遍历（元数据目录量级、边数小），避免 per-hop 查询过度设计。
+
 ### 2.7 数据质量
 
 数据质量定义在字段和表级别，描述数据的约束规则和质量期望。
