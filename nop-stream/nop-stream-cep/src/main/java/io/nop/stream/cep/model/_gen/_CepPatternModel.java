@@ -41,6 +41,13 @@ public abstract class _CepPatternModel extends io.nop.core.resource.component.Ab
     
     /**
      *  
+     * xml name: name
+     * 
+     */
+    private java.lang.String _name ;
+    
+    /**
+     *  
      * xml name: 
      * 
      */
@@ -113,6 +120,25 @@ public abstract class _CepPatternModel extends io.nop.core.resource.component.Ab
         checkAllowChange();
         
         this._gapWithin = value;
+           
+    }
+
+    
+    /**
+     * 
+     * xml name: name
+     *  
+     */
+    
+    public java.lang.String getName(){
+      return _name;
+    }
+
+    
+    public void setName(java.lang.String value){
+        checkAllowChange();
+        
+        this._name = value;
            
     }
 
@@ -220,6 +246,7 @@ public abstract class _CepPatternModel extends io.nop.core.resource.component.Ab
         out.putNotNull("afterMatchSkipStrategy",this.getAfterMatchSkipStrategy());
         out.putNotNull("afterMatchSkipTo",this.getAfterMatchSkipTo());
         out.putNotNull("gapWithin",this.getGapWithin());
+        out.putNotNull("name",this.getName());
         out.putNotNull("parts",this.getParts());
         out.putNotNull("start",this.getStart());
         out.putNotNull("within",this.getWithin());
@@ -237,6 +264,7 @@ public abstract class _CepPatternModel extends io.nop.core.resource.component.Ab
         instance.setAfterMatchSkipStrategy(this.getAfterMatchSkipStrategy());
         instance.setAfterMatchSkipTo(this.getAfterMatchSkipTo());
         instance.setGapWithin(this.getGapWithin());
+        instance.setName(this.getName());
         instance.setParts(this.getParts());
         instance.setStart(this.getStart());
         instance.setWithin(this.getWithin());

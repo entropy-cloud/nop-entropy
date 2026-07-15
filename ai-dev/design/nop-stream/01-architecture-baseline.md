@@ -17,14 +17,11 @@
 
 ```
 nop-stream/
-├── nop-stream-api          [规划] 用户可见 API、function contract、source/sink 一致性能力声明
-├── nop-stream-core         [实现] StreamModel、StreamComponents、图模型、PartitionedPlan、DeploymentPlan
-├── nop-stream-runtime      [实现] RuntimeTopology、task 执行、transport backend、fencing、node lifecycle
-├── nop-stream-checkpoint   [规划] Epoch coordinator、manifest、state segment、checkpoint/savepoint storage
+├── nop-stream-core         [实现] StreamModel、StreamComponents、图模型、PartitionedPlan、DeploymentPlan、Checkpoint 类型定义
+├── nop-stream-runtime      [实现] RuntimeTopology、task 执行、transport backend、fencing、node lifecycle、Checkpoint 协调器与存储
 ├── nop-stream-connector    [实现] 连接器适配层：replayable source、transactional sink、SourceWorkUnit
 ├── nop-stream-cep          [实现] Pattern/NFA/SharedBuffer、CEP operator（接入统一状态后端）
 ├── nop-stream-flow         [规划] XDSL StreamModel 编排，支持 Delta 定制
-├── nop-stream-flink        [规划] 可选外部后端适配（不作为内核设计来源）
 └── nop-stream-fraud-example[实现] 端到端欺诈检测示例
 ```
 
@@ -32,21 +29,18 @@ nop-stream/
 
 | 模块 | 职责 | 依赖方向 |
 |------|------|----------|
-| **nop-stream-api** | 用户可见 API、SourceFunction/SinkFunction contract、一致性能力枚举、公共模型接口 | 无依赖 |
-| **nop-stream-core** | StreamModel + StreamComponents、StreamGraph/JobGraph、PartitionedPlan/DeploymentPlan、优化和校验、StreamRequirement 校验 | → api |
-| **nop-stream-runtime** | RuntimeTopology、本地/分布式 task 执行、transport backend、fencing、node lifecycle、EdgeConfig flow control | → core |
-| **nop-stream-checkpoint** | Epoch coordinator、manifest 生成与发布、state segment descriptor、checkpoint/savepoint storage contract、CheckpointParticipant 调度 | → core |
+| **nop-stream-core** | StreamModel + StreamComponents、StreamGraph/JobGraph、PartitionedPlan/DeploymentPlan、优化和校验、StreamRequirement 校验、Checkpoint 类型定义（`core.checkpoint` 包） | 无 |
+| **nop-stream-runtime** | RuntimeTopology、本地/分布式 task 执行、transport backend、fencing、node lifecycle、EdgeConfig flow control、Checkpoint 协调器与存储实现（`runtime.checkpoint` 包） | → core |
 | **nop-stream-connector** | Replayable source（SourceWorkUnit + RestrictionTracker）、transactional/idempotent sink（CheckpointParticipant）、split/offset 协议适配 | → core |
 | **nop-stream-cep** | Pattern DSL、NFA 编译、SharedBuffer、CepOperator（通过标准 state/timer 接口接入统一后端）、声明式模型（pattern.xdef） | → core |
 | **nop-stream-flow** | XDSL StreamModel 编排、Delta 定制支持 | → core |
-| **nop-stream-flink** | 可选外部后端适配，将 core API 的 Transformation 映射到 Flink DataStream API | → core |
 
 ### 依赖方向
 
-依赖只能从右向左：运行时和集成模块依赖 core，core 依赖 api，api 不依赖任何实现模块。
+依赖只能从右向左：运行时和集成模块依赖 core，core 不依赖任何实现模块。
 
 ```
-runtime / checkpoint / connector / cep / flow  →  core  →  api
+runtime / connector / cep / flow  →  core
 ```
 
 关键约束：
@@ -54,7 +48,6 @@ runtime / checkpoint / connector / cep / flow  →  core  →  api
 | 规则 | 说明 |
 |---|---|
 | core 不依赖 runtime | core 只定义模型和编译结果 |
-| checkpoint 不依赖具体 transport | checkpoint 通过 plan 和 task identity 工作 |
 | connector 不依赖具体 runtime | connector 声明 source/sink 能力和状态协议 |
 | cep 不依赖 runtime checkpoint 实现 | CEP operator 通过标准 state/timer 接口接入 |
 

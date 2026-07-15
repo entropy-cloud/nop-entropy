@@ -1,15 +1,297 @@
+<!--
+nop-stream 声明式流处理模型定义。
+
+StreamModel 是 nop-stream 的 canonical 模型，可由三种入口合成：
+1. XDSL 声明式定义（本 xdef 描述的形式）
+2. Java DataStream API 编程构造
+3. Delta 定制合成
+
+三种入口最终生成同一套 StreamModel，经五层执行管线编译执行：
+StreamModel → StreamGraph → JobGraph → PartitionedPlan → DeploymentPlan → GraphExecutionPlan
+
+核心设计原则：
+- 同像约束：xdef 结构与最终 XML 实例结构一致
+- 组件注册表：所有可复用组件（windowingStrategies/coders/schemas）通过稳定 ID 引用
+- 可逆计算：支持 x:extends 继承和 Delta 定制
+-->
 <stream x:schema="/nop/schema/xdef.xdef" xmlns:x="/nop/schema/xdsl.xdef"
-        xmlns:xdef="/nop/schema/xdef.xdef">
+        xmlns:xdef="/nop/schema/xdef.xdef"
 
-    <xdef:define id="!string" name="string" xdef:name="StreamNode"
-                 parallelism="!int=0" maxParallelism="!int=0" slotSharingGroup="xml-name" colocationGroup="xml-name">
-        <description>string</description>
-        <minResources xdef:ref="resource-spec.xdef"/>
-        <preferredResources xdef:ref="resource-spec.xdef"/>
-    </xdef:define>
+        xdef:name="StreamModel" xdef:bean-package="io.nop.stream.core.model"
+        xdef:model-name-prop="name" xdef:model-version-prop="version"
+        xdef:support-extends="true"
 
-    <operator xdef:ref="StreamNode" id="!string" xdef:name="StreamOperator">
-        <input name="!string" requirement="string" xdef:unique-attr="name"/>
+        name="string" version="!long=0"
+>
 
-    </operator>
+    <!-- ==================== 全局配置 ==================== -->
+
+    <!-- Checkpoint 配置 -->
+    <checkpoint enabled="!boolean=true" interval="!long=60000" timeout="!long=600000"
+                barrierAlignmentTimeout="!long=30000" minPause="!long=500"
+                maxConcurrentCheckpoints="!int=1" maxRetainedCheckpoints="!int=5"
+                maxConsecutiveCheckpointFailures="!int=3"
+                processingGuarantee="enum:io.nop.stream.core.checkpoint.ProcessingGuarantee=!STRICT_EXACTLY_ONCE"
+                storageType="!string=local" jobId="string" pipelineId="string=1"
+                jobTerminationMode="enum:io.nop.stream.core.checkpoint.JobTerminationMode=!CANCEL"
+                xdef:name="CheckpointConfigModel">
+        <storageConfig xdef:key-attr="key" xdef:body-type="list">
+            <entry key="!string" value="!string" xdef:name="StorageConfigEntryModel"/>
+        </storageConfig>
+    </checkpoint>
+
+    <!-- ==================== 组件注册表 ==================== -->
+
+    <!-- 窗口策略注册表 -->
+    <windowingStrategies xdef:key-attr="strategyId" xdef:body-type="list">
+        <strategy strategyId="!string" windowFnId="!string" triggerId="!string"
+                  allowedLateness="!long=0"
+                  accumulationMode="enum:io.nop.stream.core.windowing.AccumulationMode=!DISCARDING"
+                  xdef:name="WindowingStrategyModel" xdef:unique-attr="strategyId">
+            <description>string</description>
+        </strategy>
+    </windowingStrategies>
+
+    <!-- 序列化器注册表 -->
+    <coders xdef:key-attr="id" xdef:body-type="list">
+        <coder id="!string" className="!class-name"
+               xdef:name="CoderModel" xdef:unique-attr="id">
+            <description>string</description>
+        </coder>
+    </coders>
+
+    <!-- Schema 注册表 -->
+    <schemas xdef:key-attr="id" xdef:body-type="list">
+        <schema id="!string" xdef:name="StreamSchemaModel" xdef:unique-attr="id">
+            <fields xdef:key-attr="name" xdef:body-type="list">
+                <field name="!string" type="!string" nullable="boolean" defaultValue="any"
+                       xdef:name="StreamSchemaFieldModel"/>
+            </fields>
+        </schema>
+    </schemas>
+
+    <!-- 运行环境注册表（支持多环境配置） -->
+    <environments xdef:key-attr="name" xdef:body-type="list">
+        <environment name="!string"
+                     deploymentMode="enum:io.nop.stream.core.execution.DeploymentMode"
+                     xdef:name="StreamEnvironmentModel" xdef:unique-attr="name">
+            <description>string</description>
+        </environment>
+    </environments>
+
+    <!-- 流定义注册表（命名流，用于跨算子引用） -->
+    <streams xdef:key-attr="id" xdef:body-type="list">
+        <stream id="!string" valueType="generic-type"
+                xdef:name="StreamDefinitionModel" xdef:unique-attr="id">
+            <description>string</description>
+        </stream>
+    </streams>
+
+    <!-- 需求声明：运行时必须满足的能力集合 -->
+    <requirements xdef:body-type="list">
+        <requirement value="enum:io.nop.stream.core.model.StreamRequirement" xdef:name="StreamRequirementModel"/>
+    </requirements>
+
+    <!-- Checkpoint 参与者：声明需要参与 checkpoint 的算子 ID -->
+    <checkpointParticipants xdef:body-type="set">
+        <participant value="!string" xdef:name="CheckpointParticipantRefModel"/>
+    </checkpointParticipants>
+
+    <!-- ==================== 转换节点（DAG 顶点） ==================== -->
+
+    <transforms xdef:key-attr="id" xdef:body-type="list">
+
+        <!-- ===== Source 节点 ===== -->
+        <!--
+        @bean IoC bean 名称，实现 SourceFunction 接口
+        @consistencyCapability 一致性能力声明
+        支持两种模式：
+        1. bean="mySourceFunction" — 引用 IoC bean
+        2. <source>函数体</source> — 内联 XPL 表达式
+           参数名来自 xdef 签名，直接在函数体中使用（不需要 (ctx)=> 前缀）
+           例如：<source>ctx.collect(event);</source>
+        -->
+        <source id="!string" name="string" bean="bean-name"
+                parallelism="!int=1" maxParallelism="!int=0"
+                consistencyCapability="enum:io.nop.stream.core.common.functions.source.SourceConsistencyCapability=!AT_LEAST_ONCE"
+                xdef:name="StreamSourceModel" xdef:unique-attr="id">
+            <description>string</description>
+            <outputType>generic-type</outputType>
+            <!-- void run(SourceContext ctx) -->
+            <source>xpl-fn:(ctx)=>void</source>
+            <params xdef:key-attr="name" xdef:body-type="list">
+                <param name="!var-name" type="generic-type" defaultValue="any"
+                       xdef:name="StreamParamModel"/>
+            </params>
+        </source>
+
+        <!-- ===== TimestampsAndWatermarks 节点（事件时间分配） ===== -->
+        <timestampsAndWatermarks id="!string" name="string"
+                                  watermarkStrategyBean="bean-name"
+                                  watermarkInterval="!long=200"
+                                  xdef:name="StreamTimestampsAndWatermarksModel" xdef:unique-attr="id">
+            <description>string</description>
+            <!-- long extractTimestamp(T element, long recordTimestamp) -->
+            <timestampAssigner>xpl-fn:(event:any,recordTimestamp:long)=>long</timestampAssigner>
+            <!-- void onEvent(T event, long eventTimestamp, WatermarkOutput output) -->
+            <watermarkGenerator>xpl-fn:(event:any,eventTimestamp:long,output:any)=>void</watermarkGenerator>
+        </timestampsAndWatermarks>
+
+        <!-- ===== Map 节点 ===== -->
+        <!--
+        @bean IoC bean 名称，实现 MapFunction 接口
+        支持两种模式：
+        1. bean="myMapper" — 引用 IoC bean
+        2. <source>函数体</source> — 内联 XPL 表达式
+           参数名来自 xdef 签名，直接在函数体中使用
+           例如：<source>return event.amount * 2;</source>
+        -->
+        <map id="!string" name="string" bean="bean-name" xdef:name="StreamMapModel" xdef:unique-attr="id">
+            <description>string</description>
+            <source>xpl-fn:(event)=>any</source>
+        </map>
+
+        <!-- ===== FlatMap 节点 ===== -->
+        <!--
+        参数名：event（输入值）, out（Collector 收集器）
+        例如：<source>out.collect(event);</source>
+        -->
+        <flatMap id="!string" name="string" bean="bean-name" xdef:name="StreamFlatMapModel" xdef:unique-attr="id">
+            <description>string</description>
+            <!-- void flatMap(T value, Collector out) -->
+            <source>xpl-fn:(event,out)=>void</source>
+        </flatMap>
+
+        <!-- ===== Filter 节点 ===== -->
+        <!--
+        参数名：event（输入值）
+        例如：<source>return event.amount > 100;</source>
+        -->
+        <filter id="!string" name="string" bean="bean-name" xdef:name="StreamFilterModel" xdef:unique-attr="id">
+            <description>string</description>
+            <source>xpl-fn:(event)=>boolean</source>
+        </filter>
+
+        <!-- ===== KeyBy 节点（分区） ===== -->
+        <keyBy id="!string" name="string" keyExpr="!expr"
+               parallelism="int"
+               xdef:name="StreamKeyByModel" xdef:unique-attr="id">
+            <description>string</description>
+        </keyBy>
+
+        <!-- ===== Window 节点 ===== -->
+        <window id="!string" name="string" strategyRef="!string"
+                xdef:name="StreamWindowModel" xdef:unique-attr="id">
+            <description>string</description>
+            <allowedLateness>long</allowedLateness>
+            <triggerId>string</triggerId>
+        </window>
+
+        <!-- ===== Aggregate 节点 ===== -->
+        <aggregate id="!string" name="string" bean="bean-name"
+                    xdef:name="StreamAggregateModel" xdef:unique-attr="id">
+            <description>string</description>
+        </aggregate>
+
+        <!-- ===== Reduce 节点 ===== -->
+        <!--
+        @bean IoC bean 名称，实现 ReduceFunction 接口
+        支持两种模式：
+        1. bean="myReducer" — 引用 IoC bean
+        2. <source>函数体</source> — 内联 XPL 表达式
+           参数名：a, b（两个待合并的值）
+           例如：<source>return a + b;</source>
+        -->
+        <reduce id="!string" name="string" bean="bean-name"
+                xdef:name="StreamReduceModel" xdef:unique-attr="id">
+            <description>string</description>
+            <source>xpl-fn:(a,b)=>any</source>
+        </reduce>
+
+        <!-- ===== Process 节点（通用处理） ===== -->
+        <process id="!string" name="string" bean="bean-name"
+                 xdef:name="StreamProcessModel" xdef:unique-attr="id">
+            <description>string</description>
+        </process>
+
+        <!-- ===== CEP 节点（复杂事件处理） ===== -->
+        <cep id="!string" name="string" patternRef="!string"
+             xdef:name="StreamCepModel" xdef:unique-attr="id">
+            <description>string</description>
+        </cep>
+
+        <!-- ===== Sink 节点 ===== -->
+        <!--
+        @bean IoC bean 名称，实现 SinkFunction 接口
+        支持两种模式：
+        1. bean="mySink" — 引用 IoC bean
+        2. <source>函数体</source> — 内联 XPL 表达式
+           参数名：event（输入值）
+           例如：<source>log.info('received: {}', event);</source>
+        -->
+        <sink id="!string" name="string" bean="bean-name"
+              parallelism="!int=1" maxParallelism="!int=0"
+              consistencyCapability="enum:io.nop.stream.core.common.functions.sink.SinkConsistencyCapability=!AT_LEAST_ONCE"
+              xdef:name="StreamSinkModel" xdef:unique-attr="id">
+            <description>string</description>
+            <inputType>generic-type</inputType>
+            <source>xpl-fn:(event)=>void</source>
+            <params xdef:key-attr="name" xdef:body-type="list">
+                <param name="!var-name" type="generic-type" defaultValue="any"
+                       xdef:name="StreamParamModel"/>
+            </params>
+        </sink>
+
+        <!-- ===== Union 节点（合并多条流） ===== -->
+        <union id="!string" name="string" xdef:name="StreamUnionModel" xdef:unique-attr="id">
+            <description>string</description>
+        </union>
+
+        <!-- ===== SideOutput 节点 ===== -->
+        <sideOutput id="!string" name="string" tag="!string" condition="expr"
+                     xdef:name="StreamSideOutputModel" xdef:unique-attr="id">
+            <description>string</description>
+        </sideOutput>
+
+        <!-- ===== 自定义算子节点 ===== -->
+        <custom id="!string" name="string" customType="!xml-name" bean="bean-name"
+                xdef:name="StreamCustomModel" xdef:unique-attr="id">
+            <description>string</description>
+            <source>xpl-fn:(event:any)=>any</source>
+            <params xdef:key-attr="name" xdef:body-type="list">
+                <param name="!var-name" type="generic-type" defaultValue="any"
+                       xdef:name="StreamParamModel"/>
+            </params>
+        </custom>
+
+    </transforms>
+
+    <!-- ==================== 边（DAG 边，数据流向） ==================== -->
+
+    <edges xdef:key-attr="id" xdef:body-type="list">
+        <!--
+        @from 源算子 ID
+        @to 目标算子 ID
+        @partition 分区策略：FORWARD/HASH/REBALANCE/BROADCAST/UNION/SINGLETON
+        @keyExpr HASH 分区时的 key 表达式
+        -->
+        <edge id="!string" from="!string" to="!string"
+              partition="enum:io.nop.stream.core.execution.plan.PartitionPolicy=!FORWARD"
+              keyExpr="expr"
+              xdef:name="StreamEdgeModel" xdef:unique-attr="id">
+            <name>string</name>
+        </edge>
+    </edges>
+
+    <!-- ==================== CEP 模式定义（引用 pattern.xdef） ==================== -->
+
+    <patterns xdef:key-attr="name" xdef:body-type="list"
+              xdef:ref="/nop/schema/stream/pattern.xdef#CepPatternModel"/>
+
+    <!-- ==================== 生命周期回调 ==================== -->
+
+    <onStart>xpl-fn:(streamCtx)=>void</onStart>
+    <onEnd>xpl-fn:(streamCtx,err)=>void</onEnd>
+    <onError>xpl-fn:(streamCtx,err)=>void</onError>
+
 </stream>

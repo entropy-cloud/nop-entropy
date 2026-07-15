@@ -1,0 +1,111 @@
+<!--
+欺诈检测流处理管线示例。
+
+数据流：TransactionEvent → 欺诈检测模式匹配 → FraudAlert
+
+本示例展示：
+1. Source/Sink 声明（bean 引用模式）
+2. TimestampsAndWatermarks 事件时间分配（内联 XPL 模式）
+3. CEP 模式定义（引用 pattern.xdef）
+4. 边连接与分区策略
+5. Checkpoint 配置
+-->
+<stream x:extends="/nop/schema/stream/stream.xdef"
+        name="fraud-detection-pipeline" version="1">
+
+    <!-- Checkpoint：AT_LEAST_ONCE，每 30 秒一次 -->
+    <checkpoint enabled="true" interval="30000"
+                processingGuarantee="AT_LEAST_ONCE"
+                storageType="local"/>
+
+    <!-- 窗口策略 -->
+    <windowingStrategies>
+        <strategy strategyId="30s-tumbling" windowFnId="TumblingEventTimeWindows"
+                  triggerId="EventTimeTrigger" allowedLateness="0"
+                  accumulationMode="DISCARDING"/>
+    </windowingStrategies>
+
+    <!-- 转换节点 -->
+    <transforms>
+        <!-- Source：引用 IoC bean -->
+        <source id="tx-source" name="TransactionSource"
+                bean="transactionSourceFunction"
+                parallelism="2"
+                consistencyCapability="REPLAYABLE"/>
+
+        <!-- TimestampsAndWatermarks：内联 XPL 模式 -->
+        <timestampsAndWatermarks id="tw" name="AssignTimestamps"
+                                  watermarkInterval="200">
+            <!-- 参数名来自 xdef 签名：event, recordTimestamp -->
+            <timestampAssigner>return event.timestamp;</timestampAssigner>
+        </timestampsAndWatermarks>
+
+        <!-- Filter：内联 XPL 模式（不需要 IoC bean） -->
+        <filter id="amount-filter" name="FilterSmallAmount">
+            <!-- 参数名来自 xdef 签名：event -->
+            <source>return event.amount > 100;</source>
+        </filter>
+
+        <!-- Map：内联 XPL 模式 -->
+        <map id="enrich-map" name="EnrichEvent">
+            <!-- 参数名来自 xdef 签名：event -->
+            <source>
+                event.enriched = true;
+                event.processTime = system.now();
+                return event;
+            </source>
+        </map>
+
+        <!-- FlatMap：内联 XPL 模式 -->
+        <flatMap id="split-map" name="SplitEvent">
+            <!-- 参数名来自 xdef 签名：event, out -->
+            <source>
+                out.collect(event);
+                if (event.amount > 1000) {
+                    out.collect(event);
+                }
+            </source>
+        </flatMap>
+
+        <!-- CEP 检测 -->
+        <cep id="rapid-cep" name="RapidTransactionDetector"
+             patternRef="rapid-transaction-pattern"/>
+
+        <!-- Sink：内联 XPL 模式 -->
+        <sink id="alert-sink" name="FraudAlertSink"
+              parallelism="2"
+              consistencyCapability="IDEMPOTENT">
+            <!-- 参数名来自 xdef 签名：event -->
+            <source>log.info('Fraud alert: {}', event);</source>
+        </sink>
+
+        <!-- Reduce：内联 XPL 模式 -->
+        <reduce id="sum-reduce" name="SumAmount">
+            <!-- 参数名来自 xdef 签名：a, b -->
+            <source>return a + b;</source>
+        </reduce>
+    </transforms>
+
+    <!-- 边连接 -->
+    <edges>
+        <edge id="e0" from="tx-source" to="tw" partition="FORWARD"/>
+        <edge id="e1" from="tw" to="amount-filter" partition="FORWARD"/>
+        <edge id="e2" from="amount-filter" to="enrich-map" partition="FORWARD"/>
+        <edge id="e3" from="enrich-map" to="rapid-cep" partition="REBALANCE"/>
+        <edge id="e4" from="rapid-cep" to="alert-sink" partition="HASH" keyExpr="userId"/>
+    </edges>
+
+    <!-- CEP 模式定义 -->
+    <patterns>
+        <pattern name="rapid-transaction-pattern" start="first"
+                 afterMatchSkipStrategy="SKIP_TO_NEXT">
+            <single name="first" followKind="next" windowTime="30s">
+                <where>return event.amount > 1000;</where>
+            </single>
+            <single name="second">
+                <where>return event.amount > 1000;</where>
+            </single>
+        </pattern>
+    </patterns>
+
+</stream>

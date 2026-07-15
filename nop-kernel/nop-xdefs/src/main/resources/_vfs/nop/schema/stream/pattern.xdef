@@ -9,7 +9,7 @@
 -->
 <pattern x:schema="/nop/schema/xdef.xdef" xmlns:x="/nop/schema/xdsl.xdef" xmlns:xdef="/nop/schema/xdef.xdef"
          xdef:name="CepPatternModel" xdef:bean-package="io.nop.stream.cep.model"
-         start="!xml-name" within="duration" gapWithin="duration"
+         name="!xml-name" start="!xml-name" within="duration" gapWithin="duration"
          afterMatchSkipStrategy="enum:io.nop.stream.cep.model.AfterMatchSkipStrategyKind"
          afterMatchSkipTo="xml-name"
          xdef:body-type="list" xdef:key-attr="name" xdef:bean-sub-type-prop="type"

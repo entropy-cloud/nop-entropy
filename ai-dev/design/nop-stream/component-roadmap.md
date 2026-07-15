@@ -64,10 +64,7 @@ nop-stream 按职责划分为 **6 个核心组件** 和 **4 个规划组件**。
 
 | # | 组件 | 对应模块 | 规划职责 |
 |---|------|---------|---------|
-| P1 | **公共 API** | nop-stream-api | 从 core 分离纯接口，使 runtime/cep 不依赖 core 实现 |
-| P2 | **Checkpoint 独立** | nop-stream-checkpoint | 从 runtime 分离 checkpoint 协调器和存储 |
-| P3 | **Flink 后端** | nop-stream-flink | 将 Transformation 映射到 Flink DataStream |
-| P4 | **流编排** | nop-stream-flow | 基于 XLang DSL 的声明式流任务编排 |
+| P1 | **流编排** | nop-stream-flow | 基于 XLang DSL 的声明式流任务编排 |
 
 ### 2.5 依赖关系
 

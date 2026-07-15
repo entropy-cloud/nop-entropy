@@ -92,14 +92,32 @@
 | **nop-stream-connector** | — | `BatchLoaderSourceFunction`, `BatchConsumerSinkFunction`, `MessageSourceFunction`, `MessageSinkFunction`, `DebeziumCdcSourceFunction` | 连接器适配器 | → core, nop-batch | Source/Sink JVM |
 | **nop-stream-cep** | — | `NFA`, `NFACompiler`, `SharedBuffer`, `Pattern`, `CepOperator`, `CepPatternModel` | CEP 引擎 | → core, nop-xlang | Task JVM |
 | **nop-stream-flow** | — | (规划) XDSL StreamModel 编排 | 声明式定义 + Delta 定制 | → core | Client JVM |
-| **nop-stream-checkpoint** | — | (规划) 从 runtime 分离 | 独立 checkpoint 协调器 + 存储 | → core | (待定) |
-| **nop-stream-flink** | — | (规划) Flink 后端适配 | Transformation → Flink DataStream | → core, flink | (待定) |
-| **nop-stream-api** | — | (规划) 公共接口抽取 | 接口与实现解耦 | 无 | (待定) |
 
-### 1.3 依赖方向
+### 1.3 Checkpoint 为何不独立成模块
+
+Checkpoint 是流处理引擎的**横切关注点**，与算子、执行层、传输层深度耦合。当前设计将 checkpoint 分为两层：
+
+| 层 | 位置 | 职责 |
+|---|---|---|
+| **类型定义** | `core.checkpoint`（25 个类） | 数据对象、接口、枚举：`CheckpointBarrier`、`OperatorSnapshotResult`、`TaskStateSnapshot`、`ICheckpointStorage`、`CheckpointParticipant` 等 |
+| **实现逻辑** | `runtime.checkpoint`（8 个类） | 协调器、存储、barrier 对齐：`CheckpointCoordinator`、`LocalFileCheckpointStorage`、`BarrierAligner` 等 |
+
+**不独立成模块的原因**：
+
+1. **循环依赖不可解**: `CheckpointBarrier` 继承 `StreamElement`（core 基础类型），core 的 11 个算子和 6 个执行层文件直接引用 checkpoint 类型。提取到独立模块会导致 `checkpoint → core → checkpoint` 循环。
+
+2. **横切关注点**: checkpoint 贯穿算子层（`snapshotState()` 返回 `OperatorSnapshotResult`）、执行层（`CheckpointBarrier` 在数据流中传播）、传输层（`StreamElementCodec` 编解码 barrier）、协调层（`CheckpointCoordinator`）。
+
+3. **与 Flink 一致**: Apache Flink 的 checkpoint 代码也分布在 `flink-streaming-java`（算子+barrier）和 `flink-runtime`（coordinator+storage）中，没有独立的 `flink-checkpoint` 模块。
+
+4. **提取收益低**: runtime 中 checkpoint 实现仅 ~3000 行，且 `CheckpointPlanBuilder` 深度依赖 core 执行模型（`GraphExecutionPlan`、`Subtask`、`JobVertex`、`OperatorChain` 等 10 个类），无法干净提取。
+
+详见 `ai-dev/analysis/checkpoint-module-extraction.md`。
+
+### 1.4 依赖方向
 
 ```
-运行时和集成模块 → core → api（规划中，当前核心实现在 core 中）
+运行时和集成模块 → core
                  ↓
               nop-platform（IJdbcTemplate / IMessageService / IEvalFunction / IDialect 等）
 
@@ -108,8 +126,6 @@
   nop-stream-connector     → nop-stream-core + nop-batch-core
   nop-stream-cep           → nop-stream-core + nop-xlang
   nop-stream-flow (规划)    → nop-stream-core
-  nop-stream-checkpoint (规划) → nop-stream-core
-  nop-stream-flink (规划)    → nop-stream-core + flink 依赖
 ```
 
 ---
@@ -401,6 +417,13 @@ JobCoordinator / CheckpointCoordinator
   - CepOperator、匹配后策略
   - 声明式模型（XMeta）
 
+- `stream-dsl-design.md`
+  - XDSL 声明式流处理模型（stream.xdef / cep.xdef）
+  - 三入口合一：XDSL / Java API / Delta 定制 → 同一 StreamModel
+  - DAG 拓扑（transforms + edges）、组件注册表、窗口策略、Checkpoint 配置
+  - 与 Java DataStream API 的映射关系
+  - 可逆计算支持（x:extends 继承 + Delta 差量定制）
+
 ## 参考层
 
 - `comparison.md`
@@ -430,8 +453,9 @@ JobCoordinator / CheckpointCoordinator
 8. `time-model-design.md` — Watermark、时间戳分配
 9. `connector-design.md` — 连接器适配
 10. `cep-design.md` — CEP 引擎
+11. `stream-dsl-design.md` — XDSL 声明式流处理模型
 
 **扩展方向**：
 
-11. `comparison.md` — 架构对比（Flink / SeaTunnel / NiFi）
-12. `component-roadmap.md` — 组件路线和开发方法
+12. `comparison.md` — 架构对比（Flink / SeaTunnel / NiFi）
+13. `component-roadmap.md` — 组件路线和开发方法

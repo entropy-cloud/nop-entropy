@@ -14,11 +14,7 @@
     <name>30-nop-stream</name>
 
     <modules>
-        <module>nop-stream-api</module>
         <module>nop-stream-core</module>
-        <module>nop-stream-checkpoint</module>
-        <module>nop-stream-flink</module>
-        <module>nop-stream-flow</module>
         <module>nop-stream-cep</module>
         <module>nop-stream-connector</module>
         <module>nop-stream-runtime</module>

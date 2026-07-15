@@ -291,16 +291,13 @@ Phase 5  生态与上层
 | 5.2 | **BUILD** | Source split 体系（FLIP-27 风格）：`SourceEnumerator`（动态 split 发现与分配）+ `SourceReader`（split-based 消费）。当前是 Deferred，分布式 source exactly-once 的完整形态需要它 | `connector-design.md` §3、`checkpoint-design.md` §5 |
 | 5.3 | **BUILD** | `nop-stream-flow`：XDSL 声明式 StreamModel 编排。真正兑现「三入口同一 canonical 模型」承诺（当前只有 DataStream API 一入口） | `00-vision.md` §一、`core-design.md` §1 |
 | 5.4 | WIRE | Delta 定制 StreamModel：可逆计算机制接入，在模型层叠加差量修改。依赖 5.3 的 XDSL 入口 | `00-vision.md` §一、Nop 平台可逆计算 |
-| 5.5 | **BUILD** | `nop-stream-flink`：可选外部后端适配，将 core 的 Transformation 映射到 Flink DataStream。给「已有 Flink 集群」的用户一个迁移路径 | `comparison.md` §3.1 |
-| 5.6 | FIX | 模块独立化：`nop-stream-api`（公共接口提取）、`nop-stream-checkpoint`（从 runtime 分离协调器与存储）。当前是空壳占位 | `01-architecture-baseline.md` §二 |
-| 5.7 | **BUILD** | 连接器生态扩展：事务型 JDBC sink（2PC）、Kafka source/sink、CDC（Debezium 桥接深化）、文件 sink（temp file + atomic rename + manifest commit） | `connector-design.md`、`checkpoint-design.md` §6 |
+| 5.5 | **BUILD** | 连接器生态扩展：事务型 JDBC sink（2PC）、Kafka source/sink、CDC（Debezium 桥接深化）、文件 sink（temp file + atomic rename + manifest commit） | `connector-design.md`、`checkpoint-design.md` §6 |
 
 **前置依赖**：Phase 0-4 提供稳定的分布式运行时。Phase 5 各子项之间相对独立，可并行或按需选取。
 
 **验收标准**：
 - XDSL 定义的 StreamModel 与等价的 DataStream API 程序生成相同 fingerprint，运行结果一致
 - Delta 修改 StreamModel（如调整 window size）后，fingerprint 正确反映变更
-- `nop-stream-flink` 后端运行 nop-stream 程序，结果与本地后端一致
 - Kafka source + window + Kafka sink 端到端 exactly-once（kill 恢复不丢不重）
 
 ---
@@ -369,7 +366,6 @@ Phase 5  生态与上层
 6. **Phase 3 leader elector 后端选择**：JDBC（零基建，已有 `SysDaoLeaderElector`）vs Nacos/Zookeeper（若平台后续提供对应 elector）
 7. **Phase 3.3 数据面 IMessageService 默认后端**：SysDaoMessageService（DB，零基建）vs Pulsar（需 MQ 基建）
 8. **Phase 4.4 region failover 是否首版必交付**：还是 Phase 4 首版只做 unaligned + HA，region 延后
-9. **Phase 5.5 nop-stream-flink 的优先级**：是否值得投入，还是聚焦自有后端
 
 ---
 
