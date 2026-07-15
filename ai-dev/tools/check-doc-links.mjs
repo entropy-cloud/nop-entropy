@@ -326,7 +326,7 @@ function isCompletedPlan(filePath) {
   try {
     const content = readFileSync(filePath, 'utf-8');
     const first500 = content.substring(0, 500);
-    return /^\s*>\s*Plan\s+Status:\s*completed/m.test(first500);
+    return /^\s*>\s*\*{0,2}\s*Plan\s+Status\s*\*{0,2}\s*:?\s*completed/im.test(first500);
   } catch {
     return false;
   }

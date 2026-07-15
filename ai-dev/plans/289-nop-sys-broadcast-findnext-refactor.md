@@ -1,6 +1,6 @@
 # 289 nop-sys 广播事件 findNext 时间窗口重构
 
-> Plan Status: active
+> Plan Status: completed
 > Last Reviewed: 2026-07-09
 > Source: `ai-dev/design/nop-sys/sys-event-architecture.md`（已更新为 findNext 模型）; `nop-sys/nop-sys-dao/src/main/java/io/nop/sys/dao/message/SysDaoMessageService.java`（当前 cursor 实现）; 用户需求"广播事件读取处理从 SysDaoMessageService 中独立到一个类中"
 

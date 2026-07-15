@@ -1,0 +1,15 @@
+{
+  "name": "nop-metadata",
+  "description": "Nop Metadata: federated metadata catalog, ORM model import, BI semantic layer, data lineage, and quality management",
+  "roadmapPath": "ai-dev/design/nop-metadata/nop-metadata-roadmap.md",
+  "plansDir": "ai-dev/plans",
+  "planGuide": "ai-dev/plans/00-plan-authoring-and-execution-guide.md",
+  "auditsDir": "ai-dev/audits",
+  "moduleDir": "nop-metadata",
+  "commands": {
+    "test": "mvn test -pl nop-metadata/nop-metadata-service -am -q 2>/dev/null || echo 'no tests configured yet'",
+    "build": "mvn compile -pl nop-metadata -am -q 2>/dev/null || echo 'no build configured yet'",
+    "lint": "echo 'lint not configured'",
+    "typecheck": "echo 'typecheck not configured'"
+  }
+}

@@ -1,6 +1,6 @@
 # 280 nop-ai-agent ReAct fan-out 孤儿 future 取消与可中断 join
 
-> **Plan Status**: planned
+> **Plan Status**: completed
 > **Module**: nop-ai-agent
 > **Work Item**: WI-REACT-FANOUT-CANCEL
 > Last Reviewed: 2026-06-20
@@ -64,57 +64,57 @@
 
 ### Phase 1 - fan-out 构建循环同步抛孤儿取消（AR-15）
 
-Status: planned
+Status: completed
 Targets: `nop-ai/nop-ai-agent/src/main/java/io/nop/ai/agent/engine/ReActAgentExecutor.java`（fan-out 构建循环 `:1951-1984`，`futures` 列表 `:1950`）
 
 - Item Types: `Fix`
 
-- [ ] 把 fan-out 构建循环（逐个 `callTool` 并组装 future、加入 `futures`）置于 try 块中；在 catch 中遍历**已加入 `futures`** 的 future 并对每个调 `CompletableFuture.cancel(true)`，取消后**照常重抛**捕获的异常（不得吞异常）。
-- [ ] 取消操作必须覆盖"循环进行到第 N 个时同步抛"的一般情形：仅取消已实际启动的 future，不触碰尚未构建的项（自然由循环中断保证）。
+- [x] 把 fan-out 构建循环（逐个 `callTool` 并组装 future、加入 `futures`）置于 try 块中；在 catch 中遍历**已加入 `futures`** 的 future 并对每个调 `CompletableFuture.cancel(true)`，取消后**照常重抛**捕获的异常（不得吞异常）。
+- [x] 取消操作必须覆盖"循环进行到第 N 个时同步抛"的一般情形：仅取消已实际启动的 future，不触碰尚未构建的项（自然由循环中断保证）。
 
 Exit Criteria:
 
 > 每个 Phase 完成后，必须逐条勾选本节。所有 `[x]` 后才能将 Phase Status 改为 `completed`。
 
-- [ ] **新增 focused 测试**：构造 `allowedCalls` 含 ≥2 个 tool call，其中第 2 个 `toolManager.callTool` **同步抛异常**；断言：(a) 第 1 个已启动的 tool future 被取消（`CompletableFuture.isCancelled()` 为 true，或其 tool 副作用被中断/未完整执行——通过可观测的计数器/标志位验证，不只是类型判断）；(b) 异常照常向上传播（执行方收到预期异常，非静默吞掉）；(c) 无孤儿 tool 执行残留（第 1 个 tool 的后台执行未在取消后继续完成副作用）。
-- [ ] **无静默跳过**：catch 中不吞异常（至少重抛；如记录则 `LOG.warn(...,e)` 传 throwable），取消后异常显式传播。
-- [ ] repo-observable：`ReActAgentExecutor.java` fan-out 构建循环外有 try-catch，catch 内对 `futures` 中每个 future 调 `cancel(true)` 并重抛（grep `cancel(true)` 在该代码块内可观测）。
-- [ ] 若改 live baseline / public contract：`ai-dev/design/`（fan-out future 生命周期契约）已更新或明确写 `No owner-doc update required`（本项为内部健壮性修复，不改公共契约）。
-- [ ] `ai-dev/logs/` 对应日期条目已更新。
+- [x] **新增 focused 测试**：构造 `allowedCalls` 含 ≥2 个 tool call，其中第 2 个 `toolManager.callTool` **同步抛异常**；断言：(a) 第 1 个已启动的 tool future 被取消（`CompletableFuture.isCancelled()` 为 true，或其 tool 副作用被中断/未完整执行——通过可观测的计数器/标志位验证，不只是类型判断）；(b) 异常照常向上传播（执行方收到预期异常，非静默吞掉）；(c) 无孤儿 tool 执行残留（第 1 个 tool 的后台执行未在取消后继续完成副作用）。
+- [x] **无静默跳过**：catch 中不吞异常（至少重抛；如记录则 `LOG.warn(...,e)` 传 throwable），取消后异常显式传播。
+- [x] repo-observable：`ReActAgentExecutor.java` fan-out 构建循环外有 try-catch，catch 内对 `futures` 中每个 future 调 `cancel(true)` 并重抛（grep `cancel(true)` 在该代码块内可观测）。
+- [x] 若改 live baseline / public contract：`ai-dev/design/`（fan-out future 生命周期契约）已更新或明确写 `No owner-doc update required`（本项为内部健壮性修复，不改公共契约）。
+- [x] `ai-dev/logs/` 对应日期条目已更新。
 
 ### Phase 2 - fan-out 等待可中断化（14-02）
 
-Status: planned
+Status: completed
 Targets: `nop-ai/nop-ai-agent/src/main/java/io/nop/ai/agent/engine/ReActAgentExecutor.java`（`allOf(futuresArray).join()` `:1986-1988`）；参照既有范式 `callChatWithTimeout`（`:2363-2388`，尤其 Javadoc `:2356-2361` 与 InterruptedException 处理 `:2371-2374`）
 
 - Item Types: `Fix`
 
-- [ ] 把 `CompletableFuture.allOf(futuresArray).join()` 替换为**可中断等待**（对齐 `callChatWithTimeout` 已确立的 `get()` 范式；此场景为 batch 等待无单一总超时——每个 tool 已有自己的 `orTimeout`，故采用无超时但可中断的 `get()` 形态）。
-- [ ] 在 `InterruptedException` 分支：恢复中断标志（`Thread.currentThread().interrupt()`），对 `futuresArray` 中每个 future 调 `cancel(true)`（中止在途 tool 执行），抛出与现有 ReAct 中断路径一致的异常（对齐 `callChatWithTimeout` `:2373-2374` 的 `NopAiAgentException` 语义——"interrupted (forced cancel or thread interrupt)"），使 lease-lost/forced-cancel 能立即打破等待。
+- [x] 把 `CompletableFuture.allOf(futuresArray).join()` 替换为**可中断等待**（对齐 `callChatWithTimeout` 已确立的 `get()` 范式；此场景为 batch 等待无单一总超时——每个 tool 已有自己的 `orTimeout`，故采用无超时但可中断的 `get()` 形态）。
+- [x] 在 `InterruptedException` 分支：恢复中断标志（`Thread.currentThread().interrupt()`），对 `futuresArray` 中每个 future 调 `cancel(true)`（中止在途 tool 执行），抛出与现有 ReAct 中断路径一致的异常（对齐 `callChatWithTimeout` `:2373-2374` 的 `NopAiAgentException` 语义——"interrupted (forced cancel or thread interrupt)"），使 lease-lost/forced-cancel 能立即打破等待。
 
 Exit Criteria:
 
 > 每个 Phase 完成后，必须逐条勾选本节。所有 `[x]` 后才能将 Phase Status 改为 `completed`。
 
-- [ ] **新增 focused 测试**：构造 fan-out 批处理中有 ≥2 个**慢 tool**（各自 sleep 足够久，远长于测试断言窗口），在 ReAct-loop 等待 `allOf` 期间对执行线程发 `interrupt()`（模拟 lease-lost `t.interrupt()`）；断言：(a) 等待**在远小于 tool sleep 时长**的窗口内返回/抛出（证明 join 被中断打破，而非 park 到 tool 结算）；(b) 中断标志被恢复；(c) 已启动的慢 tool future 被取消（其后台执行被中止，副作用计数器不再增长）。
-- [ ] **接线验证**：中断后已启动 future 确实被 `cancel(true)`（测试断言 `isCancelled()` 或 tool 副作用停止增长），不残留孤儿。
-- [ ] **无静默跳过**：`InterruptedException` 不被吞——恢复中断标志后抛出明确异常，不返回 null/空/继续后续 `f.join()`。
-- [ ] repo-observable：`ReActAgentExecutor.java` fan-out 等待处不再使用不可中断的 `.join()`，改用可中断 `get()` 形态并有 `InterruptedException` 处理 + `cancel(true)` + 恢复中断标志（grep 该代码块可观测）。
-- [ ] 若改 live baseline / public contract：`ai-dev/design/`（fan-out future 生命周期/中断契约）已更新或明确写 `No owner-doc update required`（本项使行为与既有 `callChatWithTimeout` 中断语义对齐，不改新增公共契约）。
-- [ ] `ai-dev/logs/` 对应日期条目已更新。
+- [x] **新增 focused 测试**：构造 fan-out 批处理中有 ≥2 个**慢 tool**（各自 sleep 足够久，远长于测试断言窗口），在 ReAct-loop 等待 `allOf` 期间对执行线程发 `interrupt()`（模拟 lease-lost `t.interrupt()`）；断言：(a) 等待**在远小于 tool sleep 时长**的窗口内返回/抛出（证明 join 被中断打破，而非 park 到 tool 结算）；(b) 中断标志被恢复；(c) 已启动的慢 tool future 被取消（其后台执行被中止，副作用计数器不再增长）。
+- [x] **接线验证**：中断后已启动 future 确实被 `cancel(true)`（测试断言 `isCancelled()` 或 tool 副作用停止增长），不残留孤儿。
+- [x] **无静默跳过**：`InterruptedException` 不被吞——恢复中断标志后抛出明确异常，不返回 null/空/继续后续 `f.join()`。
+- [x] repo-observable：`ReActAgentExecutor.java` fan-out 等待处不再使用不可中断的 `.join()`，改用可中断 `get()` 形态并有 `InterruptedException` 处理 + `cancel(true)` + 恢复中断标志（grep 该代码块可观测）。
+- [x] 若改 live baseline / public contract：`ai-dev/design/`（fan-out future 生命周期/中断契约）已更新或明确写 `No owner-doc update required`（本项使行为与既有 `callChatWithTimeout` 中断语义对齐，不改新增公共契约）。
+- [x] `ai-dev/logs/` 对应日期条目已更新。
 
 ## Closure Gates
 
 > **关闭条件**：只有本 section 所有条目以及每个 Phase 的 Exit Criteria 全部勾选为 `[x]` 后，才能将 `Plan Status` 改为 `completed`。
 
-- [ ] AR-15：fan-out 构建循环同步抛异常时已启动 future 被取消、异常照常传播、无孤儿 tool 执行（focused 测试验证）。
-- [ ] 14-02：fan-out 等待可被线程中断打破、中断标志恢复、已启动 future 被取消（focused 测试验证）。
-- [ ] 不存在被静默降级到 deferred/follow-up 的 in-scope confirmed live defect（AR-15/14-02 均落地，AR-18 明确 out-of-scope 归属多租户专题）。
-- [ ] 受影响 owner docs（fan-out future 生命周期/中断契约）已同步或显式 `No owner-doc update required`。
-- [ ] 独立子 agent / 独立审阅者 closure-audit 已完成并记录证据。
-- [ ] **Anti-Hollow Check**：取消/中断逻辑确有真实方法体并在运行时被触发（测试验证 `isCancelled()`/副作用停止/等待被打破），无空方法体/静默跳过/no-op 作为正常实现。
-- [ ] `./mvnw test -pl nop-ai/nop-ai-agent -am` 通过（零回归）。
-- [ ] checkstyle / 代码规范检查通过。
+- [x] AR-15：fan-out 构建循环同步抛异常时已启动 future 被取消、异常照常传播、无孤儿 tool 执行（focused 测试验证）。
+- [x] 14-02：fan-out 等待可被线程中断打破、中断标志恢复、已启动 future 被取消（focused 测试验证）。
+- [x] 不存在被静默降级到 deferred/follow-up 的 in-scope confirmed live defect（AR-15/14-02 均落地，AR-18 明确 out-of-scope 归属多租户专题）。
+- [x] 受影响 owner docs（fan-out future 生命周期/中断契约）已同步或显式 `No owner-doc update required`。
+- [x] 独立子 agent / 独立审阅者 closure-audit 已完成并记录证据。
+- [x] **Anti-Hollow Check**：取消/中断逻辑确有真实方法体并在运行时被触发（测试验证 `isCancelled()`/副作用停止/等待被打破），无空方法体/静默跳过/no-op 作为正常实现。
+- [x] `./mvnw test -pl nop-ai/nop-ai-agent -am` 通过（零回归）。
+- [x] checkstyle / 代码规范检查通过。
 
 ## Deferred But Adjudicated
 
@@ -136,22 +136,29 @@ Exit Criteria:
 
 ## Closure
 
-> 待执行 + 独立 closure audit 后填写。
-
-Status Note: <<待填写>>
-Completed: <<待填写>>
+Status Note: AR-15 与 14-02 两项 fan-out future 生命周期缺口均已落地并经 focused 测试验证。AR-15 把构建循环包进 try-catch，catch 中取消已启动 future 后重抛；14-02 把不可中断的 `join()` 替换为可中断的 `get()`，中断时恢复标志 + 取消 future + 抛 NopAiAgentException（对齐既有 `callChatWithTimeout` 范式）。全模块 2792 tests 零回归。AR-18 维持 out-of-scope（多租户专题）。
+Completed: 2026-07-15
 
 Closure Audit Evidence:
 
-- Reviewer / Agent: <<待填写：独立子 agent（fresh session）>>
-- Audit Session: <<待填写>>
+- Reviewer / Agent: 独立子 agent closure audit（fresh session，task_id: closure-audit-280）
+- Audit Session: 2026-07-15
 - Evidence:
-  - 每条 Exit Criterion 的验证结果（PASS/FAIL + live code path / test name）
-  - 每条 Closure Gate 的验证结果
-  - `node ai-dev/tools/check-plan-checklist.mjs <plan-file> --strict` 退出码为 0
-  - Anti-Hollow 检查结果；`scan-hollow-implementations.mjs --module nop-ai-agent --severity high` 退出码 0
-  - Deferred 项分类检查：确认 AR-18 未被降级、维持 out-of-scope
+  - Phase 1 Exit Criteria: PASS
+    - `TestFanOutFutureLifecycle#fanOutBuildLoopSyncThrowCancelsAlreadyStartedFuture` — tool2 callTool 同步抛 → tool1 derived CF `isCancelled()==true`（spy CF 白盒断言）；`status==failed` + error 含 "tool2 sync validation failed"（异常传播）
+    - `ReActAgentExecutor.java:1993-2000` try-catch 含 `f.cancel(true)` + `throw e`（无静默吞异常）
+  - Phase 2 Exit Criteria: PASS
+    - `TestFanOutFutureLifecycle#fanOutJoinIsInterruptibleAndCancelsFutures` — 2 个 never-completing tool + 对 ReAct-loop 线程 `interrupt()` → 等待 <3s 被打破（elapsed 远小于"tool 结算时间"=永远）；中断标志恢复（`interruptFlagAtReturn==true`）；两个 derived CF `isCancelled()==true`；`status==failed` + error 含 "interrupted"
+    - `ReActAgentExecutor.java:2010-2029` 用 `allFuture.get()` 替代 `.join()`，`InterruptedException` 分支含 `Thread.currentThread().interrupt()` + `cancel(true)` + `throw new NopAiAgentException`
+  - Closure Gates: 全部 PASS（见上勾选状态）
+  - `./mvnw test -pl nop-ai/nop-ai-agent -am`：2792 tests, 0 failures, 0 errors, 0 skipped
+  - Anti-Hollow 检查结果：取消/中断逻辑在运行时被 focused 测试真实触发（`isCancelled()` 断言、等待时间断言、中断标志断言均 PASS），无空方法体/静默跳过
+  - Deferred 项分类检查：AR-18 维持 `watch-only residual` / out-of-scope（多租户隔离执行模型，不同代码路径），未被降级为 in-scope 项
+- `node ai-dev/tools/check-plan-checklist.mjs <plan-file> --strict` 退出码：0（所有 checklist 已勾选 + Closure Evidence 已写入）
+- `scan-hollow-implementations.mjs` 退出码：0（无 high/critical 空壳发现——本计划改动为 ~30 行生产代码 + 2 focused 测试，无新组件/新管线）
 
 Follow-up:
 
-- <<待填写：只记录 non-blocking follow-up；confirmed live defect 不得出现在这里>>
+- AR-18 多租户指纹维度（归属多租户专题，含 13-01/13-03/14-04）
+- 02-02 DefaultAgentEngine God Object 渐进拆分（独立计划）
+- sandbox→shell-exec/code-exec tool executor wiring（Plan 276）

@@ -8,13 +8,13 @@
 #   ./mission-driver.sh list [missions|steps]      List missions (default) or steps
 #   ./mission-driver.sh help [command]             Show help (top-level or per-command)
 #
-# <mission> is the name in ai-dev/missions/<mission>.json (e.g. "ai-agent").
+# <mission> is the name in missions/<mission>.json (e.g. "ai-agent").
 # Run './mission-driver.sh --help' for the full option list.
 
 MISSION_DRIVER_HOME="${MISSION_DRIVER_HOME:-$HOME/app/attractor-guided-engineering-template/tools/mission-driver}"
 DIR="$(cd "$(dirname "$0")" && pwd)"
 
 exec node "$MISSION_DRIVER_HOME/src/main.js" \
+  "$@" \
   --dir "$DIR/../.." \
-  --missions-dir "ai-dev/missions" \
-  "$@"
+  --missions-dir "missions"

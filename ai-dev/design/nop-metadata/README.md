@@ -8,6 +8,7 @@
 
 | 文档 | 层级 | 说明 |
 |------|------|------|
+| `nop-metadata-roadmap.md` | Roadmap | **实现状态索引**（Phase 划分、工作项、依赖图） |
 | `00-vision.md` | Vision | 定位、范围、成功标准、non-goals |
 | `01-architecture-baseline.md` | Architecture Baseline | 核心对象、模块边界、数据流 |
 | `02-gap-analysis.md` | Gap Analysis | 对比五个平台，识别设计缺失和可完善点 |
@@ -36,5 +37,7 @@
 
 ## 状态
 
-- 草案阶段，尚未进入实现
+- Phase 1（ORM 模型导入引擎）已完成（plan 292）
+- Phase 1+ ~ Phase 5 见 `nop-metadata-roadmap.md`
+- mission-driver mission 配置：`missions/nop-metadata.json`
 - 触发实现前需先更新 `ai-dev/plans/`

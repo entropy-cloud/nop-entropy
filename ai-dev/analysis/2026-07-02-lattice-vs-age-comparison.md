@@ -205,10 +205,10 @@ AGE 的文档结构本身就是一个可被程序操作的项目状态机。miss
 ```bash
 # ai-dev/tools/mission-driver.sh — 指向 AGE Template 的 mission-driver
 MISSION_DRIVER_HOME="$HOME/app/attractor-guided-engineering-template/tools/mission-driver"
-exec node "$MISSION_DRIVER_HOME/src/main.js" --dir "$DIR/../.." --missions-dir "ai-dev/missions" "$@"
+exec node "$MISSION_DRIVER_HOME/src/main.js" "$@" --dir "$DIR/../.." --missions-dir "missions"
 ```
 
-`ai-dev/missions/ai-agent.json` 定义了 nop-ai-agent 模块的 mission：
+`missions/ai-agent.json` 定义了 nop-ai-agent 模块的 mission：
 - roadmap: `design/nop-ai-agent/nop-ai-agent-roadmap.md`
 - plans 目录: `plans/`
 - 测试命令: `mvn test -pl nop-ai/nop-ai-core -am`
@@ -353,7 +353,7 @@ nop-entropy 继承的是 AGE 方法论，不是 Lattice：
 | `ai-dev/bugs/` | `docs/bugs/` | 无（Lattice 无 bug note 概念） |
 | `ai-dev/tools/` | `tools/` + `scripts/audit/` | `prismspec/bin/` + `lattice/kernel/delivery/` |
 | `ai-dev/tools/mission-driver.sh` | **`tools/mission-driver/`** | 无直接对应（Lattice 无项目级自动循环） |
-| `ai-dev/missions/ai-agent.json` | `mission.json` 配置 | 无直接对应 |
+| `missions/ai-agent.json` | `mission.json` 配置 | 无直接对应 |
 | `docs-for-ai/` | `docs/architecture/` + `docs/context/` | `lattice/context/` |
 | 晋升阶梯实践 | 3 条 ast-grep lint 规则 | 暂缺实际晋升例 |
 | 验证方式 | mission-driver plan-execution（AI agent 执行 + closure audit + build verify） | pipeline.sh + gates |

@@ -8,7 +8,7 @@
 `nop-metadata` 是 Nop 平台的**联邦式元数据管理层**。它统一管理两个层面的信息：
 
 1. **元数据目录** —— 存储、索引、版本化 Nop 平台内部（ORM 模型、API 模型等）和**外部系统**（MySQL、PostgreSQL、ClickHouse 等）的元数据
-2. **数据访问** —— 通过 **QuerySpace + Driver** 机制，让元数据目录中的表可以跨越不同存储引擎被查询
+2. **数据访问** —— 通过 ORM 实体的 `querySpace` 字段路由到对应存储引擎，让元数据目录中的表可以跨越不同数据库被查询（不引入额外 Driver 抽象，见架构基线 §七）
 
 它不是 BI 可视化工具，不是报表渲染引擎，不替代 `nop-report` 的 XPT 渲染能力。
 
@@ -19,9 +19,9 @@
 | | nop-dyn | nop-metadata |
 |---|---|---|
 | 数据来源 | 用户运行态自定义实体类型 | Nop ORM 模型（编译时）+ 外部数据源（运行时） |
-| 存储方式 | VIRTUAL 共享 `nop_dyn_entity` 表 / REAL 自动建表 | 元数据存固定表，业务数据通过 QuerySpace 路由到对应引擎 |
+| 存储方式 | VIRTUAL 共享 `nop_dyn_entity` 表 / REAL 自动建表 | 元数据存固定表，业务数据通过 ORM querySpace 路由到对应引擎 |
 | 存储引擎 | 只能存到 Nop 自身数据库 | 任意引擎：MySQL、PostgreSQL、ClickHouse、ES、H2 …… |
-| 跨源查询 | 不支持 | QuerySpace 多路由 + Driver 抽象 |
+| 跨源查询 | 不支持 | ORM querySpace 多路由（实体级路由，无额外 Driver 抽象） |
 | 版本化 | 无 | MetaModel 版本化（long PK，发布后不可变） |
 | 场景 | 运行时动态表单/实体 | 数据目录 + BI 语义层 + 联邦查询 |
 
@@ -37,7 +37,7 @@
 | 多个项目/版本之间无法对比模型差异 | 模块版本体系 + Delta 感知的 diff |
 | 缺乏 BI 语义层的指标/维度独立管理 | `MetaTableMeasure` + `MetaTableField` 作为一等实体 |
 | 外部数据库（MySQL/ClickHouse 等）的表无法纳入 Nop 的统一元数据管理 | `MetaDataSource` + `MetaTable`，通过扫描或注册导入 |
-| 跨数据源的查询需要手写代码拼接 | QuerySpace + Driver 抽象，统一语义层翻译为对应引擎的查询 |
+| 跨数据源的查询需要手写代码拼接 | ORM querySpace 路由 + MetaTable 统一语义层，查询走现有 IOrmTemplate |
 
 ## 成功标准
 
@@ -61,5 +61,5 @@
 1. **Phase 1** — 平台 ORM 模型导入 + 版本化 + 搜索 + 血缘模型 + 质量规则
 2. **Phase 2** — 外部数据源注册 + 外部表元数据同步 + 血缘采集 + 质量执行
 3. **Phase 3** — 视图定义 + 指标/维度管理（BI 语义层）
-4. **Phase 4** — QuerySpace + Driver 联邦查询执行
+4. **Phase 4** — 联邦查询执行（基于 ORM querySpace，非 Driver 抽象）
 5. **Phase 5** — `nop-report` 迁移到基于 tableId 模式
