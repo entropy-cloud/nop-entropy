@@ -18,8 +18,11 @@ import io.nop.metadata.core._NopMetadataCoreConstants;
 import io.nop.metadata.dao.entity.NopMetaDataSource;
 import io.nop.metadata.dao.entity.NopMetaModule;
 import io.nop.metadata.dao.entity.NopMetaProfilingResult;
+import io.nop.metadata.dao.entity.NopMetaEntityField;
 import io.nop.metadata.dao.entity.NopMetaTable;
 import io.nop.metadata.service.connection.IMetaDataSourceConnectionService;
+import io.nop.metadata.service.field.MetaTableFieldResolver;
+import io.nop.metadata.service.field.ResolvedTableField;
 import io.nop.metadata.service.profiling.MetaTableProfiler;
 import io.nop.metadata.service.profiling.ProfilingColumnStats;
 import io.nop.metadata.service.profiling.ProfilingSnapshot;
@@ -95,13 +98,6 @@ public class NopMetaTableBizModel extends CrudBizModel<NopMetaTable> implements 
     static final ErrorCode ERR_SQL_VIEW_TABLE_NOT_FOUND =
             ErrorCode.define("metadata.sql-table-not-found",
                     "NopMetaTable not found for resolveTableFields: {metaTableId}", "metaTableId");
-    static final ErrorCode ERR_SQL_VIEW_TABLE_NOT_SQL =
-            ErrorCode.define("metadata.sql-table-not-sql",
-                    "resolveTableFields target is not a sql-view table: {metaTableId} (tableType={tableType})",
-                    "metaTableId", "tableType");
-    static final ErrorCode ERR_SQL_VIEW_SOURCE_SQL_EMPTY =
-            ErrorCode.define("metadata.sql-source-sql-empty",
-                    "resolveTableFields target sql-view table has empty sourceSql: {metaTableId}", "metaTableId");
 
     @Inject
     protected IMetaDataSourceConnectionService connectionService;
@@ -111,6 +107,12 @@ public class NopMetaTableBizModel extends CrudBizModel<NopMetaTable> implements 
 
     /** SELECT 字段解析器（无状态，参考 SqlSourceTableExtractor AST 遍历模式，架构基线 §4.2.1）。 */
     private final SqlSelectFieldExtractor sqlFieldExtractor = new SqlSelectFieldExtractor();
+
+    /**
+     * 跨表类型字段解析器（架构基线 §2.5.2 D2）：按 tableType 分派解析可用字段（entity/external/sql），
+     * 是 Measure/Dimension/Join 字段引用校验的基础，也是 {@link #resolveTableFields} 的核心。
+     */
+    private final MetaTableFieldResolver fieldResolver = new MetaTableFieldResolver(sqlFieldExtractor);
 
     public NopMetaTableBizModel() {
         setEntityName(NopMetaTable.class.getName());
@@ -229,20 +231,27 @@ public class NopMetaTableBizModel extends CrudBizModel<NopMetaTable> implements 
     }
 
     /**
-     * 已建 sql 视图表字段解析入口（架构基线 §4.2 / §4.2.2 D2，对齐"运行时解析、不单独存储"）：
-     * 加载 NopMetaTable(tableType=sql) → 解析 sourceSql → 返回字段列表。
+     * 跨类型字段解析入口（架构基线 §2.5.2 D2 + §4.2.2 D2）：加载 NopMetaTable → 按 {@code tableType} 分派
+     * 解析可用字段（entity→{@link NopMetaEntityField}；external→{@code buildSql} JSON 列；
+     * sql→{@link SqlSelectFieldExtractor}）→ 返回统一字段列表。
      *
-     * <p>失败路径显式（不静默返回空字段列表）：
+     * <p>本方法由 plan 0700-1 的 sql-only 版本扩展为全 {@code tableType} 分派版本（item 1.2b 裁定，
+     * 架构基线 §2.5.2 D2 ownership）。entity/external 分派独立可用；sql 分派复用 0700-1 的解析器。
+     *
+     * <p>失败路径显式（不静默返回空字段列表、不静默跳过）：
      * <ul>
      *   <li>表不存在 → {@link #ERR_SQL_VIEW_TABLE_NOT_FOUND}</li>
-     *   <li>非 sql 类型表 → {@link #ERR_SQL_VIEW_TABLE_NOT_SQL}</li>
-     *   <li>sourceSql 空 → {@link #ERR_SQL_VIEW_SOURCE_SQL_EMPTY}</li>
-     *   <li>sourceSql 不可解析/多语句/非 SELECT/通配符 → 由 {@link SqlSelectFieldExtractor} 抛 inline ErrorCode</li>
+     *   <li>entity 表 baseEntityId 为 null → 由 {@link MetaTableFieldResolver} 抛
+     *       {@code metadata.field-resolve-base-entity-null}</li>
+     *   <li>external 表 buildSql JSON 损坏/非数组/为空 → 由 {@link MetaTableFieldResolver} 抛
+     *       {@code metadata.field-resolve-external-build-sql-invalid}</li>
+     *   <li>sql 表 sourceSql 空/不可解析/多语句/非 SELECT/通配符 → 由 {@link MetaTableFieldResolver} 经
+     *       {@link SqlSelectFieldExtractor} 抛 inline ErrorCode</li>
      * </ul>
      *
-     * @param metaTableId 目标 sql 视图表 ID
+     * @param metaTableId 目标逻辑表 ID（任意 tableType）
      * @param context     服务上下文
-     * @return {@code {fields:[{name, alias?, type?}]}}（与 {@link #previewSqlFields} 结构统一）
+     * @return {@code {tableType, fields:[{name, sourceType, type?}]}}（统一结构，{@code type} 可能为 null）
      */
     @BizQuery
     public Map<String, Object> resolveTableFields(@Name("metaTableId") String metaTableId,
@@ -252,19 +261,13 @@ public class NopMetaTableBizModel extends CrudBizModel<NopMetaTable> implements 
         if (table == null) {
             throw new NopException(ERR_SQL_VIEW_TABLE_NOT_FOUND).param("metaTableId", metaTableId);
         }
-        if (!_NopMetadataCoreConstants.TABLE_TYPE_SQL.equals(table.getTableType())) {
-            throw new NopException(ERR_SQL_VIEW_TABLE_NOT_SQL)
-                    .param("metaTableId", metaTableId)
-                    .param("tableType", String.valueOf(table.getTableType()));
-        }
-        String sourceSql = table.getSourceSql();
-        if (sourceSql == null || sourceSql.trim().isEmpty()) {
-            throw new NopException(ERR_SQL_VIEW_SOURCE_SQL_EMPTY).param("metaTableId", metaTableId);
-        }
+        // 跨 tableType 分派：entity/external/sql 各自解析；解析失败由 resolver 显式抛 ErrorCode
+        IEntityDao<NopMetaEntityField> fieldDao = daoFor(NopMetaEntityField.class);
+        List<ResolvedTableField> fields = fieldResolver.resolve(table, fieldDao);
 
-        List<SqlViewField> fields = sqlFieldExtractor.extract(sourceSql);
         Map<String, Object> result = new LinkedHashMap<>();
-        result.put("fields", toFieldMaps(fields));
+        result.put("tableType", table.getTableType());
+        result.put("fields", toResolvedFieldMaps(fields));
         return result;
     }
 
@@ -283,6 +286,20 @@ public class NopMetaTableBizModel extends CrudBizModel<NopMetaTable> implements 
             }
             // 方案 A：type 恒为 null（不伪造）。type 字段始终写入，便于 UI/后续方案 B 统一结构。
             m.put("type", f.getType());
+            list.add(m);
+        }
+        return list;
+    }
+
+    /** 将 ResolvedTableField 列表序列化为返回 Map 列表（跨 tableType 统一 {name, sourceType, type?} 结构）。 */
+    private static List<Map<String, Object>> toResolvedFieldMaps(List<ResolvedTableField> fields) {
+        List<Map<String, Object>> list = new ArrayList<>(fields.size());
+        for (ResolvedTableField f : fields) {
+            Map<String, Object> m = new LinkedHashMap<>();
+            m.put("name", f.getName());
+            m.put("sourceType", f.getSourceType());
+            // type 可能为 null（sql 表首版不取类型、entity 字段 stdSqlType 可空）——不伪造，按原值返回
+            m.put("type", f.getDataType());
             list.add(m);
         }
         return list;

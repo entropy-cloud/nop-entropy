@@ -441,14 +441,17 @@ public class TestNopMetaTableBizModel extends JunitBaseTestCase {
         assertEquals("<expr_1>", resolveFields.get(2).get("name"));
     }
 
-    /** resolveTableFields 命中非 sql 表 → 显式失败（不静默返回空字段列表）。 */
+    /**
+     * resolveTableFields 命中 entity 表但 baseEntityId 为 null → 显式失败（item 1.2b 跨类型分派：
+     * entity 表须有 baseEntityId 才能解析字段，null 显式失败不静默空集）。
+     */
     @Test
     public void testResolveTableFieldsFailsOnNonSqlTable() {
         NopMetaTable entityTable = saveManualTable("EXT_NE_RESOLVE", "entity", "qs_ne_resolve");
         GraphQLResponseBean resp = graphQLEngine.executeGraphQL(graphQLEngine.newGraphQLContext(req(
                 "query { NopMetaTable__resolveTableFields(metaTableId: \"" + entityTable.getMetaTableId()
                         + "\") }")));
-        assertTrue(resp.hasError(), "non-sql table must explicitly fail (not return empty list): " + resp);
+        assertTrue(resp.hasError(), "entity table with null baseEntityId must explicitly fail: " + resp);
     }
 
     /** resolveTableFields 命中不存在的 metaTableId → 显式失败。 */
