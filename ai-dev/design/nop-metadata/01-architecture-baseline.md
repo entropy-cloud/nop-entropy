@@ -567,6 +567,39 @@ orm.xml
 1. 创建 MetaTable（tableType=sql），写入 sourceSql
 2. 运行时解析 SELECT 子句获取字段列表，不单独存储
 
+#### 4.2.1 字段解析方案（P3-6 裁定，收口 §八待定问题）
+
+**解析器选型**：复用平台 `nop-orm-eql` 的 `EqlASTParser.parseFromText(text)` 做纯语法 AST 解析（与 §2.6.1 血缘 `SqlSourceTableExtractor` 同一解析器、同一无 session 绑定模式）。解析器经 `nop-orm` 已传递可用，无新增 pom 依赖。
+
+**字段名解析策略（alias 优先）**：
+- `SqlExprProjection` 优先取别名：`proj.getAlias().getAlias()`（`SqlAlias.getAlias()` 返回 String，注意是 `getAlias()` 非 `getName()`）。
+- 无别名时取列名：`proj.getExpr()` 为 `SqlColumnName` 时取 `getName()`。
+- 无别名且为表达式列（非 `SqlColumnName`）：标记 `<expr_N>`（N 为序号），**不静默跳过、不返回空名**。
+
+**通配符 `*`/`t.*`（SqlAllProjection）裁定：显式失败**。纯语法 AST 无法展开为具体列，首版不引入 LIMIT 0 经 ResultSetMetaData 展开路径（见下方类型获取）。失败抛 `metadata.sql-wildcard-not-supported`，要求用户改写为显式列。**不静默跳过、不返回空、不伪造**。LIMIT 0 展开通配符为 follow-up。
+
+**多语句裁定：显式失败**。`program.getStatements().size() != 1` 抛 `metadata.sql-multi-statement`，不允许 `SELECT 1; DELETE...` 这类多语句作为视图 sourceSql。
+
+**非 SELECT 裁定：显式失败**。顶层单条语句 `getStatementKind() != SELECT` 抛 `metadata.sql-not-select`。
+
+**CTE / UNION 支持**：`SqlSelectWithCte`（`WITH ... SELECT`）`getStatementKind()` 返回 SELECT 但不继承 `SqlSelect`，通过钻入 `getSelect()` 取内层 `SqlSelect.getProjections()`（**首版支持**，取最外层 SELECT 输出列）。`SqlUnionSelect.getProjections()` 委托 `getFirstSelect()`（取最左侧 SELECT 的输出列，UNION 列名由左侧决定，符合 SQL 语义）。
+
+**复杂投影列处理**：首版取最外层 SELECT 输出列，不递归展开 CTE 别名/子查询内层列类型。递归展开为 follow-up（见 Deferred）。
+
+**字段类型获取裁定（方案 A 选定）**：首版**仅返回字段名/别名，不取类型**（`type=null`，不伪造）。理由：可移植、无需 DB 连接、与 AST 解析对齐。类型获取方案 B（`SELECT * FROM (<sourceSql>) _t LIMIT 0` 经 `ResultSetMetaData` 取列类型，需 querySpace→数据源→withConnection）与方案 C（用户手动录入 extConfig）作为 follow-up 增量。返回结构统一为 `{name, alias?, type?}`，方案 A 下 `type` 恒为 null。
+
+**标识符安全**：sourceSql 是用户显式提供的视图定义（非自动注入面）。方案 A 不执行 SQL，无注入面。若后续采纳方案 B（LIMIT 0），须走 PreparedStatement 包装子查询、不拼接标识符（列名/表名不出现在拼接位），与 §2.7.1 D3 标识符防护原则一致。
+
+#### 4.2.2 Action 契约（P3-1 裁定）
+
+落点 **NopMetaTableBizModel**（操作对象是逻辑表，与 profileTable/collectCatalog 入口风格一致）：
+
+- `@BizMutation createSqlTable(sql, tableName, metaModuleId, querySpace?, displayName?, context)` → 返回 `Map{metaTableId, tableName, tableType:"sql", fields:[{name, alias?, type?}]}`。行为：校验 sql 非空 + 为单条 SELECT（非 SELECT/不可解析/多语句/通配符显式失败抛 inline ErrorCode）→ 校验 metaModuleId 存在 → 解析字段 → 新建 `NopMetaTable(tableType="sql", sourceSql=sql, tableName, metaModuleId, querySpace?, displayName?)` → save → 返回。
+- `@BizQuery previewSqlFields(sql, context)` → 返回 `Map{fields:[{name, alias?, type?}]}`（**不持久化**，纯解析）。
+- `@BizQuery resolveTableFields(metaTableId, context)` → 返回**同一 wrapper 结构** `Map{fields:[{name, alias?, type?}]}`：加载 NopMetaTable → 表不存在/非 sql/sourceSql 空 显式失败 → 解析 sourceSql → 返回。
+
+三个 action 的 fields 项结构统一为 `{name, alias?, type?}`（方案 A 下 type 恒为 null）。失败路径（非 SELECT/空/不可解析/多语句/通配符/module 不存在/表不存在/非 sql 表/sourceSql 空）均显式抛 inline ErrorCode，不静默存入脏数据、不静默返回空字段列表、不吞异常。
+
 ### 4.3 模块发现
 
 注册式（配置 `beans.xml`）或自动扫描 `_module` 文件。模块版本管理对齐 Maven 打包/发布粒度。
@@ -635,7 +668,7 @@ nop-metadata-web           — nop-metadata-service
 ## 八、待定问题
 
 - `isDelta=true/false` 用同一张表（列区分）还是两张表？
-- SQL 视图字段解析：走 `EXPLAIN` 还是 `SELECT ... LIMIT 0` 还是用户手动录入？
+- ~~SQL 视图字段解析：走 `EXPLAIN` 还是 `SELECT ... LIMIT 0` 还是用户手动录入？~~ **已裁定（P3-6，2026-07-16）**：字段名/别名走 AST 解析（复用 `EqlASTParser`，与血缘先例一致，可移植、无需连接）；字段类型首版仅名不取类型（方案 A，`type=null` 不伪造），LIMIT 0 经 ResultSetMetaData 取类型（方案 B）为 follow-up。详见 §4.2.1。
 - MetaTableJoin 跨表关联时，左右表所属数据源不同（例如 ORM 的 MySQL 表和 SQL 定义的 ClickHouse 表），查询执行如何路由？
 - 通用 Domain 的来源：是单独维护还是从现有 ORM 模型提取？
 - 数据契约的 SLA 定义格式：JSON Schema vs 自定义 DSL？
