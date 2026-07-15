@@ -71,6 +71,7 @@
 | 理解 ORM 模型设计规范（stdDataType/stdSqlType、主键策略、关系设计） | `02-core-guides/orm-model-design.md` |
 | **跨模块引用其他模块的实体（主数据/业务单据）、关联查询、条件过滤怎么做** | `02-core-guides/cross-module-entity-reference.md`（四种机制：本模块实体 / `notGenCode` 外部实体引用 / `ext:baseClass` Delta 扩展 / 纯外键 + `I*Biz`） |
 | 理解 EQL 语法、`<eql>` 与 `<sql>` 区别、数据库兼容性（空字符串转 NULL、VARCHAR 自动提升 CLOB、Dialect 特性标志） | `02-core-guides/eql-and-database-compatibility.md` |
+| **理解 DQL（Dimensional Query Language）结构化维度查询：QueryBean 编程、主子表维度对齐、`<query>` 标签** | **`02-core-guides/dql-query.md`** |
 | 理解逻辑删除（delFlag / delVersion / 恢复 / 唯一键冲突处理） | `02-core-guides/logical-deletion.md` |
 | 理解多租户机制（自动过滤、自动填充、临时切换、跨租户保护） | `02-core-guides/tenant-model.md` |
 | 理解模块系统（`_module` 文件、moduleId/moduleName 规则、发现生命周期、app.module.yaml 格式、启禁用配置） | `02-core-guides/vfs-and-resource-resolution.md`（"模块发现与注册"章节） |
