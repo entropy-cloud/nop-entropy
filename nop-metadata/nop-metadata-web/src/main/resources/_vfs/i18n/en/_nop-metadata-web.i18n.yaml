@@ -60,6 +60,14 @@ site:
       displayName: Modify Meta Pipeline
     FNPT:NopMetaPipeline:query:
       displayName: Query Meta Pipeline
+    FNPT:NopMetaProfilingResult:mutation:
+      displayName: Modify Meta Profiling Result
+    FNPT:NopMetaProfilingResult:query:
+      displayName: Query Meta Profiling Result
+    FNPT:NopMetaProfilingRule:mutation:
+      displayName: Modify Meta Profiling Rule
+    FNPT:NopMetaProfilingRule:query:
+      displayName: Query Meta Profiling Rule
     FNPT:NopMetaQualityResult:mutation:
       displayName: Modify Meta Quality Result
     FNPT:NopMetaQualityResult:query:
@@ -122,6 +130,10 @@ site:
       displayName: Meta ORM Model
     NopMetaPipeline-main:
       displayName: Meta Pipeline
+    NopMetaProfilingResult-main:
+      displayName: Meta Profiling Result
+    NopMetaProfilingRule-main:
+      displayName: Meta Profiling Rule
     NopMetaQualityResult-main:
       displayName: Meta Quality Result
     NopMetaQualityRule-main:

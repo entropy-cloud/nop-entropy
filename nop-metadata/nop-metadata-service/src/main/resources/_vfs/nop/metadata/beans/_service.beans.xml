@@ -139,6 +139,14 @@
         <property name="bizObjName" value="NopMetaCatalog"/>
     </bean>
 
+    <bean id="io.nop.metadata.service.entity.NopMetaProfilingRuleBizModel" ioc:type="@bean:id" ioc:default="true"/>
+
+    <bean id="biz_NopMetaProfilingRule" class="io.nop.biz.proxy.BizProxyFactoryBean"
+          ioc:type="io.nop.metadata.biz.INopMetaProfilingRuleBiz" ioc:force-lazy-property="true" lazy-init="true"
+          primary="true">
+        <property name="bizObjName" value="NopMetaProfilingRule"/>
+    </bean>
+
     <bean id="io.nop.metadata.service.entity.NopMetaEntityFieldBizModel" ioc:type="@bean:id" ioc:default="true"/>
 
     <bean id="biz_NopMetaEntityField" class="io.nop.biz.proxy.BizProxyFactoryBean"
@@ -185,5 +193,13 @@
           ioc:type="io.nop.metadata.biz.INopMetaDictItemBiz" ioc:force-lazy-property="true" lazy-init="true"
           primary="true">
         <property name="bizObjName" value="NopMetaDictItem"/>
+    </bean>
+
+    <bean id="io.nop.metadata.service.entity.NopMetaProfilingResultBizModel" ioc:type="@bean:id" ioc:default="true"/>
+
+    <bean id="biz_NopMetaProfilingResult" class="io.nop.biz.proxy.BizProxyFactoryBean"
+          ioc:type="io.nop.metadata.biz.INopMetaProfilingResultBiz" ioc:force-lazy-property="true" lazy-init="true"
+          primary="true">
+        <property name="bizObjName" value="NopMetaProfilingResult"/>
     </bean>
 </beans>

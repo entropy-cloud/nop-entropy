@@ -348,6 +348,24 @@ CREATE TABLE nop_meta_catalog(
   constraint PK_nop_meta_catalog primary key (meta_catalog_id)
 );
 
+CREATE TABLE nop_meta_profiling_rule(
+  profiling_rule_id VARCHAR(32) NOT NULL ,
+  rule_name VARCHAR(100) NOT NULL ,
+  display_name VARCHAR(200)  ,
+  table_id VARCHAR(32) NOT NULL ,
+  columns VARCHAR(4000)  ,
+  stats VARCHAR(4000)  ,
+  sample_size INT4  ,
+  ext_config VARCHAR(4000)  ,
+  del_version INT8 NOT NULL ,
+  created_by VARCHAR(50) NOT NULL ,
+  create_time TIMESTAMP NOT NULL ,
+  updated_by VARCHAR(50) NOT NULL ,
+  update_time TIMESTAMP NOT NULL ,
+  remark VARCHAR(200)  ,
+  constraint PK_nop_meta_profiling_rule primary key (profiling_rule_id)
+);
+
 CREATE TABLE nop_meta_entity_field(
   entity_field_id VARCHAR(32) NOT NULL ,
   meta_entity_id VARCHAR(32) NOT NULL ,
@@ -479,6 +497,22 @@ CREATE TABLE nop_meta_dict_item(
   update_time TIMESTAMP NOT NULL ,
   remark VARCHAR(200)  ,
   constraint PK_nop_meta_dict_item primary key (dict_item_id)
+);
+
+CREATE TABLE nop_meta_profiling_result(
+  profiling_result_id VARCHAR(32) NOT NULL ,
+  profiling_rule_id VARCHAR(32)  ,
+  meta_table_id VARCHAR(32) NOT NULL ,
+  snapshot_time TIMESTAMP NOT NULL ,
+  table_stats TEXT  ,
+  column_stats TEXT  ,
+  del_version INT8 NOT NULL ,
+  created_by VARCHAR(50) NOT NULL ,
+  create_time TIMESTAMP NOT NULL ,
+  updated_by VARCHAR(50) NOT NULL ,
+  update_time TIMESTAMP NOT NULL ,
+  remark VARCHAR(200)  ,
+  constraint PK_nop_meta_profiling_result primary key (profiling_result_id)
 );
 
 
@@ -1078,6 +1112,36 @@ CREATE TABLE nop_meta_dict_item(
                     
       COMMENT ON COLUMN nop_meta_catalog.remark IS '备注';
                     
+      COMMENT ON TABLE nop_meta_profiling_rule IS '数据剖析规则';
+                
+      COMMENT ON COLUMN nop_meta_profiling_rule.profiling_rule_id IS '剖析规则ID';
+                    
+      COMMENT ON COLUMN nop_meta_profiling_rule.rule_name IS '规则名';
+                    
+      COMMENT ON COLUMN nop_meta_profiling_rule.display_name IS '显示名';
+                    
+      COMMENT ON COLUMN nop_meta_profiling_rule.table_id IS '剖析表ID';
+                    
+      COMMENT ON COLUMN nop_meta_profiling_rule.columns IS '剖析列';
+                    
+      COMMENT ON COLUMN nop_meta_profiling_rule.stats IS '统计指标';
+                    
+      COMMENT ON COLUMN nop_meta_profiling_rule.sample_size IS '采样大小';
+                    
+      COMMENT ON COLUMN nop_meta_profiling_rule.ext_config IS '扩展配置';
+                    
+      COMMENT ON COLUMN nop_meta_profiling_rule.del_version IS '数据版本';
+                    
+      COMMENT ON COLUMN nop_meta_profiling_rule.created_by IS '创建人';
+                    
+      COMMENT ON COLUMN nop_meta_profiling_rule.create_time IS '创建时间';
+                    
+      COMMENT ON COLUMN nop_meta_profiling_rule.updated_by IS '修改人';
+                    
+      COMMENT ON COLUMN nop_meta_profiling_rule.update_time IS '修改时间';
+                    
+      COMMENT ON COLUMN nop_meta_profiling_rule.remark IS '备注';
+                    
       COMMENT ON TABLE nop_meta_entity_field IS '实体字段';
                 
       COMMENT ON COLUMN nop_meta_entity_field.entity_field_id IS '字段ID';
@@ -1307,4 +1371,30 @@ CREATE TABLE nop_meta_dict_item(
       COMMENT ON COLUMN nop_meta_dict_item.update_time IS '修改时间';
                     
       COMMENT ON COLUMN nop_meta_dict_item.remark IS '备注';
+                    
+      COMMENT ON TABLE nop_meta_profiling_result IS '数据剖析结果';
+                
+      COMMENT ON COLUMN nop_meta_profiling_result.profiling_result_id IS '剖析结果ID';
+                    
+      COMMENT ON COLUMN nop_meta_profiling_result.profiling_rule_id IS '剖析规则ID';
+                    
+      COMMENT ON COLUMN nop_meta_profiling_result.meta_table_id IS '逻辑表ID';
+                    
+      COMMENT ON COLUMN nop_meta_profiling_result.snapshot_time IS '快照时间';
+                    
+      COMMENT ON COLUMN nop_meta_profiling_result.table_stats IS '表级统计';
+                    
+      COMMENT ON COLUMN nop_meta_profiling_result.column_stats IS '列级统计';
+                    
+      COMMENT ON COLUMN nop_meta_profiling_result.del_version IS '数据版本';
+                    
+      COMMENT ON COLUMN nop_meta_profiling_result.created_by IS '创建人';
+                    
+      COMMENT ON COLUMN nop_meta_profiling_result.create_time IS '创建时间';
+                    
+      COMMENT ON COLUMN nop_meta_profiling_result.updated_by IS '修改人';
+                    
+      COMMENT ON COLUMN nop_meta_profiling_result.update_time IS '修改时间';
+                    
+      COMMENT ON COLUMN nop_meta_profiling_result.remark IS '备注';
                     

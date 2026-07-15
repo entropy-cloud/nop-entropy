@@ -33,6 +33,8 @@ alter table nop_meta_table_filter add NOP_TENANT_ID VARCHAR(32) DEFAULT '0' NOT 
 
 alter table nop_meta_catalog add NOP_TENANT_ID VARCHAR(32) DEFAULT '0' NOT NULL;
 
+alter table nop_meta_profiling_rule add NOP_TENANT_ID VARCHAR(32) DEFAULT '0' NOT NULL;
+
 alter table nop_meta_entity_field add NOP_TENANT_ID VARCHAR(32) DEFAULT '0' NOT NULL;
 
 alter table nop_meta_entity_relation add NOP_TENANT_ID VARCHAR(32) DEFAULT '0' NOT NULL;
@@ -44,6 +46,8 @@ alter table nop_meta_entity_index add NOP_TENANT_ID VARCHAR(32) DEFAULT '0' NOT 
 alter table nop_meta_table_join add NOP_TENANT_ID VARCHAR(32) DEFAULT '0' NOT NULL;
 
 alter table nop_meta_dict_item add NOP_TENANT_ID VARCHAR(32) DEFAULT '0' NOT NULL;
+
+alter table nop_meta_profiling_result add NOP_TENANT_ID VARCHAR(32) DEFAULT '0' NOT NULL;
 
 alter table nop_meta_module drop constraint PK_nop_meta_module;
 alter table nop_meta_module add constraint PK_nop_meta_module primary key (NOP_TENANT_ID, meta_module_id);
@@ -96,6 +100,9 @@ alter table nop_meta_table_filter add constraint PK_nop_meta_table_filter primar
 alter table nop_meta_catalog drop constraint PK_nop_meta_catalog;
 alter table nop_meta_catalog add constraint PK_nop_meta_catalog primary key (NOP_TENANT_ID, meta_catalog_id);
 
+alter table nop_meta_profiling_rule drop constraint PK_nop_meta_profiling_rule;
+alter table nop_meta_profiling_rule add constraint PK_nop_meta_profiling_rule primary key (NOP_TENANT_ID, profiling_rule_id);
+
 alter table nop_meta_entity_field drop constraint PK_nop_meta_entity_field;
 alter table nop_meta_entity_field add constraint PK_nop_meta_entity_field primary key (NOP_TENANT_ID, entity_field_id);
 
@@ -113,5 +120,8 @@ alter table nop_meta_table_join add constraint PK_nop_meta_table_join primary ke
 
 alter table nop_meta_dict_item drop constraint PK_nop_meta_dict_item;
 alter table nop_meta_dict_item add constraint PK_nop_meta_dict_item primary key (NOP_TENANT_ID, dict_item_id);
+
+alter table nop_meta_profiling_result drop constraint PK_nop_meta_profiling_result;
+alter table nop_meta_profiling_result add constraint PK_nop_meta_profiling_result primary key (NOP_TENANT_ID, profiling_result_id);
 
 

@@ -16,10 +16,12 @@ drop table nop_meta_table_dimension;
 drop table nop_meta_table_measure;
 drop table nop_meta_table_filter;
 drop table nop_meta_catalog;
+drop table nop_meta_profiling_rule;
 drop table nop_meta_entity_field;
 drop table nop_meta_entity_relation;
 drop table nop_meta_entity_unique_key;
 drop table nop_meta_entity_index;
 drop table nop_meta_table_join;
 drop table nop_meta_dict_item;
+drop table nop_meta_profiling_result;
 

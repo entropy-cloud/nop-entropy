@@ -15,6 +15,8 @@ entity:
     NopMetaModule: 元数据模块
     NopMetaOrmModel: ORM模型
     NopMetaPipeline: 数据管道
+    NopMetaProfilingResult: 数据剖析结果
+    NopMetaProfilingRule: 数据剖析规则
     NopMetaQualityResult: 质量结果
     NopMetaQualityRule: 质量规则
     NopMetaSemanticType: 语义类型
@@ -347,6 +349,45 @@ prop:
       remark: 备注
       schedule: 调度表达式
       sourceSql: 处理SQL
+      updateTime: 修改时间
+      updatedBy: 修改人
+      version: 数据版本
+    NopMetaProfilingResult:
+      columnStats: 列级统计
+      columnStatsComponent: null
+      createTime: 创建时间
+      createdBy: 创建人
+      metaTable: 逻辑表
+      metaTable.displayName: 逻辑表
+      metaTableId: 逻辑表ID
+      profilingResultId: 剖析结果ID
+      profilingRule: 剖析规则
+      profilingRule.displayName: 剖析规则
+      profilingRuleId: 剖析规则ID
+      remark: 备注
+      snapshotTime: 快照时间
+      tableStats: 表级统计
+      tableStatsComponent: null
+      updateTime: 修改时间
+      updatedBy: 修改人
+      version: 数据版本
+    NopMetaProfilingRule:
+      columns: 剖析列
+      columnsComponent: null
+      createTime: 创建时间
+      createdBy: 创建人
+      displayName: 显示名
+      extConfig: 扩展配置
+      extConfigComponent: null
+      metaTable: 逻辑表
+      metaTable.displayName: 逻辑表
+      profilingRuleId: 剖析规则ID
+      remark: 备注
+      ruleName: 规则名
+      sampleSize: 采样大小
+      stats: 统计指标
+      statsComponent: null
+      tableId: 剖析表ID
       updateTime: 修改时间
       updatedBy: 修改人
       version: 数据版本

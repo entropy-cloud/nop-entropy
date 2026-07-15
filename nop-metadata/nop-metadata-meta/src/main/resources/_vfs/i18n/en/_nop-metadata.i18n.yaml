@@ -15,6 +15,8 @@ entity:
     NopMetaModule: Meta Module
     NopMetaOrmModel: Meta ORM Model
     NopMetaPipeline: Meta Pipeline
+    NopMetaProfilingResult: Meta Profiling Result
+    NopMetaProfilingRule: Meta Profiling Rule
     NopMetaQualityResult: Meta Quality Result
     NopMetaQualityRule: Meta Quality Rule
     NopMetaSemanticType: Meta Semantic Type
@@ -349,6 +351,45 @@ prop:
       remark: Remark
       metaModule: Meta Module
       metaModule.displayName: Meta Module
+      extConfigComponent: null
+    NopMetaProfilingResult:
+      profilingResultId: Profiling Result Id
+      profilingRuleId: Profiling Rule Id
+      metaTableId: Meta Table Id
+      snapshotTime: Snapshot Time
+      tableStats: Table Stats
+      columnStats: Column Stats
+      version: Version
+      createdBy: Created By
+      createTime: Create Time
+      updatedBy: Updated By
+      updateTime: Update Time
+      remark: Remark
+      profilingRule: Profiling Rule
+      profilingRule.displayName: Profiling Rule
+      metaTable: Meta Table
+      metaTable.displayName: Meta Table
+      tableStatsComponent: null
+      columnStatsComponent: null
+    NopMetaProfilingRule:
+      profilingRuleId: Profiling Rule Id
+      ruleName: Rule Name
+      displayName: Display Name
+      tableId: Table Id
+      columns: Columns
+      stats: Stats
+      sampleSize: Sample Size
+      extConfig: Ext Config
+      version: Version
+      createdBy: Created By
+      createTime: Create Time
+      updatedBy: Updated By
+      updateTime: Update Time
+      remark: Remark
+      metaTable: Meta Table
+      metaTable.displayName: Meta Table
+      columnsComponent: null
+      statsComponent: null
       extConfigComponent: null
     NopMetaQualityResult:
       qualityResultId: Quality Result Id

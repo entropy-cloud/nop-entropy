@@ -1,0 +1,20 @@
+{
+  "profilingResultId": "",
+  "profilingRuleId": "",
+  "metaTableId": "",
+  "snapshotTime": "2000-01-01 14:00:00",
+  "tableStats": "",
+  "columnStats": "",
+  "version": 0,
+  "createdBy": "",
+  "createTime": "2000-01-01 14:00:00",
+  "updatedBy": "",
+  "updateTime": "2000-01-01 14:00:00",
+  "remark": "",
+  "profilingRule": null,
+  "profilingRule.displayName": "",
+  "metaTable": null,
+  "metaTable.displayName": "",
+  "tableStatsComponent": null,
+  "columnStatsComponent": null
+}

@@ -348,6 +348,24 @@ CREATE TABLE nop_meta_catalog(
   constraint PK_nop_meta_catalog primary key (META_CATALOG_ID)
 )CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_as_cs;
 
+CREATE TABLE nop_meta_profiling_rule(
+  PROFILING_RULE_ID VARCHAR(32) NOT NULL    COMMENT '剖析规则ID',
+  RULE_NAME VARCHAR(100) NOT NULL    COMMENT '规则名',
+  DISPLAY_NAME VARCHAR(200) NULL    COMMENT '显示名',
+  TABLE_ID VARCHAR(32) NOT NULL    COMMENT '剖析表ID',
+  COLUMNS VARCHAR(4000) NULL    COMMENT '剖析列',
+  STATS VARCHAR(4000) NULL    COMMENT '统计指标',
+  SAMPLE_SIZE INTEGER NULL    COMMENT '采样大小',
+  EXT_CONFIG VARCHAR(4000) NULL    COMMENT '扩展配置',
+  DEL_VERSION BIGINT NOT NULL    COMMENT '数据版本',
+  CREATED_BY VARCHAR(50) NOT NULL    COMMENT '创建人',
+  CREATE_TIME DATETIME(3) DEFAULT CURRENT_TIMESTAMP(3)  NOT NULL    COMMENT '创建时间',
+  UPDATED_BY VARCHAR(50) NOT NULL    COMMENT '修改人',
+  UPDATE_TIME DATETIME(3) DEFAULT CURRENT_TIMESTAMP(3)  NOT NULL    COMMENT '修改时间',
+  REMARK VARCHAR(200) NULL    COMMENT '备注',
+  constraint PK_nop_meta_profiling_rule primary key (PROFILING_RULE_ID)
+)CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_as_cs;
+
 CREATE TABLE nop_meta_entity_field(
   ENTITY_FIELD_ID VARCHAR(32) NOT NULL    COMMENT '字段ID',
   META_ENTITY_ID VARCHAR(32) NOT NULL    COMMENT '实体ID',
@@ -481,6 +499,22 @@ CREATE TABLE nop_meta_dict_item(
   constraint PK_nop_meta_dict_item primary key (DICT_ITEM_ID)
 )CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_as_cs;
 
+CREATE TABLE nop_meta_profiling_result(
+  PROFILING_RESULT_ID VARCHAR(32) NOT NULL    COMMENT '剖析结果ID',
+  PROFILING_RULE_ID VARCHAR(32) NULL    COMMENT '剖析规则ID',
+  META_TABLE_ID VARCHAR(32) NOT NULL    COMMENT '逻辑表ID',
+  SNAPSHOT_TIME DATETIME(3) DEFAULT CURRENT_TIMESTAMP(3)  NOT NULL    COMMENT '快照时间',
+  TABLE_STATS LONGTEXT NULL    COMMENT '表级统计',
+  COLUMN_STATS LONGTEXT NULL    COMMENT '列级统计',
+  DEL_VERSION BIGINT NOT NULL    COMMENT '数据版本',
+  CREATED_BY VARCHAR(50) NOT NULL    COMMENT '创建人',
+  CREATE_TIME DATETIME(3) DEFAULT CURRENT_TIMESTAMP(3)  NOT NULL    COMMENT '创建时间',
+  UPDATED_BY VARCHAR(50) NOT NULL    COMMENT '修改人',
+  UPDATE_TIME DATETIME(3) DEFAULT CURRENT_TIMESTAMP(3)  NOT NULL    COMMENT '修改时间',
+  REMARK VARCHAR(200) NULL    COMMENT '备注',
+  constraint PK_nop_meta_profiling_result primary key (PROFILING_RESULT_ID)
+)CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_as_cs;
+
 
    ALTER TABLE nop_meta_module COMMENT '元数据模块';
                 
@@ -516,6 +550,8 @@ CREATE TABLE nop_meta_dict_item(
                 
    ALTER TABLE nop_meta_catalog COMMENT '运行时统计快照';
                 
+   ALTER TABLE nop_meta_profiling_rule COMMENT '数据剖析规则';
+                
    ALTER TABLE nop_meta_entity_field COMMENT '实体字段';
                 
    ALTER TABLE nop_meta_entity_relation COMMENT '实体关系';
@@ -527,4 +563,6 @@ CREATE TABLE nop_meta_dict_item(
    ALTER TABLE nop_meta_table_join COMMENT '表关联';
                 
    ALTER TABLE nop_meta_dict_item COMMENT '字典项';
+                
+   ALTER TABLE nop_meta_profiling_result COMMENT '数据剖析结果';
                 
