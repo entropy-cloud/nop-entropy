@@ -4,6 +4,14 @@ site:
       displayName: Modify Workflow Action
     FNPT:NopWfAction:query:
       displayName: Query Workflow Action
+    FNPT:NopWfApprovableForm:mutation:
+      displayName: Modify Approvable Form (Workflow)
+    FNPT:NopWfApprovableForm:query:
+      displayName: Query Approvable Form (Workflow)
+    FNPT:NopWfApprovableItem:mutation:
+      displayName: Modify Approvable Item (Direct)
+    FNPT:NopWfApprovableItem:query:
+      displayName: Query Approvable Item (Direct)
     FNPT:NopWfDefinition:mutation:
       displayName: Modify Workflow Definition
     FNPT:NopWfDefinition:query:
@@ -42,6 +50,10 @@ site:
       displayName: Query Work List
     NopWfAction-main:
       displayName: Workflow Action
+    NopWfApprovableForm-main:
+      displayName: Approvable Form (Workflow)
+    NopWfApprovableItem-main:
+      displayName: Approvable Item (Direct)
     NopWfDefinition-main:
       displayName: Workflow Definition
     NopWfDefinitionAuth-main:
