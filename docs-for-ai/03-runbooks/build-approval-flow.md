@@ -2,7 +2,7 @@
 
 > **前置阅读**：[`02-core-guides/workflow-configuration.md`](../02-core-guides/workflow-configuration.md)（理解 step、transition、action、assignment 等基础概念）
 
-本文以 `nop-wf` 的 15 个产品级示例为基础，按场景说明审批流的配置方法。
+本文以 `nop-wf` 的 14 个顶层产品级示例为基础（其中 `subprocess` 内嵌一个 `sub-workflow`），按场景说明审批流的配置方法。
 
 ---
 
@@ -394,7 +394,7 @@ step.transferToActor(new WfActorAndOwner("user", "delegateUserId"), false, ctx);
 
 ## 单元测试
 
-所有 15 个示例都有对应的测试，集中在 `TestWorkflowExamples.java`：
+所有 14 个顶层示例都有对应的测试，集中在 `TestWorkflowExamples.java`（`subprocess` 示例内嵌一个 `sub-workflow`）：
 
 ```bash
 # 运行全部示例测试

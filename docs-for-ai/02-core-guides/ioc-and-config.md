@@ -117,7 +117,7 @@ java -Dquarkus.profile=dev \
 | 场景 | 默认做法 |
 |------|---------|
 | 注入 bean | `@Inject` |
-| 注入配置值 | `@InjectValue("@cfg:key|default")` |
+| 注入配置值 | `@InjectValue("@cfg:key\|default")` |
 
 > `@cfg:` 在 IoC 容器中由 `ConfigExpressionProcessor` 处理；YAML / JSON / XML DSL 加载阶段的 `@cfg:` 由 `ValueResolverCompilerRegistry.DEFAULT` 处理（同一写法、不同实现）。完整说明见 `./value-resolvers.md`。
 | 需要动态测试配置 | `@NopTestConfig(testConfigFile = ...)` |

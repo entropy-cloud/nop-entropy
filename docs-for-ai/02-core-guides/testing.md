@@ -382,7 +382,7 @@ public void testMultiStep() {
 ### 修复步骤
 
 1. **修改 ORM 模型**：在 `model/*.orm.xml` 的对应 `<column>` 上追加 `tagSet`（多个值用逗号分隔，如 `tagSet="var,clock"`）。
-2. **重新录制 output**：见上方[重新录制 output](#-重新录制-output) 章节。核心思路是保留 input 快照不动，只删除旧 output，在 `saveOutput=true` 模式下重跑测试，框架会自动生成含有 `@var:` 引用的新 output。
+2. **重新录制 output**：见上方[重新录制 output](#重新录制-output) 章节。核心思路是保留 input 快照不动，只删除旧 output，在 `saveOutput=true` 模式下重跑测试，框架会自动生成含有 `@var:` 引用的新 output。
 3. **验证**：切回 `checkOutput=true`（默认），重新运行测试，确认绿色。
 4. **提交**：ORM 模型变更 + 重新录制的快照一起提交。
 

@@ -168,8 +168,8 @@ GraphQLFieldDefinition action = schemaLoader.getOperationDefinition(null, opName
 
 **Nop 平台的所有 HTTP 入口都是异步的**，所有 `GraphQLWebService` 方法都返回 `CompletionStage<T>`：
 
-| 入口 | 方法 | 返回类型 |
-|------|------|---------|
+| 方法 | 返回类型 |
+|------|---------|
 | `runGraphQL(body, responseBuilder)` | `CompletionStage<T>` |
 | `runRest(opType, opName, requestBuilder, responseBuilder)` | `CompletionStage<T>` |
 | `doPageQuery(opType, query, selection, body, responseBuilder)` | `CompletionStage<T>` |

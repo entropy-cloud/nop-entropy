@@ -8,13 +8,16 @@
 | `nop-code-lang-java` | Java source analyzer using JavaParser + Symbol Solver. Route extraction for Spring annotations. |
 | `nop-code-lang-python` | Python source analyzer. Import resolution via `PythonImportResolver`. |
 | `nop-code-lang-typescript` | TypeScript/JavaScript source analyzer. Import resolution via `TypeScriptImportResolver`. |
-| `nop-code-graph` | Graph analysis: community detection (Louvain), critical-node scoring, impact analysis, graph diff, dependency cycles. |
 | `nop-code-flow` | Flow detection: execution flows, dead-code detection, change analysis. Interfaces: `IFlowDetector`, `IChangeAnalyzer`, `IDeadCodeDetector`. |
+| `nop-code-codegen` | 代码生成层。 |
 | `nop-code-dao` | Generated ORM entities and DAO layer (from `nop-code.orm.xml`). |
 | `nop-code-service` | Business logic. `CodeIndexService` (implements `ICodeIndexService`): full/incremental indexing, persistence, flow/graph orchestration. |
 | `nop-code-web` | Web/API layer. |
+| `nop-code-app` | 应用打包层。 |
 | `nop-code-api` | API DTOs: `IndexStatsDTO`, `CodeSearchResultDTO`, `DepGraphDTO`, etc. |
 | `nop-code-meta` | Metadata: xmeta definitions, ORM model (`nop-code.orm.xml`), i18n resources, dict files. |
+
+> 图分析能力（community detection/Louvain、critical-node scoring、impact analysis、graph diff、dependency cycles）不在本模块，而在**独立的顶层模块 `nop-graph/`**（`nop-graph-api` + `nop-graph-core`），见 `../01-repo-map/module-groups.md`。`nop-code` 的子模块清单中**没有** `nop-code-graph`。
 
 ## 核心 API 清单
 

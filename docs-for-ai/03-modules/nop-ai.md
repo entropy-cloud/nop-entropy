@@ -34,8 +34,7 @@
 
 | 子模块 | 职责 |
 |--------|------|
-| `nop-ai-core` | AI 核心接口 |
-| `nop-ai-llm` | LLM 集成 |
+| `nop-ai-core` | AI 核心接口（含 LLM 集成） |
 | `nop-ai-agent` | Agent 框架 |
 | `nop-ai-rag` | RAG 检索增强 |
 | `nop-ai-skills` | AI 技能 |

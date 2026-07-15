@@ -37,6 +37,8 @@ Nop 平台的多租户支持是**框架内置的薄层**，不是业务功能。
 @tenantProp [租户id列] 租户id所对应的column的name。如果useTenant为true，tenantProp的缺省值为nopTenant。
 ```
 
+> 注：上面 xdef 注释中的 `nopTenant` 是 xdef 文本本身的笔误，框架实际默认值是 `nopTenantId`（见 `OrmEntityModelInitializer`、`OrmModelConstants.PROP_NAME_nopTenantId`，以及上文属性表）。
+
 ## 为什么 ORM 模型不需要预置租户 ID
 
 框架在以下**所有**入口自动填充 `tenantId`：

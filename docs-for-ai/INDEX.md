@@ -72,7 +72,7 @@
 | **跨模块引用其他模块的实体（主数据/业务单据）、关联查询、条件过滤怎么做** | `02-core-guides/cross-module-entity-reference.md`（四种机制：本模块实体 / `notGenCode` 外部实体引用 / `ext:baseClass` Delta 扩展 / 纯外键 + `I*Biz`） |
 | 理解 EQL 语法、`<eql>` 与 `<sql>` 区别、数据库兼容性（空字符串转 NULL、VARCHAR 自动提升 CLOB、Dialect 特性标志） | `02-core-guides/eql-and-database-compatibility.md` |
 | **理解 DQL（Dimensional Query Language）结构化维度查询：QueryBean 编程、主子表维度对齐、`<query>` 标签** | **`02-core-guides/dql-query.md`** |
-| 理解逻辑删除（delFlag / delVersion / 恢复 / 唯一键冲突处理） | `02-core-guides/logical-deletion.md` |
+| 理解逻辑删除（`deleted` / `delVersion` / 恢复 / 唯一键冲突处理） | `02-core-guides/logical-deletion.md` |
 | 理解多租户机制（自动过滤、自动填充、临时切换、跨租户保护） | `02-core-guides/tenant-model.md` |
 | 理解模块系统（`_module` 文件、moduleId/moduleName 规则、发现生命周期、app.module.yaml 格式、启禁用配置） | `02-core-guides/vfs-and-resource-resolution.md`（"模块发现与注册"章节） |
 | 理解外部应用从 design 到模型、生成、BizModel、测试、联调的默认顺序 | `02-core-guides/application-development-workflow.md` |
@@ -159,6 +159,8 @@
 | 在测试中补 mock bean | `03-runbooks/add-test-mock-bean.md` |
 | 查询常用 Java helper | `04-reference/common-java-helpers.md` |
 | 查询安全 API | `04-reference/safe-api-reference.md` |
+| **BizModel 方法自检清单**（写 BizModel 前后逐项核对） | **`04-reference/bizmodel-method-selfcheck.md`** |
+| 理解服务接口的异步调用（CompletionStage 变体） | `04-reference/async-service-guide.md` |
 | **选择可复用业务模块** | **`03-modules/reusable-modules-overview.md`**（总览 + 场景→模块路由） |
 | 理解 nop-auth（认证/权限/多租户） | `03-modules/nop-auth.md`（多租户核心机制见 `02-core-guides/tenant-model.md`） |
 | 理解 nop-sys（字典/序列号/编码规则/锁/事件） | `03-modules/nop-sys.md` |

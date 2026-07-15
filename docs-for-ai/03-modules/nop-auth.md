@@ -51,9 +51,11 @@
 | NopAuthSession | `nop_auth_session` | 会话日志 |
 | NopAuthOpLog | `nop_auth_op_log` | 操作审计日志 |
 | NopAuthExtLogin | `nop_auth_ext_login` | 外部登录方式 |
-| NopOAuthAuthorization | `nop_oauth_authorization` | OAuth2 授权记录 |
-| NopOAuthRegisteredClient | `nop_oauth_registered_client` | OAuth2 客户端注册 |
-| NopOAuthUserConsent | `nop_oauth_user_consent` | OAuth2 用户同意 |
+| NopOauthAuthorization | `nop_oauth_authorization` | OAuth2 授权记录 |
+| NopOauthRegisteredClient | `nop_oauth_registered_client` | OAuth2 客户端注册 |
+| NopOauthAuthorizationConsent | `nop_oauth_authorization_consent` | OAuth2 用户同意（授权许可） |
+
+> OAuth 实体类名规范为 `NopOauth*`（`Oauth` 中 a 小写，包名 `io.nop.oauth.dao.entity`）。注意 Java 区分大小写，勿写成 `NopOAuth*`。
 
 ## 子模块
 
