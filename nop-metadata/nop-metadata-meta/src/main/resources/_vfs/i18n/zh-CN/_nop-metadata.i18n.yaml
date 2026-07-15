@@ -254,6 +254,8 @@ prop:
       updatedBy: 修改人
       version: 数据版本
     NopMetaModule:
+      baseModule: 基线模块
+      baseModule.displayName: 基线模块
       baseModuleId: 基线模块版本ID
       createTime: 创建时间
       createdBy: 创建人

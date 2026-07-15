@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<orm ext:appName="nop-test-simple" ext:entityPackageName="io.nop.test.entity"
+     ext:basePackageName="io.nop.test" ext:mavenGroupId="io.github.entropy-cloud"
+     ext:mavenArtifactId="nop-test-simple" ext:mavenVersion="1.0.0-SNAPSHOT"
+     x:schema="/nop/schema/orm/orm.xdef" xmlns:x="/nop/schema/xdsl.xdef" xmlns:ext="ext">
+
+    <domains>
+        <domain name="simpleName" precision="100" stdSqlType="VARCHAR"/>
+    </domains>
+
+    <entities>
+        <entity className="io.nop.test.entity.TestSimpleA" name="io.nop.test.entity.TestSimpleA"
+                tableName="test_simple_a" displayName="测试实体A" registerShortName="true">
+            <columns>
+                <column name="sid" code="SID" primary="true" propId="1" stdDataType="string"
+                        stdSqlType="VARCHAR" precision="32" mandatory="true" tagSet="seq"/>
+                <column name="name" code="NAME" propId="2" stdDataType="string" stdSqlType="VARCHAR"
+                        precision="100" domain="simpleName"/>
+                <column name="value" code="VALUE" propId="3" stdDataType="long" stdSqlType="BIGINT"/>
+            </columns>
+            <indexes>
+                <index name="IX_SIMPLE_A_NAME" unique="false">
+                    <column name="name"/>
+                </index>
+            </indexes>
+        </entity>
+
+        <entity className="io.nop.test.entity.TestSimpleB" name="io.nop.test.entity.TestSimpleB"
+                tableName="test_simple_b" displayName="测试实体B" registerShortName="true">
+            <columns>
+                <column name="sid" code="SID" primary="true" propId="1" stdDataType="string"
+                        stdSqlType="VARCHAR" precision="32" mandatory="true" tagSet="seq"/>
+                <column name="label" code="LABEL" propId="2" stdDataType="string" stdSqlType="VARCHAR"
+                        precision="200"/>
+                <column name="refAId" code="REF_A_ID" propId="3" stdDataType="string" stdSqlType="VARCHAR"
+                        precision="32"/>
+            </columns>
+            <relations>
+                <to-one name="refA" refEntityName="io.nop.test.entity.TestSimpleA">
+                    <join>
+                        <on leftProp="refAId" rightProp="sid"/>
+                    </join>
+                </to-one>
+            </relations>
+        </entity>
+    </entities>
+</orm>

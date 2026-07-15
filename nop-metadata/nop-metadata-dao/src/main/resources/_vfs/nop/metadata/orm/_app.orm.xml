@@ -177,6 +177,14 @@
                     <column name="moduleId"/>
                 </index>
             </indexes>
+            <relations>
+                <to-one displayName="基线模块" name="baseModule" refEntityName="io.nop.metadata.dao.entity.NopMetaModule"
+                        tagSet="pub,ref-pub" i18n-en:displayName="Base Module">
+                    <join>
+                        <on leftProp="baseModuleId" rightProp="metaModuleId"/>
+                    </join>
+                </to-one>
+            </relations>
             <unique-keys>
                 <unique-key columns="moduleId,moduleVersion" name="UK_NOP_META_MODULE_ID_VER"
                             i18n-en:displayName="Unique Module Id And Version"/>

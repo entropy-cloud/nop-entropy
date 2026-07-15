@@ -17,6 +17,9 @@ import io.nop.graphql.core.engine.IGraphQLEngine;
 import jakarta.inject.Inject;
 import org.junit.jupiter.api.Test;
 
+import java.util.Map;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -118,6 +121,116 @@ public class TestNopMetaModuleBizModel extends JunitBaseTestCase {
                 "The failed entry should carry an error message: " + data);
     }
 
+    @Test
+    public void testReleaseModuleStatusTransition() {
+        // 导入模块（首次）：version=1, status=DRAFTING
+        GraphQLResponseBean impResp = execute(
+                "mutation { NopMetaModule__importOrmModel(path: \"/nop/metadata/orm/app.orm.xml\")" +
+                        " { metaModuleId moduleVersion status } }");
+        assertFalse(impResp.hasError(), "import should not error: " + impResp);
+
+        Map<String, Object> impData = mutationResult(impResp);
+        String metaModuleId = (String) impData.get("metaModuleId");
+        assertEquals(1L, impData.get("moduleVersion"), "first import version should be 1: " + impData);
+        assertEquals("DRAFTING", impData.get("status"), "status should be DRAFTING after import: " + impData);
+
+        // releaseModule：status → RELEASED，version 不变
+        GraphQLResponseBean relResp = execute(
+                "mutation { NopMetaModule__releaseModule(metaModuleId: \"" + metaModuleId + "\")" +
+                        " { metaModuleId moduleVersion status } }");
+        assertFalse(relResp.hasError(), "release should not error: " + relResp);
+
+        Map<String, Object> relData = mutationResult(relResp);
+        assertEquals("RELEASED", relData.get("status"), "status should be RELEASED after release: " + relData);
+        assertEquals(1L, relData.get("moduleVersion"), "version should remain 1 after release: " + relData);
+
+        // 接线验证：查询确认 status 确实在运行时被修改
+        GraphQLResponseBean getResp = execute(
+                "query { NopMetaModule__get(id: \"" + metaModuleId + "\") { moduleVersion status } }");
+        assertFalse(getResp.hasError(), "get should not error: " + getResp);
+        String getData = String.valueOf(getResp.getData());
+        assertTrue(getData.contains("status=RELEASED"), "persisted status should be RELEASED: " + getData);
+    }
+
+    @Test
+    public void testReleaseModuleImmutableAlreadyReleased() {
+        // 导入 + 发布
+        GraphQLResponseBean impResp = execute(
+                "mutation { NopMetaModule__importOrmModel(path: \"/nop/metadata/orm/app.orm.xml\")" +
+                        " { metaModuleId } }");
+        assertFalse(impResp.hasError(), "import should not error: " + impResp);
+        String metaModuleId = (String) mutationResult(impResp).get("metaModuleId");
+
+        GraphQLResponseBean relResp = execute(
+                "mutation { NopMetaModule__releaseModule(metaModuleId: \"" + metaModuleId + "\") { status } }");
+        assertFalse(relResp.hasError(), "first release should not error: " + relResp);
+
+        // 再次发布已 RELEASED 的模块 → 必须抛异常（不可变，无静默跳过）
+        GraphQLResponseBean reRelResp = execute(
+                "mutation { NopMetaModule__releaseModule(metaModuleId: \"" + metaModuleId + "\") { status } }");
+        assertTrue(reRelResp.hasError(),
+                "re-release of RELEASED module must error (immutability): " + reRelResp);
+    }
+
+    @Test
+    public void testVersionIncrementOnReimport() {
+        // 首次导入同一 moduleId → version=1
+        GraphQLResponseBean imp1 = execute(
+                "mutation { NopMetaModule__importOrmModel(path: \"/nop/metadata/orm/app.orm.xml\")" +
+                        " { metaModuleId moduleVersion } }");
+        assertFalse(imp1.hasError(), "first import should not error: " + imp1);
+        assertEquals(1L, mutationResult(imp1).get("moduleVersion"),
+                "first import version should be 1: " + imp1);
+
+        // 再次导入同一 moduleId → version=2（import 时递增）
+        GraphQLResponseBean imp2 = execute(
+                "mutation { NopMetaModule__importOrmModel(path: \"/nop/metadata/orm/app.orm.xml\")" +
+                        " { metaModuleId moduleVersion status } }");
+        assertFalse(imp2.hasError(), "second import should not error: " + imp2);
+
+        Map<String, Object> imp2Data = mutationResult(imp2);
+        assertEquals(2L, imp2Data.get("moduleVersion"),
+                "second import version should be 2 (import-time increment): " + imp2Data);
+        assertEquals("DRAFTING", imp2Data.get("status"),
+                "second import status should be DRAFTING: " + imp2Data);
+
+        // release 第二个版本 → version 保持 2
+        String metaModuleId2 = (String) imp2Data.get("metaModuleId");
+        GraphQLResponseBean relResp = execute(
+                "mutation { NopMetaModule__releaseModule(metaModuleId: \"" + metaModuleId2 + "\")" +
+                        " { moduleVersion status } }");
+        assertFalse(relResp.hasError(), "release of v2 should not error: " + relResp);
+        Map<String, Object> relData = mutationResult(relResp);
+        assertEquals(2L, relData.get("moduleVersion"), "version should remain 2 after release: " + relData);
+        assertEquals("RELEASED", relData.get("status"), "status should be RELEASED: " + relData);
+    }
+
+    @Test
+    public void testDeltaDualStorageNoExtends() {
+        // 导入专用测试 fixture（无 x:extends）：isDelta 双重存储
+        GraphQLResponseBean impResp = execute(
+                "mutation { NopMetaModule__importOrmModel(path: \"/test/orm/simple.orm.xml\")" +
+                        " { metaModuleId } }");
+        assertFalse(impResp.hasError(), "import simple fixture should not error: " + impResp);
+
+        // 查询所有 NopMetaOrmModel 记录，双重存储应产生 2 条（isDelta=true + isDelta=false）
+        GraphQLResponseBean ormResp = execute(
+                "query { NopMetaOrmModel__findPage { total items { ormModelId isDelta modelName } } }");
+        assertFalse(ormResp.hasError(), "orm model query should not error: " + ormResp);
+        String ormData = String.valueOf(ormResp.getData());
+        assertTrue(ormData.contains("total=2"), "dual storage should produce 2 orm model records: " + ormData);
+        assertTrue(ormData.contains("isDelta=1"), "should have isDelta=true record: " + ormData);
+        assertTrue(ormData.contains("isDelta=0"), "should have isDelta=false record: " + ormData);
+
+        // 端到端验证：双重存储后 NopMetaEntity 记录数 = 2 实体 × 2（delta+full）= 4
+        GraphQLResponseBean entityResp = execute(
+                "query { NopMetaEntity__findPage { total } }");
+        assertFalse(entityResp.hasError(), "entity query should not error: " + entityResp);
+        String entityData = String.valueOf(entityResp.getData());
+        assertTrue(entityData.contains("total=4"),
+                "dual storage should produce 4 entity records (2 entities x 2 delta/full): " + entityData);
+    }
+
     private static int countOccurrences(String text, String token) {
         int count = 0;
         int idx = 0;
@@ -133,5 +246,12 @@ public class TestNopMetaModuleBizModel extends JunitBaseTestCase {
         request.setQuery(query);
         IGraphQLExecutionContext context = graphQLEngine.newGraphQLContext(request);
         return graphQLEngine.executeGraphQL(context);
+    }
+
+    @SuppressWarnings("unchecked")
+    private static Map<String, Object> mutationResult(GraphQLResponseBean response) {
+        Map<String, Object> data = (Map<String, Object>) response.getData();
+        // data 形如 {NopMetaModule__importOrmModel={...}}，取第一个 mutation 字段的结果
+        return (Map<String, Object>) data.values().iterator().next();
     }
 }

@@ -109,6 +109,9 @@ public class _NopMetaModule extends DynamicOrmEntity{
     private static int _PROP_ID_BOUND = 22;
 
     
+    /* relation: 基线模块 */
+    public static final String PROP_NAME_baseModule = "baseModule";
+    
     /* component:  */
     public static final String PROP_NAME_extConfigComponent = "extConfigComponent";
     
@@ -1168,6 +1171,29 @@ public class _NopMetaModule extends DynamicOrmEntity{
         }
     }
     
+    /**
+     * 基线模块
+     */
+    public final io.nop.metadata.dao.entity.NopMetaModule getBaseModule(){
+       return (io.nop.metadata.dao.entity.NopMetaModule)internalGetRefEntity(PROP_NAME_baseModule);
+    }
+
+    public final void setBaseModule(io.nop.metadata.dao.entity.NopMetaModule refEntity){
+   
+           if(refEntity == null){
+           
+                   this.setBaseModuleId(null);
+               
+           }else{
+           internalSetRefEntity(PROP_NAME_baseModule, refEntity,()->{
+           
+                           this.setBaseModuleId(refEntity.getMetaModuleId());
+                       
+           });
+           }
+       
+    }
+       
    private io.nop.orm.component.JsonOrmComponent _extConfigComponent;
 
    private static Map<String,Integer> COMPONENT_PROP_ID_MAP_extConfigComponent = new HashMap<>();

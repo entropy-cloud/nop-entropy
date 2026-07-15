@@ -276,6 +276,8 @@ prop:
       updatedBy: Updated By
       updateTime: Update Time
       remark: Remark
+      baseModule: Base Module
+      baseModule.displayName: Base Module
       extConfigComponent: null
     NopMetaOrmModel:
       ormModelId: ORM Model Id

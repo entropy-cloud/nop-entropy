@@ -43,7 +43,7 @@
             <schema type="java.lang.Long"/>
         </prop>
         <prop name="baseModuleId" displayName="基线模块版本ID" propId="6" i18n-en:displayName="Base Module Id"
-              queryable="true" sortable="true" insertable="true" updatable="true">
+              queryable="true" sortable="true" insertable="true" updatable="true" ext:relation="baseModule">
             <schema type="java.lang.String" precision="32"/>
         </prop>
         <prop name="status" displayName="模块状态" propId="7" i18n-en:displayName="Status" mandatory="true" queryable="true"
@@ -105,6 +105,16 @@
         <prop name="remark" displayName="备注" propId="21" i18n-en:displayName="Remark" queryable="true" sortable="true"
               insertable="true" updatable="true">
             <schema domain="remark" type="java.lang.String" precision="200"/>
+        </prop>
+        <prop name="baseModule" displayName="基线模块" i18n-en:displayName="Base Module" tagSet="pub,ref-pub"
+              ext:kind="to-one" internal="true" queryable="true" ext:joinLeftProp="baseModuleId"
+              ext:joinRightProp="metaModuleId" ext:joinRightDisplayProp="displayName" insertable="false"
+              updatable="false" lazy="true">
+            <schema bizObjName="NopMetaModule"/>
+        </prop>
+        <prop name="baseModule.displayName" displayName="基线模块" i18n-en:displayName="Base Module" internal="true"
+              queryable="true" sortable="true" lazy="true">
+            <schema type="String"/>
         </prop>
         <prop name="extConfigComponent" tagSet="json,pub,edit" ext:kind="component" internal="true" insertable="true"
               updatable="true" lazy="true">

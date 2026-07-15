@@ -44,13 +44,13 @@ import java.util.List;
  */
 public class OrmModelImporter {
 
-    public NopMetaModule buildModule(IOrmModel ormModel) {
+    public NopMetaModule buildModule(IOrmModel ormModel, long moduleVersion) {
         NopMetaModule module = new NopMetaModule();
         String appName = str(ormModel.prop_get(OrmModelConstants.EXT_APP_NAME));
         module.setModuleName(appName != null ? appName : "unknown");
         module.setModuleId(appName != null ? appName.replace('-', '/') : "unknown");
         module.setDisplayName(appName != null ? appName : "unknown");
-        module.setModuleVersion(1L);
+        module.setModuleVersion(moduleVersion);
         module.setStatus(_NopMetadataCoreConstants.MODULE_STATUS_DRAFTING);
         module.setBaseModuleId(null);
         module.setMavenGroupId(str(ormModel.prop_get(OrmModelConstants.EXT_MAVEN_GROUP_ID)));
@@ -60,19 +60,19 @@ public class OrmModelImporter {
         return module;
     }
 
-    public NopMetaOrmModel buildOrmModel(IOrmModel ormModel, String sourceContent) {
+    public NopMetaOrmModel buildOrmModel(IOrmModel ormModel, String sourceContent, boolean isDelta) {
         NopMetaOrmModel model = new NopMetaOrmModel();
         String appName = str(ormModel.prop_get(OrmModelConstants.EXT_APP_NAME));
         model.setModelName(appName != null ? appName : "unknown");
-        model.setIsDelta(b(true));
+        model.setIsDelta(b(isDelta));
         model.setSourceContent(sourceContent);
         model.setImportedAt(new java.sql.Timestamp(System.currentTimeMillis()));
         return model;
     }
 
-    public NopMetaEntity buildEntity(IEntityModel em) {
+    public NopMetaEntity buildEntity(IEntityModel em, boolean isDelta) {
         NopMetaEntity entity = new NopMetaEntity();
-        entity.setIsDelta(b(true));
+        entity.setIsDelta(b(isDelta));
         entity.setEntityName(em.getName());
         entity.setTableName(em.getTableName());
         entity.setDisplayName(em.getDisplayName() != null ? em.getDisplayName() : StringHelper.simpleClassName(em.getName()));
@@ -87,9 +87,9 @@ public class OrmModelImporter {
         return entity;
     }
 
-    public NopMetaEntityField buildField(IColumnModel col) {
+    public NopMetaEntityField buildField(IColumnModel col, boolean isDelta) {
         NopMetaEntityField field = new NopMetaEntityField();
-        field.setIsDelta(b(true));
+        field.setIsDelta(b(isDelta));
         field.setFieldName(col.getName());
         field.setColumnCode(col.getCode());
         field.setPropId(col.getPropId());
@@ -112,9 +112,9 @@ public class OrmModelImporter {
         return field;
     }
 
-    public NopMetaEntityRelation buildRelation(IEntityRelationModel rel) {
+    public NopMetaEntityRelation buildRelation(IEntityRelationModel rel, boolean isDelta) {
         NopMetaEntityRelation relation = new NopMetaEntityRelation();
-        relation.setIsDelta(b(true));
+        relation.setIsDelta(b(isDelta));
         relation.setRelationName(rel.getName());
         relation.setRelationType(rel.isOneToOne() ? "to-one" : "to-many");
         relation.setRefEntityName(rel.getRefEntityName());
@@ -124,9 +124,9 @@ public class OrmModelImporter {
         return relation;
     }
 
-    public NopMetaEntityUniqueKey buildUniqueKey(OrmUniqueKeyModel ukModel) {
+    public NopMetaEntityUniqueKey buildUniqueKey(OrmUniqueKeyModel ukModel, boolean isDelta) {
         NopMetaEntityUniqueKey uk = new NopMetaEntityUniqueKey();
-        uk.setIsDelta(b(true));
+        uk.setIsDelta(b(isDelta));
         uk.setUkName(ukModel.getName());
         uk.setDisplayName(ukModel.getDisplayName() != null ? ukModel.getDisplayName() : ukModel.getName());
         uk.setColumns(StringHelper.join(ukModel.getColumns(), ","));
@@ -135,9 +135,9 @@ public class OrmModelImporter {
         return uk;
     }
 
-    public NopMetaEntityIndex buildIndex(OrmIndexModel idxModel) {
+    public NopMetaEntityIndex buildIndex(OrmIndexModel idxModel, boolean isDelta) {
         NopMetaEntityIndex idx = new NopMetaEntityIndex();
-        idx.setIsDelta(b(true));
+        idx.setIsDelta(b(isDelta));
         idx.setIndexName(idxModel.getName());
         idx.setDisplayName(idxModel.getDisplayName() != null ? idxModel.getDisplayName() : idxModel.getName());
         idx.setIndexType(idxModel.getIndexType());
@@ -146,9 +146,9 @@ public class OrmModelImporter {
         return idx;
     }
 
-    public NopMetaDomain buildDomain(OrmDomainModel domain) {
+    public NopMetaDomain buildDomain(OrmDomainModel domain, boolean isDelta) {
         NopMetaDomain metaDomain = new NopMetaDomain();
-        metaDomain.setIsDelta(b(true));
+        metaDomain.setIsDelta(b(isDelta));
         metaDomain.setDomainName(domain.getName());
         metaDomain.setDisplayName(domain.getDisplayName() != null ? domain.getDisplayName() : domain.getName());
         metaDomain.setDescription(domain.getDisplayName());
@@ -162,9 +162,9 @@ public class OrmModelImporter {
         return metaDomain;
     }
 
-    public NopMetaDict buildDict(DictBean dict) {
+    public NopMetaDict buildDict(DictBean dict, boolean isDelta) {
         NopMetaDict metaDict = new NopMetaDict();
-        metaDict.setIsDelta(b(true));
+        metaDict.setIsDelta(b(isDelta));
         metaDict.setDictName(dict.getName());
         metaDict.setLabel(dict.getLabel());
         metaDict.setValueType(dict.getValueType());
@@ -190,10 +190,10 @@ public class OrmModelImporter {
         return table;
     }
 
-    public List<NopMetaEntityRelation> buildRelations(IEntityModel em) {
+    public List<NopMetaEntityRelation> buildRelations(IEntityModel em, boolean isDelta) {
         List<NopMetaEntityRelation> relations = new ArrayList<>();
         for (IEntityRelationModel rel : em.getRelations()) {
-            relations.add(buildRelation(rel));
+            relations.add(buildRelation(rel, isDelta));
         }
         return relations;
     }
