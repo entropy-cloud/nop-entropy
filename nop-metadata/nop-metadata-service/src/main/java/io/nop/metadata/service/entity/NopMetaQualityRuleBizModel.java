@@ -1,15 +1,343 @@
-
 package io.nop.metadata.service.entity;
 
 import io.nop.api.core.annotations.biz.BizModel;
+import io.nop.api.core.annotations.biz.BizMutation;
+import io.nop.api.core.annotations.core.Name;
+import io.nop.api.core.annotations.core.Optional;
+import io.nop.api.core.beans.FilterBeans;
+import io.nop.api.core.beans.query.QueryBean;
+import io.nop.api.core.exceptions.ErrorCode;
+import io.nop.api.core.exceptions.NopException;
 import io.nop.biz.crud.CrudBizModel;
-
+import io.nop.core.context.IServiceContext;
+import io.nop.core.lang.json.JsonTool;
+import io.nop.dao.api.IEntityDao;
 import io.nop.metadata.biz.INopMetaQualityRuleBiz;
+import io.nop.metadata.core._NopMetadataCoreConstants;
+import io.nop.metadata.dao.entity.NopMetaDataSource;
+import io.nop.metadata.dao.entity.NopMetaQualityResult;
 import io.nop.metadata.dao.entity.NopMetaQualityRule;
+import io.nop.metadata.dao.entity.NopMetaTable;
+import io.nop.metadata.service.connection.IMetaDataSourceConnectionService;
+import io.nop.metadata.service.quality.MetaQualityRuleExecutor;
+import io.nop.metadata.service.quality.QualityRuleJudgment;
+import jakarta.inject.Inject;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
+import java.sql.Connection;
+import java.sql.DatabaseMetaData;
+import java.sql.SQLException;
+import java.sql.Timestamp;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.atomic.AtomicInteger;
+
+/**
+ * 质量规则 BizModel：基线 CRUD（{@link CrudBizModel}）+ 质量规则执行引擎（架构基线 §2.7.1）。
+ *
+ * <p>执行机制（D2）：BizModel action + P2-1 {@code withConnection} callback（不选 nop-batch）。
+ *
+ * <p>执行范围（D1）：首版仅 external 类型 NopMetaTable 上挂载的规则（entityType=table 或 field，
+ * field 规则 entityId 指向 external NopMetaTable.metaTableId，物理列名取自 params.column）。
+ * entity/sql 类型表执行 deferred；entityType=database 首版 SKIP（带 details 标记）。
+ *
+ * <p>失败/不可执行路径均显式（不静默通过、不吞异常、不伪造值）：
+ * <ul>
+ *   <li>规则不存在 → 抛 {@link #ERR_QUALITY_RULE_NOT_FOUND}（不 NPE）</li>
+ *   <li>目标表不存在 → 抛 {@link #ERR_QUALITY_TABLE_NOT_FOUND}</li>
+ *   <li>目标表非 external（首版） → 抛 {@link #ERR_QUALITY_TABLE_NOT_EXTERNAL}</li>
+ *   <li>无注册数据源 → 抛 {@link #ERR_QUALITY_NO_DATASOURCE}</li>
+ *   <li>DISABLED 数据源 → 抛 {@link #ERR_QUALITY_DATASOURCE_DISABLED}</li>
+ *   <li>非 jdbc 类型 → 由 {@code withConnection} 抛 UnsupportedOperationException</li>
+ *   <li>缺 timestampColumn(freshness)/custom_sql 不返回单值 → 写 ERROR 结果行</li>
+ *   <li>entityType=database / regex 方言不支持 REGEXP → 写 SKIP 结果行（带 details 标记）</li>
+ * </ul>
+ */
 @BizModel("NopMetaQualityRule")
-public class NopMetaQualityRuleBizModel extends CrudBizModel<NopMetaQualityRule> implements INopMetaQualityRuleBiz{
-    public NopMetaQualityRuleBizModel(){
+public class NopMetaQualityRuleBizModel extends CrudBizModel<NopMetaQualityRule> implements INopMetaQualityRuleBiz {
+
+    private static final Logger LOG = LoggerFactory.getLogger(NopMetaQualityRuleBizModel.class);
+
+    static final ErrorCode ERR_QUALITY_RULE_NOT_FOUND =
+            ErrorCode.define("metadata.quality-rule-not-found",
+                    "Quality rule not found: {qualityRuleId}", "qualityRuleId");
+    static final ErrorCode ERR_QUALITY_TABLE_NOT_FOUND =
+            ErrorCode.define("metadata.quality-table-not-found",
+                    "Quality rule target table not found (entityId does not refer to an existing NopMetaTable): "
+                            + "{qualityRuleId} entityId={entityId}", "qualityRuleId", "entityId");
+    static final ErrorCode ERR_QUALITY_TABLE_NOT_EXTERNAL =
+            ErrorCode.define("metadata.quality-table-not-external",
+                    "Quality rule target table is not external (first version supports external-only execution): "
+                            + "{qualityRuleId} tableType={tableType}", "qualityRuleId", "tableType");
+    static final ErrorCode ERR_QUALITY_NO_DATASOURCE =
+            ErrorCode.define("metadata.quality-no-datasource",
+                    "No registered MetaDataSource for querySpace of target table: "
+                            + "{qualityRuleId} querySpace={querySpace}", "qualityRuleId", "querySpace");
+    static final ErrorCode ERR_QUALITY_DATASOURCE_DISABLED =
+            ErrorCode.define("metadata.quality-datasource-disabled",
+                    "MetaDataSource is disabled, cannot execute quality rule: {dataSourceId}", "dataSourceId");
+    static final ErrorCode ERR_DATASOURCE_NOT_FOUND =
+            ErrorCode.define("metadata.datasource-not-found",
+                    "DataSource not found: {dataSourceId}", "dataSourceId");
+
+    @Inject
+    protected IMetaDataSourceConnectionService connectionService;
+
+    /** 质量规则执行器（无状态，参考 MetaCatalogCollector 收集器模式）。 */
+    private final MetaQualityRuleExecutor executor = new MetaQualityRuleExecutor();
+
+    public NopMetaQualityRuleBizModel() {
         setEntityName(NopMetaQualityRule.class.getName());
+    }
+
+    // ============================================================
+    // 单规则执行
+    // ============================================================
+
+    /**
+     * 执行单条质量规则（架构基线 §2.7.1 D2）。
+     *
+     * <p>解析路径：rule.entityId → NopMetaTable → table.querySpace → NopMetaDataSource →
+     * {@code withConnection} callback → 执行器判定 → 追加一行 NopMetaQualityResult（executeTime=now）。
+     *
+     * @param qualityRuleId 规则 ID
+     * @param schemaPattern 可选 schema 限定（null/空串表示依赖连接默认 schema）
+     * @return {@code {qualityResultId, status, actualValue, expectedValue, message, details}}
+     */
+    @BizMutation
+    public Map<String, Object> executeQualityRule(@Name("qualityRuleId") String qualityRuleId,
+                                                  @Optional @Name("schemaPattern") String schemaPattern,
+                                                  IServiceContext context) {
+        NopMetaQualityRule rule = dao().getEntityById(qualityRuleId);
+        if (rule == null) {
+            throw new NopException(ERR_QUALITY_RULE_NOT_FOUND).param("qualityRuleId", qualityRuleId);
+        }
+
+        // entityType=database 首版 SKIP（§2.7.1 D1）——不解析表/数据源，直接写 SKIP 结果行
+        if (_NopMetadataCoreConstants.QUALITY_ENTITY_TYPE_DATABASE.equals(rule.getEntityType())) {
+            QualityRuleJudgment skip = new QualityRuleJudgment();
+            skip.setStatus(_NopMetadataCoreConstants.QUALITY_RESULT_STATUS_SKIP);
+            skip.setMessage("entityType=database not supported in first version (external-table-only execution)");
+            skip.getDetails().put("reason", "database-not-supported-first-version");
+            skip.getDetails().put("ruleType", rule.getRuleType());
+            skip.getDetails().put("entityType", rule.getEntityType());
+            NopMetaQualityResult row = appendQualityResult(rule.getQualityRuleId(), skip);
+            return buildSingleResultMap(row, skip);
+        }
+
+        // 解析目标表
+        NopMetaTable table = resolveTargetTableOrThrow(rule);
+        NopMetaDataSource dataSource = resolveDataSourceOrThrow(rule, table);
+
+        final QualityRuleJudgment[] holder = new QualityRuleJudgment[1];
+        connectionService.withConnection(dataSource.getDatasourceType(), dataSource.getConnectionConfig(),
+                (Connection conn, DatabaseMetaData metaData) -> {
+                    holder[0] = executor.judge(conn, schemaPattern,
+                            rule.getRuleType(), rule.getEntityType(),
+                            rule.getParams(), rule.getSqlExpression(),
+                            rule.getThreshold(), table.getTableName(),
+                            safeProductName(metaData));
+                });
+
+        QualityRuleJudgment judgment = holder[0];
+        NopMetaQualityResult row = appendQualityResult(rule.getQualityRuleId(), judgment);
+        return buildSingleResultMap(row, judgment);
+    }
+
+    // ============================================================
+    // 批量执行（按数据源）
+    // ============================================================
+
+    /**
+     * 批量执行某数据源 querySpace 下 external 表上挂载的质量规则（架构基线 §2.7.1 D2）。
+     *
+     * <p>与 {@code NopMetaDataSourceBizModel.collectCatalog} 同入口（dataSourceId）、同 callback 模式、
+     * 同 per-rule 失败隔离（try/catch + flushSession/clearSession）。
+     *
+     * @param dataSourceId  目标数据源 ID
+     * @param schemaPattern 可选 schema 限定
+     * @return {@code {executedCount: int, results: [...], errors: [{qualityRuleId, error}, ...]}}
+     */
+    @BizMutation
+    public Map<String, Object> executeQualityRulesForDataSource(@Name("dataSourceId") String dataSourceId,
+                                                                @Optional @Name("schemaPattern") String schemaPattern,
+                                                                IServiceContext context) {
+        NopMetaDataSource dataSource = daoFor(NopMetaDataSource.class).getEntityById(dataSourceId);
+        if (dataSource == null) {
+            throw new NopException(ERR_DATASOURCE_NOT_FOUND).param("dataSourceId", dataSourceId);
+        }
+        if (_NopMetadataCoreConstants.DATASOURCE_STATUS_DISABLED.equals(dataSource.getStatus())) {
+            throw new NopException(ERR_QUALITY_DATASOURCE_DISABLED).param("dataSourceId", dataSourceId);
+        }
+
+        // 该 querySpace 下 external 表
+        List<NopMetaTable> externalTables = findExternalTables(dataSource.getQuerySpace());
+        if (externalTables.isEmpty()) {
+            Map<String, Object> empty = new LinkedHashMap<>();
+            empty.put("executedCount", 0);
+            empty.put("results", new ArrayList<>());
+            empty.put("errors", new ArrayList<>());
+            return empty;
+        }
+
+        // 表 id → 物理表名（callback 内按规则 entityId 解析）
+        Map<String, String> tableIdToName = new HashMap<>();
+        for (NopMetaTable t : externalTables) {
+            tableIdToName.put(t.getMetaTableId(), t.getTableName());
+        }
+        List<String> tableIds = new ArrayList<>(tableIdToName.keySet());
+
+        // 找挂载在这些表上的规则（entityId ∈ tableIds，覆盖 entityType=table 和 field；database 规则 entityId 不匹配）
+        IEntityDao<NopMetaQualityRule> ruleDao = dao();
+        QueryBean ruleQuery = new QueryBean();
+        ruleQuery.addFilter(FilterBeans.in(NopMetaQualityRule.PROP_NAME_entityId, tableIds));
+        List<NopMetaQualityRule> rules = ruleDao.findAllByQuery(ruleQuery);
+
+        AtomicInteger executedCount = new AtomicInteger(0);
+        List<Map<String, Object>> results = new ArrayList<>();
+        List<Map<String, Object>> errors = new ArrayList<>();
+
+        if (rules.isEmpty()) {
+            Map<String, Object> empty = new LinkedHashMap<>();
+            empty.put("executedCount", 0);
+            empty.put("results", results);
+            empty.put("errors", errors);
+            return empty;
+        }
+
+        connectionService.withConnection(dataSource.getDatasourceType(), dataSource.getConnectionConfig(),
+                (Connection conn, DatabaseMetaData metaData) -> {
+                    String productName = safeProductName(metaData);
+                    for (NopMetaQualityRule rule : rules) {
+                        try {
+                            String tableName = tableIdToName.get(rule.getEntityId());
+                            if (tableName == null) {
+                                // 规则 entityId 不在该批次 external 表范围内（理论不应发生，防御性显式失败）
+                                throw new NopException(ERR_QUALITY_TABLE_NOT_FOUND)
+                                        .param("qualityRuleId", rule.getQualityRuleId())
+                                        .param("entityId", rule.getEntityId());
+                            }
+                            QualityRuleJudgment judgment = executor.judge(conn, schemaPattern,
+                                    rule.getRuleType(), rule.getEntityType(),
+                                    rule.getParams(), rule.getSqlExpression(),
+                                    rule.getThreshold(), tableName, productName);
+                            NopMetaQualityResult row = appendQualityResult(rule.getQualityRuleId(), judgment);
+                            orm().flushSession();
+                            executedCount.incrementAndGet();
+                            results.add(buildSingleResultMap(row, judgment));
+                        } catch (Exception e) {
+                            LOG.error("executeQualityRulesForDataSource failed for rule: {}",
+                                    rule.getQualityRuleId(), e);
+                            Map<String, Object> err = new LinkedHashMap<>();
+                            err.put("qualityRuleId", rule.getQualityRuleId());
+                            err.put("ruleName", rule.getRuleName());
+                            err.put("error", toErrorMessage(e));
+                            errors.add(err);
+                            // 隔离失败：清理未刷出的脏实体，不影响已 flush 的规则与后续规则
+                            orm().clearSession();
+                        }
+                    }
+                });
+
+        Map<String, Object> result = new LinkedHashMap<>();
+        result.put("executedCount", executedCount.get());
+        result.put("results", results);
+        result.put("errors", errors);
+        return result;
+    }
+
+    // ============================================================
+    // helpers
+    // ============================================================
+
+    /** 解析规则目标表：entityId → NopMetaTable；不存在/非 external 显式失败。 */
+    private NopMetaTable resolveTargetTableOrThrow(NopMetaQualityRule rule) {
+        IEntityDao<NopMetaTable> tableDao = daoFor(NopMetaTable.class);
+        NopMetaTable table = tableDao.getEntityById(rule.getEntityId());
+        if (table == null) {
+            throw new NopException(ERR_QUALITY_TABLE_NOT_FOUND)
+                    .param("qualityRuleId", rule.getQualityRuleId())
+                    .param("entityId", rule.getEntityId());
+        }
+        if (!_NopMetadataCoreConstants.TABLE_TYPE_EXTERNAL.equals(table.getTableType())) {
+            throw new NopException(ERR_QUALITY_TABLE_NOT_EXTERNAL)
+                    .param("qualityRuleId", rule.getQualityRuleId())
+                    .param("tableType", String.valueOf(table.getTableType()));
+        }
+        return table;
+    }
+
+    /** 解析目标表对应数据源：table.querySpace → NopMetaDataSource；不存在/DISABLED 显式失败。 */
+    private NopMetaDataSource resolveDataSourceOrThrow(NopMetaQualityRule rule, NopMetaTable table) {
+        IEntityDao<NopMetaDataSource> dsDao = daoFor(NopMetaDataSource.class);
+        QueryBean q = new QueryBean();
+        q.addFilter(FilterBeans.eq(NopMetaDataSource.PROP_NAME_querySpace, table.getQuerySpace()));
+        NopMetaDataSource dataSource = dsDao.findFirstByQuery(q);
+        if (dataSource == null) {
+            throw new NopException(ERR_QUALITY_NO_DATASOURCE)
+                    .param("qualityRuleId", rule.getQualityRuleId())
+                    .param("querySpace", table.getQuerySpace());
+        }
+        if (_NopMetadataCoreConstants.DATASOURCE_STATUS_DISABLED.equals(dataSource.getStatus())) {
+            throw new NopException(ERR_QUALITY_DATASOURCE_DISABLED)
+                    .param("dataSourceId", dataSource.getDataSourceId());
+        }
+        return dataSource;
+    }
+
+    /** 查找该 querySpace 下所有 external 类型逻辑表（按 tableType=external 限定）。 */
+    private List<NopMetaTable> findExternalTables(String querySpace) {
+        IEntityDao<NopMetaTable> tableDao = daoFor(NopMetaTable.class);
+        QueryBean query = new QueryBean();
+        query.addFilter(FilterBeans.eq(NopMetaTable.PROP_NAME_querySpace, querySpace));
+        query.addFilter(FilterBeans.eq(NopMetaTable.PROP_NAME_tableType,
+                _NopMetadataCoreConstants.TABLE_TYPE_EXTERNAL));
+        return tableDao.findAllByQuery(query);
+    }
+
+    /**
+     * 将单规则判定结果追加为一行新的 NopMetaQualityResult（时序语义：executeTime=now，不覆盖旧行）。
+     */
+    private NopMetaQualityResult appendQualityResult(String qualityRuleId, QualityRuleJudgment judgment) {
+        IEntityDao<NopMetaQualityResult> resultDao = daoFor(NopMetaQualityResult.class);
+        NopMetaQualityResult row = resultDao.newEntity();
+        row.setQualityRuleId(qualityRuleId);
+        row.setExecuteTime(new Timestamp(System.currentTimeMillis()));
+        row.setStatus(judgment.getStatus());
+        row.setActualValue(judgment.getActualValue());
+        row.setExpectedValue(judgment.getExpectedValue());
+        row.setMessage(judgment.getMessage());
+        row.setDetails(JsonTool.stringify(judgment.getDetails()));
+        resultDao.saveEntity(row);
+        return row;
+    }
+
+    private static Map<String, Object> buildSingleResultMap(NopMetaQualityResult row, QualityRuleJudgment j) {
+        Map<String, Object> m = new LinkedHashMap<>();
+        m.put("qualityResultId", row.getQualityResultId());
+        m.put("status", j.getStatus());
+        m.put("actualValue", j.getActualValue());
+        m.put("expectedValue", j.getExpectedValue());
+        m.put("message", j.getMessage());
+        m.put("details", j.getDetails());
+        return m;
+    }
+
+    private static String safeProductName(DatabaseMetaData metaData) {
+        try {
+            return metaData.getDatabaseProductName();
+        } catch (SQLException e) {
+            LOG.warn("getDatabaseProductName failed, product name will be absent from details", e);
+            return null;
+        }
+    }
+
+    private static String toErrorMessage(Exception e) {
+        String msg = e.getMessage();
+        return msg != null ? msg : e.getClass().getName();
     }
 }
