@@ -13,6 +13,7 @@ import static io.nop.api.core.exceptions.ErrorCode.define;
 
 public interface WebErrors {
     String ARG_PATH = "path";
+    String ARG_PAGE_PATH = "pagePath";
     String ARG_ALLOWED_FILE_TYPES = "allowedFileTypes";
 
     String ARG_RESOURCE = "resource";
@@ -40,4 +41,7 @@ public interface WebErrors {
 
     ErrorCode ERR_WEB_DYNAMIC_FILE_MISSING_END_MOCK = define("nop.err.web.dynamic-file-missing-mock-block",
             "没有找到匹配的@enc-mock部分");
+
+    ErrorCode ERR_WEB_PAGE_LOAD_FAIL = define("nop.err.web.page-load-fail",
+            "页面[{pagePath}]加载失败", ARG_PAGE_PATH);
 }

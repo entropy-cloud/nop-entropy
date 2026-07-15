@@ -450,4 +450,12 @@ public class DateHelper {
         }
         return Math.max(endTime.getTime() - startTime.getTime(), 0L);
     }
+
+    public static LocalDate toLocalDate(LocalDateTime dt) {
+        return dt == null ? null : dt.toLocalDate();
+    }
+
+    public static LocalDate toLocalDate(Timestamp ts) {
+        return ts == null ? null : ts.toLocalDateTime().toLocalDate();
+    }
 }

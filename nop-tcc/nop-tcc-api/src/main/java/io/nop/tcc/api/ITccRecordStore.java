@@ -27,7 +27,7 @@ public interface ITccRecordStore {
 
     CompletionStage<Void> updateTccBranchStatusAsync(ITccBranchRecord record, TccStatus status, Throwable error);
 
-    List<? extends ITccRecord> fetchExpiredRecords(int pageSize, long expireGap, long checkInterval);
+    List<? extends ITccRecord> fetchExpiredRecords(int pageSize, long expireGap, long checkInterval, int maxRetryCount);
 
 //    void forEachExpiredRecord(Function<ITccRecord, CompletionStage<Void>> consumer, long expireGap, int maxRetryCount,
 //                              ICancelToken cancelToken);

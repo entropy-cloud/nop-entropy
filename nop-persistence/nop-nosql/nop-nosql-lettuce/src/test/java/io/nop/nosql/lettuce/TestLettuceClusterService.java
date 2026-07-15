@@ -25,6 +25,7 @@ import org.junit.jupiter.api.Order;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
 import org.junit.jupiter.api.TestMethodOrder;
+import org.junit.jupiter.api.condition.EnabledIfSystemProperty;
 import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.containers.Network;
 import org.testcontainers.junit.jupiter.Testcontainers;
@@ -43,6 +44,7 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+@EnabledIfSystemProperty(named = "nop.test.docker.enabled", matches = "true")
 @Testcontainers(disabledWithoutDocker = true)
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
@@ -112,7 +114,7 @@ public class TestLettuceClusterService {
             GenericContainer<?> firstNode = nodes.get(0);
             String result = firstNode.execInContainer("sh", "-c", clusterCreateCmd.toString()).getStdout();
             if (!result.contains("[OK]")) {
-                throw new RuntimeException("Failed to create Redis cluster: " + result);
+                throw new io.nop.api.core.exceptions.NopException("Failed to create Redis cluster: " + result);
             }
         }
 

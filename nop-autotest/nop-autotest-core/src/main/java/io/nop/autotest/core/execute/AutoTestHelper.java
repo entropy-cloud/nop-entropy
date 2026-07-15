@@ -28,6 +28,9 @@ public class AutoTestHelper {
         if (propId == entityModel.getCreateTimePropId())
             return true;
 
+        if (propId == entityModel.getDeleteVersionPropId())
+            return true;
+
         return false;
     }
 

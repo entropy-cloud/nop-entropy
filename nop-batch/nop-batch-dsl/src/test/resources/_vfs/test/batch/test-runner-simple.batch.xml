@@ -2,9 +2,9 @@
        x:schema="/nop/schema/task/batch.xdef" xmlns:x="/nop/schema/xdsl.xdef">
 
     <loader>
-        <source>
+        <provider>
             return [1,2,3,4,5];
-        </source>
+        </provider>
     </loader>
 
     <consumer name="all">

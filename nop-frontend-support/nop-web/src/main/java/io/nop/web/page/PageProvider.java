@@ -53,8 +53,10 @@ import java.util.concurrent.Executor;
 import java.util.concurrent.Semaphore;
 
 import static io.nop.web.WebConfigs.CFG_WEB_PAGE_VALIDATION_THREAD_COUNT;
+import static io.nop.web.WebErrors.ARG_PAGE_PATH;
 import static io.nop.web.WebErrors.ARG_PATH;
 import static io.nop.web.WebErrors.ARG_RESOURCE;
+import static io.nop.web.WebErrors.ERR_WEB_PAGE_LOAD_FAIL;
 import static io.nop.web.WebErrors.ERR_WEB_PAGE_RESOURCE_NOT_FILE;
 
 /**
@@ -87,18 +89,25 @@ public class PageProvider extends ResourceWithHistoryProvider {
         Semaphore semaphore = threadCount > 1 ? new Semaphore(threadCount) : null;
         Executor executor = GlobalExecutors.globalWorker();
 
+        List<CompletableFuture<Void>> futures = new ArrayList<>();
+
         ModuleManager.instance().getEnabledModules(true).forEach(module -> {
             List<IResource> pageFiles = VirtualFileSystem.instance().findAll("/" + module.getModuleId(), "pages/*/*.page.yaml");
             for (IResource resource : pageFiles) {
                 if (threadCount > 1) {
-                    ExecutorHelper.throttleExecute(executor, semaphore, () -> {
+                    CompletableFuture<Void> future = ExecutorHelper.throttleExecute(executor, semaphore, () -> {
                         getPage(resource.getPath(), AppConfig.defaultLocale());
                     });
+                    futures.add(future);
                 } else {
                     getPage(resource.getPath(), AppConfig.defaultLocale());
                 }
             }
         });
+
+        if (!futures.isEmpty()) {
+            FutureHelper.syncGet(FutureHelper.waitAll(futures));
+        }
     }
 
     public void renderPagesTo(PageRenderOptions options, File targetDir) {
@@ -164,16 +173,22 @@ public class PageProvider extends ResourceWithHistoryProvider {
     }
 
     public Map<String, Object> getPage(String path, String locale) {
-        locale = I18nMessageManager.instance().normalizeLocale(locale);
+        try {
+            locale = I18nMessageManager.instance().normalizeLocale(locale);
 
-        String localeAndPath = locale + '|' + path;
-        PageModel pageModel = (PageModel) ResourceComponentManager.instance().loadComponentModel(localeAndPath);
-        Map<String, Object> data = pageModel.getData();
-        if (rolePermissionMapping != null) {
-            data = (Map<String, Object>) JsonTransformHelper.transform(data, this::transformPermissions,
-                    this::hasXuiAuth);
+            String localeAndPath = locale + '|' + path;
+            PageModel pageModel = (PageModel) ResourceComponentManager.instance().loadComponentModel(localeAndPath);
+            Map<String, Object> data = pageModel.getData();
+            if (rolePermissionMapping != null) {
+                data = (Map<String, Object>) JsonTransformHelper.transform(data, this::transformPermissions,
+                        this::hasXuiAuth);
+            }
+            return data;
+        } catch (NopException e) {
+            throw e.param(ARG_PAGE_PATH, path);
+        } catch (Exception e) {
+            throw new NopException(ERR_WEB_PAGE_LOAD_FAIL, e).param(ARG_PAGE_PATH, path);
         }
-        return data;
     }
 
     protected Object transformPermissions(Object value) {

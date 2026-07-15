@@ -59,6 +59,8 @@
                         propId="14" stdDataType="timestamp" stdSqlType="TIMESTAMP" i18n-en:displayName="Create Time"/>
                 <column code="UPDATE_TIME" displayName="修改时间" domain="updateTime" mandatory="true" name="updateTime"
                         propId="15" stdDataType="timestamp" stdSqlType="TIMESTAMP" i18n-en:displayName="Update Time"/>
+                <column code="RETRY_TIMES" displayName="重试次数" name="retryTimes" propId="16" stdDataType="int"
+                        stdSqlType="INTEGER" i18n-en:displayName="Retry Times"/>
             </columns>
             <relations>
                 <to-many cascadeDelete="true" displayName="分支事务记录" name="branchRecords"

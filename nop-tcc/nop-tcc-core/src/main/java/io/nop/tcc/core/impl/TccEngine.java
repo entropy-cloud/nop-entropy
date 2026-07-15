@@ -290,7 +290,7 @@ public class TccEngine implements ITccEngine {
         long checkInterval = expireGap;
 
         while (canceller == null || !canceller.isCancelled()) {
-            List<? extends ITccRecord> records = repository.fetchExpiredRecords(pageSize, expireGap, checkInterval);
+            List<? extends ITccRecord> records = repository.fetchExpiredRecords(pageSize, expireGap, checkInterval, maxRetryCount);
             if (records.isEmpty())
                 break;
 

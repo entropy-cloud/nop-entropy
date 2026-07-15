@@ -56,7 +56,7 @@ public class TccRecordStore implements ITccRecordStore {
         this.daoProvider = daoProvider;
     }
 
-    @InjectValue("@cfg:nop.tcc.default-max-retry-times|10000")
+    @InjectValue("@cfg:nop.tcc.default-max-retry-times|100")
     public void setDefaultMaxRetryTimes(int defaultMaxRetryTimes) {
         this.defaultMaxRetryTimes = defaultMaxRetryTimes;
     }
@@ -98,7 +98,6 @@ public class TccRecordStore implements ITccRecordStore {
         branchRecord.setServiceName(request.getServiceName());
         branchRecord.setStatus(TccStatus.CREATED.getCode());
         branchRecord.setParentBranchId(request.getParentBranchId());
-        branchRecord.setBranchNo(request.getParentBranchNo());
         branchRecord.setBranchNo(request.getParentBranchNo() + 1);
         branchRecord.setMaxRetryTimes(defaultMaxRetryTimes);
         dao.initEntityId(branchRecord);
@@ -140,6 +139,9 @@ public class TccRecordStore implements ITccRecordStore {
             NopTccRecord tccRecord = (NopTccRecord) record;
             tccRecord.setStatus(status.getCode());
 
+            if (status.isFinished())
+                tccRecord.setEndTime(CoreMetrics.currentTimestamp());
+
             if (error != null) {
                 ErrorBean errorBean = getErrorBean(error);
                 tccRecord.setErrorStack(errorBean.getErrorStack());
@@ -172,6 +174,9 @@ public class TccRecordStore implements ITccRecordStore {
             NopTccBranchRecord record = (NopTccBranchRecord) branchRecord;
             record.setStatus(status.getCode());
 
+            if (status.isFinished())
+                record.setEndTime(CoreMetrics.currentTimestamp());
+
             if (error != null) {
                 ErrorBean errorBean = getErrorBean(error);
                 if (status == TccStatus.CANCEL_FAILED) {
@@ -199,7 +204,7 @@ public class TccRecordStore implements ITccRecordStore {
 
     @Override
     @Transactional
-    public List<NopTccRecord> fetchExpiredRecords(int pageSize, long expireGap, long checkInterval) {
+    public List<NopTccRecord> fetchExpiredRecords(int pageSize, long expireGap, long checkInterval, int maxRetryCount) {
         IOrmEntityDao<NopTccRecord> dao = recordDao();
 
         Timestamp minTime = new Timestamp(getCurrentTime(dao) - expireGap);
@@ -210,6 +215,8 @@ public class TccRecordStore implements ITccRecordStore {
         query.addFilter(FilterBeans.lt(NopTccRecord.PROP_NAME_expireTime, minTime));
         // 状态为还没有结束
         query.addFilter(FilterBeans.lt(NopTccRecord.PROP_NAME_status, TccStatus.CONFIRM_SUCCESS.getCode()));
+        // 重试次数未超过上限，超过上限的事务会被忽略，不再处理
+        query.addFilter(FilterBeans.lt(NopTccRecord.PROP_NAME_retryTimes, maxRetryCount));
         query.setLimit(pageSize);
         query.addOrderField(NopTccRecord.PROP_NAME_beginTime, true);
 
@@ -218,9 +225,10 @@ public class TccRecordStore implements ITccRecordStore {
             if (records.isEmpty())
                 return records;
 
-            // 更新超时时间为下一次检查时间
+            // 更新超时时间为下一次检查时间，并递增重试次数
             for (NopTccRecord record : records) {
                 record.setExpireTime(nextCheckTime);
+                record.setRetryTimes((record.getRetryTimes() == null ? 0 : record.getRetryTimes()) + 1);
             }
 
             // 如果更新结果为空，则表示有其他线程也在扫描，并且已经处理这些记录

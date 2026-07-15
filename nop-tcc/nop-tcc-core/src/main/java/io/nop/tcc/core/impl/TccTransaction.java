@@ -68,7 +68,11 @@ public class TccTransaction implements ITccTransaction {
                 return doConfirmAsync(branchTxns);
             }
         }).whenComplete((ret, err2) -> {
-            // 出现异常时避免将异常吃掉
+            // 补偿(confirm/cancel)阶段产生的异常记录到日志，避免业务异常覆盖时丢失诊断信息
+            if (err2 != null && ex != null) {
+                LOG.error("nop.tcc.end-compensate-fail:txn={}", this, err2);
+            }
+            // 出现异常时避免业务异常被补偿阶段的返回值吃掉
             if (ex != null)
                 throw NopException.adapt(ex);
         });
@@ -77,10 +81,12 @@ public class TccTransaction implements ITccTransaction {
     private CompletionStage<Void> doCancelAsync(boolean timeout, List<ITccBranchTransaction> branchTxns) {
         LOG.info("nop.tcc.cancel:txn={},branches={}", this, branchTxns);
 
-        if (tccRecord.getTccStatus().isCancelled())
+        TccStatus curStatus = tccRecord.getTccStatus();
+        // 如果事务正在或已经 confirm，则不允许 cancel，避免与 confirm 路径互相覆盖中间态
+        if (curStatus == TccStatus.CONFIRMING || curStatus == TccStatus.CONFIRM_FAILED || curStatus.isConfirmed())
             return FutureHelper.success(null);
 
-        if (tccRecord.getTccStatus().isFinished())
+        if (curStatus.isCancelled() || curStatus.isFinished())
             return FutureHelper.success(null);
 
         CompletionStage<Void> future = getRepository().updateTccStatusAsync(tccRecord, TccStatus.CANCELLING, null)
@@ -95,7 +101,12 @@ public class TccTransaction implements ITccTransaction {
     private CompletionStage<Void> doConfirmAsync(List<ITccBranchTransaction> branchTxns) {
         LOG.info("nop.tcc.confirm:txn={},branches={}", this, branchTxns);
 
-        if (tccRecord.getTccStatus().isConfirmed())
+        TccStatus curStatus = tccRecord.getTccStatus();
+        // 如果事务正在或已经 cancel，则不允许 confirm，避免与 cancel 路径互相覆盖中间态
+        if (curStatus == TccStatus.CANCELLING || curStatus.isCancelled())
+            return FutureHelper.success(null);
+
+        if (curStatus.isFinished())
             return FutureHelper.success(null);
 
         CompletionStage<Void> future = getRepository().updateTccStatusAsync(tccRecord, TccStatus.CONFIRMING, null)

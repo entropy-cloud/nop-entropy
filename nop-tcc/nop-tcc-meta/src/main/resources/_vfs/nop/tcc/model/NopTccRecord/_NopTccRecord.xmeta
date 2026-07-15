@@ -78,6 +78,10 @@
               queryable="true" sortable="true" insertable="false" updatable="false">
             <schema domain="updateTime" type="java.sql.Timestamp"/>
         </prop>
+        <prop name="retryTimes" displayName="重试次数" propId="16" i18n-en:displayName="Retry Times" queryable="true"
+              sortable="true" insertable="true" updatable="true">
+            <schema type="java.lang.Integer"/>
+        </prop>
         <prop name="branchRecords" displayName="分支事务记录" i18n-en:displayName="TCC Branch Records"
               tagSet="pub,cascade-delete,insertable,updatable" ext:kind="to-many" internal="true"
               ext:joinLeftProp="txnId" ext:joinRightProp="txnId" insertable="true" updatable="true" lazy="true">

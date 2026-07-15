@@ -181,6 +181,20 @@
         }
 
 
+        private Integer _retryTimes;
+
+    
+        @PropMeta(propId=16)
+    
+        public Integer getRetryTimes(){
+            return _retryTimes;
+        }
+
+        public void setRetryTimes(Integer value){
+            this._retryTimes = value;
+        }
+
+
         private List<NopTccBranchRecordInputBean> _branchRecords;
 
         public List<NopTccBranchRecordInputBean> getBranchRecords(){

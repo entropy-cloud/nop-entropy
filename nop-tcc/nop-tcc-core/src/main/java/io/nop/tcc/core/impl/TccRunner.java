@@ -9,6 +9,7 @@ package io.nop.tcc.core.impl;
 
 import io.nop.api.core.beans.ApiRequest;
 import io.nop.api.core.beans.ApiResponse;
+import io.nop.api.core.exceptions.NopException;
 import io.nop.api.core.rpc.IRpcServiceInvoker;
 import io.nop.api.core.util.ApiHeaders;
 import io.nop.api.core.util.FutureHelper;
@@ -16,6 +17,11 @@ import io.nop.api.core.util.IApiResponseNormalizer;
 import io.nop.tcc.api.ITccBranchRecord;
 import io.nop.tcc.api.ITccBranchTransaction;
 import io.nop.tcc.api.TccStatus;
+
+import static io.nop.tcc.core.TccCoreErrors.ARG_TCC_STATUS;
+import static io.nop.tcc.core.TccCoreErrors.ARG_TXN_GROUP;
+import static io.nop.tcc.core.TccCoreErrors.ARG_TXN_ID;
+import static io.nop.tcc.core.TccCoreErrors.ERR_TCC_INVALID_CONFIRM_BRANCH_STATUS;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -155,10 +161,16 @@ public class TccRunner {
 
     public static TccStatus aggregateConfirmBranchStatus(List<ITccBranchTransaction> branchTxns) {
         for (ITccBranchTransaction branchTxn : branchTxns) {
-            if (branchTxn.getBranchStatus() == TccStatus.CONFIRM_FAILED)
+            TccStatus branchStatus = branchTxn.getBranchStatus();
+            if (branchStatus == TccStatus.CONFIRM_FAILED)
                 return TccStatus.CONFIRM_FAILED;
-            if (branchTxn.getBranchStatus().isCancelled())
-                return branchTxn.getBranchStatus();
+            if (branchStatus.isCancelled()) {
+                // 进入confirm阶段的分支理应全部allowConfirm，出现cancelled分支说明状态机被破坏
+                throw new NopException(ERR_TCC_INVALID_CONFIRM_BRANCH_STATUS)
+                        .param(ARG_TXN_GROUP, branchTxn.getTxnGroup())
+                        .param(ARG_TXN_ID, branchTxn.getTxnId())
+                        .param(ARG_TCC_STATUS, branchStatus);
+            }
         }
         return TccStatus.CONFIRM_SUCCESS;
     }

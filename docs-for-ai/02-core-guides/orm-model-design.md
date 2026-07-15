@@ -72,6 +72,20 @@ Nop ORM 的列类型系统有两个独立维度：
 
 > 完整列表（含 file、files、point、geometry、map、list 等）见 `StdDataType.java`。
 
+### 时间类型选择规则
+
+`DATE`、`DATETIME`、`TIMESTAMP` 三个类型对应不同精度，选择规则如下：
+
+| 类型 | 精度 | 适用场景 |
+|------|------|---------|
+| `DATE` | 到天 | 日历日期：生日、活动日、截止日期。只关心"哪天"，不关心时刻。 |
+| `TIMESTAMP` | 到毫秒 | **默认选择**。所有业务时间点：过账时间、审批时间、创建时间、发送时间等。毫秒精度保证同一秒内的多条记录可正确排序（审计、批处理）。 |
+| `DATETIME` | 到秒 | **一般不使用**。仅在业务确认秒精度足够且无排序需求时使用。 |
+
+**规则：默认 `TIMESTAMP`；日历日期用 `DATE`；除非明确理由，不用 `DATETIME`。**
+
+> **为什么不用 `DATETIME`？** DATETIME 在 H2 等数据库中只有秒精度，而 Java 实体（`LocalDateTime`）有纳秒精度。autotest 的 `@var:` 机制从 Java 实体收集值（纳秒），但 DB 读写会截断到秒，导致录制与校验不匹配。TIMESTAMP 在 DB 层也保持毫秒精度，避免此问题。
+
 ### 四层类型结构：type / stdDataType / stdDomain / domain
 
 Nop 平台在多个层面描述字段的类型，按具体程度从高到低排列：

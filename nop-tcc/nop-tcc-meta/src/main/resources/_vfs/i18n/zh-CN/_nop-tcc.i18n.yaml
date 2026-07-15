@@ -46,6 +46,7 @@ prop:
       errorMessage: 错误消息
       errorStack: 错误堆栈
       expireTime: 过期时间
+      retryTimes: 重试次数
       status: 状态
       status_label: 状态
       txnGroup: 事务分组

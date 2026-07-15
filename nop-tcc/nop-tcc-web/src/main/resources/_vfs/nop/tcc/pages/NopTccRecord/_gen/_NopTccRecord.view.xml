@@ -59,6 +59,9 @@
 
                 <!--修改时间-->
                 <col id="updateTime" mandatory="true" sortable="true"/>
+
+                <!--重试次数-->
+                <col id="retryTimes" ui:number="true" sortable="true"/>
             </cols>
         </grid>
         <grid id="pick-list" x:prototype="list" x:abstract="true"/>
@@ -74,6 +77,7 @@
  endTime[结束时间] errorCode[错误码]
  errorMessage[错误消息] errorStack[错误堆栈]
  createTime[创建时间] updateTime[修改时间]
+ retryTimes[重试次数] 
 </layout>
         </form>
         <form id="add" editMode="add" title="新增-TCC事务记录" i18n-en:title="Add TCC Transaction" x:prototype="edit"/>
@@ -85,6 +89,7 @@
  appData[应用数据] beginTime[开始时间]
  endTime[结束时间] errorCode[错误码]
  errorMessage[错误消息] errorStack[错误堆栈]
+ retryTimes[重试次数] 
 </layout>
         </form>
         <form id="query" editMode="query" title="查询条件" i18n-en:title="Query Condition" x:abstract="true"/>

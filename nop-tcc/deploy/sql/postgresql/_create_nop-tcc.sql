@@ -15,6 +15,7 @@ CREATE TABLE nop_tcc_record(
   version INT4 NOT NULL ,
   create_time TIMESTAMP NOT NULL ,
   update_time TIMESTAMP NOT NULL ,
+  retry_times INT4  ,
   constraint PK_nop_tcc_record primary key (txn_id)
 );
 
@@ -82,6 +83,8 @@ CREATE TABLE nop_tcc_branch_record(
       COMMENT ON COLUMN nop_tcc_record.create_time IS '创建时间';
                     
       COMMENT ON COLUMN nop_tcc_record.update_time IS '修改时间';
+                    
+      COMMENT ON COLUMN nop_tcc_record.retry_times IS '重试次数';
                     
       COMMENT ON TABLE nop_tcc_branch_record IS 'TCC事务分支记录';
                 

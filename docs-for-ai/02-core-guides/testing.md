@@ -255,6 +255,42 @@ A,@var:NopAuthSession@sessionId,@var:NopAuthUser@userId,...
 1. **输入变量解析**：`input()`/`request()` 读取文件时，`AutoTestVars.resolveVarName()` 将 `@var:变量名` 替换回录制时的实际值。
 2. **输出比对**：`output()` 将当前结果与录制的 JSON 比对，表格数据与 CSV 比对，变量引用会被解析回实际值后进行比较。
 
+### 重新录制 output
+
+当 ORM 模型变更（如新增 `tagSet="var"`）导致现有 output 快照不含 `@var:` 引用时，**无需从头准备数据**。框架可以利用已有的 input 快照自动恢复数据库状态，重新执行测试并生成 output：
+
+1. **保留 input 快照不变**：`_cases/.../input/tables/*.csv` 是测试数据的事实来源，它们是确定性的。
+2. **删除旧 output**：删除 `_cases/.../output/` 目录（或单个 csv/json5 文件）。
+3. **运行录制**：设 `saveOutput=true`，运行测试。框架会：
+   - 从 input CSV 恢复数据到 H2 内存库
+   - 执行测试逻辑
+   - 保存新的 output CSV/JSON，此时新增的 `@var:` 引用会被正确写入
+4. **验证**：切回 `checkOutput=true`（默认），重新运行确认绿色。
+
+#### 设置 saveOutput=true 的四种方式
+
+| 方式 | 作用域 | 用法 | 说明 |
+|------|--------|------|------|
+| **命令行参数** | 全局（覆盖所有） | `-Dnop.autotest.force-save-output=true` | Maven 传参：`mvn test -Dnop.autotest.force-save-output=true`。此属性会**强制**所有测试以录制模式运行，覆盖代码中的任何注解设置 |
+| **环境变量** | 全局（覆盖所有） | `export NOP_AUTOTEST_FORCE_SAVE_OUTPUT=true` | Nop 配置系统支持将 `.` 替换为 `_` 的环境变量名 |
+| **类级注解** | 整个测试类 | `@NopTestConfig(snapshotTest = SnapshotTest.RECORDING)` | 类中所有方法的快照测试都走录制模式 |
+| **类级注解（便捷方式）** | 整个测试类 | `@NopTestConfig(forceSaveOutput = true)` | 等同上者的简写，设置 `nop.autotest.force-save-output=true` |
+| **方法级注解** | 单个方法 | `@EnableSnapshot(saveOutput = true)` | 只对加了此注解的方法生效，其他方法仍走校验 |
+
+> **录制模式的异常行为**：录制模式下每个测试方法执行完毕后会抛出 `nop.err.autotest.snapshot-finished` 异常，这是框架的**预期行为**，用于中断后续流程（因为快照已保存，无需继续校验）。IDE 或 Maven 中会看到测试标记为红色/Errors，属于**正常现象**。切回 CHECKING 模式后 Errors 归零。
+
+> ⚠️ **Maven 批量重录制的注意事项**：由于每个方法都抛 `snapshot-finished`，Maven surefire 默认在遇到第一个 Error 时停止，后面的测试不会执行。必须配合 `-Dmaven.test.failure.ignore=true` 让 Maven 继续：
+> ```
+> mvn test -Dnop.autotest.force-save-output=true -Dmaven.test.failure.ignore=true
+> ```
+> 这会对所有模块一视同仁。如果只想重录特定模块，先 `mvn install -DskipTests` 安装依赖，然后进入目标模块目录执行：
+> ```
+> mvn test -Dnop.autotest.force-save-output=true -Dmaven.test.failure.ignore=true
+> ```
+> 或者在 IDE 中打开目标测试类，加上 `@NopTestConfig(snapshotTest = SnapshotTest.RECORDING)` 后运行整个类（IDE 默认会执行所有方法，不受异常影响）。
+
+> **input 快照本身不包含 `@var:` 引用**（它们是在 output 录制/校验阶段处理的）。因此即使 ORM 模型的 tagSet 发生变化，input CSV 也无需修改，只需重新录制 output。
+
 ### 多步测试模式：无需手动提取 ID
 
 每个 GraphQL 步骤通过 `request()` 读取输入（含 `@var:` 引用），通过 `output()` 保存输出（框架自动注入 `@var:` 引用），步骤之间的数据流由变量机制自动连接：
@@ -319,6 +355,38 @@ public void testMultiStep() {
 4. 明明是进程内服务测试，却先去搭 HTTP E2E。
 5. **首次录制以为 RECORDING 模式会自动初始化 schema** — 不会。需显式加 `initDatabaseSchema = OptionalBoolean.TRUE`。
 6. **把 `saveEntity(entity, actionName, context)` 的 `actionName` 当成 `boolean` 传** — `actionName` 是 `String`，传 `null` 使用默认值即可。
+
+## 快照不匹配诊断与修复
+
+快照测试失败最常见的原因是**非确定性字段**（随机生成的 ID、代码、时间戳、追踪 ID）在录制时被写成了字面值，再次运行时值不同导致匹配失败。
+
+### 诊断流程
+
+1. 定位失败的字段：从 `nop.err.match.field-value-not-expected` 错误中提取 `jsonPath=XXX` 字段名。
+2. 判断该字段是否具有非确定性：每次运行都会变化（UUID、时间戳、随机后缀、trace ID）。
+3. 检查 ORM 模型（`model/*.orm.xml`）中该字段的 `tagSet`：
+   - 主键 → 必须包含 `seq` 或 `seq-default`
+   - 时间戳（包括业务时间） → 加 `tagSet="clock"`（仅靠 `createTimeProp`/`updateTimeProp` 不足以覆盖业务时间戳）
+   - 随机生成的值（CODE、TRACE_ID、单据号中的 UUID 后缀等） → 加 `tagSet="var"`
+4. 如果缺少 tagSet，先补上，再重新录制（见下方）。
+
+### 常见非确定性字段模式
+
+| 失败特征 | 根因 | 修复 |
+|---------|------|------|
+| `CODE` 类字段值包含随机后缀（如 `ARI-XXX-XXXX-8793x8f3`） | `buildCode()` 用 `StringHelper.generateUUID()` 生成部分 code，ORM 字段缺 `tagSet="var"` | 补 `tagSet="var"` |
+| `TRACE_ID` 每次运行不同 | 随机 UUID 赋值，ORM 字段缺 `tagSet="var"` | 补 `tagSet="var"` |
+| `OCCURRENCE_TIME` 等业务时间戳与实际运行时间有关 | 依赖于 `CoreMetrics.currentTimeMillis()`，ORM 字段缺 `tagSet="clock"` | 补 `tagSet="clock"` |
+| `DEL_VERSION`/`APPROVED_AT` 等框架赋值字段 | ORM 框架自动填充，录制时值写入快照，下次运行不匹配 | 已配置 `domain="delVersion"` 等 domain 的字段，建议加 `tagSet="var"` |
+
+### 修复步骤
+
+1. **修改 ORM 模型**：在 `model/*.orm.xml` 的对应 `<column>` 上追加 `tagSet`（多个值用逗号分隔，如 `tagSet="var,clock"`）。
+2. **重新录制 output**：见上方[重新录制 output](#-重新录制-output) 章节。核心思路是保留 input 快照不动，只删除旧 output，在 `saveOutput=true` 模式下重跑测试，框架会自动生成含有 `@var:` 引用的新 output。
+3. **验证**：切回 `checkOutput=true`（默认），重新运行测试，确认绿色。
+4. **提交**：ORM 模型变更 + 重新录制的快照一起提交。
+
+> 注意：不要手动在 CSV 中用 `*` 通配符替代非确定性值。`*` 只应用于已知不关心的字段（如框架维护的内部状态），真正的变量应该通过 `@var:` 机制管理，以保证跨步骤引用正确。
 
 ## 异步与并发测试的防挂起规则
 

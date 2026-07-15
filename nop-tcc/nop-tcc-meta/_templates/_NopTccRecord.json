@@ -15,5 +15,6 @@
   "version": 0,
   "createTime": "2000-01-01 14:00:00",
   "updateTime": "2000-01-01 14:00:00",
+  "retryTimes": 0,
   "branchRecords": null
 }

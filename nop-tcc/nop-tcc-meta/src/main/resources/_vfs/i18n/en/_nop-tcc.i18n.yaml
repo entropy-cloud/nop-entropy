@@ -52,4 +52,5 @@ prop:
       version: Version
       createTime: Create Time
       updateTime: Update Time
+      retryTimes: Retry Times
       branchRecords: TCC Branch Records

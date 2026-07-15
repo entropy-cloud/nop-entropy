@@ -81,8 +81,12 @@ public class _NopTccRecord extends DynamicOrmEntity{
     public static final String PROP_NAME_updateTime = "updateTime";
     public static final int PROP_ID_updateTime = 15;
     
+    /* 重试次数: RETRY_TIMES INTEGER */
+    public static final String PROP_NAME_retryTimes = "retryTimes";
+    public static final int PROP_ID_retryTimes = 16;
+    
 
-    private static int _PROP_ID_BOUND = 16;
+    private static int _PROP_ID_BOUND = 17;
 
     
     /* relation: 分支事务记录 */
@@ -92,7 +96,7 @@ public class _NopTccRecord extends DynamicOrmEntity{
     protected static final List<String> PK_PROP_NAMES = Arrays.asList(PROP_NAME_txnId);
     protected static final int[] PK_PROP_IDS = new int[]{PROP_ID_txnId};
 
-    private static final String[] PROP_ID_TO_NAME = new String[16];
+    private static final String[] PROP_ID_TO_NAME = new String[17];
     private static final Map<String,Integer> PROP_NAME_TO_ID = new HashMap<>();
     static{
       
@@ -141,6 +145,9 @@ public class _NopTccRecord extends DynamicOrmEntity{
           PROP_ID_TO_NAME[PROP_ID_updateTime] = PROP_NAME_updateTime;
           PROP_NAME_TO_ID.put(PROP_NAME_updateTime, PROP_ID_updateTime);
       
+          PROP_ID_TO_NAME[PROP_ID_retryTimes] = PROP_NAME_retryTimes;
+          PROP_NAME_TO_ID.put(PROP_NAME_retryTimes, PROP_ID_retryTimes);
+      
     }
 
     
@@ -188,6 +195,9 @@ public class _NopTccRecord extends DynamicOrmEntity{
     
     /* 修改时间: UPDATE_TIME */
     private java.sql.Timestamp _updateTime;
+    
+    /* 重试次数: RETRY_TIMES */
+    private java.lang.Integer _retryTimes;
     
 
     public _NopTccRecord(){
@@ -307,6 +317,9 @@ public class _NopTccRecord extends DynamicOrmEntity{
         
             case PROP_ID_updateTime:
                return getUpdateTime();
+        
+            case PROP_ID_retryTimes:
+               return getRetryTimes();
         
            default:
               return super.orm_propValue(propId);
@@ -469,6 +482,16 @@ public class _NopTccRecord extends DynamicOrmEntity{
                break;
             }
         
+            case PROP_ID_retryTimes:{
+               java.lang.Integer typedValue = null;
+               if(value != null){
+                   typedValue = ConvertHelper.toInteger(value,
+                       err-> newTypeConversionError(PROP_NAME_retryTimes));
+               }
+               setRetryTimes(typedValue);
+               break;
+            }
+        
            default:
               super.orm_propValue(propId,value);
         }
@@ -579,6 +602,13 @@ public class _NopTccRecord extends DynamicOrmEntity{
             case PROP_ID_updateTime:{
                onInitProp(propId);
                this._updateTime = (java.sql.Timestamp)value;
+               
+               break;
+            }
+        
+            case PROP_ID_retryTimes:{
+               onInitProp(propId);
+               this._retryTimes = (java.lang.Integer)value;
                
                break;
             }
@@ -870,6 +900,25 @@ public class _NopTccRecord extends DynamicOrmEntity{
         if(onPropSet(PROP_ID_updateTime,value)){
             this._updateTime = value;
             internalClearRefs(PROP_ID_updateTime);
+            
+        }
+    }
+    
+    /**
+     * 重试次数: RETRY_TIMES
+     */
+    public final java.lang.Integer getRetryTimes(){
+         onPropGet(PROP_ID_retryTimes);
+         return _retryTimes;
+    }
+
+    /**
+     * 重试次数: RETRY_TIMES
+     */
+    public final void setRetryTimes(java.lang.Integer value){
+        if(onPropSet(PROP_ID_retryTimes,value)){
+            this._retryTimes = value;
+            internalClearRefs(PROP_ID_retryTimes);
             
         }
     }
