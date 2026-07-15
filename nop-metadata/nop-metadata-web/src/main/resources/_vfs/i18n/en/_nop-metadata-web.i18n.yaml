@@ -40,6 +40,10 @@ site:
       displayName: Modify Meta Lineage Edge
     FNPT:NopMetaLineageEdge:query:
       displayName: Query Meta Lineage Edge
+    FNPT:NopMetaManifest:mutation:
+      displayName: Modify Meta Manifest
+    FNPT:NopMetaManifest:query:
+      displayName: Query Meta Manifest
     FNPT:NopMetaModule:mutation:
       displayName: Modify Meta Module
     FNPT:NopMetaModule:query:
@@ -104,6 +108,8 @@ site:
       displayName: Meta Entity Unique Key
     NopMetaLineageEdge-main:
       displayName: Meta Lineage Edge
+    NopMetaManifest-main:
+      displayName: Meta Manifest
     NopMetaModule-main:
       displayName: Meta Module
     NopMetaOrmModel-main:

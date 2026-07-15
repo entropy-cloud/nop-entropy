@@ -68,6 +68,14 @@
         <property name="bizObjName" value="NopMetaPipeline"/>
     </bean>
 
+    <bean id="io.nop.metadata.service.entity.NopMetaManifestBizModel" ioc:type="@bean:id" ioc:default="true"/>
+
+    <bean id="biz_NopMetaManifest" class="io.nop.biz.proxy.BizProxyFactoryBean"
+          ioc:type="io.nop.metadata.biz.INopMetaManifestBiz" ioc:force-lazy-property="true" lazy-init="true"
+          primary="true">
+        <property name="bizObjName" value="NopMetaManifest"/>
+    </bean>
+
     <bean id="io.nop.metadata.service.entity.NopMetaQualityResultBizModel" ioc:type="@bean:id" ioc:default="true"/>
 
     <bean id="biz_NopMetaQualityResult" class="io.nop.biz.proxy.BizProxyFactoryBean"

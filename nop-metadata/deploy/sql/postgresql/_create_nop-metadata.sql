@@ -153,6 +153,22 @@ CREATE TABLE nop_meta_pipeline(
   constraint PK_nop_meta_pipeline primary key (pipeline_id)
 );
 
+CREATE TABLE nop_meta_manifest(
+  manifest_id VARCHAR(32) NOT NULL ,
+  meta_module_id VARCHAR(32) NOT NULL ,
+  manifest_version INT8 NOT NULL ,
+  generated_at TIMESTAMP NOT NULL ,
+  nop_metadata_version VARCHAR(50)  ,
+  content TEXT  ,
+  del_version INT8 NOT NULL ,
+  created_by VARCHAR(50) NOT NULL ,
+  create_time TIMESTAMP NOT NULL ,
+  updated_by VARCHAR(50) NOT NULL ,
+  update_time TIMESTAMP NOT NULL ,
+  remark VARCHAR(200)  ,
+  constraint PK_nop_meta_manifest primary key (manifest_id)
+);
+
 CREATE TABLE nop_meta_quality_result(
   quality_result_id VARCHAR(32) NOT NULL ,
   quality_rule_id VARCHAR(32) NOT NULL ,
@@ -706,6 +722,32 @@ CREATE TABLE nop_meta_dict_item(
       COMMENT ON COLUMN nop_meta_pipeline.update_time IS '修改时间';
                     
       COMMENT ON COLUMN nop_meta_pipeline.remark IS '备注';
+                    
+      COMMENT ON TABLE nop_meta_manifest IS '元数据快照';
+                
+      COMMENT ON COLUMN nop_meta_manifest.manifest_id IS '快照ID';
+                    
+      COMMENT ON COLUMN nop_meta_manifest.meta_module_id IS '模块版本ID';
+                    
+      COMMENT ON COLUMN nop_meta_manifest.manifest_version IS '快照版本号';
+                    
+      COMMENT ON COLUMN nop_meta_manifest.generated_at IS '生成时间';
+                    
+      COMMENT ON COLUMN nop_meta_manifest.nop_metadata_version IS '平台版本';
+                    
+      COMMENT ON COLUMN nop_meta_manifest.content IS '快照内容';
+                    
+      COMMENT ON COLUMN nop_meta_manifest.del_version IS '数据版本';
+                    
+      COMMENT ON COLUMN nop_meta_manifest.created_by IS '创建人';
+                    
+      COMMENT ON COLUMN nop_meta_manifest.create_time IS '创建时间';
+                    
+      COMMENT ON COLUMN nop_meta_manifest.updated_by IS '修改人';
+                    
+      COMMENT ON COLUMN nop_meta_manifest.update_time IS '修改时间';
+                    
+      COMMENT ON COLUMN nop_meta_manifest.remark IS '备注';
                     
       COMMENT ON TABLE nop_meta_quality_result IS '质量结果';
                 

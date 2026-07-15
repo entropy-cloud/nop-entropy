@@ -10,19 +10,23 @@ package io.nop.metadata.service.entity;
 import io.nop.api.core.annotations.biz.BizModel;
 import io.nop.api.core.annotations.biz.BizMutation;
 import io.nop.api.core.annotations.core.Name;
+import io.nop.api.core.annotations.ioc.InjectValue;
 import io.nop.api.core.beans.DictBean;
 import io.nop.api.core.beans.FilterBeans;
+import io.nop.api.core.beans.TreeBean;
 import io.nop.api.core.beans.query.QueryBean;
 import io.nop.api.core.exceptions.ErrorCode;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.biz.BizConstants;
 import io.nop.biz.crud.CrudBizModel;
 import io.nop.core.context.IServiceContext;
+import io.nop.core.lang.json.JsonTool;
 import io.nop.core.lang.xml.XNode;
 import io.nop.core.lang.xml.parse.XNodeParser;
 import io.nop.core.resource.IResource;
 import io.nop.core.resource.IResourceDslNodeLoader;
 import io.nop.core.resource.VirtualFileSystem;
+import io.nop.dao.api.IEntityDao;
 import io.nop.metadata.biz.INopMetaModuleBiz;
 import io.nop.metadata.core._NopMetadataCoreConstants;
 import io.nop.metadata.dao.entity.NopMetaDict;
@@ -33,10 +37,12 @@ import io.nop.metadata.dao.entity.NopMetaEntityField;
 import io.nop.metadata.dao.entity.NopMetaEntityIndex;
 import io.nop.metadata.dao.entity.NopMetaEntityRelation;
 import io.nop.metadata.dao.entity.NopMetaEntityUniqueKey;
+import io.nop.metadata.dao.entity.NopMetaManifest;
 import io.nop.metadata.dao.entity.NopMetaModule;
 import io.nop.metadata.dao.entity.NopMetaOrmModel;
 import io.nop.metadata.dao.entity.NopMetaTable;
 import io.nop.metadata.dao.model.OrmModelImporter;
+import io.nop.metadata.service.manifest.MetaManifestBuilder;
 import io.nop.orm.model.IEntityModel;
 import io.nop.orm.model.IColumnModel;
 import io.nop.orm.model.OrmDomainModel;
@@ -55,7 +61,10 @@ import io.nop.xlang.xmeta.SchemaLoader;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
+import java.sql.Timestamp;
 import java.util.ArrayList;
+import java.util.Date;
+import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -76,6 +85,15 @@ public class NopMetaModuleBizModel extends CrudBizModel<NopMetaModule> implement
             ErrorCode.define("metadata.module-not-found", "Module not found: {metaModuleId}", "metaModuleId");
     static final ErrorCode ERR_MODULE_NOT_DRAFTING =
             ErrorCode.define("metadata.module-not-drafting", "Module is not in drafting status: {status}", "status");
+    static final ErrorCode ERR_MODULE_FULL_MODEL_NOT_FOUND =
+            ErrorCode.define("metadata.module-full-model-not-found",
+                    "Full ORM model (isDelta=false) not found for module, cannot generate manifest: {metaModuleId}",
+                    "metaModuleId");
+
+    @InjectValue("@cfg:nop.metadata.platform-version|2.0.0-SNAPSHOT")
+    protected String platformVersion;
+
+    private final MetaManifestBuilder manifestBuilder = new MetaManifestBuilder();
 
     public NopMetaModuleBizModel() {
         setEntityName(NopMetaModule.class.getName());
@@ -290,6 +308,139 @@ public class NopMetaModuleBizModel extends CrudBizModel<NopMetaModule> implement
         module.setStatus(_NopMetadataCoreConstants.MODULE_STATUS_RELEASED);
         dao().updateEntity(module);
         return module;
+    }
+
+    /**
+     * 生成模块元数据快照（Manifest）。参考 dbt Manifest 模式，聚合本模块已导入的逻辑元数据为自包含 JSON。
+     *
+     * <p>设计规格见 {@code ai-dev/design/nop-metadata/05-metadata-import.md} §三/§五：
+     * <ul>
+     *   <li>快照粒度（D1）：每模块版本一条 NopMetaManifest（关联 metaModuleId）。</li>
+     *   <li>存储形态（D2）：单行 JSON CLOB（content 列 mediumtext + stdDomain json）。</li>
+     *   <li>依赖图（D3）：首版仅来自 MetaEntityRelation，entity→entity 边。</li>
+     *   <li>节点 id/边 resolution（D4）：uniqueId=entity.&lt;归一化moduleId&gt;.&lt;简单类名&gt;；
+     *       relation refEntityName(className) → 全局反查 entity → module → uniqueId；
+     *       跨模块/未导入引用记为 unresolved:&lt;className&gt;（不静默丢边）。</li>
+     *   <li>无关系的节点 parentMap/childMap 显式空数组（不静默跳过）。</li>
+     * </ul>
+     *
+     * <p>快速失败（不静默返回空 Manifest）：
+     * <ul>
+     *   <li>metaModuleId 不存在 → 抛 {@link #ERR_MODULE_NOT_FOUND}</li>
+     *   <li>模块无 full ORM 模型（isDelta=false） → 抛 {@link #ERR_MODULE_FULL_MODEL_NOT_FOUND}</li>
+     * </ul>
+     *
+     * @return 新生成的 NopMetaManifest（content 已写入 JSON）
+     */
+    @BizMutation
+    public NopMetaManifest generateManifest(@Name("metaModuleId") String metaModuleId, IServiceContext context) {
+        NopMetaModule module = dao().getEntityById(metaModuleId);
+        if (module == null)
+            throw new NopException(ERR_MODULE_NOT_FOUND).param("metaModuleId", metaModuleId);
+
+        IEntityDao<NopMetaOrmModel> ormModelDao = daoFor(NopMetaOrmModel.class);
+        IEntityDao<NopMetaEntity> entityDao = daoFor(NopMetaEntity.class);
+        IEntityDao<NopMetaEntityRelation> relationDao = daoFor(NopMetaEntityRelation.class);
+        IEntityDao<NopMetaManifest> manifestDao = daoFor(NopMetaManifest.class);
+
+        // full ORM 模型（isDelta=false）。不存在则快速失败，不静默生成空快照
+        QueryBean fullOrmQ = new QueryBean();
+        fullOrmQ.addFilter(FilterBeans.eq(NopMetaOrmModel.PROP_NAME_metaModuleId, metaModuleId));
+        fullOrmQ.addFilter(FilterBeans.eq(NopMetaOrmModel.PROP_NAME_isDelta, (byte) 0));
+        NopMetaOrmModel fullOrmModel = ormModelDao.findFirstByQuery(fullOrmQ);
+        if (fullOrmModel == null)
+            throw new NopException(ERR_MODULE_FULL_MODEL_NOT_FOUND).param("metaModuleId", metaModuleId);
+
+        String ormModelId = fullOrmModel.getOrmModelId();
+
+        // 本模块 full 模型下的实体
+        QueryBean entityQ = new QueryBean();
+        entityQ.addFilter(FilterBeans.eq(NopMetaEntity.PROP_NAME_ormModelId, ormModelId));
+        List<NopMetaEntity> moduleEntities = entityDao.findAllByQuery(entityQ);
+
+        // 本模块实体的关系（用于 entity→entity 依赖图）
+        List<NopMetaEntityRelation> moduleRelations = new ArrayList<>();
+        if (!moduleEntities.isEmpty()) {
+            List<String> entityIds = new ArrayList<>(moduleEntities.size());
+            for (NopMetaEntity e : moduleEntities)
+                entityIds.add(e.getMetaEntityId());
+            QueryBean relQ = new QueryBean();
+            TreeBean inFilter = FilterBeans.in(NopMetaEntityRelation.PROP_NAME_metaEntityId, entityIds);
+            relQ.addFilter(inFilter);
+            moduleRelations = relationDao.findAllByQuery(relQ);
+        }
+
+        // 全局 className → moduleId 反查索引（用于跨模块 relation resolution，D4）
+        Map<String, String> classNameToModuleId = buildGlobalClassNameToModuleId();
+
+        // manifestVersion：同模块版本下重新生成时递增（首次为 1）
+        long manifestVersion = computeNextManifestVersion(manifestDao, metaModuleId);
+
+        MetaManifestBuilder.ManifestBuildResult result = manifestBuilder.build(
+                module, fullOrmModel, moduleEntities, moduleRelations,
+                classNameToModuleId, platformVersion, manifestVersion, new Date());
+
+        if (result.getUnresolvedCount() > 0) {
+            LOG.warn("generateManifest produced {} unresolved relation reference(s) for metaModuleId={}",
+                    result.getUnresolvedCount(), metaModuleId);
+        }
+
+        NopMetaManifest manifest = new NopMetaManifest();
+        manifest.setMetaModuleId(metaModuleId);
+        manifest.setManifestVersion(manifestVersion);
+        manifest.setGeneratedAt(new Timestamp(System.currentTimeMillis()));
+        manifest.setNopMetadataVersion(platformVersion);
+        manifest.setContent(JsonTool.stringify(result.getContent()));
+        manifestDao.saveEntity(manifest);
+        orm().flushSession();
+        return manifest;
+    }
+
+    /**
+     * 全局 className → moduleId 索引（D4 resolution 用）。
+     * 遍历所有模块的 full ORM 模型下的实体，建立 className → 其所属模块业务 moduleId 的映射。
+     * 首版全量加载可接受（元数据目录规模有限），性能不足后续加 className 索引。
+     */
+    private Map<String, String> buildGlobalClassNameToModuleId() {
+        IEntityDao<NopMetaModule> moduleDao = daoFor(NopMetaModule.class);
+        IEntityDao<NopMetaOrmModel> ormModelDao = daoFor(NopMetaOrmModel.class);
+        IEntityDao<NopMetaEntity> entityDao = daoFor(NopMetaEntity.class);
+
+        // metaModuleId → moduleId（业务标识）
+        Map<String, String> moduleBizId = new HashMap<>();
+        for (NopMetaModule m : moduleDao.findAll())
+            moduleBizId.put(m.getMetaModuleId(), m.getModuleId());
+
+        // ormModelId → metaModuleId（仅 full 模型）
+        Map<String, String> ormModelToModule = new HashMap<>();
+        QueryBean fullOrmQ = new QueryBean();
+        fullOrmQ.addFilter(FilterBeans.eq(NopMetaOrmModel.PROP_NAME_isDelta, (byte) 0));
+        for (NopMetaOrmModel om : ormModelDao.findAllByQuery(fullOrmQ))
+            ormModelToModule.put(om.getOrmModelId(), om.getMetaModuleId());
+
+        // className → moduleId
+        Map<String, String> classNameToModuleId = new HashMap<>();
+        QueryBean fullEntityQ = new QueryBean();
+        fullEntityQ.addFilter(FilterBeans.eq(NopMetaEntity.PROP_NAME_isDelta, (byte) 0));
+        for (NopMetaEntity e : entityDao.findAllByQuery(fullEntityQ)) {
+            String metaModuleId = ormModelToModule.get(e.getOrmModelId());
+            if (metaModuleId == null)
+                continue;
+            String moduleId = moduleBizId.get(metaModuleId);
+            if (moduleId != null && e.getClassName() != null)
+                classNameToModuleId.put(e.getClassName(), moduleId);
+        }
+        return classNameToModuleId;
+    }
+
+    private long computeNextManifestVersion(IEntityDao<NopMetaManifest> manifestDao, String metaModuleId) {
+        QueryBean q = new QueryBean();
+        q.addFilter(FilterBeans.eq(NopMetaManifest.PROP_NAME_metaModuleId, metaModuleId));
+        q.addOrderField(NopMetaManifest.PROP_NAME_manifestVersion, true);
+        NopMetaManifest latest = manifestDao.findFirstByQuery(q);
+        if (latest == null || latest.getManifestVersion() == null)
+            return 1L;
+        return latest.getManifestVersion() + 1;
     }
 
     private long computeNextModuleVersion(OrmModel ormModel) {

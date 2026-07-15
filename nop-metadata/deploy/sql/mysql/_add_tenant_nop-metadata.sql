@@ -15,6 +15,8 @@ alter table nop_meta_table add NOP_TENANT_ID VARCHAR(32) DEFAULT '0' NOT NULL;
 
 alter table nop_meta_pipeline add NOP_TENANT_ID VARCHAR(32) DEFAULT '0' NOT NULL;
 
+alter table nop_meta_manifest add NOP_TENANT_ID VARCHAR(32) DEFAULT '0' NOT NULL;
+
 alter table nop_meta_quality_result add NOP_TENANT_ID VARCHAR(32) DEFAULT '0' NOT NULL;
 
 alter table nop_meta_entity add NOP_TENANT_ID VARCHAR(32) DEFAULT '0' NOT NULL;
@@ -64,6 +66,9 @@ alter table nop_meta_table add primary key (NOP_TENANT_ID, META_TABLE_ID);
 
 alter table nop_meta_pipeline drop primary key;
 alter table nop_meta_pipeline add primary key (NOP_TENANT_ID, PIPELINE_ID);
+
+alter table nop_meta_manifest drop primary key;
+alter table nop_meta_manifest add primary key (NOP_TENANT_ID, MANIFEST_ID);
 
 alter table nop_meta_quality_result drop primary key;
 alter table nop_meta_quality_result add primary key (NOP_TENANT_ID, QUALITY_RESULT_ID);

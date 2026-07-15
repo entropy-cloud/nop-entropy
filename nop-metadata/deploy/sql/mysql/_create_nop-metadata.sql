@@ -153,6 +153,22 @@ CREATE TABLE nop_meta_pipeline(
   constraint PK_nop_meta_pipeline primary key (PIPELINE_ID)
 )CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_as_cs;
 
+CREATE TABLE nop_meta_manifest(
+  MANIFEST_ID VARCHAR(32) NOT NULL    COMMENT '快照ID',
+  META_MODULE_ID VARCHAR(32) NOT NULL    COMMENT '模块版本ID',
+  MANIFEST_VERSION BIGINT NOT NULL    COMMENT '快照版本号',
+  GENERATED_AT DATETIME(3) DEFAULT CURRENT_TIMESTAMP(3)  NOT NULL    COMMENT '生成时间',
+  NOP_METADATA_VERSION VARCHAR(50) NULL    COMMENT '平台版本',
+  CONTENT LONGTEXT NULL    COMMENT '快照内容',
+  DEL_VERSION BIGINT NOT NULL    COMMENT '数据版本',
+  CREATED_BY VARCHAR(50) NOT NULL    COMMENT '创建人',
+  CREATE_TIME DATETIME(3) DEFAULT CURRENT_TIMESTAMP(3)  NOT NULL    COMMENT '创建时间',
+  UPDATED_BY VARCHAR(50) NOT NULL    COMMENT '修改人',
+  UPDATE_TIME DATETIME(3) DEFAULT CURRENT_TIMESTAMP(3)  NOT NULL    COMMENT '修改时间',
+  REMARK VARCHAR(200) NULL    COMMENT '备注',
+  constraint PK_nop_meta_manifest primary key (MANIFEST_ID)
+)CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_as_cs;
+
 CREATE TABLE nop_meta_quality_result(
   QUALITY_RESULT_ID VARCHAR(32) NOT NULL    COMMENT '结果ID',
   QUALITY_RULE_ID VARCHAR(32) NOT NULL    COMMENT '规则ID',
@@ -462,6 +478,8 @@ CREATE TABLE nop_meta_dict_item(
    ALTER TABLE nop_meta_table COMMENT '逻辑表';
                 
    ALTER TABLE nop_meta_pipeline COMMENT '数据管道';
+                
+   ALTER TABLE nop_meta_manifest COMMENT '元数据快照';
                 
    ALTER TABLE nop_meta_quality_result COMMENT '质量结果';
                 

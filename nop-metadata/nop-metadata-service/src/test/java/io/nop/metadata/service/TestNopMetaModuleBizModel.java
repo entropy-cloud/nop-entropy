@@ -12,15 +12,18 @@ import io.nop.api.core.annotations.core.OptionalBoolean;
 import io.nop.api.core.beans.graphql.GraphQLRequestBean;
 import io.nop.api.core.beans.graphql.GraphQLResponseBean;
 import io.nop.autotest.junit.JunitBaseTestCase;
+import io.nop.core.lang.json.JsonTool;
 import io.nop.graphql.core.IGraphQLExecutionContext;
 import io.nop.graphql.core.engine.IGraphQLEngine;
 import jakarta.inject.Inject;
 import org.junit.jupiter.api.Test;
 
+import java.util.List;
 import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 @NopTestConfig(localDb = true, initDatabaseSchema = OptionalBoolean.TRUE)
@@ -229,6 +232,115 @@ public class TestNopMetaModuleBizModel extends JunitBaseTestCase {
         String entityData = String.valueOf(entityResp.getData());
         assertTrue(entityData.contains("total=4"),
                 "dual storage should produce 4 entity records (2 entities x 2 delta/full): " + entityData);
+    }
+
+    @Test
+    public void testGenerateManifest() {
+        // 端到端：导入 nop-metadata 自身 orm.xml → generateManifest → content JSON 含 nodes + 依赖图
+        GraphQLResponseBean impResp = execute(
+                "mutation { NopMetaModule__importOrmModel(path: \"/nop/metadata/orm/app.orm.xml\")" +
+                        " { metaModuleId } }");
+        assertFalse(impResp.hasError(), "import should not error: " + impResp);
+        String metaModuleId = (String) mutationResult(impResp).get("metaModuleId");
+
+        GraphQLResponseBean genResp = execute(
+                "mutation { NopMetaModule__generateManifest(metaModuleId: \"" + metaModuleId + "\")" +
+                        " { manifestId manifestVersion content } }");
+        assertFalse(genResp.hasError(), "generateManifest should not error: " + genResp
+                + " errors=" + genResp.getErrors());
+
+        Map<String, Object> genData = mutationResult(genResp);
+        assertNotNull(genData.get("manifestId"), "manifestId should be set: " + genData);
+        assertEquals(1L, genData.get("manifestVersion"), "first manifestVersion should be 1: " + genData);
+
+        // content 为 JSON 字符串，解析后断言结构
+        Object contentObj = genData.get("content");
+        assertNotNull(contentObj, "content must not be null: " + genData);
+        // content 可能是 String 或已被 GraphQL 反序列化为 Map，统一转 Map
+        @SuppressWarnings("unchecked")
+        Map<String, Object> content = contentObj instanceof Map
+                ? (Map<String, Object>) contentObj
+                : (Map<String, Object>) JsonTool.parseNonStrict(String.valueOf(contentObj));
+        assertNotNull(content, "content must be a JSON object: " + contentObj);
+
+        // metadata
+        @SuppressWarnings("unchecked")
+        Map<String, Object> metadata = (Map<String, Object>) content.get("metadata");
+        assertNotNull(metadata, "metadata section required: " + content);
+        assertEquals("nop/metadata", metadata.get("moduleId"),
+                "moduleId should be the business id (slash form): " + metadata);
+
+        // nodes：含 entity 节点，uniqueId 形如 entity.<归一化moduleId>.<简单类名>
+        @SuppressWarnings("unchecked")
+        Map<String, Object> nodes = (Map<String, Object>) content.get("nodes");
+        assertNotNull(nodes, "nodes section required: " + content);
+        assertFalse(nodes.isEmpty(), "nodes must not be empty: " + content);
+        assertTrue(nodes.containsKey("entity.nop.metadata.NopMetaModule"),
+                "nodes should contain entity.nop.metadata.NopMetaModule: " + nodes.keySet());
+
+        // 钉死的预期样例边：NopMetaOrmModel.metaModule to-one relation → NopMetaModule。
+        // 解析后两端 uniqueId：
+        //   owner (NopMetaOrmModel) -> entity.nop.metadata.NopMetaOrmModel
+        //   target (NopMetaModule)  -> entity.nop.metadata.NopMetaModule
+        // owner 依赖 target：parentMap[owner] 含 target；childMap[target] 含 owner
+        @SuppressWarnings("unchecked")
+        Map<String, List<Object>> parentMap = (Map<String, List<Object>>) content.get("parentMap");
+        @SuppressWarnings("unchecked")
+        Map<String, List<Object>> childMap = (Map<String, List<Object>>) content.get("childMap");
+        assertNotNull(parentMap, "parentMap section required: " + content);
+        assertNotNull(childMap, "childMap section required: " + content);
+
+        String ownerUid = "entity.nop.metadata.NopMetaOrmModel";
+        String targetUid = "entity.nop.metadata.NopMetaModule";
+        List<Object> ownerParents = parentMap.get(ownerUid);
+        assertNotNull(ownerParents, "parentMap must have entry for NopMetaOrmModel: " + parentMap.keySet());
+        assertTrue(ownerParents.contains(targetUid),
+                "parentMap[entity.nop.metadata.NopMetaOrmModel] must contain entity.nop.metadata.NopMetaModule: "
+                        + ownerParents);
+        List<Object> targetChildren = childMap.get(targetUid);
+        assertNotNull(targetChildren, "childMap must have entry for NopMetaModule: " + childMap.keySet());
+        assertTrue(targetChildren.contains(ownerUid),
+                "childMap[entity.nop.metadata.NopMetaModule] must contain entity.nop.metadata.NopMetaOrmModel: "
+                        + targetChildren);
+
+        // 无关系的节点显式空数组（不静默跳过）：
+        // (a) 每个节点在 parentMap/childMap 中都有条目（无静默跳过）；
+        // (b) 至少存在一个 parentMap 为空数组的节点（证明 relation-less 节点显式置空，而非省略）。
+        for (String uid : nodes.keySet()) {
+            assertTrue(parentMap.containsKey(uid),
+                    "parentMap must have explicit entry for every node (no silent skip): " + uid);
+            assertTrue(childMap.containsKey(uid),
+                    "childMap must have explicit entry for every node (no silent skip): " + uid);
+        }
+        boolean hasEmptyParent = false;
+        for (List<Object> parents : parentMap.values()) {
+            if (parents.isEmpty()) {
+                hasEmptyParent = true;
+                break;
+            }
+        }
+        assertTrue(hasEmptyParent,
+                "at least one node should have empty parentMap (relation-less nodes explicit empty, not skipped): "
+                        + parentMap);
+
+        // unresolved 边（若有）必须带 unresolved: 标记（不静默丢弃）——此处仅校验格式约定
+        for (Map.Entry<String, List<Object>> e : parentMap.entrySet()) {
+            for (Object v : e.getValue()) {
+                String s = String.valueOf(v);
+                // 目标端要么是 entity.<...> 节点，要么是 unresolved:<className>
+                assertTrue(s.startsWith("entity.") || s.startsWith("unresolved:"),
+                        "edge target must be entity node or unresolved:<className>, got: " + s);
+            }
+        }
+    }
+
+    @Test
+    public void testGenerateManifestModuleNotFound() {
+        // 缺失 moduleId 必须快速失败（不静默返回空 Manifest / 不 NPE）
+        GraphQLResponseBean resp = execute(
+                "mutation { NopMetaModule__generateManifest(metaModuleId: \"__not_exist__\") { manifestId } }");
+        assertTrue(resp.hasError(),
+                "generateManifest with non-existent metaModuleId must error (fast fail): " + resp);
     }
 
     private static int countOccurrences(String text, String token) {

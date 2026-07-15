@@ -10,6 +10,7 @@ entity:
     NopMetaEntityRelation: 实体关系
     NopMetaEntityUniqueKey: 实体唯一键
     NopMetaLineageEdge: 血缘边
+    NopMetaManifest: 元数据快照
     NopMetaModule: 元数据模块
     NopMetaOrmModel: ORM模型
     NopMetaPipeline: 数据管道
@@ -250,6 +251,22 @@ prop:
       transformExpr: 转换表达式
       transformType: 转换类型
       transformType_label: 转换类型
+      updateTime: 修改时间
+      updatedBy: 修改人
+      version: 数据版本
+    NopMetaManifest:
+      content: 快照内容
+      contentComponent: null
+      createTime: 创建时间
+      createdBy: 创建人
+      generatedAt: 生成时间
+      manifestId: 快照ID
+      manifestVersion: 快照版本号
+      metaModule: 元数据模块
+      metaModule.displayName: 元数据模块
+      metaModuleId: 模块版本ID
+      nopMetadataVersion: 平台版本
+      remark: 备注
       updateTime: 修改时间
       updatedBy: 修改人
       version: 数据版本

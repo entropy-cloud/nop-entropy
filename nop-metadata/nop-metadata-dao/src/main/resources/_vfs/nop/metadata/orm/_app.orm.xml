@@ -1363,5 +1363,53 @@
                 </to-one>
             </relations>
         </entity>
+        <entity className="io.nop.metadata.dao.entity.NopMetaManifest" createTimeProp="createTime"
+                createrProp="createdBy" displayName="元数据快照" name="io.nop.metadata.dao.entity.NopMetaManifest"
+                registerShortName="true" tableName="nop_meta_manifest" updateTimeProp="updateTime"
+                updaterProp="updatedBy" versionProp="version" ext:icon="camera" i18n-en:displayName="Meta Manifest">
+            <columns>
+                <column code="MANIFEST_ID" displayName="快照ID" mandatory="true" name="manifestId" precision="32"
+                        primary="true" propId="1" stdDataType="string" stdSqlType="VARCHAR" tagSet="seq"
+                        i18n-en:displayName="Manifest Id"/>
+                <column code="META_MODULE_ID" displayName="模块版本ID" mandatory="true" name="metaModuleId" precision="32"
+                        propId="2" stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Meta Module Id"/>
+                <column code="MANIFEST_VERSION" displayName="快照版本号" mandatory="true" name="manifestVersion" propId="3"
+                        stdDataType="long" stdSqlType="BIGINT" i18n-en:displayName="Manifest Version"/>
+                <column code="GENERATED_AT" displayName="生成时间" mandatory="true" name="generatedAt" propId="4"
+                        stdDataType="timestamp" stdSqlType="TIMESTAMP" i18n-en:displayName="Generated At"/>
+                <column code="NOP_METADATA_VERSION" displayName="平台版本" name="nopMetadataVersion" precision="50"
+                        propId="5" stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Nop Metadata Version"/>
+                <column code="CONTENT" displayName="快照内容" domain="mediumtext" name="content" precision="16777216"
+                        propId="6" stdDataType="string" stdDomain="json" stdSqlType="VARCHAR"
+                        i18n-en:displayName="Content"/>
+                <column code="DEL_VERSION" displayName="数据版本" domain="version" mandatory="true" name="version"
+                        propId="7" stdDataType="long" stdSqlType="BIGINT" i18n-en:displayName="Version"/>
+                <column code="CREATED_BY" displayName="创建人" domain="createdBy" mandatory="true" name="createdBy"
+                        precision="50" propId="8" stdDataType="string" stdSqlType="VARCHAR"
+                        i18n-en:displayName="Created By"/>
+                <column code="CREATE_TIME" displayName="创建时间" domain="createTime" mandatory="true" name="createTime"
+                        propId="9" stdDataType="timestamp" stdSqlType="TIMESTAMP" i18n-en:displayName="Create Time"/>
+                <column code="UPDATED_BY" displayName="修改人" domain="updatedBy" mandatory="true" name="updatedBy"
+                        precision="50" propId="10" stdDataType="string" stdSqlType="VARCHAR"
+                        i18n-en:displayName="Updated By"/>
+                <column code="UPDATE_TIME" displayName="修改时间" domain="updateTime" mandatory="true" name="updateTime"
+                        propId="11" stdDataType="timestamp" stdSqlType="TIMESTAMP" i18n-en:displayName="Update Time"/>
+                <column code="REMARK" displayName="备注" domain="remark" name="remark" precision="200" propId="12"
+                        stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Remark"/>
+            </columns>
+            <indexes>
+                <index name="IX_NOP_META_MANIFEST_MODULE" unique="false">
+                    <column name="metaModuleId"/>
+                </index>
+            </indexes>
+            <relations>
+                <to-one displayName="元数据模块" name="metaModule" refEntityName="io.nop.metadata.dao.entity.NopMetaModule"
+                        tagSet="pub,ref-pub" i18n-en:displayName="Meta Module">
+                    <join>
+                        <on leftProp="metaModuleId" rightProp="metaModuleId"/>
+                    </join>
+                </to-one>
+            </relations>
+        </entity>
     </entities>
 </orm>

@@ -7,6 +7,7 @@ drop table nop_meta_quality_rule;
 drop table nop_meta_orm_model;
 drop table nop_meta_table;
 drop table nop_meta_pipeline;
+drop table nop_meta_manifest;
 drop table nop_meta_quality_result;
 drop table nop_meta_entity;
 drop table nop_meta_domain;

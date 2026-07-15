@@ -10,6 +10,7 @@ entity:
     NopMetaEntityRelation: Meta Entity Relation
     NopMetaEntityUniqueKey: Meta Entity Unique Key
     NopMetaLineageEdge: Meta Lineage Edge
+    NopMetaManifest: Meta Manifest
     NopMetaModule: Meta Module
     NopMetaOrmModel: Meta ORM Model
     NopMetaPipeline: Meta Pipeline
@@ -253,6 +254,22 @@ prop:
       updateTime: Update Time
       remark: Remark
       extConfigComponent: null
+    NopMetaManifest:
+      manifestId: Manifest Id
+      metaModuleId: Meta Module Id
+      manifestVersion: Manifest Version
+      generatedAt: Generated At
+      nopMetadataVersion: Nop Metadata Version
+      content: Content
+      version: Version
+      createdBy: Created By
+      createTime: Create Time
+      updatedBy: Updated By
+      updateTime: Update Time
+      remark: Remark
+      metaModule: Meta Module
+      metaModule.displayName: Meta Module
+      contentComponent: null
     NopMetaModule:
       metaModuleId: Meta Module Id
       moduleId: Module Id
