@@ -846,7 +846,7 @@ public interface XLangErrors {
             "nop.err.xlang.xdef.value-and-content-not-allow-both", "xdef:value和节点内容表示同样的内容，不能同时设置", ARG_NODE);
 
     ErrorCode ERR_XDEF_ATTR_NOT_ALLOW_OVERRIDE_REF = define("nop.err.xlang.xdef.attr-not-allow-override-ref",
-            "属性[{attrName}]已经存在，不允许覆盖", ARG_ATTR_NAME);
+            "属性[{attrName}]类型不匹配：引用定义的类型为{typeA}，当前定义的类型为{typeB}，不允许覆盖", ARG_ATTR_NAME, ARG_TYPE_A, ARG_TYPE_B);
 
     ErrorCode ERR_XDEF_PROP_NOT_ALLOW_OVERRIDE = define("nop.err.xlang.xdef.prop-not-allow-override",
             "属性[{propName}]已经存在，不允许覆盖", ARG_PROP_NAME);
