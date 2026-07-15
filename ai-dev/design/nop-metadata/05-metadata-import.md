@@ -1,10 +1,10 @@
 # nop-metadata 元数据采集和导入设计
 
-> Status: draft
-> Date: 2026-07-15
-> Scope: nop-metadata 元数据采集、导入和 Catalog 收集
-> Goal: 定义元数据导入流程和 Catalog 运行时元数据收集机制
-> Based on: dbt Manifest 模式、Apache Griffin 数据剖析
+> Status: final
+> Date: 2026-07-15（2026-07-16 P2-3 Manifest 落地后重写为最终设计状态）
+> Scope: nop-metadata 元数据采集、导入、Manifest 快照生成
+> Goal: 定义元数据导入流程和 Manifest 元数据快照机制
+> Based on: dbt Manifest 模式
 
 ---
 
@@ -17,28 +17,21 @@
 **理由**:
 - Maven 按模块打包/发布
 - 版本管理在模块级别
-- 导入时同时存储 delta 和 full 定义
+- 导入时同时存储 delta 和 full 定义（见 `01-architecture-baseline.md` §4.1）
 
 ### 1.2 Manifest 快照
 
-**决策**: 参考 dbt 的 Manifest 模式，导入时生成完整元数据快照。
+**决策**: 参考 dbt 的 Manifest 模式，为每个已导入模块版本生成完整元数据快照（NopMetaManifest，每模块版本一条）。
 
-**Manifest 内容**:
-- 模块元数据（MetaModule）
-- ORM 模型元数据（MetaOrmModel）
-- 实体元数据（MetaEntity/Field/Relation）
-- 域和字典（MetaDomain/MetaDict）
-- 依赖图（parent_map/child_map）
+**Manifest 内容**（单行 JSON CLOB，存于 `NopMetaManifest.content`）:
+- 模块元数据（metadata）
+- 节点集合（nodes）—— 首版仅 entity 节点
+- 数据源集合（sources）—— 来自 MetaDataSource / querySpace
+- 依赖图（parentMap / childMap）—— 首版仅来自 MetaEntityRelation
 
 ### 1.3 Catalog 运行时元数据
 
-**决策**: 参考 dbt 的 Catalog 模式，从数据库收集运行时元数据。
-
-**Catalog 内容**:
-- 表结构（列名、类型、约束）
-- 统计信息（行数、大小）
-- 索引信息
-- 分区信息
+Catalog（从数据库收集运行时统计：行数/大小/索引/分区）属于 P2-4，**不在 Manifest 范围内**。Manifest 是**逻辑元数据快照**（基于已导入的 ORM 元数据），Catalog 是**物理运行时元数据快照**。两者独立，由各自 Phase 实现。
 
 ---
 
@@ -53,345 +46,198 @@
 | **定时同步** | 定时扫描已注册模块的变更 | 持续同步 |
 | **Git Hook** | Git push 后自动触发 | CI/CD |
 
-### 2.2 导入流程
+首版已实现**手动导入**（`NopMetaModule__importOrmModel` GraphQL mutation）。导入时自动触发 Manifest 生成、定时自动生成为 Non-Blocking Follow-up（见 `01-architecture-baseline.md`）。
+
+### 2.2 导入流程（已实现）
 
 ```
-orm.xml → 解析 → MetaOrmModel(isDelta=true)
-               → MetaOrmModel(isDelta=false, 合并后)
-               → MetaEntity/Field/Relation/Dict (跟随 MetaOrmModel)
-               → MetaTable (自动为每个 MetaEntity 创建)
-               → 依赖图计算
-               → Manifest 快照生成
+orm.xml
+  ├── 解析（filtered，不展开 x:extends）→ OrmModel(delta) → NopMetaOrmModel(isDelta=true)
+  ├── 解析（展开 x:extends）            → OrmModel(full)  → NopMetaOrmModel(isDelta=false)
+  └── 两者共用同一 metaModuleId，各自派生子实体（Entity/Field/Relation/UK/Index/Domain/Dict）
+      同时为每个 NopMetaEntity 自动创建 NopMetaTable(tableType=entity)
 ```
 
-### 2.3 解析过程
+导入解析与双重存储（delta + full）的完整规格见 `01-architecture-baseline.md` §4.1。
 
-```python
-class OrmModelImporter:
-    """ORM 模型导入器"""
-    
-    def import_module(self, module_path):
-        # 1. 加载模块元数据
-        module_meta = self.load_module_meta(module_path)
-        
-        # 2. 解析 orm.xml
-        orm_models = self.parse_orm_xml(module_path)
-        
-        # 3. 处理 Delta 继承
-        for model in orm_models:
-            if model.has_extends():
-                base_model = self.find_base_model(model.extends)
-                full_model = self.merge_models(base_model, model)
-                
-                # 存储 delta
-                self.store_model(model, is_delta=True)
-                # 存储 full
-                self.store_model(full_model, is_delta=False)
-            else:
-                self.store_model(model, is_delta=True)
-                self.store_model(model, is_delta=False)
-        
-        # 4. 拆解为结构化实体
-        for model in orm_models:
-            self.decompose_to_entities(model)
-        
-        # 5. 生成 MetaTable
-        for entity in entities:
-            self.create_meta_table(entity)
-        
-        # 6. 计算依赖图
-        self.compute_dependency_graph()
-        
-        # 7. 生成 Manifest 快照
-        self.generate_manifest(module_meta)
-```
+### 2.3 Manifest 生成时机
+
+首版提供**手动 action**（`NopMetaModule__generateManifest(metaModuleId)`）。导入时自动触发的接线为 Non-Blocking Follow-up。
 
 ---
 
 ## 三、Manifest 元数据模型
 
-### 3.1 Manifest 结构
+### 3.1 存储形态
+
+**决策（D2）**：单行 `NopMetaManifest`，内容为 JSON CLOB（`content` 列）。
+
+| 方案 | 裁定 | 理由 |
+|------|------|------|
+| **A. 单行 JSON CLOB** | **选定** | 与 dbt manifest.json 对齐，自包含、易导出/喂给 AI，查询频率低 |
+| B. 规范化多实体（ManifestNode/ManifestEdge） | 拒绝 | 增加表数量与 JOIN 成本，Manifest 整体消费为主 |
+
+`content` 列定义：`domain="mediumtext"` + `stdDomain="json"`（VARCHAR 16777216，可装下整模块快照）。**不得用 `json-4000`**——4000 字符对整模块 Manifest 远不够。
+
+### 3.2 快照粒度
+
+**决策（D1）**：每模块版本一条 Manifest（`metaModuleId` 关联 NopMetaModule）。
+
+| 方案 | 裁定 | 理由 |
+|------|------|------|
+| **A. 每模块版本一条** | **选定** | 与模块版本管理粒度对齐；base 版本删除后该模块 full 定义仍完整存储（§3.3 不变量），Manifest 仍可查 |
+| B. 全局一条 | 拒绝 | 违反架构 §3.3 版本不变量（版本删除影响），且不利于按模块增量生成 |
+
+### 3.3 NopMetaManifest 实体
 
 ```
-Manifest                        — 项目完整元数据快照
-  ├── moduleId                  → MetaModule
-  ├── version                   — Manifest 版本号
-  ├── generatedAt               — 生成时间
-  ├── dbtVersion                — nop-metadata 版本
-  │
-  ├── nodes                     — 所有节点（实体、表、指标等）
-  │   └── Node[]
-  │       ├── uniqueId          — 唯一标识
-  │       ├── resourceType      — "entity" | "table" | "measure" | "exposure"
-  │       ├── name
-  │       ├── database / schema / identifier
-  │       ├── tags / meta
-  │       └── description
-  │
-  ├── sources                   — 数据源
-  │   └── Source[]
-  │       ├── name
-  │       ├── database / schema
-  │       ├── freshness
-  │       └── tables[]
-  │
-  ├── exposures                 — 数据消费方
-  │   └── Exposure[]
-  │       ├── name
-  │       ├── type              — "dashboard" | "api" | "notebook"
-  │       ├── url
-  │       └── dependsOn[]
-  │
-  ├── parentMap                 — 父节点映射
-  │   └── Map<nodeId, List<nodeId>>
-  │
-  └── childMap                  — 子节点映射
-      └── Map<nodeId, List<nodeId>>
+NopMetaManifest                  — 模块元数据快照（每模块版本一条）
+  ├── manifestId                 — PK（seq）
+  ├── metaModuleId               → NopMetaModule（快照所属模块版本）
+  ├── manifestVersion            — long，Manifest 自身版本号（同一模块版本可重新生成，递增）
+  ├── generatedAt                — 生成时间
+  ├── nopMetadataVersion         — 生成时 nop-metadata 平台版本
+  ├── content                    — JSON CLOB（mediumtext + stdDomain json），快照正文
+  └── 审计列（version / createdBy / createTime / updatedBy / updateTime / remark）
 ```
 
-### 3.2 Manifest JSON 示例
+### 3.4 Manifest JSON 结构
 
 ```json
 {
   "metadata": {
     "moduleId": "nop/auth",
-    "version": 1,
+    "moduleVersion": 1,
+    "manifestVersion": 1,
     "generatedAt": "2026-07-15T10:00:00Z",
-    "nopMetadataVersion": "1.0.0"
+    "nopMetadataVersion": "2.0.0-SNAPSHOT"
   },
   "nodes": {
-    "entity.nop.auth.ErpAcctScheme": {
-      "uniqueId": "entity.nop.auth.ErpAcctScheme",
+    "entity.nop.auth.NopMetaUser": {
+      "uniqueId": "entity.nop.auth.NopMetaUser",
       "resourceType": "entity",
-      "name": "ErpAcctScheme",
-      "database": "default",
-      "schema": "public",
-      "identifier": "erp_acct_scheme",
-      "tags": ["finance", "accounting"],
-      "meta": {"owner": "finance-team"},
-      "description": "会计方案",
-      "columns": [...]
-    },
-    "table.nop.auth.ErpAcctScheme": {
-      "uniqueId": "table.nop.auth.ErpAcctScheme",
-      "resourceType": "table",
-      "name": "ErpAcctScheme",
-      "tableType": "entity",
-      "baseEntityId": "entity.nop.auth.ErpAcctScheme"
+      "name": "NopMetaUser",
+      "entityName": "io.nop.auth.dao.entity.NopMetaUser",
+      "tableName": "nop_auth_user",
+      "displayName": "用户",
+      "tagSet": "pub",
+      "querySpace": "default"
     }
   },
   "sources": {
-    "source.nop.auth.default": {
+    "default": {
       "name": "default",
-      "database": "nop_erp",
-      "schema": "public"
+      "querySpace": "default"
     }
   },
   "parentMap": {
-    "table.nop.auth.ErpAcctScheme": ["source.nop.auth.default"],
-    "table.nop.auth.ErpAcctJournal": ["source.nop.auth.default"]
+    "entity.nop.auth.NopMetaUserRole": ["entity.nop.auth.NopMetaUser"]
   },
   "childMap": {
-    "source.nop.auth.default": ["table.nop.auth.ErpAcctScheme", "table.nop.auth.ErpAcctJournal"]
+    "entity.nop.auth.NopMetaUser": ["entity.nop.auth.NopMetaUserRole"]
   }
 }
 ```
 
-### 3.3 Manifest 用途
+说明：
+- `metadata.moduleId` 取 NopMetaModule.moduleId（业务标识，含 `/`，如 `nop/auth`，**不做归一化**——这是模块的业务标识）。
+- `nodes` 的 **key** 与节点 `uniqueId` 使用归一化 moduleId（见 §五 D4），如 `entity.nop.auth.NopMetaUser`。
+- 首版 `nodes` 仅含 **entity** 节点（`resourceType: "entity"`）。table/measure/exposure 节点为后续 Phase。
+- `sources` 首版来自模块内实体引用到的 querySpace（及全局 NopMetaDataSource）；当前为 querySpace 维度。
+- `parentMap` / `childMap` 首版仅来自 MetaEntityRelation（见 §五）。
+
+### 3.5 Manifest 用途
 
 | 用途 | 说明 |
 |------|------|
 | **依赖分析** | 通过 parentMap/childMap 分析依赖关系 |
 | **影响分析** | 列变更影响哪些下游表 |
 | **搜索增强** | 为搜索引擎提供完整元数据 |
-| **AI 集成** | 为 AI Agent 提供上下文 |
+| **AI 集成** | 为 AI Agent 提供上下文（自包含 JSON，可直接喂给 LLM） |
 | **文档生成** | 自动生成数据字典 |
 
 ---
 
-## 四、Catalog 运行时元数据
+## 四、Catalog 运行时元数据（P2-4，独立 Phase）
 
-### 4.1 Catalog 收集时机
+Catalog 从数据库收集运行时统计（行数/大小/索引/分区），参考 dbt Catalog。**Catalog 不是 Manifest 的来源**——Manifest 是逻辑元数据快照，Catalog 是物理运行时快照。两者独立实现：
+- Catalog 收集时机：导入时 / 定时 / 手动 / 变更检测。
+- Catalog 数据库适配：MySQL (`information_schema`)、PostgreSQL (`pg_class`) 等。
 
-| 时机 | 说明 |
-|------|------|
-| **导入时** | 导入 ORM 模型时自动收集 |
-| **定时收集** | 定时从数据库收集最新结构 |
-| **手动收集** | UI 上点击"刷新元数据" |
-| **变更检测** | 检测数据库结构变更 |
-
-### 4.2 Catalog 数据模型
-
-```
-MetaCatalog                     — 运行时元数据快照
-  ├── tableId                   → MetaTable
-  ├── snapshotTime              — 快照时间
-  ├── database / schema / tableName
-  │
-  ├── columns[]                 — 列信息
-  │   ├── columnName
-  │   ├── dataType              — 数据库类型
-  │   ├── isNullable
-  │   ├── defaultValue
-  │   ├── comment
-  │   └── ordinalPosition
-  │
-  ├── stats                     — 统计信息
-  │   ├── rowCount              — 行数
-  │   ├── sizeBytes             — 大小（字节）
-  │   ├── avgRowSize            — 平均行大小
-  │   └── lastModified          — 最后修改时间
-  │
-  ├── indexes[]                 — 索引信息
-  │   ├── indexName
-  │   ├── indexType             — "btree" | "hash" | "gin" | ...
-  │   ├── isUnique
-  │   └── columns[]
-  │
-  └── partitions[]              — 分区信息（可选）
-      ├── partitionName
-      ├── partitionType         — "range" | "list" | "hash"
-      └── partitionValues
-```
-
-### 4.3 Catalog 收集实现
-
-```python
-class CatalogCollector:
-    """Catalog 收集器"""
-    
-    def collect(self, meta_table):
-        """收集表的运行时元数据"""
-        
-        # 1. 获取数据库连接
-        db_type = meta_table.querySpace.dbType
-        connection = self.get_connection(meta_table.querySpace)
-        
-        # 2. 收集列信息
-        columns = self.collect_columns(connection, meta_table)
-        
-        # 3. 收集统计信息
-        stats = self.collect_stats(connection, meta_table)
-        
-        # 4. 收集索引信息
-        indexes = self.collect_indexes(connection, meta_table)
-        
-        # 5. 收集分区信息
-        partitions = self.collect_partitions(connection, meta_table)
-        
-        # 6. 存储 Catalog
-        catalog = MetaCatalog(
-            tableId=meta_table.id,
-            snapshotTime=datetime.now(),
-            columns=columns,
-            stats=stats,
-            indexes=indexes,
-            partitions=partitions
-        )
-        
-        self.store_catalog(catalog)
-        return catalog
-```
-
-### 4.4 数据库适配
-
-| 数据库 | 列信息查询 | 统计信息查询 |
-|--------|-----------|-------------|
-| MySQL | `information_schema.COLUMNS` | `information_schema.TABLES` |
-| PostgreSQL | `information_schema.COLUMNS` | `pg_class` + `pg_stat_user_tables` |
-| ClickHouse | `system.columns` | `system.parts` |
-| Hive | `information_schema.COLUMNS` | `PARTITIONS` |
+Catalog 的具体建模与收集实现属于 P2-4，不在本设计文档展开。
 
 ---
 
 ## 五、依赖图计算
 
-### 5.1 依赖关系类型
+### 5.1 依赖关系类型（首版范围裁定）
 
-| 依赖类型 | 说明 | 来源 |
-|---------|------|------|
-| **表级依赖** | 表 A 引用表 B | MetaEntityRelation |
-| **列级依赖** | 列 A 依赖列 B | SQL 解析 |
-| **血缘依赖** | 数据从 A 流向 B | MetaLineageEdge |
-| **指标依赖** | 指标 A 使用指标 B | MetaTableMeasure |
+| 依赖类型 | 说明 | 来源 | 首版范围 |
+|---------|------|------|---------|
+| **表/实体级依赖** | 实体 A 引用实体 B | MetaEntityRelation | **纳入**（D3） |
+| 列级依赖 | 列 A 依赖列 B | SQL 解析 | 不纳入（随 P3 SQL 视图解析） |
+| 血缘依赖 | 数据从 A 流向 B | MetaLineageEdge | 不纳入（随 P2-5 血缘采集） |
+| 指标依赖 | 指标 A 使用指标 B | MetaTableMeasure | 不纳入（随 P3 指标管理） |
 
-### 5.2 依赖图存储
+### 5.2 边连接的节点类型
 
-```python
-class DependencyGraph:
-    """依赖图"""
-    
-    def __init__(self):
-        self.parent_map = {}  # nodeId → [parentIds]
-        self.child_map = {}   # nodeId → [childIds]
-    
-    def add_edge(self, parent_id, child_id):
-        """添加依赖边"""
-        if parent_id not in self.child_map:
-            self.child_map[parent_id] = []
-        self.child_map[parent_id].append(child_id)
-        
-        if child_id not in self.parent_map:
-            self.parent_map[child_id] = []
-        self.parent_map[child_id].append(parent_id)
-    
-    def get_parents(self, node_id):
-        """获取父节点"""
-        return self.parent_map.get(node_id, [])
-    
-    def get_children(self, node_id):
-        """获取子节点"""
-        return self.child_map.get(node_id, [])
-    
-    def get_ancestors(self, node_id, depth=None):
-        """获取所有祖先节点"""
-        ancestors = set()
-        queue = [(node_id, 0)]
-        
-        while queue:
-            current, current_depth = queue.pop(0)
-            if depth and current_depth >= depth:
-                continue
-            
-            for parent in self.get_parents(current):
-                if parent not in ancestors:
-                    ancestors.add(parent)
-                    queue.append((parent, current_depth + 1))
-        
-        return ancestors
-    
-    def get_descendants(self, node_id, depth=None):
-        """获取所有后代节点"""
-        descendants = set()
-        queue = [(node_id, 0)]
-        
-        while queue:
-            current, current_depth = queue.pop(0)
-            if depth and current_depth >= depth:
-                continue
-            
-            for child in self.get_children(current):
-                if child not in descendants:
-                    descendants.add(child)
-                    queue.append((child, current_depth + 1))
-        
-        return descendants
-```
+首版 relation 推导的边为 **`entity` 节点 → `entity` 节点**（实体级依赖图）。
+
+> 设计 §3.4 示例中 table→source 的边（表依赖数据源）属于另一类，**首版不纳入**，避免节点层混淆。
+
+### 5.3 节点 uniqueId 与边 resolution 规格（D4）
+
+**uniqueId 中模块标识取值**：取 **`NopMetaModule.moduleId`**（业务标识，如 `nop/auth`，在唯一键 `UK_NOP_META_MODULE_ID_VER` 内），**不取** `moduleName`（显示名）也不取 seq PK `metaModuleId`。
+
+**slash→dot 归一化**：`moduleId` 含 `/`（如 `nop/auth`），代入点分隔 uniqueId 前须将 `/` 归一化为 `.`（→ `nop.auth`），使 uniqueId 按 `.` split 不碎。
+
+**节点 `<name>` 取值**：取实体 className 的**简单类名**（最后一段，如 `NopMetaUser`）。live 数据中 `NopMetaEntity.entityName` 列存储的是 full className（导入时由 `OrmModelImporter.buildEntity` 写入 `em.getName()`），直接拼入 uniqueId 会使 className 重复出现；因此 uniqueId 的 name 段取 `StringHelper.simpleClassName(className)`。
+
+**节点 uniqueId**：`entity.<moduleId 归一化>.<简单类名>`（首版仅 entity 节点）。
+- 例：moduleId=`nop/auth`、className=`io.nop.auth.dao.entity.NopMetaUser` → `entity.nop.auth.NopMetaUser`。
+
+**relation → 边 resolution**：`NopMetaEntityRelation.refEntityName` 存的是被引用实体的 **className**（如 `io.nop.metadata.dao.entity.NopMetaModule`）。resolution 算法：
+1. 用 `refEntityName`（className）全局反查 `NopMetaEntity`（`WHERE className = refEntityName`）；
+2. 取其所属模块（经 `metaEntity.ormModelId → NopMetaOrmModel.metaModuleId → NopMetaModule.moduleId`）；
+3. 归一化 moduleId + 简单类名 → 目标节点 uniqueId。
+
+> 注：`NopMetaEntity` 当前无 className 索引，首版全表反查可接受；性能不足后续加 IX。
+
+**跨模块/未导入引用（dangling）降级策略（不得静默丢弃）**：被引用实体无法解析到节点时，该边目标端记为 `unresolved:<className>` 显式保留在 parentMap/childMap 中，并在生成日志中记录 unresolved 计数；**不静默跳过、不丢边**。
+
+### 5.4 边方向语义
+
+对每条 MetaEntityRelation（实体 E 的关系，`refEntityName` 指向实体 F）：
+- E 依赖 F（E 引用 F）。
+- `parentMap[E_uniqueId]` 追加 `F_uniqueId`（E 的父/上游是 F）。
+- `childMap[F_uniqueId]` 追加 `E_uniqueId`（F 的子/下游是 E）。
+- 无关系的节点：parentMap/childMap 中显式置为空数组（不静默跳过）。
+
+### 5.5 依赖图查询
+
+依赖图存于 Manifest 的 parentMap/childMap JSON 中，消费方（依赖分析、影响分析）直接读 JSON：
+- `getParents(nodeId)` ← `parentMap[nodeId]`
+- `getChildren(nodeId)` ← `childMap[nodeId]`
+- `getAncestors(nodeId)` / `getDescendants(nodeId)` ← BFS 遍历 parentMap / childMap
+
+首版不实现图遍历 API（消费方按需自行遍历 JSON）；增量更新、循环依赖检测为 Non-Blocking Follow-up。
 
 ---
 
-## 六、与 metadata-survey 的对比
+## 六、与 dbt 的对比
 
 | 能力 | dbt | nop-metadata |
 |------|-----|-------------|
-| 元数据快照 | manifest.json | Manifest |
-| 依赖图 | parent_map/child_map | DependencyGraph |
-| Catalog 收集 | catalog.json | MetaCatalog |
-| 运行时元数据 | 从数据库收集 | MetaCatalog |
-| 变更检测 | schema 演进 | Catalog 版本对比 |
+| 元数据快照 | manifest.json | NopMetaManifest（每模块版本一条 JSON CLOB） |
+| 依赖图 | parent_map/child_map | content.parentMap/childMap（首版来自 MetaEntityRelation） |
+| Catalog 收集 | catalog.json | P2-4 MetaCatalog（独立 Phase） |
+| 运行时元数据 | 从数据库收集 | P2-4 |
+| 变更检测 | schema 演进 | 版本对比（full 定义已完整存储） |
 
-## Open Questions
+## Open Questions（首版已裁定）
 
-- [ ] Manifest 快照是否需要版本化？
-- [ ] Catalog 收集是否需要支持增量更新？
-- [ ] 依赖图是否需要支持循环依赖检测？
+- ~~Manifest 快照是否需要版本化？~~ → **已裁定**：`manifestVersion` 列记录同模块版本下的重新生成递增；模块版本层面的版本化对齐 MetaModule。
+- ~~快照粒度（全局 vs 每模块）？~~ → **已裁定 D1**：每模块版本一条。
+- ~~存储形态（JSON CLOB vs 多表）？~~ → **已裁定 D2**：JSON CLOB 单行。
+- ~~节点 id 与边 resolution 规格？~~ → **已裁定 D4**：见 §5.3。
+- Catalog 收集增量更新、依赖图循环依赖检测 → 仍为 Open，归属各自 Phase（P2-4 / 后续优化），不阻塞 Manifest 首版。

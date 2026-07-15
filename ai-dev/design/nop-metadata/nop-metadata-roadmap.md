@@ -1,6 +1,6 @@
 # nop-metadata Implementation Roadmap
 
-> Last Updated: 2026-07-16 (P1+ completed via plans 294+295; Phase 1 import engine via plan 292)
+> Last Updated: 2026-07-16 (P2-3 completed via plan 0225-3; P1+ completed via plans 294+295; Phase 1 import engine via plan 292)
 > Source: 设计体系 `ai-dev/design/nop-metadata/`（00-vision ~ 10-event-model）；`01-architecture-baseline.md` 为架构权威
 
 ## Purpose
@@ -92,7 +92,7 @@
 |--------|------|------|
 | P2-1 | **MetaDataSource CRUD + 连接验证**：数据源注册（JDBC/HTTP/REST/File），连接配置 JSON，状态管理 | done |
 | P2-2 | **外部表元数据同步**：从已注册数据源扫描表结构，写入 MetaTable(tableType=external) + 列结构 JSON（方案 A+A2，见 `01-architecture-baseline.md` §2.5.1） | done |
-| P2-3 | **MetaManifest 快照**（新实体）：导入时生成完整元数据快照（模块/模型/实体/依赖图），参考 dbt Manifest | todo |
+| P2-3 | **MetaManifest 快照**（新实体）：导入时生成完整元数据快照（模块/模型/实体/依赖图），参考 dbt Manifest | done |
 | P2-4 | **MetaCatalog 运行时收集**（新实体）：从数据库收集运行时统计（行数/大小/索引/分区），参考 dbt Catalog | todo |
 | P2-5 | **血缘采集**：MetaLineageEdge 填充机制（sql_parse / open_lineage / hook），向上追溯 + 向下追踪 + 影响分析 + 路径查找 | todo |
 | P2-6 | **质量规则执行引擎**：MetaQualityRule 执行（not_null/unique/range/regex/freshness/volume/custom_sql），写入 MetaQualityResult 时序结果 | todo |
@@ -146,7 +146,7 @@
 
 | 实体 | 目标 Phase | 设计文档 |
 |------|-----------|---------|
-| `MetaManifest` | P2 | `05-metadata-import.md` |
+| ~~`MetaManifest`~~ | ~~P2~~ | ~~`05-metadata-import.md`~~ **已建模（P2-3 done，plan 0225-3）** |
 | `MetaCatalog` | P2 | `05-metadata-import.md` |
 | `MetaProfilingRule` | P2 | `06-data-quality-extended.md` §3.1 |
 | `MetaProfilingResult` | P2 | `06-data-quality-extended.md` §3.2 |

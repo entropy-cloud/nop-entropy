@@ -129,6 +129,34 @@ MetaApiModel                    — API 模型版本（预留，结构同上）
 MetaWfModel                     — 工作流模型版本（预留，结构同上）
 ```
 
+### 2.3.1 Manifest 元数据快照（P2-3）
+
+参考 dbt Manifest 模式，为每个已导入模块版本生成自包含的元数据快照。
+
+```
+NopMetaManifest                  — 模块元数据快照（每模块版本一条）
+  ├── manifestId                 — PK（seq）
+  ├── metaModuleId               → NopMetaModule
+  ├── manifestVersion            — long，同模块版本下重新生成时递增
+  ├── generatedAt                — 生成时间
+  ├── nopMetadataVersion         — 生成时平台版本
+  ├── content                    — JSON CLOB（mediumtext + stdDomain json）
+  │                                正文体：metadata + nodes{entity} + sources + parentMap + childMap
+  └── 审计列
+```
+
+**存储形态（D2）**：单行 JSON CLOB（`content` 列 `domain="mediumtext"` + `stdDomain="json"`），与 dbt manifest.json 对齐，自包含、易导出/喂给 AI。**不得用 `json-4000`**。
+
+**快照粒度（D1）**：每模块版本一条（`metaModuleId` 关联），与模块版本管理粒度对齐，符合 §3.3 版本不变量。
+
+**依赖图（首版 D3/D4）**：
+- 来源仅限 MetaEntityRelation（表/实体级）。列级（SQL 解析，P3）、血缘（P2-5）、指标依赖不在首版。
+- 边为 entity→entity。
+- 节点 uniqueId：`entity.<moduleId 归一化(slash→dot)>.<简单类名>`，moduleId 取 NopMetaModule.moduleId（业务标识）。
+- relation→边 resolution：`refEntityName`(className) → 反查 NopMetaEntity(className) → 其模块 → uniqueId。跨模块/未导入引用记为 `unresolved:<className>`（不丢边、不静默跳过）。
+
+完整规格见 `05-metadata-import.md` §三/§五。生成入口为 `NopMetaModule__generateManifest(metaModuleId)` GraphQL mutation；moduleId 不存在快速失败。
+
 ### 2.4 ORM 模型内容（来自 `model/*.orm.xml`）
 
 所有子实体带 `isDelta` 标记（true=本模块声明的 delta, false=合并后的 full）：
