@@ -41,12 +41,12 @@
 
 ## 成功标准
 
-1. `nop-report` 可以完全移除 `NopReportDataset`/`NopReportSubDataset`/`NopReportDatasetRef`，报表只存 `tableId`
-2. 用户可以从 UI 上浏览任意模块的 ORM 实体、字段、关系、字典——不需要打开 XML 文件
-3. 用户可以基于 MetaEntity（ORM）或原生 SQL 创建视图，定义指标和维度，视图可以跨数据源
-4. 模块版本的变更历史可查询、可对比
-5. 新模块接入只需注册 `orm.xml` 路径，不需要写代码
-6. MySQL/PostgreSQL/ClickHouse 等数据源注册后，其表可自动被发现和查询
+1. 用户可以从 UI 上浏览任意模块的 ORM 实体、字段、关系、字典——不需要打开 XML 文件
+2. 用户可以基于 MetaEntity（ORM）或原生 SQL 创建视图，定义指标和维度，视图可以跨数据源
+3. 模块版本的变更历史可查询、可对比
+4. 新模块接入只需注册 `orm.xml` 路径，不需要写代码
+5. MySQL/PostgreSQL/ClickHouse 等数据源注册后，其表可自动被发现和查询
+6. MetaModule 包含 Maven 坐标和 Git 信息，支持源码追溯
 
 ## Non-goals
 

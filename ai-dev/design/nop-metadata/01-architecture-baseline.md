@@ -10,13 +10,14 @@
 1. **nop-metadata 是 nop-entropy 的新模块**，所有应用共享一个元数据目录。
 2. **元数据来源**：Nop 平台模块的 `model/*.orm.xml`（导入），以及外部系统的表（扫描注册）。
 3. **按模型类型分表**：MetaOrmModel / MetaApiModel（预留）/ MetaWfModel（预留），不共用一张表。
-4. **每个 MetaOrmModel 就是一个版本**（long PK），发布后版本号不可变。`status`（drafting | released | deprecated）管理生命周期，无 Release 表。
-5. **模型通过 `x:extends` 继承 base 模型**，自身只写 delta。每次导入同时存储 **delta 定义**（本模块声明的内容）和 **full 定义**（base + delta 合并后）。
+4. **版本管理的基本粒度是模块**：每个 MetaModule 就是一个版本（long PK），发布后版本号不可变。`status`（drafting | released | deprecated）管理生命周期，无 Release 表。版本对齐 Maven 打包/发布粒度。MetaModule 包含 Maven 坐标和 Git 信息，支持源码追溯。
+5. **模型通过 `x:extends` 继承 base 模块**，自身只写 delta。每次导入同时存储 **delta 定义**（本模块声明的内容）和 **full 定义**（base + delta 合并后）。
 6. **ORM 模型内容拆解为结构化实体**（MetaEntity/MetaEntityField/MetaEntityRelation/MetaDomain/MetaDict），字段级搜索和引用追踪。拆解时 `isDelta` 区分 delta 和 full。
 7. **MetaOrmModel 保留 `sourceContent`**（原始 XML），用于重新解析或逐字比对。
 8. **MetaTable 是面向用户的统一逻辑表**，可以包装 ORM 实体或 SQL 定义。指标（MetaTableMeasure）和跨表关联（MetaTableJoin）在 MetaTable 上叠加，不存到 MetaEntity。
 9. **所有查询执行走现有 ORM 层** —— ORM 本身就是统一的数据库映射引擎，不引入额外 Driver/QuerySpace 抽象。
-10. **废弃 `NopReportDataset`/`NopReportSubDataset`/`NopReportDatasetRef`**，报表只存 `tableId`。
+10. **保留 `NopReportDataset`**，它直接运行在 EQL 上，是另外一种数据获取记录。后续再考虑 ReportDataSet 的定位，当前先与 Meta 体系断开。
+11. **Domain 定义归属模块**，支持通用域（isGlobal=true）的引用和拷贝机制。
 
 ---
 
@@ -24,33 +25,86 @@
 
 ### 2.1 模块
 
+模块是版本管理的基本粒度，对齐 Maven 打包/发布粒度。
+
 ```
-MetaModule                      — 模块（如 nop-auth）
-  ├── moduleId                  — "nop/auth"
+MetaModule                      — 模块（版本管理基本粒度）
+  ├── moduleId                  — "nop/auth"（唯一标识）
   ├── moduleName                — "nop-auth"
-  └── displayName
+  ├── displayName               — "Nop 认证模块"
+  ├── version                   — long，模块版本号（发布后不可变）
+  ├── baseModuleId              → MetaModule（Delta 继承的 base 模块版本，null 表示无继承）
+  ├── status                    — "drafting" | "released" | "deprecated"
+  ├── importedAt                — 导入时间
+  │
+  ├── mavenGroupId              — Maven groupId（如 "io.nop"）
+  ├── mavenArtifactId           — Maven artifactId（如 "nop-auth"）
+  ├── mavenVersion              — Maven 版本号（如 "1.2.3"，与内部 version 对应）
+  │
+  ├── gitRepoPath               — Git 仓库路径（如 "/Users/abc/sources/nop-entropy"）
+  ├── gitBranch                 — Git 分支（如 "main", "feature/xxx"）
+  ├── gitCommitId               — Git commit hash（如 "abc1234"）
+  │
+  └── extConfig                 — 扩展属性 JSON
 ```
 
-### 2.2 模型版本
+**Maven 映射**:
+| Maven 概念 | nop-metadata 字段 |
+|-----------|------------------|
+| groupId | mavenGroupId |
+| artifactId | mavenArtifactId |
+| version | mavenVersion |
+| packaging | 由模型类型决定（ORM = Java POJO） |
 
-每个模型类型独立一张表，不共用。MetaOrmModel 每条记录就是一个版本。
+**Git 映射**:
+| Git 概念 | nop-metadata 字段 |
+|---------|------------------|
+| 仓库路径 | gitRepoPath |
+| 分支 | gitBranch |
+| 提交 | gitCommitId |
+
+状态流转：
+```
+drafting → released → deprecated
+```
+
+### 2.2 数据源
+
+每个数据源对应一个 `querySpace` 名称，指向具体的物理数据库或连接。
 
 ```
-MetaOrmModel                    — ORM 模型版本（发布后 version 不可变）
+MetaDataSource                    — 数据源定义（全局，吸收 NopReportDatasource）
+  ├── querySpace                 — "default" | "report" | "log" 等（全局唯一）
+  ├── name / displayName
+  ├── datasourceType             — "jdbc" | "http" | "rest" | "file" ...（不限于数据库）
+  ├── connectionConfig           — JSON 连接配置（JDBC 连接串、HTTP URL 等，按 type 解释）
+  └── status                     — ACTIVE | DISABLED
+```
+
+说明：
+- **全局实体**，不属于任何模块。数据源是跨模块共享的基础设施。
+- 每个 `querySpace` 对应一个数据源，全局唯一。ORM 实体通过自身 `querySpace` 字段引用，无需额外抽象层。
+- 纯元数据用途：描述数据源信息，不负责运行时查询路由（ORM 已承担此职责）。
+- **吸收 `NopReportDatasource`**：报表模块不再维护独立的数据源表，统一使用 `MetaDataSource`。原 `NopReportDatasourceAuth` 的角色级访问控制由 `nop-auth` 承担。
+
+### 2.3 模型版本
+
+每个模型类型独立一张表，不共用。MetaOrmModel 不再有 version 和 status 字段——这些在 MetaModule 上。
+
+```
+MetaOrmModel                    — ORM 模型（属于某个模块版本）
+  ├── modelId                   — PK
   ├── moduleId                  → MetaModule
-  ├── modelName                 — "nop-auth"（同一模块同一类型下分组 key）
-  ├── version                   — long，发布后不可变
+  ├── modelName                 — "nop-auth"（同一模块内分组 key）
   ├── isDelta                   — true: 本模块声明的 delta, false: 合并后的 full
-  ├── baseModelId               → MetaOrmModel（isDelta=true 时指向 base 版本的 full 记录）
   ├── sourceContent             — CLOB，orm.xml 原文
-  ├── status                    — drafting | released | deprecated
   └── importedAt
 
 MetaApiModel                    — API 模型版本（预留，结构同上）
 MetaWfModel                     — 工作流模型版本（预留，结构同上）
 ```
 
-### 2.3 ORM 模型内容（来自 `model/*.orm.xml`）
+### 2.4 ORM 模型内容（来自 `model/*.orm.xml`）
 
 所有子实体带 `isDelta` 标记（true=本模块声明的 delta, false=合并后的 full）：
 
@@ -106,7 +160,14 @@ MetaEntityIndex                 — 索引
 MetaDomain                      — 域定义
   ├── modelId                   → MetaOrmModel
   ├── isDelta
-  ├── domainName / stdDomain / stdDataType / stdSqlType / precision / scale
+  ├── domainName / displayName / description
+  ├── stdDomain / stdDataType / stdSqlType / precision / scale
+  ├── validationPattern         — 校验正则（可选）
+  ├── defaultValue              — 默认值表达式（可选）
+  ├── isGlobal                  — 是否为通用域（可被其他模块引用）
+  ├── sourceModuleId            → MetaModule（拷贝时追溯来源）
+  ├── tagSet
+  └── extConfig
 
 MetaDict                        — 字典
   ├── modelId                   → MetaOrmModel
@@ -120,7 +181,7 @@ MetaDict                        — 字典
        └── deprecated / internal
 ```
 
-### 2.4 逻辑表（BI 语义层）
+### 2.5 逻辑表（BI 语义层）
 
 MetaTable 是对用户暴露的统一概念——用户看到的"可以查的表"，有两种来源：
 
@@ -162,7 +223,7 @@ MetaTableJoin                   — 表关联
 - **MetaTableMeasure** 的 `entityFieldId` 指向 MetaEntityField（entity 类型）或解析 SQL 得到的字段（sql 类型，用字符串名引用）。
 - **MetaTableJoin** 的 `leftEntityId/rightEntityId` 指向 MetaEntity，`leftField/rightField` 指向字段名。关联条件是用户按需定义的，不依赖 ORM 模型已有的 MetaEntityRelation。
 
-### 2.5 数据血缘
+### 2.6 数据血缘
 
 血缘描述数据从哪里来、经过什么处理、流向哪里。nop-metadata 支持表级和列级血缘。
 
@@ -194,7 +255,7 @@ MetaPipeline                     — 数据处理管道
 - **影响分析**: 列级变更影响范围（哪些下游列会受影响）
 - **路径查找**: 两表之间的血缘路径
 
-### 2.6 数据质量
+### 2.7 数据质量
 
 数据质量定义在字段和表级别，描述数据的约束规则和质量期望。
 
@@ -243,18 +304,22 @@ MetaQualityResult                — 质量执行结果（时序数据）
 
 ### 3.1 Delta 链
 
+版本管理的基本粒度是模块，不是单个模型。Delta 继承发生在模块之间。
+
 ```
-nop-auth v2 (full)             baseModelId = null
-nop-app-mall v2 (delta)        baseModelId = nop-auth v2 (full)
-nop-app-mall v2 (full)         baseModelId = null
+nop-auth v1 (released)             baseModuleId = null
+nop-auth v2 (drafting)             baseModuleId = null (新主版本)
+
+nop-app-mall v1 (released)         baseModuleId = nop-auth v1
+nop-app-mall v2 (drafting)         baseModuleId = nop-auth v2
 ```
 
 导入 nop-app-mall v2 时：
 
 ```
 1. 解析原始 orm.xml（不展开 x:extends）→ 写入 isDelta=true
-2. 定位 baseModelId = nop-auth v2 (查找 full 记录)
-3. 加载 base 的 full 定义
+2. 定位 baseModuleId = nop-auth v2（查找 released 版本的 MetaModule）
+3. 加载 base 模块下的 full 定义
 4. 应用 x:extends 合并 → 写入 isDelta=false (full)
 ```
 
@@ -262,15 +327,18 @@ nop-app-mall v2 (full)         baseModelId = null
 
 | 视图 | 查询 | 用途 |
 |------|------|------|
-| Delta 定义 | `isDelta=true AND modelId=?` | 本模块自己声明了什么 |
-| Full 定义 | `isDelta=false AND modelId=?` | 合并后完整模型 |
-| Base 对比 | 递归 baseModelId 的 full | 和 base 比多了什么 |
+| 模块当前版本 | `moduleId=? AND status='released'` | 获取最新已发布版本 |
+| Delta 定义 | `moduleId=? AND version=? AND isDelta=true` | 本模块自己声明了什么 |
+| Full 定义 | `moduleId=? AND version=? AND isDelta=false` | 合并后完整模型 |
+| 版本历史 | `moduleId=? ORDER BY version DESC` | 版本演进时间线 |
+| 版本对比 | 两个版本的 full 定义 diff | 变更影响分析 |
 
 ### 3.3 版本不变量
 
 - 每个版本的 full 定义完整存储，不动态合并。base 版本删除后 full 仍可查。
 - 外部系统的表不参与版本管理（周期同步，没有版本概念）。
-- 版本号发布后不可变（无法修改或删除 released 记录）。
+- 模块版本号发布后不可变（无法修改或删除 released 记录）。
+- 版本管理粒度对齐 Maven 打包/发布（一个模块版本 = 一次发布）。
 
 ---
 
@@ -280,8 +348,8 @@ nop-app-mall v2 (full)         baseModelId = null
 
 ```
 orm.xml
-  ├── 解析一次（不展开 x:extends）→ 写入 isDelta=true
-  └── 解析一次（展开 x:extends）→ 写入 isDelta=false
+  ├── 解析一次（不展开 x:extends）→ 写入 MetaOrmModel(isDelta=true)
+  └── 解析一次（展开 x:extends）→ 写入 MetaOrmModel(isDelta=false)
 ```
 
 导入分两次解析，利用现有 `DslModelParser`。同时为每个 MetaEntity 自动创建对应的 MetaTable（tableType=entity）。
@@ -296,7 +364,7 @@ orm.xml
 
 ### 4.3 模块发现
 
-注册式（配置 `beans.xml`）或自动扫描 `_module` 文件。
+注册式（配置 `beans.xml`）或自动扫描 `_module` 文件。模块版本管理对齐 Maven 打包/发布粒度。
 
 ---
 
@@ -306,8 +374,21 @@ orm.xml
 
 ```
 改造前: NopReportDefinition → datasetRefs → NopReportDataset → subDatasets
+        NopReportDatasource → datasourceAuths
 改造后: NopReportDefinition → tableId → MetaTable
+        MetaDataSource（吸收 NopReportDatasource）
 ```
+
+废弃清单：
+
+| 废弃实体 | 替代 | 说明 |
+|---------|------|------|
+| `NopReportDataset` | `MetaTable` | 数据集 → 逻辑表 |
+| `NopReportSubDataset` | `MetaTableJoin` | 子数据集关联 → 表关联 |
+| `NopReportDatasetRef` | `NopReportDefinition.tableId` | 直接引用 |
+| `NopReportDatasetAuth` | `nop-auth` | 角色级访问控制 |
+| `NopReportDatasource` | `MetaDataSource` | 数据源定义统一管理 |
+| `NopReportDatasourceAuth` | `nop-auth` | 角色级访问控制 |
 
 ### 5.2 nop-dyn
 
@@ -336,17 +417,20 @@ nop-metadata-web           — nop-metadata-service
 | 方案 | 理由 |
 |------|------|
 | MetaTable 冗余存储 entity 字段 | entity 字段已存在于 MetaEntityField，版本变化时还会不一致。动态拉取更简单 |
-| MetaDataSource + QuerySpace + Driver | ORM 本身就是统一数据库映射引擎，不需要另加一层 |
+| QuerySpace + Driver 运行时抽象 | ORM 本身就是统一数据库映射引擎，实体 querySpace 已承担路由，不需要另加一层 |
 | 仅存 delta 不存 full | base 版本删除后 full 不可查 |
 | 版本用 Git tag 驱动 | 耦合 Git |
 | 按模型类型共用一张表 | 各自子实体结构不同，分开更清晰 |
 | 单独的 MetaOrmModelRelease 实体 | 模型记录数有限，`status` 字段足够管理生命周期 |
+| 版本放在 MetaOrmModel 上 | Maven 按模块打包/发布，一个模块只有一个版本 |
+| 废弃 NopReportDataset | NopReportDataset 直接运行在 EQL 上，是另外一种数据获取记录，保留 |
 
 ---
 
 ## 八、待定问题
 
 - `isDelta=true/false` 用同一张表（列区分）还是两张表？
-- baseModelId 链的深度限制？深层 Delta（A→B→C→D）的 diff 展示方式？
 - SQL 视图字段解析：走 `EXPLAIN` 还是 `SELECT ... LIMIT 0` 还是用户手动录入？
 - MetaTableJoin 跨表关联时，左右表所属数据源不同（例如 ORM 的 MySQL 表和 SQL 定义的 ClickHouse 表），查询执行如何路由？
+- 通用 Domain 的来源：是单独维护还是从现有 ORM 模型提取？
+- 数据契约的 SLA 定义格式：JSON Schema vs 自定义 DSL？
