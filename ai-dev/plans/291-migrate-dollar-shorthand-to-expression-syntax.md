@@ -1,7 +1,7 @@
 # 291 迁移 nop 平台 $xxx 简写为 ${xxx} 表达式语法
 
-> Plan Status: active
-> Last Reviewed: 2026-07-15
+> Plan Status: completed
+> Last Reviewed: 2026-07-16
 > Source: `ai-dev/analysis/2026-07/2026-07-15-amis-dollar-shorthand-vs-expression-syntax.md`
 > Related: `ai-dev/plans/290-flux-web-xlib-attribute-mapping-fixes.md`
 
@@ -182,7 +182,7 @@ Targets: `docs-for-ai/02-core-guides/amis-rendering.md`
 - [x] `./mvnw test -pl nop-frontend-support/nop-web -am` 通过（39 tests, 0 failures）
 - [x] 受影响业务模块 WebPagesTest 通过（auth/wf/rule/dyn 通过；job/code/sys 有 pre-existing 依赖缺失）
 - [x] nop-xlang TestDeltaMerger 通过
-- [ ] 独立子 agent closure-audit 已完成并记录证据
+- [x] 独立子 agent closure-audit 已完成并记录证据
 
 ## Deferred But Adjudicated
 
@@ -191,3 +191,59 @@ Targets: `docs-for-ai/02-core-guides/amis-rendering.md`
 - Classification: `watch-only residual`
 - Why Not Blocking Closure: `nop-auth/test.json` 是手工测试用的 AMIS 页面 fixture，不是自动生成的 view 模型，不影响平台行为。可在后续清理中处理。
 - Successor Required: `no`
+- Note: Phase 4 中 `[x] nop-auth test.json` 一项的实际工作量已裁定为本 deferred 项（文件仍保留 `$xxx`）。该 checkbox 标记的是"裁定完成"而非"字面迁移完成"。
+
+## Closure
+
+Status Note: 所有 5 个 Phase 的 Exit Criteria 与 6 条 Closure Gates 均已通过独立子 agent closure-audit 验证。框架 xlib 模板、业务 view.xml/page.yaml、测试文件中的 AMIS `$xxx` 简写已迁移为 `${xxx}` 表达式语法（XPL 上下文使用 `${'$'}{xxx}` 转义）。`docs-for-ai/02-core-guides/amis-rendering.md` 已标注 `$xxx` 废弃并文档化转义规则。唯一残留 `nop-auth/test.json` 已裁定为 `watch-only residual`，不影响平台行为。所有相关测试套件通过，anti-hollow 扫描清洁。
+Completed: 2026-07-16
+
+Closure Audit Evidence:
+
+- Reviewer / Agent: 独立 closure-audit 子 agent（opencode / glm-5.2），fresh session（非实现者）
+- Audit Session: task `audit-291`
+- Audit Date: 2026-07-16
+- Verdict: READY TO CLOSE
+
+Exit Criteria — Per Phase:
+
+- Phase 1 (framework): PASS — `control.xlib:695`、`flux-control.xlib:660`、`web/grid_crud.xpl:75`、`flux-web/grid_crud.xpl:52` 均为转义形式；残留扫描仅余 XLang 方法调用（`$config`/`$toCsvSet`/`$encodeURL`/`$toInt`，out of scope）
+- Phase 2 (view.xml): PASS — 手写源文件 0 FAIL 命中；82 处 `_gen/_*.view.xml` 命中为生成器 codegen URL 约定（`?id=$id`），属生成文件（AGENTS.md Hard Stop），迁移提交 `de51b5b8e` 未触碰任何 `_gen` 文件，out of scope
+- Phase 3 (page.yaml): PASS — `rg -g '*.page.yaml'` 在 `nop-auth/` 下 0 命中
+- Phase 4 (tests): PASS — nop-web/nop-xlang/nop-auth-web fixture 已迁移；`nop-auth/test.json` 残留 = deferred `watch-only residual`
+- Phase 5 (docs): PASS — `docs-for-ai/02-core-guides/amis-rendering.md:67-114` 文档化 `$xxx` 废弃、`${xxx}` 推荐、XPL `${'$'}{xxx}` 转义规则、`$$` anti-pattern
+
+Closure Gates — Per Gate:
+
+1. [PASS] 全仓库 AMIS 上下文无 `$xxx`（仅余 out-of-scope 的 `_gen` codegen URL + deferred `test.json` + XLang 方法/i18n key）
+2. [PASS] `docs-for-ai` 标注废弃 + XPL 转义规则（`amis-rendering.md:67-114`）
+3. [PASS] `nop-web` 39 tests, 0 failures（surefire: 1+3+7+8+11+9 = 39）
+4. [PASS] 业务模块 WebPagesTest：auth/wf/rule/dyn 均通过（各 1 test, 0 failures）；job/code/sys 为 pre-existing 依赖缺失
+5. [PASS] `nop-xlang` TestDeltaMerger：15 tests, 0 failures
+6. [PASS] 独立子 agent closure-audit = 本 audit
+
+Tool Exit Codes:
+
+- `node ai-dev/tools/check-plan-checklist.mjs ai-dev/plans/291-...md --strict`: exit 0（1 plan passed）
+- `node ai-dev/tools/check-doc-links.mjs --strict`: exit 0（1443 files, 11578 refs, 0 errors — 优于 plan 允许的 2 个 pre-existing）
+- `node ai-dev/tools/scan-hollow-implementations.mjs --module nop-web --severity high`: exit 0（0 findings）
+
+Anti-Hollow Check:
+
+- Result: CLEAN（0 critical/high/medium/low）。本次为文本/配置迁移，未引入新代码，无空壳实现风险。
+
+Test Results:
+
+- `./mvnw test -pl nop-frontend-support/nop-web -am -q`: PASS（39 tests, 0 failures, 0 errors）
+- `./mvnw test -pl nop-xlang -am -q -Dtest=TestDeltaMerger -Dsurefire.failIfNoSpecifiedTests=false`: PASS（15 tests, 0 failures）
+- `./mvnw test -pl nop-auth/nop-auth-web -am -q`: PASS（10 tests, 0 failures）
+- 附加：NopAuthWebPagesTest / NopWfWebPagesTest / NopRuleWebPagesTest / NopDynWebPagesTest 各 1 test 通过
+
+Deferred Item Check:
+
+- `nop-auth/test.json`: 确认为 `watch-only residual`，non-blocking，已附 `Why Not Blocking Closure` 理由，非隐藏 live defect。Successor Required: no。
+
+Follow-up:
+
+- 可选后续清理（non-blocking）：迁移 `nop-auth/test.json` 的 25 处 `$xxx`；可选评估 codegen `_gen` API-URL `$id` 约定是否需要调整。
+- 无剩余 plan-owned confirmed live defect。
