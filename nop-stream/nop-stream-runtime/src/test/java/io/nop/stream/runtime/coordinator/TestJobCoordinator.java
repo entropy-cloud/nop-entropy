@@ -95,6 +95,9 @@ class TestJobCoordinator {
                 JOB_ID, COORDINATOR_ID, deploymentPlan,
                 clusterRegistry, checkpointCoordinator,
                 taskRpcServices);
+
+        // Use a short termination timeout so tests don't block 60s on incomplete checkpoints
+        coordinator.setTerminationCheckpointTimeoutMs(500L);
     }
 
     @AfterEach
@@ -332,8 +335,8 @@ class TestJobCoordinator {
         // The mock RPC service should have received at least one barrier
         // (from assignTasks via triggerCheckpoint or from the DRAIN termination)
         // For DRAIN, the barrier type should be COMPLETED_POINT_TYPE
-        // Since our mock doesn't complete the future, the DRAIN will timeout after 60s,
-        // but it should still have sent the barrier.
+        // Since our mock doesn't complete the future, the DRAIN will timeout
+        // (configured to 500ms in setUp), but it should still have sent the barrier.
         // Let's verify the last barrier was sent (it may be null if terminateDrain
         // threw internally due to timeout - that's fine, the important thing is no crash)
     }

@@ -77,6 +77,7 @@ public class JobCoordinator implements IStreamCoordinatorRpcService {
 
     private static final long DEFAULT_LEASE_CHECK_INTERVAL_MS = 5000L;
     private static final long DEFAULT_LEASE_EXPIRE_THRESHOLD_MS = 30000L;
+    private static final long DEFAULT_TERMINATION_CHECKPOINT_TIMEOUT_MS = 60_000L;
 
     private final String jobId;
     private final String coordinatorId;
@@ -99,6 +100,9 @@ public class JobCoordinator implements IStreamCoordinatorRpcService {
 
     /** Whether the coordinator is running */
     private volatile boolean running;
+
+    /** Timeout for waiting on final checkpoint/savepoint during termination */
+    private volatile long terminationCheckpointTimeoutMs = DEFAULT_TERMINATION_CHECKPOINT_TIMEOUT_MS;
 
     /** AR-6: Guard against double initialization */
     private final AtomicBoolean initialized = new AtomicBoolean(false);
@@ -510,7 +514,7 @@ public class JobCoordinator implements IStreamCoordinatorRpcService {
                 sendBarrierToAllTaskManagers(barrier);
 
                 finalCheckpoint.getCompletableFuture()
-                        .get(60, TimeUnit.SECONDS);
+                        .get(terminationCheckpointTimeoutMs, TimeUnit.MILLISECONDS);
                 LOG.info("DRAIN: final checkpoint {} completed for job {}",
                         finalCheckpoint.getCheckpointId(), jobId);
             }
@@ -533,7 +537,7 @@ public class JobCoordinator implements IStreamCoordinatorRpcService {
                 sendBarrierToAllTaskManagers(barrier);
 
                 savepoint.getCompletableFuture()
-                        .get(60, TimeUnit.SECONDS);
+                        .get(terminationCheckpointTimeoutMs, TimeUnit.MILLISECONDS);
                 LOG.info("SUSPEND: savepoint {} completed for job {}",
                         savepoint.getCheckpointId(), jobId);
             }
@@ -556,7 +560,7 @@ public class JobCoordinator implements IStreamCoordinatorRpcService {
                 sendBarrierToAllTaskManagers(barrier);
 
                 savepoint.getCompletableFuture()
-                        .get(60, TimeUnit.SECONDS);
+                        .get(terminationCheckpointTimeoutMs, TimeUnit.MILLISECONDS);
                 LOG.info("EXPORT_SAVEPOINT: savepoint {} exported for job {}. Job continues running.",
                         savepoint.getCheckpointId(), jobId);
             }
@@ -586,6 +590,10 @@ public class JobCoordinator implements IStreamCoordinatorRpcService {
 
     public boolean isRunning() {
         return running;
+    }
+
+    public void setTerminationCheckpointTimeoutMs(long timeoutMs) {
+        this.terminationCheckpointTimeoutMs = timeoutMs;
     }
 
     private void sendBarrierToAllTaskManagers(CheckpointBarrier barrier) {
