@@ -7,4 +7,9 @@
     <import resource="_dao.beans.xml"/>
 
     <import resource="_service.beans.xml"/>
+
+    <!-- 外部数据源按需建连服务：callback 式 withConnection / testConnect。
+         纯元数据用途，不注册连接池到 ORM querySpace 路由（架构基线 §2.2）。-->
+    <bean id="io.nop.metadata.service.connection.MetaDataSourceConnectionService"
+          class="io.nop.metadata.service.connection.MetaDataSourceConnectionService" ioc:default="true"/>
 </beans>
