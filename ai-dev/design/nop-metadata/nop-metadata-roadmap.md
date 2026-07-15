@@ -1,6 +1,6 @@
 # nop-metadata Implementation Roadmap
 
-> Last Updated: 2026-07-16 (P3-1 + P3-6 completed via plan 0700-1; P2-7 completed via plan 0530-2; P2-5 completed via plan 0420-2; P2-4 completed via plan 0420-1; P2-3 completed via plan 0225-3; P1+ completed via plans 294+295; Phase 1 import engine via plan 292)
+> Last Updated: 2026-07-16 (P3-2 + P3-3 + P3-4 + P3-5 completed via plan 0700-2; P3-1 + P3-6 completed via plan 0700-1; P2-7 completed via plan 0530-2; P2-5 completed via plan 0420-2; P2-4 completed via plan 0420-1; P2-3 completed via plan 0225-3; P1+ completed via plans 294+295; Phase 1 import engine via plan 292)
 > Source: 设计体系 `ai-dev/design/nop-metadata/`（00-vision ~ 10-event-model）；`01-architecture-baseline.md` 为架构权威
 
 ## Purpose
@@ -19,7 +19,7 @@
 - P1. Phase 1 — ORM 模型导入引擎: `done`
 - P1+. Phase 1 补完 — Delta 展开 + 版本发布 + 模块发现 + UniqueKey/Index 导入: `done`
 - P2. Phase 2 — 外部数据源注册 + 外部表同步 + 血缘采集 + 质量执行: `todo`
-- P3. Phase 3 — BI 语义层（视图定义 + 指标/维度管理）: `todo`
+- P3. Phase 3 — BI 语义层（视图定义 + 指标/维度管理）: `done`
 - P4. Phase 4 — 联邦查询执行（基于 ORM querySpace）: `todo`
 - P5. Phase 5 — nop-report 迁移到 tableId 模式: `todo`
 
@@ -105,10 +105,10 @@
 | 工作项 | 描述 | 状态 |
 |--------|------|------|
 | P3-1 | **SQL 视图创建**：用户输入 SQL，创建 MetaTable(tableType=sql)，运行时解析 SELECT 子句获取字段列表 | done |
-| P3-2 | **MetaTableMeasure 管理**：指标定义（aggFunc: sum/count/avg/min/max/countDistinct），format + currencyUnit | todo |
-| P3-3 | **MetaTableDimension 管理**：维度定义，关联 MetaEntityField | todo |
-| P3-4 | **MetaTableFilter 管理**：过滤条件定义 | todo |
-| P3-5 | **MetaTableJoin 管理**：跨表关联（inner/left/right），leftField/rightField 关联条件 | todo |
+| P3-2 | **MetaTableMeasure 管理**：指标定义（aggFunc: sum/count/avg/min/max/countDistinct），format + currencyUnit | done |
+| P3-3 | **MetaTableDimension 管理**：维度定义，关联 MetaEntityField | done |
+| P3-4 | **MetaTableFilter 管理**：过滤条件定义 | done |
+| P3-5 | **MetaTableJoin 管理**：跨表关联（inner/left/right），leftField/rightField 关联条件 | done |
 | P3-6 | **视图字段解析方案确定**：待定问题——EXPLAIN vs SELECT ... LIMIT 0 vs 手动录入 | done |
 
 > 设计参考：`01-architecture-baseline.md` §2.5 逻辑表

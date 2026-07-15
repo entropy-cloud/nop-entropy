@@ -291,26 +291,80 @@ MetaTable                       — 逻辑表
 MetaTableMeasure                — 表指标
   ├── tableId                   → MetaTable
   ├── measureName / displayName
-  ├── entityFieldId             → MetaEntityField（引用的实体字段）
+  ├── entityFieldId             → 字段引用（语义按 tableType 重载，见 §2.5.2 D2）
   ├── aggFunc                   — "sum" | "count" | "avg" | "min" | "max" | "countDistinct"
+  ├── expression                — 表达式指标（entityFieldId 为 null 时使用，首版不校验内容）
   ├── format                    — "#,##0.00"
   └── currencyUnit              — "CNY" | "USD"
+
+MetaTableDimension              — 表维度
+  ├── tableId                   → MetaTable
+  ├── dimensionName / displayName
+  ├── entityFieldId             → 字段引用（语义按 tableType 重载，见 §2.5.2 D2）
+  ├── dimensionType             — "categorical" | "temporal" | "geographical"（dict `meta/dimension-type`）
+  ├── granularity               — 时间粒度（仅 dimensionType=temporal 生效；自由 string，文档约定值见 §2.5.2 D1）
+  ├── format                    — 显示格式
+  └── sortOrder                 — 排序
+
+MetaTableFilter                 — 表过滤器
+  ├── tableId                   → MetaTable
+  ├── filterName / displayName
+  ├── definition                — 条件树 JSON（对齐平台 TreeBean filter 树，见 §2.5.2 D1；列 domain `json-4000`）
+  ├── isDefault                 — 是否默认过滤器（每表至多一个，唯一性首版强制，见 §2.5.2 D1）
+  └── description
 
 MetaTableJoin                   — 表关联
   ├── tableId                   → MetaTable
   ├── joinType                  — "inner" | "left" | "right"
-  ├── leftEntityId / rightEntityId → MetaEntity
-  ├── leftField / rightField    — 关联字段
+  ├── leftEntityId / rightEntityId → MetaEntity（首版仅 entity 实体关联，见 §2.5.2 D2）
+  ├── leftField / rightField    — 关联字段（字段名，属于对应实体的可用字段集合）
   └── alias                     — 右表别名
 ```
 
 说明：
 
 - **tableType=entity 的字段**：不单独存储 MetaTableField。MetaTable 通过引用的 MetaEntity（baseEntityId）和 MetaTableJoin 推断可用字段，字段定义从 MetaEntityField 动态拉取。
-- **tableType=sql 的字段**：由 `sourceSql` 在运行时解析 SELECT 子句得到，不单独存储。
+- **tableType=sql 的字段**：由 `sourceSql` 在运行时解析 SELECT 子句得到，不单独存储（解析方案见 §4.2.1）。
 - **tableType=external 的字段**：扫描结果（列名/类型/可空/注释/序号）序列化为 JSON 数组存入 `buildSql`（见 §2.5.1）。
-- **MetaTableMeasure** 的 `entityFieldId` 指向 MetaEntityField（entity 类型）或解析 SQL 得到的字段（sql 类型，用字符串名引用）。
-- **MetaTableJoin** 的 `leftEntityId/rightEntityId` 指向 MetaEntity，`leftField/rightField` 指向字段名。关联条件是用户按需定义的，不依赖 ORM 模型已有的 MetaEntityRelation。
+- **字段引用的统一解析入口**：`NopMetaTable__resolveTableFields(metaTableId)` 按 tableType 分派返回可用字段列表（entity/external/sql），是 Measure/Dimension/Join 字段引用校验的基础（见 §2.5.2 D2）。
+- **MetaTableMeasure** 的 `entityFieldId` 字段引用语义按 tableType 重载（见 §2.5.2 D2）。`expression` 型指标（`entityFieldId` 为 null）跳过字段引用校验，`expression` 内容首版不校验（Non-Goal）。
+- **MetaTableDimension** 的 `dimensionType` 区分普通/时间/地理维度；`granularity`（时间粒度）仅在 `dimensionType=temporal` 时生效，为自由 string（文档约定值，无 dict 约束）。
+- **MetaTableFilter** 的 `definition` 为对齐平台 TreeBean filter 树的条件结构 JSON（见 §2.5.2 D1）。
+- **MetaTableJoin** 的 `leftEntityId/rightEntityId` 指向 MetaEntity，`leftField/rightField` 指向字段名。关联条件是用户按需定义的，不依赖 ORM 模型已有的 MetaEntityRelation。首版仅校验 entity 实体关联（sql/external 表 join 语义为 follow-up）。
+
+#### 2.5.2 BI 语义层校验与字段解析（P3-2~P3-5 裁定）
+
+本节落地 plan 0700-2 的设计决策 D1（Dimension/Filter 语义规格）+ D2（字段引用校验范围/字段集合/存储方式）。
+
+**D1 — Dimension / Filter 语义规格（补齐 §2.5 gap）**：
+
+- **Dimension.dimensionType** 取值语义（对齐 dict `meta/dimension-type` 现值）：
+  - `categorical`：普通分类维度（如地区、产品类目）。`granularity` 不生效。
+  - `temporal`：时间维度（如订单日期、创建时间）。`granularity` 生效，指定时间粒度。
+  - `geographical`：地理维度（如国家、城市）。`granularity` 不生效。
+- **Dimension.granularity 值域**：`granularity` 列为 plain string、**无 dict 约束**（裁定为**自由 string + 文档约定**，不新增 dict，避免 meta 模块资源变更）。文档约定值：`year` / `quarter` / `month` / `week` / `day` / `hour`（语义为时间维度聚合桶，P4 查询执行时翻译为对应 SQL DATE_TRUNC/函数）。非约定值不拒绝（自由 string），仅 P4 执行时若不支持则显式失败。
+- **Filter.definition JSON 结构**：裁定对齐平台 **TreeBean filter 树**（非整个 QueryBean；QueryBean 含 limit/offset/orderBy，过滤只是其 `filter` 子树）。结构：`{type, name?, value?, children?}`，由 `FilterBeans` 构建的标准条件树——
+  - 叶子条件：`{type:"eq"|"ne"|"gt"|"ge"|"lt"|"le"|"like"|"in"|"between"|..., name:<字段名>, value:<值>}`。
+  - 组合条件：`{type:"and"|"or", children:[<子条件>...]}`；`{type:"not", children:[<单子条件>]}`。
+  - 反序列化校验：`JsonTool.parseBeanFromText(definition, TreeBean.class)`，不可反序列化或结构非法 → 显式失败抛 inline ErrorCode（不静默存入）。
+- **Filter.definition 列容量**：`definition` 列为 `json-4000`（precision 4000）。复杂嵌套条件序列化超 4000 字符时由列约束显式失败（不截断、不静默存入截断后的脏数据）。
+- **Filter.isDefault 唯一性**：裁定首版**强制每表至多一个默认过滤器**（`isDefault=true` 在同一 `metaTableId` 下唯一）。保存 `isDefault=true` 时校验该表已无其他 `isDefault=true` 的过滤器，违反显式失败。`isDefault=false` 不受限。默认过滤器的运行时自动应用在 P4 查询执行（Non-Blocking Follow-up）。
+
+**D2 — 字段引用校验范围 + 跨表字段集合 + 存储方式**：
+
+- **校验落点**：裁定**引入 save override 新模式**——在 Measure/Dimension/Filter/Join 的 BizModel 中重写 `CrudBizModel.save(Map, IServiceContext)`，在持久化前执行校验。理由：`save` 是 GraphQL mutation 的统一入口，override 一次覆盖所有 save 路径（UI/GraphQL/xbiz），无需新增自定义 action 名、不破坏既有 CRUD 契约。校验通过后委托 `super.save(...)` 走默认持久化逻辑。
+- **可用字段集合范围（按 tableType 分派）**：
+  - `entity` 表：**手动 query**——`NopMetaTable.baseEntityId` 为 plain string 列、无 ORM relation；`NopMetaEntity` 亦无 fields to-many。按 `baseEntityId` 作 `metaEntityId` 查 `NopMetaEntityField` 集合。**`baseEntityId` 为 null（ORM nullable）时显式失败抛 inline ErrorCode**（不静默空集、不静默存入悬空引用）。
+  - `external` 表：解析 `buildSql` JSON（结构：JSON 数组，元素 key 含 `columnName`/`dataType`/`nullable` 等，见 §2.5.1 + `NopMetaDataSourceBizModel.serializeColumns`）取 `columnName` 集合。JSON 损坏/非数组 → 显式失败。
+  - `sql` 表：调 P3-1 SELECT 字段解析器（`SqlSelectFieldExtractor`，plan 0700-1 产出）解析 `sourceSql` 得字段名集合。解析失败路径（非 SELECT/多语句/通配符/空）显式失败（见 §4.2.1）。
+- **Measure/Dimension 字段引用存储方式（硬前置子项裁定）**：裁定**复用 `entityFieldId` 列存字段引用，语义按 tableType 重载**（option a）：
+  - `entity` 表：`entityFieldId` 存 `NopMetaEntityField.metaEntityFieldId`（主键硬匹配，校验该 ID 属于 `baseEntityId` 实体的字段集合）。
+  - `external` / `sql` 表：`entityFieldId` 存**字段名字符串**（语义重载——external 存 `buildSql` JSON 中的 `columnName`，sql 存 SELECT 解析出的字段名）。校验字段名属于该表可用字段集合。
+  - 拒绝 option b（字段名存 `extConfig`）：`extConfig` 为自由扩展 JSON，语义承载字段引用会与扩展属性混淆，且 `entityFieldId` 列已存在、语义明确（"字段引用"），重载比新增存储位更内聚。
+  - **expression 型 Measure**：`entityFieldId` 为 null（表达式指标，用 `expression` 列）时跳过字段引用校验，`expression` 内容首版不校验（Non-Goal）。
+- **Join 字段校验范围**：首版**仅 entity 实体关联**——`leftEntityId`/`rightEntityId` 校验对应 `NopMetaEntity` 存在；`leftField` 属于 `leftEntityId` 实体字段集合、`rightField` 属于 `rightEntityId` 实体字段集合（经 entity→`NopMetaEntityField` 解析）。`joinType` 已由 dict 校验。sql/external 表的 join 语义为 follow-up（item 裁定首版范围）。
+- **resolveTableFields 与 plan 0700-1 的 ownership**：plan 0700-1 的 `resolveTableFields` 为 **sql-only** 版本；本裁定将其**扩展为全 tableType**（entity/external/sql 分派）。entity/external 分派独立可用；sql 分派复用 0700-1 的解析器。
+- **降级（不静默通过）**：字段集合解析失败（sql sourceSql 不可解析 / external buildSql JSON 损坏 / entity baseEntityId null）→ 显式失败抛 inline ErrorCode（不静默跳过校验、不静默存入悬空引用、不吞异常）。
 
 #### 2.5.1 外部表建模（syncExternalTables）
 
