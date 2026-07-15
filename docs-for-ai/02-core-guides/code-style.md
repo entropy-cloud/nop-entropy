@@ -73,6 +73,25 @@
 > - **已有模块可继续使用 `valueType="int"`**，数据库列对应 `INTEGER`，值使用步进整数（10/20/30...）。如需迁移，应作为全模块改造计划统一执行。
 >
 > **关键约束**：dict name 斜杠后的部分**必须用 kebab-case**（如 `schedule-status`），不能用 snake_case（如 ~~`schedule_status`~~）。全平台无一例外。
+>
+> **实战警示（阅读 `orm-model-design.md` 后必读）**：
+>
+> 以下 4 条是 nop-metadata 模块实际踩过的坑，新模块请直接跳过：
+>
+> 1. **option code 禁止带中横线**：`UPPER_SNAKE_CASE` 决定了 `code` 的格式——codegen 生成 Java 常量名时直接拼接 `{前缀}_{code}`。`code="to-one"` 会生成 Java 标识符 `RELATION_TYPE_to-one`，其中包含中横线，编译器无法识别。**所有 option code 必须用 UPPER_SNAKE_CASE，如需存储带横线的值，写在 `value` 属性上。**
+>
+>    ```xml
+>    <!-- 错误 -->
+>    <option code="to-one" value="to-one" .../>
+>    <!-- 正确 -->
+>    <option code="TO_ONE" value="to-one" .../>
+>    ```
+>
+> 2. **生成的常量在 `-core` 模块**：codegen 把 dict 常量生成到 `{module}-core/src/main/java/.../core/_*CoreConstants.java`。这个模块必须有 `pom.xml` 且在父 `pom.xml` 的 `modules` 列表中，否则常量是死代码。引用常量的模块（dao/service）必须添加 `-core` 依赖。
+>
+> 3. **Java 代码禁止硬编码字典值**： `setStatus("DRAFTING")` 是不允许的。必须用生成的常量：`setStatus(_NopMetadataCoreConstants.MODULE_STATUS_DRAFTING)`。硬编码字符串无法享受 IDE 自动补全和编译期校验。
+>
+> 4. **新模块全用 `valueType="string"`**：已有模块兼容 int，新模块只能用 string。这不是建议，是可降级的硬约束。
 
 ### Domain
 

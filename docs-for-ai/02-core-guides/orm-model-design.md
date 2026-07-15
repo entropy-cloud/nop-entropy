@@ -415,6 +415,11 @@ if (_AppErpDaoConstants.ORDER_STATUS_APPROVED.equals(order.getStatus())) {
 - `valueType="string"`：生成 `String` 常量（推荐）
 - `valueType="int"`：生成 `int` 常量（不推荐，仅用于兼容已有 INTEGER 列）
 
+**实战警示**：
+- **option code 禁止带中横线**：`code="to-one"` 会生成 Java 标识符 `RELATION_TYPE_to-one`，编译器无法通过。必须用 UPPER_SNAKE_CASE（`TO_ONE`），带横线的值放在 `value` 属性上。
+- **生成的常量在 `-core` 模块的 `_*CoreConstants.java`**：该模块必须有 `pom.xml` 且在父 `pom.xml` 的 `<modules>` 中；引用常量的模块必须添加 `-core` 依赖。
+- **Java 代码禁止硬编码字典值**：必须用生成的常量（如 `_NopMetadataCoreConstants.MODULE_STATUS_DRAFTING`），不用手写 `"DRAFTING"`。
+
 ## 通用字段（框架自动管理）
 
 以下字段需要在 ORM 模型中声明，框架在运行时自动维护其值，业务代码不需要手工读写：
