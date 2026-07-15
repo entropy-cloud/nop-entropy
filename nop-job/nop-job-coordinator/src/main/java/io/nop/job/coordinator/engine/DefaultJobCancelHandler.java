@@ -12,8 +12,7 @@ import io.nop.job.dao.entity.NopJobTask;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.Collections;
-import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.concurrent.CompletionStage;
 
@@ -65,13 +64,13 @@ public class DefaultJobCancelHandler implements IJobCancelHandler {
         if (jobParams.isEmpty() && schedule != null) {
             Map<String, Object> scheduleParams = schedule.getJobParamsComponent().get_jsonMap();
             if (scheduleParams != null) {
-                jobParams = new HashMap<>(scheduleParams);
+                jobParams = new LinkedHashMap<>(scheduleParams);
             }
         }
 
         if (task.getTargetHost() != null && !task.getTargetHost().isBlank()) {
             @SuppressWarnings("unchecked")
-            Map<String, Object> headers = (Map<String, Object>) jobParams.computeIfAbsent("headers", k -> new HashMap<String, Object>());
+            Map<String, Object> headers = (Map<String, Object>) jobParams.computeIfAbsent("headers", k -> new LinkedHashMap<String, Object>());
             headers.put(ApiConstants.HEADER_SVC_TARGET_HOST, task.getTargetHost());
         }
 
@@ -104,17 +103,6 @@ public class DefaultJobCancelHandler implements IJobCancelHandler {
             setFiredBy(fire.getTriggeredBy());
             setChangeVersion(defaultLong(task.getVersion()));
             setInstanceStatus(defaultInt(task.getTaskStatus()));
-
-            setAttribute("jobScheduleId", schedule.getJobScheduleId());
-            setAttribute("jobFireId", fire.getJobFireId());
-            setAttribute("jobTaskId", task.getJobTaskId());
-            setAttribute("executorKind", schedule.getExecutorKind());
-            if (task.getShardingIndex() != null)
-                setAttribute("shardingIndex", task.getShardingIndex());
-            if (task.getShardingTotal() != null)
-                setAttribute("shardingTotal", task.getShardingTotal());
-            if (task.getTargetHost() != null)
-                setAttribute("targetHost", task.getTargetHost());
 
             this.minScheduleTime = toTime(schedule.getMinScheduleTime());
             this.maxScheduleTime = toTime(schedule.getMaxScheduleTime());

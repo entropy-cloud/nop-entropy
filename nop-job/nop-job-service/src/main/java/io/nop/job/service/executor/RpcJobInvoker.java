@@ -4,6 +4,7 @@ import io.nop.api.core.ApiConstants;
 import io.nop.api.core.beans.ApiRequest;
 import io.nop.api.core.beans.ApiResponse;
 import io.nop.api.core.beans.ErrorBean;
+import io.nop.api.core.convert.ConvertHelper;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.api.core.rpc.IRpcServiceInvoker;
 import io.nop.job.api.NopJobApiConstants;
@@ -60,7 +61,7 @@ public class RpcJobInvoker implements IJobInvoker {
             request.setData(Collections.emptyMap());
         }
 
-        return rpcServiceInvoker.invokeAsync(serviceName, serviceMethod, request, null)
+        return rpcServiceInvoker.invokeAsync(serviceName, serviceMethod, request, jobCtx.getCancelToken())
                 .thenApply(this::toJobFireResult);
     }
 
@@ -89,7 +90,7 @@ public class RpcJobInvoker implements IJobInvoker {
                 "instanceId", jobCtx.getInstanceId() != null ? jobCtx.getInstanceId() : ""
         ));
 
-        return rpcServiceInvoker.invokeAsync(serviceName, cancelMethod, request, null)
+        return rpcServiceInvoker.invokeAsync(serviceName, cancelMethod, request, jobCtx.getCancelToken())
                 .thenApply(ApiResponse::isOk);
     }
 
@@ -127,19 +128,10 @@ public class RpcJobInvoker implements IJobInvoker {
     private void injectTimeoutHeader(ApiRequest<Object> request, IJobExecutionContext jobCtx) {
         Map<String, Object> attrs = jobCtx.getAttributes();
         if (attrs != null) {
-            Object timeoutSeconds = attrs.get("timeoutSeconds");
-            if (timeoutSeconds instanceof Number) {
-                int timeout = ((Number) timeoutSeconds).intValue();
-                if (timeout > 0) {
-                    request.setHeader(ApiConstants.HEADER_TIMEOUT, timeout * 1000L);
-                } else {
-                    request.setHeader(ApiConstants.HEADER_TIMEOUT, 60_000L);
-                }
-            } else {
-                request.setHeader(ApiConstants.HEADER_TIMEOUT, 60_000L);
+            Integer timeoutSeconds = ConvertHelper.toInteger(attrs.get("timeoutSeconds"), NopException::new);
+            if (timeoutSeconds != null && timeoutSeconds > 0) {
+                request.setHeader(ApiConstants.HEADER_TIMEOUT, timeoutSeconds * 1000L);
             }
-        } else {
-            request.setHeader(ApiConstants.HEADER_TIMEOUT, 60_000L);
         }
     }
 

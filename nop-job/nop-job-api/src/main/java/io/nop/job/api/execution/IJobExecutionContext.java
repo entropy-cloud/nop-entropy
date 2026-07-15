@@ -1,5 +1,6 @@
 package io.nop.job.api.execution;
 
+import io.nop.api.core.util.ICancelToken;
 import io.nop.job.api.IJobInstanceState;
 
 public interface IJobExecutionContext extends IJobInstanceState {
@@ -17,4 +18,8 @@ public interface IJobExecutionContext extends IJobInstanceState {
     boolean isInstanceRunning();
 
     boolean isScheduleEnabled();
+
+    default ICancelToken getCancelToken(){
+        return null;
+    }
 }
