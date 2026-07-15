@@ -7,6 +7,7 @@
  */
 package io.nop.nosql.lettuce;
 
+import io.nop.api.core.exceptions.NopException;
 import io.nop.nosql.core.INosqlCounter;
 import io.nop.nosql.core.INosqlHashOperations;
 import io.nop.nosql.core.INosqlLock;
@@ -114,7 +115,8 @@ public class TestLettuceClusterService {
             GenericContainer<?> firstNode = nodes.get(0);
             String result = firstNode.execInContainer("sh", "-c", clusterCreateCmd.toString()).getStdout();
             if (!result.contains("[OK]")) {
-                throw new io.nop.api.core.exceptions.NopException("Failed to create Redis cluster: " + result);
+                throw new NopException("nosql.err.cluster-create-failed", null, false, false)
+                        .param("result", result);
             }
         }
 
