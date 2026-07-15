@@ -1948,44 +1948,85 @@ public class ReActAgentExecutor implements IAgentExecutor {
                     // pairing invariant.
                     boolean reenterRequested = false;
                     List<CompletableFuture<ToolCallOutput>> futures = new ArrayList<>();
-                    for (ChatToolCall chatToolCall : allowedCalls) {
-                        AiToolCall aiToolCall = new AiToolCall();
-                        aiToolCall.setToolName(chatToolCall.getName());
-                        aiToolCall.setInput(chatToolCall.getArgumentsText());
+                    // AR-15 (plan 280): wrap the fan-out build loop so a
+                    // synchronous throw mid-loop (e.g. the 2nd tool's callTool
+                    // validation throws) cannot leave the already-started tool
+                    // futures as orphans. The catch cancels every future that
+                    // has already been added to `futures` and rethrows — never
+                    // swallows.
+                    try {
+                        for (ChatToolCall chatToolCall : allowedCalls) {
+                            AiToolCall aiToolCall = new AiToolCall();
+                            aiToolCall.setToolName(chatToolCall.getName());
+                            aiToolCall.setInput(chatToolCall.getArgumentsText());
 
-                        // Plan 271 (finding 14-03): bound each tool call with a
-                        // wall-clock timeout so a permanently hung tool cannot
-                        // block the agent session, worker thread, and takeover
-                        // lock indefinitely. On timeout the Future completes
-                        // exceptionally with a TimeoutException; the
-                        // .exceptionally(...) below converts it into an error
-                        // ToolCallOutput so the fanout's allOf().join() never
-                        // throws and the timed-out tool is surfaced to the LLM
-                        // as a normal tool error response. A value <= 0 disables
-                        // the timeout (backward-compatible escape hatch).
-                        CompletableFuture<ToolCallOutput> toolFuture = toolManager.callTool(
-                                        chatToolCall.getName(), aiToolCall, toolExecCtx)
-                                .thenApply(result -> new ToolCallOutput(chatToolCall, result));
-                        if (toolTimeoutMs > 0) {
-                            final ChatToolCall timedCall = chatToolCall;
-                            toolFuture = toolFuture.orTimeout(toolTimeoutMs, TimeUnit.MILLISECONDS)
-                                    .exceptionally(ex -> {
-                                        Throwable cause = ex.getCause() != null ? ex.getCause() : ex;
-                                        String errMsg = cause instanceof java.util.concurrent.TimeoutException
-                                                ? "tool timed out after " + toolTimeoutMs + "ms: tool=" + timedCall.getName()
-                                                : "tool execution failed: tool=" + timedCall.getName()
-                                                        + ", error=" + cause.getMessage();
-                                        int resultId = parseToolCallId(timedCall.getId());
-                                        return new ToolCallOutput(timedCall,
-                                                AiToolCallResult.errorResult(resultId, errMsg));
-                                    });
+                            // Plan 271 (finding 14-03): bound each tool call
+                            // with a wall-clock timeout so a permanently hung
+                            // tool cannot block the agent session, worker
+                            // thread, and takeover lock indefinitely. On
+                            // timeout the Future completes exceptionally with
+                            // a TimeoutException; the .exceptionally(...) below
+                            // converts it into an error ToolCallOutput so the
+                            // fanout's allOf wait never throws and the timed-
+                            // out tool is surfaced to the LLM as a normal tool
+                            // error response. A value <= 0 disables the timeout
+                            // (backward-compatible escape hatch).
+                            CompletableFuture<ToolCallOutput> toolFuture = toolManager.callTool(
+                                            chatToolCall.getName(), aiToolCall, toolExecCtx)
+                                    .thenApply(result -> new ToolCallOutput(chatToolCall, result));
+                            if (toolTimeoutMs > 0) {
+                                final ChatToolCall timedCall = chatToolCall;
+                                toolFuture = toolFuture.orTimeout(toolTimeoutMs, TimeUnit.MILLISECONDS)
+                                        .exceptionally(ex -> {
+                                            Throwable cause = ex.getCause() != null ? ex.getCause() : ex;
+                                            String errMsg = cause instanceof java.util.concurrent.TimeoutException
+                                                    ? "tool timed out after " + toolTimeoutMs + "ms: tool=" + timedCall.getName()
+                                                    : "tool execution failed: tool=" + timedCall.getName()
+                                                            + ", error=" + cause.getMessage();
+                                            int resultId = parseToolCallId(timedCall.getId());
+                                            return new ToolCallOutput(timedCall,
+                                                    AiToolCallResult.errorResult(resultId, errMsg));
+                                        });
+                            }
+                            futures.add(toolFuture);
                         }
-                        futures.add(toolFuture);
+                    } catch (RuntimeException | Error e) {
+                        // AR-15: cancel every already-started tool future so
+                        // they do not continue running as orphans, then rethrow.
+                        for (CompletableFuture<ToolCallOutput> f : futures) {
+                            f.cancel(true);
+                        }
+                        throw e;
                     }
 
                     @SuppressWarnings("unchecked")
                     CompletableFuture<ToolCallOutput>[] futuresArray = futures.toArray(new CompletableFuture[0]);
-                    CompletableFuture.allOf(futuresArray).join();
+                    // 14-02 (plan 280): use interruptible get() instead of
+                    // join() so lease-lost / forced-cancel thread interrupts
+                    // can break the wait immediately (each tool already has its
+                    // own orTimeout; no batch-level timeout needed). Aligned
+                    // with callChatWithTimeout's interrupt semantics.
+                    CompletableFuture<Void> allFuture = CompletableFuture.allOf(futuresArray);
+                    try {
+                        allFuture.get();
+                    } catch (InterruptedException e) {
+                        Thread.currentThread().interrupt();
+                        for (CompletableFuture<ToolCallOutput> f : futuresArray) {
+                            f.cancel(true);
+                        }
+                        throw new NopAiAgentException(
+                                "fan-out join interrupted (forced cancel or thread interrupt)", e);
+                    } catch (ExecutionException e) {
+                        // Preserve join()-style CompletionException wrapping so
+                        // exceptionally-completing tool futures (only possible
+                        // when toolTimeoutMs <= 0, no .exceptionally handler)
+                        // surface the same way as before this change.
+                        Throwable cause = e.getCause();
+                        if (cause instanceof CompletionException) {
+                            throw (CompletionException) cause;
+                        }
+                        throw new CompletionException(cause != null ? cause : e);
+                    }
 
                     for (CompletableFuture<ToolCallOutput> f : futuresArray) {
                         ToolCallOutput output = f.join();
