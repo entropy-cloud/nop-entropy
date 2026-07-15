@@ -65,6 +65,36 @@ CREATE TABLE nop_wf_instance(
   constraint PK_nop_wf_instance primary key (WF_ID)
 )CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_as_cs;
 
+CREATE TABLE nop_wf_approvable_item(
+  SID VARCHAR(32) NOT NULL    COMMENT '主键',
+  ITEM_NAME VARCHAR(200) NOT NULL    COMMENT '名称',
+  APPROVE_STATUS VARCHAR(20) NOT NULL    COMMENT '审批状态',
+  APPROVED_BY VARCHAR(50) NULL    COMMENT '审批人',
+  APPROVED_AT DATETIME NULL    COMMENT '审批时间',
+  VERSION INTEGER NOT NULL    COMMENT '数据版本',
+  CREATED_BY VARCHAR(50) NOT NULL    COMMENT '创建人',
+  CREATE_TIME DATETIME(3) DEFAULT CURRENT_TIMESTAMP(3)  NOT NULL    COMMENT '创建时间',
+  UPDATED_BY VARCHAR(50) NOT NULL    COMMENT '修改人',
+  UPDATE_TIME DATETIME(3) DEFAULT CURRENT_TIMESTAMP(3)  NOT NULL    COMMENT '修改时间',
+  NOP_FLOW_ID VARCHAR(32) NULL    COMMENT 'null',
+  constraint PK_nop_wf_approvable_item primary key (SID)
+)CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_as_cs;
+
+CREATE TABLE nop_wf_approvable_form(
+  SID VARCHAR(32) NOT NULL    COMMENT '主键',
+  FORM_TITLE VARCHAR(200) NOT NULL    COMMENT '标题',
+  APPROVE_STATUS VARCHAR(20) NOT NULL    COMMENT '审批状态',
+  APPROVED_BY VARCHAR(50) NULL    COMMENT '审批人',
+  APPROVED_AT DATETIME NULL    COMMENT '审批时间',
+  VERSION INTEGER NOT NULL    COMMENT '数据版本',
+  CREATED_BY VARCHAR(50) NOT NULL    COMMENT '创建人',
+  CREATE_TIME DATETIME(3) DEFAULT CURRENT_TIMESTAMP(3)  NOT NULL    COMMENT '创建时间',
+  UPDATED_BY VARCHAR(50) NOT NULL    COMMENT '修改人',
+  UPDATE_TIME DATETIME(3) DEFAULT CURRENT_TIMESTAMP(3)  NOT NULL    COMMENT '修改时间',
+  NOP_FLOW_ID VARCHAR(32) NULL    COMMENT 'null',
+  constraint PK_nop_wf_approvable_form primary key (SID)
+)CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_as_cs;
+
 CREATE TABLE nop_wf_definition_auth(
   SID VARCHAR(32) NOT NULL    COMMENT '主键',
   WF_DEF_ID VARCHAR(32) NOT NULL    COMMENT '工作流定义ID',
@@ -260,6 +290,10 @@ CREATE TABLE nop_wf_log(
    ALTER TABLE nop_wf_definition COMMENT '工作流模型定义';
                 
    ALTER TABLE nop_wf_instance COMMENT '工作流实例';
+                
+   ALTER TABLE nop_wf_approvable_item COMMENT '可审批项(直接模式)';
+                
+   ALTER TABLE nop_wf_approvable_form COMMENT '可审批表单(工作流模式)';
                 
    ALTER TABLE nop_wf_definition_auth COMMENT '工作流定义权限';
                 

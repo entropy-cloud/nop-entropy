@@ -1,6 +1,8 @@
 
 drop table  if exists  nop_wf_definition;
 drop table  if exists  nop_wf_instance;
+drop table  if exists  nop_wf_approvable_item;
+drop table  if exists  nop_wf_approvable_form;
 drop table  if exists  nop_wf_definition_auth;
 drop table  if exists  nop_wf_status_history;
 drop table  if exists  nop_wf_step_instance;

@@ -19,6 +19,22 @@
         <property name="bizObjName" value="NopWfInstance"/>
     </bean>
 
+    <bean id="io.nop.wf.service.entity.NopWfApprovableItemBizModel" ioc:type="@bean:id" ioc:default="true"/>
+
+    <bean id="biz_NopWfApprovableItem" class="io.nop.biz.proxy.BizProxyFactoryBean"
+          ioc:type="io.nop.wf.biz.INopWfApprovableItemBiz" ioc:force-lazy-property="true" lazy-init="true"
+          primary="true">
+        <property name="bizObjName" value="NopWfApprovableItem"/>
+    </bean>
+
+    <bean id="io.nop.wf.service.entity.NopWfApprovableFormBizModel" ioc:type="@bean:id" ioc:default="true"/>
+
+    <bean id="biz_NopWfApprovableForm" class="io.nop.biz.proxy.BizProxyFactoryBean"
+          ioc:type="io.nop.wf.biz.INopWfApprovableFormBiz" ioc:force-lazy-property="true" lazy-init="true"
+          primary="true">
+        <property name="bizObjName" value="NopWfApprovableForm"/>
+    </bean>
+
     <bean id="io.nop.wf.service.entity.NopWfDefinitionAuthBizModel" ioc:type="@bean:id" ioc:default="true"/>
 
     <bean id="biz_NopWfDefinitionAuth" class="io.nop.biz.proxy.BizProxyFactoryBean"

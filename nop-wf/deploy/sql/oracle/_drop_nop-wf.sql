@@ -1,6 +1,8 @@
 
 drop table nop_wf_definition;
 drop table nop_wf_instance;
+drop table nop_wf_approvable_item;
+drop table nop_wf_approvable_form;
 drop table nop_wf_definition_auth;
 drop table nop_wf_status_history;
 drop table nop_wf_step_instance;

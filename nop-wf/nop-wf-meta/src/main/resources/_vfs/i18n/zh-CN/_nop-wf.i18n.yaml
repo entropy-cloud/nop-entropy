@@ -1,6 +1,8 @@
 entity:
   label:
     NopWfAction: 工作流动作
+    NopWfApprovableForm: 可审批表单(工作流模式)
+    NopWfApprovableItem: 可审批项(直接模式)
     NopWfDefinition: 工作流模型定义
     NopWfDefinitionAuth: 工作流定义权限
     NopWfInstance: 工作流实例
@@ -43,6 +45,32 @@ prop:
       wfInstance: 工作流实例
       wfInstance.title: 工作流实例
       wfStepInstance: 工作流步骤实例
+    NopWfApprovableForm:
+      approveStatus: 审批状态
+      approveStatus_label: 审批状态
+      approvedAt: 审批时间
+      approvedBy: 审批人
+      createTime: 创建时间
+      createdBy: 创建人
+      formTitle: 标题
+      nopFlowId: null
+      sid: 主键
+      updateTime: 修改时间
+      updatedBy: 修改人
+      version: 数据版本
+    NopWfApprovableItem:
+      approveStatus: 审批状态
+      approveStatus_label: 审批状态
+      approvedAt: 审批时间
+      approvedBy: 审批人
+      createTime: 创建时间
+      createdBy: 创建人
+      itemName: 名称
+      nopFlowId: null
+      sid: 主键
+      updateTime: 修改时间
+      updatedBy: 修改人
+      version: 数据版本
     NopWfDefinition:
       archiveTime: 归档时间
       archivedBy: 归档人

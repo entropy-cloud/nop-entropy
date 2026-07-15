@@ -3,6 +3,10 @@
 
 alter table nop_wf_instance add NOP_TENANT_ID VARCHAR(32) DEFAULT '0' NOT NULL;
 
+alter table nop_wf_approvable_item add NOP_TENANT_ID VARCHAR(32) DEFAULT '0' NOT NULL;
+
+alter table nop_wf_approvable_form add NOP_TENANT_ID VARCHAR(32) DEFAULT '0' NOT NULL;
+
 alter table nop_wf_definition_auth add NOP_TENANT_ID VARCHAR(32) DEFAULT '0' NOT NULL;
 
 alter table nop_wf_status_history add NOP_TENANT_ID VARCHAR(32) DEFAULT '0' NOT NULL;
@@ -26,6 +30,12 @@ alter table nop_wf_definition add primary key (NOP_TENANT_ID, WF_DEF_ID);
 
 alter table nop_wf_instance drop primary key;
 alter table nop_wf_instance add primary key (NOP_TENANT_ID, WF_ID);
+
+alter table nop_wf_approvable_item drop primary key;
+alter table nop_wf_approvable_item add primary key (NOP_TENANT_ID, SID);
+
+alter table nop_wf_approvable_form drop primary key;
+alter table nop_wf_approvable_form add primary key (NOP_TENANT_ID, SID);
 
 alter table nop_wf_definition_auth drop primary key;
 alter table nop_wf_definition_auth add primary key (NOP_TENANT_ID, SID);

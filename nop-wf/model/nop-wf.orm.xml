@@ -819,5 +819,77 @@
                 </to-one>
             </relations>
         </entity>
+
+        <entity className="io.nop.wf.dao.entity.NopWfApprovableItem" createTimeProp="createTime" createrProp="createdBy"
+                displayName="可审批项(直接模式)" name="io.nop.wf.dao.entity.NopWfApprovableItem" registerShortName="true"
+                tableName="nop_wf_approvable_item" tagSet="use-approval" useWorkflow="true"
+                updateTimeProp="updateTime" updaterProp="updatedBy" versionProp="version"
+                ext:icon="check-square" i18n-en:displayName="Approvable Item (Direct)">
+            <columns>
+                <column code="SID" displayName="主键" mandatory="true" name="sid" precision="32" primary="true"
+                        propId="1" stdDataType="string" stdSqlType="VARCHAR" tagSet="seq" ui:show="X"
+                        i18n-en:displayName="SID"/>
+                <column code="ITEM_NAME" displayName="名称" mandatory="true" name="itemName" precision="200" propId="2"
+                        stdDataType="string" stdSqlType="VARCHAR" tagSet="disp"
+                        i18n-en:displayName="Item Name"/>
+                <column code="APPROVE_STATUS" displayName="审批状态" mandatory="true" name="approveStatus" precision="20"
+                        propId="3" stdDataType="string" stdSqlType="VARCHAR" ext:dict="wf/approve-status"
+                        i18n-en:displayName="Approve Status"/>
+                <column code="APPROVED_BY" displayName="审批人" name="approvedBy" precision="50" propId="4"
+                        stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Approved By"/>
+                <column code="APPROVED_AT" displayName="审批时间" name="approvedAt" propId="5" stdDataType="datetime"
+                        stdSqlType="DATETIME" i18n-en:displayName="Approved At"/>
+                <column code="VERSION" displayName="数据版本" domain="version" mandatory="true" name="version" propId="6"
+                        stdDataType="int" stdSqlType="INTEGER" ui:show="X" i18n-en:displayName="Version"/>
+                <column code="CREATED_BY" displayName="创建人" domain="createdBy" mandatory="true" name="createdBy"
+                        precision="50" propId="7" stdDataType="string" stdSqlType="VARCHAR"
+                        i18n-en:displayName="Created By"/>
+                <column code="CREATE_TIME" displayName="创建时间" domain="createTime" mandatory="true" name="createTime"
+                        propId="8" stdDataType="timestamp" stdSqlType="TIMESTAMP"
+                        i18n-en:displayName="Create Time"/>
+                <column code="UPDATED_BY" displayName="修改人" domain="updatedBy" mandatory="true" name="updatedBy"
+                        precision="50" propId="9" stdDataType="string" stdSqlType="VARCHAR"
+                        i18n-en:displayName="Updated By"/>
+                <column code="UPDATE_TIME" displayName="修改时间" domain="updateTime" mandatory="true" name="updateTime"
+                        propId="10" stdDataType="timestamp" stdSqlType="TIMESTAMP"
+                        i18n-en:displayName="Update Time"/>
+            </columns>
+        </entity>
+
+        <entity className="io.nop.wf.dao.entity.NopWfApprovableForm" createTimeProp="createTime" createrProp="createdBy"
+                displayName="可审批表单(工作流模式)" name="io.nop.wf.dao.entity.NopWfApprovableForm" registerShortName="true"
+                tableName="nop_wf_approvable_form" tagSet="use-approval" useWorkflow="true"
+                updateTimeProp="updateTime" updaterProp="updatedBy" versionProp="version"
+                ext:icon="file-check" i18n-en:displayName="Approvable Form (Workflow)">
+            <columns>
+                <column code="SID" displayName="主键" mandatory="true" name="sid" precision="32" primary="true"
+                        propId="1" stdDataType="string" stdSqlType="VARCHAR" tagSet="seq" ui:show="X"
+                        i18n-en:displayName="SID"/>
+                <column code="FORM_TITLE" displayName="标题" mandatory="true" name="formTitle" precision="200" propId="2"
+                        stdDataType="string" stdSqlType="VARCHAR" tagSet="disp"
+                        i18n-en:displayName="Form Title"/>
+                <column code="APPROVE_STATUS" displayName="审批状态" mandatory="true" name="approveStatus" precision="20"
+                        propId="3" stdDataType="string" stdSqlType="VARCHAR" ext:dict="wf/approve-status"
+                        i18n-en:displayName="Approve Status"/>
+                <column code="APPROVED_BY" displayName="审批人" name="approvedBy" precision="50" propId="4"
+                        stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Approved By"/>
+                <column code="APPROVED_AT" displayName="审批时间" name="approvedAt" propId="5" stdDataType="datetime"
+                        stdSqlType="DATETIME" i18n-en:displayName="Approved At"/>
+                <column code="VERSION" displayName="数据版本" domain="version" mandatory="true" name="version" propId="6"
+                        stdDataType="int" stdSqlType="INTEGER" ui:show="X" i18n-en:displayName="Version"/>
+                <column code="CREATED_BY" displayName="创建人" domain="createdBy" mandatory="true" name="createdBy"
+                        precision="50" propId="7" stdDataType="string" stdSqlType="VARCHAR"
+                        i18n-en:displayName="Created By"/>
+                <column code="CREATE_TIME" displayName="创建时间" domain="createTime" mandatory="true" name="createTime"
+                        propId="8" stdDataType="timestamp" stdSqlType="TIMESTAMP"
+                        i18n-en:displayName="Create Time"/>
+                <column code="UPDATED_BY" displayName="修改人" domain="updatedBy" mandatory="true" name="updatedBy"
+                        precision="50" propId="9" stdDataType="string" stdSqlType="VARCHAR"
+                        i18n-en:displayName="Updated By"/>
+                <column code="UPDATE_TIME" displayName="修改时间" domain="updateTime" mandatory="true" name="updateTime"
+                        propId="10" stdDataType="timestamp" stdSqlType="TIMESTAMP"
+                        i18n-en:displayName="Update Time"/>
+            </columns>
+        </entity>
     </entities>
 </orm>

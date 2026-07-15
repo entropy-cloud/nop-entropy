@@ -7,11 +7,11 @@
             <attr name="bizObj" type="String" mandatory="true"/>
             <attr name="approved" type="Boolean" mandatory="true"/>
             <attr name="wfRt" implicit="true"/>
-            <attr name="svcCtx" implicit="true"/>
 
             <description>
                 wf 结束事件中回调业务实体的 approve/reject action。
                 审批通过/驳回经此标签回调 IApprovableBiz 的 approve/reject action。
+                serviceContext 从 wfRt 获取，无需外部传入。
             </description>
 
             <source>
@@ -20,7 +20,7 @@
                     const entityBizObj = bizObjManager.getBizObject(bizObj);
                     const entityId = wfRt.wf.bizEntityId;
                     const actionName = approved ? 'approve' : 'reject';
-                    entityBizObj.invoke(actionName, {id: entityId}, null, svcCtx);
+                    entityBizObj.invoke(actionName, {id: entityId}, null, wfRt.svcCtx);
                 ]]></c:script>
             </source>
         </notifyResult>

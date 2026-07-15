@@ -1,6 +1,8 @@
 entity:
   label:
     NopWfAction: Workflow Action
+    NopWfApprovableForm: Approvable Form (Workflow)
+    NopWfApprovableItem: Approvable Item (Direct)
     NopWfDefinition: Workflow Definition
     NopWfDefinitionAuth: Workflow Definition Auth
     NopWfInstance: Workflow Instance
@@ -43,6 +45,32 @@ prop:
       wfInstance: Workflow Instance
       wfInstance.title: Workflow Instance
       wfStepInstance: Workflow Step Instance
+    NopWfApprovableForm:
+      sid: SID
+      formTitle: Form Title
+      approveStatus: Approve Status
+      approveStatus_label: null
+      approvedBy: Approved By
+      approvedAt: Approved At
+      version: Version
+      createdBy: Created By
+      createTime: Create Time
+      updatedBy: Updated By
+      updateTime: Update Time
+      nopFlowId: null
+    NopWfApprovableItem:
+      sid: SID
+      itemName: Item Name
+      approveStatus: Approve Status
+      approveStatus_label: null
+      approvedBy: Approved By
+      approvedAt: Approved At
+      version: Version
+      createdBy: Created By
+      createTime: Create Time
+      updatedBy: Updated By
+      updateTime: Update Time
+      nopFlowId: null
     NopWfDefinition:
       wfDefId: Definition ID
       wfName: Workflow Name

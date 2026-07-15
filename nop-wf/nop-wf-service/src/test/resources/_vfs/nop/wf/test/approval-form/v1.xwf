@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<workflow x:schema="/nop/schema/wf/wf.xdef" xmlns:x="/nop/schema/xdsl.xdef"
+          xmlns:wf="wf" x:extends="/nop/wf/base/oa.xwf" bizEntityFlowIdProp="nopFlowId">
+
+    <listeners>
+        <listener id="onApproveEnd" eventPattern="*end">
+            <source>
+                <c:script><![CDATA[
+                    import io.nop.biz.api.IBizObjectManager;
+                    const bizObjManager = inject('nopBizObjectManager');
+                    const entityBizObj = bizObjManager.getBizObject('NopWfApprovableForm');
+                    const entityId = wfRt.wf.bizEntityId;
+                    // 幂等：仅在 SUBMITTED 状态时调用 approve（避免 EVENT_BEFORE_END/AFTER_END 重复触发）
+                    const entity = entityBizObj.invoke('requireEntity', {id: entityId}, null, wfRt.svcCtx);
+                    if (entity.approveStatus === 'SUBMITTED') {
+                        entityBizObj.invoke('approve', {id: entityId}, null, wfRt.svcCtx);
+                    }
+                ]]></c:script>
+            </source>
+        </listener>
+    </listeners>
+
+    <auths>
+        <auth id="auth1" actorType="all" actorId="all" allowStart="true"/>
+    </auths>
+
+    <steps>
+        <step displayName="发起人" name="start">
+            <transition>
+                <to-step stepName="approve1"/>
+            </transition>
+        </step>
+
+        <step displayName="审批人" name="approve1">
+            <assignment>
+                <actors>
+                    <actor actorType="user" actorId="test002" actorModelId="m1"/>
+                </actors>
+            </assignment>
+            <transition onAppStates="agree">
+                <to-end/>
+            </transition>
+        </step>
+    </steps>
+
+</workflow>

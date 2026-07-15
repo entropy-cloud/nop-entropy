@@ -65,6 +65,36 @@ CREATE TABLE nop_wf_instance(
   constraint PK_nop_wf_instance primary key (WF_ID)
 );
 
+CREATE TABLE nop_wf_approvable_item(
+  SID VARCHAR2(32) NOT NULL ,
+  ITEM_NAME VARCHAR2(200) NOT NULL ,
+  APPROVE_STATUS VARCHAR2(20) NOT NULL ,
+  APPROVED_BY VARCHAR2(50)  ,
+  APPROVED_AT DATE  ,
+  VERSION INTEGER NOT NULL ,
+  CREATED_BY VARCHAR2(50) NOT NULL ,
+  CREATE_TIME TIMESTAMP NOT NULL ,
+  UPDATED_BY VARCHAR2(50) NOT NULL ,
+  UPDATE_TIME TIMESTAMP NOT NULL ,
+  NOP_FLOW_ID VARCHAR2(32)  ,
+  constraint PK_nop_wf_approvable_item primary key (SID)
+);
+
+CREATE TABLE nop_wf_approvable_form(
+  SID VARCHAR2(32) NOT NULL ,
+  FORM_TITLE VARCHAR2(200) NOT NULL ,
+  APPROVE_STATUS VARCHAR2(20) NOT NULL ,
+  APPROVED_BY VARCHAR2(50)  ,
+  APPROVED_AT DATE  ,
+  VERSION INTEGER NOT NULL ,
+  CREATED_BY VARCHAR2(50) NOT NULL ,
+  CREATE_TIME TIMESTAMP NOT NULL ,
+  UPDATED_BY VARCHAR2(50) NOT NULL ,
+  UPDATE_TIME TIMESTAMP NOT NULL ,
+  NOP_FLOW_ID VARCHAR2(32)  ,
+  constraint PK_nop_wf_approvable_form primary key (SID)
+);
+
 CREATE TABLE nop_wf_definition_auth(
   SID VARCHAR2(32) NOT NULL ,
   WF_DEF_ID VARCHAR2(32) NOT NULL ,
@@ -376,6 +406,50 @@ CREATE TABLE nop_wf_log(
       COMMENT ON COLUMN nop_wf_instance.UPDATE_TIME IS '修改时间';
                     
       COMMENT ON COLUMN nop_wf_instance.REMARK IS '备注';
+                    
+      COMMENT ON TABLE nop_wf_approvable_item IS '可审批项(直接模式)';
+                
+      COMMENT ON COLUMN nop_wf_approvable_item.SID IS '主键';
+                    
+      COMMENT ON COLUMN nop_wf_approvable_item.ITEM_NAME IS '名称';
+                    
+      COMMENT ON COLUMN nop_wf_approvable_item.APPROVE_STATUS IS '审批状态';
+                    
+      COMMENT ON COLUMN nop_wf_approvable_item.APPROVED_BY IS '审批人';
+                    
+      COMMENT ON COLUMN nop_wf_approvable_item.APPROVED_AT IS '审批时间';
+                    
+      COMMENT ON COLUMN nop_wf_approvable_item.VERSION IS '数据版本';
+                    
+      COMMENT ON COLUMN nop_wf_approvable_item.CREATED_BY IS '创建人';
+                    
+      COMMENT ON COLUMN nop_wf_approvable_item.CREATE_TIME IS '创建时间';
+                    
+      COMMENT ON COLUMN nop_wf_approvable_item.UPDATED_BY IS '修改人';
+                    
+      COMMENT ON COLUMN nop_wf_approvable_item.UPDATE_TIME IS '修改时间';
+                    
+      COMMENT ON TABLE nop_wf_approvable_form IS '可审批表单(工作流模式)';
+                
+      COMMENT ON COLUMN nop_wf_approvable_form.SID IS '主键';
+                    
+      COMMENT ON COLUMN nop_wf_approvable_form.FORM_TITLE IS '标题';
+                    
+      COMMENT ON COLUMN nop_wf_approvable_form.APPROVE_STATUS IS '审批状态';
+                    
+      COMMENT ON COLUMN nop_wf_approvable_form.APPROVED_BY IS '审批人';
+                    
+      COMMENT ON COLUMN nop_wf_approvable_form.APPROVED_AT IS '审批时间';
+                    
+      COMMENT ON COLUMN nop_wf_approvable_form.VERSION IS '数据版本';
+                    
+      COMMENT ON COLUMN nop_wf_approvable_form.CREATED_BY IS '创建人';
+                    
+      COMMENT ON COLUMN nop_wf_approvable_form.CREATE_TIME IS '创建时间';
+                    
+      COMMENT ON COLUMN nop_wf_approvable_form.UPDATED_BY IS '修改人';
+                    
+      COMMENT ON COLUMN nop_wf_approvable_form.UPDATE_TIME IS '修改时间';
                     
       COMMENT ON TABLE nop_wf_definition_auth IS '工作流定义权限';
                 

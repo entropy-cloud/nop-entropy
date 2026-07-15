@@ -145,7 +145,7 @@
                             .param("expectedStatus", "APPROVED");
                     }
 
-                    entity.approveStatus = 'REJECTED';
+                    entity.approveStatus = 'SUBMITTED';
                     entity.approvedBy = null;
                     entity.approvedAt = null;
                     return entity;
