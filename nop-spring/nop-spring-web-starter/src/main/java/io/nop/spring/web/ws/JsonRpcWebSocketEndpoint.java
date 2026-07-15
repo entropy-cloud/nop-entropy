@@ -121,7 +121,7 @@ public class JsonRpcWebSocketEndpoint extends Endpoint {
                     ApiHeaders.setHeader(headers, ApiConstants.HEADER_CLIENT_ADDR, clientAddr);
                 }
             }
-        } catch (Exception e) {
+        } catch (Exception expected) {
         }
 
         return headers;

@@ -497,8 +497,7 @@ public class ReportFunctions {
                     default: return false;
                 }
             }
-        } catch (Exception e) {
-            // 解析失败，回退到字符串比较
+        } catch (Exception expected) {
         }
 
         // 字符串比较

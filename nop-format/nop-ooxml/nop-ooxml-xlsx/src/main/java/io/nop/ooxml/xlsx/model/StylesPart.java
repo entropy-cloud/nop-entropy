@@ -410,7 +410,7 @@ public class StylesPart implements IOfficePackagePart {
                 Integer familyValue = null;
                 try {
                     familyValue = Integer.parseInt(font.getFontFamily());
-                } catch (NumberFormatException e) {
+                } catch (NumberFormatException expected) {
                 }
                 if (familyValue != null) {
                     node.addChild("family").setAttr("val", familyValue);

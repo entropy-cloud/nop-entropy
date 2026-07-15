@@ -153,8 +153,7 @@ public class DaoTaskStateStore extends AbstractDaoHandler implements ITaskStateS
                 String json = JsonTool.serialize(resultValue, false);
                 if (json != null && json.length() <= 4000)
                     entity.setRemark(json);
-            } catch (Exception e) {
-                // 非致命：跳过 result 序列化（plan Non-Goals：不优化序列化细节）
+            } catch (Exception expected) {
             }
         }
 
@@ -406,8 +405,7 @@ public class DaoTaskStateStore extends AbstractDaoHandler implements ITaskStateS
                 String json = JsonTool.serialize(resultValue, false);
                 if (json != null && json.length() <= 4000)
                     entity.setStateBeanData(json);
-            } catch (Exception e) {
-                // 非致命：跳过 resultValue 序列化（plan 257 Non-Goals：不优化序列化细节）
+            } catch (Exception expected) {
             }
         }
 

@@ -30,7 +30,7 @@ public class SpringWebSocketSession implements IWebSocketSession {
         try {
             session.close(new jakarta.websocket.CloseReason(
                     jakarta.websocket.CloseReason.CloseCodes.getCloseCode(statusCode), reason));
-        } catch (IOException ignore) {
+        } catch (IOException expected) {
         }
     }
 

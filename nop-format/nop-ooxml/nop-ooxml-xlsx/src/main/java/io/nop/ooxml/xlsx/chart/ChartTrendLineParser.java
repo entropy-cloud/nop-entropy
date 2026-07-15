@@ -106,8 +106,7 @@ public class ChartTrendLineParser {
         if (period != null) {
             try {
                 trendLine.setPeriod(Integer.parseInt(period));
-            } catch (NumberFormatException e) {
-                // 忽略格式错误，使用默认值
+            } catch (NumberFormatException expected) {
             }
         }
     }

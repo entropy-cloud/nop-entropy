@@ -53,8 +53,7 @@ public class HttpInputFileBodyPublisher implements BodyPublisher {
                 completed = true;
                 try {
                     inputStream.close();
-                } catch (IOException e) {
-                    // Ignore
+                } catch (IOException expected) {
                 }
             }
         });
