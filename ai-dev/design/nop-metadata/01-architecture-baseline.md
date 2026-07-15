@@ -477,6 +477,26 @@ MetaQualityResult                — 质量执行结果（时序数据）
 
 **标识符注入防护（D3）**：列名 / 表名 / schema 名为 SQL 标识符（不能 PreparedStatement 占位），必须通过**白名单正则校验** `^[A-Za-z_][A-Za-z0-9_]*$` 后再拼接，否则显式失败（防止 SQL 注入）；比较值（range min/max、regex pattern 等）使用 PreparedStatement 参数绑定。`custom_sql` 的 `sqlExpression` / `params.sql` 是用户显式提供的检测 SQL（非自动注入面），记录为已知显式风险（执行前不解析/不改写，直接执行）。
 
+#### 2.7.2 数据剖析（Profiling）— P2-7
+
+数据剖析对表的列做统计分析（count/distinct/null/mean/stddev/min/max/median/percentiles/distribution/topValues），产出**统计结果**（区别于 §2.7.1 的 pass/fail 质量检查）。完整设计决策见 `06-data-quality-extended.md` §三（最终设计状态）。
+
+**建模（独立实体，不复用 MetaQualityRule）**：
+- `NopMetaProfilingRule`（剖析规则定义）：`profilingRuleId`(PK) / `ruleName` / `displayName` / `tableId`(→NopMetaTable) / `columns`(json-4000，空=所有列) / `stats`(json-4000，指标列表) / `sampleSize`(nullable) / `extConfig`(json) + 审计。
+- `NopMetaProfilingResult`（剖析结果，per-execution 时序行）：`profilingResultId`(PK) / `profilingRuleId`(→Rule) / `metaTableId` / `snapshotTime`(时序键) / `tableStats`(mediumtext+json) / `columnStats`(mediumtext+json，列级统计数组含 numericStats/stringStats/distribution) + 审计。**tableStats/columnStats 用 `mediumtext`+`stdDomain=json`**（不得 json-4000，对齐 Manifest/Catalog）。
+
+**执行范围（D1）**：首版仅 external 类型 NopMetaTable（已知注册数据源，与 §2.3.2 Catalog / §2.7.1 质量执行一致）。entity/sql 类型表剖析 deferred（querySpace→数据源解析同源 deferred）。
+
+**物理解析 + 执行机制（D3）**：复用 P2-1/P2-4/P2-6 范式——BizModel action + `withConnection` callback + 无状态剖析器（`MetaTableProfiler`）。主入口 `NopMetaTableBizModel.profileTable(metaTableId, schemaPattern?, columns?, context)`；辅助入口 `NopMetaProfilingRuleBizModel.executeProfilingRule(profilingRuleId, schemaPattern?, context)`（按规则 columns/stats 执行）。列名 + 类型运行时由 `DatabaseMetaData.getColumns()` 解析（不依赖 buildSql JSON 同步）。
+
+**统计范围 + 降级（D2，已 live 核查）**：
+- 便携精确（全方言含 H2/MySQL/PG）：totalCount/distinctCount/nullCount/emptyCount/min/max/mean(`AVG`)/stddev(`STDDEV_SAMP`)/minLength/maxLength/avgLength/topValues(`GROUP BY ... LIMIT N`)。
+- in-app 排序/分桶精确（全方言，仅依赖可移植 ORDER BY）：median/percentiles/distribution（H2/PG 虽支持 `PERCENTILE_CONT` 但 MySQL 无原生 percentile，故用 in-app 保证全方言精确）。
+- **不可用（方言特定，null + unavailable 标记，不伪造）**：`tableStats.sizeBytes` / `tableStats.lastModified`（首版不实现，对齐 Catalog §2.3.2 降级模式）。
+- **降级铁律**：不可用统计显式 null + `unavailable=[...]` 标记，不静默跳过整列/整表、不伪造值。
+
+**时序语义 + 失败隔离**：重复剖析追加新行（snapshotTime=now，不覆盖）；单列失败 per-column try/catch 收集 errors 不中断整表；不可执行路径（表不存在/非 external/无数据源/DISABLED/非 jdbc）显式失败抛 inline ErrorCode。标识符注入防护复用 §2.7.1 D3 白名单。
+
 ---
 
 ## 三、Delta 版本管理

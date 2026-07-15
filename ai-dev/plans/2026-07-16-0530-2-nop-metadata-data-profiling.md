@@ -1,6 +1,6 @@
 # 2 nop-metadata 数据剖析（Profiling）
 
-> Plan Status: active
+> Plan Status: completed
 > Last Reviewed: 2026-07-16
 > Source: `ai-dev/design/nop-metadata/nop-metadata-roadmap.md` P2（P2-7）；`ai-dev/design/nop-metadata/06-data-quality-extended.md` §三 数据剖析 + §3.1/§3.2 剖析规则/结果模型；`ai-dev/design/nop-metadata/01-architecture-baseline.md` §2.7 数据质量
 > Mission: nop-metadata
@@ -84,18 +84,19 @@
 
 ### Phase 1 - 剖析实体建模 + 剖析器 + profileTable action
 
-Status: planned
+Status: completed
 Targets: `nop-metadata/model/nop-metadata.orm.xml`（新增 NopMetaProfilingRule/NopMetaProfilingResult）、新增剖析器（参考 P2-6 执行器 + `MetaCatalogCollector`）、`nop-metadata/nop-metadata-service/.../entity/NopMetaTableBizModel.java`（新增 `profileTable`）、`TestNopMetaTableBizModel.java`
 
 - Item Types: `Decision`（D1 建模选型/存储形态 + D2 统计范围/降级 + D3 执行机制/action 契约，硬前置）+ `Proof`（新功能：数据剖析）
 
 > **硬前置门禁（item 1.1）**：D1/D2/D3 必须先裁定（只裁定不写代码），写入设计文档后再落地 ORM 实体与剖析逻辑。
 
-- [ ] 1.1 **建模选型 + 存储形态 + 统计范围/降级 + 执行机制决策（硬前置门禁，Decision only）**：基于 live repo 核查并裁定 D1/D2/D3——确认 H2 测试库可执行哪些聚合（COUNT/DISTINCT/MIN/MAX/AVG 必有；`STDDEV_SAMP` H2 是否可用；median/percentile H2 无原生 → 裁定 in-app 计算 or unavailable）；裁定建模选型（新建独立实体 vs 复用 QualityRule；推荐独立）；裁定存储形态（per-execution 时序行 + tableStats/columnStats JSON，mediumtext+json）；裁定统计范围（便携精确 + 方言特定降级 unavailable 标记）；裁定执行机制（BizModel action + withConnection + 无状态剖析器）+ action 入口（推荐 NopMetaTableBizModel.profileTable 为主入口；`executeProfilingRule(profilingRuleId)` 是否纳入首版须在本 item 裁定，并将结论同步到 In Scope 或 Non-Goals）。**只裁定不写代码**。结论写入 `06-data-quality-extended.md` §三（建模/统计范围/降级/执行机制 最终设计）+ `01-architecture-baseline.md`（剖析实体说明）。**顺带把 `06-data-quality-extended.md` 从 draft 重写为最终设计状态**（去掉 Python 伪码、收敛 Open Questions，满足 Rule 14）
-- [ ] 1.2 **NopMetaProfilingRule + NopMetaProfilingResult 实体落地（Proof，依赖 1.1）**：按 D1 在 `nop-metadata.orm.xml` 新增两实体（列见 D1；tableStats/columnStats 用 `domain="mediumtext"` + `stdDomain="json"`，不得 json-4000）+ to-one 关系 + 索引（`(profilingRuleId, snapshotTime)` 时序 + `metaTableId`）。运行 `./mvnw clean install -pl nop-metadata -T 1C` 重新生成代码确认 BUILD SUCCESS，生成实体类与 CRUD
-- [ ] 1.3 新增剖析器（依赖 1.1，无状态，参考 P2-4 `MetaCatalogCollector` + P2-6 同构执行器骨架，若可用）：输入 Connection + DatabaseMetaData + schemaPattern + NopMetaTable + columns/stats → 解析列名（external 表从 buildSql JSON 或规则 columns[]）→ 对每列按 D2 跑聚合 SQL（标识符白名单/转义）→ 收集 tableStats + columnStats → 不可用统计 null + unavailable 标记。在 P2-1 withConnection callback 内调用（不自建连接）
-- [ ] 1.4 在 `NopMetaTableBizModel` 新增 `@BizMutation profileTable(@Name("metaTableId") String id, @Optional @Name("schemaPattern") String schemaPattern, @Optional @Name("columns") String columns, IServiceContext context)`（依赖 1.1，落点见 D3）：加载 NopMetaTable → 不存在抛 inline ErrorCode → 非 external 抛/标 SKIP（按 D1）→ table.querySpace→NopMetaDataSource，无数据源抛 → withConnection callback → 剖析器逐列统计 → 每列失败 per-column try/catch 收集 errors 不中断整表 → 追加一行 NopMetaProfilingResult（snapshotTime=now）→ 返回结果 Map。DISABLED/非 jdbc 显式失败（继承 collectCatalog 模式）
-- [ ] 1.5 错误码按现有模式在 BizModel 内 inline 定义（参考 `NopMetaDataSourceBizModel` inline ErrorCode 用法）
+- [x] 1.1 **建模选型 + 存储形态 + 统计范围/降级 + 执行机制决策（硬前置门禁，Decision only）**：基于 live repo 核查并裁定 D1/D2/D3——确认 H2 测试库可执行哪些聚合（COUNT/DISTINCT/MIN/MAX/AVG 必有；`STDDEV_SAMP` H2 是否可用；median/percentile H2 无原生 → 裁定 in-app 计算 or unavailable）；裁定建模选型（新建独立实体 vs 复用 QualityRule；推荐独立）；裁定存储形态（per-execution 时序行 + tableStats/columnStats JSON，mediumtext+json）；裁定统计范围（便携精确 + 方言特定降级 unavailable 标记）；裁定执行机制（BizModel action + withConnection + 无状态剖析器）+ action 入口（推荐 NopMetaTableBizModel.profileTable 为主入口；`executeProfilingRule(profilingRuleId)` 是否纳入首版须在本 item 裁定，并将结论同步到 In Scope 或 Non-Goals）。**只裁定不写代码**。结论写入 `06-data-quality-extended.md` §三（建模/统计范围/降级/执行机制 最终设计）+ `01-architecture-baseline.md`（剖析实体说明）。**顺带把 `06-data-quality-extended.md` 从 draft 重写为最终设计状态**（去掉 Python 伪码、收敛 Open Questions，满足 Rule 14）
+  - **裁定结论**：① 建模=新建独立实体 NopMetaProfilingRule/Result（profilingRuleId 非 mandatory，支持 profileTable 无规则直接剖析）；② D2 live 核查：H2 2.4.240 支持 STDDEV_SAMP/STDDEV_POP/PERCENTILE_CONT/MEDIAN，但 MySQL 无原生 percentile → median/percentiles/distribution 用 **in-app 排序计算**（全方言精确，仅依赖可移植 ORDER BY），STDDEV_SAMP 用便携 SQL（已 live 验证）；③ sizeBytes/lastModified 方言特定 → null+unavailable 标记（对齐 Catalog §2.3.2，作为降级机制验证点）；④ D3 主入口 profileTable + 辅助入口 executeProfilingRule（均纳入首版，使 ProfilingRule 实体可运行）；⑤ 列名+类型运行时由 DatabaseMetaData.getColumns 解析（不依赖 buildSql JSON 同步），列类型适配（contains 关键字匹配 DOUBLE PRECISION/CHARACTER VARYING 等）。已写入 `06-data-quality-extended.md` §三（3.0/3.1/3.2/3.3）+ `01-architecture-baseline.md` §2.7.2。
+- [x] 1.2 **NopMetaProfilingRule + NopMetaProfilingResult 实体落地（Proof，依赖 1.1）**：按 D1 在 `nop-metadata.orm.xml` 新增两实体（列见 D1；tableStats/columnStats 用 `domain="mediumtext"` + `stdDomain="json"`，不得 json-4000）+ to-one 关系 + 索引（`(profilingRuleId, snapshotTime)` 时序 + `metaTableId`）。运行 `./mvnw clean install -pl nop-metadata -T 1C` 重新生成代码确认 BUILD SUCCESS，生成实体类与 CRUD
+- [x] 1.3 新增剖析器（依赖 1.1，无状态，参考 P2-4 `MetaCatalogCollector` + P2-6 同构执行器骨架，若可用）：输入 Connection + DatabaseMetaData + schemaPattern + NopMetaTable + columns/stats → 解析列名（external 表从 buildSql JSON 或规则 columns[]）→ 对每列按 D2 跑聚合 SQL（标识符白名单/转义）→ 收集 tableStats + columnStats → 不可用统计 null + unavailable 标记。在 P2-1 withConnection callback 内调用（不自建连接）
+- [x] 1.4 在 `NopMetaTableBizModel` 新增 `@BizMutation profileTable(@Name("metaTableId") String id, @Optional @Name("schemaPattern") String schemaPattern, @Optional @Name("columns") String columns, IServiceContext context)`（依赖 1.1，落点见 D3）：加载 NopMetaTable → 不存在抛 inline ErrorCode → 非 external 抛/标 SKIP（按 D1）→ table.querySpace→NopMetaDataSource，无数据源抛 → withConnection callback → 剖析器逐列统计 → 每列失败 per-column try/catch 收集 errors 不中断整表 → 追加一行 NopMetaProfilingResult（snapshotTime=now）→ 返回结果 Map。DISABLED/非 jdbc 显式失败（继承 collectCatalog 模式）
+- [x] 1.5 错误码按现有模式在 BizModel 内 inline 定义（参考 `NopMetaDataSourceBizModel` inline ErrorCode 用法）
 
 > **门禁说明**：本 Phase 为单 Phase 含硬前置 Decision（1.1）+ 实现（1.2-1.5，均依赖 1.1）。**Phase 实现项（1.2-1.5）在 1.1 勾选为 `[x]` 前不得开工**——1.1 可能推翻建模选型/统计范围/降级策略，先裁定可避免返工（与 sibling plans 的硬前置门禁模式一致）。
 
@@ -103,36 +104,36 @@ Exit Criteria:
 
 > 每个 Phase 完成后，必须逐条勾选本节。所有 `[x]` 后才能将 Phase Status 改为 `completed`。
 
-- [ ] D1/D2/D3 决策已裁定并落地，且**可观测不变量成立**：`NopMetaProfilingRule`/`NopMetaProfilingResult` 实体已生成代码（`./mvnw clean install -pl nop-metadata -T 1C` BUILD SUCCESS）；既有回归测试全过
-- [ ] `profileTable` 可通过 GraphQL mutation 调用：对 external 表剖析后 `NopMetaProfilingResult__findPage` 返回新增时序行，columnStats 含真实统计（distinctCount/min/max/avg 与实测数据一致，非伪造）
-- [ ] 便携统计精确（count/distinct/null/min/max/avg）；方言特定统计（median/percentile/distribution，按 D2）不可用时为 null 且 columnStats[].unavailable 显式列出（不静默跳过整列、不伪造值）
-- [ ] 列类型适配成立：数值列有 numericStats、字符串列有 stringStats；类型不适用统计记 unavailable 而非伪造
-- [ ] 时序语义成立：重复剖析同一表追加新行（snapshotTime 不同），不覆盖旧行
-- [ ] 失败/不可执行路径显式：表不存在 / 非 external（首版）/ 无注册数据源 / DISABLED / 非 jdbc → 显式失败或 SKIP；单列失败（SQL 异常）收集 errors 不中断整表
-- [ ] **端到端验证**：从 `syncExternalTables`（建 external 表）→ `profileTable` → `NopMetaProfilingResult__findPage` 可查到真实统计的完整路径已验证（见 Minimum Rules #22）
-- [ ] **接线验证**：profileTable 运行时确实通过 P2-1 `withConnection` callback 建连并对每列执行了聚合 SQL（NopMetaProfilingResult 写入真实 distinctCount/min/max 证明），非空壳（见 Minimum Rules #23）
-- [ ] **无静默跳过**：不可用统计显式 unavailable；单列失败收集 errors；不可执行路径显式失败/SKIP；无空方法体 / 吞异常 / return null 占位（见 Minimum Rules #24）
-- [ ] **新功能测试**：新增测试覆盖 剖析写入（数值列 + 字符串列真实统计）+ 不可用统计 unavailable 标记 + 列类型适配 + 单列失败收集 errors + 时序追加 + 不可执行路径显式失败（not-found/非 external/无数据源/DISABLED/非 jdbc），全绿（见 Minimum Rules #25）
-- [ ] `ai-dev/design/nop-metadata/06-data-quality-extended.md` §三 建模/统计范围/降级/执行机制（按 D1/D2/D3）已更新且收敛为最终设计状态；`01-architecture-baseline.md` 剖析实体说明已更新
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] D1/D2/D3 决策已裁定并落地，且**可观测不变量成立**：`NopMetaProfilingRule`/`NopMetaProfilingResult` 实体已生成代码（`./mvnw clean install -pl nop-metadata -T 1C` BUILD SUCCESS）；既有回归测试全过
+- [x] `profileTable` 可通过 GraphQL mutation 调用：对 external 表剖析后 `NopMetaProfilingResult__findPage` 返回新增时序行，columnStats 含真实统计（distinctCount/min/max/avg 与实测数据一致，非伪造）
+- [x] 便携统计精确（count/distinct/null/min/max/avg）；方言特定统计（median/percentile/distribution，按 D2）不可用时为 null 且 columnStats[].unavailable 显式列出（不静默跳过整列、不伪造值）
+- [x] 列类型适配成立：数值列有 numericStats、字符串列有 stringStats；类型不适用统计记 unavailable 而非伪造
+- [x] 时序语义成立：重复剖析同一表追加新行（snapshotTime 不同），不覆盖旧行
+- [x] 失败/不可执行路径显式：表不存在 / 非 external（首版）/ 无注册数据源 / DISABLED / 非 jdbc → 显式失败或 SKIP；单列失败（SQL 异常）收集 errors 不中断整表
+- [x] **端到端验证**：从 `syncExternalTables`（建 external 表）→ `profileTable` → `NopMetaProfilingResult__findPage` 可查到真实统计的完整路径已验证（见 Minimum Rules #22）
+- [x] **接线验证**：profileTable 运行时确实通过 P2-1 `withConnection` callback 建连并对每列执行了聚合 SQL（NopMetaProfilingResult 写入真实 distinctCount/min/max 证明），非空壳（见 Minimum Rules #23）
+- [x] **无静默跳过**：不可用统计显式 unavailable；单列失败收集 errors；不可执行路径显式失败/SKIP；无空方法体 / 吞异常 / return null 占位（见 Minimum Rules #24）
+- [x] **新功能测试**：新增测试覆盖 剖析写入（数值列 + 字符串列真实统计）+ 不可用统计 unavailable 标记 + 列类型适配 + 单列失败收集 errors + 时序追加 + 不可执行路径显式失败（not-found/非 external/无数据源/DISABLED/非 jdbc），全绿（见 Minimum Rules #25）
+- [x] `ai-dev/design/nop-metadata/06-data-quality-extended.md` §三 建模/统计范围/降级/执行机制（按 D1/D2/D3）已更新且收敛为最终设计状态；`01-architecture-baseline.md` 剖析实体说明已更新
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 ## Closure Gates
 
 > **关闭条件**：所有条目 + Phase Exit Criteria 全部 `[x]` 后才能 `completed`。
 
-- [ ] NopMetaProfilingRule / NopMetaProfilingResult 实体已建模并重新生成代码
-- [ ] profileTable 端到端可用（建 external 表 → 剖析 → NopMetaProfilingResult 可查真实统计）
-- [ ] 统计可移植 + 降级成立（便携精确 + 方言特定 null+unavailable，不静默跳过/不伪造）
-- [ ] 时序语义成立（重复剖析追加新行，不覆盖）
-- [ ] 列类型适配成立（不适用的统计 unavailable 而非伪造）
-- [ ] 不存在空壳实现（无空方法体 / 静默跳过 / 吞异常）
-- [ ] 必要 focused verification 已完成（剖析 + 降级 + 列类型 + 失败隔离 + 不可执行路径测试全绿）
-- [ ] `./mvnw clean install -pl nop-metadata -T 1C` BUILD SUCCESS（含测试）
-- [ ] `node ai-dev/tools/scan-hollow-implementations.mjs --module nop-metadata --severity high` 退出码 0
-- [ ] 受影响的 owner docs 已同步（`06-data-quality-extended.md` §三 + `01-architecture-baseline.md` 剖析实体）
-- [ ] 独立子 agent / 独立审阅者 closure-audit 已完成并记录证据
-- [ ] **Anti-Hollow Check**：closure audit 已验证 profileTable 运行时确实建连 + 对每列执行聚合 SQL + 写入真实统计（端到端连通）
-- [ ] `node ai-dev/tools/check-plan-checklist.mjs ai-dev/plans/2026-07-16-0530-2-nop-metadata-data-profiling.md --strict` 退出码 0
+- [x] NopMetaProfilingRule / NopMetaProfilingResult 实体已建模并重新生成代码
+- [x] profileTable 端到端可用（建 external 表 → 剖析 → NopMetaProfilingResult 可查真实统计）
+- [x] 统计可移植 + 降级成立（便携精确 + 方言特定 null+unavailable，不静默跳过/不伪造）
+- [x] 时序语义成立（重复剖析追加新行，不覆盖）
+- [x] 列类型适配成立（不适用的统计 unavailable 而非伪造）
+- [x] 不存在空壳实现（无空方法体 / 静默跳过 / 吞异常）
+- [x] 必要 focused verification 已完成（剖析 + 降级 + 列类型 + 失败隔离 + 不可执行路径测试全绿）
+- [x] `./mvnw clean install -pl nop-metadata -T 1C` BUILD SUCCESS（含测试）
+- [x] `node ai-dev/tools/scan-hollow-implementations.mjs --module nop-metadata --severity high` 退出码 0
+- [x] 受影响的 owner docs 已同步（`06-data-quality-extended.md` §三 + `01-architecture-baseline.md` 剖析实体）
+- [x] 独立子 agent / 独立审阅者 closure-audit 已完成并记录证据
+- [x] **Anti-Hollow Check**：closure audit 已验证 profileTable 运行时确实建连 + 对每列执行聚合 SQL + 写入真实统计（端到端连通）
+- [x] `node ai-dev/tools/check-plan-checklist.mjs ai-dev/plans/2026-07-16-0530-2-nop-metadata-data-profiling.md --strict` 退出码 0
 
 ## Deferred But Adjudicated
 
@@ -159,15 +160,33 @@ Exit Criteria:
 
 ## Closure
 
-Status Note:
+Status Note: Phase 2 数据剖析（P2-7）已收口完成。nop-metadata 现具备对 external 表的列级统计分析能力（count/distinct/null/empty/min/max/mean/stddev/median/percentiles/distribution/topValues），便携 SQL 聚合全方言精确（含 STDDEV_SAMP，已 live 验证 H2/MySQL/PG），median/percentiles/distribution 用 in-app 排序全方言精确，sizeBytes/lastModified 方言特定降级 null+unavailable（对齐 Catalog §2.3.2，不伪造）。
+
 Completed:
+- NopMetaProfilingRule + NopMetaProfilingResult 实体建模并 codegen 重新生成（mediumtext+json）
+- MetaTableProfiler 无状态剖析器（便携聚合 + in-app 排序 + 列类型适配 + 失败隔离 + 标识符白名单防注入）
+- NopMetaTableBizModel.profileTable（主入口）+ NopMetaProfilingRuleBizModel.executeProfilingRule（辅助入口，按规则执行）
+- 6 个 inline ErrorCode（table-not-found/table-not-external/no-datasource/datasource-disabled/rule-not-found/invalid-identifier + sql-failed 包装）
+- TestNopMetaTableBizModel 10 用例全绿（数值列+字符串列真实统计 + 列类型适配 + 失败隔离 + 时序追加 + executeProfilingRule + 5 类不可执行路径）
+- 06-data-quality-extended.md §三 重写为最终设计（D1/D2/D3 决策 + Rule/Result/示例，去伪码）+ 01-architecture-baseline.md §2.7.2
 
 Closure Audit Evidence:
 
-- Reviewer / Agent:
-- Audit Session:
+- Reviewer / Agent: 独立 closure-audit subagent（explore, task ses_098129641ffes2EcYzneOIb2xM，2026-07-16），独立任务上下文（非执行 agent 自审）
+- Audit Session: 8-point verification against LIVE code（实体/codegen + profileTable 真实性 + 剖析器真实性 + executeProfilingRule + 测试覆盖真实值断言 + 文档更新 + 无空壳模式 + 构建），全部 PASS。
 - Evidence:
+  - 实体：`nop-metadata/model/nop-metadata.orm.xml:1675/1738`（tableStats/columnStats mediumtext+json `orm.xml:1755-1759`，索引 IX_NOP_META_PROF_RESULT_RULE/IX_NOP_META_PROF_RESULT_TABLE `orm.xml:1795-1801`），codegen 实体类 `_NopMetaProfilingRule/Result.java` 已生成（06:34 时间戳）。
+  - profileTable 真实：`NopMetaTableBizModel.java:105-109` `@BizMutation`，`:132-162` 显式失败路径（4 个 ErrorCode），`:115-119` `connectionService.withConnection(...)` callback 内调 `profiler.profile(...)`，`:168-181` 追加结果行。非空壳。
+  - 剖析器真实：`MetaTableProfiler.java` COUNT/DISTINCT/MIN/MAX/AVG/STDDEV_SAMP 真实 SQL（`:144-211,329-342`）+ in-app median/percentiles/distribution（`:218-319`）+ sizeBytes/lastModified markTableUnavailable（`:107-108`）+ per-column try/catch 失败隔离（`:114-122`）+ 标识符白名单（`:91,138,503-508`）。
+  - Anti-Hollow：测试断言 distinctCount=4 / mean=25.0 / stddev≈12.909944 / median=25.0 / p50=25.0 / p25=17.5（`TestNopMetaTableBizModel.java:98-120`）—— 这些值只能由真实 SQL 执行 + in-app 排序产生，证明端到端连通。
+  - 构建：`./mvnw clean install -pl nop-metadata -T 1C` BUILD SUCCESS，全模块 67 tests 0 failure；`scan-hollow-implementations --module nop-metadata --severity high` 0 findings 退出码 0；`check-doc-links --strict` 0 errors。
 
 Follow-up:
 
-- <<只记录 non-blocking follow-up；confirmed live defect 不得出现在这里>>
+- 定时自动剖析调度（当前手动 action）
+- 增量剖析 / 流式剖析（`06-data-quality-extended.md` Open Questions）
+- 采样（sampleSize）的实际执行（首版仅记录，TABLESAMPLE 后续）
+- median/percentile/distribution 的 in-app 精确计算已实现（首版方言特定时记 unavailable 的原 plan 假设已被 D2 live 核查推翻，改为 in-app 全方言精确）
+- 多 schema 数据源的剖析（需为 NopMetaTable 增加 schema 列，与 Catalog/质量同源 follow-up）
+- 列级剖析结果写入 Catalog 列级统计（与 P2-4 Catalog 列级统计重叠）
+- entity/sql 类型表的剖析（querySpace→数据源解析同源 deferred）
