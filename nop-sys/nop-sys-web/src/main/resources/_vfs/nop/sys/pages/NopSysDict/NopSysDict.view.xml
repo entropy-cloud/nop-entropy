@@ -20,8 +20,8 @@
                 <action id="items-button" label="条目" level="primary" actionType="drawer">
                     <dialog page="/nop/sys/pages/NopSysDictOption/dict-ref.page.yaml" size="lg">
                         <data>
-                            <dictId>$id</dictId>
-                            <dictName>$displayName</dictName>
+                            <dictId>${'$'}{id}</dictId>
+                            <dictName>${'$'}{displayName}</dictName>
                         </data>
                     </dialog>
                 </action>

@@ -150,7 +150,7 @@
                         <confirmText>@i18n:common.confirmDisableUser</confirmText>
                         <api url="@mutation:NopAuthUser__disableUser">
                             <data>
-                                <userId>$id</userId>
+                                <userId>${'$'}{id}</userId>
                             </data>
                         </api>
                         <visibleOn>${status == 1}</visibleOn>
@@ -159,7 +159,7 @@
                         <confirmText>@i18n:common.confirmEnableUser</confirmText>
                         <api url="@mutation:NopAuthUser__enableUser">
                             <data>
-                                <userId>$id</userId>
+                                <userId>${'$'}{id}</userId>
                             </data>
                         </api>
                         <visibleOn>${status == 0}</visibleOn>
@@ -183,7 +183,7 @@
                 <action id="recover-deleted-button" label="@i18n:common.recoverDeleted" >
                     <api url="@mutation:NopAuthUser__recoverDeleted/id">
                         <data>
-                            <id>$id</id>
+                            <id>${'$'}{id}</id>
                         </data>
                     </api>
                     <confirmText>@i18n:common.confirmRecoverDeleted</confirmText>
@@ -192,16 +192,16 @@
         </crud>
 
         <simple name="resetUserPassword" form="resetUserPassword">
-            <api url="@mutation:NopAuthUser__resetUserPassword?userId=$id">
+            <api url="@mutation:NopAuthUser__resetUserPassword?userId=${'$'}{id}">
                 <data>
-                    <password>$password</password>
+                    <password>${'$'}{password}</password>
                 </data>
             </api>
         </simple>
 
         <crud name="role-users" grid="simple-list">
             <table loadDataOnce="true" name="role-users-grid">
-                <api url="@query:NopAuthRole__get/items:roleUsers{{@listSelection!}}?id=$roleId">
+                <api url="@query:NopAuthRole__get/items:roleUsers{{@listSelection!}}?id=${'$'}{roleId}">
                 </api>
             </table>
 
@@ -214,8 +214,8 @@
                 <action id="batch-delete-button" label="@i18n:common.batchDelete" batch="true">
                     <api url="@mutation:NopAuthRole__removeRoleUsers">
                         <data>
-                            <roleId>$roleId</roleId>
-                            <userIds>$ids</userIds>
+                            <roleId>${'$'}{roleId}</roleId>
+                            <userIds>${'$'}{ids}</userIds>
                         </data>
                     </api>
                     <confirmText>@i18n:common.confirmBatchDelete</confirmText>
@@ -233,8 +233,8 @@
                         batch="true" close="select-role-users" reload="role-users-grid">
                     <api url="@mutation:NopAuthRole__addRoleUsers">
                         <data>
-                            <roleId>$roleId</roleId>
-                            <userIds>$ids</userIds>
+                            <roleId>${'$'}{roleId}</roleId>
+                            <userIds>${'$'}{ids}</userIds>
                         </data>
                     </api>
                 </action>

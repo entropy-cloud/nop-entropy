@@ -15,7 +15,7 @@ body:
         api:
           url: "@query:NopAuthRole__get/resourceIds:roleResourceIds"
           data:
-            id: $roleId
+            id: ${'$'}{roleId}
         body:
           type: input-tree
           name: resourceIds
@@ -26,8 +26,8 @@ body:
             url: "@query:NopAuthResource__findList/value:id,label:displayName,children @TreeChildren(max:5)"
             data:
               filter_resourceType: TOPM
-              filter_siteId: $siteId
-            trackExpression: $siteId
+              filter_siteId: ${'$'}{siteId}
+            trackExpression: ${'$'}{siteId}
 
       - type: wrapper
         body:
@@ -38,7 +38,7 @@ body:
           api:
             url: "@mutation:NopAuthRole__updateRoleResources"
             data:
-              siteId: $siteId
-              resourceIds: $resourceIds
-              roleId: $roleId
+              siteId: ${'$'}{siteId}
+              resourceIds: ${'$'}{resourceIds}
+              roleId: ${'$'}{roleId}
 

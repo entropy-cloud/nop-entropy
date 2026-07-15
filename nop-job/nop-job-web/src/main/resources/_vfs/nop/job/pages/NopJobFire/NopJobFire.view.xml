@@ -43,25 +43,25 @@
                     <action id="runtime-summary-button" label="@i18n:common.runtimeSummary" actionType="drawer" xui:permissions="NopJobFire:query">
                         <dialog page="runtimeTabs" size="xl">
                             <data>
-                                <id>$id</id>
-                                <jobFireId>$jobFireId</jobFireId>
+                                <id>${'$'}{id}</id>
+                                <jobFireId>${'$'}{jobFireId}</jobFireId>
                             </data>
                         </dialog>
                     </action>
                     <action id="view-schedule-button" label="@i18n:common.viewSchedule" actionType="drawer" xui:permissions="NopJobSchedule:query">
                         <dialog page="/nop/job/pages/NopJobSchedule/view.page.yaml" size="xl">
                             <data>
-                                <id>$jobScheduleId</id>
+                                <id>${'$'}{jobScheduleId}</id>
                             </data>
                         </dialog>
                     </action>
                     <action id="view-tasks-button" label="@i18n:common.viewTasks" actionType="drawer" xui:permissions="NopJobTask:query">
                         <dialog page="/nop/job/pages/NopJobTask/ref-fire.page.yaml" size="xl">
                             <data>
-                                <jobFireId>$jobFireId</jobFireId>
+                                <jobFireId>${'$'}{jobFireId}</jobFireId>
                                 <jobFire>
-                                    <jobName>$jobName</jobName>
-                                    <scheduledFireTime>$scheduledFireTime</scheduledFireTime>
+                                    <jobName>${'$'}{jobName}</jobName>
+                                    <scheduledFireTime>${'$'}{scheduledFireTime}</scheduledFireTime>
                                 </jobFire>
                             </data>
                         </dialog>
@@ -69,7 +69,7 @@
                     <action id="cancel-fire-button" label="@i18n:common.cancelFire" xui:permissions="NopJobFire:cancelFire">
                         <api url="@mutation:NopJobFire__cancelFire">
                             <data>
-                                <id>$id</id>
+                                <id>${'$'}{id}</id>
                             </data>
                         </api>
                         <confirmText>@i18n:common.confirmCancelFire</confirmText>
@@ -78,7 +78,7 @@
                     <action id="rerun-fire-button" label="@i18n:common.rerunFire" xui:permissions="NopJobFire:rerunFire">
                         <api url="@mutation:NopJobFire__rerunFire">
                             <data>
-                                <id>$id</id>
+                                <id>${'$'}{id}</id>
                             </data>
                         </api>
                         <confirmText>@i18n:common.confirmRerunFire</confirmText>
@@ -89,12 +89,12 @@
         </crud>
 
         <simple name="runtimeSummary" form="runtimeSummaryForm">
-            <initApi url="@query:NopJobFire__get?id=$id" gql:selection="{@formSelection}"/>
+            <initApi url="@query:NopJobFire__get?id=${'$'}{id}" gql:selection="{@formSelection}"/>
         </simple>
 
         <crud name="runtimeTasks" x:prototype="view-list">
             <table>
-                <api url="@query:NopJobTask__findPage/{@pageSelection}?filter_jobFireId=$jobFireId"/>
+                <api url="@query:NopJobTask__findPage/{@pageSelection}?filter_jobFireId=${'$'}{jobFireId}"/>
             </table>
         </crud>
 

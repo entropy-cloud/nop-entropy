@@ -36,18 +36,18 @@
                     <action id="runtime-summary-button" label="@i18n:common.runtimeSummary" actionType="drawer" xui:permissions="NopJobSchedule:query">
                         <dialog page="runtimeTabs" size="xl">
                             <data>
-                                <id>$id</id>
-                                <jobScheduleId>$jobScheduleId</jobScheduleId>
+                                <id>${'$'}{id}</id>
+                                <jobScheduleId>${'$'}{jobScheduleId}</jobScheduleId>
                             </data>
                         </dialog>
                     </action>
                     <action id="view-fires-button" label="@i18n:common.viewFires" actionType="drawer" xui:permissions="NopJobFire:query">
                         <dialog page="/nop/job/pages/NopJobFire/ref-schedule.page.yaml" size="xl">
                             <data>
-                                <jobScheduleId>$jobScheduleId</jobScheduleId>
+                                <jobScheduleId>${'$'}{jobScheduleId}</jobScheduleId>
                                 <jobSchedule>
-                                    <displayName>$displayName</displayName>
-                                    <jobName>$jobName</jobName>
+                                    <displayName>${'$'}{displayName}</displayName>
+                                    <jobName>${'$'}{jobName}</jobName>
                                 </jobSchedule>
                             </data>
                         </dialog>
@@ -55,7 +55,7 @@
                     <action id="trigger-now-button" label="@i18n:common.triggerNow" xui:permissions="NopJobSchedule:triggerNow">
                         <api url="@mutation:NopJobSchedule__triggerNow">
                             <data>
-                                <id>$id</id>
+                                <id>${'$'}{id}</id>
                             </data>
                         </api>
                         <confirmText>@i18n:common.confirmTriggerNow</confirmText>
@@ -64,7 +64,7 @@
                     <action id="enable-schedule-button" label="@i18n:common.enableSchedule" xui:permissions="NopJobSchedule:enableSchedule">
                         <api url="@mutation:NopJobSchedule__enableSchedule">
                             <data>
-                                <id>$id</id>
+                                <id>${'$'}{id}</id>
                             </data>
                         </api>
                         <confirmText>@i18n:common.confirmEnableSchedule</confirmText>
@@ -73,7 +73,7 @@
                     <action id="disable-schedule-button" label="@i18n:common.disableSchedule" xui:permissions="NopJobSchedule:disableSchedule">
                         <api url="@mutation:NopJobSchedule__disableSchedule">
                             <data>
-                                <id>$id</id>
+                                <id>${'$'}{id}</id>
                             </data>
                         </api>
                         <confirmText>@i18n:common.confirmDisableSchedule</confirmText>
@@ -82,7 +82,7 @@
                     <action id="pause-schedule-button" label="@i18n:common.pauseSchedule" xui:permissions="NopJobSchedule:pauseSchedule">
                         <api url="@mutation:NopJobSchedule__pauseSchedule">
                             <data>
-                                <id>$id</id>
+                                <id>${'$'}{id}</id>
                             </data>
                         </api>
                         <confirmText>@i18n:common.confirmPauseSchedule</confirmText>
@@ -91,7 +91,7 @@
                     <action id="resume-schedule-button" label="@i18n:common.resumeSchedule" xui:permissions="NopJobSchedule:resumeSchedule">
                         <api url="@mutation:NopJobSchedule__resumeSchedule">
                             <data>
-                                <id>$id</id>
+                                <id>${'$'}{id}</id>
                             </data>
                         </api>
                         <confirmText>@i18n:common.confirmResumeSchedule</confirmText>
@@ -100,7 +100,7 @@
                     <action id="archive-schedule-button" label="@i18n:common.archiveSchedule" xui:permissions="NopJobSchedule:archiveSchedule">
                         <api url="@mutation:NopJobSchedule__archiveSchedule">
                             <data>
-                                <id>$id</id>
+                                <id>${'$'}{id}</id>
                             </data>
                         </api>
                         <confirmText>@i18n:common.confirmArchiveSchedule</confirmText>
@@ -111,12 +111,12 @@
         </crud>
 
         <simple name="runtimeSummary" form="runtimeSummaryForm">
-            <initApi url="@query:NopJobSchedule__get?id=$id" gql:selection="{@formSelection}"/>
+            <initApi url="@query:NopJobSchedule__get?id=${'$'}{id}" gql:selection="{@formSelection}"/>
         </simple>
 
         <crud name="runtimeFires" x:prototype="view-list">
             <table>
-                <api url="@query:NopJobFire__findPage/{@pageSelection}?filter_jobScheduleId=$jobScheduleId"/>
+                <api url="@query:NopJobFire__findPage/{@pageSelection}?filter_jobScheduleId=${'$'}{jobScheduleId}"/>
             </table>
         </crud>
 

@@ -87,13 +87,13 @@
                 <cell id="ruleInputs">
 
                     <gen-control>
-                        return { "$ref": "inputDefinition" }
+                        return { "${'$'}{ref}": "inputDefinition" }
                     </gen-control>
                 </cell>
 
                 <cell id="ruleOutputs">
                     <gen-control>
-                        return { "$ref":"outputDefinition" }
+                        return { "${'$'}{ref}":"outputDefinition" }
                     </gen-control>
                 </cell>
             </cells>
@@ -131,13 +131,13 @@
             <cells>
                 <cell id="ruleInputs">
                     <gen-control>
-                        return { "$ref": "viewInputDefinition" }
+                        return { "${'$'}{ref}": "viewInputDefinition" }
                     </gen-control>
                 </cell>
 
                 <cell id="ruleOutputs">
                     <gen-control>
-                        return { "$ref": "viewOutputDefinition" }
+                        return { "${'$'}{ref}": "viewOutputDefinition" }
                     </gen-control>
                 </cell>
 
@@ -173,9 +173,9 @@
                         <visibleOn>${ruleType == 'TREE'}</visibleOn>
                         <dialog page="/nop/rule/pages/NopRuleNode/ref-ruleDefinition.page.yaml" size="xl">
                             <data>
-                                <ruleId>$ruleId</ruleId>
+                                <ruleId>${'$'}{ruleId}</ruleId>
                                 <ruleDefinition>
-                                    <displayName>$displayName</displayName>
+                                    <displayName>${'$'}{displayName}</displayName>
                                 </ruleDefinition>
                             </data>
                         </dialog>

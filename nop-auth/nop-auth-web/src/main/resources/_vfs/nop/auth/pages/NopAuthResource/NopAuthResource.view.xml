@@ -14,7 +14,7 @@
                 <col id="icon" align="center">
                     <gen-control>
                         <vue-renderer vueComponent="icon">
-                            <props icon="$icon"/>
+                            <props icon="${'$'}{icon}"/>
                         </vue-renderer>
                     </gen-control>
                 </col>
@@ -116,7 +116,7 @@
                                 Amis并不允许url中包含空格和回车。Nop平台为了简化代码编写，在后台通过WebPageHelper.fixPage函数进行了规范化处理
                                 -->
                                 <url>@query:NopAuthResource__findList/value:id,label:displayName,
-                                    children @TreeChildren(max:5)?filter_resourceType=TOPM&amp;filter_siteId=$siteId
+                                    children @TreeChildren(max:5)?filter_resourceType=TOPM&amp;filter_siteId=${'$'}{siteId}
                                 </url>
                             </source>
                         </tree-select>
@@ -134,7 +134,7 @@
 
         <form id="add">
             <data>
-                <siteId>$siteId</siteId>
+                <siteId>${'$'}{siteId}</siteId>
             </data>
         </form>
     </forms>
@@ -171,15 +171,15 @@
 
         <simple name="add-child">
             <data>
-                <parentId>$id</parentId>
-                <siteId>$siteId</siteId>
+                <parentId>${'$'}{id}</parentId>
+                <siteId>${'$'}{siteId}</siteId>
                 <resourceType>SUBM</resourceType>
             </data>
         </simple>
 
         <picker name="picker">
             <table loadDataOnce="true" sortable="false">
-                <api url="@query:NopAuthResource__findList/{@listSelection}?filter_siteId=$siteId&amp;filter_resourceType=TOPM"/>
+                <api url="@query:NopAuthResource__findList/{@listSelection}?filter_siteId=${'$'}{siteId}&amp;filter_resourceType=TOPM"/>
             </table>
         </picker>
     </pages>

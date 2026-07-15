@@ -54,7 +54,7 @@
                         <confirmText>@i18n:common.confirmCopyForNew</confirmText>
                         <api url="@mutation:NopWfDefinition__copyForNew/id">
                             <data>
-                                <id>$id</id>
+                                <id>${'$'}{id}</id>
                             </data>
                         </api>
                     </action>
@@ -63,7 +63,7 @@
                         <confirmText>@i18n:common.confirmPublish</confirmText>
                         <api url="@mutation:NopWfDefinition__publish">
                             <data>
-                                <id>$id</id>
+                                <id>${'$'}{id}</id>
                             </data>
                         </api>
                         <visibleOn>${status == 0}</visibleOn>
@@ -73,7 +73,7 @@
                         <confirmText>@i18n:common.confirmUnpublish</confirmText>
                         <api url="@mutation:NopWfDefinition__unpublish">
                             <data>
-                                <id>$id</id>
+                                <id>${'$'}{id}</id>
                             </data>
                         </api>
                         <visibleOn>${status == 1}</visibleOn>

@@ -36,7 +36,7 @@
 
         <crud name="dict-ref" x:prototype="main">
             <table>
-                <api url="@query:NopSysDictOption__findPage/{@pageSelection}?filter_dictId=$dictId"/>
+                <api url="@query:NopSysDictOption__findPage/{@pageSelection}?filter_dictId=${'$'}{dictId}"/>
             </table>
         </crud>
     </pages>

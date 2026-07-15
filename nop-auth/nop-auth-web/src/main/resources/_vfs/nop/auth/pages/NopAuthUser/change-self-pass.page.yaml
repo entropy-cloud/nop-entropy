@@ -12,8 +12,8 @@ body:
   api:
     url: "@mutation:NopAuthUser__changeSelfPassword"
     data:
-      oldPassword: $oldPassword
-      newPassword: $newPassword
+      oldPassword: ${'$'}{oldPassword}
+      newPassword: ${'$'}{newPassword}
 
   body:
     - type: input-password

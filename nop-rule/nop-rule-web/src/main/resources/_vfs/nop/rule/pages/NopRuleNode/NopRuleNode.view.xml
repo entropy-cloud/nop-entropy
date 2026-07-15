@@ -89,7 +89,7 @@
                     <gen-control>
                         <condition-builder embed="@:false"
                                            title="@i18n:common.conditionConfig|条件配置"
-                                           source="/r/NopRuleDefinition__getConditionFields?ruleId=$ruleId"/>
+                                           source="/r/NopRuleDefinition__getConditionFields?ruleId=${'$'}{ruleId}"/>
                     </gen-control>
                 </cell>
 
@@ -97,7 +97,7 @@
                     <gen-control>
                         <input-kv/>
 <!--                        <service>-->
-<!--                            <schemaApi url="/r/NopRuleDefinition__getOutputFieldsEditSchema?ruleId=$ruleId" data="${{}}" />-->
+<!--                            <schemaApi url="/r/NopRuleDefinition__getOutputFieldsEditSchema?ruleId=${'$'}{ruleId}" data="${{}}" />-->
 <!--                        </service>-->
                     </gen-control>
                 </cell>
@@ -112,10 +112,10 @@
         <simple name="add-child">
             <!-- 一旦设置data就不会继承外部环境中的数据，因此这里需要手工传递一下 -->
             <data>
-                <parentId>$id</parentId>
-                <ruleId>$ruleId</ruleId>
+                <parentId>${'$'}{id}</parentId>
+                <ruleId>${'$'}{ruleId}</ruleId>
                 <ruleDefinition>
-                    <displayName>$ruleDefinition.displayName</displayName>
+                    <displayName>${'$'}{ruleDefinition.displayName}</displayName>
                 </ruleDefinition>
             </data>
         </simple>
