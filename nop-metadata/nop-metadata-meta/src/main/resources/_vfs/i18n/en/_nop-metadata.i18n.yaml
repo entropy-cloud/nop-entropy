@@ -1,5 +1,6 @@
 entity:
   label:
+    NopMetaCatalog: Meta Catalog
     NopMetaDataSource: Meta Datasource
     NopMetaDict: Meta Dict
     NopMetaDictItem: Meta Dict Item
@@ -24,6 +25,25 @@ entity:
     NopMetaTableMeasure: Meta Table Measure
 prop:
   label:
+    NopMetaCatalog:
+      metaCatalogId: Meta Catalog Id
+      metaTableId: Meta Table Id
+      rowCount: Row Count
+      sizeBytes: Size Bytes
+      indexCount: Index Count
+      partitionCount: Partition Count
+      lastModified: Last Modified
+      details: Details
+      collectedAt: Collected At
+      version: Version
+      createdBy: Created By
+      createTime: Create Time
+      updatedBy: Updated By
+      updateTime: Update Time
+      remark: Remark
+      metaTable: Meta Table
+      metaTable.displayName: Meta Table
+      detailsComponent: null
     NopMetaDataSource:
       dataSourceId: Datasource Id
       querySpace: Query Space

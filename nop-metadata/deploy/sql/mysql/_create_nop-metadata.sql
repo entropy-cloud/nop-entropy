@@ -329,6 +329,25 @@ CREATE TABLE nop_meta_table_filter(
   constraint PK_nop_meta_table_filter primary key (FILTER_ID)
 )CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_as_cs;
 
+CREATE TABLE nop_meta_catalog(
+  META_CATALOG_ID VARCHAR(32) NOT NULL    COMMENT '统计快照ID',
+  META_TABLE_ID VARCHAR(32) NOT NULL    COMMENT '逻辑表ID',
+  ROW_COUNT BIGINT NOT NULL    COMMENT '行数',
+  SIZE_BYTES BIGINT NULL    COMMENT '表物理大小',
+  INDEX_COUNT INTEGER NULL    COMMENT '索引数量',
+  PARTITION_COUNT INTEGER NULL    COMMENT '分区数',
+  LAST_MODIFIED DATETIME(3) NULL    COMMENT '最后修改时间',
+  DETAILS LONGTEXT NULL    COMMENT '扩展详情',
+  COLLECTED_AT DATETIME(3) DEFAULT CURRENT_TIMESTAMP(3)  NOT NULL    COMMENT '收集时间',
+  DEL_VERSION BIGINT NOT NULL    COMMENT '数据版本',
+  CREATED_BY VARCHAR(50) NOT NULL    COMMENT '创建人',
+  CREATE_TIME DATETIME(3) DEFAULT CURRENT_TIMESTAMP(3)  NOT NULL    COMMENT '创建时间',
+  UPDATED_BY VARCHAR(50) NOT NULL    COMMENT '修改人',
+  UPDATE_TIME DATETIME(3) DEFAULT CURRENT_TIMESTAMP(3)  NOT NULL    COMMENT '修改时间',
+  REMARK VARCHAR(200) NULL    COMMENT '备注',
+  constraint PK_nop_meta_catalog primary key (META_CATALOG_ID)
+)CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_as_cs;
+
 CREATE TABLE nop_meta_entity_field(
   ENTITY_FIELD_ID VARCHAR(32) NOT NULL    COMMENT '字段ID',
   META_ENTITY_ID VARCHAR(32) NOT NULL    COMMENT '实体ID',
@@ -494,6 +513,8 @@ CREATE TABLE nop_meta_dict_item(
    ALTER TABLE nop_meta_table_measure COMMENT '表指标';
                 
    ALTER TABLE nop_meta_table_filter COMMENT '表过滤器';
+                
+   ALTER TABLE nop_meta_catalog COMMENT '运行时统计快照';
                 
    ALTER TABLE nop_meta_entity_field COMMENT '实体字段';
                 

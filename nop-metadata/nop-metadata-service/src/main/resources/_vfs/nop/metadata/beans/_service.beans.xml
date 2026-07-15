@@ -131,6 +131,14 @@
         <property name="bizObjName" value="NopMetaTableFilter"/>
     </bean>
 
+    <bean id="io.nop.metadata.service.entity.NopMetaCatalogBizModel" ioc:type="@bean:id" ioc:default="true"/>
+
+    <bean id="biz_NopMetaCatalog" class="io.nop.biz.proxy.BizProxyFactoryBean"
+          ioc:type="io.nop.metadata.biz.INopMetaCatalogBiz" ioc:force-lazy-property="true" lazy-init="true"
+          primary="true">
+        <property name="bizObjName" value="NopMetaCatalog"/>
+    </bean>
+
     <bean id="io.nop.metadata.service.entity.NopMetaEntityFieldBizModel" ioc:type="@bean:id" ioc:default="true"/>
 
     <bean id="biz_NopMetaEntityField" class="io.nop.biz.proxy.BizProxyFactoryBean"

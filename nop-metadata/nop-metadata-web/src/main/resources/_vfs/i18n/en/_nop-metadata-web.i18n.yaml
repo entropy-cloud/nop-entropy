@@ -1,5 +1,9 @@
 site:
   resource:
+    FNPT:NopMetaCatalog:mutation:
+      displayName: Modify Meta Catalog
+    FNPT:NopMetaCatalog:query:
+      displayName: Query Meta Catalog
     FNPT:NopMetaDataSource:mutation:
       displayName: Modify Meta Datasource
     FNPT:NopMetaDataSource:query:
@@ -88,6 +92,8 @@ site:
       displayName: Modify Meta Table Measure
     FNPT:NopMetaTableMeasure:query:
       displayName: Query Meta Table Measure
+    NopMetaCatalog-main:
+      displayName: Meta Catalog
     NopMetaDataSource-main:
       displayName: Meta Datasource
     NopMetaDict-main:

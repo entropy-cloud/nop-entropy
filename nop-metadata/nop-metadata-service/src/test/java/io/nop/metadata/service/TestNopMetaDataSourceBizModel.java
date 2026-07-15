@@ -18,6 +18,7 @@ import io.nop.dao.api.IDaoProvider;
 import io.nop.dao.api.IEntityDao;
 import io.nop.graphql.core.IGraphQLExecutionContext;
 import io.nop.graphql.core.engine.IGraphQLEngine;
+import io.nop.metadata.dao.entity.NopMetaCatalog;
 import io.nop.metadata.dao.entity.NopMetaDataSource;
 import io.nop.metadata.dao.entity.NopMetaModule;
 import io.nop.metadata.dao.entity.NopMetaTable;
@@ -32,6 +33,7 @@ import java.sql.Timestamp;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
@@ -238,6 +240,265 @@ public class TestNopMetaDataSourceBizModel extends JunitBaseTestCase {
      * 不支持的方言必须显式失败（不静默跳过）。
      * 验证见 {@code io.nop.metadata.service.sync.TestExternalTableStructureReader}（同包，直访读取器门禁）。
      */
+
+    // ===== collectCatalog：端到端运行时统计收集 =====
+
+    /**
+     * 端到端：syncExternalTables 建外部表 → collectCatalog → NopMetaCatalog 写入真实 rowCount。
+     *
+     * <p>Anti-Hollow：真实 H2 建连，EXT_DEPT 插入 5 行，断言 NopMetaCatalog.rowCount==5（真实 COUNT 结果，
+     * 证明运行时确实通过 P2-1 withConnection callback 建连并执行了 COUNT 查询，非空壳）。
+     * 同时验证降级策略：H2 的 sizeBytes/partitionCount/lastModified 为 null 且 details.unavailable 显式列出。
+     */
+    @Test
+    public void testCollectCatalogWritesRealRowCount() throws Exception {
+        String dbUrl = "jdbc:h2:mem:meta_collect;DB_CLOSE_DELAY=-1";
+        seedExternalTableWithRows(dbUrl,
+                "CREATE TABLE ext_dept (dept_id INT NOT NULL)",
+                "CREATE INDEX ix_dept ON ext_dept(dept_id)",
+                5);
+
+        saveDataSource("ds-collect", "qs_collect", "jdbc", "ACTIVE",
+                "{\"jdbcUrl\":\"" + dbUrl + "\",\"username\":\"sa\",\"password\":\"\","
+                        + "\"driverClassName\":\"org.h2.Driver\"}");
+
+        // 先同步外部表结构（建目录）
+        GraphQLResponseBean syncResp = execute(
+                "mutation { NopMetaDataSource__syncExternalTables(dataSourceId: \"ds-collect\", schemaPattern: \"PUBLIC\") }");
+        assertFalse(syncResp.hasError(), "sync should not error: " + syncResp);
+
+        NopMetaTable table = findExternalTable(daoProvider.daoFor(NopMetaTable.class), "EXT_DEPT");
+        assertNotNull(table, "EXT_DEPT must be synced before collect");
+
+        // 收集运行时统计（限定 PUBLIC schema）
+        GraphQLResponseBean collectResp = execute(
+                "mutation { NopMetaDataSource__collectCatalog(dataSourceId: \"ds-collect\", schemaPattern: \"PUBLIC\") }");
+        assertFalse(collectResp.hasError(), "collect should not error: " + collectResp);
+        assertTrue(String.valueOf(collectResp.getData()).contains("collectedCount=1"),
+                "should report collectedCount=1: " + collectResp.getData());
+
+        // 目录写入验证：NopMetaCatalog 行存在，rowCount 为真实 COUNT 结果（5）
+        NopMetaCatalog row = findCatalogRow(table.getMetaTableId());
+        assertNotNull(row, "NopMetaCatalog row must be written for EXT_DEPT");
+        assertEquals(5L, row.getRowCount(), "rowCount must be real COUNT(*) result = 5");
+        // 索引存在（ix_dept），indexCount >= 1
+        assertNotNull(row.getIndexCount(), "indexCount must be collected via JDBC getIndexInfo");
+        assertTrue(row.getIndexCount() >= 1, "indexCount must be >= 1 (ix_dept exists): " + row.getIndexCount());
+
+        // 降级策略：H2 不支持的统计为 null + details.unavailable 显式列出（不静默跳过、不伪造 0）
+        assertNull(row.getSizeBytes(), "sizeBytes must be null on H2 (not implemented, not faked 0)");
+        assertNull(row.getPartitionCount(), "partitionCount must be null on H2 (not implemented, not faked 0)");
+        assertNull(row.getLastModified(), "lastModified must be null on H2 (LAST_MODIFICATION is a counter, not timestamp)");
+        String details = row.getDetails();
+        assertNotNull(details, "details JSON must be written");
+        assertTrue(details.contains("unavailable"), "details must contain unavailable marker: " + details);
+        assertTrue(details.contains("sizeBytes"), "details.unavailable must list sizeBytes: " + details);
+        assertTrue(details.contains("partitionCount"), "details.unavailable must list partitionCount: " + details);
+        assertTrue(details.contains("lastModified"), "details.unavailable must list lastModified: " + details);
+        assertTrue(details.contains("H2"), "details must record dialect (databaseProductName=H2): " + details);
+    }
+
+    /**
+     * 时序语义：重复收集同一数据源追加为新的快照行（collectedAt 区分），不覆盖旧行。
+     */
+    @Test
+    public void testCollectCatalogAppendsWithSchemaPattern() throws Exception {
+        String dbUrl = "jdbc:h2:mem:meta_collect_ts;DB_CLOSE_DELAY=-1";
+        seedExternalTableWithRows(dbUrl,
+                "CREATE TABLE ext_emp (emp_id INT NOT NULL)",
+                null, 3);
+
+        saveDataSource("ds-collect-ts", "qs_collect_ts", "jdbc", "ACTIVE",
+                "{\"jdbcUrl\":\"" + dbUrl + "\",\"username\":\"sa\",\"password\":\"\","
+                        + "\"driverClassName\":\"org.h2.Driver\"}");
+
+        execute("mutation { NopMetaDataSource__syncExternalTables(dataSourceId: \"ds-collect-ts\", schemaPattern: \"PUBLIC\") }");
+        NopMetaTable table = findExternalTable(daoProvider.daoFor(NopMetaTable.class), "EXT_EMP");
+        assertNotNull(table, "EXT_EMP must be synced");
+
+        // 第一次收集
+        execute("mutation { NopMetaDataSource__collectCatalog(dataSourceId: \"ds-collect-ts\", schemaPattern: \"PUBLIC\") }");
+        long countAfterFirst = countCatalogRows(table.getMetaTableId());
+        assertEquals(1L, countAfterFirst, "exactly 1 catalog row after first collect: " + countAfterFirst);
+
+        // 第二次收集同一数据源（时序追加，不覆盖）
+        GraphQLResponseBean r2 = execute(
+                "mutation { NopMetaDataSource__collectCatalog(dataSourceId: \"ds-collect-ts\", schemaPattern: \"PUBLIC\") }");
+        assertFalse(r2.hasError(), "second collect should not error: " + r2);
+        long countAfterSecond = countCatalogRows(table.getMetaTableId());
+        assertEquals(2L, countAfterSecond,
+                "time-series: 2 catalog rows after second collect (appended, not overwritten): " + countAfterSecond);
+    }
+
+    /**
+     * schema 限定：不传 schemaPattern 时依赖连接默认 schema（H2 默认 PUBLIC），COUNT 仍能正确执行。
+     * 证明 schemaPattern=null 路径成立（多 schema 限制已在设计 D1 记录为已知 follow-up）。
+     */
+    @Test
+    public void testCollectCatalogDefaultSchemaNoPattern() throws Exception {
+        String dbUrl = "jdbc:h2:mem:meta_collect_def;DB_CLOSE_DELAY=-1";
+        seedExternalTableWithRows(dbUrl,
+                "CREATE TABLE ext_def (id INT NOT NULL)", null, 2);
+
+        saveDataSource("ds-collect-def", "qs_collect_def", "jdbc", "ACTIVE",
+                "{\"jdbcUrl\":\"" + dbUrl + "\",\"username\":\"sa\",\"password\":\"\","
+                        + "\"driverClassName\":\"org.h2.Driver\"}");
+
+        execute("mutation { NopMetaDataSource__syncExternalTables(dataSourceId: \"ds-collect-def\", schemaPattern: \"PUBLIC\") }");
+        NopMetaTable table = findExternalTable(daoProvider.daoFor(NopMetaTable.class), "EXT_DEF");
+        assertNotNull(table, "EXT_DEF must be synced");
+
+        // 不传 schemaPattern：COUNT 用 <tableName> 依赖连接默认 schema（H2 默认 PUBLIC）
+        GraphQLResponseBean resp = execute(
+                "mutation { NopMetaDataSource__collectCatalog(dataSourceId: \"ds-collect-def\") }");
+        assertFalse(resp.hasError(), "collect without schemaPattern should work via default schema: " + resp);
+        NopMetaCatalog row = findCatalogRow(table.getMetaTableId());
+        assertNotNull(row, "NopMetaCatalog row must be written via default schema");
+        assertEquals(2L, row.getRowCount(), "rowCount must be 2 via default schema COUNT");
+    }
+
+    /**
+     * 单表失败收集到 errors 不中断整批：EXT_OK 存在可收集，EXT_GONE 不存在物理库（COUNT 失败）。
+     * 断言 errors 含 EXT_GONE 且 EXT_OK 仍写入 NopMetaCatalog。
+     */
+    @Test
+    public void testCollectCatalogSingleTableErrorBatched() throws Exception {
+        String dbUrl = "jdbc:h2:mem:meta_collect_err;DB_CLOSE_DELAY=-1";
+        seedExternalTableWithRows(dbUrl,
+                "CREATE TABLE ext_ok (id INT NOT NULL)", null, 4);
+
+        saveDataSource("ds-collect-err", "qs_collect_err", "jdbc", "ACTIVE",
+                "{\"jdbcUrl\":\"" + dbUrl + "\",\"username\":\"sa\",\"password\":\"\","
+                        + "\"driverClassName\":\"org.h2.Driver\"}");
+
+        // 同步真实存在的表
+        execute("mutation { NopMetaDataSource__syncExternalTables(dataSourceId: \"ds-collect-err\", schemaPattern: \"PUBLIC\") }");
+        NopMetaTable okTable = findExternalTable(daoProvider.daoFor(NopMetaTable.class), "EXT_OK");
+        assertNotNull(okTable, "EXT_OK must be synced");
+
+        // 手工注入一条指向不存在物理表的 external 目录行（EXT_GONE 在物理库中不存在）
+        String externalModuleId = ensureExternalSystemModuleId();
+        NopMetaTable goneTable = daoProvider.daoFor(NopMetaTable.class).newEntity();
+        goneTable.setMetaModuleId(externalModuleId);
+        goneTable.setTableName("EXT_GONE");
+        goneTable.setDisplayName("EXT_GONE");
+        goneTable.setTableType("external");
+        goneTable.setQuerySpace("qs_collect_err");
+        goneTable.setVersion(1L);
+        daoProvider.daoFor(NopMetaTable.class).saveEntity(goneTable);
+
+        // 收集：EXT_OK 应成功（rowCount=4），EXT_GONE 的 COUNT 应失败进 errors
+        GraphQLResponseBean resp = execute(
+                "mutation { NopMetaDataSource__collectCatalog(dataSourceId: \"ds-collect-err\", schemaPattern: \"PUBLIC\") }");
+        assertFalse(resp.hasError(), "collect should not globally error (batched): " + resp);
+        String data = String.valueOf(resp.getData());
+        // EXT_OK 收集成功，EXT_GONE 失败进 errors
+        assertTrue(data.contains("collectedCount=1"),
+                "EXT_OK must be collected (collectedCount=1): " + data);
+        assertTrue(data.contains("EXT_GONE"),
+                "EXT_GONE failure must be recorded in errors (not silently skipped): " + data);
+
+        // EXT_OK 仍写入 NopMetaCatalog（单表失败不中断整批）
+        NopMetaCatalog okRow = findCatalogRow(okTable.getMetaTableId());
+        assertNotNull(okRow, "EXT_OK catalog row must be written despite EXT_GONE failure");
+        assertEquals(4L, okRow.getRowCount(), "EXT_OK rowCount must be 4");
+        // EXT_GONE 不应写入 catalog 行（COUNT 失败）
+        assertNull(findCatalogRow(goneTable.getMetaTableId()),
+                "EXT_GONE must NOT have a catalog row (COUNT failed, not silently faked)");
+    }
+
+    /** DISABLED 数据源收集必须显式拒绝（不静默通过）。 */
+    @Test
+    public void testCollectCatalogDisabledRejected() {
+        saveDataSource("ds-collect-disabled", "qs_collect_disabled", "jdbc", "DISABLED",
+                "{\"jdbcUrl\":\"jdbc:h2:mem:meta_collect_disabled;DB_CLOSE_DELAY=-1\","
+                        + "\"username\":\"sa\",\"password\":\"\",\"driverClassName\":\"org.h2.Driver\"}");
+
+        GraphQLResponseBean response = execute(
+                "mutation { NopMetaDataSource__collectCatalog(dataSourceId: \"ds-collect-disabled\") }");
+        assertTrue(response.hasError(),
+                "DISABLED datasource collect must be rejected (no silent pass): " + response);
+    }
+
+    /** 非 jdbc 类型收集必须显式失败（不静默返回成功）。 */
+    @Test
+    public void testCollectCatalogNonJdbcThrows() {
+        saveDataSource("ds-collect-http", "qs_collect_http", "http", "ACTIVE", "{}");
+
+        GraphQLResponseBean response = execute(
+                "mutation { NopMetaDataSource__collectCatalog(dataSourceId: \"ds-collect-http\") }");
+        assertTrue(response.hasError(),
+                "non-jdbc datasource collect must error (UnsupportedOperationException): " + response);
+    }
+
+    /** 不存在的 dataSourceId 收集必须抛 metadata.datasource-not-found（不 NPE）。 */
+    @Test
+    public void testCollectCatalogNotFound() {
+        GraphQLResponseBean response = execute(
+                "mutation { NopMetaDataSource__collectCatalog(dataSourceId: \"__not_exist__\") }");
+        assertTrue(response.hasError(),
+                "non-existent dataSourceId collect must error (no NPE): " + response);
+    }
+
+    // ===== collectCatalog helpers =====
+
+    private void seedExternalTableWithRows(String dbUrl, String createDdl, String indexDdl, int rowCount) throws Exception {
+        String tableName = extractTableName(createDdl);
+        try (Connection c = DriverManager.getConnection(dbUrl, "sa", "");
+             Statement st = c.createStatement()) {
+            st.execute(createDdl);
+            if (indexDdl != null) {
+                st.execute(indexDdl);
+            }
+            // 插入 rowCount 行：用第一列（NOT NULL 主键列）赋值，避免 NOT NULL 约束失败
+            for (int i = 1; i <= rowCount; i++) {
+                st.execute("INSERT INTO " + tableName + " VALUES (" + i + ")");
+            }
+        }
+    }
+
+    /** 从 CREATE TABLE DDL 中提取表名（支持 CREATE TABLE <name> (...)）。 */
+    private static String extractTableName(String createDdl) {
+        String upper = createDdl.toUpperCase();
+        int idx = upper.indexOf("CREATE TABLE");
+        String rest = createDdl.substring(idx + "CREATE TABLE".length()).trim();
+        int paren = rest.indexOf('(');
+        String name = paren > 0 ? rest.substring(0, paren).trim() : rest.trim();
+        return name;
+    }
+
+    private NopMetaCatalog findCatalogRow(String metaTableId) {
+        IEntityDao<NopMetaCatalog> dao = daoProvider.daoFor(NopMetaCatalog.class);
+        QueryBean q = new QueryBean();
+        q.addFilter(FilterBeans.eq(NopMetaCatalog.PROP_NAME_metaTableId, metaTableId));
+        return dao.findFirstByQuery(q);
+    }
+
+    private long countCatalogRows(String metaTableId) {
+        IEntityDao<NopMetaCatalog> dao = daoProvider.daoFor(NopMetaCatalog.class);
+        QueryBean q = new QueryBean();
+        q.addFilter(FilterBeans.eq(NopMetaCatalog.PROP_NAME_metaTableId, metaTableId));
+        return dao.countByQuery(q);
+    }
+
+    private String ensureExternalSystemModuleId() {
+        IEntityDao<NopMetaModule> moduleDao = daoProvider.daoFor(NopMetaModule.class);
+        QueryBean q = new QueryBean();
+        q.addFilter(FilterBeans.eq(NopMetaModule.PROP_NAME_moduleId, "nop/meta-external"));
+        NopMetaModule module = moduleDao.findFirstByQuery(q);
+        if (module != null) {
+            return module.getMetaModuleId();
+        }
+        module = moduleDao.newEntity();
+        module.setModuleId("nop/meta-external");
+        module.setModuleName("meta-external");
+        module.setDisplayName("外部表系统模块");
+        module.setModuleVersion(1L);
+        module.setStatus("RELEASED");
+        module.setImportedAt(new Timestamp(System.currentTimeMillis()));
+        moduleDao.saveEntity(module);
+        return module.getMetaModuleId();
+    }
 
     private void seedExternalTable(String dbUrl, String ddl) throws Exception {
         // 真实建连到外部 H2 内存库，建一张表，关闭后由 DB_CLOSE_DELAY=-1 保活供 sync 扫描

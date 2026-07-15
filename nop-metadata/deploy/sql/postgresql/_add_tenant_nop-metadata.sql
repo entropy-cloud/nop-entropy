@@ -31,6 +31,8 @@ alter table nop_meta_table_measure add NOP_TENANT_ID VARCHAR(32) DEFAULT '0' NOT
 
 alter table nop_meta_table_filter add NOP_TENANT_ID VARCHAR(32) DEFAULT '0' NOT NULL;
 
+alter table nop_meta_catalog add NOP_TENANT_ID VARCHAR(32) DEFAULT '0' NOT NULL;
+
 alter table nop_meta_entity_field add NOP_TENANT_ID VARCHAR(32) DEFAULT '0' NOT NULL;
 
 alter table nop_meta_entity_relation add NOP_TENANT_ID VARCHAR(32) DEFAULT '0' NOT NULL;
@@ -90,6 +92,9 @@ alter table nop_meta_table_measure add constraint PK_nop_meta_table_measure prim
 
 alter table nop_meta_table_filter drop constraint PK_nop_meta_table_filter;
 alter table nop_meta_table_filter add constraint PK_nop_meta_table_filter primary key (NOP_TENANT_ID, filter_id);
+
+alter table nop_meta_catalog drop constraint PK_nop_meta_catalog;
+alter table nop_meta_catalog add constraint PK_nop_meta_catalog primary key (NOP_TENANT_ID, meta_catalog_id);
 
 alter table nop_meta_entity_field drop constraint PK_nop_meta_entity_field;
 alter table nop_meta_entity_field add constraint PK_nop_meta_entity_field primary key (NOP_TENANT_ID, entity_field_id);

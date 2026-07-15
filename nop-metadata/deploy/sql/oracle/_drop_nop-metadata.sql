@@ -15,6 +15,7 @@ drop table nop_meta_dict;
 drop table nop_meta_table_dimension;
 drop table nop_meta_table_measure;
 drop table nop_meta_table_filter;
+drop table nop_meta_catalog;
 drop table nop_meta_entity_field;
 drop table nop_meta_entity_relation;
 drop table nop_meta_entity_unique_key;

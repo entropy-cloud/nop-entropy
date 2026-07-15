@@ -14,9 +14,12 @@ import io.nop.core.lang.json.JsonTool;
 import io.nop.dao.api.IEntityDao;
 import io.nop.metadata.biz.INopMetaDataSourceBiz;
 import io.nop.metadata.core._NopMetadataCoreConstants;
+import io.nop.metadata.dao.entity.NopMetaCatalog;
 import io.nop.metadata.dao.entity.NopMetaDataSource;
 import io.nop.metadata.dao.entity.NopMetaModule;
 import io.nop.metadata.dao.entity.NopMetaTable;
+import io.nop.metadata.service.catalog.CatalogTableStats;
+import io.nop.metadata.service.catalog.MetaCatalogCollector;
 import io.nop.metadata.service.connection.IMetaDataSourceConnectionService;
 import io.nop.metadata.service.sync.ExternalColumnInfo;
 import io.nop.metadata.service.sync.ExternalTableInfo;
@@ -27,6 +30,7 @@ import org.slf4j.LoggerFactory;
 
 import java.sql.Connection;
 import java.sql.DatabaseMetaData;
+import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
@@ -55,6 +59,9 @@ public class NopMetaDataSourceBizModel extends CrudBizModel<NopMetaDataSource> i
 
     /** 外部表结构读取器（无状态，直接持有，与 OrmModelImporter 的持有方式一致）。 */
     private final ExternalTableStructureReader structureReader = new ExternalTableStructureReader();
+
+    /** Catalog 运行时统计收集器（无状态，在 withConnection callback 内调用，不自建连接）。 */
+    private final MetaCatalogCollector catalogCollector = new MetaCatalogCollector();
 
     public NopMetaDataSourceBizModel() {
         setEntityName(NopMetaDataSource.class.getName());
@@ -156,6 +163,127 @@ public class NopMetaDataSourceBizModel extends CrudBizModel<NopMetaDataSource> i
         result.put("syncedTableCount", syncedCount.get());
         result.put("errors", errors);
         return result;
+    }
+
+    /**
+     * Catalog 运行时统计收集：从已注册数据源收集该 querySpace 下 external 表的物理运行时统计
+     * （行数/索引/…），每次收集追加为新的时序快照行写入 NopMetaCatalog。
+     *
+     * <p>设计决策 D2（架构基线 §2.3.2 / 设计 05 §4.6）：
+     * <ul>
+     *   <li>实体不存在抛 {@code metadata.datasource-not-found}（不 NPE）</li>
+     *   <li>DISABLED 抛 {@code metadata.datasource-disabled}（不静默通过）</li>
+     *   <li>非 jdbc 类型由连接服务抛 {@link UnsupportedOperationException}（不静默成功）</li>
+     *   <li>复用 P2-1 callback 式连接服务 {@code withConnection}：callback 内运行时取方言 + 逐表收集，
+     *       callback 结束自动释放外部连接（本方法不自建连接）</li>
+     *   <li>统计不可用（sizeBytes/partitionCount/lastModified 等方言特定）记 null +
+     *       {@code details.unavailable} 显式标记（不静默跳过整行、不伪造 0）</li>
+     *   <li>时序语义：每表每收集一次追加新行（collectedAt=now），不覆盖旧行</li>
+     *   <li>单表失败（SQL 异常）收集到 errors 不中断整批（flushSession 隔离 + clearSession 清理失败态）</li>
+     * </ul>
+     *
+     * @param dataSourceId  目标数据源 ID
+     * @param schemaPattern 可选，限定 COUNT/索引查询的物理 schema（null/空串表示依赖连接默认 schema）。
+     *                      不过滤 NopMetaTable 行（schema 不存于该表，见架构基线 §2.3.2 schema 限定）。
+     * @return {@code {collectedCount: int, errors: [{tableName, error}, ...]}}
+     */
+    @BizMutation
+    public Map<String, Object> collectCatalog(@Name("dataSourceId") String dataSourceId,
+                                              @Optional @Name("schemaPattern") String schemaPattern,
+                                              IServiceContext context) {
+        NopMetaDataSource dataSource = dao().getEntityById(dataSourceId);
+        if (dataSource == null) {
+            throw new NopException(ERR_DATASOURCE_NOT_FOUND).param("dataSourceId", dataSourceId);
+        }
+
+        String status = dataSource.getStatus();
+        if (_NopMetadataCoreConstants.DATASOURCE_STATUS_DISABLED.equals(status)) {
+            throw new NopException(ERR_DATASOURCE_DISABLED).param("dataSourceId", dataSourceId);
+        }
+
+        // 该 querySpace 下已目录化的 external 表（NopMetaTable 无 schema 列，按 querySpace+tableType 查找，
+        // 首版全表扫描可接受；schemaPattern 仅限定物理 SQL，不过滤目录行——见架构基线 §2.3.2）。
+        List<NopMetaTable> externalTables = findExternalTables(dataSource.getQuerySpace());
+
+        AtomicInteger collectedCount = new AtomicInteger(0);
+        List<Map<String, Object>> errors = new ArrayList<>();
+
+        // 复用 P2-1 callback 式建连：callback 内取方言 + 逐表收集；callback 结束自动释放连接
+        connectionService.withConnection(dataSource.getDatasourceType(), dataSource.getConnectionConfig(),
+                (Connection conn, DatabaseMetaData metaData) -> {
+                    String productName = safeProductName(metaData);
+                    for (NopMetaTable table : externalTables) {
+                        try {
+                            CatalogTableStats stats = catalogCollector.collectForTable(
+                                    conn, metaData, schemaPattern, table.getTableName(), productName);
+                            appendCatalogRow(table.getMetaTableId(), stats);
+                            orm().flushSession();
+                            collectedCount.incrementAndGet();
+                        } catch (Exception e) {
+                            LOG.error("collectCatalog failed for table: {}", table.getTableName(), e);
+                            Map<String, Object> err = new LinkedHashMap<>();
+                            err.put("tableName", table.getTableName());
+                            err.put("error", toErrorMessage(e));
+                            errors.add(err);
+                            // 隔离失败：清理未刷出的脏实体，不影响已 flush 的表与后续表
+                            orm().clearSession();
+                        }
+                    }
+                });
+
+        Map<String, Object> result = new LinkedHashMap<>();
+        result.put("collectedCount", collectedCount.get());
+        result.put("errors", errors);
+        return result;
+    }
+
+    /** 查找该 querySpace 下所有 external 类型逻辑表（按 tableType=external 限定）。 */
+    private List<NopMetaTable> findExternalTables(String querySpace) {
+        IEntityDao<NopMetaTable> tableDao = daoFor(NopMetaTable.class);
+        QueryBean query = new QueryBean();
+        query.addFilter(FilterBeans.eq(NopMetaTable.PROP_NAME_querySpace, querySpace));
+        query.addFilter(FilterBeans.eq(NopMetaTable.PROP_NAME_tableType,
+                _NopMetadataCoreConstants.TABLE_TYPE_EXTERNAL));
+        return tableDao.findAllByQuery(query);
+    }
+
+    /**
+     * 将单表收集结果追加为一行新的 NopMetaCatalog 快照（时序语义：collectedAt=now，不覆盖旧行）。
+     * details JSON 承载 unavailable 标记 + 方言特定字段。
+     */
+    private void appendCatalogRow(String metaTableId, CatalogTableStats stats) {
+        IEntityDao<NopMetaCatalog> catalogDao = daoFor(NopMetaCatalog.class);
+        NopMetaCatalog row = catalogDao.newEntity();
+        row.setMetaTableId(metaTableId);
+        row.setRowCount(stats.getRowCount());
+        row.setSizeBytes(stats.getSizeBytes());
+        row.setIndexCount(stats.getIndexCount());
+        row.setPartitionCount(stats.getPartitionCount());
+        row.setLastModified(stats.getLastModified());
+        row.setCollectedAt(new Timestamp(System.currentTimeMillis()));
+        row.setDetails(buildDetailsJson(stats));
+        catalogDao.saveEntity(row);
+    }
+
+    /** details JSON：{unavailable: [...], databaseProductName: ...}，承载不可用标记 + 方言特定字段。 */
+    private String buildDetailsJson(CatalogTableStats stats) {
+        Map<String, Object> details = new LinkedHashMap<>();
+        if (!stats.getUnavailable().isEmpty()) {
+            details.put("unavailable", stats.getUnavailable());
+        }
+        if (!stats.getExtras().isEmpty()) {
+            details.putAll(stats.getExtras());
+        }
+        return JsonTool.stringify(details);
+    }
+
+    private static String safeProductName(DatabaseMetaData metaData) {
+        try {
+            return metaData.getDatabaseProductName();
+        } catch (SQLException e) {
+            LOG.warn("getDatabaseProductName failed, product name will be absent from details", e);
+            return null;
+        }
     }
 
     /**

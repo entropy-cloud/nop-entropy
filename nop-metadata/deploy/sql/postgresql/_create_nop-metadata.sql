@@ -329,6 +329,25 @@ CREATE TABLE nop_meta_table_filter(
   constraint PK_nop_meta_table_filter primary key (filter_id)
 );
 
+CREATE TABLE nop_meta_catalog(
+  meta_catalog_id VARCHAR(32) NOT NULL ,
+  meta_table_id VARCHAR(32) NOT NULL ,
+  row_count INT8 NOT NULL ,
+  size_bytes INT8  ,
+  index_count INT4  ,
+  partition_count INT4  ,
+  last_modified TIMESTAMP  ,
+  details TEXT  ,
+  collected_at TIMESTAMP NOT NULL ,
+  del_version INT8 NOT NULL ,
+  created_by VARCHAR(50) NOT NULL ,
+  create_time TIMESTAMP NOT NULL ,
+  updated_by VARCHAR(50) NOT NULL ,
+  update_time TIMESTAMP NOT NULL ,
+  remark VARCHAR(200)  ,
+  constraint PK_nop_meta_catalog primary key (meta_catalog_id)
+);
+
 CREATE TABLE nop_meta_entity_field(
   entity_field_id VARCHAR(32) NOT NULL ,
   meta_entity_id VARCHAR(32) NOT NULL ,
@@ -1026,6 +1045,38 @@ CREATE TABLE nop_meta_dict_item(
       COMMENT ON COLUMN nop_meta_table_filter.update_time IS '修改时间';
                     
       COMMENT ON COLUMN nop_meta_table_filter.remark IS '备注';
+                    
+      COMMENT ON TABLE nop_meta_catalog IS '运行时统计快照';
+                
+      COMMENT ON COLUMN nop_meta_catalog.meta_catalog_id IS '统计快照ID';
+                    
+      COMMENT ON COLUMN nop_meta_catalog.meta_table_id IS '逻辑表ID';
+                    
+      COMMENT ON COLUMN nop_meta_catalog.row_count IS '行数';
+                    
+      COMMENT ON COLUMN nop_meta_catalog.size_bytes IS '表物理大小';
+                    
+      COMMENT ON COLUMN nop_meta_catalog.index_count IS '索引数量';
+                    
+      COMMENT ON COLUMN nop_meta_catalog.partition_count IS '分区数';
+                    
+      COMMENT ON COLUMN nop_meta_catalog.last_modified IS '最后修改时间';
+                    
+      COMMENT ON COLUMN nop_meta_catalog.details IS '扩展详情';
+                    
+      COMMENT ON COLUMN nop_meta_catalog.collected_at IS '收集时间';
+                    
+      COMMENT ON COLUMN nop_meta_catalog.del_version IS '数据版本';
+                    
+      COMMENT ON COLUMN nop_meta_catalog.created_by IS '创建人';
+                    
+      COMMENT ON COLUMN nop_meta_catalog.create_time IS '创建时间';
+                    
+      COMMENT ON COLUMN nop_meta_catalog.updated_by IS '修改人';
+                    
+      COMMENT ON COLUMN nop_meta_catalog.update_time IS '修改时间';
+                    
+      COMMENT ON COLUMN nop_meta_catalog.remark IS '备注';
                     
       COMMENT ON TABLE nop_meta_entity_field IS '实体字段';
                 

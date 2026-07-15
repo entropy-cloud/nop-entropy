@@ -1,5 +1,6 @@
 entity:
   label:
+    NopMetaCatalog: 运行时统计快照
     NopMetaDataSource: 数据源
     NopMetaDict: 元数据字典
     NopMetaDictItem: 字典项
@@ -24,6 +25,25 @@ entity:
     NopMetaTableMeasure: 表指标
 prop:
   label:
+    NopMetaCatalog:
+      collectedAt: 收集时间
+      createTime: 创建时间
+      createdBy: 创建人
+      details: 扩展详情
+      detailsComponent: null
+      indexCount: 索引数量
+      lastModified: 最后修改时间
+      metaCatalogId: 统计快照ID
+      metaTable: 逻辑表
+      metaTable.displayName: 逻辑表
+      metaTableId: 逻辑表ID
+      partitionCount: 分区数
+      remark: 备注
+      rowCount: 行数
+      sizeBytes: 表物理大小
+      updateTime: 修改时间
+      updatedBy: 修改人
+      version: 数据版本
     NopMetaDataSource:
       connectionConfig: 连接配置
       connectionConfigComponent: null

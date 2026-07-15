@@ -15,6 +15,7 @@ drop table  if exists  nop_meta_dict;
 drop table  if exists  nop_meta_table_dimension;
 drop table  if exists  nop_meta_table_measure;
 drop table  if exists  nop_meta_table_filter;
+drop table  if exists  nop_meta_catalog;
 drop table  if exists  nop_meta_entity_field;
 drop table  if exists  nop_meta_entity_relation;
 drop table  if exists  nop_meta_entity_unique_key;

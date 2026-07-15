@@ -1411,5 +1411,60 @@
                 </to-one>
             </relations>
         </entity>
+        <entity className="io.nop.metadata.dao.entity.NopMetaCatalog" createTimeProp="createTime"
+                createrProp="createdBy" displayName="运行时统计快照" name="io.nop.metadata.dao.entity.NopMetaCatalog"
+                registerShortName="true" tableName="nop_meta_catalog" updateTimeProp="updateTime"
+                updaterProp="updatedBy" versionProp="version" ext:icon="bar-chart-2" i18n-en:displayName="Meta Catalog">
+            <columns>
+                <column code="META_CATALOG_ID" displayName="统计快照ID" mandatory="true" name="metaCatalogId" precision="32"
+                        primary="true" propId="1" stdDataType="string" stdSqlType="VARCHAR" tagSet="seq"
+                        i18n-en:displayName="Meta Catalog Id"/>
+                <column code="META_TABLE_ID" displayName="逻辑表ID" mandatory="true" name="metaTableId" precision="32"
+                        propId="2" stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Meta Table Id"/>
+                <column code="ROW_COUNT" displayName="行数" mandatory="true" name="rowCount" propId="3" stdDataType="long"
+                        stdSqlType="BIGINT" i18n-en:displayName="Row Count"/>
+                <column code="SIZE_BYTES" displayName="表物理大小" name="sizeBytes" propId="4" stdDataType="long"
+                        stdSqlType="BIGINT" i18n-en:displayName="Size Bytes"/>
+                <column code="INDEX_COUNT" displayName="索引数量" name="indexCount" propId="5" stdDataType="int"
+                        stdSqlType="INTEGER" i18n-en:displayName="Index Count"/>
+                <column code="PARTITION_COUNT" displayName="分区数" name="partitionCount" propId="6" stdDataType="int"
+                        stdSqlType="INTEGER" i18n-en:displayName="Partition Count"/>
+                <column code="LAST_MODIFIED" displayName="最后修改时间" name="lastModified" propId="7" stdDataType="timestamp"
+                        stdSqlType="TIMESTAMP" i18n-en:displayName="Last Modified"/>
+                <column code="DETAILS" displayName="扩展详情" domain="mediumtext" name="details" precision="16777216"
+                        propId="8" stdDataType="string" stdDomain="json" stdSqlType="VARCHAR"
+                        i18n-en:displayName="Details"/>
+                <column code="COLLECTED_AT" displayName="收集时间" mandatory="true" name="collectedAt" propId="9"
+                        stdDataType="timestamp" stdSqlType="TIMESTAMP" i18n-en:displayName="Collected At"/>
+                <column code="DEL_VERSION" displayName="数据版本" domain="version" mandatory="true" name="version"
+                        propId="10" stdDataType="long" stdSqlType="BIGINT" i18n-en:displayName="Version"/>
+                <column code="CREATED_BY" displayName="创建人" domain="createdBy" mandatory="true" name="createdBy"
+                        precision="50" propId="11" stdDataType="string" stdSqlType="VARCHAR"
+                        i18n-en:displayName="Created By"/>
+                <column code="CREATE_TIME" displayName="创建时间" domain="createTime" mandatory="true" name="createTime"
+                        propId="12" stdDataType="timestamp" stdSqlType="TIMESTAMP" i18n-en:displayName="Create Time"/>
+                <column code="UPDATED_BY" displayName="修改人" domain="updatedBy" mandatory="true" name="updatedBy"
+                        precision="50" propId="13" stdDataType="string" stdSqlType="VARCHAR"
+                        i18n-en:displayName="Updated By"/>
+                <column code="UPDATE_TIME" displayName="修改时间" domain="updateTime" mandatory="true" name="updateTime"
+                        propId="14" stdDataType="timestamp" stdSqlType="TIMESTAMP" i18n-en:displayName="Update Time"/>
+                <column code="REMARK" displayName="备注" domain="remark" name="remark" precision="200" propId="15"
+                        stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Remark"/>
+            </columns>
+            <indexes>
+                <index name="IX_NOP_META_CATALOG_TABLE" unique="false">
+                    <column name="metaTableId"/>
+                    <column name="collectedAt"/>
+                </index>
+            </indexes>
+            <relations>
+                <to-one displayName="逻辑表" name="metaTable" refEntityName="io.nop.metadata.dao.entity.NopMetaTable"
+                        tagSet="pub,ref-pub" i18n-en:displayName="Meta Table">
+                    <join>
+                        <on leftProp="metaTableId" rightProp="metaTableId"/>
+                    </join>
+                </to-one>
+            </relations>
+        </entity>
     </entities>
 </orm>
