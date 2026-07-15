@@ -12,6 +12,7 @@ import io.nop.commons.functional.IEqualsChecker;
 import io.nop.commons.util.MathHelper;
 import io.nop.commons.util.StringHelper;
 
+import java.math.BigDecimal;
 import java.sql.Timestamp;
 import java.time.LocalDateTime;
 import java.util.List;
@@ -41,6 +42,14 @@ public class JsonMatchHelper {
 
         if (StringHelper.isEmptyObject(v2))
             v2 = null;
+
+        if (v1 instanceof Number || v2 instanceof Number) {
+            BigDecimal bd1 = ConvertHelper.toBigDecimal(v1, null);
+            BigDecimal bd2 = ConvertHelper.toBigDecimal(v2, null);
+            if (bd1 != null && bd2 != null) {
+                return bd1.compareTo(bd2) == 0;
+            }
+        }
 
         if (v1 instanceof String || v2 instanceof String) {
             String s1 = StringHelper.toString(v1, null);
