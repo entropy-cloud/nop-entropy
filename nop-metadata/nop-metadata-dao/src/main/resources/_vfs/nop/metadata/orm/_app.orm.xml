@@ -33,6 +33,7 @@
         <dict label="逻辑表类型" name="meta/table-type" valueType="string" i18n-en:label="Table Type">
             <option code="ENTITY" label="实体表" value="entity"/>
             <option code="SQL" label="SQL视图" value="sql"/>
+            <option code="EXTERNAL" label="外部表" value="external"/>
         </dict>
         <dict label="关系类型" name="meta/relation-type" valueType="string" i18n-en:label="Relation Type">
             <option code="TO_ONE" label="一对一/多对一" value="to-one"/>

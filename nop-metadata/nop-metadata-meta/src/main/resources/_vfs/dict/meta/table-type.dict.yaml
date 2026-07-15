@@ -13,3 +13,7 @@ options:
     value: sql
     description: 
   
+  - label: 外部表
+    value: external
+    description: 
+  

@@ -59,6 +59,11 @@ public interface _NopMetadataCoreConstants {
     String TABLE_TYPE_SQL = "sql";
                     
     /**
+     * 逻辑表类型: 外部表 
+     */
+    String TABLE_TYPE_EXTERNAL = "external";
+                    
+    /**
      * 关系类型: 一对一/多对一 
      */
     String RELATION_TYPE_TO_ONE = "to-one";

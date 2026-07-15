@@ -3,20 +3,45 @@ package io.nop.metadata.service.entity;
 import io.nop.api.core.annotations.biz.BizModel;
 import io.nop.api.core.annotations.biz.BizMutation;
 import io.nop.api.core.annotations.core.Name;
+import io.nop.api.core.annotations.core.Optional;
+import io.nop.api.core.beans.FilterBeans;
+import io.nop.api.core.beans.query.QueryBean;
 import io.nop.api.core.exceptions.ErrorCode;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.biz.crud.CrudBizModel;
 import io.nop.core.context.IServiceContext;
+import io.nop.core.lang.json.JsonTool;
+import io.nop.dao.api.IEntityDao;
 import io.nop.metadata.biz.INopMetaDataSourceBiz;
 import io.nop.metadata.core._NopMetadataCoreConstants;
 import io.nop.metadata.dao.entity.NopMetaDataSource;
+import io.nop.metadata.dao.entity.NopMetaModule;
+import io.nop.metadata.dao.entity.NopMetaTable;
 import io.nop.metadata.service.connection.IMetaDataSourceConnectionService;
+import io.nop.metadata.service.sync.ExternalColumnInfo;
+import io.nop.metadata.service.sync.ExternalTableInfo;
+import io.nop.metadata.service.sync.ExternalTableStructureReader;
 import jakarta.inject.Inject;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
+import java.sql.Connection;
+import java.sql.DatabaseMetaData;
+import java.sql.Timestamp;
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicInteger;
 
 @BizModel("NopMetaDataSource")
 public class NopMetaDataSourceBizModel extends CrudBizModel<NopMetaDataSource> implements INopMetaDataSourceBiz {
+
+    private static final Logger LOG = LoggerFactory.getLogger(NopMetaDataSourceBizModel.class);
+
+    /** 外部表归属的系统模块 moduleId（架构基线 §2.5.1 方案 A）。由 syncExternalTables 惰性初始化。 */
+    static final String EXTERNAL_MODULE_ID = "nop/meta-external";
+    static final String EXTERNAL_MODULE_NAME = "meta-external";
 
     static final ErrorCode ERR_DATASOURCE_NOT_FOUND =
             ErrorCode.define("metadata.datasource-not-found",
@@ -27,6 +52,9 @@ public class NopMetaDataSourceBizModel extends CrudBizModel<NopMetaDataSource> i
 
     @Inject
     protected IMetaDataSourceConnectionService connectionService;
+
+    /** 外部表结构读取器（无状态，直接持有，与 OrmModelImporter 的持有方式一致）。 */
+    private final ExternalTableStructureReader structureReader = new ExternalTableStructureReader();
 
     public NopMetaDataSourceBizModel() {
         setEntityName(NopMetaDataSource.class.getName());
@@ -60,5 +88,157 @@ public class NopMetaDataSourceBizModel extends CrudBizModel<NopMetaDataSource> i
         }
 
         return connectionService.testConnect(dataSource.getDatasourceType(), dataSource.getConnectionConfig());
+    }
+
+    /**
+     * 外部表元数据同步：从已注册数据源扫描物理表结构 → 写入元数据目录。
+     *
+     * <p>设计决策 D2（架构基线 §2.5.1）：
+     * <ul>
+     *   <li>实体不存在抛 {@code metadata.datasource-not-found}（不 NPE）</li>
+     *   <li>DISABLED 抛 {@code metadata.datasource-disabled}（不静默通过）</li>
+     *   <li>非 jdbc 类型由连接服务抛 {@link UnsupportedOperationException}（不静默成功）</li>
+     *   <li>不支持的方言由读取器抛 {@link UnsupportedOperationException}（不静默跳过）</li>
+     *   <li>复用 P2-1 callback 式连接服务 {@code withConnection}：callback 内运行时取方言 + 扫描，
+     *       callback 结束自动释放外部连接（本方法不自建连接）</li>
+     *   <li>按 D1 方案 A 写入：tableType=external，metaModuleId 指向系统模块 nop/meta-external，
+     *       列结构序列化为 JSON 存入 buildSql（子方案 A2）</li>
+     *   <li>幂等 upsert：按 (metaModuleId, tableName) 复合键去重，重复同步更新而非追加</li>
+     *   <li>单表失败收集到 errors 不中断整批（flushSession 隔离 + clearSession 清理失败态）</li>
+     * </ul>
+     *
+     * @param dataSourceId  目标数据源 ID
+     * @param schemaPattern 可选，限定扫描的 schema（null/空串表示全部）
+     * @return {@code {syncedTableCount: int, errors: [{tableName, error}, ...]}}
+     */
+    @BizMutation
+    public Map<String, Object> syncExternalTables(@Name("dataSourceId") String dataSourceId,
+                                                  @Optional @Name("schemaPattern") String schemaPattern,
+                                                  IServiceContext context) {
+        NopMetaDataSource dataSource = dao().getEntityById(dataSourceId);
+        if (dataSource == null) {
+            throw new NopException(ERR_DATASOURCE_NOT_FOUND).param("dataSourceId", dataSourceId);
+        }
+
+        String status = dataSource.getStatus();
+        if (_NopMetadataCoreConstants.DATASOURCE_STATUS_DISABLED.equals(status)) {
+            throw new NopException(ERR_DATASOURCE_DISABLED).param("dataSourceId", dataSourceId);
+        }
+
+        // 系统模块作为外部表归属（方案 A），首次同步时惰性创建
+        String externalModuleId = ensureExternalSystemModule();
+
+        AtomicInteger syncedCount = new AtomicInteger(0);
+        List<Map<String, Object>> errors = new ArrayList<>();
+
+        // 复用 P2-1 callback 式建连：callback 内取方言 + 扫描；callback 结束自动释放连接
+        connectionService.withConnection(dataSource.getDatasourceType(), dataSource.getConnectionConfig(),
+                (Connection conn, DatabaseMetaData metaData) -> {
+                    List<ExternalTableInfo> tables = structureReader.read(conn, metaData, schemaPattern);
+                    for (ExternalTableInfo table : tables) {
+                        try {
+                            upsertExternalTable(externalModuleId, dataSource, table);
+                            orm().flushSession();
+                            syncedCount.incrementAndGet();
+                        } catch (Exception e) {
+                            LOG.error("syncExternalTables failed for table: {}", table.getTableName(), e);
+                            Map<String, Object> err = new LinkedHashMap<>();
+                            err.put("tableName", table.getTableName());
+                            err.put("error", toErrorMessage(e));
+                            errors.add(err);
+                            // 隔离失败：清理未刷出的脏实体，不影响已 flush 的表与后续表
+                            orm().clearSession();
+                        }
+                    }
+                });
+
+        Map<String, Object> result = new LinkedHashMap<>();
+        result.put("syncedTableCount", syncedCount.get());
+        result.put("errors", errors);
+        return result;
+    }
+
+    /**
+     * 幂等 upsert：按 (metaModuleId, tableName) 复合键去重。
+     * 存在则更新（querySpace/description/buildSql 列快照），不存在则新建。
+     */
+    private void upsertExternalTable(String metaModuleId, NopMetaDataSource dataSource, ExternalTableInfo info) {
+        IEntityDao<NopMetaTable> tableDao = daoFor(NopMetaTable.class);
+
+        QueryBean query = new QueryBean();
+        query.addFilter(FilterBeans.eq(NopMetaTable.PROP_NAME_metaModuleId, metaModuleId));
+        query.addFilter(FilterBeans.eq(NopMetaTable.PROP_NAME_tableName, info.getTableName()));
+        NopMetaTable table = tableDao.findFirstByQuery(query);
+
+        String columnsJson = serializeColumns(info.getColumns());
+
+        if (table == null) {
+            table = tableDao.newEntity();
+            table.setMetaModuleId(metaModuleId);
+            table.setTableName(info.getTableName());
+            table.setDisplayName(info.getTableName());
+            table.setTableType(_NopMetadataCoreConstants.TABLE_TYPE_EXTERNAL);
+            table.setQuerySpace(dataSource.getQuerySpace());
+            table.setDescription(info.getRemark());
+            table.setBuildSql(columnsJson);
+            tableDao.saveEntity(table);
+        } else {
+            table.setQuerySpace(dataSource.getQuerySpace());
+            table.setDescription(info.getRemark());
+            table.setBuildSql(columnsJson);
+            tableDao.updateEntity(table);
+        }
+    }
+
+    /**
+     * 确保外部表归属的系统模块存在（moduleId=nop/meta-external，status=RELEASED）。
+     * 已存在则复用其 metaModuleId，不存在则惰性创建。
+     */
+    private String ensureExternalSystemModule() {
+        IEntityDao<NopMetaModule> moduleDao = daoFor(NopMetaModule.class);
+        QueryBean query = new QueryBean();
+        query.addFilter(FilterBeans.eq(NopMetaModule.PROP_NAME_moduleId, EXTERNAL_MODULE_ID));
+        NopMetaModule module = moduleDao.findFirstByQuery(query);
+        if (module != null) {
+            return module.getMetaModuleId();
+        }
+
+        module = moduleDao.newEntity();
+        module.setModuleId(EXTERNAL_MODULE_ID);
+        module.setModuleName(EXTERNAL_MODULE_NAME);
+        module.setDisplayName("外部表系统模块");
+        module.setModuleVersion(1L);
+        module.setStatus(_NopMetadataCoreConstants.MODULE_STATUS_RELEASED);
+        module.setImportedAt(new Timestamp(System.currentTimeMillis()));
+        moduleDao.saveEntity(module);
+        orm().flushSession();
+        return module.getMetaModuleId();
+    }
+
+    /** 将扫描到的列结构序列化为 JSON 数组存入 buildSql（子方案 A2）。 */
+    private String serializeColumns(List<ExternalColumnInfo> columns) {
+        List<Map<String, Object>> list = new ArrayList<>(columns.size());
+        for (ExternalColumnInfo col : columns) {
+            Map<String, Object> m = new LinkedHashMap<>();
+            m.put("columnName", col.getColumnName());
+            m.put("dataType", col.getDataType());
+            m.put("precision", col.getPrecision());
+            m.put("scale", col.getScale());
+            m.put("nullable", col.isNullable());
+            m.put("ordinal", col.getOrdinal());
+            if (col.getRemark() != null) {
+                m.put("comment", col.getRemark());
+            }
+            if (col.getDefaultValue() != null) {
+                m.put("defaultValue", col.getDefaultValue());
+            }
+            list.add(m);
+        }
+        return JsonTool.stringify(list);
+    }
+
+    private static String toErrorMessage(Exception e) {
+        String msg = e.getMessage();
+        return msg != null ? msg : e.getClass().getName();
     }
 }
