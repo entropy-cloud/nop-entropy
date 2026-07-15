@@ -208,12 +208,13 @@ MetaDict                        — 字典
 
 ### 2.5 逻辑表（BI 语义层）
 
-MetaTable 是对用户暴露的统一概念——用户看到的"可以查的表"，有两种来源：
+MetaTable 是对用户暴露的统一概念——用户看到的"可以查的表"，有三种来源：
 
 | tableType | 含义 | 字段来源 |
 |-----------|------|---------|
 | `entity` | 包装一个 ORM 实体 | 直接从 MetaEntityField 拉取，不重复存储 |
 | `sql` | 用户用 SQL 定义的视图 | 从 SQL 解析或用户手动录入 |
+| `external` | 已注册外部数据源扫描注册的物理表 | 扫描结果序列化为 JSON 存入 `buildSql`（见 §2.5.1） |
 
 ```
 MetaTable                       — 逻辑表
@@ -245,8 +246,33 @@ MetaTableJoin                   — 表关联
 
 - **tableType=entity 的字段**：不单独存储 MetaTableField。MetaTable 通过引用的 MetaEntity（baseEntityId）和 MetaTableJoin 推断可用字段，字段定义从 MetaEntityField 动态拉取。
 - **tableType=sql 的字段**：由 `sourceSql` 在运行时解析 SELECT 子句得到，不单独存储。
+- **tableType=external 的字段**：扫描结果（列名/类型/可空/注释/序号）序列化为 JSON 数组存入 `buildSql`（见 §2.5.1）。
 - **MetaTableMeasure** 的 `entityFieldId` 指向 MetaEntityField（entity 类型）或解析 SQL 得到的字段（sql 类型，用字符串名引用）。
 - **MetaTableJoin** 的 `leftEntityId/rightEntityId` 指向 MetaEntity，`leftField/rightField` 指向字段名。关联条件是用户按需定义的，不依赖 ORM 模型已有的 MetaEntityRelation。
+
+#### 2.5.1 外部表建模（syncExternalTables）
+
+本节落地 plan P2-2 的设计决策 D1/D2。外部表是从已注册 jdbc 数据源（P2-1）扫描注册的物理表，不属于任何平台 ORM 模块，也没有 MetaEntity/OrmModel 来源。
+
+**建模决策 D1（方案 A + 子方案 A2）**：
+
+外部表归属与字段存储三方案经 live repo 核查裁定：
+- **方案 C（放宽 `NopMetaTable.metaModuleId` 为 nullable）**：拒绝。`metaModuleId` mandatory 是现有不变量（`nop-metadata.orm.xml` NopMetaTable 列定义 `mandatory="true"`），放宽需迁移评估且破坏既有契约。
+- **方案 B（复用 `tableType="entity"`，为每个外部表合成 MetaEntity + 字段进 NopMetaEntityField）**：拒绝。`NopMetaEntity.ormModelId` 已 mandatory（需再造合成 OrmModel），且 `NopMetaEntityField.metaEntityId` mandatory 指向 MetaEntity——合成链路成本高、引入"无来源"的合成实体污染目录。
+- **方案 A（选定）**：引入 `tableType="external"`；新建系统模块 `nop/meta-external`（status=RELEASED）作为外部表归属，所有外部表 `metaModuleId` 指向它，保持 `metaModuleId mandatory` 不变量。
+  - 字段存储子方案 **A2（选定）**：扫描到的列结构序列化为 JSON 存入 `buildSql`（mediumtext，外部表无"合成 SQL"语义，`buildSql` 复用为列快照）。**子方案 A1（新建轻量字段存储实体）被拒绝**——它属于 ORM 模型结构变更（Protected Area），且字段级单独寻址（血缘/质量引用）属 P2-5/P2-6 范围，本 plan 不需要。
+
+> 本决策不引入任何新 ORM 实体或新列，仅向 `meta/table-type` dict 新增 `external` 枚举值 + 运行时初始化系统模块行，不属于 Protected Area 结构变更。
+
+**系统模块 `nop/meta-external`**：
+- 全局唯一（`moduleId="nop/meta-external"`），`status=RELEASED`，由 `syncExternalTables` 在首次同步时惰性创建（若已存在则复用）。
+- 外部表的 `querySpace` 取自数据源的 `querySpace`；`(metaModuleId, tableName)` 复合键用于幂等 upsert（`tableName` 上无唯一约束、跨 schema 可能同名，故复合键去重）。
+
+**syncExternalTables 契约（D2）**：
+- GraphQL mutation：`NopMetaDataSource__syncExternalTables(dataSourceId, schemaPattern?)` → 返回 `Map<String,Object>`（`{syncedTableCount: int, errors: [...]}`）。`schemaPattern` 可选，限定扫描的 schema。
+- 行为：按 `dataSourceId` 加载 NopMetaDataSource → 不存在抛 `metadata.datasource-not-found`（不 NPE）→ `status == DISABLED` 抛 `metadata.datasource-disabled`（不静默通过）→ **复用 P2-1 callback 式连接服务 `withConnection(...)`**（callback 内由 `DatabaseMetaData.getDatabaseProductName()` 运行时取方言 + 执行结构读取）→ 按 D1 方案写入 MetaTable（`tableType=external`，`buildSql` 存列 JSON）→ 幂等 upsert（按 `(metaModuleId, tableName)` 复合键去重）→ 单表失败收集到 `errors` 不中断整批（`orm().clearSession()` 隔离）→ callback 结束自动释放连接。
+- **方言范围**：首版支持 MySQL / PostgreSQL / H2（结构读取走标准 JDBC `DatabaseMetaData.getTables()` / `getColumns()`，跨方言可移植，等价于 `information_schema.COLUMNS` 信息）。其余方言（ClickHouse `system.columns`、Oracle 等）在读取器入口显式抛 `UnsupportedOperationException`（快速失败，非静默跳过），多方言全覆盖为 follow-up。
+- **非 jdbc 类型**：连接服务显式抛 `UnsupportedOperationException`（继承 P2-1 行为，不静默成功）。
 
 ### 2.6 数据血缘
 
