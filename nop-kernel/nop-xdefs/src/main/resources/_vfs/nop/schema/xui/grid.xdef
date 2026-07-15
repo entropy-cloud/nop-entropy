@@ -42,10 +42,11 @@
         @fixed 是否锁定列。left左侧锁定, right表示右侧锁定
         @hidden 如果设置为hidden，则前端表格中不显示此列，也不生成控件
         @breakpoint 列表的列数过多时，breakpoint可以从该列开始折叠到footer部分显示。
+        @toggled 控制列是否默认处于toggled（可切换显示）状态，默认为true
         -->
         <col id="!string" xdef:name="UiGridColModel" groupName="string" fixed="string"
              readonly="!boolean=false" hidden="!boolean=false" mandatory="!boolean=false" breakpoint="string"
-             sortable="!boolean=false" align="string" xdef:ref="disp.xdef" ui:number="boolean"
+             sortable="!boolean=false" align="string" toggled="!boolean=true" xdef:ref="disp.xdef" ui:number="boolean"
         >
             <labelClassName>string</labelClassName>
         </col>
