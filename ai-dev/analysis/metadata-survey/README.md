@@ -8,6 +8,8 @@
 
 ## 调研范围
 
+### 元数据管理平台
+
 | 项目 | 类型 | 技术栈 | 深度分析 |
 |------|------|--------|----------|
 | DataHub | 数据目录平台 | Java/Python, Kafka, Elasticsearch | [分析](./2026-07-15-datahub-deep-analysis.md) |
@@ -15,7 +17,27 @@
 | Apache Atlas | Hadoop 治理框架 | Java, HBase, Solr | [分析](./2026-07-15-atlas-deep-analysis.md) |
 | Amundsen | 数据发现引擎 | Python, Neo4j/Elasticsearch | [分析](./2026-07-15-amundsen-deep-analysis.md) |
 | Marquez | 血缘追踪服务 | Java, PostgreSQL, Elasticsearch | [分析](./2026-07-15-marquez-deep-analysis.md) |
-| **综合对比** | - | - | [对比](./2026-07-15-metadata-platforms-comparison.md) |
+
+### 数据转换和质量
+
+| 项目 | 类型 | 技术栈 | 深度分析 |
+|------|------|--------|----------|
+| dbt | 数据转换工具 | Python, SQL | [分析](./2026-07-15-dbt-deep-analysis.md) |
+| Great Expectations | 数据质量框架 | Python | [分析](./2026-07-15-great-expectations-deep-analysis.md) |
+| Apache Griffin | 数据质量平台 | Java, Spark | [分析](./2026-07-15-apache-griffin-deep-analysis.md) |
+| OpenRefine | 数据清洗工具 | Java | [分析](./2026-07-15-openrefine-deep-analysis.md) |
+
+### AI 数据分析
+
+| 项目 | 类型 | 技术栈 | 深度分析 |
+|------|------|--------|----------|
+| PandasAI | AI 数据分析 | Python, LLM | [分析](./2026-07-15-pandasai-deep-analysis.md) |
+
+### 综合对比
+
+| 报告 | 说明 |
+|------|------|
+| [平台对比](./2026-07-15-metadata-platforms-comparison.md) | 五个元数据平台的综合对比 |
 
 ## 核心设计模式提取
 
@@ -38,6 +60,11 @@
 | 组织记忆实体 | OpenMetadata | 记忆作为版本化实体 |
 | 数据契约 ODCS | OpenMetadata | 开放标准合规 |
 | DNF 授权 | DataHub | 析取范式策略 |
+| Manifest 元数据模型 | dbt | 项目完整元数据快照 + 依赖图预计算 |
+| 声明式数据测试 | Great Expectations | Expectation Suite 声明式质量规则 |
+| 数据剖析 | Apache Griffin | profiling 多维统计分析 |
+| Operation 操作历史 | OpenRefine | 数据转换操作历史和撤销/重做 |
+| AI 元数据查询 | PandasAI | 自然语言 → 代码 → 元数据查询 |
 
 ## 对 nop-metadata 的建议
 
@@ -47,10 +74,16 @@
 4. **血缘**: 递归 CTE，支持列级血缘
 5. **事件**: Propose-Commit 两阶段
 6. **搜索**: 注解驱动索引 + 向量搜索
+7. **质量**: 声明式质量规则 (Expectation Suite 模式)
+8. **数据剖析**: profiling 多维统计分析
+9. **操作历史**: 数据转换操作历史和撤销/重做
+10. **AI 集成**: 自然语言查询元数据
 
 ## 后续工作
 
 - [x] 完成五个平台的深度分析
+- [x] 完成数据转换/质量平台的深度分析
+- [x] 完成 AI 数据分析平台的深度分析
 - [x] 提取可复用的设计模式
 - [x] 制定 nop-metadata 设计建议
 - [ ] 设计 nop-metadata 核心模型
