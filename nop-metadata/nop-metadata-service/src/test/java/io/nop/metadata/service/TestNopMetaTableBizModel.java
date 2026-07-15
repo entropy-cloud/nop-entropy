@@ -36,6 +36,7 @@ import java.util.Map;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
@@ -274,6 +275,190 @@ public class TestNopMetaTableBizModel extends JunitBaseTestCase {
         assertTrue(resp.hasError(), "non-jdbc datasource must explicitly fail: " + resp);
     }
 
+    // ===== SQL 视图创建 + SELECT 字段解析（架构基线 §4.2 / §4.2.1 / §4.2.2）=====
+
+    /** createSqlTable 成功：多列 + 别名列 + 表达式列 → 字段名与 SELECT 输出一致。 */
+    @Test
+    @SuppressWarnings("unchecked")
+    public void testCreateSqlTableSuccess() {
+        String moduleId = ensureExternalSystemModuleId();
+        String sql = "SELECT id, name AS user_name, amount * 2 FROM orders";
+        GraphQLResponseBean resp = graphQLEngine.executeGraphQL(graphQLEngine.newGraphQLContext(req(
+                "mutation { NopMetaTable__createSqlTable(sql: \"" + escapeGraphQL(sql) + "\", "
+                        + "tableName: \"sql_view_basic\", metaModuleId: \"" + moduleId + "\") }")));
+
+        assertFalse(resp.hasError(), "createSqlTable should succeed for valid SELECT: " + resp);
+        Map<String, Object> data = (Map<String, Object>) resp.getData();
+        Map<String, Object> result = (Map<String, Object>) data.get("NopMetaTable__createSqlTable");
+        assertNotNull(result, "result map must be present");
+        assertEquals("sql", result.get("tableType"), "tableType must be sql");
+        assertNotNull(result.get("metaTableId"), "metaTableId must be returned");
+
+        List<Map<String, Object>> fields = (List<Map<String, Object>>) result.get("fields");
+        assertNotNull(fields, "fields must be returned (wiring proof)");
+        assertEquals(3, fields.size(), "field count must match SELECT output columns");
+        // 接线验证：fields 来自真实 AST 解析（非空壳）
+        assertEquals("id", fields.get(0).get("name"), "first col name = id");
+        // 别名列：输出名 = alias
+        assertEquals("user_name", fields.get(1).get("name"), "aliased col name = user_name");
+        assertEquals("user_name", fields.get(1).get("alias"), "alias field populated");
+        // 表达式列：标记 <expr_1>（不静默跳过）
+        assertEquals("<expr_1>", fields.get(2).get("name"), "expression col marked (not skipped)");
+        // 方案 A：type 恒为 null（不伪造）
+        assertNull(fields.get(0).get("type"), "type must be null in plan A (not fabricated)");
+
+        // 端到端：findPage/get 可查到新建的 tableType=sql 记录（sourceSql 已存）
+        NopMetaTable saved = daoProvider.daoFor(NopMetaTable.class)
+                .getEntityById(String.valueOf(result.get("metaTableId")));
+        assertNotNull(saved, "saved table must be findable by id");
+        assertEquals("sql", saved.getTableType());
+        assertEquals(sql, saved.getSourceSql(), "sourceSql must be persisted");
+    }
+
+    /** createSqlTable 拒绝非 SELECT（INSERT）→ 显式失败。 */
+    @Test
+    public void testCreateSqlTableRejectNonSelect() {
+        String moduleId = ensureExternalSystemModuleId();
+        GraphQLResponseBean resp = graphQLEngine.executeGraphQL(graphQLEngine.newGraphQLContext(req(
+                "mutation { NopMetaTable__createSqlTable(sql: \"INSERT INTO t VALUES(1)\", "
+                        + "tableName: \"sql_bad\", metaModuleId: \"" + moduleId + "\") }")));
+        assertTrue(resp.hasError(), "non-SELECT must explicitly fail: " + resp);
+    }
+
+    /** createSqlTable 拒绝空 SQL → 显式失败。 */
+    @Test
+    public void testCreateSqlTableRejectEmptySql() {
+        String moduleId = ensureExternalSystemModuleId();
+        GraphQLResponseBean resp = graphQLEngine.executeGraphQL(graphQLEngine.newGraphQLContext(req(
+                "mutation { NopMetaTable__createSqlTable(sql: \"   \", "
+                        + "tableName: \"sql_empty\", metaModuleId: \"" + moduleId + "\") }")));
+        assertTrue(resp.hasError(), "empty SQL must explicitly fail: " + resp);
+    }
+
+    /** createSqlTable 拒绝语法错误 SQL → 显式失败。 */
+    @Test
+    public void testCreateSqlTableRejectSyntaxError() {
+        String moduleId = ensureExternalSystemModuleId();
+        GraphQLResponseBean resp = graphQLEngine.executeGraphQL(graphQLEngine.newGraphQLContext(req(
+                "mutation { NopMetaTable__createSqlTable(sql: \"SELEC FROM t\", "
+                        + "tableName: \"sql_syntax\", metaModuleId: \"" + moduleId + "\") }")));
+        assertTrue(resp.hasError(), "syntax-error SQL must explicitly fail: " + resp);
+    }
+
+    /** createSqlTable 拒绝多语句（; 分隔）→ 显式失败（不允许 SELECT 1; DELETE...）。 */
+    @Test
+    public void testCreateSqlTableRejectMultiStatement() {
+        String moduleId = ensureExternalSystemModuleId();
+        String sql = "SELECT 1; DELETE FROM t";
+        GraphQLResponseBean resp = graphQLEngine.executeGraphQL(graphQLEngine.newGraphQLContext(req(
+                "mutation { NopMetaTable__createSqlTable(sql: \"" + escapeGraphQL(sql) + "\", "
+                        + "tableName: \"sql_multi\", metaModuleId: \"" + moduleId + "\") }")));
+        assertTrue(resp.hasError(), "multi-statement SQL must explicitly fail: " + resp);
+    }
+
+    /** createSqlTable 拒绝通配符 * / t.*（item 1.1 裁定：纯 AST 无法展开，显式失败）。 */
+    @Test
+    public void testCreateSqlTableRejectWildcard() {
+        String moduleId = ensureExternalSystemModuleId();
+        GraphQLResponseBean resp = graphQLEngine.executeGraphQL(graphQLEngine.newGraphQLContext(req(
+                "mutation { NopMetaTable__createSqlTable(sql: \"SELECT * FROM t\", "
+                        + "tableName: \"sql_wild\", metaModuleId: \"" + moduleId + "\") }")));
+        assertTrue(resp.hasError(), "wildcard projection must explicitly fail (not silently skipped): " + resp);
+
+        GraphQLResponseBean resp2 = graphQLEngine.executeGraphQL(graphQLEngine.newGraphQLContext(req(
+                "mutation { NopMetaTable__createSqlTable(sql: \"SELECT t.* FROM t\", "
+                        + "tableName: \"sql_wild2\", metaModuleId: \"" + moduleId + "\") }")));
+        assertTrue(resp2.hasError(), "t.* wildcard must also explicitly fail: " + resp2);
+    }
+
+    /** createSqlTable 拒绝不存在的 metaModuleId → 显式失败。 */
+    @Test
+    public void testCreateSqlTableRejectModuleNotFound() {
+        GraphQLResponseBean resp = graphQLEngine.executeGraphQL(graphQLEngine.newGraphQLContext(req(
+                "mutation { NopMetaTable__createSqlTable(sql: \"SELECT 1\", "
+                        + "tableName: \"sql_nomod\", metaModuleId: \"__nope_module__\") }")));
+        assertTrue(resp.hasError(), "non-existent module must explicitly fail: " + resp);
+    }
+
+    /** previewSqlFields 返回字段列表，且不产生任何持久化副作用（表行数不变）。 */
+    @Test
+    @SuppressWarnings("unchecked")
+    public void testPreviewSqlFieldsNoPersistence() {
+        long tablesBefore = countAllTables();
+        String sql = "SELECT id, name AS label FROM users";
+        GraphQLResponseBean resp = graphQLEngine.executeGraphQL(graphQLEngine.newGraphQLContext(req(
+                "query { NopMetaTable__previewSqlFields(sql: \"" + escapeGraphQL(sql) + "\") }")));
+        assertFalse(resp.hasError(), "previewSqlFields should succeed: " + resp);
+
+        Map<String, Object> data = (Map<String, Object>) resp.getData();
+        Map<String, Object> result = (Map<String, Object>) data.get("NopMetaTable__previewSqlFields");
+        List<Map<String, Object>> fields = (List<Map<String, Object>>) result.get("fields");
+        assertEquals(2, fields.size(), "field count must match");
+        assertEquals("id", fields.get(0).get("name"));
+        assertEquals("label", fields.get(1).get("name"));
+        assertEquals("label", fields.get(1).get("alias"));
+
+        long tablesAfter = countAllTables();
+        assertEquals(tablesBefore, tablesAfter, "previewSqlFields must NOT persist any table (no side effect)");
+    }
+
+    /** 端到端：createSqlTable → resolveTableFields 返回与 preview 一致的字段（结构统一 {name, alias?, type?}）。 */
+    @Test
+    @SuppressWarnings("unchecked")
+    public void testResolveTableFieldsMatchesPreview() {
+        String moduleId = ensureExternalSystemModuleId();
+        String sql = "SELECT order_id, customer_id AS cid, total + 1 FROM orders";
+        // preview
+        GraphQLResponseBean preview = graphQLEngine.executeGraphQL(graphQLEngine.newGraphQLContext(req(
+                "query { NopMetaTable__previewSqlFields(sql: \"" + escapeGraphQL(sql) + "\") }")));
+        assertFalse(preview.hasError(), "preview should succeed: " + preview);
+
+        // create
+        GraphQLResponseBean create = graphQLEngine.executeGraphQL(graphQLEngine.newGraphQLContext(req(
+                "mutation { NopMetaTable__createSqlTable(sql: \"" + escapeGraphQL(sql) + "\", "
+                        + "tableName: \"sql_e2e\", metaModuleId: \"" + moduleId + "\") }")));
+        assertFalse(create.hasError(), "create should succeed: " + create);
+        String tableId = String.valueOf(((Map<String, Object>) ((Map<String, Object>) create.getData())
+                .get("NopMetaTable__createSqlTable")).get("metaTableId"));
+
+        // resolve
+        GraphQLResponseBean resolve = graphQLEngine.executeGraphQL(graphQLEngine.newGraphQLContext(req(
+                "query { NopMetaTable__resolveTableFields(metaTableId: \"" + tableId + "\") }")));
+        assertFalse(resolve.hasError(), "resolve should succeed: " + resolve);
+
+        List<Map<String, Object>> previewFields = (List<Map<String, Object>>) ((Map<String, Object>)
+                ((Map<String, Object>) preview.getData()).get("NopMetaTable__previewSqlFields")).get("fields");
+        List<Map<String, Object>> resolveFields = (List<Map<String, Object>>) ((Map<String, Object>)
+                ((Map<String, Object>) resolve.getData()).get("NopMetaTable__resolveTableFields")).get("fields");
+        assertEquals(previewFields.size(), resolveFields.size(), "preview and resolve field counts must match");
+        for (int i = 0; i < previewFields.size(); i++) {
+            assertEquals(previewFields.get(i).get("name"), resolveFields.get(i).get("name"),
+                    "field name at index " + i + " must match between preview and resolve");
+        }
+        // 验证三列结构
+        assertEquals("order_id", resolveFields.get(0).get("name"));
+        assertEquals("cid", resolveFields.get(1).get("name"));
+        assertEquals("<expr_1>", resolveFields.get(2).get("name"));
+    }
+
+    /** resolveTableFields 命中非 sql 表 → 显式失败（不静默返回空字段列表）。 */
+    @Test
+    public void testResolveTableFieldsFailsOnNonSqlTable() {
+        NopMetaTable entityTable = saveManualTable("EXT_NE_RESOLVE", "entity", "qs_ne_resolve");
+        GraphQLResponseBean resp = graphQLEngine.executeGraphQL(graphQLEngine.newGraphQLContext(req(
+                "query { NopMetaTable__resolveTableFields(metaTableId: \"" + entityTable.getMetaTableId()
+                        + "\") }")));
+        assertTrue(resp.hasError(), "non-sql table must explicitly fail (not return empty list): " + resp);
+    }
+
+    /** resolveTableFields 命中不存在的 metaTableId → 显式失败。 */
+    @Test
+    public void testResolveTableFieldsFailsOnNotFound() {
+        GraphQLResponseBean resp = graphQLEngine.executeGraphQL(graphQLEngine.newGraphQLContext(req(
+                "query { NopMetaTable__resolveTableFields(metaTableId: \"__nope_table__\") }")));
+        assertTrue(resp.hasError(), "non-existent table must explicitly fail: " + resp);
+    }
+
     // ===== helpers =====
 
     /** 端到端：建数据源 + 同步 external 表结构，返回 metaTableId。 */
@@ -299,6 +484,17 @@ public class TestNopMetaTableBizModel extends JunitBaseTestCase {
         GraphQLRequestBean request = new GraphQLRequestBean();
         request.setQuery(query);
         return request;
+    }
+
+    /** 转义 SQL 文本以便嵌入 GraphQL 字符串字面量（处理 " 和 \）。 */
+    private static String escapeGraphQL(String s) {
+        return s.replace("\\", "\\\\").replace("\"", "\\\"");
+    }
+
+    /** 统计当前所有 NopMetaTable 行数（用于验证 previewSqlFields 无持久化副作用）。 */
+    private long countAllTables() {
+        IEntityDao<NopMetaTable> tableDao = daoProvider.daoFor(NopMetaTable.class);
+        return tableDao.countByQuery(new QueryBean());
     }
 
     private String tableId(String tableName) {

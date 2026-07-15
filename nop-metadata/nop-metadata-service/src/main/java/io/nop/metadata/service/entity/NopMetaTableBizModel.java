@@ -2,6 +2,7 @@ package io.nop.metadata.service.entity;
 
 import io.nop.api.core.annotations.biz.BizModel;
 import io.nop.api.core.annotations.biz.BizMutation;
+import io.nop.api.core.annotations.biz.BizQuery;
 import io.nop.api.core.annotations.core.Name;
 import io.nop.api.core.annotations.core.Optional;
 import io.nop.api.core.beans.FilterBeans;
@@ -15,12 +16,15 @@ import io.nop.dao.api.IEntityDao;
 import io.nop.metadata.biz.INopMetaTableBiz;
 import io.nop.metadata.core._NopMetadataCoreConstants;
 import io.nop.metadata.dao.entity.NopMetaDataSource;
+import io.nop.metadata.dao.entity.NopMetaModule;
 import io.nop.metadata.dao.entity.NopMetaProfilingResult;
 import io.nop.metadata.dao.entity.NopMetaTable;
 import io.nop.metadata.service.connection.IMetaDataSourceConnectionService;
 import io.nop.metadata.service.profiling.MetaTableProfiler;
 import io.nop.metadata.service.profiling.ProfilingColumnStats;
 import io.nop.metadata.service.profiling.ProfilingSnapshot;
+import io.nop.metadata.service.sqlview.SqlSelectFieldExtractor;
+import io.nop.metadata.service.sqlview.SqlViewField;
 import jakarta.inject.Inject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -80,11 +84,33 @@ public class NopMetaTableBizModel extends CrudBizModel<NopMetaTable> implements 
             ErrorCode.define("metadata.profiling-table-failed",
                     "Profile table failed: {metaTableId} -- {error}", "metaTableId", "error");
 
+    // ===== SQL 视图（createSqlTable / previewSqlFields / resolveTableFields，架构基线 §4.2）=====
+    // 这些 ErrorCode 名以 sql- 前缀，与 lineage 模块的 metadata.lineage-* 区分（item 1.1 裁定：
+    // 采用 sql 视图专属名，避免重名）。解析器内部 ErrorCode（sql-empty/parse-failed/multi-statement/
+    // not-select/wildcard）定义在 SqlSelectFieldExtractor，BizModel 层只补充 createSqlTable/resolveTableFields
+    // 入口专属的 module/table 校验 ErrorCode。
+    static final ErrorCode ERR_SQL_VIEW_MODULE_NOT_FOUND =
+            ErrorCode.define("metadata.sql-module-not-found",
+                    "MetaModule not found for createSqlTable: {metaModuleId}", "metaModuleId");
+    static final ErrorCode ERR_SQL_VIEW_TABLE_NOT_FOUND =
+            ErrorCode.define("metadata.sql-table-not-found",
+                    "NopMetaTable not found for resolveTableFields: {metaTableId}", "metaTableId");
+    static final ErrorCode ERR_SQL_VIEW_TABLE_NOT_SQL =
+            ErrorCode.define("metadata.sql-table-not-sql",
+                    "resolveTableFields target is not a sql-view table: {metaTableId} (tableType={tableType})",
+                    "metaTableId", "tableType");
+    static final ErrorCode ERR_SQL_VIEW_SOURCE_SQL_EMPTY =
+            ErrorCode.define("metadata.sql-source-sql-empty",
+                    "resolveTableFields target sql-view table has empty sourceSql: {metaTableId}", "metaTableId");
+
     @Inject
     protected IMetaDataSourceConnectionService connectionService;
 
     /** 数据剖析器（无状态，参考 MetaCatalogCollector 收集器模式）。 */
     private final MetaTableProfiler profiler = new MetaTableProfiler();
+
+    /** SELECT 字段解析器（无状态，参考 SqlSourceTableExtractor AST 遍历模式，架构基线 §4.2.1）。 */
+    private final SqlSelectFieldExtractor sqlFieldExtractor = new SqlSelectFieldExtractor();
 
     public NopMetaTableBizModel() {
         setEntityName(NopMetaTable.class.getName());
@@ -125,8 +151,142 @@ public class NopMetaTableBizModel extends CrudBizModel<NopMetaTable> implements 
     }
 
     // ============================================================
+    // SQL 视图创建 + SELECT 字段解析（架构基线 §4.2 / §4.2.1 / §4.2.2）
+    // ============================================================
+
+    /**
+     * SQL 视图创建入口（架构基线 §4.2.2 D2）：校验 sql 为单条可解析 SELECT → 解析 SELECT 字段 →
+     * 新建 {@code NopMetaTable(tableType=sql, sourceSql=sql)} → save → 返回新建表 + 解析出的字段列表。
+     *
+     * <p>失败路径显式（不静默存入脏数据、不静默返回空字段列表、不吞异常）：
+     * <ul>
+     *   <li>sql 空 / 不可解析 / 多语句 / 非 SELECT / 含通配符 → 由 {@link SqlSelectFieldExtractor} 抛 inline ErrorCode</li>
+     *   <li>metaModuleId 不存在 → 抛 {@link #ERR_SQL_VIEW_MODULE_NOT_FOUND}</li>
+     * </ul>
+     *
+     * @param sql          SELECT SQL 文本（视图定义）
+     * @param tableName    逻辑表名
+     * @param metaModuleId 所属模块 ID
+     * @param querySpace   可选查询空间（tableType=sql 时显式指定）
+     * @param displayName  可选显示名
+     * @param context      服务上下文
+     * @return {@code {metaTableId, tableName, tableType:"sql", fields:[{name, alias?, type?}]}}
+     */
+    @BizMutation
+    public Map<String, Object> createSqlTable(@Name("sql") String sql,
+                                               @Name("tableName") String tableName,
+                                               @Name("metaModuleId") String metaModuleId,
+                                               @Optional @Name("querySpace") String querySpace,
+                                               @Optional @Name("displayName") String displayName,
+                                               IServiceContext context) {
+        // 1. 解析字段（sqlFieldExtractor 内部对 空/不可解析/多语句/非 SELECT/通配符 显式失败抛 ErrorCode）
+        List<SqlViewField> fields = sqlFieldExtractor.extract(sql);
+
+        // 2. 校验 metaModuleId 存在（不静默存入孤儿表）
+        IEntityDao<NopMetaModule> moduleDao = daoFor(NopMetaModule.class);
+        NopMetaModule module = moduleDao.getEntityById(metaModuleId);
+        if (module == null) {
+            throw new NopException(ERR_SQL_VIEW_MODULE_NOT_FOUND).param("metaModuleId", metaModuleId);
+        }
+
+        // 3. 新建 NopMetaTable(tableType=sql, sourceSql=sql)
+        IEntityDao<NopMetaTable> tableDao = dao();
+        NopMetaTable table = tableDao.newEntity();
+        table.setMetaModuleId(metaModuleId);
+        table.setTableName(tableName);
+        table.setDisplayName(displayName != null ? displayName : tableName);
+        table.setTableType(_NopMetadataCoreConstants.TABLE_TYPE_SQL);
+        if (querySpace != null) {
+            table.setQuerySpace(querySpace);
+        }
+        table.setSourceSql(sql);
+        tableDao.saveEntity(table);
+
+        // 4. 返回新建表 + 字段列表（接线验证：fields 来自真实 AST 解析，非空壳）
+        Map<String, Object> result = new LinkedHashMap<>();
+        result.put("metaTableId", table.getMetaTableId());
+        result.put("tableName", table.getTableName());
+        result.put("tableType", table.getTableType());
+        result.put("fields", toFieldMaps(fields));
+        return result;
+    }
+
+    /**
+     * SELECT 字段预览入口（架构基线 §4.2.2 D2）：对纯 SQL 文本解析 SELECT 字段，**不持久化**。
+     *
+     * <p>失败路径同 {@link #createSqlTable}（空/不可解析/多语句/非 SELECT/通配符显式失败）。
+     *
+     * @param sql     SELECT SQL 文本
+     * @param context 服务上下文
+     * @return {@code {fields:[{name, alias?, type?}]}}
+     */
+    @BizQuery
+    public Map<String, Object> previewSqlFields(@Name("sql") String sql, IServiceContext context) {
+        List<SqlViewField> fields = sqlFieldExtractor.extract(sql);
+        Map<String, Object> result = new LinkedHashMap<>();
+        result.put("fields", toFieldMaps(fields));
+        return result;
+    }
+
+    /**
+     * 已建 sql 视图表字段解析入口（架构基线 §4.2 / §4.2.2 D2，对齐"运行时解析、不单独存储"）：
+     * 加载 NopMetaTable(tableType=sql) → 解析 sourceSql → 返回字段列表。
+     *
+     * <p>失败路径显式（不静默返回空字段列表）：
+     * <ul>
+     *   <li>表不存在 → {@link #ERR_SQL_VIEW_TABLE_NOT_FOUND}</li>
+     *   <li>非 sql 类型表 → {@link #ERR_SQL_VIEW_TABLE_NOT_SQL}</li>
+     *   <li>sourceSql 空 → {@link #ERR_SQL_VIEW_SOURCE_SQL_EMPTY}</li>
+     *   <li>sourceSql 不可解析/多语句/非 SELECT/通配符 → 由 {@link SqlSelectFieldExtractor} 抛 inline ErrorCode</li>
+     * </ul>
+     *
+     * @param metaTableId 目标 sql 视图表 ID
+     * @param context     服务上下文
+     * @return {@code {fields:[{name, alias?, type?}]}}（与 {@link #previewSqlFields} 结构统一）
+     */
+    @BizQuery
+    public Map<String, Object> resolveTableFields(@Name("metaTableId") String metaTableId,
+                                                    IServiceContext context) {
+        IEntityDao<NopMetaTable> tableDao = dao();
+        NopMetaTable table = tableDao.getEntityById(metaTableId);
+        if (table == null) {
+            throw new NopException(ERR_SQL_VIEW_TABLE_NOT_FOUND).param("metaTableId", metaTableId);
+        }
+        if (!_NopMetadataCoreConstants.TABLE_TYPE_SQL.equals(table.getTableType())) {
+            throw new NopException(ERR_SQL_VIEW_TABLE_NOT_SQL)
+                    .param("metaTableId", metaTableId)
+                    .param("tableType", String.valueOf(table.getTableType()));
+        }
+        String sourceSql = table.getSourceSql();
+        if (sourceSql == null || sourceSql.trim().isEmpty()) {
+            throw new NopException(ERR_SQL_VIEW_SOURCE_SQL_EMPTY).param("metaTableId", metaTableId);
+        }
+
+        List<SqlViewField> fields = sqlFieldExtractor.extract(sourceSql);
+        Map<String, Object> result = new LinkedHashMap<>();
+        result.put("fields", toFieldMaps(fields));
+        return result;
+    }
+
+    // ============================================================
     // helpers
     // ============================================================
+
+    /** 将 SqlViewField 列表序列化为返回 Map 列表（统一 {name, alias?, type?} 结构）。 */
+    private static List<Map<String, Object>> toFieldMaps(List<SqlViewField> fields) {
+        List<Map<String, Object>> list = new ArrayList<>(fields.size());
+        for (SqlViewField f : fields) {
+            Map<String, Object> m = new LinkedHashMap<>();
+            m.put("name", f.getName());
+            if (f.getAlias() != null) {
+                m.put("alias", f.getAlias());
+            }
+            // 方案 A：type 恒为 null（不伪造）。type 字段始终写入，便于 UI/后续方案 B 统一结构。
+            m.put("type", f.getType());
+            list.add(m);
+        }
+        return list;
+    }
 
     /** 解析目标表：metaTableId → NopMetaTable；不存在/非 external 显式失败。 */
     NopMetaTable resolveExternalTableOrThrow(String metaTableId) {
