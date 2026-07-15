@@ -87,6 +87,31 @@ MetaDataSource                    — 数据源定义（全局，吸收 NopRepor
 - 纯元数据用途：描述数据源信息，不负责运行时查询路由（ORM 已承担此职责）。
 - **吸收 `NopReportDatasource`**：报表模块不再维护独立的数据源表，统一使用 `MetaDataSource`。原 `NopReportDatasourceAuth` 的角色级访问控制由 `nop-auth` 承担。
 
+#### 2.2.1 连通性验证（testConnection）
+
+数据源注册后通过 `testConnection` 验证连通性。本节落地 plan P2-1 的设计决策 D1/D2/D3。
+
+**契约（D1）**：
+- GraphQL mutation：`NopMetaDataSource__testConnection(dataSourceId)` → 返回 `Map<String,Object>`。
+- 行为：按 `dataSourceId` 加载实体 → `status == DISABLED` 时抛 `metadata.datasource-disabled`（显式拒绝，不静默通过）→ 交连接服务按 `datasourceType` 分派建连 → 读 `DatabaseMetaData` → 关闭 → 返回。
+- 成功返回 `{connected:true, databaseProductName, databaseProductVersion, driverName, driverVersion}`；建连失败（`SQLException`）catch 后返回 `{connected:false, error}`，**不向上抛**，使 GraphQL 调用方能拿到结构化失败结果。
+- 实体不存在抛 `metadata.datasource-not-found`（不 NPE）。
+- **仅支持 jdbc**：非 jdbc 类型（http/rest/file）由连接服务显式抛 `UnsupportedOperationException`，不静默返回成功。后续 http/rest/file 验证为 Non-Blocking Follow-up。
+
+**connectionConfig 约定（D2，jdbc）**：
+- 必填字段：`jdbcUrl`、`username`、`password`。可选：`driverClassName`（缺省时由 `DriverManager` 按 url 自动匹配）。
+- `password` 允许空串（如 H2 默认空密码），按 key 存在性校验；`jdbcUrl`/`username` 须非空。
+- 入口校验：缺必填字段抛 inline `ErrorCode(metadata.datasource-config-invalid)`，快速失败。
+- 首版 `password` 以**明文**存于 `connectionConfig` JSON（与 free-form 存储一致）；加密/脱敏为独立 follow-up（见 Non-Goals），不引入加密体系以免范围蔓延。
+
+**按需建连（架构基线约束）**：
+- 连接服务 `MetaDataSourceConnectionService`（service 层，IoC bean）提供 **callback 式接口** `withConnection(datasourceType, connectionConfig, BiConsumer<Connection, DatabaseMetaData>)`——内部建连、执行 action、finally 关闭。另提供 `testConnect(...)` 一次性读元数据返回结果 Map。
+- 连接通过平台 `SimpleDataSource`（`nop-dao`）从配置按需构建（不池化、**不注册**到 ORM `querySpace` 路由，符合"纯元数据用途"约束），同时服务 P2-1（testConnection）和后续 P2-2/P2-4/P2-6（open → N 条查询 → close）。
+
+**方言识别（D3，不持久化）**：
+- 成功时从 `DatabaseMetaData.getDatabaseProductName()` 识别方言，**仅放入返回 Map**，不写任何 ORM 列 / `extConfig`。
+- 后续 P2-2 外部表同步需要方言时，由 P2-2 在建连后**自行**调用 `getDatabaseProductName()` 运行时获取，不依赖本能力写入的任何字段。
+
 ### 2.3 模型版本
 
 每个模型类型独立一张表，不共用。MetaOrmModel 不再有 version 和 status 字段——这些在 MetaModule 上。

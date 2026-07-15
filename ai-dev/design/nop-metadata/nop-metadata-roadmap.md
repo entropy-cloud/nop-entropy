@@ -90,7 +90,7 @@
 
 | 工作项 | 描述 | 状态 |
 |--------|------|------|
-| P2-1 | **MetaDataSource CRUD + 连接验证**：数据源注册（JDBC/HTTP/REST/File），连接配置 JSON，状态管理 | todo |
+| P2-1 | **MetaDataSource CRUD + 连接验证**：数据源注册（JDBC/HTTP/REST/File），连接配置 JSON，状态管理 | done |
 | P2-2 | **外部表元数据同步**：从已注册数据源（MySQL/PostgreSQL/ClickHouse）扫描表结构，写入 MetaTable(tableType=entity) + NopMetaEntityField | todo |
 | P2-3 | **MetaManifest 快照**（新实体）：导入时生成完整元数据快照（模块/模型/实体/依赖图），参考 dbt Manifest | todo |
 | P2-4 | **MetaCatalog 运行时收集**（新实体）：从数据库收集运行时统计（行数/大小/索引/分区），参考 dbt Catalog | todo |
