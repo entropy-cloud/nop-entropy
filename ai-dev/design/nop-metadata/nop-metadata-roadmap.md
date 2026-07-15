@@ -1,6 +1,6 @@
 # nop-metadata Implementation Roadmap
 
-> Last Updated: 2026-07-15 (initial roadmap; Phase 1 import engine completed via plan 292)
+> Last Updated: 2026-07-16 (P1+ plans 294+295 drafted; Phase 1 import engine completed via plan 292)
 > Source: 设计体系 `ai-dev/design/nop-metadata/`（00-vision ~ 10-event-model）；`01-architecture-baseline.md` 为架构权威
 
 ## Purpose
@@ -17,7 +17,7 @@
 > **注意**：header 必须为 `## Work Item Status`，mission-driver 的 `roadmap-check.mjs` 只识别此标题或 `## 阶段状态`。
 
 - P1. Phase 1 — ORM 模型导入引擎: `done`
-- P1+. Phase 1 补完 — Delta 展开 + 版本发布 + 模块发现 + UniqueKey/Index 导入: `todo`
+- P1+. Phase 1 补完 — Delta 展开 + 版本发布 + 模块发现 + UniqueKey/Index 导入: `planned`
 - P2. Phase 2 — 外部数据源注册 + 外部表同步 + 血缘采集 + 质量执行: `todo`
 - P3. Phase 3 — BI 语义层（视图定义 + 指标/维度管理）: `todo`
 - P4. Phase 4 — 联邦查询执行（基于 ORM querySpace）: `todo`
@@ -77,14 +77,14 @@
 
 | 工作项 | 描述 | 状态 |
 |--------|------|------|
-| P1+-1 | **isDelta=false full 展开**：导入时同时存储 delta 定义（isDelta=true）和 x:extends 合并后的 full 定义（isDelta=false）| todo |
-| P1+-2 | **releaseModule action**：实现模块版本发布逻辑（version 自增、status: drafting → released、released 后不可变），替换 OrmModelImporter 中硬编码的 `setModuleVersion(1L)` / `setStatus(DRAFTING)` | todo |
-| P1+-3 | **MetaModule.baseModuleId 自引用 to-one 关系**：ORM 层补全 self-ref relation，支持 Delta 继承链查询 | todo |
-| P1+-4 | **MetaEntityUniqueKey / MetaEntityIndex 导入填充**：OrmModelImporter 补充唯一键和索引的导入逻辑 | todo |
-| P1+-5 | **自动模块发现 / 批量导入**：扫描注册的模块列表，批量导入所有 `orm.xml`，而非仅支持单文件路径 | todo |
-| P1+-6 | **NopMetaTableJoin to-one 关系补全**：left/right table 的 ORM to-one relation 缺失，需补全 | todo |
+| P1+-1 | **isDelta=false full 展开**：导入时同时存储 delta 定义（isDelta=true）和 x:extends 合并后的 full 定义（isDelta=false）| planned |
+| P1+-2 | **releaseModule action**：实现模块版本发布逻辑（version 自增、status: drafting → released、released 后不可变），替换 OrmModelImporter 中硬编码的 `setModuleVersion(1L)` / `setStatus(DRAFTING)` | planned |
+| P1+-3 | **MetaModule.baseModuleId 自引用 to-one 关系**：ORM 层补全 self-ref relation，支持 Delta 继承链查询 | planned |
+| P1+-4 | **MetaEntityUniqueKey / MetaEntityIndex 导入填充**：OrmModelImporter 补充唯一键和索引的导入逻辑 | done |
+| P1+-5 | **自动模块发现 / 批量导入**：扫描注册的模块列表，批量导入所有 `orm.xml`，而非仅支持单文件路径 | done |
+| P1+-6 | **NopMetaTableJoin to-one 关系补全**：left/right table 的 ORM to-one relation 缺失，需补全 | done |
 
-> 设计参考：`03-version-management.md` §三 Delta 链 + 版本不变量；plan 292 Deferred But Adjudicated
+> Plans: 294（P1+-4/5/6 导入引擎完整性）、295（P1+-1/2/3 Delta 展开 + 版本发布）。设计参考：`03-version-management.md` §三 Delta 链 + 版本不变量；plan 292 Deferred But Adjudicated
 
 ### P2. Phase 2 — 外部数据源注册 + 外部表同步 + 血缘采集 + 质量执行
 
@@ -200,6 +200,7 @@ graph TD
 
 - **设计文档** → `ai-dev/design/nop-metadata/`（00-vision ~ 10-event-model，共 11 份编号文档 + README）
 - **已完成 plan** → `ai-dev/plans/292-nop-metadata-implementation-roadmap.md`（Phase 1 导入引擎）；`ai-dev/plans/293-nop-metadata-design-consistency-fix.md`（设计一致性修复）
+- **活跃 plan** → `ai-dev/plans/294-nop-metadata-import-engine-completeness.md`（P1+ 导入引擎完整性）；`ai-dev/plans/295-nop-metadata-delta-expansion-and-version-release.md`（P1+ Delta 展开 + 版本发布）
 - **设计决策** → `01-architecture-baseline.md` §一 设计结论 + §七 拒绝清单
 - **待定问题** → `01-architecture-baseline.md` §八 待定问题
 - **Gap 分析** → `02-gap-analysis.md`（对比 DataHub/OpenMetadata/Atlas/Amundsen/Marquez）
