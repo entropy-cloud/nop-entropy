@@ -13,10 +13,10 @@
       ],
       "type": "form",
       "api": {
-        "url": "@mutation:test/id?id=$id",
+        "url": "@mutation:test/id?id=${id}",
         "data": {
-          "a": "$a",
-          "b": "$b"
+          "a": "${a}",
+          "b": "${b}"
         }
       },
       "body": {

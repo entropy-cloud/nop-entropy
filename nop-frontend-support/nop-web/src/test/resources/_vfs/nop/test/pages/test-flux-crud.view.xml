@@ -45,7 +45,7 @@
                     <dialog page="add"/>
                 </action>
                 <action id="batch-delete-button" label="Batch Delete" batch="true">
-                    <api url="@mutation:TestFluxCrud__batchDelete?ids=$ids"/>
+                    <api url="@mutation:TestFluxCrud__batchDelete?ids=${ids}"/>
                     <confirmText>Confirm batch delete?</confirmText>
                 </action>
             </listActions>
@@ -54,7 +54,7 @@
                     <dialog page="view"/>
                 </action>
                 <action id="row-delete-button" level="danger" label="Delete">
-                    <api url="@mutation:TestFluxCrud__delete?id=$id"/>
+                    <api url="@mutation:TestFluxCrud__delete?id=${id}"/>
                     <confirmText>Confirm delete?</confirmText>
                 </action>
             </rowActions>
@@ -64,7 +64,7 @@
             <api url="@mutation:TestFluxCrud__save/id"/>
         </simple>
         <simple name="view" form="view">
-            <initApi url="@query:TestFluxCrud__get?id=$id" gql:selection="{@formSelection}"/>
+            <initApi url="@query:TestFluxCrud__get?id=${id}" gql:selection="{@formSelection}"/>
         </simple>
     </pages>
 </view>

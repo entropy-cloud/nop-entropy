@@ -657,7 +657,7 @@ Flux 控件映射库。控件名格式为 {mode}-{type}，与 control.xlib 保�
                                         "type": "button",
                                         "onClick": {
                                             "type": "api",
-                                            "url": "/f/download/$fileId",
+                                            "url": "/f/download/" + '$' + '{fileId}',
                                             "method": "get",
                                             "responseType": "blob"
                                         }

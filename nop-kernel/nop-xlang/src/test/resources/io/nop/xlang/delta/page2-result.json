@@ -42,7 +42,7 @@
       }
     ],
     "quickSaveApi": "/amis/api/mock2/sample/bulkUpdate",
-    "quickSaveItemApi": "/amis/api/mock2/sample/$id",
+    "quickSaveItemApi": "/amis/api/mock2/sample/${id}",
     "headerToolbar": [
       {
         "type": "bulkActions"
@@ -155,7 +155,7 @@
             "actionType": "ajax",
             "label": "删除",
             "confirmText": "您确认要删除?",
-            "api": "delete:/amis/api/mock2/sample/$id"
+            "api": "delete:/amis/api/mock2/sample/${id}"
           },
           {
             "type": "button",

@@ -72,7 +72,7 @@
                 xpl:if="pageModel.table?.saveOrderApi || gridModel.saveOrderApi"/>
 
         <c:if test="${objMeta?.displayProp}">
-            <labelTpl>$${objMeta.displayProp}</labelTpl>
+            <labelTpl>${'$'}{${objMeta.displayProp}}</labelTpl>
         </c:if>
 
         <filter xpl:if="filterForm and !pageModel.autoGenerateFilter" id="crud-filter"

@@ -23,7 +23,7 @@
                 </button>
             </bulkActions>
             <quickSaveApi>/amis/api/mock2/sample/bulkUpdate</quickSaveApi>
-            <quickSaveItemApi>/amis/api/mock2/sample/$id</quickSaveItemApi>
+            <quickSaveItemApi>/amis/api/mock2/sample/${id}</quickSaveItemApi>
             <headerToolbar j:list="true">
                 <bulkActions/>
                 <button label="重置测试数据" actionType="ajax" size="sm">
@@ -80,7 +80,7 @@
                     <buttons j:list="true">
                         <button actionType="ajax" label="删除">
                             <confirmText>您确认要删除?</confirmText>
-                            <api>delete:/amis/api/mock2/sample/$id</api>
+                            <api>delete:/amis/api/mock2/sample/${id}</api>
                         </button>
                         <button actionType="ajax"/>
                     </buttons>

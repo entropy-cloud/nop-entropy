@@ -8,10 +8,10 @@
         </c:script>
         <form x:extends="form.yaml" name="frm">
             <visibleOn>${visible}</visibleOn>
-            <api url="@mutation:test/id?id=$id">
+            <api url="@mutation:test/id?id=${'$'}{id}">
                 <data>
                     <c:for var="prop" items="${updateProps}">
-                        <_ j:key="${prop}">$${prop}</_>
+                        <_ j:key="${prop}">${'$'}{${prop}}</_>
                     </c:for>
                 </data>
             </api>

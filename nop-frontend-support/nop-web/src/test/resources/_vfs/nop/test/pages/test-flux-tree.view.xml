@@ -55,7 +55,7 @@
             <api url="@mutation:TestFluxTree__save/id"/>
         </simple>
         <simple name="view" form="view">
-            <initApi url="@query:TestFluxTree__get?id=$id" gql:selection="{@formSelection}"/>
+            <initApi url="@query:TestFluxTree__get?id=${id}" gql:selection="{@formSelection}"/>
         </simple>
     </pages>
 </view>

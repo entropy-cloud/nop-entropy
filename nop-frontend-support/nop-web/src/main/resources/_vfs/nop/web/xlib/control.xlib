@@ -692,7 +692,7 @@
                                     "actionType": "download",
                                     "api": {
                                         method: "get",
-                                        url: "/f/download/$fileId",
+                                        url: "/f/download/" + '$' + '{fileId}',
                                         data: {},
                                         responseType: "blob"
                                     }
