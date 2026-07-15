@@ -408,40 +408,74 @@ MetaPipeline                     — 数据处理管道
 MetaQualityRule                  — 质量规则定义
   ├── ruleName / displayName
   ├── ruleType                   — "not_null" | "unique" | "range" | "regex" | "custom_sql" | "freshness" | "volume"
-  ├── entityType                 — "field" | "table"
-  ├── entityId                   → MetaEntityField | MetaTable（规则挂载对象）
-  ├── severity                   — "error" | "warning" | "info"
+  ├── entityType                 — "field" | "table" | "database"
+  ├── entityId                   → MetaTable.metaTableId（规则挂载对象）
+  ├── severity                   — "INFO" | "WARNING" | "ERROR"（dict meta/quality-severity，大写）
   ├── sqlExpression              — 自定义 SQL 表达式（ruleType=custom_sql 时使用）
   ├── threshold                  — 阈值（如最小行数、最大空值比例）
-  ├── params                     — JSON 参数（如 min/max/regex pattern）
+  ├── params                     — JSON 参数（如 min/max/regex pattern/column）
   └── extConfig
 
 MetaQualityResult                — 质量执行结果（时序数据）
-  ├── ruleId                     → MetaQualityRule
+  ├── qualityRuleId              → MetaQualityRule
   ├── executeTime                — 执行时间
-  ├── status                     — "pass" | "fail" | "error" | "skip"
+  ├── status                     — "PASS" | "FAIL" | "ERROR" | "SKIP"（dict meta/quality-result-status，大写）
   ├── actualValue                — 实际值
   ├── expectedValue              — 期望值
   ├── message                    — 结果描述
   └── details                    — JSON 详情
 ```
 
+> severity / status 统一为大写形式，与 dict `meta/quality-severity` / `meta/quality-result-status` 一致。
+
 内置质量规则类型：
 
 | ruleType | 适用对象 | 说明 | params 示例 |
 |----------|----------|------|-------------|
-| `not_null` | field | 非空检查 | `{"threshold": 0.99}` (99%非空) |
-| `unique` | field | 唯一性检查 | `{"sampleSize": 10000}` |
-| `range` | field | 范围检查 | `{"min": 0, "max": 1000000}` |
-| `regex` | field | 正则匹配 | `{"pattern": "^\\d{4}-\\d{2}-\\d{2}$"}` |
-| `freshness` | table | 新鲜度检查 | `{"maxAgeMinutes": 60}` |
+| `not_null` | field | 非空检查 | `{"column": "order_id", "threshold": 0}`（threshold=允许的空值上限） |
+| `unique` | field | 唯一性检查 | `{"column": "order_id"}` |
+| `range` | field | 范围检查 | `{"column": "amount", "min": 0, "max": 1000000}` |
+| `regex` | field | 正则匹配 | `{"column": "order_date", "pattern": "^\\d{4}-\\d{2}-\\d{2}$"}` |
+| `freshness` | table | 新鲜度检查 | `{"timestampColumn": "updated_at", "maxAgeMinutes": 60}` |
 | `volume` | table | 行数检查 | `{"minRows": 1000, "maxRows": 10000000}` |
-| `custom_sql` | table | 自定义SQL | `{"sql": "SELECT COUNT(*) FROM t WHERE ..."}` |
+| `custom_sql` | table | 自定义SQL | `{"sql": "SELECT COUNT(*) FROM t WHERE ..."}` 或写 `sqlExpression` 列 |
 
 质量结果时序存储，支持：
 - 趋势查看（最近 N 天的通过率）
 - 异常告警（连续失败 N 次）
 - 影响分析（质量下降与哪些变更相关）
+
+#### 2.7.1 质量规则执行引擎（设计决策）
+
+**执行范围（D1）**：首版仅对 `entityType=table` 且目标 NopMetaTable 为 **external** 类型（已知注册数据源，与 P2-4 Catalog 一致）执行。`entityType=field` 首版同样支持，但**仅当其 `entityId` 指向 external NopMetaTable.metaTableId**，物理列名取自 `params.column`（字符串约定）——此约定收口"external 表无字段实体"（列结构存于 buildSql JSON，参见 §2.5.1 子方案 A2）。覆盖 4 类高价值 field 级检查（not_null/unique/range/regex）。entity/sql 类型表执行 deferred（querySpace→数据源解析，与 Catalog entity/sql 收集同源 deferred，参见 §2.3.2 / §2.5.1）。`entityType=database` 首版不支持（执行时 SKIP + details 标记 `reason=database-not-supported-first-version`）。
+
+**物理解析路径（D1）**：`qualityRule.entityId`（external NopMetaTable.metaTableId）→ `NopMetaTable.querySpace` → `NopMetaDataSource`（`dataSource.querySpace == table.querySpace`，唯一匹配）→ `withConnection(datasourceType, connectionConfig, ...)`（复用 P2-1 callback 式连接服务）。querySpace 找不到数据源 → 显式失败抛 inline ErrorCode（不静默 SKIP 整批）。多条数据源匹配同一 querySpace 为配置错误，取第一条并记录 warning（首版不强制唯一性约束）。
+
+**field 级列引用约定（D1）**：`entityType=field` 规则的 `entityId` 指向 external NopMetaTable.metaTableId（不指向 MetaEntityField——external 表无该实体）；物理列名取自 `params.column`（字符串）。规则在 external 表上必须先 sync 该表结构（syncExternalTables 已写入 buildSql JSON，但执行不依赖列存在性校验——物理 SQL 直接执行，方言/列不存在由数据库显式报错）。
+
+**schema 限定（D1）**：复用 Catalog 的 `qualifyTable(schema, tableName)` 策略——执行 action 可选 `schemaPattern` 参数限定物理 SQL（`<schemaPattern>.<tableName>`）；null/空串依赖连接默认 schema。多 schema 同名表为已知限制（与 Catalog §2.3.2 同源 follow-up）。
+
+**执行机制（D2）**：选定 **BizModel action + withConnection**（不选 nop-batch processor），理由：与本模块既有 external 执行能力（collectCatalog / syncExternalTables）一致；可被 Nop AutoTest 端到端验证；可被 GraphQL 直接暴露。`09-gap-analysis-extended.md` §4.4 的 nop-batch 建议作为"定时调度"后续选项记录，首版不用。
+
+**Action 落点（D2）**：`NopMetaQualityRuleBizModel`（规则执行是规则对象的行为，单规则入口天然归属规则；批量入口同处聚合）：
+- `executeQualityRule(qualityRuleId, schemaPattern?, context)` → 返回 `Map{qualityResultId, status, actualValue, expectedValue, message}`。单规则执行；规则不存在/目标表非 external/无注册数据源 → 显式失败抛 inline ErrorCode；`entityType=database` 与不支持规则类型组合 → SKIP + details。
+- `executeQualityRulesForDataSource(dataSourceId, schemaPattern?, context)` → 返回 `Map{executedCount, results, errors}`。批量执行该 querySpace 下 external 表挂载的规则；与 collectCatalog 同入口（dataSourceId）、同 callback 模式、同 per-rule 失败隔离（try/catch + flushSession/clearSession）。
+
+**判定语义（D3，算法规格）**：
+
+| ruleType | 检测 SQL | actualValue | expectedValue | pass 条件 |
+|----------|---------|-------------|---------------|-----------|
+| `volume` (table) | `SELECT COUNT(*) FROM <限定表名>` | 行数 | 阈值（minRows/maxRows 或 threshold） | minRows ≤ actualValue ≤ maxRows（缺省边不限制） |
+| `freshness` (table) | `SELECT MAX(<tsCol>) FROM <限定表名>` → age(now − maxTs) 分钟 | ageMinutes | maxAgeMinutes | ageMinutes ≤ maxAgeMinutes；缺 timestampColumn 显式失败 |
+| `custom_sql` (table) | 执行 `rule.sqlExpression`（优先）或 `params.sql` | 返回值 | — | 按 `params.expectPassWhen`（`eq 0`/`gt 0`/`true`）或默认"返回 0 = pass"；SQL 不返回单数值/单布尔 → ERROR |
+| `not_null` (field) | `SELECT COUNT(*) FROM <限定表名> WHERE <col> IS NULL` | nullCount | 0 或 threshold | nullCount ≤ threshold（默认 0） |
+| `unique` (field) | `SELECT COUNT(*) FROM (SELECT <col> FROM <限定表名> WHERE <col> IS NOT NULL GROUP BY <col> HAVING COUNT(*)>1) d` | 重复值组数 | 0 | 0 |
+| `range` (field) | `SELECT COUNT(*) FROM <限定表名> WHERE <col> IS NOT NULL AND (<col> < :min OR <col> > :max)` | 越界行数 | 0 | 0 |
+| `regex` (field) | `SELECT COUNT(*) FROM <限定表名> WHERE <col> IS NOT NULL AND <col> NOT REGEXP :pattern` | 不匹配数 | 0 | 0；方言不支持 REGEXP → SKIP + details 标记 |
+
+`details` JSON 记录 `{ruleType, tableName, column?, threshold, params, schema?, databaseProductName?}` 便于审计；失败原因（如 "nullCount=3 超过阈值 0"）写入 `message`。
+
+**标识符注入防护（D3）**：列名 / 表名 / schema 名为 SQL 标识符（不能 PreparedStatement 占位），必须通过**白名单正则校验** `^[A-Za-z_][A-Za-z0-9_]*$` 后再拼接，否则显式失败（防止 SQL 注入）；比较值（range min/max、regex pattern 等）使用 PreparedStatement 参数绑定。`custom_sql` 的 `sqlExpression` / `params.sql` 是用户显式提供的检测 SQL（非自动注入面），记录为已知显式风险（执行前不解析/不改写，直接执行）。
 
 ---
 

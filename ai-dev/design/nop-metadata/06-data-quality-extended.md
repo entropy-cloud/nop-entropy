@@ -1,6 +1,6 @@
 # nop-metadata 数据质量扩展设计
 
-> Status: draft
+> Status: active（基线 7 类规则执行已在 `01-architecture-baseline.md` §2.7.1 落地；本 doc 记录后续扩展项的设计契约）
 > Date: 2026-07-15
 > Scope: nop-metadata 数据质量规则扩展、数据剖析和验证执行
 > Goal: 定义数据质量扩展模型，参考 Great Expectations 和 Apache Griffin
@@ -10,96 +10,58 @@
 
 ## 一、设计决策
 
-### 1.1 质量规则扩展
+### 1.1 质量规则扩展（扩展 ruleType，follow-up）
 
-**决策**: 扩展 MetaQualityRule，支持更多规则类型和参数。
+**决策**: 在 `01-architecture-baseline.md` §2.7 基线 7 类规则（not_null/unique/range/regex/freshness/volume/custom_sql）之外，扩展以下 ruleType 作为后续增量：
 
-**扩展的 ruleType**:
-- `profiling` — 数据剖析（统计分析）
+- `profiling` — 数据剖析（统计分析），独立结果面（新建 MetaProfilingRule/Result 实体，参见 §三）
 - `schema` — Schema 一致性检查
 - `fingerprint` — 数据指纹检查
 - `custom_expectation` — 自定义 Expectation
 
-### 1.2 数据剖析支持
+> 这些扩展 ruleType 不在基线执行引擎（§2.7.1）首版支持范围内，作为独立 follow-up plan。
 
-**决策**: 参考 Apache Griffin，支持数据剖析（profiling）能力。
+### 1.2 数据剖析支持（follow-up）
 
-**剖析维度**:
-- 值分布分析
-- 统计指标（均值、中位数、标准差等）
-- 异常值检测
-- 数据新鲜度
+**决策**: 参考 Apache Griffin，支持数据剖析（profiling）能力，独立于质量规则执行引擎。
 
-### 1.3 验证执行模式
+剖析维度: 值分布分析、统计指标（均值、中位数、标准差等）、异常值检测、数据新鲜度。详见 §三。
 
-**决策**: 参考 Great Expectations 的 Checkpoint 模式，支持验证执行编排。
+### 1.3 验证执行模式（已裁定，见 §2.7.1）
 
-**执行模式**:
-- 单规则执行
-- 批量规则执行
-- 定时执行
-- 事件触发执行
+**决策**: 基线质量规则执行采用 **BizModel action + withConnection callback**（不选 nop-batch processor），裁定详见 `01-architecture-baseline.md` §2.7.1（D2）。提供的执行模式：
+
+- 单规则执行（`executeQualityRule`）
+- 批量规则执行（`executeQualityRulesForDataSource`）
+- 定时执行（follow-up，nop-batch/nop-job 适配，见 `09-gap-analysis-extended.md` §4.4）
+- 事件触发执行（follow-up）
+
+CheckPoint 编排（多规则批量编排 + 动作 + 调度，见 §四）为独立结果面，未建模实体，属后续 plan。
 
 ---
 
-## 二、质量规则扩展
+## 二、质量规则扩展（follow-up 增量）
 
-### 2.1 扩展的 ruleType
+> 基线质量规则模型与执行语义见 `01-architecture-baseline.md` §2.7 / §2.7.1。本节记录在基线之上的扩展设计契约。
 
-```
-MetaQualityRule                  — 质量规则定义（扩展）
-  ├── ruleName / displayName
-  ├── ruleType                   — 扩展的规则类型
-  ├── entityType                 — "field" | "table" | "database"
-  ├── entityId                   → MetaEntityField | MetaTable | MetaDataSource
-  ├── severity                   — "error" | "warning" | "info"
-  ├── sqlExpression              — 自定义 SQL 表达式
-  ├── threshold                  — 阈值
-  ├── params                     — JSON 参数
-  ├── mostly                     — 容错比例（0.0~1.0，默认 1.0）
-  ├── tags                       — 标签集合
-  └── extConfig
-```
+### 2.1 扩展的 ruleType 列表（follow-up）
 
-### 2.2 完整的 ruleType 列表
+基线 7 类 ruleType 见 §2.7。扩展 ruleType（profiling/schema/fingerprint/custom_expectation）如下，属后续增量 plan，不在基线执行引擎首版支持：
 
 | ruleType | 适用对象 | 说明 | params 示例 |
 |----------|----------|------|-------------|
-| `not_null` | field | 非空检查 | `{"threshold": 0.99}` |
-| `unique` | field | 唯一性检查 | `{"sampleSize": 10000}` |
-| `range` | field | 范围检查 | `{"min": 0, "max": 1000000}` |
-| `regex` | field | 正则匹配 | `{"pattern": "^\\d{4}-\\d{2}-\\d{2}$"}` |
-| `freshness` | table | 新鲜度检查 | `{"maxAgeMinutes": 60}` |
-| `volume` | table | 行数检查 | `{"minRows": 1000, "maxRows": 10000000}` |
-| `custom_sql` | table | 自定义SQL | `{"sql": "SELECT COUNT(*) FROM t WHERE ..."}` |
 | **`profiling`** | table | 数据剖析 | `{"columns": ["col1", "col2"], "stats": ["mean", "median", "stddev"]}` |
 | **`schema`** | table | Schema 检查 | `{"expectedColumns": [{"name": "id", "type": "integer"}]}` |
 | **`fingerprint`** | table | 数据指纹 | `{"algorithm": "md5", "sampleSize": 1000}` |
 | **`custom_expectation`** | table | 自定义 Expectation | `{"expectation": "expect_column_values_to_be_in_set", "kwargs": {...}}` |
 
-### 2.3 mostly 容错参数
+### 2.2 mostly 容错比例（follow-up，未建模）
 
 **说明**: `mostly` 参数表示允许的容错比例。例如 `mostly=0.99` 表示 99% 的值满足规则即可通过。
 
-```json
-{
-  "ruleName": "order_id_not_null",
-  "ruleType": "not_null",
-  "entityType": "field",
-  "entityId": "order_id",
-  "mostly": 0.99,
-  "severity": "warning"
-}
-```
+**当前状态**: 基线 MetaQualityRule 模型**无 mostly 列**（ORM 未建模）。基线执行引擎首版在 `details` JSON 中记录检测值（如 nullCount/重复值组数），但不实现 mostly 全链路判定。mostly 列扩展属 Protected Area（ORM 模型结构变更，需 plan-first），作为 follow-up。
 
-**验证逻辑**:
-```python
-def validate_not_null(column_values, mostly=1.0):
-    non_null_count = sum(1 for v in column_values if v is not None)
-    total_count = len(column_values)
-    pass_rate = non_null_count / total_count
-    return pass_rate >= mostly
-```
+> mostly 的判定语义为：`passRate = satisfyCount / totalCount; pass = (passRate >= mostly)`。具体实现待 mostly 列建模后随执行引擎增量一并落地。
 
 ---
 
@@ -389,6 +351,8 @@ class QualityScorer:
 
 ## Open Questions
 
-- [ ] 质量评分的维度权重是否可配置？
-- [ ] 数据剖析是否需要支持增量剖析？
-- [ ] Checkpoint 是否需要支持流式验证？
+> 基线质量规则执行引擎（7 类 ruleType 执行 + BizModel action + withConnection）已在 `01-architecture-baseline.md` §2.7.1 落地，相关执行机制/判定语义/标识符注入防护问题已裁定。以下为扩展项（profiling/score/checkpoint）的未决问题：
+
+- [ ] 质量评分的维度权重是否可配置？（score，未建模实体，follow-up）
+- [ ] 数据剖析是否需要支持增量剖析？（profiling，未建模实体，follow-up）
+- [ ] Checkpoint 是否需要支持流式验证？（checkpoint，未建模实体，follow-up）
