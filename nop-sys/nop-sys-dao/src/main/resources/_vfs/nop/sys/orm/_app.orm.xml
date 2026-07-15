@@ -652,9 +652,9 @@
                 <column code="PROP_NAME" displayName="属性名" mandatory="true" name="propName" precision="100" propId="6"
                         stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Prop Name"/>
                 <column code="OLD_VALUE" displayName="旧值" name="oldValue" precision="4000" propId="7"
-                        stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Old Value"/>
+                        stdDataType="string" stdSqlType="VARCHAR" tagSet="var" i18n-en:displayName="Old Value"/>
                 <column code="NEW_VALUE" displayName="新值" name="newValue" precision="4000" propId="8"
-                        stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="New Value"/>
+                        stdDataType="string" stdSqlType="VARCHAR" tagSet="var" i18n-en:displayName="New Value"/>
                 <column code="CHANGE_TIME" displayName="变更时间" mandatory="true" name="changeTime" propId="9"
                         stdDataType="timestamp" stdSqlType="TIMESTAMP" tagSet="clock" i18n-en:displayName="Change Time"/>
                 <column code="APP_ID" displayName="应用ID" name="appId" precision="100" propId="10" stdDataType="string"

@@ -579,7 +579,7 @@
                 "url": "@query:NopAuthRole__findPage",
                 "gql:selection": "total,page,items{ id,roleId,roleName,isPrimary,createdBy,createTime,updatedBy,updateTime,remark }"
               },
-              "labelTpl": "$roleName",
+              "labelTpl": "${roleName}",
               "columns": [
                 {
                   "name": "roleId",
@@ -720,7 +720,7 @@
                 "url": "@query:NopAuthUser__active_findPage",
                 "gql:selection": "total,page,items{ id,userId,userName,nickName,dept{deptName},deptId,gender,gender_label,phone,userType,userType_label,status,status_label }"
               },
-              "labelTpl": "$userName",
+              "labelTpl": "${userName}",
               "filter": {
                 "id": "crud-filter",
                 "mode": "horizontal",

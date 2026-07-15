@@ -42,11 +42,11 @@
               queryable="true" sortable="true" insertable="true" updatable="false">
             <schema type="java.lang.String" precision="100"/>
         </prop>
-        <prop name="oldValue" displayName="旧值" propId="7" i18n-en:displayName="Old Value" queryable="true"
+        <prop name="oldValue" displayName="旧值" propId="7" i18n-en:displayName="Old Value" tagSet="var" queryable="true"
               sortable="true" insertable="true" updatable="false">
             <schema type="java.lang.String" precision="4000"/>
         </prop>
-        <prop name="newValue" displayName="新值" propId="8" i18n-en:displayName="New Value" queryable="true"
+        <prop name="newValue" displayName="新值" propId="8" i18n-en:displayName="New Value" tagSet="var" queryable="true"
               sortable="true" insertable="true" updatable="false">
             <schema type="java.lang.String" precision="4000"/>
         </prop>
