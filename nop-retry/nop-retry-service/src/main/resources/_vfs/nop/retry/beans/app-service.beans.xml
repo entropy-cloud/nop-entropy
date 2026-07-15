@@ -7,7 +7,4 @@
     <import resource="_dao.beans.xml"/>
 
     <import resource="_service.beans.xml"/>
-
-    <!-- Import Retry Engine -->
-    <import resource="app-engine.beans.xml"/>
 </beans>

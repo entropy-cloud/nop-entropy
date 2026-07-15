@@ -44,7 +44,7 @@
     <pages>
         <crud name="main" grid="filesGrid" filterForm="queryForm">
             <table autoFillHeight="true" loadDataOnce="true">
-                <api url="@query:NopCodeFile__findPage_files?indexId=$indexId" gql:selection="total,page,items{filePath,packageName,language,lineCount}"/>
+                <api url="@query:NopCodeFile__findPage_files?indexId=${'$'}{indexId}" gql:selection="total,page,items{filePath,packageName,language,lineCount}"/>
             </table>
             <rowActions>
                 <action id="row-view" level="primary" label="查看符号">
@@ -54,7 +54,7 @@
         </crud>
 
         <simple name="symbolsView" form="fileDetailForm">
-            <initApi url="@query:NopCodeFile__getByPath?filePath=$filePath&amp;indexId=$indexId" gql:selection="filePath,packageName,language,lineCount,sourceCode,symbols{name,kind,accessModifier,line,qualifiedName}"/>
+            <initApi url="@query:NopCodeFile__getByPath?filePath=${'$'}{filePath}&amp;indexId=${'$'}{indexId}" gql:selection="filePath,packageName,language,lineCount,sourceCode,symbols{name,kind,accessModifier,line,qualifiedName}"/>
             <afterForm>
 [
     {
@@ -63,7 +63,7 @@
     {
         "type": "panel",
         "title": "源码",
-        "visibleOn": "this.sourceCode != null",
+        "visibleOn": "${sourceCode != null}",
         "collapsable": true,
         "body": {
             "type": "editor",
@@ -82,7 +82,7 @@
     {
         "type": "panel",
         "title": "符号列表",
-        "visibleOn": "this.symbols != null && this.symbols.length > 0",
+        "visibleOn": "${symbols != null &amp;&amp; symbols.length > 0}",
         "body": {
             "type": "table",
             "source": "${symbols}",

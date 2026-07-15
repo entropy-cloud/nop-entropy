@@ -34,17 +34,17 @@
                     <dialog page="statsView"/>
                 </action>
                 <action id="row-browse-code" level="success" label="浏览代码"
-                        link="/nop/code/pages/code-browser/main?indexId=$id"/>
+                        link="/nop/code/pages/code-browser/main?indexId=${'$'}{id}"/>
                 <action id="row-trigger-index" level="warning" label="触发索引"
                         icon="fa fa-play">
-                    <api url="@mutation:NopCodeIndex__indexDirectory?indexId=$id&amp;directoryPath=$rootPath&amp;filePattern=**/*.java"/>
+                    <api url="@mutation:NopCodeIndex__indexDirectory?indexId=${'$'}{id}&amp;directoryPath=${'$'}{rootPath}&amp;filePattern=**/*.java"/>
                     <confirmText>确认触发索引？此操作可能需要一些时间。</confirmText>
                 </action>
             </rowActions>
         </crud>
 
         <simple name="statsView" form="statsForm">
-            <initApi url="@query:NopCodeIndex__getStats?indexId=$id" gql:selection="indexId,fileCount,symbolCount,symbolCounts"/>
+            <initApi url="@query:NopCodeIndex__getStats?indexId=${'$'}{id}" gql:selection="indexId,fileCount,symbolCount,symbolCounts"/>
             <afterForm>
 [
     {
@@ -53,10 +53,10 @@
     {
         "type": "panel",
         "title": "符号分布",
-        "visibleOn": "this.symbolCounts != null",
+        "visibleOn": "${symbolCounts != null}",
         "body": {
             "type": "table",
-            "source": "${symbolCounts | pickArray}",
+            "source": "${symbolCounts}",
             "columnsTogglable": false,
             "columns": [
                 { "name": "key", "label": "符号类型", "width": 200 },

@@ -25,8 +25,9 @@
  errorCode[错误码] errorMessage[错误消息]
 </layout>
         </form>
-        <form id="parentFireForm" editMode="view" objMeta="/nop/job/model/NopJobFire/NopJobFire.xmeta"
+        <form id="parentFireForm" editMode="view"
               title="所属触发批次" i18n-en:title="Parent Fire">
+            <objMeta>/nop/job/model/NopJobFire/NopJobFire.xmeta</objMeta>
             <layout>
  jobName[作业名] triggerSource[触发来源]
  fireStatus[批次状态] triggeredBy[触发人]
@@ -52,15 +53,15 @@
                     <action id="runtime-summary-button" label="@i18n:common.runtimeSummary" actionType="drawer" xui:permissions="NopJobTask:query">
                         <dialog page="runtimeTabs" size="xl">
                             <data>
-                                <id>$id</id>
-                                <jobFireId>$jobFireId</jobFireId>
+                                <id>${'$'}{id}</id>
+                                <jobFireId>${'$'}{jobFireId}</jobFireId>
                             </data>
                         </dialog>
                     </action>
                     <action id="view-fire-button" label="@i18n:common.viewFire" actionType="drawer" xui:permissions="NopJobFire:query">
                         <dialog page="/nop/job/pages/NopJobFire/view.page.yaml" size="xl">
                             <data>
-                                <id>$jobFireId</id>
+                                <id>${'$'}{jobFireId}</id>
                             </data>
                         </dialog>
                     </action>
@@ -69,11 +70,11 @@
         </crud>
 
         <simple name="runtimeSummary" form="runtimeSummaryForm">
-            <initApi url="@query:NopJobTask__get?id=$id" gql:selection="{@formSelection}"/>
+            <initApi url="@query:NopJobTask__get?id=${'$'}{id}" gql:selection="{@formSelection}"/>
         </simple>
 
         <simple name="parentFire" form="parentFireForm">
-            <initApi url="@query:NopJobFire__get?id=$jobFireId" gql:selection="{@formSelection}"/>
+            <initApi url="@query:NopJobFire__get?id=${'$'}{jobFireId}" gql:selection="{@formSelection}"/>
         </simple>
 
         <tabs name="runtimeTabs" tabsMode="vertical" mountOnEnter="true" unmountOnExit="true">

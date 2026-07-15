@@ -47,8 +47,6 @@
  line[行号]
  endLine[结束行]
  deprecated[已废弃]
-  staticFlag[静态]
-  abstractFlag[抽象]
             </layout>
         </form>
 
@@ -58,7 +56,7 @@
     <pages>
         <crud name="main" x:override="merge">
             <table autoFillHeight="true">
-                <api url="@query:NopCodeSymbol__findPage_symbols?indexId=$indexId" gql:selection="total,page,items{ id,name,qualifiedName,kind,accessModifier,signature,returnType,line }"/>
+                <api url="@query:NopCodeSymbol__findPage_symbols?indexId=${'$'}{indexId}" gql:selection="total,page,items{ id,name,qualifiedName,kind,accessModifier,signature,returnType,line }"/>
             </table>
             <rowActions>
                 <action id="row-view-button" level="primary" label="查看详情">
@@ -68,7 +66,7 @@
         </crud>
 
         <simple name="view" form="view">
-            <initApi url="@query:NopCodeSymbol__getBySymbolId?id=$id&amp;indexId=$indexId" gql:selection="id,name,qualifiedName,kind,accessModifier,signature,returnType,line,endLine,deprecated,staticFlag,abstractFlag"/>
+            <initApi url="@query:NopCodeSymbol__getBySymbolId?id=${'$'}{id}&amp;indexId=${'$'}{indexId}" gql:selection="id,name,qualifiedName,kind,accessModifier,signature,returnType,line,endLine,deprecated"/>
         </simple>
 
         <picker name="picker"/>

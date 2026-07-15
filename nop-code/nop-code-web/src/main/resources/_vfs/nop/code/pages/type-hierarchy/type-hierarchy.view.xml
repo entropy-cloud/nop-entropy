@@ -13,9 +13,7 @@
             <cells>
                 <cell id="indexId" label="索引ID" domain="string"/>
                 <cell id="qualifiedName" label="全限定类型名" domain="string"/>
-                <cell id="direction" label="方向" domain="string">
-                    <schema dict="code/hierarchy_direction"/>
-                </cell>
+                <cell id="direction" label="方向" domain="string"/>
                 <cell id="maxDepth" label="最大深度" domain="int"/>
             </cells>
         </form>
@@ -23,7 +21,10 @@
 
     <pages>
         <simple name="main" form="queryForm" useFormActions="true">
-            <api url="@query:NopCodeSymbol__getTypeHierarchy?qualifiedName=$qualifiedName&amp;indexId=$indexId&amp;direction=$direction&amp;maxDepth=$maxDepth" gql:selection="symbol{name,qualifiedName,kind,accessModifier},superTypes{symbol{name,qualifiedName,kind},superTypes{symbol{name,qualifiedName,kind},superTypes{symbol{name,qualifiedName,kind}},subTypes{symbol{name,qualifiedName,kind}}},subTypes{symbol{name,qualifiedName,kind},superTypes{symbol{name,qualifiedName,kind}},subTypes{symbol{name,qualifiedName,kind}}}},subTypes{symbol{name,qualifiedName,kind},superTypes{symbol{name,qualifiedName,kind},superTypes{symbol{name,qualifiedName,kind}},subTypes{symbol{name,qualifiedName,kind}}},subTypes{symbol{name,qualifiedName,kind},superTypes{symbol{name,qualifiedName,kind}},subTypes{symbol{name,qualifiedName,kind}}}}"/>
+            <actions>
+                <action id="submit-button" label="查询" level="primary"/>
+            </actions>
+            <api url="@query:NopCodeSymbol__getTypeHierarchy?qualifiedName=${'$'}{qualifiedName}&amp;indexId=${'$'}{indexId}&amp;direction=${'$'}{direction}&amp;maxDepth=${'$'}{maxDepth}" gql:selection="symbol{name,qualifiedName,kind,accessModifier},superTypes{symbol{name,qualifiedName,kind},superTypes{symbol{name,qualifiedName,kind},superTypes{symbol{name,qualifiedName,kind}},subTypes{symbol{name,qualifiedName,kind}}},subTypes{symbol{name,qualifiedName,kind},superTypes{symbol{name,qualifiedName,kind}},subTypes{symbol{name,qualifiedName,kind}}}},subTypes{symbol{name,qualifiedName,kind},superTypes{symbol{name,qualifiedName,kind},superTypes{symbol{name,qualifiedName,kind}},subTypes{symbol{name,qualifiedName,kind}}},subTypes{symbol{name,qualifiedName,kind},superTypes{symbol{name,qualifiedName,kind}},subTypes{symbol{name,qualifiedName,kind}}}}"/>
             <afterForm>
 [
     {
@@ -32,7 +33,7 @@
     {
         "type": "panel",
         "title": "查询结果",
-        "visibleOn": "this.symbol != null",
+        "visibleOn": "${symbol != null}",
         "body": [
             {
                 "type": "alert",
@@ -42,7 +43,7 @@
             {
                 "type": "panel",
                 "title": "父类型 (Super Types)",
-                "visibleOn": "this.superTypes != null &amp;&amp; this.superTypes.length > 0",
+                "visibleOn": "${superTypes != null &amp;&amp; superTypes.length > 0}",
                 "collapsable": true,
                 "body": {
                     "type": "input-tree",
@@ -61,7 +62,7 @@
             {
                 "type": "panel",
                 "title": "子类型 (Sub Types)",
-                "visibleOn": "this.subTypes != null &amp;&amp; this.subTypes.length > 0",
+                "visibleOn": "${subTypes != null &amp;&amp; subTypes.length > 0}",
                 "collapsable": true,
                 "body": {
                     "type": "input-tree",
