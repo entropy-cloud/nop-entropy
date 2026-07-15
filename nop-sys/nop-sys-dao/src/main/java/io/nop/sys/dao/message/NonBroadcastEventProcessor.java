@@ -17,7 +17,10 @@ import org.slf4j.LoggerFactory;
 import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.function.BiFunction;
 import java.util.function.Function;
@@ -61,8 +64,10 @@ public class NonBroadcastEventProcessor {
     }
 
     public void process() {
+        Set<Integer> processedPartitions = new HashSet<>();
         for (int i = 0; i < maxScanLoops; i++) {
             List<NopSysEvent> events = fetchCandidates();
+            events.removeIf(e -> processedPartitions.contains(e.getPartitionIndex()));
             if (events.isEmpty())
                 return;
 
@@ -72,6 +77,7 @@ public class NonBroadcastEventProcessor {
 
             for (NopSysEvent event : claimed) {
                 process(event);
+                processedPartitions.add(event.getPartitionIndex());
             }
         }
     }
@@ -86,23 +92,36 @@ public class NonBroadcastEventProcessor {
 
         TreeBean filter = FilterBeans.and(
                 FilterBeans.in(NopSysEvent.PROP_NAME_eventTopic, topics),
-
-                FilterBeans.or(
-                        FilterBeans.and(
-                                FilterBeans.eq(NopSysEvent.PROP_NAME_eventStatus,
-                                        NopSysDaoConstants.SYS_EVENT_STATUS_WAITING),
-                                FilterBeans.le(NopSysEvent.PROP_NAME_scheduleTime, new Timestamp(now))
-                        ),
-                        FilterBeans.and(
-                                FilterBeans.eq(NopSysEvent.PROP_NAME_eventStatus,
-                                        NopSysDaoConstants.SYS_EVENT_STATUS_CLAIMED),
-                                FilterBeans.le(NopSysEvent.PROP_NAME_leaseExpireTime, new Timestamp(now))
-                        )
-                ),
+                FilterBeans.in(NopSysEvent.PROP_NAME_eventStatus,
+                        List.of(NopSysDaoConstants.SYS_EVENT_STATUS_WAITING,
+                                NopSysDaoConstants.SYS_EVENT_STATUS_CLAIMED)),
+                FilterBeans.le(NopSysEvent.PROP_NAME_scheduleTime, new Timestamp(now)),
                 buildPartitionFilter()
         );
 
-        return dao.findNext(null, filter, null, fetchSize);
+        List<NopSysEvent> candidates = dao.findNext(null, filter, null, fetchSize * 4);
+
+        Map<Integer, NopSysEvent> heads = new LinkedHashMap<>();
+        for (NopSysEvent event : candidates) {
+            Integer partitionIndex = event.getPartitionIndex();
+            if (heads.containsKey(partitionIndex))
+                continue;
+
+            if (event.getEventStatus() == NopSysDaoConstants.SYS_EVENT_STATUS_CLAIMED
+                    && event.getLeaseExpireTime() != null
+                    && event.getLeaseExpireTime().getTime() > now) {
+                heads.put(partitionIndex, null);
+            } else {
+                heads.put(partitionIndex, event);
+            }
+        }
+
+        List<NopSysEvent> result = new ArrayList<>();
+        for (NopSysEvent event : heads.values()) {
+            if (event != null)
+                result.add(event);
+        }
+        return result;
     }
 
     public List<NopSysEvent> claim(List<NopSysEvent> events) {
