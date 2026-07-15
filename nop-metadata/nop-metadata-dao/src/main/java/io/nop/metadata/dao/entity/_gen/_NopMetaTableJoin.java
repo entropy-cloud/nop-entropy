@@ -84,6 +84,12 @@ public class _NopMetaTableJoin extends DynamicOrmEntity{
     /* relation: 逻辑表 */
     public static final String PROP_NAME_metaTable = "metaTable";
     
+    /* relation: 左实体 */
+    public static final String PROP_NAME_leftEntity = "leftEntity";
+    
+    /* relation: 右实体 */
+    public static final String PROP_NAME_rightEntity = "rightEntity";
+    
 
     protected static final List<String> PK_PROP_NAMES = Arrays.asList(PROP_NAME_joinId);
     protected static final int[] PK_PROP_IDS = new int[]{PROP_ID_joinId};
@@ -842,6 +848,52 @@ public class _NopMetaTableJoin extends DynamicOrmEntity{
            internalSetRefEntity(PROP_NAME_metaTable, refEntity,()->{
            
                            this.setMetaTableId(refEntity.getMetaTableId());
+                       
+           });
+           }
+       
+    }
+       
+    /**
+     * 左实体
+     */
+    public final io.nop.metadata.dao.entity.NopMetaEntity getLeftEntity(){
+       return (io.nop.metadata.dao.entity.NopMetaEntity)internalGetRefEntity(PROP_NAME_leftEntity);
+    }
+
+    public final void setLeftEntity(io.nop.metadata.dao.entity.NopMetaEntity refEntity){
+   
+           if(refEntity == null){
+           
+                   this.setLeftEntityId(null);
+               
+           }else{
+           internalSetRefEntity(PROP_NAME_leftEntity, refEntity,()->{
+           
+                           this.setLeftEntityId(refEntity.getMetaEntityId());
+                       
+           });
+           }
+       
+    }
+       
+    /**
+     * 右实体
+     */
+    public final io.nop.metadata.dao.entity.NopMetaEntity getRightEntity(){
+       return (io.nop.metadata.dao.entity.NopMetaEntity)internalGetRefEntity(PROP_NAME_rightEntity);
+    }
+
+    public final void setRightEntity(io.nop.metadata.dao.entity.NopMetaEntity refEntity){
+   
+           if(refEntity == null){
+           
+                   this.setRightEntityId(null);
+               
+           }else{
+           internalSetRefEntity(PROP_NAME_rightEntity, refEntity,()->{
+           
+                           this.setRightEntityId(refEntity.getMetaEntityId());
                        
            });
            }

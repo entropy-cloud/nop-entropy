@@ -24,7 +24,9 @@ import io.nop.metadata.dao.entity.NopMetaDictItem;
 import io.nop.metadata.dao.entity.NopMetaDomain;
 import io.nop.metadata.dao.entity.NopMetaEntity;
 import io.nop.metadata.dao.entity.NopMetaEntityField;
+import io.nop.metadata.dao.entity.NopMetaEntityIndex;
 import io.nop.metadata.dao.entity.NopMetaEntityRelation;
+import io.nop.metadata.dao.entity.NopMetaEntityUniqueKey;
 import io.nop.metadata.dao.entity.NopMetaModule;
 import io.nop.metadata.dao.entity.NopMetaOrmModel;
 import io.nop.metadata.dao.entity.NopMetaTable;
@@ -32,15 +34,27 @@ import io.nop.metadata.dao.model.OrmModelImporter;
 import io.nop.orm.model.IEntityModel;
 import io.nop.orm.model.IColumnModel;
 import io.nop.orm.model.OrmDomainModel;
+import io.nop.orm.model.OrmEntityModel;
+import io.nop.orm.model.OrmIndexModel;
 import io.nop.orm.model.OrmModel;
+import io.nop.orm.model.OrmUniqueKeyModel;
 import io.nop.orm.model.loader.OrmModelLoader;
 
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 @BizModel("NopMetaModule")
 public class NopMetaModuleBizModel extends CrudBizModel<NopMetaModule> implements INopMetaModuleBiz {
+
+    private static final Logger LOG = LoggerFactory.getLogger(NopMetaModuleBizModel.class);
 
     static final ErrorCode ERR_RESOURCE_NOT_FOUND =
             ErrorCode.define("metadata.orm-resource-not-found", "ORM资源不存在", "path");
@@ -93,6 +107,20 @@ public class NopMetaModuleBizModel extends CrudBizModel<NopMetaModule> implement
             table.setMetaModuleId(moduleId);
             table.setBaseEntityId(entityId);
             orm().save(table);
+
+            if (em instanceof OrmEntityModel) {
+                OrmEntityModel oem = (OrmEntityModel) em;
+                for (OrmUniqueKeyModel ukModel : oem.getUniqueKeys()) {
+                    NopMetaEntityUniqueKey uk = importer.buildUniqueKey(ukModel);
+                    uk.setMetaEntityId(entityId);
+                    orm().save(uk);
+                }
+                for (OrmIndexModel idxModel : oem.getIndexes()) {
+                    NopMetaEntityIndex idx = importer.buildIndex(idxModel);
+                    idx.setMetaEntityId(entityId);
+                    orm().save(idx);
+                }
+            }
         }
 
         for (OrmDomainModel domain : ormModel.getDomains()) {
@@ -117,11 +145,43 @@ public class NopMetaModuleBizModel extends CrudBizModel<NopMetaModule> implement
         return module;
     }
 
+    @BizMutation
+    public List<Map<String, Object>> importOrmModels(@Name("paths") List<String> paths, IServiceContext context) {
+        List<Map<String, Object>> results = new ArrayList<>();
+        if (paths == null)
+            return results;
+
+        for (String path : paths) {
+            Map<String, Object> result = new LinkedHashMap<>();
+            result.put("path", path);
+            try {
+                NopMetaModule module = importOrmModel(path, context);
+                result.put("metaModuleId", module.getMetaModuleId());
+                result.put("moduleName", module.getModuleName());
+                result.put("success", true);
+            } catch (Exception e) {
+                LOG.error("importOrmModels failed for path: {}", path, e);
+                result.put("success", false);
+                result.put("error", toErrorMessage(e));
+                // 单个导入失败后清理 session，避免未刷新的脏实体或约束违例状态
+                // 污染 session 导致后续导入级联失败
+                orm().clearSession();
+            }
+            results.add(result);
+        }
+        return results;
+    }
+
     private static String readText(IResource resource) {
         try (InputStream in = resource.getInputStream()) {
             return new String(in.readAllBytes(), StandardCharsets.UTF_8);
         } catch (IOException e) {
             throw new NopException(ERR_RESOURCE_READ_FAILED).param("path", resource.getPath()).cause(e);
         }
+    }
+
+    private static String toErrorMessage(Exception e) {
+        String msg = e.getMessage();
+        return msg != null ? msg : e.getClass().getName();
     }
 }

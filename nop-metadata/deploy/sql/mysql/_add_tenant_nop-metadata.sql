@@ -29,8 +29,6 @@ alter table nop_meta_table_measure add NOP_TENANT_ID VARCHAR(32) DEFAULT '0' NOT
 
 alter table nop_meta_table_filter add NOP_TENANT_ID VARCHAR(32) DEFAULT '0' NOT NULL;
 
-alter table nop_meta_table_join add NOP_TENANT_ID VARCHAR(32) DEFAULT '0' NOT NULL;
-
 alter table nop_meta_entity_field add NOP_TENANT_ID VARCHAR(32) DEFAULT '0' NOT NULL;
 
 alter table nop_meta_entity_relation add NOP_TENANT_ID VARCHAR(32) DEFAULT '0' NOT NULL;
@@ -38,6 +36,8 @@ alter table nop_meta_entity_relation add NOP_TENANT_ID VARCHAR(32) DEFAULT '0' N
 alter table nop_meta_entity_unique_key add NOP_TENANT_ID VARCHAR(32) DEFAULT '0' NOT NULL;
 
 alter table nop_meta_entity_index add NOP_TENANT_ID VARCHAR(32) DEFAULT '0' NOT NULL;
+
+alter table nop_meta_table_join add NOP_TENANT_ID VARCHAR(32) DEFAULT '0' NOT NULL;
 
 alter table nop_meta_dict_item add NOP_TENANT_ID VARCHAR(32) DEFAULT '0' NOT NULL;
 
@@ -86,9 +86,6 @@ alter table nop_meta_table_measure add primary key (NOP_TENANT_ID, MEASURE_ID);
 alter table nop_meta_table_filter drop primary key;
 alter table nop_meta_table_filter add primary key (NOP_TENANT_ID, FILTER_ID);
 
-alter table nop_meta_table_join drop primary key;
-alter table nop_meta_table_join add primary key (NOP_TENANT_ID, JOIN_ID);
-
 alter table nop_meta_entity_field drop primary key;
 alter table nop_meta_entity_field add primary key (NOP_TENANT_ID, ENTITY_FIELD_ID);
 
@@ -100,6 +97,9 @@ alter table nop_meta_entity_unique_key add primary key (NOP_TENANT_ID, UNIQUE_KE
 
 alter table nop_meta_entity_index drop primary key;
 alter table nop_meta_entity_index add primary key (NOP_TENANT_ID, INDEX_ID);
+
+alter table nop_meta_table_join drop primary key;
+alter table nop_meta_table_join add primary key (NOP_TENANT_ID, JOIN_ID);
 
 alter table nop_meta_dict_item drop primary key;
 alter table nop_meta_dict_item add primary key (NOP_TENANT_ID, DICT_ITEM_ID);

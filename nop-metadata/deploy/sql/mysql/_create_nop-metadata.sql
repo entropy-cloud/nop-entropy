@@ -313,24 +313,6 @@ CREATE TABLE nop_meta_table_filter(
   constraint PK_nop_meta_table_filter primary key (FILTER_ID)
 )CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_as_cs;
 
-CREATE TABLE nop_meta_table_join(
-  JOIN_ID VARCHAR(32) NOT NULL    COMMENT '关联ID',
-  META_TABLE_ID VARCHAR(32) NOT NULL    COMMENT '逻辑表ID',
-  JOIN_TYPE VARCHAR(20) NOT NULL    COMMENT '关联类型',
-  LEFT_ENTITY_ID VARCHAR(32) NULL    COMMENT '左实体ID',
-  RIGHT_ENTITY_ID VARCHAR(32) NULL    COMMENT '右实体ID',
-  LEFT_FIELD VARCHAR(100) NULL    COMMENT '左关联字段',
-  RIGHT_FIELD VARCHAR(100) NULL    COMMENT '右关联字段',
-  ALIAS VARCHAR(100) NULL    COMMENT '右表别名',
-  DEL_VERSION BIGINT NOT NULL    COMMENT '数据版本',
-  CREATED_BY VARCHAR(50) NOT NULL    COMMENT '创建人',
-  CREATE_TIME DATETIME(3) DEFAULT CURRENT_TIMESTAMP(3)  NOT NULL    COMMENT '创建时间',
-  UPDATED_BY VARCHAR(50) NOT NULL    COMMENT '修改人',
-  UPDATE_TIME DATETIME(3) DEFAULT CURRENT_TIMESTAMP(3)  NOT NULL    COMMENT '修改时间',
-  REMARK VARCHAR(200) NULL    COMMENT '备注',
-  constraint PK_nop_meta_table_join primary key (JOIN_ID)
-)CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_as_cs;
-
 CREATE TABLE nop_meta_entity_field(
   ENTITY_FIELD_ID VARCHAR(32) NOT NULL    COMMENT '字段ID',
   META_ENTITY_ID VARCHAR(32) NOT NULL    COMMENT '实体ID',
@@ -426,6 +408,24 @@ CREATE TABLE nop_meta_entity_index(
   constraint PK_nop_meta_entity_index primary key (INDEX_ID)
 )CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_as_cs;
 
+CREATE TABLE nop_meta_table_join(
+  JOIN_ID VARCHAR(32) NOT NULL    COMMENT '关联ID',
+  META_TABLE_ID VARCHAR(32) NOT NULL    COMMENT '逻辑表ID',
+  JOIN_TYPE VARCHAR(20) NOT NULL    COMMENT '关联类型',
+  LEFT_ENTITY_ID VARCHAR(32) NULL    COMMENT '左实体ID',
+  RIGHT_ENTITY_ID VARCHAR(32) NULL    COMMENT '右实体ID',
+  LEFT_FIELD VARCHAR(100) NULL    COMMENT '左关联字段',
+  RIGHT_FIELD VARCHAR(100) NULL    COMMENT '右关联字段',
+  ALIAS VARCHAR(100) NULL    COMMENT '右表别名',
+  DEL_VERSION BIGINT NOT NULL    COMMENT '数据版本',
+  CREATED_BY VARCHAR(50) NOT NULL    COMMENT '创建人',
+  CREATE_TIME DATETIME(3) DEFAULT CURRENT_TIMESTAMP(3)  NOT NULL    COMMENT '创建时间',
+  UPDATED_BY VARCHAR(50) NOT NULL    COMMENT '修改人',
+  UPDATE_TIME DATETIME(3) DEFAULT CURRENT_TIMESTAMP(3)  NOT NULL    COMMENT '修改时间',
+  REMARK VARCHAR(200) NULL    COMMENT '备注',
+  constraint PK_nop_meta_table_join primary key (JOIN_ID)
+)CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_as_cs;
+
 CREATE TABLE nop_meta_dict_item(
   DICT_ITEM_ID VARCHAR(32) NOT NULL    COMMENT '字典项ID',
   META_DICT_ID VARCHAR(32) NOT NULL    COMMENT '字典ID',
@@ -477,8 +477,6 @@ CREATE TABLE nop_meta_dict_item(
                 
    ALTER TABLE nop_meta_table_filter COMMENT '表过滤器';
                 
-   ALTER TABLE nop_meta_table_join COMMENT '表关联';
-                
    ALTER TABLE nop_meta_entity_field COMMENT '实体字段';
                 
    ALTER TABLE nop_meta_entity_relation COMMENT '实体关系';
@@ -486,6 +484,8 @@ CREATE TABLE nop_meta_dict_item(
    ALTER TABLE nop_meta_entity_unique_key COMMENT '实体唯一键';
                 
    ALTER TABLE nop_meta_entity_index COMMENT '实体索引';
+                
+   ALTER TABLE nop_meta_table_join COMMENT '表关联';
                 
    ALTER TABLE nop_meta_dict_item COMMENT '字典项';
                 

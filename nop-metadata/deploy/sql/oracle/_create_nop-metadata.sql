@@ -313,24 +313,6 @@ CREATE TABLE nop_meta_table_filter(
   constraint PK_nop_meta_table_filter primary key (FILTER_ID)
 );
 
-CREATE TABLE nop_meta_table_join(
-  JOIN_ID VARCHAR2(32) NOT NULL ,
-  META_TABLE_ID VARCHAR2(32) NOT NULL ,
-  JOIN_TYPE VARCHAR2(20) NOT NULL ,
-  LEFT_ENTITY_ID VARCHAR2(32)  ,
-  RIGHT_ENTITY_ID VARCHAR2(32)  ,
-  LEFT_FIELD VARCHAR2(100)  ,
-  RIGHT_FIELD VARCHAR2(100)  ,
-  ALIAS VARCHAR2(100)  ,
-  DEL_VERSION NUMBER(20) NOT NULL ,
-  CREATED_BY VARCHAR2(50) NOT NULL ,
-  CREATE_TIME TIMESTAMP NOT NULL ,
-  UPDATED_BY VARCHAR2(50) NOT NULL ,
-  UPDATE_TIME TIMESTAMP NOT NULL ,
-  REMARK VARCHAR2(200)  ,
-  constraint PK_nop_meta_table_join primary key (JOIN_ID)
-);
-
 CREATE TABLE nop_meta_entity_field(
   ENTITY_FIELD_ID VARCHAR2(32) NOT NULL ,
   META_ENTITY_ID VARCHAR2(32) NOT NULL ,
@@ -424,6 +406,24 @@ CREATE TABLE nop_meta_entity_index(
   UPDATE_TIME TIMESTAMP NOT NULL ,
   REMARK VARCHAR2(200)  ,
   constraint PK_nop_meta_entity_index primary key (INDEX_ID)
+);
+
+CREATE TABLE nop_meta_table_join(
+  JOIN_ID VARCHAR2(32) NOT NULL ,
+  META_TABLE_ID VARCHAR2(32) NOT NULL ,
+  JOIN_TYPE VARCHAR2(20) NOT NULL ,
+  LEFT_ENTITY_ID VARCHAR2(32)  ,
+  RIGHT_ENTITY_ID VARCHAR2(32)  ,
+  LEFT_FIELD VARCHAR2(100)  ,
+  RIGHT_FIELD VARCHAR2(100)  ,
+  ALIAS VARCHAR2(100)  ,
+  DEL_VERSION NUMBER(20) NOT NULL ,
+  CREATED_BY VARCHAR2(50) NOT NULL ,
+  CREATE_TIME TIMESTAMP NOT NULL ,
+  UPDATED_BY VARCHAR2(50) NOT NULL ,
+  UPDATE_TIME TIMESTAMP NOT NULL ,
+  REMARK VARCHAR2(200)  ,
+  constraint PK_nop_meta_table_join primary key (JOIN_ID)
 );
 
 CREATE TABLE nop_meta_dict_item(
@@ -985,36 +985,6 @@ CREATE TABLE nop_meta_dict_item(
                     
       COMMENT ON COLUMN nop_meta_table_filter.REMARK IS '备注';
                     
-      COMMENT ON TABLE nop_meta_table_join IS '表关联';
-                
-      COMMENT ON COLUMN nop_meta_table_join.JOIN_ID IS '关联ID';
-                    
-      COMMENT ON COLUMN nop_meta_table_join.META_TABLE_ID IS '逻辑表ID';
-                    
-      COMMENT ON COLUMN nop_meta_table_join.JOIN_TYPE IS '关联类型';
-                    
-      COMMENT ON COLUMN nop_meta_table_join.LEFT_ENTITY_ID IS '左实体ID';
-                    
-      COMMENT ON COLUMN nop_meta_table_join.RIGHT_ENTITY_ID IS '右实体ID';
-                    
-      COMMENT ON COLUMN nop_meta_table_join.LEFT_FIELD IS '左关联字段';
-                    
-      COMMENT ON COLUMN nop_meta_table_join.RIGHT_FIELD IS '右关联字段';
-                    
-      COMMENT ON COLUMN nop_meta_table_join.ALIAS IS '右表别名';
-                    
-      COMMENT ON COLUMN nop_meta_table_join.DEL_VERSION IS '数据版本';
-                    
-      COMMENT ON COLUMN nop_meta_table_join.CREATED_BY IS '创建人';
-                    
-      COMMENT ON COLUMN nop_meta_table_join.CREATE_TIME IS '创建时间';
-                    
-      COMMENT ON COLUMN nop_meta_table_join.UPDATED_BY IS '修改人';
-                    
-      COMMENT ON COLUMN nop_meta_table_join.UPDATE_TIME IS '修改时间';
-                    
-      COMMENT ON COLUMN nop_meta_table_join.REMARK IS '备注';
-                    
       COMMENT ON TABLE nop_meta_entity_field IS '实体字段';
                 
       COMMENT ON COLUMN nop_meta_entity_field.ENTITY_FIELD_ID IS '字段ID';
@@ -1180,6 +1150,36 @@ CREATE TABLE nop_meta_dict_item(
       COMMENT ON COLUMN nop_meta_entity_index.UPDATE_TIME IS '修改时间';
                     
       COMMENT ON COLUMN nop_meta_entity_index.REMARK IS '备注';
+                    
+      COMMENT ON TABLE nop_meta_table_join IS '表关联';
+                
+      COMMENT ON COLUMN nop_meta_table_join.JOIN_ID IS '关联ID';
+                    
+      COMMENT ON COLUMN nop_meta_table_join.META_TABLE_ID IS '逻辑表ID';
+                    
+      COMMENT ON COLUMN nop_meta_table_join.JOIN_TYPE IS '关联类型';
+                    
+      COMMENT ON COLUMN nop_meta_table_join.LEFT_ENTITY_ID IS '左实体ID';
+                    
+      COMMENT ON COLUMN nop_meta_table_join.RIGHT_ENTITY_ID IS '右实体ID';
+                    
+      COMMENT ON COLUMN nop_meta_table_join.LEFT_FIELD IS '左关联字段';
+                    
+      COMMENT ON COLUMN nop_meta_table_join.RIGHT_FIELD IS '右关联字段';
+                    
+      COMMENT ON COLUMN nop_meta_table_join.ALIAS IS '右表别名';
+                    
+      COMMENT ON COLUMN nop_meta_table_join.DEL_VERSION IS '数据版本';
+                    
+      COMMENT ON COLUMN nop_meta_table_join.CREATED_BY IS '创建人';
+                    
+      COMMENT ON COLUMN nop_meta_table_join.CREATE_TIME IS '创建时间';
+                    
+      COMMENT ON COLUMN nop_meta_table_join.UPDATED_BY IS '修改人';
+                    
+      COMMENT ON COLUMN nop_meta_table_join.UPDATE_TIME IS '修改时间';
+                    
+      COMMENT ON COLUMN nop_meta_table_join.REMARK IS '备注';
                     
       COMMENT ON TABLE nop_meta_dict_item IS '字典项';
                 

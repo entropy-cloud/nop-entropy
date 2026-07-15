@@ -31,11 +31,11 @@
             <schema type="java.lang.String" precision="20" dict="meta/join-type"/>
         </prop>
         <prop name="leftEntityId" displayName="左实体ID" propId="4" i18n-en:displayName="Left Entity Id" queryable="true"
-              sortable="true" insertable="true" updatable="true">
+              sortable="true" insertable="true" updatable="true" ext:relation="leftEntity">
             <schema type="java.lang.String" precision="32"/>
         </prop>
         <prop name="rightEntityId" displayName="右实体ID" propId="5" i18n-en:displayName="Right Entity Id" queryable="true"
-              sortable="true" insertable="true" updatable="true">
+              sortable="true" insertable="true" updatable="true" ext:relation="rightEntity">
             <schema type="java.lang.String" precision="32"/>
         </prop>
         <prop name="leftField" displayName="左关联字段" propId="6" i18n-en:displayName="Left Field" queryable="true"
@@ -80,6 +80,26 @@
             <schema bizObjName="NopMetaTable"/>
         </prop>
         <prop name="metaTable.displayName" displayName="逻辑表" i18n-en:displayName="Meta Table" internal="true"
+              queryable="true" sortable="true" lazy="true">
+            <schema type="String"/>
+        </prop>
+        <prop name="leftEntity" displayName="左实体" i18n-en:displayName="Left Entity" tagSet="pub,ref-pub"
+              ext:kind="to-one" internal="true" queryable="true" ext:joinLeftProp="leftEntityId"
+              ext:joinRightProp="metaEntityId" ext:joinRightDisplayProp="displayName" insertable="false"
+              updatable="false" lazy="true">
+            <schema bizObjName="NopMetaEntity"/>
+        </prop>
+        <prop name="leftEntity.displayName" displayName="左实体" i18n-en:displayName="Left Entity" internal="true"
+              queryable="true" sortable="true" lazy="true">
+            <schema type="String"/>
+        </prop>
+        <prop name="rightEntity" displayName="右实体" i18n-en:displayName="Right Entity" tagSet="pub,ref-pub"
+              ext:kind="to-one" internal="true" queryable="true" ext:joinLeftProp="rightEntityId"
+              ext:joinRightProp="metaEntityId" ext:joinRightDisplayProp="displayName" insertable="false"
+              updatable="false" lazy="true">
+            <schema bizObjName="NopMetaEntity"/>
+        </prop>
+        <prop name="rightEntity.displayName" displayName="右实体" i18n-en:displayName="Right Entity" internal="true"
               queryable="true" sortable="true" lazy="true">
             <schema type="String"/>
         </prop>

@@ -1120,6 +1120,18 @@
                         <on leftProp="metaTableId" rightProp="metaTableId"/>
                     </join>
                 </to-one>
+                <to-one displayName="左实体" name="leftEntity" refEntityName="io.nop.metadata.dao.entity.NopMetaEntity"
+                        tagSet="pub,ref-pub" i18n-en:displayName="Left Entity">
+                    <join>
+                        <on leftProp="leftEntityId" rightProp="metaEntityId"/>
+                    </join>
+                </to-one>
+                <to-one displayName="右实体" name="rightEntity" refEntityName="io.nop.metadata.dao.entity.NopMetaEntity"
+                        tagSet="pub,ref-pub" i18n-en:displayName="Right Entity">
+                    <join>
+                        <on leftProp="rightEntityId" rightProp="metaEntityId"/>
+                    </join>
+                </to-one>
             </relations>
         </entity>
         <entity className="io.nop.metadata.dao.entity.NopMetaPipeline" createTimeProp="createTime"

@@ -29,8 +29,6 @@ alter table nop_meta_table_measure add NOP_TENANT_ID VARCHAR(32) DEFAULT '0' NOT
 
 alter table nop_meta_table_filter add NOP_TENANT_ID VARCHAR(32) DEFAULT '0' NOT NULL;
 
-alter table nop_meta_table_join add NOP_TENANT_ID VARCHAR(32) DEFAULT '0' NOT NULL;
-
 alter table nop_meta_entity_field add NOP_TENANT_ID VARCHAR(32) DEFAULT '0' NOT NULL;
 
 alter table nop_meta_entity_relation add NOP_TENANT_ID VARCHAR(32) DEFAULT '0' NOT NULL;
@@ -38,6 +36,8 @@ alter table nop_meta_entity_relation add NOP_TENANT_ID VARCHAR(32) DEFAULT '0' N
 alter table nop_meta_entity_unique_key add NOP_TENANT_ID VARCHAR(32) DEFAULT '0' NOT NULL;
 
 alter table nop_meta_entity_index add NOP_TENANT_ID VARCHAR(32) DEFAULT '0' NOT NULL;
+
+alter table nop_meta_table_join add NOP_TENANT_ID VARCHAR(32) DEFAULT '0' NOT NULL;
 
 alter table nop_meta_dict_item add NOP_TENANT_ID VARCHAR(32) DEFAULT '0' NOT NULL;
 
@@ -86,9 +86,6 @@ alter table nop_meta_table_measure add constraint PK_nop_meta_table_measure prim
 alter table nop_meta_table_filter drop constraint PK_nop_meta_table_filter;
 alter table nop_meta_table_filter add constraint PK_nop_meta_table_filter primary key (NOP_TENANT_ID, filter_id);
 
-alter table nop_meta_table_join drop constraint PK_nop_meta_table_join;
-alter table nop_meta_table_join add constraint PK_nop_meta_table_join primary key (NOP_TENANT_ID, join_id);
-
 alter table nop_meta_entity_field drop constraint PK_nop_meta_entity_field;
 alter table nop_meta_entity_field add constraint PK_nop_meta_entity_field primary key (NOP_TENANT_ID, entity_field_id);
 
@@ -100,6 +97,9 @@ alter table nop_meta_entity_unique_key add constraint PK_nop_meta_entity_unique_
 
 alter table nop_meta_entity_index drop constraint PK_nop_meta_entity_index;
 alter table nop_meta_entity_index add constraint PK_nop_meta_entity_index primary key (NOP_TENANT_ID, index_id);
+
+alter table nop_meta_table_join drop constraint PK_nop_meta_table_join;
+alter table nop_meta_table_join add constraint PK_nop_meta_table_join primary key (NOP_TENANT_ID, join_id);
 
 alter table nop_meta_dict_item drop constraint PK_nop_meta_dict_item;
 alter table nop_meta_dict_item add constraint PK_nop_meta_dict_item primary key (NOP_TENANT_ID, dict_item_id);

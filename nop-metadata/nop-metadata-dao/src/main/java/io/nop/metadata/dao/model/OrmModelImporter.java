@@ -18,7 +18,9 @@ import io.nop.metadata.dao.entity.NopMetaDictItem;
 import io.nop.metadata.dao.entity.NopMetaDomain;
 import io.nop.metadata.dao.entity.NopMetaEntity;
 import io.nop.metadata.dao.entity.NopMetaEntityField;
+import io.nop.metadata.dao.entity.NopMetaEntityIndex;
 import io.nop.metadata.dao.entity.NopMetaEntityRelation;
+import io.nop.metadata.dao.entity.NopMetaEntityUniqueKey;
 import io.nop.metadata.dao.entity.NopMetaModule;
 import io.nop.metadata.dao.entity.NopMetaOrmModel;
 import io.nop.metadata.dao.entity.NopMetaTable;
@@ -28,7 +30,10 @@ import io.nop.orm.model.IEntityRelationModel;
 import io.nop.orm.model.IColumnModel;
 import io.nop.orm.model.IOrmModel;
 import io.nop.orm.model.OrmDomainModel;
+import io.nop.orm.model.OrmIndexColumnModel;
+import io.nop.orm.model.OrmIndexModel;
 import io.nop.orm.model.OrmModelConstants;
+import io.nop.orm.model.OrmUniqueKeyModel;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -119,6 +124,28 @@ public class OrmModelImporter {
         return relation;
     }
 
+    public NopMetaEntityUniqueKey buildUniqueKey(OrmUniqueKeyModel ukModel) {
+        NopMetaEntityUniqueKey uk = new NopMetaEntityUniqueKey();
+        uk.setIsDelta(b(true));
+        uk.setUkName(ukModel.getName());
+        uk.setDisplayName(ukModel.getDisplayName() != null ? ukModel.getDisplayName() : ukModel.getName());
+        uk.setColumns(StringHelper.join(ukModel.getColumns(), ","));
+        uk.setConstraintName(ukModel.getConstraint());
+        uk.setTagSet(joinTags(ukModel.getTagSet()));
+        return uk;
+    }
+
+    public NopMetaEntityIndex buildIndex(OrmIndexModel idxModel) {
+        NopMetaEntityIndex idx = new NopMetaEntityIndex();
+        idx.setIsDelta(b(true));
+        idx.setIndexName(idxModel.getName());
+        idx.setDisplayName(idxModel.getDisplayName() != null ? idxModel.getDisplayName() : idxModel.getName());
+        idx.setIndexType(idxModel.getIndexType());
+        idx.setUniqueIndex(Boolean.TRUE.equals(idxModel.getUnique()) ? b(true) : b(false));
+        idx.setIndexColumns(buildIndexColumnsJson(idxModel));
+        return idx;
+    }
+
     public NopMetaDomain buildDomain(OrmDomainModel domain) {
         NopMetaDomain metaDomain = new NopMetaDomain();
         metaDomain.setIsDelta(b(true));
@@ -190,6 +217,17 @@ public class OrmModelImporter {
             String left = join.getLeftProp() != null ? join.getLeftProp() : StringHelper.toString(join.getLeftValue(), "");
             String right = join.getRightProp() != null ? join.getRightProp() : StringHelper.toString(join.getRightValue(), "");
             parts.add("{\"leftProp\":\"" + left + "\",\"rightProp\":\"" + right + "\"}");
+        }
+        return "[" + StringHelper.join(parts, ",") + "]";
+    }
+
+    private String buildIndexColumnsJson(OrmIndexModel idxModel) {
+        List<String> parts = new ArrayList<>();
+        if (idxModel.getColumns() != null) {
+            for (OrmIndexColumnModel col : idxModel.getColumns()) {
+                boolean desc = Boolean.TRUE.equals(col.getDesc());
+                parts.add("{\"fieldName\":\"" + col.getName() + "\",\"desc\":" + desc + "}");
+            }
         }
         return "[" + StringHelper.join(parts, ",") + "]";
     }
