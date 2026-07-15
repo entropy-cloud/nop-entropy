@@ -1161,7 +1161,7 @@ nop.err.xlang.unresolved-type: 未知的类型:{typeName}
 nop.err.xlang.unsupported-op: 不支持的运算符:{op}
 nop.err.xlang.use-var-before-declaration: 在变量定义前使用变量:{varName},定义位置:{declLoc},使用位置:{useLoc}
 nop.err.xlang.var-decl-not-allow-binding: var变量声明不允许解构表达式
-nop.err.xlang.xdef.attr-not-allow-override-ref: 属性[{attrName}]已经存在，不允许覆盖
+nop.err.xlang.xdef.attr-not-allow-override-ref: 属性[{attrName}]类型不匹配：引用定义的类型为{typeA}，当前定义的类型为{typeB}，不允许覆盖
 nop.err.xlang.xdef.child-not-allow-override-ref: 子节点[{tagName}]已经存在，不允许覆盖
 nop.err.xlang.xdef.child-not-support-extends: '本节点不支持x:extends设置:{node}，参见它的XDefNode定义:
   {xdefPath}'
