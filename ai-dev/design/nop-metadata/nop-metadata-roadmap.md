@@ -136,15 +136,15 @@
 |------|-----------|---------|
 | ~~`MetaManifest`~~ | ~~P2~~ | ~~`05-metadata-import.md`~~ **已建模（P2-3 done，plan 0225-3）** |
 | ~~`MetaCatalog`~~ | ~~P2~~ | ~~`05-metadata-import.md`~~ **已建模（P2-4 done，plan 0420-1）** |
-| `MetaProfilingRule` | P2 | `06-data-quality-extended.md` §3.1 |
-| `MetaProfilingResult` | P2 | `06-data-quality-extended.md` §3.2 |
+| ~~`MetaProfilingRule`~~ | ~~P2~~ | ~~`06-data-quality-extended.md` §3.1~~ **已建模（P2-7 done，plan 0530-2）** |
+| ~~`MetaProfilingResult`~~ | ~~P2~~ | ~~`06-data-quality-extended.md` §3.2~~ **已建模（P2-7 done，plan 0530-2）** |
 | ~~`MetaQualityCheckpoint`~~ | ~~P2~~ | ~~`06-data-quality-extended.md` §4.1~~ **已建模（P2-8 done，plan 2026-07-17-0027-1）** |
 | ~~`MetaQualityScore`~~ | ~~P2~~ | ~~`06-data-quality-extended.md` §5.1~~ **已建模（P2-9 done，plan 2026-07-17-0027-2）** |
 | `MetaDataContract` | ~~P4~~ | ~~`04-data-governance.md`~~ **已建模（P4-4 done，plan 0900-1）** |
 | ~~`MetaReconciliationConfig`~~ | ~~P4~~ | ~~`08-reconciliation.md`~~ **已建模（P4-5 done，plan 0900-2）** |
 | ~~`MetaReconciliationResult`~~ | ~~P4~~ | ~~`08-reconciliation.md`~~ **已建模（P4-5 done，plan 0900-2）** |
 | ~~`MetaReconciliationEntity`~~ | ~~P4~~ | ~~`08-reconciliation.md`~~ **已建模（P4-5 done，plan 0900-2）** |
-| `MetaModelChangedEvent` | 待定 | `10-event-model.md` |
+| ~~`MetaModelChangedEvent`~~ | ~~待定~~ | ~~`10-event-model.md`~~ **已建模（P-event done，plan 2026-07-17-0228-1）** |
 
 ---
 
@@ -183,8 +183,8 @@ graph TD
 非 roadmap 内容已拆分到各自归属，本文件不重复维护：
 
 - **设计文档** → `ai-dev/design/nop-metadata/`（00-vision ~ 10-event-model，共 11 份编号文档 + README）
-- **已完成 plan** → `292`（Phase 1 导入引擎）；`293`（设计一致性修复）；`294`（P1+ 导入引擎完整性）；`295`（P1+ Delta 展开 + 版本发布）；`2026-07-16-0225-1`（P2-1 数据源注册+连接验证）；`2026-07-16-0225-2`（P2-2 外部表同步）；`2026-07-16-0225-3`（P2-3 Manifest 快照）；`2026-07-16-0420-1`（P2-4 Catalog 运行时收集）；`2026-07-16-0420-2`（P2-5 血缘采集+遍历）；`2026-07-16-0800-1`（P4-1 单表联邦查询）；`2026-07-16-0900-1`（P4-4 数据契约 MetaDataContract）；`2026-07-16-0900-2`（P4-5 Reconciliation 对账）；`2026-07-16-1905-1`（P2 entity/sql 执行覆盖扩展：Catalog/Quality/Profiling 三大执行器从 external-only 扩展到 entity + sql 类型表）
-- **活跃 plan** → （无）
+- **已完成 plan** → `292`（Phase 1 导入引擎）；`293`（设计一致性修复）；`294`（P1+ 导入引擎完整性）；`295`（P1+ Delta 展开 + 版本发布）；`2026-07-16-0225-1`（P2-1 数据源注册+连接验证）；`2026-07-16-0225-2`（P2-2 外部表同步）；`2026-07-16-0225-3`（P2-3 Manifest 快照）；`2026-07-16-0420-1`（P2-4 Catalog 运行时收集）；`2026-07-16-0420-2`（P2-5 血缘采集+遍历）；`2026-07-16-0800-1`（P4-1 单表联邦查询）；`2026-07-16-0900-1`（P4-4 数据契约 MetaDataContract）；`2026-07-16-0900-2`（P4-5 Reconciliation 对账）；`2026-07-16-1905-1`（P2 entity/sql 执行覆盖扩展：Catalog/Quality/Profiling 三大执行器从 external-only 扩展到 entity + sql 类型表）；`2026-07-17-0228-1`（P-event 元数据变更事件模型 MetaModelChangedEvent）
+- **活跃 plan** → `2026-07-17-0228-2`（P2-5+ 列级 SQL 血缘解析）、`2026-07-17-0228-3`（P3+ 跨表 Measure/Dimension 校验）
 - **设计决策** → `01-architecture-baseline.md` §一 设计结论 + §七 拒绝清单
 - **待定问题** → `01-architecture-baseline.md` §八 待定问题
 - **Gap 分析** → `02-gap-analysis.md`（对比 DataHub/OpenMetadata/Atlas/Amundsen/Marquez）

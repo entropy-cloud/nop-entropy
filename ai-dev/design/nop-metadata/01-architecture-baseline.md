@@ -615,6 +615,47 @@ MetaQualityResult                — 质量执行结果（时序数据）
 
 **与 §七（拒绝额外抽象层）的关系**：评分复用既有 QualityResult（§2.7.1 写入）+ NopMetaTable（§2.5 挂载点），不引入额外评分引擎抽象层。维度映射为静态表 + extConfig 覆盖，不走「可插拔维度策略框架」（待 follow-up 按需独立设计）。
 
+### 2.8 元数据变更事件模型（P-event）
+
+本节落地 plan 2026-07-17-0228-1 的设计决策 D1（持久化 + 存储形态）+ D2（发布机制 + 消费路径）+ D3（发布范围 + 批量粒度）。把 roadmap `未建模实体` 表的最后一个实体 `MetaModelChangedEvent` 从未建模推进到 landed：建模 + 事件发布 + 至少一个事件消费路径，使元数据变更可被通知、审计、下游同步。完整设计规格见 `10-event-model.md`（final）。
+
+**模型结构（D1，持久化到 DB）**：单实体 `NopMetaModelChangedEvent`（时序追加行，不覆盖）：
+
+- `modelChangedEventId`(PK, seq) / `eventType`(dict `meta/change-event-type`：ENTITY_CREATED|ENTITY_UPDATED|ENTITY_DELETED) / `entityType`(NopMetaModule|NopMetaTable|NopMetaDataSource|...) / `entityId` / `entityName`
+- `changeSource`(IMPORT|UI|API|SYNC，**plain string + 文档约定**，对齐 dimension-type/granularity 模式，dict 化为 follow-up)
+- `beforeSnapshot`(mediumtext+stdDomain=json，仅 UPDATE/DELETE 时有值) / `afterSnapshot`(mediumtext+stdDomain=json，仅 CREATE/UPDATE 时有值) — **不得 json-4000**，对齐 Manifest/Catalog/Profiling 的 JSON 列决策
+- `changedBy` / `changeTime`(mandatory) / `transactionId`(nullable，批次/单操作 correlation key) / `extConfig`(json-4000) + 审计列
+- 索引 `IX_NOP_META_EVENT_TYPE_TIME`(entityType, changeTime) 时序查询 + `IX_NOP_META_EVENT_SOURCE`(changeSource)
+
+**存储形态裁定**：事件**持久化到 DB**（非纯内存）。理由：审计日志需可追溯历史；纯内存事件重启后丢失；持久化事件天然支持 GraphQL query（审计/下游拉取）。收口 Open Question「事件是否持久化？」→ 是。
+
+**发布机制 + 消费路径（D2）**：
+
+- **发布机制（主路径）**：**直接 DB 写入事件行**——事件发布 helper（`service/event/MetaModelChangedEventPublisher`，IoC bean，`@Inject IEntityDao<NopMetaModelChangedEvent>`）在写路径内 `saveEntity` 一条 `NopMetaModelChangedEvent`。理由：不依赖 `IMessageService` 订阅者注册机制（首版无订阅者）、最简单可测、与审计日志目标一致、可被 GraphQL query 直接暴露。
+- **IMessageService overlay（可选，已 live 核实可用）**：`nop-metadata-service` pom 依赖链 `nop-metadata-service → nop-sys-dao` 传递 `SysDaoMessageService`（`implements IMessageService`，来自 `nop-message-core`），可直接 `@Inject`。首版**不强制**叠加，topic 命名 `nop-metadata.{entityType}.changed` 为 follow-up。
+- **消费路径（首版至少一条）**：**GraphQL query 查询事件历史**（审计/下游拉取）。`NopMetaModelChangedEvent` CRUD 自动暴露后，`__findPage` 可按 `entityType`/`changeSource`/`changeTime`/`transactionId` 过滤查询。收口「至少一条消费路径可用」且不需要推送基建。
+
+收口 Open Question「是否 GraphQL Subscription？」→ 首版用 query（拉取）非 subscription（推送）；subscription 依赖推送基建为 follow-up。
+
+**发布范围 + 批量粒度（D3）**：
+
+- **范围（首版）**：覆盖关键元数据写路径：
+  - 关键 mutation action（持久化成功后调 helper 写主实体级事件行）：`importOrmModel`（IMPORT）/ `releaseModule`（版本发布）/ `syncExternalTables`（SYNC）/ `createSqlTable`（UI/API）。
+  - 核心实体（`NopMetaModule` / `NopMetaTable`）通用 CRUD 走 **save override（CREATE+UPDATE）+ delete override（DELETE）**——二者独立，save 不覆盖 delete。其余实体作为 follow-up。
+- **批量粒度（显式裁定，收口 Open Question「批量导入是否合并事件？」）**：主实体级记录（不逐子实体、不合并丢失）：
+  - `importOrmModel` 记 1 行 Module CREATED 事件（changeSource=IMPORT）；`syncExternalTables` 记 1 行 DataSource UPDATED 事件（changeSource=SYNC，「外部表已同步」）。
+  - 子实体细粒度事件（per-row Entity/Field/Table）**deferred**（避免一次导入产生数十行事件 + 大量快照 JSON 膨胀）。
+  - 同一批操作共享同一 `transactionId`（correlation key），支持未来关联同批的细粒度扩展。
+- **单操作 transactionId**：单次 save/delete override 触发的事件生成 per-op UUID 作为 transactionId。
+- **beforeSnapshot 获取**：save override 在调 `super.save()` **前**按 PK 加载旧状态（null=CREATE，非 null=UPDATE）；delete override 在调 `super.delete()` **前**按 PK 加载旧状态。实体不存在（DELETE 已删）则不发事件。
+- **事件行写入时序（关键，避免幽灵事件）**：**事件行在 super.save/super.delete 成功后写入**——before 快照在 super.save **前加载**，event 行在 super.save **成功后持久化**。避免业务写失败/事务回滚时产生幽灵事件（事件行已写但业务写未成功）。
+
+**失败路径（显式，不静默）**：快照序列化失败等异常显式抛 inline ErrorCode（不静默吞掉、不静默跳过事件发布）。不伪造缺失快照：ENTITY_CREATED 有 afterSnapshot、ENTITY_UPDATED 有 before+after、ENTITY_DELETED 有 before。
+
+**Out-of-Scope（follow-up）**：UI 实时推送（WebSocket/SSE）/ GraphQL Subscription（依赖推送基建）/ 搜索索引自动更新（需搜索引擎）/ 全量 32 实体 CRUD 事件覆盖（首版关键路径 + 核心实体）/ 分布式事件总线 + 可靠投递 + 跨进程（首版事件与业务写同事务或紧邻写后）/ 事件清理/归档策略 / `changeSource` dict 化。
+
+**与 §七（拒绝额外抽象层）的关系**：事件模型复用既有 ORM 持久化 + GraphQL CRUD 自动暴露，不引入独立 EventBus 类（平台无独立 EventBus，首版直接 DB 写为主路径，IMessageService 为可选 overlay）、不引入事件总线/可靠投递/跨进程抽象层（follow-up）、不引入推送基建抽象层（follow-up）。事件发布 helper 为无状态 service 层 IoC bean（`@Inject IEntityDao`），不自造连接、不复制持久化逻辑。
+
 ---
 
 ## 三、Delta 版本管理
