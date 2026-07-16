@@ -2,6 +2,8 @@ package io.nop.metadata.service.profiling;
 
 import io.nop.api.core.exceptions.ErrorCode;
 import io.nop.api.core.exceptions.NopException;
+import io.nop.metadata.service.field.ResolvedTableField;
+import io.nop.metadata.service.tableref.TableReference;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -73,50 +75,64 @@ public class MetaTableProfiler {
             "CHAR", "TEXT", "CLOB", "STRING");
 
     /**
-     * 剖析单表，返回结构化快照。
+     * 剖析单表，返回结构化快照（消费 {@link TableReference}，架构基线 §4.4.3 D3）。
      *
      * <p>单表整体失败（如 COUNT(*) 失败）直接抛出，交调用方 per-table 处理；单列失败收集进 snapshot.errors 不中断。
      *
-     * @param conn           已打开的连接（由 withConnection callback 提供，本方法不关闭连接）
-     * @param metaData       连接的 DatabaseMetaData
-     * @param schemaPattern  schema 限定（null/空串表示依赖连接默认 schema）
-     * @param tableName      物理表名（来自 external NopMetaTable.tableName）
+     * @param conn           已打开的连接（external/sql 由 withConnection 提供，entity 由平台 IJdbcTransaction 提供）
+     * @param metaData       连接的 DatabaseMetaData（sql 子查询不用于列发现，由 ref.fields 承担）
+     * @param ref            table-reference（external/entity/sql 三态）
+     * @param schemaPattern  schema 限定（null/空串表示依赖连接默认 schema；sql 子查询忽略此参数）
      * @param columnsFilter  可选，要剖析的列名（逗号分隔，null/空=所有列）
      * @param productName    DB 产品名（运行时取自 DatabaseMetaData，放入 tableStats.extras）
      * @return 剖析快照（rowCount 真实 + columnStats 真实统计 + 表级 sizeBytes/lastModified null+unavailable）
      */
     public ProfilingSnapshot profile(Connection conn, DatabaseMetaData metaData,
-                                     String schemaPattern, String tableName,
-                                     String columnsFilter, String productName) {
-        validateIdentifier(tableName);
+                                      TableReference ref, String schemaPattern,
+                                      String columnsFilter, String productName) {
+        // external/entity 物理表名校验（防注入）；sql 子查询不校验（用户显式提供）
+        if (!ref.isSubquery()) {
+            validateIdentifier(ref.getPhysicalTableName());
+        }
 
         String normalizedSchema = normalizeSchema(schemaPattern);
         Set<String> filter = parseColumnsFilter(columnsFilter);
 
+        String displayTableName = ref.isSubquery()
+                ? "(" + ref.getSourceSql() + ") _t" : ref.getPhysicalTableName();
+
         ProfilingSnapshot snapshot = new ProfilingSnapshot();
-        snapshot.setTableName(tableName);
+        snapshot.setTableName(displayTableName);
         if (productName != null) {
             snapshot.getTableExtras().put("databaseProductName", productName);
         }
+        snapshot.getTableExtras().put("tableType", ref.getKind().name().toLowerCase());
 
         try {
+            String fromClause = buildFromClause(ref, normalizedSchema);
+
             // 表级行数：便携 COUNT(*)（精确）
-            snapshot.setRowCount(countRows(conn, normalizedSchema, tableName));
+            snapshot.setRowCount(countRows(conn, fromClause));
 
             // 表级方言特定统计首版不实现：null + 显式 unavailable 标记（不伪造 0，对齐 Catalog §2.3.2）
             snapshot.markTableUnavailable("sizeBytes");
             snapshot.markTableUnavailable("lastModified");
 
-            // 列级：运行时 DatabaseMetaData.getColumns 解析物理列名 + 类型（不依赖 buildSql JSON 同步）
-            List<ColumnMeta> columns = readColumns(metaData, normalizedSchema, tableName, filter);
-            String qualified = qualifyTable(normalizedSchema, tableName);
+            // 列级：优先用 ref.fields（entity 从 ORM 模型取物理列，sql 从 AST 取）；
+            // 无 fields 时（external）走 DatabaseMetaData.getColumns 运行时读
+            List<ColumnMeta> columns;
+            if (ref.getFields() != null) {
+                columns = columnsFromFields(ref.getFields(), filter);
+            } else {
+                columns = readColumns(metaData, normalizedSchema, ref.getPhysicalTableName(), filter);
+            }
 
             for (ColumnMeta col : columns) {
                 try {
-                    ProfilingColumnStats cs = profileColumn(conn, qualified, col);
+                    ProfilingColumnStats cs = profileColumn(conn, fromClause, col);
                     snapshot.getColumnStats().add(cs);
                 } catch (Exception e) {
-                    LOG.error("profileTable failed for column: {} of table: {}", col.name, tableName, e);
+                    LOG.error("profileTable failed for column: {} of table: {}", col.name, displayTableName, e);
                     snapshot.recordColumnError(col.name, messageOf(e));
                 }
             }
@@ -124,7 +140,7 @@ public class MetaTableProfiler {
             // 表级失败（COUNT(*) 失败、列结构读取失败）包装为运行时异常，由调用方 per-table 处理
             throw new NopException(ErrorCode.define("metadata.profiling-sql-failed",
                     "Profile table SQL execution failed: {tableName} -- {error}", "tableName", "error"), e)
-                    .param("tableName", tableName)
+                    .param("tableName", displayTableName)
                     .param("error", messageOf(e));
         }
 
@@ -134,48 +150,71 @@ public class MetaTableProfiler {
     // ===== 列级剖析 =====
 
     /** 解析列结构 + 类型，按类型适配收集统计。 */
-    private ProfilingColumnStats profileColumn(Connection conn, String qualified, ColumnMeta col) throws SQLException {
+    private ProfilingColumnStats profileColumn(Connection conn, String fromClause, ColumnMeta col) throws SQLException {
+        // D5：sql 视图 <expr_N> 合成列通不过标识符白名单 → 显式 SKIP + unavailable 标记（不整表失败）
+        if (isDerivedColumnName(col.name)) {
+            ProfilingColumnStats cs = new ProfilingColumnStats();
+            cs.setColumnName(col.name);
+            cs.setDataType(col.dataType);
+            cs.markUnavailable("derived-column-skipped");
+            return cs;
+        }
         validateIdentifier(col.name);
         ProfilingColumnStats cs = new ProfilingColumnStats();
         cs.setColumnName(col.name);
         cs.setDataType(col.dataType);
 
         // 所有类型通用：totalCount / distinctCount / nullCount / emptyCount / min / max
-        long totalCount = queryLong(conn, "SELECT COUNT(*) FROM " + qualified);
+        long totalCount = queryLong(conn, "SELECT COUNT(*) FROM " + fromClause);
         cs.setTotalCount(totalCount);
         if (totalCount == 0) {
             // 空表：其余统计无意义（null），但不伪造，直接返回
             return cs;
         }
-        long distinctCount = queryLong(conn, "SELECT COUNT(DISTINCT " + col.name + ") FROM " + qualified);
+        long distinctCount = queryLong(conn, "SELECT COUNT(DISTINCT " + col.name + ") FROM " + fromClause);
         cs.setDistinctCount(distinctCount);
-        long nullCount = totalCount - queryLong(conn, "SELECT COUNT(" + col.name + ") FROM " + qualified);
+        long nullCount = totalCount - queryLong(conn, "SELECT COUNT(" + col.name + ") FROM " + fromClause);
         cs.setNullCount(nullCount);
-        // emptyCount（空字符串数）是字符串概念：仅字符串列执行 WHERE col=''；数值/其他类型无空字符串语义，记 0
-        boolean stringLike = isStringType(col.dataType) || !isNumericType(col.dataType);
+        // emptyCount（空字符串数）是字符串概念：仅已知字符串列执行 WHERE col=''；数值/未知类型跳过（记 0）
+        boolean stringLike = isStringType(col.dataType);
         if (stringLike) {
-            cs.setEmptyCount(queryLong(conn, "SELECT COUNT(*) FROM " + qualified + " WHERE " + col.name + " = ''"));
+            try {
+                cs.setEmptyCount(queryLong(conn, "SELECT COUNT(*) FROM " + fromClause + " WHERE " + col.name + " = ''"));
+            } catch (SQLException e) {
+                // 类型名含字符串关键字但实际不支持 = '' 比较（如 CLOB）→ emptyCount 无意义，记 0 不中断
+                cs.setEmptyCount(0L);
+            }
         } else {
             cs.setEmptyCount(0L);
         }
-        cs.setMinValue(queryString(conn, "SELECT MIN(" + col.name + ") FROM " + qualified));
-        cs.setMaxValue(queryString(conn, "SELECT MAX(" + col.name + ") FROM " + qualified));
+        cs.setMinValue(queryString(conn, "SELECT MIN(" + col.name + ") FROM " + fromClause));
+        cs.setMaxValue(queryString(conn, "SELECT MAX(" + col.name + ") FROM " + fromClause));
 
         boolean numeric = isNumericType(col.dataType);
         boolean string = isStringType(col.dataType);
 
-        // 类型适配：数值列收集 numericStats；字符串列收集 stringStats。未知类型按字符串处理。
+        // 类型适配：数值列收集 numericStats；字符串列收集 stringStats。
+        // 未知类型（dataType=null，如 sql 视图列）→ 运行时探测：试 SUM(col) 成功则按数值，否则按字符串。
         if (numeric) {
-            cs.setNumericStats(collectNumericStats(conn, qualified, col.name));
+            cs.setNumericStats(collectNumericStats(conn, fromClause, col.name));
         } else if (string) {
-            cs.setStringStats(collectStringStats(conn, qualified, col.name));
+            cs.setStringStats(collectStringStats(conn, fromClause, col.name));
+        } else if (probeNumeric(conn, fromClause, col.name)) {
+            cs.setNumericStats(collectNumericStats(conn, fromClause, col.name));
         } else {
-            // 未知类型按字符串统计（topValues 等），并在 numericStats/stringStats 中均不伪造
-            cs.setStringStats(collectStringStats(conn, qualified, col.name));
-            cs.markUnavailable("numericStats");
-            cs.markUnavailable("numericStats.typeAdaptedTo-string");
+            cs.setStringStats(collectStringStats(conn, fromClause, col.name));
         }
         return cs;
+    }
+
+    /** 运行时探测列是否为数值类型（dataType=null 时）：试 SUM(col)，成功则视为数值列。 */
+    private boolean probeNumeric(Connection conn, String fromClause, String col) {
+        try {
+            queryNullableDouble(conn, "SELECT SUM(" + col + ") FROM " + fromClause);
+            return true;
+        } catch (SQLException e) {
+            return false;
+        }
     }
 
     /** 数值列统计：min/max/mean/stddev（便携 SQL）+ median/percentiles/distribution（in-app 排序）。 */
@@ -320,9 +359,9 @@ public class MetaTableProfiler {
 
     // ===== 查询辅助 =====
 
-    /** 便携行数：{@code SELECT COUNT(*) FROM <限定表名>}（全方言）。 */
-    private long countRows(Connection conn, String schema, String tableName) throws SQLException {
-        return queryLong(conn, "SELECT COUNT(*) FROM " + qualifyTable(schema, tableName));
+    /** 便携行数：{@code SELECT COUNT(*) FROM <fromClause>}（全方言）。 */
+    private long countRows(Connection conn, String fromClause) throws SQLException {
+        return queryLong(conn, "SELECT COUNT(*) FROM " + fromClause);
     }
 
     /** topValues：{@code SELECT col, COUNT(*) ... GROUP BY col ORDER BY COUNT(*) DESC LIMIT N}（便携）。 */
@@ -476,6 +515,37 @@ public class MetaTableProfiler {
             return tableName;
         }
         return schema + "." + tableName;
+    }
+
+    /**
+     * 构建 FROM 子句目标（架构基线 §4.4.3 D3）：
+     * external/entity → {@code <schema>.<tableName>}；sql → {@code (<sourceSql>) _t}。
+     */
+    static String buildFromClause(TableReference ref, String normalizedSchema) {
+        if (ref.isSubquery()) {
+            return "(" + ref.getSourceSql() + ") _t";
+        }
+        return qualifyTable(normalizedSchema, ref.getPhysicalTableName());
+    }
+
+    /** D5：检测 sql 视图合成列名（形如 {@code <expr_N>}，含 {@code <>} 非标识符字符）。 */
+    static boolean isDerivedColumnName(String col) {
+        return col != null && col.startsWith("<") && col.contains("expr");
+    }
+
+    /** sql 表列结构从 AST 解析的 fields 构造（DatabaseMetaData.getColumns 对子查询不适用）。 */
+    private static List<ColumnMeta> columnsFromFields(List<ResolvedTableField> fields, Set<String> filter) {
+        List<ColumnMeta> columns = new ArrayList<>(fields.size());
+        for (ResolvedTableField f : fields) {
+            if (f.getName() == null) {
+                continue;
+            }
+            if (filter != null && !filter.isEmpty() && !filter.contains(f.getName().toUpperCase())) {
+                continue;
+            }
+            columns.add(new ColumnMeta(f.getName(), f.getDataType()));
+        }
+        return columns;
     }
 
     private static String normalizeSchema(String schemaPattern) {

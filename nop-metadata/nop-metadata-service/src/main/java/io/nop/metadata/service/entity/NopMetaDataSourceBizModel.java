@@ -16,14 +16,21 @@ import io.nop.metadata.biz.INopMetaDataSourceBiz;
 import io.nop.metadata.core._NopMetadataCoreConstants;
 import io.nop.metadata.dao.entity.NopMetaCatalog;
 import io.nop.metadata.dao.entity.NopMetaDataSource;
+import io.nop.metadata.dao.entity.NopMetaEntity;
+import io.nop.metadata.dao.entity.NopMetaEntityField;
 import io.nop.metadata.dao.entity.NopMetaModule;
 import io.nop.metadata.dao.entity.NopMetaTable;
 import io.nop.metadata.service.catalog.CatalogTableStats;
 import io.nop.metadata.service.catalog.MetaCatalogCollector;
 import io.nop.metadata.service.connection.IMetaDataSourceConnectionService;
+import io.nop.metadata.service.datasource.MetaDataSourceResolver;
+import io.nop.metadata.service.field.MetaTableFieldResolver;
 import io.nop.metadata.service.sync.ExternalColumnInfo;
 import io.nop.metadata.service.sync.ExternalTableInfo;
 import io.nop.metadata.service.sync.ExternalTableStructureReader;
+import io.nop.metadata.service.tableref.MetaTableReferenceResolver;
+import io.nop.metadata.service.tableref.TableReference;
+import io.nop.metadata.service.tableref.TableReferenceExecutor;
 import jakarta.inject.Inject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -60,8 +67,15 @@ public class NopMetaDataSourceBizModel extends CrudBizModel<NopMetaDataSource> i
     /** 外部表结构读取器（无状态，直接持有，与 OrmModelImporter 的持有方式一致）。 */
     private final ExternalTableStructureReader structureReader = new ExternalTableStructureReader();
 
-    /** Catalog 运行时统计收集器（无状态，在 withConnection callback 内调用，不自建连接）。 */
+    /** Catalog 运行时统计收集器（无状态，在 callback 内调用，不自建连接）。 */
     private final MetaCatalogCollector catalogCollector = new MetaCatalogCollector();
+
+    /** 共享 table-reference 解析器（架构基线 §4.4.3 D3）。 */
+    private final MetaTableReferenceResolver tableRefResolver = new MetaTableReferenceResolver(
+            new MetaDataSourceResolver(), new MetaTableFieldResolver());
+
+    /** 按 table-reference 形态分派 Connection 获取（§4.4.3 D1/D2）。延迟初始化（需 orm()）。 */
+    private TableReferenceExecutor tableRefExecutor;
 
     public NopMetaDataSourceBizModel() {
         setEntityName(NopMetaDataSource.class.getName());
@@ -214,8 +228,12 @@ public class NopMetaDataSourceBizModel extends CrudBizModel<NopMetaDataSource> i
                     String productName = safeProductName(metaData);
                     for (NopMetaTable table : externalTables) {
                         try {
+                            // 构建 external table-reference（批内表共享同一数据源连接）
+                            TableReference ref = new TableReference(TableReference.Kind.EXTERNAL,
+                                    table.getMetaTableId(), table.getTableName(), null,
+                                    dataSource, null, null, null);
                             CatalogTableStats stats = catalogCollector.collectForTable(
-                                    conn, metaData, schemaPattern, table.getTableName(), productName);
+                                    conn, metaData, ref, schemaPattern, productName);
                             appendCatalogRow(table.getMetaTableId(), stats);
                             orm().flushSession();
                             collectedCount.incrementAndGet();
@@ -245,6 +263,57 @@ public class NopMetaDataSourceBizModel extends CrudBizModel<NopMetaDataSource> i
         query.addFilter(FilterBeans.eq(NopMetaTable.PROP_NAME_tableType,
                 _NopMetadataCoreConstants.TABLE_TYPE_EXTERNAL));
         return tableDao.findAllByQuery(query);
+    }
+
+    /**
+     * 单表 Catalog 收集入口（架构基线 §4.4.3 D1-D5）：对任意 tableType（external/entity/sql）的逻辑表
+     * 收集运行时统计（行数/索引），追加为新的时序快照行写入 NopMetaCatalog。
+     *
+     * <p>解析路径（D3）：metaTableId → NopMetaTable → {@link MetaTableReferenceResolver} → {@link TableReference}
+     * → {@link TableReferenceExecutor} 按 ref 形态分派 Connection → 收集器收集 → 追加 NopMetaCatalog 行。
+     *
+     * @param metaTableId   目标逻辑表 ID（任意 tableType）
+     * @param schemaPattern 可选 schema 限定（null/空串表示依赖连接默认 schema；sql 子查询忽略）
+     * @param context       服务上下文
+     * @return {@code {metaTableId, rowCount, indexCount, unavailable:[...]}}
+     */
+    @BizMutation
+    public Map<String, Object> collectCatalogForTable(@Name("metaTableId") String metaTableId,
+                                                       @Optional @Name("schemaPattern") String schemaPattern,
+                                                       IServiceContext context) {
+        IEntityDao<NopMetaTable> tableDao = daoFor(NopMetaTable.class);
+        NopMetaTable table = tableDao.getEntityById(metaTableId);
+        if (table == null) {
+            throw new NopException(ERR_DATASOURCE_NOT_FOUND).param("dataSourceId", metaTableId);
+        }
+        TableReference ref = tableRefResolver.resolve(table,
+                daoFor(NopMetaDataSource.class), daoFor(NopMetaEntity.class),
+                daoFor(NopMetaEntityField.class), orm());
+
+        CatalogTableStats stats = ensureTableRefExecutor().execute(ref,
+                (conn, metaData, productName) -> catalogCollector.collectForTable(
+                        conn, metaData, ref, schemaPattern, productName));
+
+        appendCatalogRow(table.getMetaTableId(), stats);
+        return buildCatalogResultMap(table.getMetaTableId(), stats);
+    }
+
+    /** 延迟初始化 TableReferenceExecutor（需 orm()，构造时 orm 不可用）。 */
+    private TableReferenceExecutor ensureTableRefExecutor() {
+        if (tableRefExecutor == null) {
+            tableRefExecutor = new TableReferenceExecutor(connectionService, orm());
+        }
+        return tableRefExecutor;
+    }
+
+    private static Map<String, Object> buildCatalogResultMap(String metaTableId, CatalogTableStats stats) {
+        Map<String, Object> m = new LinkedHashMap<>();
+        m.put("metaTableId", metaTableId);
+        m.put("rowCount", stats.getRowCount());
+        m.put("indexCount", stats.getIndexCount());
+        m.put("unavailable", stats.getUnavailable());
+        m.putAll(stats.getExtras());
+        return m;
     }
 
     /**

@@ -15,13 +15,19 @@ import io.nop.dao.api.IEntityDao;
 import io.nop.metadata.biz.INopMetaProfilingRuleBiz;
 import io.nop.metadata.core._NopMetadataCoreConstants;
 import io.nop.metadata.dao.entity.NopMetaDataSource;
+import io.nop.metadata.dao.entity.NopMetaEntity;
+import io.nop.metadata.dao.entity.NopMetaEntityField;
 import io.nop.metadata.dao.entity.NopMetaProfilingResult;
 import io.nop.metadata.dao.entity.NopMetaProfilingRule;
 import io.nop.metadata.dao.entity.NopMetaTable;
 import io.nop.metadata.service.connection.IMetaDataSourceConnectionService;
+import io.nop.metadata.service.datasource.MetaDataSourceResolver;
 import io.nop.metadata.service.profiling.MetaTableProfiler;
 import io.nop.metadata.service.profiling.ProfilingColumnStats;
 import io.nop.metadata.service.profiling.ProfilingSnapshot;
+import io.nop.metadata.service.tableref.MetaTableReferenceResolver;
+import io.nop.metadata.service.tableref.TableReference;
+import io.nop.metadata.service.tableref.TableReferenceExecutor;
 import jakarta.inject.Inject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -57,16 +63,23 @@ public class NopMetaProfilingRuleBizModel extends CrudBizModel<NopMetaProfilingR
     @Inject
     protected IMetaDataSourceConnectionService connectionService;
 
+    /** 共享 table-reference 解析器（架构基线 §4.4.3 D3）。 */
+    private final MetaTableReferenceResolver tableRefResolver = new MetaTableReferenceResolver(
+            new MetaDataSourceResolver(), new io.nop.metadata.service.field.MetaTableFieldResolver());
+
     /** 数据剖析器（无状态，与 profileTable 共用同一剖析路径）。 */
     private final MetaTableProfiler profiler = new MetaTableProfiler();
+
+    /** 按 table-reference 形态分派 Connection 获取（§4.4.3 D1/D2）。延迟初始化（需 orm()）。 */
+    private TableReferenceExecutor tableRefExecutor;
 
     public NopMetaProfilingRuleBizModel() {
         setEntityName(NopMetaProfilingRule.class.getName());
     }
 
     /**
-     * 按剖析规则定义执行（架构基线 §2.7.2 D3）：加载规则 → 解析目标 external 表 + 数据源 →
-     * {@code withConnection} callback → 剖析器按规则 columns/stats 统计 → 追加一行 NopMetaProfilingResult。
+     * 按剖析规则定义执行（架构基线 §2.7.2 D3 + §4.4.3 D1-D5）：加载规则 → 解析目标表（任意 tableType）→
+     * table-reference 分派 Connection → 剖析器按规则 columns/stats 统计 → 追加一行 NopMetaProfilingResult。
      *
      * @param profilingRuleId 规则 ID
      * @param schemaPattern   可选 schema 限定（null/空串表示依赖连接默认 schema）
@@ -82,20 +95,18 @@ public class NopMetaProfilingRuleBizModel extends CrudBizModel<NopMetaProfilingR
             throw new NopException(ERR_PROFILING_RULE_NOT_FOUND).param("profilingRuleId", profilingRuleId);
         }
 
-        NopMetaTable table = resolveExternalTableOrThrow(rule);
-        NopMetaDataSource dataSource = resolveDataSourceOrThrow(rule, table);
+        NopMetaTable table = resolveTargetTableOrThrow(rule);
+        TableReference ref = tableRefResolver.resolve(table,
+                daoFor(NopMetaDataSource.class), daoFor(NopMetaEntity.class),
+                daoFor(NopMetaEntityField.class), orm());
 
         // 规则定义的 columns 作为列过滤（stats 指标首版全量收集，规则仅记录意图，不裁剪以保证剖析完整性）
         String columns = rule.getColumns();
 
-        final ProfilingSnapshot[] holder = new ProfilingSnapshot[1];
-        connectionService.withConnection(dataSource.getDatasourceType(), dataSource.getConnectionConfig(),
-                (Connection conn, DatabaseMetaData metaData) -> {
-                    holder[0] = profiler.profile(conn, metaData, schemaPattern,
-                            table.getTableName(), columns, safeProductName(metaData));
-                });
+        ProfilingSnapshot snapshot = ensureTableRefExecutor().execute(ref,
+                (conn, metaData, productName) -> profiler.profile(conn, metaData, ref, schemaPattern,
+                        columns, productName));
 
-        ProfilingSnapshot snapshot = holder[0];
         NopMetaProfilingResult row = appendProfilingResult(
                 rule.getProfilingRuleId(), table.getMetaTableId(), snapshot);
         return buildResultMap(row, snapshot);
@@ -105,38 +116,23 @@ public class NopMetaProfilingRuleBizModel extends CrudBizModel<NopMetaProfilingR
     // helpers（自包含，与 NopMetaQualityRuleBizModel 同模式）
     // ============================================================
 
-    /** 解析规则目标表：rule.tableId → NopMetaTable；不存在/非 external 显式失败。 */
-    private NopMetaTable resolveExternalTableOrThrow(NopMetaProfilingRule rule) {
+    /** 解析规则目标表：rule.tableId → NopMetaTable；不存在显式失败（任意 tableType，§4.4.3 D4）。 */
+    private NopMetaTable resolveTargetTableOrThrow(NopMetaProfilingRule rule) {
         IEntityDao<NopMetaTable> tableDao = daoFor(NopMetaTable.class);
         NopMetaTable table = tableDao.getEntityById(rule.getTableId());
         if (table == null) {
             throw new NopException(NopMetaTableBizModel.ERR_PROFILING_TABLE_NOT_FOUND)
                     .param("metaTableId", rule.getTableId());
         }
-        if (!_NopMetadataCoreConstants.TABLE_TYPE_EXTERNAL.equals(table.getTableType())) {
-            throw new NopException(NopMetaTableBizModel.ERR_PROFILING_TABLE_NOT_EXTERNAL)
-                    .param("metaTableId", rule.getTableId())
-                    .param("tableType", String.valueOf(table.getTableType()));
-        }
         return table;
     }
 
-    /** 解析目标表对应数据源：table.querySpace → NopMetaDataSource；不存在/DISABLED 显式失败。 */
-    private NopMetaDataSource resolveDataSourceOrThrow(NopMetaProfilingRule rule, NopMetaTable table) {
-        IEntityDao<NopMetaDataSource> dsDao = daoFor(NopMetaDataSource.class);
-        QueryBean q = new QueryBean();
-        q.addFilter(FilterBeans.eq(NopMetaDataSource.PROP_NAME_querySpace, table.getQuerySpace()));
-        NopMetaDataSource dataSource = dsDao.findFirstByQuery(q);
-        if (dataSource == null) {
-            throw new NopException(NopMetaTableBizModel.ERR_PROFILING_NO_DATASOURCE)
-                    .param("metaTableId", table.getMetaTableId())
-                    .param("querySpace", table.getQuerySpace());
+    /** 延迟初始化 TableReferenceExecutor（需 orm()，构造时 orm 不可用）。 */
+    private TableReferenceExecutor ensureTableRefExecutor() {
+        if (tableRefExecutor == null) {
+            tableRefExecutor = new TableReferenceExecutor(connectionService, orm());
         }
-        if (_NopMetadataCoreConstants.DATASOURCE_STATUS_DISABLED.equals(dataSource.getStatus())) {
-            throw new NopException(NopMetaTableBizModel.ERR_PROFILING_DATASOURCE_DISABLED)
-                    .param("dataSourceId", dataSource.getDataSourceId());
-        }
-        return dataSource;
+        return tableRefExecutor;
     }
 
     /** 追加一行 NopMetaProfilingResult（时序语义：snapshotTime=now，不覆盖）。 */

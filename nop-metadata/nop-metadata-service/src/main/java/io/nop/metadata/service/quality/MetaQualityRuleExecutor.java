@@ -3,6 +3,7 @@ package io.nop.metadata.service.quality;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.api.core.exceptions.ErrorCode;
 import io.nop.core.lang.json.JsonTool;
+import io.nop.metadata.service.tableref.TableReference;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -43,43 +44,46 @@ public class MetaQualityRuleExecutor {
                     "identifier");
 
     /**
-     * 执行单条质量规则并返回判定结果。
+     * 执行单条质量规则并返回判定结果（消费 {@link TableReference}，架构基线 §4.4.3 D3）。
      *
-     * @param conn           已打开的连接（由 withConnection callback 提供，本方法不关闭连接）
-     * @param schemaPattern  schema 限定（null/空串表示依赖连接默认 schema）
+     * @param conn           已打开的连接（external/sql 由 withConnection 提供，entity 由平台 IJdbcTransaction 提供）
+     * @param ref            table-reference（external/entity/sql 三态）
+     * @param schemaPattern  schema 限定（null/空串表示依赖连接默认 schema；sql 子查询忽略此参数）
      * @param ruleType       规则类型（not_null/unique/range/regex/custom_sql/freshness/volume）
      * @param entityType     对象类型（field/table/database）
      * @param paramsJson     规则 params JSON 文本（可能为 null/空）
      * @param sqlExpression  规则 sqlExpression 列（custom_sql 优先使用，可能为 null）
      * @param threshold      规则阈值（可能为 null）
-     * @param tableName      目标物理表名（来自 external NopMetaTable.tableName）
      * @param productName    DB 产品名（运行时取自 DatabaseMetaData，放入 details）
      * @return 判定结果（status/actualValue/expectedValue/message/details 全显式填充）
      */
-    public QualityRuleJudgment judge(Connection conn, String schemaPattern,
+    public QualityRuleJudgment judge(Connection conn, TableReference ref, String schemaPattern,
                                      String ruleType, String entityType,
                                      String paramsJson, String sqlExpression,
-                                     Double threshold, String tableName,
-                                     String productName) {
-        // 基础校验：表名必须是合法标识符（防注入，与 Catalog qualifyTable 一致策略）
-        validateIdentifier(tableName);
+                                     Double threshold, String productName) {
+        // 基础校验：external/entity 物理表名必须是合法标识符（防注入）；sql 子查询不校验（用户显式提供）
+        if (!ref.isSubquery()) {
+            validateIdentifier(ref.getPhysicalTableName());
+        }
+
+        String displayTable = ref.isSubquery()
+                ? "(" + ref.getSourceSql() + ") _t" : ref.getPhysicalTableName();
 
         Map<String, Object> params = parseParams(paramsJson);
         QualityRuleJudgment j = new QualityRuleJudgment();
         j.getDetails().put("ruleType", ruleType);
         j.getDetails().put("entityType", entityType);
-        j.getDetails().put("tableName", tableName);
+        j.getDetails().put("tableName", displayTable);
+        j.getDetails().put("tableType", ref.getKind().name().toLowerCase());
         if (threshold != null) {
             j.getDetails().put("threshold", threshold);
         }
         if (productName != null) {
             j.getDetails().put("databaseProductName", productName);
         }
-        if (schemaPattern != null && !schemaPattern.trim().isEmpty()) {
+        if (!ref.isSubquery() && schemaPattern != null && !schemaPattern.trim().isEmpty()) {
             j.getDetails().put("schema", schemaPattern);
         }
-
-        String normalizedSchema = normalizeSchema(schemaPattern);
 
         // entityType=database 首版不支持（§2.7.1 D1）→ SKIP + details 标记
         if ("database".equals(entityType)) {
@@ -91,19 +95,19 @@ public class MetaQualityRuleExecutor {
 
         switch (ruleType) {
             case "volume":
-                return judgeVolume(conn, normalizedSchema, tableName, threshold, params, j);
+                return judgeVolume(conn, ref, schemaPattern, threshold, params, j);
             case "freshness":
-                return judgeFreshness(conn, normalizedSchema, tableName, threshold, params, j);
+                return judgeFreshness(conn, ref, schemaPattern, threshold, params, j);
             case "custom_sql":
                 return judgeCustomSql(conn, sqlExpression, params, j);
             case "not_null":
-                return judgeNotNull(conn, normalizedSchema, tableName, threshold, params, j);
+                return judgeNotNull(conn, ref, schemaPattern, threshold, params, j);
             case "unique":
-                return judgeUnique(conn, normalizedSchema, tableName, params, j);
+                return judgeUnique(conn, ref, schemaPattern, params, j);
             case "range":
-                return judgeRange(conn, normalizedSchema, tableName, params, j);
+                return judgeRange(conn, ref, schemaPattern, params, j);
             case "regex":
-                return judgeRegex(conn, normalizedSchema, tableName, params, j);
+                return judgeRegex(conn, ref, schemaPattern, params, j);
             default:
                 j.setStatus("ERROR");
                 j.setMessage("Unsupported ruleType: " + ruleType);
@@ -114,9 +118,9 @@ public class MetaQualityRuleExecutor {
     // ===== table 级规则 =====
 
     /** volume：SELECT COUNT(*) → actualValue=行数；与 minRows/maxRows/threshold 比较。 */
-    private QualityRuleJudgment judgeVolume(Connection conn, String schema, String tableName,
+    private QualityRuleJudgment judgeVolume(Connection conn, TableReference ref, String schemaPattern,
                                             Double threshold, Map<String, Object> params, QualityRuleJudgment j) {
-        String qualified = qualifyTable(schema, tableName);
+        String qualified = buildFromClause(ref, schemaPattern);
         long rowCount = queryLong(conn, "SELECT COUNT(*) FROM " + qualified);
         j.setActualValue((double) rowCount);
 
@@ -147,7 +151,7 @@ public class MetaQualityRuleExecutor {
     }
 
     /** freshness：SELECT MAX(tsCol) → age(now-maxTs) 分钟；与 maxAgeMinutes/threshold 比较。 */
-    private QualityRuleJudgment judgeFreshness(Connection conn, String schema, String tableName,
+    private QualityRuleJudgment judgeFreshness(Connection conn, TableReference ref, String schemaPattern,
                                                Double threshold, Map<String, Object> params, QualityRuleJudgment j) {
         String tsCol = getString(params, "timestampColumn");
         if (tsCol == null || tsCol.isEmpty()) {
@@ -155,10 +159,13 @@ public class MetaQualityRuleExecutor {
             j.setMessage("freshness rule missing required param 'timestampColumn'");
             return j;
         }
+        if (isDerivedColumnName(tsCol)) {
+            return skipDerivedColumn(tsCol, j);
+        }
         validateIdentifier(tsCol);
         j.getDetails().put("timestampColumn", tsCol);
 
-        String qualified = qualifyTable(schema, tableName);
+        String qualified = buildFromClause(ref, schemaPattern);
         Timestamp maxTs = queryTimestamp(conn, "SELECT MAX(" + tsCol + ") FROM " + qualified);
         if (maxTs == null) {
             j.setStatus("ERROR");
@@ -240,13 +247,13 @@ public class MetaQualityRuleExecutor {
     // ===== field 级规则（external params.column 约定）=====
 
     /** not_null：SELECT COUNT(*) WHERE col IS NULL → actualValue=nullCount；expectedValue=threshold(默认0)。 */
-    private QualityRuleJudgment judgeNotNull(Connection conn, String schema, String tableName,
+    private QualityRuleJudgment judgeNotNull(Connection conn, TableReference ref, String schemaPattern,
                                              Double threshold, Map<String, Object> params, QualityRuleJudgment j) {
         String col = requireColumn(params, j);
         if (col == null) {
             return j;
         }
-        String qualified = qualifyTable(schema, tableName);
+        String qualified = buildFromClause(ref, schemaPattern);
         long nullCount = queryLong(conn,
                 "SELECT COUNT(*) FROM " + qualified + " WHERE " + col + " IS NULL");
         j.setActualValue((double) nullCount);
@@ -261,13 +268,13 @@ public class MetaQualityRuleExecutor {
     }
 
     /** unique：SELECT COUNT(*) FROM (SELECT col WHERE col IS NOT NULL GROUP BY col HAVING COUNT(*)>1) → 重复值组数。 */
-    private QualityRuleJudgment judgeUnique(Connection conn, String schema, String tableName,
+    private QualityRuleJudgment judgeUnique(Connection conn, TableReference ref, String schemaPattern,
                                             Map<String, Object> params, QualityRuleJudgment j) {
         String col = requireColumn(params, j);
         if (col == null) {
             return j;
         }
-        String qualified = qualifyTable(schema, tableName);
+        String qualified = buildFromClause(ref, schemaPattern);
         long dupGroups = queryLong(conn,
                 "SELECT COUNT(*) FROM (SELECT " + col + " FROM " + qualified
                         + " WHERE " + col + " IS NOT NULL GROUP BY " + col + " HAVING COUNT(*)>1) d");
@@ -282,7 +289,7 @@ public class MetaQualityRuleExecutor {
     }
 
     /** range：SELECT COUNT(*) WHERE col IS NOT NULL AND (col < :min OR col > :max) → 越界行数；expectedValue=0。 */
-    private QualityRuleJudgment judgeRange(Connection conn, String schema, String tableName,
+    private QualityRuleJudgment judgeRange(Connection conn, TableReference ref, String schemaPattern,
                                            Map<String, Object> params, QualityRuleJudgment j) {
         String col = requireColumn(params, j);
         if (col == null) {
@@ -298,7 +305,7 @@ public class MetaQualityRuleExecutor {
         j.getDetails().put("min", min);
         j.getDetails().put("max", max);
 
-        String qualified = qualifyTable(schema, tableName);
+        String qualified = buildFromClause(ref, schemaPattern);
         // 边界缺失时用一个不触发的哨兵值占位（保证 SQL 语法合法且语义正确）
         boolean hasMin = min != null;
         boolean hasMax = max != null;
@@ -347,7 +354,7 @@ public class MetaQualityRuleExecutor {
     }
 
     /** regex：SELECT COUNT(*) WHERE col IS NOT NULL AND col NOT REGEXP :pattern → 不匹配数；方言不支持 → SKIP。 */
-    private QualityRuleJudgment judgeRegex(Connection conn, String schema, String tableName,
+    private QualityRuleJudgment judgeRegex(Connection conn, TableReference ref, String schemaPattern,
                                            Map<String, Object> params, QualityRuleJudgment j) {
         String col = requireColumn(params, j);
         if (col == null) {
@@ -361,7 +368,7 @@ public class MetaQualityRuleExecutor {
         }
         j.getDetails().put("pattern", pattern);
 
-        String qualified = qualifyTable(schema, tableName);
+        String qualified = buildFromClause(ref, schemaPattern);
         String sql = "SELECT COUNT(*) FROM " + qualified
                 + " WHERE " + col + " IS NOT NULL AND " + col + " NOT REGEXP ?";
         long notMatching;
@@ -406,9 +413,41 @@ public class MetaQualityRuleExecutor {
             j.setMessage("field-level rule missing required param 'column'");
             return null;
         }
+        // D5：sql 视图 <expr_N> 合成列通不过标识符白名单 → 显式 SKIP + details 标记（不整表失败、不静默跳过）
+        if (isDerivedColumnName(col)) {
+            skipDerivedColumn(col, j);
+            return null;
+        }
         validateIdentifier(col);
         j.getDetails().put("column", col);
         return col;
+    }
+
+    /** D5：检测 sql 视图合成列名（形如 {@code <expr_N>}，含 {@code <>} 非标识符字符）。 */
+    static boolean isDerivedColumnName(String col) {
+        return col != null && col.startsWith("<") && col.contains("expr");
+    }
+
+    /** D5：对合成列显式 SKIP + details 标记 {@code reason=derived-column-skipped}（不整表失败、不伪造）。 */
+    private QualityRuleJudgment skipDerivedColumn(String col, QualityRuleJudgment j) {
+        j.setStatus("SKIP");
+        j.setMessage("field-level rule skipped: column '" + col + "' is a derived expression column "
+                + "(sql view synthetic name, not a queryable identifier)");
+        j.getDetails().put("reason", "derived-column-skipped");
+        j.getDetails().put("column", col);
+        return j;
+    }
+
+    /**
+     * 构建 FROM 子句目标（架构基线 §4.4.3 D3）：
+     * external/entity → {@code <schema>.<tableName>}；sql → {@code (<sourceSql>) _t}。
+     */
+    static String buildFromClause(TableReference ref, String schemaPattern) {
+        if (ref.isSubquery()) {
+            return "(" + ref.getSourceSql() + ") _t";
+        }
+        String tableName = ref.getPhysicalTableName();
+        return qualifyTable(normalizeSchema(schemaPattern), tableName);
     }
 
     private static long queryLong(Connection conn, String sql) {

@@ -35,6 +35,9 @@ import io.nop.metadata.service.query.MetaJoinExecutor;
 import io.nop.metadata.service.query.MetaQueryContext;
 import io.nop.metadata.service.sqlview.SqlSelectFieldExtractor;
 import io.nop.metadata.service.sqlview.SqlViewField;
+import io.nop.metadata.service.tableref.MetaTableReferenceResolver;
+import io.nop.metadata.service.tableref.TableReference;
+import io.nop.metadata.service.tableref.TableReferenceExecutor;
 import jakarta.inject.Inject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -159,6 +162,13 @@ public class NopMetaTableBizModel extends CrudBizModel<NopMetaTable> implements 
     /** querySpace→NopMetaDataSource 解析共享组件（架构基线 §4.4 D2）。 */
     private final MetaDataSourceResolver dataSourceResolver = new MetaDataSourceResolver();
 
+    /** 共享 table-reference 解析器（架构基线 §4.4.3 D3）。 */
+    private final MetaTableReferenceResolver tableRefResolver = new MetaTableReferenceResolver(
+            dataSourceResolver, fieldResolver);
+
+    /** 按 table-reference 形态分派 Connection 获取（§4.4.3 D1/D2）。延迟初始化（需 orm()）。 */
+    private TableReferenceExecutor tableRefExecutor;
+
     /** TreeBean filter→SQL WHERE 翻译器（架构基线 §4.4 D1，复用 §2.7.1 D3 注入防护）。无状态。 */
     private final FilterToSqlTranslator filterTranslator = new FilterToSqlTranslator();
 
@@ -177,14 +187,16 @@ public class NopMetaTableBizModel extends CrudBizModel<NopMetaTable> implements 
     }
 
     /**
-     * 数据剖析主入口（架构基线 §2.7.2 / 设计 06 §三 D3）：对 external 表的列做统计分析。
+     * 数据剖析主入口（架构基线 §2.7.2 / 设计 06 §三 D3 + §4.4.3 D1-D5）：对任意 tableType
+     * （external/entity/sql）的逻辑表的列做统计分析。
      *
-     * <p>解析路径：metaTableId → NopMetaTable(external) → querySpace → NopMetaDataSource →
-     * {@code withConnection} callback → 剖析器逐列统计 → 追加一行 NopMetaProfilingResult（snapshotTime=now）。
+     * <p>解析路径（D3）：metaTableId → NopMetaTable → {@link MetaTableReferenceResolver} → {@link TableReference}
+     * → {@link TableReferenceExecutor} 按 ref 形态分派 Connection（external/sql 经 withConnection，
+     * entity 经平台 IJdbcTransaction）→ 剖析器逐列统计 → 追加一行 NopMetaProfilingResult（snapshotTime=now）。
      *
-     * @param metaTableId   目标逻辑表 ID（须 external 类型）
-     * @param schemaPattern 可选 schema 限定（null/空串表示依赖连接默认 schema）
-     * @param columns       可选，要剖析的列名（逗号分隔，null/空=所有列，运行时由 DatabaseMetaData.getColumns 解析）
+     * @param metaTableId   目标逻辑表 ID（任意 tableType）
+     * @param schemaPattern 可选 schema 限定（null/空串表示依赖连接默认 schema；sql 子查询忽略）
+     * @param columns       可选，要剖析的列名（逗号分隔，null/空=所有列）
      * @param context       服务上下文
      * @return {@code {profilingResultId, columnCount, unavailable:[...], errors:[...]}}
      */
@@ -193,18 +205,15 @@ public class NopMetaTableBizModel extends CrudBizModel<NopMetaTable> implements 
                                              @Optional @Name("schemaPattern") String schemaPattern,
                                              @Optional @Name("columns") String columns,
                                              IServiceContext context) {
-        NopMetaTable table = resolveExternalTableOrThrow(metaTableId);
-        NopMetaDataSource dataSource = resolveDataSourceOrThrow(table);
+        NopMetaTable table = resolveTableOrThrow(metaTableId);
+        TableReference ref = tableRefResolver.resolve(table,
+                daoFor(NopMetaDataSource.class), daoFor(NopMetaEntity.class),
+                daoFor(NopMetaEntityField.class), orm());
 
-        // 剖析在 withConnection callback 内执行；callback 结束自动释放外部连接（本方法不自建连接）
-        final ProfilingSnapshot[] holder = new ProfilingSnapshot[1];
-        connectionService.withConnection(dataSource.getDatasourceType(), dataSource.getConnectionConfig(),
-                (Connection conn, DatabaseMetaData metaData) -> {
-                    holder[0] = profiler.profile(conn, metaData, schemaPattern,
-                            table.getTableName(), columns, safeProductName(metaData));
-                });
+        // 按 ref 形态分派 Connection 获取（external/sql 经 withConnection，entity 经平台 IJdbcTransaction）
+        ProfilingSnapshot snapshot = ensureTableRefExecutor().execute(ref,
+                (conn, metaData, productName) -> profiler.profile(conn, metaData, ref, schemaPattern, columns, productName));
 
-        ProfilingSnapshot snapshot = holder[0];
         // 按规则定义执行的剖析可挂规则 id；profileTable 入口无规则，留空（结果行的 profilingRuleId 可空，便于无规则直接剖析）
         NopMetaProfilingResult row = appendProfilingResult(null, metaTableId, snapshot);
         return buildResultMap(row, snapshot);
@@ -722,6 +731,16 @@ public class NopMetaTableBizModel extends CrudBizModel<NopMetaTable> implements 
         return list;
     }
 
+    /** 解析目标表：metaTableId → NopMetaTable；不存在显式失败（任意 tableType）。 */
+    NopMetaTable resolveTableOrThrow(String metaTableId) {
+        IEntityDao<NopMetaTable> tableDao = dao();
+        NopMetaTable table = tableDao.getEntityById(metaTableId);
+        if (table == null) {
+            throw new NopException(ERR_PROFILING_TABLE_NOT_FOUND).param("metaTableId", metaTableId);
+        }
+        return table;
+    }
+
     /** 解析目标表：metaTableId → NopMetaTable；不存在/非 external 显式失败。 */
     NopMetaTable resolveExternalTableOrThrow(String metaTableId) {
         IEntityDao<NopMetaTable> tableDao = dao();
@@ -735,6 +754,14 @@ public class NopMetaTableBizModel extends CrudBizModel<NopMetaTable> implements 
                     .param("tableType", String.valueOf(table.getTableType()));
         }
         return table;
+    }
+
+    /** 延迟初始化 TableReferenceExecutor（需 orm()，构造时 orm 不可用）。 */
+    private TableReferenceExecutor ensureTableRefExecutor() {
+        if (tableRefExecutor == null) {
+            tableRefExecutor = new TableReferenceExecutor(connectionService, orm());
+        }
+        return tableRefExecutor;
     }
 
     /** 解析目标表对应数据源：table.querySpace → NopMetaDataSource；不存在/DISABLED 显式失败。 */

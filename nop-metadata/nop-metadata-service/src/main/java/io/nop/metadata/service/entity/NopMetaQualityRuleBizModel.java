@@ -15,12 +15,18 @@ import io.nop.dao.api.IEntityDao;
 import io.nop.metadata.biz.INopMetaQualityRuleBiz;
 import io.nop.metadata.core._NopMetadataCoreConstants;
 import io.nop.metadata.dao.entity.NopMetaDataSource;
+import io.nop.metadata.dao.entity.NopMetaEntity;
+import io.nop.metadata.dao.entity.NopMetaEntityField;
 import io.nop.metadata.dao.entity.NopMetaQualityResult;
 import io.nop.metadata.dao.entity.NopMetaQualityRule;
 import io.nop.metadata.dao.entity.NopMetaTable;
 import io.nop.metadata.service.connection.IMetaDataSourceConnectionService;
+import io.nop.metadata.service.datasource.MetaDataSourceResolver;
 import io.nop.metadata.service.quality.MetaQualityRuleExecutor;
 import io.nop.metadata.service.quality.QualityRuleJudgment;
+import io.nop.metadata.service.tableref.MetaTableReferenceResolver;
+import io.nop.metadata.service.tableref.TableReference;
+import io.nop.metadata.service.tableref.TableReferenceExecutor;
 import jakarta.inject.Inject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -87,8 +93,17 @@ public class NopMetaQualityRuleBizModel extends CrudBizModel<NopMetaQualityRule>
     @Inject
     protected IMetaDataSourceConnectionService connectionService;
 
+    /** querySpace→数据源 解析共享组件。 */
+    private final MetaDataSourceResolver dataSourceResolver = new MetaDataSourceResolver();
+
+    /** 共享 table-reference 解析器（架构基线 §4.4.3 D3）。 */
+    private final MetaTableReferenceResolver tableRefResolver = new MetaTableReferenceResolver();
+
     /** 质量规则执行器（无状态，参考 MetaCatalogCollector 收集器模式）。 */
     private final MetaQualityRuleExecutor executor = new MetaQualityRuleExecutor();
+
+    /** 按 table-reference 形态分派 Connection 获取（§4.4.3 D1/D2）。延迟初始化（需 orm()）。 */
+    private TableReferenceExecutor tableRefExecutor;
 
     public NopMetaQualityRuleBizModel() {
         setEntityName(NopMetaQualityRule.class.getName());
@@ -99,10 +114,13 @@ public class NopMetaQualityRuleBizModel extends CrudBizModel<NopMetaQualityRule>
     // ============================================================
 
     /**
-     * 执行单条质量规则（架构基线 §2.7.1 D2）。
+     * 执行单条质量规则（架构基线 §2.7.1 D2 + §4.4.3 D1-D5）。
      *
-     * <p>解析路径：rule.entityId → NopMetaTable → table.querySpace → NopMetaDataSource →
-     * {@code withConnection} callback → 执行器判定 → 追加一行 NopMetaQualityResult（executeTime=now）。
+     * <p>解析路径（D3）：rule.entityId → NopMetaTable → {@link MetaTableReferenceResolver} → {@link TableReference}
+     * → {@link TableReferenceExecutor} 按 ref 形态分派 Connection → 执行器判定 → 追加一行 NopMetaQualityResult。
+     *
+     * <p>覆盖范围：external/entity/sql 任意 tableType 的逻辑表上挂载的 table/field 级规则均可执行（D4 能力边界）。
+     * entityType=database 仍 SKIP（§2.7.1 D1）。
      *
      * @param qualityRuleId 规则 ID
      * @param schemaPattern 可选 schema 限定（null/空串表示依赖连接默认 schema）
@@ -129,21 +147,19 @@ public class NopMetaQualityRuleBizModel extends CrudBizModel<NopMetaQualityRule>
             return buildSingleResultMap(row, skip);
         }
 
-        // 解析目标表
+        // 解析目标表（任意 tableType）+ table-reference
         NopMetaTable table = resolveTargetTableOrThrow(rule);
-        NopMetaDataSource dataSource = resolveDataSourceOrThrow(rule, table);
+        TableReference ref = tableRefResolver.resolve(table,
+                daoFor(NopMetaDataSource.class), daoFor(NopMetaEntity.class),
+                daoFor(NopMetaEntityField.class), orm());
 
-        final QualityRuleJudgment[] holder = new QualityRuleJudgment[1];
-        connectionService.withConnection(dataSource.getDatasourceType(), dataSource.getConnectionConfig(),
-                (Connection conn, DatabaseMetaData metaData) -> {
-                    holder[0] = executor.judge(conn, schemaPattern,
-                            rule.getRuleType(), rule.getEntityType(),
-                            rule.getParams(), rule.getSqlExpression(),
-                            rule.getThreshold(), table.getTableName(),
-                            safeProductName(metaData));
-                });
+        // 按 ref 形态分派 Connection 获取并执行
+        QualityRuleJudgment judgment = ensureTableRefExecutor().execute(ref,
+                (conn, metaData, productName) -> executor.judge(conn, ref, schemaPattern,
+                        rule.getRuleType(), rule.getEntityType(),
+                        rule.getParams(), rule.getSqlExpression(),
+                        rule.getThreshold(), productName));
 
-        QualityRuleJudgment judgment = holder[0];
         NopMetaQualityResult row = appendQualityResult(rule.getQualityRuleId(), judgment);
         return buildSingleResultMap(row, judgment);
     }
@@ -221,10 +237,13 @@ public class NopMetaQualityRuleBizModel extends CrudBizModel<NopMetaQualityRule>
                                         .param("qualityRuleId", rule.getQualityRuleId())
                                         .param("entityId", rule.getEntityId());
                             }
-                            QualityRuleJudgment judgment = executor.judge(conn, schemaPattern,
+                            QualityRuleJudgment judgment = executor.judge(conn,
+                                    new TableReference(TableReference.Kind.EXTERNAL, rule.getEntityId(),
+                                            tableName, null, dataSource, null, null, null),
+                                    schemaPattern,
                                     rule.getRuleType(), rule.getEntityType(),
                                     rule.getParams(), rule.getSqlExpression(),
-                                    rule.getThreshold(), tableName, productName);
+                                    rule.getThreshold(), productName);
                             NopMetaQualityResult row = appendQualityResult(rule.getQualityRuleId(), judgment);
                             orm().flushSession();
                             executedCount.incrementAndGet();
@@ -254,7 +273,7 @@ public class NopMetaQualityRuleBizModel extends CrudBizModel<NopMetaQualityRule>
     // helpers
     // ============================================================
 
-    /** 解析规则目标表：entityId → NopMetaTable；不存在/非 external 显式失败。 */
+    /** 解析规则目标表：entityId → NopMetaTable；不存在显式失败（任意 tableType，§4.4.3 D4）。 */
     private NopMetaTable resolveTargetTableOrThrow(NopMetaQualityRule rule) {
         IEntityDao<NopMetaTable> tableDao = daoFor(NopMetaTable.class);
         NopMetaTable table = tableDao.getEntityById(rule.getEntityId());
@@ -263,12 +282,15 @@ public class NopMetaQualityRuleBizModel extends CrudBizModel<NopMetaQualityRule>
                     .param("qualityRuleId", rule.getQualityRuleId())
                     .param("entityId", rule.getEntityId());
         }
-        if (!_NopMetadataCoreConstants.TABLE_TYPE_EXTERNAL.equals(table.getTableType())) {
-            throw new NopException(ERR_QUALITY_TABLE_NOT_EXTERNAL)
-                    .param("qualityRuleId", rule.getQualityRuleId())
-                    .param("tableType", String.valueOf(table.getTableType()));
-        }
         return table;
+    }
+
+    /** 延迟初始化 TableReferenceExecutor（需 orm()，构造时 orm 不可用）。 */
+    private TableReferenceExecutor ensureTableRefExecutor() {
+        if (tableRefExecutor == null) {
+            tableRefExecutor = new TableReferenceExecutor(connectionService, orm());
+        }
+        return tableRefExecutor;
     }
 
     /** 解析目标表对应数据源：table.querySpace → NopMetaDataSource；不存在/DISABLED 显式失败。 */
