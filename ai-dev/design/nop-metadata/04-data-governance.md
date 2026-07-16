@@ -119,34 +119,41 @@ MetaDictItem                      — 字典项
 
 数据契约描述数据资产的 SLA、质量承诺和访问策略。参考 OpenMetadata ODCS 3.1。
 
+**存储格式裁定（D1，plan 0900-1，2026-07-16）**：
+- `schema` 列：存储 **JSON Schema 文档**（`domain="mediumtext"` + `stdDomain="json"`，**不用 json-4000**——宽表 JSON Schema 易超 4KB，对齐 Manifest.content/Catalog.details 先例）。首版仅存储不执行逐行校验（运行时逐行校验为 Non-Blocking Follow-up）。
+- `sla` 列：**结构化 JSON**（`domain="json-4000"` + `stdDomain="json"`），约定键：
+  - `refreshFrequency`：`{interval, unit}`（采集新鲜度，对应 NopMetaCatalog.collectedAt）
+  - `maxLatency`：`{value, unit}`（数据延迟，对应 NopMetaCatalog.lastModified）
+  - `retention`：`{period, unit}`（保留期）
+  - 未知键保留不报错（前向兼容）。
+- `latestResult` 列：`mediumtext` + `stdDomain="json"`（**不用 json-4000**，因 qualitySummary.details 含每规则 message，多规则易超 4KB，对齐 Manifest.content/Catalog.details 先例）。
+- **裁定理由（拒绝自定义 DSL）**：JSON Schema / 结构化 JSON 无需额外解析器、与平台 JSON 列原生对齐、可被 AI/外部工具直接消费；自定义 DSL 增加学习与维护成本无收益。
+
+**status 枚举收口（D1）**：§2.3 旧表述 status 为 3 值（draft/active/deprecated）与状态流转图 4 值（含 retired）自相矛盾。本裁定**统一为 4 值大写**（对齐平台 dict 惯例 + dict `meta/contract-status`）：`DRAFT / ACTIVE / DEPRECATED / RETIRED`。删除旧 3 值/小写表述。
+
+> **已知限制（v1，来自 §2.3.2 Catalog）**：`NopMetaCatalog.lastModified` 在 v1 **恒为 null**（`MetaCatalogCollector` 始终 `setLastModified(null)` + `markUnavailable`，方言特定降级策略）。故 `sla.maxLatency ↔ lastModified` 路径在 v1 恒判 `unknown`、`dataStale` 永不触发——SLA 判定在 v1 实际只由 `refreshFrequency ↔ collectedAt` 驱动。`maxLatency` 路径为前向就绪（未来 Catalog 扩展填充 lastModified 后自动生效）。
+
 ```
 MetaDataContract                  — 数据契约
   ├── contractName                — "用户数据契约"
   ├── displayName                 — "User Data Contract"
-  ├── entityTableId               → MetaTable（关联的数据资产）
-  ├── status                      — "draft" | "active" | "deprecated"
-  ├── ownerUserId                 — 契约所有者
-  ├── schema                      — JSON Schema 定义（字段约束）
-  ├── sla                         — JSON SLA 定义
-  │   ├── refreshFrequency        — {"interval": 1, "unit": "day"}
-  │   ├── maxLatency              — {"value": 4, "unit": "hour"}
-  │   └── retention               — {"period": 90, "unit": "day"}
-  ├── qualityExpectations         — JSON 质量期望（引用 MetaQualityRule）
-  ├── security                    — JSON 安全策略
-  │   ├── dataClassification      — "Confidential" | "PII" | "Public"
-  │   └── accessPolicy            — 访问策略
-  ├── latestResult                — JSON 最新执行结果
-  │   ├── timestamp               — 执行时间
-  │   ├── status                  — "pass" | "fail" | "error"
-  │   └── message                 — 结果描述
+  ├── entityTableId               → MetaTable.metaTableId（关联的数据资产，plain string 列 + to-one relation）
+  ├── status                      — "DRAFT" | "ACTIVE" | "DEPRECATED" | "RETIRED"（dict meta/contract-status，大写）
+  ├── ownerUserId                 — 契约所有者（domain="userId"，precision=50）
+  ├── schema                      — JSON Schema 文档（mediumtext + stdDomain json，首版仅存储不执行逐行校验）
+  ├── sla                         — 结构化 JSON（json-4000 + stdDomain json），约定键 refreshFrequency/maxLatency/retention
+  ├── qualityExpectations         — 结构化 JSON（json-4000），形状钉死见 §5.2 D2：{"qualityRuleIds":["<ruleId>",...]}
+  ├── security                    — JSON 安全策略（json-4000）
+  ├── latestResult                — JSON 最新执行结果（mediumtext + stdDomain json），结构钉死见 §5.2 D2
   ├── tagSet
   └── extConfig
 ```
 
-**契约状态流转**:
+**契约状态流转（D1 收口 4 值）**：
 ```
-draft → active → deprecated → retired
+DRAFT → ACTIVE → DEPRECATED → RETIRED
 ```
+合法前置状态：`DRAFT→ACTIVE`、`ACTIVE→DEPRECATED`、`DEPRECATED→RETIRED`。非法流转（如 `DRAFT→RETIRED`、`RETIRED→*`、已 `RETIRED` 再流转）**显式失败抛 ErrorCode**（不静默跳过、不静默改状态）。`checkContract` 不受 status 阻断（DRAFT 可预检）。
 
 ### 2.4 MetaLineageEdge（血缘边）
 
@@ -283,18 +290,34 @@ query GlobalDomains {
 
 ### 5.2 数据契约管理
 
+**契约检查语义裁定（D2，plan 0900-1，2026-07-16，钉死数据结构与算法）**：
+- **action 名统一 `checkContract`**（同步更新本节 GraphQL 示例，废弃旧名 `executeDataContractCheck`）。
+- **`qualityExpectations` 的 JSON 形状（钉死）**：`{"qualityRuleIds": ["<ruleId1>", "<ruleId2>", ...]}`（裸字符串数组，key 固定 `qualityRuleIds`）。空数组或缺 key 视为"无质量检查项"。
+- **质量路径**：对 `qualityRuleIds` 中每个 ruleId 取 `NopMetaQualityResult` 按 `executeTime desc` 最新一条（取不到记为 `no-result`）；汇总 `qualitySummary = {totalRules, passedRules, failedRules, noResultRules, details:[{ruleId, latestStatus, message}]}`（`latestStatus` 取 QualityResult.status 原值，无结果记 `no-result`）。
+- **SLA 路径（算法钉死）**：以 `entityTableId` 之值作为 `metaTableId` 取 `NopMetaCatalog` 按 `collectedAt desc` 最新一条（无 Catalog 记 `catalogAvailable=false`）：
+  - `refreshFrequency`（若存在）：判定 `now - catalog.collectedAt > refreshFrequency` → `collectionStale=true`（采集过期）；
+  - `maxLatency`（若存在）：判定 `now - catalog.lastModified > maxLatency` → `dataStale=true`（数据过期，lastModified 为空则该项记 `unknown` 不判定——v1 恒走此分支）；
+  - `slaFresh = !collectionStale && !dataStale`；`slaSummary = {catalogAvailable, collectedAt, lastModified, collectionStale, dataStale, slaFresh}`。时间单位归一为毫秒比较。
+- **混合 status 归并规则（钉死）**：
+  - 若 `qualityRuleIds` 为空且 `sla` 为空 → `status=ERROR`，message="契约无可检查项"（**不静默 pass**）。
+  - 否则按优先级：`ERROR`（任一被引用 ruleId 在 QualityRule 表不存在 / Catalog 解析异常 / JSON 解析失败）> `FAIL`（任一质量 latestStatus=FAIL，或 `slaFresh=false`）> `PASS`（所有可判定项通过）。
+  - 即：SLA stale 或 质量 FAIL 任一成立 → `FAIL`；全部通过 → `PASS`。
+- **汇总写回**：`latestResult`(mediumtext+stdDomain json: `{timestamp, status, message, qualitySummary, slaSummary}`)。
+- **失败路径显式**：契约不存在抛 ErrorCode（不 NPE）；JSON 解析失败 / ruleId 不存在 / 无可检查项 均显式失败或 status=ERROR + 明确 message（不吞异常、不静默 pass）。详见下 §5.2 行为契约。
+
 ```graphql
-# 创建数据契约
-mutation CreateDataContract($input: CreateDataContractInput!) {
-  createDataContract(input: $input) {
+# 创建数据契约（标准 CRUD，由 CrudBizModel 自动暴露，无需手写 mutation）
+mutation SaveDataContract($data: NopMetaDataContract__save__input!) {
+  NopMetaDataContract__save(data: $data) {
+    contractId
     contractName
     status
   }
 }
 
-# 执行契约检查
-mutation ExecuteDataContractCheck($contractId: ID!) {
-  executeDataContractCheck(contractId: $contractId) {
+# 执行契约检查（自定义 @BizMutation action，action 名 checkContract）
+mutation CheckContract($contractId: ID!) {
+  NopMetaDataContract__checkContract(contractId: $contractId) {
     timestamp
     status
     message
@@ -307,5 +330,5 @@ mutation ExecuteDataContractCheck($contractId: ID!) {
 ## 六、待定问题
 
 - [ ] 通用 Domain 的来源：是单独维护还是从现有 ORM 模型提取？
-- [ ] 数据契约的 SLA 定义格式：JSON Schema vs 自定义 DSL？
+- [x] ~~数据契约的 SLA 定义格式：JSON Schema vs 自定义 DSL？~~ **已裁定（P4-4，2026-07-16）**：`schema` 列存 JSON Schema 文档（mediumtext + stdDomain json），`sla` 列存结构化 JSON（json-4000 + stdDomain json，约定键 refreshFrequency/maxLatency/retention）。拒绝自定义 DSL（详见 §2.3 D1 裁定）。检查语义（D2）钉死于 §5.2。
 - [ ] 域定义的 UI 编辑方式：表单编辑 vs SQL 导入？
