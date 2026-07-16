@@ -134,20 +134,20 @@
 
 ## 7. Workflow / Engine
 
-| Project | DAG | Chain | State Machine | Declarative DSL | Suspend/Resume |
-|---------|-----|-------|--------------|----------------|----------------|
-| **pi-agent** | ✗ | ✗ | ✗ | ✗ | ✗ |
-| **oh-my-pi** | ✗ | ✗ | ✗ | ✗ | ✗ |
-| **oh-my-claudecode** | ✗ | ✓ Team staged pipeline | ✓ Phase controller | Agent MD + hook scripts | ◐ (pre-compact state save) |
-| **oh-my-opencode** | ✗ | ✗ | ✓ boulder-state | ✗ | ✓ Session recovery |
-| **VoltAgent** | ✓ (workflow chain) | ✓ `.andThen()` | ✓ `.andDoWhile()` | ✓ **16 step types** (andThen, andWhen, andAll, andRace, andForEach, andBranch, andGuardrail, andSleep, etc.) | ✓ State persisted to StorageAdapter; **Time Travel** replay |
-| **DeepAgents** | ✓ (LangGraph StateGraph) | ✓ Sequential | ✓ (LangGraph) | ✓ Python (LangGraph API) | ✓ LangGraph checkpointing + Studio |
-| **AgentScope Java** | ✗ | ✓ SequentialPipeline | ✗ | ✗ | ✗ (but graceful shutdown saves state) |
-| **Solon AI** | ✓ Solon Flow graph | ✓ AiFlow YAML | ✓ Flow engine | ✓ **YAML flow** (Dify-style); Agent-as-Flow-Node | ✓ FlowContext JSON serialization/deserialization |
-| **Spring AI Alibaba** | ✓ **StateGraph** (nodes+edges) | ✓ SequentialAgent | ✓ Conditional routing | ✓ Java fluent API | ✓ CheckpointSaver (6 backends) + InterruptableAction (HITL) |
-| **PilotDeck** | ✗ | ✓ Always-on 5-stage | ✓ Cron state machine | ✗ | ✓ Transcript replay for resume |
-| **Hermes Agent** | ✗ | ✗ | ✗ | ✗ | ✗ |
-| **DeepSeek-Reasonix** | ✗ | ✗ | ✓ Event Sourcing (CQRS) | ✗ | ✓ Event replay rebuilds state |
+| Project | DAG | Chain | State Machine | Declarative DSL | Suspend/Resume | PlanMode |
+|---------|-----|-------|--------------|----------------|----------------|----------|
+| **pi-agent** | ✗ | ✗ | ✗ | ✗ | ✗ | ✗ |
+| **oh-my-pi** | ✗ | ✗ | ✗ | ✗ | ✗ | ✗ |
+| **oh-my-claudecode** | ✗ | ✓ Team staged pipeline | ✓ Phase controller | Agent MD + hook scripts | ◐ (pre-compact state save) | ✗ |
+| **oh-my-opencode** | ✗ | ✗ | ✓ boulder-state | ✗ | ✓ Session recovery | ✗ |
+| **VoltAgent** | ✓ (workflow chain) | ✓ `.andThen()` | ✓ `.andDoWhile()` | ✓ **16 step types** (andThen, andWhen, andAll, andRace, andForEach, andBranch, andGuardrail, andSleep, etc.) | ✓ State persisted to StorageAdapter; **Time Travel** replay | ✗ |
+| **DeepAgents** | ✓ (LangGraph StateGraph) | ✓ Sequential | ✓ (LangGraph) | ✓ Python (LangGraph API) | ✓ LangGraph checkpointing + Studio | ✗ |
+| **AgentScope Java** | ✗ | ✓ SequentialPipeline | ✗ | ✗ | ✗ (but graceful shutdown saves state) | ✓ **PlanModeContextState** (persisted in AgentState) + **PlanModeMiddleware** enforcement (read-only gate) |
+| **Solon AI** | ✓ Solon Flow graph | ✓ AiFlow YAML | ✓ Flow engine | ✓ **YAML flow** (Dify-style); Agent-as-Flow-Node | ✓ FlowContext JSON serialization/deserialization | ✗ |
+| **Spring AI Alibaba** | ✓ **StateGraph** (nodes+edges) | ✓ SequentialAgent | ✓ Conditional routing | ✓ Java fluent API | ✓ CheckpointSaver (6 backends) + InterruptableAction (HITL) | ✗ |
+| **PilotDeck** | ✗ | ✓ Always-on 5-stage | ✓ Cron state machine | ✗ | ✓ Transcript replay for resume | ✗ |
+| **Hermes Agent** | ✗ | ✗ | ✗ | ✗ | ✗ | ✗ |
+| **DeepSeek-Reasonix** | ✗ | ✗ | ✓ Event Sourcing (CQRS) | ✗ | ✓ Event replay rebuilds state | ✗ |
 
 ---
 
@@ -294,7 +294,7 @@
 | **oh-my-opencode** | **Discipline Agent** pattern (per-model deep prompt engineering with fallback chains) + **193K lines of tests** (test > production code) + **IntentGate** intent analysis + **boulder-state** work tracking state machine |
 | **VoltAgent** | **16-step workflow DSL** (andThen, andRace, andAll, andSleep, suspend/resume, time travel) + **three-adapter Memory** (Storage + Embedding + Vector) + **Guardrails as first-class concept** (input/output + streaming + 12 pre-built) + **VoltOps Console** platform |
 | **DeepAgents** | **Backend Protocol** (pluggable storage/execution with CompositeBackend routing) + **Middleware pipeline** (7 composable middlewares) + **LangGraph-native** production features (streaming, checkpointing, Studio) + best context management (auto-summarize + history offload + param truncation) |
-| **AgentScope Java** | **Full reactive architecture** (Project Reactor throughout) + **Formatter pattern** (per-provider message conversion) + **GraalVM native image** (200ms cold start) + most production-grade features in Java (graceful shutdown, interrupt, pending tool recovery) |
+| **AgentScope Java** | **Full reactive architecture** (Project Reactor throughout) + **Formatter pattern** (per-provider message conversion) + **GraalVM native image** (200ms cold start) + **5-point Onion Middleware architecture** (15+ harness middlewares) + **ToolGroup dynamic activation** (META/EXTERNAL scope separation) + **PlanMode design-first enforcement** (state-persisted, middleware-enforced read-only mode) + **GracefulShutdown per-request tracking** + **PermissionEngine 5-mode cascade** + **SkillCurator promotion pipeline** (draft→scan→gate→move) |
 | **Solon AI** | **Widest Java compatibility** (JDK 8-26) + **8 collaboration protocols** (far exceeding peers) + **Talent dynamic admission** (context-aware skill activation) + **Agent-as-Flow-Node** + **framework-agnostic embedding** (Spring Boot, Vert.X, Quarkus, Micronaut) + **15 vector stores** + **deep MCP** (client+server+all transports) |
 | **Spring AI Alibaba** | **Most mature graph engine in Java** (StateGraph rivaling LangGraph: conditional routing, sub-graph, snapshot, interrupt/resume) + **6 Checkpoint backends** + **4-position Hook model** with JumpTo flow control + **Studio + Admin** visualization tools |
 | **PilotDeck** | **23 channel adapters** (broadest IM/web/CLI coverage) + **Smart Router with measured A/B savings** (~77%) + **Always-on 5-stage pipeline** (offline task discovery) + **EdgeClaw white-box memory** (auditable/editable/rollbackable) + **three-tier context compression** + **7 Plugin Contribution types** + **Canonical Message abstraction** |
@@ -330,6 +330,9 @@
 18. **Tool-call repair** — only Reasonix has a systematic repair pipeline
 19. **Event sourcing kernel** — only Reasonix uses CQRS for state management
 20. **Content-hash editing** — only oh-my-pi and oh-my-opencode have Hashline
+21. **Onion Middleware (5-point)** — only AgentScope Java has onion-layered middleware spanning agent/reasoning/acting/model-call/system-prompt
+22. **ToolGroup dynamic activation** — only AgentScope Java has META/EXTERNAL scope separation with agent-managed tool groups
+23. **PlanMode design-first** — only AgentScope Java has state-persisted + middleware-enforced plan-read-only mode
 
 ### Design Philosophy Clusters
 

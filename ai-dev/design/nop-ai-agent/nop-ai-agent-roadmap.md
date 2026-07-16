@@ -1,6 +1,6 @@
 # nop-ai-agent Implementation Roadmap
 
-> Last Updated: 2026-06-20 (plan 278: 引擎资源生命周期/恢复/委派边界 — AR-02/04/05/09/10 全部修复；plan 277: ReAct loop message contract & lifecycle semantics — AR-03/06/07/11/12/13/14 all fixed)
+> Last Updated: 2026-07-17 (plan 296: Middleware 洋葱链 + Tag-based Tool Visibility — IAgentMiddleware + MiddlewareChain 9 点链式拦截；IToolDefinition + tags/meta/activeTags/denyTags/denyTools + set-active-tags 元工具)
 > Source: 设计体系 `ai-dev/design/nop-ai-agent/00-vision.md` 等；完整逐项历史（含 plan 级实现描述）见 `ai-dev/archive/design/nop-ai-agent/nop-ai-agent-roadmap-2026-06-20.md`
 
 ## Purpose
@@ -19,6 +19,7 @@
 - L2. Execution Extensions（扩展接口 + pass-through 默认）: `done`
 - L3. Reliability Extensions（生产环境加固）: `done`
 - L4. Platform Extensions（多 Agent / 多租户 / 分布式）: `done`
+- L5. Architecture Upgrades（AgentScope 审计驱动）: `done` — Middleware 洋葱链 + Tag-based Tool Visibility（plan 296）
 
 ## Status Values
 

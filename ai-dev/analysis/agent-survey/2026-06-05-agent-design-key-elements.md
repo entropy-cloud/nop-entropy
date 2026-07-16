@@ -256,6 +256,12 @@
 | **Discipline Agent** | oh-my-opencode | 每模型深度 prompt 工程 + 回退链，区别于通用 Smart Routing |
 | **Middleware 组合** | DeepAgents | 7 种可组合中间件（SummarizationMiddleware 等），函数式组合模式 |
 | **自改进 Curator** | Hermes | 技能自动创建 + 使用中改进 + LLM 审查 + 归档恢复，唯一内置学习循环 |
+| **PlanMode 设计优先** | AgentScope Java | 计划模式持久化在 AgentState 跨重启保持，Middleware 自动强制执行只读策略 |
+| **ToolGroup 动态激活** | AgentScope Java | META/EXTERNAL 作用域分离，Agent 可通过元工具自管理工具组激活状态 |
+| **Onion Middleware 5 点拦截** | AgentScope Java | 5 层洋葱拦截（Agent/Reasoning/Acting/ModelCall/SystemPrompt），15+ Harness 中间件 |
+| **GracefulShutdown 安全点** | AgentScope Java | per-request 粒度 + per-session 绑定 + 推理/行动阶段完成后自然中断 |
+| **Permission 三态模式** | AgentScope Java | 5 种模式（DEFAULT/BYPASS/EXPLORE/ACCEPT_EDITS/DONT_ASK）+ per-session 缓存 |
+| **推广管线 Gate 模式** | AgentScope Java | 技能草稿 -> 安全扫描 -> 门禁审批（sealed 层级：Approve/Reject/Defer）-> 物理移动
 
 ---
 
@@ -385,11 +391,11 @@
 | 5 | **Spring AI Alibaba** | ★★★ | ★★ | ★★★★ | 6 后端 CheckpointSaver 生产级 |
 | 6 | **oh-my-pi** | ★★★★ | ★ | ★★★ | TTSR + Hashline 独特 |
 | 7 | **VoltAgent** | ★★★ | ★★ | ★★★ | Workflow suspend/resume |
-| 8 | **oh-my-opencode** | ★★★ | ★ | ★★ | Fallback 链 |
-| 9 | **DeepAgents** | ★★ | ★ | ★★★ | LangGraph checkpointing |
-| 10 | **pi-agent** | ★★ | ★ | ★★ | JSONL session tree |
-| 11 | **Solon AI** | ★★ | ★★ | ★★ | XXL-Job 外部调度 |
-| 12 | **AgentScope Java** | ★★ | ★ | ★★ | GracefulShutdown |
+| 8 | **AgentScope Java** | ★★★ | ★ | ★★★ | GracefulShutdown + 5 点洋葱 Middleware + PlanMode 强制 + Permission 三态 |
+| 9 | **oh-my-opencode** | ★★★ | ★ | ★★ | Fallback 链 |
+| 10 | **DeepAgents** | ★★ | ★ | ★★★ | LangGraph checkpointing |
+| 11 | **pi-agent** | ★★ | ★ | ★★ | JSONL session tree |
+| 12 | **Solon AI** | ★★ | ★★ | ★★ | XXL-Job 外部调度 |
 
 #### 关键洞察
 
@@ -398,7 +404,7 @@
 3. **任务队列是少数项目的特权**——仅 PilotDeck（Always-on）和 Hermes（Kanban）有内建方案
 4. **死信队列无人实现**——最接近的是 Hermes Curator 的技能归档
 5. **Event Sourcing 提供最强弹性**——Reasonix 的事件追加 + 纯函数投影 + 完整重放是理论最优，但复杂度最高
-6. **Java 框架在容错方面最弱**——AgentScope Java、Solon AI、Spring AI Alibaba 侧重架构模式而非错误恢复
+6. **Java 框架容错分化**——Spring AI Alibaba（CheckpointSaver 6 后端 + InterruptableAction）和 AgentScope Java（GracefulShutdown + 5 点洋葱 Middleware + PlanMode + Permission 三态）已具生产级容错骨架；Solon AI 侧重架构模式而非错误恢复
 7. **"永不放弃" vs "快速熔断"**是两种截然不同的弹性哲学——oh-my-claudecode 的 Sisyphean 模式 vs PilotDeck 的熔断器
 
 ---
@@ -431,6 +437,9 @@
 | Cache-First 三区域架构 | Reasonix | Java 友好，可直接用于 Nop LLM 上下文管理 |
 | Tool-Call Repair 管线 | Reasonix | 处理 LLM 输出缺陷的工程化方案 |
 | Event Sourcing 内核 | Reasonix | 与 Nop 模型驱动哲学一致 |
+| **MiddlewareBase 5 点洋葱架构** | **AgentScope Java** | **替代 nop-ai-agent 零散 Hook，覆盖 Agent/Reasoning/Acting/ModelCall/SystemPrompt 全生命周期** |
+| **ToolGroup 动态激活** | **AgentScope Java** | **META/EXTERNAL 分离 + Agent 自管理，解决多租户工具表面控制问题** |
+| **PlanMode 设计优先模式** | **AgentScope Java** | **跨重启保持的计划模式 + Middleware 自动强制执行，生产级"先想后做"必需品** |
 | Canonical 消息抽象 | PilotDeck | 用 XMeta 定义 schema，Java 版 Provider 解耦 |
 | 三级上下文压缩 | PilotDeck | Micro → Snip → Full 渐进策略 |
 | 熔断器 + 内容门控 | PilotDeck | 防止工具持续失败时的无限循环 |
@@ -448,6 +457,10 @@
 | Plugin Contribution | PilotDeck | 7 种贡献类型用 Nop 扩展点实现 |
 | Curator 技能管理 | Hermes | 自改进的技能生命周期 |
 | 延迟依赖安装 | Hermes | Provider 按需加载 |
+| **PermissionEngine 三态模式** | **AgentScope Java** | **EXPLORE/DONT_ASK 模式 + isTrivial() 快速路径 + ASK 内建行为** |
+| **GracefulShutdown 安全点** | **AgentScope Java** | **per-request 追踪 + per-session 绑定 + 推理/行动安全点中断** |
+| **SubAgentTool 工厂模式** | **AgentScope Java** | **SubAgentProvider 工厂 + 事件转发 + doFinally 取消守卫** |
+| **AgentState 计划模式持久化** | **AgentScope Java** | **PlanModeContextState 嵌入 AgentSession 跨重启保持** |
 
 ### P2 — 参考但不直接适用
 
@@ -458,6 +471,7 @@
 | Kanban 多 Agent | Hermes | 可用 nop-wf 替代 |
 | Always-on 5 阶段 | PilotDeck | 特定场景需求 |
 | Skills Hub 社区 | Hermes | 运营而非技术问题 |
+| **SkillCurator 推广管线** | **AgentScope Java** | **nop-ai-agent 基础设施已更数据库化；推广管线结构（草稿->扫描->门禁->移动）可参考但不是急需** |
 
 ---
 
