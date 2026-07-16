@@ -599,7 +599,14 @@ MetaQualityResult                — 质量执行结果（时序数据）
 
 **手动触发 + 状态门禁（D5）**：`executeCheckpoint` 仅手动触发（GraphQL `@BizMutation` action）；`status=PAUSED/DISABLED` 的 checkpoint 执行时**显式失败**抛 inline ErrorCode（不静默跳过、不静默返回空摘要）。cron 定时调度为 follow-up（`06-data-quality-extended.md` §1.3，nop-job/nop-batch 适配）。
 
-**执行摘要**：返回 `{checkpointId, executedCount, passCount, failCount, errorCount, results:[...], errors:[...]}`，计数与写入的 QualityResult 行一致（pass/fail/error 计数源自 judgment.status）。
+**执行摘要**：返回 `{checkpointId, executedCount, passCount, failCount, errorCount, affectedTableIds:[...], autoScore, scoreResults:[{metaTableId, scoreId, overallScore}], results:[...], errors:[...]}`，计数与写入的 QualityResult 行一致（pass/fail/error 计数源自 judgment.status）。`affectedTableIds` 为执行循环收集的受影响表集合（见 D6）。
+
+**自动评分触发（D6，checkpoint→score 接线）**：`executeCheckpoint` 执行（含 store）完成后，对受影响逻辑表集合自动重算质量评分（§2.7.4），无需用户再手动调一次 `computeQualityScore`。本节关闭 plan 0027-2 的 `Successor Required: yes` deferred 项。
+- **受影响表集合**：executor 在执行循环中收集 `affectedTableIds` = 仅**实际被判定 judge** 的非 database 规则的去重 `rule.getEntityId()`（即真正命中某 NopMetaTable 的规则）。database SKIP 规则不纳入（其 entityId 不指向待评 metaTable，且其结果行不计入任何表的维度分子分母）。规则执行失败（table-not-found / judge 异常）的 entityId 不纳入（无结果写入，不改变评分）。
+- **接线点（评分在 BizModel 层接）**：`NopMetaQualityCheckpointBizModel` 注入 `NopMetaQualityScoreBizModel`（NopIoC bean，对齐 Reconciliation 注入 NopMetaTableBizModel 的 B2 方案 b 模式），executor 返回摘要后，BizModel 按 `affectedTableIds` 逐表调 `computeQualityScore(metaTableId, context)`（含 score + 落盘 + 返回 scoreId）。**零落盘逻辑复制**——不在 CheckpointBizModel 内 new scorer、不复制 ScoreBizModel 落盘六行（`NopMetaQualityCheckpointBizModel` 无 scorer 字段）。executor 不感知 scorer（职责分离）。
+- **失败隔离**：per-table try/catch + `flushSession/clearSession`（对齐既有 per-rule 隔离模式）。单表评分异常记入摘要 `errors`（`source=autoScore`），不中断其他表评分、不回滚已落盘的 checkpoint store（QualityResult 行）与已成功的评分行（flush 保留）。
+- **可控开关**：`extConfig.autoScore` 默认开启（`true`）；仅显式 `false` 关闭。关闭时跳过评分且摘要标注 `autoScore=false` + `scoreSkipped=true`。extConfig 缺失 / 非 JSON Map / 无 autoScore 键 / 值非布尔 → 默认开启（不静默伪造关闭）。
+- **摘要新增**：`scoreResults`（per-table `{metaTableId, scoreId, overallScore}`）与评分 errors（追加到既有 `errors` 列表，不新建独立列表），使自动评分在返回中可观测。
 
 **标识符注入防护**：checkpoint 本层不拼接 SQL（判定 SQL 全在 §2.7.1 D3 的 judge 内），无新增注入面。
 
@@ -643,6 +650,8 @@ MetaQualityResult                — 质量执行结果（时序数据）
 **标识符注入防护**：评分层不拼接 SQL（纯读 QualityResult + 计算），无注入面。
 
 **与 §七（拒绝额外抽象层）的关系**：评分复用既有 QualityResult（§2.7.1 写入）+ NopMetaTable（§2.5 挂载点），不引入额外评分引擎抽象层。维度映射为静态表 + extConfig 覆盖，不走「可插拔维度策略框架」（待 follow-up 按需独立设计）。
+
+**自动触发（§2.7.3 D6）**：`computeQualityScore` 除手动触发外，检查点执行（`executeCheckpoint`）成功落盘 `NopMetaQualityResult` 后，由 `NopMetaQualityCheckpointBizModel` 按 `affectedTableIds` 逐表自动调用（复用本节 scorer，无算法重写），受 `extConfig.autoScore` 控制（默认开启）。详见 §2.7.3 D6（自动评分触发）。定时调度路径（cron）接入后同样自动受益（评分逻辑与触发源解耦）。
 
 ### 2.8 元数据变更事件模型（P-event）
 
