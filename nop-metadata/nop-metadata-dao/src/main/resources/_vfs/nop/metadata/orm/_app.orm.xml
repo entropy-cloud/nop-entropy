@@ -107,6 +107,8 @@
         <dict label="检查点动作类型" name="meta/checkpoint-action-type" valueType="string"
               i18n-en:label="Checkpoint Action Type">
             <option code="STORE" label="存储结果" value="store"/>
+            <option code="WEBHOOK" label="Webhook投递" value="webhook" i18n-en:label="Webhook"/>
+            <option code="NOTIFY" label="消息通知" value="notify" i18n-en:label="Notify"/>
         </dict>
         <dict label="质量评分趋势方向" name="meta/quality-trend-direction" valueType="string"
               i18n-en:label="Quality Trend Direction">

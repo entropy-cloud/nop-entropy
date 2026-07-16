@@ -9,3 +9,11 @@ options:
     value: store
     description: 
   
+  - label: Webhook投递
+    value: webhook
+    description: 
+  
+  - label: 消息通知
+    value: notify
+    description: 
+  

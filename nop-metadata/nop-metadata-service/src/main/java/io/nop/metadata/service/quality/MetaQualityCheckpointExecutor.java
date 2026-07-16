@@ -41,7 +41,7 @@ import java.util.Set;
  * <p>失败/不可执行路径均显式（不静默跳过、不伪造、不静默空返回）：
  * <ul>
  *   <li>checkpoint status 非 ACTIVE（PAUSED/DISABLED）→ 抛 {@link #ERR_CHECKPOINT_NOT_ACTIVE}（D5）</li>
- *   <li>配置了 store 之外的动作类型且 enabled=true → 抛 {@link #ERR_CHECKPOINT_ACTION_NOT_SUPPORTED}（D4）</li>
+ *   <li>配置了 store/webhook/notify 之外的动作类型且 enabled=true → 抛 {@link #ERR_CHECKPOINT_ACTION_NOT_SUPPORTED}（D4）</li>
  *   <li>解析后规则集为空 → 抛 {@link #ERR_CHECKPOINT_NO_RULES}（D2，不静默空集）</li>
  *   <li>引用的 ruleId/tableId 不存在 → 记入 errors 不中断（D2 per-item 隔离）</li>
  *   <li>单规则执行抛异常 → 记入 errors、clearSession、不中断后续规则（D3 失败隔离）</li>
@@ -66,7 +66,7 @@ public class MetaQualityCheckpointExecutor {
                             + "on tableIds), nothing to execute: {checkpointId}", "checkpointId");
     static final ErrorCode ERR_CHECKPOINT_ACTION_NOT_SUPPORTED =
             ErrorCode.define("metadata.checkpoint-action-not-supported",
-                    "Quality checkpoint action type is not supported in first version (only store): "
+                    "Quality checkpoint action type is not supported (only store/webhook/notify): "
                             + "{checkpointId} actionType={actionType}", "checkpointId", "actionType");
     static final ErrorCode ERR_CHECKPOINT_RULE_TARGET_TABLE_NOT_FOUND =
             ErrorCode.define("metadata.checkpoint-rule-target-table-not-found",
@@ -115,7 +115,7 @@ public class MetaQualityCheckpointExecutor {
                     .param("status", String.valueOf(cp.getStatus()));
         }
 
-        // D4：动作校验——store 之外的动作类型且 enabled 显式失败（不静默跳过）
+        // D4：动作校验——store/webhook/notify 合法，其余（含 update_docs）enabled 显式失败（不静默跳过）
         validateActionsOrThrow(cp);
 
         // D2：规则集解析（显式 ruleIds ∪ tableIds 下挂载规则，去重；missing ref 记入 errors）
@@ -306,7 +306,10 @@ public class MetaQualityCheckpointExecutor {
     // D4：动作校验
     // ============================================================
 
-    /** actions 为空/null/[] 视为合法（store-only 默认）；存在 store 之外且 enabled 的动作 → 显式失败。 */
+    /**
+     * actions 为空/null/[] 视为合法（store-only 默认）；存在 store/webhook/notify 之外且 enabled 的动作 → 显式失败
+     * （store/webhook/notify 合法，update_docs 及任何未知 actionType 仍显式失败，不静默跳过）。
+     */
     @SuppressWarnings("unchecked")
     private void validateActionsOrThrow(NopMetaQualityCheckpoint cp) {
         String actionsJson = cp.getActions();
@@ -332,12 +335,19 @@ public class MetaQualityCheckpointExecutor {
             Map<String, Object> action = (Map<String, Object>) o;
             String actionType = String.valueOf(action.get("actionType"));
             boolean enabled = !Boolean.FALSE.equals(action.get("enabled"));
-            if (enabled && !_NopMetadataCoreConstants.CHECKPOINT_ACTION_TYPE_STORE.equals(actionType)) {
+            if (enabled && !isSupportedActionType(actionType)) {
                 throw new NopException(ERR_CHECKPOINT_ACTION_NOT_SUPPORTED)
                         .param("checkpointId", cp.getCheckpointId())
                         .param("actionType", actionType);
             }
         }
+    }
+
+    /** store/webhook/notify 合法；其余（含 update_docs）为不支持。 */
+    private static boolean isSupportedActionType(String actionType) {
+        return _NopMetadataCoreConstants.CHECKPOINT_ACTION_TYPE_STORE.equals(actionType)
+                || _NopMetadataCoreConstants.CHECKPOINT_ACTION_TYPE_WEBHOOK.equals(actionType)
+                || _NopMetadataCoreConstants.CHECKPOINT_ACTION_TYPE_NOTIFY.equals(actionType);
     }
 
     // ============================================================

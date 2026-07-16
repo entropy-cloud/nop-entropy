@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<beans x:schema="/nop/schema/beans.xdef" xmlns:x="/nop/schema/xdsl.xdef" xmlns:ioc="ioc"
+       xmlns="http://www.springframework.org/schema/beans">
+
+    <!-- Mock IHttpClient for webhook action tests (records fetch calls) -->
+    <bean id="testMockHttpClient" class="io.nop.metadata.service.mock.MockHttpClient"
+          ioc:type="io.nop.http.api.client.IHttpClient" primary="true"/>
+
+    <!-- Mock IMessageService for notify action tests (records send calls).
+         primary=true overrides the default nopLocalMessageService. -->
+    <bean id="testMockMessageService" class="io.nop.metadata.service.mock.MockMessageService"
+          ioc:type="io.nop.api.core.message.IMessageService" primary="true"/>
+
+</beans>

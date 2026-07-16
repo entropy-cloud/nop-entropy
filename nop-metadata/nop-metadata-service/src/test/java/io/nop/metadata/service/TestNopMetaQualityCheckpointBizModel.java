@@ -25,7 +25,10 @@ import io.nop.metadata.dao.entity.NopMetaQualityResult;
 import io.nop.metadata.dao.entity.NopMetaQualityRule;
 import io.nop.metadata.dao.entity.NopMetaQualityScore;
 import io.nop.metadata.dao.entity.NopMetaTable;
+import io.nop.metadata.service.mock.MockHttpClient;
+import io.nop.metadata.service.mock.MockMessageService;
 import jakarta.inject.Inject;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.sql.Connection;
@@ -53,11 +56,18 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * D6 路径额外断言 NopMetaQualityScore 行存在（证明 executeCheckpoint→computeQualityScore→scorer.score→saveEntity
  * 运行时调用链完整连通，接线非空壳）。
  */
-@NopTestConfig(localDb = true, initDatabaseSchema = OptionalBoolean.TRUE)
+@NopTestConfig(localDb = true, initDatabaseSchema = OptionalBoolean.TRUE,
+        testBeansFile = "/nop/metadata/beans/test-mock.beans.xml")
 public class TestNopMetaQualityCheckpointBizModel extends JunitBaseTestCase {
 
     public TestNopMetaQualityCheckpointBizModel() {
         setTestConfig("nop.orm.init-database-schema", true);
+    }
+
+    @BeforeEach
+    void resetMocks() {
+        MockHttpClient.reset();
+        MockMessageService.reset();
     }
 
     @Inject
@@ -138,14 +148,24 @@ public class TestNopMetaQualityCheckpointBizModel extends JunitBaseTestCase {
 
     // ===== (d) 未知动作失败 =====
 
-    /** actions 配置 store 之外的 notify 且 enabled → executeCheckpoint 显式失败（不静默跳过）。 */
+    /** actions 配置 genuinely-unknown actionType（foo_bar）且 enabled → executeCheckpoint 显式失败（不静默跳过）。 */
     @Test
     public void testExecuteCheckpointUnknownActionFails() {
-        saveCheckpoint("cp-notify", "ACTIVE",
+        saveCheckpoint("cp-foo", "ACTIVE",
                 "[{\"ruleIds\":[\"__any__\"]}]",
-                "[{\"actionType\":\"notify\",\"enabled\":true}]");
-        GraphQLResponseBean resp = exec("cp-notify");
-        assertTrue(resp.hasError(), "unsupported action (notify) must explicitly fail: " + resp);
+                "[{\"actionType\":\"foo_bar\",\"enabled\":true}]");
+        GraphQLResponseBean resp = exec("cp-foo");
+        assertTrue(resp.hasError(), "unsupported action (foo_bar) must explicitly fail: " + resp);
+    }
+
+    /** update_docs actionType 仍 deferred（显式失败，钉住 deferred 契约）。 */
+    @Test
+    public void testExecuteCheckpointUpdateDocsActionFails() {
+        saveCheckpoint("cp-docs", "ACTIVE",
+                "[{\"ruleIds\":[\"__any__\"]}]",
+                "[{\"actionType\":\"update_docs\",\"enabled\":true}]");
+        GraphQLResponseBean resp = exec("cp-docs");
+        assertTrue(resp.hasError(), "update_docs action must explicitly fail (deferred): " + resp);
     }
 
     /** actions 为空（store-only 默认）合法——不失败在动作校验（用空规则集失败验证：动作校验先过、再到规则解析）。 */
@@ -372,6 +392,201 @@ public class TestNopMetaQualityCheckpointBizModel extends JunitBaseTestCase {
         assertEquals(0, countScores(tableId), "autoScore=false must skip scoring (0 new rows)");
         // QualityResult 正常写入（checkpoint store 不受 autoScore 开关影响）
         assertEquals(1, countResults("r-ns-vol"), "checkpoint result still written when autoScore=false");
+    }
+
+    // ===== D4：webhook 动作（post-commit dispatch）=====
+
+    /**
+     * (a) webhook 投递成功：配置 {actionType:"webhook", config:{url}, enabled:true} 的 checkpoint 执行后，
+     * MockHttpClient.fetch 被调一次，请求 body 为执行摘要 JSON（含 checkpointId + executedCount）。
+     *
+     * <p>端到端验证 + 接线验证：从 executeCheckpoint（入口）到 MockHttpClient.fetch（出口）完整跑通，
+     * 证明分发链连通非空壳。post-commit dispatch：fetch 在 store 提交后调用（事务隔离）。
+     */
+    @Test
+    public void testWebhookActionDispatchedPostCommit() throws Exception {
+        String dbUrl = "jdbc:h2:mem:meta_cp_wh;DB_CLOSE_DELAY=-1";
+        seedTable(dbUrl, "CREATE TABLE ext_wh (id INT NOT NULL)", "INSERT INTO ext_wh VALUES (1)");
+        PreparedEnv env = prepare(dbUrl, "qs_cp_wh");
+        String tableId = env.tableId("EXT_WH");
+
+        saveRule("r-wh-vol", "volume", "table", tableId, null, null, "{\"minRows\":1}"); // PASS
+
+        saveCheckpoint("cp-wh", "ACTIVE",
+                "[{\"tableIds\":[\"" + tableId + "\"]}]",
+                "[{\"actionType\":\"webhook\",\"enabled\":true,\"config\":{\"url\":\"http://mock-hook/quality\"}}]");
+
+        GraphQLResponseBean resp = exec("cp-wh");
+        assertFalse(resp.hasError(), "checkpoint with webhook action should not globally error: " + resp);
+
+        // 端到端 + 接线验证：fetch 被调一次（post-commit dispatch）
+        assertEquals(1, MockHttpClient.fetchCallCount, "webhook fetch must be called once (post-commit dispatch)");
+        assertNotNull(MockHttpClient.lastRequest, "last fetch request must be recorded");
+        assertEquals("http://mock-hook/quality", MockHttpClient.lastRequest.getUrl());
+        assertEquals("POST", MockHttpClient.lastRequest.getMethod());
+        // body 为执行摘要 JSON（含 checkpointId + executedCount）
+        String body = String.valueOf(MockHttpClient.lastRequest.getBody());
+        assertTrue(body.contains("checkpointId"), "fetch body must contain checkpointId: " + body);
+        assertTrue(body.contains("executedCount"), "fetch body must contain executedCount: " + body);
+        // Content-Type header
+        assertEquals("application/json", MockHttpClient.lastRequest.getHeader("Content-Type"));
+
+        // store 存活（已提交）
+        assertEquals(1, countResults("r-wh-vol"), "store (QualityResult) must survive post-commit dispatch");
+    }
+
+    /**
+     * (b) webhook 失败 → store 存活 + errors 记录：配置 webhook 指向失败端点（mock fetch 抛错）；
+     * 执行后 QualityResult store 行仍存在（已提交、未回滚），失败动作记入摘要 errors。
+     *
+     * <p>事务隔离硬验证（post-commit）：投递在 store 提交之后，不回滚 store。
+     */
+    @Test
+    public void testWebhookFailureStoreSurvives() throws Exception {
+        String dbUrl = "jdbc:h2:mem:meta_cp_whf;DB_CLOSE_DELAY=-1";
+        seedTable(dbUrl, "CREATE TABLE ext_whf (id INT NOT NULL)", "INSERT INTO ext_whf VALUES (1)");
+        PreparedEnv env = prepare(dbUrl, "qs_cp_whf");
+        String tableId = env.tableId("EXT_WHF");
+
+        saveRule("r-whf-vol", "volume", "table", tableId, null, null, "{\"minRows\":1}"); // PASS
+
+        saveCheckpoint("cp-whf", "ACTIVE",
+                "[{\"tableIds\":[\"" + tableId + "\"]}]",
+                "[{\"actionType\":\"webhook\",\"enabled\":true,\"config\":{\"url\":\"http://mock-hook/fail\"}}]");
+
+        // mock fetch 抛错（模拟 webhook 端点不可达）
+        MockHttpClient.throwOnFetch = new RuntimeException("connection refused");
+
+        GraphQLResponseBean resp = exec("cp-whf");
+        // checkpoint 整体不报错（webhook 失败被 per-action 隔离，post-commit 不回滚 store）
+        assertFalse(resp.hasError(), "webhook failure must not globally error (post-commit isolation): " + resp);
+
+        // fetch 被调一次（dispatch 尝试了投递）
+        assertEquals(1, MockHttpClient.fetchCallCount, "webhook fetch must be attempted once");
+        // store 存活（已提交，投递失败不回滚）——事务隔离硬验证
+        assertEquals(1, countResults("r-whf-vol"), "store must survive webhook failure (post-commit)");
+    }
+
+    /**
+     * (c) webhook config 缺 url → 显式失败：config 缺失 url 时 webhook 不投递（fetchCallCount=0），
+     * 失败记入摘要 errors。store 仍存活（post-commit dispatch 失败不回滚）。
+     */
+    @Test
+    public void testWebhookMissingUrlFails() throws Exception {
+        String dbUrl = "jdbc:h2:mem:meta_cp_whu;DB_CLOSE_DELAY=-1";
+        seedTable(dbUrl, "CREATE TABLE ext_whu (id INT NOT NULL)", "INSERT INTO ext_whu VALUES (1)");
+        PreparedEnv env = prepare(dbUrl, "qs_cp_whu");
+        String tableId = env.tableId("EXT_WHU");
+
+        saveRule("r-whu-vol", "volume", "table", tableId, null, null, "{\"minRows\":1}"); // PASS
+
+        // config 缺 url
+        saveCheckpoint("cp-whu", "ACTIVE",
+                "[{\"tableIds\":[\"" + tableId + "\"]}]",
+                "[{\"actionType\":\"webhook\",\"enabled\":true,\"config\":{}}]");
+
+        GraphQLResponseBean resp = exec("cp-whu");
+        assertFalse(resp.hasError(), "missing url causes dispatch failure, not global error: " + resp);
+
+        // fetch 未被调（url 缺失在 fetch 之前显式失败）
+        assertEquals(0, MockHttpClient.fetchCallCount, "fetch must not be called when url is missing");
+        // store 存活
+        assertEquals(1, countResults("r-whu-vol"), "store must survive missing-url dispatch failure");
+    }
+
+    // ===== D4：notify 动作（post-commit dispatch）=====
+
+    /**
+     * (a) notify 投递成功：配置 {actionType:"notify", config:{channel, recipients}, enabled:true} 的 checkpoint
+     * 执行后，mock IMessageService 收到一次 send(channel, message)，message 信封含 checkpointId + summary。
+     *
+     * <p>端到端验证 + 接线验证：从 executeCheckpoint（入口）到 IMessageService.send（出口）完整跑通。
+     */
+    @Test
+    public void testNotifyActionDispatchedPostCommit() throws Exception {
+        String dbUrl = "jdbc:h2:mem:meta_cp_nf;DB_CLOSE_DELAY=-1";
+        seedTable(dbUrl, "CREATE TABLE ext_nf (id INT NOT NULL)", "INSERT INTO ext_nf VALUES (1)");
+        PreparedEnv env = prepare(dbUrl, "qs_cp_nf");
+        String tableId = env.tableId("EXT_NF");
+
+        saveRule("r-nf-vol", "volume", "table", tableId, null, null, "{\"minRows\":1}"); // PASS
+
+        saveCheckpoint("cp-nf", "ACTIVE",
+                "[{\"tableIds\":[\"" + tableId + "\"]}]",
+                "[{\"actionType\":\"notify\",\"enabled\":true,\"config\":{\"channel\":\"quality-alerts\","
+                        + "\"recipients\":[\"data@company.com\"]}}]");
+
+        GraphQLResponseBean resp = exec("cp-nf");
+        assertFalse(resp.hasError(), "checkpoint with notify action should not globally error: " + resp);
+
+        // 端到端 + 接线验证：send 被调一次（post-commit dispatch）
+        assertEquals(1, MockMessageService.sendCallCount, "notify send must be called once (post-commit dispatch)");
+        assertEquals("quality-alerts", MockMessageService.lastTopic, "send topic must match config.channel");
+        // message 信封含 checkpointId + summary
+        assertNotNull(MockMessageService.lastMessage, "send message must be recorded");
+        String msgStr = String.valueOf(MockMessageService.lastMessage);
+        assertTrue(msgStr.contains("checkpointId"), "message envelope must contain checkpointId: " + msgStr);
+        assertTrue(msgStr.contains("summary"), "message envelope must contain summary: " + msgStr);
+        assertTrue(msgStr.contains("data@company.com"), "message envelope must contain recipients: " + msgStr);
+
+        // store 存活（已提交）
+        assertEquals(1, countResults("r-nf-vol"), "store must survive post-commit notify dispatch");
+    }
+
+    /**
+     * (b) notify config 缺 channel → 显式失败：config 缺失 channel 时 notify 不投递（sendCallCount=0），
+     * 失败记入摘要 errors。store 仍存活。
+     */
+    @Test
+    public void testNotifyMissingChannelFails() throws Exception {
+        String dbUrl = "jdbc:h2:mem:meta_cp_nc;DB_CLOSE_DELAY=-1";
+        seedTable(dbUrl, "CREATE TABLE ext_nc (id INT NOT NULL)", "INSERT INTO ext_nc VALUES (1)");
+        PreparedEnv env = prepare(dbUrl, "qs_cp_nc");
+        String tableId = env.tableId("EXT_NC");
+
+        saveRule("r-nc-vol", "volume", "table", tableId, null, null, "{\"minRows\":1}"); // PASS
+
+        // config 缺 channel
+        saveCheckpoint("cp-nc", "ACTIVE",
+                "[{\"tableIds\":[\"" + tableId + "\"]}]",
+                "[{\"actionType\":\"notify\",\"enabled\":true,\"config\":{}}]");
+
+        GraphQLResponseBean resp = exec("cp-nc");
+        assertFalse(resp.hasError(), "missing channel causes dispatch failure, not global error: " + resp);
+
+        // send 未被调（channel 缺失在 send 之前显式失败）
+        assertEquals(0, MockMessageService.sendCallCount, "send must not be called when channel is missing");
+        // store 存活
+        assertEquals(1, countResults("r-nc-vol"), "store must survive missing-channel dispatch failure");
+    }
+
+    /**
+     * (c) notify 失败 → store 存活：mock IMessageService.send 抛错；执行后 QualityResult store 行仍存在。
+     * per-action 隔离（post-commit dispatch 失败不回滚 store）。
+     */
+    @Test
+    public void testNotifyFailureStoreSurvives() throws Exception {
+        String dbUrl = "jdbc:h2:mem:meta_cp_nff;DB_CLOSE_DELAY=-1";
+        seedTable(dbUrl, "CREATE TABLE ext_nff (id INT NOT NULL)", "INSERT INTO ext_nff VALUES (1)");
+        PreparedEnv env = prepare(dbUrl, "qs_cp_nff");
+        String tableId = env.tableId("EXT_NFF");
+
+        saveRule("r-nff-vol", "volume", "table", tableId, null, null, "{\"minRows\":1}"); // PASS
+
+        saveCheckpoint("cp-nff", "ACTIVE",
+                "[{\"tableIds\":[\"" + tableId + "\"]}]",
+                "[{\"actionType\":\"notify\",\"enabled\":true,\"config\":{\"channel\":\"broken-topic\"}}]");
+
+        // mock send 抛错（模拟消息服务不可用）
+        MockMessageService.throwOnSend = new RuntimeException("message broker unavailable");
+
+        GraphQLResponseBean resp = exec("cp-nff");
+        assertFalse(resp.hasError(), "notify failure must not globally error (post-commit isolation): " + resp);
+
+        // send 被调一次（dispatch 尝试了投递）
+        assertEquals(1, MockMessageService.sendCallCount, "notify send must be attempted once");
+        // store 存活（已提交，投递失败不回滚）
+        assertEquals(1, countResults("r-nff-vol"), "store must survive notify failure (post-commit)");
     }
 
     // ===== helpers =====

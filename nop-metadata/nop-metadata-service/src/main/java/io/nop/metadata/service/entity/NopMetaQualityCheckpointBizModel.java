@@ -6,18 +6,23 @@ import io.nop.api.core.annotations.core.Name;
 import io.nop.api.core.annotations.core.Optional;
 import io.nop.api.core.exceptions.ErrorCode;
 import io.nop.api.core.exceptions.NopException;
+import io.nop.api.core.message.IMessageService;
 import io.nop.biz.crud.CrudBizModel;
 import io.nop.core.context.IServiceContext;
 import io.nop.core.lang.json.JsonTool;
+import io.nop.dao.txn.ITransactionTemplate;
+import io.nop.http.api.client.IHttpClient;
 import io.nop.metadata.biz.INopMetaQualityCheckpointBiz;
 import io.nop.metadata.dao.entity.NopMetaQualityCheckpoint;
 import io.nop.metadata.service.connection.IMetaDataSourceConnectionService;
 import io.nop.metadata.service.datasource.MetaDataSourceResolver;
+import io.nop.metadata.service.quality.CheckpointActionDispatcher;
 import io.nop.metadata.service.quality.MetaQualityCheckpointExecutor;
 import io.nop.metadata.service.quality.MetaQualityRuleExecutor;
 import io.nop.metadata.service.quality.QualityResultWriter;
 import io.nop.metadata.service.tableref.MetaTableReferenceResolver;
 import io.nop.metadata.service.tableref.TableReferenceExecutor;
+import jakarta.annotation.Nullable;
 import jakarta.inject.Inject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -64,6 +69,22 @@ public class NopMetaQualityCheckpointBizModel extends CrudBizModel<NopMetaQualit
     @Inject
     protected NopMetaQualityScoreBizModel scoreBizModel;
 
+    /**
+     * 注入 {@link IHttpClient}（NopIoC bean，{@code @Nullable}——宿主未拉 HTTP client impl 时不注入）。
+     * webhook 动作经此投递执行摘要。为 null 时 webhook 动作显式失败（不 NPE、不启动失败）。
+     */
+    @Inject
+    @Nullable
+    protected IHttpClient httpClient;
+
+    /**
+     * 注入 {@link IMessageService}（NopIoC bean，{@code @Nullable}——宿主未注册消息实现时不注入）。
+     * notify 动作经此向消息通道投递执行摘要。为 null 时 notify 动作显式失败（不 NPE、不静默）。
+     */
+    @Inject
+    @Nullable
+    protected IMessageService messageService;
+
     /** 共享 table-reference 解析器（架构基线 §4.4.3 D3）。 */
     private final MetaTableReferenceResolver tableRefResolver = new MetaTableReferenceResolver(
             new MetaDataSourceResolver(), new io.nop.metadata.service.field.MetaTableFieldResolver());
@@ -79,6 +100,9 @@ public class NopMetaQualityCheckpointBizModel extends CrudBizModel<NopMetaQualit
 
     /** 检查点编排执行器（延迟初始化，需 orm() + tableRefExecutor）。 */
     private MetaQualityCheckpointExecutor checkpointExecutor;
+
+    /** 结果动作分发器（webhook/notify 投递）。延迟初始化，依赖注入的 httpClient/messageService。 */
+    private CheckpointActionDispatcher actionDispatcher;
 
     public NopMetaQualityCheckpointBizModel() {
         setEntityName(NopMetaQualityCheckpoint.class.getName());
@@ -112,6 +136,9 @@ public class NopMetaQualityCheckpointBizModel extends CrudBizModel<NopMetaQualit
 
         // D6：自动评分触发——按 affectedTableIds 逐表重算评分（复用既有 scorer，零落盘逻辑复制）
         triggerAutoScoring(cp, summary, context);
+
+        // D4：结果动作投递——store 提交后才触发 webhook/notify（post-commit dispatch）
+        dispatchActions(cp, summary);
         return summary;
     }
 
@@ -205,6 +232,46 @@ public class NopMetaQualityCheckpointBizModel extends CrudBizModel<NopMetaQualit
     private static String toErrorMessage(Exception e) {
         String msg = e.getMessage();
         return msg != null ? msg : e.getClass().getName();
+    }
+
+    // ============================================================
+    // D4：结果动作投递（transaction-isolated dispatch）
+    // ============================================================
+
+    /**
+     * 执行结果动作投递（§2.7.3 D4）：store（QualityResult）落盘 + flush 后，按 {@code actions} 配置向外部
+     * 投递执行摘要（webhook/notify）。
+     *
+     * <p><b>事务隔离</b>：dispatch 经 {@link ITransactionTemplate#runWithoutTransaction} 在 store 事务之外执行。
+     * 由此（a）dispatch 异常/超时<b>不可能回滚</b> store（dispatcher 内部 per-action try/catch 隔离 + 不在事务内）；
+     * （b）HTTP/消息调用<b>不占用</b> store 事务连接（dispatch 在 runWithoutTransaction 内运行）。
+     *
+     * <p>store 已由 executor 的 per-rule {@code flushSession} 落盘（可见且持久），dispatch 在 flush 之后运行。
+     * dispatcher 内部 per-action try/catch + 顶层 try/catch 双重兜底，保证投递失败不阻断 executeCheckpoint 返回。
+     */
+    private void dispatchActions(NopMetaQualityCheckpoint cp, Map<String, Object> summary) {
+        CheckpointActionDispatcher dispatcher = ensureActionDispatcher();
+        ITransactionTemplate txnTemplate = orm().getSessionFactory().txn();
+        try {
+            txnTemplate.runWithoutTransaction(null, () -> {
+                dispatcher.dispatch(cp, summary);
+                return null;
+            });
+        } catch (Exception e) {
+            // dispatcher 内部 per-action try/catch 已隔离；此处仅兜底防异常外泄到 executeCheckpoint
+            LOG.error("action dispatch failed for checkpoint {}", cp.getCheckpointId(), e);
+        }
+    }
+
+    /**
+     * 延迟初始化动作分发器。httpClient/messageService 由 IoC 注入（@Nullable——宿主未注册实现时为 null）。
+     * 均为 null 时分发器仍可创建（webhook/notify 配置存在时在 dispatch 时显式失败，不静默跳过）。
+     */
+    private CheckpointActionDispatcher ensureActionDispatcher() {
+        if (actionDispatcher == null) {
+            actionDispatcher = new CheckpointActionDispatcher(httpClient, messageService);
+        }
+        return actionDispatcher;
     }
 
     /** 延迟初始化 TableReferenceExecutor（需 orm()，构造时 orm 不可用）。 */

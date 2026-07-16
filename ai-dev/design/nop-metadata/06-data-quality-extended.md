@@ -298,12 +298,12 @@ class QualityCheckpoint:
 
 ### 4.3 执行动作
 
-| 动作类型 | 说明 | 配置示例 |
-|---------|------|---------|
-| `store` | 存储验证结果 | `{"target": "meta_quality_result"}` |
-| `notify` | 发送通知 | `{"channel": "email", "recipients": ["data@company.com"]}` |
-| `update_docs` | 更新数据文档 | `{"format": "html", "outputPath": "/docs/quality"}` |
-| `webhook` | 调用 Webhook | `{"url": "https://hooks.company.com/quality", "method": "POST"}` |
+| 动作类型 | 说明 | 配置示例 | 状态 |
+|---------|------|---------|--------|
+| `store` | 存储验证结果 | `{"target": "meta_quality_result"}` | ✅ 已落地（隐式，executor 写 QualityResult） |
+| `notify` | 发送通知 | `{"channel": "email", "recipients": ["data@company.com"]}` | ✅ 已落地（`IMessageService.send`，plan 0540-2） |
+| `update_docs` | 更新数据文档 | `{"format": "html", "outputPath": "/docs/quality"}` | ❌ deferred（依赖文档渲染层，配置 enabled 时显式失败） |
+| `webhook` | 调用 Webhook | `{"url": "https://hooks.company.com/quality", "method": "POST"}` | ✅ 已落地（`IHttpClient.fetch`，plan 0540-2） |
 
 ---
 

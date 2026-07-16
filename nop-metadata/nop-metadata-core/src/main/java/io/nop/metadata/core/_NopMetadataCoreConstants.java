@@ -294,6 +294,16 @@ public interface _NopMetadataCoreConstants {
     String CHECKPOINT_ACTION_TYPE_STORE = "store";
                     
     /**
+     * 检查点动作类型: Webhook投递 
+     */
+    String CHECKPOINT_ACTION_TYPE_WEBHOOK = "webhook";
+                    
+    /**
+     * 检查点动作类型: 消息通知 
+     */
+    String CHECKPOINT_ACTION_TYPE_NOTIFY = "notify";
+                    
+    /**
      * 质量评分趋势方向: 改善 
      */
     String QUALITY_TREND_DIRECTION_IMPROVING = "improving";

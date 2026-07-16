@@ -741,3 +741,7 @@ dict:
     meta/reconciliation-status: Reconciliation Status
     meta/match-strategy: Match Strategy
     meta/change-event-type: Meta Change Event Type
+dict.option.label:
+  meta/checkpoint-action-type:
+    webhook: Webhook
+    notify: Notify
