@@ -421,19 +421,34 @@ MetaPipeline                     — 数据处理管道
 - **影响分析**: 列级变更影响范围（哪些下游列会受影响）
 - **路径查找**: 两表之间的血缘路径
 
-#### 2.6.1 血缘采集（P2-5 裁定）
+#### 2.6.1 血缘采集（P2-5 表级 + P2-5+ 列级裁定）
 
 **边存储形态**：`sourceTableId`/`targetTableId` 是 plain string（存 `NopMetaTable.metaTableId`），**无 ORM to-one 关系**——遍历时按列值查询（`IX_NOP_META_LINEAGE_SOURCE` on sourceTableId / `IX_NOP_META_LINEAGE_TARGET` on targetTableId）。
 
 **血缘来源（lineageSource）支持范围**：
-- 首版支持 `manual`（`recordLineage` 手工录入，表级+列级）+ `sql_parse`（`extractLineageFromSql`，表级）。
+- 首版支持 `manual`（`recordLineage` 手工录入，表级+列级）+ `sql_parse`（`extractLineageFromSql` 表级 + `extractColumnLineageFromSql` 列级）。
 - `open_lineage`/`hook` 保留 dict 值，首版**无专用自动填充 action**；允许通过 `recordLineage` 手工指定这两个来源（不拒绝），后续增量。
 
-**sql_parse 范围与解析器（表级 only）**：
-- 范围：仅**表级**——从 `NopMetaTable.sourceSql`（tableType=sql）的 FROM/JOIN 子句抽取源表引用，匹配目录 `NopMetaTable.tableName`，创建表级边（sourceColumn/targetColumn 留空）。target = 该 sql 表自身。**列级 SQL 解析（SELECT 列→源列映射）不在首版**，复杂度过高。
+**sql_parse 表级范围与解析器（P2-5 裁定）**：
+- 范围：**表级**——从 `NopMetaTable.sourceSql`（tableType=sql）的 FROM/JOIN 子句抽取源表引用，匹配目录 `NopMetaTable.tableName`，创建表级边（sourceColumn/targetColumn 留空）。target = 该 sql 表自身。
 - 解析器：复用平台 `nop-orm-eql` 的 `EqlASTParser.parseFromText(text)`（纯语法解析，返回 `SqlProgram` AST）。依赖裁定：`nop-orm`（`nop-metadata-dao` 依赖它）已直接依赖 `nop-orm-eql`，故 AST 解析器**已传递可用**于 `nop-metadata-service`，无需新增 pom 依赖，也无循环依赖（`nop-orm-eql` 仅依赖 `nop-orm-model`+`nop-dao`+`nop-core`，不反向依赖 `nop-orm`）。纯语法解析不绑定 ORM session——session 绑定的 `resolvedTableMeta` 解析是独立 compile 阶段，此处不调用，仅取 `SqlTableName.getName()`/`getFullName()`（含 schema 前缀）。
 - 限制（显式记录）：不展开 CTE 别名、子查询别名、动态 SQL；未匹配到目录表的引用记 unresolved（不丢）。
-- 幂等：按 `(sourceTableId, targetTableId, lineageSource='sql_parse')` 去重 upsert（更新而非无限追加）。
+- 幂等：按 `(sourceTableId, targetTableId, lineageSource='sql_parse')` 且 `sourceColumn IS NULL` 去重 upsert（更新而非无限追加）。`sourceColumn IS NULL` 过滤隔离列级边——见列级隔离裁定。
+
+**sql_parse 列级范围与解析器（P2-5+ 裁定，D1/D2/D3）**：
+
+> 列级 sql_parse 解析 SELECT 输出列→源表源列映射。独立 action `extractColumnLineageFromSql(metaTableId)`，与表级 `extractLineageFromSql` 并列（D2：独立 action，语义清晰、不破坏表级既有契约）。
+
+- **列引用归属解析（D1，仅用句法字段）**：从 FROM/JOIN 的 `SqlSingleTableSource` 手建 `scopeName(alias 或表名) → simpleTableName` 映射；对 projection 表达式内每个 `SqlColumnName` 用 `getOwner().getName()` 查映射归属源表。**不得依赖 resolution 字段**（`getTableSource()`/`getResolvedOwner()`/`getResolvedTableMeta()` 纯 parse 后为 null，会 NPE）。表达式列（`a+b`）walk expr 子树收集所有 `SqlColumnName` 节点（`forEachChild` 已递归）。
+- **可解析形态（首版支持）**：
+  - 限定符列引用 `SELECT t.col` / `SELECT t.col AS out`：`owner.getName()` 查 alias→table 映射归属，sourceColumn=col，targetColumn=out(或 col)。
+  - 无别名列引用 `SELECT col`：**仅当 FROM 仅一张源表时**归属该唯一源表；**FROM 多表时一律不可归属**（纯句法无法判断 col 属于哪张表——多表即歧义，非仅同名列歧义），进 unresolved/transformType=derived。
+  - 表达式列 `SELECT a+b AS total`：transformType=derived，walk expr 子树收集所有列引用节点，各列按其 owner 归属。一个表达式输出列引用 N 个源列 → 产出 N 条 derived 边。
+- **transformType 判定（D3，AST 节点类型匹配）**：直接列引用（projection expr 为 `SqlColumnName`）→ `direct`；表达式/函数包裹列（非聚合）→ `derived`；聚合函数检测**优先 `expr instanceof SqlAggregateFunction`**（非函数名白名单）→ `aggregated`。`transformExpr`（ORM 列名）首版留空（derived/aggregated 记原文为 follow-up）。
+- **列存在性不校验（软引用裁定）**：sourceColumn/targetColumn 存列名字符串原样，不校验列是否真实存在（对齐 external 列级软引用裁定）。
+- **CTE/子查询范围（D3）**：首版支持「直查 FROM 源表 [JOIN 源表]」的列映射；CTE 别名列穿透、子查询内层列穿透、`SELECT *` 通配符 → 显式记 unresolved（不伪造列映射、不静默丢弃）。
+- **幂等键（D3）**：列级边按 `(sourceTableId, targetTableId, sourceColumn, targetColumn, lineageSource='sql_parse')` 五元组去重 upsert（比表级多 sourceColumn/targetColumn，不含 transformType，重抽更新 transformType）。
+- **表级/列级 upsert 查询隔离（D2，In Scope）**：表级 `upsertSqlParseEdge` 查询补 `sourceColumn IS NULL` 过滤（让表级只匹配表级边）；列级 upsert 用列级五元组。二者共存各管各的幂等，重跑表级不误更新列级边。列级 action 不强制先建表级边（独立语义）。
 
 **列级血缘对 external 表的裁定（收口 P2-2 Deferred）**：
 - external 表列以 JSON 存 buildSql（A2，无字段实体）。列级血缘对 external 列**以列名字符串软引用**（sourceColumn/targetColumn 存列名），**不引入** external 字段实体（避免 ORM 结构变更 Protected Area）。
