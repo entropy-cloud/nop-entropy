@@ -8,6 +8,7 @@ import io.nop.api.core.exceptions.ErrorCode;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.biz.crud.CrudBizModel;
 import io.nop.core.context.IServiceContext;
+import io.nop.core.lang.json.JsonTool;
 import io.nop.metadata.biz.INopMetaQualityCheckpointBiz;
 import io.nop.metadata.dao.entity.NopMetaQualityCheckpoint;
 import io.nop.metadata.service.connection.IMetaDataSourceConnectionService;
@@ -18,7 +19,12 @@ import io.nop.metadata.service.quality.QualityResultWriter;
 import io.nop.metadata.service.tableref.MetaTableReferenceResolver;
 import io.nop.metadata.service.tableref.TableReferenceExecutor;
 import jakarta.inject.Inject;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -28,6 +34,13 @@ import java.util.Map;
  * 执行路径（{@link MetaQualityRuleExecutor#judge} + {@link TableReferenceExecutor} + {@link QualityResultWriter}），
  * 产出执行摘要。本 BizModel 仅承担入口加载 + 延迟装配 executor（需 {@code orm()}，构造时不可用）。
  *
+ * <p>D6（自动评分触发，§2.7.3 D6）：{@code executeCheckpoint} 在 executor 返回后，按摘要中的
+ * {@code affectedTableIds}（仅实际被判定 judge 的非 database 规则的去重 tableId）逐表调注入的
+ * {@link NopMetaQualityScoreBizModel#computeQualityScore}（含 score + 落盘 + 返回 scoreId），**复用既有 scorer，
+ * 零落盘逻辑复制**（不在本 BizModel 内 new scorer、不复制 ScoreBizModel 落盘六行）。per-table try/catch +
+ * {@code clearSession} 失败隔离（对齐既有 per-rule 隔离模式），失败记入摘要 errors 不中断其他表评分、不回滚
+ * 已落盘的 checkpoint store。受 {@code extConfig.autoScore} 控制（默认开启；关闭时跳过且摘要标注 skipped）。
+ *
  * <p>失败路径显式化：检查点不存在 → 抛 {@link #ERR_CHECKPOINT_NOT_FOUND}；其余不可执行路径（非 ACTIVE 状态 /
  * 未知动作 / 空规则集 / 单规则执行异常）由 executor 显式处理（详见 {@link MetaQualityCheckpointExecutor}）。
  */
@@ -35,12 +48,21 @@ import java.util.Map;
 public class NopMetaQualityCheckpointBizModel extends CrudBizModel<NopMetaQualityCheckpoint>
         implements INopMetaQualityCheckpointBiz {
 
+    private static final Logger LOG = LoggerFactory.getLogger(NopMetaQualityCheckpointBizModel.class);
+
     static final ErrorCode ERR_CHECKPOINT_NOT_FOUND =
             ErrorCode.define("metadata.checkpoint-not-found",
                     "Quality checkpoint not found: {checkpointId}", "checkpointId");
 
     @Inject
     protected IMetaDataSourceConnectionService connectionService;
+
+    /**
+     * 注入 {@link NopMetaQualityScoreBizModel}（NopIoC bean）调 {@code computeQualityScore} 实现自动评分触发
+     * （B2 方案 b，对齐 {@code NopMetaReconciliationConfigBizModel} 注入 {@code NopMetaTableBizModel} 模式）。
+     */
+    @Inject
+    protected NopMetaQualityScoreBizModel scoreBizModel;
 
     /** 共享 table-reference 解析器（架构基线 §4.4.3 D3）。 */
     private final MetaTableReferenceResolver tableRefResolver = new MetaTableReferenceResolver(
@@ -63,15 +85,20 @@ public class NopMetaQualityCheckpointBizModel extends CrudBizModel<NopMetaQualit
     }
 
     /**
-     * 手动执行检查点（架构基线 §2.7.3 D5，仅手动触发）。
+     * 手动执行检查点（架构基线 §2.7.3 D5 + D6 自动评分触发）。
      *
      * <p>加载检查点 → 委托 {@link MetaQualityCheckpointExecutor#execute}（状态门禁 → 动作校验 → 规则解析 →
-     * 逐条复用单规则执行路径写 NopMetaQualityResult → 失败隔离 → 摘要）。
+     * 逐条复用单规则执行路径写 NopMetaQualityResult → 失败隔离 → 摘要 + 收集 affectedTableIds）。
+     *
+     * <p>执行完成后，若 {@code extConfig.autoScore} 非 false（默认开启），按 {@code affectedTableIds} 逐表调
+     * {@link NopMetaQualityScoreBizModel#computeQualityScore} 重算评分并落盘，per-table 失败隔离，per-table
+     * 评分结果（scoreId/overallScore）与评分 errors 记入摘要。
      *
      * @param checkpointId  检查点 ID
      * @param schemaPattern 可选 schema 限定（null/空串表示依赖连接默认 schema）
      * @param context       服务上下文
-     * @return {@code {checkpointId, executedCount, passCount, failCount, errorCount, results:[...], errors:[...]}}
+     * @return {@code {checkpointId, executedCount, passCount, failCount, errorCount, affectedTableIds:[...],
+     *         autoScore, scoreResults:[{metaTableId, scoreId, overallScore}], results:[...], errors:[...]}}
      */
     @BizMutation
     public Map<String, Object> executeCheckpoint(@Name("checkpointId") String checkpointId,
@@ -81,12 +108,104 @@ public class NopMetaQualityCheckpointBizModel extends CrudBizModel<NopMetaQualit
         if (cp == null) {
             throw new NopException(ERR_CHECKPOINT_NOT_FOUND).param("checkpointId", checkpointId);
         }
-        return ensureCheckpointExecutor().execute(cp, schemaPattern);
+        Map<String, Object> summary = ensureCheckpointExecutor().execute(cp, schemaPattern);
+
+        // D6：自动评分触发——按 affectedTableIds 逐表重算评分（复用既有 scorer，零落盘逻辑复制）
+        triggerAutoScoring(cp, summary, context);
+        return summary;
+    }
+
+    // ============================================================
+    // D6：自动评分触发
+    // ============================================================
+
+    /**
+     * 按 {@code affectedTableIds} 逐表触发自动评分（§2.7.3 D6）。
+     *
+     * <p>受 {@code extConfig.autoScore} 控制（默认开启）。开启时逐表调
+     * {@link NopMetaQualityScoreBizModel#computeQualityScore}，per-table try/catch +
+     * {@code flushSession/clearSession} 失败隔离（对齐既有 per-rule 隔离模式）。
+     * 关闭时跳过且摘要标注 {@code autoScore=false} + {@code scoreSkipped=true}。
+     */
+    @SuppressWarnings("unchecked")
+    private void triggerAutoScoring(NopMetaQualityCheckpoint cp, Map<String, Object> summary,
+                                     IServiceContext context) {
+        boolean autoScore = readAutoScoreConfig(cp);
+        summary.put("autoScore", autoScore);
+
+        List<String> affectedTableIds = (List<String>) summary.get("affectedTableIds");
+        if (!autoScore) {
+            summary.put("scoreSkipped", true);
+            return;
+        }
+        summary.put("scoreSkipped", false);
+
+        List<Map<String, Object>> scoreResults = new ArrayList<>();
+        // 复用摘要既有 errors 列表（追加评分 errors，不新建独立列表）
+        List<Map<String, Object>> errors = (List<Map<String, Object>>) summary.get("errors");
+
+        if (affectedTableIds == null || affectedTableIds.isEmpty()) {
+            summary.put("scoreResults", scoreResults);
+            return;
+        }
+
+        for (String metaTableId : affectedTableIds) {
+            try {
+                Map<String, Object> scoreSummary = scoreBizModel.computeQualityScore(metaTableId, context);
+                // flush 以隔离：已落盘的评分行在后续表评分失败时（clearSession）不丢失
+                orm().flushSession();
+
+                Map<String, Object> entry = new LinkedHashMap<>();
+                entry.put("metaTableId", metaTableId);
+                entry.put("scoreId", scoreSummary.get("scoreId"));
+                entry.put("overallScore", scoreSummary.get("overallScore"));
+                scoreResults.add(entry);
+            } catch (Exception e) {
+                LOG.error("auto-score failed for affected table: {}", metaTableId, e);
+                Map<String, Object> errEntry = new LinkedHashMap<>();
+                errEntry.put("source", "autoScore");
+                errEntry.put("metaTableId", metaTableId);
+                errEntry.put("error", toErrorMessage(e));
+                errors.add(errEntry);
+                // 失败隔离：清理未刷出的脏实体，不影响已 flush 的评分行与其他表评分
+                orm().clearSession();
+            }
+        }
+        summary.put("scoreResults", scoreResults);
+    }
+
+    /**
+     * 读取 {@code extConfig.autoScore}（默认开启；仅显式 {@code false} 关闭）。extConfig 缺失 / 非 JSON Map /
+     * 无 autoScore 键 / 值非布尔 → 默认开启（不静默伪造关闭）。
+     */
+    @SuppressWarnings("unchecked")
+    private boolean readAutoScoreConfig(NopMetaQualityCheckpoint cp) {
+        String json = cp.getExtConfig();
+        if (json == null || json.trim().isEmpty()) {
+            return true;
+        }
+        try {
+            Object parsed = JsonTool.parse(json);
+            if (!(parsed instanceof Map)) {
+                return true;
+            }
+            Object val = ((Map<String, Object>) parsed).get("autoScore");
+            // 仅显式 false 关闭；null / 非布尔 / 缺失 → 默认开启
+            return !Boolean.FALSE.equals(val);
+        } catch (Exception e) {
+            // extConfig 不可解析 → 默认开启（不静默伪造关闭）
+            return true;
+        }
     }
 
     // ============================================================
     // helpers
     // ============================================================
+
+    private static String toErrorMessage(Exception e) {
+        String msg = e.getMessage();
+        return msg != null ? msg : e.getClass().getName();
+    }
 
     /** 延迟初始化 TableReferenceExecutor（需 orm()，构造时 orm 不可用）。 */
     private TableReferenceExecutor ensureTableRefExecutor() {

@@ -23,6 +23,7 @@ import io.nop.metadata.dao.entity.NopMetaModule;
 import io.nop.metadata.dao.entity.NopMetaQualityCheckpoint;
 import io.nop.metadata.dao.entity.NopMetaQualityResult;
 import io.nop.metadata.dao.entity.NopMetaQualityRule;
+import io.nop.metadata.dao.entity.NopMetaQualityScore;
 import io.nop.metadata.dao.entity.NopMetaTable;
 import jakarta.inject.Inject;
 import org.junit.jupiter.api.Test;
@@ -39,12 +40,18 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * 验证质量检查点编排（架构基线 §2.7.3）：executeCheckpoint 对 ruleIds + tableIds 混合配置的规则集解析、
- * 逐条复用既有单规则执行路径写入 NopMetaQualityResult、执行摘要计数、以及所有不可执行路径的显式失败。
+ * 逐条复用既有单规则执行路径写入 NopMetaQualityResult、执行摘要计数、所有不可执行路径的显式失败，
+ * 以及 §2.7.3 D6 自动评分触发（checkpoint→score 接线）。
  *
  * <p>覆盖 Exit Criteria 五条路径：(a) 混合规则集执行 (b) 摘要计数 (c) paused 失败 (d) 未知动作失败 (e) 空规则集失败。
  *
+ * <p>D6 自动评分触发覆盖四条路径：(a) 自动评分落盘行数+1 且 overallScore 与手动一致 / (b) 多受影响表逐表评分 /
+ * (c) 单表评分失败隔离 / (d) autoScore=false 跳过。
+ *
  * <p>Anti-Hollow：所有成功路径用真实 H2 建连 + 真实物理表数据，断言每条规则对应一行真实 QualityResult（PASS/FAIL/SKIP），
  * 证明运行时确实复用了 §2.7.1 judge + TableReferenceExecutor + QualityResultWriter 执行链，非空壳循环。
+ * D6 路径额外断言 NopMetaQualityScore 行存在（证明 executeCheckpoint→computeQualityScore→scorer.score→saveEntity
+ * 运行时调用链完整连通，接线非空壳）。
  */
 @NopTestConfig(localDb = true, initDatabaseSchema = OptionalBoolean.TRUE)
 public class TestNopMetaQualityCheckpointBizModel extends JunitBaseTestCase {
@@ -195,12 +202,190 @@ public class TestNopMetaQualityCheckpointBizModel extends JunitBaseTestCase {
         assertEquals(1, countResults("r-cp-pm"), "valid rule result written despite missing refs");
     }
 
+    // ===== D6 自动评分触发 =====
+
+    /**
+     * (a) 自动评分落盘行数+1 且 overallScore 与手动 computeQualityScore 一致。
+     *
+     * <p>验证 §2.7.3 D6：executeCheckpoint 执行后，受影响表自动重算评分并落盘。断言：
+     * <ul>
+     *   <li>执行前后该表评分行数 +1</li>
+     *   <li>新行 overallScore 与手动调 computeQualityScore 结果一致（复用既有 scorer，非伪造）</li>
+     *   <li>摘要含 affectedTableIds 与 scoreResults</li>
+     * </ul>
+     *
+     * <p>端到端 + 接线验证：score 行的存在证明运行时调用链
+     * {@code executeCheckpoint → scoreBizModel.computeQualityScore → scorer.score → saveEntity} 完整连通。
+     */
+    @Test
+    public void testAutoScoreWritesRowAndMatchesManual() throws Exception {
+        String dbUrl = "jdbc:h2:mem:meta_cp_autoscore;DB_CLOSE_DELAY=-1";
+        seedTable(dbUrl, "CREATE TABLE ext_as (id INT NOT NULL)",
+                "INSERT INTO ext_as VALUES (1)", "INSERT INTO ext_as VALUES (2)", "INSERT INTO ext_as VALUES (3)");
+        PreparedEnv env = prepare(dbUrl, "qs_cp_as");
+        String tableId = env.tableId("EXT_AS");
+
+        saveRule("r-as-vol", "volume", "table", tableId, null, null, "{\"minRows\":2}");       // PASS
+        saveRule("r-as-nn", "not_null", "field", tableId, null, 0.0, "{\"column\":\"ID\"}");    // PASS
+
+        saveCheckpoint("cp-as", "ACTIVE",
+                "[{\"tableIds\":[\"" + tableId + "\"]}]", null);
+
+        long before = countScores(tableId);
+        assertEquals(0, before, "no score row before checkpoint execution");
+
+        GraphQLResponseBean resp = exec("cp-as");
+        assertFalse(resp.hasError(), "checkpoint with auto-score should not globally error: " + resp);
+        String data = String.valueOf(resp.getData());
+        assertTrue(data.contains("autoScore=true"), "autoScore defaults to true: " + data);
+
+        long after = countScores(tableId);
+        assertEquals(1, after, "auto-score must write +1 score row (anti-hollow)");
+
+        // 自动评分行 overallScore
+        NopMetaQualityScore autoRow = findLatestScore(tableId);
+        assertNotNull(autoRow, "auto-scored row must exist");
+
+        // 手动调 computeQualityScore 比对（复用同一 scorer，结果一致）
+        GraphQLResponseBean manualResp = scoreGraphql(tableId);
+        assertFalse(manualResp.hasError(), "manual computeQualityScore should succeed: " + manualResp);
+        NopMetaQualityScore manualRow = findLatestScore(tableId);
+        assertNotNull(manualRow);
+        assertEquals(autoRow.getOverallScore(), manualRow.getOverallScore(), 0.001,
+                "auto-score overall must match manual computeQualityScore (reuses same scorer)");
+
+        // 两次评分共 2 行
+        assertEquals(2, countScores(tableId), "auto + manual = 2 score rows");
+    }
+
+    /**
+     * (b) 多受影响表逐表评分。
+     *
+     * <p>两个表各一条 volume 规则（均 PASS），checkpoint 同时覆盖两表。断言每表均产生 +1 score 行，
+     * 摘要 scoreResults 含 2 条 per-table 结果。
+     */
+    @Test
+    public void testAutoScoreMultipleAffectedTables() throws Exception {
+        String dbUrl = "jdbc:h2:mem:meta_cp_multi;DB_CLOSE_DELAY=-1";
+        seedTable(dbUrl, "CREATE TABLE ext_m1 (id INT NOT NULL)", "INSERT INTO ext_m1 VALUES (1)", "INSERT INTO ext_m1 VALUES (2)");
+        seedTable(dbUrl, "CREATE TABLE ext_m2 (id INT NOT NULL)", "INSERT INTO ext_m2 VALUES (1)", "INSERT INTO ext_m2 VALUES (2)");
+        PreparedEnv env = prepare(dbUrl, "qs_cp_multi");
+        String tableId1 = env.tableId("EXT_M1");
+        String tableId2 = env.tableId("EXT_M2");
+
+        saveRule("r-m1-vol", "volume", "table", tableId1, null, null, "{\"minRows\":1}"); // PASS
+        saveRule("r-m2-vol", "volume", "table", tableId2, null, null, "{\"minRows\":1}"); // PASS
+
+        saveCheckpoint("cp-multi", "ACTIVE",
+                "[{\"tableIds\":[\"" + tableId1 + "\",\"" + tableId2 + "\"]}]", null);
+
+        GraphQLResponseBean resp = exec("cp-multi");
+        assertFalse(resp.hasError(), "multi-table checkpoint should not globally error: " + resp);
+
+        assertEquals(1, countScores(tableId1), "table 1 must get +1 score row");
+        assertEquals(1, countScores(tableId2), "table 2 must get +1 score row");
+    }
+
+    /**
+     * (c) 单表评分失败隔离。
+     *
+     * <p>两表：OK 表 volume 规则（PASS → 评分成功）；FAIL 表 not_null 规则 column=&lt;expr_1&gt;
+     * （derived column → judge 返回 SKIP → 全维度 SKIP → scorer 抛 ERR_SCORE_ALL_SKIP）。
+     *
+     * <p>断言：
+     * <ul>
+     *   <li>checkpoint 整体不报错（评分失败被隔离）</li>
+     *   <li>摘要 errors 含 FAIL 表的 autoScore 错误（source=autoScore）</li>
+     *   <li>OK 表仍产生 +1 score 行（其他表评分不受影响）</li>
+     *   <li>FAIL 表无 score 行（评分确实失败）</li>
+     *   <li>两表的 QualityResult 行均存在（checkpoint store 不回滚）</li>
+     * </ul>
+     */
+    @Test
+    public void testAutoScoreFailureIsolation() throws Exception {
+        String dbUrl = "jdbc:h2:mem:meta_cp_iso;DB_CLOSE_DELAY=-1";
+        seedTable(dbUrl, "CREATE TABLE ext_iso_ok (id INT NOT NULL)", "INSERT INTO ext_iso_ok VALUES (1)", "INSERT INTO ext_iso_ok VALUES (2)");
+        seedTable(dbUrl, "CREATE TABLE ext_iso_fail (id INT NOT NULL)", "INSERT INTO ext_iso_fail VALUES (1)");
+        PreparedEnv env = prepare(dbUrl, "qs_cp_iso");
+        String okTableId = env.tableId("EXT_ISO_OK");
+        String failTableId = env.tableId("EXT_ISO_FAIL");
+
+        // OK 表：volume PASS → 评分成功（completeness=100, overall=100）
+        saveRule("r-iso-ok", "volume", "table", okTableId, null, null, "{\"minRows\":1}");
+        // FAIL 表：not_null 规则 column=<expr_1>（derived column → judge SKIP → 全 SKIP → 评分失败）
+        saveRule("r-iso-fail", "not_null", "field", failTableId, null, 0.0, "{\"column\":\"<expr_1>\"}");
+
+        saveCheckpoint("cp-iso", "ACTIVE",
+                "[{\"tableIds\":[\"" + okTableId + "\",\"" + failTableId + "\"]}]", null);
+
+        GraphQLResponseBean resp = exec("cp-iso");
+        // checkpoint 整体不报错（评分失败被 per-table 隔离，不传播）
+        assertFalse(resp.hasError(), "scoring failure must be isolated (no global error): " + resp);
+        String data = String.valueOf(resp.getData());
+
+        // FAIL 表评分错误记入摘要 errors（source=autoScore），不静默吞掉
+        assertTrue(data.contains("autoScore"), "autoScore error must be recorded in summary: " + data);
+        assertTrue(data.contains(failTableId), "failed table's error must reference its metaTableId: " + data);
+
+        // OK 表仍评分成功（其他表不受影响）
+        assertEquals(1, countScores(okTableId), "OK table must still get +1 score (isolation)");
+        // FAIL 表无评分行（评分确实失败）
+        assertEquals(0, countScores(failTableId), "FAIL table must have 0 score rows (scoring failed)");
+
+        // checkpoint store 不回滚：两表的 QualityResult 均存在
+        assertEquals(1, countResults("r-iso-ok"), "OK table result not rolled back");
+        assertEquals(1, countResults("r-iso-fail"), "FAIL table result not rolled back");
+    }
+
+    /**
+     * (d) autoScore=false 跳过自动评分。
+     *
+     * <p>checkpoint extConfig={"autoScore":false} → 执行后不触发评分。断言：
+     * <ul>
+     *   <li>摘要含 autoScore=false / scoreSkipped=true</li>
+     *   <li>受影响表无新增 score 行</li>
+     *   <li>QualityResult 行正常写入（checkpoint store 不受影响）</li>
+     * </ul>
+     */
+    @Test
+    public void testAutoScoreDisabledSkips() throws Exception {
+        String dbUrl = "jdbc:h2:mem:meta_cp_noscore;DB_CLOSE_DELAY=-1";
+        seedTable(dbUrl, "CREATE TABLE ext_ns (id INT NOT NULL)", "INSERT INTO ext_ns VALUES (1)", "INSERT INTO ext_ns VALUES (2)");
+        PreparedEnv env = prepare(dbUrl, "qs_cp_ns");
+        String tableId = env.tableId("EXT_NS");
+
+        saveRule("r-ns-vol", "volume", "table", tableId, null, null, "{\"minRows\":1}"); // PASS
+
+        saveCheckpointWithExt("cp-ns", "ACTIVE",
+                "[{\"tableIds\":[\"" + tableId + "\"]}]", null, "{\"autoScore\":false}");
+
+        long before = countScores(tableId);
+        assertEquals(0, before, "no score row before");
+
+        GraphQLResponseBean resp = exec("cp-ns");
+        assertFalse(resp.hasError(), "checkpoint with autoScore=false should not error: " + resp);
+        String data = String.valueOf(resp.getData());
+        assertTrue(data.contains("autoScore=false"), "summary must mark autoScore=false: " + data);
+        assertTrue(data.contains("scoreSkipped=true"), "summary must mark scoreSkipped: " + data);
+
+        // 无新增 score 行
+        assertEquals(0, countScores(tableId), "autoScore=false must skip scoring (0 new rows)");
+        // QualityResult 正常写入（checkpoint store 不受 autoScore 开关影响）
+        assertEquals(1, countResults("r-ns-vol"), "checkpoint result still written when autoScore=false");
+    }
+
     // ===== helpers =====
 
     private GraphQLResponseBean exec(String checkpointId) {
         return graphQLEngine.executeGraphQL(graphQLEngine.newGraphQLContext(req(
                 "mutation { NopMetaQualityCheckpoint__executeCheckpoint(checkpointId: \"" + checkpointId
                         + "\", schemaPattern: \"PUBLIC\") }")));
+    }
+
+    /** 手动调 computeQualityScore（用于与自动评分比对，证明复用同一 scorer）。 */
+    private GraphQLResponseBean scoreGraphql(String metaTableId) {
+        return graphQLEngine.executeGraphQL(graphQLEngine.newGraphQLContext(req(
+                "mutation { NopMetaQualityScore__computeQualityScore(metaTableId: \"" + metaTableId + "\") }")));
     }
 
     private GraphQLRequestBean req(String query) {
@@ -244,6 +429,11 @@ public class TestNopMetaQualityCheckpointBizModel extends JunitBaseTestCase {
     }
 
     private void saveCheckpoint(String checkpointId, String status, String validations, String actions) {
+        saveCheckpointWithExt(checkpointId, status, validations, actions, null);
+    }
+
+    private void saveCheckpointWithExt(String checkpointId, String status, String validations,
+                                        String actions, String extConfig) {
         IEntityDao<NopMetaQualityCheckpoint> dao = daoProvider.daoFor(NopMetaQualityCheckpoint.class);
         NopMetaQualityCheckpoint cp = dao.newEntity();
         cp.setCheckpointId(checkpointId);
@@ -252,6 +442,7 @@ public class TestNopMetaQualityCheckpointBizModel extends JunitBaseTestCase {
         cp.setStatus(status);
         cp.setValidations(validations);
         cp.setActions(actions);
+        cp.setExtConfig(extConfig);
         cp.setVersion(1L);
         cp.setCreatedBy("autotest");
         cp.setUpdatedBy("autotest");
@@ -266,6 +457,21 @@ public class TestNopMetaQualityCheckpointBizModel extends JunitBaseTestCase {
         QueryBean q = new QueryBean();
         q.addFilter(FilterBeans.eq(NopMetaQualityResult.PROP_NAME_qualityRuleId, ruleId));
         return dao.countByQuery(q);
+    }
+
+    private long countScores(String metaTableId) {
+        IEntityDao<NopMetaQualityScore> dao = daoProvider.daoFor(NopMetaQualityScore.class);
+        QueryBean q = new QueryBean();
+        q.addFilter(FilterBeans.eq(NopMetaQualityScore.PROP_NAME_metaTableId, metaTableId));
+        return dao.countByQuery(q);
+    }
+
+    private NopMetaQualityScore findLatestScore(String metaTableId) {
+        IEntityDao<NopMetaQualityScore> dao = daoProvider.daoFor(NopMetaQualityScore.class);
+        QueryBean q = new QueryBean();
+        q.addFilter(FilterBeans.eq(NopMetaQualityScore.PROP_NAME_metaTableId, metaTableId));
+        q.addOrderField(NopMetaQualityScore.PROP_NAME_scoreTime, true);
+        return dao.findFirstByQuery(q);
     }
 
     private NopMetaQualityResult findResult(String ruleId) {

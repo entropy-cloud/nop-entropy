@@ -47,6 +47,10 @@ import java.util.Set;
  *   <li>单规则执行抛异常 → 记入 errors、clearSession、不中断后续规则（D3 失败隔离）</li>
  *   <li>entityType=database 规则 → 写 SKIP 结果行（不剔除，与 §2.7.1 D1 单规则语义一致）</li>
  * </ul>
+ *
+ * <p>D6（受影响表集合）：执行循环收集 {@code affectedTableIds}（仅实际被判定 judge 的非 database 规则的去重
+ * {@code rule.getEntityId()}），加入返回摘要。executor **不感知 scorer**——自动评分触发由 BizModel 层
+ * 按 {@code affectedTableIds} 逐表调 {@code computeQualityScore}（§2.7.3 D6，详见架构基线）。
  */
 public class MetaQualityCheckpointExecutor {
 
@@ -94,9 +98,14 @@ public class MetaQualityCheckpointExecutor {
     /**
      * 执行检查点（架构基线 §2.7.3 D2-D5）。
      *
+     * <p>执行循环中收集 {@code affectedTableIds}（仅实际被判定 judge 的非 database 规则的去重
+     * {@code rule.getEntityId()}，即真正命中某 NopMetaTable 的规则），加入返回摘要，供 BizModel
+     * 层按表触发自动评分（§2.7.3 D6，executor 不感知 scorer）。
+     *
      * @param cp            检查点（非 null，已由 BizModel 加载）
      * @param schemaPattern 可选 schema 限定（null/空串表示依赖连接默认 schema）
-     * @return 执行摘要 {@code {checkpointId, executedCount, passCount, failCount, errorCount, results:[...], errors:[...]}}
+     * @return 执行摘要 {@code {checkpointId, executedCount, passCount, failCount, errorCount,
+     *         affectedTableIds:[...], results:[...], errors:[...]}}
      */
     public Map<String, Object> execute(NopMetaQualityCheckpoint cp, String schemaPattern) {
         // D5：状态门禁——非 ACTIVE 显式失败（不静默跳过）
@@ -125,12 +134,23 @@ public class MetaQualityCheckpointExecutor {
         int skipCount = 0;
         List<Map<String, Object>> results = new ArrayList<>();
         List<Map<String, Object>> errors = new ArrayList<>(resolution.errors);
+        // D6：受影响表集合（仅实际被判定 judge 的非 database 规则的去重 entityId），
+        // 供 BizModel 层按表触发自动评分。database SKIP 规则不纳入（其 entityId 不指向待评 metaTable）。
+        Set<String> affectedTableIds = new LinkedHashSet<>();
 
         for (NopMetaQualityRule rule : resolution.rules) {
             try {
                 QualityRuleJudgment judgment = executeSingleRule(cp, rule, schemaPattern);
                 resultWriter.append(resultDao, rule.getQualityRuleId(), judgment);
                 orm.flushSession();
+
+                // 收集受影响表：仅非 database 规则（database 规则 SKIP 不命中 NopMetaTable），
+                // 且 executeSingleRule + resultWriter.append 成功（真正被判定并落盘结果）。
+                if (!_NopMetadataCoreConstants.QUALITY_ENTITY_TYPE_DATABASE.equals(rule.getEntityType())) {
+                    if (rule.getEntityId() != null) {
+                        affectedTableIds.add(rule.getEntityId());
+                    }
+                }
 
                 String status = judgment.getStatus();
                 if (_NopMetadataCoreConstants.QUALITY_RESULT_STATUS_PASS.equals(status)) {
@@ -159,6 +179,7 @@ public class MetaQualityCheckpointExecutor {
         summary.put("passCount", passCount);
         summary.put("failCount", failCount);
         summary.put("errorCount", errorCount);
+        summary.put("affectedTableIds", new ArrayList<>(affectedTableIds));
         summary.put("results", results);
         summary.put("errors", errors);
         return summary;
