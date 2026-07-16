@@ -23,9 +23,6 @@ public class JobPartitionResolver {
     private boolean enableCluster;
     private IntRangeSet assignedPartitions;
 
-    private volatile List<ServiceInstance> lastSeenServers;
-    private volatile long lastChangeTime;
-
     private volatile long lastResolveTime;
     private volatile IntRangeSet cachedPartitions;
     private static final long CACHE_TTL_MS = 10_000;
