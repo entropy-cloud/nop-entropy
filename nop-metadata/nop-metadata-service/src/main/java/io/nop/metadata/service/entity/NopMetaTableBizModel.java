@@ -30,6 +30,9 @@ import io.nop.metadata.service.profiling.MetaTableProfiler;
 import io.nop.metadata.service.profiling.ProfilingColumnStats;
 import io.nop.metadata.service.profiling.ProfilingSnapshot;
 import io.nop.metadata.service.query.FilterToSqlTranslator;
+import io.nop.metadata.service.query.MetaAggregationExecutor;
+import io.nop.metadata.service.query.MetaJoinExecutor;
+import io.nop.metadata.service.query.MetaQueryContext;
 import io.nop.metadata.service.sqlview.SqlSelectFieldExtractor;
 import io.nop.metadata.service.sqlview.SqlViewField;
 import jakarta.inject.Inject;
@@ -158,6 +161,12 @@ public class NopMetaTableBizModel extends CrudBizModel<NopMetaTable> implements 
 
     /** TreeBean filter→SQL WHERE 翻译器（架构基线 §4.4 D1，复用 §2.7.1 D3 注入防护）。无状态。 */
     private final FilterToSqlTranslator filterTranslator = new FilterToSqlTranslator();
+
+    /** 跨表 JOIN 执行器（架构基线 §4.4.1，D3/D4/D5）。 */
+    private final MetaJoinExecutor joinExecutor = new MetaJoinExecutor();
+
+    /** 指标/维度聚合执行器（架构基线 §4.4.2，D6/D7）。 */
+    private final MetaAggregationExecutor aggregationExecutor = new MetaAggregationExecutor();
 
     /** external/sql 查询路径首版支持的方言（LIMIT/OFFSET 便携语法，架构基线 §4.4 D1）。 */
     private static final Set<String> SUPPORTED_QUERY_DIALECTS =
@@ -372,6 +381,77 @@ public class NopMetaTableBizModel extends CrudBizModel<NopMetaTable> implements 
         throw new NopException(ERR_QUERY_UNSUPPORTED_TABLE_TYPE)
                 .param("metaTableId", metaTableId)
                 .param("tableType", String.valueOf(tableType));
+    }
+
+    // ============================================================
+    // 跨表 JOIN + 指标/维度聚合查询（架构基线 §4.4.1/§4.4.2，plan 0800-2）
+    // ============================================================
+
+    /**
+     * 跨表 JOIN 查询（架构基线 §4.4.1 D3/D4/D5）。
+     *
+     * <p>按 {@code joinId} 指定的 {@code NopMetaTableJoin} 关联多表：同库（同 querySpace）走原生 JOIN SQL，
+     * 跨库（不同 querySpace）走应用层拼接。{@code joinType=right} 首版显式不支持。
+     *
+     * @param metaTableId 左表（join 所属逻辑表）
+     * @param joinId      NopMetaTableJoin 主键
+     * @param filter      可选 filter（TreeBean，左表属性名字段）
+     * @param limit       可选分页/截断上限
+     * @param offset      可选分页偏移
+     * @param context     服务上下文
+     * @return {@code {items:[{行数据}]}}
+     */
+    @BizQuery
+    public Map<String, Object> queryJoinData(@Name("metaTableId") String metaTableId,
+                                              @Name("joinId") String joinId,
+                                              @Optional @Name("filter") TreeBean filter,
+                                              @Optional @Name("limit") Long limit,
+                                              @Optional @Name("offset") Long offset,
+                                              IServiceContext context) {
+        IEntityDao<NopMetaTable> tableDao = dao();
+        NopMetaTable table = tableDao.getEntityById(metaTableId);
+        if (table == null) {
+            throw new NopException(ERR_QUERY_TABLE_NOT_FOUND).param("metaTableId", metaTableId);
+        }
+        return joinExecutor.executeJoin(table, joinId, filter, limit, offset, buildQueryContext());
+    }
+
+    /**
+     * 指标/维度聚合查询（架构基线 §4.4.2 D6/D7）。
+     *
+     * <p>按选定 Measures + Dimensions 生成聚合 SQL（GROUP BY 维度 + aggFunc 指标），时间维度按 granularity 分桶。
+     * {@code expression} 型 Measure 首版显式不支持。
+     *
+     * @param metaTableId    目标逻辑表
+     * @param measures       选定指标名列表（NopMetaTableMeasure.measureName）
+     * @param dimensions     选定维度名列表（NopMetaTableDimension.dimensionName）
+     * @param filter         可选 filter（TreeBean）
+     * @param limit          可选分页上限
+     * @param offset         可选分页偏移
+     * @param context        服务上下文
+     * @return {@code {items:[{维度值, 指标聚合值}]}}
+     */
+    @BizQuery
+    public Map<String, Object> queryAggregation(@Name("metaTableId") String metaTableId,
+                                                  @Name("measures") List<String> measures,
+                                                  @Name("dimensions") List<String> dimensions,
+                                                  @Optional @Name("filter") TreeBean filter,
+                                                  @Optional @Name("limit") Long limit,
+                                                  @Optional @Name("offset") Long offset,
+                                                  IServiceContext context) {
+        IEntityDao<NopMetaTable> tableDao = dao();
+        NopMetaTable table = tableDao.getEntityById(metaTableId);
+        if (table == null) {
+            throw new NopException(ERR_QUERY_TABLE_NOT_FOUND).param("metaTableId", metaTableId);
+        }
+        return aggregationExecutor.executeAggregation(table, measures, dimensions, filter, limit, offset,
+                buildQueryContext());
+    }
+
+    /** 构造 JOIN/聚合执行器共享的依赖上下文（取本 BizModel 已注入的组件）。 */
+    private MetaQueryContext buildQueryContext() {
+        return new MetaQueryContext(daoProvider(), orm(), connectionService, dataSourceResolver, fieldResolver,
+                filterTranslator);
     }
 
     // ---- entity 分派：经 IOrmTemplate（架构基线 §4.4 D1）----
