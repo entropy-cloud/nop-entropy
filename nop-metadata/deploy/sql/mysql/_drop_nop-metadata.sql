@@ -17,6 +17,7 @@ drop table  if exists  nop_meta_table_measure;
 drop table  if exists  nop_meta_table_filter;
 drop table  if exists  nop_meta_catalog;
 drop table  if exists  nop_meta_profiling_rule;
+drop table  if exists  nop_meta_data_contract;
 drop table  if exists  nop_meta_entity_field;
 drop table  if exists  nop_meta_entity_relation;
 drop table  if exists  nop_meta_entity_unique_key;

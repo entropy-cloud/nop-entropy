@@ -366,6 +366,29 @@ CREATE TABLE nop_meta_profiling_rule(
   constraint PK_nop_meta_profiling_rule primary key (PROFILING_RULE_ID)
 )CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_as_cs;
 
+CREATE TABLE nop_meta_data_contract(
+  CONTRACT_ID VARCHAR(32) NOT NULL    COMMENT '契约ID',
+  CONTRACT_NAME VARCHAR(100) NOT NULL    COMMENT '契约名',
+  DISPLAY_NAME VARCHAR(200) NULL    COMMENT '显示名',
+  ENTITY_TABLE_ID VARCHAR(32) NULL    COMMENT '关联数据表ID',
+  STATUS LONGTEXT NOT NULL    COMMENT '契约状态',
+  OWNER_USER_ID VARCHAR(50) NULL    COMMENT '契约所有者',
+  `SCHEMA` LONGTEXT NULL    COMMENT 'JSON Schema 定义',
+  SLA VARCHAR(4000) NULL    COMMENT 'SLA 定义',
+  QUALITY_EXPECTATIONS VARCHAR(4000) NULL    COMMENT '质量期望',
+  SECURITY VARCHAR(4000) NULL    COMMENT '安全策略',
+  LATEST_RESULT LONGTEXT NULL    COMMENT '最新执行结果',
+  TAG_SET VARCHAR(500) NULL    COMMENT '标签集合',
+  EXT_CONFIG VARCHAR(4000) NULL    COMMENT '扩展配置',
+  DEL_VERSION BIGINT NOT NULL    COMMENT '数据版本',
+  CREATED_BY VARCHAR(50) NOT NULL    COMMENT '创建人',
+  CREATE_TIME DATETIME(3) DEFAULT CURRENT_TIMESTAMP(3)  NOT NULL    COMMENT '创建时间',
+  UPDATED_BY VARCHAR(50) NOT NULL    COMMENT '修改人',
+  UPDATE_TIME DATETIME(3) DEFAULT CURRENT_TIMESTAMP(3)  NOT NULL    COMMENT '修改时间',
+  REMARK VARCHAR(200) NULL    COMMENT '备注',
+  constraint PK_nop_meta_data_contract primary key (CONTRACT_ID)
+)CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_as_cs;
+
 CREATE TABLE nop_meta_entity_field(
   ENTITY_FIELD_ID VARCHAR(32) NOT NULL    COMMENT '字段ID',
   META_ENTITY_ID VARCHAR(32) NOT NULL    COMMENT '实体ID',
@@ -551,6 +574,8 @@ CREATE TABLE nop_meta_profiling_result(
    ALTER TABLE nop_meta_catalog COMMENT '运行时统计快照';
                 
    ALTER TABLE nop_meta_profiling_rule COMMENT '数据剖析规则';
+                
+   ALTER TABLE nop_meta_data_contract COMMENT '数据契约';
                 
    ALTER TABLE nop_meta_entity_field COMMENT '实体字段';
                 

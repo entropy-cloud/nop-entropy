@@ -1,0 +1,23 @@
+# __XGEN_FORCE_OVERRIDE__
+label: 数据契约状态
+locale: zh-CN
+valueType: string
+description: 
+options:
+
+  - label: 草稿
+    value: DRAFT
+    description: 
+  
+  - label: 生效
+    value: ACTIVE
+    description: 
+  
+  - label: 已废弃
+    value: DEPRECATED
+    description: 
+  
+  - label: 已退役
+    value: RETIRED
+    description: 
+  

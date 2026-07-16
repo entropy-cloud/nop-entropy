@@ -1,6 +1,7 @@
 entity:
   label:
     NopMetaCatalog: 运行时统计快照
+    NopMetaDataContract: 数据契约
     NopMetaDataSource: 数据源
     NopMetaDict: 元数据字典
     NopMetaDictItem: 字典项
@@ -43,6 +44,35 @@ prop:
       remark: 备注
       rowCount: 行数
       sizeBytes: 表物理大小
+      updateTime: 修改时间
+      updatedBy: 修改人
+      version: 数据版本
+    NopMetaDataContract:
+      contractId: 契约ID
+      contractName: 契约名
+      createTime: 创建时间
+      createdBy: 创建人
+      displayName: 显示名
+      entityTableId: 关联数据表ID
+      extConfig: 扩展配置
+      extConfigComponent: null
+      latestResult: 最新执行结果
+      latestResultComponent: null
+      metaTable: 逻辑表
+      metaTable.displayName: 逻辑表
+      ownerUserId: 契约所有者
+      qualityExpectations: 质量期望
+      qualityExpectationsComponent: null
+      remark: 备注
+      schema: JSON Schema 定义
+      schemaComponent: null
+      security: 安全策略
+      securityComponent: null
+      sla: SLA 定义
+      slaComponent: null
+      status: 契约状态
+      status_label: 契约状态
+      tagSet: 标签集合
       updateTime: 修改时间
       updatedBy: 修改人
       version: 数据版本

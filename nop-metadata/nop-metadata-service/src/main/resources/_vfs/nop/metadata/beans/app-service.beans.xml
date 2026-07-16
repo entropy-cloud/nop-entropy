@@ -12,4 +12,9 @@
          纯元数据用途，不注册连接池到 ORM querySpace 路由（架构基线 §2.2）。-->
     <bean id="io.nop.metadata.service.connection.MetaDataSourceConnectionService"
           class="io.nop.metadata.service.connection.MetaDataSourceConnectionService" ioc:default="true"/>
+
+    <!-- 数据契约检查器（设计 04 §5.2 D2）：聚合质量结果 + SLA 新鲜度，由 NopMetaDataContractBizModel 注入。
+         无状态，IDaoProvider 由 nop-dao 全局提供。-->
+    <bean id="io.nop.metadata.service.contract.MetaContractChecker"
+          class="io.nop.metadata.service.contract.MetaContractChecker" ioc:default="true"/>
 </beans>

@@ -1,0 +1,135 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<meta x:schema="/nop/schema/xmeta.xdef" xmlns:x="/nop/schema/xdsl.xdef" xmlns:i18n-en="i18n-en" xmlns:ext="ext"
+      xmlns:xpl="xpl" ext:model="orm" ext:icon="file-check-2" xmlns:c="c" xmlns:graphql="graphql"
+      xmlns:meta-gen="meta-gen" xmlns:biz="biz" displayName="数据契约" i18n-en:displayName="Meta Data Contract"
+      xmlns:ui="ui" xmlns:orm="orm">
+
+    <entityName>io.nop.metadata.dao.entity.NopMetaDataContract</entityName>
+
+    <primaryKey>contractId</primaryKey>
+
+    <displayProp>displayName</displayProp>
+
+    <x:gen-extends>
+        <meta-gen:DefaultMetaGenExtends xpl:lib="/nop/core/xlib/meta-gen.xlib"/>
+    </x:gen-extends>
+
+    <x:post-extends>
+        <meta-gen:DefaultMetaPostExtends xpl:lib="/nop/core/xlib/meta-gen.xlib"/>
+    </x:post-extends>
+
+    <keys/>
+
+    <props>
+        <prop name="contractId" displayName="契约ID" propId="1" i18n-en:displayName="Contract Id" tagSet="seq"
+              mandatory="true" queryable="true" sortable="true" insertable="true" updatable="false">
+            <schema type="java.lang.String" precision="32"/>
+        </prop>
+        <prop name="contractName" displayName="契约名" propId="2" i18n-en:displayName="Contract Name" mandatory="true"
+              queryable="true" sortable="true" insertable="true" updatable="true">
+            <schema type="java.lang.String" precision="100"/>
+        </prop>
+        <prop name="displayName" displayName="显示名" propId="3" i18n-en:displayName="Display Name" tagSet="disp"
+              queryable="true" sortable="true" insertable="true" updatable="true">
+            <schema type="java.lang.String" precision="200"/>
+        </prop>
+        <prop name="entityTableId" displayName="关联数据表ID" propId="4" i18n-en:displayName="Entity Table Id"
+              queryable="true" sortable="true" insertable="true" updatable="true" ext:relation="metaTable">
+            <schema type="java.lang.String" precision="32"/>
+        </prop>
+        <prop name="status" displayName="契约状态" propId="5" i18n-en:displayName="Status" mandatory="true" queryable="true"
+              sortable="true" insertable="true" updatable="true">
+            <schema type="java.lang.String" dict="meta/contract-status"/>
+        </prop>
+        <prop name="ownerUserId" displayName="契约所有者" propId="6" i18n-en:displayName="Owner User Id" queryable="true"
+              sortable="true" insertable="true" updatable="true">
+            <schema domain="userId" type="java.lang.String" precision="50"/>
+        </prop>
+        <prop name="schema" displayName="JSON Schema 定义" propId="7" i18n-en:displayName="Schema" queryable="true"
+              sortable="true" insertable="true" updatable="true" graphql:jsonComponentProp="schemaComponent">
+            <schema stdDomain="json" domain="mediumtext" type="java.lang.String" precision="16777216"/>
+        </prop>
+        <prop name="sla" displayName="SLA 定义" propId="8" i18n-en:displayName="Sla" queryable="true" sortable="true"
+              insertable="true" updatable="true" graphql:jsonComponentProp="slaComponent">
+            <schema stdDomain="json" domain="json-4000" type="java.lang.String" precision="4000"/>
+        </prop>
+        <prop name="qualityExpectations" displayName="质量期望" propId="9" i18n-en:displayName="Quality Expectations"
+              queryable="true" sortable="true" insertable="true" updatable="true"
+              graphql:jsonComponentProp="qualityExpectationsComponent">
+            <schema stdDomain="json" domain="json-4000" type="java.lang.String" precision="4000"/>
+        </prop>
+        <prop name="security" displayName="安全策略" propId="10" i18n-en:displayName="Security" queryable="true"
+              sortable="true" insertable="true" updatable="true" graphql:jsonComponentProp="securityComponent">
+            <schema stdDomain="json" domain="json-4000" type="java.lang.String" precision="4000"/>
+        </prop>
+        <prop name="latestResult" displayName="最新执行结果" propId="11" i18n-en:displayName="Latest Result" queryable="true"
+              sortable="true" insertable="true" updatable="true" graphql:jsonComponentProp="latestResultComponent">
+            <schema stdDomain="json" domain="mediumtext" type="java.lang.String" precision="16777216"/>
+        </prop>
+        <prop name="tagSet" displayName="标签集合" propId="12" i18n-en:displayName="Tag Set" queryable="true"
+              sortable="true" insertable="true" updatable="true">
+            <schema type="java.lang.String" precision="500"/>
+        </prop>
+        <prop name="extConfig" displayName="扩展配置" propId="13" i18n-en:displayName="Ext Config" queryable="true"
+              sortable="true" insertable="true" updatable="true" graphql:jsonComponentProp="extConfigComponent">
+            <schema stdDomain="json" domain="json-4000" type="java.lang.String" precision="4000"/>
+        </prop>
+        <prop name="version" displayName="数据版本" propId="14" i18n-en:displayName="Version" mandatory="true"
+              queryable="true" sortable="true" insertable="false" updatable="false" internal="true">
+            <schema domain="version" type="java.lang.Long"/>
+        </prop>
+        <prop name="createdBy" displayName="创建人" propId="15" i18n-en:displayName="Created By" mandatory="true"
+              queryable="true" sortable="true" insertable="false" updatable="false">
+            <schema domain="createdBy" type="java.lang.String" precision="50"/>
+        </prop>
+        <prop name="createTime" displayName="创建时间" propId="16" i18n-en:displayName="Create Time" mandatory="true"
+              queryable="true" sortable="true" insertable="false" updatable="false">
+            <schema domain="createTime" type="java.sql.Timestamp"/>
+        </prop>
+        <prop name="updatedBy" displayName="修改人" propId="17" i18n-en:displayName="Updated By" mandatory="true"
+              queryable="true" sortable="true" insertable="false" updatable="false">
+            <schema domain="updatedBy" type="java.lang.String" precision="50"/>
+        </prop>
+        <prop name="updateTime" displayName="修改时间" propId="18" i18n-en:displayName="Update Time" mandatory="true"
+              queryable="true" sortable="true" insertable="false" updatable="false">
+            <schema domain="updateTime" type="java.sql.Timestamp"/>
+        </prop>
+        <prop name="remark" displayName="备注" propId="19" i18n-en:displayName="Remark" queryable="true" sortable="true"
+              insertable="true" updatable="true">
+            <schema domain="remark" type="java.lang.String" precision="200"/>
+        </prop>
+        <prop name="metaTable" displayName="逻辑表" i18n-en:displayName="Meta Table" tagSet="pub,ref-pub" ext:kind="to-one"
+              internal="true" queryable="true" ext:joinLeftProp="entityTableId" ext:joinRightProp="metaTableId"
+              ext:joinRightDisplayProp="displayName" insertable="false" updatable="false" lazy="true">
+            <schema bizObjName="NopMetaTable"/>
+        </prop>
+        <prop name="metaTable.displayName" displayName="逻辑表" i18n-en:displayName="Meta Table" internal="true"
+              queryable="true" sortable="true" lazy="true">
+            <schema type="String"/>
+        </prop>
+        <prop name="schemaComponent" tagSet="json,pub,edit" ext:kind="component" internal="true" insertable="true"
+              updatable="true" lazy="true">
+            <schema type="io.nop.orm.component.JsonOrmComponent"/>
+        </prop>
+        <prop name="slaComponent" tagSet="json,pub,edit" ext:kind="component" internal="true" insertable="true"
+              updatable="true" lazy="true">
+            <schema type="io.nop.orm.component.JsonOrmComponent"/>
+        </prop>
+        <prop name="qualityExpectationsComponent" tagSet="json,pub,edit" ext:kind="component" internal="true"
+              insertable="true" updatable="true" lazy="true">
+            <schema type="io.nop.orm.component.JsonOrmComponent"/>
+        </prop>
+        <prop name="securityComponent" tagSet="json,pub,edit" ext:kind="component" internal="true" insertable="true"
+              updatable="true" lazy="true">
+            <schema type="io.nop.orm.component.JsonOrmComponent"/>
+        </prop>
+        <prop name="latestResultComponent" tagSet="json,pub,edit" ext:kind="component" internal="true" insertable="true"
+              updatable="true" lazy="true">
+            <schema type="io.nop.orm.component.JsonOrmComponent"/>
+        </prop>
+        <prop name="extConfigComponent" tagSet="json,pub,edit" ext:kind="component" internal="true" insertable="true"
+              updatable="true" lazy="true">
+            <schema type="io.nop.orm.component.JsonOrmComponent"/>
+        </prop>
+    </props>
+</meta>

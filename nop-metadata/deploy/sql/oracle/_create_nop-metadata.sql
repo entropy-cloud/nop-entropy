@@ -366,6 +366,29 @@ CREATE TABLE nop_meta_profiling_rule(
   constraint PK_nop_meta_profiling_rule primary key (PROFILING_RULE_ID)
 );
 
+CREATE TABLE nop_meta_data_contract(
+  CONTRACT_ID VARCHAR2(32) NOT NULL ,
+  CONTRACT_NAME VARCHAR2(100) NOT NULL ,
+  DISPLAY_NAME VARCHAR2(200)  ,
+  ENTITY_TABLE_ID VARCHAR2(32)  ,
+  STATUS CLOB NOT NULL ,
+  OWNER_USER_ID VARCHAR2(50)  ,
+  SCHEMA CLOB  ,
+  SLA VARCHAR2(4000)  ,
+  QUALITY_EXPECTATIONS VARCHAR2(4000)  ,
+  SECURITY VARCHAR2(4000)  ,
+  LATEST_RESULT CLOB  ,
+  TAG_SET VARCHAR2(500)  ,
+  EXT_CONFIG VARCHAR2(4000)  ,
+  DEL_VERSION NUMBER(20) NOT NULL ,
+  CREATED_BY VARCHAR2(50) NOT NULL ,
+  CREATE_TIME TIMESTAMP NOT NULL ,
+  UPDATED_BY VARCHAR2(50) NOT NULL ,
+  UPDATE_TIME TIMESTAMP NOT NULL ,
+  REMARK VARCHAR2(200)  ,
+  constraint PK_nop_meta_data_contract primary key (CONTRACT_ID)
+);
+
 CREATE TABLE nop_meta_entity_field(
   ENTITY_FIELD_ID VARCHAR2(32) NOT NULL ,
   META_ENTITY_ID VARCHAR2(32) NOT NULL ,
@@ -1141,6 +1164,46 @@ CREATE TABLE nop_meta_profiling_result(
       COMMENT ON COLUMN nop_meta_profiling_rule.UPDATE_TIME IS '修改时间';
                     
       COMMENT ON COLUMN nop_meta_profiling_rule.REMARK IS '备注';
+                    
+      COMMENT ON TABLE nop_meta_data_contract IS '数据契约';
+                
+      COMMENT ON COLUMN nop_meta_data_contract.CONTRACT_ID IS '契约ID';
+                    
+      COMMENT ON COLUMN nop_meta_data_contract.CONTRACT_NAME IS '契约名';
+                    
+      COMMENT ON COLUMN nop_meta_data_contract.DISPLAY_NAME IS '显示名';
+                    
+      COMMENT ON COLUMN nop_meta_data_contract.ENTITY_TABLE_ID IS '关联数据表ID';
+                    
+      COMMENT ON COLUMN nop_meta_data_contract.STATUS IS '契约状态';
+                    
+      COMMENT ON COLUMN nop_meta_data_contract.OWNER_USER_ID IS '契约所有者';
+                    
+      COMMENT ON COLUMN nop_meta_data_contract.SCHEMA IS 'JSON Schema 定义';
+                    
+      COMMENT ON COLUMN nop_meta_data_contract.SLA IS 'SLA 定义';
+                    
+      COMMENT ON COLUMN nop_meta_data_contract.QUALITY_EXPECTATIONS IS '质量期望';
+                    
+      COMMENT ON COLUMN nop_meta_data_contract.SECURITY IS '安全策略';
+                    
+      COMMENT ON COLUMN nop_meta_data_contract.LATEST_RESULT IS '最新执行结果';
+                    
+      COMMENT ON COLUMN nop_meta_data_contract.TAG_SET IS '标签集合';
+                    
+      COMMENT ON COLUMN nop_meta_data_contract.EXT_CONFIG IS '扩展配置';
+                    
+      COMMENT ON COLUMN nop_meta_data_contract.DEL_VERSION IS '数据版本';
+                    
+      COMMENT ON COLUMN nop_meta_data_contract.CREATED_BY IS '创建人';
+                    
+      COMMENT ON COLUMN nop_meta_data_contract.CREATE_TIME IS '创建时间';
+                    
+      COMMENT ON COLUMN nop_meta_data_contract.UPDATED_BY IS '修改人';
+                    
+      COMMENT ON COLUMN nop_meta_data_contract.UPDATE_TIME IS '修改时间';
+                    
+      COMMENT ON COLUMN nop_meta_data_contract.REMARK IS '备注';
                     
       COMMENT ON TABLE nop_meta_entity_field IS '实体字段';
                 

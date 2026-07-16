@@ -4,6 +4,10 @@ site:
       displayName: Modify Meta Catalog
     FNPT:NopMetaCatalog:query:
       displayName: Query Meta Catalog
+    FNPT:NopMetaDataContract:mutation:
+      displayName: Modify Meta Data Contract
+    FNPT:NopMetaDataContract:query:
+      displayName: Query Meta Data Contract
     FNPT:NopMetaDataSource:mutation:
       displayName: Modify Meta Datasource
     FNPT:NopMetaDataSource:query:
@@ -102,6 +106,8 @@ site:
       displayName: Query Meta Table Measure
     NopMetaCatalog-main:
       displayName: Meta Catalog
+    NopMetaDataContract-main:
+      displayName: Meta Data Contract
     NopMetaDataSource-main:
       displayName: Meta Datasource
     NopMetaDict-main:

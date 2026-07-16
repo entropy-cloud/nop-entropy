@@ -1,6 +1,7 @@
 entity:
   label:
     NopMetaCatalog: Meta Catalog
+    NopMetaDataContract: Meta Data Contract
     NopMetaDataSource: Meta Datasource
     NopMetaDict: Meta Dict
     NopMetaDictItem: Meta Dict Item
@@ -46,6 +47,35 @@ prop:
       metaTable: Meta Table
       metaTable.displayName: Meta Table
       detailsComponent: null
+    NopMetaDataContract:
+      contractId: Contract Id
+      contractName: Contract Name
+      displayName: Display Name
+      entityTableId: Entity Table Id
+      status: Status
+      status_label: null
+      ownerUserId: Owner User Id
+      schema: Schema
+      sla: Sla
+      qualityExpectations: Quality Expectations
+      security: Security
+      latestResult: Latest Result
+      tagSet: Tag Set
+      extConfig: Ext Config
+      version: Version
+      createdBy: Created By
+      createTime: Create Time
+      updatedBy: Updated By
+      updateTime: Update Time
+      remark: Remark
+      metaTable: Meta Table
+      metaTable.displayName: Meta Table
+      schemaComponent: null
+      slaComponent: null
+      qualityExpectationsComponent: null
+      securityComponent: null
+      latestResultComponent: null
+      extConfigComponent: null
     NopMetaDataSource:
       dataSourceId: Datasource Id
       querySpace: Query Space
@@ -569,3 +599,4 @@ dict:
     meta/quality-entity-type: Quality Entity Type
     meta/quality-severity: Quality Severity
     meta/quality-result-status: Quality Result Status
+    meta/contract-status: Data Contract Status

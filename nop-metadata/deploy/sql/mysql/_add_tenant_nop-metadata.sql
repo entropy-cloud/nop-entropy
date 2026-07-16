@@ -35,6 +35,8 @@ alter table nop_meta_catalog add NOP_TENANT_ID VARCHAR(32) DEFAULT '0' NOT NULL;
 
 alter table nop_meta_profiling_rule add NOP_TENANT_ID VARCHAR(32) DEFAULT '0' NOT NULL;
 
+alter table nop_meta_data_contract add NOP_TENANT_ID VARCHAR(32) DEFAULT '0' NOT NULL;
+
 alter table nop_meta_entity_field add NOP_TENANT_ID VARCHAR(32) DEFAULT '0' NOT NULL;
 
 alter table nop_meta_entity_relation add NOP_TENANT_ID VARCHAR(32) DEFAULT '0' NOT NULL;
@@ -102,6 +104,9 @@ alter table nop_meta_catalog add primary key (NOP_TENANT_ID, META_CATALOG_ID);
 
 alter table nop_meta_profiling_rule drop primary key;
 alter table nop_meta_profiling_rule add primary key (NOP_TENANT_ID, PROFILING_RULE_ID);
+
+alter table nop_meta_data_contract drop primary key;
+alter table nop_meta_data_contract add primary key (NOP_TENANT_ID, CONTRACT_ID);
 
 alter table nop_meta_entity_field drop primary key;
 alter table nop_meta_entity_field add primary key (NOP_TENANT_ID, ENTITY_FIELD_ID);

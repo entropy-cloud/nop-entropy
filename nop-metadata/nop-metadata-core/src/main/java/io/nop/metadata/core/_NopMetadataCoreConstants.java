@@ -273,4 +273,24 @@ public interface _NopMetadataCoreConstants {
      */
     String QUALITY_RESULT_STATUS_SKIP = "SKIP";
                     
+    /**
+     * 数据契约状态: 草稿 
+     */
+    String CONTRACT_STATUS_DRAFT = "DRAFT";
+                    
+    /**
+     * 数据契约状态: 生效 
+     */
+    String CONTRACT_STATUS_ACTIVE = "ACTIVE";
+                    
+    /**
+     * 数据契约状态: 已废弃 
+     */
+    String CONTRACT_STATUS_DEPRECATED = "DEPRECATED";
+                    
+    /**
+     * 数据契约状态: 已退役 
+     */
+    String CONTRACT_STATUS_RETIRED = "RETIRED";
+                    
 }
