@@ -365,6 +365,20 @@ MetaTableJoin                   — 表关联
 - **resolveTableFields 与 plan 0700-1 的 ownership**：plan 0700-1 的 `resolveTableFields` 为 **sql-only** 版本；本裁定将其**扩展为全 tableType**（entity/external/sql 分派）。entity/external 分派独立可用；sql 分派复用 0700-1 的解析器。
 - **降级（不静默通过）**：字段集合解析失败（sql sourceSql 不可解析 / external buildSql JSON 损坏 / entity baseEntityId null）→ 显式失败抛 inline ErrorCode（不静默跳过校验、不静默存入悬空引用、不吞异常）。
 
+**D3 — 跨表 Measure/Dimension 字段引用校验范围（entity-entity，plan 0228-3 裁定）**：
+
+本节落地 plan 2026-07-17-0228-3 的设计决策 D1/D2。在 P4-2 联邦查询 entity-entity JOIN 执行已 done 之后，扩展 BI 语义层 Measure/Dimension 的 save override 字段引用校验范围，使 entity 类型表的 `entityFieldId` 引用可校验**通过 NopMetaTableJoin 直连可达的 rightEntityId 实体字段**（跨表指标），而非仅限主表 `baseEntityId` 实体字段。
+
+- **可达 entityId 集合（Approach A：PK 归属语义，不构建字段 PK 集合）**：entity 表的 Measure/Dimension save 校验时，构建**可达 entityId 集合** `allowedEntityIds = {baseEntityId ∪ 该表所有 NopMetaTableJoin（按 metaTableId 加载）的 rightEntityId}`。Measure/Dimension 的 `entityFieldId` 引用的 `NopMetaEntityField`（按 PK 加载），其 `metaEntityId` 须 ∈ `allowedEntityIds`。这是对既有 `validateFieldReference` 单一归属判定（`field.getMetaEntityId() == table.getBaseEntityId()`）的最小扩展——扩展为 `allowedEntityIds.contains(field.getMetaEntityId())`，**不新建字段 PK 集合查询路径**。
+- **PK 归属不降级为名称集合**：entity 表沿用既有 PK 归属判定（不改为列名字符串集合判定），保持 entity-only 校验语义不退化。
+- **Dimension 一并扩展（与 Measure 共享 `validateFieldReference`）**：`NopMetaTableDimensionBizModel` 与 `NopMetaTableMeasureBizModel` 共享 `MetaTableFieldResolver.validateFieldReference`。扩展该方法即两者一并获得跨表校验，不为 Measure 单建路径（避免逻辑分叉）。
+- **Join 加载范围（仅直连，递归 deferred）**：仅加载该 `metaTableId` 的 Join 列表，收集其 `rightEntityId`。不递归 join 图（A→B→C 间接可达，首版 deferred，为 follow-up）。
+- **Join leftEntityId 不要求 == baseEntityId（宽松语义）**：任意该表 Join 的 `rightEntityId` 均视为可达，不要求 Join 的 `leftEntityId` == `baseEntityId`。宽松语义避免对 Join 建模形式做强约束（用户可定义 leftEntityId 为中间实体的多跳 Join，首版统一视为可达 rightEntity）。
+- **悬空跨表引用显式失败**：Measure/Dimension 引用的 field，其 `metaEntityId` 不在 `allowedEntityIds`（既非主表 baseEntity，也无 Join 直连可达）→ 显式失败抛 inline ErrorCode（不静默存入悬空引用），对齐 §2.5.2 降级铁律。
+- **Filter 跨表裁定（首版限主表，follow-up）**：Filter.definition（TreeBean）内字段名解析 + 跨表可达集合合并复杂度高于 Measure（PK 引用）。首版 Filter save 校验仍限主表可用字段集合，Filter 跨表为 follow-up（不阻塞本裁定）。
+- **external/sql 表 Measure/Dimension 排除（无 join 可达）**：明确 external/sql 类型表的 Measure/Dimension **不做跨表校验**——`NopMetaTableJoin` 仅引用 NopMetaEntity（leftEntityId/rightEntityId），orm.xml 中无 leftTableId/rightTableId 列，sql/external 表无 entity 无法作为 join 端点。external/sql 表 Measure/Dimension 沿用既有名称集合校验（不扩展、不误判）。
+- **expression 型 Measure 不变**：`entityFieldId` 为 null（expression 型指标）仍跳过字段引用校验（Non-Goal 不变）。
+
 #### 2.5.1 外部表建模（syncExternalTables）
 
 本节落地 plan P2-2 的设计决策 D1/D2。外部表是从已注册 jdbc 数据源（P2-1）扫描注册的物理表，不属于任何平台 ORM 模块，也没有 MetaEntity/OrmModel 来源。
