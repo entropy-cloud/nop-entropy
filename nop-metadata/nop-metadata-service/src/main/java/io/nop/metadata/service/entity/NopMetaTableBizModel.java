@@ -6,6 +6,7 @@ import io.nop.api.core.annotations.biz.BizQuery;
 import io.nop.api.core.annotations.core.Name;
 import io.nop.api.core.annotations.core.Optional;
 import io.nop.api.core.beans.FilterBeans;
+import io.nop.api.core.beans.TreeBean;
 import io.nop.api.core.beans.query.QueryBean;
 import io.nop.api.core.exceptions.ErrorCode;
 import io.nop.api.core.exceptions.NopException;
@@ -16,16 +17,19 @@ import io.nop.dao.api.IEntityDao;
 import io.nop.metadata.biz.INopMetaTableBiz;
 import io.nop.metadata.core._NopMetadataCoreConstants;
 import io.nop.metadata.dao.entity.NopMetaDataSource;
+import io.nop.metadata.dao.entity.NopMetaEntity;
 import io.nop.metadata.dao.entity.NopMetaModule;
 import io.nop.metadata.dao.entity.NopMetaProfilingResult;
 import io.nop.metadata.dao.entity.NopMetaEntityField;
 import io.nop.metadata.dao.entity.NopMetaTable;
 import io.nop.metadata.service.connection.IMetaDataSourceConnectionService;
+import io.nop.metadata.service.datasource.MetaDataSourceResolver;
 import io.nop.metadata.service.field.MetaTableFieldResolver;
 import io.nop.metadata.service.field.ResolvedTableField;
 import io.nop.metadata.service.profiling.MetaTableProfiler;
 import io.nop.metadata.service.profiling.ProfilingColumnStats;
 import io.nop.metadata.service.profiling.ProfilingSnapshot;
+import io.nop.metadata.service.query.FilterToSqlTranslator;
 import io.nop.metadata.service.sqlview.SqlSelectFieldExtractor;
 import io.nop.metadata.service.sqlview.SqlViewField;
 import jakarta.inject.Inject;
@@ -34,12 +38,18 @@ import org.slf4j.LoggerFactory;
 
 import java.sql.Connection;
 import java.sql.DatabaseMetaData;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 /**
  * 逻辑表 BizModel：基线 CRUD（{@link CrudBizModel}）+ 数据剖析入口（架构基线 §2.7.2 / 设计 06 §三 D3）。
@@ -99,6 +109,35 @@ public class NopMetaTableBizModel extends CrudBizModel<NopMetaTable> implements 
             ErrorCode.define("metadata.sql-table-not-found",
                     "NopMetaTable not found for resolveTableFields: {metaTableId}", "metaTableId");
 
+    // ===== 单表数据查询（queryTableData，架构基线 §4.4 D1/D2）=====
+    static final ErrorCode ERR_QUERY_TABLE_NOT_FOUND =
+            ErrorCode.define("metadata.query-table-not-found",
+                    "NopMetaTable not found for queryTableData: {metaTableId}", "metaTableId");
+    static final ErrorCode ERR_QUERY_UNSUPPORTED_TABLE_TYPE =
+            ErrorCode.define("metadata.query-unsupported-table-type",
+                    "Unsupported tableType for queryTableData: {metaTableId} tableType={tableType}",
+                    "metaTableId", "tableType");
+    static final ErrorCode ERR_QUERY_ENTITY_NOT_FOUND =
+            ErrorCode.define("metadata.query-entity-not-found",
+                    "Entity record not found for entity table (baseEntityId dangling): "
+                            + "{metaTableId} baseEntityId={baseEntityId}", "metaTableId", "baseEntityId");
+    static final ErrorCode ERR_QUERY_ENTITY_NOT_REGISTERED =
+            ErrorCode.define("metadata.query-entity-not-registered",
+                    "Entity is not registered in runtime IOrmSessionFactory (cannot query, would be silent empty set): "
+                            + "{metaTableId} entityName={entityName}", "metaTableId", "entityName");
+    static final ErrorCode ERR_QUERY_SQL_SOURCE_EMPTY =
+            ErrorCode.define("metadata.query-sql-source-empty",
+                    "sql table sourceSql is empty, cannot query: {metaTableId}", "metaTableId");
+    static final ErrorCode ERR_QUERY_UNSUPPORTED_DIALECT =
+            ErrorCode.define("metadata.query-unsupported-dialect",
+                    "Dialect not supported in first version (only H2/MySQL/PostgreSQL): "
+                            + "{databaseProductName} metaTableId={metaTableId}",
+                    "databaseProductName", "metaTableId");
+    static final ErrorCode ERR_QUERY_SQL_EXEC_FAILED =
+            ErrorCode.define("metadata.query-sql-exec-failed",
+                    "Query SQL execution failed: metaTableId={metaTableId} -- {error}",
+                    "metaTableId", "error");
+
     @Inject
     protected IMetaDataSourceConnectionService connectionService;
 
@@ -113,6 +152,16 @@ public class NopMetaTableBizModel extends CrudBizModel<NopMetaTable> implements 
      * 是 Measure/Dimension/Join 字段引用校验的基础，也是 {@link #resolveTableFields} 的核心。
      */
     private final MetaTableFieldResolver fieldResolver = new MetaTableFieldResolver(sqlFieldExtractor);
+
+    /** querySpace→NopMetaDataSource 解析共享组件（架构基线 §4.4 D2）。 */
+    private final MetaDataSourceResolver dataSourceResolver = new MetaDataSourceResolver();
+
+    /** TreeBean filter→SQL WHERE 翻译器（架构基线 §4.4 D1，复用 §2.7.1 D3 注入防护）。无状态。 */
+    private final FilterToSqlTranslator filterTranslator = new FilterToSqlTranslator();
+
+    /** external/sql 查询路径首版支持的方言（LIMIT/OFFSET 便携语法，架构基线 §4.4 D1）。 */
+    private static final Set<String> SUPPORTED_QUERY_DIALECTS =
+            Collections.unmodifiableSet(new java.util.HashSet<>(Arrays.asList("H2", "MySQL", "PostgreSQL")));
 
     public NopMetaTableBizModel() {
         setEntityName(NopMetaTable.class.getName());
@@ -269,6 +318,294 @@ public class NopMetaTableBizModel extends CrudBizModel<NopMetaTable> implements 
         result.put("tableType", table.getTableType());
         result.put("fields", toResolvedFieldMaps(fields));
         return result;
+    }
+
+    // ============================================================
+    // 单表数据查询 queryTableData（架构基线 §4.4 D1/D2）
+    // ============================================================
+
+    /**
+     * 统一单表数据查询入口（架构基线 §4.4 D1）：按 tableType 三路分派——
+     * <ul>
+     *   <li><b>entity</b> → 经平台 {@code IOrmTemplate}：{@code QueryBean.sourceName=entityName}+{@code orm().findListByQuery}
+     *       （实体须注册于运行时 {@code IOrmSessionFactory}，否则显式失败）</li>
+     *   <li><b>external</b> → 经 {@code withConnection} 跑限定物理表名的原生 SELECT（querySpace→NopMetaDataSource）</li>
+     *   <li><b>sql</b> → 经 {@code withConnection} 执行 sourceSql（包一层子查询 + WHERE/LIMIT/OFFSET，D2）</li>
+     * </ul>
+     *
+     * <p>{@code filter} 为平台 TreeBean filter 树（与 §2.5.2 D1 {@code MetaTableFilter.definition} 同结构，非整个 QueryBean；
+     * 过滤只是 QueryBean 的 {@code filter} 子树）。external/sql 路径的 filter→WHERE 翻译复用 §2.7.1 D3 注入防护
+     * （标识符白名单 + PreparedStatement 值绑定）。方言范围 H2/MySQL/PostgreSQL。
+     *
+     * <p>失败路径显式（不静默空集、不吞异常）：表不存在 / querySpace 无数据源 / DISABLED / 非 jdbc（withConnection 抛）/
+     * sql querySpace null 或无匹配 / 实体未注册 / 不支持的方言 / sourceSql 空 / 未知 tableType 均显式失败。
+     *
+     * @param metaTableId 目标逻辑表 ID（任意 tableType）
+     * @param filter      可选，平台 TreeBean filter 树
+     * @param limit       可选分页上限（null 表示不限）
+     * @param offset      可选分页偏移（null 表示 0）
+     * @param context     服务上下文
+     * @return {@code {tableType, items:[{行数据}]}}
+     */
+    @BizQuery
+    public Map<String, Object> queryTableData(@Name("metaTableId") String metaTableId,
+                                               @Optional @Name("filter") TreeBean filter,
+                                               @Optional @Name("limit") Long limit,
+                                               @Optional @Name("offset") Long offset,
+                                               IServiceContext context) {
+        IEntityDao<NopMetaTable> tableDao = dao();
+        NopMetaTable table = tableDao.getEntityById(metaTableId);
+        if (table == null) {
+            throw new NopException(ERR_QUERY_TABLE_NOT_FOUND).param("metaTableId", metaTableId);
+        }
+        String tableType = table.getTableType();
+        if (_NopMetadataCoreConstants.TABLE_TYPE_ENTITY.equals(tableType)) {
+            return queryEntityTable(table, filter, limit, offset);
+        }
+        if (_NopMetadataCoreConstants.TABLE_TYPE_EXTERNAL.equals(tableType)) {
+            return queryExternalTable(table, filter, limit, offset);
+        }
+        if (_NopMetadataCoreConstants.TABLE_TYPE_SQL.equals(tableType)) {
+            return querySqlTable(table, filter, limit, offset);
+        }
+        // 未知 tableType → 显式失败（No Silent No-Op Rule）
+        throw new NopException(ERR_QUERY_UNSUPPORTED_TABLE_TYPE)
+                .param("metaTableId", metaTableId)
+                .param("tableType", String.valueOf(tableType));
+    }
+
+    // ---- entity 分派：经 IOrmTemplate（架构基线 §4.4 D1）----
+
+    private Map<String, Object> queryEntityTable(NopMetaTable table, TreeBean filter, Long limit, Long offset) {
+        String baseEntityId = table.getBaseEntityId();
+        if (baseEntityId == null || baseEntityId.isEmpty()) {
+            // baseEntityId 悬空 → 显式失败（不静默空集）
+            throw new NopException(ERR_QUERY_ENTITY_NOT_FOUND)
+                    .param("metaTableId", table.getMetaTableId())
+                    .param("baseEntityId", String.valueOf(baseEntityId));
+        }
+        IEntityDao<NopMetaEntity> metaEntityDao = daoFor(NopMetaEntity.class);
+        NopMetaEntity entity = metaEntityDao.getEntityById(baseEntityId);
+        if (entity == null) {
+            throw new NopException(ERR_QUERY_ENTITY_NOT_FOUND)
+                    .param("metaTableId", table.getMetaTableId())
+                    .param("baseEntityId", baseEntityId);
+        }
+        String entityName = entity.getEntityName();
+        // 前置：实体须注册于运行时 IOrmSessionFactory，否则显式失败（不静默空集）
+        if (entityName == null || entityName.isEmpty() || !orm().isValidEntityName(entityName)) {
+            throw new NopException(ERR_QUERY_ENTITY_NOT_REGISTERED)
+                    .param("metaTableId", table.getMetaTableId())
+                    .param("entityName", String.valueOf(entityName));
+        }
+        // 经平台 ORM：实体 querySpace 字段已承担路由（§设计结论 #9 + §七），无额外抽象层。
+        // 按实体名取其 IEntityDao（运行时已注册），findAllByQuery 走 ORM 查询（filter/limit/offset 委托 QueryBean）。
+        @SuppressWarnings({"rawtypes", "unchecked"})
+        io.nop.orm.dao.IOrmEntityDao<io.nop.orm.IOrmEntity> targetDao =
+                (io.nop.orm.dao.IOrmEntityDao<io.nop.orm.IOrmEntity>) (io.nop.orm.dao.IOrmEntityDao) daoProvider().dao(entityName);
+        QueryBean query = new QueryBean();
+        if (filter != null) {
+            query.setFilter(filter);
+        }
+        if (limit != null) {
+            query.setLimit(limit.intValue());
+        }
+        if (offset != null) {
+            query.setOffset(offset.intValue());
+        }
+        List<io.nop.orm.IOrmEntity> entities = targetDao.findAllByQuery(query);
+        // 取实体列名集合作为投影（与 MetaTableFieldResolver entity 分派字段集合一致）
+        io.nop.orm.model.IEntityModel entityModel = targetDao.getEntityModel();
+        List<String> propNames = new ArrayList<>();
+        for (io.nop.orm.model.IColumnModel col : entityModel.getColumns()) {
+            propNames.add(col.getName());
+        }
+        List<Map<String, Object>> items = new ArrayList<>(entities.size());
+        for (io.nop.orm.IOrmEntity row : entities) {
+            Map<String, Object> map = new LinkedHashMap<>();
+            for (String prop : propNames) {
+                map.put(prop, row.orm_propValueByName(prop));
+            }
+            items.add(map);
+        }
+        return buildQueryResult(_NopMetadataCoreConstants.TABLE_TYPE_ENTITY, items);
+    }
+
+    // ---- external 分派：withConnection 跑限定表名原生 SQL（架构基线 §4.4 D1）----
+
+    private Map<String, Object> queryExternalTable(NopMetaTable table, TreeBean filter, Long limit, Long offset) {
+        NopMetaDataSource dataSource = resolveQueryDataSourceOrThrow(table);
+        // 列名取自 buildSql JSON 的 columnName（架构基线 §4.4 D1）；解析失败由 fieldResolver 显式抛 ErrorCode
+        IEntityDao<NopMetaEntityField> fieldDao = daoFor(NopMetaEntityField.class);
+        List<ResolvedTableField> fields = fieldResolver.resolve(table, fieldDao);
+        List<String> columns = new ArrayList<>(fields.size());
+        for (ResolvedTableField f : fields) {
+            columns.add(f.getName());
+        }
+
+        final List<Map<String, Object>>[] holder = newArrayHolder();
+        connectionService.withConnection(dataSource.getDatasourceType(), dataSource.getConnectionConfig(),
+                (Connection conn, DatabaseMetaData metaData) -> {
+                    String productName = safeProductName(metaData);
+                    requireSupportedDialect(productName, table.getMetaTableId());
+                    FilterToSqlTranslator.TranslatedFilter tf = filterTranslator.translate(filter);
+                    String sql = buildExternalSelectSql(table.getTableName(), columns, tf.getSql(), limit, offset);
+                    holder[0] = executeQuery(conn, sql, tf.getParams(), limit, offset);
+                });
+        return buildQueryResult(_NopMetadataCoreConstants.TABLE_TYPE_EXTERNAL, holder[0]);
+    }
+
+    // ---- sql 分派：withConnection 执行 sourceSql 子查询（架构基线 §4.4 D1 + D2）----
+
+    private Map<String, Object> querySqlTable(NopMetaTable table, TreeBean filter, Long limit, Long offset) {
+        String sourceSql = table.getSourceSql();
+        if (sourceSql == null || sourceSql.trim().isEmpty()) {
+            // sourceSql 空 → 显式失败（不静默空集）
+            throw new NopException(ERR_QUERY_SQL_SOURCE_EMPTY).param("metaTableId", table.getMetaTableId());
+        }
+        // D2：querySpace 必须非 null 且匹配 NopMetaDataSource（平台 ORM querySpace fallback 首版不做）
+        NopMetaDataSource dataSource = resolveQueryDataSourceOrThrow(table);
+
+        final List<Map<String, Object>>[] holder = newArrayHolder();
+        connectionService.withConnection(dataSource.getDatasourceType(), dataSource.getConnectionConfig(),
+                (Connection conn, DatabaseMetaData metaData) -> {
+                    String productName = safeProductName(metaData);
+                    requireSupportedDialect(productName, table.getMetaTableId());
+                    FilterToSqlTranslator.TranslatedFilter tf = filterTranslator.translate(filter);
+                    String sql = buildSqlSelectSql(sourceSql, tf.getSql(), limit, offset);
+                    holder[0] = executeQuery(conn, sql, tf.getParams(), limit, offset);
+                });
+        return buildQueryResult(_NopMetadataCoreConstants.TABLE_TYPE_SQL, holder[0]);
+    }
+
+    /** querySpace→数据源解析（external + sql 共用），失败时附加 metaTableId 上下文。 */
+    private NopMetaDataSource resolveQueryDataSourceOrThrow(NopMetaTable table) {
+        IEntityDao<NopMetaDataSource> dsDao = daoFor(NopMetaDataSource.class);
+        try {
+            return dataSourceResolver.resolveActiveOrThrow(dsDao, table.getQuerySpace());
+        } catch (NopException e) {
+            // 附加 metaTableId 上下文（resolver 仅含 querySpace/dataSourceId），便于诊断
+            if (e.getParam("metaTableId") == null) {
+                e.param("metaTableId", table.getMetaTableId());
+            }
+            throw e;
+        }
+    }
+
+    /** 方言范围检查：首版仅 H2/MySQL/PostgreSQL（LIMIT/OFFSET 便携语法）。其他方言显式失败（不静默跳过）。 */
+    private void requireSupportedDialect(String databaseProductName, String metaTableId) {
+        if (databaseProductName == null || !SUPPORTED_QUERY_DIALECTS.contains(databaseProductName)) {
+            throw new NopException(ERR_QUERY_UNSUPPORTED_DIALECT)
+                    .param("databaseProductName", String.valueOf(databaseProductName))
+                    .param("metaTableId", metaTableId);
+        }
+    }
+
+    /** 构建 external 路径 SELECT SQL：{@code SELECT col1,col2 FROM <table> [WHERE <filter>] [LIMIT ? OFFSET ?]}。 */
+    private static String buildExternalSelectSql(String tableName, List<String> columns,
+                                                  String filterSql, Long limit, Long offset) {
+        // 列名/表名经标识符白名单校验（fieldResolver 已保证列名为 columnName；此处再校验防注入）
+        StringBuilder sb = new StringBuilder("SELECT ");
+        if (columns.isEmpty()) {
+            sb.append("*");
+        } else {
+            for (int i = 0; i < columns.size(); i++) {
+                if (i > 0) {
+                    sb.append(",");
+                }
+                FilterToSqlTranslator.validateIdentifier(columns.get(i));
+                sb.append(columns.get(i));
+            }
+        }
+        sb.append(" FROM ");
+        FilterToSqlTranslator.validateIdentifier(tableName);
+        sb.append(tableName);
+        if (filterSql != null && !filterSql.isEmpty()) {
+            sb.append(" WHERE ").append(filterSql);
+        }
+        appendLimitOffset(sb, limit, offset);
+        return sb.toString();
+    }
+
+    /** 构建 sql 路径 SELECT SQL：{@code SELECT * FROM (<sourceSql>) _t [WHERE <filter>] [LIMIT ? OFFSET ?]}。 */
+    private static String buildSqlSelectSql(String sourceSql, String filterSql, Long limit, Long offset) {
+        // sourceSql 为用户显式提供的视图定义（非自动注入面），包一层子查询；filter 应用到外层
+        StringBuilder sb = new StringBuilder("SELECT * FROM (");
+        sb.append(sourceSql);
+        sb.append(") _t");
+        if (filterSql != null && !filterSql.isEmpty()) {
+            sb.append(" WHERE ").append(filterSql);
+        }
+        appendLimitOffset(sb, limit, offset);
+        return sb.toString();
+    }
+
+    /** 追加 LIMIT/OFFSET 子句（仅当 limit/offset 非 null；参数位由 executeQuery 按序绑定）。 */
+    private static void appendLimitOffset(StringBuilder sb, Long limit, Long offset) {
+        if (limit != null) {
+            sb.append(" LIMIT ?");
+        }
+        if (offset != null && offset > 0) {
+            sb.append(" OFFSET ?");
+        }
+    }
+
+    /** 执行查询 SQL（filter 参数 + limit/offset 参数按序绑定），返回行列表（每行为列名→值 Map）。 */
+    private static List<Map<String, Object>> executeQuery(Connection conn, String sql, List<Object> filterParams,
+                                                           Long limit, Long offset) {
+        LOG.info("queryTableData SQL: {}", sql);
+        List<Map<String, Object>> rows = new ArrayList<>();
+        try (PreparedStatement st = conn.prepareStatement(sql)) {
+            int idx = 1;
+            for (Object p : filterParams) {
+                st.setObject(idx++, p);
+            }
+            if (limit != null) {
+                st.setObject(idx++, limit);
+            }
+            if (offset != null && offset > 0) {
+                st.setObject(idx++, offset);
+            }
+            try (ResultSet rs = st.executeQuery()) {
+                ResultSetMetaData meta = rs.getMetaData();
+                int columnCount = meta.getColumnCount();
+                while (rs.next()) {
+                    Map<String, Object> row = new LinkedHashMap<>();
+                    for (int c = 1; c <= columnCount; c++) {
+                        String label = meta.getColumnLabel(c);
+                        if (label == null || label.isEmpty()) {
+                            label = meta.getColumnName(c);
+                        }
+                        row.put(label, rs.getObject(c));
+                    }
+                    rows.add(row);
+                }
+            }
+            return rows;
+        } catch (SQLException e) {
+            throw new NopException(ERR_QUERY_SQL_EXEC_FAILED)
+                    .param("sql", sql)
+                    .param("error", messageOf(e))
+                    .cause(e);
+        }
+    }
+
+    private static Map<String, Object> buildQueryResult(String tableType, List<Map<String, Object>> items) {
+        Map<String, Object> result = new LinkedHashMap<>();
+        result.put("tableType", tableType);
+        result.put("items", items != null ? items : new ArrayList<>());
+        return result;
+    }
+
+    @SuppressWarnings("unchecked")
+    private static List<Map<String, Object>>[] newArrayHolder() {
+        return (List<Map<String, Object>>[]) new List<?>[1];
+    }
+
+    /** 提取异常消息（null 时回退类名），避免 catch 块直接 e.getMessage() 丢失堆栈。 */
+    private static String messageOf(Throwable t) {
+        String m = t.getMessage();
+        return m != null ? m : t.getClass().getName();
     }
 
     // ============================================================
