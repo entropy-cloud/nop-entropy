@@ -21,7 +21,6 @@
 - P2. Phase 2 — 外部数据源注册 + 外部表同步 + 血缘采集 + 质量执行: `todo`
 - P3. Phase 3 — BI 语义层（视图定义 + 指标/维度管理）: `done`
 - P4. Phase 4 — 联邦查询执行（基于 ORM querySpace）: `todo`
-- P5. Phase 5 — nop-report 迁移到 tableId 模式: `todo`
 
 ## Status Values
 
@@ -127,17 +126,6 @@
 >
 > 设计参考：`01-architecture-baseline.md` §设计结论 #9 + §七 拒绝清单；`04-data-governance.md` 数据契约
 
-### P5. Phase 5 — nop-report 迁移到 tableId 模式
-
-| 工作项 | 描述 | 状态 |
-|--------|------|------|
-| P5-1 | **NopReportDefinition.tableId 关联**：报表定义直接引用 MetaTable，替代 NopReportDataset/NopReportSubDataset | todo |
-| P5-2 | **MetaDataSource 吸收 NopReportDatasource**：报表模块不再维护独立数据源表 | todo |
-| P5-3 | **访问控制迁移**：NopReportDatasetAuth / NopReportDatasourceAuth → nop-auth 角色级访问控制 | todo |
-| P5-4 | **保留 NopReportDataset 兼容**：NopReportDataset 直接运行在 EQL 上，保留作为另一种数据获取记录，与新 MetaTable 体系并行 | todo |
-
-> 设计参考：`01-architecture-baseline.md` §5.1 nop-report 改造
-
 ---
 
 ## 未建模实体（设计中存在，ORM 中尚未创建）
@@ -169,20 +157,17 @@ graph TD
     P2["P2 Phase 2 — 外部数据源/同步/血缘/质量"]
     P3["P3 Phase 3 — BI 语义层"]
     P4["P4 Phase 4 — 联邦查询"]
-    P5["P5 Phase 5 — nop-report 迁移"]
 
     P1 --> P1P
     P1P --> P2
     P2 --> P3
     P3 --> P4
-    P4 --> P5
 
     style P1 fill:#dfd,stroke:#3a3
     style P1P fill:#ffd,stroke:#aa3
     style P2 fill:#fdd,stroke:#a33
     style P3 fill:#fdd,stroke:#a33
     style P4 fill:#fdd,stroke:#a33
-    style P5 fill:#fdd,stroke:#a33
 ```
 
 依赖说明：
@@ -190,7 +175,6 @@ graph TD
 - **P1+ → P2**：外部表同步需要完整的模块/版本模型
 - **P2 → P3**：BI 语义层的 SQL 视图可能引用外部表；但 P3 的 Measure/Dimension 管理可基于 P1 已创建的 ORM-backed MetaTable 提前开展（P3 与 P2 可部分并行）
 - **P3 → P4**：联邦查询需要 MetaTable + Join + Measure 模型就绪
-- **P4 → P5**：nop-report 迁移依赖 MetaTable 查询可用
 
 ---
 
@@ -199,7 +183,7 @@ graph TD
 非 roadmap 内容已拆分到各自归属，本文件不重复维护：
 
 - **设计文档** → `ai-dev/design/nop-metadata/`（00-vision ~ 10-event-model，共 11 份编号文档 + README）
-- **已完成 plan** → `292`（Phase 1 导入引擎）；`293`（设计一致性修复）；`294`（P1+ 导入引擎完整性）；`295`（P1+ Delta 展开 + 版本发布）；`2026-07-16-0225-1`（P2-1 数据源注册+连接验证）；`2026-07-16-0225-2`（P2-2 外部表同步）；`2026-07-16-0225-3`（P2-3 Manifest 快照）；`2026-07-16-0420-1`（P2-4 Catalog 运行时收集）；`2026-07-16-0420-2`（P2-5 血缘采集+遍历）；`2026-07-16-0800-1`（P4-1 单表联邦查询）；`2026-07-16-0900-1`（P4-4 数据契约 MetaDataContract）；`2026-07-16-0900-2`（P4-5 Reconciliation 对账）
+- **已完成 plan** → `292`（Phase 1 导入引擎）；`293`（设计一致性修复）；`294`（P1+ 导入引擎完整性）；`295`（P1+ Delta 展开 + 版本发布）；`2026-07-16-0225-1`（P2-1 数据源注册+连接验证）；`2026-07-16-0225-2`（P2-2 外部表同步）；`2026-07-16-0225-3`（P2-3 Manifest 快照）；`2026-07-16-0420-1`（P2-4 Catalog 运行时收集）；`2026-07-16-0420-2`（P2-5 血缘采集+遍历）；`2026-07-16-0800-1`（P4-1 单表联邦查询）；`2026-07-16-0900-1`（P4-4 数据契约 MetaDataContract）；`2026-07-16-0900-2`（P4-5 Reconciliation 对账）；`2026-07-16-1905-1`（P2 entity/sql 执行覆盖扩展：Catalog/Quality/Profiling 三大执行器从 external-only 扩展到 entity + sql 类型表）
 - **活跃 plan** → （无）
 - **设计决策** → `01-architecture-baseline.md` §一 设计结论 + §七 拒绝清单
 - **待定问题** → `01-architecture-baseline.md` §八 待定问题
@@ -208,7 +192,7 @@ graph TD
 
 ### Phase 编号映射
 
-本文档的 Phase 划分（P1/P1+/P2-P5）与 `00-vision.md` §设计收敛路径的 5-Phase 列表不完全对齐：
+本文档的 Phase 划分（P1/P1+/P2-P4）与 `00-vision.md` §设计收敛路径的 4-Phase 列表不完全对齐：
 
 | Vision Phase | Roadmap Phase | 差异说明 |
 |---|---|---|
@@ -216,7 +200,6 @@ graph TD
 | Vision Phase 2 | P2 | 一致 |
 | Vision Phase 3 | P3 | 一致 |
 | Vision Phase 4（QuerySpace + Driver） | P4（联邦查询，基于 ORM querySpace） | **vision.md 的 "QuerySpace + Driver" 表述已过时**，架构基线 §七 明确拒绝了 Driver 抽象。以 roadmap P4 描述为准 |
-| Vision Phase 5 | P5 | 一致 |
 
 > 注意：plan 292 的 Non-Goals 段（行 28-31）使用了旧的 phase 编号（"Phase 2" = BI 语义层、"Phase 3" = 血缘/质量执行、"Phase 4" = 对账/AI/事件），与 roadmap 编号不同。该编号在 plan 292 closure 时即已过时，以 roadmap 编号为准。
 
@@ -225,7 +208,7 @@ graph TD
 ## Rule
 
 - 本文档是状态索引和粗粒度 Phase 划分，不是 execution plan。实现细节在 plan 文件，不在本 roadmap。
-- **可标记单位是 Phase**（P1 ~ P5 + P1+），当前 P1 为 `done`，其余为 `todo`。新工作项出现时在 Work Item Status 追加。
+- **可标记单位是 Phase**（P1 ~ P4 + P1+），当前 P1 为 `done`，其余为 `todo`。新工作项出现时在 Work Item Status 追加。
 - **唯一动态块是 Work Item Status**（顶部）。状态不散落到 Work Items 表、Pointers 或别处。
 - 审计发现不在此追踪；设计决策不在此重述；逐项实现描述不在此复制。
 - 不得在 closure audit 通过前把 Phase 标为 `done`。

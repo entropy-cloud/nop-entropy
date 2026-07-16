@@ -36,7 +36,6 @@
 - 单表数据查询（P4-1，predecessor plan 0800-1）。
 - sql/external 表作为 JOIN 右表的关联（继承自 0700-2，首版 join 校验仍 entity-only；执行层首版聚焦 entity-entity 同/跨库）。
 - 数据契约 MetaDataContract（P4-4）、Reconciliation（P4-5）。
-- nop-report 迁移（P5）。
 - 自定义聚合表达式（Measure.expression 内容首版不校验/不执行，继承 0700-2 Non-Goal）。
 
 ## Scope

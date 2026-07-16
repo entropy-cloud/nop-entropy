@@ -32,7 +32,6 @@
 | 当前痛点 | 解决方式 |
 |---------|---------|
 | ORM 模型散落在 `model/*.orm.xml`，无统一浏览入口 | `nop-metadata` 解析所有模块的 ORM 模型，写入结构化实体，提供搜索/浏览 API |
-| `NopReportDataset` + `NopReportSubDataset` 是薄弱抽象，无法复用 ORM 模型的字段定义和关系 | 废弃它们；报表直接引用 `nop-metadata` 的 MetaTable |
 | 模型变更后无法判断影响范围（哪些报表/API 会挂） | 版本化的模块模型 + 引用追踪 |
 | 多个项目/版本之间无法对比模型差异 | 模块版本体系 + Delta 感知的 diff |
 | 缺乏 BI 语义层的指标/维度独立管理 | `MetaTableMeasure` + `MetaTableField` 作为一等实体 |
@@ -62,4 +61,3 @@
 2. **Phase 2** — 外部数据源注册 + 外部表元数据同步 + 血缘采集 + 质量执行
 3. **Phase 3** — 视图定义 + 指标/维度管理（BI 语义层）
 4. **Phase 4** — 联邦查询执行（基于 ORM querySpace，非 Driver 抽象）
-5. **Phase 5** — `nop-report` 迁移到基于 tableId 模式

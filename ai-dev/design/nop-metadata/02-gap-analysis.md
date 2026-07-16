@@ -19,7 +19,6 @@
 | 逻辑表 (BI 语义层) | ✅ MetaTable + Measure + Join | 已设计 |
 | **Delta 版本管理** | ✅ MetaModule 版本 + isDelta + baseModuleId | 已设计（模块级） |
 | 模块发现 | ✅ 配置式/自动扫描 | 已设计 |
-| nop-report 集成 | ✅ 废弃 NopReportDataset | 已设计 |
 | **数据血缘** | ✅ MetaLineageEdge + MetaPipeline | 已设计 |
 | **数据质量** | ✅ MetaQualityRule + MetaQualityResult | 已设计 |
 | **域定义** | ✅ MetaDomain（isGlobal + sourceModuleId） | 已设计 |

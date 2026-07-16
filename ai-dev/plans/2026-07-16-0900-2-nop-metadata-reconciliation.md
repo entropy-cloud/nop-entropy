@@ -34,7 +34,6 @@
 ## Non-Goals
 
 - 数据契约 MetaDataContract（P4-4，plan 0900-1）。
-- nop-report 迁移（P5）。
 - 外部 HTTP Reconciliation 服务实现（Wikidata/OpenRefine 兼容端点）：首版只定义接口 + 本地实现，外部 HTTP impl 为 follow-up（D1）。
 - 语义匹配（semantic，需 embedding/模型）、语音匹配（phonetic）：follow-up（D2）。
 - 多列对账（首版单列 columnName；多列 columns[] 为 follow-up，D4）。

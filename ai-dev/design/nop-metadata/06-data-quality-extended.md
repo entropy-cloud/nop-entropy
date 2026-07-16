@@ -393,7 +393,7 @@ class QualityScorer:
 | 数据剖析 | - | profiling | MetaProfilingRule |
 | 验证执行 | Checkpoint | Engine | MetaQualityCheckpoint |
 | 质量评分 | - | - | MetaQualityScore |
-| 文档生成 | Data Docs | - | 复用 nop-report |
+| 文档生成 | Data Docs | - | follow-up（渲染层待定） |
 
 ## Open Questions
 

@@ -6,6 +6,7 @@
   "planGuide": "ai-dev/plans/00-plan-authoring-and-execution-guide.md",
   "auditsDir": "ai-dev/audits",
   "moduleDir": "nop-metadata",
+  "contextDir": "docs-for-ai/00-start-here",
   "commands": {
     "test": "mvn test -pl nop-metadata/nop-metadata-service -am -q 2>/dev/null || echo 'no tests configured yet'",
     "build": "mvn compile -pl nop-metadata -am -q 2>/dev/null || echo 'no build configured yet'",

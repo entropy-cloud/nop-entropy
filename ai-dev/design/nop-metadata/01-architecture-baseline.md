@@ -16,7 +16,7 @@
 7. **MetaOrmModel 保留 `sourceContent`**（原始 XML），用于重新解析或逐字比对。
 8. **MetaTable 是面向用户的统一逻辑表**，可以包装 ORM 实体或 SQL 定义。指标（MetaTableMeasure）和跨表关联（MetaTableJoin）在 MetaTable 上叠加，不存到 MetaEntity。
 9. **所有查询执行走现有 ORM 层** —— ORM 本身就是统一的数据库映射引擎，不引入额外 Driver/QuerySpace 抽象。
-10. **保留 `NopReportDataset`**，它直接运行在 EQL 上，是另外一种数据获取记录。后续再考虑 ReportDataSet 的定位，当前先与 Meta 体系断开。
+10. **nop-report 是独立模块，不在本模块范围内**。`NopReportDataset` 直接运行在 EQL 上，是另一种数据获取记录，nop-metadata 不吸收、不废弃、不迁移它，两者保持独立。
 11. **Domain 定义归属模块**，支持通用域（isGlobal=true）的引用和拷贝机制。
 
 ---
@@ -73,7 +73,7 @@ drafting → released → deprecated
 每个数据源对应一个 `querySpace` 名称，指向具体的物理数据库或连接。
 
 ```
-MetaDataSource                    — 数据源定义（全局，吸收 NopReportDatasource）
+MetaDataSource                    — 数据源定义（全局）
   ├── querySpace                 — "default" | "report" | "log" 等（全局唯一）
   ├── name / displayName
   ├── datasourceType             — "jdbc" | "http" | "rest" | "file" ...（不限于数据库）
@@ -85,7 +85,6 @@ MetaDataSource                    — 数据源定义（全局，吸收 NopRepor
 - **全局实体**，不属于任何模块。数据源是跨模块共享的基础设施。
 - 每个 `querySpace` 对应一个数据源，全局唯一。ORM 实体通过自身 `querySpace` 字段引用，无需额外抽象层。
 - 纯元数据用途：描述数据源信息，不负责运行时查询路由（ORM 已承担此职责）。
-- **吸收 `NopReportDatasource`**：报表模块不再维护独立的数据源表，统一使用 `MetaDataSource`。原 `NopReportDatasourceAuth` 的角色级访问控制由 `nop-auth` 承担。
 
 #### 2.2.1 连通性验证（testConnection）
 
@@ -690,7 +689,50 @@ orm.xml
 
 **失败路径显式化（不静默空集、不吞异常，对齐 Minimum Rules #24）**：表不存在 / querySpace 无数据源 / DISABLED / 非 jdbc（由 withConnection 抛）/ sql querySpace null 或无匹配 / 实体未注册 / 不支持的方言 / sourceSql 不可解析 / 未知 tableType 均显式失败抛 inline ErrorCode。
 
-> 0800-1 单表查询范围到此。跨表 JOIN（P4-2）+ 指标/维度聚合（P4-3）见下两节（plan 0800-2 落地）。entity/sql 表的 Catalog/质量/剖析执行扩展仍为 follow-up（本节只提供 querySpace 解析能力，不改造它们）。
+> 0800-1 单表查询范围到此。跨表 JOIN（P4-2）+ 指标/维度聚合（P4-3）见下两节（plan 0800-2 落地）。entity/sql 表的 Catalog/质量/剖析执行扩展见 §4.4.3（plan 1905-1 落地）。
+
+#### 4.4.3 Catalog/Quality/Profiling 执行覆盖扩展（P2 执行覆盖，落地 D1-D5）
+
+本节落地 plan 1905-1 的设计决策 D1（entity 路径执行机制）+ D2（sql 路径执行机制）+ D3（共享 table-reference 分派契约）+ D4（能力边界）+ D5（sql 视图合成列处理）。把反复 deferred 的「entity/sql 类型表的 Catalog 收集 / 质量规则执行 / 数据剖析」从 follow-up 推进到 landed：三大执行器（`MetaCatalogCollector` / `MetaQualityRuleExecutor` / `MetaTableProfiler`）的覆盖范围从 external-only 扩展到 entity + sql 类型表，收口"任意 tableType 的逻辑表都可目录化、可质量检查、可剖析"。
+
+**D1 — entity 路径执行机制（平台 JDBC Connection 复用现有 executor）**：
+
+entity 表取**平台事务 JDBC Connection**（`IJdbcTransaction.getConnection()`，经 `ITransactionTemplate.runInTransaction(entityQuerySpace, SUPPORTS, txn -> ...)` 取平台库连接）+ 物理表名 `NopMetaEntity.tableName`，**原样传入现有三大 executor**（不经 EQL、不重写统计逻辑）。
+
+- **理由（不选 `orm().executeQuery`）**：`orm().executeQuery` 经 EQL 编译器校验函数名——`STDDEV_SAMP` / `FORMATDATETIME` 等被 EQL 判为 unknown-function（§4.4.2 D7 已实测 FORMATDATETIME 被拒）。entity 路径若走 EQL 会丢 STDDEV 等聚合函数，无法满足"统计能力与 external 一致、无降级"。
+- entity 物理表在平台库，平台 Connection 直达（`IJdbcTransaction.getConnection()` 返回平台事务的 JDBC 连接，`JdbcTemplateImpl` 等已用此取平台连接；nop-metadata-dao 依赖 nop-orm→nop-dao，故平台 Connection 可达）。
+- 现有 executor 的 STDDEV_SAMP/median/percentile/distribution 全方言精确逻辑零修改可用——同一 executor 核心，统计口径与 external 完全一致。
+- 平台 querySpace 取 `NopMetaEntity.querySpace`（null 时回退 `DaoConstants.DEFAULT_QUERY_SPACE`）。
+
+**D2 — sql 路径执行机制**：
+
+sql 表经 `MetaDataSourceResolver` 解析 querySpace→`NopMetaDataSource`，`withConnection` 对 `(<sourceSql>) _t` 子查询执行（与 §4.4 queryTableData/聚合 sql 路径一致）。失败路径：querySpace null/无数据源/DISABLED/非 jdbc/sourceSql 不可解析 显式失败抛 inline ErrorCode（不静默空集、不伪造路由）。
+
+**D3 — 共享 table-reference 分派契约**：
+
+抽取共享 table-reference 解析器 `MetaTableReferenceResolver`（`.../service/tableref/`），输入 `NopMetaTable` → 产出三态 `TableReference` 之一，供三大 executor 统一消费：
+
+| tableType | Connection 来源 | table 名/子查询 | 字段集合来源 |
+|-----------|----------------|-----------------|-------------|
+| `external` | `withConnection`（querySpace→NopMetaDataSource） | 物理 `tableName` | `DatabaseMetaData.getColumns`（运行时读） |
+| `entity` | 平台 `IJdbcTransaction.getConnection()`（平台 querySpace） | 物理 `entity.tableName` | `DatabaseMetaData.getColumns`（运行时读，平台连接上） |
+| `sql` | `withConnection`（querySpace→NopMetaDataSource） | `(<sourceSql>) _t` 子查询 | `MetaTableFieldResolver` AST 解析（`getColumns` 对子查询不适用） |
+
+executor 内部不再硬编码 external-only，而是按 reference 形态执行：external/entity 走标识符白名单 + `qualifyTable`；sql 走子查询包装（sourceSql 为用户显式提供，同 custom_sql 已知显式风险，不解析不改写、不拼标识符）。reference 不可解析（表不存在/实体未注册/DISABLED/非 jdbc/sourceSql 不可解析）显式失败抛 inline ErrorCode。
+
+**D4 — 能力边界（entity/sql/external 能力集一致）**：
+
+因 entity 路径复用平台 Connection + 同一 executor 核心，**entity/sql/external 三者的统计/检查能力集合完全一致**——无 entity 专属降级。
+
+- `custom_sql` 在 entity 路径 **supported**（raw SQL 跑在物理表上，同 external）。
+- 不可执行路径（表不存在/实体未注册/DISABLED/非 jdbc/sourceSql 不可解析）**显式失败抛 inline ErrorCode**，不静默 SKIP、不伪造 unavailable、不静默空集。
+- `entityType=database` 质量规则仍 SKIP（带 details 标记，与 §2.7.1 D1 一致）——但 table-level 的 entity/sql 表上挂载的 field/table 规则可执行。
+
+**D5 — sql 视图合成列名处理**：
+
+sql 视图无别名表达式列产 `<expr_N>` 合成名（§4.2.1），含 `<>` 通不过标识符白名单 `^[A-Za-z_][A-Za-z0-9_]*$`。field 级检查/剖析对该列**显式 SKIP + details 标记 `reason=derived-column-skipped`**（不整表失败、不伪造、不静默跳过）；table 级检查不受影响。
+
+> 三大执行器的覆盖范围裁定（D1-D5）收口到此。entity/sql 路径的端到端验证见 plan 1905-1（H2 本地，真实产出 Catalog rowCount/indexCount、Quality 检测结果、Profiling STDDEV/median/distribution 值）。
 
 #### 4.4.1 跨表 JOIN 执行（P4-2 裁定，落地 D3/D4/D5）
 
@@ -774,29 +816,7 @@ granularity→分桶表达式表（external/sql 路径，withConnection 原生 S
 
 ---
 
-## 五、与 nop-report / nop-dyn 的关系
-
-### 5.1 nop-report
-
-```
-改造前: NopReportDefinition → datasetRefs → NopReportDataset → subDatasets
-        NopReportDatasource → datasourceAuths
-改造后: NopReportDefinition → tableId → MetaTable
-        MetaDataSource（吸收 NopReportDatasource）
-```
-
-废弃清单：
-
-| 废弃实体 | 替代 | 说明 |
-|---------|------|------|
-| `NopReportDataset` | `MetaTable` | 数据集 → 逻辑表 |
-| `NopReportSubDataset` | `MetaTableJoin` | 子数据集关联 → 表关联 |
-| `NopReportDatasetRef` | `NopReportDefinition.tableId` | 直接引用 |
-| `NopReportDatasetAuth` | `nop-auth` | 角色级访问控制 |
-| `NopReportDatasource` | `MetaDataSource` | 数据源定义统一管理 |
-| `NopReportDatasourceAuth` | `nop-auth` | 角色级访问控制 |
-
-### 5.2 nop-dyn
+## 五、与 nop-dyn 的关系
 
 ```
 nop-dyn:       运行时自定义实体 → 存到 nop_dyn_entity
@@ -829,7 +849,6 @@ nop-metadata-web           — nop-metadata-service
 | 按模型类型共用一张表 | 各自子实体结构不同，分开更清晰 |
 | 单独的 MetaOrmModelRelease 实体 | 模型记录数有限，`status` 字段足够管理生命周期 |
 | 版本放在 MetaOrmModel 上 | Maven 按模块打包/发布，一个模块只有一个版本 |
-| 废弃 NopReportDataset | NopReportDataset 直接运行在 EQL 上，是另外一种数据获取记录，保留 |
 
 ---
 

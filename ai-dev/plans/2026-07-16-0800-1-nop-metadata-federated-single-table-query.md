@@ -38,7 +38,6 @@
 - 指标/维度聚合查询（P4-3，successor plan 0800-2）。
 - 将 Catalog/质量/剖析的执行范围从 external 扩展到 entity/sql（属各功能的独立 follow-up；本 plan 只提供解析能力，不改造它们）。
 - 数据契约 MetaDataContract（P4-4）、Reconciliation（P4-5）。
-- nop-report 迁移（P5）。
 - sql 表字段类型推断（方案 B/C，仍为 0700-1 follow-up）。
 
 ## Scope

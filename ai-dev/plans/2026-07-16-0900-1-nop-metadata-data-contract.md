@@ -34,7 +34,6 @@
 ## Non-Goals
 
 - Reconciliation 对账（P4-5，successor/并行 plan 0900-2）。
-- nop-report 迁移（P5，依赖 P4 全部完成）。
 - 契约自动定时调度执行（归 Non-Blocking Follow-up；本 plan 只提供同步 checkContract action）。
 - `schema` 字段（JSON Schema 字段约束）的运行时逐字段校验执行引擎（D1 裁定其存储格式，运行时逐行校验为 follow-up）。
 - ownerUserId 的权限强制（由 nop-auth RBAC 承担，不在本 plan 实现访问控制）。
