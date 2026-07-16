@@ -690,7 +690,87 @@ orm.xml
 
 **失败路径显式化（不静默空集、不吞异常，对齐 Minimum Rules #24）**：表不存在 / querySpace 无数据源 / DISABLED / 非 jdbc（由 withConnection 抛）/ sql querySpace null 或无匹配 / 实体未注册 / 不支持的方言 / sourceSql 不可解析 / 未知 tableType 均显式失败抛 inline ErrorCode。
 
-> **Out of scope（归 successor plan 0800-2 或 follow-up）**：跨表 JOIN（P4-2）、指标/维度聚合（P4-3）、granularity→DATE_TRUNC、isDefault 运行时应用、entity/sql 表的 Catalog/质量/剖析执行扩展（本节只提供解析能力，不改造它们）。
+> 0800-1 单表查询范围到此。跨表 JOIN（P4-2）+ 指标/维度聚合（P4-3）见下两节（plan 0800-2 落地）。entity/sql 表的 Catalog/质量/剖析执行扩展仍为 follow-up（本节只提供 querySpace 解析能力，不改造它们）。
+
+#### 4.4.1 跨表 JOIN 执行（P4-2 裁定，落地 D3/D4/D5）
+
+本节落地 plan 0800-2 的设计决策 D3（跨表 JOIN 路由）+ D4（同库 JOIN 机制）+ D5（跨库应用层拼接契约）。`MetaTableJoin`（§2.5）建模为 `leftEntityId`/`rightEntityId`（→`MetaEntity`）+ `leftField`/`rightField`（字段名字符串）+ `alias` + `joinType`。**首版 JOIN 执行聚焦 entity-entity**（join 模型仅引用 entity；sql/external 表无 entity，无法作为 join 端点——其 join 能力为 follow-up）。
+
+**JOIN 入口**：`@BizQuery queryJoinData(metaTableId, joinId, filter?, limit?, offset?, context)`，落点 `NopMetaTableBizModel`。`metaTableId` 为左表（join 所属逻辑表），`joinId` 指定 `NopMetaTableJoin`。`filter`/`limit`/`offset` 同单表语义。返回 `Map{items:[{行数据}]}`。
+
+**D3 — 跨表 JOIN 路由（按左右 querySpace 是否相同分派）**：
+
+querySpace 解析规则：entity 表用 `MetaEntity.querySpace`（左右 entity 各自从其 `NopMetaEntity` 取）；external/sql 表用表自身 `querySpace`（首版 join 端点仅 entity，故 external/sql querySpace 仅在 follow-up 的 external join 中出现）。
+
+| 条件 | 路由 | 机制 |
+|------|------|------|
+| 左右 querySpace 相同 | **同库 JOIN**（D4） | 单库连接内执行 JOIN |
+| 左右 querySpace 不同 | **跨库拼接**（D5） | 应用层各取数后内存合并 |
+
+本裁定关闭 §八 待定问题「MetaTableJoin 跨表关联路由」（左右表所属数据源不同时的路由）：**不同 querySpace → 应用层拼接**，不引入跨库 JOIN 引擎。
+
+**D4 — 同库 JOIN 机制**：
+
+- **entity-entity 同库**：经平台 ORM session 执行原生 JOIN SQL——载体 `orm().executeQuery(SQL, range, callback)`（**entity 表 querySpace 由 ORM 管理、不经 NopMetaDataSource，故不能用 withConnection**）。SQL 文本为**物理表 + 物理列**：左/右物理表取自 `MetaEntity.tableName`，`leftField`/`rightField`（属性名字符串）解析回物理列 `NopMetaEntityField.columnCode`（按 `metaEntityId + fieldName` 查 `NopMetaEntityField`）。SQL 构造时 `SQL.allowUnderscoreName(true)` 使 EQL 编译器接受下划线物理表名（EQL 将 `NOP_META_*` 解析为对应实体）。**不使用 `QueryBean.innerJoin/leftJoin`**——经核验 `QueryBean.join` 是 MDX 风格的内存 dimField 对齐合并（`MdxQuerySplitter` 不读 `conditions`/`joinType`），**不是关系型字段对 JOIN**，无法表达 ad-hoc `leftField=rightField` 关联；故 entity 同库 JOIN 走原生 SQL（与 D6 entity 聚合一致的执行载体）。**前置校验**：左右两个实体均须注册于运行时 `IOrmSessionFactory`（`orm().isValidEntityName(entityName)`），否则显式失败抛 inline ErrorCode（不静默空集）。
+- **external/sql 同库 JOIN（机制定义，首版 join 端点仅 entity）**：经 `withConnection`（querySpace→NopMetaDataSource）生成原生 `JOIN` SQL（标识符经 §2.7.1 D3 白名单 `^[A-Za-z_][A-Za-z0-9_]*$` + 值参数绑定）。
+- **`joinType=right` 首版全局显式不支持**：抛 inline ErrorCode（见 D5）。
+
+**D5 — 跨库应用层拼接契约**：
+
+左右各走 §4.4 单表查询（`queryTableData`）取 `List<Map>` → 内存按 join key 合并。明确：
+
+- **join key 匹配**：按 `leftField`/`rightField` 列值**字符串相等**匹配（`String.valueOf(leftVal).equals(String.valueOf(rightVal))`）。跨库类型差异由调用方建模保证；首版**不做隐式类型转换**，不匹配即不关联。
+- **结果 schema**：左表列 + 右表列。右表列名与左表冲突时加 `<alias>.` 前缀（`alias` 取自 `NopMetaTableJoin.alias`；alias 为空时用 `right`）。
+- **分页**：跨库拼接首版**不保证 LIMIT/OFFSET 全局语义**（内存合并无全局序）——明确文档化为已知限制；limit/offset 仅作为合并后结果集的**截断提示**（取前 limit 行，从 offset 起），调用方如需精确分页应在单表侧先行过滤。
+- **规模上限**：单侧结果集行数上限 `MetaJoinExecutor.MAX_CROSS_DB_ROWS`（默认 10000，可调）；超限显式失败抛 inline ErrorCode（防 OOM，不静默截断）。
+- **`joinType` 语义**：`inner`（仅保留匹配行）/`left`（保留左表全部 + 右表匹配列，未匹配右列填 null）/`right`（**首版显式不支持**——抛 inline ErrorCode，不静默降级为 left、不静默返回左表全集）。跨库 right 语义（保留右表全部）与同库 right 一致不支持。
+
+**默认过滤器自动应用**（收口 0700-2 Non-Blocking Follow-up）：JOIN/聚合/单表查询执行前，由共享 `DefaultFilterApplicator` 自动注入该表 `isDefault=true` 的 `NopMetaTableFilter.definition`（TreeBean）到 filter 树（与用户 filter AND 合并）。单表（0800-1）/JOIN/聚合（0800-2）共用同一 helper。
+
+**失败路径显式化**（Minimum Rules #24）：无 join 定义 / leftField/rightField 不匹配（无法解析物理列）/ 实体未注册 / 规模超限 / `joinType=right` / 未知 joinType 均显式失败抛 inline ErrorCode（不静默返回左表全集、不吞异常）。
+
+#### 4.4.2 指标/维度聚合查询（P4-3 裁定，落地 D6/D7）
+
+本节落地 plan 0800-2 的设计决策 D6（聚合执行路径）+ D7（granularity→SQL 分桶翻译表）。
+
+**聚合入口**：`@BizQuery queryAggregation(metaTableId, measures, dimensions, filter?, limit?, offset?, context)`，落点 `NopMetaTableBizModel`。`measures`/`dimensions` 为选定 `NopMetaTableMeasure`/`NopMetaTableDimension` 的 name 列表（`List<String>`）。返回 `Map{items:[{维度值, 指标聚合值}]}`。
+
+**D6 — 聚合执行路径**：
+
+聚合查询须把 `GROUP BY` 维度 + `aggFunc` 指标下沉到 SQL（`GroupFieldBean` 仅 `owner`+`name` 无法表达 DATE_TRUNC 等变换，故不走 ORM QueryBean 聚合）。
+
+| tableType | 执行载体 | 字段解析 |
+|-----------|---------|---------|
+| `external`/`sql` | `withConnection` 跑原生聚合 SQL（`SELECT <维度>, <agg>(<指标列>) FROM ... GROUP BY <维度>`） | 列名取 `MetaTableFieldResolver` 解析的 field name |
+| `entity` | `orm().executeQuery(SQL, range, callback)` 跑原生聚合 SQL（**物理表 + 物理列**，`allowUnderscoreName(true)`） | `entityFieldId`（主键）解析回**物理列 `NopMetaEntityField.columnCode`**；物理表取自 `MetaEntity.tableName` |
+
+`aggFunc` 翻译：`sum`→`SUM(col)`、`count`→`COUNT(col)`、`avg`→`AVG(col)`、`min`→`MIN(col)`、`max`→`MAX(col)`、`countDistinct`→`COUNT(DISTINCT col)`。标识符经 §2.7.1 D3 白名单 + 值参数绑定。
+
+**ORM 隐式过滤旁路裁定**：原生聚合 SQL 不应用 ORM 隐式过滤（租户/逻辑删除/版本）。entity 路径经 `orm().executeQuery` 时，聚合 SQL 是物理表直查，**绕过 ORM 实体隐式过滤**。首版策略——对启用了 `useTenant`/`useLogicalDelete` 的 entity，聚合 action 在 ErrorCode/文档中显式提示"原生 SQL 聚合不应用隐式过滤"；首版**不限制**（允许执行），由调用方知晓此语义。该裁定写入本节，不静默忽略。
+
+**`expression` 型 Measure 首版显式不支持**：`MetaTableMeasure.expression` 非空时抛 inline ErrorCode（不静默跳过、不当 0 返回、不伪造）。
+
+**D7 — granularity→SQL 分桶翻译表**：
+
+`MetaTableDimension.dimensionType=temporal` 时按 `granularity` 生成分桶表达式。首版以测试库 H2 的可用函数为准。**注意**：entity 路径经 `orm().executeQuery` 时 EQL 编译器校验函数名（如 `FORMATDATETIME` 被判为 unknown-function），故**时间分桶（需 DATE_TRUNC/FORMATDATETIME 等函数）首版仅在 external/sql 路径（withConnection 原生 SQL）完整支持**；entity 路径的时间维度首版仅支持 EQL 已知函数（如 `DATE(col)` 日级），完整 granularity 分桶下沉到 SQL 为 follow-up（受 EQL 函数白名单限制）。
+
+granularity→分桶表达式表（external/sql 路径，withConnection 原生 SQL）：
+
+| granularity | H2 / PostgreSQL | MySQL |
+|-------------|-----------------|-------|
+| `year` | `DATE_TRUNC('year', col)` | `DATE_FORMAT(col, '%Y-01-01')` |
+| `quarter` | `DATE_TRUNC('quarter', col)` | `DATE_FORMAT(col, '%Y-%m-01')`（注：quarter 精度首版按月初分桶，跨方言/区域差异为已知限制） |
+| `month` | `DATE_TRUNC('month', col)` | `DATE_FORMAT(col, '%Y-%m-01')` |
+| `week` | `DATE_TRUNC('week', col)` | `DATE_FORMAT(col, '%Y-%m-%d')`（注：week 起始日跨方言/区域有差异，首版不保证一致） |
+| `day` | `DATE_TRUNC('day', col)` | `DATE_FORMAT(col, '%Y-%m-%d')` |
+| `hour` | `DATE_TRUNC('hour', col)` | `DATE_FORMAT(col, '%Y-%m-%d %H:00:00')` |
+
+- 非约定 granularity 值（不在上表）→ 显式失败抛 inline ErrorCode（§2.5.2 D1）。
+- 方言不在首版支持集（H2/MySQL/PostgreSQL）→ 显式失败抛 inline ErrorCode（不静默）。
+
+**默认过滤器自动应用**：聚合查询执行前同样由 `DefaultFilterApplicator` 注入 `isDefault=true` 过滤器（与 JOIN/单表共用）。
+
+**失败路径显式化**：表不存在 / 无选定 measure 或 dimension / entityFieldId 无法解析物理列 / aggFunc 不支持 / granularity 不约定 / 方言不支持 / expression 型 measure / 实体未注册 均显式失败抛 inline ErrorCode。
 
 ---
 
@@ -757,6 +837,6 @@ nop-metadata-web           — nop-metadata-service
 
 - `isDelta=true/false` 用同一张表（列区分）还是两张表？
 - ~~SQL 视图字段解析：走 `EXPLAIN` 还是 `SELECT ... LIMIT 0` 还是用户手动录入？~~ **已裁定（P3-6，2026-07-16）**：字段名/别名走 AST 解析（复用 `EqlASTParser`，与血缘先例一致，可移植、无需连接）；字段类型首版仅名不取类型（方案 A，`type=null` 不伪造），LIMIT 0 经 ResultSetMetaData 取类型（方案 B）为 follow-up。详见 §4.2.1。
-- MetaTableJoin 跨表关联时，左右表所属数据源不同（例如 ORM 的 MySQL 表和 SQL 定义的 ClickHouse 表），查询执行如何路由？
+- ~~MetaTableJoin 跨表关联时，左右表所属数据源不同（例如 ORM 的 MySQL 表和 SQL 定义的 ClickHouse 表），查询执行如何路由？~~ **已裁定（P4-2，2026-07-16）**：按左右 `querySpace` 是否相同分派——同库走单库 JOIN（D4），跨库（不同 querySpace）走应用层拼接（D5，各取数后内存按 join key 合并）。详见 §4.4.1。
 - 通用 Domain 的来源：是单独维护还是从现有 ORM 模型提取？
 - 数据契约的 SLA 定义格式：JSON Schema vs 自定义 DSL？
