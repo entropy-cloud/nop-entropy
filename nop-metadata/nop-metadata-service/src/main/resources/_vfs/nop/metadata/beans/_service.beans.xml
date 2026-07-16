@@ -45,6 +45,14 @@
         <property name="bizObjName" value="NopMetaQualityRule"/>
     </bean>
 
+    <bean id="io.nop.metadata.service.entity.NopMetaReconciliationEntityBizModel" ioc:type="@bean:id" ioc:default="true"/>
+
+    <bean id="biz_NopMetaReconciliationEntity" class="io.nop.biz.proxy.BizProxyFactoryBean"
+          ioc:type="io.nop.metadata.biz.INopMetaReconciliationEntityBiz" ioc:force-lazy-property="true" lazy-init="true"
+          primary="true">
+        <property name="bizObjName" value="NopMetaReconciliationEntity"/>
+    </bean>
+
     <bean id="io.nop.metadata.service.entity.NopMetaOrmModelBizModel" ioc:type="@bean:id" ioc:default="true"/>
 
     <bean id="biz_NopMetaOrmModel" class="io.nop.biz.proxy.BizProxyFactoryBean"
@@ -155,6 +163,14 @@
         <property name="bizObjName" value="NopMetaDataContract"/>
     </bean>
 
+    <bean id="io.nop.metadata.service.entity.NopMetaReconciliationConfigBizModel" ioc:type="@bean:id" ioc:default="true"/>
+
+    <bean id="biz_NopMetaReconciliationConfig" class="io.nop.biz.proxy.BizProxyFactoryBean"
+          ioc:type="io.nop.metadata.biz.INopMetaReconciliationConfigBiz" ioc:force-lazy-property="true" lazy-init="true"
+          primary="true">
+        <property name="bizObjName" value="NopMetaReconciliationConfig"/>
+    </bean>
+
     <bean id="io.nop.metadata.service.entity.NopMetaEntityFieldBizModel" ioc:type="@bean:id" ioc:default="true"/>
 
     <bean id="biz_NopMetaEntityField" class="io.nop.biz.proxy.BizProxyFactoryBean"
@@ -209,5 +225,13 @@
           ioc:type="io.nop.metadata.biz.INopMetaProfilingResultBiz" ioc:force-lazy-property="true" lazy-init="true"
           primary="true">
         <property name="bizObjName" value="NopMetaProfilingResult"/>
+    </bean>
+
+    <bean id="io.nop.metadata.service.entity.NopMetaReconciliationResultBizModel" ioc:type="@bean:id" ioc:default="true"/>
+
+    <bean id="biz_NopMetaReconciliationResult" class="io.nop.biz.proxy.BizProxyFactoryBean"
+          ioc:type="io.nop.metadata.biz.INopMetaReconciliationResultBiz" ioc:force-lazy-property="true" lazy-init="true"
+          primary="true">
+        <property name="bizObjName" value="NopMetaReconciliationResult"/>
     </bean>
 </beans>

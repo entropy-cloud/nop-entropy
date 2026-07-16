@@ -99,6 +99,24 @@ CREATE TABLE nop_meta_quality_rule(
   constraint PK_nop_meta_quality_rule primary key (QUALITY_RULE_ID)
 )CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_as_cs;
 
+CREATE TABLE nop_meta_recon_entity(
+  RECON_ENTITY_ID VARCHAR(32) NOT NULL    COMMENT '对账实体ID',
+  ENTITY_ID VARCHAR(100) NOT NULL    COMMENT '实体ID',
+  ENTITY_NAME VARCHAR(200) NOT NULL    COMMENT '实体名',
+  ENTITY_TYPE VARCHAR(100) NULL    COMMENT '实体类型',
+  IDENTIFIER_SPACE VARCHAR(200) NULL    COMMENT '标识符空间',
+  PROPERTIES VARCHAR(4000) NULL    COMMENT '实体属性',
+  LAST_SYNCED_AT DATETIME(3) NULL    COMMENT '最后同步时间',
+  EXT_CONFIG VARCHAR(4000) NULL    COMMENT '扩展配置',
+  DEL_VERSION BIGINT NOT NULL    COMMENT '数据版本',
+  CREATED_BY VARCHAR(50) NOT NULL    COMMENT '创建人',
+  CREATE_TIME DATETIME(3) DEFAULT CURRENT_TIMESTAMP(3)  NOT NULL    COMMENT '创建时间',
+  UPDATED_BY VARCHAR(50) NOT NULL    COMMENT '修改人',
+  UPDATE_TIME DATETIME(3) DEFAULT CURRENT_TIMESTAMP(3)  NOT NULL    COMMENT '修改时间',
+  REMARK VARCHAR(200) NULL    COMMENT '备注',
+  constraint PK_nop_meta_recon_entity primary key (RECON_ENTITY_ID)
+)CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_as_cs;
+
 CREATE TABLE nop_meta_orm_model(
   ORM_MODEL_ID VARCHAR(32) NOT NULL    COMMENT '模型ID',
   META_MODULE_ID VARCHAR(32) NOT NULL    COMMENT '模块版本ID',
@@ -389,6 +407,28 @@ CREATE TABLE nop_meta_data_contract(
   constraint PK_nop_meta_data_contract primary key (CONTRACT_ID)
 )CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_as_cs;
 
+CREATE TABLE nop_meta_recon_config(
+  CONFIG_ID VARCHAR(32) NOT NULL    COMMENT '配置ID',
+  CONFIG_NAME VARCHAR(100) NOT NULL    COMMENT '配置名',
+  DISPLAY_NAME VARCHAR(200) NULL    COMMENT '显示名',
+  META_MODULE_ID VARCHAR(32) NULL    COMMENT '模块版本ID',
+  META_TABLE_ID VARCHAR(32) NOT NULL    COMMENT '逻辑表ID',
+  COLUMN_NAME VARCHAR(100) NOT NULL    COMMENT '待对账列名',
+  IDENTIFIER_SPACE VARCHAR(200) NULL    COMMENT '标识符空间',
+  TARGET_ENTITY_TYPE VARCHAR(100) NULL    COMMENT '目标实体类型',
+  MATCH_STRATEGY VARCHAR(30) NOT NULL    COMMENT '匹配策略',
+  AUTO_MATCH TINYINT default 0  NOT NULL    COMMENT '是否自动匹配',
+  AUTO_MATCH_THRESHOLD DOUBLE NOT NULL    COMMENT '自动匹配阈值',
+  EXT_CONFIG VARCHAR(4000) NULL    COMMENT '扩展配置',
+  DEL_VERSION BIGINT NOT NULL    COMMENT '数据版本',
+  CREATED_BY VARCHAR(50) NOT NULL    COMMENT '创建人',
+  CREATE_TIME DATETIME(3) DEFAULT CURRENT_TIMESTAMP(3)  NOT NULL    COMMENT '创建时间',
+  UPDATED_BY VARCHAR(50) NOT NULL    COMMENT '修改人',
+  UPDATE_TIME DATETIME(3) DEFAULT CURRENT_TIMESTAMP(3)  NOT NULL    COMMENT '修改时间',
+  REMARK VARCHAR(200) NULL    COMMENT '备注',
+  constraint PK_nop_meta_recon_config primary key (CONFIG_ID)
+)CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_as_cs;
+
 CREATE TABLE nop_meta_entity_field(
   ENTITY_FIELD_ID VARCHAR(32) NOT NULL    COMMENT '字段ID',
   META_ENTITY_ID VARCHAR(32) NOT NULL    COMMENT '实体ID',
@@ -538,6 +578,23 @@ CREATE TABLE nop_meta_profiling_result(
   constraint PK_nop_meta_profiling_result primary key (PROFILING_RESULT_ID)
 )CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_as_cs;
 
+CREATE TABLE nop_meta_recon_result(
+  RESULT_ID VARCHAR(32) NOT NULL    COMMENT '结果ID',
+  CONFIG_ID VARCHAR(32) NOT NULL    COMMENT '配置ID',
+  META_TABLE_ID VARCHAR(32) NOT NULL    COMMENT '逻辑表ID',
+  EXECUTE_TIME DATETIME(3) DEFAULT CURRENT_TIMESTAMP(3)  NOT NULL    COMMENT '执行时间',
+  STATISTICS VARCHAR(4000) NULL    COMMENT '统计信息',
+  DETAILS LONGTEXT NULL    COMMENT '明细',
+  EXT_CONFIG VARCHAR(4000) NULL    COMMENT '扩展配置',
+  DEL_VERSION BIGINT NOT NULL    COMMENT '数据版本',
+  CREATED_BY VARCHAR(50) NOT NULL    COMMENT '创建人',
+  CREATE_TIME DATETIME(3) DEFAULT CURRENT_TIMESTAMP(3)  NOT NULL    COMMENT '创建时间',
+  UPDATED_BY VARCHAR(50) NOT NULL    COMMENT '修改人',
+  UPDATE_TIME DATETIME(3) DEFAULT CURRENT_TIMESTAMP(3)  NOT NULL    COMMENT '修改时间',
+  REMARK VARCHAR(200) NULL    COMMENT '备注',
+  constraint PK_nop_meta_recon_result primary key (RESULT_ID)
+)CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_as_cs;
+
 
    ALTER TABLE nop_meta_module COMMENT '元数据模块';
                 
@@ -548,6 +605,8 @@ CREATE TABLE nop_meta_profiling_result(
    ALTER TABLE nop_meta_lineage_edge COMMENT '血缘边';
                 
    ALTER TABLE nop_meta_quality_rule COMMENT '质量规则';
+                
+   ALTER TABLE nop_meta_recon_entity COMMENT '对账实体';
                 
    ALTER TABLE nop_meta_orm_model COMMENT 'ORM模型';
                 
@@ -577,6 +636,8 @@ CREATE TABLE nop_meta_profiling_result(
                 
    ALTER TABLE nop_meta_data_contract COMMENT '数据契约';
                 
+   ALTER TABLE nop_meta_recon_config COMMENT '对账配置';
+                
    ALTER TABLE nop_meta_entity_field COMMENT '实体字段';
                 
    ALTER TABLE nop_meta_entity_relation COMMENT '实体关系';
@@ -590,4 +651,6 @@ CREATE TABLE nop_meta_profiling_result(
    ALTER TABLE nop_meta_dict_item COMMENT '字典项';
                 
    ALTER TABLE nop_meta_profiling_result COMMENT '数据剖析结果';
+                
+   ALTER TABLE nop_meta_recon_result COMMENT '对账结果';
                 

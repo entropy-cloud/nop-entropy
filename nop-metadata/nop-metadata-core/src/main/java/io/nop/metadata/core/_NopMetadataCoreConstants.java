@@ -293,4 +293,34 @@ public interface _NopMetadataCoreConstants {
      */
     String CONTRACT_STATUS_RETIRED = "RETIRED";
                     
+    /**
+     * 对账状态: 已匹配 
+     */
+    String RECONCILIATION_STATUS_MATCHED = "MATCHED";
+                    
+    /**
+     * 对账状态: 未匹配 
+     */
+    String RECONCILIATION_STATUS_UNMATCHED = "UNMATCHED";
+                    
+    /**
+     * 对账状态: 多候选 
+     */
+    String RECONCILIATION_STATUS_MULTIPLE = "MULTIPLE";
+                    
+    /**
+     * 对账状态: 人工确认 
+     */
+    String RECONCILIATION_STATUS_MANUAL = "MANUAL";
+                    
+    /**
+     * 匹配策略: 精确匹配 
+     */
+    String MATCH_STRATEGY_EXACT = "exact";
+                    
+    /**
+     * 匹配策略: 模糊匹配 
+     */
+    String MATCH_STRATEGY_FUZZY = "fuzzy";
+                    
 }

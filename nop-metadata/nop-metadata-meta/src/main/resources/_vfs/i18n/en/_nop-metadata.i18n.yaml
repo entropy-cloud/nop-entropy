@@ -20,6 +20,9 @@ entity:
     NopMetaProfilingRule: Meta Profiling Rule
     NopMetaQualityResult: Meta Quality Result
     NopMetaQualityRule: Meta Quality Rule
+    NopMetaReconciliationConfig: Meta Reconciliation Config
+    NopMetaReconciliationEntity: Meta Reconciliation Entity
+    NopMetaReconciliationResult: Meta Reconciliation Result
     NopMetaSemanticType: Meta Semantic Type
     NopMetaTable: Meta Table
     NopMetaTableDimension: Meta Table Dimension
@@ -463,6 +466,69 @@ prop:
       remark: Remark
       paramsComponent: null
       extConfigComponent: null
+    NopMetaReconciliationConfig:
+      configId: Config Id
+      configName: Config Name
+      displayName: Display Name
+      metaModuleId: Meta Module Id
+      metaTableId: Meta Table Id
+      columnName: Column Name
+      identifierSpace: Identifier Space
+      targetEntityType: Target Entity Type
+      matchStrategy: Match Strategy
+      matchStrategy_label: null
+      autoMatch: Auto Match
+      autoMatchThreshold: Auto Match Threshold
+      extConfig: Ext Config
+      version: Version
+      createdBy: Created By
+      createTime: Create Time
+      updatedBy: Updated By
+      updateTime: Update Time
+      remark: Remark
+      metaTable: Meta Table
+      metaTable.displayName: Meta Table
+      metaModule: Meta Module
+      metaModule.displayName: Meta Module
+      extConfigComponent: null
+    NopMetaReconciliationEntity:
+      reconEntityId: Recon Entity Id
+      entityId: Entity Id
+      entityName: Entity Name
+      entityType: Entity Type
+      identifierSpace: Identifier Space
+      properties: Properties
+      lastSyncedAt: Last Synced At
+      extConfig: Ext Config
+      version: Version
+      createdBy: Created By
+      createTime: Create Time
+      updatedBy: Updated By
+      updateTime: Update Time
+      remark: Remark
+      propertiesComponent: null
+      extConfigComponent: null
+    NopMetaReconciliationResult:
+      resultId: Result Id
+      configId: Config Id
+      metaTableId: Meta Table Id
+      executeTime: Execute Time
+      statistics: Statistics
+      details: Details
+      extConfig: Ext Config
+      version: Version
+      createdBy: Created By
+      createTime: Create Time
+      updatedBy: Updated By
+      updateTime: Update Time
+      remark: Remark
+      config: Reconciliation Config
+      config.displayName: Reconciliation Config
+      metaTable: Meta Table
+      metaTable.displayName: Meta Table
+      statisticsComponent: null
+      detailsComponent: null
+      extConfigComponent: null
     NopMetaSemanticType:
       semanticTypeId: Semantic Type Id
       typeName: Type Name
@@ -600,3 +666,5 @@ dict:
     meta/quality-severity: Quality Severity
     meta/quality-result-status: Quality Result Status
     meta/contract-status: Data Contract Status
+    meta/reconciliation-status: Reconciliation Status
+    meta/match-strategy: Match Strategy

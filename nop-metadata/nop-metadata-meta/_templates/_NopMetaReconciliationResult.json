@@ -1,0 +1,22 @@
+{
+  "resultId": "",
+  "configId": "",
+  "metaTableId": "",
+  "executeTime": "2000-01-01 14:00:00",
+  "statistics": "",
+  "details": "",
+  "extConfig": "",
+  "version": 0,
+  "createdBy": "",
+  "createTime": "2000-01-01 14:00:00",
+  "updatedBy": "",
+  "updateTime": "2000-01-01 14:00:00",
+  "remark": "",
+  "config": null,
+  "config.displayName": "",
+  "metaTable": null,
+  "metaTable.displayName": "",
+  "statisticsComponent": null,
+  "detailsComponent": null,
+  "extConfigComponent": null
+}

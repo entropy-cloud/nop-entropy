@@ -1,0 +1,15 @@
+# __XGEN_FORCE_OVERRIDE__
+label: 匹配策略
+locale: zh-CN
+valueType: string
+description: 
+options:
+
+  - label: 精确匹配
+    value: exact
+    description: 
+  
+  - label: 模糊匹配
+    value: fuzzy
+    description: 
+  

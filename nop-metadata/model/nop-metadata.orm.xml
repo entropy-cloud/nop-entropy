@@ -97,6 +97,16 @@
             <option code="DEPRECATED" label="已废弃" value="DEPRECATED"/>
             <option code="RETIRED" label="已退役" value="RETIRED"/>
         </dict>
+        <dict label="对账状态" name="meta/reconciliation-status" valueType="string" i18n-en:label="Reconciliation Status">
+            <option code="MATCHED" label="已匹配" value="MATCHED"/>
+            <option code="UNMATCHED" label="未匹配" value="UNMATCHED"/>
+            <option code="MULTIPLE" label="多候选" value="MULTIPLE"/>
+            <option code="MANUAL" label="人工确认" value="MANUAL"/>
+        </dict>
+        <dict label="匹配策略" name="meta/match-strategy" valueType="string" i18n-en:label="Match Strategy">
+            <option code="EXACT" label="精确匹配" value="exact"/>
+            <option code="FUZZY" label="模糊匹配" value="fuzzy"/>
+        </dict>
     </dicts>
 
     <domains>
@@ -1883,6 +1893,209 @@
             <indexes>
                 <index name="IX_NOP_META_CONTRACT_TABLE" unique="false">
                     <column name="entityTableId"/>
+                </index>
+            </indexes>
+        </entity>
+
+        <!-- =====================================================
+             NopMetaReconciliationConfig: 对账配置（单列对账，P4-5）
+             ===================================================== -->
+        <entity className="io.nop.metadata.dao.entity.NopMetaReconciliationConfig" createTimeProp="createTime"
+                createrProp="createdBy" displayName="对账配置"
+                name="io.nop.metadata.dao.entity.NopMetaReconciliationConfig" registerShortName="true"
+                tableName="nop_meta_recon_config" updateTimeProp="updateTime" updaterProp="updatedBy"
+                versionProp="version" ext:icon="git-compare"
+                i18n-en:displayName="Meta Reconciliation Config">
+            <columns>
+                <column code="CONFIG_ID" displayName="配置ID" mandatory="true" name="configId" precision="32"
+                        primary="true" propId="1" stdDataType="string" stdSqlType="VARCHAR" tagSet="seq"
+                        i18n-en:displayName="Config Id"/>
+                <column code="CONFIG_NAME" displayName="配置名" mandatory="true" name="configName" precision="100"
+                        propId="2" stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Config Name"/>
+                <column code="DISPLAY_NAME" displayName="显示名" name="displayName" precision="200" propId="3"
+                        stdDataType="string" stdSqlType="VARCHAR" tagSet="disp" i18n-en:displayName="Display Name"/>
+                <column code="META_MODULE_ID" displayName="模块版本ID" name="metaModuleId" precision="32" propId="4"
+                        stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Meta Module Id"/>
+                <column code="META_TABLE_ID" displayName="逻辑表ID" mandatory="true" name="metaTableId" precision="32"
+                        propId="5" stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Meta Table Id"/>
+                <column code="COLUMN_NAME" displayName="待对账列名" mandatory="true" name="columnName" precision="100"
+                        propId="6" stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Column Name"/>
+                <column code="IDENTIFIER_SPACE" displayName="标识符空间" name="identifierSpace" precision="200"
+                        propId="7" stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Identifier Space"/>
+                <column code="TARGET_ENTITY_TYPE" displayName="目标实体类型" name="targetEntityType" precision="100"
+                        propId="8" stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Target Entity Type"/>
+                <column code="MATCH_STRATEGY" displayName="匹配策略" mandatory="true" name="matchStrategy"
+                        precision="30" propId="9" stdDataType="string" stdSqlType="VARCHAR"
+                        i18n-en:displayName="Match Strategy" ext:dict="meta/match-strategy"/>
+                <column code="AUTO_MATCH" displayName="是否自动匹配" domain="boolFlag" mandatory="true"
+                        name="autoMatch" propId="10" stdDataType="byte" stdSqlType="TINYINT"
+                        i18n-en:displayName="Auto Match"/>
+                <column code="AUTO_MATCH_THRESHOLD" displayName="自动匹配阈值" mandatory="true"
+                        name="autoMatchThreshold" propId="11" stdDataType="double" stdSqlType="DOUBLE"
+                        i18n-en:displayName="Auto Match Threshold"/>
+                <column code="EXT_CONFIG" displayName="扩展配置" domain="json-4000" name="extConfig" precision="4000"
+                        propId="12" stdDataType="string" stdDomain="json" stdSqlType="VARCHAR"
+                        i18n-en:displayName="Ext Config"/>
+                <column code="DEL_VERSION" displayName="数据版本" domain="version" mandatory="true" name="version"
+                        propId="13" stdDataType="long" stdSqlType="BIGINT" i18n-en:displayName="Version"/>
+                <column code="CREATED_BY" displayName="创建人" domain="createdBy" mandatory="true" name="createdBy"
+                        precision="50" propId="14" stdDataType="string" stdSqlType="VARCHAR"
+                        i18n-en:displayName="Created By"/>
+                <column code="CREATE_TIME" displayName="创建时间" domain="createTime" mandatory="true"
+                        name="createTime" propId="15" stdDataType="timestamp" stdSqlType="TIMESTAMP"
+                        i18n-en:displayName="Create Time"/>
+                <column code="UPDATED_BY" displayName="修改人" domain="updatedBy" mandatory="true" name="updatedBy"
+                        precision="50" propId="16" stdDataType="string" stdSqlType="VARCHAR"
+                        i18n-en:displayName="Updated By"/>
+                <column code="UPDATE_TIME" displayName="修改时间" domain="updateTime" mandatory="true"
+                        name="updateTime" propId="17" stdDataType="timestamp" stdSqlType="TIMESTAMP"
+                        i18n-en:displayName="Update Time"/>
+                <column code="REMARK" displayName="备注" domain="remark" name="remark" precision="200" propId="18"
+                        stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Remark"/>
+            </columns>
+            <relations>
+                <to-one displayName="逻辑表" name="metaTable"
+                        refEntityName="io.nop.metadata.dao.entity.NopMetaTable" tagSet="pub,ref-pub"
+                        i18n-en:displayName="Meta Table">
+                    <join>
+                        <on leftProp="metaTableId" rightProp="metaTableId"/>
+                    </join>
+                </to-one>
+                <to-one displayName="元数据模块" name="metaModule"
+                        refEntityName="io.nop.metadata.dao.entity.NopMetaModule" tagSet="pub,ref-pub"
+                        i18n-en:displayName="Meta Module">
+                    <join>
+                        <on leftProp="metaModuleId" rightProp="metaModuleId"/>
+                    </join>
+                </to-one>
+            </relations>
+            <indexes>
+                <index name="IX_NOP_META_RECON_CONFIG_TABLE" unique="false">
+                    <column name="metaTableId"/>
+                </index>
+            </indexes>
+        </entity>
+
+        <!-- =====================================================
+             NopMetaReconciliationResult: 对账结果（单行承载 statistics + details，P4-5）
+             ===================================================== -->
+        <entity className="io.nop.metadata.dao.entity.NopMetaReconciliationResult" createTimeProp="createTime"
+                createrProp="createdBy" displayName="对账结果"
+                name="io.nop.metadata.dao.entity.NopMetaReconciliationResult" registerShortName="true"
+                tableName="nop_meta_recon_result" updateTimeProp="updateTime" updaterProp="updatedBy"
+                versionProp="version" ext:icon="clipboard-check"
+                i18n-en:displayName="Meta Reconciliation Result">
+            <columns>
+                <column code="RESULT_ID" displayName="结果ID" mandatory="true" name="resultId" precision="32"
+                        primary="true" propId="1" stdDataType="string" stdSqlType="VARCHAR" tagSet="seq"
+                        i18n-en:displayName="Result Id"/>
+                <column code="CONFIG_ID" displayName="配置ID" mandatory="true" name="configId" precision="32"
+                        propId="2" stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Config Id"/>
+                <column code="META_TABLE_ID" displayName="逻辑表ID" mandatory="true" name="metaTableId"
+                        precision="32" propId="3" stdDataType="string" stdSqlType="VARCHAR"
+                        i18n-en:displayName="Meta Table Id"/>
+                <column code="EXECUTE_TIME" displayName="执行时间" mandatory="true" name="executeTime" propId="4"
+                        stdDataType="timestamp" stdSqlType="TIMESTAMP" i18n-en:displayName="Execute Time"/>
+                <column code="STATISTICS" displayName="统计信息" domain="json-4000" name="statistics" precision="4000"
+                        propId="5" stdDataType="string" stdDomain="json" stdSqlType="VARCHAR"
+                        i18n-en:displayName="Statistics"/>
+                <column code="DETAILS" displayName="明细" domain="mediumtext" name="details" precision="16777216"
+                        propId="6" stdDataType="string" stdDomain="json" stdSqlType="VARCHAR"
+                        i18n-en:displayName="Details"/>
+                <column code="EXT_CONFIG" displayName="扩展配置" domain="json-4000" name="extConfig" precision="4000"
+                        propId="7" stdDataType="string" stdDomain="json" stdSqlType="VARCHAR"
+                        i18n-en:displayName="Ext Config"/>
+                <column code="DEL_VERSION" displayName="数据版本" domain="version" mandatory="true" name="version"
+                        propId="8" stdDataType="long" stdSqlType="BIGINT" i18n-en:displayName="Version"/>
+                <column code="CREATED_BY" displayName="创建人" domain="createdBy" mandatory="true" name="createdBy"
+                        precision="50" propId="9" stdDataType="string" stdSqlType="VARCHAR"
+                        i18n-en:displayName="Created By"/>
+                <column code="CREATE_TIME" displayName="创建时间" domain="createTime" mandatory="true"
+                        name="createTime" propId="10" stdDataType="timestamp" stdSqlType="TIMESTAMP"
+                        i18n-en:displayName="Create Time"/>
+                <column code="UPDATED_BY" displayName="修改人" domain="updatedBy" mandatory="true" name="updatedBy"
+                        precision="50" propId="11" stdDataType="string" stdSqlType="VARCHAR"
+                        i18n-en:displayName="Updated By"/>
+                <column code="UPDATE_TIME" displayName="修改时间" domain="updateTime" mandatory="true"
+                        name="updateTime" propId="12" stdDataType="timestamp" stdSqlType="TIMESTAMP"
+                        i18n-en:displayName="Update Time"/>
+                <column code="REMARK" displayName="备注" domain="remark" name="remark" precision="200" propId="13"
+                        stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Remark"/>
+            </columns>
+            <relations>
+                <to-one displayName="对账配置" name="config"
+                        refEntityName="io.nop.metadata.dao.entity.NopMetaReconciliationConfig" tagSet="pub,ref-pub"
+                        i18n-en:displayName="Reconciliation Config">
+                    <join>
+                        <on leftProp="configId" rightProp="configId"/>
+                    </join>
+                </to-one>
+                <to-one displayName="逻辑表" name="metaTable"
+                        refEntityName="io.nop.metadata.dao.entity.NopMetaTable" tagSet="pub,ref-pub"
+                        i18n-en:displayName="Meta Table">
+                    <join>
+                        <on leftProp="metaTableId" rightProp="metaTableId"/>
+                    </join>
+                </to-one>
+            </relations>
+            <indexes>
+                <index name="IX_NOP_META_RECON_RESULT_CONFIG" unique="false">
+                    <column name="configId"/>
+                    <column name="executeTime"/>
+                </index>
+            </indexes>
+        </entity>
+
+        <!-- =====================================================
+             NopMetaReconciliationEntity: 候选实体缓存（本地匹配候选集来源，P4-5）
+             ===================================================== -->
+        <entity className="io.nop.metadata.dao.entity.NopMetaReconciliationEntity" createTimeProp="createTime"
+                createrProp="createdBy" displayName="对账实体"
+                name="io.nop.metadata.dao.entity.NopMetaReconciliationEntity" registerShortName="true"
+                tableName="nop_meta_recon_entity" updateTimeProp="updateTime" updaterProp="updatedBy"
+                versionProp="version" ext:icon="database"
+                i18n-en:displayName="Meta Reconciliation Entity">
+            <columns>
+                <column code="RECON_ENTITY_ID" displayName="对账实体ID" mandatory="true" name="reconEntityId"
+                        precision="32" primary="true" propId="1" stdDataType="string" stdSqlType="VARCHAR"
+                        tagSet="seq" i18n-en:displayName="Recon Entity Id"/>
+                <column code="ENTITY_ID" displayName="实体ID" mandatory="true" name="entityId" precision="100"
+                        propId="2" stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Entity Id"/>
+                <column code="ENTITY_NAME" displayName="实体名" mandatory="true" name="entityName" precision="200"
+                        propId="3" stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Entity Name"/>
+                <column code="ENTITY_TYPE" displayName="实体类型" name="entityType" precision="100" propId="4"
+                        stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Entity Type"/>
+                <column code="IDENTIFIER_SPACE" displayName="标识符空间" name="identifierSpace" precision="200"
+                        propId="5" stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Identifier Space"/>
+                <column code="PROPERTIES" displayName="实体属性" domain="json-4000" name="properties" precision="4000"
+                        propId="6" stdDataType="string" stdDomain="json" stdSqlType="VARCHAR"
+                        i18n-en:displayName="Properties"/>
+                <column code="LAST_SYNCED_AT" displayName="最后同步时间" name="lastSyncedAt" propId="7"
+                        stdDataType="timestamp" stdSqlType="TIMESTAMP" i18n-en:displayName="Last Synced At"/>
+                <column code="EXT_CONFIG" displayName="扩展配置" domain="json-4000" name="extConfig" precision="4000"
+                        propId="8" stdDataType="string" stdDomain="json" stdSqlType="VARCHAR"
+                        i18n-en:displayName="Ext Config"/>
+                <column code="DEL_VERSION" displayName="数据版本" domain="version" mandatory="true" name="version"
+                        propId="9" stdDataType="long" stdSqlType="BIGINT" i18n-en:displayName="Version"/>
+                <column code="CREATED_BY" displayName="创建人" domain="createdBy" mandatory="true" name="createdBy"
+                        precision="50" propId="10" stdDataType="string" stdSqlType="VARCHAR"
+                        i18n-en:displayName="Created By"/>
+                <column code="CREATE_TIME" displayName="创建时间" domain="createTime" mandatory="true"
+                        name="createTime" propId="11" stdDataType="timestamp" stdSqlType="TIMESTAMP"
+                        i18n-en:displayName="Create Time"/>
+                <column code="UPDATED_BY" displayName="修改人" domain="updatedBy" mandatory="true" name="updatedBy"
+                        precision="50" propId="12" stdDataType="string" stdSqlType="VARCHAR"
+                        i18n-en:displayName="Updated By"/>
+                <column code="UPDATE_TIME" displayName="修改时间" domain="updateTime" mandatory="true"
+                        name="updateTime" propId="13" stdDataType="timestamp" stdSqlType="TIMESTAMP"
+                        i18n-en:displayName="Update Time"/>
+                <column code="REMARK" displayName="备注" domain="remark" name="remark" precision="200" propId="14"
+                        stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Remark"/>
+            </columns>
+            <indexes>
+                <index name="IX_NOP_META_RECON_ENTITY_TYPE" unique="false">
+                    <column name="entityType"/>
+                    <column name="identifierSpace"/>
                 </index>
             </indexes>
         </entity>

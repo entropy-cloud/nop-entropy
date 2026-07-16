@@ -1,0 +1,120 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<meta x:schema="/nop/schema/xmeta.xdef" xmlns:x="/nop/schema/xdsl.xdef" xmlns:i18n-en="i18n-en" xmlns:ext="ext"
+      xmlns:xpl="xpl" ext:model="orm" ext:icon="git-compare" xmlns:c="c" xmlns:graphql="graphql"
+      xmlns:meta-gen="meta-gen" xmlns:biz="biz" displayName="对账配置" i18n-en:displayName="Meta Reconciliation Config"
+      xmlns:ui="ui" xmlns:orm="orm">
+
+    <entityName>io.nop.metadata.dao.entity.NopMetaReconciliationConfig</entityName>
+
+    <primaryKey>configId</primaryKey>
+
+    <displayProp>displayName</displayProp>
+
+    <x:gen-extends>
+        <meta-gen:DefaultMetaGenExtends xpl:lib="/nop/core/xlib/meta-gen.xlib"/>
+    </x:gen-extends>
+
+    <x:post-extends>
+        <meta-gen:DefaultMetaPostExtends xpl:lib="/nop/core/xlib/meta-gen.xlib"/>
+    </x:post-extends>
+
+    <keys/>
+
+    <props>
+        <prop name="configId" displayName="配置ID" propId="1" i18n-en:displayName="Config Id" tagSet="seq"
+              mandatory="true" queryable="true" sortable="true" insertable="true" updatable="false">
+            <schema type="java.lang.String" precision="32"/>
+        </prop>
+        <prop name="configName" displayName="配置名" propId="2" i18n-en:displayName="Config Name" mandatory="true"
+              queryable="true" sortable="true" insertable="true" updatable="true">
+            <schema type="java.lang.String" precision="100"/>
+        </prop>
+        <prop name="displayName" displayName="显示名" propId="3" i18n-en:displayName="Display Name" tagSet="disp"
+              queryable="true" sortable="true" insertable="true" updatable="true">
+            <schema type="java.lang.String" precision="200"/>
+        </prop>
+        <prop name="metaModuleId" displayName="模块版本ID" propId="4" i18n-en:displayName="Meta Module Id" queryable="true"
+              sortable="true" insertable="true" updatable="true" ext:relation="metaModule">
+            <schema type="java.lang.String" precision="32"/>
+        </prop>
+        <prop name="metaTableId" displayName="逻辑表ID" propId="5" i18n-en:displayName="Meta Table Id" mandatory="true"
+              queryable="true" sortable="true" insertable="true" updatable="true" ext:relation="metaTable">
+            <schema type="java.lang.String" precision="32"/>
+        </prop>
+        <prop name="columnName" displayName="待对账列名" propId="6" i18n-en:displayName="Column Name" mandatory="true"
+              queryable="true" sortable="true" insertable="true" updatable="true">
+            <schema type="java.lang.String" precision="100"/>
+        </prop>
+        <prop name="identifierSpace" displayName="标识符空间" propId="7" i18n-en:displayName="Identifier Space"
+              queryable="true" sortable="true" insertable="true" updatable="true">
+            <schema type="java.lang.String" precision="200"/>
+        </prop>
+        <prop name="targetEntityType" displayName="目标实体类型" propId="8" i18n-en:displayName="Target Entity Type"
+              queryable="true" sortable="true" insertable="true" updatable="true">
+            <schema type="java.lang.String" precision="100"/>
+        </prop>
+        <prop name="matchStrategy" displayName="匹配策略" propId="9" i18n-en:displayName="Match Strategy" mandatory="true"
+              queryable="true" sortable="true" insertable="true" updatable="true">
+            <schema type="java.lang.String" precision="30" dict="meta/match-strategy"/>
+        </prop>
+        <prop name="autoMatch" displayName="是否自动匹配" propId="10" i18n-en:displayName="Auto Match" mandatory="true"
+              queryable="true" sortable="true" insertable="true" updatable="true" defaultValue="0">
+            <schema domain="boolFlag" type="java.lang.Byte"/>
+        </prop>
+        <prop name="autoMatchThreshold" displayName="自动匹配阈值" propId="11" i18n-en:displayName="Auto Match Threshold"
+              mandatory="true" queryable="true" sortable="true" insertable="true" updatable="true">
+            <schema type="java.lang.Double"/>
+        </prop>
+        <prop name="extConfig" displayName="扩展配置" propId="12" i18n-en:displayName="Ext Config" queryable="true"
+              sortable="true" insertable="true" updatable="true" graphql:jsonComponentProp="extConfigComponent">
+            <schema stdDomain="json" domain="json-4000" type="java.lang.String" precision="4000"/>
+        </prop>
+        <prop name="version" displayName="数据版本" propId="13" i18n-en:displayName="Version" mandatory="true"
+              queryable="true" sortable="true" insertable="false" updatable="false" internal="true">
+            <schema domain="version" type="java.lang.Long"/>
+        </prop>
+        <prop name="createdBy" displayName="创建人" propId="14" i18n-en:displayName="Created By" mandatory="true"
+              queryable="true" sortable="true" insertable="false" updatable="false">
+            <schema domain="createdBy" type="java.lang.String" precision="50"/>
+        </prop>
+        <prop name="createTime" displayName="创建时间" propId="15" i18n-en:displayName="Create Time" mandatory="true"
+              queryable="true" sortable="true" insertable="false" updatable="false">
+            <schema domain="createTime" type="java.sql.Timestamp"/>
+        </prop>
+        <prop name="updatedBy" displayName="修改人" propId="16" i18n-en:displayName="Updated By" mandatory="true"
+              queryable="true" sortable="true" insertable="false" updatable="false">
+            <schema domain="updatedBy" type="java.lang.String" precision="50"/>
+        </prop>
+        <prop name="updateTime" displayName="修改时间" propId="17" i18n-en:displayName="Update Time" mandatory="true"
+              queryable="true" sortable="true" insertable="false" updatable="false">
+            <schema domain="updateTime" type="java.sql.Timestamp"/>
+        </prop>
+        <prop name="remark" displayName="备注" propId="18" i18n-en:displayName="Remark" queryable="true" sortable="true"
+              insertable="true" updatable="true">
+            <schema domain="remark" type="java.lang.String" precision="200"/>
+        </prop>
+        <prop name="metaTable" displayName="逻辑表" i18n-en:displayName="Meta Table" tagSet="pub,ref-pub" ext:kind="to-one"
+              internal="true" queryable="true" ext:joinLeftProp="metaTableId" ext:joinRightProp="metaTableId"
+              ext:joinRightDisplayProp="displayName" insertable="false" updatable="false" mandatory="true" lazy="true">
+            <schema bizObjName="NopMetaTable"/>
+        </prop>
+        <prop name="metaTable.displayName" displayName="逻辑表" i18n-en:displayName="Meta Table" internal="true"
+              queryable="true" sortable="true" lazy="true">
+            <schema type="String"/>
+        </prop>
+        <prop name="metaModule" displayName="元数据模块" i18n-en:displayName="Meta Module" tagSet="pub,ref-pub"
+              ext:kind="to-one" internal="true" queryable="true" ext:joinLeftProp="metaModuleId"
+              ext:joinRightProp="metaModuleId" ext:joinRightDisplayProp="displayName" insertable="false"
+              updatable="false" lazy="true">
+            <schema bizObjName="NopMetaModule"/>
+        </prop>
+        <prop name="metaModule.displayName" displayName="元数据模块" i18n-en:displayName="Meta Module" internal="true"
+              queryable="true" sortable="true" lazy="true">
+            <schema type="String"/>
+        </prop>
+        <prop name="extConfigComponent" tagSet="json,pub,edit" ext:kind="component" internal="true" insertable="true"
+              updatable="true" lazy="true">
+            <schema type="io.nop.orm.component.JsonOrmComponent"/>
+        </prop>
+    </props>
+</meta>

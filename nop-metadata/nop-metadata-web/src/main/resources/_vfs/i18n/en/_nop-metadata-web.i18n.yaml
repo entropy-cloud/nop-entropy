@@ -80,6 +80,18 @@ site:
       displayName: Modify Meta Quality Rule
     FNPT:NopMetaQualityRule:query:
       displayName: Query Meta Quality Rule
+    FNPT:NopMetaReconciliationConfig:mutation:
+      displayName: Modify Meta Reconciliation Config
+    FNPT:NopMetaReconciliationConfig:query:
+      displayName: Query Meta Reconciliation Config
+    FNPT:NopMetaReconciliationEntity:mutation:
+      displayName: Modify Meta Reconciliation Entity
+    FNPT:NopMetaReconciliationEntity:query:
+      displayName: Query Meta Reconciliation Entity
+    FNPT:NopMetaReconciliationResult:mutation:
+      displayName: Modify Meta Reconciliation Result
+    FNPT:NopMetaReconciliationResult:query:
+      displayName: Query Meta Reconciliation Result
     FNPT:NopMetaSemanticType:mutation:
       displayName: Modify Meta Semantic Type
     FNPT:NopMetaSemanticType:query:
@@ -144,6 +156,12 @@ site:
       displayName: Meta Quality Result
     NopMetaQualityRule-main:
       displayName: Meta Quality Rule
+    NopMetaReconciliationConfig-main:
+      displayName: Meta Reconciliation Config
+    NopMetaReconciliationEntity-main:
+      displayName: Meta Reconciliation Entity
+    NopMetaReconciliationResult-main:
+      displayName: Meta Reconciliation Result
     NopMetaSemanticType-main:
       displayName: Meta Semantic Type
     NopMetaTable-main:

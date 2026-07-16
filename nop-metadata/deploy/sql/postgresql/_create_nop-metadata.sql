@@ -99,6 +99,24 @@ CREATE TABLE nop_meta_quality_rule(
   constraint PK_nop_meta_quality_rule primary key (quality_rule_id)
 );
 
+CREATE TABLE nop_meta_recon_entity(
+  recon_entity_id VARCHAR(32) NOT NULL ,
+  entity_id VARCHAR(100) NOT NULL ,
+  entity_name VARCHAR(200) NOT NULL ,
+  entity_type VARCHAR(100)  ,
+  identifier_space VARCHAR(200)  ,
+  properties VARCHAR(4000)  ,
+  last_synced_at TIMESTAMP  ,
+  ext_config VARCHAR(4000)  ,
+  del_version INT8 NOT NULL ,
+  created_by VARCHAR(50) NOT NULL ,
+  create_time TIMESTAMP NOT NULL ,
+  updated_by VARCHAR(50) NOT NULL ,
+  update_time TIMESTAMP NOT NULL ,
+  remark VARCHAR(200)  ,
+  constraint PK_nop_meta_recon_entity primary key (recon_entity_id)
+);
+
 CREATE TABLE nop_meta_orm_model(
   orm_model_id VARCHAR(32) NOT NULL ,
   meta_module_id VARCHAR(32) NOT NULL ,
@@ -389,6 +407,28 @@ CREATE TABLE nop_meta_data_contract(
   constraint PK_nop_meta_data_contract primary key (contract_id)
 );
 
+CREATE TABLE nop_meta_recon_config(
+  config_id VARCHAR(32) NOT NULL ,
+  config_name VARCHAR(100) NOT NULL ,
+  display_name VARCHAR(200)  ,
+  meta_module_id VARCHAR(32)  ,
+  meta_table_id VARCHAR(32) NOT NULL ,
+  column_name VARCHAR(100) NOT NULL ,
+  identifier_space VARCHAR(200)  ,
+  target_entity_type VARCHAR(100)  ,
+  match_strategy VARCHAR(30) NOT NULL ,
+  auto_match INT4 default 0  NOT NULL ,
+  auto_match_threshold FLOAT8 NOT NULL ,
+  ext_config VARCHAR(4000)  ,
+  del_version INT8 NOT NULL ,
+  created_by VARCHAR(50) NOT NULL ,
+  create_time TIMESTAMP NOT NULL ,
+  updated_by VARCHAR(50) NOT NULL ,
+  update_time TIMESTAMP NOT NULL ,
+  remark VARCHAR(200)  ,
+  constraint PK_nop_meta_recon_config primary key (config_id)
+);
+
 CREATE TABLE nop_meta_entity_field(
   entity_field_id VARCHAR(32) NOT NULL ,
   meta_entity_id VARCHAR(32) NOT NULL ,
@@ -536,6 +576,23 @@ CREATE TABLE nop_meta_profiling_result(
   update_time TIMESTAMP NOT NULL ,
   remark VARCHAR(200)  ,
   constraint PK_nop_meta_profiling_result primary key (profiling_result_id)
+);
+
+CREATE TABLE nop_meta_recon_result(
+  result_id VARCHAR(32) NOT NULL ,
+  config_id VARCHAR(32) NOT NULL ,
+  meta_table_id VARCHAR(32) NOT NULL ,
+  execute_time TIMESTAMP NOT NULL ,
+  statistics VARCHAR(4000)  ,
+  details TEXT  ,
+  ext_config VARCHAR(4000)  ,
+  del_version INT8 NOT NULL ,
+  created_by VARCHAR(50) NOT NULL ,
+  create_time TIMESTAMP NOT NULL ,
+  updated_by VARCHAR(50) NOT NULL ,
+  update_time TIMESTAMP NOT NULL ,
+  remark VARCHAR(200)  ,
+  constraint PK_nop_meta_recon_result primary key (result_id)
 );
 
 
@@ -708,6 +765,36 @@ CREATE TABLE nop_meta_profiling_result(
       COMMENT ON COLUMN nop_meta_quality_rule.update_time IS '修改时间';
                     
       COMMENT ON COLUMN nop_meta_quality_rule.remark IS '备注';
+                    
+      COMMENT ON TABLE nop_meta_recon_entity IS '对账实体';
+                
+      COMMENT ON COLUMN nop_meta_recon_entity.recon_entity_id IS '对账实体ID';
+                    
+      COMMENT ON COLUMN nop_meta_recon_entity.entity_id IS '实体ID';
+                    
+      COMMENT ON COLUMN nop_meta_recon_entity.entity_name IS '实体名';
+                    
+      COMMENT ON COLUMN nop_meta_recon_entity.entity_type IS '实体类型';
+                    
+      COMMENT ON COLUMN nop_meta_recon_entity.identifier_space IS '标识符空间';
+                    
+      COMMENT ON COLUMN nop_meta_recon_entity.properties IS '实体属性';
+                    
+      COMMENT ON COLUMN nop_meta_recon_entity.last_synced_at IS '最后同步时间';
+                    
+      COMMENT ON COLUMN nop_meta_recon_entity.ext_config IS '扩展配置';
+                    
+      COMMENT ON COLUMN nop_meta_recon_entity.del_version IS '数据版本';
+                    
+      COMMENT ON COLUMN nop_meta_recon_entity.created_by IS '创建人';
+                    
+      COMMENT ON COLUMN nop_meta_recon_entity.create_time IS '创建时间';
+                    
+      COMMENT ON COLUMN nop_meta_recon_entity.updated_by IS '修改人';
+                    
+      COMMENT ON COLUMN nop_meta_recon_entity.update_time IS '修改时间';
+                    
+      COMMENT ON COLUMN nop_meta_recon_entity.remark IS '备注';
                     
       COMMENT ON TABLE nop_meta_orm_model IS 'ORM模型';
                 
@@ -1205,6 +1292,44 @@ CREATE TABLE nop_meta_profiling_result(
                     
       COMMENT ON COLUMN nop_meta_data_contract.remark IS '备注';
                     
+      COMMENT ON TABLE nop_meta_recon_config IS '对账配置';
+                
+      COMMENT ON COLUMN nop_meta_recon_config.config_id IS '配置ID';
+                    
+      COMMENT ON COLUMN nop_meta_recon_config.config_name IS '配置名';
+                    
+      COMMENT ON COLUMN nop_meta_recon_config.display_name IS '显示名';
+                    
+      COMMENT ON COLUMN nop_meta_recon_config.meta_module_id IS '模块版本ID';
+                    
+      COMMENT ON COLUMN nop_meta_recon_config.meta_table_id IS '逻辑表ID';
+                    
+      COMMENT ON COLUMN nop_meta_recon_config.column_name IS '待对账列名';
+                    
+      COMMENT ON COLUMN nop_meta_recon_config.identifier_space IS '标识符空间';
+                    
+      COMMENT ON COLUMN nop_meta_recon_config.target_entity_type IS '目标实体类型';
+                    
+      COMMENT ON COLUMN nop_meta_recon_config.match_strategy IS '匹配策略';
+                    
+      COMMENT ON COLUMN nop_meta_recon_config.auto_match IS '是否自动匹配';
+                    
+      COMMENT ON COLUMN nop_meta_recon_config.auto_match_threshold IS '自动匹配阈值';
+                    
+      COMMENT ON COLUMN nop_meta_recon_config.ext_config IS '扩展配置';
+                    
+      COMMENT ON COLUMN nop_meta_recon_config.del_version IS '数据版本';
+                    
+      COMMENT ON COLUMN nop_meta_recon_config.created_by IS '创建人';
+                    
+      COMMENT ON COLUMN nop_meta_recon_config.create_time IS '创建时间';
+                    
+      COMMENT ON COLUMN nop_meta_recon_config.updated_by IS '修改人';
+                    
+      COMMENT ON COLUMN nop_meta_recon_config.update_time IS '修改时间';
+                    
+      COMMENT ON COLUMN nop_meta_recon_config.remark IS '备注';
+                    
       COMMENT ON TABLE nop_meta_entity_field IS '实体字段';
                 
       COMMENT ON COLUMN nop_meta_entity_field.entity_field_id IS '字段ID';
@@ -1460,4 +1585,32 @@ CREATE TABLE nop_meta_profiling_result(
       COMMENT ON COLUMN nop_meta_profiling_result.update_time IS '修改时间';
                     
       COMMENT ON COLUMN nop_meta_profiling_result.remark IS '备注';
+                    
+      COMMENT ON TABLE nop_meta_recon_result IS '对账结果';
+                
+      COMMENT ON COLUMN nop_meta_recon_result.result_id IS '结果ID';
+                    
+      COMMENT ON COLUMN nop_meta_recon_result.config_id IS '配置ID';
+                    
+      COMMENT ON COLUMN nop_meta_recon_result.meta_table_id IS '逻辑表ID';
+                    
+      COMMENT ON COLUMN nop_meta_recon_result.execute_time IS '执行时间';
+                    
+      COMMENT ON COLUMN nop_meta_recon_result.statistics IS '统计信息';
+                    
+      COMMENT ON COLUMN nop_meta_recon_result.details IS '明细';
+                    
+      COMMENT ON COLUMN nop_meta_recon_result.ext_config IS '扩展配置';
+                    
+      COMMENT ON COLUMN nop_meta_recon_result.del_version IS '数据版本';
+                    
+      COMMENT ON COLUMN nop_meta_recon_result.created_by IS '创建人';
+                    
+      COMMENT ON COLUMN nop_meta_recon_result.create_time IS '创建时间';
+                    
+      COMMENT ON COLUMN nop_meta_recon_result.updated_by IS '修改人';
+                    
+      COMMENT ON COLUMN nop_meta_recon_result.update_time IS '修改时间';
+                    
+      COMMENT ON COLUMN nop_meta_recon_result.remark IS '备注';
                     

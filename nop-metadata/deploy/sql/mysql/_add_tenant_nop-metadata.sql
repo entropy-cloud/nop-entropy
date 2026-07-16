@@ -9,6 +9,8 @@ alter table nop_meta_lineage_edge add NOP_TENANT_ID VARCHAR(32) DEFAULT '0' NOT 
 
 alter table nop_meta_quality_rule add NOP_TENANT_ID VARCHAR(32) DEFAULT '0' NOT NULL;
 
+alter table nop_meta_recon_entity add NOP_TENANT_ID VARCHAR(32) DEFAULT '0' NOT NULL;
+
 alter table nop_meta_orm_model add NOP_TENANT_ID VARCHAR(32) DEFAULT '0' NOT NULL;
 
 alter table nop_meta_table add NOP_TENANT_ID VARCHAR(32) DEFAULT '0' NOT NULL;
@@ -37,6 +39,8 @@ alter table nop_meta_profiling_rule add NOP_TENANT_ID VARCHAR(32) DEFAULT '0' NO
 
 alter table nop_meta_data_contract add NOP_TENANT_ID VARCHAR(32) DEFAULT '0' NOT NULL;
 
+alter table nop_meta_recon_config add NOP_TENANT_ID VARCHAR(32) DEFAULT '0' NOT NULL;
+
 alter table nop_meta_entity_field add NOP_TENANT_ID VARCHAR(32) DEFAULT '0' NOT NULL;
 
 alter table nop_meta_entity_relation add NOP_TENANT_ID VARCHAR(32) DEFAULT '0' NOT NULL;
@@ -50,6 +54,8 @@ alter table nop_meta_table_join add NOP_TENANT_ID VARCHAR(32) DEFAULT '0' NOT NU
 alter table nop_meta_dict_item add NOP_TENANT_ID VARCHAR(32) DEFAULT '0' NOT NULL;
 
 alter table nop_meta_profiling_result add NOP_TENANT_ID VARCHAR(32) DEFAULT '0' NOT NULL;
+
+alter table nop_meta_recon_result add NOP_TENANT_ID VARCHAR(32) DEFAULT '0' NOT NULL;
 
 alter table nop_meta_module drop primary key;
 alter table nop_meta_module add primary key (NOP_TENANT_ID, META_MODULE_ID);
@@ -65,6 +71,9 @@ alter table nop_meta_lineage_edge add primary key (NOP_TENANT_ID, LINEAGE_EDGE_I
 
 alter table nop_meta_quality_rule drop primary key;
 alter table nop_meta_quality_rule add primary key (NOP_TENANT_ID, QUALITY_RULE_ID);
+
+alter table nop_meta_recon_entity drop primary key;
+alter table nop_meta_recon_entity add primary key (NOP_TENANT_ID, RECON_ENTITY_ID);
 
 alter table nop_meta_orm_model drop primary key;
 alter table nop_meta_orm_model add primary key (NOP_TENANT_ID, ORM_MODEL_ID);
@@ -108,6 +117,9 @@ alter table nop_meta_profiling_rule add primary key (NOP_TENANT_ID, PROFILING_RU
 alter table nop_meta_data_contract drop primary key;
 alter table nop_meta_data_contract add primary key (NOP_TENANT_ID, CONTRACT_ID);
 
+alter table nop_meta_recon_config drop primary key;
+alter table nop_meta_recon_config add primary key (NOP_TENANT_ID, CONFIG_ID);
+
 alter table nop_meta_entity_field drop primary key;
 alter table nop_meta_entity_field add primary key (NOP_TENANT_ID, ENTITY_FIELD_ID);
 
@@ -128,5 +140,8 @@ alter table nop_meta_dict_item add primary key (NOP_TENANT_ID, DICT_ITEM_ID);
 
 alter table nop_meta_profiling_result drop primary key;
 alter table nop_meta_profiling_result add primary key (NOP_TENANT_ID, PROFILING_RESULT_ID);
+
+alter table nop_meta_recon_result drop primary key;
+alter table nop_meta_recon_result add primary key (NOP_TENANT_ID, RESULT_ID);
 
 

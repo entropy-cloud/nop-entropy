@@ -1,0 +1,23 @@
+# __XGEN_FORCE_OVERRIDE__
+label: 对账状态
+locale: zh-CN
+valueType: string
+description: 
+options:
+
+  - label: 已匹配
+    value: MATCHED
+    description: 
+  
+  - label: 未匹配
+    value: UNMATCHED
+    description: 
+  
+  - label: 多候选
+    value: MULTIPLE
+    description: 
+  
+  - label: 人工确认
+    value: MANUAL
+    description: 
+  

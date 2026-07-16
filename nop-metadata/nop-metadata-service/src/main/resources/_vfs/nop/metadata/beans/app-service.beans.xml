@@ -17,4 +17,10 @@
          无状态，IDaoProvider 由 nop-dao 全局提供。-->
     <bean id="io.nop.metadata.service.contract.MetaContractChecker"
           class="io.nop.metadata.service.contract.MetaContractChecker" ioc:default="true"/>
+
+    <!-- 对账本地匹配服务（设计 08 §1.2 D1 + §四 D2）：对 NopMetaReconciliationEntity 候选集做 exact/fuzzy 匹配，
+         由 NopMetaReconciliationConfigBizModel 注入（经 ReconciliationExecutor，按 IReconciliationService 接口解析）。
+         IDaoProvider 由 nop-dao 全局提供。外部 HTTP 实现未来可作为新 IReconciliationService impl 插入覆盖。-->
+    <bean id="io.nop.metadata.service.reconciliation.LocalReconciliationService"
+          class="io.nop.metadata.service.reconciliation.LocalReconciliationService" ioc:default="true"/>
 </beans>
