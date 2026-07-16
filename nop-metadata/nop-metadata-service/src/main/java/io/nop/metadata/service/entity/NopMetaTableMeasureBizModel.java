@@ -10,16 +10,19 @@ import io.nop.dao.api.IEntityDao;
 import io.nop.metadata.biz.INopMetaTableMeasureBiz;
 import io.nop.metadata.dao.entity.NopMetaEntityField;
 import io.nop.metadata.dao.entity.NopMetaTable;
+import io.nop.metadata.dao.entity.NopMetaTableJoin;
 import io.nop.metadata.dao.entity.NopMetaTableMeasure;
 import io.nop.metadata.service.field.MetaTableFieldResolver;
 
 import java.util.Map;
 
 /**
- * 表指标 BizModel（架构基线 §2.5.2 / plan 0700-2 item 1.3）：基线 CRUD + save 字段引用校验。
+ * 表指标 BizModel（架构基线 §2.5.2 D2/D3 / plan 0700-2 item 1.3 + plan 0228-3 跨表扩展）：
+ * 基线 CRUD + save 字段引用校验。
  *
- * <p>save 校验（item 1.1 裁定的 save override 落点）：保存 Measure 时校验 {@code entityFieldId} 字段引用
- * 属于该表可用字段集合（语义按 tableType 重载：entity→NopMetaEntityField 主键；external/sql→字段名）。
+ * <p>save 校验（item 1.1 裁定的 save override 落点 + plan 0228-3 跨表范围扩展）：保存 Measure 时校验
+ * {@code entityFieldId} 字段引用属于该表可达字段集合（语义按 tableType 重载：entity→NopMetaEntityField 主键，
+ * 可达集合 = {@code baseEntity ∪ join 直连可达 rightEntity}，见 §2.5.2 D3；external/sql→字段名）。
  * 不合法显式失败抛 inline {@link ErrorCode}（不静默存入悬空引用）。
  *
  * <p>跳过校验的情形：{@code entityFieldId} 为 null（expression 型指标，用 {@code expression} 列，
@@ -33,9 +36,10 @@ public class NopMetaTableMeasureBizModel extends CrudBizModel<NopMetaTableMeasur
                     "MetaTable not found for measure save: {metaTableId}", "metaTableId");
     static final ErrorCode ERR_MEASURE_FIELD_NOT_FOUND =
             ErrorCode.define("metadata.measure-field-not-found",
-                    "Measure field reference does not belong to the table's available fields: "
-                            + "{metaTableId} entityFieldId={entityFieldId} ({refKind}); available={availableFields}",
-                    "metaTableId", "entityFieldId", "refKind", "availableFields");
+                    "Measure field reference does not belong to the table's reachable fields/entities: "
+                            + "{metaTableId} entityFieldId={entityFieldId} ({refKind}); "
+                            + "availableFields={availableFields} allowedEntityIds={allowedEntityIds}",
+                    "metaTableId", "entityFieldId", "refKind", "availableFields", "allowedEntityIds");
 
     /** 跨表类型字段解析器（无状态，与 NopMetaTableBizModel 共用同一解析逻辑）。 */
     private final MetaTableFieldResolver fieldResolver = new MetaTableFieldResolver();
@@ -45,7 +49,9 @@ public class NopMetaTableMeasureBizModel extends CrudBizModel<NopMetaTableMeasur
     }
 
     /**
-     * save override（item 1.1 裁定的 save override 新模式）：持久化前校验 {@code entityFieldId} 字段引用。
+     * save override（item 1.1 裁定的 save override 新模式 + plan 0228-3 跨表扩展）：持久化前校验
+     * {@code entityFieldId} 字段引用，entity 表的引用可校验通过 NopMetaTableJoin 直连可达的 rightEntity 字段
+     * （跨表指标，架构基线 §2.5.2 D3）。
      *
      * <p>校验通过后委托 {@code super.save(...)} 走默认持久化逻辑（不破坏既有 CRUD 契约）。
      * 字段集合解析失败（baseEntityId null / buildSql 损坏 / sourceSql 不可解析）由解析器显式抛 ErrorCode。
@@ -70,8 +76,10 @@ public class NopMetaTableMeasureBizModel extends CrudBizModel<NopMetaTableMeasur
             throw new NopException(ERR_MEASURE_TABLE_NOT_FOUND).param("metaTableId", metaTableId);
         }
         IEntityDao<NopMetaEntityField> fieldDao = daoFor(NopMetaEntityField.class);
+        // joinDao 用于 entity 表跨表可达 rightEntityId 集合解析（§2.5.2 D3）；external/sql 分支不使用
+        IEntityDao<NopMetaTableJoin> joinDao = daoFor(NopMetaTableJoin.class);
         // entityFieldId 为 null（expression 型）时 validateFieldReference 内部跳过校验
-        fieldResolver.validateFieldReference(table, entityFieldId, fieldDao,
+        fieldResolver.validateFieldReference(table, entityFieldId, fieldDao, joinDao,
                 ERR_MEASURE_FIELD_NOT_FOUND, "measure");
     }
 

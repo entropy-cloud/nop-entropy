@@ -9,6 +9,7 @@ import io.nop.dao.api.IEntityDao;
 import io.nop.metadata.core._NopMetadataCoreConstants;
 import io.nop.metadata.dao.entity.NopMetaEntityField;
 import io.nop.metadata.dao.entity.NopMetaTable;
+import io.nop.metadata.dao.entity.NopMetaTableJoin;
 import io.nop.metadata.service.sqlview.SqlSelectFieldExtractor;
 import io.nop.metadata.service.sqlview.SqlViewField;
 
@@ -37,6 +38,11 @@ import java.util.Set;
  *
  * <p>降级铁律（不静默通过、不吞异常、不伪造）：字段集合解析失败一律抛 inline {@link ErrorCode}，
  * 不静默返回空集合、不静默跳过校验、不静默存入悬空引用。
+ *
+ * <p>跨表校验（架构基线 §2.5.2 D3）：entity 类型表的 Measure/Dimension {@code entityFieldId} 引用可校验
+ * **通过 NopMetaTableJoin 直连可达的 rightEntityId 实体字段**（跨表指标），可达 entityId 集合 =
+ * {@code {baseEntityId ∪ join.rightEntityId}}，见 {@link #resolveAllowedEntityIds}。external/sql 表无 join
+ * 可达（D3 排除），沿用既有名称集合校验。
  *
  * <p>本解析器无状态（{@link SqlSelectFieldExtractor} 亦无状态），可在多 BizModel 间共享实例。
  */
@@ -134,20 +140,63 @@ public class MetaTableFieldResolver {
     }
 
     /**
-     * 校验字段引用合法性（架构基线 §2.5.2 D2 字段引用存储裁定）。
+     * 解析 entity 类型表的可达 entityId 集合（架构基线 §2.5.2 D3 跨表 Measure/Dimension 校验范围）。
+     *
+     * <p>集合 = {@code {baseEntityId ∪ 该表所有 NopMetaTableJoin（按 metaTableId 加载）的 rightEntityId}}。
+     * 仅直连 Join 可达，不递归 join 图（A→B→C 间接可达为 follow-up）。宽松语义：不要求 Join 的
+     * {@code leftEntityId == baseEntityId}，任意该表 Join 的 rightEntityId 均视为可达。
+     *
+     * @param table    entity 类型目标逻辑表（非 null）；调用方契约：仅对 entity 类型表调用本方法
+     *                （由 {@link #validateFieldReference} 的 entity 分支保证）
+     * @param joinDao  表关联 DAO（用于按 metaTableId 加载 Join 列表）；为 null 时退化为 entity-only（仅 baseEntityId）
+     * @return 可达 entityId 集合（至少含 baseEntityId，永不 null/空）
+     * @throws NopException baseEntityId 为 null（entity 表必须有主实体，对齐 §2.5.2 降级铁律不静默空集）
+     */
+    public Set<String> resolveAllowedEntityIds(NopMetaTable table, IEntityDao<NopMetaTableJoin> joinDao) {
+        String baseEntityId = table.getBaseEntityId();
+        if (baseEntityId == null || baseEntityId.isEmpty()) {
+            // entity 表 baseEntityId 为 null 显式失败（不静默空集、不静默存入悬空引用）
+            throw new NopException(ERR_FIELD_RESOLVE_BASE_ENTITY_NULL)
+                    .param("metaTableId", table.getMetaTableId());
+        }
+        Set<String> allowed = new LinkedHashSet<>();
+        allowed.add(baseEntityId);
+        if (joinDao == null) {
+            // 调用方未提供 join DAO——退化为 entity-only（仅 baseEntityId），用于不需要跨表校验的场景
+            return allowed;
+        }
+        // 加载该表直连 Join，收集 rightEntityId（宽松语义：不要求 leftEntityId == baseEntityId）
+        QueryBean q = new QueryBean();
+        q.addFilter(FilterBeans.eq(NopMetaTableJoin.PROP_NAME_metaTableId, table.getMetaTableId()));
+        List<NopMetaTableJoin> joins = joinDao.findAllByQuery(q);
+        for (NopMetaTableJoin join : joins) {
+            String rightEntityId = join.getRightEntityId();
+            if (rightEntityId != null && !rightEntityId.isEmpty()) {
+                allowed.add(rightEntityId);
+            }
+        }
+        return allowed;
+    }
+
+    /**
+     * 校验字段引用合法性（架构基线 §2.5.2 D2 字段引用存储裁定 + D3 跨表校验范围）。
      *
      * <p>语义按 tableType 重载：
      * <ul>
-     *   <li><b>entity</b> 表：{@code entityFieldId} 为 {@code NopMetaEntityField.metaEntityFieldId} 主键——
-     *       按 PK 加载字段实体，校验其 {@code metaEntityId} == {@code table.baseEntityId}（属于该表的实体）。</li>
+     *   <li><b>entity</b> 表：{@code entityFieldId} 为 {@code NopMetaEntityField.entityFieldId} 主键——
+     *       按 PK 加载字段实体，校验其 {@code metaEntityId} ∈ 可达 entityId 集合 {@code allowedEntityIds}
+     *       （= {@code baseEntityId ∪ join 直连可达 rightEntityId}，见 {@link #resolveAllowedEntityIds}）。
+     *       跨表指标（引用 join 右实体字段）合法通过；悬空跨表引用（metaEntityId 不在集合）显式失败。</li>
      *   <li><b>external / sql</b> 表：{@code entityFieldId} 为字段名字符串——校验该名属于该表可用字段名集合
-     *       （external→buildSql JSON columnName；sql→SELECT 解析字段名）。</li>
+     *       （external→buildSql JSON columnName；sql→SELECT 解析字段名）。external/sql 表无 join 可达（D3 排除）。</li>
      * </ul>
      *
      * @param table          目标逻辑表
      * @param entityFieldId  字段引用（entity 表为主键，external/sql 表为字段名）；为 null/空时返回 true（跳过校验，
      *                       用于 expression 型 Measure）
      * @param fieldDao       entity 字段 DAO
+     * @param joinDao        表关联 DAO（仅 entity 分支使用，用于跨表可达 rightEntityId 集合解析；
+     *                       为 null 时 entity 分支退化为 entity-only 校验）
      * @param errOnInvalid   引用不合法时抛出的 ErrorCode（调用方按语义提供，如 measure-field-not-found）
      * @param refKind        引用类型描述（如 "measure"/"dimension"），用于错误消息
      * @return true 如果引用合法或为空（跳过）；false 由调用方决定是否忽略
@@ -155,23 +204,34 @@ public class MetaTableFieldResolver {
      */
     public boolean validateFieldReference(NopMetaTable table, String entityFieldId,
                                           IEntityDao<NopMetaEntityField> fieldDao,
+                                          IEntityDao<NopMetaTableJoin> joinDao,
                                           ErrorCode errOnInvalid, String refKind) {
         if (entityFieldId == null || entityFieldId.isEmpty()) {
             // expression 型 Measure / 无字段引用——跳过校验（Non-Goal: expression 内容首版不校验）
             return true;
         }
         if (_NopMetadataCoreConstants.TABLE_TYPE_ENTITY.equals(table.getTableType())) {
-            // entity 表：entityFieldId 为 NopMetaEntityField 主键，按 PK 加载并校验归属
+            // entity 表：entityFieldId 为 NopMetaEntityField 主键，按 PK 加载并校验归属（跨表可达集合）
             NopMetaEntityField field = fieldDao.getEntityById(entityFieldId);
-            if (field == null || !table.getBaseEntityId().equals(field.getMetaEntityId())) {
+            if (field == null) {
                 throw new NopException(errOnInvalid)
                         .param("metaTableId", table.getMetaTableId())
                         .param("entityFieldId", entityFieldId)
                         .param("refKind", refKind);
             }
+            // 跨表校验（§2.5.2 D3）：field.metaEntityId 须 ∈ {baseEntity ∪ join 直连可达 rightEntity}
+            Set<String> allowedEntityIds = resolveAllowedEntityIds(table, joinDao);
+            if (!allowedEntityIds.contains(field.getMetaEntityId())) {
+                // 悬空跨表引用（metaEntityId 不在可达集合）——显式失败（不静默存入悬空引用）
+                throw new NopException(errOnInvalid)
+                        .param("metaTableId", table.getMetaTableId())
+                        .param("entityFieldId", entityFieldId)
+                        .param("refKind", refKind)
+                        .param("allowedEntityIds", allowedEntityIds);
+            }
             return true;
         }
-        // external / sql 表：entityFieldId 为字段名，校验属于该表可用字段名集合
+        // external / sql 表：entityFieldId 为字段名，校验属于该表可用字段名集合（无 join 可达，不扩展）
         Set<String> names = resolveFieldNames(table, fieldDao);
         if (!names.contains(entityFieldId)) {
             throw new NopException(errOnInvalid)

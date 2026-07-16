@@ -54,6 +54,9 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  *
  * <p>Anti-Hollow：Measure/Dimension/Join 的非法引用被显式拒绝证明 save 校验运行时确实调用了
  * {@code MetaTableFieldResolver}（接线验证）；resolveTableFields 三类返回真实字段集（端到端验证）。
+ *
+ * <p>跨表校验（plan 0228-3，架构基线 §2.5.2 D3）：entity 表 Measure/Dimension 引用 join 右实体字段（直连可达）
+ * 合法通过；悬空跨表引用（metaEntityId 不在 baseEntity ∪ join.rightEntity 集合）显式失败。
  */
 @NopTestConfig(localDb = true, initDatabaseSchema = OptionalBoolean.TRUE)
 public class TestNopMetaBiSemanticBizModel extends JunitBaseTestCase {
@@ -255,6 +258,202 @@ public class TestNopMetaBiSemanticBizModel extends JunitBaseTestCase {
                         + "metaTableId: \"" + tableId + "\", dimensionName: \"d_bad\", "
                         + "dimensionType: \"categorical\", entityFieldId: \"" + fieldIdB + "\"}) { dimensionId } }");
         assertTrue(resp.hasError(), "dimension with invalid field ref must be rejected: " + resp);
+    }
+
+    // ============================================================
+    // 跨表 Measure/Dimension 字段引用校验（plan 0228-3，§2.5.2 D3 entity-entity）
+    // ============================================================
+
+    /**
+     * 跨表 Measure 合法：entity 表的 Measure 引用 join 右实体的字段（直连可达 rightEntityId）
+     * → save 通过（不再仅限主表 baseEntity 字段）。
+     *
+     * <p>接线验证（Anti-Hollow）：本测试通过需要 save override 运行时确实调用
+     * {@code resolveAllowedEntityIds} 加载 join 右实体集合并接受引用，证明跨表校验非空壳。
+     */
+    @Test
+    public void testMeasureSaveCrossTableJoinRightEntityValid() {
+        String moduleId = ensureModule("mod-xmeasure-ok");
+        String leftEntityId = saveEntity(moduleId, "XMeasureLeft", "order_id");
+        String rightEntityId = saveEntity(moduleId, "XMeasureRight", "amount");
+        String rightFieldId = findEntityFieldId(rightEntityId, "amount"); // 属于右实体
+        String tableId = saveEntityTable(moduleId, "T_XMEASURE_OK", leftEntityId);
+        saveJoin(tableId, "inner", leftEntityId, rightEntityId, "order_id", "order_id");
+
+        GraphQLResponseBean resp = runGraphQL(
+                "mutation { NopMetaTableMeasure__save(data: {"
+                        + "metaTableId: \"" + tableId + "\", measureName: \"m_xtab\", "
+                        + "aggFunc: \"sum\", entityFieldId: \"" + rightFieldId + "\"}) { measureId } }");
+        assertFalse(resp.hasError(),
+                "cross-table measure referencing join rightEntity field must succeed: " + resp);
+    }
+
+    /**
+     * 跨表 Measure 悬空：entity 表 Measure 引用既非主表 baseEntity、也无 join 直连可达 rightEntity 的字段
+     * → 显式失败（不静默存入悬空引用）。entity-only 行为已由 testMeasureSaveInvalidEntityFieldFails 覆盖；
+     * 此处额外验证「即使表有 join，但 join 不指向该字段所属实体」仍失败。
+     */
+    @Test
+    public void testMeasureSaveCrossTableDanglingFails() {
+        String moduleId = ensureModule("mod-xmeasure-dangling");
+        String leftEntityId = saveEntity(moduleId, "XDangleLeft", "order_id");
+        String rightEntityId = saveEntity(moduleId, "XDangleRight", "amount");
+        // 第三个实体，既非主表也未被 join 引用
+        String orphanEntityId = saveEntity(moduleId, "XDangleOrphan", "ghost");
+        String orphanFieldId = findEntityFieldId(orphanEntityId, "ghost");
+        String tableId = saveEntityTable(moduleId, "T_XMEASURE_DANGLE", leftEntityId);
+        // join 只指向 rightEntityId，不指向 orphanEntityId
+        saveJoin(tableId, "inner", leftEntityId, rightEntityId, "order_id", "order_id");
+
+        GraphQLResponseBean resp = runGraphQL(
+                "mutation { NopMetaTableMeasure__save(data: {"
+                        + "metaTableId: \"" + tableId + "\", measureName: \"m_dangle\", "
+                        + "aggFunc: \"sum\", entityFieldId: \"" + orphanFieldId + "\"}) { measureId } }");
+        assertTrue(resp.hasError(),
+                "dangling cross-table measure (field entity not in baseEntity ∪ join.rightEntity) must be rejected: "
+                        + resp);
+    }
+
+    /**
+     * 跨表 Measure 无 join 但引用非主表字段 → 仍显式失败（既有 entity-only 行为不退化，回归）。
+     * 等价于 allowedEntityIds 退化为 {baseEntityId} 单元素集合。
+     */
+    @Test
+    public void testMeasureSaveNoJoinNonBaseFieldFails() {
+        String moduleId = ensureModule("mod-xmeasure-nojoin");
+        String baseEntityId = saveEntity(moduleId, "XNoJoinBase", "amt");
+        String otherEntityId = saveEntity(moduleId, "XNoJoinOther", "x");
+        String otherFieldId = findEntityFieldId(otherEntityId, "x");
+        String tableId = saveEntityTable(moduleId, "T_XMEASURE_NOJOIN", baseEntityId);
+        // 无 join
+
+        GraphQLResponseBean resp = runGraphQL(
+                "mutation { NopMetaTableMeasure__save(data: {"
+                        + "metaTableId: \"" + tableId + "\", measureName: \"m_nojoin\", "
+                        + "aggFunc: \"sum\", entityFieldId: \"" + otherFieldId + "\"}) { measureId } }");
+        assertTrue(resp.hasError(),
+                "entity-only table (no join) with non-base field ref must still be rejected: " + resp);
+    }
+
+    /**
+     * 跨表 Dimension 合法：entity 表 Dimension 引用 join 右实体字段 → save 通过。
+     * Dimension 与 Measure 共享 validateFieldReference，跨表扩展一并生效。
+     */
+    @Test
+    public void testDimensionSaveCrossTableJoinRightEntityValid() {
+        String moduleId = ensureModule("mod-xdim-ok");
+        String leftEntityId = saveEntity(moduleId, "XDimLeft", "order_id");
+        String rightEntityId = saveEntity(moduleId, "XDimRight", "region");
+        String rightFieldId = findEntityFieldId(rightEntityId, "region");
+        String tableId = saveEntityTable(moduleId, "T_XDIM_OK", leftEntityId);
+        saveJoin(tableId, "left", leftEntityId, rightEntityId, "order_id", "order_id");
+
+        GraphQLResponseBean resp = runGraphQL(
+                "mutation { NopMetaTableDimension__save(data: {"
+                        + "metaTableId: \"" + tableId + "\", dimensionName: \"d_xtab\", "
+                        + "dimensionType: \"categorical\", entityFieldId: \"" + rightFieldId + "\"}) { dimensionId } }");
+        assertFalse(resp.hasError(),
+                "cross-table dimension referencing join rightEntity field must succeed: " + resp);
+    }
+
+    /**
+     * 跨表 Dimension 悬空：引用既非主表、也无 join 可达 rightEntity 的字段 → 显式失败。
+     */
+    @Test
+    public void testDimensionSaveCrossTableDanglingFails() {
+        String moduleId = ensureModule("mod-xdim-dangle");
+        String leftEntityId = saveEntity(moduleId, "XDimDangleLeft", "order_id");
+        String rightEntityId = saveEntity(moduleId, "XDimDangleRight", "region");
+        String orphanEntityId = saveEntity(moduleId, "XDimDangleOrphan", "ghost");
+        String orphanFieldId = findEntityFieldId(orphanEntityId, "ghost");
+        String tableId = saveEntityTable(moduleId, "T_XDIM_DANGLE", leftEntityId);
+        saveJoin(tableId, "inner", leftEntityId, rightEntityId, "order_id", "order_id");
+
+        GraphQLResponseBean resp = runGraphQL(
+                "mutation { NopMetaTableDimension__save(data: {"
+                        + "metaTableId: \"" + tableId + "\", dimensionName: \"d_dangle\", "
+                        + "dimensionType: \"categorical\", entityFieldId: \"" + orphanFieldId + "\"}) { dimensionId } }");
+        assertTrue(resp.hasError(),
+                "dangling cross-table dimension must be rejected: " + resp);
+    }
+
+    /**
+     * 跨表校验不影响 external/sql 表 Measure（回归）：external 表 Measure 仍按字段名集合校验，
+     * 无 join 可达概念（external 表不可能有 entity join）。合法字段名通过。
+     */
+    @Test
+    public void testMeasureSaveExternalUnaffectedByCrossTable() {
+        String tableId = saveExternalTable("T_XMEASURE_EXT", "qs_xmeasure_ext",
+                "[{\"columnName\":\"amount\",\"dataType\":\"DOUBLE\"}]");
+
+        GraphQLResponseBean resp = runGraphQL(
+                "mutation { NopMetaTableMeasure__save(data: {"
+                        + "metaTableId: \"" + tableId + "\", measureName: \"m_ext_xtab\", "
+                        + "aggFunc: \"sum\", entityFieldId: \"amount\"}) { measureId } }");
+        assertFalse(resp.hasError(),
+                "external table measure must still succeed (unaffected by cross-table entity logic): " + resp);
+    }
+
+    /**
+     * resolver.resolveAllowedEntityIds 直接调用验证（接线证明 helper 非空壳）：
+     * entity 表含 baseEntity + join rightEntity → 返回集合含两者。
+     */
+    @Test
+    public void testResolverResolveAllowedEntityIds() {
+        io.nop.metadata.service.field.MetaTableFieldResolver resolver =
+                new io.nop.metadata.service.field.MetaTableFieldResolver();
+        IEntityDao<NopMetaEntityField> fieldDao = daoProvider.daoFor(NopMetaEntityField.class);
+        IEntityDao<NopMetaTableJoin> joinDao = daoProvider.daoFor(NopMetaTableJoin.class);
+
+        String moduleId = ensureModule("mod-resolver-allowed");
+        String leftEntityId = saveEntity(moduleId, "AllowedLeft", "k");
+        String rightEntityId = saveEntity(moduleId, "AllowedRight", "v");
+        String tableId = saveEntityTable(moduleId, "T_ALLOWED", leftEntityId);
+        saveJoin(tableId, "inner", leftEntityId, rightEntityId, "k", "k");
+
+        NopMetaTable table = getTable(tableId);
+        java.util.Set<String> allowed = resolver.resolveAllowedEntityIds(table, joinDao);
+        assertTrue(allowed.contains(leftEntityId),
+                "allowedEntityIds must contain baseEntityId: " + allowed);
+        assertTrue(allowed.contains(rightEntityId),
+                "allowedEntityIds must contain join rightEntityId: " + allowed);
+        assertEquals(2, allowed.size(), "exactly base + one join right entity: " + allowed);
+    }
+
+    /**
+     * resolver.resolveAllowedEntityIds 对无 join 的表 → 仅含 baseEntityId（entity-only 退化）。
+     */
+    @Test
+    public void testResolverResolveAllowedEntityIdsNoJoin() {
+        io.nop.metadata.service.field.MetaTableFieldResolver resolver =
+                new io.nop.metadata.service.field.MetaTableFieldResolver();
+        IEntityDao<NopMetaTableJoin> joinDao = daoProvider.daoFor(NopMetaTableJoin.class);
+
+        String moduleId = ensureModule("mod-resolver-nojoin");
+        String baseEntityId = saveEntity(moduleId, "AllowedNoJoin", "k");
+        String tableId = saveEntityTable(moduleId, "T_ALLOWED_NOJOIN", baseEntityId);
+
+        NopMetaTable table = getTable(tableId);
+        java.util.Set<String> allowed = resolver.resolveAllowedEntityIds(table, joinDao);
+        assertEquals(1, allowed.size(), "entity-only table allowed set must be just baseEntity: " + allowed);
+        assertTrue(allowed.contains(baseEntityId));
+    }
+
+    /**
+     * resolver.resolveAllowedEntityIds 对 baseEntityId null → 显式抛异常（不静默空集，对齐降级铁律）。
+     */
+    @Test
+    public void testResolverResolveAllowedEntityIdsBaseNullThrows() {
+        io.nop.metadata.service.field.MetaTableFieldResolver resolver =
+                new io.nop.metadata.service.field.MetaTableFieldResolver();
+        IEntityDao<NopMetaTableJoin> joinDao = daoProvider.daoFor(NopMetaTableJoin.class);
+        String moduleId = ensureModule("mod-resolver-allnull");
+        String tableId = saveEntityTable(moduleId, "T_ALLOWED_NULL", null);
+
+        NopMetaTable table = getTable(tableId);
+        Executable call = () -> resolver.resolveAllowedEntityIds(table, joinDao);
+        assertThrows(io.nop.api.core.exceptions.NopException.class, call,
+                "entity table with null baseEntityId must throw (not silent empty)");
     }
 
     // ============================================================
@@ -539,6 +738,23 @@ public class TestNopMetaBiSemanticBizModel extends JunitBaseTestCase {
         dao.saveEntity(t);
         dao.flushSession();
         return t.getMetaTableId();
+    }
+
+    /** 保存一条 NopMetaTableJoin（entity-entity 直连关联），用于跨表 Measure/Dimension 校验测试。 */
+    @SuppressWarnings("UnusedReturnValue")
+    private String saveJoin(String metaTableId, String joinType, String leftEntityId, String rightEntityId,
+                            String leftField, String rightField) {
+        IEntityDao<NopMetaTableJoin> dao = daoProvider.daoFor(NopMetaTableJoin.class);
+        NopMetaTableJoin j = dao.newEntity();
+        j.setMetaTableId(metaTableId);
+        j.setJoinType(joinType);
+        j.setLeftEntityId(leftEntityId);
+        j.setRightEntityId(rightEntityId);
+        j.setLeftField(leftField);
+        j.setRightField(rightField);
+        dao.saveEntity(j);
+        dao.flushSession();
+        return j.getJoinId();
     }
 
     private String saveExternalTable(String tableName, String querySpace, String buildSqlJson) {
