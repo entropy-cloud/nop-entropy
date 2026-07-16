@@ -35,4 +35,10 @@
          members). Same auto-collect path. -->
     <bean id="ai-agent-tools:team-execute-flow" class="io.nop.ai.agent.tool.TeamExecuteFlowExecutor"/>
 
+    <!-- Plan 296 (WS2): tag-visibility meta-tool. Reads/mutates the current
+         AgentSession's activeTags via AgentToolExecuteContext.getSession().
+         Declared meta=true in set-active-tags.tool.xml so it is always visible
+         to the LLM regardless of activeTags filtering. -->
+    <bean id="ai-agent-tools:set-active-tags" class="io.nop.ai.agent.tool.SetActiveTagsExecutor"/>
+
 </beans>

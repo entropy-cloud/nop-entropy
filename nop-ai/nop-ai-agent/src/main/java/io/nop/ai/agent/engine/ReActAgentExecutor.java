@@ -31,6 +31,8 @@ import io.nop.ai.agent.hook.HookResult;
 import io.nop.ai.agent.hook.IAgentLifecycleHook;
 import io.nop.ai.agent.hook.IHookRegistry;
 import io.nop.ai.agent.hook.NoOpHookRegistry;
+import io.nop.ai.agent.middleware.IAgentMiddleware;
+import io.nop.ai.agent.middleware.MiddlewareChain;
 import io.nop.ai.agent.memory.IAiMemoryStore;
 import io.nop.ai.agent.memory.IMemoryStoreProvider;
 import io.nop.ai.agent.memory.InMemoryMemoryStoreProvider;
@@ -1083,7 +1085,14 @@ public class ReActAgentExecutor implements IAgentExecutor {
         publishEvent(AgentEventType.EXECUTION_STARTED, sessionId, agentName,
                 Map.of("agentName", agentName != null ? agentName : ""));
 
-        List<ChatToolDefinition> toolDefs = buildToolDefinitions(agentModel);
+        // Plan 296 (WS2): resolve the session for tag-based tool visibility
+        // filtering. When sessionStore is null (testing) or the session is
+        // not found, pass null — resolveActiveTags falls back to the agent
+        // model's declared activeTags.
+        AgentSession agentSession = sessionStore != null && sessionId != null
+                ? sessionStore.get(sessionId) : null;
+
+        List<ChatToolDefinition> toolDefs = buildToolDefinitions(agentModel, agentSession);
         consultTalents(ctx, toolDefs);
         consultSkills(ctx, agentModel, toolDefs);
         consultPromptContributions(ctx);
@@ -1128,7 +1137,7 @@ public class ReActAgentExecutor implements IAgentExecutor {
         long execStartTime = ctx.getStartTimeMs();
 
         try {
-            HookResult preCallResult = invokeHooks(AgentLifecyclePoint.PRE_CALL, ctx, agentName, null, null);
+            HookResult preCallResult = executeWithMiddleware(AgentLifecyclePoint.PRE_CALL, ctx, agentName, null, null);
             if (preCallResult.isVeto()) {
                 ctx.setStatus(AgentExecStatus.completed);
                 publishEvent(AgentEventType.EXECUTION_COMPLETED, sessionId, agentName,
@@ -1212,7 +1221,7 @@ public class ReActAgentExecutor implements IAgentExecutor {
                     performCompaction(ctx, agentName, checkpointSeq);
                 }
 
-                HookResult preReasoningResult = invokeHooks(AgentLifecyclePoint.PRE_REASONING, ctx, agentName, null, null);
+                HookResult preReasoningResult = executeWithMiddleware(AgentLifecyclePoint.PRE_REASONING, ctx, agentName, null, null);
                 if (preReasoningResult.isVeto()) {
                     ctx.setCurrentIteration(ctx.getCurrentIteration() + 1);
                     continue;
@@ -1604,7 +1613,7 @@ public class ReActAgentExecutor implements IAgentExecutor {
                 llmPayload.put("hasToolCalls", assistantMsg.hasToolCalls());
                 publishEvent(AgentEventType.LLM_RESPONSE_RECEIVED, sessionId, agentName, llmPayload);
 
-                invokeHooks(AgentLifecyclePoint.POST_REASONING, ctx, agentName, null, null);
+                executeWithMiddleware(AgentLifecyclePoint.POST_REASONING, ctx, agentName, null, null);
 
                 String outputContent = assistantMsg.getContent() != null ? assistantMsg.getContent() : "";
                 GuardrailResult outputGuardrailResult = contentGuardrail.check(GuardrailDirection.OUTPUT, outputContent, ctx);
@@ -1723,6 +1732,12 @@ public class ReActAgentExecutor implements IAgentExecutor {
                 // execution context so CallAgentExecutor can enforce
                 // MAX_DELEGATION_DEPTH and compute the child's depth.
                 toolExecCtx.setDelegationDepth(ctx.getDelegationDepth());
+
+                // Plan 296 (WS2): populate the session so meta-tools
+                // (set-active-tags) can read/mutate session-scoped state.
+                if (sessionStore != null && sessionId != null) {
+                    toolExecCtx.setSession(sessionStore.get(sessionId));
+                }
 
                 // The workDir string used for action-fingerprint computation
                 // (design §6.3). Resolved once per iteration so all dispatch-loop
@@ -2034,7 +2049,7 @@ public class ReActAgentExecutor implements IAgentExecutor {
                         AiToolCallResult toolResult = output.result;
                         String toolName = chatToolCall.getName();
 
-                        invokeHooks(AgentLifecyclePoint.PRE_ACTING, ctx, agentName, toolName, chatToolCall.getId());
+                        executeWithMiddleware(AgentLifecyclePoint.PRE_ACTING, ctx, agentName, toolName, chatToolCall.getId());
 
                         String toolStatus;
                         ChatToolResponseMessage toolResponse;
@@ -2056,7 +2071,7 @@ public class ReActAgentExecutor implements IAgentExecutor {
                             toolStatus = "error";
                         }
 
-                        HookResult beforeResult = invokeHooks(AgentLifecyclePoint.BEFORE_TOOL_RESULT_PROCESSED,
+                        HookResult beforeResult = executeWithMiddleware(AgentLifecyclePoint.BEFORE_TOOL_RESULT_PROCESSED,
                                 ctx, agentName, toolName, chatToolCall.getId());
                         if (beforeResult instanceof HookResult.ReenterResult) {
                             int count = reentryCounters.getOrDefault(AgentLifecyclePoint.BEFORE_TOOL_RESULT_PROCESSED, 0);
@@ -2127,9 +2142,9 @@ public class ReActAgentExecutor implements IAgentExecutor {
                             }
                         }
 
-                        invokeHooks(AgentLifecyclePoint.POST_ACTING, ctx, agentName, toolName, chatToolCall.getId());
+                        executeWithMiddleware(AgentLifecyclePoint.POST_ACTING, ctx, agentName, toolName, chatToolCall.getId());
 
-                        HookResult afterResult = invokeHooks(AgentLifecyclePoint.AFTER_TOOL_RESULT_PROCESSED,
+                        HookResult afterResult = executeWithMiddleware(AgentLifecyclePoint.AFTER_TOOL_RESULT_PROCESSED,
                                 ctx, agentName, toolName, chatToolCall.getId());
                         if (afterResult instanceof HookResult.ReenterResult) {
                             int count = reentryCounters.getOrDefault(AgentLifecyclePoint.AFTER_TOOL_RESULT_PROCESSED, 0);
@@ -2273,7 +2288,7 @@ public class ReActAgentExecutor implements IAgentExecutor {
                     && ctx.getStatus() != AgentExecStatus.escalated
                     && ctx.getStatus() != AgentExecStatus.paused
                     && ctx.getStatus() != AgentExecStatus.truncated) {
-                invokeHooks(AgentLifecyclePoint.POST_CALL, ctx, agentName, null, null);
+                executeWithMiddleware(AgentLifecyclePoint.POST_CALL, ctx, agentName, null, null);
 
                 Map<String, Object> completedPayload = new HashMap<>();
                 completedPayload.put("totalIterations", ctx.getCurrentIteration());
@@ -2749,7 +2764,7 @@ public class ReActAgentExecutor implements IAgentExecutor {
                 tokenEstimator
         );
 
-        invokeHooks(AgentLifecyclePoint.PRE_COMPACT, ctx, agentName, null, null);
+        executeWithMiddleware(AgentLifecyclePoint.PRE_COMPACT, ctx, agentName, null, null);
 
         CompactionResult result = contextCompactor.compact(compactCtx);
 
@@ -2811,6 +2826,36 @@ public class ReActAgentExecutor implements IAgentExecutor {
                 }
             }
         }
+    }
+
+    /**
+     * Plan 296 (Workstream 1): invoke lifecycle hooks with optional middleware
+     * wrapping. When middlewares are registered at {@code point}, they form an
+     * onion chain whose core is {@link #invokeHooks} (the existing hook
+     * observer loop). When no middlewares are registered, this delegates
+     * directly to {@link #invokeHooks} — zero overhead, identical to the
+     * pre-middleware path.
+     *
+     * <p>The 9 chain-enabled points are: PRE_CALL, PRE_REASONING,
+     * POST_REASONING, PRE_ACTING, POST_ACTING, POST_CALL, PRE_COMPACT,
+     * BEFORE_TOOL_RESULT_PROCESSED, AFTER_TOOL_RESULT_PROCESSED. The
+     * non-chain points (ON_ERROR, REASONING_CHUNK, POST_COMPACT) continue to
+     * call {@link #invokeHooks} directly.
+     */
+    private HookResult executeWithMiddleware(AgentLifecyclePoint point, AgentExecutionContext ctx,
+                                             String agentName, String toolName, String toolCallId) {
+        List<IAgentMiddleware> mws = hookRegistry.getMiddlewares(point, agentName);
+        if (mws.isEmpty()) {
+            return invokeHooks(point, ctx, agentName, toolName, toolCallId);
+        }
+        HookContext mwCtx = new HookContext(point, ctx);
+        mwCtx.setToolName(toolName);
+        mwCtx.setToolCallId(toolCallId);
+        java.util.function.Function<HookContext, HookResult> core = hookCtx ->
+                invokeHooks(point, hookCtx.getExecutionContext(), agentName,
+                        hookCtx.getToolName(), hookCtx.getToolCallId());
+        MiddlewareChain chain = new MiddlewareChain(mws, 0, core);
+        return chain.proceed(mwCtx);
     }
 
     private HookResult invokeHooks(AgentLifecyclePoint point, AgentExecutionContext ctx,
@@ -3176,19 +3221,118 @@ public class ReActAgentExecutor implements IAgentExecutor {
         return "";
     }
 
-    private List<ChatToolDefinition> buildToolDefinitions(AgentModel agentModel) {
+    /**
+     * Plan 296 (WS2): build the LLM-visible tool list with tag-based visibility
+     * filtering. Loads all tools from {@code toolManager.listTools()} and
+     * applies, in order:
+     * <ol>
+     *   <li><b>_tools whitelist</b> (backward compat, D7): when
+     *       {@code AgentModel.getTools()} is non-empty, only tools whose name
+     *       is in the set survive. {@code null}/empty means no name
+     *       restriction (all tools subject to further filtering).</li>
+     *   <li><b>meta tools</b> (D10): tools with {@code meta=true} bypass
+     *       denyTools/activeTags/denyTags filtering — they are always visible
+     *       once they pass the _tools whitelist.</li>
+     *   <li><b>denyTools</b>: remove tools by name (highest deny priority).</li>
+     *   <li><b>activeTags</b>: when non-empty, keep only tools whose tags
+     *       intersect the resolved active tag set. Empty = no tag filter
+     *       (all visible).</li>
+     *   <li><b>denyTags</b>: remove tools containing any denied tag.</li>
+     * </ol>
+     *
+     * <p>The session's runtime activeTags override (set by the
+     * {@code set-active-tags} meta-tool) takes precedence over the model's
+     * declared activeTags.
+     */
+    List<ChatToolDefinition> buildToolDefinitions(AgentModel agentModel, AgentSession session) {
+        Set<String> declaredTools = agentModel.getTools();
+        boolean hasDeclaredTools = declaredTools != null && !declaredTools.isEmpty();
+        Set<String> denyTools = agentModel.getDenyTools();
+        Set<String> denyTags = agentModel.getDenyTags();
+        Set<String> activeTags = session != null
+                ? session.resolveActiveTags(agentModel)
+                : (agentModel.getActiveTags() != null ? agentModel.getActiveTags() : Collections.emptySet());
+
+        // Build the candidate tool set. When the agent declares an explicit
+        // _tools whitelist, load each by name via loadTool() (backward compat
+        // with existing test stubs that override loadTool but return empty for
+        // listTools). When no whitelist is declared, use listTools() for
+        // tag-based discovery.
+        List<AiToolModel> candidates = new ArrayList<>();
+        if (hasDeclaredTools) {
+            for (String name : declaredTools) {
+                AiToolModel tool = toolManager.loadTool(name);
+                if (tool != null) {
+                    candidates.add(tool);
+                }
+            }
+        } else {
+            candidates.addAll(toolManager.listTools());
+        }
+
+        // Always merge in meta tools from the registry (D10: always visible,
+        // bypass the _tools whitelist). They are discovered via listTools().
+        // When listTools() returns empty (test stubs), no meta tools are added.
+        if (!hasDeclaredTools) {
+            // Already loaded all from listTools() above; meta tools are in candidates.
+        } else {
+            for (AiToolModel tool : toolManager.listTools()) {
+                if (tool.isMeta()) {
+                    boolean alreadyPresent = false;
+                    for (AiToolModel c : candidates) {
+                        if (c.getName() != null && c.getName().equals(tool.getName())) {
+                            alreadyPresent = true;
+                            break;
+                        }
+                    }
+                    if (!alreadyPresent) {
+                        candidates.add(tool);
+                    }
+                }
+            }
+        }
+
         List<ChatToolDefinition> defs = new ArrayList<>();
-        if (agentModel.getTools() == null)
-            return defs;
-
-        for (String toolName : agentModel.getTools()) {
-            AiToolModel toolModel = toolManager.loadTool(toolName);
-            if (toolModel == null)
+        for (AiToolModel tool : candidates) {
+            // Step 2: meta tools bypass tag/deny filtering (D10)
+            if (tool.isMeta()) {
+                defs.add(toToolDefinition(tool));
                 continue;
-
-            defs.add(toToolDefinition(toolModel));
+            }
+            // Step 3: denyTools (name-based, highest deny priority)
+            if (denyTools != null && denyTools.contains(tool.getName())) {
+                continue;
+            }
+            // Step 4: activeTags intersection (empty = all visible)
+            Set<String> toolTags = tool.getTags();
+            if (activeTags != null && !activeTags.isEmpty()) {
+                if (toolTags == null || toolTags.isEmpty() || !intersects(toolTags, activeTags)) {
+                    continue;
+                }
+            }
+            // Step 5: denyTags
+            if (denyTags != null && !denyTags.isEmpty() && toolTags != null && !toolTags.isEmpty()) {
+                if (intersects(toolTags, denyTags)) {
+                    continue;
+                }
+            }
+            defs.add(toToolDefinition(tool));
         }
         return defs;
+    }
+
+    /**
+     * Return true if the two sets share at least one element.
+     */
+    private static boolean intersects(Set<?> a, Set<?> b) {
+        Set<?> smaller = a.size() <= b.size() ? a : b;
+        Set<?> larger = smaller == a ? b : a;
+        for (Object o : smaller) {
+            if (larger.contains(o)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     /**

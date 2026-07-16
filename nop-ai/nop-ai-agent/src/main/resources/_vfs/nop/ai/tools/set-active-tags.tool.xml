@@ -1,0 +1,23 @@
+<tool x:schema="/nop/schema/ai/tool/tool.xdef" xmlns:x="/nop/schema/xdsl.xdef" xmlns:xdef="/nop/schema/xdef.xdef"
+      name="set-active-tags" meta="true">
+
+    <schema>
+        <set-active-tags>
+            <tags xdef:body-type="list">
+                <tag>!string</tag>
+            </tags>
+        </set-active-tags>
+    </schema>
+
+    <description><![CDATA[Runtime tool-visibility switch. Replaces the current session's active tool tags. Only affects the current session; the next ReAct iteration re-evaluates which tools are exposed to the LLM.
+
+**Parameters**:
+- `tags`: array of tag names to activate (e.g. ["readonly", "channel:webui"]). An empty array clears all active tags (= full visibility, no tag filtering).
+
+**Semantics**:
+- Tools whose tags intersect the active set remain visible.
+- Tools without tags are hidden when activeTags is non-empty (they don't match any active tag).
+- Meta tools (like this one) are always visible regardless of activeTags.
+- This overwrites the previous active tags — it does not merge.]]></description>
+
+</tool>

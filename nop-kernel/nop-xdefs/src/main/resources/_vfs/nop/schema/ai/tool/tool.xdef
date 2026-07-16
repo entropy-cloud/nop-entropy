@@ -11,6 +11,15 @@
     <!-- description：工具的详细说明，支持纯文本或CDATA -->
     <description xdef:mandatory="true">string</description>
 
+    <!-- Plan 296 (WS2): tag-based visibility. Tags are arbitrary labels
+         (e.g. readonly, admin, channel:webui) used by AgentModel.activeTags
+         to filter which tools are exposed to the LLM. Empty = no tags. -->
+    <tags>csv-set</tags>
+
+    <!-- Plan 296 (WS2): meta tools are always visible to the LLM regardless
+         of activeTags/denyTags filtering (e.g. set-active-tags). Default false. -->
+    <meta>!boolean=false</meta>
+
     <!-- example：工具的使用示例，可包含一个或多个具体调用实例 -->
     <examples xdef:body-type="list" xdef:key-attr="index">
         <example index="!int" xdef:name="AiToolExample">

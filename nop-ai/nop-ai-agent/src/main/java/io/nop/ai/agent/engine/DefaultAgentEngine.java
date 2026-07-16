@@ -3222,6 +3222,7 @@ public class DefaultAgentEngine implements IAgentEngine {
         if (mode == null || mode.isEmpty() || "react".equals(mode)) {
             DefaultHookRegistry hookRegistry = DefaultHookRegistry.fromAgentModel(model);
             resolveHookContributions(hookRegistry);
+            resolveMiddlewares(model, hookRegistry);
             return ReActAgentExecutor.builder()
                     .chatService(chatService)
                     .toolManager(toolManager)
@@ -3317,6 +3318,57 @@ public class DefaultAgentEngine implements IAgentEngine {
             }
             HookPayload hp = (HookPayload) payload;
             hookRegistry.register(hp.getPoint(), hp.getHook());
+        }
+    }
+
+    /**
+     * Plan 296 (WS1): resolve declarative middleware declarations from the
+     * {@link AgentModel} into the hook registry. Each {@code <middleware
+     * impl="..." point="..."/>} declaration is instantiated via
+     * {@code ClassHelper} and registered at the resolved lifecycle point.
+     *
+     * <p>Runs after {@code fromAgentModel} and {@code resolveHookContributions}
+     * so middleware layers wrap around both static (XDSL-declared) hooks and
+     * contribution-registered hooks. When the agent declares no middlewares,
+     * this method is a no-op — zero regression.
+     *
+     * <p>Fail-visible policy (Minimum Rules #24): a middleware whose impl
+     * class cannot be instantiated, or whose point name is unknown, is logged
+     * at WARN and skipped — a single bad declaration does not abort the rest.
+     */
+    private void resolveMiddlewares(AgentModel model, io.nop.ai.agent.hook.IHookRegistry hookRegistry) {
+        if (model == null) {
+            return;
+        }
+        List<io.nop.ai.agent.model.AgentMiddlewareModel> mwModels = model.getMiddlewares();
+        if (mwModels == null || mwModels.isEmpty()) {
+            return;
+        }
+        for (io.nop.ai.agent.model.AgentMiddlewareModel mwModel : mwModels) {
+            String impl = mwModel.getImpl();
+            String pointName = mwModel.getPoint();
+            if (impl == null || impl.isEmpty()) {
+                LOG.warn("DefaultAgentEngine: skipping middleware with empty impl class: point={}", pointName);
+                continue;
+            }
+            io.nop.ai.agent.hook.AgentLifecyclePoint point =
+                    io.nop.ai.agent.hook.DefaultHookRegistry.resolveLifecyclePoint(pointName);
+            if (point == null) {
+                LOG.warn("DefaultAgentEngine: skipping middleware with unknown lifecycle point: impl={}, point={}",
+                        impl, pointName);
+                continue;
+            }
+            try {
+                Object instance = io.nop.commons.util.ClassHelper.safeNewInstance(impl);
+                if (!(instance instanceof io.nop.ai.agent.middleware.IAgentMiddleware)) {
+                    LOG.warn("DefaultAgentEngine: middleware impl does not implement IAgentMiddleware: impl={}, actualClass={}",
+                            impl, instance != null ? instance.getClass().getName() : "null");
+                    continue;
+                }
+                hookRegistry.registerMiddleware(point, (io.nop.ai.agent.middleware.IAgentMiddleware) instance);
+            } catch (Exception e) {
+                LOG.warn("DefaultAgentEngine: failed to instantiate middleware impl={}, point={}", impl, pointName, e);
+            }
         }
     }
 

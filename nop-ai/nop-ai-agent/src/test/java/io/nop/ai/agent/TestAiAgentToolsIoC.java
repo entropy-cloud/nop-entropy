@@ -53,7 +53,8 @@ public class TestAiAgentToolsIoC {
             "team-status",
             "team-task-create",
             "team-task-update",
-            "team-execute-flow"
+            "team-execute-flow",
+            "set-active-tags"
     ));
 
     private static final Set<String> EXPECTED_BEAN_IDS = new HashSet<>(Arrays.asList(
@@ -66,7 +67,8 @@ public class TestAiAgentToolsIoC {
             "ai-agent-tools:team-status",
             "ai-agent-tools:team-task-create",
             "ai-agent-tools:team-task-update",
-            "ai-agent-tools:team-execute-flow"
+            "ai-agent-tools:team-execute-flow",
+            "ai-agent-tools:set-active-tags"
     ));
 
     @BeforeAll
@@ -93,14 +95,14 @@ public class TestAiAgentToolsIoC {
         IBeanContainer container = startContainer();
         try {
             Map<String, IToolExecutor> beans = container.getBeansOfType(IToolExecutor.class);
-            assertFalse(beans.isEmpty(), "At least 10 IToolExecutor beans should be collected");
+            assertFalse(beans.isEmpty(), "At least 11 IToolExecutor beans should be collected");
 
             for (String expectedId : EXPECTED_BEAN_IDS) {
                 assertTrue(beans.containsKey(expectedId),
                         "Missing tool bean: " + expectedId + ". Present: " + beans.keySet());
             }
             assertEquals(EXPECTED_BEAN_IDS.size(), beans.size(),
-                    "Exactly 10 tool beans expected. Got: " + beans.keySet());
+                    "Exactly " + EXPECTED_BEAN_IDS.size() + " tool beans expected. Got: " + beans.keySet());
         } finally {
             container.stop();
         }

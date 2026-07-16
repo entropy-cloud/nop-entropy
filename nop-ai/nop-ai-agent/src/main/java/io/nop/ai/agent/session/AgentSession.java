@@ -1,6 +1,7 @@
 package io.nop.ai.agent.session;
 
 import io.nop.ai.agent.model.AgentExecStatus;
+import io.nop.ai.agent.model.AgentModel;
 import io.nop.ai.api.chat.messages.ChatMessage;
 
 import java.util.ArrayList;
@@ -8,6 +9,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 public class AgentSession {
 
@@ -34,6 +36,17 @@ public class AgentSession {
      * compatible).
      */
     private String tenantId;
+
+    /**
+     * Plan 296 (WS2): runtime override for the agent's active tool-visibility
+     * tags. When non-null, this takes precedence over the agent model's
+     * declared {@code activeTags}. Set by the {@code set-active-tags}
+     * meta-tool to dynamically switch which tagged tools are exposed to the
+     * LLM within this session. {@code null} means "use the agent model's
+     * default activeTags". Only affects the current session — not persisted
+     * across restarts.
+     */
+    private Set<String> activeTags;
 
     private AgentSession(String sessionId, String agentName, long createdAt) {
         this.sessionId = sessionId;
@@ -223,5 +236,42 @@ public class AgentSession {
 
     public void setTenantId(String tenantId) {
         this.tenantId = tenantId;
+    }
+
+    /**
+     * Plan 296 (WS2): return the runtime active-tags override, or {@code null}
+     * when no runtime override has been set (meaning "use the agent model's
+     * default").
+     */
+    public Set<String> getActiveTags() {
+        return activeTags;
+    }
+
+    public void setActiveTags(Set<String> activeTags) {
+        this.activeTags = activeTags;
+    }
+
+    /**
+     * Plan 296 (WS2): resolve the effective active-tags for tool visibility
+     * filtering. Precedence: runtime session override ({@link #activeTags})
+     * → agent model's declared {@code activeTags} → empty set (full
+     * visibility, no tag restriction).
+     *
+     * <p>An empty return set means "no tag filtering" — all tools (subject to
+     * other filters) are visible. This is NOT a silent no-op: it is the
+     * explicitly-resolved "no restriction" state that the filter caller
+     * checks before applying tag intersection logic.
+     *
+     * @param model the agent model whose declared activeTags are the fallback
+     * @return the effective active tag set (never null; empty = no filter)
+     */
+    public Set<String> resolveActiveTags(AgentModel model) {
+        if (activeTags != null) {
+            return activeTags;
+        }
+        if (model != null && model.getActiveTags() != null) {
+            return model.getActiveTags();
+        }
+        return Collections.emptySet();
     }
 }

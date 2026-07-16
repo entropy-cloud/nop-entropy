@@ -9,6 +9,7 @@ package io.nop.ai.api.chat.messages;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 import io.nop.api.core.annotations.data.DataBean;
+import io.nop.ai.api.tool.IToolDefinition;
 
 import java.util.Map;
 
@@ -32,7 +33,7 @@ import java.util.Map;
  * }
  */
 @DataBean
-public class ChatToolDefinition {
+public class ChatToolDefinition implements IToolDefinition {
 
     /**
      * 工具类型，默认为 "function"

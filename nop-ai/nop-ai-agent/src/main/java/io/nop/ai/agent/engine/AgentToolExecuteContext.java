@@ -3,6 +3,7 @@ package io.nop.ai.agent.engine;
 import io.nop.ai.agent.memory.IAiMemoryStore;
 import io.nop.ai.agent.message.IAgentMessenger;
 import io.nop.ai.agent.model.PathRuleModel;
+import io.nop.ai.agent.session.AgentSession;
 import io.nop.ai.agent.team.ITeamAclChecker;
 import io.nop.ai.agent.team.ITeamManager;
 import io.nop.ai.agent.team.ITeamTaskStore;
@@ -57,6 +58,11 @@ public class AgentToolExecuteContext implements IToolExecuteContext {
     // before the dispatch loop so CallAgentExecutor can read it and enforce
     // MAX_DELEGATION_DEPTH. Defaults to 0 (top-level) when not explicitly set.
     private int delegationDepth;
+    // Plan 296 (WS2): the current session, resolved by the dispatch loop
+    // from sessionStore.get(sessionId). Meta-tools (e.g. set-active-tags)
+    // read this to mutate session-scoped state. Null when the executor was
+    // constructed outside the engine for testing or no sessionStore is wired.
+    private AgentSession session;
 
     public AgentToolExecuteContext(File workDir,
                                    Map<String, String> envs,
@@ -455,5 +461,20 @@ public class AgentToolExecuteContext implements IToolExecuteContext {
 
     public void setDelegationDepth(int delegationDepth) {
         this.delegationDepth = delegationDepth;
+    }
+
+    /**
+     * Plan 296 (WS2): return the current {@link AgentSession}, or {@code null}
+     * when no session is available (executor constructed outside the engine,
+     * or no sessionStore wired). Meta-tools (e.g. {@code set-active-tags})
+     * read this to mutate session-scoped state; they fail fast with a
+     * descriptive error when null.
+     */
+    public AgentSession getSession() {
+        return session;
+    }
+
+    public void setSession(AgentSession session) {
+        this.session = session;
     }
 }

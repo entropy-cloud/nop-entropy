@@ -18,6 +18,15 @@ public abstract class _AgentModel extends io.nop.core.resource.component.Abstrac
     
     /**
      *  
+     * xml name: activeTags
+     * Plan 296 (WS2): tag-based tool visibility. activeTags selects tools by
+     * tag intersection (empty = no tag restriction); denyTags removes tools
+     * containing any of these tags; denyTools removes tools by name.
+     */
+    private java.util.Set<java.lang.String> _activeTags ;
+    
+    /**
+     *  
      * xml name: availableSkills
      * 
      */
@@ -39,6 +48,20 @@ public abstract class _AgentModel extends io.nop.core.resource.component.Abstrac
     
     /**
      *  
+     * xml name: denyTags
+     * 
+     */
+    private java.util.Set<java.lang.String> _denyTags ;
+    
+    /**
+     *  
+     * xml name: denyTools
+     * 
+     */
+    private java.util.Set<java.lang.String> _denyTools ;
+    
+    /**
+     *  
      * xml name: description
      * 
      */
@@ -57,6 +80,18 @@ public abstract class _AgentModel extends io.nop.core.resource.component.Abstrac
      * 元数据
      */
     private java.util.Map<java.lang.String,java.lang.Object> _meta ;
+    
+    /**
+     *  
+     * xml name: middlewares
+     * Plan 296 (WS1): onion-style middleware declarations. Each middleware
+     * wraps the lifecycle point's core (which runs all registered hooks).
+     * impl = fully-qualified IAgentMiddleware implementation class name;
+     * point = lifecycle point name (e.g. pre_call, pre_reasoning, ...).
+     * Uses impl instead of class to avoid the Java reserved-word conflict
+     * in generated getter (getClass).
+     */
+    private java.util.List<io.nop.ai.agent.model.AgentMiddlewareModel> _middlewares = java.util.Collections.emptyList();
     
     /**
      *  
@@ -144,6 +179,27 @@ public abstract class _AgentModel extends io.nop.core.resource.component.Abstrac
     
     /**
      * 
+     * xml name: activeTags
+     *  Plan 296 (WS2): tag-based tool visibility. activeTags selects tools by
+     * tag intersection (empty = no tag restriction); denyTags removes tools
+     * containing any of these tags; denyTools removes tools by name.
+     */
+    
+    public java.util.Set<java.lang.String> getActiveTags(){
+      return _activeTags;
+    }
+
+    
+    public void setActiveTags(java.util.Set<java.lang.String> value){
+        checkAllowChange();
+        
+        this._activeTags = value;
+           
+    }
+
+    
+    /**
+     * 
      * xml name: availableSkills
      *  
      */
@@ -195,6 +251,44 @@ public abstract class _AgentModel extends io.nop.core.resource.component.Abstrac
         checkAllowChange();
         
         this._constraints = value;
+           
+    }
+
+    
+    /**
+     * 
+     * xml name: denyTags
+     *  
+     */
+    
+    public java.util.Set<java.lang.String> getDenyTags(){
+      return _denyTags;
+    }
+
+    
+    public void setDenyTags(java.util.Set<java.lang.String> value){
+        checkAllowChange();
+        
+        this._denyTags = value;
+           
+    }
+
+    
+    /**
+     * 
+     * xml name: denyTools
+     *  
+     */
+    
+    public java.util.Set<java.lang.String> getDenyTools(){
+      return _denyTools;
+    }
+
+    
+    public void setDenyTools(java.util.Set<java.lang.String> value){
+        checkAllowChange();
+        
+        this._denyTools = value;
            
     }
 
@@ -285,6 +379,30 @@ public abstract class _AgentModel extends io.nop.core.resource.component.Abstrac
     public boolean hasMeta(){
         return this._meta != null && !this._meta.isEmpty();
     }
+    
+    /**
+     * 
+     * xml name: middlewares
+     *  Plan 296 (WS1): onion-style middleware declarations. Each middleware
+     * wraps the lifecycle point's core (which runs all registered hooks).
+     * impl = fully-qualified IAgentMiddleware implementation class name;
+     * point = lifecycle point name (e.g. pre_call, pre_reasoning, ...).
+     * Uses impl instead of class to avoid the Java reserved-word conflict
+     * in generated getter (getClass).
+     */
+    
+    public java.util.List<io.nop.ai.agent.model.AgentMiddlewareModel> getMiddlewares(){
+      return _middlewares;
+    }
+
+    
+    public void setMiddlewares(java.util.List<io.nop.ai.agent.model.AgentMiddlewareModel> value){
+        checkAllowChange();
+        
+        this._middlewares = value;
+           
+    }
+
     
     /**
      * 
@@ -542,6 +660,8 @@ public abstract class _AgentModel extends io.nop.core.resource.component.Abstrac
             
            this._hooks = io.nop.api.core.util.FreezeHelper.deepFreeze(this._hooks);
             
+           this._middlewares = io.nop.api.core.util.FreezeHelper.deepFreeze(this._middlewares);
+            
            this._pathRules = io.nop.api.core.util.FreezeHelper.deepFreeze(this._pathRules);
             
            this._permissions = io.nop.api.core.util.FreezeHelper.deepFreeze(this._permissions);
@@ -557,12 +677,16 @@ public abstract class _AgentModel extends io.nop.core.resource.component.Abstrac
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         
+        out.putNotNull("activeTags",this.getActiveTags());
         out.putNotNull("availableSkills",this.getAvailableSkills());
         out.putNotNull("chatOptions",this.getChatOptions());
         out.putNotNull("constraints",this.getConstraints());
+        out.putNotNull("denyTags",this.getDenyTags());
+        out.putNotNull("denyTools",this.getDenyTools());
         out.putNotNull("description",this.getDescription());
         out.putNotNull("hooks",this.getHooks());
         out.putNotNull("meta",this.getMeta());
+        out.putNotNull("middlewares",this.getMiddlewares());
         out.putNotNull("mode",this.getMode());
         out.putNotNull("name",this.getName());
         out.putNotNull("pathRules",this.getPathRules());
@@ -585,12 +709,16 @@ public abstract class _AgentModel extends io.nop.core.resource.component.Abstrac
     protected void copyTo(AgentModel instance){
         super.copyTo(instance);
         
+        instance.setActiveTags(this.getActiveTags());
         instance.setAvailableSkills(this.getAvailableSkills());
         instance.setChatOptions(this.getChatOptions());
         instance.setConstraints(this.getConstraints());
+        instance.setDenyTags(this.getDenyTags());
+        instance.setDenyTools(this.getDenyTools());
         instance.setDescription(this.getDescription());
         instance.setHooks(this.getHooks());
         instance.setMeta(this.getMeta());
+        instance.setMiddlewares(this.getMiddlewares());
         instance.setMode(this.getMode());
         instance.setName(this.getName());
         instance.setPathRules(this.getPathRules());

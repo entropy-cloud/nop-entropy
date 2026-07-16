@@ -1,5 +1,7 @@
 package io.nop.ai.agent.hook;
 
+import io.nop.ai.agent.middleware.IAgentMiddleware;
+import io.nop.ai.agent.middleware.MiddlewareChain;
 import io.nop.ai.agent.model.AgentHookModel;
 import io.nop.ai.agent.model.AgentModel;
 import io.nop.core.lang.eval.EvalExprProvider;
@@ -12,12 +14,16 @@ import java.util.EnumMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.function.Function;
 
 public class DefaultHookRegistry implements IHookRegistry {
 
     private static final Map<String, AgentLifecyclePoint> EVENT_NAME_MAP = buildEventNameMap();
 
     private final Map<AgentLifecyclePoint, List<IAgentLifecycleHook>> hooks = new EnumMap<>(AgentLifecyclePoint.class);
+
+    // Plan 296: onion-style middlewares, grouped by lifecycle point (outer-to-inner).
+    private final Map<AgentLifecyclePoint, List<IAgentMiddleware>> middlewares = new EnumMap<>(AgentLifecyclePoint.class);
 
     public DefaultHookRegistry() {
     }
@@ -31,6 +37,36 @@ public class DefaultHookRegistry implements IHookRegistry {
     @Override
     public void register(AgentLifecyclePoint point, IAgentLifecycleHook hook) {
         hooks.computeIfAbsent(point, k -> new ArrayList<>()).add(hook);
+    }
+
+    @Override
+    public List<IAgentMiddleware> getMiddlewares(AgentLifecyclePoint point, String agentName) {
+        List<IAgentMiddleware> list = middlewares.get(point);
+        return list != null ? Collections.unmodifiableList(list) : Collections.emptyList();
+    }
+
+    @Override
+    public void registerMiddleware(AgentLifecyclePoint point, IAgentMiddleware middleware) {
+        middlewares.computeIfAbsent(point, k -> new ArrayList<>()).add(middleware);
+    }
+
+    /**
+     * Build an immutable {@link MiddlewareChain} for the given lifecycle point,
+     * wrapping the supplied core callable. The core runs all registered hooks
+     * at this point (the innermost layer). When no middlewares are registered
+     * at this point, the returned chain delegates directly to the core —
+     * zero overhead, equivalent to the pre-middleware path.
+     *
+     * @param point the lifecycle point whose middlewares (if any) wrap the core
+     * @param core  the innermost callable that runs the hook observers
+     * @return a ready-to-proceed chain
+     */
+    public MiddlewareChain buildChain(AgentLifecyclePoint point, Function<HookContext, HookResult> core) {
+        List<IAgentMiddleware> list = middlewares.get(point);
+        if (list == null || list.isEmpty()) {
+            return new MiddlewareChain(Collections.emptyList(), 0, core);
+        }
+        return new MiddlewareChain(Collections.unmodifiableList(list), 0, core);
     }
 
     public static DefaultHookRegistry fromAgentModel(AgentModel model) {
@@ -49,7 +85,7 @@ public class DefaultHookRegistry implements IHookRegistry {
         return registry;
     }
 
-    static AgentLifecyclePoint resolveLifecyclePoint(String event) {
+    public static AgentLifecyclePoint resolveLifecyclePoint(String event) {
         if (event == null || event.isEmpty()) {
             return null;
         }

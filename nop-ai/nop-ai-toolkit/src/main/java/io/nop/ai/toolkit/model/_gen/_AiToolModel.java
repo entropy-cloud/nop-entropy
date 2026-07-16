@@ -32,6 +32,14 @@ public abstract class _AiToolModel extends io.nop.core.resource.component.Abstra
     
     /**
      *  
+     * xml name: meta
+     * Plan 296 (WS2): meta tools are always visible to the LLM regardless
+     * of activeTags/denyTags filtering (e.g. set-active-tags). Default false.
+     */
+    private boolean _meta ;
+    
+    /**
+     *  
      * xml name: name
      * 
      */
@@ -50,6 +58,15 @@ public abstract class _AiToolModel extends io.nop.core.resource.component.Abstra
      * schema：描述具体工具的调用格式，内容为任意XML（如patch-text-file、update-todos等）
      */
     private io.nop.core.lang.xml.XNode _schema ;
+    
+    /**
+     *  
+     * xml name: tags
+     * Plan 296 (WS2): tag-based visibility. Tags are arbitrary labels
+     * (e.g. readonly, admin, channel:webui) used by AgentModel.activeTags
+     * to filter which tools are exposed to the LLM. Empty = no tags.
+     */
+    private java.util.Set<java.lang.String> _tags ;
     
     /**
      * 
@@ -117,6 +134,26 @@ public abstract class _AiToolModel extends io.nop.core.resource.component.Abstra
     
     /**
      * 
+     * xml name: meta
+     *  Plan 296 (WS2): meta tools are always visible to the LLM regardless
+     * of activeTags/denyTags filtering (e.g. set-active-tags). Default false.
+     */
+    
+    public boolean isMeta(){
+      return _meta;
+    }
+
+    
+    public void setMeta(boolean value){
+        checkAllowChange();
+        
+        this._meta = value;
+           
+    }
+
+    
+    /**
+     * 
      * xml name: name
      *  
      */
@@ -172,6 +209,27 @@ public abstract class _AiToolModel extends io.nop.core.resource.component.Abstra
     }
 
     
+    /**
+     * 
+     * xml name: tags
+     *  Plan 296 (WS2): tag-based visibility. Tags are arbitrary labels
+     * (e.g. readonly, admin, channel:webui) used by AgentModel.activeTags
+     * to filter which tools are exposed to the LLM. Empty = no tags.
+     */
+    
+    public java.util.Set<java.lang.String> getTags(){
+      return _tags;
+    }
+
+    
+    public void setTags(java.util.Set<java.lang.String> value){
+        checkAllowChange();
+        
+        this._tags = value;
+           
+    }
+
+    
 
     @Override
     public void freeze(boolean cascade){
@@ -191,9 +249,11 @@ public abstract class _AiToolModel extends io.nop.core.resource.component.Abstra
         
         out.putNotNull("description",this.getDescription());
         out.putNotNull("examples",this.getExamples());
+        out.putNotNull("meta",this.isMeta());
         out.putNotNull("name",this.getName());
         out.putNotNull("responseSchema",this.getResponseSchema());
         out.putNotNull("schema",this.getSchema());
+        out.putNotNull("tags",this.getTags());
     }
 
     public AiToolModel cloneInstance(){
@@ -207,9 +267,11 @@ public abstract class _AiToolModel extends io.nop.core.resource.component.Abstra
         
         instance.setDescription(this.getDescription());
         instance.setExamples(this.getExamples());
+        instance.setMeta(this.isMeta());
         instance.setName(this.getName());
         instance.setResponseSchema(this.getResponseSchema());
         instance.setSchema(this.getSchema());
+        instance.setTags(this.getTags());
     }
 
     protected AiToolModel newInstance(){

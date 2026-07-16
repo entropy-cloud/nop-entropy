@@ -18,6 +18,13 @@
 
     <tools>csv-set</tools>
 
+    <!-- Plan 296 (WS2): tag-based tool visibility. activeTags selects tools by
+         tag intersection (empty = no tag restriction); denyTags removes tools
+         containing any of these tags; denyTools removes tools by name. -->
+    <activeTags>csv-set</activeTags>
+    <denyTags>csv-set</denyTags>
+    <denyTools>csv-set</denyTools>
+
     <availableSkills>csv-set</availableSkills>
 
     <requiredSkills>csv-set</requiredSkills>
@@ -43,6 +50,16 @@
             event="!event-pattern-string">xpl-fn:(event, agentRt)=>void
         </on>
     </hooks>
+
+    <!-- Plan 296 (WS1): onion-style middleware declarations. Each middleware
+         wraps the lifecycle point's core (which runs all registered hooks).
+         impl = fully-qualified IAgentMiddleware implementation class name;
+         point = lifecycle point name (e.g. pre_call, pre_reasoning, ...).
+         Uses impl instead of class to avoid the Java reserved-word conflict
+         in generated getter (getClass). -->
+    <middlewares xdef:body-type="list">
+        <middleware xdef:name="AgentMiddlewareModel" impl="!class-name" point="!string"/>
+    </middlewares>
 
     <!-- Plan 231: declarative team declaration. A lead agent declares its
          team structure here; the engine auto-binds the lead session at the
