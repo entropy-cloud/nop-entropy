@@ -1,6 +1,6 @@
 # nop-metadata Implementation Roadmap
 
-> Last Updated: 2026-07-16 (P4-4 completed via plan 0900-1; P4-5 plan drafted via 0900-2; P4-2 + P4-3 completed via plan 0800-2; P4-1 completed via plan 0800-1; P3-2 + P3-3 + P3-4 + P3-5 completed via plan 0700-2; P3-1 + P3-6 completed via plan 0700-1; P2-7 completed via plan 0530-2; P2-5 completed via plan 0420-2; P2-4 completed via plan 0420-1; P2-3 completed via plan 0225-3; P1+ completed via plans 294+295; Phase 1 import engine via plan 292)
+> Last Updated: 2026-07-16 (P4-5 completed via plan 0900-2; P4-4 completed via plan 0900-1; P4-2 + P4-3 completed via plan 0800-2; P4-1 completed via plan 0800-1; P2-7 completed via plan 0530-2; P2-5 completed via plan 0420-2; P2-4 completed via plan 0420-1; P2-3 completed via plan 0225-3; P3-2 + P3-3 + P3-4 + P3-5 completed via plan 0700-2; P3-1 + P3-6 completed via plan 0700-1; P2-7 completed via plan 0530-2; P2-5 completed via plan 0420-2; P2-4 completed via plan 0420-1; P2-3 completed via plan 0225-3; P1+ completed via plans 294+295; Phase 1 import engine via plan 292)
 > Source: 设计体系 `ai-dev/design/nop-metadata/`（00-vision ~ 10-event-model）；`01-architecture-baseline.md` 为架构权威
 
 ## Purpose
@@ -121,7 +121,7 @@
 | P4-2 | **跨表 JOIN 执行**：MetaTableJoin 定义的关联条件在查询时翻译为 SQL JOIN（同库）或应用层拼接（跨库） | done |
 | P4-3 | **指标/维度聚合查询**：MetaTableMeasure + MetaTableDimension → 聚合 SQL 自动生成 | done |
 | P4-4 | **数据契约 MetaDataContract**（新实体）：SLA 定义格式已裁定（JSON Schema/结构化 JSON，拒绝自定义 DSL） | done |
-| P4-5 | **Reconciliation 对账**（3 个新实体）：MetaReconciliationConfig / MetaReconciliationResult / MetaReconciliationEntity，可插拔对账服务，兼容 OpenRefine Reconciliation API，支持表级/列级对账 | planned |
+| P4-5 | **Reconciliation 对账**（3 个新实体）：MetaReconciliationConfig / MetaReconciliationResult / MetaReconciliationEntity，可插拔对账服务，兼容 OpenRefine Reconciliation API，支持表级/列级对账 | done |
 
 > **设计决策**：架构基线 §七 明确拒绝了 QuerySpace + Driver 运行时抽象。所有查询走现有 ORM 层，实体 querySpace 字段已承担路由。不引入额外 Driver/QuerySpace 抽象层。
 >
@@ -152,10 +152,10 @@
 | `MetaProfilingResult` | P2 | `06-data-quality-extended.md` §3.2 |
 | `MetaQualityCheckpoint` | P2 | `06-data-quality-extended.md` §4.1 |
 | `MetaQualityScore` | P2 | `06-data-quality-extended.md` §5.1 |
-| `MetaDataContract` | P4 | `04-data-governance.md` |
-| `MetaReconciliationConfig` | P4 | `08-reconciliation.md` |
-| `MetaReconciliationResult` | P4 | `08-reconciliation.md` |
-| `MetaReconciliationEntity` | P4 | `08-reconciliation.md` |
+| `MetaDataContract` | ~~P4~~ | ~~`04-data-governance.md`~~ **已建模（P4-4 done，plan 0900-1）** |
+| ~~`MetaReconciliationConfig`~~ | ~~P4~~ | ~~`08-reconciliation.md`~~ **已建模（P4-5 done，plan 0900-2）** |
+| ~~`MetaReconciliationResult`~~ | ~~P4~~ | ~~`08-reconciliation.md`~~ **已建模（P4-5 done，plan 0900-2）** |
+| ~~`MetaReconciliationEntity`~~ | ~~P4~~ | ~~`08-reconciliation.md`~~ **已建模（P4-5 done，plan 0900-2）** |
 | `MetaModelChangedEvent` | 待定 | `10-event-model.md` |
 
 ---
@@ -199,8 +199,8 @@ graph TD
 非 roadmap 内容已拆分到各自归属，本文件不重复维护：
 
 - **设计文档** → `ai-dev/design/nop-metadata/`（00-vision ~ 10-event-model，共 11 份编号文档 + README）
-- **已完成 plan** → `292`（Phase 1 导入引擎）；`293`（设计一致性修复）；`294`（P1+ 导入引擎完整性）；`295`（P1+ Delta 展开 + 版本发布）；`2026-07-16-0225-1`（P2-1 数据源注册+连接验证）；`2026-07-16-0225-2`（P2-2 外部表同步）；`2026-07-16-0225-3`（P2-3 Manifest 快照）；`2026-07-16-0420-1`（P2-4 Catalog 运行时收集）；`2026-07-16-0420-2`（P2-5 血缘采集+遍历）；`2026-07-16-0800-1`（P4-1 单表联邦查询）；`2026-07-16-0900-1`（P4-4 数据契约 MetaDataContract）
-- **活跃 plan** → `2026-07-16-0900-2`（P4-5 Reconciliation）。0900-1（P4-4）已完成。
+- **已完成 plan** → `292`（Phase 1 导入引擎）；`293`（设计一致性修复）；`294`（P1+ 导入引擎完整性）；`295`（P1+ Delta 展开 + 版本发布）；`2026-07-16-0225-1`（P2-1 数据源注册+连接验证）；`2026-07-16-0225-2`（P2-2 外部表同步）；`2026-07-16-0225-3`（P2-3 Manifest 快照）；`2026-07-16-0420-1`（P2-4 Catalog 运行时收集）；`2026-07-16-0420-2`（P2-5 血缘采集+遍历）；`2026-07-16-0800-1`（P4-1 单表联邦查询）；`2026-07-16-0900-1`（P4-4 数据契约 MetaDataContract）；`2026-07-16-0900-2`（P4-5 Reconciliation 对账）
+- **活跃 plan** → （无）
 - **设计决策** → `01-architecture-baseline.md` §一 设计结论 + §七 拒绝清单
 - **待定问题** → `01-architecture-baseline.md` §八 待定问题
 - **Gap 分析** → `02-gap-analysis.md`（对比 DataHub/OpenMetadata/Atlas/Amundsen/Marquez）

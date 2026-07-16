@@ -1,462 +1,184 @@
 # nop-metadata Reconciliation 设计
 
-> Status: draft
-> Date: 2026-07-15
-> Scope: nop-metadata 实体对账、外部知识库集成
-> Goal: 定义 Reconciliation 对账模型，参考 OpenRefine Reconciliation 模式
+> Status: final
+> Date: 2026-07-16
+> Scope: nop-metadata 实体对账（Reconciliation）
+> Goal: 定义 Reconciliation 对账模型与执行流程，把实体列值与候选知识库对齐
 > Based on: OpenRefine Reconciliation、Wikidata Reconciliation API
+> Implements: P4-5（plan `2026-07-16-0900-2`）
 
 ---
 
 ## 一、设计决策
 
-### 1.1 Reconciliation 定位
+### 1.1 定位
 
-**决策**: Reconciliation 是 nop-metadata 的核心能力之一，用于实体与外部知识库的匹配和对齐。
+Reconciliation 是 nop-metadata 的数据治理能力之一：把某张逻辑表的某一列值，与一组候选实体
+（候选知识库）逐行对齐，产出 MATCHED/UNMATCHED/MULTIPLE 判定，并支持人工确认。
 
-**理由**:
-- 主数据标准化需要与外部知识库对齐
-- 数据清洗需要识别相同实体的不同表述
-- 数据增强需要基于匹配结果扩展属性
+### 1.2 服务模型（D1 裁定）
 
-### 1.2 Reconciliation 服务
+采用**可插拔 `IReconciliationService` 接口 + 内置 `LocalReconciliationService`（本地候选集匹配）**。
 
-**决策**: 支持可插拔的 Reconciliation 服务，兼容标准 Reconciliation API。
+- 首版只实现本地匹配，候选来自 `NopMetaReconciliationEntity`（按 `entityType`+`identifierSpace` 过滤）。
+- 接口入参显式包含 `matchStrategy`，使策略可由调用方控制；接口纯接口、无外部依赖，
+  外部 HTTP 实现（OpenRefine/Wikidata 兼容端点 + 认证）可在后续作为新 impl 插入，不改执行器与 BizModel。
+- **外部 HTTP 实现为 follow-up**：因其依赖外部可用性与认证（见 Open Questions），无法在 H2/AutoTest
+  端到端验证。本地实现已使"实体可对账、结果可存、可人工确认"这一结果面成立。
 
-**标准**:
-- 遵循 Wikidata Reconciliation API 规范
-- 支持 `suggest/entity`、`suggest/type`、`reconcile` 端点
-- 支持批量查询和自动匹配
+### 1.3 对账粒度（D4 裁定）
 
-### 1.3 对账粒度
+首版为**单列对账**：`columnName`/`matchStrategy`/`targetEntityType` 挂在 `NopMetaReconciliationConfig`
+顶层，一次对账只处理一列。设计文档原描述的表级 + 多列 `columns[]` 移到 follow-up。
 
-**决策**: 支持表级和列级对账。
+### 1.4 明细存储形态（D3 裁定）
 
-**粒度**:
-- **表级对账**: 整个表与外部知识库对齐
-- **列级对账**: 特定列与外部实体类型对齐
+对账结果明细由**单行 `NopMetaReconciliationResult` 承载**：
+
+- `statistics`（json-4000）：`totalRows`/`matchedRows`/`unmatchedRows`/`multipleMatches`/`matchRate`。
+- `details`（mediumtext + stdDomain json）：per-row 数组，元素 `{rowIndex, originalValue, status,
+  candidates[], selectedId}`。
+
+对齐 `NopMetaProfilingResult.tableStats/columnStats`（mediumtext + json）先例；**不**拆子表
+（超大表明细为 follow-up）。`details` 不复用 `NopMetaQualityResult.details`（后者 json-4000，容量不足以承载逐行明细）。
 
 ---
 
 ## 二、核心模型
 
-### 2.1 Reconciliation 配置
+> 实体定义以源码 `nop-metadata/model/nop-metadata.orm.xml` 为唯一事实源；本节只描述用途契约。
 
-```
-MetaReconciliationConfig         — 对账配置
-  ├── configName                 — 配置名称
-  ├── displayName                — 显示名称
-  ├── moduleId                   → MetaModule（所属模块）
-  │
-  ├── serviceUrl                 — Reconciliation 服务 URL
-  ├── identifierSpace            — 标识符空间（如 Wikidata URI）
-  ├── schemaSpace                — Schema 空间
-  │
-  ├── targetEntityType           — 目标实体类型（可选）
-  ├── autoMatch                  — 是否自动匹配
-  ├── autoMatchThreshold         — 自动匹配阈值（0.0~1.0）
-  │
-  ├── columns[]                  — 要对账的列配置
-  │   └── ReconColumnConfig
-  │       ├── columnName         — 列名
-  │       ├── entityType         — 实体类型
-  │       ├── matchStrategy      — 匹配策略
-  │       └── expandProperties   — 要扩展的属性列表
-  │
-  ├── schedule                   — 执行计划（可选）
-  └── extConfig
-```
+### 2.1 Reconciliation 配置（`NopMetaReconciliationConfig`）
 
-### 2.2 Reconciliation 结果
+单列对账配置。关键字段：
 
-```
-MetaReconciliationResult         — 对账结果
-  ├── configId                   → MetaReconciliationConfig
-  ├── executeTime                — 执行时间
-  ├── tableId                    → MetaTable
-  │
-  ├── statistics                 — 统计信息
-  │   ├── totalRows              — 总行数
-  │   ├── matchedRows            — 匹配行数
-  │   ├── unmatchedRows          — 未匹配行数
-  │   ├── multipleMatches        — 多候选行数
-  │   └── matchRate              — 匹配率
-  │
-  └── details[]                  — 详细结果
-      └── ReconRowResult
-          ├── rowIndex           — 行索引
-          ├── originalValue      — 原始值
-          ├── status             — "matched" | "unmatched" | "multiple" | "manual"
-          ├── candidates[]       — 候选匹配列表
-          │   └── ReconCandidate
-          │       ├── entityId   — 实体 ID
-          │       ├── entityName — 实体名称
-          │       ├── entityType — 实体类型
-          │       ├── score      — 匹配置信度
-          │       └── properties — 实体属性
-          ├── selectedId         — 选中的实体 ID（人工确认后）
-          └── expandedData       — 扩展的数据（可选）
-```
+- `configName`/`displayName`：标识与显示名。
+- `metaModuleId`（→NopMetaModule，可空）/`metaTableId`（→NopMetaTable）：所属模块与待对账逻辑表。
+- `columnName`：待对账的列名（须在该表 `MetaTableFieldResolver` 解析出的可用字段集合内）。
+- `identifierSpace`：标识符空间（如 Wikidata URI），用于过滤候选实体。
+- `targetEntityType`（可空）：目标实体类型，用于过滤候选实体。
+- `matchStrategy`（dict `meta/match-strategy`：`exact`/`fuzzy`）。
+- `autoMatch`（bool）/`autoMatchThreshold`（double，0.0~1.0）：是否自动判定及阈值。
+- `extConfig`（json-4000）+ 审计列 + version。
 
-### 2.3 Reconciliation 实体
+to-one：`metaTable`（join on metaTableId）、`metaModule`（join on metaModuleId）。索引 `IX_NOP_META_RECON_CONFIG_TABLE`(metaTableId)。
 
-```
-MetaReconciliationEntity         — 对账实体（缓存外部实体）
-  ├── entityId                   — 外部实体 ID
-  ├── entityName                 — 实体名称
-  ├── entityType                 — 实体类型
-  ├── identifierSpace            — 标识符空间
-  │
-  ├── properties[]               — 实体属性
-  │   └── ReconEntityProperty
-  │       ├── propertyId         — 属性 ID
-  │       ├── propertyName       — 属性名称
-  │       └── propertyValue      — 属性值
-  │
-  ├── lastSyncedAt               — 最后同步时间
-  └── extConfig
-```
+> 设计草案中的 `columns[]`（多列）、`serviceUrl`（归外部 HTTP impl）、`schemaSpace`/`schedule`
+> 首版不启用，标注为 follow-up。
+
+### 2.2 Reconciliation 结果（`NopMetaReconciliationResult`）
+
+一次执行的结果行。关键字段：
+
+- `configId`（→Config）/`metaTableId`（→NopMetaTable）/`executeTime`：归属与时序。
+- `statistics`（json-4000）：见 §1.4。
+- `details`（mediumtext + stdDomain json，per-row 数组）：见 §1.4。每个 per-row 元素：
+  - `rowIndex`：执行快照内的行下标（首版语义绑定本次执行快照，见 §四人工确认注）。
+  - `originalValue`：该行 `columnName` 列的原始值。
+  - `status`：`MATCHED`/`UNMATCHED`/`MULTIPLE`/`MANUAL`（dict `meta/reconciliation-status`）。
+  - `candidates[]`：候选列表 `{entityId, entityName, entityType, score, properties}`。
+  - `selectedId`：人工确认后选中的实体 ID。
+- `extConfig`（json-4000）+ 审计列 + version。
+
+to-one：`config`、`metaTable`。索引 `IX_NOP_META_RECON_RESULT_CONFIG`(configId, executeTime)（时序）。
+
+### 2.3 Reconciliation 实体（`NopMetaReconciliationEntity`）
+
+候选实体缓存，作为本地匹配器的候选集来源，也作为外部匹配结果未来的缓存落点。关键字段：
+
+- `entityId`（业务标识）/`entityName`/`entityType`/`identifierSpace`：实体的检索维度。
+- `properties`（json-4000）：实体属性。
+- `lastSyncedAt`：最后同步时间。
+- `extConfig`（json-4000）+ 审计列 + version。
+
+索引 `IX_NOP_META_RECON_ENTITY_TYPE`(entityType, identifierSpace)（候选检索）。
 
 ---
 
-## 三、Reconciliation 流程
+## 三、对账流程
 
-### 3.1 标准 Reconciliation API
+### 3.1 标准 Reconciliation API（外部 HTTP 参考，首版不实现）
 
-```
-POST /reconcile
-{
-  "query": "Microsoft",
-  "type": "Q4830453",
-  "limit": 5
-}
+外部 HTTP impl 未来兼容的请求/响应契约（首版本地实现等价语义）：
 
-Response:
-{
-  "result": [
-    {
-      "id": "Q2283",
-      "name": "Microsoft",
-      "type": ["Q4830453"],
-      "score": 0.95,
-      "properties": [
-        {"pid": "P17", "label": "country", "value": {"id": "Q30", "name": "United States"}},
-        {"pid": "P112", "label": "founded by", "value": {"id": "Q5284", "name": "Bill Gates"}}
-      ]
-    }
-  ]
-}
-```
+- 请求：`{query, type, limit}`。
+- 响应：`{result:[{id, name, type[], score, properties:[]}]}`。
 
-### 3.2 对账执行流程
+### 3.2 判定规则（D5 裁定，status 判定单一事实源）
 
-```java
-public class ReconciliationExecutor {
-    
-    private final ReconciliationServiceFactory serviceFactory;
-    private final MetaReconciliationResultRepository resultRepository;
-    private final MetaReconciliationEntityRepository entityRepository;
-    
-    /**
-     * 执行对账
-     */
-    public MetaReconciliationResult execute(MetaReconciliationConfig config) {
-        // 1. 加载表数据
-        DataTable table = loadTable(config.getTableId());
-        
-        // 2. 获取 Reconciliation 服务
-        ReconciliationService service = serviceFactory.getService(config.getServiceUrl());
-        
-        // 3. 批量查询
-        List<ReconRowResult> details = new ArrayList<>();
-        
-        for (int rowIndex = 0; rowIndex < table.getRowCount(); rowIndex++) {
-            String value = table.getValue(rowIndex, config.getColumnName());
-            
-            // 查询候选匹配
-            List<ReconCandidate> candidates = service.reconcile(
-                value,
-                config.getTargetEntityType(),
-                10  // limit
-            );
-            
-            // 判断匹配状态
-            ReconRowResult rowResult = evaluateMatch(candidates, config);
-            rowResult.setRowIndex(rowIndex);
-            rowResult.setOriginalValue(value);
-            
-            details.add(rowResult);
-        }
-        
-        // 4. 计算统计信息
-        ReconStatistics statistics = calculateStatistics(details);
-        
-        // 5. 存储结果
-        MetaReconciliationResult result = new MetaReconciliationResult();
-        result.setConfigId(config.getId());
-        result.setExecuteTime(Instant.now());
-        result.setStatistics(statistics);
-        result.setDetails(details);
-        
-        resultRepository.save(result);
-        
-        return result;
-    }
-    
-    /**
-     * 评估匹配结果
-     */
-    private ReconRowResult evaluateMatch(List<ReconCandidate> candidates, 
-                                         MetaReconciliationConfig config) {
-        ReconRowResult result = new ReconRowResult();
-        
-        if (candidates.isEmpty()) {
-            result.setStatus("unmatched");
-            result.setCandidates(Collections.emptyList());
-        } else if (candidates.size() == 1) {
-            ReconCandidate best = candidates.get(0);
-            if (best.getScore() >= config.getAutoMatchThreshold()) {
-                result.setStatus("matched");
-                result.setSelectedId(best.getEntityId());
-            } else {
-                result.setStatus("multiple");
-                result.setCandidates(candidates);
-            }
-        } else {
-            ReconCandidate best = candidates.get(0);
-            if (best.getScore() >= config.getAutoMatchThreshold()) {
-                result.setStatus("matched");
-                result.setSelectedId(best.getEntityId());
-            } else {
-                result.setStatus("multiple");
-                result.setCandidates(candidates);
-            }
-        }
-        
-        return result;
-    }
-}
-```
+对每行，按候选列表与 config 判定 status：
 
-### 3.3 人工确认流程
+- 候选为空 → **UNMATCHED**。
+- 恰 1 候选且 `score >= autoMatchThreshold` → **MATCHED**（`selectedId` = 该候选）。
+- 恰 1 候选且 `score < autoMatchThreshold` → **MULTIPLE**（候选仍列出，交人工确认）。
+- 候选 ≥ 2 → **MULTIPLE**（最高分候选仍列出，由人工确认选择）。
+- `autoMatch = false` 时，有候选一律 → **MULTIPLE**（交人工）。
 
-```java
-public class ReconciliationManualConfirm {
-    
-    /**
-     * 人工确认匹配
-     */
-    public void confirmMatch(Long resultId, int rowIndex, String selectedEntityId) {
-        // 1. 加载结果
-        MetaReconciliationResult result = resultRepository.findById(resultId);
-        ReconRowResult rowResult = result.getDetails().get(rowIndex);
-        
-        // 2. 更新状态
-        rowResult.setStatus("manual");
-        rowResult.setSelectedId(selectedEntityId);
-        
-        // 3. 保存
-        resultRepository.save(result);
-        
-        // 4. 缓存实体（可选）
-        cacheEntity(selectedEntityId);
-    }
-    
-    /**
-     * 批量确认
-     */
-    public void batchConfirm(Long resultId, Map<Integer, String> selections) {
-        MetaReconciliationResult result = resultRepository.findById(resultId);
-        
-        for (Map.Entry<Integer, String> entry : selections.entrySet()) {
-            int rowIndex = entry.getKey();
-            String entityId = entry.getValue();
-            
-            ReconRowResult rowResult = result.getDetails().get(rowIndex);
-            rowResult.setStatus("manual");
-            rowResult.setSelectedId(entityId);
-        }
-        
-        resultRepository.save(result);
-    }
-}
-```
+> 该规则替换了草案中 `evaluateMatch` 的 Java 实现；行为语义以本节为准。
+
+### 3.3 执行流程（行为契约）
+
+对账执行入口为 `NopMetaReconciliationConfigBizModel.executeReconciliation(configId)`（`@BizMutation`）：
+
+1. 加载 config；config 不存在 → 显式失败（抛 ErrorCode，不 NPE）。
+2. 校验 `columnName` 在目标表 `MetaTableFieldResolver` 解析字段集合内；非法 → 显式失败。
+3. BizModel 注入并调用 `NopMetaTableBizModel.queryTableData(metaTableId, null, null, null, context)`
+   取得 `items`（行列表，`List<Map>`）。`queryTableData` 失败 → 显式失败（不吞异常）。
+4. 把 `items` 传入**纯组件 `ReconciliationExecutor.execute(config, items)`**：
+   - 执行器不持有 BizModel、不伪造 context、不复制取数逻辑。
+   - 逐行按 `config.columnName` 取值 → 调 `IReconciliationService` 取候选 → 按 §3.2 判定 status。
+   - 汇总 `statistics` + `details` → 写一行 `NopMetaReconciliationResult` 并返回。
+5. 空候选 → 体现在结果的 UNMATCHED（非整体异常、不静默 pass）。
+
+> 取数接线裁定（B2 方案 b）：仓库无跨 BizModel 注入另一 BizModel 的生产先例，
+> 且 `INopMetaTableBiz` 是空接口（无 queryTableData 声明）。首版由 config BizModel
+> 注入 `NopMetaTableBizModel` 具体类调用 `queryTableData`。提取共享 table-data fetcher
+> （重构 queryTableData）为 Non-Blocking Follow-up。
+
+### 3.4 人工确认（行为契约）
+
+人工确认入口落在 `NopMetaReconciliationResultBizModel`（`@BizMutation`）：
+
+- `confirmMatch(resultId, rowIndex, selectedEntityId)`：更新 `details[rowIndex].status=MANUAL` + `selectedId`。
+- `batchConfirmMatches(resultId, selections)`：批量执行上述更新。
+- 越界 `rowIndex` / result 不存在 → 显式失败（不静默忽略）。
+
+> 注：`rowIndex` 为 `details` JSON 数组下标，首版语义绑定本次执行快照（重排/分页漂移为
+> follow-up，可后续引入 stable rowKey）。
 
 ---
 
-## 四、属性扩展
+## 四、匹配策略（D2 裁定）
 
-### 4.1 扩展配置
+首版策略集：
 
-```json
-{
-  "columnName": "company_name",
-  "entityType": "Q4830453",
-  "expandProperties": [
-    {"propertyId": "P17", "propertyName": "country", "targetColumn": "country"},
-    {"propertyId": "P112", "propertyName": "founded by", "targetColumn": "founder"},
-    {"propertyId": "P159", "propertyName": "headquarters", "targetColumn": "headquarters"}
-  ]
-}
-```
+| 策略 | dict 值 | 语义 |
+|------|---------|------|
+| exact | `exact` | 完全相等 → score=1.0，否则 0 |
+| fuzzy | `fuzzy` | levenshtein 归一化相似度（忽略大小写） |
 
-### 4.2 扩展执行
+候选经 `LocalReconciliationService` 按 `entityType`+`identifierSpace` 从 `NopMetaReconciliationEntity`
+检索，按策略计算 score，排序后取 limit。候选为空 → 返回空列表（不静默伪造候选）。
 
-```java
-public class PropertyExpander {
-    
-    /**
-     * 扩展实体属性
-     */
-    public void expandProperties(MetaReconciliationResult result, 
-                                  MetaReconciliationConfig config) {
-        for (ReconRowResult rowResult : result.getDetails()) {
-            if ("matched".equals(rowResult.getStatus()) || 
-                "manual".equals(rowResult.getStatus())) {
-                
-                // 获取实体详情
-                ReconEntity entity = fetchEntity(rowResult.getSelectedId());
-                
-                // 扩展属性
-                Map<String, String> expandedData = new HashMap<>();
-                for (ReconColumnConfig columnConfig : config.getColumns()) {
-                    for (ReconPropertyConfig propertyConfig : columnConfig.getExpandProperties()) {
-                        String value = entity.getPropertyValue(propertyConfig.getPropertyId());
-                        if (value != null) {
-                            expandedData.put(propertyConfig.getTargetColumn(), value);
-                        }
-                    }
-                }
-                
-                rowResult.setExpandedData(expandedData);
-            }
-        }
-    }
-}
-```
+**phonetic/semantic 移 follow-up**（需额外算法/模型依赖）。设计草案的 `matchParams`（algorithm/threshold/ignoreCase/ignoreDiacritics）首版不作为独立列；threshold 复用 `config.autoMatchThreshold`，ignoreCase 内置为 true。
 
 ---
 
-## 五、匹配策略
+## 五、属性扩展（follow-up）
 
-### 5.1 内置匹配策略
-
-| 策略 | 说明 | 适用场景 |
-|------|------|---------|
-| **exact** | 精确匹配 | ID、编码 |
-| **fuzzy** | 模糊匹配 | 名称、描述 |
-| **phonetic** | 语音匹配 | 人名、地名 |
-| **semantic** | 语义匹配 | 含义相似的文本 |
-
-### 5.2 匹配策略配置
-
-```json
-{
-  "matchStrategy": "fuzzy",
-  "matchParams": {
-    "algorithm": "levenshtein",
-    "threshold": 0.8,
-    "ignoreCase": true,
-    "ignoreDiacritics": true
-  }
-}
-```
-
-### 5.3 匹配策略实现
-
-```java
-public interface MatchStrategy {
-    
-    /**
-     * 计算两个字符串的匹配分数
-     */
-    double calculateScore(String value1, String value2, Map<String, Object> params);
-}
-
-public class FuzzyMatchStrategy implements MatchStrategy {
-    
-    @Override
-    public double calculateScore(String value1, String value2, Map<String, Object> params) {
-        String algorithm = (String) params.getOrDefault("algorithm", "levenshtein");
-        boolean ignoreCase = (boolean) params.getOrDefault("ignoreCase", true);
-        
-        if (ignoreCase) {
-            value1 = value1.toLowerCase();
-            value2 = value2.toLowerCase();
-        }
-        
-        switch (algorithm) {
-            case "levenshtein":
-                return levenshteinSimilarity(value1, value2);
-            case "jaro":
-                return jaroSimilarity(value1, value2);
-            case "jaccard":
-                return jaccardSimilarity(value1, value2);
-            default:
-                return levenshteinSimilarity(value1, value2);
-        }
-    }
-}
-```
+属性扩展（`expandProperties` 把候选属性写回表）为首版 follow-up，不在 P4-5 范围内。
+设计草案中相关内容（配置/执行）首版不落地，待需要时补设计。
 
 ---
 
 ## 六、GraphQL API
 
-### 6.1 查询
+3 个实体经 `CrudBizModel` 自动暴露 `findPage`/`findList`/`get`/`save`/`delete`（`registerShortName=true`）。
+自定义 action（均 `@BizMutation`）：
 
-```graphql
-type Query {
-  # 对账配置查询
-  metaReconciliationConfig(id: ID!): MetaReconciliationConfig
-  metaReconciliationConfigs(
-    filter: MetaReconciliationConfigFilter
-    limit: Int
-    offset: Int
-  ): MetaReconciliationConfigConnection!
-  
-  # 对账结果查询
-  metaReconciliationResult(id: ID!): MetaReconciliationResult
-  metaReconciliationResults(
-    configId: ID
-    tableId: ID
-    limit: Int
-    offset: Int
-  ): MetaReconciliationResultConnection!
-  
-  # 外部实体查询
-  metaReconciliationEntity(entityId: String!): MetaReconciliationEntity
-  searchReconciliationEntities(
-    query: String!
-    entityType: String
-    limit: Int
-  ): [MetaReconciliationEntity!]!
-  
-  # 对账统计
-  getReconciliationStatistics(configId: ID!): ReconciliationStatistics!
-}
-```
-
-### 6.2 变更
-
-```graphql
-type Mutation {
-  # 对账配置变更
-  createReconciliationConfig(input: CreateReconciliationConfigInput!): MetaReconciliationConfig!
-  updateReconciliationConfig(id: ID!, input: UpdateReconciliationConfigInput!): MetaReconciliationConfig!
-  deleteReconciliationConfig(id: ID!): Boolean!
-  
-  # 对账执行
-  executeReconciliation(configId: ID!): MetaReconciliationResult!
-  
-  # 人工确认
-  confirmReconciliationMatch(resultId: ID!, rowIndex: Int!, entityId: String!): Boolean!
-  batchConfirmReconciliationMatches(resultId: ID!, selections: [ReconciliationSelection!]!): Boolean!
-  
-  # 属性扩展
-  expandReconciliationProperties(resultId: ID!): MetaReconciliationResult!
-}
-```
+- `NopMetaReconciliationConfig__executeReconciliation(configId)` → `NopMetaReconciliationResult`。
+- `NopMetaReconciliationResult__confirmMatch(resultId, rowIndex, selectedEntityId)`。
+- `NopMetaReconciliationResult__batchConfirmMatches(resultId, selections)`。
 
 ---
 
@@ -464,69 +186,17 @@ type Mutation {
 
 | 能力 | OpenRefine | nop-metadata |
 |------|-----------|-------------|
-| 对账配置 | JSON 配置 | MetaReconciliationConfig |
-| 对账结果 | 内存存储 | MetaReconciliationResult |
-| 外部实体 | 实时查询 | MetaReconciliationEntity（缓存） |
-| 匹配策略 | 内置 | 可扩展 |
-| 人工确认 | UI 操作 | GraphQL API |
-
-### nop-metadata 的优势
-
-1. **持久化存储**: 对账结果和配置持久化到数据库
-2. **实体缓存**: 外部实体缓存到本地，减少 API 调用
-3. **GraphQL 接口**: 统一的查询和变更接口
-4. **可扩展策略**: 支持自定义匹配策略
+| 对账配置 | JSON 配置 | `NopMetaReconciliationConfig`（持久化） |
+| 对账结果 | 内存存储 | `NopMetaReconciliationResult`（持久化 + 时序） |
+| 外部实体 | 实时查询 | `NopMetaReconciliationEntity`（本地缓存）+ 可插拔外部 HTTP（follow-up） |
+| 匹配策略 | 内置 | exact/fuzzy（phonetic/semantic follow-up） |
+| 人工确认 | UI 操作 | GraphQL action |
 
 ---
 
-## 八、应用场景
+## Open Questions（follow-up）
 
-### 8.1 主数据标准化
-
-```graphql
-mutation {
-  executeReconciliation(configId: "company-recon-config") {
-    statistics {
-      totalRows
-      matchedRows
-      matchRate
-    }
-  }
-}
-```
-
-### 8.2 数据增强
-
-```graphql
-mutation {
-  expandReconciliationProperties(resultId: "result-123") {
-    details {
-      originalValue
-      selectedId
-      expandedData
-    }
-  }
-}
-```
-
-### 8.3 去重检测
-
-```graphql
-query {
-  searchReconciliationEntities(query: "Microsoft", limit: 10) {
-    entityId
-    entityName
-    entityType
-    score
-  }
-}
-```
-
----
-
-## Open Questions
-
-- [ ] Reconciliation 服务是否需要支持认证？
-- [ ] 对账结果是否需要支持版本化？
-- [ ] 是否需要支持流式对账（大数据量场景）？
-- [ ] 外部实体缓存是否需要定时刷新？
+- Reconciliation 服务是否需要支持认证？→ 归外部 HTTP impl follow-up（本地实现无需）。
+- 对账结果是否需要支持版本化？→ follow-up（首版时序行 + 明细 JSON 已承载单次结果）。
+- 是否需要支持流式对账（大数据量场景）？→ follow-up（超大表明细存储优化一并考虑）。
+- 外部实体缓存是否需要定时刷新？→ follow-up（首版候选集由测试/管理手动维护）。
