@@ -23,6 +23,7 @@ import io.nop.metadata.dao.entity.NopMetaTable;
 import io.nop.metadata.service.connection.IMetaDataSourceConnectionService;
 import io.nop.metadata.service.datasource.MetaDataSourceResolver;
 import io.nop.metadata.service.quality.MetaQualityRuleExecutor;
+import io.nop.metadata.service.quality.QualityResultWriter;
 import io.nop.metadata.service.quality.QualityRuleJudgment;
 import io.nop.metadata.service.tableref.MetaTableReferenceResolver;
 import io.nop.metadata.service.tableref.TableReference;
@@ -101,6 +102,9 @@ public class NopMetaQualityRuleBizModel extends CrudBizModel<NopMetaQualityRule>
 
     /** 质量规则执行器（无状态，参考 MetaCatalogCollector 收集器模式）。 */
     private final MetaQualityRuleExecutor executor = new MetaQualityRuleExecutor();
+
+    /** 结果写入共享 helper（§2.7.3 D3：与 checkpoint executor 共用，避免复制逻辑）。 */
+    private final QualityResultWriter resultWriter = new QualityResultWriter();
 
     /** 按 table-reference 形态分派 Connection 获取（§4.4.3 D1/D2）。延迟初始化（需 orm()）。 */
     private TableReferenceExecutor tableRefExecutor;
@@ -323,19 +327,11 @@ public class NopMetaQualityRuleBizModel extends CrudBizModel<NopMetaQualityRule>
 
     /**
      * 将单规则判定结果追加为一行新的 NopMetaQualityResult（时序语义：executeTime=now，不覆盖旧行）。
+     *
+     * <p>委托共享 {@link QualityResultWriter}（§2.7.3 D3），与检查点编排路径共用同一写入逻辑，不复制。
      */
     private NopMetaQualityResult appendQualityResult(String qualityRuleId, QualityRuleJudgment judgment) {
-        IEntityDao<NopMetaQualityResult> resultDao = daoFor(NopMetaQualityResult.class);
-        NopMetaQualityResult row = resultDao.newEntity();
-        row.setQualityRuleId(qualityRuleId);
-        row.setExecuteTime(new Timestamp(System.currentTimeMillis()));
-        row.setStatus(judgment.getStatus());
-        row.setActualValue(judgment.getActualValue());
-        row.setExpectedValue(judgment.getExpectedValue());
-        row.setMessage(judgment.getMessage());
-        row.setDetails(JsonTool.stringify(judgment.getDetails()));
-        resultDao.saveEntity(row);
-        return row;
+        return resultWriter.append(daoFor(NopMetaQualityResult.class), qualityRuleId, judgment);
     }
 
     private static Map<String, Object> buildSingleResultMap(NopMetaQualityResult row, QualityRuleJudgment j) {

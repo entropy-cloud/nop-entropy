@@ -18,6 +18,7 @@ entity:
     NopMetaPipeline: Meta Pipeline
     NopMetaProfilingResult: Meta Profiling Result
     NopMetaProfilingRule: Meta Profiling Rule
+    NopMetaQualityCheckpoint: Meta Quality Checkpoint
     NopMetaQualityResult: Meta Quality Result
     NopMetaQualityRule: Meta Quality Rule
     NopMetaReconciliationConfig: Meta Reconciliation Config
@@ -424,6 +425,28 @@ prop:
       columnsComponent: null
       statsComponent: null
       extConfigComponent: null
+    NopMetaQualityCheckpoint:
+      checkpointId: Checkpoint Id
+      checkpointName: Checkpoint Name
+      displayName: Display Name
+      metaModuleId: Meta Module Id
+      description: Description
+      validations: Validations
+      actions: Actions
+      status: Status
+      status_label: null
+      extConfig: Ext Config
+      version: Version
+      createdBy: Created By
+      createTime: Create Time
+      updatedBy: Updated By
+      updateTime: Update Time
+      remark: Remark
+      metaModule: Meta Module
+      metaModule.displayName: Meta Module
+      validationsComponent: null
+      actionsComponent: null
+      extConfigComponent: null
     NopMetaQualityResult:
       qualityResultId: Quality Result Id
       qualityRuleId: Quality Rule Id
@@ -665,6 +688,8 @@ dict:
     meta/quality-entity-type: Quality Entity Type
     meta/quality-severity: Quality Severity
     meta/quality-result-status: Quality Result Status
+    meta/checkpoint-status: Checkpoint Status
+    meta/checkpoint-action-type: Checkpoint Action Type
     meta/contract-status: Data Contract Status
     meta/reconciliation-status: Reconciliation Status
     meta/match-strategy: Match Strategy

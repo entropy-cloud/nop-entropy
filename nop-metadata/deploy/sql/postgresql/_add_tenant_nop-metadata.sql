@@ -17,6 +17,8 @@ alter table nop_meta_table add NOP_TENANT_ID VARCHAR(32) DEFAULT '0' NOT NULL;
 
 alter table nop_meta_pipeline add NOP_TENANT_ID VARCHAR(32) DEFAULT '0' NOT NULL;
 
+alter table nop_meta_quality_checkpoint add NOP_TENANT_ID VARCHAR(32) DEFAULT '0' NOT NULL;
+
 alter table nop_meta_manifest add NOP_TENANT_ID VARCHAR(32) DEFAULT '0' NOT NULL;
 
 alter table nop_meta_quality_result add NOP_TENANT_ID VARCHAR(32) DEFAULT '0' NOT NULL;
@@ -83,6 +85,9 @@ alter table nop_meta_table add constraint PK_nop_meta_table primary key (NOP_TEN
 
 alter table nop_meta_pipeline drop constraint PK_nop_meta_pipeline;
 alter table nop_meta_pipeline add constraint PK_nop_meta_pipeline primary key (NOP_TENANT_ID, pipeline_id);
+
+alter table nop_meta_quality_checkpoint drop constraint PK_nop_meta_quality_checkpoint;
+alter table nop_meta_quality_checkpoint add constraint PK_nop_meta_quality_checkpoint primary key (NOP_TENANT_ID, checkpoint_id);
 
 alter table nop_meta_manifest drop constraint PK_nop_meta_manifest;
 alter table nop_meta_manifest add constraint PK_nop_meta_manifest primary key (NOP_TENANT_ID, manifest_id);

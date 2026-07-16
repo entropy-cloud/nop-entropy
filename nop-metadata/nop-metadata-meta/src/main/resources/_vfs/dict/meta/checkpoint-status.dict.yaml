@@ -1,0 +1,19 @@
+# __XGEN_FORCE_OVERRIDE__
+label: 检查点状态
+locale: zh-CN
+valueType: string
+description: 
+options:
+
+  - label: 启用
+    value: ACTIVE
+    description: 
+  
+  - label: 暂停
+    value: PAUSED
+    description: 
+  
+  - label: 已禁用
+    value: DISABLED
+    description: 
+  

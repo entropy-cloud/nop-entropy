@@ -274,6 +274,26 @@ public interface _NopMetadataCoreConstants {
     String QUALITY_RESULT_STATUS_SKIP = "SKIP";
                     
     /**
+     * 检查点状态: 启用 
+     */
+    String CHECKPOINT_STATUS_ACTIVE = "ACTIVE";
+                    
+    /**
+     * 检查点状态: 暂停 
+     */
+    String CHECKPOINT_STATUS_PAUSED = "PAUSED";
+                    
+    /**
+     * 检查点状态: 已禁用 
+     */
+    String CHECKPOINT_STATUS_DISABLED = "DISABLED";
+                    
+    /**
+     * 检查点动作类型: 存储结果 
+     */
+    String CHECKPOINT_ACTION_TYPE_STORE = "store";
+                    
+    /**
      * 数据契约状态: 草稿 
      */
     String CONTRACT_STATUS_DRAFT = "DRAFT";

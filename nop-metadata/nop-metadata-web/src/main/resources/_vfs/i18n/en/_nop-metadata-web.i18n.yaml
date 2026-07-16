@@ -72,6 +72,10 @@ site:
       displayName: Modify Meta Profiling Rule
     FNPT:NopMetaProfilingRule:query:
       displayName: Query Meta Profiling Rule
+    FNPT:NopMetaQualityCheckpoint:mutation:
+      displayName: Modify Meta Quality Checkpoint
+    FNPT:NopMetaQualityCheckpoint:query:
+      displayName: Query Meta Quality Checkpoint
     FNPT:NopMetaQualityResult:mutation:
       displayName: Modify Meta Quality Result
     FNPT:NopMetaQualityResult:query:
@@ -152,6 +156,8 @@ site:
       displayName: Meta Profiling Result
     NopMetaProfilingRule-main:
       displayName: Meta Profiling Rule
+    NopMetaQualityCheckpoint-main:
+      displayName: Meta Quality Checkpoint
     NopMetaQualityResult-main:
       displayName: Meta Quality Result
     NopMetaQualityRule-main:

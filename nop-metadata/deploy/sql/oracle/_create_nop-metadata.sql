@@ -171,6 +171,25 @@ CREATE TABLE nop_meta_pipeline(
   constraint PK_nop_meta_pipeline primary key (PIPELINE_ID)
 );
 
+CREATE TABLE nop_meta_quality_checkpoint(
+  CHECKPOINT_ID VARCHAR2(32) NOT NULL ,
+  CHECKPOINT_NAME VARCHAR2(100) NOT NULL ,
+  DISPLAY_NAME VARCHAR2(200)  ,
+  META_MODULE_ID VARCHAR2(32)  ,
+  DESCRIPTION VARCHAR2(1000)  ,
+  VALIDATIONS CLOB  ,
+  ACTIONS VARCHAR2(4000)  ,
+  STATUS CLOB NOT NULL ,
+  EXT_CONFIG VARCHAR2(4000)  ,
+  DEL_VERSION NUMBER(20) NOT NULL ,
+  CREATED_BY VARCHAR2(50) NOT NULL ,
+  CREATE_TIME TIMESTAMP NOT NULL ,
+  UPDATED_BY VARCHAR2(50) NOT NULL ,
+  UPDATE_TIME TIMESTAMP NOT NULL ,
+  REMARK VARCHAR2(200)  ,
+  constraint PK_nop_meta_quality_checkpoint primary key (CHECKPOINT_ID)
+);
+
 CREATE TABLE nop_meta_manifest(
   MANIFEST_ID VARCHAR2(32) NOT NULL ,
   META_MODULE_ID VARCHAR2(32) NOT NULL ,
@@ -885,6 +904,38 @@ CREATE TABLE nop_meta_recon_result(
       COMMENT ON COLUMN nop_meta_pipeline.UPDATE_TIME IS '修改时间';
                     
       COMMENT ON COLUMN nop_meta_pipeline.REMARK IS '备注';
+                    
+      COMMENT ON TABLE nop_meta_quality_checkpoint IS '质量检查点';
+                
+      COMMENT ON COLUMN nop_meta_quality_checkpoint.CHECKPOINT_ID IS '检查点ID';
+                    
+      COMMENT ON COLUMN nop_meta_quality_checkpoint.CHECKPOINT_NAME IS '检查点名';
+                    
+      COMMENT ON COLUMN nop_meta_quality_checkpoint.DISPLAY_NAME IS '显示名';
+                    
+      COMMENT ON COLUMN nop_meta_quality_checkpoint.META_MODULE_ID IS '模块版本ID';
+                    
+      COMMENT ON COLUMN nop_meta_quality_checkpoint.DESCRIPTION IS '描述';
+                    
+      COMMENT ON COLUMN nop_meta_quality_checkpoint.VALIDATIONS IS '验证配置';
+                    
+      COMMENT ON COLUMN nop_meta_quality_checkpoint.ACTIONS IS '执行动作';
+                    
+      COMMENT ON COLUMN nop_meta_quality_checkpoint.STATUS IS '状态';
+                    
+      COMMENT ON COLUMN nop_meta_quality_checkpoint.EXT_CONFIG IS '扩展配置';
+                    
+      COMMENT ON COLUMN nop_meta_quality_checkpoint.DEL_VERSION IS '数据版本';
+                    
+      COMMENT ON COLUMN nop_meta_quality_checkpoint.CREATED_BY IS '创建人';
+                    
+      COMMENT ON COLUMN nop_meta_quality_checkpoint.CREATE_TIME IS '创建时间';
+                    
+      COMMENT ON COLUMN nop_meta_quality_checkpoint.UPDATED_BY IS '修改人';
+                    
+      COMMENT ON COLUMN nop_meta_quality_checkpoint.UPDATE_TIME IS '修改时间';
+                    
+      COMMENT ON COLUMN nop_meta_quality_checkpoint.REMARK IS '备注';
                     
       COMMENT ON TABLE nop_meta_manifest IS '元数据快照';
                 

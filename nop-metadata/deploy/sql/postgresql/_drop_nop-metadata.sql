@@ -8,6 +8,7 @@ drop table  if exists  nop_meta_recon_entity;
 drop table  if exists  nop_meta_orm_model;
 drop table  if exists  nop_meta_table;
 drop table  if exists  nop_meta_pipeline;
+drop table  if exists  nop_meta_quality_checkpoint;
 drop table  if exists  nop_meta_manifest;
 drop table  if exists  nop_meta_quality_result;
 drop table  if exists  nop_meta_entity;

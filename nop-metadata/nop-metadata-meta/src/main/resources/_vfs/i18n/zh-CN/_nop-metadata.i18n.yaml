@@ -18,6 +18,7 @@ entity:
     NopMetaPipeline: 数据管道
     NopMetaProfilingResult: 数据剖析结果
     NopMetaProfilingRule: 数据剖析规则
+    NopMetaQualityCheckpoint: 质量检查点
     NopMetaQualityResult: 质量结果
     NopMetaQualityRule: 质量规则
     NopMetaReconciliationConfig: 对账配置
@@ -423,6 +424,28 @@ prop:
       tableId: 剖析表ID
       updateTime: 修改时间
       updatedBy: 修改人
+      version: 数据版本
+    NopMetaQualityCheckpoint:
+      actions: 执行动作
+      actionsComponent: null
+      checkpointId: 检查点ID
+      checkpointName: 检查点名
+      createTime: 创建时间
+      createdBy: 创建人
+      description: 描述
+      displayName: 显示名
+      extConfig: 扩展配置
+      extConfigComponent: null
+      metaModule: 元数据模块
+      metaModule.displayName: 元数据模块
+      metaModuleId: 模块版本ID
+      remark: 备注
+      status: 状态
+      status_label: 状态
+      updateTime: 修改时间
+      updatedBy: 修改人
+      validations: 验证配置
+      validationsComponent: null
       version: 数据版本
     NopMetaQualityResult:
       actualValue: 实际值

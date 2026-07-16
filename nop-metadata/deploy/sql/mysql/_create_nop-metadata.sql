@@ -171,6 +171,25 @@ CREATE TABLE nop_meta_pipeline(
   constraint PK_nop_meta_pipeline primary key (PIPELINE_ID)
 )CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_as_cs;
 
+CREATE TABLE nop_meta_quality_checkpoint(
+  CHECKPOINT_ID VARCHAR(32) NOT NULL    COMMENT '检查点ID',
+  CHECKPOINT_NAME VARCHAR(100) NOT NULL    COMMENT '检查点名',
+  DISPLAY_NAME VARCHAR(200) NULL    COMMENT '显示名',
+  META_MODULE_ID VARCHAR(32) NULL    COMMENT '模块版本ID',
+  DESCRIPTION VARCHAR(1000) NULL    COMMENT '描述',
+  VALIDATIONS LONGTEXT NULL    COMMENT '验证配置',
+  ACTIONS VARCHAR(4000) NULL    COMMENT '执行动作',
+  STATUS LONGTEXT NOT NULL    COMMENT '状态',
+  EXT_CONFIG VARCHAR(4000) NULL    COMMENT '扩展配置',
+  DEL_VERSION BIGINT NOT NULL    COMMENT '数据版本',
+  CREATED_BY VARCHAR(50) NOT NULL    COMMENT '创建人',
+  CREATE_TIME DATETIME(3) DEFAULT CURRENT_TIMESTAMP(3)  NOT NULL    COMMENT '创建时间',
+  UPDATED_BY VARCHAR(50) NOT NULL    COMMENT '修改人',
+  UPDATE_TIME DATETIME(3) DEFAULT CURRENT_TIMESTAMP(3)  NOT NULL    COMMENT '修改时间',
+  REMARK VARCHAR(200) NULL    COMMENT '备注',
+  constraint PK_nop_meta_quality_checkpoint primary key (CHECKPOINT_ID)
+)CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_as_cs;
+
 CREATE TABLE nop_meta_manifest(
   MANIFEST_ID VARCHAR(32) NOT NULL    COMMENT '快照ID',
   META_MODULE_ID VARCHAR(32) NOT NULL    COMMENT '模块版本ID',
@@ -613,6 +632,8 @@ CREATE TABLE nop_meta_recon_result(
    ALTER TABLE nop_meta_table COMMENT '逻辑表';
                 
    ALTER TABLE nop_meta_pipeline COMMENT '数据管道';
+                
+   ALTER TABLE nop_meta_quality_checkpoint COMMENT '质量检查点';
                 
    ALTER TABLE nop_meta_manifest COMMENT '元数据快照';
                 
