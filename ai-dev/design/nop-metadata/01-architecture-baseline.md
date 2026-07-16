@@ -576,6 +576,45 @@ MetaQualityResult                — 质量执行结果（时序数据）
 
 **与 §七（拒绝额外抽象层）的关系**：Checkpoint 复用既有 ORM + table-reference + judge 执行链，不引入额外 Driver/QuerySpace/动作框架抽象层。store 之外的动作不走「可插拔动作框架」，而走「配置后显式失败」的最简路径（待 follow-up 按动作类型独立设计）。
 
+#### 2.7.4 质量评分（QualityScore）— P2-9
+
+质量评分（`NopMetaQualityScore`）把 §2.7.1 的「单条规则 PASS/FAIL」上升到「可量化的维度健康度 + 总分 + 趋势」，为逻辑表（`NopMetaTable`）计算可解释的质量评分。使数据质量从「规则级 pass/fail 列表」收口到「per-table 时序评分行」，参考 Apache Griffin 的评分维度模型（`06-data-quality-extended.md` §五为设计意图来源，本节为落地裁定）。
+
+**模型结构（D1，v1 table 级）**：单实体 `NopMetaQualityScore`，评分对象为 `NopMetaTable`（质量规则挂载点，§2.7.1 D1）：
+- `qualityScoreId`(PK) / `metaTableId`(→NopMetaTable.metaTableId，mandatory，**v1 唯一支持**；entity 级评分见 Deferred) / `scoreTime`(mandatory，时序键) / `overallScore`(double 0~100，mandatory)
+- `dimensionScores`(mediumtext+json)：`{completeness, accuracy, consistency, timeliness, uniqueness}` 各 0~100 或 null（对齐 Manifest/Catalog/Profiling 的 JSON 列决策）
+- `ruleSummary`(json-4000)：`{totalRules, passedRules, failedRules, errorRules, skipRules}`（SKIP 单列，不计入 failed）
+- `trend`(json-4000)：`{previousScore, changeRate, trendDirection(improving/stable/degrading, dict meta/quality-trend-direction，小写对齐类型/分类类 dict 惯例)}`
+- `extConfig`(json) + 审计列；to-one 关系 Score→Table；索引 `IX_NOP_META_QSCORE_TABLE`(metaTableId, scoreTime) 时序查询
+- entity 级评分（NopMetaEntity 维度）为 Deferred（需额外 entity→table 规则解析路径）；不引入独立子实体存维度分（JSON 列，与 §设计结论 #9 一致）
+
+**维度映射 ruleType → dimension（D2）**：
+- `not_null` → completeness；`volume` → completeness
+- `unique` → uniqueness
+- `range` → accuracy；`regex` → accuracy
+- `freshness` → timeliness
+- `custom_sql` → consistency（默认；可通过 `rule.extConfig.dimension` 覆盖，覆盖值不在五维内则计 consistency）
+
+**结果状态计入（D2）**：PASS 计通过；FAIL/ERROR 计未通过（**ERROR 保守计未通过**）；**SKIP 不计入任何维度的分子分母**（单列 `ruleSummary.skipRules`）。
+
+**无规则维度 / SKIP-only 维度降级（D2，对齐 Profiling 降级铁律）**：
+- 某维度**无任何挂载规则** → `dimensionScores` 该维度 null + 显式 `unavailable=["no-rules"]` 标记（不伪造 0/100）
+- 某维度有规则但其最新结果**全为 SKIP**（无任何可计数 PASS/FAIL/ERROR）→ 该维度视为不可评，`dimensionScores` 该维度 null + `unavailable=["skipped"]` 标记（**不计 0、不产生 NaN**，与"无规则维度"同等降级处理）
+
+**计算公式（D3）**：维度分 = 该维度内 PASS/(PASS+FAIL+ERROR) × 100（SKIP 排除在分母外；SKIP-only 维度 → null，见 D2）；总分 = Σ(非 null 维度的维度分 × 权重) / Σ(非 null 维度的权重)（**仅对非 null 维度归一化权重**）；默认权重（design 06 §5.2）：completeness 0.3 / accuracy 0.3 / consistency 0.2 / timeliness 0.1 / uniqueness 0.1。**全部维度 null**（对象无任何可评规则或全 SKIP）→ 显式失败抛 inline ErrorCode（不静默返回 0、不伪造）。
+
+**时间窗口（D4）**：默认取每条规则**最新一条** QualityResult（按 `executeTime DESC` 取首）参与评分；不支持历史窗口聚合（follow-up）。**规则无任何 QualityResult（从未执行）→ 视为不可评分，按 SKIP 等价处理**（不计入维度分子分母，计入 `ruleSummary.skipRules`），不静默忽略。
+
+**趋势（D5，先查后写）**：读取同 (metaTableId) 上一条 QualityScore（按 `scoreTime DESC` 取首，**此时新行尚未写入**），changeRate = overall − previous；trendDirection：|changeRate| < 阈值(默认 1.0) → stable，>0 → improving，<0 → degrading；无历史 → trend null + 标记。
+
+**不可评路径显式失败（D6）**：metaTableId 不存在（NopMetaTable 查不到）/ 表无任何挂载规则 / 所有规则最新结果全 SKIP（全维度 null）/ 算出全维度 null → 显式失败抛 inline ErrorCode（不静默 0 分、不伪造）。
+
+**执行机制 + 入口**：新增无状态 `MetaQualityScorer`（`.../service/quality/`）：读 QualityResult → 维度聚合 → 加权 → 趋势 → 返回结构化 score（不自建连接，纯读 + 计算）。BizModel action `computeQualityScore(metaTableId, context)`（`NopMetaQualityScoreBizModel`，`@BizMutation`）写新 QualityScore 行，返回 `{scoreId, overallScore, dimensionScores, ruleSummary, trend}`。**基于 ProfilingResult 的评分**为 Deferred（剖析产出统计值非 pass/fail，映射语义不同）；**运行时维度权重覆盖**为 Deferred（首版全局默认权重）。
+
+**标识符注入防护**：评分层不拼接 SQL（纯读 QualityResult + 计算），无注入面。
+
+**与 §七（拒绝额外抽象层）的关系**：评分复用既有 QualityResult（§2.7.1 写入）+ NopMetaTable（§2.5 挂载点），不引入额外评分引擎抽象层。维度映射为静态表 + extConfig 覆盖，不走「可插拔维度策略框架」（待 follow-up 按需独立设计）。
+
 ---
 
 ## 三、Delta 版本管理

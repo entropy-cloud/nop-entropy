@@ -1,6 +1,6 @@
 # nop-metadata 数据质量扩展设计
 
-> Status: active（基线 7 类规则执行已在 `01-architecture-baseline.md` §2.7.1 落地；数据剖析 §三 已落地最终设计，见 P2-7 plan。§四 Checkpoint / §五 评分仍为 follow-up 设计，含设计意图伪码）
+> Status: active（基线 7 类规则执行已在 `01-architecture-baseline.md` §2.7.1 落地；数据剖析 §三 已落地最终设计，见 P2-7 plan。§四 Checkpoint 已落地最终设计，见 `01-architecture-baseline.md` §2.7.3（P2-8）。§五 评分已落地最终设计，见 `01-architecture-baseline.md` §2.7.4（P2-9）；本节 §五 下文为设计意图伪码，最终裁定以 §2.7.4 为准）
 > Date: 2026-07-16（§三 profiling 最终化，P2-7）
 > Scope: nop-metadata 数据质量规则扩展、数据剖析和验证执行
 > Goal: 定义数据质量扩展模型，参考 Great Expectations 和 Apache Griffin
@@ -403,4 +403,4 @@ class QualityScorer:
 - [x] ~~数据剖析是否需要支持增量剖析？~~ → **已裁定**：首版全表剖析（in-app 排序 + 便携聚合），增量/流式剖析为 Non-Blocking Follow-up（见 P2-7 plan 的 Non-Goals / Deferred）。§三 profiling 已为最终设计状态。
 - [ ] Checkpoint 是否需要支持流式验证？（checkpoint，未建模实体，follow-up）
 
-> **§四 Checkpoint / §五 质量评分**：MetaQualityCheckpoint / MetaQualityScore 为**未建模实体**（不属 P2-7 范围），下文伪码为 follow-up 设计意图参考，非最终实现状态。这些实体随后续 plan 落地时再收敛为最终设计。
+> **§四 Checkpoint / §五 质量评分**：MetaQualityCheckpoint 已落地（最终设计见 `01-architecture-baseline.md` §2.7.3，P2-8）；MetaQualityScore 已落地（最终设计见 `01-architecture-baseline.md` §2.7.4，P2-9，含 D1-D6 全部裁定）。本节 §四/§五 下文伪码为早期设计意图参考，最终实现状态以 `01-architecture-baseline.md` §2.7.3/§2.7.4 为准。
