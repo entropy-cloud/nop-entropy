@@ -550,6 +550,32 @@ MetaQualityResult                — 质量执行结果（时序数据）
 
 **时序语义 + 失败隔离**：重复剖析追加新行（snapshotTime=now，不覆盖）；单列失败 per-column try/catch 收集 errors 不中断整表；不可执行路径（表不存在/非 external/无数据源/DISABLED/非 jdbc）显式失败抛 inline ErrorCode。标识符注入防护复用 §2.7.1 D3 白名单。
 
+#### 2.7.3 质量检查点编排（Checkpoint）— P2-8
+
+质量检查点（`NopMetaQualityCheckpoint`）把「命名验证集 = 一组规则×表的验证配置」收口为一个可手动批量执行的对象，产出执行摘要。使质量执行从 §2.7.1 的「单规则 / 按数据源」扩展到「用户自定义命名验证集」，为质量评分（`06-data-quality-extended.md` §五）和后续定时调度（follow-up）提供稳定的批量执行入口。设计意图来源 `06-data-quality-extended.md` §四（Checkpoint 模型 + 执行流程 + 执行动作），本节为落地裁定。
+
+**模型结构（D1）**：单实体 `NopMetaQualityCheckpoint`，验证/动作配置存 JSON 列（**非独立子实体**，与 §设计结论 #9「不引入额外抽象层」一致）：
+- `checkpointId`(PK) / `checkpointName` / `displayName` / `metaModuleId`(→NopMetaModule，optional) / `description`
+- `validations`(mediumtext+json)：`[{ruleIds:[...], tableIds:[...]}]`（一个 checkpoint 可含多组验证配置）
+- `actions`(json-4000)：`[{actionType:"store", enabled:true}]`（首版仅 store）
+- `status`(dict `meta/checkpoint-status`：ACTIVE/PAUSED/DISABLED，**大写对齐 status 类 dict 惯例**如 quality-result-status) / `extConfig`(json) + 审计列
+- 索引 `IX_NOP_META_QCHECKPOINT_MODULE`(metaModuleId)；to-one 关系 Checkpoint→Module
+- 不建 validations/actions 子实体（JSON 列）；不存 schedule（cron 定时为 follow-up，非本 plan）
+
+**规则选择语义（D2）**：规则集 = ∪（每组 validations 的（显式 `ruleIds`）∪（`tableIds` 下挂载的 `NopMetaQualityRule where entityId ∈ tableIds`））；**去重**（同一 ruleId 多组配置/多次命中只执行一次）；`entityType=database` 规则在执行时按既有 §2.7.1 D1 写 SKIP 结果行（**不剔除**，保持与单规则一致语义）。ruleId 不存在 / tableId 不存在 → 记入摘要 `errors` 不中断（per-item 隔离）。解析后规则集为空 → **显式失败**抛 inline ErrorCode `metadata.checkpoint-no-rules`（不静默返回空集、不伪造零计数）。跨模块 `includeInherited` 规则继承解析为 follow-up（不保留无法解析的 flag，避免 hollow）。
+
+**执行机制 + 复用（D3）**：新增无状态 `MetaQualityCheckpointExecutor`（`.../service/quality/`），内部**复用既有 §2.7.1 单规则执行路径**——resolve 目标表（任意 tableType）→ `MetaTableReferenceResolver.resolve` → `TableReferenceExecutor.execute` → `MetaQualityRuleExecutor.judge` → 写一行 `NopMetaQualityResult`。checkpoint executor **不自建连接**（连接由 `TableReferenceExecutor` 按 ref 形态分派）、**不重写判定逻辑**（judge 算法不在本层重复）。per-rule try/catch + `flushSession/clearSession` 失败隔离（对齐 `executeQualityRulesForDataSource` 模式：失败规则进 errors、已 flush 结果保留、后续规则继续）。结果写入逻辑 `appendQualityResult` 提取为共享 helper（`service/quality/QualityResultWriter`）供单规则路径与 checkpoint 路径共用，避免重复造轮子（不复制逻辑、不提升 BizModel 私有方法可见性污染边界）。
+
+**动作边界（D4）**：`actionType=store` 随每条规则结果**自动生效**（写 QualityResult 行即 store）。`actions` 为空/null 视为合法（等价仅 store，store 为隐式默认）。配置了 store 之外的动作类型（notify/webhook/update_docs）且 `enabled=true` → executeCheckpoint 时**显式失败**抛 inline ErrorCode `metadata.checkpoint-action-not-supported`（不静默跳过、不伪造执行）。notify/webhook/update_docs 实现为独立 follow-up。
+
+**手动触发 + 状态门禁（D5）**：`executeCheckpoint` 仅手动触发（GraphQL `@BizMutation` action）；`status=PAUSED/DISABLED` 的 checkpoint 执行时**显式失败**抛 inline ErrorCode（不静默跳过、不静默返回空摘要）。cron 定时调度为 follow-up（`06-data-quality-extended.md` §1.3，nop-job/nop-batch 适配）。
+
+**执行摘要**：返回 `{checkpointId, executedCount, passCount, failCount, errorCount, results:[...], errors:[...]}`，计数与写入的 QualityResult 行一致（pass/fail/error 计数源自 judgment.status）。
+
+**标识符注入防护**：checkpoint 本层不拼接 SQL（判定 SQL 全在 §2.7.1 D3 的 judge 内），无新增注入面。
+
+**与 §七（拒绝额外抽象层）的关系**：Checkpoint 复用既有 ORM + table-reference + judge 执行链，不引入额外 Driver/QuerySpace/动作框架抽象层。store 之外的动作不走「可插拔动作框架」，而走「配置后显式失败」的最简路径（待 follow-up 按动作类型独立设计）。
+
 ---
 
 ## 三、Delta 版本管理
