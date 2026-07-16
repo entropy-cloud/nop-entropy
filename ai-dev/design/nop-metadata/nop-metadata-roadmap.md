@@ -1,6 +1,6 @@
 # nop-metadata Implementation Roadmap
 
-> Last Updated: 2026-07-16 (P3-2 + P3-3 + P3-4 + P3-5 completed via plan 0700-2; P3-1 + P3-6 completed via plan 0700-1; P2-7 completed via plan 0530-2; P2-5 completed via plan 0420-2; P2-4 completed via plan 0420-1; P2-3 completed via plan 0225-3; P1+ completed via plans 294+295; Phase 1 import engine via plan 292)
+> Last Updated: 2026-07-16 (P4-1 completed via plan 0800-1; P3-2 + P3-3 + P3-4 + P3-5 completed via plan 0700-2; P3-1 + P3-6 completed via plan 0700-1; P2-7 completed via plan 0530-2; P2-5 completed via plan 0420-2; P2-4 completed via plan 0420-1; P2-3 completed via plan 0225-3; P1+ completed via plans 294+295; Phase 1 import engine via plan 292)
 > Source: 设计体系 `ai-dev/design/nop-metadata/`（00-vision ~ 10-event-model）；`01-architecture-baseline.md` 为架构权威
 
 ## Purpose
@@ -117,7 +117,7 @@
 
 | 工作项 | 描述 | 状态 |
 |--------|------|------|
-| P4-1 | **MetaTable 查询接口**：基于 ORM IOrmTemplate 的统一查询入口，通过实体 querySpace 路由到对应数据库 | todo |
+| P4-1 | **MetaTable 查询接口**：基于 ORM IOrmTemplate 的统一查询入口，通过实体 querySpace 路由到对应数据库 | done |
 | P4-2 | **跨表 JOIN 执行**：MetaTableJoin 定义的关联条件在查询时翻译为 SQL JOIN（同库）或应用层拼接（跨库） | todo |
 | P4-3 | **指标/维度聚合查询**：MetaTableMeasure + MetaTableDimension → 聚合 SQL 自动生成 | todo |
 | P4-4 | **数据契约 MetaDataContract**（新实体）：SLA 定义格式（待定：JSON Schema vs 自定义 DSL） | todo |
@@ -199,8 +199,8 @@ graph TD
 非 roadmap 内容已拆分到各自归属，本文件不重复维护：
 
 - **设计文档** → `ai-dev/design/nop-metadata/`（00-vision ~ 10-event-model，共 11 份编号文档 + README）
-- **已完成 plan** → `292`（Phase 1 导入引擎）；`293`（设计一致性修复）；`294`（P1+ 导入引擎完整性）；`295`（P1+ Delta 展开 + 版本发布）；`2026-07-16-0225-1`（P2-1 数据源注册+连接验证）；`2026-07-16-0225-2`（P2-2 外部表同步）；`2026-07-16-0225-3`（P2-3 Manifest 快照）；`2026-07-16-0420-1`（P2-4 Catalog 运行时收集）；`2026-07-16-0420-2`（P2-5 血缘采集+遍历）
-- **活跃 plan** → （无；P2 阶段 P2-1~P2-5 全部完成，下一阶段 P2-6 质量规则执行引擎待启动）
+- **已完成 plan** → `292`（Phase 1 导入引擎）；`293`（设计一致性修复）；`294`（P1+ 导入引擎完整性）；`295`（P1+ Delta 展开 + 版本发布）；`2026-07-16-0225-1`（P2-1 数据源注册+连接验证）；`2026-07-16-0225-2`（P2-2 外部表同步）；`2026-07-16-0225-3`（P2-3 Manifest 快照）；`2026-07-16-0420-1`（P2-4 Catalog 运行时收集）；`2026-07-16-0420-2`（P2-5 血缘采集+遍历）；`2026-07-16-0800-1`（P4-1 单表联邦查询）
+- **活跃 plan** → `2026-07-16-0800-2`（P4-2 跨表 JOIN + P4-3 指标维度聚合，依赖 0800-1）。P4 剩余 P4-4（数据契约）/P4-5（Reconciliation）暂未排期。
 - **设计决策** → `01-architecture-baseline.md` §一 设计结论 + §七 拒绝清单
 - **待定问题** → `01-architecture-baseline.md` §八 待定问题
 - **Gap 分析** → `02-gap-analysis.md`（对比 DataHub/OpenMetadata/Atlas/Amundsen/Marquez）

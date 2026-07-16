@@ -658,6 +658,40 @@ orm.xml
 
 注册式（配置 `beans.xml`）或自动扫描 `_module` 文件。模块版本管理对齐 Maven 打包/发布粒度。
 
+### 4.4 查询执行（P4-1 裁定，落地 D1/D2）
+
+本节落地 plan 0800-1 的设计决策 D1（单表查询三路分派）+ D2（sql 表 querySpace 归属）。这是 P4 联邦查询的执行地基，对任意 `tableType`（entity/external/sql）的逻辑表返回行数据。与 §设计结论 #9 + §七 一致——所有查询走现有 ORM 层，实体 `querySpace` 字段已承担路由，**不引入额外 Driver/QuerySpace 抽象层**。
+
+**统一查询入口（D1）**：落点 `NopMetaTableBizModel`（操作对象是逻辑表，与 profileTable/createSqlTable 入口风格一致）：
+
+- `@BizQuery queryTableData(metaTableId, filter?, limit?, offset?, context)` → 返回 `Map{tableType, totalCount?, items:[{行数据}]}`。`filter` 为平台 **TreeBean filter 树**（与 §2.5.2 D1 `MetaTableFilter.definition` 同结构，非整个 QueryBean；过滤只是 QueryBean 的 `filter` 子树）。`limit`/`offset` 为可选分页。
+
+**D1 — 三路分派（按 tableType）**：
+
+| tableType | 执行机制 | querySpace 归属 | 失败语义 |
+|-----------|---------|----------------|---------|
+| `entity` | 经平台 ORM：按 `entityName` 取其 `IOrmEntityDao`（`daoProvider().dao(entityName)`）→ `findAllByQuery(query)`（filter/limit/offset 委托 `QueryBean`）→ 按实体列名投影转 `Map`（列名取自 `IEntityModel.getColumns()`）。注：不使用 `orm().findListByQuery(QueryBean)`，因其经 MdxQueryExecutor 要求 `QueryBean.fields` 非空（字段投影/聚合入口），非"取全部实体行"语义 | 来自 `NopMetaEntity.querySpace`（import 时写入 `NopMetaTable.querySpace`）；ORM 内部按实体 querySpace 路由 | **实体未注册于运行时 `IOrmSessionFactory` 时显式失败抛 inline ErrorCode（不静默空集）**——经 `orm().isValidEntityName(entityName)` 前置校验 |
+| `external` | 经 `IMetaDataSourceConnectionService.withConnection` 跑限定表名的原生 SQL（`SELECT ... FROM <table> [WHERE] [LIMIT/OFFSET]`） | querySpace→`NopMetaDataSource`（D2 解析） | querySpace 无数据源/DISABLED/非 jdbc（由 withConnection 抛）显式失败 |
+| `sql` | 经 `withConnection` 执行 `sourceSql`（包一层子查询 `SELECT * FROM (<sourceSql>) _t [WHERE] [LIMIT/OFFSET]`） | 见 D2 | querySpace null/无数据源/DISABLED/非 jdbc/sourceSql 不可解析 显式失败 |
+
+返回字段集合与 `MetaTableFieldResolver`（§2.5.2 D2）对应 tableType 分派一致。entity 路径前置——实体须注册于运行时 `IOrmSessionFactory`（即 `orm().isValidEntityName(entityName) == true`），否则显式失败抛 inline ErrorCode（**不静默空集**）。
+
+**filter→WHERE 翻译 + 注入防护（external/sql 路径）**：复用 §2.7.1 D3 标识符注入防护——列名/表名/schema 名为 SQL 标识符，拼接前必须通过白名单正则 `^[A-Za-z_][A-Za-z0-9_]*$` 校验；比较值（eq/gt/in/between 等的 value）使用 PreparedStatement 参数绑定。首版支持 TreeBean 标准叶子条件（eq/ne/gt/ge/lt/le/like/in/between/is-null/not-null）+ 组合条件（and/or/not）。
+
+**方言范围（external/sql 路径）**：首版分页与 WHERE 翻译限定 H2 / MySQL / PostgreSQL（`LIMIT/OFFSET` 便携语法）。其他方言（由 `DatabaseMetaData.getDatabaseProductName()` 运行时识别）执行时**显式失败抛 inline ErrorCode**（不静默跳过、不伪造结果）。
+
+**D2 — sql 表 querySpace 归属裁定**：
+
+- **首版规则：sql 表 `querySpace` 必须非 null 且匹配到一个 `NopMetaDataSource`**。`querySpace` 为 null 或匹配不到 `NopMetaDataSource` 时**显式失败抛 inline ErrorCode**（不静默空集、不伪造路由）。
+- **"平台 ORM querySpace fallback" 分支首版不做**（移入 Non-Blocking Follow-up）。理由：无清晰机制对平台 querySpace 跑任意用户 SQL 文本（平台 querySpace 由 `IOrmSessionFactory` 管理，无通用 JDBC 连接入口跑裸 SQL）；首版强制 sql 表显式关联一个已注册外部数据源。
+- querySpace→数据源解析由共享组件 `MetaDataSourceResolver`（`.../service/datasource/`）承担：`NopMetaDataSource.querySpace == 目标 querySpace` 的 `findFirstByQuery` 首条（多匹配取首条，首版不强制唯一性、不记 warning，与 baseline §2.7.1 D1 现状一致）。找不到/DISABLED 显式失败抛 inline ErrorCode。
+
+**querySpace→数据源解析共享组件**：`MetaDataSourceResolver.resolveActiveOrThrow(IEntityDao<NopMetaDataSource>, querySpace)` 返回 ACTIVE 数据源；querySpace null/无匹配→`metadata.datasource-resolve-not-found`；匹配到 DISABLED→`metadata.datasource-resolve-disabled`；多匹配→首条（`findFirstByQuery`）。本组件独立实现，**不强制重构既有三处 `resolveDataSourceOrThrow` 重复**（NopMetaTableBizModel profiling / NopMetaQualityRuleBizModel / NopMetaProfilingRuleBizModel，见 plan 0800-1 Non-Blocking Follow-up）——既有实现行为正确（取首条、显式失败），重复不构成 live defect。
+
+**失败路径显式化（不静默空集、不吞异常，对齐 Minimum Rules #24）**：表不存在 / querySpace 无数据源 / DISABLED / 非 jdbc（由 withConnection 抛）/ sql querySpace null 或无匹配 / 实体未注册 / 不支持的方言 / sourceSql 不可解析 / 未知 tableType 均显式失败抛 inline ErrorCode。
+
+> **Out of scope（归 successor plan 0800-2 或 follow-up）**：跨表 JOIN（P4-2）、指标/维度聚合（P4-3）、granularity→DATE_TRUNC、isDefault 运行时应用、entity/sql 表的 Catalog/质量/剖析执行扩展（本节只提供解析能力，不改造它们）。
+
 ---
 
 ## 五、与 nop-report / nop-dyn 的关系
