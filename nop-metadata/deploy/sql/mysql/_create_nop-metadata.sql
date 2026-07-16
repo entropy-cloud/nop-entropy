@@ -448,6 +448,24 @@ CREATE TABLE nop_meta_recon_config(
   constraint PK_nop_meta_recon_config primary key (CONFIG_ID)
 )CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_as_cs;
 
+CREATE TABLE nop_meta_quality_score(
+  QUALITY_SCORE_ID VARCHAR(32) NOT NULL    COMMENT '评分ID',
+  META_TABLE_ID VARCHAR(32) NOT NULL    COMMENT '逻辑表ID',
+  SCORE_TIME DATETIME(3) DEFAULT CURRENT_TIMESTAMP(3)  NOT NULL    COMMENT '评分时间',
+  OVERALL_SCORE DOUBLE NOT NULL    COMMENT '总分',
+  DIMENSION_SCORES LONGTEXT NULL    COMMENT '维度评分',
+  RULE_SUMMARY VARCHAR(4000) NULL    COMMENT '规则汇总',
+  TREND VARCHAR(4000) NULL    COMMENT '趋势',
+  EXT_CONFIG VARCHAR(4000) NULL    COMMENT '扩展配置',
+  DEL_VERSION BIGINT NOT NULL    COMMENT '数据版本',
+  CREATED_BY VARCHAR(50) NOT NULL    COMMENT '创建人',
+  CREATE_TIME DATETIME(3) DEFAULT CURRENT_TIMESTAMP(3)  NOT NULL    COMMENT '创建时间',
+  UPDATED_BY VARCHAR(50) NOT NULL    COMMENT '修改人',
+  UPDATE_TIME DATETIME(3) DEFAULT CURRENT_TIMESTAMP(3)  NOT NULL    COMMENT '修改时间',
+  REMARK VARCHAR(200) NULL    COMMENT '备注',
+  constraint PK_nop_meta_quality_score primary key (QUALITY_SCORE_ID)
+)CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_as_cs;
+
 CREATE TABLE nop_meta_entity_field(
   ENTITY_FIELD_ID VARCHAR(32) NOT NULL    COMMENT '字段ID',
   META_ENTITY_ID VARCHAR(32) NOT NULL    COMMENT '实体ID',
@@ -658,6 +676,8 @@ CREATE TABLE nop_meta_recon_result(
    ALTER TABLE nop_meta_data_contract COMMENT '数据契约';
                 
    ALTER TABLE nop_meta_recon_config COMMENT '对账配置';
+                
+   ALTER TABLE nop_meta_quality_score COMMENT '质量评分';
                 
    ALTER TABLE nop_meta_entity_field COMMENT '实体字段';
                 

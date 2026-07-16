@@ -448,6 +448,24 @@ CREATE TABLE nop_meta_recon_config(
   constraint PK_nop_meta_recon_config primary key (config_id)
 );
 
+CREATE TABLE nop_meta_quality_score(
+  quality_score_id VARCHAR(32) NOT NULL ,
+  meta_table_id VARCHAR(32) NOT NULL ,
+  score_time TIMESTAMP NOT NULL ,
+  overall_score FLOAT8 NOT NULL ,
+  dimension_scores TEXT  ,
+  rule_summary VARCHAR(4000)  ,
+  trend VARCHAR(4000)  ,
+  ext_config VARCHAR(4000)  ,
+  del_version INT8 NOT NULL ,
+  created_by VARCHAR(50) NOT NULL ,
+  create_time TIMESTAMP NOT NULL ,
+  updated_by VARCHAR(50) NOT NULL ,
+  update_time TIMESTAMP NOT NULL ,
+  remark VARCHAR(200)  ,
+  constraint PK_nop_meta_quality_score primary key (quality_score_id)
+);
+
 CREATE TABLE nop_meta_entity_field(
   entity_field_id VARCHAR(32) NOT NULL ,
   meta_entity_id VARCHAR(32) NOT NULL ,
@@ -1380,6 +1398,36 @@ CREATE TABLE nop_meta_recon_result(
       COMMENT ON COLUMN nop_meta_recon_config.update_time IS '修改时间';
                     
       COMMENT ON COLUMN nop_meta_recon_config.remark IS '备注';
+                    
+      COMMENT ON TABLE nop_meta_quality_score IS '质量评分';
+                
+      COMMENT ON COLUMN nop_meta_quality_score.quality_score_id IS '评分ID';
+                    
+      COMMENT ON COLUMN nop_meta_quality_score.meta_table_id IS '逻辑表ID';
+                    
+      COMMENT ON COLUMN nop_meta_quality_score.score_time IS '评分时间';
+                    
+      COMMENT ON COLUMN nop_meta_quality_score.overall_score IS '总分';
+                    
+      COMMENT ON COLUMN nop_meta_quality_score.dimension_scores IS '维度评分';
+                    
+      COMMENT ON COLUMN nop_meta_quality_score.rule_summary IS '规则汇总';
+                    
+      COMMENT ON COLUMN nop_meta_quality_score.trend IS '趋势';
+                    
+      COMMENT ON COLUMN nop_meta_quality_score.ext_config IS '扩展配置';
+                    
+      COMMENT ON COLUMN nop_meta_quality_score.del_version IS '数据版本';
+                    
+      COMMENT ON COLUMN nop_meta_quality_score.created_by IS '创建人';
+                    
+      COMMENT ON COLUMN nop_meta_quality_score.create_time IS '创建时间';
+                    
+      COMMENT ON COLUMN nop_meta_quality_score.updated_by IS '修改人';
+                    
+      COMMENT ON COLUMN nop_meta_quality_score.update_time IS '修改时间';
+                    
+      COMMENT ON COLUMN nop_meta_quality_score.remark IS '备注';
                     
       COMMENT ON TABLE nop_meta_entity_field IS '实体字段';
                 

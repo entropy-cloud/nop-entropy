@@ -108,6 +108,12 @@
               i18n-en:label="Checkpoint Action Type">
             <option code="STORE" label="存储结果" value="store"/>
         </dict>
+        <dict label="质量评分趋势方向" name="meta/quality-trend-direction" valueType="string"
+              i18n-en:label="Quality Trend Direction">
+            <option code="IMPROVING" label="改善" value="improving"/>
+            <option code="STABLE" label="稳定" value="stable"/>
+            <option code="DEGRADING" label="恶化" value="degrading"/>
+        </dict>
         <dict label="数据契约状态" name="meta/contract-status" valueType="string" i18n-en:label="Data Contract Status">
             <option code="DRAFT" label="草稿" value="DRAFT"/>
             <option code="ACTIVE" label="生效" value="ACTIVE"/>
@@ -1904,6 +1910,61 @@
                     <column name="identifierSpace"/>
                 </index>
             </indexes>
+        </entity>
+        <entity className="io.nop.metadata.dao.entity.NopMetaQualityScore" createTimeProp="createTime"
+                createrProp="createdBy" displayName="质量评分" name="io.nop.metadata.dao.entity.NopMetaQualityScore"
+                registerShortName="true" tableName="nop_meta_quality_score" updateTimeProp="updateTime"
+                updaterProp="updatedBy" versionProp="version" ext:icon="gauge" i18n-en:displayName="Meta Quality Score">
+            <columns>
+                <column code="QUALITY_SCORE_ID" displayName="评分ID" mandatory="true" name="qualityScoreId" precision="32"
+                        primary="true" propId="1" stdDataType="string" stdSqlType="VARCHAR" tagSet="seq"
+                        i18n-en:displayName="Quality Score Id"/>
+                <column code="META_TABLE_ID" displayName="逻辑表ID" mandatory="true" name="metaTableId" precision="32"
+                        propId="2" stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Meta Table Id"/>
+                <column code="SCORE_TIME" displayName="评分时间" mandatory="true" name="scoreTime" propId="3"
+                        stdDataType="timestamp" stdSqlType="TIMESTAMP" i18n-en:displayName="Score Time"/>
+                <column code="OVERALL_SCORE" displayName="总分" mandatory="true" name="overallScore" propId="4"
+                        stdDataType="double" stdSqlType="DOUBLE" i18n-en:displayName="Overall Score"/>
+                <column code="DIMENSION_SCORES" displayName="维度评分" domain="mediumtext" name="dimensionScores"
+                        precision="16777216" propId="5" stdDataType="string" stdDomain="json" stdSqlType="VARCHAR"
+                        i18n-en:displayName="Dimension Scores"/>
+                <column code="RULE_SUMMARY" displayName="规则汇总" domain="json-4000" name="ruleSummary" precision="4000"
+                        propId="6" stdDataType="string" stdDomain="json" stdSqlType="VARCHAR"
+                        i18n-en:displayName="Rule Summary"/>
+                <column code="TREND" displayName="趋势" domain="json-4000" name="trend" precision="4000" propId="7"
+                        stdDataType="string" stdDomain="json" stdSqlType="VARCHAR" i18n-en:displayName="Trend"/>
+                <column code="EXT_CONFIG" displayName="扩展配置" domain="json-4000" name="extConfig" precision="4000"
+                        propId="8" stdDataType="string" stdDomain="json" stdSqlType="VARCHAR"
+                        i18n-en:displayName="Ext Config"/>
+                <column code="DEL_VERSION" displayName="数据版本" domain="version" mandatory="true" name="version"
+                        propId="9" stdDataType="long" stdSqlType="BIGINT" i18n-en:displayName="Version"/>
+                <column code="CREATED_BY" displayName="创建人" domain="createdBy" mandatory="true" name="createdBy"
+                        precision="50" propId="10" stdDataType="string" stdSqlType="VARCHAR"
+                        i18n-en:displayName="Created By"/>
+                <column code="CREATE_TIME" displayName="创建时间" domain="createTime" mandatory="true" name="createTime"
+                        propId="11" stdDataType="timestamp" stdSqlType="TIMESTAMP" i18n-en:displayName="Create Time"/>
+                <column code="UPDATED_BY" displayName="修改人" domain="updatedBy" mandatory="true" name="updatedBy"
+                        precision="50" propId="12" stdDataType="string" stdSqlType="VARCHAR"
+                        i18n-en:displayName="Updated By"/>
+                <column code="UPDATE_TIME" displayName="修改时间" domain="updateTime" mandatory="true" name="updateTime"
+                        propId="13" stdDataType="timestamp" stdSqlType="TIMESTAMP" i18n-en:displayName="Update Time"/>
+                <column code="REMARK" displayName="备注" domain="remark" name="remark" precision="200" propId="14"
+                        stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Remark"/>
+            </columns>
+            <indexes>
+                <index name="IX_NOP_META_QSCORE_TABLE" unique="false">
+                    <column name="metaTableId"/>
+                    <column name="scoreTime"/>
+                </index>
+            </indexes>
+            <relations>
+                <to-one displayName="逻辑表" name="metaTable" refEntityName="io.nop.metadata.dao.entity.NopMetaTable"
+                        tagSet="pub,ref-pub" i18n-en:displayName="Meta Table">
+                    <join>
+                        <on leftProp="metaTableId" rightProp="metaTableId"/>
+                    </join>
+                </to-one>
+            </relations>
         </entity>
     </entities>
 </orm>

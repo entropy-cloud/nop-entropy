@@ -21,6 +21,7 @@ entity:
     NopMetaQualityCheckpoint: 质量检查点
     NopMetaQualityResult: 质量结果
     NopMetaQualityRule: 质量规则
+    NopMetaQualityScore: 质量评分
     NopMetaReconciliationConfig: 对账配置
     NopMetaReconciliationEntity: 对账实体
     NopMetaReconciliationResult: 对账结果
@@ -486,6 +487,27 @@ prop:
       severity_label: 严重级别
       sqlExpression: SQL表达式
       threshold: 阈值
+      updateTime: 修改时间
+      updatedBy: 修改人
+      version: 数据版本
+    NopMetaQualityScore:
+      createTime: 创建时间
+      createdBy: 创建人
+      dimensionScores: 维度评分
+      dimensionScoresComponent: null
+      extConfig: 扩展配置
+      extConfigComponent: null
+      metaTable: 逻辑表
+      metaTable.displayName: 逻辑表
+      metaTableId: 逻辑表ID
+      overallScore: 总分
+      qualityScoreId: 评分ID
+      remark: 备注
+      ruleSummary: 规则汇总
+      ruleSummaryComponent: null
+      scoreTime: 评分时间
+      trend: 趋势
+      trendComponent: null
       updateTime: 修改时间
       updatedBy: 修改人
       version: 数据版本

@@ -21,6 +21,7 @@ drop table nop_meta_catalog;
 drop table nop_meta_profiling_rule;
 drop table nop_meta_data_contract;
 drop table nop_meta_recon_config;
+drop table nop_meta_quality_score;
 drop table nop_meta_entity_field;
 drop table nop_meta_entity_relation;
 drop table nop_meta_entity_unique_key;

@@ -43,6 +43,8 @@ alter table nop_meta_data_contract add NOP_TENANT_ID VARCHAR(32) DEFAULT '0' NOT
 
 alter table nop_meta_recon_config add NOP_TENANT_ID VARCHAR(32) DEFAULT '0' NOT NULL;
 
+alter table nop_meta_quality_score add NOP_TENANT_ID VARCHAR(32) DEFAULT '0' NOT NULL;
+
 alter table nop_meta_entity_field add NOP_TENANT_ID VARCHAR(32) DEFAULT '0' NOT NULL;
 
 alter table nop_meta_entity_relation add NOP_TENANT_ID VARCHAR(32) DEFAULT '0' NOT NULL;
@@ -124,6 +126,9 @@ alter table nop_meta_data_contract add primary key (NOP_TENANT_ID, CONTRACT_ID);
 
 alter table nop_meta_recon_config drop primary key;
 alter table nop_meta_recon_config add primary key (NOP_TENANT_ID, CONFIG_ID);
+
+alter table nop_meta_quality_score drop primary key;
+alter table nop_meta_quality_score add primary key (NOP_TENANT_ID, QUALITY_SCORE_ID);
 
 alter table nop_meta_entity_field drop primary key;
 alter table nop_meta_entity_field add primary key (NOP_TENANT_ID, ENTITY_FIELD_ID);

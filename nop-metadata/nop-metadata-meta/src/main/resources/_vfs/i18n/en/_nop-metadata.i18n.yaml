@@ -21,6 +21,7 @@ entity:
     NopMetaQualityCheckpoint: Meta Quality Checkpoint
     NopMetaQualityResult: Meta Quality Result
     NopMetaQualityRule: Meta Quality Rule
+    NopMetaQualityScore: Meta Quality Score
     NopMetaReconciliationConfig: Meta Reconciliation Config
     NopMetaReconciliationEntity: Meta Reconciliation Entity
     NopMetaReconciliationResult: Meta Reconciliation Result
@@ -489,6 +490,27 @@ prop:
       remark: Remark
       paramsComponent: null
       extConfigComponent: null
+    NopMetaQualityScore:
+      qualityScoreId: Quality Score Id
+      metaTableId: Meta Table Id
+      scoreTime: Score Time
+      overallScore: Overall Score
+      dimensionScores: Dimension Scores
+      ruleSummary: Rule Summary
+      trend: Trend
+      extConfig: Ext Config
+      version: Version
+      createdBy: Created By
+      createTime: Create Time
+      updatedBy: Updated By
+      updateTime: Update Time
+      remark: Remark
+      metaTable: Meta Table
+      metaTable.displayName: Meta Table
+      dimensionScoresComponent: null
+      ruleSummaryComponent: null
+      trendComponent: null
+      extConfigComponent: null
     NopMetaReconciliationConfig:
       configId: Config Id
       configName: Config Name
@@ -690,6 +712,7 @@ dict:
     meta/quality-result-status: Quality Result Status
     meta/checkpoint-status: Checkpoint Status
     meta/checkpoint-action-type: Checkpoint Action Type
+    meta/quality-trend-direction: Quality Trend Direction
     meta/contract-status: Data Contract Status
     meta/reconciliation-status: Reconciliation Status
     meta/match-strategy: Match Strategy

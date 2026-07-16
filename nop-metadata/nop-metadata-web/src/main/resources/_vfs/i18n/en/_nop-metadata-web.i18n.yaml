@@ -84,6 +84,10 @@ site:
       displayName: Modify Meta Quality Rule
     FNPT:NopMetaQualityRule:query:
       displayName: Query Meta Quality Rule
+    FNPT:NopMetaQualityScore:mutation:
+      displayName: Modify Meta Quality Score
+    FNPT:NopMetaQualityScore:query:
+      displayName: Query Meta Quality Score
     FNPT:NopMetaReconciliationConfig:mutation:
       displayName: Modify Meta Reconciliation Config
     FNPT:NopMetaReconciliationConfig:query:
@@ -162,6 +166,8 @@ site:
       displayName: Meta Quality Result
     NopMetaQualityRule-main:
       displayName: Meta Quality Rule
+    NopMetaQualityScore-main:
+      displayName: Meta Quality Score
     NopMetaReconciliationConfig-main:
       displayName: Meta Reconciliation Config
     NopMetaReconciliationEntity-main:

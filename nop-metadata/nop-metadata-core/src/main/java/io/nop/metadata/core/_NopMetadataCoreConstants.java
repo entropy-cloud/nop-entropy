@@ -294,6 +294,21 @@ public interface _NopMetadataCoreConstants {
     String CHECKPOINT_ACTION_TYPE_STORE = "store";
                     
     /**
+     * 质量评分趋势方向: 改善 
+     */
+    String QUALITY_TREND_DIRECTION_IMPROVING = "improving";
+                    
+    /**
+     * 质量评分趋势方向: 稳定 
+     */
+    String QUALITY_TREND_DIRECTION_STABLE = "stable";
+                    
+    /**
+     * 质量评分趋势方向: 恶化 
+     */
+    String QUALITY_TREND_DIRECTION_DEGRADING = "degrading";
+                    
+    /**
      * 数据契约状态: 草稿 
      */
     String CONTRACT_STATUS_DRAFT = "DRAFT";

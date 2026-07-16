@@ -1,0 +1,19 @@
+# __XGEN_FORCE_OVERRIDE__
+label: 质量评分趋势方向
+locale: zh-CN
+valueType: string
+description: 
+options:
+
+  - label: 改善
+    value: improving
+    description: 
+  
+  - label: 稳定
+    value: stable
+    description: 
+  
+  - label: 恶化
+    value: degrading
+    description: 
+  
