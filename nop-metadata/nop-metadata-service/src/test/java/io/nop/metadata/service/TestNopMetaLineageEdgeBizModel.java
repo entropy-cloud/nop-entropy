@@ -356,6 +356,273 @@ public class TestNopMetaLineageEdgeBizModel extends JunitBaseTestCase {
                 "GraphQL getImpactAnalysis(T1, x) must contain T2: " + resp.getData());
     }
 
+    // ===== extractColumnLineageFromSql（列级 sql_parse，P2-5+）=====
+
+    /**
+     * 列级血缘端到端（架构基线 §2.6.1 列级 sql_parse）：建 sql 视图表（SELECT t1.a AS x, t2.b FROM src1 t1 JOIN src2 t2）
+     * → 抽取列级血缘 → 列级边可查（x←src1.a direct、b←src2.b direct），表别名归属解析正确。
+     *
+     * <p>Anti-Hollow：真实解析含 JOIN + 别名的 SQL，断言列级边含真实 sourceColumn/targetColumn/transformType，
+     * 证明运行时确实执行了 AST 列引用解析与归属（非空壳）。
+     */
+    @Test
+    public void testExtractColumnLineageDirectAndAliasAttribution() {
+        String moduleId = ensureModule("mod-col-direct");
+        String src1 = saveTable(moduleId, "COL_SRC1");
+        String src2 = saveTable(moduleId, "COL_SRC2");
+        String sqlViewId = saveSqlTable(moduleId, "V_COL_DIRECT",
+                "SELECT t1.a AS x, t2.b FROM COL_SRC1 t1 JOIN COL_SRC2 t2 ON t1.k = t2.k");
+
+        GraphQLResponseBean resp = execute(
+                "mutation { NopMetaLineageEdge__extractColumnLineageFromSql(metaTableId: \"" + sqlViewId + "\") }");
+        assertFalse(resp.hasError(), "extractColumnLineageFromSql should not error: " + resp);
+        String data = String.valueOf(resp.getData());
+        assertTrue(data.contains("extractedEdgeCount=2"),
+                "should extract 2 column-level edges (x<-a, b<-b): " + data);
+
+        // 列级边写入验证：x←src1.a direct、b←src2.b direct
+        NopMetaLineageEdge e1 = findColumnEdge(src1, sqlViewId, "a", "x");
+        assertNotNull(e1, "src1.a -> view.x column-level edge must exist");
+        assertEquals(_NopMetadataCoreConstants.LINEAGE_SOURCE_SQL_PARSE, e1.getLineageSource());
+        assertEquals(_NopMetadataCoreConstants.LINEAGE_TRANSFORM_DIRECT, e1.getTransformType(),
+                "direct column reference must be transformType=direct");
+
+        NopMetaLineageEdge e2 = findColumnEdge(src2, sqlViewId, "b", "b");
+        assertNotNull(e2, "src2.b -> view.b column-level edge must exist");
+        assertEquals(_NopMetadataCoreConstants.LINEAGE_TRANSFORM_DIRECT, e2.getTransformType());
+
+        // 表别名归属：a 归属 src1，b 归属 src2（不混淆）
+        assertEquals(src1, e1.getSourceTableId(), "t1.a must be attributed to src1");
+        assertEquals(src2, e2.getSourceTableId(), "t2.b must be attributed to src2");
+    }
+
+    /**
+     * 跨表表达式列多源列边（D3）：SELECT t1.a + t2.b AS total → 产出 2 条 derived 边
+     * （total←src1.a + total←src2.b），一个表达式输出列引用 N 个源列产出 N 条边。
+     */
+    @Test
+    public void testExtractColumnLineageExpressionMultiSource() {
+        String moduleId = ensureModule("mod-col-expr");
+        String src1 = saveTable(moduleId, "EXPR_SRC1");
+        String src2 = saveTable(moduleId, "EXPR_SRC2");
+        String sqlViewId = saveSqlTable(moduleId, "V_EXPR",
+                "SELECT t1.a + t2.b AS total FROM EXPR_SRC1 t1 JOIN EXPR_SRC2 t2 ON t1.k = t2.k");
+
+        GraphQLResponseBean resp = execute(
+                "mutation { NopMetaLineageEdge__extractColumnLineageFromSql(metaTableId: \"" + sqlViewId + "\") }");
+        assertFalse(resp.hasError(), "should not error: " + resp);
+        String data = String.valueOf(resp.getData());
+        assertTrue(data.contains("extractedEdgeCount=2"),
+                "expression referencing 2 source columns must produce 2 derived edges: " + data);
+
+        // 两条 derived 边：total←src1.a、total←src2.b
+        NopMetaLineageEdge e1 = findColumnEdge(src1, sqlViewId, "a", "total");
+        assertNotNull(e1, "total<-src1.a derived edge must exist");
+        assertEquals(_NopMetadataCoreConstants.LINEAGE_TRANSFORM_DERIVED, e1.getTransformType(),
+                "expression column must be transformType=derived");
+
+        NopMetaLineageEdge e2 = findColumnEdge(src2, sqlViewId, "b", "total");
+        assertNotNull(e2, "total<-src2.b derived edge must exist");
+        assertEquals(_NopMetadataCoreConstants.LINEAGE_TRANSFORM_DERIVED, e2.getTransformType());
+    }
+
+    /**
+     * transformType aggregated（D3）：SUM(t1.a) → aggregated。聚合检测优先 instanceof SqlAggregateFunction。
+     */
+    @Test
+    public void testExtractColumnLineageAggregate() {
+        String moduleId = ensureModule("mod-col-agg");
+        String src1 = saveTable(moduleId, "AGG_SRC");
+        String sqlViewId = saveSqlTable(moduleId, "V_AGG",
+                "SELECT SUM(t1.a) AS s FROM AGG_SRC t1");
+
+        GraphQLResponseBean resp = execute(
+                "mutation { NopMetaLineageEdge__extractColumnLineageFromSql(metaTableId: \"" + sqlViewId + "\") }");
+        assertFalse(resp.hasError(), "should not error: " + resp);
+        assertTrue(String.valueOf(resp.getData()).contains("extractedEdgeCount=1"),
+                "SUM(a) should produce 1 aggregated edge");
+
+        NopMetaLineageEdge e = findColumnEdge(src1, sqlViewId, "a", "s");
+        assertNotNull(e, "s<-src.a aggregated edge must exist");
+        assertEquals(_NopMetadataCoreConstants.LINEAGE_TRANSFORM_AGGREGATED, e.getTransformType(),
+                "SUM(col) must be transformType=aggregated");
+    }
+
+    /**
+     * 幂等（D3 列级五元组）：重复抽取同一 sql 表，列级边不无限追加。
+     */
+    @Test
+    public void testExtractColumnLineageIdempotent() {
+        String moduleId = ensureModule("mod-col-idem");
+        String src1 = saveTable(moduleId, "CIDEM_SRC");
+        String sqlViewId = saveSqlTable(moduleId, "V_CIDEM",
+                "SELECT t1.a AS x, t1.b AS y FROM CIDEM_SRC t1");
+
+        execute("mutation { NopMetaLineageEdge__extractColumnLineageFromSql(metaTableId: \"" + sqlViewId + "\") }");
+        long countAfterFirst = countColumnSqlParseEdges(src1, sqlViewId);
+        assertEquals(2L, countAfterFirst, "2 column edges after first extract (x<-a, y<-b)");
+
+        GraphQLResponseBean r2 = execute(
+                "mutation { NopMetaLineageEdge__extractColumnLineageFromSql(metaTableId: \"" + sqlViewId + "\") }");
+        assertFalse(r2.hasError(), "second extract should not error: " + r2);
+        long countAfterSecond = countColumnSqlParseEdges(src1, sqlViewId);
+        assertEquals(2L, countAfterSecond,
+                "idempotent: column edge count must stay 2 after second extract: " + countAfterSecond);
+    }
+
+    /**
+     * 表级/列级 upsert 隔离（D2）：列级边存在后，重跑表级 extractLineageFromSql 仍正确创建表级边
+     * （表级查询补 sourceColumn IS NULL，不误匹配列级边），二者共存正确。
+     */
+    @Test
+    public void testTableAndColumnLevelUpsertIsolation() {
+        String moduleId = ensureModule("mod-col-iso");
+        String src1 = saveTable(moduleId, "ISO_SRC");
+        String sqlViewId = saveSqlTable(moduleId, "V_ISO",
+                "SELECT t1.a AS x FROM ISO_SRC t1");
+
+        // 先抽取列级血缘（写入列级边）
+        execute("mutation { NopMetaLineageEdge__extractColumnLineageFromSql(metaTableId: \"" + sqlViewId + "\") }");
+        assertEquals(1L, countColumnSqlParseEdges(src1, sqlViewId),
+                "1 column-level edge after column extract");
+
+        // 再抽取表级血缘（写入表级边）
+        GraphQLResponseBean r2 = execute(
+                "mutation { NopMetaLineageEdge__extractLineageFromSql(metaTableId: \"" + sqlViewId + "\") }");
+        assertFalse(r2.hasError(), "table-level extract should not error: " + r2);
+        assertTrue(String.valueOf(r2.getData()).contains("extractedEdgeCount=1"),
+                "table-level extract must create 1 table-level edge: " + r2.getData());
+
+        // 表级边（sourceColumn=null）与列级边（sourceColumn=a）共存，互不干扰
+        assertEquals(1L, countTableLevelSqlParseEdges(src1, sqlViewId),
+                "1 table-level edge (sourceColumn null) must coexist");
+        assertEquals(1L, countColumnSqlParseEdges(src1, sqlViewId),
+                "1 column-level edge (sourceColumn non-null) must still exist after table extract");
+
+        // 重跑表级不追加（幂等且隔离）
+        execute("mutation { NopMetaLineageEdge__extractLineageFromSql(metaTableId: \"" + sqlViewId + "\") }");
+        assertEquals(1L, countTableLevelSqlParseEdges(src1, sqlViewId),
+                "table-level edge count stays 1 after re-extract (isolation + idempotent)");
+    }
+
+    /**
+     * 无别名单表归属 vs 多表歧义（D1）：单表 SELECT col → 归属唯一源表；多表 SELECT col FROM a,b → unresolved。
+     */
+    @Test
+    public void testUnqualifiedColumnSingleVsMultiTable() {
+        String moduleId = ensureModule("mod-col-unq");
+        // 单表：col 归属 single_src
+        String singleSrc = saveTable(moduleId, "UNQ_SINGLE");
+        String sqlViewSingle = saveSqlTable(moduleId, "V_UNQ_SINGLE",
+                "SELECT col FROM UNQ_SINGLE");
+        GraphQLResponseBean r1 = execute(
+                "mutation { NopMetaLineageEdge__extractColumnLineageFromSql(metaTableId: \"" + sqlViewSingle + "\") }");
+        assertFalse(r1.hasError(), "single-table unqualified should not error: " + r1);
+        NopMetaLineageEdge e1 = findColumnEdge(singleSrc, sqlViewSingle, "col", "col");
+        assertNotNull(e1, "unqualified col on single table must be attributed to the single source");
+
+        // 多表：col 歧义 → unresolved
+        saveTable(moduleId, "UNQ_A");
+        saveTable(moduleId, "UNQ_B");
+        String sqlViewMulti = saveSqlTable(moduleId, "V_UNQ_MULTI",
+                "SELECT col FROM UNQ_A, UNQ_B");
+        GraphQLResponseBean r2 = execute(
+                "mutation { NopMetaLineageEdge__extractColumnLineageFromSql(metaTableId: \"" + sqlViewMulti + "\") }");
+        assertFalse(r2.hasError(), "multi-table unqualified should not error (collected as unresolved): " + r2);
+        String data2 = String.valueOf(r2.getData());
+        assertTrue(data2.contains("ambiguous-column-multi-table"),
+                "unqualified column on multi-table must be explicitly unresolved (not silent skip): " + data2);
+        assertEquals(0L, countEdgesByTarget(sqlViewMulti),
+                "no column-level edge for ambiguous unqualified column (no fabrication)");
+    }
+
+    /**
+     * dangling 一致：源列所属表未匹配目录 → 进 unresolved，不建悬空边（sourceTableId mandatory）。
+     */
+    @Test
+    public void testExtractColumnLineageDangling() {
+        String moduleId = ensureModule("mod-col-dangle");
+        String sqlViewId = saveSqlTable(moduleId, "V_DANGLE",
+                "SELECT t1.a AS x FROM GHOST_TBL_DANGLE t1");
+
+        GraphQLResponseBean resp = execute(
+                "mutation { NopMetaLineageEdge__extractColumnLineageFromSql(metaTableId: \"" + sqlViewId + "\") }");
+        assertFalse(resp.hasError(), "dangling should not error (collected as unresolved): " + resp);
+        String data = String.valueOf(resp.getData());
+        assertTrue(data.contains("extractedEdgeCount=0"),
+                "no edge for dangling source table: " + data);
+        assertTrue(data.contains("GHOST_TBL_DANGLE"),
+                "dangling source table must appear in unresolved (not silently dropped): " + data);
+        assertTrue(data.contains("source-table-not-in-catalog"),
+                "dangling reason must be explicit: " + data);
+        assertEquals(0L, countEdgesByTarget(sqlViewId),
+                "no dangling edge created (sourceTableId mandatory)");
+    }
+
+    /**
+     * 降级显式（不静默跳过）：通配符 t.* → 显式 unresolved（不伪造、不静默丢弃）。
+     * 非 sql 类型/不存在/空 sourceSql → 显式失败（抛 ErrorCode，不静默）。
+     */
+    @Test
+    public void testExtractColumnLineageWildcardAndFailures() {
+        String moduleId = ensureModule("mod-col-wild");
+        saveTable(moduleId, "WILD_SRC");
+        // 通配符 t.* → unresolved candidate（不静默跳过）
+        String sqlViewWildcard = saveSqlTable(moduleId, "V_WILD",
+                "SELECT t.* FROM WILD_SRC t");
+        GraphQLResponseBean rWild = execute(
+                "mutation { NopMetaLineageEdge__extractColumnLineageFromSql(metaTableId: \"" + sqlViewWildcard + "\") }");
+        assertFalse(rWild.hasError(), "wildcard should not hard-error (collected as unresolved): " + rWild);
+        assertTrue(String.valueOf(rWild.getData()).contains("wildcard-projection"),
+                "wildcard projection must be explicitly unresolved (not silent skip)");
+
+        // 非 sql 类型 → 显式失败
+        String entityId = saveTable(moduleId, "ENT_FAIL");
+        GraphQLResponseBean rNotSql = execute(
+                "mutation { NopMetaLineageEdge__extractColumnLineageFromSql(metaTableId: \"" + entityId + "\") }");
+        assertTrue(rNotSql.hasError(), "non-sql table must fast-fail: " + rNotSql);
+
+        // 不存在 → 显式失败
+        GraphQLResponseBean rNotFound = execute(
+                "mutation { NopMetaLineageEdge__extractColumnLineageFromSql(metaTableId: \"__not_exist__\") }");
+        assertTrue(rNotFound.hasError(), "non-existent metaTableId must fast-fail: " + rNotFound);
+    }
+
+    /**
+     * 列级边被遍历消费：列级边写入后 getImpactAnalysis(srcId, columnName) 按 columnName 过滤生效
+     * （无需改遍历代码）。变更源表 src 的列 a → 影响下游视图的列 x。
+     */
+    @Test
+    public void testColumnLineageConsumedByImpactAnalysis() {
+        String moduleId = ensureModule("mod-col-impact");
+        String src1 = saveTable(moduleId, "IMP_COL_SRC");
+        String sqlViewId = saveSqlTable(moduleId, "V_IMP_COL",
+                "SELECT t1.a AS x, t1.b AS y FROM IMP_COL_SRC t1");
+
+        execute("mutation { NopMetaLineageEdge__extractColumnLineageFromSql(metaTableId: \"" + sqlViewId + "\") }");
+
+        // 变更 src 的列 a → 影响下游 view（列级过滤生效）
+        List<String> impactA = lineageBiz.getImpactAnalysis(src1, "a");
+        assertEquals(1, impactA.size(), "impact(src, a) must be [view] via column-level filter: " + impactA);
+        assertEquals(sqlViewId, impactA.get(0));
+
+        // 变更 src 的列 b → 影响下游 view（列级过滤对 b 也生效）
+        List<String> impactB = lineageBiz.getImpactAnalysis(src1, "b");
+        assertEquals(1, impactB.size(), "impact(src, b) must be [view] via column-level filter: " + impactB);
+        assertEquals(sqlViewId, impactB.get(0));
+
+        // 变更 src 的不存在的列 → 回退表级下游（不静默空）
+        List<String> impactFallback = lineageBiz.getImpactAnalysis(src1, "no_such_col");
+        assertEquals(1, impactFallback.size(), "fallback must return table-level downstream: " + impactFallback);
+
+        // GraphQL 暴露验证
+        GraphQLResponseBean resp = execute(
+                "query { NopMetaLineageEdge__getImpactAnalysis(metaTableId: \"" + src1 + "\", columnName: \"a\") }");
+        assertFalse(resp.hasError(), "getImpactAnalysis column filter must be exposed via GraphQL: " + resp);
+        assertTrue(String.valueOf(resp.getData()).contains(sqlViewId),
+                "GraphQL getImpactAnalysis(src, a) must contain view: " + resp.getData());
+    }
+
     // ===== helpers =====
 
     private String ensureModule(String moduleName) {
@@ -437,6 +704,41 @@ public class TestNopMetaLineageEdgeBizModel extends JunitBaseTestCase {
         q.addFilter(FilterBeans.eq(NopMetaLineageEdge.PROP_NAME_lineageSource,
                 _NopMetadataCoreConstants.LINEAGE_SOURCE_SQL_PARSE));
         return dao.countByQuery(q);
+    }
+
+    /** 计数列级 sql_parse 边（sourceColumn 非空）。 */
+    private long countColumnSqlParseEdges(String sourceId, String targetId) {
+        IEntityDao<NopMetaLineageEdge> dao = daoProvider.daoFor(NopMetaLineageEdge.class);
+        QueryBean q = new QueryBean();
+        q.addFilter(FilterBeans.eq(NopMetaLineageEdge.PROP_NAME_sourceTableId, sourceId));
+        q.addFilter(FilterBeans.eq(NopMetaLineageEdge.PROP_NAME_targetTableId, targetId));
+        q.addFilter(FilterBeans.eq(NopMetaLineageEdge.PROP_NAME_lineageSource,
+                _NopMetadataCoreConstants.LINEAGE_SOURCE_SQL_PARSE));
+        q.addFilter(FilterBeans.notNull(NopMetaLineageEdge.PROP_NAME_sourceColumn));
+        return dao.countByQuery(q);
+    }
+
+    /** 计数表级 sql_parse 边（sourceColumn 为 null，D2 隔离）。 */
+    private long countTableLevelSqlParseEdges(String sourceId, String targetId) {
+        IEntityDao<NopMetaLineageEdge> dao = daoProvider.daoFor(NopMetaLineageEdge.class);
+        QueryBean q = new QueryBean();
+        q.addFilter(FilterBeans.eq(NopMetaLineageEdge.PROP_NAME_sourceTableId, sourceId));
+        q.addFilter(FilterBeans.eq(NopMetaLineageEdge.PROP_NAME_targetTableId, targetId));
+        q.addFilter(FilterBeans.eq(NopMetaLineageEdge.PROP_NAME_lineageSource,
+                _NopMetadataCoreConstants.LINEAGE_SOURCE_SQL_PARSE));
+        q.addFilter(FilterBeans.isNull(NopMetaLineageEdge.PROP_NAME_sourceColumn));
+        return dao.countByQuery(q);
+    }
+
+    /** 查找列级 sql_parse 边（按 source/target table + source/target column 精确匹配）。 */
+    private NopMetaLineageEdge findColumnEdge(String sourceId, String targetId, String sourceCol, String targetCol) {
+        IEntityDao<NopMetaLineageEdge> dao = daoProvider.daoFor(NopMetaLineageEdge.class);
+        QueryBean q = new QueryBean();
+        q.addFilter(FilterBeans.eq(NopMetaLineageEdge.PROP_NAME_sourceTableId, sourceId));
+        q.addFilter(FilterBeans.eq(NopMetaLineageEdge.PROP_NAME_targetTableId, targetId));
+        q.addFilter(FilterBeans.eq(NopMetaLineageEdge.PROP_NAME_sourceColumn, sourceCol));
+        q.addFilter(FilterBeans.eq(NopMetaLineageEdge.PROP_NAME_targetColumn, targetCol));
+        return dao.findFirstByQuery(q);
     }
 
     private NopMetaLineageEdge findEdge(String sourceId, String targetId, String sourceCol, String targetCol) {

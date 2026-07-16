@@ -16,6 +16,8 @@ import io.nop.metadata.biz.INopMetaLineageEdgeBiz;
 import io.nop.metadata.core._NopMetadataCoreConstants;
 import io.nop.metadata.dao.entity.NopMetaLineageEdge;
 import io.nop.metadata.dao.entity.NopMetaTable;
+import io.nop.metadata.service.lineage.ColumnLineageCandidate;
+import io.nop.metadata.service.lineage.SqlColumnLineageExtractor;
 import io.nop.metadata.service.lineage.SqlSourceTableExtractor;
 import io.nop.metadata.service.lineage.TableReference;
 import org.slf4j.Logger;
@@ -53,9 +55,15 @@ public class NopMetaLineageEdgeBizModel extends CrudBizModel<NopMetaLineageEdge>
             ErrorCode.define("metadata.lineage-not-sql-table",
                     "Table is not a sql-view table, cannot extract lineage: {metaTableId} (tableType={tableType})",
                     "metaTableId", "tableType");
+    static final ErrorCode ERR_LINEAGE_SQL_SOURCE_EMPTY =
+            ErrorCode.define("metadata.lineage-sql-source-empty",
+                    "Sql table sourceSql is empty, cannot extract column lineage: {metaTableId}", "metaTableId");
 
     /** SQL 源表抽取器（架构基线 §2.6.1，复用 nop-orm-eql AST）。无状态。 */
     private final SqlSourceTableExtractor sqlExtractor = new SqlSourceTableExtractor();
+
+    /** 列级 SQL 血缘抽取器（架构基线 §2.6.1 列级 sql_parse，P2-5+）。无状态。 */
+    private final SqlColumnLineageExtractor columnExtractor = new SqlColumnLineageExtractor();
 
     public NopMetaLineageEdgeBizModel() {
         setEntityName(NopMetaLineageEdge.class.getName());
@@ -188,6 +196,82 @@ public class NopMetaLineageEdgeBizModel extends CrudBizModel<NopMetaLineageEdge>
                 continue;
             }
             upsertSqlParseEdge(sourceId, targetId);
+            extracted++;
+        }
+
+        Map<String, Object> result = new LinkedHashMap<>();
+        result.put("extractedEdgeCount", extracted);
+        result.put("unresolved", unresolved);
+        result.put("errors", errors);
+        return result;
+    }
+
+    /**
+     * 从 tableType=sql 的视图表的 sourceSql 抽取**列级**血缘（架构基线 §2.6.1 列级 sql_parse，P2-5+）。
+     *
+     * <p>行为：加载 NopMetaTable → 非 sql 类型/不存在/空 sourceSql 显式失败 → 列级抽取器解析 SELECT projections
+     * → 列引用归属解析（表别名→源表名映射，D1 仅用句法字段）→ 源表名匹配目录 NopMetaTable.tableName（大小写不敏感）
+     * → 命中则按列级五元组幂等 upsert 列级边（sourceColumn/targetColumn/transformType 填充，lineageSource=sql_parse）
+     * → 未匹配/不可归属进 unresolved（不建悬空边）→ SQL 解析失败进 errors。
+     *
+     * <p>与表级 {@link #extractLineageFromSql} 独立共存：表级 upsert 查询补 {@code sourceColumn IS NULL} 隔离，
+     * 列级 upsert 用列级五元组，二者各管各的幂等（D2）。
+     *
+     * @return {@code {extractedEdgeCount: int, unresolved: [...], errors: [...]}}
+     */
+    @BizMutation
+    public Map<String, Object> extractColumnLineageFromSql(@Name("metaTableId") String metaTableId,
+                                                            IServiceContext context) {
+        IEntityDao<NopMetaTable> tableDao = daoFor(NopMetaTable.class);
+        NopMetaTable targetTable = tableDao.getEntityById(metaTableId);
+        if (targetTable == null) {
+            throw new NopException(ERR_LINEAGE_SQL_TABLE_NOT_FOUND).param("metaTableId", metaTableId);
+        }
+        if (!_NopMetadataCoreConstants.TABLE_TYPE_SQL.equals(targetTable.getTableType())) {
+            throw new NopException(ERR_LINEAGE_NOT_SQL_TABLE)
+                    .param("metaTableId", metaTableId)
+                    .param("tableType", targetTable.getTableType());
+        }
+        String sourceSql = targetTable.getSourceSql();
+        if (sourceSql == null || sourceSql.trim().isEmpty()) {
+            throw new NopException(ERR_LINEAGE_SQL_SOURCE_EMPTY).param("metaTableId", metaTableId);
+        }
+
+        List<Map<String, Object>> errors = new ArrayList<>();
+        List<ColumnLineageCandidate> candidates;
+        try {
+            candidates = columnExtractor.extract(sourceSql);
+        } catch (NopException e) {
+            LOG.error("extractColumnLineageFromSql sql_parse failed for metaTableId={}", metaTableId, e);
+            Map<String, Object> err = new LinkedHashMap<>();
+            err.put("stage", "sql_parse_column");
+            err.put("error", toErrorMessage(e));
+            errors.add(err);
+            candidates = Collections.emptyList();
+        }
+
+        // 构建目录表名索引（tableName(lower) → metaTableId），大小写不敏感匹配
+        Map<String, String> nameToId = buildTableNameIndex();
+
+        String targetId = targetTable.getMetaTableId();
+        List<String> unresolved = new ArrayList<>();
+        int extracted = 0;
+        for (ColumnLineageCandidate c : candidates) {
+            if (c.isUnresolvable()) {
+                // 不可归属（多表无限定符 / CTE 子查询别名 / 通配符）→ 显式进 unresolved（不静默丢弃、不伪造）
+                unresolved.add(c.getTargetColumn() + " <- " + String.valueOf(c.getSourceColumn())
+                        + " (" + c.getUnresolvedReason() + ")");
+                continue;
+            }
+            String sourceId = nameToId.get(c.getSourceTableName().toLowerCase());
+            if (sourceId == null) {
+                // dangling：源列所属表未匹配目录 → 进 unresolved（不建悬空边，sourceTableId mandatory）
+                unresolved.add(c.getTargetColumn() + " <- " + c.getSourceTableName() + "."
+                        + c.getSourceColumn() + " (source-table-not-in-catalog)");
+                continue;
+            }
+            upsertColumnSqlParseEdge(sourceId, targetId, c.getSourceColumn(), c.getTargetColumn(),
+                    c.getTransformType());
             extracted++;
         }
 
@@ -465,8 +549,11 @@ public class NopMetaLineageEdgeBizModel extends CrudBizModel<NopMetaLineageEdge>
     }
 
     /**
-     * 幂等 upsert：按 (sourceTableId, targetTableId, lineageSource='sql_parse') 去重。
-     * 存在则更新（transformType），不存在则新建表级边。
+     * 幂等 upsert（表级，架构基线 §2.6.1）：按 (sourceTableId, targetTableId, lineageSource='sql_parse')
+     * 且 sourceColumn IS NULL 去重。存在则更新（transformType），不存在则新建表级边。
+     *
+     * <p>表级/列级隔离（P2-5+ D2 裁定）：补 {@code sourceColumn IS NULL} 过滤条件，让表级查询只匹配表级边，
+     * 列级边（sourceColumn 非空）不会被表级重抽误匹配/误更新。
      */
     private void upsertSqlParseEdge(String sourceTableId, String targetTableId) {
         QueryBean q = new QueryBean();
@@ -474,6 +561,8 @@ public class NopMetaLineageEdgeBizModel extends CrudBizModel<NopMetaLineageEdge>
         q.addFilter(FilterBeans.eq(NopMetaLineageEdge.PROP_NAME_targetTableId, targetTableId));
         q.addFilter(FilterBeans.eq(NopMetaLineageEdge.PROP_NAME_lineageSource,
                 _NopMetadataCoreConstants.LINEAGE_SOURCE_SQL_PARSE));
+        // 表级/列级隔离：仅匹配表级边（sourceColumn 为 null），不误匹配列级边（D2）
+        q.addFilter(FilterBeans.isNull(NopMetaLineageEdge.PROP_NAME_sourceColumn));
         NopMetaLineageEdge edge = dao().findFirstByQuery(q);
         if (edge == null) {
             edge = dao().newEntity();
@@ -484,6 +573,36 @@ public class NopMetaLineageEdgeBizModel extends CrudBizModel<NopMetaLineageEdge>
             dao().saveEntity(edge);
         } else {
             edge.setTransformType(_NopMetadataCoreConstants.LINEAGE_TRANSFORM_DIRECT);
+            dao().updateEntity(edge);
+        }
+    }
+
+    /**
+     * 幂等 upsert（列级，架构基线 §2.6.1 列级 sql_parse，P2-5+ D3）：按列级五元组
+     * (sourceTableId, targetTableId, sourceColumn, targetColumn, lineageSource='sql_parse') 去重。
+     * 存在则更新 transformType，不存在则新建列级边。幂等键不含 transformType（重抽更新 transformType）。
+     */
+    private void upsertColumnSqlParseEdge(String sourceTableId, String targetTableId,
+                                           String sourceColumn, String targetColumn, String transformType) {
+        QueryBean q = new QueryBean();
+        q.addFilter(FilterBeans.eq(NopMetaLineageEdge.PROP_NAME_sourceTableId, sourceTableId));
+        q.addFilter(FilterBeans.eq(NopMetaLineageEdge.PROP_NAME_targetTableId, targetTableId));
+        q.addFilter(FilterBeans.eq(NopMetaLineageEdge.PROP_NAME_sourceColumn, sourceColumn));
+        q.addFilter(FilterBeans.eq(NopMetaLineageEdge.PROP_NAME_targetColumn, targetColumn));
+        q.addFilter(FilterBeans.eq(NopMetaLineageEdge.PROP_NAME_lineageSource,
+                _NopMetadataCoreConstants.LINEAGE_SOURCE_SQL_PARSE));
+        NopMetaLineageEdge edge = dao().findFirstByQuery(q);
+        if (edge == null) {
+            edge = dao().newEntity();
+            edge.setSourceTableId(sourceTableId);
+            edge.setTargetTableId(targetTableId);
+            edge.setSourceColumn(sourceColumn);
+            edge.setTargetColumn(targetColumn);
+            edge.setLineageSource(_NopMetadataCoreConstants.LINEAGE_SOURCE_SQL_PARSE);
+            edge.setTransformType(transformType);
+            dao().saveEntity(edge);
+        } else {
+            edge.setTransformType(transformType);
             dao().updateEntity(edge);
         }
     }
