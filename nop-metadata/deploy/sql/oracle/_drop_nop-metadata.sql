@@ -5,6 +5,7 @@ drop table nop_meta_semantic_type;
 drop table nop_meta_lineage_edge;
 drop table nop_meta_quality_rule;
 drop table nop_meta_recon_entity;
+drop table nop_meta_model_changed_event;
 drop table nop_meta_orm_model;
 drop table nop_meta_table;
 drop table nop_meta_pipeline;

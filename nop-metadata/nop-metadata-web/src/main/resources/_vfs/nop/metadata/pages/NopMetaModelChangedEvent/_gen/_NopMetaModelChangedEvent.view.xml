@@ -1,0 +1,165 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<view x:schema="/nop/schema/xui/xview.xdef" bizObjName="NopMetaModelChangedEvent" xmlns:i18n-en="i18n-en"
+      xmlns:x="/nop/schema/xdsl.xdef" xmlns:j="j" xmlns:c="c" xmlns:gql="gql" xmlns:view-gen="view-gen" xmlns:xpl="xpl">
+
+    <objMeta>/nop/metadata/model/NopMetaModelChangedEvent/NopMetaModelChangedEvent.xmeta</objMeta>
+
+    <controlLib>/nop/web/xlib/control.xlib</controlLib>
+
+    <x:gen-extends>
+        <view-gen:DefaultViewGenExtends xpl:lib="/nop/web/xlib/view-gen.xlib"/>
+    </x:gen-extends>
+
+    <x:post-extends>
+        <view-gen:DefaultViewPostExtends xpl:lib="/nop/web/xlib/view-gen.xlib"/>
+    </x:post-extends>
+
+    <grids>
+        <grid id="list" x:abstract="true">
+            <cols>
+
+                <!--事件ID-->
+                <col id="modelChangedEventId" mandatory="true" sortable="true"/>
+
+                <!--事件类型-->
+                <col id="eventType" mandatory="true" sortable="true"/>
+
+                <!--实体类型-->
+                <col id="entityType" mandatory="true" sortable="true"/>
+
+                <!--实体ID-->
+                <col id="entityId" mandatory="true" sortable="true"/>
+
+                <!--实体名称-->
+                <col id="entityName" sortable="true"/>
+
+                <!--变更来源-->
+                <col id="changeSource" mandatory="true" sortable="true"/>
+
+                <!--变更前快照-->
+                <col id="beforeSnapshot" sortable="true"/>
+
+                <!--变更后快照-->
+                <col id="afterSnapshot" sortable="true"/>
+
+                <!--操作人-->
+                <col id="changedBy" sortable="true"/>
+
+                <!--变更时间-->
+                <col id="changeTime" mandatory="true" sortable="true"/>
+
+                <!--事务ID-->
+                <col id="transactionId" sortable="true"/>
+
+                <!--扩展配置-->
+                <col id="extConfig" sortable="true"/>
+
+                <!--创建人-->
+                <col id="createdBy" mandatory="true" sortable="true"/>
+
+                <!--创建时间-->
+                <col id="createTime" mandatory="true" sortable="true"/>
+
+                <!--修改人-->
+                <col id="updatedBy" mandatory="true" sortable="true"/>
+
+                <!--修改时间-->
+                <col id="updateTime" mandatory="true" sortable="true"/>
+
+                <!--备注-->
+                <col id="remark" sortable="true"/>
+            </cols>
+        </grid>
+        <grid id="pick-list" x:prototype="list" x:abstract="true"/>
+    </grids>
+
+    <forms>
+        <form id="view" editMode="view" title="查看-元数据变更事件" i18n-en:title="View Meta Model Changed Event">
+            <layout>
+ modelChangedEventId[事件ID] eventType[事件类型]
+ entityType[实体类型] entityId[实体ID]
+ entityName[实体名称] changeSource[变更来源]
+ beforeSnapshot[变更前快照] afterSnapshot[变更后快照]
+ changedBy[操作人] changeTime[变更时间]
+ transactionId[事务ID] extConfig[扩展配置]
+ createdBy[创建人] createTime[创建时间]
+ updatedBy[修改人] updateTime[修改时间]
+ remark[备注] 
+</layout>
+        </form>
+        <form id="add" editMode="add" title="新增-元数据变更事件" i18n-en:title="Add Meta Model Changed Event" x:prototype="edit"/>
+        <form id="edit" editMode="edit" title="编辑-元数据变更事件" i18n-en:title="Edit Meta Model Changed Event">
+            <layout>
+ modelChangedEventId[事件ID] eventType[事件类型]
+ entityType[实体类型] entityId[实体ID]
+ entityName[实体名称] changeSource[变更来源]
+ beforeSnapshot[变更前快照] afterSnapshot[变更后快照]
+ changedBy[操作人] changeTime[变更时间]
+ transactionId[事务ID] extConfig[扩展配置]
+ remark[备注] 
+</layout>
+        </form>
+        <form id="query" editMode="query" title="查询条件" i18n-en:title="Query Condition" x:abstract="true"/>
+        <form id="asideFilter" editMode="query" x:abstract="true" submitOnChange="true"/>
+        <form id="batchUpdate" editMode="edit" x:abstract="true" title="修改-元数据变更事件"
+              i18n-en:title="Update Meta Model Changed Event"/>
+    </forms>
+
+    <pages>
+        <crud name="view-list" grid="list" asideFilterForm="asideFilter" filterForm="query" x:abstract="true">
+            <table autoFillHeight="true">
+                <api url="@query:NopMetaModelChangedEvent__findPage" gql:selection="{@pageSelection}"/>
+            </table>
+        </crud>
+        <crud name="main" grid="list" asideFilterForm="asideFilter" filterForm="query" x:abstract="true">
+            <table autoFillHeight="true">
+                <api url="@query:NopMetaModelChangedEvent__findPage" gql:selection="{@pageSelection}"/>
+            </table>
+            <listActions>
+                <action id="batch-delete-button" label="@i18n:common.batchDelete" batch="true">
+                    <api url="@mutation:NopMetaModelChangedEvent__batchDelete?ids=$ids"/>
+                    <confirmText>@i18n:common.confirmBatchDelete</confirmText>
+                </action>
+                <action id="add-button" level="primary" label="@i18n:common.add" icon="fa fa-plus pull-left">
+                    <dialog page="add"/>
+                </action>
+            </listActions>
+            <rowActions>
+                <action id="row-view-button" level="primary" label="@i18n:common.view">
+                    <dialog page="view"/>
+                </action>
+                <action id="row-update-button" level="primary" label="@i18n:common.edit" x:abstract="true">
+                    <dialog page="update"/>
+                </action>
+                <action id="row-delete-button" level="danger" label="@i18n:common.delete" x:abstract="true">
+                    <api url="@mutation:NopMetaModelChangedEvent__delete?id=$id"/>
+                    <confirmText>@i18n:common.confirmDelete</confirmText>
+                </action>
+                <actionGroup id="row-more-button" label="@i18n:common.more" level="primary">
+                    <action id="row-update-button" label="@i18n:common.edit">
+                        <dialog page="update"/>
+                    </action>
+                    <action id="row-delete-button" label="@i18n:common.delete">
+                        <api url="@mutation:NopMetaModelChangedEvent__delete?id=$id"/>
+                        <confirmText>@i18n:common.confirmDelete</confirmText>
+                    </action>
+                </actionGroup>
+            </rowActions>
+        </crud>
+        <picker name="picker" grid="pick-list" asideFilterForm="asideFilter" filterForm="query" x:abstract="true">
+            <table noOperations="true">
+                <api url="@query:NopMetaModelChangedEvent__findPage" gql:selection="{@pageSelection}"/>
+            </table>
+        </picker>
+        <simple name="add" form="add">
+            <api url="@mutation:NopMetaModelChangedEvent__save/id"/>
+        </simple>
+        <simple name="view" form="view">
+            <initApi url="@query:NopMetaModelChangedEvent__get?id=$id" gql:selection="{@formSelection}"/>
+        </simple>
+        <simple name="update" form="edit">
+            <initApi url="@query:NopMetaModelChangedEvent__get?id=$id" gql:selection="{@formSelection}"/>
+            <api url="@mutation:NopMetaModelChangedEvent__update/id?id=$id" withFormData="true"/>
+        </simple>
+    </pages>
+</view>

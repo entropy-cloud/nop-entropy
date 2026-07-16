@@ -5,6 +5,7 @@ drop table  if exists  nop_meta_semantic_type;
 drop table  if exists  nop_meta_lineage_edge;
 drop table  if exists  nop_meta_quality_rule;
 drop table  if exists  nop_meta_recon_entity;
+drop table  if exists  nop_meta_model_changed_event;
 drop table  if exists  nop_meta_orm_model;
 drop table  if exists  nop_meta_table;
 drop table  if exists  nop_meta_pipeline;

@@ -13,6 +13,7 @@ entity:
     NopMetaEntityUniqueKey: Meta Entity Unique Key
     NopMetaLineageEdge: Meta Lineage Edge
     NopMetaManifest: Meta Manifest
+    NopMetaModelChangedEvent: Meta Model Changed Event
     NopMetaModule: Meta Module
     NopMetaOrmModel: Meta ORM Model
     NopMetaPipeline: Meta Pipeline
@@ -327,6 +328,29 @@ prop:
       metaModule: Meta Module
       metaModule.displayName: Meta Module
       contentComponent: null
+    NopMetaModelChangedEvent:
+      modelChangedEventId: Model Changed Event Id
+      eventType: Event Type
+      eventType_label: null
+      entityType: Entity Type
+      entityId: Entity Id
+      entityName: Entity Name
+      changeSource: Change Source
+      beforeSnapshot: Before Snapshot
+      afterSnapshot: After Snapshot
+      changedBy: Changed By
+      changeTime: Change Time
+      transactionId: Transaction Id
+      extConfig: Ext Config
+      version: Version
+      createdBy: Created By
+      createTime: Create Time
+      updatedBy: Updated By
+      updateTime: Update Time
+      remark: Remark
+      beforeSnapshotComponent: null
+      afterSnapshotComponent: null
+      extConfigComponent: null
     NopMetaModule:
       metaModuleId: Meta Module Id
       moduleId: Module Id
@@ -716,3 +740,4 @@ dict:
     meta/contract-status: Data Contract Status
     meta/reconciliation-status: Reconciliation Status
     meta/match-strategy: Match Strategy
+    meta/change-event-type: Meta Change Event Type

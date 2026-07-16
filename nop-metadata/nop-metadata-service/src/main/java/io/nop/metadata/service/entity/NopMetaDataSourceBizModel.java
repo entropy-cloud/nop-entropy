@@ -24,6 +24,7 @@ import io.nop.metadata.service.catalog.CatalogTableStats;
 import io.nop.metadata.service.catalog.MetaCatalogCollector;
 import io.nop.metadata.service.connection.IMetaDataSourceConnectionService;
 import io.nop.metadata.service.datasource.MetaDataSourceResolver;
+import io.nop.metadata.service.event.MetaModelChangedEventPublisher;
 import io.nop.metadata.service.field.MetaTableFieldResolver;
 import io.nop.metadata.service.sync.ExternalColumnInfo;
 import io.nop.metadata.service.sync.ExternalTableInfo;
@@ -63,6 +64,13 @@ public class NopMetaDataSourceBizModel extends CrudBizModel<NopMetaDataSource> i
 
     @Inject
     protected IMetaDataSourceConnectionService connectionService;
+
+    /** 元数据变更事件发布 helper（架构基线 §2.8 D2，IoC bean）。 */
+    @Inject
+    protected MetaModelChangedEventPublisher eventPublisher;
+
+    /** 事件 entityType（架构基线 §2.8 D3）。 */
+    static final String EVENT_ENTITY_TYPE = "NopMetaDataSource";
 
     /** 外部表结构读取器（无状态，直接持有，与 OrmModelImporter 的持有方式一致）。 */
     private final ExternalTableStructureReader structureReader = new ExternalTableStructureReader();
@@ -172,6 +180,19 @@ public class NopMetaDataSourceBizModel extends CrudBizModel<NopMetaDataSource> i
                         }
                     }
                 });
+
+        // 元数据变更事件（架构基线 §2.8 D3）：外部表同步是批量操作，主实体级记录 1 行 DataSource UPDATED
+        // （changeSource=SYNC，表述「外部表已同步」）。子实体细粒度事件（per-table）deferred。
+        // 事件行在持久化成功后写入，避免幽灵事件。before 为同步前的数据源快照。
+        String beforeSnapshot = eventPublisher.buildSnapshot(dataSource, EVENT_ENTITY_TYPE, dataSourceId);
+        orm().flushSession();
+        String afterSnapshot = eventPublisher.buildSnapshot(dataSource, EVENT_ENTITY_TYPE, dataSourceId);
+        eventPublisher.publishEventWithSnapshots(
+                _NopMetadataCoreConstants.CHANGE_EVENT_TYPE_ENTITY_UPDATED,
+                EVENT_ENTITY_TYPE, dataSourceId, dataSource.getName(),
+                MetaModelChangedEventPublisher.CHANGE_SOURCE_SYNC,
+                beforeSnapshot, afterSnapshot,
+                MetaModelChangedEventPublisher.newTransactionId(), context);
 
         Map<String, Object> result = new LinkedHashMap<>();
         result.put("syncedTableCount", syncedCount.get());

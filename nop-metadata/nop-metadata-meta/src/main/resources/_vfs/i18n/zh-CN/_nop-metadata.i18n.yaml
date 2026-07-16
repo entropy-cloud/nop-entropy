@@ -13,6 +13,7 @@ entity:
     NopMetaEntityUniqueKey: 实体唯一键
     NopMetaLineageEdge: 血缘边
     NopMetaManifest: 元数据快照
+    NopMetaModelChangedEvent: 元数据变更事件
     NopMetaModule: 元数据模块
     NopMetaOrmModel: ORM模型
     NopMetaPipeline: 数据管道
@@ -324,6 +325,29 @@ prop:
       metaModuleId: 模块版本ID
       nopMetadataVersion: 平台版本
       remark: 备注
+      updateTime: 修改时间
+      updatedBy: 修改人
+      version: 数据版本
+    NopMetaModelChangedEvent:
+      afterSnapshot: 变更后快照
+      afterSnapshotComponent: null
+      beforeSnapshot: 变更前快照
+      beforeSnapshotComponent: null
+      changeSource: 变更来源
+      changeTime: 变更时间
+      changedBy: 操作人
+      createTime: 创建时间
+      createdBy: 创建人
+      entityId: 实体ID
+      entityName: 实体名称
+      entityType: 实体类型
+      eventType: 事件类型
+      eventType_label: 事件类型
+      extConfig: 扩展配置
+      extConfigComponent: null
+      modelChangedEventId: 事件ID
+      remark: 备注
+      transactionId: 事务ID
       updateTime: 修改时间
       updatedBy: 修改人
       version: 数据版本

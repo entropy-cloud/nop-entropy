@@ -358,4 +358,19 @@ public interface _NopMetadataCoreConstants {
      */
     String MATCH_STRATEGY_FUZZY = "fuzzy";
                     
+    /**
+     * 元数据变更事件类型: 实体创建 
+     */
+    String CHANGE_EVENT_TYPE_ENTITY_CREATED = "ENTITY_CREATED";
+                    
+    /**
+     * 元数据变更事件类型: 实体更新 
+     */
+    String CHANGE_EVENT_TYPE_ENTITY_UPDATED = "ENTITY_UPDATED";
+                    
+    /**
+     * 元数据变更事件类型: 实体删除 
+     */
+    String CHANGE_EVENT_TYPE_ENTITY_DELETED = "ENTITY_DELETED";
+                    
 }

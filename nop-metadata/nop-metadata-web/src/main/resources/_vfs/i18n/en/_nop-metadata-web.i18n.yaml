@@ -52,6 +52,10 @@ site:
       displayName: Modify Meta Manifest
     FNPT:NopMetaManifest:query:
       displayName: Query Meta Manifest
+    FNPT:NopMetaModelChangedEvent:mutation:
+      displayName: Modify Meta Model Changed Event
+    FNPT:NopMetaModelChangedEvent:query:
+      displayName: Query Meta Model Changed Event
     FNPT:NopMetaModule:mutation:
       displayName: Modify Meta Module
     FNPT:NopMetaModule:query:
@@ -150,6 +154,8 @@ site:
       displayName: Meta Lineage Edge
     NopMetaManifest-main:
       displayName: Meta Manifest
+    NopMetaModelChangedEvent-main:
+      displayName: Meta Model Changed Event
     NopMetaModule-main:
       displayName: Meta Module
     NopMetaOrmModel-main:

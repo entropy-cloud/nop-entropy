@@ -11,6 +11,8 @@ alter table nop_meta_quality_rule add NOP_TENANT_ID VARCHAR(32) DEFAULT '0' NOT 
 
 alter table nop_meta_recon_entity add NOP_TENANT_ID VARCHAR(32) DEFAULT '0' NOT NULL;
 
+alter table nop_meta_model_changed_event add NOP_TENANT_ID VARCHAR(32) DEFAULT '0' NOT NULL;
+
 alter table nop_meta_orm_model add NOP_TENANT_ID VARCHAR(32) DEFAULT '0' NOT NULL;
 
 alter table nop_meta_table add NOP_TENANT_ID VARCHAR(32) DEFAULT '0' NOT NULL;
@@ -78,6 +80,9 @@ alter table nop_meta_quality_rule add primary key (NOP_TENANT_ID, QUALITY_RULE_I
 
 alter table nop_meta_recon_entity drop primary key;
 alter table nop_meta_recon_entity add primary key (NOP_TENANT_ID, RECON_ENTITY_ID);
+
+alter table nop_meta_model_changed_event drop primary key;
+alter table nop_meta_model_changed_event add primary key (NOP_TENANT_ID, MODEL_CHANGED_EVENT_ID);
 
 alter table nop_meta_orm_model drop primary key;
 alter table nop_meta_orm_model add primary key (NOP_TENANT_ID, ORM_MODEL_ID);

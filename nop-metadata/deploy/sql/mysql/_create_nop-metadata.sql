@@ -117,6 +117,28 @@ CREATE TABLE nop_meta_recon_entity(
   constraint PK_nop_meta_recon_entity primary key (RECON_ENTITY_ID)
 )CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_as_cs;
 
+CREATE TABLE nop_meta_model_changed_event(
+  MODEL_CHANGED_EVENT_ID VARCHAR(32) NOT NULL    COMMENT '事件ID',
+  EVENT_TYPE VARCHAR(30) NOT NULL    COMMENT '事件类型',
+  ENTITY_TYPE VARCHAR(100) NOT NULL    COMMENT '实体类型',
+  ENTITY_ID VARCHAR(100) NOT NULL    COMMENT '实体ID',
+  ENTITY_NAME VARCHAR(200) NULL    COMMENT '实体名称',
+  CHANGE_SOURCE VARCHAR(30) NOT NULL    COMMENT '变更来源',
+  BEFORE_SNAPSHOT LONGTEXT NULL    COMMENT '变更前快照',
+  AFTER_SNAPSHOT LONGTEXT NULL    COMMENT '变更后快照',
+  CHANGED_BY VARCHAR(50) NULL    COMMENT '操作人',
+  CHANGE_TIME DATETIME(3) DEFAULT CURRENT_TIMESTAMP(3)  NOT NULL    COMMENT '变更时间',
+  TRANSACTION_ID VARCHAR(64) NULL    COMMENT '事务ID',
+  EXT_CONFIG VARCHAR(4000) NULL    COMMENT '扩展配置',
+  DEL_VERSION BIGINT NOT NULL    COMMENT '数据版本',
+  CREATED_BY VARCHAR(50) NOT NULL    COMMENT '创建人',
+  CREATE_TIME DATETIME(3) DEFAULT CURRENT_TIMESTAMP(3)  NOT NULL    COMMENT '创建时间',
+  UPDATED_BY VARCHAR(50) NOT NULL    COMMENT '修改人',
+  UPDATE_TIME DATETIME(3) DEFAULT CURRENT_TIMESTAMP(3)  NOT NULL    COMMENT '修改时间',
+  REMARK VARCHAR(200) NULL    COMMENT '备注',
+  constraint PK_nop_meta_model_changed_event primary key (MODEL_CHANGED_EVENT_ID)
+)CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_as_cs;
+
 CREATE TABLE nop_meta_orm_model(
   ORM_MODEL_ID VARCHAR(32) NOT NULL    COMMENT '模型ID',
   META_MODULE_ID VARCHAR(32) NOT NULL    COMMENT '模块版本ID',
@@ -644,6 +666,8 @@ CREATE TABLE nop_meta_recon_result(
    ALTER TABLE nop_meta_quality_rule COMMENT '质量规则';
                 
    ALTER TABLE nop_meta_recon_entity COMMENT '对账实体';
+                
+   ALTER TABLE nop_meta_model_changed_event COMMENT '元数据变更事件';
                 
    ALTER TABLE nop_meta_orm_model COMMENT 'ORM模型';
                 

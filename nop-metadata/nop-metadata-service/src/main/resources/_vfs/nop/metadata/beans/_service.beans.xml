@@ -53,6 +53,14 @@
         <property name="bizObjName" value="NopMetaReconciliationEntity"/>
     </bean>
 
+    <bean id="io.nop.metadata.service.entity.NopMetaModelChangedEventBizModel" ioc:type="@bean:id" ioc:default="true"/>
+
+    <bean id="biz_NopMetaModelChangedEvent" class="io.nop.biz.proxy.BizProxyFactoryBean"
+          ioc:type="io.nop.metadata.biz.INopMetaModelChangedEventBiz" ioc:force-lazy-property="true" lazy-init="true"
+          primary="true">
+        <property name="bizObjName" value="NopMetaModelChangedEvent"/>
+    </bean>
+
     <bean id="io.nop.metadata.service.entity.NopMetaOrmModelBizModel" ioc:type="@bean:id" ioc:default="true"/>
 
     <bean id="biz_NopMetaOrmModel" class="io.nop.biz.proxy.BizProxyFactoryBean"

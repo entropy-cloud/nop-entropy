@@ -117,6 +117,28 @@ CREATE TABLE nop_meta_recon_entity(
   constraint PK_nop_meta_recon_entity primary key (RECON_ENTITY_ID)
 );
 
+CREATE TABLE nop_meta_model_changed_event(
+  MODEL_CHANGED_EVENT_ID VARCHAR2(32) NOT NULL ,
+  EVENT_TYPE VARCHAR2(30) NOT NULL ,
+  ENTITY_TYPE VARCHAR2(100) NOT NULL ,
+  ENTITY_ID VARCHAR2(100) NOT NULL ,
+  ENTITY_NAME VARCHAR2(200)  ,
+  CHANGE_SOURCE VARCHAR2(30) NOT NULL ,
+  BEFORE_SNAPSHOT CLOB  ,
+  AFTER_SNAPSHOT CLOB  ,
+  CHANGED_BY VARCHAR2(50)  ,
+  CHANGE_TIME TIMESTAMP NOT NULL ,
+  TRANSACTION_ID VARCHAR2(64)  ,
+  EXT_CONFIG VARCHAR2(4000)  ,
+  DEL_VERSION NUMBER(20) NOT NULL ,
+  CREATED_BY VARCHAR2(50) NOT NULL ,
+  CREATE_TIME TIMESTAMP NOT NULL ,
+  UPDATED_BY VARCHAR2(50) NOT NULL ,
+  UPDATE_TIME TIMESTAMP NOT NULL ,
+  REMARK VARCHAR2(200)  ,
+  constraint PK_nop_meta_model_changed_event primary key (MODEL_CHANGED_EVENT_ID)
+);
+
 CREATE TABLE nop_meta_orm_model(
   ORM_MODEL_ID VARCHAR2(32) NOT NULL ,
   META_MODULE_ID VARCHAR2(32) NOT NULL ,
@@ -832,6 +854,44 @@ CREATE TABLE nop_meta_recon_result(
       COMMENT ON COLUMN nop_meta_recon_entity.UPDATE_TIME IS '修改时间';
                     
       COMMENT ON COLUMN nop_meta_recon_entity.REMARK IS '备注';
+                    
+      COMMENT ON TABLE nop_meta_model_changed_event IS '元数据变更事件';
+                
+      COMMENT ON COLUMN nop_meta_model_changed_event.MODEL_CHANGED_EVENT_ID IS '事件ID';
+                    
+      COMMENT ON COLUMN nop_meta_model_changed_event.EVENT_TYPE IS '事件类型';
+                    
+      COMMENT ON COLUMN nop_meta_model_changed_event.ENTITY_TYPE IS '实体类型';
+                    
+      COMMENT ON COLUMN nop_meta_model_changed_event.ENTITY_ID IS '实体ID';
+                    
+      COMMENT ON COLUMN nop_meta_model_changed_event.ENTITY_NAME IS '实体名称';
+                    
+      COMMENT ON COLUMN nop_meta_model_changed_event.CHANGE_SOURCE IS '变更来源';
+                    
+      COMMENT ON COLUMN nop_meta_model_changed_event.BEFORE_SNAPSHOT IS '变更前快照';
+                    
+      COMMENT ON COLUMN nop_meta_model_changed_event.AFTER_SNAPSHOT IS '变更后快照';
+                    
+      COMMENT ON COLUMN nop_meta_model_changed_event.CHANGED_BY IS '操作人';
+                    
+      COMMENT ON COLUMN nop_meta_model_changed_event.CHANGE_TIME IS '变更时间';
+                    
+      COMMENT ON COLUMN nop_meta_model_changed_event.TRANSACTION_ID IS '事务ID';
+                    
+      COMMENT ON COLUMN nop_meta_model_changed_event.EXT_CONFIG IS '扩展配置';
+                    
+      COMMENT ON COLUMN nop_meta_model_changed_event.DEL_VERSION IS '数据版本';
+                    
+      COMMENT ON COLUMN nop_meta_model_changed_event.CREATED_BY IS '创建人';
+                    
+      COMMENT ON COLUMN nop_meta_model_changed_event.CREATE_TIME IS '创建时间';
+                    
+      COMMENT ON COLUMN nop_meta_model_changed_event.UPDATED_BY IS '修改人';
+                    
+      COMMENT ON COLUMN nop_meta_model_changed_event.UPDATE_TIME IS '修改时间';
+                    
+      COMMENT ON COLUMN nop_meta_model_changed_event.REMARK IS '备注';
                     
       COMMENT ON TABLE nop_meta_orm_model IS 'ORM模型';
                 

@@ -23,4 +23,10 @@
          IDaoProvider 由 nop-dao 全局提供。外部 HTTP 实现未来可作为新 IReconciliationService impl 插入覆盖。-->
     <bean id="io.nop.metadata.service.reconciliation.LocalReconciliationService"
           class="io.nop.metadata.service.reconciliation.LocalReconciliationService" ioc:default="true"/>
+
+    <!-- 元数据变更事件发布 helper（架构基线 §2.8 / 设计 10 / plan 2026-07-17-0228-1，D2 发布机制主路径）：
+         由写路径（关键 mutation action + 核心实体 save/delete override）在持久化成功后调用，
+         构造一行 NopMetaModelChangedEvent 并 saveEntity 持久化。无状态，IDaoProvider 由 nop-dao 全局提供。-->
+    <bean id="io.nop.metadata.service.event.MetaModelChangedEventPublisher"
+          class="io.nop.metadata.service.event.MetaModelChangedEventPublisher" ioc:default="true"/>
 </beans>

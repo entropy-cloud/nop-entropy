@@ -24,6 +24,7 @@ import io.nop.metadata.dao.entity.NopMetaEntityField;
 import io.nop.metadata.dao.entity.NopMetaTable;
 import io.nop.metadata.service.connection.IMetaDataSourceConnectionService;
 import io.nop.metadata.service.datasource.MetaDataSourceResolver;
+import io.nop.metadata.service.event.MetaModelChangedEventPublisher;
 import io.nop.metadata.service.field.MetaTableFieldResolver;
 import io.nop.metadata.service.field.ResolvedTableField;
 import io.nop.metadata.service.profiling.MetaTableProfiler;
@@ -147,6 +148,13 @@ public class NopMetaTableBizModel extends CrudBizModel<NopMetaTable> implements 
     @Inject
     protected IMetaDataSourceConnectionService connectionService;
 
+    /** 元数据变更事件发布 helper（架构基线 §2.8 D2，IoC bean）。 */
+    @Inject
+    protected MetaModelChangedEventPublisher eventPublisher;
+
+    /** 事件 entityType（架构基线 §2.8 D3）。 */
+    static final String EVENT_ENTITY_TYPE = "NopMetaTable";
+
     /** 数据剖析器（无状态，参考 MetaCatalogCollector 收集器模式）。 */
     private final MetaTableProfiler profiler = new MetaTableProfiler();
 
@@ -184,6 +192,57 @@ public class NopMetaTableBizModel extends CrudBizModel<NopMetaTable> implements 
 
     public NopMetaTableBizModel() {
         setEntityName(NopMetaTable.class.getName());
+    }
+
+    /**
+     * save override（架构基线 §2.8 D3）：通用 CRUD 路径的 CREATE/UPDATE 事件发布。
+     *
+     * <p>before 快照在 super.save 前按 PK 加载（null=CREATE，非 null=UPDATE）；事件行在 super.save 成功后写入
+     * （避免幽灵事件）。per-op UUID 作为 transactionId。本 override 覆盖通用 CRUD（UI/GraphQL/xbiz）；
+     * {@link #createSqlTable} 等关键 mutation action 自行调 helper（不经本 override），二者独立。
+     */
+    @Override
+    public NopMetaTable save(@Name("data") Map<String, Object> data, IServiceContext context) {
+        String id = data == null ? null : stringOf(data, NopMetaTable.PROP_NAME_metaTableId);
+        NopMetaTable before = id != null ? dao().getEntityById(id) : null;
+        NopMetaTable saved = super.save(data, context);
+        String eventType = before == null
+                ? _NopMetadataCoreConstants.CHANGE_EVENT_TYPE_ENTITY_CREATED
+                : _NopMetadataCoreConstants.CHANGE_EVENT_TYPE_ENTITY_UPDATED;
+        String afterSnapshot = eventPublisher.buildSnapshot(saved, EVENT_ENTITY_TYPE, saved.getMetaTableId());
+        String beforeSnapshot = before != null
+                ? eventPublisher.buildSnapshot(before, EVENT_ENTITY_TYPE, saved.getMetaTableId()) : null;
+        eventPublisher.publishEventWithSnapshots(eventType, EVENT_ENTITY_TYPE, saved.getMetaTableId(),
+                saved.getTableName(), MetaModelChangedEventPublisher.CHANGE_SOURCE_API,
+                beforeSnapshot, afterSnapshot,
+                MetaModelChangedEventPublisher.newTransactionId(), context);
+        return saved;
+    }
+
+    /**
+     * delete override（架构基线 §2.8 D3）：通用 CRUD 路径的 DELETE 事件发布。save 不覆盖 delete，DELETE 走独立 override。
+     *
+     * <p>before 快照在 super.delete 前按 PK 加载；事件行在 super.delete 成功后写入。若实体不存在则不发事件。
+     */
+    @Override
+    public boolean delete(@Name("id") String id, IServiceContext context) {
+        NopMetaTable before = dao().getEntityById(id);
+        boolean deleted = super.delete(id, context);
+        if (before != null) {
+            String beforeSnapshot = eventPublisher.buildSnapshot(before, EVENT_ENTITY_TYPE, id);
+            eventPublisher.publishEventWithSnapshots(
+                    _NopMetadataCoreConstants.CHANGE_EVENT_TYPE_ENTITY_DELETED,
+                    EVENT_ENTITY_TYPE, id, before.getTableName(),
+                    MetaModelChangedEventPublisher.CHANGE_SOURCE_API,
+                    beforeSnapshot, null,
+                    MetaModelChangedEventPublisher.newTransactionId(), context);
+        }
+        return deleted;
+    }
+
+    private static String stringOf(Map<String, Object> data, String key) {
+        Object v = data.get(key);
+        return v == null ? null : v.toString();
     }
 
     /**
@@ -270,6 +329,14 @@ public class NopMetaTableBizModel extends CrudBizModel<NopMetaTable> implements 
         }
         table.setSourceSql(sql);
         tableDao.saveEntity(table);
+
+        // 元数据变更事件（架构基线 §2.8 D3）：SQL 视图创建记 1 行 Table CREATED（changeSource=UI）。
+        // 事件行在持久化成功后写入，避免幽灵事件。
+        eventPublisher.publishEvent(
+                _NopMetadataCoreConstants.CHANGE_EVENT_TYPE_ENTITY_CREATED,
+                EVENT_ENTITY_TYPE, table.getMetaTableId(), table.getTableName(),
+                MetaModelChangedEventPublisher.CHANGE_SOURCE_UI,
+                null, table, MetaModelChangedEventPublisher.newTransactionId(), context);
 
         // 4. 返回新建表 + 字段列表（接线验证：fields 来自真实 AST 解析，非空壳）
         Map<String, Object> result = new LinkedHashMap<>();

@@ -42,6 +42,7 @@ import io.nop.metadata.dao.entity.NopMetaModule;
 import io.nop.metadata.dao.entity.NopMetaOrmModel;
 import io.nop.metadata.dao.entity.NopMetaTable;
 import io.nop.metadata.dao.model.OrmModelImporter;
+import io.nop.metadata.service.event.MetaModelChangedEventPublisher;
 import io.nop.metadata.service.manifest.MetaManifestBuilder;
 import io.nop.orm.model.IEntityModel;
 import io.nop.orm.model.IColumnModel;
@@ -69,6 +70,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
+import jakarta.inject.Inject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -90,13 +92,75 @@ public class NopMetaModuleBizModel extends CrudBizModel<NopMetaModule> implement
                     "Full ORM model (isDelta=false) not found for module, cannot generate manifest: {metaModuleId}",
                     "metaModuleId");
 
+    /** 事件 entityType（架构基线 §2.8 D3）：发布事件时记录的实体类型名。 */
+    static final String EVENT_ENTITY_TYPE = "NopMetaModule";
+
     @InjectValue("@cfg:nop.metadata.platform-version|2.0.0-SNAPSHOT")
     protected String platformVersion;
+
+    /** 元数据变更事件发布 helper（架构基线 §2.8 D2，IoC bean）。 */
+    @Inject
+    protected MetaModelChangedEventPublisher eventPublisher;
 
     private final MetaManifestBuilder manifestBuilder = new MetaManifestBuilder();
 
     public NopMetaModuleBizModel() {
         setEntityName(NopMetaModule.class.getName());
+    }
+
+    /**
+     * save override（架构基线 §2.8 D3）：通用 CRUD 路径的 CREATE/UPDATE 事件发布。
+     *
+     * <p>before 快照在 super.save 前按 PK 加载（null=CREATE，非 null=UPDATE）；事件行在 super.save
+     * 成功后写入（避免幽灵事件）。per-op UUID 作为 transactionId。
+     *
+     * <p>注：本 override 覆盖通用 CRUD（UI/GraphQL/xbiz）；{@link #importOrmModel}/{@link #releaseModule}
+     * 等关键 mutation action 自行调 helper（不经本 override），二者独立。
+     */
+    @Override
+    public NopMetaModule save(@Name("data") Map<String, Object> data, IServiceContext context) {
+        String id = data == null ? null : stringOf(data, NopMetaModule.PROP_NAME_metaModuleId);
+        NopMetaModule before = id != null ? dao().getEntityById(id) : null;
+        NopMetaModule saved = super.save(data, context);
+        String entityType = EVENT_ENTITY_TYPE;
+        String eventType = before == null
+                ? _NopMetadataCoreConstants.CHANGE_EVENT_TYPE_ENTITY_CREATED
+                : _NopMetadataCoreConstants.CHANGE_EVENT_TYPE_ENTITY_UPDATED;
+        String afterSnapshot = eventPublisher.buildSnapshot(saved, entityType, saved.getMetaModuleId());
+        String beforeSnapshot = before != null
+                ? eventPublisher.buildSnapshot(before, entityType, saved.getMetaModuleId()) : null;
+        eventPublisher.publishEventWithSnapshots(eventType, entityType, saved.getMetaModuleId(),
+                saved.getModuleName(), MetaModelChangedEventPublisher.CHANGE_SOURCE_API,
+                beforeSnapshot, afterSnapshot,
+                MetaModelChangedEventPublisher.newTransactionId(), context);
+        return saved;
+    }
+
+    /**
+     * delete override（架构基线 §2.8 D3）：通用 CRUD 路径的 DELETE 事件发布。save 不覆盖 delete，DELETE 走独立 override。
+     *
+     * <p>before 快照在 super.delete 前按 PK 加载；事件行在 super.delete 成功后写入（避免幽灵事件）。
+     * 若实体不存在（DELETE 已删）则不发事件（beforeSnapshot=null + 已删除无快照可记）。
+     */
+    @Override
+    public boolean delete(@Name("id") String id, IServiceContext context) {
+        NopMetaModule before = dao().getEntityById(id);
+        boolean deleted = super.delete(id, context);
+        if (before != null) {
+            String beforeSnapshot = eventPublisher.buildSnapshot(before, EVENT_ENTITY_TYPE, id);
+            eventPublisher.publishEventWithSnapshots(
+                    _NopMetadataCoreConstants.CHANGE_EVENT_TYPE_ENTITY_DELETED,
+                    EVENT_ENTITY_TYPE, id, before.getModuleName(),
+                    MetaModelChangedEventPublisher.CHANGE_SOURCE_API,
+                    beforeSnapshot, null,
+                    MetaModelChangedEventPublisher.newTransactionId(), context);
+        }
+        return deleted;
+    }
+
+    private static String stringOf(Map<String, Object> data, String key) {
+        Object v = data.get(key);
+        return v == null ? null : v.toString();
     }
 
     @BizMutation
@@ -129,6 +193,15 @@ public class NopMetaModuleBizModel extends CrudBizModel<NopMetaModule> implement
         persistModelGraph(importer, fullModel, sourceContent, moduleId, false);
 
         orm().flushSession();
+
+        // 元数据变更事件（架构基线 §2.8 D3）：导入是批量操作，主实体级记录 1 行 Module CREATED（changeSource=IMPORT），
+        // 子实体细粒度事件 deferred。事件行在持久化成功后写入，避免幽灵事件。
+        String txId = MetaModelChangedEventPublisher.newTransactionId();
+        eventPublisher.publishEvent(
+                _NopMetadataCoreConstants.CHANGE_EVENT_TYPE_ENTITY_CREATED,
+                EVENT_ENTITY_TYPE, moduleId, module.getModuleName(),
+                MetaModelChangedEventPublisher.CHANGE_SOURCE_IMPORT,
+                null, module, txId, context);
         return module;
     }
 
@@ -305,8 +378,23 @@ public class NopMetaModuleBizModel extends CrudBizModel<NopMetaModule> implement
             throw new NopException(ERR_MODULE_NOT_DRAFTING).param("status", status);
 
         checkDataAuth(BizConstants.METHOD_UPDATE, module, context);
+
+        // 元数据变更事件（架构基线 §2.8 D3）：版本发布主实体级记录 1 行 Module UPDATED（changeSource=UI）。
+        // before 快照必须在变更前捕获（status=DRAFTING），after 为发布后（status=RELEASED）。
+        // 事件行在持久化成功后写入，避免幽灵事件。
+        String beforeSnapshot = eventPublisher.buildSnapshot(module, EVENT_ENTITY_TYPE, metaModuleId);
+
         module.setStatus(_NopMetadataCoreConstants.MODULE_STATUS_RELEASED);
         dao().updateEntity(module);
+        orm().flushSession();
+
+        String afterSnapshot = eventPublisher.buildSnapshot(module, EVENT_ENTITY_TYPE, metaModuleId);
+        eventPublisher.publishEventWithSnapshots(
+                _NopMetadataCoreConstants.CHANGE_EVENT_TYPE_ENTITY_UPDATED,
+                EVENT_ENTITY_TYPE, metaModuleId, module.getModuleName(),
+                MetaModelChangedEventPublisher.CHANGE_SOURCE_UI,
+                beforeSnapshot, afterSnapshot,
+                MetaModelChangedEventPublisher.newTransactionId(), context);
         return module;
     }
 
