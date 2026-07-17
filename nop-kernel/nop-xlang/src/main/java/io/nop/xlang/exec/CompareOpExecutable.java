@@ -54,7 +54,7 @@ public class CompareOpExecutable extends AbstractExecutable implements IEvalPred
     }
 
     @Override
-    public Object execute(IExpressionExecutor executor, EvalRuntime rt) {
+    public Boolean execute(IExpressionExecutor executor, EvalRuntime rt) {
         Object v1 = executor.execute(left, rt);
         Object v2 = executor.execute(right, rt);
         return predicate.test(v1, v2);
@@ -65,14 +65,12 @@ public class CompareOpExecutable extends AbstractExecutable implements IEvalPred
         IEvalScope scope = ctx.getEvalScope();
         IExpressionExecutor executor = XLang.getExecutor();
         EvalRuntime rt = new EvalRuntime(scope);
-        Object v1 = executor.execute(left, rt);
-        Object v2 = executor.execute(right, rt);
-        return predicate.test(v1, v2);
+        return execute(executor, rt);
     }
 
     @Override
     public void visit(IExecutableExpressionVisitor visitor) {
-        if(visitor.onVisitExpr(this)) {
+        if (visitor.onVisitExpr(this)) {
             left.visit(visitor);
             right.visit(visitor);
             visitor.onEndVisitExpr(this);
