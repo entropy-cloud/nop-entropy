@@ -623,6 +623,168 @@ public class TestNopMetaLineageEdgeBizModel extends JunitBaseTestCase {
                 "GraphQL getImpactAnalysis(src, a) must contain view: " + resp.getData());
     }
 
+    // ===== extractColumnLineageFromSql × CTE / 派生表列穿透（P2-5++）=====
+
+    /**
+     * CTE 列穿透端到端（架构基线 §2.6.1 列级 sql_parse + §4.2.1 CTE 支持，P2-5++ Phase 1）：
+     * 建 sql 视图表（WITH cte AS (SELECT t.x, t.y FROM SRC t) SELECT c.x FROM cte c）→ 抽取列级血缘
+     * → 列级边穿透到底层 SRC.x → 边 sourceTableId 指向 SRC（非 CTE 名，目录可匹配）。
+     *
+     * <p>Anti-Hollow：经 BizModel action 入口 extractColumnLineageFromSql → extractor 真实解析 CTE
+     * → upsert 写边，断言边 sourceTableId 指向底层物理 SRC（非悬空到 CTE 名因目录 miss 而丢失）。
+     */
+    @Test
+    public void testExtractColumnLineageCtePassthrough() {
+        String moduleId = ensureModule("mod-col-cte");
+        String src1 = saveTable(moduleId, "CTE_SRC");
+        String sqlViewId = saveSqlTable(moduleId, "V_CTE",
+                "WITH cte AS (SELECT t.x, t.y FROM CTE_SRC t) SELECT c.x FROM cte c");
+
+        GraphQLResponseBean resp = execute(
+                "mutation { NopMetaLineageEdge__extractColumnLineageFromSql(metaTableId: \"" + sqlViewId + "\") }");
+        assertFalse(resp.hasError(), "extractColumnLineageFromSql with CTE should not error: " + resp);
+        String data = String.valueOf(resp.getData());
+        assertTrue(data.contains("extractedEdgeCount=1"),
+                "CTE passthrough must produce 1 column-level edge to underlying SRC: " + data);
+
+        // 关键断言：边 sourceTableId 指向底层 SRC（非 CTE 名）—— Anti-Hollow：穿透真实生效
+        NopMetaLineageEdge e = findColumnEdge(src1, sqlViewId, "x", "x");
+        assertNotNull(e, "CTE passthrough: edge SRC.x -> view.x must exist (penetrated to underlying source)");
+        assertEquals(_NopMetadataCoreConstants.LINEAGE_SOURCE_SQL_PARSE, e.getLineageSource());
+        assertEquals(_NopMetadataCoreConstants.LINEAGE_TRANSFORM_DIRECT, e.getTransformType(),
+                "pure passthrough column must be direct");
+    }
+
+    /** CTE 内聚合列 SUM(t.a) AS s → 经引用穿透产出 aggregated 候选（端到端）。 */
+    @Test
+    public void testExtractColumnLineageCteAggregatePassthrough() {
+        String moduleId = ensureModule("mod-col-cte-agg");
+        String src1 = saveTable(moduleId, "CTEAGG_SRC");
+        String sqlViewId = saveSqlTable(moduleId, "V_CTE_AGG",
+                "WITH cte AS (SELECT SUM(t.a) AS s FROM CTEAGG_SRC t) SELECT c.s FROM cte c");
+
+        GraphQLResponseBean resp = execute(
+                "mutation { NopMetaLineageEdge__extractColumnLineageFromSql(metaTableId: \"" + sqlViewId + "\") }");
+        assertFalse(resp.hasError(), "should not error: " + resp);
+        assertTrue(String.valueOf(resp.getData()).contains("extractedEdgeCount=1"),
+                "CTE aggregate passthrough must produce 1 edge: " + resp.getData());
+
+        NopMetaLineageEdge e = findColumnEdge(src1, sqlViewId, "a", "s");
+        assertNotNull(e, "SUM(t.a) AS s via CTE must produce edge SRC.a -> view.s");
+        assertEquals(_NopMetadataCoreConstants.LINEAGE_TRANSFORM_AGGREGATED, e.getTransformType(),
+                "CTE aggregate passthrough must be transformType=aggregated");
+    }
+
+    /**
+     * CTE 穿透 + 列重命名：CTE 内 SELECT t.x AS out_x → 引用 c.out_x 穿透到 SRC.x（端到端）。
+     * 这也是接线验证的关键用例：穿透后 sourceColumn 是底层 x（非 out_x），证明真实列映射而非简单复制。
+     */
+    @Test
+    public void testExtractColumnLineageCteAliasedColumnPassthrough() {
+        String moduleId = ensureModule("mod-col-cte-alias");
+        String src1 = saveTable(moduleId, "CTEALIAS_SRC");
+        String sqlViewId = saveSqlTable(moduleId, "V_CTE_ALIAS",
+                "WITH cte AS (SELECT t.x AS out_x FROM CTEALIAS_SRC t) SELECT c.out_x FROM cte c");
+
+        GraphQLResponseBean resp = execute(
+                "mutation { NopMetaLineageEdge__extractColumnLineageFromSql(metaTableId: \"" + sqlViewId + "\") }");
+        assertFalse(resp.hasError(), "should not error: " + resp);
+        assertTrue(String.valueOf(resp.getData()).contains("extractedEdgeCount=1"),
+                "aliased CTE column passthrough must produce 1 edge: " + resp.getData());
+
+        // sourceColumn 是底层 SRC.x（非 CTE 内别名 out_x），targetColumn 是视图输出列 out_x
+        NopMetaLineageEdge e = findColumnEdge(src1, sqlViewId, "x", "out_x");
+        assertNotNull(e, "CTE alias passthrough must map sourceColumn=SRC.x, targetColumn=out_x");
+    }
+
+    /**
+     * 派生表（subquery）列穿透端到端（P2-5++ Phase 2）：
+     * SELECT d.x FROM (SELECT t.x FROM DERIVED_SRC t) d → 边指向 DERIVED_SRC（端到端）。
+     */
+    @Test
+    public void testExtractColumnLineageDerivedTablePassthrough() {
+        String moduleId = ensureModule("mod-col-derived");
+        String src1 = saveTable(moduleId, "DERIVED_SRC");
+        String sqlViewId = saveSqlTable(moduleId, "V_DERIVED",
+                "SELECT d.x FROM (SELECT t.x FROM DERIVED_SRC t) d");
+
+        GraphQLResponseBean resp = execute(
+                "mutation { NopMetaLineageEdge__extractColumnLineageFromSql(metaTableId: \"" + sqlViewId + "\") }");
+        assertFalse(resp.hasError(), "extractColumnLineageFromSql with derived table should not error: " + resp);
+        String data = String.valueOf(resp.getData());
+        assertTrue(data.contains("extractedEdgeCount=1"),
+                "derived-table passthrough must produce 1 column-level edge to underlying SRC: " + data);
+
+        NopMetaLineageEdge e = findColumnEdge(src1, sqlViewId, "x", "x");
+        assertNotNull(e, "derived-table passthrough: edge SRC.x -> view.x must exist");
+        assertEquals(_NopMetadataCoreConstants.LINEAGE_TRANSFORM_DIRECT, e.getTransformType());
+    }
+
+    /**
+     * 嵌套 CTE + 派生表组合穿透（端到端）：派生表内引用顶层 CTE，穿透到最底层源表。
+     */
+    @Test
+    public void testExtractColumnLineageNestedCtePlusDerivedTable() {
+        String moduleId = ensureModule("mod-col-nested");
+        String src1 = saveTable(moduleId, "NESTED_SRC");
+        String sqlViewId = saveSqlTable(moduleId, "V_NESTED",
+                "WITH cte AS (SELECT t.x FROM NESTED_SRC t) "
+                        + "SELECT d.x FROM (SELECT c.x FROM cte c) d");
+
+        GraphQLResponseBean resp = execute(
+                "mutation { NopMetaLineageEdge__extractColumnLineageFromSql(metaTableId: \"" + sqlViewId + "\") }");
+        assertFalse(resp.hasError(), "nested CTE + derived table should not error: " + resp);
+        assertTrue(String.valueOf(resp.getData()).contains("extractedEdgeCount=1"),
+                "nested CTE+derived passthrough must produce 1 edge to underlying source: " + resp.getData());
+
+        // Anti-Hollow：穿透到最底层 NESTED_SRC（经派生表 alias d → CTE cte → SRC）
+        NopMetaLineageEdge e = findColumnEdge(src1, sqlViewId, "x", "x");
+        assertNotNull(e, "nested CTE+derived passthrough: edge SRC.x -> view.x must exist (penetrated to deepest source)");
+    }
+
+    /**
+     * 混合真表 + 派生表无限定符列归属不回归（P2-5++ Phase 2 tableCount 边界）：
+     * 派生表 alias 不计入 tableCount，故单真表 + 派生表场景下无 owner 列仍归属唯一真表（不歧义）。
+     */
+    @Test
+    public void testMixedRealTableAndDerivedTableUnqualifiedAttribution() {
+        String moduleId = ensureModule("mod-col-mixed");
+        String src1 = saveTable(moduleId, "MIXED_SRC");
+        saveTable(moduleId, "MIXED_SRC2");
+        String sqlViewId = saveSqlTable(moduleId, "V_MIXED",
+                "SELECT a FROM MIXED_SRC, (SELECT b AS a FROM MIXED_SRC2 t) d");
+
+        GraphQLResponseBean resp = execute(
+                "mutation { NopMetaLineageEdge__extractColumnLineageFromSql(metaTableId: \"" + sqlViewId + "\") }");
+        assertFalse(resp.hasError(), "mixed real+derived table should not error: " + resp);
+        // 无 owner 列 a：tableCount=1（只 MIXED_SRC 计数）→ 归属 MIXED_SRC（不歧义）
+        NopMetaLineageEdge e = findColumnEdge(src1, sqlViewId, "a", "a");
+        assertNotNull(e, "unqualified column on single real table + derived table must be attributed to real table");
+    }
+
+    /**
+     * CTE 通配符输出 → unresolved（不伪造、不静默丢弃，端到端验证）。
+     * CTE 内 SELECT * → 引用列穿透产 unresolved（不伪造边）。
+     */
+    @Test
+    public void testExtractColumnLineageCteWildcardOutputUnresolved() {
+        String moduleId = ensureModule("mod-col-cte-wild");
+        saveTable(moduleId, "CTEW_SRC");
+        String sqlViewId = saveSqlTable(moduleId, "V_CTE_W",
+                "WITH cte AS (SELECT * FROM CTEW_SRC t) SELECT c.x FROM cte c");
+
+        GraphQLResponseBean resp = execute(
+                "mutation { NopMetaLineageEdge__extractColumnLineageFromSql(metaTableId: \"" + sqlViewId + "\") }");
+        assertFalse(resp.hasError(), "wildcard CTE output should not hard-error (collected as unresolved): " + resp);
+        String data = String.valueOf(resp.getData());
+        assertTrue(data.contains("extractedEdgeCount=0"),
+                "wildcard CTE output must not fabricate edges: " + data);
+        // unresolved 中含明确原因（不静默丢弃）
+        assertTrue(data.contains("cte-wildcard") || data.contains("cte-or-derived-column-not-found")
+                        || data.contains("passthrough-no-source-column"),
+                "wildcard CTE output must be explicitly unresolved with reason: " + data);
+    }
+
     // ===== helpers =====
 
     private String ensureModule(String moduleName) {
