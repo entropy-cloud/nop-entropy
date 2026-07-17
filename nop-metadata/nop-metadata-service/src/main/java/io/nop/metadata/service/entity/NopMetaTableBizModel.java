@@ -183,8 +183,11 @@ public class NopMetaTableBizModel extends CrudBizModel<NopMetaTable> implements 
     /** 跨表 JOIN 执行器（架构基线 §4.4.1，D3/D4/D5）。 */
     private final MetaJoinExecutor joinExecutor = new MetaJoinExecutor();
 
-    /** 指标/维度聚合执行器（架构基线 §4.4.2，D6/D7）。 */
-    private final MetaAggregationExecutor aggregationExecutor = new MetaAggregationExecutor();
+    /**
+     * 指标/维度聚合执行器（架构基线 §4.4.2，D6/D7 + plan 0852-1 entity↔entity JOIN 聚合）。
+     * 复用 {@link #joinExecutor} 的 join 加载/端点解析（显式选定「抽取共享」，见 plan 0852-1 Decision）。
+     */
+    private final MetaAggregationExecutor aggregationExecutor = new MetaAggregationExecutor(joinExecutor);
 
     /** external/sql 查询路径首版支持的方言（LIMIT/OFFSET 便携语法，架构基线 §4.4 D1）。 */
     private static final Set<String> SUPPORTED_QUERY_DIALECTS =
@@ -493,15 +496,20 @@ public class NopMetaTableBizModel extends CrudBizModel<NopMetaTable> implements 
     }
 
     /**
-     * 指标/维度聚合查询（架构基线 §4.4.2 D6/D7）。
+     * 指标/维度聚合查询（架构基线 §4.4.2 D6/D7 + plan 0852-1 entity↔entity JOIN 聚合）。
      *
      * <p>按选定 Measures + Dimensions 生成聚合 SQL（GROUP BY 维度 + aggFunc 指标），时间维度按 granularity 分桶。
      * {@code expression} 型 Measure 首版显式不支持。
+     *
+     * <p>{@code joinId} 可选（plan 0852-1）：提供时对 {@code NopMetaTableJoin} 定义的 entity↔entity 关联执行
+     * 跨表聚合（所选 Measure/Dimension 可来自左 entity 或经 JOIN 可达的右 entity）；为空时维持单表聚合既有行为。
+     * 仅同库 entity↔entity 支持；external/sql 端点 / 跨库 / self-join / right / 字段不可归属 / EQL 保留字 显式失败。
      *
      * @param metaTableId    目标逻辑表
      * @param measures       选定指标名列表（NopMetaTableMeasure.measureName）
      * @param dimensions     选定维度名列表（NopMetaTableDimension.dimensionName）
      * @param filter         可选 filter（TreeBean）
+     * @param joinId         可选 NopMetaTableJoin 主键（null/空 → 单表聚合）
      * @param limit          可选分页上限
      * @param offset         可选分页偏移
      * @param context        服务上下文
@@ -512,6 +520,7 @@ public class NopMetaTableBizModel extends CrudBizModel<NopMetaTable> implements 
                                                   @Name("measures") List<String> measures,
                                                   @Name("dimensions") List<String> dimensions,
                                                   @Optional @Name("filter") TreeBean filter,
+                                                  @Optional @Name("joinId") String joinId,
                                                   @Optional @Name("limit") Long limit,
                                                   @Optional @Name("offset") Long offset,
                                                   IServiceContext context) {
@@ -520,7 +529,7 @@ public class NopMetaTableBizModel extends CrudBizModel<NopMetaTable> implements 
         if (table == null) {
             throw new NopException(ERR_QUERY_TABLE_NOT_FOUND).param("metaTableId", metaTableId);
         }
-        return aggregationExecutor.executeAggregation(table, measures, dimensions, filter, limit, offset,
+        return aggregationExecutor.executeAggregation(table, measures, dimensions, filter, joinId, limit, offset,
                 buildQueryContext());
     }
 
