@@ -104,6 +104,10 @@ public class DefaultJobCancelHandler implements IJobCancelHandler {
             setChangeVersion(defaultLong(task.getVersion()));
             setInstanceStatus(defaultInt(task.getTaskStatus()));
 
+            if (task.getTargetHost() != null && !task.getTargetHost().isBlank()) {
+                setAttribute("targetHost", task.getTargetHost());
+            }
+
             this.minScheduleTime = toTime(schedule.getMinScheduleTime());
             this.maxScheduleTime = toTime(schedule.getMaxScheduleTime());
             this.maxExecutionCount = defaultLong(schedule.getMaxExecutionCount());
