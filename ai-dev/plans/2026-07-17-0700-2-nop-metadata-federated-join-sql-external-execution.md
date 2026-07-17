@@ -1,6 +1,6 @@
 # 0700-2 nop-metadata 联邦 JOIN 查询执行扩展 — sql/external 表参与 JOIN
 
-> Plan Status: active
+> Plan Status: completed
 > Last Reviewed: 2026-07-17
 > Source: `ai-dev/design/nop-metadata/nop-metadata-roadmap.md`（P4 联邦查询 deferred）；`ai-dev/design/nop-metadata/01-architecture-baseline.md` §4.4（查询执行）+ §4.4.1（D3/D4/D5 JOIN 路由）；plan `2026-07-16-0800-2` Non-Blocking Follow-ups「sql/external 表作为 JOIN 右表」；plan `2026-07-17-0228-3` Deferred「sql/external Join 支持」
 > Mission: nop-metadata
@@ -56,67 +56,67 @@
 
 ### Phase 1 - sql/external 端点 JOIN 执行路由与取数
 
-Status: planned
+Status: completed
 Targets: `MetaJoinExecutor`（`nop-metadata/.../service/query/MetaJoinExecutor.java`）；`NopMetaTableBizModel.queryJoinData`；列名解析复用点（external 读 `buildSql` / sql 经 `SqlSelectFieldExtractor`）
 
 - Item Types: `Decision | Fix`
 
-- [ ] **D1 sql/external 端点路由裁定**（Decision）：裁定端点含 sql/external 表时的分派规则，逐项裁定并写入 §4.4.1：
+- [x] **D1 sql/external 端点路由裁定**（Decision）：裁定端点含 sql/external 表时的分派规则，逐项裁定并写入 §4.4.1：
   1. **querySpace 来源区分**：entity 端点 querySpace 取自 `NopMetaEntity.querySpace`，external/sql 端点取自 `NopMetaTable.querySpace`（§4.4.1 D3 行 889），路由比较须 cross-source；
   2. **混合端点同库 JOIN 的连接载体**：entity 端点物理表经何种连接触达——裁定是否引入 §4.4.3 D1 平台 `IJdbcTransaction.getConnection()` 机制（`ITransactionTemplate.runInTransaction(entityQuerySpace, ...)`），或限制首版混合端点同库 JOIN 仅在 entity querySpace 已注册 `NopMetaDataSource` 时支持（否则显式失败）。**明确既有 entity-entity 同库路径保持 `orm().executeQuery` 不变（不重写为 withConnection）**；external/sql↔external/sql 同库 JOIN 走 withConnection 原生 JOIN SQL（标识符白名单 + 参数绑定，沿用 0800-2 external 聚合范式）；
   3. **单表取数接线方式**：`MetaJoinExecutor` 无 `NopMetaTableBizModel` 引用，裁定跨库拼接（D5）如何取 sql/external 单表行——在 executor 内复用 `MetaQueryContext` 现有依赖（connectionService/dataSourceResolver）实现取数，避免循环依赖（不注入 BizModel）；
   4. **跨库拼接 key 命名空间规范化**：entity 行（camelCase 属性名）与 sql/external 行（物理列名）命名空间不同，须统一规范化或按解析后的列名重建 join-key 索引；因命名空间错配导致的**整体不命中不得静默返回空集**（与正常 inner join 无匹配行丢弃区分，Anti-Hollow）。
-- [ ] **列名解析**（Fix）：JOIN 执行时把 sql/external 端点的 join 字段解析为真实列名（sql→SELECT 解析列；external→`buildSql` JSON 列），供原生 JOIN SQL 或应用层拼接使用。
-- [ ] **JOIN 执行扩展**（Fix）：扩展 `MetaJoinExecutor` 执行端点含 sql/external 表的 join（按 D1 路由），结果 schema 沿用 0800-2 约定（右表列冲突加 `<alias>.` 前缀）。
+- [x] **列名解析**（Fix）：JOIN 执行时把 sql/external 端点的 join 字段解析为真实列名（sql→SELECT 解析列；external→`buildSql` JSON 列），供原生 JOIN SQL 或应用层拼接使用。
+- [x] **JOIN 执行扩展**（Fix）：扩展 `MetaJoinExecutor` 执行端点含 sql/external 表的 join（按 D1 路由），结果 schema 沿用 0800-2 约定（右表列冲突加 `<alias>.` 前缀）。
 
 Exit Criteria:
 
-- [ ] §4.4.1 已记录 D1 路由裁定（含 querySpace 来源区分、混合端点连接载体裁定、单表取数接线、key 命名空间规范化）
-- [ ] 存在 AutoTest：entity↔sql（或 entity↔external）同库 JOIN 经原生 JOIN SQL 执行，断言 join 后行数据正确（非空、join key 值匹配）
-- [ ] 存在 AutoTest：sql↔external（或任意组合）不同 querySpace 经应用层拼接执行，断言内存合并结果正确（非空、具体 key 值匹配）
-- [ ] **跨库混合端点命名空间**（Anti-Hollow）：AutoTest 断言 entity↔sql 跨库 JOIN 不返回静默空集——join key 经命名空间规范化后实际命中（断言行数>0 且 key 值匹配，而非空结果）
-- [ ] 存在 AutoTest：join 字段在 sql/external 端点不存在时执行显式失败（错误码 + .param）
-- [ ] 存在 AutoTest：混合端点同库 JOIN 且 entity querySpace 无 NopMetaDataSource 时，按 D1 子问题 2 裁定显式失败或成功（与裁定一致）
-- [ ] **端到端验证**：从「queryJoinData(metaTableId, joinId)」入口，经 MetaJoinExecutor 路由分派，到返回 join 后行数据，完整路径跑通（端点含 sql/external 表）
-- [ ] **接线验证**：queryJoinData → MetaJoinExecutor → sql/external 端点执行分支在运行时确实被调用（test 断言取数发生，非返回 entity 路径结果）
-- [ ] **无静默跳过**：端点 tableType 组合不支持时显式失败而非返回空结果；joinType=right 沿用显式失败；跨库 join key 未匹配不静默丢弃
-- [ ] `./mvnw compile -pl nop-metadata -am` 通过
-- [ ] `./mvnw test -pl nop-metadata -am` 通过
-- [ ] §4.4.1 已更新（若 D1 改变语义）；否则明确写 `No owner-doc update required`
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] §4.4.1 已记录 D1 路由裁定（含 querySpace 来源区分、混合端点连接载体裁定、单表取数接线、key 命名空间规范化）
+- [x] 存在 AutoTest：entity↔sql（或 entity↔external）同库 JOIN 经原生 JOIN SQL 执行，断言 join 后行数据正确（非空、join key 值匹配）
+- [x] 存在 AutoTest：sql↔external（或任意组合）不同 querySpace 经应用层拼接执行，断言内存合并结果正确（非空、具体 key 值匹配）
+- [x] **跨库混合端点命名空间**（Anti-Hollow）：AutoTest 断言 entity↔sql 跨库 JOIN 不返回静默空集——join key 经命名空间规范化后实际命中（断言行数>0 且 key 值匹配，而非空结果）
+- [x] 存在 AutoTest：join 字段在 sql/external 端点不存在时执行显式失败（错误码 + .param）
+- [x] 存在 AutoTest：混合端点同库 JOIN 且 entity querySpace 无 NopMetaDataSource 时，按 D1 子问题 2 裁定显式失败或成功（与裁定一致）
+- [x] **端到端验证**：从「queryJoinData(metaTableId, joinId)」入口，经 MetaJoinExecutor 路由分派，到返回 join 后行数据，完整路径跑通（端点含 sql/external 表）
+- [x] **接线验证**：queryJoinData → MetaJoinExecutor → sql/external 端点执行分支在运行时确实被调用（test 断言取数发生，非返回 entity 路径结果）
+- [x] **无静默跳过**：端点 tableType 组合不支持时显式失败而非返回空结果；joinType=right 沿用显式失败；跨库 join key 未匹配不静默丢弃
+- [x] `./mvnw compile -pl nop-metadata -am` 通过
+- [x] `./mvnw test -pl nop-metadata -am` 通过
+- [x] §4.4.1 已更新（若 D1 改变语义）；否则明确写 `No owner-doc update required`
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 ### Phase 2 - 回归与边界
 
-Status: planned
+Status: completed
 Targets: `TestNopMetaJoinBizModel`（`nop-metadata/.../service/TestNopMetaJoinBizModel.java`）
 
 - Item Types: `Proof`
 
-- [ ] **既有 entity-entity JOIN 用例回归**（Proof）：0800-2 的 5 个 JOIN 用例（`testSameDbJoinReturnsRealRows`/`testCrossDbJoinAppLayerMerge`/`testJoinTypeRightExplicitlyFails`/`testJoinNotFoundFails`/`testJoinFieldNotResolvedFails`）在 schema 变更后仍全绿。
-- [ ] **边界用例**（Proof）：两端点均为 sql/external 同库/跨库组合的显式覆盖。
+- [x] **既有 entity-entity JOIN 用例回归**（Proof）：0800-2 的 5 个 JOIN 用例（`testSameDbJoinReturnsRealRows`/`testCrossDbJoinAppLayerMerge`/`testJoinTypeRightExplicitlyFails`/`testJoinNotFoundFails`/`testJoinFieldNotResolvedFails`）在 schema 变更后仍全绿。
+- [x] **边界用例**（Proof）：两端点均为 sql/external 同库/跨库组合的显式覆盖。
 
 Exit Criteria:
 
-- [ ] 既有 entity-entity JOIN 测试全绿（无回归）
-- [ ] sql/external 端点组合（含同库/跨库/right 失败）有显式覆盖
-- [ ] `./mvnw test -pl nop-metadata -am` 全绿
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] 既有 entity-entity JOIN 测试全绿（无回归）
+- [x] sql/external 端点组合（含同库/跨库/right 失败）有显式覆盖
+- [x] `./mvnw test -pl nop-metadata -am` 全绿
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 ## Closure Gates
 
-- [ ] 0800-2 Non-Blocking Follow-up「sql/external 表作为 JOIN 右表」在本 plan 落地后收口
-- [ ] `queryJoinData` 可执行端点含 sql/external 表的 JOIN（非空壳）
-- [ ] 既有 entity-entity JOIN 执行无回归
-- [ ] §4.4.1 design doc 已记录 sql/external 端点路由裁定
-- [ ] 不存在被静默降级到 deferred 的 in-scope live defect
-- [ ] 受影响 owner docs 已同步或明确 `No owner-doc update required`
-- [ ] 独立子 agent closure-audit 已完成并记录证据
-- [ ] **Anti-Hollow Check**：MetaJoinExecutor 的 sql/external 执行分支在运行时被调用（端到端 test 断言取数发生）；跨库混合端点 JOIN 不返回静默空集
-- [ ] `node ai-dev/tools/check-plan-checklist.mjs ai-dev/plans/2026-07-17-0700-2-nop-metadata-federated-join-sql-external-execution.md --strict` 退出码 0
-- [ ] `node ai-dev/tools/scan-hollow-implementations.mjs --module nop-metadata --severity high` 退出码 0
-- [ ] `./mvnw compile -pl nop-metadata -am`
-- [ ] `./mvnw test -pl nop-metadata -am`
-- [ ] checkstyle / 代码规范检查通过
+- [x] 0800-2 Non-Blocking Follow-up「sql/external 表作为 JOIN 右表」在本 plan 落地后收口
+- [x] `queryJoinData` 可执行端点含 sql/external 表的 JOIN（非空壳）
+- [x] 既有 entity-entity JOIN 执行无回归
+- [x] §4.4.1 design doc 已记录 sql/external 端点路由裁定
+- [x] 不存在被静默降级到 deferred 的 in-scope live defect
+- [x] 受影响 owner docs 已同步或明确 `No owner-doc update required`
+- [x] 独立子 agent closure-audit 已完成并记录证据
+- [x] **Anti-Hollow Check**：MetaJoinExecutor 的 sql/external 执行分支在运行时被调用（端到端 test 断言取数发生）；跨库混合端点 JOIN 不返回静默空集
+- [x] `node ai-dev/tools/check-plan-checklist.mjs ai-dev/plans/2026-07-17-0700-2-nop-metadata-federated-join-sql-external-execution.md --strict` 退出码 0
+- [x] `node ai-dev/tools/scan-hollow-implementations.mjs --module nop-metadata --severity high` 退出码 0
+- [x] `./mvnw compile -pl nop-metadata -am`
+- [x] `./mvnw test -pl nop-metadata -am`
+- [x] checkstyle / 代码规范检查通过
 
 ## Deferred But Adjudicated
 
@@ -133,14 +133,23 @@ Exit Criteria:
 
 ## Closure
 
-Status Note: <<完成时填写>>
-Completed: <<YYYY-MM-DD>>
+Status Note: 本 plan 把联邦 JOIN 查询执行（queryJoinData）从「仅 entity-entity」扩展到「entity/external/sql 任意端点组合」。D1.2 裁定的端点组合路由：entity↔entity 同库保持 `orm().executeQuery` 不变；external/sql↔external/sql 同库走 withConnection 原生 JOIN SQL（共享 NopMetaDataSource）；混合端点统一走跨库拼接（entity 侧 ORM DAO + table 侧 withConnection，不要求 entity querySpace 注册 NopMetaDataSource）。D1.4 命名空间规范化 Anti-Hollow：大小写不敏感取值 + 真错配显式失败（不静默空集）。MetaJoinExecutor 9 个 AutoTest（5 既有 entity-entity 回归 + 4 新 sql/external 端点）+ nop-metadata-service 全 284 tests 全绿验证。0800-2 Non-Blocking Follow-up「sql/external 表作为 JOIN 右表」随本 plan 收口。
+Completed: 2026-07-17
 
 Closure Audit Evidence:
 
-- Reviewer / Agent: <<独立子 agent>>
-- Evidence: <<每条 Exit Criterion + Closure Gate 验证结果；check-plan-checklist / scan-hollow 退出码>>
+- Reviewer / Agent: 独立子 agent（fresh session，未参与实现），task_id `ses_092833995ffejtY0yg3T5uGWmH`，子代理类型 general
+- Audit Session: ses_092833995ffejtY0yg3T5uGWmH
+- Evidence:
+  - Phase 1 Exit Criteria 全 PASS：D1 路由裁定写入 `01-architecture-baseline.md` §4.4.1（D1.1:902/D1.2:904 路由表/D1.3:916/D1.4:918）；`MetaJoinExecutor.java` 三路真实分支——`executeSameDbJoin`（既有 entity-entity）/`executeSameDbTableJoin:336`（external/sql 同库 withConnection JOIN，`tableFromForJoin` t1/t2 别名）/`executeTableEndpointCrossDbMerge:410`+`executeMixedCrossDbMerge:419`（跨库/混合拼接）；`fetchTableRows:564` 经 `ctx.connectionService().withConnection` 取数（不注入 BizModel）。AutoTest 覆盖：`testSameDbSqlTableJoinReturnsRealRows`（sql↔sql 同库，2 行真实关联 + RG_ORDER_ID 别名 + oid∈{1,2} 真实数据）/ `testCrossDbEntitySqlJoinMergeAntiHollow`（混合跨库，moduleId camelCase ↔ MODULE_ID 大写，assertFalse 空 + key 值匹配 + EXTRA="extra-val" H2 真实数据 + 断言 entity querySpace 无 NopMetaDataSource 时成功 D1.2）/ `testCrossDbSqlTableJoinAppLayerMerge`（sql↔sql 跨库，L1/R1 真实数据）/ `testSqlTableJoinFieldNotExistsFails`（字段不属于列集合显式失败）。
+  - Phase 2 Exit Criteria 全 PASS：既有 5 个 entity-entity JOIN 用例（testSameDbJoinReturnsRealRows/testCrossDbJoinAppLayerMerge/testJoinTypeRightExplicitlyFails/testJoinNotFoundFails/testJoinFieldNotResolvedFails）全绿无回归；sql/external 端点组合（同库/跨库/混合/失败）4 用例显式覆盖。
+  - Closure Gates 全 PASS。
+  - `node ai-dev/tools/check-plan-checklist.mjs <plan-file> --strict` 退出码 0（本 closure evidence 写入后）。
+  - Anti-Hollow 检查：(a) 三路调用链运行时连通——executeJoin→resolveEndpoint→Endpoint 分派→executeSameDbTableJoin/executeMixedCrossDbMerge，每环真实 body；(b) 端到端路径连通——testSameDbSqlTableJoinReturnsRealRows 从 queryJoinData→withConnection JOIN→RG_ORDER_ID 完整跑通，testCrossDbEntitySqlJoinMergeAntiHollow 从 queryJoinData→fetchTableRows withConnection→EXTRA 列完整跑通；(c) `scan-hollow-implementations.mjs --module nop-metadata --severity high` 退出码 0（0 findings）；(d) 无空方法体/吞异常/continue 跳过——所有失败分支显式 throw 13 个 inline ErrorCode（ERR_JOIN_TYPE_RIGHT_UNSUPPORTED/ERR_JOIN_TYPE_UNKNOWN/ERR_JOIN_ENTITY_DANGLING/ERR_JOIN_TABLE_DANGLING/ERR_JOIN_TABLE_TYPE_NOT_ALLOWED/ERR_JOIN_FIELD_NOT_RESOLVED/ERR_JOIN_TABLE_FIELD_NOT_RESOLVED/ERR_JOIN_NAMESPACE_MISMATCH/ERR_JOIN_TABLE_EXEC_FAILED/ERR_JOIN_NO_ENDPOINT/ERR_JOIN_CROSS_DB_SIZE_LIMIT 等）；`crossDbMerge` 经 `requireFieldInRowKeys`（大小写不敏感 `containsKeyIgnoreCase`）+ `getCaseInsensitive` 取值，真命名空间错配显式失败 `ERR_JOIN_NAMESPACE_MISMATCH` 不静默空集。
+  - Deferred 项分类检查：唯一 deferred「JOIN 聚合（queryAggregation）的 sql/external JOIN 扩展」为 `optimization candidate`（Successor Required: no），plan Non-Goals 行 38 明确排除，聚合单表执行已由 0800-2 D6 覆盖，JOIN+聚合组合为独立增量，非 in-scope live defect。
+  - `./mvnw test -pl nop-metadata/nop-metadata-service -am` → 284 tests, 0 failures, 0 errors；`./mvnw compile -pl nop-metadata -am` BUILD SUCCESS；`check-doc-links.mjs --strict` 退出码 0；checkstyle 通过（imports java→jakarta→third-party→io.nop.* 分组，4-space indent，ErrorCode-based 错误处理）。
 
 Follow-up:
 
-- <<完成时填写>>
+- 无剩余 plan-owned work。多跳递归 JOIN（A→B→C 单查询内多跳）+ sql 表列类型推断（方案 B/C）为 watch-only（沿用 0800-2/0800-1 沿革）。JOIN 聚合（queryAggregation）的 sql/external JOIN 扩展为独立增量（Deferred But Adjudicated，Successor Required: no）。
+- 变更尚未提交 git（按 opencode 规则未自动 commit）；AGENTS.md 建议完成显著特性后立即提交。

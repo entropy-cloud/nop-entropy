@@ -893,13 +893,29 @@ sql 视图无别名表达式列产 `<expr_N>` 合成名（§4.2.1），含 `<>` 
 
 #### 4.4.1 跨表 JOIN 执行（P4-2 裁定，落地 D3/D4/D5）
 
-本节落地 plan 0800-2 的设计决策 D3（跨表 JOIN 路由）+ D4（同库 JOIN 机制）+ D5（跨库应用层拼接契约）。`MetaTableJoin`（§2.5）建模为 `leftEntityId`/`rightEntityId`（→`MetaEntity`）+ `leftTableId`/`rightTableId`（→`MetaTable`，plan 0700-1 新增，见 §2.5.2 D4）+ `leftField`/`rightField`（字段名字符串）+ `alias` + `joinType`。**JOIN 执行首版聚焦 entity-entity**（plan 0800-2）；sql/external 表作为 join 端点的**建模 + 校验**已由 plan 0700-1 支持，其 JOIN **查询执行**（queryJoinData）为 successor plan 0700-2。
+本节落地 plan 0800-2 的设计决策 D3（跨表 JOIN 路由）+ D4（同库 JOIN 机制）+ D5（跨库应用层拼接契约），并由 plan 0700-2 扩展到「entity/external/sql 任意组合均可作为 JOIN 端点」。`MetaTableJoin`（§2.5）建模为 `leftEntityId`/`rightEntityId`（→`MetaEntity`）+ `leftTableId`/`rightTableId`（→`MetaTable`，plan 0700-1 新增，见 §2.5.2 D4）+ `leftField`/`rightField`（字段名字符串）+ `alias` + `joinType`。sql/external 表作为 join 端点的**建模 + 校验**由 plan 0700-1 支持，其 JOIN **查询执行**（queryJoinData）由 plan 0700-2 落地。
 
 **JOIN 入口**：`@BizQuery queryJoinData(metaTableId, joinId, filter?, limit?, offset?, context)`，落点 `NopMetaTableBizModel`。`metaTableId` 为左表（join 所属逻辑表），`joinId` 指定 `NopMetaTableJoin`。`filter`/`limit`/`offset` 同单表语义。返回 `Map{items:[{行数据}]}`。
 
 **D3 — 跨表 JOIN 路由（按左右 querySpace 是否相同分派）**：
 
-querySpace 解析规则：entity 表用 `MetaEntity.querySpace`（左右 entity 各自从其 `NopMetaEntity` 取）；external/sql 表用表自身 `querySpace`（plan 0700-1 已支持 sql/external 作为 join 端点的建模+校验，其 querySpace 在 JOIN 查询执行中的使用属 successor plan 0700-2）。
+querySpace 解析规则（plan 0700-2 D1.1 扩展）：entity 端点 querySpace 取自 `NopMetaEntity.querySpace`（平台 ORM 管理，通常无 NopMetaDataSource）；external/sql 端点 querySpace 取自 `NopMetaTable.querySpace`（须匹配一个 NopMetaDataSource，否则显式失败）。路由比较须 cross-source——见 D1.2 的混合端点裁定。
+
+**D1.2 — 端点组合路由裁定（plan 0700-2）**：JOIN 端点经 `leftEntityId`/`rightEntityId`（entity 端点）或 `leftTableId`/`rightTableId`（external/sql 表端点）解析后，按端点组合（而非单纯 querySpace 字符串）分派：
+
+| 端点组合 | 路由 | 连接载体 |
+|---------|------|---------|
+| entity ↔ entity（同 querySpace） | 同库 JOIN（D4 既有） | `orm().executeQuery`（**保持不变，不重写为 withConnection**） |
+| entity ↔ entity（不同 querySpace） | 跨库拼接（D5） | 各侧 `fetchEntityRows`（ORM DAO） |
+| external/sql ↔ external/sql（同 querySpace） | **同库 JOIN（withConnection 原生 JOIN SQL）** | 单次 `withConnection`（共享 NopMetaDataSource），标识符白名单 + 参数绑定 |
+| external/sql ↔ external/sql（不同 querySpace） | 跨库拼接（D5） | 各侧 `fetchTableRows`（各自 `withConnection`） |
+| **混合端点（entity ↔ external/sql，任意 querySpace）** | **统一走跨库拼接（D5）** | entity 侧 `fetchEntityRows`（ORM DAO）+ table 侧 `fetchTableRows`（`withConnection`） |
+
+混合端点裁定理由：entity 物理表与 external/sql 物理表使用**本质不同的连接机制**（平台 ORM session vs 外部 NopMetaDataSource），即便 querySpace 字符串相同也无法在**单一连接**上跑原生 JOIN SQL。故混合端点一律走应用层拼接——**不要求 entity 端点的 querySpace 注册 NopMetaDataSource**（entity 侧经 ORM DAO 取数，与 NopMetaDataSource 无关），混合 JOIN 在 entity querySpace 无 NopMetaDataSource 时**正常成功**（与单库原生 JOIN 的失败语义解耦）。该裁定避免向 `MetaJoinExecutor` 引入 §4.4.3 D1 平台 `IJdbcTransaction.getConnection()` 机制（该机制服务 Catalog/Profiling 统计，JOIN 路径不需要）。
+
+**D1.3 — 单表取数接线（plan 0700-2）**：跨库拼接（D5）对各端点取数——entity 端点经 `MetaQueryContext.orm()`/`daoProvider()` 走 ORM DAO（既有 `fetchEntityRows`）；external/sql 端点经 `MetaQueryContext.connectionService()`/`dataSourceResolver()`/`fieldResolver()`/`filterTranslator()` 走 `withConnection`（**新增 `fetchTableRows`，在 `MetaJoinExecutor` 内实现，不注入 `NopMetaTableBizModel` 避免循环依赖**）。接线与 §4.4 queryTableData 的 external/sql 分派一致（同依赖集），仅落点在 executor 而非 BizModel。
+
+**D1.4 — 跨库拼接 key 命名空间规范化（plan 0700-2，Anti-Hollow）**：应用层拼接时各侧 row Map 的 key 命名空间不同——entity 行 key 为 **camelCase 属性名**（`orm_propValueByName`），external/sql 行 key 为**物理列名**（`ResultSetMetaData.getColumnLabel`，H2 常大写）。`leftField`（entity 端点）按属性名从 entity 行取值，`rightField`（external/sql 端点）按物理列名从 table 行取值——**各侧用自己的命名空间取值即天然一致**，跨侧仅按字符串值相等匹配。**Anti-Hollow 保证**：合并前显式校验 `leftField ∈ leftRows[0].keySet()` 且 `rightField ∈ rightRows[0].keySet()`（非空集时），命名空间错配（字段名在 row Map 找不到）**显式失败抛 inline ErrorCode**，绝不静默返回空集（与正常 inner join 无匹配行丢弃区分）。
 
 | 条件 | 路由 | 机制 |
 |------|------|------|
@@ -911,14 +927,15 @@ querySpace 解析规则：entity 表用 `MetaEntity.querySpace`（左右 entity 
 **D4 — 同库 JOIN 机制**：
 
 - **entity-entity 同库**：经平台 ORM session 执行原生 JOIN SQL——载体 `orm().executeQuery(SQL, range, callback)`（**entity 表 querySpace 由 ORM 管理、不经 NopMetaDataSource，故不能用 withConnection**）。SQL 文本为**物理表 + 物理列**：左/右物理表取自 `MetaEntity.tableName`，`leftField`/`rightField`（属性名字符串）解析回物理列 `NopMetaEntityField.columnCode`（按 `metaEntityId + fieldName` 查 `NopMetaEntityField`）。SQL 构造时 `SQL.allowUnderscoreName(true)` 使 EQL 编译器接受下划线物理表名（EQL 将 `NOP_META_*` 解析为对应实体）。**不使用 `QueryBean.innerJoin/leftJoin`**——经核验 `QueryBean.join` 是 MDX 风格的内存 dimField 对齐合并（`MdxQuerySplitter` 不读 `conditions`/`joinType`），**不是关系型字段对 JOIN**，无法表达 ad-hoc `leftField=rightField` 关联；故 entity 同库 JOIN 走原生 SQL（与 D6 entity 聚合一致的执行载体）。**前置校验**：左右两个实体均须注册于运行时 `IOrmSessionFactory`（`orm().isValidEntityName(entityName)`），否则显式失败抛 inline ErrorCode（不静默空集）。
-- **external/sql 同库 JOIN（机制定义，首版 join 端点仅 entity）**：经 `withConnection`（querySpace→NopMetaDataSource）生成原生 `JOIN` SQL（标识符经 §2.7.1 D3 白名单 `^[A-Za-z_][A-Za-z0-9_]*$` + 值参数绑定）。
+- **external/sql 同库 JOIN（plan 0700-2 落地，端点均为 external/sql 表）**：经 `withConnection`（querySpace→NopMetaDataSource，两端点共享同一数据源）生成原生 `JOIN` SQL（标识符经 §2.7.1 D3 白名单 `^[A-Za-z_][A-Za-z0-9_]*$` + 值参数绑定）。FROM 子句按 tableType 构造：external → `FROM <tableName>`；sql → `FROM (<sourceSql>) _t`（与 §4.4.2 D6 聚合 external/sql 路径 `buildFromClause` 同范式）。join 字段为该表可解析列名（external→buildSql JSON columnName；sql→SELECT 解析列），经 plan 0700-1 save 校验已保证存在于该表列集合。**混合端点（entity ↔ external/sql）同库 JOIN 不走此路径**——见 D1.2 混合端点裁定（统一走跨库拼接）。
 - **`joinType=right` 首版全局显式不支持**：抛 inline ErrorCode（见 D5）。
 
 **D5 — 跨库应用层拼接契约**：
 
 左右各走 §4.4 单表查询（`queryTableData`）取 `List<Map>` → 内存按 join key 合并。明确：
 
-- **join key 匹配**：按 `leftField`/`rightField` 列值**字符串相等**匹配（`String.valueOf(leftVal).equals(String.valueOf(rightVal))`）。跨库类型差异由调用方建模保证；首版**不做隐式类型转换**，不匹配即不关联。
+- **取数载体（plan 0700-2 D1.3 扩展）**：entity 端点经 ORM DAO（`fetchEntityRows`，行 key 为 camelCase 属性名）；external/sql 端点经 `withConnection`（`fetchTableRows`，行 key 为物理列名）。
+- **join key 匹配**：按 `leftField`/`rightField` 列值**字符串相等**匹配（`String.valueOf(leftVal).equals(String.valueOf(rightVal))`）。各侧按自己的命名空间取值（entity 侧按属性名、table 侧按物理列名），跨侧仅按值相等。命名空间错配（字段名在 row Map 找不到）**显式失败不静默空集**（D1.4 Anti-Hollow）。跨库类型差异由调用方建模保证；首版**不做隐式类型转换**，不匹配即不关联。
 - **结果 schema**：左表列 + 右表列。右表列名与左表冲突时加 `<alias>.` 前缀（`alias` 取自 `NopMetaTableJoin.alias`；alias 为空时用 `right`）。
 - **分页**：跨库拼接首版**不保证 LIMIT/OFFSET 全局语义**（内存合并无全局序）——明确文档化为已知限制；limit/offset 仅作为合并后结果集的**截断提示**（取前 limit 行，从 offset 起），调用方如需精确分页应在单表侧先行过滤。
 - **规模上限**：单侧结果集行数上限 `MetaJoinExecutor.MAX_CROSS_DB_ROWS`（默认 10000，可调）；超限显式失败抛 inline ErrorCode（防 OOM，不静默截断）。
