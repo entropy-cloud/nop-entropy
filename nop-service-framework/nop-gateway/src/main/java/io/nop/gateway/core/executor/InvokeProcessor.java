@@ -168,11 +168,13 @@ public class InvokeProcessor {
             // 最终响应处理
             if (httpStatus == 429) {
                 return CompletableFuture.failedFuture(new NopException(ERR_GATEWAY_UPSTREAM_429)
-                        .param("httpStatus", httpStatus));
+                        .param("httpStatus", httpStatus)
+                        .param("responseBody", httpResponse.getBody()));
             }
             if (httpStatus >= 500) {
                 return CompletableFuture.failedFuture(new NopException(ERR_GATEWAY_UPSTREAM_FAILED)
-                        .param("httpStatus", httpStatus));
+                        .param("httpStatus", httpStatus)
+                        .param("responseBody", httpResponse.getBody()));
             }
 
             ApiResponse<Object> apiResponse;
@@ -200,10 +202,22 @@ public class InvokeProcessor {
 
     private long parseRetryAfter(String retryAfter, int retriesLeft) {
         if (retryAfter != null && !retryAfter.isEmpty()) {
+            String trimmed = retryAfter.trim();
             try {
-                return Long.parseLong(retryAfter.trim()) * 1000;
+                return Long.parseLong(trimmed) * 1000;
             } catch (NumberFormatException e) {
-                // 不是秒数格式，使用默认退避
+                // 不是秒数格式，尝试 HTTP-date 格式
+            }
+            try {
+                java.time.ZonedDateTime httpDate = java.time.ZonedDateTime.parse(trimmed,
+                        java.time.format.DateTimeFormatter.RFC_1123_DATE_TIME);
+                long delayMs = httpDate.toInstant().toEpochMilli() - System.currentTimeMillis();
+                if (delayMs > 0) {
+                    return delayMs;
+                }
+                return 0;
+            } catch (java.time.format.DateTimeParseException e) {
+                // 不是 HTTP-date 格式，使用默认退避
             }
         }
         // 默认退避：2^attempt * 1s + jitter

@@ -5,7 +5,6 @@ import io.nop.api.core.beans.ApiResponse;
 import io.nop.api.core.ioc.BeanContainer;
 import io.nop.gateway.conversion.IBackendMessageConverter;
 
-import java.util.Collections;
 import java.util.Map;
 
 /**
@@ -13,11 +12,13 @@ import java.util.Map;
  * bean命名约定为 nopBackendMessageConverter_{AiBackendType}。
  * 新增Provider只需在beans.xml中注册对应bean，无需修改此工厂类。
  * <p>
- * IoC不可用时（如单元测试环境），回退到直接实例化默认转换器。
+ * IoC不可用时（如单元测试环境），回退到 {@link #FALLBACK_CONVERTERS} 中预置的转换器。
  */
 public final class AiBackendMessageConverter {
 
-    private static final Map<AiBackendType, IBackendMessageConverter> FALLBACK_CONVERTERS = java.util.Collections.emptyMap();
+    private static final Map<AiBackendType, IBackendMessageConverter> FALLBACK_CONVERTERS = Map.of(
+            AiBackendType.DEEPSEEK, new DeepSeekMessageConverter(),
+            AiBackendType.GEMINI, new GeminiMessageConverter());
 
     private AiBackendMessageConverter() {
     }

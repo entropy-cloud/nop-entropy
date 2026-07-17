@@ -30,7 +30,19 @@
         <constructor-arg index="0" ref="nopGatewayLogger"/>
     </bean>
 
-    <!-- AI Backend Message Converters — 由 nop-ai-gateway 模块的 AiDialectBackendMessageConverter 提供 -->
+    <!-- AI Backend Message Converters — 命名约定 nopBackendMessageConverter_{AiBackendType}，
+         由 AiBackendMessageConverter.getConverter() 按 bean 名查找。
+         DeepSeek/Gemini 在本模块提供；OpenAI/Claude/Ollama 等方言式转换由 nop-ai-gateway 模块的
+         AiDialectBackendMessageConverter 注册。 -->
+    <bean id="nopBackendMessageConverter_DEEPSEEK"
+          class="io.nop.gateway.conversion.ai.DeepSeekMessageConverter"
+          ioc:type="io.nop.gateway.conversion.IBackendMessageConverter"
+          ioc:default="true" />
+
+    <bean id="nopBackendMessageConverter_GEMINI"
+          class="io.nop.gateway.conversion.ai.GeminiMessageConverter"
+          ioc:type="io.nop.gateway.conversion.IBackendMessageConverter"
+          ioc:default="true" />
 
     <!-- AI Gateway 拦截器 -->
     <bean id="nopAiAuthGatewayInterceptor"
