@@ -988,6 +988,19 @@ granularity→分桶表达式表（external/sql 路径，withConnection 原生 S
 
 **失败路径显式化**：表不存在 / 无选定 measure 或 dimension / entityFieldId 无法解析物理列 / aggFunc 不支持 / granularity 不约定 / 方言不支持 / expression 型 measure / 实体未注册 均显式失败抛 inline ErrorCode。
 
+**D8 — entity↔entity JOIN 聚合（plan 0852-1 落地）**：
+
+`queryAggregation` 增加可选 `joinId` 参数（`@Optional`，为空时维持单表 D6 行为完全不变）。提供 `joinId` 且两端点均为 entity 时，对 `NopMetaTableJoin` 定义的关联执行**跨表聚合**：所选 Measure + Dimension（可来自左 entity 或经 JOIN 可达的右 entity）经 `GROUP BY ... OVER JOIN` 聚合返回。
+
+- **入口**：`queryAggregation(metaTableId, measures, dimensions, filter?, joinId?, limit?, offset?, context)`，落点 `NopMetaTableBizModel` → `MetaAggregationExecutor.executeAggregation`。`joinId` 非空 → `executeJoinAggregation`（不复用单表分支）。
+- **join 校验复用裁定**：显式选定**抽取共享**——`MetaJoinExecutor.loadValidatedJoin`（join 加载/归属/joinType 校验）+ `resolveEndpoint`（端点解析，package-private）+ `requireRegistered`（实体注册校验）+ `resolveFieldToColumn`（join 字段→物理列）。`MetaAggregationExecutor` 经构造注入 `MetaJoinExecutor` 复用同一套语义（避免去重 debt）。
+- **端点归属判定（无歧义）**：每个 Measure/Dimension 的 `entityFieldId` 是 `NopMetaEntityField` 主键 → 加载 `NopMetaEntityField.metaEntityId` 判定属于左/右 entity，解析物理列 `columnCode` 后在 SQL 中以 `l.<col>` / `r.<col>` 限定。**entity 字段归属无歧义**（每字段绑定唯一 `metaEntityId`）。
+- **执行载体**：同库 entity↔entity → `orm().executeQuery` 跑原生 `SELECT <group l./r. cols>, <agg(l./r. col)> FROM <leftPhysical> l INNER|LEFT JOIN <rightPhysical> r ON l.<lf>=r.<rf> [WHERE] GROUP BY ...`（`allowUnderscoreName(true)`，与 D6 entity 聚合一致）。
+- **聚合语义**：与单表路径一致（aggFunc sum/count/avg/min/max/countDistinct、默认过滤器自动应用、`expression` 型 Measure 显式不支持）。
+- **失败路径显式化（无静默跳过/无静默降级单表/无空 items）**：join 不存在/不归属/joinType=right/未知 joinType（由 `loadValidatedJoin` 抛）；任一端点非 entity（external/sql table 端点 → `ERR_AGGR_JOIN_ENDPOINT_NOT_ENTITY`，指向 external/sql JOIN 聚合 deferred）；self-join（`leftEntityId == rightEntityId`，字段归属两侧均命中、无法表达右别名 → `ERR_AGGR_JOIN_SELF_JOIN`）；跨 querySpace（跨库 → `ERR_AGGR_JOIN_CROSS_QUERY_SPACE`，指向跨库 deferred）；字段 `metaEntityId` 既不等于左也不等于右 entity（→ `ERR_AGGR_JOIN_FIELD_SIDE_UNRESOLVED`，带 measureName/dimensionName + joinId）；EQL 编译失败（保留字物理列名如 PRECISION/SCALE/NUMBER，或歧义列 → `ERR_AGGR_JOIN_COMPILE_FAILED`，含迁移指引）。
+- **EQL 保留字风险裁定**：`MetaJoinExecutor.executeSameDbJoin`（行级 JOIN）为规避 EQL 保留字仅投影 join-key 列；本 JOIN 聚合路径须投影两侧任意 measure/dimension 物理列，遇 EQL 编译失败经 `orm().executeQuery` 的 try/catch 收口为 `ERR_AGGR_JOIN_COMPILE_FAILED`（显式失败 + 迁移指引，不静默退化）。这与单表 entity 聚合路径的 EQL 风险一致（单表路径同样投影任意物理列，EQL 失败由通用 exec 错误承载）。
+- **Deferred（已裁定）**：external/sql 端点的 JOIN 聚合（`NopMetaTableMeasure/Dimension` 对 external/sql 表的 `entityFieldId` 为裸列名字符串，无 `metaEntityId`/side/endpointTableId，同名列无法判定左右侧 → 需 ORM 结构变更，Protected Area plan-first）；跨 querySpace（跨库）entity-entity JOIN 聚合（需应用层先拼接再内存聚合）；混合端点（entity ↔ external/sql）JOIN 聚合。三者均显式失败，不静默跳过。
+
 ---
 
 ## 五、与 nop-dyn 的关系
