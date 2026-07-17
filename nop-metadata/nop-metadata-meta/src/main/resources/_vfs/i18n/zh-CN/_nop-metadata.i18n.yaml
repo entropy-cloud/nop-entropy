@@ -684,6 +684,9 @@ prop:
       leftEntity.displayName: 左实体
       leftEntityId: 左实体ID
       leftField: 左关联字段
+      leftTable: 左表
+      leftTable.displayName: 左表
+      leftTableId: 左表ID
       metaTable: 逻辑表
       metaTable.displayName: 逻辑表
       metaTableId: 逻辑表ID
@@ -692,6 +695,9 @@ prop:
       rightEntity.displayName: 右实体
       rightEntityId: 右实体ID
       rightField: 右关联字段
+      rightTable: 右表
+      rightTable.displayName: 右表
+      rightTableId: 右表ID
       updateTime: 修改时间
       updatedBy: 修改人
       version: 数据版本

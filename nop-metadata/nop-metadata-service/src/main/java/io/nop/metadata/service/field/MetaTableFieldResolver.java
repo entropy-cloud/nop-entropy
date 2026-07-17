@@ -39,10 +39,17 @@ import java.util.Set;
  * <p>降级铁律（不静默通过、不吞异常、不伪造）：字段集合解析失败一律抛 inline {@link ErrorCode}，
  * 不静默返回空集合、不静默跳过校验、不静默存入悬空引用。
  *
- * <p>跨表校验（架构基线 §2.5.2 D3）：entity 类型表的 Measure/Dimension {@code entityFieldId} 引用可校验
- * **通过 NopMetaTableJoin 直连可达的 rightEntityId 实体字段**（跨表指标），可达 entityId 集合 =
- * {@code {baseEntityId ∪ join.rightEntityId}}，见 {@link #resolveAllowedEntityIds}。external/sql 表无 join
- * 可达（D3 排除），沿用既有名称集合校验。
+ * <p>跨表校验（架构基线 §2.5.2 D3/D4）：
+ * <ul>
+ *   <li><b>entity 表 Measure/Dimension</b>（plan 0228-3）：{@code entityFieldId} 引用可校验**通过 NopMetaTableJoin
+ *       直连可达的 rightEntityId 实体字段**（跨表指标），可达 entityId 集合 = {@code {baseEntityId ∪ join.rightEntityId}}，
+ *       见 {@link #resolveAllowedEntityIds}（PK 归属语义，Approach A）。</li>
+ *   <li><b>sql/external 表 Measure/Dimension</b>（plan 0700-1 D4）：{@code entityFieldId} 为字段名字符串，其跨表校验采用
+ *       **name-based 可达列名集合** = {@code 该表自身列名 ∪ 其 NopMetaTableJoin 各端点解析出的列名/字段名}，
+ *       见 {@link #resolveAllowedFieldNames}（区别于 entity 的 PK 归属语义——sql/external 字段引用是 name-based）。
+ *       端点经 plan 0700-1 新增的 {@code leftTableId}/{@code rightTableId}（→NopMetaTable，external/sql）或
+ *       {@code leftEntityId}/{@code rightEntityId}（→NopMetaEntity）解析。</li>
+ * </ul>
  *
  * <p>本解析器无状态（{@link SqlSelectFieldExtractor} 亦无状态），可在多 BizModel 间共享实例。
  */
@@ -179,7 +186,8 @@ public class MetaTableFieldResolver {
     }
 
     /**
-     * 校验字段引用合法性（架构基线 §2.5.2 D2 字段引用存储裁定 + D3 跨表校验范围）。
+     * 校验字段引用合法性（架构基线 §2.5.2 D2 字段引用存储裁定 + D3 entity 跨表 PK 归属校验范围
+     * + D4 sql/external name-based 可达集校验）。
      *
      * <p>语义按 tableType 重载：
      * <ul>
@@ -187,16 +195,20 @@ public class MetaTableFieldResolver {
      *       按 PK 加载字段实体，校验其 {@code metaEntityId} ∈ 可达 entityId 集合 {@code allowedEntityIds}
      *       （= {@code baseEntityId ∪ join 直连可达 rightEntityId}，见 {@link #resolveAllowedEntityIds}）。
      *       跨表指标（引用 join 右实体字段）合法通过；悬空跨表引用（metaEntityId 不在集合）显式失败。</li>
-     *   <li><b>external / sql</b> 表：{@code entityFieldId} 为字段名字符串——校验该名属于该表可用字段名集合
-     *       （external→buildSql JSON columnName；sql→SELECT 解析字段名）。external/sql 表无 join 可达（D3 排除）。</li>
+     *   <li><b>external / sql</b> 表（plan 0700-1 D4 扩展）：{@code entityFieldId} 为字段名字符串——校验该名属于
+     *       该表 name-based 可达列名集合 {@code reachableFieldNames}（= 该表自身列名 ∪ 其 NopMetaTableJoin
+     *       各端点解析出的列名/字段名，见 {@link #resolveAllowedFieldNames}）。tableDao 用于解析 table 端点
+     *       （external/sql）的列结构；joinDao 为 null 时退化为仅自身列名（无跨表可达）。</li>
      * </ul>
      *
      * @param table          目标逻辑表
      * @param entityFieldId  字段引用（entity 表为主键，external/sql 表为字段名）；为 null/空时返回 true（跳过校验，
      *                       用于 expression 型 Measure）
      * @param fieldDao       entity 字段 DAO
-     * @param joinDao        表关联 DAO（仅 entity 分支使用，用于跨表可达 rightEntityId 集合解析；
-     *                       为 null 时 entity 分支退化为 entity-only 校验）
+     * @param joinDao        表关联 DAO（entity 分支用于跨表可达 rightEntityId 解析；external/sql 分支用于
+     *                       name-based 可达列名集合并集；为 null 时两分支退化为非跨表校验）
+     * @param tableDao       逻辑表 DAO（仅 external/sql 分支使用，用于解析 table 端点 NopMetaTable 列结构；
+     *                       entity 分支不使用，可传 null）
      * @param errOnInvalid   引用不合法时抛出的 ErrorCode（调用方按语义提供，如 measure-field-not-found）
      * @param refKind        引用类型描述（如 "measure"/"dimension"），用于错误消息
      * @return true 如果引用合法或为空（跳过）；false 由调用方决定是否忽略
@@ -205,6 +217,7 @@ public class MetaTableFieldResolver {
     public boolean validateFieldReference(NopMetaTable table, String entityFieldId,
                                           IEntityDao<NopMetaEntityField> fieldDao,
                                           IEntityDao<NopMetaTableJoin> joinDao,
+                                          IEntityDao<NopMetaTable> tableDao,
                                           ErrorCode errOnInvalid, String refKind) {
         if (entityFieldId == null || entityFieldId.isEmpty()) {
             // expression 型 Measure / 无字段引用——跳过校验（Non-Goal: expression 内容首版不校验）
@@ -231,8 +244,8 @@ public class MetaTableFieldResolver {
             }
             return true;
         }
-        // external / sql 表：entityFieldId 为字段名，校验属于该表可用字段名集合（无 join 可达，不扩展）
-        Set<String> names = resolveFieldNames(table, fieldDao);
+        // external / sql 表（§2.5.2 D4）：entityFieldId 为字段名，校验属于 name-based 可达列名集合
+        Set<String> names = resolveAllowedFieldNames(table, fieldDao, joinDao, tableDao);
         if (!names.contains(entityFieldId)) {
             throw new NopException(errOnInvalid)
                     .param("metaTableId", table.getMetaTableId())
@@ -241,6 +254,75 @@ public class MetaTableFieldResolver {
                     .param("availableFields", names);
         }
         return true;
+    }
+
+    /**
+     * 解析 sql/external 类型表的 name-based 可达列名集合（架构基线 §2.5.2 D4，plan 0700-1 D2 落地）。
+     *
+     * <p>集合 = {@code 该表自身可解析列名 ∪ 该表所有 NopMetaTableJoin 各端点（left/right，entity/table）
+     * 解析出的列名/字段名}。entity 端点贡献其 {@code NopMetaEntityField.fieldName} 集合；table 端点（external/sql）
+     * 贡献其列名集合。**不沿用** entity 表的 {@code allowedEntityIds} PK 归属路径——sql/external 字段引用是 name-based。
+     *
+     * <p>宽松语义（对齐 D3 entity 直连语义）：不要求 join 的某端点 == 该表自身，任意该表 join 的两端点列名均并入可达集。
+     * 仅直连 join，不递归 join 图（A→B→C 间接可达为 follow-up）。
+     *
+     * @param table    sql/external 类型目标逻辑表（非 null）
+     * @param fieldDao entity 字段 DAO（解析 entity 端点字段名 + entity 表列名）
+     * @param joinDao  表关联 DAO；为 null 时退化为仅该表自身列名（无跨表可达，用于不要求跨表校验的场景）
+     * @param tableDao 逻辑表 DAO（解析 table 端点 NopMetaTable 列结构）；joinDao 非 null 时须非 null
+     * @return 可达列名集合（至少含该表自身列名，永不 null/空——自身列名空由 {@link #resolveFieldNames} 显式失败）
+     * @throws NopException 该表自身或某端点列集合解析失败（buildSql 损坏 / sourceSql 不可解析 /
+     *                       entity baseEntityId null / table 端点表不存在）——显式失败，不静默跳过端点
+     */
+    public Set<String> resolveAllowedFieldNames(NopMetaTable table,
+                                                IEntityDao<NopMetaEntityField> fieldDao,
+                                                IEntityDao<NopMetaTableJoin> joinDao,
+                                                IEntityDao<NopMetaTable> tableDao) {
+        // name-based 可达列名集合（D2）：自身列名 ∪ 各 join 端点解析出的列名/字段名
+        Set<String> allowed = new LinkedHashSet<>(resolveFieldNames(table, fieldDao));
+        if (joinDao == null) {
+            // 调用方未提供 join DAO——退化为仅自身列名（无跨表可达）
+            return allowed;
+        }
+        QueryBean q = new QueryBean();
+        q.addFilter(FilterBeans.eq(NopMetaTableJoin.PROP_NAME_metaTableId, table.getMetaTableId()));
+        List<NopMetaTableJoin> joins = joinDao.findAllByQuery(q);
+        for (NopMetaTableJoin join : joins) {
+            addEndpointFieldNames(allowed, join.getLeftEntityId(), join.getLeftTableId(), fieldDao, tableDao);
+            addEndpointFieldNames(allowed, join.getRightEntityId(), join.getRightTableId(), fieldDao, tableDao);
+        }
+        return allowed;
+    }
+
+    /**
+     * 将单个 join 端点（entity 或 table）解析出的列名/字段名并入可达集。
+     *
+     * <p>端点解析失败（entity 无字段 / table 端点表不存在 / 列集合损坏）显式抛 ErrorCode——按降级铁律不静默跳过
+     * 该端点（静默跳过会导致可达集缩小，误判合法字段为悬空）。
+     */
+    private void addEndpointFieldNames(Set<String> sink, String entityId, String tableId,
+                                       IEntityDao<NopMetaEntityField> fieldDao,
+                                       IEntityDao<NopMetaTable> tableDao) {
+        boolean hasEntity = entityId != null && !entityId.isEmpty();
+        boolean hasTable = tableId != null && !tableId.isEmpty();
+        if (!hasEntity && !hasTable) {
+            // 端点未引用任何对象——跳过（Join 自身的 mandatory/互斥校验在 NopMetaTableJoinBizModel 负责）
+            return;
+        }
+        if (hasEntity) {
+            // entity 端点贡献其字段名集合（name-based，非 PK 路径）
+            for (ResolvedTableField f : resolveEntityFieldsByEntityId(entityId, fieldDao)) {
+                sink.add(f.getName());
+            }
+            return;
+        }
+        // table 端点（external/sql/entity 任一 tableType 均按其可解析列名解析）
+        NopMetaTable endpointTable = tableDao.getEntityById(tableId);
+        if (endpointTable == null) {
+            // 端点表不存在——显式失败（不静默跳过该端点、不静默缩小可达集）
+            throw new NopException(ERR_FIELD_RESOLVE_TABLE_NOT_FOUND).param("metaTableId", tableId);
+        }
+        sink.addAll(resolveFieldNames(endpointTable, fieldDao));
     }
 
     // ============================================================

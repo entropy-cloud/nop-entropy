@@ -689,12 +689,18 @@ prop:
       updatedBy: Updated By
       updateTime: Update Time
       remark: Remark
+      leftTableId: Left Table Id
+      rightTableId: Right Table Id
       metaTable: Meta Table
       metaTable.displayName: Meta Table
       leftEntity: Left Entity
       leftEntity.displayName: Left Entity
       rightEntity: Right Entity
       rightEntity.displayName: Right Entity
+      leftTable: Left Table
+      leftTable.displayName: Left Table
+      rightTable: Right Table
+      rightTable.displayName: Right Table
     NopMetaTableMeasure:
       measureId: Measure Id
       metaTableId: Meta Table Id

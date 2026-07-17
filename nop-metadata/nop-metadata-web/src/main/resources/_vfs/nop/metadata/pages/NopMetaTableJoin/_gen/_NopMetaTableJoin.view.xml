@@ -56,6 +56,12 @@
 
                 <!--备注-->
                 <col id="remark" sortable="true"/>
+
+                <!--左表ID-->
+                <col id="leftTableId" sortable="true"/>
+
+                <!--右表ID-->
+                <col id="rightTableId" sortable="true"/>
             </cols>
         </grid>
         <grid id="pick-list" x:prototype="list" x:abstract="true"/>
@@ -70,21 +76,19 @@
  rightField[右关联字段] alias[右表别名]
  createdBy[创建人] createTime[创建时间]
  updatedBy[修改人] updateTime[修改时间]
- remark[备注] 
+ remark[备注] leftTableId[左表ID]
+ rightTableId[右表ID] 
 </layout>
         </form>
         <form id="add" editMode="add" title="新增-表关联" i18n-en:title="Add Meta Table Join" x:prototype="edit"/>
         <form id="edit" editMode="edit" title="编辑-表关联" i18n-en:title="Edit Meta Table Join">
             <layout>
- joinId[关联ID]
- metaTableId[逻辑表ID]
- joinType[关联类型]
- leftEntityId[左实体ID]
- rightEntityId[右实体ID]
- leftField[左关联字段]
- rightField[右关联字段]
- alias[右表别名]
- remark[备注]
+ joinId[关联ID] metaTableId[逻辑表ID]
+ joinType[关联类型] leftEntityId[左实体ID]
+ rightEntityId[右实体ID] leftField[左关联字段]
+ rightField[右关联字段] alias[右表别名]
+ remark[备注] leftTableId[左表ID]
+ rightTableId[右表ID] 
 </layout>
         </form>
         <form id="query" editMode="query" title="查询条件" i18n-en:title="Query Condition" x:abstract="true"/>

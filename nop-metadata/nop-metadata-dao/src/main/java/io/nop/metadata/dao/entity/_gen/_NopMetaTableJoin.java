@@ -77,8 +77,16 @@ public class _NopMetaTableJoin extends DynamicOrmEntity{
     public static final String PROP_NAME_remark = "remark";
     public static final int PROP_ID_remark = 14;
     
+    /* 左表ID: LEFT_TABLE_ID VARCHAR */
+    public static final String PROP_NAME_leftTableId = "leftTableId";
+    public static final int PROP_ID_leftTableId = 15;
+    
+    /* 右表ID: RIGHT_TABLE_ID VARCHAR */
+    public static final String PROP_NAME_rightTableId = "rightTableId";
+    public static final int PROP_ID_rightTableId = 16;
+    
 
-    private static int _PROP_ID_BOUND = 15;
+    private static int _PROP_ID_BOUND = 17;
 
     
     /* relation: 逻辑表 */
@@ -90,11 +98,17 @@ public class _NopMetaTableJoin extends DynamicOrmEntity{
     /* relation: 右实体 */
     public static final String PROP_NAME_rightEntity = "rightEntity";
     
+    /* relation: 左表 */
+    public static final String PROP_NAME_leftTable = "leftTable";
+    
+    /* relation: 右表 */
+    public static final String PROP_NAME_rightTable = "rightTable";
+    
 
     protected static final List<String> PK_PROP_NAMES = Arrays.asList(PROP_NAME_joinId);
     protected static final int[] PK_PROP_IDS = new int[]{PROP_ID_joinId};
 
-    private static final String[] PROP_ID_TO_NAME = new String[15];
+    private static final String[] PROP_ID_TO_NAME = new String[17];
     private static final Map<String,Integer> PROP_NAME_TO_ID = new HashMap<>();
     static{
       
@@ -140,6 +154,12 @@ public class _NopMetaTableJoin extends DynamicOrmEntity{
           PROP_ID_TO_NAME[PROP_ID_remark] = PROP_NAME_remark;
           PROP_NAME_TO_ID.put(PROP_NAME_remark, PROP_ID_remark);
       
+          PROP_ID_TO_NAME[PROP_ID_leftTableId] = PROP_NAME_leftTableId;
+          PROP_NAME_TO_ID.put(PROP_NAME_leftTableId, PROP_ID_leftTableId);
+      
+          PROP_ID_TO_NAME[PROP_ID_rightTableId] = PROP_NAME_rightTableId;
+          PROP_NAME_TO_ID.put(PROP_NAME_rightTableId, PROP_ID_rightTableId);
+      
     }
 
     
@@ -184,6 +204,12 @@ public class _NopMetaTableJoin extends DynamicOrmEntity{
     
     /* 备注: REMARK */
     private java.lang.String _remark;
+    
+    /* 左表ID: LEFT_TABLE_ID */
+    private java.lang.String _leftTableId;
+    
+    /* 右表ID: RIGHT_TABLE_ID */
+    private java.lang.String _rightTableId;
     
 
     public _NopMetaTableJoin(){
@@ -300,6 +326,12 @@ public class _NopMetaTableJoin extends DynamicOrmEntity{
         
             case PROP_ID_remark:
                return getRemark();
+        
+            case PROP_ID_leftTableId:
+               return getLeftTableId();
+        
+            case PROP_ID_rightTableId:
+               return getRightTableId();
         
            default:
               return super.orm_propValue(propId);
@@ -452,6 +484,26 @@ public class _NopMetaTableJoin extends DynamicOrmEntity{
                break;
             }
         
+            case PROP_ID_leftTableId:{
+               java.lang.String typedValue = null;
+               if(value != null){
+                   typedValue = ConvertHelper.toString(value,
+                       err-> newTypeConversionError(PROP_NAME_leftTableId));
+               }
+               setLeftTableId(typedValue);
+               break;
+            }
+        
+            case PROP_ID_rightTableId:{
+               java.lang.String typedValue = null;
+               if(value != null){
+                   typedValue = ConvertHelper.toString(value,
+                       err-> newTypeConversionError(PROP_NAME_rightTableId));
+               }
+               setRightTableId(typedValue);
+               break;
+            }
+        
            default:
               super.orm_propValue(propId,value);
         }
@@ -555,6 +607,20 @@ public class _NopMetaTableJoin extends DynamicOrmEntity{
             case PROP_ID_remark:{
                onInitProp(propId);
                this._remark = (java.lang.String)value;
+               
+               break;
+            }
+        
+            case PROP_ID_leftTableId:{
+               onInitProp(propId);
+               this._leftTableId = (java.lang.String)value;
+               
+               break;
+            }
+        
+            case PROP_ID_rightTableId:{
+               onInitProp(propId);
+               this._rightTableId = (java.lang.String)value;
                
                break;
             }
@@ -832,6 +898,44 @@ public class _NopMetaTableJoin extends DynamicOrmEntity{
     }
     
     /**
+     * 左表ID: LEFT_TABLE_ID
+     */
+    public final java.lang.String getLeftTableId(){
+         onPropGet(PROP_ID_leftTableId);
+         return _leftTableId;
+    }
+
+    /**
+     * 左表ID: LEFT_TABLE_ID
+     */
+    public final void setLeftTableId(java.lang.String value){
+        if(onPropSet(PROP_ID_leftTableId,value)){
+            this._leftTableId = value;
+            internalClearRefs(PROP_ID_leftTableId);
+            
+        }
+    }
+    
+    /**
+     * 右表ID: RIGHT_TABLE_ID
+     */
+    public final java.lang.String getRightTableId(){
+         onPropGet(PROP_ID_rightTableId);
+         return _rightTableId;
+    }
+
+    /**
+     * 右表ID: RIGHT_TABLE_ID
+     */
+    public final void setRightTableId(java.lang.String value){
+        if(onPropSet(PROP_ID_rightTableId,value)){
+            this._rightTableId = value;
+            internalClearRefs(PROP_ID_rightTableId);
+            
+        }
+    }
+    
+    /**
      * 逻辑表
      */
     public final io.nop.metadata.dao.entity.NopMetaTable getMetaTable(){
@@ -894,6 +998,52 @@ public class _NopMetaTableJoin extends DynamicOrmEntity{
            internalSetRefEntity(PROP_NAME_rightEntity, refEntity,()->{
            
                            this.setRightEntityId(refEntity.getMetaEntityId());
+                       
+           });
+           }
+       
+    }
+       
+    /**
+     * 左表
+     */
+    public final io.nop.metadata.dao.entity.NopMetaTable getLeftTable(){
+       return (io.nop.metadata.dao.entity.NopMetaTable)internalGetRefEntity(PROP_NAME_leftTable);
+    }
+
+    public final void setLeftTable(io.nop.metadata.dao.entity.NopMetaTable refEntity){
+   
+           if(refEntity == null){
+           
+                   this.setLeftTableId(null);
+               
+           }else{
+           internalSetRefEntity(PROP_NAME_leftTable, refEntity,()->{
+           
+                           this.setLeftTableId(refEntity.getMetaTableId());
+                       
+           });
+           }
+       
+    }
+       
+    /**
+     * 右表
+     */
+    public final io.nop.metadata.dao.entity.NopMetaTable getRightTable(){
+       return (io.nop.metadata.dao.entity.NopMetaTable)internalGetRefEntity(PROP_NAME_rightTable);
+    }
+
+    public final void setRightTable(io.nop.metadata.dao.entity.NopMetaTable refEntity){
+   
+           if(refEntity == null){
+           
+                   this.setRightTableId(null);
+               
+           }else{
+           internalSetRefEntity(PROP_NAME_rightTable, refEntity,()->{
+           
+                           this.setRightTableId(refEntity.getMetaTableId());
                        
            });
            }

@@ -74,6 +74,14 @@
               insertable="true" updatable="true">
             <schema domain="remark" type="java.lang.String" precision="200"/>
         </prop>
+        <prop name="leftTableId" displayName="左表ID" propId="15" i18n-en:displayName="Left Table Id" queryable="true"
+              sortable="true" insertable="true" updatable="true" ext:relation="leftTable">
+            <schema type="java.lang.String" precision="32"/>
+        </prop>
+        <prop name="rightTableId" displayName="右表ID" propId="16" i18n-en:displayName="Right Table Id" queryable="true"
+              sortable="true" insertable="true" updatable="true" ext:relation="rightTable">
+            <schema type="java.lang.String" precision="32"/>
+        </prop>
         <prop name="metaTable" displayName="逻辑表" i18n-en:displayName="Meta Table" tagSet="pub,ref-pub" ext:kind="to-one"
               internal="true" queryable="true" ext:joinLeftProp="metaTableId" ext:joinRightProp="metaTableId"
               ext:joinRightDisplayProp="displayName" insertable="false" updatable="false" mandatory="true" lazy="true">
@@ -100,6 +108,25 @@
             <schema bizObjName="NopMetaEntity"/>
         </prop>
         <prop name="rightEntity.displayName" displayName="右实体" i18n-en:displayName="Right Entity" internal="true"
+              queryable="true" sortable="true" lazy="true">
+            <schema type="String"/>
+        </prop>
+        <prop name="leftTable" displayName="左表" i18n-en:displayName="Left Table" tagSet="pub,ref-pub" ext:kind="to-one"
+              internal="true" queryable="true" ext:joinLeftProp="leftTableId" ext:joinRightProp="metaTableId"
+              ext:joinRightDisplayProp="displayName" insertable="false" updatable="false" lazy="true">
+            <schema bizObjName="NopMetaTable"/>
+        </prop>
+        <prop name="leftTable.displayName" displayName="左表" i18n-en:displayName="Left Table" internal="true"
+              queryable="true" sortable="true" lazy="true">
+            <schema type="String"/>
+        </prop>
+        <prop name="rightTable" displayName="右表" i18n-en:displayName="Right Table" tagSet="pub,ref-pub"
+              ext:kind="to-one" internal="true" queryable="true" ext:joinLeftProp="rightTableId"
+              ext:joinRightProp="metaTableId" ext:joinRightDisplayProp="displayName" insertable="false"
+              updatable="false" lazy="true">
+            <schema bizObjName="NopMetaTable"/>
+        </prop>
+        <prop name="rightTable.displayName" displayName="右表" i18n-en:displayName="Right Table" internal="true"
               queryable="true" sortable="true" lazy="true">
             <schema type="String"/>
         </prop>

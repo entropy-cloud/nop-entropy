@@ -1154,6 +1154,10 @@
                         propId="13" stdDataType="timestamp" stdSqlType="TIMESTAMP" i18n-en:displayName="Update Time"/>
                 <column code="REMARK" displayName="备注" domain="remark" name="remark" precision="200" propId="14"
                         stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Remark"/>
+                <column code="LEFT_TABLE_ID" displayName="左表ID" name="leftTableId" precision="32" propId="15"
+                        stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Left Table Id"/>
+                <column code="RIGHT_TABLE_ID" displayName="右表ID" name="rightTableId" precision="32" propId="16"
+                        stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Right Table Id"/>
             </columns>
             <indexes>
                 <index name="IX_NOP_META_JOIN_TABLE" unique="false">
@@ -1177,6 +1181,18 @@
                         tagSet="pub,ref-pub" i18n-en:displayName="Right Entity">
                     <join>
                         <on leftProp="rightEntityId" rightProp="metaEntityId"/>
+                    </join>
+                </to-one>
+                <to-one displayName="左表" name="leftTable" refEntityName="io.nop.metadata.dao.entity.NopMetaTable"
+                        tagSet="pub,ref-pub" i18n-en:displayName="Left Table">
+                    <join>
+                        <on leftProp="leftTableId" rightProp="metaTableId"/>
+                    </join>
+                </to-one>
+                <to-one displayName="右表" name="rightTable" refEntityName="io.nop.metadata.dao.entity.NopMetaTable"
+                        tagSet="pub,ref-pub" i18n-en:displayName="Right Table">
+                    <join>
+                        <on leftProp="rightTableId" rightProp="metaTableId"/>
                     </join>
                 </to-one>
             </relations>

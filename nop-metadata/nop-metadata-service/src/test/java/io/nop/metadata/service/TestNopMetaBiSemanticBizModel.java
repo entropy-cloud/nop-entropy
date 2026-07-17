@@ -639,6 +639,253 @@ public class TestNopMetaBiSemanticBizModel extends JunitBaseTestCase {
     }
 
     // ============================================================
+    // Join save 校验扩展（plan 0700-1：sql/external 表作为 join 端点 + entity/table 互斥 + ERR_JOIN_ENTITY_ID_NULL 放宽）
+    // ============================================================
+
+    /**
+     * sql 表作为 join 端点：rightTableId 指向 sql 表，合法 rightField 属于该 sql 表 SELECT 解析列集合 → save 通过。
+     *
+     * <p>接线验证（Anti-Hollow）：通过需要 save override 运行时确实调用 table 端点字段校验（resolveFieldNames 解析 sql SELECT）。
+     */
+    @Test
+    public void testJoinSaveSqlTableEndpointValid() {
+        String moduleId = ensureModule("mod-join-sql-endpoint");
+        String leftTableId = saveSqlTable(moduleId, "T_JOIN_SQL_LEFT", "SELECT order_id, amt FROM orders");
+        String rightTableId = saveSqlTable(moduleId, "T_JOIN_SQL_RIGHT", "SELECT order_id, region FROM regions");
+
+        GraphQLResponseBean resp = runGraphQL(
+                "mutation { NopMetaTableJoin__save(data: {"
+                        + "metaTableId: \"" + leftTableId + "\", joinType: \"inner\", "
+                        + "leftTableId: \"" + leftTableId + "\", leftField: \"order_id\", "
+                        + "rightTableId: \"" + rightTableId + "\", rightField: \"order_id\"}) { joinId } }");
+        assertFalse(resp.hasError(), "valid sql-table-endpoint join must succeed: " + resp);
+    }
+
+    /** external 表作为 join 端点：rightTableId 指向 external 表，合法 rightField 属于其 buildSql JSON 列集合 → save 通过。 */
+    @Test
+    public void testJoinSaveExternalTableEndpointValid() {
+        String moduleId = ensureModule("mod-join-ext-endpoint");
+        String leftTableId = saveSqlTable(moduleId, "T_JOIN_EXT_LEFT", "SELECT order_id FROM orders");
+        String rightTableId = saveExternalTable("T_JOIN_EXT_RIGHT", "qs_join_ext_right",
+                "[{\"columnName\":\"order_id\",\"dataType\":\"VARCHAR\"}]");
+
+        GraphQLResponseBean resp = runGraphQL(
+                "mutation { NopMetaTableJoin__save(data: {"
+                        + "metaTableId: \"" + leftTableId + "\", joinType: \"left\", "
+                        + "leftTableId: \"" + leftTableId + "\", leftField: \"order_id\", "
+                        + "rightTableId: \"" + rightTableId + "\", rightField: \"order_id\"}) { joinId } }");
+        assertFalse(resp.hasError(), "valid external-table-endpoint join must succeed: " + resp);
+    }
+
+    /** sql 表端点的 rightField 不属于该表 SELECT 解析列集合 → 显式失败（不静默存入悬空字段引用）。 */
+    @Test
+    public void testJoinSaveTableEndpointFieldNotInTableFails() {
+        String moduleId = ensureModule("mod-join-sql-bad");
+        String leftTableId = saveSqlTable(moduleId, "T_JOIN_SQL_BAD_L", "SELECT order_id FROM orders");
+        String rightTableId = saveSqlTable(moduleId, "T_JOIN_SQL_BAD_R", "SELECT order_id FROM regions");
+
+        GraphQLResponseBean resp = runGraphQL(
+                "mutation { NopMetaTableJoin__save(data: {"
+                        + "metaTableId: \"" + leftTableId + "\", joinType: \"inner\", "
+                        + "leftTableId: \"" + leftTableId + "\", leftField: \"order_id\", "
+                        + "rightTableId: \"" + rightTableId + "\", rightField: \"nonexistent_col\"}) { joinId } }");
+        assertTrue(resp.hasError(),
+                "join table-endpoint with field not in table column set must be rejected: " + resp);
+    }
+
+    /** entity/table 互斥违反：同一端点同时设置 leftEntityId 和 leftTableId → 显式失败。 */
+    @Test
+    public void testJoinSaveBothEndpointsSetFails() {
+        String moduleId = ensureModule("mod-join-mutex");
+        String entityId = saveEntity(moduleId, "MutexEnt", "order_id");
+        String tableId = saveSqlTable(moduleId, "T_JOIN_MUTEX", "SELECT order_id FROM orders");
+
+        GraphQLResponseBean resp = runGraphQL(
+                "mutation { NopMetaTableJoin__save(data: {"
+                        + "metaTableId: \"" + tableId + "\", joinType: \"inner\", "
+                        + "leftEntityId: \"" + entityId + "\", leftTableId: \"" + tableId + "\", leftField: \"order_id\", "
+                        + "rightTableId: \"" + tableId + "\", rightField: \"order_id\"}) { joinId } }");
+        assertTrue(resp.hasError(),
+                "join side with both entityId and tableId set (mutex violation) must be rejected: " + resp);
+    }
+
+    /** table 端点指向 entity-type NopMetaTable → 显式失败（entity-type 表应走 entityId 路径）。 */
+    @Test
+    public void testJoinSaveTableEndpointEntityTypeFails() {
+        String moduleId = ensureModule("mod-join-enttype");
+        String entityId = saveEntity(moduleId, "EntTypeEnt", "order_id");
+        String entityTableId = saveEntityTable(moduleId, "T_JOIN_ENTTYPE", entityId); // entity-type 逻辑表
+        String sqlTableId = saveSqlTable(moduleId, "T_JOIN_ENTTYPE_SQL", "SELECT order_id FROM orders");
+
+        GraphQLResponseBean resp = runGraphQL(
+                "mutation { NopMetaTableJoin__save(data: {"
+                        + "metaTableId: \"" + sqlTableId + "\", joinType: \"inner\", "
+                        + "leftTableId: \"" + sqlTableId + "\", leftField: \"order_id\", "
+                        + "rightTableId: \"" + entityTableId + "\", rightField: \"order_id\"}) { joinId } }");
+        assertTrue(resp.hasError(),
+                "join table-endpoint referencing entity-type NopMetaTable must be rejected: " + resp);
+    }
+
+    /**
+     * ERR_JOIN_ENTITY_ID_NULL 放宽：table 端点合法时（tableId 非空、entityId 为 null）→ 不再因 entityId==null 报错，save 通过。
+     * 回归保护：既有 entity 路径不受影响（testJoinSaveValid 覆盖 entity 端点）。
+     */
+    @Test
+    public void testJoinSaveTableEndpointRelaxesEntityIdNull() {
+        String moduleId = ensureModule("mod-join-relax");
+        String leftTableId = saveSqlTable(moduleId, "T_JOIN_RELAX_L", "SELECT order_id FROM orders");
+        String rightTableId = saveSqlTable(moduleId, "T_JOIN_RELAX_R", "SELECT order_id FROM regions");
+
+        GraphQLResponseBean resp = runGraphQL(
+                "mutation { NopMetaTableJoin__save(data: {"
+                        + "metaTableId: \"" + leftTableId + "\", joinType: \"inner\", "
+                        // left/right 仅设 tableId，entityId 均为 null——放宽后合法
+                        + "leftTableId: \"" + leftTableId + "\", leftField: \"order_id\", "
+                        + "rightTableId: \"" + rightTableId + "\", rightField: \"order_id\"}) { joinId } }");
+        assertFalse(resp.hasError(),
+                "table-endpoint join with null entityId must succeed (ERR_JOIN_ENTITY_ID_NULL relaxed): " + resp);
+    }
+
+    /** 端点 mandatory：left/right 两端都既无 entityId 也无 tableId → 显式失败（不静默存入无端点关联）。 */
+    @Test
+    public void testJoinSaveNoEndpointFails() {
+        String moduleId = ensureModule("mod-join-noendpoint");
+        String tableId = saveSqlTable(moduleId, "T_JOIN_NOENDPOINT", "SELECT order_id FROM orders");
+
+        GraphQLResponseBean resp = runGraphQL(
+                "mutation { NopMetaTableJoin__save(data: {"
+                        + "metaTableId: \"" + tableId + "\", joinType: \"inner\", "
+                        + "leftField: \"order_id\", rightField: \"order_id\"}) { joinId } }");
+        assertTrue(resp.hasError(),
+                "join with neither entityId nor tableId on a side must be rejected: " + resp);
+    }
+
+    // ============================================================
+    // sql/external Measure/Dimension 跨表字段引用校验（plan 0700-1 D4：name-based 可达列名集合）
+    // ============================================================
+
+    /**
+     * sql 表 Measure 跨表（table 端点）合法：sql 表 T 定义 NopMetaTableJoin 指向另一 external 表端点，
+     * 其 Measure 引用该 external 表的字段名（直连可达）→ save 通过（name-based 可达集包含端点表列名）。
+     *
+     * <p>端到端验证 + 接线验证：从「建 sql 表 → 建 table 端点 join → save Measure 引用 join 可达字段」完整跑通，
+     * 证明 resolveAllowedFieldNames 运行时被调用且并入端点表列名（非空壳）。
+     */
+    @Test
+    public void testSqlTableMeasureCrossTableViaTableEndpointValid() {
+        String moduleId = ensureModule("mod-sqlmeasure-xtab");
+        String sqlTableId = saveSqlTable(moduleId, "T_SQLMEASURE_XTAB", "SELECT base_col FROM base");
+        String extTableId = saveExternalTable("T_SQLMEASURE_EXT", "qs_sqlmeasure_ext",
+                "[{\"columnName\":\"amount\",\"dataType\":\"DOUBLE\"}]");
+        // join 属于 sql 表，right 端点为 external 表
+        saveTableJoin(sqlTableId, "inner", sqlTableId, extTableId, "base_col", "amount");
+
+        GraphQLResponseBean resp = runGraphQL(
+                "mutation { NopMetaTableMeasure__save(data: {"
+                        + "metaTableId: \"" + sqlTableId + "\", measureName: \"m_xtab\", "
+                        + "aggFunc: \"sum\", entityFieldId: \"amount\"}) { measureId } }");
+        assertFalse(resp.hasError(),
+                "sql-table measure referencing join-reachable external field must succeed (name-based): " + resp);
+    }
+
+    /**
+     * external 表 Measure 跨表（entity 端点）合法：external 表 T 定义 join 指向 entity 端点，
+     * 其 Measure 引用该 entity 的字段名（直连可达）→ save 通过（name-based 可达集包含 entity 端点字段名）。
+     */
+    @Test
+    public void testExternalTableMeasureCrossTableViaEntityEndpointValid() {
+        String moduleId = ensureModule("mod-extmeasure-xtab");
+        String entityId = saveEntity(moduleId, "ExtXtabEnt", "region");
+        String extTableId = saveExternalTable("T_EXTMEASURE_XTAB", "qs_extmeasure_xtab",
+                "[{\"columnName\":\"base_col\",\"dataType\":\"VARCHAR\"}]");
+        // join 属于 external 表，right 端点为 entity（leftTableId 为 external 表自身）
+        saveTableEntityJoin(extTableId, "left", extTableId, entityId, "base_col", "region");
+
+        GraphQLResponseBean resp = runGraphQL(
+                "mutation { NopMetaTableMeasure__save(data: {"
+                        + "metaTableId: \"" + extTableId + "\", measureName: \"m_ext_xtab\", "
+                        + "aggFunc: \"count\", entityFieldId: \"region\"}) { measureId } }");
+        assertFalse(resp.hasError(),
+                "external-table measure referencing join-reachable entity field must succeed (name-based): " + resp);
+    }
+
+    /** sql 表 Measure 引用不可达字段（既非自身列、也无 join 端点可达）→ save 显式失败（不静默存入悬空引用）。 */
+    @Test
+    public void testSqlTableMeasureCrossTableDanglingFails() {
+        String moduleId = ensureModule("mod-sqlmeasure-dangle");
+        String sqlTableId = saveSqlTable(moduleId, "T_SQLMEASURE_DANGLE", "SELECT base_col FROM base");
+        String extTableId = saveExternalTable("T_SQLMEASURE_DANGLE_EXT", "qs_sqlmeasure_dangle",
+                "[{\"columnName\":\"amount\",\"dataType\":\"DOUBLE\"}]");
+        saveTableJoin(sqlTableId, "inner", sqlTableId, extTableId, "base_col", "amount");
+
+        // 引用既不在 sql 表自身列、也不在 external 端点表列集合的悬空字段
+        GraphQLResponseBean resp = runGraphQL(
+                "mutation { NopMetaTableMeasure__save(data: {"
+                        + "metaTableId: \"" + sqlTableId + "\", measureName: \"m_dangle\", "
+                        + "aggFunc: \"sum\", entityFieldId: \"ghost_field\"}) { measureId } }");
+        assertTrue(resp.hasError(),
+                "sql-table measure with dangling field (not self nor join-reachable) must be rejected: " + resp);
+    }
+
+    /** sql 表自身列引用仍合法（可达集包含自身列，回归）。 */
+    @Test
+    public void testSqlTableMeasureSelfFieldValid() {
+        String moduleId = ensureModule("mod-sqlmeasure-self");
+        String sqlTableId = saveSqlTable(moduleId, "T_SQLMEASURE_SELF", "SELECT base_col FROM base");
+
+        GraphQLResponseBean resp = runGraphQL(
+                "mutation { NopMetaTableMeasure__save(data: {"
+                        + "metaTableId: \"" + sqlTableId + "\", measureName: \"m_self\", "
+                        + "aggFunc: \"sum\", entityFieldId: \"base_col\"}) { measureId } }");
+        assertFalse(resp.hasError(), "sql-table measure referencing its own column must succeed: " + resp);
+    }
+
+    /**
+     * resolver.resolveAllowedFieldNames 直接调用验证（接线证明 helper 非空壳）：
+     * sql 表自身列 + join table 端点 external 表列 + join entity 端点字段名 → 可达集包含三者。
+     */
+    @Test
+    public void testResolverResolveAllowedFieldNames() {
+        io.nop.metadata.service.field.MetaTableFieldResolver resolver =
+                new io.nop.metadata.service.field.MetaTableFieldResolver();
+        IEntityDao<NopMetaEntityField> fieldDao = daoProvider.daoFor(NopMetaEntityField.class);
+        IEntityDao<NopMetaTableJoin> joinDao = daoProvider.daoFor(NopMetaTableJoin.class);
+        IEntityDao<NopMetaTable> tableDao = daoProvider.daoFor(NopMetaTable.class);
+
+        String moduleId = ensureModule("mod-resolver-allowed-fn");
+        String entityId = saveEntity(moduleId, "AllowedFnEnt", "region");
+        String sqlTableId = saveSqlTable(moduleId, "T_ALLOWED_FN", "SELECT self_col FROM t");
+        String extTableId = saveExternalTable("T_ALLOWED_FN_EXT", "qs_allowed_fn",
+                "[{\"columnName\":\"amount\",\"dataType\":\"DOUBLE\"}]");
+        // 一个 join：left table 端点（external），right entity 端点
+        saveTableEntityJoin(sqlTableId, "inner", extTableId, entityId, "amount", "region");
+
+        NopMetaTable table = getTable(sqlTableId);
+        java.util.Set<String> allowed = resolver.resolveAllowedFieldNames(table, fieldDao, joinDao, tableDao);
+        assertTrue(allowed.contains("self_col"), "reachable set must contain sql table's own column: " + allowed);
+        assertTrue(allowed.contains("amount"), "reachable set must contain external table-endpoint column: " + allowed);
+        assertTrue(allowed.contains("region"), "reachable set must contain entity-endpoint field name: " + allowed);
+    }
+
+    /** resolver.resolveAllowedFieldNames 对无 join 的表 → 仅含自身列名（退化）。 */
+    @Test
+    public void testResolverResolveAllowedFieldNamesNoJoin() {
+        io.nop.metadata.service.field.MetaTableFieldResolver resolver =
+                new io.nop.metadata.service.field.MetaTableFieldResolver();
+        IEntityDao<NopMetaEntityField> fieldDao = daoProvider.daoFor(NopMetaEntityField.class);
+        IEntityDao<NopMetaTableJoin> joinDao = daoProvider.daoFor(NopMetaTableJoin.class);
+        IEntityDao<NopMetaTable> tableDao = daoProvider.daoFor(NopMetaTable.class);
+
+        String moduleId = ensureModule("mod-resolver-allowed-fn-nojoin");
+        String sqlTableId = saveSqlTable(moduleId, "T_ALLOWED_FN_NOJOIN", "SELECT only_col FROM t");
+
+        NopMetaTable table = getTable(sqlTableId);
+        java.util.Set<String> allowed = resolver.resolveAllowedFieldNames(table, fieldDao, joinDao, tableDao);
+        assertEquals(1, allowed.size(), "no-join sql table reachable set must be just own column: " + allowed);
+        assertTrue(allowed.contains("only_col"));
+    }
+
+    // ============================================================
     // helpers
     // ============================================================
 
@@ -749,6 +996,40 @@ public class TestNopMetaBiSemanticBizModel extends JunitBaseTestCase {
         j.setMetaTableId(metaTableId);
         j.setJoinType(joinType);
         j.setLeftEntityId(leftEntityId);
+        j.setRightEntityId(rightEntityId);
+        j.setLeftField(leftField);
+        j.setRightField(rightField);
+        dao.saveEntity(j);
+        dao.flushSession();
+        return j.getJoinId();
+    }
+
+    /** 保存一条 table-table 端点的 NopMetaTableJoin（leftTableId/rightTableId 均为 external/sql 表端点）。 */
+    @SuppressWarnings("UnusedReturnValue")
+    private String saveTableJoin(String metaTableId, String joinType, String leftTableId, String rightTableId,
+                                 String leftField, String rightField) {
+        IEntityDao<NopMetaTableJoin> dao = daoProvider.daoFor(NopMetaTableJoin.class);
+        NopMetaTableJoin j = dao.newEntity();
+        j.setMetaTableId(metaTableId);
+        j.setJoinType(joinType);
+        j.setLeftTableId(leftTableId);
+        j.setRightTableId(rightTableId);
+        j.setLeftField(leftField);
+        j.setRightField(rightField);
+        dao.saveEntity(j);
+        dao.flushSession();
+        return j.getJoinId();
+    }
+
+    /** 保存一条 table-entity 混合端点的 NopMetaTableJoin（leftTableId 表端点 + rightEntityId entity 端点）。 */
+    @SuppressWarnings("UnusedReturnValue")
+    private String saveTableEntityJoin(String metaTableId, String joinType, String leftTableId, String rightEntityId,
+                                       String leftField, String rightField) {
+        IEntityDao<NopMetaTableJoin> dao = daoProvider.daoFor(NopMetaTableJoin.class);
+        NopMetaTableJoin j = dao.newEntity();
+        j.setMetaTableId(metaTableId);
+        j.setJoinType(joinType);
+        j.setLeftTableId(leftTableId);
         j.setRightEntityId(rightEntityId);
         j.setLeftField(leftField);
         j.setRightField(rightField);

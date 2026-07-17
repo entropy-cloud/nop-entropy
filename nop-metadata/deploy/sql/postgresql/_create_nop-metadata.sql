@@ -598,6 +598,8 @@ CREATE TABLE nop_meta_table_join(
   updated_by VARCHAR(50) NOT NULL ,
   update_time TIMESTAMP NOT NULL ,
   remark VARCHAR(200)  ,
+  left_table_id VARCHAR(32)  ,
+  right_table_id VARCHAR(32)  ,
   constraint PK_nop_meta_table_join primary key (join_id)
 );
 
@@ -1684,6 +1686,10 @@ CREATE TABLE nop_meta_recon_result(
       COMMENT ON COLUMN nop_meta_table_join.update_time IS '修改时间';
                     
       COMMENT ON COLUMN nop_meta_table_join.remark IS '备注';
+                    
+      COMMENT ON COLUMN nop_meta_table_join.left_table_id IS '左表ID';
+                    
+      COMMENT ON COLUMN nop_meta_table_join.right_table_id IS '右表ID';
                     
       COMMENT ON TABLE nop_meta_dict_item IS '字典项';
                 

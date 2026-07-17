@@ -76,9 +76,10 @@ public class NopMetaTableDimensionBizModel extends CrudBizModel<NopMetaTableDime
             throw new NopException(ERR_DIMENSION_TABLE_NOT_FOUND).param("metaTableId", metaTableId);
         }
         IEntityDao<NopMetaEntityField> fieldDao = daoFor(NopMetaEntityField.class);
-        // joinDao 用于 entity 表跨表可达 rightEntityId 集合解析（§2.5.2 D3）；external/sql 分支不使用
+        // joinDao 用于 entity 表跨表可达 rightEntityId 集合解析（§2.5.2 D3）+ external/sql name-based 可达列名集合并集（§2.5.2 D4）
         IEntityDao<NopMetaTableJoin> joinDao = daoFor(NopMetaTableJoin.class);
-        fieldResolver.validateFieldReference(table, entityFieldId, fieldDao, joinDao,
+        // tableDao（上面已加载目标表）亦用于 external/sql 表解析 table 端点 NopMetaTable 列结构（§2.5.2 D4）
+        fieldResolver.validateFieldReference(table, entityFieldId, fieldDao, joinDao, tableDao,
                 ERR_DIMENSION_FIELD_NOT_FOUND, "dimension");
     }
 

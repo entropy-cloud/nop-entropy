@@ -14,10 +14,16 @@
   "updatedBy": "",
   "updateTime": "2000-01-01 14:00:00",
   "remark": "",
+  "leftTableId": "",
+  "rightTableId": "",
   "metaTable": null,
   "metaTable.displayName": "",
   "leftEntity": null,
   "leftEntity.displayName": "",
   "rightEntity": null,
-  "rightEntity.displayName": ""
+  "rightEntity.displayName": "",
+  "leftTable": null,
+  "leftTable.displayName": "",
+  "rightTable": null,
+  "rightTable.displayName": ""
 }
