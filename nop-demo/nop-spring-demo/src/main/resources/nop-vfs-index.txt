@@ -275,6 +275,7 @@
 /nop/core/registry/page.register-model.xml
 /nop/core/registry/record-mappings.register-model.xml
 /nop/core/registry/sql-lib.register-model.xml
+/nop/core/registry/table-validator.register-model.xml
 /nop/core/registry/validator.register-model.xml
 /nop/core/registry/view.register-model.xml
 /nop/core/registry/xlib.register-model.xml
@@ -482,6 +483,7 @@
 /nop/schema/stream/pattern.xdef
 /nop/schema/stream/resource-spec.xdef
 /nop/schema/stream/stream.xdef
+/nop/schema/table-validator.xdef
 /nop/schema/task/batch.xdef
 /nop/schema/task/task.xdef
 /nop/schema/validator.xdef
