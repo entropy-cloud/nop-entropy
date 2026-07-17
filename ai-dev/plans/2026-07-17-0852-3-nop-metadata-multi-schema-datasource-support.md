@@ -69,25 +69,25 @@
 
 ### Phase 1 - ORM schema 列（Protected Area）+ 重生成 + 迁移
 
-Status: planned
+Status: completed
 Targets: `nop-metadata/model/nop-metadata.orm.xml`（NopMetaTable 增列）；重生成（经 codegen/meta 模块，**非** `_app.orm.xml` / `_gen/` 手改，后者位于 `nop-metadata-dao/src/main/resources/_vfs/nop/metadata/orm/`）
 
 - Item Types: `Decision`（schema 列建模 + 唯一键裁定）、`Fix`、`Proof`
 
-- [ ] `NopMetaTable` 新增 `schema` 列（propId 17，`stdSqlType=VARCHAR`，precision 100，可空，displayName=源schema，i18n-en）；不动既有列 propId。
-- [ ] **唯一键/索引裁定（Decision）**：裁定是否为去重键 `(metaModuleId, schema, tableName)` 增 `<unique-key>` 或复合 `<index>`（当前仅 `IX_NOP_META_TABLE_MODULE(metaModuleId)`，改键后该索引不再匹配去重查询）。裁定结果写入本 phase（增约束 or 显式 defer 并写非阻塞理由）。
-- [ ] 经 codegen 重生成：构建 `nop-metadata-codegen`（`postcompile/gen-orm.xgen` 生成 dao/entity/xbiz）+ `nop-metadata-meta`（`precompile/gen-meta.xgen` 生成 xmeta）——命令须含这两个模块，例如 `./mvnw clean install -pl nop-metadata/nop-metadata-codegen,nop-metadata/nop-metadata-meta -am`（随后构建 dao/service），或全量 `./mvnw clean install -T 1C`。**`./mvnw install -pl nop-metadata -am` 无效（仅父 pom）。**
-- [ ] 迁移：新列 nullable，既有行默认 null；确认 H2 初始化 / 升级 DDL 不破坏既有数据。
-- [ ] GraphQL：`schema` 字段随 CRUD 自动暴露（xbiz 生成），无需手写 action。
+- [x] `NopMetaTable` 新增 `schema` 列（propId 17，`stdSqlType=VARCHAR`，precision 100，可空，displayName=源schema，i18n-en）；不动既有列 propId。
+- [x] **唯一键/索引裁定（Decision）**：**增复合索引 `IX_NOP_META_TABLE_DEDUP(metaModuleId, schema, tableName)`**（非唯一，加速新去重查询），保留既有 `IX_NOP_META_TABLE_MODULE(metaModuleId)` 供 to-one metaModule 关系查找。**不增 `<unique-key>`**：去重仍为应用层 `findFirstByQuery`，且跨数据源同名同 schema 表仍允许（querySpace 不在去重键内，见 Phase 2 Decision）；唯一键会破坏跨数据源同名表的既有覆盖语义，故 defer（非阻塞理由：应用层去重已保证幂等，并发同步产生重复行属既有非保证项，沿用 1905-1 follow-up）。
+- [x] 经 codegen 重生成：构建 `nop-metadata-codegen`（`postcompile/gen-orm.xgen` 生成 dao/entity/xbiz）+ `nop-metadata-meta`（`precompile/gen-meta.xgen` 生成 xmeta）——命令须含这两个模块，例如 `./mvnw clean install -pl nop-metadata/nop-metadata-codegen,nop-metadata/nop-metadata-meta -am`（随后构建 dao/service），或全量 `./mvnw clean install -T 1C`。**`./mvnw install -pl nop-metadata -am` 无效（仅父 pom）。**
+- [x] 迁移：新列 nullable，既有行默认 null；确认 H2 初始化 / 升级 DDL 不破坏既有数据。
+- [x] GraphQL：`schema` 字段随 CRUD 自动暴露（xbiz 生成），无需手写 action。
 
 Exit Criteria:
 
-- [ ] `NopMetaTable` 含可空 `schema` 列；**核实生成物** `nop-metadata-dao/.../_gen/_NopMetaTable.java` 真实含 `schema` 字段（`_PROP_ID_BOUND` 由 17→18）——**这是 codegen 是否生效的硬证据**。
-- [ ] `./mvnw compile -pl nop-metadata/nop-metadata-codegen,nop-metadata/nop-metadata-meta,nop-metadata/nop-metadata-dao,nop-metadata/nop-metadata-service -am` 通过（含 codegen 模块）。注：`compile` 阶段位于 `generate-test-resources`（gen-orm.xgen 绑定）之前，故此命令仅作**再生成后的编译校验**，再生成本身须用上面的 `clean install`。
-- [ ] 既有 entity/sql/external 表（schema=null）CRUD 与查询零回归（回归 AutoTest 通过）。
-- [ ] **无静默跳过**：新增列在生成的 entity/xmeta 中真实出现（非遗漏，#24）。
-- [ ] design `01-architecture-baseline.md` §2.3.2 行 189 的「已知缺口」标注更新为「已补 schema 列」+ 记录唯一键裁定；roadmap P2-multi-schema 同步。
-- [ ] `ai-dev/logs/2026/07-17.md` 追加条目。
+- [x] `NopMetaTable` 含可空 `schema` 列；**核实生成物** `nop-metadata-dao/.../_gen/_NopMetaTable.java` 真实含 `schema` 字段（`_PROP_ID_BOUND` 由 17→18）——**这是 codegen 是否生效的硬证据**。
+- [x] `./mvnw compile -pl nop-metadata/nop-metadata-codegen,nop-metadata/nop-metadata-meta,nop-metadata/nop-metadata-dao,nop-metadata/nop-metadata-service -am` 通过（含 codegen 模块）。注：`compile` 阶段位于 `generate-test-resources`（gen-orm.xgen 绑定）之前，故此命令仅作**再生成后的编译校验**，再生成本身须用上面的 `clean install`。
+- [x] 既有 entity/sql/external 表（schema=null）CRUD 与查询零回归（回归 AutoTest 通过）。
+- [x] **无静默跳过**：新增列在生成的 entity/xmeta 中真实出现（非遗漏，#24）。
+- [x] design `01-architecture-baseline.md` §2.3.2 行 189 的「已知缺口」标注更新为「已补 schema 列」+ 记录唯一键裁定；roadmap P2-multi-schema 同步。
+- [x] `ai-dev/logs/2026/07-17.md` 追加条目。
 
 ### Phase 2 - 外部表同步持久化 schema + 去重键收敛
 

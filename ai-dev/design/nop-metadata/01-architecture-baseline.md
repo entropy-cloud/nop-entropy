@@ -186,7 +186,7 @@ NopMetaCatalog                    — 物理运行时统计快照（每表每收
 - 大小/分区/lastModified 方言特定，首版不实现 → 记 `null` + `details.unavailable` 显式列出字段名（**不静默跳过整行、不伪造 0**）。
 - 单表失败（SQL 异常）收集到 `errors` 不中断整批（`orm().clearSession()` 隔离）。
 
-**schema 限定（D1）**：NopMetaTable 无 schema 列（已知缺口），`collectCatalog(schemaPattern)` 的 `schemaPattern` 限定 COUNT/索引查询的物理 schema（传入用 `<schemaPattern>.<tableName>`，不传依赖连接默认 schema）；多 schema 同名表为已知限制（彻底解决需为 NopMetaTable 增加 schema 列，属 P2-2 Protected Area 变更）。
+**schema 限定（D1）**：`NopMetaTable.schema` 列（plan 2026-07-17-0852-3 已补，可空，描述 external/sql 逻辑表的源 schema；entity 类型表留空，schema 由 `baseEntity.dbSchema` 承担）持久化了同步阶段读到的 `TABLE_SCHEM`。`collectCatalog(schemaPattern)` 的 `schemaPattern` 显式入参仍可限定物理 schema（覆盖默认）；未传时执行器默认取 `NopMetaTable.schema`（非空时，BizModel 层解析），null=不过滤（依赖连接默认 schema）。同名不同 schema 表已可区分（去重键 `(metaModuleId, schema, tableName)`，见 §2.5.1）。
 
 完整规格见 `05-metadata-import.md` §四。收集入口为 `NopMetaDataSource__collectCatalog(dataSourceId, schemaPattern?)` GraphQL mutation；dataSourceId 不存在/DISABLED/非 jdbc 均显式失败（不静默跳过）。
 

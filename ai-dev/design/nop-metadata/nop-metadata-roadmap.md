@@ -98,6 +98,7 @@
 | P2-5++ | **CTE/子查询列穿透（列级血缘解析增强）**：把列级 sql_parse 从「仅直查源表 FROM」扩展到支持 CTE（WITH）与派生表（FROM (...) alias）的别名列穿透，经 CTE/派生表别名引用的列能解析到底层物理源表源列并产出血缘边（见 `01-architecture-baseline.md` §2.6.1 D3 CTE/子查询 + §4.2.1） | done |
 | P2-6 | **质量规则执行引擎**：MetaQualityRule 执行（not_null/unique/range/regex/freshness/volume/custom_sql），写入 MetaQualityResult 时序结果 | done |
 | P2-7 | **数据剖析**：profiling 规则类型，值分布/统计指标/异常值检测，参考 Apache Griffin | done |
+| P2-multi-schema | **多 schema 数据源支持**：NopMetaTable 增加 schema 列，外部表同步持久化 schema，Catalog/Quality/Profiling 执行器默认取持久化 schema（显式 schemaPattern 可覆盖），去重键收敛为 `(metaModuleId, schema, tableName)`（plan 2026-07-17-0852-3，关闭 1905-1/0225-2/0027-1 反复 deferred 的「多 schema 数据源执行」项） | done |
 
 > 设计参考：`05-metadata-import.md`（Manifest + Catalog）；`04-data-governance.md` §三 血缘 + §四 质量；`06-data-quality-extended.md`
 
