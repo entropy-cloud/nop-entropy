@@ -172,6 +172,7 @@ CREATE TABLE nop_meta_table(
   updated_by VARCHAR(50) NOT NULL ,
   update_time TIMESTAMP NOT NULL ,
   remark VARCHAR(200)  ,
+  schema VARCHAR(100)  ,
   constraint PK_nop_meta_table primary key (meta_table_id)
 );
 
@@ -954,6 +955,8 @@ CREATE TABLE nop_meta_recon_result(
       COMMENT ON COLUMN nop_meta_table.update_time IS '修改时间';
                     
       COMMENT ON COLUMN nop_meta_table.remark IS '备注';
+                    
+      COMMENT ON COLUMN nop_meta_table.schema IS '源schema';
                     
       COMMENT ON TABLE nop_meta_pipeline IS '数据管道';
                 

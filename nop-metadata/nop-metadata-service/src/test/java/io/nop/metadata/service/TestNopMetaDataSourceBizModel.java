@@ -29,6 +29,9 @@ import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.Statement;
 import java.sql.Timestamp;
+import java.util.List;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -201,6 +204,145 @@ public class TestNopMetaDataSourceBizModel extends JunitBaseTestCase {
                 "idempotent: EXT_EMP count must stay 1 after second sync, got: " + countAfterSecond);
         assertTrue(String.valueOf(r2.getData()).contains("syncedTableCount=1"),
                 "second sync still reports syncedTableCount=1 (update, not skip): " + r2.getData());
+    }
+
+    // ===== syncExternalTables：多 schema 数据源支持（plan 2026-07-17-0852-3） =====
+
+    /**
+     * 接线验证：sync 写库路径真实持久化 schema 列（plan 0852-3 Phase 2 anti-hollow #23）。
+     *
+     * <p>限定 PUBLIC schema 同步 → 断言 NopMetaTable.schema == "PUBLIC"（H2 返回的 TABLE_SCHEM），
+     * 证明 sync 链路从 reader → ExternalTableInfo → upsertExternalTable 真实写入 schema 字段，
+     * 非仅读到内存丢弃。
+     */
+    @Test
+    public void testSyncExternalTablesPersistsSchemaColumn() throws Exception {
+        String dbUrl = "jdbc:h2:mem:meta_sync_schema;DB_CLOSE_DELAY=-1";
+        seedExternalTable(dbUrl, "CREATE TABLE ext_schema_t (id INT NOT NULL)");
+
+        saveDataSource("ds-sync-schema", "qs_sync_schema", "jdbc", "ACTIVE",
+                "{\"jdbcUrl\":\"" + dbUrl + "\",\"username\":\"sa\",\"password\":\"\","
+                        + "\"driverClassName\":\"org.h2.Driver\"}");
+
+        GraphQLResponseBean response = execute(
+                "mutation { NopMetaDataSource__syncExternalTables(dataSourceId: \"ds-sync-schema\", schemaPattern: \"PUBLIC\") }");
+        assertFalse(response.hasError(), "sync should not error: " + response);
+
+        NopMetaTable table = findExternalTable(daoProvider.daoFor(NopMetaTable.class), "EXT_SCHEMA_T");
+        assertNotNull(table, "EXT_SCHEMA_T must be synced");
+        assertEquals("PUBLIC", table.getSchema(),
+                "schema column must persist H2 TABLE_SCHEM=PUBLIC (anti-hollow: written, not just read into memory)");
+    }
+
+    /**
+     * 端到端：同一数据源下两个 schema 的同名表 sync 后产生两条 NopMetaTable（schema 各异，互不覆盖）。
+     *
+     * <p>核心 anti-hollow（plan 0852-3 Phase 2 Exit Criteria #22）：去重键收敛为
+     * {@code (metaModuleId, schema, tableName)}，schema 维度真实生效——非空壳、非退化为旧键。
+     */
+    @Test
+    public void testSyncMultiSchemaSameNameTablesDistinct() throws Exception {
+        String dbUrl = "jdbc:h2:mem:meta_sync_multi;DB_CLOSE_DELAY=-1";
+        // 创建两个 schema + 同名表（同名是关键，旧去重键会覆盖）
+        try (Connection c = DriverManager.getConnection(dbUrl, "sa", "");
+             Statement st = c.createStatement()) {
+            st.execute("CREATE SCHEMA SCH_A");
+            st.execute("CREATE SCHEMA SCH_B");
+            st.execute("CREATE TABLE SCH_A.shared_t (id INT NOT NULL)");
+            st.execute("CREATE TABLE SCH_B.shared_t (id INT NOT NULL)");
+        }
+
+        saveDataSource("ds-multi-schema", "qs_multi_schema", "jdbc", "ACTIVE",
+                "{\"jdbcUrl\":\"" + dbUrl + "\",\"username\":\"sa\",\"password\":\"\","
+                        + "\"driverClassName\":\"org.h2.Driver\"}");
+
+        // 扫 SCH_A → 1 行 (schema="SCH_A", tableName="SHARED_T")
+        GraphQLResponseBean r1 = execute(
+                "mutation { NopMetaDataSource__syncExternalTables(dataSourceId: \"ds-multi-schema\", schemaPattern: \"SCH_A\") }");
+        assertFalse(r1.hasError(), "SCH_A sync should not error: " + r1);
+        assertEquals(1L, countExternalTables("SHARED_T"),
+                "exactly 1 SHARED_T after SCH_A sync");
+
+        // 扫 SCH_B → 第 2 行 (schema="SCH_B", tableName="SHARED_T")，不应覆盖 SCH_A 的行
+        GraphQLResponseBean r2 = execute(
+                "mutation { NopMetaDataSource__syncExternalTables(dataSourceId: \"ds-multi-schema\", schemaPattern: \"SCH_B\") }");
+        assertFalse(r2.hasError(), "SCH_B sync should not error: " + r2);
+        assertEquals(2L, countExternalTables("SHARED_T"),
+                "2 SHARED_T rows after SCH_B sync (dedup key now includes schema, no overwrite)");
+
+        // 断言两行 schema 不同（anti-hollow：去重 filter 真实含 schema 维度）
+        List<NopMetaTable> tables = findAllExternalTables("SHARED_T");
+        Set<String> schemas = tables.stream().map(NopMetaTable::getSchema).collect(Collectors.toSet());
+        assertTrue(schemas.contains("SCH_A"),
+                "row with schema=SCH_A must exist (schemas seen: " + schemas + ")");
+        assertTrue(schemas.contains("SCH_B"),
+                "row with schema=SCH_B must exist (schemas seen: " + schemas + ")");
+        assertEquals(2, schemas.size(), "schemas must be distinct for the two rows");
+    }
+
+    /**
+     * 端到端验证：单 schema 多次同步保持幂等（schema 维度不破坏既有幂等语义）。
+     * 即同一 (metaModuleId, schema, tableName) 重复同步不追加。
+     */
+    @Test
+    public void testSyncMultiSchemaIdempotentSameSchema() throws Exception {
+        String dbUrl = "jdbc:h2:mem:meta_sync_idem_sch;DB_CLOSE_DELAY=-1";
+        try (Connection c = DriverManager.getConnection(dbUrl, "sa", "");
+             Statement st = c.createStatement()) {
+            st.execute("CREATE SCHEMA SCH_IDEM");
+            st.execute("CREATE TABLE SCH_IDEM.t_idem (id INT NOT NULL)");
+        }
+
+        saveDataSource("ds-idem-sch", "qs_idem_sch", "jdbc", "ACTIVE",
+                "{\"jdbcUrl\":\"" + dbUrl + "\",\"username\":\"sa\",\"password\":\"\","
+                        + "\"driverClassName\":\"org.h2.Driver\"}");
+
+        execute("mutation { NopMetaDataSource__syncExternalTables(dataSourceId: \"ds-idem-sch\", schemaPattern: \"SCH_IDEM\") }");
+        assertEquals(1L, countExternalTables("T_IDEM"), "1 T_IDEM after first sync");
+
+        execute("mutation { NopMetaDataSource__syncExternalTables(dataSourceId: \"ds-idem-sch\", schemaPattern: \"SCH_IDEM\") }");
+        assertEquals(1L, countExternalTables("T_IDEM"),
+                "still 1 T_IDEM after second sync (idempotent: dedup key (modId,SCH_IDEM,T_IDEM) matches)");
+    }
+
+    /**
+     * Phase 2 跨数据源行为裁定（Decision）：去重键含 schema 但**不含 querySpace**，
+     * 跨数据源、同名同 schema 表会互相覆盖（与 plan 0852-3 Phase 2 裁定一致，沿用 1905-1 follow-up）。
+     *
+     * <p>本测试钉住此行为：两个数据源 querySpace 不同但 schema 都是 PUBLIC、表名相同，
+     * 第二次 sync 覆盖第一次（querySpace 更新为第二次的）。
+     */
+    @Test
+    public void testSyncCrossDataSourceSameSchemaOverwritesPerDecision() throws Exception {
+        String dbUrlA = "jdbc:h2:mem:meta_xds_a;DB_CLOSE_DELAY=-1";
+        String dbUrlB = "jdbc:h2:mem:meta_xds_b;DB_CLOSE_DELAY=-1";
+        // 列名不同以验证 buildSql 真实被更新（anti-hollow：非仅 querySpace 字段写）
+        seedExternalTable(dbUrlA, "CREATE TABLE SHARED_XDS (id_a INT NOT NULL)");
+        seedExternalTable(dbUrlB, "CREATE TABLE SHARED_XDS (id_b INT NOT NULL)");
+
+        saveDataSource("ds-xds-a", "qs_xds_a", "jdbc", "ACTIVE",
+                "{\"jdbcUrl\":\"" + dbUrlA + "\",\"username\":\"sa\",\"password\":\"\","
+                        + "\"driverClassName\":\"org.h2.Driver\"}");
+        saveDataSource("ds-xds-b", "qs_xds_b", "jdbc", "ACTIVE",
+                "{\"jdbcUrl\":\"" + dbUrlB + "\",\"username\":\"sa\",\"password\":\"\","
+                        + "\"driverClassName\":\"org.h2.Driver\"}");
+
+        execute("mutation { NopMetaDataSource__syncExternalTables(dataSourceId: \"ds-xds-a\", schemaPattern: \"PUBLIC\") }");
+        NopMetaTable firstRow = findExternalTable(daoProvider.daoFor(NopMetaTable.class), "SHARED_XDS");
+        assertNotNull(firstRow, "first sync creates row");
+        assertEquals("qs_xds_a", firstRow.getQuerySpace(), "querySpace from ds-a");
+        assertTrue(firstRow.getBuildSql().contains("ID_A"),
+                "buildSql from ds-a should contain ID_A column: " + firstRow.getBuildSql());
+
+        execute("mutation { NopMetaDataSource__syncExternalTables(dataSourceId: \"ds-xds-b\", schemaPattern: \"PUBLIC\") }");
+        assertEquals(1L, countExternalTables("SHARED_XDS"),
+                "cross-ds same-name same-schema: still 1 row (dedup key has no querySpace, 2nd sync overwrites)");
+
+        NopMetaTable overwritten = findExternalTable(daoProvider.daoFor(NopMetaTable.class), "SHARED_XDS");
+        assertEquals("qs_xds_b", overwritten.getQuerySpace(),
+                "querySpace updated to qs_xds_b per Phase 2 cross-ds decision");
+        assertTrue(overwritten.getBuildSql().contains("ID_B"),
+                "buildSql updated with ID_B column (anti-hollow: real overwrite, not just no-op)");
     }
 
     /** DISABLED 数据源同步必须显式拒绝（不静默通过）。 */
@@ -513,6 +655,15 @@ public class TestNopMetaDataSourceBizModel extends JunitBaseTestCase {
         q.addFilter(FilterBeans.eq(NopMetaTable.PROP_NAME_tableName, tableName));
         q.addFilter(FilterBeans.eq("tableType", "external"));
         return tableDao.findFirstByQuery(q);
+    }
+
+    /** 查找所有 external 同名表（多 schema 同名场景）。 */
+    private List<NopMetaTable> findAllExternalTables(String tableName) {
+        IEntityDao<NopMetaTable> tableDao = daoProvider.daoFor(NopMetaTable.class);
+        QueryBean q = new QueryBean();
+        q.addFilter(FilterBeans.eq(NopMetaTable.PROP_NAME_tableName, tableName));
+        q.addFilter(FilterBeans.eq("tableType", "external"));
+        return tableDao.findAllByQuery(q);
     }
 
     private long countExternalTables(String tableName) {

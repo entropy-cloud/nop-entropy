@@ -132,7 +132,8 @@ public class NopMetaDataSourceBizModel extends CrudBizModel<NopMetaDataSource> i
      *       callback 结束自动释放外部连接（本方法不自建连接）</li>
      *   <li>按 D1 方案 A 写入：tableType=external，metaModuleId 指向系统模块 nop/meta-external，
      *       列结构序列化为 JSON 存入 buildSql（子方案 A2）</li>
-     *   <li>幂等 upsert：按 (metaModuleId, tableName) 复合键去重，重复同步更新而非追加</li>
+     *   <li>幂等 upsert：按 (metaModuleId, schema, tableName) 复合键去重（plan 0852-3 收敛自
+     *       {@code (metaModuleId, tableName)}），同名不同 schema 不再互相覆盖；重复同步更新而非追加</li>
      *   <li>单表失败收集到 errors 不中断整批（flushSession 隔离 + clearSession 清理失败态）</li>
      * </ul>
      *
@@ -377,16 +378,38 @@ public class NopMetaDataSourceBizModel extends CrudBizModel<NopMetaDataSource> i
     }
 
     /**
-     * 幂等 upsert：按 (metaModuleId, tableName) 复合键去重。
-     * 存在则更新（querySpace/description/buildSql 列快照），不存在则新建。
+     * 幂等 upsert：按 (metaModuleId, schema, tableName) 复合键去重（plan 2026-07-17-0852-3 收敛自
+     * {@code (metaModuleId, tableName)}，使同一数据源下不同 schema 的同名表可区分、互不覆盖）。
+     * 存在则更新（querySpace/description/buildSql/schema 列快照），不存在则新建。
+     *
+     * <p><b>跨数据源行为（Decision，plan 0852-3 Phase 2）</b>：去重键仍**不含 querySpace**——
+     * 跨数据源、同名同 schema 的表会互相覆盖（与 1905-1 收敛前语义一致）。仅 schema 维度被纳入，
+     * 使「同数据源不同 schema 同名表」可区分；「跨数据源同名同 schema」的 querySpace 维度纳入属
+     * follow-up（非阻塞理由：应用层 upsert 仍幂等，迁移需评估跨数据源覆盖语义破坏面）。
+     *
+     * <p><b>实现说明（EQL 关键字规避）</b>：{@code SCHEMA} 在 EQL 文法中是 reserved keyword，
+     * {@code o.schema=?} 解析失败。故先按 EQL-safe 的 {@code (metaModuleId, tableName)} 拉候选集，
+     * 再在 Java 层按 schema 精确匹配（{@code null==null}）。schema=null 用 {@link #normalizeSchemaForMatch}
+     * 归一为 null，使「无 schema」与「无 schema」匹配。
      */
     private void upsertExternalTable(String metaModuleId, NopMetaDataSource dataSource, ExternalTableInfo info) {
         IEntityDao<NopMetaTable> tableDao = daoFor(NopMetaTable.class);
 
+        // EQL-safe 查询：仅按 (metaModuleId, tableName) 拉候选集（schema 维度在 Java 层过滤）
         QueryBean query = new QueryBean();
         query.addFilter(FilterBeans.eq(NopMetaTable.PROP_NAME_metaModuleId, metaModuleId));
         query.addFilter(FilterBeans.eq(NopMetaTable.PROP_NAME_tableName, info.getTableName()));
-        NopMetaTable table = tableDao.findFirstByQuery(query);
+        List<NopMetaTable> candidates = tableDao.findAllByQuery(query);
+
+        // Java 层 schema 精确匹配（normalizeSchemaForMatch 将 null/空串归一为 null，使 null==null 成立）
+        String infoSchema = normalizeSchemaForMatch(info.getSchema());
+        NopMetaTable table = null;
+        for (NopMetaTable candidate : candidates) {
+            if (java.util.Objects.equals(normalizeSchemaForMatch(candidate.getSchema()), infoSchema)) {
+                table = candidate;
+                break;
+            }
+        }
 
         String columnsJson = serializeColumns(info.getColumns());
 
@@ -394,6 +417,7 @@ public class NopMetaDataSourceBizModel extends CrudBizModel<NopMetaDataSource> i
             table = tableDao.newEntity();
             table.setMetaModuleId(metaModuleId);
             table.setTableName(info.getTableName());
+            table.setSchema(info.getSchema());
             table.setDisplayName(info.getTableName());
             table.setTableType(_NopMetadataCoreConstants.TABLE_TYPE_EXTERNAL);
             table.setQuerySpace(dataSource.getQuerySpace());
@@ -401,11 +425,20 @@ public class NopMetaDataSourceBizModel extends CrudBizModel<NopMetaDataSource> i
             table.setBuildSql(columnsJson);
             tableDao.saveEntity(table);
         } else {
+            table.setSchema(info.getSchema());
             table.setQuerySpace(dataSource.getQuerySpace());
             table.setDescription(info.getRemark());
             table.setBuildSql(columnsJson);
             tableDao.updateEntity(table);
         }
+    }
+
+    /** schema 归一化用于匹配：null/空串/纯空白 → null（使「无 schema」行互相匹配）。 */
+    private static String normalizeSchemaForMatch(String schema) {
+        if (schema == null || schema.trim().isEmpty()) {
+            return null;
+        }
+        return schema;
     }
 
     /**

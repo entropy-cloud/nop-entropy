@@ -626,6 +626,7 @@ prop:
       metaTableId: 逻辑表ID
       querySpace: 查询空间
       remark: 备注
+      schema: 源schema
       sourceSql: 来源SQL
       tableName: 表名
       tableType: 表类型

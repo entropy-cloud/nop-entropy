@@ -1039,6 +1039,8 @@
                         i18n-en:displayName="Update Time"/>
                 <column code="REMARK" displayName="备注" domain="remark" name="remark" precision="200" propId="16"
                         stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Remark"/>
+                <column code="SCHEMA" displayName="源schema" name="schema" precision="100" propId="17"
+                        stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Schema"/>
             </columns>
             <relations>
                 <to-one displayName="元数据模块" name="metaModule"
@@ -1052,6 +1054,11 @@
             <indexes>
                 <index name="IX_NOP_META_TABLE_MODULE" unique="false">
                     <column name="metaModuleId"/>
+                </index>
+                <index name="IX_NOP_META_TABLE_DEDUP" unique="false">
+                    <column name="metaModuleId"/>
+                    <column name="schema"/>
+                    <column name="tableName"/>
                 </index>
             </indexes>
         </entity>

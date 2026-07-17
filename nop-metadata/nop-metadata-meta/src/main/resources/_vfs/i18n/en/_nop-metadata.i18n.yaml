@@ -631,6 +631,7 @@ prop:
       updatedBy: Updated By
       updateTime: Update Time
       remark: Remark
+      schema: Schema
       metaModule: Meta Module
       metaModule.displayName: Meta Module
     NopMetaTableDimension:

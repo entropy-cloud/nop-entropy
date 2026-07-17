@@ -25,6 +25,9 @@ import java.util.List;
  *
  * <p>首版支持的方言：MySQL / PostgreSQL / H2。其余方言（ClickHouse {@code system.columns}、
  * Oracle 等）在入口显式抛 {@link UnsupportedOperationException}（快速失败，非静默跳过）。
+ *
+ * <p>每张扫描到的表读取其 {@code TABLE_SCHEM} 并填入 {@link ExternalTableInfo#getSchema()}，
+ * 供 BizModel 持久化到 {@code NopMetaTable.schema}（架构基线 §2.3.2 / §2.5.1）。
  */
 public class ExternalTableStructureReader {
 
@@ -59,11 +62,18 @@ public class ExternalTableStructureReader {
                 if (tableName == null || tableName.isEmpty()) {
                     continue;
                 }
+                // 读取 TABLE_SCHEM（plan 2026-07-17-0852-3）：null/空（部分方言/无 schema 行）留空，
+                // 不伪造、不静默跳过该表——沿用 null=不过滤语义（架构基线 §2.3.2 D1）
+                String tableSchema = rs.getString("TABLE_SCHEM");
                 ExternalTableInfo info = new ExternalTableInfo();
                 info.setTableName(tableName);
+                info.setSchema(tableSchema);
                 info.setTableType(rs.getString("TABLE_TYPE"));
                 info.setRemark(rs.getString("REMARKS"));
-                readColumns(metaData, schema, tableName, info);
+                // 列结构读取：优先用该行实际的 TABLE_SCHEM（精确，比 schemaPattern 更具体），
+                // TABLE_SCHEM 缺失时回退到 schemaPattern 入参（防御性，保持原行为）
+                String columnSchema = (tableSchema != null && !tableSchema.isEmpty()) ? tableSchema : schema;
+                readColumns(metaData, columnSchema, tableName, info);
                 tables.add(info);
             }
         } catch (SQLException e) {
