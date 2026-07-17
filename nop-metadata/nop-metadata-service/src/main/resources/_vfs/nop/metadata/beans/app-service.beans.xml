@@ -29,4 +29,11 @@
          构造一行 NopMetaModelChangedEvent 并 saveEntity 持久化。无状态，IDaoProvider 由 nop-dao 全局提供。-->
     <bean id="io.nop.metadata.service.event.MetaModelChangedEventPublisher"
           class="io.nop.metadata.service.event.MetaModelChangedEventPublisher" ioc:default="true"/>
+
+    <!-- 质量检查点 cron 定时调度器（架构基线 §2.7.3.1 / plan 2026-07-17-1308-1，普通 IoC bean 非 BizModel）。
+         启动 scanner 全量注册 ACTIVE 检查点的 cron job + 运行时增量（save/delete override 调用）。
+         IJobScheduler 经 @Inject @Nullable 注入：宿主未注册调度器时为 null，scanner 跳过（不抛崩）。
+         注意：此 bean 必须放在 app-service.beans.xml（非生成的 _service.beans.xml），否则 codegen 会覆盖。-->
+    <bean id="metaQualityCheckpointScheduler"
+          class="io.nop.metadata.service.quality.MetaQualityCheckpointScheduler" ioc:default="true"/>
 </beans>

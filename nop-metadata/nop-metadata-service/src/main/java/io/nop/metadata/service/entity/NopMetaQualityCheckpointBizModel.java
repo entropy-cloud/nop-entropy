@@ -6,6 +6,7 @@ import io.nop.api.core.annotations.core.Name;
 import io.nop.api.core.annotations.core.Optional;
 import io.nop.api.core.exceptions.ErrorCode;
 import io.nop.api.core.exceptions.NopException;
+import io.nop.api.core.ioc.BeanContainer;
 import io.nop.api.core.message.IMessageService;
 import io.nop.biz.crud.CrudBizModel;
 import io.nop.core.context.IServiceContext;
@@ -18,6 +19,7 @@ import io.nop.metadata.service.connection.IMetaDataSourceConnectionService;
 import io.nop.metadata.service.datasource.MetaDataSourceResolver;
 import io.nop.metadata.service.quality.CheckpointActionDispatcher;
 import io.nop.metadata.service.quality.MetaQualityCheckpointExecutor;
+import io.nop.metadata.service.quality.MetaQualityCheckpointScheduler;
 import io.nop.metadata.service.quality.MetaQualityRuleExecutor;
 import io.nop.metadata.service.quality.QualityResultWriter;
 import io.nop.metadata.service.tableref.MetaTableReferenceResolver;
@@ -140,6 +142,59 @@ public class NopMetaQualityCheckpointBizModel extends CrudBizModel<NopMetaQualit
         // D4：结果动作投递——store 提交后才触发 webhook/notify（post-commit dispatch）
         dispatchActions(cp, summary);
         return summary;
+    }
+
+    // ============================================================
+    // §2.7.3.1 D4：运行时增量调度 hook（save/delete override）
+    // ============================================================
+
+    /**
+     * save override（§2.7.3.1 D4 运行时增量）：持久化后通知调度器重新注册该检查点的 cron job。
+     *
+     * <p>调度器经 {@link BeanContainer#tryGetBean} 懒查找（非 {@code @Inject}），避免与
+     * {@link MetaQualityCheckpointScheduler}（注入本 BizModel）构成构造期循环依赖。调度器 bean 缺失
+     * （宿主未注册 {@code IJobScheduler}）时 tryGetBean 返回 null，跳过（不抛崩）。
+     */
+    @Override
+    public NopMetaQualityCheckpoint save(Map<String, Object> data, IServiceContext context) {
+        NopMetaQualityCheckpoint saved = super.save(data, context);
+        notifySchedulerRegister(saved.getCheckpointId());
+        return saved;
+    }
+
+    /**
+     * delete override（§2.7.3.1 D4 运行时增量）：删除前先移除该检查点的 cron job，避免删除后 cron 仍触发
+     * （触发时 {@code executeCheckpoint} 会因检查点不存在抛 {@code ERR_CHECKPOINT_NOT_FOUND}，但提前移除更干净）。
+     */
+    @Override
+    public boolean delete(String id, IServiceContext context) {
+        notifySchedulerUnregister(id);
+        return super.delete(id, context);
+    }
+
+    private void notifySchedulerRegister(String checkpointId) {
+        try {
+            MetaQualityCheckpointScheduler scheduler = (MetaQualityCheckpointScheduler)
+                    BeanContainer.tryGetBean(MetaQualityCheckpointScheduler.BEAN_NAME);
+            if (scheduler != null) {
+                scheduler.registerCheckpoint(checkpointId);
+            }
+        } catch (Exception e) {
+            // 调度器注册失败不影响 save 主路径（调度是旁路能力）
+            LOG.warn("nop.meta.checkpoint-scheduler.register-after-save-failed: checkpointId={}", checkpointId, e);
+        }
+    }
+
+    private void notifySchedulerUnregister(String checkpointId) {
+        try {
+            MetaQualityCheckpointScheduler scheduler = (MetaQualityCheckpointScheduler)
+                    BeanContainer.tryGetBean(MetaQualityCheckpointScheduler.BEAN_NAME);
+            if (scheduler != null) {
+                scheduler.unregisterCheckpoint(checkpointId);
+            }
+        } catch (Exception e) {
+            LOG.warn("nop.meta.checkpoint-scheduler.unregister-before-delete-failed: checkpointId={}", checkpointId, e);
+        }
     }
 
     // ============================================================

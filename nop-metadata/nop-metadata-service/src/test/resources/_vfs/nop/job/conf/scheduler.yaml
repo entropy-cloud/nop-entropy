@@ -1,0 +1,4 @@
+# Test-only scheduler config: activates LocalJobScheduler during AutoTest IoC init
+# so that MetaQualityCheckpointScheduler can register jobs and tests can fireNow them.
+# Production runtime supplies this via host app (e.g. nop-wf-scheduler imports app-local-scheduler.beans.xml).
+enabled: true
