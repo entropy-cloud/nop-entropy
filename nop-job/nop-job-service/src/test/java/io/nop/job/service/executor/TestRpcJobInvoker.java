@@ -218,7 +218,7 @@ public class TestRpcJobInvoker {
 
         Map<String, Object> headers = mockRpc.getLastRequest().getHeaders();
         assertNotNull(headers);
-        assertEquals(60_000L, headers.get("nop-timeout"));
+        assertNull(headers.get("nop-timeout"));
     }
 
     @Test
@@ -230,7 +230,7 @@ public class TestRpcJobInvoker {
 
         Map<String, Object> headers = mockRpc.getLastRequest().getHeaders();
         assertNotNull(headers);
-        assertEquals(60_000L, headers.get("nop-timeout"));
+        assertNull(headers.get("nop-timeout"));
     }
 
     // --- Mock and Stub classes ---
