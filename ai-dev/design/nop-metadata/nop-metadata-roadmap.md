@@ -1,6 +1,6 @@
 # nop-metadata Implementation Roadmap
 
-> Last Updated: 2026-07-17 (P2-5++ CTE/子查询列穿透（列级血缘解析增强）completed via plan 0852-2; P4-3+ entity↔entity JOIN 聚合查询执行 completed via plan 0852-1; P4-2+ sql/external 端点联邦 JOIN 查询执行 completed via plan 0700-2; P3+/P4+ sql/external 表作为 NopMetaTableJoin 端点 + Measure 跨表校验 completed via plan 0700-1; P3+ 跨表 Measure/Dimension 校验 completed via plan 0228-3; P2-5+ 列级 SQL 血缘解析 completed via plan 0228-2; P-event completed via plan 0228-1; P4-5 completed via plan 0900-2; P4-4 completed via plan 0900-1; P4-2 + P4-3 completed via plan 0800-2; P4-1 completed via plan 0800-1; P2-7 completed via plan 0530-2; P2-5 completed via plan 0420-2; P2-4 completed via plan 0420-1; P2-3 completed via plan 0225-3; P3-2 + P3-3 + P3-4 + P3-5 completed via plan 0700-2; P3-1 + P3-6 completed via plan 0700-1; P1+ completed via plans 294+295; Phase 1 import engine via plan 292)
+> Last Updated: 2026-07-17 (P4-3++ external↔external 同库 JOIN 聚合 + Measure/Dimension 侧别建模 completed via plan 1200-1; P2-5++ CTE/子查询列穿透（列级血缘解析增强）completed via plan 0852-2; P4-3+ entity↔entity JOIN 聚合查询执行 completed via plan 0852-1; P4-2+ sql/external 端点联邦 JOIN 查询执行 completed via plan 0700-2; P3+/P4+ sql/external 表作为 NopMetaTableJoin 端点 + Measure 跨表校验 completed via plan 0700-1; P3+ 跨表 Measure/Dimension 校验 completed via plan 0228-3; P2-5+ 列级 SQL 血缘解析 completed via plan 0228-2; P-event completed via plan 0228-1; P4-5 completed via plan 0900-2; P4-4 completed via plan 0900-1; P4-2 + P4-3 completed via plan 0800-2; P4-1 completed via plan 0800-1; P2-7 completed via plan 0530-2; P2-5 completed via plan 0420-2; P2-4 completed via plan 0420-1; P2-3 completed via plan 0225-3; P3-2 + P3-3 + P3-4 + P3-5 completed via plan 0700-2; P3-1 + P3-6 completed via plan 0700-1; P1+ completed via plans 294+295; Phase 1 import engine via plan 292)
 > Source: 设计体系 `ai-dev/design/nop-metadata/`（00-vision ~ 10-event-model）；`01-architecture-baseline.md` 为架构权威
 
 ## Purpose
@@ -21,6 +21,7 @@
 - P2. Phase 2 — 外部数据源注册 + 外部表同步 + 血缘采集 + 质量执行: `todo`
 - P3. Phase 3 — BI 语义层（视图定义 + 指标/维度管理）: `done`
 - P3+/P4+. sql/external 表作为 NopMetaTableJoin 端点（建模 + 校验）+ 其 Measure/Dimension 跨表字段引用校验 + sql/external 端点联邦 JOIN 查询执行（queryJoinData 扩展）: `done`（plan 0700-1 建模+校验；plan 0700-2 JOIN 查询执行，端点组合路由 entity-entity / external-sql↔external-sql / 混合跨库拼接）
+- P4-3++. external↔external 同库 JOIN 聚合（queryAggregation + joinId）+ Measure/Dimension 侧别建模: `done`（plan 1200-1：Measure/Dimension 新增 side 列；external↔external 同库原生 GROUP BY over JOIN；混合/跨库 JOIN 聚合仍 deferred）
 - P4. Phase 4 — 联邦查询执行（基于 ORM querySpace）: `todo`
 
 ## Status Values
@@ -123,6 +124,7 @@
 | P4-2 | **跨表 JOIN 执行**：MetaTableJoin 定义的关联条件在查询时翻译为 SQL JOIN（同库）或应用层拼接（跨库） | done |
 | P4-3 | **指标/维度聚合查询**：MetaTableMeasure + MetaTableDimension → 聚合 SQL 自动生成 | done |
 | P4-3+ | **entity↔entity JOIN 聚合查询执行**：queryAggregation + joinId → 同库 entity↔entity 跨表 Measure/Dimension 经 GROUP BY over JOIN 聚合（external/sql 端点、跨库 JOIN 聚合 deferred） | done |
+| P4-3++ | **external↔external 同库 JOIN 聚合 + Measure/Dimension 侧别建模**：Measure/Dimension 新增 side 列（left/right），query-time 侧别解析 + 校验（external/sql 端点 side 必填）；external↔external 同库原生 GROUP BY over JOIN 聚合（混合端点 / 跨库 JOIN 聚合仍 deferred） | done |
 | P4-4 | **数据契约 MetaDataContract**（新实体）：SLA 定义格式已裁定（JSON Schema/结构化 JSON，拒绝自定义 DSL） | done |
 | P4-5 | **Reconciliation 对账**（3 个新实体）：MetaReconciliationConfig / MetaReconciliationResult / MetaReconciliationEntity，可插拔对账服务，兼容 OpenRefine Reconciliation API，支持表级/列级对账 | done |
 

@@ -1012,6 +1012,20 @@ granularity→分桶表达式表（external/sql 路径，withConnection 原生 S
 - **EQL 保留字风险裁定**：`MetaJoinExecutor.executeSameDbJoin`（行级 JOIN）为规避 EQL 保留字仅投影 join-key 列；本 JOIN 聚合路径须投影两侧任意 measure/dimension 物理列，遇 EQL 编译失败经 `orm().executeQuery` 的 try/catch 收口为 `ERR_AGGR_JOIN_COMPILE_FAILED`（显式失败 + 迁移指引，不静默退化）。这与单表 entity 聚合路径的 EQL 风险一致（单表路径同样投影任意物理列，EQL 失败由通用 exec 错误承载）。
 - **Deferred（已裁定）**：external/sql 端点的 JOIN 聚合（`NopMetaTableMeasure/Dimension` 对 external/sql 表的 `entityFieldId` 为裸列名字符串，无 `metaEntityId`/side/endpointTableId，同名列无法判定左右侧 → 需 ORM 结构变更，Protected Area plan-first）；跨 querySpace（跨库）entity-entity JOIN 聚合（需应用层先拼接再内存聚合）；混合端点（entity ↔ external/sql）JOIN 聚合。三者均显式失败，不静默跳过。
 
+**D9 — Measure/Dimension 侧别建模（plan 2026-07-17-1200-1 落地）**：
+
+为收口 D8 Deferred 中「external/sql 端点 JOIN 聚合」**可正确实现**的部分（external↔external 同 querySpace 单一共享 `withConnection` 原生 `GROUP BY over JOIN`，语义可正确），对 `NopMetaTableMeasure` / `NopMetaTableDimension` 新增可空列 `side`（dict `meta/join-side`，值 `left`/`right`），补齐 external/sql 表「裸列名字符串无端点归属」的表达力缺口。
+
+- **选型（side enum）**：选 `side`（enum `left`/`right`），与 `NopMetaTableJoin` 的 left/right 语义对齐、表达最小；**拒绝** `endpointTableId` FK 方案——冗余（join 已持 `leftTableId`/`rightTableId`），且 save-time 无单一 join 上下文（一个 MetaTable 可有多 join，见 D3/D4），无法针对具体 join 校验。
+- **多 join 语义（与 join 解耦）**：`side` 存储于 Measure/Dimension，**与具体 join 解耦**；语义在 `queryAggregation(joinId)` 传入的具体 join 上解释（`left` = 该 join 的左端点，`right` = 该 join 的右端点）。save-time **不**针对具体 join 校验 side（无单一 join 上下文），仅校验枚举合法性；**权威校验在 query-time**（按传入 joinId 解释）。
+- **必填规则（query-time）**：
+    - **external/sql 端点**：side **必填**（`null` → 显式失败，不依赖是否歧义）。列名须属于所绑定端点的解析字段集合（`MetaTableFieldResolver` 按该端点 tableType 解析），否则显式失败。
+    - **entity 端点**：side **可选**（`entityFieldId → metaEntityId` 已可无歧义判定归属；若提供 side 须与 metaEntityId 端点一致，不一致显式失败）。
+    - **无 joinId（单表聚合）**：side 被忽略（向后兼容，既有行 side=null 零行为变化）。
+- **向后兼容**：既有行 `side=null`；单表聚合与 entity↔entity JOIN 聚合（D8）行为零变化。
+- **范围裁定（经 R1 审查）**：本 D9 仅兑现 **external↔external 同 querySpace** JOIN 聚合（单一共享 `withConnection`，原生 `GROUP BY over JOIN`，可正确）。**混合端点（entity ↔ external/sql）JOIN 聚合仍 deferred**——§4.4.1 D1.2 裁定混合端点任意 querySpace 一律走截断式应用层拼接 D5，聚合语义为近似（受 `MAX_CROSS_DB_ROWS` 截断）不可正确，支持其聚合需引入 §4.4.3 D1 跨连接机制，独立复杂度。
+- **失败路径显式化（无静默跳过）**：external/sql 端点 side 缺失 / side 指向端点字段集合不含该列 / entity side 与 metaEntityId 不一致 / 混合端点 / 跨 querySpace / `joinType=right` / self-join（双侧别名机制不足）均抛 inline `ErrorCode` + 上下文（measureName/dimensionName + joinId + side + tableType）。
+
 ---
 
 ## 五、与 nop-dyn 的关系

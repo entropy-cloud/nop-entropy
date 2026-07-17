@@ -109,7 +109,8 @@ public class TestOrder extends JunitAutoTestCase {
 }
 ```
 
-> 完整说明见 `../02-core-guides/testing.md` 的"快照测试与显式断言的组合：三层验证"章节。
+> 完整说明见 `../02-core-guides/testing.md` 的"快照测试与显式断言的组合：三层验证"和"防止录制回放漂移丢失业务语义"章节。
+> 编写测试前建议对照自检清单（`../02-core-guides/testing.md` 的"防止录制回放漂移丢失业务语义"章节）检查测试覆盖是否完备。
 
 ### 5. 数据目录
 
