@@ -12,7 +12,7 @@
 @selectFirst 对于Options选项，默认选中第一个
 @ui:supportFileLink 允许直接输入文件链接作为附件或者图片
 -->
-<disp id="!string" label="string" editMode="xml-name" prop="string" custom="!boolean=false"
+<disp id="!string" label="boolean-or-string" editMode="xml-name" prop="string" custom="!boolean=false"
       depends="csv-set" width="string"
       domain="xml-name" stdDomain="std-domain" control="xml-name"
       maxLength="int" minLength="int" minRows="int" charCase="string"

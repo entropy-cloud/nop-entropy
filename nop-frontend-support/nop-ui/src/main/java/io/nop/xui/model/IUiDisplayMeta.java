@@ -33,7 +33,7 @@ public interface IUiDisplayMeta extends IExtensibleObject {
 
     String getWidth();
 
-    String getLabel();
+    Object getLabel();
 
     String getBizObjName();
 

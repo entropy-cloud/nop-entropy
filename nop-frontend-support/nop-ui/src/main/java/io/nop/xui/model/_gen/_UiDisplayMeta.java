@@ -176,7 +176,7 @@ public abstract class _UiDisplayMeta extends io.nop.core.resource.component.Abst
      * xml name: label
      * 
      */
-    private java.lang.String _label ;
+    private java.lang.Object _label ;
     
     /**
      *  
@@ -745,12 +745,12 @@ public abstract class _UiDisplayMeta extends io.nop.core.resource.component.Abst
      *  
      */
     
-    public java.lang.String getLabel(){
+    public java.lang.Object getLabel(){
       return _label;
     }
 
     
-    public void setLabel(java.lang.String value){
+    public void setLabel(java.lang.Object value){
         checkAllowChange();
         
         this._label = value;
