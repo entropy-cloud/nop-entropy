@@ -1,6 +1,6 @@
 # nop-metadata Implementation Roadmap
 
-> Last Updated: 2026-07-17 (P4-dc-2 跨库 JOIN 聚合（全端点组合）completed via plan 1500-2，收口 0852-1/1200-1/0700-2 跨库 deferred 项; P4-dc-1 混合端点同库 JOIN 聚合 completed via plan 1500-1; P2-cron 质量检查点 cron 定时调度 nop-job 集成 completed via plan 2026-07-17-1308-1; P2-5++ CTE/子查询列穿透（列级血缘解析增强）completed via plan 0852-2; P4-3+ entity↔entity JOIN 聚合查询执行 completed via plan 0852-1; P4-2+ sql/external 端点联邦 JOIN 查询执行 completed via plan 0700-2; P3+/P4+ sql/external 表作为 NopMetaTableJoin 端点 + Measure 跨表校验 completed via plan 0700-1; P3+ 跨表 Measure/Dimension 校验 completed via plan 0228-3; P2-5+ 列级 SQL 血缘解析 completed via plan 0228-2; P-event completed via plan 0228-1; P4-5 completed via plan 0900-2; P4-4 completed via plan 0900-1; P4-2 + P4-3 completed via plan 0800-2; P4-1 completed via plan 0800-1; P2-7 completed via plan 0530-2; P2-5 completed via plan 0420-2; P2-4 completed via plan 0420-1; P2-3 completed via plan 0225-3; P3-2 + P3-3 + P3-4 + P3-5 completed via plan 0700-2; P3-1 + P3-6 completed via plan 0700-1; P1+ completed via plans 294+295; Phase 1 import engine via plan 292)
+> Last Updated: 2026-07-17 (P2+P4 phase closure completed via plan 2055-1：系统级回归复核全绿（363 tests, 0 failures）+ 修复 P4-dc-1 数据契约 ownerUserId domain=userId 碰撞导致的 web validateAllPages 失败 + roadmap P2/P4 todo→done 状态翻转 + §八 isDelta 已裁定/Domain 来源现状声明；roadmap 全 Phase done; P4-dc-2 跨库 JOIN 聚合（全端点组合）completed via plan 1500-2，收口 0852-1/1200-1/0700-2 跨库 deferred 项; P4-dc-1 混合端点同库 JOIN 聚合 completed via plan 1500-1; P2-cron 质量检查点 cron 定时调度 nop-job 集成 completed via plan 2026-07-17-1308-1; P2-5++ CTE/子查询列穿透（列级血缘解析增强）completed via plan 0852-2; P4-3+ entity↔entity JOIN 聚合查询执行 completed via plan 0852-1; P4-2+ sql/external 端点联邦 JOIN 查询执行 completed via plan 0700-2; P3+/P4+ sql/external 表作为 NopMetaTableJoin 端点 + Measure 跨表校验 completed via plan 0700-1; P3+ 跨表 Measure/Dimension 校验 completed via plan 0228-3; P2-5+ 列级 SQL 血缘解析 completed via plan 0228-2; P-event completed via plan 0228-1; P4-5 completed via plan 0900-2; P4-4 completed via plan 0900-1; P4-2 + P4-3 completed via plan 0800-2; P4-1 completed via plan 0800-1; P2-7 completed via plan 0530-2; P2-5 completed via plan 0420-2; P2-4 completed via plan 0420-1; P2-3 completed via plan 0225-3; P3-2 + P3-3 + P3-4 + P3-5 completed via plan 0700-2; P3-1 + P3-6 completed via plan 0700-1; P1+ completed via plans 294+295; Phase 1 import engine via plan 292)
 > Source: 设计体系 `ai-dev/design/nop-metadata/`（00-vision ~ 10-event-model）；`01-architecture-baseline.md` 为架构权威
 
 ## Purpose
@@ -18,13 +18,13 @@
 
 - P1. Phase 1 — ORM 模型导入引擎: `done`
 - P1+. Phase 1 补完 — Delta 展开 + 版本发布 + 模块发现 + UniqueKey/Index 导入: `done`
-- P2. Phase 2 — 外部数据源注册 + 外部表同步 + 血缘采集 + 质量执行: `todo`
+- P2. Phase 2 — 外部数据源注册 + 外部表同步 + 血缘采集 + 质量执行: `done`
 - P3. Phase 3 — BI 语义层（视图定义 + 指标/维度管理）: `done`
 - P3+/P4+. sql/external 表作为 NopMetaTableJoin 端点（建模 + 校验）+ 其 Measure/Dimension 跨表字段引用校验 + sql/external 端点联邦 JOIN 查询执行（queryJoinData 扩展）: `done`（plan 0700-1 建模+校验；plan 0700-2 JOIN 查询执行，端点组合路由 entity-entity / external-sql↔external-sql / 混合跨库拼接）
 - P4-3++. external↔external 同库 JOIN 聚合（queryAggregation + joinId）+ Measure/Dimension 侧别建模: `done`（plan 1200-1：Measure/Dimension 新增 side 列；external↔external 同库原生 GROUP BY over JOIN；混合/跨库 JOIN 聚合仍 deferred）
 - P4-dc-1. 混合端点（entity↔external/sql）同库 JOIN 聚合 — 机制裁定与实现: `done`（plan 1500-1，§4.4.1 D1.5 裁定：external `withConnection` 单连接 + 连接可达性实测判定同库 + entity 物理表直查绕过 ORM session；同库原生 GROUP BY over JOIN 实现；收口 1200-1「混合端点 JOIN 聚合」同库部分，跨库部分仍 deferred → 1500-2）
 - P4-dc-2. 跨库 JOIN 聚合（全端点组合：entity↔entity / external↔external / 混合）— 复用 executeJoin + 内存 GROUP BY: `done`（plan 1500-2，§4.4.2 D10 裁定：精确-当-容纳/超限-失败 + 合并行按端点命名空间取值 entity=fieldName/table=物理列名/右侧冲突=`<alias>_<name>`；收口 0852-1/1200-1/0700-2 跨库 JOIN 聚合 deferred 项）
-- P4. Phase 4 — 联邦查询执行（基于 ORM querySpace）: `todo`
+- P4. Phase 4 — 联邦查询执行（基于 ORM querySpace）: `done`
 
 ## Status Values
 
@@ -162,10 +162,10 @@
 ```mermaid
 graph TD
     P1["P1 Phase 1 — ORM 模型导入引擎 ✓"]
-    P1P["P1+ Phase 1 补完 — Delta/版本/发现"]
-    P2["P2 Phase 2 — 外部数据源/同步/血缘/质量"]
-    P3["P3 Phase 3 — BI 语义层"]
-    P4["P4 Phase 4 — 联邦查询"]
+    P1P["P1+ Phase 1 补完 — Delta/版本/发现 ✓"]
+    P2["P2 Phase 2 — 外部数据源/同步/血缘/质量 ✓"]
+    P3["P3 Phase 3 — BI 语义层 ✓"]
+    P4["P4 Phase 4 — 联邦查询 ✓"]
 
     P1 --> P1P
     P1P --> P2
@@ -173,10 +173,10 @@ graph TD
     P3 --> P4
 
     style P1 fill:#dfd,stroke:#3a3
-    style P1P fill:#ffd,stroke:#aa3
-    style P2 fill:#fdd,stroke:#a33
-    style P3 fill:#fdd,stroke:#a33
-    style P4 fill:#fdd,stroke:#a33
+    style P1P fill:#dfd,stroke:#3a3
+    style P2 fill:#dfd,stroke:#3a3
+    style P3 fill:#dfd,stroke:#3a3
+    style P4 fill:#dfd,stroke:#3a3
 ```
 
 依赖说明：
@@ -192,7 +192,7 @@ graph TD
 非 roadmap 内容已拆分到各自归属，本文件不重复维护：
 
 - **设计文档** → `ai-dev/design/nop-metadata/`（00-vision ~ 10-event-model，共 11 份编号文档 + README）
-- **已完成 plan** → `292`（Phase 1 导入引擎）；`293`（设计一致性修复）；`294`（P1+ 导入引擎完整性）；`295`（P1+ Delta 展开 + 版本发布）；`2026-07-16-0225-1`（P2-1 数据源注册+连接验证）；`2026-07-16-0225-2`（P2-2 外部表同步）；`2026-07-16-0225-3`（P2-3 Manifest 快照）；`2026-07-16-0420-1`（P2-4 Catalog 运行时收集）；`2026-07-16-0420-2`（P2-5 血缘采集+遍历）；`2026-07-16-0800-1`（P4-1 单表联邦查询）；`2026-07-16-0900-1`（P4-4 数据契约 MetaDataContract）；`2026-07-16-0900-2`（P4-5 Reconciliation 对账）；`2026-07-16-1905-1`（P2 entity/sql 执行覆盖扩展）；`2026-07-17-0228-1`（P-event 元数据变更事件模型）；`2026-07-17-0228-2`（P2-5+ 列级 SQL 血缘解析）；`2026-07-17-0852-2`（P2-5++ CTE/子查询列穿透）；`2026-07-17-0228-3`（P3+ 跨表 Measure/Dimension 校验）；`2026-07-17-0700-1`（P3+/P4+ sql/external 表作为 NopMetaTableJoin 端点）；`2026-07-17-0700-2`（P4-2+ sql/external 端点联邦 JOIN 查询执行）；`2026-07-17-0027-1`（P2-8 质量检查点编排）；`2026-07-17-0027-2`（P2-9 质量评分）；`2026-07-17-0540-1`（checkpoint→score 自动评分触发）；`2026-07-17-0540-2`（checkpoint 结果动作投递）；`2026-07-17-1500-1`（P4-dc-1 混合端点同库 JOIN 聚合）；`2026-07-17-1500-2`（P4-dc-2 跨库 JOIN 聚合全端点组合，收口 0852-1/1200-1/0700-2 跨库 deferred）
+- **已完成 plan** → `292`（Phase 1 导入引擎）；`293`（设计一致性修复）；`294`（P1+ 导入引擎完整性）；`295`（P1+ Delta 展开 + 版本发布）；`2026-07-16-0225-1`（P2-1 数据源注册+连接验证）；`2026-07-16-0225-2`（P2-2 外部表同步）；`2026-07-16-0225-3`（P2-3 Manifest 快照）；`2026-07-16-0420-1`（P2-4 Catalog 运行时收集）；`2026-07-16-0420-2`（P2-5 血缘采集+遍历）；`2026-07-16-0800-1`（P4-1 单表联邦查询）；`2026-07-16-0900-1`（P4-4 数据契约 MetaDataContract）；`2026-07-16-0900-2`（P4-5 Reconciliation 对账）；`2026-07-16-1905-1`（P2 entity/sql 执行覆盖扩展）；`2026-07-17-0228-1`（P-event 元数据变更事件模型）；`2026-07-17-0228-2`（P2-5+ 列级 SQL 血缘解析）；`2026-07-17-0852-2`（P2-5++ CTE/子查询列穿透）；`2026-07-17-0228-3`（P3+ 跨表 Measure/Dimension 校验）；`2026-07-17-0700-1`（P3+/P4+ sql/external 表作为 NopMetaTableJoin 端点）；`2026-07-17-0700-2`（P4-2+ sql/external 端点联邦 JOIN 查询执行）；`2026-07-17-0027-1`（P2-8 质量检查点编排）；`2026-07-17-0027-2`（P2-9 质量评分）；`2026-07-17-0540-1`（checkpoint→score 自动评分触发）；`2026-07-17-0540-2`（checkpoint 结果动作投递）；`2026-07-17-0852-3`（P2-multi-schema 多 schema 数据源）；`2026-07-17-1308-1`（P2-cron 质量检查点 cron 定时调度 nop-job 集成）；`2026-07-17-1500-1`（P4-dc-1 混合端点同库 JOIN 聚合）；`2026-07-17-1500-2`（P4-dc-2 跨库 JOIN 聚合全端点组合，收口 0852-1/1200-1/0700-2 跨库 deferred）；`2026-07-17-2055-1`（P2+P4 phase closure：系统级回归复核 + roadmap 状态翻转 + §八 待定问题收口）
 - **活跃 plan** → （无）
 - **设计决策** → `01-architecture-baseline.md` §一 设计结论 + §七 拒绝清单
 - **待定问题** → `01-architecture-baseline.md` §八 待定问题
@@ -217,7 +217,7 @@ graph TD
 ## Rule
 
 - 本文档是状态索引和粗粒度 Phase 划分，不是 execution plan。实现细节在 plan 文件，不在本 roadmap。
-- **可标记单位是 Phase**（P1 ~ P4 + P1+），当前 P1 为 `done`，其余为 `todo`。新工作项出现时在 Work Item Status 追加。
+- **可标记单位是 Phase**（P1 ~ P4 + P1+），当前全 Phase（P1/P1+/P2/P3/P4 + 增量项）均为 `done`。新工作项出现时在 Work Item Status 追加。
 - **唯一动态块是 Work Item Status**（顶部）。状态不散落到 Work Items 表、Pointers 或别处。
 - 审计发现不在此追踪；设计决策不在此重述；逐项实现描述不在此复制。
 - 不得在 closure audit 通过前把 Phase 标为 `done`。
