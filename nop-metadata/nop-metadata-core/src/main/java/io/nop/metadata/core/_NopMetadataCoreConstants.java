@@ -134,6 +134,16 @@ public interface _NopMetadataCoreConstants {
     String JOIN_TYPE_RIGHT = "right";
                     
     /**
+     * 侧别: 左 
+     */
+    String JOIN_SIDE_LEFT = "left";
+                    
+    /**
+     * 侧别: 右 
+     */
+    String JOIN_SIDE_RIGHT = "right";
+                    
+    /**
      * 血缘转换类型: 直接映射 
      */
     String LINEAGE_TRANSFORM_DIRECT = "direct";

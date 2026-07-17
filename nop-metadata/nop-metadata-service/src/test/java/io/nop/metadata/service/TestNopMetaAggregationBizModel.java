@@ -392,6 +392,201 @@ public class TestNopMetaAggregationBizModel extends JunitBaseTestCase {
                 "JOIN aggregation with external/sql table endpoint must explicitly fail (deferred)");
     }
 
+    // ============================================================
+    // plan 1200-1：external↔external 同库 JOIN 聚合 + Measure/Dimension 侧别建模
+    // ============================================================
+
+    /**
+     * external↔external 同库 JOIN 聚合正确性 + Anti-Hollow（plan 1200-1 Phase 3 主 Exit Criterion）：
+     *
+     * <p>left = EXT_FACT（measure = sum(AMOUNT)，side=left），right = EXT_DIM（dimension = CAT_NAME，side=right），
+     * join ON CAT_ID。经 {@code queryAggregation(joinId)} 跑原生 GROUP BY over JOIN，断言：
+     * <ul>
+     *   <li>真实分组行非空（stub/退化单表立即失败此断言）</li>
+     *   <li>按 CAT_NAME 分组后 SUM(AMOUNT)：A=30（1→10+20），B=30（2→30），与等价直接 SQL 一致</li>
+     * </ul>
+     */
+    @Test
+    @SuppressWarnings("unchecked")
+    public void testExternalExternalJoinAggregationCorrectness() throws Exception {
+        String querySpace = "qs_ext_join";
+        String dbUrl = "jdbc:h2:mem:" + querySpace + ";DB_CLOSE_DELAY=-1";
+        seedFactDimTables(dbUrl);
+        // sync 两个 external 表（同 querySpace 共享数据源）
+        saveDataSource("ds-" + querySpace, querySpace, dbUrl);
+        syncExternalTables("ds-" + querySpace);
+        String factTableId = tableId("EXT_FACT");
+        String dimTableId = tableId("EXT_DIM");
+
+        String joinId = createTableTableJoin(factTableId, "inner", factTableId, dimTableId,
+                "CAT_ID", "CAT_ID", "dim");
+        createMeasureWithSide(factTableId, "total", "AMOUNT", "sum", "left");
+        createDimensionWithSide(factTableId, "cat", "CAT_NAME", "categorical", null, "right");
+
+        Map<String, Object> result = nopMetaTableBizModel.queryAggregation(factTableId,
+                Arrays.asList("total"), Arrays.asList("cat"), null, joinId, null, null, null);
+        List<Map<String, Object>> items = (List<Map<String, Object>>) result.get("items");
+        assertNotNull(items, "items must not be null");
+        assertEquals(2, items.size(), "group by CAT_NAME must yield 2 groups (A,B): " + items);
+        Map<String, Object> rowA = findRow(items, "CAT", "A");
+        Map<String, Object> rowB = findRow(items, "CAT", "B");
+        assertNotNull(rowA, "group A must exist: " + items);
+        assertNotNull(rowB, "group B must exist: " + items);
+        assertEquals(30, toInt(rowA.get("TOTAL")), "SUM(AMOUNT) for A = 10+20 = 30");
+        assertEquals(30, toInt(rowB.get("TOTAL")), "SUM(AMOUNT) for B = 30");
+    }
+
+    /**
+     * 端到端验证（Minimum Rules #22）+ 接线验证（#23）：从 GraphQL {@code queryAggregation(joinId)}
+     *（两端点 external 同库）经 MetaAggregationExecutor 路由到聚合 items 输出完整跑通。
+     */
+    @Test
+    @SuppressWarnings("unchecked")
+    public void testExternalExternalJoinAggregationViaGraphQL() throws Exception {
+        String querySpace = "qs_ext_join_gql";
+        String dbUrl = "jdbc:h2:mem:" + querySpace + ";DB_CLOSE_DELAY=-1";
+        seedFactDimTables(dbUrl);
+        saveDataSource("ds-" + querySpace, querySpace, dbUrl);
+        syncExternalTables("ds-" + querySpace);
+        String factTableId = tableId("EXT_FACT");
+        String dimTableId = tableId("EXT_DIM");
+
+        String joinId = createTableTableJoin(factTableId, "inner", factTableId, dimTableId,
+                "CAT_ID", "CAT_ID", "dim");
+        createMeasureWithSide(factTableId, "gtotal", "AMOUNT", "sum", "left");
+        createDimensionWithSide(factTableId, "gcat", "CAT_NAME", "categorical", null, "right");
+
+        io.nop.api.core.beans.graphql.GraphQLRequestBean request = new io.nop.api.core.beans.graphql.GraphQLRequestBean();
+        request.setQuery("query { NopMetaTable__queryAggregation(metaTableId: \"" + factTableId + "\", "
+                + "measures: [\"gtotal\"], dimensions: [\"gcat\"], joinId: \"" + joinId + "\") }");
+        io.nop.api.core.beans.graphql.GraphQLResponseBean resp =
+                graphQLEngine.executeGraphQL(graphQLEngine.newGraphQLContext(request));
+        assertFalse(resp.hasError(), "GraphQL external<->external queryAggregation(joinId) must succeed: " + resp);
+        Map<String, Object> data = (Map<String, Object>) resp.getData();
+        Map<String, Object> qa = (Map<String, Object>) data.get("NopMetaTable__queryAggregation");
+        assertNotNull(qa, "GraphQL queryAggregation(joinId) must return non-null Map result");
+        List<Map<String, Object>> items = (List<Map<String, Object>>) qa.get("items");
+        assertNotNull(items, "GraphQL items must not be null");
+        assertFalse(items.isEmpty(),
+                "GraphQL external<->external queryAggregation(joinId) end-to-end must return real grouped rows: " + items);
+    }
+
+    /**
+     * 接线验证（#23）：重构后 entity↔entity JOIN 聚合路径仍被调用（未失效、未退化为单表/external 路径）。
+     * 复用 entity-entity 正确性用例的核心断言，确保 router 未绕过既有 entity 路径。
+     */
+    @Test
+    @SuppressWarnings("unchecked")
+    public void testEntityJoinAggregationStillWorksAfterRefactor() {
+        importModel();
+        NopMetaEntity leftEntity = findMetaEntityByTable("nop_meta_entity");
+        NopMetaEntity rightEntity = findMetaEntityByTable("nop_meta_entity_field");
+        String leftTableId = findEntityTableId("nop_meta_entity");
+        String joinId = createJoin(leftTableId, "inner", leftEntity.getMetaEntityId(),
+                rightEntity.getMetaEntityId(), "metaEntityId", "metaEntityId", "fld");
+        String leftDimFieldId = findEntityFieldId("nop_meta_entity", "displayName");
+        String rightMeasureFieldId = findEntityFieldId("nop_meta_entity_field", "fieldName");
+        createDimension(leftTableId, "rst", leftDimFieldId, "categorical", null);
+        createMeasure(leftTableId, "rcnt", rightMeasureFieldId, "count", null);
+
+        Map<String, Object> result = nopMetaTableBizModel.queryAggregation(leftTableId,
+                Arrays.asList("rcnt"), Arrays.asList("rst"), null, joinId, null, null, null);
+        List<Map<String, Object>> items = (List<Map<String, Object>>) result.get("items");
+        assertNotNull(items, "items must not be null");
+        assertFalse(items.isEmpty(), "entity-entity JOIN aggregation must still work after refactor: " + items);
+        long totalFields = countRows("select count(*) as c from nop_meta_entity_field");
+        long sumCnt = 0;
+        for (Map<String, Object> row : items) {
+            sumCnt += toLong(getIgnoreCase(row, "RCNT"));
+        }
+        assertEquals(totalFields, sumCnt,
+                "SUM(count(fields)) grouped by entity.displayName must equal total field rows (entity path not bypassed)");
+    }
+
+    /** external/sql 端点缺 side（query-time 必填）→ 显式失败（ERR_AGGR_JOIN_SIDE_REQUIRED，不静默归属/不静默跳过）。 */
+    @Test
+    public void testExternalJoinAggregationExternalSideRequiredFails() throws Exception {
+        String querySpace = "qs_ext_side";
+        String dbUrl = "jdbc:h2:mem:" + querySpace + ";DB_CLOSE_DELAY=-1";
+        seedFactDimTables(dbUrl);
+        saveDataSource("ds-" + querySpace, querySpace, dbUrl);
+        syncExternalTables("ds-" + querySpace);
+        String factTableId = tableId("EXT_FACT");
+        String dimTableId = tableId("EXT_DIM");
+
+        String joinId = createTableTableJoin(factTableId, "inner", factTableId, dimTableId,
+                "CAT_ID", "CAT_ID", "dim");
+        // measure 无 side → external 端点 side 必填报错
+        createMeasure(factTableId, "total", "AMOUNT", "sum", null);
+        createDimensionWithSide(factTableId, "cat", "CAT_NAME", "categorical", null, "right");
+
+        assertTrue(queryAggregationJoinHasError(factTableId, "total", "cat", joinId),
+                "external/sql join endpoint measure without side must explicitly fail (side required at query-time)");
+    }
+
+    /** side 指向端点字段集合不含该列 → 显式失败（ERR_AGGR_JOIN_FIELD_NOT_ON_SIDE）。 */
+    @Test
+    public void testExternalJoinAggregationColumnNotOnSideFails() throws Exception {
+        String querySpace = "qs_ext_col";
+        String dbUrl = "jdbc:h2:mem:" + querySpace + ";DB_CLOSE_DELAY=-1";
+        seedFactDimTables(dbUrl);
+        saveDataSource("ds-" + querySpace, querySpace, dbUrl);
+        syncExternalTables("ds-" + querySpace);
+        String factTableId = tableId("EXT_FACT");
+        String dimTableId = tableId("EXT_DIM");
+
+        String joinId = createTableTableJoin(factTableId, "inner", factTableId, dimTableId,
+                "CAT_ID", "CAT_ID", "dim");
+        // AMOUNT 属于左表(EXT_FACT)，但 side=right 指向右表(EXT_DIM) → 列不存在于 right 端点
+        createMeasureWithSide(factTableId, "total", "AMOUNT", "sum", "right");
+        createDimensionWithSide(factTableId, "cat", "CAT_NAME", "categorical", null, "right");
+
+        assertTrue(queryAggregationJoinHasError(factTableId, "total", "cat", joinId),
+                "measure column not on declared side endpoint must explicitly fail");
+    }
+
+    /** entity 端点 side 与 metaEntityId 判定的端点不一致 → 显式失败（ERR_AGGR_JOIN_ENTITY_SIDE_MISMATCH）。 */
+    @Test
+    public void testExternalJoinAggregationEntitySideMismatchFails() {
+        importModel();
+        NopMetaEntity leftEntity = findMetaEntityByTable("nop_meta_entity");
+        NopMetaEntity rightEntity = findMetaEntityByTable("nop_meta_entity_field");
+        String leftTableId = findEntityTableId("nop_meta_entity");
+        String joinId = createJoin(leftTableId, "inner", leftEntity.getMetaEntityId(),
+                rightEntity.getMetaEntityId(), "metaEntityId", "metaEntityId", "fld");
+        // displayName 属于左 entity，但 side=right → 不一致
+        String leftDimFieldId = findEntityFieldId("nop_meta_entity", "displayName");
+        createDimensionWithSide(leftTableId, "st", leftDimFieldId, "categorical", null, "right");
+        String rightMeasureFieldId = findEntityFieldId("nop_meta_entity_field", "fieldName");
+        createMeasure(leftTableId, "cnt", rightMeasureFieldId, "count", null);
+
+        assertTrue(queryAggregationJoinHasError(leftTableId, "cnt", "st", joinId),
+                "entity endpoint side inconsistent with metaEntityId attribution must explicitly fail");
+    }
+
+    /** 跨 querySpace（跨库）external↔external JOIN 聚合 deferred → 显式失败（不静默降级）。 */
+    @Test
+    public void testExternalJoinAggregationCrossQuerySpaceFails() throws Exception {
+        // 两表分别处于不同 querySpace（跨库）
+        String qs1 = "qs_ext_cross_1";
+        String qs2 = "qs_ext_cross_2";
+        String dbUrl1 = "jdbc:h2:mem:" + qs1 + ";DB_CLOSE_DELAY=-1";
+        String dbUrl2 = "jdbc:h2:mem:" + qs2 + ";DB_CLOSE_DELAY=-1";
+        seedH2(dbUrl1, "CREATE TABLE ext_a (k VARCHAR(20), v INT)", "INSERT INTO ext_a VALUES ('k1', 1)");
+        seedH2(dbUrl2, "CREATE TABLE ext_b (k VARCHAR(20), v INT)", "INSERT INTO ext_b VALUES ('k1', 2)");
+        saveDataSource("ds-" + qs1, qs1, dbUrl1);
+        saveDataSource("ds-" + qs2, qs2, dbUrl2);
+        syncExternalTables("ds-" + qs1);
+        syncExternalTables("ds-" + qs2);
+        String tableAId = tableId("EXT_A");
+        String tableBId = tableId("EXT_B");
+
+        String joinId = createTableTableJoin(tableAId, "inner", tableAId, tableBId, "K", "K", "b");
+        // 跨 querySpace 失败发生在 measure 加载之前的路由分支，占位名即可触发
+        assertTrue(queryAggregationJoinHasError(tableAId, joinId),
+                "cross-querySpace external<->external JOIN aggregation must explicitly fail (deferred, not silent)");
+    }
+
     // ===== helpers =====
 
     private void seedAggTable(String dbUrl) throws Exception {
@@ -401,6 +596,20 @@ public class TestNopMetaAggregationBizModel extends JunitBaseTestCase {
             st.execute("INSERT INTO ext_agg VALUES ('A', 10, '2024-01-15 10:00:00')");
             st.execute("INSERT INTO ext_agg VALUES ('A', 20, '2024-01-20 10:00:00')");
             st.execute("INSERT INTO ext_agg VALUES ('B', 30, '2024-02-10 10:00:00')");
+        }
+    }
+
+    /** 造事实表 + 维度表（external↔external JOIN 聚合测试用）。 */
+    private void seedFactDimTables(String dbUrl) throws Exception {
+        try (Connection c = DriverManager.getConnection(dbUrl, "sa", "");
+             Statement st = c.createStatement()) {
+            st.execute("CREATE TABLE ext_fact (cat_id INT, amount INT)");
+            st.execute("CREATE TABLE ext_dim (cat_id INT, cat_name VARCHAR(20))");
+            st.execute("INSERT INTO ext_fact VALUES (1, 10)");
+            st.execute("INSERT INTO ext_fact VALUES (1, 20)");
+            st.execute("INSERT INTO ext_fact VALUES (2, 30)");
+            st.execute("INSERT INTO ext_dim VALUES (1, 'A')");
+            st.execute("INSERT INTO ext_dim VALUES (2, 'B')");
         }
     }
 
@@ -602,6 +811,68 @@ public class TestNopMetaAggregationBizModel extends JunitBaseTestCase {
         join.setCreateTime(now);
         dao.saveEntity(join);
         return join.getJoinId();
+    }
+
+    /** external↔external 双 table 端点 join（leftTableId + rightTableId），用于 external↔external 聚合用例。 */
+    private String createTableTableJoin(String metaTableId, String joinType, String leftTableId, String rightTableId,
+                                        String leftField, String rightField, String alias) {
+        IEntityDao<NopMetaTableJoin> dao = daoProvider.daoFor(NopMetaTableJoin.class);
+        NopMetaTableJoin join = dao.newEntity();
+        join.setMetaTableId(metaTableId);
+        join.setJoinType(joinType);
+        join.setLeftTableId(leftTableId);
+        join.setRightTableId(rightTableId);
+        join.setLeftField(leftField);
+        join.setRightField(rightField);
+        join.setAlias(alias);
+        join.setVersion(1L);
+        Timestamp now = new Timestamp(System.currentTimeMillis());
+        join.setCreatedBy("autotest");
+        join.setCreateTime(now);
+        dao.saveEntity(join);
+        return join.getJoinId();
+    }
+
+    private void createMeasureWithSide(String tableId, String name, String entityFieldId, String aggFunc, String side) {
+        IEntityDao<NopMetaTableMeasure> dao = daoProvider.daoFor(NopMetaTableMeasure.class);
+        NopMetaTableMeasure m = dao.newEntity();
+        m.setMetaTableId(tableId);
+        m.setMeasureName(name);
+        m.setEntityFieldId(entityFieldId);
+        m.setAggFunc(aggFunc);
+        if (side != null) {
+            m.setSide(side);
+        }
+        m.setVersion(1L);
+        dao.saveEntity(m);
+    }
+
+    private void createDimensionWithSide(String tableId, String name, String entityFieldId, String dimensionType,
+                                         String granularity, String side) {
+        IEntityDao<NopMetaTableDimension> dao = daoProvider.daoFor(NopMetaTableDimension.class);
+        NopMetaTableDimension d = dao.newEntity();
+        d.setMetaTableId(tableId);
+        d.setDimensionName(name);
+        d.setEntityFieldId(entityFieldId);
+        d.setDimensionType(dimensionType);
+        if (granularity != null) {
+            d.setGranularity(granularity);
+        }
+        if (side != null) {
+            d.setSide(side);
+        }
+        d.setVersion(1L);
+        dao.saveEntity(d);
+    }
+
+    /** sync 外部表（plan 1200-1：external↔external JOIN 测试复用 sync 链路建表）。 */
+    private void syncExternalTables(String dataSourceId) {
+        io.nop.api.core.beans.graphql.GraphQLRequestBean request = new io.nop.api.core.beans.graphql.GraphQLRequestBean();
+        request.setQuery("mutation { NopMetaDataSource__syncExternalTables(dataSourceId: \"" + dataSourceId
+                + "\", schemaPattern: \"PUBLIC\") }");
+        io.nop.api.core.beans.graphql.GraphQLResponseBean resp =
+                graphQLEngine.executeGraphQL(graphQLEngine.newGraphQLContext(request));
+        org.junit.jupiter.api.Assertions.assertFalse(resp.hasError(), "sync should not error: " + resp);
     }
 
     /** 直接 SQL UPDATE NOP_META_ENTITY.QUERY_SPACE 并清缓存，使后续 getEntityById 重读新值。 */

@@ -652,6 +652,8 @@ prop:
       updatedBy: Updated By
       updateTime: Update Time
       remark: Remark
+      side: Join Side
+      side_label: null
       metaTable: Meta Table
       metaTable.displayName: Meta Table
       extConfigComponent: null
@@ -721,6 +723,8 @@ prop:
       updatedBy: Updated By
       updateTime: Update Time
       remark: Remark
+      side: Join Side
+      side_label: null
       metaTable: Meta Table
       metaTable.displayName: Meta Table
       extConfigComponent: null
@@ -734,6 +738,7 @@ dict:
     meta/dimension-type: Dimension Type
     meta/agg-func: Aggregate Function
     meta/join-type: Join Type
+    meta/join-side: Join Side
     meta/lineage-transform: Lineage Transform Type
     meta/lineage-source: Lineage Source
     meta/pipeline-type: Pipeline Type
@@ -749,6 +754,9 @@ dict:
     meta/match-strategy: Match Strategy
     meta/change-event-type: Meta Change Event Type
 dict.option.label:
+  meta/join-side:
+    left: Left
+    right: Right
   meta/checkpoint-action-type:
     webhook: Webhook
     notify: Notify

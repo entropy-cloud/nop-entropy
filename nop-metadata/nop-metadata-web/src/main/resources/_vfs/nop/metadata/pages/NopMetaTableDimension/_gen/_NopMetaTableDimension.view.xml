@@ -62,6 +62,9 @@
 
                 <!--备注-->
                 <col id="remark" sortable="true"/>
+
+                <!--侧别-->
+                <col id="side" sortable="true"/>
             </cols>
         </grid>
         <grid id="pick-list" x:prototype="list" x:abstract="true"/>
@@ -77,7 +80,7 @@
  sortOrder[排序] extConfig[扩展配置]
  createdBy[创建人] createTime[创建时间]
  updatedBy[修改人] updateTime[修改时间]
- remark[备注] 
+ remark[备注] side[侧别]
 </layout>
         </form>
         <form id="add" editMode="add" title="新增-表维度" i18n-en:title="Add Meta Table Dimension" x:prototype="edit"/>
@@ -88,7 +91,7 @@
  entityFieldId[实体字段ID] dimensionType[维度类型]
  granularity[时间粒度] format[显示格式]
  sortOrder[排序] extConfig[扩展配置]
- remark[备注] 
+ remark[备注] side[侧别]
 </layout>
         </form>
         <form id="query" editMode="query" title="查询条件" i18n-en:title="Query Condition" x:abstract="true"/>

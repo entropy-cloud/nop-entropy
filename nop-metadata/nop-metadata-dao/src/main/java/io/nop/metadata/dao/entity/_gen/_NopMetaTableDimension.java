@@ -85,8 +85,12 @@ public class _NopMetaTableDimension extends DynamicOrmEntity{
     public static final String PROP_NAME_remark = "remark";
     public static final int PROP_ID_remark = 16;
     
+    /* 侧别: SIDE VARCHAR */
+    public static final String PROP_NAME_side = "side";
+    public static final int PROP_ID_side = 17;
+    
 
-    private static int _PROP_ID_BOUND = 17;
+    private static int _PROP_ID_BOUND = 18;
 
     
     /* relation: 逻辑表 */
@@ -99,7 +103,7 @@ public class _NopMetaTableDimension extends DynamicOrmEntity{
     protected static final List<String> PK_PROP_NAMES = Arrays.asList(PROP_NAME_dimensionId);
     protected static final int[] PK_PROP_IDS = new int[]{PROP_ID_dimensionId};
 
-    private static final String[] PROP_ID_TO_NAME = new String[17];
+    private static final String[] PROP_ID_TO_NAME = new String[18];
     private static final Map<String,Integer> PROP_NAME_TO_ID = new HashMap<>();
     static{
       
@@ -151,6 +155,9 @@ public class _NopMetaTableDimension extends DynamicOrmEntity{
           PROP_ID_TO_NAME[PROP_ID_remark] = PROP_NAME_remark;
           PROP_NAME_TO_ID.put(PROP_NAME_remark, PROP_ID_remark);
       
+          PROP_ID_TO_NAME[PROP_ID_side] = PROP_NAME_side;
+          PROP_NAME_TO_ID.put(PROP_NAME_side, PROP_ID_side);
+      
     }
 
     
@@ -201,6 +208,9 @@ public class _NopMetaTableDimension extends DynamicOrmEntity{
     
     /* 备注: REMARK */
     private java.lang.String _remark;
+    
+    /* 侧别: SIDE */
+    private java.lang.String _side;
     
 
     public _NopMetaTableDimension(){
@@ -323,6 +333,9 @@ public class _NopMetaTableDimension extends DynamicOrmEntity{
         
             case PROP_ID_remark:
                return getRemark();
+        
+            case PROP_ID_side:
+               return getSide();
         
            default:
               return super.orm_propValue(propId);
@@ -495,6 +508,16 @@ public class _NopMetaTableDimension extends DynamicOrmEntity{
                break;
             }
         
+            case PROP_ID_side:{
+               java.lang.String typedValue = null;
+               if(value != null){
+                   typedValue = ConvertHelper.toString(value,
+                       err-> newTypeConversionError(PROP_NAME_side));
+               }
+               setSide(typedValue);
+               break;
+            }
+        
            default:
               super.orm_propValue(propId,value);
         }
@@ -612,6 +635,13 @@ public class _NopMetaTableDimension extends DynamicOrmEntity{
             case PROP_ID_remark:{
                onInitProp(propId);
                this._remark = (java.lang.String)value;
+               
+               break;
+            }
+        
+            case PROP_ID_side:{
+               onInitProp(propId);
+               this._side = (java.lang.String)value;
                
                break;
             }
@@ -922,6 +952,25 @@ public class _NopMetaTableDimension extends DynamicOrmEntity{
         if(onPropSet(PROP_ID_remark,value)){
             this._remark = value;
             internalClearRefs(PROP_ID_remark);
+            
+        }
+    }
+    
+    /**
+     * 侧别: SIDE
+     */
+    public final java.lang.String getSide(){
+         onPropGet(PROP_ID_side);
+         return _side;
+    }
+
+    /**
+     * 侧别: SIDE
+     */
+    public final void setSide(java.lang.String value){
+        if(onPropSet(PROP_ID_side,value)){
+            this._side = value;
+            internalClearRefs(PROP_ID_side);
             
         }
     }

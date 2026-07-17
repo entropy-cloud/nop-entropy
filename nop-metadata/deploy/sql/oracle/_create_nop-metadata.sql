@@ -347,6 +347,7 @@ CREATE TABLE nop_meta_table_dimension(
   UPDATED_BY VARCHAR2(50) NOT NULL ,
   UPDATE_TIME TIMESTAMP NOT NULL ,
   REMARK VARCHAR2(200)  ,
+  SIDE VARCHAR2(20)  ,
   constraint PK_nop_meta_table_dimension primary key (DIMENSION_ID)
 );
 
@@ -368,6 +369,7 @@ CREATE TABLE nop_meta_table_measure(
   UPDATED_BY VARCHAR2(50) NOT NULL ,
   UPDATE_TIME TIMESTAMP NOT NULL ,
   REMARK VARCHAR2(200)  ,
+  SIDE VARCHAR2(20)  ,
   constraint PK_nop_meta_table_measure primary key (MEASURE_ID)
 );
 
@@ -1258,6 +1260,8 @@ CREATE TABLE nop_meta_recon_result(
                     
       COMMENT ON COLUMN nop_meta_table_dimension.REMARK IS '备注';
                     
+      COMMENT ON COLUMN nop_meta_table_dimension.SIDE IS '侧别';
+                    
       COMMENT ON TABLE nop_meta_table_measure IS '表指标';
                 
       COMMENT ON COLUMN nop_meta_table_measure.MEASURE_ID IS '指标ID';
@@ -1293,6 +1297,8 @@ CREATE TABLE nop_meta_recon_result(
       COMMENT ON COLUMN nop_meta_table_measure.UPDATE_TIME IS '修改时间';
                     
       COMMENT ON COLUMN nop_meta_table_measure.REMARK IS '备注';
+                    
+      COMMENT ON COLUMN nop_meta_table_measure.SIDE IS '侧别';
                     
       COMMENT ON TABLE nop_meta_table_filter IS '表过滤器';
                 

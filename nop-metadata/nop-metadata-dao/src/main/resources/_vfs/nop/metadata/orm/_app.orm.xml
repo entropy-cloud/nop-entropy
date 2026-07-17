@@ -57,6 +57,10 @@
             <option code="LEFT" label="左连接" value="left"/>
             <option code="RIGHT" label="右连接" value="right"/>
         </dict>
+        <dict label="侧别" name="meta/join-side" valueType="string" i18n-en:label="Join Side">
+            <option code="LEFT" label="左" value="left" i18n-en:label="Left"/>
+            <option code="RIGHT" label="右" value="right" i18n-en:label="Right"/>
+        </dict>
         <dict label="血缘转换类型" name="meta/lineage-transform" valueType="string" i18n-en:label="Lineage Transform Type">
             <option code="DIRECT" label="直接映射" value="direct"/>
             <option code="DERIVED" label="派生" value="derived"/>
@@ -998,6 +1002,8 @@
                         propId="15" stdDataType="timestamp" stdSqlType="TIMESTAMP" i18n-en:displayName="Update Time"/>
                 <column code="REMARK" displayName="备注" domain="remark" name="remark" precision="200" propId="16"
                         stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Remark"/>
+                <column code="SIDE" displayName="侧别" name="side" precision="20" propId="17" stdDataType="string"
+                        stdSqlType="VARCHAR" i18n-en:displayName="Join Side" ext:dict="meta/join-side"/>
             </columns>
             <indexes>
                 <index name="IX_NOP_META_DIM_TABLE" unique="false">
@@ -1057,6 +1063,8 @@
                         propId="16" stdDataType="timestamp" stdSqlType="TIMESTAMP" i18n-en:displayName="Update Time"/>
                 <column code="REMARK" displayName="备注" domain="remark" name="remark" precision="200" propId="17"
                         stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Remark"/>
+                <column code="SIDE" displayName="侧别" name="side" precision="20" propId="18" stdDataType="string"
+                        stdSqlType="VARCHAR" i18n-en:displayName="Join Side" ext:dict="meta/join-side"/>
             </columns>
             <indexes>
                 <index name="IX_NOP_META_MEASURE_TABLE" unique="false">

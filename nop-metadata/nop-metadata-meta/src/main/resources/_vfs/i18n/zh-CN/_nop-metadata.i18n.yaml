@@ -651,6 +651,8 @@ prop:
       metaTable.displayName: 逻辑表
       metaTableId: 逻辑表ID
       remark: 备注
+      side: 侧别
+      side_label: 侧别
       sortOrder: 排序
       updateTime: 修改时间
       updatedBy: 修改人
@@ -721,6 +723,8 @@ prop:
       metaTable.displayName: 逻辑表
       metaTableId: 逻辑表ID
       remark: 备注
+      side: 侧别
+      side_label: 侧别
       updateTime: 修改时间
       updatedBy: 修改人
       version: 数据版本

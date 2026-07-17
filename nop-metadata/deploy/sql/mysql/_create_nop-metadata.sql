@@ -347,6 +347,7 @@ CREATE TABLE nop_meta_table_dimension(
   UPDATED_BY VARCHAR(50) NOT NULL    COMMENT '修改人',
   UPDATE_TIME DATETIME(3) DEFAULT CURRENT_TIMESTAMP(3)  NOT NULL    COMMENT '修改时间',
   REMARK VARCHAR(200) NULL    COMMENT '备注',
+  SIDE VARCHAR(20) NULL    COMMENT '侧别',
   constraint PK_nop_meta_table_dimension primary key (DIMENSION_ID)
 )CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_as_cs;
 
@@ -368,6 +369,7 @@ CREATE TABLE nop_meta_table_measure(
   UPDATED_BY VARCHAR(50) NOT NULL    COMMENT '修改人',
   UPDATE_TIME DATETIME(3) DEFAULT CURRENT_TIMESTAMP(3)  NOT NULL    COMMENT '修改时间',
   REMARK VARCHAR(200) NULL    COMMENT '备注',
+  SIDE VARCHAR(20) NULL    COMMENT '侧别',
   constraint PK_nop_meta_table_measure primary key (MEASURE_ID)
 )CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_as_cs;
 

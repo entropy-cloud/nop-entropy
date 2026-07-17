@@ -62,6 +62,9 @@
 
                 <!--备注-->
                 <col id="remark" sortable="true"/>
+
+                <!--源schema-->
+                <col id="schema" sortable="true"/>
             </cols>
         </grid>
         <grid id="pick-list" x:prototype="list" x:abstract="true"/>
@@ -77,7 +80,7 @@
  description[描述] buildSql[合成SQL]
  createdBy[创建人] createTime[创建时间]
  updatedBy[修改人] updateTime[修改时间]
- remark[备注] 
+ remark[备注] schema[源schema]
 </layout>
         </form>
         <form id="add" editMode="add" title="新增-逻辑表" i18n-en:title="Add Meta Table" x:prototype="edit"/>
@@ -88,7 +91,7 @@
  tableType[表类型] querySpace[查询空间]
  sourceSql[来源SQL] baseEntityId[主要实体ID]
  description[描述] buildSql[合成SQL]
- remark[备注] 
+ remark[备注] schema[源schema]
 </layout>
         </form>
         <form id="query" editMode="query" title="查询条件" i18n-en:title="Query Condition" x:abstract="true"/>
