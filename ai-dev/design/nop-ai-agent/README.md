@@ -91,7 +91,9 @@ Layer 1: Core Interfaces (核心接口层)
 - `nop-ai-agent-branch-affinity-scheduling.md`
   - 分支亲和调度、工作空间隔离、子 Agent worktree、提交与合并模型、双环境共存
 - `nop-ai-shell-design.md`
-  - nop-ai-shell 模块设计：与 nop-ai-toolkit 接口对齐、命令分层、混合执行模式
+   - nop-ai-shell 模块设计：与 nop-ai-toolkit 接口对齐、命令分层、混合执行模式
+- `nop-ai-tool-filesystem-design.md`
+   - IToolFileSystem 设计：方法集与分类、安全模型（isPathAllowed）、IResourceStore 对比、VFS/ToolFileSystem 双存储模型、LocalToolFileSystem 实现分析、已知缺口
 - `nop-ai-shell-syntax-spec.md`
   - nop-ai-shell 语法规范：支持的 bash 子集（Tier 1/2/3）、变量展开、命令行为约定
 - `skill-system-design.md`

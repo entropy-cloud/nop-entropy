@@ -170,21 +170,28 @@ Agent A                    IMessageService                    Agent B
 
 ## 七、存储模型
 
-Agent 的存储分为两个独立抽象：
+Agent 的存储分为三个独立抽象：
 
-**1. 虚拟文件系统（VFS）** — Agent 的工作空间：
+**1. IToolFileSystem** — 工具工作文件（Tool Layer，nop-ai-toolkit）：
 
-- Agent 通过统一的文件系统接口读写工作文件（代码文件、生成产物、配置文件等）
-- 实现层可以是本地文件系统、数据库、对象存储，或它们的组合
-- VFS 是 Agent 工具层的存储抽象，Agent 看到的是文件路径和文件内容
-- 多实例部署时，VFS 后端切换为共享存储（数据库），Agent 代码无需修改
+- AI Tool 通过此接口读写工作文件（源代码、数据文件、生成产物等）
+- 设计目标：安全优先（`isPathAllowed()`）、内容取向（`readText`/`grep`/`glob`）、截断感知（token budget control）
+- 与 Core Layer 的 IResourceStore 无关——详见 `nop-ai-tool-filesystem-design.md`
+- 当前实现：`LocalToolFileSystem`（单 workDir 模式，无分层/远程实现）
 
-**2. 持久化接口** — Agent 的结构化状态：
+**2. VFS（`.nop/`）** — Agent 引擎的状态空间（Agent Engine Layer，nop-ai-agent）：
 
-- Session 状态、Plan 状态等结构化数据通过独立的持久化接口（IOrmSession）读写
-- Agent 间通信（消息）走 IMessageService，不走 VFS
+- Session 状态、Plan 快照、Checkpoint 数据存储在 `.nop/` 逻辑路径下
+- 持久化后端可切换（本地文件 → DB → 对象存储），通过 `ISessionStorage` 抽象
+- 与 IToolFileSystem 是 **不同抽象层**：VFS 为 Agent Engine 的持久化需求服务，IToolFileSystem 为 Tool 的文件 I/O 需求服务
+- 详见 `nop-ai-agent-session-and-storage.md`
 
-**边界**：VFS 管工作文件，IMessageService 管通信，持久化接口管结构化状态。三者不互相替代。
+**3. 持久化接口** — Agent 的结构化状态：
+
+- Session 元数据、用户配置等结构化数据通过 ORM/OrmSession 读写
+- Agent 间通信（消息）走 IMessageService，不走任何文件系统抽象
+
+**边界**：IToolFileSystem 管工具文件，VFS 管引擎状态空间，IMessageService 管通信，ORM 管结构化状态。四者不互相替代。IToolFileSystem 与 VFS 共享物理文件系统但隔离逻辑空间——工具不应读写 `.nop/` 目录，引擎不应直接操作工具文件。
 
 ### 后端服务访问
 
