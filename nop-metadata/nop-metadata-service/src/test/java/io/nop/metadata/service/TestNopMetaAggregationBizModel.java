@@ -27,6 +27,7 @@ import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.Statement;
 import java.sql.Timestamp;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
@@ -316,9 +317,19 @@ public class TestNopMetaAggregationBizModel extends JunitBaseTestCase {
                 "non-existent join must explicitly fail in JOIN aggregation");
     }
 
-    /** 跨 querySpace（跨库）entity-entity JOIN 聚合 deferred → 显式失败。 */
+    /**
+     * 跨 querySpace（跨库）entity-entity JOIN 聚合 → D10 内存 GROUP BY 成功（plan 1500-2）。
+     *
+     * <p>Anti-Hollow 主 Exit Criterion：经 {@code executeJoin} 取合并行 → 内存 GROUP BY。
+     * <ul>
+     *   <li>真实分组行非空（stub 立即失败此断言）</li>
+     *   <li>entity 侧 measure 经**属性名**（fieldName）取值正确（非静默 0）</li>
+     *   <li>SUM(count(fields)) grouped by entity.displayName == nop_meta_entity_field 总行数（正确性证明）</li>
+     * </ul>
+     */
     @Test
-    public void testJoinAggregationCrossQuerySpaceFails() {
+    @SuppressWarnings("unchecked")
+    public void testEntityEntityCrossDbJoinAggregationSucceeds() {
         importModel();
         NopMetaEntity leftEntity = findMetaEntityByTable("nop_meta_entity");
         NopMetaEntity rightEntity = findMetaEntityByTable("nop_meta_entity_field");
@@ -327,10 +338,88 @@ public class TestNopMetaAggregationBizModel extends JunitBaseTestCase {
             String leftTableId = findEntityTableId("nop_meta_entity");
             String joinId = createJoin(leftTableId, "inner", leftEntity.getMetaEntityId(),
                     rightEntity.getMetaEntityId(), "metaEntityId", "metaEntityId", "fld");
-            assertTrue(queryAggregationJoinHasError(leftTableId, joinId),
-                    "cross-querySpace JOIN aggregation must explicitly fail (deferred, not silent)");
+            String leftDimFieldId = findEntityFieldId("nop_meta_entity", "displayName");
+            String rightMeasureFieldId = findEntityFieldId("nop_meta_entity_field", "fieldName");
+            createDimension(leftTableId, "st", leftDimFieldId, "categorical", null);
+            createMeasure(leftTableId, "cnt", rightMeasureFieldId, "count", null);
+
+            Map<String, Object> result = nopMetaTableBizModel.queryAggregation(leftTableId,
+                    Arrays.asList("cnt"), Arrays.asList("st"), null, joinId, null, null, null);
+            List<Map<String, Object>> items = (List<Map<String, Object>>) result.get("items");
+            assertNotNull(items, "items must not be null");
+            assertFalse(items.isEmpty(),
+                    "cross-DB entity-entity JOIN aggregation must return real grouped rows via in-memory GROUP BY: " + items);
+
+            // entity 侧 measure 经属性名取值正确性证明：SUM(count(fields)) == 总 field 行数
+            long totalFields = countRows("select count(*) as c from nop_meta_entity_field");
+            long sumCnt = 0;
+            for (Map<String, Object> row : items) {
+                assertNotNull(getIgnoreCase(row, "ST"), "dimension column ST must be present: " + row.keySet());
+                Object cnt = getIgnoreCase(row, "CNT");
+                assertNotNull(cnt, "measure column CNT must be present (not silent null/0): " + row.keySet());
+                sumCnt += toLong(cnt);
+            }
+            assertEquals(totalFields, sumCnt,
+                    "SUM(count(fields)) grouped by entity.displayName must equal total field rows "
+                            + "(cross-DB in-memory GROUP BY correctness, entity measure via property name not silent 0): " + items);
         } finally {
             updateQuerySpaceSql(rightEntity.getMetaEntityId(), null);
+        }
+    }
+
+    /**
+     * 跨 querySpace（跨库）entity-entity JOIN 聚合 GraphQL 端到端（#22）+ 接线（#23）（plan 1500-2）。
+     */
+    @Test
+    @SuppressWarnings("unchecked")
+    public void testEntityEntityCrossDbJoinAggregationViaGraphQL() {
+        importModel();
+        NopMetaEntity leftEntity = findMetaEntityByTable("nop_meta_entity");
+        NopMetaEntity rightEntity = findMetaEntityByTable("nop_meta_entity_field");
+        updateQuerySpaceSql(rightEntity.getMetaEntityId(), "qs_agg_cross_db_gql");
+        try {
+            String leftTableId = findEntityTableId("nop_meta_entity");
+            String joinId = createJoin(leftTableId, "inner", leftEntity.getMetaEntityId(),
+                    rightEntity.getMetaEntityId(), "metaEntityId", "metaEntityId", "fld");
+            String leftDimFieldId = findEntityFieldId("nop_meta_entity", "displayName");
+            String rightMeasureFieldId = findEntityFieldId("nop_meta_entity_field", "fieldName");
+            createDimension(leftTableId, "gst", leftDimFieldId, "categorical", null);
+            createMeasure(leftTableId, "gcnt", rightMeasureFieldId, "count", null);
+
+            io.nop.api.core.beans.graphql.GraphQLRequestBean request = new io.nop.api.core.beans.graphql.GraphQLRequestBean();
+            request.setQuery("query { NopMetaTable__queryAggregation(metaTableId: \"" + leftTableId + "\", "
+                    + "measures: [\"gcnt\"], dimensions: [\"gst\"], joinId: \"" + joinId + "\") }");
+            io.nop.api.core.beans.graphql.GraphQLResponseBean resp =
+                    graphQLEngine.executeGraphQL(graphQLEngine.newGraphQLContext(request));
+            assertFalse(resp.hasError(), "GraphQL cross-DB entity-entity queryAggregation(joinId) must succeed: " + resp);
+            Map<String, Object> data = (Map<String, Object>) resp.getData();
+            Map<String, Object> qa = (Map<String, Object>) data.get("NopMetaTable__queryAggregation");
+            assertNotNull(qa, "GraphQL queryAggregation(joinId) must return non-null Map result");
+            List<Map<String, Object>> items = (List<Map<String, Object>>) qa.get("items");
+            assertNotNull(items, "GraphQL items must not be null");
+            assertFalse(items.isEmpty(),
+                    "GraphQL cross-DB entity-entity queryAggregation(joinId) end-to-end must return real grouped rows: " + items);
+        } finally {
+            updateQuerySpaceSql(rightEntity.getMetaEntityId(), null);
+        }
+    }
+
+    /**
+     * 跨库 entity-entity JOIN 聚合 self-join → 显式失败（双侧别名机制不足，沿用 D8/D9）。
+     */
+    @Test
+    public void testEntityEntityCrossDbSelfJoinFails() {
+        importModel();
+        NopMetaEntity entity = findMetaEntityByTable("nop_meta_entity");
+        updateQuerySpaceSql(entity.getMetaEntityId(), "qs_cross_self");
+        try {
+            String leftTableId = findEntityTableId("nop_meta_entity");
+            String joinId = createJoin(leftTableId, "inner", entity.getMetaEntityId(),
+                    entity.getMetaEntityId(), "metaEntityId", "metaEntityId", "self");
+            assertTrue(queryAggregationJoinHasError(leftTableId, joinId),
+                    "cross-DB self-join JOIN aggregation must explicitly fail (alias attribution ambiguous)");
+        } finally {
+            updateQuerySpaceSql(entity.getMetaEntityId(), null);
         }
     }
 
@@ -564,27 +653,49 @@ public class TestNopMetaAggregationBizModel extends JunitBaseTestCase {
                 "entity endpoint side inconsistent with metaEntityId attribution must explicitly fail");
     }
 
-    /** 跨 querySpace（跨库）external↔external JOIN 聚合 deferred → 显式失败（不静默降级）。 */
+    /**
+     * 跨 querySpace（跨库）external↔external JOIN 聚合 → D10 内存 GROUP BY 成功（plan 1500-2）。
+     *
+     * <p>Anti-Hollow：两表分别在不同 querySpace（各自 H2 库），经 {@code executeJoin} 取数 + 合并 + 内存 GROUP BY。
+     * 断言按 CAT_NAME 分组 SUM(AMOUNT) 正确：A=30（10+20），B=30（30）。
+     */
     @Test
-    public void testExternalJoinAggregationCrossQuerySpaceFails() throws Exception {
+    @SuppressWarnings("unchecked")
+    public void testExternalExternalCrossDbJoinAggregationSucceeds() throws Exception {
         // 两表分别处于不同 querySpace（跨库）
         String qs1 = "qs_ext_cross_1";
         String qs2 = "qs_ext_cross_2";
         String dbUrl1 = "jdbc:h2:mem:" + qs1 + ";DB_CLOSE_DELAY=-1";
         String dbUrl2 = "jdbc:h2:mem:" + qs2 + ";DB_CLOSE_DELAY=-1";
-        seedH2(dbUrl1, "CREATE TABLE ext_a (k VARCHAR(20), v INT)", "INSERT INTO ext_a VALUES ('k1', 1)");
-        seedH2(dbUrl2, "CREATE TABLE ext_b (k VARCHAR(20), v INT)", "INSERT INTO ext_b VALUES ('k1', 2)");
+        seedH2(dbUrl1, "CREATE TABLE ext_fact_cross (K VARCHAR(20), AMOUNT INT)",
+                "INSERT INTO ext_fact_cross VALUES ('k1', 10)",
+                "INSERT INTO ext_fact_cross VALUES ('k1', 20)",
+                "INSERT INTO ext_fact_cross VALUES ('k2', 30)");
+        seedH2(dbUrl2, "CREATE TABLE ext_dim_cross (K VARCHAR(20), CAT_NAME VARCHAR(20))",
+                "INSERT INTO ext_dim_cross VALUES ('k1', 'A')",
+                "INSERT INTO ext_dim_cross VALUES ('k2', 'B')");
         saveDataSource("ds-" + qs1, qs1, dbUrl1);
         saveDataSource("ds-" + qs2, qs2, dbUrl2);
         syncExternalTables("ds-" + qs1);
         syncExternalTables("ds-" + qs2);
-        String tableAId = tableId("EXT_A");
-        String tableBId = tableId("EXT_B");
+        String factTableId = externalTableId("EXT_FACT_CROSS");
+        String dimTableId = externalTableId("EXT_DIM_CROSS");
 
-        String joinId = createTableTableJoin(tableAId, "inner", tableAId, tableBId, "K", "K", "b");
-        // 跨 querySpace 失败发生在 measure 加载之前的路由分支，占位名即可触发
-        assertTrue(queryAggregationJoinHasError(tableAId, joinId),
-                "cross-querySpace external<->external JOIN aggregation must explicitly fail (deferred, not silent)");
+        String joinId = createTableTableJoin(factTableId, "inner", factTableId, dimTableId, "K", "K", "dim");
+        createMeasureWithSide(factTableId, "total", "AMOUNT", "sum", "left");
+        createDimensionWithSide(factTableId, "cat", "CAT_NAME", "categorical", null, "right");
+
+        Map<String, Object> result = nopMetaTableBizModel.queryAggregation(factTableId,
+                Arrays.asList("total"), Arrays.asList("cat"), null, joinId, null, null, null);
+        List<Map<String, Object>> items = (List<Map<String, Object>>) result.get("items");
+        assertNotNull(items, "items must not be null");
+        assertEquals(2, items.size(), "group by CAT_NAME must yield 2 groups (A,B): " + items);
+        Map<String, Object> rowA = findRow(items, "CAT", "A");
+        Map<String, Object> rowB = findRow(items, "CAT", "B");
+        assertNotNull(rowA, "group A must exist: " + items);
+        assertNotNull(rowB, "group B must exist: " + items);
+        assertEquals(30, toInt(rowA.get("TOTAL")), "SUM(AMOUNT) for A = 10+20 = 30 (cross-DB in-memory GROUP BY)");
+        assertEquals(30, toInt(rowB.get("TOTAL")), "SUM(AMOUNT) for B = 30 (cross-DB in-memory GROUP BY)");
     }
 
     // ============================================================
@@ -679,17 +790,70 @@ public class TestNopMetaAggregationBizModel extends JunitBaseTestCase {
     }
 
     /**
-     * 不可同库失败（#24）：entity 物理表（NOP_META_MODULE）在选定 external 连接不可见（外部库未建该表）
-     * → 显式失败 ERR_AGGR_JOIN_MIXED_CROSS_DB_DEFERRED（不静默降级 D5 拼接近似聚合）。
+     * 混合端点跨库 JOIN 聚合 → D10 内存 GROUP BY 成功（plan 1500-2）。
+     *
+     * <p>entity 物理表（NOP_META_MODULE）在选定 external 连接不可见 → 跨库路径。
+     * 经 {@code executeJoin} 混合拼接（entity 侧 ORM DAO + table 侧 withConnection）→ 内存 GROUP BY。
+     * 用平台库 nop_meta_module 实际 status 值造匹配 MIXED_DIM 数据，断言真实聚合值（非伪造）。
      */
     @Test
-    public void testMixedCrossDbFails() throws Exception {
+    @SuppressWarnings("unchecked")
+    public void testMixedCrossDbJoinAggregationSucceeds() throws Exception {
         importModel();
         NopMetaEntity leftEntity = findMetaEntityByTable("nop_meta_module");
         String leftTableId = findEntityTableId("nop_meta_module");
 
-        // 外部库只含 MIXED_DIM，不含 NOP_META_MODULE → 可见性测试失败 → 跨库 deferred
-        String querySpace = "qs_mixed_cross";
+        // 查询平台库 nop_meta_module 实际 status 值（entity 侧经 ORM DAO 取数）
+        List<String> statuses = queryDistinctColumnValues("select distinct status from nop_meta_module", "STATUS");
+        assertFalse(statuses.isEmpty(), "nop_meta_module must have status values after import");
+
+        // 外部库只含 MIXED_DIM（不含 NOP_META_MODULE）→ 可见性测试失败 → 跨库内存 GROUP BY 路径
+        String querySpace = "qs_mixed_cross_ok";
+        String dbUrl = "jdbc:h2:mem:" + querySpace + ";DB_CLOSE_DELAY=-1";
+        List<String> statements = new ArrayList<>();
+        statements.add("CREATE TABLE MIXED_DIM (STATUS_VAL VARCHAR(20), CAT_NAME VARCHAR(20))");
+        for (String s : statuses) {
+            statements.add("INSERT INTO MIXED_DIM VALUES ('" + s.replace("'", "''") + "', 'All')");
+        }
+        seedH2(dbUrl, statements.toArray(new String[0]));
+        saveDataSource("ds-" + querySpace, querySpace, dbUrl);
+        syncExternalTables("ds-" + querySpace);
+        String dimTableId = externalTableId("MIXED_DIM");
+
+        String joinId = createMixedJoin(leftTableId, "inner", leftEntity.getMetaEntityId(), dimTableId,
+                "status", "STATUS_VAL", "dim");
+        String statusFieldId = findEntityFieldId("nop_meta_module", "status");
+        createMeasureWithSide(leftTableId, "cnt", statusFieldId, "count", "left");
+        createDimensionWithSide(leftTableId, "cat", "CAT_NAME", "categorical", null, "right");
+
+        Map<String, Object> result = nopMetaTableBizModel.queryAggregation(leftTableId,
+                Arrays.asList("cnt"), Arrays.asList("cat"), null, joinId, null, null, null);
+        List<Map<String, Object>> items = (List<Map<String, Object>>) result.get("items");
+        assertNotNull(items, "items must not be null");
+        assertFalse(items.isEmpty(),
+                "cross-DB mixed JOIN aggregation must return real grouped rows via in-memory GROUP BY: " + items);
+        // entity 侧 measure 经属性名取值正确性证明：CNT 非伪造值（非静默 0）
+        for (Map<String, Object> row : items) {
+            Object cnt = getIgnoreCase(row, "CNT");
+            assertNotNull(cnt, "measure CNT must be present (not silent null/0): " + row.keySet());
+            assertTrue(toLong(cnt) > 0, "cross-DB mixed in-memory GROUP BY count must be real positive value: " + row);
+        }
+        // 所有 status 值映射到 'All' 类别 → 单组
+        Map<String, Object> rowAll = findRow(items, "CAT", "All");
+        assertNotNull(rowAll, "group 'All' must exist: " + items);
+    }
+
+    /**
+     * 混合端点跨库：external/sql 端点 dimension 缺 side → 显式失败（ERR_AGGR_JOIN_SIDE_REQUIRED）。
+     * 验证 side 必填规则在跨库内存 GROUP BY 路径同样生效（#24 无静默跳过）。
+     */
+    @Test
+    public void testMixedCrossDbTableSideRequiredFails() throws Exception {
+        importModel();
+        NopMetaEntity leftEntity = findMetaEntityByTable("nop_meta_module");
+        String leftTableId = findEntityTableId("nop_meta_module");
+
+        String querySpace = "qs_mixed_cross_side";
         String dbUrl = "jdbc:h2:mem:" + querySpace + ";DB_CLOSE_DELAY=-1";
         seedH2(dbUrl, "CREATE TABLE MIXED_DIM (STATUS_VAL VARCHAR(20), CAT_NAME VARCHAR(20))",
                 "INSERT INTO MIXED_DIM VALUES ('A', 'Category A')");
@@ -699,8 +863,13 @@ public class TestNopMetaAggregationBizModel extends JunitBaseTestCase {
 
         String joinId = createMixedJoin(leftTableId, "inner", leftEntity.getMetaEntityId(), dimTableId,
                 "status", "STATUS_VAL", "dim");
-        assertTrue(queryAggregationJoinHasError(leftTableId, joinId),
-                "mixed-endpoint cross-DB (entity table not visible) must explicitly fail (deferred, not silent D5)");
+        String statusFieldId = findEntityFieldId("nop_meta_module", "status");
+        createMeasureWithSide(leftTableId, "cnt", statusFieldId, "count", "left");
+        // dimension 无 side → 跨库内存 GROUP BY 路径下 external 端点 side 必填报错
+        createDimension(leftTableId, "cat", "CAT_NAME", "categorical", null);
+
+        assertTrue(queryAggregationJoinHasError(leftTableId, "cnt", "cat", joinId),
+                "cross-DB mixed-endpoint external/sql dimension without side must explicitly fail (side required)");
     }
 
     /**
@@ -1140,6 +1309,21 @@ public class TestNopMetaAggregationBizModel extends JunitBaseTestCase {
                 return ((Number) row.getObject(0)).longValue();
             }
             return 0L;
+        });
+    }
+
+    /** 查询单列的去重值列表（用于构造匹配 join key 的测试数据）。 */
+    private List<String> queryDistinctColumnValues(String sql, String columnName) {
+        io.nop.core.lang.sql.SQL q = io.nop.core.lang.sql.SQL.begin().allowUnderscoreName(true).sql(sql).end();
+        return ormTemplate.executeQuery(q, null, ds -> {
+            List<String> values = new java.util.ArrayList<>();
+            for (io.nop.dataset.IDataRow row : ds) {
+                Object v = row.getObject(0);
+                if (v != null) {
+                    values.add(String.valueOf(v));
+                }
+            }
+            return values;
         });
     }
 

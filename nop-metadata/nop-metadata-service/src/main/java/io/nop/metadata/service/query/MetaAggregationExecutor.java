@@ -217,6 +217,20 @@ public class MetaAggregationExecutor {
                     "joinId", "error");
 
     /**
+     * 跨库 JOIN 聚合内存 GROUP BY（plan 1500-2 D10）：measure/dimension 的 key 在 {@code executeJoin} 返回的
+     * 合并行 Map 中找不到（命名空间错配或字段不存在）→ 显式失败（Anti-Hollow #24：**绝不静默返回 null/0**，
+     * 否则 SUM 静默归零、COUNT 静默漏计）。
+     */
+    static final ErrorCode ERR_AGGR_CROSS_DB_FIELD_KEY_MISSING =
+            ErrorCode.define("metadata.aggr-cross-db-field-key-missing",
+                    "Cross-DB JOIN aggregation: measure/dimension lookup key not found in executeJoin merged row "
+                            + "(would silently produce null/0). Explicit failure per D10 namespace rule "
+                            + "(entity=fieldName, table=physical column, right-side conflict=<alias>_<name>): "
+                            + "{metaTableId} name={name} fieldKind={fieldKind} rawKey={rawKey} lookupKey={lookupKey} "
+                            + "rowKeys={rowKeys} joinId={joinId}",
+                    "metaTableId", "name", "fieldKind", "rawKey", "lookupKey", "rowKeys", "joinId");
+
+    /**
      * 执行聚合查询。
      *
      * <p>{@code joinId} 为可选 JOIN 聚合参数（plan 0852-1）：
@@ -370,26 +384,29 @@ public class MetaAggregationExecutor {
 
         // 3. 端点组合路由（plan 1200-1 Phase 3：重构既有「任一端点非 entity 短路」守卫为端点组合路由）
         if (leftEp.isEntity() && rightEp.isEntity()) {
-            // entity↔entity（0852-1 既有路径，保持不变：orm().executeQuery 原生 GROUP BY over JOIN）
+            // entity↔entity：跨 querySpace → D10 内存 GROUP BY（plan 1500-2）；同 querySpace → 0852-1 既有路径
+            String leftQs = leftEp.entity.getQuerySpace();
+            String rightQs = rightEp.entity.getQuerySpace();
+            if (!equalsStr(leftQs, rightQs)) {
+                return executeCrossDbJoinAggregation(table, measureNames, dimensionNames, filter, join, joinId,
+                        leftEp, rightEp, limit, offset, ctx);
+            }
             return executeEntityEntityJoinAggregation(table, measureNames, dimensionNames, filter, join, joinId,
                     leftEp, rightEp, limit, offset, ctx);
         }
         if (!leftEp.isEntity() && !rightEp.isEntity()) {
-            // external↔external（plan 1200-1 新增）
+            // external↔external：跨 querySpace → D10 内存 GROUP BY（plan 1500-2）；同 querySpace → plan 1200-1
             String leftQs = leftEp.table.getQuerySpace();
             String rightQs = rightEp.table.getQuerySpace();
             if (!equalsStr(leftQs, rightQs)) {
-                // 跨库 external↔external JOIN 聚合 deferred（语义近似）→ 显式失败
-                throw new NopException(ERR_AGGR_JOIN_EXTERNAL_CROSS_QUERY_SPACE)
-                        .param("joinId", joinId)
-                        .param("leftQuerySpace", String.valueOf(leftQs))
-                        .param("rightQuerySpace", String.valueOf(rightQs));
+                return executeCrossDbJoinAggregation(table, measureNames, dimensionNames, filter, join, joinId,
+                        leftEp, rightEp, limit, offset, ctx);
             }
             return executeExternalExternalJoinAggregation(table, measureNames, dimensionNames, filter, join, joinId,
                     leftEp, rightEp, limit, offset, ctx);
         }
         // 混合端点（entity ↔ external/sql）→ plan 1500-1 D1.5：同库（连接可达性实测通过）→ 原生 GROUP BY over JOIN；
-        // 不可同库 → 显式失败 ERR_AGGR_JOIN_MIXED_CROSS_DB_DEFERRED（不静默降级 D5 拼接近似聚合）
+        // 不可同库 → D10 内存 GROUP BY（plan 1500-2，复用 executeJoin + 内存聚合，精确-当-容纳/超限-失败）
         return executeMixedSameDbJoinAggregation(table, measureNames, dimensionNames, filter, join, joinId,
                 leftEp, rightEp, limit, offset, ctx);
     }
@@ -419,15 +436,7 @@ public class MetaAggregationExecutor {
                     .param("joinId", joinId).param("entityId", leftEntity.getMetaEntityId());
         }
 
-        // 跨 querySpace 守卫：跨库 entity-entity JOIN 聚合 deferred
-        String leftQs = leftEntity.getQuerySpace();
-        String rightQs = rightEntity.getQuerySpace();
-        if (!equalsStr(leftQs, rightQs)) {
-            throw new NopException(ERR_AGGR_JOIN_CROSS_QUERY_SPACE)
-                    .param("joinId", joinId)
-                    .param("leftQuerySpace", String.valueOf(leftQs))
-                    .param("rightQuerySpace", String.valueOf(rightQs));
-        }
+        // 跨 querySpace 已在 executeJoinAggregation 路由判定（跨库 → D10 内存 GROUP BY），此处仅同库路径。
 
         // 物理表 + 属性名→物理列映射（左右 entity 各一份）
         String leftPhysical = requireName(leftEntity.getTableName(), "leftTableName");
@@ -652,6 +661,14 @@ public class MetaAggregationExecutor {
         // 3. 解析 external/sql 端点共享数据源（querySpace→NopMetaDataSource，external 端点必须注册 ACTIVE 数据源）
         NopMetaDataSource dataSource = resolveSharedDataSourceOrThrow(tableEndpoint, ctx, joinId);
 
+        // 3b. 同库判定（连接可达性实测）：提前实测 entity 物理表是否在选定 external 连接可见。
+        //     不可见 → 不可同库 → D10 内存 GROUP BY（plan 1500-2，复用 executeJoin + 内存聚合，精确-当-容纳/超限-失败），
+        //     不静默降级 D5 拼接近似聚合。
+        if (!checkEntityTableVisible(dataSource, entitySchema, entityPhysicalTable, ctx)) {
+            return executeCrossDbJoinAggregation(table, measureNames, dimensionNames, filter, join, joinId,
+                    leftEp, rightEp, limit, offset, ctx);
+        }
+
         // 4. 解析 entity 端点的 propToCol 映射（join.leftField/rightField + entity 侧 measure/dimension 列解析）
         Map<String, String> entityPropToCol = resolveEntityColumns(entityEndpoint, ctx);
 
@@ -684,9 +701,7 @@ public class MetaAggregationExecutor {
         FilterToSqlTranslator.TranslatedFilter filterTf =
                 filter == null ? null : ctx.filterTranslator().translate(filter);
 
-        // 8. 在 external withConnection callback 内：实测 entity 物理表可见性 + 执行原生 GROUP BY over JOIN
-        final String _entityPhysicalTable = entityPhysicalTable;
-        final String _entitySchema = entitySchema;
+        // 8. 在 external withConnection callback 内执行原生 GROUP BY over JOIN（同库判定已在入口提前完成）
         final String _entityFrom = entityFrom;
         final String _tableFrom = tableFrom;
         final String _entityAlias = entityAlias;
@@ -706,14 +721,7 @@ public class MetaAggregationExecutor {
                                 .param("databaseProductName", String.valueOf(dialect))
                                 .param("metaTableId", table.getMetaTableId());
                     }
-                    // 同库判定：实测 entity 物理表在该连接可见（querySpace 字符串不可靠）
-                    if (!isEntityTableVisible(metaData, _entitySchema, _entityPhysicalTable)) {
-                        throw new NopException(ERR_AGGR_JOIN_MIXED_CROSS_DB_DEFERRED)
-                                .param("joinId", joinId)
-                                .param("entityPhysicalTable", _entityPhysicalTable)
-                                .param("entitySchema", String.valueOf(_entitySchema))
-                                .param("externalQuerySpace", String.valueOf(tableEndpoint.getQuerySpace()));
-                    }
+                    // 同库判定已在入口提前完成（checkEntityTableVisible），此处仅同库路径。
                     StringBuilder sql = buildMixedSameDbJoinSql(_measures, _dims, _entityFrom, _tableFrom,
                             _entityAlias, _tableAlias, _entityJoinColumn, _tableJoinColumn, join, _filterTf,
                             dialect, limit, offset);
@@ -732,6 +740,23 @@ public class MetaAggregationExecutor {
                     holder[0] = executeJdbcQuery(conn, sqlText, params, limit, offset, table.getMetaTableId());
                 });
         return holder[0] == null ? new ArrayList<>() : holder[0];
+    }
+
+    /**
+     * 在选定 external 连接上提前实测 entity 物理表可见性（plan 1500-2：从 withConnection callback 内提前到入口）。
+     * 可见 → 同库（继续 D1.5 原生 GROUP BY over JOIN）；不可见 → 跨库（调用方路由到 D10 内存 GROUP BY）。
+     */
+    private boolean checkEntityTableVisible(NopMetaDataSource dataSource, String entitySchema,
+                                             String entityPhysicalTable, MetaQueryContext ctx) {
+        if (entityPhysicalTable == null || entityPhysicalTable.isEmpty()) {
+            return false;
+        }
+        final boolean[] visible = {false};
+        ctx.connectionService().withConnection(dataSource.getDatasourceType(), dataSource.getConnectionConfig(),
+                (Connection conn, DatabaseMetaData metaData) -> {
+                    visible[0] = isEntityTableVisible(metaData, entitySchema, entityPhysicalTable);
+                });
+        return visible[0];
     }
 
     /**
@@ -875,6 +900,691 @@ public class MetaAggregationExecutor {
             sql.append(" OFFSET ?");
         }
         return sql;
+    }
+
+    // ============================ 跨库 JOIN 聚合内存 GROUP BY（plan 1500-2 D10）============================
+
+    /**
+     * 跨库 JOIN 聚合内存 GROUP BY（§4.4.2 D10）：复用 {@link MetaJoinExecutor#executeJoin}（公开入口，`:139`）
+     * 取得已合并的 JOIN 行 → 内存 GROUP BY（精确-当-容纳 / 超限-失败）。
+     *
+     * <p>{@code executeJoin} 内部已完成：跨库取数（{@code fetchEntityRows}/{@code fetchTableRows}）+
+     * {@code MAX_CROSS_DB_ROWS} 规模守卫（{@code checkSizeLimit}，超限**直接抛异常**不截断）+
+     * 命名空间规范化（D1.4）+ joinType 语义（D5）。本方法复用其产出，**不直接调用 private 取数/合并方法**。
+     *
+     * <p>合并行 measure/dimension 值提取（Anti-Hollow 核心）：按端点来源用对应命名空间从合并行 Map 取值——
+     * entity 侧经 {@code NopMetaEntityField.fieldName}（属性名，**非 columnCode**）；table 侧经物理列名；
+     * 右侧冲突字段经 {@code <alias>_<name>} 取值。key 缺失 → 显式失败（**绝不静默返回 null/0**）。
+     *
+     * <p>失败路径显式化（#24）：超限（{@code executeJoin} 内抛）、join key 错配（{@code executeJoin} 内校验）、
+     * measure/dimension key 缺失（本方法新增显式失败）、side 缺失、joinType=right、self-join、空端点 均抛 ErrorCode。
+     */
+    private List<Map<String, Object>> executeCrossDbJoinAggregation(NopMetaTable table, List<String> measureNames,
+                                                                     List<String> dimensionNames, TreeBean filter,
+                                                                     NopMetaTableJoin join, String joinId,
+                                                                     MetaJoinExecutor.Endpoint leftEp,
+                                                                     MetaJoinExecutor.Endpoint rightEp,
+                                                                     Long limit, Long offset, MetaQueryContext ctx) {
+        // 1. Self-join guards（双侧别名机制不足，字段归属歧义 → 显式失败，沿用 D8/D9）
+        if (leftEp.isEntity() && rightEp.isEntity()) {
+            if (equalsStr(leftEp.entity.getMetaEntityId(), rightEp.entity.getMetaEntityId())) {
+                throw new NopException(ERR_AGGR_JOIN_SELF_JOIN)
+                        .param("joinId", joinId).param("entityId", leftEp.entity.getMetaEntityId());
+            }
+        } else if (!leftEp.isEntity() && !rightEp.isEntity()) {
+            if (equalsStr(leftEp.table.getMetaTableId(), rightEp.table.getMetaTableId())) {
+                throw new NopException(ERR_AGGR_JOIN_SELF_JOIN)
+                        .param("joinId", joinId).param("entityId", leftEp.table.getMetaTableId());
+            }
+        }
+
+        // 2. 跨库字段解析器（按端点组合解析 measure/dimension 的 side + rawKey per D10 命名空间规则）
+        CrossDbFieldResolver resolver = new CrossDbFieldResolver(leftEp, rightEp, join, joinId, table, ctx);
+        List<CrossDbMeasureSpec> measures = loadCrossDbMeasures(table, measureNames, ctx, resolver);
+        List<CrossDbDimensionSpec> dims = loadCrossDbDimensions(table, dimensionNames, ctx, resolver);
+
+        // 3. 复用 MetaJoinExecutor.executeJoin（公开入口）取得合并后的 JOIN 行。
+        //    内部 checkSizeLimit 超限显式失败（不截断）；命名空间规范化 D1.4 + joinType 语义已处理。
+        //    filter 经 executeAggregation 默认合并；executeJoin 再次 applyDefaults（AND 幂等，正确不冲突）。
+        Map<String, Object> joinResult = joinExecutor.executeJoin(table, joinId, filter, null, 0L, ctx);
+        @SuppressWarnings("unchecked")
+        List<Map<String, Object>> mergedRows = joinResult.get("items") instanceof List
+                ? (List<Map<String, Object>>) joinResult.get("items")
+                : new ArrayList<>();
+
+        // 4. 解析合并行实际 lookup key（右侧冲突前缀）+ 校验 key 存在（key 缺失显式失败，绝不静默 null/0）
+        String alias = crossDbAliasOf(join);
+        if (!mergedRows.isEmpty()) {
+            Map<String, Object> sample = mergedRows.get(0);
+            resolveAndValidateLookupKeys(measures, alias, sample, table, joinId, "measure");
+            resolveAndValidateLookupKeys(dims, alias, sample, table, joinId, "dimension");
+        }
+
+        // 5. 内存 GROUP BY（按 dimension 值分组 → 按 aggFunc 内存累加 → 输出 items）
+        List<Map<String, Object>> items = memoryGroupBy(mergedRows, measures, dims);
+
+        // 6. 合并后截断提示（D5 分页：内存合并无全局序，limit/offset 仅截断提示）
+        return truncateCrossDb(items, limit, offset);
+    }
+
+    /** 加载跨库 JOIN 聚合的 Measure 规格（解析 side + rawKey per D10 命名空间规则）。 */
+    private List<CrossDbMeasureSpec> loadCrossDbMeasures(NopMetaTable table, List<String> names,
+                                                           MetaQueryContext ctx, CrossDbFieldResolver resolver) {
+        List<NopMetaTableMeasure> all = loadMeasures(table, names, ctx);
+        List<CrossDbMeasureSpec> specs = new ArrayList<>(all.size());
+        for (NopMetaTableMeasure m : all) {
+            if (m.getExpression() != null && !m.getExpression().trim().isEmpty()) {
+                throw new NopException(ERR_AGGR_EXPRESSION_MEASURE)
+                        .param("metaTableId", table.getMetaTableId()).param("measureName", m.getMeasureName());
+            }
+            CrossDbField f = resolver.resolve(m.getEntityFieldId(), m.getMeasureName(), m.getSide(), "measure");
+            specs.add(new CrossDbMeasureSpec(safeAlias(m.getMeasureName()), m.getAggFunc(), f.rawKey, f.side));
+        }
+        return specs;
+    }
+
+    /** 加载跨库 JOIN 聚合的 Dimension 规格（解析 side + rawKey per D10 命名空间规则）。 */
+    private List<CrossDbDimensionSpec> loadCrossDbDimensions(NopMetaTable table, List<String> names,
+                                                               MetaQueryContext ctx, CrossDbFieldResolver resolver) {
+        List<NopMetaTableDimension> all = loadDimensions(table, names, ctx);
+        List<CrossDbDimensionSpec> specs = new ArrayList<>(all.size());
+        for (NopMetaTableDimension d : all) {
+            CrossDbField f = resolver.resolve(d.getEntityFieldId(), d.getDimensionName(), d.getSide(), "dimension");
+            specs.add(new CrossDbDimensionSpec(safeAlias(d.getDimensionName()), f.rawKey, f.side));
+        }
+        return specs;
+    }
+
+    /**
+     * 解析合并行实际 lookup key + 校验存在（Anti-Hollow #24 核心）。
+     *
+     * <p>右侧字段经 {@code <alias>_<rawKey>} 冲突前缀：优先查前缀键是否存在于合并行，存在则用前缀键（冲突态），
+     * 否则用裸键（非冲突态）。左侧字段直接用裸键。lookup key 在合并行找不到 → 显式失败（**绝不静默返回 null/0**）。
+     */
+    private void resolveAndValidateLookupKeys(List<? extends CrossDbFieldSpec> specs, String alias,
+                                               Map<String, Object> sampleRow, NopMetaTable table, String joinId,
+                                               String fieldKind) {
+        for (CrossDbFieldSpec spec : specs) {
+            String rawKey = spec.rawKey;
+            String lookupKey;
+            if (_NopMetadataCoreConstants.JOIN_SIDE_RIGHT.equalsIgnoreCase(spec.side)) {
+                // 右侧字段：优先查冲突前缀键
+                String prefixed = alias + "_" + rawKey;
+                String actualPrefixed = findKeyIgnoreCase(sampleRow, prefixed);
+                lookupKey = actualPrefixed != null ? actualPrefixed : rawKey;
+            } else {
+                lookupKey = rawKey;
+            }
+            String actual = findKeyIgnoreCase(sampleRow, lookupKey);
+            if (actual == null) {
+                throw new NopException(ERR_AGGR_CROSS_DB_FIELD_KEY_MISSING)
+                        .param("metaTableId", table.getMetaTableId())
+                        .param("name", spec.alias)
+                        .param("fieldKind", fieldKind)
+                        .param("rawKey", String.valueOf(rawKey))
+                        .param("lookupKey", String.valueOf(lookupKey))
+                        .param("rowKeys", sampleRow.keySet())
+                        .param("joinId", joinId);
+            }
+            spec.lookupKey = actual;
+        }
+    }
+
+    /**
+     * 内存 GROUP BY：按 dimension 值分组 → 按 aggFunc 内存累加 → 输出 items。
+     *
+     * <p>每行合并行按 dimension lookupKey 取值构造 group key（同组 dimension 值相等），measure 按 aggFunc 累加。
+     * 输出每个 group 一行：dimension alias→值 + measure alias→聚合结果。
+     */
+    private List<Map<String, Object>> memoryGroupBy(List<Map<String, Object>> rows,
+                                                     List<CrossDbMeasureSpec> measures,
+                                                     List<CrossDbDimensionSpec> dims) {
+        // 保持首次出现顺序的分组（LinkedHashMap）
+        LinkedHashMap<String, Map<String, Object>> groupDims = new LinkedHashMap<>();
+        LinkedHashMap<String, MemAggAccumulator[]> groupAccs = new LinkedHashMap<>();
+
+        for (Map<String, Object> row : rows) {
+            // 构造 group key（dimension 值字符串拼接，null 用占位符区分）
+            StringBuilder keyBuilder = new StringBuilder();
+            Object[] dimValues = new Object[dims.size()];
+            for (int i = 0; i < dims.size(); i++) {
+                Object v = getCaseInsensitiveObj(row, dims.get(i).lookupKey);
+                dimValues[i] = v;
+                if (i > 0) {
+                    keyBuilder.append('\u0001');
+                }
+                keyBuilder.append(v == null ? "\u0000" : String.valueOf(v));
+            }
+            String groupKey = keyBuilder.toString();
+
+            Map<String, Object> gRow = groupDims.get(groupKey);
+            MemAggAccumulator[] accs = groupAccs.get(groupKey);
+            if (gRow == null) {
+                gRow = new LinkedHashMap<>();
+                for (int i = 0; i < dims.size(); i++) {
+                    gRow.put(dims.get(i).alias, dimValues[i]);
+                }
+                groupDims.put(groupKey, gRow);
+                accs = MemAggAccumulator.newAccumulators(measures);
+                groupAccs.put(groupKey, accs);
+            }
+            for (int i = 0; i < measures.size(); i++) {
+                Object val = getCaseInsensitiveObj(row, measures.get(i).lookupKey);
+                accs[i].accumulate(val);
+            }
+        }
+
+        List<Map<String, Object>> items = new ArrayList<>(groupDims.size());
+        for (Map.Entry<String, Map<String, Object>> e : groupDims.entrySet()) {
+            Map<String, Object> item = new LinkedHashMap<>(e.getValue());
+            MemAggAccumulator[] accs = groupAccs.get(e.getKey());
+            for (int i = 0; i < measures.size(); i++) {
+                item.put(measures.get(i).alias, accs[i].result());
+            }
+            items.add(item);
+        }
+        return items;
+    }
+
+    /** 合并行 Map 大小写不敏感取值（物理列名 H2 常大写 vs entityFieldId 可能小写等情形）。 */
+    private static Object getCaseInsensitiveObj(Map<String, Object> map, String key) {
+        if (map == null || key == null) {
+            return null;
+        }
+        for (Map.Entry<String, Object> e : map.entrySet()) {
+            if (e.getKey().equalsIgnoreCase(key)) {
+                return e.getValue();
+            }
+        }
+        return null;
+    }
+
+    /** 大小写不敏感查找 key（返回 row 中实际存在的 key，或 null）。 */
+    private static String findKeyIgnoreCase(Map<String, Object> map, String key) {
+        if (map == null || key == null) {
+            return null;
+        }
+        for (String k : map.keySet()) {
+            if (k.equalsIgnoreCase(key)) {
+                return k;
+            }
+        }
+        return null;
+    }
+
+    /** 跨库 join alias（取自 NopMetaTableJoin.alias，空则 "right"，与 MetaJoinExecutor.mergeRow 一致）。 */
+    private static String crossDbAliasOf(NopMetaTableJoin join) {
+        String a = join.getAlias();
+        return (a != null && !a.trim().isEmpty()) ? a : "right";
+    }
+
+    /** 合并后截断提示（D5 分页：内存合并无全局序，limit/offset 仅截断提示）。 */
+    private static List<Map<String, Object>> truncateCrossDb(List<Map<String, Object>> rows, Long limit, Long offset) {
+        int from = (offset != null && offset > 0) ? Math.toIntExact(offset) : 0;
+        if (from > rows.size()) {
+            from = rows.size();
+        }
+        int to = rows.size();
+        if (limit != null) {
+            to = Math.min(rows.size(), from + Math.toIntExact(limit));
+        }
+        return new ArrayList<>(rows.subList(from, to));
+    }
+
+    /**
+     * 跨库 JOIN 聚合字段解析器（plan 1500-2 D10）：按端点组合解析 measure/dimension 的 side（left/right）
+     * + rawKey（entity→fieldName 属性名；table→物理列名），复用既有 D8/D9/D1.5 侧别解析语义。
+     *
+     * <p>三种端点组合：
+     * <ul>
+     *   <li>entity↔entity：entityFieldId→NopMetaEntityField.metaEntityId 判定 side，rawKey=fieldName（**非 columnCode**）；
+     *       side 可选（提供须一致）。</li>
+     *   <li>external↔external：side 必填 + 列名存在性校验，rawKey=物理列名。</li>
+     *   <li>混合端点（entity↔external/sql）：entityFieldId 为 NopMetaEntityField PK 且归属 entity 端点→entity 侧（rawKey=fieldName）；
+     *       否则→table 侧（side 必填 + 列名存在性校验，rawKey=列名）。</li>
+     * </ul>
+     */
+    final class CrossDbFieldResolver {
+        private final MetaJoinExecutor.Endpoint leftEp;
+        private final MetaJoinExecutor.Endpoint rightEp;
+        private final NopMetaTableJoin join;
+        private final String joinId;
+        private final NopMetaTable ownerTable;
+        private final MetaQueryContext ctx;
+
+        // 端点组合判定
+        private final boolean entityEntity;
+        private final boolean tableTable;
+        // 混合端点专用
+        private final NopMetaEntity entityEndpoint;
+        private final boolean entityOnLeft;
+        private final NopMetaTable tableEndpoint;
+        private Set<String> tableCols;
+        // external↔external 专用
+        private Set<String> leftCols;
+        private Set<String> rightCols;
+
+        CrossDbFieldResolver(MetaJoinExecutor.Endpoint leftEp, MetaJoinExecutor.Endpoint rightEp,
+                              NopMetaTableJoin join, String joinId, NopMetaTable ownerTable, MetaQueryContext ctx) {
+            this.leftEp = leftEp;
+            this.rightEp = rightEp;
+            this.join = join;
+            this.joinId = joinId;
+            this.ownerTable = ownerTable;
+            this.ctx = ctx;
+            this.entityEntity = leftEp.isEntity() && rightEp.isEntity();
+            this.tableTable = !leftEp.isEntity() && !rightEp.isEntity();
+            this.entityOnLeft = leftEp.isEntity();
+            this.entityEndpoint = entityEntity ? null : (leftEp.isEntity() ? leftEp.entity : rightEp.entity);
+            this.tableEndpoint = entityEntity ? null : (leftEp.isEntity() ? rightEp.table : leftEp.table);
+        }
+
+        CrossDbField resolve(String entityFieldId, String name, String declaredSide, String fieldKind) {
+            if (entityEntity) {
+                return resolveEntityEntity(entityFieldId, name, declaredSide);
+            }
+            if (tableTable) {
+                return resolveTableTable(entityFieldId, name, declaredSide);
+            }
+            return resolveMixed(entityFieldId, name, declaredSide);
+        }
+
+        /** entity↔entity 跨库：entityFieldId→metaEntityId 判定 side，rawKey=fieldName。 */
+        private CrossDbField resolveEntityEntity(String entityFieldId, String name, String declaredSide) {
+            if (entityFieldId == null || entityFieldId.isEmpty()) {
+                throw new NopException(ERR_AGGR_FIELD_NOT_RESOLVED)
+                        .param("metaTableId", ownerTable.getMetaTableId())
+                        .param("name", name).param("entityFieldId", String.valueOf(entityFieldId));
+            }
+            IEntityDao<NopMetaEntityField> fieldDao = ctx.daoProvider().daoFor(NopMetaEntityField.class);
+            NopMetaEntityField field = fieldDao.getEntityById(entityFieldId);
+            if (field == null || field.getFieldName() == null || field.getFieldName().isEmpty()) {
+                throw new NopException(ERR_AGGR_FIELD_NOT_RESOLVED)
+                        .param("metaTableId", ownerTable.getMetaTableId())
+                        .param("name", name).param("entityFieldId", entityFieldId);
+            }
+            String fieldMetaEntityId = field.getMetaEntityId();
+            String resolvedSide;
+            if (equalsStr(fieldMetaEntityId, leftEp.entity.getMetaEntityId())) {
+                resolvedSide = _NopMetadataCoreConstants.JOIN_SIDE_LEFT;
+            } else if (equalsStr(fieldMetaEntityId, rightEp.entity.getMetaEntityId())) {
+                resolvedSide = _NopMetadataCoreConstants.JOIN_SIDE_RIGHT;
+            } else {
+                throw new NopException(ERR_AGGR_JOIN_FIELD_SIDE_UNRESOLVED)
+                        .param("metaTableId", ownerTable.getMetaTableId())
+                        .param("name", name).param("entityFieldId", entityFieldId)
+                        .param("fieldMetaEntityId", String.valueOf(fieldMetaEntityId))
+                        .param("leftEntityId", String.valueOf(leftEp.entity.getMetaEntityId()))
+                        .param("rightEntityId", String.valueOf(rightEp.entity.getMetaEntityId()))
+                        .param("joinId", joinId);
+            }
+            if (declaredSide != null && !declaredSide.isEmpty()
+                    && !declaredSide.equalsIgnoreCase(resolvedSide)) {
+                throw new NopException(ERR_AGGR_JOIN_ENTITY_SIDE_MISMATCH)
+                        .param("metaTableId", ownerTable.getMetaTableId())
+                        .param("name", name)
+                        .param("declaredSide", declaredSide)
+                        .param("resolvedSide", resolvedSide)
+                        .param("fieldMetaEntityId", String.valueOf(fieldMetaEntityId))
+                        .param("joinId", joinId);
+            }
+            // entity 端点行 key = camelCase 属性名（D10 命名空间规则，非 columnCode）
+            return new CrossDbField(resolvedSide, field.getFieldName());
+        }
+
+        /** external↔external 跨库：side 必填 + 列名存在性校验，rawKey=物理列名。 */
+        private CrossDbField resolveTableTable(String columnName, String name, String declaredSide) {
+            if (declaredSide == null || declaredSide.isEmpty()) {
+                throw new NopException(ERR_AGGR_JOIN_SIDE_REQUIRED)
+                        .param("metaTableId", ownerTable.getMetaTableId())
+                        .param("name", name).param("joinId", joinId);
+            }
+            if (columnName == null || columnName.isEmpty()) {
+                throw new NopException(ERR_AGGR_FIELD_NOT_RESOLVED)
+                        .param("metaTableId", ownerTable.getMetaTableId())
+                        .param("name", name).param("entityFieldId", String.valueOf(columnName));
+            }
+            String resolvedSide;
+            Set<String> cols;
+            if (_NopMetadataCoreConstants.JOIN_SIDE_LEFT.equalsIgnoreCase(declaredSide)) {
+                resolvedSide = _NopMetadataCoreConstants.JOIN_SIDE_LEFT;
+                cols = ensureLeftCols();
+            } else if (_NopMetadataCoreConstants.JOIN_SIDE_RIGHT.equalsIgnoreCase(declaredSide)) {
+                resolvedSide = _NopMetadataCoreConstants.JOIN_SIDE_RIGHT;
+                cols = ensureRightCols();
+            } else {
+                throw new NopException(ERR_AGGR_JOIN_FIELD_NOT_ON_SIDE)
+                        .param("metaTableId", ownerTable.getMetaTableId())
+                        .param("name", name).param("side", declaredSide)
+                        .param("endpointTableType", "unknown")
+                        .param("column", columnName).param("joinId", joinId);
+            }
+            if (!containsIgnoreCase(cols, columnName)) {
+                throw new NopException(ERR_AGGR_JOIN_FIELD_NOT_ON_SIDE)
+                        .param("metaTableId", ownerTable.getMetaTableId())
+                        .param("name", name).param("side", declaredSide)
+                        .param("endpointTableType", String.valueOf(
+                                _NopMetadataCoreConstants.JOIN_SIDE_LEFT.equalsIgnoreCase(declaredSide)
+                                        ? leftEp.table.getTableType() : rightEp.table.getTableType()))
+                        .param("column", columnName).param("joinId", joinId);
+            }
+            return new CrossDbField(resolvedSide, columnName);
+        }
+
+        /** 混合端点跨库：entity 侧 rawKey=fieldName；table 侧 side 必填 + 列名存在性校验，rawKey=列名。 */
+        private CrossDbField resolveMixed(String entityFieldId, String name, String declaredSide) {
+            if (entityFieldId == null || entityFieldId.isEmpty()) {
+                throw new NopException(ERR_AGGR_FIELD_NOT_RESOLVED)
+                        .param("metaTableId", ownerTable.getMetaTableId())
+                        .param("name", name).param("entityFieldId", String.valueOf(entityFieldId));
+            }
+            // 尝试 entity 侧归属
+            NopMetaEntityField field = tryLoadEntityField(entityFieldId);
+            if (field != null && field.getFieldName() != null && !field.getFieldName().isEmpty()
+                    && equalsStr(field.getMetaEntityId(), entityEndpoint.getMetaEntityId())) {
+                String resolvedSide = entityOnLeft
+                        ? _NopMetadataCoreConstants.JOIN_SIDE_LEFT : _NopMetadataCoreConstants.JOIN_SIDE_RIGHT;
+                if (declaredSide != null && !declaredSide.isEmpty()
+                        && !declaredSide.equalsIgnoreCase(resolvedSide)) {
+                    throw new NopException(ERR_AGGR_JOIN_ENTITY_SIDE_MISMATCH)
+                            .param("metaTableId", ownerTable.getMetaTableId())
+                            .param("name", name)
+                            .param("declaredSide", declaredSide)
+                            .param("resolvedSide", resolvedSide)
+                            .param("fieldMetaEntityId", String.valueOf(field.getMetaEntityId()))
+                            .param("joinId", joinId);
+                }
+                return new CrossDbField(resolvedSide, field.getFieldName());
+            }
+            // table 侧：side 必填
+            if (declaredSide == null || declaredSide.isEmpty()) {
+                throw new NopException(ERR_AGGR_JOIN_SIDE_REQUIRED)
+                        .param("metaTableId", ownerTable.getMetaTableId())
+                        .param("name", name).param("joinId", joinId);
+            }
+            String expectedSide = entityOnLeft
+                    ? _NopMetadataCoreConstants.JOIN_SIDE_RIGHT : _NopMetadataCoreConstants.JOIN_SIDE_LEFT;
+            if (!expectedSide.equalsIgnoreCase(declaredSide)) {
+                throw new NopException(ERR_AGGR_JOIN_FIELD_NOT_ON_SIDE)
+                        .param("metaTableId", ownerTable.getMetaTableId())
+                        .param("name", name).param("side", declaredSide)
+                        .param("endpointTableType", "entity")
+                        .param("column", entityFieldId).param("joinId", joinId);
+            }
+            Set<String> cols = ensureMixedTableCols();
+            if (!containsIgnoreCase(cols, entityFieldId)) {
+                throw new NopException(ERR_AGGR_JOIN_FIELD_NOT_ON_SIDE)
+                        .param("metaTableId", ownerTable.getMetaTableId())
+                        .param("name", name).param("side", declaredSide)
+                        .param("endpointTableType", String.valueOf(tableEndpoint.getTableType()))
+                        .param("column", entityFieldId).param("joinId", joinId);
+            }
+            return new CrossDbField(declaredSide.toLowerCase(java.util.Locale.ROOT), entityFieldId);
+        }
+
+        private Set<String> ensureLeftCols() {
+            if (leftCols == null) {
+                leftCols = resolveTableColumnNames(leftEp.table,
+                        ctx.daoProvider().daoFor(NopMetaEntityField.class), ctx);
+            }
+            return leftCols;
+        }
+
+        private Set<String> ensureRightCols() {
+            if (rightCols == null) {
+                rightCols = resolveTableColumnNames(rightEp.table,
+                        ctx.daoProvider().daoFor(NopMetaEntityField.class), ctx);
+            }
+            return rightCols;
+        }
+
+        private Set<String> ensureMixedTableCols() {
+            if (tableCols == null) {
+                tableCols = resolveTableColumnNames(tableEndpoint,
+                        ctx.daoProvider().daoFor(NopMetaEntityField.class), ctx);
+            }
+            return tableCols;
+        }
+
+        private NopMetaEntityField tryLoadEntityField(String entityFieldId) {
+            try {
+                return ctx.daoProvider().daoFor(NopMetaEntityField.class).getEntityById(entityFieldId);
+            } catch (Exception e) {
+                return null;
+            }
+        }
+    }
+
+    /** 跨库字段解析结果：side（left/right）+ rawKey（entity=fieldName / table=物理列名）。 */
+    private static final class CrossDbField {
+        final String side;
+        final String rawKey;
+
+        CrossDbField(String side, String rawKey) {
+            this.side = side;
+            this.rawKey = rawKey;
+        }
+    }
+
+    /** 跨库字段规格基类：alias（输出列名）+ rawKey + side + lookupKey（合并行实际 key，解析后填充）。 */
+    private abstract static class CrossDbFieldSpec {
+        final String alias;
+        final String rawKey;
+        final String side;
+        String lookupKey;
+
+        CrossDbFieldSpec(String alias, String rawKey, String side) {
+            this.alias = alias;
+            this.rawKey = rawKey;
+            this.side = side;
+            this.lookupKey = rawKey;
+        }
+    }
+
+    /** 跨库 Measure 规格：alias + aggFunc + rawKey + side。 */
+    private static final class CrossDbMeasureSpec extends CrossDbFieldSpec {
+        final String aggFunc;
+
+        CrossDbMeasureSpec(String alias, String aggFunc, String rawKey, String side) {
+            super(alias, rawKey, side);
+            this.aggFunc = aggFunc;
+        }
+    }
+
+    /** 跨库 Dimension 规格：alias + rawKey + side。 */
+    private static final class CrossDbDimensionSpec extends CrossDbFieldSpec {
+        CrossDbDimensionSpec(String alias, String rawKey, String side) {
+            super(alias, rawKey, side);
+        }
+    }
+
+    // ============================ 内存聚合累加器（plan 1500-2 D10）============================
+
+    /**
+     * 内存聚合累加器（§4.4.2 D10 aggFunc 内存可计算性）：按 aggFunc 分派子类，accumulate 逐行累加，
+     * result 输出聚合值（null 表示空集聚合——avg count=0、全 null min/max）。
+     */
+    private abstract static class MemAggAccumulator {
+        abstract void accumulate(Object v);
+
+        abstract Object result();
+
+        static MemAggAccumulator[] newAccumulators(List<CrossDbMeasureSpec> measures) {
+            MemAggAccumulator[] accs = new MemAggAccumulator[measures.size()];
+            for (int i = 0; i < measures.size(); i++) {
+                accs[i] = forFunc(measures.get(i).aggFunc, measures.get(i).alias);
+            }
+            return accs;
+        }
+
+        static MemAggAccumulator forFunc(String aggFunc, String name) {
+            if (aggFunc == null) {
+                throw new NopException(ERR_AGGR_AGG_FUNC_UNSUPPORTED)
+                        .param("aggFunc", String.valueOf(aggFunc)).param("measureName", name);
+            }
+            switch (aggFunc) {
+                case _NopMetadataCoreConstants.AGG_FUNC_SUM:
+                    return new SumAcc();
+                case _NopMetadataCoreConstants.AGG_FUNC_COUNT:
+                    return new CountAcc();
+                case _NopMetadataCoreConstants.AGG_FUNC_AVG:
+                    return new AvgAcc();
+                case _NopMetadataCoreConstants.AGG_FUNC_MIN:
+                    return new MinAcc();
+                case _NopMetadataCoreConstants.AGG_FUNC_MAX:
+                    return new MaxAcc();
+                case _NopMetadataCoreConstants.AGG_FUNC_COUNT_DISTINCT:
+                    return new CountDistinctAcc();
+                default:
+                    throw new NopException(ERR_AGGR_AGG_FUNC_UNSUPPORTED)
+                            .param("aggFunc", aggFunc).param("measureName", name);
+            }
+        }
+    }
+
+    /** sum：累加数值（BigDecimal 防溢出），null 跳过。 */
+    private static final class SumAcc extends MemAggAccumulator {
+        private java.math.BigDecimal sum;
+        private boolean hasValue;
+
+        @Override
+        public void accumulate(Object v) {
+            if (v == null) {
+                return;
+            }
+            java.math.BigDecimal n = toBigDecimal(v);
+            if (n != null) {
+                sum = (sum == null) ? n : sum.add(n);
+                hasValue = true;
+            }
+        }
+
+        @Override
+        public Object result() {
+            return hasValue ? sum : null;
+        }
+    }
+
+    /** count：非空值计数（null 跳过）。 */
+    private static final class CountAcc extends MemAggAccumulator {
+        private long count;
+
+        @Override
+        public void accumulate(Object v) {
+            if (v != null) {
+                count++;
+            }
+        }
+
+        @Override
+        public Object result() {
+            return count;
+        }
+    }
+
+    /** avg：sum/count，count=0 → null（非伪造 0）。 */
+    private static final class AvgAcc extends MemAggAccumulator {
+        private java.math.BigDecimal sum;
+        private long count;
+
+        @Override
+        public void accumulate(Object v) {
+            if (v == null) {
+                return;
+            }
+            java.math.BigDecimal n = toBigDecimal(v);
+            if (n != null) {
+                sum = (sum == null) ? n : sum.add(n);
+                count++;
+            }
+        }
+
+        @Override
+        public Object result() {
+            if (count == 0) {
+                return null;
+            }
+            return sum.divide(java.math.BigDecimal.valueOf(count), java.math.MathContext.DECIMAL64);
+        }
+    }
+
+    /** min：比较取最小（Comparable），null 跳过，全 null → null。 */
+    private static final class MinAcc extends MemAggAccumulator {
+        private Comparable<Object> min;
+        private boolean hasValue;
+
+        @Override
+        @SuppressWarnings("unchecked")
+        public void accumulate(Object v) {
+            if (v == null) {
+                return;
+            }
+            Comparable<Object> c = (Comparable<Object>) v;
+            if (!hasValue || c.compareTo(min) < 0) {
+                min = c;
+                hasValue = true;
+            }
+        }
+
+        @Override
+        public Object result() {
+            return hasValue ? min : null;
+        }
+    }
+
+    /** max：比较取最大（Comparable），null 跳过，全 null → null。 */
+    private static final class MaxAcc extends MemAggAccumulator {
+        private Comparable<Object> max;
+        private boolean hasValue;
+
+        @Override
+        @SuppressWarnings("unchecked")
+        public void accumulate(Object v) {
+            if (v == null) {
+                return;
+            }
+            Comparable<Object> c = (Comparable<Object>) v;
+            if (!hasValue || c.compareTo(max) > 0) {
+                max = c;
+                hasValue = true;
+            }
+        }
+
+        @Override
+        public Object result() {
+            return hasValue ? max : null;
+        }
+    }
+
+    /** countDistinct：内存去重（LinkedHashSet），结果 = 去重后基数（null 不计入）。 */
+    private static final class CountDistinctAcc extends MemAggAccumulator {
+        private final Set<Object> distinct = new LinkedHashSet<>();
+
+        @Override
+        public void accumulate(Object v) {
+            if (v != null) {
+                distinct.add(v);
+            }
+        }
+
+        @Override
+        public Object result() {
+            return (long) distinct.size();
+        }
+    }
+
+    /** 值→BigDecimal 转换（Integer/Long/Double/Float/BigDecimal/BigInteger 等）。非数值返回 null（不静默当 0）。 */
+    private static java.math.BigDecimal toBigDecimal(Object v) {
+        if (v instanceof java.math.BigDecimal) {
+            return (java.math.BigDecimal) v;
+        }
+        if (v instanceof java.math.BigInteger) {
+            return new java.math.BigDecimal((java.math.BigInteger) v);
+        }
+        if (v instanceof Number) {
+            return java.math.BigDecimal.valueOf(((Number) v).doubleValue());
+        }
+        return null;
     }
 
     private static String endpointTypeOf(MetaJoinExecutor.Endpoint ep) {
