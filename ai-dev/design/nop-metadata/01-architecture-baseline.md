@@ -611,7 +611,7 @@ MetaQualityResult                — 质量执行结果（时序数据）
 - `actions`(json-4000)：`[{actionType:"store", enabled:true}]`（首版仅 store）
 - `status`(dict `meta/checkpoint-status`：ACTIVE/PAUSED/DISABLED，**大写对齐 status 类 dict 惯例**如 quality-result-status) / `extConfig`(json) + 审计列
 - 索引 `IX_NOP_META_QCHECKPOINT_MODULE`(metaModuleId)；to-one 关系 Checkpoint→Module
-- 不建 validations/actions 子实体（JSON 列）；不存 schedule（cron 定时为 follow-up，非本 plan）
+- 不建 validations/actions 子实体（JSON 列）；cron 定时调度已落地（见 §2.7.3.1，cron 表达式存 `extConfig.schedule`，**无独立 schedule 列**）
 
 **规则选择语义（D2）**：规则集 = ∪（每组 validations 的（显式 `ruleIds`）∪（`tableIds` 下挂载的 `NopMetaQualityRule where entityId ∈ tableIds`））；**去重**（同一 ruleId 多组配置/多次命中只执行一次）；`entityType=database` 规则在执行时按既有 §2.7.1 D1 写 SKIP 结果行（**不剔除**，保持与单规则一致语义）。ruleId 不存在 / tableId 不存在 → 记入摘要 `errors` 不中断（per-item 隔离）。解析后规则集为空 → **显式失败**抛 inline ErrorCode `metadata.checkpoint-no-rules`（不静默返回空集、不伪造零计数）。跨模块 `includeInherited` 规则继承解析为 follow-up（不保留无法解析的 flag，避免 hollow）。
 
@@ -619,7 +619,7 @@ MetaQualityResult                — 质量执行结果（时序数据）
 
 **动作边界（D4）**：`actionType=store` 随每条规则结果**自动生效**（写 QualityResult 行即 store）。`actions` 为空/null 视为合法（等价仅 store，store 为隐式默认）。`store`/`webhook`/`notify` 三类动作合法：store 隐式（executor 写 QualityResult）；webhook 经 `IHttpClient.fetch`（POST 执行摘要 JSON 到 `config.url`）；notify 经 `IMessageService.send`（向 `config.channel` 投递含 checkpointId+summary+recipients 的信封）。`update_docs` 及任何未知 actionType 且 `enabled=true` → executeCheckpoint 时**显式失败**抛 inline ErrorCode `metadata.checkpoint-action-not-supported`（不静默跳过、不伪造执行）。webhook/notify 投递在 store 落盘后经 `CheckpointActionDispatcher`（BizModel 层，`ITransactionTemplate.runWithoutTransaction` 事务隔离）执行——投递失败/超时经 per-action try/catch 隔离记入摘要 `errors`（`source=actionDispatch`），**不可能回滚** store，HTTP/消息调用不占用 store 事务。`IHttpClient`/`IMessageService` 经 `@Inject @Nullable` 注入 BizModel，宿主未注册实现时对应动作显式失败（不 NPE、不静默跳过）。`update_docs` 实现为独立 follow-up（依赖文档渲染层）。
 
-**手动触发 + 状态门禁（D5）**：`executeCheckpoint` 仅手动触发（GraphQL `@BizMutation` action）；`status=PAUSED/DISABLED` 的 checkpoint 执行时**显式失败**抛 inline ErrorCode（不静默跳过、不静默返回空摘要）。cron 定时调度为 follow-up（`06-data-quality-extended.md` §1.3，nop-job/nop-batch 适配）。
+**手动触发 + 状态门禁（D5）**：`executeCheckpoint` 可手动触发（GraphQL `@BizMutation` action）或经 cron 定时触发（见 §2.7.3.1）；`status=PAUSED/DISABLED` 的 checkpoint 执行时**显式失败**抛 inline ErrorCode（不静默跳过、不静默返回空摘要）。
 
 **执行摘要**：返回 `{checkpointId, executedCount, passCount, failCount, errorCount, affectedTableIds:[...], autoScore, scoreResults:[{metaTableId, scoreId, overallScore}], results:[...], errors:[...]}`，计数与写入的 QualityResult 行一致（pass/fail/error 计数源自 judgment.status）。`affectedTableIds` 为执行循环收集的受影响表集合（见 D6）。
 
@@ -633,6 +633,59 @@ MetaQualityResult                — 质量执行结果（时序数据）
 **标识符注入防护**：checkpoint 本层不拼接 SQL（判定 SQL 全在 §2.7.1 D3 的 judge 内），无新增注入面。
 
 **与 §七（拒绝额外抽象层）的关系**：Checkpoint 复用既有 ORM + table-reference + judge 执行链，不引入额外 Driver/QuerySpace/动作框架抽象层。store 之外的动作不走「可插拔动作框架」，而走「配置后显式失败」的最简路径（待 follow-up 按动作类型独立设计）。
+
+#### 2.7.3.1 定时调度（cron）— P2-cron
+
+质量检查点（`NopMetaQualityCheckpoint`）的 cron 定时执行能力——经 nop-job 动态调度路径按 cron 表达式触发既有 `executeCheckpoint` 编排链（rule 解析 → judge → `NopMetaQualityResult` 落盘 → actions → autoScore），收口「检查点可手动执行也可定时执行」这一结果面。本节落地 plan `2026-07-17-1308-1` 的设计决策 D1-D6，关闭 plan `0027-1` 与 `0540-1` 中 `Successor Required: yes` 的 cron 定时调度 deferred 项。
+
+**D1 — 调度路径裁定（动态调度：entity 配置 + 启动 scanner + 运行时 `IJobScheduler.addJob/removeJob`）**：
+
+经 live repo 核实，在两条路径间裁定：
+
+- **(a) local scheduler 静态 `.job.yaml`** —— **拒绝**。关键结构约束（live 核实 `LocalJobConfigLoader.scanJobConfigs:120`）：`.job.yaml` checked into 源码、`checkpointId` 运行时生成（DB 行），静态 `.job.yaml` 在结构上**无法承载 per-checkpoint cron**。唯一可行的静态形态是「单一全局 cron 调用一个触发所有 active 检查点的方法」，但这**不提供 per-checkpoint 可配置 cron**——用户无法为不同检查点设不同调度频率。因 Goals 明确要求「用户可为每个检查点配置 cron 而无需 redeploy（per-checkpoint 动态调度）」，静态路径不满足 Goals。
+- **(b) 动态调度（检查点 entity 承载 cron + 启动 scanner 读 active 检查点 + 经 `IJobScheduler.addJob`/`removeJob` 运行时注册）** —— **选定**。满足 per-checkpoint 动态配置：用户运行时保存检查点的 cron 配置，scanner 启动时全量注册 + 运行时增量更新，无需 redeploy。
+
+**D2 — cron 来源 + entity schema 裁定（复用 `extConfig` JSON，`schedule` 键，无 schema 变更）**：
+
+经裁定，cron 表达式存 `NopMetaQualityCheckpoint.extConfig`（json-4000, propId 9）的 `schedule` 键，**不新增专用 `schedule` 列**。
+
+- **选定 extConfig JSON 的理由**：(1) `extConfig` 已承载 `autoScore` 等配置（见 D6 `readAutoScoreConfig`），cron 同属「检查点执行配置」语义，内聚一致；(2) **无 ORM 结构变更**（避免触发 Protected Area 结构变更 + codegen 重生成 `_gen/`/`_app.orm.xml` 的成本与风险），落地更快更稳；(3) 检查点目录量级小（元数据目录，典型几十条），scanner 启动时全量加载 active 检查点 + 解析 extConfig JSON 无性能问题。
+- **拒绝新增专用 `schedule` 列**：虽查询友好（`WHERE schedule IS NOT NULL`）且 `NopMetaPipeline` 有 `schedule VARCHAR(200)` 先例（`nop-metadata.orm.xml:1386`），但属 ORM 结构变更（Protected Area，需 codegen 重生成），且 per-checkpoint cron 查询需求（"找所有定时检查点"）可经 extConfig 全量扫描满足（N 小）。列定义（若选此方案）：code=`SCHEDULE` / name=`schedule` / propId=`16` / stdDataType=`string` / stdSqlType=`VARCHAR` / precision=`200` / mandatory=`false` / 无 dict —— **本裁定未采用此方案，仅作记录**。
+- **无 ORM 列变更** → 本 plan **不触发** Protected Area ORM 结构变更（D2 选 extConfig）。
+
+**D3 — 调用入口裁定（path b：`IServiceContext`-free 包装方法，消除 R1/R2）**：
+
+经 live 核实 R1/R2 后裁定：
+
+- **R1（BizModel bean 名解析）live 核实**：检查点 BizModel 注册为两层 bean——`biz_NopMetaQualityCheckpoint`（`BizProxyFactoryBean`，lazy-init，`_service.beans.xml:89-92`）+ raw impl bean `io.nop.metadata.service.entity.NopMetaQualityCheckpointBizModel`（`:87`，`ioc:type="@bean:id" ioc:default="true"`，**非 lazy**）。`BizProxyFactoryBean` 在非 GraphQL 入口下的行为依赖 proxy 内部 context 装配，**不确定**是否可用。raw impl bean 经 `BeanContainer.tryGetBean("io.nop.metadata.service.entity.NopMetaQualityCheckpointBizModel")` 或 IoC `@Inject`（按类型）**可靠可用**。
+- **R2（未命名 IServiceContext 形参绑定）live 核实**：`executeCheckpoint(checkpointId, schemaPattern, IServiceContext)` 第三形参为 `IServiceContext`（`NopMetaQualityCheckpointBizModel.java:128-130`）。`BeanMethodJobInvoker.invokeMethod` → `IFunctionModel.buildArgValues` 按形参名在 jobParams 查找，缺失键传 null。需 `-parameters` 编译标志反射形参名 `context`；即便可反射，传 null context 的安全性依赖下游：`executeCheckpoint` → `triggerAutoScoring(cp, summary, context)` → `computeQualityScore(metaTableId, context)`，后者内部**从不解引用 context**（`NopMetaQualityScoreBizModel.java:53-75` 仅用 metaTableId，context 形参未被读取）。故 null context 对核心路径 + autoScore 路径**安全**。但经 BizModel proxy 路径（R1）仍不确定。
+
+- **选定 path (b)：暴露 `IServiceContext`-free 包装方法**（默认安全路径）。新增普通 IoC bean `MetaQualityCheckpointScheduler`（`.../service/quality/`，非 `@BizModel`），暴露 `executeScheduledCheckpoint(String checkpointId)` no-arg-style 方法（实际形参仅 `checkpointId`，无 `IServiceContext`）。内部调注入的 raw impl `NopMetaQualityCheckpointBizModel.executeCheckpoint(checkpointId, null, null)`（null context 安全，见 R2 核实），复用既有编排链（executor + autoScore + action dispatch），**零编排逻辑复制**。规避 R1（不经 BizProxy，直接注入 raw impl）+ R2（无 `IServiceContext` 形参，BeanMethodJobInvoker 反射无歧义）。与本仓库既有 `wfTaskScanner`/`nopBatchTaskRunner` 普通 bean 经 beanMethod 调用先例一致（`app-scheduler.beans.xml`）。
+- **拒绝 path (a)：beanMethod 直调 `executeCheckpoint`**：R1 风险（BizProxy 在非 GraphQL 入口行为不确定）+ R2 依赖 `-parameters` 反射形参名（不可靠）。path (b) 默认安全且无额外风险，path (a) 仅当 R1/R2 经 live 核实确定通过且证明优于 (b) 才可选——本裁定核实未达此门槛。
+
+**D4 — 生命周期裁定（启动 scanner 全量注册 + 运行时增量 hook）**：
+
+- **(c) 启动全量 + 运行时增量** —— **选定**。
+  - **启动全量**：scanner（`MetaQualityCheckpointScheduler`，`@PostConstruct`）读所有 `status=ACTIVE` 检查点，解析 `extConfig.schedule`，非空且 cron 合法则 `IJobScheduler.addJob`（jobName 约定 `nop-meta-quality-checkpoint-<checkpointId>`，jobInvoker=`beanMethod`，bean=`metaQualityCheckpointScheduler`，method=`executeScheduledCheckpoint`，params=`{checkpointId, beanName, methodName}`）。
+  - **运行时增量**：检查点 save（BizModel `save` override 或 dispatcher）时——status=ACTIVE + extConfig.schedule 非空 → `addJob(allowUpdate=true)`；status 改 PAUSED/DISABLED 或 schedule 清空/删除 → `removeJob`；delete → `removeJob`。运行时增量经 `IJobScheduler` 可空注入（`@Inject @Nullable`，宿主未注册调度器时跳过定时，不抛崩）。
+- **scanner 容错（显式跳过 + 记录，不抛崩启动）**：缺 schedule（extConfig 无 `schedule` 键或为空串）→ 跳过（INFO 日志）；status 非 ACTIVE → 跳过；cron 表达式非法（`TriggerBuilder.buildTrigger` 抛）→ catch + 记录 ERROR 日志 + 跳过该检查点，不中断其他检查点注册、不抛崩启动（`LocalJobConfigLoader.registerJob` 同模式：单 job 注册失败 try/catch 隔离）。
+
+**D5 — 失败可见性 + 测试触发机制裁定**：
+
+- **失败可见性**：定时执行失败的可见路径经三层：(1) `executeCheckpoint` 摘要 + autoScore errors（既有，0540-1）；(2) `BeanMethodJobInvoker.invokeAsync` catch 执行异常 → 返回 `JobFireResult.ERROR(ErrorBean)`（`BeanMethodJobInvoker.java:59-64`，不静默吞掉）；(3) `LocalJobScheduler.handleResult` 收到 ERROR → `job.state.internal = FAILED` + `LOG.error`（`LocalJobScheduler.java:282`）。**local path 无独立执行历史实体**——live 核实：`NopJobFire`/`NopJobTask` 仅 coordinator 路径（`nop-job-coordinator`/`nop-job-service`）产生，local scheduler（`LocalJobScheduler`）无独立执行历史持久化。故定时执行历史可观测性依赖上述三层日志/摘要，不引入独立历史实体（与 local path 单机嵌入式定位一致）。
+- **测试触发机制裁定**：端到端测试用 `IJobScheduler.fireNow(jobName)`（`LocalJobScheduler.java:173`）**同步立即触发一次执行**，绕过真实 cron 等待（避免 flaky/slow），但**不绕过 cron/invoker 调用链**——fireNow 内部仍走 `executeJob → job.invoker.invokeAsync`（即 `BeanMethodJobInvoker` → `executeScheduledCheckpoint`），完整经过 scheduler → invoker → 包装方法 → BizModel → executor 编排链（非 hollow）。测试经 IoC 注入 `IJobScheduler`，`addJob` 注册后调 `fireNow(jobName)`，断言 `NopMetaQualityResult`/`NopMetaQualityScore` 行落盘。**不得**绕过 scheduler/invoker 直调 BizModel（否则 hollow）。
+
+**D6 — 模块依赖裁定（仅 `nop-job-api`，test scope 引入 `nop-job-local`）**：
+
+经 live 核实，`nop-metadata-service` 引入 nop-job 的**最小依赖面**：
+
+- **编译/生产依赖**：仅 `nop-job-api`（提供 `IJobScheduler` / `JobSpec` / `TriggerSpec` 接口）。**不引入** `nop-job-local`（local 调度器实现）/ `nop-job-core`（trigger/scheduler 内部类）——运行时调度器实现由**宿主 app** 经 `app-local-scheduler.beans.xml` 提供（与 `nop-wf-scheduler` 经 `<import resource="/nop/job/beans/app-local-scheduler.beans.xml"/>` 引入调度器同模式），避免 nop-metadata 绑死调度实现。
+- **测试依赖**：`nop-job-local`（test scope）——端到端 AutoTest 需 `IJobScheduler`/`LocalJobScheduler`/`BeanMethodJobInvoker`/`BeanContainerInvokerResolver` bean 在 AutoTest IoC 容器中物化，故测试 classpath 引入 `nop-job-local`（含 `app-local-scheduler.beans.xml`）。生产 runtime 由宿主 app 提供，仅测试需 test-scope 引入。
+- **无循环依赖**：`nop-job-api` 仅依赖 `nop-core`/`nop-api-core`（接口层），**不反向依赖** nop-metadata。`nop-job-local` 依赖 `nop-job-core` → `nop-job-api`，链路不经过 nop-metadata。
+
+**接线点（与 §2.7.3 / §2.7.4 的关系）**：定时调度路径（cron 触发）与手动触发路径（GraphQL mutation）共享同一 `executeCheckpoint` 编排链——评分（§2.7.3 D6）与动作投递（§2.7.3 D4 webhook/notify）在 cron 路径**自动生效**（编排链与触发源解耦，`MetaQualityCheckpointScheduler.executeScheduledCheckpoint` 调的就是 `executeCheckpoint`）。
+
+**失败路径显式化（Minimum Rules #24）**：未知 checkpointId（scheduler 加载到 invoker 执行时检查点已被删除）→ `executeCheckpoint` 抛 `ERR_CHECKPOINT_NOT_FOUND`（经 invoker 转 `JobFireResult.ERROR`，不静默）；status 非 ACTIVE（运行时被 PAUSED/DISABLED 但 cron job 未及时移除）→ executor 抛 `ERR_CHECKPOINT_NOT_ACTIVE`（同上）；空/非法 cron → scanner 注册期显式跳过并记录（D4 容错）。无静默跳过、无空方法体、无 `catch{}` 吞异常。
 
 #### 2.7.4 质量评分（QualityScore）— P2-9
 

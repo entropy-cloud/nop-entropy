@@ -1,6 +1,6 @@
 # nop-metadata Implementation Roadmap
 
-> Last Updated: 2026-07-17 (P4-3++ external↔external 同库 JOIN 聚合 + Measure/Dimension 侧别建模 completed via plan 1200-1; P2-5++ CTE/子查询列穿透（列级血缘解析增强）completed via plan 0852-2; P4-3+ entity↔entity JOIN 聚合查询执行 completed via plan 0852-1; P4-2+ sql/external 端点联邦 JOIN 查询执行 completed via plan 0700-2; P3+/P4+ sql/external 表作为 NopMetaTableJoin 端点 + Measure 跨表校验 completed via plan 0700-1; P3+ 跨表 Measure/Dimension 校验 completed via plan 0228-3; P2-5+ 列级 SQL 血缘解析 completed via plan 0228-2; P-event completed via plan 0228-1; P4-5 completed via plan 0900-2; P4-4 completed via plan 0900-1; P4-2 + P4-3 completed via plan 0800-2; P4-1 completed via plan 0800-1; P2-7 completed via plan 0530-2; P2-5 completed via plan 0420-2; P2-4 completed via plan 0420-1; P2-3 completed via plan 0225-3; P3-2 + P3-3 + P3-4 + P3-5 completed via plan 0700-2; P3-1 + P3-6 completed via plan 0700-1; P1+ completed via plans 294+295; Phase 1 import engine via plan 292)
+> Last Updated: 2026-07-17 (P2-cron 质量检查点 cron 定时调度 nop-job 集成 completed via plan 2026-07-17-1308-1; P2-5++ CTE/子查询列穿透（列级血缘解析增强）completed via plan 0852-2; P4-3+ entity↔entity JOIN 聚合查询执行 completed via plan 0852-1; P4-2+ sql/external 端点联邦 JOIN 查询执行 completed via plan 0700-2; P3+/P4+ sql/external 表作为 NopMetaTableJoin 端点 + Measure 跨表校验 completed via plan 0700-1; P3+ 跨表 Measure/Dimension 校验 completed via plan 0228-3; P2-5+ 列级 SQL 血缘解析 completed via plan 0228-2; P-event completed via plan 0228-1; P4-5 completed via plan 0900-2; P4-4 completed via plan 0900-1; P4-2 + P4-3 completed via plan 0800-2; P4-1 completed via plan 0800-1; P2-7 completed via plan 0530-2; P2-5 completed via plan 0420-2; P2-4 completed via plan 0420-1; P2-3 completed via plan 0225-3; P3-2 + P3-3 + P3-4 + P3-5 completed via plan 0700-2; P3-1 + P3-6 completed via plan 0700-1; P1+ completed via plans 294+295; Phase 1 import engine via plan 292)
 > Source: 设计体系 `ai-dev/design/nop-metadata/`（00-vision ~ 10-event-model）；`01-architecture-baseline.md` 为架构权威
 
 ## Purpose
@@ -100,6 +100,7 @@
 | P2-6 | **质量规则执行引擎**：MetaQualityRule 执行（not_null/unique/range/regex/freshness/volume/custom_sql），写入 MetaQualityResult 时序结果 | done |
 | P2-7 | **数据剖析**：profiling 规则类型，值分布/统计指标/异常值检测，参考 Apache Griffin | done |
 | P2-multi-schema | **多 schema 数据源支持**：NopMetaTable 增加 schema 列，外部表同步持久化 schema，Catalog/Quality/Profiling 执行器默认取持久化 schema（显式 schemaPattern 可覆盖），去重键收敛为 `(metaModuleId, schema, tableName)`（plan 2026-07-17-0852-3，关闭 1905-1/0225-2/0027-1 反复 deferred 的「多 schema 数据源执行」项） | done |
+| P2-cron | **质量检查点 cron 定时调度（nop-job 集成）**：经 nop-job 动态调度路径（`IJobScheduler.addJob/removeJob`）按 cron 表达式定时触发既有 `executeCheckpoint` 编排链；cron 存 `extConfig.schedule`（无 schema 变更）；启动 scanner 全量注册 + 运行时增量；包装 bean `MetaQualityCheckpointScheduler.executeScheduledCheckpoint`（规避 BizProxy/IServiceContext 绑定风险）（见 `01-architecture-baseline.md` §2.7.3.1，plan 2026-07-17-1308-1） | done |
 
 > 设计参考：`05-metadata-import.md`（Manifest + Catalog）；`04-data-governance.md` §三 血缘 + §四 质量；`06-data-quality-extended.md`
 
