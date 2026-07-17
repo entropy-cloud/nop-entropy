@@ -26,6 +26,7 @@
         <module>nop-router</module>
         <module>nop-shell</module>
         <module>nop-java-parser</module>
+        <module>nop-table-validator</module>
     </modules>
 
     <profiles>

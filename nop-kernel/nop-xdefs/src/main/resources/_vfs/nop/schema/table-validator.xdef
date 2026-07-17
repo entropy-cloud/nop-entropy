@@ -1,0 +1,52 @@
+<table-validator x:schema="/nop/schema/xdef.xdef"
+                 xmlns:x="/nop/schema/xdsl.xdef"
+                 xmlns:xdef="/nop/schema/xdef.xdef"
+                 xdef:name="TableValidatorModel">
+
+    <description>string</description>
+
+    <columns xdef:body-type="list" xdef:key-attr="name">
+        <column name="!string" displayName="string" type="generic-type"
+                domain="string" mandatory="!boolean=false"
+                xdef:name="TableColumnMeta">
+            <schema xdef:ref="/nop/schema/schema/schema.xdef"/>
+        </column>
+    </columns>
+
+    <rowValidators xdef:body-type="list" xdef:key-attr="id">
+        <validator id="!string" xdef:ref="/nop/schema/validator.xdef"/>
+    </rowValidators>
+
+    <statChecks xdef:body-type="list" xdef:key-attr="id">
+        <check id="!string" column="!string" errorCode="!string"
+               severity="!int=0" errorDescription="string"
+               xdef:name="TableStatCheckModel">
+            <statExpr>xpl-fn:(stat,table)=>any</statExpr>
+            <between min="double" max="double"/>
+            <ge value="double"/>
+            <le value="double"/>
+            <gt value="double"/>
+            <lt value="double"/>
+            <condition>filter-bean</condition>
+            <errorParams xdef:body-type="map">
+                <param name="!string" value="string"/>
+            </errorParams>
+        </check>
+    </statChecks>
+
+    <tableChecks xdef:body-type="list" xdef:key-attr="id">
+        <check id="!string" errorCode="!string" severity="!int=0"
+               errorDescription="string"
+               xdef:name="TableGlobalCheckModel">
+            <rowCount min="int" max="int"/>
+            <columnCount min="int" max="int"/>
+            <condition>filter-bean</condition>
+            <errorParams xdef:body-type="map">
+                <param name="!string" value="string"/>
+            </errorParams>
+        </check>
+    </tableChecks>
+
+    <beforeValidate>xpl</beforeValidate>
+    <afterValidate>xpl</afterValidate>
+</table-validator>

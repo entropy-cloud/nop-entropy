@@ -1,0 +1,6 @@
+<model x:schema="/nop/schema/register-model.xdef" xmlns:x="/nop/schema/xdsl.xdef"
+       name="table-validator">
+    <loaders>
+        <xdsl-loader fileType="table-validator.xml" schemaPath="/nop/schema/table-validator.xdef"/>
+    </loaders>
+</model>
