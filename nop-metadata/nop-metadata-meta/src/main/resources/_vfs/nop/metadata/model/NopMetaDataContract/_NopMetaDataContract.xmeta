@@ -43,7 +43,7 @@
         </prop>
         <prop name="ownerUserId" displayName="契约所有者" propId="6" i18n-en:displayName="Owner User Id" queryable="true"
               sortable="true" insertable="true" updatable="true">
-            <schema domain="userId" type="java.lang.String" precision="50"/>
+            <schema type="java.lang.String" precision="50"/>
         </prop>
         <prop name="schema" displayName="JSON Schema 定义" propId="7" i18n-en:displayName="Schema" queryable="true"
               sortable="true" insertable="true" updatable="true" graphql:jsonComponentProp="schemaComponent">

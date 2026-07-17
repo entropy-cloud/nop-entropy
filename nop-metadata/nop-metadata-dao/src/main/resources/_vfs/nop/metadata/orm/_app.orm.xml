@@ -145,7 +145,6 @@
 
     <domains>
         <domain name="userName" precision="50" stdSqlType="VARCHAR"/>
-        <domain name="userId" precision="50" stdSqlType="VARCHAR"/>
         <domain name="boolFlag" stdSqlType="TINYINT"/>
         <domain name="json-1000" precision="1000" stdDomain="json" stdSqlType="VARCHAR"/>
         <domain name="json-4000" precision="4000" stdDomain="json" stdSqlType="VARCHAR"/>
@@ -1722,8 +1721,8 @@
                         stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Entity Table Id"/>
                 <column code="STATUS" displayName="契约状态" mandatory="true" name="status" propId="5" stdDataType="string"
                         stdSqlType="VARCHAR" i18n-en:displayName="Status" ext:dict="meta/contract-status"/>
-                <column code="OWNER_USER_ID" displayName="契约所有者" domain="userId" name="ownerUserId" precision="50"
-                        propId="6" stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Owner User Id"/>
+                <column code="OWNER_USER_ID" displayName="契约所有者" name="ownerUserId" precision="50" propId="6"
+                        stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Owner User Id"/>
                 <column code="SCHEMA" displayName="JSON Schema 定义" domain="mediumtext" name="schema"
                         precision="16777216" propId="7" stdDataType="string" stdDomain="json" stdSqlType="VARCHAR"
                         i18n-en:displayName="Schema"/>
