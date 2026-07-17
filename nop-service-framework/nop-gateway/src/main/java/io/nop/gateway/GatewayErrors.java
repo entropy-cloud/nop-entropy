@@ -46,4 +46,10 @@ public interface GatewayErrors {
 
     ErrorCode ERR_GATEWAY_FORWARD_NOT_SUPPORTED_IN_INVOKE = define("nop.err.gateway.forward-not-supported-in-invoke",
             "在GatewayRouteExecution的proceedInvoke方法中不支持forward操作，请在RouteExecutor层面处理: ${routeId}");
+
+    ErrorCode ERR_GATEWAY_UPSTREAM_429 = define("nop.err.gateway.upstream-429",
+            "上游返回429限流响应，重试次数已用完");
+
+    ErrorCode ERR_GATEWAY_UPSTREAM_FAILED = define("nop.err.gateway.upstream-failed",
+            "上游调用失败: httpStatus=${httpStatus}");
 }

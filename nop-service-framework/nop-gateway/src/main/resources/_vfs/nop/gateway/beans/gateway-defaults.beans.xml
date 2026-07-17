@@ -30,4 +30,35 @@
         <constructor-arg index="0" ref="nopGatewayLogger"/>
     </bean>
 
+    <!-- AI Backend Message Converters — 由 nop-ai-gateway 模块的 AiDialectBackendMessageConverter 提供 -->
+
+    <!-- AI Gateway 拦截器 -->
+    <bean id="nopAiAuthGatewayInterceptor"
+          class="io.nop.gateway.core.interceptor.AiAuthGatewayInterceptor"
+          ioc:default="true">
+        <property name="validKeys">
+            <list>
+                <value>sk-test-key-1</value>
+                <value>sk-test-key-2</value>
+            </list>
+        </property>
+    </bean>
+
+    <bean id="nopAiRateLimitGatewayInterceptor"
+          class="io.nop.gateway.core.interceptor.AiRateLimitGatewayInterceptor"
+          ioc:default="true">
+        <property name="capacity" value="10" />
+        <property name="refillRate" value="1" />
+        <property name="refillIntervalMs" value="1000" />
+    </bean>
+
+    <bean id="nopAiFailoverGatewayInterceptor"
+          class="io.nop.gateway.core.interceptor.AiFailoverGatewayInterceptor"
+          ioc:default="true">
+        <property name="fallbackUrls">
+            <list />
+        </property>
+        <property name="maxRetries" value="3" />
+    </bean>
+
 </beans>
