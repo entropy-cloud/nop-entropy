@@ -329,7 +329,7 @@ MetaTableJoin                   — 表关联
 - **MetaTableMeasure** 的 `entityFieldId` 字段引用语义按 tableType 重载（见 §2.5.2 D2）。`expression` 型指标（`entityFieldId` 为 null）跳过字段引用校验，`expression` 内容首版不校验（Non-Goal）。
 - **MetaTableDimension** 的 `dimensionType` 区分普通/时间/地理维度；`granularity`（时间粒度）仅在 `dimensionType=temporal` 时生效，为自由 string（文档约定值，无 dict 约束）。
 - **MetaTableFilter** 的 `definition` 为对齐平台 TreeBean filter 树的条件结构 JSON（见 §2.5.2 D1）。
-- **MetaTableJoin** 的 `leftEntityId/rightEntityId` 指向 MetaEntity，`leftField/rightField` 指向字段名。关联条件是用户按需定义的，不依赖 ORM 模型已有的 MetaEntityRelation。首版仅校验 entity 实体关联（sql/external 表 join 语义为 follow-up）。
+- **MetaTableJoin** 的 `leftEntityId/rightEntityId` 指向 MetaEntity，`leftField/rightField` 指向字段名。关联条件是用户按需定义的，不依赖 ORM 模型已有的 MetaEntityRelation。端点支持 entity 实体关联 + sql/external 表关联（建模 + 校验由 plan 0700-1 落地，见 §2.5.2 D4）：`leftEntityId/rightEntityId`（→MetaEntity）与 `leftTableId/rightTableId`（→MetaTable，plan 0700-1 新增）二选一引用一个端点。sql/external 端点的 JOIN **查询执行**为 successor plan 0700-2。
 
 #### 2.5.2 BI 语义层校验与字段解析（P3-2~P3-5 裁定）
 
@@ -361,7 +361,7 @@ MetaTableJoin                   — 表关联
   - `external` / `sql` 表：`entityFieldId` 存**字段名字符串**（语义重载——external 存 `buildSql` JSON 中的 `columnName`，sql 存 SELECT 解析出的字段名）。校验字段名属于该表可用字段集合。
   - 拒绝 option b（字段名存 `extConfig`）：`extConfig` 为自由扩展 JSON，语义承载字段引用会与扩展属性混淆，且 `entityFieldId` 列已存在、语义明确（"字段引用"），重载比新增存储位更内聚。
   - **expression 型 Measure**：`entityFieldId` 为 null（表达式指标，用 `expression` 列）时跳过字段引用校验，`expression` 内容首版不校验（Non-Goal）。
-- **Join 字段校验范围**：首版**仅 entity 实体关联**——`leftEntityId`/`rightEntityId` 校验对应 `NopMetaEntity` 存在；`leftField` 属于 `leftEntityId` 实体字段集合、`rightField` 属于 `rightEntityId` 实体字段集合（经 entity→`NopMetaEntityField` 解析）。`joinType` 已由 dict 校验。sql/external 表的 join 语义为 follow-up（item 裁定首版范围）。
+- **Join 字段校验范围**：`leftEntityId`/`rightEntityId` 校验对应 `NopMetaEntity` 存在；`leftField` 属于 `leftEntityId` 实体字段集合、`rightField` 属于 `rightEntityId` 实体字段集合（经 entity→`NopMetaEntityField` 解析）。`joinType` 已由 dict 校验。sql/external 表作为 join 端点的建模 + 字段校验由 plan 0700-1 落地（见 §2.5.2 D4：table 端点 `leftTableId`/`rightTableId` 校验 leftField/rightField 属于该表可解析列集合）。
 - **resolveTableFields 与 plan 0700-1 的 ownership**：plan 0700-1 的 `resolveTableFields` 为 **sql-only** 版本；本裁定将其**扩展为全 tableType**（entity/external/sql 分派）。entity/external 分派独立可用；sql 分派复用 0700-1 的解析器。
 - **降级（不静默通过）**：字段集合解析失败（sql sourceSql 不可解析 / external buildSql JSON 损坏 / entity baseEntityId null）→ 显式失败抛 inline ErrorCode（不静默跳过校验、不静默存入悬空引用、不吞异常）。
 
@@ -376,8 +376,21 @@ MetaTableJoin                   — 表关联
 - **Join leftEntityId 不要求 == baseEntityId（宽松语义）**：任意该表 Join 的 `rightEntityId` 均视为可达，不要求 Join 的 `leftEntityId` == `baseEntityId`。宽松语义避免对 Join 建模形式做强约束（用户可定义 leftEntityId 为中间实体的多跳 Join，首版统一视为可达 rightEntity）。
 - **悬空跨表引用显式失败**：Measure/Dimension 引用的 field，其 `metaEntityId` 不在 `allowedEntityIds`（既非主表 baseEntity，也无 Join 直连可达）→ 显式失败抛 inline ErrorCode（不静默存入悬空引用），对齐 §2.5.2 降级铁律。
 - **Filter 跨表裁定（首版限主表，follow-up）**：Filter.definition（TreeBean）内字段名解析 + 跨表可达集合合并复杂度高于 Measure（PK 引用）。首版 Filter save 校验仍限主表可用字段集合，Filter 跨表为 follow-up（不阻塞本裁定）。
-- **external/sql 表 Measure/Dimension 排除（无 join 可达）**：明确 external/sql 类型表的 Measure/Dimension **不做跨表校验**——`NopMetaTableJoin` 仅引用 NopMetaEntity（leftEntityId/rightEntityId），orm.xml 中无 leftTableId/rightTableId 列，sql/external 表无 entity 无法作为 join 端点。external/sql 表 Measure/Dimension 沿用既有名称集合校验（不扩展、不误判）。
+- **external/sql 表 Measure/Dimension 跨表校验扩展（plan 0700-1 落地）**：`NopMetaTableJoin` 经 plan 0700-1 新增 `leftTableId`/`rightTableId`（→NopMetaTable，见 D4）后，sql/external 类型表亦可作为 join 端点，其 Measure/Dimension 跨表字段引用采用 **name-based 可达列名集合**校验（区别于 entity 的 PK 归属语义，见 D4）。无任何 NopMetaTableJoin 的 sql/external 表沿用既有名称集合校验（不扩展、不误判）。
 - **expression 型 Measure 不变**：`entityFieldId` 为 null（expression 型指标）仍跳过字段引用校验（Non-Goal 不变）。
+
+**D4 — sql/external 表作为 NopMetaTableJoin 端点 + name-based 可达集（plan 0700-1 裁定）**：
+
+本节落地 plan 2026-07-17-0700-1 的设计决策 D1（schema 建模裁定）+ D2（可达集构造机制裁定），关闭 plan 0228-3 的「sql/external Join 支持」`Successor Required: yes` deferred 项。把 BI 语义层跨表关联从「仅 entity 类型表」扩展到「entity / external / sql 三类表均可作为 `NopMetaTableJoin` 端点」，并使 sql/external 类型表的 Measure/Dimension 跨表字段引用可校验。
+
+- **端点引用列设计（D1）**：`NopMetaTableJoin` 新增两个 nullable 列 `leftTableId`/`rightTableId`（→ `NopMetaTable`，propId 15/16），与既有 `leftEntityId`/`rightEntityId` 并列。一个端点的引用语义为「entity 或 table 二选一」。
+- **端点互斥规则（D1）**：每个端点（left/right）须恰好引用一种端点类型——`{entityId, tableId}` 同时非空 → 显式失败；同时为空 → 显式失败。`entityId==null` 不再无条件抛 `ERR_JOIN_ENTITY_ID_NULL`，而是「该端点须有 entity/table 二选一」。
+- **端点 tableType 范围（D1）**：table 端点（`leftTableId`/`rightTableId` 指向的 NopMetaTable）仅允许 `tableType=external/sql`。指向 `tableType=entity` 的 NopMetaTable → 显式失败（entity-type 逻辑表作为端点应走 `leftEntityId`/`rightEntityId` entity 路径，避免解析路径混合）。entity 端点（`leftEntityId`/`rightEntityId`）语义不变。
+- **`ERR_JOIN_ENTITY_ID_NULL` 放宽裁定（D1）**：`NopMetaTableJoinBizModel.validateJoinSide` 的「`entityId == null` 即抛错」语义放宽为「该端点为 table 端点（`tableId` 非空）时 `entityId` 为 null 合法」。即端点 mandatory 从「entityId-only」放宽为「entity/table 二选一」。entity 端点取值路径（leftEntityId/rightEntityId + PK/字段名解析）不变。
+- **向后兼容/迁移（D1）**：新增 `leftTableId`/`rightTableId` 列均 nullable，对既有 entity-entity join 数据无破坏（既有数据两新列为 null，沿用 entity 路径）。
+- **D2 name-based 可达集构造机制（区别于 entity 的 PK 归属）**：sql/external 类型表 Measure/Dimension 的 `entityFieldId` 为**字段名字符串**（非 PK），其跨表校验采用 **name-based 可达列名集合**：`reachableFieldNames = {该表自身可解析列名 ∪ 该表所有 NopMetaTableJoin 各端点（left/right，entity/table）解析出的列名/字段名}`。entity 端点贡献其 `NopMetaEntityField.fieldName` 集合；table 端点（external/sql）贡献其列名集合（external→buildSql JSON columnName；sql→SELECT 解析）。**不沿用** entity 表的 `allowedEntityIds` PK 归属路径（0228-3 Approach A）——sql/external 字段引用是 name-based。
+- **降级铁律不变**：列集合解析失败（buildSql 损坏 / sourceSql 不可解析 / entity baseEntityId null / table 端点指向 entity-type 表）一律显式失败抛 inline ErrorCode（不静默空集、不静默放行）。
+- **可用性边界**：本裁定交付「建模 + 防悬空校验」。sql/external 端点的 JOIN **查询执行**（queryJoinData）属 successor plan 0700-2，不在本裁定范围。
 
 #### 2.5.1 外部表建模（syncExternalTables）
 
@@ -880,13 +893,13 @@ sql 视图无别名表达式列产 `<expr_N>` 合成名（§4.2.1），含 `<>` 
 
 #### 4.4.1 跨表 JOIN 执行（P4-2 裁定，落地 D3/D4/D5）
 
-本节落地 plan 0800-2 的设计决策 D3（跨表 JOIN 路由）+ D4（同库 JOIN 机制）+ D5（跨库应用层拼接契约）。`MetaTableJoin`（§2.5）建模为 `leftEntityId`/`rightEntityId`（→`MetaEntity`）+ `leftField`/`rightField`（字段名字符串）+ `alias` + `joinType`。**首版 JOIN 执行聚焦 entity-entity**（join 模型仅引用 entity；sql/external 表无 entity，无法作为 join 端点——其 join 能力为 follow-up）。
+本节落地 plan 0800-2 的设计决策 D3（跨表 JOIN 路由）+ D4（同库 JOIN 机制）+ D5（跨库应用层拼接契约）。`MetaTableJoin`（§2.5）建模为 `leftEntityId`/`rightEntityId`（→`MetaEntity`）+ `leftTableId`/`rightTableId`（→`MetaTable`，plan 0700-1 新增，见 §2.5.2 D4）+ `leftField`/`rightField`（字段名字符串）+ `alias` + `joinType`。**JOIN 执行首版聚焦 entity-entity**（plan 0800-2）；sql/external 表作为 join 端点的**建模 + 校验**已由 plan 0700-1 支持，其 JOIN **查询执行**（queryJoinData）为 successor plan 0700-2。
 
 **JOIN 入口**：`@BizQuery queryJoinData(metaTableId, joinId, filter?, limit?, offset?, context)`，落点 `NopMetaTableBizModel`。`metaTableId` 为左表（join 所属逻辑表），`joinId` 指定 `NopMetaTableJoin`。`filter`/`limit`/`offset` 同单表语义。返回 `Map{items:[{行数据}]}`。
 
 **D3 — 跨表 JOIN 路由（按左右 querySpace 是否相同分派）**：
 
-querySpace 解析规则：entity 表用 `MetaEntity.querySpace`（左右 entity 各自从其 `NopMetaEntity` 取）；external/sql 表用表自身 `querySpace`（首版 join 端点仅 entity，故 external/sql querySpace 仅在 follow-up 的 external join 中出现）。
+querySpace 解析规则：entity 表用 `MetaEntity.querySpace`（左右 entity 各自从其 `NopMetaEntity` 取）；external/sql 表用表自身 `querySpace`（plan 0700-1 已支持 sql/external 作为 join 端点的建模+校验，其 querySpace 在 JOIN 查询执行中的使用属 successor plan 0700-2）。
 
 | 条件 | 路由 | 机制 |
 |------|------|------|
