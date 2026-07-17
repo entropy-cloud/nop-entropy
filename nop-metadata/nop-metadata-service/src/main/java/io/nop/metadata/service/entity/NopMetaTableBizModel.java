@@ -272,9 +272,13 @@ public class NopMetaTableBizModel extends CrudBizModel<NopMetaTable> implements 
                 daoFor(NopMetaDataSource.class), daoFor(NopMetaEntity.class),
                 daoFor(NopMetaEntityField.class), orm());
 
+        // plan 0852-3 Phase 3: 默认 schema 解析在 BizModel 层（持有 NopMetaTable）
+        // 未显式传 schemaPattern 且 table.schema 非空 → 默认取 table.schema（持久化一次、多次执行无需重传）
+        String effectiveSchema = resolveDefaultSchema(schemaPattern, table);
+
         // 按 ref 形态分派 Connection 获取（external/sql 经 withConnection，entity 经平台 IJdbcTransaction）
         ProfilingSnapshot snapshot = ensureTableRefExecutor().execute(ref,
-                (conn, metaData, productName) -> profiler.profile(conn, metaData, ref, schemaPattern, columns, productName));
+                (conn, metaData, productName) -> profiler.profile(conn, metaData, ref, effectiveSchema, columns, productName));
 
         // 按规则定义执行的剖析可挂规则 id；profileTable 入口无规则，留空（结果行的 profilingRuleId 可空，便于无规则直接剖析）
         NopMetaProfilingResult row = appendProfilingResult(null, metaTableId, snapshot);
@@ -815,6 +819,18 @@ public class NopMetaTableBizModel extends CrudBizModel<NopMetaTable> implements 
             throw new NopException(ERR_PROFILING_TABLE_NOT_FOUND).param("metaTableId", metaTableId);
         }
         return table;
+    }
+
+    /**
+     * 默认 schema 解析（plan 0852-3 Phase 3）：未显式传 schemaPattern（null/空/纯空白）且
+     * {@code table.schema} 非空 → 默认取 {@code table.schema}；否则维持入参（可能为 null=不过滤）。
+     * 与 {@code NopMetaDataSourceBizModel.resolveDefaultSchema} 同语义。
+     */
+    private static String resolveDefaultSchema(String schemaPattern, NopMetaTable table) {
+        if (schemaPattern != null && !schemaPattern.trim().isEmpty()) {
+            return schemaPattern;
+        }
+        return table.getSchema();
     }
 
     /** 解析目标表：metaTableId → NopMetaTable；不存在/非 external 显式失败。 */

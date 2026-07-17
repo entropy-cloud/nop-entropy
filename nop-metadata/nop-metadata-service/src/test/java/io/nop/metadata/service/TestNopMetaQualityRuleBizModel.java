@@ -282,6 +282,68 @@ public class TestNopMetaQualityRuleBizModel extends JunitBaseTestCase {
 
     // ===== 不可执行路径显式失败 / SKIP =====
 
+    // ===== 默认 schema 从持久化解析（plan 2026-07-17-0852-3 Phase 3） =====
+
+    /**
+     * 端到端：sync 持久化 schema → 直接执行 executeQualityRule（不传 schemaPattern）→ 默认按
+     * 持久化 schema 执行 volume COUNT，命中正确表（plan 0852-3 Phase 3 anti-hollow #22）。
+     *
+     * <p>在 H2 自定义 schema SCH_QR_DEF 下建表 + 插入 3 行 → sync → 不传 schemaPattern 执行 →
+     * actualValue=3（真实 COUNT 结果，证明默认 schema 解析在 BizModel 层生效并被执行器接收）。
+     */
+    @Test
+    public void testExecuteQualityRuleDefaultSchemaFromPersisted() throws Exception {
+        String dbUrl = "jdbc:h2:mem:meta_qr_def;DB_CLOSE_DELAY=-1";
+        try (Connection c = DriverManager.getConnection(dbUrl, "sa", "");
+             Statement st = c.createStatement()) {
+            st.execute("CREATE SCHEMA SCH_QR_DEF");
+            st.execute("CREATE TABLE SCH_QR_DEF.ext_qr_def (id INT NOT NULL)");
+            st.execute("INSERT INTO SCH_QR_DEF.ext_qr_def VALUES (1)");
+            st.execute("INSERT INTO SCH_QR_DEF.ext_qr_def VALUES (2)");
+            st.execute("INSERT INTO SCH_QR_DEF.ext_qr_def VALUES (3)");
+        }
+        PreparedEnv env = prepareMultiSchema(dbUrl, "qs_qr_def", "SCH_QR_DEF");
+
+        String tableId = env.tableId("EXT_QR_DEF");
+        saveRule(env, "r-qr-def", "volume", "table", tableId, null, 2.0, "{\"minRows\":2}");
+
+        // 不传 schemaPattern：默认取 table.schema=SCH_QR_DEF
+        GraphQLResponseBean resp = execNoSchema("r-qr-def");
+        assertFalse(resp.hasError(), "default schema path should not error: " + resp);
+        assertStatus(resp, "PASS");
+        assertActualValue(resp, 3.0);
+    }
+
+    /**
+     * 显式 schemaPattern 覆盖持久化 schema（plan 0852-3 Phase 3 覆盖语义）。
+     * sync SCH_QR_A（持久化 schema=SCH_QR_A，2 行）→ 显式传 schemaPattern=SCH_QR_B（覆盖）→ 命中 SCH_QR_B 的 5 行。
+     */
+    @Test
+    public void testExecuteQualityRuleExplicitSchemaOverridesPersisted() throws Exception {
+        String dbUrl = "jdbc:h2:mem:meta_qr_ovr;DB_CLOSE_DELAY=-1";
+        try (Connection c = DriverManager.getConnection(dbUrl, "sa", "");
+             Statement st = c.createStatement()) {
+            st.execute("CREATE SCHEMA SCH_QR_A");
+            st.execute("CREATE SCHEMA SCH_QR_B");
+            st.execute("CREATE TABLE SCH_QR_A.shared_qr (id INT NOT NULL)");
+            st.execute("CREATE TABLE SCH_QR_B.shared_qr (id INT NOT NULL)");
+            st.execute("INSERT INTO SCH_QR_A.shared_qr VALUES (1)");
+            st.execute("INSERT INTO SCH_QR_A.shared_qr VALUES (2)");
+            for (int i = 0; i < 5; i++) st.execute("INSERT INTO SCH_QR_B.shared_qr VALUES (" + i + ")");
+        }
+        PreparedEnv env = prepareMultiSchema(dbUrl, "qs_qr_ovr", "SCH_QR_A");
+
+        // sync 写入 schema=SCH_QR_A
+        String tableIdA = env.tableId("SHARED_QR");
+
+        saveRule(env, "r-qr-ovr", "volume", "table", tableIdA, null, 1.0, "{\"minRows\":1}");
+
+        // 显式传 SCH_QR_B → 覆盖持久化的 SCH_QR_A → 命中 SCH_QR_B 的 5 行
+        GraphQLResponseBean resp = execWithSchema("r-qr-ovr", "SCH_QR_B");
+        assertFalse(resp.hasError(), "explicit schema override should not error: " + resp);
+        assertActualValue(resp, 5.0);
+    }
+
     /** 规则不存在 → 抛 metadata.quality-rule-not-found（不 NPE）。 */
     @Test
     public void testExecuteRuleNotFound() {
@@ -353,22 +415,41 @@ public class TestNopMetaQualityRuleBizModel extends JunitBaseTestCase {
 
     // ===== helpers =====
 
-    /** 端到端辅助：建数据源 + 同步 external 表结构，返回已就绪环境。 */
+    /** 端到端辅助：建数据源 + 同步 external 表结构（指定 schemaPattern），返回已就绪环境。 */
     private PreparedEnv prepare(String dbUrl, String querySpace) {
+        return prepareMultiSchema(dbUrl, querySpace, "PUBLIC");
+    }
+
+    /**
+     * 端到端辅助（多 schema 版本，plan 0852-3）：建数据源 + 同步指定 schema 的 external 表结构，
+     * 使持久化 {@code NopMetaTable.schema} 列真实写入该 schema（用于默认 schema 解析测试）。
+     */
+    private PreparedEnv prepareMultiSchema(String dbUrl, String querySpace, String schemaPattern) {
         saveDataSource("ds-" + querySpace, querySpace, "jdbc", "ACTIVE",
                 "{\"jdbcUrl\":\"" + dbUrl + "\",\"username\":\"sa\",\"password\":\"\","
                         + "\"driverClassName\":\"org.h2.Driver\"}");
         GraphQLResponseBean syncResp = graphQLEngine.executeGraphQL(graphQLEngine.newGraphQLContext(req(
                 "mutation { NopMetaDataSource__syncExternalTables(dataSourceId: \"ds-" + querySpace
-                        + "\", schemaPattern: \"PUBLIC\") }")));
+                        + "\", schemaPattern: \"" + schemaPattern + "\") }")));
         assertFalse(syncResp.hasError(), "sync should not error: " + syncResp);
         return new PreparedEnv("ds-" + querySpace);
     }
 
     private GraphQLResponseBean exec(String ruleId) {
+        return execWithSchema(ruleId, "PUBLIC");
+    }
+
+    /** 执行规则不传 schemaPattern（验证默认 schema 解析，plan 0852-3 Phase 3）。 */
+    private GraphQLResponseBean execNoSchema(String ruleId) {
+        return graphQLEngine.executeGraphQL(graphQLEngine.newGraphQLContext(req(
+                "mutation { NopMetaQualityRule__executeQualityRule(qualityRuleId: \"" + ruleId + "\") }")));
+    }
+
+    /** 执行规则显式传 schemaPattern（验证覆盖语义，plan 0852-3 Phase 3）。 */
+    private GraphQLResponseBean execWithSchema(String ruleId, String schemaPattern) {
         return graphQLEngine.executeGraphQL(graphQLEngine.newGraphQLContext(req(
                 "mutation { NopMetaQualityRule__executeQualityRule(qualityRuleId: \"" + ruleId + "\", "
-                        + "schemaPattern: \"PUBLIC\") }")));
+                        + "schemaPattern: \"" + schemaPattern + "\") }")));
     }
 
     private GraphQLResponseBean batchExec(String dataSourceId) {

@@ -206,6 +206,70 @@ public class TestNopMetaTableBizModel extends JunitBaseTestCase {
         assertEquals(2, countResults(tableId), "time-series: 2 result rows after second profile (appended, not overwritten)");
     }
 
+    // ===== 默认 schema 从持久化解析（plan 2026-07-17-0852-3 Phase 3） =====
+
+    /**
+     * 端到端：sync 持久化 schema → 直接执行 profileTable（不传 schemaPattern）→ 默认按持久化 schema
+     * 执行 COUNT 与列统计，命中正确表（plan 0852-3 Phase 3 anti-hollow #22）。
+     *
+     * <p>在 H2 自定义 schema SCH_PR_DEF 下建表 + 插入 2 行 → sync → 不传 schemaPattern 执行 →
+     * rowCount=2（真实 COUNT 结果，证明默认 schema 解析在 BizModel 层生效并被剖析器接收）。
+     */
+    @Test
+    public void testProfileTableDefaultSchemaFromPersisted() throws Exception {
+        String dbUrl = "jdbc:h2:mem:meta_pr_def;DB_CLOSE_DELAY=-1";
+        try (Connection c = DriverManager.getConnection(dbUrl, "sa", "");
+             Statement st = c.createStatement()) {
+            st.execute("CREATE SCHEMA SCH_PR_DEF");
+            st.execute("CREATE TABLE SCH_PR_DEF.ext_pr_def (id INT NOT NULL, val INT)");
+            st.execute("INSERT INTO SCH_PR_DEF.ext_pr_def VALUES (1, 10)");
+            st.execute("INSERT INTO SCH_PR_DEF.ext_pr_def VALUES (2, 20)");
+        }
+        String tableId = prepareTableMultiSchema(dbUrl, "qs_pr_def", "SCH_PR_DEF", "EXT_PR_DEF");
+
+        // 不传 schemaPattern：默认取 table.schema=SCH_PR_DEF
+        GraphQLResponseBean resp = profileNoSchema(tableId);
+        assertFalse(resp.hasError(), "default schema path should not error: " + resp);
+
+        NopMetaProfilingResult row = findResult(tableId);
+        assertNotNull(row, "profiling result must be written via default schema path");
+        Map<String, Object> tableStats = parseMap(row.getTableStats());
+        assertEquals(2L, toLong(tableStats.get("rowCount")),
+                "rowCount=2 via persisted default schema SCH_PR_DEF (anti-hollow)");
+    }
+
+    /**
+     * 显式 schemaPattern 覆盖持久化 schema（plan 0852-3 Phase 3 覆盖语义）。
+     * sync SCH_PR_A（持久化 schema=SCH_PR_A，2 行）→ 显式传 schemaPattern=SCH_PR_B（覆盖）→ 命中 SCH_PR_B 的 3 行。
+     */
+    @Test
+    public void testProfileTableExplicitSchemaOverridesPersisted() throws Exception {
+        String dbUrl = "jdbc:h2:mem:meta_pr_ovr;DB_CLOSE_DELAY=-1";
+        try (Connection c = DriverManager.getConnection(dbUrl, "sa", "");
+             Statement st = c.createStatement()) {
+            st.execute("CREATE SCHEMA SCH_PR_A");
+            st.execute("CREATE SCHEMA SCH_PR_B");
+            st.execute("CREATE TABLE SCH_PR_A.shared_pr (id INT NOT NULL)");
+            st.execute("CREATE TABLE SCH_PR_B.shared_pr (id INT NOT NULL)");
+            st.execute("INSERT INTO SCH_PR_A.shared_pr VALUES (1)");
+            st.execute("INSERT INTO SCH_PR_A.shared_pr VALUES (2)");
+            st.execute("INSERT INTO SCH_PR_B.shared_pr VALUES (10)");
+            st.execute("INSERT INTO SCH_PR_B.shared_pr VALUES (11)");
+            st.execute("INSERT INTO SCH_PR_B.shared_pr VALUES (12)");
+        }
+        // sync SCH_PR_A → 持久化 schema=SCH_PR_A
+        String tableId = prepareTableMultiSchema(dbUrl, "qs_pr_ovr", "SCH_PR_A", "SHARED_PR");
+
+        // 显式传 SCH_PR_B → 覆盖持久化的 SCH_PR_A → 命中 SCH_PR_B 的 3 行
+        GraphQLResponseBean resp = profileWithSchema(tableId, "SCH_PR_B");
+        assertFalse(resp.hasError(), "explicit schema override should not error: " + resp);
+        NopMetaProfilingResult row = findResult(tableId);
+        assertNotNull(row);
+        Map<String, Object> tableStats = parseMap(row.getTableStats());
+        assertEquals(3L, toLong(tableStats.get("rowCount")),
+                "rowCount=3 via explicit schema=SCH_PR_B (overrides persisted SCH_PR_A)");
+    }
+
     // ===== executeProfilingRule 辅助入口 =====
 
     /** executeProfilingRule 按规则定义执行，写入 NopMetaProfilingResult（profilingRuleId 关联规则）。 */
@@ -466,12 +530,20 @@ public class TestNopMetaTableBizModel extends JunitBaseTestCase {
 
     /** 端到端：建数据源 + 同步 external 表结构，返回 metaTableId。 */
     private String prepareTable(String dbUrl, String querySpace, String expectedTable) {
+        return prepareTableMultiSchema(dbUrl, querySpace, "PUBLIC", expectedTable);
+    }
+
+    /**
+     * 端到端（多 schema 版本，plan 0852-3）：建数据源 + 同步指定 schema 的 external 表结构，
+     * 使持久化 {@code NopMetaTable.schema} 列真实写入该 schema（用于默认 schema 解析测试）。
+     */
+    private String prepareTableMultiSchema(String dbUrl, String querySpace, String schemaPattern, String expectedTable) {
         saveDataSource("ds-" + querySpace, querySpace, "jdbc", "ACTIVE",
                 "{\"jdbcUrl\":\"" + dbUrl + "\",\"username\":\"sa\",\"password\":\"\","
                         + "\"driverClassName\":\"org.h2.Driver\"}");
         GraphQLResponseBean syncResp = graphQLEngine.executeGraphQL(graphQLEngine.newGraphQLContext(req(
                 "mutation { NopMetaDataSource__syncExternalTables(dataSourceId: \"ds-" + querySpace
-                        + "\", schemaPattern: \"PUBLIC\") }")));
+                        + "\", schemaPattern: \"" + schemaPattern + "\") }")));
         assertFalse(syncResp.hasError(), "sync should not error: " + syncResp);
         return tableId(expectedTable);
     }
@@ -481,6 +553,19 @@ public class TestNopMetaTableBizModel extends JunitBaseTestCase {
         return graphQLEngine.executeGraphQL(graphQLEngine.newGraphQLContext(req(
                 "mutation { NopMetaTable__profileTable(metaTableId: \"" + tableId + "\", "
                         + "schemaPattern: \"PUBLIC\"" + colArg + ") }")));
+    }
+
+    /** profileTable 不传 schemaPattern（验证默认 schema 解析，plan 0852-3 Phase 3）。 */
+    private GraphQLResponseBean profileNoSchema(String tableId) {
+        return graphQLEngine.executeGraphQL(graphQLEngine.newGraphQLContext(req(
+                "mutation { NopMetaTable__profileTable(metaTableId: \"" + tableId + "\") }")));
+    }
+
+    /** profileTable 显式传 schemaPattern（验证覆盖语义，plan 0852-3 Phase 3）。 */
+    private GraphQLResponseBean profileWithSchema(String tableId, String schemaPattern) {
+        return graphQLEngine.executeGraphQL(graphQLEngine.newGraphQLContext(req(
+                "mutation { NopMetaTable__profileTable(metaTableId: \"" + tableId + "\", "
+                        + "schemaPattern: \"" + schemaPattern + "\") }")));
     }
 
     private GraphQLRequestBean req(String query) {

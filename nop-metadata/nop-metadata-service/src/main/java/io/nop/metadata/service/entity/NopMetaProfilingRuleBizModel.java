@@ -103,8 +103,11 @@ public class NopMetaProfilingRuleBizModel extends CrudBizModel<NopMetaProfilingR
         // 规则定义的 columns 作为列过滤（stats 指标首版全量收集，规则仅记录意图，不裁剪以保证剖析完整性）
         String columns = rule.getColumns();
 
+        // plan 0852-3 Phase 3: 默认 schema 解析在 BizModel 层（持有 NopMetaTable）
+        String effectiveSchema = resolveDefaultSchema(schemaPattern, table);
+
         ProfilingSnapshot snapshot = ensureTableRefExecutor().execute(ref,
-                (conn, metaData, productName) -> profiler.profile(conn, metaData, ref, schemaPattern,
+                (conn, metaData, productName) -> profiler.profile(conn, metaData, ref, effectiveSchema,
                         columns, productName));
 
         NopMetaProfilingResult row = appendProfilingResult(
@@ -133,6 +136,18 @@ public class NopMetaProfilingRuleBizModel extends CrudBizModel<NopMetaProfilingR
             tableRefExecutor = new TableReferenceExecutor(connectionService, orm());
         }
         return tableRefExecutor;
+    }
+
+    /**
+     * 默认 schema 解析（plan 0852-3 Phase 3）：未显式传 schemaPattern（null/空/纯空白）且
+     * {@code table.schema} 非空 → 默认取 {@code table.schema}；否则维持入参（可能为 null=不过滤）。
+     * 与 {@code NopMetaDataSourceBizModel.resolveDefaultSchema} 同语义。
+     */
+    private static String resolveDefaultSchema(String schemaPattern, NopMetaTable table) {
+        if (schemaPattern != null && !schemaPattern.trim().isEmpty()) {
+            return schemaPattern;
+        }
+        return table.getSchema();
     }
 
     /** 追加一行 NopMetaProfilingResult（时序语义：snapshotTime=now，不覆盖）。 */

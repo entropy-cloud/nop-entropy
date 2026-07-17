@@ -219,8 +219,9 @@ public class NopMetaDataSourceBizModel extends CrudBizModel<NopMetaDataSource> i
      * </ul>
      *
      * @param dataSourceId  目标数据源 ID
-     * @param schemaPattern 可选，限定 COUNT/索引查询的物理 schema（null/空串表示依赖连接默认 schema）。
-     *                      不过滤 NopMetaTable 行（schema 不存于该表，见架构基线 §2.3.2 schema 限定）。
+     * @param schemaPattern 可选，限定 COUNT/索引查询的物理 schema（null/空串表示**逐表默认解析**：
+     *                      各表取自身 {@code NopMetaTable.schema}，plan 0852-3 Phase 3）。
+     *                      显式入参对该批次所有表覆盖默认；null=各表用持久化 schema（仍 null 则不过滤）。
      * @return {@code {collectedCount: int, errors: [{tableName, error}, ...]}}
      */
     @BizMutation
@@ -254,8 +255,11 @@ public class NopMetaDataSourceBizModel extends CrudBizModel<NopMetaDataSource> i
                             TableReference ref = new TableReference(TableReference.Kind.EXTERNAL,
                                     table.getMetaTableId(), table.getTableName(), null,
                                     dataSource, null, null, null);
+                            // plan 0852-3 Phase 3: 批量入口逐表默认 schema 解析（每表 schema 可能不同）
+                            // 替代旧「单一 schemaPattern 透传循环内所有表」——多 schema 数据源各表正确命中
+                            String effectiveSchema = resolveDefaultSchema(schemaPattern, table);
                             CatalogTableStats stats = catalogCollector.collectForTable(
-                                    conn, metaData, ref, schemaPattern, productName);
+                                    conn, metaData, ref, effectiveSchema, productName);
                             appendCatalogRow(table.getMetaTableId(), stats);
                             orm().flushSession();
                             collectedCount.incrementAndGet();
@@ -312,12 +316,31 @@ public class NopMetaDataSourceBizModel extends CrudBizModel<NopMetaDataSource> i
                 daoFor(NopMetaDataSource.class), daoFor(NopMetaEntity.class),
                 daoFor(NopMetaEntityField.class), orm());
 
+        // plan 0852-3 Phase 3: 默认 schema 解析在 BizModel 层（持有 NopMetaTable）
+        // 未显式传 schemaPattern 且 table.schema 非空 → 默认取 table.schema（持久化一次、多次执行无需重传）
+        String effectiveSchema = resolveDefaultSchema(schemaPattern, table);
+
         CatalogTableStats stats = ensureTableRefExecutor().execute(ref,
                 (conn, metaData, productName) -> catalogCollector.collectForTable(
-                        conn, metaData, ref, schemaPattern, productName));
+                        conn, metaData, ref, effectiveSchema, productName));
 
         appendCatalogRow(table.getMetaTableId(), stats);
         return buildCatalogResultMap(table.getMetaTableId(), stats);
+    }
+
+    /**
+     * 默认 schema 解析（plan 0852-3 Phase 3）：未显式传 schemaPattern（null/空/纯空白）且
+     * {@code table.schema} 非空 → 默认取 {@code table.schema}；否则维持入参（可能为 null=不过滤）。
+     *
+     * <p>解析点在 BizModel 层（持有 NopMetaTable），执行器仅收最终 schemaPattern——
+     * 使「sync 持久化一次 schema → 后续 Catalog/Quality/Profiling 执行无需重传」成立。
+     * 显式入参优先覆盖持久化 schema。
+     */
+    private static String resolveDefaultSchema(String schemaPattern, NopMetaTable table) {
+        if (schemaPattern != null && !schemaPattern.trim().isEmpty()) {
+            return schemaPattern;
+        }
+        return table.getSchema();
     }
 
     /** 延迟初始化 TableReferenceExecutor（需 orm()，构造时 orm 不可用）。 */

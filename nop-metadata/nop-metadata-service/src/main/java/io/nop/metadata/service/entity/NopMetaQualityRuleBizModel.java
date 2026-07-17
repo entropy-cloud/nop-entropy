@@ -157,9 +157,13 @@ public class NopMetaQualityRuleBizModel extends CrudBizModel<NopMetaQualityRule>
                 daoFor(NopMetaDataSource.class), daoFor(NopMetaEntity.class),
                 daoFor(NopMetaEntityField.class), orm());
 
+        // plan 0852-3 Phase 3: 默认 schema 解析在 BizModel 层（持有 NopMetaTable）
+        // 未显式传 schemaPattern 且 table.schema 非空 → 默认取 table.schema（持久化一次、多次执行无需重传）
+        String effectiveSchema = resolveDefaultSchema(schemaPattern, table);
+
         // 按 ref 形态分派 Connection 获取并执行
         QualityRuleJudgment judgment = ensureTableRefExecutor().execute(ref,
-                (conn, metaData, productName) -> executor.judge(conn, ref, schemaPattern,
+                (conn, metaData, productName) -> executor.judge(conn, ref, effectiveSchema,
                         rule.getRuleType(), rule.getEntityType(),
                         rule.getParams(), rule.getSqlExpression(),
                         rule.getThreshold(), productName));
@@ -204,10 +208,12 @@ public class NopMetaQualityRuleBizModel extends CrudBizModel<NopMetaQualityRule>
             return empty;
         }
 
-        // 表 id → 物理表名（callback 内按规则 entityId 解析）
+        // 表 id → 物理表名 + schema（callback 内按规则 entityId 解析；plan 0852-3 Phase 3 多 schema 批量逐表）
         Map<String, String> tableIdToName = new HashMap<>();
+        Map<String, NopMetaTable> tableIdToEntity = new HashMap<>();
         for (NopMetaTable t : externalTables) {
             tableIdToName.put(t.getMetaTableId(), t.getTableName());
+            tableIdToEntity.put(t.getMetaTableId(), t);
         }
         List<String> tableIds = new ArrayList<>(tableIdToName.keySet());
 
@@ -241,10 +247,13 @@ public class NopMetaQualityRuleBizModel extends CrudBizModel<NopMetaQualityRule>
                                         .param("qualityRuleId", rule.getQualityRuleId())
                                         .param("entityId", rule.getEntityId());
                             }
+                            // plan 0852-3 Phase 3: 批量入口逐表默认 schema 解析（各表 schema 可能不同）
+                            NopMetaTable targetTable = tableIdToEntity.get(rule.getEntityId());
+                            String effectiveSchema = resolveDefaultSchema(schemaPattern, targetTable);
                             QualityRuleJudgment judgment = executor.judge(conn,
                                     new TableReference(TableReference.Kind.EXTERNAL, rule.getEntityId(),
                                             tableName, null, dataSource, null, null, null),
-                                    schemaPattern,
+                                    effectiveSchema,
                                     rule.getRuleType(), rule.getEntityType(),
                                     rule.getParams(), rule.getSqlExpression(),
                                     rule.getThreshold(), productName);
@@ -295,6 +304,18 @@ public class NopMetaQualityRuleBizModel extends CrudBizModel<NopMetaQualityRule>
             tableRefExecutor = new TableReferenceExecutor(connectionService, orm());
         }
         return tableRefExecutor;
+    }
+
+    /**
+     * 默认 schema 解析（plan 0852-3 Phase 3）：未显式传 schemaPattern（null/空/纯空白）且
+     * {@code table.schema} 非空 → 默认取 {@code table.schema}；否则维持入参（可能为 null=不过滤）。
+     * 与 {@code NopMetaDataSourceBizModel.resolveDefaultSchema} 同语义。
+     */
+    private static String resolveDefaultSchema(String schemaPattern, NopMetaTable table) {
+        if (schemaPattern != null && !schemaPattern.trim().isEmpty()) {
+            return schemaPattern;
+        }
+        return table.getSchema();
     }
 
     /** 解析目标表对应数据源：table.querySpace → NopMetaDataSource；不存在/DISABLED 显式失败。 */

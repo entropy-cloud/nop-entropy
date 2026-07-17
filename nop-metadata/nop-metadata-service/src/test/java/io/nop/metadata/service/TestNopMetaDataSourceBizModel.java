@@ -582,6 +582,140 @@ public class TestNopMetaDataSourceBizModel extends JunitBaseTestCase {
                 "non-existent dataSourceId collect must error (no NPE): " + response);
     }
 
+    // ===== collectCatalog/ForTable：默认 schema 从持久化解析（plan 2026-07-17-0852-3 Phase 3） =====
+
+    /**
+     * 端到端：sync 持久化 schema → 直接执行 collectCatalogForTable（不传 schemaPattern）→ 默认按
+     * 持久化 schema 执行 COUNT，命中正确表（plan 0852-3 Phase 3 anti-hollow #22）。
+     *
+     * <p>在 H2 自定义 schema SCH_CC_DEF 下建表 + 插入 2 行 → sync → 不传 schemaPattern 执行 → rowCount=2。
+     * 证明默认 schema 解析在 BizModel 层生效，被执行器接收（非执行器内部猜）。
+     */
+    @Test
+    public void testCollectCatalogForTableDefaultSchemaFromPersisted() throws Exception {
+        String dbUrl = "jdbc:h2:mem:meta_cc_def;DB_CLOSE_DELAY=-1";
+        try (Connection c = DriverManager.getConnection(dbUrl, "sa", "");
+             Statement st = c.createStatement()) {
+            st.execute("CREATE SCHEMA SCH_CC_DEF");
+            st.execute("CREATE TABLE SCH_CC_DEF.ext_cc_def (id INT NOT NULL)");
+            st.execute("INSERT INTO SCH_CC_DEF.ext_cc_def VALUES (1)");
+            st.execute("INSERT INTO SCH_CC_DEF.ext_cc_def VALUES (2)");
+        }
+
+        saveDataSource("ds-cc-def", "qs_cc_def", "jdbc", "ACTIVE",
+                "{\"jdbcUrl\":\"" + dbUrl + "\",\"username\":\"sa\",\"password\":\"\","
+                        + "\"driverClassName\":\"org.h2.Driver\"}");
+
+        // sync SCH_CC_DEF → NopMetaTable.schema = "SCH_CC_DEF"
+        execute("mutation { NopMetaDataSource__syncExternalTables(dataSourceId: \"ds-cc-def\", schemaPattern: \"SCH_CC_DEF\") }");
+        NopMetaTable table = findExternalTable(daoProvider.daoFor(NopMetaTable.class), "EXT_CC_DEF");
+        assertNotNull(table, "EXT_CC_DEF must be synced");
+        assertEquals("SCH_CC_DEF", table.getSchema(),
+                "persisted schema must be SCH_CC_DEF (precondition for default schema test)");
+
+        // 不传 schemaPattern：默认取 table.schema=SCH_CC_DEF → 命中 SCH_CC_DEF.ext_cc_def 的 2 行
+        GraphQLResponseBean resp = execute(
+                "mutation { NopMetaDataSource__collectCatalogForTable(metaTableId: \"" + table.getMetaTableId() + "\") }");
+        assertFalse(resp.hasError(), "default schema path should not error: " + resp);
+        String data = String.valueOf(resp.getData());
+        assertTrue(data.contains("rowCount=2"),
+                "default schema=SCH_CC_DEF should hit the right table (rowCount=2): " + data);
+
+        // 写入 NopMetaCatalog（anti-hollow：非空壳）
+        NopMetaCatalog row = findCatalogRow(table.getMetaTableId());
+        assertNotNull(row, "NopMetaCatalog row must be written via default schema path");
+        assertEquals(2L, row.getRowCount(), "rowCount=2 via persisted default schema SCH_CC_DEF");
+    }
+
+    /**
+     * 显式 schemaPattern 覆盖持久化 schema（plan 0852-3 Phase 3 覆盖语义）。
+     *
+     * <p>sync SCH_A（持久化 schema=SCH_A，2 行）→ 显式传 schemaPattern=SCH_B（覆盖持久化）→ 命中 SCH_B 的 3 行。
+     * 证明显式入参优先级高于持久化 schema。
+     */
+    @Test
+    public void testCollectCatalogForTableExplicitSchemaOverridesPersisted() throws Exception {
+        String dbUrl = "jdbc:h2:mem:meta_cc_ovr;DB_CLOSE_DELAY=-1";
+        try (Connection c = DriverManager.getConnection(dbUrl, "sa", "");
+             Statement st = c.createStatement()) {
+            st.execute("CREATE SCHEMA SCH_CC_A");
+            st.execute("CREATE SCHEMA SCH_CC_B");
+            st.execute("CREATE TABLE SCH_CC_A.shared_cc (id INT NOT NULL)");
+            st.execute("CREATE TABLE SCH_CC_B.shared_cc (id INT NOT NULL)");
+            st.execute("INSERT INTO SCH_CC_A.shared_cc VALUES (1)");
+            st.execute("INSERT INTO SCH_CC_A.shared_cc VALUES (2)");
+            st.execute("INSERT INTO SCH_CC_B.shared_cc VALUES (10)");
+            st.execute("INSERT INTO SCH_CC_B.shared_cc VALUES (11)");
+            st.execute("INSERT INTO SCH_CC_B.shared_cc VALUES (12)");
+        }
+
+        saveDataSource("ds-cc-ovr", "qs_cc_ovr", "jdbc", "ACTIVE",
+                "{\"jdbcUrl\":\"" + dbUrl + "\",\"username\":\"sa\",\"password\":\"\","
+                        + "\"driverClassName\":\"org.h2.Driver\"}");
+
+        execute("mutation { NopMetaDataSource__syncExternalTables(dataSourceId: \"ds-cc-ovr\", schemaPattern: \"SCH_CC_A\") }");
+        NopMetaTable tableA = findExternalTable(daoProvider.daoFor(NopMetaTable.class), "SHARED_CC");
+        assertNotNull(tableA, "SHARED_CC must be synced");
+        assertEquals("SCH_CC_A", tableA.getSchema(), "persisted schema = SCH_CC_A");
+
+        // 显式传 SCH_CC_B（覆盖持久化的 SCH_CC_A）→ 命中 SCH_CC_B 的 3 行
+        GraphQLResponseBean resp = execute(
+                "mutation { NopMetaDataSource__collectCatalogForTable(metaTableId: \"" + tableA.getMetaTableId()
+                        + "\", schemaPattern: \"SCH_CC_B\") }");
+        assertFalse(resp.hasError(), "explicit schema override should not error: " + resp);
+        assertTrue(String.valueOf(resp.getData()).contains("rowCount=3"),
+                "explicit schema=SCH_CC_B should override persisted SCH_CC_A (rowCount=3): " + resp.getData());
+    }
+
+    /**
+     * 批量 collectCatalog 多 schema 逐表命中（plan 0852-3 Phase 3 batch 结构变更）。
+     *
+     * <p>同一数据源下 SCH_CC_B1.t_batch（3 行）+ SCH_CC_B2.t_batch（5 行）。分别 sync 各自 schema
+     * 后批量 collectCatalog（不传 schemaPattern）→ 两表各按自身持久化 schema 命中正确行数。
+     */
+    @Test
+    public void testCollectCatalogBatchMultiSchemaPerTable() throws Exception {
+        String dbUrl = "jdbc:h2:mem:meta_cc_batch;DB_CLOSE_DELAY=-1";
+        try (Connection c = DriverManager.getConnection(dbUrl, "sa", "");
+             Statement st = c.createStatement()) {
+            st.execute("CREATE SCHEMA SCH_CC_B1");
+            st.execute("CREATE SCHEMA SCH_CC_B2");
+            st.execute("CREATE TABLE SCH_CC_B1.t_batch (id INT NOT NULL)");
+            st.execute("CREATE TABLE SCH_CC_B2.t_batch (id INT NOT NULL)");
+            for (int i = 0; i < 3; i++) st.execute("INSERT INTO SCH_CC_B1.t_batch VALUES (" + i + ")");
+            for (int i = 0; i < 5; i++) st.execute("INSERT INTO SCH_CC_B2.t_batch VALUES (" + i + ")");
+        }
+
+        saveDataSource("ds-cc-batch", "qs_cc_batch", "jdbc", "ACTIVE",
+                "{\"jdbcUrl\":\"" + dbUrl + "\",\"username\":\"sa\",\"password\":\"\","
+                        + "\"driverClassName\":\"org.h2.Driver\"}");
+
+        // 分别 sync 两 schema（同名表 T_BATCH，schema 维度区分）
+        execute("mutation { NopMetaDataSource__syncExternalTables(dataSourceId: \"ds-cc-batch\", schemaPattern: \"SCH_CC_B1\") }");
+        execute("mutation { NopMetaDataSource__syncExternalTables(dataSourceId: \"ds-cc-batch\", schemaPattern: \"SCH_CC_B2\") }");
+        assertEquals(2L, countExternalTables("T_BATCH"),
+                "2 T_BATCH rows after both syncs (multi-schema dedup)");
+
+        // 批量 collectCatalog 不传 schemaPattern → 各表按自身持久化 schema 命中正确行数
+        GraphQLResponseBean resp = execute(
+                "mutation { NopMetaDataSource__collectCatalog(dataSourceId: \"ds-cc-batch\") }");
+        assertFalse(resp.hasError(), "batch collect with per-table default schema should not error: " + resp);
+        assertTrue(String.valueOf(resp.getData()).contains("collectedCount=2"),
+                "both T_BATCH rows collected (collectedCount=2): " + resp.getData());
+
+        // 两表各按其 schema 命中正确行数（B1=3, B2=5）
+        List<NopMetaTable> tables = findAllExternalTables("T_BATCH");
+        assertEquals(2, tables.size());
+        for (NopMetaTable t : tables) {
+            NopMetaCatalog row = findCatalogRow(t.getMetaTableId());
+            assertNotNull(row, "catalog row for " + t.getSchema() + ".T_BATCH must exist");
+            long expected = "SCH_CC_B1".equals(t.getSchema()) ? 3L : 5L;
+            assertEquals(expected, row.getRowCount(),
+                    "rowCount for schema=" + t.getSchema() + " must be " + expected
+                            + " (per-table default schema resolution in batch)");
+        }
+    }
+
     // ===== collectCatalog helpers =====
 
     private void seedExternalTableWithRows(String dbUrl, String createDdl, String indexDdl, int rowCount) throws Exception {
