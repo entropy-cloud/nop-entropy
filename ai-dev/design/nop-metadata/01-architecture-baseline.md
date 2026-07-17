@@ -474,6 +474,13 @@ MetaPipeline                     — 数据处理管道
 - **transformType 判定（D3，AST 节点类型匹配）**：直接列引用（projection expr 为 `SqlColumnName`）→ `direct`；表达式/函数包裹列（非聚合）→ `derived`；聚合函数检测**优先 `expr instanceof SqlAggregateFunction`**（非函数名白名单）→ `aggregated`。`transformExpr`（ORM 列名）首版留空（derived/aggregated 记原文为 follow-up）。
 - **列存在性不校验（软引用裁定）**：sourceColumn/targetColumn 存列名字符串原样，不校验列是否真实存在（对齐 external 列级软引用裁定）。
 - **CTE/子查询范围（D3）**：首版支持「直查 FROM 源表 [JOIN 源表]」的列映射；CTE 别名列穿透、子查询内层列穿透、`SELECT *` 通配符 → 显式记 unresolved（不伪造列映射、不静默丢弃）。
+- **CTE / 派生表列穿透（P2-5++，已落地）**：
+  - **CTE 列穿透**：`SqlSelectWithCte.getWithCtes()` 每个 `SqlCteStatement` 递归解析其输出列→底层源列，建立 `CTE 名(lower) → {输出列名(lower) → List<(源表, 源列, transformType)>}`。CTE 引用解析为 `SqlSingleTableSource`（CTE 名=tableName，已进 aliasMap），归属阶段对 owner 命中的源表名若匹配已注册 CTE 名，按引用列名查 CTE 输出列映射穿透到底层源列产出 resolved 候选（**非**新增 `SqlSubqueryTableSource` 分支）。
+  - **派生表列穿透**：`buildAliasTableMap` 遇 `SqlSubqueryTableSource`（派生表 `FROM (...) alias`）时递归解析其输出列→底层源列，注册 `alias(lower) → NamedSourceMap`；经 alias 引用的列穿透到底层源列产出 resolved 候选。
+  - **transformType 透传**：纯透传列继承底层 direct/derived/aggregated；CTE 内聚合列 → aggregated；任一聚合 → aggregated（aggregated 优先）。
+  - **嵌套递归 + 环路守卫**：派生表内可含 CTE / 派生表；已解析 CTE 名集合（`resolving`）防自引用无限递归（自引用 CTE 命中集合时跳过该引用列，仍解析非自引用列）。
+  - **`WITH RECURSIVE` 自引用整体 unsupported**（纯句法无法判定终止）：CTE 标记 wildcardOutput，引用列产 unresolved:cte-wildcard。
+  - **失败路径显式**：CTE/派生表内通配符输出（SELECT *）/ 未匹配列 / 未注册底层列 → unresolved（沿用既有 unresolved 语义，不伪造、不静默丢弃）。
 - **幂等键（D3）**：列级边按 `(sourceTableId, targetTableId, sourceColumn, targetColumn, lineageSource='sql_parse')` 五元组去重 upsert（比表级多 sourceColumn/targetColumn，不含 transformType，重抽更新 transformType）。
 - **表级/列级 upsert 查询隔离（D2，In Scope）**：表级 `upsertSqlParseEdge` 查询补 `sourceColumn IS NULL` 过滤（让表级只匹配表级边）；列级 upsert 用列级五元组。二者共存各管各的幂等，重跑表级不误更新列级边。列级 action 不强制先建表级边（独立语义）。
 
@@ -793,6 +800,8 @@ orm.xml
 **非 SELECT 裁定：显式失败**。顶层单条语句 `getStatementKind() != SELECT` 抛 `metadata.sql-not-select`。
 
 **CTE / UNION 支持**：`SqlSelectWithCte`（`WITH ... SELECT`）`getStatementKind()` 返回 SELECT 但不继承 `SqlSelect`，通过钻入 `getSelect()` 取内层 `SqlSelect.getProjections()`（**首版支持**，取最外层 SELECT 输出列）。`SqlUnionSelect.getProjections()` 委托 `getFirstSelect()`（取最左侧 SELECT 的输出列，UNION 列名由左侧决定，符合 SQL 语义）。
+
+**CTE / 派生表列穿透（P2-5++，已落地）**：列级血缘解析器 `SqlColumnLineageExtractor` 已扩展支持 CTE 别名列穿透与派生表（`SqlSubqueryTableSource`）内层列穿透到底层物理源表（解析逻辑与字段解析器各自独立：字段解析仅取最外层列名，列级血缘穿透到底层；二者沿用同一文法但路径不同）。详见 §2.6.1 列级 D3 CTE/子查询范围。
 
 **复杂投影列处理**：首版取最外层 SELECT 输出列，不递归展开 CTE 别名/子查询内层列类型。递归展开为 follow-up（见 Deferred）。
 
