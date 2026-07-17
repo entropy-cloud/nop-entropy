@@ -209,13 +209,14 @@ entity/sql 类型表收集（需 `querySpace → 数据源` 解析，entity 的 
 
 ### 4.5 schema 限定策略（D1）
 
-**已知建模缺口**：NopMetaTable **无 schema/dbSchema 列**（实体列只有 `tableName`）。P2-2 的 `ExternalTableStructureReader` 扫描时拿到 `TABLE_SCHEM` 但未持久化。⇒ Catalog 收集 `SELECT COUNT(*) FROM <表>` 时无法从目录恢复每张外部表的物理 schema。
+**建模现状（plan 2026-07-17-0852-3 已补）**：`NopMetaTable.schema` 列（propId 17，可空）已新增并贯通——`ExternalTableStructureReader.read` 读取 JDBC `TABLE_SCHEM` 持久化到该列；同步去重键收敛为 `(metaModuleId, schema, tableName)`（见架构基线 §2.5.1）。
 
-**首版策略**：`collectCatalog` 的 `schemaPattern` 参数用于限定 COUNT/索引查询的物理 schema——
-- 传入时用 `<schemaPattern>.<tableName>`；
-- 不传时依赖连接默认 schema（H2=PUBLIC、单 schema 数据源正常）。
+**默认 schema 解析（plan 0852-3 Phase 3）**：`collectCatalog(schemaPattern)` / `collectCatalogForTable(schemaPattern)` 在 BizModel 层解析默认 schema——
+- 传入 `schemaPattern` 时用 `<schemaPattern>.<tableName>`（显式覆盖持久化 schema）；
+- 不传时默认取 `NopMetaTable.schema`（持久化值），仍 null 则依赖连接默认 schema。
+- 批量 `collectCatalog` 改为**逐表默认 schema 解析**（每表 schema 可能不同，替代旧「单一 schemaPattern 透传循环内所有表」）。
 
-**已知限制（Non-Blocking Follow-up）**：多 schema 数据源下不同 schema 同名表无法区分。彻底解决需为 NopMetaTable 增加 schema 列，属 P2-2 实体 Protected Area 变更，不在本设计范围。
+**与 §四 Catalog 的关系**：Catalog 收集的 schema 限定语义已与 sync 持久化的 schema 列贯通。同名不同 schema 表的去重在 sync 层完成（dedup key 含 schema）；Catalog 执行只需默认按持久化 schema 命中正确表。
 
 ### 4.6 collectCatalog action 契约（D2）
 

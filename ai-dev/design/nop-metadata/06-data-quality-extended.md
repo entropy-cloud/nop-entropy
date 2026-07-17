@@ -124,7 +124,7 @@ live repo 核查结论（H2 2.4.240 测试库 + MySQL + PostgreSQL 方言）：
 - **action 落点 + 契约**：
   - 主入口 `@BizMutation profileTable(@Name("metaTableId") String id, @Optional @Name("schemaPattern") String schemaPattern, @Optional @Name("columns") String columns, IServiceContext context)`，落点 **`NopMetaTableBizModel`**（入口键是 metaTableId，操作对象是表；与 collectCatalog 入口风格一致）。返回 `Map{profilingResultId, columnCount, unavailable:[...], errors:[...]}`。
   - 辅助入口 `@BizMutation executeProfilingRule(@Name("profilingRuleId") String id, @Optional @Name("schemaPattern") String schemaPattern, IServiceContext context)`，落点 **`NopMetaProfilingRuleBizModel`**（按规则定义的 columns/stats 执行，内部委托同一剖析路径），使 ProfilingRule 实体可运行、非空壳。两个入口均写入 NopMetaProfilingResult 时序行。
-- **物理解析 + schema 限定**：复用 P2-6/D1 —— metaTableId→NopMetaTable(external)→querySpace→NopMetaDataSource→`withConnection`；schemaPattern 限定物理 SQL，null 依赖默认 schema。多 schema 同名表为已知限制（与 Catalog/质量同源 follow-up）。
+- **物理解析 + schema 限定**：复用 P2-6/D1 —— metaTableId→NopMetaTable(external)→querySpace→NopMetaDataSource→`withConnection`；schemaPattern 限定物理 SQL，**不传时默认取持久化的 `NopMetaTable.schema`**（plan 2026-07-17-0852-3 Phase 3：默认 schema 解析在 BizModel 层；显式入参仍可覆盖），仍 null 则依赖连接默认 schema。
 - **时序语义**：每次剖析追加新行（snapshotTime=now），不覆盖（趋势分析）。
 - **失败隔离**：单列失败（SQL 异常）per-column try/catch 收集 errors 不中断整表（对齐 P2-6 per-rule 隔离）。
 - **不可执行路径显式失败/SKIP**（不静默通过）：表不存在/非 external（首版）/无注册数据源/DISABLED/非 jdbc → 显式失败抛 inline ErrorCode（继承 collectCatalog/executeQualityRule 模式）。

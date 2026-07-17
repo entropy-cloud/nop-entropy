@@ -186,7 +186,7 @@ NopMetaCatalog                    — 物理运行时统计快照（每表每收
 - 大小/分区/lastModified 方言特定，首版不实现 → 记 `null` + `details.unavailable` 显式列出字段名（**不静默跳过整行、不伪造 0**）。
 - 单表失败（SQL 异常）收集到 `errors` 不中断整批（`orm().clearSession()` 隔离）。
 
-**schema 限定（D1）**：`NopMetaTable.schema` 列（plan 2026-07-17-0852-3 已补，可空，描述 external/sql 逻辑表的源 schema；entity 类型表留空，schema 由 `baseEntity.dbSchema` 承担）持久化了同步阶段读到的 `TABLE_SCHEM`。`collectCatalog(schemaPattern)` 的 `schemaPattern` 显式入参仍可限定物理 schema（覆盖默认）；未传时执行器默认取 `NopMetaTable.schema`（非空时，BizModel 层解析），null=不过滤（依赖连接默认 schema）。同名不同 schema 表已可区分（去重键 `(metaModuleId, schema, tableName)`，见 §2.5.1）。
+**schema 限定（D1）**：`NopMetaTable.schema` 列（plan 2026-07-17-0852-3 已补，可空，描述 external/sql 逻辑表的源 schema；entity 类型表留空，schema 由 `baseEntity.dbSchema` 承担）持久化了同步阶段读到的 `TABLE_SCHEM`。`collectCatalog(schemaPattern)` 的 `schemaPattern` 显式入参仍可限定物理 schema（覆盖默认）；未传时执行器默认取 `NopMetaTable.schema`（非空时，BizModel 层解析，plan 0852-3 Phase 3），null=不过滤（依赖连接默认 schema）。批量 `collectCatalog` 改为**逐表默认 schema 解析**（每表 schema 可能不同，替代旧「单一 schemaPattern 透传循环内所有表」）。同名不同 schema 表已可区分（去重键 `(metaModuleId, schema, tableName)`，见 §2.5.1）。
 
 完整规格见 `05-metadata-import.md` §四。收集入口为 `NopMetaDataSource__collectCatalog(dataSourceId, schemaPattern?)` GraphQL mutation；dataSourceId 不存在/DISABLED/非 jdbc 均显式失败（不静默跳过）。
 
@@ -408,13 +408,15 @@ MetaTableJoin                   — 表关联
 
 **系统模块 `nop/meta-external`**：
 - 全局唯一（`moduleId="nop/meta-external"`），`status=RELEASED`，由 `syncExternalTables` 在首次同步时惰性创建（若已存在则复用）。
-- 外部表的 `querySpace` 取自数据源的 `querySpace`；`(metaModuleId, tableName)` 复合键用于幂等 upsert（`tableName` 上无唯一约束、跨 schema 可能同名，故复合键去重）。
+- 外部表的 `querySpace` 取自数据源的 `querySpace`；`(metaModuleId, schema, tableName)` 复合键用于幂等 upsert（plan 2026-07-17-0852-3 收敛自 `(metaModuleId, tableName)`——使同一数据源下不同 schema 的同名表可区分、互不覆盖；querySpace 不在键内，跨数据源同名同 schema 仍覆盖，见 §2.5.1 末段 cross-ds decision）。
 
 **syncExternalTables 契约（D2）**：
 - GraphQL mutation：`NopMetaDataSource__syncExternalTables(dataSourceId, schemaPattern?)` → 返回 `Map<String,Object>`（`{syncedTableCount: int, errors: [...]}`）。`schemaPattern` 可选，限定扫描的 schema。
-- 行为：按 `dataSourceId` 加载 NopMetaDataSource → 不存在抛 `metadata.datasource-not-found`（不 NPE）→ `status == DISABLED` 抛 `metadata.datasource-disabled`（不静默通过）→ **复用 P2-1 callback 式连接服务 `withConnection(...)`**（callback 内由 `DatabaseMetaData.getDatabaseProductName()` 运行时取方言 + 执行结构读取）→ 按 D1 方案写入 MetaTable（`tableType=external`，`buildSql` 存列 JSON）→ 幂等 upsert（按 `(metaModuleId, tableName)` 复合键去重）→ 单表失败收集到 `errors` 不中断整批（`orm().clearSession()` 隔离）→ callback 结束自动释放连接。
+- 行为：按 `dataSourceId` 加载 NopMetaDataSource → 不存在抛 `metadata.datasource-not-found`（不 NPE）→ `status == DISABLED` 抛 `metadata.datasource-disabled`（不静默通过）→ **复用 P2-1 callback 式连接服务 `withConnection(...)`**（callback 内由 `DatabaseMetaData.getDatabaseProductName()` 运行时取方言 + 执行结构读取）→ 按 D1 方案写入 MetaTable（`tableType=external`，`buildSql` 存列 JSON，`schema` 列持久化 JDBC `TABLE_SCHEM`）→ 幂等 upsert（按 `(metaModuleId, schema, tableName)` 复合键去重，plan 0852-3）→ 单表失败收集到 `errors` 不中断整批（`orm().clearSession()` 隔离）→ callback 结束自动释放连接。
 - **方言范围**：首版支持 MySQL / PostgreSQL / H2（结构读取走标准 JDBC `DatabaseMetaData.getTables()` / `getColumns()`，跨方言可移植，等价于 `information_schema.COLUMNS` 信息）。其余方言（ClickHouse `system.columns`、Oracle 等）在读取器入口显式抛 `UnsupportedOperationException`（快速失败，非静默跳过），多方言全覆盖为 follow-up。
 - **非 jdbc 类型**：连接服务显式抛 `UnsupportedOperationException`（继承 P2-1 行为，不静默成功）。
+- **跨数据源行为（Decision，plan 0852-3 Phase 2）**：去重键含 schema 维度但**不含 querySpace**——跨数据源、同名同 schema 的表会互相覆盖（与 1905-1 收敛前语义一致）。仅 schema 维度被纳入，使「同数据源不同 schema 同名表」可区分；「跨数据源同名同 schema」的 querySpace 维度纳入属 follow-up（非阻塞理由：应用层 upsert 仍幂等，迁移需评估跨数据源覆盖语义破坏面）。
+- **EQL 关键字规避**：`schema` 在 EQL 文法是 reserved keyword（`o.schema=?` 解析失败），故 upsert 实现按 EQL-safe 的 `(metaModuleId, tableName)` 拉候选集，再在 Java 层按 schema 精确匹配（`null==null` 归一）。
 
 ### 2.6 数据血缘
 
@@ -555,7 +557,7 @@ MetaQualityResult                — 质量执行结果（时序数据）
 
 **field 级列引用约定（D1）**：`entityType=field` 规则的 `entityId` 指向 external NopMetaTable.metaTableId（不指向 MetaEntityField——external 表无该实体）；物理列名取自 `params.column`（字符串）。规则在 external 表上必须先 sync 该表结构（syncExternalTables 已写入 buildSql JSON，但执行不依赖列存在性校验——物理 SQL 直接执行，方言/列不存在由数据库显式报错）。
 
-**schema 限定（D1）**：复用 Catalog 的 `qualifyTable(schema, tableName)` 策略——执行 action 可选 `schemaPattern` 参数限定物理 SQL（`<schemaPattern>.<tableName>`）；null/空串依赖连接默认 schema。多 schema 同名表为已知限制（与 Catalog §2.3.2 同源 follow-up）。
+**schema 限定（D1）**：复用 Catalog 的 `qualifyTable(schema, tableName)` 策略——执行 action 可选 `schemaPattern` 参数限定物理 SQL（`<schemaPattern>.<tableName>`）；null/空串**默认取持久化的 `NopMetaTable.schema`**（plan 2026-07-17-0852-3 Phase 3：默认 schema 解析在 BizModel 层，使「sync 持久化一次 → 多次执行无需重传」成立；显式入参仍可覆盖）。entity/sql 类型表 schema 由 baseEntity.dbSchema 承担（external/sql 表 schema 由 sync 写入）。
 
 **执行机制（D2）**：选定 **BizModel action + withConnection**（不选 nop-batch processor），理由：与本模块既有 external 执行能力（collectCatalog / syncExternalTables）一致；可被 Nop AutoTest 端到端验证；可被 GraphQL 直接暴露。`09-gap-analysis-extended.md` §4.4 的 nop-batch 建议作为"定时调度"后续选项记录，首版不用。
 
