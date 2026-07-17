@@ -10,6 +10,8 @@ import io.nop.ai.core.model.LlmModel;
 import io.nop.ai.core.model.LlmModelModel;
 import io.nop.http.api.client.HttpRequest;
 
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -158,5 +160,71 @@ public interface ILlmDialect {
      */
     default long estimateTokens(List<ChatMessage> messages) {
         return AbstractLlmDialect.estimateTokensBaseline(messages);
+    }
+
+    // ==================== 反向转换：Map ↔ 标准模型 ====================
+
+    /**
+     * Parse provider-specific request body into standard ChatRequest (reverse of buildBody).
+     */
+    default ChatRequest parseRequestBody(Map<String, Object> body) {
+        throw new UnsupportedOperationException("parseRequestBody");
+    }
+
+    /**
+     * Build provider-specific response Map from standard ChatResponse (reverse of parseResponse).
+     * Default implementation produces OpenAI format (the universal gateway format).
+     */
+    default Map<String, Object> buildResponse(ChatResponse response) {
+        Map<String, Object> result = new HashMap<>();
+        result.put("id", response.getRequestId());
+        result.put("object", "chat.completion");
+        // choices[0].message.content
+        List<Map<String, Object>> choices = new ArrayList<>();
+        Map<String, Object> message = new HashMap<>();
+        message.put("role", "assistant");
+        message.put("content", response.getMessage() != null ? response.getMessage().getContent() : "");
+        Map<String, Object> choice = new HashMap<>();
+        choice.put("index", 0);
+        choice.put("message", message);
+        choice.put("finish_reason", response.getFinishReason());
+        choices.add(choice);
+        result.put("choices", choices);
+        if (response.getUsage() != null) {
+            Map<String, Object> usage = new HashMap<>();
+            usage.put("prompt_tokens", response.getUsage().getPromptTokens());
+            usage.put("completion_tokens", response.getUsage().getCompletionTokens());
+            usage.put("total_tokens", response.getUsage().getTotalTokens());
+            result.put("usage", usage);
+        }
+        return result;
+    }
+
+    /**
+     * Build provider-specific stream chunk Map from standard ChatStreamChunk (reverse of parseStreamChunk).
+     * Default implementation produces OpenAI delta format.
+     */
+    default Map<String, Object> buildStreamChunk(ChatStreamChunk chunk) {
+        Map<String, Object> result = new HashMap<>();
+        result.put("id", chunk.getId() != null ? chunk.getId() : "");
+        result.put("object", "chat.completion.chunk");
+        Map<String, Object> delta = new HashMap<>();
+        delta.put("role", "assistant");
+        if (chunk.getContent() != null) delta.put("content", chunk.getContent());
+        if (chunk.getToolCall() != null) {
+            Map<String, Object> tc = new HashMap<>();
+            if (chunk.getToolCall().getId() != null) tc.put("id", chunk.getToolCall().getId());
+            Map<String, Object> func = new HashMap<>();
+            if (chunk.getToolCall().getName() != null) func.put("name", chunk.getToolCall().getName());
+            if (chunk.getToolCall().getArguments() != null) func.put("arguments", chunk.getToolCall().getArguments());
+            tc.put("function", func);
+            delta.put("tool_calls", List.of(tc));
+        }
+        Map<String, Object> choice = new HashMap<>();
+        choice.put("index", chunk.getIndex() != null ? chunk.getIndex() : 0);
+        choice.put("delta", delta);
+        choice.put("finish_reason", chunk.getFinishReason());
+        result.put("choices", List.of(choice));
+        return result;
     }
 }

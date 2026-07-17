@@ -5,8 +5,11 @@ import io.nop.ai.api.chat.ChatRequest;
 import io.nop.ai.api.chat.ChatResponse;
 import io.nop.ai.api.chat.messages.ChatAssistantMessage;
 import io.nop.ai.api.chat.messages.ChatMessage;
+import io.nop.ai.api.chat.messages.ChatSystemMessage;
 import io.nop.ai.api.chat.messages.ChatToolCall;
+import io.nop.ai.api.chat.messages.ChatToolDefinition;
 import io.nop.ai.api.chat.messages.ChatToolResponseMessage;
+import io.nop.ai.api.chat.messages.ChatUserMessage;
 import io.nop.ai.api.chat.messages.ChatUsage;
 import io.nop.ai.core.model.LlmModel;
 import io.nop.ai.core.model.LlmModelModel;
@@ -48,6 +51,75 @@ public class OpenAiDialect extends AbstractLlmDialect implements ILlmDialect {
     @Override
     public String getName() {
         return "openai";
+    }
+
+    @Override
+    @SuppressWarnings("unchecked")
+    public ChatRequest parseRequestBody(Map<String, Object> body) {
+        ChatRequest request = new ChatRequest();
+        // parse messages
+        List<Map<String, Object>> rawMessages = (List<Map<String, Object>>) body.get("messages");
+        if (rawMessages != null) {
+            List<ChatMessage> messages = new ArrayList<>();
+            for (Map<String, Object> raw : rawMessages) {
+                String role = (String) raw.get("role");
+                String content = raw.get("content") != null ? raw.get("content").toString() : "";
+                if ("system".equals(role)) {
+                    messages.add(new ChatSystemMessage(content));
+                } else if ("assistant".equals(role)) {
+                    ChatAssistantMessage msg = new ChatAssistantMessage(content);
+                    List<Map<String, Object>> tcs = (List<Map<String, Object>>) raw.get("tool_calls");
+                    if (tcs != null) {
+                        List<ChatToolCall> toolCalls = new ArrayList<>();
+                        for (Map<String, Object> tc : tcs) {
+                            ChatToolCall c = new ChatToolCall();
+                            c.setId((String) tc.get("id"));
+                            Object funcObj = tc.get("function");
+                            if (funcObj instanceof Map) {
+                                Map<String, Object> func = (Map<String, Object>) funcObj;
+                                c.setName((String) func.get("name"));
+                            }
+                            toolCalls.add(c);
+                        }
+                        msg.setToolCalls(toolCalls);
+                    }
+                    messages.add(msg);
+                } else if ("tool".equals(role)) {
+                    messages.add(new ChatToolResponseMessage(
+                            (String) raw.get("tool_call_id"), (String) raw.get("name"), content));
+                } else {
+                    messages.add(new ChatUserMessage(content));
+                }
+            }
+            request.setMessages(messages);
+        }
+        // parse options
+        ChatOptions options = new ChatOptions();
+        if (body.get("temperature") instanceof Number) {
+            options.setTemperature(((Number) body.get("temperature")).floatValue());
+        }
+        if (body.get("max_tokens") instanceof Number) {
+            options.setMaxTokens(((Number) body.get("max_tokens")).intValue());
+        }
+        if (body.get("top_p") instanceof Number) {
+            options.setTopP(((Number) body.get("top_p")).floatValue());
+        }
+        request.setOptions(options);
+        // parse tools
+        List<Map<String, Object>> rawTools = (List<Map<String, Object>>) body.get("tools");
+        if (rawTools != null) {
+            List<ChatToolDefinition> tools = new ArrayList<>();
+            for (Map<String, Object> raw : rawTools) {
+                Map<String, Object> func = (Map<String, Object>) raw.get("function");
+                ChatToolDefinition def = new ChatToolDefinition();
+                def.setName((String) func.get("name"));
+                def.setDescription((String) func.get("description"));
+                def.setParameters((Map<String, Object>) func.get("parameters"));
+                tools.add(def);
+            }
+            request.setTools(tools);
+        }
+        return request;
     }
 
     @Override
