@@ -360,12 +360,52 @@ User: engine.execute(AgentMessageRequest)
 | **多通道** | `Gateway` + `Channel` + `ChannelRouter` 路由 | 无 |
 | **团队** | 子 agent 任务系统（subagent factories + task repository） | `ITeamManager` + `ITeamTaskStore` + DAG 任务流 |
 | **技能** | `SkillCurator` + `SkillPromoter`（自动学习/策展） | `availableSkills` + `requiredSkills`（声明式） |
-| **文件系统抽象** | 5 种实现（Local/Remote/Sandbox/Overlay/Composite） | 无（工具直接操作路径 + `IPathAccessChecker`） |
+| **文件系统抽象** | `AbstractFilesystem`，5 种实现（Local/Remote/Sandbox/Overlay/Composite），含安全 PathPolicy | `IToolFileSystem` + `LocalToolFileSystem`（单实现，local-file-only，安全 `isPathAllowed()`），以及已废弃的 `IFileOperator` |
 | **沙箱** | DockerSandbox（完整生命周期 + 快照） | `ISandboxBackend` 仅接口 |
 
 ---
 
-## 5. 值得参考的核心设计
+## 5. 文件系统抽象深度对比（勘误修正）
+
+**上一版我错误地说"Nop 无文件系统抽象"——这是错的。**
+
+Nop 在 `nop-ai-toolkit` 中有完整的 `IToolFileSystem` 接口 + `LocalToolFileSystem` 实现，所有文件工具（read-file、write-file、glob、grep 等）都通过 `context.getFileSystem()` 访问。此外还有一个已废弃的 `IFileOperator` 位于 `nop-ai-core`。我上一版只读了 `nop-ai-agent` 和 `nop-ai-api`，跳过了 `nop-ai-toolkit`，导致漏掉了关键发现。
+
+### 5.1 接口对比
+
+| 维度 | AgentScope `AbstractFilesystem` | Nop `IToolFileSystem` |
+|------|-------------------------------|-----------------------|
+| **包** | `agentscope-harness/agent/filesystem` | `nop-ai-toolkit/fs` |
+| **接口方法数** | ~20（read/write/delete/glob/grep/execute/move/copy/chmod/upload/download...） | ~15（readText/readLines/writeText/listDir/glob/grep/delete/move/copy/mkdirs...） |
+| **覆盖率** | 含 shell 执行（`ExecuteResponse`）、PathPolicy、IsolationScope | 不含 shell 执行（bash 是独立工具） |
+| **安全** | `PathPolicy`（ROOTED/SANDBOXED/UNRESTRICTED 三种模式） | `isPathAllowed()`（单一 canonical path 前缀检查） |
+| **路径解析** | 支持 project + workspace 双层覆盖 | 单一 workDir 基准 |
+| **复杂度** | 高：5 种实现（Local/Remote/Sandbox/Overlay/Composite）+ PathPolicy + IsolationScope 命名空间 | 低：1 种实现（LocalToolFileSystem），本地文件操作 |
+
+### 5.2 实现对比
+
+| AgentScope 实现 | 说明 | Nop 实现 | 说明 |
+|-----------------|------|----------|------|
+| `LocalFilesystemWithShell` | 本地文件 + shell 执行 | `LocalToolFileSystem` | 本地文件，无 shell |
+| `RemoteFilesystem` | 分布式 KV store + namespace | 无 | — |
+| `SandboxBackedFilesystem` | Docker 沙箱文件代理 | 无 | — |
+| `OverlayFilesystem` | Workspace-over-project 覆盖 | 无 | — |
+| `CompositeFilesystem` | 多源组合 | 无 | — |
+| `BakedContextFilesystem` | 预绑定 RuntimeContext | 无 | — |
+
+### 5.3 关键区别
+
+1. **覆盖模型**：AgentScope 的 `OverlayFilesystem` + `ProjectAwareOverlay` 实现了"workspace 覆盖 project"的双层模型——写操作优先写 workspace，读操作 fallback 到 project。这在代码助手场景中非常关键（防止 agent 修改被当作模板的项目文件）。Nop 的 `LocalToolFileSystem` 基于单一 workDir 无此能力。
+
+2. **沙箱集成**：AgentScope 的 filesystem 与 sandbox 深度集成——`SandboxBackedFilesystem` 作为抽象 filesystem 的一种实现，所有文件操作自动路由到 Docker 容器。Nop 的 `IToolFileSystem` 没有与 `ISandboxBackend` 集成。
+
+3. **远程/分布式**：AgentScope 的 `RemoteFilesystem` 支持分布式 KV store 作为后端，配合 `IsolationScope` 实现多租户命名空间。Nop 没有此能力。
+
+4. **工具注册**：两者都通过统一的 filesystem 接口注册工具——AgentScope 通过 `FilesystemTool` 批量注册，Nop 通过 `ToolManagerImpl` 发现 `*.tool.xml` + `IToolExecutor` 实现。设计思想一致。
+
+5. **抽象深度**：AgentScope 的 filesystem 是**第一层抽象**（Agent 本身就知道 workspace/filesystem），中间件可以直接通过 `WorkspaceManager.getFilesystem()` 操作文件。Nop 的 `IToolFileSystem` 是**工具层抽象**——只有 `IToolExecuteContext.getFileSystem()` 可以拿到，引擎本身不直接通过它操作文件。
+
+**修正后的结论**：两家都有文件系统抽象。AgentScope 的更丰富（5 种实现、覆盖模型、沙箱集成），但这是其代码助手定位驱动的。Nop 的 IToolFileSystem 功能完备但范围较窄（单实现、本地文件），与平台 VFS 体系分离。Nop 若想支持代码助手场景，应在 `IToolFileSystem` 上增加覆盖/沙箱/远程模式。
 
 ### AgentScope → Nop
 
@@ -373,7 +413,7 @@ User: engine.execute(AgentMessageRequest)
 |------|-------------|
 | **`MiddlewareBase` 的 5 个 onion 点**（onAgent/Reasoning/Acting/ModelCall） | Nop 已有 13 个 hook 点但不冲突——AgentScope 证明少量但精准的拦截点足够覆盖大部分代码助手场景。Nop 可比较两者的 hook 点设计取舍 |
 | **`AsyncToolMiddleware` + `MessageBus` 的异步工具执行模式** | 工具执行时若超时，注册 `AsyncToolRecord` 到 `WorkspaceAsyncToolRegistry`，返回 placeholder，后续 iteration 通过 `InboxMiddleware` 收取结果。Nop 目前只有同步工具超时 |
-| **`FilesystemTool` 统一注册设计** | 一个 class 批量注册 read/write/glob/grep/edit 等所有文件操作工具。Nop 当前可能为每个文件操作定义独立工具 |
+| **`OverlayFilesystem` + `ProjectAwareOverlay` 的双层路径模型** | AgentScope 的 workspace-under-project 覆盖模式（Claude Code 风格），让 agent 在不污染项目目录的前提下读写文件。Nop 的 `LocalToolFileSystem` 基于单一 workDir 无覆盖层 |
 | **`InboxMiddleware` 的消息投递模式** | 异步结果通过 `MessageBus.inboxPush → inboxDrain` 在 reasoning 前注入。Nop 可参考实现 agent 间的延迟消息 |
 | **`ToolResultEvictionMiddleware`** | 当 tool result 超长时写入文件系统替代内联，防止 context 膨胀。Nop 有 context compaction 但缺少 result-level 的按需驱逐 |
 | **`WorkspaceContextMiddleware` 的模板化 system prompt 注入** | 将 AGENTS.md/MEMORY.md/knowledge 结构化注入到 prompt，带 token budget 截断。这是代码助手场景验证过的 prompt 工程实践 |
@@ -396,3 +436,5 @@ User: engine.execute(AgentMessageRequest)
 **AgentScope Harness 是一个"代码助手专用 Agent 子类 + Builder"**，面向文件操作密集型场景，有丰富但专一的中间件生态。**Nop AI Agent 是一个"通用 Agent 执行引擎"**，组件更可替换、安全体系更完整、运行时更健壮，但缺乏代码助手场景的专有抽象。
 
 两者架构完全不在同一层面——**Harness 是 Agent 实例的构建器**，**DefaultAgentEngine 是 Agent 实例的运行时容器**。最直接的比较对象是 AgentScope 的 `ReActAgent`（核心 ReAct 循环）与 Nop 的 `DefaultAgentEngine` + `ReActAgentExecutor`，而 `HarnessAgent` 只是前者之上的场景化封装。
+
+> **自省**：本报告初版的 "Nop 无文件系统抽象" 是错误的。Nop 的 `IToolFileSystem`（在 `nop-ai-toolkit` 中）+ `IFileOperator`（在 `nop-ai-core` 中，已废弃）提供了完备的文件操作抽象。初版漏读了 `nop-ai-toolkit` 模块导致此错误。两个系统的文件系统抽象能力对比如 §5 所示——AgentScope 更丰富（5 种实现），Nop 更轻量（单实现），但核心设计思路相通。
