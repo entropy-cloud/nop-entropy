@@ -53,6 +53,13 @@ public abstract class _RuleDecisionTreeModel extends io.nop.core.resource.compon
     
     /**
      *  
+     * xml name: message
+     * 
+     */
+    private io.nop.core.lang.eval.IEvalAction _message ;
+    
+    /**
+     *  
      * xml name: multiMatch
      * 
      */
@@ -195,6 +202,25 @@ public abstract class _RuleDecisionTreeModel extends io.nop.core.resource.compon
     
     /**
      * 
+     * xml name: message
+     *  
+     */
+    
+    public io.nop.core.lang.eval.IEvalAction getMessage(){
+      return _message;
+    }
+
+    
+    public void setMessage(io.nop.core.lang.eval.IEvalAction value){
+        checkAllowChange();
+        
+        this._message = value;
+           
+    }
+
+    
+    /**
+     * 
      * xml name: multiMatch
      *  
      */
@@ -300,6 +326,7 @@ public abstract class _RuleDecisionTreeModel extends io.nop.core.resource.compon
         out.putNotNull("id",this.getId());
         out.putNotNull("label",this.getLabel());
         out.putNotNull("leafIndex",this.getLeafIndex());
+        out.putNotNull("message",this.getMessage());
         out.putNotNull("multiMatch",this.isMultiMatch());
         out.putNotNull("outputs",this.getOutputs());
         out.putNotNull("predicate",this.getPredicate());
@@ -319,6 +346,7 @@ public abstract class _RuleDecisionTreeModel extends io.nop.core.resource.compon
         instance.setId(this.getId());
         instance.setLabel(this.getLabel());
         instance.setLeafIndex(this.getLeafIndex());
+        instance.setMessage(this.getMessage());
         instance.setMultiMatch(this.isMultiMatch());
         instance.setOutputs(this.getOutputs());
         instance.setPredicate(this.getPredicate());

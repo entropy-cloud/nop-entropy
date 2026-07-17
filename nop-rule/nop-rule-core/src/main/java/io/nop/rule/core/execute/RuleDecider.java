@@ -10,30 +10,38 @@ package io.nop.rule.core.execute;
 import io.nop.api.core.util.Guard;
 import io.nop.api.core.util.ISourceLocationGetter;
 import io.nop.api.core.util.SourceLocation;
+import io.nop.core.lang.eval.IEvalAction;
 import io.nop.core.lang.eval.IEvalPredicate;
 import io.nop.rule.core.IRuleRuntime;
 import io.nop.rule.core.RuleConstants;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.List;
 import java.util.function.Consumer;
 
 public class RuleDecider implements ISourceLocationGetter {
+    static final Logger LOG = LoggerFactory.getLogger(RuleDecider.class);
+
     private final SourceLocation location;
     private final String id;
     private final String label;
     private final IEvalPredicate predicate;
+    private final IEvalAction messageExpr;
     private final boolean multiMatch;
     private final int leafIndex;
     private final List<RuleDecider> children;
 
     public RuleDecider(SourceLocation location, String id, String label,
                        IEvalPredicate predicate,
+                       IEvalAction messageExpr,
                        boolean multiMatch, int leafIndex,
                        List<RuleDecider> children) {
         this.location = location;
         this.id = id;
         this.label = label;
         this.predicate = Guard.notNull(predicate, "predicate");
+        this.messageExpr = messageExpr;
         this.multiMatch = multiMatch;
         this.leafIndex = leafIndex;
         this.children = children == null || children.isEmpty() ? null : children;
@@ -64,15 +72,27 @@ public class RuleDecider implements ISourceLocationGetter {
         return leafIndex;
     }
 
+    protected String buildMessage(IRuleRuntime ruleRt, boolean passed) {
+        if (ruleRt.isCollectLogMessage() && messageExpr != null) {
+            try {
+                Object result = messageExpr.invoke(ruleRt);
+                if (result != null) return result.toString();
+            } catch (Exception e) {
+                LOG.warn("rule:message-expr-error,id={}", id, e);
+            }
+        }
+        return passed ? RuleConstants.MESSAGE_MATCH : RuleConstants.MESSAGE_MISMATCH;
+    }
+
     public boolean test(IRuleRuntime ruleRt) {
         if (!predicate.passConditions(ruleRt)) {
             if (id != null || label != null)
-                ruleRt.logMessage(RuleConstants.MESSAGE_MISMATCH, id, label);
+                ruleRt.logMessage(buildMessage(ruleRt, false), id, label);
             return false;
         }
 
         if (id != null || label != null)
-            ruleRt.logMessage(RuleConstants.MESSAGE_MATCH, id, label);
+            ruleRt.logMessage(buildMessage(ruleRt, true), id, label);
 
         return true;
     }

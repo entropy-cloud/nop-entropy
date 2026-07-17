@@ -25,6 +25,7 @@ import io.nop.rule.core.execute.NormalizeInputExecutableRule;
 import io.nop.rule.core.execute.NormalizeOutputExecutableRule;
 import io.nop.rule.core.execute.RuleDecider;
 import io.nop.rule.core.execute.RuleOutputAction;
+import io.nop.rule.core.execute.TraceVarsExecutableRule;
 import io.nop.rule.core.model.RuleDecisionMatrixModel;
 import io.nop.rule.core.model.RuleDecisionTreeModel;
 import io.nop.rule.core.model.RuleInputDefineModel;
@@ -58,6 +59,8 @@ public class RuleModelCompiler {
 
         rule = new NormalizeOutputExecutableRule(ruleModel.getOutputs(), rule);
 
+        rule = new TraceVarsExecutableRule(ruleModel.getTraceVars(), rule);
+
         rule = new NormalizeInputExecutableRule(ruleModel.getLocation(), KeyedList.fromList(ruleModel.getInputs(), RuleInputDefineModel::getName), rule);
 
         if (ruleModel.getBeforeExecute() != null || ruleModel.getAfterExecute() != null) {
@@ -85,7 +88,7 @@ public class RuleModelCompiler {
         }
 
         return new ExecutableRule(node.getLocation(), node.getId(), node.getLabel(),
-                compiledPredicate, action, children, node.isMultiMatch());
+                node.getMessage(), compiledPredicate, action, children, node.isMultiMatch());
     }
 
     private IEvalPredicate compilePredicate(RuleDecisionTreeModel node) {
@@ -164,6 +167,6 @@ public class RuleModelCompiler {
             }
         }
         return new RuleDecider(node.getLocation(), node.getId(), node.getLabel(), predicate,
-                node.isMultiMatch(), node.getLeafIndex(), children);
+                node.getMessage(), node.isMultiMatch(), node.getLeafIndex(), children);
     }
 }

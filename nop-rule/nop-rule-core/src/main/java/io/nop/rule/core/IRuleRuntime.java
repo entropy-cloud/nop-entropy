@@ -75,6 +75,10 @@ public interface IRuleRuntime extends IEvalContext {
 
     void clearOutputs();
 
+    Map<String, Object> getTraceContext();
+
+    void setTraceContext(Map<String, Object> traceContext);
+
     void logMessage(String message, String ruleNodeId, String ruleNodeLabel);
 
     List<RuleLogMessageBean> getLogMessages();

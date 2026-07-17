@@ -53,6 +53,8 @@ public class RuleRuntime implements IRuleRuntime {
 
     private boolean collectLogMessage;
 
+    private Map<String, Object> traceContext;
+
     private Throwable exception;
 
     public RuleRuntime(IServiceContext svcCtx, IEvalScope scope) {
@@ -180,6 +182,16 @@ public class RuleRuntime implements IRuleRuntime {
     }
 
     @Override
+    public Map<String, Object> getTraceContext() {
+        return traceContext;
+    }
+
+    @Override
+    public void setTraceContext(Map<String, Object> traceContext) {
+        this.traceContext = traceContext;
+    }
+
+    @Override
     public void logMessage(String message, String ruleNodeId, String ruleNodeLabel) {
         addToLogFile(message, ruleNodeId, ruleNodeLabel);
 
@@ -190,6 +202,10 @@ public class RuleRuntime implements IRuleRuntime {
             logMessage.setMessage(message);
             logMessage.setRuleNodeId(ruleNodeId);
             logMessage.setRuleNodeLabel(ruleNodeLabel);
+
+            if (traceContext != null) {
+                logMessage.setContext(new HashMap<>(traceContext));
+            }
 
             logMessages.add(logMessage);
         }

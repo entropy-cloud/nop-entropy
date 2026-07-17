@@ -87,6 +87,13 @@ public abstract class _RuleModel extends io.nop.core.resource.component.Abstract
     private java.lang.Long _ruleVersion ;
     
     /**
+     *  
+     * xml name: traceVars
+     * 
+     */
+    private java.util.Set<java.lang.String> _traceVars ;
+    
+    /**
      * 
      * xml name: afterExecute
      *  无论规则是否成功匹配，都会执行到这里
@@ -328,6 +335,25 @@ public abstract class _RuleModel extends io.nop.core.resource.component.Abstract
     }
 
     
+    /**
+     * 
+     * xml name: traceVars
+     *  
+     */
+    
+    public java.util.Set<java.lang.String> getTraceVars(){
+      return _traceVars;
+    }
+
+    
+    public void setTraceVars(java.util.Set<java.lang.String> value){
+        checkAllowChange();
+        
+        this._traceVars = value;
+           
+    }
+
+    
 
     @Override
     public void freeze(boolean cascade){
@@ -361,6 +387,7 @@ public abstract class _RuleModel extends io.nop.core.resource.component.Abstract
         out.putNotNull("outputs",this.getOutputs());
         out.putNotNull("ruleName",this.getRuleName());
         out.putNotNull("ruleVersion",this.getRuleVersion());
+        out.putNotNull("traceVars",this.getTraceVars());
     }
 
     public RuleModel cloneInstance(){
@@ -382,6 +409,7 @@ public abstract class _RuleModel extends io.nop.core.resource.component.Abstract
         instance.setOutputs(this.getOutputs());
         instance.setRuleName(this.getRuleName());
         instance.setRuleVersion(this.getRuleVersion());
+        instance.setTraceVars(this.getTraceVars());
     }
 
     protected RuleModel newInstance(){

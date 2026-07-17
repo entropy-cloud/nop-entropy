@@ -1,4 +1,4 @@
-<rule displayName="string" ruleName="string" ruleVersion="long" x:schema="/nop/schema/xdef.xdef"
+<rule displayName="string" ruleName="string" ruleVersion="long" traceVars="csv-set" x:schema="/nop/schema/xdef.xdef"
       xmlns:x="/nop/schema/xdsl.xdef"
       xdef:name="RuleModel" xdef:model-name-prop="ruleName" xdef:model-version-prop="ruleVersion"
       xmlns:xdef="/nop/schema/xdef.xdef" xdef:bean-package="io.nop.rule.core.model">
@@ -21,7 +21,7 @@
     @leafIndex: 记录决策树的叶子节点在所有叶子节点中的顺序号
     -->
     <xdef:define xdef:name="RuleDecisionTreeModel" id="string" label="string" multiMatch="!boolean=false"
-                 leafIndex="!int=0">
+                 leafIndex="!int=0" message="t-expr">
 
         <predicate>filter-bean</predicate>
 
