@@ -125,6 +125,10 @@ public class MetaAggregationExecutor {
      * §4.4.2 D8 行 1013 已 deferred）→ 显式失败。替代既有 {@code ERR_AGGR_JOIN_ENDPOINT_NOT_ENTITY} 守卫：
      * 守卫已重构为端点组合路由（plan 1200-1 Phase 3 D1），entity↔entity / external↔external 同库 各有执行路径，
      * 仅混合端点仍显式失败。
+     *
+     * <p>**plan 1500-1 D1.5 收口**：混合端点同库部分已落地（external {@code withConnection} 单连接原生 GROUP BY over JOIN）。
+     * 本 ErrorCode 仅保留用于历史/防御性上下文；运行时混合端点分支已改为路由到 {@link #executeMixedSameDbJoinAggregation}，
+     * 同库成功路径或不可同库时改抛 {@link #ERR_AGGR_JOIN_MIXED_CROSS_DB_DEFERRED}。
      */
     static final ErrorCode ERR_AGGR_JOIN_MIXED_ENDPOINT_DEFERRED =
             ErrorCode.define("metadata.aggr-join-mixed-endpoint-deferred",
@@ -132,6 +136,26 @@ public class MetaAggregationExecutor {
                             + "needed, app-layer merge truncates so GROUP BY would be approximate): "
                             + "{joinId} leftEndpointType={leftEndpointType} rightEndpointType={rightEndpointType}",
                     "joinId", "leftEndpointType", "rightEndpointType");
+    /**
+     * 混合端点 JOIN 聚合：entity 物理表在选定 external 连接不可见（不可同库）→ 显式失败（plan 1500-1 D1.5）。
+     * querySpace 字符串相等对混合端点语义不可靠，故采用连接可达性实测；不可见即跨库 → 指向 successor plan 1500-2，
+     * 不静默降级 D5 拼接近似聚合（GROUP BY 在截断后的拼接集上执行会致 SUM/COUNT/AVG 静默错误）。
+     */
+    static final ErrorCode ERR_AGGR_JOIN_MIXED_CROSS_DB_DEFERRED =
+            ErrorCode.define("metadata.aggr-join-mixed-cross-db-deferred",
+                    "Mixed-endpoint JOIN aggregation: entity physical table is not visible in the selected external "
+                            + "connection (cross-DB, querySpace string is unreliable for mixed endpoints). Same-DB "
+                            + "aggregation needs a single shared connection. Deferred to cross-DB successor plan "
+                            + "(app-layer merge + in-memory group-by would truncate and be approximate): "
+                            + "{joinId} entityPhysicalTable={entityPhysicalTable} entitySchema={entitySchema} "
+                            + "externalQuerySpace={externalQuerySpace}",
+                    "joinId", "entityPhysicalTable", "entitySchema", "externalQuerySpace");
+    /** 混合端点 entity 物理表名为空（NopMetaEntity.tableName 缺失），无法构造 FROM 子句。 */
+    static final ErrorCode ERR_AGGR_JOIN_MIXED_ENTITY_TABLE_EMPTY =
+            ErrorCode.define("metadata.aggr-join-mixed-entity-table-empty",
+                    "Mixed-endpoint JOIN aggregation: entity physical table name (NopMetaEntity.tableName) is empty, "
+                            + "cannot build FROM clause: {joinId} entityId={entityId}",
+                    "joinId", "entityId");
     /** external/sql 端点 Measure/Dimension 的 side 缺失（query-time 必填，null 即失败，不依赖是否歧义）。 */
     static final ErrorCode ERR_AGGR_JOIN_SIDE_REQUIRED =
             ErrorCode.define("metadata.aggr-join-side-required",
@@ -364,11 +388,10 @@ public class MetaAggregationExecutor {
             return executeExternalExternalJoinAggregation(table, measureNames, dimensionNames, filter, join, joinId,
                     leftEp, rightEp, limit, offset, ctx);
         }
-        // 混合端点（entity ↔ external/sql）→ deferred 显式失败（§4.4.1 D1.2 一律走截断式应用层拼接 D5，聚合近似不可正确）
-        throw new NopException(ERR_AGGR_JOIN_MIXED_ENDPOINT_DEFERRED)
-                .param("joinId", joinId)
-                .param("leftEndpointType", endpointTypeOf(leftEp))
-                .param("rightEndpointType", endpointTypeOf(rightEp));
+        // 混合端点（entity ↔ external/sql）→ plan 1500-1 D1.5：同库（连接可达性实测通过）→ 原生 GROUP BY over JOIN；
+        // 不可同库 → 显式失败 ERR_AGGR_JOIN_MIXED_CROSS_DB_DEFERRED（不静默降级 D5 拼接近似聚合）
+        return executeMixedSameDbJoinAggregation(table, measureNames, dimensionNames, filter, join, joinId,
+                leftEp, rightEp, limit, offset, ctx);
     }
 
     /**
@@ -573,6 +596,243 @@ public class MetaAggregationExecutor {
         return holder[0] == null ? new ArrayList<>() : holder[0];
     }
 
+    // ============================ 混合端点同库 JOIN 聚合（plan 1500-1 D1.5）============================
+
+    /**
+     * 混合端点（entity ↔ external/sql）同库 JOIN 聚合（plan 1500-1 D1.5）。
+     *
+     * <p>端点组合：一端 entity（{@code leftEntityId}/{@code rightEntityId}），另一端 external/sql table
+     * （{@code leftTableId}/{@code rightTableId}）。**连接载体选定候选 A**：复用 external/sql 端点的
+     * {@code NopMetaDataSource withConnection}，在该单一连接上同时访问 external 物理表 + entity 物理表
+     * （直查 {@code NopMetaEntity.tableName}，**绕过 ORM session/EQL**）。
+     *
+     * <p>同库判定（querySpace 字符串不可靠 + 连接可达性实测）：在选定 external {@code withConnection} callback 内
+     * 实测 entity 物理表是否在 {@code DatabaseMetaData.getTables(null, entitySchema, entityTableName, null)} 结果集中。
+     * 可见 → 同库，跑原生 {@code GROUP BY over JOIN}；不可见 → {@link #ERR_AGGR_JOIN_MIXED_CROSS_DB_DEFERRED}（不静默降级 D5）。
+     *
+     * <p>schema 限定：两侧表名显式 {@code <schema>.<table>} 限定（entity 用 {@code NopMetaEntity.dbSchema}，
+     * external 用 {@code NopMetaTable.schema}，可空则不限定）。
+     *
+     * <p>measure/dimension 解析（F1-2：仅 table 侧套用 side resolver）：entity 侧经 {@code entityFieldId→metaEntityId→columnCode}
+     * （不套用 side resolver，side 可选但若提供须一致）；external/sql 侧经 side（必填）+ 列名存在性校验。{@link JoinMixedSideResolver}
+     * 按 entityFieldId 是否为 NopMetaEntityField PK 且归属 entity 端点判定侧别。
+     *
+     * <p>{@code requireRegistered} 不适用（F1-3）：候选 A 绕过 ORM session，entity 侧仅校验物理表名可达性（tableName 非空 + 连接可达性实测）。
+     *
+     * <p>失败路径显式（#24）：不可同库 / 物理表名空 / 缺 datasource / right（由 loadValidatedJoin 抛）/ self-join 守卫 /
+     * side 缺失 / 列不存在 / SQL 执行失败 均抛 ErrorCode，不静默降级、不静默空 items、不伪造值。
+     */
+    private List<Map<String, Object>> executeMixedSameDbJoinAggregation(NopMetaTable table, List<String> measureNames,
+                                                                         List<String> dimensionNames, TreeBean filter,
+                                                                         NopMetaTableJoin join, String joinId,
+                                                                         MetaJoinExecutor.Endpoint leftEp,
+                                                                         MetaJoinExecutor.Endpoint rightEp,
+                                                                         Long limit, Long offset,
+                                                                         MetaQueryContext ctx) {
+        // 1. 识别 entity/table 端点位置（entity 可在 left 也可在 right）
+        boolean entityOnLeft = leftEp.isEntity();
+        NopMetaEntity entityEndpoint = entityOnLeft ? leftEp.entity : rightEp.entity;
+        NopMetaTable tableEndpoint = entityOnLeft ? rightEp.table : leftEp.table;
+
+        // 2. self-join 防御性守卫：entity 物理表名 == external 物理表名 + 同一数据源上下文 → 别名机制不足，显式失败
+        //    （混合端点本质 entity↔table 类型不同，self-join 概率低；防御性守住语义清晰）
+        String entityPhysicalTable = entityEndpoint.getTableName();
+        if (entityPhysicalTable == null || entityPhysicalTable.trim().isEmpty()) {
+            throw new NopException(ERR_AGGR_JOIN_MIXED_ENTITY_TABLE_EMPTY)
+                    .param("joinId", joinId).param("entityId", String.valueOf(entityEndpoint.getMetaEntityId()));
+        }
+        FilterToSqlTranslator.validateIdentifier(entityPhysicalTable);
+        String entitySchema = entityEndpoint.getDbSchema();
+        if (entitySchema != null && !entitySchema.trim().isEmpty()) {
+            FilterToSqlTranslator.validateIdentifier(entitySchema);
+        } else {
+            entitySchema = null;
+        }
+
+        // 3. 解析 external/sql 端点共享数据源（querySpace→NopMetaDataSource，external 端点必须注册 ACTIVE 数据源）
+        NopMetaDataSource dataSource = resolveSharedDataSourceOrThrow(tableEndpoint, ctx, joinId);
+
+        // 4. 解析 entity 端点的 propToCol 映射（join.leftField/rightField + entity 侧 measure/dimension 列解析）
+        Map<String, String> entityPropToCol = resolveEntityColumns(entityEndpoint, ctx);
+
+        // 5. 解析 external/sql 端点列集合 + join 字段
+        IEntityDao<NopMetaEntityField> fieldDao = ctx.daoProvider().daoFor(NopMetaEntityField.class);
+        Set<String> tableCols = resolveTableColumnNames(tableEndpoint, fieldDao, ctx);
+        // join 字段：entity 侧（属性名→columnCode），table 侧（直接列名，校验属于该表列集合）
+        String entityJoinFieldProp = entityOnLeft ? join.getLeftField() : join.getRightField();
+        String tableJoinFieldCol = entityOnLeft ? join.getRightField() : join.getLeftField();
+        String entityJoinColumn = joinExecutor.resolveFieldToColumn(entityPropToCol, entityJoinFieldProp,
+                entityEndpoint, entityOnLeft ? "left" : "right", joinId);
+        String tableJoinColumn = resolveExternalFieldOrThrow(tableCols, tableJoinFieldCol, tableEndpoint,
+                entityOnLeft ? "right" : "left", joinId);
+        FilterToSqlTranslator.validateIdentifier(entityJoinColumn);
+        FilterToSqlTranslator.validateIdentifier(tableJoinColumn);
+
+        // 6. side 解析（F1-2：仅 table 侧套用 side resolver，entity 侧走 entityFieldId→columnCode）
+        JoinMixedSideResolver sideResolver = new JoinMixedSideResolver(
+                entityEndpoint, entityPropToCol, tableEndpoint, tableCols, entityOnLeft, joinId, table, ctx);
+        List<JoinMeasureSpec> measures = loadExternalJoinMeasures(table, measureNames, ctx, sideResolver);
+        List<JoinDimensionSpec> dims = loadExternalJoinDimensions(table, dimensionNames, ctx, sideResolver);
+
+        // 7. FROM 子句构造（含 schema 限定 + 别名 l/r）
+        String entityAlias = entityOnLeft ? "l" : "r";
+        String tableAlias = entityOnLeft ? "r" : "l";
+        String entityFrom = buildEntityFromClause(entityPhysicalTable, entitySchema, entityAlias);
+        String tableFrom = externalTableFromForJoin(tableEndpoint, tableAlias);
+
+        // filter 预翻译（与方言无关，提前计算参数顺序）
+        FilterToSqlTranslator.TranslatedFilter filterTf =
+                filter == null ? null : ctx.filterTranslator().translate(filter);
+
+        // 8. 在 external withConnection callback 内：实测 entity 物理表可见性 + 执行原生 GROUP BY over JOIN
+        final String _entityPhysicalTable = entityPhysicalTable;
+        final String _entitySchema = entitySchema;
+        final String _entityFrom = entityFrom;
+        final String _tableFrom = tableFrom;
+        final String _entityAlias = entityAlias;
+        final String _tableAlias = tableAlias;
+        final String _entityJoinColumn = entityJoinColumn;
+        final String _tableJoinColumn = tableJoinColumn;
+        final List<JoinMeasureSpec> _measures = measures;
+        final List<JoinDimensionSpec> _dims = dims;
+        final FilterToSqlTranslator.TranslatedFilter _filterTf = filterTf;
+
+        final List<Map<String, Object>>[] holder = newArrayHolder();
+        ctx.connectionService().withConnection(dataSource.getDatasourceType(), dataSource.getConnectionConfig(),
+                (Connection conn, DatabaseMetaData metaData) -> {
+                    String dialect = safeProductName(metaData);
+                    if (dialect == null || !SUPPORTED_DIALECTS.contains(dialect)) {
+                        throw new NopException(ERR_AGGR_UNSUPPORTED_DIALECT)
+                                .param("databaseProductName", String.valueOf(dialect))
+                                .param("metaTableId", table.getMetaTableId());
+                    }
+                    // 同库判定：实测 entity 物理表在该连接可见（querySpace 字符串不可靠）
+                    if (!isEntityTableVisible(metaData, _entitySchema, _entityPhysicalTable)) {
+                        throw new NopException(ERR_AGGR_JOIN_MIXED_CROSS_DB_DEFERRED)
+                                .param("joinId", joinId)
+                                .param("entityPhysicalTable", _entityPhysicalTable)
+                                .param("entitySchema", String.valueOf(_entitySchema))
+                                .param("externalQuerySpace", String.valueOf(tableEndpoint.getQuerySpace()));
+                    }
+                    StringBuilder sql = buildMixedSameDbJoinSql(_measures, _dims, _entityFrom, _tableFrom,
+                            _entityAlias, _tableAlias, _entityJoinColumn, _tableJoinColumn, join, _filterTf,
+                            dialect, limit, offset);
+                    List<Object> params = new ArrayList<>();
+                    if (_filterTf != null && _filterTf.getSql() != null && !_filterTf.getSql().isEmpty()) {
+                        params.addAll(_filterTf.getParams());
+                    }
+                    if (limit != null) {
+                        params.add(limit);
+                    }
+                    if (offset != null && offset > 0) {
+                        params.add(offset);
+                    }
+                    final String sqlText = sql.toString();
+                    LOG.info("queryAggregation mixed same-DB entity<->external/sql JOIN SQL: {}", sqlText);
+                    holder[0] = executeJdbcQuery(conn, sqlText, params, limit, offset, table.getMetaTableId());
+                });
+        return holder[0] == null ? new ArrayList<>() : holder[0];
+    }
+
+    /**
+     * 实测 entity 物理表是否在该连接可见（plan 1500-1 D1.5 同库判定）。
+     *
+     * <p>使用 {@code DatabaseMetaData.getTables(null, schema, tableName, null)}。schema 为 null 时不过滤 schema
+     * （查全库），匹配任何 schema 下同名表即可（兜底）；schema 非空时按 schema 精确匹配（大小写不敏感，
+     * 适应 H2 大写 vs 配置小写的合法规范化）。
+     *
+     * <p>tableNamePattern 的大小写敏感性因方言而异（H2 默认大小写敏感、MySQL 通常大小写不敏感、PostgreSQL 折叠为小写）。
+     * 为跨方言鲁棒，依次尝试原值、大写、小写三种形式，任一命中即视为可见。
+     *
+     * <p>SQLException 内部 catch 转 false（不可达即视为不可见，触发显式 cross-DB 失败，由调用方抛 ErrorCode）。
+     */
+    private static boolean isEntityTableVisible(DatabaseMetaData metaData, String schema, String tableName) {
+        if (tableName == null || tableName.isEmpty()) {
+            return false;
+        }
+        // 依次尝试原值 / 大写 / 小写，适应跨方言 tableNamePattern 大小写敏感性差异
+        return checkTableExists(metaData, schema, tableName)
+                || checkTableExists(metaData, schema, tableName.toUpperCase(Locale.ROOT))
+                || checkTableExists(metaData, schema, tableName.toLowerCase(Locale.ROOT));
+    }
+
+    private static boolean checkTableExists(DatabaseMetaData metaData, String schema, String tableName) {
+        try (ResultSet rs = metaData.getTables(null, schema, tableName, null)) {
+            while (rs.next()) {
+                return true;
+            }
+        } catch (SQLException e) {
+            LOG.warn("checkTableExists: getTables failed (treated as not visible): schema={}, table={}",
+                    schema, tableName, e);
+        }
+        return false;
+    }
+
+    /** 构造 entity 端点 FROM 子句（含 schema 限定 + 别名）：{@code <[schema.]tableName> <alias>}。 */
+    private String buildEntityFromClause(String physicalTable, String schema, String alias) {
+        FilterToSqlTranslator.validateIdentifier(alias);
+        if (schema != null && !schema.trim().isEmpty()) {
+            FilterToSqlTranslator.validateIdentifier(schema);
+            return schema + "." + physicalTable + " " + alias;
+        }
+        return physicalTable + " " + alias;
+    }
+
+    /**
+     * 构造混合端点同库 JOIN 聚合 SQL：
+     * {@code SELECT <group l./r. cols>, <agg(l./r. col)> FROM <entityFrom> <eAlias> INNER|LEFT JOIN <tableFrom> <tAlias>
+     * ON <eAlias>.<entityJoinColumn> = <tAlias>.<tableJoinColumn> [WHERE] GROUP BY ...}。
+     *
+     * <p>注意：entity 端点别名（eAlias）和 table 端点别名（tAlias）由调用方按 entityOnLeft 决定（l/r），
+     * measure/dimension 的 qualifiedCol 已在 {@link JoinMixedSideResolver} 中按端点位置构造。
+     */
+    private StringBuilder buildMixedSameDbJoinSql(List<JoinMeasureSpec> measures, List<JoinDimensionSpec> dims,
+                                                   String entityFrom, String tableFrom,
+                                                   String entityAlias, String tableAlias,
+                                                   String entityJoinColumn, String tableJoinColumn,
+                                                   NopMetaTableJoin join,
+                                                   FilterToSqlTranslator.TranslatedFilter filterTf,
+                                                   String dialect, Long limit, Long offset) {
+        StringBuilder sql = new StringBuilder("SELECT ");
+        List<String> groupExprs = new ArrayList<>();
+        for (int i = 0; i < dims.size(); i++) {
+            JoinDimensionSpec d = dims.get(i);
+            // external/sql 端点时间分桶（D7），entity 端点无 granularity 下沉（受 EQL 限制；此处 withConnection 原生 SQL，
+            // 但 entity 端点物理列直查仍按物理列——granularity 仅对 external/sql 端点列生效，沿用 D7 范围）
+            String expr;
+            if (_NopMetadataCoreConstants.DIMENSION_TYPE_TEMPORAL.equals(d.dimensionType) && d.granularity != null) {
+                expr = GranularityBucketing.translate(d.granularity, d.qualifiedCol, dialect, d.alias);
+                FilterToSqlTranslator.validateIdentifier(d.column);
+            } else {
+                expr = d.qualifiedCol;
+            }
+            sql.append(i == 0 ? "" : ",").append(expr).append(" AS ").append(d.alias);
+            groupExprs.add(expr);
+        }
+        for (JoinMeasureSpec m : measures) {
+            sql.append(",").append(m.aggSql).append(" AS ").append(m.alias);
+        }
+        sql.append(" FROM ").append(entityFrom);
+        String joinKeyword = _NopMetadataCoreConstants.JOIN_TYPE_INNER.equals(join.getJoinType())
+                ? " INNER JOIN " : " LEFT JOIN ";
+        sql.append(joinKeyword).append(tableFrom)
+                .append(" ON ").append(entityAlias).append(".").append(entityJoinColumn)
+                .append(" = ").append(tableAlias).append(".").append(tableJoinColumn);
+
+        if (filterTf != null && filterTf.getSql() != null && !filterTf.getSql().isEmpty()) {
+            sql.append(" WHERE ").append(filterTf.getSql());
+        }
+        sql.append(" GROUP BY ").append(String.join(",", groupExprs));
+        if (limit != null) {
+            sql.append(" LIMIT ?");
+        }
+        if (offset != null && offset > 0) {
+            sql.append(" OFFSET ?");
+        }
+        return sql;
+    }
+
+
     /** 构造 external↔external JOIN 聚合 SQL：SELECT <group l./r. cols>, <agg(l./r. col)> FROM ... JOIN ... [WHERE] GROUP BY ...。 */
     private StringBuilder buildExternalExternalJoinSql(List<JoinMeasureSpec> measures, List<JoinDimensionSpec> dims,
                                                         String leftFrom, String rightFrom, String leftJoinCol,
@@ -659,6 +919,35 @@ public class MetaAggregationExecutor {
     /** 加载 external↔external JOIN 聚合的 Measure 规格（side 必填 + 列名存在性校验）。 */
     private List<JoinMeasureSpec> loadExternalJoinMeasures(NopMetaTable table, List<String> names,
                                                             MetaQueryContext ctx, JoinExternalSideResolver resolver) {
+        return loadJoinMeasuresWithResolver(table, names, ctx, resolver::resolve);
+    }
+
+    /** 加载 external↔external JOIN 聚合的 Dimension 规格（side 必填 + 列名存在性校验）。 */
+    private List<JoinDimensionSpec> loadExternalJoinDimensions(NopMetaTable table, List<String> names,
+                                                                MetaQueryContext ctx, JoinExternalSideResolver resolver) {
+        return loadJoinDimensionsWithResolver(table, names, ctx, resolver::resolve);
+    }
+
+    /** 加载混合端点 JOIN 聚合的 Measure 规格（plan 1500-1：entity 侧 entityFieldId→columnCode，table 侧 side 必填）。 */
+    private List<JoinMeasureSpec> loadExternalJoinMeasures(NopMetaTable table, List<String> names,
+                                                            MetaQueryContext ctx, JoinMixedSideResolver resolver) {
+        return loadJoinMeasuresWithResolver(table, names, ctx, resolver::resolve);
+    }
+
+    /** 加载混合端点 JOIN 聚合的 Dimension 规格（plan 1500-1：entity 侧 entityFieldId→columnCode，table 侧 side 必填）。 */
+    private List<JoinDimensionSpec> loadExternalJoinDimensions(NopMetaTable table, List<String> names,
+                                                                MetaQueryContext ctx, JoinMixedSideResolver resolver) {
+        return loadJoinDimensionsWithResolver(table, names, ctx, resolver::resolve);
+    }
+
+    /** JOIN 字段解析函数式契约（{@code (entityFieldId, name, side) → JoinField}），供 external↔external / 混合端点共用。 */
+    @FunctionalInterface
+    private interface JoinFieldResolverFn {
+        JoinField resolve(String entityFieldId, String name, String declaredSide);
+    }
+
+    private List<JoinMeasureSpec> loadJoinMeasuresWithResolver(NopMetaTable table, List<String> names,
+                                                                MetaQueryContext ctx, JoinFieldResolverFn resolver) {
         List<NopMetaTableMeasure> all = loadMeasures(table, names, ctx);
         List<JoinMeasureSpec> specs = new ArrayList<>();
         for (NopMetaTableMeasure m : all) {
@@ -674,9 +963,8 @@ public class MetaAggregationExecutor {
         return specs;
     }
 
-    /** 加载 external↔external JOIN 聚合的 Dimension 规格（side 必填 + 列名存在性校验）。 */
-    private List<JoinDimensionSpec> loadExternalJoinDimensions(NopMetaTable table, List<String> names,
-                                                                MetaQueryContext ctx, JoinExternalSideResolver resolver) {
+    private List<JoinDimensionSpec> loadJoinDimensionsWithResolver(NopMetaTable table, List<String> names,
+                                                                    MetaQueryContext ctx, JoinFieldResolverFn resolver) {
         List<NopMetaTableDimension> all = loadDimensions(table, names, ctx);
         List<JoinDimensionSpec> specs = new ArrayList<>();
         for (NopMetaTableDimension d : all) {
@@ -835,6 +1123,134 @@ public class MetaAggregationExecutor {
                         .param("column", columnName).param("joinId", joinId);
             }
             return new JoinField(columnName, alias + "." + columnName);
+        }
+
+        private static boolean containsIgnoreCase(Set<String> cols, String name) {
+            if (cols == null || name == null) {
+                return false;
+            }
+            for (String c : cols) {
+                if (c != null && c.equalsIgnoreCase(name)) {
+                    return true;
+                }
+            }
+            return false;
+        }
+    }
+
+    /**
+     * JOIN 字段侧别解析器（混合端点路径，plan 1500-1 D1.5，§4.4.1 D1.5）。
+     *
+     * <p>端点组合：一端 entity（{@code entityEndpoint}），另一端 external/sql table（{@code tableEndpoint}）。
+     * {@code entityOnLeft} 标识 entity 在 left（别名 l）还是 right（别名 r）；table 端点取相反别名。
+     *
+     * <p>resolve(entityFieldId, name, declaredSide) 判定侧别（F1-2：仅 table 侧套用 side resolver）：
+     * <ul>
+     *   <li>entityFieldId 为 {@code NopMetaEntityField} PK 且其 {@code metaEntityId} == entity 端点 → <b>entity 侧</b>：
+     *       解析 columnCode，alias 取 entity 端点别名。side 可选（与 D9 entity side 一致性校验同范式）；
+     *       若提供须与 entity 端点位置一致，不一致显式失败。</li>
+     *   <li>否则 → <b>table 侧</b>：entityFieldId 即裸列名字符串。side 必填（与 D9 external/sql side 必填规则一致），
+     *       须指向 table 端点位置；列名须存在于 table 端点解析字段集合，否则显式失败。</li>
+     * </ul>
+     *
+     * <p>失败路径显式：entityFieldId 既非 entity 端点字段也非 table 端点列名 → {@link #ERR_AGGR_JOIN_FIELD_NOT_ON_SIDE}；
+     * table 侧 side 缺失 → {@link #ERR_AGGR_JOIN_SIDE_REQUIRED}；entity 侧 side 不一致 → {@link #ERR_AGGR_JOIN_ENTITY_SIDE_MISMATCH}。
+     */
+    static final class JoinMixedSideResolver {
+        private final NopMetaEntity entityEndpoint;
+        private final Map<String, String> entityPropToCol;
+        private final NopMetaTable tableEndpoint;
+        private final Set<String> tableCols;
+        private final boolean entityOnLeft;
+        private final String joinId;
+        private final NopMetaTable ownerTable;
+        private final MetaQueryContext ctx;
+
+        JoinMixedSideResolver(NopMetaEntity entityEndpoint, Map<String, String> entityPropToCol,
+                              NopMetaTable tableEndpoint, Set<String> tableCols,
+                              boolean entityOnLeft, String joinId, NopMetaTable ownerTable,
+                              MetaQueryContext ctx) {
+            this.entityEndpoint = entityEndpoint;
+            this.entityPropToCol = entityPropToCol;
+            this.tableEndpoint = tableEndpoint;
+            this.tableCols = tableCols;
+            this.entityOnLeft = entityOnLeft;
+            this.joinId = joinId;
+            this.ownerTable = ownerTable;
+            this.ctx = ctx;
+        }
+
+        JoinField resolve(String entityFieldId, String name, String declaredSide) {
+            if (entityFieldId == null || entityFieldId.isEmpty()) {
+                throw new NopException(ERR_AGGR_FIELD_NOT_RESOLVED)
+                        .param("metaTableId", ownerTable.getMetaTableId())
+                        .param("name", name).param("entityFieldId", String.valueOf(entityFieldId));
+            }
+            // 尝试 entity 侧归属：entityFieldId 为 NopMetaEntityField PK 且其 metaEntityId == entity 端点
+            NopMetaEntityField field = tryLoadEntityField(entityFieldId);
+            if (field != null && equalsStr(field.getMetaEntityId(), entityEndpoint.getMetaEntityId())) {
+                // entity 侧
+                String column = field.getColumnCode();
+                if (column == null || column.isEmpty()) {
+                    throw new NopException(ERR_AGGR_FIELD_NOT_RESOLVED)
+                            .param("metaTableId", ownerTable.getMetaTableId())
+                            .param("name", name).param("entityFieldId", entityFieldId);
+                }
+                String resolvedSide = entityOnLeft ? "left" : "right";
+                String alias = entityOnLeft ? "l" : "r";
+                // side 一致性校验：entity 端点 side 可选；若提供须与端点位置一致
+                if (declaredSide != null && !declaredSide.isEmpty()
+                        && !declaredSide.equalsIgnoreCase(resolvedSide)) {
+                    throw new NopException(ERR_AGGR_JOIN_ENTITY_SIDE_MISMATCH)
+                            .param("metaTableId", ownerTable.getMetaTableId())
+                            .param("name", name)
+                            .param("declaredSide", declaredSide)
+                            .param("resolvedSide", resolvedSide)
+                            .param("fieldMetaEntityId", String.valueOf(field.getMetaEntityId()))
+                            .param("joinId", joinId);
+                }
+                return new JoinField(column, alias + "." + column);
+            }
+            // table 侧：entityFieldId 即裸列名字符串，side 必填 + 列名存在性校验
+            if (declaredSide == null || declaredSide.isEmpty()) {
+                throw new NopException(ERR_AGGR_JOIN_SIDE_REQUIRED)
+                        .param("metaTableId", ownerTable.getMetaTableId())
+                        .param("name", name).param("joinId", joinId);
+            }
+            String expectedSide = entityOnLeft ? "right" : "left";
+            String alias;
+            if (expectedSide.equalsIgnoreCase(declaredSide)) {
+                alias = entityOnLeft ? "r" : "l";
+            } else {
+                // side 指向 entity 端点位置但该字段非 entity 字段（既不是 entity PK 也不是 entity 字段）→ 字段不可归属
+                throw new NopException(ERR_AGGR_JOIN_FIELD_NOT_ON_SIDE)
+                        .param("metaTableId", ownerTable.getMetaTableId())
+                        .param("name", name).param("side", declaredSide)
+                        .param("endpointTableType", "entity")
+                        .param("column", entityFieldId).param("joinId", joinId);
+            }
+            if (!containsIgnoreCase(tableCols, entityFieldId)) {
+                throw new NopException(ERR_AGGR_JOIN_FIELD_NOT_ON_SIDE)
+                        .param("metaTableId", ownerTable.getMetaTableId())
+                        .param("name", name).param("side", declaredSide)
+                        .param("endpointTableType", String.valueOf(tableEndpoint.getTableType()))
+                        .param("column", entityFieldId).param("joinId", joinId);
+            }
+            return new JoinField(entityFieldId, alias + "." + entityFieldId);
+        }
+
+        /** 尝试按 PK 加载 NopMetaEntityField；非 PK 或不存在返回 null（不抛错，调用方判定归属）。 */
+        private NopMetaEntityField tryLoadEntityField(String entityFieldId) {
+            try {
+                IEntityDao<NopMetaEntityField> fieldDao = ctx.daoProvider().daoFor(NopMetaEntityField.class);
+                return fieldDao.getEntityById(entityFieldId);
+            } catch (Exception e) {
+                return null;
+            }
+        }
+
+        private static boolean equalsStr(String a, String b) {
+            return (a == null) ? b == null : a.equals(b);
         }
 
         private static boolean containsIgnoreCase(Set<String> cols, String name) {

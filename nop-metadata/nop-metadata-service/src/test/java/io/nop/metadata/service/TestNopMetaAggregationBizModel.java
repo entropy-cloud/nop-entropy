@@ -587,6 +587,254 @@ public class TestNopMetaAggregationBizModel extends JunitBaseTestCase {
                 "cross-querySpace external<->external JOIN aggregation must explicitly fail (deferred, not silent)");
     }
 
+    // ============================================================
+    // plan 1500-1：混合端点（entity↔external/sql）同库 JOIN 聚合（D1.5）
+    // ============================================================
+
+    /**
+     * 混合端点同库 JOIN 聚合正确性 + Anti-Hollow（plan 1500-1 Phase 2 主 Exit Criterion）：
+     *
+     * <p>left = nop_meta_module（entity 端点，物理表 NOP_META_MODULE 在外部 H2 库 qs_mixed_same 中存在），
+     * right = MIXED_DIM（external 端点，同库同步）。join ON STATUS = STATUS_VAL。
+     * 经 {@code queryAggregation(joinId)} 在单一 external {@code withConnection} 上跑原生 GROUP BY over JOIN，断言：
+     * <ul>
+     *   <li>真实分组行非空（stub/退化 D5 拼接立即失败此断言）</li>
+     *   <li>按 CAT_NAME 分组后 COUNT(status)：Category A = 2，Category B = 1（真实聚合值，非伪造）</li>
+     * </ul>
+     */
+    @Test
+    @SuppressWarnings("unchecked")
+    public void testMixedSameDbJoinAggregationCorrectness() throws Exception {
+        importModel();
+        NopMetaEntity leftEntity = findMetaEntityByTable("nop_meta_module");
+        String leftTableId = findEntityTableId("nop_meta_module");
+
+        // 外部 H2 库含 NOP_META_MODULE（entity 物理表，供同库可见性测试通过）+ MIXED_DIM（external 端点）
+        String querySpace = "qs_mixed_same";
+        String dbUrl = "jdbc:h2:mem:" + querySpace + ";DB_CLOSE_DELAY=-1";
+        seedMixedSameDbTables(dbUrl);
+        saveDataSource("ds-" + querySpace, querySpace, dbUrl);
+        syncExternalTables("ds-" + querySpace);
+        String dimTableId = externalTableId("MIXED_DIM");
+
+        // 混合 join：entity 端点（left）+ external table 端点（right）
+        String joinId = createMixedJoin(leftTableId, "inner", leftEntity.getMetaEntityId(), dimTableId,
+                "status", "STATUS_VAL", "dim");
+        // measure：entity 侧 nop_meta_module.status 字段，count，side=left
+        String statusFieldId = findEntityFieldId("nop_meta_module", "status");
+        createMeasureWithSide(leftTableId, "cnt", statusFieldId, "count", "left");
+        // dimension：external 侧 MIXED_DIM.CAT_NAME，side=right
+        createDimensionWithSide(leftTableId, "cat", "CAT_NAME", "categorical", null, "right");
+
+        Map<String, Object> result = nopMetaTableBizModel.queryAggregation(leftTableId,
+                Arrays.asList("cnt"), Arrays.asList("cat"), null, joinId, null, null, null);
+        List<Map<String, Object>> items = (List<Map<String, Object>>) result.get("items");
+        assertNotNull(items, "items must not be null");
+        assertEquals(2, items.size(), "group by CAT_NAME must yield 2 groups (Category A, Category B): " + items);
+        Map<String, Object> rowA = findRow(items, "CAT", "Category A");
+        Map<String, Object> rowB = findRow(items, "CAT", "Category B");
+        assertNotNull(rowA, "group 'Category A' must exist: " + items);
+        assertNotNull(rowB, "group 'Category B' must exist: " + items);
+        assertEquals(2, toInt(rowA.get("CNT")), "COUNT(status) for Category A = 2 (mod1, mod2)");
+        assertEquals(1, toInt(rowB.get("CNT")), "COUNT(status) for Category B = 1 (mod3)");
+    }
+
+    /**
+     * 端到端验证（#22）+ 接线验证（#23）：从 GraphQL {@code queryAggregation(joinId)}（混合端点同库）
+     * 经 MetaAggregationExecutor 路由到 executeMixedSameDbJoinAggregation，产出真实聚合 items。
+     */
+    @Test
+    @SuppressWarnings("unchecked")
+    public void testMixedSameDbJoinAggregationViaGraphQL() throws Exception {
+        importModel();
+        NopMetaEntity leftEntity = findMetaEntityByTable("nop_meta_module");
+        String leftTableId = findEntityTableId("nop_meta_module");
+
+        String querySpace = "qs_mixed_gql";
+        String dbUrl = "jdbc:h2:mem:" + querySpace + ";DB_CLOSE_DELAY=-1";
+        seedMixedSameDbTables(dbUrl);
+        saveDataSource("ds-" + querySpace, querySpace, dbUrl);
+        syncExternalTables("ds-" + querySpace);
+        String dimTableId = externalTableId("MIXED_DIM");
+
+        String joinId = createMixedJoin(leftTableId, "inner", leftEntity.getMetaEntityId(), dimTableId,
+                "status", "STATUS_VAL", "dim");
+        String statusFieldId = findEntityFieldId("nop_meta_module", "status");
+        createMeasureWithSide(leftTableId, "gcnt", statusFieldId, "count", "left");
+        createDimensionWithSide(leftTableId, "gcat", "CAT_NAME", "categorical", null, "right");
+
+        io.nop.api.core.beans.graphql.GraphQLRequestBean request = new io.nop.api.core.beans.graphql.GraphQLRequestBean();
+        request.setQuery("query { NopMetaTable__queryAggregation(metaTableId: \"" + leftTableId + "\", "
+                + "measures: [\"gcnt\"], dimensions: [\"gcat\"], joinId: \"" + joinId + "\") }");
+        io.nop.api.core.beans.graphql.GraphQLResponseBean resp =
+                graphQLEngine.executeGraphQL(graphQLEngine.newGraphQLContext(request));
+        assertFalse(resp.hasError(), "GraphQL mixed same-DB queryAggregation(joinId) must succeed: " + resp);
+        Map<String, Object> data = (Map<String, Object>) resp.getData();
+        Map<String, Object> qa = (Map<String, Object>) data.get("NopMetaTable__queryAggregation");
+        assertNotNull(qa, "GraphQL queryAggregation(joinId) must return non-null Map result");
+        List<Map<String, Object>> items = (List<Map<String, Object>>) qa.get("items");
+        assertNotNull(items, "GraphQL items must not be null");
+        assertFalse(items.isEmpty(),
+                "GraphQL mixed same-DB queryAggregation(joinId) end-to-end must return real grouped rows: " + items);
+    }
+
+    /**
+     * 不可同库失败（#24）：entity 物理表（NOP_META_MODULE）在选定 external 连接不可见（外部库未建该表）
+     * → 显式失败 ERR_AGGR_JOIN_MIXED_CROSS_DB_DEFERRED（不静默降级 D5 拼接近似聚合）。
+     */
+    @Test
+    public void testMixedCrossDbFails() throws Exception {
+        importModel();
+        NopMetaEntity leftEntity = findMetaEntityByTable("nop_meta_module");
+        String leftTableId = findEntityTableId("nop_meta_module");
+
+        // 外部库只含 MIXED_DIM，不含 NOP_META_MODULE → 可见性测试失败 → 跨库 deferred
+        String querySpace = "qs_mixed_cross";
+        String dbUrl = "jdbc:h2:mem:" + querySpace + ";DB_CLOSE_DELAY=-1";
+        seedH2(dbUrl, "CREATE TABLE MIXED_DIM (STATUS_VAL VARCHAR(20), CAT_NAME VARCHAR(20))",
+                "INSERT INTO MIXED_DIM VALUES ('A', 'Category A')");
+        saveDataSource("ds-" + querySpace, querySpace, dbUrl);
+        syncExternalTables("ds-" + querySpace);
+        String dimTableId = externalTableId("MIXED_DIM");
+
+        String joinId = createMixedJoin(leftTableId, "inner", leftEntity.getMetaEntityId(), dimTableId,
+                "status", "STATUS_VAL", "dim");
+        assertTrue(queryAggregationJoinHasError(leftTableId, joinId),
+                "mixed-endpoint cross-DB (entity table not visible) must explicitly fail (deferred, not silent D5)");
+    }
+
+    /**
+     * external/sql 端点缺 side（query-time 必填）→ 显式失败（ERR_AGGR_JOIN_SIDE_REQUIRED）。
+     * 复用混合端点上下文，验证 side 必填规则在混合路径同样生效。
+     */
+    @Test
+    public void testMixedJoinTableSideRequiredFails() throws Exception {
+        importModel();
+        NopMetaEntity leftEntity = findMetaEntityByTable("nop_meta_module");
+        String leftTableId = findEntityTableId("nop_meta_module");
+
+        String querySpace = "qs_mixed_side";
+        String dbUrl = "jdbc:h2:mem:" + querySpace + ";DB_CLOSE_DELAY=-1";
+        seedMixedSameDbTables(dbUrl);
+        saveDataSource("ds-" + querySpace, querySpace, dbUrl);
+        syncExternalTables("ds-" + querySpace);
+        String dimTableId = externalTableId("MIXED_DIM");
+
+        String joinId = createMixedJoin(leftTableId, "inner", leftEntity.getMetaEntityId(), dimTableId,
+                "status", "STATUS_VAL", "dim");
+        // dimension 无 side → external 端点 side 必填报错
+        String statusFieldId = findEntityFieldId("nop_meta_module", "status");
+        createMeasureWithSide(leftTableId, "cnt", statusFieldId, "count", "left");
+        createDimension(leftTableId, "cat", "CAT_NAME", "categorical", null);
+
+        assertTrue(queryAggregationJoinHasError(leftTableId, "cnt", "cat", joinId),
+                "mixed-endpoint external/sql dimension without side must explicitly fail (side required at query-time)");
+    }
+
+    /**
+     * side 指向端点字段集合不含该列 → 显式失败（ERR_AGGR_JOIN_FIELD_NOT_ON_SIDE）。
+     * CAT_NAME 属于 external 端点（MIXED_DIM），但 side=left 指向 entity 端点（nop_meta_module）→ 列不存在。
+     */
+    @Test
+    public void testMixedJoinColumnNotOnSideFails() throws Exception {
+        importModel();
+        NopMetaEntity leftEntity = findMetaEntityByTable("nop_meta_module");
+        String leftTableId = findEntityTableId("nop_meta_module");
+
+        String querySpace = "qs_mixed_col";
+        String dbUrl = "jdbc:h2:mem:" + querySpace + ";DB_CLOSE_DELAY=-1";
+        seedMixedSameDbTables(dbUrl);
+        saveDataSource("ds-" + querySpace, querySpace, dbUrl);
+        syncExternalTables("ds-" + querySpace);
+        String dimTableId = externalTableId("MIXED_DIM");
+
+        String joinId = createMixedJoin(leftTableId, "inner", leftEntity.getMetaEntityId(), dimTableId,
+                "status", "STATUS_VAL", "dim");
+        String statusFieldId = findEntityFieldId("nop_meta_module", "status");
+        createMeasureWithSide(leftTableId, "cnt", statusFieldId, "count", "left");
+        // CAT_NAME 属于 external，但 side=left 指向 entity → 列不存在于 entity 端点
+        createDimensionWithSide(leftTableId, "cat", "CAT_NAME", "categorical", null, "left");
+
+        assertTrue(queryAggregationJoinHasError(leftTableId, "cnt", "cat", joinId),
+                "mixed-endpoint dimension column not on declared side endpoint must explicitly fail");
+    }
+
+    /** joinType=right 混合端点 → 显式失败（复用 join 校验，不静默降级）。 */
+    @Test
+    public void testMixedJoinJoinTypeRightFails() throws Exception {
+        importModel();
+        NopMetaEntity leftEntity = findMetaEntityByTable("nop_meta_module");
+        String leftTableId = findEntityTableId("nop_meta_module");
+
+        String querySpace = "qs_mixed_right";
+        String dbUrl = "jdbc:h2:mem:" + querySpace + ";DB_CLOSE_DELAY=-1";
+        seedMixedSameDbTables(dbUrl);
+        saveDataSource("ds-" + querySpace, querySpace, dbUrl);
+        syncExternalTables("ds-" + querySpace);
+        String dimTableId = externalTableId("MIXED_DIM");
+
+        String joinId = createMixedJoin(leftTableId, "right", leftEntity.getMetaEntityId(), dimTableId,
+                "status", "STATUS_VAL", "dim");
+        assertTrue(queryAggregationJoinHasError(leftTableId, joinId),
+                "joinType=right mixed-endpoint JOIN aggregation must explicitly fail (not silently degrade)");
+    }
+
+    /**
+     * 接线验证：entity↔entity JOIN 聚合路径在混合端点路由新增后仍被正确调用（未误入混合分支）。
+     * 复用 entity-entity 正确性用例的核心断言，确保 router 未绕过既有 entity 路径。
+     */
+    @Test
+    @SuppressWarnings("unchecked")
+    public void testEntityEntityJoinStillWorksAfterMixedRoute() {
+        importModel();
+        NopMetaEntity leftEntity = findMetaEntityByTable("nop_meta_entity");
+        NopMetaEntity rightEntity = findMetaEntityByTable("nop_meta_entity_field");
+        String leftTableId = findEntityTableId("nop_meta_entity");
+        String joinId = createJoin(leftTableId, "inner", leftEntity.getMetaEntityId(),
+                rightEntity.getMetaEntityId(), "metaEntityId", "metaEntityId", "fld");
+        String leftDimFieldId = findEntityFieldId("nop_meta_entity", "displayName");
+        String rightMeasureFieldId = findEntityFieldId("nop_meta_entity_field", "fieldName");
+        createDimension(leftTableId, "mst", leftDimFieldId, "categorical", null);
+        createMeasure(leftTableId, "mcnt", rightMeasureFieldId, "count", null);
+
+        Map<String, Object> result = nopMetaTableBizModel.queryAggregation(leftTableId,
+                Arrays.asList("mcnt"), Arrays.asList("mst"), null, joinId, null, null, null);
+        List<Map<String, Object>> items = (List<Map<String, Object>>) result.get("items");
+        assertNotNull(items, "items must not be null");
+        assertFalse(items.isEmpty(), "entity-entity JOIN aggregation must still work after mixed-endpoint route added: " + items);
+    }
+
+    /**
+     * 造混合端点同库测试用 H2 表：NOP_META_MODULE（entity 物理表，仅 STATUS 列）+ MIXED_DIM（external 端点）。
+     * 数据：NOP_META_MODULE 三行（'A','A','B'），MIXED_DIM 两行（'A'→Category A, 'B'→Category B）。
+     * inner join ON STATUS=STATUS_VAL → 按 CAT_NAME 分组：Category A count=2，Category B count=1。
+     */
+    private void seedMixedSameDbTables(String dbUrl) throws Exception {
+        try (Connection c = DriverManager.getConnection(dbUrl, "sa", "");
+             Statement st = c.createStatement()) {
+            // entity 物理表（同库可见性测试目标）——仅需 STATUS 列即可（measure count 用）
+            st.execute("CREATE TABLE NOP_META_MODULE (STATUS VARCHAR(20))");
+            st.execute("INSERT INTO NOP_META_MODULE VALUES ('A')");
+            st.execute("INSERT INTO NOP_META_MODULE VALUES ('A')");
+            st.execute("INSERT INTO NOP_META_MODULE VALUES ('B')");
+            // external 端点表
+            st.execute("CREATE TABLE MIXED_DIM (STATUS_VAL VARCHAR(20), CAT_NAME VARCHAR(50))");
+            st.execute("INSERT INTO MIXED_DIM VALUES ('A', 'Category A')");
+            st.execute("INSERT INTO MIXED_DIM VALUES ('B', 'Category B')");
+        }
+    }
+
+    /** 查找指定 tableName 的 external NopMetaTable.metaTableId（sync 后存在）。 */
+    private String externalTableId(String tableName) {
+        IEntityDao<NopMetaTable> tableDao = daoProvider.daoFor(NopMetaTable.class);
+        QueryBean q = new QueryBean();
+        q.addFilter(FilterBeans.eq(NopMetaTable.PROP_NAME_tableName, tableName));
+        q.addFilter(FilterBeans.eq("tableType", "external"));
+        NopMetaTable t = tableDao.findFirstByQuery(q);
+        org.junit.jupiter.api.Assertions.assertNotNull(t, "external table " + tableName + " must be synced");
+        return t.getMetaTableId();
+    }
+
     // ===== helpers =====
 
     private void seedAggTable(String dbUrl) throws Exception {
