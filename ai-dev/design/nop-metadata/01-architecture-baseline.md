@@ -973,12 +973,12 @@ querySpace 解析规则（plan 0700-2 D1.1 扩展）：entity 端点 querySpace 
 | entity ↔ entity（不同 querySpace） | 跨库拼接（D5） | 各侧 `fetchEntityRows`（ORM DAO） |
 | external/sql ↔ external/sql（同 querySpace） | **同库 JOIN（withConnection 原生 JOIN SQL）** | 单次 `withConnection`（共享 NopMetaDataSource），标识符白名单 + 参数绑定 |
 | external/sql ↔ external/sql（不同 querySpace） | 跨库拼接（D5） | 各侧 `fetchTableRows`（各自 `withConnection`） |
-| **混合端点（entity ↔ external/sql，任意 querySpace）** | **行级 JOIN（queryJoinData）：统一走跨库拼接（D5）；聚合（queryAggregation）：同库→D1.5 原生 GROUP BY over JOIN，跨库→显式失败 deferred** | 行级：entity 侧 `fetchEntityRows`（ORM DAO）+ table 侧 `fetchTableRows`（`withConnection`）；聚合同库：external `withConnection` 单连接原生 JOIN（D1.5） |
+| **混合端点（entity ↔ external/sql，任意 querySpace）** | **行级 JOIN（queryJoinData）：统一走跨库拼接（D5）；聚合（queryAggregation）：同库→D1.5 原生 GROUP BY over JOIN，跨库→D10 复用 executeJoin + 内存 GROUP BY（精确-当-容纳/超限-失败）** | 行级：entity 侧 `fetchEntityRows`（ORM DAO）+ table 侧 `fetchTableRows`（`withConnection`）；聚合同库：external `withConnection` 单连接原生 JOIN（D1.5）；聚合跨库：复用 `executeJoin` 合并行 + 内存 GROUP BY（D10） |
 
 混合端点裁定理由（**经 plan 1500-1 D1.5 细化：行级 vs 聚合分列**）：entity 物理表与 external/sql 物理表使用**本质不同的连接机制**（平台 ORM session vs 外部 NopMetaDataSource）——entity querySpace（ORM `IOrmSessionFactory` 注册体系）与 external querySpace（`NopMetaDataSource` 注册体系）是两套**独立注册表**，**querySpace 字符串相等对混合端点语义不可靠**（不保证同一物理库）。故：
 
 - **行级 JOIN（queryJoinData）一律走应用层拼接（D5）**——行级无聚合截断问题，语义正确。**不要求 entity 端点的 querySpace 注册 NopMetaDataSource**（entity 侧经 ORM DAO 取数，与 NopMetaDataSource 无关），混合 JOIN 在 entity querySpace 无 NopMetaDataSource 时**正常成功**（与单库原生 JOIN 的失败语义解耦）。
-- **聚合（queryAggregation）按 D1.5 裁定分列**：同库（连接可达性实测通过）→ 单一 external `withConnection` 跑原生 `GROUP BY over JOIN`（D1.5）；不可同库 → 显式失败（指向跨库 successor `1500-2`，**不静默降级 D5 拼接近似聚合**，因 GROUP BY 在 `MAX_CROSS_DB_ROWS` 截断后的拼接集上执行会导致 SUM/COUNT/AVG 静默错误）。
+- **聚合（queryAggregation）按 D1.5 裁定分列**：同库（连接可达性实测通过）→ 单一 external `withConnection` 跑原生 `GROUP BY over JOIN`（D1.5）；不可同库 → **D10 内存 GROUP BY**（复用 `executeJoin` 取合并行 → 内存聚合，精确-当-容纳 / 超限-失败，不静默降级）。
 
 **D1.3 — 单表取数接线（plan 0700-2）**：跨库拼接（D5）对各端点取数——entity 端点经 `MetaQueryContext.orm()`/`daoProvider()` 走 ORM DAO（既有 `fetchEntityRows`）；external/sql 端点经 `MetaQueryContext.connectionService()`/`dataSourceResolver()`/`fieldResolver()`/`filterTranslator()` 走 `withConnection`（**新增 `fetchTableRows`，在 `MetaJoinExecutor` 内实现，不注入 `NopMetaTableBizModel` 避免循环依赖**）。接线与 §4.4 queryTableData 的 external/sql 分派一致（同依赖集），仅落点在 executor 而非 BizModel。
 
@@ -991,7 +991,7 @@ querySpace 解析规则（plan 0700-2 D1.1 扩展）：entity 端点 querySpace 
 - **连接载体（候选 A 选定）**：**复用 external/sql 端点的 NopMetaDataSource `withConnection`**（external/sql 端点的 querySpace 必须注册一个 ACTIVE NopMetaDataSource，否则显式失败），在该单一连接上同时访问 external 物理表 + entity 物理表（直查 `NopMetaEntity.tableName`，**绕过 ORM session / EQL**）。**拒绝候选 B**（经 §4.4.3 D1 平台 `IJdbcTransaction.getConnection()` 取 entity querySpace 连接）——理由：external 物理表几乎不可能在平台库连接可见（external 表本来就是为「不在平台库」而注册的），候选 B 反向可见性远差于 A；候选 A 的可达性语义清晰（external 表注册在 external 连接，entity 物理表是否恰好也在该连接 = 同库判定）。entity querySpace 通常无 NopMetaDataSource，候选 A 不要求 entity querySpace 注册数据源（external 端点必须注册即可）。
 - **同库判定（querySpace 字符串不可靠 + 连接可达性实测）**：**显式承认 querySpace 字符串相等对混合端点语义不可靠**（entity querySpace 是 ORM `IOrmSessionFactory` 注册体系，external querySpace 是 `NopMetaDataSource` 注册体系，两套独立注册表，字符串相等不保证同一物理库）。故同库判定采用**连接可达性实测**：选定 external `withConnection` 作为基准连接（候选 A），**实测 entity 物理表是否在该连接的 `DatabaseMetaData.getTables(null, entitySchema, entityTableName, null)` 结果集中**（先有鸡先有蛋问题已解决——先按候选 A 选定基准连接，再实测对端表可见性）。
   - **可见 → 同库**：跑原生 `GROUP BY over JOIN`，产出**正确**（非截断近似）聚合结果。
-  - **不可见 → 不可同库**：显式失败 `ERR_AGGR_JOIN_MIXED_CROSS_DB_DEFERRED`（指向跨库 successor `1500-2`，**不静默降级 D5 拼接近似聚合**——GROUP BY 在 `MAX_CROSS_DB_ROWS` 截断后的拼接集上执行会导致 SUM/COUNT/AVG 静默错误，语义近似不可正确）。
+  - **不可见 → 不可同库**：**D10 内存 GROUP BY**（复用 `executeJoin` 取合并行 → 内存聚合，精确-当-容纳 / 超限-失败）。超限时显式失败（`checkSizeLimit`），限内全量精确聚合（不静默降级、不截断近似）。
 - **schema 限定**：即便两表在同一连接可见，entity schema（`NopMetaEntity.dbSchema`）与 external schema（`NopMetaTable.schema`）可能不同。JOIN SQL 中两侧表名**显式 `<schema>.<table>` 限定**（沿用 P2-multi-schema 持久化的 schema 列）：
   - entity 侧：`<entitySchema>.<entityPhysicalTable> <entityAlias>`（entitySchema 取 `NopMetaEntity.dbSchema`，可空 → 不限定）。
   - external 侧：external → `<extSchema>.<extTableName> <extAlias>` 或 `<extTableName> <extAlias>`（schema 取 `NopMetaTable.schema`，可空 → 不限定）；sql → `(<sourceSql>) <extAlias>`（无 schema 限定，子查询合成）。
@@ -1027,7 +1027,7 @@ querySpace 解析规则（plan 0700-2 D1.1 扩展）：entity 端点 querySpace 
   - **SQL 执行失败**（SQLException：表/列不存在、保留字、方言不支持）→ `ERR_AGGR_EXEC_FAILED`（沿用既有，含 error 上下文）。
 - **范围边界**：
   - **行级 JOIN（queryJoinData）混合端点**：仍走 D5 应用层拼接（D1.2 行级裁定不变；行级无聚合截断问题，语义正确）。
-  - **跨库（不可同库）混合端点聚合**：显式失败 deferred（successor `1500-2`，应用层拼接 + 内存 GROUP BY 近似语义，受 `MAX_CROSS_DB_ROWS` 截断）。
+  - **跨库（不可同库）混合端点聚合**：**D10 内存 GROUP BY**（复用 `executeJoin` + 内存聚合，精确-当-容纳 / 超限-失败）。
   - **self-join 双侧别名机制**：watch-only residual（沿用 1200-1 deferred）。
 - **Anti-Hollow**：`executeMixedSameDbJoinAggregation` 在运行时被 `executeJoinAggregation` 混合端点分支真实调用（非空方法体、非静默跳过）；连接可达性实测产出真实可见/不可见判定（非伪造 true）；可见分支真实执行原生 `GROUP BY over JOIN` 并产出真实聚合值（非空 items、非伪造值）。
 
@@ -1050,7 +1050,7 @@ querySpace 解析规则（plan 0700-2 D1.1 扩展）：entity 端点 querySpace 
 
 - **取数载体（plan 0700-2 D1.3 扩展）**：entity 端点经 ORM DAO（`fetchEntityRows`，行 key 为 camelCase 属性名）；external/sql 端点经 `withConnection`（`fetchTableRows`，行 key 为物理列名）。
 - **join key 匹配**：按 `leftField`/`rightField` 列值**字符串相等**匹配（`String.valueOf(leftVal).equals(String.valueOf(rightVal))`）。各侧按自己的命名空间取值（entity 侧按属性名、table 侧按物理列名），跨侧仅按值相等。命名空间错配（字段名在 row Map 找不到）**显式失败不静默空集**（D1.4 Anti-Hollow）。跨库类型差异由调用方建模保证；首版**不做隐式类型转换**，不匹配即不关联。
-- **结果 schema**：左表列 + 右表列。右表列名与左表冲突时加 `<alias>.` 前缀（`alias` 取自 `NopMetaTableJoin.alias`；alias 为空时用 `right`）。
+- **结果 schema**：左表列 + 右表列。右表列名与左表冲突时加 `<alias>_` 前缀（`alias` 取自 `NopMetaTableJoin.alias`；alias 为空时用 `right`）。冲突前缀字符为下划线 `_`（与 live code `MetaJoinExecutor.mergeRow` 一致；非点号 `.`，以免被 SQL/EQL 解析为 schema 限定符）。
 - **分页**：跨库拼接首版**不保证 LIMIT/OFFSET 全局语义**（内存合并无全局序）——明确文档化为已知限制；limit/offset 仅作为合并后结果集的**截断提示**（取前 limit 行，从 offset 起），调用方如需精确分页应在单表侧先行过滤。
 - **规模上限**：单侧结果集行数上限 `MetaJoinExecutor.MAX_CROSS_DB_ROWS`（默认 10000，可调）；超限显式失败抛 inline ErrorCode（防 OOM，不静默截断）。
 - **`joinType` 语义**：`inner`（仅保留匹配行）/`left`（保留左表全部 + 右表匹配列，未匹配右列填 null）/`right`（**首版显式不支持**——抛 inline ErrorCode，不静默降级为 left、不静默返回左表全集）。跨库 right 语义（保留右表全部）与同库 right 一致不支持。
@@ -1113,7 +1113,7 @@ granularity→分桶表达式表（external/sql 路径，withConnection 原生 S
 - **聚合语义**：与单表路径一致（aggFunc sum/count/avg/min/max/countDistinct、默认过滤器自动应用、`expression` 型 Measure 显式不支持）。
 - **失败路径显式化（无静默跳过/无静默降级单表/无空 items）**：join 不存在/不归属/joinType=right/未知 joinType（由 `loadValidatedJoin` 抛）；任一端点非 entity（external/sql table 端点 → `ERR_AGGR_JOIN_ENDPOINT_NOT_ENTITY`，指向 external/sql JOIN 聚合 deferred）；self-join（`leftEntityId == rightEntityId`，字段归属两侧均命中、无法表达右别名 → `ERR_AGGR_JOIN_SELF_JOIN`）；跨 querySpace（跨库 → `ERR_AGGR_JOIN_CROSS_QUERY_SPACE`，指向跨库 deferred）；字段 `metaEntityId` 既不等于左也不等于右 entity（→ `ERR_AGGR_JOIN_FIELD_SIDE_UNRESOLVED`，带 measureName/dimensionName + joinId）；EQL 编译失败（保留字物理列名如 PRECISION/SCALE/NUMBER，或歧义列 → `ERR_AGGR_JOIN_COMPILE_FAILED`，含迁移指引）。
 - **EQL 保留字风险裁定**：`MetaJoinExecutor.executeSameDbJoin`（行级 JOIN）为规避 EQL 保留字仅投影 join-key 列；本 JOIN 聚合路径须投影两侧任意 measure/dimension 物理列，遇 EQL 编译失败经 `orm().executeQuery` 的 try/catch 收口为 `ERR_AGGR_JOIN_COMPILE_FAILED`（显式失败 + 迁移指引，不静默退化）。这与单表 entity 聚合路径的 EQL 风险一致（单表路径同样投影任意物理列，EQL 失败由通用 exec 错误承载）。
-- **Deferred（已裁定）**：external/sql 端点的 JOIN 聚合（`NopMetaTableMeasure/Dimension` 对 external/sql 表的 `entityFieldId` 为裸列名字符串，无 `metaEntityId`/side/endpointTableId，同名列无法判定左右侧 → 需 ORM 结构变更，Protected Area plan-first；**plan 1200-1 D9 已落地 side 列后此部分收口**）；跨 querySpace（跨库）entity-entity JOIN 聚合（需应用层先拼接再内存聚合，**deferred → plan 1500-2**）；混合端点（entity ↔ external/sql）JOIN 聚合（**同库部分已由 plan 1500-1 D1.5 落地；跨库部分 deferred → plan 1500-2**）。不可同库部分显式失败，不静默跳过。
+- **Deferred（已裁定）**：external/sql 端点的 JOIN 聚合（`NopMetaTableMeasure/Dimension` 对 external/sql 表的 `entityFieldId` 为裸列名字符串，无 `metaEntityId`/side/endpointTableId，同名列无法判定左右侧 → 需 ORM 结构变更，Protected Area plan-first；**plan 1200-1 D9 已落地 side 列后此部分收口**）；跨 querySpace（跨库）entity-entity JOIN 聚合（**plan 1500-2 D10 已落地**：复用 `executeJoin` + 内存 GROUP BY，精确-当-容纳 / 超限-失败）；混合端点（entity ↔ external/sql）JOIN 聚合（**同库部分已由 plan 1500-1 D1.5 落地；跨库部分 plan 1500-2 D10 已落地**）。不可同库部分经内存 GROUP BY 执行（限内精确），超限显式失败，不静默跳过。
 
 **D9 — Measure/Dimension 侧别建模（plan 2026-07-17-1200-1 落地）**：
 
@@ -1126,8 +1126,41 @@ granularity→分桶表达式表（external/sql 路径，withConnection 原生 S
     - **entity 端点**：side **可选**（`entityFieldId → metaEntityId` 已可无歧义判定归属；若提供 side 须与 metaEntityId 端点一致，不一致显式失败）。
     - **无 joinId（单表聚合）**：side 被忽略（向后兼容，既有行 side=null 零行为变化）。
 - **向后兼容**：既有行 `side=null`；单表聚合与 entity↔entity JOIN 聚合（D8）行为零变化。
-- **范围裁定（经 R1 审查；plan 1500-1 D1.5 收口混合端点同库部分）**：本 D9 兑现 **external↔external 同 querySpace** JOIN 聚合（单一共享 `withConnection`，原生 `GROUP BY over JOIN`，可正确）。**混合端点（entity ↔ external/sql）JOIN 聚合**：**同库部分已由 plan 1500-1 D1.5 落地**（external `withConnection` 单连接原生 `GROUP BY over JOIN` + 连接可达性实测判定同库），**跨库部分仍 deferred**（不可同库 → 显式失败 `ERR_AGGR_JOIN_MIXED_CROSS_DB_DEFERRED`，successor `1500-2`，应用层拼接 + 内存 GROUP BY 受 `MAX_CROSS_DB_ROWS` 截断语义近似）。
+- **范围裁定（经 R1 审查；plan 1500-1 D1.5 收口混合端点同库部分；plan 1500-2 D10 收口跨库部分）**：本 D9 兑现 **external↔external 同 querySpace** JOIN 聚合（单一共享 `withConnection`，原生 `GROUP BY over JOIN`，可正确）。**混合端点（entity ↔ external/sql）JOIN 聚合**：**同库部分已由 plan 1500-1 D1.5 落地**（external `withConnection` 单连接原生 `GROUP BY over JOIN` + 连接可达性实测判定同库），**跨库部分已由 plan 1500-2 D10 落地**（复用 `executeJoin` + 内存 GROUP BY，精确-当-容纳 / 超限-失败）。
 - **失败路径显式化（无静默跳过）**：external/sql 端点 side 缺失 / side 指向端点字段集合不含该列 / entity side 与 metaEntityId 不一致 / 混合端点 / 跨 querySpace / `joinType=right` / self-join（双侧别名机制不足）均抛 inline `ErrorCode` + 上下文（measureName/dimensionName + joinId + side + tableType）。
+
+**D10 — 跨库 JOIN 聚合内存 GROUP BY 契约（plan 1500-2 落地）**：
+
+把 D8/D9/D1.5 反复 deferred 的「跨 querySpace（跨库）JOIN 聚合」（entity↔entity / external↔external / 混合端点）从「显式失败」推进到「可执行」。统一路径：**复用 `MetaJoinExecutor.executeJoin`（公开入口，`MetaJoinExecutor.java:139`）取得已合并的 JOIN 行 → 内存 GROUP BY**。`executeJoin` 内部已完成跨库取数（`fetchEntityRows`/`fetchTableRows`）+ `MAX_CROSS_DB_ROWS` 规模守卫（`checkSizeLimit`）+ 命名空间规范化（D1.4）+ joinType 语义（D5），本节复用其产出，**不直接调用 private 取数/合并方法**。
+
+- **aggFunc 内存可计算性**：
+    - `sum`：累加数值（null 跳过）。
+    - `count`：非空值计数。
+    - `avg`：累加 sum + count，结果 = sum/count（count=0 → null，非伪造 0）。
+    - `min`/`max`：比较取极值（null 跳过；全 null → null）。
+    - `countDistinct`：内存去重（`LinkedHashSet`），结果 = 去重后基数。
+    - 不在上列的 aggFunc（含 `expression` 型 Measure）→ 显式失败抛 inline `ErrorCode`（与同库路径一致，不静默跳过、不当 0 返回）。
+- **规模上限语义（精确-当-容纳 / 超限-失败，Anti-Hollow 核心）**：复用 `executeJoin` 时，其内部 `checkSizeLimit`（`MetaJoinExecutor.java:822`）在任一侧行数 > `MAX_CROSS_DB_ROWS`（`:70`，默认 10000）时**直接抛异常**（不截断、不返回部分集）。故经 `executeJoin` 复用路径，跨库聚合语义为「**两侧均在上限内 → 内存全量精确聚合**；任一侧超限 → 显式失败」。**不存在「截断后近似」中间态**。结果可标 `crossDb:true` 表示数据经应用层拼接（聚合值本身精确），**不得**在「超限即失败」路径上声明一个永远无法为 true 的 `truncated:true` 标志（死结果标志）。
+- **合并行 measure/dimension 值提取的命名空间（Anti-Hollow 核心，与同库 SQL 路径严格区分）**：`executeJoin` 返回的合并行 `Map` 的 key **按端点来源保留各自命名空间**（D1.4 不归一到单一命名空间）：
+    - **entity 端点行 key = camelCase 属性名**（`NopMetaEntityField.fieldName`，对应 `fetchEntityRows` 的 `orm_propValueByName` 输出，**非 columnCode**）。
+    - **external/sql 端点行 key = 物理列名**（`ResultSetMetaData.getColumnLabel`，H2 常大写）。
+    - **右侧端点（无论 entity 还是 table）字段名与左侧冲突时**，`MetaJoinExecutor.mergeRow` 对右 key 加 `<alias>_`（underscore）前缀（alias 取自 `NopMetaTableJoin.alias`，空则 `right`；前缀字符为下划线 `_`，与 §4.4.1 D5 一致，非点号）。
+    - 故内存 GROUP BY 提取 measure/dimension 值时**必须按端点来源 + 冲突前缀规则用对应的 key**：entity 侧解析为 `NopMetaEntityField.fieldName`（属性名）取值；table 侧解析为物理列名取值；**右侧冲突字段须按 `<alias>_<name>` 取值，否则会取到左侧值（静默错数据）**。右侧字段取值规则：优先查 `<alias>_<rawKey>` 是否存在于合并行，存在则用前缀键（冲突态），否则用裸键（非冲突态）。
+    - **与同库 SQL 路径严格区分**：同库路径在 SQL 文本中用 columnCode（entity）/物理列（table）+ `l.`/`r.` 别名限定；内存路径在合并行 `Map` 中按上述命名空间 key 取值。两条路径的取值机制不同，不可混用。
+    - **取值失败语义（#24 反空壳要害）**：measure/dimension 的 key 在合并行找不到 → 显式失败抛 inline `ErrorCode`，**绝不静默返回 null/0**（否则 SUM 静默为 0、COUNT 静默漏计，违反 #24）。
+- **joinType 在内存聚合的语义**：`inner`（仅匹配行参与聚合）/ `left`（左全 + 右匹配，未匹配右列 null 参与聚合——null 被 aggFunc 按「null 跳过」规则处理）/ `right`（首版显式不支持，沿用 D5，由 `loadValidatedJoin` 抛）。
+- **分页**：内存合并无全局序，`limit`/`offset` 仅作合并后截断提示（沿用 D5 分页裁定，跨库无全局序），文档化为已知限制。
+- **实现接线**：`MetaAggregationExecutor.executeCrossDbJoinAggregation`（新增）在运行时被 `executeJoinAggregation` 的跨库分支真实调用（entity↔entity 跨 querySpace / external↔external 跨 querySpace / 混合端点不可同库 均进入）。measure/dimension 侧别解析复用既有 resolver 语义：entity↔entity 复用 `JoinFieldResolver`（entityFieldId→metaEntityId 判定侧别 + fieldName 取值）；external↔external 复用 `JoinExternalSideResolver`（side 必填 + 列名存在性校验）；混合端点复用 `JoinMixedSideResolver`（entity 侧 fieldName / table 侧 side 必填）。内存 GROUP BY 按 dimension 值分组 → 按 aggFunc 内存累加 → 输出 items。
+- **失败路径显式化（#24，无静默跳过/无静默降级/无空 items/无伪造值）**：
+    - **超限**（`executeJoin` 内 `checkSizeLimit` 显式失败，本路径不吞异常）。
+    - **join key 命名空间错配**（`executeJoin` 内 `requireFieldInRowKeys` 已校验，显式失败）。
+    - **measure/dimension key 在合并行缺失**（本节新增显式失败，**绝不静默返回 null/0**）。
+    - **side 缺失**（external/sql 端点 side 必填，沿用 D9）。
+    - **joinType=right**（由 `loadValidatedJoin` 抛，沿用 D5）。
+    - **self-join**（entity↔entity leftEntityId==rightEntityId / external↔external leftTableId==rightTableId，双侧别名机制不足，沿用 D8/D9）。
+    - **空端点**（entity/table 端点解析失败，由 `resolveEndpoint` 抛）。
+- **范围裁定（收口 deferred）**：本 D10 收口 D8 Deferred「跨 querySpace entity-entity JOIN 聚合」+ D9 Deferred「跨 querySpace external↔external JOIN 聚合」+ D1.5 Deferred「不可同库混合端点聚合」（三者均 deferred → plan 1500-2）。**大基数 countDistinct 精确去重**（接近/超 `MAX_CROSS_DB_ROWS` 的去重）为 optimization candidate（超限即失败已满足当前结果面，非静默近似）。
+- **Anti-Hollow**：`executeCrossDbJoinAggregation` 在运行时被 `executeJoinAggregation` 跨库分支真实调用（非空方法体、非静默跳过）；复用的 `MetaJoinExecutor.executeJoin`(`:139`) 被真实调用并产出合并行（非仅类型存在）；内存 GROUP BY 产出真实聚合值（按端点命名空间取值，entity 端点组合聚合值正确非静默 0）。
 
 ---
 
