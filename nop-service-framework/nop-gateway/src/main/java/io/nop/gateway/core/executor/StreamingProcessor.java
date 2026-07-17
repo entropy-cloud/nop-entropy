@@ -116,6 +116,7 @@ public class StreamingProcessor {
             public void onSubscribe(Flow.Subscription subscription) {
                 this.subscription = subscription;
                 subscriber.onSubscribe(subscription);
+                subscription.request(1);
             }
 
             @Override
@@ -133,8 +134,10 @@ public class StreamingProcessor {
                         subscriber.onNext(element);
                     }
 
+                    subscription.request(1);
+
                 } catch (Exception e) {
-                    onError(e);
+                    subscriber.onError(e);
                 }
             }
 
@@ -143,10 +146,14 @@ public class StreamingProcessor {
                 try {
                     Object element = invocation.proceedOnError(throwable, context);
                     if (element != null) {
+                        // 降级响应为正常终止信号：onNext + onComplete，而非 onError
                         subscriber.onNext(element);
+                        subscriber.onComplete();
+                    } else {
+                        subscriber.onError(throwable);
                     }
                 } catch (Exception e) {
-                    subscriber.onError(throwable);
+                    subscriber.onError(e);
                 }
             }
 

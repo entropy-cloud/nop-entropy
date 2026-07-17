@@ -136,9 +136,9 @@ public class RouteExecutor {
         IBackendMessageConverter backendMessageConverter = getConverter(route);
         if (backendMessageConverter != null) {
             io.nop.api.core.beans.ApiRequest<?> req = backendMessageConverter.toBackendRequest(request);
-            return executeLogic0(route, request, context).thenApply(res -> {
+            return executeLogic0(route, req, context).thenApply(res -> {
                 if (backendMessageConverter != null)
-                    res = backendMessageConverter.toFrontendResponse(res, request);
+                    res = backendMessageConverter.toFrontendResponse(res, req);
                 return res;
             });
         } else {
@@ -167,6 +167,10 @@ public class RouteExecutor {
     IBackendMessageConverter getConverter(GatewayRouteModel route) {
         if (route.getBackendMessageConverter() == null)
             return null;
-        return (IBackendMessageConverter) BeanContainer.instance().getBean("nopBackendMessageConverter_" + route.getBackendMessageConverter());
+        String beanName = "nopBackendMessageConverter_" + route.getBackendMessageConverter();
+        Object bean = BeanContainer.tryGetBean(beanName);
+        if (bean == null)
+            return null;
+        return (IBackendMessageConverter) bean;
     }
 }

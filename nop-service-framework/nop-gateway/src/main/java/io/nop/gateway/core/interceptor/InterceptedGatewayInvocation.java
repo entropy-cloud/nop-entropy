@@ -107,7 +107,7 @@ public class InterceptedGatewayInvocation implements IGatewayInvocation {
                 return result;
             }
         }
-        return invocation.proceedOnStreamElement(element, svcCtx);
+        return invocation.proceedOnStreamElement(result, svcCtx);
     }
 
     @Override

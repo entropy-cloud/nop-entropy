@@ -10,17 +10,21 @@ package io.nop.gateway.core.streaming;
 import io.nop.gateway.model.GatewayStreamingModel;
 
 import java.util.concurrent.Flow;
+import java.util.concurrent.atomic.AtomicReference;
 
 /**
  * 流式响应对象，包装Flow.Publisher和相关配置
  *
  * <p>此对象存储在GatewayContext中，供GatewayHttpFilter使用来执行真正的流式响应。</p>
+ * <p>支持客户端断连传播：通过{@link #setUpstreamSubscription(Flow.Subscription)}注入上游
+ * Subscription，客户端断连时调用{@link #abort()}取消上游推送。</p>
  */
 public class StreamingResponse {
 
     private final Flow.Publisher<Object> publisher;
     private final String contentType;
     private final GatewayStreamingModel streamingModel;
+    private final AtomicReference<Flow.Subscription> upstreamSubscription = new AtomicReference<>();
 
     public StreamingResponse(Flow.Publisher<Object> publisher,
                              String contentType,
@@ -50,6 +54,25 @@ public class StreamingResponse {
      */
     public GatewayStreamingModel getStreamingModel() {
         return streamingModel;
+    }
+
+    /**
+     * 注入上游Subscription，用于客户端断连时取消上游推送
+     */
+    public void setUpstreamSubscription(Flow.Subscription subscription) {
+        if (subscription == null)
+            throw new IllegalArgumentException("upstreamSubscription must not be null");
+        upstreamSubscription.set(subscription);
+    }
+
+    /**
+     * 客户端断连时调用，取消上游推送
+     */
+    public void abort() {
+        Flow.Subscription sub = upstreamSubscription.get();
+        if (sub != null) {
+            sub.cancel();
+        }
     }
 
 }

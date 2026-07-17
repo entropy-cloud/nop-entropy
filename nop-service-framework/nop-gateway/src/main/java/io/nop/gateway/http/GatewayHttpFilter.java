@@ -83,6 +83,7 @@ public class GatewayHttpFilter implements IHttpServerFilter {
         this.recordMappingManager = recordMappingManager;
     }
 
+    @Inject
     public void setExecutionInvoker(IAsyncFunctionInvoker executionInvoker) {
         this.executionInvoker = executionInvoker;
     }
@@ -175,14 +176,16 @@ public class GatewayHttpFilter implements IHttpServerFilter {
         }
 
         final String ct = contentType;
+        Flow.Publisher<Object> source = streamingResponse.getPublisher();
+
         Flow.Publisher<String> stringPublisher = subscriber -> {
-            Flow.Publisher<Object> source = streamingResponse.getPublisher();
             source.subscribe(new Flow.Subscriber<Object>() {
                 private Flow.Subscription subscription;
 
                 @Override
                 public void onSubscribe(Flow.Subscription subscription) {
                     this.subscription = subscription;
+                    streamingResponse.setUpstreamSubscription(subscription);
                     subscriber.onSubscribe(subscription);
                     subscription.request(1);
                 }
@@ -211,7 +214,14 @@ public class GatewayHttpFilter implements IHttpServerFilter {
             });
         };
 
-        return context.sendStreamingResponse(HttpStatus.SC_OK, contentType, stringPublisher);
+        CompletionStage<Void> future = context.sendStreamingResponse(HttpStatus.SC_OK, contentType, stringPublisher);
+
+        // 客户端断连时取消上游推送
+        future.whenComplete((res, err) -> {
+            streamingResponse.abort();
+        });
+
+        return future;
     }
 
     private String serializeStreamElement(Object item, String contentType) {
