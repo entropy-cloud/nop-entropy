@@ -130,6 +130,8 @@ private File resolveFile(String path) {
 
 This means `readText("/etc/passwd")` would succeed despite `isPathAllowed()` returning `false`. This is a security gap in the current implementation — enforcement depends on the caller checking `isPathAllowed()` first, which is not enforced by the API contract.
 
+Note: the dispatch layer (`ReActAgentExecutor.checkPathAccess()`) provides partial mitigation via `IPathAccessChecker.checkAccess()` on tool-call arguments matching `ToolPathArgKeys.KEYS`. This creates a two-layer defense: dispatch-layer argument screening + filesystem-layer path containment. However, the gap remains because (1) `isPathAllowed()` is still not enforced at the filesystem layer, (2) tool executors that construct paths internally from non-path arguments bypass dispatch-layer screening, and (3) the two layers are inconsistently enforced.
+
 ### 4.3 Future Security Enhancements
 
 Design direction from `nop-ai-shell-design.md §5.4` and `nop-ai-agent-security-and-permissions.md`:
@@ -147,7 +149,7 @@ Design direction from `nop-ai-shell-design.md §5.4` and `nop-ai-agent-security-
 | **Orientation** | Resource management (load/unload/store) | File content operations |
 | **Security** | Access control by module/grant | Path containment + pattern allow/deny |
 | **Read pattern** | getResource() → IResource | readText/maxChars, readLines/range |
-| **Search** | Not built-in | glob + grep with depth/max bounds |
+| **Search** | Built-in: find, findAllByAntPath, getAllResources (resource-oriented, returns IResource) | glob + grep with depth/max bounds (content-oriented, returns match details) |
 | **Write** | Not primary concern | writeText + mkdirs + delete + move + copy |
 | **Binary** | Yes (InputStream) | No (text-only) |
 | **Delta** | Delta-based resource overlay | No layering yet (planned) |
@@ -192,7 +194,7 @@ They share physical filesystem space but serve different logical concerns. A too
 ### 8.1 Security Enforcement Gap (P0)
 `isPathAllowed()` is not called by file operation methods. Absolute path bypass is possible. Fix: enforce `isPathAllowed()` inside `resolveFile()` or add a security interceptor in LocalToolFileSystem.
 
-### 8.2 LayeredToolFileSystem (P0)
+### 8.2 LayeredToolFileSystem (P1)
 AI tools often need to read from multiple directories (project source, libraries, reference data) while writing only to a specific output directory. A `LayeredToolFileSystem` should overlay multiple directories, with read-through semantics and write-to-primary.
 
 ```
@@ -214,11 +216,30 @@ Currently text-only. Binary files (images, compiled artifacts) would require `re
 ### 8.6 Multi-Root Workspaces (P2)
 AI tools in large projects need access to multiple independent directories. A `CompositeToolFileSystem` could combine multiple roots with union semantics.
 
-### 8.7 The `IToolExecuteContext` Evolution
+### 8.7 BashExecutor Filesystem Bypass (P0)
+`BashExecutor` in `nop-ai-toolkit` does not use `IToolFileSystem` at all — it operates directly on the filesystem via `ProcessBuilder`. This means all path security measures (`isPathAllowed()`, `IPathAccessChecker`, workDir containment) are bypassed when a tool invokes a shell command. The shell inherits the JVM process's filesystem access.
+
+The planned mitigation is `nop-ai-shell` (see `nop-ai-shell-design.md`): a virtual in-process shell that parses bash AST, executes commands via a whitelisted `ShellCommandRegistry` (currently echo/cd/ls), and uses `IToolFileSystem` internally for all file operations. The bridge class `ShellBashExecutor` (wrapping `ShellCommandExecutor` as an `IToolExecutor`) is designed but not yet implemented. Once wired via IoC Delta, it can replace `BashExecutor` at the bean level without agent-engine changes.
+
+Short-term mitigation options:
+- Enforce `cd workDir` in every shell command preamble (partially mitigates, does not prevent `../` escapes)
+- Pre-process command arguments to detect/reject absolute paths outside workDir
+- Run shell commands in a container/sandbox (Layer 4 scope)
+
+### 8.8 Thread Safety (P2)
+`LocalToolFileSystem` uses shared mutable state (`AntPathMatcher antMatcher` field) and delegates to java.io.File operations that are not thread-safe. Concurrent tool calls may interfere during glob/grep operations. Each method call should use a local `AntPathMatcher` instance instead of the shared field.
+
+### 8.9 Concurrent Write Safety (P2)
+`writeText` delegates to `FileHelper.writeText()`, which is not an atomic operation. Concurrent writes to the same file may interleave, producing corrupted content. For AI tool workloads this is low-risk (single-agent, sequential tool calls), but multi-agent parallel writes would need coordination (file locking, write coordination via the multi-agent layer).
+
+### 8.10 Encoding Assumption
+`LocalToolFileSystem` hardcodes `StandardCharsets.UTF_8` for all read/write operations. This is sufficient for most AI tool workloads but should be documented as a constraint.
+
+### 8.11 The `IToolExecuteContext` Evolution
 
 `IToolFileSystem` is accessed through `IToolExecuteContext.getFileSystem()`. The context hierarchy has evolved organically without a formal interface contract between the toolkit base and the agent extension.
 
-#### 8.7.1 Hierarchy (No Interface Extension)
+#### 8.11.1 Hierarchy (No Interface Extension)
 
 There is no `IAgentToolExecuteContext` interface. The hierarchy is flat — all implementations directly implement `IToolExecuteContext`:
 
@@ -229,7 +250,7 @@ IToolExecuteContext (interface, nop-ai-toolkit)
   └── AgentToolExecuteContext (class, nop-ai-agent)       — 6 base + 12 extra fields
 ```
 
-#### 8.7.2 Three Layers at Two Module Boundaries
+#### 8.11.2 Three Layers at Two Module Boundaries
 
 | Layer | Module | Class | Methods | Callers |
 |-------|--------|-------|---------|---------|
@@ -237,7 +258,7 @@ IToolExecuteContext (interface, nop-ai-toolkit)
 | Simple (Agent test) | nop-ai-agent | `SimpleToolExecuteContext` | Same 6 — no extra | Test setups in nop-ai-agent |
 | Extended (Agent) | nop-ai-agent | `AgentToolExecuteContext` | + getEngine, getMessenger, getSessionId, getAgentName, getAllowedTools, getAllowedPathRoots, getAllowedPathRules, getMemoryStore, getTeamManager, getTeamTaskStore, getTeamAclChecker, getDelegationDepth/getSession (+ setters) | Engine-aware tools in nop-ai-agent (9 executors) |
 
-#### 8.7.3 Constructor Evolution
+#### 8.11.3 Constructor Evolution
 
 The constructors grew from 6 to 17 parameters as new capabilities were added, each adding a new domain concept:
 
@@ -256,7 +277,7 @@ Two mutable fields via setters (not constructor):
 - `delegationDepth` — set by ReActAgentExecutor before dispatch loop (Plan 278)
 - `session` — set by dispatch loop from sessionStore (Plan 296 WS2)
 
-#### 8.7.4 The `instanceof` Pattern (Fragile Contract)
+#### 8.11.4 The `instanceof` Pattern (Fragile Contract)
 
 9 tool executors in `nop-ai-agent` access extended fields via `instanceof AgentToolExecuteContext`:
 
@@ -274,7 +295,7 @@ TeamTaskUpdateExecutor.execute()              → same
 
 The pattern is consistent: check `instanceof`, fail-fast with descriptive error if false, cast, access extended field, null-check the field, fail-fast if absent. No tool silently no-ops.
 
-#### 8.7.5 Design Gap
+#### 8.11.5 Design Gap
 
 - **No intermediate interface**: Tools that need engine/messenger access cannot declare their dependency via a type. `instanceof` is fragile and invisible to static analysis.
 - **No capability marker**: A tool cannot declare "I need `IAgentMessenger`" at type level. The contract is implicit (check instanceof at runtime).
