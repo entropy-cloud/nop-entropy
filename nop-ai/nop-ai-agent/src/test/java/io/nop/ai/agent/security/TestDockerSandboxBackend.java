@@ -2,6 +2,8 @@ package io.nop.ai.agent.security;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
+import org.junit.jupiter.api.condition.DisabledOnOs;
+import org.junit.jupiter.api.condition.OS;
 
 import java.io.File;
 import java.nio.file.Files;
@@ -48,6 +50,7 @@ import static org.junit.jupiter.api.Assertions.fail;
  * covering command construction / result parsing / fail-closed /
  * resource mapping / cleanup / conditional integration".
  */
+@DisabledOnOs(OS.WINDOWS)
 public class TestDockerSandboxBackend {
 
     // ========================================================================

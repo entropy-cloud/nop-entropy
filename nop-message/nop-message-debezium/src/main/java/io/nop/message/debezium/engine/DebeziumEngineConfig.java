@@ -38,8 +38,12 @@ public class DebeziumEngineConfig {
         // 数据库连接配置
         props.setProperty("database.hostname", config.getDatabaseHost());
         props.setProperty("database.port", String.valueOf(config.getDatabasePort()));
-        props.setProperty("database.user", config.getDatabaseUser());
-        props.setProperty("database.password", config.getDatabasePassword());
+        if (config.getDatabaseUser() != null) {
+            props.setProperty("database.user", config.getDatabaseUser());
+        }
+        if (config.getDatabasePassword() != null) {
+            props.setProperty("database.password", config.getDatabasePassword());
+        }
 
         // 逻辑服务器名称
         String serverName = config.getServerName();

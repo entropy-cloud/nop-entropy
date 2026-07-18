@@ -218,7 +218,11 @@ public class TestIncrementalIndexWithDb extends JunitAutoTestCase {
 
         // Call triggerIncrementalIndex via GraphQL.
         // Since files on disk have not changed, incremental detection should return 0 changes.
-        String vfsPath = "file:" + Paths.get(testProjectPath).toAbsolutePath().toString();
+        String absPath = Paths.get(testProjectPath).toAbsolutePath().toString().replace('\\', '/');
+        if (absPath.length() >= 2 && absPath.charAt(1) == ':') {
+            absPath = "/" + absPath;
+        }
+        String vfsPath = "file:" + absPath;
         Map<String, Object> incrData = new HashMap<>();
         incrData.put("indexId", indexId);
         incrData.put("projectPath", vfsPath);

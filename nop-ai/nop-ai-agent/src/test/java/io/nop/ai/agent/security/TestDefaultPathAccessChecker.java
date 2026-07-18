@@ -4,6 +4,8 @@ import io.nop.ai.agent.engine.AgentExecutionContext;
 import io.nop.ai.agent.model.AgentModel;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
+import org.junit.jupiter.api.condition.DisabledOnOs;
+import org.junit.jupiter.api.condition.OS;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -24,11 +26,11 @@ public class TestDefaultPathAccessChecker {
 
     @Test
     void testSshKeyDenied() {
-        String home = System.getProperty("user.home");
+        String home = System.getProperty("user.home").replace("\\", "/");
         PathAccessResult result = checker.checkAccess(home + "/.ssh/id_rsa", newContext());
         assertFalse(result.isAllowed());
         assertNotNull(result.getReason());
-        assertTrue(result.getReason().contains(home + "/.ssh/id_rsa"));
+        assertTrue(result.getReason().replace("\\", "/").contains(home + "/.ssh/id_rsa"));
         assertEquals("sensitive_path_prefix", result.getMatchedRule());
     }
 
@@ -128,13 +130,13 @@ public class TestDefaultPathAccessChecker {
     @Test
     void testTildeExpansionSshKey() {
         PathAccessResult result = checker.checkAccess("~/.ssh/config", newContext());
-        assertFalse(result.isAllowed());
+        assertFalse(result.isAllowed(), "~/.ssh/config must be denied via tilde expansion");
     }
 
     @Test
     void testTildeExpansionAws() {
         PathAccessResult result = checker.checkAccess("~/.aws/credentials", newContext());
-        assertFalse(result.isAllowed());
+        assertFalse(result.isAllowed(), "~/.aws/credentials must be denied via tilde expansion");
     }
 
     @Test
@@ -199,6 +201,7 @@ public class TestDefaultPathAccessChecker {
      * Docker integration test's skip-on-missing-prerequisite convention.
      */
     @Test
+    @DisabledOnOs(OS.WINDOWS)
     void symlinkToSensitiveDirIsDenied(@TempDir Path tempDir) throws Exception {
         String home = System.getProperty("user.home", "");
         Path sensitiveTarget = null;

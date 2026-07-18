@@ -228,9 +228,12 @@ class TestCheckpointCoordinator {
         coord.setTasksToAcknowledge(java.util.Arrays.asList(LOC_1, LOC_2));
         try {
             coord.startCheckpointScheduler();
-            Thread.sleep(200);
+            long deadline = System.currentTimeMillis() + 60_000;
+            while (coord.getNumberOfPendingCheckpoints() < 1 && System.currentTimeMillis() < deadline) {
+                Thread.sleep(10);
+            }
             assertTrue(coord.getNumberOfPendingCheckpoints() >= 1,
-                    "Scheduler should have triggered at least one checkpoint");
+                    "Scheduler should have triggered at least one checkpoint within 1 minute");
             coord.stopCheckpointScheduler();
         } finally {
             coord.shutdown();

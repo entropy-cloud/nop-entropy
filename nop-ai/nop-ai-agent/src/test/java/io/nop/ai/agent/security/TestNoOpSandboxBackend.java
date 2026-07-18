@@ -2,6 +2,8 @@ package io.nop.ai.agent.security;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
+import org.junit.jupiter.api.condition.EnabledOnOs;
+import org.junit.jupiter.api.condition.OS;
 
 import java.io.File;
 import java.nio.file.Files;
@@ -34,10 +36,8 @@ public class TestNoOpSandboxBackend {
     // ========================================================================
 
     @Test
+    @EnabledOnOs({OS.LINUX, OS.MAC})
     void executesCommandAndCapturesExitCodeAndStdout() {
-        // Use sh -c so the test is portable across macOS/Linux. On Windows
-        // the test JVM would skip these because sh is not on PATH; the
-        // project's CI is macOS/Linux so this is acceptable.
         SandboxRequest req = SandboxRequest.of(
                 List.of("sh", "-c", "echo hello-sandbox; exit 0"),
                 SandboxConfig.defaults());
@@ -52,6 +52,7 @@ public class TestNoOpSandboxBackend {
     }
 
     @Test
+    @EnabledOnOs({OS.LINUX, OS.MAC})
     void capturesNonZeroExitCode() {
         SandboxRequest req = SandboxRequest.of(
                 List.of("sh", "-c", "echo to-stderr 1>&2; exit 7"),
@@ -70,6 +71,7 @@ public class TestNoOpSandboxBackend {
     // ========================================================================
 
     @Test
+    @EnabledOnOs({OS.LINUX, OS.MAC})
     void wallTimeTimeoutKillsRunawayProcess() {
         // sleep 30 will exceed a 1-second wall budget; the backend must
         // return timedOut=true AND not block for the full 30 seconds.
@@ -107,6 +109,7 @@ public class TestNoOpSandboxBackend {
     // ========================================================================
 
     @Test
+    @EnabledOnOs({OS.LINUX, OS.MAC})
     void outputIsTruncatedToMaxBytes() {
         // 4-byte payload, 1-byte cap — truncation must kick in.
         SandboxConfig tiny = SandboxConfig.builder()
@@ -129,6 +132,7 @@ public class TestNoOpSandboxBackend {
     }
 
     @Test
+    @EnabledOnOs({OS.LINUX, OS.MAC})
     void largeOutputIsTruncatedWithoutDeadlock() {
         // Generate ~64KB then exceed a 512-byte cap. The drain-after-cap
         // loop must prevent the child from blocking on a full pipe.
@@ -154,6 +158,7 @@ public class TestNoOpSandboxBackend {
     // ========================================================================
 
     @Test
+    @EnabledOnOs({OS.LINUX, OS.MAC})
     void environmentVariablesArePropagatedToChild() {
         SandboxRequest req = SandboxRequest.builder()
                 .command(List.of("sh", "-c", "echo $SANDBOX_TEST_VAR"))
@@ -173,6 +178,7 @@ public class TestNoOpSandboxBackend {
     // ========================================================================
 
     @Test
+    @EnabledOnOs({OS.LINUX, OS.MAC})
     void workingDirectoryIsHonoured(@TempDir Path tempDir) throws Exception {
         // Create a marker file in tempDir; the child pwd check must land
         // there and observe the marker.

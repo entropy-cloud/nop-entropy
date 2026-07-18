@@ -15,6 +15,7 @@ import java.io.File;
 import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
 public class BashExecutorTest {
     private BashExecutor executor;
@@ -64,10 +65,11 @@ public class BashExecutorTest {
 
     @Test
     void testExecuteWithWorkingDir() {
+        boolean isWin = System.getProperty("os.name").toLowerCase().contains("win");
         XNode node = XNode.make("bash");
         node.setAttr("id", "1");
         node.setAttr("workingDir", System.getProperty("java.io.tmpdir"));
-        node.makeChild("command").setContentValue("pwd");
+        node.makeChild("command").setContentValue(isWin ? "echo %cd%" : "pwd");
         AiToolCall call = AiToolCall.fromNode(node);
         AiToolCallResult result = executor.executeAsync(call, new MockContext()).toCompletableFuture().join();
         assertEquals("success", result.getStatus());
@@ -75,9 +77,9 @@ public class BashExecutorTest {
 
     @Test
     void testExecuteWithEnv() {
+        boolean isWin = System.getProperty("os.name").toLowerCase().contains("win");
         XNode node = XNode.make("bash");
-        node.setAttr("id", "1");
-        node.makeChild("command").setContentValue("echo $MY_VAR");
+        node.makeChild("command").setContentValue(isWin ? "echo %MY_VAR%" : "echo $MY_VAR");
         XNode env = node.makeChild("env");
         env.setAttr("name", "MY_VAR");
         env.setAttr("value", "test_value");

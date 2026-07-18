@@ -1,5 +1,6 @@
 package io.nop.code.core.incremental;
 
+import io.nop.commons.util.FileHelper;
 import io.nop.core.initialize.CoreInitialization;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
@@ -37,7 +38,7 @@ class TestManifestStore {
     @BeforeEach
     void setUp() {
         store = new ManifestStore();
-        manifestPath = "file:" + tempDir.resolve("manifest.json").toAbsolutePath();
+        manifestPath = FileHelper.getFileUrl(tempDir.resolve("manifest.json").toFile());
     }
 
     private FileFingerprint fp(String path, String hash, long modified, long size) {
@@ -65,7 +66,7 @@ class TestManifestStore {
 
     @Test
     void testLoadNonExistent() throws IOException {
-        List<FileFingerprint> loaded = store.load("file:" + tempDir.resolve("no-such-file.json").toAbsolutePath());
+        List<FileFingerprint> loaded = store.load(FileHelper.getFileUrl(tempDir.resolve("no-such-file.json").toFile()));
         assertNotNull(loaded);
         assertTrue(loaded.isEmpty());
     }
@@ -110,14 +111,14 @@ class TestManifestStore {
     void testLoadMalformedJson() throws IOException {
         Path manifestFile = tempDir.resolve("manifest.json");
         Files.writeString(manifestFile, "this is not json!!!");
-        List<FileFingerprint> loaded = store.load("file:" + manifestFile.toAbsolutePath());
+        List<FileFingerprint> loaded = store.load(FileHelper.getFileUrl(manifestFile.toFile()));
         assertNotNull(loaded);
         assertTrue(loaded.isEmpty());
     }
 
     @Test
     void testSaveCreatesParentDirectories() throws IOException {
-        String nestedPath = "file:" + tempDir.resolve("a").resolve("b").resolve("c").resolve("manifest.json").toAbsolutePath();
+        String nestedPath = FileHelper.getFileUrl(tempDir.resolve("a").resolve("b").resolve("c").resolve("manifest.json").toFile());
         store.save(nestedPath, List.of(fp("x.txt", "h", 1L, 1L)));
         assertTrue(Files.exists(tempDir.resolve("a").resolve("b").resolve("c").resolve("manifest.json")));
         assertEquals(1, store.load(nestedPath).size());

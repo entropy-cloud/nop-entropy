@@ -3,6 +3,7 @@ package io.nop.code.core.analyzer;
 import io.nop.code.core.adapter.LanguageAdapterRegistry;
 import io.nop.code.core.model.CodeFileAnalysisResult;
 import io.nop.code.core.model.CodeLanguage;
+import io.nop.commons.util.FileHelper;
 import io.nop.core.initialize.CoreInitialization;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
@@ -38,7 +39,7 @@ class TestProjectAnalyzerFileFilter {
     }
 
     private String vfsPath() {
-        return "file:" + tempDir.toAbsolutePath();
+        return FileHelper.getFileUrl(tempDir.toFile());
     }
 
     @BeforeEach

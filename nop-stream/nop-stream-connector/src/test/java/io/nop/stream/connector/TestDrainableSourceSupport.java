@@ -72,7 +72,12 @@ class TestDrainableSourceSupport {
         });
         sourceThread.start();
 
-        Thread.sleep(100);
+        // Wait until the source thread has started collecting items
+        long deadline = System.currentTimeMillis() + 60_000;
+        while (collected.isEmpty() && System.currentTimeMillis() < deadline) {
+            Thread.sleep(10);
+        }
+        assertFalse(collected.isEmpty(), "Source thread did not collect items within 1 minute");
 
         source.truncateForDrain();
 

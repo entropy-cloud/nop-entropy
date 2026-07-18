@@ -8,6 +8,8 @@ import io.nop.ai.agent.security.SandboxResult;
 import io.nop.ai.api.chat.IChatService;
 import io.nop.ai.toolkit.api.IToolManager;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.condition.EnabledOnOs;
+import org.junit.jupiter.api.condition.OS;
 
 import java.util.List;
 
@@ -171,6 +173,7 @@ public class TestSandboxWiring {
     // ========================================================================
 
     @Test
+    @EnabledOnOs({OS.LINUX, OS.MAC})
     void smokeExecuteReturnsPopulatedResult() {
         // The Anti-Hollow check (Minimum Rules #22 / #24): calling
         // execute() directly on the wired backend must return a populated

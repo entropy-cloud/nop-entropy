@@ -291,13 +291,22 @@ public class TestDBMessageService {
         });
 
         svc.send("close.topic", "test");
-        Thread.sleep(200);
+
+        // Wait for the first message to be consumed
+        long deadline = System.currentTimeMillis() + 10_000;
+        while (System.currentTimeMillis() < deadline) {
+            int pending = countRows("STATUS = " + AiAgentMessageTable.STATUS_PENDING);
+            if (pending == 0) break;
+            Thread.sleep(50);
+        }
+        assertEquals(0, countRows("STATUS = " + AiAgentMessageTable.STATUS_PENDING),
+                "first message should have been consumed before close");
 
         svc.close();
 
         svc.send("close.topic", "after-close");
-        Thread.sleep(500);
 
+        Thread.sleep(1000);
         assertEquals(1, countRows("STATUS = " + AiAgentMessageTable.STATUS_PENDING),
                 "after close, new messages should remain PENDING (no polling)");
     }

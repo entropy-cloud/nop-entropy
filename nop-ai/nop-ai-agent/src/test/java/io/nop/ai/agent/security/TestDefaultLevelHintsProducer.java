@@ -31,6 +31,11 @@ public class TestDefaultLevelHintsProducer {
         return tempDir.toFile();
     }
 
+    private static String absoluteOutsidePath() {
+        boolean isWin = System.getProperty("os.name").toLowerCase().contains("win");
+        return isWin ? "C:/Windows/System32/drivers/etc/hosts" : "/etc/some/outside/path.txt";
+    }
+
     // ========================================================================
     // Anti-Hollow: hints are semantically distinct across inputs
     // ========================================================================
@@ -52,7 +57,7 @@ public class TestDefaultLevelHintsProducer {
     @Test
     void writeFileOutsideWorkspaceSetsWritesOutside() {
         Map<String, Object> args = new HashMap<>();
-        args.put("file", "/etc/some/outside/path.txt");
+        args.put("file", absoluteOutsidePath());
 
         LevelHints hints = producer.produce("fs.write", args, workDir(), null);
 
@@ -105,7 +110,7 @@ public class TestDefaultLevelHintsProducer {
         LevelHints shellHints = producer.produce("shell.exec", Map.of(), workDir(), null);
         LevelHints netHints = producer.produce("web.fetch", Map.of(), workDir(), null);
         LevelHints outsideHints = producer.produce(
-                "fs.write", Map.of("file", "/etc/outside.txt"), workDir(), null);
+                "fs.write", Map.of("file", absoluteOutsidePath()), workDir(), null);
 
         assertTrue(shellHints.isHighImpact() && !readHints.isHighImpact(),
                 "highImpact must distinguish shell from fs.read");
@@ -170,7 +175,7 @@ public class TestDefaultLevelHintsProducer {
     void nullWorkDirAbsoluteOutsidePathIsOutside() {
         // Absolute path outside JVM CWD with workDir=null is outside.
         Map<String, Object> args = new HashMap<>();
-        args.put("file", "/etc/some-definitely-outside-marker.txt");
+        args.put("file", absoluteOutsidePath());
 
         LevelHints hints = producer.produce("fs.write", args, null, null);
 

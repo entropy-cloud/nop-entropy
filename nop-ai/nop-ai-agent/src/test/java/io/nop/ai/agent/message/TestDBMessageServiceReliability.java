@@ -222,6 +222,13 @@ public class TestDBMessageServiceReliability {
 
             waitForCondition(() -> received.get() != null, 15, TimeUnit.SECONDS);
             assertTrue(received.get() != null, "stranded CLAIMED message must be redelivered after sweep");
+            waitForCondition(() -> {
+                try {
+                    return AiAgentMessageTable.STATUS_CONSUMED == statusOf("stranded-1");
+                } catch (Exception e) {
+                    return false;
+                }
+            }, 10, TimeUnit.SECONDS);
             assertEquals(AiAgentMessageTable.STATUS_CONSUMED, statusOf("stranded-1"),
                     "redelivered message should reach CONSUMED");
         } finally {

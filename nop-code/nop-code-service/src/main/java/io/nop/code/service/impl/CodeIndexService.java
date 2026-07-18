@@ -1945,10 +1945,21 @@ public class CodeIndexService implements ICodeIndexService {
     private String resolveVfsPath(String path) {
         if (path == null || path.isEmpty())
             return path;
-        if (path.startsWith("file:") || path.startsWith("/"))
-            return "file:" + (path.startsWith("file:") ? path.substring(5) : path);
+        if (path.startsWith("file:")) {
+            String filePart = path.substring(5).replace('\\', '/');
+            if (filePart.length() >= 2 && filePart.charAt(1) == ':' && !filePart.startsWith("/")) {
+                filePart = "/" + filePart;
+            }
+            return "file:" + filePart;
+        }
+        if (path.startsWith("/"))
+            return "file:" + path;
         java.io.File f = new java.io.File(path);
-        return "file:" + f.getAbsolutePath();
+        String absPath = f.getAbsolutePath().replace('\\', '/');
+        if (absPath.length() >= 2 && absPath.charAt(1) == ':') {
+            absPath = "/" + absPath;
+        }
+        return "file:" + absPath;
     }
 
     private static class MappedPathResource implements IResource {

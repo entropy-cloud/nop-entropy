@@ -124,9 +124,15 @@ public class TestReadMemoryExecutor {
 
     @Test
     void lastReturnsMostRecentN() throws Exception {
-        store.add(item("k1", "note", "first", 0, false));
-        store.add(item("k2", "note", "second", 0, false));
-        store.add(item("k3", "note", "third", 0, false));
+        AiMemoryItem i1 = item("k1", "note", "first", 0, false);
+        i1.setCreateTime(LocalDateTime.now().minusMinutes(3));
+        store.add(i1);
+        AiMemoryItem i2 = item("k2", "note", "second", 0, false);
+        i2.setCreateTime(LocalDateTime.now().minusMinutes(2));
+        store.add(i2);
+        AiMemoryItem i3 = item("k3", "note", "third", 0, false);
+        i3.setCreateTime(LocalDateTime.now().minusMinutes(1));
+        store.add(i3);
 
         AiToolCallResult result = executor.executeAsync(call("{\"action\":\"last\",\"n\":2}"), contextWithStore())
                 .toCompletableFuture().get(10, TimeUnit.SECONDS);

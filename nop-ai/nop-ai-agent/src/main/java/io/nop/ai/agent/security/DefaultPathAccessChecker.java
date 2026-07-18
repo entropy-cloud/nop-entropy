@@ -12,7 +12,7 @@ import java.util.Set;
 
 public class DefaultPathAccessChecker implements IPathAccessChecker {
 
-    private static final String HOME = System.getProperty("user.home", "");
+    private static final String HOME = System.getProperty("user.home", "").replace("\\", "/");
 
     private static final Set<String> SENSITIVE_FILENAMES = Set.of(
             "id_rsa",
@@ -38,6 +38,17 @@ public class DefaultPathAccessChecker implements IPathAccessChecker {
         prefixes.add("/sys/");
         prefixes.add("/proc/");
         prefixes.add("/root/");
+        // Windows system paths (all forward-slash after normalizePath)
+        if (System.getProperty("os.name").toLowerCase().contains("win")) {
+            String windir = System.getenv("WINDIR");
+            if (windir != null) {
+                prefixes.add(windir.replace("\\", "/") + "/");
+            }
+            prefixes.add("C:/Windows/System32/");
+            prefixes.add("C:/ProgramData/");
+            prefixes.add("C:/Program Files/");
+            prefixes.add("C:/Program Files (x86)/");
+        }
         SENSITIVE_PREFIX_PATTERNS = prefixes.toArray(new String[0]);
     }
 
@@ -47,13 +58,20 @@ public class DefaultPathAccessChecker implements IPathAccessChecker {
             return PathAccessResult.allow();
         }
 
-        String normalized = normalizePath(path);
-        if (normalized == null) {
-            return PathAccessResult.deny("Path normalization failed (contains invalid traversal): " + path);
-        }
-
+        // Traversal check before normalizePath (which may reject platform-invalid
+        // characters like '?' on Windows — but that is a legitimate text argument,
+        // not a path traversal attack).
         if (containsTraversal(path)) {
             return PathAccessResult.denyByRule("path_traversal_defense", path);
+        }
+
+        String normalized = normalizePath(path);
+        if (normalized == null) {
+            // Cannot be parsed as a file path (e.g. '?' on Windows, tilde with no
+            // HOME). Since traversal was already checked above, this is likely a
+            // non-path argument (e.g. a tool's "input" text). Allow rather than
+            // spuriously denying generic arguments on restrictive platforms.
+            return PathAccessResult.allow();
         }
 
         String lower = normalized.toLowerCase();

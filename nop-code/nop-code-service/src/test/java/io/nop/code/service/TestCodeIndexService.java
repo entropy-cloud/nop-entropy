@@ -36,7 +36,11 @@ class TestCodeIndexService extends JunitBaseTestCase {
         ProjectAnalyzer analyzer = new ProjectAnalyzer(registry);
 
         Path projectRoot = new File("src/test/resources/test-project/src/main/java").toPath();
-        analysisResult = analyzer.analyzeProject("file:" + projectRoot.toAbsolutePath());
+        String absPath = projectRoot.toAbsolutePath().toString().replace('\\', '/');
+        if (absPath.length() >= 2 && absPath.charAt(1) == ':') {
+            absPath = "/" + absPath;
+        }
+        analysisResult = analyzer.analyzeProject("file:" + absPath);
     }
 
     @Test

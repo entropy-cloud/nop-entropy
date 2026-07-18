@@ -3,6 +3,7 @@ package io.nop.code.core.analyzer;
 import io.nop.code.core.adapter.LanguageAdapterRegistry;
 import io.nop.code.core.incremental.InMemoryFingerprintStore;
 import io.nop.code.core.model.*;
+import io.nop.commons.util.FileHelper;
 import io.nop.core.initialize.CoreInitialization;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
@@ -37,16 +38,16 @@ class TestProjectAnalyzerWithStore {
         CoreInitialization.destroy();
     }
 
+    private String vfsPath() {
+        return FileHelper.getFileUrl(tempDir.toFile());
+    }
+
     @BeforeEach
     void setUp() {
         registry = new LanguageAdapterRegistry();
         registry.registerAdapter(createMockAdapter());
         analyzer = new ProjectAnalyzer(registry);
         fingerprintStore = new InMemoryFingerprintStore();
-    }
-
-    private String vfsPath() {
-        return "file:" + tempDir.toAbsolutePath();
     }
 
     private ILanguageAdapter createMockAdapter() {
