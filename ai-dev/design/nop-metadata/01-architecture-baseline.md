@@ -1264,6 +1264,40 @@ granularity→分桶表达式表（三条路径一致复用，含 entity）：
 
 - **Anti-Hollow**：三条路径在运行时真实生成 HAVING/ORDER BY 子句（SQL 路径）/ 真实调用 MemoryFilterEvaluator + MemoryRowComparator（内存路径），非空方法体/非 stub。端到端测试覆盖：单表 entity / external-sql / JOIN 同库 3 条 / 跨库 1 条 各至少 1 条断言 having 过滤生效 + orderBy 排序正确。
 
+**D11.4 — 多列算术 having（plan 2026-07-18-1500-2 落地；收口 Opt-2/Opt-3 两处 `Deferred But Adjudicated`「多列 having 算术表达式」）**：
+
+把 `queryAggregation` 的 having 子句从「仅支持单 measure/dimension 叶子条件」（`SUM(amount)>1000`）扩展到「支持多 measure name 算术组合」（`HAVING SUM(a)-SUM(b)>100`），复用 D12.1 expression 语言安全模型，不引入新注入面。
+
+- **范围裁定**：多列算术 having 在**三条 SQL 路径**（entity / external-sql / JOIN 同库）支持；**跨库内存路径显式失败**（对齐 D12.2 既有铁律——内存求值算术表达式等于在内存里实现 SQL 方言子集，D12.1 已明确拒绝「平台表达式引擎」）。
+
+- **D11.4.1 — 承载机制（Decision：TreeBean 既有 setAttr/getAttr，不修改 TreeBean 类）**：
+    - TreeBean 叶子新增可选**属性** `expr`（经既有 `ExtensibleBean.setAttr/getAttr`，**不修改平台 TreeBean 类**——TreeBean 是 Protected Area）。
+    - **dispatch 规则**：`expr` 非空时优先于 `name`。`expr` leaf 在 SQL 路径 preprocess 后改写 `name` 属性为最终 SQL 片段；既有单 `name` leaf 零行为变化。
+    - **用户输入语法固定**：多列算术 having 的用户表达式为**用户编写的含 measure name token 的算术表达式**（如 `totalAmount - discountedAmount`、`total / count`），measure name 须匹配 `^[A-Za-z_][A-Za-z0-9_]*$` 字符集约束（与 `FilterToSqlTranslator.IDENTIFIER_PATTERN` 一致）。dimension name 不参与算术（dimension 通常是分组列非数值）。
+
+- **D11.4.2 — 翻译机制 + 安全校验落点（Decision：preprocess 替换前 + post-substitution validator 双层）**：
+    - **preprocess 落点（R2 NEW-1）**：在 `MetaAggregationExecutor` 调用 `FilterToSqlTranslator.translate(having, fieldResolver)` **之前**对 having TreeBean 预处理（候选 b 选定；不修改通用 `FilterToSqlTranslator`，保持其语义不变）：
+        - 递归遍历 having 树（and/or/not + leaf）；对每个含 `expr` 属性的叶子做 name→aggSql 替换；
+        - tokenize：`[A-Za-z_][A-Za-z0-9_]*` 经 `Matcher.find()` 逐 token 匹配；命中 nameToExpr key 则替换为 aggSql，未命中 → 抛 `ERR_AGGR_HAVING_UNKNOWN_NAME`（不静默保留裸字符串）；
+        - 非匹配字符（算子 `+`/`-`/`*`/`/`/`%`、括号、空白）原样保留；
+        - 改写叶子的 `name` 属性为最终 SQL 片段（如 `SUM(AMOUNT)-SUM(QTY)`）；后续 `translate` 经 `nameResolverFor` 的 passthrough 分支原样返回。
+    - **安全校验落点（R1 M1）**：**post-substitution validator**（候选 b 选定）——替换后的最终 SQL 片段经 `ExpressionMeasureValidator.validateStatic`（`saveTimeLoose`：关键字黑名单 + 标识符白名单 + parse 结构 + 函数黑名单；不校验列存在性——列存在性已由 measure 加载阶段保证）做 defense-in-depth 校验。parse 失败 → `ERR_AGGR_HAVING_EXPR_UNPARSEABLE`；含危险关键字/函数 → `ERR_AGGR_HAVING_EXPR_UNSAFE`；未选定 measure name → 复用既有 `ERR_AGGR_HAVING_UNKNOWN_NAME`（不新增冗余 code）。
+    - **大小写敏感性（R2 B2 残留）**：nameToExpr key 为 `measureNames`/`dimensionNames` 原值（case-sensitive `LinkedHashMap`），用户 `expr` 中的 measure name token 须**大小写一致**匹配（不使用 `CASE_INSENSITIVE`，避免 measure name `count` 腐蚀 SQL 函数 `COUNT`）。
+    - **`?` 安全边界沿用（R1 M6）**：替换阶段检测每个引用 measure 的 aggSql 是否含 `?`（expression 型 measure）；含则抛 `ERR_AGGR_EXPRESSION_HAVING_ORDER_BY_UNSUPPORTED`（沿用 D12.4 既有边界，不绕过——重注入 aggSql 含 `?` 会致 SQL 参数计数错配）。
+
+- **D11.4.3 — 参数绑定（Decision：translate 单次遍历产出；Phase 1 禁止字面量）**：
+    - 多列算术 leaf 的字面量经 `fieldResolver` 回调返回含 `?` 的表达式时，**本应在 translate 内部按 SQL 文本顺序自动入队**（不单独追加末尾），复用既有 `translate(having, fieldResolver)` 单次遍历产出。
+    - **`?` 推理链（R2 NEW-3）**：多列算术 leaf 经 `?` 安全边界拒绝 expression 型 measure 后，引用的均为 field-based measure（aggSql 不含 `?`）。
+    - **Phase 1 字面量禁止裁定**：为避免 user-input expr 中字面量致 inner-SQL `?` 与 translate 单次遍历产出不一致，Phase 1 禁止字面量出现在 user-input expr（仅允许 measure name 算术组合）。validator 检测到字面量（`params` 非空）→ 抛 `ERR_AGGR_HAVING_EXPR_UNSAFE`（reason: literals-not-allowed）。后续 successor plan 可评估支持字面量的扩展机制（如 fieldResolver 返回带 param 的复合结果）。
+
+- **D11.4.4 — 三条 SQL 路径 + 跨库内存显式失败**：
+    - **三条 SQL 路径（6+ 注入点）**：entity-EQL（`MetaAggregationExecutor.executeEntityAggregation`） / entity-bypass（`executeEntityAggregationBypassEql`） / external-sql 单表（`buildExternalAggregationSql` + `collectBindParams` 二次 translate 取参数，复用同一 `nameResolverFor` lambda）/ entity↔entity JOIN（`executeEntityEntityJoinAggregation`） / external↔external JOIN（`executeExternalExternalJoinAggregation`） / 混合 JOIN 同库（`executeMixedSameDbJoinAggregation`）。每注入点的 HAVING SQL 生成中，多列算术 leaf 经 preprocess → fieldResolver passthrough → translate 按文本顺序入队参数。
+    - **跨库内存路径显式失败（R1 B1 修复 + R2 NEW-4）**：`MemoryFilterEvaluator.evaluate` 入口检测多列算术 leaf（`expr` 属性非空）→ 抛新 ErrorCode `ERR_AGGR_HAVING_EXPR_MEMORY_NOT_COMPUTABLE`（对齐 D12.2 命名空间，不引入内存算术求值器）。检测点选 `evaluate` 入口（非 `getRowValue`）以提供更清晰错误上下文。
+
+- **失败路径显式化（#24，无静默跳过）**：parse 失败 / 未选定 measure name / 不安全关键字 / expression 型 measure 被 arithmetic 引用 / Phase 1 字面量禁止 / 跨库内存路径 均显式抛 ErrorCode（不静默跳过、不静默 fallback、不静默 sanitize）。
+
+- **Anti-Hollow**：三条 SQL 路径在运行时真实注入多列算术 SQL（`HAVING SUM(AMOUNT)-SUM(QTY) > ?`）+ 真实过滤生效（端到端断言保留/排除的 group 满足/违反算术条件）；跨库内存路径显式失败（非静默跳过）。端到端测试覆盖：external-sql 单表 + entity 单表 + external↔external JOIN 同库 各至少 1 条成功路径；跨库内存 1 条显式失败；向后兼容（既有单 measure having 全路径零行为变化）；未选定 name / expression 型 measure 引用 / 字面量 各至少 1 条失败断言。
+
 **D12 — expression 型 Measure 表达式语言与执行契约（design-first plan 2026-07-18-1100-1 裁定；实现 plan 2026-07-18-1400-1 落地）**：
 
 把 §4.4.2 D6「`expression` 型 Measure 首版显式不支持」推进到「有明确表达式语言裁定 + 三条执行路径的执行契约与安全边界」。**D12 仅交付设计决策与使用契约**（design-first plan），不替换 live code 5 处 `ERR_AGGR_EXPRESSION_MEASURE` 抛点；实现属 successor plan（`2026-07-18-1400-1`，已落地）。
@@ -1320,7 +1354,7 @@ granularity→分桶表达式表（三条路径一致复用，含 entity）：
     - **容量约束（硬裁定）**：expression 列为 VARCHAR(1000)（`nop-metadata.orm.xml:1160`，`precision="1000" stdSqlType="VARCHAR"`）。expression 内容超 1000 字符 → save 阶段显式失败 `metadata.aggr-expression-too-long`（不截断、不静默存入截断后的脏数据，对齐 §2.5.2 D1 `Filter.definition` json-4000 同铁律）。
 
 - **范围裁定（Out of Scope for successor of this D12）**：
-    - 多列 having 算术表达式（`HAVING SUM(a)-SUM(b)>100`）随 expression 实现 successor 一并（依赖 D12 表达式语言裁定）。
+    - ~~多列 having 算术表达式（`HAVING SUM(a)-SUM(b)>100`）随 expression 实现 successor 一并（依赖 D12 表达式语言裁定）。~~ **已收口**（plan `2026-07-18-1500-2` 落地，见 D11.4）：三条 SQL 路径一致支持 + 跨库内存显式失败 + 复用 D12.1 安全模型 + Phase 1 字面量禁止。
     - expression 结果缓存 / 定时刷新：out-of-scope improvement（运行时求值即可，对齐 sourceSql 每次重解析模式）。
     - EQL 函数白名单的根本扩展（框架层 nop-orm）：不属 metadata 模块范围。
 
