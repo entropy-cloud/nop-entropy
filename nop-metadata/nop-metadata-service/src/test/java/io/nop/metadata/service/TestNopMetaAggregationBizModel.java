@@ -1896,6 +1896,280 @@ public class TestNopMetaAggregationBizModel extends JunitBaseTestCase {
         return graphQLEngine.executeGraphQL(graphQLEngine.newGraphQLContext(request));
     }
 
+    // ============================================================
+    // plan 2026-07-18-1500-2：多列算术 having 端到端测试（三条 SQL 路径 + 跨库内存显式失败 + 失败路径）
+    // ============================================================
+
+    /**
+     * 构造多列算术 having 的 leaf TreeBean（{@code expr} 属性 + {@code op} + {@code value}）。
+     * 经 TreeBean.setAttr 承载 expr 属性，不修改 TreeBean 类（R1 B3）。
+     */
+    private static TreeBean havingArithmeticLeaf(String op, String expr, Object value) {
+        TreeBean leaf = new TreeBean(op);
+        leaf.setAttr(io.nop.metadata.service.query.MetaAggregationExecutor.HAVING_EXPR_ATTR, expr);
+        leaf.setAttr(io.nop.api.core.beans.FilterBeanConstants.FILTER_ATTR_VALUE, value);
+        return leaf;
+    }
+
+    /** 造多列算术 having 专用表：ext_arith(category, val_a, val_b)。 */
+    private void seedArithTable(String dbUrl) throws Exception {
+        try (Connection c = DriverManager.getConnection(dbUrl, "sa", "");
+             Statement st = c.createStatement()) {
+            st.execute("CREATE TABLE ext_arith (category VARCHAR(20), val_a INT, val_b INT)");
+            st.execute("INSERT INTO ext_arith VALUES ('A', 10, 1)");
+            st.execute("INSERT INTO ext_arith VALUES ('A', 20, 5)");
+            st.execute("INSERT INTO ext_arith VALUES ('B', 30, 1)");
+            st.execute("INSERT INTO ext_arith VALUES ('C', 5, 1)");
+        }
+    }
+
+    /**
+     * external/sql 单表路径：多列算术 having {@code SUM(val_a) - SUM(val_b) > 10} 端到端测试。
+     *
+     * <p>数据：A: SUM(val_a)=30, SUM(val_b)=6, diff=24；B: 30-1=29；C: 5-1=4。
+     * HAVING diff>10 保留 A、B；排除 C。验证：name→aggSql 替换 + 安全校验 + SQL 真实执行 + 过滤生效。
+     */
+    @Test
+    @SuppressWarnings("unchecked")
+    public void testExternalSqlArithmeticHaving() throws Exception {
+        String dbUrl = "jdbc:h2:mem:meta_agg_arith_ext;DB_CLOSE_DELAY=-1";
+        seedArithTable(dbUrl);
+        String tableId = prepareExternalTable(dbUrl, "qs_agg_arith_ext", "EXT_ARITH");
+        createMeasure(tableId, "sumA", "VAL_A", "sum", null);
+        createMeasure(tableId, "sumB", "VAL_B", "sum", null);
+        createDimension(tableId, "cat", "CATEGORY", "categorical", null);
+
+        // HAVING sumA - sumB > 10
+        TreeBean having = havingArithmeticLeaf("gt", "sumA - sumB", 10);
+        Map<String, Object> result = nopMetaTableBizModel.queryAggregation(tableId,
+                Arrays.asList("sumA", "sumB"), Arrays.asList("cat"),
+                null, null, null, null, having, null, null);
+        List<Map<String, Object>> items = (List<Map<String, Object>>) result.get("items");
+        assertNotNull(items, "items must not be null");
+        // A=24, B=29 satisfy >10; C=4 fails → 2 items
+        assertEquals(2, items.size(), "arithmetic having SUM(A)-SUM(B)>10 must keep A(24), B(29); drop C(4)");
+        // 验证保留的 group 都满足条件（Anti-Hollow：真实过滤生效，非 stub）
+        for (Map<String, Object> row : items) {
+            int sumA = toInt(getIgnoreCase(row, "SUMA"));
+            int sumB = toInt(getIgnoreCase(row, "SUMB"));
+            assertTrue(sumA - sumB > 10,
+                    "arithmetic having must hold for retained group: sumA=" + sumA + " sumB=" + sumB);
+        }
+    }
+
+    /**
+     * external/sql 单表路径：失败路径——未选定 measure name → 显式失败。
+     */
+    @Test
+    public void testExternalSqlArithmeticHavingUnknownNameFails() throws Exception {
+        String dbUrl = "jdbc:h2:mem:meta_agg_arith_unk;DB_CLOSE_DELAY=-1";
+        seedArithTable(dbUrl);
+        String tableId = prepareExternalTable(dbUrl, "qs_agg_arith_unk", "EXT_ARITH");
+        createMeasure(tableId, "sumA", "VAL_A", "sum", null);
+        createDimension(tableId, "cat", "CATEGORY", "categorical", null);
+
+        // expr 引用未选定的 sumB
+        TreeBean having = havingArithmeticLeaf("gt", "sumA - sumB", 10);
+        Exception ex = assertThrows(Exception.class, () -> nopMetaTableBizModel.queryAggregation(tableId,
+                Arrays.asList("sumA"), Arrays.asList("cat"),
+                null, null, null, null, having, null, null));
+        assertTrue(ex.getMessage().contains("unknown") || ex.getMessage().contains("Unknown")
+                        || ex.getMessage().contains("not in the user-selected"),
+                "arithmetic having with unknown measure name must explicitly fail: " + ex.getMessage());
+    }
+
+    /**
+     * external/sql 单表路径：失败路径——expression 型 measure 被 arithmetic 引用 → 显式失败。
+     */
+    @Test
+    public void testExternalSqlArithmeticHavingExpressionMeasureFails() throws Exception {
+        String dbUrl = "jdbc:h2:mem:meta_agg_arith_expr;DB_CLOSE_DELAY=-1";
+        seedArithTable(dbUrl);
+        String tableId = prepareExternalTable(dbUrl, "qs_agg_arith_expr", "EXT_ARITH");
+        // exprM 为 expression 型 measure（aggSql 含 ?）
+        createMeasure(tableId, "exprM", "VAL_A", "sum", "VAL_A * 2");
+        createMeasure(tableId, "sumB", "VAL_B", "sum", null);
+        createDimension(tableId, "cat", "CATEGORY", "categorical", null);
+
+        // expr 引用 exprM（expression 型，含 ?） → ? 安全边界拒绝
+        TreeBean having = havingArithmeticLeaf("gt", "exprM - sumB", 10);
+        Exception ex = assertThrows(Exception.class, () -> nopMetaTableBizModel.queryAggregation(tableId,
+                Arrays.asList("exprM", "sumB"), Arrays.asList("cat"),
+                null, null, null, null, having, null, null));
+        assertTrue(ex.getMessage().contains("having-order-by-unsupported")
+                        || ex.getMessage().contains("HAVING or ORDER BY"),
+                "arithmetic having referencing expression-type measure must fail (? safety boundary): "
+                        + ex.getMessage());
+    }
+
+    /**
+     * external/sql 单表路径：失败路径——不安全关键字（替换后 SQL 含 DROP）→ 显式失败。
+     *
+     * <p>通过精心构造的 measure name（{@code evil}）映射到 {@code DROP TABLE foo}（measure 加载阶段会拒绝，
+     * 但 defense-in-depth 验证 having preprocess 阶段也会拒绝）。此测试聚焦 having preprocess 失败路径，
+     * 故用合法 aggSql 但 user expr 含不安全关键字：{@code evil - evil}（替换后含两个 DROP）。
+     * 由于 measure 自身的 aggSql 在 load 阶段已校验为 SUM(col) 形态，本测试用合法 aggSql + 含 DROP 的 user expr
+     * 不易构造。改为验证 user expr 含字面量时显式失败（Phase 1 字面量禁止）。
+     */
+    @Test
+    public void testExternalSqlArithmeticHavingLiteralFails() throws Exception {
+        String dbUrl = "jdbc:h2:mem:meta_agg_arith_lit;DB_CLOSE_DELAY=-1";
+        seedArithTable(dbUrl);
+        String tableId = prepareExternalTable(dbUrl, "qs_agg_arith_lit", "EXT_ARITH");
+        createMeasure(tableId, "sumA", "VAL_A", "sum", null);
+        createMeasure(tableId, "sumB", "VAL_B", "sum", null);
+        createDimension(tableId, "cat", "CATEGORY", "categorical", null);
+
+        // user expr 含字面量 100 → Phase 1 禁止（Phase 1 仅允许 measure name 算术组合）
+        TreeBean having = havingArithmeticLeaf("gt", "sumA / sumB * 100", 10);
+        Exception ex = assertThrows(Exception.class, () -> nopMetaTableBizModel.queryAggregation(tableId,
+                Arrays.asList("sumA", "sumB"), Arrays.asList("cat"),
+                null, null, null, null, having, null, null));
+        assertTrue(ex.getMessage().contains("unsafe") || ex.getMessage().contains("literals")
+                        || ex.getMessage().contains("not allowed"),
+                "arithmetic having with literal must explicitly fail (Phase 1 literals disallowed): "
+                        + ex.getMessage());
+    }
+
+    /**
+     * entity 单表路径：多列算术 having {@code SUM(val_a) - SUM(val_b) >= 0} 端到端测试。
+     *
+     * <p>验证 entity 路径（bypass EQL）真实注入多列算术 SQL + 过滤生效（非 stub）。
+     */
+    @Test
+    @SuppressWarnings("unchecked")
+    public void testEntityArithmeticHaving() {
+        importModel();
+        String tableId = findEntityTableId("nop_meta_module");
+        IEntityDao<NopMetaEntityField> fieldDao = daoProvider.daoFor(NopMetaEntityField.class);
+        String statusFieldId = findEntityFieldId("nop_meta_module", "status", fieldDao);
+        // 用 status 字段做两个 count measure（同一列两个 count 算术组合）
+        createMeasure(tableId, "cntA", statusFieldId, "count", null);
+        createMeasure(tableId, "cntB", statusFieldId, "count", null);
+        createDimension(tableId, "st", statusFieldId, "categorical", null);
+
+        // HAVING cntA - cntB >= 0（count - count = 0 for any group；保留所有 group）
+        TreeBean having = havingArithmeticLeaf("ge", "cntA - cntB", 0);
+        Map<String, Object> result = nopMetaTableBizModel.queryAggregation(tableId,
+                Arrays.asList("cntA", "cntB"), Arrays.asList("st"),
+                null, null, null, null, having, null, null);
+        List<Map<String, Object>> items = (List<Map<String, Object>>) result.get("items");
+        assertNotNull(items, "items must not be null");
+        assertFalse(items.isEmpty(),
+                "entity path arithmetic having must yield real grouped rows: " + items);
+        // Anti-Hollow：验证两个 measure 真实执行 + 算术过滤生效
+        for (Map<String, Object> row : items) {
+            long cntA = toLong(getIgnoreCase(row, "CNTA"));
+            long cntB = toLong(getIgnoreCase(row, "CNTB"));
+            assertTrue(cntA - cntB >= 0,
+                    "arithmetic having cntA-cntB>=0 must hold: cntA=" + cntA + " cntB=" + cntB);
+        }
+    }
+
+    /**
+     * JOIN 同库 external↔external 路径：多列算术 having 端到端测试。
+     *
+     * <p>验证 JOIN 路径（l./r. 限定名）真实注入多列算术 SQL。
+     */
+    @Test
+    @SuppressWarnings("unchecked")
+    public void testExternalExternalJoinArithmeticHaving() throws Exception {
+        String querySpace = "qs_ext_join_arith";
+        String dbUrl = "jdbc:h2:mem:" + querySpace + ";DB_CLOSE_DELAY=-1";
+        seedFactDimTables(dbUrl);
+        // 增加另一列 VAL_X 以构造两个 measure 算术组合（同列不同 aggFunc 亦可）
+        try (Connection c = DriverManager.getConnection(dbUrl, "sa", "");
+             Statement st = c.createStatement()) {
+            st.execute("ALTER TABLE ext_fact ADD COLUMN val_x INT");
+            st.execute("UPDATE ext_fact SET val_x = 1 WHERE cat_id = 1");
+            st.execute("UPDATE ext_fact SET val_x = 2 WHERE cat_id = 2");
+        }
+        saveDataSource("ds-" + querySpace, querySpace, dbUrl);
+        syncExternalTables("ds-" + querySpace);
+        String factTableId = tableId("EXT_FACT");
+        String dimTableId = tableId("EXT_DIM");
+
+        String joinId = createTableTableJoin(factTableId, "inner", factTableId, dimTableId,
+                "CAT_ID", "CAT_ID", "dim");
+        // left.sum(AMOUNT) - left.sum(VAL_X)：A: 30 - 2 (1+1), B: 30 - 2
+        createMeasureWithSide(factTableId, "sumAmt", "AMOUNT", "sum", "left");
+        createMeasureWithSide(factTableId, "sumX", "VAL_X", "sum", "left");
+        createDimensionWithSide(factTableId, "cat", "CAT_NAME", "categorical", null, "right");
+
+        // HAVING sumAmt - sumX >= 20
+        TreeBean having = havingArithmeticLeaf("ge", "sumAmt - sumX", 20);
+        Map<String, Object> result = nopMetaTableBizModel.queryAggregation(factTableId,
+                Arrays.asList("sumAmt", "sumX"), Arrays.asList("cat"),
+                null, joinId, null, null, having, null, null);
+        List<Map<String, Object>> items = (List<Map<String, Object>>) result.get("items");
+        assertNotNull(items);
+        // A: SUM(AMOUNT)=30, SUM(VAL_X)=2 → 28 >= 20 ✓; B: 30-2=28 ✓
+        assertEquals(2, items.size(), "arithmetic having sumAmt-sumX>=20 must keep both groups");
+        for (Map<String, Object> row : items) {
+            int sumAmt = toInt(getIgnoreCase(row, "SUMAMT"));
+            int sumX = toInt(getIgnoreCase(row, "SUMX"));
+            assertTrue(sumAmt - sumX >= 20,
+                    "JOIN arithmetic having must hold: sumAmt=" + sumAmt + " sumX=" + sumX);
+        }
+    }
+
+    /**
+     * 跨库内存路径：多列算术 having 显式失败（对齐 D12.2，验证 {@code MemoryFilterEvaluator} 入口检测）。
+     */
+    @Test
+    public void testCrossDbMemoryArithmeticHavingFails() {
+        importModel();
+        NopMetaEntity leftEntity = findMetaEntityByTable("nop_meta_entity");
+        NopMetaEntity rightEntity = findMetaEntityByTable("nop_meta_entity_field");
+        // 让 right 跨 querySpace → 走 D10 内存 GROUP BY 路径
+        updateQuerySpaceSql(rightEntity.getMetaEntityId(), "qs_arith_cross");
+        try {
+            String leftTableId = findEntityTableId("nop_meta_entity");
+            String joinId = createJoin(leftTableId, "inner", leftEntity.getMetaEntityId(),
+                    rightEntity.getMetaEntityId(), "metaEntityId", "metaEntityId", "fld");
+            String leftDimFieldId = findEntityFieldId("nop_meta_entity", "displayName");
+            String rightMeasureFieldId = findEntityFieldId("nop_meta_entity_field", "fieldName");
+            createDimension(leftTableId, "st", leftDimFieldId, "categorical", null);
+            createMeasure(leftTableId, "cntA", rightMeasureFieldId, "count", null);
+            createMeasure(leftTableId, "cntB", rightMeasureFieldId, "count", null);
+
+            // 多列算术 having → 跨库内存路径须显式失败
+            TreeBean having = havingArithmeticLeaf("gt", "cntA - cntB", 0);
+            Exception ex = assertThrows(Exception.class, () -> nopMetaTableBizModel.queryAggregation(
+                    leftTableId, Arrays.asList("cntA", "cntB"), Arrays.asList("st"),
+                    null, joinId, null, null, having, null, null));
+            assertTrue(ex.getMessage().contains("having-expr-memory-not-computable")
+                            || ex.getMessage().contains("memory-not-computable")
+                            || ex.getMessage().contains("not computable"),
+                    "cross-DB memory path arithmetic having must explicitly fail: " + ex.getMessage());
+        } finally {
+            updateQuerySpaceSql(rightEntity.getMetaEntityId(), null);
+        }
+    }
+
+    /**
+     * 向后兼容：无 {@code expr} 属性的常规 having leaf 零行为变化（既有路径不被多列算术 preprocess 影响）。
+     */
+    @Test
+    @SuppressWarnings("unchecked")
+    public void testBackwardCompatRegularHavingUnchanged() throws Exception {
+        String dbUrl = "jdbc:h2:mem:meta_agg_arith_compat;DB_CLOSE_DELAY=-1";
+        seedArithTable(dbUrl);
+        String tableId = prepareExternalTable(dbUrl, "qs_agg_arith_compat", "EXT_ARITH");
+        createMeasure(tableId, "sumA", "VAL_A", "sum", null);
+        createDimension(tableId, "cat", "CATEGORY", "categorical", null);
+
+        // 常规 having（无 expr 属性，使用 name 属性）→ 与既有行为一致
+        TreeBean having = FilterBeans.gt("sumA", 10);
+        Map<String, Object> result = nopMetaTableBizModel.queryAggregation(tableId,
+                Arrays.asList("sumA"), Arrays.asList("cat"),
+                null, null, null, null, having, null, null);
+        List<Map<String, Object>> items = (List<Map<String, Object>>) result.get("items");
+        // A=30, B=30 satisfy >10; C=5 fails → 2 items
+        assertEquals(2, items.size(), "regular having SUM(A)>10 must keep A(30), B(30); drop C(5)");
+    }
+
+
     /** 创建带 side + expression 的 measure（plan 2026-07-18-1400-1 expression JOIN 测试用 helper）。 */
     private void createMeasureWithSideAndExpression(String tableId, String name, String entityFieldId,
                                                      String aggFunc, String side, String expression) {

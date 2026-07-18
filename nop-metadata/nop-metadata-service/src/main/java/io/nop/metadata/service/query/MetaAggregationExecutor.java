@@ -1,5 +1,6 @@
 package io.nop.metadata.service.query;
 
+import io.nop.api.core.beans.FilterBeanConstants;
 import io.nop.api.core.beans.FilterBeans;
 import io.nop.api.core.beans.TreeBean;
 import io.nop.api.core.beans.query.OrderFieldBean;
@@ -43,6 +44,8 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 /**
  * 指标/维度聚合查询执行器（架构基线 §4.4.2，落地 D6/D7）。
@@ -299,6 +302,41 @@ public class MetaAggregationExecutor {
                     "MemoryFilterEvaluator: having op not supported in first version: {op} name={name}",
                     "op", "name");
 
+    // ===== 多列算术 having 专属 ErrorCode（plan 2026-07-18-1500-2：having 支持多 measure 算术表达式）=====
+
+    /**
+     * 多列算术 having 表达式不可解析（替换后的最终 SQL 片段经 {@link ExpressionMeasureValidator} 校验失败：
+     * 括号不匹配 / 非法 token / 语句终止符 / 注释标记）。抛点：preprocess 阶段。
+     */
+    static final ErrorCode ERR_AGGR_HAVING_EXPR_UNPARSEABLE =
+            ErrorCode.define("metadata.aggr-having-expr-unparseable",
+                    "Multi-column arithmetic HAVING expression is unparseable (post-substitution SQL fragment fails "
+                            + "ExpressionMeasureValidator parse): {metaTableId} expr={expr} error={error}",
+                    "metaTableId", "expr", "error");
+    /**
+     * 多列算术 having 表达式不安全（含关键字/函数黑名单中的危险项，或列引用未通过标识符白名单，
+     * 或包含字面量（Phase 1 安全裁定：禁止字面量，仅允许 measure name 算术组合））。
+     * 抛点：preprocess 阶段。
+     */
+    static final ErrorCode ERR_AGGR_HAVING_EXPR_UNSAFE =
+            ErrorCode.define("metadata.aggr-having-expr-unsafe",
+                    "Multi-column arithmetic HAVING expression is unsafe (contains forbidden keyword/function, "
+                            + "identifier fails whitelist, or contains literal (Phase 1 disallows literals, "
+                            + "only measure-name arithmetic allowed)): "
+                            + "{metaTableId} expr={expr} reason={reason}",
+                    "metaTableId", "expr", "reason");
+    /**
+     * 多列算术 having 在跨库内存路径无法内存求值（对齐 D12.2 既有铁律——内存求值算术表达式等于在内存里实现
+     * SQL 方言子集，D12.1 已明确拒绝「平台表达式引擎」）。抛点：跨库内存聚合入口 {@code MemoryFilterEvaluator}。
+     */
+    static final ErrorCode ERR_AGGR_HAVING_EXPR_MEMORY_NOT_COMPUTABLE =
+            ErrorCode.define("metadata.aggr-having-expr-memory-not-computable",
+                    "Multi-column arithmetic HAVING expression is not computable in cross-DB in-memory GROUP BY path "
+                            + "(aligned with D12.2 in-memory aggFunc computability rule; "
+                            + "arithmetic of multiple measures requires SQL pushdown): "
+                            + "{metaTableId} expr={expr}",
+                    "metaTableId", "expr");
+
     /**
      * 执行聚合查询。
      *
@@ -458,7 +496,9 @@ public class MetaAggregationExecutor {
         }
         sql.append(" GROUP BY ").append(String.join(",", groupExprs));
         // plan 2026-07-18-0900-2：HAVING 子句（having 的 name 经反查表解析为 aggSql/groupExpr，跳过白名单）
+        // plan 2026-07-18-1500-2：先 preprocess 多列算术 leaf（expr 属性 → 替换 name→aggSql + 安全校验）
         if (having != null) {
+            preprocessHavingArithmetic(having, nameToExpr, table, measureNames, dimensionNames);
             FilterToSqlTranslator.TranslatedFilter hf = ctx.filterTranslator().translate(having,
                     nameResolverFor(nameToExpr, table, measureNames, dimensionNames, "HAVING"));
             if (hf.getSql() != null && !hf.getSql().isEmpty()) {
@@ -566,7 +606,9 @@ public class MetaAggregationExecutor {
             }
             sql.append(" GROUP BY ").append(String.join(",", groupExprs));
             // plan 2026-07-18-0900-2：HAVING 子句
+            // plan 2026-07-18-1500-2：先 preprocess 多列算术 leaf
             if (having != null) {
+                preprocessHavingArithmetic(having, nameToExpr, table, measureNames, dimensionNames);
                 FilterToSqlTranslator.TranslatedFilter hf = ctx.filterTranslator().translate(having,
                         nameResolverFor(nameToExpr, table, measureNames, dimensionNames, "HAVING"));
                 if (hf.getSql() != null && !hf.getSql().isEmpty()) {
@@ -752,7 +794,9 @@ public class MetaAggregationExecutor {
         }
         sql.append(" GROUP BY ").append(String.join(",", groupExprs));
         // plan 2026-07-18-0900-2：HAVING 子句
+        // plan 2026-07-18-1500-2：先 preprocess 多列算术 leaf
         if (having != null) {
+            preprocessHavingArithmetic(having, nameToExpr, table, measureNames, dimensionNames);
             FilterToSqlTranslator.TranslatedFilter hf = ctx.filterTranslator().translate(having,
                     nameResolverFor(nameToExpr, table, measureNames, dimensionNames, "HAVING"));
             if (hf.getSql() != null && !hf.getSql().isEmpty()) {
@@ -850,6 +894,10 @@ public class MetaAggregationExecutor {
         String rightFrom = externalTableFromForJoin(rightTable, "r");
 
         // filter/having 预翻译（与方言无关，提前计算参数顺序与主 SQL 一致）
+        // plan 2026-07-18-1500-2：先 preprocess 多列算术 leaf（在 translate 前）
+        if (having != null) {
+            preprocessHavingArithmetic(having, nameToExpr, table, measureNames, dimensionNames);
+        }
         FilterToSqlTranslator.TranslatedFilter filterTf = filter == null ? null : ctx.filterTranslator().translate(filter);
         FilterToSqlTranslator.TranslatedFilter havingTf = having == null ? null
                 : ctx.filterTranslator().translate(having,
@@ -998,6 +1046,10 @@ public class MetaAggregationExecutor {
         String tableFrom = externalTableFromForJoin(tableEndpoint, tableAlias);
 
         // filter/having 预翻译（与方言无关，提前计算参数顺序）
+        // plan 2026-07-18-1500-2：先 preprocess 多列算术 leaf（在 translate 前）
+        if (having != null) {
+            preprocessHavingArithmetic(having, nameToExpr, table, measureNames, dimensionNames);
+        }
         FilterToSqlTranslator.TranslatedFilter filterTf =
                 filter == null ? null : ctx.filterTranslator().translate(filter);
         FilterToSqlTranslator.TranslatedFilter havingTf = having == null ? null
@@ -2590,7 +2642,9 @@ public class MetaAggregationExecutor {
         }
         sql.append(" GROUP BY ").append(String.join(",", groupExprs));
         // plan 2026-07-18-0900-2：HAVING 子句
+        // plan 2026-07-18-1500-2：先 preprocess 多列算术 leaf
         if (having != null) {
+            preprocessHavingArithmetic(having, nameToExpr, table, measureNames, dimensionNames);
             FilterToSqlTranslator.TranslatedFilter hf = ctx.filterTranslator().translate(having,
                     nameResolverFor(nameToExpr, table, measureNames, dimensionNames, "HAVING"));
             if (hf.getSql() != null && !hf.getSql().isEmpty()) {
@@ -2652,6 +2706,8 @@ public class MetaAggregationExecutor {
             params.addAll(tf.getParams());
         }
         // 3. having 值（HAVING）
+        // plan 2026-07-18-1500-2：collectBindParams 与 buildExternalAggregationSql 须对 expr leaf 处理一致
+        // （preprocess 在 buildExternalAggregationSql 内已完成；此处 having 已被改写，复用同一 nameResolverFor 即可）
         if (having != null) {
             FilterToSqlTranslator.TranslatedFilter hf = ctx.filterTranslator().translate(having,
                     nameResolverFor(nameToExpr, table, measureNames, dimensionNames, "HAVING"));
@@ -3112,6 +3168,14 @@ public class MetaAggregationExecutor {
      * <p>plan 2026-07-18-1400-1：expression 型 measure 的 aggSql 含 {@code ?}（字面量参数占位符），
      * 若经此回调注入 HAVING/ORDER BY 会致 SQL 参数计数错配 → 显式失败
      * {@link #ERR_AGGR_EXPRESSION_HAVING_ORDER_BY_UNSUPPORTED}（含 aggSql 检测到 {@code ?} 即拒绝）。
+     *
+     * <p>plan 2026-07-18-1500-2：多列算术 having（TreeBean 叶子新增可选 {@code expr} 属性）preprocess 后，
+     * 叶子的 {@code name} 已被改写为最终 SQL 片段（如 {@code SUM(AMOUNT)-SUM(QTY)}，含算子/括号等非标识符字符）。
+     * 本回调检测到非标识符 name 时**原样返回**（passthrough，{@code Function.identity()} 语义）——多列算术 leaf
+     * 已在 preprocess 阶段完成 name→aggSql 替换 + {@code ?} 安全边界 + 安全校验，无需再反查 nameToExpr；
+     * 既有单 name leaf（{@code name} 为合法标识符）仍走 nameToExpr 反查。大小写敏感匹配 nameToExpr
+     * （key 为 measureNames/dimensionNames 原值），不使用 CASE_INSENSITIVE（避免 measure name {@code count}
+     * 腐蚀 SQL 函数 {@code COUNT}）。
      */
     private static java.util.function.Function<String, String> nameResolverFor(Map<String, String> nameToExpr,
                                                                                   NopMetaTable table,
@@ -3119,6 +3183,11 @@ public class MetaAggregationExecutor {
                                                                                   List<String> dimensionNames,
                                                                                   String clause) {
         return name -> {
+            // plan 2026-07-18-1500-2：多列算术 having preprocess 后的 leaf——name 已是最终 SQL 片段（非合法标识符），
+            // 原样返回（passthrough）。检测依据：标识符白名单 ^[A-Za-z_][A-Za-z0-9_]*$ 不匹配即视为已预处理。
+            if (!FilterToSqlTranslator.IDENTIFIER_PATTERN.matcher(name).matches()) {
+                return name;
+            }
             String expr = nameToExpr.get(name);
             if (expr == null) {
                 throw new NopException(ERR_AGGR_HAVING_UNKNOWN_NAME)
@@ -3136,6 +3205,183 @@ public class MetaAggregationExecutor {
             }
             return expr;
         };
+    }
+
+    // ============================ 多列算术 having 预处理（plan 2026-07-18-1500-2）============================
+
+    /**
+     * 多列算术 having 的 user-input 表达式 token 识别正则：{@code [A-Za-z_][A-Za-z0-9_]*}（word-boundary find）。
+     * 与 {@link FilterToSqlTranslator#IDENTIFIER_PATTERN} 同字符集（无 {@code ^}/{@code $} 锚定，
+     * 因经 {@code Matcher.find()} 在表达式中逐 token 匹配而非整串 matches）。measure name 字符集约束。
+     */
+    private static final Pattern HAVING_EXPR_NAME_TOKEN =
+            Pattern.compile("[A-Za-z_][A-Za-z0-9_]*");
+
+    /**
+     * 多列算术 having 预处理入口：递归遍历 having TreeBean，对每个含 {@code expr} 属性的叶子做：
+     * <ol>
+     *   <li>tokenize：{@code [A-Za-z_][A-Za-z0-9_]*} word-boundary 匹配，识别 measure name token；</li>
+     *   <li>name→aggSql 替换：token 命中 {@code nameToExpr} key 则替换为 aggSql；
+     *       未命中（非用户选定 measure/dimension name）→ 抛 {@link #ERR_AGGR_HAVING_UNKNOWN_NAME}（不静默保留裸字符串）；</li>
+     *   <li>{@code ?} 安全边界：引用 measure 的 aggSql 含 {@code ?}（expression 型 measure）→
+     *       抛 {@link #ERR_AGGR_EXPRESSION_HAVING_ORDER_BY_UNSUPPORTED}（沿用 D12.4 既有边界）；</li>
+     *   <li>替换后 SQL 经 {@link ExpressionMeasureValidator#validateStatic}（{@code saveTimeLoose}：
+     *       关键字黑名单 + 标识符白名单 + parse 结构 + 函数黑名单）defense-in-depth 校验；
+     *       parse 失败 → {@link #ERR_AGGR_HAVING_EXPR_UNPARSEABLE}；
+     *       含危险关键字/函数/字面量 → {@link #ERR_AGGR_HAVING_EXPR_UNSAFE}；</li>
+     *   <li>改写叶子的 {@code name} 属性为最终 SQL 片段（如 {@code SUM(AMOUNT)-SUM(QTY)}）。
+     *       后续 {@code translate(having, fieldResolver)} 经 {@link #nameResolverFor} 的 passthrough 分支原样返回。</li>
+     * </ol>
+     *
+     * <p>**参数绑定裁定（R1 M3 + R2 NEW-3）**：Phase 1 禁止字面量出现在 user-input expr（仅允许 measure name 算术组合）；
+     * 经 {@code ?} 安全边界拒绝 expression 型 measure 后，引用的均为 field-based measure（aggSql 不含 {@code ?}）；
+     * 故 leaf 的 {@code ?} 仅来自 comparison literal（{@code > ?}），参数计数与 {@code translate} 单次遍历产出一致。
+     *
+     * <p>**承载机制（R1 B3 修复）**：经 TreeBean 既有 {@code setAttr/getAttr} 扩展属性承载，**不修改 TreeBean 类**。
+     *
+     * <p>大小写敏感性（R2 B2 残留）：nameToExpr key 为 {@code measureNames}/{@code dimensionNames} 原值（case-sensitive
+     * {@code LinkedHashMap}），用户 expr 中的 measure name token 须大小写一致匹配。
+     *
+     * @param having        having TreeBean（null 安全——null 直接返回）
+     * @param nameToExpr    name→aggSql/column 反查表（由 {@link #buildNameToExprTable} / {@link #buildJoinNameToExprTable} 构造）
+     * @param table         错误上下文
+     * @param measureNames  错误上下文（用户选定 measure name 列表）
+     * @param dimensionNames 错误上下文（用户选定 dimension name 列表）
+     */
+    static void preprocessHavingArithmetic(TreeBean having, Map<String, String> nameToExpr,
+                                                NopMetaTable table, List<String> measureNames,
+                                                List<String> dimensionNames) {
+        if (having == null) {
+            return;
+        }
+        Object exprAttr = having.getAttr(HAVING_EXPR_ATTR);
+        if (exprAttr != null && !exprAttr.toString().isEmpty()) {
+            // leaf with `expr` attr → 预处理
+            String userExpr = exprAttr.toString();
+            String finalSql = substituteAndValidateHavingExpr(userExpr, nameToExpr, table,
+                    measureNames, dimensionNames);
+            // 改写 name 属性为最终 SQL 片段；expr 属性保留（不参与后续 translate，仅作上下文）
+            having.setAttr(FilterBeanConstants.FILTER_ATTR_NAME, finalSql);
+            return;
+        }
+        // 递归子节点（and/or/not）
+        List<TreeBean> children = having.getChildren();
+        if (children == null || children.isEmpty()) {
+            return;
+        }
+        for (TreeBean child : children) {
+            preprocessHavingArithmetic(child, nameToExpr, table, measureNames, dimensionNames);
+        }
+    }
+
+    /** TreeBean 叶子的算术表达式扩展属性名（plan 2026-07-18-1500-2：经 setAttr/getAttr 承载，不修改 TreeBean 类）。 */
+    public static final String HAVING_EXPR_ATTR = "expr";
+
+    /**
+     * 对多列算术 having 的 user-input 表达式做：name→aggSql 替换 + {@code ?} 安全边界 + 安全校验，返回最终 SQL 片段。
+     *
+     * <p>分词机制（word-boundary-aware，case-sensitive）：经 {@link #HAVING_EXPR_NAME_TOKEN} 正则 find 所有
+     * measure-name-shaped token；对每个 token：
+     * <ul>
+     *   <li>命中 nameToExpr key → 检查 aggSql 是否含 {@code ?}（含则抛
+     *       {@link #ERR_AGGR_EXPRESSION_HAVING_ORDER_BY_UNSUPPORTED}），再替换；</li>
+     *   <li>未命中 → 抛 {@link #ERR_AGGR_HAVING_UNKNOWN_NAME}（不静默保留裸字符串）。</li>
+     * </ul>
+     * 非匹配字符（算子 {@code +}/{@code -}/{@code *}/{@code /}/{@code %}、括号、空白）原样保留。
+     *
+     * <p>替换后的最终 SQL 片段经 {@link ExpressionMeasureValidator#validateStatic} 校验（{@code saveTimeLoose}：
+     * 不校验列存在性——列存在性已由 measure 加载阶段保证；但校验关键字黑名单 + 标识符白名单 + parse 结构 + 函数黑名单）。
+     * 检测到字面量（{@code params} 非空）→ 抛 {@link #ERR_AGGR_HAVING_EXPR_UNSAFE}（Phase 1 禁止字面量，
+     * 仅允许 measure name 算术组合；理由：避免 inner-SQL {@code ?} 致参数计数与 translate 单次遍历产出不一致）。
+     */
+    static String substituteAndValidateHavingExpr(String userExpr, Map<String, String> nameToExpr,
+                                                    NopMetaTable table, List<String> measureNames,
+                                                    List<String> dimensionNames) {
+        Matcher m = HAVING_EXPR_NAME_TOKEN.matcher(userExpr);
+        StringBuilder out = new StringBuilder(userExpr.length() + 32);
+        int last = 0;
+        while (m.find()) {
+            // 追加 token 之前的非匹配字符（算子/括号/空白）原样
+            out.append(userExpr, last, m.start());
+            String token = m.group();
+            String aggSql = nameToExpr.get(token);
+            if (aggSql == null) {
+                // 未匹配 measure/dimension name → 显式失败（不静默保留裸字符串）
+                throw new NopException(ERR_AGGR_HAVING_UNKNOWN_NAME)
+                        .param("metaTableId", table.getMetaTableId())
+                        .param("name", token)
+                        .param("selectedMeasures", String.valueOf(measureNames))
+                        .param("selectedDimensions", String.valueOf(dimensionNames));
+            }
+            if (aggSql.indexOf('?') >= 0) {
+                // expression 型 measure 被 arithmetic 引用——aggSql 含 ?，重注入会致参数计数错配（沿用 D12.4）
+                throw new NopException(ERR_AGGR_EXPRESSION_HAVING_ORDER_BY_UNSUPPORTED)
+                        .param("metaTableId", table.getMetaTableId())
+                        .param("measureName", token)
+                        .param("clause", "HAVING");
+            }
+            // 用空格包裹 aggSql，避免相邻算子粘连（如 name-name 替换为 SUM(A)-SUM(B) 后无空格仍合法，
+            // 但 SUM(A)-SUM(B) 紧跟下一 token 时可能粘连）。aggSql 自身已含必要边界，空格仅做防御性分隔。
+            out.append(aggSql);
+            last = m.end();
+        }
+        out.append(userExpr, last, userExpr.length());
+        String finalSql = out.toString();
+
+        // defense-in-depth：post-substitution SQL 经 ExpressionMeasureValidator 校验
+        // （关键字/函数黑名单 + 标识符白名单 + parse 结构；不校验列存在性——已由 measure 加载保证）
+        ExpressionMeasureValidator.ValidatedExpression ve;
+        try {
+            ve = ExpressionMeasureValidator.validateStatic(finalSql,
+                    ExpressionMeasureValidator.ValidationOptions.saveTimeLoose(),
+                    table.getMetaTableId(), "<having-arithmetic>");
+        } catch (NopException e) {
+            if (ERR_AGGR_EXPRESSION_UNPARSEABLE.getErrorCode().equals(e.getErrorCode())) {
+                throw new NopException(ERR_AGGR_HAVING_EXPR_UNPARSEABLE, e)
+                        .param("metaTableId", table.getMetaTableId())
+                        .param("expr", userExpr)
+                        .param("error", String.valueOf(e.getParam("error")));
+            }
+            // unsafe / dialect-unsupported 等 → 映射为 having-expr-unsafe（Phase 1 收口到单一 unsafe code）
+            throw new NopException(ERR_AGGR_HAVING_EXPR_UNSAFE, e)
+                    .param("metaTableId", table.getMetaTableId())
+                    .param("expr", userExpr)
+                    .param("reason", String.valueOf(e.getParam("reason")));
+        }
+        // Phase 1 禁止字面量：validator 将字面量参数化为 ?，params 非空则禁止（避免参数计数错配）
+        if (ve.params != null && !ve.params.isEmpty()) {
+            throw new NopException(ERR_AGGR_HAVING_EXPR_UNSAFE)
+                    .param("metaTableId", table.getMetaTableId())
+                    .param("expr", userExpr)
+                    .param("reason", "literals are not allowed in having arithmetic expression "
+                            + "(Phase 1 only allows measure-name arithmetic combination): "
+                            + "params=" + ve.params);
+        }
+        return finalSql;
+    }
+
+    /**
+     * 检测 having TreeBean 是否包含任何 {@code expr} 属性的叶子（多列算术 having 标记）。
+     * 用于跨库内存路径入口的显式失败判定（{@code MemoryFilterEvaluator} 调用前）。
+     */
+    static boolean containsHavingArithmeticLeaf(TreeBean having) {
+        if (having == null) {
+            return false;
+        }
+        Object exprAttr = having.getAttr(HAVING_EXPR_ATTR);
+        if (exprAttr != null && !exprAttr.toString().isEmpty()) {
+            return true;
+        }
+        List<TreeBean> children = having.getChildren();
+        if (children == null || children.isEmpty()) {
+            return false;
+        }
+        for (TreeBean child : children) {
+            if (containsHavingArithmeticLeaf(child)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     /**

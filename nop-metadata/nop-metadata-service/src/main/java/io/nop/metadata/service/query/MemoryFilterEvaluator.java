@@ -58,6 +58,15 @@ final class MemoryFilterEvaluator {
 
     @SuppressWarnings("unchecked")
     private boolean evaluate(TreeBean node, Map<String, Object> row) {
+        // plan 2026-07-18-1500-2：多列算术 having 在跨库内存路径显式失败（对齐 D12.2）
+        // 检测点选在 evaluate 入口（R2 NEW-4）：错误上下文更清晰（含 op + name）。
+        // 多列算术 leaf 经 setAttr/getAttr 承载 expr 属性；命中即拒绝，不静默跳过 / 不静默返回 false。
+        Object exprAttr = node.getAttr(MetaAggregationExecutor.HAVING_EXPR_ATTR);
+        if (exprAttr != null && !exprAttr.toString().isEmpty()) {
+            throw new NopException(MetaAggregationExecutor.ERR_AGGR_HAVING_EXPR_MEMORY_NOT_COMPUTABLE)
+                    .param("metaTableId", table.getMetaTableId())
+                    .param("expr", exprAttr.toString());
+        }
         String op = node.getTagName();
         if (op == null) {
             throw new NopException(MetaAggregationExecutor.ERR_AGGR_HAVING_UNSUPPORTED_OP)
