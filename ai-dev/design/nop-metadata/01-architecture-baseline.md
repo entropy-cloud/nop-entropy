@@ -1084,7 +1084,7 @@ querySpace 解析规则（plan 0700-2 D1.1 扩展）：entity 端点 querySpace 
 | tableType | 执行载体 | 字段解析 |
 |-----------|---------|---------|
 | `external`/`sql` | `withConnection` 跑原生聚合 SQL（`SELECT <维度>, <agg>(<指标列>) FROM ... GROUP BY <维度>`） | 列名取 `MetaTableFieldResolver` 解析的 field name |
-| `entity` | `orm().executeQuery(SQL, range, callback)` 跑原生聚合 SQL（**物理表 + 物理列**，`allowUnderscoreName(true)`） | `entityFieldId`（主键）解析回**物理列 `NopMetaEntityField.columnCode`**；物理表取自 `MetaEntity.tableName` |
+| `entity` | 默认 `orm().executeQuery(SQL, range, callback)` 跑原生聚合 SQL（**物理表 + 物理列**，`allowUnderscoreName(true)`）；任一 temporal dimension 有非空 granularity 时**改走 bypass EQL**：`TableReferenceExecutor` 平台 JDBC Connection 直查物理 SQL（与 external/sql 路径同 helper，详见 §4.4.2 D7.1） | `entityFieldId`（主键）解析回**物理列 `NopMetaEntityField.columnCode`**；物理表取自 `MetaEntity.tableName` |
 
 `aggFunc` 翻译：`sum`→`SUM(col)`、`count`→`COUNT(col)`、`avg`→`AVG(col)`、`min`→`MIN(col)`、`max`→`MAX(col)`、`countDistinct`→`COUNT(DISTINCT col)`。标识符经 §2.7.1 D3 白名单 + 值参数绑定。
 
@@ -1094,9 +1094,9 @@ querySpace 解析规则（plan 0700-2 D1.1 扩展）：entity 端点 querySpace 
 
 **D7 — granularity→SQL 分桶翻译表**：
 
-`MetaTableDimension.dimensionType=temporal` 时按 `granularity` 生成分桶表达式。首版以测试库 H2 的可用函数为准。**注意**：entity 路径经 `orm().executeQuery` 时 EQL 编译器校验函数名（如 `FORMATDATETIME` 被判为 unknown-function），故**时间分桶（需 DATE_TRUNC/FORMATDATETIME 等函数）首版仅在 external/sql 路径（withConnection 原生 SQL）完整支持**；entity 路径的时间维度首版仅支持 EQL 已知函数（如 `DATE(col)` 日级），完整 granularity 分桶下沉到 SQL 为 follow-up（受 EQL 函数白名单限制）。
+`MetaTableDimension.dimensionType=temporal` 时按 `granularity` 生成分桶表达式。**三条聚合路径（external/sql 单表 / entity 单表 / JOIN 同库 entity↔entity / external↔external / 混合）一致复用 `GranularityBucketing.translate` 翻译为方言原生 SQL 分桶表达式**，由 dialect（H2/MySQL/PostgreSQL）分发。**收口原 entity 路径 follow-up**（plan `2026-07-18-1100-2`）。
 
-granularity→分桶表达式表（external/sql 路径，withConnection 原生 SQL）：
+granularity→分桶表达式表（三条路径一致复用，含 entity）：
 
 | granularity | H2 / PostgreSQL | MySQL |
 |-------------|-----------------|-------|
@@ -1107,8 +1107,21 @@ granularity→分桶表达式表（external/sql 路径，withConnection 原生 S
 | `day` | `DATE_TRUNC('day', col)` | `DATE_FORMAT(col, '%Y-%m-%d')` |
 | `hour` | `DATE_TRUNC('hour', col)` | `DATE_FORMAT(col, '%Y-%m-%d %H:00:00')` |
 
-- 非约定 granularity 值（不在上表）→ 显式失败抛 inline ErrorCode（§2.5.2 D1）。
-- 方言不在首版支持集（H2/MySQL/PostgreSQL）→ 显式失败抛 inline ErrorCode（不静默）。
+- 非约定 granularity 值（不在上表）→ 显式失败抛 inline ErrorCode（`metadata.aggr-granularity-not-supported`，§2.5.2 D1）。
+- 方言不在首版支持集（H2/MySQL/PostgreSQL）→ 显式失败抛 inline ErrorCode（`metadata.aggr-unsupported-dialect`，不静默）。
+
+**D7.1 — entity 路径 granularity 下沉机制裁定（plan `2026-07-18-1100-2` 落地）**：
+
+- **选定机制（Decision：候选 a — bypass EQL，走平台物理 JDBC Connection）**：entity 路径的 granularity 分桶执行**必须 bypass EQL**——经平台物理 JDBC Connection 直查原生 SQL，与 external/sql 路径产出**同一份分桶 SQL 文本**（复用 `GranularityBucketing.translate`，dialect 分发 H2/MySQL/PostgreSQL）。**Connection 获取入口（既有先例，复用）**：经 `TableReferenceExecutor.execute(TableReference, ConnectionAction)`（§4.4.3 D1）的 entity 分派路径——`orm.getSessionFactory().txn()` 取 `ITransactionTemplate` + `runInTransaction(entityQuerySpace, SUPPORTS, txn -> ...)` + `IJdbcTransaction.getConnection()` 直查物理 SQL，**不经 EQL 编译器**（与 D6 entity 聚合走 `orm().executeQuery` 的 EQL 路径不同）。dialect 取自 `DatabaseMetaData.getDatabaseProductName()`，与 external/sql 路径同源。entityQuerySpace 取 `NopMetaEntity.querySpace`（空则 `DaoConstants.DEFAULT_QUERY_SPACE`，对齐 §4.4.3 D1 `MetaTableReferenceResolver.resolveEntity`）。
+- **接线（Decision：复用 `TableReferenceExecutor`）**：`MetaQueryContext` 暴露 `tableRefExecutor()`（由 `NopMetaTableBizModel.ensureTableRefExecutor()` 装配）；`MetaAggregationExecutor.executeEntityAggregation` 检测到任一 temporal dimension 有非空 granularity 时构造 `TableReference(Kind.ENTITY, ...)` 并调 `tableRefExecutor.execute(ref, action)`，`ConnectionAction.apply(conn, metaData, productName)` 内组装分桶 SQL + 经既有 `executeJdbcQuery(conn, sql, params, ...)` 执行（与 external/sql 路径同 helper，避免基础设施重复）。**没有 temporal-with-granularity 维度时**维持既有 `orm().executeQuery` EQL 路径不变（向后兼容，最小变更）。
+- **拒绝的替代方案及理由**：
+    - **拒绝候选 b（EQL 已知函数）**：live 核实 EQL dialect 函数白名单（`default.dialect.xml` + `h2.dialect.xml` + `postgresql.dialect.xml` + `mysql.dialect.xml`）——EQL 已知日期函数仅 `year(col)` 返回 INTEGER、`date(col)` 截断到日返回 DATE、`extract(YEAR FROM col)` 等特殊形式返回 INTEGER，加上 `current_date/current_timestamp/now`；**缺失** `DATE_TRUNC`、`FORMATDATETIME`、`DATE_FORMAT`、`quarter`、`month`、`week`、`hour`。即便用 `year()`/`date()` 实现 year/day 桶，结果类型与 external/sql 路径（返回 DATE）**不一致**（year 返回 INTEGER）；quarter/month/week/hour 完全无 EQL 函数覆盖。语义分叉 + 覆盖度不足，故拒绝。
+    - **拒绝候选 c（先取数再内存分桶）**：破坏 D6「GROUP BY 下沉到 SQL」铁律；需把全表/全过滤集加载到内存后 Java 侧截断+分组——规模风险不同于 SQL 下沉；无法利用 DB 索引/聚合下推；与 external/sql 路径执行模型分叉。
+    - **拒绝「跨库内存路径 dimension 内存分桶」作为本节范围**：跨库 JOIN 聚合（D10）走内存 GROUP BY，其 dimension 经端点命名空间取分组值（无 SQL 表达式层）；时间维度内存分桶需另行设计且规模风险不同，属 successor（见 plan `2026-07-18-1100-2` Deferred「跨库内存路径 dimension 内存分桶」）。
+- **与 §4.4.1 D1.5 拒绝候选 B 的区别澄清（关键）**：D1.5（混合端点 JOIN）显式「拒绝候选 B：`IJdbcTransaction.getConnection` 取 entity 连接」——其拒绝理由仅适用于**混合端点**（external 端点的物理表几乎不可能在平台库 Connection 可见，连接可达性实测不可达 → 跨库内存路径）。**本节为单表 entity 聚合**：entity 物理表（`NopMetaEntity.tableName`）就在平台 querySpace（同一物理库），候选 a 的可达性天然成立（visibility 不需要运行时实测），D1.5 拒绝理由**不适用**。本机制与 §4.4.3 D1（`TableReferenceExecutor.executeOnPlatformConnection`）+ §4.4.2 D12.2（expression 型 Measure entity 路径 bypass EQL）共享同一 Connection 入口与同一先例。
+- **ORM 隐式过滤旁路语义不变（与 D6 一致）**：无论 entity 聚合走 `orm().executeQuery` EQL 路径还是本节 bypass 物理 Connection 路径，均为**物理表直查、绕过 ORM 实体隐式过滤**（租户/逻辑删除/版本）。D6 既有「首版不限制 + 显式文档提示」语义在本机制下完全保留。
+- **失败路径显式化（沿用既有 ErrorCode，不静默直查、不静默降级裸列）**：granularity 不约定 → `metadata.aggr-granularity-not-supported`（`GranularityBucketing.translate` 既有抛点）；方言不支持 → `metadata.aggr-unsupported-dialect`（`executeExternalAggregation` 既有 `SUPPORTED_DIALECTS` 检查，bypass 路径在 `productName` 取得后同等校验）；entity querySpace 非 JDBC 事务 → `metadata.tableref-entity-query-space-not-jdbc`（`TableReferenceExecutor` 既有抛点）。无静默 fallback 裸物理列。
+- **Anti-Hollow（plan `2026-07-18-1100-2` 落地）**：`executeEntityAggregation` 在运行时真实调用 `GranularityBucketing.translate`（entity 路径新增分桶逻辑，非 `:346` 旧裸列直查）；`TableReferenceExecutor.execute` 在运行时被 entity 聚合路径真实调用（非空方法体、非静默跳过）；端到端测试覆盖 entity 路径各 granularity 分桶 + entity 与 external/sql 路径同 granularity 结果一致。
 
 **默认过滤器自动应用**：聚合查询执行前同样由 `DefaultFilterApplicator` 注入 `isDefault=true` 过滤器（与 JOIN/单表共用）。
 
