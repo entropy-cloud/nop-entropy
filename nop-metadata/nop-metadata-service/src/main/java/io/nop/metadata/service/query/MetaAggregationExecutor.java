@@ -20,6 +20,7 @@ import io.nop.metadata.dao.entity.NopMetaTableDimension;
 import io.nop.metadata.dao.entity.NopMetaTableFilter;
 import io.nop.metadata.dao.entity.NopMetaTableJoin;
 import io.nop.metadata.dao.entity.NopMetaTableMeasure;
+import io.nop.metadata.service.field.ExpressionMeasureValidator;
 import io.nop.metadata.service.field.ResolvedTableField;
 import io.nop.metadata.service.tableref.TableReference;
 import org.slf4j.Logger;
@@ -54,10 +55,12 @@ import java.util.Set;
  * </ul>
  *
  * <p>aggFunc 翻译：sum/count/avg/min/max/countDistinct。时间维度 granularity 按 {@link GranularityBucketing}
- * 翻译为 SQL 分桶表达式（D7，仅 external/sql 路径完整支持）。{@code expression} 型 Measure 首版显式不支持。
+ * 翻译为 SQL 分桶表达式（D7，仅 external/sql 路径完整支持）。{@code expression} 型 Measure 三路径执行
+ * （plan 2026-07-18-1400-1，§4.4.2 D12）：entity 路径 bypass EQL + external-sql withConnection + JOIN 同库注入，
+ * 跨库内存路径显式失败（{@link #ERR_AGGR_EXPRESSION_MEMORY_NOT_COMPUTABLE}）。
  *
  * <p>失败路径显式（Minimum Rules #24）：无 measure/dimension / 字段无法解析 / aggFunc 不支持 /
- * granularity 不约定 / 方言不支持 / expression measure / 实体未注册。
+ * granularity 不约定 / 方言不支持 / expression unparseable/unsafe/dialect-unsupported/too-long / 实体未注册。
  */
 public class MetaAggregationExecutor {
     private static final Logger LOG = LoggerFactory.getLogger(MetaAggregationExecutor.class);
@@ -94,10 +97,53 @@ public class MetaAggregationExecutor {
             ErrorCode.define("metadata.aggr-dimension-not-found",
                     "Dimension not found for table: {metaTableId} dimensionName={dimensionName}",
                     "metaTableId", "dimensionName");
-    static final ErrorCode ERR_AGGR_EXPRESSION_MEASURE =
-            ErrorCode.define("metadata.aggr-expression-measure-unsupported",
-                    "expression-type Measure is explicitly unsupported in first version: "
-                            + "{metaTableId} measureName={measureName}", "metaTableId", "measureName");
+
+    // ===== expression 型 Measure 错误码体系（§4.4.2 D12.4 + D12.5 + R2 HAVING/ORDER BY 交互，plan 2026-07-18-1400-1 落地）=====
+
+    /** expression 文本不可解析（语法不合法，如未闭合括号、非法 token、语句终止符）。抛点：parse 阶段。 */
+    public static final ErrorCode ERR_AGGR_EXPRESSION_UNPARSEABLE =
+            ErrorCode.define("metadata.aggr-expression-unparseable",
+                    "Expression measure text is unparseable (unbalanced parenthesis / illegal token / "
+                            + "statement terminator / suspicious comment): "
+                            + "{metaTableId} measureName={measureName} expression={expression} error={error}",
+                    "metaTableId", "measureName", "expression", "error");
+    /** expression 文本不安全（含关键字/函数黑名单中的危险项，或列引用未通过标识符白名单）。抛点：parse 阶段 + identifier 校验阶段。 */
+    public static final ErrorCode ERR_AGGR_EXPRESSION_UNSAFE =
+            ErrorCode.define("metadata.aggr-expression-unsafe",
+                    "Expression measure text is unsafe (contains forbidden keyword/function, or identifier "
+                            + "fails whitelist, or join context requires l./r. qualifier): "
+                            + "{metaTableId} measureName={measureName} expression={expression} reason={reason}",
+                    "metaTableId", "measureName", "expression", "reason");
+    /** expression 使用了当前方言不支持的函数/运算符（如 MySQL 不支持 DATE_TRUNC）。抛点：执行阶段（dialect 取得后）。 */
+    public static final ErrorCode ERR_AGGR_EXPRESSION_DIALECT_UNSUPPORTED =
+            ErrorCode.define("metadata.aggr-expression-dialect-unsupported",
+                    "Expression measure uses function/operator not supported by current dialect: "
+                            + "{metaTableId} measureName={measureName} expression={expression} "
+                            + "databaseProductName={databaseProductName} unsupportedToken={unsupportedToken}",
+                    "metaTableId", "measureName", "expression", "databaseProductName", "unsupportedToken");
+    /** expression 型 Measure 在跨库内存路径无法内存求值（对齐 D10 铁律）。抛点：跨库内存聚合入口。 */
+    public static final ErrorCode ERR_AGGR_EXPRESSION_MEMORY_NOT_COMPUTABLE =
+            ErrorCode.define("metadata.aggr-expression-memory-not-computable",
+                    "Expression-type measure is not computable in cross-DB in-memory GROUP BY path "
+                            + "(aligned with D10 in-memory aggFunc computability rule): "
+                            + "{metaTableId} measureName={measureName} joinId={joinId}",
+                    "metaTableId", "measureName", "joinId");
+    /** expression 文本长度超 VARCHAR(1000) 容量上限（不截断、不静默存入）。抛点：save 阶段。 */
+    public static final ErrorCode ERR_AGGR_EXPRESSION_TOO_LONG =
+            ErrorCode.define("metadata.aggr-expression-too-long",
+                    "Expression measure text exceeds VARCHAR(1000) capacity limit (not truncated, "
+                            + "not silently stored): {metaTableId} measureName={measureName} length={length} limit={limit}",
+                    "metaTableId", "measureName", "length", "limit");
+    /**
+     * expression 型 Measure 被 HAVING 或 ORDER BY 的 name 引用（首版显式失败，避免含 {@code ?} 的 aggSql 经
+     * name→aggSql 反查表重新注入 HAVING/ORDER BY 致参数计数错配）。抛点：name→aggSql 反查表构建 / nameResolver 回调。
+     */
+    public static final ErrorCode ERR_AGGR_EXPRESSION_HAVING_ORDER_BY_UNSUPPORTED =
+            ErrorCode.define("metadata.aggr-expression-having-order-by-unsupported",
+                    "Expression-type measure is referenced by HAVING or ORDER BY name "
+                            + "(first version explicitly fails to avoid ? re-injection parameter count mismatch): "
+                            + "{metaTableId} measureName={measureName} clause={clause}",
+                    "metaTableId", "measureName", "clause");
     static final ErrorCode ERR_AGGR_AGG_FUNC_UNSUPPORTED =
             ErrorCode.define("metadata.aggr-agg-func-unsupported",
                     "aggFunc not supported (expected sum/count/avg/min/max/countDistinct): "
@@ -340,11 +386,21 @@ public class MetaAggregationExecutor {
         // §4.4.2 D7.1：任一 temporal dimension 有非空 granularity 时，分桶表达式须 DATE_TRUNC/DATE_FORMAT 等
         // EQL 不支持的函数 → 改走 bypass EQL 路径（TableReferenceExecutor 取平台 JDBC Connection 直查物理 SQL，
         // 与 external/sql 路径同 helper）。否则维持既有 orm().executeQuery EQL 路径（向后兼容，最小变更）。
+        // plan 2026-07-18-1400-1：任一 measure 为 expression 型时同样需 bypass EQL（D12.2 entity 路径裁定——
+        // expression 需 EQL 不支持的函数 / CASE WHEN 复杂结构，强制 bypass 走原生物理 SQL）。
         boolean needsBypass = false;
         for (DimensionSpec d : dims) {
             if (_NopMetadataCoreConstants.DIMENSION_TYPE_TEMPORAL.equals(d.dimensionType) && d.granularity != null) {
                 needsBypass = true;
                 break;
+            }
+        }
+        if (!needsBypass) {
+            for (MeasureSpec m : measures) {
+                if (m.isExpression()) {
+                    needsBypass = true;
+                    break;
+                }
             }
         }
         if (needsBypass) {
@@ -383,7 +439,15 @@ public class MetaAggregationExecutor {
         }
         sql.append(" FROM ").append(physicalTable);
 
+        // plan 2026-07-18-1400-1：参数绑定顺序（R1 Blocker 修正）—— expression 字面量先于 filter/having。
+        // 注：via EQL 路径在 needsBypass=false 时进入，expression measure 因 needsBypass=true 强制走 bypass 路径，
+        // 故此处 measures 内 expressionParams 为 null（防御性保留顺序逻辑）。
         List<Object> params = new ArrayList<>();
+        for (MeasureSpec m : measures) {
+            if (m.expressionParams != null) {
+                params.addAll(m.expressionParams);
+            }
+        }
         if (filter != null) {
             TreeBean colFilter = rewriteFilterToColumns(filter, propToCol);
             FilterToSqlTranslator.TranslatedFilter tf = ctx.filterTranslator().translate(colFilter);
@@ -396,14 +460,14 @@ public class MetaAggregationExecutor {
         // plan 2026-07-18-0900-2：HAVING 子句（having 的 name 经反查表解析为 aggSql/groupExpr，跳过白名单）
         if (having != null) {
             FilterToSqlTranslator.TranslatedFilter hf = ctx.filterTranslator().translate(having,
-                    nameResolverFor(nameToExpr, table, measureNames, dimensionNames));
+                    nameResolverFor(nameToExpr, table, measureNames, dimensionNames, "HAVING"));
             if (hf.getSql() != null && !hf.getSql().isEmpty()) {
                 sql.append(" HAVING ").append(hf.getSql());
                 params.addAll(hf.getParams());
             }
         }
         // plan 2026-07-18-0900-2：ORDER BY 子句（name 解析为 aggSql/groupExpr + ASC/DESC + NULLS FIRST/LAST）
-        String orderByClause = buildOrderByClause(orderBy, nameToExpr, table, measureNames, dimensionNames);
+        String orderByClause = buildOrderByClause(orderBy, nameToExpr, table, measureNames, dimensionNames, "ORDER_BY");
         if (!orderByClause.isEmpty()) {
             sql.append(" ORDER BY ").append(orderByClause);
         }
@@ -456,6 +520,13 @@ public class MetaAggregationExecutor {
                         .param("databaseProductName", String.valueOf(productName))
                         .param("metaTableId", table.getMetaTableId());
             }
+            // plan 2026-07-18-1400-1：expression 型 measure 的 dialect-specific 函数支持检查（dialect 已知）
+            for (MeasureSpec m : measures) {
+                if (m.isExpression()) {
+                    ExpressionMeasureValidator.checkDialectSupported(m.validatedExpression, productName,
+                            table.getMetaTableId(), m.alias);
+                }
+            }
             // D7：与 external/sql 路径 buildExternalAggregationSql 等价的物理 SQL 构造（同 granularity 分桶表达式）
             StringBuilder sql = new StringBuilder("SELECT ");
             List<String> groupExprs = new ArrayList<>();
@@ -477,7 +548,14 @@ public class MetaAggregationExecutor {
             }
             sql.append(" FROM ").append(physicalTable);
 
+            // plan 2026-07-18-1400-1：参数绑定顺序（R1 Blocker 修正）：
+            // SELECT 内 expression 字面量 → WHERE filter 值 → HAVING 值 → limit/offset（由 executeJdbcQuery 追加）
             List<Object> params = new ArrayList<>();
+            for (MeasureSpec m : measures) {
+                if (m.expressionParams != null) {
+                    params.addAll(m.expressionParams);
+                }
+            }
             if (filter != null) {
                 TreeBean colFilter = rewriteFilterToColumns(filter, propToCol);
                 FilterToSqlTranslator.TranslatedFilter tf = ctx.filterTranslator().translate(colFilter);
@@ -490,14 +568,14 @@ public class MetaAggregationExecutor {
             // plan 2026-07-18-0900-2：HAVING 子句
             if (having != null) {
                 FilterToSqlTranslator.TranslatedFilter hf = ctx.filterTranslator().translate(having,
-                        nameResolverFor(nameToExpr, table, measureNames, dimensionNames));
+                        nameResolverFor(nameToExpr, table, measureNames, dimensionNames, "HAVING"));
                 if (hf.getSql() != null && !hf.getSql().isEmpty()) {
                     sql.append(" HAVING ").append(hf.getSql());
                     params.addAll(hf.getParams());
                 }
             }
             // plan 2026-07-18-0900-2：ORDER BY 子句
-            String orderByClause = buildOrderByClause(orderBy, nameToExpr, table, measureNames, dimensionNames);
+            String orderByClause = buildOrderByClause(orderBy, nameToExpr, table, measureNames, dimensionNames, "ORDER_BY");
             if (!orderByClause.isEmpty()) {
                 sql.append(" ORDER BY ").append(orderByClause);
             }
@@ -530,7 +608,10 @@ public class MetaAggregationExecutor {
      * <p>失败路径显式（Minimum Rules #24，无静默跳过/无静默降级单表/无空 items）：join 不存在/不归属/joinType=right/
      * 未知 joinType（由 {@link MetaJoinExecutor#loadValidatedJoin} 抛）；self-join（双侧别名机制不足 →
      * {@link #ERR_AGGR_JOIN_SELF_JOIN}）；side 缺失/不一致/列不存在（→ 对应 ErrorCode）；expression 型 Measure
-     * （→ {@link #ERR_AGGR_EXPRESSION_MEASURE}）；EQL 编译失败（保留字物理列名 → {@link #ERR_AGGR_JOIN_COMPILE_FAILED}）。
+     * 在 JOIN 路径已支持（plan 2026-07-18-1400-1，注入 {@code <agg>(<validatedExpr>)}）；
+     * 跨库内存路径下 expression 显式失败（→ {@link #ERR_AGGR_EXPRESSION_MEMORY_NOT_COMPUTABLE}）；
+     * expression 被 HAVING/ORDER BY 引用显式失败（→ {@link #ERR_AGGR_EXPRESSION_HAVING_ORDER_BY_UNSUPPORTED}）；
+     * EQL 编译失败（保留字物理列名 → {@link #ERR_AGGR_JOIN_COMPILE_FAILED}）。
      */
     private List<Map<String, Object>> executeJoinAggregation(NopMetaTable table, List<String> measureNames,
                                                                 List<String> dimensionNames, TreeBean filter,
@@ -653,6 +734,12 @@ public class MetaAggregationExecutor {
                 .append(" = r.").append(rightJoinCol);
 
         List<Object> params = new ArrayList<>();
+        // plan 2026-07-18-1400-1：参数绑定顺序（R1 Blocker 修正）—— expression 字面量先于 filter/having。
+        for (JoinMeasureSpec m : measures) {
+            if (m.expressionParams != null) {
+                params.addAll(m.expressionParams);
+            }
+        }
         if (filter != null) {
             // filter 叶子字段名（左表属性名）重写为左表物理列（与 executeSameDbJoin 一致，不限定别名，
             // 左表列在 JOIN 中通常非歧义；若歧义 EQL 会显式编译失败经 ERR_AGGR_JOIN_COMPILE_FAILED 抛出）
@@ -667,14 +754,14 @@ public class MetaAggregationExecutor {
         // plan 2026-07-18-0900-2：HAVING 子句
         if (having != null) {
             FilterToSqlTranslator.TranslatedFilter hf = ctx.filterTranslator().translate(having,
-                    nameResolverFor(nameToExpr, table, measureNames, dimensionNames));
+                    nameResolverFor(nameToExpr, table, measureNames, dimensionNames, "HAVING"));
             if (hf.getSql() != null && !hf.getSql().isEmpty()) {
                 sql.append(" HAVING ").append(hf.getSql());
                 params.addAll(hf.getParams());
             }
         }
         // plan 2026-07-18-0900-2：ORDER BY 子句
-        String orderByClause = buildOrderByClause(orderBy, nameToExpr, table, measureNames, dimensionNames);
+        String orderByClause = buildOrderByClause(orderBy, nameToExpr, table, measureNames, dimensionNames, "ORDER_BY");
         if (!orderByClause.isEmpty()) {
             sql.append(" ORDER BY ").append(orderByClause);
         }
@@ -766,9 +853,9 @@ public class MetaAggregationExecutor {
         FilterToSqlTranslator.TranslatedFilter filterTf = filter == null ? null : ctx.filterTranslator().translate(filter);
         FilterToSqlTranslator.TranslatedFilter havingTf = having == null ? null
                 : ctx.filterTranslator().translate(having,
-                        nameResolverFor(nameToExpr, table, measureNames, dimensionNames));
+                        nameResolverFor(nameToExpr, table, measureNames, dimensionNames, "HAVING"));
         // ORDER BY 子句预构造（name 解析为 aggSql/groupExpr + ASC/DESC + NULLS FIRST/LAST）
-        String orderByClause = buildOrderByClause(orderBy, nameToExpr, table, measureNames, dimensionNames);
+        String orderByClause = buildOrderByClause(orderBy, nameToExpr, table, measureNames, dimensionNames, "ORDER_BY");
 
         final List<Map<String, Object>>[] holder = newArrayHolder();
         ctx.connectionService().withConnection(dataSource.getDatasourceType(), dataSource.getConnectionConfig(),
@@ -779,9 +866,22 @@ public class MetaAggregationExecutor {
                                 .param("databaseProductName", String.valueOf(dialect))
                                 .param("metaTableId", table.getMetaTableId());
                     }
+                    // plan 2026-07-18-1400-1：expression 型 measure 的 dialect-specific 函数支持检查（dialect 已知）
+                    for (JoinMeasureSpec m : measures) {
+                        if (m.isExpression()) {
+                            ExpressionMeasureValidator.checkDialectSupported(m.validatedExpression, dialect,
+                                    table.getMetaTableId(), m.alias);
+                        }
+                    }
                     StringBuilder sql = buildExternalExternalJoinSql(measures, dims, leftFrom, rightFrom,
                             leftJoinCol, rightJoinCol, join, filterTf, havingTf, orderByClause, dialect, limit, offset);
+                    // plan 2026-07-18-1400-1：参数绑定顺序（R1 Blocker 修正）—— expression 字面量 → filter → having → limit/offset
                     List<Object> params = new ArrayList<>();
+                    for (JoinMeasureSpec m : measures) {
+                        if (m.expressionParams != null) {
+                            params.addAll(m.expressionParams);
+                        }
+                    }
                     if (filterTf != null && filterTf.getSql() != null && !filterTf.getSql().isEmpty()) {
                         params.addAll(filterTf.getParams());
                     }
@@ -902,8 +1002,8 @@ public class MetaAggregationExecutor {
                 filter == null ? null : ctx.filterTranslator().translate(filter);
         FilterToSqlTranslator.TranslatedFilter havingTf = having == null ? null
                 : ctx.filterTranslator().translate(having,
-                        nameResolverFor(nameToExpr, table, measureNames, dimensionNames));
-        String orderByClause = buildOrderByClause(orderBy, nameToExpr, table, measureNames, dimensionNames);
+                        nameResolverFor(nameToExpr, table, measureNames, dimensionNames, "HAVING"));
+        String orderByClause = buildOrderByClause(orderBy, nameToExpr, table, measureNames, dimensionNames, "ORDER_BY");
 
         // 8. 在 external withConnection callback 内执行原生 GROUP BY over JOIN（同库判定已在入口提前完成）
         final String _entityFrom = entityFrom;
@@ -927,11 +1027,24 @@ public class MetaAggregationExecutor {
                                 .param("databaseProductName", String.valueOf(dialect))
                                 .param("metaTableId", table.getMetaTableId());
                     }
+                    // plan 2026-07-18-1400-1：expression 型 measure 的 dialect-specific 函数支持检查（dialect 已知）
+                    for (JoinMeasureSpec m : _measures) {
+                        if (m.isExpression()) {
+                            ExpressionMeasureValidator.checkDialectSupported(m.validatedExpression, dialect,
+                                    table.getMetaTableId(), m.alias);
+                        }
+                    }
                     // 同库判定已在入口提前完成（checkEntityTableVisible），此处仅同库路径。
                     StringBuilder sql = buildMixedSameDbJoinSql(_measures, _dims, _entityFrom, _tableFrom,
                             _entityAlias, _tableAlias, _entityJoinColumn, _tableJoinColumn, join, _filterTf,
                             _havingTf, _orderByClause, dialect, limit, offset);
+                    // plan 2026-07-18-1400-1：参数绑定顺序（R1 Blocker 修正）—— expression 字面量 → filter → having → limit/offset
                     List<Object> params = new ArrayList<>();
+                    for (JoinMeasureSpec m : _measures) {
+                        if (m.expressionParams != null) {
+                            params.addAll(m.expressionParams);
+                        }
+                    }
                     if (_filterTf != null && _filterTf.getSql() != null && !_filterTf.getSql().isEmpty()) {
                         params.addAll(_filterTf.getParams());
                     }
@@ -1247,8 +1360,12 @@ public class MetaAggregationExecutor {
         List<CrossDbMeasureSpec> specs = new ArrayList<>(all.size());
         for (NopMetaTableMeasure m : all) {
             if (m.getExpression() != null && !m.getExpression().trim().isEmpty()) {
-                throw new NopException(ERR_AGGR_EXPRESSION_MEASURE)
-                        .param("metaTableId", table.getMetaTableId()).param("measureName", m.getMeasureName());
+                // §4.4.2 D12.2 / D10：expression 型 Measure 在跨库内存路径不可算 → 显式失败
+                // （不静默 0、不静默跳过；对齐 D10 既有「不在上列的 aggFunc（含 expression 型 Measure）→ 显式失败」铁律）
+                throw new NopException(ERR_AGGR_EXPRESSION_MEMORY_NOT_COMPUTABLE)
+                        .param("metaTableId", table.getMetaTableId())
+                        .param("measureName", m.getMeasureName())
+                        .param("joinId", resolver.joinId());
             }
             CrossDbField f = resolver.resolve(m.getEntityFieldId(), m.getMeasureName(), m.getSide(), "measure");
             specs.add(new CrossDbMeasureSpec(safeAlias(m.getMeasureName()), m.getAggFunc(), f.rawKey, f.side));
@@ -1460,6 +1577,11 @@ public class MetaAggregationExecutor {
                 return resolveTableTable(entityFieldId, name, declaredSide);
             }
             return resolveMixed(entityFieldId, name, declaredSide);
+        }
+
+        /** 当前 join 的 joinId（供 loadCrossDbMeasures 抛 expression 错误时附加上下文）。 */
+        String joinId() {
+            return joinId;
         }
 
         /** entity↔entity 跨库：entityFieldId→metaEntityId 判定 side，rawKey=fieldName。 */
@@ -1867,15 +1989,25 @@ public class MetaAggregationExecutor {
         return ep.table == null ? "unknown" : String.valueOf(ep.table.getTableType());
     }
 
-    /** 加载 JOIN 聚合的 Measure 规格列表（按 metaEntityId 判定左/右归属 + side 一致性校验 + 物理列解析）。 */
+    /** 加载 JOIN 聚合的 Measure 规格列表（按 metaEntityId 判定左/右归属 + side 一致性校验 + 物理列解析 + expression 支持）。 */
     private List<JoinMeasureSpec> loadJoinMeasures(NopMetaTable table, List<String> names, MetaQueryContext ctx,
                                                     JoinFieldResolver resolver) {
         List<NopMetaTableMeasure> all = loadMeasures(table, names, ctx);
+        // entity-entity JOIN 上下文：左右端点字段集合（columnCode）供 expression 的 l./r. 限定列名校验
+        Set<String> leftCols = resolver.resolveEntityColumns(resolver.leftEntityId());
+        Set<String> rightCols = resolver.resolveEntityColumns(resolver.rightEntityId());
         List<JoinMeasureSpec> specs = new ArrayList<>();
         for (NopMetaTableMeasure m : all) {
             if (m.getExpression() != null && !m.getExpression().trim().isEmpty()) {
-                throw new NopException(ERR_AGGR_EXPRESSION_MEASURE)
-                        .param("metaTableId", table.getMetaTableId()).param("measureName", m.getMeasureName());
+                // expression 型：dialect-independent 静态校验（JOIN strict，按 l./r. 前缀校验列归属）
+                ExpressionMeasureValidator.ValidatedExpression ve =
+                        ExpressionMeasureValidator.validateStatic(m.getExpression(),
+                                ExpressionMeasureValidator.ValidationOptions.joinStrict(leftCols, rightCols),
+                                table.getMetaTableId(), m.getMeasureName());
+                specs.add(new JoinMeasureSpec(safeAlias(m.getMeasureName()),
+                        aggSqlOf(m.getAggFunc(), ve.sqlFragment, m.getMeasureName()),
+                        "<expression>", ve.params, ve));
+                continue;
             }
             JoinField f = resolver.resolve(m.getEntityFieldId(), m.getMeasureName(), m.getSide(), "measure");
             FilterToSqlTranslator.validateIdentifier(f.column);
@@ -1899,10 +2031,11 @@ public class MetaAggregationExecutor {
         return specs;
     }
 
-    /** 加载 external↔external JOIN 聚合的 Measure 规格（side 必填 + 列名存在性校验）。 */
+    /** 加载 external↔external JOIN 聚合的 Measure 规格（side 必填 + 列名存在性校验 + expression 支持）。 */
     private List<JoinMeasureSpec> loadExternalJoinMeasures(NopMetaTable table, List<String> names,
                                                             MetaQueryContext ctx, JoinExternalSideResolver resolver) {
-        return loadJoinMeasuresWithResolver(table, names, ctx, resolver::resolve);
+        return loadJoinMeasuresWithResolver(table, names, ctx, resolver::resolve,
+                resolver.leftColumns(), resolver.rightColumns());
     }
 
     /** 加载 external↔external JOIN 聚合的 Dimension 规格（side 必填 + 列名存在性校验）。 */
@@ -1911,10 +2044,11 @@ public class MetaAggregationExecutor {
         return loadJoinDimensionsWithResolver(table, names, ctx, resolver::resolve);
     }
 
-    /** 加载混合端点 JOIN 聚合的 Measure 规格（plan 1500-1：entity 侧 entityFieldId→columnCode，table 侧 side 必填）。 */
+    /** 加载混合端点 JOIN 聚合的 Measure 规格（plan 1500-1：entity 侧 entityFieldId→columnCode，table 侧 side 必填 + expression 支持）。 */
     private List<JoinMeasureSpec> loadExternalJoinMeasures(NopMetaTable table, List<String> names,
                                                             MetaQueryContext ctx, JoinMixedSideResolver resolver) {
-        return loadJoinMeasuresWithResolver(table, names, ctx, resolver::resolve);
+        return loadJoinMeasuresWithResolver(table, names, ctx, resolver::resolve,
+                resolver.leftColumns(), resolver.rightColumns());
     }
 
     /** 加载混合端点 JOIN 聚合的 Dimension 规格（plan 1500-1：entity 侧 entityFieldId→columnCode，table 侧 side 必填）。 */
@@ -1930,13 +2064,21 @@ public class MetaAggregationExecutor {
     }
 
     private List<JoinMeasureSpec> loadJoinMeasuresWithResolver(NopMetaTable table, List<String> names,
-                                                                MetaQueryContext ctx, JoinFieldResolverFn resolver) {
+                                                                MetaQueryContext ctx, JoinFieldResolverFn resolver,
+                                                                Set<String> leftCols, Set<String> rightCols) {
         List<NopMetaTableMeasure> all = loadMeasures(table, names, ctx);
         List<JoinMeasureSpec> specs = new ArrayList<>();
         for (NopMetaTableMeasure m : all) {
             if (m.getExpression() != null && !m.getExpression().trim().isEmpty()) {
-                throw new NopException(ERR_AGGR_EXPRESSION_MEASURE)
-                        .param("metaTableId", table.getMetaTableId()).param("measureName", m.getMeasureName());
+                // expression 型：JOIN 上下文 dialect-independent 静态校验（严格 l./r. 限定 + 端点字段集合校验）
+                ExpressionMeasureValidator.ValidatedExpression ve =
+                        ExpressionMeasureValidator.validateStatic(m.getExpression(),
+                                ExpressionMeasureValidator.ValidationOptions.joinStrict(leftCols, rightCols),
+                                table.getMetaTableId(), m.getMeasureName());
+                specs.add(new JoinMeasureSpec(safeAlias(m.getMeasureName()),
+                        aggSqlOf(m.getAggFunc(), ve.sqlFragment, m.getMeasureName()),
+                        "<expression>", ve.params, ve));
+                continue;
             }
             JoinField f = resolver.resolve(m.getEntityFieldId(), m.getMeasureName(), m.getSide());
             FilterToSqlTranslator.validateIdentifier(f.column);
@@ -2033,6 +2175,31 @@ public class MetaAggregationExecutor {
             return new JoinField(column, alias + "." + column);
         }
 
+        /** 左 entity 的 metaEntityId（供 expression 校验时按端点解析列集合）。 */
+        String leftEntityId() {
+            return leftEntityId;
+        }
+
+        /** 右 entity 的 metaEntityId。 */
+        String rightEntityId() {
+            return rightEntityId;
+        }
+
+        /** 按 metaEntityId 解析该 entity 的 columnCode 集合（供 expression JOIN 限定名校验）。 */
+        Set<String> resolveEntityColumns(String metaEntityId) {
+            IEntityDao<NopMetaEntityField> fieldDao = ctx.daoProvider().daoFor(NopMetaEntityField.class);
+            QueryBean q = new QueryBean();
+            q.addFilter(FilterBeans.eq(NopMetaEntityField.PROP_NAME_metaEntityId, metaEntityId));
+            List<NopMetaEntityField> fields = fieldDao.findAllByQuery(q);
+            Set<String> cols = new LinkedHashSet<>();
+            for (NopMetaEntityField f : fields) {
+                if (f.getColumnCode() != null) {
+                    cols.add(f.getColumnCode());
+                }
+            }
+            return cols;
+        }
+
         private static boolean equalsStr(String a, String b) {
             return (a == null) ? b == null : a.equals(b);
         }
@@ -2063,6 +2230,16 @@ public class MetaAggregationExecutor {
             this.rightCols = rightCols;
             this.joinId = joinId;
             this.ownerTable = ownerTable;
+        }
+
+        /** 左端点字段集合（供 expression JOIN 限定名校验）。 */
+        Set<String> leftColumns() {
+            return leftCols;
+        }
+
+        /** 右端点字段集合。 */
+        Set<String> rightColumns() {
+            return rightCols;
         }
 
         JoinField resolve(String columnName, String name, String declaredSide) {
@@ -2163,6 +2340,25 @@ public class MetaAggregationExecutor {
             this.ctx = ctx;
         }
 
+        /** 左端点字段集合（混合端点按 entityOnLeft 决定是 entity columnCode 还是 table 物理列名）。 */
+        Set<String> leftColumns() {
+            return entityOnLeft ? entityColumnCodes() : tableCols;
+        }
+
+        /** 右端点字段集合。 */
+        Set<String> rightColumns() {
+            return entityOnLeft ? tableCols : entityColumnCodes();
+        }
+
+        /** entity 端点 columnCode 集合（取自 entityPropToCol.values()）。 */
+        private Set<String> entityColumnCodes() {
+            Set<String> cols = new LinkedHashSet<>();
+            if (entityPropToCol != null) {
+                cols.addAll(entityPropToCol.values());
+            }
+            return cols;
+        }
+
         JoinField resolve(String entityFieldId, String name, String declaredSide) {
             if (entityFieldId == null || entityFieldId.isEmpty()) {
                 throw new NopException(ERR_AGGR_FIELD_NOT_RESOLVED)
@@ -2249,16 +2445,32 @@ public class MetaAggregationExecutor {
         }
     }
 
-    /** JOIN Measure 规格：别名 + 聚合 SQL 表达式（含 table-qualified 列）+ 限定列（供白名单校验）。 */
+    /** JOIN Measure 规格：别名 + 聚合 SQL 表达式（含 table-qualified 列）+ 限定列（供白名单校验）+ expression 信息（plan 2026-07-18-1400-1）。 */
     private static final class JoinMeasureSpec {
         final String alias;
         final String aggSql;
         final String qualifiedAggCol;
+        /** expression 型 Measure 的字面量参数列表；非 expression 型为 null。 */
+        final List<Object> expressionParams;
+        /** expression 型 Measure 的 validator 产出物；非 expression 型为 null。 */
+        final ExpressionMeasureValidator.ValidatedExpression validatedExpression;
 
         JoinMeasureSpec(String alias, String aggSql, String qualifiedAggCol) {
+            this(alias, aggSql, qualifiedAggCol, null, null);
+        }
+
+        JoinMeasureSpec(String alias, String aggSql, String qualifiedAggCol,
+                       List<Object> expressionParams,
+                       ExpressionMeasureValidator.ValidatedExpression validatedExpression) {
             this.alias = alias;
             this.aggSql = aggSql;
             this.qualifiedAggCol = qualifiedAggCol;
+            this.expressionParams = expressionParams;
+            this.validatedExpression = validatedExpression;
+        }
+
+        boolean isExpression() {
+            return validatedExpression != null;
         }
     }
 
@@ -2325,6 +2537,13 @@ public class MetaAggregationExecutor {
                                 .param("databaseProductName", String.valueOf(dialect))
                                 .param("metaTableId", table.getMetaTableId());
                     }
+                    // plan 2026-07-18-1400-1：expression 型 measure 的 dialect-specific 函数支持检查（dialect 已知）
+                    for (MeasureSpec m : measures) {
+                        if (m.isExpression()) {
+                            ExpressionMeasureValidator.checkDialectSupported(m.validatedExpression, dialect,
+                                    table.getMetaTableId(), m.alias);
+                        }
+                    }
                     String sqlText = buildExternalAggregationSql(table, measures, dims, filter, having, orderBy,
                             _nameToExpr, measureNames, dimensionNames, limit, offset, dialect, ctx);
                     LOG.info("queryAggregation external/sql SQL: {}", sqlText);
@@ -2373,13 +2592,13 @@ public class MetaAggregationExecutor {
         // plan 2026-07-18-0900-2：HAVING 子句
         if (having != null) {
             FilterToSqlTranslator.TranslatedFilter hf = ctx.filterTranslator().translate(having,
-                    nameResolverFor(nameToExpr, table, measureNames, dimensionNames));
+                    nameResolverFor(nameToExpr, table, measureNames, dimensionNames, "HAVING"));
             if (hf.getSql() != null && !hf.getSql().isEmpty()) {
                 sql.append(" HAVING ").append(hf.getSql());
             }
         }
         // plan 2026-07-18-0900-2：ORDER BY 子句
-        String orderByClause = buildOrderByClause(orderBy, nameToExpr, table, measureNames, dimensionNames);
+        String orderByClause = buildOrderByClause(orderBy, nameToExpr, table, measureNames, dimensionNames, "ORDER_BY");
         if (!orderByClause.isEmpty()) {
             sql.append(" ORDER BY ").append(orderByClause);
         }
@@ -2408,19 +2627,34 @@ public class MetaAggregationExecutor {
         return tableName;
     }
 
-    /** 收集 PreparedStatement 绑定参数（filter 值 + having 值），与 SQL 中 ? 出现顺序一致；limit/offset 由 executeJdbcQuery 追加。 */
+    /**
+     * 收集 PreparedStatement 绑定参数，与 SQL 中 ? 出现顺序一致；limit/offset 由 executeJdbcQuery 追加。
+     *
+     * <p>plan 2026-07-18-1400-1：参数绑定顺序（R1 Blocker 修正）—— SQL 子句顺序为
+     * {@code SELECT → WHERE → GROUP BY → HAVING → ORDER BY → LIMIT → OFFSET}，expression 字面量出现在
+     * SELECT 的 {@code <agg>(<expression>)} 内，排在 filter（WHERE）之前。正确合并顺序为：
+     * <b>expression 字面量 → filter 值 → having 值</b>（limit/offset 由 executeJdbcQuery 追加）。
+     */
     private List<Object> collectBindParams(List<MeasureSpec> measures, List<DimensionSpec> dims, TreeBean filter,
                                            TreeBean having, Map<String, String> nameToExpr, MetaQueryContext ctx,
                                            NopMetaTable table,
                                            List<String> measureNames, List<String> dimensionNames) {
         List<Object> params = new ArrayList<>();
+        // 1. expression 字面量（SELECT 内）
+        for (MeasureSpec m : measures) {
+            if (m.expressionParams != null) {
+                params.addAll(m.expressionParams);
+            }
+        }
+        // 2. filter 值（WHERE）
         if (filter != null) {
             FilterToSqlTranslator.TranslatedFilter tf = ctx.filterTranslator().translate(filter);
             params.addAll(tf.getParams());
         }
+        // 3. having 值（HAVING）
         if (having != null) {
             FilterToSqlTranslator.TranslatedFilter hf = ctx.filterTranslator().translate(having,
-                    nameResolverFor(nameToExpr, table, measureNames, dimensionNames));
+                    nameResolverFor(nameToExpr, table, measureNames, dimensionNames, "HAVING"));
             params.addAll(hf.getParams());
         }
         // limit/offset 由 executeJdbcQuery 在 filter/having 参数后追加，这里不重复
@@ -2470,11 +2704,20 @@ public class MetaAggregationExecutor {
     private List<MeasureSpec> loadEntityMeasures(NopMetaTable table, List<String> names, MetaQueryContext ctx,
                                                  Map<String, String> propToCol) {
         List<NopMetaTableMeasure> all = loadMeasures(table, names, ctx);
+        // entity 路径单表上下文：标识符白名单取自该 entity 的 columnCode 集合（expression 校验用）
+        Set<String> columnSet = new LinkedHashSet<>(propToCol.values());
         List<MeasureSpec> specs = new ArrayList<>();
         for (NopMetaTableMeasure m : all) {
             if (m.getExpression() != null && !m.getExpression().trim().isEmpty()) {
-                throw new NopException(ERR_AGGR_EXPRESSION_MEASURE)
-                        .param("metaTableId", table.getMetaTableId()).param("measureName", m.getMeasureName());
+                // expression 型：dialect-independent 静态校验（单表 strict，列集合 = entity columnCode）
+                ExpressionMeasureValidator.ValidatedExpression ve =
+                        ExpressionMeasureValidator.validateStatic(m.getExpression(),
+                                ExpressionMeasureValidator.ValidationOptions.singleTableStrict(columnSet),
+                                table.getMetaTableId(), m.getMeasureName());
+                specs.add(new MeasureSpec(safeAlias(m.getMeasureName()),
+                        aggSqlOf(m.getAggFunc(), ve.sqlFragment, m.getMeasureName()),
+                        ve.params, ve));
+                continue;
             }
             String column = resolveEntityFieldColumn(m.getEntityFieldId(), m.getMeasureName(), table, ctx, propToCol);
             FilterToSqlTranslator.validateIdentifier(column);
@@ -2486,11 +2729,21 @@ public class MetaAggregationExecutor {
 
     private List<MeasureSpec> loadExternalMeasures(NopMetaTable table, List<String> names, MetaQueryContext ctx) {
         List<NopMetaTableMeasure> all = loadMeasures(table, names, ctx);
+        // external/sql 路径单表上下文：标识符白名单取自该表可解析列名集合（expression 校验用）
+        IEntityDao<NopMetaEntityField> fieldDao = ctx.daoProvider().daoFor(NopMetaEntityField.class);
+        Set<String> columnSet = resolveTableColumnNames(table, fieldDao, ctx);
         List<MeasureSpec> specs = new ArrayList<>();
         for (NopMetaTableMeasure m : all) {
             if (m.getExpression() != null && !m.getExpression().trim().isEmpty()) {
-                throw new NopException(ERR_AGGR_EXPRESSION_MEASURE)
-                        .param("metaTableId", table.getMetaTableId()).param("measureName", m.getMeasureName());
+                // expression 型：dialect-independent 静态校验（单表 strict，列集合 = 该表可解析列名）
+                ExpressionMeasureValidator.ValidatedExpression ve =
+                        ExpressionMeasureValidator.validateStatic(m.getExpression(),
+                                ExpressionMeasureValidator.ValidationOptions.singleTableStrict(columnSet),
+                                table.getMetaTableId(), m.getMeasureName());
+                specs.add(new MeasureSpec(safeAlias(m.getMeasureName()),
+                        aggSqlOf(m.getAggFunc(), ve.sqlFragment, m.getMeasureName()),
+                        ve.params, ve));
+                continue;
             }
             // external/sql：entityFieldId 是字段名字符串
             String column = m.getEntityFieldId();
@@ -2855,11 +3108,16 @@ public class MetaAggregationExecutor {
     /**
      * having 的 fieldResolver 回调：name → SQL 表达式（aggSql 或 column）。
      * 命中失败（未选定 measure/dimension name）→ 抛 {@link #ERR_AGGR_HAVING_UNKNOWN_NAME}（不静默跳过）。
+     *
+     * <p>plan 2026-07-18-1400-1：expression 型 measure 的 aggSql 含 {@code ?}（字面量参数占位符），
+     * 若经此回调注入 HAVING/ORDER BY 会致 SQL 参数计数错配 → 显式失败
+     * {@link #ERR_AGGR_EXPRESSION_HAVING_ORDER_BY_UNSUPPORTED}（含 aggSql 检测到 {@code ?} 即拒绝）。
      */
     private static java.util.function.Function<String, String> nameResolverFor(Map<String, String> nameToExpr,
                                                                                   NopMetaTable table,
                                                                                   List<String> measureNames,
-                                                                                  List<String> dimensionNames) {
+                                                                                  List<String> dimensionNames,
+                                                                                  String clause) {
         return name -> {
             String expr = nameToExpr.get(name);
             if (expr == null) {
@@ -2868,6 +3126,13 @@ public class MetaAggregationExecutor {
                         .param("name", name)
                         .param("selectedMeasures", String.valueOf(measureNames))
                         .param("selectedDimensions", String.valueOf(dimensionNames));
+            }
+            if (expr.indexOf('?') >= 0) {
+                // expression 型 measure 被 HAVING/ORDER BY 的 name 引用——aggSql 含 ?，重注入会致参数计数错配
+                throw new NopException(ERR_AGGR_EXPRESSION_HAVING_ORDER_BY_UNSUPPORTED)
+                        .param("metaTableId", table.getMetaTableId())
+                        .param("measureName", name)
+                        .param("clause", clause);
             }
             return expr;
         };
@@ -2879,10 +3144,13 @@ public class MetaAggregationExecutor {
      * {@link #ERR_AGGR_ORDER_BY_UNKNOWN_NAME} 显式失败（不静默跳过）。
      *
      * <p>{@code desc=true} → DESC，{@code desc=false} → ASC；{@code nullsFirst} 非空 → NULLS FIRST/LAST。
+     *
+     * <p>plan 2026-07-18-1400-1：expression 型 measure 的 aggSql 含 {@code ?} 不能注入 ORDER BY →
+     * 抛 {@link #ERR_AGGR_EXPRESSION_HAVING_ORDER_BY_UNSUPPORTED}（与 HAVING 一致）。
      */
     private static String buildOrderByClause(List<OrderFieldBean> orderBy, Map<String, String> nameToExpr,
                                               NopMetaTable table, List<String> measureNames,
-                                              List<String> dimensionNames) {
+                                              List<String> dimensionNames, String clause) {
         if (orderBy == null || orderBy.isEmpty()) {
             return "";
         }
@@ -2898,6 +3166,12 @@ public class MetaAggregationExecutor {
                         .param("selectedMeasures", String.valueOf(measureNames))
                         .param("selectedDimensions", String.valueOf(dimensionNames));
             }
+            if (expr.indexOf('?') >= 0) {
+                throw new NopException(ERR_AGGR_EXPRESSION_HAVING_ORDER_BY_UNSUPPORTED)
+                        .param("metaTableId", table.getMetaTableId())
+                        .param("measureName", String.valueOf(name))
+                        .param("clause", clause);
+            }
             if (i > 0) {
                 sb.append(",");
             }
@@ -2910,14 +3184,30 @@ public class MetaAggregationExecutor {
         return sb.toString();
     }
 
-    /** 指标规格：别名 + 聚合 SQL 表达式。 */
+    /** 指标规格：别名 + 聚合 SQL 表达式 + expression 信息（plan 2026-07-18-1400-1：expression 型 Measure 承载）。 */
     private static final class MeasureSpec {
         final String alias;
         final String aggSql;
+        /** expression 型 Measure 的字面量参数列表（按 SQL ? 出现顺序）；非 expression 型为 null。 */
+        final List<Object> expressionParams;
+        /** expression 型 Measure 的 validator 产出物（供 dialect-specific 检查）；非 expression 型为 null。 */
+        final ExpressionMeasureValidator.ValidatedExpression validatedExpression;
 
         MeasureSpec(String alias, String aggSql) {
+            this(alias, aggSql, null, null);
+        }
+
+        MeasureSpec(String alias, String aggSql, List<Object> expressionParams,
+                    ExpressionMeasureValidator.ValidatedExpression validatedExpression) {
             this.alias = alias;
             this.aggSql = aggSql;
+            this.expressionParams = expressionParams;
+            this.validatedExpression = validatedExpression;
+        }
+
+        /** 是否为 expression 型（ aggSql 含 {@code <agg>(<expression>)}，需 dialect-specific 校验 + 参数绑定）。 */
+        boolean isExpression() {
+            return validatedExpression != null;
         }
     }
 

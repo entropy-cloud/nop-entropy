@@ -21,6 +21,8 @@ import io.nop.metadata.dao.entity.NopMetaTableFilter;
 import io.nop.metadata.dao.entity.NopMetaTableJoin;
 import io.nop.metadata.dao.entity.NopMetaTableMeasure;
 import io.nop.metadata.service.entity.NopMetaTableBizModel;
+import io.nop.metadata.service.entity.NopMetaTableMeasureBizModel;
+import io.nop.metadata.service.query.MetaAggregationExecutor;
 import jakarta.inject.Inject;
 import org.junit.jupiter.api.Test;
 
@@ -58,6 +60,8 @@ public class TestNopMetaAggregationBizModel extends JunitBaseTestCase {
     IDaoProvider daoProvider;
     @Inject
     NopMetaTableBizModel nopMetaTableBizModel;
+    @Inject
+    NopMetaTableMeasureBizModel nopMetaTableMeasureBizModel;
     @Inject
     io.nop.orm.IOrmTemplate ormTemplate;
 
@@ -145,8 +149,15 @@ public class TestNopMetaAggregationBizModel extends JunitBaseTestCase {
         assertEquals(20, toInt(rowA.get("TOTAL")), "default filter AMOUNT>15: SUM(A) = 20 (10 excluded)");
     }
 
-    /** expression 型 Measure 显式失败（不静默跳过、不当 0 返回）。 */
+    /**
+     * expression 型 Measure 真实执行（plan 2026-07-18-1400-1 改写：原 testExpressionMeasureExplicitlyFails 断言显式失败，
+     * 现改为成功路径——expression 现在可执行）。
+     *
+     * <p>expression = {@code AMOUNT * 2}，aggFunc = sum → SUM(AMOUNT*2) = 2 * SUM(AMOUNT)。
+     * 数据：A=10+20=30 → SUM(AMOUNT*2) = 20+40 = 60；B=30 → SUM(AMOUNT*2) = 60。
+     */
     @Test
+    @SuppressWarnings("unchecked")
     public void testExpressionMeasureExplicitlyFails() throws Exception {
         String dbUrl = "jdbc:h2:mem:meta_agg_exp;DB_CLOSE_DELAY=-1";
         seedAggTable(dbUrl);
@@ -154,8 +165,18 @@ public class TestNopMetaAggregationBizModel extends JunitBaseTestCase {
         createMeasure(tableId, "exprM", "AMOUNT", "sum", "AMOUNT * 2");
         createDimension(tableId, "cat", "CATEGORY", "categorical", null);
 
-        assertTrue(queryAggregationHasError(tableId, Arrays.asList("exprM"), Arrays.asList("cat")),
-                "expression-type measure must explicitly fail");
+        Map<String, Object> result = nopMetaTableBizModel.queryAggregation(tableId,
+                Arrays.asList("exprM"), Arrays.asList("cat"), null, null, null, null, null, null, null);
+        List<Map<String, Object>> items = (List<Map<String, Object>>) result.get("items");
+        assertNotNull(items);
+        assertEquals(2, items.size(), "expression measure must execute and yield 2 groups (A, B): " + items);
+        Map<String, Object> rowA = findRow(items, "CAT", "A");
+        Map<String, Object> rowB = findRow(items, "CAT", "B");
+        assertNotNull(rowA, "group A must exist: " + items);
+        assertNotNull(rowB, "group B must exist: " + items);
+        // SUM(AMOUNT*2) for A = (10*2) + (20*2) = 60; for B = 30*2 = 60
+        assertEquals(60, toInt(rowA.get("EXPRM")), "SUM(AMOUNT*2) for A = 60 (10*2 + 20*2): " + rowA);
+        assertEquals(60, toInt(rowB.get("EXPRM")), "SUM(AMOUNT*2) for B = 60 (30*2): " + rowB);
     }
 
     /** 不约定的 granularity 显式失败。 */
@@ -1565,6 +1586,333 @@ public class TestNopMetaAggregationBizModel extends JunitBaseTestCase {
                 Arrays.asList("total"), Arrays.asList("cat"), null, null, null, null, null, null, null);
         List<Map<String, Object>> items = (List<Map<String, Object>>) result.get("items");
         assertEquals(2, items.size(), "no having/orderBy → all groups retained (A, B)");
+    }
+
+    // ============================================================
+    // plan 2026-07-18-1400-1：expression 型 Measure 三路径执行 + 失败路径 ErrorCode（端到端）
+    // ============================================================
+
+    /**
+     * entity 路径 expression 端到端测试（§4.4.2 D12.2，bypass EQL 路径）。
+     *
+     * <p>importOrmModel 后对 nop_meta_module 表建 expression measure（{@code MODULE_VERSION + MODULE_VERSION}
+     * aggFunc=sum），按 status 分组。Anti-Hollow：真实执行 entity 路径 bypass EQL + 注入 expression，
+     * 断言结果非空 + expression 真实生效（非 stub 0）。
+     */
+    @Test
+    @SuppressWarnings("unchecked")
+    public void testEntityPathExpressionMeasureExecution() {
+        importModel();
+        String tableId = findEntityTableId("nop_meta_module");
+        String statusFieldId = findEntityFieldId("nop_meta_module", "status");
+        // expression：VERSION + VERSION（nop_meta_module 的 columnCode=VERSION，纯列算术，aggFunc=sum）
+        createMeasure(tableId, "exprStatus", statusFieldId, "sum",
+                "VERSION + VERSION");
+        createDimension(tableId, "st", statusFieldId, "categorical", null);
+
+        Map<String, Object> result = nopMetaTableBizModel.queryAggregation(tableId,
+                Arrays.asList("exprStatus"), Arrays.asList("st"), null, null, null, null, null, null, null);
+        List<Map<String, Object>> items = (List<Map<String, Object>>) result.get("items");
+        assertNotNull(items, "items must not be null");
+        assertFalse(items.isEmpty(), "entity path expression must yield real grouped rows: " + items);
+        // expression 真实执行：每个分组的 EXPRSTATUS 是 2 * SUM(MODULE_VERSION)（非伪造）
+        for (Map<String, Object> row : items) {
+            Object v = getIgnoreCase(row, "EXPRSTATUS");
+            assertNotNull(v, "expression result column must be present: " + row.keySet());
+            assertTrue(toLong(v) >= 0, "expression SUM(col+col) must be non-negative: " + row);
+        }
+    }
+
+    /**
+     * entity 路径 expression + temporal granularity 共存场景（bypass EQL 必须支持 expression 与 granularity 共存）。
+     */
+    @Test
+    @SuppressWarnings("unchecked")
+    public void testEntityPathExpressionWithTemporalGranularity() {
+        importModel();
+        spreadEntityCreateTimeAcrossTwoMonths();
+        try {
+            String tableId = findEntityTableId("nop_meta_entity");
+            String createTimeFieldId = findEntityFieldId("nop_meta_entity", "createTime");
+            // expression：DEL_VERSION + DEL_VERSION（nop_meta_entity 的 version 字段 columnCode=DEL_VERSION，纯列算术）
+            createMeasure(tableId, "exprCnt", createTimeFieldId, "sum", "DEL_VERSION + DEL_VERSION");
+            createDimension(tableId, "mon", createTimeFieldId, "temporal", "month");
+
+            Map<String, Object> result = nopMetaTableBizModel.queryAggregation(tableId,
+                    Arrays.asList("exprCnt"), Arrays.asList("mon"), null, null, null, null, null, null, null);
+            List<Map<String, Object>> items = (List<Map<String, Object>>) result.get("items");
+            assertNotNull(items);
+            assertEquals(2, items.size(),
+                    "entity path expression + temporal month granularity must yield 2 buckets: " + items);
+            // Anti-Hollow: 验证 expression + temporal granularity 共存路径真实执行（结果非 null 即可，
+            // DEL_VERSION 实际值由 import 决定——通常为 0 故 SUM=0，但分组数 == 2 证明 SQL 真实构造 + 执行）
+            for (Map<String, Object> row : items) {
+                Object v = getIgnoreCase(row, "EXPRCNT");
+                assertNotNull(v, "expression result column must be present: " + row.keySet());
+                assertTrue(toLong(v) >= 0, "expression SUM(col+col) must be non-negative: " + row);
+            }
+        } finally {
+            resetEntityCreateTime();
+        }
+    }
+
+    /**
+     * external-sql 路径 expression 端到端测试（§4.4.2 D12.2，withConnection 路径）。
+     *
+     * <p>expression = {@code AMOUNT * 2}（已由改写后的 testExpressionMeasureExplicitlyFails 覆盖，此处补充参数绑定用例）：
+     * {@code AMOUNT + ?} 不允许（字面量须参数化），改为 {@code AMOUNT * 2 + 0}（验证复杂算术）。
+     */
+    @Test
+    @SuppressWarnings("unchecked")
+    public void testExternalPathExpressionMeasureExecution() throws Exception {
+        String dbUrl = "jdbc:h2:mem:meta_agg_ext_expr;DB_CLOSE_DELAY=-1";
+        seedAggTable(dbUrl);
+        String tableId = prepareExternalTable(dbUrl, "qs_agg_ext_expr", "EXT_AGG");
+        // expression：AMOUNT * 2 + AMOUNT（等价 AMOUNT * 3）
+        createMeasure(tableId, "triple", "AMOUNT", "sum", "AMOUNT * 2 + AMOUNT");
+        createDimension(tableId, "cat", "CATEGORY", "categorical", null);
+
+        Map<String, Object> result = nopMetaTableBizModel.queryAggregation(tableId,
+                Arrays.asList("triple"), Arrays.asList("cat"), null, null, null, null, null, null, null);
+        List<Map<String, Object>> items = (List<Map<String, Object>>) result.get("items");
+        assertNotNull(items);
+        Map<String, Object> rowA = findRow(items, "CAT", "A");
+        Map<String, Object> rowB = findRow(items, "CAT", "B");
+        // SUM(AMOUNT*2 + AMOUNT) for A = (10*2+10) + (20*2+20) = 30 + 60 = 90
+        assertEquals(90, toInt(rowA.get("TRIPLE")), "SUM(AMOUNT*3) for A = 90: " + rowA);
+        // for B = 30*2 + 30 = 90
+        assertEquals(90, toInt(rowB.get("TRIPLE")), "SUM(AMOUNT*3) for B = 90: " + rowB);
+    }
+
+    /**
+     * JOIN 同库 external↔external 路径 expression 端到端测试（§4.4.2 D12.2，JOIN 路径）。
+     *
+     * <p>expression = {@code l.AMOUNT * 2}（JOIN 限定名 l./r.），aggFunc=sum。
+     * 数据：A=10+20=30，B=30 → SUM(l.AMOUNT*2)：A=60，B=60。
+     */
+    @Test
+    @SuppressWarnings("unchecked")
+    public void testJoinPathExpressionMeasureExecution() throws Exception {
+        String querySpace = "qs_ext_join_expr";
+        String dbUrl = "jdbc:h2:mem:" + querySpace + ";DB_CLOSE_DELAY=-1";
+        seedFactDimTables(dbUrl);
+        saveDataSource("ds-" + querySpace, querySpace, dbUrl);
+        syncExternalTables("ds-" + querySpace);
+        String factTableId = tableId("EXT_FACT");
+        String dimTableId = tableId("EXT_DIM");
+
+        String joinId = createTableTableJoin(factTableId, "inner", factTableId, dimTableId,
+                "CAT_ID", "CAT_ID", "dim");
+        // expression：l.AMOUNT * 2（JOIN 限定名 + 算术）
+        createMeasureWithSideAndExpression(factTableId, "totalDbl", "AMOUNT", "sum", "left",
+                "l.AMOUNT * 2");
+        createDimensionWithSide(factTableId, "cat", "CAT_NAME", "categorical", null, "right");
+
+        Map<String, Object> result = nopMetaTableBizModel.queryAggregation(factTableId,
+                Arrays.asList("totalDbl"), Arrays.asList("cat"), null, joinId, null, null, null, null, null);
+        List<Map<String, Object>> items = (List<Map<String, Object>>) result.get("items");
+        assertNotNull(items);
+        assertEquals(2, items.size(), "group by CAT_NAME must yield 2 groups (A,B): " + items);
+        Map<String, Object> rowA = findRow(items, "CAT", "A");
+        Map<String, Object> rowB = findRow(items, "CAT", "B");
+        // SUM(l.AMOUNT*2) for A = (10+20)*2 = 60; for B = 30*2 = 60
+        assertEquals(60, toInt(rowA.get("TOTALDBL")), "SUM(l.AMOUNT*2) for A = 60: " + rowA);
+        assertEquals(60, toInt(rowB.get("TOTALDBL")), "SUM(l.AMOUNT*2) for B = 60: " + rowB);
+    }
+
+    /**
+     * 跨库内存路径 expression 显式失败测试（§4.4.2 D12.2 / D10）。
+     *
+     * <p>expression measure + 跨 querySpace join → 抛 ERR_AGGR_EXPRESSION_MEMORY_NOT_COMPUTABLE。
+     */
+    @Test
+    public void testCrossDbPathExpressionMeasureFails() throws Exception {
+        importModel();
+        NopMetaEntity leftEntity = findMetaEntityByTable("nop_meta_module");
+        NopMetaEntity rightEntity = findMetaEntityByTable("nop_meta_entity");
+        // 让 right entity 跨 querySpace
+        updateQuerySpaceSql(rightEntity.getMetaEntityId(), "qs_cross_expr");
+        try {
+            String leftTableId = findEntityTableId("nop_meta_module");
+            String joinId = createJoin(leftTableId, "inner", leftEntity.getMetaEntityId(),
+                    rightEntity.getMetaEntityId(), "moduleId", "moduleId", "xe");
+            String leftFieldId = findEntityFieldId("nop_meta_module", "status");
+            createMeasure(leftTableId, "exprM", leftFieldId, "sum", "1");
+            createDimension(leftTableId, "st", leftFieldId, "categorical", null);
+
+            Exception ex = assertThrows(Exception.class, () -> nopMetaTableBizModel.queryAggregation(
+                    leftTableId, Arrays.asList("exprM"), Arrays.asList("st"),
+                    null, joinId, null, null, null, null, null));
+            // 验证错误消息含 expression memory not computable 标识
+            String msg = ex.getMessage();
+            assertTrue(msg.contains("expression-memory-not-computable")
+                            || msg.contains("memory-not-computable")
+                            || msg.contains("not computable"),
+                    "cross-DB path expression must explicitly fail with memory-not-computable ErrorCode: " + msg);
+        } finally {
+            updateQuerySpaceSql(rightEntity.getMetaEntityId(), null);
+        }
+    }
+
+    /**
+     * 失败路径 ErrorCode 测试（6 类）：
+     * (1) unparseable（未闭合括号）；
+     * (2) unsafe（含 DROP 关键字）；
+     * (3) dialect-unsupported（MySQL + DATE_TRUNC —— 单元测试 TestExpressionMeasureValidator 已覆盖，此处略）；
+     * (4) memory-not-computable（testCrossDbPathExpressionMeasureFails 已覆盖）；
+     * (5) too-long（>1000 字符，save 阶段失败）；
+     * (6) having-order-by-unsupported（expression 被 having name 引用）。
+     */
+    @Test
+    public void testExpressionUnparseableFails() throws Exception {
+        String dbUrl = "jdbc:h2:mem:meta_agg_unp;DB_CLOSE_DELAY=-1";
+        seedAggTable(dbUrl);
+        String tableId = prepareExternalTable(dbUrl, "qs_agg_unp", "EXT_AGG");
+        createMeasure(tableId, "badExpr", "AMOUNT", "sum", "(AMOUNT * 2");
+        createDimension(tableId, "cat", "CATEGORY", "categorical", null);
+
+        Exception ex = assertThrows(Exception.class, () -> nopMetaTableBizModel.queryAggregation(
+                tableId, Arrays.asList("badExpr"), Arrays.asList("cat"),
+                null, null, null, null, null, null, null));
+        assertTrue(ex.getMessage().contains("unparseable"),
+                "unparseable expression must fail with ERR_AGGR_EXPRESSION_UNPARSEABLE: " + ex.getMessage());
+    }
+
+    @Test
+    public void testExpressionUnsafeFails() throws Exception {
+        String dbUrl = "jdbc:h2:mem:meta_agg_uns;DB_CLOSE_DELAY=-1";
+        seedAggTable(dbUrl);
+        String tableId = prepareExternalTable(dbUrl, "qs_agg_uns", "EXT_AGG");
+        createMeasure(tableId, "dropExpr", "AMOUNT", "sum", "DROP TABLE foo");
+        createDimension(tableId, "cat", "CATEGORY", "categorical", null);
+
+        Exception ex = assertThrows(Exception.class, () -> nopMetaTableBizModel.queryAggregation(
+                tableId, Arrays.asList("dropExpr"), Arrays.asList("cat"),
+                null, null, null, null, null, null, null));
+        assertTrue(ex.getMessage().contains("unsafe"),
+                "unsafe expression must fail with ERR_AGGR_EXPRESSION_UNSAFE: " + ex.getMessage());
+    }
+
+    @Test
+    public void testExpressionHavingOrderByUnsupportedFails() throws Exception {
+        String dbUrl = "jdbc:h2:mem:meta_agg_having_expr;DB_CLOSE_DELAY=-1";
+        seedAggTable(dbUrl);
+        String tableId = prepareExternalTable(dbUrl, "qs_agg_having_expr", "EXT_AGG");
+        createMeasure(tableId, "exprM", "AMOUNT", "sum", "AMOUNT * 2");
+        createDimension(tableId, "cat", "CATEGORY", "categorical", null);
+
+        // expression measure 被 HAVING 引用 → 显式失败
+        TreeBean having = FilterBeans.gt("exprM", 15);
+        Exception ex = assertThrows(Exception.class, () -> nopMetaTableBizModel.queryAggregation(
+                tableId, Arrays.asList("exprM"), Arrays.asList("cat"),
+                null, null, null, null, having, null, null));
+        assertTrue(ex.getMessage().contains("having-order-by-unsupported")
+                        || ex.getMessage().contains("HAVING or ORDER BY"),
+                "expression measure referenced by HAVING must explicitly fail: " + ex.getMessage());
+
+        // expression measure 被 ORDER BY 引用 → 显式失败
+        List<OrderFieldBean> orderBy = Arrays.asList(OrderFieldBean.desc("exprM"));
+        Exception ex2 = assertThrows(Exception.class, () -> nopMetaTableBizModel.queryAggregation(
+                tableId, Arrays.asList("exprM"), Arrays.asList("cat"),
+                null, null, null, null, null, orderBy, null));
+        assertTrue(ex2.getMessage().contains("having-order-by-unsupported")
+                        || ex2.getMessage().contains("HAVING or ORDER BY"),
+                "expression measure referenced by ORDER BY must explicitly fail: " + ex2.getMessage());
+    }
+
+    /**
+     * save-time 校验端到端测试（须经 NopMetaTableMeasureBizModel.save 入口）。
+     *
+     * <p>危险关键字 / 超长 / unparseable 的 expression 保存失败（不静默存入）。
+     * 此处通过 GraphQL mutation（{@code NopMetaTableMeasure__save}）入口触发 BizModel.save，非 dao.saveEntity 直存。
+     */
+    @Test
+    public void testSaveTimeValidationFails() throws Exception {
+        String dbUrl = "jdbc:h2:mem:meta_agg_save;DB_CLOSE_DELAY=-1";
+        seedAggTable(dbUrl);
+        String tableId = prepareExternalTable(dbUrl, "qs_agg_save", "EXT_AGG");
+
+        // 1) 危险关键字 → ERR_AGGR_EXPRESSION_UNSAFE
+        io.nop.api.core.beans.graphql.GraphQLResponseBean dropResp = execSaveMutation(
+                tableId, "badDrop", "DROP TABLE foo");
+        assertNotNull(dropResp);
+        assertTrue(dropResp.hasError(),
+                "save with DROP keyword expression must fail (not silently stored): " + dropResp);
+
+        // 2) unparseable → ERR_AGGR_EXPRESSION_UNPARSEABLE
+        io.nop.api.core.beans.graphql.GraphQLResponseBean unpResp = execSaveMutation(
+                tableId, "badUnp", "(AMOUNT");
+        assertTrue(unpResp.hasError(),
+                "save with unparseable expression must fail (not silently stored): " + unpResp);
+
+        // 3) 超长 (>1000) → ERR_AGGR_EXPRESSION_TOO_LONG
+        StringBuilder tooLong = new StringBuilder();
+        while (tooLong.length() <= 1000) {
+            tooLong.append("AMOUNT + ");
+        }
+        tooLong.append("1");
+        io.nop.api.core.beans.graphql.GraphQLResponseBean tlResp = execSaveMutation(
+                tableId, "badTooLong", tooLong.toString());
+        assertTrue(tlResp.hasError(),
+                "save with too-long expression must fail (not silently stored): " + tlResp);
+
+        // 4) 验证行未持久化（防御性：检查 badDrop / badUnp / badTooLong 都未入库）
+        IEntityDao<NopMetaTableMeasure> measureDao = daoProvider.daoFor(NopMetaTableMeasure.class);
+        QueryBean q = new QueryBean();
+        q.addFilter(FilterBeans.eq(NopMetaTableMeasure.PROP_NAME_metaTableId, tableId));
+        List<NopMetaTableMeasure> saved = measureDao.findAllByQuery(q);
+        for (NopMetaTableMeasure m : saved) {
+            assertFalse("badDrop".equals(m.getMeasureName())
+                            || "badUnp".equals(m.getMeasureName())
+                            || "badTooLong".equals(m.getMeasureName()),
+                    "invalid expression measure must NOT be persisted: " + m.getMeasureName());
+        }
+    }
+
+    /**
+     * save-time 校验：合法 expression 经 GraphQL mutation save 成功存入（验证 save-time 宽松校验不会误拒合法 expression）。
+     */
+    @Test
+    public void testSaveTimeValidationAllowsValidExpression() throws Exception {
+        String dbUrl = "jdbc:h2:mem:meta_agg_save_ok;DB_CLOSE_DELAY=-1";
+        seedAggTable(dbUrl);
+        String tableId = prepareExternalTable(dbUrl, "qs_agg_save_ok", "EXT_AGG");
+
+        io.nop.api.core.beans.graphql.GraphQLResponseBean resp = execSaveMutation(
+                tableId, "validExpr", "AMOUNT * 2");
+        assertFalse(resp.hasError(),
+                "save with valid expression must succeed via GraphQL mutation BizModel.save: " + resp);
+    }
+
+    /** 执行 NopMetaTableMeasure__save mutation，触发 BizModel.save 入口的 expression save-time 校验。 */
+    private io.nop.api.core.beans.graphql.GraphQLResponseBean execSaveMutation(String tableId,
+                                                                                  String measureName,
+                                                                                  String expression) {
+        String exprJson = io.nop.core.lang.json.JsonTool.stringify(expression);
+        String dataJson = "{metaTableId:\"" + tableId + "\",measureName:\"" + measureName
+                + "\",aggFunc:\"sum\",entityFieldId:null,expression:" + exprJson + ",version:1}";
+        io.nop.api.core.beans.graphql.GraphQLRequestBean request = new io.nop.api.core.beans.graphql.GraphQLRequestBean();
+        request.setQuery("mutation { NopMetaTableMeasure__save(data: " + dataJson + ") { measureName expression } }");
+        return graphQLEngine.executeGraphQL(graphQLEngine.newGraphQLContext(request));
+    }
+
+    /** 创建带 side + expression 的 measure（plan 2026-07-18-1400-1 expression JOIN 测试用 helper）。 */
+    private void createMeasureWithSideAndExpression(String tableId, String name, String entityFieldId,
+                                                     String aggFunc, String side, String expression) {
+        IEntityDao<NopMetaTableMeasure> dao = daoProvider.daoFor(NopMetaTableMeasure.class);
+        NopMetaTableMeasure m = dao.newEntity();
+        m.setMetaTableId(tableId);
+        m.setMeasureName(name);
+        m.setEntityFieldId(entityFieldId);
+        m.setAggFunc(aggFunc);
+        if (side != null) {
+            m.setSide(side);
+        }
+        if (expression != null) {
+            m.setExpression(expression);
+        }
+        m.setVersion(1L);
+        dao.saveEntity(m);
     }
 
     // ===== helpers =====

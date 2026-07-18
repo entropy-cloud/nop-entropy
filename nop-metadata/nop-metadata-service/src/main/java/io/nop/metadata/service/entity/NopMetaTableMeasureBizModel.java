@@ -12,6 +12,7 @@ import io.nop.metadata.dao.entity.NopMetaEntityField;
 import io.nop.metadata.dao.entity.NopMetaTable;
 import io.nop.metadata.dao.entity.NopMetaTableJoin;
 import io.nop.metadata.dao.entity.NopMetaTableMeasure;
+import io.nop.metadata.service.field.ExpressionMeasureValidator;
 import io.nop.metadata.service.field.MetaTableFieldResolver;
 
 import java.util.Map;
@@ -25,8 +26,13 @@ import java.util.Map;
  * 可达集合 = {@code baseEntity ∪ join 直连可达 rightEntity}，见 §2.5.2 D3；external/sql→字段名）。
  * 不合法显式失败抛 inline {@link ErrorCode}（不静默存入悬空引用）。
  *
- * <p>跳过校验的情形：{@code entityFieldId} 为 null（expression 型指标，用 {@code expression} 列，
- * 内容首版不校验，Non-Goal）。{@code aggFunc} 已由 dict {@code meta/agg-func} 校验，不重复。
+ * <p><b>expression 型 save-time 校验（§4.4.2 D12.5，plan 2026-07-18-1400-1 落地）</b>：当 {@code entityFieldId}
+ * 为空且 {@code expression} 非空时，调 {@link ExpressionMeasureValidator#validateStatic} 做 save-time 宽松校验
+ * （关键字黑名单 + parse 结构 + 容量；标识符宽松接受裸名 / {@code l.}/{@code r.} 前缀，不校验列存在性 / 端点归属——
+ * 这些延迟到 query-time loader，它知道运行时上下文：单表 vs JOIN）。
+ *
+ * <p>跳过校验的情形：{@code entityFieldId} 为 null 且 {@code expression} 为空（数据错误由 mandatory 校验抛错）。
+ * {@code aggFunc} 已由 dict {@code meta/agg-func} 校验，不重复。
  */
 @BizModel("NopMetaTableMeasure")
 public class NopMetaTableMeasureBizModel extends CrudBizModel<NopMetaTableMeasure> implements INopMetaTableMeasureBiz {
@@ -49,9 +55,9 @@ public class NopMetaTableMeasureBizModel extends CrudBizModel<NopMetaTableMeasur
     }
 
     /**
-     * save override（item 1.1 裁定的 save override 新模式 + plan 0228-3 跨表扩展）：持久化前校验
-     * {@code entityFieldId} 字段引用，entity 表的引用可校验通过 NopMetaTableJoin 直连可达的 rightEntity 字段
-     * （跨表指标，架构基线 §2.5.2 D3）。
+     * save override（item 1.1 裁定的 save override 新模式 + plan 0228-3 跨表扩展 + plan 2026-07-18-1400-1 expression save-time）：
+     * 持久化前校验 {@code entityFieldId} 字段引用（entity 表可校验通过 NopMetaTableJoin 直连可达的 rightEntity 字段，
+     * 跨表指标，架构基线 §2.5.2 D3）；以及 expression 文本（当 entityFieldId 为空且 expression 非空时）。
      *
      * <p>校验通过后委托 {@code super.save(...)} 走默认持久化逻辑（不破坏既有 CRUD 契约）。
      * 字段集合解析失败（baseEntityId null / buildSql 损坏 / sourceSql 不可解析）由解析器显式抛 ErrorCode。
@@ -60,15 +66,30 @@ public class NopMetaTableMeasureBizModel extends CrudBizModel<NopMetaTableMeasur
     public NopMetaTableMeasure save(@Name("data") Map<String, Object> data, IServiceContext context) {
         String metaTableId = stringOf(data, NopMetaTableMeasure.PROP_NAME_metaTableId);
         String entityFieldId = stringOf(data, NopMetaTableMeasure.PROP_NAME_entityFieldId);
-        validateMeasureField(metaTableId, entityFieldId);
+        String measureName = stringOf(data, NopMetaTableMeasure.PROP_NAME_measureName);
+        String expression = stringOf(data, NopMetaTableMeasure.PROP_NAME_expression);
+        validateMeasureField(metaTableId, entityFieldId, measureName, expression);
         return super.save(data, context);
     }
 
-    /** 加载目标表 + 校验 entityFieldId 字段引用（entityFieldId 为空时跳过，用于 expression 型指标）。 */
-    private void validateMeasureField(String metaTableId, String entityFieldId) {
+    /**
+     * 加载目标表 + 校验 entityFieldId 字段引用（entityFieldId 为空时跳过；用于 expression 型指标——
+     * 此处接入 D12.5 expression save-time 校验）。
+     *
+     * @param measureName 错误上下文（expression 校验需要）
+     * @param expression  expression 文本（entityFieldId 为空 + expression 非空时触发 D12.5 校验）
+     */
+    private void validateMeasureField(String metaTableId, String entityFieldId, String measureName, String expression) {
         if (metaTableId == null || metaTableId.isEmpty()) {
             // metaTableId 为 mandatory 列，框架会在 super.save 做必填校验；此处不重复报错
             return;
+        }
+        // D12.5 expression save-time 校验（entityFieldId 为空 + expression 非空 → expression 型指标）
+        if ((entityFieldId == null || entityFieldId.isEmpty())
+                && expression != null && !expression.trim().isEmpty()) {
+            ExpressionMeasureValidator.validateStatic(expression,
+                    ExpressionMeasureValidator.ValidationOptions.saveTimeLoose(),
+                    metaTableId, measureName == null ? "<unknown>" : measureName);
         }
         IEntityDao<NopMetaTable> tableDao = daoFor(NopMetaTable.class);
         NopMetaTable table = tableDao.getEntityById(metaTableId);
