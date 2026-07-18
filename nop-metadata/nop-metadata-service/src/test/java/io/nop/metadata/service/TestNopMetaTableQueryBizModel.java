@@ -37,6 +37,7 @@ import java.util.Map;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
@@ -185,6 +186,197 @@ public class TestNopMetaTableQueryBizModel extends JunitBaseTestCase {
         assertEquals(100, toInt(row0.get("VAL")), "val must match seeded data");
     }
 
+    // ===== 方案 B 字段类型推断（plan 0900-1，架构基线 §4.2.1）=====
+
+    /**
+     * 端到端：createSqlTable(querySpace) 经方案 B（LIMIT 0 + ResultSetMetaData）推断字段类型，
+     * 返回的 fields 中 type 非 null 且与底层物理列类型一致（H2 INT → "INTEGER"）。
+     * 接线验证（#23）：querySpace 提供时 SqlViewFieldTypeInferrer 在 createSqlTable 路径被真实调用——
+     * 若未调，type 恒 null（方案 A 基线）。
+     */
+    @Test
+    @SuppressWarnings("unchecked")
+    public void testCreateSqlTableInfersRealFieldTypes() throws Exception {
+        String dbUrl = "jdbc:h2:mem:meta_type_infer;DB_CLOSE_DELAY=-1";
+        seedTable(dbUrl, "CREATE TABLE typed_src (id INT NOT NULL, val BIGINT, name VARCHAR(40))");
+        saveDataSource("ds-type-infer", "qs_type_infer", "jdbc", "ACTIVE", dbUrl);
+
+        StringBuilder q = new StringBuilder("mutation { NopMetaTable__createSqlTable(sql: \"")
+                .append(escapeGraphQL("SELECT id, val, name FROM typed_src"))
+                .append("\", tableName: \"typed_sql_tab\", metaModuleId: \"")
+                .append(ensureExternalSystemModuleId())
+                .append("\", querySpace: \"qs_type_infer\") }");
+        GraphQLResponseBean resp = execute(q.toString());
+        assertFalse(resp.hasError(), "createSqlTable with querySpace should succeed: " + resp);
+        Map<String, Object> data = (Map<String, Object>) ((Map<String, Object>) resp.getData())
+                .get("NopMetaTable__createSqlTable");
+        List<Map<String, Object>> fields = (List<Map<String, Object>>) data.get("fields");
+        assertNotNull(fields, "fields must be returned");
+        assertEquals(3, fields.size(), "must have 3 fields (id, val, name)");
+
+        // 类型断言（H2 方言原生类型名，getColumnTypeName 返回 SQL 标准名）：
+        // id INT → "INTEGER"，val BIGINT → "BIGINT"，name VARCHAR(40) → "CHARACTER VARYING"
+        // 注：D2 明确 type 为 driver 原生返回名（不归一化），H2 对 VARCHAR 返回 SQL 标准名 "CHARACTER VARYING"。
+        assertEquals("INTEGER", fields.get(0).get("type"), "id (INT) → INTEGER");
+        assertEquals("BIGINT", fields.get(1).get("type"), "val (BIGINT) → BIGINT");
+        assertEquals("CHARACTER VARYING", fields.get(2).get("type"), "name (VARCHAR(40)) → CHARACTER VARYING");
+    }
+
+    /**
+     * 向后兼容：createSqlTable 不提供 querySpace 时，type 恒为 null（方案 A 行为不变）。
+     * 无 querySpace = 调用方未请求类型推断（非降级、非失败路径）。
+     */
+    @Test
+    @SuppressWarnings("unchecked")
+    public void testCreateSqlTableWithoutQuerySpaceTypeNull() {
+        StringBuilder q = new StringBuilder("mutation { NopMetaTable__createSqlTable(sql: \"")
+                .append(escapeGraphQL("SELECT 1 AS one, 'a' AS two"))
+                .append("\", tableName: \"no_qs_tab\", metaModuleId: \"")
+                .append(ensureExternalSystemModuleId())
+                .append("\") }");
+        GraphQLResponseBean resp = execute(q.toString());
+        assertFalse(resp.hasError(), "createSqlTable without querySpace should succeed: " + resp);
+        Map<String, Object> data = (Map<String, Object>) ((Map<String, Object>) resp.getData())
+                .get("NopMetaTable__createSqlTable");
+        List<Map<String, Object>> fields = (List<Map<String, Object>>) data.get("fields");
+        assertEquals(2, fields.size(), "must have 2 fields");
+        for (int i = 0; i < fields.size(); i++) {
+            assertNull(fields.get(i).get("type"), "field[" + i + "] type must be null (方案 A, no querySpace)");
+        }
+    }
+
+    /**
+     * resolveTableFields 端到端：对 querySpace 非空的 sql 表调 resolveTableFields，
+     * 返回的 ResolvedTableField.dataType 非 null（证明 BizModel 层 → SqlViewFieldTypeInferrer 链路连通，
+     * R2 N1 Anti-Hollow 验证——MetaTableFieldResolver 不改，推断在 BizModel 层补全）。
+     */
+    @Test
+    @SuppressWarnings("unchecked")
+    public void testResolveTableFieldsInfersSqlTypes() throws Exception {
+        String dbUrl = "jdbc:h2:mem:meta_resolve_infer;DB_CLOSE_DELAY=-1";
+        seedTable(dbUrl, "CREATE TABLE resolve_src (id INT NOT NULL, score DOUBLE)");
+        saveDataSource("ds-resolve-infer", "qs_resolve_infer", "jdbc", "ACTIVE", dbUrl);
+
+        // 经 saveManualSqlTable 绕过 createSqlTable（避免双路径混淆），专测 resolveTableFields 路径
+        NopMetaTable table = saveManualSqlTable("RESOLVE_TYPED_TAB", "qs_resolve_infer",
+                "SELECT id, score FROM resolve_src");
+
+        StringBuilder q = new StringBuilder("query { NopMetaTable__resolveTableFields(metaTableId: \"")
+                .append(table.getMetaTableId()).append("\") }");
+        GraphQLResponseBean resp = execute(q.toString());
+        assertFalse(resp.hasError(), "resolveTableFields should succeed: " + resp);
+        Map<String, Object> data = (Map<String, Object>) ((Map<String, Object>) resp.getData())
+                .get("NopMetaTable__resolveTableFields");
+        assertEquals("sql", data.get("tableType"));
+        List<Map<String, Object>> fields = (List<Map<String, Object>>) data.get("fields");
+        assertEquals(2, fields.size(), "must have 2 fields");
+        // 接线验证：BizModel 层 inferResolvedSqlFieldTypes 真实调通了 inferrer（type 非 null）
+        assertNotNull(fields.get(0).get("type"), "id type must be inferred (non-null)");
+        assertNotNull(fields.get(1).get("type"), "score type must be inferred (non-null)");
+        assertEquals("INTEGER", fields.get(0).get("type"), "id (INT) → INTEGER");
+        // H2 对 DOUBLE 返回 SQL 标准名 "DOUBLE PRECISION"（D2：driver 原生返回，不归一化）
+        assertEquals("DOUBLE PRECISION", fields.get(1).get("type"), "score (DOUBLE) → DOUBLE PRECISION");
+    }
+
+    /**
+     * 列对齐测试（D3）：sourceSql 含别名（col AS alias）+ 表达式列（&lt;expr_N&gt;），断言 type 与列序对齐
+     * （非按名匹配）。表达式列 val * 2 的 type 应为 driver 推导出的 INTEGER（H2 INT * INT = INTEGER）。
+     */
+    @Test
+    @SuppressWarnings("unchecked")
+    public void testCreateSqlTableColumnAlignmentByOrder() throws Exception {
+        String dbUrl = "jdbc:h2:mem:meta_align_infer;DB_CLOSE_DELAY=-1";
+        seedTable(dbUrl, "CREATE TABLE align_src (id INT NOT NULL, qty INT)");
+        saveDataSource("ds-align-infer", "qs_align_infer", "jdbc", "ACTIVE", dbUrl);
+
+        // SELECT id AS user_id, qty * 2 → 字段列表 [user_id, <expr_1>]
+        String sql = "SELECT id AS user_id, qty * 2 FROM align_src";
+        StringBuilder q = new StringBuilder("mutation { NopMetaTable__createSqlTable(sql: \"")
+                .append(escapeGraphQL(sql))
+                .append("\", tableName: \"align_tab\", metaModuleId: \"")
+                .append(ensureExternalSystemModuleId())
+                .append("\", querySpace: \"qs_align_infer\") }");
+        GraphQLResponseBean resp = execute(q.toString());
+        assertFalse(resp.hasError(), "createSqlTable with aliased/expr columns should succeed: " + resp);
+        Map<String, Object> data = (Map<String, Object>) ((Map<String, Object>) resp.getData())
+                .get("NopMetaTable__createSqlTable");
+        List<Map<String, Object>> fields = (List<Map<String, Object>>) data.get("fields");
+        assertEquals(2, fields.size(), "must have 2 fields");
+        assertEquals("user_id", fields.get(0).get("name"), "first projection is aliased to user_id");
+        assertEquals("INTEGER", fields.get(0).get("type"), "user_id (INT AS user_id) → INTEGER");
+        // <expr_1> 对应 qty * 2，H2 推导 INT * INT → INTEGER
+        assertEquals("<expr_1>", fields.get(1).get("name"), "second projection is expression → <expr_1>");
+        assertEquals("INTEGER", fields.get(1).get("type"),
+                "<expr_1> (qty*2) type must align by column order, not name match");
+    }
+
+    /**
+     * 失败路径：querySpace 提供但数据源不可达（指向不存在的 querySpace）→ createSqlTable 显式抛 NopException
+     * （不静默 fallback type=null、不吞异常）。验证 D1 R1 B5 修复：querySpace 提供 = 显式推断请求。
+     */
+    @Test
+    public void testCreateSqlTableFailsWhenDataSourceUnreachable() {
+        // querySpace 指向未注册的 querySpace（无匹配 NopMetaDataSource）→ 显式失败
+        StringBuilder q = new StringBuilder("mutation { NopMetaTable__createSqlTable(sql: \"")
+                .append(escapeGraphQL("SELECT 1 AS one"))
+                .append("\", tableName: \"unreachable_tab\", metaModuleId: \"")
+                .append(ensureExternalSystemModuleId())
+                .append("\", querySpace: \"qs_unreachable_for_inference\") }");
+        GraphQLResponseBean resp = execute(q.toString());
+        assertTrue(resp.hasError(),
+                "createSqlTable with querySpace pointing to non-existent datasource must explicitly fail "
+                        + "(not silently fallback type=null): " + resp);
+    }
+
+    /**
+     * 方言守卫测试（D1）：querySpace 提供但方言不支持 → 显式失败。
+     *
+     * <p>H2 是已支持方言，无法在测试环境模拟 unsupported 方言（需 mock Connection.getMetaData 返回非
+     * H2/MySQL/PostgreSQL）。本测试以 H2 端到端验证支持路径已通过（{@link #testCreateSqlTableInfersRealFieldTypes}
+     * + {@link #testResolveTableFieldsInfersSqlTypes}），方言守卫的 ErrorCode 文本与失败语义已通过
+     * SqlViewFieldTypeInferrer 单测覆盖（不属于本端到端测试范围）。
+     */
+    // 注：方言守卫失败的端到端模拟需 mock DatabaseMetaData，超出本测试类范围；H2 已支持路径已端到端验证。
+
+    /**
+     * 失败路径：querySpace 指向 DISABLED 数据源 → createSqlTable 显式失败（沿用 resolveActiveOrThrow ErrorCode）。
+     */
+    @Test
+    public void testCreateSqlTableFailsWhenDataSourceDisabled() {
+        saveDataSource("ds-disabled-infer", "qs_disabled_infer", "jdbc", "DISABLED",
+                "jdbc:h2:mem:meta_disabled_infer;DB_CLOSE_DELAY=-1");
+        StringBuilder q = new StringBuilder("mutation { NopMetaTable__createSqlTable(sql: \"")
+                .append(escapeGraphQL("SELECT 1 AS one"))
+                .append("\", tableName: \"disabled_ds_tab\", metaModuleId: \"")
+                .append(ensureExternalSystemModuleId())
+                .append("\", querySpace: \"qs_disabled_infer\") }");
+        GraphQLResponseBean resp = execute(q.toString());
+        assertTrue(resp.hasError(),
+                "createSqlTable with DISABLED datasource must explicitly fail (not silently fallback): " + resp);
+    }
+
+    /**
+     * 失败路径：sourceSql 执行失败（语法错误）→ createSqlTable 显式失败
+     * （抛 metadata.sql-type-inference-failed，不吞、不静默 fallback）。
+     */
+    @Test
+    public void testCreateSqlTableFailsWhenSourceSqlInvalid() throws Exception {
+        String dbUrl = "jdbc:h2:mem:meta_invalid_sql;DB_CLOSE_DELAY=-1";
+        seedTable(dbUrl, "CREATE TABLE invalid_dummy (id INT)");
+        saveDataSource("ds-invalid-sql", "qs_invalid_sql", "jdbc", "ACTIVE", dbUrl);
+
+        // 故意构造语法错误 SQL（FROM 缺表名）—— SqlSelectFieldExtractor 解析可能通过（取决于 EqlASTParser 容错），
+        // 但 LIMIT 0 执行必失败。若解析阶段就失败，也属于显式失败路径（同样验证不静默 fallback）。
+        StringBuilder q = new StringBuilder("mutation { NopMetaTable__createSqlTable(sql: \"")
+                .append(escapeGraphQL("SELECT id FROM WHERE broken_syntax"))
+                .append("\", tableName: \"invalid_sql_tab\", metaModuleId: \"")
+                .append(ensureExternalSystemModuleId())
+                .append("\", querySpace: \"qs_invalid_sql\") }");
+        GraphQLResponseBean resp = execute(q.toString());
+        assertTrue(resp.hasError(),
+                "createSqlTable with invalid sourceSql must explicitly fail (parse or LIMIT 0 exec): " + resp);
+    }
+
     // ===== 失败路径显式失败（不静默空集，Minimum Rules #24）=====
 
     /** 表不存在 → 显式失败（不 NPE）。 */
@@ -221,12 +413,14 @@ public class TestNopMetaTableQueryBizModel extends JunitBaseTestCase {
                 "sql table with null querySpace must explicitly fail (D2)");
     }
 
-    /** sql 表 querySpace 无匹配数据源 → 显式失败。 */
+    /** sql 表 querySpace 无匹配数据源 → 显式失败（queryTableData 路径）。
+     *  注：plan 0900-1 后 createSqlTable 在 querySpace 提供时本身会失败（类型推断路径），
+     *  故此处用 saveManualTable 绕过 createSqlTable 的类型推断路径，专测 queryTableData 失败。 */
     @Test
     public void testQuerySqlTableNoMatchingDataSource() {
-        String tableId = createSqlTable("SELECT 1 AS one", "sql_no_ds", "qs_missing_q");
-        assertTrue(queryTableDataHasError(tableId),
-                "sql table with no matching datasource must explicitly fail");
+        NopMetaTable sql = saveManualSqlTable("SQL_NO_DS", "qs_missing_q", "SELECT 1 AS one");
+        assertTrue(queryTableDataHasError(sql.getMetaTableId()),
+                "sql table with no matching datasource must explicitly fail at queryTableData");
     }
 
     /** entity 表 baseEntityId 指向未注册的实体 → 显式失败（不静默空集）。 */
@@ -363,6 +557,23 @@ public class TestNopMetaTableQueryBizModel extends JunitBaseTestCase {
         if (querySpace != null) {
             t.setQuerySpace(querySpace);
         }
+        t.setVersion(1L);
+        tableDao.saveEntity(t);
+        return t;
+    }
+
+    /** 手动持久化 sql 表（绕过 createSqlTable 的类型推断路径，用于专测 queryTableData 失败/向后场景）。 */
+    private NopMetaTable saveManualSqlTable(String tableName, String querySpace, String sourceSql) {
+        IEntityDao<NopMetaTable> tableDao = daoProvider.daoFor(NopMetaTable.class);
+        NopMetaTable t = tableDao.newEntity();
+        t.setMetaModuleId(ensureExternalSystemModuleId());
+        t.setTableName(tableName);
+        t.setDisplayName(tableName);
+        t.setTableType("sql");
+        if (querySpace != null) {
+            t.setQuerySpace(querySpace);
+        }
+        t.setSourceSql(sourceSql);
         t.setVersion(1L);
         tableDao.saveEntity(t);
         return t;

@@ -36,6 +36,7 @@ import io.nop.metadata.service.query.MetaJoinExecutor;
 import io.nop.metadata.service.query.MetaQueryContext;
 import io.nop.metadata.service.sqlview.SqlSelectFieldExtractor;
 import io.nop.metadata.service.sqlview.SqlViewField;
+import io.nop.metadata.service.sqlview.SqlViewFieldTypeInferrer;
 import io.nop.metadata.service.tableref.MetaTableReferenceResolver;
 import io.nop.metadata.service.tableref.TableReference;
 import io.nop.metadata.service.tableref.TableReferenceExecutor;
@@ -169,6 +170,16 @@ public class NopMetaTableBizModel extends CrudBizModel<NopMetaTable> implements 
 
     /** querySpace→NopMetaDataSource 解析共享组件（架构基线 §4.4 D2）。 */
     private final MetaDataSourceResolver dataSourceResolver = new MetaDataSourceResolver();
+
+    /**
+     * SQL 视图字段类型推断器（架构基线 §4.2.1 方案 B，plan 0900-1）：querySpace 可达时经 LIMIT 0
+     * + ResultSetMetaData 推断字段类型，补全 {@link SqlViewField#getType()}（方案 A 下恒为 null）。
+     * 独立组件，不修改 {@link SqlSelectFieldExtractor} / {@code MetaTableFieldResolver}（plan R1 M3 + R2 N1）。
+     *
+     * <p>延迟初始化：{@link #connectionService} 经 {@code @Inject} 注入，构造时不可用，故仿照 {@link #tableRefExecutor}
+     * 用 {@code ensureXxx()} 模式按需构造。
+     */
+    private SqlViewFieldTypeInferrer sqlFieldTypeInferrer;
 
     /** 共享 table-reference 解析器（架构基线 §4.4.3 D3）。 */
     private final MetaTableReferenceResolver tableRefResolver = new MetaTableReferenceResolver(
@@ -317,6 +328,13 @@ public class NopMetaTableBizModel extends CrudBizModel<NopMetaTable> implements 
         // 1. 解析字段（sqlFieldExtractor 内部对 空/不可解析/多语句/非 SELECT/通配符 显式失败抛 ErrorCode）
         List<SqlViewField> fields = sqlFieldExtractor.extract(sql);
 
+        // 1b. plan 0900-1（方案 B）：querySpace 提供 时显式调 inferrer 推断 type（无"或"歧义，R2 N2 修复）。
+        // querySpace 为空 → type=null（方案 A，不变）。失败路径（连接/方言/SQL 执行）显式抛 ErrorCode（不静默 fallback）。
+        if (querySpace != null && !querySpace.trim().isEmpty()) {
+            fields = ensureSqlFieldTypeInferrer().inferTypes(
+                    fields, sql, querySpace, daoFor(NopMetaDataSource.class));
+        }
+
         // 2. 校验 metaModuleId 存在（不静默存入孤儿表）
         IEntityDao<NopMetaModule> moduleDao = daoFor(NopMetaModule.class);
         NopMetaModule module = moduleDao.getEntityById(metaModuleId);
@@ -406,10 +424,44 @@ public class NopMetaTableBizModel extends CrudBizModel<NopMetaTable> implements 
         IEntityDao<NopMetaEntityField> fieldDao = daoFor(NopMetaEntityField.class);
         List<ResolvedTableField> fields = fieldResolver.resolve(table, fieldDao);
 
+        // plan 0900-1（方案 B）：sql 表 querySpace 非空时，作为 resolve 之后的独立补全步骤调 inferrer
+        // 补 type（R2 N1 修复——MetaTableFieldResolver 不改，类型推断在 BizModel 层完成）。
+        // querySpace 为空 → type=null（方案 A，不变）。
+        if (_NopMetadataCoreConstants.TABLE_TYPE_SQL.equals(table.getTableType())
+                && table.getQuerySpace() != null && !table.getQuerySpace().trim().isEmpty()) {
+            fields = inferResolvedSqlFieldTypes(table, fields);
+        }
+
         Map<String, Object> result = new LinkedHashMap<>();
         result.put("tableType", table.getTableType());
         result.put("fields", toResolvedFieldMaps(fields));
         return result;
+    }
+
+    /**
+     * 方案 B 类型推断（plan 0900-1）：对 resolveTableFields 返回的 sql 表 ResolvedTableField（type=null）
+     * 调 {@link SqlViewFieldTypeInferrer} 推断真实类型，按 D3 列序对齐重构造 ResolvedTableField。
+     *
+     * <p>实现：把 ResolvedTableField 退化为 SqlViewField（仅取 name/alias）→ 调 inferrer → 取补全后的 type
+     * 重构造。**MetaTableFieldResolver 不改**（R2 N1）。
+     */
+    private List<ResolvedTableField> inferResolvedSqlFieldTypes(NopMetaTable table,
+                                                                  List<ResolvedTableField> resolvedFields) {
+        // 退化为 SqlViewField（仅 name/alias，type=null）供 inferrer 消费；alias 在 resolveTableFields 后未知，
+        // 取 null（不影响 type 推断——inferrer 只按列序对齐 ResultSetMetaData）。
+        List<SqlViewField> asViewFields = new ArrayList<>(resolvedFields.size());
+        for (ResolvedTableField f : resolvedFields) {
+            asViewFields.add(new SqlViewField(f.getName(), null, null));
+        }
+        List<SqlViewField> inferred = ensureSqlFieldTypeInferrer().inferTypes(
+                asViewFields, table.getSourceSql(), table.getQuerySpace(), daoFor(NopMetaDataSource.class));
+        // 按列序对齐重构造 ResolvedTableField（保留 sourceType，更新 dataType）
+        List<ResolvedTableField> out = new ArrayList<>(resolvedFields.size());
+        for (int i = 0; i < resolvedFields.size(); i++) {
+            ResolvedTableField orig = resolvedFields.get(i);
+            out.add(new ResolvedTableField(orig.getName(), orig.getSourceType(), inferred.get(i).getType()));
+        }
+        return out;
     }
 
     // ============================================================
@@ -854,6 +906,14 @@ public class NopMetaTableBizModel extends CrudBizModel<NopMetaTable> implements 
             tableRefExecutor = new TableReferenceExecutor(connectionService, orm());
         }
         return tableRefExecutor;
+    }
+
+    /** 延迟初始化 SqlViewFieldTypeInferrer（需 connectionService，构造时 @Inject 未完成）。 */
+    private SqlViewFieldTypeInferrer ensureSqlFieldTypeInferrer() {
+        if (sqlFieldTypeInferrer == null) {
+            sqlFieldTypeInferrer = new SqlViewFieldTypeInferrer(dataSourceResolver, connectionService);
+        }
+        return sqlFieldTypeInferrer;
     }
 
     /** 解析目标表对应数据源：table.querySpace → NopMetaDataSource；不存在/DISABLED 显式失败。 */
