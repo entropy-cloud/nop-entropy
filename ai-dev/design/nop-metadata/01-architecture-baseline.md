@@ -1090,7 +1090,7 @@ querySpace 解析规则（plan 0700-2 D1.1 扩展）：entity 端点 querySpace 
 
 **ORM 隐式过滤旁路裁定**：原生聚合 SQL 不应用 ORM 隐式过滤（租户/逻辑删除/版本）。entity 路径经 `orm().executeQuery` 时，聚合 SQL 是物理表直查，**绕过 ORM 实体隐式过滤**。首版策略——对启用了 `useTenant`/`useLogicalDelete` 的 entity，聚合 action 在 ErrorCode/文档中显式提示"原生 SQL 聚合不应用隐式过滤"；首版**不限制**（允许执行），由调用方知晓此语义。该裁定写入本节，不静默忽略。
 
-**`expression` 型 Measure 首版显式不支持**：`MetaTableMeasure.expression` 非空时抛 inline ErrorCode（不静默跳过、不当 0 返回、不伪造）。
+**`expression` 型 Measure 过渡说明（design 已裁定，实现属 successor）**：`MetaTableMeasure.expression` 非空的执行路径**已由 D12（§4.4.2）裁定**为「方言原生 SQL 片段」表达式语言 + 三条路径执行契约（entity bypass EQL / external-sql withConnection / 跨库内存 首版显式失败）。D12 为 design-first plan（`2026-07-18-1100-1`），**实现属 successor plan**——在 successor 落地前，5 处 `ERR_AGGR_EXPRESSION_MEASURE` 抛点（`MetaAggregationExecutor.java:1129` / `:1756` / `:1817` / `:2355` / `:2371`）**维持不变**：expression 型 Measure 仍显式失败（不静默跳过、不当 0 返回、不伪造）。
 
 **D7 — granularity→SQL 分桶翻译表**：
 
@@ -1205,6 +1205,68 @@ granularity→分桶表达式表（external/sql 路径，withConnection 原生 S
 
 - **Anti-Hollow**：三条路径在运行时真实生成 HAVING/ORDER BY 子句（SQL 路径）/ 真实调用 MemoryFilterEvaluator + MemoryRowComparator（内存路径），非空方法体/非 stub。端到端测试覆盖：单表 entity / external-sql / JOIN 同库 3 条 / 跨库 1 条 各至少 1 条断言 having 过滤生效 + orderBy 排序正确。
 
+**D12 — expression 型 Measure 表达式语言与执行契约（design-first，plan 2026-07-18-1100-1 落地）**：
+
+把 §4.4.2 D6「`expression` 型 Measure 首版显式不支持」推进到「有明确表达式语言裁定 + 三条执行路径的执行契约与安全边界」。**本节仅交付设计决策与使用契约**（design-first plan），不替换 live code 5 处 `ERR_AGGR_EXPRESSION_MEASURE` 抛点（`MetaAggregationExecutor.java:1129` / `:1756` / `:1817` / `:2355` / `:2371`）；实现属 successor plan。
+
+> 落地范围：D6 「首版显式不支持」段落（`01-architecture-baseline.md:1093`）已更新为指向 D12 的过渡说明（实现未落地前抛点维持不变）。
+
+- **D12.1 — 表达式语言选型（方言原生 SQL 片段）**：
+    - **选定**：expression 型 Measure 的表达式语言为**方言原生 SQL 片段**（dialect-native SQL fragment）。同一份 expression 文本在三条执行路径上**语义一致**——作为聚合表达式（`<agg>(<expr>)` 的 `<expr>` 部分）注入到对应路径生成的物理 SQL 中。
+    - **理由**：
+        - 与 D6/D7 既有物理 SQL 执行模型对齐——聚合查询本就把 `GROUP BY` 维度 + `aggFunc` 下沉到原生 SQL 文本（非 ORM QueryBean 聚合），expression 作为 `<agg>(<expr>)` 的 `<expr>` 子片段自然嵌入。
+        - 全方言函数/算子覆盖（`CASE WHEN`、`STDDEV_SAMP`、`DATE_TRUNC`、算术、字符串函数等），无需与 EQL 函数白名单协商（与 §4.4.3 D1 已实测的 EQL 函数白名单限制一致——`STDDEV_SAMP`/`FORMATDATETIME` 被判 unknown-function）。
+        - 同一份 expression 文本在三条路径上语义一致，避免 per-path 分叉（混合方案的契约漂移风险）。
+    - **拒绝的替代方案及理由**：
+        - **拒绝 EQL**：EQL 编译器校验函数名（§4.4.2 D7 已实测 `FORMATDATETIME` 被判 unknown-function），无法表达 `STDDEV_SAMP` / `DATE_TRUNC` / 复杂 `CASE WHEN` 等 BI 表达式常见结构。entity 路径 D6 既有 `orm().executeQuery` 载体虽 `allowUnderscoreName(true)` 放宽了表名下划线，但**未放宽函数名白名单**——expression 内的函数仍受 EQL 编译器校验。EQL 保留字（`PRECISION`/`SCALE`/`NUMBER` 等）还会进一步引发编译失败（见 D8 `ERR_AGGR_JOIN_COMPILE_FAILED` 已知风险）。
+        - **拒绝平台表达式引擎**（如 XLang/Xpl 或独立表达式求值器）：纯内存求值，无法 pushdown 到数据库 SQL；与「聚合下沉到 SQL」的 D6 铁律冲突；要取得聚合结果必须把全表/全 join 集合加载到内存（违反 D10 跨库 `MAX_CROSS_DB_ROWS` 规模守卫，且单库路径无法利用 DB 索引/聚合下推）；语义在 DB pushdown 与内存计算两套实现间分叉，引入 contract drift。
+        - **拒绝混合方案**（entity 走 EQL + external 走原生 SQL 片段）：同一份 expression 文本在不同 tableType 路径上语义不一致——EQL 函数白名单与方言原生函数集不同；用户需要按 tableType 分别编写 expression，违反「Measure 是逻辑层概念、与底层物理实现解耦」的 §2.5 契约；维护两套语义等价校验成本高。
+
+- **D12.2 — 三条路径执行契约**：
+    - **entity 路径执行契约（Decision：bypass EQL，走平台物理 JDBC Connection）**：
+        - **裁定**：entity 路径的 expression 执行**必须 bypass EQL**——经平台物理 JDBC Connection 直查原生 SQL（与 D6 entity 聚合走 `orm().executeQuery` 的 EQL 路径不同）。理由：EQL 函数白名单拒绝 BI 表达式常见结构（见 D12.1 拒绝 EQL 理由），若沿用 EQL 路径会丢失 expression 型 Measure 的全部表达力。
+        - **Connection 获取入口（既有先例，可复用）**：经 `orm.getSessionFactory().txn()` 取 `ITransactionTemplate` + `runInTransaction(entityQuerySpace, SUPPORTS, txn -> ...)` + `IJdbcTransaction.getConnection()` 直查物理 SQL，**不经 EQL 编译器**。此入口已被 §4.4.3 D1 的 `TableReferenceExecutor.java:73-83`（`executeOnPlatformConnection`）作为既有先例使用，证明平台物理 JDBC Connection 可达、可执行任意原生 SQL。
+        - **成功or 决定 successor 技术调研项（Decision：作为 successor 技术调研项）**：D12 **不预先裁定** entity 路径是否保留 `orm().executeQuery` EQL 路径作为「EQL 兼容子集」快路径（仅支持 EQL 已知函数的 expression 走快路径、其余走 bypass）。该决定属 successor 技术调研项——successor plan 须在实现阶段评估：是否值得为 EQL 兼容 expression 维护双路径（性能 vs 复杂度）。D12 仅锁定 **bypass EQL 是 expression 型 Measure 在 entity 路径的安全默认选型**。
+        - **SQL 形态**：`SELECT <维度>, <agg>(<expression>) FROM <物理表> [WHERE] GROUP BY <维度>`，`<expression>` 为用户提供的方言原生 SQL 片段，列引用须取自 `MetaTableFieldResolver` 解析的物理列名（entity 路径为 `NopMetaEntityField.columnCode`）。物理表取自 `NopMetaEntity.tableName`。
+    - **external-sql 路径执行契约（Decision：复用 withConnection 原生 SQL + 标识符白名单 + 参数绑定）**：
+        - 经 `IMetaDataSourceConnectionService.withConnection`（querySpace→`NopMetaDataSource`，对齐 §4.4 D1 external/sql 路径）跑原生聚合 SQL：`SELECT <维度>, <agg>(<expression>) FROM <表/子查询> [WHERE] GROUP BY <维度>`。FROM 子句按 tableType 构造（external→`FROM <tableName>`；sql→`FROM (<sourceSql>) _t`，与 D6 聚合 external/sql 路径 `buildFromClause` 同范式）。
+        - **标识符白名单复用 §2.7.1 D3**：expression 内的列引用须通过白名单正则 `^[A-Za-z_][A-Za-z0-9_]*$` 校验，列名取自该表 `MetaTableFieldResolver` 解析的可用列名集合（external→buildSql JSON columnName；sql→SELECT 解析列名）。
+        - **值参数绑定（对齐 FilterToSqlTranslator 模式）**：expression 内的字面量（numeric/string 等）使用 PreparedStatement 参数绑定，**禁止裸字符串拼接**。
+    - **跨库内存路径执行契约（Decision：内存不可算显式失败，对齐 D10 铁律）**：
+        - 按 D10 内存 GROUP BY 契约，跨库 JOIN 聚合复用 `MetaJoinExecutor.executeJoin` 取合并行后内存聚合。**expression 型 Measure 的内存可计算性受限**：D10 既有的 `aggFunc` 内存可计算性铁律（sum/count/avg/min/max/countDistinct 六种）只覆盖「裸列 + 标量 aggFunc」，不覆盖「任意 expression + aggFunc 组合」。
+        - **裁定**：**expression 型 Measure 在跨库路径 首版显式失败**（`metadata.aggr-expression-memory-not-computable`，对齐 D10 既有「不在上列的 aggFunc（含 expression 型 Measure）→ 显式失败抛 inline ErrorCode」铁律）。理由：(1) 内存求值 expression 需要解析表达式语法树 + 在 Java 侧实现等价算子/函数（CASE WHEN/STDDEV/DATE_TRUNC 等），等同于在内存里实现一个 SQL 方言子集，复杂度过高且语义无法保证与 SQL pushdown 一致；(2) 跨库路径已是「精确-当-容纳/超限-失败」的内存聚合（D10），expression 内存计算复杂度叠加规模守卫会进一步放大风险；(3) 跨库场景典型为联邦查询（OLTP MySQL + OLAP ClickHouse），expression 型 Measure 本就更适合 pushdown 到 OLAP 库的 external/sql 路径，而非跨库内存路径。
+        - **successor 评估项（deferred）**：若后续需求要求跨库路径支持 expression 型 Measure 的子集（仅算术 + 基本函数，如 `PRICE*QTY` 算术表达式），successor plan 须在内存路径新增 expression 内存求值器（可复用 D11 `MemoryFilterEvaluator` 模式），并定义可算表达式白名单。本 D12 不预先裁定该白名单。
+
+- **D12.3 — 安全模型（标识符白名单 + 参数绑定 + 拒绝危险关键字）**：
+    - **注入面**：用户提供 `expression` 文本（存于 `NopMetaTableMeasure.expression` 列，VARCHAR(1000)，`nop-metadata.orm.xml:1160`），是 SQL 注入的潜在入口。
+    - **防御点（三道闸门）**：
+        - **parse 阶段关键字/函数黑名单（新增，successor 实现）**：在 expression 入库前或执行前解析 expression，**拒绝危险关键字/DDL/DML/副作用函数**——包括但不限于 `INSERT` / `UPDATE` / `DELETE` / `DROP` / `CREATE` / `ALTER` / `TRUNCATE` / `CALL` / `EXEC` / `GRANT` / `REVOKE` / `MERGE` / `MERGE INTO` 等 DML/DDL 关键字；拒绝有副作用的函数（如 MySQL `SLEEP` / `BENCHMARK` / `LOAD_FILE` / `INTO OUTFILE` / `GET_LOCK`，PostgreSQL `PG_SLEEP` / `COPY`，H2 暂无已知副作用函数需单独处理）。具体黑名单由 successor plan 在实现阶段按方言分列，但**关键字拒绝属硬约束**，不可降级为 advisory。
+        - **标识符白名单（复用 §2.7.1 D3）**：expression 内的列引用须经白名单正则 `^[A-Za-z_][A-Za-z0-9_]*$` 校验，且须取自该表 `MetaTableFieldResolver` 解析的可用列集合——拒绝未在列集合中出现的标识符（不静默放行裸字符串）。
+        - **值参数绑定（对齐 FilterToSqlTranslator 模式）**：expression 内的字面量使用 PreparedStatement 参数绑定，**禁止裸字符串拼接**到 SQL 文本。
+    - **失败的注入防护一律显式失败**（不静默 fallback、不静默截断、不静默 sanitize）。
+
+- **D12.4 — 失败路径 ErrorCode 体系（4 类失败 + 容量超限，successor 起点）**：
+    - **裁定**：expression 型 Measure 至少 4 类失败 + 1 类容量失败，沿用既有 `metadata.aggr-*` 命名空间。本 D12 仅列出 ErrorCode 名称候选（successor 实现时按需调整），**不静默 fallback、不吞异常**。
+    - **ErrorCode 名称候选**（successor 起点）：
+        - `metadata.aggr-expression-unparseable` — 表达式不可解析（语法不合法，如未闭合括号、非法 token）。抛点：parse 阶段。
+        - `metadata.aggr-expression-unsafe` — 表达式不安全（含 D12.3 关键字/函数黑名单中的危险项，或列引用未通过标识符白名单，或含裸字符串拼接不可参数绑定）。抛点：parse 阶段 + identifier 校验阶段。
+        - `metadata.aggr-expression-dialect-unsupported` — 表达式使用了当前方言不支持的函数/运算符（如 MySQL 不支持 `DATE_TRUNC`，H2 不支持某些 PG 函数）。抛点：执行阶段（dialect 路由后）。
+        - `metadata.aggr-expression-memory-not-computable` — 跨库内存路径无法在内存求值该 expression（对齐 D10 既有铁律）。抛点：跨库内存聚合入口。
+        - `metadata.aggr-expression-too-long` — expression 内容超 VARCHAR(1000) 容量上限（对齐 §2.5.2 `Filter.definition` json-4000 同铁律：不截断、不静默存入截断后的脏数据）。抛点：save 阶段。
+    - **既有 `metadata.aggr-expression-measure-unsupported`（D6）处置**：successor 实现 plan 落地后，5 处 `ERR_AGGR_EXPRESSION_MEASURE` 抛点（`MetaAggregationExecutor.java:1129` / `:1756` / `:1817` / `:2355` / `:2371`）按 D12.2 三条路径契约替换为真实执行逻辑（entity 路径走 bypass EQL + 物理 Connection；external-sql 路径走 withConnection + 标识符白名单 + 参数绑定；跨库内存路径对不可算 expression 抛 `metadata.aggr-expression-memory-not-computable`）。在 successor 落地前，5 处抛点**维持不变**（design-first plan 不动 live code）。
+
+- **D12.5 — save-time 校验裁定（裁定是否需要，实现属 successor）**：
+    - **裁定**：expression 型 Measure **需要 save-time 语法/安全预检**——入库前调 D12.3 parse 阶段校验（关键字/函数黑名单 + 标识符白名单），不可解析/不安全/容量超限一律显式失败（不静默存入）。这与 §2.5.2 D2 既有 save override 模式一致（`CrudBizModel.save` 在持久化前执行校验）。
+    - **实现属 successor plan**：本 D12 仅裁定「需要」，具体 save override 代码与失败 ErrorCode 接线属 successor。
+    - **容量约束（硬裁定）**：expression 列为 VARCHAR(1000)（`nop-metadata.orm.xml:1160`，`precision="1000" stdSqlType="VARCHAR"`）。expression 内容超 1000 字符 → save 阶段显式失败 `metadata.aggr-expression-too-long`（不截断、不静默存入截断后的脏数据，对齐 §2.5.2 D1 `Filter.definition` json-4000 同铁律）。
+
+- **范围裁定（Out of Scope for successor of this D12）**：
+    - 多列 having 算术表达式（`HAVING SUM(a)-SUM(b)>100`）随 expression 实现 successor 一并（依赖 D12 表达式语言裁定）。
+    - expression 结果缓存 / 定时刷新：out-of-scope improvement（运行时求值即可，对齐 sourceSql 每次重解析模式）。
+    - EQL 函数白名单的根本扩展（框架层 nop-orm）：不属 metadata 模块范围。
+
+- **Anti-Hollow（design-first）**：本 D12 为 design-first 裁定，**不产出代码**。契约的可执行性由 successor 实现 plan 验证——successor 须在 entity / external-sql / 跨库内存三条路径上各至少 1 条端到端测试覆盖 expression 型 Measure 真实执行（含成功路径 + 至少 1 条失败路径 per D12.4 ErrorCode 候选），并验证 5 处 `ERR_AGGR_EXPRESSION_MEASURE` 抛点已替换为真实执行逻辑（无空方法体、无静默跳过）。
+
 ---
 
 ## 五、与 nop-dyn 的关系
@@ -1250,3 +1312,4 @@ nop-metadata-web           — nop-metadata-service
 - ~~MetaTableJoin 跨表关联时，左右表所属数据源不同（例如 ORM 的 MySQL 表和 SQL 定义的 ClickHouse 表），查询执行如何路由？~~ **已裁定（P4-2，2026-07-16）**：按左右 `querySpace` 是否相同分派——同库走单库 JOIN（D4），跨库（不同 querySpace）走应用层拼接（D5，各取数后内存按 join key 合并）。详见 §4.4.1。
 - 通用 Domain 的来源：是单独维护还是从现有 ORM 模型提取？ **现状声明（2026-07-17）**：MetaDomain 为元数据层映射，导入时从 `IOrmModel` 的 domain 定义填充（已可用）；从 ORM `IOrmModel` 自动同步提取通用 Domain 为 non-blocking follow-up（当前 result face 不依赖该裁定，因 MetaDomain 导入时填充已覆盖现有用例）。
 - ~~数据契约的 SLA 定义格式：JSON Schema vs 自定义 DSL？~~ **已裁定（P4-4，2026-07-16）**：`schema` 列存 JSON Schema 文档（mediumtext + stdDomain json，首版仅存储不执行逐行校验），`sla` 列存结构化 JSON（json-4000 + stdDomain json，约定键 refreshFrequency/maxLatency/retention）。拒绝自定义 DSL（详见 `04-data-governance.md` §2.3 D1 裁定 + §5.2 D2 检查语义）。
+- **expression 型 Measure 是否引入跨设计域待定问题（D12 评估，2026-07-18）**：经 §4.4.2 D12 评估，**新增 1 项 follow-up**——expression 型 Measure 的聚合输出不直接对应单一源列（`<agg>(<expression>)` 是 derived 表达式），其列级血缘（§2.6.1 sql_parse）处理为 follow-up（建议标记 `transformType=derived`、`sourceColumn=unresolved:derived-expression`，不伪造单一源列映射），不阻塞 D12 裁定；其他设计域无新增待定问题：(1) 数据契约（§4-4）不感知 expression 值（运行时计算）；(2) Catalog/质量执行（§4.4.3）不直接相关；(3) 不引入新 ORM 结构变更（`expression` 列已存在，`nop-metadata.orm.xml:1160`）。
