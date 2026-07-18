@@ -7,6 +7,7 @@ import io.nop.api.core.beans.query.QueryBean;
 import io.nop.api.core.exceptions.ErrorCode;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.core.lang.sql.SQL;
+import io.nop.dao.DaoConstants;
 import io.nop.dao.api.IEntityDao;
 import io.nop.dataset.IDataRow;
 import io.nop.dataset.IDataSet;
@@ -20,6 +21,7 @@ import io.nop.metadata.dao.entity.NopMetaTableFilter;
 import io.nop.metadata.dao.entity.NopMetaTableJoin;
 import io.nop.metadata.dao.entity.NopMetaTableMeasure;
 import io.nop.metadata.service.field.ResolvedTableField;
+import io.nop.metadata.service.tableref.TableReference;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -309,12 +311,12 @@ public class MetaAggregationExecutor {
                 .param("error", "unsupported tableType: " + tableType);
     }
 
-    // ============================ entity 聚合（D6：orm().executeQuery）============================
+    // ============================ entity 聚合（D6：orm().executeQuery + D7.1：granularity 下沉 bypass EQL）============================
 
     private List<Map<String, Object>> executeEntityAggregation(NopMetaTable table, List<String> measureNames,
-                                                                List<String> dimensionNames, TreeBean filter,
-                                                                Long limit, Long offset, TreeBean having,
-                                                                List<OrderFieldBean> orderBy, MetaQueryContext ctx) {
+                                                                 List<String> dimensionNames, TreeBean filter,
+                                                                 Long limit, Long offset, TreeBean having,
+                                                                 List<OrderFieldBean> orderBy, MetaQueryContext ctx) {
         IEntityDao<NopMetaEntity> entityDao = ctx.daoProvider().daoFor(NopMetaEntity.class);
         NopMetaEntity entity = entityDao.getEntityById(table.getBaseEntityId());
         if (entity == null || entity.getEntityName() == null || entity.getEntityName().isEmpty()
@@ -335,15 +337,42 @@ public class MetaAggregationExecutor {
         // name→SQL 表达式反查表（plan 2026-07-18-0900-2：having/orderBy name 解析）
         Map<String, String> nameToExpr = buildNameToExprTable(measures, dims, measureNames, dimensionNames, table);
 
-        // 构造聚合 SQL（物理表 + 物理列）
+        // §4.4.2 D7.1：任一 temporal dimension 有非空 granularity 时，分桶表达式须 DATE_TRUNC/DATE_FORMAT 等
+        // EQL 不支持的函数 → 改走 bypass EQL 路径（TableReferenceExecutor 取平台 JDBC Connection 直查物理 SQL，
+        // 与 external/sql 路径同 helper）。否则维持既有 orm().executeQuery EQL 路径（向后兼容，最小变更）。
+        boolean needsBypass = false;
+        for (DimensionSpec d : dims) {
+            if (_NopMetadataCoreConstants.DIMENSION_TYPE_TEMPORAL.equals(d.dimensionType) && d.granularity != null) {
+                needsBypass = true;
+                break;
+            }
+        }
+        if (needsBypass) {
+            return executeEntityAggregationBypassEql(table, entity, physicalTable, measures, dims, filter, having,
+                    orderBy, limit, offset, nameToExpr, measureNames, dimensionNames, propToCol, ctx);
+        }
+        return executeEntityAggregationViaEql(table, physicalTable, measures, dims, filter, having, orderBy,
+                limit, offset, nameToExpr, measureNames, dimensionNames, propToCol, ctx);
+    }
+
+    /**
+     * 既有 entity 聚合执行路径（D6：{@code orm().executeQuery} 经 EQL 编译器，{@code allowUnderscoreName(true)}）。
+     *
+     * <p>用于无 temporal-with-granularity 维度的场景（向后兼容，行为零变化）。dimension 表达式恒为裸物理列。
+     */
+    private List<Map<String, Object>> executeEntityAggregationViaEql(NopMetaTable table, String physicalTable,
+                                                                     List<MeasureSpec> measures, List<DimensionSpec> dims,
+                                                                     TreeBean filter, TreeBean having,
+                                                                     List<OrderFieldBean> orderBy, Long limit,
+                                                                     Long offset, Map<String, String> nameToExpr,
+                                                                     List<String> measureNames,
+                                                                     List<String> dimensionNames,
+                                                                     Map<String, String> propToCol,
+                                                                     MetaQueryContext ctx) {
         StringBuilder sql = new StringBuilder("SELECT ");
         List<String> groupExprs = new ArrayList<>();
         for (int i = 0; i < dims.size(); i++) {
-            if (i > 0 || true) {
-                // 维度先输出
-            }
             DimensionSpec d = dims.get(i);
-            // entity 路径时间分桶受 EQL 函数白名单限制，首版按物理列直查（granularity 暂不下沉到 SQL）
             FilterToSqlTranslator.validateIdentifier(d.column);
             String expr = d.column;
             sql.append(i == 0 ? "" : ",").append(expr).append(" AS ").append(d.alias);
@@ -391,6 +420,98 @@ public class MetaAggregationExecutor {
         LOG.info("queryAggregation entity SQL: {}", sqlText);
         SQL sqlObj = SQL.begin().allowUnderscoreName(true).sql(sqlText, params.toArray()).end();
         return ctx.orm().executeQuery(sqlObj, null, this::collectRows);
+    }
+
+    /**
+     * entity 聚合 bypass EQL 路径（§4.4.2 D7.1：temporal dimension granularity 分桶下沉到 SQL）。
+     *
+     * <p>经 {@code TableReferenceExecutor.execute}（§4.4.3 D1）的 entity 分派路径取平台 JDBC Connection
+     * （{@code orm.getSessionFactory().txn()} + {@code runInTransaction(SUPPORTS)} +
+     * {@code IJdbcTransaction.getConnection()}），直查物理 SQL——**不经 EQL 编译器**，从而可以使用
+     * {@code DATE_TRUNC}/{@code DATE_FORMAT} 等 EQL 函数白名单不允许的方言原生分桶函数。SQL 表达式与
+     * external/sql 路径完全一致（复用 {@link GranularityBucketing#translate}），dialect 分发 H2/MySQL/PostgreSQL。
+     *
+     * <p>失败路径显式化：granularity 不约定 / 方言不支持 → 既有 inline ErrorCode（沿用 external/sql 路径同名检查）。
+     */
+    private List<Map<String, Object>> executeEntityAggregationBypassEql(NopMetaTable table, NopMetaEntity entity,
+                                                                        String physicalTable, List<MeasureSpec> measures,
+                                                                        List<DimensionSpec> dims, TreeBean filter,
+                                                                        TreeBean having, List<OrderFieldBean> orderBy,
+                                                                        Long limit, Long offset,
+                                                                        Map<String, String> nameToExpr,
+                                                                        List<String> measureNames,
+                                                                        List<String> dimensionNames,
+                                                                        Map<String, String> propToCol,
+                                                                        MetaQueryContext ctx) {
+        String entityQuerySpace = entity.getQuerySpace();
+        if (entityQuerySpace == null || entityQuerySpace.trim().isEmpty()) {
+            entityQuerySpace = DaoConstants.DEFAULT_QUERY_SPACE;
+        }
+        TableReference ref = new TableReference(TableReference.Kind.ENTITY, table.getMetaTableId(),
+                physicalTable, null, null, entity, entityQuerySpace, null);
+
+        return ctx.tableRefExecutor().execute(ref, (conn, metaData, productName) -> {
+            if (productName == null || !SUPPORTED_DIALECTS.contains(productName)) {
+                throw new NopException(ERR_AGGR_UNSUPPORTED_DIALECT)
+                        .param("databaseProductName", String.valueOf(productName))
+                        .param("metaTableId", table.getMetaTableId());
+            }
+            // D7：与 external/sql 路径 buildExternalAggregationSql 等价的物理 SQL 构造（同 granularity 分桶表达式）
+            StringBuilder sql = new StringBuilder("SELECT ");
+            List<String> groupExprs = new ArrayList<>();
+            for (int i = 0; i < dims.size(); i++) {
+                DimensionSpec d = dims.get(i);
+                String expr;
+                if (_NopMetadataCoreConstants.DIMENSION_TYPE_TEMPORAL.equals(d.dimensionType) && d.granularity != null) {
+                    // D7：时间维度按 granularity 分桶（复用 GranularityBucketing.translate，dialect 分发）
+                    expr = GranularityBucketing.translate(d.granularity, d.column, productName, d.alias);
+                } else {
+                    FilterToSqlTranslator.validateIdentifier(d.column);
+                    expr = d.column;
+                }
+                sql.append(i == 0 ? "" : ",").append(expr).append(" AS ").append(d.alias);
+                groupExprs.add(expr);
+            }
+            for (MeasureSpec m : measures) {
+                sql.append(",").append(m.aggSql).append(" AS ").append(m.alias);
+            }
+            sql.append(" FROM ").append(physicalTable);
+
+            List<Object> params = new ArrayList<>();
+            if (filter != null) {
+                TreeBean colFilter = rewriteFilterToColumns(filter, propToCol);
+                FilterToSqlTranslator.TranslatedFilter tf = ctx.filterTranslator().translate(colFilter);
+                if (tf.getSql() != null && !tf.getSql().isEmpty()) {
+                    sql.append(" WHERE ").append(tf.getSql());
+                    params.addAll(tf.getParams());
+                }
+            }
+            sql.append(" GROUP BY ").append(String.join(",", groupExprs));
+            // plan 2026-07-18-0900-2：HAVING 子句
+            if (having != null) {
+                FilterToSqlTranslator.TranslatedFilter hf = ctx.filterTranslator().translate(having,
+                        nameResolverFor(nameToExpr, table, measureNames, dimensionNames));
+                if (hf.getSql() != null && !hf.getSql().isEmpty()) {
+                    sql.append(" HAVING ").append(hf.getSql());
+                    params.addAll(hf.getParams());
+                }
+            }
+            // plan 2026-07-18-0900-2：ORDER BY 子句
+            String orderByClause = buildOrderByClause(orderBy, nameToExpr, table, measureNames, dimensionNames);
+            if (!orderByClause.isEmpty()) {
+                sql.append(" ORDER BY ").append(orderByClause);
+            }
+            // limit/offset 占位由 executeJdbcQuery 经 PreparedStatement 绑定（与 external/sql 路径一致）
+            if (limit != null) {
+                sql.append(" LIMIT ?");
+            }
+            if (offset != null && offset > 0) {
+                sql.append(" OFFSET ?");
+            }
+            String sqlText = sql.toString();
+            LOG.info("queryAggregation entity bypass-EQL SQL: {}", sqlText);
+            return executeJdbcQuery(conn, sqlText, params, limit, offset, table.getMetaTableId());
+        });
     }
 
     // ============================ JOIN 聚合路由（plan 0852-1 entity↔entity + plan 1200-1 external↔external 同库）============================

@@ -596,8 +596,8 @@ public class NopMetaTableBizModel extends CrudBizModel<NopMetaTable> implements 
 
     /** 构造 JOIN/聚合执行器共享的依赖上下文（取本 BizModel 已注入的组件）。 */
     private MetaQueryContext buildQueryContext() {
-        return new MetaQueryContext(daoProvider(), orm(), connectionService, dataSourceResolver, fieldResolver,
-                filterTranslator);
+        return new MetaQueryContext(daoProvider(), orm(), connectionService, ensureTableRefExecutor(), dataSourceResolver,
+                fieldResolver, filterTranslator);
     }
 
     // ---- entity 分派：经 IOrmTemplate（架构基线 §4.4 D1）----

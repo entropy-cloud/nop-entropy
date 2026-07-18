@@ -4,6 +4,7 @@ import io.nop.dao.api.IDaoProvider;
 import io.nop.metadata.service.connection.IMetaDataSourceConnectionService;
 import io.nop.metadata.service.datasource.MetaDataSourceResolver;
 import io.nop.metadata.service.field.MetaTableFieldResolver;
+import io.nop.metadata.service.tableref.TableReferenceExecutor;
 import io.nop.orm.IOrmTemplate;
 
 import java.util.Objects;
@@ -19,6 +20,8 @@ import java.util.Objects;
  *   <li>{@link IDaoProvider} — 取各 NopMeta* 实体 DAO</li>
  *   <li>{@link IOrmTemplate} — entity 路径原生 SQL 执行载体（{@code executeQuery}）</li>
  *   <li>{@link IMetaDataSourceConnectionService} — external/sql 路径 withConnection</li>
+ *   <li>{@link TableReferenceExecutor} — entity 路径 granularity 分桶 bypass EQL 时取平台 JDBC Connection
+ *       （§4.4.2 D7.1，复用 §4.4.3 D1 既有 Connection 获取入口）</li>
  *   <li>无状态 helper：{@link MetaDataSourceResolver}/{@link MetaTableFieldResolver}/{@link FilterToSqlTranslator}</li>
  * </ul>
  */
@@ -26,18 +29,21 @@ public final class MetaQueryContext {
     private final IDaoProvider daoProvider;
     private final IOrmTemplate orm;
     private final IMetaDataSourceConnectionService connectionService;
+    private final TableReferenceExecutor tableRefExecutor;
     private final MetaDataSourceResolver dataSourceResolver;
     private final MetaTableFieldResolver fieldResolver;
     private final FilterToSqlTranslator filterTranslator;
 
     public MetaQueryContext(IDaoProvider daoProvider, IOrmTemplate orm,
                             IMetaDataSourceConnectionService connectionService,
+                            TableReferenceExecutor tableRefExecutor,
                             MetaDataSourceResolver dataSourceResolver,
                             MetaTableFieldResolver fieldResolver,
                             FilterToSqlTranslator filterTranslator) {
         this.daoProvider = Objects.requireNonNull(daoProvider, "daoProvider");
         this.orm = Objects.requireNonNull(orm, "orm");
         this.connectionService = Objects.requireNonNull(connectionService, "connectionService");
+        this.tableRefExecutor = Objects.requireNonNull(tableRefExecutor, "tableRefExecutor");
         this.dataSourceResolver = Objects.requireNonNull(dataSourceResolver, "dataSourceResolver");
         this.fieldResolver = Objects.requireNonNull(fieldResolver, "fieldResolver");
         this.filterTranslator = Objects.requireNonNull(filterTranslator, "filterTranslator");
@@ -53,6 +59,14 @@ public final class MetaQueryContext {
 
     public IMetaDataSourceConnectionService connectionService() {
         return connectionService;
+    }
+
+    /**
+     * entity 路径 granularity 分桶 bypass EQL 时取平台 JDBC Connection 的执行器
+     * （§4.4.2 D7.1，复用 §4.4.3 D1 {@code TableReferenceExecutor.executeOnPlatformConnection}）。
+     */
+    public TableReferenceExecutor tableRefExecutor() {
+        return tableRefExecutor;
     }
 
     public MetaDataSourceResolver dataSourceResolver() {

@@ -191,6 +191,299 @@ public class TestNopMetaAggregationBizModel extends JunitBaseTestCase {
     }
 
     // ============================================================
+    // plan 2026-07-18-1100-2：entity 路径时间维度 granularity 分桶（D7.1，bypass EQL）
+    // ============================================================
+
+    /**
+     * entity 路径 temporal dimension + granularity=month 分桶（§4.4.2 D7.1，主 Exit Criterion）。
+     *
+     * <p>Anti-Hollow：把 NOP_META_ENTITY.CREATE_TIME 通过直接 SQL UPDATE 分布到 2 个不同月份，
+     * 经 entity 路径 bypass EQL（{@code TableReferenceExecutor} 平台 JDBC Connection + {@code DATE_TRUNC}）
+     * 跑 GROUP BY month 分桶，断言：
+     * <ul>
+     *   <li>真实分组行非空（stub / 旧行 346 裸列直查会得到 N 个分组而非 2 个，立即失败此断言）</li>
+     *   <li>分组数 == 2（2024-01 与 2024-02，证明 {@code DATE_TRUNC('month', CREATE_TIME)} 真实下沉到 SQL）</li>
+     *   <li>SUM(CNT) == NOP_META_ENTITY 总行数（聚合无丢失）</li>
+     * </ul>
+     */
+    @Test
+    @SuppressWarnings("unchecked")
+    public void testEntityTemporalGranularityBucketingMonth() {
+        importModel();
+        long totalEntities = countRows("select count(*) as c from nop_meta_entity");
+        assertTrue(totalEntities >= 2, "nop_meta_entity must have at least 2 rows for month bucketing: " + totalEntities);
+        // 把一半行 UPDATE 到 2024-01-15，另一半到 2024-02-15（两月分桶）
+        spreadEntityCreateTimeAcrossTwoMonths();
+        try {
+            String tableId = findEntityTableId("nop_meta_entity");
+            String createTimeFieldId = findEntityFieldId("nop_meta_entity", "createTime");
+            createMeasure(tableId, "cnt", createTimeFieldId, "count", null);
+            createDimension(tableId, "mon", createTimeFieldId, "temporal", "month");
+
+            Map<String, Object> result = nopMetaTableBizModel.queryAggregation(tableId,
+                    Arrays.asList("cnt"), Arrays.asList("mon"), null, null, null, null, null, null, null);
+            List<Map<String, Object>> items = (List<Map<String, Object>>) result.get("items");
+            assertNotNull(items, "items must not be null");
+            assertEquals(2, items.size(),
+                    "entity path month bucketing must yield 2 buckets (2024-01, 2024-02): " + items);
+            long sumCnt = 0;
+            for (Map<String, Object> row : items) {
+                Object cnt = getIgnoreCase(row, "CNT");
+                assertNotNull(cnt, "measure CNT must be present: " + row.keySet());
+                assertTrue(toLong(cnt) > 0, "each month bucket must have positive count: " + row);
+                sumCnt += toLong(cnt);
+            }
+            assertEquals(totalEntities, sumCnt,
+                    "SUM(CNT) across month buckets must equal total nop_meta_entity rows: " + items);
+        } finally {
+            resetEntityCreateTime();
+        }
+    }
+
+    /**
+     * entity 路径 temporal dimension + 各 granularity 值（year/quarter/month/week/day/hour）均成功分桶（§4.4.2 D7.1）。
+     *
+     * <p>对每个约定 granularity 值跑一次 entity 聚合，断言：执行无异常 + 真实分组行非空 + SUM(CNT) == 总行数。
+     * 不对每个 bucket 的精确值做断言（各 granularity 的桶数与数据时间分布相关），仅验证「下沉到 SQL 成功 + 全量行参与聚合」。
+     */
+    @Test
+    @SuppressWarnings("unchecked")
+    public void testEntityTemporalGranularityAllValues() {
+        importModel();
+        long totalEntities = countRows("select count(*) as c from nop_meta_entity");
+        assertTrue(totalEntities >= 2, "nop_meta_entity must have at least 2 rows: " + totalEntities);
+        // 分布到不同时间（覆盖 year/quarter/month/week/day/hour 各粒度）
+        spreadEntityCreateTimeAcrossTwoMonths();
+        try {
+            String[] granularities = {"year", "quarter", "month", "week", "day", "hour"};
+            for (String granularity : granularities) {
+                String tableId = findEntityTableId("nop_meta_entity");
+                String createTimeFieldId = findEntityFieldId("nop_meta_entity", "createTime");
+                createMeasure(tableId, "cnt_" + granularity, createTimeFieldId, "count", null);
+                createDimension(tableId, "d_" + granularity, createTimeFieldId, "temporal", granularity);
+
+                Map<String, Object> result = nopMetaTableBizModel.queryAggregation(tableId,
+                        Arrays.asList("cnt_" + granularity), Arrays.asList("d_" + granularity),
+                        null, null, null, null, null, null, null);
+                List<Map<String, Object>> items = (List<Map<String, Object>>) result.get("items");
+                assertNotNull(items, "items must not be null for granularity=" + granularity);
+                assertFalse(items.isEmpty(),
+                        "entity path granularity=" + granularity + " must yield non-empty groups: " + items);
+                long sumCnt = 0;
+                for (Map<String, Object> row : items) {
+                    Object cnt = getIgnoreCase(row, "CNT_" + granularity.toUpperCase());
+                    assertNotNull(cnt, "measure column must be present for granularity=" + granularity + ": " + row);
+                    sumCnt += toLong(cnt);
+                }
+                assertEquals(totalEntities, sumCnt,
+                        "SUM(CNT) for granularity=" + granularity + " must equal total rows: " + items);
+            }
+        } finally {
+            resetEntityCreateTime();
+        }
+    }
+
+    /**
+     * entity 路径与 external/sql 路径同 granularity + 同数据 → 聚合结果一致（§4.4.2 D7.1 能力对齐证据）。
+     *
+     * <p>把 NOP_META_ENTITY 数据复制到外部 H2 库的同一物理表结构（CREATE_TIME 同值），分别用 entity 路径（bypass EQL）
+     * 和 external 路径（withConnection）跑 month granularity 聚合，断言两者分组键集合 + 计数值一致。
+     */
+    @Test
+    @SuppressWarnings("unchecked")
+    public void testEntityAggregationGranularityMatchesExternal() throws Exception {
+        importModel();
+        spreadEntityCreateTimeAcrossTwoMonths();
+        try {
+            // 1) 取 entity 路径真实 CREATE_TIME 数据，复制到外部 H2 库 ext_entity_gran 表
+            List<Object[]> rowsWithCreateTime = queryEntityCreateTimeRows();
+            assertFalse(rowsWithCreateTime.isEmpty(), "test data must have rows");
+            String querySpace = "qs_entity_gran_match";
+            String dbUrl = "jdbc:h2:mem:" + querySpace + ";DB_CLOSE_DELAY=-1";
+            try (Connection c = DriverManager.getConnection(dbUrl, "sa", "");
+                 Statement st = c.createStatement()) {
+                st.execute("CREATE TABLE ext_entity_gran (K VARCHAR(200), CREATED_AT TIMESTAMP)");
+                for (Object[] row : rowsWithCreateTime) {
+                    String k = String.valueOf(row[0]).replace("'", "''");
+                    String ts = String.valueOf(row[1]);
+                    st.execute("INSERT INTO ext_entity_gran VALUES ('" + k + "', '" + ts + "')");
+                }
+            }
+            saveDataSource("ds-" + querySpace, querySpace, dbUrl);
+            syncExternalTables("ds-" + querySpace);
+            String externalTableId = externalTableId("EXT_ENTITY_GRAN");
+
+            // 2) external 路径 month granularity
+            createMeasure(externalTableId, "xcnt", "K", "count", null);
+            createDimension(externalTableId, "xmon", "CREATED_AT", "temporal", "month");
+            Map<String, Object> extResult = nopMetaTableBizModel.queryAggregation(externalTableId,
+                    Arrays.asList("xcnt"), Arrays.asList("xmon"), null, null, null, null, null, null, null);
+            List<Map<String, Object>> extItems = (List<Map<String, Object>>) extResult.get("items");
+
+            // 3) entity 路径 month granularity
+            String entityTableId = findEntityTableId("nop_meta_entity");
+            String createTimeFieldId = findEntityFieldId("nop_meta_entity", "createTime");
+            createMeasure(entityTableId, "ecnt", createTimeFieldId, "count", null);
+            createDimension(entityTableId, "emon", createTimeFieldId, "temporal", "month");
+            Map<String, Object> entityResult = nopMetaTableBizModel.queryAggregation(entityTableId,
+                    Arrays.asList("ecnt"), Arrays.asList("emon"), null, null, null, null, null, null, null);
+            List<Map<String, Object>> entityItems = (List<Map<String, Object>>) entityResult.get("items");
+
+            // 4) 一致性断言：分组数相同 + 每个分桶的计数相同（按 bucket 起始时间对齐）
+            assertEquals(extItems.size(), entityItems.size(),
+                    "entity path and external path must yield same bucket count: ext=" + extItems + " entity=" + entityItems);
+            Map<String, Long> extMap = bucketsToCountMap(extItems, "XMON", "XCNT");
+            Map<String, Long> entityMap = bucketsToCountMap(entityItems, "EMON", "ECNT");
+            assertEquals(extMap.size(), entityMap.size(),
+                    "bucket count maps must have same size: ext=" + extMap + " entity=" + entityMap);
+            for (Map.Entry<String, Long> e : extMap.entrySet()) {
+                Long entityCnt = entityMap.get(e.getKey());
+                assertNotNull(entityCnt,
+                        "external bucket " + e.getKey() + " must exist in entity path: ext=" + extMap + " entity=" + entityMap);
+                assertEquals(e.getValue().longValue(), entityCnt.longValue(),
+                        "bucket " + e.getKey() + " count must match between entity and external paths: ext="
+                                + extMap + " entity=" + entityMap);
+            }
+        } finally {
+            resetEntityCreateTime();
+        }
+    }
+
+    /**
+     * 失败路径：entity 路径不约定 granularity（非约定值）→ 显式失败（§4.4.2 D7.1 失败路径显式化）。
+     */
+    @Test
+    public void testEntityUnsupportedGranularityFails() {
+        importModel();
+        String tableId = findEntityTableId("nop_meta_entity");
+        String createTimeFieldId = findEntityFieldId("nop_meta_entity", "createTime");
+        createMeasure(tableId, "cnt", createTimeFieldId, "count", null);
+        createDimension(tableId, "weird", createTimeFieldId, "temporal", "fortnight");
+
+        assertTrue(queryAggregationHasError(tableId, Arrays.asList("cnt"), Arrays.asList("weird")),
+                "entity path with unsupported granularity must explicitly fail (not silent bare-column fallback)");
+    }
+
+    /**
+     * 端到端验证（#22）+ 接线验证（#23）：从 GraphQL {@code queryAggregation} 入口到 entity 聚合 granularity 分桶
+     * 结果的完整路径已验证。entity 路径 bypass EQL 在运行时真实调用 {@code GranularityBucketing.translate}
+     * （非旧行 346 裸列直查）。
+     */
+    @Test
+    @SuppressWarnings("unchecked")
+    public void testEntityTemporalGranularityBucketingViaGraphQL() {
+        importModel();
+        long totalEntities = countRows("select count(*) as c from nop_meta_entity");
+        spreadEntityCreateTimeAcrossTwoMonths();
+        try {
+            String tableId = findEntityTableId("nop_meta_entity");
+            String createTimeFieldId = findEntityFieldId("nop_meta_entity", "createTime");
+            createMeasure(tableId, "gcnt", createTimeFieldId, "count", null);
+            createDimension(tableId, "gmon", createTimeFieldId, "temporal", "month");
+
+            io.nop.api.core.beans.graphql.GraphQLRequestBean request = new io.nop.api.core.beans.graphql.GraphQLRequestBean();
+            request.setQuery("query { NopMetaTable__queryAggregation(metaTableId: \"" + tableId + "\", "
+                    + "measures: [\"gcnt\"], dimensions: [\"gmon\"]) }");
+            io.nop.api.core.beans.graphql.GraphQLResponseBean resp =
+                    graphQLEngine.executeGraphQL(graphQLEngine.newGraphQLContext(request));
+            assertFalse(resp.hasError(),
+                    "GraphQL entity path month granularity queryAggregation must succeed: " + resp);
+            Map<String, Object> data = (Map<String, Object>) resp.getData();
+            Map<String, Object> qa = (Map<String, Object>) data.get("NopMetaTable__queryAggregation");
+            assertNotNull(qa, "GraphQL queryAggregation must return non-null Map result");
+            List<Map<String, Object>> items = (List<Map<String, Object>>) qa.get("items");
+            assertNotNull(items, "GraphQL items must not be null");
+            assertEquals(2, items.size(),
+                    "GraphQL entity path month bucketing end-to-end must yield 2 buckets (2024-01, 2024-02): " + items);
+            long sumCnt = 0;
+            for (Map<String, Object> row : items) {
+                Object cnt = getIgnoreCase(row, "GCNT");
+                assertNotNull(cnt, "measure GCNT must be present: " + row.keySet());
+                sumCnt += toLong(cnt);
+            }
+            assertEquals(totalEntities, sumCnt,
+                    "GraphQL entity path SUM(CNT) must equal total nop_meta_entity rows: " + items);
+        } finally {
+            resetEntityCreateTime();
+        }
+    }
+
+    /** 直接 SQL UPDATE NOP_META_ENTITY.CREATE_TIME 分布到 2024-01-15 / 2024-02-15 两月（按 entity ID 列表对半分）。 */
+    private void spreadEntityCreateTimeAcrossTwoMonths() {
+        Timestamp jan = Timestamp.valueOf("2024-01-15 10:00:00");
+        Timestamp feb = Timestamp.valueOf("2024-02-15 10:00:00");
+        List<String> allIds = queryAllEntityIds();
+        assertNotNull(allIds);
+        assertFalse(allIds.isEmpty(), "must have at least 1 entity row for time spread");
+        int mid = allIds.size() / 2;
+        for (int i = 0; i < allIds.size(); i++) {
+            String id = allIds.get(i);
+            Timestamp ts = (i < mid) ? jan : feb;
+            io.nop.core.lang.sql.SQL upd = io.nop.core.lang.sql.SQL.begin().allowUnderscoreName(true)
+                    .sql("update NOP_META_ENTITY set CREATE_TIME=? where META_ENTITY_ID=?", ts, id).end();
+            ormTemplate.executeUpdate(upd);
+        }
+        ormTemplate.evictAll(NopMetaEntity.class.getName());
+    }
+
+    private List<String> queryAllEntityIds() {
+        io.nop.core.lang.sql.SQL q = io.nop.core.lang.sql.SQL.begin().allowUnderscoreName(true)
+                .sql("select META_ENTITY_ID from NOP_META_ENTITY").end();
+        return ormTemplate.executeQuery(q, null, ds -> {
+            List<String> ids = new java.util.ArrayList<>();
+            for (io.nop.dataset.IDataRow row : ds) {
+                ids.add(String.valueOf(row.getObject(0)));
+            }
+            return ids;
+        });
+    }
+
+    /** 还原 NOP_META_ENTITY.CREATE_TIME 到当前时间（避免污染后续测试）。 */
+    private void resetEntityCreateTime() {
+        Timestamp now = new Timestamp(System.currentTimeMillis());
+        io.nop.core.lang.sql.SQL upd = io.nop.core.lang.sql.SQL.begin().allowUnderscoreName(true)
+                .sql("update NOP_META_ENTITY set CREATE_TIME=?", now).end();
+        ormTemplate.executeUpdate(upd);
+        ormTemplate.evictAll(NopMetaEntity.class.getName());
+    }
+
+    /** 取所有 NOP_META_ENTITY 行的 ENTITY_NAME + CREATE_TIME（按分布后的时间）。 */
+    private List<Object[]> queryEntityCreateTimeRows() {
+        io.nop.core.lang.sql.SQL q = io.nop.core.lang.sql.SQL.begin().allowUnderscoreName(true)
+                .sql("select ENTITY_NAME, CREATE_TIME from NOP_META_ENTITY").end();
+        return ormTemplate.executeQuery(q, null, ds -> {
+            List<Object[]> rows = new java.util.ArrayList<>();
+            for (io.nop.dataset.IDataRow row : ds) {
+                rows.add(new Object[]{row.getObject(0), row.getObject(1)});
+            }
+            return rows;
+        });
+    }
+
+    /** 把聚合结果 items 转为 {bucketStartTimestamp字符串: count} map，按归一化键对齐（截断到秒）。 */
+    private static Map<String, Long> bucketsToCountMap(List<Map<String, Object>> items, String dimKey, String cntKey) {
+        Map<String, Long> map = new java.util.TreeMap<>();
+        for (Map<String, Object> row : items) {
+            Object bucket = getIgnoreCase(row, dimKey);
+            Object cnt = getIgnoreCase(row, cntKey);
+            assertNotNull(bucket, "bucket column " + dimKey + " must be present: " + row);
+            assertNotNull(cnt, "count column " + cntKey + " must be present: " + row);
+            // bucket 为 java.sql.Timestamp（DATE_TRUNC 返回）或 String，统一 toString 后截断到秒（去掉毫秒）
+            String key = normalizeBucketKey(String.valueOf(bucket));
+            map.merge(key, toLong(cnt), Long::sum);
+        }
+        return map;
+    }
+
+    /** 归一化 bucket 起始时间字符串：取前 19 字符（'yyyy-MM-dd HH:mm:ss' 截断到秒）。 */
+    private static String normalizeBucketKey(String s) {
+        if (s == null) {
+            return "";
+        }
+        return s.length() > 19 ? s.substring(0, 19) : s;
+    }
+
+    // ============================================================
     // plan 0852-1：entity↔entity JOIN 聚合（queryAggregation + joinId）
     // ============================================================
 
