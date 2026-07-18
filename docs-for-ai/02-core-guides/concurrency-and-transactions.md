@@ -82,6 +82,60 @@ Scanner（@SingleSession 长事务）
 - **不要在 `@SingleSession` 方法内直接操作 DAO**：应该委托给带 `@Transactional(REQUIRES_NEW)` 的 Store 方法。
 - **`@SingleSession` 不是数据库事务**：它只绑定 ORM Session 生命周期。数据库事务边界由 `@Transactional` 控制。
 
+### 常见陷阱：@SingleSession 下的死代码与无法刷新的缓存
+
+`@SingleSession` + `@Transactional(REQUIRES_NEW)` 组合有一个隐性陷阱：Store 方法内的 `requireEntityById` 返回的是 `@SingleSession` Session 缓存中的**同一 Java 对象**（不是 DB 最新值）。这意味着：
+
+1. **死代码陷阱**：如果调用方在 `@SingleSession` 中修改了实体的状态（如将 fire 设为 SUCCESS），然后调用 Store 方法，Store 方法内的 `requireEntityById` 返回**与调用方同一对象**。调用方的修改立即对 Store 方法可见：
+
+   ```java
+   @SingleSession
+   void scanBatch() {
+       fire.setFireStatus(FIRE_STATUS_SUCCESS);  // 修改了 @SingleSession 缓存的实体
+       fireStore.completeFireAndUpdateSchedule(fire, schedule);
+       //                                 ↑ 这个 fire 与上面是同一对象
+   }
+
+   // JobFireStoreImpl.java
+   @Transactional(REQUIRES_NEW)
+   void completeFireAndUpdateSchedule(NopJobFire fire, NopJobSchedule schedule) {
+       NopJobFire currentFire = fireDao().requireEntityById(fire.getJobFireId());
+       //  ↑ 返回 @SingleSession 缓存的同一对象 — fire 已是 SUCCESS
+       if (JobStatusHelper.isTerminalFire(currentFire.getFireStatus())) {
+           return;  // ← 短路！方法体是死代码
+       }
+       // ↓ 以下从不执行
+       if (!fireDao().tryUpdateWithVersionCheck(fire)) { ... }
+   }
+   ```
+
+   **解决方案**：不要用 `requireEntityById` 校验调用方已修改的状态。直接在方法体开始时执行 `tryUpdateWithVersionCheck(fire)` — 如果 fire 版本匹配 DB，更新成功；如果不匹配，说明有并发冲突，静默返回即可。
+
+2. **缓存不可刷新陷阱（@SingleSession 限制定理）**：在 `@SingleSession` 中，`requireEntityById` 通过 `_makeProxy` → `cache.get(entityName, id)` 查询缓存，**命中即返回**，不检查实体状态或版本。这意味着：
+
+   - 即使先调用 `orm_unload()`（将实体状态设为 PROXY），`requireEntityById` 返回的仍是同一对象（状态不变）
+   - retry loop 中的 reload 永远得不到新数据
+   - **retry loop 在 `@SingleSession` 下注定失败**
+
+   ```java
+   // ❌ 错误的 retry loop — 在 @SingleSession 下永远无效
+   for (int attempt = 0; attempt < 5; attempt++) {
+       if (dao.tryUpdateWithVersionCheck(entity)) return;
+       entity.orm_unload();
+       entity = dao.requireEntityById(entity.get_id());
+       // ↑ 返回与 entity 同一对象（← 因为 @SingleSession 缓存命中）
+       // orm_unload() 将状态设为 PROXY，但 requireEntityById 返回同一对象
+       // 实体的 orm_readonly(true) 标志未被清除
+       // 后续 setter → checkReadonly() → ERR_ORM_ENTITY_IS_READONLY
+   }
+   ```
+
+   **解决方案**：在 `@SingleSession` 下不要使用 retry loop。实体已被调用方修改（dirty），直接用 `tryUpdateWithVersionCheck` flush 即可。如果版本冲突，由上层 Scanner 的下一个扫描周期自动重试。
+
+3. **状态不一致陷阱**：如果 Store 方法因版本冲突返回（未更新 fire/schedule），调用方不应继续执行后续操作（如取消 tasks），因为 fire 在 DB 中仍保持之前的状态。
+
+   **解决方案**：Store 方法返回后检查实体的 `orm_readonly()` 标志（`tryUpdateWithVersionCheck` 在版本冲突时设此标志）。如果为 true，跳过后续操作。
+
 ## 模式三：check-then-act 与二次校验
 
 某些场景需要先检查状态再执行操作，存在理论上的 TOCTOU 窗口：
@@ -153,18 +207,22 @@ if (!entity.orm_state().isManaged()) {
 
 | 方法 | 适用场景 | 说明 |
 |------|---------|------|
-| `entity.orm_unload()` + `dao.getEntityById(id)` | 乐观锁重试循环中刷新 baseline | `orm_unload()` 将实体状态重置为 proxy，下次 `getEntityById` 重新从 DB 加载所有字段 |
+| `entity.orm_unload()` + `dao.getEntityById(id)` | 非 @SingleSession 场景的乐观锁重试 | `orm_unload()` 将实体状态重置为 proxy，下次 `getEntityById` 重新从 DB 加载所有字段 |
 | `session.refresh(entity)` | 显式刷新单个实体 | 内部调用 `orm_unload()` + `internalLoad()` |
 | `session.evict(entity)` + `dao.getEntityById(id)` | 从缓存中移除后重新加载 | evict 后实体不在缓存中，`getEntityById` 创建新实例 |
+
+> **⚠️ 限制**：上述方法在 `@SingleSession` 下**均无效**。因为 `_makeProxy` 在 `cache.get(entityName, id)` 命中时直接返回缓存对象（不检查状态）。即使先 `orm_unload()` 或 `evict()`，`requireEntityById` 返回同一对象。详见模式二的"缓存不可刷新陷阱"。
 
 ### 常见误区
 
 | 误区 | 实际行为 | 正确做法 |
 |------|---------|---------|
-| "`findAllByQuery` 比 `getEntityById` 数据更新" | 两者返回相同缓存实体，字段不覆盖 | 需要新鲜数据时先 `orm_unload()` |
+| "`findAllByQuery` 比 `getEntityById` 数据更新" | 两者返回相同缓存实体，字段不覆盖 | 需要新鲜数据时先 `orm_unload()`（但注意 @SingleSession 下无效） |
 | "`tryBatchGetEntitiesByIds` 返回旧数据所以不能用" | 与 `findAllByQuery` 行为一致 | 两者可互换，缓存行为不影响选择 |
-| "在 `REQUIRES_NEW` 事务中 `requireEntityById` 一定读到 DB 最新值" | 若实体已在 Session 缓存中则返回缓存 | 先 `orm_unload()` 再 `requireEntityById` |
+| "在 `REQUIRES_NEW` 事务中 `requireEntityById` 一定读到 DB 最新值" | 若实体已在 Session 缓存中则返回缓存 | 先 `orm_unload()` 再 `requireEntityById`（但 @SingleSession 下无效） |
 | "`@Transactional(REQUIRES_NEW)` 会自动刷新缓存" | `REQUIRES_NEW` 控制数据库事务，不等于新 Session | 取决于 Session 管理策略，需验证 |
+| "retry loop 的 `orm_unload()` + reload 能获得新数据" | `@SingleSession` 下 `requireEntityById` 始终返回同一缓存对象 | @SingleSession 下 retry loop 注定失败，应移除 retry loop |
+| "`orm_unload()` 能清除所有状态" | `orm_unload()` 不清除 `fullyLoaded` 和 `orm_readonly` | setter 在 `fullyLoaded=true` 下仍可工作，但 `readonly` 会阻止修改 |
 
 ### 在乐观锁重试循环中的应用
 
@@ -183,6 +241,10 @@ for (int attempt = 0; attempt < 5; attempt++) {
     baseline = dao.requireEntityById(entity.get_id());
 }
 ```
+
+> **⚠️ 重要限制**：上述 retry loop 在 `@SingleSession` 下**无效**。因为 `requireEntityById` 总是返回同一缓存对象（`_makeProxy` → `cache.get()` 命中）。而且 `orm_unload()` 不清除 `readonly` 标志（`tryUpdateWithVersionCheck` 在版本冲突时设此标志），导致后续 setter 抛出 `ERR_ORM_ENTITY_IS_READONLY`。
+>
+> **在 `@SingleSession` 下，应移除 retry loop**，使用单次 `tryUpdateWithVersionCheck`。如果实体是 dirty 的，flush 会自动包含所有修改。版本冲突由上层 Scanner 的下一个扫描周期处理。
 
 ## 审计误报排除清单
 
