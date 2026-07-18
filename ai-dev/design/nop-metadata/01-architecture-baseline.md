@@ -429,8 +429,8 @@ MetaLineageEdge                  — 血缘边
   ├── sourceColumn               — 源列名（可选，空表示表级血缘）
   ├── targetColumn               — 目标列名（可选，空表示表级血缘）
   ├── transformType              — "direct" | "derived" | "aggregated"
-  ├── transformExpression        — 转换表达式（如 "CONCAT(first_name, last_name)"）
-  ├── lineageSource              — "manual" | "sql_parse" | "open_lineage" | "hook"
+  ├── transformExpr              — 转换表达式（如 "CONCAT(first_name, last_name)"，与 ORM 列名一致）
+  ├── lineageSource              — "manual" | "sql_parse" | "open_lineage" | "hook" | "measure_parse"
   ├── pipelineId                 → MetaPipeline（可选，关联的处理管道）
   ├── confidence                 — 置信度 0.0~1.0
   └── extConfig                  — 扩展属性
@@ -494,6 +494,39 @@ MetaPipeline                     — 数据处理管道
 - sql_parse 抽取的表引用若匹配不到目录表，该引用放入返回 `unresolved: [...]` 列表（原表名显式保留）+ **edge 暂不创建**。
 - 约束原因：`sourceTableId` 为 `mandatory="true"`（`nop-metadata.orm.xml` NopMetaLineageEdge 列定义），ORM 层无法创建 null-source 边，故 dangling 一律进 unresolved 列表、不建悬空边——此约束由 schema 决定，非可选。日志记录 unresolved 计数。
 
+**expression 型 Measure 列级血缘（design-first 裁定，plan 2026-07-18-1500-1，D1/D3/D4/D5）**：
+
+> 收口 §八 follow-up「expression 型 Measure 输出列的列级血缘处理」。本节为 **design-first**：交付 edge model + 取值裁定 + 列引用提取契约，**不产出实现代码**。实现属 successor plan（依 D1-D5 裁定落地 `extractMeasureLineage` action + 边产出 + 召回 + 测试）。
+
+经 live repo 核实（`NopMetaLineageEdgeBizModel.bfsForward:423-443` + `getImpactAnalysis:401-474` + `ExpressionMeasureValidator.ValidatedExpression.identifiers` + `nop-metadata.orm.xml:1427-1486` NopMetaLineageEdge 列定义 + dict `meta/lineage-source` / `meta/lineage-transform` 现值），五项裁定如下。
+
+- **D1 — edge model 裁定（自环边 + BFS 语义隔离，仅经边直接查询召回）**：expression 型 Measure `M` 挂载在 `NopMetaTable T`（`M.tableId == T.metaTableId`），其 `expression` 引用 `T` 自身列集合内的列（JOIN 上下文 `l.`/`r.` 限定列为 Non-Goal，deferred）。每识别一个源列 `C` 产一条**自环边** `(sourceTableId=T.metaTableId, targetTableId=T.metaTableId, sourceColumn=C, targetColumn=M.measureName, transformType=aggregated[D4], lineageSource=measure_parse[D4])`。三项候选经裁定：
+  - **(a) 自环边（sourceTableId == targetTableId == T.metaTableId）—— 选定**。复用既有 ORM 列（无结构变更，遵守 Non-Goal「不修改 MetaLineageEdge ORM 结构」）；与 sql_parse 列级边同一 `MetaLineageEdge` 实体，无新表/新实体（避免 Protected Area）。
+  - **(b) 非自环边（引入虚拟 target 节点，如语义层虚拟表）—— 拒绝**。要求新增虚拟 NopMetaTable 行或新 ORM 实体承载虚拟 target，二者均触发 Protected Area ORM 结构变更或污染目录（虚拟表对用户可见却不可查询），违反 Non-Goal。
+  - **(c) 不产 MetaLineageEdge，改用独立 measure-level impact 表 —— 拒绝**。要求新 ORM 实体（measure→column 映射表），触发 Protected Area 结构变更，违反 Non-Goal。
+  - **BFS 不可达的显式声明（非 bug，是语义隔离）**：既有 `bfsForward`（`NopMetaLineageEdgeBizModel.java:423-443`）起点 `start` 入 `visited` 后，对每条边 `if (visited.add(tgt))` 才入队；自环边 `tgt == start == T`，`visited.add(T)` 恒返回 false → **自环边在 `getDownstream(T)` / `getImpactAnalysis(T, C)` 永远不可达**。这是 BFS 语义的固有约束，也是本裁定**刻意保留的语义隔离**：BFS = 跨表数据流向（inter-table flow），自环边 = 表内 measure 列依赖（intra-table measure dependency），二者语义层次不同。自环边**不进 BFS**、**仅经边直接查询召回**（见 §2.6.2 D2 裁定）。这一隔离使 expression measure 血缘**既不污染既有 BFS 表级下游语义**（用户调 `getDownstream(T)` 不会看到 T 自身）、又可通过直接边查询精确召回（用户调 `NopMetaLineage__findPage(where sourceTableId=T AND sourceColumn=C)` 可看到该 measure 边）。
+  - **用户观测 expression measure 血缘的完整路径**：(1) `NopMetaLineageEdge` GraphQL CRUD `__findPage` 按 `(sourceTableId=T, lineageSource=measure_parse)` 过滤，列出该表所有 expression measure 边；(2) 按 `(sourceTableId=T, sourceColumn=C, lineageSource=measure_parse)` 精确查"列 C 影响哪些 measure"；(3) 边的 `targetColumn` 即 `NopMetaTableMeasure.measureName`，可关联到 measure 实体。BFS 路径（`getDownstream`/`getImpactAnalysis`）**不返回** expression measure 边——这是设计而非限制。
+
+- **D3 — flat-collect vs placeholder 裁定（flat-collect 多边，偏离 §八 建议需显式声明）**：经裁定选 **flat-collect 多边**——expression 内**每个识别列产一条边**，`sourceColumn=识别列名`、`targetColumn=measureName`。**偏离 §八 follow-up 建议**（建议占位符单边 `sourceColumn=unresolved:derived-expression`），偏离理由：
+  - flat-collect 提供**列级精确影响分析**——能回答"AMOUNT 列变更影响哪些 expression measure"。占位符单边只能回答"该 measure 有 derived 表达式"，**无法回答列→measure 影响关系**（占位符 `unresolved:derived-expression` 不携带列名信息）。
+  - `ExpressionMeasureValidator.ValidatedExpression.identifiers`（plan 2026-07-18-1400-1 已落地，`public final Set<String>`，分词后剔除关键字/函数/字面量，仅保留 IDENTIFIER/QUALIFIED_IDENTIFIER token）天然提供 flat-collected 列引用集合——**无需新造分词方法**，零额外解析成本。
+  - 与 §2.6.1 sql_parse 列级 D3 一致：sql_parse 表达式 projection 列也是「一个表达式输出列引用 N 个源列 → 产出 N 条 derived 边」（同 flat-collect 语义），两路血缘模型对齐。
+  - 成本可接受：典型 expression 引用列数 <10，每 measure 产 <10 条边，元数据目录量级。
+  - §八 原建议文本已标注被本裁定覆盖（见 §八）。
+
+- **D4 — 取值裁定（lineageSource 新增 `measure_parse`；transformType=`aggregated`）**：
+  - **lineageSource**：选 **(b) 新增值 `measure_parse`**（拒绝 (a) 复用 `manual`——`manual` 已承载 `recordLineage` 用户手工录入边，复用会使 5 元组幂等键 `(sourceTableId, targetTableId, sourceColumn, targetColumn, lineageSource='manual')` 与用户手工边**碰撞**：用户对同一 (T,T,C,M) 手工录的边与自动抽取的 measure 边互相覆盖，无法区分来源）。`measure_parse` 与 `sql_parse` 并列（同为自动解析来源，但解析对象不同：sql_parse 解析 sourceSql，measure_parse 解析 measure.expression），5 元组幂等键 `(sourceTableId, targetTableId, sourceColumn, targetColumn, lineageSource='measure_parse')` 自然隔离。
+  - **dict + i18n 变更清单（successor 实现 scope）**：dict `meta/lineage-source`（资源文件 `lineage-source.dict.yaml` under `_vfs/dict/meta/`）追加 value `measure_parse` / label `指标表达式解析`（zh-CN）/ `Measure Expression Parse`（en，i18n-en 行）；本 plan design-first 不改 dict 文件。
+  - **transformType**：选 **`aggregated`**。expression 型 Measure 的输出形态恒为 `<agg>(<expression>)`——expression 本身是 derived（列算术/函数组合），外层 `aggFunc`（SUM/COUNT/AVG/MIN/MAX/COUNT_DISTINCT）是聚合。与 §2.6.1 sql_parse D3 transformType 透传裁定「任一聚合 → aggregated（aggregated 优先）」一致：外层聚合使整条边语义为 aggregated。**边界 case**：`NopMetaTableMeasure.aggFunc` 为 null（极端 case，无聚合包裹的纯表达式 measure）→ successor 实现按 `derived` 处理（无聚合包裹）；默认按 `aggregated`（aggFunc 通常存在，是 Measure 的语义本质）。
+
+- **D5 — 列引用提取契约裁定（复用 `ValidatedExpression.identifiers` + `MetaTableFieldResolver` 归属校验 + per-measure try/catch 隔离，契约层描述）**：
+  - **列引用来源**：successor 实现**直接消费** `ExpressionMeasureValidator.validateStatic(...)` 返回的 `ValidatedExpression.identifiers` 字段（plan 2026-07-18-1400-1 已落地，`public final Set<String> identifiers`），**不新造分词方法**。调用时**传 `expectedColumns=null`** 跳过列存在性 fail-fast（measure 血缘提取层只取分词结果，不在此层做 dialect-specific 函数校验——dialect 校验在查询执行层 D12.3 已落地）。
+  - **归属校验（契约层）**：经 `MetaTableFieldResolver` 取该表 `T` 的可用字段集合（按 tableType 分派：entity→`NopMetaEntityField.fieldName`、external→buildSql JSON columnName、sql→SELECT 解析列名），与 `.identifiers` 比对——属于字段集合的识别列 → 产 flat-collect 边（D1+D3）；不属于字段集合的识别列 → 进 unresolved 列表（不伪造映射、不静默丢弃）；JOIN 限定列（`l.`/`r.` 前缀）→ 进 unresolved（标 `reason=join-context-deferred`，JOIN 上下文跨表血缘为 Non-Goal）。
+  - **per-measure try/catch 隔离（契约层强制）**：`MetaTableFieldResolver` 在 `baseEntityId` null（entity 表未设主实体）/ buildSql JSON 损坏（external）/ sourceSql 不可解析（sql）时抛 ErrorCode——successor 实现须以 **per-measure try/catch** 隔离：单 measure 失败进 errors 列表（标 `measureName` + 错误信息），**不中断整批**（对齐 `extractColumnLineageFromSql` / `collectCatalog` / `executeQualityRulesForDataSource` 的 per-item 失败隔离先例）。已成功的 measure 边落盘保留（flushSession），失败 measure 的边不落盘。
+  - **本 D5 为契约层描述**：不写 Java 方法签名/类名/字段定义（Rule #14）。具体 `extractMeasureLineage` action 的方法签名、参数列表、返回结构由 successor 实现 plan 在源码中落地，本节只锁定调用契约（`validateStatic(expectedColumns=null)` + 读 `.identifiers` + resolver 归属 + per-measure try/catch）。
+
+**successor 实现 scope（Deferred But Adjudicated，`Successor Required: yes`）**：依本节 D1-D5 裁定，在 `NopMetaLineageEdgeBizModel` 实现 `extractMeasureLineage(metaTableId)` action——加载表的所有 `NopMetaTableMeasure` → 对每个 `expression != null` 的 measure 经 D5 契约提取列引用 → flat-collect 产自环边（D1+D3+D4）→ per-measure try/catch 失败隔离 → 返回 `{extractedEdgeCount, unresolved, errors}`（对齐 `extractColumnLineageFromSql` 返回结构）。端到端测试覆盖：成功路径（列→measure 边落盘）+ 召回路径（直接边查询命中）+ per-measure 失败隔离 + BFS 非污染（`getDownstream(T)` 不返回 T 自身）+ dict `measure_parse` 值生效。
+
 #### 2.6.2 图遍历语义（P2-5 裁定）
 
 遍历基于 MetaLineageEdge 边的有向图，边方向 `source → target`（数据从 source 流向 target）：
@@ -503,6 +536,19 @@ MetaPipeline                     — 数据处理管道
 - **getLineagePath(sourceTableId, targetTableId)**：返回 S→T **单条最短路径**（BFS 最短路径 + visited 环检测防死循环）。返回全部简单路径为 Non-Goal（循环图中成本/复杂度过高）。无路径返回显式空（不报错）。
 - **getImpactAnalysis(metaTableId, columnName?)**：变更影响 = 该表下游；若提供 columnName 且存在列级边（sourceColumn/targetColumn）则按列过滤，否则回退表级（该表所有下游表）。
 - **BFS 查询策略**：一次性 `findAllByQuery` 全量 MetaLineageEdge 在内存建图遍历（元数据目录量级、边数小），避免 per-hop 查询过度设计。
+
+**expression 型 Measure 列级血缘召回路径（design-first 裁定，plan 2026-07-18-1500-1，D2）**：
+
+> 收口 §八 follow-up「用户如何查询某列变更影响哪些 expression measure」。本节为 **design-first**：交付召回路径裁定，**不产出实现代码**。
+
+经基于 D1 edge model（自环边）的候选评估，召回路径裁定如下。
+
+- **D2 — 召回路径裁定（仅经 `MetaLineageEdge` 直接查询，不进 BFS）**：选 **(c) 仅经 `MetaLineageEdge` 直接查询**（`__findPage` / `findListByQuery` 按 `sourceTableId=T AND sourceColumn=C AND lineageSource=measure_parse`）。
+  - **(a) 扩展 `getImpactAnalysis` 返回结构（`List<String>` → `List<Map<String,Object>>` 含 targetColumn/measureName）—— 拒绝**。public contract 变更：既有 `getImpactAnalysis` 返回 `List<String>`（元素为 targetTableId，已落地且被测试断言），改为 `List<Map>` 破坏既有 GraphQL schema 契约，所有既有调用方须迁移。无迁移必要——measure 召回是独立结果面。
+  - **(b) 新增 measure-level API（`getMeasureImpact(metaTableId, columnName?)`）—— 拒绝（首版）**。虽不破坏既有 contract，但首版无独立召回语法需求——直接边查询已满足「列变更影响哪些 measure」的召回（targetColumn 即 measureName）。新增 API 引入召回路径分叉（table-level vs measure-level），增加表面积与维护成本。**successor 评估项**：若用户反馈直接边查询人机工程不足（如需 measure 元数据伴随返回 displayName/aggFunc/expression），successor plan 可考虑新增 `getMeasureImpact` API 作为「直接边查询 + measure 关联加载」的语法糖；本裁定不预先新增。
+  - **(c) 仅经 `MetaLineageEdge` 直接查询 —— 选定**。最小侵入：无 public contract 变更、无新 API、无 BFS 扩展。`NopMetaLineageEdge` CRUD 已自动 GraphQL 暴露（`__findPage` / `__findList`），用户调 `where sourceTableId == T AND sourceColumn == C AND lineageSource == measure_parse` 即可拿到所有命中边的 `targetColumn`（= measureName）。BFS 路径（`getDownstream` / `getImpactAnalysis`）**不返回** expression measure 自环边——这是 D1 设计的语义隔离，非召回缺失。
+  - **召回完整性**：用户问题「列 C 变更影响哪些 expression measure on table T」的完整答案 = `NopMetaLineageEdge.__findPage(where sourceTableId=T AND sourceColumn=C AND lineageSource=measure_parse).targetColumn` 集合。每条边的 `transformType=aggregated`（D4）、`targetColumn=measureName`、`transformExpr` 可选填 expression 原文（successor 实现决定是否填）。
+  - **召回语义边界声明**：本召回只覆盖 expression 型 Measure 的**表内列→measure** 影响关系。跨表 measure（JOIN 上下文 `l.`/`r.` 限定列）为 Non-Goal；field-based Measure（非 expression 型，`entityFieldId != null`）的聚合血缘为 Non-Goal（field-based measure 的列对应关系已明确，血缘价值低于 expression 型）。
 
 ### 2.7 数据质量
 
@@ -1326,3 +1372,6 @@ nop-metadata-web           — nop-metadata-service
 - 通用 Domain 的来源：是单独维护还是从现有 ORM 模型提取？ **现状声明（2026-07-17）**：MetaDomain 为元数据层映射，导入时从 `IOrmModel` 的 domain 定义填充（已可用）；从 ORM `IOrmModel` 自动同步提取通用 Domain 为 non-blocking follow-up（当前 result face 不依赖该裁定，因 MetaDomain 导入时填充已覆盖现有用例）。
 - ~~数据契约的 SLA 定义格式：JSON Schema vs 自定义 DSL？~~ **已裁定（P4-4，2026-07-16）**：`schema` 列存 JSON Schema 文档（mediumtext + stdDomain json，首版仅存储不执行逐行校验），`sla` 列存结构化 JSON（json-4000 + stdDomain json，约定键 refreshFrequency/maxLatency/retention）。拒绝自定义 DSL（详见 `04-data-governance.md` §2.3 D1 裁定 + §5.2 D2 检查语义）。
 - **expression 型 Measure 是否引入跨设计域待定问题（D12 评估，2026-07-18）**：经 §4.4.2 D12 评估，**新增 1 项 follow-up**——expression 型 Measure 的聚合输出不直接对应单一源列（`<agg>(<expression>)` 是 derived 表达式），其列级血缘（§2.6.1 sql_parse）处理为 follow-up（建议标记 `transformType=derived`、`sourceColumn=unresolved:derived-expression`，不伪造单一源列映射），不阻塞 D12 裁定；其他设计域无新增待定问题：(1) 数据契约（§4-4）不感知 expression 值（运行时计算）；(2) Catalog/质量执行（§4.4.3）不直接相关；(3) 不引入新 ORM 结构变更（`expression` 列已存在，`nop-metadata.orm.xml:1160`）。
+  - ~~建议标记 `transformType=derived`、`sourceColumn=unresolved:derived-expression`，不伪造单一源列映射~~ **已裁定（design-first，plan 2026-07-18-1500-1，2026-07-18）**：覆盖原建议。裁定为 **flat-collect 多边**（每识别列一条边，`sourceColumn=识别列名`、`targetColumn=measureName`、`transformType=aggregated`、`lineageSource=measure_parse`）——flat-collect 提供列级精确影响分析，占位符单边无法回答"AMOUNT 变更影响哪些 measure"。完整裁定见 §2.6.1（D1 edge model + D3 flat-collect + D4 取值 + D5 列引用提取契约）+ §2.6.2（D2 召回路径）。
+    - **design-first 部分：done**（plan 2026-07-18-1500-1，本节裁定 + §2.6.1/§2.6.2 写入）。
+    - **实现部分：planned**（successor plan，依 D1-D5 裁定实现 `extractMeasureLineage` action + 边产出 + 召回 + 测试；登记于本 plan `Deferred But Adjudicated`，`Successor Required: yes`）。
