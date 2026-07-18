@@ -7,6 +7,7 @@ import io.nop.api.core.annotations.core.Name;
 import io.nop.api.core.annotations.core.Optional;
 import io.nop.api.core.beans.FilterBeans;
 import io.nop.api.core.beans.TreeBean;
+import io.nop.api.core.beans.query.OrderFieldBean;
 import io.nop.api.core.beans.query.QueryBean;
 import io.nop.api.core.exceptions.ErrorCode;
 import io.nop.api.core.exceptions.NopException;
@@ -568,25 +569,29 @@ public class NopMetaTableBizModel extends CrudBizModel<NopMetaTable> implements 
      * @param joinId         可选 NopMetaTableJoin 主键（null/空 → 单表聚合）
      * @param limit          可选分页上限
      * @param offset         可选分页偏移
+     * @param having         可选 having（TreeBean，聚合后过滤；plan 2026-07-18-0900-2）
+     * @param orderBy        可选 orderBy（List<OrderFieldBean>，按 measure/dimension 排序；plan 2026-07-18-0900-2）
      * @param context        服务上下文
      * @return {@code {items:[{维度值, 指标聚合值}]}}
      */
     @BizQuery
     public Map<String, Object> queryAggregation(@Name("metaTableId") String metaTableId,
-                                                  @Name("measures") List<String> measures,
-                                                  @Name("dimensions") List<String> dimensions,
-                                                  @Optional @Name("filter") TreeBean filter,
-                                                  @Optional @Name("joinId") String joinId,
-                                                  @Optional @Name("limit") Long limit,
-                                                  @Optional @Name("offset") Long offset,
-                                                  IServiceContext context) {
+                                                   @Name("measures") List<String> measures,
+                                                   @Name("dimensions") List<String> dimensions,
+                                                   @Optional @Name("filter") TreeBean filter,
+                                                   @Optional @Name("joinId") String joinId,
+                                                   @Optional @Name("limit") Long limit,
+                                                   @Optional @Name("offset") Long offset,
+                                                   @Optional @Name("having") TreeBean having,
+                                                   @Optional @Name("orderBy") List<OrderFieldBean> orderBy,
+                                                   IServiceContext context) {
         IEntityDao<NopMetaTable> tableDao = dao();
         NopMetaTable table = tableDao.getEntityById(metaTableId);
         if (table == null) {
             throw new NopException(ERR_QUERY_TABLE_NOT_FOUND).param("metaTableId", metaTableId);
         }
         return aggregationExecutor.executeAggregation(table, measures, dimensions, filter, joinId, limit, offset,
-                buildQueryContext());
+                having, orderBy, buildQueryContext());
     }
 
     /** 构造 JOIN/聚合执行器共享的依赖上下文（取本 BizModel 已注入的组件）。 */

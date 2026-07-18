@@ -7,6 +7,7 @@ import io.nop.api.core.exceptions.NopException;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.function.Function;
 import java.util.regex.Pattern;
 
 /**
@@ -46,6 +47,14 @@ public class FilterToSqlTranslator {
     static final ErrorCode ERR_FILTER_BETWEEN_MISSING_BOUNDS =
             ErrorCode.define("metadata.query-filter-between-missing-bounds",
                     "Filter 'between' requires min and/or max attrs: name={name}", "name");
+    /**
+     * fieldResolver 命中失败（plan 2026-07-18-0900-2：having 引用未选定的 measure/dimension name）→ 显式失败。
+     * 调用方应优先在反查表构建阶段用更具体的 {@code ERR_AGGR_HAVING_UNKNOWN_NAME} 失败；本 ErrorCode 为防御性兜底。
+     */
+    static final ErrorCode ERR_FILTER_FIELD_RESOLVER_MISS =
+            ErrorCode.define("metadata.query-filter-field-resolver-miss",
+                    "Filter field resolver returned no SQL expression for name (likely unknown measure/dimension "
+                            + "in having/orderBy): {op} name={name}", "op", "name");
 
     /** 翻译结果：{@code sql} 为 WHERE 片段（不含 "WHERE" 关键字，无 filter 时为 null），{@code params} 为绑定参数。 */
     public static final class TranslatedFilter {
@@ -75,26 +84,44 @@ public class FilterToSqlTranslator {
      * @return 翻译结果（{@code sql} 为 null 表示无 WHERE）
      */
     public TranslatedFilter translate(TreeBean filter) {
+        return translate(filter, null);
+    }
+
+    /**
+     * 翻译 filter 树为 WHERE/HAVING 片段 + 参数（plan 2026-07-18-0900-2：having 聚合后过滤支持）。
+     *
+     * <p>当 {@code fieldResolver} 非空时，叶子条件的 {@code name} 经回调解析为 SQL 表达式（如 {@code SUM(AMOUNT)}），
+     * **跳过 {@link #validateIdentifier}**（因聚合表达式含括号会触发白名单失败）；该表达式中的列名已在 measure/dimension
+     * 加载时经白名单校验。{@code fieldResolver} 为空时维持既有 {@code requireField + validateIdentifier} 行为。
+     *
+     * <p>递归 and/or/not 逻辑完全复用既有 {@code joinChildren}/{@code translateNot}。既有 {@link #translate(TreeBean)}
+     * 行为不变（委托 {@code translate(filter, null)}）。
+     *
+     * @param filter        TreeBean filter 树；null/无子节点返回空翻译
+     * @param fieldResolver 叶子条件 name → SQL 表达式的回调（非空时跳过标识符白名单）；可空
+     * @return 翻译结果（{@code sql} 为 null 表示无 WHERE/HAVING）
+     */
+    public TranslatedFilter translate(TreeBean filter, Function<String, String> fieldResolver) {
         if (filter == null) {
             return new TranslatedFilter(null, new ArrayList<>());
         }
         List<Object> params = new ArrayList<>();
-        String sql = translateNode(filter, params);
+        String sql = translateNode(filter, params, fieldResolver);
         return new TranslatedFilter(sql, params);
     }
 
-    private String translateNode(TreeBean node, List<Object> params) {
+    private String translateNode(TreeBean node, List<Object> params, Function<String, String> fieldResolver) {
         String op = node.getTagName();
         if (op == null) {
             throw new NopException(ERR_FILTER_UNSUPPORTED_OP).param("op", String.valueOf(op));
         }
         switch (op) {
             case FilterBeanConstants.FILTER_OP_AND:
-                return joinChildren(node, " AND ", params, true);
+                return joinChildren(node, " AND ", params, fieldResolver, true);
             case FilterBeanConstants.FILTER_OP_OR:
-                return joinChildren(node, " OR ", params, true);
+                return joinChildren(node, " OR ", params, fieldResolver, true);
             case FilterBeanConstants.FILTER_OP_NOT:
-                return translateNot(node, params);
+                return translateNot(node, params, fieldResolver);
             case FilterBeanConstants.FILTER_OP_EQ:
             case FilterBeanConstants.FILTER_OP_NE:
             case FilterBeanConstants.FILTER_OP_GT:
@@ -102,17 +129,17 @@ public class FilterToSqlTranslator {
             case FilterBeanConstants.FILTER_OP_LT:
             case FilterBeanConstants.FILTER_OP_LE:
             case FilterBeanConstants.FILTER_OP_LIKE:
-                return translateComparison(op, node, params);
+                return translateComparison(op, node, params, fieldResolver);
             case FilterBeanConstants.FILTER_OP_IN:
-                return translateIn(node, params, false);
+                return translateIn(node, params, fieldResolver, false);
             case FilterBeanConstants.FILTER_OP_NOT_IN:
-                return translateIn(node, params, true);
+                return translateIn(node, params, fieldResolver, true);
             case FilterBeanConstants.FILTER_OP_BETWEEN:
-                return translateBetween(node, params);
+                return translateBetween(node, params, fieldResolver);
             case FilterBeanConstants.FILTER_OP_IS_NULL:
-                return translateNullCheck(node, "IS NULL");
+                return translateNullCheck(node, fieldResolver, "IS NULL");
             case FilterBeanConstants.FILTER_OP_NOT_NULL:
-                return translateNullCheck(node, "IS NOT NULL");
+                return translateNullCheck(node, fieldResolver, "IS NOT NULL");
             case FilterBeanConstants.FILTER_OP_ALWAYS_TRUE:
                 return "1=1";
             case FilterBeanConstants.FILTER_OP_ALWAYS_FALSE:
@@ -123,7 +150,8 @@ public class FilterToSqlTranslator {
         }
     }
 
-    private String joinChildren(TreeBean node, String sep, List<Object> params, boolean wrapIfMulti) {
+    private String joinChildren(TreeBean node, String sep, List<Object> params,
+                                 Function<String, String> fieldResolver, boolean wrapIfMulti) {
         List<TreeBean> children = node.getChildren();
         if (children == null || children.isEmpty()) {
             // and/or 无子节点 → 视为无过滤（返回恒真，避免拼出空括号）；调用方拼 WHERE 时会忽略 null/空
@@ -131,7 +159,7 @@ public class FilterToSqlTranslator {
         }
         List<String> parts = new ArrayList<>(children.size());
         for (TreeBean child : children) {
-            String part = translateNode(child, params);
+            String part = translateNode(child, params, fieldResolver);
             if (part != null) {
                 parts.add(part);
             }
@@ -146,21 +174,22 @@ public class FilterToSqlTranslator {
         return wrapIfMulti ? "(" + joined + ")" : joined;
     }
 
-    private String translateNot(TreeBean node, List<Object> params) {
+    private String translateNot(TreeBean node, List<Object> params, Function<String, String> fieldResolver) {
         List<TreeBean> children = node.getChildren();
         if (children == null || children.isEmpty()) {
             return null;
         }
         // not 仅取第一个子条件（标准语义）
-        String inner = translateNode(children.get(0), params);
+        String inner = translateNode(children.get(0), params, fieldResolver);
         if (inner == null) {
             return null;
         }
         return "NOT (" + inner + ")";
     }
 
-    private String translateComparison(String op, TreeBean node, List<Object> params) {
-        String col = requireField(node);
+    private String translateComparison(String op, TreeBean node, List<Object> params,
+                                        Function<String, String> fieldResolver) {
+        String col = requireField(node, fieldResolver);
         String sqlOp = sqlOpOf(op);
         Object value = node.getAttr(FilterBeanConstants.FILTER_ATTR_VALUE);
         if (value == null && !hasAttr(node, FilterBeanConstants.FILTER_ATTR_VALUE)) {
@@ -171,8 +200,9 @@ public class FilterToSqlTranslator {
         return col + " " + sqlOp + " ?";
     }
 
-    private String translateIn(TreeBean node, List<Object> params, boolean negated) {
-        String col = requireField(node);
+    private String translateIn(TreeBean node, List<Object> params, Function<String, String> fieldResolver,
+                                boolean negated) {
+        String col = requireField(node, fieldResolver);
         Object value = node.getAttr(FilterBeanConstants.FILTER_ATTR_VALUE);
         if (value == null && !hasAttr(node, FilterBeanConstants.FILTER_ATTR_VALUE)) {
             throw new NopException(ERR_FILTER_MISSING_VALUE)
@@ -206,8 +236,8 @@ public class FilterToSqlTranslator {
         return sb.toString();
     }
 
-    private String translateBetween(TreeBean node, List<Object> params) {
-        String col = requireField(node);
+    private String translateBetween(TreeBean node, List<Object> params, Function<String, String> fieldResolver) {
+        String col = requireField(node, fieldResolver);
         Object min = node.getAttr(FilterBeanConstants.FILTER_ATTR_MIN);
         Object max = node.getAttr(FilterBeanConstants.FILTER_ATTR_MAX);
         if (min == null && max == null) {
@@ -228,19 +258,33 @@ public class FilterToSqlTranslator {
         return sb.toString();
     }
 
-    private String translateNullCheck(TreeBean node, String sqlSuffix) {
-        String col = requireField(node);
+    private String translateNullCheck(TreeBean node, Function<String, String> fieldResolver, String sqlSuffix) {
+        String col = requireField(node, fieldResolver);
         return col + " " + sqlSuffix;
     }
 
-    private String requireField(TreeBean node) {
+    /**
+     * 解析叶子条件的字段名：若提供 {@code fieldResolver}，经回调解析为 SQL 表达式（跳过白名单，因聚合表达式含括号）；
+     * 否则按既有 {@code validateIdentifier} 白名单校验裸列名。
+     */
+    private String requireField(TreeBean node, Function<String, String> fieldResolver) {
         Object nameObj = node.getAttr(FilterBeanConstants.FILTER_ATTR_NAME);
         if (nameObj == null || nameObj.toString().isEmpty()) {
             throw new NopException(ERR_FILTER_MISSING_FIELD).param("op", String.valueOf(node.getTagName()));
         }
-        String col = nameObj.toString();
-        validateIdentifier(col);
-        return col;
+        String name = nameObj.toString();
+        if (fieldResolver != null) {
+            String resolved = fieldResolver.apply(name);
+            if (resolved == null || resolved.isEmpty()) {
+                // fieldResolver 命中失败（未选定 measure/dimension name）→ 显式失败（不静默跳过、不伪造）
+                throw new NopException(ERR_FILTER_FIELD_RESOLVER_MISS)
+                        .param("op", String.valueOf(node.getTagName()))
+                        .param("name", name);
+            }
+            return resolved;
+        }
+        validateIdentifier(name);
+        return name;
     }
 
     private static boolean hasAttr(TreeBean node, String attrName) {

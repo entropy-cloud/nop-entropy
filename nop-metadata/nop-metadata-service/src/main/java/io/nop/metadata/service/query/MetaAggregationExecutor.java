@@ -2,6 +2,7 @@ package io.nop.metadata.service.query;
 
 import io.nop.api.core.beans.FilterBeans;
 import io.nop.api.core.beans.TreeBean;
+import io.nop.api.core.beans.query.OrderFieldBean;
 import io.nop.api.core.beans.query.QueryBean;
 import io.nop.api.core.exceptions.ErrorCode;
 import io.nop.api.core.exceptions.NopException;
@@ -230,6 +231,26 @@ public class MetaAggregationExecutor {
                             + "rowKeys={rowKeys} joinId={joinId}",
                     "metaTableId", "name", "fieldKind", "rawKey", "lookupKey", "rowKeys", "joinId");
 
+    // ===== having/orderBy 增强专属 ErrorCode（plan 2026-07-18-0900-2：聚合后过滤 + 排序）=====
+
+    /** having 引用未选定的 measure/dimension name → 显式失败（不静默跳过该条件）。 */
+    static final ErrorCode ERR_AGGR_HAVING_UNKNOWN_NAME =
+            ErrorCode.define("metadata.aggr-having-unknown-name",
+                    "having references a measure/dimension name not in the user-selected measures/dimensions set: "
+                            + "{metaTableId} name={name} selectedMeasures={selectedMeasures} selectedDimensions={selectedDimensions}",
+                    "metaTableId", "name", "selectedMeasures", "selectedDimensions");
+    /** orderBy 引用未选定的 measure/dimension name → 显式失败（不静默跳过该排序字段）。 */
+    static final ErrorCode ERR_AGGR_ORDER_BY_UNKNOWN_NAME =
+            ErrorCode.define("metadata.aggr-order-by-unknown-name",
+                    "orderBy references a measure/dimension name not in the user-selected measures/dimensions set: "
+                            + "{metaTableId} name={name} selectedMeasures={selectedMeasures} selectedDimensions={selectedDimensions}",
+                    "metaTableId", "name", "selectedMeasures", "selectedDimensions");
+    /** 内存路径 having 求值器收到不支持的 op → 显式失败。 */
+    static final ErrorCode ERR_AGGR_HAVING_UNSUPPORTED_OP =
+            ErrorCode.define("metadata.aggr-having-unsupported-op",
+                    "MemoryFilterEvaluator: having op not supported in first version: {op} name={name}",
+                    "op", "name");
+
     /**
      * 执行聚合查询。
      *
@@ -248,12 +269,15 @@ public class MetaAggregationExecutor {
      * @param joinId          可选 NopMetaTableJoin 主键（null/空 → 单表聚合）
      * @param limit           分页上限（可为 null）
      * @param offset          分页偏移（可为 null）
+     * @param having          可选 having（TreeBean，聚合后过滤，name 引用选定 measure/dimension；plan 2026-07-18-0900-2）
+     * @param orderBy         可选 orderBy（List<OrderFieldBean>，按 measure/dimension 排序；plan 2026-07-18-0900-2）
      * @param ctx             共享依赖上下文
      * @return {@code Map{items:[{维度值, 指标聚合值}]}}
      */
     public Map<String, Object> executeAggregation(NopMetaTable table, List<String> measureNames,
-                                                  List<String> dimensionNames, TreeBean userFilter, String joinId,
-                                                  Long limit, Long offset, MetaQueryContext ctx) {
+                                                   List<String> dimensionNames, TreeBean userFilter, String joinId,
+                                                   Long limit, Long offset, TreeBean having,
+                                                   List<OrderFieldBean> orderBy, MetaQueryContext ctx) {
         if (measureNames == null || measureNames.isEmpty()) {
             throw new NopException(ERR_AGGR_NO_MEASURE).param("metaTableId", table.getMetaTableId());
         }
@@ -267,18 +291,18 @@ public class MetaAggregationExecutor {
         // JOIN 聚合路径（plan 0852-1）：joinId 非空时走 entity↔entity JOIN 聚合，不复用单表分支
         if (joinId != null && !joinId.isEmpty()) {
             return buildResult(executeJoinAggregation(table, measureNames, dimensionNames,
-                    mergedFilter, joinId, limit, offset, ctx));
+                    mergedFilter, joinId, limit, offset, having, orderBy, ctx));
         }
 
         String tableType = table.getTableType();
         if (_NopMetadataCoreConstants.TABLE_TYPE_ENTITY.equals(tableType)) {
             return buildResult(executeEntityAggregation(table, measureNames, dimensionNames,
-                    mergedFilter, limit, offset, ctx));
+                    mergedFilter, limit, offset, having, orderBy, ctx));
         }
         if (_NopMetadataCoreConstants.TABLE_TYPE_EXTERNAL.equals(tableType)
                 || _NopMetadataCoreConstants.TABLE_TYPE_SQL.equals(tableType)) {
             return buildResult(executeExternalAggregation(table, measureNames, dimensionNames,
-                    mergedFilter, limit, offset, ctx));
+                    mergedFilter, limit, offset, having, orderBy, ctx));
         }
         throw new NopException(ERR_AGGR_EXEC_FAILED)
                 .param("metaTableId", table.getMetaTableId())
@@ -288,8 +312,9 @@ public class MetaAggregationExecutor {
     // ============================ entity 聚合（D6：orm().executeQuery）============================
 
     private List<Map<String, Object>> executeEntityAggregation(NopMetaTable table, List<String> measureNames,
-                                                               List<String> dimensionNames, TreeBean filter,
-                                                               Long limit, Long offset, MetaQueryContext ctx) {
+                                                                List<String> dimensionNames, TreeBean filter,
+                                                                Long limit, Long offset, TreeBean having,
+                                                                List<OrderFieldBean> orderBy, MetaQueryContext ctx) {
         IEntityDao<NopMetaEntity> entityDao = ctx.daoProvider().daoFor(NopMetaEntity.class);
         NopMetaEntity entity = entityDao.getEntityById(table.getBaseEntityId());
         if (entity == null || entity.getEntityName() == null || entity.getEntityName().isEmpty()
@@ -306,6 +331,9 @@ public class MetaAggregationExecutor {
 
         List<MeasureSpec> measures = loadEntityMeasures(table, measureNames, ctx, propToCol);
         List<DimensionSpec> dims = loadEntityDimensions(table, dimensionNames, ctx, propToCol);
+
+        // name→SQL 表达式反查表（plan 2026-07-18-0900-2：having/orderBy name 解析）
+        Map<String, String> nameToExpr = buildNameToExprTable(measures, dims, measureNames, dimensionNames, table);
 
         // 构造聚合 SQL（物理表 + 物理列）
         StringBuilder sql = new StringBuilder("SELECT ");
@@ -336,6 +364,20 @@ public class MetaAggregationExecutor {
             }
         }
         sql.append(" GROUP BY ").append(String.join(",", groupExprs));
+        // plan 2026-07-18-0900-2：HAVING 子句（having 的 name 经反查表解析为 aggSql/groupExpr，跳过白名单）
+        if (having != null) {
+            FilterToSqlTranslator.TranslatedFilter hf = ctx.filterTranslator().translate(having,
+                    nameResolverFor(nameToExpr, table, measureNames, dimensionNames));
+            if (hf.getSql() != null && !hf.getSql().isEmpty()) {
+                sql.append(" HAVING ").append(hf.getSql());
+                params.addAll(hf.getParams());
+            }
+        }
+        // plan 2026-07-18-0900-2：ORDER BY 子句（name 解析为 aggSql/groupExpr + ASC/DESC + NULLS FIRST/LAST）
+        String orderByClause = buildOrderByClause(orderBy, nameToExpr, table, measureNames, dimensionNames);
+        if (!orderByClause.isEmpty()) {
+            sql.append(" ORDER BY ").append(orderByClause);
+        }
         if (limit != null) {
             sql.append(" LIMIT ?");
             params.add(limit);
@@ -370,9 +412,10 @@ public class MetaAggregationExecutor {
      * （→ {@link #ERR_AGGR_EXPRESSION_MEASURE}）；EQL 编译失败（保留字物理列名 → {@link #ERR_AGGR_JOIN_COMPILE_FAILED}）。
      */
     private List<Map<String, Object>> executeJoinAggregation(NopMetaTable table, List<String> measureNames,
-                                                               List<String> dimensionNames, TreeBean filter,
-                                                               String joinId, Long limit, Long offset,
-                                                               MetaQueryContext ctx) {
+                                                                List<String> dimensionNames, TreeBean filter,
+                                                                String joinId, Long limit, Long offset,
+                                                                TreeBean having, List<OrderFieldBean> orderBy,
+                                                                MetaQueryContext ctx) {
         // 1. 复用 MetaJoinExecutor 的 join 加载/归属/joinType 校验（显式选定「抽取共享」，见 plan Decision）
         NopMetaTableJoin join = joinExecutor.loadValidatedJoin(table, joinId, ctx);
 
@@ -389,10 +432,10 @@ public class MetaAggregationExecutor {
             String rightQs = rightEp.entity.getQuerySpace();
             if (!equalsStr(leftQs, rightQs)) {
                 return executeCrossDbJoinAggregation(table, measureNames, dimensionNames, filter, join, joinId,
-                        leftEp, rightEp, limit, offset, ctx);
+                        leftEp, rightEp, limit, offset, having, orderBy, ctx);
             }
             return executeEntityEntityJoinAggregation(table, measureNames, dimensionNames, filter, join, joinId,
-                    leftEp, rightEp, limit, offset, ctx);
+                    leftEp, rightEp, limit, offset, having, orderBy, ctx);
         }
         if (!leftEp.isEntity() && !rightEp.isEntity()) {
             // external↔external：跨 querySpace → D10 内存 GROUP BY（plan 1500-2）；同 querySpace → plan 1200-1
@@ -400,15 +443,15 @@ public class MetaAggregationExecutor {
             String rightQs = rightEp.table.getQuerySpace();
             if (!equalsStr(leftQs, rightQs)) {
                 return executeCrossDbJoinAggregation(table, measureNames, dimensionNames, filter, join, joinId,
-                        leftEp, rightEp, limit, offset, ctx);
+                        leftEp, rightEp, limit, offset, having, orderBy, ctx);
             }
             return executeExternalExternalJoinAggregation(table, measureNames, dimensionNames, filter, join, joinId,
-                    leftEp, rightEp, limit, offset, ctx);
+                    leftEp, rightEp, limit, offset, having, orderBy, ctx);
         }
         // 混合端点（entity ↔ external/sql）→ plan 1500-1 D1.5：同库（连接可达性实测通过）→ 原生 GROUP BY over JOIN；
         // 不可同库 → D10 内存 GROUP BY（plan 1500-2，复用 executeJoin + 内存聚合，精确-当-容纳/超限-失败）
         return executeMixedSameDbJoinAggregation(table, measureNames, dimensionNames, filter, join, joinId,
-                leftEp, rightEp, limit, offset, ctx);
+                leftEp, rightEp, limit, offset, having, orderBy, ctx);
     }
 
     /**
@@ -418,11 +461,13 @@ public class MetaAggregationExecutor {
      * 若 Measure/Dimension 提供 side，须与 metaEntityId 判定的端点一致，不一致显式失败。
      */
     private List<Map<String, Object>> executeEntityEntityJoinAggregation(NopMetaTable table, List<String> measureNames,
-                                                                          List<String> dimensionNames, TreeBean filter,
-                                                                          NopMetaTableJoin join, String joinId,
-                                                                          MetaJoinExecutor.Endpoint leftEp,
-                                                                          MetaJoinExecutor.Endpoint rightEp,
-                                                                          Long limit, Long offset, MetaQueryContext ctx) {
+                                                                           List<String> dimensionNames, TreeBean filter,
+                                                                           NopMetaTableJoin join, String joinId,
+                                                                           MetaJoinExecutor.Endpoint leftEp,
+                                                                           MetaJoinExecutor.Endpoint rightEp,
+                                                                           Long limit, Long offset,
+                                                                           TreeBean having, List<OrderFieldBean> orderBy,
+                                                                           MetaQueryContext ctx) {
         NopMetaEntity leftEntity = leftEp.entity;
         NopMetaEntity rightEntity = rightEp.entity;
 
@@ -461,6 +506,9 @@ public class MetaAggregationExecutor {
         List<JoinMeasureSpec> measures = loadJoinMeasures(table, measureNames, ctx, resolver);
         List<JoinDimensionSpec> dims = loadJoinDimensions(table, dimensionNames, ctx, resolver);
 
+        // name→SQL 表达式反查表（plan 2026-07-18-0900-2：having/orderBy name 解析，JOIN 路径用 qualifiedAggCol/qualifiedCol）
+        Map<String, String> nameToExpr = buildJoinNameToExprTable(measures, dims, measureNames, dimensionNames, table);
+
         // 构造 JOIN 聚合 SQL：SELECT <group l./r. cols>, <agg(l./r. col)> FROM <l> JOIN <r> ON ... [WHERE] GROUP BY ...
         // 注：裸物理列已在 loadJoinMeasures/loadJoinDimensions 中经白名单校验（防注入）；
         // 此处 qualifiedCol 形如 "l.DISPLAY_NAME"（含别名前缀），不再整体校验（含点号）。
@@ -495,6 +543,20 @@ public class MetaAggregationExecutor {
             }
         }
         sql.append(" GROUP BY ").append(String.join(",", groupExprs));
+        // plan 2026-07-18-0900-2：HAVING 子句
+        if (having != null) {
+            FilterToSqlTranslator.TranslatedFilter hf = ctx.filterTranslator().translate(having,
+                    nameResolverFor(nameToExpr, table, measureNames, dimensionNames));
+            if (hf.getSql() != null && !hf.getSql().isEmpty()) {
+                sql.append(" HAVING ").append(hf.getSql());
+                params.addAll(hf.getParams());
+            }
+        }
+        // plan 2026-07-18-0900-2：ORDER BY 子句
+        String orderByClause = buildOrderByClause(orderBy, nameToExpr, table, measureNames, dimensionNames);
+        if (!orderByClause.isEmpty()) {
+            sql.append(" ORDER BY ").append(orderByClause);
+        }
         if (limit != null) {
             sql.append(" LIMIT ?");
             params.add(limit);
@@ -535,14 +597,16 @@ public class MetaAggregationExecutor {
      * self-join（双侧别名机制不足）/ 跨库 / right / 保留字列均抛 ErrorCode。
      */
     private List<Map<String, Object>> executeExternalExternalJoinAggregation(NopMetaTable table,
-                                                                              List<String> measureNames,
-                                                                              List<String> dimensionNames,
-                                                                              TreeBean filter, NopMetaTableJoin join,
-                                                                              String joinId,
-                                                                              MetaJoinExecutor.Endpoint leftEp,
-                                                                              MetaJoinExecutor.Endpoint rightEp,
-                                                                              Long limit, Long offset,
-                                                                              MetaQueryContext ctx) {
+                                                                               List<String> measureNames,
+                                                                               List<String> dimensionNames,
+                                                                               TreeBean filter, NopMetaTableJoin join,
+                                                                               String joinId,
+                                                                               MetaJoinExecutor.Endpoint leftEp,
+                                                                               MetaJoinExecutor.Endpoint rightEp,
+                                                                               Long limit, Long offset,
+                                                                               TreeBean having,
+                                                                               List<OrderFieldBean> orderBy,
+                                                                               MetaQueryContext ctx) {
         NopMetaTable leftTable = leftEp.table;
         NopMetaTable rightTable = rightEp.table;
 
@@ -570,12 +634,20 @@ public class MetaAggregationExecutor {
         List<JoinMeasureSpec> measures = loadExternalJoinMeasures(table, measureNames, ctx, sideResolver);
         List<JoinDimensionSpec> dims = loadExternalJoinDimensions(table, dimensionNames, ctx, sideResolver);
 
+        // name→SQL 表达式反查表（plan 2026-07-18-0900-2：having/orderBy name 解析）
+        Map<String, String> nameToExpr = buildJoinNameToExprTable(measures, dims, measureNames, dimensionNames, table);
+
         // FROM 子句按 tableType 构造（external→<tableName> l；sql→(<sourceSql>) l）
         String leftFrom = externalTableFromForJoin(leftTable, "l");
         String rightFrom = externalTableFromForJoin(rightTable, "r");
 
-        // filter 预翻译（与方言无关，提前计算参数顺序与主 SQL 一致）
+        // filter/having 预翻译（与方言无关，提前计算参数顺序与主 SQL 一致）
         FilterToSqlTranslator.TranslatedFilter filterTf = filter == null ? null : ctx.filterTranslator().translate(filter);
+        FilterToSqlTranslator.TranslatedFilter havingTf = having == null ? null
+                : ctx.filterTranslator().translate(having,
+                        nameResolverFor(nameToExpr, table, measureNames, dimensionNames));
+        // ORDER BY 子句预构造（name 解析为 aggSql/groupExpr + ASC/DESC + NULLS FIRST/LAST）
+        String orderByClause = buildOrderByClause(orderBy, nameToExpr, table, measureNames, dimensionNames);
 
         final List<Map<String, Object>>[] holder = newArrayHolder();
         ctx.connectionService().withConnection(dataSource.getDatasourceType(), dataSource.getConnectionConfig(),
@@ -587,10 +659,13 @@ public class MetaAggregationExecutor {
                                 .param("metaTableId", table.getMetaTableId());
                     }
                     StringBuilder sql = buildExternalExternalJoinSql(measures, dims, leftFrom, rightFrom,
-                            leftJoinCol, rightJoinCol, join, filterTf, dialect, limit, offset);
+                            leftJoinCol, rightJoinCol, join, filterTf, havingTf, orderByClause, dialect, limit, offset);
                     List<Object> params = new ArrayList<>();
                     if (filterTf != null && filterTf.getSql() != null && !filterTf.getSql().isEmpty()) {
                         params.addAll(filterTf.getParams());
+                    }
+                    if (havingTf != null && havingTf.getSql() != null && !havingTf.getSql().isEmpty()) {
+                        params.addAll(havingTf.getParams());
                     }
                     if (limit != null) {
                         params.add(limit);
@@ -637,6 +712,7 @@ public class MetaAggregationExecutor {
                                                                          MetaJoinExecutor.Endpoint leftEp,
                                                                          MetaJoinExecutor.Endpoint rightEp,
                                                                          Long limit, Long offset,
+                                                                         TreeBean having, List<OrderFieldBean> orderBy,
                                                                          MetaQueryContext ctx) {
         // 1. 识别 entity/table 端点位置（entity 可在 left 也可在 right）
         boolean entityOnLeft = leftEp.isEntity();
@@ -666,7 +742,7 @@ public class MetaAggregationExecutor {
         //     不静默降级 D5 拼接近似聚合。
         if (!checkEntityTableVisible(dataSource, entitySchema, entityPhysicalTable, ctx)) {
             return executeCrossDbJoinAggregation(table, measureNames, dimensionNames, filter, join, joinId,
-                    leftEp, rightEp, limit, offset, ctx);
+                    leftEp, rightEp, limit, offset, having, orderBy, ctx);
         }
 
         // 4. 解析 entity 端点的 propToCol 映射（join.leftField/rightField + entity 侧 measure/dimension 列解析）
@@ -691,15 +767,22 @@ public class MetaAggregationExecutor {
         List<JoinMeasureSpec> measures = loadExternalJoinMeasures(table, measureNames, ctx, sideResolver);
         List<JoinDimensionSpec> dims = loadExternalJoinDimensions(table, dimensionNames, ctx, sideResolver);
 
+        // name→SQL 表达式反查表（plan 2026-07-18-0900-2：having/orderBy name 解析）
+        Map<String, String> nameToExpr = buildJoinNameToExprTable(measures, dims, measureNames, dimensionNames, table);
+
         // 7. FROM 子句构造（含 schema 限定 + 别名 l/r）
         String entityAlias = entityOnLeft ? "l" : "r";
         String tableAlias = entityOnLeft ? "r" : "l";
         String entityFrom = buildEntityFromClause(entityPhysicalTable, entitySchema, entityAlias);
         String tableFrom = externalTableFromForJoin(tableEndpoint, tableAlias);
 
-        // filter 预翻译（与方言无关，提前计算参数顺序）
+        // filter/having 预翻译（与方言无关，提前计算参数顺序）
         FilterToSqlTranslator.TranslatedFilter filterTf =
                 filter == null ? null : ctx.filterTranslator().translate(filter);
+        FilterToSqlTranslator.TranslatedFilter havingTf = having == null ? null
+                : ctx.filterTranslator().translate(having,
+                        nameResolverFor(nameToExpr, table, measureNames, dimensionNames));
+        String orderByClause = buildOrderByClause(orderBy, nameToExpr, table, measureNames, dimensionNames);
 
         // 8. 在 external withConnection callback 内执行原生 GROUP BY over JOIN（同库判定已在入口提前完成）
         final String _entityFrom = entityFrom;
@@ -711,6 +794,8 @@ public class MetaAggregationExecutor {
         final List<JoinMeasureSpec> _measures = measures;
         final List<JoinDimensionSpec> _dims = dims;
         final FilterToSqlTranslator.TranslatedFilter _filterTf = filterTf;
+        final FilterToSqlTranslator.TranslatedFilter _havingTf = havingTf;
+        final String _orderByClause = orderByClause;
 
         final List<Map<String, Object>>[] holder = newArrayHolder();
         ctx.connectionService().withConnection(dataSource.getDatasourceType(), dataSource.getConnectionConfig(),
@@ -724,10 +809,13 @@ public class MetaAggregationExecutor {
                     // 同库判定已在入口提前完成（checkEntityTableVisible），此处仅同库路径。
                     StringBuilder sql = buildMixedSameDbJoinSql(_measures, _dims, _entityFrom, _tableFrom,
                             _entityAlias, _tableAlias, _entityJoinColumn, _tableJoinColumn, join, _filterTf,
-                            dialect, limit, offset);
+                            _havingTf, _orderByClause, dialect, limit, offset);
                     List<Object> params = new ArrayList<>();
                     if (_filterTf != null && _filterTf.getSql() != null && !_filterTf.getSql().isEmpty()) {
                         params.addAll(_filterTf.getParams());
+                    }
+                    if (_havingTf != null && _havingTf.getSql() != null && !_havingTf.getSql().isEmpty()) {
+                        params.addAll(_havingTf.getParams());
                     }
                     if (limit != null) {
                         params.add(limit);
@@ -817,6 +905,8 @@ public class MetaAggregationExecutor {
                                                    String entityJoinColumn, String tableJoinColumn,
                                                    NopMetaTableJoin join,
                                                    FilterToSqlTranslator.TranslatedFilter filterTf,
+                                                   FilterToSqlTranslator.TranslatedFilter havingTf,
+                                                   String orderByClause,
                                                    String dialect, Long limit, Long offset) {
         StringBuilder sql = new StringBuilder("SELECT ");
         List<String> groupExprs = new ArrayList<>();
@@ -848,6 +938,12 @@ public class MetaAggregationExecutor {
             sql.append(" WHERE ").append(filterTf.getSql());
         }
         sql.append(" GROUP BY ").append(String.join(",", groupExprs));
+        if (havingTf != null && havingTf.getSql() != null && !havingTf.getSql().isEmpty()) {
+            sql.append(" HAVING ").append(havingTf.getSql());
+        }
+        if (!orderByClause.isEmpty()) {
+            sql.append(" ORDER BY ").append(orderByClause);
+        }
         if (limit != null) {
             sql.append(" LIMIT ?");
         }
@@ -858,11 +954,13 @@ public class MetaAggregationExecutor {
     }
 
 
-    /** 构造 external↔external JOIN 聚合 SQL：SELECT <group l./r. cols>, <agg(l./r. col)> FROM ... JOIN ... [WHERE] GROUP BY ...。 */
+    /** 构造 external↔external JOIN 聚合 SQL：SELECT <group l./r. cols>, <agg(l./r. col)> FROM ... JOIN ... [WHERE] GROUP BY ... [HAVING] [ORDER BY] ...。 */
     private StringBuilder buildExternalExternalJoinSql(List<JoinMeasureSpec> measures, List<JoinDimensionSpec> dims,
                                                         String leftFrom, String rightFrom, String leftJoinCol,
                                                         String rightJoinCol, NopMetaTableJoin join,
                                                         FilterToSqlTranslator.TranslatedFilter filterTf,
+                                                        FilterToSqlTranslator.TranslatedFilter havingTf,
+                                                        String orderByClause,
                                                         String dialect, Long limit, Long offset) {
         StringBuilder sql = new StringBuilder("SELECT ");
         List<String> groupExprs = new ArrayList<>();
@@ -893,6 +991,12 @@ public class MetaAggregationExecutor {
             sql.append(" WHERE ").append(filterTf.getSql());
         }
         sql.append(" GROUP BY ").append(String.join(",", groupExprs));
+        if (havingTf != null && havingTf.getSql() != null && !havingTf.getSql().isEmpty()) {
+            sql.append(" HAVING ").append(havingTf.getSql());
+        }
+        if (!orderByClause.isEmpty()) {
+            sql.append(" ORDER BY ").append(orderByClause);
+        }
         if (limit != null) {
             sql.append(" LIMIT ?");
         }
@@ -924,7 +1028,9 @@ public class MetaAggregationExecutor {
                                                                      NopMetaTableJoin join, String joinId,
                                                                      MetaJoinExecutor.Endpoint leftEp,
                                                                      MetaJoinExecutor.Endpoint rightEp,
-                                                                     Long limit, Long offset, MetaQueryContext ctx) {
+                                                                     Long limit, Long offset,
+                                                                     TreeBean having, List<OrderFieldBean> orderBy,
+                                                                     MetaQueryContext ctx) {
         // 1. Self-join guards（双侧别名机制不足，字段归属歧义 → 显式失败，沿用 D8/D9）
         if (leftEp.isEntity() && rightEp.isEntity()) {
             if (equalsStr(leftEp.entity.getMetaEntityId(), rightEp.entity.getMetaEntityId())) {
@@ -963,8 +1069,54 @@ public class MetaAggregationExecutor {
         // 5. 内存 GROUP BY（按 dimension 值分组 → 按 aggFunc 内存累加 → 输出 items）
         List<Map<String, Object>> items = memoryGroupBy(mergedRows, measures, dims);
 
-        // 6. 合并后截断提示（D5 分页：内存合并无全局序，limit/offset 仅截断提示）
+        // 6. plan 2026-07-18-0900-2：内存 having 过滤（聚合后过滤）
+        if (having != null) {
+            // 跨库内存路径：having 的 name 解析为 safeAlias(measureName/dimensionName) 大写化 alias
+            Map<String, String> nameToAlias = buildCrossDbNameToAliasTable(measures, dims, measureNames,
+                    dimensionNames, table);
+            MemoryFilterEvaluator evaluator = new MemoryFilterEvaluator(having, nameToAlias, table, measureNames,
+                    dimensionNames);
+            items = evaluator.filter(items);
+        }
+
+        // 7. plan 2026-07-18-0900-2：内存 orderBy 排序 → limit/offset 截断（D3 顺序：orderBy → limit/offset）
+        if (orderBy != null && !orderBy.isEmpty()) {
+            Map<String, String> nameToAlias = buildCrossDbNameToAliasTable(measures, dims, measureNames,
+                    dimensionNames, table);
+            items = MemoryOrderByComparator.sort(items, orderBy, nameToAlias, table, measureNames, dimensionNames);
+        }
+
+        // 8. 合并后截断提示（D5 分页：内存合并无全局序，limit/offset 仅截断提示）
         return truncateCrossDb(items, limit, offset);
+    }
+
+    /** 跨库内存路径 name→大写化 alias 反查表（measure/dimension name → safeAlias(name)，与内存 GROUP BY 输出 key 对齐）。 */
+    private static Map<String, String> buildCrossDbNameToAliasTable(List<CrossDbMeasureSpec> measures,
+                                                                      List<CrossDbDimensionSpec> dims,
+                                                                      List<String> measureNames,
+                                                                      List<String> dimensionNames, NopMetaTable table) {
+        Map<String, String> map = new LinkedHashMap<>();
+        if (measures.size() != measureNames.size()) {
+            throw new NopException(ERR_AGGR_HAVING_UNKNOWN_NAME)
+                    .param("metaTableId", table.getMetaTableId())
+                    .param("name", "<internal>: cross-db measures/names length mismatch")
+                    .param("selectedMeasures", String.valueOf(measureNames))
+                    .param("selectedDimensions", String.valueOf(dimensionNames));
+        }
+        for (int i = 0; i < measures.size(); i++) {
+            map.put(measureNames.get(i), measures.get(i).alias);
+        }
+        if (dims.size() != dimensionNames.size()) {
+            throw new NopException(ERR_AGGR_HAVING_UNKNOWN_NAME)
+                    .param("metaTableId", table.getMetaTableId())
+                    .param("name", "<internal>: cross-db dims/names length mismatch")
+                    .param("selectedMeasures", String.valueOf(measureNames))
+                    .param("selectedDimensions", String.valueOf(dimensionNames));
+        }
+        for (int i = 0; i < dims.size(); i++) {
+            map.put(dimensionNames.get(i), dims.get(i).alias);
+        }
+        return map;
     }
 
     /** 加载跨库 JOIN 聚合的 Measure 规格（解析 side + rawKey per D10 命名空间规则）。 */
@@ -2021,7 +2173,8 @@ public class MetaAggregationExecutor {
 
     private List<Map<String, Object>> executeExternalAggregation(NopMetaTable table, List<String> measureNames,
                                                                  List<String> dimensionNames, TreeBean filter,
-                                                                 Long limit, Long offset, MetaQueryContext ctx) {
+                                                                 Long limit, Long offset, TreeBean having,
+                                                                 List<OrderFieldBean> orderBy, MetaQueryContext ctx) {
         // querySpace→数据源（external/sql 路径，D2 解析）
         IEntityDao<NopMetaDataSource> dsDao = ctx.daoProvider().daoFor(NopMetaDataSource.class);
         NopMetaDataSource dataSource;
@@ -2038,7 +2191,11 @@ public class MetaAggregationExecutor {
         List<MeasureSpec> measures = loadExternalMeasures(table, measureNames, ctx);
         List<DimensionSpec> dims = loadExternalDimensions(table, dimensionNames, ctx);
 
+        // name→SQL 表达式反查表（plan 2026-07-18-0900-2：having/orderBy name 解析）
+        Map<String, String> nameToExpr = buildNameToExprTable(measures, dims, measureNames, dimensionNames, table);
+
         final List<Map<String, Object>>[] holder = newArrayHolder();
+        final Map<String, String> _nameToExpr = nameToExpr;
         ctx.connectionService().withConnection(dataSource.getDatasourceType(), dataSource.getConnectionConfig(),
                 (Connection conn, DatabaseMetaData metaData) -> {
                     String dialect = safeProductName(metaData);
@@ -2047,17 +2204,22 @@ public class MetaAggregationExecutor {
                                 .param("databaseProductName", String.valueOf(dialect))
                                 .param("metaTableId", table.getMetaTableId());
                     }
-                    String sqlText = buildExternalAggregationSql(table, measures, dims, filter, limit, offset, dialect, ctx);
+                    String sqlText = buildExternalAggregationSql(table, measures, dims, filter, having, orderBy,
+                            _nameToExpr, measureNames, dimensionNames, limit, offset, dialect, ctx);
                     LOG.info("queryAggregation external/sql SQL: {}", sqlText);
-                    holder[0] = executeJdbcQuery(conn, sqlText, collectBindParams(measures, dims, filter, ctx, table, dialect),
+                    holder[0] = executeJdbcQuery(conn, sqlText, collectBindParams(measures, dims, filter, having,
+                            _nameToExpr, ctx, table, measureNames, dimensionNames),
                             limit, offset, table.getMetaTableId());
                 });
         return holder[0] == null ? new ArrayList<>() : holder[0];
     }
 
     private String buildExternalAggregationSql(NopMetaTable table, List<MeasureSpec> measures,
-                                               List<DimensionSpec> dims, TreeBean filter, Long limit, Long offset,
-                                               String dialect, MetaQueryContext ctx) {
+                                                List<DimensionSpec> dims, TreeBean filter, TreeBean having,
+                                                List<OrderFieldBean> orderBy, Map<String, String> nameToExpr,
+                                                List<String> measureNames, List<String> dimensionNames,
+                                                Long limit, Long offset,
+                                                String dialect, MetaQueryContext ctx) {
         StringBuilder sql = new StringBuilder("SELECT ");
         List<String> groupExprs = new ArrayList<>();
         for (int i = 0; i < dims.size(); i++) {
@@ -2087,6 +2249,19 @@ public class MetaAggregationExecutor {
             }
         }
         sql.append(" GROUP BY ").append(String.join(",", groupExprs));
+        // plan 2026-07-18-0900-2：HAVING 子句
+        if (having != null) {
+            FilterToSqlTranslator.TranslatedFilter hf = ctx.filterTranslator().translate(having,
+                    nameResolverFor(nameToExpr, table, measureNames, dimensionNames));
+            if (hf.getSql() != null && !hf.getSql().isEmpty()) {
+                sql.append(" HAVING ").append(hf.getSql());
+            }
+        }
+        // plan 2026-07-18-0900-2：ORDER BY 子句
+        String orderByClause = buildOrderByClause(orderBy, nameToExpr, table, measureNames, dimensionNames);
+        if (!orderByClause.isEmpty()) {
+            sql.append(" ORDER BY ").append(orderByClause);
+        }
         if (limit != null) {
             sql.append(" LIMIT ?");
         }
@@ -2112,15 +2287,22 @@ public class MetaAggregationExecutor {
         return tableName;
     }
 
-    /** 收集 PreparedStatement 绑定参数（filter 值 + limit/offset），与 SQL 中 ? 出现顺序一致。 */
+    /** 收集 PreparedStatement 绑定参数（filter 值 + having 值），与 SQL 中 ? 出现顺序一致；limit/offset 由 executeJdbcQuery 追加。 */
     private List<Object> collectBindParams(List<MeasureSpec> measures, List<DimensionSpec> dims, TreeBean filter,
-                                           MetaQueryContext ctx, NopMetaTable table, String dialect) {
+                                           TreeBean having, Map<String, String> nameToExpr, MetaQueryContext ctx,
+                                           NopMetaTable table,
+                                           List<String> measureNames, List<String> dimensionNames) {
         List<Object> params = new ArrayList<>();
         if (filter != null) {
             FilterToSqlTranslator.TranslatedFilter tf = ctx.filterTranslator().translate(filter);
             params.addAll(tf.getParams());
         }
-        // limit/offset 由 executeJdbcQuery 在 filter 参数后追加，这里不重复
+        if (having != null) {
+            FilterToSqlTranslator.TranslatedFilter hf = ctx.filterTranslator().translate(having,
+                    nameResolverFor(nameToExpr, table, measureNames, dimensionNames));
+            params.addAll(hf.getParams());
+        }
+        // limit/offset 由 executeJdbcQuery 在 filter/having 参数后追加，这里不重复
         return params;
     }
 
@@ -2480,6 +2662,131 @@ public class MetaAggregationExecutor {
         Map<String, Object> result = new LinkedHashMap<>();
         result.put("items", items != null ? items : new ArrayList<>());
         return result;
+    }
+
+    // ============================ having/orderBy name 解析辅助（plan 2026-07-18-0900-2）============================
+
+    /**
+     * 单表路径 name→SQL 表达式反查表（measure name → aggSql；dimension name → column）。
+     *
+     * <p>spec 列表与 names 列表按顺序对齐（{@code loadMeasures}/{@code loadDimensions} 保持 names 顺序输出）。
+     * 这里 measures 列表与 measureNames 列表一一对应；dims 列表与 dimensionNames 列表一一对应。
+     */
+    private static Map<String, String> buildNameToExprTable(List<MeasureSpec> measures, List<DimensionSpec> dims,
+                                                              List<String> measureNames, List<String> dimensionNames,
+                                                              NopMetaTable table) {
+        Map<String, String> map = new LinkedHashMap<>();
+        if (measures.size() != measureNames.size()) {
+            throw new NopException(ERR_AGGR_HAVING_UNKNOWN_NAME)
+                    .param("metaTableId", table.getMetaTableId())
+                    .param("name", "<internal>: measures/names length mismatch")
+                    .param("selectedMeasures", String.valueOf(measureNames))
+                    .param("selectedDimensions", String.valueOf(dimensionNames));
+        }
+        for (int i = 0; i < measures.size(); i++) {
+            map.put(measureNames.get(i), measures.get(i).aggSql);
+        }
+        if (dims.size() != dimensionNames.size()) {
+            throw new NopException(ERR_AGGR_HAVING_UNKNOWN_NAME)
+                    .param("metaTableId", table.getMetaTableId())
+                    .param("name", "<internal>: dims/names length mismatch")
+                    .param("selectedMeasures", String.valueOf(measureNames))
+                    .param("selectedDimensions", String.valueOf(dimensionNames));
+        }
+        for (int i = 0; i < dims.size(); i++) {
+            map.put(dimensionNames.get(i), dims.get(i).column);
+        }
+        return map;
+    }
+
+    /**
+     * JOIN 路径 name→SQL 表达式反查表（measure name → aggSql；dimension name → qualifiedCol）。
+     * JOIN 路径 having/orderBy name 解析为已含 l./r. 前缀的 aggSql/qualifiedCol（与 SELECT/GROUP BY 一致）。
+     */
+    private static Map<String, String> buildJoinNameToExprTable(List<JoinMeasureSpec> measures,
+                                                                  List<JoinDimensionSpec> dims,
+                                                                  List<String> measureNames,
+                                                                  List<String> dimensionNames, NopMetaTable table) {
+        Map<String, String> map = new LinkedHashMap<>();
+        if (measures.size() != measureNames.size()) {
+            throw new NopException(ERR_AGGR_HAVING_UNKNOWN_NAME)
+                    .param("metaTableId", table.getMetaTableId())
+                    .param("name", "<internal>: join measures/names length mismatch")
+                    .param("selectedMeasures", String.valueOf(measureNames))
+                    .param("selectedDimensions", String.valueOf(dimensionNames));
+        }
+        for (int i = 0; i < measures.size(); i++) {
+            map.put(measureNames.get(i), measures.get(i).aggSql);
+        }
+        if (dims.size() != dimensionNames.size()) {
+            throw new NopException(ERR_AGGR_HAVING_UNKNOWN_NAME)
+                    .param("metaTableId", table.getMetaTableId())
+                    .param("name", "<internal>: join dims/names length mismatch")
+                    .param("selectedMeasures", String.valueOf(measureNames))
+                    .param("selectedDimensions", String.valueOf(dimensionNames));
+        }
+        for (int i = 0; i < dims.size(); i++) {
+            map.put(dimensionNames.get(i), dims.get(i).qualifiedCol);
+        }
+        return map;
+    }
+
+    /**
+     * having 的 fieldResolver 回调：name → SQL 表达式（aggSql 或 column）。
+     * 命中失败（未选定 measure/dimension name）→ 抛 {@link #ERR_AGGR_HAVING_UNKNOWN_NAME}（不静默跳过）。
+     */
+    private static java.util.function.Function<String, String> nameResolverFor(Map<String, String> nameToExpr,
+                                                                                  NopMetaTable table,
+                                                                                  List<String> measureNames,
+                                                                                  List<String> dimensionNames) {
+        return name -> {
+            String expr = nameToExpr.get(name);
+            if (expr == null) {
+                throw new NopException(ERR_AGGR_HAVING_UNKNOWN_NAME)
+                        .param("metaTableId", table.getMetaTableId())
+                        .param("name", name)
+                        .param("selectedMeasures", String.valueOf(measureNames))
+                        .param("selectedDimensions", String.valueOf(dimensionNames));
+            }
+            return expr;
+        };
+    }
+
+    /**
+     * 构造 ORDER BY 子句（不含 "ORDER BY" 关键字；空返回 ""）。
+     * 每个 {@link OrderFieldBean#getName()} 经 nameToExpr 解析为 aggSql/groupExpr，未知 name →
+     * {@link #ERR_AGGR_ORDER_BY_UNKNOWN_NAME} 显式失败（不静默跳过）。
+     *
+     * <p>{@code desc=true} → DESC，{@code desc=false} → ASC；{@code nullsFirst} 非空 → NULLS FIRST/LAST。
+     */
+    private static String buildOrderByClause(List<OrderFieldBean> orderBy, Map<String, String> nameToExpr,
+                                              NopMetaTable table, List<String> measureNames,
+                                              List<String> dimensionNames) {
+        if (orderBy == null || orderBy.isEmpty()) {
+            return "";
+        }
+        StringBuilder sb = new StringBuilder();
+        for (int i = 0; i < orderBy.size(); i++) {
+            OrderFieldBean f = orderBy.get(i);
+            String name = f.getName();
+            String expr = nameToExpr.get(name);
+            if (expr == null) {
+                throw new NopException(ERR_AGGR_ORDER_BY_UNKNOWN_NAME)
+                        .param("metaTableId", table.getMetaTableId())
+                        .param("name", String.valueOf(name))
+                        .param("selectedMeasures", String.valueOf(measureNames))
+                        .param("selectedDimensions", String.valueOf(dimensionNames));
+            }
+            if (i > 0) {
+                sb.append(",");
+            }
+            sb.append(expr).append(f.isDesc() ? " DESC" : " ASC");
+            Boolean nullsFirst = f.getNullsFirst();
+            if (nullsFirst != null) {
+                sb.append(nullsFirst ? " NULLS FIRST" : " NULLS LAST");
+            }
+        }
+        return sb.toString();
     }
 
     /** 指标规格：别名 + 聚合 SQL 表达式。 */
