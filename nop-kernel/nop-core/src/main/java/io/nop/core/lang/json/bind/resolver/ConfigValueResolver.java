@@ -47,8 +47,8 @@ public class ConfigValueResolver implements IValueResolver {
         int pos = config.indexOf('|');
         Object defaultValue = null;
         if (pos >= 0) {
-            config = config.substring(0, pos);
             defaultValue = JsonTool.parseSimpleJsonValue(config.substring(pos + 1).trim());
+            config = config.substring(0, pos);
         }
         List<String> configKeys = StringHelper.stripedSplit(config, ',');
         return new ConfigValueResolver(configKeys, defaultValue);

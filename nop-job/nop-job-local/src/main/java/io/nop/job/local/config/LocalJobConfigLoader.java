@@ -36,8 +36,9 @@ public class LocalJobConfigLoader {
      * 每个 job 一个文件的目录约定，与 scheduler.yaml 同目录。
      * 模块往这里贡献 <jobName>.job.yaml，Loader 启动时按后缀扫描。
      * scheduler.yaml 不以 .job.yaml 结尾，不会被误扫描。
+     * 注意：路径不以 / 结尾——VirtualFileSystem.getAllResources 拒绝尾部 /（nop.err.core.resource.invalid-path）。
      */
-    static final String DEFAULT_JOB_DIR = "/nop/job/conf/";
+    static final String DEFAULT_JOB_DIR = "/nop/job/conf";
     static final String JOB_FILE_SUFFIX = ".job.yaml";
 
     private IJobScheduler scheduler;
