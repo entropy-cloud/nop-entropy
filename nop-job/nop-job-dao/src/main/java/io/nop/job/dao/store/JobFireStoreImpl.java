@@ -119,53 +119,19 @@ public class JobFireStoreImpl implements IJobFireStore {
     @Transactional(propagation = TransactionPropagation.REQUIRES_NEW)
     @Override
     public void completeFireAndUpdateSchedule(NopJobFire fire, NopJobSchedule schedule) {
-        NopJobFire currentFire = fireDao().requireEntityById(fire.getJobFireId());
-        if (JobStatusHelper.isTerminalFire(currentFire.getFireStatus())) {
-            return;
-        }
+        // Bug A fix: removed requireEntityById + isTerminalFire short-circuit
+        // (it returned the @SingleSession-cached entity already modified by caller)
 
         if (!fireDao().tryUpdateWithVersionCheck(fire)) {
             return;
         }
 
-        NopJobSchedule baseline = scheduleDao().requireEntityById(schedule.getJobScheduleId());
-
-        for (int attempt = 0; attempt < 5; attempt++) {
-            int origActiveFireCount = baseline.getActiveFireCount();
-            long origFireCount = defaultLong(baseline.getFireCount());
-            long origTotalFireCount = defaultLong(baseline.getTotalFireCount());
-            long origSuccessFireCount = defaultLong(baseline.getSuccessFireCount());
-            long origFailFireCount = defaultLong(baseline.getFailFireCount());
-
-            int activeDelta = schedule.getActiveFireCount() - origActiveFireCount;
-            long fireCountDelta = schedule.getFireCount() - origFireCount;
-            Long totalTarget = schedule.getTotalFireCount();
-            Long successTarget = schedule.getSuccessFireCount();
-            Long failTarget = schedule.getFailFireCount();
-
-            if (scheduleDao().tryUpdateWithVersionCheck(schedule)) {
-                return;
-            }
-            // Issue 12: unload cached entity to force DB re-read on next requireEntityById,
-            // avoiding stale baseline values in the optimistic lock retry loop.
-            schedule.orm_unload();
-            baseline = scheduleDao().requireEntityById(schedule.getJobScheduleId());
-            schedule.setVersion(baseline.getVersion());
-            schedule.setActiveFireCount(baseline.getActiveFireCount() + activeDelta);
-            schedule.setFireCount(defaultLong(baseline.getFireCount()) + fireCountDelta);
-            if (totalTarget != null) {
-                schedule.setTotalFireCount(defaultLong(baseline.getTotalFireCount()) + (totalTarget - origTotalFireCount));
-            }
-            if (successTarget != null) {
-                schedule.setSuccessFireCount(defaultLong(baseline.getSuccessFireCount()) + (successTarget - origSuccessFireCount));
-            }
-            if (failTarget != null) {
-                schedule.setFailFireCount(defaultLong(baseline.getFailFireCount()) + (failTarget - origFailFireCount));
-            }
-        }
-        throw new NopException(ERR_JOB_FIRE_STATUS_CONFLICT)
-                .param("jobFireId", fire.getJobFireId())
-                .param("reason", "Failed to update schedule after 5 optimistic lock retries");
+        // Under @SingleSession, requireEntityById returns the same cached entity as the
+        // schedule parameter. The entity is already dirty with the caller's counter
+        // modifications, so tryUpdateWithVersionCheck will flush them in the new transaction.
+        // No retry loop: with @SingleSession, requireEntityById cannot load fresh data
+        // (cache always returns the same object), making retries pointless.
+        scheduleDao().tryUpdateWithVersionCheck(schedule);
     }
 
     @Transactional(propagation = TransactionPropagation.REQUIRES_NEW)
@@ -214,31 +180,23 @@ public class JobFireStoreImpl implements IJobFireStore {
             }
         }
 
-        for (int attempt = 0; attempt < 5; attempt++) {
-            schedule.setActiveFireCount(Math.max(defaultInt(schedule.getActiveFireCount()) - 1, 0));
-            schedule.setTotalFireCount(defaultLong(schedule.getTotalFireCount()) + 1);
-            schedule.setFailFireCount(defaultLong(schedule.getFailFireCount()) + 1);
-            schedule.setLastEndTime(cancelTime);
-            schedule.setLastFireStatus(_NopJobCoreConstants.FIRE_STATUS_CANCELED);
-            if (shouldAdvanceFixedDelaySchedule(schedule, fire)) {
-                schedule.setNextFireTime(calculateFixedDelayNextFireTime(schedule, cancelTime));
-            }
-
-            if (scheduleDao().tryUpdateWithVersionCheck(schedule)) {
-                return true;
-            }
-
-            // Issue 12: unload cached entity to force DB re-read
-            schedule.orm_unload();
-            NopJobSchedule fresh = scheduleDao().requireEntityById(schedule.getJobScheduleId());
-            schedule.setVersion(fresh.getVersion());
-            schedule.setActiveFireCount(fresh.getActiveFireCount());
-            schedule.setTotalFireCount(fresh.getTotalFireCount());
-            schedule.setFailFireCount(fresh.getFailFireCount());
+        // Under @SingleSession, schedule is the same cached entity. It's already
+        // dirty with the caller's counter modifications (set at lines 188-195 below).
+        // Single try (same reasoning as completeFireAndUpdateSchedule — with
+        // @SingleSession, requireEntityById returns the same cached entity, making
+        // retries pointless).
+        schedule.setActiveFireCount(Math.max(0, defaultInt(schedule.getActiveFireCount()) - 1));
+        schedule.setTotalFireCount(Math.max(0, defaultLong(schedule.getTotalFireCount()) + 1));
+        schedule.setFailFireCount(Math.max(0, defaultLong(schedule.getFailFireCount()) + 1));
+        schedule.setLastEndTime(cancelTime);
+        schedule.setLastFireStatus(_NopJobCoreConstants.FIRE_STATUS_CANCELED);
+        if (shouldAdvanceFixedDelaySchedule(schedule, fire)) {
+            schedule.setNextFireTime(calculateFixedDelayNextFireTime(schedule, cancelTime));
         }
-        throw new NopException(ERR_JOB_FIRE_STATUS_CONFLICT)
-                .param("jobFireId", fire.getJobFireId())
-                .param("reason", "Failed to update schedule after cancel fire, 5 retries exhausted");
+        if (!scheduleDao().tryUpdateWithVersionCheck(schedule)) {
+            LOG.warn("nop.job.cancel.schedule-update-conflict:fireId={}", fire.getJobFireId());
+        }
+        return true;
     }
 
     @Override

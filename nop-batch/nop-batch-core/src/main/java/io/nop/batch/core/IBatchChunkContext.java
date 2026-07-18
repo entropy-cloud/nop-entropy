@@ -8,6 +8,7 @@
 package io.nop.batch.core;
 
 import io.nop.core.context.IExecutionContext;
+import io.nop.core.context.IServiceContext;
 
 import java.util.Collection;
 import java.util.List;
@@ -28,6 +29,10 @@ public interface IBatchChunkContext extends IExecutionContext {
 
     default String getTaskKey() {
         return getTaskContext().getTaskKey();
+    }
+
+    default IServiceContext getServiceContext() {
+        return getTaskContext().getServiceContext();
     }
 
     <T> List<T> getChunkItems();

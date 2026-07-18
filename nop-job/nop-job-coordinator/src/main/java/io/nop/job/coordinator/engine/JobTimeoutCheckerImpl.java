@@ -332,6 +332,13 @@ public class JobTimeoutCheckerImpl extends AbstractBatchScanner implements IJobT
 
         fireStore.completeFireAndUpdateSchedule(fire, schedule);
 
+        // Bug C fix: tryUpdateWithVersionCheck sets orm_readonly(true) on version
+        // conflict. If fire wasn't actually updated, skip task cancellation to avoid
+        // ending with RUNNING fire + CANCELED tasks.
+        if (fire.orm_readonly()) {
+            return;
+        }
+
         List<NopJobTask> tasks = taskStore.findTasksByFireId(fire.getJobFireId());
         for (NopJobTask task : tasks) {
             if (task.getTaskStatus() != null

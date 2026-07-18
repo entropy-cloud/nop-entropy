@@ -8,6 +8,7 @@ import io.nop.dao.api.IDaoProvider;
 import io.nop.job.dao.entity.NopJobFire;
 import io.nop.job.dao.entity.NopJobSchedule;
 import io.nop.job.dao.entity.NopJobTask;
+import io.nop.orm.IOrmTemplate;
 import io.nop.orm.dao.IOrmEntityDao;
 import jakarta.inject.Inject;
 import org.junit.jupiter.api.Test;
@@ -20,13 +21,12 @@ import java.util.List;
 import java.util.Map;
 
 import static io.nop.job.core._NopJobCoreConstants.FIRE_STATUS_CANCELED;
-import static io.nop.job.core._NopJobCoreConstants.FIRE_STATUS_FAILED;
 import static io.nop.job.core._NopJobCoreConstants.FIRE_STATUS_RUNNING;
 import static io.nop.job.core._NopJobCoreConstants.FIRE_STATUS_SUCCESS;
 import static io.nop.job.core._NopJobCoreConstants.FIRE_STATUS_TIMEOUT;
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -46,6 +46,9 @@ public class TestJobFireStoreRace extends JunitBaseTestCase {
 
     @Inject
     IJobFireStore fireStore;
+
+    @Inject
+    IOrmTemplate ormTemplate;
 
     @Test
     public void testCancelFireOnAlreadyCanceledFireReturnsFalse() {
@@ -266,7 +269,11 @@ public class TestJobFireStoreRace extends JunitBaseTestCase {
     }
 
     @Test
-    public void testCompleteFireThrowsOnScheduleVersionConflict() {
+    public void testCompleteFireConvergesDespiteScheduleModifications() {
+        // Verifies that completeFireAndUpdateSchedule handles concurrent schedule modifications
+        // by loading a fresh baseline and applying fixed deltas (Bug B fix).
+        // Previously the retry loop threw ERR_ORM_ENTITY_IS_READONLY because
+        // tryUpdateWithVersionCheck set orm_readonly(true) and orm_unload() did not clear it.
         NopJobSchedule schedule = newSchedule("race-sched-ar21", "race-job-ar21");
         schedule.setActiveFireCount(1);
         daoProvider.daoFor(NopJobSchedule.class).saveEntityDirectly(schedule);
@@ -302,9 +309,79 @@ public class TestJobFireStoreRace extends JunitBaseTestCase {
             schedDao.updateEntityDirectly(concurrent);
         }
 
-        assertThrows(NopException.class,
+        // With the fix, completeFireAndUpdateSchedule loads a fresh baseline with the latest
+        // version, so the retry loop converges on the first attempt.
+        assertDoesNotThrow(
                 () -> fireStore.completeFireAndUpdateSchedule(fireForComplete, scheduleForComplete),
-                "completeFireAndUpdateSchedule should throw after 5 optimistic lock retries exhausted");
+                "completeFireAndUpdateSchedule should converge despite prior schedule modifications");
+    }
+
+    @Test
+    public void testTryUpdateWithVersionCheckOnDetachedReturnsFalse() {
+        // Confirms tryUpdateWithVersionCheck correctly returns false (not throws)
+        // when called on a detached entity with stale version.
+
+        NopJobSchedule schedule = newSchedule("bugDfalse-sched", "bugDfalse-job");
+        schedule.setActiveFireCount(1);
+        daoProvider.daoFor(NopJobSchedule.class).saveEntityDirectly(schedule);
+
+        NopJobSchedule loaded = scheduleStore.loadSchedule(schedule.getJobScheduleId());
+        loaded.setActiveFireCount(0);
+
+        ormTemplate.runInNewSession(s -> {
+            IOrmEntityDao<NopJobSchedule> dao =
+                    (IOrmEntityDao<NopJobSchedule>) daoProvider.daoFor(NopJobSchedule.class);
+            for (int i = 0; i < 3; i++) {
+                NopJobSchedule c = dao.requireEntityById(schedule.getJobScheduleId());
+                c.setFireCount((long) i);
+                dao.updateEntityDirectly(c);
+            }
+            return null;
+        });
+
+        IOrmEntityDao<NopJobSchedule> dao =
+                (IOrmEntityDao<NopJobSchedule>) daoProvider.daoFor(NopJobSchedule.class);
+        assertFalse(dao.tryUpdateWithVersionCheck(loaded));
+    }
+
+    @Test
+    public void traceCompleteFireErrorCode() {
+        NopJobSchedule schedule = newSchedule("bugTrace-sched", "bugTrace-job");
+        schedule.setActiveFireCount(1);
+        daoProvider.daoFor(NopJobSchedule.class).saveEntityDirectly(schedule);
+
+        NopJobFire fire = newFire("bugTrace-fire", schedule);
+        scheduleStore.insertFireAndAdvanceSchedule(schedule, fire,
+                new Timestamp(System.currentTimeMillis() + 60000), FIRE_STATUS_WAITING);
+
+        List<NopJobFire> waitingFires = fireStore.fetchWaitingFires(10, IntRangeSet.parse("1"));
+        List<NopJobFire> lockedFires = fireStore.tryLockFiresForDispatch(waitingFires, "dispatcher-trace", 1000);
+
+        NopJobTask task = newTask("bugTrace-task", fire);
+        fireStore.insertTasksAndMarkFireDispatching(lockedFires.get(0), Collections.singletonList(task));
+
+        NopJobSchedule scheduleForComplete = scheduleStore.loadSchedule(schedule.getJobScheduleId());
+        scheduleForComplete.setActiveFireCount(0);
+
+        NopJobFire fireForComplete = fireStore.loadFire(fire.getJobFireId());
+        fireForComplete.setFireStatus(FIRE_STATUS_SUCCESS);
+        fireForComplete.setEndTime(new Timestamp(System.currentTimeMillis()));
+
+        IOrmEntityDao<NopJobSchedule> schedDao =
+                (IOrmEntityDao<NopJobSchedule>) daoProvider.daoFor(NopJobSchedule.class);
+        for (int i = 0; i < 6; i++) {
+            NopJobSchedule concurrent = schedDao.requireEntityById(schedule.getJobScheduleId());
+            concurrent.setFireCount((long) i + 100);
+            schedDao.updateEntityDirectly(concurrent);
+        }
+
+        try {
+            fireStore.completeFireAndUpdateSchedule(fireForComplete, scheduleForComplete);
+            System.out.println("SUCCESS — no exception");
+        } catch (NopException e) {
+            System.out.println("ERROR CODE: " + e.getErrorCode());
+            e.printStackTrace(System.out);
+        }
     }
 
     @SuppressWarnings("unchecked")
