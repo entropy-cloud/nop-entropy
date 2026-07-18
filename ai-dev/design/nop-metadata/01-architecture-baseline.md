@@ -1090,7 +1090,7 @@ querySpace 解析规则（plan 0700-2 D1.1 扩展）：entity 端点 querySpace 
 
 **ORM 隐式过滤旁路裁定**：原生聚合 SQL 不应用 ORM 隐式过滤（租户/逻辑删除/版本）。entity 路径经 `orm().executeQuery` 时，聚合 SQL 是物理表直查，**绕过 ORM 实体隐式过滤**。首版策略——对启用了 `useTenant`/`useLogicalDelete` 的 entity，聚合 action 在 ErrorCode/文档中显式提示"原生 SQL 聚合不应用隐式过滤"；首版**不限制**（允许执行），由调用方知晓此语义。该裁定写入本节，不静默忽略。
 
-**`expression` 型 Measure 过渡说明（design 已裁定，实现属 successor）**：`MetaTableMeasure.expression` 非空的执行路径**已由 D12（§4.4.2）裁定**为「方言原生 SQL 片段」表达式语言 + 三条路径执行契约（entity bypass EQL / external-sql withConnection / 跨库内存 首版显式失败）。D12 为 design-first plan（`2026-07-18-1100-1`），**实现属 successor plan**——在 successor 落地前，5 处 `ERR_AGGR_EXPRESSION_MEASURE` 抛点（`MetaAggregationExecutor.java:1129` / `:1756` / `:1817` / `:2355` / `:2371`）**维持不变**：expression 型 Measure 仍显式失败（不静默跳过、不当 0 返回、不伪造）。
+**`expression` 型 Measure 过渡说明（实现已落地）**：`MetaTableMeasure.expression` 非空的执行路径**已由 D12（§4.4.2）裁定并实现**（plan `2026-07-18-1400-1`）：表达式语言 = 方言原生 SQL 片段；三条路径执行契约（entity bypass EQL / external-sql withConnection / JOIN 同库注入）；跨库内存路径 expression 显式失败（对齐 D10）；D12.3 安全模型（关键字/函数黑名单 + 标识符白名单 + 字面量参数绑定）；D12.4 失败路径 ErrorCode 体系（unparseable/unsafe/dialect-unsupported/memory-not-computable/too-long/having-order-by-unsupported）；D12.5 save-time 校验（`NopMetaTableMeasureBizModel.save` 入口 + VARCHAR(1000) 容量约束）。原 5 处 `ERR_AGGR_EXPRESSION_MEASURE` 抛点已全部替换为真实执行 / 显式失败。
 
 **D7 — granularity→SQL 分桶翻译表**：
 
@@ -1218,11 +1218,11 @@ granularity→分桶表达式表（三条路径一致复用，含 entity）：
 
 - **Anti-Hollow**：三条路径在运行时真实生成 HAVING/ORDER BY 子句（SQL 路径）/ 真实调用 MemoryFilterEvaluator + MemoryRowComparator（内存路径），非空方法体/非 stub。端到端测试覆盖：单表 entity / external-sql / JOIN 同库 3 条 / 跨库 1 条 各至少 1 条断言 having 过滤生效 + orderBy 排序正确。
 
-**D12 — expression 型 Measure 表达式语言与执行契约（design-first，plan 2026-07-18-1100-1 落地）**：
+**D12 — expression 型 Measure 表达式语言与执行契约（design-first plan 2026-07-18-1100-1 裁定；实现 plan 2026-07-18-1400-1 落地）**：
 
-把 §4.4.2 D6「`expression` 型 Measure 首版显式不支持」推进到「有明确表达式语言裁定 + 三条执行路径的执行契约与安全边界」。**本节仅交付设计决策与使用契约**（design-first plan），不替换 live code 5 处 `ERR_AGGR_EXPRESSION_MEASURE` 抛点（`MetaAggregationExecutor.java:1129` / `:1756` / `:1817` / `:2355` / `:2371`）；实现属 successor plan。
+把 §4.4.2 D6「`expression` 型 Measure 首版显式不支持」推进到「有明确表达式语言裁定 + 三条执行路径的执行契约与安全边界」。**D12 仅交付设计决策与使用契约**（design-first plan），不替换 live code 5 处 `ERR_AGGR_EXPRESSION_MEASURE` 抛点；实现属 successor plan（`2026-07-18-1400-1`，已落地）。
 
-> 落地范围：D6 「首版显式不支持」段落（`01-architecture-baseline.md:1093`）已更新为指向 D12 的过渡说明（实现未落地前抛点维持不变）。
+> 落地范围：D6 「首版显式不支持」段落（`01-architecture-baseline.md:1093`）已更新为指向 D12 的过渡说明（实现落地后改为「实现已落地」描述）。原 5 处 `ERR_AGGR_EXPRESSION_MEASURE` 抛点（位于 `MetaAggregationExecutor.loadCrossDbMeasures` / `loadJoinMeasures` / `loadJoinMeasuresWithResolver` / `loadEntityMeasures` / `loadExternalMeasures`）已按 D12.2 三路径契约替换为真实执行逻辑 / 显式失败；`ERR_AGGR_EXPRESSION_MEASURE` ErrorCode 定义已删除。
 
 - **D12.1 — 表达式语言选型（方言原生 SQL 片段）**：
     - **选定**：expression 型 Measure 的表达式语言为**方言原生 SQL 片段**（dialect-native SQL fragment）。同一份 expression 文本在三条执行路径上**语义一致**——作为聚合表达式（`<agg>(<expr>)` 的 `<expr>` 部分）注入到对应路径生成的物理 SQL 中。
@@ -1266,7 +1266,7 @@ granularity→分桶表达式表（三条路径一致复用，含 entity）：
         - `metadata.aggr-expression-dialect-unsupported` — 表达式使用了当前方言不支持的函数/运算符（如 MySQL 不支持 `DATE_TRUNC`，H2 不支持某些 PG 函数）。抛点：执行阶段（dialect 路由后）。
         - `metadata.aggr-expression-memory-not-computable` — 跨库内存路径无法在内存求值该 expression（对齐 D10 既有铁律）。抛点：跨库内存聚合入口。
         - `metadata.aggr-expression-too-long` — expression 内容超 VARCHAR(1000) 容量上限（对齐 §2.5.2 `Filter.definition` json-4000 同铁律：不截断、不静默存入截断后的脏数据）。抛点：save 阶段。
-    - **既有 `metadata.aggr-expression-measure-unsupported`（D6）处置**：successor 实现 plan 落地后，5 处 `ERR_AGGR_EXPRESSION_MEASURE` 抛点（`MetaAggregationExecutor.java:1129` / `:1756` / `:1817` / `:2355` / `:2371`）按 D12.2 三条路径契约替换为真实执行逻辑（entity 路径走 bypass EQL + 物理 Connection；external-sql 路径走 withConnection + 标识符白名单 + 参数绑定；跨库内存路径对不可算 expression 抛 `metadata.aggr-expression-memory-not-computable`）。在 successor 落地前，5 处抛点**维持不变**（design-first plan 不动 live code）。
+    - **既有 `metadata.aggr-expression-measure-unsupported`（D6）处置**：successor 实现 plan（`2026-07-18-1400-1`）落地后，原 5 处 `ERR_AGGR_EXPRESSION_MEASURE` 抛点（位于 `MetaAggregationExecutor.loadCrossDbMeasures` / `loadJoinMeasures` / `loadJoinMeasuresWithResolver` / `loadEntityMeasures` / `loadExternalMeasures`）已按 D12.2 三条路径契约替换为真实执行逻辑（entity 路径走 bypass EQL + 物理 Connection；external-sql 路径走 withConnection + 标识符白名单 + 参数绑定；JOIN 同库三路径注入 `<agg>(<validatedExpr>)`；跨库内存路径对不可算 expression 抛 `metadata.aggr-expression-memory-not-computable`）。`ERR_AGGR_EXPRESSION_MEASURE` ErrorCode 定义已删除（`grep -n 'ERR_AGGR_EXPRESSION_MEASURE'` 在 nop-metadata 模块返回 0 处）。
 
 - **D12.5 — save-time 校验裁定（裁定是否需要，实现属 successor）**：
     - **裁定**：expression 型 Measure **需要 save-time 语法/安全预检**——入库前调 D12.3 parse 阶段校验（关键字/函数黑名单 + 标识符白名单），不可解析/不安全/容量超限一律显式失败（不静默存入）。这与 §2.5.2 D2 既有 save override 模式一致（`CrudBizModel.save` 在持久化前执行校验）。
