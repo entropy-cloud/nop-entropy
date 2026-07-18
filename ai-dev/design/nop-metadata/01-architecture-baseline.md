@@ -1174,6 +1174,37 @@ granularity→分桶表达式表（external/sql 路径，withConnection 原生 S
 - **范围裁定（收口 deferred）**：本 D10 收口 D8 Deferred「跨 querySpace entity-entity JOIN 聚合」+ D9 Deferred「跨 querySpace external↔external JOIN 聚合」+ D1.5 Deferred「不可同库混合端点聚合」（三者均 deferred → plan 1500-2）。**大基数 countDistinct 精确去重**（接近/超 `MAX_CROSS_DB_ROWS` 的去重）为 optimization candidate（超限即失败已满足当前结果面，非静默近似）。
 - **Anti-Hollow**：`executeCrossDbJoinAggregation` 在运行时被 `executeJoinAggregation` 跨库分支真实调用（非空方法体、非静默跳过）；复用的 `MetaJoinExecutor.executeJoin`(`:139`) 被真实调用并产出合并行（非仅类型存在）；内存 GROUP BY 产出真实聚合值（按端点命名空间取值，entity 端点组合聚合值正确非静默 0）。
 
+**D11 — 聚合查询 having/orderBy 增强（plan 2026-07-18-0900-2 落地）**：
+
+把 `queryAggregation` 从仅支持 `filter/limit/offset` 扩展到支持 `having`（对聚合结果过滤，如 `SUM(amount) > 1000`）+ `orderBy`（按 measure/dimension 排序），三条执行路径（entity 原生 SQL / external-sql 原生 SQL / 跨库内存 GROUP BY）一致支持。
+
+- **入口签名扩展**：`queryAggregation(metaTableId, measures, dimensions, filter?, joinId?, limit?, offset?, having?, orderBy?, context)`，落点 `NopMetaTableBizModel`。`having`、`orderBy` 为可选参数，**固定在 `offset` 之后**（向后兼容：缺席时维持既有行为零变化）。
+
+- **D11.1 — having 参数建模（Decision）**：
+    - **结构**：`having` 为 `TreeBean`（与 `filter` 同结构 `{type, name?, value?, children?}`），叶子条件 `name` 引用**用户选定的** measure/dimension 名（必须在 `measures=[...]` + `dimensions=[...]` 选定集合内）。
+    - **op 集合**：与 `filter` 对齐——`eq/ne/gt/ge/lt/le/like/in/between/is-null/not-null` + 组合 `and/or/not`。
+    - **翻译机制（R1 B2 修复）**：扩展 `FilterToSqlTranslator` 新增重载 `translate(TreeBean filter, Function<String,String> fieldResolver)`。`fieldResolver` 非空时，叶子条件的 `name` 经回调解析为 SQL 表达式（如 `SUM(AMOUNT)`），**跳过 `validateIdentifier`**（因 aggSql 含括号会触发白名单失败）；该表达式中的列名已在 measure/dimension 加载时经白名单校验。`fieldResolver` 为空时维持既有 `requireField + validateIdentifier` 行为。既有 `translate(TreeBean)` 行为不变（委托 `translate(filter, null)`）。
+    - **name 集合限定（R1 M3 修复）**：having 的 `name` 必须在用户的 `measures=[...]` + `dimensions=[...]` 选定集合内。引用未选定 name → 显式失败（`ERR_AGGR_HAVING_UNKNOWN_NAME`）。name→aggSql 反查表从 `loadMeasures`/`loadDimensions` 返回的原始实体列表（仍持 measureName/dimensionName）阶段构建，不从 `MeasureSpec`（已丢 name）构建。
+
+- **D11.2 — orderBy 参数建模（Decision，R1 B1 修复）**：
+    - **类型**：`orderBy` 为 `List<OrderFieldBean>`（平台标准类型 `io.nop.api.core.beans.query.OrderFieldBean`，字段 `{owner, name, desc(boolean), nullsFirst(Boolean)}`）。**不是** 虚构的 `{name, dir:string}` 类型——平台全仓无 `OrderByBean`。
+    - **name 解析**：`name` 引用用户选定的 measure/dimension 名 → 解析为 `aggSql`/`groupExpr`（与 D11.1 同反查表）。引用未选定 name → 显式失败（`ERR_AGGR_ORDER_BY_UNKNOWN_NAME`）。
+    - **方向**：`desc=true` → `DESC`，`desc=false` → `ASC`。`nullsFirst` → SQL `NULLS FIRST/LAST`（原生路径）/ `Comparator` null 策略（内存路径）。
+
+- **D11.3 — 三条路径实现（Decision）**：
+    - **entity 原生 SQL 路径**：`executeEntityAggregation` 的 SQL 生成中，`GROUP BY` 后追加 `HAVING <translated>`（经 `translate(having, fieldResolver)` 翻译）+ `ORDER BY <orderByExprs>`。参数绑定顺序：filter 值 → having 值 → limit/offset。
+    - **external/sql 原生 SQL 路径**：`buildExternalAggregationSql` 同上追加。
+    - **JOIN 聚合 3 条同库路径**（entity↔entity / external↔external / 混合）：SQL 追加 HAVING + ORDER BY；having/orderBy 的 name → `JoinMeasureSpec.qualifiedAggCol`（已含 `l.`/`r.` 前缀）/ `JoinDimensionSpec.qualifiedCol`。
+    - **跨库内存 GROUP BY 路径**：
+        - **having**：内存 GROUP BY 产出 `List<Map<String,Object>>`（key 为大写化 alias）→ 新增**内存 TreeBean 求值器** `MemoryFilterEvaluator`，递归 and/or/not，叶子条件按 name（case-insensitive 匹配大写化 alias）取聚合值做比较。op 集合与 SQL 路径对齐。**类型强转**：聚合值可能 Long/Double/BigDecimal，用户字面量可能 Integer/String → 比较前统一转 `BigDecimal`（Number→BigDecimal）。
+        - **orderBy**：内存 GROUP BY 产出 group → 新增**内存多键比较器** `MemoryRowComparator`，按 `List<OrderFieldBean>` 逐字段排序（name→大写化 alias 取值，desc 生效，nullsFirst 生效），类型强转同 having。
+        - **顺序（D3）**：先 orderBy → 再 limit/offset（与 SQL `ORDER BY ... LIMIT` 一致）。orderBy 缺席时内存路径无序（沿用 D5 既有裁定），SQL 路径无 ORDER BY 子句。
+        - **executeJoin 不感知 having/orderBy**（R1 m4）：having/orderBy 必须在 memoryGroupBy 之后应用，`MetaJoinExecutor.executeJoin` 签名不变。
+
+- **失败路径显式化（#24，无静默跳过）**：having/orderBy 引用未选定 measure/dimension name → 显式失败（`ERR_AGGR_HAVING_UNKNOWN_NAME` / `ERR_AGGR_ORDER_BY_UNKNOWN_NAME`）；不支持的 op（SQL 路径 + 内存路径）→ 显式失败；having/orderBy 均缺席时既有行为零变化（SQL 无 HAVING/ORDER BY 子句，内存路径无过滤/无排序）。
+
+- **Anti-Hollow**：三条路径在运行时真实生成 HAVING/ORDER BY 子句（SQL 路径）/ 真实调用 MemoryFilterEvaluator + MemoryRowComparator（内存路径），非空方法体/非 stub。端到端测试覆盖：单表 entity / external-sql / JOIN 同库 3 条 / 跨库 1 条 各至少 1 条断言 having 过滤生效 + orderBy 排序正确。
+
 ---
 
 ## 五、与 nop-dyn 的关系
