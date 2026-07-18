@@ -860,9 +860,21 @@ orm.xml
 
 **复杂投影列处理**：首版取最外层 SELECT 输出列，不递归展开 CTE 别名/子查询内层列类型。递归展开为 follow-up（见 Deferred）。
 
-**字段类型获取裁定（方案 A 选定）**：首版**仅返回字段名/别名，不取类型**（`type=null`，不伪造）。理由：可移植、无需 DB 连接、与 AST 解析对齐。类型获取方案 B（`SELECT * FROM (<sourceSql>) _t LIMIT 0` 经 `ResultSetMetaData` 取列类型，需 querySpace→数据源→withConnection）与方案 C（用户手动录入 extConfig）作为 follow-up 增量。返回结构统一为 `{name, alias?, type?}`，方案 A 下 `type` 恒为 null。
+**字段类型获取裁定（方案 A 已落地 / 方案 B 已落地，plan 0900-1）**：
 
-**标识符安全**：sourceSql 是用户显式提供的视图定义（非自动注入面）。方案 A 不执行 SQL，无注入面。若后续采纳方案 B（LIMIT 0），须走 PreparedStatement 包装子查询、不拼接标识符（列名/表名不出现在拼接位），与 §2.7.1 D3 标识符防护原则一致。
+- **方案 A（默认基线，已落地）**：`SqlSelectFieldExtractor.extract(sql)` 仅返回字段名/别名，`type=null`（不伪造）。理由：可移植、无需 DB 连接、与 AST 解析对齐。返回结构统一为 `{name, alias?, type?}`，方案 A 下 `type` 恒为 null。
+- **方案 B（querySpace 可达时启用，已落地，plan 0900-1）**：经独立组件 `SqlViewFieldTypeInferrer.inferTypes(fields, sourceSql, querySpace, dsDao)` 跑 `SELECT * FROM (<sourceSql>) _t LIMIT 0` + `ResultSetMetaData.getColumnTypeName` 取列类型，按列序对齐补全 `SqlViewField.type` / `ResolvedTableField.dataType`。类型推断在 BizModel 层完成（`NopMetaTableBizModel.createSqlTable` / `resolveTableFields`），**不修改 `SqlSelectFieldExtractor`（保持"无状态、无 DB 连接"契约）+ 不修改 `MetaTableFieldResolver`（10+ 仅消费 name 的调用方零影响，plan R2 N1 修复）**。
+- **方案 C（用户手动录入 extConfig）**：不做。external 表已有 buildSql JSON 手动编辑路径。
+
+**方案 B 裁定（plan 0900-1 D1/D2/D3）**：
+
+- **D1 触发时机**：`querySpace` 为 null/空 → 不推断，type=null（方案 A 基线，**非降级**）；`querySpace` 提供 = 显式推断请求，连接不可达 / 数据源 DISABLED / 方言不支持 / sourceSql 执行失败 / 列数不匹配 / 取类型元数据失败 → **显式抛 NopException**（不静默 fallback type=null、不吞异常）。不存在"querySpace 提供但静默 fallback"路径（plan R1 B5 修复）。
+- **D2 类型表示**：取 `ResultSetMetaData.getColumnTypeName(i)` 返回的**方言原生类型名**（如 `INTEGER`/`VARCHAR`/`BIGINT`）。不归一化、不保留 length/precision。NULL 类型列（如 `SELECT NULL AS c`，`getColumnTypeName` 返回 null）→ type=null（列类型确属未知，非伪造）。与 external 表 buildSql JSON 的 `dataType` 字段语义对齐（同为方言原生类型名）。
+- **D3 列对齐策略**：按 projections 列表序号（即 `SqlViewField` 在 `extract()` 返回的 List 中的 index，0-based）与 `ResultSetMetaData` 列序号（1-based）一一对应。**不按名匹配**（避免 driver 返回的 columnLabel 与解析的 name 在别名/表达式列上歧义）。表达式列 `<expr_N>` 的 type 取对应序号的 ResultSetMetaData 列类型（driver 自动生成的类型）。
+- **类型不持久化（plan R1 B4）**：`createSqlTable` 仅持久化 `sourceSql` 到 `NopMetaTable`，字段列表不持久化。推断的 type 为运行时推断结果，不新增 ORM 列。`createSqlTable` 返回时一次性推断；`resolveTableFields` 每次调用时重新推断（与 sourceSql 每次重新解析一致，性能可接受——字段解析本就是运行时投影）。
+- **方言支持集**：首版 H2 / MySQL / PostgreSQL（与 §4.4 LIMIT/OFFSET 便携语法方言集一致）。`DatabaseMetaData.getDatabaseProductName` 取方言名；其他方言显式失败抛 `metadata.sql-type-inference-dialect-not-supported`（不静默 fallback）。SUPPORTED_DIALECTS 三处重复收敛为非阻塞 follow-up。
+
+**标识符安全**：sourceSql 是用户显式提供的视图定义（非自动注入面）。方案 A 不执行 SQL，无注入面。方案 B（LIMIT 0，已落地）走 PreparedStatement 包装子查询（`SELECT * FROM (<sourceSql>) _t LIMIT 0`）、不拼接标识符（列名/表名不出现在拼接位），sourceSql 作为 PreparedStatement 文本（非拼接值），与 §2.7.1 D3 标识符防护原则一致。
 
 #### 4.2.2 Action 契约（P3-1 裁定）
 
