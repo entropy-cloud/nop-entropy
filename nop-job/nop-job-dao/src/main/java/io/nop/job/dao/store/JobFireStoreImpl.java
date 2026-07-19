@@ -131,7 +131,9 @@ public class JobFireStoreImpl implements IJobFireStore {
         // modifications, so tryUpdateWithVersionCheck will flush them in the new transaction.
         // No retry loop: with @SingleSession, requireEntityById cannot load fresh data
         // (cache always returns the same object), making retries pointless.
-        scheduleDao().tryUpdateWithVersionCheck(schedule);
+        if (!scheduleDao().tryUpdateWithVersionCheck(schedule)) {
+            LOG.warn("nop.job.complete.schedule-update-conflict:fireId={}", fire.getJobFireId());
+        }
     }
 
     @Transactional(propagation = TransactionPropagation.REQUIRES_NEW)

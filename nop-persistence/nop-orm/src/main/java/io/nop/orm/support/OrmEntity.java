@@ -225,7 +225,7 @@ public abstract class OrmEntity implements IOrmEntity {
 
     @Override
     public void orm_readonly(boolean readonly) {
-        this.readonly = true;
+        this.readonly = readonly;
     }
 
     @Override
