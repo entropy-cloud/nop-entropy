@@ -12,9 +12,13 @@ import io.nop.dao.api.IEntityDao;
 import io.nop.graphql.core.IGraphQLExecutionContext;
 import io.nop.graphql.core.engine.IGraphQLEngine;
 import io.nop.metadata.core._NopMetadataCoreConstants;
+import io.nop.metadata.dao.entity.NopMetaEntity;
+import io.nop.metadata.dao.entity.NopMetaEntityField;
 import io.nop.metadata.dao.entity.NopMetaLineageEdge;
 import io.nop.metadata.dao.entity.NopMetaModule;
+import io.nop.metadata.dao.entity.NopMetaOrmModel;
 import io.nop.metadata.dao.entity.NopMetaTable;
+import io.nop.metadata.dao.entity.NopMetaTableMeasure;
 import jakarta.inject.Inject;
 import org.junit.jupiter.api.Test;
 
@@ -24,6 +28,7 @@ import java.util.List;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
@@ -50,6 +55,9 @@ public class TestNopMetaLineageEdgeBizModel extends JunitBaseTestCase {
 
     @Inject
     io.nop.metadata.service.entity.NopMetaLineageEdgeBizModel lineageBiz;
+
+    @Inject
+    io.nop.orm.IOrmTemplate ormTemplate;
 
     // ===== recordLineage =====
 
@@ -785,6 +793,271 @@ public class TestNopMetaLineageEdgeBizModel extends JunitBaseTestCase {
                 "wildcard CTE output must be explicitly unresolved with reason: " + data);
     }
 
+    // ===== extractMeasureLineage（expression 型 Measure 列级血缘，架构基线 §2.6.1 D1-D6）=====
+
+    /**
+     * 端到端测试 1（成功路径，D1+D3+D4）：建表（含 4 字段 A/B/C/D）+ 2 个 expression measure（M1=A+B, M2=C+D）
+     * → 调 action → 断言 extractedEdgeCount **==4**（严格，flat-collect：A→M1, B→M1, C→M2, D→M2）
+     * + 4 条 measure_parse 自环边可经 DAO 查到 + targetColumn == measureName + transformType == aggregated。
+     *
+     * <p>Anti-Hollow：真实经 validator 分词 + resolver 归属 + 边落盘，断言入口到出口连通，非空壳。
+     */
+    @Test
+    public void testExtractMeasureLineageSuccessFlatCollect() {
+        String moduleId = ensureModule("mod-measure-success");
+        String entityId = saveEntity(moduleId, "MeasureSuccessEnt", "A", "B", "C", "D");
+        String tableId = saveEntityTable(moduleId, "T_MEASURE_OK", entityId);
+
+        saveMeasure(tableId, "M1", "A + B", _NopMetadataCoreConstants.AGG_FUNC_SUM);
+        saveMeasure(tableId, "M2", "C + D", _NopMetadataCoreConstants.AGG_FUNC_SUM);
+
+        GraphQLResponseBean resp = execute(
+                "mutation { NopMetaLineageEdge__extractMeasureLineage(metaTableId: \"" + tableId + "\") }");
+        assertFalse(resp.hasError(), "extractMeasureLineage should not error: " + resp);
+        String data = String.valueOf(resp.getData());
+        assertTrue(data.contains("extractedEdgeCount=4"),
+                "flat-collect: 4 edges (A->M1, B->M1, C->M2, D->M2), strict ==4: " + data);
+
+        // 4 条 measure_parse 自环边可查
+        assertEquals(4L, countMeasureParseEdges(tableId),
+                "exactly 4 measure_parse self-loop edges persisted");
+
+        // targetColumn == measureName + transformType == aggregated
+        NopMetaLineageEdge aToM1 = findColumnEdge(tableId, tableId, "A", "M1");
+        assertNotNull(aToM1, "A->M1 self-loop edge must exist");
+        assertEquals(_NopMetadataCoreConstants.LINEAGE_SOURCE_MEASURE_PARSE, aToM1.getLineageSource());
+        assertEquals(_NopMetadataCoreConstants.LINEAGE_TRANSFORM_AGGREGATED, aToM1.getTransformType(),
+                "aggFunc non-null -> transformType=aggregated (D4)");
+        assertEquals(tableId, aToM1.getSourceTableId(), "self-loop: sourceTableId == targetTableId");
+        assertEquals(tableId, aToM1.getTargetTableId());
+
+        NopMetaLineageEdge dToM2 = findColumnEdge(tableId, tableId, "D", "M2");
+        assertNotNull(dToM2, "D->M2 self-loop edge must exist");
+        assertEquals(_NopMetadataCoreConstants.LINEAGE_TRANSFORM_AGGREGATED, dToM2.getTransformType());
+    }
+
+    /**
+     * 端到端测试 2（召回路径，D2）：基于测试 1 的数据，调直接边查询召回——
+     * `where sourceTableId=T AND sourceColumn=A AND lineageSource=measure_parse` 返回边的
+     * targetColumn == 引用 A 的 measure 的 measureName（M1），验证 D2 召回完整性。
+     */
+    @Test
+    public void testExtractMeasureLineageRecallByDirectEdgeQuery() {
+        String moduleId = ensureModule("mod-measure-recall");
+        String entityId = saveEntity(moduleId, "MeasureRecallEnt", "A", "B");
+        String tableId = saveEntityTable(moduleId, "T_MEASURE_RECALL", entityId);
+        saveMeasure(tableId, "M_RECALL", "A + B", _NopMetadataCoreConstants.AGG_FUNC_SUM);
+
+        execute("mutation { NopMetaLineageEdge__extractMeasureLineage(metaTableId: \"" + tableId + "\") }");
+
+        // D2 召回：直接边查询——列 A 影响哪些 measure
+        IEntityDao<NopMetaLineageEdge> dao = daoProvider.daoFor(NopMetaLineageEdge.class);
+        QueryBean q = new QueryBean();
+        q.addFilter(FilterBeans.eq(NopMetaLineageEdge.PROP_NAME_sourceTableId, tableId));
+        q.addFilter(FilterBeans.eq(NopMetaLineageEdge.PROP_NAME_sourceColumn, "A"));
+        q.addFilter(FilterBeans.eq(NopMetaLineageEdge.PROP_NAME_lineageSource,
+                _NopMetadataCoreConstants.LINEAGE_SOURCE_MEASURE_PARSE));
+        List<NopMetaLineageEdge> edges = dao.findAllByQuery(q);
+        assertEquals(1, edges.size(), "recall: A affects exactly 1 measure: " + edges);
+        assertEquals("M_RECALL", edges.get(0).getTargetColumn(),
+                "targetColumn == measureName (D2 recall integrity)");
+
+        // D2：仅经既有 NopMetaLineageEdge CRUD 直接查询召回（无新 API、无 BFS 改动）。
+        // 多列复合查询条件同样召回（验证 sourceTableId+sourceColumn+lineageSource 三条件命中）：
+        QueryBean q2 = new QueryBean();
+        q2.addFilter(FilterBeans.eq(NopMetaLineageEdge.PROP_NAME_sourceTableId, tableId));
+        q2.addFilter(FilterBeans.eq(NopMetaLineageEdge.PROP_NAME_sourceColumn, "B"));
+        q2.addFilter(FilterBeans.eq(NopMetaLineageEdge.PROP_NAME_lineageSource,
+                _NopMetadataCoreConstants.LINEAGE_SOURCE_MEASURE_PARSE));
+        List<NopMetaLineageEdge> edges2 = dao.findAllByQuery(q2);
+        assertEquals(1, edges2.size(), "recall: B affects exactly 1 measure: " + edges2);
+        assertEquals("M_RECALL", edges2.get(0).getTargetColumn(),
+                "D2 recall integrity for column B");
+    }
+
+    /**
+     * 端到端测试 3（per-measure 失败隔离，D5 (b)）：建表 + 2 个 measure，measure1 expression 合法（A+B），
+     * measure2 expression 含关键字黑名单（DROP，触发 unsafe）→ 调 action → 断言
+     * extractedEdgeCount == measure1 的边数（2）+ errors 含 measure2 条目（标 measureName + 错误）
+     * + measure1 的边已落盘（per-measure 隔离不中断整批）。
+     */
+    @Test
+    public void testExtractMeasureLineagePerMeasureIsolation() {
+        String moduleId = ensureModule("mod-measure-iso");
+        String entityId = saveEntity(moduleId, "MeasureIsoEnt", "A", "B");
+        String tableId = saveEntityTable(moduleId, "T_MEASURE_ISO", entityId);
+        saveMeasure(tableId, "M_OK", "A + B", _NopMetadataCoreConstants.AGG_FUNC_SUM);
+        // measure2 expression 含 DROP（关键字黑名单），validator 会抛 unsafe
+        saveMeasure(tableId, "M_BAD", "DROP", _NopMetadataCoreConstants.AGG_FUNC_SUM);
+
+        GraphQLResponseBean resp = execute(
+                "mutation { NopMetaLineageEdge__extractMeasureLineage(metaTableId: \"" + tableId + "\") }");
+        assertFalse(resp.hasError(), "per-measure failure must not break the whole action: " + resp);
+        String data = String.valueOf(resp.getData());
+        assertTrue(data.contains("extractedEdgeCount=2"),
+                "M_OK produces 2 edges (A->M_OK, B->M_OK), M_BAD produces none: " + data);
+        assertTrue(data.contains("M_BAD"),
+                "errors must contain M_BAD measureName (per-measure isolation label): " + data);
+
+        // M_OK 的边已落盘（per-measure 隔离不中断整批）
+        assertEquals(2L, countMeasureParseEdges(tableId),
+                "M_OK edges persisted (per-measure isolation): 2 edges");
+        assertNotNull(findColumnEdge(tableId, tableId, "A", "M_OK"),
+                "A->M_OK edge must persist despite M_BAD failure");
+    }
+
+    /**
+     * 端到端测试 4（BFS 非污染，D1 语义隔离）：基于测试 1 数据，调 getDownstream(T) →
+     * 断言返回列表**不含 T 自身**（自环边 BFS 不可达）；调 getImpactAnalysis(T) → 断言不含 T。
+     *
+     * <p>Anti-Hollow：经既有 BFS 实现验证 self-loop 边在 BFS 不可达（visited.add(T) 恒 false）。
+     */
+    @Test
+    public void testExtractMeasureLineageBfsNotPolluted() {
+        String moduleId = ensureModule("mod-measure-bfs");
+        String entityId = saveEntity(moduleId, "MeasureBfsEnt", "A", "B");
+        String tableId = saveEntityTable(moduleId, "T_MEASURE_BFS", entityId);
+        saveMeasure(tableId, "M_BFS", "A + B", _NopMetadataCoreConstants.AGG_FUNC_SUM);
+
+        execute("mutation { NopMetaLineageEdge__extractMeasureLineage(metaTableId: \"" + tableId + "\") }");
+
+        // 自环边已落盘
+        assertEquals(2L, countMeasureParseEdges(tableId), "self-loop edges persisted");
+
+        // BFS 不可达：getDownstream(T) 不含 T 自身
+        List<String> downstream = lineageBiz.getDownstream(tableId);
+        assertFalse(downstream.contains(tableId),
+                "BFS semantic isolation: self-loop edge not reachable in getDownstream: " + downstream);
+
+        // getImpactAnalysis(T) 不含 T
+        List<String> impact = lineageBiz.getImpactAnalysis(tableId, null);
+        assertFalse(impact.contains(tableId),
+                "BFS semantic isolation: self-loop edge not reachable in getImpactAnalysis: " + impact);
+        // 按列过滤也不可达
+        List<String> impactByCol = lineageBiz.getImpactAnalysis(tableId, "A");
+        assertFalse(impactByCol.contains(tableId),
+                "BFS semantic isolation by column: self-loop edge not reachable: " + impactByCol);
+    }
+
+    /**
+     * 端到端测试 5（dict 值生效，D4）：断言落盘边的 lineageSource == measure_parse
+     * （经 `_NopMetadataCoreConstants.LINEAGE_SOURCE_MEASURE_PARSE` 常量比对），
+     * 验证 Phase 1 常量生成正确 + action 正确使用。
+     */
+    @Test
+    public void testExtractMeasureLineageDictValueEffective() {
+        String moduleId = ensureModule("mod-measure-dict");
+        String entityId = saveEntity(moduleId, "MeasureDictEnt", "X", "Y");
+        String tableId = saveEntityTable(moduleId, "T_MEASURE_DICT", entityId);
+        saveMeasure(tableId, "M_DICT", "X + Y", _NopMetadataCoreConstants.AGG_FUNC_SUM);
+
+        execute("mutation { NopMetaLineageEdge__extractMeasureLineage(metaTableId: \"" + tableId + "\") }");
+
+        NopMetaLineageEdge e = findColumnEdge(tableId, tableId, "X", "M_DICT");
+        assertNotNull(e, "X->M_DICT edge must exist");
+        // 经生成的 _NopMetadataCoreConstants.LINEAGE_SOURCE_MEASURE_PARSE 常量比对
+        assertEquals(_NopMetadataCoreConstants.LINEAGE_SOURCE_MEASURE_PARSE, e.getLineageSource(),
+                "lineageSource == measure_parse (Phase 1 常量生成 + action 正确使用)");
+        assertEquals("measure_parse", e.getLineageSource(),
+                "lineageSource string value must be 'measure_parse'");
+    }
+
+    /**
+     * 端到端测试 6（重抽 replace 幂等，D6）：基于测试 1 数据，修改某 measure 的 expression 不再引用列 A
+     * → 再调 action → 断言 A→该 measure 的旧边已删（不存在）+ 新引用列的边已插
+     * + **总边数 == 重抽后所有 expression measure 的列依赖数总和**（含未修改 measure 的边被 replace 重插）+ 无重复。
+     */
+    @Test
+    public void testExtractMeasureLineageReplaceIdempotent() {
+        String moduleId = ensureModule("mod-measure-replace");
+        String entityId = saveEntity(moduleId, "MeasureReplaceEnt", "A", "B", "C", "D");
+        String tableId = saveEntityTable(moduleId, "T_MEASURE_REP", entityId);
+        // M_REP1 原 expression 引用 A,B；M_REP2 引用 C,D —— 原总边数 4
+        saveMeasure(tableId, "M_REP1", "A + B", _NopMetadataCoreConstants.AGG_FUNC_SUM);
+        saveMeasure(tableId, "M_REP2", "C + D", _NopMetadataCoreConstants.AGG_FUNC_SUM);
+
+        execute("mutation { NopMetaLineageEdge__extractMeasureLineage(metaTableId: \"" + tableId + "\") }");
+        assertEquals(4L, countMeasureParseEdges(tableId), "initial total: 4 edges");
+        assertNotNull(findColumnEdge(tableId, tableId, "A", "M_REP1"),
+                "A->M_REP1 edge exists initially");
+
+        // 修改 M_REP1 的 expression 不再引用 A，改为引用 B,C
+        updateMeasureExpression(tableId, "M_REP1", "B + C");
+
+        // 重抽
+        GraphQLResponseBean resp = execute(
+                "mutation { NopMetaLineageEdge__extractMeasureLineage(metaTableId: \"" + tableId + "\") }");
+        assertFalse(resp.hasError(), "re-extract should not error: " + resp);
+
+        // A->M_REP1 旧边已删（不存在）—— replace 语义生效
+        assertNull(findColumnEdge(tableId, tableId, "A", "M_REP1"),
+                "D6 replace: stale A->M_REP1 edge must be deleted");
+
+        // 新引用列的边已插
+        assertNotNull(findColumnEdge(tableId, tableId, "B", "M_REP1"),
+                "new B->M_REP1 edge inserted after replace");
+        assertNotNull(findColumnEdge(tableId, tableId, "C", "M_REP1"),
+                "new C->M_REP1 edge inserted after replace");
+
+        // 总边数 == 重抽后所有 expression measure 的列依赖数总和
+        // M_REP1: B,C → 2；M_REP2: C,D → 2 → 总 4
+        assertEquals(4L, countMeasureParseEdges(tableId),
+                "D6 replace: total edges == sum of all measure deps after re-extract: 4");
+
+        // 无重复（同样调用再抽一次，边数仍为 4）
+        execute("mutation { NopMetaLineageEdge__extractMeasureLineage(metaTableId: \"" + tableId + "\") }");
+        assertEquals(4L, countMeasureParseEdges(tableId),
+                "D6 replace idempotent: second re-extract keeps total at 4, no duplicates");
+    }
+
+    /**
+     * 端到端测试 7（边界：aggFunc null → derived，D4 边界裁定）：建表 + expression measure 且 aggFunc=null
+     * → 调 action → 断言产出边 transformType == derived（无聚合包裹）。
+     */
+    @Test
+    public void testExtractMeasureLineageAggFuncNullDerived() {
+        String moduleId = ensureModule("mod-measure-derived");
+        String entityId = saveEntity(moduleId, "MeasureDerivedEnt", "P", "Q");
+        String tableId = saveEntityTable(moduleId, "T_MEASURE_DERIVED", entityId);
+        // aggFunc=null 的 expression measure（极端 case）
+        saveMeasure(tableId, "M_DERIVED", "P + Q", null);
+
+        execute("mutation { NopMetaLineageEdge__extractMeasureLineage(metaTableId: \"" + tableId + "\") }");
+
+        NopMetaLineageEdge e = findColumnEdge(tableId, tableId, "P", "M_DERIVED");
+        assertNotNull(e, "P->M_DERIVED edge must exist");
+        assertEquals(_NopMetadataCoreConstants.LINEAGE_TRANSFORM_DERIVED, e.getTransformType(),
+                "D4 boundary: aggFunc null -> transformType=derived");
+    }
+
+    /**
+     * 端到端测试 8（resolver 表级前置失败，D5 (a)）：建一张 entity 表但 baseEntityId=null → 调 action
+     * → 断言**表级前置失败**显式抛 `ERR_FIELD_RESOLVE_BASE_ENTITY_NULL`（resolver per-table 失败，
+     * 不进 per-measure 隔离、不静默空集）。
+     */
+    @Test
+    public void testExtractMeasureLineageResolverTableLevelFailure() {
+        String moduleId = ensureModule("mod-measure-resolver-fail");
+        // entity 表但 baseEntityId=null（区别于既有 saveSqlTable：不设 sourceSql/buildSql）
+        String tableId = saveEntityTable(moduleId, "T_MEASURE_NO_ENTITY", null);
+        saveMeasure(tableId, "M_RESOLVER_FAIL", "A + B", _NopMetadataCoreConstants.AGG_FUNC_SUM);
+
+        GraphQLResponseBean resp = execute(
+                "mutation { NopMetaLineageEdge__extractMeasureLineage(metaTableId: \"" + tableId + "\") }");
+        assertTrue(resp.hasError(),
+                "table-level pre-condition failure (baseEntityId null) must fast-fail "
+                        + "(not silent empty, not per-measure isolation): " + resp);
+        // ErrorCode 标识检查（baseEntityId null 抛 ERR_FIELD_RESOLVE_BASE_ENTITY_NULL）
+        String errorCode = resp.getErrorCode();
+        assertNotNull(errorCode, "GraphQL response must carry errorCode extension: " + resp);
+        assertTrue(errorCode.contains("field-resolve-base-entity-null"),
+                "error must be ERR_FIELD_RESOLVE_BASE_ENTITY_NULL (table-level pre-condition failure), "
+                        + "got: " + errorCode);
+        // 不产任何边
+        assertEquals(0L, countMeasureParseEdges(tableId),
+                "table-level pre-condition failure must not produce any edges");
+    }
+
     // ===== helpers =====
 
     private String ensureModule(String moduleName) {
@@ -832,6 +1105,101 @@ public class TestNopMetaLineageEdgeBizModel extends JunitBaseTestCase {
         dao.saveEntity(t);
         dao.flushSession();
         return t.getMetaTableId();
+    }
+
+    /**
+     * 保存一张 tableType=entity 的逻辑表，可指定 baseEntityId（区别于既有 {@link #saveTable}）。
+     * 用于 expression measure 列级血缘测试：baseEntityId 非 null 时 resolver 成功解析字段集合；
+     * baseEntityId=null 时 resolver 抛 ERR_FIELD_RESOLVE_BASE_ENTITY_NULL（表级前置失败）。
+     */
+    private String saveEntityTable(String moduleId, String tableName, String baseEntityId) {
+        IEntityDao<NopMetaTable> dao = daoProvider.daoFor(NopMetaTable.class);
+        NopMetaTable t = dao.newEntity();
+        t.setMetaModuleId(moduleId);
+        t.setTableName(tableName);
+        t.setDisplayName(tableName);
+        t.setTableType(_NopMetadataCoreConstants.TABLE_TYPE_ENTITY);
+        if (baseEntityId != null) {
+            t.setBaseEntityId(baseEntityId);
+        }
+        dao.saveEntity(t);
+        dao.flushSession();
+        return t.getMetaTableId();
+    }
+
+    /**
+     * 建一个 NopMetaOrmModel + NopMetaEntity + 若干 NopMetaEntityField，返回 entityId。
+     * OrmModel 是 NopMetaEntity.ormModelId 的 mandatory 引用，必须先建。
+     */
+    private String saveEntity(String moduleId, String entityName, String... fieldNames) {
+        IEntityDao<NopMetaOrmModel> ormDao = daoProvider.daoFor(NopMetaOrmModel.class);
+        NopMetaOrmModel ormModel = ormDao.newEntity();
+        ormModel.setMetaModuleId(moduleId);
+        ormModel.setModelName(entityName + "_model");
+        ormModel.setIsDelta((byte) 0);
+        ormDao.saveEntity(ormModel);
+        String ormModelId = ormModel.getOrmModelId();
+
+        IEntityDao<NopMetaEntity> dao = daoProvider.daoFor(NopMetaEntity.class);
+        NopMetaEntity entity = dao.newEntity();
+        entity.setOrmModelId(ormModelId);
+        entity.setEntityName(entityName);
+        entity.setTableName("tbl_" + entityName);
+        entity.setDisplayName(entityName);
+        entity.setClassName("io.test." + entityName);
+        dao.saveEntity(entity);
+        String entityId = entity.getMetaEntityId();
+
+        IEntityDao<NopMetaEntityField> fdao = daoProvider.daoFor(NopMetaEntityField.class);
+        int propId = 1;
+        for (String fn : fieldNames) {
+            NopMetaEntityField f = fdao.newEntity();
+            f.setMetaEntityId(entityId);
+            f.setFieldName(fn);
+            f.setColumnCode(fn.toUpperCase());
+            f.setPropId(propId++);
+            fdao.saveEntity(f);
+        }
+        dao.flushSession();
+        return entityId;
+    }
+
+    /** 保存一条 expression 型 NopMetaTableMeasure（aggFunc 可为 null 测试 D4 边界）。 */
+    @SuppressWarnings("UnusedReturnValue")
+    private String saveMeasure(String tableId, String measureName, String expression, String aggFunc) {
+        IEntityDao<NopMetaTableMeasure> dao = daoProvider.daoFor(NopMetaTableMeasure.class);
+        NopMetaTableMeasure m = dao.newEntity();
+        m.setMetaTableId(tableId);
+        m.setMeasureName(measureName);
+        m.setExpression(expression);
+        if (aggFunc != null) {
+            m.setAggFunc(aggFunc);
+        }
+        dao.saveEntity(m);
+        dao.flushSession();
+        return m.getMeasureId();
+    }
+
+    /** 更新某 measure 的 expression（用于重抽 replace 测试）。经 raw SQL update + evict 避免会话挂载问题。 */
+    @SuppressWarnings("unchecked")
+    private void updateMeasureExpression(String tableId, String measureName, String newExpression) {
+        io.nop.core.lang.sql.SQL upd = io.nop.core.lang.sql.SQL.begin().allowUnderscoreName(true)
+                .sql("update NOP_META_TABLE_MEASURE set EXPRESSION=? where META_TABLE_ID=? and MEASURE_NAME=?",
+                        newExpression, tableId, measureName)
+                .end();
+        ormTemplate.executeUpdate(upd);
+        ormTemplate.evictAll(NopMetaTableMeasure.class.getName());
+    }
+
+    /** 计数某表的 measure_parse 自环边（sourceTableId==targetTableId==tableId）。 */
+    private long countMeasureParseEdges(String tableId) {
+        IEntityDao<NopMetaLineageEdge> dao = daoProvider.daoFor(NopMetaLineageEdge.class);
+        QueryBean q = new QueryBean();
+        q.addFilter(FilterBeans.eq(NopMetaLineageEdge.PROP_NAME_sourceTableId, tableId));
+        q.addFilter(FilterBeans.eq(NopMetaLineageEdge.PROP_NAME_targetTableId, tableId));
+        q.addFilter(FilterBeans.eq(NopMetaLineageEdge.PROP_NAME_lineageSource,
+                _NopMetadataCoreConstants.LINEAGE_SOURCE_MEASURE_PARSE));
+        return dao.countByQuery(q);
     }
 
     private String findTableId(String tableName) {

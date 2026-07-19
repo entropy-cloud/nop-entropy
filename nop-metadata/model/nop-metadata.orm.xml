@@ -63,6 +63,7 @@
             <option code="SQL_PARSE" label="SQL解析" value="sql_parse"/>
             <option code="OPEN_LINEAGE" label="OpenLineage" value="open_lineage"/>
             <option code="HOOK" label="Hook采集" value="hook"/>
+            <option code="MEASURE_PARSE" label="指标表达式解析" value="measure_parse"/>
         </dict>
         <dict label="管道类型" name="meta/pipeline-type" valueType="string" i18n-en:label="Pipeline Type">
             <option code="ETL" label="ETL" value="etl"/>

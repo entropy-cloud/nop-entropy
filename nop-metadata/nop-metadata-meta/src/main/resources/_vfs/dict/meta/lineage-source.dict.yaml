@@ -21,3 +21,7 @@ options:
     value: hook
     description: 
   
+  - label: 指标表达式解析
+    value: measure_parse
+    description: 
+  

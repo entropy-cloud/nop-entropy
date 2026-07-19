@@ -179,6 +179,11 @@ public interface _NopMetadataCoreConstants {
     String LINEAGE_SOURCE_HOOK = "hook";
                     
     /**
+     * 血缘来源: 指标表达式解析 
+     */
+    String LINEAGE_SOURCE_MEASURE_PARSE = "measure_parse";
+                    
+    /**
      * 管道类型: ETL 
      */
     String PIPELINE_TYPE_ETL = "etl";
