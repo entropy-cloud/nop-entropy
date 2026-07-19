@@ -35,6 +35,7 @@ import io.nop.metadata.service.query.FilterToSqlTranslator;
 import io.nop.metadata.service.query.MetaAggregationExecutor;
 import io.nop.metadata.service.query.MetaJoinExecutor;
 import io.nop.metadata.service.query.MetaQueryContext;
+import io.nop.metadata.service.query.SqlPagination;
 import io.nop.metadata.service.sqlview.SqlSelectFieldExtractor;
 import io.nop.metadata.service.sqlview.SqlViewField;
 import io.nop.metadata.service.sqlview.SqlViewFieldTypeInferrer;
@@ -675,7 +676,7 @@ public class NopMetaTableBizModel extends CrudBizModel<NopMetaTable> implements 
                     String productName = safeProductName(metaData);
                     requireSupportedDialect(productName, table.getMetaTableId());
                     FilterToSqlTranslator.TranslatedFilter tf = filterTranslator.translate(filter);
-                    String sql = buildExternalSelectSql(table.getTableName(), columns, tf.getSql(), limit, offset);
+                    String sql = buildExternalSelectSql(table.getTableName(), columns, tf.getSql(), limit, offset, productName);
                     holder[0] = executeQuery(conn, sql, tf.getParams(), limit, offset);
                 });
         return buildQueryResult(_NopMetadataCoreConstants.TABLE_TYPE_EXTERNAL, holder[0]);
@@ -698,7 +699,7 @@ public class NopMetaTableBizModel extends CrudBizModel<NopMetaTable> implements 
                     String productName = safeProductName(metaData);
                     requireSupportedDialect(productName, table.getMetaTableId());
                     FilterToSqlTranslator.TranslatedFilter tf = filterTranslator.translate(filter);
-                    String sql = buildSqlSelectSql(sourceSql, tf.getSql(), limit, offset);
+                    String sql = buildSqlSelectSql(sourceSql, tf.getSql(), limit, offset, productName);
                     holder[0] = executeQuery(conn, sql, tf.getParams(), limit, offset);
                 });
         return buildQueryResult(_NopMetadataCoreConstants.TABLE_TYPE_SQL, holder[0]);
@@ -729,7 +730,7 @@ public class NopMetaTableBizModel extends CrudBizModel<NopMetaTable> implements 
 
     /** 构建 external 路径 SELECT SQL：{@code SELECT col1,col2 FROM <table> [WHERE <filter>] [LIMIT ? OFFSET ?]}。 */
     private static String buildExternalSelectSql(String tableName, List<String> columns,
-                                                  String filterSql, Long limit, Long offset) {
+                                                  String filterSql, Long limit, Long offset, String dialect) {
         // 列名/表名经标识符白名单校验（fieldResolver 已保证列名为 columnName；此处再校验防注入）
         StringBuilder sb = new StringBuilder("SELECT ");
         if (columns.isEmpty()) {
@@ -749,12 +750,13 @@ public class NopMetaTableBizModel extends CrudBizModel<NopMetaTable> implements 
         if (filterSql != null && !filterSql.isEmpty()) {
             sb.append(" WHERE ").append(filterSql);
         }
-        appendLimitOffset(sb, limit, offset);
+        // AR-04: 按方言拼接 LIMIT/OFFSET（MySQL offset-only 需补"无限大 LIMIT"）
+        SqlPagination.appendLimitOffset(sb, limit, offset, dialect);
         return sb.toString();
     }
 
     /** 构建 sql 路径 SELECT SQL：{@code SELECT * FROM (<sourceSql>) _t [WHERE <filter>] [LIMIT ? OFFSET ?]}。 */
-    private static String buildSqlSelectSql(String sourceSql, String filterSql, Long limit, Long offset) {
+    private static String buildSqlSelectSql(String sourceSql, String filterSql, Long limit, Long offset, String dialect) {
         // sourceSql 为用户显式提供的视图定义（非自动注入面），包一层子查询；filter 应用到外层
         StringBuilder sb = new StringBuilder("SELECT * FROM (");
         sb.append(sourceSql);
@@ -762,18 +764,9 @@ public class NopMetaTableBizModel extends CrudBizModel<NopMetaTable> implements 
         if (filterSql != null && !filterSql.isEmpty()) {
             sb.append(" WHERE ").append(filterSql);
         }
-        appendLimitOffset(sb, limit, offset);
+        // AR-04: 按方言拼接 LIMIT/OFFSET（MySQL offset-only 需补"无限大 LIMIT"）
+        SqlPagination.appendLimitOffset(sb, limit, offset, dialect);
         return sb.toString();
-    }
-
-    /** 追加 LIMIT/OFFSET 子句（仅当 limit/offset 非 null；参数位由 executeQuery 按序绑定）。 */
-    private static void appendLimitOffset(StringBuilder sb, Long limit, Long offset) {
-        if (limit != null) {
-            sb.append(" LIMIT ?");
-        }
-        if (offset != null && offset > 0) {
-            sb.append(" OFFSET ?");
-        }
     }
 
     /** 执行查询 SQL（filter 参数 + limit/offset 参数按序绑定），返回行列表（每行为列名→值 Map）。 */

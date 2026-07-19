@@ -91,6 +91,13 @@
             <artifactId>mysql-connector-j</artifactId>
             <scope>test</scope>
         </dependency>
+        <!-- mockito-core: 用于 sensitive 列脱敏 / webhook SSRF 等单元测试的 stub 验证
+             (避免实现完整 IOrmEntity/IHttpClient 接口的样板代码) -->
+        <dependency>
+            <groupId>org.mockito</groupId>
+            <artifactId>mockito-core</artifactId>
+            <scope>test</scope>
+        </dependency>
     </dependencies>
 
     <build>

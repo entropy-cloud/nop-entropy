@@ -511,12 +511,12 @@ public class MetaAggregationExecutor {
         if (!orderByClause.isEmpty()) {
             sql.append(" ORDER BY ").append(orderByClause);
         }
+        // AR-04: 按方言拼接 LIMIT/OFFSET（entity-EQL 路径走平台默认方言 H2，offset-only 合法）
+        SqlPagination.appendLimitOffset(sql, limit, offset, null);
         if (limit != null) {
-            sql.append(" LIMIT ?");
             params.add(limit);
         }
         if (offset != null && offset > 0) {
-            sql.append(" OFFSET ?");
             params.add(offset);
         }
 
@@ -622,12 +622,8 @@ public class MetaAggregationExecutor {
                 sql.append(" ORDER BY ").append(orderByClause);
             }
             // limit/offset 占位由 executeJdbcQuery 经 PreparedStatement 绑定（与 external/sql 路径一致）
-            if (limit != null) {
-                sql.append(" LIMIT ?");
-            }
-            if (offset != null && offset > 0) {
-                sql.append(" OFFSET ?");
-            }
+            // AR-04: 按方言拼接 LIMIT/OFFSET（bypass-EQL 路径 productName 已知，MySQL offset-only 需补"无限大 LIMIT"）
+            SqlPagination.appendLimitOffset(sql, limit, offset, productName);
             String sqlText = sql.toString();
             LOG.info("queryAggregation entity bypass-EQL SQL: {}", sqlText);
             return executeJdbcQuery(conn, sqlText, params, limit, offset, table.getMetaTableId());
@@ -809,12 +805,12 @@ public class MetaAggregationExecutor {
         if (!orderByClause.isEmpty()) {
             sql.append(" ORDER BY ").append(orderByClause);
         }
+        // AR-04: 按方言拼接 LIMIT/OFFSET（entity-entity JOIN EQL 路径走平台默认方言 H2，offset-only 合法）
+        SqlPagination.appendLimitOffset(sql, limit, offset, null);
         if (limit != null) {
-            sql.append(" LIMIT ?");
             params.add(limit);
         }
         if (offset != null && offset > 0) {
-            sql.append(" OFFSET ?");
             params.add(offset);
         }
 
@@ -1230,12 +1226,8 @@ public class MetaAggregationExecutor {
         if (!orderByClause.isEmpty()) {
             sql.append(" ORDER BY ").append(orderByClause);
         }
-        if (limit != null) {
-            sql.append(" LIMIT ?");
-        }
-        if (offset != null && offset > 0) {
-            sql.append(" OFFSET ?");
-        }
+        // AR-04: 按方言拼接 LIMIT/OFFSET（method has dialect param）
+        SqlPagination.appendLimitOffset(sql, limit, offset, dialect);
         return sql;
     }
 
@@ -1283,12 +1275,8 @@ public class MetaAggregationExecutor {
         if (!orderByClause.isEmpty()) {
             sql.append(" ORDER BY ").append(orderByClause);
         }
-        if (limit != null) {
-            sql.append(" LIMIT ?");
-        }
-        if (offset != null && offset > 0) {
-            sql.append(" OFFSET ?");
-        }
+        // AR-04: 按方言拼接 LIMIT/OFFSET（method has dialect param）
+        SqlPagination.appendLimitOffset(sql, limit, offset, dialect);
         return sql;
     }
 
@@ -2656,12 +2644,8 @@ public class MetaAggregationExecutor {
         if (!orderByClause.isEmpty()) {
             sql.append(" ORDER BY ").append(orderByClause);
         }
-        if (limit != null) {
-            sql.append(" LIMIT ?");
-        }
-        if (offset != null && offset > 0) {
-            sql.append(" OFFSET ?");
-        }
+        // AR-04: 按方言拼接 LIMIT/OFFSET（dialect 变量从 withConnection callback 取得，line 2586）
+        SqlPagination.appendLimitOffset(sql, limit, offset, dialect);
         return sql.toString();
     }
 

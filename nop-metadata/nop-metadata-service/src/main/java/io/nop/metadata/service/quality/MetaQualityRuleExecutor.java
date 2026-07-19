@@ -38,7 +38,7 @@ public class MetaQualityRuleExecutor {
     static final Pattern IDENTIFIER_PATTERN = Pattern.compile("^[A-Za-z_][A-Za-z0-9_]*$");
 
     /** inline ErrorCode：标识符（列名/表名/schema）不符合白名单，拒绝拼接防注入。 */
-    static final ErrorCode ERR_QUALITY_INVALID_IDENTIFIER =
+    public static final ErrorCode ERR_QUALITY_INVALID_IDENTIFIER =
             ErrorCode.define("metadata.quality-invalid-identifier",
                     "Identifier (column/table/schema) does not match whitelist ^[A-Za-z_][A-Za-z0-9_]*$: {identifier}",
                     "identifier");
@@ -559,7 +559,10 @@ public class MetaQualityRuleExecutor {
         if (schemaPattern == null || schemaPattern.trim().isEmpty()) {
             return null;
         }
-        return schemaPattern.trim();
+        String trimmed = schemaPattern.trim();
+        // AR-01: schemaPattern 与 tableName/列名一致走标识符白名单（防 SQL 注入家族）
+        validateIdentifier(trimmed);
+        return trimmed;
     }
 
     static void validateIdentifier(String identifier) {

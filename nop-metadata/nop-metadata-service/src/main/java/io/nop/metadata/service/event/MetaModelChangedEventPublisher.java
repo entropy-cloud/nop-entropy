@@ -12,9 +12,13 @@ import io.nop.orm.model.IEntityModel;
 import jakarta.inject.Inject;
 
 import java.sql.Timestamp;
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.Date;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.Set;
 
 /**
  * 元数据变更事件发布 helper（架构基线 §2.8 / 设计 10 / plan 2026-07-17-0228-1，D2 发布机制主路径）。
@@ -29,6 +33,9 @@ import java.util.Map;
  *   <li>失败路径（如快照序列化异常）**显式抛 inline ErrorCode**（不静默吞掉、不静默跳过事件发布不留痕迹）。</li>
  *   <li>不伪造缺失快照：调用方按事件类型传入 before/after（ENTITY_CREATED 仅 after、ENTITY_UPDATED before+after、
  *       ENTITY_DELETED 仅 before）。</li>
+ *   <li><b>AR-07 凭据脱敏（核心）</b>：从 ORM column model 的 tagSet 读 "sensitive" 标记，
+ *       对标记列返回固定 {@link #REDACTED_VALUE}（不读取实际值）；同时维护 {@link #SENSITIVE_COLUMN_FALLBACK}
+ *       硬编码列名兜底集（即使 ORM tagSet 缺失，常见凭据列仍兜底脱敏，defense-in-depth）。</li>
  * </ul>
  *
  * <p>本类不自造连接、不复制持久化逻辑（{@code saveEntity} 走标准 {@link IEntityDao}）。
@@ -48,6 +55,29 @@ public class MetaModelChangedEventPublisher {
     public static final String CHANGE_SOURCE_UI = "UI";
     public static final String CHANGE_SOURCE_API = "API";
     public static final String CHANGE_SOURCE_SYNC = "SYNC";
+
+    /**
+     * AR-07: 敏感列固定脱敏占位值（不读取实际值；调用方/审计可见"该列存在但被脱敏"）。
+     */
+    public static final String REDACTED_VALUE = "***REDACTED***";
+
+    /**
+     * AR-07: tagSet 标记名，标识敏感列。在 nop-metadata.orm.xml 的 column 上配置 tagSet="sensitive"。
+     */
+    public static final String SENSITIVE_TAG = "sensitive";
+
+    /**
+     * AR-07 defense-in-depth：硬编码兜底列名集合。即使 ORM 模型未配置 tagSet=sensitive（如外部实体），
+     * 常见凭据列名仍兜底脱敏，防止因元数据缺失导致凭据落盘。
+     */
+    private static final Set<String> SENSITIVE_COLUMN_FALLBACK = Collections.unmodifiableSet(
+            new HashSet<>(Arrays.asList(
+                    "connectionConfig", "connection_config",
+                    "password", "passwd", "pwd",
+                    "secret", "apiKey", "api_key", "accessKey", "access_key",
+                    "privateKey", "private_key",
+                    "token", "accessToken", "access_token",
+                    "jdbcUrl", "jdbc_url")));
 
     private final IDaoProvider daoProvider;
 
@@ -121,6 +151,9 @@ public class MetaModelChangedEventPublisher {
      *
      * <p>从实体模型列构建有序 Map（避免 ORM 内部状态混入快照），再 {@link JsonTool#stringify}。
      * 序列化失败显式抛 {@link #ERR_EVENT_SNAPSHOT_SERIALIZE_FAILED}（不静默吞掉）。
+     *
+     * <p><b>AR-07</b>：对标记为 sensitive 的列返回 {@link #REDACTED_VALUE}（不读取实际值），
+     * 防止凭据在事件表里二次落盘。
      */
     public String buildSnapshot(Object entity, String entityType, String entityId) {
         if (entity == null) {
@@ -142,9 +175,11 @@ public class MetaModelChangedEventPublisher {
 
     /**
      * 从实体模型列构建快照 Map。非 ORM 实体时回退为 stringify→parse 取 Map。
+     *
+     * <p>AR-07：对 sensitive 列（经 ORM tagSet 标记或硬编码兜底）返回固定 {@link #REDACTED_VALUE}。
      */
     @SuppressWarnings("unchecked")
-    private Map<String, Object> buildEntitySnapshot(Object entity) {
+    Map<String, Object> buildEntitySnapshot(Object entity) {
         if (entity instanceof io.nop.orm.IOrmEntity) {
             io.nop.orm.IOrmEntity ormEntity = (io.nop.orm.IOrmEntity) entity;
             IEntityModel model = ormEntity.orm_entityModel();
@@ -152,6 +187,11 @@ public class MetaModelChangedEventPublisher {
             if (model != null) {
                 for (IColumnModel col : model.getColumns()) {
                     String name = col.getName();
+                    // AR-07: sensitive 列脱敏（不读取实际值）
+                    if (isSensitiveColumn(col, name)) {
+                        map.put(name, REDACTED_VALUE);
+                        continue;
+                    }
                     Object value = ormEntity.orm_propValueByName(name);
                     if (value instanceof Date) {
                         value = ((Date) value).getTime();
@@ -167,5 +207,21 @@ public class MetaModelChangedEventPublisher {
         // 非 ORM 实体（POJO）：stringify→parse 取 Map（防御路径，本 helper 实际只接收 ORM 实体）
         Object parsed = JsonTool.parse(JsonTool.stringify(entity));
         return parsed instanceof Map ? (Map<String, Object>) parsed : new LinkedHashMap<>();
+    }
+
+    /**
+     * AR-07: 判定列是否敏感。优先读 ORM tagSet（runtime 配置驱动），fallback 硬编码列名集（defense-in-depth）。
+     */
+    static boolean isSensitiveColumn(IColumnModel col, String name) {
+        if (col != null) {
+            Set<String> tagSet = col.getTagSet();
+            if (tagSet != null && tagSet.contains(SENSITIVE_TAG)) {
+                return true;
+            }
+        }
+        if (name == null) {
+            return false;
+        }
+        return SENSITIVE_COLUMN_FALLBACK.contains(name);
     }
 }

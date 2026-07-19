@@ -8,9 +8,12 @@ import io.nop.dao.api.IEntityDao;
 import io.nop.metadata.core._NopMetadataCoreConstants;
 import io.nop.metadata.dao.entity.NopMetaDataSource;
 
+import java.util.List;
+
 /**
  * querySpace→{@link NopMetaDataSource} 解析共享组件（架构基线 §4.4 D2）：按 {@code NopMetaDataSource.querySpace == 目标 querySpace}
- * 的 {@code findFirstByQuery} 取**首条**匹配（多匹配取首条，首版不强制唯一性、不记 warning，与 §2.7.1 D1 现状一致）。
+ * 查询，**runtime 多匹配显式失败**（AR-03 兜底：ORM 层已有 {@code UK_NOP_META_DS_QUERY_SPACE}
+ * 唯一约束，但历史数据可能违反；本 resolver 在 runtime 多匹配时拒绝取首条以避免路由劫持）。
  *
  * <p>本组件独立实现，不强制重构既有三处 {@code resolveDataSourceOrThrow} 重复（NopMetaTableBizModel profiling /
  * NopMetaQualityRuleBizModel / NopMetaProfilingRuleBizModel）——既有实现行为正确，重复不构成 live defect
@@ -19,6 +22,7 @@ import io.nop.metadata.dao.entity.NopMetaDataSource;
  * <p>失败路径显式化（不静默返回 null、不静默返回 DISABLED 当作可用，对齐 Minimum Rules #24）：
  * <ul>
  *   <li>querySpace null/空/无匹配 → {@link #ERR_RESOLVE_NO_DATASOURCE}</li>
+ *   <li>多匹配（历史数据违反 UK）→ {@link #ERR_DATASOURCE_DUPLICATE_QUERY_SPACE}（AR-03 兜底）</li>
  *   <li>匹配到 DISABLED → {@link #ERR_RESOLVE_DATASOURCE_DISABLED}</li>
  * </ul>
  *
@@ -27,25 +31,34 @@ import io.nop.metadata.dao.entity.NopMetaDataSource;
 public class MetaDataSourceResolver {
 
     /** inline ErrorCode：querySpace 为 null/空 或 匹配不到任何 NopMetaDataSource。 */
-    static final ErrorCode ERR_RESOLVE_NO_DATASOURCE =
+    public static final ErrorCode ERR_RESOLVE_NO_DATASOURCE =
             ErrorCode.define("metadata.datasource-resolve-not-found",
                     "No registered MetaDataSource for querySpace: {querySpace}", "querySpace");
     /** inline ErrorCode：匹配到的 NopMetaDataSource 处于 DISABLED 状态，不可用于查询执行。 */
-    static final ErrorCode ERR_RESOLVE_DATASOURCE_DISABLED =
+    public static final ErrorCode ERR_RESOLVE_DATASOURCE_DISABLED =
             ErrorCode.define("metadata.datasource-resolve-disabled",
                     "MetaDataSource is DISABLED, cannot be used for query execution: {dataSourceId} querySpace={querySpace}",
                     "dataSourceId", "querySpace");
+    /** AR-03: 多匹配 querySpace（runtime 兜底，应对历史数据违反 ORM 层 UK_NOP_META_DS_QUERY_SPACE）。 */
+    public static final ErrorCode ERR_DATASOURCE_DUPLICATE_QUERY_SPACE =
+            ErrorCode.define("metadata.datasource-duplicate-query-space",
+                    "Multiple MetaDataSource rows match the same querySpace (UK violation in live data): "
+                            + "querySpace={querySpace} dataSourceCount={dataSourceCount}",
+                    "querySpace", "dataSourceCount");
 
     /**
      * 解析给定 querySpace 对应的 ACTIVE 数据源。
      *
-     * <p>语义对齐 §2.7.1 D1 物理解析路径 + §4.4 D2：{@code findFirstByQuery} 首条（多匹配取首条），
+     * <p>语义对齐 §2.7.1 D1 物理解析路径 + §4.4 D2 + AR-03：使用 {@code findAllByQuery} 检测多匹配，
+     * 多匹配显式抛 {@link #ERR_DATASOURCE_DUPLICATE_QUERY_SPACE}（不取首条，防路由劫持），
      * 找不到/DISABLED 显式失败抛 inline ErrorCode。
      *
      * @param dsDao     数据源 DAO（由调用方通过 {@code daoFor(NopMetaDataSource.class)} 获取）
      * @param querySpace 目标查询空间
      * @return ACTIVE 状态的 NopMetaDataSource（永不 null；不可用时由本方法显式抛出）
-     * @throws NopException querySpace null/空/无匹配（{@link #ERR_RESOLVE_NO_DATASOURCE}）或 DISABLED（{@link #ERR_RESOLVE_DATASOURCE_DISABLED}）
+     * @throws NopException querySpace null/空/无匹配（{@link #ERR_RESOLVE_NO_DATASOURCE}）、
+     *                      多匹配（{@link #ERR_DATASOURCE_DUPLICATE_QUERY_SPACE}）、
+     *                      或 DISABLED（{@link #ERR_RESOLVE_DATASOURCE_DISABLED}）
      */
     public NopMetaDataSource resolveActiveOrThrow(IEntityDao<NopMetaDataSource> dsDao, String querySpace) {
         if (querySpace == null || querySpace.trim().isEmpty()) {
@@ -55,12 +68,19 @@ public class MetaDataSourceResolver {
         }
         QueryBean q = new QueryBean();
         q.addFilter(FilterBeans.eq(NopMetaDataSource.PROP_NAME_querySpace, querySpace));
-        // 多匹配取首条（findFirstByQuery，§4.4 D2 + §2.7.1 D1 现状；首版不记 warning）
-        NopMetaDataSource dataSource = dsDao.findFirstByQuery(q);
-        if (dataSource == null) {
+        // AR-03: findAllByQuery 后按 size 分派（防多匹配路由劫持；ORM 层 UK 是兜底）
+        List<NopMetaDataSource> matched = dsDao.findAllByQuery(q);
+        if (matched.isEmpty()) {
             throw new NopException(ERR_RESOLVE_NO_DATASOURCE)
                     .param("querySpace", querySpace);
         }
+        if (matched.size() > 1) {
+            // AR-03: 多匹配（历史数据违反 UK_NOP_META_DS_QUERY_SPACE）→ 拒绝取首条
+            throw new NopException(ERR_DATASOURCE_DUPLICATE_QUERY_SPACE)
+                    .param("querySpace", querySpace)
+                    .param("dataSourceCount", matched.size());
+        }
+        NopMetaDataSource dataSource = matched.get(0);
         if (_NopMetadataCoreConstants.DATASOURCE_STATUS_DISABLED.equals(dataSource.getStatus())) {
             // DISABLED 数据源不可用于查询执行 → 显式失败（不静默返回 DISABLED 当作可用）
             throw new NopException(ERR_RESOLVE_DATASOURCE_DISABLED)

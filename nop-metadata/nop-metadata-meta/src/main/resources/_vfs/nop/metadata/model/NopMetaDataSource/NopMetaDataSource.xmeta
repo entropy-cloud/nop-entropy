@@ -1,5 +1,17 @@
 <?xml version="1.0" encoding="UTF-8" ?>
-<meta x:schema="/nop/schema/xmeta.xdef" xmlns:x="/nop/schema/xdsl.xdef" x:extends="_NopMetaDataSource.xmeta">
+<meta x:schema="/nop/schema/xmeta.xdef" xmlns:x="/nop/schema/xdsl.xdef"
+      xmlns:ext="ext" x:extends="_NopMetaDataSource.xmeta">
 
-    <props/>
+    <!--
+        AR-07 + 维度13-01: connectionConfig 持有明文 JDBC 凭据，标记为敏感字段：
+          - published="false"：屏蔽 GraphQL 出口（findPage/findList/get 不返回该字段）
+          - tagSet 包含 "sensitive"：从 nop-metadata.orm.xml column 上继承，
+            供 MetaModelChangedEventPublisher.buildEntitySnapshot 读取 IColumnModel.getTagSet() 后
+            对该列返回 "***REDACTED***"，避免凭据在变更事件表里二次落盘。
+        前端 add/edit 表单字段通过 NopMetaDataSource.view.xml 留存层（非 _gen）独立配置（不在本 plan 范围）。
+    -->
+    <props>
+        <prop name="connectionConfig" published="false"/>
+    </props>
+
 </meta>

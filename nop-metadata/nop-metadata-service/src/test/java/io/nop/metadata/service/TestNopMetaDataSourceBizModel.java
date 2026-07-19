@@ -107,13 +107,13 @@ public class TestNopMetaDataSourceBizModel extends JunitBaseTestCase {
 
     @Test
     public void testConnectionNonJdbcThrows() {
-        // 非 jdbc 类型（http）必须显式抛 UnsupportedOperationException（不静默返回成功）
+        // 非 jdbc 类型（http）必须显式失败（NopException(Err_DATASOURCE_TYPE_NOT_SUPPORTED)，不静默返回成功）
         saveDataSource("ds-http", "qs_http", "http", "ACTIVE", "{}");
 
         GraphQLResponseBean response = execute(
                 "mutation { NopMetaDataSource__testConnection(dataSourceId: \"ds-http\") }");
         assertTrue(response.hasError(),
-                "non-jdbc datasource must error (UnsupportedOperationException): " + response);
+                "non-jdbc datasource must error (NopException ERR_DATASOURCE_TYPE_NOT_SUPPORTED): " + response);
     }
 
     @Test
@@ -366,7 +366,7 @@ public class TestNopMetaDataSourceBizModel extends JunitBaseTestCase {
         GraphQLResponseBean response = execute(
                 "mutation { NopMetaDataSource__syncExternalTables(dataSourceId: \"ds-sync-http\") }");
         assertTrue(response.hasError(),
-                "non-jdbc datasource sync must error (UnsupportedOperationException): " + response);
+                "non-jdbc datasource sync must error (NopException ERR_DATASOURCE_TYPE_NOT_SUPPORTED): " + response);
     }
 
     /** 不存在的 dataSourceId 同步必须抛 metadata.datasource-not-found（不 NPE）。 */
@@ -570,7 +570,7 @@ public class TestNopMetaDataSourceBizModel extends JunitBaseTestCase {
         GraphQLResponseBean response = execute(
                 "mutation { NopMetaDataSource__collectCatalog(dataSourceId: \"ds-collect-http\") }");
         assertTrue(response.hasError(),
-                "non-jdbc datasource collect must error (UnsupportedOperationException): " + response);
+                "non-jdbc datasource collect must error (NopException ERR_DATASOURCE_TYPE_NOT_SUPPORTED): " + response);
     }
 
     /** 不存在的 dataSourceId 收集必须抛 metadata.datasource-not-found（不 NPE）。 */

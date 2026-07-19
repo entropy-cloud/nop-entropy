@@ -259,7 +259,7 @@
                         i18n-en:displayName="Datasource Type" ext:dict="meta/datasource-type"/>
                 <column code="CONNECTION_CONFIG" displayName="连接配置" domain="json-4000" name="connectionConfig"
                         precision="4000" propId="6" stdDataType="string" stdDomain="json" stdSqlType="VARCHAR"
-                        i18n-en:displayName="Connection Config"/>
+                        tagSet="sensitive" i18n-en:displayName="Connection Config"/>
                 <column code="STATUS" displayName="状态" mandatory="true" name="status" propId="7"
                         stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Status"
                         ext:dict="meta/datasource-status"/>

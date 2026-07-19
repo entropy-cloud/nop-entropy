@@ -76,16 +76,27 @@ public class TestMetaDataSourceResolver extends JunitBaseTestCase {
                 "DISABLED datasource must explicitly fail with resolve-disabled");
     }
 
-    /** 多个数据源匹配同一 querySpace → 取首条（findFirstByQuery，§4.4 D2，首版不记 warning）。 */
+    /**
+     * AR-03: 多个数据源匹配同一 querySpace（历史数据违反 ORM 层 UK_NOP_META_DS_QUERY_SPACE）→
+     * 显式失败抛 ERR_DATASOURCE_DUPLICATE_QUERY_SPACE（拒绝取首条，防路由劫持）。
+     *
+     * <p>本测试在 H2 集成测试库中直接 INSERT 多行同 querySpace 数据（绕过 ORM 层 UK 校验），
+     * 验证 runtime 兜底检测生效。
+     */
     @Test
-    public void testResolveMultiMatchReturnsFirst() {
+    public void testResolveMultiMatchThrowsDuplicate() {
         saveDataSource("ds-multi-a", "qs_multi", "jdbc", "ACTIVE");
         saveDataSource("ds-multi-b", "qs_multi", "jdbc", "ACTIVE");
         IEntityDao<NopMetaDataSource> dsDao = daoProvider.daoFor(NopMetaDataSource.class);
-        // 两条 ACTIVE 数据源匹配同一 querySpace → 解析成功（取首条，非失败）
-        NopMetaDataSource ds = resolver.resolveActiveOrThrow(dsDao, "qs_multi");
-        assertEquals("qs_multi", ds.getQuerySpace(), "multi-match must resolve to first ACTIVE datasource");
-        assertEquals("ACTIVE", ds.getStatus(), "multi-match must resolve to an ACTIVE datasource");
+        NopException ex = assertThrows(NopException.class,
+                () -> resolver.resolveActiveOrThrow(dsDao, "qs_multi"),
+                "multi-match querySpace must explicitly fail with ERR_DATASOURCE_DUPLICATE_QUERY_SPACE");
+        assertEquals(MetaDataSourceResolver.ERR_DATASOURCE_DUPLICATE_QUERY_SPACE.getErrorCode(),
+                ex.getErrorCode(),
+                "multi-match must explicitly fail with ERR_DATASOURCE_DUPLICATE_QUERY_SPACE");
+        assertEquals("qs_multi", ex.getParam("querySpace"));
+        assertEquals(2, ex.getParam("dataSourceCount"),
+                "dataSourceCount must be 2 for multi-match");
     }
 
     private void saveDataSource(String id, String querySpace, String datasourceType, String status) {
