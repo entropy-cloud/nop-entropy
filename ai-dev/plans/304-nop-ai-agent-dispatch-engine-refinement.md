@@ -1,6 +1,6 @@
 # 304 Nop AI Agent Dispatch & Engine Refinement
 
-> Plan Status: draft
+> Plan Status: active
 > Last Reviewed: 2026-07-20
 > Source: `agent-survey/opencode-v2-architecture-analysis.md` §5.8, pangu design review
 > Related: `200`-`303` series nop-ai-agent plans
@@ -137,7 +137,7 @@ Exit Criteria:
 ### Phase 4 - Hooks & Middlewares Unification
 
 Status: planned
-Targets: `agent.xdef`, `DefaultHookRegistry.java`, `ReActAgentExecutor.java`
+Targets: `agent.xdef` (`nop-kernel/nop-xdefs/`), `DefaultHookRegistry.java` (`io/nop/ai/agent/hook/`), `ReActAgentExecutor.java`
 
 - Item Types: `Fix | Decision`
 

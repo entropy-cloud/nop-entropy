@@ -1,6 +1,6 @@
 # nop-metadata Implementation Roadmap
 
-> Last Updated: 2026-07-20 (expression 型 Measure 输出列的列级血缘实现 plan 2026-07-18-1800-1 落地：§2.6.1 D1-D5 裁定 + 本 plan 新增 D6 replace 语义裁定落地 + D5 失败处理分层精细化（表级前置失败 vs per-measure 隔离）+ D4 en label 跟随既有模式同步——`extractMeasureLineage` action 在 NopMetaLineageEdgeBizModel 实现 + dict `measure_parse` 新增值经 codegen 生成 `LINEAGE_SOURCE_MEASURE_PARSE` 常量 + flat-collect 自环边产出 + 直接边查询召回（D2，无 contract 变更）+ D6 replace 重抽语义 + case-insensitive 字段比对 + 8 e2e 测试，462 tests；收口 Opt-followup-impl + §八 follow-up 实现部分。先前更新：多列 having 算术表达式 plan 2026-07-18-1500-2 落地：§4.4.2 D11.4 裁定写入——TreeBean `expr` 属性承载（经 setAttr/getAttr，不修改 TreeBean 类）+ preprocess 落点（候选 b：translate 前预处理）+ post-substitution `ExpressionMeasureValidator.validateStatic(saveTimeLoose)` defense-in-depth + name→aggSql 替换 + `?` 安全边界沿用（D12.4）+ Phase 1 字面量禁止 + translate 单次遍历产出参数 + 三条 SQL 路径 6+ 注入点 + 跨库内存 `MemoryFilterEvaluator.evaluate` 入口显式失败；3 新 ErrorCode + 12 单元测试 + 8 e2e 测试，454 tests；收口 Opt-2/Opt-3 两处 `Deferred But Adjudicated`「多列 having 算术表达式」。先前更新：expression 型 Measure 输出列的列级血缘 design-first 裁定 plan 2026-07-18-1500-1 落地：§2.6.1 D1/D3/D4/D5 + §2.6.2 D2 五项裁定写入，§八 follow-up 划线标注裁定覆盖；实现属 successor plan Opt-followup-impl planned。先前更新：expression 型 Measure 表达式语言执行实现 plan 2026-07-18-1400-1 落地：§4.4.2 D12 实现部分收口，6 新 ErrorCode（unparseable/unsafe/dialect-unsupported/memory-not-computable/too-long/having-order-by-unsupported）+ 删除 ERR_AGGR_EXPRESSION_MEASURE；新增 ExpressionMeasureValidator（dialect-independent 静态校验 + dialect-specific 函数支持检查）；5 处抛点替换为真实执行（entity bypass EQL + external-sql withConnection + JOIN 同库注入 <agg>(<validatedExpr>)）+ 跨库内存显式失败；D12.5 save-time 校验经 BizModel.save 入口 + VARCHAR(1000) 容量；参数绑定顺序修正（expression 字面量 → filter → having）；HAVING/ORDER BY 引用 expression measure 显式失败；10 新增 e2e 测试 + 24 单元测试，434 tests)
+> Last Updated: 2026-07-21 (G1 DataContract 审批流 plan 2026-07-20-2000-2 closure audit 落地：roadmap G1 子项全部 done；先前更新：expression 型 Measure 输出列的列级血缘实现 plan 2026-07-18-1800-1 落地：§2.6.1 D1-D5 裁定 + 本 plan 新增 D6 replace 语义裁定落地 + D5 失败处理分层精细化（表级前置失败 vs per-measure 隔离）+ D4 en label 跟随既有模式同步——`extractMeasureLineage` action 在 NopMetaLineageEdgeBizModel 实现 + dict `measure_parse` 新增值经 codegen 生成 `LINEAGE_SOURCE_MEASURE_PARSE` 常量 + flat-collect 自环边产出 + 直接边查询召回（D2，无 contract 变更）+ D6 replace 重抽语义 + case-insensitive 字段比对 + 8 e2e 测试，462 tests；收口 Opt-followup-impl + §八 follow-up 实现部分。先前更新：多列 having 算术表达式 plan 2026-07-18-1500-2 落地：§4.4.2 D11.4 裁定写入——TreeBean `expr` 属性承载（经 setAttr/getAttr，不修改 TreeBean 类）+ preprocess 落点（候选 b：translate 前预处理）+ post-substitution `ExpressionMeasureValidator.validateStatic(saveTimeLoose)` defense-in-depth + name→aggSql 替换 + `?` 安全边界沿用（D12.4）+ Phase 1 字面量禁止 + translate 单次遍历产出参数 + 三条 SQL 路径 6+ 注入点 + 跨库内存 `MemoryFilterEvaluator.evaluate` 入口显式失败；3 新 ErrorCode + 12 单元测试 + 8 e2e 测试，454 tests；收口 Opt-2/Opt-3 两处 `Deferred But Adjudicated`「多列 having 算术表达式」。先前更新：expression 型 Measure 输出列的列级血缘 design-first 裁定 plan 2026-07-18-1500-1 落地：§2.6.1 D1/D3/D4/D5 + §2.6.2 D2 五项裁定写入，§八 follow-up 划线标注裁定覆盖；实现属 successor plan Opt-followup-impl planned。先前更新：expression 型 Measure 表达式语言执行实现 plan 2026-07-18-1400-1 落地：§4.4.2 D12 实现部分收口，6 新 ErrorCode（unparseable/unsafe/dialect-unsupported/memory-not-computable/too-long/having-order-by-unsupported）+ 删除 ERR_AGGR_EXPRESSION_MEASURE；新增 ExpressionMeasureValidator（dialect-independent 静态校验 + dialect-specific 函数支持检查）；5 处抛点替换为真实执行（entity bypass EQL + external-sql withConnection + JOIN 同库注入 <agg>(<validatedExpr>)）+ 跨库内存显式失败；D12.5 save-time 校验经 BizModel.save 入口 + VARCHAR(1000) 容量；参数绑定顺序修正（expression 字面量 → filter → having）；HAVING/ORDER BY 引用 expression measure 显式失败；10 新增 e2e 测试 + 24 单元测试，434 tests)
 > Source: 设计体系 `ai-dev/design/nop-metadata/`（00-vision ~ 10-event-model）；`01-architecture-baseline.md` 为架构权威
 
 ## Purpose
@@ -34,9 +34,9 @@
 - Opt-followup-impl. expression 型 Measure 输出列的列级血缘（实现）: `done`（plan 2026-07-18-1800-1，§2.6.1 D1-D5 裁定 + 本 plan 新增 D6 replace 语义裁定落地：`extractMeasureLineage` action 在 NopMetaLineageEdgeBizModel 实现 + dict `measure_parse` 新增值（经 codegen 重新生成 `LINEAGE_SOURCE_MEASURE_PARSE` 常量）+ flat-collect 自环边产出 + 直接边查询召回（D2，仅经既有 CRUD 无新 API）+ D5 失败处理分层（表级前置失败直接中断 / per-measure validator 失败隔离）+ D6 replace 重抽语义 + case-insensitive 字段比对 + 8 条端到端测试覆盖（成功/召回/per-measure 隔离/BFS 非污染/dict 值/replace 幂等/aggFunc null 边界/resolver 表级前置失败），462 tests；收口 §八 follow-up「expression 型 Measure 输出列的列级血缘」实现部分）
 - Opt-followup. queryAggregation having 支持多 measure 算术表达式（`HAVING SUM(a)-SUM(b)>100`）: `done`
 - S1. Semantic Layer Phase 1 — Classification + TagLabel: `planned`（plan 302）
-- S2. Semantic Layer Phase 2 — Glossary: `todo`
+- S2. Semantic Layer Phase 2 — Glossary: `done`
 - S3. Semantic Layer Phase 3 — BusinessDomain + DataProduct: `todo`
-- G1. Governance Phase 1 — DataContract 接入审批流: `todo`
+- G1. Governance Phase 1 — DataContract 接入审批流: `done`
 - G2. Governance Phase 2 — TagLabel 治理: `todo`
 - G3. Governance Phase 3 — 质量告警工作流: `todo`（plan 2026-07-18-1500-2，§4.4.2 D11.4 裁定：D11.4.1 TreeBean `expr` 属性承载（经 setAttr/getAttr，不修改 TreeBean 类）+ D11.4.2 preprocess 落点（候选 b：translate 前预处理 having TreeBean）+ post-substitution `ExpressionMeasureValidator.validateStatic(saveTimeLoose)` defense-in-depth + name→aggSql 替换（word-boundary，case-sensitive）+ `?` 安全边界沿用（D12.4）；D11.4.3 Phase 1 字面量禁止（避免 inner-SQL `?` 致参数计数错配）+ translate 单次遍历产出参数；D11.4.4 三条 SQL 路径 6+ 注入点 + 跨库内存 `MemoryFilterEvaluator.evaluate` 入口显式失败 `ERR_AGGR_HAVING_EXPR_MEMORY_NOT_COMPUTABLE`（对齐 D12.2）；3 新 ErrorCode + 12 单元测试 + 8 e2e 测试，454 tests；收口 Opt-2/Opt-3 两处 `Deferred But Adjudicated`「多列 having 算术表达式」）
 
@@ -169,10 +169,10 @@
 
 | 工作项 | 描述 | 状态 |
 |--------|------|------|
-| S2-1 | 新增实体 `NopMetaGlossary`（业务词汇表） | todo |
-| S2-2 | 新增实体 `NopMetaGlossaryTerm`（业务术语，含 synonyms/relatedTerms/conceptMappings） | todo |
-| S2-3 | GlossaryTerm → Classification Tag 自动传播引擎 | todo |
-| S2-4 | 术语关系管理（broader/narrower/synonym） | todo |
+| S2-1 | 新增实体 `NopMetaGlossary`（业务词汇表） | done |
+| S2-2 | 新增实体 `NopMetaGlossaryTerm`（业务术语，含 synonyms/relatedTerms/conceptMappings） | done |
+| S2-3 | GlossaryTerm → Classification Tag 自动传播引擎 | done |
+| S2-4 | 术语关系管理（broader/narrower/synonym） | done |
 | S2-5 | TagLabel 追加审批字段（approveStatus/approvedBy/approvedAt） | todo |
 
 ### S3. Semantic Layer Phase 3 — BusinessDomain + DataProduct（计划）
@@ -192,11 +192,11 @@
 
 | 工作项 | 描述 | 状态 |
 |--------|------|------|
-| G1-1 | `NopMetaDataContract` 增加 `tagSet="use-approval"` + `approveStatus`/`approvedBy`/`approvedAt` 字段 | todo |
-| G1-2 | 定义 `.xwf` 工作流 `metaDataContractApproval/v1.xwf`（owner-check → consumer-check） | todo |
-| G1-3 | xmeta 增加 `wf:wfName` 元数据 + xwf 中配置 `wf-approval:notifyResult` listener | todo |
-| G1-4 | `NopMetaDataContractBizModel` 新增 `afterApproved`/`afterRejected` 回调 + 标记旧方法 `@Deprecated` | todo |
-| G1-5 | 集成测试：审批流程端到端验证（submit → approve → status 变更） | todo |
+| G1-1 | `NopMetaDataContract` 增加 `tagSet="use-approval"` + `approveStatus`/`approvedBy`/`approvedAt` 字段 | done |
+| G1-2 | 定义 `.xwf` 工作流 `metaDataContractApproval/v1.xwf`（owner-check → consumer-check） | done |
+| G1-3 | xmeta 增加 `wf:wfName` 元数据 + xwf 中配置 `wf-approval:notifyResult` listener | done |
+| G1-4 | `NopMetaDataContractBizModel` `approve`/`reject` override + 标记旧方法 `@Deprecated`（实现上使用 full override of `approval-support.xbiz` semantics 而非 `afterApproved`/`afterRejected`，plan 2026-07-20-2000-2） | done |
+| G1-5 | 集成测试：审批流程端到端验证（submit → approve → status 变更） | done |
 
 ### G2. Governance Phase 2 — TagLabel 治理（计划）
 

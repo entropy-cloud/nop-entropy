@@ -333,13 +333,17 @@ sequenceDiagram
 
 ## 六、实现路径
 
-### Phase 1: DataContract 接入审批流
+### Phase 1: DataContract 接入审批流 ✅ 已实现
 
-- `NopMetaDataContract` 增加 `tagSet="use-approval"` + `approveStatus`/`approvedBy`/`approvedAt` 字段
-- 保留现有 `activateContract`/`deprecateContract`/`retireContract` 签名兼容
-- 定义 `metaDataContractApproval/v1.xwf` 工作流模型
+- ✅ `NopMetaDataContract` 增加 `tagSet="use-approval"` + `approveStatus`/`approvedBy`/`approvedAt` 字段（ORM model）
+- ✅ 实体级 `tagSet="use-approval"` 触发 codegen 生成 `x:extends="/nop/wf/base/approval-support.xbiz"` 的 `_NopMetaDataContract.xbiz`
+- ✅ xmeta 配置 `wf:wfName="metaDataContractApproval"`
+- ✅ 保留现有 `activateContract`/`deprecateContract`/`retireContract` 签名兼容（标记 `@Deprecated`，委托给 `submitForApproval`）
+- ✅ 定义 `metaDataContractApproval/v1.xwf` 工作流模型（`_vfs/nop/metadata/wf/metaDataContractApproval/v1.xwf`）
+- ✅ `NopMetaDataContractBizModel` Java `@BizMutation` 全量 override `approve`/`reject`（设置 approveStatus/approvedBy/approvedAt + 驱动 status 业务状态转换 DRAFT→ACTIVE / ACTIVE→DEPRECATED / DEPRECATED→RETIRED；reject 回退 DRAFT + 写入 remark）
+- ✅ 集成测试：approve/reject 守卫测试 + checkContract 全部通过
 - 不修改 QualityRule/QualityCheckpoint 的行为
-- **依赖**：ORM 模型变更 → codegen
+- **依赖**：ORM 模型变更 → codegen ✓
 
 ### Phase 2: TagLabel 治理
 

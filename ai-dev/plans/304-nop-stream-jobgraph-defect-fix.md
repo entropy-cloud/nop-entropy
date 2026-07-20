@@ -1,6 +1,6 @@
 # 304 nop-stream JobGraph 管线缺陷修复
 
-> Plan Status: draft
+> Plan Status: active
 > Last Reviewed: 2026-07-20
 > Source: `ai-dev/audits/2026-07/2026-07-20-2100-adversarial-review-nop-stream-jobgraph.md`
 > Source Audits: `ai-dev/audits/2026-07/2026-07-20-2100-adversarial-review-nop-stream-jobgraph.md`
@@ -122,6 +122,7 @@ Exit Criteria:
 - [ ] `GraphExecutionPlan` 分支逻辑在 fanOutWriters + inputGate 同时存在时选择正确构造器
 - [ ] **端到端验证**：fan-out 分支管线（source→filter1→sink1, →filter2→sink2）中 filter1 和 filter2 正确消费所有数据
 - [ ] **接线验证**：在分支场景的中间 operator 中设置计数器，确认 processElement 被调用且数据完整
+- [ ] **无静默跳过**：新构造器必须显式设置 outputWriter、inputGate、fanOutWriters 三个核心字段而非静默跳过任何赋值
 - [ ] `./mvnw test -pl nop-stream/nop-stream-core -am -Dtest="TestGraphExecutionPlan*,TestDataExchange*,TestSubtaskExecution*"` 通过
 - [ ] No owner-doc update required
 - [ ] `ai-dev/logs/` 对应日期条目已更新
@@ -149,7 +150,7 @@ Exit Criteria:
 - [ ] `JobGraphGenerator.canChain()` 检查 ChainingStrategy
 - [ ] 窗口算子工厂返回 `NEVER` 或 `HEAD`
 - [ ] **端到端验证**：`source → window → sink` 管线中 window 不被链化（生成独立的 JobVertex）
-- [ ] **无静默跳过**：`StreamOperatorFactory` 中未实现 `getChainingStrategy()` 的默认返回 `ALWAYS`（维持向后兼容，非静默跳过）
+- [ ] **无静默跳过**：`StreamOperatorFactory` 未覆盖 `getChainingStrategy()` 时默认返回 `ALWAYS`（维持向后兼容）；`canChain()` 对 `NEVER` 标记的算子显式返回 false 而非静默接受
 - [ ] `./mvnw test -pl nop-stream/nop-stream-core,nop-stream/nop-stream-runtime -am` 通过
 - [ ] No owner-doc update required
 - [ ] `ai-dev/logs/` 对应日期条目已更新

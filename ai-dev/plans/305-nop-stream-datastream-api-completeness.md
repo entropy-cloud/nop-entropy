@@ -1,6 +1,6 @@
 # 305 nop-stream DataStream API 完善（设计审计修订版）
 
-> Plan Status: draft
+> Plan Status: active
 > Last Reviewed: 2026-07-20
 > Source: `ai-dev/analysis/2026-07/2026-07-20-nop-stream-dataflow-api-gap-analysis.md`
 > Design Alignment: `00-vision.md`（定位）§三、§四、§七；`component-roadmap.md`（组件路线）C1；`core-design.md` §2（DataStream API 定位）

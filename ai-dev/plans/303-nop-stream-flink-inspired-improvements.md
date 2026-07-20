@@ -1,6 +1,6 @@
 # 303 nop-stream Flink 对标改进
 
-> Plan Status: draft
+> Plan Status: active
 > Last Reviewed: 2026-07-20
 > Source: `ai-dev/analysis/nop-stream-flink-comparison-deep-dive.md`
 > Related: `283-nop-stream-code-quality-fixes.md`（代码质量修复已在 Phase 1）
@@ -14,7 +14,7 @@
 - `HeapInternalTimerService.registerProcessingTimeTimer()` 为空方法体（静默跳过，违反 No Silent No-Op Rule）
 - `HeapInternalTimerService.advanceWatermark()` 使用 `TreeMap.headMap()` 视图然后迭代删除，方式笨重但功能正确
 - `WindowAggregationOperator` 标注 `@Deprecated` 但仍在代码库中存在并被人引用
-- `JobGraphGenerator.identifyChains()` 链化条件宽松：只检查了 `isChainable()` 中部分条件，缺少并行度匹配强制检查、分区器类型强制检查
+- `JobGraphGenerator.canChain()` 已包含并行度和分区器类型检查（null 视为 forward），但缺少 `ForwardPartitioner` 显式类——当前用 null 隐式表示 forward，导致无法区分"无分区器"与"显式 forward 分区器"；同时缺少算子链化开关检查（`StreamOperatorFactory.isChainable()`）
 - `PendingCheckpoint` 状态机只有 `RUNNING / COMPLETED / ABORTED` 三个状态，缺少 `FAILED` 和状态转换合法性校验
 - `CheckpointMetrics` 缺少失败原因追踪字段
 
@@ -28,7 +28,7 @@
 - 消灭 `HeapInternalTimerService` 中所有静默跳过（ProcessingTimeTimer no-op）
 - 优化 `HeapInternalTimerService.advanceWatermark()` 触发方式：从 `headMap+iteration` 改为 `while+pollFirstEntry`
 - 退役 `WindowAggregationOperator`，将测试全量迁移到 runtime 层的新版 `WindowOperator`
-- 增强 `JobGraphGenerator` 链化条件检查：并行度不匹配、分区器非 Forward 时强制拆链
+- 增强 `JobGraphGenerator` 链化条件：新增 `ForwardPartitioner` 显式类 + `StreamOperatorFactory.isChainable()` 算子链化开关检查
 - 增强 `PendingCheckpoint` 状态机：引入完整状态枚举 + 状态转换合法性校验
 - 在 `CheckpointMetrics` 中增加失败原因追踪
 
@@ -111,27 +111,31 @@ Exit Criteria:
 - [ ] No owner-doc update required（纯代码清理，对外 API 不变）
 - [ ] `ai-dev/logs/` 对应日期条目已更新
 
-### Phase 3 — 链化条件严格化
+### Phase 3 — 链化条件显式化（ForwardPartitioner + 算子链化开关）
 
 Status: planned
-Targets: `nop-stream-core/.../jobgraph/JobGraphGenerator.java`
+Targets: `nop-stream-core/.../jobgraph/` + `nop-stream-core/.../graph/`
 
 - Item Types: `Fix`
 
-- [ ] 审阅当前 `isChainable()` 逻辑（注释中已列出部分条件）
-- [ ] 增加并行度匹配检查：上游节点并行度 != 下游节点并行度 → 不可链化
-- [ ] 增加分区器类型检查：下游入边使用的 `StreamPartitioner` 非 `ForwardPartitioner` → 不可链化
-- [ ] 增加测试验证：不同并行度的算子不应被链化
+- [ ] 审阅当前 `canChain()` 逻辑（并行度和分区器null检查已存在）
+- [ ] 新增 `ForwardPartitioner` 类：作为 `IPartitioner` 的 marker 实现，构造后为 no-op
+- [ ] 修改 `canChain()` 分区器检查：从 `edge.getPartitioner() != null` 改为 `edge.getPartitioner() != null && !(edge.getPartitioner() instanceof ForwardPartitioner)`，使 null 和显式 ForwardPartitioner 均视为 forward
+- [ ] 在 `StreamOperatorFactory` 接口中增加 `isChainable()` 默认方法（返回 true），允许算子声明自身不可链化
+- [ ] 修改 `canChain()` 增加算子链化开关检查：调用 `node2.getOperatorFactory().isChainable()`
+- [ ] 新增 focused test：分区器非 Forward/不可链化算子导致拆链
 
 Exit Criteria:
 
 > 所有 `[x]` 后才能将 Phase Status 改为 `completed`。
 
-- [ ] `isChainable()` 返回 false 的场景覆盖并行度不匹配和分区器非 Forward
-- [ ] **端到端验证**：高并行度 source → 低并行度 map → sink 的图管线生成正确的非链化 JobGraph
-- [ ] 新增 focused test 验证链化/非链化的决策正确性
-- [ ] `./mvnw test -pl nop-stream/nop-stream-core -am -Dtest="TestJobGraphGenerator*"` 通过
-- [ ] No owner-doc update required（纯行为正确性修复）
+- [ ] `ForwardPartitioner` 类存在于 `io.nop.stream.core.graph` 包下
+- [ ] `canChain()` 中 null 和 `ForwardPartitioner` 均视为 forward（可链化）；其他分区器及不可链化算子强制拆链
+- [ ] `StreamOperatorFactory.isChainable()` 默认方法存在，返回 true；被覆盖返回 false 时强制拆链
+- [ ] **端到端验证**：高并行度 source → 低并行度 map → sink 的图管线生成正确的非链化 JobGraph（并行度不匹配的拆链已有测试覆盖，增加端到端集成验证）
+- [ ] 新增 focused test 验证「非 Forward 分区器 + 不可链化算子」两场景的拆链决策正确性
+- [ ] `./mvnw test -pl nop-stream/nop-stream-core -am -Dtest="TestJobGraphGenerator*,Test*Chain*"` 通过
+- [ ] No owner-doc update required（纯内部增强，对外接口 `ForwardPartitioner` 为新增类但属于内部框架，不改变用户 API）
 - [ ] `ai-dev/logs/` 对应日期条目已更新
 
 ### Phase 4 — Checkpoint 状态机增强
@@ -155,8 +159,9 @@ Exit Criteria:
 - [ ] 非法状态转换（如 `COMPLETED → ABORTED`）抛出 `IllegalStateException` 或 `StreamException`
 - [ ] `CheckpointMetrics` 包含 `failureCause` 字段且被 checkpoint 失败路径设置
 - [ ] 新增测试覆盖非法状态转换拒绝和 `failureCause` 填充验证
+- [ ] **端到端验证**：checkpoint 从 barrier 触发 → COMPLETED → 恢复重新处理 的端到端路径在修改后通过（`TestE2ECheckpointAndRecovery`），且 `FAILED`/`failureCause` 在新增的端到端失败场景测试中可通过
 - [ ] **无静默跳过**：所有不应通过的状态转换显式抛异常，不允许静默忽略
-- [ ] `./mvnw test -pl nop-stream/nop-stream-runtime -am -Dtest="TestPendingCheckpoint*,TestCheckpointCoordinator*,TestCheckpointMetrics*"` 通过
+- [ ] `./mvnw test -pl nop-stream/nop-stream-runtime -am -Dtest="TestPendingCheckpoint*,TestCheckpointCoordinator*,TestCheckpointMetrics,TestE2ECheckpointAndRecovery*"` 通过
 - [ ] No owner-doc update required
 - [ ] `ai-dev/logs/` 对应日期条目已更新
 
@@ -166,7 +171,7 @@ Exit Criteria:
 
 - [ ] HeapInternalTimerService 无空方法体、advanceWatermark 使用 while+pollFirstEntry
 - [ ] WindowAggregationOperator 已从仓库删除，所有语义由新版 WindowOperator 覆盖
-- [ ] JobGraphGenerator 链化条件严格（并行度/分区器检查）
+- [ ] JobGraphGenerator 链化条件显式化：ForwardPartitioner 类 + 算子链化开关检查（`StreamOperatorFactory.isChainable()`）
 - [ ] PendingCheckpoint 状态机含 FAILED 状态 + 合法转换校验
 - [ ] CheckpointMetrics.failureCause 在失败时被填充
 - [ ] 受影响的 owner docs 已同步到 live baseline，或明确写明 No owner-doc update required
