@@ -1,0 +1,15 @@
+# __XGEN_FORCE_OVERRIDE__
+label: 标签标注状态
+locale: zh-CN
+valueType: string
+description: 
+options:
+
+  - label: 建议
+    value: Suggested
+    description: 
+  
+  - label: 已确认
+    value: Confirmed
+    description: 
+  

@@ -118,6 +118,25 @@ CREATE TABLE nop_meta_model_changed_event(
   constraint PK_nop_meta_model_changed_event primary key (MODEL_CHANGED_EVENT_ID)
 )CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_as_cs;
 
+CREATE TABLE nop_meta_classification(
+  CLASSIFICATION_ID VARCHAR(32) NOT NULL    COMMENT '分类ID',
+  NAME VARCHAR(100) NOT NULL    COMMENT '分类名',
+  DISPLAY_NAME VARCHAR(200) NULL    COMMENT '显示名',
+  DESCRIPTION VARCHAR(1000) NULL    COMMENT '描述',
+  MUTUALLY_EXCLUSIVE TINYINT default 0  NOT NULL    COMMENT '是否互斥',
+  PROVIDER VARCHAR(20) NOT NULL    COMMENT '提供者',
+  DISABLED TINYINT default 0  NULL    COMMENT '是否禁用',
+  AUTO_CLASSIFICATION_CONFIG VARCHAR(4000) NULL    COMMENT '自动识别配置',
+  EXT_CONFIG VARCHAR(4000) NULL    COMMENT '扩展配置',
+  VERSION BIGINT NOT NULL    COMMENT '数据版本',
+  CREATED_BY VARCHAR(50) NOT NULL    COMMENT '创建人',
+  CREATE_TIME DATETIME(3) DEFAULT CURRENT_TIMESTAMP(3)  NOT NULL    COMMENT '创建时间',
+  UPDATED_BY VARCHAR(50) NOT NULL    COMMENT '修改人',
+  UPDATE_TIME DATETIME(3) DEFAULT CURRENT_TIMESTAMP(3)  NOT NULL    COMMENT '修改时间',
+  REMARK VARCHAR(200) NULL    COMMENT '备注',
+  constraint PK_nop_meta_classification primary key (CLASSIFICATION_ID)
+)CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_as_cs;
+
 CREATE TABLE nop_meta_orm_model(
   ORM_MODEL_ID VARCHAR(32) NOT NULL    COMMENT '模型ID',
   META_MODULE_ID VARCHAR(32) NOT NULL    COMMENT '模块版本ID',
@@ -224,6 +243,26 @@ CREATE TABLE nop_meta_quality_result(
   UPDATE_TIME DATETIME(3) DEFAULT CURRENT_TIMESTAMP(3)  NOT NULL    COMMENT '修改时间',
   REMARK VARCHAR(200) NULL    COMMENT '备注',
   constraint PK_nop_meta_quality_result primary key (QUALITY_RESULT_ID)
+)CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_as_cs;
+
+CREATE TABLE nop_meta_tag(
+  TAG_ID VARCHAR(32) NOT NULL    COMMENT '标签ID',
+  CLASSIFICATION_ID VARCHAR(32) NOT NULL    COMMENT '分类ID',
+  PARENT_TAG_ID VARCHAR(32) NULL    COMMENT '父标签ID',
+  NAME VARCHAR(100) NOT NULL    COMMENT '标签名',
+  FULLY_QUALIFIED_NAME VARCHAR(500) NOT NULL    COMMENT '全限定名',
+  DISPLAY_NAME VARCHAR(200) NULL    COMMENT '显示名',
+  DESCRIPTION VARCHAR(1000) NULL    COMMENT '描述',
+  DEPRECATED TINYINT default 0  NULL    COMMENT '是否废弃',
+  MUTUALLY_EXCLUSIVE TINYINT default 0  NULL    COMMENT '子标签互斥',
+  EXT_CONFIG VARCHAR(4000) NULL    COMMENT '扩展配置',
+  VERSION BIGINT NOT NULL    COMMENT '数据版本',
+  CREATED_BY VARCHAR(50) NOT NULL    COMMENT '创建人',
+  CREATE_TIME DATETIME(3) DEFAULT CURRENT_TIMESTAMP(3)  NOT NULL    COMMENT '创建时间',
+  UPDATED_BY VARCHAR(50) NOT NULL    COMMENT '修改人',
+  UPDATE_TIME DATETIME(3) DEFAULT CURRENT_TIMESTAMP(3)  NOT NULL    COMMENT '修改时间',
+  REMARK VARCHAR(200) NULL    COMMENT '备注',
+  constraint PK_nop_meta_tag primary key (TAG_ID)
 )CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_as_cs;
 
 CREATE TABLE nop_meta_entity(
@@ -491,6 +530,29 @@ CREATE TABLE nop_meta_lineage_edge(
   constraint PK_nop_meta_lineage_edge primary key (LINEAGE_EDGE_ID)
 )CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_as_cs;
 
+CREATE TABLE nop_meta_tag_label(
+  TAG_LABEL_ID VARCHAR(32) NOT NULL    COMMENT '标注ID',
+  SOURCE VARCHAR(20) NOT NULL    COMMENT '标注来源',
+  TAG_ID VARCHAR(32) NULL    COMMENT '标签ID',
+  GLOSSARY_TERM_ID VARCHAR(32) NULL    COMMENT '业务术语ID',
+  LABEL_TYPE VARCHAR(20) NOT NULL    COMMENT '标注类型',
+  STATE VARCHAR(20) NOT NULL    COMMENT '标注状态',
+  ENTITY_TYPE VARCHAR(100) NOT NULL    COMMENT '资产类型',
+  ENTITY_ID VARCHAR(32) NOT NULL    COMMENT '资产ID',
+  APPLIED_BY VARCHAR(50) NULL    COMMENT '标注人',
+  APPLIED_AT DATETIME(3) NULL    COMMENT '标注时间',
+  REASON VARCHAR(1000) NULL    COMMENT '标注理由',
+  METADATA VARCHAR(4000) NULL    COMMENT '扩展元数据',
+  EXT_CONFIG VARCHAR(4000) NULL    COMMENT '扩展配置',
+  VERSION BIGINT NOT NULL    COMMENT '数据版本',
+  CREATED_BY VARCHAR(50) NOT NULL    COMMENT '创建人',
+  CREATE_TIME DATETIME(3) DEFAULT CURRENT_TIMESTAMP(3)  NOT NULL    COMMENT '创建时间',
+  UPDATED_BY VARCHAR(50) NOT NULL    COMMENT '修改人',
+  UPDATE_TIME DATETIME(3) DEFAULT CURRENT_TIMESTAMP(3)  NOT NULL    COMMENT '修改时间',
+  REMARK VARCHAR(200) NULL    COMMENT '备注',
+  constraint PK_nop_meta_tag_label primary key (TAG_LABEL_ID)
+)CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_as_cs;
+
 CREATE TABLE nop_meta_entity_field(
   ENTITY_FIELD_ID VARCHAR(32) NOT NULL    COMMENT '字段ID',
   META_ENTITY_ID VARCHAR(32) NOT NULL    COMMENT '实体ID',
@@ -673,6 +735,8 @@ CREATE TABLE nop_meta_reconciliation_result(
                 
    ALTER TABLE nop_meta_model_changed_event COMMENT '元数据变更事件';
                 
+   ALTER TABLE nop_meta_classification COMMENT '分类体系';
+                
    ALTER TABLE nop_meta_orm_model COMMENT 'ORM模型';
                 
    ALTER TABLE nop_meta_table COMMENT '逻辑表';
@@ -684,6 +748,8 @@ CREATE TABLE nop_meta_reconciliation_result(
    ALTER TABLE nop_meta_manifest COMMENT '元数据快照';
                 
    ALTER TABLE nop_meta_quality_result COMMENT '质量结果';
+                
+   ALTER TABLE nop_meta_tag COMMENT '分类标签';
                 
    ALTER TABLE nop_meta_entity COMMENT '元数据实体';
                 
@@ -708,6 +774,8 @@ CREATE TABLE nop_meta_reconciliation_result(
    ALTER TABLE nop_meta_quality_score COMMENT '质量评分';
                 
    ALTER TABLE nop_meta_lineage_edge COMMENT '血缘边';
+                
+   ALTER TABLE nop_meta_tag_label COMMENT '语义标注';
                 
    ALTER TABLE nop_meta_entity_field COMMENT '实体字段';
                 

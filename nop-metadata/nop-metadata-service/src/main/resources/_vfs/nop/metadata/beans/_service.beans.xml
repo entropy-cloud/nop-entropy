@@ -53,6 +53,14 @@
         <property name="bizObjName" value="NopMetaModelChangedEvent"/>
     </bean>
 
+    <bean id="io.nop.metadata.service.entity.NopMetaClassificationBizModel" ioc:type="@bean:id" ioc:default="true"/>
+
+    <bean id="biz_NopMetaClassification" class="io.nop.biz.proxy.BizProxyFactoryBean"
+          ioc:type="io.nop.metadata.biz.INopMetaClassificationBiz" ioc:force-lazy-property="true" lazy-init="true"
+          primary="true">
+        <property name="bizObjName" value="NopMetaClassification"/>
+    </bean>
+
     <bean id="io.nop.metadata.service.entity.NopMetaOrmModelBizModel" ioc:type="@bean:id" ioc:default="true"/>
 
     <bean id="biz_NopMetaOrmModel" class="io.nop.biz.proxy.BizProxyFactoryBean"
@@ -98,6 +106,13 @@
           ioc:type="io.nop.metadata.biz.INopMetaQualityResultBiz" ioc:force-lazy-property="true" lazy-init="true"
           primary="true">
         <property name="bizObjName" value="NopMetaQualityResult"/>
+    </bean>
+
+    <bean id="io.nop.metadata.service.entity.NopMetaTagBizModel" ioc:type="@bean:id" ioc:default="true"/>
+
+    <bean id="biz_NopMetaTag" class="io.nop.biz.proxy.BizProxyFactoryBean" ioc:type="io.nop.metadata.biz.INopMetaTagBiz"
+          ioc:force-lazy-property="true" lazy-init="true" primary="true">
+        <property name="bizObjName" value="NopMetaTag"/>
     </bean>
 
     <bean id="io.nop.metadata.service.entity.NopMetaEntityBizModel" ioc:type="@bean:id" ioc:default="true"/>
@@ -193,6 +208,14 @@
           ioc:type="io.nop.metadata.biz.INopMetaLineageEdgeBiz" ioc:force-lazy-property="true" lazy-init="true"
           primary="true">
         <property name="bizObjName" value="NopMetaLineageEdge"/>
+    </bean>
+
+    <bean id="io.nop.metadata.service.entity.NopMetaTagLabelBizModel" ioc:type="@bean:id" ioc:default="true"/>
+
+    <bean id="biz_NopMetaTagLabel" class="io.nop.biz.proxy.BizProxyFactoryBean"
+          ioc:type="io.nop.metadata.biz.INopMetaTagLabelBiz" ioc:force-lazy-property="true" lazy-init="true"
+          primary="true">
+        <property name="bizObjName" value="NopMetaTagLabel"/>
     </bean>
 
     <bean id="io.nop.metadata.service.entity.NopMetaEntityFieldBizModel" ioc:type="@bean:id" ioc:default="true"/>

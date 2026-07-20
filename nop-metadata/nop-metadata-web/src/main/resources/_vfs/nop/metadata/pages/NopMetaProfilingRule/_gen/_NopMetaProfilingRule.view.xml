@@ -28,7 +28,7 @@
                 <col id="displayName" sortable="true"/>
 
                 <!--剖析表ID-->
-                <col id="tableId" mandatory="true" sortable="true"/>
+                <col id="metaTableId" mandatory="true" sortable="true"/>
 
                 <!--剖析列-->
                 <col id="columns" sortable="true"/>
@@ -65,7 +65,7 @@
         <form id="view" editMode="view" title="查看-数据剖析规则" i18n-en:title="View Meta Profiling Rule">
             <layout>
  profilingRuleId[剖析规则ID] ruleName[规则名]
- displayName[显示名] tableId[剖析表ID]
+ displayName[显示名] metaTableId[剖析表ID]
  columns[剖析列] stats[统计指标]
  sampleSize[采样大小] extConfig[扩展配置]
  createdBy[创建人] createTime[创建时间]
@@ -79,7 +79,7 @@
  profilingRuleId[剖析规则ID]
  ruleName[规则名]
  displayName[显示名]
- tableId[剖析表ID]
+ metaTableId[剖析表ID]
  columns[剖析列]
  stats[统计指标]
  sampleSize[采样大小]

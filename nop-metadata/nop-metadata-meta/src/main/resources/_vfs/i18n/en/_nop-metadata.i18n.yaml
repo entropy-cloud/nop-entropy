@@ -1,6 +1,7 @@
 entity:
   label:
     NopMetaCatalog: Meta Catalog
+    NopMetaClassification: Meta Classification
     NopMetaDataContract: Meta Data Contract
     NopMetaDataSource: Meta Datasource
     NopMetaDict: Meta Dict
@@ -32,6 +33,8 @@ entity:
     NopMetaTableFilter: Meta Table Filter
     NopMetaTableJoin: Meta Table Join
     NopMetaTableMeasure: Meta Table Measure
+    NopMetaTag: Meta Tag
+    NopMetaTagLabel: Meta Tag Label
 prop:
   label:
     NopMetaCatalog:
@@ -53,6 +56,26 @@ prop:
       metaTable: Meta Table
       metaTable.displayName: Meta Table
       detailsComponent: null
+    NopMetaClassification:
+      classificationId: Classification Id
+      name: Name
+      displayName: Display Name
+      description: Description
+      mutuallyExclusive: Mutually Exclusive
+      provider: Provider
+      provider_label: null
+      disabled: Disabled
+      autoClassificationConfig: Auto Classification Config
+      extConfig: Ext Config
+      version: Version
+      createdBy: Created By
+      createTime: Create Time
+      updatedBy: Updated By
+      updateTime: Update Time
+      remark: Remark
+      tags: Tags
+      autoClassificationConfigComponent: null
+      extConfigComponent: null
     NopMetaDataContract:
       contractId: Contract Id
       contractName: Contract Name
@@ -771,6 +794,57 @@ prop:
       metaTable: Meta Table
       metaTable.displayName: Meta Table
       extConfigComponent: null
+    NopMetaTag:
+      tagId: Tag Id
+      classificationId: Classification Id
+      parentTagId: Parent Tag Id
+      name: Name
+      fullyQualifiedName: Fully Qualified Name
+      displayName: Display Name
+      description: Description
+      deprecated: Deprecated
+      mutuallyExclusive: Mutually Exclusive
+      extConfig: Ext Config
+      version: Version
+      createdBy: Created By
+      createTime: Create Time
+      updatedBy: Updated By
+      updateTime: Update Time
+      remark: Remark
+      classification: Classification
+      classification.displayName: Classification
+      parentTag: Parent Tag
+      parentTag.displayName: Parent Tag
+      children: Children
+      tagLabels: null
+      extConfigComponent: null
+    NopMetaTagLabel:
+      tagLabelId: Tag Label Id
+      source: Source
+      source_label: null
+      tagId: Tag Id
+      glossaryTermId: Glossary Term Id
+      labelType: Label Type
+      labelType_label: null
+      state: State
+      state_label: null
+      entityType: Entity Type
+      entityId: Entity Id
+      appliedBy: Applied By
+      appliedAt: Applied At
+      reason: Reason
+      metadata: Metadata
+      extConfig: Ext Config
+      version: Version
+      createdBy: Created By
+      createTime: Create Time
+      updatedBy: Updated By
+      updateTime: Update Time
+      remark: Remark
+      tag: Tag
+      tag.displayName: Tag
+      metadataComponent: null
+      extConfigComponent: null
 dict:
   label:
     meta/module-status: Module Status
@@ -796,6 +870,10 @@ dict:
     meta/reconciliation-status: Reconciliation Status
     meta/match-strategy: Match Strategy
     meta/change-event-type: Meta Change Event Type
+    meta/tag-label-source: Tag Label Source
+    meta/tag-label-type: Tag Label Type
+    meta/tag-label-state: Tag Label State
+    meta/tag-provider: Tag Provider
 dict.option.label:
   meta/module-status:
     DRAFTING: Drafting
@@ -899,3 +977,18 @@ dict.option.label:
     ENTITY_CREATED: Entity Created
     ENTITY_UPDATED: Entity Updated
     ENTITY_DELETED: Entity Deleted
+  meta/tag-label-source:
+    Classification: Classification
+    Glossary: Glossary
+  meta/tag-label-type:
+    Manual: Manual
+    Propagated: Propagated
+    Automated: Automated
+    Derived: Derived
+    Generated: Generated
+  meta/tag-label-state:
+    Suggested: Suggested
+    Confirmed: Confirmed
+  meta/tag-provider:
+    system: System
+    user: User

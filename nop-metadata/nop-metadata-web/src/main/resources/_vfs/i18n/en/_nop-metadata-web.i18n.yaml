@@ -4,6 +4,10 @@ site:
       displayName: Modify Meta Catalog
     FNPT:NopMetaCatalog:query:
       displayName: Query Meta Catalog
+    FNPT:NopMetaClassification:mutation:
+      displayName: Modify Meta Classification
+    FNPT:NopMetaClassification:query:
+      displayName: Query Meta Classification
     FNPT:NopMetaDataContract:mutation:
       displayName: Modify Meta Data Contract
     FNPT:NopMetaDataContract:query:
@@ -128,8 +132,18 @@ site:
       displayName: Modify Meta Table Measure
     FNPT:NopMetaTableMeasure:query:
       displayName: Query Meta Table Measure
+    FNPT:NopMetaTag:mutation:
+      displayName: Modify Meta Tag
+    FNPT:NopMetaTag:query:
+      displayName: Query Meta Tag
+    FNPT:NopMetaTagLabel:mutation:
+      displayName: Modify Meta Tag Label
+    FNPT:NopMetaTagLabel:query:
+      displayName: Query Meta Tag Label
     NopMetaCatalog-main:
       displayName: Meta Catalog
+    NopMetaClassification-main:
+      displayName: Meta Classification
     NopMetaDataContract-main:
       displayName: Meta Data Contract
     NopMetaDataSource-main:
@@ -192,5 +206,9 @@ site:
       displayName: Meta Table Join
     NopMetaTableMeasure-main:
       displayName: Meta Table Measure
+    NopMetaTag-main:
+      displayName: Meta Tag
+    NopMetaTagLabel-main:
+      displayName: Meta Tag Label
     test-orm-nop-metadata:
       displayName: Test nop-metadata

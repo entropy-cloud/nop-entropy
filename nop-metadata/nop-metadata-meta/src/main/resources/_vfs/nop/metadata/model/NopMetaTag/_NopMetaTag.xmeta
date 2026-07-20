@@ -1,0 +1,129 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<meta x:schema="/nop/schema/xmeta.xdef" xmlns:x="/nop/schema/xdsl.xdef" xmlns:i18n-en="i18n-en" xmlns:ext="ext"
+      xmlns:xpl="xpl" ext:model="orm" ext:icon="tag" ext:web-renderer="" xmlns:c="c" xmlns:graphql="graphql"
+      xmlns:meta-gen="meta-gen" xmlns:biz="biz" displayName="分类标签" i18n-en:displayName="Meta Tag" xmlns:ui="ui"
+      xmlns:orm="orm">
+
+    <entityName>io.nop.metadata.dao.entity.NopMetaTag</entityName>
+
+    <primaryKey>tagId</primaryKey>
+
+    <displayProp>displayName</displayProp>
+
+    <x:gen-extends>
+        <meta-gen:DefaultMetaGenExtends xpl:lib="/nop/core/xlib/meta-gen.xlib"/>
+    </x:gen-extends>
+
+    <x:post-extends>
+        <meta-gen:DefaultMetaPostExtends xpl:lib="/nop/core/xlib/meta-gen.xlib"/>
+    </x:post-extends>
+
+    <keys>
+        <key name="UK_NOP_META_TAG_FQN" props="fullyQualifiedName"/>
+        <key name="UK_NOP_META_TAG_CLS_FQN" props="classificationId,fullyQualifiedName"/>
+    </keys>
+
+    <props>
+        <prop name="tagId" displayName="标签ID" propId="1" i18n-en:displayName="Tag Id" tagSet="seq" mandatory="true"
+              queryable="true" sortable="true" insertable="true" updatable="false">
+            <schema type="java.lang.String" precision="32"/>
+        </prop>
+        <prop name="classificationId" displayName="分类ID" propId="2" i18n-en:displayName="Classification Id"
+              mandatory="true" queryable="true" sortable="true" insertable="true" updatable="true"
+              ext:relation="classification">
+            <schema type="java.lang.String" precision="32"/>
+        </prop>
+        <prop name="parentTagId" displayName="父标签ID" propId="3" i18n-en:displayName="Parent Tag Id" queryable="true"
+              sortable="true" insertable="true" updatable="true" ext:relation="parentTag">
+            <schema type="java.lang.String" precision="32"/>
+        </prop>
+        <prop name="name" displayName="标签名" propId="4" i18n-en:displayName="Name" mandatory="true" queryable="true"
+              sortable="true" insertable="true" updatable="true">
+            <schema type="java.lang.String" precision="100"/>
+        </prop>
+        <prop name="fullyQualifiedName" displayName="全限定名" propId="5" i18n-en:displayName="Fully Qualified Name"
+              mandatory="true" queryable="true" sortable="true" insertable="true" updatable="true">
+            <schema type="java.lang.String" precision="500"/>
+        </prop>
+        <prop name="displayName" displayName="显示名" propId="6" i18n-en:displayName="Display Name" tagSet="disp"
+              queryable="true" sortable="true" insertable="true" updatable="true">
+            <schema type="java.lang.String" precision="200"/>
+        </prop>
+        <prop name="description" displayName="描述" propId="7" i18n-en:displayName="Description" queryable="true"
+              sortable="true" insertable="true" updatable="true">
+            <schema type="java.lang.String" precision="1000"/>
+        </prop>
+        <prop name="deprecated" displayName="是否废弃" propId="8" i18n-en:displayName="Deprecated" queryable="true"
+              sortable="true" insertable="true" updatable="true" defaultValue="0">
+            <schema domain="boolFlag" type="java.lang.Byte"/>
+        </prop>
+        <prop name="mutuallyExclusive" displayName="子标签互斥" propId="9" i18n-en:displayName="Mutually Exclusive"
+              queryable="true" sortable="true" insertable="true" updatable="true" defaultValue="0">
+            <schema domain="boolFlag" type="java.lang.Byte"/>
+        </prop>
+        <prop name="extConfig" displayName="扩展配置" propId="10" i18n-en:displayName="Ext Config" queryable="true"
+              sortable="true" insertable="true" updatable="true" graphql:jsonComponentProp="extConfigComponent">
+            <schema stdDomain="json" domain="json-4000" type="java.lang.String" precision="4000"/>
+        </prop>
+        <prop name="version" displayName="数据版本" propId="11" i18n-en:displayName="Version" mandatory="true"
+              queryable="true" sortable="true" insertable="false" updatable="false" internal="true">
+            <schema domain="version" type="java.lang.Long"/>
+        </prop>
+        <prop name="createdBy" displayName="创建人" propId="12" i18n-en:displayName="Created By" mandatory="true"
+              queryable="true" sortable="true" insertable="false" updatable="false">
+            <schema domain="createdBy" type="java.lang.String" precision="50"/>
+        </prop>
+        <prop name="createTime" displayName="创建时间" propId="13" i18n-en:displayName="Create Time" mandatory="true"
+              queryable="true" sortable="true" insertable="false" updatable="false">
+            <schema domain="createTime" type="java.sql.Timestamp"/>
+        </prop>
+        <prop name="updatedBy" displayName="修改人" propId="14" i18n-en:displayName="Updated By" mandatory="true"
+              queryable="true" sortable="true" insertable="false" updatable="false">
+            <schema domain="updatedBy" type="java.lang.String" precision="50"/>
+        </prop>
+        <prop name="updateTime" displayName="修改时间" propId="15" i18n-en:displayName="Update Time" mandatory="true"
+              queryable="true" sortable="true" insertable="false" updatable="false">
+            <schema domain="updateTime" type="java.sql.Timestamp"/>
+        </prop>
+        <prop name="remark" displayName="备注" propId="16" i18n-en:displayName="Remark" queryable="true" sortable="true"
+              insertable="true" updatable="true">
+            <schema domain="remark" type="java.lang.String" precision="200"/>
+        </prop>
+        <prop name="classification" displayName="所属分类" i18n-en:displayName="Classification" tagSet="pub,ref-pub"
+              ext:kind="to-one" internal="true" queryable="true" ext:joinLeftProp="classificationId"
+              ext:joinRightProp="classificationId" ext:joinRightDisplayProp="displayName" insertable="false"
+              updatable="false" mandatory="true" lazy="true">
+            <schema bizObjName="NopMetaClassification"/>
+        </prop>
+        <prop name="classification.displayName" displayName="所属分类" i18n-en:displayName="Classification" internal="true"
+              queryable="true" sortable="true" lazy="true">
+            <schema type="String"/>
+        </prop>
+        <prop name="parentTag" displayName="父标签" i18n-en:displayName="Parent Tag" tagSet="pub,ref-pub" ext:kind="to-one"
+              internal="true" queryable="true" ext:joinLeftProp="parentTagId" ext:joinRightProp="tagId"
+              ext:joinRightDisplayProp="displayName" insertable="false" updatable="false" lazy="true">
+            <schema bizObjName="NopMetaTag"/>
+        </prop>
+        <prop name="parentTag.displayName" displayName="父标签" i18n-en:displayName="Parent Tag" internal="true"
+              queryable="true" sortable="true" lazy="true">
+            <schema type="String"/>
+        </prop>
+        <prop name="children" displayName="子标签集" i18n-en:displayName="Children" tagSet="pub,ref-pub" ext:kind="to-many"
+              internal="true" ext:joinLeftProp="tagId" ext:joinRightProp="parentTagId"
+              ext:joinRightDisplayProp="displayName" insertable="false" updatable="false" lazy="true">
+            <schema>
+                <item bizObjName="NopMetaTag"/>
+            </schema>
+        </prop>
+        <prop name="tagLabels" tagSet="pub" ext:kind="to-many" internal="true" ext:joinLeftProp="tagId"
+              ext:joinRightProp="tagId" insertable="false" updatable="false" lazy="true">
+            <schema>
+                <item bizObjName="NopMetaTagLabel"/>
+            </schema>
+        </prop>
+        <prop name="extConfigComponent" tagSet="json,pub,edit" ext:kind="component" internal="true" insertable="true"
+              updatable="true" lazy="true">
+            <schema type="io.nop.orm.component.JsonOrmComponent"/>
+        </prop>
+    </props>
+</meta>

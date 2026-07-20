@@ -1,0 +1,27 @@
+# __XGEN_FORCE_OVERRIDE__
+label: 标签标注类型
+locale: zh-CN
+valueType: string
+description: 
+options:
+
+  - label: 手动标注
+    value: Manual
+    description: 
+  
+  - label: 血缘传播
+    value: Propagated
+    description: 
+  
+  - label: 自动识别
+    value: Automated
+    description: 
+  
+  - label: 派生标注
+    value: Derived
+    description: 
+  
+  - label: 系统生成
+    value: Generated
+    description: 
+  

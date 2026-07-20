@@ -1,0 +1,15 @@
+# __XGEN_FORCE_OVERRIDE__
+label: 标签标注来源
+locale: zh-CN
+valueType: string
+description: 
+options:
+
+  - label: 分类标签
+    value: Classification
+    description: 
+  
+  - label: 业务术语
+    value: Glossary
+    description: 
+  

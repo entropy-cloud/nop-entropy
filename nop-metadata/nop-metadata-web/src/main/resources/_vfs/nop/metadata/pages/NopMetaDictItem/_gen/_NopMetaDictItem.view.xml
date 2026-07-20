@@ -48,6 +48,9 @@
                 <!--内部使用-->
                 <col id="internal" sortable="true"/>
 
+                <!--是否Delta-->
+                <col id="isDelta" sortable="true"/>
+
                 <!--创建人-->
                 <col id="createdBy" mandatory="true" sortable="true"/>
 
@@ -62,9 +65,6 @@
 
                 <!--备注-->
                 <col id="remark" sortable="true"/>
-
-                <!--是否Delta-->
-                <col id="isDelta" sortable="true"/>
             </cols>
         </grid>
         <grid id="pick-list" x:prototype="list" x:abstract="true"/>
@@ -78,9 +78,9 @@
  itemCode[字典编码] itemGroup[分组]
  description[描述] sortOrder[排序]
  deprecated[已废弃] internal[内部使用]
- createdBy[创建人] createTime[创建时间]
- updatedBy[修改人] updateTime[修改时间]
- remark[备注] isDelta[是否Delta]
+ isDelta[是否Delta] createdBy[创建人]
+ createTime[创建时间] updatedBy[修改人]
+ updateTime[修改时间] remark[备注]
 </layout>
         </form>
         <form id="add" editMode="add" title="新增-字典项" i18n-en:title="Add Meta Dict Item" x:prototype="edit"/>
@@ -91,7 +91,7 @@
  itemCode[字典编码] itemGroup[分组]
  description[描述] sortOrder[排序]
  deprecated[已废弃] internal[内部使用]
- remark[备注] isDelta[是否Delta]
+ isDelta[是否Delta] remark[备注]
 </layout>
         </form>
         <form id="query" editMode="query" title="查询条件" i18n-en:title="Query Condition" x:abstract="true"/>

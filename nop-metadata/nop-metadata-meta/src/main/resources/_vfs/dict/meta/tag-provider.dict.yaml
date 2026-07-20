@@ -1,0 +1,15 @@
+# __XGEN_FORCE_OVERRIDE__
+label: 标签提供者
+locale: zh-CN
+valueType: string
+description: 
+options:
+
+  - label: 系统内置
+    value: system
+    description: 
+  
+  - label: 用户自定义
+    value: user
+    description: 
+  

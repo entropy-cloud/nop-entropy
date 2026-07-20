@@ -398,4 +398,59 @@ public interface _NopMetadataCoreConstants {
      */
     String CHANGE_EVENT_TYPE_ENTITY_DELETED = "ENTITY_DELETED";
                     
+    /**
+     * 标签标注来源: 分类标签 
+     */
+    String TAG_LABEL_SOURCE_CLASSIFICATION = "Classification";
+                    
+    /**
+     * 标签标注来源: 业务术语 
+     */
+    String TAG_LABEL_SOURCE_GLOSSARY = "Glossary";
+                    
+    /**
+     * 标签标注类型: 手动标注 
+     */
+    String TAG_LABEL_TYPE_MANUAL = "Manual";
+                    
+    /**
+     * 标签标注类型: 血缘传播 
+     */
+    String TAG_LABEL_TYPE_PROPAGATED = "Propagated";
+                    
+    /**
+     * 标签标注类型: 自动识别 
+     */
+    String TAG_LABEL_TYPE_AUTOMATED = "Automated";
+                    
+    /**
+     * 标签标注类型: 派生标注 
+     */
+    String TAG_LABEL_TYPE_DERIVED = "Derived";
+                    
+    /**
+     * 标签标注类型: 系统生成 
+     */
+    String TAG_LABEL_TYPE_GENERATED = "Generated";
+                    
+    /**
+     * 标签标注状态: 建议 
+     */
+    String TAG_LABEL_STATE_SUGGESTED = "Suggested";
+                    
+    /**
+     * 标签标注状态: 已确认 
+     */
+    String TAG_LABEL_STATE_CONFIRMED = "Confirmed";
+                    
+    /**
+     * 标签提供者: 系统内置 
+     */
+    String TAG_PROVIDER_SYSTEM = "system";
+                    
+    /**
+     * 标签提供者: 用户自定义 
+     */
+    String TAG_PROVIDER_USER = "user";
+                    
 }

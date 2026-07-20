@@ -1,6 +1,7 @@
 entity:
   label:
     NopMetaCatalog: 运行时统计快照
+    NopMetaClassification: 分类体系
     NopMetaDataContract: 数据契约
     NopMetaDataSource: 数据源
     NopMetaDict: 元数据字典
@@ -32,6 +33,8 @@ entity:
     NopMetaTableFilter: 表过滤器
     NopMetaTableJoin: 表关联
     NopMetaTableMeasure: 表指标
+    NopMetaTag: 分类标签
+    NopMetaTagLabel: 语义标注
 prop:
   label:
     NopMetaCatalog:
@@ -50,6 +53,26 @@ prop:
       remark: 备注
       rowCount: 行数
       sizeBytes: 表物理大小
+      updateTime: 修改时间
+      updatedBy: 修改人
+      version: 数据版本
+    NopMetaClassification:
+      autoClassificationConfig: 自动识别配置
+      autoClassificationConfigComponent: null
+      classificationId: 分类ID
+      createTime: 创建时间
+      createdBy: 创建人
+      description: 描述
+      disabled: 是否禁用
+      displayName: 显示名
+      extConfig: 扩展配置
+      extConfigComponent: null
+      mutuallyExclusive: 是否互斥
+      name: 分类名
+      provider: 提供者
+      provider_label: 提供者
+      remark: 备注
+      tags: 标签集
       updateTime: 修改时间
       updatedBy: 修改人
       version: 数据版本
@@ -768,6 +791,57 @@ prop:
       remark: 备注
       side: 侧别
       side_label: 侧别
+      updateTime: 修改时间
+      updatedBy: 修改人
+      version: 数据版本
+    NopMetaTag:
+      children: 子标签集
+      classification: 所属分类
+      classification.displayName: 所属分类
+      classificationId: 分类ID
+      createTime: 创建时间
+      createdBy: 创建人
+      deprecated: 是否废弃
+      description: 描述
+      displayName: 显示名
+      extConfig: 扩展配置
+      extConfigComponent: null
+      fullyQualifiedName: 全限定名
+      mutuallyExclusive: 子标签互斥
+      name: 标签名
+      parentTag: 父标签
+      parentTag.displayName: 父标签
+      parentTagId: 父标签ID
+      remark: 备注
+      tagId: 标签ID
+      tagLabels: null
+      updateTime: 修改时间
+      updatedBy: 修改人
+      version: 数据版本
+    NopMetaTagLabel:
+      appliedAt: 标注时间
+      appliedBy: 标注人
+      createTime: 创建时间
+      createdBy: 创建人
+      entityId: 资产ID
+      entityType: 资产类型
+      extConfig: 扩展配置
+      extConfigComponent: null
+      glossaryTermId: 业务术语ID
+      labelType: 标注类型
+      labelType_label: 标注类型
+      metadata: 扩展元数据
+      metadataComponent: null
+      reason: 标注理由
+      remark: 备注
+      source: 标注来源
+      source_label: 标注来源
+      state: 标注状态
+      state_label: 标注状态
+      tag: 标签
+      tag.displayName: 标签
+      tagId: 标签ID
+      tagLabelId: 标注ID
       updateTime: 修改时间
       updatedBy: 修改人
       version: 数据版本

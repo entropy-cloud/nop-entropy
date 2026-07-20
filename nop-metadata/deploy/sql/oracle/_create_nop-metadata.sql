@@ -118,6 +118,25 @@ CREATE TABLE nop_meta_model_changed_event(
   constraint PK_nop_meta_model_changed_event primary key (MODEL_CHANGED_EVENT_ID)
 );
 
+CREATE TABLE nop_meta_classification(
+  CLASSIFICATION_ID VARCHAR2(32) NOT NULL ,
+  NAME VARCHAR2(100) NOT NULL ,
+  DISPLAY_NAME VARCHAR2(200)  ,
+  DESCRIPTION VARCHAR2(1000)  ,
+  MUTUALLY_EXCLUSIVE SMALLINT default 0  NOT NULL ,
+  PROVIDER VARCHAR2(20) NOT NULL ,
+  DISABLED SMALLINT default 0   ,
+  AUTO_CLASSIFICATION_CONFIG VARCHAR2(4000)  ,
+  EXT_CONFIG VARCHAR2(4000)  ,
+  VERSION NUMBER(20) NOT NULL ,
+  CREATED_BY VARCHAR2(50) NOT NULL ,
+  CREATE_TIME TIMESTAMP NOT NULL ,
+  UPDATED_BY VARCHAR2(50) NOT NULL ,
+  UPDATE_TIME TIMESTAMP NOT NULL ,
+  REMARK VARCHAR2(200)  ,
+  constraint PK_nop_meta_classification primary key (CLASSIFICATION_ID)
+);
+
 CREATE TABLE nop_meta_orm_model(
   ORM_MODEL_ID VARCHAR2(32) NOT NULL ,
   META_MODULE_ID VARCHAR2(32) NOT NULL ,
@@ -224,6 +243,26 @@ CREATE TABLE nop_meta_quality_result(
   UPDATE_TIME TIMESTAMP NOT NULL ,
   REMARK VARCHAR2(200)  ,
   constraint PK_nop_meta_quality_result primary key (QUALITY_RESULT_ID)
+);
+
+CREATE TABLE nop_meta_tag(
+  TAG_ID VARCHAR2(32) NOT NULL ,
+  CLASSIFICATION_ID VARCHAR2(32) NOT NULL ,
+  PARENT_TAG_ID VARCHAR2(32)  ,
+  NAME VARCHAR2(100) NOT NULL ,
+  FULLY_QUALIFIED_NAME VARCHAR2(500) NOT NULL ,
+  DISPLAY_NAME VARCHAR2(200)  ,
+  DESCRIPTION VARCHAR2(1000)  ,
+  DEPRECATED SMALLINT default 0   ,
+  MUTUALLY_EXCLUSIVE SMALLINT default 0   ,
+  EXT_CONFIG VARCHAR2(4000)  ,
+  VERSION NUMBER(20) NOT NULL ,
+  CREATED_BY VARCHAR2(50) NOT NULL ,
+  CREATE_TIME TIMESTAMP NOT NULL ,
+  UPDATED_BY VARCHAR2(50) NOT NULL ,
+  UPDATE_TIME TIMESTAMP NOT NULL ,
+  REMARK VARCHAR2(200)  ,
+  constraint PK_nop_meta_tag primary key (TAG_ID)
 );
 
 CREATE TABLE nop_meta_entity(
@@ -489,6 +528,29 @@ CREATE TABLE nop_meta_lineage_edge(
   UPDATE_TIME TIMESTAMP NOT NULL ,
   REMARK VARCHAR2(200)  ,
   constraint PK_nop_meta_lineage_edge primary key (LINEAGE_EDGE_ID)
+);
+
+CREATE TABLE nop_meta_tag_label(
+  TAG_LABEL_ID VARCHAR2(32) NOT NULL ,
+  SOURCE VARCHAR2(20) NOT NULL ,
+  TAG_ID VARCHAR2(32)  ,
+  GLOSSARY_TERM_ID VARCHAR2(32)  ,
+  LABEL_TYPE VARCHAR2(20) NOT NULL ,
+  STATE VARCHAR2(20) NOT NULL ,
+  ENTITY_TYPE VARCHAR2(100) NOT NULL ,
+  ENTITY_ID VARCHAR2(32) NOT NULL ,
+  APPLIED_BY VARCHAR2(50)  ,
+  APPLIED_AT TIMESTAMP  ,
+  REASON VARCHAR2(1000)  ,
+  METADATA VARCHAR2(4000)  ,
+  EXT_CONFIG VARCHAR2(4000)  ,
+  VERSION NUMBER(20) NOT NULL ,
+  CREATED_BY VARCHAR2(50) NOT NULL ,
+  CREATE_TIME TIMESTAMP NOT NULL ,
+  UPDATED_BY VARCHAR2(50) NOT NULL ,
+  UPDATE_TIME TIMESTAMP NOT NULL ,
+  REMARK VARCHAR2(200)  ,
+  constraint PK_nop_meta_tag_label primary key (TAG_LABEL_ID)
 );
 
 CREATE TABLE nop_meta_entity_field(
@@ -863,6 +925,38 @@ CREATE TABLE nop_meta_reconciliation_result(
                     
       COMMENT ON COLUMN nop_meta_model_changed_event.REMARK IS '备注';
                     
+      COMMENT ON TABLE nop_meta_classification IS '分类体系';
+                
+      COMMENT ON COLUMN nop_meta_classification.CLASSIFICATION_ID IS '分类ID';
+                    
+      COMMENT ON COLUMN nop_meta_classification.NAME IS '分类名';
+                    
+      COMMENT ON COLUMN nop_meta_classification.DISPLAY_NAME IS '显示名';
+                    
+      COMMENT ON COLUMN nop_meta_classification.DESCRIPTION IS '描述';
+                    
+      COMMENT ON COLUMN nop_meta_classification.MUTUALLY_EXCLUSIVE IS '是否互斥';
+                    
+      COMMENT ON COLUMN nop_meta_classification.PROVIDER IS '提供者';
+                    
+      COMMENT ON COLUMN nop_meta_classification.DISABLED IS '是否禁用';
+                    
+      COMMENT ON COLUMN nop_meta_classification.AUTO_CLASSIFICATION_CONFIG IS '自动识别配置';
+                    
+      COMMENT ON COLUMN nop_meta_classification.EXT_CONFIG IS '扩展配置';
+                    
+      COMMENT ON COLUMN nop_meta_classification.VERSION IS '数据版本';
+                    
+      COMMENT ON COLUMN nop_meta_classification.CREATED_BY IS '创建人';
+                    
+      COMMENT ON COLUMN nop_meta_classification.CREATE_TIME IS '创建时间';
+                    
+      COMMENT ON COLUMN nop_meta_classification.UPDATED_BY IS '修改人';
+                    
+      COMMENT ON COLUMN nop_meta_classification.UPDATE_TIME IS '修改时间';
+                    
+      COMMENT ON COLUMN nop_meta_classification.REMARK IS '备注';
+                    
       COMMENT ON TABLE nop_meta_orm_model IS 'ORM模型';
                 
       COMMENT ON COLUMN nop_meta_orm_model.ORM_MODEL_ID IS '模型ID';
@@ -1042,6 +1136,40 @@ CREATE TABLE nop_meta_reconciliation_result(
       COMMENT ON COLUMN nop_meta_quality_result.UPDATE_TIME IS '修改时间';
                     
       COMMENT ON COLUMN nop_meta_quality_result.REMARK IS '备注';
+                    
+      COMMENT ON TABLE nop_meta_tag IS '分类标签';
+                
+      COMMENT ON COLUMN nop_meta_tag.TAG_ID IS '标签ID';
+                    
+      COMMENT ON COLUMN nop_meta_tag.CLASSIFICATION_ID IS '分类ID';
+                    
+      COMMENT ON COLUMN nop_meta_tag.PARENT_TAG_ID IS '父标签ID';
+                    
+      COMMENT ON COLUMN nop_meta_tag.NAME IS '标签名';
+                    
+      COMMENT ON COLUMN nop_meta_tag.FULLY_QUALIFIED_NAME IS '全限定名';
+                    
+      COMMENT ON COLUMN nop_meta_tag.DISPLAY_NAME IS '显示名';
+                    
+      COMMENT ON COLUMN nop_meta_tag.DESCRIPTION IS '描述';
+                    
+      COMMENT ON COLUMN nop_meta_tag.DEPRECATED IS '是否废弃';
+                    
+      COMMENT ON COLUMN nop_meta_tag.MUTUALLY_EXCLUSIVE IS '子标签互斥';
+                    
+      COMMENT ON COLUMN nop_meta_tag.EXT_CONFIG IS '扩展配置';
+                    
+      COMMENT ON COLUMN nop_meta_tag.VERSION IS '数据版本';
+                    
+      COMMENT ON COLUMN nop_meta_tag.CREATED_BY IS '创建人';
+                    
+      COMMENT ON COLUMN nop_meta_tag.CREATE_TIME IS '创建时间';
+                    
+      COMMENT ON COLUMN nop_meta_tag.UPDATED_BY IS '修改人';
+                    
+      COMMENT ON COLUMN nop_meta_tag.UPDATE_TIME IS '修改时间';
+                    
+      COMMENT ON COLUMN nop_meta_tag.REMARK IS '备注';
                     
       COMMENT ON TABLE nop_meta_entity IS '元数据实体';
                 
@@ -1500,6 +1628,46 @@ CREATE TABLE nop_meta_reconciliation_result(
       COMMENT ON COLUMN nop_meta_lineage_edge.UPDATE_TIME IS '修改时间';
                     
       COMMENT ON COLUMN nop_meta_lineage_edge.REMARK IS '备注';
+                    
+      COMMENT ON TABLE nop_meta_tag_label IS '语义标注';
+                
+      COMMENT ON COLUMN nop_meta_tag_label.TAG_LABEL_ID IS '标注ID';
+                    
+      COMMENT ON COLUMN nop_meta_tag_label.SOURCE IS '标注来源';
+                    
+      COMMENT ON COLUMN nop_meta_tag_label.TAG_ID IS '标签ID';
+                    
+      COMMENT ON COLUMN nop_meta_tag_label.GLOSSARY_TERM_ID IS '业务术语ID';
+                    
+      COMMENT ON COLUMN nop_meta_tag_label.LABEL_TYPE IS '标注类型';
+                    
+      COMMENT ON COLUMN nop_meta_tag_label.STATE IS '标注状态';
+                    
+      COMMENT ON COLUMN nop_meta_tag_label.ENTITY_TYPE IS '资产类型';
+                    
+      COMMENT ON COLUMN nop_meta_tag_label.ENTITY_ID IS '资产ID';
+                    
+      COMMENT ON COLUMN nop_meta_tag_label.APPLIED_BY IS '标注人';
+                    
+      COMMENT ON COLUMN nop_meta_tag_label.APPLIED_AT IS '标注时间';
+                    
+      COMMENT ON COLUMN nop_meta_tag_label.REASON IS '标注理由';
+                    
+      COMMENT ON COLUMN nop_meta_tag_label.METADATA IS '扩展元数据';
+                    
+      COMMENT ON COLUMN nop_meta_tag_label.EXT_CONFIG IS '扩展配置';
+                    
+      COMMENT ON COLUMN nop_meta_tag_label.VERSION IS '数据版本';
+                    
+      COMMENT ON COLUMN nop_meta_tag_label.CREATED_BY IS '创建人';
+                    
+      COMMENT ON COLUMN nop_meta_tag_label.CREATE_TIME IS '创建时间';
+                    
+      COMMENT ON COLUMN nop_meta_tag_label.UPDATED_BY IS '修改人';
+                    
+      COMMENT ON COLUMN nop_meta_tag_label.UPDATE_TIME IS '修改时间';
+                    
+      COMMENT ON COLUMN nop_meta_tag_label.REMARK IS '备注';
                     
       COMMENT ON TABLE nop_meta_entity_field IS '实体字段';
                 
