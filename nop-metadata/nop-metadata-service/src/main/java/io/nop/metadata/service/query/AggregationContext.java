@@ -1,3 +1,11 @@
+/**
+ * Copyright (c) 2017-2024 Nop Platform. All rights reserved.
+ * Author: canonical_entropy@163.com
+ * Blog:   https://www.zhihu.com/people/canonical-entropy
+ * Gitee:  https://github.com/entropy-cloud/nop-entropy
+ * Github: https://github.com/entropy-cloud/nop-entropy
+ */
+
 package io.nop.metadata.service.query;
 
 import io.nop.api.core.beans.FilterBeanConstants;
@@ -20,6 +28,7 @@ import io.nop.metadata.dao.entity.NopMetaTableMeasure;
 import io.nop.metadata.dao.entity.NopMetaTableFilter;
 import io.nop.metadata.service.field.ExpressionMeasureValidator;
 import io.nop.metadata.service.field.ResolvedTableField;
+import io.nop.metadata.service.NopMetadataErrors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -327,7 +336,7 @@ public class AggregationContext {
 
         static MemAggAccumulator forFunc(String aggFunc, String name) {
             if (aggFunc == null) {
-                throw new NopException(MetaAggregationExecutor.ERR_AGGR_AGG_FUNC_UNSUPPORTED)
+                throw new NopException(NopMetadataErrors.ERR_AGGR_AGG_FUNC_UNSUPPORTED)
                         .param("aggFunc", String.valueOf(aggFunc)).param("measureName", name);
             }
             switch (aggFunc) {
@@ -344,7 +353,7 @@ public class AggregationContext {
                 case _NopMetadataCoreConstants.AGG_FUNC_COUNT_DISTINCT:
                     return new CountDistinctAcc();
                 default:
-                    throw new NopException(MetaAggregationExecutor.ERR_AGGR_AGG_FUNC_UNSUPPORTED)
+                    throw new NopException(NopMetadataErrors.ERR_AGGR_AGG_FUNC_UNSUPPORTED)
                             .param("aggFunc", aggFunc).param("measureName", name);
             }
         }
@@ -503,14 +512,14 @@ public class AggregationContext {
 
         public JoinField resolve(String entityFieldId, String name, String declaredSide, String refKind) {
             if (entityFieldId == null || entityFieldId.isEmpty()) {
-                throw new NopException(MetaAggregationExecutor.ERR_AGGR_FIELD_NOT_RESOLVED)
+                throw new NopException(NopMetadataErrors.ERR_AGGR_FIELD_NOT_RESOLVED)
                         .param("metaTableId", table.getMetaTableId())
                         .param("name", name).param("entityFieldId", String.valueOf(entityFieldId));
             }
             IEntityDao<NopMetaEntityField> fieldDao = ctx.daoProvider().daoFor(NopMetaEntityField.class);
             NopMetaEntityField field = fieldDao.getEntityById(entityFieldId);
             if (field == null || field.getColumnCode() == null) {
-                throw new NopException(MetaAggregationExecutor.ERR_AGGR_FIELD_NOT_RESOLVED)
+                throw new NopException(NopMetadataErrors.ERR_AGGR_FIELD_NOT_RESOLVED)
                         .param("metaTableId", table.getMetaTableId())
                         .param("name", name).param("entityFieldId", entityFieldId);
             }
@@ -525,7 +534,7 @@ public class AggregationContext {
                 resolvedSide = "right";
                 alias = "r";
             } else {
-                throw new NopException(MetaAggregationExecutor.ERR_AGGR_JOIN_FIELD_SIDE_UNRESOLVED)
+                throw new NopException(NopMetadataErrors.ERR_AGGR_JOIN_FIELD_SIDE_UNRESOLVED)
                         .param("metaTableId", table.getMetaTableId())
                         .param("name", name).param("entityFieldId", entityFieldId)
                         .param("fieldMetaEntityId", String.valueOf(fieldMetaEntityId))
@@ -535,7 +544,7 @@ public class AggregationContext {
             }
             if (declaredSide != null && !declaredSide.isEmpty()
                     && !declaredSide.equalsIgnoreCase(resolvedSide)) {
-                throw new NopException(MetaAggregationExecutor.ERR_AGGR_JOIN_ENTITY_SIDE_MISMATCH)
+                throw new NopException(NopMetadataErrors.ERR_AGGR_JOIN_ENTITY_SIDE_MISMATCH)
                         .param("metaTableId", table.getMetaTableId())
                         .param("name", name)
                         .param("declaredSide", declaredSide)
@@ -606,12 +615,12 @@ public class AggregationContext {
 
         public JoinField resolve(String columnName, String name, String declaredSide) {
             if (declaredSide == null || declaredSide.isEmpty()) {
-                throw new NopException(MetaAggregationExecutor.ERR_AGGR_JOIN_SIDE_REQUIRED)
+                throw new NopException(NopMetadataErrors.ERR_AGGR_JOIN_SIDE_REQUIRED)
                         .param("metaTableId", ownerTable.getMetaTableId())
                         .param("name", name).param("joinId", joinId);
             }
             if (columnName == null || columnName.isEmpty()) {
-                throw new NopException(MetaAggregationExecutor.ERR_AGGR_FIELD_NOT_RESOLVED)
+                throw new NopException(NopMetadataErrors.ERR_AGGR_FIELD_NOT_RESOLVED)
                         .param("metaTableId", ownerTable.getMetaTableId())
                         .param("name", name).param("entityFieldId", String.valueOf(columnName));
             }
@@ -627,14 +636,14 @@ public class AggregationContext {
                 endpointType = String.valueOf(rightTable.getTableType());
                 cols = rightCols;
             } else {
-                throw new NopException(MetaAggregationExecutor.ERR_AGGR_JOIN_FIELD_NOT_ON_SIDE)
+                throw new NopException(NopMetadataErrors.ERR_AGGR_JOIN_FIELD_NOT_ON_SIDE)
                         .param("metaTableId", ownerTable.getMetaTableId())
                         .param("name", name).param("side", declaredSide)
                         .param("endpointTableType", "unknown")
                         .param("column", columnName).param("joinId", joinId);
             }
             if (!containsIgnoreCase(cols, columnName)) {
-                throw new NopException(MetaAggregationExecutor.ERR_AGGR_JOIN_FIELD_NOT_ON_SIDE)
+                throw new NopException(NopMetadataErrors.ERR_AGGR_JOIN_FIELD_NOT_ON_SIDE)
                         .param("metaTableId", ownerTable.getMetaTableId())
                         .param("name", name).param("side", declaredSide)
                         .param("endpointTableType", endpointType)
@@ -702,7 +711,7 @@ public class AggregationContext {
 
         public JoinField resolve(String entityFieldId, String name, String declaredSide) {
             if (entityFieldId == null || entityFieldId.isEmpty()) {
-                throw new NopException(MetaAggregationExecutor.ERR_AGGR_FIELD_NOT_RESOLVED)
+                throw new NopException(NopMetadataErrors.ERR_AGGR_FIELD_NOT_RESOLVED)
                         .param("metaTableId", ownerTable.getMetaTableId())
                         .param("name", name).param("entityFieldId", String.valueOf(entityFieldId));
             }
@@ -710,7 +719,7 @@ public class AggregationContext {
             if (field != null && equalsStr(field.getMetaEntityId(), entityEndpoint.getMetaEntityId())) {
                 String column = field.getColumnCode();
                 if (column == null || column.isEmpty()) {
-                    throw new NopException(MetaAggregationExecutor.ERR_AGGR_FIELD_NOT_RESOLVED)
+                    throw new NopException(NopMetadataErrors.ERR_AGGR_FIELD_NOT_RESOLVED)
                             .param("metaTableId", ownerTable.getMetaTableId())
                             .param("name", name).param("entityFieldId", entityFieldId);
                 }
@@ -718,7 +727,7 @@ public class AggregationContext {
                 String alias = entityOnLeft ? "l" : "r";
                 if (declaredSide != null && !declaredSide.isEmpty()
                         && !declaredSide.equalsIgnoreCase(resolvedSide)) {
-                    throw new NopException(MetaAggregationExecutor.ERR_AGGR_JOIN_ENTITY_SIDE_MISMATCH)
+                    throw new NopException(NopMetadataErrors.ERR_AGGR_JOIN_ENTITY_SIDE_MISMATCH)
                             .param("metaTableId", ownerTable.getMetaTableId())
                             .param("name", name)
                             .param("declaredSide", declaredSide)
@@ -729,7 +738,7 @@ public class AggregationContext {
                 return new JoinField(column, alias + "." + column);
             }
             if (declaredSide == null || declaredSide.isEmpty()) {
-                throw new NopException(MetaAggregationExecutor.ERR_AGGR_JOIN_SIDE_REQUIRED)
+                throw new NopException(NopMetadataErrors.ERR_AGGR_JOIN_SIDE_REQUIRED)
                         .param("metaTableId", ownerTable.getMetaTableId())
                         .param("name", name).param("joinId", joinId);
             }
@@ -738,14 +747,14 @@ public class AggregationContext {
             if (expectedSide.equalsIgnoreCase(declaredSide)) {
                 alias = entityOnLeft ? "r" : "l";
             } else {
-                throw new NopException(MetaAggregationExecutor.ERR_AGGR_JOIN_FIELD_NOT_ON_SIDE)
+                throw new NopException(NopMetadataErrors.ERR_AGGR_JOIN_FIELD_NOT_ON_SIDE)
                         .param("metaTableId", ownerTable.getMetaTableId())
                         .param("name", name).param("side", declaredSide)
                         .param("endpointTableType", "entity")
                         .param("column", entityFieldId).param("joinId", joinId);
             }
             if (!containsIgnoreCase(tableCols, entityFieldId)) {
-                throw new NopException(MetaAggregationExecutor.ERR_AGGR_JOIN_FIELD_NOT_ON_SIDE)
+                throw new NopException(NopMetadataErrors.ERR_AGGR_JOIN_FIELD_NOT_ON_SIDE)
                         .param("metaTableId", ownerTable.getMetaTableId())
                         .param("name", name).param("side", declaredSide)
                         .param("endpointTableType", String.valueOf(tableEndpoint.getTableType()))
@@ -837,14 +846,14 @@ public class AggregationContext {
 
         private CrossDbField resolveEntityEntity(String entityFieldId, String name, String declaredSide) {
             if (entityFieldId == null || entityFieldId.isEmpty()) {
-                throw new NopException(MetaAggregationExecutor.ERR_AGGR_FIELD_NOT_RESOLVED)
+                throw new NopException(NopMetadataErrors.ERR_AGGR_FIELD_NOT_RESOLVED)
                         .param("metaTableId", ownerTable.getMetaTableId())
                         .param("name", name).param("entityFieldId", String.valueOf(entityFieldId));
             }
             IEntityDao<NopMetaEntityField> fieldDao = ctx.daoProvider().daoFor(NopMetaEntityField.class);
             NopMetaEntityField field = fieldDao.getEntityById(entityFieldId);
             if (field == null || field.getFieldName() == null || field.getFieldName().isEmpty()) {
-                throw new NopException(MetaAggregationExecutor.ERR_AGGR_FIELD_NOT_RESOLVED)
+                throw new NopException(NopMetadataErrors.ERR_AGGR_FIELD_NOT_RESOLVED)
                         .param("metaTableId", ownerTable.getMetaTableId())
                         .param("name", name).param("entityFieldId", entityFieldId);
             }
@@ -855,7 +864,7 @@ public class AggregationContext {
             } else if (equalsStr(fieldMetaEntityId, rightEp.entity.getMetaEntityId())) {
                 resolvedSide = _NopMetadataCoreConstants.JOIN_SIDE_RIGHT;
             } else {
-                throw new NopException(MetaAggregationExecutor.ERR_AGGR_JOIN_FIELD_SIDE_UNRESOLVED)
+                throw new NopException(NopMetadataErrors.ERR_AGGR_JOIN_FIELD_SIDE_UNRESOLVED)
                         .param("metaTableId", ownerTable.getMetaTableId())
                         .param("name", name).param("entityFieldId", entityFieldId)
                         .param("fieldMetaEntityId", String.valueOf(fieldMetaEntityId))
@@ -865,7 +874,7 @@ public class AggregationContext {
             }
             if (declaredSide != null && !declaredSide.isEmpty()
                     && !declaredSide.equalsIgnoreCase(resolvedSide)) {
-                throw new NopException(MetaAggregationExecutor.ERR_AGGR_JOIN_ENTITY_SIDE_MISMATCH)
+                throw new NopException(NopMetadataErrors.ERR_AGGR_JOIN_ENTITY_SIDE_MISMATCH)
                         .param("metaTableId", ownerTable.getMetaTableId())
                         .param("name", name)
                         .param("declaredSide", declaredSide)
@@ -878,12 +887,12 @@ public class AggregationContext {
 
         private CrossDbField resolveTableTable(String columnName, String name, String declaredSide) {
             if (declaredSide == null || declaredSide.isEmpty()) {
-                throw new NopException(MetaAggregationExecutor.ERR_AGGR_JOIN_SIDE_REQUIRED)
+                throw new NopException(NopMetadataErrors.ERR_AGGR_JOIN_SIDE_REQUIRED)
                         .param("metaTableId", ownerTable.getMetaTableId())
                         .param("name", name).param("joinId", joinId);
             }
             if (columnName == null || columnName.isEmpty()) {
-                throw new NopException(MetaAggregationExecutor.ERR_AGGR_FIELD_NOT_RESOLVED)
+                throw new NopException(NopMetadataErrors.ERR_AGGR_FIELD_NOT_RESOLVED)
                         .param("metaTableId", ownerTable.getMetaTableId())
                         .param("name", name).param("entityFieldId", String.valueOf(columnName));
             }
@@ -896,14 +905,14 @@ public class AggregationContext {
                 resolvedSide = _NopMetadataCoreConstants.JOIN_SIDE_RIGHT;
                 cols = ensureRightCols();
             } else {
-                throw new NopException(MetaAggregationExecutor.ERR_AGGR_JOIN_FIELD_NOT_ON_SIDE)
+                throw new NopException(NopMetadataErrors.ERR_AGGR_JOIN_FIELD_NOT_ON_SIDE)
                         .param("metaTableId", ownerTable.getMetaTableId())
                         .param("name", name).param("side", declaredSide)
                         .param("endpointTableType", "unknown")
                         .param("column", columnName).param("joinId", joinId);
             }
             if (!containsIgnoreCase(cols, columnName)) {
-                throw new NopException(MetaAggregationExecutor.ERR_AGGR_JOIN_FIELD_NOT_ON_SIDE)
+                throw new NopException(NopMetadataErrors.ERR_AGGR_JOIN_FIELD_NOT_ON_SIDE)
                         .param("metaTableId", ownerTable.getMetaTableId())
                         .param("name", name).param("side", declaredSide)
                         .param("endpointTableType", String.valueOf(
@@ -916,7 +925,7 @@ public class AggregationContext {
 
         private CrossDbField resolveMixed(String entityFieldId, String name, String declaredSide) {
             if (entityFieldId == null || entityFieldId.isEmpty()) {
-                throw new NopException(MetaAggregationExecutor.ERR_AGGR_FIELD_NOT_RESOLVED)
+                throw new NopException(NopMetadataErrors.ERR_AGGR_FIELD_NOT_RESOLVED)
                         .param("metaTableId", ownerTable.getMetaTableId())
                         .param("name", name).param("entityFieldId", String.valueOf(entityFieldId));
             }
@@ -927,7 +936,7 @@ public class AggregationContext {
                         ? _NopMetadataCoreConstants.JOIN_SIDE_LEFT : _NopMetadataCoreConstants.JOIN_SIDE_RIGHT;
                 if (declaredSide != null && !declaredSide.isEmpty()
                         && !declaredSide.equalsIgnoreCase(resolvedSide)) {
-                    throw new NopException(MetaAggregationExecutor.ERR_AGGR_JOIN_ENTITY_SIDE_MISMATCH)
+                    throw new NopException(NopMetadataErrors.ERR_AGGR_JOIN_ENTITY_SIDE_MISMATCH)
                             .param("metaTableId", ownerTable.getMetaTableId())
                             .param("name", name)
                             .param("declaredSide", declaredSide)
@@ -938,14 +947,14 @@ public class AggregationContext {
                 return new CrossDbField(resolvedSide, field.getFieldName());
             }
             if (declaredSide == null || declaredSide.isEmpty()) {
-                throw new NopException(MetaAggregationExecutor.ERR_AGGR_JOIN_SIDE_REQUIRED)
+                throw new NopException(NopMetadataErrors.ERR_AGGR_JOIN_SIDE_REQUIRED)
                         .param("metaTableId", ownerTable.getMetaTableId())
                         .param("name", name).param("joinId", joinId);
             }
             String expectedSide = entityOnLeft
                     ? _NopMetadataCoreConstants.JOIN_SIDE_RIGHT : _NopMetadataCoreConstants.JOIN_SIDE_LEFT;
             if (!expectedSide.equalsIgnoreCase(declaredSide)) {
-                throw new NopException(MetaAggregationExecutor.ERR_AGGR_JOIN_FIELD_NOT_ON_SIDE)
+                throw new NopException(NopMetadataErrors.ERR_AGGR_JOIN_FIELD_NOT_ON_SIDE)
                         .param("metaTableId", ownerTable.getMetaTableId())
                         .param("name", name).param("side", declaredSide)
                         .param("endpointTableType", "entity")
@@ -953,7 +962,7 @@ public class AggregationContext {
             }
             Set<String> cols = ensureMixedTableCols();
             if (!containsIgnoreCase(cols, entityFieldId)) {
-                throw new NopException(MetaAggregationExecutor.ERR_AGGR_JOIN_FIELD_NOT_ON_SIDE)
+                throw new NopException(NopMetadataErrors.ERR_AGGR_JOIN_FIELD_NOT_ON_SIDE)
                         .param("metaTableId", ownerTable.getMetaTableId())
                         .param("name", name).param("side", declaredSide)
                         .param("endpointTableType", String.valueOf(tableEndpoint.getTableType()))
@@ -1016,7 +1025,7 @@ public class AggregationContext {
 
     public static String aggSqlOf(String aggFunc, String column, String measureName) {
         if (aggFunc == null) {
-            throw new NopException(MetaAggregationExecutor.ERR_AGGR_AGG_FUNC_UNSUPPORTED)
+            throw new NopException(NopMetadataErrors.ERR_AGGR_AGG_FUNC_UNSUPPORTED)
                     .param("aggFunc", String.valueOf(aggFunc)).param("measureName", measureName);
         }
         switch (aggFunc) {
@@ -1033,7 +1042,7 @@ public class AggregationContext {
             case _NopMetadataCoreConstants.AGG_FUNC_COUNT_DISTINCT:
                 return "COUNT(DISTINCT " + column + ")";
             default:
-                throw new NopException(MetaAggregationExecutor.ERR_AGGR_AGG_FUNC_UNSUPPORTED)
+                throw new NopException(NopMetadataErrors.ERR_AGGR_AGG_FUNC_UNSUPPORTED)
                         .param("aggFunc", aggFunc).param("measureName", measureName);
         }
     }
@@ -1069,7 +1078,7 @@ public class AggregationContext {
             }
             return rows;
         } catch (SQLException e) {
-            throw new NopException(MetaAggregationExecutor.ERR_AGGR_EXEC_FAILED)
+            throw new NopException(NopMetadataErrors.ERR_AGGR_EXEC_FAILED)
                     .param("metaTableId", metaTableId)
                     .param("error", messageOf(e))
                     .cause(e);
@@ -1090,7 +1099,7 @@ public class AggregationContext {
 
     public static String requireName(String value, String what) {
         if (value == null || value.trim().isEmpty()) {
-            throw new NopException(MetaAggregationExecutor.ERR_AGGR_EXEC_FAILED).param("error", what + " is empty");
+            throw new NopException(NopMetadataErrors.ERR_AGGR_EXEC_FAILED).param("error", what + " is empty");
         }
         return value;
     }
@@ -1108,7 +1117,7 @@ public class AggregationContext {
     public static String resolveExternalFieldOrThrow(Set<String> columns, String field, NopMetaTable table,
                                                       String side, String joinId) {
         if (field == null || field.isEmpty() || !containsIgnoreCase(columns, field)) {
-            throw new NopException(MetaAggregationExecutor.ERR_AGGR_JOIN_FIELD_NOT_ON_SIDE)
+            throw new NopException(NopMetadataErrors.ERR_AGGR_JOIN_FIELD_NOT_ON_SIDE)
                     .param("metaTableId", table.getMetaTableId())
                     .param("name", "join-field")
                     .param("side", side)
@@ -1170,14 +1179,14 @@ public class AggregationContext {
     public static String resolveEntityFieldColumn(String entityFieldId, String name, NopMetaTable table,
                                                    MetaQueryContext ctx, Map<String, String> propToCol) {
         if (entityFieldId == null || entityFieldId.isEmpty()) {
-            throw new NopException(MetaAggregationExecutor.ERR_AGGR_FIELD_NOT_RESOLVED)
+            throw new NopException(NopMetadataErrors.ERR_AGGR_FIELD_NOT_RESOLVED)
                     .param("metaTableId", table.getMetaTableId())
                     .param("name", name).param("entityFieldId", String.valueOf(entityFieldId));
         }
         IEntityDao<NopMetaEntityField> fieldDao = ctx.daoProvider().daoFor(NopMetaEntityField.class);
         NopMetaEntityField field = fieldDao.getEntityById(entityFieldId);
         if (field == null || field.getColumnCode() == null) {
-            throw new NopException(MetaAggregationExecutor.ERR_AGGR_FIELD_NOT_RESOLVED)
+            throw new NopException(NopMetadataErrors.ERR_AGGR_FIELD_NOT_RESOLVED)
                     .param("metaTableId", table.getMetaTableId())
                     .param("name", name).param("entityFieldId", entityFieldId);
         }
@@ -1189,7 +1198,7 @@ public class AggregationContext {
                                                             NopMetaTable table) {
         Map<String, String> map = new LinkedHashMap<>();
         if (measures.size() != measureNames.size()) {
-            throw new NopException(MetaAggregationExecutor.ERR_AGGR_HAVING_UNKNOWN_NAME)
+            throw new NopException(NopMetadataErrors.ERR_AGGR_HAVING_UNKNOWN_NAME)
                     .param("metaTableId", table.getMetaTableId())
                     .param("name", "<internal>: measures/names length mismatch")
                     .param("selectedMeasures", String.valueOf(measureNames))
@@ -1199,7 +1208,7 @@ public class AggregationContext {
             map.put(measureNames.get(i), measures.get(i).aggSql);
         }
         if (dims.size() != dimensionNames.size()) {
-            throw new NopException(MetaAggregationExecutor.ERR_AGGR_HAVING_UNKNOWN_NAME)
+            throw new NopException(NopMetadataErrors.ERR_AGGR_HAVING_UNKNOWN_NAME)
                     .param("metaTableId", table.getMetaTableId())
                     .param("name", "<internal>: dims/names length mismatch")
                     .param("selectedMeasures", String.valueOf(measureNames))
@@ -1217,7 +1226,7 @@ public class AggregationContext {
                                                                 List<String> dimensionNames, NopMetaTable table) {
         Map<String, String> map = new LinkedHashMap<>();
         if (measures.size() != measureNames.size()) {
-            throw new NopException(MetaAggregationExecutor.ERR_AGGR_HAVING_UNKNOWN_NAME)
+            throw new NopException(NopMetadataErrors.ERR_AGGR_HAVING_UNKNOWN_NAME)
                     .param("metaTableId", table.getMetaTableId())
                     .param("name", "<internal>: join measures/names length mismatch")
                     .param("selectedMeasures", String.valueOf(measureNames))
@@ -1227,7 +1236,7 @@ public class AggregationContext {
             map.put(measureNames.get(i), measures.get(i).aggSql);
         }
         if (dims.size() != dimensionNames.size()) {
-            throw new NopException(MetaAggregationExecutor.ERR_AGGR_HAVING_UNKNOWN_NAME)
+            throw new NopException(NopMetadataErrors.ERR_AGGR_HAVING_UNKNOWN_NAME)
                     .param("metaTableId", table.getMetaTableId())
                     .param("name", "<internal>: join dims/names length mismatch")
                     .param("selectedMeasures", String.valueOf(measureNames))
@@ -1250,14 +1259,14 @@ public class AggregationContext {
             }
             String expr = nameToExpr.get(name);
             if (expr == null) {
-                throw new NopException(MetaAggregationExecutor.ERR_AGGR_HAVING_UNKNOWN_NAME)
+                throw new NopException(NopMetadataErrors.ERR_AGGR_HAVING_UNKNOWN_NAME)
                         .param("metaTableId", table.getMetaTableId())
                         .param("name", name)
                         .param("selectedMeasures", String.valueOf(measureNames))
                         .param("selectedDimensions", String.valueOf(dimensionNames));
             }
             if (expr.indexOf('?') >= 0) {
-                throw new NopException(MetaAggregationExecutor.ERR_AGGR_EXPRESSION_HAVING_ORDER_BY_UNSUPPORTED)
+                throw new NopException(NopMetadataErrors.ERR_AGGR_EXPRESSION_HAVING_ORDER_BY_UNSUPPORTED)
                         .param("metaTableId", table.getMetaTableId())
                         .param("measureName", name)
                         .param("clause", clause);
@@ -1278,14 +1287,14 @@ public class AggregationContext {
             String name = f.getName();
             String expr = nameToExpr.get(name);
             if (expr == null) {
-                throw new NopException(MetaAggregationExecutor.ERR_AGGR_ORDER_BY_UNKNOWN_NAME)
+                throw new NopException(NopMetadataErrors.ERR_AGGR_ORDER_BY_UNKNOWN_NAME)
                         .param("metaTableId", table.getMetaTableId())
                         .param("name", String.valueOf(name))
                         .param("selectedMeasures", String.valueOf(measureNames))
                         .param("selectedDimensions", String.valueOf(dimensionNames));
             }
             if (expr.indexOf('?') >= 0) {
-                throw new NopException(MetaAggregationExecutor.ERR_AGGR_EXPRESSION_HAVING_ORDER_BY_UNSUPPORTED)
+                throw new NopException(NopMetadataErrors.ERR_AGGR_EXPRESSION_HAVING_ORDER_BY_UNSUPPORTED)
                         .param("metaTableId", table.getMetaTableId())
                         .param("measureName", String.valueOf(name))
                         .param("clause", clause);
@@ -1315,7 +1324,7 @@ public class AggregationContext {
         for (String name : names) {
             NopMetaTableMeasure m = byName.get(name);
             if (m == null) {
-                throw new NopException(MetaAggregationExecutor.ERR_AGGR_MEASURE_NOT_FOUND)
+                throw new NopException(NopMetadataErrors.ERR_AGGR_MEASURE_NOT_FOUND)
                         .param("metaTableId", table.getMetaTableId()).param("measureName", name);
             }
             result.add(m);
@@ -1336,7 +1345,7 @@ public class AggregationContext {
         for (String name : names) {
             NopMetaTableDimension d = byName.get(name);
             if (d == null) {
-                throw new NopException(MetaAggregationExecutor.ERR_AGGR_DIMENSION_NOT_FOUND)
+                throw new NopException(NopMetadataErrors.ERR_AGGR_DIMENSION_NOT_FOUND)
                         .param("metaTableId", table.getMetaTableId()).param("dimensionName", name);
             }
             result.add(d);
@@ -1419,7 +1428,7 @@ public class AggregationContext {
         if (_NopMetadataCoreConstants.TABLE_TYPE_SQL.equals(table.getTableType())) {
             String sourceSql = table.getSourceSql();
             if (sourceSql == null || sourceSql.trim().isEmpty()) {
-                throw new NopException(MetaAggregationExecutor.ERR_AGGR_EXEC_FAILED)
+                throw new NopException(NopMetadataErrors.ERR_AGGR_EXEC_FAILED)
                         .param("metaTableId", table.getMetaTableId())
                         .param("error", "sql table sourceSql is empty");
             }
@@ -1480,7 +1489,7 @@ public class AggregationContext {
         if (_NopMetadataCoreConstants.TABLE_TYPE_SQL.equals(table.getTableType())) {
             String sourceSql = table.getSourceSql();
             if (sourceSql == null || sourceSql.trim().isEmpty()) {
-                throw new NopException(MetaAggregationExecutor.ERR_AGGR_EXEC_FAILED)
+                throw new NopException(NopMetadataErrors.ERR_AGGR_EXEC_FAILED)
                         .param("metaTableId", table.getMetaTableId())
                         .param("error", "sql table sourceSql is empty");
             }
@@ -1675,7 +1684,7 @@ public class AggregationContext {
                                                                      List<String> dimensionNames, NopMetaTable table) {
         Map<String, String> map = new LinkedHashMap<>();
         if (measures.size() != measureNames.size()) {
-            throw new NopException(MetaAggregationExecutor.ERR_AGGR_HAVING_UNKNOWN_NAME)
+            throw new NopException(NopMetadataErrors.ERR_AGGR_HAVING_UNKNOWN_NAME)
                     .param("metaTableId", table.getMetaTableId())
                     .param("name", "<internal>: cross-db measures/names length mismatch")
                     .param("selectedMeasures", String.valueOf(measureNames))
@@ -1685,7 +1694,7 @@ public class AggregationContext {
             map.put(measureNames.get(i), measures.get(i).alias);
         }
         if (dims.size() != dimensionNames.size()) {
-            throw new NopException(MetaAggregationExecutor.ERR_AGGR_HAVING_UNKNOWN_NAME)
+            throw new NopException(NopMetadataErrors.ERR_AGGR_HAVING_UNKNOWN_NAME)
                     .param("metaTableId", table.getMetaTableId())
                     .param("name", "<internal>: cross-db dims/names length mismatch")
                     .param("selectedMeasures", String.valueOf(measureNames))
@@ -1715,7 +1724,7 @@ public class AggregationContext {
             }
             String actual = findKeyIgnoreCase(sampleRow, lookupKey);
             if (actual == null) {
-                throw new NopException(MetaAggregationExecutor.ERR_AGGR_CROSS_DB_FIELD_KEY_MISSING)
+                throw new NopException(NopMetadataErrors.ERR_AGGR_CROSS_DB_FIELD_KEY_MISSING)
                         .param("metaTableId", table.getMetaTableId())
                         .param("name", spec.alias)
                         .param("fieldKind", fieldKind)
@@ -1784,7 +1793,7 @@ public class AggregationContext {
         int from = 0;
         if (offset != null && offset > 0) {
             if (offset > Integer.MAX_VALUE) {
-                throw new NopException(MetaJoinExecutor.ERR_PAGINATION_OFFSET_TOO_LARGE).param("offset", offset);
+                throw new NopException(NopMetadataErrors.ERR_PAGINATION_OFFSET_TOO_LARGE).param("offset", offset);
             }
             from = offset.intValue();
         }
@@ -1794,7 +1803,7 @@ public class AggregationContext {
         int to = rows.size();
         if (limit != null) {
             if (limit > Integer.MAX_VALUE) {
-                throw new NopException(MetaJoinExecutor.ERR_PAGINATION_LIMIT_TOO_LARGE).param("limit", limit);
+                throw new NopException(NopMetadataErrors.ERR_PAGINATION_LIMIT_TOO_LARGE).param("limit", limit);
             }
             to = Math.min(rows.size(), from + limit.intValue());
         }

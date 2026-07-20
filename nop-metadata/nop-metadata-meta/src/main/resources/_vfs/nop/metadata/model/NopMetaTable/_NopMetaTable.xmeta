@@ -19,6 +19,7 @@
     </x:post-extends>
 
     <keys>
+        <key name="uk_meta_table_module_schema" props="metaModuleId,tableName,schema" displayName="表名+模块+schema唯一约束"/>
         <key name="UK_NOP_META_TABLE_MODULE_NAME" props="metaModuleId,tableName"/>
     </keys>
 
@@ -165,7 +166,7 @@
             </schema>
         </prop>
         <prop name="profilingRules" displayName="数据剖析规则集" i18n-en:displayName="Profiling Rules" tagSet="pub,ref-pub"
-              ext:kind="to-many" internal="true" ext:joinLeftProp="metaTableId" ext:joinRightProp="tableId"
+              ext:kind="to-many" internal="true" ext:joinLeftProp="metaTableId" ext:joinRightProp="metaTableId"
               ext:joinRightDisplayProp="displayName" insertable="false" updatable="false" lazy="true">
             <schema>
                 <item bizObjName="NopMetaProfilingRule"/>

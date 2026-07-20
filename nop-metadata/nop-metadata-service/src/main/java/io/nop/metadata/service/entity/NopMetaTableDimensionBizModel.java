@@ -1,6 +1,15 @@
+/**
+ * Copyright (c) 2017-2024 Nop Platform. All rights reserved.
+ * Author: canonical_entropy@163.com
+ * Blog:   https://www.zhihu.com/people/canonical-entropy
+ * Gitee:  https://github.com/entropy-cloud/nop-entropy
+ * Github: https://github.com/entropy-cloud/nop-entropy
+ */
+
 package io.nop.metadata.service.entity;
 
 import io.nop.api.core.annotations.biz.BizModel;
+import io.nop.metadata.service.NopMetadataErrors;
 import io.nop.api.core.annotations.core.Name;
 import io.nop.api.core.exceptions.ErrorCode;
 import io.nop.api.core.exceptions.NopException;
@@ -34,15 +43,6 @@ import java.util.Map;
 public class NopMetaTableDimensionBizModel extends CrudBizModel<NopMetaTableDimension>
         implements INopMetaTableDimensionBiz {
 
-    static final ErrorCode ERR_DIMENSION_TABLE_NOT_FOUND =
-            ErrorCode.define("metadata.dimension-table-not-found",
-                    "MetaTable not found for dimension save: {metaTableId}", "metaTableId");
-    static final ErrorCode ERR_DIMENSION_FIELD_NOT_FOUND =
-            ErrorCode.define("metadata.dimension-field-not-found",
-                    "Dimension field reference does not belong to the table's reachable fields/entities: "
-                            + "{metaTableId} entityFieldId={entityFieldId} ({refKind}); "
-                            + "availableFields={availableFields} allowedEntityIds={allowedEntityIds}",
-                    "metaTableId", "entityFieldId", "refKind", "availableFields", "allowedEntityIds");
 
     /** 跨表类型字段解析器（无状态）。 */
     private final MetaTableFieldResolver fieldResolver = new MetaTableFieldResolver();
@@ -73,14 +73,14 @@ public class NopMetaTableDimensionBizModel extends CrudBizModel<NopMetaTableDime
         IEntityDao<NopMetaTable> tableDao = daoFor(NopMetaTable.class);
         NopMetaTable table = tableDao.getEntityById(metaTableId);
         if (table == null) {
-            throw new NopException(ERR_DIMENSION_TABLE_NOT_FOUND).param("metaTableId", metaTableId);
+            throw new NopException(NopMetadataErrors.ERR_DIMENSION_TABLE_NOT_FOUND).param("metaTableId", metaTableId);
         }
         IEntityDao<NopMetaEntityField> fieldDao = daoFor(NopMetaEntityField.class);
         // joinDao 用于 entity 表跨表可达 rightEntityId 集合解析（§2.5.2 D3）+ external/sql name-based 可达列名集合并集（§2.5.2 D4）
         IEntityDao<NopMetaTableJoin> joinDao = daoFor(NopMetaTableJoin.class);
         // tableDao（上面已加载目标表）亦用于 external/sql 表解析 table 端点 NopMetaTable 列结构（§2.5.2 D4）
         fieldResolver.validateFieldReference(table, entityFieldId, fieldDao, joinDao, tableDao,
-                ERR_DIMENSION_FIELD_NOT_FOUND, "dimension");
+                NopMetadataErrors.ERR_DIMENSION_FIELD_NOT_FOUND, "dimension");
     }
 
     private static String stringOf(Map<String, Object> data, String key) {

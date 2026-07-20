@@ -1,9 +1,18 @@
+/**
+ * Copyright (c) 2017-2024 Nop Platform. All rights reserved.
+ * Author: canonical_entropy@163.com
+ * Blog:   https://www.zhihu.com/people/canonical-entropy
+ * Gitee:  https://github.com/entropy-cloud/nop-entropy
+ * Github: https://github.com/entropy-cloud/nop-entropy
+ */
+
 package io.nop.metadata.service.query;
 
 import io.nop.api.core.beans.FilterBeanConstants;
 import io.nop.api.core.beans.TreeBean;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.metadata.dao.entity.NopMetaTable;
+import io.nop.metadata.service.NopMetadataErrors;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
@@ -63,13 +72,13 @@ final class MemoryFilterEvaluator {
         // 多列算术 leaf 经 setAttr/getAttr 承载 expr 属性；命中即拒绝，不静默跳过 / 不静默返回 false。
         Object exprAttr = node.getAttr(MetaAggregationExecutor.HAVING_EXPR_ATTR);
         if (exprAttr != null && !exprAttr.toString().isEmpty()) {
-            throw new NopException(MetaAggregationExecutor.ERR_AGGR_HAVING_EXPR_MEMORY_NOT_COMPUTABLE)
+            throw new NopException(NopMetadataErrors.ERR_AGGR_HAVING_EXPR_MEMORY_NOT_COMPUTABLE)
                     .param("metaTableId", table.getMetaTableId())
                     .param("expr", exprAttr.toString());
         }
         String op = node.getTagName();
         if (op == null) {
-            throw new NopException(MetaAggregationExecutor.ERR_AGGR_HAVING_UNSUPPORTED_OP)
+            throw new NopException(NopMetadataErrors.ERR_AGGR_HAVING_UNSUPPORTED_OP)
                     .param("op", String.valueOf(op));
         }
         switch (op) {
@@ -109,7 +118,7 @@ final class MemoryFilterEvaluator {
                 Object rowVal = getRowValue(node, row);
                 Object literal = getLiteral(node, FilterBeanConstants.FILTER_ATTR_VALUE);
                 if (!(literal instanceof Collection) && !(literal instanceof Object[])) {
-                    throw new NopException(FilterToSqlTranslator.ERR_FILTER_IN_VALUE_NOT_COLLECTION)
+                    throw new NopException(NopMetadataErrors.ERR_FILTER_IN_VALUE_NOT_COLLECTION)
                             .param("name", String.valueOf(node.getAttr(FilterBeanConstants.FILTER_ATTR_NAME)));
                 }
                 Collection<?> coll = (literal instanceof Collection)
@@ -127,7 +136,7 @@ final class MemoryFilterEvaluator {
                 Object min = node.getAttr(FilterBeanConstants.FILTER_ATTR_MIN);
                 Object max = node.getAttr(FilterBeanConstants.FILTER_ATTR_MAX);
                 if (min == null && max == null) {
-                    throw new NopException(FilterToSqlTranslator.ERR_FILTER_BETWEEN_MISSING_BOUNDS)
+                    throw new NopException(NopMetadataErrors.ERR_FILTER_BETWEEN_MISSING_BOUNDS)
                             .param("name", String.valueOf(node.getAttr(FilterBeanConstants.FILTER_ATTR_NAME)));
                 }
                 if (min != null && compareValues(rowVal, min) < 0) {
@@ -147,7 +156,7 @@ final class MemoryFilterEvaluator {
             case FilterBeanConstants.FILTER_OP_ALWAYS_FALSE:
                 return false;
             default:
-                throw new NopException(MetaAggregationExecutor.ERR_AGGR_HAVING_UNSUPPORTED_OP)
+                throw new NopException(NopMetadataErrors.ERR_AGGR_HAVING_UNSUPPORTED_OP)
                         .param("op", op)
                         .param("name", String.valueOf(node.getAttr(FilterBeanConstants.FILTER_ATTR_NAME)));
         }
@@ -181,13 +190,13 @@ final class MemoryFilterEvaluator {
     private Object getRowValue(TreeBean node, Map<String, Object> row) {
         Object nameObj = node.getAttr(FilterBeanConstants.FILTER_ATTR_NAME);
         if (nameObj == null || nameObj.toString().isEmpty()) {
-            throw new NopException(FilterToSqlTranslator.ERR_FILTER_MISSING_FIELD)
+            throw new NopException(NopMetadataErrors.ERR_FILTER_MISSING_FIELD)
                     .param("op", String.valueOf(node.getTagName()));
         }
         String name = nameObj.toString();
         String alias = nameToAlias.get(name);
         if (alias == null) {
-            throw new NopException(MetaAggregationExecutor.ERR_AGGR_HAVING_UNKNOWN_NAME)
+            throw new NopException(NopMetadataErrors.ERR_AGGR_HAVING_UNKNOWN_NAME)
                     .param("metaTableId", table.getMetaTableId())
                     .param("name", name)
                     .param("selectedMeasures", String.valueOf(measureNames))

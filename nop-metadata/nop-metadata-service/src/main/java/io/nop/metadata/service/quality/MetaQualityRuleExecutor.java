@@ -1,3 +1,11 @@
+/**
+ * Copyright (c) 2017-2024 Nop Platform. All rights reserved.
+ * Author: canonical_entropy@163.com
+ * Blog:   https://www.zhihu.com/people/canonical-entropy
+ * Gitee:  https://github.com/entropy-cloud/nop-entropy
+ * Github: https://github.com/entropy-cloud/nop-entropy
+ */
+
 package io.nop.metadata.service.quality;
 
 
@@ -7,6 +15,7 @@ import io.nop.api.core.exceptions.ErrorCode;
 import io.nop.commons.util.StringHelper;
 import io.nop.core.lang.json.JsonTool;
 import io.nop.metadata.service.tableref.TableReference;
+import io.nop.metadata.service.NopMetadataErrors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -43,21 +52,11 @@ public class MetaQualityRuleExecutor {
     static final Pattern IDENTIFIER_PATTERN = Pattern.compile("^[A-Za-z_][A-Za-z0-9_]*$");
 
     /** inline ErrorCode：标识符（列名/表名/schema）不符合白名单，拒绝拼接防注入。 */
-    public static final ErrorCode ERR_QUALITY_INVALID_IDENTIFIER =
-            ErrorCode.define("metadata.quality-invalid-identifier",
-                    "Identifier (column/table/schema) does not match whitelist ^[A-Za-z_][A-Za-z0-9_]*$: {identifier}",
-                    "identifier");
 
     /**
      * 维度13-03：custom_sql 规则的 SQL 内容含危险关键字（多语句、UNION、文件读写等），拒绝执行。
      * PreparedStatement 不解决 custom_sql 注入（SQL 文本本身是用户配置），所以白名单是核心防御。
      */
-    public static final ErrorCode ERR_QUALITY_CUSTOM_SQL_BLOCKED =
-            ErrorCode.define("metadata.quality-custom-sql-blocked",
-                    "custom_sql rule SQL contains forbidden keyword (multi-statement/UNION/INTO OUTFILE/LOAD DATA/etc.). "
-                            + "custom_sql rules execute on the external data source account; dangerous keywords are blocked: "
-                            + "{ruleKey} reason={reason} sqlHash={sqlHash}",
-                    "ruleKey", "reason", "sqlHash");
 
     /**
      * 维度13-03：custom_sql 危险关键字黑名单（trim + 大写后 whole-word/inclusive 匹配）。
@@ -311,6 +310,11 @@ public class MetaQualityRuleExecutor {
      * 维度13-03：SQL 内容白名单校验。trim + 大写后匹配危险关键字，命中即抛 ErrorCode。
      * <p><b>核心防御</b>：PreparedStatement 不解决 custom_sql 注入（SQL 文本本身是用户配置），
      * 因此白名单是唯一可控的注入面收口。失败时显式抛 ErrorCode（不静默跳过、不返回 0）。
+     *
+     * <p><b>安全边界</b>：toUpperCase() 后匹配黑名单关键字（DROP/ALTER/TRUNCATE/INSERT/UPDATE/DELETE/EXEC/CREATE）。
+     * 大写转换绕过：SQL 关键字不区分大小写，toUpperCase() 使小写/混合大小写输入同样命中黑名单。
+     * 边界：不会防御 future SQL 方言新增的同类关键字（如 MERGE/REPLACE），需阶段性审查更新。
+     * 本校验不检查 SQL 语义——PreparedStatement 参数绑定通道由调用方保证。
      */
     static void validateCustomSqlSandbox(String sql, String ruleKey, String sqlHash) {
         if (sql == null) {
@@ -319,7 +323,7 @@ public class MetaQualityRuleExecutor {
         String upper = sql.trim().toUpperCase();
         for (String keyword : CUSTOM_SQL_FORBIDDEN_KEYWORDS) {
             if (upper.contains(keyword)) {
-                throw new NopException(ERR_QUALITY_CUSTOM_SQL_BLOCKED)
+                throw new NopException(NopMetadataErrors.ERR_QUALITY_CUSTOM_SQL_BLOCKED)
                         .param("ruleKey", String.valueOf(ruleKey))
                         .param("reason", "forbidden keyword present: " + keyword)
                         .param("sqlHash", sqlHash);
@@ -546,15 +550,13 @@ public class MetaQualityRuleExecutor {
         LOG.info("qualityRule SQL: {}", sql);
         try (PreparedStatement st = conn.prepareStatement(sql); ResultSet rs = st.executeQuery()) {
             if (!rs.next()) {
-                throw new NopException(ErrorCode.define("metadata.quality-sql-no-row",
-                        "Quality rule SQL returned no row: {sql}", "sql"))
+                throw new NopException(NopMetadataErrors.ERR_QUALITY_SQL_NO_ROW)
                         .param("sql", sql);
             }
             return rs.getLong(1);
         } catch (SQLException e) {
             // AR-13: ErrorCode 描述含 {error} 占位符，throw 时同时设置 sql + error 参数（原仅设置 sql）
-            throw new NopException(ErrorCode.define("metadata.quality-sql-failed",
-                    "Quality rule SQL execution failed: {sql} -- {error}", "sql", "error"), e)
+            throw new NopException(NopMetadataErrors.ERR_QUALITY_SQL_FAILED, e)
                     .param("sql", sql)
                     .param("error", messageOf(e));
         }
@@ -569,8 +571,7 @@ public class MetaQualityRuleExecutor {
             return rs.getTimestamp(1);
         } catch (SQLException e) {
             // AR-13: ErrorCode 描述含 {error} 占位符，throw 时同时设置 sql + error 参数（原仅设置 sql）
-            throw new NopException(ErrorCode.define("metadata.quality-sql-failed",
-                    "Quality rule SQL execution failed: {sql} -- {error}", "sql", "error"), e)
+            throw new NopException(NopMetadataErrors.ERR_QUALITY_SQL_FAILED, e)
                     .param("sql", sql)
                     .param("error", messageOf(e));
         }
@@ -678,7 +679,7 @@ public class MetaQualityRuleExecutor {
 
     static void validateIdentifier(String identifier) {
         if (identifier == null || !IDENTIFIER_PATTERN.matcher(identifier).matches()) {
-            throw new NopException(ERR_QUALITY_INVALID_IDENTIFIER)
+            throw new NopException(NopMetadataErrors.ERR_QUALITY_INVALID_IDENTIFIER)
                     .param("identifier", String.valueOf(identifier));
         }
     }

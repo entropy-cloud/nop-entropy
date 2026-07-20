@@ -1,3 +1,11 @@
+/**
+ * Copyright (c) 2017-2024 Nop Platform. All rights reserved.
+ * Author: canonical_entropy@163.com
+ * Blog:   https://www.zhihu.com/people/canonical-entropy
+ * Gitee:  https://github.com/entropy-cloud/nop-entropy
+ * Github: https://github.com/entropy-cloud/nop-entropy
+ */
+
 package io.nop.metadata.service.field;
 
 import io.nop.api.core.beans.FilterBeans;
@@ -12,6 +20,7 @@ import io.nop.metadata.dao.entity.NopMetaTable;
 import io.nop.metadata.dao.entity.NopMetaTableJoin;
 import io.nop.metadata.service.sqlview.SqlSelectFieldExtractor;
 import io.nop.metadata.service.sqlview.SqlViewField;
+import io.nop.metadata.service.NopMetadataErrors;
 
 import java.util.ArrayList;
 import java.util.LinkedHashSet;
@@ -55,25 +64,6 @@ import java.util.Set;
  */
 public class MetaTableFieldResolver {
 
-    static final ErrorCode ERR_FIELD_RESOLVE_TABLE_NOT_FOUND =
-            ErrorCode.define("metadata.field-resolve-table-not-found",
-                    "MetaTable not found for field resolution: {metaTableId}", "metaTableId");
-    static final ErrorCode ERR_FIELD_RESOLVE_BASE_ENTITY_NULL =
-            ErrorCode.define("metadata.field-resolve-base-entity-null",
-                    "Cannot resolve fields: entity table has null baseEntityId (dangling reference not allowed): "
-                            + "{metaTableId}", "metaTableId");
-    static final ErrorCode ERR_FIELD_RESOLVE_NO_FIELDS =
-            ErrorCode.define("metadata.field-resolve-no-fields",
-                    "Resolved field set is empty for table: {metaTableId} tableType={tableType}",
-                    "metaTableId", "tableType");
-    static final ErrorCode ERR_FIELD_RESOLVE_EXTERNAL_BUILD_SQL_INVALID =
-            ErrorCode.define("metadata.field-resolve-external-build-sql-invalid",
-                    "Failed to parse external table buildSql JSON (expecting JSON array of column descriptors): "
-                            + "{metaTableId}", "metaTableId");
-    static final ErrorCode ERR_FIELD_RESOLVE_UNKNOWN_TABLE_TYPE =
-            ErrorCode.define("metadata.field-resolve-unknown-table-type",
-                    "Unknown tableType for field resolution: {metaTableId} tableType={tableType}",
-                    "metaTableId", "tableType");
 
     private final SqlSelectFieldExtractor sqlSelectFieldExtractor;
 
@@ -97,7 +87,7 @@ public class MetaTableFieldResolver {
      */
     public List<ResolvedTableField> resolve(NopMetaTable table, IEntityDao<NopMetaEntityField> fieldDao) {
         if (table == null) {
-            throw new NopException(ERR_FIELD_RESOLVE_TABLE_NOT_FOUND);
+            throw new NopException(NopMetadataErrors.ERR_FIELD_RESOLVE_TABLE_NOT_FOUND);
         }
         String tableType = table.getTableType();
         if (_NopMetadataCoreConstants.TABLE_TYPE_ENTITY.equals(tableType)) {
@@ -110,7 +100,7 @@ public class MetaTableFieldResolver {
             return resolveSqlFields(table);
         }
         // 未知 tableType——显式失败而非静默跳过（No Silent No-Op Rule）
-        throw new NopException(ERR_FIELD_RESOLVE_UNKNOWN_TABLE_TYPE)
+        throw new NopException(NopMetadataErrors.ERR_FIELD_RESOLVE_UNKNOWN_TABLE_TYPE)
                 .param("metaTableId", table.getMetaTableId())
                 .param("tableType", String.valueOf(tableType));
     }
@@ -119,12 +109,12 @@ public class MetaTableFieldResolver {
     public List<ResolvedTableField> resolveEntityFieldsByEntityId(String metaEntityId,
                                                                    IEntityDao<NopMetaEntityField> fieldDao) {
         if (metaEntityId == null || metaEntityId.isEmpty()) {
-            throw new NopException(ERR_FIELD_RESOLVE_BASE_ENTITY_NULL);
+            throw new NopException(NopMetadataErrors.ERR_FIELD_RESOLVE_BASE_ENTITY_NULL);
         }
         List<NopMetaEntityField> entityFields = findEntityFields(metaEntityId, fieldDao);
         if (entityFields.isEmpty()) {
             // 实体存在但无字段——显式失败（不静默空集）
-            throw new NopException(ERR_FIELD_RESOLVE_NO_FIELDS)
+            throw new NopException(NopMetadataErrors.ERR_FIELD_RESOLVE_NO_FIELDS)
                     .param("metaTableId", metaEntityId)
                     .param("tableType", _NopMetadataCoreConstants.TABLE_TYPE_ENTITY);
         }
@@ -163,7 +153,7 @@ public class MetaTableFieldResolver {
         String baseEntityId = table.getBaseEntityId();
         if (baseEntityId == null || baseEntityId.isEmpty()) {
             // entity 表 baseEntityId 为 null 显式失败（不静默空集、不静默存入悬空引用）
-            throw new NopException(ERR_FIELD_RESOLVE_BASE_ENTITY_NULL)
+            throw new NopException(NopMetadataErrors.ERR_FIELD_RESOLVE_BASE_ENTITY_NULL)
                     .param("metaTableId", table.getMetaTableId());
         }
         Set<String> allowed = new LinkedHashSet<>();
@@ -320,7 +310,7 @@ public class MetaTableFieldResolver {
         NopMetaTable endpointTable = tableDao.getEntityById(tableId);
         if (endpointTable == null) {
             // 端点表不存在——显式失败（不静默跳过该端点、不静默缩小可达集）
-            throw new NopException(ERR_FIELD_RESOLVE_TABLE_NOT_FOUND).param("metaTableId", tableId);
+            throw new NopException(NopMetadataErrors.ERR_FIELD_RESOLVE_TABLE_NOT_FOUND).param("metaTableId", tableId);
         }
         sink.addAll(resolveFieldNames(endpointTable, fieldDao));
     }
@@ -334,13 +324,13 @@ public class MetaTableFieldResolver {
         String baseEntityId = table.getBaseEntityId();
         if (baseEntityId == null || baseEntityId.isEmpty()) {
             // entity 表 baseEntityId 为 null 显式失败（不静默空集、不静默存入悬空引用）
-            throw new NopException(ERR_FIELD_RESOLVE_BASE_ENTITY_NULL)
+            throw new NopException(NopMetadataErrors.ERR_FIELD_RESOLVE_BASE_ENTITY_NULL)
                     .param("metaTableId", table.getMetaTableId());
         }
         List<NopMetaEntityField> entityFields = findEntityFields(baseEntityId, fieldDao);
         if (entityFields.isEmpty()) {
             // baseEntityId 指向的实体无字段——显式失败（不静默空集）
-            throw new NopException(ERR_FIELD_RESOLVE_NO_FIELDS)
+            throw new NopException(NopMetadataErrors.ERR_FIELD_RESOLVE_NO_FIELDS)
                     .param("metaTableId", table.getMetaTableId())
                     .param("tableType", _NopMetadataCoreConstants.TABLE_TYPE_ENTITY);
         }
@@ -356,25 +346,25 @@ public class MetaTableFieldResolver {
     private List<ResolvedTableField> resolveExternalFields(NopMetaTable table) {
         String buildSql = table.getBuildSql();
         if (buildSql == null || buildSql.trim().isEmpty()) {
-            throw new NopException(ERR_FIELD_RESOLVE_EXTERNAL_BUILD_SQL_INVALID)
+            throw new NopException(NopMetadataErrors.ERR_FIELD_RESOLVE_EXTERNAL_BUILD_SQL_INVALID)
                     .param("metaTableId", table.getMetaTableId());
         }
         List<Map<String, Object>> columnList;
         try {
             Object parsed = JsonTool.parse(buildSql);
             if (!(parsed instanceof List)) {
-                throw new NopException(ERR_FIELD_RESOLVE_EXTERNAL_BUILD_SQL_INVALID)
+                throw new NopException(NopMetadataErrors.ERR_FIELD_RESOLVE_EXTERNAL_BUILD_SQL_INVALID)
                         .param("metaTableId", table.getMetaTableId());
             }
             columnList = (List<Map<String, Object>>) parsed;
         } catch (NopException e) {
             throw e;
         } catch (Exception e) {
-            throw new NopException(ERR_FIELD_RESOLVE_EXTERNAL_BUILD_SQL_INVALID)
+            throw new NopException(NopMetadataErrors.ERR_FIELD_RESOLVE_EXTERNAL_BUILD_SQL_INVALID)
                     .param("metaTableId", table.getMetaTableId()).cause(e);
         }
         if (columnList.isEmpty()) {
-            throw new NopException(ERR_FIELD_RESOLVE_NO_FIELDS)
+            throw new NopException(NopMetadataErrors.ERR_FIELD_RESOLVE_NO_FIELDS)
                     .param("metaTableId", table.getMetaTableId())
                     .param("tableType", _NopMetadataCoreConstants.TABLE_TYPE_EXTERNAL);
         }
@@ -383,7 +373,7 @@ public class MetaTableFieldResolver {
             Object nameObj = col.get("columnName");
             if (nameObj == null || nameObj.toString().isEmpty()) {
                 // 列描述缺 columnName——显式失败（不静默跳过）
-                throw new NopException(ERR_FIELD_RESOLVE_EXTERNAL_BUILD_SQL_INVALID)
+                throw new NopException(NopMetadataErrors.ERR_FIELD_RESOLVE_EXTERNAL_BUILD_SQL_INVALID)
                         .param("metaTableId", table.getMetaTableId());
             }
             Object typeObj = col.get("dataType");

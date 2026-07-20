@@ -1,6 +1,15 @@
+/**
+ * Copyright (c) 2017-2024 Nop Platform. All rights reserved.
+ * Author: canonical_entropy@163.com
+ * Blog:   https://www.zhihu.com/people/canonical-entropy
+ * Gitee:  https://github.com/entropy-cloud/nop-entropy
+ * Github: https://github.com/entropy-cloud/nop-entropy
+ */
+
 package io.nop.metadata.service.entity;
 
 import io.nop.api.core.annotations.biz.BizModel;
+import io.nop.metadata.service.NopMetadataErrors;
 import io.nop.api.core.annotations.core.Name;
 import io.nop.api.core.exceptions.ErrorCode;
 import io.nop.api.core.exceptions.NopException;
@@ -33,7 +42,7 @@ import java.util.Set;
  *       {@code leftField}/{@code rightField} 属于该表可解析列集合（external→buildSql JSON columnName；
  *       sql→SELECT 解析）。</li>
  *   <li><b>端点互斥</b>（D1）：同一端点的 {@code entityId}/{@code tableId} 同时非空 → 显式失败；同时为空 → 显式失败
- *       （端点 mandatory 从 entityId-only 放宽为「entity/table 二选一」，即 {@code ERR_JOIN_ENTITY_ID_NULL} 的放宽裁定）。</li>
+ *       （端点 mandatory 从 entityId-only 放宽为「entity/table 二选一」，即 {@code NopMetadataErrors.ERR_JOIN_ENTITY_ID_NULL} 的放宽裁定）。</li>
  * </ul>
  * 不一致显式失败抛 inline {@link ErrorCode}。{@code joinType} 已由 dict {@code meta/join-type} 校验。
  *
@@ -42,40 +51,6 @@ import java.util.Set;
 @BizModel("NopMetaTableJoin")
 public class NopMetaTableJoinBizModel extends CrudBizModel<NopMetaTableJoin> implements INopMetaTableJoinBiz {
 
-    static final ErrorCode ERR_JOIN_ENTITY_NOT_FOUND =
-            ErrorCode.define("metadata.join-entity-not-found",
-                    "Join references non-existent MetaEntity: {metaTableId} side={side} entityId={entityId}",
-                    "metaTableId", "side", "entityId");
-    static final ErrorCode ERR_JOIN_FIELD_NOT_IN_ENTITY =
-            ErrorCode.define("metadata.join-field-not-in-entity",
-                    "Join field does not belong to the referenced entity's field set: "
-                            + "{metaTableId} side={side} entityId={entityId} field={field}; available={availableFields}",
-                    "metaTableId", "side", "entityId", "field", "availableFields");
-    static final ErrorCode ERR_JOIN_ENTITY_ID_NULL =
-            ErrorCode.define("metadata.join-entity-id-null",
-                    "Join side has neither entityId nor tableId (require entity/table二选一 endpoint): "
-                            + "{metaTableId} side={side}",
-                    "metaTableId", "side");
-    static final ErrorCode ERR_JOIN_ENDPOINT_BOTH_SET =
-            ErrorCode.define("metadata.join-endpoint-both-set",
-                    "Join side has both entityId and tableId set (require entity/table二选一, mutually exclusive): "
-                            + "{metaTableId} side={side} entityId={entityId} tableId={tableId}",
-                    "metaTableId", "side", "entityId", "tableId");
-    static final ErrorCode ERR_JOIN_TABLE_NOT_FOUND =
-            ErrorCode.define("metadata.join-table-not-found",
-                    "Join references non-existent MetaTable as table endpoint: "
-                            + "{metaTableId} side={side} tableId={tableId}",
-                    "metaTableId", "side", "tableId");
-    static final ErrorCode ERR_JOIN_TABLE_TYPE_NOT_ALLOWED =
-            ErrorCode.define("metadata.join-table-type-not-allowed",
-                    "Join table endpoint must be external/sql tableType (entity-type table should use entityId path): "
-                            + "{metaTableId} side={side} tableId={tableId} tableType={tableType}",
-                    "metaTableId", "side", "tableId", "tableType");
-    static final ErrorCode ERR_JOIN_FIELD_NOT_IN_TABLE =
-            ErrorCode.define("metadata.join-field-not-in-table",
-                    "Join field does not belong to the referenced table's parsed column set: "
-                            + "{metaTableId} side={side} tableId={tableId} field={field}; available={availableFields}",
-                    "metaTableId", "side", "tableId", "field", "availableFields");
 
     /** 跨表类型字段解析器（无状态）。 */
     private final MetaTableFieldResolver fieldResolver = new MetaTableFieldResolver();
@@ -121,7 +96,7 @@ public class NopMetaTableJoinBizModel extends CrudBizModel<NopMetaTableJoin> imp
      * 校验单侧端点（D1 entity/table 二选一互斥 + 字段归属）。
      *
      * <p>端点解析：{@code entityId}/{@code tableId} 同时非空 → 互斥失败；同时为空 → 端点 mandatory 失败
-     * （{@code ERR_JOIN_ENTITY_ID_NULL} 放宽为 entity/table 二选一）。entity 端点走实体字段集合校验，
+     * （{@code NopMetadataErrors.ERR_JOIN_ENTITY_ID_NULL} 放宽为 entity/table 二选一）。entity 端点走实体字段集合校验，
      * table 端点走表可解析列集合校验（tableType 须 external/sql）。
      */
     private void validateJoinSide(String metaTableId, String side, String entityId, String tableId,
@@ -131,13 +106,13 @@ public class NopMetaTableJoinBizModel extends CrudBizModel<NopMetaTableJoin> imp
         boolean hasTable = tableId != null && !tableId.isEmpty();
         if (hasEntity && hasTable) {
             // entity/table 互斥：同一端点同时设置 entityId 和 tableId——显式失败（不静默猜测语义）
-            throw new NopException(ERR_JOIN_ENDPOINT_BOTH_SET)
+            throw new NopException(NopMetadataErrors.ERR_JOIN_ENDPOINT_BOTH_SET)
                     .param("metaTableId", metaTableId).param("side", side)
                     .param("entityId", entityId).param("tableId", tableId);
         }
         if (!hasEntity && !hasTable) {
-            // 端点 mandatory：entity/table 二选一（放宽原 ERR_JOIN_ENTITY_ID_NULL 的 entityId-only 语义）
-            throw new NopException(ERR_JOIN_ENTITY_ID_NULL)
+            // 端点 mandatory：entity/table 二选一（放宽原 NopMetadataErrors.ERR_JOIN_ENTITY_ID_NULL 的 entityId-only 语义）
+            throw new NopException(NopMetadataErrors.ERR_JOIN_ENTITY_ID_NULL)
                     .param("metaTableId", metaTableId).param("side", side);
         }
         if (hasEntity) {
@@ -153,7 +128,7 @@ public class NopMetaTableJoinBizModel extends CrudBizModel<NopMetaTableJoin> imp
         IEntityDao<NopMetaEntity> entityDao = daoFor(NopMetaEntity.class);
         NopMetaEntity entity = entityDao.getEntityById(entityId);
         if (entity == null) {
-            throw new NopException(ERR_JOIN_ENTITY_NOT_FOUND)
+            throw new NopException(NopMetadataErrors.ERR_JOIN_ENTITY_NOT_FOUND)
                     .param("metaTableId", metaTableId).param("side", side).param("entityId", entityId);
         }
         if (field == null || field.isEmpty()) {
@@ -166,7 +141,7 @@ public class NopMetaTableJoinBizModel extends CrudBizModel<NopMetaTableJoin> imp
             fieldNames.add(f.getName());
         }
         if (!fieldNames.contains(field)) {
-            throw new NopException(ERR_JOIN_FIELD_NOT_IN_ENTITY)
+            throw new NopException(NopMetadataErrors.ERR_JOIN_FIELD_NOT_IN_ENTITY)
                     .param("metaTableId", metaTableId).param("side", side)
                     .param("entityId", entityId).param("field", field)
                     .param("availableFields", fieldNames);
@@ -184,14 +159,14 @@ public class NopMetaTableJoinBizModel extends CrudBizModel<NopMetaTableJoin> imp
                                        IEntityDao<NopMetaEntityField> fieldDao) {
         NopMetaTable table = tableDao.getEntityById(tableId);
         if (table == null) {
-            throw new NopException(ERR_JOIN_TABLE_NOT_FOUND)
+            throw new NopException(NopMetadataErrors.ERR_JOIN_TABLE_NOT_FOUND)
                     .param("metaTableId", metaTableId).param("side", side).param("tableId", tableId);
         }
         String tableType = table.getTableType();
         if (!_NopMetadataCoreConstants.TABLE_TYPE_EXTERNAL.equals(tableType)
                 && !_NopMetadataCoreConstants.TABLE_TYPE_SQL.equals(tableType)) {
             // table 端点仅允许 external/sql；entity-type 逻辑表应走 entityId 路径（D1）
-            throw new NopException(ERR_JOIN_TABLE_TYPE_NOT_ALLOWED)
+            throw new NopException(NopMetadataErrors.ERR_JOIN_TABLE_TYPE_NOT_ALLOWED)
                     .param("metaTableId", metaTableId).param("side", side)
                     .param("tableId", tableId).param("tableType", String.valueOf(tableType));
         }
@@ -202,7 +177,7 @@ public class NopMetaTableJoinBizModel extends CrudBizModel<NopMetaTableJoin> imp
         // 校验字段属于该表可解析列集合（external→buildSql JSON；sql→SELECT 解析；空集/损坏由 resolver 显式失败）
         Set<String> columnNames = fieldResolver.resolveFieldNames(table, fieldDao);
         if (!columnNames.contains(field)) {
-            throw new NopException(ERR_JOIN_FIELD_NOT_IN_TABLE)
+            throw new NopException(NopMetadataErrors.ERR_JOIN_FIELD_NOT_IN_TABLE)
                     .param("metaTableId", metaTableId).param("side", side)
                     .param("tableId", tableId).param("field", field)
                     .param("availableFields", columnNames);

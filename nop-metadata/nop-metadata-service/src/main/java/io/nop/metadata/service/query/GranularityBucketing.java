@@ -1,7 +1,15 @@
+/**
+ * Copyright (c) 2017-2024 Nop Platform. All rights reserved.
+ * Author: canonical_entropy@163.com
+ * Blog:   https://www.zhihu.com/people/canonical-entropy
+ * Gitee:  https://github.com/entropy-cloud/nop-entropy
+ * Github: https://github.com/entropy-cloud/nop-entropy
+ */
+
 package io.nop.metadata.service.query;
 
-import io.nop.api.core.exceptions.ErrorCode;
 import io.nop.api.core.exceptions.NopException;
+import io.nop.metadata.service.NopMetadataErrors;
 
 import java.util.HashMap;
 import java.util.Locale;
@@ -23,11 +31,6 @@ public final class GranularityBucketing {
     /** 首版支持的方言（H2/MySQL/PostgreSQL，与单表查询 §4.4 一致）。 */
     static final Set<String> SUPPORTED_DIALECTS = Set.of("H2", "MySQL", "PostgreSQL");
 
-    static final ErrorCode ERR_GRANULARITY_NOT_SUPPORTED =
-            ErrorCode.define("metadata.aggr-granularity-not-supported",
-                    "granularity value not in supported set [year,quarter,month,week,day,hour]: "
-                            + "{granularity} dimensionName={dimensionName}",
-                    "granularity", "dimensionName");
 
     /** H2 与 PostgreSQL 的分桶表达式模板（参数：列表达式）。DATE_TRUNC 在 H2 2.x / PostgreSQL 可用。 */
     private static final Map<String, String> H2_PG_TEMPLATES = new HashMap<>();
@@ -64,7 +67,7 @@ public final class GranularityBucketing {
      */
     public static String translate(String granularity, String columnExpr, String dialect, String dimensionName) {
         if (granularity == null || granularity.trim().isEmpty()) {
-            throw new NopException(ERR_GRANULARITY_NOT_SUPPORTED)
+            throw new NopException(NopMetadataErrors.ERR_GRANULARITY_NOT_SUPPORTED)
                     .param("granularity", String.valueOf(granularity))
                     .param("dimensionName", String.valueOf(dimensionName));
         }
@@ -78,7 +81,7 @@ public final class GranularityBucketing {
         }
         String tpl = templates.get(g);
         if (tpl == null) {
-            throw new NopException(ERR_GRANULARITY_NOT_SUPPORTED)
+            throw new NopException(NopMetadataErrors.ERR_GRANULARITY_NOT_SUPPORTED)
                     .param("granularity", granularity)
                     .param("dimensionName", String.valueOf(dimensionName));
         }

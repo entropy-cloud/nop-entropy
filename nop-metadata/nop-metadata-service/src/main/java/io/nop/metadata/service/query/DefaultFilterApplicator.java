@@ -1,14 +1,22 @@
+/**
+ * Copyright (c) 2017-2024 Nop Platform. All rights reserved.
+ * Author: canonical_entropy@163.com
+ * Blog:   https://www.zhihu.com/people/canonical-entropy
+ * Gitee:  https://github.com/entropy-cloud/nop-entropy
+ * Github: https://github.com/entropy-cloud/nop-entropy
+ */
+
 package io.nop.metadata.service.query;
 
 import io.nop.api.core.beans.FilterBeans;
 import io.nop.api.core.beans.TreeBean;
 import io.nop.api.core.beans.query.QueryBean;
-import io.nop.api.core.exceptions.ErrorCode;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.core.lang.json.JsonTool;
 import io.nop.dao.api.IEntityDao;
 import io.nop.metadata.dao.entity.NopMetaTable;
 import io.nop.metadata.dao.entity.NopMetaTableFilter;
+import io.nop.metadata.service.NopMetadataErrors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -26,10 +34,6 @@ import java.util.List;
 public final class DefaultFilterApplicator {
     private static final Logger LOG = LoggerFactory.getLogger(DefaultFilterApplicator.class);
 
-    static final ErrorCode ERR_DEFAULT_FILTER_PARSE =
-            ErrorCode.define("metadata.default-filter-parse-failed",
-                    "Failed to parse isDefault filter definition JSON: {filterId} -- {error}",
-                    "filterId", "error");
 
     private DefaultFilterApplicator() {
     }
@@ -70,7 +74,7 @@ public final class DefaultFilterApplicator {
                 }
             } catch (Exception e) {
                 // 解析失败显式抛错（不静默忽略脏过滤器，避免过滤被悄悄跳过导致越权数据返回）
-                throw new NopException(ERR_DEFAULT_FILTER_PARSE)
+                throw new NopException(NopMetadataErrors.ERR_DEFAULT_FILTER_PARSE)
                         .param("filterId", f.getFilterId())
                         .param("error", messageOf(e))
                         .cause(e);

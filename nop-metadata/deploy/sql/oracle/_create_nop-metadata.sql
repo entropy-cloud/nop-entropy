@@ -393,7 +393,7 @@ CREATE TABLE nop_meta_profiling_rule(
   PROFILING_RULE_ID VARCHAR2(32) NOT NULL ,
   RULE_NAME VARCHAR2(100) NOT NULL ,
   DISPLAY_NAME VARCHAR2(200)  ,
-  TABLE_ID VARCHAR2(32) NOT NULL ,
+  META_TABLE_ID VARCHAR2(32) NOT NULL ,
   COLUMNS VARCHAR2(4000)  ,
   STATS VARCHAR2(4000)  ,
   SAMPLE_SIZE INTEGER  ,
@@ -617,13 +617,13 @@ CREATE TABLE nop_meta_dict_item(
   SORT_ORDER INTEGER  ,
   DEPRECATED SMALLINT default 0   ,
   INTERNAL SMALLINT default 0   ,
+  IS_DELTA SMALLINT default 0   ,
   VERSION NUMBER(20) NOT NULL ,
   CREATED_BY VARCHAR2(50) NOT NULL ,
   CREATE_TIME TIMESTAMP NOT NULL ,
   UPDATED_BY VARCHAR2(50) NOT NULL ,
   UPDATE_TIME TIMESTAMP NOT NULL ,
   REMARK VARCHAR2(200)  ,
-  IS_DELTA SMALLINT default 0   ,
   constraint PK_nop_meta_dict_item primary key (DICT_ITEM_ID)
 );
 
@@ -1335,7 +1335,7 @@ CREATE TABLE nop_meta_reconciliation_result(
                     
       COMMENT ON COLUMN nop_meta_profiling_rule.DISPLAY_NAME IS '显示名';
                     
-      COMMENT ON COLUMN nop_meta_profiling_rule.TABLE_ID IS '剖析表ID';
+      COMMENT ON COLUMN nop_meta_profiling_rule.META_TABLE_ID IS '剖析表ID';
                     
       COMMENT ON COLUMN nop_meta_profiling_rule.COLUMNS IS '剖析列';
                     
@@ -1723,6 +1723,8 @@ CREATE TABLE nop_meta_reconciliation_result(
                     
       COMMENT ON COLUMN nop_meta_dict_item.INTERNAL IS '内部使用';
                     
+      COMMENT ON COLUMN nop_meta_dict_item.IS_DELTA IS '是否Delta';
+                    
       COMMENT ON COLUMN nop_meta_dict_item.VERSION IS '数据版本';
                     
       COMMENT ON COLUMN nop_meta_dict_item.CREATED_BY IS '创建人';
@@ -1734,8 +1736,6 @@ CREATE TABLE nop_meta_reconciliation_result(
       COMMENT ON COLUMN nop_meta_dict_item.UPDATE_TIME IS '修改时间';
                     
       COMMENT ON COLUMN nop_meta_dict_item.REMARK IS '备注';
-                    
-      COMMENT ON COLUMN nop_meta_dict_item.IS_DELTA IS '是否Delta';
                     
       COMMENT ON TABLE nop_meta_profiling_result IS '数据剖析结果';
                 

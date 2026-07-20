@@ -1,10 +1,18 @@
+/**
+ * Copyright (c) 2017-2024 Nop Platform. All rights reserved.
+ * Author: canonical_entropy@163.com
+ * Blog:   https://www.zhihu.com/people/canonical-entropy
+ * Gitee:  https://github.com/entropy-cloud/nop-entropy
+ * Github: https://github.com/entropy-cloud/nop-entropy
+ */
+
 package io.nop.metadata.service.query;
 
 import io.nop.api.core.beans.FilterBeans;
 import io.nop.api.core.beans.TreeBean;
 import io.nop.api.core.beans.query.QueryBean;
-import io.nop.api.core.exceptions.ErrorCode;
 import io.nop.api.core.exceptions.NopException;
+import io.nop.metadata.service.NopMetadataErrors;
 import io.nop.core.lang.sql.SQL;
 import io.nop.dao.api.IEntityDao;
 import io.nop.dataset.IDataRow;
@@ -69,74 +77,17 @@ public class MetaJoinExecutor {
     /** 跨库拼接单侧结果集行数上限（防 OOM，超限显式失败，D5）。 */
     static final int MAX_CROSS_DB_ROWS = 10000;
 
-    static final ErrorCode ERR_JOIN_NOT_FOUND =
-            ErrorCode.define("metadata.join-not-found",
-                    "NopMetaTableJoin not found or not owned by table: {metaTableId} joinId={joinId}",
-                    "metaTableId", "joinId");
-    static final ErrorCode ERR_JOIN_TYPE_RIGHT_UNSUPPORTED =
-            ErrorCode.define("metadata.join-type-right-unsupported",
-                    "joinType=right is explicitly unsupported in first version (same-DB and cross-DB): {joinId}",
-                    "joinId");
-    static final ErrorCode ERR_JOIN_TYPE_UNKNOWN =
-            ErrorCode.define("metadata.join-type-unknown",
-                    "Unknown joinType (expected inner/left/right): {joinType} joinId={joinId}",
-                    "joinType", "joinId");
-    static final ErrorCode ERR_JOIN_ENTITY_DANGLING =
-            ErrorCode.define("metadata.join-entity-dangling",
-                    "Join references a dangling entity (leftEntityId/rightEntityId not found): "
-                            + "{joinId} side={side} entityId={entityId}", "joinId", "side", "entityId");
-    static final ErrorCode ERR_JOIN_ENTITY_NOT_REGISTERED =
-            ErrorCode.define("metadata.join-entity-not-registered",
-                    "Join entity not registered in runtime IOrmSessionFactory: {joinId} side={side} "
-                            + "entityName={entityName}", "joinId", "side", "entityName");
-    static final ErrorCode ERR_JOIN_TABLE_DANGLING =
-            ErrorCode.define("metadata.join-table-dangling",
-                    "Join references a dangling table endpoint (leftTableId/rightTableId not found): "
-                            + "{joinId} side={side} tableId={tableId}", "joinId", "side", "tableId");
-    static final ErrorCode ERR_JOIN_TABLE_TYPE_NOT_ALLOWED =
-            ErrorCode.define("metadata.join-table-type-not-allowed",
-                    "Join table endpoint must be external/sql tableType (entity-type table should use entityId path): "
-                            + "{joinId} side={side} tableId={tableId} tableType={tableType}",
-                    "joinId", "side", "tableId", "tableType");
-    static final ErrorCode ERR_JOIN_FIELD_NOT_RESOLVED =
-            ErrorCode.define("metadata.join-field-not-resolved",
-                    "Join field could not be resolved to a physical column: {joinId} side={side} "
-                            + "entityId={entityId} field={field}", "joinId", "side", "entityId", "field");
-    static final ErrorCode ERR_JOIN_TABLE_FIELD_NOT_RESOLVED =
-            ErrorCode.define("metadata.join-table-field-not-resolved",
-                    "Join field does not belong to the table endpoint's parsed column set: "
-                            + "{joinId} side={side} tableId={tableId} field={field}",
-                            "joinId", "side", "tableId", "field");
-    static final ErrorCode ERR_JOIN_CROSS_DB_SIZE_LIMIT =
-            ErrorCode.define("metadata.join-cross-db-size-limit",
-                    "Cross-DB join result set exceeds size limit ({limit}) on {side} side, abort to avoid OOM: "
-                            + "{joinId} rows={rows}", "joinId", "side", "rows", "limit");
-    static final ErrorCode ERR_JOIN_NAMESPACE_MISMATCH =
-            ErrorCode.define("metadata.join-namespace-mismatch",
-                    "Cross-DB merge join field not found in fetched row key set (namespace mismatch, "
-                            + "would silently produce empty result): {joinId} side={side} field={field} "
-                            + "rowKeys={rowKeys}", "joinId", "side", "field", "rowKeys");
-    static final ErrorCode ERR_JOIN_TABLE_EXEC_FAILED =
-            ErrorCode.define("metadata.join-table-exec-failed",
-                    "Join table-endpoint SQL execution failed: {joinId} side={side} -- {error}",
-                    "joinId", "side", "error");
-    static final ErrorCode ERR_JOIN_NO_ENDPOINT =
-            ErrorCode.define("metadata.join-no-endpoint",
-                    "Join side has neither entityId nor tableId set (require entity/table二选一 endpoint): "
-                            + "{joinId} side={side}", "joinId", "side");
-    static final ErrorCode ERR_JOIN_CROSS_DB_KEY_TYPE_MISMATCH =
-            ErrorCode.define("metadata.join-cross-db-key-type-mismatch",
-                    "Cross-DB merge join key JDBC type mismatch between sides (would silently produce wrong matches "
-                            + "via String.valueOf coercion): {joinId} leftType={leftType} rightType={rightType}",
-                    "joinId", "leftType", "rightType");
-    static final ErrorCode ERR_PAGINATION_OFFSET_TOO_LARGE =
-            ErrorCode.define("metadata.pagination-offset-too-large",
-                    "Pagination offset exceeds Integer.MAX_VALUE (would silently overflow via Math.toIntExact): "
-                            + "{offset}", "offset");
-    static final ErrorCode ERR_PAGINATION_LIMIT_TOO_LARGE =
-            ErrorCode.define("metadata.pagination-limit-too-large",
-                    "Pagination limit exceeds Integer.MAX_VALUE (would silently overflow via Math.toIntExact): "
-                            + "{limit}", "limit");
+    private final CrossDbJoinMerger crossDbMerger;
+
+    public MetaJoinExecutor() {
+        this.crossDbMerger = new CrossDbJoinMerger();
+    }
+
+    MetaJoinExecutor(CrossDbJoinMerger crossDbMerger) {
+        this.crossDbMerger = crossDbMerger;
+    }
+
+    /* All ErrorCode constants migrated to NopMetadataErrors */
 
     /**
      * 执行跨表 JOIN。
@@ -165,7 +116,6 @@ public class MetaJoinExecutor {
 
         // 5. 按端点组合路由（D1.2）
         if (leftEp.isEntity() && rightEp.isEntity()) {
-            // entity-entity 既有路径（保持不变）
             requireRegistered(leftEp.entity, "left", joinId, ctx);
             requireRegistered(rightEp.entity, "right", joinId, ctx);
             String leftQs = leftEp.entity.getQuerySpace();
@@ -174,28 +124,26 @@ public class MetaJoinExecutor {
                 return buildResult(executeSameDbJoin(leftTable, join, leftEp.entity, rightEp.entity,
                         mergedFilter, limit, offset, ctx));
             }
-            return buildResult(executeEntityEntityCrossDbMerge(join, leftEp.entity, rightEp.entity,
+            return buildResult(doCrossDbMergeEntityEntity(join, leftEp.entity, rightEp.entity,
                     mergedFilter, limit, offset, ctx));
         }
         if (!leftEp.isEntity() && !rightEp.isEntity()) {
-            // external/sql ↔ external/sql（plan 0700-2 新增）
             String leftQs = leftEp.table.getQuerySpace();
             String rightQs = rightEp.table.getQuerySpace();
             if (equalsStr(leftQs, rightQs)) {
                 return buildResult(executeSameDbTableJoin(leftTable, join, leftEp, rightEp,
                         mergedFilter, limit, offset, ctx));
             }
-            return buildResult(executeTableEndpointCrossDbMerge(join, leftEp, rightEp,
+            return buildResult(doCrossDbMergeTableEndpoint(join, leftEp, rightEp,
                     mergedFilter, limit, offset, ctx));
         }
-        // 混合端点（entity ↔ external/sql）→ 统一跨库拼接（D1.2，不要求 entity querySpace 注册数据源）
         if (leftEp.isEntity) {
             requireRegistered(leftEp.entity, "left", joinId, ctx);
         }
         if (rightEp.isEntity) {
             requireRegistered(rightEp.entity, "right", joinId, ctx);
         }
-        return buildResult(executeMixedCrossDbMerge(join, leftEp, rightEp, mergedFilter, limit, offset, ctx));
+        return buildResult(doCrossDbMergeMixed(join, leftEp, rightEp, mergedFilter, limit, offset, ctx));
     }
 
     // ============================ 共享 join 加载/校验（plan 0852-1 抽取，供聚合执行器复用）============================
@@ -205,9 +153,9 @@ public class MetaJoinExecutor {
      *
      * <p>校验语义：
      * <ul>
-     *   <li>join 不存在或不归属 leftTable → {@link #ERR_JOIN_NOT_FOUND}</li>
-     *   <li>joinType=right → {@link #ERR_JOIN_TYPE_RIGHT_UNSUPPORTED}（首版显式不支持，不静默降级）</li>
-     *   <li>joinType 未知（非 inner/left/right）→ {@link #ERR_JOIN_TYPE_UNKNOWN}</li>
+     *   <li>join 不存在或不归属 leftTable → {@link #NopMetadataErrors.ERR_JOIN_NOT_FOUND}</li>
+     *   <li>joinType=right → {@link #NopMetadataErrors.ERR_JOIN_TYPE_RIGHT_UNSUPPORTED}（首版显式不支持，不静默降级）</li>
+     *   <li>joinType 未知（非 inner/left/right）→ {@link #NopMetadataErrors.ERR_JOIN_TYPE_UNKNOWN}</li>
      * </ul>
      *
      * @param leftTable join 所属逻辑表（左表）
@@ -219,17 +167,17 @@ public class MetaJoinExecutor {
         IEntityDao<NopMetaTableJoin> joinDao = ctx.daoProvider().daoFor(NopMetaTableJoin.class);
         NopMetaTableJoin join = joinDao.getEntityById(joinId);
         if (join == null || !equalsStr(leftTable.getMetaTableId(), join.getMetaTableId())) {
-            throw new NopException(ERR_JOIN_NOT_FOUND)
+            throw new NopException(NopMetadataErrors.ERR_JOIN_NOT_FOUND)
                     .param("metaTableId", leftTable.getMetaTableId())
                     .param("joinId", String.valueOf(joinId));
         }
         String joinType = join.getJoinType();
         if (_NopMetadataCoreConstants.JOIN_TYPE_RIGHT.equals(joinType)) {
-            throw new NopException(ERR_JOIN_TYPE_RIGHT_UNSUPPORTED).param("joinId", joinId);
+            throw new NopException(NopMetadataErrors.ERR_JOIN_TYPE_RIGHT_UNSUPPORTED).param("joinId", joinId);
         }
         if (!_NopMetadataCoreConstants.JOIN_TYPE_INNER.equals(joinType)
                 && !_NopMetadataCoreConstants.JOIN_TYPE_LEFT.equals(joinType)) {
-            throw new NopException(ERR_JOIN_TYPE_UNKNOWN)
+            throw new NopException(NopMetadataErrors.ERR_JOIN_TYPE_UNKNOWN)
                     .param("joinType", String.valueOf(joinType)).param("joinId", joinId);
         }
         return join;
@@ -245,10 +193,10 @@ public class MetaJoinExecutor {
         String joinId = join.getJoinId();
         if (hasEntity && hasTable) {
             // 互斥校验在 save 路径已做（0700-1）；executor 防御性显式失败
-            throw new NopException(ERR_JOIN_NO_ENDPOINT).param("joinId", joinId).param("side", side);
+            throw new NopException(NopMetadataErrors.ERR_JOIN_NO_ENDPOINT).param("joinId", joinId).param("side", side);
         }
         if (!hasEntity && !hasTable) {
-            throw new NopException(ERR_JOIN_NO_ENDPOINT).param("joinId", joinId).param("side", side);
+            throw new NopException(NopMetadataErrors.ERR_JOIN_NO_ENDPOINT).param("joinId", joinId).param("side", side);
         }
         if (hasEntity) {
             return Endpoint.entity(resolveEntityOrThrow(entityId, side, joinId, ctx));
@@ -261,13 +209,13 @@ public class MetaJoinExecutor {
         IEntityDao<NopMetaTable> tableDao = ctx.daoProvider().daoFor(NopMetaTable.class);
         NopMetaTable table = tableDao.getEntityById(tableId);
         if (table == null) {
-            throw new NopException(ERR_JOIN_TABLE_DANGLING)
+            throw new NopException(NopMetadataErrors.ERR_JOIN_TABLE_DANGLING)
                     .param("joinId", joinId).param("side", side).param("tableId", tableId);
         }
         String tableType = table.getTableType();
         if (!_NopMetadataCoreConstants.TABLE_TYPE_EXTERNAL.equals(tableType)
                 && !_NopMetadataCoreConstants.TABLE_TYPE_SQL.equals(tableType)) {
-            throw new NopException(ERR_JOIN_TABLE_TYPE_NOT_ALLOWED)
+            throw new NopException(NopMetadataErrors.ERR_JOIN_TABLE_TYPE_NOT_ALLOWED)
                     .param("joinId", joinId).param("side", side)
                     .param("tableId", tableId).param("tableType", String.valueOf(tableType));
         }
@@ -434,36 +382,32 @@ public class MetaJoinExecutor {
         return holder[0] == null ? new ArrayList<>() : holder[0];
     }
 
-    // ============================ 跨库拼接（D5）============================
+    // ============================ 跨库拼接（D5，委派 CrossDbJoinMerger）============================
 
-    /** entity-entity 跨库拼接（既有 D5 路径，保持不变）。 */
-    private List<Map<String, Object>> executeEntityEntityCrossDbMerge(NopMetaTableJoin join, NopMetaEntity leftEntity,
-                                                                      NopMetaEntity rightEntity, TreeBean filter,
-                                                                      Long limit, Long offset, MetaQueryContext ctx) {
+    private List<Map<String, Object>> doCrossDbMergeEntityEntity(NopMetaTableJoin join, NopMetaEntity leftEntity,
+                                                                  NopMetaEntity rightEntity, TreeBean filter,
+                                                                  Long limit, Long offset, MetaQueryContext ctx) {
         List<Map<String, Object>> leftRows = fetchEntityRows(leftEntity, filter, ctx, "left", join.getJoinId());
         List<Map<String, Object>> rightRows = fetchEntityRows(rightEntity, null, ctx, "right", join.getJoinId());
-        return crossDbMerge(join, leftRows, rightRows, limit, offset);
+        return crossDbMerger.crossDbMerge(join, leftRows, rightRows, limit, offset);
     }
 
-    /** external/sql ↔ external/sql 跨库拼接（plan 0700-2 新增，各侧 withConnection 取数）。 */
-    private List<Map<String, Object>> executeTableEndpointCrossDbMerge(NopMetaTableJoin join, Endpoint leftEp,
-                                                                       Endpoint rightEp, TreeBean filter,
-                                                                       Long limit, Long offset, MetaQueryContext ctx) {
+    private List<Map<String, Object>> doCrossDbMergeTableEndpoint(NopMetaTableJoin join, Endpoint leftEp,
+                                                                   Endpoint rightEp, TreeBean filter,
+                                                                   Long limit, Long offset, MetaQueryContext ctx) {
         List<Map<String, Object>> leftRows = fetchTableRows(leftEp.table, filter, ctx, "left", join.getJoinId());
         List<Map<String, Object>> rightRows = fetchTableRows(rightEp.table, null, ctx, "right", join.getJoinId());
-        return crossDbMerge(join, leftRows, rightRows, limit, offset);
+        return crossDbMerger.crossDbMerge(join, leftRows, rightRows, limit, offset);
     }
 
-    /** 混合端点跨库拼接（plan 0700-2 D1.2：entity 侧 ORM + table 侧 withConnection）。 */
-    private List<Map<String, Object>> executeMixedCrossDbMerge(NopMetaTableJoin join, Endpoint leftEp, Endpoint rightEp,
-                                                               TreeBean filter, Long limit, Long offset,
-                                                               MetaQueryContext ctx) {
+    private List<Map<String, Object>> doCrossDbMergeMixed(NopMetaTableJoin join, Endpoint leftEp, Endpoint rightEp,
+                                                          TreeBean filter, Long limit, Long offset,
+                                                          MetaQueryContext ctx) {
         List<Map<String, Object>> leftRows = fetchEndpointRows(leftEp, filter, ctx, "left", join.getJoinId());
         List<Map<String, Object>> rightRows = fetchEndpointRows(rightEp, null, ctx, "right", join.getJoinId());
-        return crossDbMerge(join, leftRows, rightRows, limit, offset);
+        return crossDbMerger.crossDbMerge(join, leftRows, rightRows, limit, offset);
     }
 
-    /** 按端点形态分派取数（entity→ORM；table→withConnection）。 */
     private List<Map<String, Object>> fetchEndpointRows(Endpoint ep, TreeBean filter, MetaQueryContext ctx,
                                                         String side, String joinId) {
         if (ep.isEntity) {
@@ -472,163 +416,7 @@ public class MetaJoinExecutor {
         return fetchTableRows(ep.table, filter, ctx, side, joinId);
     }
 
-    /**
-     * 应用层内存合并（D5）：右表按 join key 建索引，左表逐行匹配。
-     *
-     * <p>命名空间规范化（D1.4 Anti-Hollow）：合并前显式校验 leftField/rightField 在各侧 row keySet 中
-     * （非空集时），命名空间错配显式失败（不静默空集）。
-     *
-     * <p>NULL 语义（AR-05）：SQL 标准下 NULL != NULL，因此两侧任一 key 为 null 均不参与匹配
-     * （与 SQL JOIN ON a.k = b.k 一致）。早期实现用 String.valueOf 把 null 转成 "null" 字符串建索引，
-     * 导致两侧 null 行被错配为 "null" = "null" → 静默产生错误结果。修正：建索引和查找分支都显式跳过 null。
-     *
-     * <p>类型一致性（AR-05）：跨库 join key 的 JDBC 类型须一致（int↔long↔BigDecimal 不视为兼容——
-     * 早期 String.valueOf 把 1L 和 "1" 都转成 "1" 导致静默错配）。本计划裁定（plan 1250-2 Phase 4）：
-     * 严格类型匹配——类型族（int/long/bigint/decimal）必须相同，否则显式抛 ErrorCode。
-     */
-    private List<Map<String, Object>> crossDbMerge(NopMetaTableJoin join, List<Map<String, Object>> leftRows,
-                                                   List<Map<String, Object>> rightRows, Long limit, Long offset) {
-        // 规模上限（防 OOM）
-        checkSizeLimit(leftRows.size(), "left", join.getJoinId());
-        checkSizeLimit(rightRows.size(), "right", join.getJoinId());
-
-        String leftField = join.getLeftField();
-        String rightField = join.getRightField();
-        String alias = aliasOf(join);
-        String joinType = join.getJoinType();
-        String joinId = join.getJoinId();
-
-        // 命名空间 Anti-Hollow 校验（D1.4）：字段名须在 row keySet 中（大小写不敏感——物理列名在大多数
-        // 数据库中大小写不敏感，H2 ResultSetMetaData 常返回大写而 sourceSql 可能小写，属合法规范化，
-        // 非 GENUINE 命名空间错配；真不存在的字段仍显式失败）
-        requireFieldInRowKeys(leftField, leftRows, "left", joinId);
-        requireFieldInRowKeys(rightField, rightRows, "right", joinId);
-
-        // 类型一致性校验（AR-05）：从两侧抽样一行非 null key 比较 JDBC 类型族；不一致显式失败
-        verifyCrossDbKeyTypeConsistency(join, leftRows, leftField, rightRows, rightField);
-
-        // 右表按 join key 建索引（字符串相等匹配；大小写不敏感取列值，跨侧按值相等）
-        // NULL 语义（AR-05）：右表 key 为 null 不进索引（SQL NULL != NULL，null 不参与匹配）
-        Map<String, List<Map<String, Object>>> rightIndex = new HashMap<>();
-        for (Map<String, Object> r : rightRows) {
-            Object rawKey = getCaseInsensitive(r, rightField);
-            if (rawKey == null) {
-                // NULL=NULL 不匹配（与 SQL JOIN ON 一致）；跳过此行不进索引
-                continue;
-            }
-            String key = stringKey(rawKey);
-            rightIndex.computeIfAbsent(key, k -> new ArrayList<>()).add(r);
-        }
-
-        // 左列集合（用于冲突检测）
-        Set<String> leftKeys = leftRows.isEmpty() ? Collections.emptySet() : new HashSet<>(leftRows.get(0).keySet());
-
-        List<Map<String, Object>> merged = new ArrayList<>();
-        for (Map<String, Object> l : leftRows) {
-            Object rawLeftKey = getCaseInsensitive(l, leftField);
-            if (rawLeftKey == null) {
-                // NULL=NULL 不匹配；left join 时仍保留左行（右列填 null），inner join 时丢弃
-                if (_NopMetadataCoreConstants.JOIN_TYPE_LEFT.equals(joinType)) {
-                    merged.add(mergeRow(l, null, alias, leftKeys));
-                }
-                continue;
-            }
-            String key = stringKey(rawLeftKey);
-            List<Map<String, Object>> matches = rightIndex.get(key);
-            if (matches != null && !matches.isEmpty()) {
-                for (Map<String, Object> r : matches) {
-                    merged.add(mergeRow(l, r, alias, leftKeys));
-                }
-            } else if (_NopMetadataCoreConstants.JOIN_TYPE_LEFT.equals(joinType)) {
-                // left join：保留左行，右列填 null
-                merged.add(mergeRow(l, null, alias, leftKeys));
-            }
-            // inner join：无匹配则丢弃
-        }
-
-        // 跨库无全局序，limit/offset 仅作合并后截断提示（D5 已知限制）
-        return truncate(merged, limit, offset);
-    }
-
-    /**
-     * 跨库 join key 类型一致性校验（AR-05 plan 1250-2 Phase 4 Decision: 严格类型匹配 (a)）。
-     *
-     * <p>Decision: 选择方案 (a) 严格类型匹配——左右两侧 join key 的 Java class 必须完全相同。
-     * 原因：String.valueOf(1L) = "1" 与 String.valueOf("1") = "1" 在 HashMap 中会静默匹配，
-     * 违反 SQL 强类型语义；生产环境 MySQL + 多类型 join key 会导致静默错误结果。
-     *
-     * <p>放宽容忍（如 int↔long 兼容）属于后续优化（plan 1250-2 Non-Blocking Follow-ups）。
-     * 当前选择保守严格匹配，类型不一致显式抛 {@link #ERR_JOIN_CROSS_DB_KEY_TYPE_MISMATCH}。
-     */
-    private void verifyCrossDbKeyTypeConsistency(NopMetaTableJoin join,
-                                                 List<Map<String, Object>> leftRows, String leftField,
-                                                 List<Map<String, Object>> rightRows, String rightField) {
-        Object leftSample = firstNonNullKey(leftRows, leftField);
-        Object rightSample = firstNonNullKey(rightRows, rightField);
-        if (leftSample == null || rightSample == null) {
-            return;
-        }
-        // 严格类型匹配：class 必须完全相同
-        if (!leftSample.getClass().equals(rightSample.getClass())) {
-            throw new NopException(ERR_JOIN_CROSS_DB_KEY_TYPE_MISMATCH)
-                    .param("joinId", join.getJoinId())
-                    .param("leftType", leftSample.getClass().getName())
-                    .param("rightType", rightSample.getClass().getName());
-        }
-    }
-
-    private static Object firstNonNullKey(List<Map<String, Object>> rows, String field) {
-        if (rows == null) return null;
-        for (Map<String, Object> r : rows) {
-            Object v = getCaseInsensitive(r, field);
-            if (v != null) return v;
-        }
-        return null;
-    }
-
-    /**
-     * 命名空间 Anti-Hollow 校验（D1.4）：若 rows 非空，field 必须存在于 row keySet 中（大小写不敏感——
-     * 物理列名在大多数数据库中大小写不敏感，H2 常返回大写而配置可能小写，属合法规范化），
-     * 否则显式失败（防止真命名空间错配静默返回空集）。
-     */
-    private void requireFieldInRowKeys(String field, List<Map<String, Object>> rows, String side, String joinId) {
-        if (field == null || rows == null || rows.isEmpty()) {
-            return;
-        }
-        Map<String, Object> sample = rows.get(0);
-        if (!containsKeyIgnoreCase(sample, field)) {
-            throw new NopException(ERR_JOIN_NAMESPACE_MISMATCH)
-                    .param("joinId", joinId).param("side", side)
-                    .param("field", field).param("rowKeys", sample.keySet());
-        }
-    }
-
-    /** 大小写不敏感取值（物理列名规范化：H2 大写 vs sourceSql 小写等情形）。 */
-    private static Object getCaseInsensitive(Map<String, Object> map, String key) {
-        if (map == null || key == null) {
-            return null;
-        }
-        for (Map.Entry<String, Object> e : map.entrySet()) {
-            if (e.getKey().equalsIgnoreCase(key)) {
-                return e.getValue();
-            }
-        }
-        return null;
-    }
-
-    private static boolean containsKeyIgnoreCase(Map<String, Object> map, String key) {
-        if (map == null || key == null) {
-            return false;
-        }
-        for (String k : map.keySet()) {
-            if (k.equalsIgnoreCase(key)) {
-                return true;
-            }
-        }
-        return false;
-    }
-
-    // ============================ 取数/合并 helpers ============================
+    // ============================ 取数 helpers ============================
 
     @SuppressWarnings({"rawtypes", "unchecked"})
     private List<Map<String, Object>> fetchEntityRows(NopMetaEntity entity, TreeBean filter, MetaQueryContext ctx,
@@ -657,14 +445,9 @@ public class MetaJoinExecutor {
         return rows;
     }
 
-    /**
-     * 取 external/sql 表端点行（plan 0700-2 D1.3）：经 withConnection 跑原生 SELECT（列名取自 fieldResolver）。
-     * 接线对齐 §4.4 queryTableData external/sql 分派（同依赖集），落点在 executor。
-     */
     private List<Map<String, Object>> fetchTableRows(NopMetaTable table, TreeBean filter, MetaQueryContext ctx,
                                                      String side, String joinId) {
         NopMetaDataSource dataSource = resolveTableDataSourceOrThrow(table, ctx, joinId, side);
-        // 列名取自该表可解析字段集合（external→buildSql columnName；sql→SELECT 解析列）
         IEntityDao<NopMetaEntityField> fieldDao = ctx.daoProvider().daoFor(NopMetaEntityField.class);
         List<ResolvedTableField> fields = ctx.fieldResolver().resolve(table, fieldDao);
         List<String> columns = new ArrayList<>(fields.size());
@@ -676,7 +459,6 @@ public class MetaJoinExecutor {
         ctx.connectionService().withConnection(dataSource.getDatasourceType(), dataSource.getConnectionConfig(),
                 (Connection conn, DatabaseMetaData metaData) -> {
                     FilterToSqlTranslator.TranslatedFilter tf = ctx.filterTranslator().translate(filter);
-                    // 单侧取数加上限（MAX_CROSS_DB_ROWS+1），超限由 checkSizeLimit 显式失败防 OOM
                     Long fetchLimit = (long) MAX_CROSS_DB_ROWS + 1;
                     String sql = buildTableSelectSql(table, columns, tf.getSql(), fetchLimit, null);
                     holder[0] = executeJdbcQuery(conn, sql, tf.getParams(), fetchLimit, null, joinId, side);
@@ -684,36 +466,17 @@ public class MetaJoinExecutor {
         return holder[0] == null ? new ArrayList<>() : holder[0];
     }
 
-    private Map<String, Object> mergeRow(Map<String, Object> left, Map<String, Object> right,
-                                         String alias, Set<String> leftKeys) {
-        Map<String, Object> row = new LinkedHashMap<>();
-        if (left != null) {
-            row.putAll(left);
-        }
-        if (right != null) {
-            for (Map.Entry<String, Object> e : right.entrySet()) {
-                String k = e.getKey();
-                // 列名冲突时加 alias_ 前缀（D5）
-                if (leftKeys != null && leftKeys.contains(k)) {
-                    k = alias + "_" + k;
-                }
-                row.put(k, e.getValue());
-            }
-        }
-        return row;
-    }
-
     // ============================ 解析 helpers ============================
 
     private NopMetaEntity resolveEntityOrThrow(String entityId, String side, String joinId, MetaQueryContext ctx) {
         if (entityId == null || entityId.isEmpty()) {
-            throw new NopException(ERR_JOIN_ENTITY_DANGLING)
+            throw new NopException(NopMetadataErrors.ERR_JOIN_ENTITY_DANGLING)
                     .param("joinId", joinId).param("side", side).param("entityId", String.valueOf(entityId));
         }
         IEntityDao<NopMetaEntity> dao = ctx.daoProvider().daoFor(NopMetaEntity.class);
         NopMetaEntity entity = dao.getEntityById(entityId);
         if (entity == null) {
-            throw new NopException(ERR_JOIN_ENTITY_DANGLING)
+            throw new NopException(NopMetadataErrors.ERR_JOIN_ENTITY_DANGLING)
                     .param("joinId", joinId).param("side", side).param("entityId", entityId);
         }
         return entity;
@@ -726,7 +489,7 @@ public class MetaJoinExecutor {
         }
         String name = entity.getEntityName();
         if (name == null || name.isEmpty() || !ctx.orm().isValidEntityName(name)) {
-            throw new NopException(ERR_JOIN_ENTITY_NOT_REGISTERED)
+            throw new NopException(NopMetadataErrors.ERR_JOIN_ENTITY_NOT_REGISTERED)
                     .param("joinId", joinId).param("side", side).param("entityName", String.valueOf(name));
         }
     }
@@ -734,7 +497,7 @@ public class MetaJoinExecutor {
     private String requirePhysicalTable(NopMetaEntity entity) {
         String t = entity.getTableName();
         if (t == null || t.trim().isEmpty()) {
-            throw new NopException(ERR_JOIN_FIELD_NOT_RESOLVED)
+            throw new NopException(NopMetadataErrors.ERR_JOIN_FIELD_NOT_RESOLVED)
                     .param("side", "table").param("entityId", entity.getMetaEntityId())
                     .param("field", "tableName").param("joinId", "");
         }
@@ -760,13 +523,13 @@ public class MetaJoinExecutor {
     String resolveFieldToColumn(Map<String, String> propToCol, String field, NopMetaEntity entity,
                                         String side, String joinId) {
         if (field == null) {
-            throw new NopException(ERR_JOIN_FIELD_NOT_RESOLVED)
+            throw new NopException(NopMetadataErrors.ERR_JOIN_FIELD_NOT_RESOLVED)
                     .param("joinId", joinId).param("side", side)
                     .param("entityId", entity.getMetaEntityId()).param("field", String.valueOf(field));
         }
         String col = propToCol.get(field);
         if (col == null) {
-            throw new NopException(ERR_JOIN_FIELD_NOT_RESOLVED)
+            throw new NopException(NopMetadataErrors.ERR_JOIN_FIELD_NOT_RESOLVED)
                     .param("joinId", joinId).param("side", side)
                     .param("entityId", entity.getMetaEntityId()).param("field", field);
         }
@@ -788,7 +551,7 @@ public class MetaJoinExecutor {
     private String resolveTableFieldOrThrow(Set<String> columns, String field, NopMetaTable table,
                                             String side, String joinId) {
         if (field == null || !columns.contains(field)) {
-            throw new NopException(ERR_JOIN_TABLE_FIELD_NOT_RESOLVED)
+            throw new NopException(NopMetadataErrors.ERR_JOIN_TABLE_FIELD_NOT_RESOLVED)
                     .param("joinId", joinId).param("side", side)
                     .param("tableId", table.getMetaTableId()).param("field", String.valueOf(field));
         }
@@ -814,7 +577,7 @@ public class MetaJoinExecutor {
         if (_NopMetadataCoreConstants.TABLE_TYPE_SQL.equals(table.getTableType())) {
             String sourceSql = table.getSourceSql();
             if (sourceSql == null || sourceSql.trim().isEmpty()) {
-                throw new NopException(ERR_JOIN_TABLE_EXEC_FAILED)
+                throw new NopException(NopMetadataErrors.ERR_JOIN_TABLE_EXEC_FAILED)
                         .param("joinId", "").param("side", "from")
                         .param("error", "sql table sourceSql is empty: " + table.getMetaTableId());
             }
@@ -835,7 +598,7 @@ public class MetaJoinExecutor {
         if (_NopMetadataCoreConstants.TABLE_TYPE_SQL.equals(table.getTableType())) {
             String sourceSql = table.getSourceSql();
             if (sourceSql == null || sourceSql.trim().isEmpty()) {
-                throw new NopException(ERR_JOIN_TABLE_EXEC_FAILED)
+                throw new NopException(NopMetadataErrors.ERR_JOIN_TABLE_EXEC_FAILED)
                         .param("joinId", "").param("side", "from")
                         .param("error", "sql table sourceSql is empty: " + table.getMetaTableId());
             }
@@ -895,36 +658,6 @@ public class MetaJoinExecutor {
         return copy;
     }
 
-    private void checkSizeLimit(int rows, String side, String joinId) {
-        if (rows > MAX_CROSS_DB_ROWS) {
-            throw new NopException(ERR_JOIN_CROSS_DB_SIZE_LIMIT)
-                    .param("joinId", joinId).param("side", side).param("rows", rows)
-                    .param("limit", MAX_CROSS_DB_ROWS);
-        }
-    }
-
-    private List<Map<String, Object>> truncate(List<Map<String, Object>> rows, Long limit, Long offset) {
-        // AR-08: 显式范围检查替代 Math.toIntExact（溢出抛 ArithmeticException 绕过 ErrorCode）
-        int from = 0;
-        if (offset != null && offset > 0) {
-            if (offset > Integer.MAX_VALUE) {
-                throw new NopException(ERR_PAGINATION_OFFSET_TOO_LARGE).param("offset", offset);
-            }
-            from = offset.intValue();
-        }
-        if (from > rows.size()) {
-            from = rows.size();
-        }
-        int to = rows.size();
-        if (limit != null) {
-            if (limit > Integer.MAX_VALUE) {
-                throw new NopException(ERR_PAGINATION_LIMIT_TOO_LARGE).param("limit", limit);
-            }
-            to = Math.min(rows.size(), from + limit.intValue());
-        }
-        return new ArrayList<>(rows.subList(from, to));
-    }
-
     private List<Map<String, Object>> collectRows(IDataSet ds) {
         List<Map<String, Object>> rows = new ArrayList<>();
         for (IDataRow row : ds) {
@@ -970,7 +703,7 @@ public class MetaJoinExecutor {
             }
             return rows;
         } catch (SQLException e) {
-            throw new NopException(ERR_JOIN_TABLE_EXEC_FAILED)
+            throw new NopException(NopMetadataErrors.ERR_JOIN_TABLE_EXEC_FAILED)
                     .param("joinId", joinId).param("side", side)
                     .param("error", messageOf(e)).cause(e);
         }
@@ -979,10 +712,6 @@ public class MetaJoinExecutor {
     private static String aliasOf(NopMetaTableJoin join) {
         String a = join.getAlias();
         return (a != null && !a.trim().isEmpty()) ? a : "right";
-    }
-
-    private static String stringKey(Object v) {
-        return v == null ? null : String.valueOf(v);
     }
 
     private static boolean equalsStr(String a, String b) {

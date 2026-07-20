@@ -9,7 +9,7 @@ package io.nop.metadata.service.query;
 
 import io.nop.api.core.ApiErrors;
 import io.nop.api.core.exceptions.NopException;
-import io.nop.metadata.dao.entity.NopMetaTableJoin;
+import io.nop.metadata.service.NopMetadataErrors;
 import org.junit.jupiter.api.Test;
 
 import java.lang.reflect.Method;
@@ -22,25 +22,19 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 /**
- * 验证 MetaJoinExecutor.truncate / MetaAggregationExecutor.truncateCrossDb 的整数溢出处理
- * （plan 1250-2 Phase 4 Proof，AR-08）。
- *
- * <p>AR-08 修复前：truncate 用 Math.toIntExact(Long)，offset > Integer.MAX_VALUE 时抛
- * ArithmeticException（绕过 ErrorCode），生产监控无法定位。
- *
- * <p>修复后：显式抛 ERR_PAGINATION_OFFSET_TOO_LARGE / ERR_PAGINATION_LIMIT_TOO_LARGE 并附 param。
+ * 验证 CrossDbJoinMerger.truncate 的整数溢出处理（plan 1250-2 Phase 4 Proof，AR-08）。
  */
 public class TestMetaJoinTruncateOverflow {
 
-    private final MetaJoinExecutor executor = new MetaJoinExecutor();
+    private final CrossDbJoinMerger merger = new CrossDbJoinMerger();
 
     @Test
     public void testOffsetOverflowThrowsExplicitErrorCode() {
         List<Map<String, Object>> rows = new ArrayList<>();
         NopException ex = assertThrows(NopException.class,
-                () -> invokeTruncate(rows, null, (long) Integer.MAX_VALUE + 1L),
+                () -> merger.truncate(rows, null, (long) Integer.MAX_VALUE + 1L),
                 "offset > Integer.MAX_VALUE must throw ERR_PAGINATION_OFFSET_TOO_LARGE");
-        assertEquals(MetaJoinExecutor.ERR_PAGINATION_OFFSET_TOO_LARGE.getErrorCode(),
+        assertEquals(NopMetadataErrors.ERR_PAGINATION_OFFSET_TOO_LARGE.getErrorCode(),
                 ex.getErrorCode());
         assertEquals((long) Integer.MAX_VALUE + 1L, ((Number) ex.getParam("offset")).longValue());
     }
@@ -49,9 +43,9 @@ public class TestMetaJoinTruncateOverflow {
     public void testLimitOverflowThrowsExplicitErrorCode() {
         List<Map<String, Object>> rows = new ArrayList<>();
         NopException ex = assertThrows(NopException.class,
-                () -> invokeTruncate(rows, (long) Integer.MAX_VALUE + 1L, null),
+                () -> merger.truncate(rows, (long) Integer.MAX_VALUE + 1L, null),
                 "limit > Integer.MAX_VALUE must throw ERR_PAGINATION_LIMIT_TOO_LARGE");
-        assertEquals(MetaJoinExecutor.ERR_PAGINATION_LIMIT_TOO_LARGE.getErrorCode(),
+        assertEquals(NopMetadataErrors.ERR_PAGINATION_LIMIT_TOO_LARGE.getErrorCode(),
                 ex.getErrorCode());
         assertEquals((long) Integer.MAX_VALUE + 1L, ((Number) ex.getParam("limit")).longValue());
     }
@@ -64,19 +58,17 @@ public class TestMetaJoinTruncateOverflow {
             r.put("k", i);
             rows.add(r);
         }
-        // offset=2, limit=5 → indices [2,7), 5 rows
-        List<Map<String, Object>> result = invokeTruncate(rows, 5L, 2L);
+        List<Map<String, Object>> result = merger.truncate(rows, 5L, 2L);
         assertEquals(5, result.size(), "normal limit/offset must work as before");
     }
 
     @Test
     public void testAggregationTruncateCrossDbOffsetOverflow() {
-        // MetaAggregationExecutor.truncateCrossDb is private static
         List<Map<String, Object>> rows = new ArrayList<>();
         NopException ex = assertThrows(NopException.class,
                 () -> invokeAggregationTruncate(rows, null, (long) Integer.MAX_VALUE + 1L),
                 "aggregation offset overflow must throw ERR_PAGINATION_OFFSET_TOO_LARGE");
-        assertEquals(MetaJoinExecutor.ERR_PAGINATION_OFFSET_TOO_LARGE.getErrorCode(),
+        assertEquals(NopMetadataErrors.ERR_PAGINATION_OFFSET_TOO_LARGE.getErrorCode(),
                 ex.getErrorCode());
     }
 
@@ -86,22 +78,8 @@ public class TestMetaJoinTruncateOverflow {
         NopException ex = assertThrows(NopException.class,
                 () -> invokeAggregationTruncate(rows, (long) Integer.MAX_VALUE + 1L, null),
                 "aggregation limit overflow must throw ERR_PAGINATION_LIMIT_TOO_LARGE");
-        assertEquals(MetaJoinExecutor.ERR_PAGINATION_LIMIT_TOO_LARGE.getErrorCode(),
+        assertEquals(NopMetadataErrors.ERR_PAGINATION_LIMIT_TOO_LARGE.getErrorCode(),
                 ex.getErrorCode());
-    }
-
-    @SuppressWarnings("unchecked")
-    private List<Map<String, Object>> invokeTruncate(List<Map<String, Object>> rows, Long limit, Long offset) {
-        try {
-            Method m = MetaJoinExecutor.class.getDeclaredMethod("truncate",
-                    List.class, Long.class, Long.class);
-            m.setAccessible(true);
-            return (List<Map<String, Object>>) m.invoke(executor, rows, limit, offset);
-        } catch (java.lang.reflect.InvocationTargetException ite) {
-            return rethrow(ite.getCause());
-        } catch (Exception e) {
-            throw new NopException(ApiErrors.ERR_WRAP_EXCEPTION, e);
-        }
     }
 
     @SuppressWarnings("unchecked")
@@ -119,7 +97,6 @@ public class TestMetaJoinTruncateOverflow {
         }
     }
 
-    /** Sneaky-throw to preserve exact ErrorCode type for assertThrows. */
     @SuppressWarnings("unchecked")
     private static <T> T rethrow(Throwable t) {
         if (t instanceof RuntimeException) {

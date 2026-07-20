@@ -20,6 +20,7 @@ import io.nop.metadata.dao.entity.NopMetaLineageEdge;
 import io.nop.metadata.dao.entity.NopMetaModule;
 import io.nop.metadata.dao.entity.NopMetaTable;
 import io.nop.metadata.service.entity.NopMetaLineageEdgeBizModel;
+import io.nop.metadata.service.NopMetadataErrors;
 import jakarta.inject.Inject;
 import org.junit.jupiter.api.Test;
 
@@ -74,9 +75,9 @@ public class TestNopMetaLineageEdgeSizeLimit extends JunitBaseTestCase {
 
         // getUpstream 触发 buildLineageGraph → 抛 ErrorCode
         NopException ex = assertThrows(NopException.class,
-                () -> lineageBiz.getUpstream(t1),
+                () -> lineageBiz.getUpstream(t1, null),
                 "buildLineageGraph must throw ERR_LINEAGE_GRAPH_TOO_LARGE when edge count exceeds configured limit");
-        assertEquals(NopMetaLineageEdgeBizModel.ERR_LINEAGE_GRAPH_TOO_LARGE.getErrorCode(),
+        assertEquals(NopMetadataErrors.ERR_LINEAGE_GRAPH_TOO_LARGE.getErrorCode(),
                 ex.getErrorCode(),
                 "must throw ERR_LINEAGE_GRAPH_TOO_LARGE (not generic OOM/NPE)");
         // 失败响应包含 edges/limit 参数（运维可定位）
@@ -105,7 +106,7 @@ public class TestNopMetaLineageEdgeSizeLimit extends JunitBaseTestCase {
         dao.flushSession();
 
         // 不抛异常：getDownstream 正常执行（虽然图里只有 t1→t2 一种关联）
-        List<String> downstream = lineageBiz.getDownstream(t1);
+        List<String> downstream = lineageBiz.getDownstream(t1, null);
         assertTrue(downstream.contains(t2),
                 "downstream of t1 must contain t2 when edge count is at limit: " + downstream);
     }

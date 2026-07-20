@@ -1,7 +1,16 @@
+/**
+ * Copyright (c) 2017-2024 Nop Platform. All rights reserved.
+ * Author: canonical_entropy@163.com
+ * Blog:   https://www.zhihu.com/people/canonical-entropy
+ * Gitee:  https://github.com/entropy-cloud/nop-entropy
+ * Github: https://github.com/entropy-cloud/nop-entropy
+ */
+
 package io.nop.metadata.service.entity;
 
 
 import io.nop.api.core.time.CoreMetrics;
+import io.nop.metadata.service.NopMetadataErrors;
 import io.nop.api.core.annotations.biz.BizModel;
 import io.nop.api.core.annotations.biz.BizMutation;
 import io.nop.api.core.annotations.core.Name;
@@ -34,9 +43,9 @@ import java.util.Set;
  *
  * <p>{@code executeReconciliation(configId)}（{@code @BizMutation}）：
  * <ol>
- *   <li>加载 config；config 不存在 → 抛 {@link #ERR_RECON_CONFIG_NOT_FOUND}（不 NPE）。</li>
+ *   <li>加载 config；config 不存在 → 抛 {@link #NopMetadataErrors.ERR_RECON_CONFIG_NOT_FOUND}（不 NPE）。</li>
  *   <li>校验 {@code columnName} 在目标表 {@link MetaTableFieldResolver} 解析字段集合内；
- *       非法 → 抛 {@link #ERR_RECON_COLUMN_NOT_FOUND}。</li>
+ *       非法 → 抛 {@link #NopMetadataErrors.ERR_RECON_COLUMN_NOT_FOUND}。</li>
  *   <li>经 {@code @Inject NopMetaTableBizModel tableBizModel}（protected，B2 方案 b）调
  *       {@code queryTableData(metaTableId, null, null, null, context)} 取得 {@code items}（行列表）。</li>
  *   <li>调 {@link ReconciliationExecutor#execute}（rows 由本 BizModel 传入，执行器纯组件）→ 返回 Result。</li>
@@ -51,23 +60,6 @@ import java.util.Set;
 public class NopMetaReconciliationConfigBizModel extends CrudBizModel<NopMetaReconciliationConfig>
         implements INopMetaReconciliationConfigBiz {
 
-    static final ErrorCode ERR_RECON_CONFIG_NOT_FOUND =
-            ErrorCode.define("metadata.recon-config-not-found",
-                    "Reconciliation config not found: {configId}", "configId");
-    static final ErrorCode ERR_RECON_TABLE_NOT_FOUND =
-            ErrorCode.define("metadata.recon-table-not-found",
-                    "MetaTable not found for reconciliation: configId={configId} metaTableId={metaTableId}",
-                    "configId", "metaTableId");
-    static final ErrorCode ERR_RECON_COLUMN_NOT_FOUND =
-            ErrorCode.define("metadata.recon-column-not-found",
-                    "Configured columnName is not in the table's available field set: "
-                            + "configId={configId} metaTableId={metaTableId} columnName={columnName} "
-                            + "availableFields={availableFields}",
-                    "configId", "metaTableId", "columnName", "availableFields");
-    static final ErrorCode ERR_RECON_FETCH_TABLE_DATA_FAILED =
-            ErrorCode.define("metadata.recon-fetch-table-data-failed",
-                    "queryTableData failed for reconciliation: configId={configId} metaTableId={metaTableId} "
-                            + "-- {error}", "configId", "metaTableId", "error");
 
     /**
      * B2 方案 b：plan 2026-07-19-1250-3 Phase 1 维度07-02——注入 {@link INopMetaTableBiz} 接口
@@ -101,7 +93,7 @@ public class NopMetaReconciliationConfigBizModel extends CrudBizModel<NopMetaRec
         IEntityDao<NopMetaReconciliationConfig> configDao = dao();
         NopMetaReconciliationConfig config = configDao.getEntityById(configId);
         if (config == null) {
-            throw new NopException(ERR_RECON_CONFIG_NOT_FOUND).param("configId", configId);
+            throw new NopException(NopMetadataErrors.ERR_RECON_CONFIG_NOT_FOUND).param("configId", configId);
         }
         String metaTableId = config.getMetaTableId();
 
@@ -109,7 +101,7 @@ public class NopMetaReconciliationConfigBizModel extends CrudBizModel<NopMetaRec
         IEntityDao<NopMetaTable> tableDao = daoFor(NopMetaTable.class);
         NopMetaTable table = tableDao.getEntityById(metaTableId);
         if (table == null) {
-            throw new NopException(ERR_RECON_TABLE_NOT_FOUND)
+            throw new NopException(NopMetadataErrors.ERR_RECON_TABLE_NOT_FOUND)
                     .param("configId", configId)
                     .param("metaTableId", String.valueOf(metaTableId));
         }
@@ -119,7 +111,7 @@ public class NopMetaReconciliationConfigBizModel extends CrudBizModel<NopMetaRec
         Set<String> availableFields = fieldResolver.resolveFieldNames(table, fieldDao);
         String columnName = config.getColumnName();
         if (columnName == null || !availableFields.contains(columnName)) {
-            throw new NopException(ERR_RECON_COLUMN_NOT_FOUND)
+            throw new NopException(NopMetadataErrors.ERR_RECON_COLUMN_NOT_FOUND)
                     .param("configId", configId)
                     .param("metaTableId", metaTableId)
                     .param("columnName", String.valueOf(columnName))
@@ -133,7 +125,7 @@ public class NopMetaReconciliationConfigBizModel extends CrudBizModel<NopMetaRec
             items = extractItems(queryResult);
         } catch (NopException e) {
             // queryTableData 内部已抛带语义的 ErrorCode，此处附加 config 上下文后重新抛出
-            throw new NopException(ERR_RECON_FETCH_TABLE_DATA_FAILED, e)
+            throw new NopException(NopMetadataErrors.ERR_RECON_FETCH_TABLE_DATA_FAILED, e)
                     .param("configId", configId)
                     .param("metaTableId", metaTableId)
                     .param("error", messageOf(e));

@@ -1,3 +1,11 @@
+/**
+ * Copyright (c) 2017-2024 Nop Platform. All rights reserved.
+ * Author: canonical_entropy@163.com
+ * Blog:   https://www.zhihu.com/people/canonical-entropy
+ * Gitee:  https://github.com/entropy-cloud/nop-entropy
+ * Github: https://github.com/entropy-cloud/nop-entropy
+ */
+
 package io.nop.metadata.service.quality;
 
 import io.nop.api.core.exceptions.ErrorCode;
@@ -9,6 +17,7 @@ import io.nop.http.api.client.IHttpClient;
 import io.nop.http.api.client.IHttpResponse;
 import io.nop.metadata.core._NopMetadataCoreConstants;
 import io.nop.metadata.dao.entity.NopMetaQualityCheckpoint;
+import io.nop.metadata.service.NopMetadataErrors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -41,43 +50,14 @@ public class CheckpointActionDispatcher {
 
     private static final Logger LOG = LoggerFactory.getLogger(CheckpointActionDispatcher.class);
 
-    static final ErrorCode ERR_CHECKPOINT_WEBHOOK_NO_CLIENT =
-            ErrorCode.define("metadata.checkpoint-webhook-no-client",
-                    "Quality checkpoint webhook action configured but IHttpClient is not registered "
-                            + "(host has not pulled an HTTP client implementation): {checkpointId}",
-                    "checkpointId");
-    static final ErrorCode ERR_CHECKPOINT_WEBHOOK_NO_URL =
-            ErrorCode.define("metadata.checkpoint-webhook-no-url",
-                    "Quality checkpoint webhook action config is missing required 'url': {checkpointId}",
-                    "checkpointId");
-    static final ErrorCode ERR_CHECKPOINT_NOTIFY_NO_SERVICE =
-            ErrorCode.define("metadata.checkpoint-notify-no-service",
-                    "Quality checkpoint notify action configured but IMessageService is not registered "
-                            + "(host has not pulled a message service implementation): {checkpointId}",
-                    "checkpointId");
-    static final ErrorCode ERR_CHECKPOINT_NOTIFY_NO_CHANNEL =
-            ErrorCode.define("metadata.checkpoint-notify-no-channel",
-                    "Quality checkpoint notify action config is missing required 'channel': {checkpointId}",
-                    "checkpointId");
 
     /**
      * 维度13-04：webhook URL 被 SSRF 防护策略拒绝（协议非白名单 / 内网主机未在 allowed-hosts / method 非白名单）。
      * fail-closed 策略：默认禁内网（RFC1918 + 169.254 + localhost），允许的外网 webhook 主机需显式配置。
      */
-    public static final ErrorCode ERR_CHECKPOINT_WEBHOOK_URL_BLOCKED =
-            ErrorCode.define("metadata.checkpoint-webhook-url-blocked",
-                    "Quality checkpoint webhook URL is blocked by SSRF protection policy "
-                            + "(protocol/host not allowed or method not in whitelist): "
-                            + "{checkpointId} url={url} reason={reason}",
-                    "checkpointId", "url", "reason");
     /**
      * 维度13-04：webhook method 不在白名单（仅允许 POST/PUT，避免 GET 触发副作用、TRACE 泄露等）。
      */
-    public static final ErrorCode ERR_CHECKPOINT_WEBHOOK_METHOD_BLOCKED =
-            ErrorCode.define("metadata.checkpoint-webhook-method-blocked",
-                    "Quality checkpoint webhook method is not in whitelist (allowed: POST/PUT): "
-                            + "{checkpointId} method={method}",
-                    "checkpointId", "method");
 
     /** 维度13-04：webhook 允许的 URL 协议白名单（http/https）。 */
     private static final Set<String> ALLOWED_WEBHOOK_PROTOCOLS = unmodifiableSet("http://", "https://");
@@ -212,13 +192,13 @@ public class CheckpointActionDispatcher {
     private void dispatchWebhook(NopMetaQualityCheckpoint cp, Map<String, Object> summary,
                                   Map<String, Object> config) {
         if (httpClient == null) {
-            throw new NopException(ERR_CHECKPOINT_WEBHOOK_NO_CLIENT)
+            throw new NopException(NopMetadataErrors.ERR_CHECKPOINT_WEBHOOK_NO_CLIENT)
                     .param("checkpointId", cp.getCheckpointId());
         }
         Object urlObj = config == null ? null : config.get("url");
         String url = urlObj == null ? null : String.valueOf(urlObj).trim();
         if (url == null || url.isEmpty()) {
-            throw new NopException(ERR_CHECKPOINT_WEBHOOK_NO_URL)
+            throw new NopException(NopMetadataErrors.ERR_CHECKPOINT_WEBHOOK_NO_URL)
                     .param("checkpointId", cp.getCheckpointId());
         }
         // 维度13-04：URL 协议 + 主机白名单 + method 白名单
@@ -238,17 +218,13 @@ public class CheckpointActionDispatcher {
 
         IHttpResponse response = httpClient.fetch(request, null);
         if (response == null) {
-            throw new NopException(ErrorCode.define("metadata.checkpoint-webhook-null-response",
-                    "Quality checkpoint webhook returned null response: {checkpointId} url={url}",
-                    "checkpointId", "url"))
+            throw new NopException(NopMetadataErrors.ERR_CHECKPOINT_WEBHOOK_NULL_RESPONSE)
                     .param("checkpointId", cp.getCheckpointId())
                     .param("url", url);
         }
         int status = response.getHttpStatus();
         if (status < 200 || status >= 300) {
-            throw new NopException(ErrorCode.define("metadata.checkpoint-webhook-non-2xx",
-                    "Quality checkpoint webhook returned non-2xx HTTP status: {checkpointId} url={url} status={status}",
-                    "checkpointId", "url", "status"))
+            throw new NopException(NopMetadataErrors.ERR_CHECKPOINT_WEBHOOK_NON_2XX)
                     .param("checkpointId", cp.getCheckpointId())
                     .param("url", url)
                     .param("status", status);
@@ -272,7 +248,7 @@ public class CheckpointActionDispatcher {
             }
         }
         if (!protocolOk) {
-            throw new NopException(ERR_CHECKPOINT_WEBHOOK_URL_BLOCKED)
+            throw new NopException(NopMetadataErrors.ERR_CHECKPOINT_WEBHOOK_URL_BLOCKED)
                     .param("checkpointId", cp.getCheckpointId())
                     .param("url", url)
                     .param("reason", "protocol not in whitelist (http/https)");
@@ -280,7 +256,7 @@ public class CheckpointActionDispatcher {
         String host = extractWebhookHost(url);
         if (host != null && !host.isEmpty() && isInternalHost(host)
                 && !resolveAllowedWebhookHosts().contains(host.toLowerCase())) {
-            throw new NopException(ERR_CHECKPOINT_WEBHOOK_URL_BLOCKED)
+            throw new NopException(NopMetadataErrors.ERR_CHECKPOINT_WEBHOOK_URL_BLOCKED)
                     .param("checkpointId", cp.getCheckpointId())
                     .param("url", url)
                     .param("reason", "internal/link-local/loopback host not in allowed-hosts: " + host);
@@ -361,7 +337,7 @@ public class CheckpointActionDispatcher {
     /** 维度13-04：method 白名单校验（仅 POST/PUT）。 */
     void validateWebhookMethod(NopMetaQualityCheckpoint cp, String method) {
         if (!ALLOWED_WEBHOOK_METHODS.contains(method)) {
-            throw new NopException(ERR_CHECKPOINT_WEBHOOK_METHOD_BLOCKED)
+            throw new NopException(NopMetadataErrors.ERR_CHECKPOINT_WEBHOOK_METHOD_BLOCKED)
                     .param("checkpointId", cp.getCheckpointId())
                     .param("method", String.valueOf(method));
         }
@@ -375,13 +351,13 @@ public class CheckpointActionDispatcher {
     private void dispatchNotify(NopMetaQualityCheckpoint cp, Map<String, Object> summary,
                                  Map<String, Object> config) {
         if (messageService == null) {
-            throw new NopException(ERR_CHECKPOINT_NOTIFY_NO_SERVICE)
+            throw new NopException(NopMetadataErrors.ERR_CHECKPOINT_NOTIFY_NO_SERVICE)
                     .param("checkpointId", cp.getCheckpointId());
         }
         Object channelObj = config == null ? null : config.get("channel");
         String channel = channelObj == null ? null : String.valueOf(channelObj).trim();
         if (channel == null || channel.isEmpty()) {
-            throw new NopException(ERR_CHECKPOINT_NOTIFY_NO_CHANNEL)
+            throw new NopException(NopMetadataErrors.ERR_CHECKPOINT_NOTIFY_NO_CHANNEL)
                     .param("checkpointId", cp.getCheckpointId());
         }
         Object recipients = (config != null) ? config.get("recipients") : null;

@@ -1,10 +1,18 @@
+/**
+ * Copyright (c) 2017-2024 Nop Platform. All rights reserved.
+ * Author: canonical_entropy@163.com
+ * Blog:   https://www.zhihu.com/people/canonical-entropy
+ * Gitee:  https://github.com/entropy-cloud/nop-entropy
+ * Github: https://github.com/entropy-cloud/nop-entropy
+ */
+
 package io.nop.metadata.service.reconciliation;
 
-import io.nop.api.core.exceptions.ErrorCode;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.core.lang.json.JsonTool;
 import io.nop.metadata.dao.entity.NopMetaReconciliationConfig;
 import io.nop.metadata.dao.entity.NopMetaReconciliationResult;
+import io.nop.metadata.service.NopMetadataErrors;
 
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
@@ -41,11 +49,6 @@ public class ReconciliationExecutor {
     static final String STATUS_MULTIPLE = "MULTIPLE";
     static final String STATUS_MANUAL = "MANUAL";
 
-    static final ErrorCode ERR_RECON_ROW_MISSING_COLUMN =
-            ErrorCode.define("metadata.recon-row-missing-column",
-                    "Reconciliation row is missing configured columnName key: configId={configId} "
-                            + "columnName={columnName} rowIndex={rowIndex}",
-                    "configId", "columnName", "rowIndex");
 
     private final IReconciliationProcessor reconciliationService;
 
@@ -74,7 +77,7 @@ public class ReconciliationExecutor {
             Object raw = row.get(columnName);
             if (!row.containsKey(columnName)) {
                 // 行缺失配置的列名键 → 显式失败（不静默跳过该行）
-                throw new NopException(ERR_RECON_ROW_MISSING_COLUMN)
+                throw new NopException(NopMetadataErrors.ERR_RECON_ROW_MISSING_COLUMN)
                         .param("configId", config.getConfigId())
                         .param("columnName", columnName)
                         .param("rowIndex", rowIndex);
@@ -98,8 +101,7 @@ public class ReconciliationExecutor {
                     break;
                 default:
                     // judgeStatus 只返回上述三态之一，防御性校验
-                    throw new NopException(ErrorCode.define("metadata.recon-unknown-status",
-                            "Reconciliation produced unknown status: {status}", "status"))
+                    throw new NopException(NopMetadataErrors.ERR_RECON_UNKNOWN_STATUS)
                             .param("status", status);
             }
 

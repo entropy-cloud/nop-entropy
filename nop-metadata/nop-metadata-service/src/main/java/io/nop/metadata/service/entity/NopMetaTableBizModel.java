@@ -1,7 +1,16 @@
+/**
+ * Copyright (c) 2017-2024 Nop Platform. All rights reserved.
+ * Author: canonical_entropy@163.com
+ * Blog:   https://www.zhihu.com/people/canonical-entropy
+ * Gitee:  https://github.com/entropy-cloud/nop-entropy
+ * Github: https://github.com/entropy-cloud/nop-entropy
+ */
+
 package io.nop.metadata.service.entity;
 
 
 import io.nop.api.core.time.CoreMetrics;
+import io.nop.metadata.service.NopMetadataErrors;
 import io.nop.api.core.annotations.biz.BizModel;
 import io.nop.api.core.annotations.biz.BizMutation;
 import io.nop.api.core.annotations.biz.BizQuery;
@@ -77,10 +86,10 @@ import java.util.Set;
  *
  * <p>失败/不可执行路径均显式（不静默通过、不吞异常、不伪造值）：
  * <ul>
- *   <li>表不存在 → 抛 {@link #ERR_PROFILING_TABLE_NOT_FOUND}（不 NPE）</li>
- *   <li>目标表非 external（首版） → 抛 {@link #ERR_PROFILING_TABLE_NOT_EXTERNAL}</li>
- *   <li>无注册数据源 → 抛 {@link #ERR_PROFILING_NO_DATASOURCE}</li>
- *   <li>DISABLED 数据源 → 抛 {@link #ERR_PROFILING_DATASOURCE_DISABLED}</li>
+ *   <li>表不存在 → 抛 {@link #NopMetadataErrors.ERR_PROFILING_TABLE_NOT_FOUND}（不 NPE）</li>
+ *   <li>目标表非 external（首版） → 抛 {@link #NopMetadataErrors.ERR_PROFILING_TABLE_NOT_EXTERNAL}</li>
+ *   <li>无注册数据源 → 抛 {@link #NopMetadataErrors.ERR_PROFILING_NO_DATASOURCE}</li>
+ *   <li>DISABLED 数据源 → 抛 {@link #NopMetadataErrors.ERR_PROFILING_DATASOURCE_DISABLED}</li>
  *   <li>非 jdbc 类型 → 由 {@code withConnection} 抛 NopException</li>
  *   <li>单列剖析失败 → per-column try/catch 收集进 errors，不中断整表</li>
  *   <li>方言特定统计（sizeBytes/lastModified）→ null + unavailable 显式标记（不伪造）</li>
@@ -91,66 +100,16 @@ public class NopMetaTableBizModel extends CrudBizModel<NopMetaTable> implements 
 
     private static final Logger LOG = LoggerFactory.getLogger(NopMetaTableBizModel.class);
 
-    static final ErrorCode ERR_PROFILING_TABLE_NOT_FOUND =
-            ErrorCode.define("metadata.profiling-table-not-found",
-                    "Profiling target table not found: {metaTableId}", "metaTableId");
-    static final ErrorCode ERR_PROFILING_TABLE_NOT_EXTERNAL =
-            ErrorCode.define("metadata.profiling-table-not-external",
-                    "Profiling target table is not external (first version supports external-only execution): "
-                            + "{metaTableId} tableType={tableType}", "metaTableId", "tableType");
-    static final ErrorCode ERR_PROFILING_NO_DATASOURCE =
-            ErrorCode.define("metadata.profiling-no-datasource",
-                    "No registered MetaDataSource for querySpace of target table: "
-                            + "{metaTableId} querySpace={querySpace}", "metaTableId", "querySpace");
-    static final ErrorCode ERR_PROFILING_DATASOURCE_DISABLED =
-            ErrorCode.define("metadata.profiling-datasource-disabled",
-                    "MetaDataSource is disabled, cannot profile table: {dataSourceId}", "dataSourceId");
 
     /** inline ErrorCode：profiling action 执行失败的通用包装。 */
-    static final ErrorCode ERR_PROFILING_TABLE_FAILED =
-            ErrorCode.define("metadata.profiling-table-failed",
-                    "Profile table failed: {metaTableId} -- {error}", "metaTableId", "error");
 
     // ===== SQL 视图（createSqlTable / previewSqlFields / resolveTableFields，架构基线 §4.2）=====
     // 这些 ErrorCode 名以 sql- 前缀，与 lineage 模块的 metadata.lineage-* 区分（item 1.1 裁定：
     // 采用 sql 视图专属名，避免重名）。解析器内部 ErrorCode（sql-empty/parse-failed/multi-statement/
     // not-select/wildcard）定义在 SqlSelectFieldExtractor，BizModel 层只补充 createSqlTable/resolveTableFields
     // 入口专属的 module/table 校验 ErrorCode。
-    static final ErrorCode ERR_SQL_VIEW_MODULE_NOT_FOUND =
-            ErrorCode.define("metadata.sql-module-not-found",
-                    "MetaModule not found for createSqlTable: {metaModuleId}", "metaModuleId");
-    static final ErrorCode ERR_SQL_VIEW_TABLE_NOT_FOUND =
-            ErrorCode.define("metadata.sql-table-not-found",
-                    "NopMetaTable not found for resolveTableFields: {metaTableId}", "metaTableId");
 
     // ===== 单表数据查询（queryTableData，架构基线 §4.4 D1/D2）=====
-    static final ErrorCode ERR_QUERY_TABLE_NOT_FOUND =
-            ErrorCode.define("metadata.query-table-not-found",
-                    "NopMetaTable not found for queryTableData: {metaTableId}", "metaTableId");
-    static final ErrorCode ERR_QUERY_UNSUPPORTED_TABLE_TYPE =
-            ErrorCode.define("metadata.query-unsupported-table-type",
-                    "Unsupported tableType for queryTableData: {metaTableId} tableType={tableType}",
-                    "metaTableId", "tableType");
-    static final ErrorCode ERR_QUERY_ENTITY_NOT_FOUND =
-            ErrorCode.define("metadata.query-entity-not-found",
-                    "Entity record not found for entity table (baseEntityId dangling): "
-                            + "{metaTableId} baseEntityId={baseEntityId}", "metaTableId", "baseEntityId");
-    static final ErrorCode ERR_QUERY_ENTITY_NOT_REGISTERED =
-            ErrorCode.define("metadata.query-entity-not-registered",
-                    "Entity is not registered in runtime IOrmSessionFactory (cannot query, would be silent empty set): "
-                            + "{metaTableId} entityName={entityName}", "metaTableId", "entityName");
-    static final ErrorCode ERR_QUERY_SQL_SOURCE_EMPTY =
-            ErrorCode.define("metadata.query-sql-source-empty",
-                    "sql table sourceSql is empty, cannot query: {metaTableId}", "metaTableId");
-    static final ErrorCode ERR_QUERY_UNSUPPORTED_DIALECT =
-            ErrorCode.define("metadata.query-unsupported-dialect",
-                    "Dialect not supported in first version (only H2/MySQL/PostgreSQL): "
-                            + "{databaseProductName} metaTableId={metaTableId}",
-                    "databaseProductName", "metaTableId");
-    static final ErrorCode ERR_QUERY_SQL_EXEC_FAILED =
-            ErrorCode.define("metadata.query-sql-exec-failed",
-                    "Query SQL execution failed: metaTableId={metaTableId} -- {error}",
-                    "metaTableId", "error");
 
     @Inject
     protected IMetaDataSourceConnectionProcessor connectionService;
@@ -317,7 +276,7 @@ public class NopMetaTableBizModel extends CrudBizModel<NopMetaTable> implements 
      * <p>失败路径显式（不静默存入脏数据、不静默返回空字段列表、不吞异常）：
      * <ul>
      *   <li>sql 空 / 不可解析 / 多语句 / 非 SELECT / 含通配符 → 由 {@link SqlSelectFieldExtractor} 抛 inline ErrorCode</li>
-     *   <li>metaModuleId 不存在 → 抛 {@link #ERR_SQL_VIEW_MODULE_NOT_FOUND}</li>
+     *   <li>metaModuleId 不存在 → 抛 {@link #NopMetadataErrors.ERR_SQL_VIEW_MODULE_NOT_FOUND}</li>
      * </ul>
      *
      * @param sql          SELECT SQL 文本（视图定义）
@@ -349,7 +308,7 @@ public class NopMetaTableBizModel extends CrudBizModel<NopMetaTable> implements 
         IEntityDao<NopMetaModule> moduleDao = daoFor(NopMetaModule.class);
         NopMetaModule module = moduleDao.getEntityById(metaModuleId);
         if (module == null) {
-            throw new NopException(ERR_SQL_VIEW_MODULE_NOT_FOUND).param("metaModuleId", metaModuleId);
+            throw new NopException(NopMetadataErrors.ERR_SQL_VIEW_MODULE_NOT_FOUND).param("metaModuleId", metaModuleId);
         }
 
         // 3. 新建 NopMetaTable(tableType=sql, sourceSql=sql)
@@ -409,7 +368,7 @@ public class NopMetaTableBizModel extends CrudBizModel<NopMetaTable> implements 
      *
      * <p>失败路径显式（不静默返回空字段列表、不静默跳过）：
      * <ul>
-     *   <li>表不存在 → {@link #ERR_SQL_VIEW_TABLE_NOT_FOUND}</li>
+     *   <li>表不存在 → {@link #NopMetadataErrors.ERR_SQL_VIEW_TABLE_NOT_FOUND}</li>
      *   <li>entity 表 baseEntityId 为 null → 由 {@link MetaTableFieldResolver} 抛
      *       {@code metadata.field-resolve-base-entity-null}</li>
      *   <li>external 表 buildSql JSON 损坏/非数组/为空 → 由 {@link MetaTableFieldResolver} 抛
@@ -428,7 +387,7 @@ public class NopMetaTableBizModel extends CrudBizModel<NopMetaTable> implements 
         IEntityDao<NopMetaTable> tableDao = dao();
         NopMetaTable table = tableDao.getEntityById(metaTableId);
         if (table == null) {
-            throw new NopException(ERR_SQL_VIEW_TABLE_NOT_FOUND).param("metaTableId", metaTableId);
+            throw new NopException(NopMetadataErrors.ERR_SQL_VIEW_TABLE_NOT_FOUND).param("metaTableId", metaTableId);
         }
         // 跨 tableType 分派：entity/external/sql 各自解析；解析失败由 resolver 显式抛 ErrorCode
         IEntityDao<NopMetaEntityField> fieldDao = daoFor(NopMetaEntityField.class);
@@ -512,7 +471,7 @@ public class NopMetaTableBizModel extends CrudBizModel<NopMetaTable> implements 
         IEntityDao<NopMetaTable> tableDao = dao();
         NopMetaTable table = tableDao.getEntityById(metaTableId);
         if (table == null) {
-            throw new NopException(ERR_QUERY_TABLE_NOT_FOUND).param("metaTableId", metaTableId);
+            throw new NopException(NopMetadataErrors.ERR_QUERY_TABLE_NOT_FOUND).param("metaTableId", metaTableId);
         }
         String tableType = table.getTableType();
         if (_NopMetadataCoreConstants.TABLE_TYPE_ENTITY.equals(tableType)) {
@@ -525,7 +484,7 @@ public class NopMetaTableBizModel extends CrudBizModel<NopMetaTable> implements 
             return querySqlTable(table, filter, limit, offset);
         }
         // 未知 tableType → 显式失败（No Silent No-Op Rule）
-        throw new NopException(ERR_QUERY_UNSUPPORTED_TABLE_TYPE)
+        throw new NopException(NopMetadataErrors.ERR_QUERY_UNSUPPORTED_TABLE_TYPE)
                 .param("metaTableId", metaTableId)
                 .param("tableType", String.valueOf(tableType));
     }
@@ -560,7 +519,7 @@ public class NopMetaTableBizModel extends CrudBizModel<NopMetaTable> implements 
         IEntityDao<NopMetaTable> tableDao = dao();
         NopMetaTable table = tableDao.getEntityById(metaTableId);
         if (table == null) {
-            throw new NopException(ERR_QUERY_TABLE_NOT_FOUND).param("metaTableId", metaTableId);
+            throw new NopException(NopMetadataErrors.ERR_QUERY_TABLE_NOT_FOUND).param("metaTableId", metaTableId);
         }
         return joinExecutor.executeJoin(table, joinId, filter, limit, offset, buildQueryContext());
     }
@@ -603,7 +562,7 @@ public class NopMetaTableBizModel extends CrudBizModel<NopMetaTable> implements 
         IEntityDao<NopMetaTable> tableDao = dao();
         NopMetaTable table = tableDao.getEntityById(metaTableId);
         if (table == null) {
-            throw new NopException(ERR_QUERY_TABLE_NOT_FOUND).param("metaTableId", metaTableId);
+            throw new NopException(NopMetadataErrors.ERR_QUERY_TABLE_NOT_FOUND).param("metaTableId", metaTableId);
         }
         return aggregationExecutor.executeAggregation(table, measures, dimensions, filter, joinId, limit, offset,
                 having, orderBy, buildQueryContext());
@@ -621,21 +580,21 @@ public class NopMetaTableBizModel extends CrudBizModel<NopMetaTable> implements 
         String baseEntityId = table.getBaseEntityId();
         if (baseEntityId == null || baseEntityId.isEmpty()) {
             // baseEntityId 悬空 → 显式失败（不静默空集）
-            throw new NopException(ERR_QUERY_ENTITY_NOT_FOUND)
+            throw new NopException(NopMetadataErrors.ERR_QUERY_ENTITY_NOT_FOUND)
                     .param("metaTableId", table.getMetaTableId())
                     .param("baseEntityId", String.valueOf(baseEntityId));
         }
         IEntityDao<NopMetaEntity> metaEntityDao = daoFor(NopMetaEntity.class);
         NopMetaEntity entity = metaEntityDao.getEntityById(baseEntityId);
         if (entity == null) {
-            throw new NopException(ERR_QUERY_ENTITY_NOT_FOUND)
+            throw new NopException(NopMetadataErrors.ERR_QUERY_ENTITY_NOT_FOUND)
                     .param("metaTableId", table.getMetaTableId())
                     .param("baseEntityId", baseEntityId);
         }
         String entityName = entity.getEntityName();
         // 前置：实体须注册于运行时 IOrmSessionFactory，否则显式失败（不静默空集）
         if (entityName == null || entityName.isEmpty() || !orm().isValidEntityName(entityName)) {
-            throw new NopException(ERR_QUERY_ENTITY_NOT_REGISTERED)
+            throw new NopException(NopMetadataErrors.ERR_QUERY_ENTITY_NOT_REGISTERED)
                     .param("metaTableId", table.getMetaTableId())
                     .param("entityName", String.valueOf(entityName));
         }
@@ -702,7 +661,7 @@ public class NopMetaTableBizModel extends CrudBizModel<NopMetaTable> implements 
         String sourceSql = table.getSourceSql();
         if (sourceSql == null || sourceSql.trim().isEmpty()) {
             // sourceSql 空 → 显式失败（不静默空集）
-            throw new NopException(ERR_QUERY_SQL_SOURCE_EMPTY).param("metaTableId", table.getMetaTableId());
+            throw new NopException(NopMetadataErrors.ERR_QUERY_SQL_SOURCE_EMPTY).param("metaTableId", table.getMetaTableId());
         }
         // D2：querySpace 必须非 null 且匹配 NopMetaDataSource（平台 ORM querySpace fallback 首版不做）
         NopMetaDataSource dataSource = resolveQueryDataSourceOrThrow(table);
@@ -736,7 +695,7 @@ public class NopMetaTableBizModel extends CrudBizModel<NopMetaTable> implements 
     /** 方言范围检查：首版仅 H2/MySQL/PostgreSQL（LIMIT/OFFSET 便携语法）。其他方言显式失败（不静默跳过）。 */
     private void requireSupportedDialect(String databaseProductName, String metaTableId) {
         if (databaseProductName == null || !SUPPORTED_QUERY_DIALECTS.contains(databaseProductName)) {
-            throw new NopException(ERR_QUERY_UNSUPPORTED_DIALECT)
+            throw new NopException(NopMetadataErrors.ERR_QUERY_UNSUPPORTED_DIALECT)
                     .param("databaseProductName", String.valueOf(databaseProductName))
                     .param("metaTableId", metaTableId);
         }
@@ -828,7 +787,7 @@ public class NopMetaTableBizModel extends CrudBizModel<NopMetaTable> implements 
         IEntityDao<NopMetaTable> tableDao = dao();
         NopMetaTable table = tableDao.getEntityById(metaTableId);
         if (table == null) {
-            throw new NopException(ERR_PROFILING_TABLE_NOT_FOUND).param("metaTableId", metaTableId);
+            throw new NopException(NopMetadataErrors.ERR_PROFILING_TABLE_NOT_FOUND).param("metaTableId", metaTableId);
         }
         return table;
     }
@@ -850,10 +809,10 @@ public class NopMetaTableBizModel extends CrudBizModel<NopMetaTable> implements 
         IEntityDao<NopMetaTable> tableDao = dao();
         NopMetaTable table = tableDao.getEntityById(metaTableId);
         if (table == null) {
-            throw new NopException(ERR_PROFILING_TABLE_NOT_FOUND).param("metaTableId", metaTableId);
+            throw new NopException(NopMetadataErrors.ERR_PROFILING_TABLE_NOT_FOUND).param("metaTableId", metaTableId);
         }
         if (!_NopMetadataCoreConstants.TABLE_TYPE_EXTERNAL.equals(table.getTableType())) {
-            throw new NopException(ERR_PROFILING_TABLE_NOT_EXTERNAL)
+            throw new NopException(NopMetadataErrors.ERR_PROFILING_TABLE_NOT_EXTERNAL)
                     .param("metaTableId", metaTableId)
                     .param("tableType", String.valueOf(table.getTableType()));
         }
@@ -883,12 +842,12 @@ public class NopMetaTableBizModel extends CrudBizModel<NopMetaTable> implements 
         q.addFilter(FilterBeans.eq(NopMetaDataSource.PROP_NAME_querySpace, table.getQuerySpace()));
         NopMetaDataSource dataSource = dsDao.findFirstByQuery(q);
         if (dataSource == null) {
-            throw new NopException(ERR_PROFILING_NO_DATASOURCE)
+            throw new NopException(NopMetadataErrors.ERR_PROFILING_NO_DATASOURCE)
                     .param("metaTableId", table.getMetaTableId())
                     .param("querySpace", table.getQuerySpace());
         }
         if (_NopMetadataCoreConstants.DATASOURCE_STATUS_DISABLED.equals(dataSource.getStatus())) {
-            throw new NopException(ERR_PROFILING_DATASOURCE_DISABLED)
+            throw new NopException(NopMetadataErrors.ERR_PROFILING_DATASOURCE_DISABLED)
                     .param("dataSourceId", dataSource.getDataSourceId());
         }
         return dataSource;

@@ -1,3 +1,11 @@
+/**
+ * Copyright (c) 2017-2024 Nop Platform. All rights reserved.
+ * Author: canonical_entropy@163.com
+ * Blog:   https://www.zhihu.com/people/canonical-entropy
+ * Gitee:  https://github.com/entropy-cloud/nop-entropy
+ * Github: https://github.com/entropy-cloud/nop-entropy
+ */
+
 package io.nop.metadata.service.entity;
 
 
@@ -58,16 +66,7 @@ public class NopMetaDataSourceBizModel extends CrudBizModel<NopMetaDataSource> i
     static final String EXTERNAL_MODULE_ID = "nop/meta-external";
     static final String EXTERNAL_MODULE_NAME = "meta-external";
 
-    static final ErrorCode ERR_DATASOURCE_NOT_FOUND =
-            ErrorCode.define("metadata.datasource-not-found",
-                    "DataSource not found: {dataSourceId}", "dataSourceId");
-    /** AR-14 / 维度09-11：collectCatalogForTable 找不到 metaTableId 时用专属 ErrorCode（原误用 ERR_DATASOURCE_NOT_FOUND）。 */
-    public static final ErrorCode ERR_TABLE_NOT_FOUND =
-            ErrorCode.define("metadata.table-not-found",
-                    "Meta table not found: {metaTableId}", "metaTableId");
-    static final ErrorCode ERR_DATASOURCE_DISABLED =
-            ErrorCode.define("metadata.datasource-disabled",
-                    "DataSource is disabled, cannot test connection: {dataSourceId}", "dataSourceId");
+    /** AR-14 / 维度09-11：collectCatalogForTable 找不到 metaTableId 时用专属 ErrorCode（原误用 NopMetadataErrors.ERR_DATASOURCE_NOT_FOUND）。 */
 
     @Inject
     protected IMetaDataSourceConnectionProcessor connectionService;
@@ -115,12 +114,12 @@ public class NopMetaDataSourceBizModel extends CrudBizModel<NopMetaDataSource> i
     public Map<String, Object> testConnection(@Name("dataSourceId") String dataSourceId, IServiceContext context) {
         NopMetaDataSource dataSource = dao().getEntityById(dataSourceId);
         if (dataSource == null) {
-            throw new NopException(ERR_DATASOURCE_NOT_FOUND).param("dataSourceId", dataSourceId);
+            throw new NopException(NopMetadataErrors.ERR_DATASOURCE_NOT_FOUND).param("dataSourceId", dataSourceId);
         }
 
         String status = dataSource.getStatus();
         if (_NopMetadataCoreConstants.DATASOURCE_STATUS_DISABLED.equals(status)) {
-            throw new NopException(ERR_DATASOURCE_DISABLED).param("dataSourceId", dataSourceId);
+            throw new NopException(NopMetadataErrors.ERR_DATASOURCE_DISABLED).param("dataSourceId", dataSourceId);
         }
 
         return connectionService.testConnect(dataSource.getDatasourceType(), dataSource.getConnectionConfig());
@@ -154,12 +153,12 @@ public class NopMetaDataSourceBizModel extends CrudBizModel<NopMetaDataSource> i
                                                   IServiceContext context) {
         NopMetaDataSource dataSource = dao().getEntityById(dataSourceId);
         if (dataSource == null) {
-            throw new NopException(ERR_DATASOURCE_NOT_FOUND).param("dataSourceId", dataSourceId);
+            throw new NopException(NopMetadataErrors.ERR_DATASOURCE_NOT_FOUND).param("dataSourceId", dataSourceId);
         }
 
         String status = dataSource.getStatus();
         if (_NopMetadataCoreConstants.DATASOURCE_STATUS_DISABLED.equals(status)) {
-            throw new NopException(ERR_DATASOURCE_DISABLED).param("dataSourceId", dataSourceId);
+            throw new NopException(NopMetadataErrors.ERR_DATASOURCE_DISABLED).param("dataSourceId", dataSourceId);
         }
 
         // 系统模块作为外部表归属（方案 A），首次同步时惰性创建
@@ -242,12 +241,12 @@ public class NopMetaDataSourceBizModel extends CrudBizModel<NopMetaDataSource> i
                                               IServiceContext context) {
         NopMetaDataSource dataSource = dao().getEntityById(dataSourceId);
         if (dataSource == null) {
-            throw new NopException(ERR_DATASOURCE_NOT_FOUND).param("dataSourceId", dataSourceId);
+            throw new NopException(NopMetadataErrors.ERR_DATASOURCE_NOT_FOUND).param("dataSourceId", dataSourceId);
         }
 
         String status = dataSource.getStatus();
         if (_NopMetadataCoreConstants.DATASOURCE_STATUS_DISABLED.equals(status)) {
-            throw new NopException(ERR_DATASOURCE_DISABLED).param("dataSourceId", dataSourceId);
+            throw new NopException(NopMetadataErrors.ERR_DATASOURCE_DISABLED).param("dataSourceId", dataSourceId);
         }
 
         // 该 querySpace 下已目录化的 external 表（NopMetaTable 无 schema 列，按 querySpace+tableType 查找，
@@ -322,9 +321,9 @@ public class NopMetaDataSourceBizModel extends CrudBizModel<NopMetaDataSource> i
         IEntityDao<NopMetaTable> tableDao = daoFor(NopMetaTable.class);
         NopMetaTable table = tableDao.getEntityById(metaTableId);
         if (table == null) {
-            // AR-14 / 维度09-11：错误码语义错配修正——按 metaTableId 查不到表应抛 ERR_TABLE_NOT_FOUND，
-            // 原代码误用 ERR_DATASOURCE_NOT_FOUND 且把 metaTableId 写入 dataSourceId 参数，让运维误判为数据源问题。
-            throw new NopException(ERR_TABLE_NOT_FOUND).param("metaTableId", metaTableId);
+            // AR-14 / 维度09-11：错误码语义错配修正——按 metaTableId 查不到表应抛 NopMetadataErrors.ERR_TABLE_NOT_FOUND，
+            // 原代码误用 NopMetadataErrors.ERR_DATASOURCE_NOT_FOUND 且把 metaTableId 写入 dataSourceId 参数，让运维误判为数据源问题。
+            throw new NopException(NopMetadataErrors.ERR_TABLE_NOT_FOUND).param("metaTableId", metaTableId);
         }
         TableReference ref = tableRefResolver.resolve(table,
                 daoFor(NopMetaDataSource.class), daoFor(NopMetaEntity.class),

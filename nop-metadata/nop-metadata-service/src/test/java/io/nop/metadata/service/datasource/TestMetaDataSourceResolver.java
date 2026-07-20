@@ -14,6 +14,7 @@ import io.nop.autotest.junit.JunitBaseTestCase;
 import io.nop.dao.api.IDaoProvider;
 import io.nop.dao.api.IEntityDao;
 import io.nop.metadata.dao.entity.NopMetaDataSource;
+import io.nop.metadata.service.NopMetadataErrors;
 import jakarta.inject.Inject;
 import org.junit.jupiter.api.Test;
 
@@ -53,7 +54,7 @@ public class TestMetaDataSourceResolver extends JunitBaseTestCase {
         IEntityDao<NopMetaDataSource> dsDao = daoProvider.daoFor(NopMetaDataSource.class);
         NopException ex = assertThrows(NopException.class,
                 () -> resolver.resolveActiveOrThrow(dsDao, "qs_resolve_missing"));
-        assertEquals(MetaDataSourceResolver.ERR_RESOLVE_NO_DATASOURCE.getErrorCode(), ex.getErrorCode(),
+        assertEquals(NopMetadataErrors.ERR_DATASOURCE_RESOLVE_NO_DATASOURCE.getErrorCode(), ex.getErrorCode(),
                 "no match must explicitly fail with resolve-not-found");
     }
 
@@ -72,7 +73,7 @@ public class TestMetaDataSourceResolver extends JunitBaseTestCase {
         IEntityDao<NopMetaDataSource> dsDao = daoProvider.daoFor(NopMetaDataSource.class);
         NopException ex = assertThrows(NopException.class,
                 () -> resolver.resolveActiveOrThrow(dsDao, "qs_resolve_disabled"));
-        assertEquals(MetaDataSourceResolver.ERR_RESOLVE_DATASOURCE_DISABLED.getErrorCode(), ex.getErrorCode(),
+        assertEquals(NopMetadataErrors.ERR_DATASOURCE_RESOLVE_DISABLED.getErrorCode(), ex.getErrorCode(),
                 "DISABLED datasource must explicitly fail with resolve-disabled");
     }
 
@@ -91,7 +92,7 @@ public class TestMetaDataSourceResolver extends JunitBaseTestCase {
         NopException ex = assertThrows(NopException.class,
                 () -> resolver.resolveActiveOrThrow(dsDao, "qs_multi"),
                 "multi-match querySpace must explicitly fail with ERR_DATASOURCE_DUPLICATE_QUERY_SPACE");
-        assertEquals(MetaDataSourceResolver.ERR_DATASOURCE_DUPLICATE_QUERY_SPACE.getErrorCode(),
+        assertEquals(NopMetadataErrors.ERR_DATASOURCE_DUPLICATE_QUERY_SPACE.getErrorCode(),
                 ex.getErrorCode(),
                 "multi-match must explicitly fail with ERR_DATASOURCE_DUPLICATE_QUERY_SPACE");
         assertEquals("qs_multi", ex.getParam("querySpace"));

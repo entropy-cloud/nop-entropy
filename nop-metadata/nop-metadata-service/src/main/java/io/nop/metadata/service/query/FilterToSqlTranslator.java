@@ -1,9 +1,18 @@
+/**
+ * Copyright (c) 2017-2024 Nop Platform. All rights reserved.
+ * Author: canonical_entropy@163.com
+ * Blog:   https://www.zhihu.com/people/canonical-entropy
+ * Gitee:  https://github.com/entropy-cloud/nop-entropy
+ * Github: https://github.com/entropy-cloud/nop-entropy
+ */
+
 package io.nop.metadata.service.query;
 
 import io.nop.api.core.beans.FilterBeanConstants;
 import io.nop.api.core.beans.TreeBean;
 import io.nop.api.core.exceptions.ErrorCode;
 import io.nop.api.core.exceptions.NopException;
+import io.nop.metadata.service.NopMetadataErrors;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -25,36 +34,20 @@ import java.util.regex.Pattern;
  */
 public class FilterToSqlTranslator {
 
-    /** SQL 标识符白名单：字母/下划线开头，后跟字母/数字/下划线。与 MetaQualityRuleExecutor 一致，防注入。 */
+    /**
+     * SQL 标识符白名单：字母/下划线开头，后跟字母/数字/下划线。与 MetaQualityRuleExecutor 一致，防注入。
+     *
+     * <p>覆盖范围：schema 名、table 名、column 名均在 SQL 拼接路径上经此正则校验。
+     * schema/table/column 三种标识符均属于 SQL 标识符词法类，同一正则全覆盖。
+     * 不覆盖 dynamic-sort/aggregate-having 中的别名引用（别名也在 measure/dimension 注册
+     * 时经 IDENTIFIER_PATTERN 校验）。
+     */
     static final Pattern IDENTIFIER_PATTERN = Pattern.compile("^[A-Za-z_][A-Za-z0-9_]*$");
 
-    static final ErrorCode ERR_FILTER_INVALID_IDENTIFIER =
-            ErrorCode.define("metadata.query-filter-invalid-identifier",
-                    "Filter field name does not match identifier whitelist ^[A-Za-z_][A-Za-z0-9_]*$: {identifier}",
-                    "identifier");
-    static final ErrorCode ERR_FILTER_UNSUPPORTED_OP =
-            ErrorCode.define("metadata.query-filter-unsupported-op",
-                    "Filter op not supported in first version: {op}", "op");
-    static final ErrorCode ERR_FILTER_MISSING_FIELD =
-            ErrorCode.define("metadata.query-filter-missing-field",
-                    "Filter leaf condition missing 'name' attr (field name): {op}", "op");
-    static final ErrorCode ERR_FILTER_MISSING_VALUE =
-            ErrorCode.define("metadata.query-filter-missing-value",
-                    "Filter leaf condition missing 'value' attr: {op} name={name}", "op", "name");
-    static final ErrorCode ERR_FILTER_IN_VALUE_NOT_COLLECTION =
-            ErrorCode.define("metadata.query-filter-in-not-collection",
-                    "Filter 'in'/'notIn' value must be a collection: name={name}", "name");
-    static final ErrorCode ERR_FILTER_BETWEEN_MISSING_BOUNDS =
-            ErrorCode.define("metadata.query-filter-between-missing-bounds",
-                    "Filter 'between' requires min and/or max attrs: name={name}", "name");
     /**
      * fieldResolver 命中失败（plan 2026-07-18-0900-2：having 引用未选定的 measure/dimension name）→ 显式失败。
      * 调用方应优先在反查表构建阶段用更具体的 {@code ERR_AGGR_HAVING_UNKNOWN_NAME} 失败；本 ErrorCode 为防御性兜底。
      */
-    static final ErrorCode ERR_FILTER_FIELD_RESOLVER_MISS =
-            ErrorCode.define("metadata.query-filter-field-resolver-miss",
-                    "Filter field resolver returned no SQL expression for name (likely unknown measure/dimension "
-                            + "in having/orderBy): {op} name={name}", "op", "name");
 
     /** 翻译结果：{@code sql} 为 WHERE 片段（不含 "WHERE" 关键字，无 filter 时为 null），{@code params} 为绑定参数。 */
     public static final class TranslatedFilter {
@@ -113,7 +106,7 @@ public class FilterToSqlTranslator {
     private String translateNode(TreeBean node, List<Object> params, Function<String, String> fieldResolver) {
         String op = node.getTagName();
         if (op == null) {
-            throw new NopException(ERR_FILTER_UNSUPPORTED_OP).param("op", String.valueOf(op));
+            throw new NopException(NopMetadataErrors.ERR_FILTER_UNSUPPORTED_OP).param("op", String.valueOf(op));
         }
         switch (op) {
             case FilterBeanConstants.FILTER_OP_AND:
@@ -146,7 +139,7 @@ public class FilterToSqlTranslator {
                 return "1=0";
             default:
                 // 首版不支持的 op → 显式失败（不静默跳过、不伪造）
-                throw new NopException(ERR_FILTER_UNSUPPORTED_OP).param("op", op);
+                throw new NopException(NopMetadataErrors.ERR_FILTER_UNSUPPORTED_OP).param("op", op);
         }
     }
 
@@ -193,7 +186,7 @@ public class FilterToSqlTranslator {
         String sqlOp = sqlOpOf(op);
         Object value = node.getAttr(FilterBeanConstants.FILTER_ATTR_VALUE);
         if (value == null && !hasAttr(node, FilterBeanConstants.FILTER_ATTR_VALUE)) {
-            throw new NopException(ERR_FILTER_MISSING_VALUE)
+            throw new NopException(NopMetadataErrors.ERR_FILTER_MISSING_VALUE)
                     .param("op", op).param("name", col);
         }
         params.add(value);
@@ -205,11 +198,11 @@ public class FilterToSqlTranslator {
         String col = requireField(node, fieldResolver);
         Object value = node.getAttr(FilterBeanConstants.FILTER_ATTR_VALUE);
         if (value == null && !hasAttr(node, FilterBeanConstants.FILTER_ATTR_VALUE)) {
-            throw new NopException(ERR_FILTER_MISSING_VALUE)
+            throw new NopException(NopMetadataErrors.ERR_FILTER_MISSING_VALUE)
                     .param("op", node.getTagName()).param("name", col);
         }
         if (!(value instanceof java.util.Collection) && !(value instanceof Object[])) {
-            throw new NopException(ERR_FILTER_IN_VALUE_NOT_COLLECTION).param("name", col);
+            throw new NopException(NopMetadataErrors.ERR_FILTER_IN_VALUE_NOT_COLLECTION).param("name", col);
         }
         java.util.Collection<?> coll;
         if (value instanceof java.util.Collection) {
@@ -241,7 +234,7 @@ public class FilterToSqlTranslator {
         Object min = node.getAttr(FilterBeanConstants.FILTER_ATTR_MIN);
         Object max = node.getAttr(FilterBeanConstants.FILTER_ATTR_MAX);
         if (min == null && max == null) {
-            throw new NopException(ERR_FILTER_BETWEEN_MISSING_BOUNDS).param("name", col);
+            throw new NopException(NopMetadataErrors.ERR_FILTER_BETWEEN_MISSING_BOUNDS).param("name", col);
         }
         StringBuilder sb = new StringBuilder();
         if (min != null && max != null) {
@@ -270,14 +263,14 @@ public class FilterToSqlTranslator {
     private String requireField(TreeBean node, Function<String, String> fieldResolver) {
         Object nameObj = node.getAttr(FilterBeanConstants.FILTER_ATTR_NAME);
         if (nameObj == null || nameObj.toString().isEmpty()) {
-            throw new NopException(ERR_FILTER_MISSING_FIELD).param("op", String.valueOf(node.getTagName()));
+            throw new NopException(NopMetadataErrors.ERR_FILTER_MISSING_FIELD).param("op", String.valueOf(node.getTagName()));
         }
         String name = nameObj.toString();
         if (fieldResolver != null) {
             String resolved = fieldResolver.apply(name);
             if (resolved == null || resolved.isEmpty()) {
                 // fieldResolver 命中失败（未选定 measure/dimension name）→ 显式失败（不静默跳过、不伪造）
-                throw new NopException(ERR_FILTER_FIELD_RESOLVER_MISS)
+                throw new NopException(NopMetadataErrors.ERR_FILTER_FIELD_RESOLVER_MISS)
                         .param("op", String.valueOf(node.getTagName()))
                         .param("name", name);
             }
@@ -308,13 +301,13 @@ public class FilterToSqlTranslator {
             case FilterBeanConstants.FILTER_OP_LIKE:
                 return "LIKE";
             default:
-                throw new NopException(ERR_FILTER_UNSUPPORTED_OP).param("op", filterOp);
+                throw new NopException(NopMetadataErrors.ERR_FILTER_UNSUPPORTED_OP).param("op", filterOp);
         }
     }
 
     public static void validateIdentifier(String identifier) {
         if (identifier == null || !IDENTIFIER_PATTERN.matcher(identifier).matches()) {
-            throw new NopException(ERR_FILTER_INVALID_IDENTIFIER)
+            throw new NopException(NopMetadataErrors.ERR_FILTER_INVALID_IDENTIFIER)
                     .param("identifier", String.valueOf(identifier));
         }
     }}

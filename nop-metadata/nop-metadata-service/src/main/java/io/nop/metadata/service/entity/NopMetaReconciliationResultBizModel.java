@@ -1,6 +1,15 @@
+/**
+ * Copyright (c) 2017-2024 Nop Platform. All rights reserved.
+ * Author: canonical_entropy@163.com
+ * Blog:   https://www.zhihu.com/people/canonical-entropy
+ * Gitee:  https://github.com/entropy-cloud/nop-entropy
+ * Github: https://github.com/entropy-cloud/nop-entropy
+ */
+
 package io.nop.metadata.service.entity;
 
 import io.nop.api.core.annotations.biz.BizModel;
+import io.nop.metadata.service.NopMetadataErrors;
 import io.nop.api.core.annotations.biz.BizMutation;
 import io.nop.api.core.annotations.core.Name;
 import io.nop.api.core.exceptions.ErrorCode;
@@ -38,19 +47,6 @@ import java.util.Map;
 public class NopMetaReconciliationResultBizModel extends CrudBizModel<NopMetaReconciliationResult>
         implements INopMetaReconciliationResultBiz {
 
-    static final ErrorCode ERR_RECON_RESULT_NOT_FOUND =
-            ErrorCode.define("metadata.recon-result-not-found",
-                    "Reconciliation result not found: {resultId}", "resultId");
-    static final ErrorCode ERR_RECON_DETAILS_EMPTY =
-            ErrorCode.define("metadata.recon-details-empty",
-                    "Reconciliation result has empty details, cannot confirm: resultId={resultId}", "resultId");
-    static final ErrorCode ERR_RECON_ROW_INDEX_OUT_OF_RANGE =
-            ErrorCode.define("metadata.recon-row-index-out-of-range",
-                    "Reconciliation rowIndex is out of range: resultId={resultId} rowIndex={rowIndex} "
-                            + "detailsSize={detailsSize}", "resultId", "rowIndex", "detailsSize");
-    static final ErrorCode ERR_RECON_SELECTIONS_EMPTY =
-            ErrorCode.define("metadata.recon-selections-empty",
-                    "Reconciliation batch confirm selections is empty: resultId={resultId}", "resultId");
 
     /** details 中 status 字段名（人工确认写入 MANUAL）。 */
     private static final String FIELD_STATUS = "status";
@@ -108,7 +104,7 @@ public class NopMetaReconciliationResultBizModel extends CrudBizModel<NopMetaRec
                                                             @Name("selections") List<Map<String, Object>> selections,
                                                             IServiceContext context) {
         if (selections == null || selections.isEmpty()) {
-            throw new NopException(ERR_RECON_SELECTIONS_EMPTY).param("resultId", resultId);
+            throw new NopException(NopMetadataErrors.ERR_RECON_SELECTIONS_EMPTY).param("resultId", resultId);
         }
         NopMetaReconciliationResult result = loadResultOrThrow(resultId);
         List<Object> details = parseDetailsOrThrow(result);
@@ -141,7 +137,7 @@ public class NopMetaReconciliationResultBizModel extends CrudBizModel<NopMetaRec
         IEntityDao<NopMetaReconciliationResult> resultDao = dao();
         NopMetaReconciliationResult result = resultDao.getEntityById(resultId);
         if (result == null) {
-            throw new NopException(ERR_RECON_RESULT_NOT_FOUND).param("resultId", resultId);
+            throw new NopException(NopMetadataErrors.ERR_RECON_RESULT_NOT_FOUND).param("resultId", resultId);
         }
         return result;
     }
@@ -149,11 +145,11 @@ public class NopMetaReconciliationResultBizModel extends CrudBizModel<NopMetaRec
     private List<Object> parseDetailsOrThrow(NopMetaReconciliationResult result) {
         String detailsJson = result.getDetails();
         if (detailsJson == null || detailsJson.trim().isEmpty()) {
-            throw new NopException(ERR_RECON_DETAILS_EMPTY).param("resultId", result.getResultId());
+            throw new NopException(NopMetadataErrors.ERR_RECON_DETAILS_EMPTY).param("resultId", result.getResultId());
         }
         Object parsed = JsonTool.parse(detailsJson);
         if (!(parsed instanceof List)) {
-            throw new NopException(ERR_RECON_DETAILS_EMPTY).param("resultId", result.getResultId());
+            throw new NopException(NopMetadataErrors.ERR_RECON_DETAILS_EMPTY).param("resultId", result.getResultId());
         }
         @SuppressWarnings("unchecked")
         List<Object> list = (List<Object>) parsed;
@@ -162,7 +158,7 @@ public class NopMetaReconciliationResultBizModel extends CrudBizModel<NopMetaRec
 
     private void checkRowIndex(String resultId, int rowIndex, int detailsSize) {
         if (rowIndex < 0 || rowIndex >= detailsSize) {
-            throw new NopException(ERR_RECON_ROW_INDEX_OUT_OF_RANGE)
+            throw new NopException(NopMetadataErrors.ERR_RECON_ROW_INDEX_OUT_OF_RANGE)
                     .param("resultId", resultId)
                     .param("rowIndex", rowIndex)
                     .param("detailsSize", detailsSize);

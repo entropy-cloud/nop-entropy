@@ -1,3 +1,11 @@
+/**
+ * Copyright (c) 2017-2024 Nop Platform. All rights reserved.
+ * Author: canonical_entropy@163.com
+ * Blog:   https://www.zhihu.com/people/canonical-entropy
+ * Gitee:  https://github.com/entropy-cloud/nop-entropy
+ * Github: https://github.com/entropy-cloud/nop-entropy
+ */
+
 package io.nop.metadata.service.query;
 
 import io.nop.api.core.beans.TreeBean;
@@ -11,6 +19,7 @@ import io.nop.metadata.dao.entity.NopMetaTableDimension;
 import io.nop.metadata.dao.entity.NopMetaTableJoin;
 import io.nop.metadata.dao.entity.NopMetaTableMeasure;
 import io.nop.metadata.service.field.ExpressionMeasureValidator;
+import io.nop.metadata.service.NopMetadataErrors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -48,7 +57,7 @@ public class EntityEntityJoinAggregationProcessor implements AggregationProcesso
         joinExecutor.requireRegistered(rightEntity, "right", joinId, ctx);
 
         if (equalsStr(leftEntity.getMetaEntityId(), rightEntity.getMetaEntityId())) {
-            throw new NopException(MetaAggregationExecutor.ERR_AGGR_JOIN_SELF_JOIN)
+            throw new NopException(NopMetadataErrors.ERR_AGGR_JOIN_SELF_JOIN)
                     .param("joinId", joinId).param("entityId", leftEntity.getMetaEntityId());
         }
 
@@ -134,7 +143,7 @@ public class EntityEntityJoinAggregationProcessor implements AggregationProcesso
         try {
             return ctx.orm().executeQuery(sqlObj, null, AggregationContext::collectRows);
         } catch (Exception e) {
-            throw new NopException(MetaAggregationExecutor.ERR_AGGR_JOIN_COMPILE_FAILED)
+            throw new NopException(NopMetadataErrors.ERR_AGGR_JOIN_COMPILE_FAILED)
                     .param("joinId", joinId)
                     .param("error", messageOf(e))
                     .cause(e);

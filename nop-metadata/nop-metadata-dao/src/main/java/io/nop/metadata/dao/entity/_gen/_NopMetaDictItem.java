@@ -61,33 +61,33 @@ public class _NopMetaDictItem extends DynamicOrmEntity{
     public static final String PROP_NAME_internal = "internal";
     public static final int PROP_ID_internal = 10;
     
+    /* 是否Delta: IS_DELTA TINYINT */
+    public static final String PROP_NAME_isDelta = "isDelta";
+    public static final int PROP_ID_isDelta = 11;
+    
     /* 数据版本: VERSION BIGINT */
     public static final String PROP_NAME_version = "version";
-    public static final int PROP_ID_version = 11;
+    public static final int PROP_ID_version = 12;
     
     /* 创建人: CREATED_BY VARCHAR */
     public static final String PROP_NAME_createdBy = "createdBy";
-    public static final int PROP_ID_createdBy = 12;
+    public static final int PROP_ID_createdBy = 13;
     
     /* 创建时间: CREATE_TIME TIMESTAMP */
     public static final String PROP_NAME_createTime = "createTime";
-    public static final int PROP_ID_createTime = 13;
+    public static final int PROP_ID_createTime = 14;
     
     /* 修改人: UPDATED_BY VARCHAR */
     public static final String PROP_NAME_updatedBy = "updatedBy";
-    public static final int PROP_ID_updatedBy = 14;
+    public static final int PROP_ID_updatedBy = 15;
     
     /* 修改时间: UPDATE_TIME TIMESTAMP */
     public static final String PROP_NAME_updateTime = "updateTime";
-    public static final int PROP_ID_updateTime = 15;
+    public static final int PROP_ID_updateTime = 16;
     
     /* 备注: REMARK VARCHAR */
     public static final String PROP_NAME_remark = "remark";
-    public static final int PROP_ID_remark = 16;
-    
-    /* 是否Delta: IS_DELTA TINYINT */
-    public static final String PROP_NAME_isDelta = "isDelta";
-    public static final int PROP_ID_isDelta = 17;
+    public static final int PROP_ID_remark = 17;
     
 
     private static int _PROP_ID_BOUND = 18;
@@ -134,6 +134,9 @@ public class _NopMetaDictItem extends DynamicOrmEntity{
           PROP_ID_TO_NAME[PROP_ID_internal] = PROP_NAME_internal;
           PROP_NAME_TO_ID.put(PROP_NAME_internal, PROP_ID_internal);
       
+          PROP_ID_TO_NAME[PROP_ID_isDelta] = PROP_NAME_isDelta;
+          PROP_NAME_TO_ID.put(PROP_NAME_isDelta, PROP_ID_isDelta);
+      
           PROP_ID_TO_NAME[PROP_ID_version] = PROP_NAME_version;
           PROP_NAME_TO_ID.put(PROP_NAME_version, PROP_ID_version);
       
@@ -151,9 +154,6 @@ public class _NopMetaDictItem extends DynamicOrmEntity{
       
           PROP_ID_TO_NAME[PROP_ID_remark] = PROP_NAME_remark;
           PROP_NAME_TO_ID.put(PROP_NAME_remark, PROP_ID_remark);
-      
-          PROP_ID_TO_NAME[PROP_ID_isDelta] = PROP_NAME_isDelta;
-          PROP_NAME_TO_ID.put(PROP_NAME_isDelta, PROP_ID_isDelta);
       
     }
 
@@ -188,6 +188,9 @@ public class _NopMetaDictItem extends DynamicOrmEntity{
     /* 内部使用: INTERNAL */
     private java.lang.Byte _internal;
     
+    /* 是否Delta: IS_DELTA */
+    private java.lang.Byte _isDelta;
+    
     /* 数据版本: VERSION */
     private java.lang.Long _version;
     
@@ -205,9 +208,6 @@ public class _NopMetaDictItem extends DynamicOrmEntity{
     
     /* 备注: REMARK */
     private java.lang.String _remark;
-    
-    /* 是否Delta: IS_DELTA */
-    private java.lang.Byte _isDelta;
     
 
     public _NopMetaDictItem(){
@@ -313,6 +313,9 @@ public class _NopMetaDictItem extends DynamicOrmEntity{
             case PROP_ID_internal:
                return getInternal();
         
+            case PROP_ID_isDelta:
+               return getIsDelta();
+        
             case PROP_ID_version:
                return getVersion();
         
@@ -330,9 +333,6 @@ public class _NopMetaDictItem extends DynamicOrmEntity{
         
             case PROP_ID_remark:
                return getRemark();
-        
-            case PROP_ID_isDelta:
-               return getIsDelta();
         
            default:
               return super.orm_propValue(propId);
@@ -445,6 +445,16 @@ public class _NopMetaDictItem extends DynamicOrmEntity{
                break;
             }
         
+            case PROP_ID_isDelta:{
+               java.lang.Byte typedValue = null;
+               if(value != null){
+                   typedValue = ConvertHelper.toByte(value,
+                       err-> newTypeConversionError(PROP_NAME_isDelta));
+               }
+               setIsDelta(typedValue);
+               break;
+            }
+        
             case PROP_ID_version:{
                java.lang.Long typedValue = null;
                if(value != null){
@@ -502,16 +512,6 @@ public class _NopMetaDictItem extends DynamicOrmEntity{
                        err-> newTypeConversionError(PROP_NAME_remark));
                }
                setRemark(typedValue);
-               break;
-            }
-        
-            case PROP_ID_isDelta:{
-               java.lang.Byte typedValue = null;
-               if(value != null){
-                   typedValue = ConvertHelper.toByte(value,
-                       err-> newTypeConversionError(PROP_NAME_isDelta));
-               }
-               setIsDelta(typedValue);
                break;
             }
         
@@ -594,6 +594,13 @@ public class _NopMetaDictItem extends DynamicOrmEntity{
                break;
             }
         
+            case PROP_ID_isDelta:{
+               onInitProp(propId);
+               this._isDelta = (java.lang.Byte)value;
+               
+               break;
+            }
+        
             case PROP_ID_version:{
                onInitProp(propId);
                this._version = (java.lang.Long)value;
@@ -632,13 +639,6 @@ public class _NopMetaDictItem extends DynamicOrmEntity{
             case PROP_ID_remark:{
                onInitProp(propId);
                this._remark = (java.lang.String)value;
-               
-               break;
-            }
-        
-            case PROP_ID_isDelta:{
-               onInitProp(propId);
-               this._isDelta = (java.lang.Byte)value;
                
                break;
             }
@@ -840,6 +840,25 @@ public class _NopMetaDictItem extends DynamicOrmEntity{
     }
     
     /**
+     * 是否Delta: IS_DELTA
+     */
+    public final java.lang.Byte getIsDelta(){
+         onPropGet(PROP_ID_isDelta);
+         return _isDelta;
+    }
+
+    /**
+     * 是否Delta: IS_DELTA
+     */
+    public final void setIsDelta(java.lang.Byte value){
+        if(onPropSet(PROP_ID_isDelta,value)){
+            this._isDelta = value;
+            internalClearRefs(PROP_ID_isDelta);
+            
+        }
+    }
+    
+    /**
      * 数据版本: VERSION
      */
     public final java.lang.Long getVersion(){
@@ -949,25 +968,6 @@ public class _NopMetaDictItem extends DynamicOrmEntity{
         if(onPropSet(PROP_ID_remark,value)){
             this._remark = value;
             internalClearRefs(PROP_ID_remark);
-            
-        }
-    }
-    
-    /**
-     * 是否Delta: IS_DELTA
-     */
-    public final java.lang.Byte getIsDelta(){
-         onPropGet(PROP_ID_isDelta);
-         return _isDelta;
-    }
-
-    /**
-     * 是否Delta: IS_DELTA
-     */
-    public final void setIsDelta(java.lang.Byte value){
-        if(onPropSet(PROP_ID_isDelta,value)){
-            this._isDelta = value;
-            internalClearRefs(PROP_ID_isDelta);
             
         }
     }

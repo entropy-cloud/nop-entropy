@@ -1,12 +1,20 @@
+/**
+ * Copyright (c) 2017-2024 Nop Platform. All rights reserved.
+ * Author: canonical_entropy@163.com
+ * Blog:   https://www.zhihu.com/people/canonical-entropy
+ * Gitee:  https://github.com/entropy-cloud/nop-entropy
+ * Github: https://github.com/entropy-cloud/nop-entropy
+ */
+
 package io.nop.metadata.service.lineage;
 
-import io.nop.api.core.exceptions.ErrorCode;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.orm.eql.ast.EqlASTNode;
 import io.nop.orm.eql.ast.SqlProgram;
 import io.nop.orm.eql.ast.SqlSingleTableSource;
 import io.nop.orm.eql.ast.SqlTableName;
 import io.nop.orm.eql.parse.EqlASTParser;
+import io.nop.metadata.service.NopMetadataErrors;
 
 import java.util.ArrayList;
 import java.util.LinkedHashSet;
@@ -30,10 +38,6 @@ import java.util.function.Consumer;
  */
 public class SqlSourceTableExtractor {
 
-    static final ErrorCode ERR_LINEAGE_SQL_EMPTY =
-            ErrorCode.define("metadata.lineage-sql-empty", "Source sql is empty", "sql");
-    static final ErrorCode ERR_LINEAGE_SQL_PARSE_FAILED =
-            ErrorCode.define("metadata.lineage-sql-parse-failed", "Failed to parse source sql", "sql");
 
     private final EqlASTParser parser = new EqlASTParser();
 
@@ -46,17 +50,17 @@ public class SqlSourceTableExtractor {
      */
     public List<SqlTableReference> extract(String sql) {
         if (sql == null || sql.trim().isEmpty()) {
-            throw new NopException(ERR_LINEAGE_SQL_EMPTY).param("sql", sql);
+            throw new NopException(NopMetadataErrors.ERR_LINEAGE_SQL_EMPTY).param("sql", sql);
         }
 
         SqlProgram program;
         try {
             program = parser.parseFromText(null, sql);
         } catch (Exception e) {
-            throw new NopException(ERR_LINEAGE_SQL_PARSE_FAILED).param("sql", sql).cause(e);
+            throw new NopException(NopMetadataErrors.ERR_LINEAGE_SQL_PARSE_FAILED).param("sql", sql).cause(e);
         }
         if (program == null) {
-            throw new NopException(ERR_LINEAGE_SQL_PARSE_FAILED).param("sql", sql);
+            throw new NopException(NopMetadataErrors.ERR_LINEAGE_SQL_PARSE_FAILED).param("sql", sql);
         }
 
         // 递归遍历整个 AST，收集所有 SqlSingleTableSource 的表名。子查询（SqlSubqueryTableSource）

@@ -1,3 +1,11 @@
+/**
+ * Copyright (c) 2017-2024 Nop Platform. All rights reserved.
+ * Author: canonical_entropy@163.com
+ * Blog:   https://www.zhihu.com/people/canonical-entropy
+ * Gitee:  https://github.com/entropy-cloud/nop-entropy
+ * Github: https://github.com/entropy-cloud/nop-entropy
+ */
+
 package io.nop.metadata.service.quality;
 
 import io.nop.api.core.beans.FilterBeans;
@@ -13,6 +21,7 @@ import io.nop.job.api.spec.TriggerSpec;
 import io.nop.metadata.core._NopMetadataCoreConstants;
 import io.nop.metadata.dao.entity.NopMetaQualityCheckpoint;
 import io.nop.metadata.service.entity.NopMetaQualityCheckpointBizModel;
+import io.nop.metadata.service.NopMetadataErrors;
 import jakarta.annotation.Nullable;
 import jakarta.annotation.PostConstruct;
 import jakarta.inject.Inject;
@@ -79,10 +88,6 @@ public class MetaQualityCheckpointScheduler {
     /** extConfig 中承载 cron 表达式的键（D2）。 */
     public static final String EXT_CONFIG_SCHEDULE_KEY = "schedule";
 
-    static final ErrorCode ERR_CHECKPOINT_SCHEDULER_INVALID_CRON =
-            ErrorCode.define("metadata.checkpoint-scheduler-invalid-cron",
-                    "Quality checkpoint schedule cron expression is invalid: "
-                            + "{checkpointId} cron={cron}", "checkpointId", "cron");
 
     private IJobScheduler scheduler;
     private IDaoProvider daoProvider;
@@ -194,7 +199,7 @@ public class MetaQualityCheckpointScheduler {
     public Map<String, Object> executeScheduledCheckpoint(Map<String, Object> params) {
         Object cpId = params.get(PARAM_CHECKPOINT_ID);
         if (cpId == null) {
-            throw new NopException(ERR_CHECKPOINT_SCHEDULER_INVALID_CRON)
+            throw new NopException(NopMetadataErrors.ERR_CHECKPOINT_SCHEDULER_INVALID_CRON)
                     .param("checkpointId", "<null>")
                     .param("cron", "<n/a>");
         }

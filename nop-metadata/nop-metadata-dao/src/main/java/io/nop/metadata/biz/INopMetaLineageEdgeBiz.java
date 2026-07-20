@@ -35,16 +35,18 @@ public interface INopMetaLineageEdgeBiz extends ICrudBiz<NopMetaLineageEdge> {
     Map<String, Object> extractMeasureLineage(@Name("metaTableId") String metaTableId, IServiceContext context);
 
     @BizQuery
-    List<String> getUpstream(@Name("metaTableId") String metaTableId);
+    List<String> getUpstream(@Name("metaTableId") String metaTableId, IServiceContext context);
 
     @BizQuery
-    List<String> getDownstream(@Name("metaTableId") String metaTableId);
+    List<String> getDownstream(@Name("metaTableId") String metaTableId, IServiceContext context);
 
     @BizQuery
     List<String> getLineagePath(@Name("sourceTableId") String sourceTableId,
-                                 @Name("targetTableId") String targetTableId);
+                                 @Name("targetTableId") String targetTableId,
+                                 IServiceContext context);
 
     @BizQuery
     List<String> getImpactAnalysis(@Name("metaTableId") String metaTableId,
-                                    @Optional @Name("columnName") String columnName);
+                                    @Optional @Name("columnName") String columnName,
+                                    IServiceContext context);
 }

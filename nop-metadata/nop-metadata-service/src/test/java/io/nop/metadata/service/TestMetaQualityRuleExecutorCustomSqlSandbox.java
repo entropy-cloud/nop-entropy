@@ -10,6 +10,7 @@ package io.nop.metadata.service;
 import io.nop.api.core.ApiErrors;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.metadata.service.quality.MetaQualityRuleExecutor;
+import io.nop.metadata.service.NopMetadataErrors;
 import org.junit.jupiter.api.Test;
 
 import java.lang.reflect.InvocationTargetException;
@@ -70,7 +71,7 @@ public class TestMetaQualityRuleExecutorCustomSqlSandbox {
             NopException ex = assertThrows(NopException.class,
                     () -> validateCustomSqlSandbox(payload),
                     "custom_sql sandbox must reject dangerous payload: " + payload);
-            assertEquals(MetaQualityRuleExecutor.ERR_QUALITY_CUSTOM_SQL_BLOCKED.getErrorCode(),
+            assertEquals(NopMetadataErrors.ERR_QUALITY_CUSTOM_SQL_BLOCKED.getErrorCode(),
                     ex.getErrorCode(),
                     "must throw ERR_QUALITY_CUSTOM_SQL_BLOCKED for payload: " + payload);
             // reason 参数包含 "forbidden keyword"，便于运维定位

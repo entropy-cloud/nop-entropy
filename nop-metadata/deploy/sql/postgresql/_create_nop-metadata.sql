@@ -393,7 +393,7 @@ CREATE TABLE nop_meta_profiling_rule(
   profiling_rule_id VARCHAR(32) NOT NULL ,
   rule_name VARCHAR(100) NOT NULL ,
   display_name VARCHAR(200)  ,
-  table_id VARCHAR(32) NOT NULL ,
+  meta_table_id VARCHAR(32) NOT NULL ,
   columns VARCHAR(4000)  ,
   stats VARCHAR(4000)  ,
   sample_size INT4  ,
@@ -617,13 +617,13 @@ CREATE TABLE nop_meta_dict_item(
   sort_order INT4  ,
   deprecated INT4 default 0   ,
   internal INT4 default 0   ,
+  is_delta INT4 default 0   ,
   version INT8 NOT NULL ,
   created_by VARCHAR(50) NOT NULL ,
   create_time TIMESTAMP NOT NULL ,
   updated_by VARCHAR(50) NOT NULL ,
   update_time TIMESTAMP NOT NULL ,
   remark VARCHAR(200)  ,
-  is_delta INT4 default 0   ,
   constraint PK_nop_meta_dict_item primary key (dict_item_id)
 );
 
@@ -1335,7 +1335,7 @@ CREATE TABLE nop_meta_reconciliation_result(
                     
       COMMENT ON COLUMN nop_meta_profiling_rule.display_name IS '显示名';
                     
-      COMMENT ON COLUMN nop_meta_profiling_rule.table_id IS '剖析表ID';
+      COMMENT ON COLUMN nop_meta_profiling_rule.meta_table_id IS '剖析表ID';
                     
       COMMENT ON COLUMN nop_meta_profiling_rule.columns IS '剖析列';
                     
@@ -1723,6 +1723,8 @@ CREATE TABLE nop_meta_reconciliation_result(
                     
       COMMENT ON COLUMN nop_meta_dict_item.internal IS '内部使用';
                     
+      COMMENT ON COLUMN nop_meta_dict_item.is_delta IS '是否Delta';
+                    
       COMMENT ON COLUMN nop_meta_dict_item.version IS '数据版本';
                     
       COMMENT ON COLUMN nop_meta_dict_item.created_by IS '创建人';
@@ -1734,8 +1736,6 @@ CREATE TABLE nop_meta_reconciliation_result(
       COMMENT ON COLUMN nop_meta_dict_item.update_time IS '修改时间';
                     
       COMMENT ON COLUMN nop_meta_dict_item.remark IS '备注';
-                    
-      COMMENT ON COLUMN nop_meta_dict_item.is_delta IS '是否Delta';
                     
       COMMENT ON TABLE nop_meta_profiling_result IS '数据剖析结果';
                 

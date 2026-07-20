@@ -11,6 +11,7 @@ import io.nop.api.core.exceptions.ErrorCode;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.metadata.service.query.FilterToSqlTranslator;
 import io.nop.metadata.service.query.SqlPagination;
+import io.nop.metadata.service.NopMetadataErrors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -40,10 +41,6 @@ public final class MetaTableQueryExecutor {
     private static final Logger LOG = LoggerFactory.getLogger(MetaTableQueryExecutor.class);
 
     /** BizModel 内部使用的查询失败 ErrorCode（沿用 BizModel 的 inline ErrorCode，渐进迁移到 NopMetadataErrors）。 */
-    public static final ErrorCode ERR_QUERY_SQL_EXEC_FAILED =
-            ErrorCode.define("metadata.query-sql-exec-failed",
-                    "Query SQL execution failed: metaTableId={metaTableId} -- {error}",
-                    "metaTableId", "error");
 
     private MetaTableQueryExecutor() {
     }
@@ -94,7 +91,7 @@ public final class MetaTableQueryExecutor {
     /**
      * 执行查询 SQL（filter 参数 + limit/offset 参数按序绑定），返回行列表（每行为列名→值 Map）。
      *
-     * <p>失败路径显式（不静默吞 SQLException）：抛 {@link NopException} 携带 {@link #ERR_QUERY_SQL_EXEC_FAILED}
+     * <p>失败路径显式（不静默吞 SQLException）：抛 {@link NopException} 携带 {@link #NopMetadataErrors.ERR_QUERY_SQL_EXEC_FAILED}
      * + sql + error 上下文。
      */
     @SuppressWarnings("unchecked")
@@ -139,7 +136,7 @@ public final class MetaTableQueryExecutor {
             }
             return rows;
         } catch (SQLException e) {
-            throw new NopException(ERR_QUERY_SQL_EXEC_FAILED)
+            throw new NopException(NopMetadataErrors.ERR_QUERY_SQL_EXEC_FAILED)
                     .param("sql", sql)
                     .param("error", messageOf(e))
                     .cause(e);

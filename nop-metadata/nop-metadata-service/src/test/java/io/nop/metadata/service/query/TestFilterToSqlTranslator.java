@@ -10,6 +10,7 @@ package io.nop.metadata.service.query;
 import io.nop.api.core.beans.FilterBeans;
 import io.nop.api.core.beans.TreeBean;
 import io.nop.api.core.exceptions.NopException;
+import io.nop.metadata.service.NopMetadataErrors;
 import org.junit.jupiter.api.Test;
 
 import java.util.Arrays;
@@ -155,7 +156,7 @@ public class TestFilterToSqlTranslator {
     public void testUnsupportedOpThrows() {
         TreeBean bad = new TreeBean("contains").attr("name", "x").attr("value", "a");
         NopException ex = assertThrows(NopException.class, () -> translator.translate(bad));
-        assertEquals(FilterToSqlTranslator.ERR_FILTER_UNSUPPORTED_OP.getErrorCode(), ex.getErrorCode());
+        assertEquals(NopMetadataErrors.ERR_FILTER_UNSUPPORTED_OP.getErrorCode(), ex.getErrorCode());
     }
 
     @Test

@@ -1,12 +1,20 @@
+/**
+ * Copyright (c) 2017-2024 Nop Platform. All rights reserved.
+ * Author: canonical_entropy@163.com
+ * Blog:   https://www.zhihu.com/people/canonical-entropy
+ * Gitee:  https://github.com/entropy-cloud/nop-entropy
+ * Github: https://github.com/entropy-cloud/nop-entropy
+ */
+
 package io.nop.metadata.service.entity;
 
 import io.nop.api.core.annotations.biz.BizModel;
+import io.nop.metadata.service.NopMetadataErrors;
 import io.nop.api.core.annotations.biz.BizMutation;
 import io.nop.api.core.annotations.core.Name;
 import io.nop.api.core.annotations.core.Optional;
 import io.nop.api.core.beans.FilterBeans;
 import io.nop.api.core.beans.query.QueryBean;
-import io.nop.api.core.exceptions.ErrorCode;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.biz.crud.CrudBizModel;
 import io.nop.core.context.IServiceContext;
@@ -54,11 +62,11 @@ import java.util.concurrent.atomic.AtomicInteger;
  *
  * <p>失败/不可执行路径均显式（不静默通过、不吞异常、不伪造值）：
  * <ul>
- *   <li>规则不存在 → 抛 {@link #ERR_QUALITY_RULE_NOT_FOUND}（不 NPE）</li>
- *   <li>目标表不存在 → 抛 {@link #ERR_QUALITY_TABLE_NOT_FOUND}</li>
- *   <li>目标表非 external（首版） → 抛 {@link #ERR_QUALITY_TABLE_NOT_EXTERNAL}</li>
- *   <li>无注册数据源 → 抛 {@link #ERR_QUALITY_NO_DATASOURCE}</li>
- *   <li>DISABLED 数据源 → 抛 {@link #ERR_QUALITY_DATASOURCE_DISABLED}</li>
+ *   <li>规则不存在 → 抛 {@link #NopMetadataErrors.ERR_QUALITY_RULE_NOT_FOUND}（不 NPE）</li>
+ *   <li>目标表不存在 → 抛 {@link #NopMetadataErrors.ERR_QUALITY_TABLE_NOT_FOUND}</li>
+ *   <li>目标表非 external（首版） → 抛 {@link #NopMetadataErrors.ERR_QUALITY_TABLE_NOT_EXTERNAL}</li>
+ *   <li>无注册数据源 → 抛 {@link #NopMetadataErrors.ERR_QUALITY_NO_DATASOURCE}</li>
+ *   <li>DISABLED 数据源 → 抛 {@link #NopMetadataErrors.ERR_QUALITY_DATASOURCE_DISABLED}</li>
  *   <li>非 jdbc 类型 → 由 {@code withConnection} 抛 NopException</li>
  *   <li>缺 timestampColumn(freshness)/custom_sql 不返回单值 → 写 ERROR 结果行</li>
  *   <li>entityType=database / regex 方言不支持 REGEXP → 写 SKIP 结果行（带 details 标记）</li>
@@ -69,27 +77,6 @@ public class NopMetaQualityRuleBizModel extends CrudBizModel<NopMetaQualityRule>
 
     private static final Logger LOG = LoggerFactory.getLogger(NopMetaQualityRuleBizModel.class);
 
-    static final ErrorCode ERR_QUALITY_RULE_NOT_FOUND =
-            ErrorCode.define("metadata.quality-rule-not-found",
-                    "Quality rule not found: {qualityRuleId}", "qualityRuleId");
-    static final ErrorCode ERR_QUALITY_TABLE_NOT_FOUND =
-            ErrorCode.define("metadata.quality-table-not-found",
-                    "Quality rule target table not found (entityId does not refer to an existing NopMetaTable): "
-                            + "{qualityRuleId} entityId={entityId}", "qualityRuleId", "entityId");
-    static final ErrorCode ERR_QUALITY_TABLE_NOT_EXTERNAL =
-            ErrorCode.define("metadata.quality-table-not-external",
-                    "Quality rule target table is not external (first version supports external-only execution): "
-                            + "{qualityRuleId} tableType={tableType}", "qualityRuleId", "tableType");
-    static final ErrorCode ERR_QUALITY_NO_DATASOURCE =
-            ErrorCode.define("metadata.quality-no-datasource",
-                    "No registered MetaDataSource for querySpace of target table: "
-                            + "{qualityRuleId} querySpace={querySpace}", "qualityRuleId", "querySpace");
-    static final ErrorCode ERR_QUALITY_DATASOURCE_DISABLED =
-            ErrorCode.define("metadata.quality-datasource-disabled",
-                    "MetaDataSource is disabled, cannot execute quality rule: {dataSourceId}", "dataSourceId");
-    static final ErrorCode ERR_DATASOURCE_NOT_FOUND =
-            ErrorCode.define("metadata.datasource-not-found",
-                    "DataSource not found: {dataSourceId}", "dataSourceId");
 
     @Inject
     protected IMetaDataSourceConnectionProcessor connectionService;
@@ -136,7 +123,7 @@ public class NopMetaQualityRuleBizModel extends CrudBizModel<NopMetaQualityRule>
                                                   IServiceContext context) {
         NopMetaQualityRule rule = dao().getEntityById(qualityRuleId);
         if (rule == null) {
-            throw new NopException(ERR_QUALITY_RULE_NOT_FOUND).param("qualityRuleId", qualityRuleId);
+            throw new NopException(NopMetadataErrors.ERR_QUALITY_RULE_NOT_FOUND).param("qualityRuleId", qualityRuleId);
         }
 
         // entityType=database 首版 SKIP（§2.7.1 D1）——不解析表/数据源，直接写 SKIP 结果行
@@ -192,10 +179,10 @@ public class NopMetaQualityRuleBizModel extends CrudBizModel<NopMetaQualityRule>
                                                                 IServiceContext context) {
         NopMetaDataSource dataSource = daoFor(NopMetaDataSource.class).getEntityById(dataSourceId);
         if (dataSource == null) {
-            throw new NopException(ERR_DATASOURCE_NOT_FOUND).param("dataSourceId", dataSourceId);
+            throw new NopException(NopMetadataErrors.ERR_DATASOURCE_NOT_FOUND).param("dataSourceId", dataSourceId);
         }
         if (_NopMetadataCoreConstants.DATASOURCE_STATUS_DISABLED.equals(dataSource.getStatus())) {
-            throw new NopException(ERR_QUALITY_DATASOURCE_DISABLED).param("dataSourceId", dataSourceId);
+            throw new NopException(NopMetadataErrors.ERR_QUALITY_DATASOURCE_DISABLED).param("dataSourceId", dataSourceId);
         }
 
         // 该 querySpace 下 external 表
@@ -243,7 +230,7 @@ public class NopMetaQualityRuleBizModel extends CrudBizModel<NopMetaQualityRule>
                             String tableName = tableIdToName.get(rule.getEntityId());
                             if (tableName == null) {
                                 // 规则 entityId 不在该批次 external 表范围内（理论不应发生，防御性显式失败）
-                                throw new NopException(ERR_QUALITY_TABLE_NOT_FOUND)
+                                throw new NopException(NopMetadataErrors.ERR_QUALITY_TABLE_NOT_FOUND)
                                         .param("qualityRuleId", rule.getQualityRuleId())
                                         .param("entityId", rule.getEntityId());
                             }
@@ -291,7 +278,7 @@ public class NopMetaQualityRuleBizModel extends CrudBizModel<NopMetaQualityRule>
         IEntityDao<NopMetaTable> tableDao = daoFor(NopMetaTable.class);
         NopMetaTable table = tableDao.getEntityById(rule.getEntityId());
         if (table == null) {
-            throw new NopException(ERR_QUALITY_TABLE_NOT_FOUND)
+            throw new NopException(NopMetadataErrors.ERR_QUALITY_TABLE_NOT_FOUND)
                     .param("qualityRuleId", rule.getQualityRuleId())
                     .param("entityId", rule.getEntityId());
         }
@@ -325,12 +312,12 @@ public class NopMetaQualityRuleBizModel extends CrudBizModel<NopMetaQualityRule>
         q.addFilter(FilterBeans.eq(NopMetaDataSource.PROP_NAME_querySpace, table.getQuerySpace()));
         NopMetaDataSource dataSource = dsDao.findFirstByQuery(q);
         if (dataSource == null) {
-            throw new NopException(ERR_QUALITY_NO_DATASOURCE)
+            throw new NopException(NopMetadataErrors.ERR_QUALITY_NO_DATASOURCE)
                     .param("qualityRuleId", rule.getQualityRuleId())
                     .param("querySpace", table.getQuerySpace());
         }
         if (_NopMetadataCoreConstants.DATASOURCE_STATUS_DISABLED.equals(dataSource.getStatus())) {
-            throw new NopException(ERR_QUALITY_DATASOURCE_DISABLED)
+            throw new NopException(NopMetadataErrors.ERR_QUALITY_DATASOURCE_DISABLED)
                     .param("dataSourceId", dataSource.getDataSourceId());
         }
         return dataSource;

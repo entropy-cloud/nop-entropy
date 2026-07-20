@@ -1,3 +1,11 @@
+/**
+ * Copyright (c) 2017-2024 Nop Platform. All rights reserved.
+ * Author: canonical_entropy@163.com
+ * Blog:   https://www.zhihu.com/people/canonical-entropy
+ * Gitee:  https://github.com/entropy-cloud/nop-entropy
+ * Github: https://github.com/entropy-cloud/nop-entropy
+ */
+
 package io.nop.metadata.service.event;
 
 
@@ -11,6 +19,7 @@ import io.nop.dao.api.IEntityDao;
 import io.nop.metadata.dao.entity.NopMetaModelChangedEvent;
 import io.nop.orm.model.IColumnModel;
 import io.nop.orm.model.IEntityModel;
+import io.nop.metadata.service.NopMetadataErrors;
 import jakarta.inject.Inject;
 
 import java.sql.Timestamp;
@@ -44,10 +53,6 @@ import java.util.Set;
  */
 public class MetaModelChangedEventPublisher {
 
-    static final ErrorCode ERR_EVENT_SNAPSHOT_SERIALIZE_FAILED =
-            ErrorCode.define("metadata.event-snapshot-serialize-failed",
-                    "Failed to serialize change-event snapshot: entityType={entityType} entityId={entityId} error={error}",
-                    "entityType", "entityId", "error");
 
     /**
      * 变更来源常量（plain string + 文档约定，首版不 dict 化，对齐 dimension-type/granularity 模式）。
@@ -152,7 +157,7 @@ public class MetaModelChangedEventPublisher {
      * null 实体返回 null（CREATE 无 before、DELETE 无 after）。
      *
      * <p>从实体模型列构建有序 Map（避免 ORM 内部状态混入快照），再 {@link JsonTool#stringify}。
-     * 序列化失败显式抛 {@link #ERR_EVENT_SNAPSHOT_SERIALIZE_FAILED}（不静默吞掉）。
+     * 序列化失败显式抛 {@link #NopMetadataErrors.ERR_EVENT_SNAPSHOT_SERIALIZE_FAILED}（不静默吞掉）。
      *
      * <p><b>AR-07</b>：对标记为 sensitive 的列返回 {@link #REDACTED_VALUE}（不读取实际值），
      * 防止凭据在事件表里二次落盘。
@@ -167,7 +172,7 @@ public class MetaModelChangedEventPublisher {
         } catch (Throwable e) {
             // 序列化任意对象可能产生 StackOverflowError（循环引用）等 Error；快照边界须显式收口为 ErrorCode，
             // 不静默吞掉、不静默跳过事件发布（架构基线 §2.8 失败路径显式）。
-            throw new NopException(ERR_EVENT_SNAPSHOT_SERIALIZE_FAILED)
+            throw new NopException(NopMetadataErrors.ERR_EVENT_SNAPSHOT_SERIALIZE_FAILED)
                     .param("entityType", entityType)
                     .param("entityId", entityId)
                     .param("error", e.toString());

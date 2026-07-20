@@ -1,3 +1,11 @@
+/**
+ * Copyright (c) 2017-2024 Nop Platform. All rights reserved.
+ * Author: canonical_entropy@163.com
+ * Blog:   https://www.zhihu.com/people/canonical-entropy
+ * Gitee:  https://github.com/entropy-cloud/nop-entropy
+ * Github: https://github.com/entropy-cloud/nop-entropy
+ */
+
 package io.nop.metadata.service.tableref;
 
 import io.nop.api.core.annotations.txn.TransactionPropagation;
@@ -8,6 +16,7 @@ import io.nop.dao.txn.ITransaction;
 import io.nop.dao.txn.ITransactionTemplate;
 import io.nop.metadata.service.connection.IMetaDataSourceConnectionProcessor;
 import io.nop.orm.IOrmTemplate;
+import io.nop.metadata.service.NopMetadataErrors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -34,11 +43,6 @@ public class TableReferenceExecutor {
 
     private static final Logger LOG = LoggerFactory.getLogger(TableReferenceExecutor.class);
 
-    static final ErrorCode ERR_ENTITY_QUERY_SPACE_NOT_JDBC =
-            ErrorCode.define("metadata.tableref-entity-query-space-not-jdbc",
-                    "Platform transaction for entity querySpace is not a JDBC transaction "
-                            + "(cannot get Connection for entity table execution): {querySpace}",
-                    "querySpace");
 
     private final IMetaDataSourceConnectionProcessor connectionService;
     private final IOrmTemplate orm;
@@ -76,7 +80,7 @@ public class TableReferenceExecutor {
         ITransactionTemplate txnTemplate = orm.getSessionFactory().txn();
         return txnTemplate.runInTransaction(querySpace, TransactionPropagation.SUPPORTS, (ITransaction txn) -> {
             if (!(txn instanceof IJdbcTransaction)) {
-                throw new NopException(ERR_ENTITY_QUERY_SPACE_NOT_JDBC)
+                throw new NopException(NopMetadataErrors.ERR_TABLEREF_ENTITY_QUERY_SPACE_NOT_JDBC)
                         .param("querySpace", String.valueOf(querySpace))
                         .param("metaTableId", ref.getMetaTableId());
             }
@@ -85,26 +89,21 @@ public class TableReferenceExecutor {
             try {
                 metaData = conn.getMetaData();
             } catch (SQLException e) {
-                throw new NopException(ErrorCode.define("metadata.tableref-platform-meta-failed",
-                        "Failed to get DatabaseMetaData from platform connection: {error}", "error"))
+                throw new NopException(NopMetadataErrors.ERR_TABLEREF_PLATFORM_META_FAILED)
                         .param("error", e.getMessage()).cause(e);
             }
             String productName = safeProductName(metaData);
             try {
                 return action.apply(conn, metaData, productName);
             } catch (SQLException e) {
-                throw new NopException(ErrorCode.define("metadata.tableref-exec-failed",
-                        "Table-reference execution failed: {metaTableId} -- {error}",
-                        "metaTableId", "error"), e)
+                throw new NopException(NopMetadataErrors.ERR_TABLEREF_EXEC_FAILED, e)
                         .param("metaTableId", ref.getMetaTableId())
                         .param("error", e.getMessage());
             } catch (Exception e) {
                 if (e instanceof RuntimeException) {
                     throw (RuntimeException) e;
                 }
-                throw new NopException(ErrorCode.define("metadata.tableref-exec-failed",
-                        "Table-reference execution failed: {metaTableId} -- {error}",
-                        "metaTableId", "error"), e)
+                throw new NopException(NopMetadataErrors.ERR_TABLEREF_EXEC_FAILED, e)
                         .param("metaTableId", ref.getMetaTableId())
                         .param("error", e.getMessage());
             }
@@ -121,18 +120,14 @@ public class TableReferenceExecutor {
             try {
                 holder[0] = action.apply(conn, metaData, productName);
             } catch (SQLException e) {
-                error[0] = new NopException(ErrorCode.define("metadata.tableref-exec-failed",
-                        "Table-reference execution failed: {metaTableId} -- {error}",
-                        "metaTableId", "error"), e)
+                error[0] = new NopException(NopMetadataErrors.ERR_TABLEREF_EXEC_FAILED, e)
                         .param("metaTableId", ref.getMetaTableId())
                         .param("error", messageOf(e));
             } catch (Exception e) {
                 if (e instanceof RuntimeException) {
                     error[0] = (RuntimeException) e;
                 } else {
-                    error[0] = new NopException(ErrorCode.define("metadata.tableref-exec-failed",
-                            "Table-reference execution failed: {metaTableId} -- {error}",
-                            "metaTableId", "error"), e)
+                    error[0] = new NopException(NopMetadataErrors.ERR_TABLEREF_EXEC_FAILED, e)
                             .param("metaTableId", ref.getMetaTableId())
                             .param("error", messageOf(e));
                 }

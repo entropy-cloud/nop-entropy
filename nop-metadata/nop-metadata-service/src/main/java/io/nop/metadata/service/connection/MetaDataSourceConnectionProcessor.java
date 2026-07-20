@@ -1,3 +1,11 @@
+/**
+ * Copyright (c) 2017-2024 Nop Platform. All rights reserved.
+ * Author: canonical_entropy@163.com
+ * Blog:   https://www.zhihu.com/people/canonical-entropy
+ * Gitee:  https://github.com/entropy-cloud/nop-entropy
+ * Github: https://github.com/entropy-cloud/nop-entropy
+ */
+
 package io.nop.metadata.service.connection;
 
 import io.nop.api.core.annotations.ioc.InjectValue;
@@ -7,6 +15,7 @@ import io.nop.commons.util.IoHelper;
 import io.nop.core.lang.json.JsonTool;
 import io.nop.dao.jdbc.datasource.SimpleDataSource;
 import io.nop.metadata.core._NopMetadataCoreConstants;
+import io.nop.metadata.service.NopMetadataErrors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -37,28 +46,8 @@ public class MetaDataSourceConnectionProcessor implements IMetaDataSourceConnect
 
     private static final Logger LOG = LoggerFactory.getLogger(MetaDataSourceConnectionProcessor.class);
 
-    public static final ErrorCode ERR_DATASOURCE_TYPE_NOT_SUPPORTED =
-            ErrorCode.define("metadata.datasource-type-not-supported",
-                    "DataSource type not supported yet: {datasourceType}", "datasourceType");
-    static final ErrorCode ERR_DATASOURCE_CONFIG_INVALID =
-            ErrorCode.define("metadata.datasource-config-invalid",
-                    "Invalid connection config for datasourceType={datasourceType}: {reason}",
-                    "datasourceType", "reason");
-    static final ErrorCode ERR_DATASOURCE_CONNECT_FAILED =
-            ErrorCode.define("metadata.datasource-connect-failed",
-                    "DataSource connection failed for datasourceType={datasourceType}: {error}",
-                    "datasourceType", "error");
     /** AR-02: jdbcUrl 协议/主机不在白名单 或 含危险参数。 */
-    public static final ErrorCode ERR_DATASOURCE_JDBC_URL_BLOCKED =
-            ErrorCode.define("metadata.datasource-jdbc-url-blocked",
-                    "JDBC URL is blocked by security policy (protocol/host not allowed or dangerous parameter present): "
-                            + "{jdbcUrl} reason={reason}",
-                    "jdbcUrl", "reason");
     /** AR-02: driverClassName 不在白名单（防任意类加载攻击）。 */
-    public static final ErrorCode ERR_DATASOURCE_DRIVER_NOT_ALLOWED =
-            ErrorCode.define("metadata.datasource-driver-not-allowed",
-                    "JDBC driver class is not in the allowed whitelist: {driverClassName}",
-                    "driverClassName");
 
     private static final String CFG_JDBC_URL = "jdbcUrl";
     private static final String CFG_USERNAME = "username";
@@ -159,7 +148,7 @@ public class MetaDataSourceConnectionProcessor implements IMetaDataSourceConnect
 
     /**
      * 从 connectionConfig JSON 构建 {@link SimpleDataSource}（非 jdbc 类型快速失败）。
-     * 仅 jdbc 类型支持；其余类型抛 {@link NopException}({@link #ERR_DATASOURCE_TYPE_NOT_SUPPORTED})。
+     * 仅 jdbc 类型支持；其余类型抛 {@link NopException}({@link #NopMetadataErrors.ERR_DATASOURCE_TYPE_NOT_SUPPORTED})。
      *
      * <p>AR-02 安全加固：(a) jdbcUrl 协议白名单 + 危险参数黑名单 + 内网主机白名单；
      * (b) driverClassName 白名单； (c) {@link DriverManager#setLoginTimeout} 兜底建连超时。
@@ -201,7 +190,7 @@ public class MetaDataSourceConnectionProcessor implements IMetaDataSourceConnect
     private void requireJdbcType(String datasourceType) {
         if (!_NopMetadataCoreConstants.DATASOURCE_TYPE_JDBC.equals(datasourceType)) {
             // 维度09-07：使用 inline ErrorCode 而非 UnsupportedOperationException（与 URL 白名单配合产生有意义错误码）
-            throw new NopException(ERR_DATASOURCE_TYPE_NOT_SUPPORTED)
+            throw new NopException(NopMetadataErrors.ERR_DATASOURCE_TYPE_NOT_SUPPORTED)
                     .param("datasourceType", String.valueOf(datasourceType));
         }
     }
@@ -213,7 +202,7 @@ public class MetaDataSourceConnectionProcessor implements IMetaDataSourceConnect
      *   <li>危险参数黑名单：禁止 allowLoadLocalInfile / INIT= / allowMultiQueries / RUNSCRIPT 等（大小写不敏感 contains）。</li>
      *   <li>主机白名单：默认禁内网（RFC1918 + 169.254 + localhost）；显式配置 nop.metadata.datasource.allowed-hosts 后允许。</li>
      * </ol>
-     * 失败时显式抛 {@link #ERR_DATASOURCE_JDBC_URL_BLOCKED}，附 {@code jdbcUrl}/{@code reason} 参数。
+     * 失败时显式抛 {@link #NopMetadataErrors.ERR_DATASOURCE_JDBC_URL_BLOCKED}，附 {@code jdbcUrl}/{@code reason} 参数。
      */
     void validateJdbcUrl(String jdbcUrl) {
         // (1) 协议白名单
@@ -226,14 +215,14 @@ public class MetaDataSourceConnectionProcessor implements IMetaDataSourceConnect
             }
         }
         if (!protocolOk) {
-            throw new NopException(ERR_DATASOURCE_JDBC_URL_BLOCKED)
+            throw new NopException(NopMetadataErrors.ERR_DATASOURCE_JDBC_URL_BLOCKED)
                     .param("jdbcUrl", jdbcUrl)
                     .param("reason", "protocol not in whitelist (mysql/postgresql/h2)");
         }
         // (2) 危险参数黑名单
         for (String dangerous : DANGEROUS_URL_TOKENS) {
             if (lower.contains(dangerous)) {
-                throw new NopException(ERR_DATASOURCE_JDBC_URL_BLOCKED)
+                throw new NopException(NopMetadataErrors.ERR_DATASOURCE_JDBC_URL_BLOCKED)
                         .param("jdbcUrl", jdbcUrl)
                         .param("reason", "dangerous parameter/token present: " + dangerous);
             }
@@ -242,7 +231,7 @@ public class MetaDataSourceConnectionProcessor implements IMetaDataSourceConnect
         String host = extractHost(jdbcUrl);
         if (host != null && !host.isEmpty() && isInternalHost(host)
                 && !resolveAllowedInternalHosts().contains(host.toLowerCase())) {
-            throw new NopException(ERR_DATASOURCE_JDBC_URL_BLOCKED)
+            throw new NopException(NopMetadataErrors.ERR_DATASOURCE_JDBC_URL_BLOCKED)
                     .param("jdbcUrl", jdbcUrl)
                     .param("reason", "internal/link-local/loopback host not in allowed-hosts: " + host);
         }
@@ -311,7 +300,7 @@ public class MetaDataSourceConnectionProcessor implements IMetaDataSourceConnect
     /** AR-02: driverClassName 必须在白名单内（防任意类加载攻击）。 */
     private static void validateDriverClassName(String driverClassName) {
         if (!ALLOWED_DRIVER_CLASSES.contains(driverClassName)) {
-            throw new NopException(ERR_DATASOURCE_DRIVER_NOT_ALLOWED)
+            throw new NopException(NopMetadataErrors.ERR_DATASOURCE_DRIVER_NOT_ALLOWED)
                     .param("driverClassName", driverClassName);
         }
     }
@@ -355,14 +344,14 @@ public class MetaDataSourceConnectionProcessor implements IMetaDataSourceConnect
     }
 
     private static NopException newNopConfigInvalidException(String datasourceType, String reason) {
-        return new NopException(ERR_DATASOURCE_CONFIG_INVALID)
+        return new NopException(NopMetadataErrors.ERR_DATASOURCE_CONFIG_INVALID)
                 .param("datasourceType", datasourceType)
                 .param("reason", reason);
     }
 
     private static NopException newNopConnectException(String datasourceType, SQLException e) {
         String msg = e.getMessage();
-        return new NopException(ERR_DATASOURCE_CONNECT_FAILED)
+        return new NopException(NopMetadataErrors.ERR_DATASOURCE_CONNECT_FAILED)
                 .param("datasourceType", datasourceType)
                 .param("error", msg != null ? msg : e.getClass().getName())
                 .cause(e);

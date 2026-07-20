@@ -1,8 +1,15 @@
+/**
+ * Copyright (c) 2017-2024 Nop Platform. All rights reserved.
+ * Author: canonical_entropy@163.com
+ * Blog:   https://www.zhihu.com/people/canonical-entropy
+ * Gitee:  https://github.com/entropy-cloud/nop-entropy
+ * Github: https://github.com/entropy-cloud/nop-entropy
+ */
+
 package io.nop.metadata.service.quality;
 
 import io.nop.api.core.beans.FilterBeans;
 import io.nop.api.core.beans.query.QueryBean;
-import io.nop.api.core.exceptions.ErrorCode;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.core.lang.json.JsonTool;
 import io.nop.dao.api.IDaoProvider;
@@ -12,6 +19,7 @@ import io.nop.metadata.dao.entity.NopMetaQualityResult;
 import io.nop.metadata.dao.entity.NopMetaQualityRule;
 import io.nop.metadata.dao.entity.NopMetaQualityScore;
 import io.nop.metadata.dao.entity.NopMetaTable;
+import io.nop.metadata.service.NopMetadataErrors;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -30,9 +38,9 @@ import java.util.Set;
  * <p>本类**不自建连接**、**不写实体**（纯读 + 计算），返回结构化 {@link QualityScoreResult} 供
  * {@code NopMetaQualityScoreBizModel} 落盘。失败/不可评路径均显式（D6，不静默 0 分、不伪造、不产生 NaN）：
  * <ul>
- *   <li>metaTableId 不存在 → 抛 {@link #ERR_SCORE_TABLE_NOT_FOUND}</li>
- *   <li>表无任何挂载规则 → 抛 {@link #ERR_SCORE_NO_RULES}</li>
- *   <li>所有规则最新结果全 SKIP / 无可评结果（全维度 null）→ 抛 {@link #ERR_SCORE_ALL_SKIP}</li>
+ *   <li>metaTableId 不存在 → 抛 {@link #NopMetadataErrors.ERR_SCORE_TABLE_NOT_FOUND}</li>
+ *   <li>表无任何挂载规则 → 抛 {@link #NopMetadataErrors.ERR_SCORE_NO_RULES}</li>
+ *   <li>所有规则最新结果全 SKIP / 无可评结果（全维度 null）→ 抛 {@link #NopMetadataErrors.ERR_SCORE_ALL_SKIP}</li>
  * </ul>
  *
  * <p>降级语义（D2，对齐 Profiling 降级铁律，不伪造）：
@@ -46,17 +54,6 @@ public class MetaQualityScorer {
     /** 趋势 stable 阈值：|changeRate| &lt; 此值视为 stable（架构基线 §2.7.4 D5）。 */
     public static final double TREND_STABLE_THRESHOLD = 1.0d;
 
-    static final ErrorCode ERR_SCORE_TABLE_NOT_FOUND =
-            ErrorCode.define("metadata.score-table-not-found",
-                    "Quality score target table not found (NopMetaTable missing): {metaTableId}", "metaTableId");
-    static final ErrorCode ERR_SCORE_NO_RULES =
-            ErrorCode.define("metadata.score-no-rules",
-                    "Quality score target table has no mounted quality rules, nothing to score: {metaTableId}",
-                    "metaTableId");
-    static final ErrorCode ERR_SCORE_ALL_SKIP =
-            ErrorCode.define("metadata.score-all-skip",
-                    "Quality score target table's all rule latest results are SKIP (or never executed), every "
-                            + "dimension is null, cannot score: {metaTableId}", "metaTableId");
 
     // ===== 五个评分维度（架构基线 §2.7.4 D2） =====
     static final String DIM_COMPLETENESS = "completeness";
@@ -102,7 +99,7 @@ public class MetaQualityScorer {
         IEntityDao<NopMetaTable> tableDao = daoProvider.daoFor(NopMetaTable.class);
         NopMetaTable table = tableDao.getEntityById(metaTableId);
         if (table == null) {
-            throw new NopException(ERR_SCORE_TABLE_NOT_FOUND).param("metaTableId", metaTableId);
+            throw new NopException(NopMetadataErrors.ERR_SCORE_TABLE_NOT_FOUND).param("metaTableId", metaTableId);
         }
 
         // 加载挂载规则（entityId = metaTableId，即 §2.7.1 D1 规则仅挂载于 NopMetaTable）
@@ -113,7 +110,7 @@ public class MetaQualityScorer {
 
         // D6：表无任何挂载规则 → 显式失败（不静默 0 分）
         if (rules.isEmpty()) {
-            throw new NopException(ERR_SCORE_NO_RULES).param("metaTableId", metaTableId);
+            throw new NopException(NopMetadataErrors.ERR_SCORE_NO_RULES).param("metaTableId", metaTableId);
         }
 
         IEntityDao<NopMetaQualityResult> resultDao = daoProvider.daoFor(NopMetaQualityResult.class);
@@ -192,7 +189,7 @@ public class MetaQualityScorer {
 
         // D6：全维度 null（无任何可评规则或全 SKIP）→ 显式失败（不静默 0 分、不伪造）
         if (weightSum == 0.0d) {
-            throw new NopException(ERR_SCORE_ALL_SKIP).param("metaTableId", metaTableId);
+            throw new NopException(NopMetadataErrors.ERR_SCORE_ALL_SKIP).param("metaTableId", metaTableId);
         }
         double overallScore = weightedSum / weightSum;
 

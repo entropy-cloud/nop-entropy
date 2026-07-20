@@ -1,9 +1,18 @@
+/**
+ * Copyright (c) 2017-2024 Nop Platform. All rights reserved.
+ * Author: canonical_entropy@163.com
+ * Blog:   https://www.zhihu.com/people/canonical-entropy
+ * Gitee:  https://github.com/entropy-cloud/nop-entropy
+ * Github: https://github.com/entropy-cloud/nop-entropy
+ */
+
 package io.nop.metadata.service.catalog;
 
 import io.nop.api.core.exceptions.ErrorCode;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.commons.util.IoHelper;
 import io.nop.metadata.service.tableref.TableReference;
+import io.nop.metadata.service.NopMetadataErrors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -38,16 +47,8 @@ public class MetaCatalogCollector {
     private static final Logger LOG = LoggerFactory.getLogger(MetaCatalogCollector.class);
 
     /** inline ErrorCode：标识符（列名/表名/schema）不符合白名单，拒绝拼接防注入。 */
-    public static final ErrorCode ERR_CATALOG_INVALID_IDENTIFIER =
-            ErrorCode.define("metadata.catalog-invalid-identifier",
-                    "Identifier (table/schema) does not match whitelist ^[A-Za-z_][A-Za-z0-9_]*$: {identifier}",
-                    "identifier");
 
     /** 维度09-08：COUNT(*) 返回 0 行属不可能发生的逻辑断言，不应使用 SQLException 表达业务控制流。 */
-    public static final ErrorCode ERR_CATALOG_AGGREGATE_NO_ROW =
-            ErrorCode.define("metadata.catalog-aggregate-no-row",
-                    "Catalog aggregate SQL returned no row (logical impossibility): {sql}",
-                    "sql");
 
     /** SQL 标识符白名单：字母/下划线开头，后跟字母/数字/下划线。用于校验表名/schema，防注入。 */
     private static final java.util.regex.Pattern IDENTIFIER_PATTERN =
@@ -108,7 +109,7 @@ public class MetaCatalogCollector {
         try (Statement st = conn.createStatement(); ResultSet rs = st.executeQuery(sql)) {
             if (!rs.next()) {
                 // 维度09-08：不可能发生的逻辑断言用 NopException + ErrorCode，不混用 SQLException 控制流
-                throw new NopException(ERR_CATALOG_AGGREGATE_NO_ROW).param("sql", sql);
+                throw new NopException(NopMetadataErrors.ERR_CATALOG_AGGREGATE_NO_ROW).param("sql", sql);
             }
             return rs.getLong(1);
         }
@@ -171,7 +172,7 @@ public class MetaCatalogCollector {
 
     static void validateIdentifier(String identifier) {
         if (identifier == null || !IDENTIFIER_PATTERN.matcher(identifier).matches()) {
-            throw new NopException(ERR_CATALOG_INVALID_IDENTIFIER)
+            throw new NopException(NopMetadataErrors.ERR_CATALOG_INVALID_IDENTIFIER)
                     .param("identifier", String.valueOf(identifier));
         }
     }

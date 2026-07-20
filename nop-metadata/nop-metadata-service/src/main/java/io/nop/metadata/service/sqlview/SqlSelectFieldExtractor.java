@@ -1,6 +1,13 @@
+/**
+ * Copyright (c) 2017-2024 Nop Platform. All rights reserved.
+ * Author: canonical_entropy@163.com
+ * Blog:   https://www.zhihu.com/people/canonical-entropy
+ * Gitee:  https://github.com/entropy-cloud/nop-entropy
+ * Github: https://github.com/entropy-cloud/nop-entropy
+ */
+
 package io.nop.metadata.service.sqlview;
 
-import io.nop.api.core.exceptions.ErrorCode;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.orm.eql.ast.SqlAlias;
 import io.nop.orm.eql.ast.SqlAllProjection;
@@ -13,6 +20,7 @@ import io.nop.orm.eql.ast.SqlSelectWithCte;
 import io.nop.orm.eql.ast.SqlStatement;
 import io.nop.orm.eql.ast.SqlStatementKind;
 import io.nop.orm.eql.parse.EqlASTParser;
+import io.nop.metadata.service.NopMetadataErrors;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -32,11 +40,11 @@ import java.util.List;
  *
  * <p>显式失败路径（不静默返回空、不伪造）：
  * <ul>
- *   <li>SQL 为空 → {@link #ERR_SQL_VIEW_SQL_EMPTY}</li>
- *   <li>SQL 不可解析 → {@link #ERR_SQL_VIEW_PARSE_FAILED}</li>
- *   <li>多语句（{@code ;} 分隔，{@code statements.size()!=1}）→ {@link #ERR_SQL_VIEW_MULTI_STATEMENT}</li>
- *   <li>非 SELECT 顶层语句 → {@link #ERR_SQL_VIEW_NOT_SELECT}</li>
- *   <li>通配符 {@code *}/{@code t.*}（{@link SqlAllProjection}，纯 AST 无法展开）→ {@link #ERR_SQL_VIEW_WILDCARD_NOT_SUPPORTED}</li>
+ *   <li>SQL 为空 → {@link #NopMetadataErrors.ERR_SQL_VIEW_SQL_EMPTY}</li>
+ *   <li>SQL 不可解析 → {@link #NopMetadataErrors.ERR_SQL_VIEW_PARSE_FAILED}</li>
+ *   <li>多语句（{@code ;} 分隔，{@code statements.size()!=1}）→ {@link #NopMetadataErrors.ERR_SQL_VIEW_MULTI_STATEMENT}</li>
+ *   <li>非 SELECT 顶层语句 → {@link #NopMetadataErrors.ERR_SQL_VIEW_NOT_SELECT}</li>
+ *   <li>通配符 {@code *}/{@code t.*}（{@link SqlAllProjection}，纯 AST 无法展开）→ {@link #NopMetadataErrors.ERR_SQL_VIEW_WILDCARD_NOT_SUPPORTED}</li>
  * </ul>
  *
  * <p>CTE / UNION 支持：{@link SqlSelectWithCte}（{@code WITH ... SELECT}）通过钻入 {@code getSelect()}
@@ -49,21 +57,6 @@ import java.util.List;
  */
 public class SqlSelectFieldExtractor {
 
-    static final ErrorCode ERR_SQL_VIEW_SQL_EMPTY =
-            ErrorCode.define("metadata.sql-empty", "Source sql is empty", "sql");
-    static final ErrorCode ERR_SQL_VIEW_PARSE_FAILED =
-            ErrorCode.define("metadata.sql-parse-failed", "Failed to parse source sql", "sql");
-    static final ErrorCode ERR_SQL_VIEW_MULTI_STATEMENT =
-            ErrorCode.define("metadata.sql-multi-statement",
-                    "Sql view source must be a single SELECT statement, but got {count} statements", "count", "sql");
-    static final ErrorCode ERR_SQL_VIEW_NOT_SELECT =
-            ErrorCode.define("metadata.sql-not-select",
-                    "Sql view source must be a SELECT statement, but got {statementKind}", "statementKind", "sql");
-    static final ErrorCode ERR_SQL_VIEW_WILDCARD_NOT_SUPPORTED =
-            ErrorCode.define("metadata.sql-wildcard-not-supported",
-                    "Wildcard projection (* or t.*) is not supported in sql view source; "
-                            + "please expand to explicit columns (pure AST parse cannot resolve wildcard)",
-                    "sql");
 
     private final EqlASTParser parser = new EqlASTParser();
 
@@ -76,28 +69,28 @@ public class SqlSelectFieldExtractor {
      */
     public List<SqlViewField> extract(String sql) {
         if (sql == null || sql.trim().isEmpty()) {
-            throw new NopException(ERR_SQL_VIEW_SQL_EMPTY).param("sql", sql);
+            throw new NopException(NopMetadataErrors.ERR_SQL_VIEW_SQL_EMPTY).param("sql", sql);
         }
 
         SqlProgram program;
         try {
             program = parser.parseFromText(null, sql);
         } catch (Exception e) {
-            throw new NopException(ERR_SQL_VIEW_PARSE_FAILED).param("sql", sql).cause(e);
+            throw new NopException(NopMetadataErrors.ERR_SQL_VIEW_PARSE_FAILED).param("sql", sql).cause(e);
         }
         if (program == null || program.getStatements() == null || program.getStatements().isEmpty()) {
-            throw new NopException(ERR_SQL_VIEW_PARSE_FAILED).param("sql", sql);
+            throw new NopException(NopMetadataErrors.ERR_SQL_VIEW_PARSE_FAILED).param("sql", sql);
         }
 
         List<SqlStatement> statements = program.getStatements();
         if (statements.size() != 1) {
-            throw new NopException(ERR_SQL_VIEW_MULTI_STATEMENT)
+            throw new NopException(NopMetadataErrors.ERR_SQL_VIEW_MULTI_STATEMENT)
                     .param("count", statements.size()).param("sql", sql);
         }
 
         SqlStatement stmt = statements.get(0);
         if (stmt.getStatementKind() != SqlStatementKind.SELECT) {
-            throw new NopException(ERR_SQL_VIEW_NOT_SELECT)
+            throw new NopException(NopMetadataErrors.ERR_SQL_VIEW_NOT_SELECT)
                     .param("statementKind", String.valueOf(stmt.getStatementKind())).param("sql", sql);
         }
 
@@ -124,7 +117,7 @@ public class SqlSelectFieldExtractor {
             return projections == null ? new ArrayList<>() : projections;
         }
         // getStatementKind()==SELECT 但非 SqlSelect/SqlSelectWithCte 子类——不可达，显式失败而非静默
-        throw new NopException(ERR_SQL_VIEW_PARSE_FAILED)
+        throw new NopException(NopMetadataErrors.ERR_SQL_VIEW_PARSE_FAILED)
                 .param("sql", "unhandled SELECT statement class: " + stmt.getClass().getName());
     }
 
@@ -135,14 +128,14 @@ public class SqlSelectFieldExtractor {
         // 一条合法的显式列 SELECT 解析后必有 ≥1 个 projection，故空列表的唯一现实成因就是被丢弃的裸 `*`。
         // 依 §4.2.1 通配符裁定（显式失败、不静默跳过），此处对空 projections 显式失败。
         if (projections.isEmpty()) {
-            throw new NopException(ERR_SQL_VIEW_WILDCARD_NOT_SUPPORTED).param("sql", sql);
+            throw new NopException(NopMetadataErrors.ERR_SQL_VIEW_WILDCARD_NOT_SUPPORTED).param("sql", sql);
         }
         List<SqlViewField> fields = new ArrayList<>(projections.size());
         int exprIndex = 0;
         for (SqlProjection proj : projections) {
             if (proj instanceof SqlAllProjection) {
                 // 通配符 t.* 纯 AST 无法展开，显式失败（不静默跳过、不伪造）
-                throw new NopException(ERR_SQL_VIEW_WILDCARD_NOT_SUPPORTED).param("sql", sql);
+                throw new NopException(NopMetadataErrors.ERR_SQL_VIEW_WILDCARD_NOT_SUPPORTED).param("sql", sql);
             }
             if (proj instanceof SqlExprProjection) {
                 SqlViewField field = toField((SqlExprProjection) proj, exprIndex);
@@ -153,7 +146,7 @@ public class SqlSelectFieldExtractor {
                 fields.add(field);
             } else {
                 // 未知 projection 子类——显式失败而非静默跳过
-                throw new NopException(ERR_SQL_VIEW_PARSE_FAILED)
+                throw new NopException(NopMetadataErrors.ERR_SQL_VIEW_PARSE_FAILED)
                         .param("sql", sql)
                         .cause(new IllegalStateException(
                                 "unhandled projection class: " + proj.getClass().getName()));
@@ -174,7 +167,7 @@ public class SqlSelectFieldExtractor {
             String colName = ((SqlColumnName) proj.getExpr()).getName();
             if (colName == null || colName.isEmpty()) {
                 // 列名为空——不可达（SqlColumnName.getName mandatory），显式失败
-                throw new NopException(ERR_SQL_VIEW_PARSE_FAILED)
+                throw new NopException(NopMetadataErrors.ERR_SQL_VIEW_PARSE_FAILED)
                         .param("sql", "empty column name in projection");
             }
             return new SqlViewField(colName, null, null);

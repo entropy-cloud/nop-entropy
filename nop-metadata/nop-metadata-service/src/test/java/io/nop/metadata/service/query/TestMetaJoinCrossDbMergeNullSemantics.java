@@ -7,9 +7,9 @@
  */
 package io.nop.metadata.service.query;
 
-import io.nop.api.core.ApiErrors;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.metadata.dao.entity.NopMetaTableJoin;
+import io.nop.metadata.service.NopMetadataErrors;
 import org.junit.jupiter.api.Test;
 
 import java.util.ArrayList;
@@ -23,12 +23,12 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * 验证 MetaJoinExecutor.crossDbMerge 的 NULL 语义（plan 1250-2 Phase 4 Proof）。
+ * 验证 CrossDbJoinMerger.crossDbMerge 的 NULL 语义（plan 1250-2 Phase 4 Proof）。
  *
  * <p>AR-05 修复前：crossDbMerge 用 String.valueOf(null) = "null" 作为 join key 建索引，
  * 导致两侧 null 行被错配为 "null" = "null"，违反 SQL NULL != NULL 语义。
  *
- * <p>本测试通过反射调用 private crossDbMerge 方法（避免依赖 ORM session 的 mock 复杂度），
+ * <p>本测试直接调用 CrossDbJoinMerger.crossDbMerge 方法（纯合并逻辑，无 ORM 依赖），
  * 直接断言：
  * <ul>
  *   <li>左 null + 右 null：inner join 不匹配（不输出），left join 保留左行（右列 null）</li>
@@ -39,7 +39,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  */
 public class TestMetaJoinCrossDbMergeNullSemantics {
 
-    private final MetaJoinExecutor executor = new MetaJoinExecutor();
+    private final CrossDbJoinMerger merger = new CrossDbJoinMerger();
 
     @Test
     public void testNullKeyDoesNotMatchNullKeyInnerJoin() {
@@ -49,7 +49,6 @@ public class TestMetaJoinCrossDbMergeNullSemantics {
 
         List<Map<String, Object>> merged = invokeCrossDbMerge(join, left, right);
 
-        // inner join: NULL != NULL → no match → empty result
         assertTrue(merged.isEmpty(),
                 "inner join with NULL=NULL must NOT match (SQL standard); got: " + merged);
     }
@@ -75,7 +74,6 @@ public class TestMetaJoinCrossDbMergeNullSemantics {
         List<Map<String, Object>> left = rows(
                 row("id", "K1", "name", "L1"),
                 row("id", "K2", "name", "L2"));
-        // right rows: one with K1, one with null (must not match anything)
         List<Map<String, Object>> right = rows(
                 row("id", "K1", "extra", "R1"),
                 row("id", null, "extra", "R_NULL"));
@@ -90,14 +88,13 @@ public class TestMetaJoinCrossDbMergeNullSemantics {
     @Test
     public void testTypeMismatchIntegerVsLongThrowsExplicitly() {
         NopMetaTableJoin join = newJoin("id", "id", "inner");
-        // 早期 String.valueOf(1L) = "1" 与 String.valueOf("1") = "1" 会静默匹配
         List<Map<String, Object>> left = rows(row("id", 1, "name", "L_int"));
         List<Map<String, Object>> right = rows(row("id", 1L, "extra", "R_long"));
 
         NopException ex = assertThrows(NopException.class,
                 () -> invokeCrossDbMerge(join, left, right),
                 "Integer vs Long key must explicitly fail (silent String coercion is forbidden)");
-        assertEquals(MetaJoinExecutor.ERR_JOIN_CROSS_DB_KEY_TYPE_MISMATCH.getErrorCode(),
+        assertEquals(NopMetadataErrors.ERR_JOIN_CROSS_DB_KEY_TYPE_MISMATCH.getErrorCode(),
                 ex.getErrorCode(),
                 "must throw ERR_JOIN_CROSS_DB_KEY_TYPE_MISMATCH");
     }
@@ -111,14 +108,13 @@ public class TestMetaJoinCrossDbMergeNullSemantics {
         NopException ex = assertThrows(NopException.class,
                 () -> invokeCrossDbMerge(join, left, right),
                 "Integer vs String key must explicitly fail");
-        assertEquals(MetaJoinExecutor.ERR_JOIN_CROSS_DB_KEY_TYPE_MISMATCH.getErrorCode(),
+        assertEquals(NopMetadataErrors.ERR_JOIN_CROSS_DB_KEY_TYPE_MISMATCH.getErrorCode(),
                 ex.getErrorCode());
     }
 
     @Test
     public void testSameIntegerFamilyMatches() {
         NopMetaTableJoin join = newJoin("id", "id", "inner");
-        // Integer on both sides → same INTEGER family → match
         List<Map<String, Object>> left = rows(row("id", 1, "name", "L"));
         List<Map<String, Object>> right = rows(row("id", 1, "extra", "R"));
 
@@ -129,32 +125,10 @@ public class TestMetaJoinCrossDbMergeNullSemantics {
 
     // ============================ helpers ============================
 
-    @SuppressWarnings("unchecked")
     private List<Map<String, Object>> invokeCrossDbMerge(NopMetaTableJoin join,
                                                           List<Map<String, Object>> left,
                                                           List<Map<String, Object>> right) {
-        try {
-            var m = MetaJoinExecutor.class.getDeclaredMethod("crossDbMerge",
-                    NopMetaTableJoin.class, List.class, List.class, Long.class, Long.class);
-            m.setAccessible(true);
-            return (List<Map<String, Object>>) m.invoke(executor, join, left, right, null, null);
-        } catch (java.lang.reflect.InvocationTargetException ite) {
-            return rethrow(ite.getCause());
-        } catch (Exception e) {
-            throw new NopException(ApiErrors.ERR_WRAP_EXCEPTION, e);
-        }
-    }
-
-    /** Sneaky-throw to preserve exact ErrorCode type for assertThrows. */
-    @SuppressWarnings("unchecked")
-    private static <T> T rethrow(Throwable t) {
-        if (t instanceof RuntimeException) {
-            throw (RuntimeException) t;
-        }
-        if (t instanceof Error) {
-            throw (Error) t;
-        }
-        throw new NopException(ApiErrors.ERR_WRAP_EXCEPTION, t);
+        return merger.crossDbMerge(join, left, right, null, null);
     }
 
     private static NopMetaTableJoin newJoin(String leftField, String rightField, String joinType) {
@@ -177,7 +151,6 @@ public class TestMetaJoinCrossDbMergeNullSemantics {
     private static List<Map<String, Object>> rows(Map<String, Object>... rs) {
         List<Map<String, Object>> list = new ArrayList<>();
         for (Map<String, Object> r : rs) {
-            // CrossDbMerge requires row map be mutable for merge step; clone to be safe
             list.add(new LinkedHashMap<>(r));
         }
         return list;

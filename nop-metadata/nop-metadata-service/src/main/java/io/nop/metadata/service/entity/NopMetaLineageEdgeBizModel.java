@@ -1,6 +1,15 @@
+/**
+ * Copyright (c) 2017-2024 Nop Platform. All rights reserved.
+ * Author: canonical_entropy@163.com
+ * Blog:   https://www.zhihu.com/people/canonical-entropy
+ * Gitee:  https://github.com/entropy-cloud/nop-entropy
+ * Github: https://github.com/entropy-cloud/nop-entropy
+ */
+
 package io.nop.metadata.service.entity;
 
 import io.nop.api.core.annotations.biz.BizModel;
+import io.nop.metadata.service.NopMetadataErrors;
 import io.nop.api.core.annotations.biz.BizMutation;
 import io.nop.api.core.annotations.biz.BizQuery;
 import io.nop.api.core.annotations.core.Name;
@@ -45,40 +54,12 @@ public class NopMetaLineageEdgeBizModel extends CrudBizModel<NopMetaLineageEdge>
 
     private static final Logger LOG = LoggerFactory.getLogger(NopMetaLineageEdgeBizModel.class);
 
-    static final ErrorCode ERR_LINEAGE_NO_EDGES =
-            ErrorCode.define("metadata.lineage-no-edges", "No lineage edges provided to record", "size");
-    static final ErrorCode ERR_LINEAGE_TABLE_ID_MISSING =
-            ErrorCode.define("metadata.lineage-table-id-missing",
-                    "Lineage edge is missing required table id (sourceTableId or targetTableId)", "index", "edge");
-    static final ErrorCode ERR_LINEAGE_TABLE_NOT_FOUND =
-            ErrorCode.define("metadata.lineage-table-not-found",
-                    "Referenced table does not exist in catalog: {tableId}", "tableId");
-    static final ErrorCode ERR_LINEAGE_SQL_TABLE_NOT_FOUND =
-            ErrorCode.define("metadata.lineage-sql-table-not-found",
-                    "Lineage sql table not found: {metaTableId}", "metaTableId");
-    static final ErrorCode ERR_LINEAGE_NOT_SQL_TABLE =
-            ErrorCode.define("metadata.lineage-not-sql-table",
-                    "Table is not a sql-view table, cannot extract lineage: {metaTableId} (tableType={tableType})",
-                    "metaTableId", "tableType");
-    static final ErrorCode ERR_LINEAGE_SQL_SOURCE_EMPTY =
-            ErrorCode.define("metadata.lineage-sql-source-empty",
-                    "Sql table sourceSql is empty, cannot extract column lineage: {metaTableId}", "metaTableId");
 
     /**
      * AR-09：lineage 图遍历内存膨胀 DoS 防护。buildLineageGraph/buildTableNameIndex 原用 {@code dao().findAll()}
      * 全量加载，边集/表集达到规模上限时直接 OOM。改为 {@code findAllByQuery} 带 limit（maxEdges+1/maxTables+1），
      * 返回 list size > max 时抛 ErrorCode 显式失败（不静默截断、不静默全部丢弃）。
      */
-    public static final ErrorCode ERR_LINEAGE_GRAPH_TOO_LARGE =
-            ErrorCode.define("metadata.lineage-graph-too-large",
-                    "Lineage graph edge count exceeds size limit (abort to avoid OOM): "
-                            + "edges={edges} limit={limit}. Increase nop.metadata.lineage.max-edges if legitimate.",
-                    "edges", "limit");
-    public static final ErrorCode ERR_LINEAGE_TABLE_INDEX_TOO_LARGE =
-            ErrorCode.define("metadata.lineage-table-index-too-large",
-                    "Lineage table-name index size exceeds limit (abort to avoid OOM): "
-                            + "tables={tables} limit={limit}. Increase nop.metadata.lineage.max-tables if legitimate.",
-                    "tables", "limit");
 
     /** AR-09：lineage 图遍历边数上限（默认 100_000，可经 nop.metadata.lineage.max-edges 配置）。 */
     public static final int DEFAULT_LINEAGE_MAX_EDGES = 100_000;
@@ -141,7 +122,7 @@ public class NopMetaLineageEdgeBizModel extends CrudBizModel<NopMetaLineageEdge>
     public Map<String, Object> recordLineage(@Name("edges") List<Map<String, Object>> edges,
                                               IServiceContext context) {
         if (edges == null || edges.isEmpty()) {
-            throw new NopException(ERR_LINEAGE_NO_EDGES).param("size", 0);
+            throw new NopException(NopMetadataErrors.ERR_LINEAGE_NO_EDGES).param("size", 0);
         }
 
         // 1. 解析 + 收集引用的表 ID
@@ -152,7 +133,7 @@ public class NopMetaLineageEdgeBizModel extends CrudBizModel<NopMetaLineageEdge>
             String sourceTableId = readString(m, "sourceTableId");
             String targetTableId = readString(m, "targetTableId");
             if (sourceTableId == null || sourceTableId.isEmpty() || targetTableId == null || targetTableId.isEmpty()) {
-                throw new NopException(ERR_LINEAGE_TABLE_ID_MISSING).param("index", i).param("edge", m);
+                throw new NopException(NopMetadataErrors.ERR_LINEAGE_TABLE_ID_MISSING).param("index", i).param("edge", m);
             }
             referencedTableIds.add(sourceTableId);
             referencedTableIds.add(targetTableId);
@@ -179,7 +160,7 @@ public class NopMetaLineageEdgeBizModel extends CrudBizModel<NopMetaLineageEdge>
         Set<String> existingIds = loadExistingTableIds(referencedTableIds);
         for (String id : referencedTableIds) {
             if (!existingIds.contains(id)) {
-                throw new NopException(ERR_LINEAGE_TABLE_NOT_FOUND).param("tableId", id);
+                throw new NopException(NopMetadataErrors.ERR_LINEAGE_TABLE_NOT_FOUND).param("tableId", id);
             }
         }
 
@@ -211,10 +192,10 @@ public class NopMetaLineageEdgeBizModel extends CrudBizModel<NopMetaLineageEdge>
         IEntityDao<NopMetaTable> tableDao = daoFor(NopMetaTable.class);
         NopMetaTable targetTable = tableDao.getEntityById(metaTableId);
         if (targetTable == null) {
-            throw new NopException(ERR_LINEAGE_SQL_TABLE_NOT_FOUND).param("metaTableId", metaTableId);
+            throw new NopException(NopMetadataErrors.ERR_LINEAGE_SQL_TABLE_NOT_FOUND).param("metaTableId", metaTableId);
         }
         if (!_NopMetadataCoreConstants.TABLE_TYPE_SQL.equals(targetTable.getTableType())) {
-            throw new NopException(ERR_LINEAGE_NOT_SQL_TABLE)
+            throw new NopException(NopMetadataErrors.ERR_LINEAGE_NOT_SQL_TABLE)
                     .param("metaTableId", metaTableId)
                     .param("tableType", targetTable.getTableType());
         }
@@ -278,16 +259,16 @@ public class NopMetaLineageEdgeBizModel extends CrudBizModel<NopMetaLineageEdge>
         IEntityDao<NopMetaTable> tableDao = daoFor(NopMetaTable.class);
         NopMetaTable targetTable = tableDao.getEntityById(metaTableId);
         if (targetTable == null) {
-            throw new NopException(ERR_LINEAGE_SQL_TABLE_NOT_FOUND).param("metaTableId", metaTableId);
+            throw new NopException(NopMetadataErrors.ERR_LINEAGE_SQL_TABLE_NOT_FOUND).param("metaTableId", metaTableId);
         }
         if (!_NopMetadataCoreConstants.TABLE_TYPE_SQL.equals(targetTable.getTableType())) {
-            throw new NopException(ERR_LINEAGE_NOT_SQL_TABLE)
+            throw new NopException(NopMetadataErrors.ERR_LINEAGE_NOT_SQL_TABLE)
                     .param("metaTableId", metaTableId)
                     .param("tableType", targetTable.getTableType());
         }
         String sourceSql = targetTable.getSourceSql();
         if (sourceSql == null || sourceSql.trim().isEmpty()) {
-            throw new NopException(ERR_LINEAGE_SQL_SOURCE_EMPTY).param("metaTableId", metaTableId);
+            throw new NopException(NopMetadataErrors.ERR_LINEAGE_SQL_SOURCE_EMPTY).param("metaTableId", metaTableId);
         }
 
         List<Map<String, Object>> errors = new ArrayList<>();
@@ -344,7 +325,7 @@ public class NopMetaLineageEdgeBizModel extends CrudBizModel<NopMetaLineageEdge>
      * 含 visited 环检测（血缘图可能含环，不死循环）。返回 metaTableId 列表（不含起点自身）。
      */
     @BizQuery
-    public List<String> getUpstream(@Name("metaTableId") String metaTableId) {
+    public List<String> getUpstream(@Name("metaTableId") String metaTableId, IServiceContext context) {
         LineageGraph graph = buildLineageGraph();
         Set<String> visited = new HashSet<>();
         visited.add(metaTableId);
@@ -372,7 +353,7 @@ public class NopMetaLineageEdgeBizModel extends CrudBizModel<NopMetaLineageEdge>
      * 含 visited 环检测（不死循环）。返回 metaTableId 列表（不含起点自身）。
      */
     @BizQuery
-    public List<String> getDownstream(@Name("metaTableId") String metaTableId) {
+    public List<String> getDownstream(@Name("metaTableId") String metaTableId, IServiceContext context) {
         LineageGraph graph = buildLineageGraph();
         Set<String> visited = new HashSet<>();
         visited.add(metaTableId);
@@ -400,7 +381,8 @@ public class NopMetaLineageEdgeBizModel extends CrudBizModel<NopMetaLineageEdge>
      */
     @BizQuery
     public List<String> getLineagePath(@Name("sourceTableId") String sourceTableId,
-                                       @Name("targetTableId") String targetTableId) {
+                                        @Name("targetTableId") String targetTableId,
+                                        IServiceContext context) {
         LineageGraph graph = buildLineageGraph();
         if (sourceTableId.equals(targetTableId)) {
             return Collections.singletonList(sourceTableId);
@@ -452,7 +434,8 @@ public class NopMetaLineageEdgeBizModel extends CrudBizModel<NopMetaLineageEdge>
      */
     @BizQuery
     public List<String> getImpactAnalysis(@Name("metaTableId") String metaTableId,
-                                          @Optional @Name("columnName") String columnName) {
+                                           @Optional @Name("columnName") String columnName,
+                                           IServiceContext context) {
         LineageGraph graph = buildLineageGraph();
         List<String> tableLevel = bfsForward(graph.forward, metaTableId);
 
@@ -477,7 +460,7 @@ public class NopMetaLineageEdgeBizModel extends CrudBizModel<NopMetaLineageEdge>
      *
      * <p>行为契约（依 §Scope / design doc §2.6.1）：
      * <ol>
-     *   <li>加载 NopMetaTable T（不存在抛 {@code ERR_LINEAGE_TABLE_NOT_FOUND}）。</li>
+     *   <li>加载 NopMetaTable T（不存在抛 {@code NopMetadataErrors.ERR_LINEAGE_TABLE_NOT_FOUND}）。</li>
      *   <li>经 {@link MetaTableFieldResolver#resolveFieldNames} 解析 T 自身可用字段集合——**表级前置失败**：
      *       baseEntityId null / buildSql 损坏 / sourceSql 不可解析时抛 ErrorCode，**直接中断 action**，
      *       不进 per-measure 隔离（D5 失败处理分层 (a)）。</li>
@@ -515,7 +498,7 @@ public class NopMetaLineageEdgeBizModel extends CrudBizModel<NopMetaLineageEdge>
         IEntityDao<NopMetaTable> tableDao = daoFor(NopMetaTable.class);
         NopMetaTable targetTable = tableDao.getEntityById(metaTableId);
         if (targetTable == null) {
-            throw new NopException(ERR_LINEAGE_TABLE_NOT_FOUND).param("tableId", metaTableId);
+            throw new NopException(NopMetadataErrors.ERR_LINEAGE_TABLE_NOT_FOUND).param("tableId", metaTableId);
         }
 
         // 表级前置失败：resolver per-table 调用，baseEntityId null / buildSql 损坏 / sourceSql 不可解析
@@ -678,7 +661,7 @@ public class NopMetaLineageEdgeBizModel extends CrudBizModel<NopMetaLineageEdge>
         q.setLimit(maxEdges + 1);
         List<NopMetaLineageEdge> edges = dao().findAllByQuery(q);
         if (edges.size() > maxEdges) {
-            throw new NopException(ERR_LINEAGE_GRAPH_TOO_LARGE)
+            throw new NopException(NopMetadataErrors.ERR_LINEAGE_GRAPH_TOO_LARGE)
                     .param("edges", edges.size())
                     .param("limit", maxEdges);
         }
@@ -744,7 +727,7 @@ public class NopMetaLineageEdgeBizModel extends CrudBizModel<NopMetaLineageEdge>
         q.setLimit(maxTables + 1);
         List<NopMetaTable> tables = tableDao.findAllByQuery(q);
         if (tables.size() > maxTables) {
-            throw new NopException(ERR_LINEAGE_TABLE_INDEX_TOO_LARGE)
+            throw new NopException(NopMetadataErrors.ERR_LINEAGE_TABLE_INDEX_TOO_LARGE)
                     .param("tables", tables.size())
                     .param("limit", maxTables);
         }

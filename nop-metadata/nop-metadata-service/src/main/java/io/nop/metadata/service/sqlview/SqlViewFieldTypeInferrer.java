@@ -1,3 +1,11 @@
+/**
+ * Copyright (c) 2017-2024 Nop Platform. All rights reserved.
+ * Author: canonical_entropy@163.com
+ * Blog:   https://www.zhihu.com/people/canonical-entropy
+ * Gitee:  https://github.com/entropy-cloud/nop-entropy
+ * Github: https://github.com/entropy-cloud/nop-entropy
+ */
+
 package io.nop.metadata.service.sqlview;
 
 import io.nop.api.core.exceptions.ErrorCode;
@@ -6,6 +14,7 @@ import io.nop.dao.api.IEntityDao;
 import io.nop.metadata.dao.entity.NopMetaDataSource;
 import io.nop.metadata.service.connection.IMetaDataSourceConnectionProcessor;
 import io.nop.metadata.service.datasource.MetaDataSourceResolver;
+import io.nop.metadata.service.NopMetadataErrors;
 
 import java.sql.Connection;
 import java.sql.DatabaseMetaData;
@@ -57,10 +66,10 @@ import java.util.function.BiConsumer;
  *   <li>DISABLED 数据源 → 沿用 {@link MetaDataSourceResolver#resolveActiveOrThrow} 的 ErrorCode</li>
  *   <li>建连失败 → 沿用 {@code withConnection} 的 {@code metadata.datasource-connect-failed}</li>
  *   <li>非 jdbc 类型 → 由 {@code withConnection} 抛 {@code NopException}</li>
- *   <li>方言不支持 → {@link #ERR_SQL_TYPE_INFERENCE_DIALECT_NOT_SUPPORTED}</li>
- *   <li>列数不匹配（sourceSql 输出列数 != ResultSetMetaData 列数）→ {@link #ERR_SQL_TYPE_INFERENCE_COLUMN_MISMATCH}</li>
- *   <li>sourceSql 执行失败（语法错误等）→ {@link #ERR_SQL_TYPE_INFERENCE_FAILED}</li>
- *   <li>取类型元数据失败（getColumnTypeName 抛 SQLException）→ {@link #ERR_SQL_TYPE_INFERENCE_FAILED}</li>
+ *   <li>方言不支持 → {@link #NopMetadataErrors.ERR_SQL_TYPE_INFERENCE_DIALECT_NOT_SUPPORTED}</li>
+ *   <li>列数不匹配（sourceSql 输出列数 != ResultSetMetaData 列数）→ {@link #NopMetadataErrors.ERR_SQL_TYPE_INFERENCE_COLUMN_MISMATCH}</li>
+ *   <li>sourceSql 执行失败（语法错误等）→ {@link #NopMetadataErrors.ERR_SQL_TYPE_INFERENCE_FAILED}</li>
+ *   <li>取类型元数据失败（getColumnTypeName 抛 SQLException）→ {@link #NopMetadataErrors.ERR_SQL_TYPE_INFERENCE_FAILED}</li>
  * </ul>
  *
  * <p>本组件无状态（依赖外部传入 DAO/resolver/connectionService），可在多 BizModel 间共享实例。
@@ -68,23 +77,8 @@ import java.util.function.BiConsumer;
 public class SqlViewFieldTypeInferrer {
 
     /** inline ErrorCode：方言不支持（首版仅 H2/MySQL/PostgreSQL）。 */
-    static final ErrorCode ERR_SQL_TYPE_INFERENCE_DIALECT_NOT_SUPPORTED =
-            ErrorCode.define("metadata.sql-type-inference-dialect-not-supported",
-                    "Dialect not supported for sql view type inference (only H2/MySQL/PostgreSQL): "
-                            + "{databaseProductName} querySpace={querySpace}",
-                    "databaseProductName", "querySpace");
     /** inline ErrorCode：列数不匹配（extractor 输出列数 != ResultSetMetaData 列数）。 */
-    static final ErrorCode ERR_SQL_TYPE_INFERENCE_COLUMN_MISMATCH =
-            ErrorCode.define("metadata.sql-type-inference-column-mismatch",
-                    "Sql view column count mismatch: extractor={extractedCount} resultSet={resultSetCount} "
-                            + "(projection order must align with ResultSetMetaData by 1-based index)",
-                    "extractedCount", "resultSetCount", "querySpace");
     /** inline ErrorCode：sourceSql 执行失败 或 取类型元数据失败。 */
-    static final ErrorCode ERR_SQL_TYPE_INFERENCE_FAILED =
-            ErrorCode.define("metadata.sql-type-inference-failed",
-                    "Sql view type inference failed (LIMIT 0 execution or ResultSetMetaData read failed): "
-                            + "{error} querySpace={querySpace}",
-                    "error", "querySpace");
 
     /** 类型推断首版支持的方言集合（与 §4.4 LIMIT/OFFSET 便携语法方言集一致）。 */
     private static final Set<String> SUPPORTED_DIALECTS =
@@ -150,7 +144,7 @@ public class SqlViewFieldTypeInferrer {
         String productName = safeProductName(metaData);
         if (productName == null || !SUPPORTED_DIALECTS.contains(productName)) {
             // 方言不支持 → 显式失败（不静默 fallback type=null）
-            throw new NopException(ERR_SQL_TYPE_INFERENCE_DIALECT_NOT_SUPPORTED)
+            throw new NopException(NopMetadataErrors.ERR_SQL_TYPE_INFERENCE_DIALECT_NOT_SUPPORTED)
                     .param("databaseProductName", String.valueOf(productName))
                     .param("querySpace", querySpace);
         }
@@ -163,7 +157,7 @@ public class SqlViewFieldTypeInferrer {
                 int columnCount = rsMeta.getColumnCount();
                 if (columnCount != expectedCount) {
                     // 列数不匹配（D3 列序对齐失败）→ 显式失败（不静默截断/不静默补 null）
-                    throw new NopException(ERR_SQL_TYPE_INFERENCE_COLUMN_MISMATCH)
+                    throw new NopException(NopMetadataErrors.ERR_SQL_TYPE_INFERENCE_COLUMN_MISMATCH)
                             .param("extractedCount", expectedCount)
                             .param("resultSetCount", columnCount)
                             .param("querySpace", querySpace);
@@ -179,7 +173,7 @@ public class SqlViewFieldTypeInferrer {
             }
         } catch (SQLException e) {
             // sourceSql 执行失败 / prepareStatement 失败 → 显式失败（不吞、不静默 fallback）
-            throw new NopException(ERR_SQL_TYPE_INFERENCE_FAILED)
+            throw new NopException(NopMetadataErrors.ERR_SQL_TYPE_INFERENCE_FAILED)
                     .param("error", messageOf(e))
                     .param("querySpace", querySpace)
                     .cause(e);
@@ -195,7 +189,7 @@ public class SqlViewFieldTypeInferrer {
         try {
             return rsMeta.getColumnTypeName(columnIdx);
         } catch (SQLException e) {
-            throw new NopException(ERR_SQL_TYPE_INFERENCE_FAILED)
+            throw new NopException(NopMetadataErrors.ERR_SQL_TYPE_INFERENCE_FAILED)
                     .param("error", "getColumnTypeName failed for column " + columnIdx + ": " + messageOf(e))
                     .param("querySpace", querySpace)
                     .cause(e);

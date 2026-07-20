@@ -1,6 +1,15 @@
+/**
+ * Copyright (c) 2017-2024 Nop Platform. All rights reserved.
+ * Author: canonical_entropy@163.com
+ * Blog:   https://www.zhihu.com/people/canonical-entropy
+ * Gitee:  https://github.com/entropy-cloud/nop-entropy
+ * Github: https://github.com/entropy-cloud/nop-entropy
+ */
+
 package io.nop.metadata.service.entity;
 
 import io.nop.api.core.annotations.biz.BizModel;
+import io.nop.metadata.service.NopMetadataErrors;
 import io.nop.api.core.annotations.biz.BizMutation;
 import io.nop.api.core.annotations.core.Name;
 import io.nop.api.core.exceptions.ErrorCode;
@@ -24,7 +33,7 @@ import java.util.Map;
  *   <li>{@code activateContract}：DRAFT→ACTIVE。</li>
  *   <li>{@code deprecateContract}：ACTIVE→DEPRECATED。</li>
  *   <li>{@code retireContract}：DEPRECATED→RETIRED。</li>
- *   <li>非法前置状态（如 DRAFT→RETIRED、RETIRED→*、已 RETIRED 再流转）→ 显式抛 {@link #ERR_CONTRACT_INVALID_TRANSITION}
+ *   <li>非法前置状态（如 DRAFT→RETIRED、RETIRED→*、已 RETIRED 再流转）→ 显式抛 {@link #NopMetadataErrors.ERR_CONTRACT_INVALID_TRANSITION}
  *       （不静默跳过、不静默改状态）。</li>
  * </ul>
  *
@@ -37,13 +46,6 @@ import java.util.Map;
 @BizModel("NopMetaDataContract")
 public class NopMetaDataContractBizModel extends CrudBizModel<NopMetaDataContract> implements INopMetaDataContractBiz {
 
-    static final ErrorCode ERR_CONTRACT_NOT_FOUND =
-            ErrorCode.define("metadata.contract-not-found",
-                    "Data contract not found: {contractId}", "contractId");
-    static final ErrorCode ERR_CONTRACT_INVALID_TRANSITION =
-            ErrorCode.define("metadata.contract-invalid-transition",
-                    "Invalid contract status transition: contractId={contractId} currentStatus={currentStatus} "
-                            + "expectedStatus={expectedStatus}", "contractId", "currentStatus", "expectedStatus");
 
     @Inject
     protected MetaContractChecker contractChecker;
@@ -88,11 +90,11 @@ public class NopMetaDataContractBizModel extends CrudBizModel<NopMetaDataContrac
                                            IServiceContext context) {
         NopMetaDataContract contract = dao().getEntityById(contractId);
         if (contract == null) {
-            throw new NopException(ERR_CONTRACT_NOT_FOUND).param("contractId", contractId);
+            throw new NopException(NopMetadataErrors.ERR_CONTRACT_NOT_FOUND).param("contractId", contractId);
         }
         String currentStatus = contract.getStatus();
         if (!expectedPrior.equals(currentStatus)) {
-            throw new NopException(ERR_CONTRACT_INVALID_TRANSITION)
+            throw new NopException(NopMetadataErrors.ERR_CONTRACT_INVALID_TRANSITION)
                     .param("contractId", contractId)
                     .param("currentStatus", currentStatus)
                     .param("expectedStatus", expectedPrior);
@@ -120,7 +122,7 @@ public class NopMetaDataContractBizModel extends CrudBizModel<NopMetaDataContrac
     public Map<String, Object> checkContract(@Name("contractId") String contractId, IServiceContext context) {
         NopMetaDataContract contract = dao().getEntityById(contractId);
         if (contract == null) {
-            throw new NopException(ERR_CONTRACT_NOT_FOUND).param("contractId", contractId);
+            throw new NopException(NopMetadataErrors.ERR_CONTRACT_NOT_FOUND).param("contractId", contractId);
         }
 
         Map<String, Object> result = contractChecker.check(

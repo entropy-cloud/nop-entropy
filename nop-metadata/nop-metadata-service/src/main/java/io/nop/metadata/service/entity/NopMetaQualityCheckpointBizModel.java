@@ -1,11 +1,19 @@
+/**
+ * Copyright (c) 2017-2024 Nop Platform. All rights reserved.
+ * Author: canonical_entropy@163.com
+ * Blog:   https://www.zhihu.com/people/canonical-entropy
+ * Gitee:  https://github.com/entropy-cloud/nop-entropy
+ * Github: https://github.com/entropy-cloud/nop-entropy
+ */
+
 package io.nop.metadata.service.entity;
 
 import io.nop.api.core.annotations.biz.BizModel;
+import io.nop.metadata.service.NopMetadataErrors;
 import io.nop.api.core.annotations.biz.BizMutation;
 import io.nop.api.core.annotations.core.Name;
 import io.nop.api.core.annotations.core.Optional;
 import io.nop.api.core.annotations.ioc.InjectValue;
-import io.nop.api.core.exceptions.ErrorCode;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.api.core.ioc.BeanContainer;
 import io.nop.api.core.message.IMessageService;
@@ -49,7 +57,7 @@ import java.util.Map;
  * {@code clearSession} 失败隔离（对齐既有 per-rule 隔离模式），失败记入摘要 errors 不中断其他表评分、不回滚
  * 已落盘的 checkpoint store。受 {@code extConfig.autoScore} 控制（默认开启；关闭时跳过且摘要标注 skipped）。
  *
- * <p>失败路径显式化：检查点不存在 → 抛 {@link #ERR_CHECKPOINT_NOT_FOUND}；其余不可执行路径（非 ACTIVE 状态 /
+ * <p>失败路径显式化：检查点不存在 → 抛 {@link #NopMetadataErrors.ERR_CHECKPOINT_NOT_FOUND}；其余不可执行路径（非 ACTIVE 状态 /
  * 未知动作 / 空规则集 / 单规则执行异常）由 executor 显式处理（详见 {@link MetaQualityCheckpointExecutor}）。
  */
 @BizModel("NopMetaQualityCheckpoint")
@@ -58,9 +66,6 @@ public class NopMetaQualityCheckpointBizModel extends CrudBizModel<NopMetaQualit
 
     private static final Logger LOG = LoggerFactory.getLogger(NopMetaQualityCheckpointBizModel.class);
 
-    static final ErrorCode ERR_CHECKPOINT_NOT_FOUND =
-            ErrorCode.define("metadata.checkpoint-not-found",
-                    "Quality checkpoint not found: {checkpointId}", "checkpointId");
 
     @Inject
     protected IMetaDataSourceConnectionProcessor connectionService;
@@ -150,7 +155,7 @@ public class NopMetaQualityCheckpointBizModel extends CrudBizModel<NopMetaQualit
                                                   IServiceContext context) {
         NopMetaQualityCheckpoint cp = dao().getEntityById(checkpointId);
         if (cp == null) {
-            throw new NopException(ERR_CHECKPOINT_NOT_FOUND).param("checkpointId", checkpointId);
+            throw new NopException(NopMetadataErrors.ERR_CHECKPOINT_NOT_FOUND).param("checkpointId", checkpointId);
         }
         Map<String, Object> summary = ensureCheckpointExecutor().execute(cp, schemaPattern);
 
@@ -182,7 +187,7 @@ public class NopMetaQualityCheckpointBizModel extends CrudBizModel<NopMetaQualit
 
     /**
      * delete override（§2.7.3.1 D4 运行时增量）：删除前先移除该检查点的 cron job，避免删除后 cron 仍触发
-     * （触发时 {@code executeCheckpoint} 会因检查点不存在抛 {@code ERR_CHECKPOINT_NOT_FOUND}，但提前移除更干净）。
+     * （触发时 {@code executeCheckpoint} 会因检查点不存在抛 {@code NopMetadataErrors.ERR_CHECKPOINT_NOT_FOUND}，但提前移除更干净）。
      */
     @Override
     public boolean delete(String id, IServiceContext context) {

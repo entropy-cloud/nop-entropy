@@ -13,6 +13,7 @@ import io.nop.metadata.service.catalog.MetaCatalogCollector;
 import io.nop.metadata.service.profiling.MetaTableProfiler;
 import io.nop.metadata.service.quality.MetaQualityRuleExecutor;
 import io.nop.metadata.service.tableref.TableReference;
+import io.nop.metadata.service.NopMetadataErrors;
 import org.junit.jupiter.api.Test;
 
 import java.lang.reflect.InvocationTargetException;
@@ -76,7 +77,7 @@ public class TestMetaTableProfilerSecurity {
             NopException ex = assertThrows(NopException.class,
                     () -> normalizeSchema(m, payload),
                     "profiling schemaPattern injection payload must fail: " + payload);
-            assertEquals(MetaTableProfiler.ERR_PROFILING_INVALID_IDENTIFIER.getErrorCode(),
+            assertEquals(NopMetadataErrors.ERR_PROFILING_INVALID_IDENTIFIER.getErrorCode(),
                     ex.getErrorCode(),
                     "profiling schemaPattern injection must fail with ERR_PROFILING_INVALID_IDENTIFIER: " + payload);
         }
@@ -100,7 +101,7 @@ public class TestMetaTableProfilerSecurity {
             NopException ex = assertThrows(NopException.class,
                     () -> normalizeSchema(m, payload),
                     "catalog schemaPattern injection payload must fail: " + payload);
-            assertEquals(MetaCatalogCollector.ERR_CATALOG_INVALID_IDENTIFIER.getErrorCode(),
+            assertEquals(NopMetadataErrors.ERR_CATALOG_INVALID_IDENTIFIER.getErrorCode(),
                     ex.getErrorCode(),
                     "catalog schemaPattern injection must fail with ERR_CATALOG_INVALID_IDENTIFIER: " + payload);
         }
@@ -124,7 +125,7 @@ public class TestMetaTableProfilerSecurity {
             NopException ex = assertThrows(NopException.class,
                     () -> normalizeSchema(m, payload),
                     "quality schemaPattern injection payload must fail: " + payload);
-            assertEquals(MetaQualityRuleExecutor.ERR_QUALITY_INVALID_IDENTIFIER.getErrorCode(),
+            assertEquals(NopMetadataErrors.ERR_QUALITY_INVALID_IDENTIFIER.getErrorCode(),
                     ex.getErrorCode(),
                     "quality schemaPattern injection must fail with ERR_QUALITY_INVALID_IDENTIFIER: " + payload);
         }
@@ -174,7 +175,7 @@ public class TestMetaTableProfilerSecurity {
         NopException ex = assertThrows(NopException.class,
                 () -> profiler.profile(null, null, ref, "x; DROP TABLE y", null, "H2"),
                 "profile entrypoint must reject schemaPattern injection before reaching JDBC layer");
-        assertEquals(MetaTableProfiler.ERR_PROFILING_INVALID_IDENTIFIER.getErrorCode(),
+        assertEquals(NopMetadataErrors.ERR_PROFILING_INVALID_IDENTIFIER.getErrorCode(),
                 ex.getErrorCode(),
                 "profile entrypoint schemaPattern injection must fail with ERR_PROFILING_INVALID_IDENTIFIER");
     }
@@ -192,7 +193,7 @@ public class TestMetaTableProfilerSecurity {
         NopException ex = assertThrows(NopException.class,
                 () -> collector.collectForTable(null, null, ref, "x; DROP TABLE y", "H2"),
                 "collectForTable entrypoint must reject schemaPattern injection");
-        assertEquals(MetaCatalogCollector.ERR_CATALOG_INVALID_IDENTIFIER.getErrorCode(),
+        assertEquals(NopMetadataErrors.ERR_CATALOG_INVALID_IDENTIFIER.getErrorCode(),
                 ex.getErrorCode(),
                 "collectForTable entrypoint schemaPattern injection must fail with ERR_CATALOG_INVALID_IDENTIFIER");
     }
@@ -212,7 +213,7 @@ public class TestMetaTableProfilerSecurity {
                 () -> executor.judge(null, ref, "x; DROP TABLE y",
                         "volume", "table", null, null, null, "H2"),
                 "judge(volume) entrypoint must reject schemaPattern injection");
-        assertEquals(MetaQualityRuleExecutor.ERR_QUALITY_INVALID_IDENTIFIER.getErrorCode(),
+        assertEquals(NopMetadataErrors.ERR_QUALITY_INVALID_IDENTIFIER.getErrorCode(),
                 ex.getErrorCode(),
                 "judge entrypoint schemaPattern injection must fail with ERR_QUALITY_INVALID_IDENTIFIER");
     }
@@ -236,7 +237,7 @@ public class TestMetaTableProfilerSecurity {
         assertTrue(thrown != null, "profile with null Connection must throw something");
         if (thrown instanceof NopException) {
             NopException ne = (NopException) thrown;
-            assertTrue(!MetaTableProfiler.ERR_PROFILING_INVALID_IDENTIFIER.getErrorCode().equals(ne.getErrorCode()),
+            assertTrue(!NopMetadataErrors.ERR_PROFILING_INVALID_IDENTIFIER.getErrorCode().equals(ne.getErrorCode()),
                     "valid schema PUBLIC must NOT be rejected by ERR_PROFILING_INVALID_IDENTIFIER");
         }
     }

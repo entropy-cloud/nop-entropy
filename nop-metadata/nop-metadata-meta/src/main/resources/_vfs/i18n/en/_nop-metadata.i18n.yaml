@@ -131,13 +131,13 @@ prop:
       sortOrder: Sort Order
       deprecated: Deprecated
       internal: Internal
+      isDelta: Is Delta
       version: Version
       createdBy: Created By
       createTime: Create Time
       updatedBy: Updated By
       updateTime: Update Time
       remark: Remark
-      isDelta: Is Delta
       metaDict: Meta Dict
     NopMetaDomain:
       metaDomainId: Meta Domain Id
@@ -459,7 +459,7 @@ prop:
       profilingRuleId: Profiling Rule Id
       ruleName: Rule Name
       displayName: Display Name
-      tableId: Table Id
+      metaTableId: Meta Table Id
       columns: Columns
       stats: Stats
       sampleSize: Sample Size

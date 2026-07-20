@@ -465,6 +465,7 @@ prop:
       extConfigComponent: null
       metaTable: 逻辑表
       metaTable.displayName: 逻辑表
+      metaTableId: 剖析表ID
       profilingRuleId: 剖析规则ID
       remark: 备注
       results: 剖析结果集
@@ -472,7 +473,6 @@ prop:
       sampleSize: 采样大小
       stats: 统计指标
       statsComponent: null
-      tableId: 剖析表ID
       updateTime: 修改时间
       updatedBy: 修改人
       version: 数据版本

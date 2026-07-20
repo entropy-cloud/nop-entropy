@@ -33,9 +33,9 @@ public class _NopMetaProfilingRule extends DynamicOrmEntity{
     public static final String PROP_NAME_displayName = "displayName";
     public static final int PROP_ID_displayName = 3;
     
-    /* 剖析表ID: TABLE_ID VARCHAR */
-    public static final String PROP_NAME_tableId = "tableId";
-    public static final int PROP_ID_tableId = 4;
+    /* 剖析表ID: META_TABLE_ID VARCHAR */
+    public static final String PROP_NAME_metaTableId = "metaTableId";
+    public static final int PROP_ID_metaTableId = 4;
     
     /* 剖析列: COLUMNS VARCHAR */
     public static final String PROP_NAME_columns = "columns";
@@ -113,8 +113,8 @@ public class _NopMetaProfilingRule extends DynamicOrmEntity{
           PROP_ID_TO_NAME[PROP_ID_displayName] = PROP_NAME_displayName;
           PROP_NAME_TO_ID.put(PROP_NAME_displayName, PROP_ID_displayName);
       
-          PROP_ID_TO_NAME[PROP_ID_tableId] = PROP_NAME_tableId;
-          PROP_NAME_TO_ID.put(PROP_NAME_tableId, PROP_ID_tableId);
+          PROP_ID_TO_NAME[PROP_ID_metaTableId] = PROP_NAME_metaTableId;
+          PROP_NAME_TO_ID.put(PROP_NAME_metaTableId, PROP_ID_metaTableId);
       
           PROP_ID_TO_NAME[PROP_ID_columns] = PROP_NAME_columns;
           PROP_NAME_TO_ID.put(PROP_NAME_columns, PROP_ID_columns);
@@ -158,8 +158,8 @@ public class _NopMetaProfilingRule extends DynamicOrmEntity{
     /* 显示名: DISPLAY_NAME */
     private java.lang.String _displayName;
     
-    /* 剖析表ID: TABLE_ID */
-    private java.lang.String _tableId;
+    /* 剖析表ID: META_TABLE_ID */
+    private java.lang.String _metaTableId;
     
     /* 剖析列: COLUMNS */
     private java.lang.String _columns;
@@ -274,8 +274,8 @@ public class _NopMetaProfilingRule extends DynamicOrmEntity{
             case PROP_ID_displayName:
                return getDisplayName();
         
-            case PROP_ID_tableId:
-               return getTableId();
+            case PROP_ID_metaTableId:
+               return getMetaTableId();
         
             case PROP_ID_columns:
                return getColumns();
@@ -348,13 +348,13 @@ public class _NopMetaProfilingRule extends DynamicOrmEntity{
                break;
             }
         
-            case PROP_ID_tableId:{
+            case PROP_ID_metaTableId:{
                java.lang.String typedValue = null;
                if(value != null){
                    typedValue = ConvertHelper.toString(value,
-                       err-> newTypeConversionError(PROP_NAME_tableId));
+                       err-> newTypeConversionError(PROP_NAME_metaTableId));
                }
-               setTableId(typedValue);
+               setMetaTableId(typedValue);
                break;
             }
         
@@ -488,9 +488,9 @@ public class _NopMetaProfilingRule extends DynamicOrmEntity{
                break;
             }
         
-            case PROP_ID_tableId:{
+            case PROP_ID_metaTableId:{
                onInitProp(propId);
-               this._tableId = (java.lang.String)value;
+               this._metaTableId = (java.lang.String)value;
                
                break;
             }
@@ -629,20 +629,20 @@ public class _NopMetaProfilingRule extends DynamicOrmEntity{
     }
     
     /**
-     * 剖析表ID: TABLE_ID
+     * 剖析表ID: META_TABLE_ID
      */
-    public final java.lang.String getTableId(){
-         onPropGet(PROP_ID_tableId);
-         return _tableId;
+    public final java.lang.String getMetaTableId(){
+         onPropGet(PROP_ID_metaTableId);
+         return _metaTableId;
     }
 
     /**
-     * 剖析表ID: TABLE_ID
+     * 剖析表ID: META_TABLE_ID
      */
-    public final void setTableId(java.lang.String value){
-        if(onPropSet(PROP_ID_tableId,value)){
-            this._tableId = value;
-            internalClearRefs(PROP_ID_tableId);
+    public final void setMetaTableId(java.lang.String value){
+        if(onPropSet(PROP_ID_metaTableId,value)){
+            this._metaTableId = value;
+            internalClearRefs(PROP_ID_metaTableId);
             
         }
     }
@@ -848,12 +848,12 @@ public class _NopMetaProfilingRule extends DynamicOrmEntity{
    
            if(refEntity == null){
            
-                   this.setTableId(null);
+                   this.setMetaTableId(null);
                
            }else{
            internalSetRefEntity(PROP_NAME_metaTable, refEntity,()->{
            
-                           this.setTableId(refEntity.getMetaTableId());
+                           this.setMetaTableId(refEntity.getMetaTableId());
                        
            });
            }

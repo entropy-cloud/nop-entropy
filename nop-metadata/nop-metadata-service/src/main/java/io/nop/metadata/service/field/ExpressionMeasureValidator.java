@@ -1,8 +1,17 @@
+/**
+ * Copyright (c) 2017-2024 Nop Platform. All rights reserved.
+ * Author: canonical_entropy@163.com
+ * Blog:   https://www.zhihu.com/people/canonical-entropy
+ * Gitee:  https://github.com/entropy-cloud/nop-entropy
+ * Github: https://github.com/entropy-cloud/nop-entropy
+ */
+
 package io.nop.metadata.service.field;
 
 import io.nop.api.core.exceptions.ErrorCode;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.metadata.service.query.MetaAggregationExecutor;
+import io.nop.metadata.service.NopMetadataErrors;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -91,7 +100,7 @@ public final class ExpressionMeasureValidator {
         }
         int len = expression.length();
         if (len > EXPRESSION_MAX_LENGTH) {
-            throw new NopException(MetaAggregationExecutor.ERR_AGGR_EXPRESSION_TOO_LONG)
+            throw new NopException(NopMetadataErrors.ERR_AGGR_EXPRESSION_TOO_LONG)
                     .param("metaTableId", metaTableId)
                     .param("measureName", measureName)
                     .param("length", len)
@@ -120,13 +129,13 @@ public final class ExpressionMeasureValidator {
     public static ValidatedExpression validateStatic(String expression, ValidationOptions options,
                                                      String metaTableId, String measureName) {
         if (expression == null) {
-            throw new NopException(MetaAggregationExecutor.ERR_AGGR_EXPRESSION_UNPARSEABLE)
+            throw new NopException(NopMetadataErrors.ERR_AGGR_EXPRESSION_UNPARSEABLE)
                     .param("metaTableId", metaTableId).param("measureName", measureName)
                     .param("expression", String.valueOf(expression)).param("error", "expression is null");
         }
         String trimmed = expression.trim();
         if (trimmed.isEmpty()) {
-            throw new NopException(MetaAggregationExecutor.ERR_AGGR_EXPRESSION_UNPARSEABLE)
+            throw new NopException(NopMetadataErrors.ERR_AGGR_EXPRESSION_UNPARSEABLE)
                     .param("metaTableId", metaTableId).param("measureName", measureName)
                     .param("expression", expression).param("error", "expression is empty after trim");
         }
@@ -145,7 +154,7 @@ public final class ExpressionMeasureValidator {
                 // 单 token 标识符：白名单校验（裸名格式），可选列存在性校验
                 String ident = tok.text;
                 if (!IDENTIFIER_PATTERN.matcher(ident).matches()) {
-                    throw new NopException(MetaAggregationExecutor.ERR_AGGR_EXPRESSION_UNSAFE)
+                    throw new NopException(NopMetadataErrors.ERR_AGGR_EXPRESSION_UNSAFE)
                             .param("metaTableId", metaTableId).param("measureName", measureName)
                             .param("expression", expression)
                             .param("reason", "identifier fails whitelist ^[A-Za-z_][A-Za-z0-9_]*$: " + ident);
@@ -157,13 +166,13 @@ public final class ExpressionMeasureValidator {
                 String prefix = tok.text.substring(0, dot);
                 String col = tok.text.substring(dot + 1);
                 if (!IDENTIFIER_PATTERN.matcher(prefix).matches()) {
-                    throw new NopException(MetaAggregationExecutor.ERR_AGGR_EXPRESSION_UNSAFE)
+                    throw new NopException(NopMetadataErrors.ERR_AGGR_EXPRESSION_UNSAFE)
                             .param("metaTableId", metaTableId).param("measureName", measureName)
                             .param("expression", expression)
                             .param("reason", "join qualifier prefix fails whitelist: " + prefix);
                 }
                 if (!IDENTIFIER_PATTERN.matcher(col).matches()) {
-                    throw new NopException(MetaAggregationExecutor.ERR_AGGR_EXPRESSION_UNSAFE)
+                    throw new NopException(NopMetadataErrors.ERR_AGGR_EXPRESSION_UNSAFE)
                             .param("metaTableId", metaTableId).param("measureName", measureName)
                             .param("expression", expression)
                             .param("reason", "qualified identifier column fails whitelist: " + col);
@@ -171,7 +180,7 @@ public final class ExpressionMeasureValidator {
                 // JOIN 上下文限定名须为 l./r.（其他前缀如 a.b 不允许）
                 if (!JOIN_LEFT_PREFIX.equalsIgnoreCase(prefix + ".")
                         && !JOIN_RIGHT_PREFIX.equalsIgnoreCase(prefix + ".")) {
-                    throw new NopException(MetaAggregationExecutor.ERR_AGGR_EXPRESSION_UNSAFE)
+                    throw new NopException(NopMetadataErrors.ERR_AGGR_EXPRESSION_UNSAFE)
                             .param("metaTableId", metaTableId).param("measureName", measureName)
                             .param("expression", expression)
                             .param("reason", "join qualifier must be l. or r. but got: " + prefix + ".");
@@ -179,7 +188,7 @@ public final class ExpressionMeasureValidator {
                 // JOIN 上下文要求：若 options.requireJoinQualifier=true，qualifier 必须存在；此处已存在（QUALIFIED token）
                 // 单表上下文要求：若 options.allowQualified=false，qualifier 禁止
                 if (!options.allowQualified) {
-                    throw new NopException(MetaAggregationExecutor.ERR_AGGR_EXPRESSION_UNSAFE)
+                    throw new NopException(NopMetadataErrors.ERR_AGGR_EXPRESSION_UNSAFE)
                             .param("metaTableId", metaTableId).param("measureName", measureName)
                             .param("expression", expression)
                             .param("reason", "qualified identifier (l./r.) not allowed in single-table context: " + tok.text);
@@ -190,7 +199,7 @@ public final class ExpressionMeasureValidator {
                 if (options.leftColumns != null || options.rightColumns != null) {
                     Set<String> sideCols = "l".equalsIgnoreCase(prefix) ? options.leftColumns : options.rightColumns;
                     if (sideCols == null || !containsIgnoreCase(sideCols, col)) {
-                        throw new NopException(MetaAggregationExecutor.ERR_AGGR_EXPRESSION_UNSAFE)
+                        throw new NopException(NopMetadataErrors.ERR_AGGR_EXPRESSION_UNSAFE)
                                 .param("metaTableId", metaTableId).param("measureName", measureName)
                                 .param("expression", expression)
                                 .param("reason", "qualified column not in declared side endpoint field set: " + tok.text);
@@ -210,7 +219,7 @@ public final class ExpressionMeasureValidator {
                     continue; // 已在上面按 side 校验
                 }
                 if (!containsIgnoreCase(options.expectedColumns, ident)) {
-                    throw new NopException(MetaAggregationExecutor.ERR_AGGR_EXPRESSION_UNSAFE)
+                    throw new NopException(NopMetadataErrors.ERR_AGGR_EXPRESSION_UNSAFE)
                             .param("metaTableId", metaTableId).param("measureName", measureName)
                             .param("expression", expression)
                             .param("reason", "column not in resolved field set: " + ident);
@@ -221,7 +230,7 @@ public final class ExpressionMeasureValidator {
         if (options.requireJoinQualifier) {
             for (String ident : identifiers) {
                 if (!ident.contains(".")) {
-                    throw new NopException(MetaAggregationExecutor.ERR_AGGR_EXPRESSION_UNSAFE)
+                    throw new NopException(NopMetadataErrors.ERR_AGGR_EXPRESSION_UNSAFE)
                             .param("metaTableId", metaTableId).param("measureName", measureName)
                             .param("expression", expression)
                             .param("reason", "unqualified column in JOIN context (must be l./r. qualified): " + ident);
@@ -269,19 +278,19 @@ public final class ExpressionMeasureValidator {
             }
             // 语句终止符 / 注释标记 → 直接拒绝（safe-side）
             if (c == ';') {
-                throw new NopException(MetaAggregationExecutor.ERR_AGGR_EXPRESSION_UNPARSEABLE)
+                throw new NopException(NopMetadataErrors.ERR_AGGR_EXPRESSION_UNPARSEABLE)
                         .param("metaTableId", metaTableId).param("measureName", measureName)
                         .param("expression", expression)
                         .param("error", "statement terminator ';' is not allowed");
             }
             if (c == '-' && i + 1 < n && expression.charAt(i + 1) == '-') {
-                throw new NopException(MetaAggregationExecutor.ERR_AGGR_EXPRESSION_UNPARSEABLE)
+                throw new NopException(NopMetadataErrors.ERR_AGGR_EXPRESSION_UNPARSEABLE)
                         .param("metaTableId", metaTableId).param("measureName", measureName)
                         .param("expression", expression)
                         .param("error", "line comment '--' is not allowed");
             }
             if (c == '/' && i + 1 < n && expression.charAt(i + 1) == '*') {
-                throw new NopException(MetaAggregationExecutor.ERR_AGGR_EXPRESSION_UNPARSEABLE)
+                throw new NopException(NopMetadataErrors.ERR_AGGR_EXPRESSION_UNPARSEABLE)
                         .param("metaTableId", metaTableId).param("measureName", measureName)
                         .param("expression", expression)
                         .param("error", "block comment '/*' is not allowed");
@@ -297,7 +306,7 @@ public final class ExpressionMeasureValidator {
             if (c == ')') {
                 parenDepth--;
                 if (parenDepth < 0) {
-                    throw new NopException(MetaAggregationExecutor.ERR_AGGR_EXPRESSION_UNPARSEABLE)
+                    throw new NopException(NopMetadataErrors.ERR_AGGR_EXPRESSION_UNPARSEABLE)
                             .param("metaTableId", metaTableId).param("measureName", measureName)
                             .param("expression", expression)
                             .param("error", "unbalanced parenthesis: extra ')'");
@@ -332,7 +341,7 @@ public final class ExpressionMeasureValidator {
                     i++;
                 }
                 if (!closed) {
-                    throw new NopException(MetaAggregationExecutor.ERR_AGGR_EXPRESSION_UNPARSEABLE)
+                    throw new NopException(NopMetadataErrors.ERR_AGGR_EXPRESSION_UNPARSEABLE)
                             .param("metaTableId", metaTableId).param("measureName", measureName)
                             .param("expression", expression)
                             .param("error", "unclosed string literal starting at offset " + start);
@@ -393,7 +402,7 @@ public final class ExpressionMeasureValidator {
                         continue;
                     }
                     // 点后非标识符——视为非法限定（不静默接受）
-                    throw new NopException(MetaAggregationExecutor.ERR_AGGR_EXPRESSION_UNPARSEABLE)
+                    throw new NopException(NopMetadataErrors.ERR_AGGR_EXPRESSION_UNPARSEABLE)
                             .param("metaTableId", metaTableId).param("measureName", measureName)
                             .param("expression", expression)
                             .param("error", "illegal qualified identifier after '.' at offset " + dotPos);
@@ -434,7 +443,7 @@ public final class ExpressionMeasureValidator {
             i++;
         }
         if (parenDepth != 0) {
-            throw new NopException(MetaAggregationExecutor.ERR_AGGR_EXPRESSION_UNPARSEABLE)
+            throw new NopException(NopMetadataErrors.ERR_AGGR_EXPRESSION_UNPARSEABLE)
                     .param("metaTableId", metaTableId).param("measureName", measureName)
                     .param("expression", expression)
                     .param("error", "unbalanced parenthesis: " + parenDepth + " unclosed '('");
@@ -469,14 +478,14 @@ public final class ExpressionMeasureValidator {
             if (tok.type == TokenType.IDENTIFIER) {
                 String upper = tok.text.toUpperCase(Locale.ROOT);
                 if (KEYWORD_BLACKLIST.contains(upper)) {
-                    throw new NopException(MetaAggregationExecutor.ERR_AGGR_EXPRESSION_UNSAFE)
+                    throw new NopException(NopMetadataErrors.ERR_AGGR_EXPRESSION_UNSAFE)
                             .param("metaTableId", metaTableId).param("measureName", measureName)
                             .param("expression", expression)
                             .param("reason", "forbidden keyword: " + upper);
                 }
             } else if (tok.type == TokenType.FUNCTION_CALL) {
                 if (FUNCTION_BLACKLIST.contains(tok.text)) {
-                    throw new NopException(MetaAggregationExecutor.ERR_AGGR_EXPRESSION_UNSAFE)
+                    throw new NopException(NopMetadataErrors.ERR_AGGR_EXPRESSION_UNSAFE)
                             .param("metaTableId", metaTableId).param("measureName", measureName)
                             .param("expression", expression)
                             .param("reason", "forbidden function: " + tok.text);
@@ -504,7 +513,7 @@ public final class ExpressionMeasureValidator {
         }
         for (String fn : validated.functions) {
             if (!isFunctionSupported(fn, dialect)) {
-                throw new NopException(MetaAggregationExecutor.ERR_AGGR_EXPRESSION_DIALECT_UNSUPPORTED)
+                throw new NopException(NopMetadataErrors.ERR_AGGR_EXPRESSION_DIALECT_UNSUPPORTED)
                         .param("metaTableId", metaTableId).param("measureName", measureName)
                         .param("expression", validated.expression)
                         .param("databaseProductName", String.valueOf(dialect))

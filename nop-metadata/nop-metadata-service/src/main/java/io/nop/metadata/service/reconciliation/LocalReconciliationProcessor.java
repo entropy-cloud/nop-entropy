@@ -1,3 +1,11 @@
+/**
+ * Copyright (c) 2017-2024 Nop Platform. All rights reserved.
+ * Author: canonical_entropy@163.com
+ * Blog:   https://www.zhihu.com/people/canonical-entropy
+ * Gitee:  https://github.com/entropy-cloud/nop-entropy
+ * Github: https://github.com/entropy-cloud/nop-entropy
+ */
+
 package io.nop.metadata.service.reconciliation;
 
 import io.nop.api.core.beans.FilterBeans;
@@ -9,6 +17,7 @@ import io.nop.dao.api.IDaoProvider;
 import io.nop.dao.api.IEntityDao;
 import io.nop.metadata.core._NopMetadataCoreConstants;
 import io.nop.metadata.dao.entity.NopMetaReconciliationEntity;
+import io.nop.metadata.service.NopMetadataErrors;
 import jakarta.inject.Inject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -37,9 +46,6 @@ public class LocalReconciliationProcessor implements IReconciliationProcessor {
 
     private static final Logger LOG = LoggerFactory.getLogger(LocalReconciliationProcessor.class);
 
-    static final ErrorCode ERR_RECON_UNSUPPORTED_MATCH_STRATEGY =
-            ErrorCode.define("metadata.recon-unsupported-match-strategy",
-                    "Unsupported matchStrategy for reconciliation: {matchStrategy}", "matchStrategy");
 
     /** score 排序：降序（高分在前），同名次稳定排序保持候选集原始顺序。 */
     private static final Comparator<ReconciliationCandidate> SCORE_DESC =
@@ -113,7 +119,7 @@ public class LocalReconciliationProcessor implements IReconciliationProcessor {
             double sim = levenshteinSimilarity(value, candidateName);
             return sim > FUZZY_MIN_SCORE ? round(sim) : 0.0;
         }
-        throw new NopException(ERR_RECON_UNSUPPORTED_MATCH_STRATEGY).param("matchStrategy", String.valueOf(matchStrategy));
+        throw new NopException(NopMetadataErrors.ERR_RECON_UNSUPPORTED_MATCH_STRATEGY).param("matchStrategy", String.valueOf(matchStrategy));
     }
 
     /** levenshtein 归一化相似度 = 1 - distance / max(len)。忽略大小写。 */

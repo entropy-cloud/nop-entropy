@@ -9,6 +9,7 @@ package io.nop.metadata.service.entity;
 
 
 import io.nop.api.core.time.CoreMetrics;
+import io.nop.metadata.service.NopMetadataErrors;
 import io.nop.api.core.annotations.biz.BizModel;
 import io.nop.api.core.annotations.biz.BizMutation;
 import io.nop.api.core.annotations.core.Name;
@@ -17,7 +18,6 @@ import io.nop.api.core.beans.DictBean;
 import io.nop.api.core.beans.FilterBeans;
 import io.nop.api.core.beans.TreeBean;
 import io.nop.api.core.beans.query.QueryBean;
-import io.nop.api.core.exceptions.ErrorCode;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.biz.BizConstants;
 import io.nop.biz.crud.CrudBizModel;
@@ -81,18 +81,6 @@ public class NopMetaModuleBizModel extends CrudBizModel<NopMetaModule> implement
 
     private static final Logger LOG = LoggerFactory.getLogger(NopMetaModuleBizModel.class);
 
-    static final ErrorCode ERR_RESOURCE_NOT_FOUND =
-            ErrorCode.define("metadata.orm-resource-not-found", "ORM资源不存在", "path");
-    static final ErrorCode ERR_RESOURCE_READ_FAILED =
-            ErrorCode.define("metadata.orm-resource-read-failed", "ORM资源读取失败", "path");
-    static final ErrorCode ERR_MODULE_NOT_FOUND =
-            ErrorCode.define("metadata.module-not-found", "Module not found: {metaModuleId}", "metaModuleId");
-    static final ErrorCode ERR_MODULE_NOT_DRAFTING =
-            ErrorCode.define("metadata.module-not-drafting", "Module is not in drafting status: {status}", "status");
-    static final ErrorCode ERR_MODULE_FULL_MODEL_NOT_FOUND =
-            ErrorCode.define("metadata.module-full-model-not-found",
-                    "Full ORM model (isDelta=false) not found for module, cannot generate manifest: {metaModuleId}",
-                    "metaModuleId");
 
     /** 事件 entityType（架构基线 §2.8 D3）：发布事件时记录的实体类型名。 */
     static final String EVENT_ENTITY_TYPE = "NopMetaModule";
@@ -169,7 +157,7 @@ public class NopMetaModuleBizModel extends CrudBizModel<NopMetaModule> implement
     public NopMetaModule importOrmModel(@Name("path") String path, IServiceContext context) {
         IResource resource = VirtualFileSystem.instance().getResource(path);
         if (resource == null || !resource.exists())
-            throw new NopException(ERR_RESOURCE_NOT_FOUND).param("path", path);
+            throw new NopException(NopMetadataErrors.ERR_ORM_RESOURCE_NOT_FOUND).param("path", path);
 
         // full 定义：x:extends 完全展开后的完整模型
         OrmModel fullModel = new OrmModelLoader().loadFromResource(resource, true);
@@ -373,11 +361,11 @@ public class NopMetaModuleBizModel extends CrudBizModel<NopMetaModule> implement
     public NopMetaModule releaseModule(@Name("metaModuleId") String metaModuleId, IServiceContext context) {
         NopMetaModule module = dao().getEntityById(metaModuleId);
         if (module == null)
-            throw new NopException(ERR_MODULE_NOT_FOUND).param("metaModuleId", metaModuleId);
+            throw new NopException(NopMetadataErrors.ERR_MODULE_NOT_FOUND).param("metaModuleId", metaModuleId);
 
         String status = module.getStatus();
         if (!_NopMetadataCoreConstants.MODULE_STATUS_DRAFTING.equals(status))
-            throw new NopException(ERR_MODULE_NOT_DRAFTING).param("status", status);
+            throw new NopException(NopMetadataErrors.ERR_MODULE_NOT_DRAFTING).param("status", status);
 
         checkDataAuth(BizConstants.METHOD_UPDATE, module, context);
 
@@ -416,8 +404,8 @@ public class NopMetaModuleBizModel extends CrudBizModel<NopMetaModule> implement
      *
      * <p>快速失败（不静默返回空 Manifest）：
      * <ul>
-     *   <li>metaModuleId 不存在 → 抛 {@link #ERR_MODULE_NOT_FOUND}</li>
-     *   <li>模块无 full ORM 模型（isDelta=false） → 抛 {@link #ERR_MODULE_FULL_MODEL_NOT_FOUND}</li>
+     *   <li>metaModuleId 不存在 → 抛 {@link #NopMetadataErrors.ERR_MODULE_NOT_FOUND}</li>
+     *   <li>模块无 full ORM 模型（isDelta=false） → 抛 {@link #NopMetadataErrors.ERR_MODULE_FULL_MODEL_NOT_FOUND}</li>
      * </ul>
      *
      * @return 新生成的 NopMetaManifest（content 已写入 JSON）
@@ -426,7 +414,7 @@ public class NopMetaModuleBizModel extends CrudBizModel<NopMetaModule> implement
     public NopMetaManifest generateManifest(@Name("metaModuleId") String metaModuleId, IServiceContext context) {
         NopMetaModule module = dao().getEntityById(metaModuleId);
         if (module == null)
-            throw new NopException(ERR_MODULE_NOT_FOUND).param("metaModuleId", metaModuleId);
+            throw new NopException(NopMetadataErrors.ERR_MODULE_NOT_FOUND).param("metaModuleId", metaModuleId);
 
         IEntityDao<NopMetaOrmModel> ormModelDao = daoFor(NopMetaOrmModel.class);
         IEntityDao<NopMetaEntity> entityDao = daoFor(NopMetaEntity.class);
@@ -439,7 +427,7 @@ public class NopMetaModuleBizModel extends CrudBizModel<NopMetaModule> implement
         fullOrmQ.addFilter(FilterBeans.eq(NopMetaOrmModel.PROP_NAME_isDelta, (byte) 0));
         NopMetaOrmModel fullOrmModel = ormModelDao.findFirstByQuery(fullOrmQ);
         if (fullOrmModel == null)
-            throw new NopException(ERR_MODULE_FULL_MODEL_NOT_FOUND).param("metaModuleId", metaModuleId);
+            throw new NopException(NopMetadataErrors.ERR_MODULE_FULL_MODEL_NOT_FOUND).param("metaModuleId", metaModuleId);
 
         String ormModelId = fullOrmModel.getOrmModelId();
 
@@ -552,7 +540,7 @@ public class NopMetaModuleBizModel extends CrudBizModel<NopMetaModule> implement
         try (InputStream in = resource.getInputStream()) {
             return new String(in.readAllBytes(), StandardCharsets.UTF_8);
         } catch (IOException e) {
-            throw new NopException(ERR_RESOURCE_READ_FAILED).param("path", resource.getPath()).cause(e);
+            throw new NopException(NopMetadataErrors.ERR_ORM_RESOURCE_READ_FAILED).param("path", resource.getPath()).cause(e);
         }
     }
 

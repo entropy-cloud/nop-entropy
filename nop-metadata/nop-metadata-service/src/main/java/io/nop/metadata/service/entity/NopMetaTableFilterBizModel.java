@@ -1,6 +1,15 @@
+/**
+ * Copyright (c) 2017-2024 Nop Platform. All rights reserved.
+ * Author: canonical_entropy@163.com
+ * Blog:   https://www.zhihu.com/people/canonical-entropy
+ * Gitee:  https://github.com/entropy-cloud/nop-entropy
+ * Github: https://github.com/entropy-cloud/nop-entropy
+ */
+
 package io.nop.metadata.service.entity;
 
 import io.nop.api.core.beans.FilterBeans;
+import io.nop.metadata.service.NopMetadataErrors;
 import io.nop.api.core.beans.TreeBean;
 import io.nop.api.core.annotations.biz.BizModel;
 import io.nop.api.core.annotations.core.Name;
@@ -35,19 +44,6 @@ import java.util.Map;
 public class NopMetaTableFilterBizModel extends CrudBizModel<NopMetaTableFilter>
         implements INopMetaTableFilterBiz {
 
-    static final ErrorCode ERR_FILTER_DEFINITION_INVALID =
-            ErrorCode.define("metadata.filter-definition-invalid",
-                    "Filter definition JSON is not a valid TreeBean filter tree: {metaTableId} filterName={filterName}",
-                    "metaTableId", "filterName");
-    static final ErrorCode ERR_FILTER_DEFINITION_EMPTY =
-            ErrorCode.define("metadata.filter-definition-empty",
-                    "Filter definition is empty: {metaTableId} filterName={filterName}",
-                    "metaTableId", "filterName");
-    static final ErrorCode ERR_FILTER_DEFAULT_ALREADY_EXISTS =
-            ErrorCode.define("metadata.filter-default-already-exists",
-                    "Only one default filter (isDefault=true) is allowed per table: "
-                            + "{metaTableId} existingDefault={existingFilterId}",
-                    "metaTableId", "existingFilterId");
 
     /** TreeBean 反序列化目标类型（item 1.1 D1 裁定：对齐平台 TreeBean filter 树）。 */
     private static final Class<TreeBean> DEFINITION_TYPE = TreeBean.class;
@@ -85,20 +81,20 @@ public class NopMetaTableFilterBizModel extends CrudBizModel<NopMetaTableFilter>
      */
     private void validateDefinition(String metaTableId, String filterName, String definition) {
         if (definition == null || definition.trim().isEmpty()) {
-            throw new NopException(ERR_FILTER_DEFINITION_EMPTY)
+            throw new NopException(NopMetadataErrors.ERR_FILTER_DEFINITION_EMPTY)
                     .param("metaTableId", metaTableId).param("filterName", filterName);
         }
         try {
             // item 1.1 D1 裁定：对齐平台 TreeBean filter 树（非整个 QueryBean，过滤是其 filter 子树）
             TreeBean tree = JsonTool.parseBeanFromText(definition, DEFINITION_TYPE);
             if (tree == null || tree.getTagName() == null || tree.getTagName().isEmpty()) {
-                throw new NopException(ERR_FILTER_DEFINITION_INVALID)
+                throw new NopException(NopMetadataErrors.ERR_FILTER_DEFINITION_INVALID)
                         .param("metaTableId", metaTableId).param("filterName", filterName);
             }
         } catch (NopException e) {
             throw e;
         } catch (Exception e) {
-            throw new NopException(ERR_FILTER_DEFINITION_INVALID)
+            throw new NopException(NopMetadataErrors.ERR_FILTER_DEFINITION_INVALID)
                     .param("metaTableId", metaTableId).param("filterName", filterName).cause(e);
         }
     }
@@ -121,7 +117,7 @@ public class NopMetaTableFilterBizModel extends CrudBizModel<NopMetaTableFilter>
             if (selfFilterId != null && selfFilterId.equals(existing.getFilterId())) {
                 continue;
             }
-            throw new NopException(ERR_FILTER_DEFAULT_ALREADY_EXISTS)
+            throw new NopException(NopMetadataErrors.ERR_FILTER_DEFAULT_ALREADY_EXISTS)
                     .param("metaTableId", metaTableId)
                     .param("existingFilterId", existing.getFilterId());
         }

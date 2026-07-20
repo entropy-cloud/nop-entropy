@@ -1,3 +1,11 @@
+/**
+ * Copyright (c) 2017-2024 Nop Platform. All rights reserved.
+ * Author: canonical_entropy@163.com
+ * Blog:   https://www.zhihu.com/people/canonical-entropy
+ * Gitee:  https://github.com/entropy-cloud/nop-entropy
+ * Github: https://github.com/entropy-cloud/nop-entropy
+ */
+
 package io.nop.metadata.service.profiling;
 
 import io.nop.api.core.exceptions.ErrorCode;
@@ -5,6 +13,7 @@ import io.nop.api.core.exceptions.NopException;
 import io.nop.commons.util.IoHelper;
 import io.nop.metadata.service.field.ResolvedTableField;
 import io.nop.metadata.service.tableref.TableReference;
+import io.nop.metadata.service.NopMetadataErrors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -59,16 +68,8 @@ public class MetaTableProfiler {
     static final Pattern IDENTIFIER_PATTERN = Pattern.compile("^[A-Za-z_][A-Za-z0-9_]*$");
 
     /** inline ErrorCode：标识符（列名/表名/schema）不符合白名单，拒绝拼接防注入。 */
-    public static final ErrorCode ERR_PROFILING_INVALID_IDENTIFIER =
-            ErrorCode.define("metadata.profiling-invalid-identifier",
-                    "Identifier (column/table/schema) does not match whitelist ^[A-Za-z_][A-Za-z0-9_]*$: {identifier}",
-                    "identifier");
 
     /** 维度09-08：聚合 SQL 返回 0 行属不可能发生的逻辑断言，不应使用 SQLException 表达业务控制流。 */
-    public static final ErrorCode ERR_PROFILING_AGGREGATE_NO_ROW =
-            ErrorCode.define("metadata.profiling-aggregate-no-row",
-                    "Profile aggregate SQL returned no row (logical impossibility): {sql}",
-                    "sql");
 
     /** topValues 默认取前 N 个值。 */
     private static final int DEFAULT_TOP_VALUES_LIMIT = 10;
@@ -145,8 +146,7 @@ public class MetaTableProfiler {
             }
         } catch (SQLException e) {
             // 表级失败（COUNT(*) 失败、列结构读取失败）包装为运行时异常，由调用方 per-table 处理
-            throw new NopException(ErrorCode.define("metadata.profiling-sql-failed",
-                    "Profile table SQL execution failed: {tableName} -- {error}", "tableName", "error"), e)
+            throw new NopException(NopMetadataErrors.ERR_PROFILING_SQL_FAILED, e)
                     .param("tableName", displayTableName)
                     .param("error", messageOf(e));
         }
@@ -419,7 +419,7 @@ public class MetaTableProfiler {
         try (Statement st = conn.createStatement(); ResultSet rs = st.executeQuery(sql)) {
             if (!rs.next()) {
                 // 维度09-08：不可能发生的逻辑断言用 NopException + ErrorCode，不混用 SQLException 控制流
-                throw new NopException(ERR_PROFILING_AGGREGATE_NO_ROW).param("sql", sql);
+                throw new NopException(NopMetadataErrors.ERR_PROFILING_AGGREGATE_NO_ROW).param("sql", sql);
             }
             return toLong(rs, 1);
         }
@@ -580,7 +580,7 @@ public class MetaTableProfiler {
 
     static void validateIdentifier(String identifier) {
         if (identifier == null || !IDENTIFIER_PATTERN.matcher(identifier).matches()) {
-            throw new NopException(ERR_PROFILING_INVALID_IDENTIFIER)
+            throw new NopException(NopMetadataErrors.ERR_PROFILING_INVALID_IDENTIFIER)
                     .param("identifier", String.valueOf(identifier));
         }
     }

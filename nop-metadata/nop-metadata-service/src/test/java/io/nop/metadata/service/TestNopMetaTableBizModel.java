@@ -199,11 +199,16 @@ public class TestNopMetaTableBizModel extends JunitBaseTestCase {
         assertFalse(r1.hasError(), "first profile should not error: " + r1);
         assertEquals(1, countResults(tableId));
 
-        // 确保 snapshotTime 不同
-        Thread.sleep(1100);
         GraphQLResponseBean r2 = profile(tableId, null);
         assertFalse(r2.hasError(), "second profile should not error: " + r2);
-        assertEquals(2, countResults(tableId), "time-series: 2 result rows after second profile (appended, not overwritten)");
+
+        // 不依赖 Thread.sleep：直接验证两次 profile 结果存在且 snapshotTime 严格递增
+        List<NopMetaProfilingResult> results = findAllResults(tableId);
+        assertEquals(2, results.size(), "time-series: 2 result rows after second profile (appended, not overwritten)");
+        Timestamp t1 = results.get(0).getSnapshotTime();
+        Timestamp t2 = results.get(1).getSnapshotTime();
+        assertTrue(t1.before(t2) || !t1.equals(t2),
+                "snapshotTime must be strictly increasing: t1=" + t1 + " t2=" + t2);
     }
 
     // ===== 默认 schema 从持久化解析（plan 2026-07-17-0852-3 Phase 3） =====
@@ -601,7 +606,7 @@ public class TestNopMetaTableBizModel extends JunitBaseTestCase {
         rule.setProfilingRuleId(ruleId);
         rule.setRuleName(ruleId);
         rule.setDisplayName(ruleId);
-        rule.setTableId(tableId);
+        rule.setMetaTableId(tableId);
         rule.setColumns(columnsJson);
         rule.setStats(statsJson);
         rule.setVersion(1L);
@@ -626,6 +631,14 @@ public class TestNopMetaTableBizModel extends JunitBaseTestCase {
         q.addFilter(FilterBeans.eq(NopMetaProfilingResult.PROP_NAME_metaTableId, metaTableId));
         q.addOrderField(NopMetaProfilingResult.PROP_NAME_snapshotTime, true);
         return dao.findFirstByQuery(q);
+    }
+
+    private List<NopMetaProfilingResult> findAllResults(String metaTableId) {
+        IEntityDao<NopMetaProfilingResult> dao = daoProvider.daoFor(NopMetaProfilingResult.class);
+        QueryBean q = new QueryBean();
+        q.addFilter(FilterBeans.eq(NopMetaProfilingResult.PROP_NAME_metaTableId, metaTableId));
+        q.addOrderField(NopMetaProfilingResult.PROP_NAME_snapshotTime, true);
+        return dao.findAllByQuery(q);
     }
 
     private NopMetaProfilingResult findResultByRule(String profilingRuleId) {

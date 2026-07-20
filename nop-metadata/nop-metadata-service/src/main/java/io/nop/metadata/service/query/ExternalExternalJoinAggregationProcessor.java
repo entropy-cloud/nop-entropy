@@ -1,3 +1,11 @@
+/**
+ * Copyright (c) 2017-2024 Nop Platform. All rights reserved.
+ * Author: canonical_entropy@163.com
+ * Blog:   https://www.zhihu.com/people/canonical-entropy
+ * Gitee:  https://github.com/entropy-cloud/nop-entropy
+ * Github: https://github.com/entropy-cloud/nop-entropy
+ */
+
 package io.nop.metadata.service.query;
 
 import io.nop.api.core.beans.TreeBean;
@@ -10,6 +18,7 @@ import io.nop.metadata.dao.entity.NopMetaEntityField;
 import io.nop.metadata.dao.entity.NopMetaTable;
 import io.nop.metadata.dao.entity.NopMetaTableJoin;
 import io.nop.metadata.service.field.ExpressionMeasureValidator;
+import io.nop.metadata.service.NopMetadataErrors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -45,7 +54,7 @@ public class ExternalExternalJoinAggregationProcessor implements AggregationProc
         NopMetaTable rightTable = rightEp.table;
 
         if (equalsStr(leftTable.getMetaTableId(), rightTable.getMetaTableId())) {
-            throw new NopException(MetaAggregationExecutor.ERR_AGGR_JOIN_SELF_JOIN)
+            throw new NopException(NopMetadataErrors.ERR_AGGR_JOIN_SELF_JOIN)
                     .param("joinId", joinId).param("entityId", leftTable.getMetaTableId());
         }
 
@@ -85,7 +94,7 @@ public class ExternalExternalJoinAggregationProcessor implements AggregationProc
                 (Connection conn, DatabaseMetaData metaData) -> {
                     String dialect = safeProductName(metaData);
                     if (dialect == null || !SUPPORTED_DIALECTS.contains(dialect)) {
-                        throw new NopException(MetaAggregationExecutor.ERR_AGGR_UNSUPPORTED_DIALECT)
+                        throw new NopException(NopMetadataErrors.ERR_AGGR_UNSUPPORTED_DIALECT)
                                 .param("databaseProductName", String.valueOf(dialect))
                                 .param("metaTableId", table.getMetaTableId());
                     }

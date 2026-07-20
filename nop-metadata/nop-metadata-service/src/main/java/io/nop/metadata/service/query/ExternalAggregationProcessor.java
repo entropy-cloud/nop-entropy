@@ -1,3 +1,11 @@
+/**
+ * Copyright (c) 2017-2024 Nop Platform. All rights reserved.
+ * Author: canonical_entropy@163.com
+ * Blog:   https://www.zhihu.com/people/canonical-entropy
+ * Gitee:  https://github.com/entropy-cloud/nop-entropy
+ * Github: https://github.com/entropy-cloud/nop-entropy
+ */
+
 package io.nop.metadata.service.query;
 
 import io.nop.api.core.beans.TreeBean;
@@ -11,6 +19,7 @@ import io.nop.metadata.dao.entity.NopMetaTable;
 import io.nop.metadata.dao.entity.NopMetaTableDimension;
 import io.nop.metadata.dao.entity.NopMetaTableMeasure;
 import io.nop.metadata.service.field.ExpressionMeasureValidator;
+import io.nop.metadata.service.NopMetadataErrors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -63,7 +72,7 @@ public class ExternalAggregationProcessor implements AggregationProcessor {
                 (Connection conn, DatabaseMetaData metaData) -> {
                     String dialect = safeProductName(metaData);
                     if (dialect == null || !SUPPORTED_DIALECTS.contains(dialect)) {
-                        throw new NopException(MetaAggregationExecutor.ERR_AGGR_UNSUPPORTED_DIALECT)
+                        throw new NopException(NopMetadataErrors.ERR_AGGR_UNSUPPORTED_DIALECT)
                                 .param("databaseProductName", String.valueOf(dialect))
                                 .param("metaTableId", table.getMetaTableId());
                     }
@@ -101,7 +110,7 @@ public class ExternalAggregationProcessor implements AggregationProcessor {
             }
             String column = m.getEntityFieldId();
             if (column == null || column.trim().isEmpty()) {
-                throw new NopException(MetaAggregationExecutor.ERR_AGGR_FIELD_NOT_RESOLVED)
+                throw new NopException(NopMetadataErrors.ERR_AGGR_FIELD_NOT_RESOLVED)
                         .param("metaTableId", table.getMetaTableId())
                         .param("name", m.getMeasureName()).param("entityFieldId", String.valueOf(column));
             }
@@ -118,7 +127,7 @@ public class ExternalAggregationProcessor implements AggregationProcessor {
         for (NopMetaTableDimension d : all) {
             String column = d.getEntityFieldId();
             if (column == null || column.trim().isEmpty()) {
-                throw new NopException(MetaAggregationExecutor.ERR_AGGR_FIELD_NOT_RESOLVED)
+                throw new NopException(NopMetadataErrors.ERR_AGGR_FIELD_NOT_RESOLVED)
                         .param("metaTableId", table.getMetaTableId())
                         .param("name", d.getDimensionName()).param("entityFieldId", String.valueOf(column));
             }

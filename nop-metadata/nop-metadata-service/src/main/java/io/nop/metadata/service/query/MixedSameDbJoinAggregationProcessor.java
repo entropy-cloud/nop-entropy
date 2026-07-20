@@ -1,3 +1,11 @@
+/**
+ * Copyright (c) 2017-2024 Nop Platform. All rights reserved.
+ * Author: canonical_entropy@163.com
+ * Blog:   https://www.zhihu.com/people/canonical-entropy
+ * Gitee:  https://github.com/entropy-cloud/nop-entropy
+ * Github: https://github.com/entropy-cloud/nop-entropy
+ */
+
 package io.nop.metadata.service.query;
 
 import io.nop.api.core.beans.TreeBean;
@@ -11,6 +19,7 @@ import io.nop.metadata.dao.entity.NopMetaEntityField;
 import io.nop.metadata.dao.entity.NopMetaTable;
 import io.nop.metadata.dao.entity.NopMetaTableJoin;
 import io.nop.metadata.service.field.ExpressionMeasureValidator;
+import io.nop.metadata.service.NopMetadataErrors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -48,7 +57,7 @@ public class MixedSameDbJoinAggregationProcessor implements AggregationProcessor
 
         String entityPhysicalTable = entityEndpoint.getTableName();
         if (entityPhysicalTable == null || entityPhysicalTable.trim().isEmpty()) {
-            throw new NopException(MetaAggregationExecutor.ERR_AGGR_JOIN_MIXED_ENTITY_TABLE_EMPTY)
+            throw new NopException(NopMetadataErrors.ERR_AGGR_JOIN_MIXED_ENTITY_TABLE_EMPTY)
                     .param("joinId", joinId).param("entityId", String.valueOf(entityEndpoint.getMetaEntityId()));
         }
         FilterToSqlTranslator.validateIdentifier(entityPhysicalTable);
@@ -120,7 +129,7 @@ public class MixedSameDbJoinAggregationProcessor implements AggregationProcessor
                 (Connection conn, DatabaseMetaData metaData) -> {
                     String dialect = safeProductName(metaData);
                     if (dialect == null || !SUPPORTED_DIALECTS.contains(dialect)) {
-                        throw new NopException(MetaAggregationExecutor.ERR_AGGR_UNSUPPORTED_DIALECT)
+                        throw new NopException(NopMetadataErrors.ERR_AGGR_UNSUPPORTED_DIALECT)
                                 .param("databaseProductName", String.valueOf(dialect))
                                 .param("metaTableId", table.getMetaTableId());
                     }

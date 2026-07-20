@@ -1,6 +1,13 @@
+/**
+ * Copyright (c) 2017-2024 Nop Platform. All rights reserved.
+ * Author: canonical_entropy@163.com
+ * Blog:   https://www.zhihu.com/people/canonical-entropy
+ * Gitee:  https://github.com/entropy-cloud/nop-entropy
+ * Github: https://github.com/entropy-cloud/nop-entropy
+ */
+
 package io.nop.metadata.service.lineage;
 
-import io.nop.api.core.exceptions.ErrorCode;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.orm.eql.ast.EqlASTNode;
 import io.nop.orm.eql.ast.SqlAggregateFunction;
@@ -23,6 +30,7 @@ import io.nop.orm.eql.ast.SqlTableName;
 import io.nop.orm.eql.ast.SqlUnionSelect;
 import io.nop.orm.eql.parse.EqlASTParser;
 import io.nop.metadata.core._NopMetadataCoreConstants;
+import io.nop.metadata.service.NopMetadataErrors;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -74,16 +82,6 @@ import java.util.function.Consumer;
  */
 public class SqlColumnLineageExtractor {
 
-    static final ErrorCode ERR_COL_LINEAGE_SQL_EMPTY =
-            ErrorCode.define("metadata.col-lineage-sql-empty", "Source sql is empty", "sql");
-    static final ErrorCode ERR_COL_LINEAGE_SQL_PARSE_FAILED =
-            ErrorCode.define("metadata.col-lineage-sql-parse-failed", "Failed to parse source sql for column lineage", "sql");
-    static final ErrorCode ERR_COL_LINEAGE_MULTI_STATEMENT =
-            ErrorCode.define("metadata.col-lineage-multi-statement",
-                    "Sql source must be a single SELECT statement, but got {count} statements", "count", "sql");
-    static final ErrorCode ERR_COL_LINEAGE_NOT_SELECT =
-            ErrorCode.define("metadata.col-lineage-not-select",
-                    "Sql source must be a SELECT statement, but got {statementKind}", "statementKind", "sql");
 
     /**
      * CTE / 派生表的「输出列 → 底层源列列表」映射条目：单条 = (源表 simpleName, 源列名, transformType)。
@@ -126,28 +124,28 @@ public class SqlColumnLineageExtractor {
      */
     public List<ColumnLineageCandidate> extract(String sql) {
         if (sql == null || sql.trim().isEmpty()) {
-            throw new NopException(ERR_COL_LINEAGE_SQL_EMPTY).param("sql", sql);
+            throw new NopException(NopMetadataErrors.ERR_COL_LINEAGE_SQL_EMPTY).param("sql", sql);
         }
 
         SqlProgram program;
         try {
             program = parser.parseFromText(null, sql);
         } catch (Exception e) {
-            throw new NopException(ERR_COL_LINEAGE_SQL_PARSE_FAILED).param("sql", sql).cause(e);
+            throw new NopException(NopMetadataErrors.ERR_COL_LINEAGE_SQL_PARSE_FAILED).param("sql", sql).cause(e);
         }
         if (program == null || program.getStatements() == null || program.getStatements().isEmpty()) {
-            throw new NopException(ERR_COL_LINEAGE_SQL_PARSE_FAILED).param("sql", sql);
+            throw new NopException(NopMetadataErrors.ERR_COL_LINEAGE_SQL_PARSE_FAILED).param("sql", sql);
         }
 
         List<SqlStatement> statements = program.getStatements();
         if (statements.size() != 1) {
-            throw new NopException(ERR_COL_LINEAGE_MULTI_STATEMENT)
+            throw new NopException(NopMetadataErrors.ERR_COL_LINEAGE_MULTI_STATEMENT)
                     .param("count", statements.size()).param("sql", sql);
         }
 
         SqlStatement stmt = statements.get(0);
         if (stmt.getStatementKind() != SqlStatementKind.SELECT) {
-            throw new NopException(ERR_COL_LINEAGE_NOT_SELECT)
+            throw new NopException(NopMetadataErrors.ERR_COL_LINEAGE_NOT_SELECT)
                     .param("statementKind", String.valueOf(stmt.getStatementKind())).param("sql", sql);
         }
 
@@ -187,7 +185,7 @@ public class SqlColumnLineageExtractor {
         SqlQuerySelect query = resolveQuerySelect(stmt);
         if (query == null) {
             // getStatementKind()==SELECT 但非已知子类——不可达，显式失败而非静默
-            throw new NopException(ERR_COL_LINEAGE_SQL_PARSE_FAILED)
+            throw new NopException(NopMetadataErrors.ERR_COL_LINEAGE_SQL_PARSE_FAILED)
                     .param("sql", sql)
                     .cause(new IllegalStateException("unhandled SELECT statement class: " + stmt.getClass().getName()));
         }
@@ -199,7 +197,7 @@ public class SqlColumnLineageExtractor {
         // 平台对裸 `SELECT *` 会静默丢弃通配符返回空 projections；此处显式失败（不静默返回空候选列表，
         // 因合法显式列 SELECT 必有 ≥1 个 projection，空列表唯一现实成因是被丢弃的裸 *）。
         if (projections == null || projections.isEmpty()) {
-            throw new NopException(ERR_COL_LINEAGE_SQL_PARSE_FAILED)
+            throw new NopException(NopMetadataErrors.ERR_COL_LINEAGE_SQL_PARSE_FAILED)
                     .param("sql", sql)
                     .cause(new IllegalStateException("empty projections (bare wildcard '*' cannot be resolved)"));
         }
@@ -214,7 +212,7 @@ public class SqlColumnLineageExtractor {
             }
             if (!(proj instanceof SqlExprProjection)) {
                 // 未知 projection 子类——显式失败而非静默跳过
-                throw new NopException(ERR_COL_LINEAGE_SQL_PARSE_FAILED)
+                throw new NopException(NopMetadataErrors.ERR_COL_LINEAGE_SQL_PARSE_FAILED)
                         .param("sql", sql)
                         .cause(new IllegalStateException("unhandled projection class: " + proj.getClass().getName()));
             }

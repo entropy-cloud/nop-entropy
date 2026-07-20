@@ -13,7 +13,7 @@ import io.nop.commons.type.StdDataType;
 import io.nop.commons.type.StdSqlType;
 import io.nop.commons.util.StringHelper;
 import io.nop.metadata.dao.entity.NopMetaDict;
-import io.nop.metadata.core._NopMetadataCoreConstants;
+import io.nop.metadata.dao.NopMetadataDaoConstants;
 import io.nop.metadata.dao.entity.NopMetaDictItem;
 import io.nop.metadata.dao.entity.NopMetaDomain;
 import io.nop.metadata.dao.entity.NopMetaEntity;
@@ -51,7 +51,7 @@ public class OrmModelImporter {
         module.setModuleId(appName != null ? appName.replace('-', '/') : "unknown");
         module.setDisplayName(appName != null ? appName : "unknown");
         module.setModuleVersion(moduleVersion);
-        module.setStatus(_NopMetadataCoreConstants.MODULE_STATUS_DRAFTING);
+        module.setStatus(NopMetadataDaoConstants.MODULE_STATUS_DRAFTING);
         module.setBaseModuleId(null);
         module.setMavenGroupId(str(ormModel.prop_get(OrmModelConstants.EXT_MAVEN_GROUP_ID)));
         module.setMavenArtifactId(str(ormModel.prop_get(OrmModelConstants.EXT_MAVEN_ARTIFACT_ID)));

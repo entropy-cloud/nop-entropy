@@ -1,8 +1,15 @@
+/**
+ * Copyright (c) 2017-2024 Nop Platform. All rights reserved.
+ * Author: canonical_entropy@163.com
+ * Blog:   https://www.zhihu.com/people/canonical-entropy
+ * Gitee:  https://github.com/entropy-cloud/nop-entropy
+ * Github: https://github.com/entropy-cloud/nop-entropy
+ */
+
 package io.nop.metadata.service.contract;
 
 import io.nop.api.core.beans.FilterBeans;
 import io.nop.api.core.beans.query.QueryBean;
-import io.nop.api.core.exceptions.ErrorCode;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.core.lang.json.JsonTool;
 import io.nop.dao.api.IDaoProvider;
@@ -10,6 +17,7 @@ import io.nop.dao.api.IEntityDao;
 import io.nop.metadata.dao.entity.NopMetaCatalog;
 import io.nop.metadata.dao.entity.NopMetaQualityResult;
 import io.nop.metadata.dao.entity.NopMetaQualityRule;
+import io.nop.metadata.service.NopMetadataErrors;
 import jakarta.inject.Inject;
 
 import java.sql.Timestamp;
@@ -38,14 +46,6 @@ import java.util.concurrent.TimeUnit;
  */
 public class MetaContractChecker {
 
-    static final ErrorCode ERR_CONTRACT_QUALITY_EXPECTATIONS_INVALID =
-            ErrorCode.define("metadata.contract-quality-expectations-invalid",
-                    "Failed to parse qualityExpectations JSON for contract: {contractId} error={error}",
-                    "contractId", "error");
-    static final ErrorCode ERR_CONTRACT_SLA_INVALID =
-            ErrorCode.define("metadata.contract-sla-invalid",
-                    "Failed to parse sla JSON for contract: {contractId} error={error}",
-                    "contractId", "error");
 
     private final IDaoProvider daoProvider;
 
@@ -75,7 +75,7 @@ public class MetaContractChecker {
         } catch (NopException e) {
             throw e;
         } catch (Exception e) {
-            throw new NopException(ERR_CONTRACT_QUALITY_EXPECTATIONS_INVALID)
+            throw new NopException(NopMetadataErrors.ERR_CONTRACT_QUALITY_EXPECTATIONS_INVALID)
                     .param("contractId", contractId).param("error", toMsg(e));
         }
 
@@ -84,7 +84,7 @@ public class MetaContractChecker {
         try {
             slaMap = parseJsonObject(sla);
         } catch (Exception e) {
-            throw new NopException(ERR_CONTRACT_SLA_INVALID)
+            throw new NopException(NopMetadataErrors.ERR_CONTRACT_SLA_INVALID)
                     .param("contractId", contractId).param("error", toMsg(e));
         }
 
@@ -149,7 +149,7 @@ public class MetaContractChecker {
             return new ArrayList<>();
         }
         if (!(raw instanceof List)) {
-            throw new NopException(ERR_CONTRACT_QUALITY_EXPECTATIONS_INVALID)
+            throw new NopException(NopMetadataErrors.ERR_CONTRACT_QUALITY_EXPECTATIONS_INVALID)
                     .param("contractId", "").param("error",
                             "qualityRuleIds is not an array: " + raw.getClass().getSimpleName());
         }
@@ -377,7 +377,7 @@ public class MetaContractChecker {
         if (parsed instanceof Map) {
             return (Map<String, Object>) parsed;
         }
-        throw new NopException(ERR_CONTRACT_SLA_INVALID)
+        throw new NopException(NopMetadataErrors.ERR_CONTRACT_SLA_INVALID)
                 .param("contractId", "").param("error",
                         "expected JSON object but got " + parsed.getClass().getSimpleName());
     }

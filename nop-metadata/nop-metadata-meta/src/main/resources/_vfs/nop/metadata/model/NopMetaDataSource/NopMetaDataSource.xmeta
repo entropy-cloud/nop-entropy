@@ -11,7 +11,7 @@
         前端 add/edit 表单字段通过 NopMetaDataSource.view.xml 留存层（非 _gen）独立配置（不在本 plan 范围）。
     -->
     <props>
-        <prop name="connectionConfig" published="false"/>
+        <prop name="connectionConfig" published="false" insertable="false" updatable="false"/>
     </props>
 
 </meta>

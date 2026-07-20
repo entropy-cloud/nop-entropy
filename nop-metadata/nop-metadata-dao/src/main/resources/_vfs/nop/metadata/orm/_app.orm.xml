@@ -1013,22 +1013,22 @@
                         propId="9" stdDataType="byte" stdSqlType="TINYINT" i18n-en:displayName="Deprecated"/>
                 <column code="INTERNAL" defaultValue="0" displayName="内部使用" domain="boolFlag" name="internal"
                         propId="10" stdDataType="byte" stdSqlType="TINYINT" i18n-en:displayName="Internal"/>
-                <column code="VERSION" displayName="数据版本" domain="version" mandatory="true" name="version" propId="11"
+                <column code="IS_DELTA" defaultValue="0" displayName="是否Delta" domain="boolFlag" name="isDelta"
+                        propId="11" stdDataType="byte" stdSqlType="TINYINT" i18n-en:displayName="Is Delta"/>
+                <column code="VERSION" displayName="数据版本" domain="version" mandatory="true" name="version" propId="12"
                         stdDataType="long" stdSqlType="BIGINT" i18n-en:displayName="Version"/>
                 <column code="CREATED_BY" displayName="创建人" domain="createdBy" mandatory="true" name="createdBy"
-                        precision="50" propId="12" stdDataType="string" stdSqlType="VARCHAR"
+                        precision="50" propId="13" stdDataType="string" stdSqlType="VARCHAR"
                         i18n-en:displayName="Created By"/>
                 <column code="CREATE_TIME" displayName="创建时间" domain="createTime" mandatory="true" name="createTime"
-                        propId="13" stdDataType="timestamp" stdSqlType="TIMESTAMP" i18n-en:displayName="Create Time"/>
+                        propId="14" stdDataType="timestamp" stdSqlType="TIMESTAMP" i18n-en:displayName="Create Time"/>
                 <column code="UPDATED_BY" displayName="修改人" domain="updatedBy" mandatory="true" name="updatedBy"
-                        precision="50" propId="14" stdDataType="string" stdSqlType="VARCHAR"
+                        precision="50" propId="15" stdDataType="string" stdSqlType="VARCHAR"
                         i18n-en:displayName="Updated By"/>
                 <column code="UPDATE_TIME" displayName="修改时间" domain="updateTime" mandatory="true" name="updateTime"
-                        propId="15" stdDataType="timestamp" stdSqlType="TIMESTAMP" i18n-en:displayName="Update Time"/>
-                <column code="REMARK" displayName="备注" domain="remark" name="remark" precision="200" propId="16"
+                        propId="16" stdDataType="timestamp" stdSqlType="TIMESTAMP" i18n-en:displayName="Update Time"/>
+                <column code="REMARK" displayName="备注" domain="remark" name="remark" precision="200" propId="17"
                         stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Remark"/>
-                <column code="IS_DELTA" defaultValue="0" displayName="是否Delta" domain="boolFlag" name="isDelta"
-                        propId="17" stdDataType="byte" stdSqlType="TINYINT" i18n-en:displayName="Is Delta"/>
             </columns>
             <indexes>
                 <index name="IX_NOP_META_DICT_ITEM_DICT" unique="false">
@@ -1175,7 +1175,7 @@
                          refEntityName="io.nop.metadata.dao.entity.NopMetaProfilingRule" refPropName="metaTable"
                          tagSet="pub,ref-pub" i18n-en:displayName="Profiling Rules">
                     <join>
-                        <on leftProp="metaTableId" rightProp="tableId"/>
+                        <on leftProp="metaTableId" rightProp="metaTableId"/>
                     </join>
                 </to-many>
                 <to-many displayName="数据剖析结果集" name="profilingResults"
@@ -1215,6 +1215,8 @@
                 </to-many>
             </relations>
             <unique-keys>
+                <unique-key columns="metaModuleId,tableName,schema" displayName="表名+模块+schema唯一约束"
+                            name="uk_meta_table_module_schema"/>
                 <unique-key columns="metaModuleId,tableName" name="UK_NOP_META_TABLE_MODULE_NAME"
                             i18n-en:displayName="Unique Table Name Per Module"/>
             </unique-keys>
@@ -1947,8 +1949,8 @@
                         stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Rule Name"/>
                 <column code="DISPLAY_NAME" displayName="显示名" name="displayName" precision="200" propId="3"
                         stdDataType="string" stdSqlType="VARCHAR" tagSet="disp" i18n-en:displayName="Display Name"/>
-                <column code="TABLE_ID" displayName="剖析表ID" mandatory="true" name="tableId" precision="32" propId="4"
-                        stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Table Id"/>
+                <column code="META_TABLE_ID" displayName="剖析表ID" mandatory="true" name="metaTableId" precision="32"
+                        propId="4" stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Meta Table Id"/>
                 <column code="COLUMNS" displayName="剖析列" domain="json-4000" name="columns" precision="4000" propId="5"
                         stdDataType="string" stdDomain="json" stdSqlType="VARCHAR" i18n-en:displayName="Columns"/>
                 <column code="STATS" displayName="统计指标" domain="json-4000" name="stats" precision="4000" propId="6"
@@ -1975,14 +1977,14 @@
             </columns>
             <indexes>
                 <index name="IX_NOP_META_PROFRULE_TABLE" unique="false">
-                    <column name="tableId"/>
+                    <column name="metaTableId"/>
                 </index>
             </indexes>
             <relations>
                 <to-one displayName="逻辑表" name="metaTable" refEntityName="io.nop.metadata.dao.entity.NopMetaTable"
                         refPropName="profilingRules" tagSet="pub,ref-pub" i18n-en:displayName="Meta Table">
                     <join>
-                        <on leftProp="tableId" rightProp="metaTableId"/>
+                        <on leftProp="metaTableId" rightProp="metaTableId"/>
                     </join>
                 </to-one>
                 <to-many displayName="剖析结果集" name="results"
@@ -1994,7 +1996,7 @@
                 </to-many>
             </relations>
             <unique-keys>
-                <unique-key columns="tableId,ruleName" name="UK_NOP_META_PROFRULE_TABLE_NAME"
+                <unique-key columns="metaTableId,ruleName" name="UK_NOP_META_PROFRULE_TABLE_NAME"
                             i18n-en:displayName="Unique Profiling Rule Name Per Table"/>
             </unique-keys>
         </entity>

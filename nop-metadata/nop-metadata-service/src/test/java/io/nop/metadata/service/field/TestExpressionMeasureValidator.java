@@ -2,6 +2,7 @@ package io.nop.metadata.service.field;
 
 import io.nop.api.core.exceptions.NopException;
 import io.nop.metadata.service.query.MetaAggregationExecutor;
+import io.nop.metadata.service.NopMetadataErrors;
 import org.junit.jupiter.api.Test;
 
 import java.util.Arrays;
@@ -88,7 +89,7 @@ public class TestExpressionMeasureValidator {
         assertDoesNotThrow(() -> ExpressionMeasureValidator.checkDialectSupported(r, "PostgreSQL", MT, MN));
         NopException ex = assertThrows(NopException.class,
                 () -> ExpressionMeasureValidator.checkDialectSupported(r, "MySQL", MT, MN));
-        assertEquals(MetaAggregationExecutor.ERR_AGGR_EXPRESSION_DIALECT_UNSUPPORTED.getErrorCode(), ex.getErrorCode());
+        assertEquals(NopMetadataErrors.ERR_AGGR_EXPRESSION_DIALECT_UNSUPPORTED.getErrorCode(), ex.getErrorCode());
     }
 
     /** JOIN 上下文限定名：{@code l.PRICE * r.QTY}（save-time 宽松 / JOIN 严格均通过）。 */
@@ -115,7 +116,7 @@ public class TestExpressionMeasureValidator {
                 () -> ExpressionMeasureValidator.validateStatic("l.PRICE * r.QTY",
                         ExpressionMeasureValidator.ValidationOptions.joinStrict(
                                 new HashSet<>(Arrays.asList("OTHER")), right), MT, MN));
-        assertEquals(MetaAggregationExecutor.ERR_AGGR_EXPRESSION_UNSAFE.getErrorCode(), ex.getErrorCode());
+        assertEquals(NopMetadataErrors.ERR_AGGR_EXPRESSION_UNSAFE.getErrorCode(), ex.getErrorCode());
     }
 
     /** 单表上下文严格校验：裸列名 + 列集合校验。 */
@@ -131,13 +132,13 @@ public class TestExpressionMeasureValidator {
         NopException ex = assertThrows(NopException.class,
                 () -> ExpressionMeasureValidator.validateStatic("FOO * 1",
                         ExpressionMeasureValidator.ValidationOptions.singleTableStrict(cols), MT, MN));
-        assertEquals(MetaAggregationExecutor.ERR_AGGR_EXPRESSION_UNSAFE.getErrorCode(), ex.getErrorCode());
+        assertEquals(NopMetadataErrors.ERR_AGGR_EXPRESSION_UNSAFE.getErrorCode(), ex.getErrorCode());
 
         // 单表上下文禁限定名 → 失败
         NopException ex2 = assertThrows(NopException.class,
                 () -> ExpressionMeasureValidator.validateStatic("l.AMOUNT * 1",
                         ExpressionMeasureValidator.ValidationOptions.singleTableStrict(cols), MT, MN));
-        assertEquals(MetaAggregationExecutor.ERR_AGGR_EXPRESSION_UNSAFE.getErrorCode(), ex2.getErrorCode());
+        assertEquals(NopMetadataErrors.ERR_AGGR_EXPRESSION_UNSAFE.getErrorCode(), ex2.getErrorCode());
     }
 
     /** JOIN 上下文要求所有列限定：裸名拒绝。 */
@@ -148,7 +149,7 @@ public class TestExpressionMeasureValidator {
         NopException ex = assertThrows(NopException.class,
                 () -> ExpressionMeasureValidator.validateStatic("AMOUNT * r.QTY",
                         ExpressionMeasureValidator.ValidationOptions.joinStrict(left, right), MT, MN));
-        assertEquals(MetaAggregationExecutor.ERR_AGGR_EXPRESSION_UNSAFE.getErrorCode(), ex.getErrorCode());
+        assertEquals(NopMetadataErrors.ERR_AGGR_EXPRESSION_UNSAFE.getErrorCode(), ex.getErrorCode());
     }
 
     /** 字符串字面量内的关键字（'DROP'）经分词收集后不再触发误拒（safe-side 已修复为 safe-side 0 误拒）。 */
@@ -181,7 +182,7 @@ public class TestExpressionMeasureValidator {
         NopException ex = assertThrows(NopException.class,
                 () -> ExpressionMeasureValidator.validateStatic("(AMOUNT * 2",
                         ExpressionMeasureValidator.ValidationOptions.saveTimeLoose(), MT, MN));
-        assertEquals(MetaAggregationExecutor.ERR_AGGR_EXPRESSION_UNPARSEABLE.getErrorCode(), ex.getErrorCode());
+        assertEquals(NopMetadataErrors.ERR_AGGR_EXPRESSION_UNPARSEABLE.getErrorCode(), ex.getErrorCode());
     }
 
     /** 多余闭括号 → unparseable。 */
@@ -190,7 +191,7 @@ public class TestExpressionMeasureValidator {
         NopException ex = assertThrows(NopException.class,
                 () -> ExpressionMeasureValidator.validateStatic("AMOUNT * 2)",
                         ExpressionMeasureValidator.ValidationOptions.saveTimeLoose(), MT, MN));
-        assertEquals(MetaAggregationExecutor.ERR_AGGR_EXPRESSION_UNPARSEABLE.getErrorCode(), ex.getErrorCode());
+        assertEquals(NopMetadataErrors.ERR_AGGR_EXPRESSION_UNPARSEABLE.getErrorCode(), ex.getErrorCode());
     }
 
     /** 未闭合字符串字面量 → unparseable。 */
@@ -199,7 +200,7 @@ public class TestExpressionMeasureValidator {
         NopException ex = assertThrows(NopException.class,
                 () -> ExpressionMeasureValidator.validateStatic("status = 'unterminated",
                         ExpressionMeasureValidator.ValidationOptions.saveTimeLoose(), MT, MN));
-        assertEquals(MetaAggregationExecutor.ERR_AGGR_EXPRESSION_UNPARSEABLE.getErrorCode(), ex.getErrorCode());
+        assertEquals(NopMetadataErrors.ERR_AGGR_EXPRESSION_UNPARSEABLE.getErrorCode(), ex.getErrorCode());
     }
 
     /** 语句终止符 ';' → unparseable。 */
@@ -208,7 +209,7 @@ public class TestExpressionMeasureValidator {
         NopException ex = assertThrows(NopException.class,
                 () -> ExpressionMeasureValidator.validateStatic("AMOUNT; DROP TABLE foo",
                         ExpressionMeasureValidator.ValidationOptions.saveTimeLoose(), MT, MN));
-        assertEquals(MetaAggregationExecutor.ERR_AGGR_EXPRESSION_UNPARSEABLE.getErrorCode(), ex.getErrorCode());
+        assertEquals(NopMetadataErrors.ERR_AGGR_EXPRESSION_UNPARSEABLE.getErrorCode(), ex.getErrorCode());
     }
 
     /** 行注释 '--' → unparseable。 */
@@ -217,7 +218,7 @@ public class TestExpressionMeasureValidator {
         NopException ex = assertThrows(NopException.class,
                 () -> ExpressionMeasureValidator.validateStatic("AMOUNT -- comment",
                         ExpressionMeasureValidator.ValidationOptions.saveTimeLoose(), MT, MN));
-        assertEquals(MetaAggregationExecutor.ERR_AGGR_EXPRESSION_UNPARSEABLE.getErrorCode(), ex.getErrorCode());
+        assertEquals(NopMetadataErrors.ERR_AGGR_EXPRESSION_UNPARSEABLE.getErrorCode(), ex.getErrorCode());
     }
 
     /** 块注释 '/*' → unparseable。 */
@@ -226,7 +227,7 @@ public class TestExpressionMeasureValidator {
         NopException ex = assertThrows(NopException.class,
                 () -> ExpressionMeasureValidator.validateStatic("AMOUNT /* comment */",
                         ExpressionMeasureValidator.ValidationOptions.saveTimeLoose(), MT, MN));
-        assertEquals(MetaAggregationExecutor.ERR_AGGR_EXPRESSION_UNPARSEABLE.getErrorCode(), ex.getErrorCode());
+        assertEquals(NopMetadataErrors.ERR_AGGR_EXPRESSION_UNPARSEABLE.getErrorCode(), ex.getErrorCode());
     }
 
     // ============================================================
@@ -239,7 +240,7 @@ public class TestExpressionMeasureValidator {
         NopException ex = assertThrows(NopException.class,
                 () -> ExpressionMeasureValidator.validateStatic("DROP TABLE foo",
                         ExpressionMeasureValidator.ValidationOptions.saveTimeLoose(), MT, MN));
-        assertEquals(MetaAggregationExecutor.ERR_AGGR_EXPRESSION_UNSAFE.getErrorCode(), ex.getErrorCode());
+        assertEquals(NopMetadataErrors.ERR_AGGR_EXPRESSION_UNSAFE.getErrorCode(), ex.getErrorCode());
     }
 
     /** 含 SLEEP 函数 → unsafe。 */
@@ -248,7 +249,7 @@ public class TestExpressionMeasureValidator {
         NopException ex = assertThrows(NopException.class,
                 () -> ExpressionMeasureValidator.validateStatic("SLEEP(5)",
                         ExpressionMeasureValidator.ValidationOptions.saveTimeLoose(), MT, MN));
-        assertEquals(MetaAggregationExecutor.ERR_AGGR_EXPRESSION_UNSAFE.getErrorCode(), ex.getErrorCode());
+        assertEquals(NopMetadataErrors.ERR_AGGR_EXPRESSION_UNSAFE.getErrorCode(), ex.getErrorCode());
     }
 
     /** 含 PG_SLEEP 函数 → unsafe。 */
@@ -257,7 +258,7 @@ public class TestExpressionMeasureValidator {
         NopException ex = assertThrows(NopException.class,
                 () -> ExpressionMeasureValidator.validateStatic("PG_SLEEP(5)",
                         ExpressionMeasureValidator.ValidationOptions.saveTimeLoose(), MT, MN));
-        assertEquals(MetaAggregationExecutor.ERR_AGGR_EXPRESSION_UNSAFE.getErrorCode(), ex.getErrorCode());
+        assertEquals(NopMetadataErrors.ERR_AGGR_EXPRESSION_UNSAFE.getErrorCode(), ex.getErrorCode());
     }
 
     /** 含 BENCHMARK 函数 → unsafe。 */
@@ -266,7 +267,7 @@ public class TestExpressionMeasureValidator {
         NopException ex = assertThrows(NopException.class,
                 () -> ExpressionMeasureValidator.validateStatic("BENCHMARK(1000000, MD5('x'))",
                         ExpressionMeasureValidator.ValidationOptions.saveTimeLoose(), MT, MN));
-        assertEquals(MetaAggregationExecutor.ERR_AGGR_EXPRESSION_UNSAFE.getErrorCode(), ex.getErrorCode());
+        assertEquals(NopMetadataErrors.ERR_AGGR_EXPRESSION_UNSAFE.getErrorCode(), ex.getErrorCode());
     }
 
     /** 含 INSERT 关键字 → unsafe。 */
@@ -275,7 +276,7 @@ public class TestExpressionMeasureValidator {
         NopException ex = assertThrows(NopException.class,
                 () -> ExpressionMeasureValidator.validateStatic("INSERT INTO t VALUES (1)",
                         ExpressionMeasureValidator.ValidationOptions.saveTimeLoose(), MT, MN));
-        assertEquals(MetaAggregationExecutor.ERR_AGGR_EXPRESSION_UNSAFE.getErrorCode(), ex.getErrorCode());
+        assertEquals(NopMetadataErrors.ERR_AGGR_EXPRESSION_UNSAFE.getErrorCode(), ex.getErrorCode());
     }
 
     // ============================================================
@@ -300,12 +301,12 @@ public class TestExpressionMeasureValidator {
         NopException ex = assertThrows(NopException.class,
                 () -> ExpressionMeasureValidator.validateStatic(tooLong,
                         ExpressionMeasureValidator.ValidationOptions.saveTimeLoose(), MT, MN));
-        assertEquals(MetaAggregationExecutor.ERR_AGGR_EXPRESSION_TOO_LONG.getErrorCode(), ex.getErrorCode());
+        assertEquals(NopMetadataErrors.ERR_AGGR_EXPRESSION_TOO_LONG.getErrorCode(), ex.getErrorCode());
 
         // checkCapacity 独立入口同样有效
         NopException ex2 = assertThrows(NopException.class,
                 () -> ExpressionMeasureValidator.checkCapacity(tooLong, MT, MN));
-        assertEquals(MetaAggregationExecutor.ERR_AGGR_EXPRESSION_TOO_LONG.getErrorCode(), ex2.getErrorCode());
+        assertEquals(NopMetadataErrors.ERR_AGGR_EXPRESSION_TOO_LONG.getErrorCode(), ex2.getErrorCode());
     }
 
     /** 恰好 1000 字符不报错（边界检查）。 */

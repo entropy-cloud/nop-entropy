@@ -1,14 +1,22 @@
+/**
+ * Copyright (c) 2017-2024 Nop Platform. All rights reserved.
+ * Author: canonical_entropy@163.com
+ * Blog:   https://www.zhihu.com/people/canonical-entropy
+ * Gitee:  https://github.com/entropy-cloud/nop-entropy
+ * Github: https://github.com/entropy-cloud/nop-entropy
+ */
+
 package io.nop.metadata.service.entity;
 
 
 import io.nop.api.core.time.CoreMetrics;
+import io.nop.metadata.service.NopMetadataErrors;
 import io.nop.api.core.annotations.biz.BizModel;
 import io.nop.api.core.annotations.biz.BizMutation;
 import io.nop.api.core.annotations.core.Name;
 import io.nop.api.core.annotations.core.Optional;
 import io.nop.api.core.beans.FilterBeans;
 import io.nop.api.core.beans.query.QueryBean;
-import io.nop.api.core.exceptions.ErrorCode;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.biz.crud.CrudBizModel;
 import io.nop.core.context.IServiceContext;
@@ -58,9 +66,6 @@ public class NopMetaProfilingRuleBizModel extends CrudBizModel<NopMetaProfilingR
 
     private static final Logger LOG = LoggerFactory.getLogger(NopMetaProfilingRuleBizModel.class);
 
-    static final ErrorCode ERR_PROFILING_RULE_NOT_FOUND =
-            ErrorCode.define("metadata.profiling-rule-not-found",
-                    "Profiling rule not found: {profilingRuleId}", "profilingRuleId");
 
     @Inject
     protected IMetaDataSourceConnectionProcessor connectionService;
@@ -94,7 +99,7 @@ public class NopMetaProfilingRuleBizModel extends CrudBizModel<NopMetaProfilingR
                                                      IServiceContext context) {
         NopMetaProfilingRule rule = dao().getEntityById(profilingRuleId);
         if (rule == null) {
-            throw new NopException(ERR_PROFILING_RULE_NOT_FOUND).param("profilingRuleId", profilingRuleId);
+            throw new NopException(NopMetadataErrors.ERR_PROFILING_RULE_NOT_FOUND).param("profilingRuleId", profilingRuleId);
         }
 
         NopMetaTable table = resolveTargetTableOrThrow(rule);
@@ -124,10 +129,10 @@ public class NopMetaProfilingRuleBizModel extends CrudBizModel<NopMetaProfilingR
     /** 解析规则目标表：rule.tableId → NopMetaTable；不存在显式失败（任意 tableType，§4.4.3 D4）。 */
     private NopMetaTable resolveTargetTableOrThrow(NopMetaProfilingRule rule) {
         IEntityDao<NopMetaTable> tableDao = daoFor(NopMetaTable.class);
-        NopMetaTable table = tableDao.getEntityById(rule.getTableId());
+        NopMetaTable table = tableDao.getEntityById(rule.getMetaTableId());
         if (table == null) {
-            throw new NopException(NopMetaTableBizModel.ERR_PROFILING_TABLE_NOT_FOUND)
-                    .param("metaTableId", rule.getTableId());
+            throw new NopException(NopMetadataErrors.ERR_PROFILING_TABLE_NOT_FOUND)
+                    .param("metaTableId", rule.getMetaTableId());
         }
         return table;
     }

@@ -1,8 +1,15 @@
+/**
+ * Copyright (c) 2017-2024 Nop Platform. All rights reserved.
+ * Author: canonical_entropy@163.com
+ * Blog:   https://www.zhihu.com/people/canonical-entropy
+ * Gitee:  https://github.com/entropy-cloud/nop-entropy
+ * Github: https://github.com/entropy-cloud/nop-entropy
+ */
+
 package io.nop.metadata.service.quality;
 
 import io.nop.api.core.beans.FilterBeans;
 import io.nop.api.core.beans.query.QueryBean;
-import io.nop.api.core.exceptions.ErrorCode;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.core.lang.json.JsonTool;
 import io.nop.dao.api.IDaoProvider;
@@ -19,6 +26,7 @@ import io.nop.metadata.dao.entity.NopMetaTable;
 import io.nop.metadata.service.tableref.MetaTableReferenceResolver;
 import io.nop.metadata.service.tableref.TableReference;
 import io.nop.metadata.service.tableref.TableReferenceExecutor;
+import io.nop.metadata.service.NopMetadataErrors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -40,9 +48,9 @@ import java.util.Set;
  *
  * <p>失败/不可执行路径均显式（不静默跳过、不伪造、不静默空返回）：
  * <ul>
- *   <li>checkpoint status 非 ACTIVE（PAUSED/DISABLED）→ 抛 {@link #ERR_CHECKPOINT_NOT_ACTIVE}（D5）</li>
- *   <li>配置了 store/webhook/notify 之外的动作类型且 enabled=true → 抛 {@link #ERR_CHECKPOINT_ACTION_NOT_SUPPORTED}（D4）</li>
- *   <li>解析后规则集为空 → 抛 {@link #ERR_CHECKPOINT_NO_RULES}（D2，不静默空集）</li>
+ *   <li>checkpoint status 非 ACTIVE（PAUSED/DISABLED）→ 抛 {@link #NopMetadataErrors.ERR_CHECKPOINT_NOT_ACTIVE}（D5）</li>
+ *   <li>配置了 store/webhook/notify 之外的动作类型且 enabled=true → 抛 {@link #NopMetadataErrors.ERR_CHECKPOINT_ACTION_NOT_SUPPORTED}（D4）</li>
+ *   <li>解析后规则集为空 → 抛 {@link #NopMetadataErrors.ERR_CHECKPOINT_NO_RULES}（D2，不静默空集）</li>
  *   <li>引用的 ruleId/tableId 不存在 → 记入 errors 不中断（D2 per-item 隔离）</li>
  *   <li>单规则执行抛异常 → 记入 errors、clearSession、不中断后续规则（D3 失败隔离）</li>
  *   <li>entityType=database 规则 → 写 SKIP 结果行（不剔除，与 §2.7.1 D1 单规则语义一致）</li>
@@ -56,23 +64,6 @@ public class MetaQualityCheckpointExecutor {
 
     private static final Logger LOG = LoggerFactory.getLogger(MetaQualityCheckpointExecutor.class);
 
-    static final ErrorCode ERR_CHECKPOINT_NOT_ACTIVE =
-            ErrorCode.define("metadata.checkpoint-not-active",
-                    "Quality checkpoint is not ACTIVE (paused/disabled), cannot execute: "
-                            + "{checkpointId} status={status}", "checkpointId", "status");
-    static final ErrorCode ERR_CHECKPOINT_NO_RULES =
-            ErrorCode.define("metadata.checkpoint-no-rules",
-                    "Quality checkpoint resolved to an empty rule set (no explicit ruleIds and no rules mounted "
-                            + "on tableIds), nothing to execute: {checkpointId}", "checkpointId");
-    static final ErrorCode ERR_CHECKPOINT_ACTION_NOT_SUPPORTED =
-            ErrorCode.define("metadata.checkpoint-action-not-supported",
-                    "Quality checkpoint action type is not supported (only store/webhook/notify): "
-                            + "{checkpointId} actionType={actionType}", "checkpointId", "actionType");
-    static final ErrorCode ERR_CHECKPOINT_RULE_TARGET_TABLE_NOT_FOUND =
-            ErrorCode.define("metadata.checkpoint-rule-target-table-not-found",
-                    "Quality rule in checkpoint target table not found (entityId does not refer to an existing "
-                            + "NopMetaTable): {checkpointId} qualityRuleId={qualityRuleId} entityId={entityId}",
-                    "checkpointId", "qualityRuleId", "entityId");
 
     private final MetaQualityRuleExecutor ruleExecutor;
     private final MetaTableReferenceResolver tableRefResolver;
@@ -110,7 +101,7 @@ public class MetaQualityCheckpointExecutor {
     public Map<String, Object> execute(NopMetaQualityCheckpoint cp, String schemaPattern) {
         // D5：状态门禁——非 ACTIVE 显式失败（不静默跳过）
         if (!_NopMetadataCoreConstants.CHECKPOINT_STATUS_ACTIVE.equals(cp.getStatus())) {
-            throw new NopException(ERR_CHECKPOINT_NOT_ACTIVE)
+            throw new NopException(NopMetadataErrors.ERR_CHECKPOINT_NOT_ACTIVE)
                     .param("checkpointId", cp.getCheckpointId())
                     .param("status", String.valueOf(cp.getStatus()));
         }
@@ -122,7 +113,7 @@ public class MetaQualityCheckpointExecutor {
         ResolutionResult resolution = resolveRules(cp);
         if (resolution.rules.isEmpty()) {
             // 解析后规则集为空 → 显式失败（不静默空集、不伪造零计数）
-            throw new NopException(ERR_CHECKPOINT_NO_RULES)
+            throw new NopException(NopMetadataErrors.ERR_CHECKPOINT_NO_RULES)
                     .param("checkpointId", cp.getCheckpointId());
         }
 
@@ -283,7 +274,7 @@ public class MetaQualityCheckpointExecutor {
         IEntityDao<NopMetaTable> tableDao = daoProvider.daoFor(NopMetaTable.class);
         NopMetaTable table = tableDao.getEntityById(rule.getEntityId());
         if (table == null) {
-            throw new NopException(ERR_CHECKPOINT_RULE_TARGET_TABLE_NOT_FOUND)
+            throw new NopException(NopMetadataErrors.ERR_CHECKPOINT_RULE_TARGET_TABLE_NOT_FOUND)
                     .param("checkpointId", cp.getCheckpointId())
                     .param("qualityRuleId", rule.getQualityRuleId())
                     .param("entityId", rule.getEntityId());
@@ -336,7 +327,7 @@ public class MetaQualityCheckpointExecutor {
             String actionType = String.valueOf(action.get("actionType"));
             boolean enabled = !Boolean.FALSE.equals(action.get("enabled"));
             if (enabled && !isSupportedActionType(actionType)) {
-                throw new NopException(ERR_CHECKPOINT_ACTION_NOT_SUPPORTED)
+                throw new NopException(NopMetadataErrors.ERR_CHECKPOINT_ACTION_NOT_SUPPORTED)
                         .param("checkpointId", cp.getCheckpointId())
                         .param("actionType", actionType);
             }
