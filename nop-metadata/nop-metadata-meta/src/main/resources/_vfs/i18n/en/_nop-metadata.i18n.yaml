@@ -597,6 +597,7 @@ prop:
       updatedBy: Updated By
       updateTime: Update Time
       remark: Remark
+      isFalsePositive: Is False Positive
       qualityRule: Quality Rule
       qualityRule.displayName: Quality Rule
       detailsComponent: null

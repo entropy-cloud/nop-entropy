@@ -261,6 +261,7 @@ CREATE TABLE nop_meta_quality_result(
   UPDATED_BY VARCHAR(50) NOT NULL    COMMENT '修改人',
   UPDATE_TIME DATETIME(3) DEFAULT CURRENT_TIMESTAMP(3)  NOT NULL    COMMENT '修改时间',
   REMARK VARCHAR(200) NULL    COMMENT '备注',
+  IS_FALSE_POSITIVE TINYINT default 0  NULL    COMMENT '是否误报',
   constraint PK_nop_meta_quality_result primary key (QUALITY_RESULT_ID)
 )CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_as_cs;
 

@@ -34,6 +34,7 @@ public interface NopMetadataErrors {
     String ARG_CONFIG_ID = "configId";
     String ARG_CHECKPOINT_ID = "checkpointId";
     String ARG_QUALITY_RULE_ID = "qualityRuleId";
+    String ARG_QUALITY_RESULT_ID = "qualityResultId";
     String ARG_ENTITY_NAME = "entityName";
     String ARG_ENTITY_ID = "entityId";
     String ARG_BASE_ENTITY_ID = "baseEntityId";
@@ -610,6 +611,9 @@ public interface NopMetadataErrors {
     ErrorCode ERR_QUALITY_RULE_NOT_FOUND =
             ErrorCode.define("nop.err.metadata.quality-rule-not-found",
                     "Quality rule not found: {qualityRuleId}", ARG_QUALITY_RULE_ID);
+    ErrorCode ERR_QUALITY_RESULT_NOT_FOUND =
+            ErrorCode.define("nop.err.metadata.quality-result-not-found",
+                    "Quality result not found: {qualityResultId}", ARG_QUALITY_RESULT_ID);
     ErrorCode ERR_QUALITY_TABLE_NOT_FOUND =
             ErrorCode.define("nop.err.metadata.quality-table-not-found",
                     "Quality rule target table not found (entityId does not refer to an existing NopMetaTable): "

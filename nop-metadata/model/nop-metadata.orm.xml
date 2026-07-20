@@ -1965,6 +1965,9 @@
                         i18n-en:displayName="Update Time"/>
                 <column code="REMARK" displayName="备注" domain="remark" name="remark" precision="200" propId="14"
                         stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Remark"/>
+                <column code="IS_FALSE_POSITIVE" displayName="是否误报" name="isFalsePositive" propId="15"
+                        stdDataType="byte" stdSqlType="TINYINT" domain="boolFlag"
+                        i18n-en:displayName="Is False Positive"/>
             </columns>
             <relations>
                 <to-one displayName="质量规则" name="qualityRule"

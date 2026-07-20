@@ -31,6 +31,10 @@
     <bean id="io.nop.metadata.service.event.MetaModelChangedEventPublisher"
           class="io.nop.metadata.service.event.MetaModelChangedEventPublisher" ioc:default="true"/>
 
+    <!-- 质量告警工作流服务（质量规则 FAIL+ERROR 时创建 nop-wf 工作流实例，支持 re-judge 验证）。 -->
+    <bean id="io.nop.metadata.service.quality.QualityAlertWorkflowService"
+          class="io.nop.metadata.service.quality.QualityAlertWorkflowService" ioc:default="true"/>
+
     <!-- 质量检查点 cron 定时调度器（架构基线 §2.7.3.1 / plan 2026-07-17-1308-1，普通 IoC bean 非 BizModel）。
          启动 scanner 全量注册 ACTIVE 检查点的 cron job + 运行时增量（save/delete override 调用）。
          IJobScheduler 经 @Inject @Nullable 注入：宿主未注册调度器时为 null，scanner 跳过（不抛崩）。

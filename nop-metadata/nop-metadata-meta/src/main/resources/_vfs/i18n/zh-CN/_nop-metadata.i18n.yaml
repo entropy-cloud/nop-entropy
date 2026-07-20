@@ -589,6 +589,7 @@ prop:
       detailsComponent: null
       executeTime: 执行时间
       expectedValue: 期望值
+      isFalsePositive: 是否误报
       message: 结果描述
       qualityResultId: 结果ID
       qualityRule: 质量规则

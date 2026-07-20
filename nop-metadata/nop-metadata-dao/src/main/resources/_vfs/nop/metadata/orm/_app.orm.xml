@@ -1771,6 +1771,9 @@
                         propId="13" stdDataType="timestamp" stdSqlType="TIMESTAMP" i18n-en:displayName="Update Time"/>
                 <column code="REMARK" displayName="备注" domain="remark" name="remark" precision="200" propId="14"
                         stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Remark"/>
+                <column code="IS_FALSE_POSITIVE" defaultValue="0" displayName="是否误报" domain="boolFlag"
+                        name="isFalsePositive" propId="15" stdDataType="byte" stdSqlType="TINYINT"
+                        i18n-en:displayName="Is False Positive"/>
             </columns>
             <indexes>
                 <index name="IX_NOP_META_QRESULT_RULE" unique="false">

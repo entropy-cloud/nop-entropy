@@ -71,6 +71,15 @@
 
                 <!--备注-->
                 <col id="remark" sortable="true"/>
+
+                <!--审批状态-->
+                <col id="approveStatus" sortable="true"/>
+
+                <!--审批人-->
+                <col id="approvedBy" sortable="true"/>
+
+                <!--审批时间-->
+                <col id="approvedAt" sortable="true"/>
             </cols>
         </grid>
         <grid id="pick-list" x:prototype="list" x:abstract="true"/>
@@ -88,6 +97,8 @@
  extConfig[扩展配置] createdBy[创建人]
  createTime[创建时间] updatedBy[修改人]
  updateTime[修改时间] remark[备注]
+ approveStatus[审批状态] approvedBy[审批人]
+ approvedAt[审批时间] 
 </layout>
         </form>
         <form id="add" editMode="add" title="新增-数据契约" i18n-en:title="Add Meta Data Contract" x:prototype="edit"/>
@@ -100,6 +111,8 @@
  qualityExpectations[质量期望] security[安全策略]
  latestResult[最新执行结果] tagSet[标签集合]
  extConfig[扩展配置] remark[备注]
+ approveStatus[审批状态] approvedBy[审批人]
+ approvedAt[审批时间] 
 </layout>
         </form>
         <form id="query" editMode="query" title="查询条件" i18n-en:title="Query Condition" x:abstract="true"/>

@@ -77,8 +77,12 @@ public class _NopMetaQualityResult extends DynamicOrmEntity{
     public static final String PROP_NAME_remark = "remark";
     public static final int PROP_ID_remark = 14;
     
+    /* 是否误报: IS_FALSE_POSITIVE TINYINT */
+    public static final String PROP_NAME_isFalsePositive = "isFalsePositive";
+    public static final int PROP_ID_isFalsePositive = 15;
+    
 
-    private static int _PROP_ID_BOUND = 15;
+    private static int _PROP_ID_BOUND = 16;
 
     
     /* relation: 质量规则 */
@@ -91,7 +95,7 @@ public class _NopMetaQualityResult extends DynamicOrmEntity{
     protected static final List<String> PK_PROP_NAMES = Arrays.asList(PROP_NAME_qualityResultId);
     protected static final int[] PK_PROP_IDS = new int[]{PROP_ID_qualityResultId};
 
-    private static final String[] PROP_ID_TO_NAME = new String[15];
+    private static final String[] PROP_ID_TO_NAME = new String[16];
     private static final Map<String,Integer> PROP_NAME_TO_ID = new HashMap<>();
     static{
       
@@ -137,6 +141,9 @@ public class _NopMetaQualityResult extends DynamicOrmEntity{
           PROP_ID_TO_NAME[PROP_ID_remark] = PROP_NAME_remark;
           PROP_NAME_TO_ID.put(PROP_NAME_remark, PROP_ID_remark);
       
+          PROP_ID_TO_NAME[PROP_ID_isFalsePositive] = PROP_NAME_isFalsePositive;
+          PROP_NAME_TO_ID.put(PROP_NAME_isFalsePositive, PROP_ID_isFalsePositive);
+      
     }
 
     
@@ -181,6 +188,9 @@ public class _NopMetaQualityResult extends DynamicOrmEntity{
     
     /* 备注: REMARK */
     private java.lang.String _remark;
+    
+    /* 是否误报: IS_FALSE_POSITIVE */
+    private java.lang.Byte _isFalsePositive;
     
 
     public _NopMetaQualityResult(){
@@ -297,6 +307,9 @@ public class _NopMetaQualityResult extends DynamicOrmEntity{
         
             case PROP_ID_remark:
                return getRemark();
+        
+            case PROP_ID_isFalsePositive:
+               return getIsFalsePositive();
         
            default:
               return super.orm_propValue(propId);
@@ -449,6 +462,16 @@ public class _NopMetaQualityResult extends DynamicOrmEntity{
                break;
             }
         
+            case PROP_ID_isFalsePositive:{
+               java.lang.Byte typedValue = null;
+               if(value != null){
+                   typedValue = ConvertHelper.toByte(value,
+                       err-> newTypeConversionError(PROP_NAME_isFalsePositive));
+               }
+               setIsFalsePositive(typedValue);
+               break;
+            }
+        
            default:
               super.orm_propValue(propId,value);
         }
@@ -552,6 +575,13 @@ public class _NopMetaQualityResult extends DynamicOrmEntity{
             case PROP_ID_remark:{
                onInitProp(propId);
                this._remark = (java.lang.String)value;
+               
+               break;
+            }
+        
+            case PROP_ID_isFalsePositive:{
+               onInitProp(propId);
+               this._isFalsePositive = (java.lang.Byte)value;
                
                break;
             }
@@ -824,6 +854,25 @@ public class _NopMetaQualityResult extends DynamicOrmEntity{
         if(onPropSet(PROP_ID_remark,value)){
             this._remark = value;
             internalClearRefs(PROP_ID_remark);
+            
+        }
+    }
+    
+    /**
+     * 是否误报: IS_FALSE_POSITIVE
+     */
+    public final java.lang.Byte getIsFalsePositive(){
+         onPropGet(PROP_ID_isFalsePositive);
+         return _isFalsePositive;
+    }
+
+    /**
+     * 是否误报: IS_FALSE_POSITIVE
+     */
+    public final void setIsFalsePositive(java.lang.Byte value){
+        if(onPropSet(PROP_ID_isFalsePositive,value)){
+            this._isFalsePositive = value;
+            internalClearRefs(PROP_ID_isFalsePositive);
             
         }
     }

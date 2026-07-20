@@ -14,6 +14,7 @@
   "updatedBy": "",
   "updateTime": "2000-01-01 14:00:00",
   "remark": "",
+  "isFalsePositive": 0,
   "qualityRule": null,
   "qualityRule.displayName": "",
   "detailsComponent": null

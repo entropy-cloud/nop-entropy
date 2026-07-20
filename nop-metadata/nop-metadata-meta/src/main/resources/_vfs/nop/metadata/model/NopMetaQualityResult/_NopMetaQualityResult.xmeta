@@ -75,6 +75,10 @@
               insertable="true" updatable="true">
             <schema domain="remark" type="java.lang.String" precision="200"/>
         </prop>
+        <prop name="isFalsePositive" displayName="是否误报" propId="15" i18n-en:displayName="Is False Positive"
+              queryable="true" sortable="true" insertable="true" updatable="true" defaultValue="0">
+            <schema domain="boolFlag" type="java.lang.Byte"/>
+        </prop>
         <prop name="qualityRule" displayName="质量规则" i18n-en:displayName="Quality Rule" tagSet="pub,ref-pub"
               ext:kind="to-one" internal="true" queryable="true" ext:joinLeftProp="qualityRuleId"
               ext:joinRightProp="qualityRuleId" ext:joinRightDisplayProp="displayName" insertable="false"

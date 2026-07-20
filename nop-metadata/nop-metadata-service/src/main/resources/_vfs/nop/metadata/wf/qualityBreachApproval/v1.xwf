@@ -1,0 +1,75 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<workflow x:extends="/nop/wf/base/oa.xwf"
+          x:schema="/nop/schema/wf/wf.xdef" xmlns:x="/nop/schema/xdsl.xdef"
+          xmlns:wf-approval="wf-approval" xmlns:c="c"
+          wfName="qualityBreachApproval" wfVersion="1" displayName="质量告警审批流程">
+    <description>质量告警审批流程：规则 FAIL+ERROR → Owner 调查处理（已修复/误报）→ 自动验证或关闭</description>
+
+    <auths>
+        <auth id="auth1" actorType="all" actorId="all" allowStart="true"/>
+    </auths>
+
+    <start startStepName="start"/>
+    <end/>
+
+    <steps>
+        <step name="start" displayName="开始" x:abstract="true">
+            <assignment>
+                <actors>
+                    <actor actorModelId="starter" actorType="wf-actor:Starter" selectUser="true"/>
+                </actors>
+            </assignment>
+            <transition onAppStates="agree" splitType="and">
+                <to-step stepName="owner-investigate"/>
+            </transition>
+        </step>
+
+        <step name="owner-investigate" displayName="Owner 调查处理" allowReject="true">
+            <assignment>
+                <actors>
+                    <actor actorModelId="owner" actorType="role" actorId="metadata-admin" selectUser="true"/>
+                </actors>
+            </assignment>
+            <transition onAppStates="agree" splitType="and">
+                <to-step stepName="verify"/>
+            </transition>
+        </step>
+
+        <step name="verify" displayName="自动验证">
+            <assignment>
+                <actors>
+                    <actor actorModelId="system" actorType="wf-actor:CurrentCaller" selectUser="false"/>
+                </actors>
+            </assignment>
+            <transition onAppStates="agree" splitType="and">
+                <to-end/>
+            </transition>
+        </step>
+    </steps>
+
+    <listeners>
+        <listener id="onOwnerAgree" eventPattern="step.owner-investigate.end" appState="agree">
+            <source>
+                <c:script><![CDATA[
+                    import io.nop.metadata.service.quality.QualityAlertWorkflowService;
+                    import io.nop.core.ioc.BeanContainer;
+                    var svc = BeanContainer.instance().getBean(QualityAlertWorkflowService.class.getName());
+                    var resultId = wfRt.bizObjId;
+                    var ruleId = wfRt.getExtendedAttr("ruleId");
+                    if (resultId != null && ruleId != null) {
+                        var passed = svc.reJudge(ruleId, resultId);
+                        if (!passed) {
+                            wfRt.jumpToStep("owner-investigate", "验证未通过，请重新处理");
+                        }
+                    }
+                ]]></c:script>
+            </source>
+        </listener>
+
+        <listener id="onDisagree" eventPattern="*end" appState="disagree">
+            <source>
+                <wf-approval:notifyResult bizObj="NopMetaQualityResult" approved="false"/>
+            </source>
+        </listener>
+    </listeners>
+</workflow>

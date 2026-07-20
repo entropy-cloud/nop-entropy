@@ -261,6 +261,7 @@ CREATE TABLE nop_meta_quality_result(
   UPDATED_BY VARCHAR2(50) NOT NULL ,
   UPDATE_TIME TIMESTAMP NOT NULL ,
   REMARK VARCHAR2(200)  ,
+  IS_FALSE_POSITIVE SMALLINT default 0   ,
   constraint PK_nop_meta_quality_result primary key (QUALITY_RESULT_ID)
 );
 
@@ -1215,6 +1216,8 @@ CREATE TABLE nop_meta_reconciliation_result(
       COMMENT ON COLUMN nop_meta_quality_result.UPDATE_TIME IS '修改时间';
                     
       COMMENT ON COLUMN nop_meta_quality_result.REMARK IS '备注';
+                    
+      COMMENT ON COLUMN nop_meta_quality_result.IS_FALSE_POSITIVE IS '是否误报';
                     
       COMMENT ON TABLE nop_meta_glossary_term IS '词汇表术语';
                 

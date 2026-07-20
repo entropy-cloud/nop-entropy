@@ -31,6 +31,7 @@ import io.nop.metadata.dao.entity.NopMetaTable;
 import io.nop.metadata.service.connection.IMetaDataSourceConnectionProcessor;
 import io.nop.metadata.service.datasource.MetaDataSourceResolver;
 import io.nop.metadata.service.quality.MetaQualityRuleExecutor;
+import io.nop.metadata.service.quality.QualityAlertWorkflowService;
 import io.nop.metadata.service.quality.QualityResultWriter;
 import io.nop.metadata.service.quality.QualityRuleJudgment;
 import io.nop.metadata.service.tableref.MetaTableReferenceResolver;
@@ -92,6 +93,9 @@ public class NopMetaQualityRuleBizModel extends CrudBizModel<NopMetaQualityRule>
 
     /** 结果写入共享 helper（§2.7.3 D3：与 checkpoint executor 共用，避免复制逻辑）。 */
     private final QualityResultWriter resultWriter = new QualityResultWriter();
+
+    @Inject
+    protected QualityAlertWorkflowService alertWorkflowService;
 
     /** 按 table-reference 形态分派 Connection 获取（§4.4.3 D1/D2）。延迟初始化（需 orm()）。 */
     private TableReferenceExecutor tableRefExecutor;
@@ -156,6 +160,17 @@ public class NopMetaQualityRuleBizModel extends CrudBizModel<NopMetaQualityRule>
                         rule.getThreshold(), productName));
 
         NopMetaQualityResult row = appendQualityResult(rule.getQualityRuleId(), judgment);
+
+        // 触发告警工作流：FAIL + severity=ERROR
+        if ("FAIL".equals(judgment.getStatus())
+                && _NopMetadataCoreConstants.QUALITY_SEVERITY_ERROR.equals(rule.getSeverity())) {
+            try {
+                alertWorkflowService.createAlertWorkflow(row);
+            } catch (Exception e) {
+                LOG.error("Failed to create alert workflow for quality rule: {}", rule.getQualityRuleId(), e);
+            }
+        }
+
         return buildSingleResultMap(row, judgment);
     }
 
@@ -351,6 +366,30 @@ public class NopMetaQualityRuleBizModel extends CrudBizModel<NopMetaQualityRule>
         m.put("message", j.getMessage());
         m.put("details", j.getDetails());
         return m;
+    }
+
+    /**
+     * 根据规则 ID 重新执行判定（用于工作流 re-judge 场景）。
+     * 从 DB 加载规则全字段，重建执行上下文，返回判定结果。
+     */
+    public QualityRuleJudgment judgeByRuleId(String ruleId) {
+        NopMetaQualityRule rule = dao().getEntityById(ruleId);
+        if (rule == null) {
+            throw new NopException(NopMetadataErrors.ERR_QUALITY_RULE_NOT_FOUND).param("qualityRuleId", ruleId);
+        }
+
+        NopMetaTable table = resolveTargetTableOrThrow(rule);
+        TableReference ref = tableRefResolver.resolve(table,
+                daoFor(NopMetaDataSource.class), daoFor(NopMetaEntity.class),
+                daoFor(NopMetaEntityField.class), orm());
+
+        String effectiveSchema = resolveDefaultSchema(null, table);
+
+        return ensureTableRefExecutor().execute(ref,
+                (conn, metaData, productName) -> executor.judge(conn, ref, effectiveSchema,
+                        rule.getRuleType(), rule.getEntityType(),
+                        rule.getParams(), rule.getSqlExpression(),
+                        rule.getThreshold(), productName));
     }
 
     private static String safeProductName(DatabaseMetaData metaData) {
