@@ -811,7 +811,6 @@
 /nop/templates/orm-web/src/main/resources/_vfs/{moduleId}/pages/{metaInfo.forEntity}{metaInfo.baseObjName}/{metaInfo.objName}.view.xml.xgen
 /nop/templates/orm/.dockerignore
 /nop/templates/orm/.gitattributes
-/nop/templates/orm/.gitignore
 /nop/templates/orm/@init.xrun
 /nop/templates/orm/deploy/sql/{dialect}/_add_tenant_{appName}.sql.xgen
 /nop/templates/orm/deploy/sql/{dialect}/_create_{appName}.sql.xgen
@@ -903,6 +902,7 @@
 /nop/web/xlib/web/impl_GenForm.xpl
 /nop/web/xlib/web/impl_GenGrid.xpl
 /nop/web/xlib/web/impl_GenPage.xpl
+/nop/web/xlib/web/impl_flux_mode.xpl
 /nop/web/xlib/web/init_grid_gen_scope.xpl
 /nop/web/xlib/web/page_crud.xpl
 /nop/web/xlib/web/page_picker.xpl
