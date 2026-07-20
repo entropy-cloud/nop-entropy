@@ -1,0 +1,806 @@
+{
+  "type": "page",
+  "name": "edit",
+  "size": "lg",
+  "body": {
+    "type": "form",
+    "name": "editControls",
+    "mode": "horizontal",
+    "submitText": "",
+    "body": [
+      {
+        "type": "flex",
+        "id": "row-tree-parent",
+        "body": {
+          "name": "tree-parent",
+          "label": "tree-parentLabel",
+          "hiddenFieldPolicy": {
+            "clearValueWhenHidden": false
+          },
+          "type": "tree-select",
+          "clearable": true,
+          "source": {
+            "url": "@query:NopAuthDept__findList/value:id,label:deptName,%0A%20children%20@TreeChildren(max:5)?filter_parentId=__null"
+          }
+        }
+      },
+      {
+        "type": "flex",
+        "id": "row-double",
+        "body": {
+          "name": "double",
+          "label": "doubleLabel",
+          "hiddenFieldPolicy": {
+            "clearValueWhenHidden": false
+          },
+          "type": "input-number"
+        }
+      },
+      {
+        "type": "flex",
+        "id": "row-decimal",
+        "body": {
+          "name": "decimal",
+          "label": "decimalLabel",
+          "hiddenFieldPolicy": {
+            "clearValueWhenHidden": false
+          },
+          "type": "input-number",
+          "precision": 5
+        }
+      },
+      {
+        "type": "flex",
+        "id": "row-short",
+        "body": {
+          "name": "short",
+          "label": "shortLabel",
+          "hiddenFieldPolicy": {
+            "clearValueWhenHidden": false
+          },
+          "type": "input-number",
+          "validations": {
+            "isInt": true
+          }
+        }
+      },
+      {
+        "type": "flex",
+        "id": "row-byte",
+        "body": {
+          "name": "byte",
+          "label": "byteLabel",
+          "hiddenFieldPolicy": {
+            "clearValueWhenHidden": false
+          },
+          "type": "input-number",
+          "validations": {
+            "isInt": true
+          }
+        }
+      },
+      {
+        "type": "flex",
+        "id": "row-int",
+        "body": {
+          "name": "int",
+          "label": "intLabel",
+          "hiddenFieldPolicy": {
+            "clearValueWhenHidden": false
+          },
+          "type": "input-number",
+          "validations": {
+            "isInt": true
+          }
+        }
+      },
+      {
+        "type": "flex",
+        "id": "row-long",
+        "body": {
+          "name": "long",
+          "label": "longLabel",
+          "hiddenFieldPolicy": {
+            "clearValueWhenHidden": false
+          },
+          "type": "input-number",
+          "validations": {
+            "isInt": true
+          }
+        }
+      },
+      {
+        "type": "flex",
+        "id": "row-email",
+        "body": {
+          "name": "email",
+          "label": "emailLabel",
+          "hiddenFieldPolicy": {
+            "clearValueWhenHidden": false
+          },
+          "type": "input-text",
+          "clearable": true,
+          "validations": {
+            "isEmail": true,
+            "maxLength": 100
+          }
+        }
+      },
+      {
+        "type": "flex",
+        "id": "row-url",
+        "body": {
+          "name": "url",
+          "label": "urlLabel",
+          "hiddenFieldPolicy": {
+            "clearValueWhenHidden": false
+          },
+          "type": "input-text",
+          "clearable": true,
+          "validations": {
+            "isUrl": true
+          }
+        }
+      },
+      {
+        "type": "flex",
+        "id": "row-ascii",
+        "body": {
+          "name": "ascii",
+          "label": "asciiLabel",
+          "hiddenFieldPolicy": {
+            "clearValueWhenHidden": false
+          },
+          "type": "input-text",
+          "clearable": true,
+          "validations": {
+            "isAlpha": true
+          }
+        }
+      },
+      {
+        "type": "flex",
+        "id": "row-asciiNum",
+        "body": {
+          "name": "asciiNum",
+          "label": "asciiNumLabel",
+          "hiddenFieldPolicy": {
+            "clearValueWhenHidden": false
+          },
+          "type": "input-text",
+          "clearable": true,
+          "validations": {
+            "isAlphanumeric": true
+          }
+        }
+      },
+      {
+        "type": "flex",
+        "id": "row-path",
+        "body": {
+          "name": "path",
+          "label": "pathLabel",
+          "hiddenFieldPolicy": {
+            "clearValueWhenHidden": false
+          },
+          "type": "input-text",
+          "clearable": true,
+          "validations": {
+            "isUrlPath": true
+          }
+        }
+      },
+      {
+        "type": "flex",
+        "id": "row-phone",
+        "body": {
+          "name": "phone",
+          "label": "phoneLabel",
+          "hiddenFieldPolicy": {
+            "clearValueWhenHidden": false
+          },
+          "type": "input-text",
+          "clearable": true,
+          "validations": {
+            "isPhoneNumber": true,
+            "maxLength": 50
+          }
+        }
+      },
+      {
+        "type": "flex",
+        "id": "row-telephone",
+        "body": {
+          "name": "telephone",
+          "label": "telephoneLabel",
+          "hiddenFieldPolicy": {
+            "clearValueWhenHidden": false
+          },
+          "type": "input-text",
+          "clearable": true,
+          "validations": {
+            "isTelPhoneNumber": true
+          }
+        }
+      },
+      {
+        "type": "flex",
+        "id": "row-date",
+        "body": {
+          "name": "date",
+          "label": "dateLabel",
+          "hiddenFieldPolicy": {
+            "clearValueWhenHidden": false
+          },
+          "type": "input-date",
+          "format": "YYYY-MM-DD"
+        }
+      },
+      {
+        "type": "flex",
+        "id": "row-datetime",
+        "body": {
+          "name": "datetime",
+          "label": "datetimeLabel",
+          "hiddenFieldPolicy": {
+            "clearValueWhenHidden": false
+          },
+          "type": "input-datetime",
+          "format": "YYYY-MM-DD HH:mm:ss"
+        }
+      },
+      {
+        "type": "flex",
+        "id": "row-timestamp",
+        "body": {
+          "name": "timestamp",
+          "label": "timestampLabel",
+          "hiddenFieldPolicy": {
+            "clearValueWhenHidden": false
+          },
+          "type": "input-datetime",
+          "format": "YYYY-MM-DD HH:mm:ss"
+        }
+      },
+      {
+        "type": "flex",
+        "id": "row-list-stelect",
+        "body": {
+          "name": "list-stelect",
+          "label": "list-stelectLabel",
+          "hiddenFieldPolicy": {
+            "clearValueWhenHidden": false
+          },
+          "type": "text"
+        }
+      },
+      {
+        "type": "flex",
+        "id": "row-radios",
+        "body": {
+          "name": "radios",
+          "label": "radiosLabel",
+          "hiddenFieldPolicy": {
+            "clearValueWhenHidden": false
+          },
+          "type": "radio-group",
+          "clearable": true,
+          "source": "@dict:null"
+        }
+      },
+      {
+        "type": "flex",
+        "id": "row-enum",
+        "body": {
+          "name": "enum",
+          "label": "enumLabel",
+          "hiddenFieldPolicy": {
+            "clearValueWhenHidden": false
+          },
+          "type": "select",
+          "searchable": true,
+          "clearable": true,
+          "multiple": false,
+          "source": "@dict:null"
+        }
+      },
+      {
+        "type": "flex",
+        "id": "row-labelProp",
+        "body": {
+          "name": "labelProp",
+          "label": "labelPropLabel",
+          "hiddenFieldPolicy": {
+            "clearValueWhenHidden": false
+          },
+          "type": "text"
+        }
+      },
+      {
+        "type": "flex",
+        "id": "row-textarea",
+        "body": {
+          "name": "textarea",
+          "label": "textareaLabel",
+          "hiddenFieldPolicy": {
+            "clearValueWhenHidden": false
+          },
+          "type": "textarea",
+          "minRows": 3
+        }
+      },
+      {
+        "type": "flex",
+        "id": "row-html",
+        "body": {
+          "name": "html",
+          "label": "htmlLabel",
+          "hiddenFieldPolicy": {
+            "clearValueWhenHidden": false
+          },
+          "type": "markdown-editor"
+        }
+      },
+      {
+        "type": "flex",
+        "id": "row-longtext",
+        "body": {
+          "name": "longtext",
+          "label": "longtextLabel",
+          "hiddenFieldPolicy": {
+            "clearValueWhenHidden": false
+          },
+          "type": "textarea",
+          "minRows": 3
+        }
+      },
+      {
+        "type": "flex",
+        "id": "row-reamark",
+        "body": {
+          "name": "reamark",
+          "label": "reamarkLabel",
+          "hiddenFieldPolicy": {
+            "clearValueWhenHidden": false
+          },
+          "type": "text"
+        }
+      },
+      {
+        "type": "flex",
+        "id": "row-tag-list",
+        "body": {
+          "name": "tag-list",
+          "label": "tag-listLabel",
+          "hiddenFieldPolicy": {
+            "clearValueWhenHidden": false
+          },
+          "type": "tag-list",
+          "clearable": true
+        }
+      },
+      {
+        "type": "flex",
+        "id": "row-image",
+        "body": {
+          "name": "image",
+          "label": "imageLabel",
+          "hiddenFieldPolicy": {
+            "clearValueWhenHidden": false
+          },
+          "type": "input-file",
+          "accept": "image/*",
+          "receiver": "/f/upload?bizObjName=NopAuthDept&fieldName=image",
+          "useChunk": false
+        }
+      },
+      {
+        "type": "flex",
+        "id": "row-file",
+        "body": {
+          "name": "file",
+          "label": "fileLabel",
+          "hiddenFieldPolicy": {
+            "clearValueWhenHidden": false
+          },
+          "type": "input-file",
+          "receiver": "/f/upload?bizObjName=NopAuthDept&fieldName=file",
+          "useChunk": false
+        }
+      },
+      {
+        "type": "flex",
+        "id": "row-file-list",
+        "body": {
+          "name": "file-list",
+          "label": "file-listLabel",
+          "hiddenFieldPolicy": {
+            "clearValueWhenHidden": false
+          },
+          "type": "input-file",
+          "multiple": true,
+          "receiver": "/f/upload?bizObjName=NopAuthDept&fieldName=file-list",
+          "useChunk": false
+        }
+      },
+      {
+        "type": "flex",
+        "id": "row-images",
+        "body": {
+          "name": "images",
+          "label": "imagesLabel",
+          "hiddenFieldPolicy": {
+            "clearValueWhenHidden": false
+          },
+          "type": "input-file",
+          "multiple": true,
+          "receiver": "/f/upload?bizObjName=NopAuthDept&fieldName=images",
+          "useChunk": false
+        }
+      },
+      {
+        "type": "flex",
+        "id": "row-string-array",
+        "body": {
+          "name": "string-array",
+          "label": "string-arrayLabel",
+          "hiddenFieldPolicy": {
+            "clearValueWhenHidden": false
+          },
+          "type": "array-editor",
+          "items": {
+            "type": "input-text",
+            "required": true,
+            "validations": {
+              "maxLength": 0
+            }
+          }
+        }
+      },
+      {
+        "type": "flex",
+        "id": "row-deptId",
+        "body": {
+          "name": "deptId",
+          "label": "deptIdLabel",
+          "required": true,
+          "hiddenFieldPolicy": {
+            "clearValueWhenHidden": false
+          },
+          "type": "tree-select",
+          "clearable": true,
+          "source": {
+            "url": "@query:NopAuthDept__findList/value:id,label:deptName,%0A%20children%20@TreeChildren(max:5)?filter_parentId=__null"
+          }
+        }
+      },
+      {
+        "type": "flex",
+        "id": "row-boolean",
+        "body": {
+          "name": "boolean",
+          "label": "booleanLabel",
+          "hiddenFieldPolicy": {
+            "clearValueWhenHidden": false
+          },
+          "type": "switch",
+          "trueValue": 1,
+          "falseValue": 0
+        }
+      },
+      {
+        "type": "flex",
+        "id": "row-boolFlag",
+        "body": {
+          "name": "boolFlag",
+          "label": "boolFlagLabel",
+          "hiddenFieldPolicy": {
+            "clearValueWhenHidden": false
+          },
+          "type": "switch",
+          "trueValue": 1,
+          "falseValue": 0
+        }
+      },
+      {
+        "type": "flex",
+        "id": "row-pre",
+        "body": {
+          "name": "pre",
+          "label": "preLabel",
+          "hiddenFieldPolicy": {
+            "clearValueWhenHidden": false
+          },
+          "type": "text"
+        }
+      },
+      {
+        "type": "flex",
+        "id": "row-string",
+        "body": {
+          "name": "string",
+          "label": "stringLabel",
+          "hiddenFieldPolicy": {
+            "clearValueWhenHidden": false
+          },
+          "type": "input-text",
+          "clearable": true
+        }
+      },
+      {
+        "type": "flex",
+        "id": "row-roleId",
+        "body": {
+          "type": "picker",
+          "valueField": "roleId",
+          "labelField": "roleName",
+          "size": "lg",
+          "modalSize": "lg",
+          "source": {
+            "valueField": "roleId",
+            "labelField": "roleName",
+            "url": "@query:NopAuthRole__findPage",
+            "gql:selection": "total,page,items{ id,roleId,roleName,isPrimary,createdBy,createTime,updatedBy,updateTime,remark }"
+          },
+          "pickerSchema": {
+            "name": "crud-grid",
+            "footable": false,
+            "toolbar": [],
+            "footerToolbar": [
+              {
+                "type": "statistics"
+              },
+              {
+                "type": "pagination"
+              }
+            ],
+            "api": {
+              "url": "@query:NopAuthRole__findPage",
+              "gql:selection": "total,page,items{ id,roleId,roleName,isPrimary,createdBy,createTime,updatedBy,updateTime,remark }"
+            },
+            "labelTpl": "${roleName}",
+            "columns": [
+              {
+                "name": "roleId",
+                "label": "角色ID",
+                "sortable": true,
+                "toggled": true,
+                "fixed": "left",
+                "type": "text"
+              },
+              {
+                "name": "roleName",
+                "label": "角色名",
+                "sortable": true,
+                "toggled": true,
+                "type": "text"
+              },
+              {
+                "name": "isPrimary",
+                "label": "是否主角色",
+                "sortable": true,
+                "toggled": true,
+                "align": "center",
+                "type": "mapping",
+                "map": {
+                  "1": "<span class='label label-success'>是</span>",
+                  "0": "<span class='label label-warning'>否</span>",
+                  "true": "<span class='label label-success'>是</span>",
+                  "false": "<span class='label label-warning'>否</span>",
+                  "": ""
+                }
+              },
+              {
+                "name": "createdBy",
+                "label": "创建人",
+                "sortable": true,
+                "toggled": true,
+                "type": "text"
+              },
+              {
+                "name": "createTime",
+                "label": "创建时间",
+                "sortable": true,
+                "width": "160px",
+                "toggled": true,
+                "type": "text"
+              },
+              {
+                "name": "updatedBy",
+                "label": "修改人",
+                "sortable": true,
+                "toggled": true,
+                "type": "text"
+              },
+              {
+                "name": "updateTime",
+                "label": "修改时间",
+                "sortable": true,
+                "width": "160px",
+                "toggled": true,
+                "type": "text"
+              },
+              {
+                "name": "remark",
+                "label": "备注",
+                "sortable": true,
+                "toggled": true,
+                "type": "text"
+              }
+            ]
+          },
+          "name": "roleId",
+          "label": "roleIdLabel",
+          "hiddenFieldPolicy": {
+            "clearValueWhenHidden": false
+          },
+          "joinValues": false,
+          "extractValue": true,
+          "multiple": false
+        }
+      },
+      {
+        "type": "flex",
+        "id": "row-userId",
+        "body": {
+          "type": "picker",
+          "valueField": "userId",
+          "labelField": "userName",
+          "size": "lg",
+          "modalSize": "lg",
+          "source": {
+            "valueField": "userId",
+            "labelField": "userName",
+            "url": "@query:NopAuthUser__active_findPage",
+            "gql:selection": "total,page,items{ id,userId,userName,nickName,dept{deptName},deptId,gender,gender_label,phone,userType,userType_label,status,status_label }"
+          },
+          "pickerSchema": {
+            "name": "crud-grid",
+            "footable": false,
+            "affixHeader": false,
+            "toolbar": [],
+            "footerToolbar": [
+              {
+                "type": "statistics"
+              },
+              {
+                "type": "pagination"
+              }
+            ],
+            "api": {
+              "url": "@query:NopAuthUser__active_findPage",
+              "gql:selection": "total,page,items{ id,userId,userName,nickName,dept{deptName},deptId,gender,gender_label,phone,userType,userType_label,status,status_label }"
+            },
+            "labelTpl": "${userName}",
+            "columns": [
+              {
+                "name": "userName",
+                "label": "用户名",
+                "sortable": true,
+                "toggled": true,
+                "fixed": "left",
+                "type": "text"
+              },
+              {
+                "name": "nickName",
+                "label": "昵称",
+                "sortable": true,
+                "toggled": true,
+                "type": "text"
+              },
+              {
+                "name": "dept.deptName",
+                "label": "所属部门",
+                "sortable": true,
+                "toggled": true,
+                "type": "text"
+              },
+              {
+                "name": "gender_label",
+                "label": "性别",
+                "sortable": true,
+                "toggled": true,
+                "type": "text"
+              },
+              {
+                "name": "phone",
+                "label": "电话",
+                "sortable": true,
+                "toggled": true,
+                "type": "text"
+              },
+              {
+                "name": "userType_label",
+                "label": "用户类型",
+                "sortable": true,
+                "toggled": true,
+                "type": "text"
+              },
+              {
+                "name": "status_label",
+                "label": "用户状态",
+                "sortable": true,
+                "toggled": true,
+                "type": "text"
+              }
+            ]
+          },
+          "name": "userId",
+          "label": "userIdLabel",
+          "hiddenFieldPolicy": {
+            "clearValueWhenHidden": false
+          },
+          "joinValues": false,
+          "extractValue": true,
+          "multiple": false
+        }
+      },
+      {
+        "type": "flex",
+        "id": "row-password",
+        "body": {
+          "name": "password",
+          "label": "passwordLabel",
+          "hiddenFieldPolicy": {
+            "clearValueWhenHidden": false
+          },
+          "type": "input-password",
+          "showRevealToggle": true
+        }
+      },
+      {
+        "type": "flex",
+        "id": "row-hidden",
+        "body": {
+          "name": "hidden",
+          "label": "hiddenLabel",
+          "hiddenFieldPolicy": {
+            "clearValueWhenHidden": false
+          },
+          "type": "_hidden"
+        }
+      },
+      {
+        "type": "flex",
+        "id": "row-xml",
+        "body": {
+          "name": "xml",
+          "label": "xmlLabel",
+          "hiddenFieldPolicy": {
+            "clearValueWhenHidden": false
+          },
+          "type": "editor",
+          "language": "xml"
+        }
+      },
+      {
+        "type": "flex",
+        "id": "row-xpl",
+        "body": {
+          "name": "xpl",
+          "label": "xplLabel",
+          "hiddenFieldPolicy": {
+            "clearValueWhenHidden": false
+          },
+          "type": "editor",
+          "language": "xml"
+        }
+      },
+      {
+        "type": "flex",
+        "id": "row-select",
+        "body": {
+          "name": "select",
+          "label": "selectLabel",
+          "hiddenFieldPolicy": {
+            "clearValueWhenHidden": false
+          },
+          "type": "select",
+          "searchable": true,
+          "clearable": true,
+          "multiple": false
+        }
+      }
+    ]
+  }
+}

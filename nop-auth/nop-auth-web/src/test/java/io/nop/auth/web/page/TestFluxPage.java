@@ -15,6 +15,7 @@ import org.junit.jupiter.api.Test;
 
 import java.util.Map;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -43,12 +44,12 @@ public class TestFluxPage extends JunitBaseTestCase {
         String path = "/nop/auth/pages/TestWebControl/edit-flux.page.yaml";
         Map<String, Object> page = pageProvider.getPage(path, null);
         String text = JSON.serialize(page, true);
-        System.out.println(text);
 
         assertNotNull(page, "page should not be null");
         assertFalse(text.contains("\"visibleOn\""), "Flux JSON should not contain visibleOn");
         assertFalse(text.contains("\"disabledOn\""), "Flux JSON should not contain disabledOn");
         assertTrue(text.contains("@query:"), "Flux JSON should contain @query: API markers");
+        assertEquals(attachmentJsonText("edit-flux.page.json"), text);
     }
 
     @Test
@@ -56,11 +57,11 @@ public class TestFluxPage extends JunitBaseTestCase {
         String path = "/nop/auth/pages/TestWebControl/view-flux.page.yaml";
         Map<String, Object> page = pageProvider.getPage(path, null);
         String text = JSON.serialize(page, true);
-        System.out.println(text);
 
         assertNotNull(page, "page should not be null");
         assertFalse(text.contains("\"visibleOn\""), "Flux JSON should not contain visibleOn");
         assertFalse(text.contains("\"staticOn\""), "Flux JSON should not contain staticOn");
+        assertEquals(attachmentJsonText("view-flux.page.json"), text);
     }
 
     @Test
@@ -68,12 +69,12 @@ public class TestFluxPage extends JunitBaseTestCase {
         String path = "/nop/auth/pages/TestWebControl/query-flux.page.yaml";
         Map<String, Object> page = pageProvider.getPage(path, null);
         String text = JSON.serialize(page, true);
-        System.out.println(text);
 
         assertNotNull(page, "page should not be null");
         assertFalse(text.contains("\"visibleOn\""), "Flux JSON should not contain visibleOn");
         assertFalse(text.contains("\"disabledOn\""), "Flux JSON should not contain disabledOn");
         assertTrue(text.contains("@query:"), "Flux JSON should contain @query: API markers");
+        assertEquals(attachmentJsonText("query-flux.page.json"), text);
     }
 
     @Test

@@ -1,0 +1,603 @@
+{
+  "type": "page",
+  "name": "view",
+  "size": "lg",
+  "body": {
+    "type": "form",
+    "name": "viewControls",
+    "mode": "horizontal",
+    "submitText": "",
+    "body": [
+      {
+        "type": "flex",
+        "id": "row-tree-parent",
+        "body": {
+          "name": "tree-parent",
+          "label": "tree-parentLabel",
+          "hiddenFieldPolicy": {
+            "clearValueWhenHidden": false
+          },
+          "type": "text"
+        }
+      },
+      {
+        "type": "flex",
+        "id": "row-double",
+        "body": {
+          "name": "double",
+          "label": "doubleLabel",
+          "hiddenFieldPolicy": {
+            "clearValueWhenHidden": false
+          },
+          "type": "text"
+        }
+      },
+      {
+        "type": "flex",
+        "id": "row-decimal",
+        "body": {
+          "name": "decimal",
+          "label": "decimalLabel",
+          "hiddenFieldPolicy": {
+            "clearValueWhenHidden": false
+          },
+          "type": "text"
+        }
+      },
+      {
+        "type": "flex",
+        "id": "row-short",
+        "body": {
+          "name": "short",
+          "label": "shortLabel",
+          "hiddenFieldPolicy": {
+            "clearValueWhenHidden": false
+          },
+          "type": "text"
+        }
+      },
+      {
+        "type": "flex",
+        "id": "row-byte",
+        "body": {
+          "name": "byte",
+          "label": "byteLabel",
+          "hiddenFieldPolicy": {
+            "clearValueWhenHidden": false
+          },
+          "type": "text"
+        }
+      },
+      {
+        "type": "flex",
+        "id": "row-int",
+        "body": {
+          "name": "int",
+          "label": "intLabel",
+          "hiddenFieldPolicy": {
+            "clearValueWhenHidden": false
+          },
+          "type": "text"
+        }
+      },
+      {
+        "type": "flex",
+        "id": "row-long",
+        "body": {
+          "name": "long",
+          "label": "longLabel",
+          "hiddenFieldPolicy": {
+            "clearValueWhenHidden": false
+          },
+          "type": "text"
+        }
+      },
+      {
+        "type": "flex",
+        "id": "row-email",
+        "body": {
+          "name": "email",
+          "label": "emailLabel",
+          "hiddenFieldPolicy": {
+            "clearValueWhenHidden": false
+          },
+          "type": "text"
+        }
+      },
+      {
+        "type": "flex",
+        "id": "row-url",
+        "body": {
+          "name": "url",
+          "label": "urlLabel",
+          "hiddenFieldPolicy": {
+            "clearValueWhenHidden": false
+          },
+          "type": "text"
+        }
+      },
+      {
+        "type": "flex",
+        "id": "row-ascii",
+        "body": {
+          "name": "ascii",
+          "label": "asciiLabel",
+          "hiddenFieldPolicy": {
+            "clearValueWhenHidden": false
+          },
+          "type": "text"
+        }
+      },
+      {
+        "type": "flex",
+        "id": "row-asciiNum",
+        "body": {
+          "name": "asciiNum",
+          "label": "asciiNumLabel",
+          "hiddenFieldPolicy": {
+            "clearValueWhenHidden": false
+          },
+          "type": "text"
+        }
+      },
+      {
+        "type": "flex",
+        "id": "row-path",
+        "body": {
+          "name": "path",
+          "label": "pathLabel",
+          "hiddenFieldPolicy": {
+            "clearValueWhenHidden": false
+          },
+          "type": "text"
+        }
+      },
+      {
+        "type": "flex",
+        "id": "row-phone",
+        "body": {
+          "name": "phone",
+          "label": "phoneLabel",
+          "hiddenFieldPolicy": {
+            "clearValueWhenHidden": false
+          },
+          "type": "text"
+        }
+      },
+      {
+        "type": "flex",
+        "id": "row-telephone",
+        "body": {
+          "name": "telephone",
+          "label": "telephoneLabel",
+          "hiddenFieldPolicy": {
+            "clearValueWhenHidden": false
+          },
+          "type": "text"
+        }
+      },
+      {
+        "type": "flex",
+        "id": "row-date",
+        "body": {
+          "name": "date",
+          "label": "dateLabel",
+          "hiddenFieldPolicy": {
+            "clearValueWhenHidden": false
+          },
+          "type": "text"
+        }
+      },
+      {
+        "type": "flex",
+        "id": "row-datetime",
+        "body": {
+          "name": "datetime",
+          "label": "datetimeLabel",
+          "hiddenFieldPolicy": {
+            "clearValueWhenHidden": false
+          },
+          "type": "text"
+        }
+      },
+      {
+        "type": "flex",
+        "id": "row-timestamp",
+        "body": {
+          "name": "timestamp",
+          "label": "timestampLabel",
+          "hiddenFieldPolicy": {
+            "clearValueWhenHidden": false
+          },
+          "type": "text"
+        }
+      },
+      {
+        "type": "flex",
+        "id": "row-list-stelect",
+        "body": {
+          "name": "list-stelect",
+          "label": "list-stelectLabel",
+          "hiddenFieldPolicy": {
+            "clearValueWhenHidden": false
+          },
+          "type": "text"
+        }
+      },
+      {
+        "type": "flex",
+        "id": "row-radios",
+        "body": {
+          "name": "radios",
+          "label": "radiosLabel",
+          "hiddenFieldPolicy": {
+            "clearValueWhenHidden": false
+          },
+          "type": "text"
+        }
+      },
+      {
+        "type": "flex",
+        "id": "row-enum",
+        "body": {
+          "name": "enum",
+          "label": "enumLabel",
+          "hiddenFieldPolicy": {
+            "clearValueWhenHidden": false
+          },
+          "type": "text"
+        }
+      },
+      {
+        "type": "flex",
+        "id": "row-labelProp",
+        "body": {
+          "name": "labelProp",
+          "label": "labelPropLabel",
+          "hiddenFieldPolicy": {
+            "clearValueWhenHidden": false
+          },
+          "type": "text"
+        }
+      },
+      {
+        "type": "flex",
+        "id": "row-textarea",
+        "body": {
+          "name": "textarea",
+          "label": "textareaLabel",
+          "hiddenFieldPolicy": {
+            "clearValueWhenHidden": false
+          },
+          "type": "text"
+        }
+      },
+      {
+        "type": "flex",
+        "id": "row-html",
+        "body": {
+          "name": "html",
+          "label": "htmlLabel",
+          "hiddenFieldPolicy": {
+            "clearValueWhenHidden": false
+          },
+          "type": "html",
+          "html": "${html}"
+        }
+      },
+      {
+        "type": "flex",
+        "id": "row-longtext",
+        "body": {
+          "name": "longtext",
+          "label": "longtextLabel",
+          "hiddenFieldPolicy": {
+            "clearValueWhenHidden": false
+          },
+          "type": "text"
+        }
+      },
+      {
+        "type": "flex",
+        "id": "row-reamark",
+        "body": {
+          "name": "reamark",
+          "label": "reamarkLabel",
+          "hiddenFieldPolicy": {
+            "clearValueWhenHidden": false
+          },
+          "type": "text"
+        }
+      },
+      {
+        "type": "flex",
+        "id": "row-tag-list",
+        "body": {
+          "name": "tag-list",
+          "label": "tag-listLabel",
+          "disabled": true,
+          "hiddenFieldPolicy": {
+            "clearValueWhenHidden": false
+          },
+          "type": "tag-list"
+        }
+      },
+      {
+        "type": "flex",
+        "id": "row-image",
+        "body": {
+          "name": "image",
+          "label": "imageLabel",
+          "hiddenFieldPolicy": {
+            "clearValueWhenHidden": false
+          },
+          "type": "image",
+          "enlargeAble": true
+        }
+      },
+      {
+        "type": "flex",
+        "id": "row-file",
+        "body": {
+          "name": "file",
+          "label": "fileLabel",
+          "hiddenFieldPolicy": {
+            "clearValueWhenHidden": false
+          },
+          "type": "container",
+          "body": {
+            "type": "button",
+            "visible": "${file != null}",
+            "label": "${fileComponentFileStatus.name}(${fileComponentFileStatus.fileSize})",
+            "level": "link",
+            "onClick": {
+              "type": "api",
+              "url": "${file}",
+              "method": "get",
+              "responseType": "blob"
+            }
+          }
+        }
+      },
+      {
+        "type": "flex",
+        "id": "row-file-list",
+        "body": {
+          "name": "file-list",
+          "label": "file-listLabel",
+          "hiddenFieldPolicy": {
+            "clearValueWhenHidden": false
+          },
+          "type": "container",
+          "body": {
+            "type": "button",
+            "visible": "${file-list != null}",
+            "label": "查看下载列表",
+            "onClick": {
+              "type": "dialog",
+              "title": "文件列表",
+              "body": {
+                "type": "table",
+                "source": "${file-listComponentFileStatusList}",
+                "columns": [
+                  {
+                    "name": "name",
+                    "label": "文件名称"
+                  },
+                  {
+                    "name": "fileSize",
+                    "label": "文件大小"
+                  },
+                  {
+                    "label": "下载",
+                    "type": "operation",
+                    "buttons": [
+                      {
+                        "label": "下载",
+                        "type": "button",
+                        "onClick": {
+                          "type": "api",
+                          "url": "/f/download/${fileId}",
+                          "method": "get",
+                          "responseType": "blob"
+                        }
+                      }
+                    ]
+                  }
+                ]
+              }
+            }
+          }
+        }
+      },
+      {
+        "type": "flex",
+        "id": "row-images",
+        "body": {
+          "name": "images",
+          "label": "imagesLabel",
+          "hiddenFieldPolicy": {
+            "clearValueWhenHidden": false
+          },
+          "type": "images",
+          "enlargeAble": true
+        }
+      },
+      {
+        "type": "flex",
+        "id": "row-string-array",
+        "body": {
+          "name": "string-array",
+          "label": "string-arrayLabel",
+          "hiddenFieldPolicy": {
+            "clearValueWhenHidden": false
+          },
+          "type": "text"
+        }
+      },
+      {
+        "type": "flex",
+        "id": "row-deptId",
+        "body": {
+          "name": "deptId",
+          "label": "deptIdLabel",
+          "required": true,
+          "hiddenFieldPolicy": {
+            "clearValueWhenHidden": false
+          },
+          "type": "text"
+        }
+      },
+      {
+        "type": "flex",
+        "id": "row-boolean",
+        "body": {
+          "name": "boolean",
+          "label": "booleanLabel",
+          "hiddenFieldPolicy": {
+            "clearValueWhenHidden": false
+          },
+          "type": "mapping",
+          "map": {
+            "1": "<span class='label label-success'>是</span>",
+            "0": "<span class='label label-warning'>否</span>",
+            "true": "<span class='label label-success'>是</span>",
+            "false": "<span class='label label-warning'>否</span>",
+            "": ""
+          }
+        }
+      },
+      {
+        "type": "flex",
+        "id": "row-boolFlag",
+        "body": {
+          "name": "boolFlag",
+          "label": "boolFlagLabel",
+          "hiddenFieldPolicy": {
+            "clearValueWhenHidden": false
+          },
+          "type": "mapping",
+          "map": {
+            "1": "<span class='label label-success'>是</span>",
+            "0": "<span class='label label-warning'>否</span>",
+            "true": "<span class='label label-success'>是</span>",
+            "false": "<span class='label label-warning'>否</span>",
+            "": ""
+          }
+        }
+      },
+      {
+        "type": "flex",
+        "id": "row-pre",
+        "body": {
+          "name": "pre",
+          "label": "preLabel",
+          "hiddenFieldPolicy": {
+            "clearValueWhenHidden": false
+          },
+          "type": "text",
+          "pre": true
+        }
+      },
+      {
+        "type": "flex",
+        "id": "row-string",
+        "body": {
+          "name": "string",
+          "label": "stringLabel",
+          "hiddenFieldPolicy": {
+            "clearValueWhenHidden": false
+          },
+          "type": "text"
+        }
+      },
+      {
+        "type": "flex",
+        "id": "row-roleId",
+        "body": {
+          "name": "roleId",
+          "label": "roleIdLabel",
+          "hiddenFieldPolicy": {
+            "clearValueWhenHidden": false
+          },
+          "type": "text"
+        }
+      },
+      {
+        "type": "flex",
+        "id": "row-userId",
+        "body": {
+          "name": "userId",
+          "label": "userIdLabel",
+          "hiddenFieldPolicy": {
+            "clearValueWhenHidden": false
+          },
+          "type": "text"
+        }
+      },
+      {
+        "type": "flex",
+        "id": "row-password",
+        "body": {
+          "name": "password",
+          "label": "passwordLabel",
+          "hiddenFieldPolicy": {
+            "clearValueWhenHidden": false
+          },
+          "type": "text",
+          "text": "***"
+        }
+      },
+      {
+        "type": "flex",
+        "id": "row-hidden",
+        "body": {
+          "name": "hidden",
+          "label": "hiddenLabel",
+          "hiddenFieldPolicy": {
+            "clearValueWhenHidden": false
+          },
+          "type": "_hidden"
+        }
+      },
+      {
+        "type": "flex",
+        "id": "row-xml",
+        "body": {
+          "name": "xml",
+          "label": "xmlLabel",
+          "hiddenFieldPolicy": {
+            "clearValueWhenHidden": false
+          },
+          "type": "json-view",
+          "language": "xml"
+        }
+      },
+      {
+        "type": "flex",
+        "id": "row-xpl",
+        "body": {
+          "name": "xpl",
+          "label": "xplLabel",
+          "hiddenFieldPolicy": {
+            "clearValueWhenHidden": false
+          },
+          "type": "json-view",
+          "language": "xml"
+        }
+      },
+      {
+        "type": "flex",
+        "id": "row-select",
+        "body": {
+          "name": "select",
+          "label": "selectLabel",
+          "hiddenFieldPolicy": {
+            "clearValueWhenHidden": false
+          },
+          "type": "text"
+        }
+      }
+    ]
+  }
+}
