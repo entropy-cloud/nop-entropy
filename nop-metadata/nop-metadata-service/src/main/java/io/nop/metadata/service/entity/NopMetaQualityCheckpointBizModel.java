@@ -4,6 +4,7 @@ import io.nop.api.core.annotations.biz.BizModel;
 import io.nop.api.core.annotations.biz.BizMutation;
 import io.nop.api.core.annotations.core.Name;
 import io.nop.api.core.annotations.core.Optional;
+import io.nop.api.core.annotations.ioc.InjectValue;
 import io.nop.api.core.exceptions.ErrorCode;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.api.core.ioc.BeanContainer;
@@ -86,6 +87,19 @@ public class NopMetaQualityCheckpointBizModel extends CrudBizModel<NopMetaQualit
     @Inject
     @Nullable
     protected IMessageService messageService;
+
+    /**
+     * 维度13-04：webhook SSRF 防护的 host allowlist（逗号分隔，小写 host）。
+     * 默认空：fail-closed 拒绝内网（部署 webhook 必须先配 {@code nop.metadata.checkpoint.webhook-allowed-hosts}）。
+     */
+    @InjectValue(value = "@cfg:nop.metadata.checkpoint.webhook-allowed-hosts|")
+    protected String webhookAllowedHostsCsv = "";
+
+    /**
+     * 维度13-04：webhook 超时（秒）。默认 30s。{@code @InjectValue} 默认空时由 dispatcher 用 {@code DEFAULT_WEBHOOK_TIMEOUT_SECONDS}。
+     */
+    @InjectValue(value = "@cfg:nop.metadata.checkpoint.webhook-timeout-seconds|0")
+    protected int webhookTimeoutSeconds = 0;
 
     /** 共享 table-reference 解析器（架构基线 §4.4.3 D3）。 */
     private final MetaTableReferenceResolver tableRefResolver = new MetaTableReferenceResolver(
@@ -321,10 +335,13 @@ public class NopMetaQualityCheckpointBizModel extends CrudBizModel<NopMetaQualit
     /**
      * 延迟初始化动作分发器。httpClient/messageService 由 IoC 注入（@Nullable——宿主未注册实现时为 null）。
      * 均为 null 时分发器仍可创建（webhook/notify 配置存在时在 dispatch 时显式失败，不静默跳过）。
+     *
+     * <p>维度13-04：把 webhook SSRF 配置（allowed-hosts + timeout）经 {@code configureWebhookSsrf} 注入到 dispatcher。
      */
     private CheckpointActionDispatcher ensureActionDispatcher() {
         if (actionDispatcher == null) {
             actionDispatcher = new CheckpointActionDispatcher(httpClient, messageService);
+            actionDispatcher.configureWebhookSsrf(webhookAllowedHostsCsv, webhookTimeoutSeconds);
         }
         return actionDispatcher;
     }

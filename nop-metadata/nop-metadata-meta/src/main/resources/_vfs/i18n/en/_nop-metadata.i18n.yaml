@@ -119,6 +119,7 @@ prop:
       updateTime: Update Time
       remark: Remark
       ormModel: ORM Model
+      dictItems: Dict Items
     NopMetaDictItem:
       dictItemId: Dict Item Id
       metaDictId: Meta Dict Id
@@ -136,6 +137,7 @@ prop:
       updatedBy: Updated By
       updateTime: Update Time
       remark: Remark
+      isDelta: Is Delta
       metaDict: Meta Dict
     NopMetaDomain:
       metaDomainId: Meta Domain Id
@@ -184,7 +186,7 @@ prop:
       updateTimeProp: Update Time Prop
       versionProp: Version Prop
       delFlagProp: Del Flag Prop
-      deleteVersionProp: Delete Version Prop
+      delVersionProp: Del Version Prop
       dbCatalog: DB Catalog
       dbSchema: DB Schema
       extConfig: Ext Config
@@ -195,6 +197,12 @@ prop:
       updateTime: Update Time
       remark: Remark
       ormModel: ORM Model
+      entityFields: Entity Fields
+      entityRelations: Entity Relations
+      entityUniqueKeys: Entity Unique Keys
+      entityIndexes: Entity Indexes
+      joinAsLeft: Joins As Left
+      joinAsRight: Joins As Right
       extConfigComponent: null
     NopMetaEntityField:
       entityFieldId: Entity Field Id
@@ -311,6 +319,12 @@ prop:
       updatedBy: Updated By
       updateTime: Update Time
       remark: Remark
+      sourceTable: Source Table
+      sourceTable.displayName: Source Table
+      targetTable: Target Table
+      targetTable.displayName: Target Table
+      pipeline: Pipeline
+      pipeline.displayName: Pipeline
       extConfigComponent: null
     NopMetaManifest:
       manifestId: Manifest Id
@@ -376,6 +390,13 @@ prop:
       remark: Remark
       baseModule: Base Module
       baseModule.displayName: Base Module
+      ormModels: ORM Models
+      tables: Tables
+      pipelines: Pipelines
+      qualityCheckpoints: Quality Checkpoints
+      manifests: Manifests
+      reconciliationConfigs: Reconciliation Configs
+      baseModules: Base Modules
       extConfigComponent: null
     NopMetaOrmModel:
       ormModelId: ORM Model Id
@@ -392,6 +413,9 @@ prop:
       remark: Remark
       metaModule: Meta Module
       metaModule.displayName: Meta Module
+      entities: Entities
+      domains: Domains
+      dicts: Dicts
     NopMetaPipeline:
       pipelineId: Pipeline Id
       metaModuleId: Meta Module Id
@@ -410,6 +434,7 @@ prop:
       remark: Remark
       metaModule: Meta Module
       metaModule.displayName: Meta Module
+      lineageEdges: Lineage Edges
       extConfigComponent: null
     NopMetaProfilingResult:
       profilingResultId: Profiling Result Id
@@ -447,6 +472,7 @@ prop:
       remark: Remark
       metaTable: Meta Table
       metaTable.displayName: Meta Table
+      results: Profiling Results
       columnsComponent: null
       statsComponent: null
       extConfigComponent: null
@@ -512,6 +538,7 @@ prop:
       updatedBy: Updated By
       updateTime: Update Time
       remark: Remark
+      results: Quality Results
       paramsComponent: null
       extConfigComponent: null
     NopMetaQualityScore:
@@ -559,6 +586,7 @@ prop:
       metaTable.displayName: Meta Table
       metaModule: Meta Module
       metaModule.displayName: Meta Module
+      results: Reconciliation Results
       extConfigComponent: null
     NopMetaReconciliationEntity:
       reconEntityId: Recon Entity Id
@@ -634,6 +662,21 @@ prop:
       schema: Schema
       metaModule: Meta Module
       metaModule.displayName: Meta Module
+      dimensions: Dimensions
+      measures: Measures
+      filters: Filters
+      joins: Joins
+      joinAsLeftTable: Joins As Left Table
+      joinAsRightTable: Joins As Right Table
+      lineageAsSource: Lineage As Source
+      lineageAsTarget: Lineage As Target
+      catalogs: Catalogs
+      profilingRules: Profiling Rules
+      profilingResults: Profiling Results
+      qualityScores: Quality Scores
+      dataContracts: Data Contracts
+      reconciliationConfigs: Reconciliation Configs
+      reconciliationResults: Reconciliation Results
     NopMetaTableDimension:
       dimensionId: Dimension Id
       metaTableId: Meta Table Id
@@ -754,9 +797,105 @@ dict:
     meta/match-strategy: Match Strategy
     meta/change-event-type: Meta Change Event Type
 dict.option.label:
+  meta/module-status:
+    DRAFTING: Drafting
+    RELEASED: Released
+    DEPRECATED: Deprecated
+  meta/datasource-status:
+    DISABLED: Disabled
+    ACTIVE: Active
+  meta/datasource-type:
+    jdbc: JDBC
+    http: HTTP
+    rest: REST
+    file: File
+  meta/table-type:
+    entity: Entity
+    sql: SQL
+    external: External
+  meta/relation-type:
+    to-one: To-One
+    to-many: To-Many
+  meta/dimension-type:
+    categorical: Categorical
+    temporal: Temporal
+    geographical: Geographical
+  meta/agg-func:
+    sum: Sum
+    count: Count
+    avg: Average
+    min: Minimum
+    max: Maximum
+    countDistinct: Count Distinct
+  meta/join-type:
+    inner: Inner
+    left: Left
+    right: Right
   meta/join-side:
     left: Left
     right: Right
+  meta/lineage-transform:
+    direct: Direct
+    derived: Derived
+    aggregated: Aggregated
+  meta/lineage-source:
+    manual: Manual
+    sql_parse: SQL Parse
+    open_lineage: OpenLineage
+    hook: Hook
+    measure_parse: Measure Parse
+  meta/pipeline-type:
+    etl: ETL
+    sql: SQL
+    api: API
+    manual: Manual
+  meta/quality-rule-type:
+    not_null: Not Null
+    unique: Unique
+    range: Range
+    regex: Regex
+    custom_sql: Custom SQL
+    freshness: Freshness
+    volume: Volume
+  meta/quality-entity-type:
+    field: Field
+    table: Table
+    database: Database
+  meta/quality-severity:
+    INFO: Info
+    WARNING: Warning
+    ERROR: Error
+  meta/quality-result-status:
+    PASS: Pass
+    FAIL: Fail
+    ERROR: Error
+    SKIP: Skip
+  meta/checkpoint-status:
+    ACTIVE: Active
+    PAUSED: Paused
+    DISABLED: Disabled
   meta/checkpoint-action-type:
+    store: Store
     webhook: Webhook
     notify: Notify
+  meta/quality-trend-direction:
+    improving: Improving
+    stable: Stable
+    degrading: Degrading
+  meta/contract-status:
+    DRAFT: Draft
+    ACTIVE: Active
+    DEPRECATED: Deprecated
+    RETIRED: Retired
+  meta/reconciliation-status:
+    MATCHED: Matched
+    UNMATCHED: Unmatched
+    MULTIPLE: Multiple
+    MANUAL: Manual
+  meta/match-strategy:
+    exact: Exact
+    fuzzy: Fuzzy
+  meta/change-event-type:
+    ENTITY_CREATED: Entity Created
+    ENTITY_UPDATED: Entity Updated
+    ENTITY_DELETED: Entity Deleted

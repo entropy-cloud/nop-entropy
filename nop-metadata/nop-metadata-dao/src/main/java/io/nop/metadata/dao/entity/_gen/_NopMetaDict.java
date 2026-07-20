@@ -69,7 +69,7 @@ public class _NopMetaDict extends DynamicOrmEntity{
     public static final String PROP_NAME_tagSet = "tagSet";
     public static final int PROP_ID_tagSet = 12;
     
-    /* 数据版本: DEL_VERSION BIGINT */
+    /* 数据版本: VERSION BIGINT */
     public static final String PROP_NAME_version = "version";
     public static final int PROP_ID_version = 13;
     
@@ -99,6 +99,9 @@ public class _NopMetaDict extends DynamicOrmEntity{
     
     /* relation: ORM模型 */
     public static final String PROP_NAME_ormModel = "ormModel";
+    
+    /* relation: 字典项集 */
+    public static final String PROP_NAME_dictItems = "dictItems";
     
 
     protected static final List<String> PK_PROP_NAMES = Arrays.asList(PROP_NAME_metaDictId);
@@ -201,7 +204,7 @@ public class _NopMetaDict extends DynamicOrmEntity{
     /* 标签集: TAG_SET */
     private java.lang.String _tagSet;
     
-    /* 数据版本: DEL_VERSION */
+    /* 数据版本: VERSION */
     private java.lang.Long _version;
     
     /* 创建人: CREATED_BY */
@@ -908,7 +911,7 @@ public class _NopMetaDict extends DynamicOrmEntity{
     }
     
     /**
-     * 数据版本: DEL_VERSION
+     * 数据版本: VERSION
      */
     public final java.lang.Long getVersion(){
          onPropGet(PROP_ID_version);
@@ -916,7 +919,7 @@ public class _NopMetaDict extends DynamicOrmEntity{
     }
 
     /**
-     * 数据版本: DEL_VERSION
+     * 数据版本: VERSION
      */
     public final void setVersion(java.lang.Long value){
         if(onPropSet(PROP_ID_version,value)){
@@ -1042,6 +1045,16 @@ public class _NopMetaDict extends DynamicOrmEntity{
            });
            }
        
+    }
+       
+    private final OrmEntitySet<io.nop.metadata.dao.entity.NopMetaDictItem> _dictItems = new OrmEntitySet<>(this, PROP_NAME_dictItems,
+        io.nop.metadata.dao.entity.NopMetaDictItem.PROP_NAME_metaDict, null,io.nop.metadata.dao.entity.NopMetaDictItem.class);
+
+    /**
+     * 字典项集。 refPropName: metaDict, keyProp: {rel.keyProp}
+     */
+    public final IOrmEntitySet<io.nop.metadata.dao.entity.NopMetaDictItem> getDictItems(){
+       return _dictItems;
     }
        
 }

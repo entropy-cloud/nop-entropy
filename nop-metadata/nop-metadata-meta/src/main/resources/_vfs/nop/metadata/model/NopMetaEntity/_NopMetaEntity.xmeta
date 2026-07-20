@@ -17,7 +17,9 @@
         <meta-gen:DefaultMetaPostExtends xpl:lib="/nop/core/xlib/meta-gen.xlib"/>
     </x:post-extends>
 
-    <keys/>
+    <keys>
+        <key name="UK_NOP_META_ENTITY_MODEL_NAME" props="ormModelId,entityName"/>
+    </keys>
 
     <props>
         <prop name="metaEntityId" displayName="实体ID" propId="1" i18n-en:displayName="Meta Entity Id" tagSet="seq"
@@ -100,7 +102,7 @@
               sortable="true" insertable="true" updatable="true">
             <schema type="java.lang.String" precision="50"/>
         </prop>
-        <prop name="deleteVersionProp" displayName="删除版本属性" propId="21" i18n-en:displayName="Delete Version Prop"
+        <prop name="delVersionProp" displayName="删除版本属性" propId="21" i18n-en:displayName="Del Version Prop"
               queryable="true" sortable="true" insertable="true" updatable="true">
             <schema type="java.lang.String" precision="50"/>
         </prop>
@@ -144,6 +146,48 @@
               internal="true" queryable="true" ext:joinLeftProp="ormModelId" ext:joinRightProp="ormModelId"
               insertable="false" updatable="false" mandatory="true" lazy="true">
             <schema bizObjName="NopMetaOrmModel"/>
+        </prop>
+        <prop name="entityFields" displayName="实体字段集" i18n-en:displayName="Entity Fields" tagSet="pub,ref-pub"
+              ext:kind="to-many" internal="true" ext:joinLeftProp="metaEntityId" ext:joinRightProp="metaEntityId"
+              ext:joinRightDisplayProp="displayName" insertable="false" updatable="false" lazy="true">
+            <schema>
+                <item bizObjName="NopMetaEntityField"/>
+            </schema>
+        </prop>
+        <prop name="entityRelations" displayName="实体关系集" i18n-en:displayName="Entity Relations" tagSet="pub,ref-pub"
+              ext:kind="to-many" internal="true" ext:joinLeftProp="metaEntityId" ext:joinRightProp="metaEntityId"
+              insertable="false" updatable="false" lazy="true">
+            <schema>
+                <item bizObjName="NopMetaEntityRelation"/>
+            </schema>
+        </prop>
+        <prop name="entityUniqueKeys" displayName="实体唯一键集" i18n-en:displayName="Entity Unique Keys" tagSet="pub,ref-pub"
+              ext:kind="to-many" internal="true" ext:joinLeftProp="metaEntityId" ext:joinRightProp="metaEntityId"
+              ext:joinRightDisplayProp="displayName" insertable="false" updatable="false" lazy="true">
+            <schema>
+                <item bizObjName="NopMetaEntityUniqueKey"/>
+            </schema>
+        </prop>
+        <prop name="entityIndexes" displayName="实体索引集" i18n-en:displayName="Entity Indexes" tagSet="pub,ref-pub"
+              ext:kind="to-many" internal="true" ext:joinLeftProp="metaEntityId" ext:joinRightProp="metaEntityId"
+              ext:joinRightDisplayProp="displayName" insertable="false" updatable="false" lazy="true">
+            <schema>
+                <item bizObjName="NopMetaEntityIndex"/>
+            </schema>
+        </prop>
+        <prop name="joinAsLeft" displayName="作为左实体的关联集" i18n-en:displayName="Joins As Left" tagSet="pub,ref-pub"
+              ext:kind="to-many" internal="true" ext:joinLeftProp="metaEntityId" ext:joinRightProp="leftEntityId"
+              insertable="false" updatable="false" lazy="true">
+            <schema>
+                <item bizObjName="NopMetaTableJoin"/>
+            </schema>
+        </prop>
+        <prop name="joinAsRight" displayName="作为右实体的关联集" i18n-en:displayName="Joins As Right" tagSet="pub,ref-pub"
+              ext:kind="to-many" internal="true" ext:joinLeftProp="metaEntityId" ext:joinRightProp="rightEntityId"
+              insertable="false" updatable="false" lazy="true">
+            <schema>
+                <item bizObjName="NopMetaTableJoin"/>
+            </schema>
         </prop>
         <prop name="extConfigComponent" tagSet="json,pub,edit" ext:kind="component" internal="true" insertable="true"
               updatable="true" lazy="true">

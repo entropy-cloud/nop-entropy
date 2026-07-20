@@ -65,7 +65,7 @@ public class _NopMetaTableMeasure extends DynamicOrmEntity{
     public static final String PROP_NAME_extConfig = "extConfig";
     public static final int PROP_ID_extConfig = 11;
     
-    /* 数据版本: DEL_VERSION BIGINT */
+    /* 数据版本: VERSION BIGINT */
     public static final String PROP_NAME_version = "version";
     public static final int PROP_ID_version = 12;
     
@@ -201,7 +201,7 @@ public class _NopMetaTableMeasure extends DynamicOrmEntity{
     /* 扩展配置: EXT_CONFIG */
     private java.lang.String _extConfig;
     
-    /* 数据版本: DEL_VERSION */
+    /* 数据版本: VERSION */
     private java.lang.Long _version;
     
     /* 创建人: CREATED_BY */
@@ -892,7 +892,7 @@ public class _NopMetaTableMeasure extends DynamicOrmEntity{
     }
     
     /**
-     * 数据版本: DEL_VERSION
+     * 数据版本: VERSION
      */
     public final java.lang.Long getVersion(){
          onPropGet(PROP_ID_version);
@@ -900,7 +900,7 @@ public class _NopMetaTableMeasure extends DynamicOrmEntity{
     }
 
     /**
-     * 数据版本: DEL_VERSION
+     * 数据版本: VERSION
      */
     public final void setVersion(java.lang.Long value){
         if(onPropSet(PROP_ID_version,value)){

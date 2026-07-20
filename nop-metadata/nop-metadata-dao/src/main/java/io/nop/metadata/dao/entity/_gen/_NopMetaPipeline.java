@@ -53,7 +53,7 @@ public class _NopMetaPipeline extends DynamicOrmEntity{
     public static final String PROP_NAME_extConfig = "extConfig";
     public static final int PROP_ID_extConfig = 8;
     
-    /* 数据版本: DEL_VERSION BIGINT */
+    /* 数据版本: VERSION BIGINT */
     public static final String PROP_NAME_version = "version";
     public static final int PROP_ID_version = 9;
     
@@ -83,6 +83,9 @@ public class _NopMetaPipeline extends DynamicOrmEntity{
     
     /* relation: 元数据模块 */
     public static final String PROP_NAME_metaModule = "metaModule";
+    
+    /* relation: 血缘边集 */
+    public static final String PROP_NAME_lineageEdges = "lineageEdges";
     
     /* component:  */
     public static final String PROP_NAME_extConfigComponent = "extConfigComponent";
@@ -164,7 +167,7 @@ public class _NopMetaPipeline extends DynamicOrmEntity{
     /* 扩展配置: EXT_CONFIG */
     private java.lang.String _extConfig;
     
-    /* 数据版本: DEL_VERSION */
+    /* 数据版本: VERSION */
     private java.lang.Long _version;
     
     /* 创建人: CREATED_BY */
@@ -715,7 +718,7 @@ public class _NopMetaPipeline extends DynamicOrmEntity{
     }
     
     /**
-     * 数据版本: DEL_VERSION
+     * 数据版本: VERSION
      */
     public final java.lang.Long getVersion(){
          onPropGet(PROP_ID_version);
@@ -723,7 +726,7 @@ public class _NopMetaPipeline extends DynamicOrmEntity{
     }
 
     /**
-     * 数据版本: DEL_VERSION
+     * 数据版本: VERSION
      */
     public final void setVersion(java.lang.Long value){
         if(onPropSet(PROP_ID_version,value)){
@@ -849,6 +852,16 @@ public class _NopMetaPipeline extends DynamicOrmEntity{
            });
            }
        
+    }
+       
+    private final OrmEntitySet<io.nop.metadata.dao.entity.NopMetaLineageEdge> _lineageEdges = new OrmEntitySet<>(this, PROP_NAME_lineageEdges,
+        io.nop.metadata.dao.entity.NopMetaLineageEdge.PROP_NAME_pipeline, null,io.nop.metadata.dao.entity.NopMetaLineageEdge.class);
+
+    /**
+     * 血缘边集。 refPropName: pipeline, keyProp: {rel.keyProp}
+     */
+    public final IOrmEntitySet<io.nop.metadata.dao.entity.NopMetaLineageEdge> getLineageEdges(){
+       return _lineageEdges;
     }
        
    private io.nop.orm.component.JsonOrmComponent _extConfigComponent;

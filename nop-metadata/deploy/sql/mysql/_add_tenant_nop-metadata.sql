@@ -5,11 +5,9 @@ alter table nop_meta_data_source add NOP_TENANT_ID VARCHAR(32) DEFAULT '0' NOT N
 
 alter table nop_meta_semantic_type add NOP_TENANT_ID VARCHAR(32) DEFAULT '0' NOT NULL;
 
-alter table nop_meta_lineage_edge add NOP_TENANT_ID VARCHAR(32) DEFAULT '0' NOT NULL;
-
 alter table nop_meta_quality_rule add NOP_TENANT_ID VARCHAR(32) DEFAULT '0' NOT NULL;
 
-alter table nop_meta_recon_entity add NOP_TENANT_ID VARCHAR(32) DEFAULT '0' NOT NULL;
+alter table nop_meta_reconciliation_entity add NOP_TENANT_ID VARCHAR(32) DEFAULT '0' NOT NULL;
 
 alter table nop_meta_model_changed_event add NOP_TENANT_ID VARCHAR(32) DEFAULT '0' NOT NULL;
 
@@ -43,9 +41,11 @@ alter table nop_meta_profiling_rule add NOP_TENANT_ID VARCHAR(32) DEFAULT '0' NO
 
 alter table nop_meta_data_contract add NOP_TENANT_ID VARCHAR(32) DEFAULT '0' NOT NULL;
 
-alter table nop_meta_recon_config add NOP_TENANT_ID VARCHAR(32) DEFAULT '0' NOT NULL;
+alter table nop_meta_reconciliation_config add NOP_TENANT_ID VARCHAR(32) DEFAULT '0' NOT NULL;
 
 alter table nop_meta_quality_score add NOP_TENANT_ID VARCHAR(32) DEFAULT '0' NOT NULL;
+
+alter table nop_meta_lineage_edge add NOP_TENANT_ID VARCHAR(32) DEFAULT '0' NOT NULL;
 
 alter table nop_meta_entity_field add NOP_TENANT_ID VARCHAR(32) DEFAULT '0' NOT NULL;
 
@@ -61,7 +61,7 @@ alter table nop_meta_dict_item add NOP_TENANT_ID VARCHAR(32) DEFAULT '0' NOT NUL
 
 alter table nop_meta_profiling_result add NOP_TENANT_ID VARCHAR(32) DEFAULT '0' NOT NULL;
 
-alter table nop_meta_recon_result add NOP_TENANT_ID VARCHAR(32) DEFAULT '0' NOT NULL;
+alter table nop_meta_reconciliation_result add NOP_TENANT_ID VARCHAR(32) DEFAULT '0' NOT NULL;
 
 alter table nop_meta_module drop primary key;
 alter table nop_meta_module add primary key (NOP_TENANT_ID, META_MODULE_ID);
@@ -72,14 +72,11 @@ alter table nop_meta_data_source add primary key (NOP_TENANT_ID, DATA_SOURCE_ID)
 alter table nop_meta_semantic_type drop primary key;
 alter table nop_meta_semantic_type add primary key (NOP_TENANT_ID, SEMANTIC_TYPE_ID);
 
-alter table nop_meta_lineage_edge drop primary key;
-alter table nop_meta_lineage_edge add primary key (NOP_TENANT_ID, LINEAGE_EDGE_ID);
-
 alter table nop_meta_quality_rule drop primary key;
 alter table nop_meta_quality_rule add primary key (NOP_TENANT_ID, QUALITY_RULE_ID);
 
-alter table nop_meta_recon_entity drop primary key;
-alter table nop_meta_recon_entity add primary key (NOP_TENANT_ID, RECON_ENTITY_ID);
+alter table nop_meta_reconciliation_entity drop primary key;
+alter table nop_meta_reconciliation_entity add primary key (NOP_TENANT_ID, RECON_ENTITY_ID);
 
 alter table nop_meta_model_changed_event drop primary key;
 alter table nop_meta_model_changed_event add primary key (NOP_TENANT_ID, MODEL_CHANGED_EVENT_ID);
@@ -129,11 +126,14 @@ alter table nop_meta_profiling_rule add primary key (NOP_TENANT_ID, PROFILING_RU
 alter table nop_meta_data_contract drop primary key;
 alter table nop_meta_data_contract add primary key (NOP_TENANT_ID, CONTRACT_ID);
 
-alter table nop_meta_recon_config drop primary key;
-alter table nop_meta_recon_config add primary key (NOP_TENANT_ID, CONFIG_ID);
+alter table nop_meta_reconciliation_config drop primary key;
+alter table nop_meta_reconciliation_config add primary key (NOP_TENANT_ID, CONFIG_ID);
 
 alter table nop_meta_quality_score drop primary key;
 alter table nop_meta_quality_score add primary key (NOP_TENANT_ID, QUALITY_SCORE_ID);
+
+alter table nop_meta_lineage_edge drop primary key;
+alter table nop_meta_lineage_edge add primary key (NOP_TENANT_ID, LINEAGE_EDGE_ID);
 
 alter table nop_meta_entity_field drop primary key;
 alter table nop_meta_entity_field add primary key (NOP_TENANT_ID, ENTITY_FIELD_ID);
@@ -156,7 +156,7 @@ alter table nop_meta_dict_item add primary key (NOP_TENANT_ID, DICT_ITEM_ID);
 alter table nop_meta_profiling_result drop primary key;
 alter table nop_meta_profiling_result add primary key (NOP_TENANT_ID, PROFILING_RESULT_ID);
 
-alter table nop_meta_recon_result drop primary key;
-alter table nop_meta_recon_result add primary key (NOP_TENANT_ID, RESULT_ID);
+alter table nop_meta_reconciliation_result drop primary key;
+alter table nop_meta_reconciliation_result add primary key (NOP_TENANT_ID, RESULT_ID);
 
 

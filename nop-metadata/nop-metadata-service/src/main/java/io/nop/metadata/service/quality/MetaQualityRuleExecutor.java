@@ -2,6 +2,7 @@ package io.nop.metadata.service.quality;
 
 import io.nop.api.core.exceptions.NopException;
 import io.nop.api.core.exceptions.ErrorCode;
+import io.nop.commons.util.StringHelper;
 import io.nop.core.lang.json.JsonTool;
 import io.nop.metadata.service.tableref.TableReference;
 import org.slf4j.Logger;
@@ -11,9 +12,11 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.sql.Statement;
 import java.sql.Timestamp;
+import java.util.Arrays;
+import java.util.HashSet;
 import java.util.Map;
+import java.util.Set;
 import java.util.regex.Pattern;
 
 /**
@@ -42,6 +45,47 @@ public class MetaQualityRuleExecutor {
             ErrorCode.define("metadata.quality-invalid-identifier",
                     "Identifier (column/table/schema) does not match whitelist ^[A-Za-z_][A-Za-z0-9_]*$: {identifier}",
                     "identifier");
+
+    /**
+     * 维度13-03：custom_sql 规则的 SQL 内容含危险关键字（多语句、UNION、文件读写等），拒绝执行。
+     * PreparedStatement 不解决 custom_sql 注入（SQL 文本本身是用户配置），所以白名单是核心防御。
+     */
+    public static final ErrorCode ERR_QUALITY_CUSTOM_SQL_BLOCKED =
+            ErrorCode.define("metadata.quality-custom-sql-blocked",
+                    "custom_sql rule SQL contains forbidden keyword (multi-statement/UNION/INTO OUTFILE/LOAD DATA/etc.). "
+                            + "custom_sql rules execute on the external data source account; dangerous keywords are blocked: "
+                            + "{ruleKey} reason={reason} sqlHash={sqlHash}",
+                    "ruleKey", "reason", "sqlHash");
+
+    /**
+     * 维度13-03：custom_sql 危险关键字黑名单（trim + 大写后 whole-word/inclusive 匹配）。
+     * <ul>
+     *   <li>分号：禁多语句（避免 stacked queries）。</li>
+     *   <li>UNION：禁跨表读取。</li>
+     *   <li>INTO OUTFILE / INTO DUMPFILE：禁文件写入。</li>
+     *   <li>LOAD DATA：禁文件读取。</li>
+     *   <li>CALL / EXEC：禁调用存储过程（用户配置范围外）。</li>
+     *   <li>SHUTDOWN / DROP / TRUNCATE / ALTER / CREATE / GRANT / REVOKE：禁 DDL/DCL。</li>
+     * </ul>
+     */
+    private static final Set<String> CUSTOM_SQL_FORBIDDEN_KEYWORDS = unmodifiableSet(
+            ";",
+            "UNION",
+            "INTO OUTFILE", "INTO DUMPFILE",
+            "LOAD DATA", "LOAD_FILE",
+            "CALL", "EXEC", "EXECUTE",
+            "SHUTDOWN",
+            "DROP", "TRUNCATE", "ALTER", "CREATE", "GRANT", "REVOKE",
+            "INFORMATION_SCHEMA",
+            "MYSQL.USER", "MYSQL.SCHEMAS");
+
+    /** 维度13-03：sqlHash 用的固定 salt（不防碰撞，只防明文反查，便于审计）。 */
+    private static final String SQL_HASH_SALT = "nop.metadata.custom_sql.v1";
+
+    private static Set<String> unmodifiableSet(String... items) {
+        HashSet<String> s = new HashSet<>(Arrays.asList(items));
+        return java.util.Collections.unmodifiableSet(s);
+    }
 
     /**
      * 执行单条质量规则并返回判定结果（消费 {@link TableReference}，架构基线 §4.4.3 D3）。
@@ -196,7 +240,18 @@ public class MetaQualityRuleExecutor {
         return j;
     }
 
-    /** custom_sql：执行 sqlExpression（优先）或 params.sql；期望返回单数值/单布尔；按 params.expectPassWhen 判定。 */
+    /**
+     * custom_sql：执行 sqlExpression（优先）或 params.sql；期望返回单数值/单布尔；按 params.expectPassWhen 判定。
+     *
+     * <p>维度13-03 沙箱化（核心防御）：
+     * <ul>
+     *   <li><b>SQL 内容白名单</b>（关键，不依赖 PreparedStatement）：拒绝含分号（多语句）、UNION、
+     *       INTO OUTFILE、LOAD DATA 等危险关键字。先 trim + 大写后匹配。</li>
+     *   <li>在 details 写入 {@code sqlHash}（SHA-256 短摘要）用于审计，便于追溯哪条规则执行了什么 SQL。</li>
+     *   <li>ErrorCode 描述明确"custom_sql 规则在外部数据源账户上执行"，强化运维认知。</li>
+     *   <li>{@code querySingleValue} 改用 PreparedStatement（AR-12，纯风格统一，不解决注入）。</li>
+     * </ul>
+     */
     private QualityRuleJudgment judgeCustomSql(Connection conn, String sqlExpression,
                                                Map<String, Object> params, QualityRuleJudgment j) {
         String sql = sqlExpression;
@@ -208,6 +263,12 @@ public class MetaQualityRuleExecutor {
             j.setMessage("custom_sql rule missing both sqlExpression column and params.sql");
             return j;
         }
+        // 维度13-03：(b) SQL 内容白名单——拒绝危险关键字（不依赖 PreparedStatement，因 SQL 文本是用户配置）
+        String ruleKey = getString(params, "ruleKey");
+        String sqlHash = sqlHashOf(sql);
+        j.getDetails().put("sqlHash", sqlHash);
+        // 沙箱校验在执行前；custom_sql 为用户显式提供（已知显式风险，§2.7.1 D3），白名单是其唯一防御
+        validateCustomSqlSandbox(sql, ruleKey, sqlHash);
         // custom_sql 为用户显式提供（已知显式风险，§2.7.1 D3），直接执行不解析不改写
         j.getDetails().put("sql", sql);
 
@@ -215,9 +276,9 @@ public class MetaQualityRuleExecutor {
         try {
             value = querySingleValue(conn, sql);
         } catch (SQLException e) {
-            LOG.error("custom_sql execution failed", e);
+            LOG.error("custom_sql execution failed (sqlHash={})", sqlHash, e);
             j.setStatus("ERROR");
-            j.setMessage("custom_sql execution failed: " + messageOf(e));
+            j.setMessage("custom_sql execution failed (executes on external data source account): " + messageOf(e));
             return j;
         }
         if (value == null) {
@@ -242,6 +303,35 @@ public class MetaQualityRuleExecutor {
                 ? "custom_sql ok: returned " + value + " satisfies " + expectPassWhen
                 : "custom_sql fail: returned " + value + " does not satisfy " + (expectPassWhen == null ? "eq 0" : expectPassWhen));
         return j;
+    }
+
+    /**
+     * 维度13-03：SQL 内容白名单校验。trim + 大写后匹配危险关键字，命中即抛 ErrorCode。
+     * <p><b>核心防御</b>：PreparedStatement 不解决 custom_sql 注入（SQL 文本本身是用户配置），
+     * 因此白名单是唯一可控的注入面收口。失败时显式抛 ErrorCode（不静默跳过、不返回 0）。
+     */
+    static void validateCustomSqlSandbox(String sql, String ruleKey, String sqlHash) {
+        if (sql == null) {
+            return;
+        }
+        String upper = sql.trim().toUpperCase();
+        for (String keyword : CUSTOM_SQL_FORBIDDEN_KEYWORDS) {
+            if (upper.contains(keyword)) {
+                throw new NopException(ERR_QUALITY_CUSTOM_SQL_BLOCKED)
+                        .param("ruleKey", String.valueOf(ruleKey))
+                        .param("reason", "forbidden keyword present: " + keyword)
+                        .param("sqlHash", sqlHash);
+            }
+        }
+    }
+
+    /** 维度13-03：SHA-256 短摘要（前 16 字符 hex）用于审计追溯，不防碰撞。null 返回 null。 */
+    public static String sqlHashOf(String sql) {
+        if (sql == null) {
+            return null;
+        }
+        String full = StringHelper.sha256Hash(sql, SQL_HASH_SALT);
+        return full == null ? null : full.substring(0, Math.min(16, full.length()));
     }
 
     // ===== field 级规则（external params.column 约定）=====
@@ -452,7 +542,7 @@ public class MetaQualityRuleExecutor {
 
     private static long queryLong(Connection conn, String sql) {
         LOG.info("qualityRule SQL: {}", sql);
-        try (Statement st = conn.createStatement(); ResultSet rs = st.executeQuery(sql)) {
+        try (PreparedStatement st = conn.prepareStatement(sql); ResultSet rs = st.executeQuery()) {
             if (!rs.next()) {
                 throw new NopException(ErrorCode.define("metadata.quality-sql-no-row",
                         "Quality rule SQL returned no row: {sql}", "sql"))
@@ -460,30 +550,40 @@ public class MetaQualityRuleExecutor {
             }
             return rs.getLong(1);
         } catch (SQLException e) {
+            // AR-13: ErrorCode 描述含 {error} 占位符，throw 时同时设置 sql + error 参数（原仅设置 sql）
             throw new NopException(ErrorCode.define("metadata.quality-sql-failed",
                     "Quality rule SQL execution failed: {sql} -- {error}", "sql", "error"), e)
-                    .param("sql", sql);
+                    .param("sql", sql)
+                    .param("error", messageOf(e));
         }
     }
 
     private static Timestamp queryTimestamp(Connection conn, String sql) {
         LOG.info("qualityRule SQL: {}", sql);
-        try (Statement st = conn.createStatement(); ResultSet rs = st.executeQuery(sql)) {
+        try (PreparedStatement st = conn.prepareStatement(sql); ResultSet rs = st.executeQuery()) {
             if (!rs.next()) {
                 return null;
             }
             return rs.getTimestamp(1);
         } catch (SQLException e) {
+            // AR-13: ErrorCode 描述含 {error} 占位符，throw 时同时设置 sql + error 参数（原仅设置 sql）
             throw new NopException(ErrorCode.define("metadata.quality-sql-failed",
                     "Quality rule SQL execution failed: {sql} -- {error}", "sql", "error"), e)
-                    .param("sql", sql);
+                    .param("sql", sql)
+                    .param("error", messageOf(e));
         }
     }
 
-    /** 执行 custom_sql，期望返回单数值或单布尔；否则返回 null（由调用方记 ERROR）。 */
+    /**
+     * 执行 custom_sql，期望返回单数值或单布尔；否则返回 null（由调用方记 ERROR）。
+     *
+     * <p>AR-12：与 queryLong/queryTimestamp 一致改用 PreparedStatement（纯风格统一）。
+     * 维度13-03：<b>PreparedStatement 不解决 custom_sql 注入</b>（SQL 文本本身是用户配置），
+     * 因此调用方 {@link #judgeCustomSql} 在调用前已做 SQL 内容白名单校验（拒绝分号/UNION/INTO OUTFILE 等）。
+     */
     private static Double querySingleValue(Connection conn, String sql) throws SQLException {
         LOG.info("qualityRule custom_sql: {}", sql);
-        try (Statement st = conn.createStatement(); ResultSet rs = st.executeQuery(sql)) {
+        try (PreparedStatement st = conn.prepareStatement(sql); ResultSet rs = st.executeQuery()) {
             if (!rs.next()) {
                 return null;
             }

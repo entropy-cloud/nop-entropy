@@ -103,6 +103,7 @@ prop:
       createTime: 创建时间
       createdBy: 创建人
       deprecated: 已废弃
+      dictItems: 字典项集
       dictName: 字典名
       internal: 内部使用
       isDelta: 是否Delta
@@ -126,6 +127,7 @@ prop:
       description: 描述
       dictItemId: 字典项ID
       internal: 内部使用
+      isDelta: 是否Delta
       itemCode: 字典编码
       itemGroup: 分组
       itemLabel: 字典标签
@@ -172,12 +174,18 @@ prop:
       dbCatalog: 数据库目录
       dbSchema: 数据库Schema
       delFlagProp: 删除标记属性
-      deleteVersionProp: 删除版本属性
+      delVersionProp: 删除版本属性
       displayName: 显示名
+      entityFields: 实体字段集
+      entityIndexes: 实体索引集
       entityName: 实体名
+      entityRelations: 实体关系集
+      entityUniqueKeys: 实体唯一键集
       extConfig: 扩展配置
       extConfigComponent: null
       isDelta: 是否Delta
+      joinAsLeft: 作为左实体的关联集
+      joinAsRight: 作为右实体的关联集
       metaEntityId: 实体ID
       notGenCode: 不生成代码
       ormModel: ORM模型
@@ -300,11 +308,17 @@ prop:
       lineageEdgeId: 血缘边ID
       lineageSource: 血缘来源
       lineageSource_label: 血缘来源
+      pipeline: 数据管道
+      pipeline.displayName: 数据管道
       pipelineId: 管道ID
       remark: 备注
       sourceColumn: 源列名
+      sourceTable: 源表
+      sourceTable.displayName: 源表
       sourceTableId: 源表ID
       targetColumn: 目标列名
+      targetTable: 目标表
+      targetTable.displayName: 目标表
       targetTableId: 目标表ID
       transformExpr: 转换表达式
       transformType: 转换类型
@@ -355,6 +369,7 @@ prop:
       baseModule: 基线模块
       baseModule.displayName: 基线模块
       baseModuleId: 基线模块版本ID
+      baseModules: 基线模块集
       createTime: 创建时间
       createdBy: 创建人
       displayName: 显示名
@@ -364,6 +379,7 @@ prop:
       gitCommitId: Git提交
       gitRepoPath: Git仓库路径
       importedAt: 导入时间
+      manifests: 元数据快照集
       mavenArtifactId: Maven ArtifactId
       mavenGroupId: Maven GroupId
       mavenVersion: Maven版本
@@ -371,15 +387,23 @@ prop:
       moduleId: 模块标识
       moduleName: 模块名
       moduleVersion: 模块版本号
+      ormModels: ORM模型集
+      pipelines: 数据管道集
+      qualityCheckpoints: 质量检查点集
+      reconciliationConfigs: 对账配置集
       remark: 备注
       status: 模块状态
       status_label: 模块状态
+      tables: 逻辑表集
       updateTime: 修改时间
       updatedBy: 修改人
       version: 数据版本
     NopMetaOrmModel:
       createTime: 创建时间
       createdBy: 创建人
+      dicts: 字典集
+      domains: 域定义集
+      entities: 元数据实体集
       importedAt: 导入时间
       isDelta: 是否Delta
       metaModule: 元数据模块
@@ -398,6 +422,7 @@ prop:
       displayName: 显示名
       extConfig: 扩展配置
       extConfigComponent: null
+      lineageEdges: 血缘边集
       metaModule: 元数据模块
       metaModule.displayName: 元数据模块
       metaModuleId: 模块版本ID
@@ -442,6 +467,7 @@ prop:
       metaTable.displayName: 逻辑表
       profilingRuleId: 剖析规则ID
       remark: 备注
+      results: 剖析结果集
       ruleName: 规则名
       sampleSize: 采样大小
       stats: 统计指标
@@ -504,6 +530,7 @@ prop:
       paramsComponent: null
       qualityRuleId: 规则ID
       remark: 备注
+      results: 质量结果集
       ruleName: 规则名
       ruleType: 规则类型
       ruleType_label: 规则类型
@@ -556,6 +583,7 @@ prop:
       metaTable.displayName: 逻辑表
       metaTableId: 逻辑表ID
       remark: 备注
+      results: 对账结果集
       targetEntityType: 目标实体类型
       updateTime: 修改时间
       updatedBy: 修改人
@@ -616,15 +644,30 @@ prop:
     NopMetaTable:
       baseEntityId: 主要实体ID
       buildSql: 合成SQL
+      catalogs: 运行时统计快照集
       createTime: 创建时间
       createdBy: 创建人
+      dataContracts: 数据契约集
       description: 描述
+      dimensions: 表维度集
       displayName: 显示名
+      filters: 表过滤器集
+      joinAsLeftTable: 作为左表的关联集
+      joinAsRightTable: 作为右表的关联集
+      joins: 表关联集
+      lineageAsSource: 作为血缘源表的边集
+      lineageAsTarget: 作为血缘目标表的边集
+      measures: 表指标集
       metaModule: 元数据模块
       metaModule.displayName: 元数据模块
       metaModuleId: 模块版本ID
       metaTableId: 逻辑表ID
+      profilingResults: 数据剖析结果集
+      profilingRules: 数据剖析规则集
+      qualityScores: 质量评分集
       querySpace: 查询空间
+      reconciliationConfigs: 对账配置集
+      reconciliationResults: 对账结果集
       remark: 备注
       schema: 源schema
       sourceSql: 来源SQL

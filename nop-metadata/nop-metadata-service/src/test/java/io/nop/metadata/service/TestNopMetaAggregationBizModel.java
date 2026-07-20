@@ -1634,8 +1634,9 @@ public class TestNopMetaAggregationBizModel extends JunitBaseTestCase {
         try {
             String tableId = findEntityTableId("nop_meta_entity");
             String createTimeFieldId = findEntityFieldId("nop_meta_entity", "createTime");
-            // expression：DEL_VERSION + DEL_VERSION（nop_meta_entity 的 version 字段 columnCode=DEL_VERSION，纯列算术）
-            createMeasure(tableId, "exprCnt", createTimeFieldId, "sum", "DEL_VERSION + DEL_VERSION");
+            // expression：VERSION + VERSION（nop_meta_entity 的 version 字段 columnCode=VERSION，纯列算术）
+            // 历史：columnCode 曾为 DEL_VERSION（plan 1250-2 Phase 2 维度04-09 统一为 VERSION）
+            createMeasure(tableId, "exprCnt", createTimeFieldId, "sum", "VERSION + VERSION");
             createDimension(tableId, "mon", createTimeFieldId, "temporal", "month");
 
             Map<String, Object> result = nopMetaTableBizModel.queryAggregation(tableId,
@@ -1645,7 +1646,7 @@ public class TestNopMetaAggregationBizModel extends JunitBaseTestCase {
             assertEquals(2, items.size(),
                     "entity path expression + temporal month granularity must yield 2 buckets: " + items);
             // Anti-Hollow: 验证 expression + temporal granularity 共存路径真实执行（结果非 null 即可，
-            // DEL_VERSION 实际值由 import 决定——通常为 0 故 SUM=0，但分组数 == 2 证明 SQL 真实构造 + 执行）
+            // VERSION 实际值由 import 决定——通常为 0 故 SUM=0，但分组数 == 2 证明 SQL 真实构造 + 执行）
             for (Map<String, Object> row : items) {
                 Object v = getIgnoreCase(row, "EXPRCNT");
                 assertNotNull(v, "expression result column must be present: " + row.keySet());

@@ -1,5 +1,62 @@
 <?xml version="1.0" encoding="UTF-8" ?>
+<!--
+  nop-metadata 行级数据权限规则（维度13-02 Phase 4）。
+
+  目标实体（3 个，均含 createdBy 列）：
+    - NopMetaDataSource: 数据源配置含凭据，行级权限至关重要（任意 query 即读全部行 → 凭据暴露）。
+    - NopMetaQualityCheckpoint: 含 webhook/notify 投递配置，可被低权限用户滥用。
+    - NopMetaModelChangedEvent: 含变更快照（sensitive 列已脱敏，但事件元数据仍按创建者隔离）。
+
+  规则：
+    - admin 角色：无过滤，全量访问（运维/管理职责）。
+    - 其他角色（含默认 user）：按 createdBy == $user.userId 过滤，仅看自己创建的行。
+
+  未配置 $context.user.userId 时（如系统调用），filter 值为 null，标准 SQL 语义下不匹配任何行
+  （fail-closed 而非 fail-open，避免凭据暴露）。运维若需系统级访问，应在 admin 角色下进行。
+-->
 <data-auth x:schema="/nop/schema/data-auth.xdef" xmlns:x="/nop/schema/xdsl.xdef">
 
-    <objs/>
+    <objs>
+        <obj name="NopMetaDataSource" displayName="数据源行级权限">
+            <role-auths>
+                <role-auth id="admin" roleIds="admin">
+                    <description>admin 角色无过滤，全量访问（凭据管理职责）</description>
+                </role-auth>
+                <role-auth id="default" roleIds="user">
+                    <description>非 admin 用户仅能看自己创建的数据源（防凭据暴露）</description>
+                    <filter>
+                        <eq name="createdBy" value="${$context.user.userId}"/>
+                    </filter>
+                </role-auth>
+            </role-auths>
+        </obj>
+
+        <obj name="NopMetaQualityCheckpoint" displayName="质量检查点行级权限">
+            <role-auths>
+                <role-auth id="admin" roleIds="admin">
+                    <description>admin 角色无过滤，全量访问</description>
+                </role-auth>
+                <role-auth id="default" roleIds="user">
+                    <description>非 admin 用户仅能看自己创建的检查点（防 webhook/notify 滥用）</description>
+                    <filter>
+                        <eq name="createdBy" value="${$context.user.userId}"/>
+                    </filter>
+                </role-auth>
+            </role-auths>
+        </obj>
+
+        <obj name="NopMetaModelChangedEvent" displayName="变更事件行级权限">
+            <role-auths>
+                <role-auth id="admin" roleIds="admin">
+                    <description>admin 角色无过滤，全量访问（事件审计职责）</description>
+                </role-auth>
+                <role-auth id="default" roleIds="user">
+                    <description>非 admin 用户仅能看自己触发的事件（sensitive 列已脱敏，但事件元数据仍隔离）</description>
+                    <filter>
+                        <eq name="changedBy" value="${$context.user.userId}"/>
+                    </filter>
+                </role-auth>
+            </role-auths>
+        </obj>
+    </objs>
 </data-auth>

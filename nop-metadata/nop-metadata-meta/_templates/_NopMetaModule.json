@@ -23,5 +23,12 @@
   "remark": "",
   "baseModule": null,
   "baseModule.displayName": "",
+  "ormModels": null,
+  "tables": null,
+  "pipelines": null,
+  "qualityCheckpoints": null,
+  "manifests": null,
+  "reconciliationConfigs": null,
+  "baseModules": null,
   "extConfigComponent": null
 }

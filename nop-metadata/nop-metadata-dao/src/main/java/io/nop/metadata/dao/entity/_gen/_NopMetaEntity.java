@@ -102,8 +102,8 @@ public class _NopMetaEntity extends DynamicOrmEntity{
     public static final int PROP_ID_delFlagProp = 20;
     
     /* 删除版本属性: DEL_VERSION_PROP VARCHAR */
-    public static final String PROP_NAME_deleteVersionProp = "deleteVersionProp";
-    public static final int PROP_ID_deleteVersionProp = 21;
+    public static final String PROP_NAME_delVersionProp = "delVersionProp";
+    public static final int PROP_ID_delVersionProp = 21;
     
     /* 数据库目录: DB_CATALOG VARCHAR */
     public static final String PROP_NAME_dbCatalog = "dbCatalog";
@@ -117,7 +117,7 @@ public class _NopMetaEntity extends DynamicOrmEntity{
     public static final String PROP_NAME_extConfig = "extConfig";
     public static final int PROP_ID_extConfig = 24;
     
-    /* 数据版本: DEL_VERSION BIGINT */
+    /* 数据版本: VERSION BIGINT */
     public static final String PROP_NAME_version = "version";
     public static final int PROP_ID_version = 25;
     
@@ -147,6 +147,24 @@ public class _NopMetaEntity extends DynamicOrmEntity{
     
     /* relation: ORM模型 */
     public static final String PROP_NAME_ormModel = "ormModel";
+    
+    /* relation: 实体字段集 */
+    public static final String PROP_NAME_entityFields = "entityFields";
+    
+    /* relation: 实体关系集 */
+    public static final String PROP_NAME_entityRelations = "entityRelations";
+    
+    /* relation: 实体唯一键集 */
+    public static final String PROP_NAME_entityUniqueKeys = "entityUniqueKeys";
+    
+    /* relation: 实体索引集 */
+    public static final String PROP_NAME_entityIndexes = "entityIndexes";
+    
+    /* relation: 作为左实体的关联集 */
+    public static final String PROP_NAME_joinAsLeft = "joinAsLeft";
+    
+    /* relation: 作为右实体的关联集 */
+    public static final String PROP_NAME_joinAsRight = "joinAsRight";
     
     /* component:  */
     public static final String PROP_NAME_extConfigComponent = "extConfigComponent";
@@ -219,8 +237,8 @@ public class _NopMetaEntity extends DynamicOrmEntity{
           PROP_ID_TO_NAME[PROP_ID_delFlagProp] = PROP_NAME_delFlagProp;
           PROP_NAME_TO_ID.put(PROP_NAME_delFlagProp, PROP_ID_delFlagProp);
       
-          PROP_ID_TO_NAME[PROP_ID_deleteVersionProp] = PROP_NAME_deleteVersionProp;
-          PROP_NAME_TO_ID.put(PROP_NAME_deleteVersionProp, PROP_ID_deleteVersionProp);
+          PROP_ID_TO_NAME[PROP_ID_delVersionProp] = PROP_NAME_delVersionProp;
+          PROP_NAME_TO_ID.put(PROP_NAME_delVersionProp, PROP_ID_delVersionProp);
       
           PROP_ID_TO_NAME[PROP_ID_dbCatalog] = PROP_NAME_dbCatalog;
           PROP_NAME_TO_ID.put(PROP_NAME_dbCatalog, PROP_ID_dbCatalog);
@@ -313,7 +331,7 @@ public class _NopMetaEntity extends DynamicOrmEntity{
     private java.lang.String _delFlagProp;
     
     /* 删除版本属性: DEL_VERSION_PROP */
-    private java.lang.String _deleteVersionProp;
+    private java.lang.String _delVersionProp;
     
     /* 数据库目录: DB_CATALOG */
     private java.lang.String _dbCatalog;
@@ -324,7 +342,7 @@ public class _NopMetaEntity extends DynamicOrmEntity{
     /* 扩展配置: EXT_CONFIG */
     private java.lang.String _extConfig;
     
-    /* 数据版本: DEL_VERSION */
+    /* 数据版本: VERSION */
     private java.lang.Long _version;
     
     /* 创建人: CREATED_BY */
@@ -476,8 +494,8 @@ public class _NopMetaEntity extends DynamicOrmEntity{
             case PROP_ID_delFlagProp:
                return getDelFlagProp();
         
-            case PROP_ID_deleteVersionProp:
-               return getDeleteVersionProp();
+            case PROP_ID_delVersionProp:
+               return getDelVersionProp();
         
             case PROP_ID_dbCatalog:
                return getDbCatalog();
@@ -717,13 +735,13 @@ public class _NopMetaEntity extends DynamicOrmEntity{
                break;
             }
         
-            case PROP_ID_deleteVersionProp:{
+            case PROP_ID_delVersionProp:{
                java.lang.String typedValue = null;
                if(value != null){
                    typedValue = ConvertHelper.toString(value,
-                       err-> newTypeConversionError(PROP_NAME_deleteVersionProp));
+                       err-> newTypeConversionError(PROP_NAME_delVersionProp));
                }
-               setDeleteVersionProp(typedValue);
+               setDelVersionProp(typedValue);
                break;
             }
         
@@ -966,9 +984,9 @@ public class _NopMetaEntity extends DynamicOrmEntity{
                break;
             }
         
-            case PROP_ID_deleteVersionProp:{
+            case PROP_ID_delVersionProp:{
                onInitProp(propId);
-               this._deleteVersionProp = (java.lang.String)value;
+               this._delVersionProp = (java.lang.String)value;
                
                break;
             }
@@ -1425,18 +1443,18 @@ public class _NopMetaEntity extends DynamicOrmEntity{
     /**
      * 删除版本属性: DEL_VERSION_PROP
      */
-    public final java.lang.String getDeleteVersionProp(){
-         onPropGet(PROP_ID_deleteVersionProp);
-         return _deleteVersionProp;
+    public final java.lang.String getDelVersionProp(){
+         onPropGet(PROP_ID_delVersionProp);
+         return _delVersionProp;
     }
 
     /**
      * 删除版本属性: DEL_VERSION_PROP
      */
-    public final void setDeleteVersionProp(java.lang.String value){
-        if(onPropSet(PROP_ID_deleteVersionProp,value)){
-            this._deleteVersionProp = value;
-            internalClearRefs(PROP_ID_deleteVersionProp);
+    public final void setDelVersionProp(java.lang.String value){
+        if(onPropSet(PROP_ID_delVersionProp,value)){
+            this._delVersionProp = value;
+            internalClearRefs(PROP_ID_delVersionProp);
             
         }
     }
@@ -1499,7 +1517,7 @@ public class _NopMetaEntity extends DynamicOrmEntity{
     }
     
     /**
-     * 数据版本: DEL_VERSION
+     * 数据版本: VERSION
      */
     public final java.lang.Long getVersion(){
          onPropGet(PROP_ID_version);
@@ -1507,7 +1525,7 @@ public class _NopMetaEntity extends DynamicOrmEntity{
     }
 
     /**
-     * 数据版本: DEL_VERSION
+     * 数据版本: VERSION
      */
     public final void setVersion(java.lang.Long value){
         if(onPropSet(PROP_ID_version,value)){
@@ -1633,6 +1651,66 @@ public class _NopMetaEntity extends DynamicOrmEntity{
            });
            }
        
+    }
+       
+    private final OrmEntitySet<io.nop.metadata.dao.entity.NopMetaEntityField> _entityFields = new OrmEntitySet<>(this, PROP_NAME_entityFields,
+        io.nop.metadata.dao.entity.NopMetaEntityField.PROP_NAME_metaEntity, null,io.nop.metadata.dao.entity.NopMetaEntityField.class);
+
+    /**
+     * 实体字段集。 refPropName: metaEntity, keyProp: {rel.keyProp}
+     */
+    public final IOrmEntitySet<io.nop.metadata.dao.entity.NopMetaEntityField> getEntityFields(){
+       return _entityFields;
+    }
+       
+    private final OrmEntitySet<io.nop.metadata.dao.entity.NopMetaEntityRelation> _entityRelations = new OrmEntitySet<>(this, PROP_NAME_entityRelations,
+        io.nop.metadata.dao.entity.NopMetaEntityRelation.PROP_NAME_metaEntity, null,io.nop.metadata.dao.entity.NopMetaEntityRelation.class);
+
+    /**
+     * 实体关系集。 refPropName: metaEntity, keyProp: {rel.keyProp}
+     */
+    public final IOrmEntitySet<io.nop.metadata.dao.entity.NopMetaEntityRelation> getEntityRelations(){
+       return _entityRelations;
+    }
+       
+    private final OrmEntitySet<io.nop.metadata.dao.entity.NopMetaEntityUniqueKey> _entityUniqueKeys = new OrmEntitySet<>(this, PROP_NAME_entityUniqueKeys,
+        io.nop.metadata.dao.entity.NopMetaEntityUniqueKey.PROP_NAME_metaEntity, null,io.nop.metadata.dao.entity.NopMetaEntityUniqueKey.class);
+
+    /**
+     * 实体唯一键集。 refPropName: metaEntity, keyProp: {rel.keyProp}
+     */
+    public final IOrmEntitySet<io.nop.metadata.dao.entity.NopMetaEntityUniqueKey> getEntityUniqueKeys(){
+       return _entityUniqueKeys;
+    }
+       
+    private final OrmEntitySet<io.nop.metadata.dao.entity.NopMetaEntityIndex> _entityIndexes = new OrmEntitySet<>(this, PROP_NAME_entityIndexes,
+        io.nop.metadata.dao.entity.NopMetaEntityIndex.PROP_NAME_metaEntity, null,io.nop.metadata.dao.entity.NopMetaEntityIndex.class);
+
+    /**
+     * 实体索引集。 refPropName: metaEntity, keyProp: {rel.keyProp}
+     */
+    public final IOrmEntitySet<io.nop.metadata.dao.entity.NopMetaEntityIndex> getEntityIndexes(){
+       return _entityIndexes;
+    }
+       
+    private final OrmEntitySet<io.nop.metadata.dao.entity.NopMetaTableJoin> _joinAsLeft = new OrmEntitySet<>(this, PROP_NAME_joinAsLeft,
+        io.nop.metadata.dao.entity.NopMetaTableJoin.PROP_NAME_leftEntity, null,io.nop.metadata.dao.entity.NopMetaTableJoin.class);
+
+    /**
+     * 作为左实体的关联集。 refPropName: leftEntity, keyProp: {rel.keyProp}
+     */
+    public final IOrmEntitySet<io.nop.metadata.dao.entity.NopMetaTableJoin> getJoinAsLeft(){
+       return _joinAsLeft;
+    }
+       
+    private final OrmEntitySet<io.nop.metadata.dao.entity.NopMetaTableJoin> _joinAsRight = new OrmEntitySet<>(this, PROP_NAME_joinAsRight,
+        io.nop.metadata.dao.entity.NopMetaTableJoin.PROP_NAME_rightEntity, null,io.nop.metadata.dao.entity.NopMetaTableJoin.class);
+
+    /**
+     * 作为右实体的关联集。 refPropName: rightEntity, keyProp: {rel.keyProp}
+     */
+    public final IOrmEntitySet<io.nop.metadata.dao.entity.NopMetaTableJoin> getJoinAsRight(){
+       return _joinAsRight;
     }
        
    private io.nop.orm.component.JsonOrmComponent _extConfigComponent;

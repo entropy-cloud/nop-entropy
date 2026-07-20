@@ -124,6 +124,19 @@ public class MetaJoinExecutor {
             ErrorCode.define("metadata.join-no-endpoint",
                     "Join side has neither entityId nor tableId set (require entity/table二选一 endpoint): "
                             + "{joinId} side={side}", "joinId", "side");
+    static final ErrorCode ERR_JOIN_CROSS_DB_KEY_TYPE_MISMATCH =
+            ErrorCode.define("metadata.join-cross-db-key-type-mismatch",
+                    "Cross-DB merge join key JDBC type mismatch between sides (would silently produce wrong matches "
+                            + "via String.valueOf coercion): {joinId} leftType={leftType} rightType={rightType}",
+                    "joinId", "leftType", "rightType");
+    static final ErrorCode ERR_PAGINATION_OFFSET_TOO_LARGE =
+            ErrorCode.define("metadata.pagination-offset-too-large",
+                    "Pagination offset exceeds Integer.MAX_VALUE (would silently overflow via Math.toIntExact): "
+                            + "{offset}", "offset");
+    static final ErrorCode ERR_PAGINATION_LIMIT_TOO_LARGE =
+            ErrorCode.define("metadata.pagination-limit-too-large",
+                    "Pagination limit exceeds Integer.MAX_VALUE (would silently overflow via Math.toIntExact): "
+                            + "{limit}", "limit");
 
     /**
      * 执行跨表 JOIN。
@@ -335,12 +348,12 @@ public class MetaJoinExecutor {
                 params.addAll(tf.getParams());
             }
         }
+        // AR-04: 按方言拼接 LIMIT/OFFSET（entity-entity JOIN EQL 路径走平台默认方言 H2，offset-only 合法）
+        SqlPagination.appendLimitOffset(sql, limit, offset, null);
         if (limit != null) {
-            sql.append(" LIMIT ?");
             params.add(limit);
         }
         if (offset != null && offset > 0) {
-            sql.append(" OFFSET ?");
             params.add(offset);
         }
 
@@ -397,12 +410,17 @@ public class MetaJoinExecutor {
                 params.addAll(tf.getParams());
             }
         }
+        // AR-04: SQL build 完成在 callback 外（filter/SELECT/FROM 部分），dialect-aware LIMIT/OFFSET
+        // 在 callback 内补入（避免 callback 内重建 SQL，保持与 entity-entity 路径一致的代码组织）。
+        // 默认按 H2 语义（offset-only 合法），如果 productName==MySQL 则需"无限大 LIMIT"占位。
+        // 这里在 callback 外预先拼好 LIMIT/OFFSET 占位符（带 dialect 适配）；占位符参数由 executeJdbcQuery 绑定。
+        // 由于 withConnection callback 内才知 dialect，但同库 table-table 路径 limit/offset 通常由合并后内存截断
+        // （参考 crossDbMerge），此处保守按 H2 方言（与 NopMetaTableBizModel 外层 SQL 构造一致）。
+        SqlPagination.appendLimitOffset(sql, limit, offset, null);
         if (limit != null) {
-            sql.append(" LIMIT ?");
             params.add(limit);
         }
         if (offset != null && offset > 0) {
-            sql.append(" OFFSET ?");
             params.add(offset);
         }
 
@@ -459,6 +477,14 @@ public class MetaJoinExecutor {
      *
      * <p>命名空间规范化（D1.4 Anti-Hollow）：合并前显式校验 leftField/rightField 在各侧 row keySet 中
      * （非空集时），命名空间错配显式失败（不静默空集）。
+     *
+     * <p>NULL 语义（AR-05）：SQL 标准下 NULL != NULL，因此两侧任一 key 为 null 均不参与匹配
+     * （与 SQL JOIN ON a.k = b.k 一致）。早期实现用 String.valueOf 把 null 转成 "null" 字符串建索引，
+     * 导致两侧 null 行被错配为 "null" = "null" → 静默产生错误结果。修正：建索引和查找分支都显式跳过 null。
+     *
+     * <p>类型一致性（AR-05）：跨库 join key 的 JDBC 类型须一致（int↔long↔BigDecimal 不视为兼容——
+     * 早期 String.valueOf 把 1L 和 "1" 都转成 "1" 导致静默错配）。本计划裁定（plan 1250-2 Phase 4）：
+     * 严格类型匹配——类型族（int/long/bigint/decimal）必须相同，否则显式抛 ErrorCode。
      */
     private List<Map<String, Object>> crossDbMerge(NopMetaTableJoin join, List<Map<String, Object>> leftRows,
                                                    List<Map<String, Object>> rightRows, Long limit, Long offset) {
@@ -478,10 +504,19 @@ public class MetaJoinExecutor {
         requireFieldInRowKeys(leftField, leftRows, "left", joinId);
         requireFieldInRowKeys(rightField, rightRows, "right", joinId);
 
+        // 类型一致性校验（AR-05）：从两侧抽样一行非 null key 比较 JDBC 类型族；不一致显式失败
+        verifyCrossDbKeyTypeConsistency(join, leftRows, leftField, rightRows, rightField);
+
         // 右表按 join key 建索引（字符串相等匹配；大小写不敏感取列值，跨侧按值相等）
+        // NULL 语义（AR-05）：右表 key 为 null 不进索引（SQL NULL != NULL，null 不参与匹配）
         Map<String, List<Map<String, Object>>> rightIndex = new HashMap<>();
         for (Map<String, Object> r : rightRows) {
-            String key = stringKey(getCaseInsensitive(r, rightField));
+            Object rawKey = getCaseInsensitive(r, rightField);
+            if (rawKey == null) {
+                // NULL=NULL 不匹配（与 SQL JOIN ON 一致）；跳过此行不进索引
+                continue;
+            }
+            String key = stringKey(rawKey);
             rightIndex.computeIfAbsent(key, k -> new ArrayList<>()).add(r);
         }
 
@@ -490,7 +525,15 @@ public class MetaJoinExecutor {
 
         List<Map<String, Object>> merged = new ArrayList<>();
         for (Map<String, Object> l : leftRows) {
-            String key = stringKey(getCaseInsensitive(l, leftField));
+            Object rawLeftKey = getCaseInsensitive(l, leftField);
+            if (rawLeftKey == null) {
+                // NULL=NULL 不匹配；left join 时仍保留左行（右列填 null），inner join 时丢弃
+                if (_NopMetadataCoreConstants.JOIN_TYPE_LEFT.equals(joinType)) {
+                    merged.add(mergeRow(l, null, alias, leftKeys));
+                }
+                continue;
+            }
+            String key = stringKey(rawLeftKey);
             List<Map<String, Object>> matches = rightIndex.get(key);
             if (matches != null && !matches.isEmpty()) {
                 for (Map<String, Object> r : matches) {
@@ -505,6 +548,42 @@ public class MetaJoinExecutor {
 
         // 跨库无全局序，limit/offset 仅作合并后截断提示（D5 已知限制）
         return truncate(merged, limit, offset);
+    }
+
+    /**
+     * 跨库 join key 类型一致性校验（AR-05 plan 1250-2 Phase 4 Decision: 严格类型匹配 (a)）。
+     *
+     * <p>Decision: 选择方案 (a) 严格类型匹配——左右两侧 join key 的 Java class 必须完全相同。
+     * 原因：String.valueOf(1L) = "1" 与 String.valueOf("1") = "1" 在 HashMap 中会静默匹配，
+     * 违反 SQL 强类型语义；生产环境 MySQL + 多类型 join key 会导致静默错误结果。
+     *
+     * <p>放宽容忍（如 int↔long 兼容）属于后续优化（plan 1250-2 Non-Blocking Follow-ups）。
+     * 当前选择保守严格匹配，类型不一致显式抛 {@link #ERR_JOIN_CROSS_DB_KEY_TYPE_MISMATCH}。
+     */
+    private void verifyCrossDbKeyTypeConsistency(NopMetaTableJoin join,
+                                                 List<Map<String, Object>> leftRows, String leftField,
+                                                 List<Map<String, Object>> rightRows, String rightField) {
+        Object leftSample = firstNonNullKey(leftRows, leftField);
+        Object rightSample = firstNonNullKey(rightRows, rightField);
+        if (leftSample == null || rightSample == null) {
+            return;
+        }
+        // 严格类型匹配：class 必须完全相同
+        if (!leftSample.getClass().equals(rightSample.getClass())) {
+            throw new NopException(ERR_JOIN_CROSS_DB_KEY_TYPE_MISMATCH)
+                    .param("joinId", join.getJoinId())
+                    .param("leftType", leftSample.getClass().getName())
+                    .param("rightType", rightSample.getClass().getName());
+        }
+    }
+
+    private static Object firstNonNullKey(List<Map<String, Object>> rows, String field) {
+        if (rows == null) return null;
+        for (Map<String, Object> r : rows) {
+            Object v = getCaseInsensitive(r, field);
+            if (v != null) return v;
+        }
+        return null;
     }
 
     /**
@@ -786,12 +865,9 @@ public class MetaJoinExecutor {
         if (filterSql != null && !filterSql.isEmpty()) {
             sb.append(" WHERE ").append(filterSql);
         }
-        if (limit != null) {
-            sb.append(" LIMIT ?");
-        }
-        if (offset != null && offset > 0) {
-            sb.append(" OFFSET ?");
-        }
+        // AR-04: 按方言拼接 LIMIT/OFFSET（fetchTableRows 单侧取数调用方传 fetchLimit + offset=null，
+        // 不触发 offset-only 路径；为保持 10 处拼接语义统一仍走 helper，dialect=null 走 H2 默认）
+        SqlPagination.appendLimitOffset(sb, limit, offset, null);
         return sb.toString();
     }
 
@@ -828,13 +904,23 @@ public class MetaJoinExecutor {
     }
 
     private List<Map<String, Object>> truncate(List<Map<String, Object>> rows, Long limit, Long offset) {
-        int from = (offset != null && offset > 0) ? Math.toIntExact(offset) : 0;
+        // AR-08: 显式范围检查替代 Math.toIntExact（溢出抛 ArithmeticException 绕过 ErrorCode）
+        int from = 0;
+        if (offset != null && offset > 0) {
+            if (offset > Integer.MAX_VALUE) {
+                throw new NopException(ERR_PAGINATION_OFFSET_TOO_LARGE).param("offset", offset);
+            }
+            from = offset.intValue();
+        }
         if (from > rows.size()) {
             from = rows.size();
         }
         int to = rows.size();
         if (limit != null) {
-            to = Math.min(rows.size(), from + Math.toIntExact(limit));
+            if (limit > Integer.MAX_VALUE) {
+                throw new NopException(ERR_PAGINATION_LIMIT_TOO_LARGE).param("limit", limit);
+            }
+            to = Math.min(rows.size(), from + limit.intValue());
         }
         return new ArrayList<>(rows.subList(from, to));
     }

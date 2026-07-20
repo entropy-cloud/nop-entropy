@@ -65,7 +65,7 @@ public class _NopMetaLineageEdge extends DynamicOrmEntity{
     public static final String PROP_NAME_extConfig = "extConfig";
     public static final int PROP_ID_extConfig = 11;
     
-    /* 数据版本: DEL_VERSION BIGINT */
+    /* 数据版本: VERSION BIGINT */
     public static final String PROP_NAME_version = "version";
     public static final int PROP_ID_version = 12;
     
@@ -92,6 +92,15 @@ public class _NopMetaLineageEdge extends DynamicOrmEntity{
 
     private static int _PROP_ID_BOUND = 18;
 
+    
+    /* relation: 源表 */
+    public static final String PROP_NAME_sourceTable = "sourceTable";
+    
+    /* relation: 目标表 */
+    public static final String PROP_NAME_targetTable = "targetTable";
+    
+    /* relation: 数据管道 */
+    public static final String PROP_NAME_pipeline = "pipeline";
     
     /* component:  */
     public static final String PROP_NAME_extConfigComponent = "extConfigComponent";
@@ -191,7 +200,7 @@ public class _NopMetaLineageEdge extends DynamicOrmEntity{
     /* 扩展配置: EXT_CONFIG */
     private java.lang.String _extConfig;
     
-    /* 数据版本: DEL_VERSION */
+    /* 数据版本: VERSION */
     private java.lang.Long _version;
     
     /* 创建人: CREATED_BY */
@@ -859,7 +868,7 @@ public class _NopMetaLineageEdge extends DynamicOrmEntity{
     }
     
     /**
-     * 数据版本: DEL_VERSION
+     * 数据版本: VERSION
      */
     public final java.lang.Long getVersion(){
          onPropGet(PROP_ID_version);
@@ -867,7 +876,7 @@ public class _NopMetaLineageEdge extends DynamicOrmEntity{
     }
 
     /**
-     * 数据版本: DEL_VERSION
+     * 数据版本: VERSION
      */
     public final void setVersion(java.lang.Long value){
         if(onPropSet(PROP_ID_version,value)){
@@ -972,6 +981,75 @@ public class _NopMetaLineageEdge extends DynamicOrmEntity{
         }
     }
     
+    /**
+     * 源表
+     */
+    public final io.nop.metadata.dao.entity.NopMetaTable getSourceTable(){
+       return (io.nop.metadata.dao.entity.NopMetaTable)internalGetRefEntity(PROP_NAME_sourceTable);
+    }
+
+    public final void setSourceTable(io.nop.metadata.dao.entity.NopMetaTable refEntity){
+   
+           if(refEntity == null){
+           
+                   this.setSourceTableId(null);
+               
+           }else{
+           internalSetRefEntity(PROP_NAME_sourceTable, refEntity,()->{
+           
+                           this.setSourceTableId(refEntity.getMetaTableId());
+                       
+           });
+           }
+       
+    }
+       
+    /**
+     * 目标表
+     */
+    public final io.nop.metadata.dao.entity.NopMetaTable getTargetTable(){
+       return (io.nop.metadata.dao.entity.NopMetaTable)internalGetRefEntity(PROP_NAME_targetTable);
+    }
+
+    public final void setTargetTable(io.nop.metadata.dao.entity.NopMetaTable refEntity){
+   
+           if(refEntity == null){
+           
+                   this.setTargetTableId(null);
+               
+           }else{
+           internalSetRefEntity(PROP_NAME_targetTable, refEntity,()->{
+           
+                           this.setTargetTableId(refEntity.getMetaTableId());
+                       
+           });
+           }
+       
+    }
+       
+    /**
+     * 数据管道
+     */
+    public final io.nop.metadata.dao.entity.NopMetaPipeline getPipeline(){
+       return (io.nop.metadata.dao.entity.NopMetaPipeline)internalGetRefEntity(PROP_NAME_pipeline);
+    }
+
+    public final void setPipeline(io.nop.metadata.dao.entity.NopMetaPipeline refEntity){
+   
+           if(refEntity == null){
+           
+                   this.setPipelineId(null);
+               
+           }else{
+           internalSetRefEntity(PROP_NAME_pipeline, refEntity,()->{
+           
+                           this.setPipelineId(refEntity.getPipelineId());
+                       
+           });
+           }
+       
+    }
+       
    private io.nop.orm.component.JsonOrmComponent _extConfigComponent;
 
    private static Map<String,Integer> COMPONENT_PROP_ID_MAP_extConfigComponent = new HashMap<>();

@@ -15,7 +15,9 @@
         <meta-gen:DefaultMetaPostExtends xpl:lib="/nop/core/xlib/meta-gen.xlib"/>
     </x:post-extends>
 
-    <keys/>
+    <keys>
+        <key name="UK_NOP_META_JOIN_TABLE_ALIAS" props="metaTableId,alias"/>
+    </keys>
 
     <props>
         <prop name="joinId" displayName="关联ID" propId="1" i18n-en:displayName="Join Id" tagSet="seq" mandatory="true"

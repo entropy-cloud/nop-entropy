@@ -5,6 +5,7 @@ import io.nop.api.core.annotations.biz.BizMutation;
 import io.nop.api.core.annotations.biz.BizQuery;
 import io.nop.api.core.annotations.core.Name;
 import io.nop.api.core.annotations.core.Optional;
+import io.nop.api.core.annotations.ioc.InjectValue;
 import io.nop.api.core.beans.FilterBeans;
 import io.nop.api.core.beans.query.QueryBean;
 import io.nop.api.core.exceptions.ErrorCode;
@@ -62,6 +63,48 @@ public class NopMetaLineageEdgeBizModel extends CrudBizModel<NopMetaLineageEdge>
     static final ErrorCode ERR_LINEAGE_SQL_SOURCE_EMPTY =
             ErrorCode.define("metadata.lineage-sql-source-empty",
                     "Sql table sourceSql is empty, cannot extract column lineage: {metaTableId}", "metaTableId");
+
+    /**
+     * AR-09：lineage 图遍历内存膨胀 DoS 防护。buildLineageGraph/buildTableNameIndex 原用 {@code dao().findAll()}
+     * 全量加载，边集/表集达到规模上限时直接 OOM。改为 {@code findAllByQuery} 带 limit（maxEdges+1/maxTables+1），
+     * 返回 list size > max 时抛 ErrorCode 显式失败（不静默截断、不静默全部丢弃）。
+     */
+    public static final ErrorCode ERR_LINEAGE_GRAPH_TOO_LARGE =
+            ErrorCode.define("metadata.lineage-graph-too-large",
+                    "Lineage graph edge count exceeds size limit (abort to avoid OOM): "
+                            + "edges={edges} limit={limit}. Increase nop.metadata.lineage.max-edges if legitimate.",
+                    "edges", "limit");
+    public static final ErrorCode ERR_LINEAGE_TABLE_INDEX_TOO_LARGE =
+            ErrorCode.define("metadata.lineage-table-index-too-large",
+                    "Lineage table-name index size exceeds limit (abort to avoid OOM): "
+                            + "tables={tables} limit={limit}. Increase nop.metadata.lineage.max-tables if legitimate.",
+                    "tables", "limit");
+
+    /** AR-09：lineage 图遍历边数上限（默认 100_000，可经 nop.metadata.lineage.max-edges 配置）。 */
+    public static final int DEFAULT_LINEAGE_MAX_EDGES = 100_000;
+    /** AR-09：lineage 表名索引上限（默认 100_000）。 */
+    public static final int DEFAULT_LINEAGE_MAX_TABLES = 100_000;
+
+    /**
+     * AR-09：可配置的边数上限。{@code @cfg} 默认空时使用 {@link #DEFAULT_LINEAGE_MAX_EDGES}。
+     * 测试时可经 system property / {@code setTestConfig} 覆盖。
+     */
+    @InjectValue(value = "@cfg:nop.metadata.lineage.max-edges|0")
+    protected int configuredMaxEdges = 0;
+
+    /** AR-09：可配置的表名索引上限。 */
+    @InjectValue(value = "@cfg:nop.metadata.lineage.max-tables|0")
+    protected int configuredMaxTables = 0;
+
+    /** AR-09：解析生效的边数上限（配置 > 0 时覆盖默认）。 */
+    protected int resolveMaxEdges() {
+        return configuredMaxEdges > 0 ? configuredMaxEdges : DEFAULT_LINEAGE_MAX_EDGES;
+    }
+
+    /** AR-09：解析生效的表数上限（配置 > 0 时覆盖默认）。 */
+    protected int resolveMaxTables() {
+        return configuredMaxTables > 0 ? configuredMaxTables : DEFAULT_LINEAGE_MAX_TABLES;
+    }
 
     /** SQL 源表抽取器（架构基线 §2.6.1，复用 nop-orm-eql AST）。无状态。 */
     private final SqlSourceTableExtractor sqlExtractor = new SqlSourceTableExtractor();
@@ -624,9 +667,21 @@ public class NopMetaLineageEdgeBizModel extends CrudBizModel<NopMetaLineageEdge>
      * 一次性加载全量 MetaLineageEdge 在内存建图（架构基线 §2.6.2 BFS 策略：元数据目录量级、边数小，
      * 避免逐跳查询）。forward: source→[targets]；reverse: target→[sources]；
      * columnForward: source→[列级边]（用于影响分析按列过滤）。
+     *
+     * <p>AR-09 DoS 防护：改用 {@code findAllByQuery(limit=maxEdges+1)}，list size > maxEdges 时显式失败，
+     * 不再无上限全量加载（避免恶意/失控数据导入 OOM）。
      */
     private LineageGraph buildLineageGraph() {
-        List<NopMetaLineageEdge> edges = dao().findAll();
+        // AR-09：上限保护——拉 maxEdges+1 行；若实际返回行数 > maxEdges 抛 ErrorCode（不静默截断）
+        int maxEdges = resolveMaxEdges();
+        QueryBean q = new QueryBean();
+        q.setLimit(maxEdges + 1);
+        List<NopMetaLineageEdge> edges = dao().findAllByQuery(q);
+        if (edges.size() > maxEdges) {
+            throw new NopException(ERR_LINEAGE_GRAPH_TOO_LARGE)
+                    .param("edges", edges.size())
+                    .param("limit", maxEdges);
+        }
         Map<String, List<String>> forward = new HashMap<>();
         Map<String, List<String>> reverse = new HashMap<>();
         Map<String, List<NopMetaLineageEdge>> columnForward = new HashMap<>();
@@ -677,10 +732,22 @@ public class NopMetaLineageEdgeBizModel extends CrudBizModel<NopMetaLineageEdge>
         return existing;
     }
 
-    /** 构建 tableName(lower) → metaTableId 索引（全量加载，元数据目录量级，见架构基线 §2.6.2 BFS 策略说明）。 */
+    /**
+     * 构建 tableName(lower) → metaTableId 索引（全量加载，元数据目录量级，见架构基线 §2.6.2 BFS 策略说明）。
+     *
+     * <p>AR-09 DoS 防护：与 {@link #buildLineageGraph} 一致加上限保护，避免表数失控导致 OOM。
+     */
     private Map<String, String> buildTableNameIndex() {
         IEntityDao<NopMetaTable> tableDao = daoFor(NopMetaTable.class);
-        List<NopMetaTable> tables = tableDao.findAll();
+        int maxTables = resolveMaxTables();
+        QueryBean q = new QueryBean();
+        q.setLimit(maxTables + 1);
+        List<NopMetaTable> tables = tableDao.findAllByQuery(q);
+        if (tables.size() > maxTables) {
+            throw new NopException(ERR_LINEAGE_TABLE_INDEX_TOO_LARGE)
+                    .param("tables", tables.size())
+                    .param("limit", maxTables);
+        }
         Map<String, String> map = new LinkedHashMap<>();
         for (NopMetaTable t : tables) {
             if (t.getTableName() != null) {

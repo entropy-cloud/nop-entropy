@@ -49,7 +49,7 @@
         </prop>
         <prop name="details" displayName="扩展详情" propId="8" i18n-en:displayName="Details" queryable="true"
               sortable="true" insertable="true" updatable="true" graphql:jsonComponentProp="detailsComponent">
-            <schema stdDomain="json" domain="mediumtext" type="java.lang.String" precision="16777216"/>
+            <schema stdDomain="json" domain="mediumtext" type="java.lang.String" precision="16777215"/>
         </prop>
         <prop name="collectedAt" displayName="收集时间" propId="9" i18n-en:displayName="Collected At" mandatory="true"
               queryable="true" sortable="true" insertable="true" updatable="true">

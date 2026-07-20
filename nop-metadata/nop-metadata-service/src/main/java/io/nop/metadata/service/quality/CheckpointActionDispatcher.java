@@ -13,9 +13,13 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 /**
  * 检查点执行结果动作分发器（架构基线 §2.7.3 D4）。在 BizModel 层（executor 返回摘要后）按 {@code actions}
@@ -56,12 +60,77 @@ public class CheckpointActionDispatcher {
                     "Quality checkpoint notify action config is missing required 'channel': {checkpointId}",
                     "checkpointId");
 
+    /**
+     * 维度13-04：webhook URL 被 SSRF 防护策略拒绝（协议非白名单 / 内网主机未在 allowed-hosts / method 非白名单）。
+     * fail-closed 策略：默认禁内网（RFC1918 + 169.254 + localhost），允许的外网 webhook 主机需显式配置。
+     */
+    public static final ErrorCode ERR_CHECKPOINT_WEBHOOK_URL_BLOCKED =
+            ErrorCode.define("metadata.checkpoint-webhook-url-blocked",
+                    "Quality checkpoint webhook URL is blocked by SSRF protection policy "
+                            + "(protocol/host not allowed or method not in whitelist): "
+                            + "{checkpointId} url={url} reason={reason}",
+                    "checkpointId", "url", "reason");
+    /**
+     * 维度13-04：webhook method 不在白名单（仅允许 POST/PUT，避免 GET 触发副作用、TRACE 泄露等）。
+     */
+    public static final ErrorCode ERR_CHECKPOINT_WEBHOOK_METHOD_BLOCKED =
+            ErrorCode.define("metadata.checkpoint-webhook-method-blocked",
+                    "Quality checkpoint webhook method is not in whitelist (allowed: POST/PUT): "
+                            + "{checkpointId} method={method}",
+                    "checkpointId", "method");
+
+    /** 维度13-04：webhook 允许的 URL 协议白名单（http/https）。 */
+    private static final Set<String> ALLOWED_WEBHOOK_PROTOCOLS = unmodifiableSet("http://", "https://");
+
+    /** 维度13-04：webhook 允许的 HTTP method 白名单（POST/PUT）。GET 易触发副作用/CSRF；TRACE/DEBUG 易泄露。 */
+    public static final Set<String> ALLOWED_WEBHOOK_METHODS = unmodifiableSet("POST", "PUT");
+
+    /** 维度13-04：默认 webhook 超时（秒）。 */
+    public static final int DEFAULT_WEBHOOK_TIMEOUT_SECONDS = 30;
+
+    private static Set<String> unmodifiableSet(String... items) {
+        return Collections.unmodifiableSet(new HashSet<>(Arrays.asList(items)));
+    }
+
     private final IHttpClient httpClient;
     private final IMessageService messageService;
+
+    /**
+     * 维度13-04：可配置的允许内网主机集合（小写 host，逗号分隔）。
+     * 默认空：fail-closed 拒绝内网（部署 webhook 必须先配 {@code nop.metadata.checkpoint.webhook-allowed-hosts}）。
+     * BizModel 经 {@code @InjectValue} 读取并注入；测试时 setter 覆盖。
+     */
+    protected String webhookAllowedHostsCsv = "";
+
+    /** 维度13-04：webhook 超时（秒），默认 30s。BizModel 经 {@code @InjectValue} 注入；测试时 setter 覆盖。 */
+    protected int webhookTimeoutSeconds = DEFAULT_WEBHOOK_TIMEOUT_SECONDS;
 
     public CheckpointActionDispatcher(IHttpClient httpClient, IMessageService messageService) {
         this.httpClient = httpClient;
         this.messageService = messageService;
+    }
+
+    /**
+     * 维度13-04：允许显式配置 webhook 内网 host allowlist + timeout（BizModel 经 {@code @InjectValue} 读取后注入）。
+     */
+    public void configureWebhookSsrf(String allowedHostsCsv, int timeoutSeconds) {
+        this.webhookAllowedHostsCsv = allowedHostsCsv == null ? "" : allowedHostsCsv;
+        this.webhookTimeoutSeconds = timeoutSeconds > 0 ? timeoutSeconds : DEFAULT_WEBHOOK_TIMEOUT_SECONDS;
+    }
+
+    /** 维度13-04：解析后的允许内网主机集合（小写）。 */
+    protected Set<String> resolveAllowedWebhookHosts() {
+        if (webhookAllowedHostsCsv == null || webhookAllowedHostsCsv.trim().isEmpty()) {
+            return Collections.emptySet();
+        }
+        Set<String> set = new HashSet<>();
+        for (String token : webhookAllowedHostsCsv.split(",")) {
+            String trimmed = token.trim().toLowerCase();
+            if (!trimmed.isEmpty()) {
+                set.add(trimmed);
+            }
+        }
+        return set;
     }
 
     /**
@@ -128,7 +197,18 @@ public class CheckpointActionDispatcher {
     // webhook action
     // ============================================================
 
-    /** webhook 动作：经 IHttpClient 向 config.url POST 执行摘要 JSON。 */
+    /**
+     * webhook 动作：经 IHttpClient 向 config.url POST 执行摘要 JSON。
+     *
+     * <p>维度13-04 SSRF 防护（fail-closed）：
+     * <ul>
+     *   <li>URL 协议白名单（http/https），拒绝 file:/ftp:/data: 等。</li>
+     *   <li>主机白名单：默认禁内网（RFC1918 + 169.254 + localhost）；显式配置 {@code webhook-allowed-hosts} 后允许。</li>
+     *   <li>method 白名单：POST/PUT（避免 GET 触发副作用、TRACE 泄露等）。</li>
+     *   <li>显式 timeout：默认 30s，避免长卡死。</li>
+     * </ul>
+     * 失败时显式抛 ErrorCode（不静默跳过、不返回 200/默认值）。
+     */
     private void dispatchWebhook(NopMetaQualityCheckpoint cp, Map<String, Object> summary,
                                   Map<String, Object> config) {
         if (httpClient == null) {
@@ -141,15 +221,20 @@ public class CheckpointActionDispatcher {
             throw new NopException(ERR_CHECKPOINT_WEBHOOK_NO_URL)
                     .param("checkpointId", cp.getCheckpointId());
         }
+        // 维度13-04：URL 协议 + 主机白名单 + method 白名单
+        validateWebhookUrl(cp, url);
         String method = (config != null && config.get("method") != null)
-                ? String.valueOf(config.get("method"))
+                ? String.valueOf(config.get("method")).trim().toUpperCase()
                 : "POST";
+        validateWebhookMethod(cp, method);
 
         HttpRequest request = new HttpRequest();
         request.setUrl(url);
         request.setMethod(method);
         request.setHeader("Content-Type", "application/json");
         request.setBody(JsonTool.stringify(summary));
+        // 维度13-04：显式 timeout（毫秒）。默认 30s，避免长卡死。
+        request.setTimeout(webhookTimeoutSeconds * 1000L);
 
         IHttpResponse response = httpClient.fetch(request, null);
         if (response == null) {
@@ -167,6 +252,118 @@ public class CheckpointActionDispatcher {
                     .param("checkpointId", cp.getCheckpointId())
                     .param("url", url)
                     .param("status", status);
+        }
+    }
+
+    /**
+     * 维度13-04：webhook URL 安全校验（fail-closed）。
+     * <ol>
+     *   <li>协议必须 http/https。</li>
+     *   <li>主机白名单：默认禁内网（RFC1918 + RFC3927 link-local + loopback）；显式配置 allowlist 后允许。</li>
+     * </ol>
+     */
+    void validateWebhookUrl(NopMetaQualityCheckpoint cp, String url) {
+        String lower = url.toLowerCase();
+        boolean protocolOk = false;
+        for (String proto : ALLOWED_WEBHOOK_PROTOCOLS) {
+            if (lower.startsWith(proto)) {
+                protocolOk = true;
+                break;
+            }
+        }
+        if (!protocolOk) {
+            throw new NopException(ERR_CHECKPOINT_WEBHOOK_URL_BLOCKED)
+                    .param("checkpointId", cp.getCheckpointId())
+                    .param("url", url)
+                    .param("reason", "protocol not in whitelist (http/https)");
+        }
+        String host = extractWebhookHost(url);
+        if (host != null && !host.isEmpty() && isInternalHost(host)
+                && !resolveAllowedWebhookHosts().contains(host.toLowerCase())) {
+            throw new NopException(ERR_CHECKPOINT_WEBHOOK_URL_BLOCKED)
+                    .param("checkpointId", cp.getCheckpointId())
+                    .param("url", url)
+                    .param("reason", "internal/link-local/loopback host not in allowed-hosts: " + host);
+        }
+    }
+
+    /** 从 webhook URL 粗提取 host（http(s)://host[:port]/path?query 形式，支持 IPv6 [::1]）。 */
+    static String extractWebhookHost(String url) {
+        int schemeEnd = url.indexOf("://");
+        if (schemeEnd < 0) {
+            return null;
+        }
+        String rest = url.substring(schemeEnd + 3);
+        int slash = rest.indexOf('/');
+        int q = rest.indexOf('?');
+        int at = rest.indexOf('@'); // user:pass@host 形式跳过
+        int start = at >= 0 && at < slash ? at + 1 : 0;
+        int end = minPositive(minPositive(slash, q), -1);
+        String hostPort = end > 0 ? rest.substring(start, end) : rest.substring(start);
+        // 移除可能的 userinfo 残留
+        int lastAt = hostPort.lastIndexOf('@');
+        if (lastAt >= 0) {
+            hostPort = hostPort.substring(lastAt + 1);
+        }
+        // IPv6 形如 [::1] 或 [::1]:8080
+        if (hostPort.startsWith("[")) {
+            int closeBracket = hostPort.indexOf(']');
+            if (closeBracket > 0) {
+                return hostPort.substring(1, closeBracket);
+            }
+            return null;
+        }
+        int colon = hostPort.indexOf(':');
+        String host = colon > 0 ? hostPort.substring(0, colon) : hostPort;
+        return host.isEmpty() ? null : host;
+    }
+
+    private static int minPositive(int a, int b) {
+        if (a < 0) return b;
+        if (b < 0) return a;
+        return Math.min(a, b);
+    }
+
+    /** 是否内网/保留段主机（RFC1918 + RFC3927 link-local + loopback）。与 MetaDataSourceConnectionService 一致。 */
+    static boolean isInternalHost(String host) {
+        String h = host.toLowerCase();
+        if ("localhost".equals(h) || h.endsWith(".localhost")) {
+            return true;
+        }
+        if (h.equals("127.0.0.1") || h.startsWith("127.")) {
+            return true;
+        }
+        if (h.startsWith("10.") || h.startsWith("192.168.")) {
+            return true;
+        }
+        if (h.startsWith("172.")) {
+            String[] parts = h.split("\\.");
+            if (parts.length >= 2) {
+                try {
+                    int second = Integer.parseInt(parts[1]);
+                    if (second >= 16 && second <= 31) {
+                        return true;
+                    }
+                } catch (NumberFormatException ignored) {
+                    // 非数字段不算 RFC1918
+                }
+            }
+        }
+        if (h.startsWith("169.254.")) {
+            return true;
+        }
+        if ("::1".equals(h) || "0:0:0:0:0:0:0:1".equals(h)) {
+            return true;
+        }
+        return false;
+    }
+
+    /** 维度13-04：method 白名单校验（仅 POST/PUT）。 */
+    void validateWebhookMethod(NopMetaQualityCheckpoint cp, String method) {
+        if (!ALLOWED_WEBHOOK_METHODS.contains(method)) {
+            throw new NopException(ERR_CHECKPOINT_WEBHOOK_METHOD_BLOCKED)
+                    .param("checkpointId", cp.getCheckpointId())
+                    .param("method", String.valueOf(method));
         }
     }
 

@@ -18,7 +18,9 @@
         <meta-gen:DefaultMetaPostExtends xpl:lib="/nop/core/xlib/meta-gen.xlib"/>
     </x:post-extends>
 
-    <keys/>
+    <keys>
+        <key name="UK_NOP_META_QRULE_NAME" props="ruleName"/>
+    </keys>
 
     <props>
         <prop name="qualityRuleId" displayName="规则ID" propId="1" i18n-en:displayName="Quality Rule Id" tagSet="seq"
@@ -51,7 +53,7 @@
         </prop>
         <prop name="sqlExpression" displayName="SQL表达式" propId="8" i18n-en:displayName="Sql Expression" queryable="true"
               sortable="true" insertable="true" updatable="true">
-            <schema domain="mediumtext" type="java.lang.String" precision="16777216"/>
+            <schema domain="mediumtext" type="java.lang.String" precision="16777215"/>
         </prop>
         <prop name="threshold" displayName="阈值" propId="9" i18n-en:displayName="Threshold" queryable="true"
               sortable="true" insertable="true" updatable="true">
@@ -88,6 +90,13 @@
         <prop name="remark" displayName="备注" propId="17" i18n-en:displayName="Remark" queryable="true" sortable="true"
               insertable="true" updatable="true">
             <schema domain="remark" type="java.lang.String" precision="200"/>
+        </prop>
+        <prop name="results" displayName="质量结果集" i18n-en:displayName="Quality Results" tagSet="pub,ref-pub"
+              ext:kind="to-many" internal="true" ext:joinLeftProp="qualityRuleId" ext:joinRightProp="qualityRuleId"
+              insertable="false" updatable="false" lazy="true">
+            <schema>
+                <item bizObjName="NopMetaQualityResult"/>
+            </schema>
         </prop>
         <prop name="paramsComponent" tagSet="json,pub,edit" ext:kind="component" internal="true" insertable="true"
               updatable="true" lazy="true">

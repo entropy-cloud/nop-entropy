@@ -15,7 +15,9 @@
         <meta-gen:DefaultMetaPostExtends xpl:lib="/nop/core/xlib/meta-gen.xlib"/>
     </x:post-extends>
 
-    <keys/>
+    <keys>
+        <key name="UK_NOP_META_ORM_MODEL_MODULE_NAME" props="metaModuleId,modelName"/>
+    </keys>
 
     <props>
         <prop name="ormModelId" displayName="模型ID" propId="1" i18n-en:displayName="ORM Model Id" tagSet="seq"
@@ -36,7 +38,7 @@
         </prop>
         <prop name="sourceContent" displayName="原始内容" propId="5" i18n-en:displayName="Source Content" queryable="true"
               sortable="true" insertable="true" updatable="true">
-            <schema domain="mediumtext" type="java.lang.String" precision="16777216"/>
+            <schema domain="mediumtext" type="java.lang.String" precision="16777215"/>
         </prop>
         <prop name="importedAt" displayName="导入时间" propId="6" i18n-en:displayName="Imported At" queryable="true"
               sortable="true" insertable="true" updatable="true">
@@ -75,6 +77,27 @@
         <prop name="metaModule.displayName" displayName="元数据模块" i18n-en:displayName="Meta Module" internal="true"
               queryable="true" sortable="true" lazy="true">
             <schema type="String"/>
+        </prop>
+        <prop name="entities" displayName="元数据实体集" i18n-en:displayName="Entities" tagSet="pub,ref-pub"
+              ext:kind="to-many" internal="true" ext:joinLeftProp="ormModelId" ext:joinRightProp="ormModelId"
+              ext:joinRightDisplayProp="displayName" insertable="false" updatable="false" lazy="true">
+            <schema>
+                <item bizObjName="NopMetaEntity"/>
+            </schema>
+        </prop>
+        <prop name="domains" displayName="域定义集" i18n-en:displayName="Domains" tagSet="pub,ref-pub" ext:kind="to-many"
+              internal="true" ext:joinLeftProp="ormModelId" ext:joinRightProp="ormModelId"
+              ext:joinRightDisplayProp="displayName" insertable="false" updatable="false" lazy="true">
+            <schema>
+                <item bizObjName="NopMetaDomain"/>
+            </schema>
+        </prop>
+        <prop name="dicts" displayName="字典集" i18n-en:displayName="Dicts" tagSet="pub,ref-pub" ext:kind="to-many"
+              internal="true" ext:joinLeftProp="ormModelId" ext:joinRightProp="ormModelId" insertable="false"
+              updatable="false" lazy="true">
+            <schema>
+                <item bizObjName="NopMetaDict"/>
+            </schema>
         </prop>
     </props>
 </meta>

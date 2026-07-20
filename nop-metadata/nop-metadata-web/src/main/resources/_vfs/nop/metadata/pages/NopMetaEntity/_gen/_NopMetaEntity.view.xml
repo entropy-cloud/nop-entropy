@@ -79,7 +79,7 @@
                 <col id="delFlagProp" sortable="true"/>
 
                 <!--删除版本属性-->
-                <col id="deleteVersionProp" sortable="true"/>
+                <col id="delVersionProp" sortable="true"/>
 
                 <!--数据库目录-->
                 <col id="dbCatalog" sortable="true"/>
@@ -122,7 +122,7 @@
  createrProp[创建人属性] createTimeProp[创建时间属性]
  updaterProp[修改人属性] updateTimeProp[修改时间属性]
  versionProp[版本属性] delFlagProp[删除标记属性]
- deleteVersionProp[删除版本属性] dbCatalog[数据库目录]
+ delVersionProp[删除版本属性] dbCatalog[数据库目录]
  dbSchema[数据库Schema] extConfig[扩展配置]
  createdBy[创建人] createTime[创建时间]
  updatedBy[修改人] updateTime[修改时间]
@@ -142,7 +142,7 @@
  createrProp[创建人属性] createTimeProp[创建时间属性]
  updaterProp[修改人属性] updateTimeProp[修改时间属性]
  versionProp[版本属性] delFlagProp[删除标记属性]
- deleteVersionProp[删除版本属性] dbCatalog[数据库目录]
+ delVersionProp[删除版本属性] dbCatalog[数据库目录]
  dbSchema[数据库Schema] extConfig[扩展配置]
  remark[备注] 
 </layout>

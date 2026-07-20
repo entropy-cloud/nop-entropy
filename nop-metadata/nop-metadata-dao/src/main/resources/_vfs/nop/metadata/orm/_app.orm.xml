@@ -16,131 +16,131 @@
 
     <dicts>
         <dict label="模块状态" name="meta/module-status" valueType="string" i18n-en:label="Module Status">
-            <option code="DRAFTING" label="编辑中" value="DRAFTING"/>
-            <option code="RELEASED" label="已发布" value="RELEASED"/>
-            <option code="DEPRECATED" label="已废弃" value="DEPRECATED"/>
+            <option code="DRAFTING" label="编辑中" value="DRAFTING" i18n-en:label="Drafting"/>
+            <option code="RELEASED" label="已发布" value="RELEASED" i18n-en:label="Released"/>
+            <option code="DEPRECATED" label="已废弃" value="DEPRECATED" i18n-en:label="Deprecated"/>
         </dict>
         <dict label="数据源状态" name="meta/datasource-status" valueType="string" i18n-en:label="Datasource Status">
-            <option code="DISABLED" label="已禁用" value="DISABLED"/>
-            <option code="ACTIVE" label="启用" value="ACTIVE"/>
+            <option code="DISABLED" label="已禁用" value="DISABLED" i18n-en:label="Disabled"/>
+            <option code="ACTIVE" label="启用" value="ACTIVE" i18n-en:label="Active"/>
         </dict>
         <dict label="数据源类型" name="meta/datasource-type" valueType="string" i18n-en:label="Datasource Type">
-            <option code="JDBC" label="JDBC数据库" value="jdbc"/>
-            <option code="HTTP" label="HTTP接口" value="http"/>
-            <option code="REST" label="REST接口" value="rest"/>
-            <option code="FILE" label="文件" value="file"/>
+            <option code="JDBC" label="JDBC数据库" value="jdbc" i18n-en:label="JDBC"/>
+            <option code="HTTP" label="HTTP接口" value="http" i18n-en:label="HTTP"/>
+            <option code="REST" label="REST接口" value="rest" i18n-en:label="REST"/>
+            <option code="FILE" label="文件" value="file" i18n-en:label="File"/>
         </dict>
         <dict label="逻辑表类型" name="meta/table-type" valueType="string" i18n-en:label="Table Type">
-            <option code="ENTITY" label="实体表" value="entity"/>
-            <option code="SQL" label="SQL视图" value="sql"/>
-            <option code="EXTERNAL" label="外部表" value="external"/>
+            <option code="ENTITY" label="实体表" value="entity" i18n-en:label="Entity"/>
+            <option code="SQL" label="SQL视图" value="sql" i18n-en:label="SQL"/>
+            <option code="EXTERNAL" label="外部表" value="external" i18n-en:label="External"/>
         </dict>
         <dict label="关系类型" name="meta/relation-type" valueType="string" i18n-en:label="Relation Type">
-            <option code="TO_ONE" label="一对一/多对一" value="to-one"/>
-            <option code="TO_MANY" label="一对多" value="to-many"/>
+            <option code="TO_ONE" label="一对一/多对一" value="to-one" i18n-en:label="To-One"/>
+            <option code="TO_MANY" label="一对多" value="to-many" i18n-en:label="To-Many"/>
         </dict>
         <dict label="维度类型" name="meta/dimension-type" valueType="string" i18n-en:label="Dimension Type">
-            <option code="CATEGORICAL" label="分类" value="categorical"/>
-            <option code="TEMPORAL" label="时间" value="temporal"/>
-            <option code="GEOGRAPHICAL" label="地理" value="geographical"/>
+            <option code="CATEGORICAL" label="分类" value="categorical" i18n-en:label="Categorical"/>
+            <option code="TEMPORAL" label="时间" value="temporal" i18n-en:label="Temporal"/>
+            <option code="GEOGRAPHICAL" label="地理" value="geographical" i18n-en:label="Geographical"/>
         </dict>
         <dict label="聚合函数" name="meta/agg-func" valueType="string" i18n-en:label="Aggregate Function">
-            <option code="SUM" label="求和" value="sum"/>
-            <option code="COUNT" label="计数" value="count"/>
-            <option code="AVG" label="平均" value="avg"/>
-            <option code="MIN" label="最小值" value="min"/>
-            <option code="MAX" label="最大值" value="max"/>
-            <option code="COUNT_DISTINCT" label="去重计数" value="countDistinct"/>
+            <option code="SUM" label="求和" value="sum" i18n-en:label="Sum"/>
+            <option code="COUNT" label="计数" value="count" i18n-en:label="Count"/>
+            <option code="AVG" label="平均" value="avg" i18n-en:label="Average"/>
+            <option code="MIN" label="最小值" value="min" i18n-en:label="Minimum"/>
+            <option code="MAX" label="最大值" value="max" i18n-en:label="Maximum"/>
+            <option code="COUNT_DISTINCT" label="去重计数" value="countDistinct" i18n-en:label="Count Distinct"/>
         </dict>
         <dict label="关联类型" name="meta/join-type" valueType="string" i18n-en:label="Join Type">
-            <option code="INNER" label="内连接" value="inner"/>
-            <option code="LEFT" label="左连接" value="left"/>
-            <option code="RIGHT" label="右连接" value="right"/>
+            <option code="INNER" label="内连接" value="inner" i18n-en:label="Inner"/>
+            <option code="LEFT" label="左连接" value="left" i18n-en:label="Left"/>
+            <option code="RIGHT" label="右连接" value="right" i18n-en:label="Right"/>
         </dict>
         <dict label="侧别" name="meta/join-side" valueType="string" i18n-en:label="Join Side">
             <option code="LEFT" label="左" value="left" i18n-en:label="Left"/>
             <option code="RIGHT" label="右" value="right" i18n-en:label="Right"/>
         </dict>
         <dict label="血缘转换类型" name="meta/lineage-transform" valueType="string" i18n-en:label="Lineage Transform Type">
-            <option code="DIRECT" label="直接映射" value="direct"/>
-            <option code="DERIVED" label="派生" value="derived"/>
-            <option code="AGGREGATED" label="聚合" value="aggregated"/>
+            <option code="DIRECT" label="直接映射" value="direct" i18n-en:label="Direct"/>
+            <option code="DERIVED" label="派生" value="derived" i18n-en:label="Derived"/>
+            <option code="AGGREGATED" label="聚合" value="aggregated" i18n-en:label="Aggregated"/>
         </dict>
         <dict label="血缘来源" name="meta/lineage-source" valueType="string" i18n-en:label="Lineage Source">
-            <option code="MANUAL" label="手工录入" value="manual"/>
-            <option code="SQL_PARSE" label="SQL解析" value="sql_parse"/>
-            <option code="OPEN_LINEAGE" label="OpenLineage" value="open_lineage"/>
-            <option code="HOOK" label="Hook采集" value="hook"/>
-            <option code="MEASURE_PARSE" label="指标表达式解析" value="measure_parse"/>
+            <option code="MANUAL" label="手工录入" value="manual" i18n-en:label="Manual"/>
+            <option code="SQL_PARSE" label="SQL解析" value="sql_parse" i18n-en:label="SQL Parse"/>
+            <option code="OPEN_LINEAGE" label="OpenLineage" value="open_lineage" i18n-en:label="OpenLineage"/>
+            <option code="HOOK" label="Hook采集" value="hook" i18n-en:label="Hook"/>
+            <option code="MEASURE_PARSE" label="指标表达式解析" value="measure_parse" i18n-en:label="Measure Parse"/>
         </dict>
         <dict label="管道类型" name="meta/pipeline-type" valueType="string" i18n-en:label="Pipeline Type">
-            <option code="ETL" label="ETL" value="etl"/>
-            <option code="SQL" label="SQL处理" value="sql"/>
-            <option code="API" label="API拉取" value="api"/>
-            <option code="MANUAL" label="手工" value="manual"/>
+            <option code="ETL" label="ETL" value="etl" i18n-en:label="ETL"/>
+            <option code="SQL" label="SQL处理" value="sql" i18n-en:label="SQL"/>
+            <option code="API" label="API拉取" value="api" i18n-en:label="API"/>
+            <option code="MANUAL" label="手工" value="manual" i18n-en:label="Manual"/>
         </dict>
         <dict label="质量规则类型" name="meta/quality-rule-type" valueType="string" i18n-en:label="Quality Rule Type">
-            <option code="NOT_NULL" label="非空检查" value="not_null"/>
-            <option code="UNIQUE" label="唯一性检查" value="unique"/>
-            <option code="RANGE" label="范围检查" value="range"/>
-            <option code="REGEX" label="正则匹配" value="regex"/>
-            <option code="CUSTOM_SQL" label="自定义SQL" value="custom_sql"/>
-            <option code="FRESHNESS" label="新鲜度检查" value="freshness"/>
-            <option code="VOLUME" label="行数检查" value="volume"/>
+            <option code="NOT_NULL" label="非空检查" value="not_null" i18n-en:label="Not Null"/>
+            <option code="UNIQUE" label="唯一性检查" value="unique" i18n-en:label="Unique"/>
+            <option code="RANGE" label="范围检查" value="range" i18n-en:label="Range"/>
+            <option code="REGEX" label="正则匹配" value="regex" i18n-en:label="Regex"/>
+            <option code="CUSTOM_SQL" label="自定义SQL" value="custom_sql" i18n-en:label="Custom SQL"/>
+            <option code="FRESHNESS" label="新鲜度检查" value="freshness" i18n-en:label="Freshness"/>
+            <option code="VOLUME" label="行数检查" value="volume" i18n-en:label="Volume"/>
         </dict>
         <dict label="质量对象类型" name="meta/quality-entity-type" valueType="string" i18n-en:label="Quality Entity Type">
-            <option code="FIELD" label="字段" value="field"/>
-            <option code="TABLE" label="表" value="table"/>
-            <option code="DATABASE" label="数据库" value="database"/>
+            <option code="FIELD" label="字段" value="field" i18n-en:label="Field"/>
+            <option code="TABLE" label="表" value="table" i18n-en:label="Table"/>
+            <option code="DATABASE" label="数据库" value="database" i18n-en:label="Database"/>
         </dict>
         <dict label="质量严重级别" name="meta/quality-severity" valueType="string" i18n-en:label="Quality Severity">
-            <option code="INFO" label="提示" value="INFO"/>
-            <option code="WARNING" label="警告" value="WARNING"/>
-            <option code="ERROR" label="错误" value="ERROR"/>
+            <option code="INFO" label="提示" value="INFO" i18n-en:label="Info"/>
+            <option code="WARNING" label="警告" value="WARNING" i18n-en:label="Warning"/>
+            <option code="ERROR" label="错误" value="ERROR" i18n-en:label="Error"/>
         </dict>
         <dict label="质量结果状态" name="meta/quality-result-status" valueType="string" i18n-en:label="Quality Result Status">
-            <option code="PASS" label="通过" value="PASS"/>
-            <option code="FAIL" label="失败" value="FAIL"/>
-            <option code="ERROR" label="执行异常" value="ERROR"/>
-            <option code="SKIP" label="跳过" value="SKIP"/>
+            <option code="PASS" label="通过" value="PASS" i18n-en:label="Pass"/>
+            <option code="FAIL" label="失败" value="FAIL" i18n-en:label="Fail"/>
+            <option code="ERROR" label="执行异常" value="ERROR" i18n-en:label="Error"/>
+            <option code="SKIP" label="跳过" value="SKIP" i18n-en:label="Skip"/>
         </dict>
         <dict label="检查点状态" name="meta/checkpoint-status" valueType="string" i18n-en:label="Checkpoint Status">
-            <option code="ACTIVE" label="启用" value="ACTIVE"/>
-            <option code="PAUSED" label="暂停" value="PAUSED"/>
-            <option code="DISABLED" label="已禁用" value="DISABLED"/>
+            <option code="ACTIVE" label="启用" value="ACTIVE" i18n-en:label="Active"/>
+            <option code="PAUSED" label="暂停" value="PAUSED" i18n-en:label="Paused"/>
+            <option code="DISABLED" label="已禁用" value="DISABLED" i18n-en:label="Disabled"/>
         </dict>
         <dict label="检查点动作类型" name="meta/checkpoint-action-type" valueType="string"
               i18n-en:label="Checkpoint Action Type">
-            <option code="STORE" label="存储结果" value="store"/>
+            <option code="STORE" label="存储结果" value="store" i18n-en:label="Store"/>
             <option code="WEBHOOK" label="Webhook投递" value="webhook" i18n-en:label="Webhook"/>
             <option code="NOTIFY" label="消息通知" value="notify" i18n-en:label="Notify"/>
         </dict>
         <dict label="质量评分趋势方向" name="meta/quality-trend-direction" valueType="string"
               i18n-en:label="Quality Trend Direction">
-            <option code="IMPROVING" label="改善" value="improving"/>
-            <option code="STABLE" label="稳定" value="stable"/>
-            <option code="DEGRADING" label="恶化" value="degrading"/>
+            <option code="IMPROVING" label="改善" value="improving" i18n-en:label="Improving"/>
+            <option code="STABLE" label="稳定" value="stable" i18n-en:label="Stable"/>
+            <option code="DEGRADING" label="恶化" value="degrading" i18n-en:label="Degrading"/>
         </dict>
         <dict label="数据契约状态" name="meta/contract-status" valueType="string" i18n-en:label="Data Contract Status">
-            <option code="DRAFT" label="草稿" value="DRAFT"/>
-            <option code="ACTIVE" label="生效" value="ACTIVE"/>
-            <option code="DEPRECATED" label="已废弃" value="DEPRECATED"/>
-            <option code="RETIRED" label="已退役" value="RETIRED"/>
+            <option code="DRAFT" label="草稿" value="DRAFT" i18n-en:label="Draft"/>
+            <option code="ACTIVE" label="生效" value="ACTIVE" i18n-en:label="Active"/>
+            <option code="DEPRECATED" label="已废弃" value="DEPRECATED" i18n-en:label="Deprecated"/>
+            <option code="RETIRED" label="已退役" value="RETIRED" i18n-en:label="Retired"/>
         </dict>
         <dict label="对账状态" name="meta/reconciliation-status" valueType="string" i18n-en:label="Reconciliation Status">
-            <option code="MATCHED" label="已匹配" value="MATCHED"/>
-            <option code="UNMATCHED" label="未匹配" value="UNMATCHED"/>
-            <option code="MULTIPLE" label="多候选" value="MULTIPLE"/>
-            <option code="MANUAL" label="人工确认" value="MANUAL"/>
+            <option code="MATCHED" label="已匹配" value="MATCHED" i18n-en:label="Matched"/>
+            <option code="UNMATCHED" label="未匹配" value="UNMATCHED" i18n-en:label="Unmatched"/>
+            <option code="MULTIPLE" label="多候选" value="MULTIPLE" i18n-en:label="Multiple"/>
+            <option code="MANUAL" label="人工确认" value="MANUAL" i18n-en:label="Manual"/>
         </dict>
         <dict label="匹配策略" name="meta/match-strategy" valueType="string" i18n-en:label="Match Strategy">
-            <option code="EXACT" label="精确匹配" value="exact"/>
-            <option code="FUZZY" label="模糊匹配" value="fuzzy"/>
+            <option code="EXACT" label="精确匹配" value="exact" i18n-en:label="Exact"/>
+            <option code="FUZZY" label="模糊匹配" value="fuzzy" i18n-en:label="Fuzzy"/>
         </dict>
         <dict label="元数据变更事件类型" name="meta/change-event-type" valueType="string" i18n-en:label="Meta Change Event Type">
-            <option code="ENTITY_CREATED" label="实体创建" value="ENTITY_CREATED"/>
-            <option code="ENTITY_UPDATED" label="实体更新" value="ENTITY_UPDATED"/>
-            <option code="ENTITY_DELETED" label="实体删除" value="ENTITY_DELETED"/>
+            <option code="ENTITY_CREATED" label="实体创建" value="ENTITY_CREATED" i18n-en:label="Entity Created"/>
+            <option code="ENTITY_UPDATED" label="实体更新" value="ENTITY_UPDATED" i18n-en:label="Entity Updated"/>
+            <option code="ENTITY_DELETED" label="实体删除" value="ENTITY_DELETED" i18n-en:label="Entity Deleted"/>
         </dict>
     </dicts>
 
@@ -155,8 +155,7 @@
         <domain name="createdBy" precision="50" stdSqlType="VARCHAR"/>
         <domain name="updateTime" stdSqlType="TIMESTAMP"/>
         <domain name="updatedBy" precision="50" stdSqlType="VARCHAR"/>
-        <domain name="delFlag" stdDomain="boolFlag" stdSqlType="TINYINT"/>
-        <domain name="mediumtext" precision="16777216" stdSqlType="VARCHAR"/>
+        <domain name="mediumtext" precision="16777215" stdSqlType="VARCHAR"/>
     </domains>
 
     <entities>
@@ -174,7 +173,7 @@
                         propId="3" stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Module Name"/>
                 <column code="DISPLAY_NAME" displayName="显示名" name="displayName" precision="200" propId="4"
                         stdDataType="string" stdSqlType="VARCHAR" tagSet="disp" i18n-en:displayName="Display Name"/>
-                <column code="VERSION" displayName="模块版本号" mandatory="true" name="moduleVersion" propId="5"
+                <column code="MODULE_VERSION" displayName="模块版本号" mandatory="true" name="moduleVersion" propId="5"
                         stdDataType="long" stdSqlType="BIGINT" i18n-en:displayName="Module Version"/>
                 <column code="BASE_MODULE_ID" displayName="基线模块版本ID" name="baseModuleId" precision="32" propId="6"
                         stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Base Module Id"/>
@@ -197,8 +196,8 @@
                 <column code="EXT_CONFIG" displayName="扩展配置" domain="json-4000" name="extConfig" precision="4000"
                         propId="15" stdDataType="string" stdDomain="json" stdSqlType="VARCHAR"
                         i18n-en:displayName="Ext Config"/>
-                <column code="DEL_VERSION" displayName="数据版本" domain="version" mandatory="true" name="version"
-                        propId="16" stdDataType="long" stdSqlType="BIGINT" i18n-en:displayName="Version"/>
+                <column code="VERSION" displayName="数据版本" domain="version" mandatory="true" name="version" propId="16"
+                        stdDataType="long" stdSqlType="BIGINT" i18n-en:displayName="Version"/>
                 <column code="CREATED_BY" displayName="创建人" domain="createdBy" mandatory="true" name="createdBy"
                         precision="50" propId="17" stdDataType="string" stdSqlType="VARCHAR"
                         i18n-en:displayName="Created By"/>
@@ -219,14 +218,63 @@
                 <index name="IX_NOP_META_MODULE_ID" unique="false">
                     <column name="moduleId"/>
                 </index>
+                <index name="IX_NOP_META_MODULE_BASE_MODULE" unique="false">
+                    <column name="baseModuleId"/>
+                </index>
             </indexes>
             <relations>
                 <to-one displayName="基线模块" name="baseModule" refEntityName="io.nop.metadata.dao.entity.NopMetaModule"
-                        tagSet="pub,ref-pub" i18n-en:displayName="Base Module">
+                        refPropName="baseModules" tagSet="pub,ref-pub" i18n-en:displayName="Base Module">
                     <join>
                         <on leftProp="baseModuleId" rightProp="metaModuleId"/>
                     </join>
                 </to-one>
+                <to-many displayName="ORM模型集" name="ormModels"
+                         refEntityName="io.nop.metadata.dao.entity.NopMetaOrmModel" refPropName="metaModule"
+                         tagSet="pub,ref-pub" i18n-en:displayName="ORM Models">
+                    <join>
+                        <on leftProp="metaModuleId" rightProp="metaModuleId"/>
+                    </join>
+                </to-many>
+                <to-many displayName="逻辑表集" name="tables" refEntityName="io.nop.metadata.dao.entity.NopMetaTable"
+                         refPropName="metaModule" tagSet="pub,ref-pub" i18n-en:displayName="Tables">
+                    <join>
+                        <on leftProp="metaModuleId" rightProp="metaModuleId"/>
+                    </join>
+                </to-many>
+                <to-many displayName="数据管道集" name="pipelines" refEntityName="io.nop.metadata.dao.entity.NopMetaPipeline"
+                         refPropName="metaModule" tagSet="pub,ref-pub" i18n-en:displayName="Pipelines">
+                    <join>
+                        <on leftProp="metaModuleId" rightProp="metaModuleId"/>
+                    </join>
+                </to-many>
+                <to-many displayName="质量检查点集" name="qualityCheckpoints"
+                         refEntityName="io.nop.metadata.dao.entity.NopMetaQualityCheckpoint" refPropName="metaModule"
+                         tagSet="pub,ref-pub" i18n-en:displayName="Quality Checkpoints">
+                    <join>
+                        <on leftProp="metaModuleId" rightProp="metaModuleId"/>
+                    </join>
+                </to-many>
+                <to-many displayName="元数据快照集" name="manifests"
+                         refEntityName="io.nop.metadata.dao.entity.NopMetaManifest" refPropName="metaModule"
+                         tagSet="pub,ref-pub" i18n-en:displayName="Manifests">
+                    <join>
+                        <on leftProp="metaModuleId" rightProp="metaModuleId"/>
+                    </join>
+                </to-many>
+                <to-many displayName="对账配置集" name="reconciliationConfigs"
+                         refEntityName="io.nop.metadata.dao.entity.NopMetaReconciliationConfig" refPropName="metaModule"
+                         tagSet="pub,ref-pub" i18n-en:displayName="Reconciliation Configs">
+                    <join>
+                        <on leftProp="metaModuleId" rightProp="metaModuleId"/>
+                    </join>
+                </to-many>
+                <to-many displayName="基线模块集" name="baseModules" refEntityName="io.nop.metadata.dao.entity.NopMetaModule"
+                         refPropName="baseModule" tagSet="pub,ref-pub" i18n-en:displayName="Base Modules">
+                    <join>
+                        <on leftProp="metaModuleId" rightProp="baseModuleId"/>
+                    </join>
+                </to-many>
             </relations>
             <unique-keys>
                 <unique-key columns="moduleId,moduleVersion" name="UK_NOP_META_MODULE_ID_VER"
@@ -252,11 +300,11 @@
                         ext:dict="meta/datasource-type"/>
                 <column code="CONNECTION_CONFIG" displayName="连接配置" domain="json-4000" name="connectionConfig"
                         precision="4000" propId="6" stdDataType="string" stdDomain="json" stdSqlType="VARCHAR"
-                        i18n-en:displayName="Connection Config"/>
+                        tagSet="sensitive" i18n-en:displayName="Connection Config"/>
                 <column code="STATUS" displayName="状态" mandatory="true" name="status" propId="7" stdDataType="string"
                         stdSqlType="VARCHAR" i18n-en:displayName="Status" ext:dict="meta/datasource-status"/>
-                <column code="DEL_VERSION" displayName="数据版本" domain="version" mandatory="true" name="version"
-                        propId="8" stdDataType="long" stdSqlType="BIGINT" i18n-en:displayName="Version"/>
+                <column code="VERSION" displayName="数据版本" domain="version" mandatory="true" name="version" propId="8"
+                        stdDataType="long" stdSqlType="BIGINT" i18n-en:displayName="Version"/>
                 <column code="CREATED_BY" displayName="创建人" domain="createdBy" mandatory="true" name="createdBy"
                         precision="50" propId="9" stdDataType="string" stdSqlType="VARCHAR"
                         i18n-en:displayName="Created By"/>
@@ -290,12 +338,12 @@
                 <column code="IS_DELTA" defaultValue="0" displayName="是否Delta" domain="boolFlag" mandatory="true"
                         name="isDelta" propId="4" stdDataType="byte" stdSqlType="TINYINT" i18n-en:displayName="Is Delta"/>
                 <column code="SOURCE_CONTENT" displayName="原始内容" domain="mediumtext" name="sourceContent"
-                        precision="16777216" propId="5" stdDataType="string" stdSqlType="VARCHAR"
+                        precision="16777215" propId="5" stdDataType="string" stdSqlType="VARCHAR"
                         i18n-en:displayName="Source Content"/>
                 <column code="IMPORTED_AT" displayName="导入时间" name="importedAt" propId="6" stdDataType="timestamp"
                         stdSqlType="TIMESTAMP" i18n-en:displayName="Imported At"/>
-                <column code="DEL_VERSION" displayName="数据版本" domain="version" mandatory="true" name="version"
-                        propId="7" stdDataType="long" stdSqlType="BIGINT" i18n-en:displayName="Version"/>
+                <column code="VERSION" displayName="数据版本" domain="version" mandatory="true" name="version" propId="7"
+                        stdDataType="long" stdSqlType="BIGINT" i18n-en:displayName="Version"/>
                 <column code="CREATED_BY" displayName="创建人" domain="createdBy" mandatory="true" name="createdBy"
                         precision="50" propId="8" stdDataType="string" stdSqlType="VARCHAR"
                         i18n-en:displayName="Created By"/>
@@ -316,12 +364,34 @@
             </indexes>
             <relations>
                 <to-one displayName="元数据模块" name="metaModule" refEntityName="io.nop.metadata.dao.entity.NopMetaModule"
-                        tagSet="pub,ref-pub" i18n-en:displayName="Meta Module">
+                        refPropName="ormModels" tagSet="pub,ref-pub" i18n-en:displayName="Meta Module">
                     <join>
                         <on leftProp="metaModuleId" rightProp="metaModuleId"/>
                     </join>
                 </to-one>
+                <to-many displayName="元数据实体集" name="entities" refEntityName="io.nop.metadata.dao.entity.NopMetaEntity"
+                         refPropName="ormModel" tagSet="pub,ref-pub" i18n-en:displayName="Entities">
+                    <join>
+                        <on leftProp="ormModelId" rightProp="ormModelId"/>
+                    </join>
+                </to-many>
+                <to-many displayName="域定义集" name="domains" refEntityName="io.nop.metadata.dao.entity.NopMetaDomain"
+                         refPropName="ormModel" tagSet="pub,ref-pub" i18n-en:displayName="Domains">
+                    <join>
+                        <on leftProp="ormModelId" rightProp="ormModelId"/>
+                    </join>
+                </to-many>
+                <to-many displayName="字典集" name="dicts" refEntityName="io.nop.metadata.dao.entity.NopMetaDict"
+                         refPropName="ormModel" tagSet="pub,ref-pub" i18n-en:displayName="Dicts">
+                    <join>
+                        <on leftProp="ormModelId" rightProp="ormModelId"/>
+                    </join>
+                </to-many>
             </relations>
+            <unique-keys>
+                <unique-key columns="metaModuleId,modelName" name="UK_NOP_META_ORM_MODEL_MODULE_NAME"
+                            i18n-en:displayName="Unique Model Name Per Module"/>
+            </unique-keys>
         </entity>
         <entity className="io.nop.metadata.dao.entity.NopMetaSemanticType" createTimeProp="createTime"
                 createrProp="createdBy" displayName="语义类型" name="io.nop.metadata.dao.entity.NopMetaSemanticType"
@@ -343,8 +413,8 @@
                 <column code="EXT_CONFIG" displayName="扩展配置" domain="json-4000" name="extConfig" precision="4000"
                         propId="6" stdDataType="string" stdDomain="json" stdSqlType="VARCHAR"
                         i18n-en:displayName="Ext Config"/>
-                <column code="DEL_VERSION" displayName="数据版本" domain="version" mandatory="true" name="version"
-                        propId="7" stdDataType="long" stdSqlType="BIGINT" i18n-en:displayName="Version"/>
+                <column code="VERSION" displayName="数据版本" domain="version" mandatory="true" name="version" propId="7"
+                        stdDataType="long" stdSqlType="BIGINT" i18n-en:displayName="Version"/>
                 <column code="CREATED_BY" displayName="创建人" domain="createdBy" mandatory="true" name="createdBy"
                         precision="50" propId="8" stdDataType="string" stdSqlType="VARCHAR"
                         i18n-en:displayName="Created By"/>
@@ -410,8 +480,8 @@
                         stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Version Prop"/>
                 <column code="DEL_FLAG_PROP" displayName="删除标记属性" name="delFlagProp" precision="50" propId="20"
                         stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Del Flag Prop"/>
-                <column code="DEL_VERSION_PROP" displayName="删除版本属性" name="deleteVersionProp" precision="50" propId="21"
-                        stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Delete Version Prop"/>
+                <column code="DEL_VERSION_PROP" displayName="删除版本属性" name="delVersionProp" precision="50" propId="21"
+                        stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Del Version Prop"/>
                 <column code="DB_CATALOG" displayName="数据库目录" name="dbCatalog" precision="100" propId="22"
                         stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="DB Catalog"/>
                 <column code="DB_SCHEMA" displayName="数据库Schema" name="dbSchema" precision="100" propId="23"
@@ -419,8 +489,8 @@
                 <column code="EXT_CONFIG" displayName="扩展配置" domain="json-4000" name="extConfig" precision="4000"
                         propId="24" stdDataType="string" stdDomain="json" stdSqlType="VARCHAR"
                         i18n-en:displayName="Ext Config"/>
-                <column code="DEL_VERSION" displayName="数据版本" domain="version" mandatory="true" name="version"
-                        propId="25" stdDataType="long" stdSqlType="BIGINT" i18n-en:displayName="Version"/>
+                <column code="VERSION" displayName="数据版本" domain="version" mandatory="true" name="version" propId="25"
+                        stdDataType="long" stdSqlType="BIGINT" i18n-en:displayName="Version"/>
                 <column code="CREATED_BY" displayName="创建人" domain="createdBy" mandatory="true" name="createdBy"
                         precision="50" propId="26" stdDataType="string" stdSqlType="VARCHAR"
                         i18n-en:displayName="Created By"/>
@@ -447,12 +517,58 @@
             </indexes>
             <relations>
                 <to-one displayName="ORM模型" name="ormModel" refEntityName="io.nop.metadata.dao.entity.NopMetaOrmModel"
-                        tagSet="pub,ref-pub" i18n-en:displayName="ORM Model">
+                        refPropName="entities" tagSet="pub,ref-pub" i18n-en:displayName="ORM Model">
                     <join>
                         <on leftProp="ormModelId" rightProp="ormModelId"/>
                     </join>
                 </to-one>
+                <to-many displayName="实体字段集" name="entityFields"
+                         refEntityName="io.nop.metadata.dao.entity.NopMetaEntityField" refPropName="metaEntity"
+                         tagSet="pub,ref-pub" i18n-en:displayName="Entity Fields">
+                    <join>
+                        <on leftProp="metaEntityId" rightProp="metaEntityId"/>
+                    </join>
+                </to-many>
+                <to-many displayName="实体关系集" name="entityRelations"
+                         refEntityName="io.nop.metadata.dao.entity.NopMetaEntityRelation" refPropName="metaEntity"
+                         tagSet="pub,ref-pub" i18n-en:displayName="Entity Relations">
+                    <join>
+                        <on leftProp="metaEntityId" rightProp="metaEntityId"/>
+                    </join>
+                </to-many>
+                <to-many displayName="实体唯一键集" name="entityUniqueKeys"
+                         refEntityName="io.nop.metadata.dao.entity.NopMetaEntityUniqueKey" refPropName="metaEntity"
+                         tagSet="pub,ref-pub" i18n-en:displayName="Entity Unique Keys">
+                    <join>
+                        <on leftProp="metaEntityId" rightProp="metaEntityId"/>
+                    </join>
+                </to-many>
+                <to-many displayName="实体索引集" name="entityIndexes"
+                         refEntityName="io.nop.metadata.dao.entity.NopMetaEntityIndex" refPropName="metaEntity"
+                         tagSet="pub,ref-pub" i18n-en:displayName="Entity Indexes">
+                    <join>
+                        <on leftProp="metaEntityId" rightProp="metaEntityId"/>
+                    </join>
+                </to-many>
+                <to-many displayName="作为左实体的关联集" name="joinAsLeft"
+                         refEntityName="io.nop.metadata.dao.entity.NopMetaTableJoin" refPropName="leftEntity"
+                         tagSet="pub,ref-pub" i18n-en:displayName="Joins As Left">
+                    <join>
+                        <on leftProp="metaEntityId" rightProp="leftEntityId"/>
+                    </join>
+                </to-many>
+                <to-many displayName="作为右实体的关联集" name="joinAsRight"
+                         refEntityName="io.nop.metadata.dao.entity.NopMetaTableJoin" refPropName="rightEntity"
+                         tagSet="pub,ref-pub" i18n-en:displayName="Joins As Right">
+                    <join>
+                        <on leftProp="metaEntityId" rightProp="rightEntityId"/>
+                    </join>
+                </to-many>
             </relations>
+            <unique-keys>
+                <unique-key columns="ormModelId,entityName" name="UK_NOP_META_ENTITY_MODEL_NAME"
+                            i18n-en:displayName="Unique Entity Name Per Model"/>
+            </unique-keys>
         </entity>
         <entity className="io.nop.metadata.dao.entity.NopMetaEntityField" createTimeProp="createTime"
                 createrProp="createdBy" displayName="实体字段" name="io.nop.metadata.dao.entity.NopMetaEntityField"
@@ -512,8 +628,8 @@
                 <column code="EXT_CONFIG" displayName="扩展配置" domain="json-4000" name="extConfig" precision="4000"
                         propId="25" stdDataType="string" stdDomain="json" stdSqlType="VARCHAR"
                         i18n-en:displayName="Ext Config"/>
-                <column code="DEL_VERSION" displayName="数据版本" domain="version" mandatory="true" name="version"
-                        propId="26" stdDataType="long" stdSqlType="BIGINT" i18n-en:displayName="Version"/>
+                <column code="VERSION" displayName="数据版本" domain="version" mandatory="true" name="version" propId="26"
+                        stdDataType="long" stdSqlType="BIGINT" i18n-en:displayName="Version"/>
                 <column code="CREATED_BY" displayName="创建人" domain="createdBy" mandatory="true" name="createdBy"
                         precision="50" propId="27" stdDataType="string" stdSqlType="VARCHAR"
                         i18n-en:displayName="Created By"/>
@@ -534,12 +650,16 @@
             </indexes>
             <relations>
                 <to-one displayName="元数据实体" name="metaEntity" refEntityName="io.nop.metadata.dao.entity.NopMetaEntity"
-                        tagSet="pub,ref-pub" i18n-en:displayName="Meta Entity">
+                        refPropName="entityFields" tagSet="pub,ref-pub" i18n-en:displayName="Meta Entity">
                     <join>
                         <on leftProp="metaEntityId" rightProp="metaEntityId"/>
                     </join>
                 </to-one>
             </relations>
+            <unique-keys>
+                <unique-key columns="metaEntityId,fieldName" name="UK_NOP_META_FIELD_ENTITY_NAME"
+                            i18n-en:displayName="Unique Field Name Per Entity"/>
+            </unique-keys>
         </entity>
         <entity className="io.nop.metadata.dao.entity.NopMetaEntityRelation" createTimeProp="createTime"
                 createrProp="createdBy" displayName="实体关系" name="io.nop.metadata.dao.entity.NopMetaEntityRelation"
@@ -579,8 +699,8 @@
                 <column code="JOIN_CONDITIONS" displayName="关联条件" domain="json-4000" name="joinConditions"
                         precision="4000" propId="14" stdDataType="string" stdDomain="json" stdSqlType="VARCHAR"
                         i18n-en:displayName="Join Conditions"/>
-                <column code="DEL_VERSION" displayName="数据版本" domain="version" mandatory="true" name="version"
-                        propId="15" stdDataType="long" stdSqlType="BIGINT" i18n-en:displayName="Version"/>
+                <column code="VERSION" displayName="数据版本" domain="version" mandatory="true" name="version" propId="15"
+                        stdDataType="long" stdSqlType="BIGINT" i18n-en:displayName="Version"/>
                 <column code="CREATED_BY" displayName="创建人" domain="createdBy" mandatory="true" name="createdBy"
                         precision="50" propId="16" stdDataType="string" stdSqlType="VARCHAR"
                         i18n-en:displayName="Created By"/>
@@ -601,12 +721,16 @@
             </indexes>
             <relations>
                 <to-one displayName="元数据实体" name="metaEntity" refEntityName="io.nop.metadata.dao.entity.NopMetaEntity"
-                        tagSet="pub,ref-pub" i18n-en:displayName="Meta Entity">
+                        refPropName="entityRelations" tagSet="pub,ref-pub" i18n-en:displayName="Meta Entity">
                     <join>
                         <on leftProp="metaEntityId" rightProp="metaEntityId"/>
                     </join>
                 </to-one>
             </relations>
+            <unique-keys>
+                <unique-key columns="metaEntityId,relationName" name="UK_NOP_META_REL_ENTITY_NAME"
+                            i18n-en:displayName="Unique Relation Name Per Entity"/>
+            </unique-keys>
         </entity>
         <entity className="io.nop.metadata.dao.entity.NopMetaEntityUniqueKey" createTimeProp="createTime"
                 createrProp="createdBy" displayName="实体唯一键" name="io.nop.metadata.dao.entity.NopMetaEntityUniqueKey"
@@ -631,8 +755,8 @@
                         stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Constraint Name"/>
                 <column code="TAG_SET" displayName="标签集" name="tagSet" precision="500" propId="8" stdDataType="string"
                         stdSqlType="VARCHAR" i18n-en:displayName="Tag Set"/>
-                <column code="DEL_VERSION" displayName="数据版本" domain="version" mandatory="true" name="version"
-                        propId="9" stdDataType="long" stdSqlType="BIGINT" i18n-en:displayName="Version"/>
+                <column code="VERSION" displayName="数据版本" domain="version" mandatory="true" name="version" propId="9"
+                        stdDataType="long" stdSqlType="BIGINT" i18n-en:displayName="Version"/>
                 <column code="CREATED_BY" displayName="创建人" domain="createdBy" mandatory="true" name="createdBy"
                         precision="50" propId="10" stdDataType="string" stdSqlType="VARCHAR"
                         i18n-en:displayName="Created By"/>
@@ -653,12 +777,16 @@
             </indexes>
             <relations>
                 <to-one displayName="元数据实体" name="metaEntity" refEntityName="io.nop.metadata.dao.entity.NopMetaEntity"
-                        tagSet="pub,ref-pub" i18n-en:displayName="Meta Entity">
+                        refPropName="entityUniqueKeys" tagSet="pub,ref-pub" i18n-en:displayName="Meta Entity">
                     <join>
                         <on leftProp="metaEntityId" rightProp="metaEntityId"/>
                     </join>
                 </to-one>
             </relations>
+            <unique-keys>
+                <unique-key columns="metaEntityId,ukName" name="UK_NOP_META_UK_ENTITY_NAME"
+                            i18n-en:displayName="Unique UK Name Per Entity"/>
+            </unique-keys>
         </entity>
         <entity className="io.nop.metadata.dao.entity.NopMetaEntityIndex" createTimeProp="createTime"
                 createrProp="createdBy" displayName="实体索引" name="io.nop.metadata.dao.entity.NopMetaEntityIndex"
@@ -683,8 +811,8 @@
                 <column code="INDEX_COLUMNS" displayName="索引列" domain="json-4000" mandatory="true" name="indexColumns"
                         precision="4000" propId="8" stdDataType="string" stdDomain="json" stdSqlType="VARCHAR"
                         i18n-en:displayName="Index Columns"/>
-                <column code="DEL_VERSION" displayName="数据版本" domain="version" mandatory="true" name="version"
-                        propId="9" stdDataType="long" stdSqlType="BIGINT" i18n-en:displayName="Version"/>
+                <column code="VERSION" displayName="数据版本" domain="version" mandatory="true" name="version" propId="9"
+                        stdDataType="long" stdSqlType="BIGINT" i18n-en:displayName="Version"/>
                 <column code="CREATED_BY" displayName="创建人" domain="createdBy" mandatory="true" name="createdBy"
                         precision="50" propId="10" stdDataType="string" stdSqlType="VARCHAR"
                         i18n-en:displayName="Created By"/>
@@ -705,12 +833,16 @@
             </indexes>
             <relations>
                 <to-one displayName="元数据实体" name="metaEntity" refEntityName="io.nop.metadata.dao.entity.NopMetaEntity"
-                        tagSet="pub,ref-pub" i18n-en:displayName="Meta Entity">
+                        refPropName="entityIndexes" tagSet="pub,ref-pub" i18n-en:displayName="Meta Entity">
                     <join>
                         <on leftProp="metaEntityId" rightProp="metaEntityId"/>
                     </join>
                 </to-one>
             </relations>
+            <unique-keys>
+                <unique-key columns="metaEntityId,indexName" name="UK_NOP_META_IDX_ENTITY_NAME"
+                            i18n-en:displayName="Unique Index Name Per Entity"/>
+            </unique-keys>
         </entity>
         <entity className="io.nop.metadata.dao.entity.NopMetaDomain" createTimeProp="createTime" createrProp="createdBy"
                 displayName="域定义" name="io.nop.metadata.dao.entity.NopMetaDomain" registerShortName="true"
@@ -753,8 +885,8 @@
                 <column code="EXT_CONFIG" displayName="扩展配置" domain="json-4000" name="extConfig" precision="4000"
                         propId="17" stdDataType="string" stdDomain="json" stdSqlType="VARCHAR"
                         i18n-en:displayName="Ext Config"/>
-                <column code="DEL_VERSION" displayName="数据版本" domain="version" mandatory="true" name="version"
-                        propId="18" stdDataType="long" stdSqlType="BIGINT" i18n-en:displayName="Version"/>
+                <column code="VERSION" displayName="数据版本" domain="version" mandatory="true" name="version" propId="18"
+                        stdDataType="long" stdSqlType="BIGINT" i18n-en:displayName="Version"/>
                 <column code="CREATED_BY" displayName="创建人" domain="createdBy" mandatory="true" name="createdBy"
                         precision="50" propId="19" stdDataType="string" stdSqlType="VARCHAR"
                         i18n-en:displayName="Created By"/>
@@ -775,12 +907,16 @@
             </indexes>
             <relations>
                 <to-one displayName="ORM模型" name="ormModel" refEntityName="io.nop.metadata.dao.entity.NopMetaOrmModel"
-                        tagSet="pub,ref-pub" i18n-en:displayName="ORM Model">
+                        refPropName="domains" tagSet="pub,ref-pub" i18n-en:displayName="ORM Model">
                     <join>
                         <on leftProp="ormModelId" rightProp="ormModelId"/>
                     </join>
                 </to-one>
             </relations>
+            <unique-keys>
+                <unique-key columns="ormModelId,domainName" name="UK_NOP_META_DOMAIN_MODEL_NAME"
+                            i18n-en:displayName="Unique Domain Name Per Model"/>
+            </unique-keys>
         </entity>
         <entity className="io.nop.metadata.dao.entity.NopMetaDict" createTimeProp="createTime" createrProp="createdBy"
                 displayName="元数据字典" name="io.nop.metadata.dao.entity.NopMetaDict" registerShortName="true"
@@ -812,8 +948,8 @@
                         propId="11" stdDataType="byte" stdSqlType="TINYINT" i18n-en:displayName="Internal"/>
                 <column code="TAG_SET" displayName="标签集" name="tagSet" precision="500" propId="12" stdDataType="string"
                         stdSqlType="VARCHAR" i18n-en:displayName="Tag Set"/>
-                <column code="DEL_VERSION" displayName="数据版本" domain="version" mandatory="true" name="version"
-                        propId="13" stdDataType="long" stdSqlType="BIGINT" i18n-en:displayName="Version"/>
+                <column code="VERSION" displayName="数据版本" domain="version" mandatory="true" name="version" propId="13"
+                        stdDataType="long" stdSqlType="BIGINT" i18n-en:displayName="Version"/>
                 <column code="CREATED_BY" displayName="创建人" domain="createdBy" mandatory="true" name="createdBy"
                         precision="50" propId="14" stdDataType="string" stdSqlType="VARCHAR"
                         i18n-en:displayName="Created By"/>
@@ -834,12 +970,22 @@
             </indexes>
             <relations>
                 <to-one displayName="ORM模型" name="ormModel" refEntityName="io.nop.metadata.dao.entity.NopMetaOrmModel"
-                        tagSet="pub,ref-pub" i18n-en:displayName="ORM Model">
+                        refPropName="dicts" tagSet="pub,ref-pub" i18n-en:displayName="ORM Model">
                     <join>
                         <on leftProp="ormModelId" rightProp="ormModelId"/>
                     </join>
                 </to-one>
+                <to-many displayName="字典项集" name="dictItems" refEntityName="io.nop.metadata.dao.entity.NopMetaDictItem"
+                         refPropName="metaDict" tagSet="pub,ref-pub" i18n-en:displayName="Dict Items">
+                    <join>
+                        <on leftProp="metaDictId" rightProp="metaDictId"/>
+                    </join>
+                </to-many>
             </relations>
+            <unique-keys>
+                <unique-key columns="ormModelId,dictName" name="UK_NOP_META_DICT_MODEL_NAME"
+                            i18n-en:displayName="Unique Dict Name Per Model"/>
+            </unique-keys>
         </entity>
         <entity className="io.nop.metadata.dao.entity.NopMetaDictItem" createTimeProp="createTime"
                 createrProp="createdBy" displayName="字典项" name="io.nop.metadata.dao.entity.NopMetaDictItem"
@@ -867,8 +1013,8 @@
                         propId="9" stdDataType="byte" stdSqlType="TINYINT" i18n-en:displayName="Deprecated"/>
                 <column code="INTERNAL" defaultValue="0" displayName="内部使用" domain="boolFlag" name="internal"
                         propId="10" stdDataType="byte" stdSqlType="TINYINT" i18n-en:displayName="Internal"/>
-                <column code="DEL_VERSION" displayName="数据版本" domain="version" mandatory="true" name="version"
-                        propId="11" stdDataType="long" stdSqlType="BIGINT" i18n-en:displayName="Version"/>
+                <column code="VERSION" displayName="数据版本" domain="version" mandatory="true" name="version" propId="11"
+                        stdDataType="long" stdSqlType="BIGINT" i18n-en:displayName="Version"/>
                 <column code="CREATED_BY" displayName="创建人" domain="createdBy" mandatory="true" name="createdBy"
                         precision="50" propId="12" stdDataType="string" stdSqlType="VARCHAR"
                         i18n-en:displayName="Created By"/>
@@ -881,6 +1027,8 @@
                         propId="15" stdDataType="timestamp" stdSqlType="TIMESTAMP" i18n-en:displayName="Update Time"/>
                 <column code="REMARK" displayName="备注" domain="remark" name="remark" precision="200" propId="16"
                         stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Remark"/>
+                <column code="IS_DELTA" defaultValue="0" displayName="是否Delta" domain="boolFlag" name="isDelta"
+                        propId="17" stdDataType="byte" stdSqlType="TINYINT" i18n-en:displayName="Is Delta"/>
             </columns>
             <indexes>
                 <index name="IX_NOP_META_DICT_ITEM_DICT" unique="false">
@@ -889,12 +1037,16 @@
             </indexes>
             <relations>
                 <to-one displayName="元数据字典" name="metaDict" refEntityName="io.nop.metadata.dao.entity.NopMetaDict"
-                        tagSet="pub,ref-pub" i18n-en:displayName="Meta Dict">
+                        refPropName="dictItems" tagSet="pub,ref-pub" i18n-en:displayName="Meta Dict">
                     <join>
                         <on leftProp="metaDictId" rightProp="metaDictId"/>
                     </join>
                 </to-one>
             </relations>
+            <unique-keys>
+                <unique-key columns="metaDictId,itemValue" name="UK_NOP_META_DICT_ITEM_VALUE"
+                            i18n-en:displayName="Unique Item Value Per Dict"/>
+            </unique-keys>
         </entity>
         <entity className="io.nop.metadata.dao.entity.NopMetaTable" createTimeProp="createTime" createrProp="createdBy"
                 displayName="逻辑表" name="io.nop.metadata.dao.entity.NopMetaTable" registerShortName="true"
@@ -915,16 +1067,16 @@
                         ext:dict="meta/table-type"/>
                 <column code="QUERY_SPACE" displayName="查询空间" name="querySpace" precision="100" propId="6"
                         stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Query Space"/>
-                <column code="SOURCE_SQL" displayName="来源SQL" domain="mediumtext" name="sourceSql" precision="16777216"
+                <column code="SOURCE_SQL" displayName="来源SQL" domain="mediumtext" name="sourceSql" precision="16777215"
                         propId="7" stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Source Sql"/>
                 <column code="BASE_ENTITY_ID" displayName="主要实体ID" name="baseEntityId" precision="32" propId="8"
                         stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Base Entity Id"/>
                 <column code="DESCRIPTION" displayName="描述" name="description" precision="1000" propId="9"
                         stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Description"/>
-                <column code="BUILD_SQL" displayName="合成SQL" domain="mediumtext" name="buildSql" precision="16777216"
+                <column code="BUILD_SQL" displayName="合成SQL" domain="mediumtext" name="buildSql" precision="16777215"
                         propId="10" stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Build Sql"/>
-                <column code="DEL_VERSION" displayName="数据版本" domain="version" mandatory="true" name="version"
-                        propId="11" stdDataType="long" stdSqlType="BIGINT" i18n-en:displayName="Version"/>
+                <column code="VERSION" displayName="数据版本" domain="version" mandatory="true" name="version" propId="11"
+                        stdDataType="long" stdSqlType="BIGINT" i18n-en:displayName="Version"/>
                 <column code="CREATED_BY" displayName="创建人" domain="createdBy" mandatory="true" name="createdBy"
                         precision="50" propId="12" stdDataType="string" stdSqlType="VARCHAR"
                         i18n-en:displayName="Created By"/>
@@ -944,7 +1096,7 @@
                 <index name="IX_NOP_META_TABLE_MODULE" unique="false">
                     <column name="metaModuleId"/>
                 </index>
-                <index name="IX_NOP_META_TABLE_DEDUP" unique="false">
+                <index name="IX_NOP_META_TABLE_LOOKUP" unique="false">
                     <column name="metaModuleId"/>
                     <column name="schema"/>
                     <column name="tableName"/>
@@ -952,12 +1104,120 @@
             </indexes>
             <relations>
                 <to-one displayName="元数据模块" name="metaModule" refEntityName="io.nop.metadata.dao.entity.NopMetaModule"
-                        tagSet="pub,ref-pub" i18n-en:displayName="Meta Module">
+                        refPropName="tables" tagSet="pub,ref-pub" i18n-en:displayName="Meta Module">
                     <join>
                         <on leftProp="metaModuleId" rightProp="metaModuleId"/>
                     </join>
                 </to-one>
+                <to-many displayName="表维度集" name="dimensions"
+                         refEntityName="io.nop.metadata.dao.entity.NopMetaTableDimension" refPropName="metaTable"
+                         tagSet="pub,ref-pub" i18n-en:displayName="Dimensions">
+                    <join>
+                        <on leftProp="metaTableId" rightProp="metaTableId"/>
+                    </join>
+                </to-many>
+                <to-many displayName="表指标集" name="measures"
+                         refEntityName="io.nop.metadata.dao.entity.NopMetaTableMeasure" refPropName="metaTable"
+                         tagSet="pub,ref-pub" i18n-en:displayName="Measures">
+                    <join>
+                        <on leftProp="metaTableId" rightProp="metaTableId"/>
+                    </join>
+                </to-many>
+                <to-many displayName="表过滤器集" name="filters"
+                         refEntityName="io.nop.metadata.dao.entity.NopMetaTableFilter" refPropName="metaTable"
+                         tagSet="pub,ref-pub" i18n-en:displayName="Filters">
+                    <join>
+                        <on leftProp="metaTableId" rightProp="metaTableId"/>
+                    </join>
+                </to-many>
+                <to-many displayName="表关联集" name="joins" refEntityName="io.nop.metadata.dao.entity.NopMetaTableJoin"
+                         refPropName="metaTable" tagSet="pub,ref-pub" i18n-en:displayName="Joins">
+                    <join>
+                        <on leftProp="metaTableId" rightProp="metaTableId"/>
+                    </join>
+                </to-many>
+                <to-many displayName="作为左表的关联集" name="joinAsLeftTable"
+                         refEntityName="io.nop.metadata.dao.entity.NopMetaTableJoin" refPropName="leftTable"
+                         tagSet="pub,ref-pub" i18n-en:displayName="Joins As Left Table">
+                    <join>
+                        <on leftProp="metaTableId" rightProp="leftTableId"/>
+                    </join>
+                </to-many>
+                <to-many displayName="作为右表的关联集" name="joinAsRightTable"
+                         refEntityName="io.nop.metadata.dao.entity.NopMetaTableJoin" refPropName="rightTable"
+                         tagSet="pub,ref-pub" i18n-en:displayName="Joins As Right Table">
+                    <join>
+                        <on leftProp="metaTableId" rightProp="rightTableId"/>
+                    </join>
+                </to-many>
+                <to-many displayName="作为血缘源表的边集" name="lineageAsSource"
+                         refEntityName="io.nop.metadata.dao.entity.NopMetaLineageEdge" refPropName="sourceTable"
+                         tagSet="pub,ref-pub" i18n-en:displayName="Lineage As Source">
+                    <join>
+                        <on leftProp="metaTableId" rightProp="sourceTableId"/>
+                    </join>
+                </to-many>
+                <to-many displayName="作为血缘目标表的边集" name="lineageAsTarget"
+                         refEntityName="io.nop.metadata.dao.entity.NopMetaLineageEdge" refPropName="targetTable"
+                         tagSet="pub,ref-pub" i18n-en:displayName="Lineage As Target">
+                    <join>
+                        <on leftProp="metaTableId" rightProp="targetTableId"/>
+                    </join>
+                </to-many>
+                <to-many displayName="运行时统计快照集" name="catalogs"
+                         refEntityName="io.nop.metadata.dao.entity.NopMetaCatalog" refPropName="metaTable"
+                         tagSet="pub,ref-pub" i18n-en:displayName="Catalogs">
+                    <join>
+                        <on leftProp="metaTableId" rightProp="metaTableId"/>
+                    </join>
+                </to-many>
+                <to-many displayName="数据剖析规则集" name="profilingRules"
+                         refEntityName="io.nop.metadata.dao.entity.NopMetaProfilingRule" refPropName="metaTable"
+                         tagSet="pub,ref-pub" i18n-en:displayName="Profiling Rules">
+                    <join>
+                        <on leftProp="metaTableId" rightProp="tableId"/>
+                    </join>
+                </to-many>
+                <to-many displayName="数据剖析结果集" name="profilingResults"
+                         refEntityName="io.nop.metadata.dao.entity.NopMetaProfilingResult" refPropName="metaTable"
+                         tagSet="pub,ref-pub" i18n-en:displayName="Profiling Results">
+                    <join>
+                        <on leftProp="metaTableId" rightProp="metaTableId"/>
+                    </join>
+                </to-many>
+                <to-many displayName="质量评分集" name="qualityScores"
+                         refEntityName="io.nop.metadata.dao.entity.NopMetaQualityScore" refPropName="metaTable"
+                         tagSet="pub,ref-pub" i18n-en:displayName="Quality Scores">
+                    <join>
+                        <on leftProp="metaTableId" rightProp="metaTableId"/>
+                    </join>
+                </to-many>
+                <to-many displayName="数据契约集" name="dataContracts"
+                         refEntityName="io.nop.metadata.dao.entity.NopMetaDataContract" refPropName="metaTable"
+                         tagSet="pub,ref-pub" i18n-en:displayName="Data Contracts">
+                    <join>
+                        <on leftProp="metaTableId" rightProp="entityTableId"/>
+                    </join>
+                </to-many>
+                <to-many displayName="对账配置集" name="reconciliationConfigs"
+                         refEntityName="io.nop.metadata.dao.entity.NopMetaReconciliationConfig" refPropName="metaTable"
+                         tagSet="pub,ref-pub" i18n-en:displayName="Reconciliation Configs">
+                    <join>
+                        <on leftProp="metaTableId" rightProp="metaTableId"/>
+                    </join>
+                </to-many>
+                <to-many displayName="对账结果集" name="reconciliationResults"
+                         refEntityName="io.nop.metadata.dao.entity.NopMetaReconciliationResult" refPropName="metaTable"
+                         tagSet="pub,ref-pub" i18n-en:displayName="Reconciliation Results">
+                    <join>
+                        <on leftProp="metaTableId" rightProp="metaTableId"/>
+                    </join>
+                </to-many>
             </relations>
+            <unique-keys>
+                <unique-key columns="metaModuleId,tableName" name="UK_NOP_META_TABLE_MODULE_NAME"
+                            i18n-en:displayName="Unique Table Name Per Module"/>
+            </unique-keys>
         </entity>
         <entity className="io.nop.metadata.dao.entity.NopMetaTableDimension" createTimeProp="createTime"
                 createrProp="createdBy" displayName="表维度" name="io.nop.metadata.dao.entity.NopMetaTableDimension"
@@ -988,8 +1248,8 @@
                 <column code="EXT_CONFIG" displayName="扩展配置" domain="json-4000" name="extConfig" precision="4000"
                         propId="10" stdDataType="string" stdDomain="json" stdSqlType="VARCHAR"
                         i18n-en:displayName="Ext Config"/>
-                <column code="DEL_VERSION" displayName="数据版本" domain="version" mandatory="true" name="version"
-                        propId="11" stdDataType="long" stdSqlType="BIGINT" i18n-en:displayName="Version"/>
+                <column code="VERSION" displayName="数据版本" domain="version" mandatory="true" name="version" propId="11"
+                        stdDataType="long" stdSqlType="BIGINT" i18n-en:displayName="Version"/>
                 <column code="CREATED_BY" displayName="创建人" domain="createdBy" mandatory="true" name="createdBy"
                         precision="50" propId="12" stdDataType="string" stdSqlType="VARCHAR"
                         i18n-en:displayName="Created By"/>
@@ -1012,12 +1272,16 @@
             </indexes>
             <relations>
                 <to-one displayName="逻辑表" name="metaTable" refEntityName="io.nop.metadata.dao.entity.NopMetaTable"
-                        tagSet="pub,ref-pub" i18n-en:displayName="Meta Table">
+                        refPropName="dimensions" tagSet="pub,ref-pub" i18n-en:displayName="Meta Table">
                     <join>
                         <on leftProp="metaTableId" rightProp="metaTableId"/>
                     </join>
                 </to-one>
             </relations>
+            <unique-keys>
+                <unique-key columns="metaTableId,dimensionName" name="UK_NOP_META_DIM_TABLE_NAME"
+                            i18n-en:displayName="Unique Dimension Name Per Table"/>
+            </unique-keys>
         </entity>
         <entity className="io.nop.metadata.dao.entity.NopMetaTableMeasure" createTimeProp="createTime"
                 createrProp="createdBy" displayName="表指标" name="io.nop.metadata.dao.entity.NopMetaTableMeasure"
@@ -1049,8 +1313,8 @@
                 <column code="EXT_CONFIG" displayName="扩展配置" domain="json-4000" name="extConfig" precision="4000"
                         propId="11" stdDataType="string" stdDomain="json" stdSqlType="VARCHAR"
                         i18n-en:displayName="Ext Config"/>
-                <column code="DEL_VERSION" displayName="数据版本" domain="version" mandatory="true" name="version"
-                        propId="12" stdDataType="long" stdSqlType="BIGINT" i18n-en:displayName="Version"/>
+                <column code="VERSION" displayName="数据版本" domain="version" mandatory="true" name="version" propId="12"
+                        stdDataType="long" stdSqlType="BIGINT" i18n-en:displayName="Version"/>
                 <column code="CREATED_BY" displayName="创建人" domain="createdBy" mandatory="true" name="createdBy"
                         precision="50" propId="13" stdDataType="string" stdSqlType="VARCHAR"
                         i18n-en:displayName="Created By"/>
@@ -1073,12 +1337,16 @@
             </indexes>
             <relations>
                 <to-one displayName="逻辑表" name="metaTable" refEntityName="io.nop.metadata.dao.entity.NopMetaTable"
-                        tagSet="pub,ref-pub" i18n-en:displayName="Meta Table">
+                        refPropName="measures" tagSet="pub,ref-pub" i18n-en:displayName="Meta Table">
                     <join>
                         <on leftProp="metaTableId" rightProp="metaTableId"/>
                     </join>
                 </to-one>
             </relations>
+            <unique-keys>
+                <unique-key columns="metaTableId,measureName" name="UK_NOP_META_MEASURE_TABLE_NAME"
+                            i18n-en:displayName="Unique Measure Name Per Table"/>
+            </unique-keys>
         </entity>
         <entity className="io.nop.metadata.dao.entity.NopMetaTableFilter" createTimeProp="createTime"
                 createrProp="createdBy" displayName="表过滤器" name="io.nop.metadata.dao.entity.NopMetaTableFilter"
@@ -1104,8 +1372,8 @@
                 <column code="EXT_CONFIG" displayName="扩展配置" domain="json-4000" name="extConfig" precision="4000"
                         propId="8" stdDataType="string" stdDomain="json" stdSqlType="VARCHAR"
                         i18n-en:displayName="Ext Config"/>
-                <column code="DEL_VERSION" displayName="数据版本" domain="version" mandatory="true" name="version"
-                        propId="9" stdDataType="long" stdSqlType="BIGINT" i18n-en:displayName="Version"/>
+                <column code="VERSION" displayName="数据版本" domain="version" mandatory="true" name="version" propId="9"
+                        stdDataType="long" stdSqlType="BIGINT" i18n-en:displayName="Version"/>
                 <column code="CREATED_BY" displayName="创建人" domain="createdBy" mandatory="true" name="createdBy"
                         precision="50" propId="10" stdDataType="string" stdSqlType="VARCHAR"
                         i18n-en:displayName="Created By"/>
@@ -1126,12 +1394,16 @@
             </indexes>
             <relations>
                 <to-one displayName="逻辑表" name="metaTable" refEntityName="io.nop.metadata.dao.entity.NopMetaTable"
-                        tagSet="pub,ref-pub" i18n-en:displayName="Meta Table">
+                        refPropName="filters" tagSet="pub,ref-pub" i18n-en:displayName="Meta Table">
                     <join>
                         <on leftProp="metaTableId" rightProp="metaTableId"/>
                     </join>
                 </to-one>
             </relations>
+            <unique-keys>
+                <unique-key columns="metaTableId,filterName" name="UK_NOP_META_FILTER_TABLE_NAME"
+                            i18n-en:displayName="Unique Filter Name Per Table"/>
+            </unique-keys>
         </entity>
         <entity className="io.nop.metadata.dao.entity.NopMetaTableJoin" createTimeProp="createTime"
                 createrProp="createdBy" displayName="表关联" name="io.nop.metadata.dao.entity.NopMetaTableJoin"
@@ -1155,8 +1427,8 @@
                         stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Right Field"/>
                 <column code="ALIAS" displayName="右表别名" name="alias" precision="100" propId="8" stdDataType="string"
                         stdSqlType="VARCHAR" i18n-en:displayName="Alias"/>
-                <column code="DEL_VERSION" displayName="数据版本" domain="version" mandatory="true" name="version"
-                        propId="9" stdDataType="long" stdSqlType="BIGINT" i18n-en:displayName="Version"/>
+                <column code="VERSION" displayName="数据版本" domain="version" mandatory="true" name="version" propId="9"
+                        stdDataType="long" stdSqlType="BIGINT" i18n-en:displayName="Version"/>
                 <column code="CREATED_BY" displayName="创建人" domain="createdBy" mandatory="true" name="createdBy"
                         precision="50" propId="10" stdDataType="string" stdSqlType="VARCHAR"
                         i18n-en:displayName="Created By"/>
@@ -1178,39 +1450,55 @@
                 <index name="IX_NOP_META_JOIN_TABLE" unique="false">
                     <column name="metaTableId"/>
                 </index>
+                <index name="IX_NOP_META_JOIN_LEFT_TABLE" unique="false">
+                    <column name="leftTableId"/>
+                </index>
+                <index name="IX_NOP_META_JOIN_RIGHT_TABLE" unique="false">
+                    <column name="rightTableId"/>
+                </index>
+                <index name="IX_NOP_META_JOIN_LEFT_ENTITY" unique="false">
+                    <column name="leftEntityId"/>
+                </index>
+                <index name="IX_NOP_META_JOIN_RIGHT_ENTITY" unique="false">
+                    <column name="rightEntityId"/>
+                </index>
             </indexes>
             <relations>
                 <to-one displayName="逻辑表" name="metaTable" refEntityName="io.nop.metadata.dao.entity.NopMetaTable"
-                        tagSet="pub,ref-pub" i18n-en:displayName="Meta Table">
+                        refPropName="joins" tagSet="pub,ref-pub" i18n-en:displayName="Meta Table">
                     <join>
                         <on leftProp="metaTableId" rightProp="metaTableId"/>
                     </join>
                 </to-one>
                 <to-one displayName="左实体" name="leftEntity" refEntityName="io.nop.metadata.dao.entity.NopMetaEntity"
-                        tagSet="pub,ref-pub" i18n-en:displayName="Left Entity">
+                        refPropName="joinAsLeft" tagSet="pub,ref-pub" i18n-en:displayName="Left Entity">
                     <join>
                         <on leftProp="leftEntityId" rightProp="metaEntityId"/>
                     </join>
                 </to-one>
                 <to-one displayName="右实体" name="rightEntity" refEntityName="io.nop.metadata.dao.entity.NopMetaEntity"
-                        tagSet="pub,ref-pub" i18n-en:displayName="Right Entity">
+                        refPropName="joinAsRight" tagSet="pub,ref-pub" i18n-en:displayName="Right Entity">
                     <join>
                         <on leftProp="rightEntityId" rightProp="metaEntityId"/>
                     </join>
                 </to-one>
                 <to-one displayName="左表" name="leftTable" refEntityName="io.nop.metadata.dao.entity.NopMetaTable"
-                        tagSet="pub,ref-pub" i18n-en:displayName="Left Table">
+                        refPropName="joinAsLeftTable" tagSet="pub,ref-pub" i18n-en:displayName="Left Table">
                     <join>
                         <on leftProp="leftTableId" rightProp="metaTableId"/>
                     </join>
                 </to-one>
                 <to-one displayName="右表" name="rightTable" refEntityName="io.nop.metadata.dao.entity.NopMetaTable"
-                        tagSet="pub,ref-pub" i18n-en:displayName="Right Table">
+                        refPropName="joinAsRightTable" tagSet="pub,ref-pub" i18n-en:displayName="Right Table">
                     <join>
                         <on leftProp="rightTableId" rightProp="metaTableId"/>
                     </join>
                 </to-one>
             </relations>
+            <unique-keys>
+                <unique-key columns="metaTableId,alias" name="UK_NOP_META_JOIN_TABLE_ALIAS"
+                            i18n-en:displayName="Unique Join Alias Per Table"/>
+            </unique-keys>
         </entity>
         <entity className="io.nop.metadata.dao.entity.NopMetaPipeline" createTimeProp="createTime"
                 createrProp="createdBy" displayName="数据管道" name="io.nop.metadata.dao.entity.NopMetaPipeline"
@@ -1230,15 +1518,15 @@
                 <column code="PIPELINE_TYPE" displayName="管道类型" mandatory="true" name="pipelineType" precision="20"
                         propId="5" stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Pipeline Type"
                         ext:dict="meta/pipeline-type"/>
-                <column code="SOURCE_SQL" displayName="处理SQL" domain="mediumtext" name="sourceSql" precision="16777216"
+                <column code="SOURCE_SQL" displayName="处理SQL" domain="mediumtext" name="sourceSql" precision="16777215"
                         propId="6" stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Source Sql"/>
                 <column code="SCHEDULE" displayName="调度表达式" name="schedule" precision="200" propId="7"
                         stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Schedule"/>
                 <column code="EXT_CONFIG" displayName="扩展配置" domain="json-4000" name="extConfig" precision="4000"
                         propId="8" stdDataType="string" stdDomain="json" stdSqlType="VARCHAR"
                         i18n-en:displayName="Ext Config"/>
-                <column code="DEL_VERSION" displayName="数据版本" domain="version" mandatory="true" name="version"
-                        propId="9" stdDataType="long" stdSqlType="BIGINT" i18n-en:displayName="Version"/>
+                <column code="VERSION" displayName="数据版本" domain="version" mandatory="true" name="version" propId="9"
+                        stdDataType="long" stdSqlType="BIGINT" i18n-en:displayName="Version"/>
                 <column code="CREATED_BY" displayName="创建人" domain="createdBy" mandatory="true" name="createdBy"
                         precision="50" propId="10" stdDataType="string" stdSqlType="VARCHAR"
                         i18n-en:displayName="Created By"/>
@@ -1259,12 +1547,23 @@
             </indexes>
             <relations>
                 <to-one displayName="元数据模块" name="metaModule" refEntityName="io.nop.metadata.dao.entity.NopMetaModule"
-                        tagSet="pub,ref-pub" i18n-en:displayName="Meta Module">
+                        refPropName="pipelines" tagSet="pub,ref-pub" i18n-en:displayName="Meta Module">
                     <join>
                         <on leftProp="metaModuleId" rightProp="metaModuleId"/>
                     </join>
                 </to-one>
+                <to-many displayName="血缘边集" name="lineageEdges"
+                         refEntityName="io.nop.metadata.dao.entity.NopMetaLineageEdge" refPropName="pipeline"
+                         tagSet="pub,ref-pub" i18n-en:displayName="Lineage Edges">
+                    <join>
+                        <on leftProp="pipelineId" rightProp="pipelineId"/>
+                    </join>
+                </to-many>
             </relations>
+            <unique-keys>
+                <unique-key columns="metaModuleId,pipelineName" name="UK_NOP_META_PIPELINE_MODULE_NAME"
+                            i18n-en:displayName="Unique Pipeline Name Per Module"/>
+            </unique-keys>
         </entity>
         <entity className="io.nop.metadata.dao.entity.NopMetaLineageEdge" createTimeProp="createTime"
                 createrProp="createdBy" displayName="血缘边" name="io.nop.metadata.dao.entity.NopMetaLineageEdge"
@@ -1298,8 +1597,8 @@
                 <column code="EXT_CONFIG" displayName="扩展配置" domain="json-4000" name="extConfig" precision="4000"
                         propId="11" stdDataType="string" stdDomain="json" stdSqlType="VARCHAR"
                         i18n-en:displayName="Ext Config"/>
-                <column code="DEL_VERSION" displayName="数据版本" domain="version" mandatory="true" name="version"
-                        propId="12" stdDataType="long" stdSqlType="BIGINT" i18n-en:displayName="Version"/>
+                <column code="VERSION" displayName="数据版本" domain="version" mandatory="true" name="version" propId="12"
+                        stdDataType="long" stdSqlType="BIGINT" i18n-en:displayName="Version"/>
                 <column code="CREATED_BY" displayName="创建人" domain="createdBy" mandatory="true" name="createdBy"
                         precision="50" propId="13" stdDataType="string" stdSqlType="VARCHAR"
                         i18n-en:displayName="Created By"/>
@@ -1320,7 +1619,30 @@
                 <index name="IX_NOP_META_LINEAGE_TARGET" unique="false">
                     <column name="targetTableId"/>
                 </index>
+                <index name="IX_NOP_META_LINEAGE_PIPELINE" unique="false">
+                    <column name="pipelineId"/>
+                </index>
             </indexes>
+            <relations>
+                <to-one displayName="源表" name="sourceTable" refEntityName="io.nop.metadata.dao.entity.NopMetaTable"
+                        refPropName="lineageAsSource" tagSet="pub,ref-pub" i18n-en:displayName="Source Table">
+                    <join>
+                        <on leftProp="sourceTableId" rightProp="metaTableId"/>
+                    </join>
+                </to-one>
+                <to-one displayName="目标表" name="targetTable" refEntityName="io.nop.metadata.dao.entity.NopMetaTable"
+                        refPropName="lineageAsTarget" tagSet="pub,ref-pub" i18n-en:displayName="Target Table">
+                    <join>
+                        <on leftProp="targetTableId" rightProp="metaTableId"/>
+                    </join>
+                </to-one>
+                <to-one displayName="数据管道" name="pipeline" refEntityName="io.nop.metadata.dao.entity.NopMetaPipeline"
+                        refPropName="lineageEdges" tagSet="pub,ref-pub" i18n-en:displayName="Pipeline">
+                    <join>
+                        <on leftProp="pipelineId" rightProp="pipelineId"/>
+                    </join>
+                </to-one>
+            </relations>
         </entity>
         <entity className="io.nop.metadata.dao.entity.NopMetaQualityRule" createTimeProp="createTime"
                 createrProp="createdBy" displayName="质量规则" name="io.nop.metadata.dao.entity.NopMetaQualityRule"
@@ -1347,7 +1669,7 @@
                         stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Severity"
                         ext:dict="meta/quality-severity"/>
                 <column code="SQL_EXPRESSION" displayName="SQL表达式" domain="mediumtext" name="sqlExpression"
-                        precision="16777216" propId="8" stdDataType="string" stdSqlType="VARCHAR"
+                        precision="16777215" propId="8" stdDataType="string" stdSqlType="VARCHAR"
                         i18n-en:displayName="Sql Expression"/>
                 <column code="THRESHOLD" displayName="阈值" name="threshold" propId="9" stdDataType="double"
                         stdSqlType="DOUBLE" i18n-en:displayName="Threshold"/>
@@ -1356,8 +1678,8 @@
                 <column code="EXT_CONFIG" displayName="扩展配置" domain="json-4000" name="extConfig" precision="4000"
                         propId="11" stdDataType="string" stdDomain="json" stdSqlType="VARCHAR"
                         i18n-en:displayName="Ext Config"/>
-                <column code="DEL_VERSION" displayName="数据版本" domain="version" mandatory="true" name="version"
-                        propId="12" stdDataType="long" stdSqlType="BIGINT" i18n-en:displayName="Version"/>
+                <column code="VERSION" displayName="数据版本" domain="version" mandatory="true" name="version" propId="12"
+                        stdDataType="long" stdSqlType="BIGINT" i18n-en:displayName="Version"/>
                 <column code="CREATED_BY" displayName="创建人" domain="createdBy" mandatory="true" name="createdBy"
                         precision="50" propId="13" stdDataType="string" stdSqlType="VARCHAR"
                         i18n-en:displayName="Created By"/>
@@ -1377,6 +1699,19 @@
                     <column name="entityId"/>
                 </index>
             </indexes>
+            <relations>
+                <to-many displayName="质量结果集" name="results"
+                         refEntityName="io.nop.metadata.dao.entity.NopMetaQualityResult" refPropName="qualityRule"
+                         tagSet="pub,ref-pub" i18n-en:displayName="Quality Results">
+                    <join>
+                        <on leftProp="qualityRuleId" rightProp="qualityRuleId"/>
+                    </join>
+                </to-many>
+            </relations>
+            <unique-keys>
+                <unique-key columns="ruleName" name="UK_NOP_META_QRULE_NAME"
+                            i18n-en:displayName="Unique Quality Rule Name"/>
+            </unique-keys>
         </entity>
         <entity className="io.nop.metadata.dao.entity.NopMetaQualityResult" createTimeProp="createTime"
                 createrProp="createdBy" displayName="质量结果" name="io.nop.metadata.dao.entity.NopMetaQualityResult"
@@ -1401,8 +1736,8 @@
                         stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Message"/>
                 <column code="DETAILS" displayName="详情" domain="json-4000" name="details" precision="4000" propId="8"
                         stdDataType="string" stdDomain="json" stdSqlType="VARCHAR" i18n-en:displayName="Details"/>
-                <column code="DEL_VERSION" displayName="数据版本" domain="version" mandatory="true" name="version"
-                        propId="9" stdDataType="long" stdSqlType="BIGINT" i18n-en:displayName="Version"/>
+                <column code="VERSION" displayName="数据版本" domain="version" mandatory="true" name="version" propId="9"
+                        stdDataType="long" stdSqlType="BIGINT" i18n-en:displayName="Version"/>
                 <column code="CREATED_BY" displayName="创建人" domain="createdBy" mandatory="true" name="createdBy"
                         precision="50" propId="10" stdDataType="string" stdSqlType="VARCHAR"
                         i18n-en:displayName="Created By"/>
@@ -1424,8 +1759,8 @@
             </indexes>
             <relations>
                 <to-one displayName="质量规则" name="qualityRule"
-                        refEntityName="io.nop.metadata.dao.entity.NopMetaQualityRule" tagSet="pub,ref-pub"
-                        i18n-en:displayName="Quality Rule">
+                        refEntityName="io.nop.metadata.dao.entity.NopMetaQualityRule" refPropName="results"
+                        tagSet="pub,ref-pub" i18n-en:displayName="Quality Rule">
                     <join>
                         <on leftProp="qualityRuleId" rightProp="qualityRuleId"/>
                     </join>
@@ -1450,7 +1785,7 @@
                 <column code="DESCRIPTION" displayName="描述" name="description" precision="1000" propId="5"
                         stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Description"/>
                 <column code="VALIDATIONS" displayName="验证配置" domain="mediumtext" name="validations"
-                        precision="16777216" propId="6" stdDataType="string" stdDomain="json" stdSqlType="VARCHAR"
+                        precision="16777215" propId="6" stdDataType="string" stdDomain="json" stdSqlType="VARCHAR"
                         i18n-en:displayName="Validations"/>
                 <column code="ACTIONS" displayName="执行动作" domain="json-4000" name="actions" precision="4000" propId="7"
                         stdDataType="string" stdDomain="json" stdSqlType="VARCHAR" i18n-en:displayName="Actions"/>
@@ -1459,8 +1794,8 @@
                 <column code="EXT_CONFIG" displayName="扩展配置" domain="json-4000" name="extConfig" precision="4000"
                         propId="9" stdDataType="string" stdDomain="json" stdSqlType="VARCHAR"
                         i18n-en:displayName="Ext Config"/>
-                <column code="DEL_VERSION" displayName="数据版本" domain="version" mandatory="true" name="version"
-                        propId="10" stdDataType="long" stdSqlType="BIGINT" i18n-en:displayName="Version"/>
+                <column code="VERSION" displayName="数据版本" domain="version" mandatory="true" name="version" propId="10"
+                        stdDataType="long" stdSqlType="BIGINT" i18n-en:displayName="Version"/>
                 <column code="CREATED_BY" displayName="创建人" domain="createdBy" mandatory="true" name="createdBy"
                         precision="50" propId="11" stdDataType="string" stdSqlType="VARCHAR"
                         i18n-en:displayName="Created By"/>
@@ -1481,12 +1816,16 @@
             </indexes>
             <relations>
                 <to-one displayName="元数据模块" name="metaModule" refEntityName="io.nop.metadata.dao.entity.NopMetaModule"
-                        tagSet="pub,ref-pub" i18n-en:displayName="Meta Module">
+                        refPropName="qualityCheckpoints" tagSet="pub,ref-pub" i18n-en:displayName="Meta Module">
                     <join>
                         <on leftProp="metaModuleId" rightProp="metaModuleId"/>
                     </join>
                 </to-one>
             </relations>
+            <unique-keys>
+                <unique-key columns="checkpointName" name="UK_NOP_META_QCHECKPOINT_NAME"
+                            i18n-en:displayName="Unique Checkpoint Name"/>
+            </unique-keys>
         </entity>
         <entity className="io.nop.metadata.dao.entity.NopMetaManifest" createTimeProp="createTime"
                 createrProp="createdBy" displayName="元数据快照" name="io.nop.metadata.dao.entity.NopMetaManifest"
@@ -1504,11 +1843,11 @@
                         stdDataType="timestamp" stdSqlType="TIMESTAMP" i18n-en:displayName="Generated At"/>
                 <column code="NOP_METADATA_VERSION" displayName="平台版本" name="nopMetadataVersion" precision="50"
                         propId="5" stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Nop Metadata Version"/>
-                <column code="CONTENT" displayName="快照内容" domain="mediumtext" name="content" precision="16777216"
+                <column code="CONTENT" displayName="快照内容" domain="mediumtext" name="content" precision="16777215"
                         propId="6" stdDataType="string" stdDomain="json" stdSqlType="VARCHAR"
                         i18n-en:displayName="Content"/>
-                <column code="DEL_VERSION" displayName="数据版本" domain="version" mandatory="true" name="version"
-                        propId="7" stdDataType="long" stdSqlType="BIGINT" i18n-en:displayName="Version"/>
+                <column code="VERSION" displayName="数据版本" domain="version" mandatory="true" name="version" propId="7"
+                        stdDataType="long" stdSqlType="BIGINT" i18n-en:displayName="Version"/>
                 <column code="CREATED_BY" displayName="创建人" domain="createdBy" mandatory="true" name="createdBy"
                         precision="50" propId="8" stdDataType="string" stdSqlType="VARCHAR"
                         i18n-en:displayName="Created By"/>
@@ -1529,12 +1868,16 @@
             </indexes>
             <relations>
                 <to-one displayName="元数据模块" name="metaModule" refEntityName="io.nop.metadata.dao.entity.NopMetaModule"
-                        tagSet="pub,ref-pub" i18n-en:displayName="Meta Module">
+                        refPropName="manifests" tagSet="pub,ref-pub" i18n-en:displayName="Meta Module">
                     <join>
                         <on leftProp="metaModuleId" rightProp="metaModuleId"/>
                     </join>
                 </to-one>
             </relations>
+            <unique-keys>
+                <unique-key columns="metaModuleId,manifestVersion" name="UK_NOP_META_MANIFEST_MODULE_VER"
+                            i18n-en:displayName="Unique Manifest Version Per Module"/>
+            </unique-keys>
         </entity>
         <entity className="io.nop.metadata.dao.entity.NopMetaCatalog" createTimeProp="createTime"
                 createrProp="createdBy" displayName="运行时统计快照" name="io.nop.metadata.dao.entity.NopMetaCatalog"
@@ -1556,13 +1899,13 @@
                         stdSqlType="INTEGER" i18n-en:displayName="Partition Count"/>
                 <column code="LAST_MODIFIED" displayName="最后修改时间" name="lastModified" propId="7" stdDataType="timestamp"
                         stdSqlType="TIMESTAMP" i18n-en:displayName="Last Modified"/>
-                <column code="DETAILS" displayName="扩展详情" domain="mediumtext" name="details" precision="16777216"
+                <column code="DETAILS" displayName="扩展详情" domain="mediumtext" name="details" precision="16777215"
                         propId="8" stdDataType="string" stdDomain="json" stdSqlType="VARCHAR"
                         i18n-en:displayName="Details"/>
                 <column code="COLLECTED_AT" displayName="收集时间" mandatory="true" name="collectedAt" propId="9"
                         stdDataType="timestamp" stdSqlType="TIMESTAMP" i18n-en:displayName="Collected At"/>
-                <column code="DEL_VERSION" displayName="数据版本" domain="version" mandatory="true" name="version"
-                        propId="10" stdDataType="long" stdSqlType="BIGINT" i18n-en:displayName="Version"/>
+                <column code="VERSION" displayName="数据版本" domain="version" mandatory="true" name="version" propId="10"
+                        stdDataType="long" stdSqlType="BIGINT" i18n-en:displayName="Version"/>
                 <column code="CREATED_BY" displayName="创建人" domain="createdBy" mandatory="true" name="createdBy"
                         precision="50" propId="11" stdDataType="string" stdSqlType="VARCHAR"
                         i18n-en:displayName="Created By"/>
@@ -1584,7 +1927,7 @@
             </indexes>
             <relations>
                 <to-one displayName="逻辑表" name="metaTable" refEntityName="io.nop.metadata.dao.entity.NopMetaTable"
-                        tagSet="pub,ref-pub" i18n-en:displayName="Meta Table">
+                        refPropName="catalogs" tagSet="pub,ref-pub" i18n-en:displayName="Meta Table">
                     <join>
                         <on leftProp="metaTableId" rightProp="metaTableId"/>
                     </join>
@@ -1615,8 +1958,8 @@
                 <column code="EXT_CONFIG" displayName="扩展配置" domain="json-4000" name="extConfig" precision="4000"
                         propId="8" stdDataType="string" stdDomain="json" stdSqlType="VARCHAR"
                         i18n-en:displayName="Ext Config"/>
-                <column code="DEL_VERSION" displayName="数据版本" domain="version" mandatory="true" name="version"
-                        propId="9" stdDataType="long" stdSqlType="BIGINT" i18n-en:displayName="Version"/>
+                <column code="VERSION" displayName="数据版本" domain="version" mandatory="true" name="version" propId="9"
+                        stdDataType="long" stdSqlType="BIGINT" i18n-en:displayName="Version"/>
                 <column code="CREATED_BY" displayName="创建人" domain="createdBy" mandatory="true" name="createdBy"
                         precision="50" propId="10" stdDataType="string" stdSqlType="VARCHAR"
                         i18n-en:displayName="Created By"/>
@@ -1637,12 +1980,23 @@
             </indexes>
             <relations>
                 <to-one displayName="逻辑表" name="metaTable" refEntityName="io.nop.metadata.dao.entity.NopMetaTable"
-                        tagSet="pub,ref-pub" i18n-en:displayName="Meta Table">
+                        refPropName="profilingRules" tagSet="pub,ref-pub" i18n-en:displayName="Meta Table">
                     <join>
                         <on leftProp="tableId" rightProp="metaTableId"/>
                     </join>
                 </to-one>
+                <to-many displayName="剖析结果集" name="results"
+                         refEntityName="io.nop.metadata.dao.entity.NopMetaProfilingResult" refPropName="profilingRule"
+                         tagSet="pub,ref-pub" i18n-en:displayName="Profiling Results">
+                    <join>
+                        <on leftProp="profilingRuleId" rightProp="profilingRuleId"/>
+                    </join>
+                </to-many>
             </relations>
+            <unique-keys>
+                <unique-key columns="tableId,ruleName" name="UK_NOP_META_PROFRULE_TABLE_NAME"
+                            i18n-en:displayName="Unique Profiling Rule Name Per Table"/>
+            </unique-keys>
         </entity>
         <entity className="io.nop.metadata.dao.entity.NopMetaProfilingResult" createTimeProp="createTime"
                 createrProp="createdBy" displayName="数据剖析结果" name="io.nop.metadata.dao.entity.NopMetaProfilingResult"
@@ -1659,14 +2013,14 @@
                         propId="3" stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Meta Table Id"/>
                 <column code="SNAPSHOT_TIME" displayName="快照时间" mandatory="true" name="snapshotTime" propId="4"
                         stdDataType="timestamp" stdSqlType="TIMESTAMP" i18n-en:displayName="Snapshot Time"/>
-                <column code="TABLE_STATS" displayName="表级统计" domain="mediumtext" name="tableStats" precision="16777216"
+                <column code="TABLE_STATS" displayName="表级统计" domain="mediumtext" name="tableStats" precision="16777215"
                         propId="5" stdDataType="string" stdDomain="json" stdSqlType="VARCHAR"
                         i18n-en:displayName="Table Stats"/>
                 <column code="COLUMN_STATS" displayName="列级统计" domain="mediumtext" name="columnStats"
-                        precision="16777216" propId="6" stdDataType="string" stdDomain="json" stdSqlType="VARCHAR"
+                        precision="16777215" propId="6" stdDataType="string" stdDomain="json" stdSqlType="VARCHAR"
                         i18n-en:displayName="Column Stats"/>
-                <column code="DEL_VERSION" displayName="数据版本" domain="version" mandatory="true" name="version"
-                        propId="7" stdDataType="long" stdSqlType="BIGINT" i18n-en:displayName="Version"/>
+                <column code="VERSION" displayName="数据版本" domain="version" mandatory="true" name="version" propId="7"
+                        stdDataType="long" stdSqlType="BIGINT" i18n-en:displayName="Version"/>
                 <column code="CREATED_BY" displayName="创建人" domain="createdBy" mandatory="true" name="createdBy"
                         precision="50" propId="8" stdDataType="string" stdSqlType="VARCHAR"
                         i18n-en:displayName="Created By"/>
@@ -1691,14 +2045,14 @@
             </indexes>
             <relations>
                 <to-one displayName="剖析规则" name="profilingRule"
-                        refEntityName="io.nop.metadata.dao.entity.NopMetaProfilingRule" tagSet="pub,ref-pub"
-                        i18n-en:displayName="Profiling Rule">
+                        refEntityName="io.nop.metadata.dao.entity.NopMetaProfilingRule" refPropName="results"
+                        tagSet="pub,ref-pub" i18n-en:displayName="Profiling Rule">
                     <join>
                         <on leftProp="profilingRuleId" rightProp="profilingRuleId"/>
                     </join>
                 </to-one>
                 <to-one displayName="逻辑表" name="metaTable" refEntityName="io.nop.metadata.dao.entity.NopMetaTable"
-                        tagSet="pub,ref-pub" i18n-en:displayName="Meta Table">
+                        refPropName="profilingResults" tagSet="pub,ref-pub" i18n-en:displayName="Meta Table">
                     <join>
                         <on leftProp="metaTableId" rightProp="metaTableId"/>
                     </join>
@@ -1725,7 +2079,7 @@
                 <column code="OWNER_USER_ID" displayName="契约所有者" name="ownerUserId" precision="50" propId="6"
                         stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Owner User Id"/>
                 <column code="SCHEMA" displayName="JSON Schema 定义" domain="mediumtext" name="schema"
-                        precision="16777216" propId="7" stdDataType="string" stdDomain="json" stdSqlType="VARCHAR"
+                        precision="16777215" propId="7" stdDataType="string" stdDomain="json" stdSqlType="VARCHAR"
                         i18n-en:displayName="Schema"/>
                 <column code="SLA" displayName="SLA 定义" domain="json-4000" name="sla" precision="4000" propId="8"
                         stdDataType="string" stdDomain="json" stdSqlType="VARCHAR" i18n-en:displayName="Sla"/>
@@ -1736,15 +2090,15 @@
                         propId="10" stdDataType="string" stdDomain="json" stdSqlType="VARCHAR"
                         i18n-en:displayName="Security"/>
                 <column code="LATEST_RESULT" displayName="最新执行结果" domain="mediumtext" name="latestResult"
-                        precision="16777216" propId="11" stdDataType="string" stdDomain="json" stdSqlType="VARCHAR"
+                        precision="16777215" propId="11" stdDataType="string" stdDomain="json" stdSqlType="VARCHAR"
                         i18n-en:displayName="Latest Result"/>
                 <column code="TAG_SET" displayName="标签集合" name="tagSet" precision="500" propId="12" stdDataType="string"
                         stdSqlType="VARCHAR" i18n-en:displayName="Tag Set"/>
                 <column code="EXT_CONFIG" displayName="扩展配置" domain="json-4000" name="extConfig" precision="4000"
                         propId="13" stdDataType="string" stdDomain="json" stdSqlType="VARCHAR"
                         i18n-en:displayName="Ext Config"/>
-                <column code="DEL_VERSION" displayName="数据版本" domain="version" mandatory="true" name="version"
-                        propId="14" stdDataType="long" stdSqlType="BIGINT" i18n-en:displayName="Version"/>
+                <column code="VERSION" displayName="数据版本" domain="version" mandatory="true" name="version" propId="14"
+                        stdDataType="long" stdSqlType="BIGINT" i18n-en:displayName="Version"/>
                 <column code="CREATED_BY" displayName="创建人" domain="createdBy" mandatory="true" name="createdBy"
                         precision="50" propId="15" stdDataType="string" stdSqlType="VARCHAR"
                         i18n-en:displayName="Created By"/>
@@ -1765,16 +2119,20 @@
             </indexes>
             <relations>
                 <to-one displayName="逻辑表" name="metaTable" refEntityName="io.nop.metadata.dao.entity.NopMetaTable"
-                        tagSet="pub,ref-pub" i18n-en:displayName="Meta Table">
+                        refPropName="dataContracts" tagSet="pub,ref-pub" i18n-en:displayName="Meta Table">
                     <join>
                         <on leftProp="entityTableId" rightProp="metaTableId"/>
                     </join>
                 </to-one>
             </relations>
+            <unique-keys>
+                <unique-key columns="contractName" name="UK_NOP_META_CONTRACT_NAME"
+                            i18n-en:displayName="Unique Contract Name"/>
+            </unique-keys>
         </entity>
         <entity className="io.nop.metadata.dao.entity.NopMetaReconciliationConfig" createTimeProp="createTime"
                 createrProp="createdBy" displayName="对账配置" name="io.nop.metadata.dao.entity.NopMetaReconciliationConfig"
-                registerShortName="true" tableName="nop_meta_recon_config" updateTimeProp="updateTime"
+                registerShortName="true" tableName="nop_meta_reconciliation_config" updateTimeProp="updateTime"
                 updaterProp="updatedBy" versionProp="version" ext:icon="git-compare"
                 i18n-en:displayName="Meta Reconciliation Config">
             <columns>
@@ -1806,8 +2164,8 @@
                 <column code="EXT_CONFIG" displayName="扩展配置" domain="json-4000" name="extConfig" precision="4000"
                         propId="12" stdDataType="string" stdDomain="json" stdSqlType="VARCHAR"
                         i18n-en:displayName="Ext Config"/>
-                <column code="DEL_VERSION" displayName="数据版本" domain="version" mandatory="true" name="version"
-                        propId="13" stdDataType="long" stdSqlType="BIGINT" i18n-en:displayName="Version"/>
+                <column code="VERSION" displayName="数据版本" domain="version" mandatory="true" name="version" propId="13"
+                        stdDataType="long" stdSqlType="BIGINT" i18n-en:displayName="Version"/>
                 <column code="CREATED_BY" displayName="创建人" domain="createdBy" mandatory="true" name="createdBy"
                         precision="50" propId="14" stdDataType="string" stdSqlType="VARCHAR"
                         i18n-en:displayName="Created By"/>
@@ -1822,28 +2180,42 @@
                         stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Remark"/>
             </columns>
             <indexes>
-                <index name="IX_NOP_META_RECON_CONFIG_TABLE" unique="false">
+                <index name="IX_NOP_META_RECONCILIATION_CONFIG_TABLE" unique="false">
                     <column name="metaTableId"/>
+                </index>
+                <index name="IX_NOP_META_RECONCILIATION_CONFIG_MODULE" unique="false">
+                    <column name="metaModuleId"/>
                 </index>
             </indexes>
             <relations>
                 <to-one displayName="逻辑表" name="metaTable" refEntityName="io.nop.metadata.dao.entity.NopMetaTable"
-                        tagSet="pub,ref-pub" i18n-en:displayName="Meta Table">
+                        refPropName="reconciliationConfigs" tagSet="pub,ref-pub" i18n-en:displayName="Meta Table">
                     <join>
                         <on leftProp="metaTableId" rightProp="metaTableId"/>
                     </join>
                 </to-one>
                 <to-one displayName="元数据模块" name="metaModule" refEntityName="io.nop.metadata.dao.entity.NopMetaModule"
-                        tagSet="pub,ref-pub" i18n-en:displayName="Meta Module">
+                        refPropName="reconciliationConfigs" tagSet="pub,ref-pub" i18n-en:displayName="Meta Module">
                     <join>
                         <on leftProp="metaModuleId" rightProp="metaModuleId"/>
                     </join>
                 </to-one>
+                <to-many displayName="对账结果集" name="results"
+                         refEntityName="io.nop.metadata.dao.entity.NopMetaReconciliationResult" refPropName="config"
+                         tagSet="pub,ref-pub" i18n-en:displayName="Reconciliation Results">
+                    <join>
+                        <on leftProp="configId" rightProp="configId"/>
+                    </join>
+                </to-many>
             </relations>
+            <unique-keys>
+                <unique-key columns="configName" name="UK_NOP_META_RECONCILIATION_CONFIG_NAME"
+                            i18n-en:displayName="Unique Reconciliation Config Name"/>
+            </unique-keys>
         </entity>
         <entity className="io.nop.metadata.dao.entity.NopMetaReconciliationResult" createTimeProp="createTime"
                 createrProp="createdBy" displayName="对账结果" name="io.nop.metadata.dao.entity.NopMetaReconciliationResult"
-                registerShortName="true" tableName="nop_meta_recon_result" updateTimeProp="updateTime"
+                registerShortName="true" tableName="nop_meta_reconciliation_result" updateTimeProp="updateTime"
                 updaterProp="updatedBy" versionProp="version" ext:icon="clipboard-check"
                 i18n-en:displayName="Meta Reconciliation Result">
             <columns>
@@ -1859,14 +2231,14 @@
                 <column code="STATISTICS" displayName="统计信息" domain="json-4000" name="statistics" precision="4000"
                         propId="5" stdDataType="string" stdDomain="json" stdSqlType="VARCHAR"
                         i18n-en:displayName="Statistics"/>
-                <column code="DETAILS" displayName="明细" domain="mediumtext" name="details" precision="16777216"
+                <column code="DETAILS" displayName="明细" domain="mediumtext" name="details" precision="16777215"
                         propId="6" stdDataType="string" stdDomain="json" stdSqlType="VARCHAR"
                         i18n-en:displayName="Details"/>
                 <column code="EXT_CONFIG" displayName="扩展配置" domain="json-4000" name="extConfig" precision="4000"
                         propId="7" stdDataType="string" stdDomain="json" stdSqlType="VARCHAR"
                         i18n-en:displayName="Ext Config"/>
-                <column code="DEL_VERSION" displayName="数据版本" domain="version" mandatory="true" name="version"
-                        propId="8" stdDataType="long" stdSqlType="BIGINT" i18n-en:displayName="Version"/>
+                <column code="VERSION" displayName="数据版本" domain="version" mandatory="true" name="version" propId="8"
+                        stdDataType="long" stdSqlType="BIGINT" i18n-en:displayName="Version"/>
                 <column code="CREATED_BY" displayName="创建人" domain="createdBy" mandatory="true" name="createdBy"
                         precision="50" propId="9" stdDataType="string" stdSqlType="VARCHAR"
                         i18n-en:displayName="Created By"/>
@@ -1881,21 +2253,24 @@
                         stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Remark"/>
             </columns>
             <indexes>
-                <index name="IX_NOP_META_RECON_RESULT_CONFIG" unique="false">
+                <index name="IX_NOP_META_RECONCILIATION_RESULT_CONFIG" unique="false">
                     <column name="configId"/>
                     <column name="executeTime"/>
+                </index>
+                <index name="IX_NOP_META_RECONCILIATION_RESULT_TABLE" unique="false">
+                    <column name="metaTableId"/>
                 </index>
             </indexes>
             <relations>
                 <to-one displayName="对账配置" name="config"
-                        refEntityName="io.nop.metadata.dao.entity.NopMetaReconciliationConfig" tagSet="pub,ref-pub"
-                        i18n-en:displayName="Reconciliation Config">
+                        refEntityName="io.nop.metadata.dao.entity.NopMetaReconciliationConfig" refPropName="results"
+                        tagSet="pub,ref-pub" i18n-en:displayName="Reconciliation Config">
                     <join>
                         <on leftProp="configId" rightProp="configId"/>
                     </join>
                 </to-one>
                 <to-one displayName="逻辑表" name="metaTable" refEntityName="io.nop.metadata.dao.entity.NopMetaTable"
-                        tagSet="pub,ref-pub" i18n-en:displayName="Meta Table">
+                        refPropName="reconciliationResults" tagSet="pub,ref-pub" i18n-en:displayName="Meta Table">
                     <join>
                         <on leftProp="metaTableId" rightProp="metaTableId"/>
                     </join>
@@ -1904,7 +2279,7 @@
         </entity>
         <entity className="io.nop.metadata.dao.entity.NopMetaReconciliationEntity" createTimeProp="createTime"
                 createrProp="createdBy" displayName="对账实体" name="io.nop.metadata.dao.entity.NopMetaReconciliationEntity"
-                registerShortName="true" tableName="nop_meta_recon_entity" updateTimeProp="updateTime"
+                registerShortName="true" tableName="nop_meta_reconciliation_entity" updateTimeProp="updateTime"
                 updaterProp="updatedBy" versionProp="version" ext:icon="database"
                 i18n-en:displayName="Meta Reconciliation Entity">
             <columns>
@@ -1927,8 +2302,8 @@
                 <column code="EXT_CONFIG" displayName="扩展配置" domain="json-4000" name="extConfig" precision="4000"
                         propId="8" stdDataType="string" stdDomain="json" stdSqlType="VARCHAR"
                         i18n-en:displayName="Ext Config"/>
-                <column code="DEL_VERSION" displayName="数据版本" domain="version" mandatory="true" name="version"
-                        propId="9" stdDataType="long" stdSqlType="BIGINT" i18n-en:displayName="Version"/>
+                <column code="VERSION" displayName="数据版本" domain="version" mandatory="true" name="version" propId="9"
+                        stdDataType="long" stdSqlType="BIGINT" i18n-en:displayName="Version"/>
                 <column code="CREATED_BY" displayName="创建人" domain="createdBy" mandatory="true" name="createdBy"
                         precision="50" propId="10" stdDataType="string" stdSqlType="VARCHAR"
                         i18n-en:displayName="Created By"/>
@@ -1943,11 +2318,15 @@
                         stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Remark"/>
             </columns>
             <indexes>
-                <index name="IX_NOP_META_RECON_ENTITY_TYPE" unique="false">
+                <index name="IX_NOP_META_RECONCILIATION_ENTITY_TYPE" unique="false">
                     <column name="entityType"/>
                     <column name="identifierSpace"/>
                 </index>
             </indexes>
+            <unique-keys>
+                <unique-key columns="entityId,entityType" name="UK_NOP_META_RECONCILIATION_ENTITY_ID"
+                            i18n-en:displayName="Unique Reconciliation Entity Id Per Type"/>
+            </unique-keys>
         </entity>
         <entity className="io.nop.metadata.dao.entity.NopMetaQualityScore" createTimeProp="createTime"
                 createrProp="createdBy" displayName="质量评分" name="io.nop.metadata.dao.entity.NopMetaQualityScore"
@@ -1964,7 +2343,7 @@
                 <column code="OVERALL_SCORE" displayName="总分" mandatory="true" name="overallScore" propId="4"
                         stdDataType="double" stdSqlType="DOUBLE" i18n-en:displayName="Overall Score"/>
                 <column code="DIMENSION_SCORES" displayName="维度评分" domain="mediumtext" name="dimensionScores"
-                        precision="16777216" propId="5" stdDataType="string" stdDomain="json" stdSqlType="VARCHAR"
+                        precision="16777215" propId="5" stdDataType="string" stdDomain="json" stdSqlType="VARCHAR"
                         i18n-en:displayName="Dimension Scores"/>
                 <column code="RULE_SUMMARY" displayName="规则汇总" domain="json-4000" name="ruleSummary" precision="4000"
                         propId="6" stdDataType="string" stdDomain="json" stdSqlType="VARCHAR"
@@ -1974,8 +2353,8 @@
                 <column code="EXT_CONFIG" displayName="扩展配置" domain="json-4000" name="extConfig" precision="4000"
                         propId="8" stdDataType="string" stdDomain="json" stdSqlType="VARCHAR"
                         i18n-en:displayName="Ext Config"/>
-                <column code="DEL_VERSION" displayName="数据版本" domain="version" mandatory="true" name="version"
-                        propId="9" stdDataType="long" stdSqlType="BIGINT" i18n-en:displayName="Version"/>
+                <column code="VERSION" displayName="数据版本" domain="version" mandatory="true" name="version" propId="9"
+                        stdDataType="long" stdSqlType="BIGINT" i18n-en:displayName="Version"/>
                 <column code="CREATED_BY" displayName="创建人" domain="createdBy" mandatory="true" name="createdBy"
                         precision="50" propId="10" stdDataType="string" stdSqlType="VARCHAR"
                         i18n-en:displayName="Created By"/>
@@ -1997,7 +2376,7 @@
             </indexes>
             <relations>
                 <to-one displayName="逻辑表" name="metaTable" refEntityName="io.nop.metadata.dao.entity.NopMetaTable"
-                        tagSet="pub,ref-pub" i18n-en:displayName="Meta Table">
+                        refPropName="qualityScores" tagSet="pub,ref-pub" i18n-en:displayName="Meta Table">
                     <join>
                         <on leftProp="metaTableId" rightProp="metaTableId"/>
                     </join>
@@ -2025,10 +2404,10 @@
                 <column code="CHANGE_SOURCE" displayName="变更来源" mandatory="true" name="changeSource" precision="30"
                         propId="6" stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Change Source"/>
                 <column code="BEFORE_SNAPSHOT" displayName="变更前快照" domain="mediumtext" name="beforeSnapshot"
-                        precision="16777216" propId="7" stdDataType="string" stdDomain="json" stdSqlType="VARCHAR"
+                        precision="16777215" propId="7" stdDataType="string" stdDomain="json" stdSqlType="VARCHAR"
                         i18n-en:displayName="Before Snapshot"/>
                 <column code="AFTER_SNAPSHOT" displayName="变更后快照" domain="mediumtext" name="afterSnapshot"
-                        precision="16777216" propId="8" stdDataType="string" stdDomain="json" stdSqlType="VARCHAR"
+                        precision="16777215" propId="8" stdDataType="string" stdDomain="json" stdSqlType="VARCHAR"
                         i18n-en:displayName="After Snapshot"/>
                 <column code="CHANGED_BY" displayName="操作人" name="changedBy" precision="50" propId="9"
                         stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Changed By"/>
@@ -2039,8 +2418,8 @@
                 <column code="EXT_CONFIG" displayName="扩展配置" domain="json-4000" name="extConfig" precision="4000"
                         propId="12" stdDataType="string" stdDomain="json" stdSqlType="VARCHAR"
                         i18n-en:displayName="Ext Config"/>
-                <column code="DEL_VERSION" displayName="数据版本" domain="version" mandatory="true" name="version"
-                        propId="13" stdDataType="long" stdSqlType="BIGINT" i18n-en:displayName="Version"/>
+                <column code="VERSION" displayName="数据版本" domain="version" mandatory="true" name="version" propId="13"
+                        stdDataType="long" stdSqlType="BIGINT" i18n-en:displayName="Version"/>
                 <column code="CREATED_BY" displayName="创建人" domain="createdBy" mandatory="true" name="createdBy"
                         precision="50" propId="14" stdDataType="string" stdSqlType="VARCHAR"
                         i18n-en:displayName="Created By"/>

@@ -45,7 +45,7 @@ public class _NopMetaOrmModel extends DynamicOrmEntity{
     public static final String PROP_NAME_importedAt = "importedAt";
     public static final int PROP_ID_importedAt = 6;
     
-    /* 数据版本: DEL_VERSION BIGINT */
+    /* 数据版本: VERSION BIGINT */
     public static final String PROP_NAME_version = "version";
     public static final int PROP_ID_version = 7;
     
@@ -75,6 +75,15 @@ public class _NopMetaOrmModel extends DynamicOrmEntity{
     
     /* relation: 元数据模块 */
     public static final String PROP_NAME_metaModule = "metaModule";
+    
+    /* relation: 元数据实体集 */
+    public static final String PROP_NAME_entities = "entities";
+    
+    /* relation: 域定义集 */
+    public static final String PROP_NAME_domains = "domains";
+    
+    /* relation: 字典集 */
+    public static final String PROP_NAME_dicts = "dicts";
     
 
     protected static final List<String> PK_PROP_NAMES = Arrays.asList(PROP_NAME_ormModelId);
@@ -141,7 +150,7 @@ public class _NopMetaOrmModel extends DynamicOrmEntity{
     /* 导入时间: IMPORTED_AT */
     private java.sql.Timestamp _importedAt;
     
-    /* 数据版本: DEL_VERSION */
+    /* 数据版本: VERSION */
     private java.lang.Long _version;
     
     /* 创建人: CREATED_BY */
@@ -614,7 +623,7 @@ public class _NopMetaOrmModel extends DynamicOrmEntity{
     }
     
     /**
-     * 数据版本: DEL_VERSION
+     * 数据版本: VERSION
      */
     public final java.lang.Long getVersion(){
          onPropGet(PROP_ID_version);
@@ -622,7 +631,7 @@ public class _NopMetaOrmModel extends DynamicOrmEntity{
     }
 
     /**
-     * 数据版本: DEL_VERSION
+     * 数据版本: VERSION
      */
     public final void setVersion(java.lang.Long value){
         if(onPropSet(PROP_ID_version,value)){
@@ -748,6 +757,36 @@ public class _NopMetaOrmModel extends DynamicOrmEntity{
            });
            }
        
+    }
+       
+    private final OrmEntitySet<io.nop.metadata.dao.entity.NopMetaEntity> _entities = new OrmEntitySet<>(this, PROP_NAME_entities,
+        io.nop.metadata.dao.entity.NopMetaEntity.PROP_NAME_ormModel, null,io.nop.metadata.dao.entity.NopMetaEntity.class);
+
+    /**
+     * 元数据实体集。 refPropName: ormModel, keyProp: {rel.keyProp}
+     */
+    public final IOrmEntitySet<io.nop.metadata.dao.entity.NopMetaEntity> getEntities(){
+       return _entities;
+    }
+       
+    private final OrmEntitySet<io.nop.metadata.dao.entity.NopMetaDomain> _domains = new OrmEntitySet<>(this, PROP_NAME_domains,
+        io.nop.metadata.dao.entity.NopMetaDomain.PROP_NAME_ormModel, null,io.nop.metadata.dao.entity.NopMetaDomain.class);
+
+    /**
+     * 域定义集。 refPropName: ormModel, keyProp: {rel.keyProp}
+     */
+    public final IOrmEntitySet<io.nop.metadata.dao.entity.NopMetaDomain> getDomains(){
+       return _domains;
+    }
+       
+    private final OrmEntitySet<io.nop.metadata.dao.entity.NopMetaDict> _dicts = new OrmEntitySet<>(this, PROP_NAME_dicts,
+        io.nop.metadata.dao.entity.NopMetaDict.PROP_NAME_ormModel, null,io.nop.metadata.dao.entity.NopMetaDict.class);
+
+    /**
+     * 字典集。 refPropName: ormModel, keyProp: {rel.keyProp}
+     */
+    public final IOrmEntitySet<io.nop.metadata.dao.entity.NopMetaDict> getDicts(){
+       return _dicts;
     }
        
 }

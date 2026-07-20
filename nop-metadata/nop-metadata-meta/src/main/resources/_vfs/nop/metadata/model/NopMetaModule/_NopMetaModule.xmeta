@@ -116,6 +116,57 @@
               queryable="true" sortable="true" lazy="true">
             <schema type="String"/>
         </prop>
+        <prop name="ormModels" displayName="ORM模型集" i18n-en:displayName="ORM Models" tagSet="pub,ref-pub"
+              ext:kind="to-many" internal="true" ext:joinLeftProp="metaModuleId" ext:joinRightProp="metaModuleId"
+              insertable="false" updatable="false" lazy="true">
+            <schema>
+                <item bizObjName="NopMetaOrmModel"/>
+            </schema>
+        </prop>
+        <prop name="tables" displayName="逻辑表集" i18n-en:displayName="Tables" tagSet="pub,ref-pub" ext:kind="to-many"
+              internal="true" ext:joinLeftProp="metaModuleId" ext:joinRightProp="metaModuleId"
+              ext:joinRightDisplayProp="displayName" insertable="false" updatable="false" lazy="true">
+            <schema>
+                <item bizObjName="NopMetaTable"/>
+            </schema>
+        </prop>
+        <prop name="pipelines" displayName="数据管道集" i18n-en:displayName="Pipelines" tagSet="pub,ref-pub"
+              ext:kind="to-many" internal="true" ext:joinLeftProp="metaModuleId" ext:joinRightProp="metaModuleId"
+              ext:joinRightDisplayProp="displayName" insertable="false" updatable="false" lazy="true">
+            <schema>
+                <item bizObjName="NopMetaPipeline"/>
+            </schema>
+        </prop>
+        <prop name="qualityCheckpoints" displayName="质量检查点集" i18n-en:displayName="Quality Checkpoints"
+              tagSet="pub,ref-pub" ext:kind="to-many" internal="true" ext:joinLeftProp="metaModuleId"
+              ext:joinRightProp="metaModuleId" ext:joinRightDisplayProp="displayName" insertable="false"
+              updatable="false" lazy="true">
+            <schema>
+                <item bizObjName="NopMetaQualityCheckpoint"/>
+            </schema>
+        </prop>
+        <prop name="manifests" displayName="元数据快照集" i18n-en:displayName="Manifests" tagSet="pub,ref-pub"
+              ext:kind="to-many" internal="true" ext:joinLeftProp="metaModuleId" ext:joinRightProp="metaModuleId"
+              insertable="false" updatable="false" lazy="true">
+            <schema>
+                <item bizObjName="NopMetaManifest"/>
+            </schema>
+        </prop>
+        <prop name="reconciliationConfigs" displayName="对账配置集" i18n-en:displayName="Reconciliation Configs"
+              tagSet="pub,ref-pub" ext:kind="to-many" internal="true" ext:joinLeftProp="metaModuleId"
+              ext:joinRightProp="metaModuleId" ext:joinRightDisplayProp="displayName" insertable="false"
+              updatable="false" lazy="true">
+            <schema>
+                <item bizObjName="NopMetaReconciliationConfig"/>
+            </schema>
+        </prop>
+        <prop name="baseModules" displayName="基线模块集" i18n-en:displayName="Base Modules" tagSet="pub,ref-pub"
+              ext:kind="to-many" internal="true" ext:joinLeftProp="metaModuleId" ext:joinRightProp="baseModuleId"
+              ext:joinRightDisplayProp="displayName" insertable="false" updatable="false" lazy="true">
+            <schema>
+                <item bizObjName="NopMetaModule"/>
+            </schema>
+        </prop>
         <prop name="extConfigComponent" tagSet="json,pub,edit" ext:kind="component" internal="true" insertable="true"
               updatable="true" lazy="true">
             <schema type="io.nop.orm.component.JsonOrmComponent"/>

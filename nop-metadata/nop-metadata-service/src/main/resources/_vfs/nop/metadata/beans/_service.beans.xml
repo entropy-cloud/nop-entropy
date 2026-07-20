@@ -29,14 +29,6 @@
         <property name="bizObjName" value="NopMetaSemanticType"/>
     </bean>
 
-    <bean id="io.nop.metadata.service.entity.NopMetaLineageEdgeBizModel" ioc:type="@bean:id" ioc:default="true"/>
-
-    <bean id="biz_NopMetaLineageEdge" class="io.nop.biz.proxy.BizProxyFactoryBean"
-          ioc:type="io.nop.metadata.biz.INopMetaLineageEdgeBiz" ioc:force-lazy-property="true" lazy-init="true"
-          primary="true">
-        <property name="bizObjName" value="NopMetaLineageEdge"/>
-    </bean>
-
     <bean id="io.nop.metadata.service.entity.NopMetaQualityRuleBizModel" ioc:type="@bean:id" ioc:default="true"/>
 
     <bean id="biz_NopMetaQualityRule" class="io.nop.biz.proxy.BizProxyFactoryBean"
@@ -193,6 +185,14 @@
           ioc:type="io.nop.metadata.biz.INopMetaQualityScoreBiz" ioc:force-lazy-property="true" lazy-init="true"
           primary="true">
         <property name="bizObjName" value="NopMetaQualityScore"/>
+    </bean>
+
+    <bean id="io.nop.metadata.service.entity.NopMetaLineageEdgeBizModel" ioc:type="@bean:id" ioc:default="true"/>
+
+    <bean id="biz_NopMetaLineageEdge" class="io.nop.biz.proxy.BizProxyFactoryBean"
+          ioc:type="io.nop.metadata.biz.INopMetaLineageEdgeBiz" ioc:force-lazy-property="true" lazy-init="true"
+          primary="true">
+        <property name="bizObjName" value="NopMetaLineageEdge"/>
     </bean>
 
     <bean id="io.nop.metadata.service.entity.NopMetaEntityFieldBizModel" ioc:type="@bean:id" ioc:default="true"/>

@@ -63,6 +63,12 @@ public class MetaTableProfiler {
                     "Identifier (column/table/schema) does not match whitelist ^[A-Za-z_][A-Za-z0-9_]*$: {identifier}",
                     "identifier");
 
+    /** 维度09-08：聚合 SQL 返回 0 行属不可能发生的逻辑断言，不应使用 SQLException 表达业务控制流。 */
+    public static final ErrorCode ERR_PROFILING_AGGREGATE_NO_ROW =
+            ErrorCode.define("metadata.profiling-aggregate-no-row",
+                    "Profile aggregate SQL returned no row (logical impossibility): {sql}",
+                    "sql");
+
     /** topValues 默认取前 N 个值。 */
     private static final int DEFAULT_TOP_VALUES_LIMIT = 10;
 
@@ -414,7 +420,8 @@ public class MetaTableProfiler {
         LOG.info("profileTable SQL: {}", sql);
         try (Statement st = conn.createStatement(); ResultSet rs = st.executeQuery(sql)) {
             if (!rs.next()) {
-                throw new SQLException("aggregate returned no row: " + sql);
+                // 维度09-08：不可能发生的逻辑断言用 NopException + ErrorCode，不混用 SQLException 控制流
+                throw new NopException(ERR_PROFILING_AGGREGATE_NO_ROW).param("sql", sql);
             }
             return toLong(rs, 1);
         }

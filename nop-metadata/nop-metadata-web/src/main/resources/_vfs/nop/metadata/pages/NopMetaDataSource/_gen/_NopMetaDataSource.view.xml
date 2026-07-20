@@ -33,9 +33,6 @@
                 <!--数据源类型-->
                 <col id="datasourceType" mandatory="true" sortable="true"/>
 
-                <!--连接配置-->
-                <col id="connectionConfig" sortable="true"/>
-
                 <!--状态-->
                 <col id="status" mandatory="true" sortable="true"/>
 
@@ -63,10 +60,10 @@
             <layout>
  dataSourceId[数据源ID] querySpace[查询空间]
  name[名称] displayName[显示名]
- datasourceType[数据源类型] connectionConfig[连接配置]
- status[状态] createdBy[创建人]
- createTime[创建时间] updatedBy[修改人]
- updateTime[修改时间] remark[备注]
+ datasourceType[数据源类型] status[状态]
+ createdBy[创建人] createTime[创建时间]
+ updatedBy[修改人] updateTime[修改时间]
+ remark[备注] 
 </layout>
         </form>
         <form id="add" editMode="add" title="新增-数据源" i18n-en:title="Add Meta Datasource" x:prototype="edit"/>
@@ -77,7 +74,6 @@
  name[名称]
  displayName[显示名]
  datasourceType[数据源类型]
- connectionConfig[连接配置]
  status[状态]
  remark[备注]
 </layout>

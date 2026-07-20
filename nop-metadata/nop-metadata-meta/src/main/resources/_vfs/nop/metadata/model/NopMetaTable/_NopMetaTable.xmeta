@@ -18,7 +18,9 @@
         <meta-gen:DefaultMetaPostExtends xpl:lib="/nop/core/xlib/meta-gen.xlib"/>
     </x:post-extends>
 
-    <keys/>
+    <keys>
+        <key name="UK_NOP_META_TABLE_MODULE_NAME" props="metaModuleId,tableName"/>
+    </keys>
 
     <props>
         <prop name="metaTableId" displayName="逻辑表ID" propId="1" i18n-en:displayName="Meta Table Id" tagSet="seq"
@@ -47,7 +49,7 @@
         </prop>
         <prop name="sourceSql" displayName="来源SQL" propId="7" i18n-en:displayName="Source Sql" queryable="true"
               sortable="true" insertable="true" updatable="true">
-            <schema domain="mediumtext" type="java.lang.String" precision="16777216"/>
+            <schema domain="mediumtext" type="java.lang.String" precision="16777215"/>
         </prop>
         <prop name="baseEntityId" displayName="主要实体ID" propId="8" i18n-en:displayName="Base Entity Id" queryable="true"
               sortable="true" insertable="true" updatable="true">
@@ -59,7 +61,7 @@
         </prop>
         <prop name="buildSql" displayName="合成SQL" propId="10" i18n-en:displayName="Build Sql" queryable="true"
               sortable="true" insertable="true" updatable="true">
-            <schema domain="mediumtext" type="java.lang.String" precision="16777216"/>
+            <schema domain="mediumtext" type="java.lang.String" precision="16777215"/>
         </prop>
         <prop name="version" displayName="数据版本" propId="11" i18n-en:displayName="Version" mandatory="true"
               queryable="true" sortable="true" insertable="false" updatable="false" internal="true">
@@ -98,6 +100,112 @@
         <prop name="metaModule.displayName" displayName="元数据模块" i18n-en:displayName="Meta Module" internal="true"
               queryable="true" sortable="true" lazy="true">
             <schema type="String"/>
+        </prop>
+        <prop name="dimensions" displayName="表维度集" i18n-en:displayName="Dimensions" tagSet="pub,ref-pub"
+              ext:kind="to-many" internal="true" ext:joinLeftProp="metaTableId" ext:joinRightProp="metaTableId"
+              ext:joinRightDisplayProp="displayName" insertable="false" updatable="false" lazy="true">
+            <schema>
+                <item bizObjName="NopMetaTableDimension"/>
+            </schema>
+        </prop>
+        <prop name="measures" displayName="表指标集" i18n-en:displayName="Measures" tagSet="pub,ref-pub" ext:kind="to-many"
+              internal="true" ext:joinLeftProp="metaTableId" ext:joinRightProp="metaTableId"
+              ext:joinRightDisplayProp="displayName" insertable="false" updatable="false" lazy="true">
+            <schema>
+                <item bizObjName="NopMetaTableMeasure"/>
+            </schema>
+        </prop>
+        <prop name="filters" displayName="表过滤器集" i18n-en:displayName="Filters" tagSet="pub,ref-pub" ext:kind="to-many"
+              internal="true" ext:joinLeftProp="metaTableId" ext:joinRightProp="metaTableId"
+              ext:joinRightDisplayProp="displayName" insertable="false" updatable="false" lazy="true">
+            <schema>
+                <item bizObjName="NopMetaTableFilter"/>
+            </schema>
+        </prop>
+        <prop name="joins" displayName="表关联集" i18n-en:displayName="Joins" tagSet="pub,ref-pub" ext:kind="to-many"
+              internal="true" ext:joinLeftProp="metaTableId" ext:joinRightProp="metaTableId" insertable="false"
+              updatable="false" lazy="true">
+            <schema>
+                <item bizObjName="NopMetaTableJoin"/>
+            </schema>
+        </prop>
+        <prop name="joinAsLeftTable" displayName="作为左表的关联集" i18n-en:displayName="Joins As Left Table"
+              tagSet="pub,ref-pub" ext:kind="to-many" internal="true" ext:joinLeftProp="metaTableId"
+              ext:joinRightProp="leftTableId" insertable="false" updatable="false" lazy="true">
+            <schema>
+                <item bizObjName="NopMetaTableJoin"/>
+            </schema>
+        </prop>
+        <prop name="joinAsRightTable" displayName="作为右表的关联集" i18n-en:displayName="Joins As Right Table"
+              tagSet="pub,ref-pub" ext:kind="to-many" internal="true" ext:joinLeftProp="metaTableId"
+              ext:joinRightProp="rightTableId" insertable="false" updatable="false" lazy="true">
+            <schema>
+                <item bizObjName="NopMetaTableJoin"/>
+            </schema>
+        </prop>
+        <prop name="lineageAsSource" displayName="作为血缘源表的边集" i18n-en:displayName="Lineage As Source"
+              tagSet="pub,ref-pub" ext:kind="to-many" internal="true" ext:joinLeftProp="metaTableId"
+              ext:joinRightProp="sourceTableId" insertable="false" updatable="false" lazy="true">
+            <schema>
+                <item bizObjName="NopMetaLineageEdge"/>
+            </schema>
+        </prop>
+        <prop name="lineageAsTarget" displayName="作为血缘目标表的边集" i18n-en:displayName="Lineage As Target"
+              tagSet="pub,ref-pub" ext:kind="to-many" internal="true" ext:joinLeftProp="metaTableId"
+              ext:joinRightProp="targetTableId" insertable="false" updatable="false" lazy="true">
+            <schema>
+                <item bizObjName="NopMetaLineageEdge"/>
+            </schema>
+        </prop>
+        <prop name="catalogs" displayName="运行时统计快照集" i18n-en:displayName="Catalogs" tagSet="pub,ref-pub"
+              ext:kind="to-many" internal="true" ext:joinLeftProp="metaTableId" ext:joinRightProp="metaTableId"
+              insertable="false" updatable="false" lazy="true">
+            <schema>
+                <item bizObjName="NopMetaCatalog"/>
+            </schema>
+        </prop>
+        <prop name="profilingRules" displayName="数据剖析规则集" i18n-en:displayName="Profiling Rules" tagSet="pub,ref-pub"
+              ext:kind="to-many" internal="true" ext:joinLeftProp="metaTableId" ext:joinRightProp="tableId"
+              ext:joinRightDisplayProp="displayName" insertable="false" updatable="false" lazy="true">
+            <schema>
+                <item bizObjName="NopMetaProfilingRule"/>
+            </schema>
+        </prop>
+        <prop name="profilingResults" displayName="数据剖析结果集" i18n-en:displayName="Profiling Results" tagSet="pub,ref-pub"
+              ext:kind="to-many" internal="true" ext:joinLeftProp="metaTableId" ext:joinRightProp="metaTableId"
+              insertable="false" updatable="false" lazy="true">
+            <schema>
+                <item bizObjName="NopMetaProfilingResult"/>
+            </schema>
+        </prop>
+        <prop name="qualityScores" displayName="质量评分集" i18n-en:displayName="Quality Scores" tagSet="pub,ref-pub"
+              ext:kind="to-many" internal="true" ext:joinLeftProp="metaTableId" ext:joinRightProp="metaTableId"
+              insertable="false" updatable="false" lazy="true">
+            <schema>
+                <item bizObjName="NopMetaQualityScore"/>
+            </schema>
+        </prop>
+        <prop name="dataContracts" displayName="数据契约集" i18n-en:displayName="Data Contracts" tagSet="pub,ref-pub"
+              ext:kind="to-many" internal="true" ext:joinLeftProp="metaTableId" ext:joinRightProp="entityTableId"
+              ext:joinRightDisplayProp="displayName" insertable="false" updatable="false" lazy="true">
+            <schema>
+                <item bizObjName="NopMetaDataContract"/>
+            </schema>
+        </prop>
+        <prop name="reconciliationConfigs" displayName="对账配置集" i18n-en:displayName="Reconciliation Configs"
+              tagSet="pub,ref-pub" ext:kind="to-many" internal="true" ext:joinLeftProp="metaTableId"
+              ext:joinRightProp="metaTableId" ext:joinRightDisplayProp="displayName" insertable="false"
+              updatable="false" lazy="true">
+            <schema>
+                <item bizObjName="NopMetaReconciliationConfig"/>
+            </schema>
+        </prop>
+        <prop name="reconciliationResults" displayName="对账结果集" i18n-en:displayName="Reconciliation Results"
+              tagSet="pub,ref-pub" ext:kind="to-many" internal="true" ext:joinLeftProp="metaTableId"
+              ext:joinRightProp="metaTableId" insertable="false" updatable="false" lazy="true">
+            <schema>
+                <item bizObjName="NopMetaReconciliationResult"/>
+            </schema>
         </prop>
     </props>
 </meta>

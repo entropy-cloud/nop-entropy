@@ -18,7 +18,9 @@
         <meta-gen:DefaultMetaPostExtends xpl:lib="/nop/core/xlib/meta-gen.xlib"/>
     </x:post-extends>
 
-    <keys/>
+    <keys>
+        <key name="UK_NOP_META_CONTRACT_NAME" props="contractName"/>
+    </keys>
 
     <props>
         <prop name="contractId" displayName="契约ID" propId="1" i18n-en:displayName="Contract Id" tagSet="seq"
@@ -47,7 +49,7 @@
         </prop>
         <prop name="schema" displayName="JSON Schema 定义" propId="7" i18n-en:displayName="Schema" queryable="true"
               sortable="true" insertable="true" updatable="true" graphql:jsonComponentProp="schemaComponent">
-            <schema stdDomain="json" domain="mediumtext" type="java.lang.String" precision="16777216"/>
+            <schema stdDomain="json" domain="mediumtext" type="java.lang.String" precision="16777215"/>
         </prop>
         <prop name="sla" displayName="SLA 定义" propId="8" i18n-en:displayName="Sla" queryable="true" sortable="true"
               insertable="true" updatable="true" graphql:jsonComponentProp="slaComponent">
@@ -64,7 +66,7 @@
         </prop>
         <prop name="latestResult" displayName="最新执行结果" propId="11" i18n-en:displayName="Latest Result" queryable="true"
               sortable="true" insertable="true" updatable="true" graphql:jsonComponentProp="latestResultComponent">
-            <schema stdDomain="json" domain="mediumtext" type="java.lang.String" precision="16777216"/>
+            <schema stdDomain="json" domain="mediumtext" type="java.lang.String" precision="16777215"/>
         </prop>
         <prop name="tagSet" displayName="标签集合" propId="12" i18n-en:displayName="Tag Set" queryable="true"
               sortable="true" insertable="true" updatable="true">

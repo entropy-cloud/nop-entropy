@@ -43,6 +43,12 @@ public class MetaCatalogCollector {
                     "Identifier (table/schema) does not match whitelist ^[A-Za-z_][A-Za-z0-9_]*$: {identifier}",
                     "identifier");
 
+    /** 维度09-08：COUNT(*) 返回 0 行属不可能发生的逻辑断言，不应使用 SQLException 表达业务控制流。 */
+    public static final ErrorCode ERR_CATALOG_AGGREGATE_NO_ROW =
+            ErrorCode.define("metadata.catalog-aggregate-no-row",
+                    "Catalog aggregate SQL returned no row (logical impossibility): {sql}",
+                    "sql");
+
     /** SQL 标识符白名单：字母/下划线开头，后跟字母/数字/下划线。用于校验表名/schema，防注入。 */
     private static final java.util.regex.Pattern IDENTIFIER_PATTERN =
             java.util.regex.Pattern.compile("^[A-Za-z_][A-Za-z0-9_]*$");
@@ -101,7 +107,8 @@ public class MetaCatalogCollector {
         LOG.info("collectCatalog COUNT: {}", sql);
         try (Statement st = conn.createStatement(); ResultSet rs = st.executeQuery(sql)) {
             if (!rs.next()) {
-                throw new SQLException("COUNT(*) returned no row for: " + fromClause);
+                // 维度09-08：不可能发生的逻辑断言用 NopException + ErrorCode，不混用 SQLException 控制流
+                throw new NopException(ERR_CATALOG_AGGREGATE_NO_ROW).param("sql", sql);
             }
             return rs.getLong(1);
         }

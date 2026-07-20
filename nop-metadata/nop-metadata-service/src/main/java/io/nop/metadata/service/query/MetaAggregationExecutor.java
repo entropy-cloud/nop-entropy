@@ -1550,13 +1550,23 @@ public class MetaAggregationExecutor {
 
     /** 合并后截断提示（D5 分页：内存合并无全局序，limit/offset 仅截断提示）。 */
     private static List<Map<String, Object>> truncateCrossDb(List<Map<String, Object>> rows, Long limit, Long offset) {
-        int from = (offset != null && offset > 0) ? Math.toIntExact(offset) : 0;
+        // AR-08: 显式范围检查替代 Math.toIntExact（溢出抛 ArithmeticException 绕过 ErrorCode）
+        int from = 0;
+        if (offset != null && offset > 0) {
+            if (offset > Integer.MAX_VALUE) {
+                throw new NopException(MetaJoinExecutor.ERR_PAGINATION_OFFSET_TOO_LARGE).param("offset", offset);
+            }
+            from = offset.intValue();
+        }
         if (from > rows.size()) {
             from = rows.size();
         }
         int to = rows.size();
         if (limit != null) {
-            to = Math.min(rows.size(), from + Math.toIntExact(limit));
+            if (limit > Integer.MAX_VALUE) {
+                throw new NopException(MetaJoinExecutor.ERR_PAGINATION_LIMIT_TOO_LARGE).param("limit", limit);
+            }
+            to = Math.min(rows.size(), from + limit.intValue());
         }
         return new ArrayList<>(rows.subList(from, to));
     }

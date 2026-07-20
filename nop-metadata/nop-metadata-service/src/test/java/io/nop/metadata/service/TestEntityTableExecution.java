@@ -112,7 +112,7 @@ public class TestEntityTableExecution extends JunitBaseTestCase {
 
         GraphQLResponseBean resp = graphQLEngine.executeGraphQL(graphQLEngine.newGraphQLContext(req(
                 "mutation { NopMetaTable__profileTable(metaTableId: \"" + tableId + "\", "
-                        + "columns: \"VERSION\") }")));
+                        + "columns: \"MODULE_VERSION\") }")));
         assertFalse(resp.hasError(), "entity profiling should not error: " + resp);
 
         NopMetaProfilingResult row = findProfilingResult(tableId);
@@ -121,8 +121,8 @@ public class TestEntityTableExecution extends JunitBaseTestCase {
         assertTrue(toLong(tableStats.get("rowCount")) >= 4, "rowCount must reflect real platform table rows");
 
         List<Map<String, Object>> cols = parseList(row.getColumnStats());
-        Map<String, Object> versionCol = findColumn(cols, "VERSION");
-        assertNotNull(versionCol, "VERSION column must be profiled on entity table");
+        Map<String, Object> versionCol = findColumn(cols, "MODULE_VERSION");
+        assertNotNull(versionCol, "MODULE_VERSION column must be profiled on entity table");
 
         Map<String, Object> numeric = (Map<String, Object>) versionCol.get("numericStats");
         assertNotNull(numeric, "entity path must produce numericStats (no degradation)");

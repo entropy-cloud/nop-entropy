@@ -23,11 +23,11 @@
             <schema type="java.lang.String" precision="32"/>
         </prop>
         <prop name="sourceTableId" displayName="源表ID" propId="2" i18n-en:displayName="Source Table Id" mandatory="true"
-              queryable="true" sortable="true" insertable="true" updatable="true">
+              queryable="true" sortable="true" insertable="true" updatable="true" ext:relation="sourceTable">
             <schema type="java.lang.String" precision="32"/>
         </prop>
         <prop name="targetTableId" displayName="目标表ID" propId="3" i18n-en:displayName="Target Table Id" mandatory="true"
-              queryable="true" sortable="true" insertable="true" updatable="true">
+              queryable="true" sortable="true" insertable="true" updatable="true" ext:relation="targetTable">
             <schema type="java.lang.String" precision="32"/>
         </prop>
         <prop name="sourceColumn" displayName="源列名" propId="4" i18n-en:displayName="Source Column" queryable="true"
@@ -51,7 +51,7 @@
             <schema type="java.lang.String" precision="30" dict="meta/lineage-source"/>
         </prop>
         <prop name="pipelineId" displayName="管道ID" propId="9" i18n-en:displayName="Pipeline Id" queryable="true"
-              sortable="true" insertable="true" updatable="true">
+              sortable="true" insertable="true" updatable="true" ext:relation="pipeline">
             <schema type="java.lang.String" precision="32"/>
         </prop>
         <prop name="confidence" displayName="置信度" propId="10" i18n-en:displayName="Confidence" queryable="true"
@@ -85,6 +85,35 @@
         <prop name="remark" displayName="备注" propId="17" i18n-en:displayName="Remark" queryable="true" sortable="true"
               insertable="true" updatable="true">
             <schema domain="remark" type="java.lang.String" precision="200"/>
+        </prop>
+        <prop name="sourceTable" displayName="源表" i18n-en:displayName="Source Table" tagSet="pub,ref-pub"
+              ext:kind="to-one" internal="true" queryable="true" ext:joinLeftProp="sourceTableId"
+              ext:joinRightProp="metaTableId" ext:joinRightDisplayProp="displayName" insertable="false"
+              updatable="false" mandatory="true" lazy="true">
+            <schema bizObjName="NopMetaTable"/>
+        </prop>
+        <prop name="sourceTable.displayName" displayName="源表" i18n-en:displayName="Source Table" internal="true"
+              queryable="true" sortable="true" lazy="true">
+            <schema type="String"/>
+        </prop>
+        <prop name="targetTable" displayName="目标表" i18n-en:displayName="Target Table" tagSet="pub,ref-pub"
+              ext:kind="to-one" internal="true" queryable="true" ext:joinLeftProp="targetTableId"
+              ext:joinRightProp="metaTableId" ext:joinRightDisplayProp="displayName" insertable="false"
+              updatable="false" mandatory="true" lazy="true">
+            <schema bizObjName="NopMetaTable"/>
+        </prop>
+        <prop name="targetTable.displayName" displayName="目标表" i18n-en:displayName="Target Table" internal="true"
+              queryable="true" sortable="true" lazy="true">
+            <schema type="String"/>
+        </prop>
+        <prop name="pipeline" displayName="数据管道" i18n-en:displayName="Pipeline" tagSet="pub,ref-pub" ext:kind="to-one"
+              internal="true" queryable="true" ext:joinLeftProp="pipelineId" ext:joinRightProp="pipelineId"
+              ext:joinRightDisplayProp="displayName" insertable="false" updatable="false" lazy="true">
+            <schema bizObjName="NopMetaPipeline"/>
+        </prop>
+        <prop name="pipeline.displayName" displayName="数据管道" i18n-en:displayName="Pipeline" internal="true"
+              queryable="true" sortable="true" lazy="true">
+            <schema type="String"/>
         </prop>
         <prop name="extConfigComponent" tagSet="json,pub,edit" ext:kind="component" internal="true" insertable="true"
               updatable="true" lazy="true">

@@ -53,7 +53,7 @@ public class _NopMetaProfilingRule extends DynamicOrmEntity{
     public static final String PROP_NAME_extConfig = "extConfig";
     public static final int PROP_ID_extConfig = 8;
     
-    /* 数据版本: DEL_VERSION BIGINT */
+    /* 数据版本: VERSION BIGINT */
     public static final String PROP_NAME_version = "version";
     public static final int PROP_ID_version = 9;
     
@@ -83,6 +83,9 @@ public class _NopMetaProfilingRule extends DynamicOrmEntity{
     
     /* relation: 逻辑表 */
     public static final String PROP_NAME_metaTable = "metaTable";
+    
+    /* relation: 剖析结果集 */
+    public static final String PROP_NAME_results = "results";
     
     /* component:  */
     public static final String PROP_NAME_columnsComponent = "columnsComponent";
@@ -170,7 +173,7 @@ public class _NopMetaProfilingRule extends DynamicOrmEntity{
     /* 扩展配置: EXT_CONFIG */
     private java.lang.String _extConfig;
     
-    /* 数据版本: DEL_VERSION */
+    /* 数据版本: VERSION */
     private java.lang.Long _version;
     
     /* 创建人: CREATED_BY */
@@ -721,7 +724,7 @@ public class _NopMetaProfilingRule extends DynamicOrmEntity{
     }
     
     /**
-     * 数据版本: DEL_VERSION
+     * 数据版本: VERSION
      */
     public final java.lang.Long getVersion(){
          onPropGet(PROP_ID_version);
@@ -729,7 +732,7 @@ public class _NopMetaProfilingRule extends DynamicOrmEntity{
     }
 
     /**
-     * 数据版本: DEL_VERSION
+     * 数据版本: VERSION
      */
     public final void setVersion(java.lang.Long value){
         if(onPropSet(PROP_ID_version,value)){
@@ -855,6 +858,16 @@ public class _NopMetaProfilingRule extends DynamicOrmEntity{
            });
            }
        
+    }
+       
+    private final OrmEntitySet<io.nop.metadata.dao.entity.NopMetaProfilingResult> _results = new OrmEntitySet<>(this, PROP_NAME_results,
+        io.nop.metadata.dao.entity.NopMetaProfilingResult.PROP_NAME_profilingRule, null,io.nop.metadata.dao.entity.NopMetaProfilingResult.class);
+
+    /**
+     * 剖析结果集。 refPropName: profilingRule, keyProp: {rel.keyProp}
+     */
+    public final IOrmEntitySet<io.nop.metadata.dao.entity.NopMetaProfilingResult> getResults(){
+       return _results;
     }
        
    private io.nop.orm.component.JsonOrmComponent _columnsComponent;

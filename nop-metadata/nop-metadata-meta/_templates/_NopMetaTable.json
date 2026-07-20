@@ -18,5 +18,20 @@
   "remark": "",
   "schema": "",
   "metaModule": null,
-  "metaModule.displayName": ""
+  "metaModule.displayName": "",
+  "dimensions": null,
+  "measures": null,
+  "filters": null,
+  "joins": null,
+  "joinAsLeftTable": null,
+  "joinAsRightTable": null,
+  "lineageAsSource": null,
+  "lineageAsTarget": null,
+  "catalogs": null,
+  "profilingRules": null,
+  "profilingResults": null,
+  "qualityScores": null,
+  "dataContracts": null,
+  "reconciliationConfigs": null,
+  "reconciliationResults": null
 }

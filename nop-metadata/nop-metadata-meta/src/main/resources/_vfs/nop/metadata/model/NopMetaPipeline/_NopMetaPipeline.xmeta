@@ -18,7 +18,9 @@
         <meta-gen:DefaultMetaPostExtends xpl:lib="/nop/core/xlib/meta-gen.xlib"/>
     </x:post-extends>
 
-    <keys/>
+    <keys>
+        <key name="UK_NOP_META_PIPELINE_MODULE_NAME" props="metaModuleId,pipelineName"/>
+    </keys>
 
     <props>
         <prop name="pipelineId" displayName="管道ID" propId="1" i18n-en:displayName="Pipeline Id" tagSet="seq"
@@ -43,7 +45,7 @@
         </prop>
         <prop name="sourceSql" displayName="处理SQL" propId="6" i18n-en:displayName="Source Sql" queryable="true"
               sortable="true" insertable="true" updatable="true">
-            <schema domain="mediumtext" type="java.lang.String" precision="16777216"/>
+            <schema domain="mediumtext" type="java.lang.String" precision="16777215"/>
         </prop>
         <prop name="schedule" displayName="调度表达式" propId="7" i18n-en:displayName="Schedule" queryable="true"
               sortable="true" insertable="true" updatable="true">
@@ -86,6 +88,13 @@
         <prop name="metaModule.displayName" displayName="元数据模块" i18n-en:displayName="Meta Module" internal="true"
               queryable="true" sortable="true" lazy="true">
             <schema type="String"/>
+        </prop>
+        <prop name="lineageEdges" displayName="血缘边集" i18n-en:displayName="Lineage Edges" tagSet="pub,ref-pub"
+              ext:kind="to-many" internal="true" ext:joinLeftProp="pipelineId" ext:joinRightProp="pipelineId"
+              insertable="false" updatable="false" lazy="true">
+            <schema>
+                <item bizObjName="NopMetaLineageEdge"/>
+            </schema>
         </prop>
         <prop name="extConfigComponent" tagSet="json,pub,edit" ext:kind="component" internal="true" insertable="true"
               updatable="true" lazy="true">

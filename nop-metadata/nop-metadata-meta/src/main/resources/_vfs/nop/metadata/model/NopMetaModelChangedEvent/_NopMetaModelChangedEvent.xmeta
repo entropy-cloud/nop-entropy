@@ -45,11 +45,11 @@
         <prop name="beforeSnapshot" displayName="变更前快照" propId="7" i18n-en:displayName="Before Snapshot"
               queryable="true" sortable="true" insertable="true" updatable="true"
               graphql:jsonComponentProp="beforeSnapshotComponent">
-            <schema stdDomain="json" domain="mediumtext" type="java.lang.String" precision="16777216"/>
+            <schema stdDomain="json" domain="mediumtext" type="java.lang.String" precision="16777215"/>
         </prop>
         <prop name="afterSnapshot" displayName="变更后快照" propId="8" i18n-en:displayName="After Snapshot" queryable="true"
               sortable="true" insertable="true" updatable="true" graphql:jsonComponentProp="afterSnapshotComponent">
-            <schema stdDomain="json" domain="mediumtext" type="java.lang.String" precision="16777216"/>
+            <schema stdDomain="json" domain="mediumtext" type="java.lang.String" precision="16777215"/>
         </prop>
         <prop name="changedBy" displayName="操作人" propId="9" i18n-en:displayName="Changed By" queryable="true"
               sortable="true" insertable="true" updatable="true">

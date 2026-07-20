@@ -2,9 +2,8 @@
 drop table nop_meta_module;
 drop table nop_meta_data_source;
 drop table nop_meta_semantic_type;
-drop table nop_meta_lineage_edge;
 drop table nop_meta_quality_rule;
-drop table nop_meta_recon_entity;
+drop table nop_meta_reconciliation_entity;
 drop table nop_meta_model_changed_event;
 drop table nop_meta_orm_model;
 drop table nop_meta_table;
@@ -21,8 +20,9 @@ drop table nop_meta_table_filter;
 drop table nop_meta_catalog;
 drop table nop_meta_profiling_rule;
 drop table nop_meta_data_contract;
-drop table nop_meta_recon_config;
+drop table nop_meta_reconciliation_config;
 drop table nop_meta_quality_score;
+drop table nop_meta_lineage_edge;
 drop table nop_meta_entity_field;
 drop table nop_meta_entity_relation;
 drop table nop_meta_entity_unique_key;
@@ -30,5 +30,5 @@ drop table nop_meta_entity_index;
 drop table nop_meta_table_join;
 drop table nop_meta_dict_item;
 drop table nop_meta_profiling_result;
-drop table nop_meta_recon_result;
+drop table nop_meta_reconciliation_result;
 

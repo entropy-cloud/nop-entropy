@@ -18,7 +18,9 @@
         <meta-gen:DefaultMetaPostExtends xpl:lib="/nop/core/xlib/meta-gen.xlib"/>
     </x:post-extends>
 
-    <keys/>
+    <keys>
+        <key name="UK_NOP_META_MEASURE_TABLE_NAME" props="metaTableId,measureName"/>
+    </keys>
 
     <props>
         <prop name="measureId" displayName="指标ID" propId="1" i18n-en:displayName="Measure Id" tagSet="seq"

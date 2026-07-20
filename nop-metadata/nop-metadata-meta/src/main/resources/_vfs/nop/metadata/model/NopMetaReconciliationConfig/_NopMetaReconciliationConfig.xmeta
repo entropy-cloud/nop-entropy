@@ -18,7 +18,9 @@
         <meta-gen:DefaultMetaPostExtends xpl:lib="/nop/core/xlib/meta-gen.xlib"/>
     </x:post-extends>
 
-    <keys/>
+    <keys>
+        <key name="UK_NOP_META_RECONCILIATION_CONFIG_NAME" props="configName"/>
+    </keys>
 
     <props>
         <prop name="configId" displayName="配置ID" propId="1" i18n-en:displayName="Config Id" tagSet="seq"
@@ -111,6 +113,13 @@
         <prop name="metaModule.displayName" displayName="元数据模块" i18n-en:displayName="Meta Module" internal="true"
               queryable="true" sortable="true" lazy="true">
             <schema type="String"/>
+        </prop>
+        <prop name="results" displayName="对账结果集" i18n-en:displayName="Reconciliation Results" tagSet="pub,ref-pub"
+              ext:kind="to-many" internal="true" ext:joinLeftProp="configId" ext:joinRightProp="configId"
+              insertable="false" updatable="false" lazy="true">
+            <schema>
+                <item bizObjName="NopMetaReconciliationResult"/>
+            </schema>
         </prop>
         <prop name="extConfigComponent" tagSet="json,pub,edit" ext:kind="component" internal="true" insertable="true"
               updatable="true" lazy="true">

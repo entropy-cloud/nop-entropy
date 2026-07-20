@@ -45,7 +45,7 @@ public class _NopMetaProfilingResult extends DynamicOrmEntity{
     public static final String PROP_NAME_columnStats = "columnStats";
     public static final int PROP_ID_columnStats = 6;
     
-    /* 数据版本: DEL_VERSION BIGINT */
+    /* 数据版本: VERSION BIGINT */
     public static final String PROP_NAME_version = "version";
     public static final int PROP_ID_version = 7;
     
@@ -150,7 +150,7 @@ public class _NopMetaProfilingResult extends DynamicOrmEntity{
     /* 列级统计: COLUMN_STATS */
     private java.lang.String _columnStats;
     
-    /* 数据版本: DEL_VERSION */
+    /* 数据版本: VERSION */
     private java.lang.Long _version;
     
     /* 创建人: CREATED_BY */
@@ -623,7 +623,7 @@ public class _NopMetaProfilingResult extends DynamicOrmEntity{
     }
     
     /**
-     * 数据版本: DEL_VERSION
+     * 数据版本: VERSION
      */
     public final java.lang.Long getVersion(){
          onPropGet(PROP_ID_version);
@@ -631,7 +631,7 @@ public class _NopMetaProfilingResult extends DynamicOrmEntity{
     }
 
     /**
-     * 数据版本: DEL_VERSION
+     * 数据版本: VERSION
      */
     public final void setVersion(java.lang.Long value){
         if(onPropSet(PROP_ID_version,value)){

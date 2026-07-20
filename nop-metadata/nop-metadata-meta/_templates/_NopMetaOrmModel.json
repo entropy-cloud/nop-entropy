@@ -12,5 +12,8 @@
   "updateTime": "2000-01-01 14:00:00",
   "remark": "",
   "metaModule": null,
-  "metaModule.displayName": ""
+  "metaModule.displayName": "",
+  "entities": null,
+  "domains": null,
+  "dicts": null
 }

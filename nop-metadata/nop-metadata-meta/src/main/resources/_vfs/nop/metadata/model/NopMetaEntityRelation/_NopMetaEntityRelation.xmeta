@@ -16,7 +16,9 @@
         <meta-gen:DefaultMetaPostExtends xpl:lib="/nop/core/xlib/meta-gen.xlib"/>
     </x:post-extends>
 
-    <keys/>
+    <keys>
+        <key name="UK_NOP_META_REL_ENTITY_NAME" props="metaEntityId,relationName"/>
+    </keys>
 
     <props>
         <prop name="relationId" displayName="关系ID" propId="1" i18n-en:displayName="Relation Id" tagSet="seq"

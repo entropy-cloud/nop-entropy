@@ -65,7 +65,7 @@ public class _NopMetaQualityRule extends DynamicOrmEntity{
     public static final String PROP_NAME_extConfig = "extConfig";
     public static final int PROP_ID_extConfig = 11;
     
-    /* 数据版本: DEL_VERSION BIGINT */
+    /* 数据版本: VERSION BIGINT */
     public static final String PROP_NAME_version = "version";
     public static final int PROP_ID_version = 12;
     
@@ -92,6 +92,9 @@ public class _NopMetaQualityRule extends DynamicOrmEntity{
 
     private static int _PROP_ID_BOUND = 18;
 
+    
+    /* relation: 质量结果集 */
+    public static final String PROP_NAME_results = "results";
     
     /* component:  */
     public static final String PROP_NAME_paramsComponent = "paramsComponent";
@@ -194,7 +197,7 @@ public class _NopMetaQualityRule extends DynamicOrmEntity{
     /* 扩展配置: EXT_CONFIG */
     private java.lang.String _extConfig;
     
-    /* 数据版本: DEL_VERSION */
+    /* 数据版本: VERSION */
     private java.lang.Long _version;
     
     /* 创建人: CREATED_BY */
@@ -862,7 +865,7 @@ public class _NopMetaQualityRule extends DynamicOrmEntity{
     }
     
     /**
-     * 数据版本: DEL_VERSION
+     * 数据版本: VERSION
      */
     public final java.lang.Long getVersion(){
          onPropGet(PROP_ID_version);
@@ -870,7 +873,7 @@ public class _NopMetaQualityRule extends DynamicOrmEntity{
     }
 
     /**
-     * 数据版本: DEL_VERSION
+     * 数据版本: VERSION
      */
     public final void setVersion(java.lang.Long value){
         if(onPropSet(PROP_ID_version,value)){
@@ -975,6 +978,16 @@ public class _NopMetaQualityRule extends DynamicOrmEntity{
         }
     }
     
+    private final OrmEntitySet<io.nop.metadata.dao.entity.NopMetaQualityResult> _results = new OrmEntitySet<>(this, PROP_NAME_results,
+        io.nop.metadata.dao.entity.NopMetaQualityResult.PROP_NAME_qualityRule, null,io.nop.metadata.dao.entity.NopMetaQualityResult.class);
+
+    /**
+     * 质量结果集。 refPropName: qualityRule, keyProp: {rel.keyProp}
+     */
+    public final IOrmEntitySet<io.nop.metadata.dao.entity.NopMetaQualityResult> getResults(){
+       return _results;
+    }
+       
    private io.nop.orm.component.JsonOrmComponent _paramsComponent;
 
    private static Map<String,Integer> COMPONENT_PROP_ID_MAP_paramsComponent = new HashMap<>();

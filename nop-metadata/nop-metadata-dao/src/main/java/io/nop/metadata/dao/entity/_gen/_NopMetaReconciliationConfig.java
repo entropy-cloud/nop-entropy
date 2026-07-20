@@ -15,7 +15,7 @@ import io.nop.metadata.dao.entity.NopMetaReconciliationConfig;
 
 // tell cpd to start ignoring code - CPD-OFF
 /**
- *  对账配置: nop_meta_recon_config
+ *  对账配置: nop_meta_reconciliation_config
  */
 @SuppressWarnings({"PMD.UselessOverridingMethod","PMD.UnusedLocalVariable","java:S3008","java:S1602","java:S1128","java:S1161",
         "PMD.UnnecessaryFullyQualifiedName","PMD.EmptyControlStatement","java:S116","java:S115","java:S101","java:S3776"})
@@ -69,7 +69,7 @@ public class _NopMetaReconciliationConfig extends DynamicOrmEntity{
     public static final String PROP_NAME_extConfig = "extConfig";
     public static final int PROP_ID_extConfig = 12;
     
-    /* 数据版本: DEL_VERSION BIGINT */
+    /* 数据版本: VERSION BIGINT */
     public static final String PROP_NAME_version = "version";
     public static final int PROP_ID_version = 13;
     
@@ -102,6 +102,9 @@ public class _NopMetaReconciliationConfig extends DynamicOrmEntity{
     
     /* relation: 元数据模块 */
     public static final String PROP_NAME_metaModule = "metaModule";
+    
+    /* relation: 对账结果集 */
+    public static final String PROP_NAME_results = "results";
     
     /* component:  */
     public static final String PROP_NAME_extConfigComponent = "extConfigComponent";
@@ -207,7 +210,7 @@ public class _NopMetaReconciliationConfig extends DynamicOrmEntity{
     /* 扩展配置: EXT_CONFIG */
     private java.lang.String _extConfig;
     
-    /* 数据版本: DEL_VERSION */
+    /* 数据版本: VERSION */
     private java.lang.Long _version;
     
     /* 创建人: CREATED_BY */
@@ -914,7 +917,7 @@ public class _NopMetaReconciliationConfig extends DynamicOrmEntity{
     }
     
     /**
-     * 数据版本: DEL_VERSION
+     * 数据版本: VERSION
      */
     public final java.lang.Long getVersion(){
          onPropGet(PROP_ID_version);
@@ -922,7 +925,7 @@ public class _NopMetaReconciliationConfig extends DynamicOrmEntity{
     }
 
     /**
-     * 数据版本: DEL_VERSION
+     * 数据版本: VERSION
      */
     public final void setVersion(java.lang.Long value){
         if(onPropSet(PROP_ID_version,value)){
@@ -1071,6 +1074,16 @@ public class _NopMetaReconciliationConfig extends DynamicOrmEntity{
            });
            }
        
+    }
+       
+    private final OrmEntitySet<io.nop.metadata.dao.entity.NopMetaReconciliationResult> _results = new OrmEntitySet<>(this, PROP_NAME_results,
+        io.nop.metadata.dao.entity.NopMetaReconciliationResult.PROP_NAME_config, null,io.nop.metadata.dao.entity.NopMetaReconciliationResult.class);
+
+    /**
+     * 对账结果集。 refPropName: config, keyProp: {rel.keyProp}
+     */
+    public final IOrmEntitySet<io.nop.metadata.dao.entity.NopMetaReconciliationResult> getResults(){
+       return _results;
     }
        
    private io.nop.orm.component.JsonOrmComponent _extConfigComponent;

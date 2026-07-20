@@ -41,7 +41,7 @@
         </prop>
         <prop name="details" displayName="明细" propId="6" i18n-en:displayName="Details" queryable="true" sortable="true"
               insertable="true" updatable="true" graphql:jsonComponentProp="detailsComponent">
-            <schema stdDomain="json" domain="mediumtext" type="java.lang.String" precision="16777216"/>
+            <schema stdDomain="json" domain="mediumtext" type="java.lang.String" precision="16777215"/>
         </prop>
         <prop name="extConfig" displayName="扩展配置" propId="7" i18n-en:displayName="Ext Config" queryable="true"
               sortable="true" insertable="true" updatable="true" graphql:jsonComponentProp="extConfigComponent">

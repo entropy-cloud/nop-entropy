@@ -61,7 +61,7 @@ public class _NopMetaTable extends DynamicOrmEntity{
     public static final String PROP_NAME_buildSql = "buildSql";
     public static final int PROP_ID_buildSql = 10;
     
-    /* 数据版本: DEL_VERSION BIGINT */
+    /* 数据版本: VERSION BIGINT */
     public static final String PROP_NAME_version = "version";
     public static final int PROP_ID_version = 11;
     
@@ -95,6 +95,51 @@ public class _NopMetaTable extends DynamicOrmEntity{
     
     /* relation: 元数据模块 */
     public static final String PROP_NAME_metaModule = "metaModule";
+    
+    /* relation: 表维度集 */
+    public static final String PROP_NAME_dimensions = "dimensions";
+    
+    /* relation: 表指标集 */
+    public static final String PROP_NAME_measures = "measures";
+    
+    /* relation: 表过滤器集 */
+    public static final String PROP_NAME_filters = "filters";
+    
+    /* relation: 表关联集 */
+    public static final String PROP_NAME_joins = "joins";
+    
+    /* relation: 作为左表的关联集 */
+    public static final String PROP_NAME_joinAsLeftTable = "joinAsLeftTable";
+    
+    /* relation: 作为右表的关联集 */
+    public static final String PROP_NAME_joinAsRightTable = "joinAsRightTable";
+    
+    /* relation: 作为血缘源表的边集 */
+    public static final String PROP_NAME_lineageAsSource = "lineageAsSource";
+    
+    /* relation: 作为血缘目标表的边集 */
+    public static final String PROP_NAME_lineageAsTarget = "lineageAsTarget";
+    
+    /* relation: 运行时统计快照集 */
+    public static final String PROP_NAME_catalogs = "catalogs";
+    
+    /* relation: 数据剖析规则集 */
+    public static final String PROP_NAME_profilingRules = "profilingRules";
+    
+    /* relation: 数据剖析结果集 */
+    public static final String PROP_NAME_profilingResults = "profilingResults";
+    
+    /* relation: 质量评分集 */
+    public static final String PROP_NAME_qualityScores = "qualityScores";
+    
+    /* relation: 数据契约集 */
+    public static final String PROP_NAME_dataContracts = "dataContracts";
+    
+    /* relation: 对账配置集 */
+    public static final String PROP_NAME_reconciliationConfigs = "reconciliationConfigs";
+    
+    /* relation: 对账结果集 */
+    public static final String PROP_NAME_reconciliationResults = "reconciliationResults";
     
 
     protected static final List<String> PK_PROP_NAMES = Arrays.asList(PROP_NAME_metaTableId);
@@ -188,7 +233,7 @@ public class _NopMetaTable extends DynamicOrmEntity{
     /* 合成SQL: BUILD_SQL */
     private java.lang.String _buildSql;
     
-    /* 数据版本: DEL_VERSION */
+    /* 数据版本: VERSION */
     private java.lang.Long _version;
     
     /* 创建人: CREATED_BY */
@@ -840,7 +885,7 @@ public class _NopMetaTable extends DynamicOrmEntity{
     }
     
     /**
-     * 数据版本: DEL_VERSION
+     * 数据版本: VERSION
      */
     public final java.lang.Long getVersion(){
          onPropGet(PROP_ID_version);
@@ -848,7 +893,7 @@ public class _NopMetaTable extends DynamicOrmEntity{
     }
 
     /**
-     * 数据版本: DEL_VERSION
+     * 数据版本: VERSION
      */
     public final void setVersion(java.lang.Long value){
         if(onPropSet(PROP_ID_version,value)){
@@ -993,6 +1038,156 @@ public class _NopMetaTable extends DynamicOrmEntity{
            });
            }
        
+    }
+       
+    private final OrmEntitySet<io.nop.metadata.dao.entity.NopMetaTableDimension> _dimensions = new OrmEntitySet<>(this, PROP_NAME_dimensions,
+        io.nop.metadata.dao.entity.NopMetaTableDimension.PROP_NAME_metaTable, null,io.nop.metadata.dao.entity.NopMetaTableDimension.class);
+
+    /**
+     * 表维度集。 refPropName: metaTable, keyProp: {rel.keyProp}
+     */
+    public final IOrmEntitySet<io.nop.metadata.dao.entity.NopMetaTableDimension> getDimensions(){
+       return _dimensions;
+    }
+       
+    private final OrmEntitySet<io.nop.metadata.dao.entity.NopMetaTableMeasure> _measures = new OrmEntitySet<>(this, PROP_NAME_measures,
+        io.nop.metadata.dao.entity.NopMetaTableMeasure.PROP_NAME_metaTable, null,io.nop.metadata.dao.entity.NopMetaTableMeasure.class);
+
+    /**
+     * 表指标集。 refPropName: metaTable, keyProp: {rel.keyProp}
+     */
+    public final IOrmEntitySet<io.nop.metadata.dao.entity.NopMetaTableMeasure> getMeasures(){
+       return _measures;
+    }
+       
+    private final OrmEntitySet<io.nop.metadata.dao.entity.NopMetaTableFilter> _filters = new OrmEntitySet<>(this, PROP_NAME_filters,
+        io.nop.metadata.dao.entity.NopMetaTableFilter.PROP_NAME_metaTable, null,io.nop.metadata.dao.entity.NopMetaTableFilter.class);
+
+    /**
+     * 表过滤器集。 refPropName: metaTable, keyProp: {rel.keyProp}
+     */
+    public final IOrmEntitySet<io.nop.metadata.dao.entity.NopMetaTableFilter> getFilters(){
+       return _filters;
+    }
+       
+    private final OrmEntitySet<io.nop.metadata.dao.entity.NopMetaTableJoin> _joins = new OrmEntitySet<>(this, PROP_NAME_joins,
+        io.nop.metadata.dao.entity.NopMetaTableJoin.PROP_NAME_metaTable, null,io.nop.metadata.dao.entity.NopMetaTableJoin.class);
+
+    /**
+     * 表关联集。 refPropName: metaTable, keyProp: {rel.keyProp}
+     */
+    public final IOrmEntitySet<io.nop.metadata.dao.entity.NopMetaTableJoin> getJoins(){
+       return _joins;
+    }
+       
+    private final OrmEntitySet<io.nop.metadata.dao.entity.NopMetaTableJoin> _joinAsLeftTable = new OrmEntitySet<>(this, PROP_NAME_joinAsLeftTable,
+        io.nop.metadata.dao.entity.NopMetaTableJoin.PROP_NAME_leftTable, null,io.nop.metadata.dao.entity.NopMetaTableJoin.class);
+
+    /**
+     * 作为左表的关联集。 refPropName: leftTable, keyProp: {rel.keyProp}
+     */
+    public final IOrmEntitySet<io.nop.metadata.dao.entity.NopMetaTableJoin> getJoinAsLeftTable(){
+       return _joinAsLeftTable;
+    }
+       
+    private final OrmEntitySet<io.nop.metadata.dao.entity.NopMetaTableJoin> _joinAsRightTable = new OrmEntitySet<>(this, PROP_NAME_joinAsRightTable,
+        io.nop.metadata.dao.entity.NopMetaTableJoin.PROP_NAME_rightTable, null,io.nop.metadata.dao.entity.NopMetaTableJoin.class);
+
+    /**
+     * 作为右表的关联集。 refPropName: rightTable, keyProp: {rel.keyProp}
+     */
+    public final IOrmEntitySet<io.nop.metadata.dao.entity.NopMetaTableJoin> getJoinAsRightTable(){
+       return _joinAsRightTable;
+    }
+       
+    private final OrmEntitySet<io.nop.metadata.dao.entity.NopMetaLineageEdge> _lineageAsSource = new OrmEntitySet<>(this, PROP_NAME_lineageAsSource,
+        io.nop.metadata.dao.entity.NopMetaLineageEdge.PROP_NAME_sourceTable, null,io.nop.metadata.dao.entity.NopMetaLineageEdge.class);
+
+    /**
+     * 作为血缘源表的边集。 refPropName: sourceTable, keyProp: {rel.keyProp}
+     */
+    public final IOrmEntitySet<io.nop.metadata.dao.entity.NopMetaLineageEdge> getLineageAsSource(){
+       return _lineageAsSource;
+    }
+       
+    private final OrmEntitySet<io.nop.metadata.dao.entity.NopMetaLineageEdge> _lineageAsTarget = new OrmEntitySet<>(this, PROP_NAME_lineageAsTarget,
+        io.nop.metadata.dao.entity.NopMetaLineageEdge.PROP_NAME_targetTable, null,io.nop.metadata.dao.entity.NopMetaLineageEdge.class);
+
+    /**
+     * 作为血缘目标表的边集。 refPropName: targetTable, keyProp: {rel.keyProp}
+     */
+    public final IOrmEntitySet<io.nop.metadata.dao.entity.NopMetaLineageEdge> getLineageAsTarget(){
+       return _lineageAsTarget;
+    }
+       
+    private final OrmEntitySet<io.nop.metadata.dao.entity.NopMetaCatalog> _catalogs = new OrmEntitySet<>(this, PROP_NAME_catalogs,
+        io.nop.metadata.dao.entity.NopMetaCatalog.PROP_NAME_metaTable, null,io.nop.metadata.dao.entity.NopMetaCatalog.class);
+
+    /**
+     * 运行时统计快照集。 refPropName: metaTable, keyProp: {rel.keyProp}
+     */
+    public final IOrmEntitySet<io.nop.metadata.dao.entity.NopMetaCatalog> getCatalogs(){
+       return _catalogs;
+    }
+       
+    private final OrmEntitySet<io.nop.metadata.dao.entity.NopMetaProfilingRule> _profilingRules = new OrmEntitySet<>(this, PROP_NAME_profilingRules,
+        io.nop.metadata.dao.entity.NopMetaProfilingRule.PROP_NAME_metaTable, null,io.nop.metadata.dao.entity.NopMetaProfilingRule.class);
+
+    /**
+     * 数据剖析规则集。 refPropName: metaTable, keyProp: {rel.keyProp}
+     */
+    public final IOrmEntitySet<io.nop.metadata.dao.entity.NopMetaProfilingRule> getProfilingRules(){
+       return _profilingRules;
+    }
+       
+    private final OrmEntitySet<io.nop.metadata.dao.entity.NopMetaProfilingResult> _profilingResults = new OrmEntitySet<>(this, PROP_NAME_profilingResults,
+        io.nop.metadata.dao.entity.NopMetaProfilingResult.PROP_NAME_metaTable, null,io.nop.metadata.dao.entity.NopMetaProfilingResult.class);
+
+    /**
+     * 数据剖析结果集。 refPropName: metaTable, keyProp: {rel.keyProp}
+     */
+    public final IOrmEntitySet<io.nop.metadata.dao.entity.NopMetaProfilingResult> getProfilingResults(){
+       return _profilingResults;
+    }
+       
+    private final OrmEntitySet<io.nop.metadata.dao.entity.NopMetaQualityScore> _qualityScores = new OrmEntitySet<>(this, PROP_NAME_qualityScores,
+        io.nop.metadata.dao.entity.NopMetaQualityScore.PROP_NAME_metaTable, null,io.nop.metadata.dao.entity.NopMetaQualityScore.class);
+
+    /**
+     * 质量评分集。 refPropName: metaTable, keyProp: {rel.keyProp}
+     */
+    public final IOrmEntitySet<io.nop.metadata.dao.entity.NopMetaQualityScore> getQualityScores(){
+       return _qualityScores;
+    }
+       
+    private final OrmEntitySet<io.nop.metadata.dao.entity.NopMetaDataContract> _dataContracts = new OrmEntitySet<>(this, PROP_NAME_dataContracts,
+        io.nop.metadata.dao.entity.NopMetaDataContract.PROP_NAME_metaTable, null,io.nop.metadata.dao.entity.NopMetaDataContract.class);
+
+    /**
+     * 数据契约集。 refPropName: metaTable, keyProp: {rel.keyProp}
+     */
+    public final IOrmEntitySet<io.nop.metadata.dao.entity.NopMetaDataContract> getDataContracts(){
+       return _dataContracts;
+    }
+       
+    private final OrmEntitySet<io.nop.metadata.dao.entity.NopMetaReconciliationConfig> _reconciliationConfigs = new OrmEntitySet<>(this, PROP_NAME_reconciliationConfigs,
+        io.nop.metadata.dao.entity.NopMetaReconciliationConfig.PROP_NAME_metaTable, null,io.nop.metadata.dao.entity.NopMetaReconciliationConfig.class);
+
+    /**
+     * 对账配置集。 refPropName: metaTable, keyProp: {rel.keyProp}
+     */
+    public final IOrmEntitySet<io.nop.metadata.dao.entity.NopMetaReconciliationConfig> getReconciliationConfigs(){
+       return _reconciliationConfigs;
+    }
+       
+    private final OrmEntitySet<io.nop.metadata.dao.entity.NopMetaReconciliationResult> _reconciliationResults = new OrmEntitySet<>(this, PROP_NAME_reconciliationResults,
+        io.nop.metadata.dao.entity.NopMetaReconciliationResult.PROP_NAME_metaTable, null,io.nop.metadata.dao.entity.NopMetaReconciliationResult.class);
+
+    /**
+     * 对账结果集。 refPropName: metaTable, keyProp: {rel.keyProp}
+     */
+    public final IOrmEntitySet<io.nop.metadata.dao.entity.NopMetaReconciliationResult> getReconciliationResults(){
+       return _reconciliationResults;
     }
        
 }

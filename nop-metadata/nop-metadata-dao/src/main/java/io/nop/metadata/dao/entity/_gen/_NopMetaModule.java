@@ -37,7 +37,7 @@ public class _NopMetaModule extends DynamicOrmEntity{
     public static final String PROP_NAME_displayName = "displayName";
     public static final int PROP_ID_displayName = 4;
     
-    /* 模块版本号: VERSION BIGINT */
+    /* 模块版本号: MODULE_VERSION BIGINT */
     public static final String PROP_NAME_moduleVersion = "moduleVersion";
     public static final int PROP_ID_moduleVersion = 5;
     
@@ -81,7 +81,7 @@ public class _NopMetaModule extends DynamicOrmEntity{
     public static final String PROP_NAME_extConfig = "extConfig";
     public static final int PROP_ID_extConfig = 15;
     
-    /* 数据版本: DEL_VERSION BIGINT */
+    /* 数据版本: VERSION BIGINT */
     public static final String PROP_NAME_version = "version";
     public static final int PROP_ID_version = 16;
     
@@ -111,6 +111,27 @@ public class _NopMetaModule extends DynamicOrmEntity{
     
     /* relation: 基线模块 */
     public static final String PROP_NAME_baseModule = "baseModule";
+    
+    /* relation: ORM模型集 */
+    public static final String PROP_NAME_ormModels = "ormModels";
+    
+    /* relation: 逻辑表集 */
+    public static final String PROP_NAME_tables = "tables";
+    
+    /* relation: 数据管道集 */
+    public static final String PROP_NAME_pipelines = "pipelines";
+    
+    /* relation: 质量检查点集 */
+    public static final String PROP_NAME_qualityCheckpoints = "qualityCheckpoints";
+    
+    /* relation: 元数据快照集 */
+    public static final String PROP_NAME_manifests = "manifests";
+    
+    /* relation: 对账配置集 */
+    public static final String PROP_NAME_reconciliationConfigs = "reconciliationConfigs";
+    
+    /* relation: 基线模块集 */
+    public static final String PROP_NAME_baseModules = "baseModules";
     
     /* component:  */
     public static final String PROP_NAME_extConfigComponent = "extConfigComponent";
@@ -201,7 +222,7 @@ public class _NopMetaModule extends DynamicOrmEntity{
     /* 显示名: DISPLAY_NAME */
     private java.lang.String _displayName;
     
-    /* 模块版本号: VERSION */
+    /* 模块版本号: MODULE_VERSION */
     private java.lang.Long _moduleVersion;
     
     /* 基线模块版本ID: BASE_MODULE_ID */
@@ -234,7 +255,7 @@ public class _NopMetaModule extends DynamicOrmEntity{
     /* 扩展配置: EXT_CONFIG */
     private java.lang.String _extConfig;
     
-    /* 数据版本: DEL_VERSION */
+    /* 数据版本: VERSION */
     private java.lang.Long _version;
     
     /* 创建人: CREATED_BY */
@@ -849,7 +870,7 @@ public class _NopMetaModule extends DynamicOrmEntity{
     }
     
     /**
-     * 模块版本号: VERSION
+     * 模块版本号: MODULE_VERSION
      */
     public final java.lang.Long getModuleVersion(){
          onPropGet(PROP_ID_moduleVersion);
@@ -857,7 +878,7 @@ public class _NopMetaModule extends DynamicOrmEntity{
     }
 
     /**
-     * 模块版本号: VERSION
+     * 模块版本号: MODULE_VERSION
      */
     public final void setModuleVersion(java.lang.Long value){
         if(onPropSet(PROP_ID_moduleVersion,value)){
@@ -1058,7 +1079,7 @@ public class _NopMetaModule extends DynamicOrmEntity{
     }
     
     /**
-     * 数据版本: DEL_VERSION
+     * 数据版本: VERSION
      */
     public final java.lang.Long getVersion(){
          onPropGet(PROP_ID_version);
@@ -1066,7 +1087,7 @@ public class _NopMetaModule extends DynamicOrmEntity{
     }
 
     /**
-     * 数据版本: DEL_VERSION
+     * 数据版本: VERSION
      */
     public final void setVersion(java.lang.Long value){
         if(onPropSet(PROP_ID_version,value)){
@@ -1192,6 +1213,76 @@ public class _NopMetaModule extends DynamicOrmEntity{
            });
            }
        
+    }
+       
+    private final OrmEntitySet<io.nop.metadata.dao.entity.NopMetaOrmModel> _ormModels = new OrmEntitySet<>(this, PROP_NAME_ormModels,
+        io.nop.metadata.dao.entity.NopMetaOrmModel.PROP_NAME_metaModule, null,io.nop.metadata.dao.entity.NopMetaOrmModel.class);
+
+    /**
+     * ORM模型集。 refPropName: metaModule, keyProp: {rel.keyProp}
+     */
+    public final IOrmEntitySet<io.nop.metadata.dao.entity.NopMetaOrmModel> getOrmModels(){
+       return _ormModels;
+    }
+       
+    private final OrmEntitySet<io.nop.metadata.dao.entity.NopMetaTable> _tables = new OrmEntitySet<>(this, PROP_NAME_tables,
+        io.nop.metadata.dao.entity.NopMetaTable.PROP_NAME_metaModule, null,io.nop.metadata.dao.entity.NopMetaTable.class);
+
+    /**
+     * 逻辑表集。 refPropName: metaModule, keyProp: {rel.keyProp}
+     */
+    public final IOrmEntitySet<io.nop.metadata.dao.entity.NopMetaTable> getTables(){
+       return _tables;
+    }
+       
+    private final OrmEntitySet<io.nop.metadata.dao.entity.NopMetaPipeline> _pipelines = new OrmEntitySet<>(this, PROP_NAME_pipelines,
+        io.nop.metadata.dao.entity.NopMetaPipeline.PROP_NAME_metaModule, null,io.nop.metadata.dao.entity.NopMetaPipeline.class);
+
+    /**
+     * 数据管道集。 refPropName: metaModule, keyProp: {rel.keyProp}
+     */
+    public final IOrmEntitySet<io.nop.metadata.dao.entity.NopMetaPipeline> getPipelines(){
+       return _pipelines;
+    }
+       
+    private final OrmEntitySet<io.nop.metadata.dao.entity.NopMetaQualityCheckpoint> _qualityCheckpoints = new OrmEntitySet<>(this, PROP_NAME_qualityCheckpoints,
+        io.nop.metadata.dao.entity.NopMetaQualityCheckpoint.PROP_NAME_metaModule, null,io.nop.metadata.dao.entity.NopMetaQualityCheckpoint.class);
+
+    /**
+     * 质量检查点集。 refPropName: metaModule, keyProp: {rel.keyProp}
+     */
+    public final IOrmEntitySet<io.nop.metadata.dao.entity.NopMetaQualityCheckpoint> getQualityCheckpoints(){
+       return _qualityCheckpoints;
+    }
+       
+    private final OrmEntitySet<io.nop.metadata.dao.entity.NopMetaManifest> _manifests = new OrmEntitySet<>(this, PROP_NAME_manifests,
+        io.nop.metadata.dao.entity.NopMetaManifest.PROP_NAME_metaModule, null,io.nop.metadata.dao.entity.NopMetaManifest.class);
+
+    /**
+     * 元数据快照集。 refPropName: metaModule, keyProp: {rel.keyProp}
+     */
+    public final IOrmEntitySet<io.nop.metadata.dao.entity.NopMetaManifest> getManifests(){
+       return _manifests;
+    }
+       
+    private final OrmEntitySet<io.nop.metadata.dao.entity.NopMetaReconciliationConfig> _reconciliationConfigs = new OrmEntitySet<>(this, PROP_NAME_reconciliationConfigs,
+        io.nop.metadata.dao.entity.NopMetaReconciliationConfig.PROP_NAME_metaModule, null,io.nop.metadata.dao.entity.NopMetaReconciliationConfig.class);
+
+    /**
+     * 对账配置集。 refPropName: metaModule, keyProp: {rel.keyProp}
+     */
+    public final IOrmEntitySet<io.nop.metadata.dao.entity.NopMetaReconciliationConfig> getReconciliationConfigs(){
+       return _reconciliationConfigs;
+    }
+       
+    private final OrmEntitySet<io.nop.metadata.dao.entity.NopMetaModule> _baseModules = new OrmEntitySet<>(this, PROP_NAME_baseModules,
+        io.nop.metadata.dao.entity.NopMetaModule.PROP_NAME_baseModule, null,io.nop.metadata.dao.entity.NopMetaModule.class);
+
+    /**
+     * 基线模块集。 refPropName: baseModule, keyProp: {rel.keyProp}
+     */
+    public final IOrmEntitySet<io.nop.metadata.dao.entity.NopMetaModule> getBaseModules(){
+       return _baseModules;
     }
        
    private io.nop.orm.component.JsonOrmComponent _extConfigComponent;
