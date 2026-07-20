@@ -1,5 +1,10 @@
 <?xml version="1.0" encoding="UTF-8" ?>
-<auth x:schema="/nop/schema/action-auth.xdef" xmlns:x="/nop/schema/xdsl.xdef" xmlns:i18n-en="i18n-en">
+<auth x:schema="/nop/schema/action-auth.xdef" xmlns:x="/nop/schema/xdsl.xdef" xmlns:i18n-en="i18n-en"
+      xmlns:auth-gen="auth-gen" xmlns:xpl="xpl">
+
+    <x:post-extends>
+        <auth-gen:DefaultActionAuthPostExtends xpl:lib="/nop/auth/xlib/auth-gen.xlib"/>
+    </x:post-extends>
 
     <site id="main">
         <resource id="test-api-nop-rule" displayName="测试nop-rule" i18n-en:displayName="Test nop-rule"
