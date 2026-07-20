@@ -1,6 +1,6 @@
 # nop-metadata 设计文档
 
-> Status: draft
+> Status: active
 > Date: 2026-07-15
 > Scope: nop-metadata 模块设计
 
@@ -42,6 +42,7 @@
 ## 状态
 
 - Phase 1（ORM 模型导入引擎）已完成（plan 292）
-- Phase 1+ ~ Phase 5 见 `nop-metadata-roadmap.md`
+- Phase 2-5（审计修复、ErrorCode 集中化、文件拆分、安全加固、ORM 微观修复、文档维护）已完成（plan 300）
+- 详见 `nop-metadata-roadmap.md`
 - mission-driver mission 配置：`missions/nop-metadata.json`
 - 触发实现前需先更新 `ai-dev/plans/`
