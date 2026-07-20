@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<workflow x:extends="/nop/wf/base/oa.xwf"
+          x:schema="/nop/schema/wf/wf.xdef" xmlns:x="/nop/schema/xdsl.xdef"
+          xmlns:wf-approval="wf-approval"
+          wfName="metaDataContractApproval" wfVersion="1" displayName="数据合约审批流程">
+    <description>数据合约审批流程：提交申请 → 合约Owner审核 → 合约消费者审核 → 结束</description>
+
+    <listeners>
+        <listener id="onEndNotify" eventPattern="*end">
+            <source>
+                <wf-approval:notifyResult bizObj="NopMetaDataContract"
+                                           approved="${wfRt.status == 'APPROVED'}"/>
+            </source>
+        </listener>
+    </listeners>
+
+    <auths>
+        <auth id="auth1" actorType="all" actorId="all" allowStart="true"/>
+    </auths>
+
+    <start startStepName="submit"/>
+
+    <end/>
+
+    <steps>
+        <step name="submit" displayName="提交申请">
+            <assignment>
+                <actors>
+                    <actor actorModelId="starter" actorType="wf-actor:Starter" selectUser="true"/>
+                </actors>
+            </assignment>
+            <transition onAppStates="agree" splitType="and">
+                <to-step stepName="owner-check"/>
+            </transition>
+        </step>
+
+        <step name="owner-check" displayName="合约Owner审核" allowReject="true">
+            <assignment>
+                <actors>
+                    <actor actorModelId="owner" actorType="role" actorId="metadata-admin"
+                           selectUser="true"/>
+                </actors>
+            </assignment>
+            <transition onAppStates="agree" splitType="and">
+                <to-step stepName="consumer-check"/>
+            </transition>
+        </step>
+
+        <step name="consumer-check" displayName="合约消费者审核" allowReject="true">
+            <assignment>
+                <actors>
+                    <actor actorModelId="consumer" actorType="role" actorId="metadata-user"
+                           selectUser="true"/>
+                </actors>
+            </assignment>
+            <transition onAppStates="agree" splitType="and">
+                <to-end/>
+            </transition>
+        </step>
+    </steps>
+</workflow>

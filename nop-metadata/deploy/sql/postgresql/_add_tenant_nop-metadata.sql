@@ -11,6 +11,8 @@ alter table nop_meta_reconciliation_entity add NOP_TENANT_ID VARCHAR(32) DEFAULT
 
 alter table nop_meta_model_changed_event add NOP_TENANT_ID VARCHAR(32) DEFAULT '0' NOT NULL;
 
+alter table nop_meta_glossary add NOP_TENANT_ID VARCHAR(32) DEFAULT '0' NOT NULL;
+
 alter table nop_meta_classification add NOP_TENANT_ID VARCHAR(32) DEFAULT '0' NOT NULL;
 
 alter table nop_meta_orm_model add NOP_TENANT_ID VARCHAR(32) DEFAULT '0' NOT NULL;
@@ -24,6 +26,8 @@ alter table nop_meta_quality_checkpoint add NOP_TENANT_ID VARCHAR(32) DEFAULT '0
 alter table nop_meta_manifest add NOP_TENANT_ID VARCHAR(32) DEFAULT '0' NOT NULL;
 
 alter table nop_meta_quality_result add NOP_TENANT_ID VARCHAR(32) DEFAULT '0' NOT NULL;
+
+alter table nop_meta_glossary_term add NOP_TENANT_ID VARCHAR(32) DEFAULT '0' NOT NULL;
 
 alter table nop_meta_tag add NOP_TENANT_ID VARCHAR(32) DEFAULT '0' NOT NULL;
 
@@ -87,6 +91,9 @@ alter table nop_meta_reconciliation_entity add constraint PK_nop_meta_reconcilia
 alter table nop_meta_model_changed_event drop constraint PK_nop_meta_model_changed_event;
 alter table nop_meta_model_changed_event add constraint PK_nop_meta_model_changed_event primary key (NOP_TENANT_ID, model_changed_event_id);
 
+alter table nop_meta_glossary drop constraint PK_nop_meta_glossary;
+alter table nop_meta_glossary add constraint PK_nop_meta_glossary primary key (NOP_TENANT_ID, glossary_id);
+
 alter table nop_meta_classification drop constraint PK_nop_meta_classification;
 alter table nop_meta_classification add constraint PK_nop_meta_classification primary key (NOP_TENANT_ID, classification_id);
 
@@ -107,6 +114,9 @@ alter table nop_meta_manifest add constraint PK_nop_meta_manifest primary key (N
 
 alter table nop_meta_quality_result drop constraint PK_nop_meta_quality_result;
 alter table nop_meta_quality_result add constraint PK_nop_meta_quality_result primary key (NOP_TENANT_ID, quality_result_id);
+
+alter table nop_meta_glossary_term drop constraint PK_nop_meta_glossary_term;
+alter table nop_meta_glossary_term add constraint PK_nop_meta_glossary_term primary key (NOP_TENANT_ID, glossary_term_id);
 
 alter table nop_meta_tag drop constraint PK_nop_meta_tag;
 alter table nop_meta_tag add constraint PK_nop_meta_tag primary key (NOP_TENANT_ID, tag_id);

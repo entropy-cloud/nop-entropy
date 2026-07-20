@@ -118,6 +118,25 @@ CREATE TABLE nop_meta_model_changed_event(
   constraint PK_nop_meta_model_changed_event primary key (model_changed_event_id)
 );
 
+CREATE TABLE nop_meta_glossary(
+  glossary_id VARCHAR(32) NOT NULL ,
+  name VARCHAR(100) NOT NULL ,
+  display_name VARCHAR(200)  ,
+  description VARCHAR(1000)  ,
+  owner VARCHAR(50)  ,
+  reviewers VARCHAR(1000)  ,
+  mutually_exclusive INT4 default 0  NOT NULL ,
+  namespaces VARCHAR(4000)  ,
+  ext_config VARCHAR(4000)  ,
+  version INT8 NOT NULL ,
+  created_by VARCHAR(50) NOT NULL ,
+  create_time TIMESTAMP NOT NULL ,
+  updated_by VARCHAR(50) NOT NULL ,
+  update_time TIMESTAMP NOT NULL ,
+  remark VARCHAR(200)  ,
+  constraint PK_nop_meta_glossary primary key (glossary_id)
+);
+
 CREATE TABLE nop_meta_classification(
   classification_id VARCHAR(32) NOT NULL ,
   name VARCHAR(100) NOT NULL ,
@@ -243,6 +262,31 @@ CREATE TABLE nop_meta_quality_result(
   update_time TIMESTAMP NOT NULL ,
   remark VARCHAR(200)  ,
   constraint PK_nop_meta_quality_result primary key (quality_result_id)
+);
+
+CREATE TABLE nop_meta_glossary_term(
+  glossary_term_id VARCHAR(32) NOT NULL ,
+  glossary_id VARCHAR(32) NOT NULL ,
+  parent_term_id VARCHAR(32)  ,
+  name VARCHAR(200) NOT NULL ,
+  fully_qualified_name VARCHAR(500)  ,
+  display_name VARCHAR(200)  ,
+  description VARCHAR(1000)  ,
+  synonyms VARCHAR(4000)  ,
+  related_terms VARCHAR(4000)  ,
+  "references" VARCHAR(4000)  ,
+  concept_mappings VARCHAR(4000)  ,
+  iri VARCHAR(500)  ,
+  mutually_exclusive INT4 default 0   ,
+  tags VARCHAR(4000)  ,
+  ext_config VARCHAR(4000)  ,
+  version INT8 NOT NULL ,
+  created_by VARCHAR(50) NOT NULL ,
+  create_time TIMESTAMP NOT NULL ,
+  updated_by VARCHAR(50) NOT NULL ,
+  update_time TIMESTAMP NOT NULL ,
+  remark VARCHAR(200)  ,
+  constraint PK_nop_meta_glossary_term primary key (glossary_term_id)
 );
 
 CREATE TABLE nop_meta_tag(
@@ -466,6 +510,9 @@ CREATE TABLE nop_meta_data_contract(
   updated_by VARCHAR(50) NOT NULL ,
   update_time TIMESTAMP NOT NULL ,
   remark VARCHAR(200)  ,
+  approve_status VARCHAR(20)  ,
+  approved_by VARCHAR(50)  ,
+  approved_at TIMESTAMP  ,
   constraint PK_nop_meta_data_contract primary key (contract_id)
 );
 
@@ -925,6 +972,38 @@ CREATE TABLE nop_meta_reconciliation_result(
                     
       COMMENT ON COLUMN nop_meta_model_changed_event.remark IS '备注';
                     
+      COMMENT ON TABLE nop_meta_glossary IS '词汇表';
+                
+      COMMENT ON COLUMN nop_meta_glossary.glossary_id IS '词汇表ID';
+                    
+      COMMENT ON COLUMN nop_meta_glossary.name IS '词汇表名';
+                    
+      COMMENT ON COLUMN nop_meta_glossary.display_name IS '显示名';
+                    
+      COMMENT ON COLUMN nop_meta_glossary.description IS '描述';
+                    
+      COMMENT ON COLUMN nop_meta_glossary.owner IS '负责人';
+                    
+      COMMENT ON COLUMN nop_meta_glossary.reviewers IS '审核人列表';
+                    
+      COMMENT ON COLUMN nop_meta_glossary.mutually_exclusive IS '是否互斥';
+                    
+      COMMENT ON COLUMN nop_meta_glossary.namespaces IS '命名空间列表';
+                    
+      COMMENT ON COLUMN nop_meta_glossary.ext_config IS '扩展配置';
+                    
+      COMMENT ON COLUMN nop_meta_glossary.version IS '数据版本';
+                    
+      COMMENT ON COLUMN nop_meta_glossary.created_by IS '创建人';
+                    
+      COMMENT ON COLUMN nop_meta_glossary.create_time IS '创建时间';
+                    
+      COMMENT ON COLUMN nop_meta_glossary.updated_by IS '修改人';
+                    
+      COMMENT ON COLUMN nop_meta_glossary.update_time IS '修改时间';
+                    
+      COMMENT ON COLUMN nop_meta_glossary.remark IS '备注';
+                    
       COMMENT ON TABLE nop_meta_classification IS '分类体系';
                 
       COMMENT ON COLUMN nop_meta_classification.classification_id IS '分类ID';
@@ -1136,6 +1215,50 @@ CREATE TABLE nop_meta_reconciliation_result(
       COMMENT ON COLUMN nop_meta_quality_result.update_time IS '修改时间';
                     
       COMMENT ON COLUMN nop_meta_quality_result.remark IS '备注';
+                    
+      COMMENT ON TABLE nop_meta_glossary_term IS '词汇表术语';
+                
+      COMMENT ON COLUMN nop_meta_glossary_term.glossary_term_id IS '术语ID';
+                    
+      COMMENT ON COLUMN nop_meta_glossary_term.glossary_id IS '词汇表ID';
+                    
+      COMMENT ON COLUMN nop_meta_glossary_term.parent_term_id IS '父术语ID';
+                    
+      COMMENT ON COLUMN nop_meta_glossary_term.name IS '术语名';
+                    
+      COMMENT ON COLUMN nop_meta_glossary_term.fully_qualified_name IS '全限定名';
+                    
+      COMMENT ON COLUMN nop_meta_glossary_term.display_name IS '显示名';
+                    
+      COMMENT ON COLUMN nop_meta_glossary_term.description IS '描述';
+                    
+      COMMENT ON COLUMN nop_meta_glossary_term.synonyms IS '同义词';
+                    
+      COMMENT ON COLUMN nop_meta_glossary_term.related_terms IS '相关术语';
+                    
+      COMMENT ON COLUMN nop_meta_glossary_term."references" IS '引用信息';
+                    
+      COMMENT ON COLUMN nop_meta_glossary_term.concept_mappings IS '概念映射';
+                    
+      COMMENT ON COLUMN nop_meta_glossary_term.iri IS 'IRI标识';
+                    
+      COMMENT ON COLUMN nop_meta_glossary_term.mutually_exclusive IS '是否互斥';
+                    
+      COMMENT ON COLUMN nop_meta_glossary_term.tags IS '标签';
+                    
+      COMMENT ON COLUMN nop_meta_glossary_term.ext_config IS '扩展配置';
+                    
+      COMMENT ON COLUMN nop_meta_glossary_term.version IS '数据版本';
+                    
+      COMMENT ON COLUMN nop_meta_glossary_term.created_by IS '创建人';
+                    
+      COMMENT ON COLUMN nop_meta_glossary_term.create_time IS '创建时间';
+                    
+      COMMENT ON COLUMN nop_meta_glossary_term.updated_by IS '修改人';
+                    
+      COMMENT ON COLUMN nop_meta_glossary_term.update_time IS '修改时间';
+                    
+      COMMENT ON COLUMN nop_meta_glossary_term.remark IS '备注';
                     
       COMMENT ON TABLE nop_meta_tag IS '分类标签';
                 
@@ -1524,6 +1647,12 @@ CREATE TABLE nop_meta_reconciliation_result(
       COMMENT ON COLUMN nop_meta_data_contract.update_time IS '修改时间';
                     
       COMMENT ON COLUMN nop_meta_data_contract.remark IS '备注';
+                    
+      COMMENT ON COLUMN nop_meta_data_contract.approve_status IS '审批状态';
+                    
+      COMMENT ON COLUMN nop_meta_data_contract.approved_by IS '审批人';
+                    
+      COMMENT ON COLUMN nop_meta_data_contract.approved_at IS '审批时间';
                     
       COMMENT ON TABLE nop_meta_reconciliation_config IS '对账配置';
                 

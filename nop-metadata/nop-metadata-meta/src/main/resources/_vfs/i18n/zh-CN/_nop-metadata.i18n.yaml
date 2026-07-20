@@ -12,6 +12,8 @@ entity:
     NopMetaEntityIndex: 实体索引
     NopMetaEntityRelation: 实体关系
     NopMetaEntityUniqueKey: 实体唯一键
+    NopMetaGlossary: 词汇表
+    NopMetaGlossaryTerm: 词汇表术语
     NopMetaLineageEdge: 血缘边
     NopMetaManifest: 元数据快照
     NopMetaModelChangedEvent: 元数据变更事件
@@ -77,6 +79,10 @@ prop:
       updatedBy: 修改人
       version: 数据版本
     NopMetaDataContract:
+      approveStatus: 审批状态
+      approveStatus_label: 审批状态
+      approvedAt: 审批时间
+      approvedBy: 审批人
       contractId: 契约ID
       contractName: 契约名
       createTime: 创建时间
@@ -319,6 +325,60 @@ prop:
       tagSet: 标签集
       ukName: 唯一键名
       uniqueKeyId: 唯一键ID
+      updateTime: 修改时间
+      updatedBy: 修改人
+      version: 数据版本
+    NopMetaGlossary:
+      childTerms: 术语集
+      createTime: 创建时间
+      createdBy: 创建人
+      description: 描述
+      displayName: 显示名
+      extConfig: 扩展配置
+      extConfigComponent: null
+      glossaryId: 词汇表ID
+      mutuallyExclusive: 是否互斥
+      name: 词汇表名
+      namespaces: 命名空间列表
+      namespacesComponent: null
+      owner: 负责人
+      remark: 备注
+      reviewers: 审核人列表
+      reviewersComponent: null
+      updateTime: 修改时间
+      updatedBy: 修改人
+      version: 数据版本
+    NopMetaGlossaryTerm:
+      childTerms: 子术语集
+      conceptMappings: 概念映射
+      conceptMappingsComponent: null
+      createTime: 创建时间
+      createdBy: 创建人
+      description: 描述
+      displayName: 显示名
+      extConfig: 扩展配置
+      extConfigComponent: null
+      fullyQualifiedName: 全限定名
+      glossary: 所属词汇表
+      glossary.displayName: 所属词汇表
+      glossaryId: 词汇表ID
+      glossaryTermId: 术语ID
+      iri: IRI标识
+      mutuallyExclusive: 是否互斥
+      name: 术语名
+      parentTerm: 父术语
+      parentTerm.displayName: 父术语
+      parentTermId: 父术语ID
+      references: 引用信息
+      referencesComponent: null
+      relatedTerms: 相关术语
+      relatedTermsComponent: null
+      remark: 备注
+      synonyms: 同义词
+      synonymsComponent: null
+      tagLabels: null
+      tags: 标签
+      tagsComponent: null
       updateTime: 修改时间
       updatedBy: 修改人
       version: 数据版本
@@ -827,6 +887,8 @@ prop:
       entityType: 资产类型
       extConfig: 扩展配置
       extConfigComponent: null
+      glossaryTerm: 业务术语
+      glossaryTerm.displayName: 业务术语
       glossaryTermId: 业务术语ID
       labelType: 标注类型
       labelType_label: 标注类型

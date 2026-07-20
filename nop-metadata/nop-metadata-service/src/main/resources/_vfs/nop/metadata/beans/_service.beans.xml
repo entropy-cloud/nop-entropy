@@ -53,6 +53,14 @@
         <property name="bizObjName" value="NopMetaModelChangedEvent"/>
     </bean>
 
+    <bean id="io.nop.metadata.service.entity.NopMetaGlossaryBizModel" ioc:type="@bean:id" ioc:default="true"/>
+
+    <bean id="biz_NopMetaGlossary" class="io.nop.biz.proxy.BizProxyFactoryBean"
+          ioc:type="io.nop.metadata.biz.INopMetaGlossaryBiz" ioc:force-lazy-property="true" lazy-init="true"
+          primary="true">
+        <property name="bizObjName" value="NopMetaGlossary"/>
+    </bean>
+
     <bean id="io.nop.metadata.service.entity.NopMetaClassificationBizModel" ioc:type="@bean:id" ioc:default="true"/>
 
     <bean id="biz_NopMetaClassification" class="io.nop.biz.proxy.BizProxyFactoryBean"
@@ -106,6 +114,14 @@
           ioc:type="io.nop.metadata.biz.INopMetaQualityResultBiz" ioc:force-lazy-property="true" lazy-init="true"
           primary="true">
         <property name="bizObjName" value="NopMetaQualityResult"/>
+    </bean>
+
+    <bean id="io.nop.metadata.service.entity.NopMetaGlossaryTermBizModel" ioc:type="@bean:id" ioc:default="true"/>
+
+    <bean id="biz_NopMetaGlossaryTerm" class="io.nop.biz.proxy.BizProxyFactoryBean"
+          ioc:type="io.nop.metadata.biz.INopMetaGlossaryTermBiz" ioc:force-lazy-property="true" lazy-init="true"
+          primary="true">
+        <property name="bizObjName" value="NopMetaGlossaryTerm"/>
     </bean>
 
     <bean id="io.nop.metadata.service.entity.NopMetaTagBizModel" ioc:type="@bean:id" ioc:default="true"/>

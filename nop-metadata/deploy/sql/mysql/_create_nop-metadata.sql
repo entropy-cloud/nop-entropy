@@ -118,6 +118,25 @@ CREATE TABLE nop_meta_model_changed_event(
   constraint PK_nop_meta_model_changed_event primary key (MODEL_CHANGED_EVENT_ID)
 )CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_as_cs;
 
+CREATE TABLE nop_meta_glossary(
+  GLOSSARY_ID VARCHAR(32) NOT NULL    COMMENT '词汇表ID',
+  NAME VARCHAR(100) NOT NULL    COMMENT '词汇表名',
+  DISPLAY_NAME VARCHAR(200) NULL    COMMENT '显示名',
+  DESCRIPTION VARCHAR(1000) NULL    COMMENT '描述',
+  OWNER VARCHAR(50) NULL    COMMENT '负责人',
+  REVIEWERS VARCHAR(1000) NULL    COMMENT '审核人列表',
+  MUTUALLY_EXCLUSIVE TINYINT default 0  NOT NULL    COMMENT '是否互斥',
+  NAMESPACES VARCHAR(4000) NULL    COMMENT '命名空间列表',
+  EXT_CONFIG VARCHAR(4000) NULL    COMMENT '扩展配置',
+  VERSION BIGINT NOT NULL    COMMENT '数据版本',
+  CREATED_BY VARCHAR(50) NOT NULL    COMMENT '创建人',
+  CREATE_TIME DATETIME(3) DEFAULT CURRENT_TIMESTAMP(3)  NOT NULL    COMMENT '创建时间',
+  UPDATED_BY VARCHAR(50) NOT NULL    COMMENT '修改人',
+  UPDATE_TIME DATETIME(3) DEFAULT CURRENT_TIMESTAMP(3)  NOT NULL    COMMENT '修改时间',
+  REMARK VARCHAR(200) NULL    COMMENT '备注',
+  constraint PK_nop_meta_glossary primary key (GLOSSARY_ID)
+)CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_as_cs;
+
 CREATE TABLE nop_meta_classification(
   CLASSIFICATION_ID VARCHAR(32) NOT NULL    COMMENT '分类ID',
   NAME VARCHAR(100) NOT NULL    COMMENT '分类名',
@@ -243,6 +262,31 @@ CREATE TABLE nop_meta_quality_result(
   UPDATE_TIME DATETIME(3) DEFAULT CURRENT_TIMESTAMP(3)  NOT NULL    COMMENT '修改时间',
   REMARK VARCHAR(200) NULL    COMMENT '备注',
   constraint PK_nop_meta_quality_result primary key (QUALITY_RESULT_ID)
+)CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_as_cs;
+
+CREATE TABLE nop_meta_glossary_term(
+  GLOSSARY_TERM_ID VARCHAR(32) NOT NULL    COMMENT '术语ID',
+  GLOSSARY_ID VARCHAR(32) NOT NULL    COMMENT '词汇表ID',
+  PARENT_TERM_ID VARCHAR(32) NULL    COMMENT '父术语ID',
+  NAME VARCHAR(200) NOT NULL    COMMENT '术语名',
+  FULLY_QUALIFIED_NAME VARCHAR(500) NULL    COMMENT '全限定名',
+  DISPLAY_NAME VARCHAR(200) NULL    COMMENT '显示名',
+  DESCRIPTION VARCHAR(1000) NULL    COMMENT '描述',
+  SYNONYMS VARCHAR(4000) NULL    COMMENT '同义词',
+  RELATED_TERMS VARCHAR(4000) NULL    COMMENT '相关术语',
+  `REFERENCES` VARCHAR(4000) NULL    COMMENT '引用信息',
+  CONCEPT_MAPPINGS VARCHAR(4000) NULL    COMMENT '概念映射',
+  IRI VARCHAR(500) NULL    COMMENT 'IRI标识',
+  MUTUALLY_EXCLUSIVE TINYINT default 0  NULL    COMMENT '是否互斥',
+  TAGS VARCHAR(4000) NULL    COMMENT '标签',
+  EXT_CONFIG VARCHAR(4000) NULL    COMMENT '扩展配置',
+  VERSION BIGINT NOT NULL    COMMENT '数据版本',
+  CREATED_BY VARCHAR(50) NOT NULL    COMMENT '创建人',
+  CREATE_TIME DATETIME(3) DEFAULT CURRENT_TIMESTAMP(3)  NOT NULL    COMMENT '创建时间',
+  UPDATED_BY VARCHAR(50) NOT NULL    COMMENT '修改人',
+  UPDATE_TIME DATETIME(3) DEFAULT CURRENT_TIMESTAMP(3)  NOT NULL    COMMENT '修改时间',
+  REMARK VARCHAR(200) NULL    COMMENT '备注',
+  constraint PK_nop_meta_glossary_term primary key (GLOSSARY_TERM_ID)
 )CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_as_cs;
 
 CREATE TABLE nop_meta_tag(
@@ -466,6 +510,9 @@ CREATE TABLE nop_meta_data_contract(
   UPDATED_BY VARCHAR(50) NOT NULL    COMMENT '修改人',
   UPDATE_TIME DATETIME(3) DEFAULT CURRENT_TIMESTAMP(3)  NOT NULL    COMMENT '修改时间',
   REMARK VARCHAR(200) NULL    COMMENT '备注',
+  APPROVE_STATUS VARCHAR(20) NULL    COMMENT '审批状态',
+  APPROVED_BY VARCHAR(50) NULL    COMMENT '审批人',
+  APPROVED_AT DATETIME(3) NULL    COMMENT '审批时间',
   constraint PK_nop_meta_data_contract primary key (CONTRACT_ID)
 )CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_as_cs;
 
@@ -735,6 +782,8 @@ CREATE TABLE nop_meta_reconciliation_result(
                 
    ALTER TABLE nop_meta_model_changed_event COMMENT '元数据变更事件';
                 
+   ALTER TABLE nop_meta_glossary COMMENT '词汇表';
+                
    ALTER TABLE nop_meta_classification COMMENT '分类体系';
                 
    ALTER TABLE nop_meta_orm_model COMMENT 'ORM模型';
@@ -748,6 +797,8 @@ CREATE TABLE nop_meta_reconciliation_result(
    ALTER TABLE nop_meta_manifest COMMENT '元数据快照';
                 
    ALTER TABLE nop_meta_quality_result COMMENT '质量结果';
+                
+   ALTER TABLE nop_meta_glossary_term COMMENT '词汇表术语';
                 
    ALTER TABLE nop_meta_tag COMMENT '分类标签';
                 

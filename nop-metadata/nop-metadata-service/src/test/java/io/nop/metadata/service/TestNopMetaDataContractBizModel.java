@@ -10,6 +10,9 @@ import io.nop.autotest.junit.JunitBaseTestCase;
 import io.nop.dao.api.IDaoProvider;
 import io.nop.dao.api.IEntityDao;
 import io.nop.graphql.core.engine.IGraphQLEngine;
+import io.nop.dao.api.IDaoProvider;
+import io.nop.dao.api.IEntityDao;
+import io.nop.graphql.core.engine.IGraphQLEngine;
 import io.nop.metadata.dao.entity.NopMetaCatalog;
 import io.nop.metadata.dao.entity.NopMetaDataContract;
 import io.nop.metadata.dao.entity.NopMetaModule;
@@ -22,30 +25,8 @@ import org.junit.jupiter.api.Test;
 import java.sql.Timestamp;
 import java.util.UUID;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.*;
 
-/**
- * 验证数据契约状态生命周期 + 契约检查（设计 04 §2.3/§5.2，plan 0900-1 Phase 2）：
- *
- * <p>状态流转：合法流转成功更新 status；非法流转显式失败抛 ErrorCode。
- *
- * <p>checkContract 端到端（D2 钉死算法）：
- * <ul>
- *   <li>质量路径：聚合 qualityRuleIds 引用的质量规则最新 QualityResult → PASS/FAIL。</li>
- *   <li>SLA 路径：基于 Catalog 最新快照的 refreshFrequency↔collectedAt 新鲜度判断 → fresh/stale。</li>
- *   <li>混合归并：质量 PASS+SLA stale→FAIL；全部通过→PASS。</li>
- *   <li>无可检查项 → ERROR（不静默 pass）。</li>
- *   <li>ruleId 不存在 → ERROR。</li>
- *   <li>契约不存在 → 显式失败（不 NPE）。</li>
- * </ul>
- *
- * <p>Anti-Hollow：checkContract 端到端用真实 QualityRule + QualityResult + Catalog 行数据，
- * 断言 latestResult 写入且 status/failedRules/slaFresh 由 D2 钉死算法唯一确定，证明 MetaContractChecker
- * 在运行时确实聚合了真实数据并写回，非空壳实现。
- */
 @NopTestConfig(localDb = true, initDatabaseSchema = OptionalBoolean.TRUE)
 public class TestNopMetaDataContractBizModel extends JunitBaseTestCase {
 
@@ -59,49 +40,28 @@ public class TestNopMetaDataContractBizModel extends JunitBaseTestCase {
     @Inject
     IDaoProvider daoProvider;
 
-    // ===== 状态生命周期 =====
+    // ===== 审批流 - 守卫测试（approve/reject 在非 SUBMITTED 状态应失败） =====
 
-    /** 合法流转：DRAFT→ACTIVE→DEPRECATED→RETIRED 全链路成功。 */
+    /** approve 在非 SUBMITTED 状态应失败 */
     @Test
-    public void testLegalTransitionsFullLifecycle() {
-        String id = saveContract("c-lc", "DRAFT", null, null, null);
-        assertStatus(activate(id), "ACTIVE");
-        assertStatus(deprecate(id), "DEPRECATED");
-        assertStatus(retire(id), "RETIRED");
-        // 持久化验证
-        assertEquals("RETIRED", daoProvider.daoFor(NopMetaDataContract.class).getEntityById(id).getStatus());
+    public void testApproveGuardOnWrongState() {
+        String id = saveContract("c-guard-1", "DRAFT", null, null, null);
+        GraphQLResponseBean resp = graphQLEngine.executeGraphQL(graphQLEngine.newGraphQLContext(req(
+                "mutation { NopMetaDataContract__approve(id: \"" + id + "\") { status } }")));
+        assertTrue(resp.hasError(), "approve on non-SUBMITTED must fail: " + resp);
     }
 
-    /** 非法流转：DRAFT→DEPRECATED（跳过 ACTIVE）显式失败，status 不变。 */
+    /** reject 在非 SUBMITTED 状态应失败 */
     @Test
-    public void testIllegalTransitionDeprecateFromDraft() {
-        String id = saveContract("c-illegal-1", "DRAFT", null, null, null);
-        GraphQLResponseBean resp = deprecate(id);
-        assertTrue(resp.hasError(), "DRAFT→DEPRECATED must explicitly fail: " + resp);
-        assertEquals("DRAFT", daoProvider.daoFor(NopMetaDataContract.class).getEntityById(id).getStatus());
-    }
-
-    /** 非法流转：DRAFT→RETIRED 显式失败。 */
-    @Test
-    public void testIllegalTransitionRetireFromDraft() {
-        String id = saveContract("c-illegal-2", "DRAFT", null, null, null);
-        GraphQLResponseBean resp = retire(id);
-        assertTrue(resp.hasError(), "DRAFT→RETIRED must explicitly fail: " + resp);
-    }
-
-    /** 非法流转：已 RETIRED 再 activate 显式失败（终态不可再流转）。 */
-    @Test
-    public void testIllegalTransitionFromRetired() {
-        String id = saveContract("c-illegal-3", "DEPRECATED", null, null, null);
-        assertStatus(retire(id), "RETIRED");
-        GraphQLResponseBean resp = activate(id);
-        assertTrue(resp.hasError(), "RETIRED→ACTIVE must explicitly fail (terminal state): " + resp);
-        assertEquals("RETIRED", daoProvider.daoFor(NopMetaDataContract.class).getEntityById(id).getStatus());
+    public void testRejectGuardOnWrongState() {
+        String id = saveContract("c-guard-2", "DRAFT", null, null, null);
+        GraphQLResponseBean resp = graphQLEngine.executeGraphQL(graphQLEngine.newGraphQLContext(req(
+                "mutation { NopMetaDataContract__reject(id: \"" + id + "\") { status } }")));
+        assertTrue(resp.hasError(), "reject on non-SUBMITTED must fail: " + resp);
     }
 
     // ===== checkContract：质量路径 =====
 
-    /** 质量 PASS：两条规则最新结果都 PASS → checkContract status=PASS。 */
     @Test
     public void testCheckContractQualityPass() {
         String ruleId1 = saveQualityRule("qr-pass-1");
@@ -119,7 +79,6 @@ public class TestNopMetaDataContractBizModel extends JunitBaseTestCase {
         assertLatestResultWritten(id, "PASS");
     }
 
-    /** 质量 FAIL：一条规则最新结果 FAIL → checkContract status=FAIL（failedRules=1）。 */
     @Test
     public void testCheckContractQualityFail() {
         String ruleId1 = saveQualityRule("qr-fail-1");
@@ -136,13 +95,10 @@ public class TestNopMetaDataContractBizModel extends JunitBaseTestCase {
         assertLatestResultWritten(id, "FAIL");
     }
 
-    // ===== checkContract：SLA 路径 =====
-
-    /** SLA fresh：Catalog 刚收集（collectedAt=now），refreshFrequency=1 day → slaFresh=true → status=PASS。 */
     @Test
     public void testCheckContractSlaFresh() {
         String tableId = saveExternalTable("EXT_SLA_FRESH");
-        saveCatalog(tableId, System.currentTimeMillis(), null); // lastModified=null（v1 恒 null）
+        saveCatalog(tableId, System.currentTimeMillis(), null);
 
         String id = saveContract("c-sla-fresh", "ACTIVE", tableId, null,
                 "{\"refreshFrequency\":{\"interval\":1,\"unit\":\"day\"}}");
@@ -153,7 +109,6 @@ public class TestNopMetaDataContractBizModel extends JunitBaseTestCase {
         assertLatestResultContains(id, "\"collectionStale\":false");
     }
 
-    /** SLA stale：Catalog collectedAt=2小时前，refreshFrequency=1 hour → collectionStale=true → slaFresh=false → status=FAIL。 */
     @Test
     public void testCheckContractSlaStale() {
         String tableId = saveExternalTable("EXT_SLA_STALE");
@@ -170,9 +125,6 @@ public class TestNopMetaDataContractBizModel extends JunitBaseTestCase {
         assertLatestResultWritten(id, "FAIL");
     }
 
-    // ===== checkContract：混合归并 =====
-
-    /** 混合：质量 PASS + SLA stale → FAIL（D2：SLA stale 任一成立 → FAIL）。 */
     @Test
     public void testCheckContractQualityPassSlaStaleFail() {
         String ruleId = saveQualityRule("qr-mix-1");
@@ -187,14 +139,10 @@ public class TestNopMetaDataContractBizModel extends JunitBaseTestCase {
         GraphQLResponseBean resp = check(id);
         assertFalse(resp.hasError(), "check should not error: " + resp);
         assertCheckStatus(resp, "FAIL");
-        // 质量本身通过，但因 SLA stale 而整体 FAIL
         assertLatestResultContains(id, "\"passedRules\":1");
         assertLatestResultContains(id, "\"slaFresh\":false");
     }
 
-    // ===== checkContract：失败路径（不静默 pass / 不吞异常） =====
-
-    /** 无可检查项：qualityExpectations 为空且 sla 为空 → status=ERROR（不静默 pass）。 */
     @Test
     public void testCheckContractNoCheckableItemsError() {
         String id = saveContract("c-empty", "ACTIVE", null, null, null);
@@ -204,7 +152,6 @@ public class TestNopMetaDataContractBizModel extends JunitBaseTestCase {
         assertLatestResultWritten(id, "ERROR");
     }
 
-    /** ruleId 不存在 → status=ERROR（不静默 pass）。 */
     @Test
     public void testCheckContractRuleIdNotExistError() {
         String id = saveContract("c-bad-rule", "ACTIVE", null,
@@ -215,7 +162,6 @@ public class TestNopMetaDataContractBizModel extends JunitBaseTestCase {
         assertLatestResultWritten(id, "ERROR");
     }
 
-    /** 契约不存在 → 显式失败（不 NPE）。 */
     @Test
     public void testCheckContractNotFound() {
         GraphQLResponseBean resp = graphQLEngine.executeGraphQL(graphQLEngine.newGraphQLContext(req(
@@ -223,7 +169,6 @@ public class TestNopMetaDataContractBizModel extends JunitBaseTestCase {
         assertTrue(resp.hasError(), "non-existent contract must error (no NPE): " + resp);
     }
 
-    /** DRAFT 可预检：checkContract 不受 status 阻断。 */
     @Test
     public void testCheckContractDraftPreCheck() {
         String ruleId = saveQualityRule("qr-draft-1");
@@ -237,23 +182,7 @@ public class TestNopMetaDataContractBizModel extends JunitBaseTestCase {
 
     // ===== helpers =====
 
-    private GraphQLResponseBean activate(String id) {
-        return graphQLEngine.executeGraphQL(graphQLEngine.newGraphQLContext(req(
-                "mutation { NopMetaDataContract__activateContract(contractId: \"" + id + "\") { status } }")));
-    }
-
-    private GraphQLResponseBean deprecate(String id) {
-        return graphQLEngine.executeGraphQL(graphQLEngine.newGraphQLContext(req(
-                "mutation { NopMetaDataContract__deprecateContract(contractId: \"" + id + "\") { status } }")));
-    }
-
-    private GraphQLResponseBean retire(String id) {
-        return graphQLEngine.executeGraphQL(graphQLEngine.newGraphQLContext(req(
-                "mutation { NopMetaDataContract__retireContract(contractId: \"" + id + "\") { status } }")));
-    }
-
     private GraphQLResponseBean check(String id) {
-        // checkContract 返回 Map<String,Object>（GraphQL 标量），不使用 selection set（同 executeQualityRule 先例）
         return graphQLEngine.executeGraphQL(graphQLEngine.newGraphQLContext(req(
                 "mutation { NopMetaDataContract__checkContract(contractId: \"" + id + "\") }")));
     }
@@ -371,12 +300,6 @@ public class TestNopMetaDataContractBizModel extends JunitBaseTestCase {
         module.setImportedAt(new Timestamp(System.currentTimeMillis()));
         moduleDao.saveEntity(module);
         return module.getMetaModuleId();
-    }
-
-    private void assertStatus(GraphQLResponseBean resp, String expected) {
-        assertFalse(resp.hasError(), "transition should not error: " + resp);
-        String data = String.valueOf(resp.getData());
-        assertTrue(data.contains("status=" + expected), "expected status=" + expected + " but got: " + data);
     }
 
     private void assertCheckStatus(GraphQLResponseBean resp, String expected) {

@@ -12,6 +12,8 @@ entity:
     NopMetaEntityIndex: Meta Entity Index
     NopMetaEntityRelation: Meta Entity Relation
     NopMetaEntityUniqueKey: Meta Entity Unique Key
+    NopMetaGlossary: Meta Glossary
+    NopMetaGlossaryTerm: Meta Glossary Term
     NopMetaLineageEdge: Meta Lineage Edge
     NopMetaManifest: Meta Manifest
     NopMetaModelChangedEvent: Meta Model Changed Event
@@ -97,6 +99,10 @@ prop:
       updatedBy: Updated By
       updateTime: Update Time
       remark: Remark
+      approveStatus: Approve Status
+      approveStatus_label: null
+      approvedBy: Approved By
+      approvedAt: Approved At
       metaTable: Meta Table
       metaTable.displayName: Meta Table
       schemaComponent: null
@@ -322,6 +328,60 @@ prop:
       remark: Remark
       metaEntity: Meta Entity
       metaEntity.displayName: Meta Entity
+    NopMetaGlossary:
+      glossaryId: Glossary Id
+      name: Name
+      displayName: Display Name
+      description: Description
+      owner: Owner
+      reviewers: Reviewers
+      mutuallyExclusive: Mutually Exclusive
+      namespaces: Namespaces
+      extConfig: Ext Config
+      version: Version
+      createdBy: Created By
+      createTime: Create Time
+      updatedBy: Updated By
+      updateTime: Update Time
+      remark: Remark
+      childTerms: Child Terms
+      reviewersComponent: null
+      namespacesComponent: null
+      extConfigComponent: null
+    NopMetaGlossaryTerm:
+      glossaryTermId: Glossary Term Id
+      glossaryId: Glossary Id
+      parentTermId: Parent Term Id
+      name: Name
+      fullyQualifiedName: Fully Qualified Name
+      displayName: Display Name
+      description: Description
+      synonyms: Synonyms
+      relatedTerms: Related Terms
+      references: References
+      conceptMappings: Concept Mappings
+      iri: Iri
+      mutuallyExclusive: Mutually Exclusive
+      tags: Tags
+      extConfig: Ext Config
+      version: Version
+      createdBy: Created By
+      createTime: Create Time
+      updatedBy: Updated By
+      updateTime: Update Time
+      remark: Remark
+      glossary: Glossary
+      glossary.displayName: Glossary
+      parentTerm: Parent Term
+      parentTerm.displayName: Parent Term
+      childTerms: Child Terms
+      tagLabels: null
+      synonymsComponent: null
+      relatedTermsComponent: null
+      referencesComponent: null
+      conceptMappingsComponent: null
+      tagsComponent: null
+      extConfigComponent: null
     NopMetaLineageEdge:
       lineageEdgeId: Lineage Edge Id
       sourceTableId: Source Table Id
@@ -843,6 +903,8 @@ prop:
       remark: Remark
       tag: Tag
       tag.displayName: Tag
+      glossaryTerm: Glossary Term
+      glossaryTerm.displayName: Glossary Term
       metadataComponent: null
       extConfigComponent: null
 dict:

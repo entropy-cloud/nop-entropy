@@ -32,7 +32,7 @@
             <schema type="java.lang.String" precision="32"/>
         </prop>
         <prop name="glossaryTermId" displayName="业务术语ID" propId="4" i18n-en:displayName="Glossary Term Id"
-              queryable="true" sortable="true" insertable="true" updatable="true">
+              queryable="true" sortable="true" insertable="true" updatable="true" ext:relation="glossaryTerm">
             <schema type="java.lang.String" precision="32"/>
         </prop>
         <prop name="labelType" displayName="标注类型" propId="5" i18n-en:displayName="Label Type" mandatory="true"
@@ -102,6 +102,16 @@
         </prop>
         <prop name="tag.displayName" displayName="标签" i18n-en:displayName="Tag" internal="true" queryable="true"
               sortable="true" lazy="true">
+            <schema type="String"/>
+        </prop>
+        <prop name="glossaryTerm" displayName="业务术语" i18n-en:displayName="Glossary Term" tagSet="pub,ref-pub"
+              ext:kind="to-one" internal="true" queryable="true" ext:joinLeftProp="glossaryTermId"
+              ext:joinRightProp="glossaryTermId" ext:joinRightDisplayProp="displayName" insertable="false"
+              updatable="false" lazy="true">
+            <schema bizObjName="NopMetaGlossaryTerm"/>
+        </prop>
+        <prop name="glossaryTerm.displayName" displayName="业务术语" i18n-en:displayName="Glossary Term" internal="true"
+              queryable="true" sortable="true" lazy="true">
             <schema type="String"/>
         </prop>
         <prop name="metadataComponent" tagSet="json,pub,edit" ext:kind="component" internal="true" insertable="true"

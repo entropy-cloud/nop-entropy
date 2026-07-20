@@ -104,6 +104,9 @@ public class _NopMetaTagLabel extends DynamicOrmEntity{
     /* relation: 标签 */
     public static final String PROP_NAME_tag = "tag";
     
+    /* relation: 业务术语 */
+    public static final String PROP_NAME_glossaryTerm = "glossaryTerm";
+    
     /* component:  */
     public static final String PROP_NAME_metadataComponent = "metadataComponent";
     
@@ -1093,6 +1096,29 @@ public class _NopMetaTagLabel extends DynamicOrmEntity{
            internalSetRefEntity(PROP_NAME_tag, refEntity,()->{
            
                            this.setTagId(refEntity.getTagId());
+                       
+           });
+           }
+       
+    }
+       
+    /**
+     * 业务术语
+     */
+    public final io.nop.metadata.dao.entity.NopMetaGlossaryTerm getGlossaryTerm(){
+       return (io.nop.metadata.dao.entity.NopMetaGlossaryTerm)internalGetRefEntity(PROP_NAME_glossaryTerm);
+    }
+
+    public final void setGlossaryTerm(io.nop.metadata.dao.entity.NopMetaGlossaryTerm refEntity){
+   
+           if(refEntity == null){
+           
+                   this.setGlossaryTermId(null);
+               
+           }else{
+           internalSetRefEntity(PROP_NAME_glossaryTerm, refEntity,()->{
+           
+                           this.setGlossaryTermId(refEntity.getGlossaryTermId());
                        
            });
            }

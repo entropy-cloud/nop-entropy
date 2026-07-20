@@ -2082,8 +2082,8 @@
         </entity>
         <entity className="io.nop.metadata.dao.entity.NopMetaDataContract" createTimeProp="createTime"
                 createrProp="createdBy" displayName="数据契约" name="io.nop.metadata.dao.entity.NopMetaDataContract"
-                registerShortName="true" tableName="nop_meta_data_contract" updateTimeProp="updateTime"
-                updaterProp="updatedBy" versionProp="version" ext:icon="file-check-2"
+                registerShortName="true" tableName="nop_meta_data_contract" tagSet="use-approval"
+                updateTimeProp="updateTime" updaterProp="updatedBy" versionProp="version" ext:icon="file-check-2"
                 i18n-en:displayName="Meta Data Contract">
             <columns>
                 <column code="CONTRACT_ID" displayName="契约ID" mandatory="true" name="contractId" precision="32"
@@ -2132,6 +2132,13 @@
                         propId="18" stdDataType="timestamp" stdSqlType="TIMESTAMP" i18n-en:displayName="Update Time"/>
                 <column code="REMARK" displayName="备注" domain="remark" name="remark" precision="200" propId="19"
                         stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Remark"/>
+                <column code="APPROVE_STATUS" displayName="审批状态" name="approveStatus" precision="20" propId="20"
+                        stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Approve Status"
+                        ext:dict="wf/approve-status"/>
+                <column code="APPROVED_BY" displayName="审批人" name="approvedBy" precision="50" propId="21"
+                        stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Approved By"/>
+                <column code="APPROVED_AT" displayName="审批时间" name="approvedAt" propId="22" stdDataType="timestamp"
+                        stdSqlType="TIMESTAMP" i18n-en:displayName="Approved At"/>
             </columns>
             <indexes>
                 <index name="IX_NOP_META_CONTRACT_TABLE" unique="false">
@@ -2467,6 +2474,162 @@
                 </index>
             </indexes>
         </entity>
+        <entity className="io.nop.metadata.dao.entity.NopMetaGlossary" createTimeProp="createTime"
+                createrProp="createdBy" displayName="词汇表" name="io.nop.metadata.dao.entity.NopMetaGlossary"
+                registerShortName="true" tableName="nop_meta_glossary" updateTimeProp="updateTime"
+                updaterProp="updatedBy" versionProp="version" ext:icon="book-text" i18n-en:displayName="Meta Glossary">
+            <columns>
+                <column code="GLOSSARY_ID" displayName="词汇表ID" mandatory="true" name="glossaryId" precision="32"
+                        primary="true" propId="1" stdDataType="string" stdSqlType="VARCHAR" tagSet="seq"
+                        i18n-en:displayName="Glossary Id"/>
+                <column code="NAME" displayName="词汇表名" mandatory="true" name="name" precision="100" propId="2"
+                        stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Name"/>
+                <column code="DISPLAY_NAME" displayName="显示名" name="displayName" precision="200" propId="3"
+                        stdDataType="string" stdSqlType="VARCHAR" tagSet="disp" i18n-en:displayName="Display Name"/>
+                <column code="DESCRIPTION" displayName="描述" name="description" precision="1000" propId="4"
+                        stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Description"/>
+                <column code="OWNER" displayName="负责人" name="owner" precision="50" propId="5" stdDataType="string"
+                        stdSqlType="VARCHAR" i18n-en:displayName="Owner"/>
+                <column code="REVIEWERS" displayName="审核人列表" domain="json-1000" name="reviewers" precision="1000"
+                        propId="6" stdDataType="string" stdDomain="json" stdSqlType="VARCHAR"
+                        i18n-en:displayName="Reviewers"/>
+                <column code="MUTUALLY_EXCLUSIVE" defaultValue="0" displayName="是否互斥" domain="boolFlag" mandatory="true"
+                        name="mutuallyExclusive" propId="7" stdDataType="byte" stdSqlType="TINYINT"
+                        i18n-en:displayName="Mutually Exclusive"/>
+                <column code="NAMESPACES" displayName="命名空间列表" domain="json-4000" name="namespaces" precision="4000"
+                        propId="8" stdDataType="string" stdDomain="json" stdSqlType="VARCHAR"
+                        i18n-en:displayName="Namespaces"/>
+                <column code="EXT_CONFIG" displayName="扩展配置" domain="json-4000" name="extConfig" precision="4000"
+                        propId="9" stdDataType="string" stdDomain="json" stdSqlType="VARCHAR"
+                        i18n-en:displayName="Ext Config"/>
+                <column code="VERSION" displayName="数据版本" domain="version" mandatory="true" name="version" propId="10"
+                        stdDataType="long" stdSqlType="BIGINT" i18n-en:displayName="Version"/>
+                <column code="CREATED_BY" displayName="创建人" domain="createdBy" mandatory="true" name="createdBy"
+                        precision="50" propId="11" stdDataType="string" stdSqlType="VARCHAR"
+                        i18n-en:displayName="Created By"/>
+                <column code="CREATE_TIME" displayName="创建时间" domain="createTime" mandatory="true" name="createTime"
+                        propId="12" stdDataType="timestamp" stdSqlType="TIMESTAMP" i18n-en:displayName="Create Time"/>
+                <column code="UPDATED_BY" displayName="修改人" domain="updatedBy" mandatory="true" name="updatedBy"
+                        precision="50" propId="13" stdDataType="string" stdSqlType="VARCHAR"
+                        i18n-en:displayName="Updated By"/>
+                <column code="UPDATE_TIME" displayName="修改时间" domain="updateTime" mandatory="true" name="updateTime"
+                        propId="14" stdDataType="timestamp" stdSqlType="TIMESTAMP" i18n-en:displayName="Update Time"/>
+                <column code="REMARK" displayName="备注" domain="remark" name="remark" precision="200" propId="15"
+                        stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Remark"/>
+            </columns>
+            <relations>
+                <to-many displayName="术语集" name="childTerms"
+                         refEntityName="io.nop.metadata.dao.entity.NopMetaGlossaryTerm" refPropName="glossary"
+                         tagSet="pub,ref-pub" i18n-en:displayName="Child Terms">
+                    <join>
+                        <on leftProp="glossaryId" rightProp="glossaryId"/>
+                    </join>
+                </to-many>
+            </relations>
+            <unique-keys>
+                <unique-key columns="name" name="UK_NOP_META_GLOSSARY_NAME" i18n-en:displayName="Unique Glossary Name"/>
+            </unique-keys>
+        </entity>
+        <entity className="io.nop.metadata.dao.entity.NopMetaGlossaryTerm" createTimeProp="createTime"
+                createrProp="createdBy" displayName="词汇表术语" name="io.nop.metadata.dao.entity.NopMetaGlossaryTerm"
+                registerShortName="true" tableName="nop_meta_glossary_term" updateTimeProp="updateTime"
+                updaterProp="updatedBy" versionProp="version" ext:icon="bookmark"
+                i18n-en:displayName="Meta Glossary Term">
+            <columns>
+                <column code="GLOSSARY_TERM_ID" displayName="术语ID" mandatory="true" name="glossaryTermId" precision="32"
+                        primary="true" propId="1" stdDataType="string" stdSqlType="VARCHAR" tagSet="seq"
+                        i18n-en:displayName="Glossary Term Id"/>
+                <column code="GLOSSARY_ID" displayName="词汇表ID" mandatory="true" name="glossaryId" precision="32"
+                        propId="2" stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Glossary Id"/>
+                <column code="PARENT_TERM_ID" displayName="父术语ID" name="parentTermId" precision="32" propId="3"
+                        stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Parent Term Id"/>
+                <column code="NAME" displayName="术语名" mandatory="true" name="name" precision="200" propId="4"
+                        stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Name"/>
+                <column code="FULLY_QUALIFIED_NAME" displayName="全限定名" name="fullyQualifiedName" precision="500"
+                        propId="5" stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Fully Qualified Name"/>
+                <column code="DISPLAY_NAME" displayName="显示名" name="displayName" precision="200" propId="6"
+                        stdDataType="string" stdSqlType="VARCHAR" tagSet="disp" i18n-en:displayName="Display Name"/>
+                <column code="DESCRIPTION" displayName="描述" name="description" precision="1000" propId="7"
+                        stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Description"/>
+                <column code="SYNONYMS" displayName="同义词" domain="json-4000" name="synonyms" precision="4000" propId="8"
+                        stdDataType="string" stdDomain="json" stdSqlType="VARCHAR" i18n-en:displayName="Synonyms"/>
+                <column code="RELATED_TERMS" displayName="相关术语" domain="json-4000" name="relatedTerms" precision="4000"
+                        propId="9" stdDataType="string" stdDomain="json" stdSqlType="VARCHAR"
+                        i18n-en:displayName="Related Terms"/>
+                <column code="REFERENCES" displayName="引用信息" domain="json-4000" name="references" precision="4000"
+                        propId="10" stdDataType="string" stdDomain="json" stdSqlType="VARCHAR"
+                        i18n-en:displayName="References"/>
+                <column code="CONCEPT_MAPPINGS" displayName="概念映射" domain="json-4000" name="conceptMappings"
+                        precision="4000" propId="11" stdDataType="string" stdDomain="json" stdSqlType="VARCHAR"
+                        i18n-en:displayName="Concept Mappings"/>
+                <column code="IRI" displayName="IRI标识" name="iri" precision="500" propId="12" stdDataType="string"
+                        stdSqlType="VARCHAR" i18n-en:displayName="Iri"/>
+                <column code="MUTUALLY_EXCLUSIVE" defaultValue="0" displayName="是否互斥" domain="boolFlag"
+                        name="mutuallyExclusive" propId="13" stdDataType="byte" stdSqlType="TINYINT"
+                        i18n-en:displayName="Mutually Exclusive"/>
+                <column code="TAGS" displayName="标签" domain="json-4000" name="tags" precision="4000" propId="14"
+                        stdDataType="string" stdDomain="json" stdSqlType="VARCHAR" i18n-en:displayName="Tags"/>
+                <column code="EXT_CONFIG" displayName="扩展配置" domain="json-4000" name="extConfig" precision="4000"
+                        propId="15" stdDataType="string" stdDomain="json" stdSqlType="VARCHAR"
+                        i18n-en:displayName="Ext Config"/>
+                <column code="VERSION" displayName="数据版本" domain="version" mandatory="true" name="version" propId="16"
+                        stdDataType="long" stdSqlType="BIGINT" i18n-en:displayName="Version"/>
+                <column code="CREATED_BY" displayName="创建人" domain="createdBy" mandatory="true" name="createdBy"
+                        precision="50" propId="17" stdDataType="string" stdSqlType="VARCHAR"
+                        i18n-en:displayName="Created By"/>
+                <column code="CREATE_TIME" displayName="创建时间" domain="createTime" mandatory="true" name="createTime"
+                        propId="18" stdDataType="timestamp" stdSqlType="TIMESTAMP" i18n-en:displayName="Create Time"/>
+                <column code="UPDATED_BY" displayName="修改人" domain="updatedBy" mandatory="true" name="updatedBy"
+                        precision="50" propId="19" stdDataType="string" stdSqlType="VARCHAR"
+                        i18n-en:displayName="Updated By"/>
+                <column code="UPDATE_TIME" displayName="修改时间" domain="updateTime" mandatory="true" name="updateTime"
+                        propId="20" stdDataType="timestamp" stdSqlType="TIMESTAMP" i18n-en:displayName="Update Time"/>
+                <column code="REMARK" displayName="备注" domain="remark" name="remark" precision="200" propId="21"
+                        stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Remark"/>
+            </columns>
+            <indexes>
+                <index name="IX_NOP_META_GLOSSARY_TERM_PARENT" unique="false">
+                    <column name="parentTermId"/>
+                </index>
+                <index name="IX_NOP_META_GLOSSARY_TERM_GLOSSARY" unique="false">
+                    <column name="glossaryId"/>
+                </index>
+            </indexes>
+            <relations>
+                <to-one displayName="所属词汇表" name="glossary" refEntityName="io.nop.metadata.dao.entity.NopMetaGlossary"
+                        refPropName="childTerms" tagSet="pub,ref-pub" i18n-en:displayName="Glossary">
+                    <join>
+                        <on leftProp="glossaryId" rightProp="glossaryId"/>
+                    </join>
+                </to-one>
+                <to-one displayName="父术语" name="parentTerm"
+                        refEntityName="io.nop.metadata.dao.entity.NopMetaGlossaryTerm" refPropName="childTerms"
+                        tagSet="pub,ref-pub" i18n-en:displayName="Parent Term">
+                    <join>
+                        <on leftProp="parentTermId" rightProp="glossaryTermId"/>
+                    </join>
+                </to-one>
+                <to-many displayName="子术语集" name="childTerms"
+                         refEntityName="io.nop.metadata.dao.entity.NopMetaGlossaryTerm" refPropName="parentTerm"
+                         tagSet="pub,ref-pub" i18n-en:displayName="Child Terms">
+                    <join>
+                        <on leftProp="glossaryTermId" rightProp="parentTermId"/>
+                    </join>
+                </to-many>
+                <to-many name="tagLabels" refEntityName="io.nop.metadata.dao.entity.NopMetaTagLabel"
+                         refPropName="glossaryTerm" tagSet="pub">
+                    <join>
+                        <on leftProp="glossaryTermId" rightProp="glossaryTermId"/>
+                    </join>
+                </to-many>
+            </relations>
+            <unique-keys>
+                <unique-key columns="fullyQualifiedName" name="UK_NOP_META_GLOSSARY_TERM_FQN"
+                            i18n-en:displayName="Unique Term Fully Qualified Name"/>
+                <unique-key columns="glossaryId,fullyQualifiedName" name="UK_NOP_META_GLOSSARY_TERM_G_FQN"
+                            i18n-en:displayName="Unique Term Per Glossary"/>
+            </unique-keys>
+        </entity>
         <entity className="io.nop.metadata.dao.entity.NopMetaClassification" createTimeProp="createTime"
                 createrProp="createdBy" displayName="分类体系" name="io.nop.metadata.dao.entity.NopMetaClassification"
                 registerShortName="true" tableName="nop_meta_classification" updateTimeProp="updateTime"
@@ -2682,6 +2845,13 @@
                         refPropName="tagLabels" tagSet="pub,ref-pub" i18n-en:displayName="Tag">
                     <join>
                         <on leftProp="tagId" rightProp="tagId"/>
+                    </join>
+                </to-one>
+                <to-one displayName="业务术语" name="glossaryTerm"
+                        refEntityName="io.nop.metadata.dao.entity.NopMetaGlossaryTerm" refPropName="tagLabels"
+                        tagSet="pub,ref-pub" i18n-en:displayName="Glossary Term">
+                    <join>
+                        <on leftProp="glossaryTermId" rightProp="glossaryTermId"/>
                     </join>
                 </to-one>
             </relations>

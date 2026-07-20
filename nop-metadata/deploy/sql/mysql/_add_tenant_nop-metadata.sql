@@ -11,6 +11,8 @@ alter table nop_meta_reconciliation_entity add NOP_TENANT_ID VARCHAR(32) DEFAULT
 
 alter table nop_meta_model_changed_event add NOP_TENANT_ID VARCHAR(32) DEFAULT '0' NOT NULL;
 
+alter table nop_meta_glossary add NOP_TENANT_ID VARCHAR(32) DEFAULT '0' NOT NULL;
+
 alter table nop_meta_classification add NOP_TENANT_ID VARCHAR(32) DEFAULT '0' NOT NULL;
 
 alter table nop_meta_orm_model add NOP_TENANT_ID VARCHAR(32) DEFAULT '0' NOT NULL;
@@ -24,6 +26,8 @@ alter table nop_meta_quality_checkpoint add NOP_TENANT_ID VARCHAR(32) DEFAULT '0
 alter table nop_meta_manifest add NOP_TENANT_ID VARCHAR(32) DEFAULT '0' NOT NULL;
 
 alter table nop_meta_quality_result add NOP_TENANT_ID VARCHAR(32) DEFAULT '0' NOT NULL;
+
+alter table nop_meta_glossary_term add NOP_TENANT_ID VARCHAR(32) DEFAULT '0' NOT NULL;
 
 alter table nop_meta_tag add NOP_TENANT_ID VARCHAR(32) DEFAULT '0' NOT NULL;
 
@@ -87,6 +91,9 @@ alter table nop_meta_reconciliation_entity add primary key (NOP_TENANT_ID, RECON
 alter table nop_meta_model_changed_event drop primary key;
 alter table nop_meta_model_changed_event add primary key (NOP_TENANT_ID, MODEL_CHANGED_EVENT_ID);
 
+alter table nop_meta_glossary drop primary key;
+alter table nop_meta_glossary add primary key (NOP_TENANT_ID, GLOSSARY_ID);
+
 alter table nop_meta_classification drop primary key;
 alter table nop_meta_classification add primary key (NOP_TENANT_ID, CLASSIFICATION_ID);
 
@@ -107,6 +114,9 @@ alter table nop_meta_manifest add primary key (NOP_TENANT_ID, MANIFEST_ID);
 
 alter table nop_meta_quality_result drop primary key;
 alter table nop_meta_quality_result add primary key (NOP_TENANT_ID, QUALITY_RESULT_ID);
+
+alter table nop_meta_glossary_term drop primary key;
+alter table nop_meta_glossary_term add primary key (NOP_TENANT_ID, GLOSSARY_TERM_ID);
 
 alter table nop_meta_tag drop primary key;
 alter table nop_meta_tag add primary key (NOP_TENANT_ID, TAG_ID);

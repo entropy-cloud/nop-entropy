@@ -48,6 +48,14 @@ site:
       displayName: Modify Meta Entity Unique Key
     FNPT:NopMetaEntityUniqueKey:query:
       displayName: Query Meta Entity Unique Key
+    FNPT:NopMetaGlossary:mutation:
+      displayName: Modify Meta Glossary
+    FNPT:NopMetaGlossary:query:
+      displayName: Query Meta Glossary
+    FNPT:NopMetaGlossaryTerm:mutation:
+      displayName: Modify Meta Glossary Term
+    FNPT:NopMetaGlossaryTerm:query:
+      displayName: Query Meta Glossary Term
     FNPT:NopMetaLineageEdge:mutation:
       displayName: Modify Meta Lineage Edge
     FNPT:NopMetaLineageEdge:query:
@@ -164,6 +172,10 @@ site:
       displayName: Meta Entity Relation
     NopMetaEntityUniqueKey-main:
       displayName: Meta Entity Unique Key
+    NopMetaGlossary-main:
+      displayName: Meta Glossary
+    NopMetaGlossaryTerm-main:
+      displayName: Meta Glossary Term
     NopMetaLineageEdge-main:
       displayName: Meta Lineage Edge
     NopMetaManifest-main:

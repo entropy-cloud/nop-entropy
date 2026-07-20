@@ -180,334 +180,362 @@
                         </resource>
                     </children>
                 </resource>
-                <resource id="NopMetaLineageEdge-main" displayName="血缘边" orderNo="10037"
+                <resource id="NopMetaGlossary-main" displayName="词汇表" orderNo="10037"
+                          i18n-en:displayName="Meta Glossary" icon="book-text" component="AMIS" resourceType="SUBM"
+                          url="/nop/metadata/pages/NopMetaGlossary/main.page.yaml">
+                    <children>
+                        <resource id="FNPT:NopMetaGlossary:query" displayName="查询词汇表"
+                                  i18n-en:displayName="Query Meta Glossary" orderNo="10038" resourceType="FNPT">
+                            <permissions>NopMetaGlossary:query</permissions>
+                        </resource>
+                        <resource id="FNPT:NopMetaGlossary:mutation" displayName="修改词汇表"
+                                  i18n-en:displayName="Modify Meta Glossary" orderNo="10039" resourceType="FNPT">
+                            <permissions>NopMetaGlossary:mutation</permissions>
+                        </resource>
+                    </children>
+                </resource>
+                <resource id="NopMetaGlossaryTerm-main" displayName="词汇表术语" orderNo="10040"
+                          i18n-en:displayName="Meta Glossary Term" icon="bookmark" component="AMIS" resourceType="SUBM"
+                          url="/nop/metadata/pages/NopMetaGlossaryTerm/main.page.yaml">
+                    <children>
+                        <resource id="FNPT:NopMetaGlossaryTerm:query" displayName="查询词汇表术语"
+                                  i18n-en:displayName="Query Meta Glossary Term" orderNo="10041" resourceType="FNPT">
+                            <permissions>NopMetaGlossaryTerm:query</permissions>
+                        </resource>
+                        <resource id="FNPT:NopMetaGlossaryTerm:mutation" displayName="修改词汇表术语"
+                                  i18n-en:displayName="Modify Meta Glossary Term" orderNo="10042" resourceType="FNPT">
+                            <permissions>NopMetaGlossaryTerm:mutation</permissions>
+                        </resource>
+                    </children>
+                </resource>
+                <resource id="NopMetaLineageEdge-main" displayName="血缘边" orderNo="10043"
                           i18n-en:displayName="Meta Lineage Edge" icon="waypoints" component="AMIS" resourceType="SUBM"
                           url="/nop/metadata/pages/NopMetaLineageEdge/main.page.yaml">
                     <children>
                         <resource id="FNPT:NopMetaLineageEdge:query" displayName="查询血缘边"
-                                  i18n-en:displayName="Query Meta Lineage Edge" orderNo="10038" resourceType="FNPT">
+                                  i18n-en:displayName="Query Meta Lineage Edge" orderNo="10044" resourceType="FNPT">
                             <permissions>NopMetaLineageEdge:query</permissions>
                         </resource>
                         <resource id="FNPT:NopMetaLineageEdge:mutation" displayName="修改血缘边"
-                                  i18n-en:displayName="Modify Meta Lineage Edge" orderNo="10039" resourceType="FNPT">
+                                  i18n-en:displayName="Modify Meta Lineage Edge" orderNo="10045" resourceType="FNPT">
                             <permissions>NopMetaLineageEdge:mutation</permissions>
                         </resource>
                     </children>
                 </resource>
-                <resource id="NopMetaManifest-main" displayName="元数据快照" orderNo="10040"
+                <resource id="NopMetaManifest-main" displayName="元数据快照" orderNo="10046"
                           i18n-en:displayName="Meta Manifest" icon="camera" component="AMIS" resourceType="SUBM"
                           url="/nop/metadata/pages/NopMetaManifest/main.page.yaml">
                     <children>
                         <resource id="FNPT:NopMetaManifest:query" displayName="查询元数据快照"
-                                  i18n-en:displayName="Query Meta Manifest" orderNo="10041" resourceType="FNPT">
+                                  i18n-en:displayName="Query Meta Manifest" orderNo="10047" resourceType="FNPT">
                             <permissions>NopMetaManifest:query</permissions>
                         </resource>
                         <resource id="FNPT:NopMetaManifest:mutation" displayName="修改元数据快照"
-                                  i18n-en:displayName="Modify Meta Manifest" orderNo="10042" resourceType="FNPT">
+                                  i18n-en:displayName="Modify Meta Manifest" orderNo="10048" resourceType="FNPT">
                             <permissions>NopMetaManifest:mutation</permissions>
                         </resource>
                     </children>
                 </resource>
-                <resource id="NopMetaModelChangedEvent-main" displayName="元数据变更事件" orderNo="10043"
+                <resource id="NopMetaModelChangedEvent-main" displayName="元数据变更事件" orderNo="10049"
                           i18n-en:displayName="Meta Model Changed Event" icon="history" component="AMIS"
                           resourceType="SUBM" url="/nop/metadata/pages/NopMetaModelChangedEvent/main.page.yaml">
                     <children>
                         <resource id="FNPT:NopMetaModelChangedEvent:query" displayName="查询元数据变更事件"
-                                  i18n-en:displayName="Query Meta Model Changed Event" orderNo="10044"
+                                  i18n-en:displayName="Query Meta Model Changed Event" orderNo="10050"
                                   resourceType="FNPT">
                             <permissions>NopMetaModelChangedEvent:query</permissions>
                         </resource>
                         <resource id="FNPT:NopMetaModelChangedEvent:mutation" displayName="修改元数据变更事件"
-                                  i18n-en:displayName="Modify Meta Model Changed Event" orderNo="10045"
+                                  i18n-en:displayName="Modify Meta Model Changed Event" orderNo="10051"
                                   resourceType="FNPT">
                             <permissions>NopMetaModelChangedEvent:mutation</permissions>
                         </resource>
                     </children>
                 </resource>
-                <resource id="NopMetaModule-main" displayName="元数据模块" orderNo="10046" i18n-en:displayName="Meta Module"
+                <resource id="NopMetaModule-main" displayName="元数据模块" orderNo="10052" i18n-en:displayName="Meta Module"
                           icon="boxes" component="AMIS" resourceType="SUBM"
                           url="/nop/metadata/pages/NopMetaModule/main.page.yaml">
                     <children>
                         <resource id="FNPT:NopMetaModule:query" displayName="查询元数据模块"
-                                  i18n-en:displayName="Query Meta Module" orderNo="10047" resourceType="FNPT">
+                                  i18n-en:displayName="Query Meta Module" orderNo="10053" resourceType="FNPT">
                             <permissions>NopMetaModule:query</permissions>
                         </resource>
                         <resource id="FNPT:NopMetaModule:mutation" displayName="修改元数据模块"
-                                  i18n-en:displayName="Modify Meta Module" orderNo="10048" resourceType="FNPT">
+                                  i18n-en:displayName="Modify Meta Module" orderNo="10054" resourceType="FNPT">
                             <permissions>NopMetaModule:mutation</permissions>
                         </resource>
                     </children>
                 </resource>
-                <resource id="NopMetaOrmModel-main" displayName="ORM模型" orderNo="10049"
+                <resource id="NopMetaOrmModel-main" displayName="ORM模型" orderNo="10055"
                           i18n-en:displayName="Meta ORM Model" icon="file-code" component="AMIS" resourceType="SUBM"
                           url="/nop/metadata/pages/NopMetaOrmModel/main.page.yaml">
                     <children>
                         <resource id="FNPT:NopMetaOrmModel:query" displayName="查询ORM模型"
-                                  i18n-en:displayName="Query Meta ORM Model" orderNo="10050" resourceType="FNPT">
+                                  i18n-en:displayName="Query Meta ORM Model" orderNo="10056" resourceType="FNPT">
                             <permissions>NopMetaOrmModel:query</permissions>
                         </resource>
                         <resource id="FNPT:NopMetaOrmModel:mutation" displayName="修改ORM模型"
-                                  i18n-en:displayName="Modify Meta ORM Model" orderNo="10051" resourceType="FNPT">
+                                  i18n-en:displayName="Modify Meta ORM Model" orderNo="10057" resourceType="FNPT">
                             <permissions>NopMetaOrmModel:mutation</permissions>
                         </resource>
                     </children>
                 </resource>
-                <resource id="NopMetaPipeline-main" displayName="数据管道" orderNo="10052"
+                <resource id="NopMetaPipeline-main" displayName="数据管道" orderNo="10058"
                           i18n-en:displayName="Meta Pipeline" icon="git-commit-horizontal" component="AMIS"
                           resourceType="SUBM" url="/nop/metadata/pages/NopMetaPipeline/main.page.yaml">
                     <children>
                         <resource id="FNPT:NopMetaPipeline:query" displayName="查询数据管道"
-                                  i18n-en:displayName="Query Meta Pipeline" orderNo="10053" resourceType="FNPT">
+                                  i18n-en:displayName="Query Meta Pipeline" orderNo="10059" resourceType="FNPT">
                             <permissions>NopMetaPipeline:query</permissions>
                         </resource>
                         <resource id="FNPT:NopMetaPipeline:mutation" displayName="修改数据管道"
-                                  i18n-en:displayName="Modify Meta Pipeline" orderNo="10054" resourceType="FNPT">
+                                  i18n-en:displayName="Modify Meta Pipeline" orderNo="10060" resourceType="FNPT">
                             <permissions>NopMetaPipeline:mutation</permissions>
                         </resource>
                     </children>
                 </resource>
-                <resource id="NopMetaProfilingResult-main" displayName="数据剖析结果" orderNo="10055"
+                <resource id="NopMetaProfilingResult-main" displayName="数据剖析结果" orderNo="10061"
                           i18n-en:displayName="Meta Profiling Result" icon="chart-no-axes-combined" component="AMIS"
                           resourceType="SUBM" url="/nop/metadata/pages/NopMetaProfilingResult/main.page.yaml">
                     <children>
                         <resource id="FNPT:NopMetaProfilingResult:query" displayName="查询数据剖析结果"
-                                  i18n-en:displayName="Query Meta Profiling Result" orderNo="10056" resourceType="FNPT">
+                                  i18n-en:displayName="Query Meta Profiling Result" orderNo="10062" resourceType="FNPT">
                             <permissions>NopMetaProfilingResult:query</permissions>
                         </resource>
                         <resource id="FNPT:NopMetaProfilingResult:mutation" displayName="修改数据剖析结果"
-                                  i18n-en:displayName="Modify Meta Profiling Result" orderNo="10057" resourceType="FNPT">
+                                  i18n-en:displayName="Modify Meta Profiling Result" orderNo="10063" resourceType="FNPT">
                             <permissions>NopMetaProfilingResult:mutation</permissions>
                         </resource>
                     </children>
                 </resource>
-                <resource id="NopMetaProfilingRule-main" displayName="数据剖析规则" orderNo="10058"
+                <resource id="NopMetaProfilingRule-main" displayName="数据剖析规则" orderNo="10064"
                           i18n-en:displayName="Meta Profiling Rule" icon="microscope" component="AMIS"
                           resourceType="SUBM" url="/nop/metadata/pages/NopMetaProfilingRule/main.page.yaml">
                     <children>
                         <resource id="FNPT:NopMetaProfilingRule:query" displayName="查询数据剖析规则"
-                                  i18n-en:displayName="Query Meta Profiling Rule" orderNo="10059" resourceType="FNPT">
+                                  i18n-en:displayName="Query Meta Profiling Rule" orderNo="10065" resourceType="FNPT">
                             <permissions>NopMetaProfilingRule:query</permissions>
                         </resource>
                         <resource id="FNPT:NopMetaProfilingRule:mutation" displayName="修改数据剖析规则"
-                                  i18n-en:displayName="Modify Meta Profiling Rule" orderNo="10060" resourceType="FNPT">
+                                  i18n-en:displayName="Modify Meta Profiling Rule" orderNo="10066" resourceType="FNPT">
                             <permissions>NopMetaProfilingRule:mutation</permissions>
                         </resource>
                     </children>
                 </resource>
-                <resource id="NopMetaQualityCheckpoint-main" displayName="质量检查点" orderNo="10061"
+                <resource id="NopMetaQualityCheckpoint-main" displayName="质量检查点" orderNo="10067"
                           i18n-en:displayName="Meta Quality Checkpoint" icon="clipboard-check" component="AMIS"
                           resourceType="SUBM" url="/nop/metadata/pages/NopMetaQualityCheckpoint/main.page.yaml">
                     <children>
                         <resource id="FNPT:NopMetaQualityCheckpoint:query" displayName="查询质量检查点"
-                                  i18n-en:displayName="Query Meta Quality Checkpoint" orderNo="10062"
+                                  i18n-en:displayName="Query Meta Quality Checkpoint" orderNo="10068"
                                   resourceType="FNPT">
                             <permissions>NopMetaQualityCheckpoint:query</permissions>
                         </resource>
                         <resource id="FNPT:NopMetaQualityCheckpoint:mutation" displayName="修改质量检查点"
-                                  i18n-en:displayName="Modify Meta Quality Checkpoint" orderNo="10063"
+                                  i18n-en:displayName="Modify Meta Quality Checkpoint" orderNo="10069"
                                   resourceType="FNPT">
                             <permissions>NopMetaQualityCheckpoint:mutation</permissions>
                         </resource>
                     </children>
                 </resource>
-                <resource id="NopMetaQualityResult-main" displayName="质量结果" orderNo="10064"
+                <resource id="NopMetaQualityResult-main" displayName="质量结果" orderNo="10070"
                           i18n-en:displayName="Meta Quality Result" icon="chart-no-axes-column" component="AMIS"
                           resourceType="SUBM" url="/nop/metadata/pages/NopMetaQualityResult/main.page.yaml">
                     <children>
                         <resource id="FNPT:NopMetaQualityResult:query" displayName="查询质量结果"
-                                  i18n-en:displayName="Query Meta Quality Result" orderNo="10065" resourceType="FNPT">
+                                  i18n-en:displayName="Query Meta Quality Result" orderNo="10071" resourceType="FNPT">
                             <permissions>NopMetaQualityResult:query</permissions>
                         </resource>
                         <resource id="FNPT:NopMetaQualityResult:mutation" displayName="修改质量结果"
-                                  i18n-en:displayName="Modify Meta Quality Result" orderNo="10066" resourceType="FNPT">
+                                  i18n-en:displayName="Modify Meta Quality Result" orderNo="10072" resourceType="FNPT">
                             <permissions>NopMetaQualityResult:mutation</permissions>
                         </resource>
                     </children>
                 </resource>
-                <resource id="NopMetaQualityRule-main" displayName="质量规则" orderNo="10067"
+                <resource id="NopMetaQualityRule-main" displayName="质量规则" orderNo="10073"
                           i18n-en:displayName="Meta Quality Rule" icon="shield-check" component="AMIS"
                           resourceType="SUBM" url="/nop/metadata/pages/NopMetaQualityRule/main.page.yaml">
                     <children>
                         <resource id="FNPT:NopMetaQualityRule:query" displayName="查询质量规则"
-                                  i18n-en:displayName="Query Meta Quality Rule" orderNo="10068" resourceType="FNPT">
+                                  i18n-en:displayName="Query Meta Quality Rule" orderNo="10074" resourceType="FNPT">
                             <permissions>NopMetaQualityRule:query</permissions>
                         </resource>
                         <resource id="FNPT:NopMetaQualityRule:mutation" displayName="修改质量规则"
-                                  i18n-en:displayName="Modify Meta Quality Rule" orderNo="10069" resourceType="FNPT">
+                                  i18n-en:displayName="Modify Meta Quality Rule" orderNo="10075" resourceType="FNPT">
                             <permissions>NopMetaQualityRule:mutation</permissions>
                         </resource>
                     </children>
                 </resource>
-                <resource id="NopMetaQualityScore-main" displayName="质量评分" orderNo="10070"
+                <resource id="NopMetaQualityScore-main" displayName="质量评分" orderNo="10076"
                           i18n-en:displayName="Meta Quality Score" icon="gauge" component="AMIS" resourceType="SUBM"
                           url="/nop/metadata/pages/NopMetaQualityScore/main.page.yaml">
                     <children>
                         <resource id="FNPT:NopMetaQualityScore:query" displayName="查询质量评分"
-                                  i18n-en:displayName="Query Meta Quality Score" orderNo="10071" resourceType="FNPT">
+                                  i18n-en:displayName="Query Meta Quality Score" orderNo="10077" resourceType="FNPT">
                             <permissions>NopMetaQualityScore:query</permissions>
                         </resource>
                         <resource id="FNPT:NopMetaQualityScore:mutation" displayName="修改质量评分"
-                                  i18n-en:displayName="Modify Meta Quality Score" orderNo="10072" resourceType="FNPT">
+                                  i18n-en:displayName="Modify Meta Quality Score" orderNo="10078" resourceType="FNPT">
                             <permissions>NopMetaQualityScore:mutation</permissions>
                         </resource>
                     </children>
                 </resource>
-                <resource id="NopMetaReconciliationConfig-main" displayName="对账配置" orderNo="10073"
+                <resource id="NopMetaReconciliationConfig-main" displayName="对账配置" orderNo="10079"
                           i18n-en:displayName="Meta Reconciliation Config" icon="git-compare" component="AMIS"
                           resourceType="SUBM" url="/nop/metadata/pages/NopMetaReconciliationConfig/main.page.yaml">
                     <children>
                         <resource id="FNPT:NopMetaReconciliationConfig:query" displayName="查询对账配置"
-                                  i18n-en:displayName="Query Meta Reconciliation Config" orderNo="10074"
+                                  i18n-en:displayName="Query Meta Reconciliation Config" orderNo="10080"
                                   resourceType="FNPT">
                             <permissions>NopMetaReconciliationConfig:query</permissions>
                         </resource>
                         <resource id="FNPT:NopMetaReconciliationConfig:mutation" displayName="修改对账配置"
-                                  i18n-en:displayName="Modify Meta Reconciliation Config" orderNo="10075"
+                                  i18n-en:displayName="Modify Meta Reconciliation Config" orderNo="10081"
                                   resourceType="FNPT">
                             <permissions>NopMetaReconciliationConfig:mutation</permissions>
                         </resource>
                     </children>
                 </resource>
-                <resource id="NopMetaReconciliationEntity-main" displayName="对账实体" orderNo="10076"
+                <resource id="NopMetaReconciliationEntity-main" displayName="对账实体" orderNo="10082"
                           i18n-en:displayName="Meta Reconciliation Entity" icon="database" component="AMIS"
                           resourceType="SUBM" url="/nop/metadata/pages/NopMetaReconciliationEntity/main.page.yaml">
                     <children>
                         <resource id="FNPT:NopMetaReconciliationEntity:query" displayName="查询对账实体"
-                                  i18n-en:displayName="Query Meta Reconciliation Entity" orderNo="10077"
+                                  i18n-en:displayName="Query Meta Reconciliation Entity" orderNo="10083"
                                   resourceType="FNPT">
                             <permissions>NopMetaReconciliationEntity:query</permissions>
                         </resource>
                         <resource id="FNPT:NopMetaReconciliationEntity:mutation" displayName="修改对账实体"
-                                  i18n-en:displayName="Modify Meta Reconciliation Entity" orderNo="10078"
+                                  i18n-en:displayName="Modify Meta Reconciliation Entity" orderNo="10084"
                                   resourceType="FNPT">
                             <permissions>NopMetaReconciliationEntity:mutation</permissions>
                         </resource>
                     </children>
                 </resource>
-                <resource id="NopMetaReconciliationResult-main" displayName="对账结果" orderNo="10079"
+                <resource id="NopMetaReconciliationResult-main" displayName="对账结果" orderNo="10085"
                           i18n-en:displayName="Meta Reconciliation Result" icon="clipboard-check" component="AMIS"
                           resourceType="SUBM" url="/nop/metadata/pages/NopMetaReconciliationResult/main.page.yaml">
                     <children>
                         <resource id="FNPT:NopMetaReconciliationResult:query" displayName="查询对账结果"
-                                  i18n-en:displayName="Query Meta Reconciliation Result" orderNo="10080"
+                                  i18n-en:displayName="Query Meta Reconciliation Result" orderNo="10086"
                                   resourceType="FNPT">
                             <permissions>NopMetaReconciliationResult:query</permissions>
                         </resource>
                         <resource id="FNPT:NopMetaReconciliationResult:mutation" displayName="修改对账结果"
-                                  i18n-en:displayName="Modify Meta Reconciliation Result" orderNo="10081"
+                                  i18n-en:displayName="Modify Meta Reconciliation Result" orderNo="10087"
                                   resourceType="FNPT">
                             <permissions>NopMetaReconciliationResult:mutation</permissions>
                         </resource>
                     </children>
                 </resource>
-                <resource id="NopMetaSemanticType-main" displayName="语义类型" orderNo="10082"
+                <resource id="NopMetaSemanticType-main" displayName="语义类型" orderNo="10088"
                           i18n-en:displayName="Meta Semantic Type" icon="tag" component="AMIS" resourceType="SUBM"
                           url="/nop/metadata/pages/NopMetaSemanticType/main.page.yaml">
                     <children>
                         <resource id="FNPT:NopMetaSemanticType:query" displayName="查询语义类型"
-                                  i18n-en:displayName="Query Meta Semantic Type" orderNo="10083" resourceType="FNPT">
+                                  i18n-en:displayName="Query Meta Semantic Type" orderNo="10089" resourceType="FNPT">
                             <permissions>NopMetaSemanticType:query</permissions>
                         </resource>
                         <resource id="FNPT:NopMetaSemanticType:mutation" displayName="修改语义类型"
-                                  i18n-en:displayName="Modify Meta Semantic Type" orderNo="10084" resourceType="FNPT">
+                                  i18n-en:displayName="Modify Meta Semantic Type" orderNo="10090" resourceType="FNPT">
                             <permissions>NopMetaSemanticType:mutation</permissions>
                         </resource>
                     </children>
                 </resource>
-                <resource id="NopMetaTable-main" displayName="逻辑表" orderNo="10085" i18n-en:displayName="Meta Table"
+                <resource id="NopMetaTable-main" displayName="逻辑表" orderNo="10091" i18n-en:displayName="Meta Table"
                           icon="layout-grid" component="AMIS" resourceType="SUBM"
                           url="/nop/metadata/pages/NopMetaTable/main.page.yaml">
                     <children>
                         <resource id="FNPT:NopMetaTable:query" displayName="查询逻辑表"
-                                  i18n-en:displayName="Query Meta Table" orderNo="10086" resourceType="FNPT">
+                                  i18n-en:displayName="Query Meta Table" orderNo="10092" resourceType="FNPT">
                             <permissions>NopMetaTable:query</permissions>
                         </resource>
                         <resource id="FNPT:NopMetaTable:mutation" displayName="修改逻辑表"
-                                  i18n-en:displayName="Modify Meta Table" orderNo="10087" resourceType="FNPT">
+                                  i18n-en:displayName="Modify Meta Table" orderNo="10093" resourceType="FNPT">
                             <permissions>NopMetaTable:mutation</permissions>
                         </resource>
                     </children>
                 </resource>
-                <resource id="NopMetaTableDimension-main" displayName="表维度" orderNo="10088"
+                <resource id="NopMetaTableDimension-main" displayName="表维度" orderNo="10094"
                           i18n-en:displayName="Meta Table Dimension" icon="milestone" component="AMIS"
                           resourceType="SUBM" url="/nop/metadata/pages/NopMetaTableDimension/main.page.yaml">
                     <children>
                         <resource id="FNPT:NopMetaTableDimension:query" displayName="查询表维度"
-                                  i18n-en:displayName="Query Meta Table Dimension" orderNo="10089" resourceType="FNPT">
+                                  i18n-en:displayName="Query Meta Table Dimension" orderNo="10095" resourceType="FNPT">
                             <permissions>NopMetaTableDimension:query</permissions>
                         </resource>
                         <resource id="FNPT:NopMetaTableDimension:mutation" displayName="修改表维度"
-                                  i18n-en:displayName="Modify Meta Table Dimension" orderNo="10090" resourceType="FNPT">
+                                  i18n-en:displayName="Modify Meta Table Dimension" orderNo="10096" resourceType="FNPT">
                             <permissions>NopMetaTableDimension:mutation</permissions>
                         </resource>
                     </children>
                 </resource>
-                <resource id="NopMetaTableFilter-main" displayName="表过滤器" orderNo="10091"
+                <resource id="NopMetaTableFilter-main" displayName="表过滤器" orderNo="10097"
                           i18n-en:displayName="Meta Table Filter" icon="filter" component="AMIS" resourceType="SUBM"
                           url="/nop/metadata/pages/NopMetaTableFilter/main.page.yaml">
                     <children>
                         <resource id="FNPT:NopMetaTableFilter:query" displayName="查询表过滤器"
-                                  i18n-en:displayName="Query Meta Table Filter" orderNo="10092" resourceType="FNPT">
+                                  i18n-en:displayName="Query Meta Table Filter" orderNo="10098" resourceType="FNPT">
                             <permissions>NopMetaTableFilter:query</permissions>
                         </resource>
                         <resource id="FNPT:NopMetaTableFilter:mutation" displayName="修改表过滤器"
-                                  i18n-en:displayName="Modify Meta Table Filter" orderNo="10093" resourceType="FNPT">
+                                  i18n-en:displayName="Modify Meta Table Filter" orderNo="10099" resourceType="FNPT">
                             <permissions>NopMetaTableFilter:mutation</permissions>
                         </resource>
                     </children>
                 </resource>
-                <resource id="NopMetaTableJoin-main" displayName="表关联" orderNo="10094"
+                <resource id="NopMetaTableJoin-main" displayName="表关联" orderNo="10100"
                           i18n-en:displayName="Meta Table Join" icon="merge" component="AMIS" resourceType="SUBM"
                           url="/nop/metadata/pages/NopMetaTableJoin/main.page.yaml">
                     <children>
                         <resource id="FNPT:NopMetaTableJoin:query" displayName="查询表关联"
-                                  i18n-en:displayName="Query Meta Table Join" orderNo="10095" resourceType="FNPT">
+                                  i18n-en:displayName="Query Meta Table Join" orderNo="10101" resourceType="FNPT">
                             <permissions>NopMetaTableJoin:query</permissions>
                         </resource>
                         <resource id="FNPT:NopMetaTableJoin:mutation" displayName="修改表关联"
-                                  i18n-en:displayName="Modify Meta Table Join" orderNo="10096" resourceType="FNPT">
+                                  i18n-en:displayName="Modify Meta Table Join" orderNo="10102" resourceType="FNPT">
                             <permissions>NopMetaTableJoin:mutation</permissions>
                         </resource>
                     </children>
                 </resource>
-                <resource id="NopMetaTableMeasure-main" displayName="表指标" orderNo="10097"
+                <resource id="NopMetaTableMeasure-main" displayName="表指标" orderNo="10103"
                           i18n-en:displayName="Meta Table Measure" icon="calculator" component="AMIS"
                           resourceType="SUBM" url="/nop/metadata/pages/NopMetaTableMeasure/main.page.yaml">
                     <children>
                         <resource id="FNPT:NopMetaTableMeasure:query" displayName="查询表指标"
-                                  i18n-en:displayName="Query Meta Table Measure" orderNo="10098" resourceType="FNPT">
+                                  i18n-en:displayName="Query Meta Table Measure" orderNo="10104" resourceType="FNPT">
                             <permissions>NopMetaTableMeasure:query</permissions>
                         </resource>
                         <resource id="FNPT:NopMetaTableMeasure:mutation" displayName="修改表指标"
-                                  i18n-en:displayName="Modify Meta Table Measure" orderNo="10099" resourceType="FNPT">
+                                  i18n-en:displayName="Modify Meta Table Measure" orderNo="10105" resourceType="FNPT">
                             <permissions>NopMetaTableMeasure:mutation</permissions>
                         </resource>
                     </children>
                 </resource>
-                <resource id="NopMetaTag-main" displayName="分类标签" orderNo="10100" i18n-en:displayName="Meta Tag"
+                <resource id="NopMetaTag-main" displayName="分类标签" orderNo="10106" i18n-en:displayName="Meta Tag"
                           icon="tag" component="AMIS" resourceType="SUBM"
                           url="/nop/metadata/pages/NopMetaTag/main.page.yaml">
                     <children>
                         <resource id="FNPT:NopMetaTag:query" displayName="查询分类标签" i18n-en:displayName="Query Meta Tag"
-                                  orderNo="10101" resourceType="FNPT">
+                                  orderNo="10107" resourceType="FNPT">
                             <permissions>NopMetaTag:query</permissions>
                         </resource>
                         <resource id="FNPT:NopMetaTag:mutation" displayName="修改分类标签"
-                                  i18n-en:displayName="Modify Meta Tag" orderNo="10102" resourceType="FNPT">
+                                  i18n-en:displayName="Modify Meta Tag" orderNo="10108" resourceType="FNPT">
                             <permissions>NopMetaTag:mutation</permissions>
                         </resource>
                     </children>
                 </resource>
-                <resource id="NopMetaTagLabel-main" displayName="语义标注" orderNo="10103"
+                <resource id="NopMetaTagLabel-main" displayName="语义标注" orderNo="10109"
                           i18n-en:displayName="Meta Tag Label" icon="tags" component="AMIS" resourceType="SUBM"
                           url="/nop/metadata/pages/NopMetaTagLabel/main.page.yaml">
                     <children>
                         <resource id="FNPT:NopMetaTagLabel:query" displayName="查询语义标注"
-                                  i18n-en:displayName="Query Meta Tag Label" orderNo="10104" resourceType="FNPT">
+                                  i18n-en:displayName="Query Meta Tag Label" orderNo="10110" resourceType="FNPT">
                             <permissions>NopMetaTagLabel:query</permissions>
                         </resource>
                         <resource id="FNPT:NopMetaTagLabel:mutation" displayName="修改语义标注"
-                                  i18n-en:displayName="Modify Meta Tag Label" orderNo="10105" resourceType="FNPT">
+                                  i18n-en:displayName="Modify Meta Tag Label" orderNo="10111" resourceType="FNPT">
                             <permissions>NopMetaTagLabel:mutation</permissions>
                         </resource>
                     </children>
