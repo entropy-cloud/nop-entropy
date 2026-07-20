@@ -1,10 +1,13 @@
 package io.nop.metadata.service.entity;
 
+
+import io.nop.api.core.time.CoreMetrics;
 import io.nop.api.core.annotations.biz.BizModel;
 import io.nop.api.core.annotations.biz.BizMutation;
 import io.nop.api.core.annotations.biz.BizQuery;
 import io.nop.api.core.annotations.core.Name;
 import io.nop.api.core.annotations.core.Optional;
+import io.nop.api.core.beans.FieldSelectionBean;
 import io.nop.api.core.beans.FilterBeans;
 import io.nop.api.core.beans.TreeBean;
 import io.nop.api.core.beans.query.OrderFieldBean;
@@ -23,7 +26,7 @@ import io.nop.metadata.dao.entity.NopMetaModule;
 import io.nop.metadata.dao.entity.NopMetaProfilingResult;
 import io.nop.metadata.dao.entity.NopMetaEntityField;
 import io.nop.metadata.dao.entity.NopMetaTable;
-import io.nop.metadata.service.connection.IMetaDataSourceConnectionService;
+import io.nop.metadata.service.connection.IMetaDataSourceConnectionProcessor;
 import io.nop.metadata.service.datasource.MetaDataSourceResolver;
 import io.nop.metadata.service.event.MetaModelChangedEventPublisher;
 import io.nop.metadata.service.field.MetaTableFieldResolver;
@@ -35,6 +38,7 @@ import io.nop.metadata.service.query.FilterToSqlTranslator;
 import io.nop.metadata.service.query.MetaAggregationExecutor;
 import io.nop.metadata.service.query.MetaJoinExecutor;
 import io.nop.metadata.service.query.MetaQueryContext;
+import io.nop.metadata.service.query.MetaTableQueryExecutor;
 import io.nop.metadata.service.query.SqlPagination;
 import io.nop.metadata.service.sqlview.SqlSelectFieldExtractor;
 import io.nop.metadata.service.sqlview.SqlViewField;
@@ -77,7 +81,7 @@ import java.util.Set;
  *   <li>目标表非 external（首版） → 抛 {@link #ERR_PROFILING_TABLE_NOT_EXTERNAL}</li>
  *   <li>无注册数据源 → 抛 {@link #ERR_PROFILING_NO_DATASOURCE}</li>
  *   <li>DISABLED 数据源 → 抛 {@link #ERR_PROFILING_DATASOURCE_DISABLED}</li>
- *   <li>非 jdbc 类型 → 由 {@code withConnection} 抛 UnsupportedOperationException</li>
+ *   <li>非 jdbc 类型 → 由 {@code withConnection} 抛 NopException</li>
  *   <li>单列剖析失败 → per-column try/catch 收集进 errors，不中断整表</li>
  *   <li>方言特定统计（sizeBytes/lastModified）→ null + unavailable 显式标记（不伪造）</li>
  * </ul>
@@ -149,7 +153,7 @@ public class NopMetaTableBizModel extends CrudBizModel<NopMetaTable> implements 
                     "metaTableId", "error");
 
     @Inject
-    protected IMetaDataSourceConnectionService connectionService;
+    protected IMetaDataSourceConnectionProcessor connectionService;
 
     /** 元数据变更事件发布 helper（架构基线 §2.8 D2，IoC bean）。 */
     @Inject
@@ -216,6 +220,10 @@ public class NopMetaTableBizModel extends CrudBizModel<NopMetaTable> implements 
      * <p>before 快照在 super.save 前按 PK 加载（null=CREATE，非 null=UPDATE）；事件行在 super.save 成功后写入
      * （避免幽灵事件）。per-op UUID 作为 transactionId。本 override 覆盖通用 CRUD（UI/GraphQL/xbiz）；
      * {@link #createSqlTable} 等关键 mutation action 自行调 helper（不经本 override），二者独立。
+     *
+     * <p>plan 2026-07-19-1250-3 Phase 5 维度14-02 裁定：事件表写入仍在事务内（保证回滚一致，
+     * {@code NopMetaModelChangedEvent} 行作为业务数据落入 NOP_META_MODEL_CHANGED_EVENT 表）；
+     * 「通知/外部副作用」afterCommit 钩子首版不引入（保留单值裁定记录在此，未来接入消息系统时统一改造）。
      */
     @Override
     public NopMetaTable save(@Name("data") Map<String, Object> data, IServiceContext context) {
@@ -498,7 +506,9 @@ public class NopMetaTableBizModel extends CrudBizModel<NopMetaTable> implements 
                                                @Optional @Name("filter") TreeBean filter,
                                                @Optional @Name("limit") Long limit,
                                                @Optional @Name("offset") Long offset,
+                                               @Optional @Name("selection") FieldSelectionBean selection,
                                                IServiceContext context) {
+        // plan 维度12-01：FieldSelectionBean 参数注入（首版忽略，仅在接口契约上明确；后续 slice 下推到执行器）
         IEntityDao<NopMetaTable> tableDao = dao();
         NopMetaTable table = tableDao.getEntityById(metaTableId);
         if (table == null) {
@@ -544,7 +554,9 @@ public class NopMetaTableBizModel extends CrudBizModel<NopMetaTable> implements 
                                               @Optional @Name("filter") TreeBean filter,
                                               @Optional @Name("limit") Long limit,
                                               @Optional @Name("offset") Long offset,
+                                              @Optional @Name("selection") FieldSelectionBean selection,
                                               IServiceContext context) {
+        // plan 维度12-01：FieldSelectionBean 参数注入（首版忽略；后续 slice 下推到执行器）
         IEntityDao<NopMetaTable> tableDao = dao();
         NopMetaTable table = tableDao.getEntityById(metaTableId);
         if (table == null) {
@@ -585,7 +597,9 @@ public class NopMetaTableBizModel extends CrudBizModel<NopMetaTable> implements 
                                                    @Optional @Name("offset") Long offset,
                                                    @Optional @Name("having") TreeBean having,
                                                    @Optional @Name("orderBy") List<OrderFieldBean> orderBy,
+                                                   @Optional @Name("selection") FieldSelectionBean selection,
                                                    IServiceContext context) {
+        // plan 维度12-01：FieldSelectionBean 参数注入（首版忽略；后续 slice 下推到执行器）
         IEntityDao<NopMetaTable> tableDao = dao();
         NopMetaTable table = tableDao.getEntityById(metaTableId);
         if (table == null) {
@@ -728,103 +742,51 @@ public class NopMetaTableBizModel extends CrudBizModel<NopMetaTable> implements 
         }
     }
 
-    /** 构建 external 路径 SELECT SQL：{@code SELECT col1,col2 FROM <table> [WHERE <filter>] [LIMIT ? OFFSET ?]}。 */
+    /**
+     * 构建 external 路径 SELECT SQL。
+     *
+     * @deprecated plan 2026-07-19-1250-3 Phase 3：委托到 {@link MetaTableQueryExecutor#buildExternalSelectSql}。
+     * 保留本方法仅为 BizModel 内部调用兼容；后续 slice 整体迁移后移除。
+     */
+    @Deprecated
     private static String buildExternalSelectSql(String tableName, List<String> columns,
                                                   String filterSql, Long limit, Long offset, String dialect) {
-        // 列名/表名经标识符白名单校验（fieldResolver 已保证列名为 columnName；此处再校验防注入）
-        StringBuilder sb = new StringBuilder("SELECT ");
-        if (columns.isEmpty()) {
-            sb.append("*");
-        } else {
-            for (int i = 0; i < columns.size(); i++) {
-                if (i > 0) {
-                    sb.append(",");
-                }
-                FilterToSqlTranslator.validateIdentifier(columns.get(i));
-                sb.append(columns.get(i));
-            }
-        }
-        sb.append(" FROM ");
-        FilterToSqlTranslator.validateIdentifier(tableName);
-        sb.append(tableName);
-        if (filterSql != null && !filterSql.isEmpty()) {
-            sb.append(" WHERE ").append(filterSql);
-        }
-        // AR-04: 按方言拼接 LIMIT/OFFSET（MySQL offset-only 需补"无限大 LIMIT"）
-        SqlPagination.appendLimitOffset(sb, limit, offset, dialect);
-        return sb.toString();
+        return MetaTableQueryExecutor.buildExternalSelectSql(tableName, columns, filterSql, limit, offset, dialect);
     }
 
-    /** 构建 sql 路径 SELECT SQL：{@code SELECT * FROM (<sourceSql>) _t [WHERE <filter>] [LIMIT ? OFFSET ?]}。 */
+    /**
+     * 构建 sql 路径 SELECT SQL。
+     *
+     * @deprecated plan 2026-07-19-1250-3 Phase 3：委托到 {@link MetaTableQueryExecutor#buildSqlSelectSql}。
+     */
+    @Deprecated
     private static String buildSqlSelectSql(String sourceSql, String filterSql, Long limit, Long offset, String dialect) {
-        // sourceSql 为用户显式提供的视图定义（非自动注入面），包一层子查询；filter 应用到外层
-        StringBuilder sb = new StringBuilder("SELECT * FROM (");
-        sb.append(sourceSql);
-        sb.append(") _t");
-        if (filterSql != null && !filterSql.isEmpty()) {
-            sb.append(" WHERE ").append(filterSql);
-        }
-        // AR-04: 按方言拼接 LIMIT/OFFSET（MySQL offset-only 需补"无限大 LIMIT"）
-        SqlPagination.appendLimitOffset(sb, limit, offset, dialect);
-        return sb.toString();
+        return MetaTableQueryExecutor.buildSqlSelectSql(sourceSql, filterSql, limit, offset, dialect);
     }
 
-    /** 执行查询 SQL（filter 参数 + limit/offset 参数按序绑定），返回行列表（每行为列名→值 Map）。 */
+    /**
+     * 执行查询 SQL。
+     *
+     * @deprecated plan 2026-07-19-1250-3 Phase 3：委托到 {@link MetaTableQueryExecutor#executeQuery}。
+     */
+    @Deprecated
     private static List<Map<String, Object>> executeQuery(Connection conn, String sql, List<Object> filterParams,
                                                            Long limit, Long offset) {
-        LOG.info("queryTableData SQL: {}", sql);
-        List<Map<String, Object>> rows = new ArrayList<>();
-        try (PreparedStatement st = conn.prepareStatement(sql)) {
-            int idx = 1;
-            for (Object p : filterParams) {
-                st.setObject(idx++, p);
-            }
-            if (limit != null) {
-                st.setObject(idx++, limit);
-            }
-            if (offset != null && offset > 0) {
-                st.setObject(idx++, offset);
-            }
-            try (ResultSet rs = st.executeQuery()) {
-                ResultSetMetaData meta = rs.getMetaData();
-                int columnCount = meta.getColumnCount();
-                while (rs.next()) {
-                    Map<String, Object> row = new LinkedHashMap<>();
-                    for (int c = 1; c <= columnCount; c++) {
-                        String label = meta.getColumnLabel(c);
-                        if (label == null || label.isEmpty()) {
-                            label = meta.getColumnName(c);
-                        }
-                        row.put(label, rs.getObject(c));
-                    }
-                    rows.add(row);
-                }
-            }
-            return rows;
-        } catch (SQLException e) {
-            throw new NopException(ERR_QUERY_SQL_EXEC_FAILED)
-                    .param("sql", sql)
-                    .param("error", messageOf(e))
-                    .cause(e);
-        }
+        return MetaTableQueryExecutor.executeQuery(conn, sql, filterParams, limit, offset);
     }
 
     private static Map<String, Object> buildQueryResult(String tableType, List<Map<String, Object>> items) {
-        Map<String, Object> result = new LinkedHashMap<>();
-        result.put("tableType", tableType);
-        result.put("items", items != null ? items : new ArrayList<>());
-        return result;
+        return MetaTableQueryExecutor.buildQueryResult(tableType, items);
     }
 
     @SuppressWarnings("unchecked")
     private static List<Map<String, Object>>[] newArrayHolder() {
-        return (List<Map<String, Object>>[]) new List<?>[1];
+        return MetaTableQueryExecutor.newArrayHolder();
     }
 
     /** 提取异常消息（null 时回退类名），避免 catch 块直接 e.getMessage() 丢失堆栈。 */
     private static String messageOf(Throwable t) {
-        String m = t.getMessage();
-        return m != null ? m : t.getClass().getName();
+        return MetaTableQueryExecutor.messageOf(t);
     }
 
     // ============================================================
@@ -944,7 +906,7 @@ public class NopMetaTableBizModel extends CrudBizModel<NopMetaTable> implements 
             row.setProfilingRuleId(profilingRuleId);
         }
         row.setMetaTableId(metaTableId);
-        row.setSnapshotTime(new Timestamp(System.currentTimeMillis()));
+        row.setSnapshotTime(CoreMetrics.currentTimestamp());
         row.setTableStats(JsonTool.stringify(snapshot.toTableStatsMap()));
         row.setColumnStats(JsonTool.stringify(snapshot.toColumnStatsList()));
         resultDao.saveEntity(row);

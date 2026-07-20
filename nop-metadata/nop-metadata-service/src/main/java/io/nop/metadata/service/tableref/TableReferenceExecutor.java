@@ -6,7 +6,7 @@ import io.nop.api.core.exceptions.NopException;
 import io.nop.dao.jdbc.txn.IJdbcTransaction;
 import io.nop.dao.txn.ITransaction;
 import io.nop.dao.txn.ITransactionTemplate;
-import io.nop.metadata.service.connection.IMetaDataSourceConnectionService;
+import io.nop.metadata.service.connection.IMetaDataSourceConnectionProcessor;
 import io.nop.orm.IOrmTemplate;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -19,7 +19,7 @@ import java.util.function.BiConsumer;
 /**
  * 按 {@link TableReference} 形态分派 Connection 获取并执行 action（架构基线 §4.4.3 D1/D2/D3）：
  * <ul>
- *   <li><b>external / sql</b>：经 {@link IMetaDataSourceConnectionService#withConnection} 建连（外部数据源，
+ *   <li><b>external / sql</b>：经 {@link IMetaDataSourceConnectionProcessor#withConnection} 建连（外部数据源，
  *       querySpace→NopMetaDataSource）。</li>
  *   <li><b>entity</b>（D1）：取平台事务 JDBC Connection（{@code IJdbcTransaction.getConnection()}，经
  *       {@link ITransactionTemplate#runInTransaction} + {@link TransactionPropagation#SUPPORTS}）。
@@ -28,7 +28,7 @@ import java.util.function.BiConsumer;
  *
  * <p>entity 路径不可执行（平台 querySpace 非 JDBC 连接）显式失败抛 inline ErrorCode（不静默返回 null、不伪造）。
  *
- * <p>无状态（依赖由构造时传入的 {@link IMetaDataSourceConnectionService} + {@link IOrmTemplate}）。
+ * <p>无状态（依赖由构造时传入的 {@link IMetaDataSourceConnectionProcessor} + {@link IOrmTemplate}）。
  */
 public class TableReferenceExecutor {
 
@@ -40,10 +40,10 @@ public class TableReferenceExecutor {
                             + "(cannot get Connection for entity table execution): {querySpace}",
                     "querySpace");
 
-    private final IMetaDataSourceConnectionService connectionService;
+    private final IMetaDataSourceConnectionProcessor connectionService;
     private final IOrmTemplate orm;
 
-    public TableReferenceExecutor(IMetaDataSourceConnectionService connectionService, IOrmTemplate orm) {
+    public TableReferenceExecutor(IMetaDataSourceConnectionProcessor connectionService, IOrmTemplate orm) {
         this.connectionService = connectionService;
         this.orm = orm;
     }

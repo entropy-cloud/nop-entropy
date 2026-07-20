@@ -16,7 +16,7 @@ import java.util.function.Consumer;
 
 /**
  * SQL 源表抽取器（架构基线 §2.6.1）：对任意用户 SQL 做纯语法解析，从 FROM/JOIN（含子查询、CTE、UNION）
- * 抽取所有被引用的表名，返回 {@link TableReference} 列表。
+ * 抽取所有被引用的表名，返回 {@link SqlTableReference} 列表。
  *
  * <p>解析器选型（设计决策 D1）：复用平台 {@code nop-orm-eql} 的 {@link EqlASTParser}，
  * 调用 {@code parseFromText(text)} 做纯语法 AST 解析（不绑定 ORM session——session 绑定的
@@ -44,7 +44,7 @@ public class SqlSourceTableExtractor {
      * @return 去重后的表引用列表（按首次出现顺序）
      * @throws NopException 当 SQL 为空或无法解析时（不静默返回空列表）
      */
-    public List<TableReference> extract(String sql) {
+    public List<SqlTableReference> extract(String sql) {
         if (sql == null || sql.trim().isEmpty()) {
             throw new NopException(ERR_LINEAGE_SQL_EMPTY).param("sql", sql);
         }
@@ -62,7 +62,7 @@ public class SqlSourceTableExtractor {
         // 递归遍历整个 AST，收集所有 SqlSingleTableSource 的表名。子查询（SqlSubqueryTableSource）
         // 不直接持有表名，但其内层 select 的表名会在递归遍历中被收集。
         Set<String> seen = new LinkedHashSet<>();
-        List<TableReference> refs = new ArrayList<>();
+        List<SqlTableReference> refs = new ArrayList<>();
         walk(program, node -> {
             if (node instanceof SqlSingleTableSource) {
                 SqlTableName tableName = ((SqlSingleTableSource) node).getTableName();
@@ -79,7 +79,7 @@ public class SqlSourceTableExtractor {
                 }
                 // 去重：按 simpleName 去重（同一表多次引用只算一条边）。schema.table 与 table 视作同一目标。
                 if (seen.add(simple)) {
-                    refs.add(new TableReference(full, simple));
+                    refs.add(new SqlTableReference(full, simple));
                 }
             }
         });

@@ -324,7 +324,7 @@ public class CheckpointActionDispatcher {
         return Math.min(a, b);
     }
 
-    /** 是否内网/保留段主机（RFC1918 + RFC3927 link-local + loopback）。与 MetaDataSourceConnectionService 一致。 */
+    /** 是否内网/保留段主机（RFC1918 + RFC3927 link-local + loopback）。与 MetaDataSourceConnectionProcessor 一致。 */
     static boolean isInternalHost(String host) {
         String h = host.toLowerCase();
         if ("localhost".equals(h) || h.endsWith(".localhost")) {

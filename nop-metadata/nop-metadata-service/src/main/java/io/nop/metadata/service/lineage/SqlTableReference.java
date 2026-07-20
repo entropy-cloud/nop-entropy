@@ -7,11 +7,11 @@ package io.nop.metadata.service.lineage;
  * 用于 unresolved 报告（让用户看到实际引用名）。{@code simpleName} 为去掉 schema 前缀的裸表名
  * （如 {@code orders}），用于匹配目录 {@code NopMetaTable.tableName}。
  */
-public final class TableReference {
+public final class SqlTableReference {
     private final String fullName;
     private final String simpleName;
 
-    public TableReference(String fullName, String simpleName) {
+    public SqlTableReference(String fullName, String simpleName) {
         this.fullName = fullName;
         this.simpleName = simpleName;
     }

@@ -8,12 +8,12 @@ import java.util.Map;
 /**
  * 可插拔对账匹配服务接口（设计 08-reconciliation.md §1.2 D1 裁定）。
  *
- * <p>首版内置 {@link LocalReconciliationService}（本地候选集匹配）。接口纯接口、无外部依赖，
+ * <p>首版内置 {@link LocalReconciliationProcessor}（本地候选集匹配）。接口纯接口、无外部依赖，
  * 外部 HTTP 实现（OpenRefine/Wikidata 兼容端点）可在后续作为新 impl 插入，不改执行器与 BizModel。
  *
  * <p>入参显式包含 {@code matchStrategy}，使策略可由调用方（config）控制。
  */
-public interface IReconciliationService {
+public interface IReconciliationProcessor {
 
     /**
      * 对给定值检索候选实体匹配。

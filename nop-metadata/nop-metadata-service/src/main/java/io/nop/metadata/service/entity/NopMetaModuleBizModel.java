@@ -7,6 +7,8 @@
  */
 package io.nop.metadata.service.entity;
 
+
+import io.nop.api.core.time.CoreMetrics;
 import io.nop.api.core.annotations.biz.BizModel;
 import io.nop.api.core.annotations.biz.BizMutation;
 import io.nop.api.core.annotations.core.Name;
@@ -476,7 +478,7 @@ public class NopMetaModuleBizModel extends CrudBizModel<NopMetaModule> implement
         NopMetaManifest manifest = new NopMetaManifest();
         manifest.setMetaModuleId(metaModuleId);
         manifest.setManifestVersion(manifestVersion);
-        manifest.setGeneratedAt(new Timestamp(System.currentTimeMillis()));
+        manifest.setGeneratedAt(CoreMetrics.currentTimestamp());
         manifest.setNopMetadataVersion(platformVersion);
         manifest.setContent(JsonTool.stringify(result.getContent()));
         manifestDao.saveEntity(manifest);

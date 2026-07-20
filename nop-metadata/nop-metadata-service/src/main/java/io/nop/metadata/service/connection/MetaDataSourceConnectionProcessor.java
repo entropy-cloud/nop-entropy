@@ -33,9 +33,9 @@ import java.util.function.BiConsumer;
  * （allowLoadLocalInfile/INIT=/allowMultiQueries 等）+ driverClassName 白名单 +
  * DriverManager.setLoginTimeout(5) 兜底（{@link SimpleDataSource#setLoginTimeout} 为 no-op）。
  */
-public class MetaDataSourceConnectionService implements IMetaDataSourceConnectionService {
+public class MetaDataSourceConnectionProcessor implements IMetaDataSourceConnectionProcessor {
 
-    private static final Logger LOG = LoggerFactory.getLogger(MetaDataSourceConnectionService.class);
+    private static final Logger LOG = LoggerFactory.getLogger(MetaDataSourceConnectionProcessor.class);
 
     public static final ErrorCode ERR_DATASOURCE_TYPE_NOT_SUPPORTED =
             ErrorCode.define("metadata.datasource-type-not-supported",

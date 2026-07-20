@@ -2,6 +2,7 @@ package io.nop.metadata.service.sync;
 
 import io.nop.api.core.exceptions.NopException;
 import io.nop.commons.util.IoHelper;
+import io.nop.metadata.service.NopMetadataErrors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -24,7 +25,8 @@ import java.util.List;
  * {@link DatabaseMetaData#getDatabaseProductName()} 运行时获取，不依赖任何持久化字段。
  *
  * <p>首版支持的方言：MySQL / PostgreSQL / H2。其余方言（ClickHouse {@code system.columns}、
- * Oracle 等）在入口显式抛 {@link UnsupportedOperationException}（快速失败，非静默跳过）。
+ * Oracle 等）在入口显式抛 {@link NopException}（携带
+ * {@link NopMetadataErrors#ERR_DATASOURCE_TYPE_NOT_SUPPORTED}；快速失败，非静默跳过）。
  *
  * <p>每张扫描到的表读取其 {@code TABLE_SCHEM} 并填入 {@link ExternalTableInfo#getSchema()}，
  * 供 BizModel 持久化到 {@code NopMetaTable.schema}（架构基线 §2.3.2 / §2.5.1）。
@@ -44,7 +46,7 @@ public class ExternalTableStructureReader {
      * @param metaData       连接的 DatabaseMetaData
      * @param schemaPattern  schema 过滤模式（null/空串表示不过滤，扫描全部 schema）
      * @return 扫描到的表结构列表（每张表含其列结构），不含表时返回空列表
-     * @throws UnsupportedOperationException 目标库方言首版不支持时显式抛出（非静默跳过）
+     * @throws NopException 目标库方言首版不支持时显式抛出（携带 ERR_DATASOURCE_TYPE_NOT_SUPPORTED；非静默跳过）
      */
     public List<ExternalTableInfo> read(Connection conn, DatabaseMetaData metaData, String schemaPattern) {
         String productName = requireSupportedDialect(metaData);
@@ -124,15 +126,15 @@ public class ExternalTableStructureReader {
     /**
      * 方言白名单门禁：仅 MySQL / PostgreSQL / H2（H2 同时服务 AutoTest 真实建连路径）。
      * ClickHouse（{@code system.columns}）/ Oracle 等首版显式不支持，抛
-     * {@link UnsupportedOperationException}（快速失败，非静默跳过）。
+     * {@link NopException}（{@link NopMetadataErrors#ERR_DATASOURCE_TYPE_NOT_SUPPORTED}，
+     * plan 2026-07-19-1250-3 Phase 2 维度09-07：替代 UnsupportedOperationException）。
      *
      * <p>包级可见以便单元测试直接验证门禁（无需真实非 H2 数据库即可覆盖"不支持方言显式失败"路径）。
      */
     static void requireSupportedProductName(String productName) {
         if (productName == null || !isSupportedDialect(productName)) {
-            throw new UnsupportedOperationException(
-                    "External table sync not yet implemented for dialect: " + productName
-                            + ". Supported dialects: MySQL, PostgreSQL, H2.");
+            throw new NopException(NopMetadataErrors.ERR_DATASOURCE_TYPE_NOT_SUPPORTED)
+                    .param(NopMetadataErrors.ARG_DATABASE_PRODUCT_NAME, String.valueOf(productName));
         }
     }
 

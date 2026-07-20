@@ -12,6 +12,8 @@ import io.nop.metadata.dao.entity.NopMetaEntity;
 import io.nop.metadata.dao.entity.NopMetaEntityRelation;
 import io.nop.metadata.dao.entity.NopMetaModule;
 import io.nop.metadata.dao.entity.NopMetaOrmModel;
+import io.nop.metadata.service.NopMetadataErrors;
+import io.nop.metadata.service.NopMetadataException;
 
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
@@ -57,9 +59,9 @@ public class MetaManifestBuilder {
                                      long manifestVersion,
                                      Date now) {
         if (module == null)
-            throw new IllegalArgumentException("module must not be null");
+            throw new NopMetadataException(NopMetadataErrors.ERR_MANIFEST_BUILD_FAILED);
         if (fullOrmModel == null)
-            throw new IllegalArgumentException("fullOrmModel must not be null (module has no full ORM model)");
+            throw new NopMetadataException("fullOrmModel must not be null (module has no full ORM model)");
 
         String moduleId = module.getModuleId();
         String normalizedModuleId = normalizeModuleId(moduleId);

@@ -21,11 +21,11 @@
     <modules>
         <module>nop-metadata-core</module>
         <module>nop-metadata-codegen</module>
-        <module>nop-metadata-api</module>
         <module>nop-metadata-dao</module>
         <module>nop-metadata-meta</module>
         <module>nop-metadata-service</module>
         <module>nop-metadata-web</module>
         <module>nop-metadata-app</module>
+        <module>nop-metadata-api</module>
     </modules>
 </project>

@@ -2,6 +2,7 @@ package io.nop.metadata.service.profiling;
 
 import io.nop.api.core.exceptions.ErrorCode;
 import io.nop.api.core.exceptions.NopException;
+import io.nop.commons.util.IoHelper;
 import io.nop.metadata.service.field.ResolvedTableField;
 import io.nop.metadata.service.tableref.TableReference;
 import org.slf4j.Logger;
@@ -405,12 +406,9 @@ public class MetaTableProfiler {
                 columns.add(new ColumnMeta(name, type));
             }
         } finally {
+            // plan 2026-07-19-1250-3 Phase 2 维度09-10：使用 IoHelper.safeCloseObject 替代手写 try/catch
             if (rs != null) {
-                try {
-                    rs.close();
-                } catch (SQLException ignored) {
-                    // ignored
-                }
+                IoHelper.safeCloseObject(rs);
             }
         }
         return columns;

@@ -20,7 +20,7 @@ import io.nop.metadata.dao.entity.NopMetaEntityField;
 import io.nop.metadata.dao.entity.NopMetaQualityResult;
 import io.nop.metadata.dao.entity.NopMetaQualityRule;
 import io.nop.metadata.dao.entity.NopMetaTable;
-import io.nop.metadata.service.connection.IMetaDataSourceConnectionService;
+import io.nop.metadata.service.connection.IMetaDataSourceConnectionProcessor;
 import io.nop.metadata.service.datasource.MetaDataSourceResolver;
 import io.nop.metadata.service.quality.MetaQualityRuleExecutor;
 import io.nop.metadata.service.quality.QualityResultWriter;
@@ -59,7 +59,7 @@ import java.util.concurrent.atomic.AtomicInteger;
  *   <li>目标表非 external（首版） → 抛 {@link #ERR_QUALITY_TABLE_NOT_EXTERNAL}</li>
  *   <li>无注册数据源 → 抛 {@link #ERR_QUALITY_NO_DATASOURCE}</li>
  *   <li>DISABLED 数据源 → 抛 {@link #ERR_QUALITY_DATASOURCE_DISABLED}</li>
- *   <li>非 jdbc 类型 → 由 {@code withConnection} 抛 UnsupportedOperationException</li>
+ *   <li>非 jdbc 类型 → 由 {@code withConnection} 抛 NopException</li>
  *   <li>缺 timestampColumn(freshness)/custom_sql 不返回单值 → 写 ERROR 结果行</li>
  *   <li>entityType=database / regex 方言不支持 REGEXP → 写 SKIP 结果行（带 details 标记）</li>
  * </ul>
@@ -92,7 +92,7 @@ public class NopMetaQualityRuleBizModel extends CrudBizModel<NopMetaQualityRule>
                     "DataSource not found: {dataSourceId}", "dataSourceId");
 
     @Inject
-    protected IMetaDataSourceConnectionService connectionService;
+    protected IMetaDataSourceConnectionProcessor connectionService;
 
     /** querySpace→数据源 解析共享组件。 */
     private final MetaDataSourceResolver dataSourceResolver = new MetaDataSourceResolver();

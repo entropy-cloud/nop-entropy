@@ -1,5 +1,7 @@
 package io.nop.metadata.service.entity;
 
+
+import io.nop.api.core.time.CoreMetrics;
 import io.nop.api.core.annotations.biz.BizModel;
 import io.nop.api.core.annotations.biz.BizMutation;
 import io.nop.api.core.annotations.core.Name;
@@ -10,12 +12,13 @@ import io.nop.core.context.IServiceContext;
 import io.nop.core.lang.json.JsonTool;
 import io.nop.dao.api.IEntityDao;
 import io.nop.metadata.biz.INopMetaReconciliationConfigBiz;
+import io.nop.metadata.biz.INopMetaTableBiz;
 import io.nop.metadata.dao.entity.NopMetaEntityField;
 import io.nop.metadata.dao.entity.NopMetaReconciliationConfig;
 import io.nop.metadata.dao.entity.NopMetaReconciliationResult;
 import io.nop.metadata.dao.entity.NopMetaTable;
 import io.nop.metadata.service.field.MetaTableFieldResolver;
-import io.nop.metadata.service.reconciliation.IReconciliationService;
+import io.nop.metadata.service.reconciliation.IReconciliationProcessor;
 import io.nop.metadata.service.reconciliation.ReconciliationExecutor;
 import jakarta.inject.Inject;
 
@@ -66,9 +69,12 @@ public class NopMetaReconciliationConfigBizModel extends CrudBizModel<NopMetaRec
                     "queryTableData failed for reconciliation: configId={configId} metaTableId={metaTableId} "
                             + "-- {error}", "configId", "metaTableId", "error");
 
-    /** B2 方案 b：注入 NopMetaTableBizModel 具体类（NopIoC bean）调 queryTableData 取数。 */
+    /**
+     * B2 方案 b：plan 2026-07-19-1250-3 Phase 1 维度07-02——注入 {@link INopMetaTableBiz} 接口
+     * （而非 NopMetaTableBizModel 具体类）调 queryTableData 取数。
+     */
     @Inject
-    protected NopMetaTableBizModel tableBizModel;
+    protected INopMetaTableBiz tableBizModel;
 
     /** 跨表类型字段解析器（校验 config.columnName 在目标表可用字段集合内）。无状态。 */
     private final MetaTableFieldResolver fieldResolver = new MetaTableFieldResolver();
@@ -77,7 +83,7 @@ public class NopMetaReconciliationConfigBizModel extends CrudBizModel<NopMetaRec
     private final ReconciliationExecutor reconciliationExecutor;
 
     @Inject
-    public NopMetaReconciliationConfigBizModel(IReconciliationService reconciliationService) {
+    public NopMetaReconciliationConfigBizModel(IReconciliationProcessor reconciliationService) {
         setEntityName(NopMetaReconciliationConfig.class.getName());
         this.reconciliationExecutor = new ReconciliationExecutor(reconciliationService);
     }
@@ -123,7 +129,7 @@ public class NopMetaReconciliationConfigBizModel extends CrudBizModel<NopMetaRec
         // 取数：BizModel 调 queryTableData 取 items（B2 方案 b）。失败显式抛 ErrorCode（不吞异常）。
         List<Map<String, Object>> items;
         try {
-            Map<String, Object> queryResult = tableBizModel.queryTableData(metaTableId, null, null, null, context);
+            Map<String, Object> queryResult = tableBizModel.queryTableData(metaTableId, null, null, null, null, context);
             items = extractItems(queryResult);
         } catch (NopException e) {
             // queryTableData 内部已抛带语义的 ErrorCode，此处附加 config 上下文后重新抛出
@@ -135,7 +141,7 @@ public class NopMetaReconciliationConfigBizModel extends CrudBizModel<NopMetaRec
 
         // 执行器纯组件消费 items，产出未持久化的 Result
         NopMetaReconciliationResult result = reconciliationExecutor.execute(config, items);
-        result.setExecuteTime(new Timestamp(System.currentTimeMillis()));
+        result.setExecuteTime(CoreMetrics.currentTimestamp());
 
         // 落库
         IEntityDao<NopMetaReconciliationResult> resultDao = daoFor(NopMetaReconciliationResult.class);

@@ -16,7 +16,7 @@ import io.nop.dao.txn.ITransactionTemplate;
 import io.nop.http.api.client.IHttpClient;
 import io.nop.metadata.biz.INopMetaQualityCheckpointBiz;
 import io.nop.metadata.dao.entity.NopMetaQualityCheckpoint;
-import io.nop.metadata.service.connection.IMetaDataSourceConnectionService;
+import io.nop.metadata.service.connection.IMetaDataSourceConnectionProcessor;
 import io.nop.metadata.service.datasource.MetaDataSourceResolver;
 import io.nop.metadata.service.quality.CheckpointActionDispatcher;
 import io.nop.metadata.service.quality.MetaQualityCheckpointExecutor;
@@ -63,11 +63,15 @@ public class NopMetaQualityCheckpointBizModel extends CrudBizModel<NopMetaQualit
                     "Quality checkpoint not found: {checkpointId}", "checkpointId");
 
     @Inject
-    protected IMetaDataSourceConnectionService connectionService;
+    protected IMetaDataSourceConnectionProcessor connectionService;
 
     /**
      * 注入 {@link NopMetaQualityScoreBizModel}（NopIoC bean）调 {@code computeQualityScore} 实现自动评分触发
      * （B2 方案 b，对齐 {@code NopMetaReconciliationConfigBizModel} 注入 {@code NopMetaTableBizModel} 模式）。
+     *
+     * <p>维度07-02 裁定（plan 2026-07-19-1250-3 Phase 1）：保留 raw impl 注入而非 {@code INopMetaQualityScoreBiz}
+     * 接口注入。理由同 {@code MetaQualityCheckpointScheduler.setCheckpointBizModel}：cron 触发的 autoScore
+     * 链路经 raw impl 调用，避免 BizProxy 事务隔离问题（TestMetaQualityCheckpointScheduler#testCronJobFireNowWritesResultsAndScores 验证）。
      */
     @Inject
     protected NopMetaQualityScoreBizModel scoreBizModel;

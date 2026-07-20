@@ -1,5 +1,7 @@
 package io.nop.metadata.service.entity;
 
+
+import io.nop.api.core.time.CoreMetrics;
 import io.nop.api.core.annotations.biz.BizModel;
 import io.nop.api.core.annotations.biz.BizMutation;
 import io.nop.api.core.annotations.core.Name;
@@ -57,7 +59,7 @@ public class NopMetaQualityScoreBizModel extends CrudBizModel<NopMetaQualityScor
         // 落盘新评分行（时序语义：scoreTime=now，不覆盖）
         NopMetaQualityScore row = dao().newEntity();
         row.setMetaTableId(metaTableId);
-        row.setScoreTime(new Timestamp(System.currentTimeMillis()));
+        row.setScoreTime(CoreMetrics.currentTimestamp());
         row.setOverallScore(result.getOverallScore());
         row.setDimensionScores(JsonTool.stringify(result.getDimensionScores()));
         row.setRuleSummary(JsonTool.stringify(result.getRuleSummary()));

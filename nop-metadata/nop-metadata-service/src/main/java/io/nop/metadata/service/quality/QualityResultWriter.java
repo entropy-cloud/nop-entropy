@@ -1,5 +1,7 @@
 package io.nop.metadata.service.quality;
 
+
+import io.nop.api.core.time.CoreMetrics;
 import io.nop.core.lang.json.JsonTool;
 import io.nop.dao.api.IEntityDao;
 import io.nop.metadata.dao.entity.NopMetaQualityResult;
@@ -31,7 +33,7 @@ public class QualityResultWriter {
                                        String qualityRuleId, QualityRuleJudgment judgment) {
         NopMetaQualityResult row = resultDao.newEntity();
         row.setQualityRuleId(qualityRuleId);
-        row.setExecuteTime(new Timestamp(System.currentTimeMillis()));
+        row.setExecuteTime(CoreMetrics.currentTimestamp());
         row.setStatus(judgment.getStatus());
         row.setActualValue(judgment.getActualValue());
         row.setExpectedValue(judgment.getExpectedValue());

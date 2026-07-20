@@ -1,5 +1,7 @@
 package io.nop.metadata.service.quality;
 
+
+import io.nop.api.core.time.CoreMetrics;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.api.core.exceptions.ErrorCode;
 import io.nop.commons.util.StringHelper;
@@ -608,26 +610,35 @@ public class MetaQualityRuleExecutor {
 
     private static boolean evalExpectPassWhen(String expectPassWhen, double value) {
         String s = expectPassWhen.trim().toLowerCase();
-        if ("true".equals(s) || "eq 1".equals(s) || "eq1".equals(s)) {
-            return value == 1.0;
+        try {
+            if ("true".equals(s) || "eq 1".equals(s) || "eq1".equals(s)) {
+                return value == 1.0;
+            }
+            if (s.startsWith("eq ")) {
+                return value == Double.parseDouble(s.substring(3).trim());
+            }
+            if (s.startsWith("gt ")) {
+                return value > Double.parseDouble(s.substring(3).trim());
+            }
+            if (s.startsWith("lt ")) {
+                return value < Double.parseDouble(s.substring(3).trim());
+            }
+            if (s.startsWith("ge ")) {
+                return value >= Double.parseDouble(s.substring(3).trim());
+            }
+            if (s.startsWith("le ")) {
+                return value <= Double.parseDouble(s.substring(3).trim());
+            }
+            // 默认 eq 0
+            return value == 0.0;
+        } catch (NumberFormatException e) {
+            // plan 2026-07-19-1250-3 Phase 5 AR-11：显式抛 ErrorCode（与模块内其它 ErrorCode 路径一致）
+            // expectPassWhen 配置错误属于规则定义问题，应快速失败（裁定为 ERR_QUALITY_EXPECT_PASS_WHEN_INVALID）。
+            throw new NopException(io.nop.metadata.service.NopMetadataErrors.ERR_QUALITY_EXPECT_PASS_WHEN_INVALID)
+                    .param(io.nop.metadata.service.NopMetadataErrors.ARG_QUALITY_RULE_ID, "<evalExpectPassWhen>")
+                    .param("expr", expectPassWhen)
+                    .cause(e);
         }
-        if (s.startsWith("eq ")) {
-            return value == Double.parseDouble(s.substring(3).trim());
-        }
-        if (s.startsWith("gt ")) {
-            return value > Double.parseDouble(s.substring(3).trim());
-        }
-        if (s.startsWith("lt ")) {
-            return value < Double.parseDouble(s.substring(3).trim());
-        }
-        if (s.startsWith("ge ")) {
-            return value >= Double.parseDouble(s.substring(3).trim());
-        }
-        if (s.startsWith("le ")) {
-            return value <= Double.parseDouble(s.substring(3).trim());
-        }
-        // 默认 eq 0
-        return value == 0.0;
     }
 
     private static boolean isRegexpUnsupported(SQLException e) {
@@ -641,7 +652,7 @@ public class MetaQualityRuleExecutor {
     }
 
     static long ageMinutesFromNow(Timestamp ts) {
-        long nowMs = System.currentTimeMillis();
+        long nowMs = CoreMetrics.currentTimeMillis();
         long tsMs = ts.getTime();
         long diffMs = nowMs - tsMs;
         return diffMs / 60000L;

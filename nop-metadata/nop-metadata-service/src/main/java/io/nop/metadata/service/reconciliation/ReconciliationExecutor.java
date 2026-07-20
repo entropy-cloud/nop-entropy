@@ -17,7 +17,7 @@ import java.util.Map;
  * <p>入参 {@code rows} 由 BizModel action 调 {@code queryTableData} 取得的 {@code items} 传入。
  * 本执行器不持有 BizModel、不伪造 context、不复制取数逻辑。
  *
- * <p>逐行按 {@code config.columnName} 取值 → 调 {@link IReconciliationService} 取候选 →
+ * <p>逐行按 {@code config.columnName} 取值 → 调 {@link IReconciliationProcessor} 取候选 →
  * 按 D5 钉死规则（设计 §3.2）判 status → 汇总 statistics + details → 返回未持久化的 Result 实体
  * （由 BizModel 落库）。
  *
@@ -47,9 +47,9 @@ public class ReconciliationExecutor {
                             + "columnName={columnName} rowIndex={rowIndex}",
                     "configId", "columnName", "rowIndex");
 
-    private final IReconciliationService reconciliationService;
+    private final IReconciliationProcessor reconciliationService;
 
-    public ReconciliationExecutor(IReconciliationService reconciliationService) {
+    public ReconciliationExecutor(IReconciliationProcessor reconciliationService) {
         this.reconciliationService = reconciliationService;
     }
 
@@ -81,7 +81,7 @@ public class ReconciliationExecutor {
             }
             String value = raw == null ? null : String.valueOf(raw);
 
-            List<IReconciliationService.ReconciliationCandidate> candidates =
+            List<IReconciliationProcessor.ReconciliationCandidate> candidates =
                     reconciliationService.reconcile(value, config.getTargetEntityType(),
                             config.getIdentifierSpace(), config.getMatchStrategy(), null);
 
@@ -117,7 +117,7 @@ public class ReconciliationExecutor {
     }
 
     /** D5 钉死规则：见类 Javadoc。 */
-    private String judgeStatus(List<IReconciliationService.ReconciliationCandidate> candidates,
+    private String judgeStatus(List<IReconciliationProcessor.ReconciliationCandidate> candidates,
                                NopMetaReconciliationConfig config) {
         if (candidates == null || candidates.isEmpty()) {
             return STATUS_UNMATCHED;
@@ -144,7 +144,7 @@ public class ReconciliationExecutor {
     }
 
     private Map<String, Object> toRowDetail(int rowIndex, String originalValue, String status,
-                                            List<IReconciliationService.ReconciliationCandidate> candidates) {
+                                            List<IReconciliationProcessor.ReconciliationCandidate> candidates) {
         Map<String, Object> d = new LinkedHashMap<>();
         d.put("rowIndex", rowIndex);
         d.put("originalValue", originalValue);
@@ -152,7 +152,7 @@ public class ReconciliationExecutor {
         List<Map<String, Object>> candidateMaps = new ArrayList<>();
         String selectedId = null;
         if (candidates != null) {
-            for (IReconciliationService.ReconciliationCandidate c : candidates) {
+            for (IReconciliationProcessor.ReconciliationCandidate c : candidates) {
                 candidateMaps.add(c.toMap());
             }
             // MATCHED 时自动选中最高分候选（candidates 已按 score 降序）

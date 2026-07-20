@@ -1,5 +1,7 @@
 package io.nop.metadata.service.event;
 
+
+import io.nop.api.core.time.CoreMetrics;
 import io.nop.api.core.exceptions.ErrorCode;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.core.context.IServiceContext;
@@ -132,7 +134,7 @@ public class MetaModelChangedEventPublisher {
         event.setBeforeSnapshot(beforeSnapshot);
         event.setAfterSnapshot(afterSnapshot);
         event.setChangedBy(context != null ? context.getUserId() : null);
-        event.setChangeTime(new Timestamp(System.currentTimeMillis()));
+        event.setChangeTime(CoreMetrics.currentTimestamp());
         event.setTransactionId(transactionId);
         eventDao.saveEntity(event);
         return event;

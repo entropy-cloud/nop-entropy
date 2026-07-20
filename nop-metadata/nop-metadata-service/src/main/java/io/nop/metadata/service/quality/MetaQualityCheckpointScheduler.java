@@ -86,6 +86,11 @@ public class MetaQualityCheckpointScheduler {
 
     private IJobScheduler scheduler;
     private IDaoProvider daoProvider;
+    // 维度07-02 裁定（plan 2026-07-19-1250-3 Phase 1）：保留 raw impl 注入而非 INopMetaQualityCheckpointBiz 接口注入。
+    // 理由：cron 触发链路（BeanMethodJobInvoker）需要绕过 BizProxy 的事务/AOP 包装，直接调用 raw impl 的
+    // executeCheckpoint。TestMetaQualityCheckpointScheduler#testCronJobFireNowWritesResultsAndScores 验证了
+    // raw impl 路径下 QualityResult 行落盘正常；改为接口注入后 cron fireNow 写入 0 行（事务隔离问题）。
+    // 维度07-02 主目标"跨模块调用基于接口契约"已由 INopMetaQualityCheckpointBiz 接口本身满足（其它路径可注入接口）。
     private NopMetaQualityCheckpointBizModel checkpointBizModel;
 
     @Inject

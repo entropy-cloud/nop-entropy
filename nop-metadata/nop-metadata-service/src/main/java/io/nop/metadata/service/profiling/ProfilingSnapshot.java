@@ -1,5 +1,7 @@
 package io.nop.metadata.service.profiling;
 
+
+import io.nop.api.core.time.CoreMetrics;
 import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
@@ -99,6 +101,6 @@ public class ProfilingSnapshot {
 
     /** 表级时间戳（snapshotTime 由 BizModel 赋值，这里仅占位）。 */
     public Timestamp snapshotTime() {
-        return new Timestamp(System.currentTimeMillis());
+        return CoreMetrics.currentTimestamp();
     }
 }

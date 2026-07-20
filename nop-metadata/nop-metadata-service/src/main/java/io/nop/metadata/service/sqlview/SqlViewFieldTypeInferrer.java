@@ -4,7 +4,7 @@ import io.nop.api.core.exceptions.ErrorCode;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.dao.api.IEntityDao;
 import io.nop.metadata.dao.entity.NopMetaDataSource;
-import io.nop.metadata.service.connection.IMetaDataSourceConnectionService;
+import io.nop.metadata.service.connection.IMetaDataSourceConnectionProcessor;
 import io.nop.metadata.service.datasource.MetaDataSourceResolver;
 
 import java.sql.Connection;
@@ -56,7 +56,7 @@ import java.util.function.BiConsumer;
  *   <li>querySpace null/空/无匹配 → 沿用 {@link MetaDataSourceResolver#resolveActiveOrThrow} 的 ErrorCode</li>
  *   <li>DISABLED 数据源 → 沿用 {@link MetaDataSourceResolver#resolveActiveOrThrow} 的 ErrorCode</li>
  *   <li>建连失败 → 沿用 {@code withConnection} 的 {@code metadata.datasource-connect-failed}</li>
- *   <li>非 jdbc 类型 → 由 {@code withConnection} 抛 {@code UnsupportedOperationException}</li>
+ *   <li>非 jdbc 类型 → 由 {@code withConnection} 抛 {@code NopException}</li>
  *   <li>方言不支持 → {@link #ERR_SQL_TYPE_INFERENCE_DIALECT_NOT_SUPPORTED}</li>
  *   <li>列数不匹配（sourceSql 输出列数 != ResultSetMetaData 列数）→ {@link #ERR_SQL_TYPE_INFERENCE_COLUMN_MISMATCH}</li>
  *   <li>sourceSql 执行失败（语法错误等）→ {@link #ERR_SQL_TYPE_INFERENCE_FAILED}</li>
@@ -91,10 +91,10 @@ public class SqlViewFieldTypeInferrer {
             Collections.unmodifiableSet(new HashSet<>(Arrays.asList("H2", "MySQL", "PostgreSQL")));
 
     private final MetaDataSourceResolver dataSourceResolver;
-    private final IMetaDataSourceConnectionService connectionService;
+    private final IMetaDataSourceConnectionProcessor connectionService;
 
     public SqlViewFieldTypeInferrer(MetaDataSourceResolver dataSourceResolver,
-                                     IMetaDataSourceConnectionService connectionService) {
+                                     IMetaDataSourceConnectionProcessor connectionService) {
         this.dataSourceResolver = dataSourceResolver;
         this.connectionService = connectionService;
     }

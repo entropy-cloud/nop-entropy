@@ -1,5 +1,7 @@
 package io.nop.metadata.service.entity;
 
+
+import io.nop.api.core.time.CoreMetrics;
 import io.nop.api.core.annotations.biz.BizModel;
 import io.nop.api.core.annotations.biz.BizMutation;
 import io.nop.api.core.annotations.core.Name;
@@ -20,7 +22,7 @@ import io.nop.metadata.dao.entity.NopMetaEntityField;
 import io.nop.metadata.dao.entity.NopMetaProfilingResult;
 import io.nop.metadata.dao.entity.NopMetaProfilingRule;
 import io.nop.metadata.dao.entity.NopMetaTable;
-import io.nop.metadata.service.connection.IMetaDataSourceConnectionService;
+import io.nop.metadata.service.connection.IMetaDataSourceConnectionProcessor;
 import io.nop.metadata.service.datasource.MetaDataSourceResolver;
 import io.nop.metadata.service.profiling.MetaTableProfiler;
 import io.nop.metadata.service.profiling.ProfilingColumnStats;
@@ -61,7 +63,7 @@ public class NopMetaProfilingRuleBizModel extends CrudBizModel<NopMetaProfilingR
                     "Profiling rule not found: {profilingRuleId}", "profilingRuleId");
 
     @Inject
-    protected IMetaDataSourceConnectionService connectionService;
+    protected IMetaDataSourceConnectionProcessor connectionService;
 
     /** 共享 table-reference 解析器（架构基线 §4.4.3 D3）。 */
     private final MetaTableReferenceResolver tableRefResolver = new MetaTableReferenceResolver(
@@ -157,7 +159,7 @@ public class NopMetaProfilingRuleBizModel extends CrudBizModel<NopMetaProfilingR
         NopMetaProfilingResult row = resultDao.newEntity();
         row.setProfilingRuleId(profilingRuleId);
         row.setMetaTableId(metaTableId);
-        row.setSnapshotTime(new Timestamp(System.currentTimeMillis()));
+        row.setSnapshotTime(CoreMetrics.currentTimestamp());
         row.setTableStats(JsonTool.stringify(snapshot.toTableStatsMap()));
         row.setColumnStats(JsonTool.stringify(snapshot.toColumnStatsList()));
         resultDao.saveEntity(row);

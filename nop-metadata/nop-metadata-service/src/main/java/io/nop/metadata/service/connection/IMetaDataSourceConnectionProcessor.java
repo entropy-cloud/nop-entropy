@@ -25,7 +25,7 @@ import java.util.function.BiConsumer;
  *   <li>建连阶段 SQLException → {@code metadata.datasource-connect-failed}</li>
  * </ul>
  */
-public interface IMetaDataSourceConnectionService {
+public interface IMetaDataSourceConnectionProcessor {
 
     /**
      * Callback 式：按 datasourceType + connectionConfig 建连 → 执行 action（拿到

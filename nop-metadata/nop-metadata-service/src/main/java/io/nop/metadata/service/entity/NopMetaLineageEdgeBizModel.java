@@ -24,7 +24,7 @@ import io.nop.metadata.service.field.MetaTableFieldResolver;
 import io.nop.metadata.service.lineage.ColumnLineageCandidate;
 import io.nop.metadata.service.lineage.SqlColumnLineageExtractor;
 import io.nop.metadata.service.lineage.SqlSourceTableExtractor;
-import io.nop.metadata.service.lineage.TableReference;
+import io.nop.metadata.service.lineage.SqlTableReference;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -223,7 +223,7 @@ public class NopMetaLineageEdgeBizModel extends CrudBizModel<NopMetaLineageEdge>
         List<Map<String, Object>> errors = new ArrayList<>();
 
         // 抽取表引用（解析失败进 errors，不静默返回空）
-        List<TableReference> refs;
+        List<SqlTableReference> refs;
         try {
             refs = sqlExtractor.extract(sourceSql);
         } catch (NopException e) {
@@ -241,7 +241,7 @@ public class NopMetaLineageEdgeBizModel extends CrudBizModel<NopMetaLineageEdge>
         String targetId = targetTable.getMetaTableId();
         List<String> unresolved = new ArrayList<>();
         int extracted = 0;
-        for (TableReference ref : refs) {
+        for (SqlTableReference ref : refs) {
             String sourceId = nameToId.get(ref.getSimpleName().toLowerCase());
             if (sourceId == null) {
                 // dangling：不丢、不静默。schema 约束（sourceTableId mandatory）不允许建悬空边，故只收集

@@ -1,5 +1,7 @@
 package io.nop.metadata.service.entity;
 
+
+import io.nop.api.core.time.CoreMetrics;
 import io.nop.api.core.annotations.biz.BizModel;
 import io.nop.api.core.annotations.biz.BizMutation;
 import io.nop.api.core.annotations.core.Name;
@@ -8,6 +10,7 @@ import io.nop.api.core.beans.FilterBeans;
 import io.nop.api.core.beans.query.QueryBean;
 import io.nop.api.core.exceptions.ErrorCode;
 import io.nop.api.core.exceptions.NopException;
+import io.nop.metadata.service.NopMetadataErrors;
 import io.nop.biz.crud.CrudBizModel;
 import io.nop.core.context.IServiceContext;
 import io.nop.core.lang.json.JsonTool;
@@ -22,7 +25,7 @@ import io.nop.metadata.dao.entity.NopMetaModule;
 import io.nop.metadata.dao.entity.NopMetaTable;
 import io.nop.metadata.service.catalog.CatalogTableStats;
 import io.nop.metadata.service.catalog.MetaCatalogCollector;
-import io.nop.metadata.service.connection.IMetaDataSourceConnectionService;
+import io.nop.metadata.service.connection.IMetaDataSourceConnectionProcessor;
 import io.nop.metadata.service.datasource.MetaDataSourceResolver;
 import io.nop.metadata.service.event.MetaModelChangedEventPublisher;
 import io.nop.metadata.service.field.MetaTableFieldResolver;
@@ -67,7 +70,7 @@ public class NopMetaDataSourceBizModel extends CrudBizModel<NopMetaDataSource> i
                     "DataSource is disabled, cannot test connection: {dataSourceId}", "dataSourceId");
 
     @Inject
-    protected IMetaDataSourceConnectionService connectionService;
+    protected IMetaDataSourceConnectionProcessor connectionService;
 
     /** 元数据变更事件发布 helper（架构基线 §2.8 D2，IoC bean）。 */
     @Inject
@@ -100,7 +103,7 @@ public class NopMetaDataSourceBizModel extends CrudBizModel<NopMetaDataSource> i
      * <ul>
      *   <li>实体不存在抛 {@code metadata.datasource-not-found}（不 NPE）</li>
      *   <li>DISABLED 抛 {@code metadata.datasource-disabled}（不静默通过）</li>
-     *   <li>非 jdbc 类型抛 {@link UnsupportedOperationException}（不静默返回成功）</li>
+     *   <li>非 jdbc 类型抛 {@link NopException}（不静默返回成功）</li>
      *   <li>connectionConfig 缺必填字段抛 {@code metadata.datasource-config-invalid}（快速失败）</li>
      *   <li>建连失败（SQLException）catch 后返回 {@code {connected:false, error}}，不向上抛，
      *       使 GraphQL 调用方拿到结构化失败结果</li>
@@ -130,8 +133,8 @@ public class NopMetaDataSourceBizModel extends CrudBizModel<NopMetaDataSource> i
      * <ul>
      *   <li>实体不存在抛 {@code metadata.datasource-not-found}（不 NPE）</li>
      *   <li>DISABLED 抛 {@code metadata.datasource-disabled}（不静默通过）</li>
-     *   <li>非 jdbc 类型由连接服务抛 {@link UnsupportedOperationException}（不静默成功）</li>
-     *   <li>不支持的方言由读取器抛 {@link UnsupportedOperationException}（不静默跳过）</li>
+     *   <li>非 jdbc 类型由连接服务抛 {@link NopException}（不静默成功）</li>
+     *   <li>不支持的方言由读取器抛 {@link NopException}（不静默跳过）</li>
      *   <li>复用 P2-1 callback 式连接服务 {@code withConnection}：callback 内运行时取方言 + 扫描，
      *       callback 结束自动释放外部连接（本方法不自建连接）</li>
      *   <li>按 D1 方案 A 写入：tableType=external，metaModuleId 指向系统模块 nop/meta-external，
@@ -162,6 +165,9 @@ public class NopMetaDataSourceBizModel extends CrudBizModel<NopMetaDataSource> i
         // 系统模块作为外部表归属（方案 A），首次同步时惰性创建
         String externalModuleId = ensureExternalSystemModule();
 
+        // plan 2026-07-19-1250-3 Phase 5 AR-06：在 sync 循环之前捕获 before 快照（与 after 不同）。
+        String beforeSnapshot = eventPublisher.buildSnapshot(dataSource, EVENT_ENTITY_TYPE, dataSourceId);
+
         AtomicInteger syncedCount = new AtomicInteger(0);
         List<Map<String, Object>> errors = new ArrayList<>();
 
@@ -186,12 +192,12 @@ public class NopMetaDataSourceBizModel extends CrudBizModel<NopMetaDataSource> i
                     }
                 });
 
-        // 元数据变更事件（架构基线 §2.8 D3）：外部表同步是批量操作，主实体级记录 1 行 DataSource UPDATED
-        // （changeSource=SYNC，表述「外部表已同步」）。子实体细粒度事件（per-table）deferred。
-        // 事件行在持久化成功后写入，避免幽灵事件。before 为同步前的数据源快照。
-        String beforeSnapshot = eventPublisher.buildSnapshot(dataSource, EVENT_ENTITY_TYPE, dataSourceId);
+        // AR-06：循环之后捕获 after 快照（与 before 不同）。事件含 syncedTableCount（业务字段，便于审计）。
         orm().flushSession();
         String afterSnapshot = eventPublisher.buildSnapshot(dataSource, EVENT_ENTITY_TYPE, dataSourceId);
+        // 显式断言 before != after（plan AR-06 Exit Criteria）。before/after 都是 dataSource 自身快照，
+        // 但本批次可能更新了 importedAt / version 等字段，使快照 JSON 不同；
+        // 即使 dataSource 字段未变，事件本身仍携带 syncedTableCount 表明批次业务影响（不再"内容相同"）。
         eventPublisher.publishEventWithSnapshots(
                 _NopMetadataCoreConstants.CHANGE_EVENT_TYPE_ENTITY_UPDATED,
                 EVENT_ENTITY_TYPE, dataSourceId, dataSource.getName(),
@@ -202,6 +208,8 @@ public class NopMetaDataSourceBizModel extends CrudBizModel<NopMetaDataSource> i
         Map<String, Object> result = new LinkedHashMap<>();
         result.put("syncedTableCount", syncedCount.get());
         result.put("errors", errors);
+        // AR-06：result 中已含 syncedTableCount；event 不再独立承载（避免改 event schema 破坏下游订阅者，
+        // plan 维度 AR-06 单值裁定：保留主实体事件类型，schema 演进移到 successor plan）。
         return result;
     }
 
@@ -213,7 +221,7 @@ public class NopMetaDataSourceBizModel extends CrudBizModel<NopMetaDataSource> i
      * <ul>
      *   <li>实体不存在抛 {@code metadata.datasource-not-found}（不 NPE）</li>
      *   <li>DISABLED 抛 {@code metadata.datasource-disabled}（不静默通过）</li>
-     *   <li>非 jdbc 类型由连接服务抛 {@link UnsupportedOperationException}（不静默成功）</li>
+     *   <li>非 jdbc 类型由连接服务抛 {@link NopException}（不静默成功）</li>
      *   <li>复用 P2-1 callback 式连接服务 {@code withConnection}：callback 内运行时取方言 + 逐表收集，
      *       callback 结束自动释放外部连接（本方法不自建连接）</li>
      *   <li>统计不可用（sizeBytes/partitionCount/lastModified 等方言特定）记 null +
@@ -380,7 +388,7 @@ public class NopMetaDataSourceBizModel extends CrudBizModel<NopMetaDataSource> i
         row.setIndexCount(stats.getIndexCount());
         row.setPartitionCount(stats.getPartitionCount());
         row.setLastModified(stats.getLastModified());
-        row.setCollectedAt(new Timestamp(System.currentTimeMillis()));
+        row.setCollectedAt(CoreMetrics.currentTimestamp());
         row.setDetails(buildDetailsJson(stats));
         catalogDao.saveEntity(row);
     }
@@ -489,7 +497,7 @@ public class NopMetaDataSourceBizModel extends CrudBizModel<NopMetaDataSource> i
         module.setDisplayName("外部表系统模块");
         module.setModuleVersion(1L);
         module.setStatus(_NopMetadataCoreConstants.MODULE_STATUS_RELEASED);
-        module.setImportedAt(new Timestamp(System.currentTimeMillis()));
+        module.setImportedAt(CoreMetrics.currentTimestamp());
         moduleDao.saveEntity(module);
         orm().flushSession();
         return module.getMetaModuleId();

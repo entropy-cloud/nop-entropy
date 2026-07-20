@@ -10,6 +10,8 @@ import io.nop.dao.api.IEntityDao;
 import io.nop.metadata.core._NopMetadataCoreConstants;
 import io.nop.metadata.dao.entity.NopMetaReconciliationEntity;
 import jakarta.inject.Inject;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -31,7 +33,9 @@ import java.util.List;
  *
  * <p>DAO 访问经 NopIoC {@link IDaoProvider} 注入（对齐 {@code MetaContractChecker} 服务 bean 模式）。
  */
-public class LocalReconciliationService implements IReconciliationService {
+public class LocalReconciliationProcessor implements IReconciliationProcessor {
+
+    private static final Logger LOG = LoggerFactory.getLogger(LocalReconciliationProcessor.class);
 
     static final ErrorCode ERR_RECON_UNSUPPORTED_MATCH_STRATEGY =
             ErrorCode.define("metadata.recon-unsupported-match-strategy",
@@ -47,7 +51,7 @@ public class LocalReconciliationService implements IReconciliationService {
     private final IDaoProvider daoProvider;
 
     @Inject
-    public LocalReconciliationService(IDaoProvider daoProvider) {
+    public LocalReconciliationProcessor(IDaoProvider daoProvider) {
         this.daoProvider = daoProvider;
     }
 
@@ -173,8 +177,11 @@ public class LocalReconciliationService implements IReconciliationService {
             if (parsed instanceof java.util.Map) {
                 return (java.util.Map<String, Object>) parsed;
             }
-        } catch (Exception ignored) {
-            // properties JSON 解析失败不阻断匹配，记空（不伪造）
+        } catch (Exception e) {
+            // plan 2026-07-19-1250-3 Phase 2 维度09-09：静默吞异常修复——记录 warn 日志（含原始 JSON 摘要 + 完整 stack trace）
+            LOG.warn("parseProperties failed -- propertiesJsonSnippet={}",
+                    propertiesJson.length() > 200 ? propertiesJson.substring(0, 200) + "..." : propertiesJson,
+                    e);
         }
         return Collections.emptyMap();
     }
