@@ -37238,6 +37238,16 @@
     "allPublicMethods": true,
     "fields": [],
     "methods": [],
+    "name": "io.nop.sys.dao.entity.NopSysBroadcastEvent"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
     "name": "io.nop.sys.dao.entity.NopSysChangeLog"
   },
   {
@@ -37269,6 +37279,16 @@
     "fields": [],
     "methods": [],
     "name": "io.nop.sys.dao.entity.NopSysCodeRule"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.sys.dao.entity.NopSysCompactExtField"
   },
   {
     "allDeclaredConstructors": true,
@@ -37433,6 +37453,21 @@
     "fields": [],
     "methods": [],
     "name": "io.nop.sys.dao.entity.NopSysVariable"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [
+      {
+        "name": "newInstance",
+        "parameterTypes": []
+      }
+    ],
+    "name": "io.nop.sys.dao.entity._gen._NopSysBroadcastEvent"
   },
   {
     "allDeclaredConstructors": true,
@@ -37919,6 +37954,21 @@
       }
     ],
     "name": "io.nop.sys.dao.entity._gen._NopSysCodeRule"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [
+      {
+        "name": "newInstance",
+        "parameterTypes": []
+      }
+    ],
+    "name": "io.nop.sys.dao.entity._gen._NopSysCompactExtField"
   },
   {
     "allDeclaredConstructors": true,
@@ -40968,6 +41018,16 @@
     "allPublicMethods": true,
     "fields": [],
     "methods": [],
+    "name": "io.nop.sys.service.entity.NopSysBroadcastEventBizModel"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
     "name": "io.nop.sys.service.entity.NopSysChangeLogBizModel"
   },
   {
@@ -40999,6 +41059,16 @@
     "fields": [],
     "methods": [],
     "name": "io.nop.sys.service.entity.NopSysCodeRuleBizModel"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.sys.service.entity.NopSysCompactExtFieldBizModel"
   },
   {
     "allDeclaredConstructors": true,
@@ -41157,6 +41227,21 @@
     "fields": [],
     "methods": [],
     "name": "io.nop.sys.service.entity.NopSysVariableBizModel"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [
+      {
+        "allowWrite": true,
+        "name": "daoProvider"
+      }
+    ],
+    "methods": [],
+    "name": "io.nop.sys.service.impl.SysCompactExtFieldHelper"
   },
   {
     "allDeclaredConstructors": true,

@@ -2578,6 +2578,36 @@
     "allPublicMethods": true,
     "fields": [],
     "methods": [],
+    "name": "io.nop.commons.concurrent.executor.BaseThreadPoolConfig"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.commons.concurrent.executor.DefaultScheduledExecutor"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.commons.concurrent.executor.ThreadPoolConfig"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
     "name": "io.nop.commons.functional.ChainedAsyncFunctionInvoker"
   },
   {
@@ -5100,6 +5130,16 @@
     "allPublicMethods": true,
     "fields": [],
     "methods": [],
+    "name": "io.nop.job.coordinator.engine.AdaptiveJobTaskBuilder"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
     "name": "io.nop.job.coordinator.engine.DefaultJobCancelHandler"
   },
   {
@@ -5119,6 +5159,16 @@
     "allPublicFields": true,
     "allPublicMethods": true,
     "fields": [],
+    "methods": [],
+    "name": "io.nop.job.coordinator.engine.DefaultWorkerLoadProvider"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
     "methods": [
       {
         "name": "doScan",
@@ -5126,6 +5176,20 @@
       },
       {
         "name": "getExecutor",
+        "parameterTypes": []
+      },
+      {
+        "name": "onScanFailed",
+        "parameterTypes": [
+          "java.lang.Exception"
+        ]
+      },
+      {
+        "name": "scanBatch",
+        "parameterTypes": []
+      },
+      {
+        "name": "scanOnce",
         "parameterTypes": []
       }
     ],
@@ -5165,6 +5229,20 @@
       {
         "name": "getExecutor",
         "parameterTypes": []
+      },
+      {
+        "name": "onScanFailed",
+        "parameterTypes": [
+          "java.lang.Exception"
+        ]
+      },
+      {
+        "name": "scanBatch",
+        "parameterTypes": []
+      },
+      {
+        "name": "scanOnce",
+        "parameterTypes": []
       }
     ],
     "name": "io.nop.job.coordinator.engine.JobDispatcherScannerImpl"
@@ -5194,6 +5272,20 @@
       {
         "name": "getExecutor",
         "parameterTypes": []
+      },
+      {
+        "name": "onScanFailed",
+        "parameterTypes": [
+          "java.lang.Exception"
+        ]
+      },
+      {
+        "name": "scanBatch",
+        "parameterTypes": []
+      },
+      {
+        "name": "scanOnce",
+        "parameterTypes": []
       }
     ],
     "name": "io.nop.job.coordinator.engine.JobPlannerScannerImpl"
@@ -5213,9 +5305,43 @@
       {
         "name": "getExecutor",
         "parameterTypes": []
+      },
+      {
+        "name": "onScanFailed",
+        "parameterTypes": [
+          "java.lang.Exception"
+        ]
+      },
+      {
+        "name": "scanBatch",
+        "parameterTypes": []
+      },
+      {
+        "name": "scanOnce",
+        "parameterTypes": []
       }
     ],
     "name": "io.nop.job.coordinator.engine.JobTimeoutCheckerImpl"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.job.coordinator.engine.LeastLoadedStrategy"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.job.coordinator.engine.PartitionTaskBuilder"
   },
   {
     "allDeclaredConstructors": true,
@@ -5246,6 +5372,75 @@
     "fields": [],
     "methods": [],
     "name": "io.nop.job.coordinator.retry.NoOpJobRetryBridge"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [
+      {
+        "allowWrite": true,
+        "name": "batchSize"
+      },
+      {
+        "allowWrite": true,
+        "name": "maxScanLoops"
+      },
+      {
+        "allowWrite": true,
+        "name": "running"
+      },
+      {
+        "allowWrite": true,
+        "name": "scanFuture"
+      },
+      {
+        "allowWrite": true,
+        "name": "scanIntervalMs"
+      }
+    ],
+    "methods": [
+      {
+        "name": "doScan",
+        "parameterTypes": []
+      },
+      {
+        "name": "getExecutor",
+        "parameterTypes": []
+      },
+      {
+        "name": "onScanFailed",
+        "parameterTypes": [
+          "java.lang.Exception"
+        ]
+      },
+      {
+        "name": "scanBatch",
+        "parameterTypes": []
+      },
+      {
+        "name": "scanOnce",
+        "parameterTypes": []
+      }
+    ],
+    "name": "io.nop.job.core.AbstractBatchScanner"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [
+      {
+        "name": "currentTime",
+        "parameterTypes": []
+      }
+    ],
+    "name": "io.nop.job.core.LocalJobScheduler"
   },
   {
     "allDeclaredConstructors": true,
@@ -5388,6 +5583,36 @@
     "allPublicConstructors": true,
     "allPublicFields": true,
     "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.job.local.config.BeanContainerInvokerResolver"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.job.local.config.LocalJobConfigLoader"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.job.local.executor.BeanMethodJobInvoker"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
     "fields": [
       {
         "allowWrite": true,
@@ -5454,6 +5679,16 @@
     "allPublicMethods": true,
     "fields": [],
     "methods": [],
+    "name": "io.nop.job.worker.capacity.MetadataWorkerCapacityProvider"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
     "name": "io.nop.job.worker.engine.DefaultJobExecutionContextBuilder"
   },
   {
@@ -5499,6 +5734,20 @@
       },
       {
         "name": "getExecutor",
+        "parameterTypes": []
+      },
+      {
+        "name": "onScanFailed",
+        "parameterTypes": [
+          "java.lang.Exception"
+        ]
+      },
+      {
+        "name": "scanBatch",
+        "parameterTypes": []
+      },
+      {
+        "name": "scanOnce",
         "parameterTypes": []
       }
     ],
@@ -7459,6 +7708,211 @@
       }
     ],
     "name": "io.nop.sys.dao.seq.SysSequenceGenerator"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.sys.service.entity.NopSysBroadcastEventBizModel"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.sys.service.entity.NopSysChangeLogBizModel"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.sys.service.entity.NopSysCheckerRecordBizModel"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.sys.service.entity.NopSysClusterLeaderBizModel"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.sys.service.entity.NopSysCodeRuleBizModel"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.sys.service.entity.NopSysCompactExtFieldBizModel"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.sys.service.entity.NopSysDictBizModel"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.sys.service.entity.NopSysDictOptionBizModel"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.sys.service.entity.NopSysEventBizModel"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.sys.service.entity.NopSysExtFieldBizModel"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.sys.service.entity.NopSysI18nBizModel"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.sys.service.entity.NopSysLockBizModel"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.sys.service.entity.NopSysNoticeTemplateBizModel"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.sys.service.entity.NopSysObjTagBizModel"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.sys.service.entity.NopSysSequenceBizModel"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.sys.service.entity.NopSysServiceInstanceBizModel"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.sys.service.entity.NopSysTagBizModel"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.sys.service.entity.NopSysUserVariableBizModel"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.sys.service.entity.NopSysVariableBizModel"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [
+      {
+        "allowWrite": true,
+        "name": "daoProvider"
+      }
+    ],
+    "methods": [],
+    "name": "io.nop.sys.service.impl.SysCompactExtFieldHelper"
   },
   {
     "allDeclaredConstructors": true,
