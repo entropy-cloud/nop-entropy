@@ -352,10 +352,16 @@ sequenceDiagram
 - GlossaryTerm 创建时 → 自动触发 TagLabel 审批
 - **依赖**：Phase 1 of 11-enterprise-semantic-layer（Classification/Tag/TagLabel 实体到位）
 
-### Phase 3: 质量告警工作流
+### Phase 3: 质量告警工作流 ✅ 已实现
 
-- `MetaQualityRuleExecutor` 在 FAIL + severity=ERROR 时触发工作流
-- 利用 `NopWfWork` 的工作项机制
+- ✅ `NopMetaQualityResult` 新增 `isFalsePositive` 列（boolFlag, nullable）
+- ✅ 定义 `qualityBreachApproval/v1.xwf`（owner-investigate → verify → end）
+- ✅ 新建 `QualityAlertWorkflowService`（`createAlertWorkflow` + `reJudge`）
+- ✅ `NopMetaQualityRuleBizModel.executeQualityRule` 在 FAIL + severity=ERROR 时调用 `QualityAlertWorkflowService.createAlertWorkflow`
+- ✅ `QualityAlertWorkflowService` 通过 `IWorkflowManager.newWorkflow("qualityBreachApproval", ...)` 创建 nop-wf 工作流实例
+- ✅ `NopMetaQualityResultBizModel` override `approve` / `reject`（agree→re-judge, disagree→isFalsePositive）
+- ✅ `NopMetaQualityRuleBizModel.judgeByRuleId` 公有方法：从 DB 加载 rule 全参并执行 judge
+- ✅ 集成测试覆盖 FAIL+ERROR→workflow→agree→re-judge 和 disagree→falsePositive 两条路径
 - **依赖**：06-data-quality-extended.md 的质量执行引擎已完备
 
 ### Phase 4: GlossaryTerm 发布审核（可选）

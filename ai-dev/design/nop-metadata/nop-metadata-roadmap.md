@@ -38,7 +38,7 @@
 - S3. Semantic Layer Phase 3 — BusinessDomain + DataProduct: `todo`
 - G1. Governance Phase 1 — DataContract 接入审批流: `done`
 - G2. Governance Phase 2 — TagLabel 治理: `todo`
-- G3. Governance Phase 3 — 质量告警工作流: `todo`（plan 2026-07-18-1500-2，§4.4.2 D11.4 裁定：D11.4.1 TreeBean `expr` 属性承载（经 setAttr/getAttr，不修改 TreeBean 类）+ D11.4.2 preprocess 落点（候选 b：translate 前预处理 having TreeBean）+ post-substitution `ExpressionMeasureValidator.validateStatic(saveTimeLoose)` defense-in-depth + name→aggSql 替换（word-boundary，case-sensitive）+ `?` 安全边界沿用（D12.4）；D11.4.3 Phase 1 字面量禁止（避免 inner-SQL `?` 致参数计数错配）+ translate 单次遍历产出参数；D11.4.4 三条 SQL 路径 6+ 注入点 + 跨库内存 `MemoryFilterEvaluator.evaluate` 入口显式失败 `ERR_AGGR_HAVING_EXPR_MEMORY_NOT_COMPUTABLE`（对齐 D12.2）；3 新 ErrorCode + 12 单元测试 + 8 e2e 测试，454 tests；收口 Opt-2/Opt-3 两处 `Deferred But Adjudicated`「多列 having 算术表达式」）
+- G3. Governance Phase 3 — 质量告警工作流: `done`（plan 2026-07-20-2000-3；`NopMetaQualityResult` 新增 `isFalsePositive` 列；`QualityAlertWorkflowService` 实现；`qualityBreachApproval/v1.xwf` 工作流定义；`NopMetaQualityResultBizModel` approve/reject override；`judgeByRuleId` 方法；集成到 `NopMetaQualityRuleBizModel.executeQualityRule` FAIL+ERROR 路径；661 tests；收口所有 Phase 1 + Phase 2 项）
 
 ## Status Values
 
@@ -214,9 +214,9 @@
 
 | 工作项 | 描述 | 状态 |
 |--------|------|------|
-| G3-1 | `MetaQualityRuleExecutor` 在 FAIL + severity=ERROR 时发布 `QualityCheckFailedEvent` | todo |
-| G3-2 | 事件监听器使用 `IWorkflowManager.newWorkflow()` 创建 `qualityBreachApproval` 工作流实例 | todo |
-| G3-3 | 定义 `qualityBreachApproval/v1.xwf`（owner-investigate → 自动验证） | todo |
+| G3-1 | `NopMetaQualityRuleBizModel.executeQualityRule` 在 FAIL + severity=ERROR 时调用 `QualityAlertWorkflowService.createAlertWorkflow` | done |
+| G3-2 | `QualityAlertWorkflowService` 使用 `IWorkflowManager.newWorkflow()` 创建 `qualityBreachApproval` 工作流实例 | done |
+| G3-3 | 定义 `qualityBreachApproval/v1.xwf`（owner-investigate → 自动验证） | done |
 
 ---
 
