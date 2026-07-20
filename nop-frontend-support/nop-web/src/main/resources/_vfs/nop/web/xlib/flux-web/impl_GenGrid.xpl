@@ -4,6 +4,7 @@
         import io.nop.core.resource.component.ResourceComponentManager;
         import io.nop.xlang.xmeta.SchemaLoader;
         import io.nop.xlang.xpl.xlib.XplLibHelper;
+        import io.nop.xui.utils.XuiHelper;
 
         let viewModel = ResourceComponentManager.instance().loadComponentModel(view);
         let gridModel = viewModel.grids.getByKey(grid);
@@ -13,7 +14,12 @@
         let controlLib = XplLibHelper.loadLib(viewModel.controlLib || '/nop/web/xlib/flux-control.xlib');
         let bizObjName = viewModel.bizObjName;
         let i18nRoot = objMeta?.['i18n:root'] || bizObjName;
+
+        let listSelection = XuiHelper.getListSelection(gridModel,objMeta);
+        let pageSelection = 'total,page,items{ ' + listSelection +' }';
+        const genScope = {listSelection,pageSelection};
+        const ignoreCols = null;
     </c:script>
 
-    <thisLib:GenGridImpl gridModel="${gridModel}" objMeta="${objMeta}"/>
+    <thisLib:GenGridImpl gridModel="${gridModel}" objMeta="${objMeta}" genScope="${genScope}"/>
 </c:unit>

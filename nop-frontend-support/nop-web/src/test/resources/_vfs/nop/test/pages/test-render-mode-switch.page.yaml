@@ -1,0 +1,3 @@
+x:gen-extends: |
+  <web:GenForm view="test-render-mode-switch.view.xml" form="edit"
+              xpl:lib="/nop/web/xlib/web.xlib" />

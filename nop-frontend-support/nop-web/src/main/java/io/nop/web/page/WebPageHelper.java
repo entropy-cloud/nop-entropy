@@ -11,6 +11,7 @@ import io.nop.api.core.config.AppConfig;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.api.core.util.SourceLocation;
 import io.nop.commons.util.StringHelper;
+import io.nop.web.WebConfigs;
 import io.nop.core.CoreConstants;
 import io.nop.core.CoreErrors;
 import io.nop.core.i18n.I18nMessageManager;
@@ -88,10 +89,16 @@ public class WebPageHelper {
         });
     }
 
+    private static boolean isFluxMode() {
+        return "flux".equals(WebConfigs.CFG_WEB_RENDER_MODE.get());
+    }
+
     /**
-     * 修正amis页面结构
+     * 修正页面结构。Flux 模式下跳过 AMIS 特有处理（className 注入、group.body 归一化），
+     * 但 GraphQL URL 转义和国际化解析对所有模式均生效。
      */
     public static void fixPage(Object map, String locale, boolean resolveI18n) {
+        boolean isFlux = isFluxMode();
         JsonTransformHelper.transformInPlace(map, value -> {
             if (value instanceof String) {
                 String str = value.toString();
@@ -105,6 +112,8 @@ public class WebPageHelper {
                 }
                 return str;
             } else if (value instanceof Map) {
+                if (isFlux)
+                    return value;
                 // 确保所有amis的组件都具有amis这个scope，前端会利用它限制css的作用范围
                 Map<String, Object> data = (Map<String, Object>) value;
                 Object dialog = data.get("dialog");

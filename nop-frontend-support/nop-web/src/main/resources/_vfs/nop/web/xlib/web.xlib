@@ -1,7 +1,12 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 
 <lib x:schema="/nop/schema/xlib.xdef" xmlns:x="/nop/schema/xdsl.xdef"
-     xmlns:thisLib="thisLib" xmlns:c="c" xmlns:j="j" xmlns:xpl="xpl">
+      xmlns:thisLib="thisLib" xmlns:c="c" xmlns:j="j" xmlns:xpl="xpl">
+
+    <x:post-extends>
+        <c:include src="web/impl_flux_mode.xpl"/>
+    </x:post-extends>
+
     <tags>
         <GenPage outputMode="xjson">
             <attr name="view" mandatory="true" type="String" stdDomain="v-path"/>

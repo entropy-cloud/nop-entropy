@@ -13,7 +13,15 @@
             <attr name="_dsl_root" implicit="true"/>
 
             <source>
-
+                <c:script>
+                    let renderMode = $config.var('nop.web.render-mode', 'amis');
+                    if (renderMode == 'flux') {
+                        let child = _dsl_root.childByTag('controlLib');
+                        if (child != null) {
+                            child.content('/nop/web/xlib/flux-control.xlib');
+                        }
+                    }
+                </c:script>
             </source>
         </DefaultViewPostExtends>
 
