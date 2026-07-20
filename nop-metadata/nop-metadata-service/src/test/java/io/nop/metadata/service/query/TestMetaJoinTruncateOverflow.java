@@ -106,9 +106,9 @@ public class TestMetaJoinTruncateOverflow {
 
     @SuppressWarnings("unchecked")
     private static List<Map<String, Object>> invokeAggregationTruncate(List<Map<String, Object>> rows,
-                                                                       Long limit, Long offset) {
+                                                                        Long limit, Long offset) {
         try {
-            Method m = MetaAggregationExecutor.class.getDeclaredMethod("truncateCrossDb",
+            Method m = AggregationContext.class.getDeclaredMethod("truncateCrossDb",
                     List.class, Long.class, Long.class);
             m.setAccessible(true);
             return (List<Map<String, Object>>) m.invoke(null, rows, limit, offset);
