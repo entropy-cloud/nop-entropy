@@ -46,6 +46,7 @@ Each subsystem directory contains architecture decisions and usage contracts for
 | `nop-gateway/` | Gateway Dynamic Configuration & Hot-Reload | [README](nop-gateway/00-dynamic-configuration-design.md) | active — Hybrid XDSL+Admin API config model, AtomicReference-based hot swap, two-phase update protocol, per-route filter chain reload, provider credential rotation, DB-backed versioning |
 | `crud/crud-api-codegen-design.md` | CRUD API 代码生成 | — | 草案 — ICrudApi 泛型接口 + codegen 模板 + Input/Output 决策 |
 | `word-editor/` | Online Word Editor Model | *(not yet created)* | active |
+| `render-mode-switch-design.md` | 前端渲染模式全局切换（AMIS↔Flux） | — | 草案 — 通过 `web.xlib` 入口代理 + `x:post-extends` 实现 `nop.web.render-mode` 全局开关 |
 
 ## Precedence Model
 
