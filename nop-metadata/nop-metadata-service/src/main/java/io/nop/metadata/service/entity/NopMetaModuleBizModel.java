@@ -28,8 +28,10 @@ import io.nop.core.lang.xml.parse.XNodeParser;
 import io.nop.core.resource.IResource;
 import io.nop.core.resource.IResourceDslNodeLoader;
 import io.nop.core.resource.VirtualFileSystem;
+import io.nop.dao.api.IDaoProvider;
 import io.nop.dao.api.IEntityDao;
 import io.nop.metadata.biz.INopMetaModuleBiz;
+import io.nop.metadata.service.SeedGlossaryData;
 import io.nop.metadata.core._NopMetadataCoreConstants;
 import io.nop.metadata.dao.entity.NopMetaDict;
 import io.nop.metadata.dao.entity.NopMetaDictItem;
@@ -87,6 +89,9 @@ public class NopMetaModuleBizModel extends CrudBizModel<NopMetaModule> implement
 
     @InjectValue("@cfg:nop.metadata.platform-version|2.0.0-SNAPSHOT")
     protected String platformVersion;
+
+    @Inject
+    protected IDaoProvider daoProvider;
 
     /** 元数据变更事件发布 helper（架构基线 §2.8 D2，IoC bean）。 */
     @Inject
@@ -385,6 +390,9 @@ public class NopMetaModuleBizModel extends CrudBizModel<NopMetaModule> implement
                 MetaModelChangedEventPublisher.CHANGE_SOURCE_UI,
                 beforeSnapshot, afterSnapshot,
                 MetaModelChangedEventPublisher.newTransactionId(), context);
+
+        new SeedGlossaryData().seedGlossaryTerms(daoProvider());
+
         return module;
     }
 
