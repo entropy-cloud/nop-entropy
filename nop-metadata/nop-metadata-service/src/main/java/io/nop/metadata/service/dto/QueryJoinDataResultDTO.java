@@ -1,0 +1,26 @@
+package io.nop.metadata.service.dto;
+
+import io.nop.api.core.annotations.data.DataBean;
+
+import java.io.Serializable;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+
+/**
+ * 跨表 JOIN 查询结果 DTO（来源：{@code NopMetaTableBizModel.queryJoinData}）。
+ */
+@DataBean
+public class QueryJoinDataResultDTO implements Serializable {
+    private static final long serialVersionUID = 1L;
+
+    private List<Map<String, Object>> items = new ArrayList<>();
+
+    public List<Map<String, Object>> getItems() {
+        return items;
+    }
+
+    public void setItems(List<Map<String, Object>> items) {
+        this.items = items;
+    }
+}
