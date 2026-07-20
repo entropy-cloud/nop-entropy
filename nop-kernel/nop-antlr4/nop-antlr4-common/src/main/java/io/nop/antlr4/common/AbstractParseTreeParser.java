@@ -140,7 +140,14 @@ public abstract class AbstractParseTreeParser extends AbstractCharReaderResource
     }
 
     protected NopException buildError(Throwable e) {
-        RecognitionException re = (RecognitionException) e;
+        RecognitionException re;
+        if (e instanceof RecognitionException) {
+            re = (RecognitionException) e;
+        } else if (e.getCause() instanceof RecognitionException) {
+            re = (RecognitionException) e.getCause();
+        } else {
+            return new NopException(ERR_ANTLR_PARSE_FAIL, e);
+        }
         NopException ne = new NopException(ERR_ANTLR_PARSE_FAIL, e);
         Token token = re.getOffendingToken();
         if (token != null) {
