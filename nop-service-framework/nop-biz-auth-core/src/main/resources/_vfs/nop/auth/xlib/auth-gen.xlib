@@ -1,7 +1,29 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 
-<lib x:schema="/nop/schema/xlib.xdef" xmlns:x="/nop/schema/xdsl.xdef">
+<lib x:schema="/nop/schema/xlib.xdef" xmlns:x="/nop/schema/xdsl.xdef" xmlns:c="c">
     <tags>
+        <DefaultActionAuthPostExtends outputMode="node">
+            <attr name="_dsl_root" implicit="true"/>
+            <source>
+                <c:script>
+                    let renderMode = $config.var('nop.web.render-mode', 'amis');
+                    if (renderMode == 'flux') {
+                        function convertResource(node) {
+                            if (node.getAttr('component') == 'AMIS') {
+                                node.setAttr('component', 'FLUX');
+                            }
+                            let children = node.getChildren();
+                            if (children) {
+                                for (let child of children) {
+                                    convertResource(child);
+                                }
+                            }
+                        }
+                        convertResource(_dsl_root);
+                    }
+                </c:script>
+            </source>
+        </DefaultActionAuthPostExtends>
         <GenDataAuthFromModules outputMode="node">
             <attr name="excludeModuleNames" optional="true" stdDomain="csv-set" displayName="排除的模块列表">
             </attr>

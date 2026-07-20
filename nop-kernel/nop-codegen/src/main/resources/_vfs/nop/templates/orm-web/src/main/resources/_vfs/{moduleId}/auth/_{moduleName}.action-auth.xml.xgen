@@ -1,6 +1,12 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 
-<auth x:schema="/nop/schema/action-auth.xdef" xmlns:x="/nop/schema/xdsl.xdef" xmlns:i18n-en="i18n-en">
+<auth x:schema="/nop/schema/action-auth.xdef" xmlns:x="/nop/schema/xdsl.xdef" xmlns:i18n-en="i18n-en"
+       xmlns:auth-gen="auth-gen" xmlns:xpl="xpl">
+    <c:print>
+        <x:post-extends>
+            <auth-gen:DefaultActionAuthPostExtends xpl:lib="/nop/auth/xlib/auth-gen.xlib"/>
+        </x:post-extends>
+    </c:print>
     <site id="main">
         <resource id="test-orm-${moduleName}" displayName="测试${moduleName}" i18n-en:displayName="Test ${moduleName}" icon="${moduleMeta.icon || 'ion:grid-outline'}" resourceType="TOPM"
                   orderNo="10000" routePath="/test-orm-${moduleName}" component="layouts/default/index">
