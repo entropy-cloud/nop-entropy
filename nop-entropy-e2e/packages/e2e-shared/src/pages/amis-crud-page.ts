@@ -1,52 +1,79 @@
-import type { Page } from '@playwright/test';
+import type { Page, Locator } from '@playwright/test';
 import { BasePage } from './base-page.js';
-import { fillField } from '../helpers/form-helper.js';
-import { clickButton, confirmDialog, clickRowAction } from '../helpers/button-helper.js';
-import { waitForModal } from '../helpers/modal-helper.js';
-import { waitForTableLoad } from '../helpers/table-helper.js';
-import { AMIS } from '../helpers/amis-selectors.js';
+import { createEngine } from '../engine.js';
+import type { EngineAdapter } from '../types.js';
+import { FormDialog } from '../FormDialog.js';
 
 export abstract class AmisCrudPage extends BasePage {
+  protected readonly engine: EngineAdapter;
+
   constructor(page: Page) {
     super(page);
+    this.engine = createEngine();
   }
 
   async search(fieldName: string, value: string): Promise<void> {
-    await fillField(this.page, fieldName, value, { inFilter: true });
-    await clickButton(this.page, '搜索');
-    await waitForTableLoad(this.page);
+    const filterInput = this.page.locator(`input[name^="filter_${fieldName}"]`).first();
+    const visible = await filterInput.isVisible().catch(() => false);
+    if (visible) {
+      await filterInput.clear();
+      await filterInput.fill(value);
+    }
+    await this.engine.addButton(this.page).click();
+    await this.engine.table(this.page).waitFor({ state: 'visible' });
   }
 
   async clickAdd(): Promise<void> {
-    await clickButton(this.page, '新增');
-    await waitForModal(this.page);
+    const btn = await this.engine.addButton(this.page);
+    await btn.click();
+    await this.engine.dialog(this.page).waitFor({ state: 'visible' });
   }
 
   async clickSave(): Promise<void> {
-    await clickButton(this.page, '确认');
-    const modal = this.page.locator(AMIS.MODAL).first();
+    const dialog = new FormDialog(this.page, this.engine);
+    const modal = this.engine.dialog(this.page);
+    await dialog.submit();
     await modal.waitFor({ state: 'hidden', timeout: 10_000 }).catch(async () => {
-      // fallback: dismiss via Escape
       await this.page.keyboard.press('Escape');
       await this.page.waitForTimeout(500);
       await modal.waitFor({ state: 'hidden', timeout: 5_000 }).catch(() => {});
     });
-    await waitForTableLoad(this.page);
+    await this.engine.table(this.page).waitFor({ state: 'visible' });
   }
 
   async clickView(rowId: string): Promise<void> {
-    await clickRowAction(this.page, rowId, '查看');
-    await waitForModal(this.page);
+    const row = await this.findRow(rowId);
+    if (row) {
+      await this.engine.rowAction(row, /查看/);
+    }
+    await this.engine.dialog(this.page).waitFor({ state: 'visible' });
   }
 
   async clickEdit(rowId: string): Promise<void> {
-    await clickRowAction(this.page, rowId, '编辑');
-    await waitForModal(this.page);
+    const row = await this.findRow(rowId);
+    if (row) {
+      await this.engine.rowAction(row, /编辑/);
+    }
+    await this.engine.dialog(this.page).waitFor({ state: 'visible' });
   }
 
   async clickDelete(rowId: string): Promise<void> {
-    await clickRowAction(this.page, rowId, '删除');
-    await confirmDialog(this.page);
-    await waitForTableLoad(this.page);
+    const row = await this.findRow(rowId);
+    if (row) {
+      await this.engine.rowAction(row, /删除/);
+    }
+    await this.engine.submitButton(this.engine.dialog(this.page)).click();
+    await this.engine.table(this.page).waitFor({ state: 'visible' });
+  }
+
+  private async findRow(rowId: string): Promise<Locator | null> {
+    const rows = this.engine.rows(this.page);
+    const count = await rows.count();
+    for (let i = 0; i < count; i++) {
+      const row = rows.nth(i);
+      const text = (await row.textContent()) ?? '';
+      if (text.includes(rowId)) return row;
+    }
+    return null;
   }
 }

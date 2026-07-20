@@ -1,3 +1,9 @@
+/**
+ * @deprecated Use {@link loginRpc} / {@link rpc} / {@link resetAuth} from `@nop-chaos/e2e-shared` instead.
+ * The shared {@link RpcClient} supports both Playwright APIRequestContext and standalone RpcRequest.
+ * This file is retained only for reference and will be removed in a future cleanup.
+ */
+
 import type { APIRequestContext } from '@playwright/test';
 import type { RpcResponse } from './types.js';
 

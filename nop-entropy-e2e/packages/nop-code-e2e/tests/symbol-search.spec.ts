@@ -1,7 +1,7 @@
 import path from 'node:path';
-import { test, expect } from '@playwright/test';
-import { rpc, loginRpc } from '@nop-entropy/e2e-shared';
-import { LoginPO } from './page-objects/login.po.js';
+import { test } from '@nop-entropy/e2e-shared';
+import { expect } from '@playwright/test';
+import { login, rpc, loginRpc } from '@nop-entropy/e2e-shared';
 import { SymbolSearchPO } from './page-objects/symbol-search.po.js';
 
 const INDEX_ID = 'nop-code-e2e';
@@ -48,23 +48,19 @@ test.describe('符号搜索', () => {
     expect(resp.data.items.length).toBe(1);
   });
 
-  test('浏览器: 导航到符号搜索页面', async ({ page }) => {
-    const loginPO = new LoginPO(page);
-    await loginPO.goto();
-    await loginPO.login();
+  test('浏览器: 导航到符号搜索页面', async ({ page, engine }) => {
+    await login(page);
 
-    const symbolPO = new SymbolSearchPO(page, INDEX_ID);
+    const symbolPO = new SymbolSearchPO(page, engine, INDEX_ID);
     await symbolPO.goto();
 
     await expect(page.locator('text=名称关键词').first()).toBeVisible({ timeout: 10_000 });
   });
 
-  test('浏览器: 输入关键词搜索并验证表格结果', async ({ page }) => {
-    const loginPO = new LoginPO(page);
-    await loginPO.goto();
-    await loginPO.login();
+  test('浏览器: 输入关键词搜索并验证表格结果', async ({ page, engine }) => {
+    await login(page);
 
-    const symbolPO = new SymbolSearchPO(page, INDEX_ID);
+    const symbolPO = new SymbolSearchPO(page, engine, INDEX_ID);
     await symbolPO.goto();
 
     const result = await symbolPO.searchSymbolAndWait('CodeIndexService');
@@ -74,12 +70,10 @@ test.describe('符号搜索', () => {
     await symbolPO.assertTableHasData();
   });
 
-  test('浏览器: 查看符号详情', async ({ page }) => {
-    const loginPO = new LoginPO(page);
-    await loginPO.goto();
-    await loginPO.login();
+  test('浏览器: 查看符号详情', async ({ page, engine }) => {
+    await login(page);
 
-    const symbolPO = new SymbolSearchPO(page, INDEX_ID);
+    const symbolPO = new SymbolSearchPO(page, engine, INDEX_ID);
     await symbolPO.goto();
 
     await symbolPO.searchSymbolAndWait('CodeIndexService');

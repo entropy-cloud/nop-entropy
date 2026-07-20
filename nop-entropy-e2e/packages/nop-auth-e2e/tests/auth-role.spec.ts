@@ -1,6 +1,6 @@
-import { test, expect } from '@playwright/test';
-import { loginRpc, rpc, waitForTableLoad } from '@nop-entropy/e2e-shared';
-import { LoginPO } from './page-objects/login.po.js';
+import { test } from '@nop-entropy/e2e-shared';
+import { expect } from '@playwright/test';
+import { login, loginRpc, rpc } from '@nop-entropy/e2e-shared';
 import { RolePO } from './page-objects/role.po.js';
 
 const TEST_ID = `e2e_role_${Date.now()}`;
@@ -139,15 +139,13 @@ test.describe('角色管理 - 浏览器', () => {
     createdRoleIds.length = 0;
   });
 
-  async function browserLogin(page: import('@playwright/test').Page): Promise<RolePO> {
-    const loginPO = new LoginPO(page);
-    await loginPO.goto();
-    await loginPO.login('nop', '123');
-    return new RolePO(page);
+  async function browserLogin(page: import('@playwright/test').Page, engine: import('@nop-entropy/e2e-shared').EngineAdapter): Promise<RolePO> {
+    await login(page, { username: 'nop', password: '123' });
+    return new RolePO(page, engine);
   }
 
-  test('浏览器: 导航到角色管理页面', async ({ page }) => {
-    const rolePO = await browserLogin(page);
+  test('浏览器: 导航到角色管理页面', async ({ page, engine }) => {
+    const rolePO = await browserLogin(page, engine);
     await rolePO.goto();
     await expect(page).toHaveURL(/NopAuthRole-main/);
     await expect(
@@ -155,8 +153,8 @@ test.describe('角色管理 - 浏览器', () => {
     ).toBeVisible({ timeout: 15_000 });
   });
 
-  test('浏览器: 创建新角色', async ({ page }) => {
-    const rolePO = await browserLogin(page);
+  test('浏览器: 创建新角色', async ({ page, engine }) => {
+    const rolePO = await browserLogin(page, engine);
     const roleId = `${TEST_ID}_ui_create`;
     const roleName = `E2E_UI创建_${TEST_ID}`;
 
@@ -167,11 +165,11 @@ test.describe('角色管理 - 浏览器', () => {
     createdRoleIds.push(roleId);
 
     await rolePO.goto();
-    await expect(rolePO.page.locator('tr').filter({ hasText: roleId }).first())
+    await expect(page.locator('tr').filter({ hasText: roleId }).first())
       .toBeVisible({ timeout: 10_000 });
   });
 
-  test('浏览器: 查看角色详情', async ({ page, request }) => {
+  test('浏览器: 查看角色详情', async ({ page, request, engine }) => {
     const roleId = `${TEST_ID}_ui_view`;
     const roleName = `E2E_UI查看_${TEST_ID}`;
 
@@ -182,7 +180,7 @@ test.describe('角色管理 - 浏览器', () => {
     expect(saveResp.data).toBeTruthy();
     createdRoleIds.push(roleId);
 
-    const rolePO = await browserLogin(page);
+    const rolePO = await browserLogin(page, engine);
     await rolePO.goto();
     await rolePO.clickView(roleId);
 
@@ -190,7 +188,7 @@ test.describe('角色管理 - 浏览器', () => {
     expect(viewName).toBe(roleName);
   });
 
-  test('浏览器: 编辑角色', async ({ page, request }) => {
+  test('浏览器: 编辑角色', async ({ page, request, engine }) => {
     const roleId = `${TEST_ID}_ui_edit`;
     const roleName = `E2E_UI编辑_${TEST_ID}`;
 
@@ -201,7 +199,7 @@ test.describe('角色管理 - 浏览器', () => {
 
     const updatedName = `${roleName}_done`;
 
-    const rolePO = await browserLogin(page);
+    const rolePO = await browserLogin(page, engine);
     await rolePO.goto();
     await rolePO.clickEdit(roleId);
     await rolePO.fillForm({ roleName: updatedName });
@@ -215,7 +213,7 @@ test.describe('角色管理 - 浏览器', () => {
     expect(resp.data.roleName).toBe(updatedName);
   });
 
-  test('浏览器: 删除角色', async ({ page, request }) => {
+  test('浏览器: 删除角色', async ({ page, request, engine }) => {
     const roleId = `${TEST_ID}_ui_delete`;
     const roleName = `E2E_UI删除_${TEST_ID}`;
 
@@ -223,15 +221,15 @@ test.describe('角色管理 - 浏览器', () => {
       data: { roleId, roleName, isPrimary: 0 },
     });
 
-    const rolePO = await browserLogin(page);
+    const rolePO = await browserLogin(page, engine);
     await rolePO.goto();
     await rolePO.clickDelete(roleId);
 
-    await expect(rolePO.page.locator('tr').filter({ hasText: roleId }).first())
+    await expect(page.locator('tr').filter({ hasText: roleId }).first())
       .not.toBeVisible({ timeout: 5_000 }).catch(() => {});
   });
 
-  test('浏览器: 搜索角色', async ({ page, request }) => {
+  test('浏览器: 搜索角色', async ({ page, request, engine }) => {
     const roleA = `${TEST_ID}_search_a`;
     const roleB = `${TEST_ID}_search_b`;
 
@@ -243,15 +241,15 @@ test.describe('角色管理 - 浏览器', () => {
     });
     createdRoleIds.push(roleA, roleB);
 
-    const rolePO = await browserLogin(page);
+    const rolePO = await browserLogin(page, engine);
     await rolePO.goto();
-    await expect(rolePO.page.locator('tr').filter({ hasText: roleA }).first())
+    await expect(page.locator('tr').filter({ hasText: roleA }).first())
       .toBeVisible({ timeout: 10_000 });
-    await expect(rolePO.page.locator('tr').filter({ hasText: roleB }).first())
+    await expect(page.locator('tr').filter({ hasText: roleB }).first())
       .toBeVisible({ timeout: 5_000 });
   });
 
-  test('浏览器: 打开角色用户分配', async ({ page, request }) => {
+  test('浏览器: 打开角色用户分配', async ({ page, request, engine }) => {
     const roleId = `${TEST_ID}_ui_users`;
     const roleName = `E2E_角色用户_${TEST_ID}`;
 
@@ -260,14 +258,14 @@ test.describe('角色管理 - 浏览器', () => {
     });
     createdRoleIds.push(roleId);
 
-    const rolePO = await browserLogin(page);
+    const rolePO = await browserLogin(page, engine);
     await rolePO.goto();
     await rolePO.clickRoleUsers(roleId);
 
     await expect(page.locator('.cxd-Drawer, .ant-drawer')).toBeVisible({ timeout: 10_000 });
   });
 
-  test('浏览器: 打开角色授权页面', async ({ page, request }) => {
+  test('浏览器: 打开角色授权页面', async ({ page, request, engine }) => {
     const roleId = `${TEST_ID}_ui_auth`;
     const roleName = `E2E_角色授权_${TEST_ID}`;
 
@@ -276,7 +274,7 @@ test.describe('角色管理 - 浏览器', () => {
     });
     createdRoleIds.push(roleId);
 
-    const rolePO = await browserLogin(page);
+    const rolePO = await browserLogin(page, engine);
     await rolePO.goto();
     await rolePO.clickAssignAuth(roleId);
 

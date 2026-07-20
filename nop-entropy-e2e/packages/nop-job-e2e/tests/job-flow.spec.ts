@@ -1,6 +1,6 @@
-import { test, expect } from '@playwright/test';
-import { loginRpc, rpc } from '@nop-entropy/e2e-shared';
-import { LoginPO } from './page-objects/login.po.js';
+import { test } from '@nop-entropy/e2e-shared';
+import { expect } from '@playwright/test';
+import { login, loginRpc, rpc } from '@nop-entropy/e2e-shared';
 import { SchedulePO, E2E_EXECUTOR_REF, E2E_JOB_PREFIX } from './page-objects/schedule.po.js';
 import { FirePO } from './page-objects/fire.po.js';
 import { TaskPO } from './page-objects/task.po.js';
@@ -74,16 +74,12 @@ test.describe('Job 完整生命周期流程', () => {
     createdScheduleIds.length = 0;
   });
 
-  test('完整流程: 新建调度 → 启用 → 触发 → 查看Fire → 查看Task', async ({ page, request }) => {
+  test('完整流程: 新建调度 → 启用 → 触发 → 查看Fire → 查看Task', async ({ page, request, engine }) => {
     const jobName = `${TEST_ID}_lifecycle`;
 
-    // ===== Step 1: Login via UI =====
-    const loginPO = new LoginPO(page);
-    await loginPO.goto();
-    await loginPO.login();
+    await login(page);
 
-    // ===== Step 2: Create schedule via UI =====
-    const schedulePO = new SchedulePO(page);
+    const schedulePO = new SchedulePO(page, engine);
     await schedulePO.goto();
 
     await schedulePO.clickAdd();
@@ -104,13 +100,10 @@ test.describe('Job 完整生命周期流程', () => {
     const rowCount = await schedulePO.getRowCount();
     expect(rowCount).toBeGreaterThanOrEqual(1);
 
-    // ===== Step 3: Enable schedule via UI (row action) =====
     await schedulePO.enableSchedule(jobName);
 
-    // ===== Step 4: Trigger via UI (row action) =====
     await schedulePO.triggerNow(jobName);
 
-    // ===== Step 5: Poll fire via RPC until not WAITING =====
     await loginRpc(request);
 
     const scheduleResp = await rpc<FindPageResult<{ id: string; jobScheduleId: string; jobName: string }>>(
@@ -130,8 +123,7 @@ test.describe('Job 完整生命周期流程', () => {
     expect(fire).not.toBeNull();
     expect([FIRE_STATUS_SUCCESS, FIRE_STATUS_FAILED]).toContain(fire!.fireStatus);
 
-    // ===== Step 6: Verify Fire via UI =====
-    const firePO = new FirePO(page);
+    const firePO = new FirePO(page, engine);
     await firePO.goto();
     await firePO.searchFire(jobName);
 
@@ -143,7 +135,6 @@ test.describe('Job 完整生命周期流程', () => {
     const fireStatusText = await firePO.readField('fireStatus');
     expect(fireStatusText).toBeTruthy();
 
-    // ===== Step 7: Verify Task via UI =====
     const taskListResp = await rpc<FindPageResult<TaskItem>>(request, 'NopJobTask__findPage', {
       query: {
         offset: 0, limit: 10,
@@ -154,7 +145,7 @@ test.describe('Job 完整生命周期流程', () => {
     if (taskListResp.ok && taskListResp.data.total > 0) {
       const task = taskListResp.data.items[0];
 
-      const taskPO = new TaskPO(page);
+      const taskPO = new TaskPO(page, engine);
       await taskPO.goto();
       await taskPO.searchTask(fire!.jobFireId);
 
@@ -182,14 +173,12 @@ test.describe('Schedule 状态转换 - UI', () => {
     createdScheduleIds.length = 0;
   });
 
-  test('状态切换: DISABLED → ENABLED → PAUSED → ENABLED → DISABLED', async ({ page, request }) => {
+  test('状态切换: DISABLED → ENABLED → PAUSED → ENABLED → DISABLED', async ({ page, request, engine }) => {
     const jobName = `${TEST_ID}_status`;
 
-    const loginPO = new LoginPO(page);
-    await loginPO.goto();
-    await loginPO.login();
+    await login(page);
 
-    const schedulePO = new SchedulePO(page);
+    const schedulePO = new SchedulePO(page, engine);
     await schedulePO.goto();
 
     await schedulePO.clickAdd();
@@ -216,16 +205,12 @@ test.describe('Schedule 状态转换 - UI', () => {
     });
     if (schedResp.ok) createdScheduleIds.push(schedResp.data.items[0].id);
 
-    // ENABLED
     await schedulePO.enableSchedule(jobName);
 
-    // PAUSED
     await schedulePO.pauseSchedule(jobName);
 
-    // back to ENABLED
     await schedulePO.resumeSchedule(jobName);
 
-    // back to DISABLED
     await schedulePO.disableSchedule(jobName);
   });
 });

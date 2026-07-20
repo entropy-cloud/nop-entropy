@@ -1,6 +1,6 @@
-import { test, expect } from '@playwright/test';
-import { loginRpc, rpc } from '@nop-entropy/e2e-shared';
-import { LoginPO } from './page-objects/login.po.js';
+import { test } from '@nop-entropy/e2e-shared';
+import { expect } from '@playwright/test';
+import { login, loginRpc, rpc } from '@nop-entropy/e2e-shared';
 import { ResourcePO } from './page-objects/resource.po.js';
 
 const TEST_ID = `e2e_res_${Date.now()}`;
@@ -156,15 +156,13 @@ test.describe('资源管理 - 浏览器', () => {
     createdResourceIds.length = 0;
   });
 
-  async function browserLogin(page: import('@playwright/test').Page): Promise<ResourcePO> {
-    const loginPO = new LoginPO(page);
-    await loginPO.goto();
-    await loginPO.login('nop', '123');
-    return new ResourcePO(page);
+  async function browserLogin(page: import('@playwright/test').Page, engine: import('@nop-entropy/e2e-shared').EngineAdapter): Promise<ResourcePO> {
+    await login(page, { username: 'nop', password: '123' });
+    return new ResourcePO(page, engine);
   }
 
-  test('浏览器: 导航到资源管理页面', async ({ page }) => {
-    const resourcePO = await browserLogin(page);
+  test('浏览器: 导航到资源管理页面', async ({ page, engine }) => {
+    const resourcePO = await browserLogin(page, engine);
     await resourcePO.goto();
     await expect(page).toHaveURL(/NopAuthResource-main/);
     await expect(
@@ -172,8 +170,8 @@ test.describe('资源管理 - 浏览器', () => {
     ).toBeVisible({ timeout: 15_000 });
   });
 
-  test('浏览器: 创建新资源', async ({ page }) => {
-    const resourcePO = await browserLogin(page);
+  test('浏览器: 创建新资源', async ({ page, engine }) => {
+    const resourcePO = await browserLogin(page, engine);
     const resourceId = `${TEST_ID}_ui_create`;
     const displayName = `E2E_UI创建_${TEST_ID}`;
 
@@ -190,11 +188,11 @@ test.describe('资源管理 - 浏览器', () => {
     await resourcePO.clickSave();
     createdResourceIds.push(resourceId);
 
-    await expect(resourcePO.page.locator('tr').filter({ hasText: resourceId }).first())
+    await expect(page.locator('tr').filter({ hasText: resourceId }).first())
       .toBeVisible({ timeout: 10_000 });
   });
 
-  test('浏览器: 查看资源详情', async ({ page, request }) => {
+  test('浏览器: 查看资源详情', async ({ page, request, engine }) => {
     const resourceId = `${TEST_ID}_ui_view`;
     const displayName = `E2E_UI查看_${TEST_ID}`;
 
@@ -203,7 +201,7 @@ test.describe('资源管理 - 浏览器', () => {
     });
     createdResourceIds.push(resourceId);
 
-    const resourcePO = await browserLogin(page);
+    const resourcePO = await browserLogin(page, engine);
     await resourcePO.goto();
     await resourcePO.clickView(resourceId);
 
@@ -211,7 +209,7 @@ test.describe('资源管理 - 浏览器', () => {
     expect(viewName).toBe(displayName);
   });
 
-  test('浏览器: 编辑资源', async ({ page, request }) => {
+  test('浏览器: 编辑资源', async ({ page, request, engine }) => {
     const resourceId = `${TEST_ID}_ui_edit`;
     const displayName = `E2E_UI编辑_${TEST_ID}`;
 
@@ -222,7 +220,7 @@ test.describe('资源管理 - 浏览器', () => {
 
     const updatedName = `${displayName}_done`;
 
-    const resourcePO = await browserLogin(page);
+    const resourcePO = await browserLogin(page, engine);
     await resourcePO.goto();
     await resourcePO.clickEdit(resourceId);
     await resourcePO.fillForm({ displayName: updatedName, resourceType: 'TOPM' });
@@ -238,7 +236,7 @@ test.describe('资源管理 - 浏览器', () => {
     expect(resp.data.displayName).toBe(updatedName);
   });
 
-  test('浏览器: 删除资源', async ({ page, request }) => {
+  test('浏览器: 删除资源', async ({ page, request, engine }) => {
     const resourceId = `${TEST_ID}_ui_delete`;
     const displayName = `E2E_UI删除_${TEST_ID}`;
 
@@ -246,11 +244,11 @@ test.describe('资源管理 - 浏览器', () => {
       data: { resourceId, siteId: SITE_ID, displayName, resourceType: 'TOPM', orderNo: 1, status: 1 },
     });
 
-    const resourcePO = await browserLogin(page);
+    const resourcePO = await browserLogin(page, engine);
     await resourcePO.goto();
     await resourcePO.clickDelete(resourceId);
 
-    await expect(resourcePO.page.locator('tr').filter({ hasText: resourceId }).first())
+    await expect(page.locator('tr').filter({ hasText: resourceId }).first())
       .not.toBeVisible({ timeout: 5_000 }).catch(() => {});
   });
 });

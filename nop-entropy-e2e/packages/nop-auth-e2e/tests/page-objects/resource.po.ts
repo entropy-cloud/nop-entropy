@@ -1,24 +1,7 @@
-/**
- * Page Object for the NopAuthResource entity CRUD page (tree table).
- *
- * URL pattern: /#/NopAuthResource-main
- *
- * NopAuthResource is a tree-structured entity displayed as a tree table.
- * Grid columns: resourceId, siteId, displayName, orderNo, resourceType,
- *               parentId, icon, routePath, url, component, status
- */
 import { expect, type Page } from '@playwright/test';
-import {
-  AmisCrudPage,
-  fillModalField,
-  readModalField,
-  selectOption,
-  clickButton,
-  waitForTableLoad,
-  getTableRowCount,
-} from '@nop-entropy/e2e-shared';
+import { CrudListPage, FormDialog } from '@nop-entropy/e2e-shared';
+import type { EngineAdapter } from '@nop-entropy/e2e-shared';
 
-/** Shape of the NopAuthResource form data used for create/edit. */
 export interface ResourceFormData {
   resourceId?: string;
   siteId?: string;
@@ -38,74 +21,62 @@ export interface ResourceFormData {
   remark?: string;
 }
 
-export class ResourcePO extends AmisCrudPage {
-  override get entityName(): string {
-    return 'NopAuthResource';
+export class ResourcePO extends CrudListPage {
+  constructor(page: Page, engine: EngineAdapter) {
+    super(page, engine, { entityRoute: 'NopAuthResource-main', entityName: 'NopAuthResource' });
   }
 
-  constructor(page: Page) {
-    super(page);
+  async goto(): Promise<void> {
+    await this.page.goto(`#/NopAuthResource-main`);
+    await this.page.waitForLoadState('networkidle');
+    await this.waitForList();
   }
 
-  // ── Query / search ────────────────────────────────────────────────────
-
-  /**
-   * Search resources by siteId using the query form.
-   *
-   * The siteId field uses a button-group-select or dropdown control
-   * linked to the `obj/NopAuthSite` dictionary.
-   */
   async searchBySite(siteId: string): Promise<void> {
-    await this.search('siteId', siteId);
+    const filterInput = this.page.locator('input[name^="filter_siteId"]').first();
+    const visible = await filterInput.isVisible().catch(() => false);
+    if (visible) {
+      await filterInput.clear();
+      await filterInput.fill(siteId);
+    }
+    await this.engine.addButton(this.page).click();
+    await this.engine.table(this.page).waitFor({ state: 'visible' });
   }
 
-  /**
-   * Select a site in the query form's button-group-select control.
-   *
-   * This targets the siteId filter as a select-type control rather than
-   * a plain text input.
-   */
   async selectSite(siteId: string): Promise<void> {
-    await selectOption(this.page, 'siteId', siteId);
-    await clickButton(this.page, '搜索');
-    await waitForTableLoad(this.page);
+    const dialog = new FormDialog(this.page, this.engine);
+    await dialog.selectOption(['siteId'], [siteId]);
+    await this.engine.addButton(this.page).click();
+    await this.engine.table(this.page).waitFor({ state: 'visible' });
   }
 
-  // ── CRUD operations ───────────────────────────────────────────────────
-
-  /**
-   * Fill the add/edit form fields for a resource.
-   *
-   * Only fills fields present in `data`. Dict-backed fields (siteId,
-   * resourceType, status) use select controls. Boolean fields use
-   * checkbox interactions.
-   */
   async fillForm(data: ResourceFormData): Promise<void> {
+    const dialog = new FormDialog(this.page, this.engine);
     if (data.resourceId !== undefined) {
-      await fillModalField(this.page, 'resourceId', data.resourceId);
+      await dialog.setField('resourceId', data.resourceId);
     }
     if (data.siteId !== undefined) {
-      await selectOption(this.page, 'siteId', data.siteId);
+      await dialog.selectOption(['siteId'], [data.siteId]);
     }
-    await fillModalField(this.page, 'displayName', data.displayName);
+    await dialog.setField('displayName', data.displayName);
     if (data.orderNo !== undefined) {
-      await fillModalField(this.page, 'orderNo', String(data.orderNo));
+      await dialog.setField('orderNo', String(data.orderNo));
     }
-    await selectOption(this.page, 'resourceType', data.resourceType);
+    await dialog.selectOption(['resourceType'], [data.resourceType]);
     if (data.parentId !== undefined) {
-      await fillModalField(this.page, 'parentId', data.parentId);
+      await dialog.setField('parentId', data.parentId);
     }
     if (data.icon !== undefined) {
-      await fillModalField(this.page, 'icon', data.icon);
+      await dialog.setField('icon', data.icon);
     }
     if (data.routePath !== undefined) {
-      await fillModalField(this.page, 'routePath', data.routePath);
+      await dialog.setField('routePath', data.routePath);
     }
     if (data.url !== undefined) {
-      await fillModalField(this.page, 'url', data.url);
+      await dialog.setField('url', data.url);
     }
     if (data.component !== undefined) {
-      await fillModalField(this.page, 'component', data.component);
+      await dialog.setField('component', data.component);
     }
     if (data.hidden !== undefined) {
       await this.setCheckbox('hidden', data.hidden);
@@ -114,83 +85,77 @@ export class ResourcePO extends AmisCrudPage {
       await this.setCheckbox('keepAlive', data.keepAlive);
     }
     if (data.permissions !== undefined) {
-      await fillModalField(this.page, 'permissions', data.permissions);
+      await dialog.setField('permissions', data.permissions);
     }
     if (data.noAuth !== undefined) {
       await this.setCheckbox('noAuth', data.noAuth);
     }
     if (data.status !== undefined) {
-      await selectOption(this.page, 'status', data.status);
+      await dialog.selectOption(['status'], [String(data.status)]);
     }
     if (data.remark !== undefined) {
-      await fillModalField(this.page, 'remark', data.remark);
+      await dialog.setField('remark', data.remark);
     }
   }
 
-  // ── View modal helpers ────────────────────────────────────────────────
-
-  /**
-   * Read the display value of a field from the currently open view modal.
-   *
-   * @param fieldName - The AMIS field name (e.g. `'resourceId'`, `'displayName'`).
-   * @returns The field's current display value.
-   */
   async readViewField(fieldName: string): Promise<string> {
-    return readModalField(this.page, fieldName);
+    const dialog = new FormDialog(this.page, this.engine);
+    return dialog.getField(fieldName);
   }
 
-  // ── Assertions ────────────────────────────────────────────────────────
+  async clickSave(): Promise<void> {
+    const dialog = new FormDialog(this.page, this.engine);
+    await dialog.submit();
+    await this.waitForList();
+  }
 
-  /**
-   * Assert that a resource row with the given resourceId exists in the
-   * tree table.
-   */
+  async clickView(rowId: string): Promise<void> {
+    const row = await this.findRowByText(rowId);
+    if (row) {
+      await this.engine.rowAction(row, /查看/);
+    }
+    await this.engine.dialog(this.page).waitFor({ state: 'visible' });
+  }
+
+  async clickEdit(rowId: string): Promise<void> {
+    const row = await this.findRowByText(rowId);
+    if (row) {
+      await this.engine.rowAction(row, /编辑/);
+    }
+    await this.engine.dialog(this.page).waitFor({ state: 'visible' });
+  }
+
+  async clickDelete(rowId: string): Promise<void> {
+    const row = await this.findRowByText(rowId);
+    if (row) {
+      await this.deleteRow(row);
+    }
+    await this.waitForList();
+  }
+
   async assertResourceExists(resourceId: string): Promise<void> {
-    const row = this.page
-      .locator('tr')
-      .filter({ hasText: resourceId })
-      .first();
-    await expect(row).toBeVisible();
+    const row = await this.findRowByText(resourceId);
+    expect(row).not.toBeNull();
   }
 
-  /**
-   * Assert that no resource row with the given resourceId exists in the
-   * tree table.
-   */
   async assertResourceNotExists(resourceId: string): Promise<void> {
-    const row = this.page
-      .locator('tr')
-      .filter({ hasText: resourceId })
-      .first();
-    await expect(row).toHaveCount(0);
+    const row = await this.findRowByText(resourceId);
+    expect(row).toBeNull();
   }
 
-  // ── Composite / end-to-end helpers ────────────────────────────────────
-
-  /**
-   * Create a resource end-to-end: click add, fill the form, and save.
-   *
-   * Only the mandatory fields (`displayName`, `resourceType`) must be
-   * provided; all other fields are optional.
-   */
   async createResource(data: ResourceFormData): Promise<void> {
     await this.clickAdd();
     await this.fillForm(data);
     await this.clickSave();
   }
 
-  /** Get the number of data rows currently visible in the table. */
   async getTableRowCount(): Promise<number> {
-    return getTableRowCount(this.page);
+    return this.engine.rows(this.page).count();
   }
 
-  // ── Internal helpers ──────────────────────────────────────────────────
-
-  private async setCheckbox(
-    fieldName: string,
-    checked: boolean,
-  ): Promise<void> {
-    const container = this.page.locator('.cxd-Modal, .cxd-Drawer').last();
+  private async setCheckbox(fieldName: string, checked: boolean): Promise<void> {
+    const dialog = new FormDialog(this.page, this.engine);
+    const container = dialog.dialog;
     const checkbox = container
       .locator(`[name="${fieldName}"] input[type="checkbox"]`)
       .first();

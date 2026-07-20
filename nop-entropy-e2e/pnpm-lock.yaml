@@ -16,10 +16,17 @@ importers:
         version: 8.0.13(@types/node@22.15.35)
 
   packages/e2e-shared:
+    dependencies:
+      '@nop-chaos/e2e-shared':
+        specifier: file:/Users/abc/app/nop-chaos-next-wt/nop-chaos-next-master/packages/e2e-shared
+        version: file:../../../nop-chaos-next-wt/nop-chaos-next-master/packages/e2e-shared
     devDependencies:
       '@playwright/test':
         specifier: ~1.60.0
         version: 1.60.0
+      '@types/node':
+        specifier: ~22.15.35
+        version: 22.15.35
       typescript:
         specifier: ~5.9.3
         version: 5.9.3
@@ -91,6 +98,9 @@ packages:
     peerDependencies:
       '@emnapi/core': ^1.7.1
       '@emnapi/runtime': ^1.7.1
+
+  '@nop-chaos/e2e-shared@file:../../../nop-chaos-next-wt/nop-chaos-next-master/packages/e2e-shared':
+    resolution: {directory: ../../../nop-chaos-next-wt/nop-chaos-next-master/packages/e2e-shared, type: directory}
 
   '@oxc-project/types@0.130.0':
     resolution: {integrity: sha512-ibD2usx9JRu7f5pu2tMKMI4cpA4NgXJQoYRP4pQ7Pxmn1l6k/53qWtQWZayhYy3X4QZkt90Ot+mJEaeXouio6Q==}
@@ -418,6 +428,8 @@ snapshots:
       '@emnapi/runtime': 1.10.0
       '@tybys/wasm-util': 0.10.2
     optional: true
+
+  '@nop-chaos/e2e-shared@file:../../../nop-chaos-next-wt/nop-chaos-next-master/packages/e2e-shared': {}
 
   '@oxc-project/types@0.130.0': {}
 

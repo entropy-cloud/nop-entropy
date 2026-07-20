@@ -14,10 +14,14 @@
   },
   "devDependencies": {
     "@playwright/test": "~1.60.0",
+    "@types/node": "~22.15.35",
     "typescript": "~5.9.3",
     "vite": "~8.0.3"
   },
   "peerDependencies": {
     "@playwright/test": ">=1.50.0"
+  },
+  "dependencies": {
+    "@nop-chaos/e2e-shared": "file:/Users/abc/app/nop-chaos-next-wt/nop-chaos-next-master/packages/e2e-shared"
   }
 }

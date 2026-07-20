@@ -1,7 +1,7 @@
 import path from 'node:path';
-import { test, expect } from '@playwright/test';
-import { rpc, loginRpc } from '@nop-entropy/e2e-shared';
-import { LoginPO } from './page-objects/login.po.js';
+import { test } from '@nop-entropy/e2e-shared';
+import { expect } from '@playwright/test';
+import { login, rpc, loginRpc } from '@nop-entropy/e2e-shared';
 import { TypeHierarchyPO } from './page-objects/type-hierarchy.po.js';
 
 const INDEX_ID = 'nop-code-e2e';
@@ -62,12 +62,10 @@ test.describe('类型层级查询', () => {
     expect(resp.ok).toBeTruthy();
   });
 
-  test('浏览器: 登录后导航到类型层级页面', async ({ page }) => {
-    const loginPO = new LoginPO(page);
-    await loginPO.goto();
-    await loginPO.login();
+  test('浏览器: 登录后导航到类型层级页面', async ({ page, engine }) => {
+    await login(page);
 
-    const hierarchyPO = new TypeHierarchyPO(page);
+    const hierarchyPO = new TypeHierarchyPO(page, engine);
     await hierarchyPO.goto();
   });
 });
