@@ -11,6 +11,7 @@ import io.nop.web.page.WebPageHelper;
 import jakarta.inject.Inject;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
 import java.util.Map;
@@ -37,6 +38,22 @@ public class TestFluxPage extends JunitBaseTestCase {
     public void tearDownConfig() {
         AppConfig.getConfigProvider().updateConfigValue(WebConfigs.CFG_WEB_RENDER_MODE, "amis");
         ResourceComponentManager.instance().clearCache("xlib");
+    }
+
+    @Disabled("启用此方法重新生成快照文件，运行后复制 _tmp/ 下输出到 test/resources")
+    @Test
+    public void regenerateSnapshots() {
+        String[][] paths = {
+            {"/nop/auth/pages/TestWebControl/edit-flux.page.yaml", "edit-flux.page.json"},
+            {"/nop/auth/pages/TestWebControl/view-flux.page.yaml", "view-flux.page.json"},
+            {"/nop/auth/pages/TestWebControl/query-flux.page.yaml", "query-flux.page.json"},
+        };
+        for (String[] pair : paths) {
+            Map<String, Object> page = pageProvider.getPage(pair[0], null);
+            String text = JSON.serialize(page, true);
+            System.out.println("=== " + pair[1] + " ===");
+            System.out.println(text);
+        }
     }
 
     @Test
