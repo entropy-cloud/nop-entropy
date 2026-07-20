@@ -37,12 +37,96 @@ x:gen-extends: |
 
 ## NormalizeAction 的 onClick 优先规则
 
-`flux-web.xlib:NormalizeAction` 实现了 AMIS actionType 到 Flux ActionSchema 的转换，且遵循 **onClick 优先规则**：
+`flux-web.xlib:NormalizeAction` 实现了 AMIS actionType 到 Flux ActionSchema 的转换，且遵循 **onClick 优先规则**。
+
+此规则对应两种用法：
+
+### 模式 A：简单 API 调用 — 走 `api`，自动转换
+
+view.xml action 中只写 `api`，不写 `onClick`。NormalizeAction 自动转换为 single-step ActionSchema：
+
+```xml
+<action id="submit" label="提交" api="/r/NopAuthUser__save"/>
+```
+
+转换结果：`{ type: 'api', url: '/r/NopAuthUser__save', method: 'POST' }` 包裹在 `onClick` 中。适用于绝大多数 CRUD 按钮。
+
+### 模式 B：复杂编排 — 写 `onClick`，原生透传
+
+在 page.yaml 的 action 中直接写 Flux 原生 `ActionSchema`（`action` + `args` + `then` DAG 编排），NormalizeAction 检测到已有 `onClick` 则原样透传，不做任何转换：
+
+```xml
+<action id="batchOp" label="批量操作">
+  <onClick>
+    {
+      action: "confirm",
+      args: { message: "确认批量操作？" },
+      then: {
+        action: "ajax",
+        args: { url: "/r/NopAuthUser__batchOp", method: "post", includeScope: "*" },
+        then: {
+          action: "refreshSource",
+          targetId: "list",
+          then: { action: "showToast", args: { level: "success", message: "操作成功" } }
+        }
+      }
+    }
+  </onClick>
+</action>
+```
+
+### 作用域（scope）传递规则
+
+**Flux 不自动传递表单数据或页面上下文到 API 调用**，需要显式指定。AjaxActionSchema 的 `args` 支持以下方式：
+
+| 方式 | 说明 |
+|------|------|
+| `includeScope: "*"` | 注入当前作用域全部字段 |
+| `includeScope: ["field1", "field2"]` | 仅注入指定字段 |
+| `data: { name: "${name}" }` | 显式映射请求体（支持模板表达式） |
+
+```xml
+<!-- 显式传递上下文 -->
+<onClick>
+  {
+    action: "ajax",
+    args: {
+      url: "/r/NopAuthUser__save",
+      method: "post",
+      includeScope: "*"
+    }
+  }
+</onClick>
+```
+
+> 对比 AMIS：AMIS 的 `api.withFormData` 自动携带表单数据；Flux 无此隐式行为，必须显式声明。
+
+### 常用 action 类型
+
+完整 ActionSchema 结构见 `nop-chaos-flux` 项目的 `flux-guide` 文档。
+
+| action | args | 说明 |
+|--------|------|------|
+| `ajax` | `{ url, method, data, includeScope, headers }` | HTTP 请求 |
+| `confirm` | `{ message, title }` | 确认弹窗，通过 `then` 链后续动作 |
+| `showToast` | `{ level, message }` | 提示消息 |
+| `alert` | `{ message, title }` | 提示弹窗 |
+| `openDialog` | `{ title, body }` | 打开弹窗 |
+| `closeSurface` | — | 关闭当前弹窗 |
+| `refreshSource` | `{ targetId }` | 刷新指定数据源 |
+| `refreshTable` | — | 刷新表格 |
+| `setValue` | `{ path, value }` | 设置变量值 |
+| `component:*` | 按组件 | 调用组件方法（如 `component:submit`） |
+| `navigate` | `{ url, replace, back }` | 页面导航 |
+
+支持 `when` 条件守卫、`control.retry`/`control.debounce` 重试防抖、`onError`/`onSettled` 分支。详见 `flux-guide` 文档。
+
+### 自动转换逻辑概要
 
 - 如果 action 中已有 `onClick`（Flux 原生 ActionSchema），直接透传，不做任何转换。
-- 如果没有 `onClick`，则从 `api`/`actionType`/`dialog`/`drawer` 自动转换为 Flux ActionSchema。
-
-这使得代码生成的页面走自动转换，手工定制的高级页面可以直接写 Flux 原生 `onClick`（DAG、重试、防抖等）。
+- 如果没有 `onClick`，则从 `api`/`actionType`/`dialog`/`drawer` 自动转换为 Flux ActionSchema：
+  1. 转换后的结构用 `type` 字段（非 `action`），包含 `api`、`dialog`、`drawer`、`reload`、`close`、`toast`、`link`、`url`、`copy`（简洁格式，与原生 Flux `action` 格式不同，由前端运行时统一归一化）。
+  2. 有 `confirmText` 时套 `{ type: 'confirm', when, then }`；单步时直接返回该 step；多步时套 `{ type: 'sequence', then }`。
 
 ## AMIS vs Flux 关键差异
 
