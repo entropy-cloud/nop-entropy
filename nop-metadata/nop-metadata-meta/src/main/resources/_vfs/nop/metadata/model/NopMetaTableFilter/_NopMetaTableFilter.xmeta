@@ -1,7 +1,8 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 <meta x:schema="/nop/schema/xmeta.xdef" xmlns:x="/nop/schema/xdsl.xdef" xmlns:i18n-en="i18n-en" xmlns:ext="ext"
-      xmlns:xpl="xpl" ext:model="orm" ext:icon="filter" xmlns:c="c" xmlns:graphql="graphql" xmlns:meta-gen="meta-gen"
-      xmlns:biz="biz" displayName="表过滤器" i18n-en:displayName="Meta Table Filter" xmlns:ui="ui" xmlns:orm="orm">
+      xmlns:xpl="xpl" ext:model="orm" ext:icon="filter" ext:web-renderer="" xmlns:c="c" xmlns:graphql="graphql"
+      xmlns:meta-gen="meta-gen" xmlns:biz="biz" displayName="表过滤器" i18n-en:displayName="Meta Table Filter" xmlns:ui="ui"
+      xmlns:orm="orm">
 
     <entityName>io.nop.metadata.dao.entity.NopMetaTableFilter</entityName>
 

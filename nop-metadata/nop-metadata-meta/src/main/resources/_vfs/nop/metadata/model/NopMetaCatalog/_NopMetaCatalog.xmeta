@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 <meta x:schema="/nop/schema/xmeta.xdef" xmlns:x="/nop/schema/xdsl.xdef" xmlns:i18n-en="i18n-en" xmlns:ext="ext"
-      xmlns:xpl="xpl" ext:model="orm" ext:icon="bar-chart-2" xmlns:c="c" xmlns:graphql="graphql"
+      xmlns:xpl="xpl" ext:model="orm" ext:icon="bar-chart-2" ext:web-renderer="" xmlns:c="c" xmlns:graphql="graphql"
       xmlns:meta-gen="meta-gen" xmlns:biz="biz" displayName="运行时统计快照" i18n-en:displayName="Meta Catalog" xmlns:ui="ui"
       xmlns:orm="orm">
 
