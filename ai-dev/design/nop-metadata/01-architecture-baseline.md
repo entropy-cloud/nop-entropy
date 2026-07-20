@@ -202,7 +202,7 @@ MetaEntity                      — ORM 实体
   ├── tagSet / querySpace / persistDriver
   ├── useTenant / useRevision / useLogicalDelete / notGenCode
   ├── createrProp / createTimeProp / updaterProp / updateTimeProp
-  ├── versionProp / deleteFlagProp / deleteVersionProp
+  ├── versionProp / deleteFlagProp / delVersionProp
   ├── dbCatalog / dbSchema / dbPkName / sqlText
   └── extConfig                 — 扩展属性 JSON（包含 ui:/biz:/orm: 命名空间属性）
 
