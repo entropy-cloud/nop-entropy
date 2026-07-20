@@ -43,13 +43,27 @@ nop:
 | IoC bean 配置 | `_dump/{appName}/nop/.../merged-app.beans.xml` | 所有 bean 配置合并后的最终结果 |
 | GraphQL schema | `_dump/{appName}/nop/main/graphql/schema.graphql` | 完整 GraphQL schema（SDL 格式） |
 | i18n 合并结果 | `_dump/{appName}/i18n/...` | 各 locale 的 i18n 合并产物 |
-| **site-map 菜单树** | `_dump/{appName}/nop/main/site/{locale}-menu.yaml` | action-auth.xml 合并后的**最终菜单树**（如 `zh-CN-menu.yaml`） |
+| **site-map 菜单树** | `_dump/{appName}/nop/main/site/{locale}-menu.yaml` | action-auth.xml + 数据库动态配置合并后的**最终菜单树**（如 `zh-CN-menu.yaml`） |
 
 **关于 site-map dump 的特殊性**（调试菜单时最易踩的坑）：
 
-- 菜单合并产物文件名是 **`{locale}-menu.yaml`**（如 `zh-CN-menu.yaml`），**不是** `action-auth.xml`。`DslModelParser` 解析 `static-config-path` 指向的 action-auth.xml 的过程不单独 dump，只 dump 合并后的最终菜单树。
-- 想看"运行时实际菜单结构"（测试 TOPM 是否删除、业务分组是否正确、图标是否生效），看 `{locale}-menu.yaml`，而不是 `_dump` 里的 action-auth.xml。
-- **触发时机**：`SiteMapProviderImpl` 用懒加载缓存。debug 模式下 `@PostConstruct init()` 会主动预加载一次（把合并问题暴露在启动期并产出 dump）；非 debug 模式需首次调用 `getSiteMap` 才合并。详见 `./auth-and-permissions.md` 的"site-map 加载时机与调试 dump"。
+- `{locale}-menu.yaml` **不是** action-auth.xml 的格式转换。全链路如下：
+  1. `action-auth.xml`（XDSL 格式的静态源文件，定义菜单/资源/权限树）被 `DslModelParser` 解析为 `ActionAuthModel`
+  2. `ActionAuthModel.getSites()` 提取 `List<SiteMapBean>`，与数据库表（`NopAuthSite`/`NopAuthResource`/`NopAuthRoleResource`）的动态配置由 `SiteCacheDataBuilder` 合并
+  3. 合并后经过树结构重建、i18n 归一化、非活跃资源剔除等处理
+  4. 最终 `Map<String, SiteMapBean>` 序列化为 YAML → `{locale}-menu.yaml`
+- action-auth.xml **本身不会被单独 dump**（它不是通过标准 XDSL 差量合并管线加载的；`SiteMapProviderImpl` 直接调 `DslModelParser.parseFromResource` 解析）。想看"运行时实际菜单结构"（测试 TOPM 是否删除、业务分组是否正确、图标是否生效），看 `{locale}-menu.yaml`。
+- **dump 更新时机**：`SiteMapProviderImpl` 使用 `IResourceLoadingCache`（默认超时 `10m`，由 `nop.auth.site-map.cache-timeout` 配置）。dump 只在**缓存重新加载**时产生，**不是每次前端请求都刷新**。三种触发场景：
+  | 场景 | 条件 |
+  |------|------|
+  | 启动时 | debug 模式下 `@PostConstruct init()` 主动触发一次 |
+  | 缓存过期 | 默认每 10 分钟重新加载时 |
+  | 手动清缓存 | 调用 `DevTool__clearComponentCache` 后下次访问时 |
+- **手动强制刷新**（改了 action-auth.xml 或数据库菜单后想立即看到 dump）：
+  1. 调小 `nop.auth.site-map.cache-timeout`（如 `1s`）并重启，或
+  2. 调用 `DevTool__clearComponentCache`（清除所有组件/GraphQL/缓存，下次请求时重建并产出新 dump）
+- `DevTool` 的调用方式见下方"DevDoc / DevTool"。
+- 详见 `./auth-and-permissions.md` 的"site-map 加载时机与调试 dump"。
 
 `_dump/` 是调试期临时输出目录，不是源码目录：
 
@@ -120,10 +134,20 @@ curl -s "http://localhost:8080/p/PageProvider__getPage?path=/nop/code/pages/dash
 1. `DevDoc__beans`：查看最终启用的 bean。
 2. `DevDoc__configVars`：查看配置变量。
 3. `DevDoc__graphql`：运行时查看 GraphQL 文档（返回 SDL 格式文本）。
-4. `DevTool.refreshVirtualFileSystem`：刷新虚拟文件系统。
-5. `DevTool.clearComponentCache`：清理组件与 GraphQL 缓存。
+4. `DevTool__refreshVirtualFileSystem`：刷新虚拟文件系统。
+5. `DevTool__clearComponentCache`：清理组件与 GraphQL 缓存。
 
-不要把访问路径写死成某个固定 HTTP URL。优先按 GraphQL 调用名理解这些能力。
+**调用方式**（所有 `DevDoc__*` 和 `DevTool__*` 均支持以下两种方式）：
+
+- **REST**：`POST /r/{BizModel}__{method}`，例如：
+  - `curl -X POST "http://localhost:8080/r/DevTool__clearComponentCache"`
+  - `curl -X POST "http://localhost:8080/r/DevDoc__graphql"`
+- **GraphQL**：`POST /graphql`，例如：
+  ```json
+  {"query": "mutation { DevTool__clearComponentCache }"}
+  ```
+
+> `DevDoc__graphql` 返回 SDL 格式文本，可直接重定向到文件：`curl -s "http://localhost:8080/r/DevDoc__graphql" > schema.graphql`
 
 ### `_dump` vs DevDoc — 关系说明
 

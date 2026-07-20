@@ -24,6 +24,7 @@
 - P4-3++. external↔external 同库 JOIN 聚合（queryAggregation + joinId）+ Measure/Dimension 侧别建模: `done`（plan 1200-1：Measure/Dimension 新增 side 列；external↔external 同库原生 GROUP BY over JOIN；混合/跨库 JOIN 聚合仍 deferred）
 - P4-dc-1. 混合端点（entity↔external/sql）同库 JOIN 聚合 — 机制裁定与实现: `done`（plan 1500-1，§4.4.1 D1.5 裁定：external `withConnection` 单连接 + 连接可达性实测判定同库 + entity 物理表直查绕过 ORM session；同库原生 GROUP BY over JOIN 实现；收口 1200-1「混合端点 JOIN 聚合」同库部分，跨库部分仍 deferred → 1500-2）
 - P4-dc-2. 跨库 JOIN 聚合（全端点组合：entity↔entity / external↔external / 混合）— 复用 executeJoin + 内存 GROUP BY: `done`（plan 1500-2，§4.4.2 D10 裁定：精确-当-容纳/超限-失败 + 合并行按端点命名空间取值 entity=fieldName/table=物理列名/右侧冲突=`<alias>_<name>`；收口 0852-1/1200-1/0700-2 跨库 JOIN 聚合 deferred 项）
+- P5-api-contract. nop-metadata API 契约 + 工程规范 + 文档对齐（I*Biz 接口 + DTO + ErrorCode 集中化 + *Service 改名 *Processor + System.currentTimeMillis/CoreMetrics 统一 + lineage.TableReference → SqlTableReference + nop-metadata-api 死模块移除 + docs/03-modules/nop-metadata.md + module-groups + source-anchors META-001..005 + roadmap 实体数 21→32）: `done`（plan 2026-07-19-1250-3，6 phase 全部完成；583 tests pass；docs link checker 0 errors；successor plan 2026-07-19-1250-4 已起草 — MetaAggregationExecutor 3474 行 → 7 Processor 拆分）
 - P4. Phase 4 — 联邦查询执行（基于 ORM querySpace）: `done`
 - Opt-1. sql 视图字段类型推断方案 B（LIMIT 0 + ResultSetMetaData）— 收口 0700-1/0800-1/1905-1/0700-2 Non-Blocking Follow-up: `done`（plan 2026-07-18-0900-1，§4.2.1 方案 B 已落地 + D1/D2/D3 裁定；querySpace 提供时显式推断真实类型、不提供时维持方案 A type=null；类型不持久化；不修改 `SqlSelectFieldExtractor`/`MetaTableFieldResolver`）
 - Opt-2. queryAggregation 增加 having（聚合后过滤）+ orderBy（聚合结果排序）— 收口 0852-1/1200-1/1500-1/1500-2 Non-Blocking Follow-up「聚合 having/排序增强」: `done`（plan 2026-07-18-0900-2，§4.4.2 D11 裁定：D11.1 having TreeBean + FilterToSqlTranslator.translate(filter, fieldResolver) 重载 + name 反查表；D11.2 OrderFieldBean；D11.3 三条路径一致支持：entity/external-sql 单表 + JOIN 同库 3 条 SQL 生成 HAVING/ORDER BY + 跨库内存 MemoryFilterEvaluator/MemoryOrderByComparator；向后兼容：having=null+orderBy=null 零行为变化；395 tests）
@@ -58,8 +59,8 @@
 
 **已实现：** Phase 1（ORM 模型导入引擎）。
 
-- 21 实体完全建模（`nop-metadata.orm.xml`），覆盖：模块/版本管理（Module/OrmModel）、数据源（DataSource）、ORM 拆解（Entity/Field/Relation/UniqueKey/Index/Domain/SemanticType/Dict/DictItem）、BI 语义层（Table/Measure/Dimension/Filter/Join）、血缘（LineageEdge/Pipeline）、数据质量（QualityRule/QualityResult）
-- 21 实体 GraphQL CRUD 自动暴露，无需手写 BizModel
+- 32 实体完全建模（`nop-metadata.orm.xml`），覆盖：模块/版本管理（Module/OrmModel/Manifest/ModelChangedEvent）、数据源（DataSource/Catalog）、ORM 拆解（Entity/Field/Relation/UniqueKey/Index/Domain/SemanticType/Dict/DictItem）、BI 语义层（Table/Measure/Dimension/Filter/Join）、血缘（LineageEdge/Pipeline）、数据质量（QualityRule/QualityResult/QualityCheckpoint/QualityScore/ProfilingRule/ProfilingResult）、数据对账（ReconciliationConfig/ReconciliationEntity/ReconciliationResult）、数据契约（DataContract）
+- 32 实体 GraphQL CRUD 自动暴露，无需手写 BizModel
 - `importOrmModel` GraphQL action 可用：从平台 `orm.xml` 解析并写入 NopMetaModule / NopMetaOrmModel / NopMetaEntity / NopMetaEntityField / NopMetaEntityRelation / NopMetaDomain / NopMetaDict / NopMetaDictItem / NopMetaTable(tableType=entity)
 - 2 个 AutoTest（`TestNopMetaModuleBizModel`）验证端到端链路
 - BUILD SUCCESS（8 子模块全部编译通过）
@@ -76,7 +77,7 @@
 
 | 工作项 | 描述 | 状态 |
 |--------|------|------|
-| P1-1 | 确认 21 实体 CRUD 通过 xbiz 自动暴露 | done |
+| P1-1 | 确认 32 实体 CRUD 通过 xbiz 自动暴露 | done |
 | P1-2 | `OrmModelImporter`（dao 层）：IOrmModel → NopMeta* 实体转换 | done |
 | P1-3 | `NopMetaModuleBizModel.importOrmModel`（service 层）：解析 orm.xml → 导入 → 层级持久化 | done |
 | P1-4 | AutoTest：导入 nop-metadata orm.xml 并断言实体/字段/关系数量 | done |

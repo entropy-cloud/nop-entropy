@@ -181,6 +181,7 @@
 | 理解 nop-file（文件上传下载与存储机制） | `03-modules/nop-file.md` |
 | 理解 nop-retry（分布式重试） | `03-modules/nop-retry.md` |
 | 理解 nop-tcc（TCC 分布式事务） | `03-modules/nop-tcc.md` |
+| 理解 nop-metadata（联邦式元数据 / BI 语义层 / 血缘 / 质量 / 对账） | `03-modules/nop-metadata.md`（含 I*Biz 接口契约 + 5 大功能场景 + 失败路径显式化原则） |
 | 理解 nop-code 模块（代码索引与分析） | `03-modules/nop-code.md` |
 | 查实现锚点 / 符号定义 | `04-reference/source-anchors.md` |
 | 查看代码示例（Entity/BizModel/IBiz/beans/Delta） | **`05-examples/README.md`** |
