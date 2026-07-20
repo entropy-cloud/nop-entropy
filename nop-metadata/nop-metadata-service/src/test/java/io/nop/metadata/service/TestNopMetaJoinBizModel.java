@@ -64,7 +64,7 @@ public class TestNopMetaJoinBizModel extends JunitBaseTestCase {
         String joinId = createJoin(leftTableId, "inner", leftEntity.getMetaEntityId(),
                 rightEntity.getMetaEntityId(), "metaEntityId", "metaEntityId", "fld");
 
-        Map<String, Object> result = nopMetaTableBizModel.queryJoinData(leftTableId, joinId, null, null, null, null);
+        Map<String, Object> result = nopMetaTableBizModel.queryJoinData(leftTableId, joinId, null, null, null, null, null);
         List<Map<String, Object>> items = (List<Map<String, Object>>) result.get("items");
         assertNotNull(items, "items must not be null");
         // inner join：每个 field 行匹配其所属 entity 行，结果非空（导入后存在大量字段）
@@ -93,7 +93,7 @@ public class TestNopMetaJoinBizModel extends JunitBaseTestCase {
             String joinId = createJoin(leftTableId, "inner", leftEntity.getMetaEntityId(),
                     rightEntity.getMetaEntityId(), "metaEntityId", "metaEntityId", "fld");
 
-            Map<String, Object> result = nopMetaTableBizModel.queryJoinData(leftTableId, joinId, null, null, null, null);
+            Map<String, Object> result = nopMetaTableBizModel.queryJoinData(leftTableId, joinId, null, null, null, null, null);
             List<Map<String, Object>> items = (List<Map<String, Object>>) result.get("items");
             assertNotNull(items, "items must not be null");
             assertFalse(items.isEmpty(), "cross-DB app-layer merge must return real merged rows: " + items);
@@ -174,7 +174,7 @@ public class TestNopMetaJoinBizModel extends JunitBaseTestCase {
         String joinId = createTableJoin(leftTableId, "inner", leftTableId, rightTableId,
                 "order_id", "order_id", "rg");
 
-        Map<String, Object> result = nopMetaTableBizModel.queryJoinData(leftTableId, joinId, null, null, null, null);
+        Map<String, Object> result = nopMetaTableBizModel.queryJoinData(leftTableId, joinId, null, null, null, null, null);
         List<Map<String, Object>> items = (List<Map<String, Object>>) result.get("items");
         assertNotNull(items, "items must not be null");
         // inner join：order_id=1→CN, order_id=2→US，2 行真实关联（stub 立即失败此断言）
@@ -234,7 +234,7 @@ public class TestNopMetaJoinBizModel extends JunitBaseTestCase {
         String joinId = createMixedJoin(leftTableId, "inner", moduleEntity.getMetaEntityId(),
                 sqlTableId, "moduleId", "MODULE_ID", "dim");
 
-        Map<String, Object> result = nopMetaTableBizModel.queryJoinData(leftTableId, joinId, null, null, null, null);
+        Map<String, Object> result = nopMetaTableBizModel.queryJoinData(leftTableId, joinId, null, null, null, null, null);
         List<Map<String, Object>> items = (List<Map<String, Object>>) result.get("items");
         assertNotNull(items, "items must not be null");
         // Anti-Hollow 核心：命名空间错配不静默空集——实际命中至少 1 行（stub 或 namespace bug 立即失败此断言）
@@ -279,7 +279,7 @@ public class TestNopMetaJoinBizModel extends JunitBaseTestCase {
         String joinId = createTableJoin(leftTableId, "inner", leftTableId, rightTableId,
                 "k", "k", "rt");
 
-        Map<String, Object> result = nopMetaTableBizModel.queryJoinData(leftTableId, joinId, null, null, null, null);
+        Map<String, Object> result = nopMetaTableBizModel.queryJoinData(leftTableId, joinId, null, null, null, null, null);
         List<Map<String, Object>> items = (List<Map<String, Object>>) result.get("items");
         assertNotNull(items, "items must not be null");
         assertEquals(1, items.size(), "cross-DB sql-sql join must merge 1 matching row: " + items);
@@ -488,7 +488,7 @@ public class TestNopMetaJoinBizModel extends JunitBaseTestCase {
 
     private boolean queryJoinDataHasError(String tableId, String joinId) {
         try {
-            nopMetaTableBizModel.queryJoinData(tableId, joinId, null, null, null, null);
+            nopMetaTableBizModel.queryJoinData(tableId, joinId, null, null, null, null, null);
             return false;
         } catch (Exception e) {
             return true;

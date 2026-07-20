@@ -16,8 +16,8 @@ import io.nop.metadata.dao.entity.NopMetaReconciliationConfig;
 import io.nop.metadata.dao.entity.NopMetaReconciliationEntity;
 import io.nop.metadata.dao.entity.NopMetaReconciliationResult;
 import io.nop.metadata.dao.entity.NopMetaTable;
-import io.nop.metadata.service.reconciliation.IReconciliationService;
-import io.nop.metadata.service.reconciliation.LocalReconciliationService;
+import io.nop.metadata.service.reconciliation.IReconciliationProcessor;
+import io.nop.metadata.service.reconciliation.LocalReconciliationProcessor;
 import jakarta.inject.Inject;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Assertions;
@@ -38,7 +38,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * 验证对账执行 + 匹配服务 + 人工确认（设计 08-reconciliation.md §3.2/§3.3/§3.4，plan 0900-2 Phase 2）。
  *
  * <p>Anti-Hollow：executeReconciliation 端到端用真实 external 表行数据（H2 造数 → queryTableData 取 items）
- * + 真实候选实体（NopMetaReconciliationEntity 播种）→ LocalReconciliationService 匹配 → D5 阈值判定 →
+ * + 真实候选实体（NopMetaReconciliationEntity 播种）→ LocalReconciliationProcessor 匹配 → D5 阈值判定 →
  * Result 写入，断言 statistics/details 反映真实匹配（MATCHED/UNMATCHED/MULTIPLE 计数与种子一致，非空壳）。
  *
  * <p>覆盖：EXACT/FUZZY 匹配、阈值上/下、UNMATCHED、MULTIPLE、autoMatch=false→MULTIPLE、人工确认单条/批量、
@@ -58,9 +58,9 @@ public class TestNopMetaReconciliationBizModel extends JunitBaseTestCase {
     IDaoProvider daoProvider;
 
     @Inject
-    LocalReconciliationService localReconciliationService;
+    LocalReconciliationProcessor localReconciliationService;
 
-    // ===== LocalReconciliationService 单元（候选检索 + score） =====
+    // ===== LocalReconciliationProcessor 单元（候选检索 + score） =====
 
     /** EXACT：完全相等 score=1.0，否则不进候选。空候选返回空列表（不静默伪造）。 */
     @Test
@@ -68,12 +68,12 @@ public class TestNopMetaReconciliationBizModel extends JunitBaseTestCase {
         seedCandidate("re-svc-exact-1", "Q1", "Microsoft", "company", "wikidata");
         seedCandidate("re-svc-exact-2", "Q2", "Apple", "company", "wikidata");
 
-        List<IReconciliationService.ReconciliationCandidate> matched =
+        List<IReconciliationProcessor.ReconciliationCandidate> matched =
                 localReconciliationService.reconcile("Microsoft", "company", "wikidata", "exact", 10);
         assertEquals(1, matched.size(), "exact match Microsoft must return 1 candidate");
         assertEquals(1.0, matched.get(0).getScore(), 0.0001, "exact match score must be 1.0");
 
-        List<IReconciliationService.ReconciliationCandidate> none =
+        List<IReconciliationProcessor.ReconciliationCandidate> none =
                 localReconciliationService.reconcile("NonExistent", "company", "wikidata", "exact", 10);
         assertTrue(none.isEmpty(), "no exact match must return empty list (no fake candidates)");
     }
@@ -83,13 +83,13 @@ public class TestNopMetaReconciliationBizModel extends JunitBaseTestCase {
     public void testLocalServiceFuzzyScoring() {
         seedCandidate("re-svc-fuzzy-1", "Q1", "Microsoft", "company", "wikidata");
         // "Microsoft" 完全相等 → 1.0
-        List<IReconciliationService.ReconciliationCandidate> exactLike =
+        List<IReconciliationProcessor.ReconciliationCandidate> exactLike =
                 localReconciliationService.reconcile("Microsoft", "company", "wikidata", "fuzzy", 10);
         assertEquals(1, exactLike.size());
         assertEquals(1.0, exactLike.get(0).getScore(), 0.0001);
 
         // "Microsoftx" 拼写差异 → 距离 1 / maxLen 10 = 0.9
-        List<IReconciliationService.ReconciliationCandidate> fuzzyLike =
+        List<IReconciliationProcessor.ReconciliationCandidate> fuzzyLike =
                 localReconciliationService.reconcile("Microsoftx", "company", "wikidata", "fuzzy", 10);
         assertEquals(1, fuzzyLike.size());
         assertEquals(0.9, fuzzyLike.get(0).getScore(), 0.0001, "fuzzy similarity must be ~0.9");
@@ -98,7 +98,7 @@ public class TestNopMetaReconciliationBizModel extends JunitBaseTestCase {
     /** 候选池为空 → 返回空列表（不静默伪造候选）。 */
     @Test
     public void testLocalServiceEmptyCandidatePool() {
-        List<IReconciliationService.ReconciliationCandidate> matched =
+        List<IReconciliationProcessor.ReconciliationCandidate> matched =
                 localReconciliationService.reconcile("anything", "company", "empty-space", "exact", 10);
         assertTrue(matched.isEmpty(), "empty candidate pool must return empty list");
     }

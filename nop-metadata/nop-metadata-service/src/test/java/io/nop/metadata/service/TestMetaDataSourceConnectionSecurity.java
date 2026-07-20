@@ -8,7 +8,7 @@
 package io.nop.metadata.service;
 
 import io.nop.api.core.exceptions.NopException;
-import io.nop.metadata.service.connection.MetaDataSourceConnectionService;
+import io.nop.metadata.service.connection.MetaDataSourceConnectionProcessor;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -26,7 +26,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  */
 public class TestMetaDataSourceConnectionSecurity {
 
-    private final MetaDataSourceConnectionService service = new MetaDataSourceConnectionService();
+    private final MetaDataSourceConnectionProcessor service = new MetaDataSourceConnectionProcessor();
 
     private static final String BASE_CFG = "\"username\":\"sa\",\"password\":\"\"";
 
@@ -48,7 +48,7 @@ public class TestMetaDataSourceConnectionSecurity {
                     () -> service.testConnect("jdbc",
                             "{\"jdbcUrl\":\"" + url + "\"," + BASE_CFG + "}"),
                     "non-whitelisted protocol must fail: " + url);
-            assertEquals(MetaDataSourceConnectionService.ERR_DATASOURCE_JDBC_URL_BLOCKED.getErrorCode(),
+            assertEquals(MetaDataSourceConnectionProcessor.ERR_DATASOURCE_JDBC_URL_BLOCKED.getErrorCode(),
                     ex.getErrorCode(),
                     "non-whitelisted protocol must fail with ERR_DATASOURCE_JDBC_URL_BLOCKED: " + url);
             assertTrue(String.valueOf(ex.getParam("reason")).contains("protocol"),
@@ -66,7 +66,7 @@ public class TestMetaDataSourceConnectionSecurity {
                         "{\"jdbcUrl\":\"jdbc:mysql://10.255.255.1:3306/db?allowLoadLocalInfile=true\","
                                 + BASE_CFG + "}"));
         // 内网 IP（10.x）或 危险参数都会触发，但优先匹配；任一情况都应是 ERR_DATASOURCE_JDBC_URL_BLOCKED
-        assertEquals(MetaDataSourceConnectionService.ERR_DATASOURCE_JDBC_URL_BLOCKED.getErrorCode(),
+        assertEquals(MetaDataSourceConnectionProcessor.ERR_DATASOURCE_JDBC_URL_BLOCKED.getErrorCode(),
                 ex.getErrorCode());
         String reason = String.valueOf(ex.getParam("reason"));
         assertTrue(reason.contains("dangerous") || reason.contains("host"),
@@ -81,7 +81,7 @@ public class TestMetaDataSourceConnectionSecurity {
                 () -> service.testConnect("jdbc",
                         "{\"jdbcUrl\":\"jdbc:h2:mem:x;INIT=RUNSCRIPTFROM\","
                                 + BASE_CFG + "}"));
-        assertEquals(MetaDataSourceConnectionService.ERR_DATASOURCE_JDBC_URL_BLOCKED.getErrorCode(),
+        assertEquals(MetaDataSourceConnectionProcessor.ERR_DATASOURCE_JDBC_URL_BLOCKED.getErrorCode(),
                 ex.getErrorCode());
     }
 
@@ -92,7 +92,7 @@ public class TestMetaDataSourceConnectionSecurity {
                 () -> service.testConnect("jdbc",
                         "{\"jdbcUrl\":\"jdbc:mysql://10.255.255.1/db?allowMultiQueries=true\","
                                 + BASE_CFG + "}"));
-        assertEquals(MetaDataSourceConnectionService.ERR_DATASOURCE_JDBC_URL_BLOCKED.getErrorCode(),
+        assertEquals(MetaDataSourceConnectionProcessor.ERR_DATASOURCE_JDBC_URL_BLOCKED.getErrorCode(),
                 ex.getErrorCode());
     }
 
@@ -103,7 +103,7 @@ public class TestMetaDataSourceConnectionSecurity {
                 () -> service.testConnect("jdbc",
                         "{\"jdbcUrl\":\"jdbc:mysql://10.255.255.1/db?allowUrlInLocalInfile=true\","
                                 + BASE_CFG + "}"));
-        assertEquals(MetaDataSourceConnectionService.ERR_DATASOURCE_JDBC_URL_BLOCKED.getErrorCode(),
+        assertEquals(MetaDataSourceConnectionProcessor.ERR_DATASOURCE_JDBC_URL_BLOCKED.getErrorCode(),
                 ex.getErrorCode());
     }
 
@@ -115,7 +115,7 @@ public class TestMetaDataSourceConnectionSecurity {
         NopException ex = assertThrows(NopException.class,
                 () -> service.testConnect("jdbc",
                         "{\"jdbcUrl\":\"jdbc:mysql://169.254.169.254:3306/db\"," + BASE_CFG + "}"));
-        assertEquals(MetaDataSourceConnectionService.ERR_DATASOURCE_JDBC_URL_BLOCKED.getErrorCode(),
+        assertEquals(MetaDataSourceConnectionProcessor.ERR_DATASOURCE_JDBC_URL_BLOCKED.getErrorCode(),
                 ex.getErrorCode());
         assertTrue(String.valueOf(ex.getParam("reason")).contains("host"),
                 "reason must mention host: " + ex.getParam("reason"));
@@ -130,7 +130,7 @@ public class TestMetaDataSourceConnectionSecurity {
                     () -> service.testConnect("jdbc",
                             "{\"jdbcUrl\":\"jdbc:mysql://" + host + ":3306/db\"," + BASE_CFG + "}"),
                     "internal host must be rejected: " + host);
-            assertEquals(MetaDataSourceConnectionService.ERR_DATASOURCE_JDBC_URL_BLOCKED.getErrorCode(),
+            assertEquals(MetaDataSourceConnectionProcessor.ERR_DATASOURCE_JDBC_URL_BLOCKED.getErrorCode(),
                     ex.getErrorCode());
         }
     }
@@ -141,7 +141,7 @@ public class TestMetaDataSourceConnectionSecurity {
         NopException ex = assertThrows(NopException.class,
                 () -> service.testConnect("jdbc",
                         "{\"jdbcUrl\":\"jdbc:mysql://localhost:3306/db\"," + BASE_CFG + "}"));
-        assertEquals(MetaDataSourceConnectionService.ERR_DATASOURCE_JDBC_URL_BLOCKED.getErrorCode(),
+        assertEquals(MetaDataSourceConnectionProcessor.ERR_DATASOURCE_JDBC_URL_BLOCKED.getErrorCode(),
                 ex.getErrorCode());
     }
 
@@ -162,7 +162,7 @@ public class TestMetaDataSourceConnectionSecurity {
                             "{\"jdbcUrl\":\"jdbc:h2:mem:ok\",\"driverClassName\":\"" + driver
                                     + "\"," + BASE_CFG + "}"),
                     "non-whitelisted driver must fail: " + driver);
-            assertEquals(MetaDataSourceConnectionService.ERR_DATASOURCE_DRIVER_NOT_ALLOWED.getErrorCode(),
+            assertEquals(MetaDataSourceConnectionProcessor.ERR_DATASOURCE_DRIVER_NOT_ALLOWED.getErrorCode(),
                     ex.getErrorCode());
             assertEquals(driver, ex.getParam("driverClassName"));
         }
@@ -191,7 +191,7 @@ public class TestMetaDataSourceConnectionSecurity {
             NopException ex = assertThrows(NopException.class,
                     () -> service.testConnect(type, "{\"jdbcUrl\":\"jdbc:h2:mem:ok\"," + BASE_CFG + "}"),
                     "non-jdbc type must fail: " + type);
-            assertEquals(MetaDataSourceConnectionService.ERR_DATASOURCE_TYPE_NOT_SUPPORTED.getErrorCode(),
+            assertEquals(MetaDataSourceConnectionProcessor.ERR_DATASOURCE_TYPE_NOT_SUPPORTED.getErrorCode(),
                     ex.getErrorCode());
         }
     }
@@ -219,9 +219,9 @@ public class TestMetaDataSourceConnectionSecurity {
             // 仅关心 setLoginTimeout 是否被调用
         }
         int after = java.sql.DriverManager.getLoginTimeout();
-        assertTrue(after == MetaDataSourceConnectionService.DEFAULT_LOGIN_TIMEOUT_SECONDS,
+        assertTrue(after == MetaDataSourceConnectionProcessor.DEFAULT_LOGIN_TIMEOUT_SECONDS,
                 "DriverManager.setLoginTimeout must be set to "
-                        + MetaDataSourceConnectionService.DEFAULT_LOGIN_TIMEOUT_SECONDS
+                        + MetaDataSourceConnectionProcessor.DEFAULT_LOGIN_TIMEOUT_SECONDS
                         + " after buildDataSource call (before=" + before + ", after=" + after + ")");
     }
 }

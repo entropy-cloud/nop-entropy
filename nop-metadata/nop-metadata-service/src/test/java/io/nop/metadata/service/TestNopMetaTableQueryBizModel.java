@@ -77,7 +77,7 @@ public class TestNopMetaTableQueryBizModel extends JunitBaseTestCase {
         String tableId = findEntityTableId("nop_meta_module");
 
         // 直接调 BizModel（GraphQL Map 返回不支持字段选择；此处验证 entity→ORM 真实分派）
-        Map<String, Object> result = nopMetaTableBizModel.queryTableData(tableId, null, null, null, null);
+        Map<String, Object> result = nopMetaTableBizModel.queryTableData(tableId, null, null, null, null, null);
         assertEquals("entity", result.get("tableType"));
         List<Map<String, Object>> items = (List<Map<String, Object>>) result.get("items");
         assertNotNull(items, "items must not be null");
@@ -95,7 +95,7 @@ public class TestNopMetaTableQueryBizModel extends JunitBaseTestCase {
 
         // 直接调 BizModel 传 filter（TreeBean 非 GraphQL 命名类型）
         TreeBean filter = FilterBeans.eq("moduleId", "__never_matches_anything__");
-        Map<String, Object> result = nopMetaTableBizModel.queryTableData(tableId, filter, null, null, null);
+        Map<String, Object> result = nopMetaTableBizModel.queryTableData(tableId, filter, null, null, null, null);
         List<Map<String, Object>> items = (List<Map<String, Object>>) result.get("items");
         assertTrue(items.isEmpty(), "entity filter moduleId=__nope__ must return 0 rows (filter wired to ORM)");
     }
@@ -140,7 +140,7 @@ public class TestNopMetaTableQueryBizModel extends JunitBaseTestCase {
         // 直接调 BizModel action（TreeBean 非 GraphQL 命名类型，经 GraphQL 变量传不进来；
         // filter→WHERE 翻译由 TestFilterToSqlTranslator 单测覆盖，此处验证整条 external+filter+withConnection 链路）
         TreeBean filter = FilterBeans.gt("AMOUNT", 15);
-        Map<String, Object> result = nopMetaTableBizModel.queryTableData(tableId, filter, null, null, null);
+        Map<String, Object> result = nopMetaTableBizModel.queryTableData(tableId, filter, null, null, null, null);
         assertEquals("external", result.get("tableType"));
         List<Map<String, Object>> items = (List<Map<String, Object>>) result.get("items");
         assertEquals(3, items.size(), "filter amount>15 must return 3 rows (20,30,40)");
