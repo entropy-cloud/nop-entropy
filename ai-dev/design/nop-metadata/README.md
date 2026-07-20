@@ -18,6 +18,10 @@
 | `06-data-quality-extended.md` | Data Quality Extended | 数据质量扩展、数据剖析、验证执行 |
 | `07-ai-integration.md` | AI Integration | AI 集成、GraphQL 自动暴露 |
 | `08-reconciliation.md` | Reconciliation | 实体对账、外部知识库集成 |
+| `09-gap-analysis-extended.md` | Gap Analysis Extended | 基于 metadata-survey 的全面功能对比 |
+| `10-event-model.md` | Event Model | 元数据变更事件模型 |
+| `11-enterprise-semantic-layer.md` | Enterprise Semantic Layer | Classification/Tag + Glossary + Domain + DataProduct + TagLabel |
+| `12-data-contract-and-governance-workflow.md` | Data Contract & Governance Workflow | DataContract/TagLabel/GlossaryTerm 接入 nop-wf 审批流 |
 
 ## 核心设计决策
 

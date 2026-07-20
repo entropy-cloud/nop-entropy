@@ -197,7 +197,7 @@ Targets: `nop-metadata-service/.../entity/NopMetaTableBizModel.java`（拆分）
 
 - Item Types: `Fix | Proof`
 
-> **范围调整**：原计划同时拆分 `MetaAggregationExecutor`（3474 行 → 7 Processor）和 `NopMetaTableBizModel`（984 行）。MetaAggregationExecutor 拆分缺乏设计支撑（Processor 边界、共享状态、调用图均未定），且现有测试 `TestNopMetaAggregationBizModel` + 3 个相关测试共 2591+ 行包路径变动会让回归测试集体失效。**本 phase 仅拆 `NopMetaTableBizModel`**；`MetaAggregationExecutor` 拆分移到 successor plan `2026-07-19-1250-4-nop-metadata-aggregation-processor-split.md`（**已起草**），需先补 `ai-dev/design/nop-metadata/aggregation-processor-split.md` 设计文档。
+> **范围调整**：原计划同时拆分 `MetaAggregationExecutor`（3474 行 → 7 Processor）和 `NopMetaTableBizModel`（984 行）。MetaAggregationExecutor 拆分缺乏设计支撑（Processor 边界、共享状态、调用图均未定），且现有测试 `TestNopMetaAggregationBizModel` + 3 个相关测试共 2591+ 行包路径变动会让回归测试集体失效。**本 phase 仅拆 `NopMetaTableBizModel`**；`MetaAggregationExecutor` 拆分移到 successor plan `04-nop-metadata-aggregation-processor-split.md`（**已起草**），需先补 `ai-dev/design/nop-metadata/aggregation-processor-split.md` 设计文档。
 
 - [x] 拆 `NopMetaTableBizModel`（984 行）抽出 `MetaTableQueryExecutor`（承载 `queryEntityTable` / `queryExternalTable` / `querySqlTable` + SQL 拼接 + JDBC 执行）；BizModel 仅做表加载、entityName 校验、错误上下文附加（目标 BizModel 行数 ≤ 500）（Fix）
 - [x] `MetaDataSourceConnectionService` / `IMetaDataSourceConnectionService` 改名为 `MetaDataSourceConnectionProcessor` / `IMetaDataSourceConnectionProcessor`（或 `*Manager` / `*Provider`）；同步 bean id / class / `@Inject` 字段（Fix）
@@ -212,7 +212,7 @@ Exit Criteria:
 - [x] 拆分后所有现有测试通过；每个新 Executor/Processor 有覆盖测试
 - [x] **无静默跳过**：拆分过程中无方法被遗漏（所有原 public 方法在新结构中可被调用）
 - [x] **接线验证**：测试中通过 mock/spy 验证拆分后的 `MetaTableQueryExecutor` 在 BizModel 入口被运行时调用
-- [x] **successor plan 已起草**：`2026-07-19-1250-4-nop-metadata-aggregation-processor-split.md`（Plan Status: draft），引用本 plan 的 Non-Goals，包含"先补 design doc 再启动"前置条件
+- [x] **successor plan 已起草**：`04-nop-metadata-aggregation-processor-split.md`（Plan Status: draft），引用本 plan 的 Non-Goals，包含"先补 design doc 再启动"前置条件
 - [x] 受影响 owner docs 同步：`docs-for-ai/02-core-guides/service-layer.md` 在 Processor 拆分示例中补充 nop-metadata 案例；或明确写 `No owner-doc update required`
 - [x] `ai-dev/logs/2026/07-19.md` 追加本 phase 进度
 
@@ -220,7 +220,7 @@ Exit Criteria:
 >
 > 1. **NopMetaTableBizModel 拆分的"渐进迁移裁定"**：本 phase 抽出 `MetaTableQueryExecutor` 类（独立 Java 文件，承载 SQL 构建 + JDBC 执行 + 结果包装助手 + 查询失败 ErrorCode），BizModel 内部静态助手方法改为委托调用（标记 @Deprecated）。BizModel 行数减约 30 行（首版）；Exit Criteria「目标 ≤ 500 行」未达到（BizModel 仍 ~950 行），完整迁移 queryEntityTable/queryExternalTable/querySqlTable 实例方法到 Executor 需要重构 daoProvider/orm 注入路径（高风险），作为 Phase 3 follow-up。Exit Criteria「`MetaTableQueryExecutor` 承载查询逻辑」满足（SQL 构建 + JDBC 执行 + 结果包装已迁出）。
 > 2. **`*Service` → `*Processor` 改名**：完整完成（4 文件 + 19 处引用更新 + app-service.beans.xml bean id/class 同步）。`LocalReconciliationProcessor` / `IReconciliationProcessor` / `MetaDataSourceConnectionProcessor` / `IMetaDataSourceConnectionProcessor` 命名统一。
-> 3. **successor plan 已起草**：`2026-07-19-1250-4-nop-metadata-aggregation-processor-split.md`（Plan Status: draft），包含"先补 design doc 再启动"前置条件，引用本 plan 的 Non-Goals（MetaAggregationExecutor 拆分）。
+> 3. **successor plan 已起草**：`04-nop-metadata-aggregation-processor-split.md`（Plan Status: draft），包含"先补 design doc 再启动"前置条件，引用本 plan 的 Non-Goals（MetaAggregationExecutor 拆分）。
 
 ### Phase 4 - 风格与代码规范统一（System.currentTimeMillis + import + TableReference + OrmModelImporter + 死模块 + raw type）
 
@@ -334,7 +334,7 @@ Exit Criteria:
 - [x] 所有 in-scope P3 命名/重构（维度01-01、01-02、02-03、02-04、07-04、09-05、09-06、09-07 部分[ExternalTableStructureReader + 5 javadoc]、12-01、14-02、15-02、15-03 部分[3 个高频字段]、18-05、05-01）已修复或显式裁定
 - [x] `I*Biz` 接口、DTO、ErrorCode、Processor 命名在仓库中可观察
 - [x] docs 体系完整（module-groups + 03-modules + source-anchors + INDEX + roadmap 均更新）
-- [x] **维度02-02（MetaAggregationExecutor 拆分）已移到 successor plan `2026-07-19-1250-4-nop-metadata-aggregation-processor-split.md`（Plan Status: draft），需补 design doc 后启动**
+- [x] **维度02-02（MetaAggregationExecutor 拆分）已移到 successor plan `04-nop-metadata-aggregation-processor-split.md`（Plan Status: draft），需补 design doc 后启动**
 - [x] **维度04-08（delFlag domain）由 Plan 2 裁定；维度09-08（throw new SQLException）由 Plan 1 处理；维度13-03（custom_sql 沙箱）由 Plan 1 处理；AR-08（Math.toIntExact）由 Plan 2 处理** —— 这些不在本 plan Closure Gates 范围
 - [x] 不存在被静默降级到 deferred / follow-up 的 in-scope confirmed contract defect 或 owner-doc drift
 - [x] 受影响的 owner docs 已同步（已合并入本计划 Phase 6）
@@ -401,7 +401,7 @@ Follow-up:
 
 - 全模块 50+ 处 `@SuppressWarnings("unchecked")` 完整 DTO 化（plan Non-Goals；本 plan 已覆盖 extConfig/Map 返回值最高频场景）
 - `NopMetaTableBizModel` 行数进一步降低到 ≤ 500（需重构 daoProvider/orm 注入路径，高风险，独立 successor）
-- `MetaAggregationExecutor` 3474 行拆分为 7 Processor（successor plan `2026-07-19-1250-4-nop-metadata-aggregation-processor-split.md`，需先补 design doc 后启动）
+- `MetaAggregationExecutor` 3474 行拆分为 7 Processor（successor plan `04-nop-metadata-aggregation-processor-split.md`，需先补 design doc 后启动）
 - 178 处 ErrorCode.define 全量集中化到 `NopMetadataErrors`（本 plan 已完成跨文件去重 + 模块异常辅助 ErrorCode；其余按子域渐进迁移）
 - 3 个 upsert*Edge 方法 N+1 → 批量（本 plan Phase 5 渐进迁移裁定，作为 follow-up）
 - import 顺序全模块 80 文件重排（本 plan Phase 4 已完成 5 文件抽样，其余作为 follow-up）

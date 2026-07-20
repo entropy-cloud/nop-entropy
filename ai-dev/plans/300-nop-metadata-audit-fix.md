@@ -1,6 +1,6 @@
 # 300 nop-metadata 审计修复
 
-> Plan Status: draft
+> Plan Status: active
 > Last Reviewed: 2026-07-20
 > Source: `ai-dev/audits/2026-07-20-1554-deep-audit-nop-metadata/summary.md`、`ai-dev/audits/2026-07-20-1554-deep-audit-nop-metadata/adversarial-review.md`
 > Related: `ai-dev/plans/293-nop-metadata-design-consistency-fix.md`
@@ -77,11 +77,12 @@ Item Types: `Fix`
 - [ ] 1f: 在缺失版权头的文件（NopMetaDataSourceBizModel, NopMetaTableBizModel, CheckpointActionDispatcher 等）补充标准版权头
 
 Exit Criteria:
-> - 所有 I\*Biz 接口的自定义 public 方法均已在接口声明（grep `@BizMutation|@BizQuery` 在接口文件中验证无遗漏）
-> - 空存根文件已删除（grep `NopMetadataConfigs|NopMetadataConstants` 在非 `_gen/` 路径下零匹配）
-> - `app-service.beans.xml` XML 语法验证通过
-> - 所有 `nop-metadata-service/src/main/java/` 下的 `.java` 文件（排除 `_gen/`）均含标准版权头（`grep -L "Copyright"` 验证零缺失）
-> - No owner-doc update required: I\*Biz 接口变更是内部契约补齐，不改变公开 API
+- [ ] 所有 I\*Biz 接口的自定义 public 方法均已在接口声明（grep `@BizMutation|@BizQuery` 在接口文件中验证无遗漏）
+- [ ] 空存根文件已删除（grep `NopMetadataConfigs|NopMetadataConstants` 在非 `_gen/` 路径下零匹配）
+- [ ] `app-service.beans.xml` XML 语法验证通过
+- [ ] 所有 `nop-metadata-service/src/main/java/` 下的 `.java` 文件（排除 `_gen/`）均含标准版权头（`grep -L "Copyright"` 验证零缺失）
+- [ ] No owner-doc update required: I\*Biz 接口变更是内部契约补齐，不改变公开 API
+- [ ] No new test required: 接口方法已在实现类中存在，仅补齐接口声明
 
 ### Phase 2 - ErrorCode 集中化迁移
 
@@ -102,9 +103,12 @@ Item Types: `Fix`
 - [ ] 2f: 删除各文件中迁移后遗留的 `static final ErrorCode ERR_XXX = ErrorCode.define(...)` 字段
 
 Exit Criteria:
-> - 全模块 0 个 `ErrorCode.define("metadata.` 调用（不含 `nop.err.metadata.`）
-> - `NopMetadataErrors.java` 新增 ErrorCode 数量与移除数一致
-> - 编译通过，测试通过
+- [ ] 全模块 0 个 `ErrorCode.define("metadata.` 调用（不含 `nop.err.metadata.`）
+- [ ] `NopMetadataErrors.java` 新增 ErrorCode 数量与移除数一致
+- [ ] `./mvnw compile -pl nop-metadata-service -am` 编译通过
+- [ ] `./mvnw test -pl nop-metadata-service -am` 测试通过
+- [ ] No owner-doc update required: ErrorCode 迁移是内部重构，不改变公开 API
+- [ ] No new test required: 纯 ErrorCode 重构，零行为变更
 
 ### Phase 3 - 超大文件拆分
 
@@ -121,9 +125,12 @@ Item Types: `Fix`
 - [ ] 3f: 确认所有引用点（包括测试）更新到新类路径后编译通过
 
 Exit Criteria:
-> - `MetaAggregationExecutor.java` 行数降至 1500 行以下
-> - `MetaJoinExecutor.java` 行数降至 800 行以下
-> - 全量测试通过，与拆分前结果一致
+- [ ] `MetaAggregationExecutor.java` 行数降至 1500 行以下
+- [ ] `MetaJoinExecutor.java` 行数降至 800 行以下
+- [ ] `./mvnw compile -pl nop-metadata-service -am` 编译通过
+- [ ] `./mvnw test -pl nop-metadata-service -am` 全量测试通过，与拆分前结果一致
+- [ ] No owner-doc update required: 纯文件拆分，零行为变更
+- [ ] No new test required: 纯重构，零行为变更
 
 ### Phase 4a - 安全与数据完整性加固
 
@@ -138,10 +145,12 @@ Item Types: `Fix`
 - [ ] 4a4: 确认 `FilterToSqlTranslator` 标识符白名单正则 `^[A-Za-z_][A-Za-z0-9_]*$` 对 schema/table/column 的全覆盖
 
 Exit Criteria:
-> - `connectionConfig` 的 GraphQL 写入路径已彻底阻断（confirm: `grep 'connectionConfig' NopMetaDataSource.xmeta` 输出含 `insertable="false" updatable="false"`）
-> - 数据库约束生效且幂等 upsert 路径测试通过（唯一约束 `uk_meta_table_module_schema` 已确认存在）
-> - `MetaQualityRuleExecutor` 和 `FilterToSqlTranslator` 中已补充安全边界注释说明
-> - No owner-doc update required: xmeta 变更属内部安全加固，不改变公开 API 契约
+- [ ] `connectionConfig` 的 GraphQL 写入路径已彻底阻断（confirm: `grep 'connectionConfig' NopMetaDataSource.xmeta` 输出含 `insertable="false" updatable="false"`）
+- [ ] 数据库约束生效且幂等 upsert 路径测试通过（唯一约束 `uk_meta_table_module_schema` 已确认存在）
+- [ ] `MetaQualityRuleExecutor` 和 `FilterToSqlTranslator` 中已补充安全边界注释说明
+- [ ] No owner-doc update required: xmeta 变更属内部安全加固，不改变公开 API 契约
+- [ ] Test: 新增 upsertExternalTable 并发测试覆盖竞态条件修复
+- [ ] Test: 新增 connectionConfig GraphQL 写入阻断测试
 
 ### Phase 4b - ORM 模型微观修复与依赖清理
 
@@ -156,11 +165,12 @@ Item Types: `Fix`
 - [ ] 4b4: 确认重新 codegen 后实体常量更新，编译通过
 
 Exit Criteria:
-> - `NopMetaDictItem` 的 propId 序列连续无跳跃（`grep propId nop-metadata.orm.xml | grep NopMetaDictItem -A 30` 验证）
-> - 全模型统一使用 `metaTableId` 作为 NopMetaTable 的外键列名（grep `TABLE_ID.*NopMetaTable` 零匹配，排除 profiling_rule）
-> - `nop-metadata-dao/pom.xml` 中无 `nop-metadata-core` 依赖（grep 验证）
-> - `OrmModelImporter.java` 引用更新后编译通过
-> - No owner-doc update required: ORM 模型修复不影响公开 API
+- [ ] `NopMetaDictItem` 的 propId 序列连续无跳跃（`grep propId nop-metadata.orm.xml | grep NopMetaDictItem -A 30` 验证）
+- [ ] 全模型统一使用 `metaTableId` 作为 NopMetaTable 的外键列名（grep `TABLE_ID.*NopMetaTable` 零匹配，排除 profiling_rule）
+- [ ] `nop-metadata-dao/pom.xml` 中无 `nop-metadata-core` 依赖（grep 验证）
+- [ ] codegen 后 `OrmModelImporter.java` 引用更新编译通过
+- [ ] No owner-doc update required: ORM 模型修复不影响公开 API
+- [ ] No new test required: ORM 微观修复后回归测试验证兼容性
 
 ### Phase 5 - 文档与测试维护
 
@@ -174,9 +184,10 @@ Item Types: `Fix`
 - [ ] 5c: 确认 Phase 1-4 所有变更的测试覆盖
 
 Exit Criteria:
-> - `ai-dev/design/nop-metadata/README.md` 的 `Status` 已从 `draft` 改为 `active`，阶段描述与实际代码一致
-> - `testProfileTimeSeriesAppend` 中无 `Thread.sleep` 调用（grep 验证）
-> - 本 plan 所有变更的测试通过
+- [ ] `ai-dev/design/nop-metadata/README.md` 的 `Status` 已从 `draft` 改为 `active`，阶段描述与实际代码一致
+- [ ] `testProfileTimeSeriesAppend` 中无 `Thread.sleep` 调用（grep 验证）
+- [ ] 本 plan 所有变更的测试通过
+- [ ] No new test required: 5b 是测试自身修复，不新增功能
 
 ## Deferred But Adjudicated
 
@@ -193,10 +204,13 @@ Exit Criteria:
 - [ ] Phase 1 全部 Exit Criteria 满足，测试通过
 - [ ] Phase 2 全部 Exit Criteria 满足，测试通过
 - [ ] Phase 3 全部 Exit Criteria 满足，测试通过
-- [ ] Phase 4 全部 Exit Criteria 满足，测试通过
+- [ ] Phase 4a 全部 Exit Criteria 满足，测试通过
 - [ ] Phase 4b 全部 Exit Criteria 满足，ORM codegen 后编译通过
 - [ ] Phase 5 全部 Exit Criteria 满足，测试通过
 - [ ] 全量 `./mvnw test -pl nop-metadata-service -am` 通过
-- [ ] docs-for-ai 中与本 plan 变更相关的文档已更新
+- [ ] `./mvnw compile -pl nop-metadata-service -am` 编译通过
+- [ ] 受 Phase 1-5 影响的 owner docs 已更新，或明确写明 No owner-doc update required
 - [ ] ai-dev/logs/2026-07-20.md 已记录本 plan 的 closure 状态
 - [ ] 独立子 agent closure audit 已执行并确认
+- [ ] **Anti-Hollow Check**: closure audit 验证无空方法体/静默跳过/no-op 作为正常实现
+- [ ] **Deferred 项分类检查**: 确认无 in-scope live defect 被降级到 non-blocking 区域
