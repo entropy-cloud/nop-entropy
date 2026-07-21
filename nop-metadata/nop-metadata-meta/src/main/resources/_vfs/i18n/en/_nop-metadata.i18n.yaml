@@ -497,6 +497,7 @@ prop:
       entityId: Entity Id
       entityName: Entity Name
       changeSource: Change Source
+      changeSource_label: null
       beforeSnapshot: Before Snapshot
       afterSnapshot: After Snapshot
       changedBy: Changed By

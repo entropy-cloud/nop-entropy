@@ -129,10 +129,12 @@ mutation {
 
 | 子模块 | 用途 |
 |--------|------|
-| `nop-metadata-core` | 共享常量（`_NopMetadataCoreConstants`，70+ 表/数据源/血缘/质量等枚举常量） |
-| `nop-metadata-dao` | ORM 实体 + BizModel 接口（`INopMeta*Biz`）+ DTO（`ErrorDTO` / `KeyValueDTO`） |
-| `nop-metadata-meta` | xbeans / xmeta / 模型定义 + `_templates/` 32 个 codegen 模板元数据快照 |
-| `nop-metadata-service` | BizModel 实现 + Executor / Processor / Helper / DTO |
+| `nop-metadata-core` | 共享常量（`_NopMetadataCoreConstants`，70+ 表/数据源/血缘/质量等枚举常量）+ 29 个 `@DataBean` DTO 类（`nop-metadata-core/dto/`） |
+| `nop-metadata-api` | 跨模块 API 接口定义 |
+| `nop-metadata-dao` | ORM 实体 + BizModel 接口（`INopMeta*Biz`） |
+| `nop-metadata-codegen` | Codegen 模板元数据快照 |
+| `nop-metadata-meta` | xbeans / xmeta / 模型定义 |
+| `nop-metadata-service` | BizModel 实现 + Executor / Processor / Helper |
 | `nop-metadata-web` | GraphQL / xbiz 自动注册入口 |
 | `nop-metadata-app` | Quarkus 启动入口（demo 应用） |
 
@@ -148,7 +150,7 @@ nop-metadata 严格遵循"无静默跳过"原则（plan 2026-07-19-1250-3 Phase 
 
 - 平台主文档：`docs-for-ai/03-modules/nop-metadata.md`（本文档）
 - I*Biz 接口契约（`nop-metadata-dao/.../biz/INopMeta*Biz.java`）：每个 BizModel 都有对应接口声明全部自定义方法签名
-- DTO 规格（`nop-metadata-service/.../dto/`）：18+ `@DataBean` DTO 类承载 API 返回值强类型契约
+- DTO 规格（`nop-metadata-core/dto/`）：29 个 `@DataBean` DTO 类承载 API 返回值强类型契约
 - ErrorCode 集中化（`nop-metadata-service/.../NopMetadataErrors.java`）：跨文件去重 + ARG_* 参数常量
 - 模块级异常（`NopMetadataException`）：替代 `IllegalArgumentException` / `UnsupportedOperationException` / 裸 `RuntimeException`
 
