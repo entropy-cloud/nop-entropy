@@ -8,11 +8,13 @@
 package io.nop.metadata.service;
 
 import io.nop.metadata.biz.INopMetaDataContractBiz;
+import io.nop.metadata.biz.INopMetaDataProductBiz;
 import io.nop.metadata.biz.INopMetaDataSourceBiz;
 import io.nop.metadata.biz.INopMetaLineageEdgeBiz;
 import io.nop.metadata.biz.INopMetaModuleBiz;
 import io.nop.metadata.biz.INopMetaProfilingRuleBiz;
 import io.nop.metadata.biz.INopMetaQualityCheckpointBiz;
+import io.nop.metadata.biz.INopMetaQualityResultBiz;
 import io.nop.metadata.biz.INopMetaQualityRuleBiz;
 import io.nop.metadata.biz.INopMetaQualityScoreBiz;
 import io.nop.metadata.biz.INopMetaTableBiz;
@@ -71,6 +73,7 @@ public class TestNopMetaBizInterfaceCompleteness {
 
         assertDeclaresMethod(INopMetaQualityRuleBiz.class, "executeQualityRule", 3);
         assertDeclaresMethod(INopMetaQualityRuleBiz.class, "executeQualityRulesForDataSource", 3);
+        assertDeclaresMethod(INopMetaQualityRuleBiz.class, "judgeByRuleId", 2);
 
         assertDeclaresMethod(INopMetaQualityCheckpointBiz.class, "executeCheckpoint", 3);
 
@@ -80,6 +83,15 @@ public class TestNopMetaBizInterfaceCompleteness {
         assertDeclaresMethod(INopMetaDataContractBiz.class, "deprecateContract", 2);
         assertDeclaresMethod(INopMetaDataContractBiz.class, "retireContract", 2);
         assertDeclaresMethod(INopMetaDataContractBiz.class, "checkContract", 2);
+        assertDeclaresMethod(INopMetaDataContractBiz.class, "approve", 2);
+        assertDeclaresMethod(INopMetaDataContractBiz.class, "reject", 2);
+
+        assertDeclaresMethod(INopMetaDataProductBiz.class, "linkAsset", 4);
+        assertDeclaresMethod(INopMetaDataProductBiz.class, "unlinkAsset", 4);
+        assertDeclaresMethod(INopMetaDataProductBiz.class, "getLinkedAssets", 2);
+
+        assertDeclaresMethod(INopMetaQualityResultBiz.class, "approve", 2);
+        assertDeclaresMethod(INopMetaQualityResultBiz.class, "reject", 2);
 
         assertDeclaresMethod(INopMetaProfilingRuleBiz.class, "executeProfilingRule", 3);
     }

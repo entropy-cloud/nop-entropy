@@ -11,6 +11,7 @@ package io.nop.metadata.service.entity;
 import io.nop.api.core.annotations.biz.BizModel;
 import io.nop.metadata.service.NopMetadataErrors;
 import io.nop.api.core.annotations.biz.BizMutation;
+import io.nop.api.core.annotations.biz.BizQuery;
 import io.nop.api.core.annotations.core.Name;
 import io.nop.api.core.annotations.core.Optional;
 import io.nop.api.core.beans.FilterBeans;
@@ -372,7 +373,8 @@ public class NopMetaQualityRuleBizModel extends CrudBizModel<NopMetaQualityRule>
      * 根据规则 ID 重新执行判定（用于工作流 re-judge 场景）。
      * 从 DB 加载规则全字段，重建执行上下文，返回判定结果。
      */
-    public QualityRuleJudgment judgeByRuleId(String ruleId) {
+    @BizQuery
+    public Map<String, Object> judgeByRuleId(@Name("ruleId") String ruleId, IServiceContext context) {
         NopMetaQualityRule rule = dao().getEntityById(ruleId);
         if (rule == null) {
             throw new NopException(NopMetadataErrors.ERR_QUALITY_RULE_NOT_FOUND).param("qualityRuleId", ruleId);
@@ -385,11 +387,19 @@ public class NopMetaQualityRuleBizModel extends CrudBizModel<NopMetaQualityRule>
 
         String effectiveSchema = resolveDefaultSchema(null, table);
 
-        return ensureTableRefExecutor().execute(ref,
+        QualityRuleJudgment judgment = ensureTableRefExecutor().execute(ref,
                 (conn, metaData, productName) -> executor.judge(conn, ref, effectiveSchema,
                         rule.getRuleType(), rule.getEntityType(),
                         rule.getParams(), rule.getSqlExpression(),
                         rule.getThreshold(), productName));
+
+        Map<String, Object> m = new LinkedHashMap<>();
+        m.put("status", judgment.getStatus());
+        m.put("actualValue", judgment.getActualValue());
+        m.put("expectedValue", judgment.getExpectedValue());
+        m.put("message", judgment.getMessage());
+        m.put("details", judgment.getDetails());
+        return m;
     }
 
     private static String safeProductName(DatabaseMetaData metaData) {

@@ -29,4 +29,10 @@ public interface INopMetaDataContractBiz extends ICrudBiz<NopMetaDataContract> {
 
     @BizMutation
     Map<String, Object> checkContract(@Name("contractId") String contractId, IServiceContext context);
+
+    @BizMutation
+    NopMetaDataContract approve(@Name("id") String id, IServiceContext context);
+
+    @BizMutation
+    NopMetaDataContract reject(@Name("id") String id, IServiceContext context);
 }
