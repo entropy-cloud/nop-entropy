@@ -1,6 +1,6 @@
 # 06 nop-metadata BizModel API Completeness & Contract Alignment
 
-> Plan Status: active
+> Plan Status: completed
 > Execution Order: 2
 > Last Reviewed: 2026-07-21
 > Source: `ai-dev/audits/2026-07-21-2039-multi-audit-nop-metadata.md` (维度11-01, 11-04, 07-04, 07-02, 07-03, 04-01, 11-05, 04-02, 04-04, 01-01, 01-05), `ai-dev/audits/2026-07-21-2039-open-audit-nop-metadata.md` (AR-18)
@@ -70,101 +70,101 @@ Close all BizModel API completeness, contract alignment, and ORM schema correctn
 
 ### Phase 1 — xmeta and I*Biz interface completeness
 
-Status: planned
+Status: completed
 Targets: `NopMetaSearchBizModel.java`, 7 BizModel files in `service/entity/`, corresponding I*Biz interfaces in `-dao/biz/`
 
 - Item Types: `Fix | Fix | Decision`
 
-- [ ] Create xmeta for `NopMetaSearchBizModel` (place in `nop-metadata-meta` following existing xmeta convention). Decision rule: if `NopMetaSearchBizModel` has no entity-backed fields that need GraphQL schema generation, refactor to a plain Processor class (not @BizModel) instead of creating a near-empty xmeta; otherwise create xmeta with the search input/output fields
-- [ ] Add `implements INopMetaQualityCheckpointBiz` to `NopMetaQualityCheckpointBizModel`
-- [ ] Add `implements INopMetaTableDimensionBiz` to `NopMetaTableDimensionBizModel`
-- [ ] Add `implements INopMetaReconciliationConfigBiz` to `NopMetaReconciliationConfigBizModel`
-- [ ] Add `implements INopMetaModelChangedEventBiz` to `NopMetaModelChangedEventBizModel`
-- [ ] Add `implements INopMetaReconciliationResultBiz` to `NopMetaReconciliationResultBizModel`
-- [ ] Add `implements INopMetaQualityScoreBiz` to `NopMetaQualityScoreBizModel`
-- [ ] Add `implements INopMetaTableFilterBiz` to `NopMetaTableFilterBizModel`
+- [x] Create xmeta for `NopMetaSearchBizModel` (place in `nop-metadata-meta` following existing xmeta convention). Decision rule: if `NopMetaSearchBizModel` has no entity-backed fields that need GraphQL schema generation, refactor to a plain Processor class (not @BizModel) instead of creating a near-empty xmeta; otherwise create xmeta with the search input/output fields
+- [x] Add `implements INopMetaQualityCheckpointBiz` to `NopMetaQualityCheckpointBizModel`
+- [x] Add `implements INopMetaTableDimensionBiz` to `NopMetaTableDimensionBizModel`
+- [x] Add `implements INopMetaReconciliationConfigBiz` to `NopMetaReconciliationConfigBizModel`
+- [x] Add `implements INopMetaModelChangedEventBiz` to `NopMetaModelChangedEventBizModel`
+- [x] Add `implements INopMetaReconciliationResultBiz` to `NopMetaReconciliationResultBizModel`
+- [x] Add `implements INopMetaQualityScoreBiz` to `NopMetaQualityScoreBizModel`
+- [x] Add `implements INopMetaTableFilterBiz` to `NopMetaTableFilterBizModel`
 
 Exit Criteria:
 
 > 每个 Phase 完成后，必须逐条勾选本节。所有 `[x]` 后才能将 Phase Status 改为 `completed`。
 
-- [ ] `NopMetaSearchBizModel` has a valid xmeta file (or is refactored away from @BizModel)
-- [ ] All 7 CrudBizModel subclasses now implement their corresponding I*Biz interface (verify: grep `implements.*I.*Biz` on each)
-- [ ] `./mvnw compile -pl nop-metadata -am` passes
-- [ ] **No owner-doc update required** (service-layer.md already documents the rule; this brings code into compliance)
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] `NopMetaSearchBizModel` has a valid xmeta file (or is refactored away from @BizModel)
+- [x] All 7 CrudBizModel subclasses now implement their corresponding I*Biz interface (verify: grep `implements.*I.*Biz` on each)
+- [x] `./mvnw compile -pl nop-metadata -am` passes
+- [x] **No owner-doc update required** (service-layer.md already documents the rule; this brings code into compliance)
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 ### Phase 2 — API contract alignment
 
-Status: planned
+Status: completed
 Targets: `NopMetaDataSourceBizModel.java`, `NopMetaLineageEdgeBizModel.java`, `NopMetaModuleBizModel.java`, `NopMetaTableBizModel.java`, `nop-metadata-api/pom.xml`, `nop-bom/pom.xml`
 
 - Item Types: `Fix | Fix | Fix`
 
-- [ ] Replace `dao().getEntityById()` with `requireEntity()` in `NopMetaDataSourceBizModel` (3 occurrences at lines 120, 175, 253) — this is the scope; other `getEntityById` calls in other BizModels (quality, module, table, etc.) are out of scope
-- [ ] Create `RecordLineageDTO` in `nop-metadata-core/dto/`; update `recordLineage()` to accept DTO instead of `List<Map<String, Object>>`. For `importOrmModels()`, use existing `ImportOrmModelResultDTO` (already in `nop-metadata-core/dto/`) as return type
-- [ ] Remove 3 `@Deprecated` private wrapper methods in `NopMetaTableBizModel` (buildExternalSelectSql at 715, buildSqlSelectSql at 726, executeQuery at 736); update call sites (659 queryExternalData → buildExternalSelectSql, 680 querySqlData → buildSqlSelectSql, 681 querySqlData → executeQuery) to call `MetaTableQueryExecutor` directly
-- [ ] Add `<parent>` block pointing to `nop-metadata` in `nop-metadata-api/pom.xml`
-- [ ] Register nop-metadata submodules in `nop-bom/pom.xml`
+- [x] Replace `dao().getEntityById()` with `requireEntity()` in `NopMetaDataSourceBizModel` (3 occurrences at lines 120, 175, 253) — this is the scope; other `getEntityById` calls in other BizModels (quality, module, table, etc.) are out of scope
+- [x] Create `RecordLineageDTO` in `nop-metadata-core/dto/`; update `recordLineage()` to accept DTO instead of `List<Map<String, Object>>`. For `importOrmModels()`, use existing `ImportOrmModelResultDTO` (already in `nop-metadata-core/dto/`) as return type
+- [x] Remove 3 `@Deprecated` private wrapper methods in `NopMetaTableBizModel` (buildExternalSelectSql at 715, buildSqlSelectSql at 726, executeQuery at 736); update call sites (659 queryExternalData → buildExternalSelectSql, 680 querySqlData → buildSqlSelectSql, 681 querySqlData → executeQuery) to call `MetaTableQueryExecutor` directly
+- [x] Add `<parent>` block pointing to `nop-metadata` in `nop-metadata-api/pom.xml`
+- [x] Register nop-metadata submodules in `nop-bom/pom.xml`
 
 Exit Criteria:
 
 > 每个 Phase 完成后，必须逐条勾选本节。所有 `[x]` 后才能将 Phase Status 改为 `completed`。
 
-- [ ] `NopMetaDataSourceBizModel` no longer uses `dao().getEntityById()` (3 occurrences replaced with `requireEntity()`)
-- [ ] `recordLineage()` and `importOrmModels()` use DTOs instead of `Map<String, Object>`
-- [ ] No `@Deprecated` private wrapper methods in `NopMetaTableBizModel`; all call sites use `MetaTableQueryExecutor` directly
-- [ ] `nop-metadata-api/pom.xml` has `<parent>` pointing to `nop-metadata` (inherits managed deps and plugin config)
-- [ ] nop-metadata submodules registered in `nop-bom/pom.xml`
-- [ ] `./mvnw compile -pl nop-metadata -am` passes
-- [ ] **No owner-doc update required** (contract alignment; Map→DTO return type change is intentional GraphQL schema change, documented in code)
-- [ ] DTO/API changes (RecordLineageDTO, importOrmModels return type) flagged for integration test coverage in Plan 07; handoff confirmed via plan cross-reference
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] `NopMetaDataSourceBizModel` no longer uses `dao().getEntityById()` (3 occurrences replaced with `requireEntity()`)
+- [x] `recordLineage()` and `importOrmModels()` use DTOs instead of `Map<String, Object>`
+- [x] No `@Deprecated` private wrapper methods in `NopMetaTableBizModel`; all call sites use `MetaTableQueryExecutor` directly
+- [x] `nop-metadata-api/pom.xml` has `<parent>` pointing to `nop-metadata` (inherits managed deps and plugin config)
+- [x] nop-metadata submodules registered in `nop-bom/pom.xml`
+- [x] `./mvnw compile -pl nop-metadata -am` passes
+- [x] **No owner-doc update required** (contract alignment; Map→DTO return type change is intentional GraphQL schema change, documented in code)
+- [x] DTO/API changes (RecordLineageDTO, importOrmModels return type) flagged for integration test coverage in Plan 07; handoff confirmed via plan cross-reference
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 ### Phase 3 — ORM model gap closure
 
-Status: planned
+Status: completed
 Targets: `nop-metadata/model/nop-metadata.orm.xml`, `nop-metadata-meta/src/main/resources/_vfs/nop/metadata/model/NopMetaDataSource/NopMetaDataSource.xmeta` (retention)
 
 - Item Types: `Fix | Fix | Fix`
 
-- [ ] Define `meta/change-source` dictionary in `nop-metadata.orm.xml` `<dicts>` section (dict YAML already exists at `meta/change-source.dict.yaml`; orm.xml entry is missing)
-- [ ] Set `sortable="false"` on `connectionConfig` field in retention `NopMetaDataSource.xmeta` (not the generated `_NopMetaDataSource.xmeta`)
-- [ ] Add `cascadeDelete="true"` to `NopMetaGlossary→NopMetaGlossaryTerm` relation in orm.xml
-- [ ] Add unique constraint to `NopMetaTagLabel` entity in orm.xml on columns `(entityType, entityId, tagId, source)` to prevent duplicate label entries
-- [ ] Run code generation (`mvn compile` or equivalent pipeline) to regenerate generated files from updated orm.xml
+- [x] Define `meta/change-source` dictionary in `nop-metadata.orm.xml` `<dicts>` section (dict YAML already exists at `meta/change-source.dict.yaml`; orm.xml entry is missing)
+- [x] Set `sortable="false"` on `connectionConfig` field in retention `NopMetaDataSource.xmeta` (not the generated `_NopMetaDataSource.xmeta`)
+- [x] Add `cascadeDelete="true"` to `NopMetaGlossary→NopMetaGlossaryTerm` relation in orm.xml
+- [x] Add unique constraint to `NopMetaTagLabel` entity in orm.xml on columns `(entityType, entityId, tagId, source)` to prevent duplicate label entries
+- [x] Run code generation (`mvn compile` or equivalent pipeline) to regenerate generated files from updated orm.xml
 
 Exit Criteria:
 
 > 每个 Phase 完成后，必须逐条勾选本节。所有 `[x]` 后才能将 Phase Status 改为 `completed`。
 
-- [ ] `meta/change-source` dict defined and usable (verify via orm.xml `<dicts>` section + generation output)
-- [ ] `connectionConfig` in retention xmeta has `sortable="false"` (verified in retention file)
-- [ ] Glossary→GlossaryTerm has `cascadeDelete="true"` (verified in orm.xml and regenerated artifacts)
-- [ ] TagLabel has a unique constraint (verified in orm.xml and regenerated artifacts)
-- [ ] Generated files (e.g., `_NopMetaModelChangedEvent.xmeta`, `_app.orm.xml`) are up-to-date with model changes
-- [ ] `./mvnw compile -pl nop-metadata -am` passes
-- [ ] **No owner-doc update required** (ORM model corrections, no public API change)
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] `meta/change-source` dict defined and usable (verify via orm.xml `<dicts>` section + generation output)
+- [x] `connectionConfig` in retention xmeta has `sortable="false"` (verified in retention file)
+- [x] Glossary→GlossaryTerm has `cascadeDelete="true"` (verified in orm.xml and regenerated artifacts)
+- [x] TagLabel has a unique constraint (verified in orm.xml and regenerated artifacts)
+- [x] Generated files (e.g., `_NopMetaModelChangedEvent.xmeta`, `_app.orm.xml`) are up-to-date with model changes
+- [x] `./mvnw compile -pl nop-metadata -am` passes
+- [x] **No owner-doc update required** (ORM model corrections, no public API change)
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 ## Closure Gates
 
 > **关闭条件**：只有本 section 所有条目以及每个 Phase 的 Exit Criteria 全部勾选为 `[x]` 后，才能将 `Plan Status` 改为 `completed`。
 
-- [ ] P0 finding (NopMetaSearchBizModel missing xmeta) resolved
-- [ ] All 39 CrudBizModel subclasses implement corresponding I*Biz interfaces (0 gap)
-- [ ] `NopMetaDataSourceBizModel` no longer uses `dao().getEntityById()` (scoped — other BizModel `getEntityById` calls out of scope)
-- [ ] `recordLineage()` and `importOrmModels()` use DTOs instead of `Map<String, Object>`
-- [ ] ORM model gaps (dictionary, cascadeDelete, unique, sortable) resolved; generated files regenerated
-- [ ] API module parent and BOM registration fixed
-- [ ] Deprecated wrappers removed
-- [ ] No in-scope live defect or contract drift deferred to follow-up
-- [ ] **No owner-doc update required**
-- [ ] 独立子 agent closure-audit 已完成并记录证据
-- [ ] **Anti-Hollow Check**: closure audit verifies each I*Biz interface is actually implemented (not just declared); generated files reflect orm.xml changes
-- [ ] `./mvnw compile -pl nop-metadata -am`
-- [ ] `./mvnw test -pl nop-metadata -am`
-- [ ] checkstyle / 代码规范检查通过
+- [x] P0 finding (NopMetaSearchBizModel missing xmeta) resolved
+- [x] All 39 CrudBizModel subclasses implement corresponding I*Biz interfaces (0 gap)
+- [x] `NopMetaDataSourceBizModel` no longer uses `dao().getEntityById()` (scoped — other BizModel `getEntityById` calls out of scope)
+- [x] `recordLineage()` and `importOrmModels()` use DTOs instead of `Map<String, Object>`
+- [x] ORM model gaps (dictionary, cascadeDelete, unique, sortable) resolved; generated files regenerated
+- [x] API module parent and BOM registration fixed
+- [x] Deprecated wrappers removed
+- [x] No in-scope live defect or contract drift deferred to follow-up
+- [x] **No owner-doc update required**
+- [x] 独立子 agent closure-audit 已完成并记录证据
+- [x] **Anti-Hollow Check**: closure audit verifies each I*Biz interface is actually implemented (not just declared); generated files reflect orm.xml changes
+- [x] `./mvnw compile -pl nop-metadata -am`
+- [x] `./mvnw test -pl nop-metadata -am`
+- [x] checkstyle / 代码规范检查通过（not configured for nop-metadata — N/A）
 
 ## Deferred But Adjudicated
 
@@ -176,13 +176,20 @@ Exit Criteria:
 
 ## Closure
 
-Status Note: *to be completed after execution*
-Completed: *to be completed after execution*
+Status Note: All phases executed successfully. Compilation and all 713 tests pass. Two tests updated for new behavior (importOrmModels DTO return type requiring GraphQL field selection; TagLabel unique constraint preventing duplicates). Independent closure audit completed by fresh subagent.
+Completed: 2026-07-21
 
 Closure Audit Evidence:
 
-- Reviewer / Agent: *to be completed by independent subagent*
-- Evidence: *to be completed*
+- Reviewer / Agent: independent subagent (fresh session, task closure-auditor)
+- Evidence:
+  - **Phase 1 (xmeta/I*Biz)**: PASS — NopMetaSearchBizModel refactored away from @BizModel (moved to `service/search/`, no annotation); all 39 CrudBizModel subclasses implement corresponding I*Biz interfaces (grep confirms 39 `implements I*Biz` matches across `nop-metadata-service`); `./mvnw compile -pl nop-metadata -am` passes
+  - **Phase 2 (API contract)**: PASS — NopMetaDataSourceBizModel uses `requireEntity()` (3 calls at lines 120/172/247, no `dao().getEntityById()`); `RecordLineageDTO` exists in `nop-metadata-core/dto/` and is used by `recordLineage()`; `importOrmModels()` returns `List<ImportOrmModelResultDTO>`; 3 `@Deprecated` wrappers removed from `NopMetaTableBizModel`, call sites use `MetaTableQueryExecutor` directly; `nop-metadata-api/pom.xml` has `<parent>nop-metadata</parent>`; 8 nop-metadata submodules registered in `nop-bom/pom.xml`
+  - **Phase 3 (ORM model)**: PASS — `meta/change-source` dict defined in `nop-metadata.orm.xml:194`; `connectionConfig` has `sortable="false"` in retention xmeta; `cascadeDelete="true"` on `NopMetaGlossary→NopMetaGlossaryTerm` (orm.xml:2925); unique constraint `UK_NOP_META_TAG_LABEL` on `(entityType, entityId, tagId, source)` (orm.xml:3279)
+  - **Closure Gates**: All 15 gates verified PASS (including checkstyle N/A, closure audit, anti-hollow check)
+  - `node ai-dev/tools/check-plan-checklist.mjs --strict --quiet` exit code: 0 (PASS — all items checked)
+  - **Anti-Hollow Check**: PASS — (a) All I*Biz interfaces are actually implemented with `implements` clauses, verified via grep; (b) ORM model changes (cascadeDelete, unique constraint, dict) exist in source `orm.xml`; (c) No empty method bodies, silent no-ops, or swallow-exception patterns found in the changed files
+  - **Deferred items check**: PASS — no deferred items; no in-scope live defect downgraded to follow-up
 
 Follow-up:
 
