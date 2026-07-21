@@ -1439,6 +1439,82 @@ nop-metadata-web           — nop-metadata-service
 
 ---
 
+## 九、搜索索引
+
+> 本章节由 plan 312（2026-07-21）新增。利用 Nop 平台 `ISearchEngine` + `LuceneSearchEngine` 基础设施为 nop-metadata 提供搜索索引与查询能力。
+
+### 7.1 架构概述
+
+```
+┌───────────────────────────────────────────────────────────────┐
+│                     GraphQL API                              │
+│  searchMetadata(query, entityType?, limit?)                   │
+│  rebuildSearchIndex(entityTypes?)                              │
+└──────────────────────┬────────────────────────────────────────┘
+                       │
+┌──────────────────────▼────────────────────────────────────────┐
+│                  NopMetaSearchBizModel                         │
+│  (搜索统一入口, @BizQuery + @BizMutation)                      │
+└──────┬────────────────────────────────────┬───────────────────┘
+       │                                    │
+┌──────▼──────────┐           ┌─────────────▼───────────────────┐
+│ NopMetaIndexBuilder          │ NopMetaSearchService             │
+│ (全量索引构建)   │           │ (增量索引: BizModel hook 调用)   │
+│ buildFullIndex() │           │ addToIndex() / removeFromIndex() │
+└──────┬──────────┘           └─────────────┬───────────────────┘
+       │                                    │
+       └──────────────┬─────────────────────┘
+                      │
+┌─────────────────────▼─────────────────────────────────────────┐
+│                    ISearchEngine (nopSearchEngine)              │
+│  LuceneSearchEngine: addDocs/removeDocs/refreshBlocking/search │
+│  topic="nop-meta-metadata", tagSet=entityType 区分实体类型     │
+└───────────────────────────────────────────────────────────────┘
+```
+
+### 7.2 首版可搜索实体
+
+| 实体 | 类型标识 | 搜索字段映射 | 权重 |
+|------|---------|-------------|------|
+| NopMetaClassification | `Classification` | name→name, displayName→title, description→summary, 组合→content | name/title:2.0, summary:0.5 |
+| NopMetaTag | `Tag` | name/fullyQualifiedName→name, displayName→title, description→summary, 组合→content | 同上 |
+| NopMetaGlossaryTerm | `GlossaryTerm` | name/fullyQualifiedName→name, displayName→title, description→summary, synonyms→content | 同上 |
+| NopMetaTable | `MetaTable` | tableName→name, displayName→title, description→summary, 组合→content | 同上 |
+| NopMetaEntity | `MetaEntity` | entityName/className→name, displayName→title, description→summary, 组合→content | 同上 |
+| NopMetaEntityField | `MetaEntityField` | fieldName/columnCode→name, displayName→title, comment→summary, 组合→content | 同上 |
+
+### 7.3 索引策略
+
+- **topic**: 统一为 `"nop-meta-metadata"`（因 `SearchRequest.topic` 为单一 String，不支持多 topic 查询）
+- **tagSet**: 存放 entityType 标识（如 `"Classification"`、`"MetaTable"`），过滤时通过 `SearchRequest.tags` 匹配
+- **权重**: name/title 高权重(2.0)，content 标准权重(1.0)，summary 低权重(0.5)
+- **全量索引**: GraphQL mutation `rebuildSearchIndex(entityTypes?)` 触发 `NopMetaIndexBuilder.buildFullIndex()`，遍历 DAO 查询 + `ISearchEngine.addDocs` 批量写入（幂等：按 doc.id 删除+添加），最终调用 `refreshBlocking()` 使索引可查询
+- **增量索引**: 在 6 个目标实体 BizModel 的 save/delete 方法中通过 `NopMetaSearchService` 组件调用索引更新（不依赖事件总线——当前事件仅 DB 写、非发布-订阅）
+- **导入路径**: `NopMetaModuleBizModel.importOrmModel` 持久化后对本次创建的 MetaEntity/MetaEntityField/MetaTable 批量索引，绕过 BizModel hook（因导入使用 DAO 直接持久化）
+
+### 7.4 搜索 API
+
+- `searchMetadata(query, entityType?, limit?)` → `SearchResultDTO{items:[SearchHitDTO], total, limit}`
+  - `query`: 搜索关键词（必填）
+  - `entityType`: 可选，按实体类型过滤（对应 `SearchRequest.tags`）
+  - `limit`: 返回条数上限，默认 20（上限 100）
+- 返回结构：`SearchHitDTO{id, entityType, name, title, summary, score}`（从 `SearchHit` 转换并补充 `entityType`——在 toSearchableDoc 时编码到 `tags` 中）
+
+### 7.5 错误码
+
+| ErrorCode | 场景 |
+|-----------|------|
+| `nop.err.metadata.search-index-rebuild-failed` | 全量索引重建失败 |
+| `nop.err.metadata.search-engine-unavailable` | 搜索引擎不可用（索引操作时） |
+
+### 7.6 依赖
+
+`nop-metadata-service` 模块 Maven 依赖新增：
+- `nop-search-api` (compile)
+- `nop-search-lucene` (runtime)
+
+---
+
 ## 七、拒绝了什么
 
 | 方案 | 理由 |

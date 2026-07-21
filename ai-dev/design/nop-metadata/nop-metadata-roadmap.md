@@ -39,6 +39,7 @@
 - G1. Governance Phase 1 — DataContract 接入审批流: `done`
 - G2. Governance Phase 2 — TagLabel 治理: `todo`
 - G3. Governance Phase 3 — 质量告警工作流: `done`（plan 2026-07-20-2000-3；`NopMetaQualityResult` 新增 `isFalsePositive` 列；`QualityAlertWorkflowService` 实现；`qualityBreachApproval/v1.xwf` 工作流定义；`NopMetaQualityResultBizModel` approve/reject override；`judgeByRuleId` 方法；集成到 `NopMetaQualityRuleBizModel.executeQualityRule` FAIL+ERROR 路径；661 tests；收口所有 Phase 1 + Phase 2 项）
+- SR. Search — 元数据搜索索引: `done`（plan 312；利用 Nop 平台 ISearchEngine + LuceneSearchEngine 基础设施实现搜索索引构建与查询；覆盖 6 个核心实体（Classification/Tag/GlossaryTerm/MetaTable/MetaEntity/MetaEntityField）；全量索引 NopMetaIndexBuilder + 增量索引 NopMetaSearchService + 搜索 API NopMetaSearchBizModel；`searchMetadata` GraphQL query + `rebuildSearchIndex` mutation；705 tests）
 
 ## Status Values
 
@@ -218,6 +219,17 @@
 | G3-2 | `QualityAlertWorkflowService` 使用 `IWorkflowManager.newWorkflow()` 创建 `qualityBreachApproval` 工作流实例 | done |
 | G3-3 | 定义 `qualityBreachApproval/v1.xwf`（owner-investigate → 自动验证） | done |
 
+### SR. Search — 元数据搜索索引（计划 312）
+
+> 设计参考：`01-architecture-baseline.md` §九 搜索索引
+
+| 工作项 | 描述 | 状态 |
+|--------|------|------|
+| SR-1 | 搜索策略设计（审计 ISearchEngine API、字段映射、权重、索引策略、API 签名） | done |
+| SR-2 | 基础设施 + 全量索引构建（pom.xml 依赖、NopMetaIndexBuilder、rebuildSearchIndex mutation） | done |
+| SR-3 | 增量索引（NopMetaSearchService、6 个 BizModel save/delete hook、OrmModelImporter 导入路径） | done |
+| SR-4 | 搜索 API + 集成测试（searchMetadata query、SearchResultDTO/SearchHitDTO、17 新增单元测试） | done |
+
 ---
 
 ## 未建模实体（设计中存在，ORM 中尚未创建）
@@ -262,6 +274,7 @@ graph TD
     G1["G1 Governance Phase 1 — DataContract 审批流"]
     G2["G2 Governance Phase 2 — TagLabel 治理"]
     G3["G3 Governance Phase 3 — 质量告警工作流"]
+    SR["SR Search — 元数据搜索索引"]
 
     P1 --> P1P
     P1P --> P2
@@ -269,6 +282,7 @@ graph TD
     P3 --> P4
 
     P4 --> S1
+    P4 --> SR
     S1 --> S2
     S1 --> G1
     S1 --> G2
@@ -286,6 +300,7 @@ graph TD
     style G1 fill:#fdf,stroke:#a3a
     style G2 fill:#fdf,stroke:#a3a
     style G3 fill:#fdf,stroke:#a3a
+    style SR fill:#dfd,stroke:#3a3
 ```
 
 依赖说明：
