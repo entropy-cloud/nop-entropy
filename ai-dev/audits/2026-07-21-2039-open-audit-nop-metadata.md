@@ -1,157 +1,216 @@
-> Audit Status: closed
+> Audit Status: planned
 > Audit Type: open-ended
 > Mission: nop-metadata
 
-# Open-Ended Adversarial Audit: nop-metadata
+# Open-Ended Adversarial Audit: nop-metadata (Round 5)
 
 **Auditor**: opencode adversarial agent
 **Date**: 2026-07-21
-**Previous audits consulted**: 2026-07-19-1118-open, 2026-07-19-1118-multi, 2026-07-20-1554-deep, 2026-07-20-1816-open, 2026-07-20-1816-multi, 2026-07-21-2039-multi
+**Previous audits consulted** (cross-referenced for deduplication): 2026-07-19-1118-open (14 findings), 2026-07-19-1118-multi (52), 2026-07-20-1554-deep, 2026-07-20-1816-open (10), 2026-07-20-1816-multi (88), 2026-07-21-2039-multi (41), 2026-07-21-2039-open (5 AR findings)
 
-**Deduplication check**: All findings below have been cross-referenced against ~100+ previously reported findings. None duplicate existing reports. Prior audits covered: SQL injection in schemaPattern (P0), JDBC URL SSRF/RCE (P0), ErrorCode centralization (P1-P2), API contract gaps (P1), ORM model issues (P2), search BizModel missing xmeta (P0), thread safety of ensureXxx (P2), lineage OOM (P1), connectionConfig plaintext (P1), and many more. The findings below address gaps not previously highlighted.
+**Deduplication**: All findings below cross-referenced against ~210+ previously reported issues. None duplicate existing reports.
+
+**Discovery perspectives used**: 异常路径侦探 (batchConfirmMatches NFE), 死代码清道夫 (dead extractItems), 跨边界侦探 (mergeRow leftKeys), GraphQL契约考古学家 (formatIso timezone), 模型攻击者 (incomplete key type check)
+
+---
 
 ## Findings
 
-### [AR-15] jdbcUrl credential exposure through error message templates
+### [AR-20] batchConfirmMatches nullable rowIndex throws NumberFormatException (bypasses ErrorCode)
 
-- **File**: `nop-metadata/nop-metadata-service/src/main/java/io/nop/metadata/service/NopMetadataErrors.java:411-414`
+- **File**: `nop-metadata/nop-metadata-service/src/main/java/io/nop/metadata/service/entity/NopMetaReconciliationResultBizModel.java:113-117, 168-173`
 - **Evidence fragment**:
   ```java
-  ErrorCode ERR_DATASOURCE_JDBC_URL_BLOCKED =
-          ErrorCode.define("nop.err.metadata.datasource-jdbc-url-blocked",
-                  "JDBC URL is blocked by security policy ...: "
-                          + "{jdbcUrl} reason={reason}", ARG_JDBC_URL, ARG_REASON);
-  ```
-  And in `MetaDataSourceConnectionProcessor.java:218-234`:
-  ```java
-  throw new NopException(NopMetadataErrors.ERR_DATASOURCE_JDBC_URL_BLOCKED)
-          .param("jdbcUrl", jdbcUrl)
-          .param("reason", "protocol not in whitelist ...");
-  ```
-- **Severity**: P1
-- **Status**: The ErrorCode message template explicitly interpolates the full `{jdbcUrl}` into the error text. Although standard JDBC URL format separates credentials into `password` field, users commonly embed credentials inline (`jdbc:mysql://user:password@host:port/db`). When the URL is blocked by security policy (protocol/host/dangerous-param), the full URL — including any embedded credentials — is serialized into the NopException and can propagate to GraphQL error responses, API logs, and monitoring systems.
-- **Risk**: Credential leakage through error channels. An attacker who triggers URL block errors (e.g., by configuring a data source with a blocked protocol or host) can harvest embedded passwords from error messages. Defeats the purpose of the AR-02 connectionConfig password redaction in the event system — the same credentials leak through a different vector.
-- **Suggested fix**: Redact credentials from jdbcUrl before attaching it as an error param (e.g., strip `user:password@` segment, or replace with hashed/truncated version). Alternatively, omit `{jdbcUrl}` from the default error message template and include only `reason` — the blocked host/protocol is sufficient for diagnosis.
-- **Confidence**: Likely
-- **Discovery perspective**: 异常路径侦探 — error propagation of sensitive data
-
-### [AR-16] Search index silent divergence: addToIndex/removeFromIndex swallow errors with no recovery path
-
-- **File**: `nop-metadata/nop-metadata-service/src/main/java/io/nop/metadata/service/search/NopMetaSearchService.java:26-47`
-- **Evidence fragment**:
-  ```java
-  public void addToIndex(String entityType, String entityId, SearchableDoc searchableDoc) {
-      if (searchEngine == null) {
-          LOG.warn("searchEngine not available, skip addToIndex ...");
-          return;
-      }
-      try {
-          searchEngine.addDoc(TOPIC, searchableDoc);
-      } catch (Exception e) {
-          LOG.warn("addToIndex failed ...", e);
-      }
+  // line 113-117: batchConfirmMatches
+  for (Map<String, Object> sel : selections) {
+      int rowIndex = toInt(sel.get(FIELD_ROW_INDEX));
+      ...
+      checkRowIndex(resultId, rowIndex, size);
   }
-  ```
-  Called from `NopMetaTableBizModel.save()` (and similar BizModel overrides):
-  ```java
-  NopMetaTable saved = super.save(data, context);
-  // ... event publishing (in-transaction) ...
-  searchService.addToIndex("MetaTable", saved.getMetaTableId(), toSearchableDoc(saved));
-  // If addToIndex fails: logged at WARN, DB committed, search index MISSING
-  ```
-- **Severity**: P1
-- **Status**: `addToIndex()` and `removeFromIndex()` in `NopMetaSearchService` silently catch all exceptions and log only a WARN. The calling BizModel save/delete overrides have zero feedback — the DB record is created/updated/deleted (transaction committed), but the search index update is silently dropped. There is no retry mechanism, no dead-letter queue, no periodic reconciliation between DB state and search index. The only recovery path is a manual rebuild via `rebuildSearchIndex()` mutation, which requires explicit human invocation.
-- **Risk**: Permanent divergence between DB and search index. Over time, newly created or deleted entities accumulate missing/stale search entries. Users searching the catalog get incomplete results. In the worst case, a transient search engine outage (e.g., Elasticsearch cluster restart) silently desynchronizes the entire search index — and no one knows until someone runs a manual rebuild.
-- **Suggested fix**: At minimum, propagate failures to the caller (throw the exception instead of swallowing). Better: implement an async retry queue or periodic reconciliation job. The current `rebuildSearchIndex()` is a good safety net but relies on operator awareness — a silent divergence won't trigger it.
-- **Confidence**: Likely
-- **Discovery perspective**: 异常路径侦探 + 代码生成受害者 — silent failure patterns
 
-### [AR-17] testConnect exposes raw exception details in API response
-
-- **File**: `nop-metadata/nop-metadata-service/src/main/java/io/nop/metadata/service/connection/MetaDataSourceConnectionProcessor.java:128-130`
-- **Evidence fragment**:
-  ```java
-  } catch (SQLException e) {
-      LOG.warn("testConnect failed for datasourceType={}", datasourceType, e);
-      result.put("connected", false);
-      result.put("error", e.toString());  // <-- full SQLException.toString() exposed
-      return result;
+  // line 168-173: toInt helper
+  private static int toInt(Object v) {
+      if (v instanceof Number) {
+          return ((Number) v).intValue();
+      }
+      return Integer.parseInt(String.valueOf(v));  // null → "null" → NFE
   }
   ```
 - **Severity**: P2
-- **Status**: The `testConnect` mutation returns `e.toString()` verbatim in the response. `SQLException.toString()` includes the exception class name, message, SQL state, and vendor code. While the connection string itself has already passed security validation (protocol/host/driver whitelist), the error message may disclose database type details, driver version, network topology hints, or internal hostnames from the failure context. This information is returned directly in the GraphQL mutation response (accessible to any user with data-source mutation permissions).
-- **Risk**: Infrastructure information disclosure through API responses. Can aid reconnaissance for targeted attacks after the initial connection validation is bypassed. Also inconsistent with the rest of the module's error handling convention (NopException with ErrorCode.param).
-- **Suggested fix**: Return a sanitized error message `e.getMessage()` (or `"Connection failed"` fallback) with a structured error code rather than raw `e.toString()`. Log the full details server-side but keep the API response clean.
-- **Confidence**: Likely
-- **Discovery perspective**: 异常路径侦探 — error information leakage in API boundaries
-
-### [AR-18] Private @Deprecated wrappers not cleaned up after migration
-
-- **File**: `nop-metadata/nop-metadata-service/src/main/java/io/nop/metadata/service/entity/NopMetaTableBizModel.java:715-740`
-- **Evidence fragment**:
+- **Status**: When `batchConfirmMatches` receives a selection entry where `rowIndex` is null (missing key) or explicitly null, `toInt(null)` calls `Integer.parseInt("null")` which throws `NumberFormatException`. This is a bare `RuntimeException` subclass that bypasses the `NopException` + ErrorCode error handling convention used throughout the rest of the module. The GraphQL layer wraps it as a generic 500 error without the `resultId` / `rowIndex` business context.
+- **Risk**: API consumers sending a malformed selection entry get a raw NFE instead of a structured ErrorCode. Harder to debug. Inconsistent with the module's own `checkRowIndex` which uses proper ErrorCode.
+- **Suggested fix**: Add null guard at the start of `toInt()`:
   ```java
-  /**
-   * @deprecated plan 2026-07-19-1250-3 Phase 3：委托到 {@link MetaTableQueryExecutor#buildExternalSelectSql}。
-   * 保留本方法仅为 BizModel 内部调用兼容；后续 slice 整体迁移后移除。
-   */
-  @Deprecated
-  private static String buildExternalSelectSql(...) {
-      return MetaTableQueryExecutor.buildExternalSelectSql(tableName, columns, filterSql, limit, offset, dialect);
+  private static int toInt(Object v) {
+      if (v == null) {
+          throw new NopException(NopMetadataErrors.ERR_RECON_INVALID_SELECTION)
+                  .param("resultId", resultId)  // pass through context
+                  .param("reason", "rowIndex is null");
+      }
+      ...
   }
   ```
-  Same pattern for `buildSqlSelectSql()` (line 726) and `executeQuery()` (line 736).
-- **Severity**: P3
-- **Status**: Three private methods are marked `@Deprecated` but do nothing except delegate to the same-named static methods on `MetaTableQueryExecutor`. Since they are `private` and only called from within `NopMetaTableBizModel`, the `@Deprecated` annotation is semantically meaningless to external consumers. If the migration to `MetaTableQueryExecutor` is complete, these wrappers should be removed. Their continued existence suggests the cleanup was deferred and never revisited.
-- **Risk**: Low individual impact, but signals incomplete refactoring discipline. New team members might replicate the pattern rather than calling `MetaTableQueryExecutor` directly. Accumulated technical debt.
-- **Suggested fix**: Remove the three private wrapper methods and update the two call sites (`queryExternalData` line 658, `querySqlData` line 680) to call `MetaTableQueryExecutor.buildExternalSelectSql(...)`/`buildSqlSelectSql(...)`/`executeQuery(...)` directly.
+  Or add null check in `batchConfirmMatches` loop before calling `toInt`.
 - **Confidence**: Likely
-- **Discovery perspective**: 死代码清道夫 — stale migration artifacts
+- **Discovery perspective**: 异常路径侦探 — null parameter propagates to raw NFE
 
-### [AR-19] DriverManager.setLoginTimeout called per-connection attempt overrides JVM-global state
+### [AR-21] CrossDbJoinMerger.mergeRow leftKeys derived from first row only — column collision resolution fragile
 
-- **File**: `nop-metadata/nop-metadata-service/src/main/java/io/nop/metadata/service/connection/MetaDataSourceConnectionProcessor.java:189-191`
+- **File**: `nop-metadata/nop-metadata-service/src/main/java/io/nop/metadata/service/query/CrossDbJoinMerger.java:73, 167-183`
 - **Evidence fragment**:
   ```java
-  try {
-      DriverManager.setLoginTimeout(DEFAULT_LOGIN_TIMEOUT_SECONDS);
-  } catch (SecurityException se) {
-      LOG.warn("DriverManager.setLoginTimeout denied by security manager", se);
+  // line 73: leftKeys from first row only
+  Set<String> leftKeys = leftRows.isEmpty() ? Collections.emptySet()
+          : new HashSet<>(leftRows.get(0).keySet());
+
+  // line 167-183: mergeRow uses leftKeys (case-sensitive) to alias right-columns
+  static Map<String, Object> mergeRow(Map<String, Object> left, Map<String, Object> right,
+                                        String alias, Set<String> leftKeys) {
+      Map<String, Object> row = new java.util.LinkedHashMap<>();
+      if (left != null) { row.putAll(left); }
+      if (right != null) {
+          for (Map.Entry<String, Object> e : right.entrySet()) {
+              String k = e.getKey();
+              if (leftKeys != null && leftKeys.contains(k)) {
+                  k = alias + "_" + k;  // alias-prefix to avoid collision
+              }
+              row.put(k, e.getValue());
+          }
+      }
+      return row;
   }
   ```
-  Called inside `buildDataSource()` which is invoked on every `withConnection()` and every `testConnect()` call.
-- **Severity**: P3
-- **Status**: `DriverManager.setLoginTimeout()` is a JVM-global static method that affects all subsequent `DriverManager.getConnection()` calls across the entire JVM, not just this processor's connections. It is called redundantly on every connection attempt. The Javadoc on `SimpleDataSource.setLoginTimeout` already documents it as a no-op, confirming this workaround is intentional. However, the side effect on global state is unnecessary — setting it once at bean initialization (`@PostConstruct`) or in the bean constructor would suffice.
-- **Risk**: Low in practice (always set to the same 5s value). But if any other part of the system expects a different DriverManager login timeout, this per-call override silently changes it. Also a minor concurrency concern: two concurrent `buildDataSource` calls each call `setLoginTimeout`, though with the same value it's idempotent.
-- **Suggested fix**: Move `DriverManager.setLoginTimeout(DEFAULT_LOGIN_TIMEOUT_SECONDS)` to `@PostConstruct` or to the static initializer. No need to set it on every connection attempt.
+- **Severity**: P2
+- **Status**: `leftKeys` is computed from the first left row's `keySet()` only. Two issues:
+  1. **Heterogeneous SQL results**: If the left query produces rows with different column sets (valid in SQL — different sub-query branches, joined tables with varying columns), `leftKeys` misses columns present only in subsequent left rows. Right-side columns with the same name as these missed columns will not get prefixed → silent collision → one column overwrites the other in the merged row.
+  2. **Case sensitivity**: SQL column names are typically case-insensitive, but `Set.contains()` is case-sensitive. If the first row has column `"ID"` and a later row has `"id"`, the later row's column won't be in `leftKeys` → right-side `"id"` won't be prefixed.
+- **Risk**: Cross-DB JOIN results may silently lose data via column overwrite when left result set has heterogeneous column casing or composition. User gets wrong data without any error indication.
+- **Suggested fix**: Build `leftKeys` from all left rows, or use case-insensitive set (e.g., `TreeSet(String.CASE_INSENSITIVE_ORDER)`):
+  ```java
+  Set<String> leftKeys = new TreeSet<>(String.CASE_INSENSITIVE_ORDER);
+  for (Map<String, Object> row : leftRows) { leftKeys.addAll(row.keySet()); }
+  ```
 - **Confidence**: Likely
-- **Discovery perspective**: IoC 侦探 — unnecessary global state mutation
+- **Discovery perspective**: 跨边界侦探 — SQL semantics lost across DB boundary during merge
 
-## Unconfirmed observations
+### [AR-22] MetaManifestBuilder.formatIso uses literal 'Z' but formats in local timezone
 
-- **Extract host from jdbcUrl DNS rebinding**: The `extractHost()` method in `MetaDataSourceConnectionProcessor.java:247-261` parses the host from jdbcUrl. However, the actual TCP connection targets the resolved IP address. DNS rebinding between validation and connection could bypass host allowlists. This is a known SSRF attack pattern. However, this is an extremely narrow attack surface (requires DNS control over the target hostname) and common to any URL-based allowlist. Not reported as a finding because it's an inherent limitation of hostname-based allowlists, not specific to this codebase.
+- **File**: `nop-metadata/nop-metadata-service/src/main/java/io/nop/metadata/service/manifest/MetaManifestBuilder.java:147-151`
+- **Evidence fragment**:
+  ```java
+  private static String formatIso(Date date) {
+      if (date == null) return null;
+      // 'Z' is a literal, not a pattern letter — always appended regardless of timezone
+      return new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'").format(date);
+  }
+  ```
+  Called from `build()` line 124: `metadata.put("generatedAt", formatIso(now));`
+- **Severity**: P3
+- **Status**: `formatIso` uses `SimpleDateFormat` with `'Z'` as a literal character (enclosed in single quotes), meaning `Z` is always appended as a fixed suffix regardless of the actual timezone. However, `SimpleDateFormat.format(Date)` uses the JVM's default timezone for the time component. On a JVM running in UTC+8 (e.g., China/Hong Kong), `new Date()` at 02:30 UTC would format as `"2026-07-21T10:30:00Z"` — asserting it's UTC when it's actually UTC+8. This is a timezone misrepresentation bug. The `generatedAt` timestamp is embedded in the manifest JSON that downstream consumers may interpret as UTC (as `Z` denotes).
+- **Risk**: Manifest timestamps are off by the local timezone offset. If manifests are compared across regions or synchronized, the timestamps are inconsistent. Cache invalidation or version comparison logic using this timestamp would be wrong.
+- **Suggested fix**: Set the formatter to UTC:
+  ```java
+  SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'X'");
+  sdf.setTimeZone(TimeZone.getTimeZone("UTC"));
+  return sdf.format(date);
+  ```
+  Or use `Instant.now().toString()` which produces proper ISO-8601 UTC.
+- **Confidence**: Likely
+- **Discovery perspective**: GraphQL契约考古学家 — ISO-8601 timestamp with Z but not UTC
+
+### [AR-23] NopMetaReconciliationConfigBizModel.extractItems dead code
+
+- **File**: `nop-metadata/nop-metadata-service/src/main/java/io/nop/metadata/service/entity/NopMetaReconciliationConfigBizModel.java:144-154`
+- **Evidence fragment**:
+  ```java
+  // lines 144-154: defined but NEVER called
+  private static List<Map<String, Object>> extractItems(Map<String, Object> queryResult) {
+      if (queryResult == null) {
+          return new ArrayList<>();
+      }
+      Object itemsObj = queryResult.get("items");
+      if (itemsObj instanceof List) {
+          return (List<Map<String, Object>>) itemsObj;
+      }
+      return new ArrayList<>();
+  }
+  ```
+  The actual code on line 124 uses the typed return of `INopMetaTableBiz.queryTableData` directly:
+  ```java
+  items = tableBizModel.queryTableData(metaTableId, null, null, null, null, context).getItems();
+  ```
+  Grep confirms zero callers of `extractItems`.
+- **Severity**: P3
+- **Status**: Private method `extractItems` is defined but never invoked. It was likely intended for an earlier version that passed `queryResult` as `Map<String, Object>` before switching to the typed `QueryTableDataResponseDTO` return. It's a 3-line dead method with no test coverage. Companion to earlier dead code findings (NopMetadataConfigs, NopMetadataConstants, nop-metadata-api module).
+- **Risk**: Low individually, but cumulatively with the other dead code/stubs (NopMetadataConfigs, NopMetadataConstants, nop-metadata-api empty module) it signals incomplete cleanup discipline.
+- **Suggested fix**: Remove the `extractItems` method entirely (and the now-unused `@SuppressWarnings("unchecked")` on `batchConfirmMatches` line 144).
+- **Confidence**: Likely
+- **Discovery perspective**: 死代码清道夫 — left behind after typed return migration
+
+### [AR-24] CrossDbJoinMerger key type consistency check uses single-row heuristic — misses heterogeneous types
+
+- **File**: `nop-metadata/nop-metadata-service/src/main/java/io/nop/metadata/service/query/CrossDbJoinMerger.java:106-120, 122-129`
+- **Evidence fragment**:
+  ```java
+  private void verifyCrossDbKeyTypeConsistency(NopMetaTableJoin join,
+                                                List<Map<String, Object>> leftRows, String leftField,
+                                                List<Map<String, Object>> rightRows, String rightField) {
+      Object leftSample = firstNonNullKey(leftRows, leftField);
+      Object rightSample = firstNonNullKey(rightRows, rightField);
+      if (leftSample == null || rightSample == null) {
+          return;  // no non-null key to compare → skip
+      }
+      if (!leftSample.getClass().equals(rightSample.getClass())) {
+          throw new NopException(NopMetadataErrors.ERR_JOIN_CROSS_DB_KEY_TYPE_MISMATCH)...
+      }
+  }
+
+  private static Object firstNonNullKey(List<Map<String, Object>> rows, String field) {
+      for (Map<String, Object> r : rows) {
+          Object v = getCaseInsensitive(r, field);
+          if (v != null) return v;
+      }
+      return null;
+  }
+  ```
+- **Severity**: P3
+- **Status**: The type consistency check only examines the first non-null key value. If the left side has mixed types (first row has Integer, later rows have Long; or first row has BigDecimal, later rows have Double), the type check passes. Then `String.valueOf()` converts all keys to strings — `Integer.valueOf(1)` → `"1"`, `Long.valueOf(1)` → `"1"` (fine for numeric widening) — but `BigDecimal.valueOf(1.0)` → `"1.0"` vs `Double.valueOf(1.0)` → `"1.0"` (fine). The real risk is when first rows happen to match types but later rows don't — the check is only as good as the first non-null row order.
+- **Risk**: Low in practice (most SQL results from a single column have uniform types), but the heuristic could miss genuine type inconsistencies that cause silent mismatches: e.g., `Integer` left vs `String` right that happen to have matching first rows of different types (e.g., `Integer.valueOf(123)` and `"00123"` — `String.valueOf(123)` → `"123"` ≠ `"00123"` → key mismatch → missing JOIN rows). The missed rows would appear as data loss with no error or warning.
+- **Suggested fix**: Iterate all rows and verify uniform type within each side. At minimum, add a comment documenting the heuristic limitation. For complete safety, compare a larger sample or convert all keys through a common representation (e.g., normalized string) instead of just checking type equality of first match.
+- **Confidence**: Likely
+- **Discovery perspective**: 模型攻击者 — heuristic-based validation can be bypassed by row order
+
+---
+
+## Unconfirmed / borderline observations
+
+- **`LEFT` as alias prefix in CrossDbJoinMerger**: Hardcoded `alias = "right"` fallback (line 53-54). If the right side table is also named `right` (unlikely but possible), the alias prefix `right_` duplicates and could cause confusion. Not reported as a finding because it's a very unlikely collision.
+
+---
 
 ## Total Assessment
 
 ### Most notable 1-2 concerns
 
-1. **Search index vs DB divergence is a ticking data consistency bomb** (AR-16). The module has a large, well-designed CRUD layer that captures events, maintains lineage, profiles data — but the search index path is the weakest link. A transient search engine outage permanently desynchronizes the index. Given the index is the primary discovery mechanism for the catalog, this is a meaningful operational risk that needs either retry logic or periodic reconciliation.
+1. **batchConfirmMatches NFE (AR-20) is the only P2-level runtime defect discovered anew.** The reconciliation API is the latest addition to nop-metadata and shows slightly less maturity in its error handling compared to the rest of the module. The `toInt(null)` → NFE path is a straightforward fix but represents the kind of edge case that test-driven development would catch.
 
-2. **Defense-in-depth gaps in credential protection** (AR-15). The event system (AR-07) carefully redacts sensitive columns with tagSet-based+fallback detection. But the connection processor's own error paths leak the same credentials through error message templates. The two subsystems are not aligned on what constitutes a "safe" scope for jdbcUrl. An attacker who can't read the connectionConfig directly (access controlled) can still infer credentials by triggering URL validation errors.
+2. **CrossDbJoinMerger column collision resolution (AR-21) is a subtle data correctness issue in the cross-DB path.** The `leftKeys`-from-first-row-only pattern means cross-DB JOIN results can silently lose data when the left result set has heterogeneous column composition. This is the kind of bug that's hard to reproduce in testing (depends on query plan order) but costly in production.
+
+3. **The dead code pattern is accumulating.** AR-23 (extractItems), plus previously reported but still present NopMetadataConfigs, NopMetadataConstants, and nop-metadata-api empty module, form a pattern of incomplete cleanup. Together they signal that the post-migration cleanup checklist is not being fully followed, which could mask more serious stale-migration-artifact issues in the future.
 
 ### Blind spots
 
-This audit may have missed:
-- Actual test coverage quality (did not run tests, only read source code)
-- Generated file correctness (the `_gen/` directory and codegen templates were not inspected in depth)
-- XMeta files for search BizModel (previous audits already flagged it as missing)
-- Cross-version compatibility with nop-sys-dao or nop-core changes
-- Performance profiling of the lineage BFS graph traversal for large graphs
+- Did not run or inspect AutoTest snapshot tests (reported absent in previous audits).
+- Did not verify whether the `ERR_RECON_INVALID_SELECTION` ErrorCode constant exists (it would need to be added as a new constant — checking was deferred).
+- Did not perform actual end-to-end testing with MySQL to verify the OFFSET-without-LIMIT behavior on real dialect.
+- Did not verify the `MetaQualityCheckpointScheduler.executeScheduledCheckpoint` error code mismatch (ERR_CHECKPOINT_SCHEDULER_INVALID_CRON used for null checkpointId — previously noted but not independently verified).
+- Did not inspect the `sort` package or the `target/` build output for generated file verification.
 
 ### Severity distribution
 
 | Severity | Count | Main categories |
 |----------|-------|-----------------|
 | P0 | 0 | — |
-| P1 | 2 | Credential leakage in error templates (AR-15), Search index silent divergence (AR-16) |
-| P2 | 1 | testConnect raw exception leak (AR-17) |
-| P3 | 2 | Private @Deprecated wrappers not removed (AR-18), DriverManager global state per-call (AR-19) |
+| P1 | 0 | — |
+| P2 | 2 | NFE bypass in batchConfirmMatches (AR-20), mergeRow column collision (AR-21) |
+| P3 | 3 | formatIso timezone bug (AR-22), dead extractItems (AR-23), incomplete key type check (AR-24) |
