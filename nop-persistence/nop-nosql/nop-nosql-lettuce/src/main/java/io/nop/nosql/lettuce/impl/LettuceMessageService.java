@@ -8,7 +8,10 @@
 package io.nop.nosql.lettuce.impl;
 
 import io.lettuce.core.GetExArgs;
+import io.lettuce.core.KeyScanCursor;
 import io.lettuce.core.KeyValue;
+import io.lettuce.core.ScanArgs;
+import io.lettuce.core.ScanCursor;
 import io.lettuce.core.ScriptOutputType;
 import io.lettuce.core.SetArgs;
 import io.lettuce.core.cluster.api.sync.RedisClusterCommands;
@@ -31,6 +34,7 @@ import io.nop.nosql.core.INosqlZSetOperations;
 import io.nop.nosql.core.RateLimiterConfig;
 import io.nop.nosql.core.script.RedisScripts;
 
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
@@ -127,7 +131,21 @@ public class LettuceMessageService extends AbstractLettuceOperations implements 
 
     @Override
     public void forEachEntry(BiConsumer<? super String, ? super Object> consumer) {
-        throw new UnsupportedOperationException("forEachEntry is not supported for Redis hash operations");
+        ScanCursor cursor = ScanCursor.INITIAL;
+        ScanArgs args = new ScanArgs().limit(100);
+        do {
+            KeyScanCursor<String> result = sync().scan(cursor, args);
+            List<String> keys = result.getKeys();
+            if (keys != null && !keys.isEmpty()) {
+                List<KeyValue<String, Object>> values = sync().mget(keys.toArray(new String[0]));
+                for (KeyValue<String, Object> kv : values) {
+                    if (kv.hasValue()) {
+                        consumer.accept(kv.getKey(), kv.getValue());
+                    }
+                }
+            }
+            cursor = result;
+        } while (!cursor.isFinished());
     }
 
     @Override
@@ -202,7 +220,37 @@ public class LettuceMessageService extends AbstractLettuceOperations implements 
 
     @Override
     public CompletionStage<Void> forEachEntryAsync(BiConsumer<? super String, ? super Object> consumer) {
-        return CompletableFuture.completedFuture(null);
+        ScanCursor cursor = ScanCursor.INITIAL;
+        ScanArgs args = new ScanArgs().limit(100);
+        return scanAndProcessAsync(cursor, args, consumer);
+    }
+
+    private CompletionStage<Void> scanAndProcessAsync(
+            ScanCursor cursor, ScanArgs args,
+            BiConsumer<? super String, ? super Object> consumer) {
+        return async().scan(cursor, args).thenCompose(result -> {
+            List<String> keys = result.getKeys();
+            if (keys == null || keys.isEmpty()) {
+                if (!result.isFinished()) {
+                    return scanAndProcessAsync(result, args, consumer);
+                }
+                return CompletableFuture.completedFuture(null);
+            }
+
+            List<CompletableFuture<Void>> futures = new ArrayList<>(keys.size());
+            for (String key : keys) {
+                CompletableFuture<Void> f = async().get(key)
+                        .thenAccept(value -> consumer.accept(key, value))
+                        .toCompletableFuture();
+                futures.add(f);
+            }
+            CompletableFuture<Void> all = CompletableFuture.allOf(
+                    futures.toArray(new CompletableFuture[0]));
+            if (!result.isFinished()) {
+                return all.thenCompose(v -> scanAndProcessAsync(result, args, consumer));
+            }
+            return all;
+        });
     }
 
     @Override
@@ -283,9 +331,19 @@ public class LettuceMessageService extends AbstractLettuceOperations implements 
         return new LettuceZSetOperations(client, key);
     }
 
+    private volatile LettucePubSubService pubSubService;
+
     @Override
     public IMessageService getMessageService() {
-        throw new UnsupportedOperationException("Message service is not implemented");
+        if (pubSubService == null) {
+            synchronized (this) {
+                if (pubSubService == null) {
+                    pubSubService = new LettucePubSubService(client);
+                    pubSubService.start();
+                }
+            }
+        }
+        return pubSubService;
     }
 
     @Override

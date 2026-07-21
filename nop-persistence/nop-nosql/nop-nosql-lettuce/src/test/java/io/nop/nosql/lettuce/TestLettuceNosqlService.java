@@ -7,6 +7,10 @@
  */
 package io.nop.nosql.lettuce;
 
+import io.nop.api.core.message.IMessageConsumeContext;
+import io.nop.api.core.message.IMessageConsumer;
+import io.nop.api.core.message.IMessageService;
+import io.nop.api.core.message.IMessageSubscription;
 import io.nop.nosql.core.INosqlCounter;
 import io.nop.nosql.core.INosqlHashOperations;
 import io.nop.nosql.core.INosqlListOperations;
@@ -33,11 +37,16 @@ import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 import org.testcontainers.utility.DockerImageName;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.CompletionStage;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -475,6 +484,163 @@ public class TestLettuceNosqlService {
 
         assertTrue(zsetOps.add("m1", 1.0));
         assertEquals(1.0, zsetOps.score("m1"), 0.001);
+    }
+
+    // ===== forEachEntry Tests =====
+
+    @Test
+    void testForEachEntry_Basic() {
+        service.put("k1", "v1");
+        service.put("k2", "v2");
+        service.put("k3", "v3");
+
+        Map<String, Object> collected = new HashMap<>();
+        service.forEachEntry(collected::put);
+
+        assertEquals(3, collected.size());
+        assertEquals("v1", String.valueOf(collected.get("k1")));
+        assertEquals("v2", String.valueOf(collected.get("k2")));
+        assertEquals("v3", String.valueOf(collected.get("k3")));
+    }
+
+    @Test
+    void testForEachEntry_EmptyDatabase() {
+        service.clear();
+        Map<String, Object> collected = new HashMap<>();
+        service.forEachEntry(collected::put);
+        assertTrue(collected.isEmpty());
+    }
+
+    @Test
+    void testForEachEntryAsync_Basic() throws Exception {
+        service.put("a1", "x");
+        service.put("a2", "y");
+        service.put("a3", "z");
+
+        Map<String, Object> collected = new HashMap<>();
+        CompletionStage<Void> stage = service.forEachEntryAsync(collected::put);
+        stage.toCompletableFuture().get(5, TimeUnit.SECONDS);
+
+        assertEquals(3, collected.size());
+        assertEquals("x", String.valueOf(collected.get("a1")));
+        assertEquals("y", String.valueOf(collected.get("a2")));
+        assertEquals("z", String.valueOf(collected.get("a3")));
+    }
+
+    @Test
+    void testForEachEntryAsync_EmptyDatabase() throws Exception {
+        service.clear();
+        Map<String, Object> collected = new HashMap<>();
+        CompletionStage<Void> stage = service.forEachEntryAsync(collected::put);
+        stage.toCompletableFuture().get(5, TimeUnit.SECONDS);
+        assertTrue(collected.isEmpty());
+    }
+
+    @Test
+    void testForEachEntry_LargeBatch() {
+        int count = 50;
+        for (int i = 0; i < count; i++) {
+            service.put("batch:" + i, "val:" + i);
+        }
+
+        AtomicInteger counter = new AtomicInteger(0);
+        service.forEachEntry((k, v) -> {
+            if (k instanceof String && ((String) k).startsWith("batch:")) {
+                counter.incrementAndGet();
+            }
+        });
+        assertEquals(count, counter.get());
+    }
+
+    // ===== Pub/Sub Tests =====
+
+    @Test
+    void testPubSub_SendAndReceive() throws Exception {
+        IMessageService msgService = service.getMessageService();
+        assertNotNull(msgService);
+
+        String topic = "test:pubsub:basic";
+        CountDownLatch latch = new CountDownLatch(1);
+        List<String> received = new ArrayList<>();
+
+        IMessageSubscription sub = msgService.subscribe(topic, new IMessageConsumer() {
+            @Override
+            public Object onMessage(String t, Object msg, IMessageConsumeContext ctx) {
+                received.add(String.valueOf(msg));
+                latch.countDown();
+                return null;
+            }
+        });
+
+        msgService.send(topic, "hello");
+
+        boolean ok = latch.await(5, TimeUnit.SECONDS);
+        assertTrue(ok, "Should receive message within timeout");
+        assertEquals(1, received.size());
+        assertEquals("hello", received.get(0));
+
+        sub.cancel();
+    }
+
+    @Test
+    void testPubSub_UnsubscribeStopsReceiving() throws Exception {
+        IMessageService msgService = service.getMessageService();
+        String topic = "test:pubsub:unsub";
+        AtomicInteger counter = new AtomicInteger(0);
+
+        IMessageSubscription sub = msgService.subscribe(topic, new IMessageConsumer() {
+            @Override
+            public Object onMessage(String t, Object msg, IMessageConsumeContext ctx) {
+                counter.incrementAndGet();
+                return null;
+            }
+        });
+
+        msgService.send(topic, "first");
+        Thread.sleep(200);
+        int afterFirst = counter.get();
+
+        sub.cancel();
+
+        msgService.send(topic, "second");
+        Thread.sleep(200);
+        int afterSecond = counter.get();
+
+        assertEquals(afterFirst, afterSecond, "Should not receive after cancel");
+        assertTrue(afterFirst >= 1, "Should receive at least one before cancel");
+    }
+
+    @Test
+    void testPubSub_MultipleSubscribers() throws Exception {
+        IMessageService msgService = service.getMessageService();
+        String topic = "test:pubsub:multi";
+        AtomicInteger count1 = new AtomicInteger(0);
+        AtomicInteger count2 = new AtomicInteger(0);
+
+        IMessageSubscription sub1 = msgService.subscribe(topic, new IMessageConsumer() {
+            @Override
+            public Object onMessage(String t, Object msg, IMessageConsumeContext ctx) {
+                count1.incrementAndGet();
+                return null;
+            }
+        });
+
+        IMessageSubscription sub2 = msgService.subscribe(topic, new IMessageConsumer() {
+            @Override
+            public Object onMessage(String t, Object msg, IMessageConsumeContext ctx) {
+                count2.incrementAndGet();
+                return null;
+            }
+        });
+
+        msgService.send(topic, "msg");
+        Thread.sleep(500);
+
+        assertTrue(count1.get() >= 1, "Subscriber 1 should receive");
+        assertTrue(count2.get() >= 1, "Subscriber 2 should receive");
+
+        sub1.cancel();
+        sub2.cancel();
     }
 
     // ===== Edge Case Tests =====

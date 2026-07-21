@@ -19,6 +19,7 @@ import io.lettuce.core.cluster.api.StatefulRedisClusterConnection;
 import io.lettuce.core.cluster.api.async.RedisClusterAsyncCommands;
 import io.lettuce.core.cluster.api.sync.RedisClusterCommands;
 import io.lettuce.core.codec.RedisCodec;
+import io.lettuce.core.pubsub.StatefulRedisPubSubConnection;
 import io.lettuce.core.resource.ClientResources;
 import io.lettuce.core.resource.DefaultClientResources;
 import io.nop.api.core.config.IConfigRefreshable;
@@ -127,6 +128,14 @@ public class LettuceRedisConnectionProvider extends LifeCycleSupport
             standaloneClient.shutdown();
     }
 
+    StatefulRedisPubSubConnection<String, Object> createPubSubConnection() {
+        checkIsActive();
+        if (clusterClient != null) {
+            return clusterClient.connectPubSub(codec);
+        }
+        return standaloneClient.connectPubSub(codec);
+    }
+
     private ClientResources buildClientResources() {
         return DefaultClientResources.create();
     }
@@ -149,6 +158,10 @@ public class LettuceRedisConnectionProvider extends LifeCycleSupport
             builder.withHost(config.getHost());
         }
         builder.withPort(config.getPort());
+        if (config.isUseSsl()) {
+            builder.withSsl(true);
+            builder.withVerifyPeer(false);
+        }
 
         return builder.build();
     }
@@ -164,6 +177,10 @@ public class LettuceRedisConnectionProvider extends LifeCycleSupport
                 builder.withAuthentication(config.getUsername(), config.getPassword().toCharArray());
             } else if (config.getPassword() != null) {
                 builder.withPassword(config.getPassword().toCharArray());
+            }
+            if (config.isUseSsl()) {
+                builder.withSsl(true);
+                builder.withVerifyPeer(false);
             }
             uris.add(builder.build());
         }
