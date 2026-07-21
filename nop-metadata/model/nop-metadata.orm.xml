@@ -1285,8 +1285,6 @@
                         i18n-en:displayName="Business Domain Id"/>
             </columns>
             <unique-keys>
-                <unique-key name="uk_meta_table_module_schema" columns="metaModuleId,tableName,schema"
-                            displayName="表名+模块+schema唯一约束"/>
                 <unique-key name="UK_NOP_META_TABLE_MODULE_NAME" columns="metaModuleId,tableName"
                             i18n-en:displayName="Unique Table Name Per Module"/>
             </unique-keys>
@@ -1879,6 +1877,10 @@
                 <column code="REMARK" displayName="备注" domain="remark" name="remark" precision="200" propId="17"
                         stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Remark"/>
             </columns>
+            <unique-keys>
+                <unique-key name="UK_NOP_META_LINEAGE_EDGE_SRC_TGT_TYPE" columns="sourceTableId,targetTableId,transformType"
+                            i18n-en:displayName="Unique Lineage Edge Per Source-Target-Transform"/>
+            </unique-keys>
             <relations>
                 <to-one displayName="源表" name="sourceTable"
                         refEntityName="io.nop.metadata.dao.entity.NopMetaTable" refPropName="lineageAsSource"

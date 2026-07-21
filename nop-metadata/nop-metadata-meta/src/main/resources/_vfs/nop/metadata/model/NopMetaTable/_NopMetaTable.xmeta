@@ -19,7 +19,6 @@
     </x:post-extends>
 
     <keys>
-        <key name="uk_meta_table_module_schema" props="metaModuleId,tableName,schema" displayName="表名+模块+schema唯一约束"/>
         <key name="UK_NOP_META_TABLE_MODULE_NAME" props="metaModuleId,tableName"/>
     </keys>
 

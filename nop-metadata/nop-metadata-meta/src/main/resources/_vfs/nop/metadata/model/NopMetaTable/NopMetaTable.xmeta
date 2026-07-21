@@ -1,5 +1,11 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 <meta x:schema="/nop/schema/xmeta.xdef" xmlns:x="/nop/schema/xdsl.xdef" x:extends="_NopMetaTable.xmeta">
 
+    <!--
+        NopMetaTable 为 BI 语义层核心实体，其字段中不包含明文凭据或高度敏感信息，
+        因此 retention 层无字段级 published/queryable 覆盖需求。
+        所有字段继承 _NopMetaTable.xmeta 生成的默认值（queryable=true, published=true）。
+        如需对特定字段添加安全限制，在此 <props> 段中添加对应覆盖。
+    -->
     <props/>
 </meta>

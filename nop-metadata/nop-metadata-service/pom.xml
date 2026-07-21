@@ -67,10 +67,6 @@
             <groupId>io.github.entropy-cloud</groupId>
             <artifactId>nop-ioc</artifactId>
         </dependency>
-        <dependency>
-            <groupId>io.github.entropy-cloud</groupId>
-            <artifactId>nop-sys-dao</artifactId>
-        </dependency>
         <!-- nop-job-api: IJobScheduler / JobSpec / TriggerSpec interfaces for cron scheduling
              (架构基线 §2.7.3.1 D6). Runtime impl provided by host app via app-local-scheduler.beans.xml. -->
         <dependency>

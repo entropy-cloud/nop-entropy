@@ -18,12 +18,15 @@ import java.util.Map;
  */
 public interface INopMetaDataContractBiz extends ICrudBiz<NopMetaDataContract> {
 
+    @Deprecated
     @BizMutation
     NopMetaDataContract activateContract(@Name("contractId") String contractId, IServiceContext context);
 
+    @Deprecated
     @BizMutation
     NopMetaDataContract deprecateContract(@Name("contractId") String contractId, IServiceContext context);
 
+    @Deprecated
     @BizMutation
     NopMetaDataContract retireContract(@Name("contractId") String contractId, IServiceContext context);
 

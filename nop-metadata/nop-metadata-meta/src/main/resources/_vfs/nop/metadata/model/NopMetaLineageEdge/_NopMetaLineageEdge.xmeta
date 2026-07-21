@@ -16,7 +16,9 @@
         <meta-gen:DefaultMetaPostExtends xpl:lib="/nop/core/xlib/meta-gen.xlib"/>
     </x:post-extends>
 
-    <keys/>
+    <keys>
+        <key name="UK_NOP_META_LINEAGE_EDGE_SRC_TGT_TYPE" props="sourceTableId,targetTableId,transformType"/>
+    </keys>
 
     <props>
         <prop name="lineageEdgeId" displayName="血缘边ID" propId="1" i18n-en:displayName="Lineage Edge Id" tagSet="seq"

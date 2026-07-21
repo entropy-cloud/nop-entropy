@@ -1286,8 +1286,6 @@
                 </to-many>
             </relations>
             <unique-keys>
-                <unique-key columns="metaModuleId,tableName,schema" displayName="表名+模块+schema唯一约束"
-                            name="uk_meta_table_module_schema"/>
                 <unique-key columns="metaModuleId,tableName" name="UK_NOP_META_TABLE_MODULE_NAME"
                             i18n-en:displayName="Unique Table Name Per Module"/>
             </unique-keys>
@@ -1726,6 +1724,11 @@
                     </join>
                 </to-one>
             </relations>
+            <unique-keys>
+                <unique-key columns="sourceTableId,targetTableId,transformType"
+                            name="UK_NOP_META_LINEAGE_EDGE_SRC_TGT_TYPE"
+                            i18n-en:displayName="Unique Lineage Edge Per Source-Target-Transform"/>
+            </unique-keys>
         </entity>
         <entity className="io.nop.metadata.dao.entity.NopMetaQualityRule" createTimeProp="createTime"
                 createrProp="createdBy" displayName="质量规则" name="io.nop.metadata.dao.entity.NopMetaQualityRule"
