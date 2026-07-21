@@ -59,7 +59,7 @@ public class TestSqlTableExecution extends JunitBaseTestCase {
         PreparedEnv env = prepare("qs_sql_cat", "SELECT amount, name FROM test_data");
 
         GraphQLResponseBean resp = graphQLEngine.executeGraphQL(graphQLEngine.newGraphQLContext(req(
-                "mutation { NopMetaDataSource__collectCatalogForTable(metaTableId: \"" + env.tableId + "\") { tableCount tables { tableName schema tableType rowCount sizeBytes } errors { code message detail } } }")));
+                "mutation { NopMetaDataSource__collectCatalogForTable(metaTableId: \"" + env.tableId + "\") { tableCount tables { tableName metaSchema tableType rowCount sizeBytes } errors { code message detail } } }")));
         assertFalse(resp.hasError(), "sql catalog should not error: " + resp);
 
         NopMetaCatalog row = findCatalogRow(env.tableId);

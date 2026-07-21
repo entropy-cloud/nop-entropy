@@ -807,7 +807,7 @@ prop:
       updatedBy: Updated By
       updateTime: Update Time
       remark: Remark
-      schema: Schema
+      metaSchema: Meta Schema
       businessDomainId: Business Domain Id
       metaModule: Meta Module
       metaModule.displayName: Meta Module

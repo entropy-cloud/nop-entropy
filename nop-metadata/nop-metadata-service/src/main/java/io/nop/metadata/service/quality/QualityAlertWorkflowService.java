@@ -110,7 +110,7 @@ public class QualityAlertWorkflowService {
 
         QualityRuleJudgment judgment = ensureTableRefExecutor().execute(ref,
                 (Connection conn, DatabaseMetaData metaData, String productName) ->
-                        executor.judge(conn, ref, table.getSchema(),
+                        executor.judge(conn, ref, table.getMetaSchema(),
                                 rule.getRuleType(), rule.getEntityType(),
                                 rule.getParams(), rule.getSqlExpression(),
                                 rule.getThreshold(), productName));

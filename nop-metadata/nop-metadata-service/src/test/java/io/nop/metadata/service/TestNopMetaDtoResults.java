@@ -122,7 +122,7 @@ public class TestNopMetaDtoResults {
     public void testCollectCatalogResultDtoFields() {
         CollectCatalogTableDTO t = new CollectCatalogTableDTO();
         t.setTableName("T1");
-        t.setSchema("PUBLIC");
+        t.setMetaSchema("PUBLIC");
         t.setTableType("TABLE");
         t.setRowCount(123L);
         t.setSizeBytes(456L);

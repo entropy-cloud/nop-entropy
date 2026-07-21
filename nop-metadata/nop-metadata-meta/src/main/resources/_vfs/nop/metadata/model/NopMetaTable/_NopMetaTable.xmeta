@@ -87,7 +87,7 @@
               insertable="true" updatable="true">
             <schema domain="remark" type="java.lang.String" precision="200"/>
         </prop>
-        <prop name="schema" displayName="源schema" propId="17" i18n-en:displayName="Schema" queryable="true"
+        <prop name="metaSchema" displayName="源schema" propId="17" i18n-en:displayName="Meta Schema" queryable="true"
               sortable="true" insertable="true" updatable="true">
             <schema type="java.lang.String" precision="100"/>
         </prop>

@@ -32,10 +32,22 @@ import io.nop.api.core.exceptions.NopException;
 public class NopMetadataException extends NopException {
     private static final long serialVersionUID = 1L;
 
+    /**
+     * @deprecated Use {@link #NopMetadataException(ErrorCode)} with a proper
+     *             {@link NopMetadataErrors} constant instead. String-based construction
+     *             creates an inline ErrorCode with no i18n key, polluting GraphQL
+     *             errorCode fields.
+     */
+    @Deprecated
     public NopMetadataException(String message) {
         super(toInlineErrorCode(message));
     }
 
+    /**
+     * @deprecated Use {@link #NopMetadataException(ErrorCode, Throwable)} with a proper
+     *             {@link NopMetadataErrors} constant instead.
+     */
+    @Deprecated
     public NopMetadataException(String message, Throwable cause) {
         super(toInlineErrorCode(message), cause);
     }

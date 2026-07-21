@@ -230,7 +230,7 @@ public class TestNopMetaDataSourceBizModel extends JunitBaseTestCase {
 
         NopMetaTable table = findExternalTable(daoProvider.daoFor(NopMetaTable.class), "EXT_SCHEMA_T");
         assertNotNull(table, "EXT_SCHEMA_T must be synced");
-        assertEquals("PUBLIC", table.getSchema(),
+        assertEquals("PUBLIC", table.getMetaSchema(),
                 "schema column must persist H2 TABLE_SCHEM=PUBLIC (anti-hollow: written, not just read into memory)");
     }
 
@@ -272,7 +272,7 @@ public class TestNopMetaDataSourceBizModel extends JunitBaseTestCase {
 
         // 断言两行 schema 不同（anti-hollow：去重 filter 真实含 schema 维度）
         List<NopMetaTable> tables = findAllExternalTables("SHARED_T");
-        Set<String> schemas = tables.stream().map(NopMetaTable::getSchema).collect(Collectors.toSet());
+        Set<String> schemas = tables.stream().map(NopMetaTable::getMetaSchema).collect(Collectors.toSet());
         assertTrue(schemas.contains("SCH_A"),
                 "row with schema=SCH_A must exist (schemas seen: " + schemas + ")");
         assertTrue(schemas.contains("SCH_B"),
@@ -414,7 +414,7 @@ public class TestNopMetaDataSourceBizModel extends JunitBaseTestCase {
 
         // 收集运行时统计（限定 PUBLIC schema）
         GraphQLResponseBean collectResp = execute(
-                "mutation { NopMetaDataSource__collectCatalog(dataSourceId: \"ds-collect\", schemaPattern: \"PUBLIC\") { tableCount tables { tableName schema tableType rowCount sizeBytes } errors { code message detail } } }");
+                "mutation { NopMetaDataSource__collectCatalog(dataSourceId: \"ds-collect\", schemaPattern: \"PUBLIC\") { tableCount tables { tableName metaSchema tableType rowCount sizeBytes } errors { code message detail } } }");
         assertFalse(collectResp.hasError(), "collect should not error: " + collectResp);
         assertTrue(String.valueOf(collectResp.getData()).contains("tableCount=1"),
                 "should report tableCount=1: " + collectResp.getData());
@@ -459,13 +459,13 @@ public class TestNopMetaDataSourceBizModel extends JunitBaseTestCase {
         assertNotNull(table, "EXT_EMP must be synced");
 
         // 第一次收集
-        execute("mutation { NopMetaDataSource__collectCatalog(dataSourceId: \"ds-collect-ts\", schemaPattern: \"PUBLIC\") { tableCount tables { tableName schema tableType rowCount sizeBytes } errors { code message detail } } }");
+        execute("mutation { NopMetaDataSource__collectCatalog(dataSourceId: \"ds-collect-ts\", schemaPattern: \"PUBLIC\") { tableCount tables { tableName metaSchema tableType rowCount sizeBytes } errors { code message detail } } }");
         long countAfterFirst = countCatalogRows(table.getMetaTableId());
         assertEquals(1L, countAfterFirst, "exactly 1 catalog row after first collect: " + countAfterFirst);
 
         // 第二次收集同一数据源（时序追加，不覆盖）
         GraphQLResponseBean r2 = execute(
-                "mutation { NopMetaDataSource__collectCatalog(dataSourceId: \"ds-collect-ts\", schemaPattern: \"PUBLIC\") { tableCount tables { tableName schema tableType rowCount sizeBytes } errors { code message detail } } }");
+                "mutation { NopMetaDataSource__collectCatalog(dataSourceId: \"ds-collect-ts\", schemaPattern: \"PUBLIC\") { tableCount tables { tableName metaSchema tableType rowCount sizeBytes } errors { code message detail } } }");
         assertFalse(r2.hasError(), "second collect should not error: " + r2);
         long countAfterSecond = countCatalogRows(table.getMetaTableId());
         assertEquals(2L, countAfterSecond,
@@ -492,7 +492,7 @@ public class TestNopMetaDataSourceBizModel extends JunitBaseTestCase {
 
         // 不传 schemaPattern：COUNT 用 <tableName> 依赖连接默认 schema（H2 默认 PUBLIC）
         GraphQLResponseBean resp = execute(
-                "mutation { NopMetaDataSource__collectCatalog(dataSourceId: \"ds-collect-def\") { tableCount tables { tableName schema tableType rowCount sizeBytes } errors { code message detail } } }");
+                "mutation { NopMetaDataSource__collectCatalog(dataSourceId: \"ds-collect-def\") { tableCount tables { tableName metaSchema tableType rowCount sizeBytes } errors { code message detail } } }");
         assertFalse(resp.hasError(), "collect without schemaPattern should work via default schema: " + resp);
         NopMetaCatalog row = findCatalogRow(table.getMetaTableId());
         assertNotNull(row, "NopMetaCatalog row must be written via default schema");
@@ -531,7 +531,7 @@ public class TestNopMetaDataSourceBizModel extends JunitBaseTestCase {
 
         // 收集：EXT_OK 应成功（rowCount=4），EXT_GONE 的 COUNT 应失败进 errors
         GraphQLResponseBean resp = execute(
-                "mutation { NopMetaDataSource__collectCatalog(dataSourceId: \"ds-collect-err\", schemaPattern: \"PUBLIC\") { tableCount tables { tableName schema tableType rowCount sizeBytes } errors { code message detail } } }");
+                "mutation { NopMetaDataSource__collectCatalog(dataSourceId: \"ds-collect-err\", schemaPattern: \"PUBLIC\") { tableCount tables { tableName metaSchema tableType rowCount sizeBytes } errors { code message detail } } }");
         assertFalse(resp.hasError(), "collect should not globally error (batched): " + resp);
         String data = String.valueOf(resp.getData());
         // EXT_OK 收集成功，EXT_GONE 失败进 errors
@@ -557,7 +557,7 @@ public class TestNopMetaDataSourceBizModel extends JunitBaseTestCase {
                         + "\"username\":\"sa\",\"password\":\"\",\"driverClassName\":\"org.h2.Driver\"}");
 
         GraphQLResponseBean response = execute(
-                "mutation { NopMetaDataSource__collectCatalog(dataSourceId: \"ds-collect-disabled\") { tableCount tables { tableName schema tableType rowCount sizeBytes } errors { code message detail } } }");
+                "mutation { NopMetaDataSource__collectCatalog(dataSourceId: \"ds-collect-disabled\") { tableCount tables { tableName metaSchema tableType rowCount sizeBytes } errors { code message detail } } }");
         assertTrue(response.hasError(),
                 "DISABLED datasource collect must be rejected (no silent pass): " + response);
     }
@@ -568,7 +568,7 @@ public class TestNopMetaDataSourceBizModel extends JunitBaseTestCase {
         saveDataSource("ds-collect-http", "qs_collect_http", "http", "ACTIVE", "{}");
 
         GraphQLResponseBean response = execute(
-                "mutation { NopMetaDataSource__collectCatalog(dataSourceId: \"ds-collect-http\") { tableCount tables { tableName schema tableType rowCount sizeBytes } errors { code message detail } } }");
+                "mutation { NopMetaDataSource__collectCatalog(dataSourceId: \"ds-collect-http\") { tableCount tables { tableName metaSchema tableType rowCount sizeBytes } errors { code message detail } } }");
         assertTrue(response.hasError(),
                 "non-jdbc datasource collect must error (NopException ERR_DATASOURCE_TYPE_NOT_SUPPORTED): " + response);
     }
@@ -577,7 +577,7 @@ public class TestNopMetaDataSourceBizModel extends JunitBaseTestCase {
     @Test
     public void testCollectCatalogNotFound() {
         GraphQLResponseBean response = execute(
-                "mutation { NopMetaDataSource__collectCatalog(dataSourceId: \"__not_exist__\") { tableCount tables { tableName schema tableType rowCount sizeBytes } errors { code message detail } } }");
+                "mutation { NopMetaDataSource__collectCatalog(dataSourceId: \"__not_exist__\") { tableCount tables { tableName metaSchema tableType rowCount sizeBytes } errors { code message detail } } }");
         assertTrue(response.hasError(),
                 "non-existent dataSourceId collect must error (no NPE): " + response);
     }
@@ -610,12 +610,12 @@ public class TestNopMetaDataSourceBizModel extends JunitBaseTestCase {
         execute("mutation { NopMetaDataSource__syncExternalTables(dataSourceId: \"ds-cc-def\", schemaPattern: \"SCH_CC_DEF\") { syncedTableCount errors { code message detail } } }");
         NopMetaTable table = findExternalTable(daoProvider.daoFor(NopMetaTable.class), "EXT_CC_DEF");
         assertNotNull(table, "EXT_CC_DEF must be synced");
-        assertEquals("SCH_CC_DEF", table.getSchema(),
+        assertEquals("SCH_CC_DEF", table.getMetaSchema(),
                 "persisted schema must be SCH_CC_DEF (precondition for default schema test)");
 
         // 不传 schemaPattern：默认取 table.schema=SCH_CC_DEF → 命中 SCH_CC_DEF.ext_cc_def 的 2 行
         GraphQLResponseBean resp = execute(
-                "mutation { NopMetaDataSource__collectCatalogForTable(metaTableId: \"" + table.getMetaTableId() + "\") { tableCount tables { tableName schema tableType rowCount sizeBytes } errors { code message detail } } }");
+                "mutation { NopMetaDataSource__collectCatalogForTable(metaTableId: \"" + table.getMetaTableId() + "\") { tableCount tables { tableName metaSchema tableType rowCount sizeBytes } errors { code message detail } } }");
         assertFalse(resp.hasError(), "default schema path should not error: " + resp);
         String data = String.valueOf(resp.getData());
         assertTrue(data.contains("rowCount=2"),
@@ -656,12 +656,12 @@ public class TestNopMetaDataSourceBizModel extends JunitBaseTestCase {
         execute("mutation { NopMetaDataSource__syncExternalTables(dataSourceId: \"ds-cc-ovr\", schemaPattern: \"SCH_CC_A\") { syncedTableCount errors { code message detail } } }");
         NopMetaTable tableA = findExternalTable(daoProvider.daoFor(NopMetaTable.class), "SHARED_CC");
         assertNotNull(tableA, "SHARED_CC must be synced");
-        assertEquals("SCH_CC_A", tableA.getSchema(), "persisted schema = SCH_CC_A");
+        assertEquals("SCH_CC_A", tableA.getMetaSchema(), "persisted schema = SCH_CC_A");
 
         // 显式传 SCH_CC_B（覆盖持久化的 SCH_CC_A）→ 命中 SCH_CC_B 的 3 行
         GraphQLResponseBean resp = execute(
                 "mutation { NopMetaDataSource__collectCatalogForTable(metaTableId: \"" + tableA.getMetaTableId()
-                        + "\", schemaPattern: \"SCH_CC_B\") { tableCount tables { tableName schema tableType rowCount sizeBytes } errors { code message detail } } }");
+                        + "\", schemaPattern: \"SCH_CC_B\") { tableCount tables { tableName metaSchema tableType rowCount sizeBytes } errors { code message detail } } }");
         assertFalse(resp.hasError(), "explicit schema override should not error: " + resp);
         assertTrue(String.valueOf(resp.getData()).contains("rowCount=3"),
                 "explicit schema=SCH_CC_B should override persisted SCH_CC_A (rowCount=3): " + resp.getData());
@@ -698,7 +698,7 @@ public class TestNopMetaDataSourceBizModel extends JunitBaseTestCase {
 
         // 批量 collectCatalog 不传 schemaPattern → 各表按自身持久化 schema 命中正确行数
         GraphQLResponseBean resp = execute(
-                "mutation { NopMetaDataSource__collectCatalog(dataSourceId: \"ds-cc-batch\") { tableCount tables { tableName schema tableType rowCount sizeBytes } errors { code message detail } } }");
+                "mutation { NopMetaDataSource__collectCatalog(dataSourceId: \"ds-cc-batch\") { tableCount tables { tableName metaSchema tableType rowCount sizeBytes } errors { code message detail } } }");
         assertFalse(resp.hasError(), "batch collect with per-table default schema should not error: " + resp);
         assertTrue(String.valueOf(resp.getData()).contains("tableCount=2"),
                 "both T_BATCH rows collected (tableCount=2): " + resp.getData());
@@ -708,10 +708,10 @@ public class TestNopMetaDataSourceBizModel extends JunitBaseTestCase {
         assertEquals(2, tables.size());
         for (NopMetaTable t : tables) {
             NopMetaCatalog row = findCatalogRow(t.getMetaTableId());
-            assertNotNull(row, "catalog row for " + t.getSchema() + ".T_BATCH must exist");
-            long expected = "SCH_CC_B1".equals(t.getSchema()) ? 3L : 5L;
+            assertNotNull(row, "catalog row for " + t.getMetaSchema() + ".T_BATCH must exist");
+            long expected = "SCH_CC_B1".equals(t.getMetaSchema()) ? 3L : 5L;
             assertEquals(expected, row.getRowCount(),
-                    "rowCount for schema=" + t.getSchema() + " must be " + expected
+                    "rowCount for schema=" + t.getMetaSchema() + " must be " + expected
                             + " (per-table default schema resolution in batch)");
         }
     }

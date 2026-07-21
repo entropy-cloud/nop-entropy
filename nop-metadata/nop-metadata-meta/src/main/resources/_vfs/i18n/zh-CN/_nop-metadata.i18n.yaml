@@ -810,6 +810,7 @@ prop:
       metaModule: 元数据模块
       metaModule.displayName: 元数据模块
       metaModuleId: 模块版本ID
+      metaSchema: 源schema
       metaTableId: 逻辑表ID
       profilingResults: 数据剖析结果集
       profilingRules: 数据剖析规则集
@@ -818,7 +819,6 @@ prop:
       reconciliationConfigs: 对账配置集
       reconciliationResults: 对账结果集
       remark: 备注
-      schema: 源schema
       sourceSql: 来源SQL
       tableName: 表名
       tableType: 表类型

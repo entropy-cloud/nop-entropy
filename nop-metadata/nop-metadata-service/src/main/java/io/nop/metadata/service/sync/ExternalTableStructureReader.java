@@ -43,8 +43,6 @@ public class ExternalTableStructureReader {
 
     private static final Logger LOG = LoggerFactory.getLogger(ExternalTableStructureReader.class);
 
-    static final String ERR_DIALECT_NOT_SUPPORTED = "metadata.dialect-not-supported";
-
     private static final String[] TABLE_TYPES = new String[]{"TABLE", "VIEW"};
 
     /**
@@ -87,9 +85,9 @@ public class ExternalTableStructureReader {
                 tables.add(info);
             }
         } catch (SQLException e) {
-            throw new NopException(newErrorCode(ERR_DIALECT_NOT_SUPPORTED,
-                    "Failed to read table structure from external datasource: {error}", "error"), e)
-                    .param("error", e.getMessage());
+            throw new NopException(NopMetadataErrors.ERR_DIALECT_NOT_SUPPORTED, e)
+                    .param(NopMetadataErrors.ARG_DATABASE_PRODUCT_NAME, "unknown")
+                    .param(NopMetadataErrors.ARG_ERROR, e.getMessage());
         } finally {
             IoHelper.safeCloseObject(rs);
         }
@@ -123,9 +121,9 @@ public class ExternalTableStructureReader {
         try {
             productName = metaData.getDatabaseProductName();
         } catch (SQLException e) {
-            throw new NopException(newErrorCode(ERR_DIALECT_NOT_SUPPORTED,
-                    "Failed to read database product name: {error}", "error"), e)
-                    .param("error", e.getMessage());
+            throw new NopException(NopMetadataErrors.ERR_DIALECT_NOT_SUPPORTED, e)
+                    .param(NopMetadataErrors.ARG_DATABASE_PRODUCT_NAME, "unknown")
+                    .param(NopMetadataErrors.ARG_ERROR, e.getMessage());
         }
         requireSupportedProductName(productName);
         return productName;
@@ -165,7 +163,4 @@ public class ExternalTableStructureReader {
         return rs.wasNull() ? 0 : value;
     }
 
-    private static io.nop.api.core.exceptions.ErrorCode newErrorCode(String code, String desc, String... params) {
-        return io.nop.api.core.exceptions.ErrorCode.define(code, desc, params);
-    }
 }

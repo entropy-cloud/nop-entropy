@@ -5,10 +5,12 @@ import io.nop.api.core.annotations.biz.BizMutation;
 import io.nop.api.core.annotations.biz.BizQuery;
 import io.nop.api.core.annotations.core.Name;
 import io.nop.api.core.annotations.core.Optional;
+import io.nop.api.core.exceptions.NopException;
 import io.nop.core.context.IServiceContext;
 import io.nop.metadata.core.dto.IndexResult;
 import io.nop.metadata.core.dto.SearchHitDTO;
 import io.nop.metadata.core.dto.SearchResultDTO;
+import io.nop.metadata.service.NopMetadataErrors;
 import io.nop.search.api.ISearchEngine;
 import io.nop.search.api.SearchHit;
 import io.nop.search.api.SearchRequest;
@@ -42,6 +44,10 @@ public class NopMetaSearchBizModel {
     @BizMutation
     public List<IndexResult> rebuildSearchIndex(@Optional @Name("entityTypes") List<String> entityTypes,
                                                  IServiceContext context) {
+        if (searchEngine == null) {
+            throw new NopException(NopMetadataErrors.ERR_SEARCH_ENGINE_UNAVAILABLE)
+                    .param(NopMetadataErrors.ARG_ERROR, "searchEngine not available");
+        }
         return indexBuilder.buildFullIndex(entityTypes);
     }
 
@@ -62,6 +68,10 @@ public class NopMetaSearchBizModel {
         request.setQuery(query);
         request.setLimit(limit);
 
+        if (searchEngine == null) {
+            throw new NopException(NopMetadataErrors.ERR_SEARCH_ENGINE_UNAVAILABLE)
+                    .param(NopMetadataErrors.ARG_ERROR, "searchEngine not available");
+        }
         SearchResponse response = searchEngine.search(request);
 
         SearchResultDTO result = new SearchResultDTO();

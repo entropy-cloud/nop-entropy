@@ -19,9 +19,15 @@ import io.nop.api.core.exceptions.ErrorCode;
  *   <li>ErrorCode 散落在 40+ 文件顶部</li>
  * </ul>
  *
- * <p>命名规范：{@code nop.err.metadata.<子域>.<错误>}。子域分组：
- * aggr / join / query-filter / datasource / tableref / lineage / quality /
- * checkpoint / profiling / reconciliation / contract / event / module / sql / field.
+ * <p>命名规范：{@code nop.err.metadata.<子域>.<错误>}。子域分组（按字母序）：
+ * aggr / catalog / checkpoint / col-lineage / contract / datasource / dialect /
+ * dimension / dto / event / field / filter-definition / granularity / join /
+ * lineage / link-asset / manifest / measure / module / orm-resource / pagination /
+ * profiling / profiling-rule / quality / quality-rule / query / query-filter /
+ * recon / score / search / sql / sql-module / sql-type-inference / table /
+ * tableref / tag-label.
+ *
+ * <p>维护说明：新增 ErrorCode 时若使用了新的子域前缀，请同步更新上方列表。
  */
 public interface NopMetadataErrors {
 
@@ -987,6 +993,18 @@ public interface NopMetadataErrors {
                     "MetaManifest build failed: {metaModuleId} -- {error}",
                     ARG_META_MODULE_ID, ARG_ERROR);
 
+    /** manifest 模块为空。 */
+    ErrorCode ERR_MANIFEST_MODULE_NULL =
+            ErrorCode.define("nop.err.metadata.manifest.module-null",
+                    "MetaManifest build failed: module is null",
+                    ARG_META_MODULE_ID);
+
+    /** manifest ORM 模型为空。 */
+    ErrorCode ERR_MANIFEST_ORM_MODEL_NULL =
+            ErrorCode.define("nop.err.metadata.manifest.orm-model-null",
+                    "MetaManifest build failed: full ORM model is null",
+                    ARG_META_MODULE_ID);
+
     // ===== Search =====
 
     ErrorCode ERR_SEARCH_INDEX_REBUILD_FAILED =
@@ -998,4 +1016,11 @@ public interface NopMetadataErrors {
             ErrorCode.define("nop.err.metadata.search-engine-unavailable",
                     "Search engine is not available: {error}",
                     ARG_ERROR);
+
+    // ===== Sync =====
+
+    ErrorCode ERR_DIALECT_NOT_SUPPORTED =
+            ErrorCode.define("nop.err.metadata.dialect-not-supported",
+                    "Dialect not supported: {databaseProductName} -- {error}",
+                    ARG_DATABASE_PRODUCT_NAME, ARG_ERROR);
 }

@@ -59,9 +59,12 @@ public class MetaManifestBuilder {
                                      long manifestVersion,
                                      Date now) {
         if (module == null)
-            throw new NopMetadataException(NopMetadataErrors.ERR_MANIFEST_BUILD_FAILED);
+            throw new NopMetadataException(NopMetadataErrors.ERR_MANIFEST_MODULE_NULL)
+                    .param(NopMetadataErrors.ARG_META_MODULE_ID, "null");
         if (fullOrmModel == null)
-            throw new NopMetadataException("fullOrmModel must not be null (module has no full ORM model)");
+            throw new NopMetadataException(NopMetadataErrors.ERR_MANIFEST_ORM_MODEL_NULL)
+                    .param(NopMetadataErrors.ARG_META_MODULE_ID,
+                            module != null ? module.getModuleId() : "null");
 
         String moduleId = module.getModuleId();
         String normalizedModuleId = normalizeModuleId(moduleId);

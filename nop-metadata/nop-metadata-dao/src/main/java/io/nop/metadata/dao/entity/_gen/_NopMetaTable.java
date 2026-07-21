@@ -85,9 +85,9 @@ public class _NopMetaTable extends DynamicOrmEntity{
     public static final String PROP_NAME_remark = "remark";
     public static final int PROP_ID_remark = 16;
     
-    /* 源schema: SCHEMA VARCHAR */
-    public static final String PROP_NAME_schema = "schema";
-    public static final int PROP_ID_schema = 17;
+    /* 源schema: META_SCHEMA VARCHAR */
+    public static final String PROP_NAME_metaSchema = "metaSchema";
+    public static final int PROP_ID_metaSchema = 17;
     
     /* 业务域ID: BUSINESS_DOMAIN_ID VARCHAR */
     public static final String PROP_NAME_businessDomainId = "businessDomainId";
@@ -201,8 +201,8 @@ public class _NopMetaTable extends DynamicOrmEntity{
           PROP_ID_TO_NAME[PROP_ID_remark] = PROP_NAME_remark;
           PROP_NAME_TO_ID.put(PROP_NAME_remark, PROP_ID_remark);
       
-          PROP_ID_TO_NAME[PROP_ID_schema] = PROP_NAME_schema;
-          PROP_NAME_TO_ID.put(PROP_NAME_schema, PROP_ID_schema);
+          PROP_ID_TO_NAME[PROP_ID_metaSchema] = PROP_NAME_metaSchema;
+          PROP_NAME_TO_ID.put(PROP_NAME_metaSchema, PROP_ID_metaSchema);
       
           PROP_ID_TO_NAME[PROP_ID_businessDomainId] = PROP_NAME_businessDomainId;
           PROP_NAME_TO_ID.put(PROP_NAME_businessDomainId, PROP_ID_businessDomainId);
@@ -258,8 +258,8 @@ public class _NopMetaTable extends DynamicOrmEntity{
     /* 备注: REMARK */
     private java.lang.String _remark;
     
-    /* 源schema: SCHEMA */
-    private java.lang.String _schema;
+    /* 源schema: META_SCHEMA */
+    private java.lang.String _metaSchema;
     
     /* 业务域ID: BUSINESS_DOMAIN_ID */
     private java.lang.String _businessDomainId;
@@ -386,8 +386,8 @@ public class _NopMetaTable extends DynamicOrmEntity{
             case PROP_ID_remark:
                return getRemark();
         
-            case PROP_ID_schema:
-               return getSchema();
+            case PROP_ID_metaSchema:
+               return getMetaSchema();
         
             case PROP_ID_businessDomainId:
                return getBusinessDomainId();
@@ -563,13 +563,13 @@ public class _NopMetaTable extends DynamicOrmEntity{
                break;
             }
         
-            case PROP_ID_schema:{
+            case PROP_ID_metaSchema:{
                java.lang.String typedValue = null;
                if(value != null){
                    typedValue = ConvertHelper.toString(value,
-                       err-> newTypeConversionError(PROP_NAME_schema));
+                       err-> newTypeConversionError(PROP_NAME_metaSchema));
                }
-               setSchema(typedValue);
+               setMetaSchema(typedValue);
                break;
             }
         
@@ -704,9 +704,9 @@ public class _NopMetaTable extends DynamicOrmEntity{
                break;
             }
         
-            case PROP_ID_schema:{
+            case PROP_ID_metaSchema:{
                onInitProp(propId);
-               this._schema = (java.lang.String)value;
+               this._metaSchema = (java.lang.String)value;
                
                break;
             }
@@ -1029,20 +1029,20 @@ public class _NopMetaTable extends DynamicOrmEntity{
     }
     
     /**
-     * 源schema: SCHEMA
+     * 源schema: META_SCHEMA
      */
-    public final java.lang.String getSchema(){
-         onPropGet(PROP_ID_schema);
-         return _schema;
+    public final java.lang.String getMetaSchema(){
+         onPropGet(PROP_ID_metaSchema);
+         return _metaSchema;
     }
 
     /**
-     * 源schema: SCHEMA
+     * 源schema: META_SCHEMA
      */
-    public final void setSchema(java.lang.String value){
-        if(onPropSet(PROP_ID_schema,value)){
-            this._schema = value;
-            internalClearRefs(PROP_ID_schema);
+    public final void setMetaSchema(java.lang.String value){
+        if(onPropSet(PROP_ID_metaSchema,value)){
+            this._metaSchema = value;
+            internalClearRefs(PROP_ID_metaSchema);
             
         }
     }

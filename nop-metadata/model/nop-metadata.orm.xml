@@ -300,42 +300,42 @@
                 </to-one>
                 <to-many displayName="ORM模型集" name="ormModels"
                          refEntityName="io.nop.metadata.dao.entity.NopMetaOrmModel" refPropName="metaModule"
-                         tagSet="pub,ref-pub" i18n-en:displayName="ORM Models">
+                         tagSet="pub,ref-pub" cascadeDelete="true" i18n-en:displayName="ORM Models">
                     <join>
                         <on leftProp="metaModuleId" rightProp="metaModuleId"/>
                     </join>
                 </to-many>
                 <to-many displayName="逻辑表集" name="tables"
                          refEntityName="io.nop.metadata.dao.entity.NopMetaTable" refPropName="metaModule"
-                         tagSet="pub,ref-pub" i18n-en:displayName="Tables">
+                         tagSet="pub,ref-pub" cascadeDelete="true" i18n-en:displayName="Tables">
                     <join>
                         <on leftProp="metaModuleId" rightProp="metaModuleId"/>
                     </join>
                 </to-many>
                 <to-many displayName="数据管道集" name="pipelines"
                          refEntityName="io.nop.metadata.dao.entity.NopMetaPipeline" refPropName="metaModule"
-                         tagSet="pub,ref-pub" i18n-en:displayName="Pipelines">
+                         tagSet="pub,ref-pub" cascadeDelete="true" i18n-en:displayName="Pipelines">
                     <join>
                         <on leftProp="metaModuleId" rightProp="metaModuleId"/>
                     </join>
                 </to-many>
                 <to-many displayName="质量检查点集" name="qualityCheckpoints"
                          refEntityName="io.nop.metadata.dao.entity.NopMetaQualityCheckpoint" refPropName="metaModule"
-                         tagSet="pub,ref-pub" i18n-en:displayName="Quality Checkpoints">
+                         tagSet="pub,ref-pub" cascadeDelete="true" i18n-en:displayName="Quality Checkpoints">
                     <join>
                         <on leftProp="metaModuleId" rightProp="metaModuleId"/>
                     </join>
                 </to-many>
                 <to-many displayName="元数据快照集" name="manifests"
                          refEntityName="io.nop.metadata.dao.entity.NopMetaManifest" refPropName="metaModule"
-                         tagSet="pub,ref-pub" i18n-en:displayName="Manifests">
+                         tagSet="pub,ref-pub" cascadeDelete="true" i18n-en:displayName="Manifests">
                     <join>
                         <on leftProp="metaModuleId" rightProp="metaModuleId"/>
                     </join>
                 </to-many>
                 <to-many displayName="对账配置集" name="reconciliationConfigs"
                          refEntityName="io.nop.metadata.dao.entity.NopMetaReconciliationConfig" refPropName="metaModule"
-                         tagSet="pub,ref-pub" i18n-en:displayName="Reconciliation Configs">
+                         tagSet="pub,ref-pub" cascadeDelete="true" i18n-en:displayName="Reconciliation Configs">
                     <join>
                         <on leftProp="metaModuleId" rightProp="metaModuleId"/>
                     </join>
@@ -453,21 +453,21 @@
                 </to-one>
                 <to-many displayName="元数据实体集" name="entities"
                          refEntityName="io.nop.metadata.dao.entity.NopMetaEntity" refPropName="ormModel"
-                         tagSet="pub,ref-pub" i18n-en:displayName="Entities">
+                         tagSet="pub,ref-pub" cascadeDelete="true" i18n-en:displayName="Entities">
                     <join>
                         <on leftProp="ormModelId" rightProp="ormModelId"/>
                     </join>
                 </to-many>
                 <to-many displayName="域定义集" name="domains"
                          refEntityName="io.nop.metadata.dao.entity.NopMetaDomain" refPropName="ormModel"
-                         tagSet="pub,ref-pub" i18n-en:displayName="Domains">
+                         tagSet="pub,ref-pub" cascadeDelete="true" i18n-en:displayName="Domains">
                     <join>
                         <on leftProp="ormModelId" rightProp="ormModelId"/>
                     </join>
                 </to-many>
                 <to-many displayName="字典集" name="dicts"
                          refEntityName="io.nop.metadata.dao.entity.NopMetaDict" refPropName="ormModel"
-                         tagSet="pub,ref-pub" i18n-en:displayName="Dicts">
+                         tagSet="pub,ref-pub" cascadeDelete="true" i18n-en:displayName="Dicts">
                     <join>
                         <on leftProp="ormModelId" rightProp="ormModelId"/>
                     </join>
@@ -622,28 +622,28 @@
                 </to-one>
                 <to-many displayName="实体字段集" name="entityFields"
                          refEntityName="io.nop.metadata.dao.entity.NopMetaEntityField" refPropName="metaEntity"
-                         tagSet="pub,ref-pub" i18n-en:displayName="Entity Fields">
+                         tagSet="pub,ref-pub" cascadeDelete="true" i18n-en:displayName="Entity Fields">
                     <join>
                         <on leftProp="metaEntityId" rightProp="metaEntityId"/>
                     </join>
                 </to-many>
                 <to-many displayName="实体关系集" name="entityRelations"
                          refEntityName="io.nop.metadata.dao.entity.NopMetaEntityRelation" refPropName="metaEntity"
-                         tagSet="pub,ref-pub" i18n-en:displayName="Entity Relations">
+                         tagSet="pub,ref-pub" cascadeDelete="true" i18n-en:displayName="Entity Relations">
                     <join>
                         <on leftProp="metaEntityId" rightProp="metaEntityId"/>
                     </join>
                 </to-many>
                 <to-many displayName="实体唯一键集" name="entityUniqueKeys"
                          refEntityName="io.nop.metadata.dao.entity.NopMetaEntityUniqueKey" refPropName="metaEntity"
-                         tagSet="pub,ref-pub" i18n-en:displayName="Entity Unique Keys">
+                         tagSet="pub,ref-pub" cascadeDelete="true" i18n-en:displayName="Entity Unique Keys">
                     <join>
                         <on leftProp="metaEntityId" rightProp="metaEntityId"/>
                     </join>
                 </to-many>
                 <to-many displayName="实体索引集" name="entityIndexes"
                          refEntityName="io.nop.metadata.dao.entity.NopMetaEntityIndex" refPropName="metaEntity"
-                         tagSet="pub,ref-pub" i18n-en:displayName="Entity Indexes">
+                         tagSet="pub,ref-pub" cascadeDelete="true" i18n-en:displayName="Entity Indexes">
                     <join>
                         <on leftProp="metaEntityId" rightProp="metaEntityId"/>
                     </join>
@@ -1141,7 +1141,7 @@
                 </to-one>
                 <to-many displayName="字典项集" name="dictItems"
                          refEntityName="io.nop.metadata.dao.entity.NopMetaDictItem" refPropName="metaDict"
-                         tagSet="pub,ref-pub" i18n-en:displayName="Dict Items">
+                         tagSet="pub,ref-pub" cascadeDelete="true" i18n-en:displayName="Dict Items">
                     <join>
                         <on leftProp="metaDictId" rightProp="metaDictId"/>
                     </join>
@@ -1278,8 +1278,8 @@
                         i18n-en:displayName="Update Time"/>
                 <column code="REMARK" displayName="备注" domain="remark" name="remark" precision="200" propId="16"
                         stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Remark"/>
-                <column code="SCHEMA" displayName="源schema" name="schema" precision="100" propId="17"
-                        stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Schema"/>
+                <column code="META_SCHEMA" displayName="源schema" name="metaSchema" precision="100" propId="17"
+                        stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Meta Schema"/>
                 <column code="BUSINESS_DOMAIN_ID" displayName="业务域ID" name="businessDomainId" precision="32"
                         propId="18" stdDataType="string" stdSqlType="VARCHAR"
                         i18n-en:displayName="Business Domain Id"/>
@@ -1298,105 +1298,105 @@
                 </to-one>
                 <to-many displayName="表维度集" name="dimensions"
                          refEntityName="io.nop.metadata.dao.entity.NopMetaTableDimension" refPropName="metaTable"
-                         tagSet="pub,ref-pub" i18n-en:displayName="Dimensions">
+                         tagSet="pub,ref-pub" cascadeDelete="true" i18n-en:displayName="Dimensions">
                     <join>
                         <on leftProp="metaTableId" rightProp="metaTableId"/>
                     </join>
                 </to-many>
                 <to-many displayName="表指标集" name="measures"
                          refEntityName="io.nop.metadata.dao.entity.NopMetaTableMeasure" refPropName="metaTable"
-                         tagSet="pub,ref-pub" i18n-en:displayName="Measures">
+                         tagSet="pub,ref-pub" cascadeDelete="true" i18n-en:displayName="Measures">
                     <join>
                         <on leftProp="metaTableId" rightProp="metaTableId"/>
                     </join>
                 </to-many>
                 <to-many displayName="表过滤器集" name="filters"
                          refEntityName="io.nop.metadata.dao.entity.NopMetaTableFilter" refPropName="metaTable"
-                         tagSet="pub,ref-pub" i18n-en:displayName="Filters">
+                         tagSet="pub,ref-pub" cascadeDelete="true" i18n-en:displayName="Filters">
                     <join>
                         <on leftProp="metaTableId" rightProp="metaTableId"/>
                     </join>
                 </to-many>
                 <to-many displayName="表关联集" name="joins"
                          refEntityName="io.nop.metadata.dao.entity.NopMetaTableJoin" refPropName="metaTable"
-                         tagSet="pub,ref-pub" i18n-en:displayName="Joins">
+                         tagSet="pub,ref-pub" cascadeDelete="true" i18n-en:displayName="Joins">
                     <join>
                         <on leftProp="metaTableId" rightProp="metaTableId"/>
                     </join>
                 </to-many>
                 <to-many displayName="作为左表的关联集" name="joinAsLeftTable"
                          refEntityName="io.nop.metadata.dao.entity.NopMetaTableJoin" refPropName="leftTable"
-                         tagSet="pub,ref-pub" i18n-en:displayName="Joins As Left Table">
+                         tagSet="pub,ref-pub" cascadeDelete="true" i18n-en:displayName="Joins As Left Table">
                     <join>
                         <on leftProp="metaTableId" rightProp="leftTableId"/>
                     </join>
                 </to-many>
                 <to-many displayName="作为右表的关联集" name="joinAsRightTable"
                          refEntityName="io.nop.metadata.dao.entity.NopMetaTableJoin" refPropName="rightTable"
-                         tagSet="pub,ref-pub" i18n-en:displayName="Joins As Right Table">
+                         tagSet="pub,ref-pub" cascadeDelete="true" i18n-en:displayName="Joins As Right Table">
                     <join>
                         <on leftProp="metaTableId" rightProp="rightTableId"/>
                     </join>
                 </to-many>
                 <to-many displayName="作为血缘源表的边集" name="lineageAsSource"
                          refEntityName="io.nop.metadata.dao.entity.NopMetaLineageEdge" refPropName="sourceTable"
-                         tagSet="pub,ref-pub" i18n-en:displayName="Lineage As Source">
+                         tagSet="pub,ref-pub" cascadeDelete="true" i18n-en:displayName="Lineage As Source">
                     <join>
                         <on leftProp="metaTableId" rightProp="sourceTableId"/>
                     </join>
                 </to-many>
                 <to-many displayName="作为血缘目标表的边集" name="lineageAsTarget"
                          refEntityName="io.nop.metadata.dao.entity.NopMetaLineageEdge" refPropName="targetTable"
-                         tagSet="pub,ref-pub" i18n-en:displayName="Lineage As Target">
+                         tagSet="pub,ref-pub" cascadeDelete="true" i18n-en:displayName="Lineage As Target">
                     <join>
                         <on leftProp="metaTableId" rightProp="targetTableId"/>
                     </join>
                 </to-many>
                 <to-many displayName="运行时统计快照集" name="catalogs"
                          refEntityName="io.nop.metadata.dao.entity.NopMetaCatalog" refPropName="metaTable"
-                         tagSet="pub,ref-pub" i18n-en:displayName="Catalogs">
+                         tagSet="pub,ref-pub" cascadeDelete="true" i18n-en:displayName="Catalogs">
                     <join>
                         <on leftProp="metaTableId" rightProp="metaTableId"/>
                     </join>
                 </to-many>
                 <to-many displayName="数据剖析规则集" name="profilingRules"
                          refEntityName="io.nop.metadata.dao.entity.NopMetaProfilingRule" refPropName="metaTable"
-                         tagSet="pub,ref-pub" i18n-en:displayName="Profiling Rules">
+                         tagSet="pub,ref-pub" cascadeDelete="true" i18n-en:displayName="Profiling Rules">
                     <join>
                         <on leftProp="metaTableId" rightProp="metaTableId"/>
                     </join>
                 </to-many>
                 <to-many displayName="数据剖析结果集" name="profilingResults"
                          refEntityName="io.nop.metadata.dao.entity.NopMetaProfilingResult" refPropName="metaTable"
-                         tagSet="pub,ref-pub" i18n-en:displayName="Profiling Results">
+                         tagSet="pub,ref-pub" cascadeDelete="true" i18n-en:displayName="Profiling Results">
                     <join>
                         <on leftProp="metaTableId" rightProp="metaTableId"/>
                     </join>
                 </to-many>
                 <to-many displayName="质量评分集" name="qualityScores"
                          refEntityName="io.nop.metadata.dao.entity.NopMetaQualityScore" refPropName="metaTable"
-                         tagSet="pub,ref-pub" i18n-en:displayName="Quality Scores">
+                         tagSet="pub,ref-pub" cascadeDelete="true" i18n-en:displayName="Quality Scores">
                     <join>
                         <on leftProp="metaTableId" rightProp="metaTableId"/>
                     </join>
                 </to-many>
                 <to-many displayName="数据契约集" name="dataContracts"
                          refEntityName="io.nop.metadata.dao.entity.NopMetaDataContract" refPropName="metaTable"
-                         tagSet="pub,ref-pub" i18n-en:displayName="Data Contracts">
+                         tagSet="pub,ref-pub" cascadeDelete="true" i18n-en:displayName="Data Contracts">
                     <join>
                         <on leftProp="metaTableId" rightProp="entityTableId"/>
                     </join>
                 </to-many>
                 <to-many displayName="对账配置集" name="reconciliationConfigs"
                          refEntityName="io.nop.metadata.dao.entity.NopMetaReconciliationConfig" refPropName="metaTable"
-                         tagSet="pub,ref-pub" i18n-en:displayName="Reconciliation Configs">
+                         tagSet="pub,ref-pub" cascadeDelete="true" i18n-en:displayName="Reconciliation Configs">
                     <join>
                         <on leftProp="metaTableId" rightProp="metaTableId"/>
                     </join>
                 </to-many>
                 <to-many displayName="对账结果集" name="reconciliationResults"
                          refEntityName="io.nop.metadata.dao.entity.NopMetaReconciliationResult" refPropName="metaTable"
-                         tagSet="pub,ref-pub" i18n-en:displayName="Reconciliation Results">
+                         tagSet="pub,ref-pub" cascadeDelete="true" i18n-en:displayName="Reconciliation Results">
                     <join>
                         <on leftProp="metaTableId" rightProp="metaTableId"/>
                     </join>
@@ -1411,7 +1411,7 @@
                 </index>
                 <index name="IX_NOP_META_TABLE_LOOKUP" unique="false">
                     <column name="metaModuleId"/>
-                    <column name="schema"/>
+                    <column name="metaSchema"/>
                     <column name="tableName"/>
                 </index>
             </indexes>
@@ -1805,7 +1805,7 @@
                 </to-one>
                 <to-many displayName="血缘边集" name="lineageEdges"
                          refEntityName="io.nop.metadata.dao.entity.NopMetaLineageEdge" refPropName="pipeline"
-                         tagSet="pub,ref-pub" i18n-en:displayName="Lineage Edges">
+                         tagSet="pub,ref-pub" cascadeDelete="true" i18n-en:displayName="Lineage Edges">
                     <join>
                         <on leftProp="pipelineId" rightProp="pipelineId"/>
                     </join>
@@ -1985,7 +1985,7 @@
             <relations>
                 <to-many displayName="质量结果集" name="results"
                          refEntityName="io.nop.metadata.dao.entity.NopMetaQualityResult" refPropName="qualityRule"
-                         tagSet="pub,ref-pub" i18n-en:displayName="Quality Results">
+                         tagSet="pub,ref-pub" cascadeDelete="true" i18n-en:displayName="Quality Results">
                     <join>
                         <on leftProp="qualityRuleId" rightProp="qualityRuleId"/>
                     </join>
@@ -2317,7 +2317,7 @@
                 </to-one>
                 <to-many displayName="剖析结果集" name="results"
                          refEntityName="io.nop.metadata.dao.entity.NopMetaProfilingResult" refPropName="profilingRule"
-                         tagSet="pub,ref-pub" i18n-en:displayName="Profiling Results">
+                         tagSet="pub,ref-pub" cascadeDelete="true" i18n-en:displayName="Profiling Results">
                     <join>
                         <on leftProp="profilingRuleId" rightProp="profilingRuleId"/>
                     </join>
@@ -2568,7 +2568,7 @@
                 </to-one>
                 <to-many displayName="对账结果集" name="results"
                          refEntityName="io.nop.metadata.dao.entity.NopMetaReconciliationResult" refPropName="config"
-                         tagSet="pub,ref-pub" i18n-en:displayName="Reconciliation Results">
+                         tagSet="pub,ref-pub" cascadeDelete="true" i18n-en:displayName="Reconciliation Results">
                     <join>
                         <on leftProp="configId" rightProp="configId"/>
                     </join>
@@ -3085,7 +3085,7 @@
             <relations>
                 <to-many displayName="标签集" name="tags"
                          refEntityName="io.nop.metadata.dao.entity.NopMetaTag" refPropName="classification"
-                         tagSet="pub,ref-pub" i18n-en:displayName="Tags">
+                         tagSet="pub,ref-pub" cascadeDelete="true" i18n-en:displayName="Tags">
                     <join>
                         <on leftProp="classificationId" rightProp="classificationId"/>
                     </join>

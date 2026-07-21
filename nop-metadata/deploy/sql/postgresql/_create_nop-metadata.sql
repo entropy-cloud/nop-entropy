@@ -208,7 +208,7 @@ CREATE TABLE nop_meta_table(
   updated_by VARCHAR(50) NOT NULL ,
   update_time TIMESTAMP NOT NULL ,
   remark VARCHAR(200)  ,
-  schema VARCHAR(100)  ,
+  meta_schema VARCHAR(100)  ,
   business_domain_id VARCHAR(32)  ,
   constraint PK_nop_meta_table primary key (meta_table_id)
 );
@@ -1182,7 +1182,7 @@ CREATE TABLE nop_meta_reconciliation_result(
                     
       COMMENT ON COLUMN nop_meta_table.remark IS '备注';
                     
-      COMMENT ON COLUMN nop_meta_table.schema IS '源schema';
+      COMMENT ON COLUMN nop_meta_table.meta_schema IS '源schema';
                     
       COMMENT ON COLUMN nop_meta_table.business_domain_id IS '业务域ID';
                     

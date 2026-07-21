@@ -66,7 +66,7 @@ public class TestEntityTableExecution extends JunitBaseTestCase {
         String tableId = prepareEntityTable();
 
         GraphQLResponseBean resp = graphQLEngine.executeGraphQL(graphQLEngine.newGraphQLContext(req(
-                "mutation { NopMetaDataSource__collectCatalogForTable(metaTableId: \"" + tableId + "\") { tableCount tables { tableName schema tableType rowCount sizeBytes } errors { code message detail } } }")));
+                "mutation { NopMetaDataSource__collectCatalogForTable(metaTableId: \"" + tableId + "\") { tableCount tables { tableName metaSchema tableType rowCount sizeBytes } errors { code message detail } } }")));
         assertFalse(resp.hasError(), "entity catalog should not error: " + resp);
 
         NopMetaCatalog row = findCatalogRow(tableId);

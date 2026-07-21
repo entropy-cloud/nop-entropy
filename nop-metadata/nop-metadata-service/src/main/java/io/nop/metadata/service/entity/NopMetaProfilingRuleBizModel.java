@@ -154,7 +154,7 @@ public class NopMetaProfilingRuleBizModel extends CrudBizModel<NopMetaProfilingR
         if (schemaPattern != null && !schemaPattern.trim().isEmpty()) {
             return schemaPattern;
         }
-        return table.getSchema();
+        return table.getMetaSchema();
     }
 
     /** 追加一行 NopMetaProfilingResult（时序语义：snapshotTime=now，不覆盖）。 */

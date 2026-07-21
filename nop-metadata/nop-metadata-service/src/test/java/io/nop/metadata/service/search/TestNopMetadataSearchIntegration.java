@@ -1,6 +1,7 @@
 package io.nop.metadata.service.search;
 
 import io.nop.dao.api.IEntityDao;
+import io.nop.api.core.exceptions.NopException;
 import io.nop.metadata.core.dto.IndexResult;
 import io.nop.metadata.core.dto.SearchResultDTO;
 import io.nop.metadata.dao.entity.NopMetaClassification;
@@ -123,6 +124,20 @@ class TestNopMetadataSearchIntegration {
         assertEquals("nop-meta-metadata", req.getTopic());
         assertNull(req.getTags());
         assertEquals(20, req.getLimit());
+    }
+
+    @Test
+    void testSearchMetadata_engineNull() {
+        searchBiz.searchEngine = null;
+        assertThrows(NopException.class,
+                () -> searchBiz.searchMetadata("test", null, null, null));
+    }
+
+    @Test
+    void testRebuildSearchIndex_engineNull() {
+        searchBiz.searchEngine = null;
+        assertThrows(NopException.class,
+                () -> searchBiz.rebuildSearchIndex(null, null));
     }
 
     @Test

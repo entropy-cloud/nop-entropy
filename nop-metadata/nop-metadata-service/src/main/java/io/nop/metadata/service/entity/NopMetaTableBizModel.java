@@ -822,7 +822,7 @@ public class NopMetaTableBizModel extends CrudBizModel<NopMetaTable> implements 
         if (schemaPattern != null && !schemaPattern.trim().isEmpty()) {
             return schemaPattern;
         }
-        return table.getSchema();
+        return table.getMetaSchema();
     }
 
     /** 解析目标表：metaTableId → NopMetaTable；不存在/非 external 显式失败。 */

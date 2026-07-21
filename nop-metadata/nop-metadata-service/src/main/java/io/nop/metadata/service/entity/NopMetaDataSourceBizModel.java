@@ -280,7 +280,7 @@ public class NopMetaDataSourceBizModel extends CrudBizModel<NopMetaDataSource> i
                             appendCatalogRow(table.getMetaTableId(), stats);
                             CollectCatalogTableDTO tableDTO = new CollectCatalogTableDTO();
                             tableDTO.setTableName(table.getTableName());
-                            tableDTO.setSchema(table.getSchema());
+                            tableDTO.setMetaSchema(table.getMetaSchema());
                             tableDTO.setTableType(table.getTableType());
                             tableDTO.setRowCount(stats.getRowCount());
                             tableDTO.setSizeBytes(stats.getSizeBytes());
@@ -352,7 +352,7 @@ public class NopMetaDataSourceBizModel extends CrudBizModel<NopMetaDataSource> i
         result.setTableCount(1);
         CollectCatalogTableDTO tableDTO = new CollectCatalogTableDTO();
         tableDTO.setTableName(table.getTableName());
-        tableDTO.setSchema(table.getSchema());
+        tableDTO.setMetaSchema(table.getMetaSchema());
         tableDTO.setTableType(table.getTableType());
         tableDTO.setRowCount(stats.getRowCount());
         tableDTO.setSizeBytes(stats.getSizeBytes());
@@ -374,7 +374,7 @@ public class NopMetaDataSourceBizModel extends CrudBizModel<NopMetaDataSource> i
         if (schemaPattern != null && !schemaPattern.trim().isEmpty()) {
             return schemaPattern;
         }
-        return table.getSchema();
+        return table.getMetaSchema();
     }
 
     /** 延迟初始化 TableReferenceExecutor（需 orm()，构造时 orm 不可用）。 */
@@ -452,7 +452,7 @@ public class NopMetaDataSourceBizModel extends CrudBizModel<NopMetaDataSource> i
         String infoSchema = normalizeSchemaForMatch(info.getSchema());
         NopMetaTable table = null;
         for (NopMetaTable candidate : candidates) {
-            if (java.util.Objects.equals(normalizeSchemaForMatch(candidate.getSchema()), infoSchema)) {
+            if (java.util.Objects.equals(normalizeSchemaForMatch(candidate.getMetaSchema()), infoSchema)) {
                 table = candidate;
                 break;
             }
@@ -464,7 +464,7 @@ public class NopMetaDataSourceBizModel extends CrudBizModel<NopMetaDataSource> i
             table = tableDao.newEntity();
             table.setMetaModuleId(metaModuleId);
             table.setTableName(info.getTableName());
-            table.setSchema(info.getSchema());
+            table.setMetaSchema(info.getSchema());
             table.setDisplayName(info.getTableName());
             table.setTableType(_NopMetadataCoreConstants.TABLE_TYPE_EXTERNAL);
             table.setQuerySpace(dataSource.getQuerySpace());
@@ -472,7 +472,7 @@ public class NopMetaDataSourceBizModel extends CrudBizModel<NopMetaDataSource> i
             table.setBuildSql(columnsJson);
             tableDao.saveEntity(table);
         } else {
-            table.setSchema(info.getSchema());
+            table.setMetaSchema(info.getSchema());
             table.setQuerySpace(dataSource.getQuerySpace());
             table.setDescription(info.getRemark());
             table.setBuildSql(columnsJson);
