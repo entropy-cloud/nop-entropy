@@ -886,6 +886,38 @@ public interface NopMetadataErrors {
                     "Unknown or unsupported labelType for approval trigger: {labelType}",
                     ARG_LABEL_TYPE);
 
+    // ===== Propagation (propagation) =====
+
+    ErrorCode ERR_PROPAGATE_UNSUPPORTED_ENTITY_TYPE =
+            ErrorCode.define("nop.err.metadata.propagate-unsupported-entity-type",
+                    "Tag propagation only supports entityType=NopMetaTable, got: {entityType}",
+                    ARG_ENTITY_TYPE);
+    ErrorCode ERR_PROPAGATE_DEPTH_EXCEEDED =
+            ErrorCode.define("nop.err.metadata.propagate-depth-exceeded",
+                    "Lineage propagation depth exceeded max (3) at entityType={entityType} entityId={entityId} depth={depth}",
+                    ARG_ENTITY_TYPE, ARG_ENTITY_ID);
+
+    String ARG_DEPTH = "depth";
+    String ARG_CLASSIFICATION_ID = "classificationId";
+
+    // ===== AutoClassification (auto-classify) =====
+
+    ErrorCode ERR_AUTOCLASSIFY_UNSUPPORTED_ENTITY_TYPE =
+            ErrorCode.define("nop.err.metadata.autoclassify-unsupported-entity-type",
+                    "Auto-classification only supports entityType=NopMetaTable, got: {entityType}",
+                    ARG_ENTITY_TYPE);
+    ErrorCode ERR_AUTOCLASSIFY_UNSUPPORTED_TABLE_TYPE =
+            ErrorCode.define("nop.err.metadata.autoclassify-unsupported-table-type",
+                    "Auto-classification only supports tableType=entity, got: {tableType}",
+                    ARG_TABLE_TYPE);
+
+    String ARG_AUTO_CLASSIFICATION_CONFIG = "autoClassificationConfig";
+    String ARG_CONFIG = "config";
+    String ARG_PATTERN = "pattern";
+    String ARG_TAG_FQN = "tagFQN";
+    String ARG_PRIORITY = "priority";
+    String ARG_FIELD_TYPE_FILTER = "fieldTypeFilter";
+
     // ===== DataProduct link-asset =====
 
     ErrorCode ERR_LINK_ASSET_NOT_FOUND =

@@ -13,3 +13,11 @@ options:
     value: Glossary
     description: 
   
+  - label: 血缘传播
+    value: lineage-propagation
+    description: 
+  
+  - label: 自动分类
+    value: auto-classify
+    description: 
+  

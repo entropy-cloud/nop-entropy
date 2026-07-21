@@ -409,6 +409,16 @@ public interface _NopMetadataCoreConstants {
     String TAG_LABEL_SOURCE_GLOSSARY = "Glossary";
                     
     /**
+     * 标签标注来源: 血缘传播 
+     */
+    String TAG_LABEL_SOURCE_LINEAGE_PROPAGATION = "lineage-propagation";
+                    
+    /**
+     * 标签标注来源: 自动分类 
+     */
+    String TAG_LABEL_SOURCE_AUTO_CLASSIFY = "auto-classify";
+                    
+    /**
      * 标签标注类型: 手动标注 
      */
     String TAG_LABEL_TYPE_MANUAL = "Manual";

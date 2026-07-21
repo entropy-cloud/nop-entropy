@@ -145,6 +145,9 @@
         <dict label="标签标注来源" name="meta/tag-label-source" valueType="string" i18n-en:label="Tag Label Source">
             <option code="CLASSIFICATION" label="分类标签" value="Classification" i18n-en:label="Classification"/>
             <option code="GLOSSARY" label="业务术语" value="Glossary" i18n-en:label="Glossary"/>
+            <option code="LINEAGE_PROPAGATION" label="血缘传播" value="lineage-propagation"
+                    i18n-en:label="Lineage Propagation"/>
+            <option code="AUTO_CLASSIFY" label="自动分类" value="auto-classify" i18n-en:label="Auto Classification"/>
         </dict>
         <dict label="标签标注类型" name="meta/tag-label-type" valueType="string" i18n-en:label="Tag Label Type">
             <option code="MANUAL" label="手动标注" value="Manual" i18n-en:label="Manual"/>

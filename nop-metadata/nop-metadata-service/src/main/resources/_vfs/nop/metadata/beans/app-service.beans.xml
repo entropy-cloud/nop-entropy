@@ -54,4 +54,18 @@
     <!-- 元数据搜索 GraphQL BizModel（plan 312 Phase 4）：searchMetadata query + rebuildSearchIndex mutation。 -->
     <bean id="io.nop.metadata.service.search.NopMetaSearchBizModel"
           class="io.nop.metadata.service.search.NopMetaSearchBizModel" ioc:type="@bean:id" ioc:default="true"/>
+
+    <!-- 血缘驱动 TagLabel 传播服务（plan Phase 4） -->
+    <bean id="io.nop.metadata.service.entity.LineageTagPropagationService"
+          class="io.nop.metadata.service.entity.LineageTagPropagationService" ioc:default="true">
+        <property name="daoProvider" ref="nopDaoProvider"/>
+        <property name="bizObjectManager" ref="nopBizObjectManager"/>
+    </bean>
+
+    <!-- AutoClassification 规则引擎（plan Phase 4） -->
+    <bean id="io.nop.metadata.service.entity.AutoClassificationService"
+          class="io.nop.metadata.service.entity.AutoClassificationService" ioc:default="true">
+        <property name="daoProvider" ref="nopDaoProvider"/>
+        <property name="bizObjectManager" ref="nopBizObjectManager"/>
+    </bean>
 </beans>

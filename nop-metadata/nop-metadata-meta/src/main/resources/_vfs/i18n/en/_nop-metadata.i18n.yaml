@@ -1,5 +1,6 @@
 entity:
   label:
+    MetadataPropagation: null
     NopMetaBusinessDomain: Meta Business Domain
     NopMetaCatalog: Meta Catalog
     NopMetaClassification: Meta Classification
@@ -41,6 +42,8 @@ entity:
     NopMetaTagLabel: Meta Tag Label
 prop:
   label:
+    MetadataPropagation: {
+      }
     NopMetaBusinessDomain:
       businessDomainId: Business Domain Id
       parentDomainId: Parent Domain Id
@@ -1121,6 +1124,8 @@ dict.option.label:
   meta/tag-label-source:
     Classification: Classification
     Glossary: Glossary
+    lineage-propagation: Lineage Propagation
+    auto-classify: Auto Classification
   meta/tag-label-type:
     Manual: Manual
     Propagated: Propagated
