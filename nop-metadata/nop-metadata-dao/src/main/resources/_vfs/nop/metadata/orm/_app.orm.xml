@@ -379,6 +379,7 @@
             <unique-keys>
                 <unique-key columns="querySpace" name="UK_NOP_META_DS_QUERY_SPACE"
                             i18n-en:displayName="Unique Query Space"/>
+                <unique-key columns="name" name="uk_meta_datasource_name" i18n-en:displayName="Unique Datasource Name"/>
             </unique-keys>
         </entity>
         <entity className="io.nop.metadata.dao.entity.NopMetaOrmModel" createTimeProp="createTime"
@@ -1173,7 +1174,7 @@
                 <index name="IX_NOP_META_TABLE_BUSINESS_DOMAIN" unique="false">
                     <column name="businessDomainId"/>
                 </index>
-                <index name="IX_NOP_META_TABLE_LOOKUP" unique="false">
+                <index name="IX_NOP_META_TABLE_MODULE_SCHEMA_NAME" unique="false">
                     <column name="metaModuleId"/>
                     <column name="metaSchema"/>
                     <column name="tableName"/>
@@ -2505,7 +2506,8 @@
                 <column code="ENTITY_NAME" displayName="实体名称" name="entityName" precision="200" propId="5"
                         stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Entity Name"/>
                 <column code="CHANGE_SOURCE" displayName="变更来源" mandatory="true" name="changeSource" precision="30"
-                        propId="6" stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Change Source"/>
+                        propId="6" stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Change Source"
+                        ext:dict="meta/change-source"/>
                 <column code="BEFORE_SNAPSHOT" displayName="变更前快照" domain="mediumtext" name="beforeSnapshot"
                         precision="16777215" propId="7" stdDataType="string" stdDomain="json" stdSqlType="VARCHAR"
                         i18n-en:displayName="Before Snapshot"/>

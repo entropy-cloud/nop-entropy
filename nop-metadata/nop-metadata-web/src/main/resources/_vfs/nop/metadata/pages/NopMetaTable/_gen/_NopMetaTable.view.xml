@@ -64,7 +64,7 @@
                 <col id="remark" sortable="true"/>
 
                 <!--源schema-->
-                <col id="schema" sortable="true"/>
+                <col id="metaSchema" sortable="true"/>
 
                 <!--业务域ID-->
                 <col id="businessDomainId" sortable="true"/>
@@ -83,7 +83,7 @@
  description[描述] buildSql[合成SQL]
  createdBy[创建人] createTime[创建时间]
  updatedBy[修改人] updateTime[修改时间]
- remark[备注] schema[源schema]
+ remark[备注] metaSchema[源schema]
  businessDomainId[业务域ID] 
 </layout>
         </form>
@@ -95,7 +95,7 @@
  tableType[表类型] querySpace[查询空间]
  sourceSql[来源SQL] baseEntityId[主要实体ID]
  description[描述] buildSql[合成SQL]
- remark[备注] schema[源schema]
+ remark[备注] metaSchema[源schema]
  businessDomainId[业务域ID] 
 </layout>
         </form>

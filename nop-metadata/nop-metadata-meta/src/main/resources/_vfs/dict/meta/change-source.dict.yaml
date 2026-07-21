@@ -1,0 +1,7 @@
+#dict label=变更来源
+#dicti18n i18n-en:displayName=Change Source
+
+IMPORT: 导入
+UI: 界面操作
+API: API调用
+SYNC: 同步

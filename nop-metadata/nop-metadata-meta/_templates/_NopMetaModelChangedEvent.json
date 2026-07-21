@@ -6,6 +6,7 @@
   "entityId": "",
   "entityName": "",
   "changeSource": "",
+  "changeSource_label": "",
   "beforeSnapshot": "",
   "afterSnapshot": "",
   "changedBy": "",
