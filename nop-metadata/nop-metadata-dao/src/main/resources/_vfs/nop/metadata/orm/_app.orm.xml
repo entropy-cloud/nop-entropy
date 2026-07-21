@@ -496,6 +496,11 @@
                 <column code="REMARK" displayName="备注" domain="remark" name="remark" precision="200" propId="12"
                         stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Remark"/>
             </columns>
+            <indexes>
+                <index name="IX_NOP_META_SEM_TYPE_NAME" unique="false">
+                    <column name="typeName"/>
+                </index>
+            </indexes>
             <unique-keys>
                 <unique-key columns="typeName" name="UK_NOP_META_SEM_TYPE_NAME"
                             i18n-en:displayName="Unique Semantic Type Name"/>
@@ -2994,6 +2999,14 @@
                 <column code="REMARK" displayName="备注" domain="remark" name="remark" precision="200" propId="15"
                         stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Remark"/>
             </columns>
+            <indexes>
+                <index name="IX_NOP_META_BUSINESS_DOMAIN_PARENT" unique="false">
+                    <column name="parentDomainId"/>
+                </index>
+                <index name="IX_NOP_META_BUSINESS_DOMAIN_DISPLAY_NAME" unique="false">
+                    <column name="displayName"/>
+                </index>
+            </indexes>
             <relations>
                 <to-one displayName="父域" name="parentDomain"
                         refEntityName="io.nop.metadata.dao.entity.NopMetaBusinessDomain" refPropName="childDomains"

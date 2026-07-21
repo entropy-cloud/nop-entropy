@@ -20,6 +20,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.TreeSet;
 
 /**
  * 跨库拼接合并逻辑（plan 300 Phase 3 提取）。
@@ -70,7 +71,7 @@ class CrossDbJoinMerger {
             rightIndex.computeIfAbsent(key, k -> new ArrayList<>()).add(r);
         }
 
-        Set<String> leftKeys = leftRows.isEmpty() ? Collections.emptySet() : new HashSet<>(leftRows.get(0).keySet());
+        Set<String> leftKeys = computeLeftKeys(leftRows);
 
         List<Map<String, Object>> merged = new ArrayList<>();
         for (Map<String, Object> l : leftRows) {
@@ -103,29 +104,49 @@ class CrossDbJoinMerger {
         }
     }
 
+    /**
+     * Verify that all non-null key values on each side have the same Java type.
+     * Iterates all rows (bounded by maxCrossDbRows check in crossDbMerge).
+     * If a side has no non-null keys or only one side has keys, validation passes
+     * (no cross-side type comparison possible).
+     */
     private void verifyCrossDbKeyTypeConsistency(NopMetaTableJoin join,
                                                  List<Map<String, Object>> leftRows, String leftField,
                                                  List<Map<String, Object>> rightRows, String rightField) {
-        Object leftSample = firstNonNullKey(leftRows, leftField);
-        Object rightSample = firstNonNullKey(rightRows, rightField);
-        if (leftSample == null || rightSample == null) {
+        Class<?> leftType = firstNonNullKeyType(leftRows, leftField);
+        Class<?> rightType = firstNonNullKeyType(rightRows, rightField);
+        if (leftType == null || rightType == null) {
             return;
         }
-        if (!leftSample.getClass().equals(rightSample.getClass())) {
+        if (!leftType.equals(rightType)) {
             throw new NopException(NopMetadataErrors.ERR_JOIN_CROSS_DB_KEY_TYPE_MISMATCH)
                     .param("joinId", join.getJoinId())
-                    .param("leftType", leftSample.getClass().getName())
-                    .param("rightType", rightSample.getClass().getName());
+                    .param("leftType", leftType.getName())
+                    .param("rightType", rightType.getName());
         }
     }
 
-    private static Object firstNonNullKey(List<Map<String, Object>> rows, String field) {
+    /**
+     * Return the Java type of the first non-null key value in the column.
+     * Validates that ALL non-null values in that column share the same type.
+     * Returns null if no non-null key is found.
+     */
+    private static Class<?> firstNonNullKeyType(List<Map<String, Object>> rows, String field) {
         if (rows == null) return null;
+        Class<?> resultType = null;
         for (Map<String, Object> r : rows) {
             Object v = getCaseInsensitive(r, field);
-            if (v != null) return v;
+            if (v == null) continue;
+            Class<?> type = v.getClass();
+            if (resultType == null) {
+                resultType = type;
+            } else if (!resultType.equals(type)) {
+                throw new NopException(NopMetadataErrors.ERR_JOIN_CROSS_DB_KEY_TYPE_MISMATCH)
+                        .param("leftType", resultType.getName())
+                        .param("rightType", type.getName());
+            }
         }
-        return null;
+        return resultType;
     }
 
     private void requireFieldInRowKeys(String field, List<Map<String, Object>> rows, String side, String joinId) {
@@ -162,6 +183,17 @@ class CrossDbJoinMerger {
             }
         }
         return false;
+    }
+
+    private static Set<String> computeLeftKeys(List<Map<String, Object>> leftRows) {
+        if (leftRows == null || leftRows.isEmpty()) {
+            return Collections.emptySet();
+        }
+        Set<String> keys = new TreeSet<>(String.CASE_INSENSITIVE_ORDER);
+        for (Map<String, Object> row : leftRows) {
+            keys.addAll(row.keySet());
+        }
+        return keys;
     }
 
     static Map<String, Object> mergeRow(Map<String, Object> left, Map<String, Object> right,

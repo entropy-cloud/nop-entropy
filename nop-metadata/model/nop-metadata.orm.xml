@@ -538,6 +538,11 @@
                 <unique-key name="UK_NOP_META_SEM_TYPE_NAME" columns="typeName"
                             i18n-en:displayName="Unique Semantic Type Name"/>
             </unique-keys>
+            <indexes>
+                <index name="IX_NOP_META_SEM_TYPE_NAME" unique="false">
+                    <column name="typeName"/>
+                </index>
+            </indexes>
         </entity>
 
         <!-- =====================================================
@@ -1650,6 +1655,14 @@
 
         <!-- =====================================================
              NopMetaTableJoin: 表关联（跨表关联）
+
+             [integrity] DUAL FK SYSTEM — NopMetaTableJoin has two independent FK sets:
+               1. Entity-level: leftEntityId / rightEntityId → NopMetaEntity
+               2. Table-level:  leftTableId  / rightTableId  → NopMetaTable
+             These FKs are mutually exclusive: for a given row, EITHER the entity-level
+             pair is set (both non-null) OR the table-level pair is set (both non-null),
+             but never both. Business logic must enforce this invariant at write time;
+             the ORM model does not enforce it declaratively.
              ===================================================== -->
         <entity className="io.nop.metadata.dao.entity.NopMetaTableJoin" createTimeProp="createTime"
                 createrProp="createdBy" displayName="表关联" name="io.nop.metadata.dao.entity.NopMetaTableJoin"
@@ -2069,6 +2082,11 @@
         <!-- =====================================================
              NopMetaQualityCheckpoint: 质量验证检查点（命名验证集，手动批量执行）
              一组规则×表的验证配置，复用 §2.7.1 单规则执行路径产出 NopMetaQualityResult 摘要
+
+             [integrity] Audited: NopMetaQualityCheckpoint does NOT have a qualityScoreId FK.
+             The audit finding (ORM-05) was a false positive — qualityScoreId is the primary key
+             of NopMetaQualityScore, not a foreign key in NopMetaQualityCheckpoint. No resolution
+             needed.
              ===================================================== -->
         <entity className="io.nop.metadata.dao.entity.NopMetaQualityCheckpoint" createTimeProp="createTime"
                 createrProp="createdBy" displayName="质量检查点" name="io.nop.metadata.dao.entity.NopMetaQualityCheckpoint"
@@ -2817,9 +2835,9 @@
                         propId="4" stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Entity Id"/>
                 <column code="ENTITY_NAME" displayName="实体名称" name="entityName" precision="200" propId="5"
                         stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Entity Name"/>
-<column code="CHANGE_SOURCE" displayName="变更来源" mandatory="true" name="changeSource"
-        precision="30" propId="6" stdDataType="string" stdSqlType="VARCHAR"
-        i18n-en:displayName="Change Source" ext:dict="meta/change-source"/>
+                <column code="CHANGE_SOURCE" displayName="变更来源" mandatory="true" name="changeSource"
+                        precision="30" propId="6" stdDataType="string" stdSqlType="VARCHAR"
+                        i18n-en:displayName="Change Source" ext:dict="meta/change-source"/>
                 <column code="BEFORE_SNAPSHOT" displayName="变更前快照" domain="mediumtext" name="beforeSnapshot"
                         precision="16777215" propId="7" stdDataType="string" stdSqlType="VARCHAR"
                         stdDomain="json" i18n-en:displayName="Before Snapshot"/>
@@ -3351,6 +3369,14 @@
                             columns="parentDomainId,name"
                             i18n-en:displayName="Unique Domain Name Per Parent"/>
             </unique-keys>
+            <indexes>
+                <index name="IX_NOP_META_BUSINESS_DOMAIN_PARENT" unique="false">
+                    <column name="parentDomainId"/>
+                </index>
+                <index name="IX_NOP_META_BUSINESS_DOMAIN_DISPLAY_NAME" unique="false">
+                    <column name="displayName"/>
+                </index>
+            </indexes>
             <relations>
                 <to-one displayName="父域" name="parentDomain"
                         refEntityName="io.nop.metadata.dao.entity.NopMetaBusinessDomain"
