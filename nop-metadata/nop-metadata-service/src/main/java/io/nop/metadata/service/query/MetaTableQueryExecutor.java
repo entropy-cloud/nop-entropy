@@ -94,9 +94,8 @@ public final class MetaTableQueryExecutor {
      * <p>失败路径显式（不静默吞 SQLException）：抛 {@link NopException} 携带 {@link #NopMetadataErrors.ERR_QUERY_SQL_EXEC_FAILED}
      * + sql + error 上下文。
      */
-    @SuppressWarnings("unchecked")
     public static List<Map<String, Object>>[] newArrayHolder() {
-        return (List<Map<String, Object>>[]) new List<?>[1];
+        return ArrayHolderUtils.newArrayHolder();
     }
 
     /**

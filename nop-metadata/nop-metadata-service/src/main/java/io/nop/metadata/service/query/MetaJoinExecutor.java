@@ -420,9 +420,9 @@ public class MetaJoinExecutor {
 
     @SuppressWarnings({"rawtypes", "unchecked"})
     private List<Map<String, Object>> fetchEntityRows(NopMetaEntity entity, TreeBean filter, MetaQueryContext ctx,
-                                                      String side, String joinId) {
+                                                       String side, String joinId) {
         String entityName = entity.getEntityName();
-        IOrmEntityDao<IOrmEntity> dao = (IOrmEntityDao<IOrmEntity>) (IOrmEntityDao) ctx.daoProvider().dao(entityName);
+        IOrmEntityDao<IOrmEntity> dao = castToOrmEntityDao(ctx.daoProvider().dao(entityName));
         QueryBean q = new QueryBean();
         if (filter != null) {
             q.setFilter(filter);
@@ -718,14 +718,18 @@ public class MetaJoinExecutor {
         return (a == null) ? b == null : a.equals(b);
     }
 
+    @SuppressWarnings("unchecked")
+    private static IOrmEntityDao<IOrmEntity> castToOrmEntityDao(IEntityDao<?> dao) {
+        return (IOrmEntityDao<IOrmEntity>) dao;
+    }
+
     private static String messageOf(Throwable t) {
         String m = t.getMessage();
         return m != null ? m : t.getClass().getName();
     }
 
-    @SuppressWarnings("unchecked")
     private static List<Map<String, Object>>[] newArrayHolder() {
-        return (List<Map<String, Object>>[]) new List<?>[1];
+        return ArrayHolderUtils.newArrayHolder();
     }
 
     private static Map<String, Object> buildResult(List<Map<String, Object>> items) {

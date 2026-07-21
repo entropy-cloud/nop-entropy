@@ -1361,9 +1361,8 @@ public class AggregationContext {
         return ep.table == null ? "unknown" : String.valueOf(ep.table.getTableType());
     }
 
-    @SuppressWarnings("unchecked")
     public static List<Map<String, Object>>[] newArrayHolder() {
-        return (List<Map<String, Object>>[]) new List<?>[1];
+        return ArrayHolderUtils.newArrayHolder();
     }
 
     public static boolean containsIgnoreCase(Set<String> cols, String name) {
