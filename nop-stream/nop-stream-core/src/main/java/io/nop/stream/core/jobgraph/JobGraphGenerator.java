@@ -22,9 +22,11 @@ import io.nop.stream.core.common.functions.KeySelector;
 import io.nop.stream.core.execution.flow.EdgeConfig;
 import io.nop.stream.core.execution.plan.DeploymentPlan;
 import io.nop.stream.core.execution.StreamTaskInvokable;
+import io.nop.stream.core.graph.ForwardPartitioner;
 import io.nop.stream.core.graph.StreamEdge;
 import io.nop.stream.core.graph.StreamGraph;
 import io.nop.stream.core.graph.StreamNode;
+import io.nop.stream.core.operators.ChainingStrategy;
 import io.nop.stream.core.operators.StreamOperator;
 import io.nop.stream.core.operators.StreamOperatorFactory;
 import io.nop.stream.core.exceptions.StreamException;
@@ -262,9 +264,9 @@ public class JobGraphGenerator implements Serializable {
         }
 
         // 2. Check partitioning strategy - must be forward partitioning
-        // Forward partitioning means partitioner is null (data goes to same parallel instance)
-        if (edge.getPartitioner() != null) {
-            // Non-null partitioner means data is redistributed, cannot chain
+        // Forward partitioning means partitioner is null or ForwardPartitioner
+        if (edge.getPartitioner() != null && !(edge.getPartitioner() instanceof ForwardPartitioner)) {
+            // Non-forward partitioner means data is redistributed, cannot chain
             return false;
         }
 
@@ -287,6 +289,21 @@ public class JobGraphGenerator implements Serializable {
         // 6. Check if node2 has multiple incoming edges (merging)
         int node2IncomingCount = countIncomingEdges(node2.getId(), streamGraph);
         if (node2IncomingCount > 1) {
+            return false;
+        }
+
+        // 7. Check if node2's operator factory declares itself non-chainable
+        StreamOperatorFactory<?> factory = node2.getOperatorFactory();
+        if (factory != null && !factory.isChainable()) {
+            return false;
+        }
+
+        // 8. Check ChainingStrategy: if node1 has NEVER, or node2 has NEVER/HEAD, can't chain
+        ChainingStrategy strategy1 = node1.getChainingStrategy();
+        ChainingStrategy strategy2 = node2.getChainingStrategy();
+        if (strategy1 == ChainingStrategy.NEVER
+                || strategy2 == ChainingStrategy.NEVER
+                || strategy2 == ChainingStrategy.HEAD) {
             return false;
         }
 

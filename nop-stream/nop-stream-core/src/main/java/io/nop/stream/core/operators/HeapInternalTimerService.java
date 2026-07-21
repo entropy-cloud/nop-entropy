@@ -28,6 +28,7 @@ import java.util.TreeMap;
 public class HeapInternalTimerService<N> implements InternalTimerService<N> {
 
     private final TreeMap<Long, Set<TimerEntry<N>>> eventTimeTimers = new TreeMap<>();
+    private final TreeMap<Long, Set<TimerEntry<N>>> processingTimeTimers = new TreeMap<>();
     private final Triggerable<Object, N> triggerable;
     private final Supplier<Object> currentKeySupplier;
     private long currentWatermark = Long.MIN_VALUE;
@@ -53,12 +54,21 @@ public class HeapInternalTimerService<N> implements InternalTimerService<N> {
 
     @Override
     public void registerProcessingTimeTimer(N namespace, long time) {
-        // Processing time semantics not implemented per task constraints
+        Object key = currentKeySupplier != null ? currentKeySupplier.get() : null;
+        processingTimeTimers.computeIfAbsent(time, k -> new java.util.HashSet<>())
+                .add(new TimerEntry<>(key, namespace, time));
     }
 
     @Override
     public void deleteProcessingTimeTimer(N namespace, long time) {
-        // Processing time semantics not implemented per task constraints
+        Object key = currentKeySupplier != null ? currentKeySupplier.get() : null;
+        Set<TimerEntry<N>> timers = processingTimeTimers.get(time);
+        if (timers != null) {
+            timers.remove(new TimerEntry<>(key, namespace, time));
+            if (timers.isEmpty()) {
+                processingTimeTimers.remove(time);
+            }
+        }
     }
 
     @Override
@@ -91,7 +101,34 @@ public class HeapInternalTimerService<N> implements InternalTimerService<N> {
 
     @Override
     public void forEachProcessingTimeTimer(BiConsumer<N, Long> consumer) throws Exception {
-        // Processing time not implemented
+        for (Map.Entry<Long, Set<TimerEntry<N>>> entry : processingTimeTimers.entrySet()) {
+            for (TimerEntry<N> timer : entry.getValue()) {
+                consumer.accept(timer.namespace, timer.timestamp);
+            }
+        }
+    }
+
+    /**
+     * Fires all processing-time timers with timestamp <= the given time.
+     *
+     * @param timestamp the processing time to fire timers up to
+     */
+    public void fireProcessingTimeTimers(long timestamp) throws Exception {
+        List<Map.Entry<Long, Set<TimerEntry<N>>>> toFire = new ArrayList<>();
+        while (true) {
+            Map.Entry<Long, Set<TimerEntry<N>>> entry = processingTimeTimers.firstEntry();
+            if (entry == null || entry.getKey() > timestamp) {
+                break;
+            }
+            processingTimeTimers.pollFirstEntry();
+            toFire.add(entry);
+        }
+        for (Map.Entry<Long, Set<TimerEntry<N>>> entry : toFire) {
+            List<TimerEntry<N>> timersToFire = new ArrayList<>(entry.getValue());
+            for (TimerEntry<N> timer : timersToFire) {
+                triggerable.onProcessingTime(new HeapInternalTimer<>(timer.key, timer.timestamp, timer.namespace));
+            }
+        }
     }
 
     /**
@@ -106,16 +143,16 @@ public class HeapInternalTimerService<N> implements InternalTimerService<N> {
         currentWatermark = newWatermark;
 
         List<Map.Entry<Long, Set<TimerEntry<N>>>> toFire = new ArrayList<>();
-        for (Map.Entry<Long, Set<TimerEntry<N>>> entry : eventTimeTimers.headMap(newWatermark, true).entrySet()) {
+        while (true) {
+            Map.Entry<Long, Set<TimerEntry<N>>> entry = eventTimeTimers.firstEntry();
+            if (entry == null || entry.getKey() > newWatermark) {
+                break;
+            }
+            eventTimeTimers.pollFirstEntry();
             toFire.add(entry);
         }
-
         for (Map.Entry<Long, Set<TimerEntry<N>>> entry : toFire) {
-            Set<TimerEntry<N>> originalSet = eventTimeTimers.remove(entry.getKey());
-            if (originalSet == null) continue;
-
-            List<TimerEntry<N>> timersToFire = new ArrayList<>(originalSet);
-
+            List<TimerEntry<N>> timersToFire = new ArrayList<>(entry.getValue());
             for (TimerEntry<N> timer : timersToFire) {
                 triggerable.onEventTime(new HeapInternalTimer<>(timer.key, timer.timestamp, timer.namespace));
             }
@@ -124,6 +161,10 @@ public class HeapInternalTimerService<N> implements InternalTimerService<N> {
 
     public int numEventTimeTimers() {
         return eventTimeTimers.values().stream().mapToInt(Set::size).sum();
+    }
+
+    public int numProcessingTimeTimers() {
+        return processingTimeTimers.values().stream().mapToInt(Set::size).sum();
     }
 
     private static class TimerEntry<N> {

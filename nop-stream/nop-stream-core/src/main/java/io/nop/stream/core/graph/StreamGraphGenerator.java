@@ -172,6 +172,7 @@ public class StreamGraphGenerator {
             transformation.getOutputType(),
             transformation.getParallelism()
         );
+        node.setChainingStrategy(operatorFactory.getChainingStrategy());
         
         // Add node to graph and mark as source
         streamGraph.addStreamNode(node);
@@ -207,6 +208,7 @@ public class StreamGraphGenerator {
             transformation.getOutputType(),
             transformation.getParallelism()
         );
+        node.setChainingStrategy(transformation.getOperatorFactory().getChainingStrategy());
         
         // Set key selector if present
         if (transformation.getKeySelector() != null) {
@@ -259,6 +261,7 @@ public class StreamGraphGenerator {
             transformation.getOutputType(),
             transformation.getParallelism()
         );
+        node.setChainingStrategy(operatorFactory.getChainingStrategy());
         
         // Add node to graph
         streamGraph.addStreamNode(node);
@@ -295,13 +298,15 @@ public class StreamGraphGenerator {
     private <T> void transformPartition(PartitionTransformation<T> transformation) {
         transform(transformation.getInput());
         
+        StreamOperatorFactory<T> partitionFactory = new PartitionOperatorFactory<>();
         StreamNode node = new StreamNode(
             transformation.getId(),
             transformation.getName(),
-            new PartitionOperatorFactory<>(),
+            partitionFactory,
             transformation.getOutputType(),
             transformation.getParallelism()
         );
+        node.setChainingStrategy(partitionFactory.getChainingStrategy());
         
         streamGraph.addStreamNode(node);
         
@@ -333,6 +338,7 @@ public class StreamGraphGenerator {
             transformation.getOutputType(),
             transformation.getParallelism()
         );
+        node.setChainingStrategy(operatorFactory.getChainingStrategy());
 
         streamGraph.addStreamNode(node);
 

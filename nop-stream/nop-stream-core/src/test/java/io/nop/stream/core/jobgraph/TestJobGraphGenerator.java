@@ -7,6 +7,7 @@
  */
 package io.nop.stream.core.jobgraph;
 
+import io.nop.stream.core.graph.ForwardPartitioner;
 import io.nop.stream.core.graph.StreamEdge;
 import io.nop.stream.core.graph.StreamGraph;
 import io.nop.stream.core.graph.StreamNode;
@@ -189,6 +190,81 @@ public class TestJobGraphGenerator {
         assertTrue(jobGraph.containsVertex("vertex-1"));
         assertTrue(jobGraph.containsVertex("vertex-2"));
         assertTrue(jobGraph.containsVertex("vertex-3"));
+    }
+
+    @Test
+    public void testForwardPartitionerAllowsChaining() {
+        StreamGraph streamGraph = new StreamGraph();
+
+        StreamNode sourceNode = createStreamNode(1, "Source", 2);
+        StreamNode mapNode = createStreamNode(2, "Map", 2);
+
+        streamGraph.addStreamNode(sourceNode);
+        streamGraph.addStreamNode(mapNode);
+
+        streamGraph.addSourceID(1);
+
+        StreamEdge edge = new StreamEdge(1, 2);
+        edge.setPartitioner(new ForwardPartitioner());
+        streamGraph.addStreamEdge(edge);
+
+        JobGraph jobGraph = generator.generate(streamGraph);
+
+        assertNotNull(jobGraph);
+        assertEquals(1, jobGraph.getNumberOfVertices(),
+                "ForwardPartitioner should allow chaining like null partitioner");
+    }
+
+    @Test
+    public void testNonChainableOperatorForcesSplit() {
+        StreamGraph streamGraph = new StreamGraph();
+
+        StreamNode sourceNode = createStreamNode(1, "Source", 2);
+        StreamOperatorFactory<?> nonChainableFactory = new TestOperatorFactory("NonChainable") {
+            @Override
+            public boolean isChainable() {
+                return false;
+            }
+        };
+        StreamNode mapNode = new StreamNode(2, "NonChainable", nonChainableFactory, Types.STRING, 2);
+
+        streamGraph.addStreamNode(sourceNode);
+        streamGraph.addStreamNode(mapNode);
+
+        streamGraph.addSourceID(1);
+
+        StreamEdge edge = new StreamEdge(1, 2);
+        streamGraph.addStreamEdge(edge);
+
+        JobGraph jobGraph = generator.generate(streamGraph);
+
+        assertNotNull(jobGraph);
+        assertEquals(2, jobGraph.getNumberOfVertices(),
+                "Non-chainable operator should force separate vertices");
+        assertEquals(1, jobGraph.getNumberOfEdges());
+    }
+
+    @Test
+    public void testNonForwardPartitionerForcesSplit() {
+        StreamGraph streamGraph = new StreamGraph();
+
+        StreamNode sourceNode = createStreamNode(1, "Source", 2);
+        StreamNode mapNode = createStreamNode(2, "Map", 2);
+
+        streamGraph.addStreamNode(sourceNode);
+        streamGraph.addStreamNode(mapNode);
+
+        streamGraph.addSourceID(1);
+
+        StreamEdge edge = new StreamEdge(1, 2);
+        edge.setPartitioner((key, numPartitions) -> key.hashCode() % numPartitions);
+        streamGraph.addStreamEdge(edge);
+
+        JobGraph jobGraph = generator.generate(streamGraph);
+
+        assertNotNull(jobGraph);
+        assertEquals(2, jobGraph.getNumberOfVertices(),
+                "Non-forward partitioner should force separate vertices");
     }
 
     private StreamNode createStreamNode(int id, String name, int parallelism) {

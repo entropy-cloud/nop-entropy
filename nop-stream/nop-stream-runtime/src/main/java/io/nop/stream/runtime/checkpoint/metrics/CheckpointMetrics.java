@@ -21,6 +21,7 @@ public class CheckpointMetrics {
     private final AtomicLong latestCheckpointDuration = new AtomicLong();
     private final AtomicLong totalStateSize = new AtomicLong();
     private final AtomicLong lastCheckpointTimestamp = new AtomicLong();
+    private volatile String failureCause;
 
     public void incrementCompletedCheckpoints() {
         numCompletedCheckpoints.incrementAndGet();
@@ -81,6 +82,15 @@ public class CheckpointMetrics {
         totalStateSize.addAndGet(bytes);
     }
 
+    public void recordFailure(String cause) {
+        incrementFailedCheckpoints();
+        this.failureCause = cause;
+    }
+
+    public String getFailureCause() {
+        return failureCause;
+    }
+
     public void reset() {
         numCompletedCheckpoints.set(0);
         numFailedCheckpoints.set(0);
@@ -89,6 +99,7 @@ public class CheckpointMetrics {
         latestCheckpointDuration.set(0);
         totalStateSize.set(0);
         lastCheckpointTimestamp.set(0);
+        failureCause = null;
     }
 
     public synchronized CheckpointMetricsSnapshot snapshot() {
@@ -99,7 +110,8 @@ public class CheckpointMetrics {
                 latestCheckpointSize.get(),
                 latestCheckpointDuration.get(),
                 totalStateSize.get(),
-                lastCheckpointTimestamp.get()
+                lastCheckpointTimestamp.get(),
+                failureCause
         );
     }
 }

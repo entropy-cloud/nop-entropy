@@ -38,4 +38,14 @@ public class TimerServiceManager {
             }
         }
     }
+
+    public void fireProcessingTimeTimers(long timestamp) throws Exception {
+        for (HeapInternalTimerService<?> service : timerServices) {
+            try {
+                service.fireProcessingTimeTimers(timestamp);
+            } catch (Exception e) {
+                LOG.error("Failed to fire processing time timers for service: {}", service, e);
+            }
+        }
+    }
 }

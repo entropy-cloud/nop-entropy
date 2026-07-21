@@ -288,7 +288,11 @@ public class GraphExecutionPlan {
 
                 StreamTaskInvokable invokable;
                 if (fanOutWriters != null && !fanOutWriters.isEmpty()) {
-                    invokable = new StreamTaskInvokable(chain, fanOutWriters);
+                    if (inputGate != null) {
+                        invokable = new StreamTaskInvokable(chain, fanOutWriters, inputGate);
+                    } else {
+                        invokable = new StreamTaskInvokable(chain, fanOutWriters);
+                    }
                 } else if (recordWriter != null || inputGate != null) {
                     invokable = new StreamTaskInvokable(chain, recordWriter, inputGate);
                 } else {

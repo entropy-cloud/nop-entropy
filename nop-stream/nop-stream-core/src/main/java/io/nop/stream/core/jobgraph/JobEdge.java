@@ -127,6 +127,24 @@ public class JobEdge implements Serializable {
     }
 
     @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (!(o instanceof JobEdge)) return false;
+        JobEdge jobEdge = (JobEdge) o;
+        return sourceVertex.equals(jobEdge.sourceVertex)
+                && targetVertex.equals(jobEdge.targetVertex)
+                && partitionType == jobEdge.partitionType;
+    }
+
+    @Override
+    public int hashCode() {
+        int result = sourceVertex.hashCode();
+        result = 31 * result + targetVertex.hashCode();
+        result = 31 * result + partitionType.hashCode();
+        return result;
+    }
+
+    @Override
     public String toString() {
         return "JobEdge{" +
                 "sourceVertex='" + sourceVertex + '\'' +

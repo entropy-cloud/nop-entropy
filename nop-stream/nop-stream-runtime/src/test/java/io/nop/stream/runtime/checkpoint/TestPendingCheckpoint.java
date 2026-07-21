@@ -135,7 +135,7 @@ class TestPendingCheckpoint {
     @Test
     void testAcknowledgeAfterDispose() {
         pending.dispose();
-        pending.acknowledgeTask(LOC_1, TaskStateSnapshot.empty(LOC_1));
-        assertEquals(0, pending.getNumberOfAcknowledgedTasks());
+        assertThrows(io.nop.stream.core.exceptions.StreamException.class,
+                () -> pending.acknowledgeTask(LOC_1, TaskStateSnapshot.empty(LOC_1)));
     }
 }

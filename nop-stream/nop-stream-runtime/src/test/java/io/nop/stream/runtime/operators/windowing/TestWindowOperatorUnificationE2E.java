@@ -287,7 +287,7 @@ public class TestWindowOperatorUnificationE2E {
     }
 
     @Test
-    void testFallbackToOldPathWithoutFactory() throws Exception {
+    void testFactoryAutoDiscovered() throws Exception {
         List<Integer> results = Collections.synchronizedList(new ArrayList<>());
 
         StreamExecutionEnvironment env = StreamExecutionEnvironment.createTestEnvironment();
@@ -325,7 +325,7 @@ public class TestWindowOperatorUnificationE2E {
                 })
                 .sink((SinkFunction<Integer>) results::add);
 
-        env.execute("fallback-old-path");
+        env.execute("factory-auto-discovered");
 
         assertEquals(1, results.size());
         assertEquals(6, results.get(0));

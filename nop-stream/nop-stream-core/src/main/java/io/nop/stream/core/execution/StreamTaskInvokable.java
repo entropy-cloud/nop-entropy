@@ -95,6 +95,18 @@ public class StreamTaskInvokable implements Invokable<Void> {
         wireOperators();
     }
 
+    public StreamTaskInvokable(OperatorChain operatorChain,
+                               List<RecordWriter<Object>> fanOutWriters,
+                               InputGate inputGate) {
+        if (operatorChain == null) {
+            throw new StreamException(ERR_STREAM_NULL_ARG).param(ARG_ARG_NAME, "operatorChain");
+        }
+        this.operatorChain = operatorChain;
+        this.outputWriter = !fanOutWriters.isEmpty() ? fanOutWriters.get(0) : null;
+        this.inputGate = inputGate;
+        wireOperators(fanOutWriters);
+    }
+
     public TaskRole getRole() {
         if (outputWriter != null && inputGate == null) {
             return TaskRole.SOURCE;
@@ -259,6 +271,7 @@ public class StreamTaskInvokable implements Invokable<Void> {
     }
 
     private void invokeSource() throws Exception {
+        operatorChain.open();
         try {
             List<StreamOperator<?>> operators = operatorChain.getOperators();
             StreamOperator<?> head = operators.get(0);
@@ -282,11 +295,13 @@ public class StreamTaskInvokable implements Invokable<Void> {
             if (outputWriter != null) {
                 outputWriter.close();
             }
+            operatorChain.close();
         }
     }
 
     @SuppressWarnings("unchecked")
     private void invokeMiddle() throws Exception {
+        operatorChain.open();
         try {
             if (headInput != null) {
                 processInputGate(headInput);
@@ -296,27 +311,38 @@ public class StreamTaskInvokable implements Invokable<Void> {
             if (outputWriter != null) {
                 outputWriter.close();
             }
+            operatorChain.close();
         }
     }
 
     @SuppressWarnings("unchecked")
     private void invokeSink() throws Exception {
-        if (headInput != null) {
-            processInputGate(headInput);
-            headInput.processWatermark(Watermark.MAX_WATERMARK);
+        operatorChain.open();
+        try {
+            if (headInput != null) {
+                processInputGate(headInput);
+                headInput.processWatermark(Watermark.MAX_WATERMARK);
+            }
+        } finally {
+            operatorChain.close();
         }
     }
 
     private void invokeSelfContained() throws Exception {
-        List<StreamOperator<?>> operators = operatorChain.getOperators();
-        StreamOperator<?> head = operators.get(0);
+        operatorChain.open();
+        try {
+            List<StreamOperator<?>> operators = operatorChain.getOperators();
+            StreamOperator<?> head = operators.get(0);
 
-        if (head instanceof StreamSourceOperator) {
-            StreamSourceOperator<?> sourceOp = (StreamSourceOperator<?>) head;
-            if (sourceOp.getOutput() != null) {
-                sourceOp.run();
-                sourceOp.processWatermark(Watermark.MAX_WATERMARK);
+            if (head instanceof StreamSourceOperator) {
+                StreamSourceOperator<?> sourceOp = (StreamSourceOperator<?>) head;
+                if (sourceOp.getOutput() != null) {
+                    sourceOp.run();
+                    sourceOp.processWatermark(Watermark.MAX_WATERMARK);
+                }
             }
+        } finally {
+            operatorChain.close();
         }
     }
 

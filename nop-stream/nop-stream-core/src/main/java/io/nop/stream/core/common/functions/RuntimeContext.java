@@ -8,6 +8,8 @@
 package io.nop.stream.core.common.functions;
 
 import io.nop.api.core.annotations.core.Internal;
+import io.nop.stream.core.common.state.KeyedStateStore;
+import io.nop.stream.core.time.TimerService;
 
 /**
  * @Internal
@@ -20,4 +22,12 @@ public interface RuntimeContext {
     int getNumberOfParallelSubtasks();
 
     String getTaskName();
+
+    default KeyedStateStore getKeyedStateStore() {
+        throw new UnsupportedOperationException("Keyed state is only available on a keyed stream.");
+    }
+
+    default TimerService getTimerService() {
+        throw new UnsupportedOperationException("Timers are only available on a keyed stream.");
+    }
 }

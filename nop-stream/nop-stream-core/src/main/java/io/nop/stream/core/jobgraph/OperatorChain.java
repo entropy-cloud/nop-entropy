@@ -45,7 +45,6 @@ import static io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_OPERATOR_
  * <p><strong>Lifecycle Management:</strong>
  * <ul>
  *   <li>{@link #open()}: Initializes all operators in the chain before processing begins</li>
- *   <li>{@link #processElement(io.nop.stream.core.streamrecord.StreamRecord)}: Processes records through the chain</li>
  *   <li>{@link #close()}: Cleans up all operators after processing completes</li>
  * </ul>
  *
@@ -84,46 +83,9 @@ public class OperatorChain implements Serializable {
     }
 
     /**
-     * Processes a stream record through all operators in the chain.
-     *
-     * <p>The record is passed to each operator in sequence. Each operator processes
-     * the record and potentially transforms it before passing it to the next operator
-     * in the chain.
-     *
-     * <p><strong>Note:</strong> This method assumes all operators in the chain implement
-     * the {@link io.nop.stream.core.operators.Input} interface. If an operator does not
-     * implement Input, an {@link IllegalStateException} will be thrown.
-     *
-     * @param record the stream record to process
-     * @throws IllegalStateException if an operator in the chain does not implement Input
-     * @throws RuntimeException if any operator throws an exception during processing
-     */
-    public void processElement(io.nop.stream.core.streamrecord.StreamRecord<?> record) {
-        // Process record through each operator in the chain
-        for (io.nop.stream.core.operators.StreamOperator<?> operator : operators) {
-            if (operator instanceof io.nop.stream.core.operators.Input) {
-                try {
-                    @SuppressWarnings({"unchecked", "rawtypes"})
-                    io.nop.stream.core.operators.Input input =
-                        (io.nop.stream.core.operators.Input) operator;
-                    input.processElement(record);
-                } catch (Exception e) {
-                    throw new StreamException(ERR_STREAM_OPERATOR_ERROR, e)
-                            .param(ARG_OPERATOR_NAME, operator.getClass().getName())
-                            .param(ARG_DETAIL, "Failed to process element in operator");
-                }
-            } else {
-                throw new StreamException(ERR_STREAM_OPERATOR_ERROR)
-                        .param(ARG_OPERATOR_NAME, operator.getClass().getName())
-                        .param(ARG_DETAIL, "Operator does not implement Input interface");
-            }
-        }
-    }
-
-    /**
      * Opens all operators in the chain to start processing.
      *
-     * <p>This method should be called before any calls to {@link #processElement}.
+     * <p>This method should be called before data processing begins.
      * It Initializes all operators in sequence, preparing them for data processing.
      * If any operator fails to open, previously opened operators are closed before
      * propagating the exception.
@@ -267,16 +229,6 @@ public class OperatorChain implements Serializable {
         if (op instanceof io.nop.stream.core.operators.StreamReduceOperator) {
             return new io.nop.stream.core.operators.StreamReduceOperator<>(
                     ((io.nop.stream.core.operators.StreamReduceOperator<?>) op).getUserFunction());
-        }
-        if (op instanceof io.nop.stream.core.operators.WindowAggregationOperator) {
-            io.nop.stream.core.operators.WindowAggregationOperator wop =
-                    (io.nop.stream.core.operators.WindowAggregationOperator) op;
-            io.nop.stream.core.operators.WindowAggregationOperator copy =
-                    new io.nop.stream.core.operators.WindowAggregationOperator<>(
-                            wop.getWindowAssigner(), wop.getTrigger(),
-                            wop.getAggregationFunction(), wop.getKeySelector());
-            copy.setAllowedLateness(wop.getAllowedLateness());
-            return copy;
         }
         return op;
     }

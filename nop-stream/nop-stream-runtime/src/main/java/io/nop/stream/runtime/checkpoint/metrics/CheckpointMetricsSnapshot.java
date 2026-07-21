@@ -23,6 +23,7 @@ public class CheckpointMetricsSnapshot implements Serializable {
     private final long latestCheckpointDuration;
     private final long totalStateSize;
     private final long lastCheckpointTimestamp;
+    private final String failureCause;
 
     public CheckpointMetricsSnapshot(
             long numCompletedCheckpoints,
@@ -31,7 +32,8 @@ public class CheckpointMetricsSnapshot implements Serializable {
             long latestCheckpointSize,
             long latestCheckpointDuration,
             long totalStateSize,
-            long lastCheckpointTimestamp) {
+            long lastCheckpointTimestamp,
+            String failureCause) {
         this.numCompletedCheckpoints = numCompletedCheckpoints;
         this.numFailedCheckpoints = numFailedCheckpoints;
         this.numAbortedCheckpoints = numAbortedCheckpoints;
@@ -39,6 +41,7 @@ public class CheckpointMetricsSnapshot implements Serializable {
         this.latestCheckpointDuration = latestCheckpointDuration;
         this.totalStateSize = totalStateSize;
         this.lastCheckpointTimestamp = lastCheckpointTimestamp;
+        this.failureCause = failureCause;
     }
 
     public long getNumCompletedCheckpoints() {
@@ -67,6 +70,10 @@ public class CheckpointMetricsSnapshot implements Serializable {
 
     public long getLastCheckpointTimestamp() {
         return lastCheckpointTimestamp;
+    }
+
+    public String getFailureCause() {
+        return failureCause;
     }
 
     @Override

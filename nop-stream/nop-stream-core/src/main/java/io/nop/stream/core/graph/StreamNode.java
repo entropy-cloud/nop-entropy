@@ -11,6 +11,7 @@ import java.io.Serializable;
 
 import io.nop.stream.core.common.functions.KeySelector;
 import io.nop.stream.core.common.typeinfo.TypeInformation;
+import io.nop.stream.core.operators.ChainingStrategy;
 import io.nop.stream.core.operators.StreamOperatorFactory;
 import io.nop.stream.core.windowing.assigners.WindowAssigner;
 import io.nop.stream.core.windowing.triggers.Trigger;
@@ -93,6 +94,12 @@ public class StreamNode implements Serializable {
      * May be null to use the default trigger for the window assigner.
      */
     private Trigger<?, ?> trigger;
+
+    /**
+     * Chaining strategy for this operator.
+     * Defaults to ALWAYS if not explicitly set.
+     */
+    private ChainingStrategy chainingStrategy = ChainingStrategy.ALWAYS;
     
     /**
      * Constructs a new StreamNode with the required parameters.
@@ -207,10 +214,28 @@ public class StreamNode implements Serializable {
     
     /**
      * Sets the trigger for custom window firing logic.
-     * 
+     *
      * @param trigger The trigger to use
      */
     public void setTrigger(Trigger<?, ?> trigger) {
         this.trigger = trigger;
+    }
+
+    /**
+     * Returns the chaining strategy for this node.
+     *
+     * @return the chaining strategy
+     */
+    public ChainingStrategy getChainingStrategy() {
+        return chainingStrategy;
+    }
+
+    /**
+     * Sets the chaining strategy for this node.
+     *
+     * @param chainingStrategy the chaining strategy to use
+     */
+    public void setChainingStrategy(ChainingStrategy chainingStrategy) {
+        this.chainingStrategy = chainingStrategy;
     }
 }

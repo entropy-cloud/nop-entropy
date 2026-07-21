@@ -12,6 +12,7 @@ import io.nop.stream.core.common.functions.FilterFunction;
 import io.nop.stream.core.common.functions.FlatMapFunction;
 import io.nop.stream.core.common.functions.KeySelector;
 import io.nop.stream.core.common.functions.MapFunction;
+import io.nop.stream.core.common.functions.ProcessFunction;
 import io.nop.stream.core.common.functions.SinkFunction;
 import io.nop.stream.core.common.typeinfo.TypeInformation;
 import io.nop.stream.core.operators.OneInputStreamOperator;
@@ -59,6 +60,19 @@ public interface DataStream<T> {
      * @return The transformed {@link DataStream}.
      */
     <R> SingleOutputStreamOperator<R> flatMap(FlatMapFunction<T, R> flatMapper);
+
+    /**
+     * Applies a {@link ProcessFunction} on a {@link DataStream}, enabling stateful processing
+     * and timer access.
+     *
+     * <p>The function is called for each element in the stream and can produce zero, one,
+     * or more output elements via the {@link io.nop.stream.core.util.Collector}.
+     *
+     * @param processFunction The ProcessFunction that is called for each element.
+     * @param <R>             The type of the elements in the returned stream.
+     * @return The transformed {@link SingleOutputStreamOperator}.
+     */
+    <R> SingleOutputStreamOperator<R> process(ProcessFunction<T, R> processFunction);
 
     /**
      * Assigns timestamps to the elements in the data stream and generates watermarks

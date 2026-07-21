@@ -15,6 +15,7 @@ import java.io.Serializable;
 
 import io.nop.stream.core.common.typeinfo.TypeInformation;
 import io.nop.stream.core.exceptions.StreamException;
+import static io.nop.stream.core.operators.ChainingStrategy.ALWAYS;
 
 public class SimpleStreamOperatorFactory<OUT> implements StreamOperatorFactory<OUT>, Serializable {
     
@@ -23,6 +24,7 @@ public class SimpleStreamOperatorFactory<OUT> implements StreamOperatorFactory<O
     private final StreamOperator<OUT> operator;
     private final String name;
     private final int parallelism;
+    private ChainingStrategy chainingStrategy = ALWAYS;
     
     public SimpleStreamOperatorFactory(StreamOperator<OUT> operator, String name, int parallelism) {
         this.operator = operator;
@@ -32,6 +34,12 @@ public class SimpleStreamOperatorFactory<OUT> implements StreamOperatorFactory<O
     
     public SimpleStreamOperatorFactory(StreamOperator<OUT> operator, String name) {
         this(operator, name, 1);
+    }
+
+    public SimpleStreamOperatorFactory(StreamOperator<OUT> operator, String name, int parallelism,
+                                       ChainingStrategy chainingStrategy) {
+        this(operator, name, parallelism);
+        this.chainingStrategy = chainingStrategy;
     }
     
     @Override
@@ -75,5 +83,14 @@ public class SimpleStreamOperatorFactory<OUT> implements StreamOperatorFactory<O
     @Override
     public String getName() {
         return name;
+    }
+
+    @Override
+    public ChainingStrategy getChainingStrategy() {
+        return chainingStrategy;
+    }
+
+    public void setChainingStrategy(ChainingStrategy chainingStrategy) {
+        this.chainingStrategy = chainingStrategy;
     }
 }

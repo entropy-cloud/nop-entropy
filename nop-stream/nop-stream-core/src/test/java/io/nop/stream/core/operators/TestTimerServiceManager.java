@@ -36,6 +36,7 @@ public class TestTimerServiceManager {
 
             @Override
             public void onProcessingTime(InternalTimer<Object, String> timer) throws Exception {
+                firedTimers.add("pt-" + name + ":" + timer.getTimestamp());
             }
         };
         return new HeapInternalTimerService<>(triggerable);
@@ -62,6 +63,30 @@ public class TestTimerServiceManager {
     @Test
     void testNoServices() throws Exception {
         manager.advanceWatermark(new Watermark(1000L));
+        assertEquals(0, firedTimers.size());
+    }
+
+    @Test
+    void testFireProcessingTimeTimersPropagatesToAllServices() throws Exception {
+        HeapInternalTimerService<String> svc1 = createTimerService("svc1");
+        HeapInternalTimerService<String> svc2 = createTimerService("svc2");
+
+        manager.registerTimerService(svc1);
+        manager.registerTimerService(svc2);
+
+        svc1.registerProcessingTimeTimer("a", 1000L);
+        svc2.registerProcessingTimeTimer("b", 1000L);
+
+        manager.fireProcessingTimeTimers(1500L);
+
+        assertEquals(2, firedTimers.size());
+        assertTrue(firedTimers.contains("pt-svc1:1000"));
+        assertTrue(firedTimers.contains("pt-svc2:1000"));
+    }
+
+    @Test
+    void testFireProcessingTimeTimersNoServices() throws Exception {
+        manager.fireProcessingTimeTimers(1000L);
         assertEquals(0, firedTimers.size());
     }
 }

@@ -12,12 +12,15 @@ import java.lang.reflect.Field;
 import io.nop.stream.core.common.functions.FilterFunction;
 import io.nop.stream.core.common.functions.FlatMapFunction;
 import io.nop.stream.core.common.functions.KeySelector;
+import io.nop.stream.core.common.functions.KeyedProcessFunction;
 import io.nop.stream.core.common.functions.MapFunction;
 import io.nop.stream.core.common.functions.ReduceFunction;
 import io.nop.stream.core.common.functions.SinkFunction;
 import io.nop.stream.core.common.typeinfo.TypeInformation;
+import io.nop.stream.core.common.typeinfo.UnknownTypeInformation;
 import io.nop.stream.core.environment.StreamExecutionEnvironment;
 import io.nop.stream.core.operators.OneInputStreamOperator;
+import io.nop.stream.core.operators.ProcessOperator;
 import io.nop.stream.core.operators.StreamReduceOperator;
 import io.nop.stream.core.transformation.Transformation;
 import io.nop.stream.core.windowing.assigners.GlobalWindows;
@@ -182,6 +185,15 @@ public class KeyedStreamImpl<T, KEY> extends DataStreamImpl<T> implements KeyedS
     @Override
     public SingleOutputStreamOperator<T> reduce(ReduceFunction<T> reducer) {
         return transform("Reduce", getType(), new StreamReduceOperator<>(reducer));
+    }
+
+    @Override
+    public <R> SingleOutputStreamOperator<R> process(KeyedProcessFunction<KEY, T, R> processFunction) {
+        return transform(
+                "Process",
+                (TypeInformation<R>) UnknownTypeInformation.INSTANCE,
+                new ProcessOperator<>(processFunction)
+        );
     }
 
     @Override

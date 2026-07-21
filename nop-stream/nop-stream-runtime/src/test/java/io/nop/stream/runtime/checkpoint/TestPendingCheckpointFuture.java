@@ -87,10 +87,10 @@ class TestPendingCheckpointFuture {
     }
 
     @Test
-    void testAcknowledgeAfterAbortIsIgnored() {
+    void testAcknowledgeAfterAbortThrows() {
         checkpoint.abort("test abort");
-        checkpoint.acknowledgeTask(loc("v1", 0), null);
-        checkpoint.acknowledgeTask(loc("v1", 1), null);
+        assertThrows(io.nop.stream.core.exceptions.StreamException.class,
+                () -> checkpoint.acknowledgeTask(loc("v1", 0), null));
 
         CompletableFuture<CompletedCheckpoint> future = checkpoint.getCompletableFuture();
         assertTrue(future.isCompletedExceptionally());

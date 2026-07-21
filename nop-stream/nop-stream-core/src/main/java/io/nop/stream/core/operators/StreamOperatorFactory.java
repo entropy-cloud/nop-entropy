@@ -39,4 +39,29 @@ public interface StreamOperatorFactory<OUT> {
      * @return the factory name
      */
     String getName();
+
+    /**
+     * Returns whether this operator can be chained with adjacent operators.
+     *
+     * <p>Operators that return {@code false} will never be chained with upstream or
+     * downstream operators, forcing a separate task vertex.
+     *
+     * <p>Default implementation returns {@code true}.
+     */
+    default boolean isChainable() {
+        return true;
+    }
+
+    /**
+     * Returns the chaining strategy for this operator.
+     *
+     * <p>The chaining strategy defines whether this operator can be chained to its
+     * predecessor or successor operators. Operators that return {@link ChainingStrategy#NEVER}
+     * will always be isolated in their own task vertex.
+     *
+     * <p>Default implementation returns {@link ChainingStrategy#ALWAYS}.
+     */
+    default ChainingStrategy getChainingStrategy() {
+        return ChainingStrategy.ALWAYS;
+    }
 }

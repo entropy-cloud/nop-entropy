@@ -31,6 +31,7 @@ public class TestHeapInternalTimerService {
 
             @Override
             public void onProcessingTime(InternalTimer<Object, String> timer) throws Exception {
+                firedTimers.add(timer);
             }
         };
         timerService = new HeapInternalTimerService<>(triggerable);
@@ -201,6 +202,134 @@ public class TestHeapInternalTimerService {
 
         assertEquals(1, firedTimers.size());
         assertNull(firedTimers.get(0).getKey());
+    }
+
+    @Test
+    void testRegisterProcessingTimeTimer() throws Exception {
+        timerService.registerProcessingTimeTimer("window-1", 1000L);
+        assertEquals(1, timerService.numProcessingTimeTimers());
+
+        timerService.fireProcessingTimeTimers(1000L);
+
+        assertEquals(0, timerService.numProcessingTimeTimers());
+        assertEquals(1, firedTimers.size());
+        assertEquals(1000L, firedTimers.get(0).getTimestamp());
+        assertEquals("window-1", firedTimers.get(0).getNamespace());
+    }
+
+    @Test
+    void testFireMultipleProcessingTimeTimers() throws Exception {
+        timerService.registerProcessingTimeTimer("w1", 500L);
+        timerService.registerProcessingTimeTimer("w2", 1000L);
+        timerService.registerProcessingTimeTimer("w3", 1500L);
+
+        timerService.fireProcessingTimeTimers(1200L);
+
+        assertEquals(1, timerService.numProcessingTimeTimers());
+        assertEquals(2, firedTimers.size());
+        assertEquals(500L, firedTimers.get(0).getTimestamp());
+        assertEquals(1000L, firedTimers.get(1).getTimestamp());
+    }
+
+    @Test
+    void testDeleteProcessingTimeTimer() throws Exception {
+        timerService.registerProcessingTimeTimer("w1", 1000L);
+        timerService.deleteProcessingTimeTimer("w1", 1000L);
+
+        assertEquals(0, timerService.numProcessingTimeTimers());
+
+        timerService.fireProcessingTimeTimers(2000L);
+        assertEquals(0, firedTimers.size());
+    }
+
+    @Test
+    void testProcessingTimeFireOnlyTimersAtOrBeforeTimestamp() throws Exception {
+        timerService.registerProcessingTimeTimer("w1", 1000L);
+        timerService.fireProcessingTimeTimers(500L);
+        assertEquals(0, firedTimers.size());
+        assertEquals(1, timerService.numProcessingTimeTimers());
+
+        timerService.fireProcessingTimeTimers(1500L);
+        assertEquals(1, firedTimers.size());
+    }
+
+    @Test
+    void testForEachProcessingTimeTimer() throws Exception {
+        timerService.registerProcessingTimeTimer("w1", 500L);
+        timerService.registerProcessingTimeTimer("w2", 1000L);
+
+        List<String> namespaces = new ArrayList<>();
+        timerService.forEachProcessingTimeTimer((ns, ts) -> namespaces.add(ns));
+
+        assertEquals(2, namespaces.size());
+        assertTrue(namespaces.contains("w1"));
+        assertTrue(namespaces.contains("w2"));
+    }
+
+    @Test
+    void testProcessingTimeTimerKeyFromSupplier() throws Exception {
+        final List<Object> capturedKeys = new ArrayList<>();
+        Triggerable<Object, String> triggerable = new Triggerable<Object, String>() {
+            @Override
+            public void onEventTime(InternalTimer<Object, String> timer) throws Exception {
+            }
+
+            @Override
+            public void onProcessingTime(InternalTimer<Object, String> timer) throws Exception {
+                capturedKeys.add(timer.getKey());
+            }
+        };
+
+        String[] keyHolder = {"key-A"};
+        timerService = new HeapInternalTimerService<>(triggerable, () -> keyHolder[0]);
+
+        timerService.registerProcessingTimeTimer("ns1", 1000L);
+        keyHolder[0] = "key-B";
+        timerService.registerProcessingTimeTimer("ns2", 2000L);
+
+        timerService.fireProcessingTimeTimers(3000L);
+
+        assertEquals(2, capturedKeys.size());
+        assertEquals("key-A", capturedKeys.get(0));
+        assertEquals("key-B", capturedKeys.get(1));
+    }
+
+    @Test
+    void testProcessingTimeAllTimersFiredEventually() throws Exception {
+        timerService.registerProcessingTimeTimer("w1", 1000L);
+        timerService.registerProcessingTimeTimer("w2", Long.MAX_VALUE - 1);
+
+        timerService.fireProcessingTimeTimers(Long.MAX_VALUE);
+        assertEquals(2, firedTimers.size());
+    }
+
+    @Test
+    void testRescheduledProcessingTimeTimerPreservedDuringAdvance() throws Exception {
+        final int[] fireCount = {0};
+        Triggerable<Object, String> reschedulingTriggerable = new Triggerable<Object, String>() {
+            @Override
+            public void onEventTime(InternalTimer<Object, String> timer) throws Exception {
+            }
+
+            @Override
+            public void onProcessingTime(InternalTimer<Object, String> timer) throws Exception {
+                fireCount[0]++;
+                if (fireCount[0] == 1) {
+                    timerService.registerProcessingTimeTimer(timer.getNamespace(), timer.getTimestamp());
+                }
+            }
+        };
+        timerService = new HeapInternalTimerService<>(reschedulingTriggerable);
+
+        timerService.registerProcessingTimeTimer("ns1", 1000L);
+        timerService.fireProcessingTimeTimers(1000L);
+
+        assertEquals(1, fireCount[0], "Timer should fire once during this advance");
+        assertEquals(1, timerService.numProcessingTimeTimers(), "Rescheduled timer at same timestamp should be preserved");
+
+        timerService.fireProcessingTimeTimers(1001L);
+        assertEquals(2, fireCount[0], "Rescheduled timer should fire on next advance");
+        assertEquals(0, timerService.numProcessingTimeTimers());
     }
 
     @Test

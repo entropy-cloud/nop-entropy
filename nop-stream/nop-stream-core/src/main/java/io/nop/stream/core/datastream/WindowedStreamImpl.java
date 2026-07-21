@@ -17,14 +17,13 @@ import io.nop.stream.core.common.functions.WindowFunction;
 import io.nop.stream.core.common.typeinfo.TypeInformation;
 import io.nop.stream.core.common.typeinfo.UnknownTypeInformation;
 import io.nop.stream.core.environment.StreamExecutionEnvironment;
-import io.nop.stream.core.operators.AggregateAggregationFunction;
-import io.nop.stream.core.operators.ApplyAggregationFunction;
+import io.nop.stream.core.exceptions.StreamException;
+import io.nop.stream.core.operators.ChainingStrategy;
 import io.nop.stream.core.operators.IWindowOperatorFactory;
 import io.nop.stream.core.operators.OneInputStreamOperator;
-import io.nop.stream.core.operators.ProcessWindowAggregationFunction;
-import io.nop.stream.core.operators.ReduceAggregationFunction;
-import io.nop.stream.core.operators.WindowAggregationFunction;
-import io.nop.stream.core.operators.WindowAggregationOperator;
+import io.nop.stream.core.operators.SimpleStreamOperatorFactory;
+import io.nop.stream.core.operators.StreamOperatorFactory;
+import io.nop.stream.core.transformation.OneInputTransformation;
 import io.nop.stream.core.transformation.Transformation;
 import io.nop.stream.core.model.StreamComponents;
 import io.nop.stream.core.windowing.assigners.WindowAssigner;
@@ -141,11 +140,31 @@ public class WindowedStreamImpl<T, K, W extends Window>
         return keyedStream;
     }
 
+    private static volatile IWindowOperatorFactory defaultFactory;
+
+    public static void setDefaultFactory(IWindowOperatorFactory factory) {
+        defaultFactory = factory;
+    }
+
     private IWindowOperatorFactory getFactory() {
         if (components != null) {
             return components.getWindowOperatorFactory();
         }
-        return null;
+        if (defaultFactory == null) {
+            synchronized (WindowedStreamImpl.class) {
+                if (defaultFactory == null) {
+                    try {
+                        Class<?> factoryClass = Class.forName(
+                                "io.nop.stream.runtime.operators.windowing.WindowOperatorFactoryImpl");
+                        defaultFactory = (IWindowOperatorFactory)
+                                factoryClass.getDeclaredConstructor().newInstance();
+                    } catch (Exception e) {
+                        // nop-stream-runtime not on classpath
+                    }
+                }
+            }
+        }
+        return defaultFactory;
     }
 
     public WindowedStreamImpl<T, K, W> withComponents(StreamComponents components) {
@@ -158,18 +177,13 @@ public class WindowedStreamImpl<T, K, W extends Window>
     public <R> SingleOutputStreamOperator<R> apply(WindowFunction<T, R, K, W> function) {
         WindowAssigner<? super T, W> assigner = getEffectiveWindowAssigner();
         IWindowOperatorFactory factory = getFactory();
-        if (factory != null) {
-            OneInputStreamOperator<T, R> operator = factory.createApplyOperator(
-                    assigner, trigger, evictor, allowedLateness, function,
-                    (Class<T>) (Class<?>) Object.class,
-                    keyedStream.getKeySelector(), (Class<K>) (Class<?>) Object.class);
-            return transform("WindowApply", (TypeInformation<R>) UnknownTypeInformation.INSTANCE, operator);
+        if (factory == null) {
+            throw new StreamException("WindowOperator requires nop-stream-runtime on classpath: no IWindowOperatorFactory available");
         }
-        WindowAggregationFunction<T, java.util.List<T>, R, K, W> aggFn =
-                new ApplyAggregationFunction<>(function);
-        WindowAggregationOperator<T, java.util.List<T>, R, K, W> operator =
-                new WindowAggregationOperator<>(assigner, trigger, aggFn, keyedStream.getKeySelector());
-        operator.setAllowedLateness(allowedLateness);
+        OneInputStreamOperator<T, R> operator = factory.createApplyOperator(
+                assigner, trigger, evictor, allowedLateness, function,
+                (Class<T>) (Class<?>) Object.class,
+                keyedStream.getKeySelector(), (Class<K>) (Class<?>) Object.class);
         return transform("WindowApply", (TypeInformation<R>) UnknownTypeInformation.INSTANCE, operator);
     }
 
@@ -178,18 +192,13 @@ public class WindowedStreamImpl<T, K, W extends Window>
     public <ACC, R> SingleOutputStreamOperator<R> aggregate(AggregateFunction<T, ACC, R> function) {
         WindowAssigner<? super T, W> assigner = getEffectiveWindowAssigner();
         IWindowOperatorFactory factory = getFactory();
-        if (factory != null) {
-            OneInputStreamOperator<T, R> operator = factory.createAggregateOperator(
-                    assigner, trigger, evictor, allowedLateness, function,
-                    (Class<ACC>) (Class<?>) Object.class,
-                    keyedStream.getKeySelector(), (Class<K>) (Class<?>) Object.class);
-            return transform("WindowAggregate", (TypeInformation<R>) UnknownTypeInformation.INSTANCE, operator);
+        if (factory == null) {
+            throw new StreamException("WindowOperator requires nop-stream-runtime on classpath: no IWindowOperatorFactory available");
         }
-        WindowAggregationFunction<T, ACC, R, K, W> aggFn =
-                new AggregateAggregationFunction<>(function);
-        WindowAggregationOperator<T, ACC, R, K, W> operator =
-                new WindowAggregationOperator<>(assigner, trigger, aggFn, keyedStream.getKeySelector());
-        operator.setAllowedLateness(allowedLateness);
+        OneInputStreamOperator<T, R> operator = factory.createAggregateOperator(
+                assigner, trigger, evictor, allowedLateness, function,
+                (Class<ACC>) (Class<?>) Object.class,
+                keyedStream.getKeySelector(), (Class<K>) (Class<?>) Object.class);
         return transform("WindowAggregate", (TypeInformation<R>) UnknownTypeInformation.INSTANCE, operator);
     }
 
@@ -198,18 +207,13 @@ public class WindowedStreamImpl<T, K, W extends Window>
     public SingleOutputStreamOperator<T> reduce(ReduceFunction<T> function) {
         WindowAssigner<? super T, W> assigner = getEffectiveWindowAssigner();
         IWindowOperatorFactory factory = getFactory();
-        if (factory != null) {
-            OneInputStreamOperator<T, T> operator = factory.createReduceOperator(
-                    assigner, trigger, evictor, allowedLateness, function,
-                    (Class<T>) (Class<?>) Object.class,
-                    keyedStream.getKeySelector(), (Class<K>) (Class<?>) Object.class);
-            return transform("WindowReduce", getType(), operator);
+        if (factory == null) {
+            throw new StreamException("WindowOperator requires nop-stream-runtime on classpath: no IWindowOperatorFactory available");
         }
-        WindowAggregationFunction<T, T, T, K, W> aggFn =
-                new ReduceAggregationFunction<>(function);
-        WindowAggregationOperator<T, T, T, K, W> operator =
-                new WindowAggregationOperator<>(assigner, trigger, aggFn, keyedStream.getKeySelector());
-        operator.setAllowedLateness(allowedLateness);
+        OneInputStreamOperator<T, T> operator = factory.createReduceOperator(
+                assigner, trigger, evictor, allowedLateness, function,
+                (Class<T>) (Class<?>) Object.class,
+                keyedStream.getKeySelector(), (Class<K>) (Class<?>) Object.class);
         return transform("WindowReduce", getType(), operator);
     }
 
@@ -218,18 +222,13 @@ public class WindowedStreamImpl<T, K, W extends Window>
     public <R> SingleOutputStreamOperator<R> process(ProcessWindowFunction<T, R, K, W> function) {
         WindowAssigner<? super T, W> assigner = getEffectiveWindowAssigner();
         IWindowOperatorFactory factory = getFactory();
-        if (factory != null) {
-            OneInputStreamOperator<T, R> operator = factory.createProcessOperator(
-                    assigner, trigger, evictor, allowedLateness, function,
-                    (Class<T>) (Class<?>) Object.class,
-                    keyedStream.getKeySelector(), (Class<K>) (Class<?>) Object.class);
-            return transform("WindowProcess", (TypeInformation<R>) UnknownTypeInformation.INSTANCE, operator);
+        if (factory == null) {
+            throw new StreamException("WindowOperator requires nop-stream-runtime on classpath: no IWindowOperatorFactory available");
         }
-        WindowAggregationFunction<T, java.util.List<T>, R, K, W> aggFn =
-                new ProcessWindowAggregationFunction<>(function);
-        WindowAggregationOperator<T, java.util.List<T>, R, K, W> operator =
-                new WindowAggregationOperator<>(assigner, trigger, aggFn, keyedStream.getKeySelector());
-        operator.setAllowedLateness(allowedLateness);
+        OneInputStreamOperator<T, R> operator = factory.createProcessOperator(
+                assigner, trigger, evictor, allowedLateness, function,
+                (Class<T>) (Class<?>) Object.class,
+                keyedStream.getKeySelector(), (Class<K>) (Class<?>) Object.class);
         return transform("WindowProcess", (TypeInformation<R>) UnknownTypeInformation.INSTANCE, operator);
     }
 
@@ -238,6 +237,16 @@ public class WindowedStreamImpl<T, K, W extends Window>
             String operatorName,
             TypeInformation<R> outTypeInfo,
             OneInputStreamOperator<T, R> operator) {
-        return super.transform(operatorName, outTypeInfo, operator);
+        StreamOperatorFactory<R> operatorFactory = new SimpleStreamOperatorFactory<R>(
+                operator, operatorName, environment.getParallelism(), ChainingStrategy.NEVER);
+        OneInputTransformation<T, R> transform = new OneInputTransformation<>(
+                this.transformation,
+                operatorName,
+                operatorFactory,
+                outTypeInfo,
+                environment.getParallelism()
+        );
+        environment.addTransformation(transform);
+        return new SingleOutputStreamOperatorImpl<>(environment, transform);
     }
 }

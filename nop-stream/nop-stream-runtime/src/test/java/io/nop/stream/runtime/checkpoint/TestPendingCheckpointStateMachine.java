@@ -54,12 +54,29 @@ class TestPendingCheckpointStateMachine {
     }
 
     @Test
-    void testAcknowledgeAfterAbort_isIgnored() {
+    void testAcknowledgeAfterAbort_throwsException() {
         PendingCheckpoint pc = new PendingCheckpoint("j", "p", 1L, System.currentTimeMillis(),
                 CheckpointType.CHECKPOINT, tasks);
         pc.abort("test");
-        pc.acknowledgeTask(LOC_1, TaskStateSnapshot.empty(LOC_1));
-        assertEquals(0, pc.getNumberOfAcknowledgedTasks());
+        assertThrows(io.nop.stream.core.exceptions.StreamException.class,
+                () -> pc.acknowledgeTask(LOC_1, TaskStateSnapshot.empty(LOC_1)));
+    }
+
+    @Test
+    void testFailTransitionsToFailed() {
+        PendingCheckpoint pc = new PendingCheckpoint("j", "p", 1L, System.currentTimeMillis(),
+                CheckpointType.CHECKPOINT, tasks);
+        pc.fail("test failure", new RuntimeException("simulated"));
+        assertEquals(PendingCheckpoint.Status.FAILED, pc.getStatus().get());
+    }
+
+    @Test
+    void testInvalidTransitionThrows() {
+        PendingCheckpoint pc = new PendingCheckpoint("j", "p", 1L, System.currentTimeMillis(),
+                CheckpointType.CHECKPOINT, tasks);
+        pc.abort("first");
+        assertThrows(io.nop.stream.core.exceptions.StreamException.class,
+                () -> pc.fail("fail after abort", null));
     }
 
     @Test
@@ -73,8 +90,12 @@ class TestPendingCheckpointStateMachine {
                     CheckpointType.CHECKPOINT, tasks);
 
             Thread ackThread = new Thread(() -> {
-                pc.acknowledgeTask(LOC_1, TaskStateSnapshot.empty(LOC_1));
-                pc.acknowledgeTask(LOC_2, TaskStateSnapshot.empty(LOC_2));
+                try {
+                    pc.acknowledgeTask(LOC_1, TaskStateSnapshot.empty(LOC_1));
+                    pc.acknowledgeTask(LOC_2, TaskStateSnapshot.empty(LOC_2));
+                } catch (io.nop.stream.core.exceptions.StreamException e) {
+                    // expected if abort won the race
+                }
             });
             Thread abortThread = new Thread(() -> pc.abort("race"));
 

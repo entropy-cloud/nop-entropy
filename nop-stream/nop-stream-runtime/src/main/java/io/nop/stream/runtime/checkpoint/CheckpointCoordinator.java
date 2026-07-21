@@ -256,13 +256,13 @@ public class CheckpointCoordinator {
             checkpointStorage.storeCheckPoint(completed);
         } catch (Exception e) {
             LOG.error("Failed to store checkpoint {}", checkpointId, e);
-            pending.getStatus().set(PendingCheckpoint.Status.ABORTED);
+            metrics.recordFailure("Failed to store checkpoint");
+            pending.getStatus().set(PendingCheckpoint.Status.FAILED);
             pendingCheckpoints.remove(checkpointId, pending);
             decrementPendingCheckpointCount();
-            metrics.incrementFailedCheckpoints();
             notifyParticipantsFinishCommit(checkpointId, false);
             notifyCheckpointAborted(checkpointId);
-            LOG.warn("Aborted checkpoint {} for job {}: {}", checkpointId, jobId, "Failed to store checkpoint");
+            LOG.warn("Failed checkpoint {} for job {}: {}", checkpointId, jobId, "Failed to store checkpoint", e);
             return;
         }
 
@@ -272,14 +272,14 @@ public class CheckpointCoordinator {
             checkpointStorage.storeEpochManifest(jobId, pipelineId, manifest);
             LOG.debug("Stored EpochManifest for epoch {}", checkpointId);
         } catch (Exception e) {
-            LOG.error("Failed to store EpochManifest for checkpoint {}, aborting checkpoint", checkpointId, e);
-            pending.getStatus().set(PendingCheckpoint.Status.ABORTED);
+            LOG.error("Failed to store EpochManifest for checkpoint {}, failing checkpoint", checkpointId, e);
+            metrics.recordFailure("Failed to store EpochManifest");
+            pending.getStatus().set(PendingCheckpoint.Status.FAILED);
             pendingCheckpoints.remove(checkpointId, pending);
             decrementPendingCheckpointCount();
-            metrics.incrementFailedCheckpoints();
             notifyParticipantsFinishCommit(checkpointId, false);
             notifyCheckpointAborted(checkpointId);
-            LOG.warn("Aborted checkpoint {} for job {}: {}", checkpointId, jobId, "Failed to store EpochManifest for checkpoint " + checkpointId);
+            LOG.warn("Failed checkpoint {} for job {}: {}", checkpointId, jobId, "Failed to store EpochManifest for checkpoint " + checkpointId, e);
             return;
         }
 
@@ -333,7 +333,7 @@ public class CheckpointCoordinator {
         removed.abort(reason);
         decrementPendingCheckpointCount();
 
-        metrics.incrementFailedCheckpoints();
+        metrics.recordFailure("Aborted: " + reason);
 
         // Notify participants about abort: finishCommit(false) keeps prepared transactions for subsuming
         notifyParticipantsFinishCommit(checkpointId, false);

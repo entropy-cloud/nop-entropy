@@ -16,6 +16,7 @@ import io.nop.stream.core.common.functions.FilterFunction;
 import io.nop.stream.core.common.functions.FlatMapFunction;
 import io.nop.stream.core.common.functions.KeySelector;
 import io.nop.stream.core.common.functions.MapFunction;
+import io.nop.stream.core.common.functions.ProcessFunction;
 import io.nop.stream.core.common.functions.SinkFunction;
 import io.nop.stream.core.common.functions.sink.PrintSinkFunction;
 import io.nop.stream.core.common.typeinfo.BasicTypeInfo;
@@ -25,6 +26,7 @@ import io.nop.stream.core.environment.StreamExecutionEnvironment;
 import io.nop.stream.core.execution.plan.PartitionPolicy;
 import io.nop.stream.core.execution.plan.PartitionPolicyAware;
 import io.nop.stream.core.operators.OneInputStreamOperator;
+import io.nop.stream.core.operators.ProcessOperator;
 import io.nop.stream.core.operators.SimpleStreamOperatorFactory;
 import io.nop.stream.core.operators.StreamFilter;
 import io.nop.stream.core.operators.StreamFlatMap;
@@ -193,6 +195,15 @@ public class DataStreamImpl<T> implements DataStream<T> {
      */
     public <R> SingleOutputStreamOperator<R> flatMap(FlatMapFunction<T, R> flatMapper, TypeInformation<R> typeInfo) {
         return transform("FlatMap", typeInfo, new StreamFlatMap<>(flatMapper));
+    }
+
+    @Override
+    public <R> SingleOutputStreamOperator<R> process(ProcessFunction<T, R> processFunction) {
+        return transform(
+                "Process",
+                (TypeInformation<R>) UnknownTypeInformation.INSTANCE,
+                new ProcessOperator<>(processFunction)
+        );
     }
 
     @Override

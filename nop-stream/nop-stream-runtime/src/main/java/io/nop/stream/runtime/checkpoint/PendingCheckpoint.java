@@ -27,7 +27,7 @@ import io.nop.stream.core.checkpoint.TaskStateSnapshot;
 public class PendingCheckpoint {
 
     public enum Status {
-        RUNNING, COMPLETED, ABORTED
+        RUNNING, COMPLETED, ABORTED, FAILED
     }
 
     private final String jobId;
@@ -42,6 +42,23 @@ public class PendingCheckpoint {
 
     private final AtomicReference<Status> status;
     private volatile boolean isDisposed = false;
+
+    public static boolean isValidTransition(Status from, Status to) {
+        if (from == Status.RUNNING) {
+            return to == Status.COMPLETED || to == Status.ABORTED || to == Status.FAILED;
+        }
+        if (from == to) {
+            return true;
+        }
+        return false;
+    }
+
+    private void checkValidTransition(Status target) {
+        Status current = status.get();
+        if (!isValidTransition(current, target)) {
+            throw new StreamException("Illegal state transition: " + current + " -> " + target);
+        }
+    }
 
     public PendingCheckpoint(
             String jobId,
@@ -115,8 +132,12 @@ public class PendingCheckpoint {
     }
 
     public synchronized void acknowledgeTask(TaskLocation taskLocation, TaskStateSnapshot state) {
-        if (isDisposed || status.get() != Status.RUNNING) {
-            return;
+        if (isDisposed) {
+            throw new StreamException("Cannot acknowledge disposed checkpoint " + checkpointId);
+        }
+        if (status.get() != Status.RUNNING) {
+            throw new StreamException("Cannot acknowledge checkpoint " + checkpointId
+                    + " in state " + status.get());
         }
 
         notYetAcknowledgedTasks.remove(taskLocation);
@@ -138,7 +159,21 @@ public class PendingCheckpoint {
     }
 
     public synchronized void abort(String reason, Throwable cause) {
+        checkValidTransition(Status.ABORTED);
         if (status.compareAndSet(Status.RUNNING, Status.ABORTED)) {
+            isDisposed = true;
+            if (!completableFuture.isDone()) {
+                Exception error = cause != null
+                        ? new StreamException(ERR_STREAM_CHECKPOINT_ABORTED, cause).param(ARG_REASON, reason)
+                        : new StreamException(ERR_STREAM_CHECKPOINT_ABORTED).param(ARG_REASON, reason);
+                completableFuture.completeExceptionally(error);
+            }
+        }
+    }
+
+    public synchronized void fail(String reason, Throwable cause) {
+        checkValidTransition(Status.FAILED);
+        if (status.compareAndSet(Status.RUNNING, Status.FAILED)) {
             isDisposed = true;
             if (!completableFuture.isDone()) {
                 Exception error = cause != null
