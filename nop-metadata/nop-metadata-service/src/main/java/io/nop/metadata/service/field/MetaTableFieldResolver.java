@@ -360,8 +360,8 @@ public class MetaTableFieldResolver {
         } catch (NopException e) {
             throw e;
         } catch (Exception e) {
-            throw new NopException(NopMetadataErrors.ERR_FIELD_RESOLVE_EXTERNAL_BUILD_SQL_INVALID)
-                    .param("metaTableId", table.getMetaTableId()).cause(e);
+            throw new NopException(NopMetadataErrors.ERR_FIELD_RESOLVE_EXTERNAL_BUILD_SQL_INVALID, e)
+                    .param("metaTableId", table.getMetaTableId());
         }
         if (columnList.isEmpty()) {
             throw new NopException(NopMetadataErrors.ERR_FIELD_RESOLVE_NO_FIELDS)

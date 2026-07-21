@@ -703,9 +703,9 @@ public class MetaJoinExecutor {
             }
             return rows;
         } catch (SQLException e) {
-            throw new NopException(NopMetadataErrors.ERR_JOIN_TABLE_EXEC_FAILED)
+            throw new NopException(NopMetadataErrors.ERR_JOIN_TABLE_EXEC_FAILED, e)
                     .param("joinId", joinId).param("side", side)
-                    .param("error", messageOf(e)).cause(e);
+                    .param("error", messageOf(e));
         }
     }
 

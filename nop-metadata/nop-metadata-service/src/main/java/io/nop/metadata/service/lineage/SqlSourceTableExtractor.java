@@ -57,7 +57,7 @@ public class SqlSourceTableExtractor {
         try {
             program = parser.parseFromText(null, sql);
         } catch (Exception e) {
-            throw new NopException(NopMetadataErrors.ERR_LINEAGE_SQL_PARSE_FAILED).param("sql", sql).cause(e);
+            throw new NopException(NopMetadataErrors.ERR_LINEAGE_SQL_PARSE_FAILED, e).param("sql", sql);
         }
         if (program == null) {
             throw new NopException(NopMetadataErrors.ERR_LINEAGE_SQL_PARSE_FAILED).param("sql", sql);

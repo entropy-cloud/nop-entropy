@@ -768,6 +768,7 @@ public class AggregationContext {
                 IEntityDao<NopMetaEntityField> fieldDao = ctx.daoProvider().daoFor(NopMetaEntityField.class);
                 return fieldDao.getEntityById(entityFieldId);
             } catch (Exception e) {
+                LOG.warn("failed to load entity field by id: {}", entityFieldId, e);
                 return null;
             }
         }
@@ -999,6 +1000,7 @@ public class AggregationContext {
             try {
                 return ctx.daoProvider().daoFor(NopMetaEntityField.class).getEntityById(entityFieldId);
             } catch (Exception e) {
+                LOG.warn("failed to load entity field by id: {}", entityFieldId, e);
                 return null;
             }
         }
@@ -1078,10 +1080,9 @@ public class AggregationContext {
             }
             return rows;
         } catch (SQLException e) {
-            throw new NopException(NopMetadataErrors.ERR_AGGR_EXEC_FAILED)
+            throw new NopException(NopMetadataErrors.ERR_AGGR_EXEC_FAILED, e)
                     .param("metaTableId", metaTableId)
-                    .param("error", messageOf(e))
-                    .cause(e);
+                    .param("error", messageOf(e));
         }
     }
 

@@ -102,11 +102,11 @@ public class MetaContractChecker {
         boolean qualityConfigured = !qualityRuleIds.isEmpty();
         if (!qualityConfigured && !slaConfigured) {
             status = "ERROR";
-            message = "契约无可检查项（qualityExpectations 为空且 sla 为空）";
+            message = "No checkable items (qualityExpectations and sla are both empty)";
         } else if (qualityHasError) {
             // 任一被引用 ruleId 不存在 / 解析异常 → ERROR（已在 aggregateQuality 标记 hasError + message）
             status = "ERROR";
-            message = "质量路径存在错误，详见 qualitySummary";
+            message = "Errors in quality path, see qualitySummary";
         } else {
             boolean slaFresh = Boolean.TRUE.equals(slaSummary.get("slaFresh"));
             long failedRules = toLong(qualitySummary.get("failedRules"));
@@ -115,7 +115,7 @@ public class MetaContractChecker {
                 message = buildFailMessage(failedRules, slaFresh, slaSummary);
             } else {
                 status = "PASS";
-                message = "契约检查通过";
+                message = "Contract check passed";
             }
         }
 
@@ -196,7 +196,7 @@ public class MetaContractChecker {
             if (latest == null) {
                 noResultRules++;
                 detail.put("latestStatus", "no-result");
-                detail.put("message", "无执行结果");
+                detail.put("message", "No execution result");
             } else {
                 String rs = latest.getStatus();
                 detail.put("latestStatus", rs);
@@ -391,27 +391,27 @@ public class MetaContractChecker {
     private static String buildFailMessage(long failedRules, boolean slaFresh, Map<String, Object> slaSummary) {
         StringBuilder sb = new StringBuilder();
         if (failedRules > 0) {
-            sb.append("质量失败规则数=").append(failedRules);
+            sb.append("Failed quality rules count=").append(failedRules);
         }
         if (!slaFresh) {
             if (sb.length() > 0) {
-                sb.append("；");
+                sb.append("; ");
             }
-            sb.append("SLA 不满足（");
+            sb.append("SLA not satisfied (");
             if (Boolean.TRUE.equals(slaSummary.get("collectionStale"))) {
-                sb.append("采集过期");
+                sb.append("collection stale");
             }
             if (Boolean.TRUE.equals(slaSummary.get("dataStale"))) {
-                if (sb.charAt(sb.length() - 1) != '（') {
+                if (sb.charAt(sb.length() - 1) != '(') {
                     sb.append(',');
                 }
-                sb.append("数据过期");
+                sb.append("data stale");
             }
             if (!slaSummary.containsKey("collectionStale") && !slaSummary.containsKey("dataStale")
                     && Boolean.FALSE.equals(slaSummary.get("catalogAvailable"))) {
-                sb.append("无 Catalog 记录");
+                sb.append("no Catalog record");
             }
-            sb.append('）');
+            sb.append(')');
         }
         return sb.toString();
     }

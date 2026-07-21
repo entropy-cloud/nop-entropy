@@ -143,10 +143,9 @@ public class EntityEntityJoinAggregationProcessor implements AggregationProcesso
         try {
             return ctx.orm().executeQuery(sqlObj, null, AggregationContext::collectRows);
         } catch (Exception e) {
-            throw new NopException(NopMetadataErrors.ERR_AGGR_JOIN_COMPILE_FAILED)
+            throw new NopException(NopMetadataErrors.ERR_AGGR_JOIN_COMPILE_FAILED, e)
                     .param("joinId", joinId)
-                    .param("error", messageOf(e))
-                    .cause(e);
+                    .param("error", messageOf(e));
         }
     }
 

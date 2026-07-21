@@ -169,13 +169,10 @@ public class MetaModelChangedEventPublisher {
         Map<String, Object> snapshot = buildEntitySnapshot(entity);
         try {
             return JsonTool.stringify(snapshot);
-        } catch (Throwable e) {
-            // 序列化任意对象可能产生 StackOverflowError（循环引用）等 Error；快照边界须显式收口为 ErrorCode，
-            // 不静默吞掉、不静默跳过事件发布（架构基线 §2.8 失败路径显式）。
-            throw new NopException(NopMetadataErrors.ERR_EVENT_SNAPSHOT_SERIALIZE_FAILED)
+        } catch (Exception e) {
+            throw new NopException(NopMetadataErrors.ERR_EVENT_SNAPSHOT_SERIALIZE_FAILED, e)
                     .param("entityType", entityType)
-                    .param("entityId", entityId)
-                    .param("error", e.toString());
+                    .param("entityId", entityId);
         }
     }
 

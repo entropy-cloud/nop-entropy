@@ -76,7 +76,7 @@ public class SqlSelectFieldExtractor {
         try {
             program = parser.parseFromText(null, sql);
         } catch (Exception e) {
-            throw new NopException(NopMetadataErrors.ERR_SQL_VIEW_PARSE_FAILED).param("sql", sql).cause(e);
+            throw new NopException(NopMetadataErrors.ERR_SQL_VIEW_PARSE_FAILED, e).param("sql", sql);
         }
         if (program == null || program.getStatements() == null || program.getStatements().isEmpty()) {
             throw new NopException(NopMetadataErrors.ERR_SQL_VIEW_PARSE_FAILED).param("sql", sql);
@@ -148,8 +148,8 @@ public class SqlSelectFieldExtractor {
                 // 未知 projection 子类——显式失败而非静默跳过
                 throw new NopException(NopMetadataErrors.ERR_SQL_VIEW_PARSE_FAILED)
                         .param("sql", sql)
-                        .cause(new IllegalStateException(
-                                "unhandled projection class: " + proj.getClass().getName()));
+                        .param("reason",
+                                "unhandled projection class: " + proj.getClass().getName());
             }
         }
         return fields;

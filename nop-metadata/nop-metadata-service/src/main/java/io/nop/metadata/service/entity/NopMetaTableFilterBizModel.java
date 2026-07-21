@@ -94,8 +94,8 @@ public class NopMetaTableFilterBizModel extends CrudBizModel<NopMetaTableFilter>
         } catch (NopException e) {
             throw e;
         } catch (Exception e) {
-            throw new NopException(NopMetadataErrors.ERR_FILTER_DEFINITION_INVALID)
-                    .param("metaTableId", metaTableId).param("filterName", filterName).cause(e);
+            throw new NopException(NopMetadataErrors.ERR_FILTER_DEFINITION_INVALID, e)
+                    .param("metaTableId", metaTableId).param("filterName", filterName);
         }
     }
 

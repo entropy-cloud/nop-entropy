@@ -173,10 +173,9 @@ public class SqlViewFieldTypeInferrer {
             }
         } catch (SQLException e) {
             // sourceSql 执行失败 / prepareStatement 失败 → 显式失败（不吞、不静默 fallback）
-            throw new NopException(NopMetadataErrors.ERR_SQL_TYPE_INFERENCE_FAILED)
+            throw new NopException(NopMetadataErrors.ERR_SQL_TYPE_INFERENCE_FAILED, e)
                     .param("error", messageOf(e))
-                    .param("querySpace", querySpace)
-                    .cause(e);
+                    .param("querySpace", querySpace);
         }
     }
 
@@ -189,10 +188,9 @@ public class SqlViewFieldTypeInferrer {
         try {
             return rsMeta.getColumnTypeName(columnIdx);
         } catch (SQLException e) {
-            throw new NopException(NopMetadataErrors.ERR_SQL_TYPE_INFERENCE_FAILED)
+            throw new NopException(NopMetadataErrors.ERR_SQL_TYPE_INFERENCE_FAILED, e)
                     .param("error", "getColumnTypeName failed for column " + columnIdx + ": " + messageOf(e))
-                    .param("querySpace", querySpace)
-                    .cause(e);
+                    .param("querySpace", querySpace);
         }
     }
 

@@ -136,10 +136,9 @@ public final class MetaTableQueryExecutor {
             }
             return rows;
         } catch (SQLException e) {
-            throw new NopException(NopMetadataErrors.ERR_QUERY_SQL_EXEC_FAILED)
+            throw new NopException(NopMetadataErrors.ERR_QUERY_SQL_EXEC_FAILED, e)
                     .param("sql", sql)
-                    .param("error", messageOf(e))
-                    .cause(e);
+                    .param("error", messageOf(e));
         }
     }
 

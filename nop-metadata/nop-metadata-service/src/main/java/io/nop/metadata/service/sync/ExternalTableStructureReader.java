@@ -88,8 +88,8 @@ public class ExternalTableStructureReader {
             }
         } catch (SQLException e) {
             throw new NopException(newErrorCode(ERR_DIALECT_NOT_SUPPORTED,
-                    "Failed to read table structure from external datasource: {error}", "error"))
-                    .param("error", e.getMessage()).cause(e);
+                    "Failed to read table structure from external datasource: {error}", "error"), e)
+                    .param("error", e.getMessage());
         } finally {
             IoHelper.safeCloseObject(rs);
         }
@@ -124,8 +124,8 @@ public class ExternalTableStructureReader {
             productName = metaData.getDatabaseProductName();
         } catch (SQLException e) {
             throw new NopException(newErrorCode(ERR_DIALECT_NOT_SUPPORTED,
-                    "Failed to read database product name: {error}", "error"))
-                    .param("error", e.getMessage()).cause(e);
+                    "Failed to read database product name: {error}", "error"), e)
+                    .param("error", e.getMessage());
         }
         requireSupportedProductName(productName);
         return productName;

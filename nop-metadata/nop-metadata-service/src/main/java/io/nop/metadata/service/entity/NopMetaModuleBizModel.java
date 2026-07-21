@@ -218,7 +218,7 @@ public class NopMetaModuleBizModel extends CrudBizModel<NopMetaModule> implement
             if (parsed instanceof OrmModel)
                 return (OrmModel) parsed;
         } catch (Exception e) {
-            LOG.warn("parseDeltaModel failed, falling back to full model as delta: {}", e.toString());
+            LOG.warn("parseDeltaModel failed, falling back to full model as delta", e);
         }
         // 降级：delta 解析失败时，delta=full（内容相同）
         return fullModel;
@@ -263,7 +263,7 @@ public class NopMetaModuleBizModel extends CrudBizModel<NopMetaModule> implement
             NopMetaModule baseModule = dao().findFirstByQuery(query);
             return baseModule != null ? baseModule.getMetaModuleId() : null;
         } catch (Exception e) {
-            LOG.warn("resolveBaseModuleId failed, baseModuleId set to null: {}", e.toString());
+            LOG.warn("resolveBaseModuleId failed, baseModuleId set to null", e);
             return null;
         }
     }
@@ -548,7 +548,7 @@ public class NopMetaModuleBizModel extends CrudBizModel<NopMetaModule> implement
         try (InputStream in = resource.getInputStream()) {
             return new String(in.readAllBytes(), StandardCharsets.UTF_8);
         } catch (IOException e) {
-            throw new NopException(NopMetadataErrors.ERR_ORM_RESOURCE_READ_FAILED).param("path", resource.getPath()).cause(e);
+            throw new NopException(NopMetadataErrors.ERR_ORM_RESOURCE_READ_FAILED, e).param("path", resource.getPath());
         }
     }
 

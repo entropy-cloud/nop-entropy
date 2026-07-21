@@ -89,8 +89,8 @@ public class TableReferenceExecutor {
             try {
                 metaData = conn.getMetaData();
             } catch (SQLException e) {
-                throw new NopException(NopMetadataErrors.ERR_TABLEREF_PLATFORM_META_FAILED)
-                        .param("error", e.getMessage()).cause(e);
+                throw new NopException(NopMetadataErrors.ERR_TABLEREF_PLATFORM_META_FAILED, e)
+                        .param("error", e.getMessage());
             }
             String productName = safeProductName(metaData);
             try {

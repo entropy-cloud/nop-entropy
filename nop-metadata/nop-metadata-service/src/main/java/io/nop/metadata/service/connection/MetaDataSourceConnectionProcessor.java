@@ -351,9 +351,8 @@ public class MetaDataSourceConnectionProcessor implements IMetaDataSourceConnect
 
     private static NopException newNopConnectException(String datasourceType, SQLException e) {
         String msg = e.getMessage();
-        return new NopException(NopMetadataErrors.ERR_DATASOURCE_CONNECT_FAILED)
+        return new NopException(NopMetadataErrors.ERR_DATASOURCE_CONNECT_FAILED, e)
                 .param("datasourceType", datasourceType)
-                .param("error", msg != null ? msg : e.getClass().getName())
-                .cause(e);
+                .param("error", msg != null ? msg : e.getClass().getName());
     }
 }

@@ -74,10 +74,9 @@ public final class DefaultFilterApplicator {
                 }
             } catch (Exception e) {
                 // 解析失败显式抛错（不静默忽略脏过滤器，避免过滤被悄悄跳过导致越权数据返回）
-                throw new NopException(NopMetadataErrors.ERR_DEFAULT_FILTER_PARSE)
+                throw new NopException(NopMetadataErrors.ERR_DEFAULT_FILTER_PARSE, e)
                         .param("filterId", f.getFilterId())
-                        .param("error", messageOf(e))
-                        .cause(e);
+                        .param("error", messageOf(e));
             }
         }
         if (parts.isEmpty()) {

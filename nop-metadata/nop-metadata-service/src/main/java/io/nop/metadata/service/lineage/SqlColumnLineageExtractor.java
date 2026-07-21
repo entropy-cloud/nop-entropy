@@ -131,7 +131,7 @@ public class SqlColumnLineageExtractor {
         try {
             program = parser.parseFromText(null, sql);
         } catch (Exception e) {
-            throw new NopException(NopMetadataErrors.ERR_COL_LINEAGE_SQL_PARSE_FAILED).param("sql", sql).cause(e);
+            throw new NopException(NopMetadataErrors.ERR_COL_LINEAGE_SQL_PARSE_FAILED, e).param("sql", sql);
         }
         if (program == null || program.getStatements() == null || program.getStatements().isEmpty()) {
             throw new NopException(NopMetadataErrors.ERR_COL_LINEAGE_SQL_PARSE_FAILED).param("sql", sql);
@@ -187,7 +187,7 @@ public class SqlColumnLineageExtractor {
             // getStatementKind()==SELECT 但非已知子类——不可达，显式失败而非静默
             throw new NopException(NopMetadataErrors.ERR_COL_LINEAGE_SQL_PARSE_FAILED)
                     .param("sql", sql)
-                    .cause(new IllegalStateException("unhandled SELECT statement class: " + stmt.getClass().getName()));
+                    .param("reason", "unhandled SELECT statement class: " + stmt.getClass().getName());
         }
 
         // 构建 scopeName(lower) → simpleTableName 映射 + 源表计数 + 派生表 alias 映射
@@ -199,7 +199,7 @@ public class SqlColumnLineageExtractor {
         if (projections == null || projections.isEmpty()) {
             throw new NopException(NopMetadataErrors.ERR_COL_LINEAGE_SQL_PARSE_FAILED)
                     .param("sql", sql)
-                    .cause(new IllegalStateException("empty projections (bare wildcard '*' cannot be resolved)"));
+                    .param("reason", "empty projections (bare wildcard '*' cannot be resolved)");
         }
 
         List<ColumnLineageCandidate> candidates = new ArrayList<>();
@@ -214,7 +214,7 @@ public class SqlColumnLineageExtractor {
                 // 未知 projection 子类——显式失败而非静默跳过
                 throw new NopException(NopMetadataErrors.ERR_COL_LINEAGE_SQL_PARSE_FAILED)
                         .param("sql", sql)
-                        .cause(new IllegalStateException("unhandled projection class: " + proj.getClass().getName()));
+                        .param("reason", "unhandled projection class: " + proj.getClass().getName());
             }
             SqlExprProjection exprProj = (SqlExprProjection) proj;
             String targetColumn = resolveTargetColumn(exprProj, exprIndex);

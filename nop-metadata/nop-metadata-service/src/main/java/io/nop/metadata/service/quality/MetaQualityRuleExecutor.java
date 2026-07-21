@@ -635,10 +635,9 @@ public class MetaQualityRuleExecutor {
         } catch (NumberFormatException e) {
             // plan 2026-07-19-1250-3 Phase 5 AR-11：显式抛 ErrorCode（与模块内其它 ErrorCode 路径一致）
             // expectPassWhen 配置错误属于规则定义问题，应快速失败（裁定为 ERR_QUALITY_EXPECT_PASS_WHEN_INVALID）。
-            throw new NopException(io.nop.metadata.service.NopMetadataErrors.ERR_QUALITY_EXPECT_PASS_WHEN_INVALID)
+            throw new NopException(io.nop.metadata.service.NopMetadataErrors.ERR_QUALITY_EXPECT_PASS_WHEN_INVALID, e)
                     .param(io.nop.metadata.service.NopMetadataErrors.ARG_QUALITY_RULE_ID, "<evalExpectPassWhen>")
-                    .param("expr", expectPassWhen)
-                    .cause(e);
+                    .param("expr", expectPassWhen);
         }
     }
 
