@@ -24,6 +24,8 @@ import io.nop.core.context.IServiceContext;
 import io.nop.dao.api.IEntityDao;
 import io.nop.metadata.biz.INopMetaLineageEdgeBiz;
 import io.nop.metadata.core._NopMetadataCoreConstants;
+import io.nop.metadata.core.dto.LineageExtractResultDTO;
+import io.nop.metadata.core.dto.LineageRecordResultDTO;
 import io.nop.metadata.dao.entity.NopMetaEntityField;
 import io.nop.metadata.dao.entity.NopMetaLineageEdge;
 import io.nop.metadata.dao.entity.NopMetaTable;
@@ -119,8 +121,8 @@ public class NopMetaLineageEdgeBizModel extends CrudBizModel<NopMetaLineageEdge>
      * @return {@code {recordedEdgeCount: int}}
      */
     @BizMutation
-    public Map<String, Object> recordLineage(@Name("edges") List<Map<String, Object>> edges,
-                                              IServiceContext context) {
+    public LineageRecordResultDTO recordLineage(@Name("edges") List<Map<String, Object>> edges,
+                                                  IServiceContext context) {
         if (edges == null || edges.isEmpty()) {
             throw new NopException(NopMetadataErrors.ERR_LINEAGE_NO_EDGES).param("size", 0);
         }
@@ -170,8 +172,8 @@ public class NopMetaLineageEdgeBizModel extends CrudBizModel<NopMetaLineageEdge>
         }
         orm().flushSession();
 
-        Map<String, Object> result = new LinkedHashMap<>();
-        result.put("recordedEdgeCount", parsed.size());
+        LineageRecordResultDTO result = new LineageRecordResultDTO();
+        result.setEdgeCount(parsed.size());
         return result;
     }
 
@@ -187,15 +189,15 @@ public class NopMetaLineageEdgeBizModel extends CrudBizModel<NopMetaLineageEdge>
      * @return {@code {extractedEdgeCount: int, unresolved: [...], errors: [...]}}
      */
     @BizMutation
-    public Map<String, Object> extractLineageFromSql(@Name("metaTableId") String metaTableId,
-                                                     IServiceContext context) {
+    public LineageExtractResultDTO extractLineageFromSql(@Name("metaTableId") String metaTableId,
+                                                          IServiceContext context) {
         IEntityDao<NopMetaTable> tableDao = daoFor(NopMetaTable.class);
         NopMetaTable targetTable = tableDao.getEntityById(metaTableId);
         if (targetTable == null) {
             throw new NopException(NopMetadataErrors.ERR_LINEAGE_SQL_TABLE_NOT_FOUND).param("metaTableId", metaTableId);
         }
         if (!_NopMetadataCoreConstants.TABLE_TYPE_SQL.equals(targetTable.getTableType())) {
-            throw new NopException(NopMetadataErrors.ERR_LINEAGE_NOT_SQL_TABLE)
+            throw new NopException(NopMetadataErrors.ERR_LINEAGE_NOT_SQL_VIEW_TABLE)
                     .param("metaTableId", metaTableId)
                     .param("tableType", targetTable.getTableType());
         }
@@ -233,10 +235,12 @@ public class NopMetaLineageEdgeBizModel extends CrudBizModel<NopMetaLineageEdge>
             extracted++;
         }
 
-        Map<String, Object> result = new LinkedHashMap<>();
-        result.put("extractedEdgeCount", extracted);
-        result.put("unresolved", unresolved);
-        result.put("errors", errors);
+        LineageExtractResultDTO result = new LineageExtractResultDTO();
+        result.setMetaTableId(metaTableId);
+        result.setEdgeCount(extracted);
+        result.setSourceTables(unresolved);
+        result.setUnresolved(unresolved);
+        result.setErrors(errors);
         return result;
     }
 
@@ -254,15 +258,15 @@ public class NopMetaLineageEdgeBizModel extends CrudBizModel<NopMetaLineageEdge>
      * @return {@code {extractedEdgeCount: int, unresolved: [...], errors: [...]}}
      */
     @BizMutation
-    public Map<String, Object> extractColumnLineageFromSql(@Name("metaTableId") String metaTableId,
-                                                            IServiceContext context) {
+    public LineageExtractResultDTO extractColumnLineageFromSql(@Name("metaTableId") String metaTableId,
+                                                                IServiceContext context) {
         IEntityDao<NopMetaTable> tableDao = daoFor(NopMetaTable.class);
         NopMetaTable targetTable = tableDao.getEntityById(metaTableId);
         if (targetTable == null) {
             throw new NopException(NopMetadataErrors.ERR_LINEAGE_SQL_TABLE_NOT_FOUND).param("metaTableId", metaTableId);
         }
         if (!_NopMetadataCoreConstants.TABLE_TYPE_SQL.equals(targetTable.getTableType())) {
-            throw new NopException(NopMetadataErrors.ERR_LINEAGE_NOT_SQL_TABLE)
+            throw new NopException(NopMetadataErrors.ERR_LINEAGE_NOT_SQL_VIEW_TABLE)
                     .param("metaTableId", metaTableId)
                     .param("tableType", targetTable.getTableType());
         }
@@ -309,10 +313,11 @@ public class NopMetaLineageEdgeBizModel extends CrudBizModel<NopMetaLineageEdge>
             extracted++;
         }
 
-        Map<String, Object> result = new LinkedHashMap<>();
-        result.put("extractedEdgeCount", extracted);
-        result.put("unresolved", unresolved);
-        result.put("errors", errors);
+        LineageExtractResultDTO result = new LineageExtractResultDTO();
+        result.setMetaTableId(metaTableId);
+        result.setEdgeCount(extracted);
+        result.setUnresolved(unresolved);
+        result.setErrors(errors);
         return result;
     }
 
@@ -493,8 +498,8 @@ public class NopMetaLineageEdgeBizModel extends CrudBizModel<NopMetaLineageEdge>
      * @return {@code {extractedEdgeCount: int, unresolved: [...], errors: [...]}}
      */
     @BizMutation
-    public Map<String, Object> extractMeasureLineage(@Name("metaTableId") String metaTableId,
-                                                      IServiceContext context) {
+    public LineageExtractResultDTO extractMeasureLineage(@Name("metaTableId") String metaTableId,
+                                                          IServiceContext context) {
         IEntityDao<NopMetaTable> tableDao = daoFor(NopMetaTable.class);
         NopMetaTable targetTable = tableDao.getEntityById(metaTableId);
         if (targetTable == null) {
@@ -576,10 +581,11 @@ public class NopMetaLineageEdgeBizModel extends CrudBizModel<NopMetaLineageEdge>
 
         orm().flushSession();
 
-        Map<String, Object> result = new LinkedHashMap<>();
-        result.put("extractedEdgeCount", extracted);
-        result.put("unresolved", unresolved);
-        result.put("errors", errors);
+        LineageExtractResultDTO result = new LineageExtractResultDTO();
+        result.setMetaTableId(metaTableId);
+        result.setEdgeCount(extracted);
+        result.setUnresolved(unresolved);
+        result.setErrors(errors);
         return result;
     }
 

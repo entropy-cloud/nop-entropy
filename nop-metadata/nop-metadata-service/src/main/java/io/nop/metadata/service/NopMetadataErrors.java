@@ -697,8 +697,8 @@ public interface NopMetadataErrors {
     ErrorCode ERR_LINEAGE_SQL_TABLE_NOT_FOUND =
             ErrorCode.define("nop.err.metadata.lineage-sql-table-not-found",
                     "Lineage sql table not found: {metaTableId}", ARG_META_TABLE_ID);
-    ErrorCode ERR_LINEAGE_NOT_SQL_TABLE =
-            ErrorCode.define("nop.err.metadata.lineage-not-sql-table",
+    ErrorCode ERR_LINEAGE_NOT_SQL_VIEW_TABLE =
+            ErrorCode.define("nop.err.metadata.lineage-not-sql-view-table",
                     "Table is not a sql-view table, cannot extract lineage: {metaTableId} (tableType={tableType})",
                     ARG_META_TABLE_ID, ARG_TABLE_TYPE);
     ErrorCode ERR_LINEAGE_SQL_SOURCE_EMPTY =

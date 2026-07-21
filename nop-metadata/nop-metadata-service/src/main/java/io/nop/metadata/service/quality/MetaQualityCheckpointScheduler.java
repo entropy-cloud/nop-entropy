@@ -19,6 +19,7 @@ import io.nop.job.api.IJobScheduler;
 import io.nop.job.api.spec.JobSpec;
 import io.nop.job.api.spec.TriggerSpec;
 import io.nop.metadata.core._NopMetadataCoreConstants;
+import io.nop.metadata.core.dto.CheckpointExecutionResultDTO;
 import io.nop.metadata.dao.entity.NopMetaQualityCheckpoint;
 import io.nop.metadata.service.entity.NopMetaQualityCheckpointBizModel;
 import io.nop.metadata.service.NopMetadataErrors;
@@ -196,7 +197,7 @@ public class MetaQualityCheckpointScheduler {
      * @param params jobParams（移除 beanName/methodName 后）：{@code {checkpointId: <id>}}
      * @return {@code executeCheckpoint} 的执行摘要 Map
      */
-    public Map<String, Object> executeScheduledCheckpoint(Map<String, Object> params) {
+    public CheckpointExecutionResultDTO executeScheduledCheckpoint(Map<String, Object> params) {
         Object cpId = params.get(PARAM_CHECKPOINT_ID);
         if (cpId == null) {
             throw new NopException(NopMetadataErrors.ERR_CHECKPOINT_SCHEDULER_INVALID_CRON)

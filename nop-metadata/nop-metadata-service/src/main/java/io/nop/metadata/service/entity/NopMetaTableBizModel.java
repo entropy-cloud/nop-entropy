@@ -611,9 +611,7 @@ public class NopMetaTableBizModel extends CrudBizModel<NopMetaTable> implements 
                     .param("metaTableId", table.getMetaTableId())
                     .param("entityName", String.valueOf(entityName));
         }
-        @SuppressWarnings({"rawtypes", "unchecked"})
-        io.nop.orm.dao.IOrmEntityDao<io.nop.orm.IOrmEntity> targetDao =
-                (io.nop.orm.dao.IOrmEntityDao<io.nop.orm.IOrmEntity>) (io.nop.orm.dao.IOrmEntityDao) daoProvider().dao(entityName);
+        io.nop.orm.dao.IOrmEntityDao<io.nop.orm.IOrmEntity> targetDao = castToOrmEntityDao(daoProvider().dao(entityName));
         QueryBean query = new QueryBean();
         if (filter != null) {
             query.setFilter(filter);
@@ -745,6 +743,12 @@ public class NopMetaTableBizModel extends CrudBizModel<NopMetaTable> implements 
     private static List<Map<String, Object>>[] newArrayHolder() {
         return MetaTableQueryExecutor.newArrayHolder();
     }
+
+    @SuppressWarnings("unchecked")
+    private static io.nop.orm.dao.IOrmEntityDao<io.nop.orm.IOrmEntity> castToOrmEntityDao(io.nop.dao.api.IEntityDao<?> dao) {
+        return (io.nop.orm.dao.IOrmEntityDao<io.nop.orm.IOrmEntity>) dao;
+    }
+
 
     /** 提取异常消息（null 时回退类名），避免 catch 块直接 e.getMessage() 丢失堆栈。 */
     private static String messageOf(Throwable t) {

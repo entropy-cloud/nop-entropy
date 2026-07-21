@@ -44,6 +44,7 @@ import java.util.concurrent.TimeUnit;
  *
  * <p>本类不自建连接，所有数据来自平台 ORM 查询（元数据目录内聚合，无需物理数据源连接）。
  */
+@SuppressWarnings("unchecked")
 public class MetaContractChecker {
 
 

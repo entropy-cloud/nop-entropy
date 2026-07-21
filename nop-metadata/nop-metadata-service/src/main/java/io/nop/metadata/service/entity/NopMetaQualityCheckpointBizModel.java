@@ -23,6 +23,7 @@ import io.nop.core.lang.json.JsonTool;
 import io.nop.dao.txn.ITransactionTemplate;
 import io.nop.http.api.client.IHttpClient;
 import io.nop.metadata.biz.INopMetaQualityCheckpointBiz;
+import io.nop.metadata.core.dto.CheckpointExecutionResultDTO;
 import io.nop.metadata.dao.entity.NopMetaQualityCheckpoint;
 import io.nop.metadata.service.connection.IMetaDataSourceConnectionProcessor;
 import io.nop.metadata.service.datasource.MetaDataSourceResolver;
@@ -149,22 +150,43 @@ public class NopMetaQualityCheckpointBizModel extends CrudBizModel<NopMetaQualit
      * @return {@code {checkpointId, executedCount, passCount, failCount, errorCount, affectedTableIds:[...],
      *         autoScore, scoreResults:[{metaTableId, scoreId, overallScore}], results:[...], errors:[...]}}
      */
+    @SuppressWarnings("unchecked")
     @BizMutation
-    public Map<String, Object> executeCheckpoint(@Name("checkpointId") String checkpointId,
-                                                  @Optional @Name("schemaPattern") String schemaPattern,
-                                                  IServiceContext context) {
-        NopMetaQualityCheckpoint cp = dao().getEntityById(checkpointId);
-        if (cp == null) {
-            throw new NopException(NopMetadataErrors.ERR_CHECKPOINT_NOT_FOUND).param("checkpointId", checkpointId);
-        }
+    public CheckpointExecutionResultDTO executeCheckpoint(@Name("checkpointId") String checkpointId,
+                                                           @Optional @Name("schemaPattern") String schemaPattern,
+                                                           IServiceContext context) {
+        NopMetaQualityCheckpoint cp = requireEntity(checkpointId, "executeCheckpoint", context);
         Map<String, Object> summary = ensureCheckpointExecutor().execute(cp, schemaPattern);
+
+        CheckpointExecutionResultDTO dto = new CheckpointExecutionResultDTO();
+        dto.setCheckpointId((String) summary.get("checkpointId"));
+        Object executedCount = summary.get("executedCount");
+        dto.setExecutedRuleCount(executedCount instanceof Number ? ((Number) executedCount).intValue() : 0);
+        Object passCount = summary.get("passCount");
+        dto.setPassCount(passCount instanceof Number ? ((Number) passCount).intValue() : 0);
+        Object failCount = summary.get("failCount");
+        dto.setFailCount(failCount instanceof Number ? ((Number) failCount).intValue() : 0);
+        Object errorCount = summary.get("errorCount");
+        dto.setErrorCount(errorCount instanceof Number ? ((Number) errorCount).intValue() : 0);
+        Object affectedTableIds = summary.get("affectedTableIds");
+        if (affectedTableIds instanceof List) {
+            dto.setAffectedTableIds((List<String>) affectedTableIds);
+        }
+        Object results = summary.get("results");
+        if (results instanceof List) {
+            dto.setExecutionResults((List<Map<String, Object>>) results);
+        }
+        Object errors = summary.get("errors");
+        if (errors instanceof List) {
+            dto.setExecutionErrors((List<Map<String, Object>>) errors);
+        }
 
         // D6：自动评分触发——按 affectedTableIds 逐表重算评分（复用既有 scorer，零落盘逻辑复制）
         triggerAutoScoring(cp, summary, context);
 
         // D4：结果动作投递——store 提交后才触发 webhook/notify（post-commit dispatch）
         dispatchActions(cp, summary);
-        return summary;
+        return dto;
     }
 
     // ============================================================
@@ -179,7 +201,7 @@ public class NopMetaQualityCheckpointBizModel extends CrudBizModel<NopMetaQualit
      * （宿主未注册 {@code IJobScheduler}）时 tryGetBean 返回 null，跳过（不抛崩）。
      */
     @Override
-    public NopMetaQualityCheckpoint save(Map<String, Object> data, IServiceContext context) {
+    public NopMetaQualityCheckpoint save(@Name("data") Map<String, Object> data, IServiceContext context) {
         NopMetaQualityCheckpoint saved = super.save(data, context);
         notifySchedulerRegister(saved.getCheckpointId());
         return saved;

@@ -9,6 +9,9 @@ import io.nop.core.context.IServiceContext;
 import io.nop.metadata.dao.entity.NopMetaLineageEdge;
 import io.nop.orm.biz.ICrudBiz;
 
+import io.nop.metadata.core.dto.LineageExtractResultDTO;
+import io.nop.metadata.core.dto.LineageRecordResultDTO;
+
 import java.util.List;
 import java.util.Map;
 
@@ -23,16 +26,16 @@ import java.util.Map;
 public interface INopMetaLineageEdgeBiz extends ICrudBiz<NopMetaLineageEdge> {
 
     @BizMutation
-    Map<String, Object> recordLineage(@Name("edges") List<Map<String, Object>> edges, IServiceContext context);
+    LineageRecordResultDTO recordLineage(@Name("edges") List<Map<String, Object>> edges, IServiceContext context);
 
     @BizMutation
-    Map<String, Object> extractLineageFromSql(@Name("metaTableId") String metaTableId, IServiceContext context);
+    LineageExtractResultDTO extractLineageFromSql(@Name("metaTableId") String metaTableId, IServiceContext context);
 
     @BizMutation
-    Map<String, Object> extractColumnLineageFromSql(@Name("metaTableId") String metaTableId, IServiceContext context);
+    LineageExtractResultDTO extractColumnLineageFromSql(@Name("metaTableId") String metaTableId, IServiceContext context);
 
     @BizMutation
-    Map<String, Object> extractMeasureLineage(@Name("metaTableId") String metaTableId, IServiceContext context);
+    LineageExtractResultDTO extractMeasureLineage(@Name("metaTableId") String metaTableId, IServiceContext context);
 
     @BizQuery
     List<String> getUpstream(@Name("metaTableId") String metaTableId, IServiceContext context);
