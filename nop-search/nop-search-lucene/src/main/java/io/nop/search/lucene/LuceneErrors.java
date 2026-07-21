@@ -12,9 +12,6 @@ public interface LuceneErrors {
     ErrorCode ERR_LUCENE_OPEN_INDEX_FAIL =
             ErrorCode.define("nop.err.lucene.open-index-fail", "打开索引失败", ARG_TOPIC);
 
-    ErrorCode ERR_LUCENE_VECTOR_SEARCH_NOT_IMPLEMENTED =
-            ErrorCode.define("nop.err.lucene.vector-search-not-implemented", "向量搜索未实现", ARG_TOPIC);
-
-    ErrorCode ERR_LUCENE_HYBRID_SEARCH_NOT_IMPLEMENTED =
-            ErrorCode.define("nop.err.lucene.hybrid-search-not-implemented", "混合搜索未实现", ARG_TOPIC);
+    ErrorCode ERR_LUCENE_INVALID_QUERY_VECTOR =
+            ErrorCode.define("nop.err.lucene.invalid-query-vector", "查询向量无效或为空", ARG_TOPIC);
 }

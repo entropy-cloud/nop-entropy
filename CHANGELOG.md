@@ -1,3 +1,10 @@
+## 变更 2026-07-21
+* **破坏性变更**: nop-search-lucene 的错误码 `nop.err.lucene.vector-search-not-implemented` 重命名为 `nop.err.lucene.invalid-query-vector`，并删除死代码常量 `ERR_LUCENE_HYBRID_SEARCH_NOT_IMPLEMENTED`
+  - 旧错误码字面意义（"向量搜索未实现"）与实际行为不符——`vectorSearch()` 已基于 Lucene `KnnFloatVectorQuery` 实现真正的 kNN 搜索，错误码只在 query vector 解析为空/无效时抛出
+  - 同时删除 `nop.err.lucene.hybrid-search-not-implemented`：该常量在仓内从未被 throw（`hybridSearch()` 在 query vector 为空时静默降级为纯文本搜索），属于死代码
+  - **迁移指南**: 若有下游按字符串匹配 `nop.err.lucene.vector-search-not-implemented`，需更新为 `nop.err.lucene.invalid-query-vector`。Java 引用方使用常量 `ERR_LUCENE_INVALID_QUERY_VECTOR`
+  - 兼容性: 错误码字符串变化，但抛出条件不变（仍是 query vector 为空/无效时触发）
+
 ## 变更 2026-07-13
 * **破坏性变更**: nop-job 的 `scheduler.yaml` 每个 job 必须显式启用，job 定义改为按文件扫描 (commits: 即将提交)
   - `LocalJobConfig` 新增 `enabled` 字段，**Java 默认值为 `false`**

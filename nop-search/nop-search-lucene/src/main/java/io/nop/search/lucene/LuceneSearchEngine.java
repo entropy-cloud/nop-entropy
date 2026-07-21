@@ -104,14 +104,11 @@ import static io.nop.search.api.SearchConstants.FIELD_TAG;
 import static io.nop.search.api.SearchConstants.FIELD_BIZ_KEY;
 
 import static io.nop.search.lucene.LuceneErrors.ARG_TOPIC;
+import static io.nop.search.lucene.LuceneErrors.ERR_LUCENE_INVALID_QUERY_VECTOR;
 import static io.nop.search.lucene.LuceneErrors.ERR_LUCENE_OPEN_INDEX_FAIL;
-import static io.nop.search.lucene.LuceneErrors.ERR_LUCENE_VECTOR_SEARCH_NOT_IMPLEMENTED;
-import static io.nop.search.lucene.LuceneErrors.ERR_LUCENE_HYBRID_SEARCH_NOT_IMPLEMENTED;
 import static io.nop.search.api.SearchConstants.FIELD_TITLE;
 
 import io.nop.search.api.SearchType;
-import static io.nop.search.lucene.LuceneErrors.ARG_TOPIC;
-import static io.nop.search.lucene.LuceneErrors.ERR_LUCENE_OPEN_INDEX_FAIL;
 
 public class LuceneSearchEngine implements ISearchEngine {
     static final Logger LOG = LoggerFactory.getLogger(LuceneSearchEngine.class);
@@ -523,7 +520,7 @@ public class LuceneSearchEngine implements ISearchEngine {
                 float[] queryVector = parseQueryVector(request.getQuery());
 
                 if (queryVector == null || queryVector.length == 0) {
-                    throw new NopException(ERR_LUCENE_VECTOR_SEARCH_NOT_IMPLEMENTED)
+                    throw new NopException(ERR_LUCENE_INVALID_QUERY_VECTOR)
                             .param(ARG_TOPIC, request.getTopic())
                             .param("reason", "Query vector is empty or invalid");
                 }
