@@ -24,11 +24,13 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * 维度13-02 回归测试：nop-metadata 行级数据权限规则。
+ * 维度13-02 回归测试：nop-metadata 行级数据权限规则（plan 307 Phase 2 扩展）。
  *
- * <p>覆盖 3 个目标实体的 row-level 规则（结构 + 表达式验证）：
+ * <p>覆盖 8 个目标实体的 row-level 规则（结构 + 表达式验证）：
  * <ul>
- *   <li>结构验证：data-auth.xml 含 3 个 obj 规则（NopMetaDataSource / NopMetaQualityCheckpoint / NopMetaModelChangedEvent）。</li>
+ *   <li>原 3 个：NopMetaDataSource / NopMetaQualityCheckpoint / NopMetaModelChangedEvent</li>
+ *   <li>扩展 5 个：NopMetaQualityRule / NopMetaProfilingRule / NopMetaReconciliationResult /
+ *       NopMetaDataContract / NopMetaBusinessDomain</li>
  *   <li>语义验证：admin 角色 → 无 filter（全量访问）；user 角色 → filter 按 createdBy/changedBy == $user.userId（行级隔离）。</li>
  *   <li>fail-closed 语义：未匹配任何角色时（既非 admin 又非 user），DefaultDataAuthChecker 抛 ERR_AUTH_NO_DATA_AUTH
  *       （由 nop-biz-auth-core 实现，本测试只验证规则完整性；framework 层行为由 nop-auth 自身测试覆盖）。</li>
@@ -38,14 +40,19 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  *
  * <p><b>测试方式</b>：直接解析 data-auth.xml 为 XNode，验证结构与表达式。不依赖 nop-biz-auth-core 类
  * （nop-metadata-service 不直接依赖该模块）。framework 层 filter 求值由 DefaultDataAuthChecker 自身测试覆盖。
- * 本测试确保规则被正确作者：3 个实体 + 2 个角色分支 + 正确的列名 + 正确的 EL 表达式。
+ * 本测试确保规则被正确作者：8 个实体 + 2 个角色分支 + 正确的列名 + 正确的 EL 表达式。
  */
 public class TestDataAuthRowLevelScoping {
 
     private static final String[] TARGET_OBJS = {
             "NopMetaDataSource",
             "NopMetaQualityCheckpoint",
-            "NopMetaModelChangedEvent"
+            "NopMetaModelChangedEvent",
+            "NopMetaQualityRule",
+            "NopMetaProfilingRule",
+            "NopMetaReconciliationResult",
+            "NopMetaDataContract",
+            "NopMetaBusinessDomain"
     };
 
     /** 加载 data-auth.xml（直接从 classpath 读取文本，避免触发 VFS/IoC 初始化）。 */
@@ -61,19 +68,19 @@ public class TestDataAuthRowLevelScoping {
         }
     }
 
-    /** 3 个目标实体均有 row-level 规则。 */
+    /** 8 个目标实体均有 row-level 规则（原 3 + Phase 2 扩展 5）。 */
     @Test
-    public void testThreeTargetEntitiesHaveRules() {
+    public void testEightTargetEntitiesHaveRules() {
         XNode root = loadDataAuthXml();
         List<XNode> objs = root.childByTag("objs").childrenByTag("obj");
         assertEquals(TARGET_OBJS.length, objs.size(),
-                "exactly 3 obj rules expected (NopMetaDataSource/NopMetaQualityCheckpoint/NopMetaModelChangedEvent)");
+                "exactly " + TARGET_OBJS.length + " obj rules expected: " + String.join("/", TARGET_OBJS));
         for (String name : TARGET_OBJS) {
             assertTrue(hasObj(objs, name), "data-auth.xml must contain rule for " + name);
         }
     }
 
-    /** 每个目标实体均有 admin（无过滤）+ default（user 角色按 createdBy/changedBy 过滤）双层规则。 */
+    /** 每个目标实体（原 3 + 扩展 5）均有 admin + default 双层规则。 */
     @Test
     public void testAdminAndDefaultRoleRulesExist() {
         XNode root = loadDataAuthXml();

@@ -341,6 +341,16 @@ public class NopMetaDataSourceBizModel extends CrudBizModel<NopMetaDataSource> i
         return buildCatalogResultMap(table.getMetaTableId(), stats);
     }
 
+    private static Map<String, Object> buildCatalogResultMap(String metaTableId, CatalogTableStats stats) {
+        Map<String, Object> m = new LinkedHashMap<>();
+        m.put("metaTableId", metaTableId);
+        m.put("rowCount", stats.getRowCount());
+        m.put("indexCount", stats.getIndexCount());
+        m.put("unavailable", stats.getUnavailable());
+        m.putAll(stats.getExtras());
+        return m;
+    }
+
     /**
      * 默认 schema 解析（plan 0852-3 Phase 3）：未显式传 schemaPattern（null/空/纯空白）且
      * {@code table.schema} 非空 → 默认取 {@code table.schema}；否则维持入参（可能为 null=不过滤）。
@@ -362,16 +372,6 @@ public class NopMetaDataSourceBizModel extends CrudBizModel<NopMetaDataSource> i
             tableRefExecutor = new TableReferenceExecutor(connectionService, orm());
         }
         return tableRefExecutor;
-    }
-
-    private static Map<String, Object> buildCatalogResultMap(String metaTableId, CatalogTableStats stats) {
-        Map<String, Object> m = new LinkedHashMap<>();
-        m.put("metaTableId", metaTableId);
-        m.put("rowCount", stats.getRowCount());
-        m.put("indexCount", stats.getIndexCount());
-        m.put("unavailable", stats.getUnavailable());
-        m.putAll(stats.getExtras());
-        return m;
     }
 
     /**

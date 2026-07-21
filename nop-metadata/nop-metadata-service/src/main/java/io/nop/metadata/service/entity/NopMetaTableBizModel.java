@@ -48,7 +48,6 @@ import io.nop.metadata.service.query.MetaAggregationExecutor;
 import io.nop.metadata.service.query.MetaJoinExecutor;
 import io.nop.metadata.service.query.MetaQueryContext;
 import io.nop.metadata.service.query.MetaTableQueryExecutor;
-import io.nop.metadata.service.query.SqlPagination;
 import io.nop.metadata.service.sqlview.SqlSelectFieldExtractor;
 import io.nop.metadata.service.sqlview.SqlViewField;
 import io.nop.metadata.service.sqlview.SqlViewFieldTypeInferrer;
@@ -65,10 +64,10 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
-import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -548,16 +547,16 @@ public class NopMetaTableBizModel extends CrudBizModel<NopMetaTable> implements 
      */
     @BizQuery
     public Map<String, Object> queryAggregation(@Name("metaTableId") String metaTableId,
-                                                   @Name("measures") List<String> measures,
-                                                   @Name("dimensions") List<String> dimensions,
-                                                   @Optional @Name("filter") TreeBean filter,
-                                                   @Optional @Name("joinId") String joinId,
-                                                   @Optional @Name("limit") Long limit,
-                                                   @Optional @Name("offset") Long offset,
-                                                   @Optional @Name("having") TreeBean having,
-                                                   @Optional @Name("orderBy") List<OrderFieldBean> orderBy,
-                                                   @Optional @Name("selection") FieldSelectionBean selection,
-                                                   IServiceContext context) {
+                                                  @Name("measures") List<String> measures,
+                                                  @Name("dimensions") List<String> dimensions,
+                                                  @Optional @Name("filter") TreeBean filter,
+                                                  @Optional @Name("joinId") String joinId,
+                                                  @Optional @Name("limit") Long limit,
+                                                  @Optional @Name("offset") Long offset,
+                                                  @Optional @Name("having") TreeBean having,
+                                                  @Optional @Name("orderBy") List<OrderFieldBean> orderBy,
+                                                  @Optional @Name("selection") FieldSelectionBean selection,
+                                                  IServiceContext context) {
         // plan 维度12-01：FieldSelectionBean 参数注入（首版忽略；后续 slice 下推到执行器）
         IEntityDao<NopMetaTable> tableDao = dao();
         NopMetaTable table = tableDao.getEntityById(metaTableId);
@@ -782,6 +781,21 @@ public class NopMetaTableBizModel extends CrudBizModel<NopMetaTable> implements 
         return list;
     }
 
+    /** 构建返回 Map（profilingResultId + 列数 + 表级不可用 + 列级 errors）。 */
+    static Map<String, Object> buildResultMap(NopMetaProfilingResult row, ProfilingSnapshot snapshot) {
+        Map<String, Object> m = new LinkedHashMap<>();
+        m.put("profilingResultId", row.getProfilingResultId());
+        m.put("columnCount", snapshot.getColumnStats().size());
+        m.put("unavailable", snapshot.getTableUnavailable());
+        List<String> columnUnavailable = new ArrayList<>();
+        for (ProfilingColumnStats cs : snapshot.getColumnStats()) {
+            columnUnavailable.addAll(cs.getUnavailable());
+        }
+        m.put("columnUnavailable", columnUnavailable);
+        m.put("errors", snapshot.getErrors());
+        return m;
+    }
+
     /** 解析目标表：metaTableId → NopMetaTable；不存在显式失败（任意 tableType）。 */
     NopMetaTable resolveTableOrThrow(String metaTableId) {
         IEntityDao<NopMetaTable> tableDao = dao();
@@ -870,21 +884,6 @@ public class NopMetaTableBizModel extends CrudBizModel<NopMetaTable> implements 
         row.setColumnStats(JsonTool.stringify(snapshot.toColumnStatsList()));
         resultDao.saveEntity(row);
         return row;
-    }
-
-    /** 构建返回 Map（profilingResultId + 列数 + 表级不可用 + 列级 errors）。 */
-    static Map<String, Object> buildResultMap(NopMetaProfilingResult row, ProfilingSnapshot snapshot) {
-        Map<String, Object> m = new LinkedHashMap<>();
-        m.put("profilingResultId", row.getProfilingResultId());
-        m.put("columnCount", snapshot.getColumnStats().size());
-        m.put("unavailable", snapshot.getTableUnavailable());
-        List<String> columnUnavailable = new ArrayList<>();
-        for (ProfilingColumnStats cs : snapshot.getColumnStats()) {
-            columnUnavailable.addAll(cs.getUnavailable());
-        }
-        m.put("columnUnavailable", columnUnavailable);
-        m.put("errors", snapshot.getErrors());
-        return m;
     }
 
     private static String safeProductName(DatabaseMetaData metaData) {

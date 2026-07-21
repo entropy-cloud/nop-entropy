@@ -21,26 +21,26 @@ import java.util.Map;
  *
  * <p>本接口在 ICrudBiz 基础上额外暴露以下方法供跨模块 {@code @Inject INopMetaTableBiz} 调用：
  * profileTable / createSqlTable / previewSqlFields / resolveTableFields /
- * queryTableData / queryJoinData / queryAggregation（plan 2026-07-19-1250-3 Phase 1）。
+ * queryTableData / queryJoinData / queryAggregation（plan 307 DTO migration）。
  *
- * <p>{@code queryTableData} / {@code queryJoinData} / {@code queryAggregation} 在 plan Phase 1
- * 新增末参 {@code @Optional @Name("selection") FieldSelectionBean selection}（plan 维度12-01）。
+ * <p>接口返回 {@code Map<String, Object>} 保持 nop-metadata-dao 无 nop-metadata-service 依赖；
+ * BizModel 实现类返回具体 {@code @DataBean} DTO 供 GraphQL schema 推导强类型字段。
  */
 public interface INopMetaTableBiz extends ICrudBiz<NopMetaTable> {
 
     @BizMutation
     Map<String, Object> profileTable(@Name("metaTableId") String metaTableId,
-                                      @Optional @Name("schemaPattern") String schemaPattern,
-                                      @Optional @Name("columns") String columns,
-                                      IServiceContext context);
+                                     @Optional @Name("schemaPattern") String schemaPattern,
+                                     @Optional @Name("columns") String columns,
+                                     IServiceContext context);
 
     @BizMutation
     Map<String, Object> createSqlTable(@Name("sql") String sql,
-                                        @Name("tableName") String tableName,
-                                        @Name("metaModuleId") String metaModuleId,
-                                        @Optional @Name("querySpace") String querySpace,
-                                        @Optional @Name("displayName") String displayName,
-                                        IServiceContext context);
+                                       @Name("tableName") String tableName,
+                                       @Name("metaModuleId") String metaModuleId,
+                                       @Optional @Name("querySpace") String querySpace,
+                                       @Optional @Name("displayName") String displayName,
+                                       IServiceContext context);
 
     @BizQuery
     Map<String, Object> previewSqlFields(@Name("sql") String sql, IServiceContext context);

@@ -58,5 +58,77 @@
                 </role-auth>
             </role-auths>
         </obj>
+
+        <!-- ===== Phase 2 (plan 307): 5 个高风险实体扩展 ===== -->
+
+        <obj name="NopMetaQualityRule" displayName="质量规则行级权限（含 custom_sql）">
+            <role-auths>
+                <role-auth id="admin" roleIds="admin">
+                    <description>admin 角色无过滤，全量访问</description>
+                </role-auth>
+                <role-auth id="default" roleIds="user">
+                    <description>非 admin 用户仅能看自己创建的质量规则（防 custom_sql 滥用）</description>
+                    <filter>
+                        <eq name="createdBy" value="${$context.user.userId}"/>
+                    </filter>
+                </role-auth>
+            </role-auths>
+        </obj>
+
+        <obj name="NopMetaProfilingRule" displayName="剖析规则行级权限（含 SQL 模板）">
+            <role-auths>
+                <role-auth id="admin" roleIds="admin">
+                    <description>admin 角色无过滤，全量访问</description>
+                </role-auth>
+                <role-auth id="default" roleIds="user">
+                    <description>非 admin 用户仅能看自己创建的剖析规则（防 SQL 模板滥用）</description>
+                    <filter>
+                        <eq name="createdBy" value="${$context.user.userId}"/>
+                    </filter>
+                </role-auth>
+            </role-auths>
+        </obj>
+
+        <obj name="NopMetaReconciliationResult" displayName="对账结果行级权限（含对账数据）">
+            <role-auths>
+                <role-auth id="admin" roleIds="admin">
+                    <description>admin 角色无过滤，全量访问</description>
+                </role-auth>
+                <role-auth id="default" roleIds="user">
+                    <description>非 admin 用户仅能看自己触发的对账结果（防对账数据泄露）</description>
+                    <filter>
+                        <eq name="createdBy" value="${$context.user.userId}"/>
+                    </filter>
+                </role-auth>
+            </role-auths>
+        </obj>
+
+        <obj name="NopMetaDataContract" displayName="数据契约行级权限（含合约配置）">
+            <role-auths>
+                <role-auth id="admin" roleIds="admin">
+                    <description>admin 角色无过滤，全量访问</description>
+                </role-auth>
+                <role-auth id="default" roleIds="user">
+                    <description>非 admin 用户仅能看自己创建的数据契约（防合约配置泄露）</description>
+                    <filter>
+                        <eq name="createdBy" value="${$context.user.userId}"/>
+                    </filter>
+                </role-auth>
+            </role-auths>
+        </obj>
+
+        <obj name="NopMetaBusinessDomain" displayName="业务域行级权限（业务组织树）">
+            <role-auths>
+                <role-auth id="admin" roleIds="admin">
+                    <description>admin 角色无过滤，全量访问</description>
+                </role-auth>
+                <role-auth id="default" roleIds="user">
+                    <description>非 admin 用户仅能看自己创建的业务域（树形结构基于创建者隔离）</description>
+                    <filter>
+                        <eq name="createdBy" value="${$context.user.userId}"/>
+                    </filter>
+                </role-auth>
+            </role-auths>
+        </obj>
     </objs>
 </data-auth>
