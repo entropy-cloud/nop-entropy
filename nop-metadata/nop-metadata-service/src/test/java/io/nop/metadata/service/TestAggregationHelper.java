@@ -1,11 +1,15 @@
 package io.nop.metadata.service;
 
+import io.nop.api.core.beans.ApiRequest;
+import io.nop.api.core.beans.ApiResponse;
 import io.nop.api.core.beans.FilterBeans;
 import io.nop.api.core.beans.TreeBean;
 import io.nop.api.core.beans.query.QueryBean;
 import io.nop.core.lang.json.JsonTool;
 import io.nop.dao.api.IDaoProvider;
 import io.nop.dao.api.IEntityDao;
+import io.nop.graphql.core.IGraphQLExecutionContext;
+import io.nop.graphql.core.ast.GraphQLOperationType;
 import io.nop.graphql.core.engine.IGraphQLEngine;
 import io.nop.metadata.dao.entity.NopMetaDataSource;
 import io.nop.metadata.dao.entity.NopMetaEntity;
@@ -32,18 +36,12 @@ public class TestAggregationHelper {
 
     protected final IGraphQLEngine graphQLEngine;
     protected final IDaoProvider daoProvider;
-    protected final io.nop.metadata.service.entity.NopMetaTableBizModel nopMetaTableBizModel;
-    protected final io.nop.metadata.service.entity.NopMetaTableMeasureBizModel nopMetaTableMeasureBizModel;
     protected final IOrmTemplate ormTemplate;
 
     public TestAggregationHelper(IGraphQLEngine graphQLEngine, IDaoProvider daoProvider,
-                                  io.nop.metadata.service.entity.NopMetaTableBizModel nopMetaTableBizModel,
-                                  io.nop.metadata.service.entity.NopMetaTableMeasureBizModel nopMetaTableMeasureBizModel,
                                   IOrmTemplate ormTemplate) {
         this.graphQLEngine = graphQLEngine;
         this.daoProvider = daoProvider;
-        this.nopMetaTableBizModel = nopMetaTableBizModel;
-        this.nopMetaTableMeasureBizModel = nopMetaTableMeasureBizModel;
         this.ormTemplate = ormTemplate;
     }
 
@@ -379,11 +377,37 @@ public class TestAggregationHelper {
         return join.getJoinId();
     }
 
+    // ===== GraphQL RPC helpers =====
+
+    @SuppressWarnings("unchecked")
+    public <T> ApiResponse<T> executeRpc(GraphQLOperationType opType, String action, ApiRequest<?> request) {
+        IGraphQLExecutionContext ctx = graphQLEngine.newRpcContext(opType, action, request);
+        return (ApiResponse<T>) graphQLEngine.executeRpc(ctx);
+    }
+
+    public ApiRequest<?> queryAggregationRequest(String tableId, List<String> measures, List<String> dims,
+                                                  TreeBean filter, String joinId, Long limit, Long offset,
+                                                  TreeBean having, List<io.nop.api.core.beans.query.OrderFieldBean> orderBy) {
+        java.util.LinkedHashMap<String, Object> params = new java.util.LinkedHashMap<>();
+        params.put("metaTableId", tableId);
+        if (measures != null) params.put("measures", measures);
+        if (dims != null) params.put("dimensions", dims);
+        if (filter != null) params.put("filter", filter);
+        if (joinId != null) params.put("joinId", joinId);
+        if (limit != null) params.put("limit", limit);
+        if (offset != null) params.put("offset", offset);
+        if (having != null) params.put("having", having);
+        if (orderBy != null) params.put("orderBy", orderBy);
+        return ApiRequest.build(params);
+    }
+
     // ===== query helpers =====
 
     public boolean queryAggregationHasError(String tableId, List<String> measures, List<String> dims) {
         try {
-            nopMetaTableBizModel.queryAggregation(tableId, measures, dims, null, null, null, null, null, null, null, null);
+            ApiResponse<?> resp = executeRpc(GraphQLOperationType.query, "NopMetaTable__queryAggregation",
+                    queryAggregationRequest(tableId, measures, dims, null, null, null, null, null, null));
+            if (!resp.isOk()) return true;
             return false;
         } catch (Exception e) {
             return true;
@@ -396,9 +420,10 @@ public class TestAggregationHelper {
 
     public boolean queryAggregationJoinHasError(String tableId, String measureName, String dimName, String joinId) {
         try {
-            nopMetaTableBizModel.queryAggregation(tableId,
-                    java.util.Arrays.asList(measureName), java.util.Arrays.asList(dimName),
-                    null, joinId, null, null, null, null, null, null);
+            ApiResponse<?> resp = executeRpc(GraphQLOperationType.query, "NopMetaTable__queryAggregation",
+                    queryAggregationRequest(tableId, java.util.Arrays.asList(measureName), java.util.Arrays.asList(dimName),
+                            null, joinId, null, null, null, null));
+            if (!resp.isOk()) return true;
             return false;
         } catch (Exception e) {
             return true;

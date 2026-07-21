@@ -5,6 +5,7 @@ import io.nop.api.core.annotations.core.OptionalBoolean;
 import io.nop.api.core.beans.FilterBeans;
 import io.nop.api.core.beans.TreeBean;
 import io.nop.api.core.beans.query.OrderFieldBean;
+import io.nop.api.core.exceptions.NopException;
 import io.nop.autotest.junit.JunitBaseTestCase;
 import io.nop.dao.api.IDaoProvider;
 import io.nop.graphql.core.engine.IGraphQLEngine;
@@ -12,8 +13,9 @@ import io.nop.metadata.core.dto.AggregationResultDTO;
 import io.nop.metadata.dao.entity.NopMetaEntity;
 import io.nop.metadata.dao.entity.NopMetaEntityField;
 import io.nop.orm.IOrmTemplate;
-import io.nop.metadata.service.entity.NopMetaTableBizModel;
-import io.nop.metadata.service.entity.NopMetaTableMeasureBizModel;
+import io.nop.api.core.beans.ApiRequest;
+import io.nop.api.core.beans.ApiResponse;
+import io.nop.graphql.core.ast.GraphQLOperationType;
 import jakarta.inject.Inject;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -41,18 +43,34 @@ public class TestAggregationExternalJoinAndPagination extends JunitBaseTestCase 
     @Inject
     IDaoProvider daoProvider;
     @Inject
-    NopMetaTableBizModel nopMetaTableBizModel;
-    @Inject
-    NopMetaTableMeasureBizModel nopMetaTableMeasureBizModel;
-    @Inject
     IOrmTemplate ormTemplate;
 
     TestAggregationHelper _helper;
 
     @BeforeEach
     void initHelper() {
-        _helper = new TestAggregationHelper(graphQLEngine, daoProvider, nopMetaTableBizModel,
-                nopMetaTableMeasureBizModel, ormTemplate);
+        _helper = new TestAggregationHelper(graphQLEngine, daoProvider, ormTemplate);
+    }
+
+    @SuppressWarnings("unchecked")
+    private List<Map<String, Object>> queryAggregationItems(String tableId, List<String> measures, List<String> dims,
+                                                   TreeBean filter, String joinId, Long limit, Long offset,
+                                                   TreeBean having, List<OrderFieldBean> orderBy) {
+        ApiResponse<?> resp = _helper.executeRpc(GraphQLOperationType.query, "NopMetaTable__queryAggregation",
+                _helper.queryAggregationRequest(tableId, measures, dims, filter, joinId, limit, offset, having, orderBy));
+        if (!resp.isOk()) {
+            throw new NopException("queryAggregation RPC failed: " + resp);
+        }
+        Map<String, Object> data = (Map<String, Object>) resp.getData();
+        return (List<Map<String, Object>>) data.get("items");
+    }
+
+    @SuppressWarnings("unchecked")
+    private ApiResponse<?> queryAggregationRaw(String tableId, List<String> measures, List<String> dims,
+                                                TreeBean filter, String joinId, Long limit, Long offset,
+                                                TreeBean having, List<OrderFieldBean> orderBy) {
+        return _helper.executeRpc(GraphQLOperationType.query, "NopMetaTable__queryAggregation",
+                _helper.queryAggregationRequest(tableId, measures, dims, filter, joinId, limit, offset, having, orderBy));
     }
 
     // ============================================================
@@ -75,9 +93,9 @@ public class TestAggregationExternalJoinAndPagination extends JunitBaseTestCase 
         _helper.createMeasureWithSide(factTableId, "total", "AMOUNT", "sum", "left");
         _helper.createDimensionWithSide(factTableId, "cat", "CAT_NAME", "categorical", null, "right");
 
-        AggregationResultDTO result = nopMetaTableBizModel.queryAggregation(factTableId,
-                Arrays.asList("total"), Arrays.asList("cat"), null, joinId, null, null, null, null, null, null);
-        List<Map<String, Object>> items = result.getItems();
+        List<Map<String, Object>> items = queryAggregationItems(factTableId,
+                Arrays.asList("total"), Arrays.asList("cat"), null, joinId, null, null, null, null);
+        
         assertNotNull(items, "items must not be null");
         assertEquals(2, items.size(), "group by CAT_NAME must yield 2 groups (A,B): " + items);
         Map<String, Object> rowA = findRow(items, "CAT", "A");
@@ -148,9 +166,9 @@ public class TestAggregationExternalJoinAndPagination extends JunitBaseTestCase 
         _helper.createMeasureWithSide(factTableId, "total", "AMOUNT", "sum", "left");
         _helper.createDimensionWithSide(factTableId, "cat", "CAT_NAME", "categorical", null, "right");
 
-        AggregationResultDTO result = nopMetaTableBizModel.queryAggregation(factTableId,
-                Arrays.asList("total"), Arrays.asList("cat"), null, joinId, null, null, null, null, null, null);
-        List<Map<String, Object>> items = result.getItems();
+        List<Map<String, Object>> items = queryAggregationItems(factTableId,
+                Arrays.asList("total"), Arrays.asList("cat"), null, joinId, null, null, null, null);
+        
         assertNotNull(items, "items must not be null");
         assertEquals(2, items.size(), "group by CAT_NAME must yield 2 groups (A,B): " + items);
         Map<String, Object> rowA = findRow(items, "CAT", "A");
@@ -257,9 +275,9 @@ public class TestAggregationExternalJoinAndPagination extends JunitBaseTestCase 
             _helper.createDimension(leftTableId, "st", leftDimFieldId, "categorical", null);
             _helper.createMeasure(leftTableId, "cnt", rightMeasureFieldId, "count", null);
 
-            AggregationResultDTO result = nopMetaTableBizModel.queryAggregation(leftTableId,
-                    Arrays.asList("cnt"), Arrays.asList("st"), null, joinId, null, null, null, null, null, null);
-            List<Map<String, Object>> items = result.getItems();
+            List<Map<String, Object>> items = queryAggregationItems(leftTableId,
+                    Arrays.asList("cnt"), Arrays.asList("st"), null, joinId, null, null, null, null);
+            
             assertNotNull(items, "items must not be null");
             assertFalse(items.isEmpty(),
                     "cross-DB entity-entity JOIN aggregation must return real grouped rows via in-memory GROUP BY: " + items);
@@ -353,9 +371,9 @@ public class TestAggregationExternalJoinAndPagination extends JunitBaseTestCase 
         _helper.createMeasureWithSide(leftTableId, "cnt", statusFieldId, "count", "left");
         _helper.createDimensionWithSide(leftTableId, "cat", "CAT_NAME", "categorical", null, "right");
 
-        AggregationResultDTO result = nopMetaTableBizModel.queryAggregation(leftTableId,
-                Arrays.asList("cnt"), Arrays.asList("cat"), null, joinId, null, null, null, null, null, null);
-        List<Map<String, Object>> items = result.getItems();
+        List<Map<String, Object>> items = queryAggregationItems(leftTableId,
+                Arrays.asList("cnt"), Arrays.asList("cat"), null, joinId, null, null, null, null);
+        
         assertNotNull(items, "items must not be null");
         assertEquals(2, items.size(), "group by CAT_NAME must yield 2 groups (Category A, Category B): " + items);
         Map<String, Object> rowA = findRow(items, "CAT", "Category A");
@@ -433,9 +451,9 @@ public class TestAggregationExternalJoinAndPagination extends JunitBaseTestCase 
         _helper.createMeasureWithSide(leftTableId, "cnt", statusFieldId, "count", "left");
         _helper.createDimensionWithSide(leftTableId, "cat", "CAT_NAME", "categorical", null, "right");
 
-        AggregationResultDTO result = nopMetaTableBizModel.queryAggregation(leftTableId,
-                Arrays.asList("cnt"), Arrays.asList("cat"), null, joinId, null, null, null, null, null, null);
-        List<Map<String, Object>> items = result.getItems();
+        List<Map<String, Object>> items = queryAggregationItems(leftTableId,
+                Arrays.asList("cnt"), Arrays.asList("cat"), null, joinId, null, null, null, null);
+        
         assertNotNull(items, "items must not be null");
         assertFalse(items.isEmpty(),
                 "cross-DB mixed JOIN aggregation must return real grouped rows via in-memory GROUP BY: " + items);
@@ -563,9 +581,9 @@ public class TestAggregationExternalJoinAndPagination extends JunitBaseTestCase 
 
         TreeBean having = FilterBeans.ge("total", 30);
         List<OrderFieldBean> orderBy = Arrays.asList(OrderFieldBean.desc("total"));
-        AggregationResultDTO result = nopMetaTableBizModel.queryAggregation(factTableId,
-                Arrays.asList("total"), Arrays.asList("cat"), null, joinId, null, null, having, orderBy, null, null);
-        List<Map<String, Object>> items = result.getItems();
+        List<Map<String, Object>> items = queryAggregationItems(factTableId,
+                Arrays.asList("total"), Arrays.asList("cat"), null, joinId, null, null, having, orderBy);
+        
         assertEquals(2, items.size(), "having total>=30 must keep both groups A and B");
         for (Map<String, Object> row : items) {
             assertTrue(toInt(getIgnoreCase(row, "TOTAL")) >= 30, "having total>=30 must hold: " + row);
@@ -594,9 +612,9 @@ public class TestAggregationExternalJoinAndPagination extends JunitBaseTestCase 
 
         TreeBean having = FilterBeans.ge("cnt", 1);
         List<OrderFieldBean> orderBy = Arrays.asList(OrderFieldBean.desc("cnt"));
-        AggregationResultDTO result = nopMetaTableBizModel.queryAggregation(leftTableId,
-                Arrays.asList("cnt"), Arrays.asList("cat"), null, joinId, null, null, having, orderBy, null, null);
-        List<Map<String, Object>> items = result.getItems();
+        List<Map<String, Object>> items = queryAggregationItems(leftTableId,
+                Arrays.asList("cnt"), Arrays.asList("cat"), null, joinId, null, null, having, orderBy);
+        
         assertNotNull(items, "items must not be null");
         assertFalse(items.isEmpty(), "mixed same-DB JOIN with having/orderBy must return real grouped rows: " + items);
         for (Map<String, Object> row : items) {
@@ -622,9 +640,9 @@ public class TestAggregationExternalJoinAndPagination extends JunitBaseTestCase 
 
             TreeBean having = FilterBeans.ge("cnt", 1);
             List<OrderFieldBean> orderBy = Arrays.asList(OrderFieldBean.desc("cnt"));
-            AggregationResultDTO result = nopMetaTableBizModel.queryAggregation(leftTableId,
-                    Arrays.asList("cnt"), Arrays.asList("st"), null, joinId, null, null, having, orderBy, null, null);
-            List<Map<String, Object>> items = result.getItems();
+            List<Map<String, Object>> items = queryAggregationItems(leftTableId,
+                    Arrays.asList("cnt"), Arrays.asList("st"), null, joinId, null, null, having, orderBy);
+            
             assertNotNull(items, "items must not be null");
             assertFalse(items.isEmpty(),
                     "cross-DB in-memory JOIN with having/orderBy must return real grouped rows: " + items);
@@ -666,9 +684,9 @@ public class TestAggregationExternalJoinAndPagination extends JunitBaseTestCase 
                 "l.AMOUNT * 2");
         _helper.createDimensionWithSide(factTableId, "cat", "CAT_NAME", "categorical", null, "right");
 
-        AggregationResultDTO result = nopMetaTableBizModel.queryAggregation(factTableId,
-                Arrays.asList("totalDbl"), Arrays.asList("cat"), null, joinId, null, null, null, null, null, null);
-        List<Map<String, Object>> items = result.getItems();
+        List<Map<String, Object>> items = queryAggregationItems(factTableId,
+                Arrays.asList("totalDbl"), Arrays.asList("cat"), null, joinId, null, null, null, null);
+        
         assertNotNull(items);
         assertEquals(2, items.size(), "group by CAT_NAME must yield 2 groups (A,B): " + items);
         Map<String, Object> rowA = findRow(items, "CAT", "A");
@@ -691,14 +709,15 @@ public class TestAggregationExternalJoinAndPagination extends JunitBaseTestCase 
             _helper.createMeasure(leftTableId, "exprM", leftFieldId, "sum", "1");
             _helper.createDimension(leftTableId, "st", leftFieldId, "categorical", null);
 
-            Exception ex = assertThrows(Exception.class, () -> nopMetaTableBizModel.queryAggregation(
+            ApiResponse<?> resp = queryAggregationRaw(
                     leftTableId, Arrays.asList("exprM"), Arrays.asList("st"),
-                    null, joinId, null, null, null, null, null, null));
-            String msg = ex.getMessage();
-            assertTrue(msg.contains("expression-memory-not-computable")
-                            || msg.contains("memory-not-computable")
-                            || msg.contains("not computable"),
-                    "cross-DB path expression must explicitly fail with memory-not-computable ErrorCode: " + msg);
+                    null, joinId, null, null, null, null);
+            assertTrue(!resp.isOk(), "cross-DB path expression must explicitly fail with memory-not-computable ErrorCode");
+            String errMsg = resp.getMsg() != null ? resp.getMsg().toLowerCase() : "";
+            assertTrue(errMsg.contains("expression-memory-not-computable")
+                            || errMsg.contains("memory-not-computable")
+                            || errMsg.contains("not computable"),
+                    "cross-DB path expression must explicitly fail with memory-not-computable ErrorCode: " + resp.getMsg());
         } finally {
             _helper.updateQuerySpaceSql(rightEntity.getMetaEntityId(), null);
         }
@@ -721,13 +740,15 @@ public class TestAggregationExternalJoinAndPagination extends JunitBaseTestCase 
             _helper.createMeasure(leftTableId, "cntB", rightMeasureFieldId, "count", null);
 
             TreeBean having = havingArithmeticLeaf("gt", "cntA - cntB", 0);
-            Exception ex = assertThrows(Exception.class, () -> nopMetaTableBizModel.queryAggregation(
+            ApiResponse<?> resp = queryAggregationRaw(
                     leftTableId, Arrays.asList("cntA", "cntB"), Arrays.asList("st"),
-                    null, joinId, null, null, having, null, null, null));
-            assertTrue(ex.getMessage().contains("having-expr-memory-not-computable")
-                            || ex.getMessage().contains("memory-not-computable")
-                            || ex.getMessage().contains("not computable"),
-                    "cross-DB memory path arithmetic having must explicitly fail: " + ex.getMessage());
+                    null, joinId, null, null, having, null);
+            assertTrue(!resp.isOk(), "cross-DB memory path arithmetic having must explicitly fail");
+            String errMsg = resp.getMsg() != null ? resp.getMsg().toLowerCase() : "";
+            assertTrue(errMsg.contains("having-expr-memory-not-computable")
+                            || errMsg.contains("memory-not-computable")
+                            || errMsg.contains("not computable"),
+                    "cross-DB memory path arithmetic having must explicitly fail: " + resp.getMsg());
         } finally {
             _helper.updateQuerySpaceSql(rightEntity.getMetaEntityId(), null);
         }
@@ -761,10 +782,10 @@ public class TestAggregationExternalJoinAndPagination extends JunitBaseTestCase 
         _helper.createDimensionWithSide(factTableId, "cat", "CAT_NAME", "categorical", null, "right");
 
         TreeBean having = havingArithmeticLeaf("ge", "sumAmt - sumX", 20);
-        AggregationResultDTO result = nopMetaTableBizModel.queryAggregation(factTableId,
+        List<Map<String, Object>> items = queryAggregationItems(factTableId,
                 Arrays.asList("sumAmt", "sumX"), Arrays.asList("cat"),
-                null, joinId, null, null, having, null, null, null);
-        List<Map<String, Object>> items = result.getItems();
+                null, joinId, null, null, having, null);
+        
         assertNotNull(items);
         assertEquals(2, items.size(), "arithmetic having sumAmt-sumX>=20 must keep both groups");
         for (Map<String, Object> row : items) {

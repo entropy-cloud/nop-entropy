@@ -2,20 +2,22 @@ package io.nop.metadata.service;
 
 import io.nop.api.core.annotations.autotest.NopTestConfig;
 import io.nop.api.core.annotations.core.OptionalBoolean;
+import io.nop.api.core.beans.ApiRequest;
+import io.nop.api.core.beans.ApiResponse;
 import io.nop.api.core.beans.FilterBeans;
 import io.nop.api.core.beans.TreeBean;
 import io.nop.api.core.beans.query.OrderFieldBean;
 import io.nop.api.core.beans.query.QueryBean;
+import io.nop.api.core.exceptions.NopException;
 import io.nop.autotest.junit.JunitBaseTestCase;
 import io.nop.dao.api.IDaoProvider;
 import io.nop.dao.api.IEntityDao;
+import io.nop.graphql.core.ast.GraphQLOperationType;
 import io.nop.graphql.core.engine.IGraphQLEngine;
 import io.nop.metadata.core.dto.AggregationResultDTO;
 import io.nop.metadata.dao.entity.NopMetaEntityField;
 import io.nop.metadata.dao.entity.NopMetaTableMeasure;
 import io.nop.orm.IOrmTemplate;
-import io.nop.metadata.service.entity.NopMetaTableBizModel;
-import io.nop.metadata.service.entity.NopMetaTableMeasureBizModel;
 import jakarta.inject.Inject;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -42,18 +44,34 @@ public class TestAggregationCategoricalAndTemporal extends JunitBaseTestCase {
     @Inject
     IDaoProvider daoProvider;
     @Inject
-    NopMetaTableBizModel nopMetaTableBizModel;
-    @Inject
-    NopMetaTableMeasureBizModel nopMetaTableMeasureBizModel;
-    @Inject
     IOrmTemplate ormTemplate;
 
     TestAggregationHelper _helper;
 
     @BeforeEach
     void initHelper() {
-        _helper = new TestAggregationHelper(graphQLEngine, daoProvider, nopMetaTableBizModel,
-                nopMetaTableMeasureBizModel, ormTemplate);
+        _helper = new TestAggregationHelper(graphQLEngine, daoProvider, ormTemplate);
+    }
+
+    @SuppressWarnings("unchecked")
+    private List<Map<String, Object>> queryAggregationItems(String tableId, List<String> measures, List<String> dims,
+                                                   TreeBean filter, String joinId, Long limit, Long offset,
+                                                   TreeBean having, List<OrderFieldBean> orderBy) {
+        ApiResponse<?> resp = _helper.executeRpc(GraphQLOperationType.query, "NopMetaTable__queryAggregation",
+                _helper.queryAggregationRequest(tableId, measures, dims, filter, joinId, limit, offset, having, orderBy));
+        if (!resp.isOk()) {
+            throw new NopException("queryAggregation RPC failed: " + resp);
+        }
+        Map<String, Object> data = (Map<String, Object>) resp.getData();
+        return (List<Map<String, Object>>) data.get("items");
+    }
+
+    @SuppressWarnings("unchecked")
+    private ApiResponse<?> queryAggregationRaw(String tableId, List<String> measures, List<String> dims,
+                                                TreeBean filter, String joinId, Long limit, Long offset,
+                                                TreeBean having, List<OrderFieldBean> orderBy) {
+        return _helper.executeRpc(GraphQLOperationType.query, "NopMetaTable__queryAggregation",
+                _helper.queryAggregationRequest(tableId, measures, dims, filter, joinId, limit, offset, having, orderBy));
     }
 
     /** categorical 维度 + sum/count 聚合：GROUP BY CATEGORY → A=sum 30/count 2，B=sum 30/count 1。 */
@@ -67,9 +85,9 @@ public class TestAggregationCategoricalAndTemporal extends JunitBaseTestCase {
         _helper.createMeasure(tableId, "cnt", "AMOUNT", "count", null);
         _helper.createDimension(tableId, "cat", "CATEGORY", "categorical", null);
 
-        AggregationResultDTO result = nopMetaTableBizModel.queryAggregation(tableId,
-                Arrays.asList("total", "cnt"), Arrays.asList("cat"), null, null, null, null, null, null, null, null);
-        List<Map<String, Object>> items = result.getItems();
+        List<Map<String, Object>> items = queryAggregationItems(tableId,
+                Arrays.asList("total", "cnt"), Arrays.asList("cat"), null, null, null, null, null, null);
+        
         assertEquals(2, items.size(), "group by CATEGORY must yield 2 groups (A,B)");
         Map<String, Object> rowA = findRow(items, "CAT", "A");
         Map<String, Object> rowB = findRow(items, "CAT", "B");
@@ -89,9 +107,9 @@ public class TestAggregationCategoricalAndTemporal extends JunitBaseTestCase {
         _helper.createMeasure(tableId, "dc", "CATEGORY", "countDistinct", null);
         _helper.createDimension(tableId, "mon", "CREATED_AT", "temporal", "month");
 
-        AggregationResultDTO result = nopMetaTableBizModel.queryAggregation(tableId,
-                Arrays.asList("dc"), Arrays.asList("mon"), null, null, null, null, null, null, null, null);
-        List<Map<String, Object>> items = result.getItems();
+        List<Map<String, Object>> items = queryAggregationItems(tableId,
+                Arrays.asList("dc"), Arrays.asList("mon"), null, null, null, null, null, null);
+        
         assertFalse(items.isEmpty(), "temporal month grouping must yield rows");
         for (Map<String, Object> row : items) {
             assertEquals(1, toInt(getIgnoreCase(row, "DC")), "countDistinct(CATEGORY) per month = 1: " + row);
@@ -108,9 +126,9 @@ public class TestAggregationCategoricalAndTemporal extends JunitBaseTestCase {
         _helper.createMeasure(tableId, "total", "AMOUNT", "sum", null);
         _helper.createDimension(tableId, "mon", "CREATED_AT", "temporal", "month");
 
-        AggregationResultDTO result = nopMetaTableBizModel.queryAggregation(tableId,
-                Arrays.asList("total"), Arrays.asList("mon"), null, null, null, null, null, null, null, null);
-        List<Map<String, Object>> items = result.getItems();
+        List<Map<String, Object>> items = queryAggregationItems(tableId,
+                Arrays.asList("total"), Arrays.asList("mon"), null, null, null, null, null, null);
+        
         assertEquals(2, items.size(), "group by month must yield 2 months (2024-01, 2024-02)");
         for (Map<String, Object> row : items) {
             assertEquals(30, toInt(getIgnoreCase(row, "TOTAL")), "monthly SUM(AMOUNT) = 30: " + row);
@@ -129,9 +147,9 @@ public class TestAggregationCategoricalAndTemporal extends JunitBaseTestCase {
         TreeBean defaultFilter = FilterBeans.gt("AMOUNT", 15);
         _helper.createDefaultFilter(tableId, "df", defaultFilter);
 
-        AggregationResultDTO result = nopMetaTableBizModel.queryAggregation(tableId,
-                Arrays.asList("total"), Arrays.asList("cat"), null, null, null, null, null, null, null, null);
-        List<Map<String, Object>> items = result.getItems();
+        List<Map<String, Object>> items = queryAggregationItems(tableId,
+                Arrays.asList("total"), Arrays.asList("cat"), null, null, null, null, null, null);
+        
         Map<String, Object> rowA = findRow(items, "CAT", "A");
         assertEquals(20, toInt(rowA.get("TOTAL")), "default filter AMOUNT>15: SUM(A) = 20 (10 excluded)");
     }
@@ -146,9 +164,9 @@ public class TestAggregationCategoricalAndTemporal extends JunitBaseTestCase {
         _helper.createMeasure(tableId, "exprM", "AMOUNT", "sum", "AMOUNT * 2");
         _helper.createDimension(tableId, "cat", "CATEGORY", "categorical", null);
 
-        AggregationResultDTO result = nopMetaTableBizModel.queryAggregation(tableId,
-                Arrays.asList("exprM"), Arrays.asList("cat"), null, null, null, null, null, null, null, null);
-        List<Map<String, Object>> items = result.getItems();
+        List<Map<String, Object>> items = queryAggregationItems(tableId,
+                Arrays.asList("exprM"), Arrays.asList("cat"), null, null, null, null, null, null);
+        
         assertNotNull(items);
         assertEquals(2, items.size(), "expression measure must execute and yield 2 groups (A, B): " + items);
         Map<String, Object> rowA = findRow(items, "CAT", "A");
@@ -182,9 +200,9 @@ public class TestAggregationCategoricalAndTemporal extends JunitBaseTestCase {
         _helper.createMeasure(tableId, "triple", "AMOUNT", "sum", "AMOUNT * 2 + AMOUNT");
         _helper.createDimension(tableId, "cat", "CATEGORY", "categorical", null);
 
-        AggregationResultDTO result = nopMetaTableBizModel.queryAggregation(tableId,
-                Arrays.asList("triple"), Arrays.asList("cat"), null, null, null, null, null, null, null, null);
-        List<Map<String, Object>> items = result.getItems();
+        List<Map<String, Object>> items = queryAggregationItems(tableId,
+                Arrays.asList("triple"), Arrays.asList("cat"), null, null, null, null, null, null);
+        
         assertNotNull(items);
         Map<String, Object> rowA = findRow(items, "CAT", "A");
         Map<String, Object> rowB = findRow(items, "CAT", "B");
@@ -202,9 +220,9 @@ public class TestAggregationCategoricalAndTemporal extends JunitBaseTestCase {
         _helper.createMeasure(tableId, "exprStatus", statusFieldId, "sum", "VERSION + VERSION");
         _helper.createDimension(tableId, "st", statusFieldId, "categorical", null);
 
-        AggregationResultDTO result = nopMetaTableBizModel.queryAggregation(tableId,
-                Arrays.asList("exprStatus"), Arrays.asList("st"), null, null, null, null, null, null, null, null);
-        List<Map<String, Object>> items = result.getItems();
+        List<Map<String, Object>> items = queryAggregationItems(tableId,
+                Arrays.asList("exprStatus"), Arrays.asList("st"), null, null, null, null, null, null);
+        
         assertNotNull(items, "items must not be null");
         assertFalse(items.isEmpty(), "entity path expression must yield real grouped rows: " + items);
         for (Map<String, Object> row : items) {
@@ -226,9 +244,9 @@ public class TestAggregationCategoricalAndTemporal extends JunitBaseTestCase {
             _helper.createMeasure(tableId, "exprCnt", createTimeFieldId, "sum", "VERSION + VERSION");
             _helper.createDimension(tableId, "mon", createTimeFieldId, "temporal", "month");
 
-            AggregationResultDTO result = nopMetaTableBizModel.queryAggregation(tableId,
-                    Arrays.asList("exprCnt"), Arrays.asList("mon"), null, null, null, null, null, null, null, null);
-            List<Map<String, Object>> items = result.getItems();
+            List<Map<String, Object>> items = queryAggregationItems(tableId,
+                    Arrays.asList("exprCnt"), Arrays.asList("mon"), null, null, null, null, null, null);
+            
             assertNotNull(items);
             assertEquals(2, items.size(),
                     "entity path expression + temporal month granularity must yield 2 buckets: " + items);
@@ -252,11 +270,13 @@ public class TestAggregationCategoricalAndTemporal extends JunitBaseTestCase {
         _helper.createMeasure(tableId, "badExpr", "AMOUNT", "sum", "(AMOUNT * 2");
         _helper.createDimension(tableId, "cat", "CATEGORY", "categorical", null);
 
-        Exception ex = assertThrows(Exception.class, () -> nopMetaTableBizModel.queryAggregation(
-                tableId, Arrays.asList("badExpr"), Arrays.asList("cat"),
-                null, null, null, null, null, null, null, null));
-        assertTrue(ex.getMessage().contains("unparseable"),
-                "unparseable expression must fail with ERR_AGGR_EXPRESSION_UNPARSEABLE: " + ex.getMessage());
+        ApiResponse<?> resp = queryAggregationRaw(tableId, Arrays.asList("badExpr"), Arrays.asList("cat"),
+                null, null, null, null, null, null);
+        assertTrue(!resp.isOk(),
+                "unparseable expression must fail");
+        String errMsg = resp.getMsg() != null ? resp.getMsg().toLowerCase() : "";
+        assertTrue(errMsg.contains("unparseable"),
+                "unparseable expression must fail with ERR_AGGR_EXPRESSION_UNPARSEABLE: " + resp);
     }
 
     @Test
@@ -267,11 +287,13 @@ public class TestAggregationCategoricalAndTemporal extends JunitBaseTestCase {
         _helper.createMeasure(tableId, "dropExpr", "AMOUNT", "sum", "DROP TABLE foo");
         _helper.createDimension(tableId, "cat", "CATEGORY", "categorical", null);
 
-        Exception ex = assertThrows(Exception.class, () -> nopMetaTableBizModel.queryAggregation(
-                tableId, Arrays.asList("dropExpr"), Arrays.asList("cat"),
-                null, null, null, null, null, null, null, null));
-        assertTrue(ex.getMessage().contains("unsafe"),
-                "unsafe expression must fail with ERR_AGGR_EXPRESSION_UNSAFE: " + ex.getMessage());
+        ApiResponse<?> resp = queryAggregationRaw(tableId, Arrays.asList("dropExpr"), Arrays.asList("cat"),
+                null, null, null, null, null, null);
+        assertTrue(!resp.isOk(),
+                "unsafe expression must fail");
+        String errMsg = resp.getMsg() != null ? resp.getMsg().toLowerCase() : "";
+        assertTrue(errMsg.contains("unsafe"),
+                "unsafe expression must fail with ERR_AGGR_EXPRESSION_UNSAFE: " + resp);
     }
 
     @Test
@@ -283,20 +305,24 @@ public class TestAggregationCategoricalAndTemporal extends JunitBaseTestCase {
         _helper.createDimension(tableId, "cat", "CATEGORY", "categorical", null);
 
         TreeBean having = FilterBeans.gt("exprM", 15);
-        Exception ex = assertThrows(Exception.class, () -> nopMetaTableBizModel.queryAggregation(
-                tableId, Arrays.asList("exprM"), Arrays.asList("cat"),
-                null, null, null, null, having, null, null, null));
-        assertTrue(ex.getMessage().contains("having-order-by-unsupported")
-                        || ex.getMessage().contains("HAVING or ORDER BY"),
-                "expression measure referenced by HAVING must explicitly fail: " + ex.getMessage());
+        ApiResponse<?> resp = queryAggregationRaw(tableId, Arrays.asList("exprM"), Arrays.asList("cat"),
+                null, null, null, null, having, null);
+        assertTrue(!resp.isOk(),
+                "expression measure referenced by HAVING must explicitly fail: " + resp);
+        String errMsg = resp.getMsg() != null ? resp.getMsg().toLowerCase() : "";
+        assertTrue(errMsg.contains("having-order-by-unsupported")
+                        || errMsg.contains("having or order by"),
+                "expression measure referenced by HAVING must explicitly fail: " + resp);
 
         List<OrderFieldBean> orderBy = Arrays.asList(OrderFieldBean.desc("exprM"));
-        Exception ex2 = assertThrows(Exception.class, () -> nopMetaTableBizModel.queryAggregation(
-                tableId, Arrays.asList("exprM"), Arrays.asList("cat"),
-                null, null, null, null, null, orderBy, null, null));
-        assertTrue(ex2.getMessage().contains("having-order-by-unsupported")
-                        || ex2.getMessage().contains("HAVING or ORDER BY"),
-                "expression measure referenced by ORDER BY must explicitly fail: " + ex2.getMessage());
+        ApiResponse<?> resp2 = queryAggregationRaw(tableId, Arrays.asList("exprM"), Arrays.asList("cat"),
+                null, null, null, null, null, orderBy);
+        assertTrue(!resp2.isOk(),
+                "expression measure referenced by ORDER BY must explicitly fail: " + resp2);
+        String errMsg2 = resp2.getMsg() != null ? resp2.getMsg().toLowerCase() : "";
+        assertTrue(errMsg2.contains("having-order-by-unsupported")
+                        || errMsg2.contains("having or order by"),
+                "expression measure referenced by ORDER BY must explicitly fail: " + resp2);
     }
 
     // ===== save-time validation =====
@@ -370,9 +396,9 @@ public class TestAggregationCategoricalAndTemporal extends JunitBaseTestCase {
         TreeBean having = FilterBeans.gt("total", 15);
         List<OrderFieldBean> orderBy = Arrays.asList(OrderFieldBean.desc("total"));
 
-        AggregationResultDTO result = nopMetaTableBizModel.queryAggregation(tableId,
-                Arrays.asList("total"), Arrays.asList("cat"), null, null, null, null, having, orderBy, null, null);
-        List<Map<String, Object>> items = result.getItems();
+        List<Map<String, Object>> items = queryAggregationItems(tableId,
+                Arrays.asList("total"), Arrays.asList("cat"), null, null, null, null, having, orderBy);
+        
         assertEquals(2, items.size(), "having SUM>15 must exclude group C (sum=5)");
         for (Map<String, Object> row : items) {
             int total = toInt(getIgnoreCase(row, "TOTAL"));
@@ -389,11 +415,13 @@ public class TestAggregationCategoricalAndTemporal extends JunitBaseTestCase {
         _helper.createDimension(tableId, "cat", "CATEGORY", "categorical", null);
 
         TreeBean having = FilterBeans.gt("unknown_measure", 15);
-        Exception e = assertThrows(Exception.class, () -> nopMetaTableBizModel.queryAggregation(tableId,
-                Arrays.asList("total"), Arrays.asList("cat"), null, null, null, null, having, null, null, null));
-        assertTrue(e.getMessage().contains("unknown") || e.getMessage().contains("Unknown")
-                        || e.getMessage().contains("not in the user-selected"),
-                "error message must indicate unknown name: " + e.getMessage());
+        ApiResponse<?> resp = queryAggregationRaw(tableId,
+                Arrays.asList("total"), Arrays.asList("cat"), null, null, null, null, having, null);
+        assertTrue(!resp.isOk(),
+                "must fail with unknown measure name");
+        String errMsg = resp.getMsg() != null ? resp.getMsg().toLowerCase() : "";
+        assertTrue(errMsg.contains("unknown") || errMsg.contains("not in the user-selected"),
+                "error message must indicate unknown name: " + resp);
     }
 
     @Test
@@ -405,11 +433,13 @@ public class TestAggregationCategoricalAndTemporal extends JunitBaseTestCase {
         _helper.createDimension(tableId, "cat", "CATEGORY", "categorical", null);
 
         List<OrderFieldBean> orderBy = Arrays.asList(OrderFieldBean.desc("unknown_measure"));
-        Exception e = assertThrows(Exception.class, () -> nopMetaTableBizModel.queryAggregation(tableId,
-                Arrays.asList("total"), Arrays.asList("cat"), null, null, null, null, null, orderBy, null, null));
-        assertTrue(e.getMessage().contains("unknown") || e.getMessage().contains("Unknown")
-                        || e.getMessage().contains("not in the user-selected"),
-                "error message must indicate unknown name: " + e.getMessage());
+        ApiResponse<?> resp = queryAggregationRaw(tableId,
+                Arrays.asList("total"), Arrays.asList("cat"), null, null, null, null, null, orderBy);
+        assertTrue(!resp.isOk(),
+                "must fail with unknown measure name");
+        String errMsg = resp.getMsg() != null ? resp.getMsg().toLowerCase() : "";
+        assertTrue(errMsg.contains("unknown") || errMsg.contains("not in the user-selected"),
+                "error message must indicate unknown name: " + resp);
     }
 
     @Test
@@ -421,9 +451,9 @@ public class TestAggregationCategoricalAndTemporal extends JunitBaseTestCase {
         _helper.createMeasure(tableId, "total", "AMOUNT", "sum", null);
         _helper.createDimension(tableId, "cat", "CATEGORY", "categorical", null);
 
-        AggregationResultDTO result = nopMetaTableBizModel.queryAggregation(tableId,
-                Arrays.asList("total"), Arrays.asList("cat"), null, null, null, null, null, null, null, null);
-        List<Map<String, Object>> items = result.getItems();
+        List<Map<String, Object>> items = queryAggregationItems(tableId,
+                Arrays.asList("total"), Arrays.asList("cat"), null, null, null, null, null, null);
+        
         assertEquals(2, items.size(), "no having/orderBy → all groups retained (A, B)");
     }
 
@@ -441,9 +471,9 @@ public class TestAggregationCategoricalAndTemporal extends JunitBaseTestCase {
 
         TreeBean having = FilterBeans.ge("cnt", 1);
         List<OrderFieldBean> orderBy = Arrays.asList(OrderFieldBean.desc("cnt"));
-        AggregationResultDTO result = nopMetaTableBizModel.queryAggregation(tableId,
-                Arrays.asList("cnt"), Arrays.asList("st"), null, null, null, null, having, orderBy, null, null);
-        List<Map<String, Object>> items = result.getItems();
+        List<Map<String, Object>> items = queryAggregationItems(tableId,
+                Arrays.asList("cnt"), Arrays.asList("st"), null, null, null, null, having, orderBy);
+        
         assertFalse(items.isEmpty(), "entity aggregation with having/orderBy must return real grouped rows: " + items);
         for (Map<String, Object> row : items) {
             assertTrue(toLong(getIgnoreCase(row, "CNT")) >= 1, "having cnt>=1 must hold: " + row);
@@ -463,10 +493,10 @@ public class TestAggregationCategoricalAndTemporal extends JunitBaseTestCase {
         _helper.createDimension(tableId, "cat", "CATEGORY", "categorical", null);
 
         TreeBean having = havingArithmeticLeaf("gt", "sumA - sumB", 10);
-        AggregationResultDTO result = nopMetaTableBizModel.queryAggregation(tableId,
+        List<Map<String, Object>> items = queryAggregationItems(tableId,
                 Arrays.asList("sumA", "sumB"), Arrays.asList("cat"),
-                null, null, null, null, having, null, null, null);
-        List<Map<String, Object>> items = result.getItems();
+                null, null, null, null, having, null);
+        
         assertNotNull(items, "items must not be null");
         assertEquals(2, items.size(), "arithmetic having SUM(A)-SUM(B)>10 must keep A(24), B(29); drop C(4)");
         for (Map<String, Object> row : items) {
@@ -486,12 +516,14 @@ public class TestAggregationCategoricalAndTemporal extends JunitBaseTestCase {
         _helper.createDimension(tableId, "cat", "CATEGORY", "categorical", null);
 
         TreeBean having = havingArithmeticLeaf("gt", "sumA - sumB", 10);
-        Exception ex = assertThrows(Exception.class, () -> nopMetaTableBizModel.queryAggregation(tableId,
+        ApiResponse<?> resp = queryAggregationRaw(tableId,
                 Arrays.asList("sumA"), Arrays.asList("cat"),
-                null, null, null, null, having, null, null, null));
-        assertTrue(ex.getMessage().contains("unknown") || ex.getMessage().contains("Unknown")
-                        || ex.getMessage().contains("not in the user-selected"),
-                "arithmetic having with unknown measure name must explicitly fail: " + ex.getMessage());
+                null, null, null, null, having, null);
+        assertTrue(!resp.isOk(),
+                "arithmetic having with unknown measure name must explicitly fail: " + resp);
+        String errMsg = resp.getMsg() != null ? resp.getMsg().toLowerCase() : "";
+        assertTrue(errMsg.contains("unknown") || errMsg.contains("not in the user-selected"),
+                "error message must indicate unknown name: " + resp);
     }
 
     @Test
@@ -504,13 +536,15 @@ public class TestAggregationCategoricalAndTemporal extends JunitBaseTestCase {
         _helper.createDimension(tableId, "cat", "CATEGORY", "categorical", null);
 
         TreeBean having = havingArithmeticLeaf("gt", "exprM - sumB", 10);
-        Exception ex = assertThrows(Exception.class, () -> nopMetaTableBizModel.queryAggregation(tableId,
+        ApiResponse<?> resp = queryAggregationRaw(tableId,
                 Arrays.asList("exprM", "sumB"), Arrays.asList("cat"),
-                null, null, null, null, having, null, null, null));
-        assertTrue(ex.getMessage().contains("having-order-by-unsupported")
-                        || ex.getMessage().contains("HAVING or ORDER BY"),
-                "arithmetic having referencing expression-type measure must fail (? safety boundary): "
-                        + ex.getMessage());
+                null, null, null, null, having, null);
+        assertTrue(!resp.isOk(),
+                "arithmetic having referencing expression-type measure must fail: " + resp);
+        String errMsg = resp.getMsg() != null ? resp.getMsg().toLowerCase() : "";
+        assertTrue(errMsg.contains("having-order-by-unsupported")
+                        || errMsg.contains("having or order by"),
+                "arithmetic having referencing expression-type measure must fail: " + resp);
     }
 
     @Test
@@ -523,13 +557,15 @@ public class TestAggregationCategoricalAndTemporal extends JunitBaseTestCase {
         _helper.createDimension(tableId, "cat", "CATEGORY", "categorical", null);
 
         TreeBean having = havingArithmeticLeaf("gt", "sumA / sumB * 100", 10);
-        Exception ex = assertThrows(Exception.class, () -> nopMetaTableBizModel.queryAggregation(tableId,
+        ApiResponse<?> resp = queryAggregationRaw(tableId,
                 Arrays.asList("sumA", "sumB"), Arrays.asList("cat"),
-                null, null, null, null, having, null, null, null));
-        assertTrue(ex.getMessage().contains("unsafe") || ex.getMessage().contains("literals")
-                        || ex.getMessage().contains("not allowed"),
-                "arithmetic having with literal must explicitly fail (Phase 1 literals disallowed): "
-                        + ex.getMessage());
+                null, null, null, null, having, null);
+        assertTrue(!resp.isOk(),
+                "arithmetic having with literal must explicitly fail: " + resp);
+        String errMsg = resp.getMsg() != null ? resp.getMsg().toLowerCase() : "";
+        assertTrue(errMsg.contains("unsafe") || errMsg.contains("literals")
+                        || errMsg.contains("not allowed"),
+                "arithmetic having with literal must explicitly fail: " + resp);
     }
 
     @Test
@@ -542,10 +578,10 @@ public class TestAggregationCategoricalAndTemporal extends JunitBaseTestCase {
         _helper.createDimension(tableId, "cat", "CATEGORY", "categorical", null);
 
         TreeBean having = FilterBeans.gt("sumA", 10);
-        AggregationResultDTO result = nopMetaTableBizModel.queryAggregation(tableId,
+        List<Map<String, Object>> items = queryAggregationItems(tableId,
                 Arrays.asList("sumA"), Arrays.asList("cat"),
-                null, null, null, null, having, null, null, null);
-        List<Map<String, Object>> items = result.getItems();
+                null, null, null, null, having, null);
+        
         assertEquals(2, items.size(), "regular having SUM(A)>10 must keep A(30), B(30); drop C(5)");
     }
 
@@ -563,10 +599,10 @@ public class TestAggregationCategoricalAndTemporal extends JunitBaseTestCase {
         _helper.createDimension(tableId, "st", statusFieldId, "categorical", null);
 
         TreeBean having = havingArithmeticLeaf("ge", "cntA - cntB", 0);
-        AggregationResultDTO result = nopMetaTableBizModel.queryAggregation(tableId,
+        List<Map<String, Object>> items = queryAggregationItems(tableId,
                 Arrays.asList("cntA", "cntB"), Arrays.asList("st"),
-                null, null, null, null, having, null, null, null);
-        List<Map<String, Object>> items = result.getItems();
+                null, null, null, null, having, null);
+        
         assertNotNull(items, "items must not be null");
         assertFalse(items.isEmpty(),
                 "entity path arithmetic having must yield real grouped rows: " + items);

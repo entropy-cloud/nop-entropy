@@ -2,19 +2,21 @@ package io.nop.metadata.service;
 
 import io.nop.api.core.annotations.autotest.NopTestConfig;
 import io.nop.api.core.annotations.core.OptionalBoolean;
+import io.nop.api.core.beans.ApiRequest;
+import io.nop.api.core.beans.ApiResponse;
 import io.nop.api.core.beans.FilterBeans;
 import io.nop.api.core.beans.TreeBean;
 import io.nop.api.core.beans.query.OrderFieldBean;
+import io.nop.api.core.exceptions.NopException;
 import io.nop.autotest.junit.JunitBaseTestCase;
 import io.nop.dao.api.IDaoProvider;
 import io.nop.dao.api.IEntityDao;
+import io.nop.graphql.core.ast.GraphQLOperationType;
 import io.nop.graphql.core.engine.IGraphQLEngine;
 import io.nop.metadata.core.dto.AggregationResultDTO;
 import io.nop.metadata.dao.entity.NopMetaEntity;
 import io.nop.metadata.dao.entity.NopMetaEntityField;
 import io.nop.orm.IOrmTemplate;
-import io.nop.metadata.service.entity.NopMetaTableBizModel;
-import io.nop.metadata.service.entity.NopMetaTableMeasureBizModel;
 import jakarta.inject.Inject;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -41,18 +43,34 @@ public class TestAggregationEntityJoinAndComplex extends JunitBaseTestCase {
     @Inject
     IDaoProvider daoProvider;
     @Inject
-    NopMetaTableBizModel nopMetaTableBizModel;
-    @Inject
-    NopMetaTableMeasureBizModel nopMetaTableMeasureBizModel;
-    @Inject
     IOrmTemplate ormTemplate;
 
     TestAggregationHelper _helper;
 
     @BeforeEach
     void initHelper() {
-        _helper = new TestAggregationHelper(graphQLEngine, daoProvider, nopMetaTableBizModel,
-                nopMetaTableMeasureBizModel, ormTemplate);
+        _helper = new TestAggregationHelper(graphQLEngine, daoProvider, ormTemplate);
+    }
+
+    @SuppressWarnings("unchecked")
+    private List<Map<String, Object>> queryAggregationItems(String tableId, List<String> measures, List<String> dims,
+                                                   TreeBean filter, String joinId, Long limit, Long offset,
+                                                   TreeBean having, List<OrderFieldBean> orderBy) {
+        ApiResponse<?> resp = _helper.executeRpc(GraphQLOperationType.query, "NopMetaTable__queryAggregation",
+                _helper.queryAggregationRequest(tableId, measures, dims, filter, joinId, limit, offset, having, orderBy));
+        if (!resp.isOk()) {
+            throw new NopException("queryAggregation RPC failed: " + resp);
+        }
+        Map<String, Object> data = (Map<String, Object>) resp.getData();
+        return (List<Map<String, Object>>) data.get("items");
+    }
+
+    @SuppressWarnings("unchecked")
+    private ApiResponse<?> queryAggregationRaw(String tableId, List<String> measures, List<String> dims,
+                                                TreeBean filter, String joinId, Long limit, Long offset,
+                                                TreeBean having, List<OrderFieldBean> orderBy) {
+        return _helper.executeRpc(GraphQLOperationType.query, "NopMetaTable__queryAggregation",
+                _helper.queryAggregationRequest(tableId, measures, dims, filter, joinId, limit, offset, having, orderBy));
     }
 
     // ============================================================
@@ -69,9 +87,9 @@ public class TestAggregationEntityJoinAndComplex extends JunitBaseTestCase {
         _helper.createMeasure(tableId, "cnt", statusFieldId, "count", null);
         _helper.createDimension(tableId, "st", statusFieldId, "categorical", null);
 
-        AggregationResultDTO result = nopMetaTableBizModel.queryAggregation(tableId,
-                Arrays.asList("cnt"), Arrays.asList("st"), null, null, null, null, null, null, null, null);
-        List<Map<String, Object>> items = result.getItems();
+        List<Map<String, Object>> items = queryAggregationItems(tableId,
+                Arrays.asList("cnt"), Arrays.asList("st"), null, null, null, null, null, null);
+        
         assertFalse(items.isEmpty(), "entity aggregation by status must return real grouped rows: " + items);
     }
 
@@ -92,9 +110,9 @@ public class TestAggregationEntityJoinAndComplex extends JunitBaseTestCase {
             _helper.createMeasure(tableId, "cnt", createTimeFieldId, "count", null);
             _helper.createDimension(tableId, "mon", createTimeFieldId, "temporal", "month");
 
-            AggregationResultDTO result = nopMetaTableBizModel.queryAggregation(tableId,
-                    Arrays.asList("cnt"), Arrays.asList("mon"), null, null, null, null, null, null, null, null);
-            List<Map<String, Object>> items = result.getItems();
+            List<Map<String, Object>> items = queryAggregationItems(tableId,
+                    Arrays.asList("cnt"), Arrays.asList("mon"), null, null, null, null, null, null);
+            
             assertNotNull(items, "items must not be null");
             assertEquals(2, items.size(),
                     "entity path month bucketing must yield 2 buckets (2024-01, 2024-02): " + items);
@@ -127,10 +145,10 @@ public class TestAggregationEntityJoinAndComplex extends JunitBaseTestCase {
                 _helper.createMeasure(tableId, "cnt_" + granularity, createTimeFieldId, "count", null);
                 _helper.createDimension(tableId, "d_" + granularity, createTimeFieldId, "temporal", granularity);
 
-                AggregationResultDTO result = nopMetaTableBizModel.queryAggregation(tableId,
+                List<Map<String, Object>> items = queryAggregationItems(tableId,
                         Arrays.asList("cnt_" + granularity), Arrays.asList("d_" + granularity),
-                        null, null, null, null, null, null, null, null);
-                List<Map<String, Object>> items = result.getItems();
+                        null, null, null, null, null, null);
+                
                 assertNotNull(items, "items must not be null for granularity=" + granularity);
                 assertFalse(items.isEmpty(),
                         "entity path granularity=" + granularity + " must yield non-empty groups: " + items);
@@ -173,17 +191,15 @@ public class TestAggregationEntityJoinAndComplex extends JunitBaseTestCase {
 
             _helper.createMeasure(externalTableId, "xcnt", "K", "count", null);
             _helper.createDimension(externalTableId, "xmon", "CREATED_AT", "temporal", "month");
-            AggregationResultDTO extResult = nopMetaTableBizModel.queryAggregation(externalTableId,
-                    Arrays.asList("xcnt"), Arrays.asList("xmon"), null, null, null, null, null, null, null, null);
-            List<Map<String, Object>> extItems = extResult.getItems();
+            List<Map<String, Object>> extItems = queryAggregationItems(externalTableId,
+                    Arrays.asList("xcnt"), Arrays.asList("xmon"), null, null, null, null, null, null);
 
             String entityTableId = _helper.findEntityTableId("nop_meta_entity");
             String createTimeFieldId = _helper.findEntityFieldId("nop_meta_entity", "createTime");
             _helper.createMeasure(entityTableId, "ecnt", createTimeFieldId, "count", null);
             _helper.createDimension(entityTableId, "emon", createTimeFieldId, "temporal", "month");
-            AggregationResultDTO entityResult = nopMetaTableBizModel.queryAggregation(entityTableId,
-                    Arrays.asList("ecnt"), Arrays.asList("emon"), null, null, null, null, null, null, null, null);
-            List<Map<String, Object>> entityItems = entityResult.getItems();
+            List<Map<String, Object>> entityItems = queryAggregationItems(entityTableId,
+                    Arrays.asList("ecnt"), Arrays.asList("emon"), null, null, null, null, null, null);
 
             assertEquals(extItems.size(), entityItems.size(),
                     "entity path and external path must yield same bucket count: ext=" + extItems + " entity=" + entityItems);
@@ -273,9 +289,9 @@ public class TestAggregationEntityJoinAndComplex extends JunitBaseTestCase {
         _helper.createDimension(leftTableId, "st", leftDimFieldId, "categorical", null);
         _helper.createMeasure(leftTableId, "cnt", rightMeasureFieldId, "count", null);
 
-        AggregationResultDTO result = nopMetaTableBizModel.queryAggregation(leftTableId,
-                Arrays.asList("cnt"), Arrays.asList("st"), null, joinId, null, null, null, null, null, null);
-        List<Map<String, Object>> items = result.getItems();
+        List<Map<String, Object>> items = queryAggregationItems(leftTableId,
+                Arrays.asList("cnt"), Arrays.asList("st"), null, joinId, null, null, null, null);
+        
         assertNotNull(items, "items must not be null");
         assertFalse(items.isEmpty(), "entity JOIN aggregation must return real grouped rows: " + items);
 
@@ -331,9 +347,9 @@ public class TestAggregationEntityJoinAndComplex extends JunitBaseTestCase {
         _helper.createMeasure(tableId, "mcnt", statusFieldId, "count", null);
         _helper.createDimension(tableId, "mst", statusFieldId, "categorical", null);
 
-        AggregationResultDTO result = nopMetaTableBizModel.queryAggregation(tableId,
-                Arrays.asList("mcnt"), Arrays.asList("mst"), null, null, null, null, null, null, null, null);
-        List<Map<String, Object>> items = result.getItems();
+        List<Map<String, Object>> items = queryAggregationItems(tableId,
+                Arrays.asList("mcnt"), Arrays.asList("mst"), null, null, null, null, null, null);
+        
         assertFalse(items.isEmpty(), "single-table aggregation (no joinId) must still work: " + items);
     }
 
@@ -407,9 +423,9 @@ public class TestAggregationEntityJoinAndComplex extends JunitBaseTestCase {
         _helper.createDimension(leftTableId, "rst", leftDimFieldId, "categorical", null);
         _helper.createMeasure(leftTableId, "rcnt", rightMeasureFieldId, "count", null);
 
-        AggregationResultDTO result = nopMetaTableBizModel.queryAggregation(leftTableId,
-                Arrays.asList("rcnt"), Arrays.asList("rst"), null, joinId, null, null, null, null, null, null);
-        List<Map<String, Object>> items = result.getItems();
+        List<Map<String, Object>> items = queryAggregationItems(leftTableId,
+                Arrays.asList("rcnt"), Arrays.asList("rst"), null, joinId, null, null, null, null);
+        
         assertNotNull(items, "items must not be null");
         assertFalse(items.isEmpty(), "entity-entity JOIN aggregation must still work after refactor: " + items);
         long totalFields = _helper.countRows("select count(*) as c from nop_meta_entity_field");
@@ -435,9 +451,9 @@ public class TestAggregationEntityJoinAndComplex extends JunitBaseTestCase {
         _helper.createDimension(leftTableId, "mst", leftDimFieldId, "categorical", null);
         _helper.createMeasure(leftTableId, "mcnt", rightMeasureFieldId, "count", null);
 
-        AggregationResultDTO result = nopMetaTableBizModel.queryAggregation(leftTableId,
-                Arrays.asList("mcnt"), Arrays.asList("mst"), null, joinId, null, null, null, null, null, null);
-        List<Map<String, Object>> items = result.getItems();
+        List<Map<String, Object>> items = queryAggregationItems(leftTableId,
+                Arrays.asList("mcnt"), Arrays.asList("mst"), null, joinId, null, null, null, null);
+        
         assertNotNull(items, "items must not be null");
         assertFalse(items.isEmpty(), "entity-entity JOIN aggregation must still work after mixed-endpoint route added: " + items);
     }
@@ -462,9 +478,9 @@ public class TestAggregationEntityJoinAndComplex extends JunitBaseTestCase {
 
         TreeBean having = FilterBeans.ge("cnt", 1);
         List<OrderFieldBean> orderBy = Arrays.asList(OrderFieldBean.desc("cnt"));
-        AggregationResultDTO result = nopMetaTableBizModel.queryAggregation(leftTableId,
-                Arrays.asList("cnt"), Arrays.asList("st"), null, joinId, null, null, having, orderBy, null, null);
-        List<Map<String, Object>> items = result.getItems();
+        List<Map<String, Object>> items = queryAggregationItems(leftTableId,
+                Arrays.asList("cnt"), Arrays.asList("st"), null, joinId, null, null, having, orderBy);
+        
         assertNotNull(items, "items must not be null");
         assertFalse(items.isEmpty(), "entity-entity JOIN with having/orderBy must return real grouped rows: " + items);
         if (items.size() > 1) {

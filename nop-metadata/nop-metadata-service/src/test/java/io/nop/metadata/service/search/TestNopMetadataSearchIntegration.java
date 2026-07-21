@@ -160,6 +160,53 @@ class TestNopMetadataSearchIntegration {
         verify(searchEngine).removeDocs(eq("nop-meta-metadata"), eq(List.of("entity-1")));
     }
 
+    // ===== AR-16: error-path coverage — engine throws =====
+
+    @Test
+    void testAddToIndex_engineThrows_doesNotPropagate() {
+        doThrow(new RuntimeException("search engine down"))
+                .when(searchEngine).addDoc(anyString(), any());
+
+        SearchableDoc doc = new SearchableDoc();
+        doc.setId("e-err");
+        doc.setName("err");
+        doc.setTitle("Err");
+
+        assertDoesNotThrow(() ->
+                searchService.addToIndex("MetaEntity", "e-err", doc));
+
+        verify(searchEngine).addDoc(eq("nop-meta-metadata"), eq(doc));
+    }
+
+    @Test
+    void testRemoveFromIndex_engineThrows_doesNotPropagate() {
+        doThrow(new RuntimeException("search engine down"))
+                .when(searchEngine).removeDocs(anyString(), anyList());
+
+        assertDoesNotThrow(() ->
+                searchService.removeFromIndex("MetaEntity", "e-err"));
+
+        verify(searchEngine).removeDocs(eq("nop-meta-metadata"), eq(List.of("e-err")));
+    }
+
+    @Test
+    void testAddToIndex_engineNull_doesNotThrow() {
+        searchService.searchEngine = null;
+        SearchableDoc doc = new SearchableDoc();
+        doc.setId("e-null");
+
+        assertDoesNotThrow(() ->
+                searchService.addToIndex("MetaEntity", "e-null", doc));
+    }
+
+    @Test
+    void testRemoveFromIndex_engineNull_doesNotThrow() {
+        searchService.searchEngine = null;
+
+        assertDoesNotThrow(() ->
+                searchService.removeFromIndex("MetaEntity", "e-null"));
+    }
+
     @SuppressWarnings("unchecked")
     private void mockEmptyDaos() {
         mockEmptyDao(NopMetaClassification.class);
