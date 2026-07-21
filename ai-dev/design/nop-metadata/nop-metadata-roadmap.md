@@ -39,6 +39,7 @@
 - G1. Governance Phase 1 — DataContract 接入审批流: `done`
 - G2. Governance Phase 2 — TagLabel 治理: `done`
 - G3. Governance Phase 3 — 质量告警工作流: `done`（plan 2026-07-20-2000-3；`NopMetaQualityResult` 新增 `isFalsePositive` 列；`QualityAlertWorkflowService` 实现；`qualityBreachApproval/v1.xwf` 工作流定义；`NopMetaQualityResultBizModel` approve/reject override；`judgeByRuleId` 方法；集成到 `NopMetaQualityRuleBizModel.executeQualityRule` FAIL+ERROR 路径；661 tests；收口所有 Phase 1 + Phase 2 项）
+- S4. Semantic Layer Phase 4 — 传播引擎实现（Lineage-driven TagLabel 传播 + AutoClassification 规则引擎）: `done`（plan 2026-07-22-1500-1；`LineageTagPropagationService` + `AutoClassificationService` 实现；`propagateTags` + `suggestTags` mutations 注册在 `NopMetaTagLabelBizModel`；dict `meta/tag-label-source` 新增 `lineage-propagation`/`auto-classify` 选项；`NopMetadataErrors.java` 新增 4 个 ErrorCode；809 tests）
 - SR. Search — 元数据搜索索引: `done`（plan 312；利用 Nop 平台 ISearchEngine + LuceneSearchEngine 基础设施实现搜索索引构建与查询；覆盖 6 个核心实体（Classification/Tag/GlossaryTerm/MetaTable/MetaEntity/MetaEntityField）；全量索引 NopMetaIndexBuilder + 增量索引 NopMetaSearchService + 搜索 API NopMetaSearchBizModel；`searchMetadata` GraphQL query + `rebuildSearchIndex` mutation；705 tests）
 
 ## Status Values
