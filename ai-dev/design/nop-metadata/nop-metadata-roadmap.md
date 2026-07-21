@@ -173,7 +173,7 @@
 | S2-2 | 新增实体 `NopMetaGlossaryTerm`（业务术语，含 synonyms/relatedTerms/conceptMappings） | done |
 | S2-3 | GlossaryTerm → Classification Tag 自动传播引擎 | done |
 | S2-4 | 术语关系管理（broader/narrower/synonym） | done |
-| S2-5 | TagLabel 追加审批字段（approveStatus/approvedBy/approvedAt） | todo |
+| S2-5 | TagLabel 追加审批字段（approveStatus/approvedBy/approvedAt） | done |
 
 ### S3. Semantic Layer Phase 3 — BusinessDomain + DataProduct（计划）
 
@@ -204,9 +204,9 @@
 
 | 工作项 | 描述 | 状态 |
 |--------|------|------|
-| G2-1 | `NopMetaTagLabel` 追加 `tagSet="use-approval"` + `approveStatus`/`approvedBy`/`approvedAt`（如果 S1 未包含） | todo |
-| G2-2 | 定义 `tagLabelConfirmApproval/v1.xwf`（reviewer-check 单步审批） | todo |
-| G2-3 | 自动传播引擎触发审批：labelType=Derived|Propagated|Automated 时自动 submitForApproval | todo |
+| G2-1 | `NopMetaTagLabel` 追加 `tagSet="use-approval"` + `approveStatus`/`approvedBy`/`approvedAt`（如果 S1 未包含） | done |
+| G2-2 | 定义 `tagLabelConfirmApproval/v1.xwf`（reviewer-check 单步审批） | done |
+| G2-3 | 自动传播引擎触发审批：labelType=Derived|Propagated|Automated 时自动 submitForApproval | done |
 
 ### G3. Governance Phase 3 — 质量告警工作流（计划）
 

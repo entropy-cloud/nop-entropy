@@ -1,7 +1,7 @@
 # nop-stream JobGraph 管线审计报告
 
 > Status: reviewed
-> Audit Status: planned
+> Audit Status: closed
 > Date: 2026-07-20
 > Scope: nop-stream-core `JobGraphGenerator.java`, `OperatorChain.java`, `StreamTaskInvokable.java`, `TaskExecutor.java`, `GraphExecutionPlan.java` 与 Flink `StreamingJobGraphGenerator.java`, `StreamTask.java` 对比
 > Auditor: manual code review

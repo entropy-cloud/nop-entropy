@@ -237,6 +237,9 @@ Glossary 是业务术语的集合。与 Classification 的区别：Classificatio
 | reason | string(1000) | | 标注理由。**灵感来源**: OpenMetadata TagLabel.reason |
 | metadata | string | domain=json-4000 | 扩展元数据，如自动分类的 recognizer 信息。**灵感来源**: OpenMetadata TagLabel.metadata |
 | extConfig | string | domain=json-4000 | |
+| approveStatus | string(20) | nullable, ext:dict `wf/approve-status` | 审批状态（UNSUBMITTED/SUBMITTED/APPROVED/REJECTED）。实体级 `tagSet="use-approval"` 触发审批工作流 |
+| approvedBy | string(50) | nullable | 审批人用户 ID |
+| approvedAt | timestamp | nullable | 审批时间 |
 
 **索引设计**：
 - `IX_NOP_META_TAG_LABEL_ENTITY` on `(entityType, entityId)` — 按资产查询所有标注

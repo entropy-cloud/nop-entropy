@@ -13,7 +13,7 @@
 2. **三个场景接入 nop-wf**：TagLabel 状态确认（Suggested→Confirmed）、DataContract 变更审批（DRAFT→ACTIVE→DEPRECATED→RETIRED）、GlossaryTerm 发布审核
 3. **现有 `NopMetaDataContract` 的硬编码状态机替换为 nop-wf 驱动**。当前 BizModel 中手写的 `activateContract`/`deprecateContract`/`retireContract` 逻辑改为通过 `tagSet="use-approval"` + 工作流 listener 委托给 nop-wf
 4. **`tagSet="use-approval"` 是编译期决策（codegen 时启用），不是运行时可切换的**。DataContract 一旦启用审批，所有状态变更走工作流。不存在"运行时判断是否启用审批"的路径
-5. **业务状态转换（如 DRAFT→ACTIVE）不由 `approval-support.xbiz` 的标准 approve 处理**，而是通过 `.xwf` 的 `on end` listener 回调 Java BizModel 的 `afterApproved`/`afterRejected` 方法完成。`approval-support.xbiz` 的标准 approve 只维护 `approveStatus` 字段
+5. **业务状态转换（如 DRAFT→ACTIVE）不由 `approval-support.xbiz` 的标准 approve 处理**，而是通过 `.xwf` 的 `on end` listener 回调 Java BizModel 的 `approve`/`reject` 方法完成，或通过 retention xbiz 覆盖标准 approve/reject 动作设置业务状态。`wf-approval.xlib:notifyResult` 根据 `approved` 布尔值决定调用 BizModel 的 `approve`(true) 或 `reject`(false) action
 6. **质量告警工作流使用真实的 nop-wf 实例（`IWorkflowManager.newWorkflow()`），不是直接写 `NopWfWork` 记录**
 7. **存量兼容**：现有 `activateContract`/`deprecateContract`/`retireContract` BizMutation 标记为 `@Deprecated`，引导调用者使用新的标准审批流程（`submitForApproval` + `approve`/`reject`）
 
@@ -95,33 +95,27 @@ flowchart LR
 | 增加 `approvedBy` 字段 | `string(50)`，审批人 |
 | 增加 `approvedAt` 字段 | `timestamp`，审批时间 |
 | 增加 `wf:wfName` 元数据 | 在实体对应的 `.xmeta` 中声明 `<meta wf:wfName="metaDataContractApproval"/>` |
-| 新增 `afterApproved` BizMutation | 工作流 end listener 回调此方法，执行业务状态转换（如 DRAFT→ACTIVE） |
-| 新增 `afterRejected` BizMutation | 工作流 end listener 回调此方法，将状态回退 |
+| 新增 `approve` BizMutation（或 retention xbiz 覆盖） | `wf-approval:notifyResult approved=true` 回调 BizModel 的 approve action，执行业务状态转换（如 DRAFT→ACTIVE） |
+| 新增 `reject` BizMutation（或 retention xbiz 覆盖） | `wf-approval:notifyResult approved=false` 回调 BizModel 的 reject action，设置 approveStatus=REJECTED，保持业务状态不变 |
 | 现有 `activateContract`/`deprecateContract`/`retireContract` | 标记 `@Deprecated`，内部实现改为调用 `submitForApproval` |
 
 **业务状态转换的驱动机制**：
 
-`approval-support.xbiz` 的 `approve` action 只维护审批态（`approveStatus=APPROVED`），不处理业务状态。业务状态转换（如 `status=DRAFT→ACTIVE`）通过 `.xwf` 工作流的 `on end` 事件中配置 listener 实现：
+`approval-support.xbiz` 的 `approve` action 只维护审批态（`approveStatus=APPROVED`），不处理业务状态。业务状态转换（如 `status=DRAFT→ACTIVE`）通过 retention xbiz 或 Java BizModel 覆盖 `approve`/`reject` action 实现，或在 `.xwf` 工作流的 `on end` 事件中配置单 `*end` listener 统一处理：
 
 ```xml
 <!-- metaDataContractApproval/v1.xwf 的 end step -->
 <listeners>
-    <on-end>
-        <when>wfRt.status == 'APPROVED'</when>
-        <action>
-            <!-- 使用 wf-approval.xlib:notifyResult 动态派发，
-                 避免硬编码 BizModel 类名。支持同一工作流被多个实体复用 -->
-            <wf-approval:notifyResult action="afterApproved"/>
-        </action>
-    </on-end>
-    <on-end>
-        <when>wfRt.status == 'REJECTED'</when>
-        <action>
-            <wf-approval:notifyResult action="afterRejected"/>
-        </action>
-    </on-end>
+    <listener id="onEndNotify" eventPattern="*end">
+        <source>
+            <wf-approval:notifyResult bizObj="NopMetaDataContract"
+                                       approved="${wfRt.status == 'APPROVED'}"/>
+        </source>
+    </listener>
 </listeners>
 ```
+
+`wf-approval.xlib:notifyResult` 只有 `bizObj`+`approved` 两个参数，无 `action` 属性；内部根据 `approved` 布尔值决定调用 BizObject 的 `approve`(true) 或 `reject`(false) action。
 
 **状态关联**：`approveStatus` 管理审批流状态，`status` 管理合约生命周期状态。两者的映射关系：
 
@@ -345,11 +339,18 @@ sequenceDiagram
 - 不修改 QualityRule/QualityCheckpoint 的行为
 - **依赖**：ORM 模型变更 → codegen ✓
 
-### Phase 2: TagLabel 治理
+### Phase 2: TagLabel 治理 ✅ 已实现
 
-- `NopMetaTagLabel` 增加 `tagSet="use-approval"` + `approveStatus`/`approvedBy`/`approvedAt`（如果 Phase 1 未包含）
-- 定义 `tagLabelConfirmApproval/v1.xwf` 工作流模型
-- GlossaryTerm 创建时 → 自动触发 TagLabel 审批
+- ✅ `NopMetaTagLabel` 增加 `tagSet="use-approval"` + `approveStatus`/`approvedBy`/`approvedAt` 字段（ORM model）
+- ✅ 实体级 `tagSet="use-approval"` 触发 codegen 生成 `x:extends="/nop/wf/base/approval-support.xbiz"` 的 `_NopMetaTagLabel.xbiz`
+- ✅ xmeta 配置 `wf:wfName="tagLabelConfirmApproval"`
+- ✅ 定义 `tagLabelConfirmApproval/v1.xwf` 工作流模型（`_vfs/nop/metadata/wf/tagLabelConfirmApproval/v1.xwf`）
+- ✅ retention `NopMetaTagLabel.xbiz` 覆盖 `approve`/`reject` action（设置 state=Confirmed/Suggested + approveStatus + approvedBy/approvedAt + 驳回理由）
+- ✅ `NopMetaTagLabelBizModel` Java save hook 自动触发审批（Manual→Confirmed，Derived/Propagated/Automated→submitForApproval）
+- ✅ 传播引擎路径：`syncTagLabels` 和 `propagateFromGlossaryTerm` 使用 BizModel invoke 创建 TagLabel（确保审批触发）
+- ✅ 新增 `NopMetadataErrors` ErrorCode：`ERR_TAG_LABEL_NOT_FOUND`、`ERR_TAG_LABEL_INVALID_LABEL_TYPE`
+- ✅ 新增 ErrorCode 参数常量：`ARG_TAG_LABEL_ID`、`ARG_LABEL_TYPE`
+- ✅ 单元测试 6 个 + 集成测试 4 个（Manual/Derived 状态转换 + approve/reject GraphQL 路径 + 幂等性）
 - **依赖**：Phase 1 of 11-enterprise-semantic-layer（Classification/Tag/TagLabel 实体到位）
 
 ### Phase 3: 质量告警工作流 ✅ 已实现

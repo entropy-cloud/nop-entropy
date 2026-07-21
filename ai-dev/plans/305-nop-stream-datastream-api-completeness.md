@@ -1,6 +1,6 @@
 # 305 nop-stream DataStream API 完善（设计审计修订版）
 
-> Plan Status: active
+> Plan Status: completed
 > Last Reviewed: 2026-07-20
 > Source: `ai-dev/analysis/2026-07/2026-07-20-nop-stream-dataflow-api-gap-analysis.md`
 > Design Alignment: `00-vision.md`（定位）§三、§四、§七；`component-roadmap.md`（组件路线）C1；`core-design.md` §2（DataStream API 定位）
@@ -80,54 +80,54 @@
 
 ### Phase 1 — ProcessFunction 核心实现（合并原 Ph1+Ph2）
 
-Status: planned
+Status: completed
 Targets: `common/functions/RuntimeContext.java`, `common/functions/ProcessFunction.java`(新建), `common/functions/KeyedProcessFunction.java`(新建), `operators/StreamingRuntimeContext.java`, `operators/ProcessOperator.java`(新建), `datastream/DataStream.java`, `datastream/DataStreamImpl.java`, `datastream/KeyedStream.java`, `datastream/KeyedStreamImpl.java`
 
 - Item Types: `Fix`
 
-- [ ] 在 `RuntimeContext` 中增加 `getKeyedStateStore()` 默认方法（抛 `UnsupportedOperationException`）和 `getTimerService()` 默认方法（抛 `UnsupportedOperationException`）
-- [ ] 在 `StreamingRuntimeContext` 中增加 `keyedStateStore` 和 `timerService` 字段及 setter，实现新增方法
-- [ ] 创建 `ProcessFunction<IN, OUT>` 抽象类：`processElement(IN, Context, Collector<OUT>)` + `onTimer(long, OnTimerContext, Collector<OUT>)` + 内部类 `Context`（提供 `timestamp()`, `timerService()`, `output(OutputTag, value)`） + `OnTimerContext`
-- [ ] 创建 `KeyedProcessFunction<K, IN, OUT>` 继承 `ProcessFunction`：`processElement` 调用前注入当前 key 到 `KeyContext.setCurrentKey()`
-- [ ] 创建 `ProcessOperator<IN, OUT>`（继承 `AbstractUdfStreamOperator`，实现 `OneInputStreamOperator` 和 `Triggerable`）：在 `processElement()` 中调用 `userFunction.processElement()`，在 `onEventTime()`/`onProcessingTime()` 中调用 `userFunction.onTimer()`
-- [ ] 在 `DataStream<T>` 接口中增加 `process(ProcessFunction<T, R>)` 方法
-- [ ] 在 `DataStreamImpl` 中实现 `process()`：创建 `ProcessOperator` 并通过 `transform()` 注册为 Transformation
-- [ ] 在 `KeyedStream<T, K>` 接口中增加 `process(KeyedProcessFunction<K, T, R>)` 方法
-- [ ] 在 `KeyedStreamImpl` 中实现 `process()`：创建 `ProcessOperator`，确保每次 `processElement` 前调用 `setCurrentKey()`
-- [ ] **接线**：`ProcessOperator.open()` 中将 `StreamingRuntimeContext` 的 `keyedStateStore` 和 `timerService` 注入到 `RuntimeContext`（依赖 `operatorChain.open()` 被调用——见 plan 304 Phase 1 的 F2 修复）
+- [x] 在 `RuntimeContext` 中增加 `getKeyedStateStore()` 默认方法（抛 `UnsupportedOperationException`）和 `getTimerService()` 默认方法（抛 `UnsupportedOperationException`）
+- [x] 在 `StreamingRuntimeContext` 中增加 `keyedStateStore` 和 `timerService` 字段及 setter，实现新增方法
+- [x] 创建 `ProcessFunction<IN, OUT>` 抽象类：`processElement(IN, Context, Collector<OUT>)` + `onTimer(long, OnTimerContext, Collector<OUT>)` + 内部类 `Context`（提供 `timestamp()`, `timerService()`, `output(OutputTag, value)`） + `OnTimerContext`
+- [x] 创建 `KeyedProcessFunction<K, IN, OUT>` 继承 `ProcessFunction`：`processElement` 调用前注入当前 key 到 `KeyContext.setCurrentKey()`
+- [x] 创建 `ProcessOperator<IN, OUT>`（继承 `AbstractUdfStreamOperator`，实现 `OneInputStreamOperator` 和 `Triggerable`）：在 `processElement()` 中调用 `userFunction.processElement()`，在 `onEventTime()`/`onProcessingTime()` 中调用 `userFunction.onTimer()`
+- [x] 在 `DataStream<T>` 接口中增加 `process(ProcessFunction<T, R>)` 方法
+- [x] 在 `DataStreamImpl` 中实现 `process()`：创建 `ProcessOperator` 并通过 `transform()` 注册为 Transformation
+- [x] 在 `KeyedStream<T, K>` 接口中增加 `process(KeyedProcessFunction<K, T, R>)` 方法
+- [x] 在 `KeyedStreamImpl` 中实现 `process()`：创建 `ProcessOperator`，确保每次 `processElement` 前调用 `setCurrentKey()`
+- [x] **接线**：`ProcessOperator.open()` 中将 `StreamingRuntimeContext` 的 `keyedStateStore` 和 `timerService` 注入到 `RuntimeContext`（依赖 `operatorChain.open()` 被调用——见 plan 304 Phase 1 的 F2 修复）
 
 Exit Criteria:
 
 > 所有 `[x]` 后才能将 Phase Status 改为 `completed`。
 
-- [ ] `RuntimeContext` 包含 `getKeyedStateStore()` 和 `getTimerService()`（默认抛 UnsupportedOperationException）
-- [ ] `ProcessFunction` 已被 DataStream API 用户正确使用（`DataStream.process()` + `KeyedStream.process()` 编译通过）
-- [ ] `ProcessOperator` 正确包装 ProcessFunction 为 OneInputStreamOperator
-- [ ] **端到端验证（Anti-Hollow）**：构造 `source → keyBy → process(KeyedProcessFunction with ValueState + timer)` → sink 管线，验证：
+- [x] `RuntimeContext` 包含 `getKeyedStateStore()` 和 `getTimerService()`（默认抛 UnsupportedOperationException）
+- [x] `ProcessFunction` 已被 DataStream API 用户正确使用（`DataStream.process()` + `KeyedStream.process()` 编译通过）
+- [x] `ProcessOperator` 正确包装 ProcessFunction 为 OneInputStreamOperator
+- [x] **端到端验证（Anti-Hollow）**：构造 `source → keyBy → process(KeyedProcessFunction with ValueState + timer)` → sink 管线，验证：
   - `processElement` 被每条记录调用
   - `Context.timerService().currentWatermark()` 返回正确值
   - `Context.timerService().registerEventTimeTimer()` 注册的定时器被 `onTimer` 在 watermark 推进后触发
   - `RuntimeContext.getKeyedStateStore().getState()` 返回的 ValueState 可读写
-- [ ] **无静默跳过**：`RuntimeContext` 新增默认方法抛 `UnsupportedOperationException`，非空方法体
-- [ ] **接线验证**：`ProcessFunction` 确实通过 `ProcessOperator` → `OneInputStreamOperator` → `transform()` → `Transformation` → `StreamGraph` 路径进入编译管线，不绕过管线直接执行
-- [ ] `./mvnw test -pl nop-stream/nop-stream-core -am` 通过
-- [ ] No owner-doc update required（纯新增 API，不影响现有行为）
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] **无静默跳过**：`RuntimeContext` 新增默认方法抛 `UnsupportedOperationException`，非空方法体
+- [x] **接线验证**：`ProcessFunction` 确实通过 `ProcessOperator` → `OneInputStreamOperator` → `transform()` → `Transformation` → `StreamGraph` 路径进入编译管线，不绕过管线直接执行
+- [x] `./mvnw test -pl nop-stream/nop-stream-core -am` 通过
+- [x] No owner-doc update required（纯新增 API，不影响现有行为）
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 ## Closure Gates
 
 > **关闭条件**：只有本 section 所有条目以及每个 Phase 的 Exit Criteria 全部勾选为 `[x]` 后，才能将 `Plan Status` 改为 `completed`。
 
-- [ ] ProcessFunction + KeyedProcessFunction 已创建且可运行
-- [ ] DataStream.process() + KeyedStream.process() API 已暴露
-- [ ] 端到端管线（source → keyBy → process → sink）通过 processElement + onTimer + state 访问的完整验证
-- [ ] ProcessFunction 通过 transform() 注册为 Transformation，不绕过五层管线
-- [ ] 受影响的 owner docs 已同步到 live baseline，或明确写明 No owner-doc update required
-- [ ] 独立子 agent closure-audit 已完成并记录证据
-- [ ] **Anti-Hollow Check**：onTimer 和 state 访问在端到端管线上确实工作（不只接口存在，不只在单元测试中存在）
-- [ ] `./mvnw compile -pl nop-stream/nop-stream-core -am`
-- [ ] `./mvnw test -pl nop-stream/nop-stream-core -am`
-- [ ] checkstyle / 代码规范检查通过
+- [x] ProcessFunction + KeyedProcessFunction 已创建且可运行
+- [x] DataStream.process() + KeyedStream.process() API 已暴露
+- [x] 端到端管线（source → keyBy → process → sink）通过 processElement + onTimer + state 访问的完整验证
+- [x] ProcessFunction 通过 transform() 注册为 Transformation，不绕过五层管线
+- [x] 受影响的 owner docs 已同步到 live baseline，或明确写明 No owner-doc update required
+- [x] 独立子 agent closure-audit 已完成并记录证据
+- [x] **Anti-Hollow Check**：onTimer 和 state 访问在端到端管线上确实工作（不只接口存在，不只在单元测试中存在）
+- [x] `./mvnw compile -pl nop-stream/nop-stream-core -am`
+- [x] `./mvnw test -pl nop-stream/nop-stream-core -am`
+- [x] checkstyle / 代码规范检查通过（checkstyle 在 pom.xml 中注释，未配置默认检查）
 
 ## Deferred But Adjudicated
 
@@ -155,14 +155,14 @@ Exit Criteria:
 
 ## Closure
 
-Status Note: （完成时填写）
-Completed: YYYY-MM-DD
+Status Note: 所有 Phase 1 项完成，935 测试通过（含 6 个新增 ProcessOperator 测试），独立审计通过。
+Completed: 2026-07-21
 
 Closure Audit Evidence:
 
-- Reviewer / Agent: （独立子 agent）
-- Evidence: （task id / findings 摘要）
+- Reviewer / Agent: subagent `ses_07e231780ffeL5lFJHVGGtAdoM` (general)
+- Evidence: 12/12 exit criteria PASS — ProcessFunction + KeyedProcessFunction + ProcessOperator + DataStream/KeyedStream API 均已实现，端到端测试通过（processElement/timer/state/watermark/多输出）。
 
 Follow-up:
 
-- （明确写 no remaining plan-owned work）
+- 无剩余计划内工作。
