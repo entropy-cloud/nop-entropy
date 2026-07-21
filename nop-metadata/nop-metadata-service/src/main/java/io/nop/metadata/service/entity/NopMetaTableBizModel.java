@@ -59,12 +59,14 @@ import io.nop.metadata.service.query.MetaAggregationExecutor;
 import io.nop.metadata.service.query.MetaJoinExecutor;
 import io.nop.metadata.service.query.MetaQueryContext;
 import io.nop.metadata.service.query.MetaTableQueryExecutor;
+import io.nop.metadata.service.search.NopMetaSearchService;
 import io.nop.metadata.service.sqlview.SqlSelectFieldExtractor;
 import io.nop.metadata.service.sqlview.SqlViewField;
 import io.nop.metadata.service.sqlview.SqlViewFieldTypeInferrer;
 import io.nop.metadata.service.tableref.MetaTableReferenceResolver;
 import io.nop.metadata.service.tableref.TableReference;
 import io.nop.metadata.service.tableref.TableReferenceExecutor;
+import io.nop.search.api.SearchableDoc;
 import jakarta.inject.Inject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -127,6 +129,9 @@ public class NopMetaTableBizModel extends CrudBizModel<NopMetaTable> implements 
     /** 元数据变更事件发布 helper（架构基线 §2.8 D2，IoC bean）。 */
     @Inject
     protected MetaModelChangedEventPublisher eventPublisher;
+
+    @Inject
+    protected NopMetaSearchService searchService;
 
     /** 事件 entityType（架构基线 §2.8 D3）。 */
     static final String EVENT_ENTITY_TYPE = "NopMetaTable";
@@ -209,6 +214,7 @@ public class NopMetaTableBizModel extends CrudBizModel<NopMetaTable> implements 
                 saved.getTableName(), MetaModelChangedEventPublisher.CHANGE_SOURCE_API,
                 beforeSnapshot, afterSnapshot,
                 MetaModelChangedEventPublisher.newTransactionId(), context);
+        searchService.addToIndex("MetaTable", saved.getMetaTableId(), toSearchableDoc(saved));
         return saved;
     }
 
@@ -229,6 +235,7 @@ public class NopMetaTableBizModel extends CrudBizModel<NopMetaTable> implements 
                     MetaModelChangedEventPublisher.CHANGE_SOURCE_API,
                     beforeSnapshot, null,
                     MetaModelChangedEventPublisher.newTransactionId(), context);
+            searchService.removeFromIndex("MetaTable", id);
         }
         return deleted;
     }
@@ -884,6 +891,33 @@ public class NopMetaTableBizModel extends CrudBizModel<NopMetaTable> implements 
         row.setColumnStats(JsonTool.stringify(snapshot.toColumnStatsList()));
         resultDao.saveEntity(row);
         return row;
+    }
+
+    private SearchableDoc toSearchableDoc(NopMetaTable entity) {
+        SearchableDoc doc = new SearchableDoc();
+        doc.setId(entity.getMetaTableId());
+        doc.setName(entity.getTableName());
+        doc.setTitle(entity.getDisplayName());
+        doc.setSummary(truncate(entity.getDescription(), 500));
+        doc.setContent(join(" ", entity.getTableName(), entity.getDisplayName(), entity.getDescription()));
+        doc.setTagSet(Set.of("MetaTable"));
+        return doc;
+    }
+
+    private static String truncate(String s, int maxLen) {
+        if (s == null) return "";
+        return s.length() <= maxLen ? s : s.substring(0, maxLen);
+    }
+
+    private static String join(String delimiter, String... parts) {
+        StringBuilder sb = new StringBuilder();
+        for (String part : parts) {
+            if (part != null && !part.isEmpty()) {
+                if (sb.length() > 0) sb.append(delimiter);
+                sb.append(part);
+            }
+        }
+        return sb.toString();
     }
 
     private static String safeProductName(DatabaseMetaData metaData) {

@@ -73,7 +73,10 @@ import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
+import io.nop.metadata.service.search.NopMetaSearchService;
+import io.nop.search.api.SearchableDoc;
 import jakarta.inject.Inject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -86,6 +89,9 @@ public class NopMetaModuleBizModel extends CrudBizModel<NopMetaModule> implement
 
     /** 事件 entityType（架构基线 §2.8 D3）：发布事件时记录的实体类型名。 */
     static final String EVENT_ENTITY_TYPE = "NopMetaModule";
+
+    @Inject
+    protected NopMetaSearchService searchService;
 
     @InjectValue("@cfg:nop.metadata.platform-version|2.0.0-SNAPSHOT")
     protected String platformVersion;
@@ -184,10 +190,23 @@ public class NopMetaModuleBizModel extends CrudBizModel<NopMetaModule> implement
         OrmModel deltaModel = parseDeltaModel(resource, fullModel, sourceContent);
 
         // isDelta 双重存储：delta（isDelta=true）+ full（isDelta=false），共用同一 metaModuleId
-        persistModelGraph(importer, deltaModel, sourceContent, moduleId, true);
-        persistModelGraph(importer, fullModel, sourceContent, moduleId, false);
+        List<NopMetaEntity> entities = new ArrayList<>();
+        List<NopMetaEntityField> fields = new ArrayList<>();
+        List<NopMetaTable> tables = new ArrayList<>();
+        persistModelGraph(importer, deltaModel, sourceContent, moduleId, true, entities, fields, tables);
+        persistModelGraph(importer, fullModel, sourceContent, moduleId, false, entities, fields, tables);
 
         orm().flushSession();
+
+        for (NopMetaEntity entity : entities) {
+            searchService.addToIndex("MetaEntity", entity.getMetaEntityId(), toSearchableDoc(entity));
+        }
+        for (NopMetaEntityField field : fields) {
+            searchService.addToIndex("MetaEntityField", field.getEntityFieldId(), toSearchableDoc(field));
+        }
+        for (NopMetaTable table : tables) {
+            searchService.addToIndex("MetaTable", table.getMetaTableId(), toSearchableDoc(table));
+        }
 
         // 元数据变更事件（架构基线 §2.8 D3）：导入是批量操作，主实体级记录 1 行 Module CREATED（changeSource=IMPORT），
         // 子实体细粒度事件 deferred。事件行在持久化成功后写入，避免幽灵事件。
@@ -273,7 +292,8 @@ public class NopMetaModuleBizModel extends CrudBizModel<NopMetaModule> implement
      * 由 isDelta 参数控制所有子实体的 isDelta 标记。
      */
     private void persistModelGraph(OrmModelImporter importer, OrmModel ormModel, String sourceContent,
-                                   String moduleId, boolean isDelta) {
+                                   String moduleId, boolean isDelta,
+                                   List<NopMetaEntity> entities, List<NopMetaEntityField> fields, List<NopMetaTable> tables) {
         NopMetaOrmModel ormModelEntity = importer.buildOrmModel(ormModel, sourceContent, isDelta);
         ormModelEntity.setMetaModuleId(moduleId);
         orm().save(ormModelEntity);
@@ -283,12 +303,14 @@ public class NopMetaModuleBizModel extends CrudBizModel<NopMetaModule> implement
             NopMetaEntity entity = importer.buildEntity(em, isDelta);
             entity.setOrmModelId(ormModelId);
             orm().save(entity);
+            entities.add(entity);
             String entityId = entity.getMetaEntityId();
 
             for (IColumnModel col : em.getColumns()) {
                 NopMetaEntityField field = importer.buildField(col, isDelta);
                 field.setMetaEntityId(entityId);
                 orm().save(field);
+                fields.add(field);
             }
 
             for (NopMetaEntityRelation rel : importer.buildRelations(em, isDelta)) {
@@ -300,6 +322,7 @@ public class NopMetaModuleBizModel extends CrudBizModel<NopMetaModule> implement
             table.setMetaModuleId(moduleId);
             table.setBaseEntityId(entityId);
             orm().save(table);
+            tables.add(table);
 
             if (em instanceof OrmEntityModel) {
                 OrmEntityModel oem = (OrmEntityModel) em;
@@ -555,5 +578,54 @@ public class NopMetaModuleBizModel extends CrudBizModel<NopMetaModule> implement
     private static String toErrorMessage(Exception e) {
         String msg = e.getMessage();
         return msg != null ? msg : e.getClass().getName();
+    }
+
+    private SearchableDoc toSearchableDoc(NopMetaEntity entity) {
+        SearchableDoc doc = new SearchableDoc();
+        doc.setId(entity.getMetaEntityId());
+        doc.setName(entity.getEntityName());
+        doc.setTitle(entity.getDisplayName());
+        doc.setSummary(truncate(entity.getRemark(), 500));
+        doc.setContent(join(" ", entity.getEntityName(), entity.getClassName(), entity.getDisplayName(), entity.getTagSet(), entity.getRemark()));
+        doc.setTagSet(Set.of("MetaEntity"));
+        return doc;
+    }
+
+    private SearchableDoc toSearchableDoc(NopMetaEntityField entity) {
+        SearchableDoc doc = new SearchableDoc();
+        doc.setId(entity.getEntityFieldId());
+        doc.setName(entity.getFieldName());
+        doc.setTitle(entity.getDisplayName());
+        doc.setSummary(truncate(entity.getComment(), 500));
+        doc.setContent(join(" ", entity.getFieldName(), entity.getColumnCode(), entity.getDisplayName(), entity.getComment()));
+        doc.setTagSet(Set.of("MetaEntityField"));
+        return doc;
+    }
+
+    private SearchableDoc toSearchableDoc(NopMetaTable entity) {
+        SearchableDoc doc = new SearchableDoc();
+        doc.setId(entity.getMetaTableId());
+        doc.setName(entity.getTableName());
+        doc.setTitle(entity.getDisplayName());
+        doc.setSummary(truncate(entity.getDescription(), 500));
+        doc.setContent(join(" ", entity.getTableName(), entity.getDisplayName(), entity.getDescription()));
+        doc.setTagSet(Set.of("MetaTable"));
+        return doc;
+    }
+
+    private static String truncate(String s, int maxLen) {
+        if (s == null) return "";
+        return s.length() <= maxLen ? s : s.substring(0, maxLen);
+    }
+
+    private static String join(String delimiter, String... parts) {
+        StringBuilder sb = new StringBuilder();
+        for (String part : parts) {
+            if (part != null && !part.isEmpty()) {
+                if (sb.length() > 0) sb.append(delimiter);
+                sb.append(part);
+            }
+        }
+        return sb.toString();
     }
 }

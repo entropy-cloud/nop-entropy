@@ -41,4 +41,17 @@
          注意：此 bean 必须放在 app-service.beans.xml（非生成的 _service.beans.xml），否则 codegen 会覆盖。-->
     <bean id="metaQualityCheckpointScheduler"
           class="io.nop.metadata.service.quality.MetaQualityCheckpointScheduler" ioc:default="true"/>
+
+    <!-- 搜索引擎索引构建器（plan 312 Phase 2）：遍历 6 个核心实体 DAO 查询 + ISearchEngine 全量索引写入。 -->
+    <bean id="io.nop.metadata.service.search.NopMetaIndexBuilder"
+          class="io.nop.metadata.service.search.NopMetaIndexBuilder" ioc:default="true"/>
+
+    <!-- 搜索引擎增量索引服务（plan 312 Phase 3）：BizModel save/delete hook 调用的增量索引更新（addDoc/removeDocs）。
+         封装 ISearchEngine 调用 + 容错日志。 -->
+    <bean id="io.nop.metadata.service.search.NopMetaSearchService"
+          class="io.nop.metadata.service.search.NopMetaSearchService" ioc:default="true"/>
+
+    <!-- 元数据搜索 GraphQL BizModel（plan 312 Phase 4）：searchMetadata query + rebuildSearchIndex mutation。 -->
+    <bean id="io.nop.metadata.service.search.NopMetaSearchBizModel"
+          class="io.nop.metadata.service.search.NopMetaSearchBizModel" ioc:type="@bean:id" ioc:default="true"/>
 </beans>

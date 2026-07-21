@@ -8,12 +8,19 @@ import io.nop.dao.api.IEntityDao;
 import io.nop.metadata.biz.INopMetaEntityFieldBiz;
 import io.nop.metadata.dao.entity.NopMetaEntity;
 import io.nop.metadata.dao.entity.NopMetaEntityField;
+import io.nop.metadata.service.search.NopMetaSearchService;
+import io.nop.search.api.SearchableDoc;
+import jakarta.inject.Inject;
 
 import java.util.Map;
+import java.util.Set;
 
 @BizModel("NopMetaEntityField")
 public class NopMetaEntityFieldBizModel extends CrudBizModel<NopMetaEntityField> implements INopMetaEntityFieldBiz{
-    public NopMetaEntityFieldBizModel(){
+    @Inject
+    protected NopMetaSearchService searchService;
+
+    public NopMetaEntityFieldBizModel() {
         setEntityName(NopMetaEntityField.class.getName());
     }
 
@@ -30,7 +37,46 @@ public class NopMetaEntityFieldBizModel extends CrudBizModel<NopMetaEntityField>
                 }
             }
         }
-        return super.save(data, context);
+        NopMetaEntityField saved = super.save(data, context);
+        searchService.addToIndex("MetaEntityField", saved.getEntityFieldId(), toSearchableDoc(saved));
+        return saved;
+    }
+
+    @Override
+    public boolean delete(@Name("id") String id, IServiceContext context) {
+        NopMetaEntityField before = dao().getEntityById(id);
+        boolean deleted = super.delete(id, context);
+        if (before != null) {
+            searchService.removeFromIndex("MetaEntityField", id);
+        }
+        return deleted;
+    }
+
+    private SearchableDoc toSearchableDoc(NopMetaEntityField entity) {
+        SearchableDoc doc = new SearchableDoc();
+        doc.setId(entity.getEntityFieldId());
+        doc.setName(entity.getFieldName());
+        doc.setTitle(entity.getDisplayName());
+        doc.setSummary(truncate(entity.getComment(), 500));
+        doc.setContent(join(" ", entity.getFieldName(), entity.getColumnCode(), entity.getDisplayName(), entity.getComment()));
+        doc.setTagSet(Set.of("MetaEntityField"));
+        return doc;
+    }
+
+    private static String truncate(String s, int maxLen) {
+        if (s == null) return "";
+        return s.length() <= maxLen ? s : s.substring(0, maxLen);
+    }
+
+    private static String join(String delimiter, String... parts) {
+        StringBuilder sb = new StringBuilder();
+        for (String part : parts) {
+            if (part != null && !part.isEmpty()) {
+                if (sb.length() > 0) sb.append(delimiter);
+                sb.append(part);
+            }
+        }
+        return sb.toString();
     }
 
     private static String stringOf(Map<String, Object> data, String key) {

@@ -67,11 +67,24 @@
             <groupId>io.github.entropy-cloud</groupId>
             <artifactId>nop-ioc</artifactId>
         </dependency>
+        <dependency>
+            <groupId>io.github.entropy-cloud</groupId>
+            <artifactId>nop-search-api</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>io.github.entropy-cloud</groupId>
+            <artifactId>nop-search-lucene</artifactId>
+        </dependency>
         <!-- nop-job-api: IJobScheduler / JobSpec / TriggerSpec interfaces for cron scheduling
              (架构基线 §2.7.3.1 D6). Runtime impl provided by host app via app-local-scheduler.beans.xml. -->
         <dependency>
             <groupId>io.github.entropy-cloud</groupId>
             <artifactId>nop-job-api</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>io.github.entropy-cloud</groupId>
+            <artifactId>nop-search-core</artifactId>
+            <scope>test</scope>
         </dependency>
         <!-- nop-job-local (test scope): LocalJobScheduler / BeanMethodJobInvoker beans for e2e AutoTest
              (架构基线 §2.7.3.1 D6). Production runtime supplies the scheduler via host app. -->

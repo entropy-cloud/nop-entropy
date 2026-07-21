@@ -986,4 +986,16 @@ public interface NopMetadataErrors {
             ErrorCode.define("nop.err.metadata.manifest-build-failed",
                     "MetaManifest build failed: {metaModuleId} -- {error}",
                     ARG_META_MODULE_ID, ARG_ERROR);
+
+    // ===== Search =====
+
+    ErrorCode ERR_SEARCH_INDEX_REBUILD_FAILED =
+            ErrorCode.define("nop.err.metadata.search-index-rebuild-failed",
+                    "Search index rebuild failed: {entityType} -- {error}",
+                    ARG_ENTITY_TYPE, ARG_ERROR);
+
+    ErrorCode ERR_SEARCH_ENGINE_UNAVAILABLE =
+            ErrorCode.define("nop.err.metadata.search-engine-unavailable",
+                    "Search engine is not available: {error}",
+                    ARG_ERROR);
 }
