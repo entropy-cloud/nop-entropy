@@ -63,7 +63,7 @@ Development Progress:
 | nop-idea-plugin | IDEA development plug-in, supporting syntax prompt, file jump, breakpoint debugging | Basically available |
 | nop-cli         | Encapsulates code generators, file listening, and more as command-line tools        | Basically available |
 | nop-cluster     | Distributed cluster support                                                         | 50%                 |
-| nop-tcc         | Distributed Transactions                                                            | 50%                 |
+| nop-tcc         | Distributed Transactions                                                            | Completed           |
 | nop-dyn         | Design forms, data models, and service functions online                             | Basically available |
 | nop-workflow    | Workflow Engine                                                                     | 65%                 |
 | nop-task        | Logical Flow Orchestration                                                          | Basically available |
