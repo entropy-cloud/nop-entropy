@@ -1553,3 +1553,4 @@ nop-metadata-web           — nop-metadata-service
 | Micro ORM 列顺序修复 | `watch-only residual` | 2026-07-21-1200-1 | 非 blocking，IDE 自动重排不影响运行时 |
 | ErrorCode 文件拆分 | `optimization candidate` | 2026-07-21-1200-1 | 当前单文件可维护，拆分不优先 |
 | ORM 主键类型强制 long | `watch-only residual` | 2026-07-21-1200-1 | 当前 String PK 语义已锁定，不引入破坏性变更 |
+| GlossaryTerm 外部词汇表同步（SKOS/RDF） | `watch-only residual` | 2026-07-22-0900-3 Phase 4-C | `namespaces`/`conceptMappings`/`iri` 字段已建模可作为存储容器，首版无 SKOS/RDF 导入导出需求，同步逻辑可按需后续补充 |
