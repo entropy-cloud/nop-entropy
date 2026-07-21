@@ -28,13 +28,13 @@ public class TestMixedSameDbJoinAggregationProcessor {
 
     @Test
     public void testBuildEntityFromClauseWithSchema() {
-        String from = AggregationContext.buildEntityFromClause("EMP", "DBO", "l");
+        String from = AggregationHelper.buildEntityFromClause("EMP", "DBO", "l");
         assertEquals("DBO.EMP l", from);
     }
 
     @Test
     public void testBuildEntityFromClauseWithoutSchema() {
-        String from = AggregationContext.buildEntityFromClause("EMP", null, "l");
+        String from = AggregationHelper.buildEntityFromClause("EMP", null, "l");
         assertEquals("EMP l", from);
     }
 }

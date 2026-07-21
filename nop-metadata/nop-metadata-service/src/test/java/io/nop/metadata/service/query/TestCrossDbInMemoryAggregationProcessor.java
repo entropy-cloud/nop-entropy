@@ -36,7 +36,7 @@ public class TestCrossDbInMemoryAggregationProcessor {
         List<AggregationContext.CrossDbMeasureSpec> measures = new ArrayList<>();
         List<AggregationContext.CrossDbDimensionSpec> dims = new ArrayList<>();
 
-        List<Map<String, Object>> result = AggregationContext.memoryGroupBy(rows, measures, dims);
+        List<Map<String, Object>> result = AggregationHelper.memoryGroupBy(rows, measures, dims);
 
         assertTrue(result.isEmpty());
     }
@@ -54,7 +54,7 @@ public class TestCrossDbInMemoryAggregationProcessor {
         row1.put("amount", 100);
         rows.add(row1);
 
-        List<Map<String, Object>> result = AggregationContext.memoryGroupBy(rows, measures, dims);
+        List<Map<String, Object>> result = AggregationHelper.memoryGroupBy(rows, measures, dims);
 
         assertEquals(1, result.size());
         assertEquals("A", result.get(0).get("CAT"));
@@ -73,7 +73,7 @@ public class TestCrossDbInMemoryAggregationProcessor {
         rows.add(mapOf("category", "A", "amount", 20));
         rows.add(mapOf("category", "B", "amount", 30));
 
-        List<Map<String, Object>> result = AggregationContext.memoryGroupBy(rows, measures, dims);
+        List<Map<String, Object>> result = AggregationHelper.memoryGroupBy(rows, measures, dims);
 
         assertEquals(2, result.size());
 
@@ -106,22 +106,22 @@ public class TestCrossDbInMemoryAggregationProcessor {
         rows.add(mapOf("group", "X", "value", 2));
         rows.add(mapOf("group", "X", "value", 3));
 
-        List<Map<String, Object>> rSum = AggregationContext.memoryGroupBy(rows, measures, dims);
+        List<Map<String, Object>> rSum = AggregationHelper.memoryGroupBy(rows, measures, dims);
         assertEquals(1, rSum.size());
         assertEquals(6, ((Number) rSum.get(0).get("VAL")).intValue());
 
-        List<Map<String, Object>> rCount = AggregationContext.memoryGroupBy(rows, measuresCount, dims);
+        List<Map<String, Object>> rCount = AggregationHelper.memoryGroupBy(rows, measuresCount, dims);
         assertEquals(1, rCount.size());
         assertEquals(3L, rCount.get(0).get("VAL"));
 
-        List<Map<String, Object>> rAvg = AggregationContext.memoryGroupBy(rows, measuresAvg, dims);
+        List<Map<String, Object>> rAvg = AggregationHelper.memoryGroupBy(rows, measuresAvg, dims);
         assertEquals(1, rAvg.size());
 
-        List<Map<String, Object>> rMin = AggregationContext.memoryGroupBy(rows, measuresMin, dims);
+        List<Map<String, Object>> rMin = AggregationHelper.memoryGroupBy(rows, measuresMin, dims);
         assertEquals(1, rMin.size());
         assertEquals(1, ((Number) rMin.get(0).get("VAL")).intValue());
 
-        List<Map<String, Object>> rMax = AggregationContext.memoryGroupBy(rows, measuresMax, dims);
+        List<Map<String, Object>> rMax = AggregationHelper.memoryGroupBy(rows, measuresMax, dims);
         assertEquals(1, rMax.size());
         assertEquals(3, ((Number) rMax.get(0).get("VAL")).intValue());
     }
@@ -137,7 +137,7 @@ public class TestCrossDbInMemoryAggregationProcessor {
         rows.add(mapOf("category", "A", "amount", null));
         rows.add(mapOf("category", "A", "amount", 5));
 
-        List<Map<String, Object>> result = AggregationContext.memoryGroupBy(rows, measures, dims);
+        List<Map<String, Object>> result = AggregationHelper.memoryGroupBy(rows, measures, dims);
         assertEquals(1, result.size());
         assertEquals(5, ((Number) result.get(0).get("AMT")).intValue());
     }
@@ -153,7 +153,7 @@ public class TestCrossDbInMemoryAggregationProcessor {
         rows.add(mapOf("value", "b"));
         rows.add(mapOf("value", "a"));
 
-        List<Map<String, Object>> result = AggregationContext.memoryGroupBy(rows, measures, dims);
+        List<Map<String, Object>> result = AggregationHelper.memoryGroupBy(rows, measures, dims);
         assertEquals(1, result.size());
         assertEquals(2L, result.get(0).get("VAL"));
     }
@@ -164,7 +164,7 @@ public class TestCrossDbInMemoryAggregationProcessor {
         items.add(mapOf("k", "a"));
         items.add(mapOf("k", "b"));
 
-        List<Map<String, Object>> result = AggregationContext.truncateCrossDb(items, null, null);
+        List<Map<String, Object>> result = AggregationHelper.truncateCrossDb(items, null, null);
         assertEquals(2, result.size());
     }
 
@@ -175,7 +175,7 @@ public class TestCrossDbInMemoryAggregationProcessor {
         items.add(mapOf("k", "b"));
         items.add(mapOf("k", "c"));
 
-        List<Map<String, Object>> result = AggregationContext.truncateCrossDb(items, 2L, null);
+        List<Map<String, Object>> result = AggregationHelper.truncateCrossDb(items, 2L, null);
         assertEquals(2, result.size());
         assertEquals("a", result.get(0).get("k"));
         assertEquals("b", result.get(1).get("k"));
@@ -188,7 +188,7 @@ public class TestCrossDbInMemoryAggregationProcessor {
         items.add(mapOf("k", "b"));
         items.add(mapOf("k", "c"));
 
-        List<Map<String, Object>> result = AggregationContext.truncateCrossDb(items, null, 1L);
+        List<Map<String, Object>> result = AggregationHelper.truncateCrossDb(items, null, 1L);
         assertEquals(2, result.size());
         assertEquals("b", result.get(0).get("k"));
         assertEquals("c", result.get(1).get("k"));
@@ -197,7 +197,7 @@ public class TestCrossDbInMemoryAggregationProcessor {
     @Test
     public void testCrossDbAliasOf() {
         NopMetaTableJoin join = new NopMetaTableJoin();
-        assertNotNull(AggregationContext.crossDbAliasOf(join));
+        assertNotNull(AggregationHelper.crossDbAliasOf(join));
     }
 
     @Test
@@ -280,24 +280,24 @@ public class TestCrossDbInMemoryAggregationProcessor {
 
     @Test
     public void testSafeAlias() {
-        assertEquals("v", AggregationContext.safeAlias(null));
-        assertEquals("ABC", AggregationContext.safeAlias("abc"));
-        assertEquals("A_B", AggregationContext.safeAlias("a b"));
-        assertEquals("V_123", AggregationContext.safeAlias("123"));
+        assertEquals("v", AggregationHelper.safeAlias(null));
+        assertEquals("ABC", AggregationHelper.safeAlias("abc"));
+        assertEquals("A_B", AggregationHelper.safeAlias("a b"));
+        assertEquals("V_123", AggregationHelper.safeAlias("123"));
     }
 
     @Test
     public void testBuildResult() {
         List<Map<String, Object>> items = new ArrayList<>();
         items.add(mapOf("k", "v"));
-        Map<String, Object> result = AggregationContext.buildResult(items);
+        Map<String, Object> result = AggregationHelper.buildResult(items);
         assertSame(items, result.get("items"));
         assertTrue(result.containsKey("items"));
     }
 
     @Test
     public void testBuildResultNull() {
-        Map<String, Object> result = AggregationContext.buildResult(null);
+        Map<String, Object> result = AggregationHelper.buildResult(null);
         assertTrue(result.get("items") instanceof List);
         assertEquals(0, ((List<?>) result.get("items")).size());
     }

@@ -32,6 +32,7 @@ import java.util.Map;
 import java.util.Set;
 
 import static io.nop.metadata.service.query.AggregationContext.*;
+import static io.nop.metadata.service.query.AggregationHelper.*;
 
 public class ExternalAggregationProcessor implements AggregationProcessor {
     private static final Logger LOG = LoggerFactory.getLogger(ExternalAggregationProcessor.class);

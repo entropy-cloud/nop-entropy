@@ -15,6 +15,7 @@ import java.util.List;
 import java.util.Map;
 
 import static io.nop.metadata.service.query.AggregationContext.*;
+import static io.nop.metadata.service.query.AggregationHelper.*;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;

@@ -29,6 +29,7 @@ import java.util.Map;
 import java.util.Set;
 
 import static io.nop.metadata.service.query.AggregationContext.*;
+import static io.nop.metadata.service.query.AggregationHelper.*;
 
 public class EntityEntityJoinAggregationProcessor implements AggregationProcessor {
     private static final Logger LOG = LoggerFactory.getLogger(EntityEntityJoinAggregationProcessor.class);
@@ -141,7 +142,7 @@ public class EntityEntityJoinAggregationProcessor implements AggregationProcesso
         LOG.info("queryAggregation entity JOIN SQL: {}", sqlText);
         SQL sqlObj = SQL.begin().allowUnderscoreName(true).sql(sqlText, params.toArray()).end();
         try {
-            return ctx.orm().executeQuery(sqlObj, null, AggregationContext::collectRows);
+            return ctx.orm().executeQuery(sqlObj, null, AggregationHelper::collectRows);
         } catch (Exception e) {
             throw new NopException(NopMetadataErrors.ERR_AGGR_JOIN_COMPILE_FAILED, e)
                     .param("joinId", joinId)

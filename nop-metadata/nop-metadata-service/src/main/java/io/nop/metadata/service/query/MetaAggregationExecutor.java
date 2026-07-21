@@ -96,7 +96,7 @@ public class MetaAggregationExecutor {
         aggrCtx.setOrderBy(orderBy);
 
         if (joinId != null && !joinId.isEmpty()) {
-            return AggregationContext.buildResult(executeJoinAggregation(aggrCtx, table, measureNames, dimensionNames,
+            return AggregationHelper.buildResult(executeJoinAggregation(aggrCtx, table, measureNames, dimensionNames,
                     mergedFilter, joinId, limit, offset, having, orderBy, ctx));
         }
 
@@ -113,7 +113,7 @@ public class MetaAggregationExecutor {
                     .param("metaTableId", table.getMetaTableId())
                     .param("error", "unsupported tableType: " + tableType);
         }
-        return AggregationContext.buildResult(processor.execute(aggrCtx));
+        return AggregationHelper.buildResult(processor.execute(aggrCtx));
     }
 
     /**
@@ -138,7 +138,7 @@ public class MetaAggregationExecutor {
         if (leftEp.isEntity() && rightEp.isEntity()) {
             String leftQs = leftEp.entity.getQuerySpace();
             String rightQs = rightEp.entity.getQuerySpace();
-            if (!AggregationContext.equalsStr(leftQs, rightQs)) {
+            if (!AggregationHelper.equalsStr(leftQs, rightQs)) {
                 return new CrossDbInMemoryAggregationProcessor().execute(aggrCtx);
             }
             return new EntityEntityJoinAggregationProcessor().execute(aggrCtx);
@@ -146,7 +146,7 @@ public class MetaAggregationExecutor {
         if (!leftEp.isEntity() && !rightEp.isEntity()) {
             String leftQs = leftEp.table.getQuerySpace();
             String rightQs = rightEp.table.getQuerySpace();
-            if (!AggregationContext.equalsStr(leftQs, rightQs)) {
+            if (!AggregationHelper.equalsStr(leftQs, rightQs)) {
                 return new CrossDbInMemoryAggregationProcessor().execute(aggrCtx);
             }
             return new ExternalExternalJoinAggregationProcessor().execute(aggrCtx);

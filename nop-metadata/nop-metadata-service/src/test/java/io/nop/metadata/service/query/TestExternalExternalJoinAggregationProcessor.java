@@ -33,7 +33,7 @@ public class TestExternalExternalJoinAggregationProcessor {
         table.setMetaTableId("test-table");
         table.setTableType("sql");
         table.setSourceSql("SELECT * FROM EMP");
-        String from = AggregationContext.externalTableFromForJoin(table, "r");
+        String from = AggregationHelper.externalTableFromForJoin(table, "r");
         assertEquals("(SELECT * FROM EMP) r", from);
     }
 
@@ -43,7 +43,7 @@ public class TestExternalExternalJoinAggregationProcessor {
         table.setMetaTableId("test-table");
         table.setTableType("external");
         table.setTableName("EMP");
-        String from = AggregationContext.externalTableFromForJoin(table, "r");
+        String from = AggregationHelper.externalTableFromForJoin(table, "r");
         assertEquals("EMP r", from);
     }
 }

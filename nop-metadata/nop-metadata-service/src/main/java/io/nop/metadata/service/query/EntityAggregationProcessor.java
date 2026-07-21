@@ -36,6 +36,7 @@ import java.util.Map;
 import java.util.Set;
 
 import static io.nop.metadata.service.query.AggregationContext.*;
+import static io.nop.metadata.service.query.AggregationHelper.*;
 
 public class EntityAggregationProcessor implements AggregationProcessor {
     private static final Logger LOG = LoggerFactory.getLogger(EntityAggregationProcessor.class);
@@ -155,7 +156,7 @@ public class EntityAggregationProcessor implements AggregationProcessor {
         String sqlText = sql.toString();
         LOG.info("queryAggregation entity SQL: {}", sqlText);
         SQL sqlObj = SQL.begin().allowUnderscoreName(true).sql(sqlText, params.toArray()).end();
-        return ctx.orm().executeQuery(sqlObj, null, AggregationContext::collectRows);
+        return ctx.orm().executeQuery(sqlObj, null, AggregationHelper::collectRows);
     }
 
     private List<Map<String, Object>> executeEntityAggregationBypassEql(NopMetaTable table, NopMetaEntity entity,

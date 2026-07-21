@@ -26,6 +26,7 @@ import java.util.List;
 import java.util.Map;
 
 import static io.nop.metadata.service.query.AggregationContext.*;
+import static io.nop.metadata.service.query.AggregationHelper.*;
 
 public class CrossDbInMemoryAggregationProcessor implements AggregationProcessor {
     private static final Logger LOG = LoggerFactory.getLogger(CrossDbInMemoryAggregationProcessor.class);

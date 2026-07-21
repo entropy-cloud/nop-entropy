@@ -14,6 +14,7 @@ import java.util.List;
 import java.util.Map;
 
 import static io.nop.metadata.service.query.AggregationContext.*;
+import static io.nop.metadata.service.query.AggregationHelper.*;
 import static org.junit.jupiter.api.Assertions.*;
 
 public class TestExternalAggregationProcessor {
