@@ -157,7 +157,7 @@ nop-nosql/
 
 所有 Lua 脚本存放在 `nop-nosql-core` 的 `resources:nop/redis/` 下。业务模式层的原子语义通过 Lua 脚本实现，驱动层只负责执行。
 
-**已知限制**：`LettuceExecutor` 当前仅支持 `evalsha`，不支持 `eval` 降级。
+**已知限制**：`LettuceExecutor` 支持 `evalsha` + `eval` 自动降级。脚本首次执行时使用 `evalsha`，若脚本不存在则自动降级到 `eval` 并注册脚本。
 
 ### 3.8 连接池使用 RoundRobinSupplier
 
@@ -380,7 +380,7 @@ store.setField(sessionId, "lastAccess", now);
 |------|------|------|------|
 | get/getAll/put/putAll/remove/removeAll/containsKey/clear/computeIfAbsent/getSize | ✅ | ✅ | |
 | putIfAbsent / getAndSet / removeIfMatch | ✅ | ✅ | 同步委托到异步 join() |
-| forEachEntry | ⚠️ 空实现 | ⚠️ return null | SCAN 实现待优化 |
+| forEachEntry | ✅ | ✅ | SCAN + GET 分批遍历 |
 | putExAsync / getExAsync / putIfAbsentExAsync / getAndSetExAsync | — | ✅ | 带 TTL 操作 |
 | setTimeoutAsync / getTimeoutAsync | — | ✅ | TTL 管理 |
 | putIfAbsentOrMatchExAsync | — | ✅ | 接入 put_if_absent_or_match.lua |
@@ -398,8 +398,8 @@ store.setField(sessionId, "lastAccess", now);
 
 - 连接管理：✅ LettuceRedisConnectionProvider（RoundRobin 池化）
 - 序列化：✅ PrefixTextCodec
-- Lua 执行：✅ LettuceExecutor（仅 evalsha）
-- 消息服务：⚠️ getMessageService() 返回 null
+- Lua 执行：✅ LettuceExecutor（evalsha + eval 自动降级）
+- 消息服务：✅ getMessageService() 返回 LettucePubSubService（PUBLISH + SUBSCRIBE）
 
 ### Lua 脚本清单
 

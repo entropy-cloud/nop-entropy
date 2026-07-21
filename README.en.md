@@ -71,7 +71,7 @@ Development Progress:
 | nop-batch       | Batch Engine                                                                        | Basically available |
 | nop-message     | Kafka/Pulsar Message Queue Encapsulation                                            | 10%                 |
 | nop-dbtool      | Database Import and Export, Data Structure Comparison, Synchronization Tool         | 30%                 |
-| nop-nosql       | Redis Package                                                                       | 0%                  |
+| nop-nosql       | Redis Package                                                                       | Completed           |
 | nop-stream      | Simplified stream processing, which can be integrated with Flink                    | 0%                  |
 | nop-netty       | TCP/IP Service Processing Framework                                                 | 10%                 |
 | nop-datav       | BI Data Analysis                                                                    | 0%                  |
