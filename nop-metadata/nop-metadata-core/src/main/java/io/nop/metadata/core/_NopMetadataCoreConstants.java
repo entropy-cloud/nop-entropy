@@ -578,4 +578,24 @@ public interface _NopMetadataCoreConstants {
      */
     String DATA_PRODUCT_PRIORITY_LOW = "LOW";
                     
+    /**
+     * 变更来源: 导入 
+     */
+    String CHANGE_SOURCE_IMPORT = "IMPORT";
+                    
+    /**
+     * 变更来源: 界面操作 
+     */
+    String CHANGE_SOURCE_UI = "UI";
+                    
+    /**
+     * 变更来源: API调用 
+     */
+    String CHANGE_SOURCE_API = "API";
+                    
+    /**
+     * 变更来源: 同步 
+     */
+    String CHANGE_SOURCE_SYNC = "SYNC";
+                    
 }

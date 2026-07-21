@@ -656,8 +656,8 @@ public class NopMetaTableBizModel extends CrudBizModel<NopMetaTable> implements 
                     String productName = safeProductName(metaData);
                     requireSupportedDialect(productName, table.getMetaTableId());
                     FilterToSqlTranslator.TranslatedFilter tf = filterTranslator.translate(filter);
-                    String sql = buildExternalSelectSql(table.getTableName(), columns, tf.getSql(), limit, offset, productName);
-                    holder[0] = executeQuery(conn, sql, tf.getParams(), limit, offset);
+                    String sql = MetaTableQueryExecutor.buildExternalSelectSql(table.getTableName(), columns, tf.getSql(), limit, offset, productName);
+                    holder[0] = MetaTableQueryExecutor.executeQuery(conn, sql, tf.getParams(), limit, offset);
                 });
         return holder[0];
     }
@@ -677,8 +677,8 @@ public class NopMetaTableBizModel extends CrudBizModel<NopMetaTable> implements 
                     String productName = safeProductName(metaData);
                     requireSupportedDialect(productName, table.getMetaTableId());
                     FilterToSqlTranslator.TranslatedFilter tf = filterTranslator.translate(filter);
-                    String sql = buildSqlSelectSql(sourceSql, tf.getSql(), limit, offset, productName);
-                    holder[0] = executeQuery(conn, sql, tf.getParams(), limit, offset);
+                    String sql = MetaTableQueryExecutor.buildSqlSelectSql(sourceSql, tf.getSql(), limit, offset, productName);
+                    holder[0] = MetaTableQueryExecutor.executeQuery(conn, sql, tf.getParams(), limit, offset);
                 });
         return holder[0];
     }
@@ -704,39 +704,6 @@ public class NopMetaTableBizModel extends CrudBizModel<NopMetaTable> implements 
                     .param("databaseProductName", String.valueOf(databaseProductName))
                     .param("metaTableId", metaTableId);
         }
-    }
-
-    /**
-     * 构建 external 路径 SELECT SQL。
-     *
-     * @deprecated plan 2026-07-19-1250-3 Phase 3：委托到 {@link MetaTableQueryExecutor#buildExternalSelectSql}。
-     * 保留本方法仅为 BizModel 内部调用兼容；后续 slice 整体迁移后移除。
-     */
-    @Deprecated
-    private static String buildExternalSelectSql(String tableName, List<String> columns,
-                                                  String filterSql, Long limit, Long offset, String dialect) {
-        return MetaTableQueryExecutor.buildExternalSelectSql(tableName, columns, filterSql, limit, offset, dialect);
-    }
-
-    /**
-     * 构建 sql 路径 SELECT SQL。
-     *
-     * @deprecated plan 2026-07-19-1250-3 Phase 3：委托到 {@link MetaTableQueryExecutor#buildSqlSelectSql}。
-     */
-    @Deprecated
-    private static String buildSqlSelectSql(String sourceSql, String filterSql, Long limit, Long offset, String dialect) {
-        return MetaTableQueryExecutor.buildSqlSelectSql(sourceSql, filterSql, limit, offset, dialect);
-    }
-
-    /**
-     * 执行查询 SQL。
-     *
-     * @deprecated plan 2026-07-19-1250-3 Phase 3：委托到 {@link MetaTableQueryExecutor#executeQuery}。
-     */
-    @Deprecated
-    private static List<Map<String, Object>> executeQuery(Connection conn, String sql, List<Object> filterParams,
-                                                           Long limit, Long offset) {
-        return MetaTableQueryExecutor.executeQuery(conn, sql, filterParams, limit, offset);
     }
 
     @SuppressWarnings("unchecked")

@@ -26,6 +26,7 @@ import io.nop.metadata.biz.INopMetaLineageEdgeBiz;
 import io.nop.metadata.core._NopMetadataCoreConstants;
 import io.nop.metadata.core.dto.LineageExtractResultDTO;
 import io.nop.metadata.core.dto.LineageRecordResultDTO;
+import io.nop.metadata.core.dto.RecordLineageDTO;
 import io.nop.metadata.dao.entity.NopMetaEntityField;
 import io.nop.metadata.dao.entity.NopMetaLineageEdge;
 import io.nop.metadata.dao.entity.NopMetaTable;
@@ -121,7 +122,7 @@ public class NopMetaLineageEdgeBizModel extends CrudBizModel<NopMetaLineageEdge>
      * @return {@code {recordedEdgeCount: int}}
      */
     @BizMutation
-    public LineageRecordResultDTO recordLineage(@Name("edges") List<Map<String, Object>> edges,
+    public LineageRecordResultDTO recordLineage(@Name("edges") List<RecordLineageDTO> edges,
                                                   IServiceContext context) {
         if (edges == null || edges.isEmpty()) {
             throw new NopException(NopMetadataErrors.ERR_LINEAGE_NO_EDGES).param("size", 0);
@@ -131,11 +132,11 @@ public class NopMetaLineageEdgeBizModel extends CrudBizModel<NopMetaLineageEdge>
         List<NopMetaLineageEdge> parsed = new ArrayList<>(edges.size());
         Set<String> referencedTableIds = new LinkedHashSet<>();
         for (int i = 0; i < edges.size(); i++) {
-            Map<String, Object> m = edges.get(i);
-            String sourceTableId = readString(m, "sourceTableId");
-            String targetTableId = readString(m, "targetTableId");
+            RecordLineageDTO dto = edges.get(i);
+            String sourceTableId = dto.getSourceTableId();
+            String targetTableId = dto.getTargetTableId();
             if (sourceTableId == null || sourceTableId.isEmpty() || targetTableId == null || targetTableId.isEmpty()) {
-                throw new NopException(NopMetadataErrors.ERR_LINEAGE_TABLE_ID_MISSING).param("index", i).param("edge", m);
+                throw new NopException(NopMetadataErrors.ERR_LINEAGE_TABLE_ID_MISSING).param("index", i).param("edge", dto);
             }
             referencedTableIds.add(sourceTableId);
             referencedTableIds.add(targetTableId);
@@ -143,16 +144,16 @@ public class NopMetaLineageEdgeBizModel extends CrudBizModel<NopMetaLineageEdge>
             NopMetaLineageEdge edge = dao().newEntity();
             edge.setSourceTableId(sourceTableId);
             edge.setTargetTableId(targetTableId);
-            edge.setSourceColumn(readString(m, "sourceColumn"));
-            edge.setTargetColumn(readString(m, "targetColumn"));
-            edge.setTransformType(readString(m, "transformType"));
-            edge.setTransformExpr(readString(m, "transformExpr"));
-            edge.setPipelineId(readString(m, "pipelineId"));
-            Double confidence = readDouble(m, "confidence");
+            edge.setSourceColumn(dto.getSourceColumn());
+            edge.setTargetColumn(dto.getTargetColumn());
+            edge.setTransformType(dto.getTransformType());
+            edge.setTransformExpr(dto.getTransformExpr());
+            edge.setPipelineId(dto.getPipelineId());
+            Double confidence = dto.getConfidence();
             if (confidence != null) {
                 edge.setConfidence(confidence);
             }
-            String lineageSource = readString(m, "lineageSource");
+            String lineageSource = dto.getLineageSource();
             edge.setLineageSource(lineageSource != null ? lineageSource
                     : _NopMetadataCoreConstants.LINEAGE_SOURCE_MANUAL);
             parsed.add(edge);

@@ -11,9 +11,9 @@ import io.nop.orm.biz.ICrudBiz;
 
 import io.nop.metadata.core.dto.LineageExtractResultDTO;
 import io.nop.metadata.core.dto.LineageRecordResultDTO;
+import io.nop.metadata.core.dto.RecordLineageDTO;
 
 import java.util.List;
-import java.util.Map;
 
 
 /**
@@ -26,7 +26,7 @@ import java.util.Map;
 public interface INopMetaLineageEdgeBiz extends ICrudBiz<NopMetaLineageEdge> {
 
     @BizMutation
-    LineageRecordResultDTO recordLineage(@Name("edges") List<Map<String, Object>> edges, IServiceContext context);
+    LineageRecordResultDTO recordLineage(@Name("edges") List<RecordLineageDTO> edges, IServiceContext context);
 
     @BizMutation
     LineageExtractResultDTO extractLineageFromSql(@Name("metaTableId") String metaTableId, IServiceContext context);

@@ -117,10 +117,7 @@ public class NopMetaDataSourceBizModel extends CrudBizModel<NopMetaDataSource> i
      */
     @BizMutation
     public TestConnectionResultDTO testConnection(@Name("dataSourceId") String dataSourceId, IServiceContext context) {
-        NopMetaDataSource dataSource = dao().getEntityById(dataSourceId);
-        if (dataSource == null) {
-            throw new NopException(NopMetadataErrors.ERR_DATASOURCE_NOT_FOUND).param("dataSourceId", dataSourceId);
-        }
+        NopMetaDataSource dataSource = requireEntity(dataSourceId, "testConnection", context);
 
         String status = dataSource.getStatus();
         if (_NopMetadataCoreConstants.DATASOURCE_STATUS_DISABLED.equals(status)) {
@@ -172,10 +169,7 @@ public class NopMetaDataSourceBizModel extends CrudBizModel<NopMetaDataSource> i
     public SyncExternalTablesResultDTO syncExternalTables(@Name("dataSourceId") String dataSourceId,
                                                            @Optional @Name("schemaPattern") String schemaPattern,
                                                            IServiceContext context) {
-        NopMetaDataSource dataSource = dao().getEntityById(dataSourceId);
-        if (dataSource == null) {
-            throw new NopException(NopMetadataErrors.ERR_DATASOURCE_NOT_FOUND).param("dataSourceId", dataSourceId);
-        }
+        NopMetaDataSource dataSource = requireEntity(dataSourceId, "syncExternalTables", context);
 
         String status = dataSource.getStatus();
         if (_NopMetadataCoreConstants.DATASOURCE_STATUS_DISABLED.equals(status)) {
@@ -250,10 +244,7 @@ public class NopMetaDataSourceBizModel extends CrudBizModel<NopMetaDataSource> i
     public CollectCatalogResultDTO collectCatalog(@Name("dataSourceId") String dataSourceId,
                                                    @Optional @Name("schemaPattern") String schemaPattern,
                                                    IServiceContext context) {
-        NopMetaDataSource dataSource = dao().getEntityById(dataSourceId);
-        if (dataSource == null) {
-            throw new NopException(NopMetadataErrors.ERR_DATASOURCE_NOT_FOUND).param("dataSourceId", dataSourceId);
-        }
+        NopMetaDataSource dataSource = requireEntity(dataSourceId, "collectCatalog", context);
 
         String status = dataSource.getStatus();
         if (_NopMetadataCoreConstants.DATASOURCE_STATUS_DISABLED.equals(status)) {

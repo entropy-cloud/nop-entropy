@@ -31,6 +31,7 @@ import io.nop.core.resource.VirtualFileSystem;
 import io.nop.dao.api.IDaoProvider;
 import io.nop.dao.api.IEntityDao;
 import io.nop.metadata.biz.INopMetaModuleBiz;
+import io.nop.metadata.core.dto.ImportOrmModelResultDTO;
 import io.nop.metadata.service.SeedGlossaryData;
 import io.nop.metadata.core._NopMetadataCoreConstants;
 import io.nop.metadata.dao.entity.NopMetaDict;
@@ -359,23 +360,22 @@ public class NopMetaModuleBizModel extends CrudBizModel<NopMetaModule> implement
     }
 
     @BizMutation
-    public List<Map<String, Object>> importOrmModels(@Name("paths") List<String> paths, IServiceContext context) {
-        List<Map<String, Object>> results = new ArrayList<>();
+    public List<ImportOrmModelResultDTO> importOrmModels(@Name("paths") List<String> paths, IServiceContext context) {
+        List<ImportOrmModelResultDTO> results = new ArrayList<>();
         if (paths == null)
             return results;
 
         for (String path : paths) {
-            Map<String, Object> result = new LinkedHashMap<>();
-            result.put("path", path);
+            ImportOrmModelResultDTO result = new ImportOrmModelResultDTO();
             try {
                 NopMetaModule module = importOrmModel(path, context);
-                result.put("metaModuleId", module.getMetaModuleId());
-                result.put("moduleName", module.getModuleName());
-                result.put("success", true);
+                result.setMetaModuleId(module.getMetaModuleId());
+                result.setModuleName(module.getModuleName());
+                result.setSuccess(true);
             } catch (Exception e) {
                 LOG.error("importOrmModels failed for path: {}", path, e);
-                result.put("success", false);
-                result.put("error", toErrorMessage(e));
+                result.setSuccess(false);
+                result.setError(toErrorMessage(e));
                 // 单个导入失败后清理 session，避免未刷新的脏实体或约束违例状态
                 // 污染 session 导致后续导入级联失败
                 orm().clearSession();

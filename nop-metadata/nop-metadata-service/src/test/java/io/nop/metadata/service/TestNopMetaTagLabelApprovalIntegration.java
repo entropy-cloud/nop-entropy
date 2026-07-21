@@ -130,37 +130,55 @@ public class TestNopMetaTagLabelApprovalIntegration extends JunitBaseTestCase {
         assertTrue(saved.getRemark().startsWith("Rejected:"));
     }
 
-    // (d) 幂等：同一资产上的同一 Derived TagLabel 重复创建不生成重复行
+    // (d) 唯一约束：同一资产上的同一 (entityType, entityId, tagId, source) 组合只能有一条 TagLabel
     @Test
-    public void testIdempotentDerivedLabel() {
-        String tagId = ensureTag("tag-int-idem", "cls-int-idem");
+    public void testUniqueConstraintDuplicatePrevented() {
+        String tagId = ensureTag("tag-int-uniq", "cls-int-uniq");
 
-        for (int i = 0; i < 3; i++) {
-            Map<String, Object> data = new HashMap<>();
-            String labelId = "tlabel-int-idem-" + i;
-            data.put("tagLabelId", labelId);
-            data.put("source", "Classification");
-            data.put("tagId", tagId);
-            data.put("labelType", "Derived");
-            data.put("state", "Suggested");
-            data.put("entityType", "NopMetaEntityField");
-            data.put("entityId", "field-int-idem-001");
+        // 首次创建应成功
+        Map<String, Object> data = new HashMap<>();
+        data.put("tagLabelId", "tlabel-int-uniq-001");
+        data.put("source", "Classification");
+        data.put("tagId", tagId);
+        data.put("labelType", "Derived");
+        data.put("state", "Suggested");
+        data.put("entityType", "NopMetaEntityField");
+        data.put("entityId", "field-int-uniq-001");
 
-            GraphQLResponseBean resp = execute(
-                    "mutation($data:Map) { NopMetaTagLabel__save(data:$data) { tagLabelId state } }",
-                    Map.of("data", data));
-            assertFalse(resp.hasError(), "save iteration " + i + " should not error: " + resp);
-        }
+        GraphQLResponseBean resp1 = execute(
+                "mutation($data:Map) { NopMetaTagLabel__save(data:$data) { tagLabelId state } }",
+                Map.of("data", data));
+        assertFalse(resp1.hasError(), "first save should succeed: " + resp1);
 
-        QueryBean q = new QueryBean();
-        q.addFilter(FilterBeans.eq(NopMetaTagLabel.PROP_NAME_entityType, "NopMetaEntityField"));
-        q.addFilter(FilterBeans.eq(NopMetaTagLabel.PROP_NAME_entityId, "field-int-idem-001"));
-        q.addFilter(FilterBeans.eq(NopMetaTagLabel.PROP_NAME_labelType, "Derived"));
-        List<NopMetaTagLabel> labels = daoProvider.daoFor(NopMetaTagLabel.class).findAllByQuery(q);
-        assertEquals(3, labels.size(), "Each unique tagLabelId should create a separate row");
-        for (NopMetaTagLabel l : labels) {
-            assertEquals("Suggested", l.getState());
-        }
+        // 重复创建同一 (entityType, entityId, tagId, source) 应失败（唯一约束）
+        Map<String, Object> dupData = new HashMap<>();
+        dupData.put("tagLabelId", "tlabel-int-uniq-002");
+        dupData.put("source", "Classification");
+        dupData.put("tagId", tagId);
+        dupData.put("labelType", "Derived");
+        dupData.put("state", "Suggested");
+        dupData.put("entityType", "NopMetaEntityField");
+        dupData.put("entityId", "field-int-uniq-001");
+
+        GraphQLResponseBean resp2 = execute(
+                "mutation($data:Map) { NopMetaTagLabel__save(data:$data) { tagLabelId state } }",
+                Map.of("data", dupData));
+        assertTrue(resp2.hasError(), "duplicate save should be rejected by unique constraint: " + resp2);
+
+        // 不同 entityId 应成功
+        Map<String, Object> otherData = new HashMap<>();
+        otherData.put("tagLabelId", "tlabel-int-uniq-003");
+        otherData.put("source", "Classification");
+        otherData.put("tagId", tagId);
+        otherData.put("labelType", "Derived");
+        otherData.put("state", "Suggested");
+        otherData.put("entityType", "NopMetaEntityField");
+        otherData.put("entityId", "field-int-uniq-002");
+
+        GraphQLResponseBean resp3 = execute(
+                "mutation($data:Map) { NopMetaTagLabel__save(data:$data) { tagLabelId state } }",
+                Map.of("data", otherData));
+        assertFalse(resp3.hasError(), "save with different entityId should succeed: " + resp3);
     }
 
     private void saveTagLabelRaw(String id, String labelType, String state) {

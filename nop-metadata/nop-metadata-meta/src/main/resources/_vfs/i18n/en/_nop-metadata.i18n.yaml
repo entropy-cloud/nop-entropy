@@ -1014,6 +1014,7 @@ dict:
     meta/data-product-type: Data Product Type
     meta/data-product-visibility: Data Product Visibility
     meta/data-product-priority: Data Product Priority
+    meta/change-source: Change Source
 dict.option.label:
   meta/module-status:
     DRAFTING: Drafting
@@ -1162,3 +1163,8 @@ dict.option.label:
     HIGH: High
     MEDIUM: Medium
     LOW: Low
+  meta/change-source:
+    IMPORT: Import
+    UI: UI
+    API: API
+    SYNC: Sync

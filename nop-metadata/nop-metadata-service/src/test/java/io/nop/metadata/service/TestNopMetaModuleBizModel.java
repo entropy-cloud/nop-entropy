@@ -104,11 +104,12 @@ public class TestNopMetaModuleBizModel extends JunitBaseTestCase {
         // 无效路径在资源查找阶段抛 ERR_RESOURCE_NOT_FOUND（早于任何持久化），
         // 验证批量逻辑返回 2 个结果条目，且单次失败不中断整批（不静默跳过，
         // 失败信息显式记录在结果中）。
-        // importOrmModels 返回 List<Map>，GraphQL 视为标量 JSON，不做字段选择。
+        // importOrmModels 返回 List<ImportOrmModelResultDTO>，需指定字段选择。
         GraphQLResponseBean response = execute(
                 "mutation { NopMetaModule__importOrmModels(paths:" +
                         " [\"/nop/metadata/orm/app.orm.xml\"," +
-                        " \"/nop/metadata/orm/__not_exist__.orm.xml\"]) }");
+                        " \"/nop/metadata/orm/__not_exist__.orm.xml\"])" +
+                        " { metaModuleId moduleName success error } }");
         assertFalse(response.hasError(),
                 "batch importOrmModels should not abort the whole batch: " + response);
 

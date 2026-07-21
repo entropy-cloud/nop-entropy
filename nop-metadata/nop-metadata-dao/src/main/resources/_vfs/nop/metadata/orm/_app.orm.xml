@@ -198,6 +198,12 @@
             <option code="MEDIUM" label="中" value="MEDIUM" i18n-en:label="Medium"/>
             <option code="LOW" label="低" value="LOW" i18n-en:label="Low"/>
         </dict>
+        <dict label="变更来源" name="meta/change-source" valueType="string" i18n-en:label="Change Source">
+            <option code="IMPORT" label="导入" value="IMPORT" i18n-en:label="Import"/>
+            <option code="UI" label="界面操作" value="UI" i18n-en:label="UI"/>
+            <option code="API" label="API调用" value="API" i18n-en:label="API"/>
+            <option code="SYNC" label="同步" value="SYNC" i18n-en:label="Sync"/>
+        </dict>
     </dicts>
 
     <domains>
@@ -2595,7 +2601,7 @@
                         stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Remark"/>
             </columns>
             <relations>
-                <to-many displayName="术语集" name="childTerms"
+                <to-many cascadeDelete="true" displayName="术语集" name="childTerms"
                          refEntityName="io.nop.metadata.dao.entity.NopMetaGlossaryTerm" refPropName="glossary"
                          tagSet="pub,ref-pub" i18n-en:displayName="Child Terms">
                     <join>
@@ -2941,6 +2947,10 @@
                     </join>
                 </to-one>
             </relations>
+            <unique-keys>
+                <unique-key columns="entityType,entityId,tagId,source" name="UK_NOP_META_TAG_LABEL"
+                            i18n-en:displayName="Unique Tag Label"/>
+            </unique-keys>
         </entity>
         <entity className="io.nop.metadata.dao.entity.NopMetaBusinessDomain" createTimeProp="createTime"
                 createrProp="createdBy" displayName="业务组织域" name="io.nop.metadata.dao.entity.NopMetaBusinessDomain"
