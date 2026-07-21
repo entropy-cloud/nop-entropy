@@ -1,6 +1,6 @@
 # nop-metadata Implementation Roadmap
 
-> Last Updated: 2026-07-21 (G1 DataContract 审批流 plan 2026-07-20-2000-2 closure audit 落地：roadmap G1 子项全部 done；先前更新：expression 型 Measure 输出列的列级血缘实现 plan 2026-07-18-1800-1 落地：§2.6.1 D1-D5 裁定 + 本 plan 新增 D6 replace 语义裁定落地 + D5 失败处理分层精细化（表级前置失败 vs per-measure 隔离）+ D4 en label 跟随既有模式同步——`extractMeasureLineage` action 在 NopMetaLineageEdgeBizModel 实现 + dict `measure_parse` 新增值经 codegen 生成 `LINEAGE_SOURCE_MEASURE_PARSE` 常量 + flat-collect 自环边产出 + 直接边查询召回（D2，无 contract 变更）+ D6 replace 重抽语义 + case-insensitive 字段比对 + 8 e2e 测试，462 tests；收口 Opt-followup-impl + §八 follow-up 实现部分。先前更新：多列 having 算术表达式 plan 2026-07-18-1500-2 落地：§4.4.2 D11.4 裁定写入——TreeBean `expr` 属性承载（经 setAttr/getAttr，不修改 TreeBean 类）+ preprocess 落点（候选 b：translate 前预处理）+ post-substitution `ExpressionMeasureValidator.validateStatic(saveTimeLoose)` defense-in-depth + name→aggSql 替换 + `?` 安全边界沿用（D12.4）+ Phase 1 字面量禁止 + translate 单次遍历产出参数 + 三条 SQL 路径 6+ 注入点 + 跨库内存 `MemoryFilterEvaluator.evaluate` 入口显式失败；3 新 ErrorCode + 12 单元测试 + 8 e2e 测试，454 tests；收口 Opt-2/Opt-3 两处 `Deferred But Adjudicated`「多列 having 算术表达式」。先前更新：expression 型 Measure 输出列的列级血缘 design-first 裁定 plan 2026-07-18-1500-1 落地：§2.6.1 D1/D3/D4/D5 + §2.6.2 D2 五项裁定写入，§八 follow-up 划线标注裁定覆盖；实现属 successor plan Opt-followup-impl planned。先前更新：expression 型 Measure 表达式语言执行实现 plan 2026-07-18-1400-1 落地：§4.4.2 D12 实现部分收口，6 新 ErrorCode（unparseable/unsafe/dialect-unsupported/memory-not-computable/too-long/having-order-by-unsupported）+ 删除 ERR_AGGR_EXPRESSION_MEASURE；新增 ExpressionMeasureValidator（dialect-independent 静态校验 + dialect-specific 函数支持检查）；5 处抛点替换为真实执行（entity bypass EQL + external-sql withConnection + JOIN 同库注入 <agg>(<validatedExpr>)）+ 跨库内存显式失败；D12.5 save-time 校验经 BizModel.save 入口 + VARCHAR(1000) 容量；参数绑定顺序修正（expression 字面量 → filter → having）；HAVING/ORDER BY 引用 expression measure 显式失败；10 新增 e2e 测试 + 24 单元测试，434 tests)
+> Last Updated: 2026-07-22 (S1/G2 状态同步：plan 302 与 plan G2 均已 closure audit 通过，roadmap 状态统一更新为 done；所有 roadmap Phase（P1-P4, P1+, S1-S3, G1-G3, SR, Opt 系列）均已实现)（先前更新：2026-07-21 G1 DataContract 审批流 plan 2026-07-20-2000-2 closure audit 落地：roadmap G1 子项全部 done；先前更新：expression 型 Measure 输出列的列级血缘实现 plan 2026-07-18-1800-1 落地：§2.6.1 D1-D5 裁定 + 本 plan 新增 D6 replace 语义裁定落地 + D5 失败处理分层精细化（表级前置失败 vs per-measure 隔离）+ D4 en label 跟随既有模式同步——`extractMeasureLineage` action 在 NopMetaLineageEdgeBizModel 实现 + dict `measure_parse` 新增值经 codegen 生成 `LINEAGE_SOURCE_MEASURE_PARSE` 常量 + flat-collect 自环边产出 + 直接边查询召回（D2，无 contract 变更）+ D6 replace 重抽语义 + case-insensitive 字段比对 + 8 e2e 测试，462 tests；收口 Opt-followup-impl + §八 follow-up 实现部分。先前更新：多列 having 算术表达式 plan 2026-07-18-1500-2 落地：§4.4.2 D11.4 裁定写入——TreeBean `expr` 属性承载（经 setAttr/getAttr，不修改 TreeBean 类）+ preprocess 落点（候选 b：translate 前预处理）+ post-substitution `ExpressionMeasureValidator.validateStatic(saveTimeLoose)` defense-in-depth + name→aggSql 替换 + `?` 安全边界沿用（D12.4）+ Phase 1 字面量禁止 + translate 单次遍历产出参数 + 三条 SQL 路径 6+ 注入点 + 跨库内存 `MemoryFilterEvaluator.evaluate` 入口显式失败；3 新 ErrorCode + 12 单元测试 + 8 e2e 测试，454 tests；收口 Opt-2/Opt-3 两处 `Deferred But Adjudicated`「多列 having 算术表达式」。先前更新：expression 型 Measure 输出列的列级血缘 design-first 裁定 plan 2026-07-18-1500-1 落地：§2.6.1 D1/D3/D4/D5 + §2.6.2 D2 五项裁定写入，§八 follow-up 划线标注裁定覆盖；实现属 successor plan Opt-followup-impl planned。先前更新：expression 型 Measure 表达式语言执行实现 plan 2026-07-18-1400-1 落地：§4.4.2 D12 实现部分收口，6 新 ErrorCode（unparseable/unsafe/dialect-unsupported/memory-not-computable/too-long/having-order-by-unsupported）+ 删除 ERR_AGGR_EXPRESSION_MEASURE；新增 ExpressionMeasureValidator（dialect-independent 静态校验 + dialect-specific 函数支持检查）；5 处抛点替换为真实执行（entity bypass EQL + external-sql withConnection + JOIN 同库注入 <agg>(<validatedExpr>)）+ 跨库内存显式失败；D12.5 save-time 校验经 BizModel.save 入口 + VARCHAR(1000) 容量；参数绑定顺序修正（expression 字面量 → filter → having）；HAVING/ORDER BY 引用 expression measure 显式失败；10 新增 e2e 测试 + 24 单元测试，434 tests)
 > Source: 设计体系 `ai-dev/design/nop-metadata/`（00-vision ~ 10-event-model）；`01-architecture-baseline.md` 为架构权威
 
 ## Purpose
@@ -33,11 +33,11 @@
 - Opt-followup-design. expression 型 Measure 输出列的列级血缘（design-first）: `done`（plan 2026-07-18-1500-1，§2.6.1 D1/D3/D4/D5 + §2.6.2 D2 裁定写入：D1 自环边 + BFS 语义隔离（仅经边直接查询召回，不污染既有 BFS）+ D2 召回路径选直接边查询（拒绝扩展 getImpactAnalysis contract / 拒绝新增 measure-level API 首版）+ D3 flat-collect 多边（偏离 §八 占位符建议，理由：列级精确影响分析）+ D4 lineageSource 新增 measure_parse / transformType=aggregated + D5 复用 ValidatedExpression.identifiers + MetaTableFieldResolver 归属 + per-measure try/catch 隔离契约；§八 follow-up 划线标注裁定覆盖；§2.6 ASCII schema transformExpression→transformExpr 列名收敛；实现属 successor plan）
 - Opt-followup-impl. expression 型 Measure 输出列的列级血缘（实现）: `done`（plan 2026-07-18-1800-1，§2.6.1 D1-D5 裁定 + 本 plan 新增 D6 replace 语义裁定落地：`extractMeasureLineage` action 在 NopMetaLineageEdgeBizModel 实现 + dict `measure_parse` 新增值（经 codegen 重新生成 `LINEAGE_SOURCE_MEASURE_PARSE` 常量）+ flat-collect 自环边产出 + 直接边查询召回（D2，仅经既有 CRUD 无新 API）+ D5 失败处理分层（表级前置失败直接中断 / per-measure validator 失败隔离）+ D6 replace 重抽语义 + case-insensitive 字段比对 + 8 条端到端测试覆盖（成功/召回/per-measure 隔离/BFS 非污染/dict 值/replace 幂等/aggFunc null 边界/resolver 表级前置失败），462 tests；收口 §八 follow-up「expression 型 Measure 输出列的列级血缘」实现部分）
 - Opt-followup. queryAggregation having 支持多 measure 算术表达式（`HAVING SUM(a)-SUM(b)>100`）: `done`
-- S1. Semantic Layer Phase 1 — Classification + TagLabel: `planned`（plan 302）
+- S1. Semantic Layer Phase 1 — Classification + TagLabel: `done`
 - S2. Semantic Layer Phase 2 — Glossary: `done`
 - S3. Semantic Layer Phase 3 — BusinessDomain + DataProduct: `done`
 - G1. Governance Phase 1 — DataContract 接入审批流: `done`
-- G2. Governance Phase 2 — TagLabel 治理: `todo`
+- G2. Governance Phase 2 — TagLabel 治理: `done`
 - G3. Governance Phase 3 — 质量告警工作流: `done`（plan 2026-07-20-2000-3；`NopMetaQualityResult` 新增 `isFalsePositive` 列；`QualityAlertWorkflowService` 实现；`qualityBreachApproval/v1.xwf` 工作流定义；`NopMetaQualityResultBizModel` approve/reject override；`judgeByRuleId` 方法；集成到 `NopMetaQualityRuleBizModel.executeQualityRule` FAIL+ERROR 路径；661 tests；收口所有 Phase 1 + Phase 2 项）
 - SR. Search — 元数据搜索索引: `done`（plan 312；利用 Nop 平台 ISearchEngine + LuceneSearchEngine 基础设施实现搜索索引构建与查询；覆盖 6 个核心实体（Classification/Tag/GlossaryTerm/MetaTable/MetaEntity/MetaEntityField）；全量索引 NopMetaIndexBuilder + 增量索引 NopMetaSearchService + 搜索 API NopMetaSearchBizModel；`searchMetadata` GraphQL query + `rebuildSearchIndex` mutation；705 tests）
 
@@ -73,6 +73,8 @@
 - BUILD SUCCESS（8 子模块全部编译通过）
 
 **逐项实现描述** 见 plan 292。
+
+**已实现完成：** 所有 roadmap Phase（P1-P4, P1+, S1-S3, G1-G3, SR, Opt 系列）均已实现并 closure audit 通过。S1（plan 302）和 G2（plan 2026-07-21-1000-1）于 2026-07-22 同步更新为 `done` 状态。
 
 ---
 
@@ -294,11 +296,11 @@ graph TD
     style P2 fill:#dfd,stroke:#3a3
     style P3 fill:#dfd,stroke:#3a3
     style P4 fill:#dfd,stroke:#3a3
-    style S1 fill:#ffd,stroke:#ca0
+    style S1 fill:#dfd,stroke:#3a3
     style S2 fill:#ffd,stroke:#ca0
     style S3 fill:#ffd,stroke:#ca0
     style G1 fill:#fdf,stroke:#a3a
-    style G2 fill:#fdf,stroke:#a3a
+    style G2 fill:#dfd,stroke:#3a3
     style G3 fill:#fdf,stroke:#a3a
     style SR fill:#dfd,stroke:#3a3
 ```

@@ -1,7 +1,7 @@
 # nop-metadata Vision
 
-> Status: draft
-> Date: 2026-07-15
+> Status: final
+> Date: 2026-07-15（2026-07-22 实现注解：所有 4 Phase 已实现并 closure audit 通过。S1/G2 于 2026-07-22 同步为 done。详见 roadmap `nop-metadata-roadmap.md`）
 
 ## 定位
 

@@ -1,7 +1,7 @@
 # nop-metadata Architecture Baseline
 
-> Status: draft
-> Date: 2026-07-21 (Phase 3: +NopMetaBusinessDomain + NopMetaDataProduct)
+> Status: stable
+> Date: 2026-07-22 (Baseline finalization: all phases implemented, §八 adjudicated, deferred items collected)
 
 ---
 
@@ -1534,9 +1534,22 @@ nop-metadata-web           — nop-metadata-service
 - ~~`isDelta=true/false` 用同一张表（列区分）还是两张表？~~ **已裁定（P1+，2026-07-16）**：单表 + `isDelta` 列区分（`nop-metadata.orm.xml` 中 `code="IS_DELTA"` 共 8 处：NopMetaOrmModel/Entity/EntityField/EntityRelation/EntityUniqueKey/EntityIndex/Domain/Dict）。导入时同时存储 delta 定义（isDelta=true）和 x:extends 合并后的 full 定义（isDelta=false）。
 - ~~SQL 视图字段解析：走 `EXPLAIN` 还是 `SELECT ... LIMIT 0` 还是用户手动录入？~~ **已裁定（P3-6，2026-07-16）**：字段名/别名走 AST 解析（复用 `EqlASTParser`，与血缘先例一致，可移植、无需连接）；字段类型首版仅名不取类型（方案 A，`type=null` 不伪造），LIMIT 0 经 ResultSetMetaData 取类型（方案 B）为 follow-up。详见 §4.2.1。
 - ~~MetaTableJoin 跨表关联时，左右表所属数据源不同（例如 ORM 的 MySQL 表和 SQL 定义的 ClickHouse 表），查询执行如何路由？~~ **已裁定（P4-2，2026-07-16）**：按左右 `querySpace` 是否相同分派——同库走单库 JOIN（D4），跨库（不同 querySpace）走应用层拼接（D5，各取数后内存按 join key 合并）。详见 §4.4.1。
-- 通用 Domain 的来源：是单独维护还是从现有 ORM 模型提取？ **现状声明（2026-07-17）**：MetaDomain 为元数据层映射，导入时从 `IOrmModel` 的 domain 定义填充（已可用）；从 ORM `IOrmModel` 自动同步提取通用 Domain 为 non-blocking follow-up（当前 result face 不依赖该裁定，因 MetaDomain 导入时填充已覆盖现有用例）。
+- ~~通用 Domain 的来源：是单独维护还是从现有 ORM 模型提取？~~ **已裁定（2026-07-22）**：MetaDomain 的来源为 ORM IOrmModel 导入时自动填充（OrmModelImporter 已实现），不在导入路径外单独维护来源。运行时从 IOrmModel.domainList 填充，不引入新的同步机制。裁定为 `adjudicated as residual-risk-only / watch-only`。
 - ~~数据契约的 SLA 定义格式：JSON Schema vs 自定义 DSL？~~ **已裁定（P4-4，2026-07-16）**：`schema` 列存 JSON Schema 文档（mediumtext + stdDomain json，首版仅存储不执行逐行校验），`sla` 列存结构化 JSON（json-4000 + stdDomain json，约定键 refreshFrequency/maxLatency/retention）。拒绝自定义 DSL（详见 `04-data-governance.md` §2.3 D1 裁定 + §5.2 D2 检查语义）。
 - **expression 型 Measure 是否引入跨设计域待定问题（D12 评估，2026-07-18）**：经 §4.4.2 D12 评估，**新增 1 项 follow-up**——expression 型 Measure 的聚合输出不直接对应单一源列（`<agg>(<expression>)` 是 derived 表达式），其列级血缘（§2.6.1 sql_parse）处理为 follow-up（建议标记 `transformType=derived`、`sourceColumn=unresolved:derived-expression`，不伪造单一源列映射），不阻塞 D12 裁定；其他设计域无新增待定问题：(1) 数据契约（§4-4）不感知 expression 值（运行时计算）；(2) Catalog/质量执行（§4.4.3）不直接相关；(3) 不引入新 ORM 结构变更（`expression` 列已存在，`nop-metadata.orm.xml:1160`）。
   - ~~建议标记 `transformType=derived`、`sourceColumn=unresolved:derived-expression`，不伪造单一源列映射~~ **已裁定（design-first，plan 2026-07-18-1500-1，2026-07-18）**：覆盖原建议。裁定为 **flat-collect 多边**（每识别列一条边，`sourceColumn=识别列名`、`targetColumn=measureName`、`transformType=aggregated`、`lineageSource=measure_parse`）——flat-collect 提供列级精确影响分析，占位符单边无法回答"AMOUNT 变更影响哪些 measure"。完整裁定见 §2.6.1（D1 edge model + D3 flat-collect + D4 取值 + D5 列引用提取契约）+ §2.6.2（D2 召回路径）。
     - **design-first 部分：done**（plan 2026-07-18-1500-1，本节裁定 + §2.6.1/§2.6.2 写入）。
     - **实现部分：done**（plan 2026-07-18-1800-1，2026-07-19，依 D1-D5 裁定 + 本 plan 新增 D6 replace 语义裁定落地 `extractMeasureLineage` action + dict `measure_parse` 新增值 + flat-collect 自环边产出 + 直接边查询召回 + per-measure 失败隔离 + 表级前置失败 + D6 replace 重抽 + 8 条端到端测试，462 tests）。
+
+### Follow-up（跨计划 deferral 登记）
+
+以下为从已完成计划收集的 `optimization candidate` / `watch-only residual` 项，统一登记于此以显式收口：
+
+| 项 | 分类 | 来源计划 | 备注 |
+|----|------|---------|------|
+| `NopMetadataException` tier-2 使用推广 | `optimization candidate` | 09-02, P3 | 当前 module 级异常类已定义，但部分桩点仍用 `ErrorCode` + `param`，推广为 follow-up |
+| ErrorCode 变量名与字符串值一致性治理 | `optimization candidate` | 09-06, P3 | 部分 ErrorCode 变量名与字符串值存在偏差，统一治理为 follow-up |
+| `07-ai-integration.md` 文档评估 | `watch-only residual` | 本 plan（Baseline Finalization） | 评估是否列为下一阶段 roadmap 外工作项，或标记为 superseded |
+| Micro ORM 列顺序修复 | `watch-only residual` | 2026-07-21-1200-1 | 非 blocking，IDE 自动重排不影响运行时 |
+| ErrorCode 文件拆分 | `optimization candidate` | 2026-07-21-1200-1 | 当前单文件可维护，拆分不优先 |
+| ORM 主键类型强制 long | `watch-only residual` | 2026-07-21-1200-1 | 当前 String PK 语义已锁定，不引入破坏性变更 |
