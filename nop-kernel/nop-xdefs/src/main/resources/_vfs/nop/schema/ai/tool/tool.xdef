@@ -1,9 +1,14 @@
 <tool x:schema="/nop/schema/xdef.xdef" xmlns:x="/nop/schema/xdsl.xdef"
       xdef:name="AiToolModel" xdef:bean-package="io.nop.ai.toolkit.model"
-      name="!string">
+      name="!string" class="class-name">
 
     <!-- schema：描述具体工具的调用格式，内容为任意XML（如patch-text-file、update-todos等） -->
     <schema xdef:mandatory="true">xml</schema>
+
+    <!-- Plan 304: JSON schema for tool parameters, alternative to XML schema.
+         When both are present, the XML schema takes precedence for Nop-internal
+         processing; the JSON schema is used for LLM-facing tool definitions. -->
+    <schemaJson>json</schemaJson>
 
     <!-- 可选的结果格式定义 -->
     <response-schema>xml</response-schema>
