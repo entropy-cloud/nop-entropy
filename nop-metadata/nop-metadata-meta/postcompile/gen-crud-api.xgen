@@ -4,7 +4,7 @@
 // To enable, uncomment the following code or pass generateCrudApi=true.
 /*
 codeGenerator.withTplDir('/nop/templates/crud-api')
-    .withTargetDir("../nop-metadata-api/src/main/java")
-    .execute("/", { moduleId: "nop/metadata", apiPackageName: "io.nop.metadata.api" }, $scope);
+    .withTargetDir("../nop-metadata-service/src/main/java")
+    .execute("/", { moduleId: "nop/metadata", apiPackageName: "io.nop.metadata.service" }, $scope);
 */
 </c:script>

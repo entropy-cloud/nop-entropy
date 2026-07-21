@@ -191,6 +191,10 @@ public interface NopMetadataErrors {
             ErrorCode.define("nop.err.metadata.aggr-exec-failed",
                     "Aggregation SQL execution failed: metaTableId={metaTableId} -- {error}",
                     ARG_META_TABLE_ID, ARG_ERROR);
+    ErrorCode ERR_AGGR_UNSUPPORTED_TABLE_TYPE =
+            ErrorCode.define("nop.err.metadata.aggr-unsupported-table-type",
+                    "SqlAggregationProcessor requires TABLE_TYPE_SQL, got: {tableType}",
+                    ARG_TABLE_TYPE);
     ErrorCode ERR_AGGR_JOIN_MIXED_ENDPOINT_DEFERRED =
             ErrorCode.define("nop.err.metadata.aggr-join-mixed-endpoint-deferred",
                     "Mixed-endpoint (entity<->external/sql) JOIN aggregation is deferred: "
