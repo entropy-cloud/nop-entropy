@@ -1,5 +1,10 @@
 package io.nop.ai.agent.security;
 
+import io.nop.ai.agent.engine.AgentExecutionContext;
+
+import java.io.File;
+import java.util.Map;
+
 /**
  * No-op {@link ISecurityLevelResolver} used as the default when no resolver is
  * registered. All action kinds and all hints resolve to
@@ -27,5 +32,11 @@ public final class NoOpSecurityLevelResolver implements ISecurityLevelResolver {
     @Override
     public SecurityLevel resolve(String actionKind, LevelHints hints) {
         return SecurityLevel.STANDARD;
+    }
+
+    @Override
+    public LevelHints produce(String toolName, Map<String, Object> arguments, File workDir,
+                              AgentExecutionContext ctx) {
+        return LevelHints.defaults();
     }
 }

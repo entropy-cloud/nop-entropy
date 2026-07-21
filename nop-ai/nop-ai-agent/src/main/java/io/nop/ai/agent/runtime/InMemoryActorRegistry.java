@@ -76,7 +76,6 @@ public final class InMemoryActorRegistry implements ActorRegistry {
             sessionToActorId.remove(previous.getSessionId(), actor.getActorId());
         }
         sessionToActorId.put(actor.getSessionId(), actor.getActorId());
-        // Plan 232: tag the actor with the tenant active at registration time.
         // ConcurrentHashMap rejects null values, so a null tenant (no tenant
         // context) is recorded as ABSENT from the tag map — which the
         // visibility check treats as "legacy / global actor, visible to all"

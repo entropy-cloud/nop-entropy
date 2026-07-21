@@ -6,6 +6,9 @@ import io.nop.ai.agent.security.LevelHints;
 import io.nop.ai.agent.security.SecurityLevel;
 import org.junit.jupiter.api.Test;
 
+import java.io.File;
+import java.util.Map;
+
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -24,7 +27,18 @@ public class TestDefaultAgentEngineSecurityLevelResolverWiring {
     @Test
     void setSecurityLevelResolverAndGetSecurityLevelResolverReturnSameInstance() {
         DefaultAgentEngine engine = newEngineStub();
-        ISecurityLevelResolver custom = (actionKind, hints) -> SecurityLevel.ELEVATED;
+        ISecurityLevelResolver custom = new ISecurityLevelResolver() {
+            @Override
+            public LevelHints produce(String toolName, Map<String, Object> arguments, File workDir,
+                                      AgentExecutionContext ctx) {
+                return LevelHints.defaults();
+            }
+
+            @Override
+            public SecurityLevel resolve(String actionKind, LevelHints hints) {
+                return SecurityLevel.ELEVATED;
+            }
+        };
 
         engine.setSecurityLevelResolver(custom);
 

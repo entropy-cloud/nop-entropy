@@ -33,7 +33,6 @@ public class AgentExecutionContext {
     private long startTimeMs;
     private volatile boolean cancelRequested;
     private volatile String cancelReason;
-    // Plan 273 (carry-over 14-06, Phase 2): set by the heartbeat renewal
     // task when tryRenew returns false (takeover lease lost / preempted by
     // another JVM instance). The engine's execution cleanup path reads this
     // to force the terminal session status to {@code failed} (the ReAct
@@ -44,14 +43,12 @@ public class AgentExecutionContext {
     private volatile boolean leaseLost;
     private ChannelKind channelKind;
     private Principal principal;
-    // Plan 206 (L2-22): per-iteration budget snapshot refreshed by the ReAct
     // loop before each IModelRouter.route() call. A functional router reads
     // this to decide whether to downgrade the model on budget exhaustion.
     // Nullable (null before the first refresh); the shipped NoOpBudgetProvider
     // default makes this a non-null unlimited snapshot after the first refresh.
     private BudgetSnapshot budgetSnapshot;
 
-    // Plan 278 (AR-05): delegation depth of this execution within a
     // call-agent chain. 0 = top-level agent (no parent), 1 = first-level
     // sub-agent, etc. Extracted from AgentMessageRequest.metadata by
     // DefaultAgentEngine.doExecute and propagated to AgentToolExecuteContext
@@ -61,7 +58,6 @@ public class AgentExecutionContext {
     // metadata key, even when no ParentPermissionConstraint is present.
     private int delegationDepth;
 
-    // Plan 220 (L4-8-steering): thread-safe steering message queue. External
     // messages (injected via the Actor mailbox consumption loop) are enqueued
     // here by the Actor's consumption thread and drained by the ReAct loop at
     // the round boundary (after all tools in a round complete, before the next

@@ -85,7 +85,6 @@ public final class AgentActor {
 
     private final List<MailboxEntry> receivedMessages = Collections.synchronizedList(new ArrayList<>());
 
-    // Plan 220 (L4-8-steering): optional reference to the ctx steering queue.
     // Bound by the engine after createActor returns, before execute(ctx). See
     // class Javadoc for the full thread-safety / null-degradation contract.
     private volatile Queue<ChatMessage> steeringQueue;

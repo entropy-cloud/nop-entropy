@@ -226,7 +226,6 @@ public class TeamExecuteFlowExecutor implements IToolExecutor {
         TeamTaskFlowOrchestrator orchestrator = new TeamTaskFlowOrchestrator(
                 engine, taskStore, teamManager, null, memberSpawner);
 
-        // Plan 241 wiring: consume the orchestrator's real async entry point.
         // The returned future completes when the DAG future completes (not when
         // the synchronous call returns), eliminating the pre-241 "wrap sync
         // result in completedFuture" hollow pattern. Structural fast-failures

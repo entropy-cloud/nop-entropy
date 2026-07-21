@@ -53,12 +53,10 @@ public class AgentToolExecuteContext implements IToolExecuteContext {
     private final ITeamManager teamManager;
     private final ITeamTaskStore teamTaskStore;
     private final ITeamAclChecker teamAclChecker;
-    // Plan 278 (AR-05): delegation depth of the current execution within a
     // call-agent chain. Set by ReActAgentExecutor from AgentExecutionContext
     // before the dispatch loop so CallAgentExecutor can read it and enforce
     // MAX_DELEGATION_DEPTH. Defaults to 0 (top-level) when not explicitly set.
     private int delegationDepth;
-    // Plan 296 (WS2): the current session, resolved by the dispatch loop
     // from sessionStore.get(sessionId). Meta-tools (e.g. set-active-tags)
     // read this to mutate session-scoped state. Null when the executor was
     // constructed outside the engine for testing or no sessionStore is wired.
@@ -249,7 +247,6 @@ public class AgentToolExecuteContext implements IToolExecuteContext {
                                    IAiMemoryStore memoryStore,
                                    ITeamManager teamManager,
                                    ITeamTaskStore teamTaskStore) {
-        // Plan 228 (L4-team-acl-enforcement): the 16-param endpoint now
         // delegates to the 17-param endpoint, defaulting teamAclChecker to
         // NoOp so the 5 existing test callers (TestTeamSendMessageExecutor
         // / TestTeamStatusExecutor / TestTeamTaskCreateExecutor /

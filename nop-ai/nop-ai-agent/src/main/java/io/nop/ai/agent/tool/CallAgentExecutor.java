@@ -162,7 +162,6 @@ public class CallAgentExecutor implements IToolExecutor {
                             + "Ensure the ReAct executor is wired with an engine via the Builder.");
         }
 
-        // Plan 278 (AR-05): delegation depth guard. Read the parent's depth
         // and compute the child's depth. If the child's depth would meet or
         // exceed the configured maximum, reject immediately with a structured
         // error result — never a StackOverflowError. This prevents self-
@@ -189,7 +188,6 @@ public class CallAgentExecutor implements IToolExecutor {
         // the sub-agent executes with the engine's default permission pipeline.
         ParentPermissionConstraint parentConstraint = buildParentConstraint(agentCtx);
 
-        // Plan 278 (AR-05): always build the propagation metadata carrying the
         // child's delegation depth, even when no permission constraint is
         // present. This ensures the depth auto-propagates through both the
         // sync (engine.execute) and async (messenger) pathways — the metadata
@@ -434,7 +432,6 @@ public class CallAgentExecutor implements IToolExecutor {
             Map<String, Object> childMetadata) {
 
         String message = input != null ? input : "";
-        // Plan 271 (finding 14-01): resolve the child session id upfront so that
         // on timeout we can call engine.cancelSession(childSessionId) to cancel
         // the sub-agent execution (the .orTimeout below only cancels the Future,
         // not the underlying engine.execute). When subSessionId is null/empty
@@ -460,7 +457,6 @@ public class CallAgentExecutor implements IToolExecutor {
         return withTimeout
                 .<AiToolCallResult>thenApply(result -> toToolCallResult(call, result, childSessionId))
                 .exceptionally(e -> {
-                    // Plan 271 (finding 14-01): on timeout, cancel the sub-agent
                     // so its execution does not continue as a zombie consuming
                     // LLM API quota and database resources. .orTimeout completes
                     // the Future exceptionally with a TimeoutException (wrapped in

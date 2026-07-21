@@ -92,7 +92,6 @@ public class DefaultPathAccessChecker implements IPathAccessChecker {
             }
         }
 
-        // Plan 270 (finding 13-1): symlink protection. A symlink whose
         // lexical name looks safe but which resolves to a restricted
         // directory (e.g. /tmp/link -> ~/.ssh) must not bypass the checks
         // above. Resolve the real path (symlinks followed) and re-apply the

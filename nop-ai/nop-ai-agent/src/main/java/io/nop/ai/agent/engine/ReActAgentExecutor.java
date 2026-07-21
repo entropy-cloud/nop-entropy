@@ -76,7 +76,6 @@ import io.nop.ai.agent.security.ApprovalDecision;
 import io.nop.ai.agent.security.ChannelKind;
 import io.nop.ai.agent.security.DefaultApprovalGate;
 import io.nop.ai.agent.security.DefaultDenialLedger;
-import io.nop.ai.agent.security.DefaultLevelHintsProducer;
 import io.nop.ai.agent.security.DefaultPathAccessChecker;
 import io.nop.ai.agent.security.DefaultPermissionMatrix;
 import io.nop.ai.agent.security.DefaultPostDenialGuard;
@@ -91,7 +90,6 @@ import io.nop.ai.agent.security.IApprovalGate;
 import io.nop.ai.agent.security.IAuditLogger;
 import io.nop.ai.agent.security.IDenialLedger;
 import io.nop.ai.agent.security.IPostDenialGuard;
-import io.nop.ai.agent.security.ILevelHintsProducer;
 import io.nop.ai.agent.security.IPathAccessChecker;
 import io.nop.ai.agent.security.IPermissionMatrix;
 import io.nop.ai.agent.security.IPermissionProvider;
@@ -109,6 +107,9 @@ import io.nop.ai.agent.security.Permission;
 import io.nop.ai.agent.security.Principal;
 import io.nop.ai.agent.security.SecurityLevel;
 import io.nop.ai.agent.security.Slf4jAuditLogger;
+import io.nop.ai.agent.security.SecurityCheckpoint;
+import io.nop.ai.agent.security.SecurityCheckpointChain;
+import io.nop.ai.agent.security.SecurityLevel;
 import io.nop.ai.agent.security.ToolAccessResult;
 import io.nop.ai.agent.security.ToolPathArgKeys;
 import io.nop.ai.agent.session.AgentSession;
@@ -205,7 +206,6 @@ public class ReActAgentExecutor implements IAgentExecutor {
     private final IAgentMessenger messenger;
     private final ISecurityLevelResolver securityLevelResolver;
     private final IPermissionMatrix permissionMatrix;
-    private final ILevelHintsProducer levelHintsProducer;
     private final IApprovalGate approvalGate;
     private final IDenialLedger denialLedger;
     private final IPostDenialGuard postDenialGuard;
@@ -214,12 +214,10 @@ public class ReActAgentExecutor implements IAgentExecutor {
     private final IMemoryStoreProvider memoryStoreProvider;
     private final IUsageRecorder usageRecorder;
     private final IModelSwitchedMessageWriter modelSwitchedMessageWriter;
-    // Plan 206 (L2-22): budget provider consulted once per ReAct iteration,
     // immediately before IModelRouter.route(), to refresh the budget snapshot
     // stored in ctx. A functional router reads ctx.getBudgetSnapshot() to
     // decide whether to downgrade the model on budget exhaustion.
     private final IBudgetProvider budgetProvider;
-    // Plan 207 (L3-2): retry policy consulted by the single-LLM-call retry
     // loop (design nop-ai-agent-llm-layer.md §7 / nop-ai-agent-reliability.md
     // §3.1). When chatService.call(...) throws, the loop classifies the error,
     // builds a RetryContext, and asks the policy RETRY / STOP / FALLBACK. The
@@ -228,7 +226,6 @@ public class ReActAgentExecutor implements IAgentExecutor {
     // zero-regression versus the pre-plan-207 behaviour. A functional policy
     // (StandardRetryPolicy) is registered via DefaultAgentEngine.setRetryPolicy.
     private final IRetryPolicy retryPolicy;
-    // Plan 210 (L3-1): circuit breaker consulted at the single-LLM-call retry
     // loop's OUTER layer (design nop-ai-agent-reliability.md §3.3 platform
     // layer / §5.1 three-state breaker). Before entering the retry loop the
     // breaker is asked whether the primary model may be called; a false
@@ -242,7 +239,6 @@ public class ReActAgentExecutor implements IAgentExecutor {
     // behaviour. A functional breaker (ThresholdBreaker) is registered via
     // DefaultAgentEngine.setCircuitBreaker.
     private final ICircuitBreaker circuitBreaker;
-    // Plan 211 (L3-3): goal tracker consulted at the ReAct loop's
     // per-iteration boundary (design nop-ai-agent-reliability.md §5.3).
     // recordIteration is called once per iteration, after the LLM response is
     // available and before the tool-dispatch / completion-judge branch, so the
@@ -255,7 +251,6 @@ public class ReActAgentExecutor implements IAgentExecutor {
     // versus the pre-plan-211 behaviour. A functional tracker
     // (SessionGoalTracker) is registered via DefaultAgentEngine.setGoalTracker.
     private final IGoalTracker goalTracker;
-    // Plan 212 (L3-8): sustainer consulted at the ReAct loop's exit decision
     // point (design nop-ai-agent-reliability.md §5.1a Sisyphean model). When
     // the reactLoop exits naturally because the iteration budget was exhausted
     // (MAX_ITERATIONS) while the status is still running, the engine asks the
@@ -273,7 +268,6 @@ public class ReActAgentExecutor implements IAgentExecutor {
     // forced_stopped/cancelled/paused) set a terminal status inside the loop
     // and bypass the sustainer consult.
     private final ISustainer sustainer;
-    // Plan 214 (L2-13a): conflict strategy consulted in the dispatch loop
     // after the Layer 3 approval gate and before allowedCalls.add(...).
     // When the write-intent registry reports a cross-session conflict on a
     // file targeted by the current tool call, the strategy decides ALLOW or
@@ -281,13 +275,11 @@ public class ReActAgentExecutor implements IAgentExecutor {
     // conflict (zero-regression for single-session executions, where the
     // registry contains no other-session intents → no conflict → ALLOW).
     private final IConflictStrategy conflictStrategy;
-    // Plan 214 (L2-13a): write-intent registry consulted in the dispatch
     // loop to register the current tool call's write intent and detect
     // cross-session conflicts on the same file. The shipped
     // InMemoryWriteIntentRegistry default is an in-process implementation;
     // cross-process registry (DB-backed) is a successor.
     private final IWriteIntentRegistry writeIntentRegistry;
-    // Plan 217 (L4-6): plugin contribution registry consulted at execution
     // setup time (alongside consultSkills) for PROMPT contribution
     // resolution. PROMPT contributions' String fragments are concatenated in
     // ascending priority order and injected into the system prompt via
@@ -300,7 +292,6 @@ public class ReActAgentExecutor implements IAgentExecutor {
     // pre-plan-217 behaviour.
     private final IContributionRegistry contributionRegistry;
 
-    // Plan 219 (L4-7): Layer 4 sandbox backend (design §7.1 / §8). The
     // executor holds the backend reference and makes it available to tool
     // executors that run inside the ReAct loop (future shell-exec /
     // code-exec IToolExecutor successors). The executor itself does not
@@ -311,7 +302,6 @@ public class ReActAgentExecutor implements IAgentExecutor {
     // engine wires in resolveExecutor.
     private final io.nop.ai.agent.security.ISandboxBackend sandboxBackend;
 
-    // Plan 271 (finding 14-03): wall-clock timeout (ms) for a single LLM call
     // inside the ReAct loop. The synchronous chatService.call(...) is wrapped
     // in a CompletableFuture.supplyAsync(..., timeoutExecutor) + .orTimeout so
     // a permanently hung LLM connection cannot block the agent session, worker
@@ -320,7 +310,6 @@ public class ReActAgentExecutor implements IAgentExecutor {
     // DefaultAgentEngine.resolveExecutor via the Builder.
     private final long llmTimeoutMs;
 
-    // Plan 271 (finding 14-03): wall-clock timeout (ms) for a single tool call
     // in the dispatch fanout. Each toolManager.callTool(...) future gets
     // .orTimeout(toolTimeoutMs) so a permanently hung tool cannot block the
     // agent session indefinitely. A value <= 0 disables the timeout
@@ -328,7 +317,6 @@ public class ReActAgentExecutor implements IAgentExecutor {
     // DefaultAgentEngine.resolveExecutor via the Builder.
     private final long toolTimeoutMs;
 
-    // Plan 271 (finding 14-03 / 14-04): the executor used to run the
     // CompletableFuture that wraps the synchronous chatService.call. This is
     // the engine's dedicated agent executor (virtual threads by default), NOT
     // ForkJoinPool.commonPool(), so the LLM-call timeout wrapper does not
@@ -338,7 +326,10 @@ public class ReActAgentExecutor implements IAgentExecutor {
     // llmTimeoutMs <= 0 (no timeout wrapping is needed).
     private final Executor timeoutExecutor;
 
-    // Plan 225 (L4-8-team-tools): team manager + team task store made
+    // paths in the dispatch loop. Built once at construction time from the
+    // executor's dependencies.
+    private final SecurityCheckpointChain checkpointChain;
+
     // available to team-aware tools (team-send-message / team-status /
     // team-task-create) via the dispatch loop's AgentToolExecuteContext. The
     // executor itself does not call them on the dispatch path — team tools
@@ -347,7 +338,6 @@ public class ReActAgentExecutor implements IAgentExecutor {
     // honestly report that the operation was not executed.
     private final ITeamManager teamManager;
     private final ITeamTaskStore teamTaskStore;
-    // Plan 228 (L4-team-acl-enforcement): team ACL checker held by the
     // executor and propagated into AgentToolExecuteContext so the 4 team
     // tool executors can consult it. The executor itself does not call it
     // on the dispatch path — team tools consume it at execution time.
@@ -370,10 +360,9 @@ public class ReActAgentExecutor implements IAgentExecutor {
                                ISkillProvider skillProvider,
                                IAgentEngine engine,
                                IAgentMessenger messenger,
-                               ISecurityLevelResolver securityLevelResolver,
-                               IPermissionMatrix permissionMatrix,
-                                 ILevelHintsProducer levelHintsProducer,
-                                  IApprovalGate approvalGate,
+                                ISecurityLevelResolver securityLevelResolver,
+                                IPermissionMatrix permissionMatrix,
+                                IApprovalGate approvalGate,
                                   IDenialLedger denialLedger,
                                   IPostDenialGuard postDenialGuard,
                                     ICheckpointManager checkpointManager,
@@ -420,9 +409,6 @@ public class ReActAgentExecutor implements IAgentExecutor {
         this.permissionMatrix = permissionMatrix != null
                 ? permissionMatrix
                 : new DefaultPermissionMatrix();
-        this.levelHintsProducer = levelHintsProducer != null
-                ? levelHintsProducer
-                : new DefaultLevelHintsProducer();
         this.approvalGate = approvalGate != null
                 ? approvalGate
                 : new DefaultApprovalGate();
@@ -464,6 +450,317 @@ public class ReActAgentExecutor implements IAgentExecutor {
         this.llmTimeoutMs = llmTimeoutMs;
         this.toolTimeoutMs = toolTimeoutMs;
         this.timeoutExecutor = timeoutExecutor;
+        this.checkpointChain = buildCheckpointChain();
+    }
+
+    /**
+     * Build the SecurityCheckpoint chain that replaces the 7 inline deny
+     * paths in the dispatch loop. Each checkpoint implements one deny path,
+     * following the same pattern: check → if denied → audit + event + error
+     * response + handleDenialAndCheckThreshold → DENY or DENY_AND_BREAK.
+     * The chain is built once at construction time.
+     */
+    private SecurityCheckpointChain buildCheckpointChain() {
+        // Mutable holder so Layer 2 can pass the resolved SecurityLevel to Layer 3
+        java.util.concurrent.atomic.AtomicReference<SecurityLevel> resolvedLevelRef =
+                new java.util.concurrent.atomic.AtomicReference<>();
+
+        SecurityCheckpoint postDenialCheckpoint = ctx -> {
+            DenialResult postDenialResult = postDenialGuard.checkBeforeDispatch(
+                    ctx.sessionId(), ctx.toolName(),
+                    ctx.chatToolCall().getArguments(), ctx.fingerprintWorkDir());
+            if (postDenialResult != null) {
+                String denyMessage = postDenialResult.getMessage() != null
+                        ? postDenialResult.getMessage()
+                        : "Repeated same denied action";
+                auditLogger.log(new AuditEvent(ctx.sessionId(), ctx.agentName(), null,
+                        ctx.toolName(), AuditDecision.DENY, denyMessage,
+                        "layer3_post_denial_guard",
+                        postDenialResult.getActionFingerprint(), System.currentTimeMillis()));
+                publishEvent(AgentEventType.TOOL_CALL_DENIED, ctx.sessionId(), ctx.agentName(),
+                        Map.of("toolName", ctx.toolName() != null ? ctx.toolName() : "",
+                                "reason", denyMessage,
+                                "denialReason", postDenialResult.getReason().name(),
+                                "suggestedNextStep", postDenialResult.getSuggestedNextStep().name()));
+                ctx.executionContext().addMessage(ChatToolResponseMessage.error(
+                        ctx.chatToolCall().getId(), ctx.toolName(),
+                        denyMessage + " (suggested: " + postDenialResult.getSuggestedNextStep() + ")"));
+                if (handleDenialAndCheckThreshold(ctx.sessionId(), ctx.toolName(),
+                        DenialLayerSource.LAYER3_POST_DENIAL_GUARD, denyMessage,
+                        "layer3_post_denial_guard", ctx.executionContext(), ctx.agentName(),
+                        ctx.chatToolCall(), ctx.fingerprintWorkDir())) {
+                    return SecurityCheckpoint.Decision.DENY_AND_BREAK;
+                }
+                return SecurityCheckpoint.Decision.DENY;
+            }
+            return SecurityCheckpoint.Decision.ALLOW;
+        };
+
+        SecurityCheckpoint toolAccessCheckpoint = ctx -> {
+            ToolAccessResult accessResult = toolAccessChecker.checkAccess(
+                    ctx.toolName(), ctx.executionContext());
+            auditLogger.log(new AuditEvent(ctx.sessionId(), ctx.agentName(), null,
+                    ctx.toolName(),
+                    accessResult.isAllowed() ? AuditDecision.ALLOW : AuditDecision.DENY,
+                    accessResult.getReason(), accessResult.getMatchedRule(), null,
+                    System.currentTimeMillis()));
+            if (!accessResult.isAllowed()) {
+                publishEvent(AgentEventType.TOOL_CALL_DENIED, ctx.sessionId(), ctx.agentName(),
+                        Map.of("toolName", ctx.toolName(),
+                                "reason", accessResult.getReason() != null ? accessResult.getReason() : ""));
+                ctx.executionContext().addMessage(ChatToolResponseMessage.error(
+                        ctx.chatToolCall().getId(), ctx.toolName(),
+                        "Access denied: " + (accessResult.getReason() != null ? accessResult.getReason() : "hardcoded deny")));
+                if (handleDenialAndCheckThreshold(ctx.sessionId(), ctx.toolName(),
+                        DenialLayerSource.LAYER1_TOOL_ACCESS, accessResult.getReason(),
+                        accessResult.getMatchedRule(), ctx.executionContext(), ctx.agentName(),
+                        ctx.chatToolCall(), ctx.fingerprintWorkDir())) {
+                    return SecurityCheckpoint.Decision.DENY_AND_BREAK;
+                }
+                return SecurityCheckpoint.Decision.DENY;
+            }
+            return SecurityCheckpoint.Decision.ALLOW;
+        };
+
+        SecurityCheckpoint permissionCheckpoint = ctx -> {
+            Permission perm = permissionProvider.resolve(
+                    ctx.toolName(), ctx.agentName(), ctx.sessionId());
+            auditLogger.log(new AuditEvent(ctx.sessionId(), ctx.agentName(), null,
+                    ctx.toolName(),
+                    perm.isAllowed() ? AuditDecision.ALLOW : AuditDecision.DENY,
+                    perm.getReason(), perm.getMatchedRuleId(), null,
+                    System.currentTimeMillis()));
+            if (!perm.isAllowed()) {
+                publishEvent(AgentEventType.TOOL_CALL_DENIED, ctx.sessionId(), ctx.agentName(),
+                        Map.of("toolName", ctx.toolName(),
+                                "reason", perm.getReason() != null ? perm.getReason() : ""));
+                ctx.executionContext().addMessage(ChatToolResponseMessage.error(
+                        ctx.chatToolCall().getId(), ctx.toolName(),
+                        "Permission denied: " + (perm.getReason() != null ? perm.getReason() : "access denied")));
+                if (handleDenialAndCheckThreshold(ctx.sessionId(), ctx.toolName(),
+                        DenialLayerSource.LAYER1_PERMISSION, perm.getReason(),
+                        perm.getMatchedRuleId(), ctx.executionContext(), ctx.agentName(),
+                        ctx.chatToolCall(), ctx.fingerprintWorkDir())) {
+                    return SecurityCheckpoint.Decision.DENY_AND_BREAK;
+                }
+                return SecurityCheckpoint.Decision.DENY;
+            }
+            return SecurityCheckpoint.Decision.ALLOW;
+        };
+
+        SecurityCheckpoint pathAccessCheckpoint = ctx -> {
+            String pathDenied = checkPathAccess(ctx.chatToolCall(),
+                    ctx.executionContext(), ctx.sessionId(), ctx.agentName());
+            if (pathDenied != null) {
+                ctx.executionContext().addMessage(ChatToolResponseMessage.error(
+                        ctx.chatToolCall().getId(), ctx.toolName(),
+                        "Path access denied: " + pathDenied));
+                if (handleDenialAndCheckThreshold(ctx.sessionId(), ctx.toolName(),
+                        DenialLayerSource.LAYER1_PATH_ACCESS, pathDenied,
+                        "path_access_checker", ctx.executionContext(), ctx.agentName(),
+                        ctx.chatToolCall(), ctx.fingerprintWorkDir())) {
+                    return SecurityCheckpoint.Decision.DENY_AND_BREAK;
+                }
+                return SecurityCheckpoint.Decision.DENY;
+            }
+            return SecurityCheckpoint.Decision.ALLOW;
+        };
+
+        SecurityCheckpoint layer2Checkpoint = ctx -> {
+            SecurityConsultationOutcome layer2 = checkLayer2Consultation(
+                    ctx.chatToolCall(), ctx.executionContext(),
+                    ctx.sessionId(), ctx.agentName(), ctx.agentModel());
+            if (layer2.isDenied()) {
+                ctx.executionContext().addMessage(ChatToolResponseMessage.error(
+                        ctx.chatToolCall().getId(), ctx.toolName(),
+                        "Security policy denied: " + layer2.getDenialReason()));
+                if (handleDenialAndCheckThreshold(ctx.sessionId(), ctx.toolName(),
+                        DenialLayerSource.LAYER2_SECURITY_POLICY, layer2.getDenialReason(),
+                        "layer2_permission_matrix", ctx.executionContext(), ctx.agentName(),
+                        ctx.chatToolCall(), ctx.fingerprintWorkDir())) {
+                    return SecurityCheckpoint.Decision.DENY_AND_BREAK;
+                }
+                return SecurityCheckpoint.Decision.DENY;
+            }
+            resolvedLevelRef.set(layer2.getResolvedLevel());
+            return SecurityCheckpoint.Decision.ALLOW;
+        };
+
+        SecurityCheckpoint layer3Checkpoint = ctx -> {
+            String layer3Denied = checkLayer3Approval(
+                    resolvedLevelRef.get(), ctx.toolName(),
+                    ctx.executionContext(), ctx.sessionId(), ctx.agentName());
+            if (layer3Denied != null) {
+                ctx.executionContext().addMessage(ChatToolResponseMessage.error(
+                        ctx.chatToolCall().getId(), ctx.toolName(),
+                        "Approval denied: " + layer3Denied));
+                if (handleDenialAndCheckThreshold(ctx.sessionId(), ctx.toolName(),
+                        DenialLayerSource.LAYER3_APPROVAL_GATE, layer3Denied,
+                        "layer3_approval_gate", ctx.executionContext(), ctx.agentName(),
+                        ctx.chatToolCall(), ctx.fingerprintWorkDir())) {
+                    return SecurityCheckpoint.Decision.DENY_AND_BREAK;
+                }
+                return SecurityCheckpoint.Decision.DENY;
+            }
+            return SecurityCheckpoint.Decision.ALLOW;
+        };
+
+        SecurityCheckpoint conflictCheckpoint = ctx -> {
+            String conflictDenied = checkWriteConflict(
+                    ctx.chatToolCall(), ctx.executionContext(),
+                    ctx.sessionId(), ctx.agentName(), ctx.agentModel());
+            if (conflictDenied != null) {
+                ctx.executionContext().addMessage(ChatToolResponseMessage.error(
+                        ctx.chatToolCall().getId(), ctx.toolName(),
+                        "Conflict denied: " + conflictDenied));
+                if (handleDenialAndCheckThreshold(ctx.sessionId(), ctx.toolName(),
+                        DenialLayerSource.LAYER2_CONFLICT_STRATEGY, conflictDenied,
+                        "layer2_conflict_strategy", ctx.executionContext(), ctx.agentName(),
+                        ctx.chatToolCall(), ctx.fingerprintWorkDir())) {
+                    return SecurityCheckpoint.Decision.DENY_AND_BREAK;
+                }
+                return SecurityCheckpoint.Decision.DENY;
+            }
+            return SecurityCheckpoint.Decision.ALLOW;
+        };
+
+        return SecurityCheckpointChain.builder()
+                .add(postDenialCheckpoint)
+                .add(toolAccessCheckpoint)
+                .add(permissionCheckpoint)
+                .add(pathAccessCheckpoint)
+                .add(layer2Checkpoint)
+                .add(layer3Checkpoint)
+                .add(conflictCheckpoint)
+                .build();
+    }
+
+    /**
+     * Plan 304: extract the LLM call with circuit-breaker check and retry
+     * loop into its own method so the reactLoop body delegates to a named
+     * step. Returns an LlmCallResult holding the response, the final
+     * routedOptions (which may have been reassigned by a FALLBACK switch),
+     * the llmCallStart timestamp, and a success flag.
+     */
+    private LlmCallResult doLlmCallWithRetry(ChatRequest request,
+                                             AgentExecutionContext ctx,
+                                             String sessionId,
+                                             String agentName,
+                                             ChatOptions routedOptions) {
+        String primaryModelKey = buildModelKey(routedOptions);
+        if (!circuitBreaker.allowCall(primaryModelKey)) {
+            CircuitState rejectedState = circuitBreaker.getState(primaryModelKey);
+            LOG.warn("Circuit breaker rejected LLM call for model {} (state={}); "
+                            + "failing fast. session={}", primaryModelKey, rejectedState, sessionId);
+            throw new NopAiAgentException(
+                    "Circuit breaker is " + rejectedState + " for model "
+                            + primaryModelKey + "; rejecting call to avoid wasting "
+                            + "time/tokens on a consecutively-failing model. Configure "
+                            + "an IModelRouter fallback chain or wait for the breaker "
+                            + "cooldown before retrying.");
+        }
+        long llmCallStart = System.currentTimeMillis();
+        ChatResponse response;
+        {
+            int attempt = 0;
+            Throwable lastError = null;
+            ChatResponse attemptResponse = null;
+            while (true) {
+                try {
+                    llmCallStart = System.currentTimeMillis();
+                    attemptResponse = callChatWithTimeout(request);
+                    break;
+                } catch (RuntimeException | Error ex) {
+                    circuitBreaker.recordFailure(buildModelKey(routedOptions));
+                    lastError = ex;
+                    ErrorClassification classification = LlmErrorClassifier.classify(ex);
+                    RetryContext retryCtx = new RetryContext(
+                            attempt, ex, classification, false);
+                    RetryOutcome outcome = retryPolicy.shouldRetry(retryCtx);
+                    if (outcome == null) {
+                        throw new NopAiAgentException(
+                                "retryPolicy.shouldRetry() returned null for classification="
+                                        + classification + ", attempt=" + attempt, ex);
+                    }
+                    if (outcome.isRetry()) {
+                        LOG.warn("LLM call failed (classification={}, attempt={}), "
+                                        + "retrying after {} ms: {}",
+                                classification, attempt, outcome.getDelayMs(),
+                                ex.toString());
+                        attempt++;
+                        sleepBackoff(outcome.getDelayMs());
+                        continue;
+                    }
+                    if (outcome.isFallback()) {
+                        ChatOptions fallbackOptions = modelRouter.getFallback(routedOptions);
+                        if (fallbackOptions == null) {
+                            LOG.error("LLM call retry policy returned FALLBACK at "
+                                    + "attempt={} (classification={}), but the model "
+                                    + "router provided no fallback model — stopping "
+                                    + "execution. Last error: {}",
+                                    attempt, classification, ex.toString());
+                            throw new NopAiAgentException(
+                                    "LLM call retry policy returned FALLBACK but no "
+                                            + "fallback model is available from the model "
+                                            + "router (classification=" + classification
+                                            + ", attempt=" + attempt + ")", ex);
+                        }
+                        int failedAttempt = attempt;
+                        String prevModelKey = buildModelKey(routedOptions);
+                        routedOptions = fallbackOptions;
+                        request.setOptions(routedOptions);
+                        attempt = 0;
+                        lastError = null;
+                        LOG.warn("LLM call FALLBACK after attempt={} "
+                                        + "(classification={}): switching model {} -> {} "
+                                        + "(attempt reset to 0) and retrying",
+                                failedAttempt, classification, prevModelKey,
+                                buildModelKey(routedOptions));
+                        continue;
+                    }
+                    if (lastError instanceof RuntimeException) {
+                        throw (RuntimeException) lastError;
+                    }
+                    throw (Error) lastError;
+                }
+            }
+            response = attemptResponse;
+        }
+
+        if (!response.isSuccess()) {
+            circuitBreaker.recordFailure(buildModelKey(routedOptions));
+            ctx.setStatus(AgentExecStatus.failed);
+            ctx.setLastError(response.getError());
+            invokeOnError(ctx, agentName);
+            publishErrorEvent(AgentEventType.EXECUTION_FAILED, sessionId, agentName,
+                    response.getError());
+            return new LlmCallResult(response, routedOptions, llmCallStart, false);
+        }
+
+        circuitBreaker.recordSuccess(buildModelKey(routedOptions));
+        return new LlmCallResult(response, routedOptions, llmCallStart, true);
+    }
+
+    /**
+     * Holds the result of {@link #doLlmCallWithRetry}: the ChatResponse,
+     * the final routedOptions (possibly updated by FALLBACK), the
+     * llmCallStart timestamp for usage recording, and a success flag.
+     */
+    private static final class LlmCallResult {
+        final ChatResponse response;
+        final ChatOptions routedOptions;
+        final long llmCallStart;
+        final boolean success;
+
+        LlmCallResult(ChatResponse response, ChatOptions routedOptions,
+                      long llmCallStart, boolean success) {
+            this.response = response;
+            this.routedOptions = routedOptions;
+            this.llmCallStart = llmCallStart;
+            this.success = success;
+        }
+
+        boolean isSuccess() { return success; }
     }
 
     public static Builder builder() {
@@ -491,7 +788,6 @@ public class ReActAgentExecutor implements IAgentExecutor {
         private IAgentMessenger messenger;
         private ISecurityLevelResolver securityLevelResolver;
         private IPermissionMatrix permissionMatrix;
-        private ILevelHintsProducer levelHintsProducer;
         private IApprovalGate approvalGate;
         private IDenialLedger denialLedger;
         private IPostDenialGuard postDenialGuard;
@@ -509,12 +805,9 @@ public class ReActAgentExecutor implements IAgentExecutor {
         private IWriteIntentRegistry writeIntentRegistry;
         private IContributionRegistry contributionRegistry;
         private io.nop.ai.agent.security.ISandboxBackend sandboxBackend;
-        // Plan 225 (L4-8-team-tools)
         private ITeamManager teamManager;
         private ITeamTaskStore teamTaskStore;
-        // Plan 228 (L4-team-acl-enforcement)
         private ITeamAclChecker teamAclChecker;
-        // Plan 271 (finding 14-03 / 14-04): LLM/tool wall-clock timeouts and
         // the executor used to wrap the synchronous chatService.call.
         private long llmTimeoutMs;
         private long toolTimeoutMs;
@@ -654,17 +947,6 @@ public class ReActAgentExecutor implements IAgentExecutor {
          */
         public Builder permissionMatrix(IPermissionMatrix permissionMatrix) {
             this.permissionMatrix = permissionMatrix;
-            return this;
-        }
-
-        /**
-         * Wire the {@link ILevelHintsProducer} that derives the
-         * {@link LevelHints} fed to the {@link ISecurityLevelResolver} in the
-         * Layer 2 dispatch-path step. Optional: when null, defaults to
-         * {@link DefaultLevelHintsProducer}.
-         */
-        public Builder levelHintsProducer(ILevelHintsProducer levelHintsProducer) {
-            this.levelHintsProducer = levelHintsProducer;
             return this;
         }
 
@@ -1029,7 +1311,6 @@ public class ReActAgentExecutor implements IAgentExecutor {
                     messenger,
                     securityLevelResolver,
                     permissionMatrix,
-                    levelHintsProducer,
                     approvalGate,
                     denialLedger,
                     postDenialGuard,
@@ -1085,7 +1366,6 @@ public class ReActAgentExecutor implements IAgentExecutor {
         publishEvent(AgentEventType.EXECUTION_STARTED, sessionId, agentName,
                 Map.of("agentName", agentName != null ? agentName : ""));
 
-        // Plan 296 (WS2): resolve the session for tag-based tool visibility
         // filtering. When sessionStore is null (testing) or the session is
         // not found, pass null — resolveActiveTags falls back to the agent
         // model's declared activeTags.
@@ -1145,7 +1425,6 @@ public class ReActAgentExecutor implements IAgentExecutor {
                 return CompletableFuture.completedFuture(AgentExecutionResult.fromContext(ctx));
             }
 
-            // Plan 212 (L3-8): capture the original maxIterations as the
             // sustain-round step. Each sustain CONTINUE extends the budget by
             // this amount (giving the agent another full round of its original
             // iteration budget), so after k sustains the total budget is
@@ -1156,7 +1435,6 @@ public class ReActAgentExecutor implements IAgentExecutor {
             int originalMaxIterations = ctx.getMaxIterations();
             int sustainCount = 0;
 
-            // Plan 212 (L3-8): the sustainLoop wraps the reactLoop. When the
             // reactLoop exits naturally (status still running = MAX_ITERATIONS
             // truncation), the engine consults the sustainer. CONTINUE extends
             // the budget and re-enters the reactLoop from the top; STOP (or a
@@ -1198,7 +1476,6 @@ public class ReActAgentExecutor implements IAgentExecutor {
                     break;
                 }
 
-                // Plan 211 (L3-3): session-level goal assessment. assessGoal is
                 // consulted at the iteration start, after the force-stop
                 // (context-overflow) hard guard and before compaction /
                 // PRE_REASONING hook (design nop-ai-agent-reliability.md §5.3).
@@ -1245,7 +1522,6 @@ public class ReActAgentExecutor implements IAgentExecutor {
                     continue;
                 }
 
-                // Plan 206 (L2-22): refresh the session-level budget snapshot
                 // before routing so a functional IModelRouter can read
                 // ctx.getBudgetSnapshot() and downgrade the model on budget
                 // exhaustion (design nop-ai-agent-usage-and-billing.md §3.6).
@@ -1270,7 +1546,6 @@ public class ReActAgentExecutor implements IAgentExecutor {
                 RoutingResult routingResult = modelRouter.route(ctx.getMessages(), options, ctx);
                 ChatOptions routedOptions = routingResult.getOptions();
 
-                // Plan 213 (circuit-aware-routing): resolve the routed options
                 // against the circuit breaker BEFORE the model-switched audit
                 // detection below. This upgrades the engine's handling of a
                 // circuit-OPEN primary model from "reject → terminate the
@@ -1293,7 +1568,6 @@ public class ReActAgentExecutor implements IAgentExecutor {
                 routedOptions = resolveCircuitAware(
                         routedOptions, modelRouter, circuitBreaker, sessionId);
 
-                // Plan 205 (L2-21): detect model switches between iterations and
                 // persist a model-switched audit message (role=80) when the
                 // routed model differs from the previous iteration's model
                 // (design nop-ai-agent-usage-and-billing.md §3.5). The message
@@ -1316,12 +1590,10 @@ public class ReActAgentExecutor implements IAgentExecutor {
                 request.setOptions(routedOptions);
                 List<ChatMessage> messagesAtCallTime = request.getMessages();
 
-                // Plan 202 (L2-18): capture the LLM call start time so the
                 // usage recorder can persist the actual call duration. The end
                 // time is computed when the UsageRecord is built (after a
                 // successful response), so a failed call leaves duration unset.
                 //
-                // Plan 207 (L3-2): the single LLM call point is wrapped in a
                 // retry loop (design nop-ai-agent-llm-layer.md §7). On a thrown
                 // exception the loop classifies the error, builds a
                 // RetryContext, and consults retryPolicy: RETRY → sleep the
@@ -1336,7 +1608,6 @@ public class ReActAgentExecutor implements IAgentExecutor {
                 // recorder captures the duration of the final (successful)
                 // attempt only.
                 //
-                // Plan 210 (L3-1): the circuit breaker is consulted at the
                 // retry loop's OUTER layer (design nop-ai-agent-reliability.md
                 // §3.3 / §5.1). Before entering the retry loop the breaker is
                 // asked whether the PRIMARY model (the routedOptions at this
@@ -1356,7 +1627,6 @@ public class ReActAgentExecutor implements IAgentExecutor {
                 // routedOptions can be reassigned inside the loop by a
                 // FALLBACK switch.
                 //
-                // Plan 213 (circuit-aware-routing): the upstream
                 // resolveCircuitAware(...) step already guarantees
                 // routedOptions is circuit-cleared (it scanned the router's
                 // fallback chain for a circuit-allowed model before reaching
@@ -1369,200 +1639,41 @@ public class ReActAgentExecutor implements IAgentExecutor {
                 // execution it never rejects (the resolution already selected
                 // an allowed model). The cost is one allowCall invocation —
                 // negligible. See resolveCircuitAware(...) javadoc.
-                String primaryModelKey = buildModelKey(routedOptions);
-                if (!circuitBreaker.allowCall(primaryModelKey)) {
-                    CircuitState rejectedState = circuitBreaker.getState(primaryModelKey);
-                    LOG.warn("Circuit breaker rejected LLM call for model {} (state={}); "
-                                    + "failing fast. session={}", primaryModelKey, rejectedState, sessionId);
-                    throw new NopAiAgentException(
-                            "Circuit breaker is " + rejectedState + " for model "
-                                    + primaryModelKey + "; rejecting call to avoid wasting "
-                                    + "time/tokens on a consecutively-failing model. Configure "
-                                    + "an IModelRouter fallback chain or wait for the breaker "
-                                    + "cooldown before retrying.");
-                }
-                long llmCallStart = System.currentTimeMillis();
-                ChatResponse response;
-                {
-                    int attempt = 0;
-                    Throwable lastError = null;
-                    ChatResponse attemptResponse = null;
-                    while (true) {
-                        try {
-                            llmCallStart = System.currentTimeMillis();
-                            // Plan 271 (finding 14-03): wrap the synchronous
-                            // chatService.call in a CompletableFuture with a
-                            // wall-clock timeout so a permanently hung LLM
-                            // connection cannot block the agent session, worker
-                            // thread, and takeover lock indefinitely. On timeout
-                            // the Future completes exceptionally with a
-                            // TimeoutException (wrapped in CompletionException
-                            // by .join), which the existing catch below
-                            // classifies and routes through the retry policy.
-                            attemptResponse = callChatWithTimeout(request);
-                            break;
-                        } catch (RuntimeException | Error ex) {
-                            // Plan 210 (L3-1): record this attempt's failure
-                            // to the circuit breaker BEFORE any RETRY/STOP/
-                            // FALLBACK branching and BEFORE a FALLBACK switch
-                            // reassigns routedOptions. Every attempt failure is
-                            // evidence of model health regardless of whether it
-                            // is subsequently retried or triggers a fallback —
-                            // a model that repeatedly forces retries is exactly
-                            // the consecutive-failure pattern the breaker must
-                            // catch. recordSuccess (called after a successful
-                            // retry cycle) clears the counter, so an ultimately
-                            // successful retry cycle leaves no accumulated
-                            // debt; the breaker only trips on failures with no
-                            // intervening success. The current routedOptions is
-                            // used (not primaryModelKey) so a fallback model's
-                            // failures are attributed to the fallback model
-                            // once a FALLBACK switch has happened.
-                            circuitBreaker.recordFailure(buildModelKey(routedOptions));
-                            lastError = ex;
-                            ErrorClassification classification = LlmErrorClassifier.classify(ex);
-                            // Current call path is non-streaming → hasStreamedContent
-                            // is always false (Non-Goal: actual streaming wiring is
-                            // an independent successor).
-                            RetryContext retryCtx = new RetryContext(
-                                    attempt, ex, classification, false);
-                            RetryOutcome outcome = retryPolicy.shouldRetry(retryCtx);
-                            if (outcome == null) {
-                                // Contract defence: policy must never return null.
-                                throw new NopAiAgentException(
-                                        "retryPolicy.shouldRetry() returned null for classification="
-                                                + classification + ", attempt=" + attempt, ex);
-                            }
-                            if (outcome.isRetry()) {
-                                LOG.warn("LLM call failed (classification={}, attempt={}), "
-                                                + "retrying after {} ms: {}",
-                                        classification, attempt, outcome.getDelayMs(),
-                                        ex.toString());
-                                attempt++;
-                                sleepBackoff(outcome.getDelayMs());
-                                continue;
-                            }
-                            if (outcome.isFallback()) {
-                                // Plan 209: consult the model router for a
-                                // fallback model. A functional router
-                                // (SmartModelRouter) returns the next model in
-                                // its configured fallback chain; the shipped
-                                // PassThroughModelRouter default and an
-                                // exhausted chain return null → fail loud
-                                // (Minimum Rules #24 — no silent skip).
-                                ChatOptions fallbackOptions = modelRouter.getFallback(routedOptions);
-                                if (fallbackOptions == null) {
-                                    LOG.error("LLM call retry policy returned FALLBACK at "
-                                            + "attempt={} (classification={}), but the model "
-                                            + "router provided no fallback model — stopping "
-                                            + "execution. Last error: {}",
-                                            attempt, classification, ex.toString());
-                                    throw new NopAiAgentException(
-                                            "LLM call retry policy returned FALLBACK but no "
-                                                    + "fallback model is available from the model "
-                                                    + "router (classification=" + classification
-                                                    + ", attempt=" + attempt + ")", ex);
-                                }
-                                // Apply the fallback model for the next attempt.
-                                // routedOptions is updated so the downstream usage
-                                // record attributes tokens to the fallback model that
-                                // actually executed the call (plan 209 usage-attribution
-                                // requirement), not the original primary model. Note:
-                                // the model-switched audit message (plan 205, role=80)
-                                // is written BEFORE the retry loop based on inter-
-                                // iteration model change detection; an intra-iteration
-                                // fallback switch is intentionally not recorded as a
-                                // separate role=80 message (Non-Goal).
-                                int failedAttempt = attempt;
-                                String prevModelKey = buildModelKey(routedOptions);
-                                routedOptions = fallbackOptions;
-                                request.setOptions(routedOptions);
-                                // Reset the attempt counter: the fallback model is a
-                                // fresh call cycle that deserves its own retry budget
-                                // (plan 209 adjudication).
-                                attempt = 0;
-                                lastError = null;
-                                LOG.warn("LLM call FALLBACK after attempt={} "
-                                                + "(classification={}): switching model {} -> {} "
-                                                + "(attempt reset to 0) and retrying",
-                                        failedAttempt, classification, prevModelKey,
-                                        buildModelKey(routedOptions));
-                                continue;
-                            }
-                            // STOP: propagate the original error as-is.
-                            if (lastError instanceof RuntimeException) {
-                                throw (RuntimeException) lastError;
-                            }
-                            throw (Error) lastError;
-                        }
-                    }
-                    response = attemptResponse;
-                }
+                LlmCallResult llmResult = doLlmCallWithRetry(
+                        request, ctx, sessionId, agentName, routedOptions);
+                routedOptions = llmResult.routedOptions;
 
-                if (!response.isSuccess()) {
-                    // Plan 210 (L3-1): chatService.call may return a non-error
-                    // response that still indicates failure (response.isSuccess()
-                    // == false) rather than throwing. Such a response is also
-                    // evidence of model health and must be recorded to the
-                    // breaker — otherwise a model that consistently returns
-                    // error responses (without throwing) would never trip the
-                    // circuit. The current routedOptions (possibly a fallback
-                    // model) is used so the failure is attributed correctly.
-                    circuitBreaker.recordFailure(buildModelKey(routedOptions));
-                    ctx.setStatus(AgentExecStatus.failed);
-                    ctx.setLastError(response.getError());
-
-                    invokeOnError(ctx, agentName);
-                    publishErrorEvent(AgentEventType.EXECUTION_FAILED, sessionId, agentName,
-                            response.getError());
-
+                if (!llmResult.isSuccess()) {
                     break;
                 }
 
-                // Plan 210 (L3-1): the retry cycle completed successfully.
-                // Record the success so a functional breaker can reset its
-                // consecutive-failure counter (CLOSED stays CLOSED; HALF_OPEN
-                // transitions to CLOSED). The current routedOptions is used
-                // because a successful call after a FALLBACK switch attributes
-                // the success to the fallback model that actually executed it.
-                circuitBreaker.recordSuccess(buildModelKey(routedOptions));
-
-                ChatAssistantMessage assistantMsg = response.getMessage();
+                ChatAssistantMessage assistantMsg = llmResult.response.getMessage();
                 ctx.addMessage(assistantMsg);
 
-                if (response.getUsage() != null) {
-                    int promptTokens = response.getPromptTokens() != null ? response.getPromptTokens() : 0;
-                    int completionTokens = response.getCompletionTokens() != null ? response.getCompletionTokens() : 0;
+                if (llmResult.response.getUsage() != null) {
+                    int promptTokens = llmResult.response.getPromptTokens() != null
+                            ? llmResult.response.getPromptTokens() : 0;
+                    int completionTokens = llmResult.response.getCompletionTokens() != null
+                            ? llmResult.response.getCompletionTokens() : 0;
                     ctx.setTokensUsed(ctx.getTokensUsed() + promptTokens + completionTokens);
 
-                    // Plan 201 (L2-17): record per-LLM-call usage via the
-                    // IUsageRecorder extension point (design §3.1). The
-                    // shipped NoOpUsageRecorder default discards the record
-                    // (explicit pass-through); a functional recorder persists
-                    // it. modelId is null here — the NopAiModel entity key is
-                    // resolved by the L2-18 recorder at persistence time
-                    // (agent runtime has no DB lookup). responseDurationMs is
-                    // measured from llmCallStart (plan 202 L2-18) — the
-                    // wall-clock span of the LLM call captured just before
-                    // chatService.call().
                     UsageRecord usageRecord = new UsageRecord();
                     usageRecord.setSessionId(sessionId);
                     usageRecord.setAgentName(agentName);
-                    usageRecord.setRequestId(response.getRequestId());
+                    usageRecord.setRequestId(llmResult.response.getRequestId());
                     usageRecord.setAiProvider(routedOptions.getProvider());
                     usageRecord.setAiModel(routedOptions.getModel());
                     usageRecord.setPromptTokens(promptTokens);
                     usageRecord.setCompletionTokens(completionTokens);
-                    usageRecord.setResponseDurationMs(System.currentTimeMillis() - llmCallStart);
+                    usageRecord.setResponseDurationMs(System.currentTimeMillis() - llmResult.llmCallStart);
                     usageRecord.setResponseTimestamp(System.currentTimeMillis());
                     usageRecorder.record(usageRecord);
 
                     if (promptTokens > 0) {
-                        tokenEstimator.record(messagesAtCallTime, promptTokens);
+                        tokenEstimator.record(request.getMessages(), promptTokens);
                     }
                 }
 
-                // Plan 187 Phase 1 LLM-turn checkpoint (design §5.4a "after
                 // each LLM turn completes" trigger point): now that the
                 // assistant response has been added to the context and token
                 // accounting is done, record an LLM_TURN checkpoint. This
@@ -1595,7 +1706,6 @@ public class ReActAgentExecutor implements IAgentExecutor {
                         ctx.getTokensUsed()));
                 checkpointSeq[0]++;
 
-                // Plan 187 intra-execution persistence (same plan 183
                 // TOOL_EXECUTION pattern): after the LLM_TURN checkpoint is
                 // written, synchronize the persisted session's message list so
                 // the restore invariant checkpoint.messageCount <=
@@ -1647,7 +1757,6 @@ public class ReActAgentExecutor implements IAgentExecutor {
                     assistantMsg.setContent(modifiedContent);
                 }
 
-                // Plan 211 (L3-3): record this iteration's progress with the
                 // goal tracker. Called once per iteration after the LLM
                 // response is finalised (assistantMsg built + output guardrail
                 // applied) and before the tool-dispatch / completion-judge
@@ -1701,7 +1810,6 @@ public class ReActAgentExecutor implements IAgentExecutor {
 
                 consecutiveContinues = 0;
 
-                // Plan 189 Phase 1: resolve the per-session memory store from
                 // the provider (when wired). When the provider is null
                 // (executor constructed outside the engine for testing, or
                 // explicitly opted out), the store stays null and memory tools
@@ -1728,12 +1836,10 @@ public class ReActAgentExecutor implements IAgentExecutor {
                         teamManager,
                         teamTaskStore,
                         teamAclChecker);
-                // Plan 278 (AR-05): propagate the delegation depth from the
                 // execution context so CallAgentExecutor can enforce
                 // MAX_DELEGATION_DEPTH and compute the child's depth.
                 toolExecCtx.setDelegationDepth(ctx.getDelegationDepth());
 
-                // Plan 296 (WS2): populate the session so meta-tools
                 // (set-active-tags) can read/mutate session-scoped state.
                 if (sessionStore != null && sessionId != null) {
                     toolExecCtx.setSession(sessionStore.get(sessionId));
@@ -1757,181 +1863,16 @@ public class ReActAgentExecutor implements IAgentExecutor {
                             Map.of("toolName", toolName,
                                     "iteration", ctx.getCurrentIteration()));
 
-                    // Layer 3 post-denial-guard consultation (design §6.3 / L3-7):
-                    // before the Layer 1 checks, consult the guard to detect
-                    // blind retries. If the action's fingerprint is already in
-                    // the session's denied set, deny here and skip all Layer
-                    // 1/2/3 checks (saving token budget and preventing repeated
-                    // denials from inflating the ledger count). With the shipped
-                    // PassThroughPostDenialGuard default this always returns
-                    // null (backward compatible — no spurious denials).
-                    DenialResult postDenialResult = postDenialGuard.checkBeforeDispatch(
-                            sessionId, toolName, chatToolCall.getArguments(), fingerprintWorkDir);
-                    if (postDenialResult != null) {
-                        String denyMessage = postDenialResult.getMessage() != null
-                                ? postDenialResult.getMessage()
-                                : "Repeated same denied action";
-                        auditLogger.log(new AuditEvent(sessionId, agentName, null, toolName,
-                                AuditDecision.DENY, denyMessage, "layer3_post_denial_guard",
-                                postDenialResult.getActionFingerprint(), System.currentTimeMillis()));
-                        publishEvent(AgentEventType.TOOL_CALL_DENIED, sessionId, agentName,
-                                Map.of("toolName", toolName != null ? toolName : "",
-                                        "reason", denyMessage,
-                                        "denialReason", postDenialResult.getReason().name(),
-                                        "suggestedNextStep", postDenialResult.getSuggestedNextStep().name()));
-
-                        ChatToolResponseMessage toolResponse = ChatToolResponseMessage.error(
-                                chatToolCall.getId(),
-                                toolName,
-                                denyMessage + " (suggested: " + postDenialResult.getSuggestedNextStep() + ")");
-                        ctx.addMessage(toolResponse);
-                        if (handleDenialAndCheckThreshold(sessionId, toolName,
-                                DenialLayerSource.LAYER3_POST_DENIAL_GUARD, denyMessage,
-                                "layer3_post_denial_guard", ctx, agentName,
-                                chatToolCall, fingerprintWorkDir)) {
-                            break dispatchLoop;
-                        }
-                        continue;
+                    // Each checkpoint implements one deny path from the original
+                    // inline if-else chain. The chain replaces all 7 deny paths
+                    // and their associated audit/event/error-response boilerplate.
+                    SecurityCheckpoint.CheckContext checkCtx = SecurityCheckpoint.CheckContext.create(
+                            sessionId, agentName, chatToolCall, ctx, fingerprintWorkDir, agentModel);
+                    SecurityCheckpoint.Decision decision = checkpointChain.evaluate(checkCtx);
+                    if (decision == SecurityCheckpoint.Decision.DENY_AND_BREAK) {
+                        break dispatchLoop;
                     }
-
-                    ToolAccessResult accessResult = toolAccessChecker.checkAccess(toolName, ctx);
-                    auditLogger.log(new AuditEvent(sessionId, agentName, null, toolName,
-                            accessResult.isAllowed() ? AuditDecision.ALLOW : AuditDecision.DENY,
-                            accessResult.getReason(), accessResult.getMatchedRule(), null,
-                            System.currentTimeMillis()));
-                    if (!accessResult.isAllowed()) {
-                        publishEvent(AgentEventType.TOOL_CALL_DENIED, sessionId, agentName,
-                                Map.of("toolName", toolName,
-                                        "reason", accessResult.getReason() != null ? accessResult.getReason() : ""));
-
-                        ChatToolResponseMessage toolResponse = ChatToolResponseMessage.error(
-                                chatToolCall.getId(),
-                                toolName,
-                                "Access denied: " + (accessResult.getReason() != null ? accessResult.getReason() : "hardcoded deny"));
-                        ctx.addMessage(toolResponse);
-                        if (handleDenialAndCheckThreshold(sessionId, toolName,
-                                DenialLayerSource.LAYER1_TOOL_ACCESS, accessResult.getReason(),
-                                accessResult.getMatchedRule(), ctx, agentName,
-                                chatToolCall, fingerprintWorkDir)) {
-                            break dispatchLoop;
-                        }
-                        continue;
-                    }
-
-                    Permission perm = permissionProvider.resolve(toolName, agentName, sessionId);
-                    auditLogger.log(new AuditEvent(sessionId, agentName, null, toolName,
-                            perm.isAllowed() ? AuditDecision.ALLOW : AuditDecision.DENY,
-                            perm.getReason(), perm.getMatchedRuleId(), null,
-                            System.currentTimeMillis()));
-                    if (!perm.isAllowed()) {
-                        publishEvent(AgentEventType.TOOL_CALL_DENIED, sessionId, agentName,
-                                Map.of("toolName", toolName,
-                                        "reason", perm.getReason() != null ? perm.getReason() : ""));
-
-                        ChatToolResponseMessage toolResponse = ChatToolResponseMessage.error(
-                                chatToolCall.getId(),
-                                toolName,
-                                "Permission denied: " + (perm.getReason() != null ? perm.getReason() : "access denied"));
-                        ctx.addMessage(toolResponse);
-                        if (handleDenialAndCheckThreshold(sessionId, toolName,
-                                DenialLayerSource.LAYER1_PERMISSION, perm.getReason(),
-                                perm.getMatchedRuleId(), ctx, agentName,
-                                chatToolCall, fingerprintWorkDir)) {
-                            break dispatchLoop;
-                        }
-                        continue;
-                    }
-
-                    String pathDenied = checkPathAccess(chatToolCall, ctx, sessionId, agentName);
-                    if (pathDenied != null) {
-                        ChatToolResponseMessage toolResponse = ChatToolResponseMessage.error(
-                                chatToolCall.getId(),
-                                toolName,
-                                "Path access denied: " + pathDenied);
-                        ctx.addMessage(toolResponse);
-                        if (handleDenialAndCheckThreshold(sessionId, toolName,
-                                DenialLayerSource.LAYER1_PATH_ACCESS, pathDenied,
-                                "path_access_checker", ctx, agentName,
-                                chatToolCall, fingerprintWorkDir)) {
-                            break dispatchLoop;
-                        }
-                        continue;
-                    }
-
-                    // Layer 2 consultation (design §5.1/§5.3): after the Layer 1
-                    // checks pass, derive the LevelHints, resolve the
-                    // SecurityLevel, and consult the channel × level permission
-                    // matrix. On denial: audit + event + error response, mirroring
-                    // the Layer 1 deny path. NoOp/PassThrough defaults allow
-                    // everything (backward compatible). The resolved level is
-                    // carried forward to the Layer 3 consultation so it is not
-                    // resolved twice.
-                    SecurityConsultationOutcome layer2 = checkLayer2Consultation(
-                            chatToolCall, ctx, sessionId, agentName, agentModel);
-                    if (layer2.isDenied()) {
-                        ChatToolResponseMessage toolResponse = ChatToolResponseMessage.error(
-                                chatToolCall.getId(),
-                                toolName,
-                                "Security policy denied: " + layer2.getDenialReason());
-                        ctx.addMessage(toolResponse);
-                        if (handleDenialAndCheckThreshold(sessionId, toolName,
-                                DenialLayerSource.LAYER2_SECURITY_POLICY, layer2.getDenialReason(),
-                                "layer2_permission_matrix", ctx, agentName,
-                                chatToolCall, fingerprintWorkDir)) {
-                            break dispatchLoop;
-                        }
-                        continue;
-                    }
-
-                    // Layer 3 consultation (design §6.1/§8): after the Layer 2
-                    // matrix allows, consult the approval gate with the resolved
-                    // security level + tool-call context. On denial: audit + event
-                    // + error response, mirroring the Layer 1/2 deny paths.
-                    // DefaultApprovalGate default approves STANDARD/ELEVATED and
-                    // defense-in-depth denies RESTRICTED (plan 199).
-                    String layer3Denied = checkLayer3Approval(
-                            layer2.getResolvedLevel(), toolName, ctx, sessionId, agentName);
-                    if (layer3Denied != null) {
-                        ChatToolResponseMessage toolResponse = ChatToolResponseMessage.error(
-                                chatToolCall.getId(),
-                                toolName,
-                                "Approval denied: " + layer3Denied);
-                        ctx.addMessage(toolResponse);
-                        if (handleDenialAndCheckThreshold(sessionId, toolName,
-                                DenialLayerSource.LAYER3_APPROVAL_GATE, layer3Denied,
-                                "layer3_approval_gate", ctx, agentName,
-                                chatToolCall, fingerprintWorkDir)) {
-                            break dispatchLoop;
-                        }
-                        continue;
-                    }
-
-                    // Plan 214 (L2-13a): Layer 2 conflict-strategy consultation
-                    // (design nop-ai-agent-multi-agent.md §4.4). After the Layer 3
-                    // approval gate allows and before the call is added to
-                    // allowedCalls, detect cross-session write conflicts: extract
-                    // path arguments, register a write intent per path, and — if
-                    // another session already holds an intent on the same path —
-                    // ask the IConflictStrategy whether to ALLOW or DENY. On
-                    // denial: audit + event + error response, mirroring the
-                    // Layer 1/2/3 deny paths. The shipped FailFastStrategy
-                    // default denies on any cross-session conflict (zero-regression
-                    // for single-session executions, where the registry contains
-                    // no other-session intents → empty conflict set → ALLOW).
-                    String conflictDenied = checkWriteConflict(
-                            chatToolCall, ctx, sessionId, agentName, agentModel);
-                    if (conflictDenied != null) {
-                        ChatToolResponseMessage toolResponse = ChatToolResponseMessage.error(
-                                chatToolCall.getId(),
-                                toolName,
-                                "Conflict denied: " + conflictDenied);
-                        ctx.addMessage(toolResponse);
-                        if (handleDenialAndCheckThreshold(sessionId, toolName,
-                                DenialLayerSource.LAYER2_CONFLICT_STRATEGY, conflictDenied,
-                                "layer2_conflict_strategy", ctx, agentName,
-                                chatToolCall, fingerprintWorkDir)) {
-                            break dispatchLoop;
-                        }
+                    if (decision == SecurityCheckpoint.Decision.DENY) {
                         continue;
                     }
 
@@ -1975,7 +1916,6 @@ public class ReActAgentExecutor implements IAgentExecutor {
                             aiToolCall.setToolName(chatToolCall.getName());
                             aiToolCall.setInput(chatToolCall.getArgumentsText());
 
-                            // Plan 271 (finding 14-03): bound each tool call
                             // with a wall-clock timeout so a permanently hung
                             // tool cannot block the agent session, worker
                             // thread, and takeover lock indefinitely. On
@@ -2124,7 +2064,6 @@ public class ReActAgentExecutor implements IAgentExecutor {
                                 ctx.getTokensUsed()));
                         checkpointSeq[0]++;
 
-                        // Plan 183 Phase 1 intra-execution persistence: after
                         // the checkpoint is written, synchronize the session's
                         // message list with the live ctx.getMessages() and
                         // persist via sessionStore.save. This makes the
@@ -2189,7 +2128,6 @@ public class ReActAgentExecutor implements IAgentExecutor {
                     break;
                 }
 
-                // Plan 220 (L4-8-steering): steering checkpoint at the round
                 // boundary. After all tool calls in this round completed and
                 // their results written back to the ctx message list (above),
                 // drain the steering queue and append any queued steering
@@ -2215,7 +2153,6 @@ public class ReActAgentExecutor implements IAgentExecutor {
                 ctx.setCurrentIteration(ctx.getCurrentIteration() + 1);
             }
 
-            // Plan 212 (L3-8): sustainer consult at the exit decision point.
             // The reactLoop just exited. If the status is still running, the
             // exit was a MAX_ITERATIONS truncation (the only sustainable exit
             // point in this version) — the iteration budget was exhausted
@@ -2782,7 +2719,6 @@ public class ReActAgentExecutor implements IAgentExecutor {
                         result.getTokensBefore(), result.getTokensAfter(),
                         result.getRetainedMessageCount(), ctx.getSessionId());
 
-                // Plan 187 Phase 2 compaction checkpoint (design §5.4a
                 // "snapshot on compaction" trigger point): after the context
                 // has actually been compacted (messages replaced + token
                 // accounting adjusted), record a COMPACTION checkpoint
@@ -2812,7 +2748,6 @@ public class ReActAgentExecutor implements IAgentExecutor {
                         ctx.getTokensUsed()));
                 checkpointSeq[0]++;
 
-                // Plan 187 intra-execution persistence: compaction replaced
                 // the message list, so the persisted session must be
                 // re-synchronized. Without this, a crash after compaction
                 // would restore pre-compaction messages and break the
@@ -2992,7 +2927,7 @@ public class ReActAgentExecutor implements IAgentExecutor {
         String toolName = chatToolCall.getName();
 
         File workDir = resolveWorkDir(agentModel);
-        LevelHints hints = levelHintsProducer.produce(toolName, chatToolCall.getArguments(), workDir, ctx);
+        LevelHints hints = securityLevelResolver.produce(toolName, chatToolCall.getArguments(), workDir, ctx);
         SecurityLevel level = securityLevelResolver.resolve(toolName, hints);
 
         ChannelKind channel = ctx.getChannelKind();

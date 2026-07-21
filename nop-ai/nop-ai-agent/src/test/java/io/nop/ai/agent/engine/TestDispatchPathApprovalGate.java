@@ -10,6 +10,8 @@ import io.nop.ai.agent.security.IAuditLogger;
 import io.nop.ai.agent.security.ISecurityLevelResolver;
 import io.nop.ai.agent.security.LevelHints;
 import io.nop.ai.agent.security.Principal;
+
+import java.io.File;
 import io.nop.ai.agent.security.SecurityLevel;
 import io.nop.ai.api.chat.ChatRequest;
 import io.nop.ai.api.chat.ChatResponse;
@@ -81,6 +83,12 @@ public class TestDispatchPathApprovalGate {
      * default, so Layer 2 always allows here).
      */
     static final class TestResolver implements ISecurityLevelResolver {
+        @Override
+        public LevelHints produce(String toolName, Map<String, Object> arguments, File workDir,
+                                  AgentExecutionContext ctx) {
+            return LevelHints.defaults();
+        }
+
         @Override
         public SecurityLevel resolve(String actionKind, LevelHints hints) {
             String kind = actionKind == null ? "" : actionKind.replace('_', '.').toLowerCase(Locale.ROOT);

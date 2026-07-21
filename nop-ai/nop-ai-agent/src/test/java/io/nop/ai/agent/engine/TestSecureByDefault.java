@@ -311,21 +311,18 @@ public class TestSecureByDefault {
                 toolCall("x", "noop", Map.of()));
         IToolManager toolManager = recordingToolManager(new AtomicBoolean());
 
-        // Before construction: capture WARN count baseline (should be empty)
         assertEquals(0, warnEvents().size(), "No WARN should be emitted before construction");
 
-        // Explicit opt-in to AllowAll* for BOTH checkers
+        // Plan 304: warnIfInsecureDefaults centralized to Builder.build()
         @SuppressWarnings("resource")
-        DefaultAgentEngine engine = new DefaultAgentEngine(chatService, toolManager,
-                new io.nop.ai.agent.session.InMemorySessionStore(),
-                new io.nop.ai.agent.security.AllowAllPermissionProvider(),
-                new AllowAllToolAccessChecker(),
-                new AllowAllPathAccessChecker());
+        DefaultAgentEngine engine = DefaultAgentEngine.builder(chatService, toolManager)
+                .toolAccessChecker(new AllowAllToolAccessChecker())
+                .pathAccessChecker(new AllowAllPathAccessChecker())
+                .build();
 
         List<ILoggingEvent> warns = warnEvents();
-        // Both AllowAll* instances → at least 2 WARNs (one per checker)
         assertTrue(warns.size() >= 2,
-                "Explicit AllowAll* must emit at least 2 WARNs (one per checker). Got: " + warns.size());
+                "AllowAll* via builder must emit at least 2 WARNs (one per checker). Got: " + warns.size());
 
         boolean toolWarnPresent = warns.stream()
                 .anyMatch(e -> e.getFormattedMessage() != null
@@ -341,7 +338,6 @@ public class TestSecureByDefault {
                 "A WARN must identify AllowAllPathAccessChecker. Messages: "
                         + warns.stream().map(ILoggingEvent::getFormattedMessage).collect(Collectors.toList()));
 
-        // Sanity: the WARN text mentions the insecure-default nature + guidance
         boolean mentionsInsecure = warns.stream()
                 .anyMatch(e -> e.getFormattedMessage() != null
                         && (e.getFormattedMessage().toLowerCase().contains("insecure")
@@ -350,7 +346,6 @@ public class TestSecureByDefault {
                 "WARN must mention the insecure / not-blocked nature of the default. Messages: "
                         + warns.stream().map(ILoggingEvent::getFormattedMessage).collect(Collectors.toList()));
 
-        // Suppress unused-variable warning for engine — its construction is the side-effect under test
         assertEquals(AllowAllToolAccessChecker.class, engine.getToolAccessCheckerForTest().getClass());
     }
 
@@ -368,7 +363,7 @@ public class TestSecureByDefault {
 
         assertEquals(0, warnEvents().size(), "Baseline: no WARN before construction");
 
-        // Short constructor → Default* installed internally
+        // Short constructor → Default* installed internally — no WARN
         @SuppressWarnings("resource")
         DefaultAgentEngine engineShort = new DefaultAgentEngine(chatService, toolManager);
 
@@ -392,17 +387,16 @@ public class TestSecureByDefault {
                 "Explicit Default* must NOT emit any WARN. Got: "
                         + warnsAfterExplicit.stream().map(ILoggingEvent::getFormattedMessage).collect(Collectors.toList()));
 
-        // Single AllowAll (tool only, Default path) — exactly 1 WARN (not 2)
+        // Plan 304: Single AllowAll via builder → exactly 1 WARN (not 2)
         @SuppressWarnings("resource")
-        DefaultAgentEngine engineMixed = new DefaultAgentEngine(chatService, toolManager,
-                new io.nop.ai.agent.session.InMemorySessionStore(),
-                new io.nop.ai.agent.security.AllowAllPermissionProvider(),
-                new AllowAllToolAccessChecker(),
-                new DefaultPathAccessChecker());
+        DefaultAgentEngine engineMixed = DefaultAgentEngine.builder(chatService, toolManager)
+                .toolAccessChecker(new AllowAllToolAccessChecker())
+                .pathAccessChecker(new DefaultPathAccessChecker())
+                .build();
 
         List<ILoggingEvent> warnsAfterMixed = warnEvents();
         assertEquals(1, warnsAfterMixed.size(),
-                "Mixed (AllowAll tool + Default path) must emit exactly 1 WARN. Got: "
+                "Mixed (AllowAll tool + Default path) via builder must emit exactly 1 WARN. Got: "
                         + warnsAfterMixed.stream().map(ILoggingEvent::getFormattedMessage).collect(Collectors.toList()));
     }
 

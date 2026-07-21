@@ -9,7 +9,12 @@ import io.nop.ai.agent.security.DefaultPermissionMatrix;
 import io.nop.ai.agent.security.DefaultPostDenialGuard;
 import io.nop.ai.agent.security.DefaultSecurityLevelResolver;
 import io.nop.ai.agent.security.IAuditLogger;
+import io.nop.ai.agent.security.ISecurityLevelResolver;
+import io.nop.ai.agent.security.LevelHints;
 import io.nop.ai.agent.security.NoOpSecurityLevelResolver;
+
+import java.io.File;
+import java.util.Map;
 import io.nop.ai.agent.security.PassThroughPermissionMatrix;
 import io.nop.ai.agent.security.PassThroughPostDenialGuard;
 import io.nop.ai.agent.security.Principal;
@@ -209,7 +214,18 @@ public class TestLayer23SecureDefaultImpls {
                 chatServiceWithTurns(List.of(toolCall("c1", "shell.exec", Map.of("cmd", "ls")))),
                 recordingToolManager(new AtomicBoolean()));
         // Resolver that returns RESTRICTED (simulating untrusted high-impact)
-        engine.setSecurityLevelResolver((actionKind, hints) -> SecurityLevel.RESTRICTED);
+        engine.setSecurityLevelResolver(new ISecurityLevelResolver() {
+            @Override
+            public LevelHints produce(String toolName, Map<String, Object> arguments, File workDir,
+                                      AgentExecutionContext ctx) {
+                return LevelHints.defaults();
+            }
+
+            @Override
+            public SecurityLevel resolve(String actionKind, LevelHints hints) {
+                return SecurityLevel.RESTRICTED;
+            }
+        });
         // Use default matrix (DefaultPermissionMatrix denies RESTRICTED for null channel)
 
         AgentMessageRequest req = new AgentMessageRequest("test-agent", "run");
@@ -352,7 +368,18 @@ public class TestLayer23SecureDefaultImpls {
         DefaultAgentEngine engine = new DefaultAgentEngine(
                 chatServiceWithTurns(List.of(toolCall("c1", "shell.exec", Map.of("cmd", "ls")))),
                 recordingToolManager(null));
-        engine.setSecurityLevelResolver((actionKind, hints) -> SecurityLevel.RESTRICTED);
+        engine.setSecurityLevelResolver(new ISecurityLevelResolver() {
+            @Override
+            public LevelHints produce(String toolName, Map<String, Object> arguments, File workDir,
+                                      AgentExecutionContext ctx) {
+                return LevelHints.defaults();
+            }
+
+            @Override
+            public SecurityLevel resolve(String actionKind, LevelHints hints) {
+                return SecurityLevel.RESTRICTED;
+            }
+        });
         CollectingAuditLogger audit = new CollectingAuditLogger();
         engine.setAuditLogger(audit);
 

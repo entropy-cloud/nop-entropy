@@ -1,6 +1,10 @@
 package io.nop.ai.agent.security;
 
+import io.nop.ai.agent.engine.AgentExecutionContext;
+
+import java.io.File;
 import java.util.Locale;
+import java.util.Map;
 import java.util.Set;
 
 /**
@@ -48,6 +52,22 @@ public final class DefaultSecurityLevelResolver implements ISecurityLevelResolve
     private static final Set<String> SHELL_TOOLS = Set.of(
             "shell.exec", "code.exec"
     );
+
+    private final DefaultLevelHintsProducer hintsProducer;
+
+    public DefaultSecurityLevelResolver() {
+        this(new DefaultLevelHintsProducer());
+    }
+
+    public DefaultSecurityLevelResolver(DefaultLevelHintsProducer hintsProducer) {
+        this.hintsProducer = hintsProducer != null ? hintsProducer : new DefaultLevelHintsProducer();
+    }
+
+    @Override
+    public LevelHints produce(String toolName, Map<String, Object> arguments, File workDir,
+                              AgentExecutionContext ctx) {
+        return hintsProducer.produce(toolName, arguments, workDir, ctx);
+    }
 
     @Override
     public SecurityLevel resolve(String actionKind, LevelHints hints) {

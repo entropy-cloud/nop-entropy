@@ -119,7 +119,6 @@ public final class InMemoryTeamManager implements ITeamManager {
         String teamId = UUID.randomUUID().toString();
         long now = System.currentTimeMillis();
 
-        // Plan 234: enforce TEAM_MEMBERS quota (config-driven; override <= 0
         // so the guard falls back to the QuotaConfig teamMaxMembers default).
         // projectedCount = the spec's initial member count.
         enforceQuota(QuotaDimension.TEAM_MEMBERS, teamId,
@@ -218,7 +217,6 @@ public final class InMemoryTeamManager implements ITeamManager {
         @SuppressWarnings("unchecked")
         ConcurrentHashMap<String, TeamMember> members =
                 (ConcurrentHashMap<String, TeamMember>) team.getMembers();
-        // Plan 234: enforce TEAM_MEMBERS quota before adding
         // (projectedCount = current member count + 1).
         enforceQuota(QuotaDimension.TEAM_MEMBERS, teamId,
                 members.size() + 1, 0, "addMember");
@@ -271,7 +269,6 @@ public final class InMemoryTeamManager implements ITeamManager {
         @SuppressWarnings("unchecked")
         ConcurrentHashMap<String, TeamMember> members =
                 (ConcurrentHashMap<String, TeamMember>) team.getMembers();
-        // Plan 234: enforce TEAM_PARALLEL_BOUND_MEMBERS quota before binding
         // (the maxParallelMembers hint→enforced upgrade). "Parallel" = the
         // number of concurrently bound (isBound()==true) members. If the
         // target member is already bound, this is an idempotent rebind and

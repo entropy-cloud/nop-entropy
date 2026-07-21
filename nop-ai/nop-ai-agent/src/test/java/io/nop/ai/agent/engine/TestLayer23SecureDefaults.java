@@ -13,6 +13,9 @@ import io.nop.ai.agent.security.DefaultApprovalGate;
 import io.nop.ai.agent.security.IAuditLogger;
 import io.nop.ai.agent.security.ISecurityLevelResolver;
 import io.nop.ai.agent.security.LevelHints;
+
+import java.io.File;
+import java.util.Map;
 import io.nop.ai.agent.security.NoOpDenialLedger;
 import io.nop.ai.agent.security.NoOpSecurityLevelResolver;
 import io.nop.ai.agent.security.PassThroughPermissionMatrix;
@@ -217,6 +220,12 @@ public class TestLayer23SecureDefaults {
      */
     static final class RestrictedResolver implements ISecurityLevelResolver {
         @Override
+        public LevelHints produce(String toolName, Map<String, Object> arguments, File workDir,
+                                  AgentExecutionContext ctx) {
+            return LevelHints.defaults();
+        }
+
+        @Override
         public SecurityLevel resolve(String actionKind, LevelHints hints) {
             String kind = actionKind == null ? "" : actionKind.replace('_', '.').toLowerCase(Locale.ROOT);
             if ("network.fetch".equals(kind)) {
@@ -231,6 +240,12 @@ public class TestLayer23SecureDefaults {
      * verify no-WARN-on-functional-setter).
      */
     static final class StandardResolver implements ISecurityLevelResolver {
+        @Override
+        public LevelHints produce(String toolName, Map<String, Object> arguments, File workDir,
+                                  AgentExecutionContext ctx) {
+            return LevelHints.defaults();
+        }
+
         @Override
         public SecurityLevel resolve(String actionKind, LevelHints hints) {
             return SecurityLevel.STANDARD;
@@ -331,34 +346,29 @@ public class TestLayer23SecureDefaults {
         IChatService chatService = chatServiceEmittingThenFinal(toolCall("x", "echo", Map.of()));
         IToolManager toolManager = recordingToolManager(new AtomicBoolean());
 
-        // Default construction — no AutoApproveGate WARN
-        DefaultAgentEngine engine = new DefaultAgentEngine(chatService, toolManager);
-        assertEquals(0, countWarnsMentioning("AutoApproveGate"),
-                "Default construction must NOT emit AutoApproveGate WARN. Got: "
-                        + warns().stream().map(ILoggingEvent::getFormattedMessage).collect(Collectors.toList()));
-
-        // Setter injection of AutoApproveGate → WARN
-        engine.setApprovalGate(AutoApproveGate.autoApprove());
+        // Plan 304: warnIfInsecureDefaults centralized to Builder.build()
+        DefaultAgentEngine engine = DefaultAgentEngine.builder(chatService, toolManager)
+                .approvalGate(AutoApproveGate.autoApprove())
+                .build();
 
         assertTrue(countWarnsMentioning("AutoApproveGate") >= 1,
-                "setApprovalGate(AutoApproveGate) must emit a WARN identifying the downgrade. Messages: "
+                "builder().approvalGate(AutoApproveGate).build() must emit a WARN. Messages: "
                         + warns().stream().map(ILoggingEvent::getFormattedMessage).collect(Collectors.toList()));
     }
 
-    // ========================================================================
-    // Behaviour 3: WARN on 4 NoOp/PassThrough setter injections
-    // ========================================================================
+    // Behaviour 3: WARN on 4 NoOp/PassThrough builder injections
 
     @Test
     void setNoOpResolverTriggersWarn() {
         IChatService chatService = chatServiceEmittingThenFinal(toolCall("x", "echo", Map.of()));
         IToolManager toolManager = recordingToolManager(new AtomicBoolean());
-        DefaultAgentEngine engine = new DefaultAgentEngine(chatService, toolManager);
 
-        engine.setSecurityLevelResolver(NoOpSecurityLevelResolver.noOp());
+        DefaultAgentEngine engine = DefaultAgentEngine.builder(chatService, toolManager)
+                .securityLevelResolver(NoOpSecurityLevelResolver.noOp())
+                .build();
 
         assertTrue(countWarnsMentioning("NoOpSecurityLevelResolver") >= 1,
-                "setSecurityLevelResolver(NoOp) must emit a WARN. Messages: "
+                "builder().securityLevelResolver(NoOp).build() must emit a WARN. Messages: "
                         + warns().stream().map(ILoggingEvent::getFormattedMessage).collect(Collectors.toList()));
     }
 
@@ -366,12 +376,13 @@ public class TestLayer23SecureDefaults {
     void setPassThroughMatrixTriggersWarn() {
         IChatService chatService = chatServiceEmittingThenFinal(toolCall("x", "echo", Map.of()));
         IToolManager toolManager = recordingToolManager(new AtomicBoolean());
-        DefaultAgentEngine engine = new DefaultAgentEngine(chatService, toolManager);
 
-        engine.setPermissionMatrix(PassThroughPermissionMatrix.passThrough());
+        DefaultAgentEngine engine = DefaultAgentEngine.builder(chatService, toolManager)
+                .permissionMatrix(PassThroughPermissionMatrix.passThrough())
+                .build();
 
         assertTrue(countWarnsMentioning("PassThroughPermissionMatrix") >= 1,
-                "setPermissionMatrix(PassThrough) must emit a WARN. Messages: "
+                "builder().permissionMatrix(PassThrough).build() must emit a WARN. Messages: "
                         + warns().stream().map(ILoggingEvent::getFormattedMessage).collect(Collectors.toList()));
     }
 
@@ -379,12 +390,13 @@ public class TestLayer23SecureDefaults {
     void setNoOpDenialLedgerTriggersWarn() {
         IChatService chatService = chatServiceEmittingThenFinal(toolCall("x", "echo", Map.of()));
         IToolManager toolManager = recordingToolManager(new AtomicBoolean());
-        DefaultAgentEngine engine = new DefaultAgentEngine(chatService, toolManager);
 
-        engine.setDenialLedger(NoOpDenialLedger.noOp());
+        DefaultAgentEngine engine = DefaultAgentEngine.builder(chatService, toolManager)
+                .denialLedger(NoOpDenialLedger.noOp())
+                .build();
 
         assertTrue(countWarnsMentioning("NoOpDenialLedger") >= 1,
-                "setDenialLedger(NoOp) must emit a WARN. Messages: "
+                "builder().denialLedger(NoOp).build() must emit a WARN. Messages: "
                         + warns().stream().map(ILoggingEvent::getFormattedMessage).collect(Collectors.toList()));
     }
 
@@ -392,12 +404,13 @@ public class TestLayer23SecureDefaults {
     void setPassThroughPostDenialGuardTriggersWarn() {
         IChatService chatService = chatServiceEmittingThenFinal(toolCall("x", "echo", Map.of()));
         IToolManager toolManager = recordingToolManager(new AtomicBoolean());
-        DefaultAgentEngine engine = new DefaultAgentEngine(chatService, toolManager);
 
-        engine.setPostDenialGuard(PassThroughPostDenialGuard.passThrough());
+        DefaultAgentEngine engine = DefaultAgentEngine.builder(chatService, toolManager)
+                .postDenialGuard(PassThroughPostDenialGuard.passThrough())
+                .build();
 
         assertTrue(countWarnsMentioning("PassThroughPostDenialGuard") >= 1,
-                "setPostDenialGuard(PassThrough) must emit a WARN. Messages: "
+                "builder().postDenialGuard(PassThrough).build() must emit a WARN. Messages: "
                         + warns().stream().map(ILoggingEvent::getFormattedMessage).collect(Collectors.toList()));
     }
 

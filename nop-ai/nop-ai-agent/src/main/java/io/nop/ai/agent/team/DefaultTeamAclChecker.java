@@ -79,7 +79,6 @@ public final class DefaultTeamAclChecker implements ITeamAclChecker {
         m.put(key("team-task-update", "complete"), TeamAclAction.EXECUTE);
         m.put(key("team-task-update", "abandon-claimed"), TeamAclAction.EXECUTE);
         m.put(key("team-task-update", "abandon-unclaimed"), TeamAclAction.ADMIN);
-        // Plan 239 (L4-team-execute-flow-llm-tool): team-execute-flow drives
         // the orchestrator, which mutates task state (CLAIMED→COMPLETED) —
         // equivalent to WRITE (LEAD/MEMBER allowed, non-members denied).
         m.put(key("team-execute-flow", "execute"), TeamAclAction.WRITE);

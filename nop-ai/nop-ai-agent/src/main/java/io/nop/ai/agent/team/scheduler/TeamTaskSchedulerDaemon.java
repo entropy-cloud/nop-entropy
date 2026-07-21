@@ -751,7 +751,6 @@ public class TeamTaskSchedulerDaemon implements ITeamTaskSchedulerDaemon {
         List<String> abandonedIds = new ArrayList<>();
         List<String> failedIds = new ArrayList<>();
 
-        // Plan 243 design 裁定 2 (explicit-propagation tenant capture): capture
         // the caller's tenant ONCE here, on the scan thread, so spawn-target
         // supplyAsync workers can re-apply it inside the worker regardless of
         // the dispatch topology. Null = no tenant context (all data visible,
@@ -828,7 +827,6 @@ public class TeamTaskSchedulerDaemon implements ITeamTaskSchedulerDaemon {
                     // completeTask CAS — a stale in-flight dispatcher holding a
                     // pre-reclaim epoch cannot complete a reclaimed+re-claimed
                     // task (closes the shared-daemon-id double-execution window).
-                    // Plan 245: dispatch consumes the per-task member router
                     // + the shared fan-out + reduce + complete chain. The
                     // router's NoOp shipped default produces a singleton
                     // single-member plan → bound priority + spawn fallback,
@@ -926,12 +924,10 @@ public class TeamTaskSchedulerDaemon implements ITeamTaskSchedulerDaemon {
                                               String capturedTenant) {
         String taskId = routingTask.getTaskId();
 
-        // Plan 245: route via the per-task member router. The router runs at
         // dispatch time, non-executing (it never calls the engine nor the
         // spawner). NoOp shipped default → singleton plan = bound priority +
         // spawn fallback (line-for-line zero regression).
         //
-        // Plan 279 / AR-01: route on the PRE-CLAIM task view (routingTask —
         // the ready-CREATED snapshot with claimedBy=null). The router's
         // bound-priority inspects task.getClaimedBy() to detect a MEMBER
         // binding; the daemon's OWN claim (claimedBy=daemonSessionId on

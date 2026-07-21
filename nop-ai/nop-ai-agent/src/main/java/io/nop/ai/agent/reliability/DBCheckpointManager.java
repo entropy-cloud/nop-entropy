@@ -207,7 +207,6 @@ public class DBCheckpointManager implements ICheckpointManager {
         if (sessionId == null) {
             return null;
         }
-        // Plan 232: bypass the bySession cache when a tenant context is active
         // (the cache key has no tenant dimension). Go direct to the DB with a
         // tenant-scoped latest-row query.
         if (!cacheEnabled()) {
@@ -218,7 +217,6 @@ public class DBCheckpointManager implements ICheckpointManager {
         if (list == null || list.isEmpty()) {
             return null;
         }
-        // Plan 279 / AR-08: the loaded list is kept in ascending SEQ order for
         // getCheckpoints / CompactionAwareTruncation, but SEQ is
         // per-execution-local (each execute() resets it to 0), so the last
         // element is NOT necessarily the most recent across a takeover. Select
@@ -269,7 +267,6 @@ public class DBCheckpointManager implements ICheckpointManager {
         if (sessionId == null) {
             return List.of();
         }
-        // Plan 232: bypass cache when a tenant context is active — go direct
         // to the DB with a tenant-scoped query (highest-seq-first, then
         // reverse to ascending).
         if (!cacheEnabled()) {
@@ -303,7 +300,6 @@ public class DBCheckpointManager implements ICheckpointManager {
         if (tenant != null) {
             sql += TenantSql.whereTenant(AiAgentCheckpointTable.COL_TENANT_ID);
         }
-        // Plan 279 / AR-08: order by CHECKPOINT_TIMESTAMP DESC (the wall-clock
         // time the checkpoint was recorded) with WATERMARK DESC as a
         // deterministic tie-break (the table has no ID column, so WATERMARK —
         // the PK — is the stable secondary key). This makes getLatestCheckpoint

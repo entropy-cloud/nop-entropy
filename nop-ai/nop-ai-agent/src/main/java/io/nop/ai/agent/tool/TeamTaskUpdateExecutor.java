@@ -145,7 +145,6 @@ public class TeamTaskUpdateExecutor implements IToolExecutor {
                             + "' does not belong to the caller's team");
         }
 
-        // Plan 228 (L4-team-acl-enforcement): consult the ACL checker AFTER
         // task load + cross-team check, BEFORE the action switch. The
         // abandon action needs the current task status to decide whether
         // it is abandon-claimed (CLAIMED→ABANDONED, required EXECUTE) or

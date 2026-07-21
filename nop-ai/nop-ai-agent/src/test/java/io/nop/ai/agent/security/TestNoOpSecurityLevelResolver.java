@@ -1,6 +1,10 @@
 package io.nop.ai.agent.security;
 
+import io.nop.ai.agent.engine.AgentExecutionContext;
 import org.junit.jupiter.api.Test;
+
+import java.io.File;
+import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertSame;
@@ -97,6 +101,12 @@ public class TestNoOpSecurityLevelResolver {
      * </table>
      */
     static final class DesignSpecRuleTableResolver implements ISecurityLevelResolver {
+        @Override
+        public LevelHints produce(String toolName, Map<String, Object> arguments, File workDir,
+                                  AgentExecutionContext ctx) {
+            return LevelHints.defaults();
+        }
+
         @Override
         public SecurityLevel resolve(String actionKind, LevelHints hints) {
             LevelHints h = hints != null ? hints : LevelHints.defaults();

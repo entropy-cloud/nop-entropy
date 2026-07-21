@@ -40,7 +40,7 @@ import java.util.Set;
  * arguments, and {@code null} workDir — returns a conservative
  * {@link LevelHints} rather than throwing.
  */
-public class DefaultLevelHintsProducer implements ILevelHintsProducer {
+public class DefaultLevelHintsProducer {
 
     private static final Set<String> NETWORK_TOOLS = Set.of(
             "web.fetch", "http.request", "network.fetch", "web.search", "curl", "http.get", "http.post"
@@ -63,7 +63,6 @@ public class DefaultLevelHintsProducer implements ILevelHintsProducer {
                 : new DefaultContentTrustEvaluator();
     }
 
-    @Override
     public LevelHints produce(String toolName, Map<String, Object> arguments, File workDir,
                               AgentExecutionContext ctx) {
         boolean trustedSource = evaluateTrustedSource(ctx);

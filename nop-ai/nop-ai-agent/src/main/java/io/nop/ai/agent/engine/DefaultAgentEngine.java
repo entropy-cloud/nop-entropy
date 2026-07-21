@@ -62,7 +62,6 @@ import io.nop.ai.agent.security.AllowAllToolAccessChecker;
 import io.nop.ai.agent.security.AutoApproveGate;
 import io.nop.ai.agent.security.DefaultApprovalGate;
 import io.nop.ai.agent.security.DefaultDenialLedger;
-import io.nop.ai.agent.security.DefaultLevelHintsProducer;
 import io.nop.ai.agent.security.DefaultPathAccessChecker;
 import io.nop.ai.agent.security.DefaultPermissionMatrix;
 import io.nop.ai.agent.security.DefaultPostDenialGuard;
@@ -77,7 +76,6 @@ import io.nop.ai.agent.security.IPermissionProvider;
 import io.nop.ai.agent.security.IPostDenialGuard;
 import io.nop.ai.agent.security.ISecurityLevelResolver;
 import io.nop.ai.agent.security.IToolAccessChecker;
-import io.nop.ai.agent.security.ILevelHintsProducer;
 import io.nop.ai.agent.security.NoOpAuditLogger;
 import io.nop.ai.agent.security.NoOpDenialLedger;
 import io.nop.ai.agent.security.NoOpSecurityLevelResolver;
@@ -166,14 +164,12 @@ public class DefaultAgentEngine implements IAgentEngine {
     private ISkillCurator skillCurator = NoOpSkillCurator.noOp();
     private IToolCallRepairer toolCallRepairer;
     private IAgentMessenger messenger = NoOpAgentMessenger.noOp();
-    // Plan 224 (L4-8-call-agent-async): subscription for the engine-level
     // call-agent request handler. Registered on the call-agent topic when a
     // functional messenger is wired via setMessenger; cancelled and re-registered
     // idempotently on each setMessenger call. NoOp messenger leaves it null
     // (no registration, zero regression). The handler executes the requested
     // sub-agent via engine.execute() and returns a CallAgentResponsePayload.
     private volatile IMessageSubscription callAgentSubscription;
-    // Plan 216 (L4-5): optional per-session deferred-ack mailbox factory. When
     // non-null, the engine creates a mailbox for each session on first
     // execution and registers a MailboxMessageHandler on the session's inbox
     // topic so that ASYNC messages delivered via the messenger are buffered in
@@ -187,11 +183,9 @@ public class DefaultAgentEngine implements IAgentEngine {
     private final ConcurrentHashMap<String, IMessageSubscription> sessionMailboxSubscriptions = new ConcurrentHashMap<>();
     private IPermissionMatrix permissionMatrix = new DefaultPermissionMatrix();
     private ISecurityLevelResolver securityLevelResolver = new DefaultSecurityLevelResolver();
-    private ILevelHintsProducer levelHintsProducer = new DefaultLevelHintsProducer();
     private IApprovalGate approvalGate = new DefaultApprovalGate();
     private IDenialLedger denialLedger = new DefaultDenialLedger();
     private IPostDenialGuard postDenialGuard = new DefaultPostDenialGuard();
-    // Plan 194 (AUDIT-13-02): audit logger defaults to Slf4jAuditLogger so the
     // engine produces a visible audit trail out-of-the-box (tool decisions are
     // logged to SLF4J INFO) instead of silently discarding audit events via
     // NoOpAuditLogger. Integrators can replace it via setAuditLogger (e.g. to
@@ -199,53 +193,45 @@ public class DefaultAgentEngine implements IAgentEngine {
     private IAuditLogger auditLogger = new Slf4jAuditLogger();
     private ICheckpointManager checkpointManager = NoOpCheckpoint.noOp();
     private IMemoryStoreProvider memoryStoreProvider = new InMemoryMemoryStoreProvider();
-    // Plan 201 (L2-17): usage recorder defaults to NoOpUsageRecorder so the
     // ReAct loop's token accumulation point is wired out-of-the-box without
     // forcing a persistence sink. A functional recorder (e.g. DbUsageRecorder,
     // L2-18) is registered via setUsageRecorder.
     private IUsageRecorder usageRecorder = NoOpUsageRecorder.noOp();
-    // Plan 205 (L2-21): model-switched message writer defaults to
     // NoOpModelSwitchedMessageWriter so the ReAct loop's model-switch detection
     // is wired out-of-the-box without forcing a persistence sink. A functional
     // writer (e.g. DbModelSwitchedMessageWriter) is registered via
     // setModelSwitchedMessageWriter.
     private IModelSwitchedMessageWriter modelSwitchedMessageWriter = NoOpModelSwitchedMessageWriter.noOp();
-    // Plan 206 (L2-22): budget provider defaults to NoOpBudgetProvider so the
     // ReAct loop's pre-route budget refresh is wired out-of-the-box without
     // forcing a cost/limit source. A functional provider (e.g. a future
     // DbBudgetProvider) is registered via setBudgetProvider. Combined with the
     // shipped PassThroughModelRouter (which never changes the model), the
     // shipped default behaviour is zero-change — no budget-driven downgrade.
     private IBudgetProvider budgetProvider = NoOpBudgetProvider.noOp();
-    // Plan 207 (L3-2): retry policy defaults to NoRetryPolicy so the ReAct
     // loop's single-LLM-call retry point is wired out-of-the-box without
     // changing the pre-plan-207 fail-fast behaviour (NoRetryPolicy
     // unconditionally returns STOP → the call executes exactly once and any
     // exception propagates as-is). A functional policy (e.g.
     // StandardRetryPolicy) is registered via setRetryPolicy.
     private IRetryPolicy retryPolicy = NoRetryPolicy.noRetry();
-    // Plan 210 (L3-1): circuit breaker defaults to AlwaysClosed so the ReAct
     // loop's single-LLM-call outer check is wired out-of-the-box without
     // changing the pre-plan-210 zero-circuit-breaking behaviour (AlwaysClosed
     // unconditionally allows every call and treats recording as explicit
     // no-ops). A functional breaker (e.g. ThresholdBreaker) is registered via
     // setCircuitBreaker.
     private ICircuitBreaker circuitBreaker = AlwaysClosed.alwaysClosed();
-    // Plan 211 (L3-3): goal tracker defaults to NoOpGoalTracker so the ReAct
     // loop's per-iteration progress assessment is wired out-of-the-box without
     // changing the pre-plan-211 behaviour (NoOpGoalTracker unconditionally
     // reports PROGRESSING and treats recordIteration as an explicit no-op, so
     // no STUCK abort ever fires). A functional tracker (e.g.
     // SessionGoalTracker) is registered via setGoalTracker.
     private IGoalTracker goalTracker = NoOpGoalTracker.noOp();
-    // Plan 212 (L3-8): sustainer defaults to NoOpSustainer so the ReAct
     // loop's exit decision point is wired out-of-the-box without changing
     // the pre-plan-212 zero-sustain behaviour (NoOpSustainer unconditionally
     // returns STOP, so the loop exits the first time it would naturally stop).
     // A functional sustainer (e.g. SisypheanSustainer) is registered via
     // setSustainer.
     private ISustainer sustainer = NoOpSustainer.noOp();
-    // Plan 214 (L2-13a): conflict strategy defaults to FailFastStrategy so
     // the ReAct loop's dispatch-path conflict detection is wired
     // out-of-the-box. FailFastStrategy is a functional default (not an
     // insecure pass-through): single-session executions never see a conflict
@@ -256,14 +242,12 @@ public class DefaultAgentEngine implements IAgentEngine {
     // emitted. A functional strategy (e.g. a future
     // CoordinationBusStrategy) is registered via setConflictStrategy.
     private IConflictStrategy conflictStrategy = FailFastStrategy.failFast();
-    // Plan 214 (L2-13a): write-intent registry defaults to the in-process
     // InMemoryWriteIntentRegistry. The dispatch path registers a write
     // intent before allowing a tool call with a path argument; the strategy
     // is consulted only when another session has an active intent on the
     // same path. Cross-process registry (DB-backed) is a successor that
     // depends on the L4-8 Actor Runtime.
     private IWriteIntentRegistry writeIntentRegistry = new InMemoryWriteIntentRegistry();
-    // Plan 217 (L4-6): plugin contribution registry. Defaults to
     // NoOpContributionRegistry (empty registry — register is an explicit
     // false, queries return empty, zero behaviour regression). Integrators
     // wire a functional registry (e.g. InMemoryContributionRegistry) and
@@ -277,7 +261,6 @@ public class DefaultAgentEngine implements IAgentEngine {
     // insecure-default WARN is emitted (consistent with IMailbox /
     // IUsageRecorder adjudication).
     private IContributionRegistry contributionRegistry = NoOpContributionRegistry.noOp();
-    // Plan 218 (L4-8): optional Actor Runtime container. Defaults to
     // NoOpActorRuntime (isEnabled() returns false — the engine skips the
     // Actor path entirely, zero behaviour regression). When a functional
     // runtime is wired (e.g. InMemoryActorRuntime via setActorRuntime), the
@@ -290,7 +273,6 @@ public class DefaultAgentEngine implements IAgentEngine {
     // walks existing supplyAsync path), so no insecure-default WARN is emitted
     // (consistent with IMailbox / IContributionRegistry adjudication).
     private IActorRuntime actorRuntime = NoOpActorRuntime.noOp();
-    // Plan 223 (L4-8-team-manager): optional team lifecycle manager. Defaults
     // to NoOpTeamManager (all write operations throw
     // UnsupportedOperationException, all read operations return empty —
     // Minimum Rules #24 No Silent No-Op) so engine behaviour is unchanged
@@ -305,7 +287,6 @@ public class DefaultAgentEngine implements IAgentEngine {
     // at the three entry points) is an explicit successor that depends on
     // TeamSpec XDSL configuration.
     private ITeamManager teamManager = NoOpTeamManager.noOp();
-    // Plan 225 (L4-8-team-tools): optional team task store backing the
     // team-task-create tool and team-status task count. Defaults to
     // NoOpTeamTaskStore (createTask throws UnsupportedOperationException,
     // queries return empty — Minimum Rules #24 No Silent No-Op) so engine
@@ -316,7 +297,6 @@ public class DefaultAgentEngine implements IAgentEngine {
     // capability (NoOp → engine runs unchanged), so no insecure-default WARN
     // is emitted (consistent with teamManager / IActorRuntime adjudication).
     private ITeamTaskStore teamTaskStore = NoOpTeamTaskStore.noOp();
-    // Plan 228 (L4-team-acl-enforcement): optional team ACL checker backing
     // the 4 team tool executors' permission check. Defaults to
     // NoOpTeamAclChecker (checkAccess always returns allow(null) —
     // Minimum Rules #24: an explicit allow decision, not a silent skip) so
@@ -329,7 +309,6 @@ public class DefaultAgentEngine implements IAgentEngine {
     // unchanged), so no insecure-default WARN is emitted (consistent with
     // teamManager / teamTaskStore adjudication).
     private ITeamAclChecker teamAclChecker = NoOpTeamAclChecker.noOp();
-    // Plan 219 (L4-7): sandbox backend — the Layer 4 defense-in-depth chain
     // tail (design §7.1 / §8). Defaults to NoOpSandboxBackend (host
     // ProcessBuilder execution — Layer 1 designable baseline, design §7.1
     // "Noop | 无隔离（默认）"). A functional backend (e.g.
@@ -346,7 +325,6 @@ public class DefaultAgentEngine implements IAgentEngine {
     // and becomes the default, the WARN will be added at that time.
     private io.nop.ai.agent.security.ISandboxBackend sandboxBackend =
             io.nop.ai.agent.security.NoOpSandboxBackend.INSTANCE;
-    // Plan 221 (L4-8-P4): cross-process session takeover lock. Defaults to
     // NoOpSessionTakeoverLock — single-process deployments keep relying on
     // the engine's in-process runningExecutions.putIfAbsent guard (plan
     // 197), so engine behaviour is unchanged unless a functional lock
@@ -362,20 +340,17 @@ public class DefaultAgentEngine implements IAgentEngine {
     // insecure-default WARN is emitted (consistent with IActorRuntime /
     // IMailbox / IContributionRegistry adjudication).
     private ISessionTakeoverLock sessionTakeoverLock = NoOpSessionTakeoverLock.noOp();
-    // Plan 221 (L4-8-P4): engine instance identity. Generated once at
     // construction via UUID.randomUUID(). Used as the ownerId argument to
     // sessionTakeoverLock.tryAcquire / release / tryRenew so that
     // conditional release only frees this engine's own locks. Immutable
     // after construction.
     private final String instanceId = UUID.randomUUID().toString();
-    // Plan 221 (L4-8-P4): lease duration in milliseconds for the takeover
     // lock. Default = 30 minutes (1_800_000 ms). Integrators tune via
     // setLockLeaseMs (e.g. align with the agent's maxWallClockMinutes).
     // Passive TTL expiry: when the lock holder crashes, the lease
     // auto-expires and another instance can preempt — no background sweeper
     // thread is needed.
     private long lockLeaseMs = 1_800_000L;
-    // Plan 273 (carry-over 14-06): heartbeat renewal interval (ms) for the
     // takeover lock. While an execution is running, the engine schedules a
     // periodic tryRenew at this interval so long-running agents (>30min)
     // do not let their lease expire and get preempted by another JVM
@@ -388,7 +363,6 @@ public class DefaultAgentEngine implements IAgentEngine {
     // no-op (NoOp.tryRenew returns true unconditionally — zero behaviour
     // regression, no insecure-default WARN).
     private long lockRenewIntervalMs = 600_000L;
-    // Plan 273 (carry-over 14-06): dedicated single-thread daemon scheduled
     // executor for the heartbeat renewal task. Lazily initialized on first
     // use (getLockRenewExecutor); integrators may override via
     // setLockRenewExecutor (e.g. a controllable scheduler for tests). NOT
@@ -398,11 +372,9 @@ public class DefaultAgentEngine implements IAgentEngine {
     // and renewals for concurrent sessions are short and never block each
     // other meaningfully.
     private ScheduledExecutorService lockRenewExecutor;
-    // Plan 278 (AR-09): tracks whether lockRenewExecutor was self-created
     // (lazy init) vs externally injected (setLockRenewExecutor). close()
     // only shuts down self-created pools.
     private volatile boolean ownLockRenewExecutor;
-    // Plan 222 (L4-8-P4-RecoveryDaemon): RecoveryManager daemon for
     // continuous periodic stale-lock cleanup + orphan-session detection.
     // Defaults to NoOpRecoveryManager — single-process deployments keep
     // relying on the one-shot startup restorePendingSessions scan, so
@@ -418,7 +390,6 @@ public class DefaultAgentEngine implements IAgentEngine {
     // no insecure-default WARN is emitted (consistent with
     // IActorRuntime / ISessionTakeoverLock adjudication).
     private IRecoveryManager recoveryManager = NoOpRecoveryManager.noOp();
-    // Plan 236 (L4-blockedBy-resolution-engine): optional team-task auto-
     // scheduling daemon that continuously sweeps dependency-ready team tasks
     // and auto-claims + auto-dispatches them, closing the "unattended multi-
     // agent orchestration" loop. Defaults to NoOpTeamTaskSchedulerDaemon
@@ -435,13 +406,11 @@ public class DefaultAgentEngine implements IAgentEngine {
     // (consistent with recoveryManager / teamManager / teamTaskStore
     // adjudication).
     private ITeamTaskSchedulerDaemon teamTaskSchedulerDaemon = NoOpTeamTaskSchedulerDaemon.noOp();
-    // Plan 192: max token budget for budgeted working-memory auto-injection into
     // the system prompt. Shipped default gives memory a reasonable share of the
     // context without dominating it. A value <= 0 disables injection (explicit
     // opt-out / backward-compatible escape hatch).
     private int memoryInjectionBudgetTokens = 1024;
 
-    // Plan 271 (finding 14-04): dedicated executor for the three engine entry
     // points (doExecute / resumeSession / restoreSession) so they no longer
     // share ForkJoinPool.commonPool() (default ~3-7 threads). Multiple
     // concurrent agents quickly exhausted the commonPool, causing cross-JVM
@@ -454,19 +423,16 @@ public class DefaultAgentEngine implements IAgentEngine {
     // 14-03); virtual threads guarantee no self-deadlock when a task running on
     // this executor dispatches the LLM-call wrapper back to the same executor.
     private ExecutorService agentExecutor;
-    // Plan 278 (AR-09): tracks whether agentExecutor was self-created
     // (lazy init) vs externally injected (setAgentExecutor). close() only
     // shuts down self-created pools.
     private volatile boolean ownAgentExecutor;
 
-    // Plan 271 (finding 14-01): wall-clock timeout (ms) for a call-agent
     // sub-agent execution. On timeout the sub-agent's session is cancelled via
     // engine.cancelSession(forced=true) so its LLM/DB resources are released
     // rather than left running as a zombie. The default mirrors the
     // CallAgentExecutor's historical default (60s).
     private long callAgentTimeoutMs = 60_000L;
 
-    // Plan 271 (finding 14-03): wall-clock timeout (ms) for a single LLM call
     // inside the ReAct loop. A value <= 0 disables the timeout (backward-
     // compatible escape hatch). The shipped default (120s) is generous enough
     // for slow first-token latencies while still bounding a permanently hung
@@ -474,7 +440,6 @@ public class DefaultAgentEngine implements IAgentEngine {
     // blocked indefinitely.
     private long llmTimeoutMs = 120_000L;
 
-    // Plan 271 (finding 14-03): wall-clock timeout (ms) for a single tool call
     // inside the ReAct dispatch fanout. A value <= 0 disables the timeout
     // (backward-compatible escape hatch). The shipped default (300s) tolerates
     // long-running tools (e.g. shell-exec / code-exec) while still bounding a
@@ -483,9 +448,161 @@ public class DefaultAgentEngine implements IAgentEngine {
 
     private final ConcurrentHashMap<String, CancelHandle> runningExecutions = new ConcurrentHashMap<>();
 
-    // Plan 278 (AR-09): close() idempotency guard. Once true, subsequent
     // close() calls are a no-op (LOG.debug).
     private final AtomicBoolean closed = new AtomicBoolean(false);
+
+    /**
+     * DefaultAgentEngine Builder: fluent API that accepts all ~40 engine
+     * components and calls {@link #warnIfInsecureDefaults} once in
+     * {@link #build()}, replacing the 8-constructor overload chain and
+     * per-setter warn boilerplate.
+     */
+    public static final class Builder {
+        private IChatService chatService;
+        private IToolManager toolManager;
+        private ISessionStore sessionStore = new InMemorySessionStore();
+        private IPermissionProvider permissionProvider = new AllowAllPermissionProvider();
+        private IToolAccessChecker toolAccessChecker = new DefaultToolAccessChecker();
+        private IPathAccessChecker pathAccessChecker = new DefaultPathAccessChecker();
+        private IContentGuardrail contentGuardrail = NoOpContentGuardrail.noOp();
+        private IModelRouter modelRouter = PassThroughModelRouter.passThrough();
+        private IContextCompactor contextCompactor;
+        private List<ITalent> talents = java.util.Collections.emptyList();
+        private ISkillProvider skillProvider = NoOpSkillProvider.noOp();
+        private ISkillCurator skillCurator = NoOpSkillCurator.noOp();
+        private IToolCallRepairer toolCallRepairer;
+        private IAgentMessenger messenger = NoOpAgentMessenger.noOp();
+        private Function<String, IMailbox> mailboxFactory;
+        private IPermissionMatrix permissionMatrix = new DefaultPermissionMatrix();
+        private ISecurityLevelResolver securityLevelResolver = new DefaultSecurityLevelResolver();
+        private IApprovalGate approvalGate = new DefaultApprovalGate();
+        private IDenialLedger denialLedger = new DefaultDenialLedger();
+        private IPostDenialGuard postDenialGuard = new DefaultPostDenialGuard();
+        private IAuditLogger auditLogger = new Slf4jAuditLogger();
+        private ICheckpointManager checkpointManager = NoOpCheckpoint.noOp();
+        private IMemoryStoreProvider memoryStoreProvider = new InMemoryMemoryStoreProvider();
+        private IUsageRecorder usageRecorder = NoOpUsageRecorder.noOp();
+        private IModelSwitchedMessageWriter modelSwitchedMessageWriter = NoOpModelSwitchedMessageWriter.noOp();
+        private IBudgetProvider budgetProvider = NoOpBudgetProvider.noOp();
+        private IRetryPolicy retryPolicy = NoRetryPolicy.noRetry();
+        private ICircuitBreaker circuitBreaker = AlwaysClosed.alwaysClosed();
+        private IGoalTracker goalTracker = NoOpGoalTracker.noOp();
+        private ISustainer sustainer = NoOpSustainer.noOp();
+        private IConflictStrategy conflictStrategy = FailFastStrategy.failFast();
+        private IWriteIntentRegistry writeIntentRegistry = new InMemoryWriteIntentRegistry();
+        private IContributionRegistry contributionRegistry = NoOpContributionRegistry.noOp();
+        private io.nop.ai.agent.security.ISandboxBackend sandboxBackend;
+        private ITeamManager teamManager;
+        private ITeamTaskStore teamTaskStore;
+        private ITeamAclChecker teamAclChecker;
+        private int memoryInjectionBudgetTokens = 1024;
+        private ExecutorService agentExecutor;
+        private long callAgentTimeoutMs = 120_000L;
+        private long llmTimeoutMs = 120_000L;
+        private long toolTimeoutMs = 300_000L;
+
+        public Builder(IChatService chatService, IToolManager toolManager) {
+            this.chatService = chatService;
+            this.toolManager = toolManager;
+            this.contextCompactor = defaultPipelineCompactor(chatService);
+        }
+
+        public Builder sessionStore(ISessionStore val) { this.sessionStore = val; return this; }
+        public Builder permissionProvider(IPermissionProvider val) { this.permissionProvider = val; return this; }
+        public Builder toolAccessChecker(IToolAccessChecker val) { this.toolAccessChecker = val; return this; }
+        public Builder pathAccessChecker(IPathAccessChecker val) { this.pathAccessChecker = val; return this; }
+        public Builder contentGuardrail(IContentGuardrail val) { this.contentGuardrail = val; return this; }
+        public Builder modelRouter(IModelRouter val) { this.modelRouter = val; return this; }
+        public Builder contextCompactor(IContextCompactor val) { this.contextCompactor = val; return this; }
+        public Builder talents(List<ITalent> val) { this.talents = val; return this; }
+        public Builder skillProvider(ISkillProvider val) { this.skillProvider = val; return this; }
+        public Builder skillCurator(ISkillCurator val) { this.skillCurator = val; return this; }
+        public Builder toolCallRepairer(IToolCallRepairer val) { this.toolCallRepairer = val; return this; }
+        public Builder messenger(IAgentMessenger val) { this.messenger = val; return this; }
+        public Builder mailboxFactory(Function<String, IMailbox> val) { this.mailboxFactory = val; return this; }
+        public Builder permissionMatrix(IPermissionMatrix val) { this.permissionMatrix = val; return this; }
+        public Builder securityLevelResolver(ISecurityLevelResolver val) { this.securityLevelResolver = val; return this; }
+        public Builder approvalGate(IApprovalGate val) { this.approvalGate = val; return this; }
+        public Builder denialLedger(IDenialLedger val) { this.denialLedger = val; return this; }
+        public Builder postDenialGuard(IPostDenialGuard val) { this.postDenialGuard = val; return this; }
+        public Builder auditLogger(IAuditLogger val) { this.auditLogger = val; return this; }
+        public Builder checkpointManager(ICheckpointManager val) { this.checkpointManager = val; return this; }
+        public Builder memoryStoreProvider(IMemoryStoreProvider val) { this.memoryStoreProvider = val; return this; }
+        public Builder usageRecorder(IUsageRecorder val) { this.usageRecorder = val; return this; }
+        public Builder modelSwitchedMessageWriter(IModelSwitchedMessageWriter val) { this.modelSwitchedMessageWriter = val; return this; }
+        public Builder budgetProvider(IBudgetProvider val) { this.budgetProvider = val; return this; }
+        public Builder retryPolicy(IRetryPolicy val) { this.retryPolicy = val; return this; }
+        public Builder circuitBreaker(ICircuitBreaker val) { this.circuitBreaker = val; return this; }
+        public Builder goalTracker(IGoalTracker val) { this.goalTracker = val; return this; }
+        public Builder sustainer(ISustainer val) { this.sustainer = val; return this; }
+        public Builder conflictStrategy(IConflictStrategy val) { this.conflictStrategy = val; return this; }
+        public Builder writeIntentRegistry(IWriteIntentRegistry val) { this.writeIntentRegistry = val; return this; }
+        public Builder contributionRegistry(IContributionRegistry val) { this.contributionRegistry = val; return this; }
+        public Builder sandboxBackend(io.nop.ai.agent.security.ISandboxBackend val) { this.sandboxBackend = val; return this; }
+        public Builder teamManager(ITeamManager val) { this.teamManager = val; return this; }
+        public Builder teamTaskStore(ITeamTaskStore val) { this.teamTaskStore = val; return this; }
+        public Builder teamAclChecker(ITeamAclChecker val) { this.teamAclChecker = val; return this; }
+        public Builder memoryInjectionBudgetTokens(int val) { this.memoryInjectionBudgetTokens = val; return this; }
+        public Builder agentExecutor(ExecutorService val) { this.agentExecutor = val; return this; }
+        public Builder callAgentTimeoutMs(long val) { this.callAgentTimeoutMs = val; return this; }
+        public Builder llmTimeoutMs(long val) { this.llmTimeoutMs = val; return this; }
+        public Builder toolTimeoutMs(long val) { this.toolTimeoutMs = val; return this; }
+
+        public DefaultAgentEngine build() {
+            DefaultAgentEngine engine = new DefaultAgentEngine(
+                    chatService, toolManager, sessionStore,
+                    permissionProvider, toolAccessChecker, pathAccessChecker,
+                    contentGuardrail, modelRouter, contextCompactor);
+            applyTo(engine);
+            warnIfInsecureDefaults(toolAccessChecker, pathAccessChecker,
+                    auditLogger, approvalGate, securityLevelResolver,
+                    permissionMatrix, denialLedger, postDenialGuard);
+            return engine;
+        }
+
+        private void applyTo(DefaultAgentEngine engine) {
+            if (talents != null) engine.setTalents(talents);
+            if (skillProvider != null) engine.setSkillProvider(skillProvider);
+            if (skillCurator != null) engine.setSkillCurator(skillCurator);
+            if (toolCallRepairer != null) engine.setToolCallRepairer(toolCallRepairer);
+            if (messenger != null) engine.setMessenger(messenger);
+            if (mailboxFactory != null) engine.setMailboxFactory(mailboxFactory);
+            if (permissionMatrix != null) engine.setPermissionMatrix(permissionMatrix);
+            if (securityLevelResolver != null) engine.setSecurityLevelResolver(securityLevelResolver);
+            if (approvalGate != null) engine.setApprovalGate(approvalGate);
+            if (denialLedger != null) engine.setDenialLedger(denialLedger);
+            if (postDenialGuard != null) engine.setPostDenialGuard(postDenialGuard);
+            if (auditLogger != null) engine.setAuditLogger(auditLogger);
+            if (checkpointManager != null) engine.setCheckpointManager(checkpointManager);
+            if (memoryStoreProvider != null) engine.setMemoryStoreProvider(memoryStoreProvider);
+            if (usageRecorder != null) engine.setUsageRecorder(usageRecorder);
+            if (modelSwitchedMessageWriter != null) engine.setModelSwitchedMessageWriter(modelSwitchedMessageWriter);
+            if (budgetProvider != null) engine.setBudgetProvider(budgetProvider);
+            if (retryPolicy != null) engine.setRetryPolicy(retryPolicy);
+            if (circuitBreaker != null) engine.setCircuitBreaker(circuitBreaker);
+            if (goalTracker != null) engine.setGoalTracker(goalTracker);
+            if (sustainer != null) engine.setSustainer(sustainer);
+            if (conflictStrategy != null) engine.setConflictStrategy(conflictStrategy);
+            if (writeIntentRegistry != null) engine.setWriteIntentRegistry(writeIntentRegistry);
+            if (contributionRegistry != null) engine.setContributionRegistry(contributionRegistry);
+            if (sandboxBackend != null) engine.setSandboxBackend(sandboxBackend);
+            if (teamManager != null) engine.setTeamManager(teamManager);
+            if (teamTaskStore != null) engine.setTeamTaskStore(teamTaskStore);
+            if (teamAclChecker != null) engine.setTeamAclChecker(teamAclChecker);
+            engine.setMemoryInjectionBudgetTokens(memoryInjectionBudgetTokens);
+            if (agentExecutor != null) engine.setAgentExecutor(agentExecutor);
+            engine.setCallAgentTimeoutMs(callAgentTimeoutMs);
+            engine.setLlmTimeoutMs(llmTimeoutMs);
+            engine.setToolTimeoutMs(toolTimeoutMs);
+        }
+    }
+
+    /**
+     * Plan 304: static factory method replacing the 8-constructor chain.
+     */
+    public static Builder builder(IChatService chatService, IToolManager toolManager) {
+        return new Builder(chatService, toolManager);
+    }
 
     public DefaultAgentEngine(IChatService chatService, IToolManager toolManager) {
         this(chatService, toolManager, new InMemorySessionStore());
@@ -551,9 +668,6 @@ public class DefaultAgentEngine implements IAgentEngine {
         this.modelRouter = modelRouter != null ? modelRouter : PassThroughModelRouter.passThrough();
         this.contextCompactor = contextCompactor != null ? contextCompactor : defaultPipelineCompactor(chatService);
         this.tokenEstimator = CalibratedTokenEstimator.defaultInstance();
-        warnIfInsecureDefaults(this.toolAccessChecker, this.pathAccessChecker, this.auditLogger,
-                this.approvalGate, this.securityLevelResolver, this.permissionMatrix,
-                this.denialLedger, this.postDenialGuard);
     }
 
     /**
@@ -833,7 +947,6 @@ public class DefaultAgentEngine implements IAgentEngine {
                             + (payload == null ? "null" : payload.getClass().getName()));
         }
         CallAgentRequestPayload req = (CallAgentRequestPayload) payload;
-        // Plan 271 (finding 14-01): resolve the child session id upfront so
         // that on timeout the handler can call cancelSession to release the
         // sub-agent's LLM/DB resources (not just abandon the Future). When
         // req.getResolvedSessionId() is null (create-new mode), generate a
@@ -862,7 +975,6 @@ public class DefaultAgentEngine implements IAgentEngine {
                             : "sub-agent did not complete: status=" + result.getStatus());
             return new CallAgentResponsePayload(status, sessionId, finalMessage, error);
         } catch (Exception e) {
-            // Plan 271 (finding 14-01): on timeout, cancel the sub-agent so its
             // execution does not continue as a zombie consuming LLM/DB
             // resources. .orTimeout above completes the Future exceptionally
             // with a TimeoutException (wrapped in CompletionException by join);
@@ -963,8 +1075,6 @@ public class DefaultAgentEngine implements IAgentEngine {
      */
     public void setPermissionMatrix(IPermissionMatrix permissionMatrix) {
         this.permissionMatrix = permissionMatrix != null ? permissionMatrix : new DefaultPermissionMatrix();
-        warnIfInsecureDefaults(this.toolAccessChecker, this.pathAccessChecker, this.auditLogger,
-                this.approvalGate, null, this.permissionMatrix, null, null);
     }
 
     /**
@@ -987,41 +1097,10 @@ public class DefaultAgentEngine implements IAgentEngine {
         this.securityLevelResolver = securityLevelResolver != null
                 ? securityLevelResolver
                 : new DefaultSecurityLevelResolver();
-        warnIfInsecureDefaults(this.toolAccessChecker, this.pathAccessChecker, this.auditLogger,
-                this.approvalGate, this.securityLevelResolver, null, null, null);
     }
 
-    /**
-     * Return the {@link ISecurityLevelResolver} wired into this engine, or the
-     * {@link DefaultSecurityLevelResolver} default if none was explicitly set.
-     */
     public ISecurityLevelResolver getSecurityLevelResolver() {
         return securityLevelResolver;
-    }
-
-    /**
-     * Register the {@link ILevelHintsProducer} used to derive the auditable
-     * {@link io.nop.ai.agent.security.LevelHints} for each tool call on the
-     * dispatch path (design §5.1). Composition via this setter — no constructor
-     * chain change. Default is {@link DefaultLevelHintsProducer} (a functional
-     * implementation that produces semantically-distinct hints), so engine
-     * behaviour is unchanged unless a producer is explicitly registered.
-     *
-     * <p>The producer feeds the {@link ISecurityLevelResolver}; both are
-     * consulted together in the dispatch-path Layer 2 step.
-     */
-    public void setLevelHintsProducer(ILevelHintsProducer levelHintsProducer) {
-        this.levelHintsProducer = levelHintsProducer != null
-                ? levelHintsProducer
-                : new DefaultLevelHintsProducer();
-    }
-
-    /**
-     * Return the {@link ILevelHintsProducer} wired into this engine, or the
-     * {@link DefaultLevelHintsProducer} default if none was explicitly set.
-     */
-    public ILevelHintsProducer getLevelHintsProducer() {
-        return levelHintsProducer;
     }
 
     /**
@@ -1046,8 +1125,6 @@ public class DefaultAgentEngine implements IAgentEngine {
      */
     public void setApprovalGate(IApprovalGate approvalGate) {
         this.approvalGate = approvalGate != null ? approvalGate : new DefaultApprovalGate();
-        warnIfInsecureDefaults(this.toolAccessChecker, this.pathAccessChecker, this.auditLogger,
-                this.approvalGate, null, null, null, null);
     }
 
     /**
@@ -1075,8 +1152,6 @@ public class DefaultAgentEngine implements IAgentEngine {
      */
     public void setDenialLedger(IDenialLedger denialLedger) {
         this.denialLedger = denialLedger != null ? denialLedger : new DefaultDenialLedger();
-        warnIfInsecureDefaults(this.toolAccessChecker, this.pathAccessChecker, this.auditLogger,
-                this.approvalGate, null, null, this.denialLedger, null);
     }
 
     /**
@@ -1106,8 +1181,6 @@ public class DefaultAgentEngine implements IAgentEngine {
         this.postDenialGuard = postDenialGuard != null
                 ? postDenialGuard
                 : new DefaultPostDenialGuard();
-        warnIfInsecureDefaults(this.toolAccessChecker, this.pathAccessChecker, this.auditLogger,
-                this.approvalGate, null, null, null, this.postDenialGuard);
     }
 
     /**
@@ -1140,8 +1213,6 @@ public class DefaultAgentEngine implements IAgentEngine {
      */
     public void setAuditLogger(IAuditLogger auditLogger) {
         this.auditLogger = auditLogger != null ? auditLogger : new Slf4jAuditLogger();
-        warnIfInsecureDefaults(this.toolAccessChecker, this.pathAccessChecker, this.auditLogger,
-                this.approvalGate, null, null, null, null);
     }
 
     /**
@@ -1982,7 +2053,6 @@ public class DefaultAgentEngine implements IAgentEngine {
 
     @Override
     public CompletableFuture<Void> cancelSession(String sessionId, String reason, boolean forced) {
-        // Plan 232: cancelSession is synchronous and touches the session store.
         // It has no Principal source in the foundational slice, so the tenant
         // context is null = all data visible. The set/clear structure is
         // present for uniformity (a future principal source only changes the
@@ -2001,7 +2071,6 @@ public class DefaultAgentEngine implements IAgentEngine {
                 publishCancelRequested(sessionId, agentName, reason, forced);
 
                 if (forced) {
-                    // Plan 197: null-check — during the async-enqueue window the
                     // handle is pre-registered but thread is not yet bound to the
                     // execution thread. Interrupting null would NPE; interrupting
                     // the calling thread (if we pre-bound it) would be wrong.
@@ -2020,7 +2089,6 @@ public class DefaultAgentEngine implements IAgentEngine {
                 String agentName = session.getAgentName();
                 publishCancelRequested(sessionId, agentName, reason, forced);
                 publishCancelled(sessionId, agentName, reason);
-                // Plan 278 (AR-10): cancel-without-handle reaches a terminal
                 // status (cancelled) but does NOT enter the inner finally
                 // (no handle was registered). Clean up the checkpoint cache
                 // symmetrically so cancelled sessions do not leak cache entries.
@@ -2050,7 +2118,6 @@ public class DefaultAgentEngine implements IAgentEngine {
 
     @Override
     public CompletableFuture<String> forkSession(AgentMessageRequest request, boolean inheritContext) {
-        // Plan 232: forkSession is synchronous but touches the session store,
         // so set the thread-local tenant context from the request's Principal
         // (null-safe) for the duration of the DB operations, then clear it.
         ThreadLocalTenantResolver.set(resolveTenantId(request));
@@ -2156,17 +2223,14 @@ public class DefaultAgentEngine implements IAgentEngine {
     }
 
     private CompletableFuture<AgentExecutionResult> doExecute(AgentMessageRequest request, String sessionId) {
-        // Plan 232: capture the tenantId in the synchronous phase (null-safe)
         // so the supplyAsync lambda body can set the thread-local tenant
         // context on the worker thread before any DB store operation.
         String tenantId = resolveTenantId(request);
         AgentModel agentModel = loadAgentModel(request.getAgentName());
-        // Plan 231: synchronous fail-fast precheck — if the agent declares a
         // team but no functional ITeamManager is wired, surface the
         // misconfiguration before entering the async block.
         precheckTeamDeclarations(agentModel);
         AgentSession session = sessionStore.getOrCreate(sessionId, request.getAgentName());
-        // Plan 270 finding 13-12: capture the tenantId onto the session so
         // recovery paths (resumeSession/restoreSession — which have no
         // request/Principal source) can re-establish the tenant context
         // before tenant-scoped DB operations. Only set when the request
@@ -2199,7 +2263,6 @@ public class DefaultAgentEngine implements IAgentEngine {
         ctx.setChannelKind(request.getChannelKind());
         ctx.setPrincipal(request.getPrincipal());
 
-        // Plan 278 (AR-05): extract the delegation depth from the request
         // metadata (propagated by CallAgentExecutor via a dedicated key) and
         // expose it on the context so the ReAct executor can pass it to
         // AgentToolExecuteContext for CallAgentExecutor's depth guard. Absent
@@ -2215,7 +2278,6 @@ public class DefaultAgentEngine implements IAgentEngine {
         ensureSessionMailbox(sessionId);
         IAgentExecutor executor = resolveExecutor(agentModel, effectiveToolAccessChecker, effectivePathAccessChecker);
 
-        // Plan 197 (AUDIT-14-01): Pre-register the CancelHandle in the
         // synchronous phase (before supplyAsync) so that cancelSession can
         // find it during the async-enqueue window (after execute() returns
         // but before the supplyAsync lambda starts running). putIfAbsent is
@@ -2223,13 +2285,11 @@ public class DefaultAgentEngine implements IAgentEngine {
         // is already registered for this session, so we fail-fast instead of
         // silently overwriting the existing handle.
         //
-        // Plan 221 (L4-8-P4): cross-process takeover lock. tryAcquire is
         // called BEFORE putIfAbsent — if another JVM instance is already
         // restoring/executing this session, fail-fast (裁定 4 路径 a/b).
         // tryAcquire + putIfAbsent are wrapped together so the catch path
         // can release the lock when putIfAbsent fails (裁定 5 路径 1).
         //
-        // Plan 273 (carry-over 14-06): heartbeat renewal. Once the lock is
         // acquired + the execution slot is reserved, start a periodic
         // tryRenew task so long-running agents do not let the lease expire.
         // The renewHandle is cancelled on every release path (mirrors
@@ -2254,11 +2314,9 @@ public class DefaultAgentEngine implements IAgentEngine {
         }
 
         try {
-            // Plan 271 (finding 14-04): use the dedicated agent executor instead
             // of ForkJoinPool.commonPool() so concurrent agents do not starve
             // each other (commonPool defaults to ~3-7 threads JVM-wide).
             return CompletableFuture.supplyAsync(() -> {
-                // Plan 232 (L4-multi-tenant-isolation): set the thread-local
                 // tenant context on the worker thread BEFORE any DB store
                 // operation. Standard ThreadLocal does not cross the
                 // supplyAsync boundary, so the capture from the synchronous
@@ -2268,13 +2326,11 @@ public class DefaultAgentEngine implements IAgentEngine {
                 try {
                 session.setStatus(AgentExecStatus.running);
 
-                // Plan 197: bind the execution thread now that the lambda is
                 // running. cancelSession(forced=true) reads this volatile field.
                 handle.thread = Thread.currentThread();
 
                 AgentExecutionResult result;
                 try {
-                    // Plan 278 (AR-04): createActor + autoBindTeam moved INSIDE
                     // this inner try so a failure in either triggers the
                     // symmetric cleanup in the finally below (handle / actor /
                     // takeover lock / heartbeat renewal). Previously both sat
@@ -2282,13 +2338,11 @@ public class DefaultAgentEngine implements IAgentEngine {
                     // permanently leaked all four resources, bricking the
                     // sessionId ("session already executing" on every retry).
                     //
-                    // Plan 218 (L4-8): opt-in Actor registration. The engine gates
                     // on isEnabled() (NoOp default returns false → skipped, no
                     // exception-based control flow). When enabled, createActor
                     // registers an AgentActor that runs a mailbox consumption loop
                     // on a dedicated thread. The Actor is a container/observer,
                     // not a replacement for the ReAct executor.
-                    // Plan 220 (L4-8-steering): bind the ctx steering queue to the
                     // Actor immediately after createActor returns and before
                     // execute(ctx), so the consumption loop can inject polled
                     // messages into the ReAct reasoning context.
@@ -2297,53 +2351,44 @@ public class DefaultAgentEngine implements IAgentEngine {
                         actor.setSteeringQueue(ctx.getSteeringQueue());
                     }
 
-                    // Plan 231: declarative team auto-bind (lead and/or member).
                     // Runs after createActor so the actorId is available.
                     autoBindTeam(agentModel, sessionId, request.getAgentName());
 
                     result = executor.execute(ctx).toCompletableFuture().join();
                 } finally {
-                    // Plan 197: value-comparison remove — only remove our own
                     // handle, never another execution's handle (eliminates the
                     // [14-1] mutual-clobber race where the first execution's
                     // finally removes the second execution's handle).
                     runningExecutions.remove(sessionId, handle);
-                    // Plan 273 (carry-over 14-06, Phase 2): when the lease
                     // was lost mid-execution, force terminal status to
                     // failed (the executor's cancel path would otherwise
                     // set cancelled — lease-lost is a system-level failure,
                     // not a user-initiated cancel).
                     session.setStatus(ctx.isLeaseLost() ? AgentExecStatus.failed : ctx.getStatus());
-                    // Plan 214 (L2-13a): release this session's write intents
                     // so finished sessions do not block future sessions from
                     // writing the same files. Safe to call on every exit path
                     // (release of an unknown/empty session is a no-op).
                     writeIntentRegistry.releaseSession(sessionId);
-                    // Plan 278 (AR-10): clean up the checkpoint cache for
                     // terminal sessions so it does not grow unbounded.
                     // NOT called for paused — paused is non-terminal and must
                     // retain checkpoints for restoreSession recovery.
                     if (isTerminalStatus(session.getStatus())) {
                         checkpointManager.remove(sessionId);
                     }
-                    // Plan 218 (L4-8): destroy the Actor registered at lambda
                     // entry. The actorId is reverse-looked-up via sessionId
                     // (no CancelHandle or AgentExecutionContext modification).
                     if (actorRuntime.isEnabled()) {
                         actorRuntime.getActorBySession(sessionId)
                                 .ifPresent(a -> actorRuntime.destroyActor(a.getActorId()));
                     }
-                    // Plan 221 (L4-8-P4): release the takeover lock (裁定 5
                     // 路径 3 — inner finally). Fault-tolerant: a failed
                     // release only LOG.warn (the lease auto-expires via TTL).
                     releaseLockQuietly(sessionId, instanceId);
-                    // Plan 273 (carry-over 14-06): cancel the heartbeat
                     // renewal task (裁定 mirrors releaseLockQuietly path 3)
                     // so no scheduler thread leaks past execution end.
                     cancelLockRenewalQuietly(handle.renewHandle);
                 }
 
-            // Plan 183 Phase 1: replaceMessages replaces the session's message
             // list with the full ctx.getMessages() (idempotent full-sync). This
             // unifies the intra-execution and post-execution sync paths: both
             // produce the same terminal state (session.messages == ctx
@@ -2361,21 +2406,17 @@ public class DefaultAgentEngine implements IAgentEngine {
 
             return result;
                 } finally {
-                    // Plan 232: clear the worker-thread tenant context so the
                     // pooled thread does not leak tenant state to the next task.
                     ThreadLocalTenantResolver.clear();
                 }
         }, getAgentExecutor());
         } catch (RuntimeException e) {
-            // Plan 197: if supplyAsync itself fails to submit the task
             // (e.g. RejectedExecutionException), clean up the pre-registered
             // handle so a subsequent execute() is not permanently blocked.
             runningExecutions.remove(sessionId, handle);
-            // Plan 221 (L4-8-P4): release the takeover lock (裁定 5 路径 2
             // — outer catch / supplyAsync submission failure). Same
             // fault-tolerant releaseLockQuietly as the inner finally.
             releaseLockQuietly(sessionId, instanceId);
-            // Plan 273 (carry-over 14-06): cancel the heartbeat renewal
             // task (裁定 mirrors releaseLockQuietly path 2).
             cancelLockRenewalQuietly(handle.renewHandle);
             throw e;
@@ -2403,7 +2444,6 @@ public class DefaultAgentEngine implements IAgentEngine {
             systemPrompt = agentModel.getPrompt().getSource();
         }
 
-        // Plan 192: auto-inject budgeted working memory into the system prompt.
         // Memory is a session-level persistent context (like the system prompt),
         // so it is injected here — the single point shared by doExecute (new
         // turn) and resumeSession (recovery continuation). Only non-empty
@@ -2511,7 +2551,6 @@ public class DefaultAgentEngine implements IAgentEngine {
 
         String agentName = session.getAgentName();
 
-        // Plan 270 finding 13-12: resumeSession has no request/Principal
         // source, so the tenant context must be re-established from the
         // persisted session. Without this the ledger's reset/clear SQL would
         // run with tenant=null and DELETE every tenant's denial rows for this
@@ -2531,7 +2570,6 @@ public class DefaultAgentEngine implements IAgentEngine {
             // cleared.
             denialLedger.reset(sessionId);
 
-            // Plan 278 (AR-02): also reset the post-denial guard's per-session
             // denied-fingerprint set. Without this, a resumed session's next
             // identical tool call is treated as a blind retry and blocked by
             // the guard before Layer 1 — driving the session straight back to
@@ -2560,7 +2598,6 @@ public class DefaultAgentEngine implements IAgentEngine {
         // execution left off, letting the LLM re-plan from the last denied
         // tool-call error response rather than starting a new turn).
         AgentModel agentModel = loadAgentModel(agentName);
-        // Plan 231: synchronous fail-fast precheck (see doExecute).
         precheckTeamDeclarations(agentModel);
         AgentExecutionContext ctx = buildBaseExecutionContext(agentModel, session);
 
@@ -2573,14 +2610,11 @@ public class DefaultAgentEngine implements IAgentEngine {
         ensureSessionMailbox(sessionId);
         IAgentExecutor executor = resolveExecutor(agentModel, effectiveToolAccessChecker, effectivePathAccessChecker);
 
-        // Plan 197 (AUDIT-14-01): Pre-register CancelHandle in the synchronous
         // phase with putIfAbsent + fail-fast (see doExecute for full rationale).
         //
-        // Plan 221 (L4-8-P4): cross-process takeover lock (see doExecute for
         // full rationale — tryAcquire before putIfAbsent, release on every
         // cleanup path).
         //
-        // Plan 273 (carry-over 14-06): heartbeat renewal (see doExecute).
         CancelHandle handle = new CancelHandle(ctx, null);
         try {
             if (!sessionTakeoverLock.tryAcquire(sessionId, instanceId, lockLeaseMs)) {
@@ -2601,9 +2635,7 @@ public class DefaultAgentEngine implements IAgentEngine {
         }
 
         try {
-            // Plan 271 (finding 14-04): use the dedicated agent executor (see doExecute).
             return CompletableFuture.supplyAsync(() -> {
-                // Plan 232 + Plan 270 finding 13-12: set/clear tenant context
                 // on the worker thread. resumeSession has no request/Principal
                 // source, so the tenant context is re-established from the
                 // persisted session (captured above as sessionTenantId) — NOT
@@ -2615,53 +2647,41 @@ public class DefaultAgentEngine implements IAgentEngine {
 
                 AgentExecutionResult result;
                 try {
-                    // Plan 278 (AR-04): createActor + autoBindTeam moved INSIDE
                     // this inner try (see doExecute) so a failure in either
                     // triggers the symmetric cleanup in the finally below.
                     //
-                    // Plan 218 (L4-8): opt-in Actor registration (see doExecute).
-                    // Plan 220 (L4-8-steering): bind the ctx steering queue to the
                     // Actor (see doExecute).
                     if (actorRuntime.isEnabled()) {
                         AgentActor actor = actorRuntime.createActor(sessionId, agentName);
                         actor.setSteeringQueue(ctx.getSteeringQueue());
                     }
 
-                    // Plan 231: declarative team auto-bind (lead and/or member).
                     // Runs after createActor so the actorId is available.
                     autoBindTeam(agentModel, sessionId, agentName);
 
                     result = executor.execute(ctx).toCompletableFuture().join();
                 } finally {
-                    // Plan 197: value-comparison remove — only remove our own handle.
                     runningExecutions.remove(sessionId, handle);
-                    // Plan 273 (carry-over 14-06, Phase 2): force failed when
                     // lease was lost (see doExecute).
                     session.setStatus(ctx.isLeaseLost() ? AgentExecStatus.failed : ctx.getStatus());
-                    // Plan 214 (L2-13a): release this session's write intents
                     // (mirrors doExecute / restoreSession finally cleanup).
                     writeIntentRegistry.releaseSession(sessionId);
-                    // Plan 278 (AR-10): clean up the checkpoint cache for
                     // terminal sessions so it does not grow unbounded.
                     // NOT called for paused — paused is non-terminal and must
                     // retain checkpoints for restoreSession recovery.
                     if (isTerminalStatus(session.getStatus())) {
                         checkpointManager.remove(sessionId);
                     }
-                    // Plan 218 (L4-8): destroy the Actor (see doExecute).
                     if (actorRuntime.isEnabled()) {
                         actorRuntime.getActorBySession(sessionId)
                                 .ifPresent(a -> actorRuntime.destroyActor(a.getActorId()));
                     }
-                    // Plan 221 (L4-8-P4): release the takeover lock (裁定 5
                     // 路径 3 — inner finally).
                     releaseLockQuietly(sessionId, instanceId);
-                    // Plan 273 (carry-over 14-06): cancel the heartbeat renewal
                     // (mirrors releaseLockQuietly path 3).
                     cancelLockRenewalQuietly(handle.renewHandle);
                 }
 
-            // Plan 183 Phase 1: replaceMessages unifies the post-execution
             // sync with the intra-execution persistence path (see doExecute
             // for the full rationale). Idempotent full-sync — no duplicate
             // appends.
@@ -2678,11 +2698,8 @@ public class DefaultAgentEngine implements IAgentEngine {
                 }
         }, getAgentExecutor());
         } catch (RuntimeException e) {
-            // Plan 197: clean up pre-registered handle if supplyAsync fails.
             runningExecutions.remove(sessionId, handle);
-            // Plan 221 (L4-8-P4): release the takeover lock (裁定 5 路径 2).
             releaseLockQuietly(sessionId, instanceId);
-            // Plan 273 (carry-over 14-06): cancel the heartbeat renewal
             // (mirrors releaseLockQuietly path 2).
             cancelLockRenewalQuietly(handle.renewHandle);
             throw e;
@@ -2695,7 +2712,6 @@ public class DefaultAgentEngine implements IAgentEngine {
             throw new NopAiAgentException(
                     "restoreSession failed: sessionId must not be null or empty");
         }
-        // Plan 197 (AUDIT-14-01): the redundant containsKey check is removed.
         // putIfAbsent below is the atomic dedup guard; the old containsKey was
         // a TOCTOU race (could pass, then another thread registers before
         // putIfAbsent). All three entry points now share the same fail-fast
@@ -2767,7 +2783,6 @@ public class DefaultAgentEngine implements IAgentEngine {
         // the crashed execution left off, letting the LLM re-plan from the
         // last completed tool result rather than starting a new turn).
         AgentModel agentModel = loadAgentModel(agentName);
-        // Plan 231: synchronous fail-fast precheck (see doExecute).
         precheckTeamDeclarations(agentModel);
         AgentExecutionContext ctx = buildBaseExecutionContext(agentModel, session);
 
@@ -2776,14 +2791,11 @@ public class DefaultAgentEngine implements IAgentEngine {
         ensureSessionMailbox(sessionId);
         IAgentExecutor executor = resolveExecutor(agentModel, effectiveToolAccessChecker, effectivePathAccessChecker);
 
-        // Plan 197 (AUDIT-14-01): Pre-register CancelHandle in the synchronous
         // phase with putIfAbsent + fail-fast (see doExecute for full rationale).
         //
-        // Plan 221 (L4-8-P4): cross-process takeover lock (see doExecute for
         // full rationale — tryAcquire before putIfAbsent, release on every
         // cleanup path).
         //
-        // Plan 273 (carry-over 14-06): heartbeat renewal (see doExecute).
         CancelHandle handle = new CancelHandle(ctx, null);
         try {
             if (!sessionTakeoverLock.tryAcquire(sessionId, instanceId, lockLeaseMs)) {
@@ -2804,9 +2816,7 @@ public class DefaultAgentEngine implements IAgentEngine {
         }
 
         try {
-            // Plan 271 (finding 14-04): use the dedicated agent executor (see doExecute).
             return CompletableFuture.supplyAsync(() -> {
-                // Plan 232: set/clear tenant context on the worker thread.
                 // restoreSession has no Principal source in the foundational
                 // slice (no request parameter), so the tenant context is null
                 // = all data visible (recovery-path semantics).
@@ -2816,53 +2826,41 @@ public class DefaultAgentEngine implements IAgentEngine {
 
                 AgentExecutionResult result;
                 try {
-                    // Plan 278 (AR-04): createActor + autoBindTeam moved INSIDE
                     // this inner try (see doExecute) so a failure in either
                     // triggers the symmetric cleanup in the finally below.
                     //
-                    // Plan 218 (L4-8): opt-in Actor registration (see doExecute).
-                    // Plan 220 (L4-8-steering): bind the ctx steering queue to the
                     // Actor (see doExecute).
                     if (actorRuntime.isEnabled()) {
                         AgentActor actor = actorRuntime.createActor(sessionId, agentName);
                         actor.setSteeringQueue(ctx.getSteeringQueue());
                     }
 
-                    // Plan 231: declarative team auto-bind (lead and/or member).
                     // Runs after createActor so the actorId is available.
                     autoBindTeam(agentModel, sessionId, agentName);
 
                     result = executor.execute(ctx).toCompletableFuture().join();
                 } finally {
-                    // Plan 197: value-comparison remove — only remove our own handle.
                     runningExecutions.remove(sessionId, handle);
-                    // Plan 273 (carry-over 14-06, Phase 2): force failed when
                     // lease was lost (see doExecute).
                     session.setStatus(ctx.isLeaseLost() ? AgentExecStatus.failed : ctx.getStatus());
-                    // Plan 214 (L2-13a): release this session's write intents
                     // (mirrors doExecute / resumeSession finally cleanup).
                     writeIntentRegistry.releaseSession(sessionId);
-                    // Plan 278 (AR-10): clean up the checkpoint cache for
                     // terminal sessions so it does not grow unbounded.
                     // NOT called for paused — paused is non-terminal and must
                     // retain checkpoints for restoreSession recovery.
                     if (isTerminalStatus(session.getStatus())) {
                         checkpointManager.remove(sessionId);
                     }
-                    // Plan 218 (L4-8): destroy the Actor (see doExecute).
                     if (actorRuntime.isEnabled()) {
                         actorRuntime.getActorBySession(sessionId)
                                 .ifPresent(a -> actorRuntime.destroyActor(a.getActorId()));
                     }
-                    // Plan 221 (L4-8-P4): release the takeover lock (裁定 5
                     // 路径 3 — inner finally).
                     releaseLockQuietly(sessionId, instanceId);
-                    // Plan 273 (carry-over 14-06): cancel the heartbeat renewal
                     // (mirrors releaseLockQuietly path 3).
                     cancelLockRenewalQuietly(handle.renewHandle);
                 }
 
-            // Plan 183 Phase 1: replaceMessages unifies the post-execution
             // sync with the intra-execution persistence path.
             session.replaceMessages(ctx.getMessages());
 
@@ -2877,11 +2875,8 @@ public class DefaultAgentEngine implements IAgentEngine {
                 }
         }, getAgentExecutor());
         } catch (RuntimeException e) {
-            // Plan 197: clean up pre-registered handle if supplyAsync fails.
             runningExecutions.remove(sessionId, handle);
-            // Plan 221 (L4-8-P4): release the takeover lock (裁定 5 路径 2).
             releaseLockQuietly(sessionId, instanceId);
-            // Plan 273 (carry-over 14-06): cancel the heartbeat renewal
             // (mirrors releaseLockQuietly path 2).
             cancelLockRenewalQuietly(handle.renewHandle);
             throw e;
@@ -2938,7 +2933,6 @@ public class DefaultAgentEngine implements IAgentEngine {
             AgentExecStatus status = session.getStatus();
 
             if (status == AgentExecStatus.running || status == AgentExecStatus.pending) {
-                // Plan 221 (L4-8-P4): skip sessions already being processed by
                 // another instance. isHeld returns true iff an active (non-
                 // expired) lease exists for this sessionId regardless of
                 // owner — a true return means another JVM instance is
@@ -3242,7 +3236,6 @@ public class DefaultAgentEngine implements IAgentEngine {
                     .messenger(messenger)
                     .securityLevelResolver(securityLevelResolver)
                     .permissionMatrix(permissionMatrix)
-                    .levelHintsProducer(levelHintsProducer)
                     .approvalGate(approvalGate)
                     .denialLedger(denialLedger)
                     .postDenialGuard(postDenialGuard)
@@ -3264,7 +3257,6 @@ public class DefaultAgentEngine implements IAgentEngine {
                     .teamManager(this.teamManager)
                     .teamTaskStore(this.teamTaskStore)
                     .teamAclChecker(this.teamAclChecker)
-                    // Plan 271 (finding 14-03 / 14-04): propagate the wall-clock
                     // LLM/tool timeouts and the dedicated executor (used to wrap
                     // the synchronous chatService.call with a timeout) to the
                     // ReAct executor.
@@ -3463,7 +3455,6 @@ public class DefaultAgentEngine implements IAgentEngine {
     }
 
     // ============================================================
-    // Plan 231 (L4-team-auto-binding): declarative team auto-bind
     // ============================================================
     //
     // A lead agent's <team> element declares the team structure; a member

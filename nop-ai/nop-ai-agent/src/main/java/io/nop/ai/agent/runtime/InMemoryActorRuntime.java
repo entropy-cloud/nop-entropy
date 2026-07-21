@@ -240,7 +240,6 @@ public final class InMemoryActorRuntime implements IActorRuntime {
             destroyActorInternal(existingActor.getActorId());
         }
 
-        // Plan 234: enforce CONCURRENT_ACTORS_PER_TENANT quota before creating
         // a new actor (config-driven; override <= 0). The scopeKey is the
         // tenant resolved by the contextual ITenantResolver (Design Decision
         // §5); when no tenant context is active, a single global bucket is
@@ -421,7 +420,6 @@ public final class InMemoryActorRuntime implements IActorRuntime {
                         // regardless of steering-injection or observation-only).
                         actor.addReceivedMessage(entry);
 
-                        // Plan 220 (L4-8-steering): steering-injection. When
                         // the Actor's steering queue reference is bound
                         // (non-null), convert the envelope payload to a
                         // ChatUserMessage and enqueue it into the ctx steering

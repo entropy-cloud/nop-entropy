@@ -604,7 +604,6 @@ public class TeamTaskFlowOrchestrator {
         // spawn at run time (plan 238 decision 5).
         String orchestratorSessionId = "orchestrator-" + teamId;
 
-        // Plan 243 design 裁定 2 (explicit-propagation tenant capture): capture
         // the caller's tenant ONCE here, on the caller's thread (where it is
         // reliably set), so each SpawnMemberAgentTaskStep can re-apply it
         // inside its supplyAsync worker regardless of the DAG topology (both
@@ -622,7 +621,6 @@ public class TeamTaskFlowOrchestrator {
                     .collect(Collectors.toCollection(HashSet::new));
             boolean enter = waitSteps.isEmpty();
 
-            // Plan 244 (L4-multi-member-per-task-routing, design 裁定 2):
             // the per-task member router decides which member targets this
             // node fans out to (bound +/or spawn). The router runs at build
             // time, non-executing (it never calls the engine nor the spawner).

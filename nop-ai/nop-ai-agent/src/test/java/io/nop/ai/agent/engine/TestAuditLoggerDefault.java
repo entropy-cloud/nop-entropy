@@ -344,20 +344,15 @@ public class TestAuditLoggerDefault {
                 toolCall("x", "noop", Map.of()));
         IToolManager toolManager = recordingToolManager(new AtomicBoolean());
 
-        // Short constructor → default Slf4jAuditLogger → no NoOp WARN at
-        // construction time (defence-in-depth: the constructor-time check
-        // does not hit NoOp on the shipped default).
-        DefaultAgentEngine engine = new DefaultAgentEngine(chatService, toolManager);
-        assertEquals(0, engineWarns().size(),
-                "Default construction must NOT emit any WARN (field defaults to Slf4jAuditLogger). Got: "
-                        + engineWarns().stream().map(ILoggingEvent::getFormattedMessage).collect(Collectors.toList()));
-
-        // The actual NoOp hit-path: setter injection of NoOpAuditLogger.
-        engine.setAuditLogger(new NoOpAuditLogger());
+        // Plan 304: warnIfInsecureDefaults is now centralized to
+        // Builder.build(). Short constructor no longer emits warnings.
+        DefaultAgentEngine engine = DefaultAgentEngine.builder(chatService, toolManager)
+                .auditLogger(new NoOpAuditLogger())
+                .build();
 
         List<ILoggingEvent> warns = engineWarns();
         assertFalse(warns.isEmpty(),
-                "setAuditLogger(new NoOpAuditLogger()) must emit a WARN identifying the NoOp downgrade");
+                "builder().auditLogger(new NoOpAuditLogger()).build() must emit a WARN identifying the NoOp downgrade");
 
         boolean noOpWarnPresent = warns.stream()
                 .anyMatch(e -> e.getFormattedMessage() != null
@@ -366,7 +361,6 @@ public class TestAuditLoggerDefault {
                 "WARN must identify NoOpAuditLogger. Messages: "
                         + warns.stream().map(ILoggingEvent::getFormattedMessage).collect(Collectors.toList()));
 
-        // Sanity: the WARN text mentions the audit-discarding nature + guidance.
         boolean mentionsDiscardedOrGuidance = warns.stream()
                 .anyMatch(e -> e.getFormattedMessage() != null
                         && (e.getFormattedMessage().toLowerCase().contains("discard")

@@ -5,6 +5,8 @@ import io.nop.ai.agent.security.IPermissionMatrix;
 import io.nop.ai.agent.security.ISecurityLevelResolver;
 import io.nop.ai.agent.security.LevelHints;
 import io.nop.ai.agent.security.MatrixDecision;
+
+import java.io.File;
 import io.nop.ai.agent.security.NoOpSecurityLevelResolver;
 import io.nop.ai.agent.security.PassThroughPermissionMatrix;
 import io.nop.ai.agent.security.Principal;
@@ -76,6 +78,14 @@ public class TestDispatchPathSecurityConsultation {
      */
     static final class CountingResolver implements ISecurityLevelResolver {
         final AtomicInteger resolveCount = new AtomicInteger();
+
+        @Override
+        public LevelHints produce(String toolName, Map<String, Object> arguments, File workDir,
+                                  AgentExecutionContext ctx) {
+            boolean highImpact = toolName != null
+                    && ("shell.exec".equals(toolName) || toolName.replace('_', '.').toLowerCase(Locale.ROOT).contains("shell"));
+            return new LevelHints(true, false, false, false, highImpact);
+        }
 
         @Override
         public SecurityLevel resolve(String actionKind, LevelHints hints) {

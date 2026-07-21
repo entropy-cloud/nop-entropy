@@ -18,6 +18,13 @@ public abstract class _AiToolModel extends io.nop.core.resource.component.Abstra
     
     /**
      *  
+     * xml name: class
+     * 
+     */
+    private java.lang.String _className ;
+    
+    /**
+     *  
      * xml name: description
      * description：工具的详细说明，支持纯文本或CDATA
      */
@@ -61,12 +68,40 @@ public abstract class _AiToolModel extends io.nop.core.resource.component.Abstra
     
     /**
      *  
+     * xml name: schemaJson
+     * Plan 304: JSON schema for tool parameters, alternative to XML schema.
+     * When both are present, the XML schema takes precedence for Nop-internal
+     * processing; the JSON schema is used for LLM-facing tool definitions.
+     */
+    private java.lang.Object _schemaJson ;
+    
+    /**
+     *  
      * xml name: tags
      * Plan 296 (WS2): tag-based visibility. Tags are arbitrary labels
      * (e.g. readonly, admin, channel:webui) used by AgentModel.activeTags
      * to filter which tools are exposed to the LLM. Empty = no tags.
      */
     private java.util.Set<java.lang.String> _tags ;
+    
+    /**
+     * 
+     * xml name: class
+     *  
+     */
+    
+    public java.lang.String getClassName(){
+      return _className;
+    }
+
+    
+    public void setClassName(java.lang.String value){
+        checkAllowChange();
+        
+        this._className = value;
+           
+    }
+
     
     /**
      * 
@@ -211,6 +246,27 @@ public abstract class _AiToolModel extends io.nop.core.resource.component.Abstra
     
     /**
      * 
+     * xml name: schemaJson
+     *  Plan 304: JSON schema for tool parameters, alternative to XML schema.
+     * When both are present, the XML schema takes precedence for Nop-internal
+     * processing; the JSON schema is used for LLM-facing tool definitions.
+     */
+    
+    public java.lang.Object getSchemaJson(){
+      return _schemaJson;
+    }
+
+    
+    public void setSchemaJson(java.lang.Object value){
+        checkAllowChange();
+        
+        this._schemaJson = value;
+           
+    }
+
+    
+    /**
+     * 
      * xml name: tags
      *  Plan 296 (WS2): tag-based visibility. Tags are arbitrary labels
      * (e.g. readonly, admin, channel:webui) used by AgentModel.activeTags
@@ -247,12 +303,14 @@ public abstract class _AiToolModel extends io.nop.core.resource.component.Abstra
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         
+        out.putNotNull("className",this.getClassName());
         out.putNotNull("description",this.getDescription());
         out.putNotNull("examples",this.getExamples());
         out.putNotNull("meta",this.isMeta());
         out.putNotNull("name",this.getName());
         out.putNotNull("responseSchema",this.getResponseSchema());
         out.putNotNull("schema",this.getSchema());
+        out.putNotNull("schemaJson",this.getSchemaJson());
         out.putNotNull("tags",this.getTags());
     }
 
@@ -265,12 +323,14 @@ public abstract class _AiToolModel extends io.nop.core.resource.component.Abstra
     protected void copyTo(AiToolModel instance){
         super.copyTo(instance);
         
+        instance.setClassName(this.getClassName());
         instance.setDescription(this.getDescription());
         instance.setExamples(this.getExamples());
         instance.setMeta(this.isMeta());
         instance.setName(this.getName());
         instance.setResponseSchema(this.getResponseSchema());
         instance.setSchema(this.getSchema());
+        instance.setSchemaJson(this.getSchemaJson());
         instance.setTags(this.getTags());
     }
 

@@ -95,7 +95,6 @@ public class TeamStatusExecutor implements IToolExecutor {
         }
         Team team = teamOpt.get();
 
-        // Plan 228 (L4-team-acl-enforcement): consult the ACL checker after
         // team resolution and BEFORE any taskStore query / status build.
         // toolName=team-status, action=view → required READ (allowed for
         // LEAD and MEMBER; denied for non-members). NoOp → allow(null).

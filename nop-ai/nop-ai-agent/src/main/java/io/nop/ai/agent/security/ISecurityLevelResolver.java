@@ -1,5 +1,10 @@
 package io.nop.ai.agent.security;
 
+import io.nop.ai.agent.engine.AgentExecutionContext;
+
+import java.io.File;
+import java.util.Map;
+
 /**
  * Layer 2 policy-extension contract: security-level resolution (design §5.1).
  * Given an action kind (a tool name / operation category such as
@@ -32,6 +37,11 @@ package io.nop.ai.agent.security;
  * <p>The {@link SecurityLevel} enum is reused from L2-14 (plan 172), where it
  * was defined because the {@link IPermissionMatrix} contract requires it as an
  * input parameter. This resolver is the producer of that value.
+ *
+ * <p>This interface also incorporates the {@code produce} method formerly on
+ * {@code ILevelHintsProducer} (merged per plan 304 Phase 6). A single
+ * implementation handles both hint production and level resolution, removing
+ * the need for a separate producer interface.
  */
 public interface ISecurityLevelResolver {
 
@@ -48,4 +58,18 @@ public interface ISecurityLevelResolver {
      * @return the resolved security level; never {@code null}
      */
     SecurityLevel resolve(String actionKind, LevelHints hints);
+
+    /**
+     * Produce the {@link LevelHints} for a tool call. Given the tool name, the
+     * tool-call arguments, the agent's working directory, and the execution
+     * context, derives the auditable boolean hints consumed by
+     * {@link #resolve(String, LevelHints)}.
+     *
+     * @param toolName  the tool name / operation category; may be {@code null} or unknown
+     * @param arguments the tool-call arguments; may be {@code null} or empty
+     * @param workDir   the agent's working directory, or {@code null} (JVM CWD is used as the base)
+     * @param ctx       the execution context; may be {@code null}
+     * @return the produced hints; never {@code null}
+     */
+    LevelHints produce(String toolName, Map<String, Object> arguments, File workDir, AgentExecutionContext ctx);
 }

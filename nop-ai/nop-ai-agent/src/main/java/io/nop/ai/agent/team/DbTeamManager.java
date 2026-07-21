@@ -195,7 +195,6 @@ public class DbTeamManager implements ITeamManager {
         String teamId = UUID.randomUUID().toString();
         long now = System.currentTimeMillis();
 
-        // Plan 234: enforce TEAM_MEMBERS quota before INSERT (config-driven;
         // projectedCount = the spec's initial member count).
         enforceQuota(QuotaDimension.TEAM_MEMBERS, teamId,
                 spec.getMemberSpecs().size(), 0, "createTeam");
@@ -458,7 +457,6 @@ public class DbTeamManager implements ITeamManager {
                     "DbTeamManager.addMember: cannot add member to a disbanded team: "
                             + teamId);
         }
-        // Plan 234: enforce TEAM_MEMBERS quota before INSERT (projectedCount =
         // current member count + 1). selectMemberRows is the same snapshot
         // rebuild path used by reads.
         int currentMemberCount = selectMemberRows(teamId).size();
@@ -554,7 +552,6 @@ public class DbTeamManager implements ITeamManager {
         // matches 0 rows). The TeamStatus doc-vs-code divergence fix is an
         // independent successor.
         //
-        // Plan 234: enforce TEAM_PARALLEL_BOUND_MEMBERS quota before the
         // UPDATE (the maxParallelMembers hint→enforced upgrade). Derive the
         // bound count + the target member's current bound state from the
         // member rows (a member is bound when SESSION_ID is non-null). The

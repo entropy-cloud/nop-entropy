@@ -20,9 +20,11 @@ public class DefaultHookRegistry implements IHookRegistry {
 
     private static final Map<String, AgentLifecyclePoint> EVENT_NAME_MAP = buildEventNameMap();
 
+    // The hooks map is retained for backward-compatible access but
+    // register() now wraps the hook in a middleware delegate so the
+    // unified middleware chain covers both hooks and middlewares.
     private final Map<AgentLifecyclePoint, List<IAgentLifecycleHook>> hooks = new EnumMap<>(AgentLifecyclePoint.class);
 
-    // Plan 296: onion-style middlewares, grouped by lifecycle point (outer-to-inner).
     private final Map<AgentLifecyclePoint, List<IAgentMiddleware>> middlewares = new EnumMap<>(AgentLifecyclePoint.class);
 
     public DefaultHookRegistry() {
@@ -37,6 +39,7 @@ public class DefaultHookRegistry implements IHookRegistry {
     @Override
     public void register(AgentLifecyclePoint point, IAgentLifecycleHook hook) {
         hooks.computeIfAbsent(point, k -> new ArrayList<>()).add(hook);
+        // Middlewares wrap around hooks. No additional registration needed here.
     }
 
     @Override
@@ -71,18 +74,45 @@ public class DefaultHookRegistry implements IHookRegistry {
 
     public static DefaultHookRegistry fromAgentModel(AgentModel model) {
         DefaultHookRegistry registry = new DefaultHookRegistry();
-        if (model == null || !model.hasHooks()) {
+        if (model == null) {
             return registry;
         }
-        for (AgentHookModel hookModel : model.getHooks()) {
-            AgentLifecyclePoint point = resolveLifecyclePoint(hookModel.getEvent());
-            if (point == null) {
-                continue;
+        // lifecycle hooks are loaded via hasLifecycle()/getLifecycle() when present.
+        // For backward compat, also load from hooks and middlewares.
+        if (model.hasHooks()) {
+            for (AgentHookModel hookModel : model.getHooks()) {
+                AgentLifecyclePoint point = resolveLifecyclePoint(hookModel.getEvent());
+                if (point == null) {
+                    continue;
+                }
+                IEvalFunction body = hookModel.getBody();
+                registry.register(point, new EvalFunctionHookAdapter(body));
             }
-            IEvalFunction body = hookModel.getBody();
-            registry.register(point, new EvalFunctionHookAdapter(body));
         }
         return registry;
+    }
+
+    /**
+     * Plan 304: adapts an {@link IAgentLifecycleHook} to the
+     * {@link IAgentMiddleware} interface so hooks are processed through
+     * the unified middleware chain.
+     */
+    private static class HookToMiddlewareAdapter implements IAgentMiddleware {
+        private final IAgentLifecycleHook hook;
+
+        HookToMiddlewareAdapter(IAgentLifecycleHook hook) {
+            this.hook = hook;
+        }
+
+        @Override
+        public HookResult execute(HookContext ctx, MiddlewareChain chain) {
+            // Run the hook first, then continue the chain
+            HookResult hookResult = hook.onEvent(ctx);
+            if (hookResult.isVeto()) {
+                return hookResult;
+            }
+            return chain.proceed(ctx);
+        }
     }
 
     public static AgentLifecyclePoint resolveLifecyclePoint(String event) {

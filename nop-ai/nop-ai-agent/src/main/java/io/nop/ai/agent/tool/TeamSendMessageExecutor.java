@@ -103,7 +103,6 @@ public class TeamSendMessageExecutor implements IToolExecutor {
         }
         Team team = teamOpt.get();
 
-        // Plan 228 (L4-team-acl-enforcement): consult the ACL checker after
         // team resolution and BEFORE any argument parsing / member lookup /
         // messenger delivery. toolName=team-send-message, action=send →
         // required WRITE (allowed for both LEAD and MEMBER; denied for

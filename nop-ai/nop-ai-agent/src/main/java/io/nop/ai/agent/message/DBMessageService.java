@@ -186,7 +186,6 @@ public class DBMessageService implements IMessageService, AutoCloseable {
             return t;
         });
         poller.scheduleWithFixedDelay(this::pollAllTopics, pollIntervalMs, pollIntervalMs, TimeUnit.MILLISECONDS);
-        // Plan 271 (finding 14-02): periodic sweep resets stale CLAIMED
         // messages back to PENDING so a consumer that crashed or failed to
         // mark-consume/release does not permanently strand a message. This is
         // the at-least-once-delivery safety net.
@@ -567,7 +566,6 @@ public class DBMessageService implements IMessageService, AutoCloseable {
                     LOG.error("nop.ai.agent.message.db-async-consume-error:sid={}", sid, e);
                     releaseClaimQuietly(sid);
                 } else {
-                    // Plan 271 (finding 14-02): if mark-consume fails here we
                     // are on the async completion thread with no enclosing
                     // try/catch, so fall back to releasing the claim (reset to
                     // PENDING for redelivery). releaseClaimQuietly never

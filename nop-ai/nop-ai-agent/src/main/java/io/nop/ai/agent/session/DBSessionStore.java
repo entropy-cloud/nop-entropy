@@ -283,7 +283,6 @@ public class DBSessionStore implements ISessionStore {
         }
         String json = SessionFileWriter.serialize(session);
         String tenant = currentTenant();
-        // Plan 232 (Design Decision 9): when a tenant is active, the MERGE key
         // becomes (SESSION_ID, TENANT_ID) so each tenant has its own session
         // namespace; TENANT_ID is appended as the last VALUES column. When no
         // tenant context, the SQL is byte-identical to the original upsert
@@ -369,7 +368,6 @@ public class DBSessionStore implements ISessionStore {
 
     private AgentSession loadFromDb(String sessionId) {
         String tenant = currentTenant();
-        // Plan 270 finding 13-12: also read TENANT_ID so the loaded session
         // carries its own tenant for recovery paths (resumeSession/
         // restoreSession) that have no request/Principal source.
         String selectSql = "SELECT " + AiAgentSessionTable.COL_SESSION_DATA

@@ -224,7 +224,6 @@ public final class DockerSandboxBackend implements ISandboxBackend {
         SandboxConfig config = request.getConfig() != null
                 ? request.getConfig()
                 : defaultConfig;
-        // Plan 270 (finding 13-7): validate the working-directory host path
         // BEFORE building the docker command so an unverified path can never
         // reach `docker run -v`. Fail-closed: a violation raises a
         // SandboxException instead of mounting.
