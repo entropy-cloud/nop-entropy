@@ -15,15 +15,17 @@ import io.nop.api.core.beans.graphql.GraphQLRequestBean;
 import io.nop.api.core.beans.graphql.GraphQLResponseBean;
 import io.nop.api.core.beans.query.QueryBean;
 import io.nop.autotest.junit.JunitBaseTestCase;
+import io.nop.core.context.IServiceContext;
+import io.nop.core.context.ServiceContextImpl;
 import io.nop.dao.api.IDaoProvider;
 import io.nop.dao.api.IEntityDao;
 import io.nop.graphql.core.engine.IGraphQLEngine;
 import io.nop.metadata.dao.entity.NopMetaDataSource;
 import io.nop.metadata.dao.entity.NopMetaEntity;
 import io.nop.metadata.dao.entity.NopMetaModule;
+import io.nop.metadata.biz.INopMetaTableBiz;
 import io.nop.metadata.core.dto.QueryTableDataResultDTO;
 import io.nop.metadata.dao.entity.NopMetaTable;
-import io.nop.metadata.service.entity.NopMetaTableBizModel;
 import jakarta.inject.Inject;
 import org.junit.jupiter.api.Test;
 
@@ -65,7 +67,9 @@ public class TestNopMetaTableQueryBizModel extends JunitBaseTestCase {
     IDaoProvider daoProvider;
 
     @Inject
-    NopMetaTableBizModel nopMetaTableBizModel;
+    INopMetaTableBiz nopMetaTableBizModel;
+
+    IServiceContext svcCtx = new ServiceContextImpl();
 
     // ===== entity 分派：经 IOrmTemplate（架构基线 §4.4 D1）=====
 
@@ -78,7 +82,7 @@ public class TestNopMetaTableQueryBizModel extends JunitBaseTestCase {
         String tableId = findEntityTableId("nop_meta_module");
 
         // 直接调 BizModel（GraphQL Map 返回不支持字段选择；此处验证 entity→ORM 真实分派）
-        QueryTableDataResultDTO result = nopMetaTableBizModel.queryTableData(tableId, null, null, null, null, null);
+        QueryTableDataResultDTO result = nopMetaTableBizModel.queryTableData(tableId, null, null, null, null, svcCtx);
         assertEquals("entity", result.getTableType());
         List<Map<String, Object>> items = result.getItems();
         assertNotNull(items, "items must not be null");
@@ -96,7 +100,7 @@ public class TestNopMetaTableQueryBizModel extends JunitBaseTestCase {
 
         // 直接调 BizModel 传 filter（TreeBean 非 GraphQL 命名类型）
         TreeBean filter = FilterBeans.eq("moduleId", "__never_matches_anything__");
-        QueryTableDataResultDTO result = nopMetaTableBizModel.queryTableData(tableId, filter, null, null, null, null);
+        QueryTableDataResultDTO result = nopMetaTableBizModel.queryTableData(tableId, filter, null, null, null, svcCtx);
         List<Map<String, Object>> items = result.getItems();
         assertTrue(items.isEmpty(), "entity filter moduleId=__nope__ must return 0 rows (filter wired to ORM)");
     }
@@ -142,7 +146,7 @@ public class TestNopMetaTableQueryBizModel extends JunitBaseTestCase {
         // 直接调 BizModel action（TreeBean 非 GraphQL 命名类型，经 GraphQL 变量传不进来；
         // filter→WHERE 翻译由 TestFilterToSqlTranslator 单测覆盖，此处验证整条 external+filter+withConnection 链路）
         TreeBean filter = FilterBeans.gt("AMOUNT", 15);
-        QueryTableDataResultDTO result = nopMetaTableBizModel.queryTableData(tableId, filter, null, null, null, null);
+        QueryTableDataResultDTO result = nopMetaTableBizModel.queryTableData(tableId, filter, null, null, null, svcCtx);
         assertEquals("external", result.getTableType());
         List<Map<String, Object>> items = result.getItems();
         assertEquals(3, items.size(), "filter amount>15 must return 3 rows (20,30,40)");

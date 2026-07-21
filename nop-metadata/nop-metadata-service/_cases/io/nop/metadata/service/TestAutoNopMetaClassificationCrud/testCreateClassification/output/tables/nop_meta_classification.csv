@@ -1,0 +1,2 @@
+_chgType,CLASSIFICATION_ID,NAME,DISPLAY_NAME,DESCRIPTION,MUTUALLY_EXCLUSIVE,PROVIDER,DISABLED,AUTO_CLASSIFICATION_CONFIG,EXT_CONFIG,VERSION,CREATED_BY,CREATE_TIME,UPDATED_BY,UPDATE_TIME,REMARK
+A,@var:NopMetaClassification@classificationId,auto-test-classification,Auto Test Classification,Created by automated snapshot test,1,system,0,,,0,autotest-ref,*,autotest-ref,*,

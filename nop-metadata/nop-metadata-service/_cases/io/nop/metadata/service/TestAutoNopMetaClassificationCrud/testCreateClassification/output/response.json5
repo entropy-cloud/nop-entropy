@@ -1,0 +1,21 @@
+{
+  "data": {
+    "classificationId": "@var:NopMetaClassification@classificationId",
+    "name": "auto-test-classification",
+    "displayName": "Auto Test Classification",
+    "description": "Created by automated snapshot test",
+    "mutuallyExclusive": 1,
+    "provider": "system",
+    "provider_label": "system-系统内置",
+    "disabled": 0,
+    "autoClassificationConfig": null,
+    "extConfig": null,
+    "version": 0,
+    "createdBy": "autotest-ref",
+    "createTime": "@var:NopMetaClassification@createTime",
+    "updatedBy": "autotest-ref",
+    "updateTime": "@var:NopMetaClassification@createTime",
+    "remark": null
+  },
+  "status": 0
+}

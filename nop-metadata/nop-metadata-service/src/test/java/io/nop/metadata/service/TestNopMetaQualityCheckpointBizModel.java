@@ -64,10 +64,22 @@ public class TestNopMetaQualityCheckpointBizModel extends JunitBaseTestCase {
         setTestConfig("nop.orm.init-database-schema", true);
     }
 
+    @Inject
+    io.nop.http.api.client.IHttpClient httpClient;
+
+    @Inject
+    io.nop.api.core.message.IMessageService messageService;
+
+    MockHttpClient mockHttpClient;
+
+    MockMessageService mockMessageService;
+
     @BeforeEach
     void resetMocks() {
-        MockHttpClient.reset();
-        MockMessageService.reset();
+        mockHttpClient = (MockHttpClient) httpClient;
+        mockMessageService = (MockMessageService) messageService;
+        mockHttpClient.reset();
+        mockMessageService.reset();
     }
 
     @Inject
@@ -398,9 +410,9 @@ public class TestNopMetaQualityCheckpointBizModel extends JunitBaseTestCase {
 
     /**
      * (a) webhook 投递成功：配置 {actionType:"webhook", config:{url}, enabled:true} 的 checkpoint 执行后，
-     * MockHttpClient.fetch 被调一次，请求 body 为执行摘要 JSON（含 checkpointId + executedCount）。
+     * mockHttpClient.fetch 被调一次，请求 body 为执行摘要 JSON（含 checkpointId + executedCount）。
      *
-     * <p>端到端验证 + 接线验证：从 executeCheckpoint（入口）到 MockHttpClient.fetch（出口）完整跑通，
+     * <p>端到端验证 + 接线验证：从 executeCheckpoint（入口）到 mockHttpClient.fetch（出口）完整跑通，
      * 证明分发链连通非空壳。post-commit dispatch：fetch 在 store 提交后调用（事务隔离）。
      */
     @Test
@@ -420,16 +432,16 @@ public class TestNopMetaQualityCheckpointBizModel extends JunitBaseTestCase {
         assertFalse(resp.hasError(), "checkpoint with webhook action should not globally error: " + resp);
 
         // 端到端 + 接线验证：fetch 被调一次（post-commit dispatch）
-        assertEquals(1, MockHttpClient.fetchCallCount, "webhook fetch must be called once (post-commit dispatch)");
-        assertNotNull(MockHttpClient.lastRequest, "last fetch request must be recorded");
-        assertEquals("http://mock-hook/quality", MockHttpClient.lastRequest.getUrl());
-        assertEquals("POST", MockHttpClient.lastRequest.getMethod());
+        assertEquals(1, mockHttpClient.fetchCallCount, "webhook fetch must be called once (post-commit dispatch)");
+        assertNotNull(mockHttpClient.lastRequest, "last fetch request must be recorded");
+        assertEquals("http://mock-hook/quality", mockHttpClient.lastRequest.getUrl());
+        assertEquals("POST", mockHttpClient.lastRequest.getMethod());
         // body 为执行摘要 JSON（含 checkpointId + executedCount）
-        String body = String.valueOf(MockHttpClient.lastRequest.getBody());
+        String body = String.valueOf(mockHttpClient.lastRequest.getBody());
         assertTrue(body.contains("checkpointId"), "fetch body must contain checkpointId: " + body);
         assertTrue(body.contains("executedCount"), "fetch body must contain executedCount: " + body);
         // Content-Type header
-        assertEquals("application/json", MockHttpClient.lastRequest.getHeader("Content-Type"));
+        assertEquals("application/json", mockHttpClient.lastRequest.getHeader("Content-Type"));
 
         // store 存活（已提交）
         assertEquals(1, countResults("r-wh-vol"), "store (QualityResult) must survive post-commit dispatch");
@@ -455,14 +467,14 @@ public class TestNopMetaQualityCheckpointBizModel extends JunitBaseTestCase {
                 "[{\"actionType\":\"webhook\",\"enabled\":true,\"config\":{\"url\":\"http://mock-hook/fail\"}}]");
 
         // mock fetch 抛错（模拟 webhook 端点不可达）
-        MockHttpClient.throwOnFetch = new RuntimeException("connection refused");
+        mockHttpClient.throwOnFetch = new RuntimeException("connection refused");
 
         GraphQLResponseBean resp = exec("cp-whf");
         // checkpoint 整体不报错（webhook 失败被 per-action 隔离，post-commit 不回滚 store）
         assertFalse(resp.hasError(), "webhook failure must not globally error (post-commit isolation): " + resp);
 
         // fetch 被调一次（dispatch 尝试了投递）
-        assertEquals(1, MockHttpClient.fetchCallCount, "webhook fetch must be attempted once");
+        assertEquals(1, mockHttpClient.fetchCallCount, "webhook fetch must be attempted once");
         // store 存活（已提交，投递失败不回滚）——事务隔离硬验证
         assertEquals(1, countResults("r-whf-vol"), "store must survive webhook failure (post-commit)");
     }
@@ -489,7 +501,7 @@ public class TestNopMetaQualityCheckpointBizModel extends JunitBaseTestCase {
         assertFalse(resp.hasError(), "missing url causes dispatch failure, not global error: " + resp);
 
         // fetch 未被调（url 缺失在 fetch 之前显式失败）
-        assertEquals(0, MockHttpClient.fetchCallCount, "fetch must not be called when url is missing");
+        assertEquals(0, mockHttpClient.fetchCallCount, "fetch must not be called when url is missing");
         // store 存活
         assertEquals(1, countResults("r-whu-vol"), "store must survive missing-url dispatch failure");
     }

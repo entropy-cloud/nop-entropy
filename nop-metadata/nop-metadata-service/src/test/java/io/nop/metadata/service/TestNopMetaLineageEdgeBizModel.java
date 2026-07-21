@@ -7,6 +7,8 @@ import io.nop.api.core.beans.graphql.GraphQLRequestBean;
 import io.nop.api.core.beans.graphql.GraphQLResponseBean;
 import io.nop.api.core.beans.query.QueryBean;
 import io.nop.autotest.junit.JunitBaseTestCase;
+import io.nop.core.context.IServiceContext;
+import io.nop.core.context.ServiceContextImpl;
 import io.nop.dao.api.IDaoProvider;
 import io.nop.dao.api.IEntityDao;
 import io.nop.graphql.core.IGraphQLExecutionContext;
@@ -17,6 +19,7 @@ import io.nop.metadata.dao.entity.NopMetaEntityField;
 import io.nop.metadata.dao.entity.NopMetaLineageEdge;
 import io.nop.metadata.dao.entity.NopMetaModule;
 import io.nop.metadata.dao.entity.NopMetaOrmModel;
+import io.nop.metadata.biz.INopMetaLineageEdgeBiz;
 import io.nop.metadata.dao.entity.NopMetaTable;
 import io.nop.metadata.dao.entity.NopMetaTableMeasure;
 import jakarta.inject.Inject;
@@ -54,7 +57,9 @@ public class TestNopMetaLineageEdgeBizModel extends JunitBaseTestCase {
     IDaoProvider daoProvider;
 
     @Inject
-    io.nop.metadata.service.entity.NopMetaLineageEdgeBizModel lineageBiz;
+    INopMetaLineageEdgeBiz lineageBiz;
+
+    IServiceContext svcCtx = new ServiceContextImpl();
 
     @Inject
     io.nop.orm.IOrmTemplate ormTemplate;
@@ -242,12 +247,12 @@ public class TestNopMetaLineageEdgeBizModel extends JunitBaseTestCase {
                 "{sourceTableId: \"" + b + "\", targetTableId: \"" + c + "\"}]) { edgeCount } }");
 
         // getDownstream(A) 含 B, C
-        List<String> downstream = lineageBiz.getDownstream(a, null);
+        List<String> downstream = lineageBiz.getDownstream(a, svcCtx);
         assertEquals(2, downstream.size(), "downstream of A must be [B, C]: " + downstream);
         assertTrue(downstream.contains(b) && downstream.contains(c), "downstream must contain B and C");
 
         // getUpstream(C) 含 A, B
-        List<String> upstream = lineageBiz.getUpstream(c, null);
+        List<String> upstream = lineageBiz.getUpstream(c, svcCtx);
         assertEquals(2, upstream.size(), "upstream of C must be [A, B]: " + upstream);
         assertTrue(upstream.contains(a) && upstream.contains(b), "upstream must contain A and B");
 
@@ -274,14 +279,14 @@ public class TestNopMetaLineageEdgeBizModel extends JunitBaseTestCase {
                 "{sourceTableId: \"" + b + "\", targetTableId: \"" + c + "\"}]) { edgeCount } }");
 
         // 路径 A→C = [A, B, C]
-        List<String> path = lineageBiz.getLineagePath(a, c, null);
+        List<String> path = lineageBiz.getLineagePath(a, c, svcCtx);
         assertEquals(3, path.size(), "path A→C must have 3 nodes: " + path);
         assertEquals(a, path.get(0));
         assertEquals(b, path.get(1));
         assertEquals(c, path.get(2));
 
         // 无路径返回显式空（不报错）
-        List<String> noPath = lineageBiz.getLineagePath(a, z, null);
+        List<String> noPath = lineageBiz.getLineagePath(a, z, svcCtx);
         assertNotNull(noPath, "no-path must return explicit empty list, not null");
         assertTrue(noPath.isEmpty(), "no path A→Z must be empty (not error): " + noPath);
 
@@ -305,18 +310,18 @@ public class TestNopMetaLineageEdgeBizModel extends JunitBaseTestCase {
                 "{sourceTableId: \"" + b + "\", targetTableId: \"" + a + "\"}]) { edgeCount } }");
 
         // visited 环检测：A 的下游为 B（B 的下游 A 已 visited，不重复、不死循环）
-        List<String> downstream = lineageBiz.getDownstream(a, null);
+        List<String> downstream = lineageBiz.getDownstream(a, svcCtx);
         assertEquals(1, downstream.size(), "cycle: downstream of A is just [B]");
         assertEquals(b, downstream.get(0));
 
         // 路径 A→B = [A, B]（最短路径，不绕环）
-        List<String> path = lineageBiz.getLineagePath(a, b, null);
+        List<String> path = lineageBiz.getLineagePath(a, b, svcCtx);
         assertEquals(2, path.size(), "cycle: shortest path A→B is [A, B]: " + path);
         assertEquals(a, path.get(0));
         assertEquals(b, path.get(1));
 
         // 起点到自身
-        List<String> selfPath = lineageBiz.getLineagePath(a, a, null);
+        List<String> selfPath = lineageBiz.getLineagePath(a, a, svcCtx);
         assertEquals(1, selfPath.size(), "path A→A is [A]");
     }
 
@@ -341,17 +346,17 @@ public class TestNopMetaLineageEdgeBizModel extends JunitBaseTestCase {
                 "{sourceTableId: \"" + t1 + "\", targetTableId: \"" + t3 + "\"}]) { edgeCount } }");
 
         // 按列过滤：col=x → [T2]
-        List<String> byCol = lineageBiz.getImpactAnalysis(t1, "x", null);
+        List<String> byCol = lineageBiz.getImpactAnalysis(t1, "x", svcCtx);
         assertEquals(1, byCol.size(), "impact by col=x must be [T2]: " + byCol);
         assertEquals(t2, byCol.get(0));
 
         // 全表级（无 col）：[T2, T3]
-        List<String> tableLevel = lineageBiz.getImpactAnalysis(t1, null, null);
+        List<String> tableLevel = lineageBiz.getImpactAnalysis(t1, null, svcCtx);
         assertEquals(2, tableLevel.size(), "table-level impact must be [T2, T3]: " + tableLevel);
         assertTrue(tableLevel.contains(t2) && tableLevel.contains(t3));
 
         // 回退表级（col 不存在任何列级边）：不静默返回空，回退为全表级
-        List<String> fallback = lineageBiz.getImpactAnalysis(t1, "no_such_col", null);
+        List<String> fallback = lineageBiz.getImpactAnalysis(t1, "no_such_col", svcCtx);
         assertEquals(2, fallback.size(), "fallback must return table-level (not silent empty): " + fallback);
         assertTrue(fallback.contains(t2) && fallback.contains(t3),
                 "fallback impact must contain both downstream tables: " + fallback);
@@ -610,17 +615,17 @@ public class TestNopMetaLineageEdgeBizModel extends JunitBaseTestCase {
         execute("mutation { NopMetaLineageEdge__extractColumnLineageFromSql(metaTableId: \"" + sqlViewId + "\") { edgeCount unresolved errors } }");
 
         // 变更 src 的列 a → 影响下游 view（列级过滤生效）
-        List<String> impactA = lineageBiz.getImpactAnalysis(src1, "a", null);
+        List<String> impactA = lineageBiz.getImpactAnalysis(src1, "a", svcCtx);
         assertEquals(1, impactA.size(), "impact(src, a) must be [view] via column-level filter: " + impactA);
         assertEquals(sqlViewId, impactA.get(0));
 
         // 变更 src 的列 b → 影响下游 view（列级过滤对 b 也生效）
-        List<String> impactB = lineageBiz.getImpactAnalysis(src1, "b", null);
+        List<String> impactB = lineageBiz.getImpactAnalysis(src1, "b", svcCtx);
         assertEquals(1, impactB.size(), "impact(src, b) must be [view] via column-level filter: " + impactB);
         assertEquals(sqlViewId, impactB.get(0));
 
         // 变更 src 的不存在的列 → 回退表级下游（不静默空）
-        List<String> impactFallback = lineageBiz.getImpactAnalysis(src1, "no_such_col", null);
+        List<String> impactFallback = lineageBiz.getImpactAnalysis(src1, "no_such_col", svcCtx);
         assertEquals(1, impactFallback.size(), "fallback must return table-level downstream: " + impactFallback);
 
         // GraphQL 暴露验证
@@ -925,16 +930,16 @@ public class TestNopMetaLineageEdgeBizModel extends JunitBaseTestCase {
         assertEquals(2L, countMeasureParseEdges(tableId), "self-loop edges persisted");
 
         // BFS 不可达：getDownstream(T) 不含 T 自身
-        List<String> downstream = lineageBiz.getDownstream(tableId, null);
+        List<String> downstream = lineageBiz.getDownstream(tableId, svcCtx);
         assertFalse(downstream.contains(tableId),
                 "BFS semantic isolation: self-loop edge not reachable in getDownstream: " + downstream);
 
         // getImpactAnalysis(T) 不含 T
-        List<String> impact = lineageBiz.getImpactAnalysis(tableId, null, null);
+        List<String> impact = lineageBiz.getImpactAnalysis(tableId, null, svcCtx);
         assertFalse(impact.contains(tableId),
                 "BFS semantic isolation: self-loop edge not reachable in getImpactAnalysis: " + impact);
         // 按列过滤也不可达
-        List<String> impactByCol = lineageBiz.getImpactAnalysis(tableId, "A", null);
+        List<String> impactByCol = lineageBiz.getImpactAnalysis(tableId, "A", svcCtx);
         assertFalse(impactByCol.contains(tableId),
                 "BFS semantic isolation by column: self-loop edge not reachable: " + impactByCol);
     }

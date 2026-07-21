@@ -41,19 +41,20 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 public class TestCheckpointActionDispatcherWebhookSsrf {
 
     private CheckpointActionDispatcher dispatcher;
+    private MockHttpClient mockHttpClient;
     private NopMetaQualityCheckpoint cp;
 
     @BeforeEach
     public void setUp() {
-        MockHttpClient.reset();
-        dispatcher = new CheckpointActionDispatcher(new MockHttpClient(), null);
+        mockHttpClient = new MockHttpClient();
+        dispatcher = new CheckpointActionDispatcher(mockHttpClient, null);
         cp = new NopMetaQualityCheckpoint();
         cp.setCheckpointId("cp-ssrf");
     }
 
     @AfterEach
     public void tearDown() {
-        MockHttpClient.reset();
+        mockHttpClient.reset();
     }
 
     private Map<String, Object> summary() {
@@ -154,11 +155,11 @@ public class TestCheckpointActionDispatcherWebhookSsrf {
     public void testInternalHostAllowedWhenInAllowlist() {
         dispatcher.configureWebhookSsrf("intranet.example.com,internal.svc", 30);
         // allowlist 内的 host 应通过（不抛异常，到达 IHttpClient.fetch）
-        MockHttpClient.responseStatus = 200;
+        mockHttpClient.responseStatus = 200;
         assertDoesNotThrow(() -> dispatchWebhook("http://intranet.example.com/hook"));
-        assertEquals(1, MockHttpClient.fetchCallCount,
+        assertEquals(1, mockHttpClient.fetchCallCount,
                 "internal host in allowlist must reach IHttpClient.fetch");
-        assertEquals("http://intranet.example.com/hook", MockHttpClient.lastRequest.getUrl(),
+        assertEquals("http://intranet.example.com/hook", mockHttpClient.lastRequest.getUrl(),
                 "request URL passed through correctly");
     }
 
@@ -167,9 +168,9 @@ public class TestCheckpointActionDispatcherWebhookSsrf {
     public void testExternalHostAllowedByDefault() {
         // example.com 是 IANA 保留的文档演示域名，不会真实命中内网
         assertDoesNotThrow(() -> dispatchWebhook("https://example.com/webhook"));
-        assertEquals(1, MockHttpClient.fetchCallCount,
+        assertEquals(1, mockHttpClient.fetchCallCount,
                 "external host must reach IHttpClient.fetch");
-        HttpRequest lastReq = MockHttpClient.lastRequest;
+        HttpRequest lastReq = mockHttpClient.lastRequest;
         assertNotNull(lastReq, "request must be passed to client");
         assertEquals("https://example.com/webhook", lastReq.getUrl());
     }
@@ -196,11 +197,11 @@ public class TestCheckpointActionDispatcherWebhookSsrf {
     public void testPostAndPutAllowed() {
         // 默认 method（未配置）→ POST
         assertDoesNotThrow(() -> dispatchWebhook("https://example.com/hook"));
-        assertEquals("POST", MockHttpClient.lastRequest.getMethod(),
+        assertEquals("POST", mockHttpClient.lastRequest.getMethod(),
                 "default method is POST");
         // 显式 PUT
         assertDoesNotThrow(() -> dispatchWebhookWithMethod("https://example.com/hook", "PUT"));
-        assertEquals("PUT", MockHttpClient.lastRequest.getMethod(),
+        assertEquals("PUT", mockHttpClient.lastRequest.getMethod(),
                 "explicit PUT allowed");
     }
 
@@ -210,8 +211,8 @@ public class TestCheckpointActionDispatcherWebhookSsrf {
     @Test
     public void testDefaultTimeoutSet() {
         assertDoesNotThrow(() -> dispatchWebhook("https://example.com/hook"));
-        assertNotNull(MockHttpClient.lastRequest, "request must be recorded");
-        assertEquals(30_000L, MockHttpClient.lastRequest.getTimeout(),
+        assertNotNull(mockHttpClient.lastRequest, "request must be recorded");
+        assertEquals(30_000L, mockHttpClient.lastRequest.getTimeout(),
                 "default webhook timeout is 30_000 ms");
     }
 
@@ -220,7 +221,7 @@ public class TestCheckpointActionDispatcherWebhookSsrf {
     public void testConfiguredTimeoutApplied() {
         dispatcher.configureWebhookSsrf("", 5);
         assertDoesNotThrow(() -> dispatchWebhook("https://example.com/hook"));
-        assertEquals(5_000L, MockHttpClient.lastRequest.getTimeout(),
+        assertEquals(5_000L, mockHttpClient.lastRequest.getTimeout(),
                 "configured timeout (5s) must be applied to HttpRequest");
     }
 
@@ -229,7 +230,7 @@ public class TestCheckpointActionDispatcherWebhookSsrf {
     public void testInvalidTimeoutFallsBackToDefault() {
         dispatcher.configureWebhookSsrf("", 0);
         assertDoesNotThrow(() -> dispatchWebhook("https://example.com/hook"));
-        assertEquals(30_000L, MockHttpClient.lastRequest.getTimeout(),
+        assertEquals(30_000L, mockHttpClient.lastRequest.getTimeout(),
                 "timeout=0 → fall back to default 30s");
     }
 
@@ -237,7 +238,7 @@ public class TestCheckpointActionDispatcherWebhookSsrf {
     @Test
     public void testContentTypeAndBodyPreserved() {
         assertDoesNotThrow(() -> dispatchWebhook("https://example.com/hook"));
-        HttpRequest req = MockHttpClient.lastRequest;
+        HttpRequest req = mockHttpClient.lastRequest;
         assertEquals("application/json", req.getHeaders().get("Content-Type"),
                 "Content-Type header preserved");
         assertNotNull(req.getBody(), "body preserved");
@@ -268,7 +269,7 @@ public class TestCheckpointActionDispatcherWebhookSsrf {
                     "error reason must contain '" + expectedReasonFragment + "': " + errorMsg);
         }
         // 关键：内网主机未到达 IHttpClient.fetch（不会发起真实网络请求）
-        assertEquals(0, MockHttpClient.fetchCallCount,
+        assertEquals(0, mockHttpClient.fetchCallCount,
                 "blocked URL must NOT reach IHttpClient.fetch (no real network call): " + msg);
     }
 
@@ -287,7 +288,7 @@ public class TestCheckpointActionDispatcherWebhookSsrf {
         String errorMsg = String.valueOf(errors.get(0).get("error"));
         assertTrue(errorMsg.contains("checkpoint-webhook-method-blocked"),
                 "must reference method-blocked ErrorCode: " + errorMsg);
-        assertEquals(0, MockHttpClient.fetchCallCount,
+        assertEquals(0, mockHttpClient.fetchCallCount,
                 "blocked method must NOT reach IHttpClient.fetch");
     }
 }

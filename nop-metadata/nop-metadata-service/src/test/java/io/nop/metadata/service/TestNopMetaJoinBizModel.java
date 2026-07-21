@@ -5,6 +5,8 @@ import io.nop.api.core.annotations.core.OptionalBoolean;
 import io.nop.api.core.beans.FilterBeans;
 import io.nop.api.core.beans.query.QueryBean;
 import io.nop.autotest.junit.JunitBaseTestCase;
+import io.nop.core.context.IServiceContext;
+import io.nop.core.context.ServiceContextImpl;
 import io.nop.dao.api.IDaoProvider;
 import io.nop.dao.api.IEntityDao;
 import io.nop.graphql.core.engine.IGraphQLEngine;
@@ -13,8 +15,8 @@ import io.nop.metadata.dao.entity.NopMetaDataSource;
 import io.nop.metadata.dao.entity.NopMetaEntity;
 import io.nop.metadata.dao.entity.NopMetaModule;
 import io.nop.metadata.dao.entity.NopMetaTable;
+import io.nop.metadata.biz.INopMetaTableBiz;
 import io.nop.metadata.dao.entity.NopMetaTableJoin;
-import io.nop.metadata.service.entity.NopMetaTableBizModel;
 import jakarta.inject.Inject;
 import org.junit.jupiter.api.Test;
 
@@ -50,9 +52,10 @@ public class TestNopMetaJoinBizModel extends JunitBaseTestCase {
     @Inject
     IDaoProvider daoProvider;
     @Inject
-    NopMetaTableBizModel nopMetaTableBizModel;
+    INopMetaTableBiz nopMetaTableBizModel;
     @Inject
     io.nop.orm.IOrmTemplate ormTemplate;
+    IServiceContext svcCtx = new ServiceContextImpl();
 
     /** 同库 JOIN（同 querySpace）：nop_meta_entity ⋈ nop_meta_entity_field on META_ENTITY_ID → 真实关联行。 */
     @Test
@@ -65,7 +68,7 @@ public class TestNopMetaJoinBizModel extends JunitBaseTestCase {
         String joinId = createJoin(leftTableId, "inner", leftEntity.getMetaEntityId(),
                 rightEntity.getMetaEntityId(), "metaEntityId", "metaEntityId", "fld");
 
-        QueryJoinDataResultDTO result = nopMetaTableBizModel.queryJoinData(leftTableId, joinId, null, null, null, null, null);
+        QueryJoinDataResultDTO result = nopMetaTableBizModel.queryJoinData(leftTableId, joinId, null, null, null, null, svcCtx);
         List<Map<String, Object>> items = result.getItems();
         assertNotNull(items, "items must not be null");
         // inner join：每个 field 行匹配其所属 entity 行，结果非空（导入后存在大量字段）
@@ -94,7 +97,7 @@ public class TestNopMetaJoinBizModel extends JunitBaseTestCase {
             String joinId = createJoin(leftTableId, "inner", leftEntity.getMetaEntityId(),
                     rightEntity.getMetaEntityId(), "metaEntityId", "metaEntityId", "fld");
 
-            QueryJoinDataResultDTO result = nopMetaTableBizModel.queryJoinData(leftTableId, joinId, null, null, null, null, null);
+            QueryJoinDataResultDTO result = nopMetaTableBizModel.queryJoinData(leftTableId, joinId, null, null, null, null, svcCtx);
             List<Map<String, Object>> items = result.getItems();
             assertNotNull(items, "items must not be null");
             assertFalse(items.isEmpty(), "cross-DB app-layer merge must return real merged rows: " + items);
@@ -175,7 +178,7 @@ public class TestNopMetaJoinBizModel extends JunitBaseTestCase {
         String joinId = createTableJoin(leftTableId, "inner", leftTableId, rightTableId,
                 "order_id", "order_id", "rg");
 
-        QueryJoinDataResultDTO result = nopMetaTableBizModel.queryJoinData(leftTableId, joinId, null, null, null, null, null);
+        QueryJoinDataResultDTO result = nopMetaTableBizModel.queryJoinData(leftTableId, joinId, null, null, null, null, svcCtx);
         List<Map<String, Object>> items = result.getItems();
         assertNotNull(items, "items must not be null");
         // inner join：order_id=1→CN, order_id=2→US，2 行真实关联（stub 立即失败此断言）
@@ -235,7 +238,7 @@ public class TestNopMetaJoinBizModel extends JunitBaseTestCase {
         String joinId = createMixedJoin(leftTableId, "inner", moduleEntity.getMetaEntityId(),
                 sqlTableId, "moduleId", "MODULE_ID", "dim");
 
-        QueryJoinDataResultDTO result = nopMetaTableBizModel.queryJoinData(leftTableId, joinId, null, null, null, null, null);
+        QueryJoinDataResultDTO result = nopMetaTableBizModel.queryJoinData(leftTableId, joinId, null, null, null, null, svcCtx);
         List<Map<String, Object>> items = result.getItems();
         assertNotNull(items, "items must not be null");
         // Anti-Hollow 核心：命名空间错配不静默空集——实际命中至少 1 行（stub 或 namespace bug 立即失败此断言）
@@ -280,7 +283,7 @@ public class TestNopMetaJoinBizModel extends JunitBaseTestCase {
         String joinId = createTableJoin(leftTableId, "inner", leftTableId, rightTableId,
                 "k", "k", "rt");
 
-        QueryJoinDataResultDTO result = nopMetaTableBizModel.queryJoinData(leftTableId, joinId, null, null, null, null, null);
+        QueryJoinDataResultDTO result = nopMetaTableBizModel.queryJoinData(leftTableId, joinId, null, null, null, null, svcCtx);
         List<Map<String, Object>> items = result.getItems();
         assertNotNull(items, "items must not be null");
         assertEquals(1, items.size(), "cross-DB sql-sql join must merge 1 matching row: " + items);
@@ -489,7 +492,7 @@ public class TestNopMetaJoinBizModel extends JunitBaseTestCase {
 
     private boolean queryJoinDataHasError(String tableId, String joinId) {
         try {
-            nopMetaTableBizModel.queryJoinData(tableId, joinId, null, null, null, null, null);
+            nopMetaTableBizModel.queryJoinData(tableId, joinId, null, null, null, null, svcCtx);
             return false;
         } catch (Exception e) {
             return true;

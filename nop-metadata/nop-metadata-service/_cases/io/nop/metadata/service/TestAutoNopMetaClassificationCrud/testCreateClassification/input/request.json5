@@ -1,0 +1,11 @@
+{
+  data: {
+    data: {
+      name: "auto-test-classification",
+      displayName: "Auto Test Classification",
+      description: "Created by automated snapshot test",
+      provider: "system",
+      mutuallyExclusive: true
+    }
+  }
+}

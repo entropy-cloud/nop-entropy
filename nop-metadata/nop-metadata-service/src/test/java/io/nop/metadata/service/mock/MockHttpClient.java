@@ -15,30 +15,20 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 
 /**
- * Test mock for {@link IHttpClient}. Records all {@code fetch}/{@code fetchAsync} calls and returns configurable
- * responses. Tests configure behavior via {@code static} fields (the IoC bean is a singleton delegating to static state).
- *
- * <p>Usage in tests:
- * <ul>
- *   <li>{@link #reset()} — clear recorded calls + reset to default 200 response (call in @BeforeEach)</li>
- *   <li>{@link #responseStatus} — HTTP status to return (default 200)</li>
- *   <li>{@link #throwOnFetch} — if non-null, {@code fetch} throws this instead of returning a response</li>
- *   <li>{@link #fetchCallCount} — number of {@code fetch} calls since last reset</li>
- *   <li>{@link #lastRequest} — the last {@link HttpRequest} passed to {@code fetch}</li>
- *   <li>{@link #recordedRequests} — all requests in order</li>
- * </ul>
+ * Test mock for {@link IHttpClient}. Instance-level state, safe for parallel test execution.
+ * Each test creates or injects its own instance.
  */
 public class MockHttpClient implements IHttpClient {
 
-    public static int responseStatus = 200;
-    public static String responseBody = "{}";
-    public static RuntimeException throwOnFetch = null;
+    public int responseStatus = 200;
+    public String responseBody = "{}";
+    public RuntimeException throwOnFetch = null;
 
-    public static int fetchCallCount = 0;
-    public static HttpRequest lastRequest = null;
-    public static final List<HttpRequest> recordedRequests = new ArrayList<>();
+    public int fetchCallCount = 0;
+    public HttpRequest lastRequest = null;
+    public final List<HttpRequest> recordedRequests = new ArrayList<>();
 
-    public static void reset() {
+    public void reset() {
         responseStatus = 200;
         responseBody = "{}";
         throwOnFetch = null;
@@ -67,7 +57,7 @@ public class MockHttpClient implements IHttpClient {
         return new MockHttpResponse(responseStatus, responseBody);
     }
 
-    private static void recordCall(HttpRequest request) {
+    private void recordCall(HttpRequest request) {
         fetchCallCount++;
         lastRequest = request;
         recordedRequests.add(request);
@@ -81,7 +71,7 @@ public class MockHttpClient implements IHttpClient {
 
     @Override
     public CompletionStage<IHttpResponse> uploadAsync(HttpRequest request, IHttpInputFile inputFile,
-                                                      UploadOptions options, ICancelToken cancelToken) {
+                                                       UploadOptions options, ICancelToken cancelToken) {
         return CompletableFuture.completedFuture(new MockHttpResponse(200, "{}"));
     }
 }

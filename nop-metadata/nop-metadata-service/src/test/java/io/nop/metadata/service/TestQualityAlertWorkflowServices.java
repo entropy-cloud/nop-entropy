@@ -2,8 +2,6 @@ package io.nop.metadata.service;
 
 import io.nop.api.core.exceptions.ErrorCode;
 import io.nop.api.core.exceptions.NopException;
-import io.nop.metadata.dao.entity.NopMetaQualityResult;
-import io.nop.metadata.service.entity.NopMetaQualityResultBizModel;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.*;

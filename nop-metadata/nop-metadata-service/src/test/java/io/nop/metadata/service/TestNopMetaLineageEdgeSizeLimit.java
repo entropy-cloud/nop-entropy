@@ -13,13 +13,15 @@ import io.nop.api.core.beans.FilterBeans;
 import io.nop.api.core.beans.query.QueryBean;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.autotest.junit.JunitBaseTestCase;
+import io.nop.core.context.IServiceContext;
+import io.nop.core.context.ServiceContextImpl;
 import io.nop.dao.api.IDaoProvider;
 import io.nop.dao.api.IEntityDao;
 import io.nop.metadata.core._NopMetadataCoreConstants;
 import io.nop.metadata.dao.entity.NopMetaLineageEdge;
 import io.nop.metadata.dao.entity.NopMetaModule;
+import io.nop.metadata.biz.INopMetaLineageEdgeBiz;
 import io.nop.metadata.dao.entity.NopMetaTable;
-import io.nop.metadata.service.entity.NopMetaLineageEdgeBizModel;
 import io.nop.metadata.service.NopMetadataErrors;
 import jakarta.inject.Inject;
 import org.junit.jupiter.api.Test;
@@ -54,7 +56,9 @@ public class TestNopMetaLineageEdgeSizeLimit extends JunitBaseTestCase {
     IDaoProvider daoProvider;
 
     @Inject
-    NopMetaLineageEdgeBizModel lineageBiz;
+    INopMetaLineageEdgeBiz lineageBiz;
+
+    IServiceContext svcCtx = new ServiceContextImpl();
 
     /** AR-09：边数超过上限 → getUpstream 抛 ERR_LINEAGE_GRAPH_TOO_LARGE（不静默截断、不 OOM）。 */
     @Test
@@ -75,7 +79,7 @@ public class TestNopMetaLineageEdgeSizeLimit extends JunitBaseTestCase {
 
         // getUpstream 触发 buildLineageGraph → 抛 ErrorCode
         NopException ex = assertThrows(NopException.class,
-                () -> lineageBiz.getUpstream(t1, null),
+                () -> lineageBiz.getUpstream(t1, svcCtx),
                 "buildLineageGraph must throw ERR_LINEAGE_GRAPH_TOO_LARGE when edge count exceeds configured limit");
         assertEquals(NopMetadataErrors.ERR_LINEAGE_GRAPH_TOO_LARGE.getErrorCode(),
                 ex.getErrorCode(),
@@ -106,7 +110,7 @@ public class TestNopMetaLineageEdgeSizeLimit extends JunitBaseTestCase {
         dao.flushSession();
 
         // 不抛异常：getDownstream 正常执行（虽然图里只有 t1→t2 一种关联）
-        List<String> downstream = lineageBiz.getDownstream(t1, null);
+        List<String> downstream = lineageBiz.getDownstream(t1, svcCtx);
         assertTrue(downstream.contains(t2),
                 "downstream of t1 must contain t2 when edge count is at limit: " + downstream);
     }
