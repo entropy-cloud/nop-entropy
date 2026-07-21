@@ -121,8 +121,7 @@ public class NopMetaReconciliationConfigBizModel extends CrudBizModel<NopMetaRec
         // 取数：BizModel 调 queryTableData 取 items（B2 方案 b）。失败显式抛 ErrorCode（不吞异常）。
         List<Map<String, Object>> items;
         try {
-            Map<String, Object> queryResult = tableBizModel.queryTableData(metaTableId, null, null, null, null, context);
-            items = extractItems(queryResult);
+            items = tableBizModel.queryTableData(metaTableId, null, null, null, null, context).getItems();
         } catch (NopException e) {
             // queryTableData 内部已抛带语义的 ErrorCode，此处附加 config 上下文后重新抛出
             throw new NopException(NopMetadataErrors.ERR_RECON_FETCH_TABLE_DATA_FAILED, e)

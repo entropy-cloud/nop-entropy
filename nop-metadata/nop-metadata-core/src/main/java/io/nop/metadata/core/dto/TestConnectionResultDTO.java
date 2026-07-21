@@ -6,7 +6,7 @@
  * Github: https://github.com/entropy-cloud/nop-entropy
  */
 
-package io.nop.metadata.service.dto;
+package io.nop.metadata.core.dto;
 
 import io.nop.api.core.annotations.data.DataBean;
 
@@ -21,6 +21,7 @@ public class TestConnectionResultDTO implements Serializable {
 
     private boolean connected;
     private String databaseProductName;
+    private String databaseProductVersion;
     private String error;
 
     public boolean isConnected() {
@@ -37,6 +38,14 @@ public class TestConnectionResultDTO implements Serializable {
 
     public void setDatabaseProductName(String databaseProductName) {
         this.databaseProductName = databaseProductName;
+    }
+
+    public String getDatabaseProductVersion() {
+        return databaseProductVersion;
+    }
+
+    public void setDatabaseProductVersion(String databaseProductVersion) {
+        this.databaseProductVersion = databaseProductVersion;
     }
 
     public String getError() {

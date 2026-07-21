@@ -9,11 +9,17 @@ import io.nop.api.core.beans.FieldSelectionBean;
 import io.nop.api.core.beans.TreeBean;
 import io.nop.api.core.beans.query.OrderFieldBean;
 import io.nop.core.context.IServiceContext;
+import io.nop.metadata.core.dto.AggregationResultDTO;
+import io.nop.metadata.core.dto.CreateSqlTableResultDTO;
+import io.nop.metadata.core.dto.PreviewSqlFieldsResultDTO;
+import io.nop.metadata.core.dto.ProfileResultDTO;
+import io.nop.metadata.core.dto.QueryJoinDataResultDTO;
+import io.nop.metadata.core.dto.QueryTableDataResultDTO;
+import io.nop.metadata.core.dto.ResolveTableFieldsResultDTO;
 import io.nop.metadata.dao.entity.NopMetaTable;
 import io.nop.orm.biz.ICrudBiz;
 
 import java.util.List;
-import java.util.Map;
 
 
 /**
@@ -21,53 +27,52 @@ import java.util.Map;
  *
  * <p>本接口在 ICrudBiz 基础上额外暴露以下方法供跨模块 {@code @Inject INopMetaTableBiz} 调用：
  * profileTable / createSqlTable / previewSqlFields / resolveTableFields /
- * queryTableData / queryJoinData / queryAggregation（plan 307 DTO migration）。
+ * queryTableData / queryJoinData / queryAggregation。
  *
- * <p>接口返回 {@code Map<String, Object>} 保持 nop-metadata-dao 无 nop-metadata-service 依赖；
- * BizModel 实现类返回具体 {@code @DataBean} DTO 供 GraphQL schema 推导强类型字段。
+ * <p>接口返回具体 {@code @DataBean} DTO 供 GraphQL schema 推导强类型字段。
  */
 public interface INopMetaTableBiz extends ICrudBiz<NopMetaTable> {
 
     @BizMutation
-    Map<String, Object> profileTable(@Name("metaTableId") String metaTableId,
-                                     @Optional @Name("schemaPattern") String schemaPattern,
-                                     @Optional @Name("columns") String columns,
-                                     IServiceContext context);
+    ProfileResultDTO profileTable(@Name("metaTableId") String metaTableId,
+                                  @Optional @Name("schemaPattern") String schemaPattern,
+                                  @Optional @Name("columns") String columns,
+                                  IServiceContext context);
 
     @BizMutation
-    Map<String, Object> createSqlTable(@Name("sql") String sql,
-                                       @Name("tableName") String tableName,
-                                       @Name("metaModuleId") String metaModuleId,
-                                       @Optional @Name("querySpace") String querySpace,
-                                       @Optional @Name("displayName") String displayName,
-                                       IServiceContext context);
+    CreateSqlTableResultDTO createSqlTable(@Name("sql") String sql,
+                                           @Name("tableName") String tableName,
+                                           @Name("metaModuleId") String metaModuleId,
+                                           @Optional @Name("querySpace") String querySpace,
+                                           @Optional @Name("displayName") String displayName,
+                                           IServiceContext context);
 
     @BizQuery
-    Map<String, Object> previewSqlFields(@Name("sql") String sql, IServiceContext context);
+    PreviewSqlFieldsResultDTO previewSqlFields(@Name("sql") String sql, IServiceContext context);
 
     @BizQuery
-    Map<String, Object> resolveTableFields(@Name("metaTableId") String metaTableId,
-                                            IServiceContext context);
+    ResolveTableFieldsResultDTO resolveTableFields(@Name("metaTableId") String metaTableId,
+                                                    IServiceContext context);
 
     @BizQuery
-    Map<String, Object> queryTableData(@Name("metaTableId") String metaTableId,
-                                        @Optional @Name("filter") TreeBean filter,
-                                        @Optional @Name("limit") Long limit,
-                                        @Optional @Name("offset") Long offset,
-                                        @Optional @Name("selection") FieldSelectionBean selection,
-                                        IServiceContext context);
+    QueryTableDataResultDTO queryTableData(@Name("metaTableId") String metaTableId,
+                                           @Optional @Name("filter") TreeBean filter,
+                                           @Optional @Name("limit") Long limit,
+                                           @Optional @Name("offset") Long offset,
+                                           @Optional @Name("selection") FieldSelectionBean selection,
+                                           IServiceContext context);
 
     @BizQuery
-    Map<String, Object> queryJoinData(@Name("metaTableId") String metaTableId,
-                                       @Name("joinId") String joinId,
-                                       @Optional @Name("filter") TreeBean filter,
-                                       @Optional @Name("limit") Long limit,
-                                       @Optional @Name("offset") Long offset,
-                                       @Optional @Name("selection") FieldSelectionBean selection,
-                                       IServiceContext context);
+    QueryJoinDataResultDTO queryJoinData(@Name("metaTableId") String metaTableId,
+                                         @Name("joinId") String joinId,
+                                         @Optional @Name("filter") TreeBean filter,
+                                         @Optional @Name("limit") Long limit,
+                                         @Optional @Name("offset") Long offset,
+                                         @Optional @Name("selection") FieldSelectionBean selection,
+                                         IServiceContext context);
 
     @BizQuery
-    Map<String, Object> queryAggregation(@Name("metaTableId") String metaTableId,
+    AggregationResultDTO queryAggregation(@Name("metaTableId") String metaTableId,
                                           @Name("measures") List<String> measures,
                                           @Name("dimensions") List<String> dimensions,
                                           @Optional @Name("filter") TreeBean filter,

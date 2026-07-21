@@ -9,6 +9,7 @@ import io.nop.api.core.beans.query.QueryBean;
 import io.nop.autotest.junit.JunitBaseTestCase;
 import io.nop.core.lang.json.JsonTool;
 import io.nop.dao.api.IDaoProvider;
+import io.nop.metadata.core.dto.AggregationResultDTO;
 import io.nop.dao.api.IEntityDao;
 import io.nop.graphql.core.engine.IGraphQLEngine;
 import io.nop.metadata.dao.entity.NopMetaDataSource;
@@ -76,9 +77,9 @@ public class TestNopMetaAggregationBizModel extends JunitBaseTestCase {
         createMeasure(tableId, "cnt", "AMOUNT", "count", null);
         createDimension(tableId, "cat", "CATEGORY", "categorical", null);
 
-        Map<String, Object> result = nopMetaTableBizModel.queryAggregation(tableId,
+        AggregationResultDTO result = nopMetaTableBizModel.queryAggregation(tableId,
                 Arrays.asList("total", "cnt"), Arrays.asList("cat"), null, null, null, null, null, null, null, null);
-        List<Map<String, Object>> items = (List<Map<String, Object>>) result.get("items");
+        List<Map<String, Object>> items = result.getItems();
         assertEquals(2, items.size(), "group by CATEGORY must yield 2 groups (A,B)");
         Map<String, Object> rowA = findRow(items, "CAT", "A");
         Map<String, Object> rowB = findRow(items, "CAT", "B");
@@ -98,9 +99,9 @@ public class TestNopMetaAggregationBizModel extends JunitBaseTestCase {
         createMeasure(tableId, "dc", "CATEGORY", "countDistinct", null);
         createDimension(tableId, "mon", "CREATED_AT", "temporal", "month");
 
-        Map<String, Object> result = nopMetaTableBizModel.queryAggregation(tableId,
+        AggregationResultDTO result = nopMetaTableBizModel.queryAggregation(tableId,
                 Arrays.asList("dc"), Arrays.asList("mon"), null, null, null, null, null, null, null, null);
-        List<Map<String, Object>> items = (List<Map<String, Object>>) result.get("items");
+        List<Map<String, Object>> items = result.getItems();
         assertFalse(items.isEmpty(), "temporal month grouping must yield rows");
         // 每月只有 1 个 distinct category（A in Jan, B in Feb）
         for (Map<String, Object> row : items) {
@@ -118,9 +119,9 @@ public class TestNopMetaAggregationBizModel extends JunitBaseTestCase {
         createMeasure(tableId, "total", "AMOUNT", "sum", null);
         createDimension(tableId, "mon", "CREATED_AT", "temporal", "month");
 
-        Map<String, Object> result = nopMetaTableBizModel.queryAggregation(tableId,
+        AggregationResultDTO result = nopMetaTableBizModel.queryAggregation(tableId,
                 Arrays.asList("total"), Arrays.asList("mon"), null, null, null, null, null, null, null, null);
-        List<Map<String, Object>> items = (List<Map<String, Object>>) result.get("items");
+        List<Map<String, Object>> items = result.getItems();
         assertEquals(2, items.size(), "group by month must yield 2 months (2024-01, 2024-02)");
         // 每月 sum = 30（Jan: 10+20, Feb: 30）
         for (Map<String, Object> row : items) {
@@ -141,9 +142,9 @@ public class TestNopMetaAggregationBizModel extends JunitBaseTestCase {
         TreeBean defaultFilter = FilterBeans.gt("AMOUNT", 15);
         createDefaultFilter(tableId, "df", defaultFilter);
 
-        Map<String, Object> result = nopMetaTableBizModel.queryAggregation(tableId,
+        AggregationResultDTO result = nopMetaTableBizModel.queryAggregation(tableId,
                 Arrays.asList("total"), Arrays.asList("cat"), null, null, null, null, null, null, null, null);
-        List<Map<String, Object>> items = (List<Map<String, Object>>) result.get("items");
+        List<Map<String, Object>> items = result.getItems();
         // AMOUNT>15：A 的 20 保留（A=20），B 的 30 保留（B=30）。A 的 10 被过滤。
         Map<String, Object> rowA = findRow(items, "CAT", "A");
         assertEquals(20, toInt(rowA.get("TOTAL")), "default filter AMOUNT>15: SUM(A) = 20 (10 excluded)");
@@ -165,9 +166,9 @@ public class TestNopMetaAggregationBizModel extends JunitBaseTestCase {
         createMeasure(tableId, "exprM", "AMOUNT", "sum", "AMOUNT * 2");
         createDimension(tableId, "cat", "CATEGORY", "categorical", null);
 
-        Map<String, Object> result = nopMetaTableBizModel.queryAggregation(tableId,
+        AggregationResultDTO result = nopMetaTableBizModel.queryAggregation(tableId,
                 Arrays.asList("exprM"), Arrays.asList("cat"), null, null, null, null, null, null, null, null);
-        List<Map<String, Object>> items = (List<Map<String, Object>>) result.get("items");
+        List<Map<String, Object>> items = result.getItems();
         assertNotNull(items);
         assertEquals(2, items.size(), "expression measure must execute and yield 2 groups (A, B): " + items);
         Map<String, Object> rowA = findRow(items, "CAT", "A");
@@ -205,9 +206,9 @@ public class TestNopMetaAggregationBizModel extends JunitBaseTestCase {
         createMeasure(tableId, "cnt", statusFieldId, "count", null);
         createDimension(tableId, "st", statusFieldId, "categorical", null);
 
-        Map<String, Object> result = nopMetaTableBizModel.queryAggregation(tableId,
+        AggregationResultDTO result = nopMetaTableBizModel.queryAggregation(tableId,
                 Arrays.asList("cnt"), Arrays.asList("st"), null, null, null, null, null, null, null, null);
-        List<Map<String, Object>> items = (List<Map<String, Object>>) result.get("items");
+        List<Map<String, Object>> items = result.getItems();
         assertFalse(items.isEmpty(), "entity aggregation by status must return real grouped rows: " + items);
     }
 
@@ -241,9 +242,9 @@ public class TestNopMetaAggregationBizModel extends JunitBaseTestCase {
             createMeasure(tableId, "cnt", createTimeFieldId, "count", null);
             createDimension(tableId, "mon", createTimeFieldId, "temporal", "month");
 
-            Map<String, Object> result = nopMetaTableBizModel.queryAggregation(tableId,
+            AggregationResultDTO result = nopMetaTableBizModel.queryAggregation(tableId,
                     Arrays.asList("cnt"), Arrays.asList("mon"), null, null, null, null, null, null, null, null);
-            List<Map<String, Object>> items = (List<Map<String, Object>>) result.get("items");
+            List<Map<String, Object>> items = result.getItems();
             assertNotNull(items, "items must not be null");
             assertEquals(2, items.size(),
                     "entity path month bucketing must yield 2 buckets (2024-01, 2024-02): " + items);
@@ -283,10 +284,10 @@ public class TestNopMetaAggregationBizModel extends JunitBaseTestCase {
                 createMeasure(tableId, "cnt_" + granularity, createTimeFieldId, "count", null);
                 createDimension(tableId, "d_" + granularity, createTimeFieldId, "temporal", granularity);
 
-                Map<String, Object> result = nopMetaTableBizModel.queryAggregation(tableId,
+                AggregationResultDTO result = nopMetaTableBizModel.queryAggregation(tableId,
                         Arrays.asList("cnt_" + granularity), Arrays.asList("d_" + granularity),
                         null, null, null, null, null, null, null, null);
-                List<Map<String, Object>> items = (List<Map<String, Object>>) result.get("items");
+                List<Map<String, Object>> items = result.getItems();
                 assertNotNull(items, "items must not be null for granularity=" + granularity);
                 assertFalse(items.isEmpty(),
                         "entity path granularity=" + granularity + " must yield non-empty groups: " + items);
@@ -337,18 +338,18 @@ public class TestNopMetaAggregationBizModel extends JunitBaseTestCase {
             // 2) external 路径 month granularity
             createMeasure(externalTableId, "xcnt", "K", "count", null);
             createDimension(externalTableId, "xmon", "CREATED_AT", "temporal", "month");
-            Map<String, Object> extResult = nopMetaTableBizModel.queryAggregation(externalTableId,
+            AggregationResultDTO extResult = nopMetaTableBizModel.queryAggregation(externalTableId,
                     Arrays.asList("xcnt"), Arrays.asList("xmon"), null, null, null, null, null, null, null, null);
-            List<Map<String, Object>> extItems = (List<Map<String, Object>>) extResult.get("items");
+            List<Map<String, Object>> extItems = extResult.getItems();
 
             // 3) entity 路径 month granularity
             String entityTableId = findEntityTableId("nop_meta_entity");
             String createTimeFieldId = findEntityFieldId("nop_meta_entity", "createTime");
             createMeasure(entityTableId, "ecnt", createTimeFieldId, "count", null);
             createDimension(entityTableId, "emon", createTimeFieldId, "temporal", "month");
-            Map<String, Object> entityResult = nopMetaTableBizModel.queryAggregation(entityTableId,
+            AggregationResultDTO entityResult = nopMetaTableBizModel.queryAggregation(entityTableId,
                     Arrays.asList("ecnt"), Arrays.asList("emon"), null, null, null, null, null, null, null, null);
-            List<Map<String, Object>> entityItems = (List<Map<String, Object>>) entityResult.get("items");
+            List<Map<String, Object>> entityItems = entityResult.getItems();
 
             // 4) 一致性断言：分组数相同 + 每个分桶的计数相同（按 bucket 起始时间对齐）
             assertEquals(extItems.size(), entityItems.size(),
@@ -404,7 +405,7 @@ public class TestNopMetaAggregationBizModel extends JunitBaseTestCase {
 
             io.nop.api.core.beans.graphql.GraphQLRequestBean request = new io.nop.api.core.beans.graphql.GraphQLRequestBean();
             request.setQuery("query { NopMetaTable__queryAggregation(metaTableId: \"" + tableId + "\", "
-                    + "measures: [\"gcnt\"], dimensions: [\"gmon\"]) }");
+                    + "measures: [\"gcnt\"], dimensions: [\"gmon\"]) { items } }");
             io.nop.api.core.beans.graphql.GraphQLResponseBean resp =
                     graphQLEngine.executeGraphQL(graphQLEngine.newGraphQLContext(request));
             assertFalse(resp.hasError(),
@@ -489,7 +490,6 @@ public class TestNopMetaAggregationBizModel extends JunitBaseTestCase {
             Object cnt = getIgnoreCase(row, cntKey);
             assertNotNull(bucket, "bucket column " + dimKey + " must be present: " + row);
             assertNotNull(cnt, "count column " + cntKey + " must be present: " + row);
-            // bucket 为 java.sql.Timestamp（DATE_TRUNC 返回）或 String，统一 toString 后截断到秒（去掉毫秒）
             String key = normalizeBucketKey(String.valueOf(bucket));
             map.merge(key, toLong(cnt), Long::sum);
         }
@@ -538,9 +538,9 @@ public class TestNopMetaAggregationBizModel extends JunitBaseTestCase {
         createDimension(leftTableId, "st", leftDimFieldId, "categorical", null);
         createMeasure(leftTableId, "cnt", rightMeasureFieldId, "count", null);
 
-        Map<String, Object> result = nopMetaTableBizModel.queryAggregation(leftTableId,
+        AggregationResultDTO result = nopMetaTableBizModel.queryAggregation(leftTableId,
                 Arrays.asList("cnt"), Arrays.asList("st"), null, joinId, null, null, null, null, null, null);
-        List<Map<String, Object>> items = (List<Map<String, Object>>) result.get("items");
+        List<Map<String, Object>> items = result.getItems();
         assertNotNull(items, "items must not be null");
         assertFalse(items.isEmpty(), "entity JOIN aggregation must return real grouped rows: " + items);
 
@@ -579,7 +579,7 @@ public class TestNopMetaAggregationBizModel extends JunitBaseTestCase {
         io.nop.api.core.beans.graphql.GraphQLRequestBean request = new io.nop.api.core.beans.graphql.GraphQLRequestBean();
         // queryAggregation 返回 Map（GraphQL 标量），不带 selection set（items 随 Map 整体返回）
         request.setQuery("query { NopMetaTable__queryAggregation(metaTableId: \"" + leftTableId + "\", "
-                + "measures: [\"gcnt\"], dimensions: [\"gst\"], joinId: \"" + joinId + "\") }");
+                + "measures: [\"gcnt\"], dimensions: [\"gst\"], joinId: \"" + joinId + "\") { items } }");
         io.nop.api.core.beans.graphql.GraphQLResponseBean resp =
                 graphQLEngine.executeGraphQL(graphQLEngine.newGraphQLContext(request));
         assertFalse(resp.hasError(), "GraphQL queryAggregation(joinId) must succeed: " + resp);
@@ -605,9 +605,9 @@ public class TestNopMetaAggregationBizModel extends JunitBaseTestCase {
         createDimension(tableId, "mst", statusFieldId, "categorical", null);
 
         // joinId = null → 走单表 entity 聚合分支（不进入 JOIN 聚合路径）
-        Map<String, Object> result = nopMetaTableBizModel.queryAggregation(tableId,
+        AggregationResultDTO result = nopMetaTableBizModel.queryAggregation(tableId,
                 Arrays.asList("mcnt"), Arrays.asList("mst"), null, null, null, null, null, null, null, null);
-        List<Map<String, Object>> items = (List<Map<String, Object>>) result.get("items");
+        List<Map<String, Object>> items = result.getItems();
         assertFalse(items.isEmpty(), "single-table aggregation (no joinId) must still work: " + items);
     }
 
@@ -659,9 +659,9 @@ public class TestNopMetaAggregationBizModel extends JunitBaseTestCase {
             createDimension(leftTableId, "st", leftDimFieldId, "categorical", null);
             createMeasure(leftTableId, "cnt", rightMeasureFieldId, "count", null);
 
-            Map<String, Object> result = nopMetaTableBizModel.queryAggregation(leftTableId,
+            AggregationResultDTO result = nopMetaTableBizModel.queryAggregation(leftTableId,
                     Arrays.asList("cnt"), Arrays.asList("st"), null, joinId, null, null, null, null, null, null);
-            List<Map<String, Object>> items = (List<Map<String, Object>>) result.get("items");
+            List<Map<String, Object>> items = result.getItems();
             assertNotNull(items, "items must not be null");
             assertFalse(items.isEmpty(),
                     "cross-DB entity-entity JOIN aggregation must return real grouped rows via in-memory GROUP BY: " + items);
@@ -704,7 +704,7 @@ public class TestNopMetaAggregationBizModel extends JunitBaseTestCase {
 
             io.nop.api.core.beans.graphql.GraphQLRequestBean request = new io.nop.api.core.beans.graphql.GraphQLRequestBean();
             request.setQuery("query { NopMetaTable__queryAggregation(metaTableId: \"" + leftTableId + "\", "
-                    + "measures: [\"gcnt\"], dimensions: [\"gst\"], joinId: \"" + joinId + "\") }");
+                    + "measures: [\"gcnt\"], dimensions: [\"gst\"], joinId: \"" + joinId + "\") { items } }");
             io.nop.api.core.beans.graphql.GraphQLResponseBean resp =
                     graphQLEngine.executeGraphQL(graphQLEngine.newGraphQLContext(request));
             assertFalse(resp.hasError(), "GraphQL cross-DB entity-entity queryAggregation(joinId) must succeed: " + resp);
@@ -828,9 +828,9 @@ public class TestNopMetaAggregationBizModel extends JunitBaseTestCase {
         createMeasureWithSide(factTableId, "total", "AMOUNT", "sum", "left");
         createDimensionWithSide(factTableId, "cat", "CAT_NAME", "categorical", null, "right");
 
-        Map<String, Object> result = nopMetaTableBizModel.queryAggregation(factTableId,
+        AggregationResultDTO result = nopMetaTableBizModel.queryAggregation(factTableId,
                 Arrays.asList("total"), Arrays.asList("cat"), null, joinId, null, null, null, null, null, null);
-        List<Map<String, Object>> items = (List<Map<String, Object>>) result.get("items");
+        List<Map<String, Object>> items = result.getItems();
         assertNotNull(items, "items must not be null");
         assertEquals(2, items.size(), "group by CAT_NAME must yield 2 groups (A,B): " + items);
         Map<String, Object> rowA = findRow(items, "CAT", "A");
@@ -863,7 +863,7 @@ public class TestNopMetaAggregationBizModel extends JunitBaseTestCase {
 
         io.nop.api.core.beans.graphql.GraphQLRequestBean request = new io.nop.api.core.beans.graphql.GraphQLRequestBean();
         request.setQuery("query { NopMetaTable__queryAggregation(metaTableId: \"" + factTableId + "\", "
-                + "measures: [\"gtotal\"], dimensions: [\"gcat\"], joinId: \"" + joinId + "\") }");
+                + "measures: [\"gtotal\"], dimensions: [\"gcat\"], joinId: \"" + joinId + "\") { items } }");
         io.nop.api.core.beans.graphql.GraphQLResponseBean resp =
                 graphQLEngine.executeGraphQL(graphQLEngine.newGraphQLContext(request));
         assertFalse(resp.hasError(), "GraphQL external<->external queryAggregation(joinId) must succeed: " + resp);
@@ -894,9 +894,9 @@ public class TestNopMetaAggregationBizModel extends JunitBaseTestCase {
         createDimension(leftTableId, "rst", leftDimFieldId, "categorical", null);
         createMeasure(leftTableId, "rcnt", rightMeasureFieldId, "count", null);
 
-        Map<String, Object> result = nopMetaTableBizModel.queryAggregation(leftTableId,
+        AggregationResultDTO result = nopMetaTableBizModel.queryAggregation(leftTableId,
                 Arrays.asList("rcnt"), Arrays.asList("rst"), null, joinId, null, null, null, null, null, null);
-        List<Map<String, Object>> items = (List<Map<String, Object>>) result.get("items");
+        List<Map<String, Object>> items = result.getItems();
         assertNotNull(items, "items must not be null");
         assertFalse(items.isEmpty(), "entity-entity JOIN aggregation must still work after refactor: " + items);
         long totalFields = countRows("select count(*) as c from nop_meta_entity_field");
@@ -1001,9 +1001,9 @@ public class TestNopMetaAggregationBizModel extends JunitBaseTestCase {
         createMeasureWithSide(factTableId, "total", "AMOUNT", "sum", "left");
         createDimensionWithSide(factTableId, "cat", "CAT_NAME", "categorical", null, "right");
 
-        Map<String, Object> result = nopMetaTableBizModel.queryAggregation(factTableId,
+        AggregationResultDTO result = nopMetaTableBizModel.queryAggregation(factTableId,
                 Arrays.asList("total"), Arrays.asList("cat"), null, joinId, null, null, null, null, null, null);
-        List<Map<String, Object>> items = (List<Map<String, Object>>) result.get("items");
+        List<Map<String, Object>> items = result.getItems();
         assertNotNull(items, "items must not be null");
         assertEquals(2, items.size(), "group by CAT_NAME must yield 2 groups (A,B): " + items);
         Map<String, Object> rowA = findRow(items, "CAT", "A");
@@ -1053,9 +1053,9 @@ public class TestNopMetaAggregationBizModel extends JunitBaseTestCase {
         // dimension：external 侧 MIXED_DIM.CAT_NAME，side=right
         createDimensionWithSide(leftTableId, "cat", "CAT_NAME", "categorical", null, "right");
 
-        Map<String, Object> result = nopMetaTableBizModel.queryAggregation(leftTableId,
+        AggregationResultDTO result = nopMetaTableBizModel.queryAggregation(leftTableId,
                 Arrays.asList("cnt"), Arrays.asList("cat"), null, joinId, null, null, null, null, null, null);
-        List<Map<String, Object>> items = (List<Map<String, Object>>) result.get("items");
+        List<Map<String, Object>> items = result.getItems();
         assertNotNull(items, "items must not be null");
         assertEquals(2, items.size(), "group by CAT_NAME must yield 2 groups (Category A, Category B): " + items);
         Map<String, Object> rowA = findRow(items, "CAT", "Category A");
@@ -1092,7 +1092,7 @@ public class TestNopMetaAggregationBizModel extends JunitBaseTestCase {
 
         io.nop.api.core.beans.graphql.GraphQLRequestBean request = new io.nop.api.core.beans.graphql.GraphQLRequestBean();
         request.setQuery("query { NopMetaTable__queryAggregation(metaTableId: \"" + leftTableId + "\", "
-                + "measures: [\"gcnt\"], dimensions: [\"gcat\"], joinId: \"" + joinId + "\") }");
+                + "measures: [\"gcnt\"], dimensions: [\"gcat\"], joinId: \"" + joinId + "\") { items } }");
         io.nop.api.core.beans.graphql.GraphQLResponseBean resp =
                 graphQLEngine.executeGraphQL(graphQLEngine.newGraphQLContext(request));
         assertFalse(resp.hasError(), "GraphQL mixed same-DB queryAggregation(joinId) must succeed: " + resp);
@@ -1142,9 +1142,9 @@ public class TestNopMetaAggregationBizModel extends JunitBaseTestCase {
         createMeasureWithSide(leftTableId, "cnt", statusFieldId, "count", "left");
         createDimensionWithSide(leftTableId, "cat", "CAT_NAME", "categorical", null, "right");
 
-        Map<String, Object> result = nopMetaTableBizModel.queryAggregation(leftTableId,
+        AggregationResultDTO result = nopMetaTableBizModel.queryAggregation(leftTableId,
                 Arrays.asList("cnt"), Arrays.asList("cat"), null, joinId, null, null, null, null, null, null);
-        List<Map<String, Object>> items = (List<Map<String, Object>>) result.get("items");
+        List<Map<String, Object>> items = result.getItems();
         assertNotNull(items, "items must not be null");
         assertFalse(items.isEmpty(),
                 "cross-DB mixed JOIN aggregation must return real grouped rows via in-memory GROUP BY: " + items);
@@ -1282,9 +1282,9 @@ public class TestNopMetaAggregationBizModel extends JunitBaseTestCase {
         createDimension(leftTableId, "mst", leftDimFieldId, "categorical", null);
         createMeasure(leftTableId, "mcnt", rightMeasureFieldId, "count", null);
 
-        Map<String, Object> result = nopMetaTableBizModel.queryAggregation(leftTableId,
+        AggregationResultDTO result = nopMetaTableBizModel.queryAggregation(leftTableId,
                 Arrays.asList("mcnt"), Arrays.asList("mst"), null, joinId, null, null, null, null, null, null);
-        List<Map<String, Object>> items = (List<Map<String, Object>>) result.get("items");
+        List<Map<String, Object>> items = result.getItems();
         assertNotNull(items, "items must not be null");
         assertFalse(items.isEmpty(), "entity-entity JOIN aggregation must still work after mixed-endpoint route added: " + items);
     }
@@ -1346,9 +1346,9 @@ public class TestNopMetaAggregationBizModel extends JunitBaseTestCase {
         TreeBean having = FilterBeans.gt("total", 15);
         List<OrderFieldBean> orderBy = Arrays.asList(OrderFieldBean.desc("total"));
 
-        Map<String, Object> result = nopMetaTableBizModel.queryAggregation(tableId,
+        AggregationResultDTO result = nopMetaTableBizModel.queryAggregation(tableId,
                 Arrays.asList("total"), Arrays.asList("cat"), null, null, null, null, having, orderBy, null, null);
-        List<Map<String, Object>> items = (List<Map<String, Object>>) result.get("items");
+        List<Map<String, Object>> items = result.getItems();
         // having SUM>15 排除 C（5）；剩 A=30, B=30
         assertEquals(2, items.size(), "having SUM>15 must exclude group C (sum=5)");
         for (Map<String, Object> row : items) {
@@ -1413,9 +1413,9 @@ public class TestNopMetaAggregationBizModel extends JunitBaseTestCase {
 
         TreeBean having = FilterBeans.ge("cnt", 1);
         List<OrderFieldBean> orderBy = Arrays.asList(OrderFieldBean.desc("cnt"));
-        Map<String, Object> result = nopMetaTableBizModel.queryAggregation(tableId,
+        AggregationResultDTO result = nopMetaTableBizModel.queryAggregation(tableId,
                 Arrays.asList("cnt"), Arrays.asList("st"), null, null, null, null, having, orderBy, null, null);
-        List<Map<String, Object>> items = (List<Map<String, Object>>) result.get("items");
+        List<Map<String, Object>> items = result.getItems();
         assertFalse(items.isEmpty(), "entity aggregation with having/orderBy must return real grouped rows: " + items);
         // 所有保留行 cnt >= 1（having 过滤生效）
         for (Map<String, Object> row : items) {
@@ -1443,9 +1443,9 @@ public class TestNopMetaAggregationBizModel extends JunitBaseTestCase {
 
         TreeBean having = FilterBeans.ge("cnt", 1);
         List<OrderFieldBean> orderBy = Arrays.asList(OrderFieldBean.desc("cnt"));
-        Map<String, Object> result = nopMetaTableBizModel.queryAggregation(leftTableId,
+        AggregationResultDTO result = nopMetaTableBizModel.queryAggregation(leftTableId,
                     Arrays.asList("cnt"), Arrays.asList("st"), null, joinId, null, null, having, orderBy, null, null);
-        List<Map<String, Object>> items = (List<Map<String, Object>>) result.get("items");
+        List<Map<String, Object>> items = result.getItems();
         assertNotNull(items, "items must not be null");
         assertFalse(items.isEmpty(), "entity-entity JOIN with having/orderBy must return real grouped rows: " + items);
         // 验证 orderBy DESC：第一行的 cnt 应 >= 最后一行
@@ -1477,9 +1477,9 @@ public class TestNopMetaAggregationBizModel extends JunitBaseTestCase {
 
         TreeBean having = FilterBeans.ge("total", 30);
         List<OrderFieldBean> orderBy = Arrays.asList(OrderFieldBean.desc("total"));
-        Map<String, Object> result = nopMetaTableBizModel.queryAggregation(factTableId,
+        AggregationResultDTO result = nopMetaTableBizModel.queryAggregation(factTableId,
                 Arrays.asList("total"), Arrays.asList("cat"), null, joinId, null, null, having, orderBy, null, null);
-        List<Map<String, Object>> items = (List<Map<String, Object>>) result.get("items");
+        List<Map<String, Object>> items = result.getItems();
         // A=30, B=30 都 >= 30
         assertEquals(2, items.size(), "having total>=30 must keep both groups A and B");
         for (Map<String, Object> row : items) {
@@ -1512,9 +1512,9 @@ public class TestNopMetaAggregationBizModel extends JunitBaseTestCase {
 
         TreeBean having = FilterBeans.ge("cnt", 1);
         List<OrderFieldBean> orderBy = Arrays.asList(OrderFieldBean.desc("cnt"));
-        Map<String, Object> result = nopMetaTableBizModel.queryAggregation(leftTableId,
+        AggregationResultDTO result = nopMetaTableBizModel.queryAggregation(leftTableId,
                 Arrays.asList("cnt"), Arrays.asList("cat"), null, joinId, null, null, having, orderBy, null, null);
-        List<Map<String, Object>> items = (List<Map<String, Object>>) result.get("items");
+        List<Map<String, Object>> items = result.getItems();
         assertNotNull(items, "items must not be null");
         assertFalse(items.isEmpty(), "mixed same-DB JOIN with having/orderBy must return real grouped rows: " + items);
         for (Map<String, Object> row : items) {
@@ -1544,9 +1544,9 @@ public class TestNopMetaAggregationBizModel extends JunitBaseTestCase {
             // having cnt >= 1（过滤空组）+ orderBy cnt DESC（验证 MemoryOrderByComparator 接线）
             TreeBean having = FilterBeans.ge("cnt", 1);
             List<OrderFieldBean> orderBy = Arrays.asList(OrderFieldBean.desc("cnt"));
-            Map<String, Object> result = nopMetaTableBizModel.queryAggregation(leftTableId,
+            AggregationResultDTO result = nopMetaTableBizModel.queryAggregation(leftTableId,
                 Arrays.asList("cnt"), Arrays.asList("st"), null, joinId, null, null, having, orderBy, null, null);
-            List<Map<String, Object>> items = (List<Map<String, Object>>) result.get("items");
+            List<Map<String, Object>> items = result.getItems();
             assertNotNull(items, "items must not be null");
             assertFalse(items.isEmpty(),
                     "cross-DB in-memory JOIN with having/orderBy must return real grouped rows: " + items);
@@ -1582,9 +1582,9 @@ public class TestNopMetaAggregationBizModel extends JunitBaseTestCase {
         createDimension(tableId, "cat", "CATEGORY", "categorical", null);
 
         // having=null, orderBy=null → 与既有行为完全一致（无 HAVING/ORDER BY 子句）
-        Map<String, Object> result = nopMetaTableBizModel.queryAggregation(tableId,
+        AggregationResultDTO result = nopMetaTableBizModel.queryAggregation(tableId,
                 Arrays.asList("total"), Arrays.asList("cat"), null, null, null, null, null, null, null, null);
-        List<Map<String, Object>> items = (List<Map<String, Object>>) result.get("items");
+        List<Map<String, Object>> items = result.getItems();
         assertEquals(2, items.size(), "no having/orderBy → all groups retained (A, B)");
     }
 
@@ -1610,9 +1610,9 @@ public class TestNopMetaAggregationBizModel extends JunitBaseTestCase {
                 "VERSION + VERSION");
         createDimension(tableId, "st", statusFieldId, "categorical", null);
 
-        Map<String, Object> result = nopMetaTableBizModel.queryAggregation(tableId,
+        AggregationResultDTO result = nopMetaTableBizModel.queryAggregation(tableId,
                 Arrays.asList("exprStatus"), Arrays.asList("st"), null, null, null, null, null, null, null, null);
-        List<Map<String, Object>> items = (List<Map<String, Object>>) result.get("items");
+        List<Map<String, Object>> items = result.getItems();
         assertNotNull(items, "items must not be null");
         assertFalse(items.isEmpty(), "entity path expression must yield real grouped rows: " + items);
         // expression 真实执行：每个分组的 EXPRSTATUS 是 2 * SUM(MODULE_VERSION)（非伪造）
@@ -1639,9 +1639,9 @@ public class TestNopMetaAggregationBizModel extends JunitBaseTestCase {
             createMeasure(tableId, "exprCnt", createTimeFieldId, "sum", "VERSION + VERSION");
             createDimension(tableId, "mon", createTimeFieldId, "temporal", "month");
 
-            Map<String, Object> result = nopMetaTableBizModel.queryAggregation(tableId,
+            AggregationResultDTO result = nopMetaTableBizModel.queryAggregation(tableId,
                     Arrays.asList("exprCnt"), Arrays.asList("mon"), null, null, null, null, null, null, null, null);
-            List<Map<String, Object>> items = (List<Map<String, Object>>) result.get("items");
+            List<Map<String, Object>> items = result.getItems();
             assertNotNull(items);
             assertEquals(2, items.size(),
                     "entity path expression + temporal month granularity must yield 2 buckets: " + items);
@@ -1673,9 +1673,9 @@ public class TestNopMetaAggregationBizModel extends JunitBaseTestCase {
         createMeasure(tableId, "triple", "AMOUNT", "sum", "AMOUNT * 2 + AMOUNT");
         createDimension(tableId, "cat", "CATEGORY", "categorical", null);
 
-        Map<String, Object> result = nopMetaTableBizModel.queryAggregation(tableId,
+        AggregationResultDTO result = nopMetaTableBizModel.queryAggregation(tableId,
                 Arrays.asList("triple"), Arrays.asList("cat"), null, null, null, null, null, null, null, null);
-        List<Map<String, Object>> items = (List<Map<String, Object>>) result.get("items");
+        List<Map<String, Object>> items = result.getItems();
         assertNotNull(items);
         Map<String, Object> rowA = findRow(items, "CAT", "A");
         Map<String, Object> rowB = findRow(items, "CAT", "B");
@@ -1709,9 +1709,9 @@ public class TestNopMetaAggregationBizModel extends JunitBaseTestCase {
                 "l.AMOUNT * 2");
         createDimensionWithSide(factTableId, "cat", "CAT_NAME", "categorical", null, "right");
 
-        Map<String, Object> result = nopMetaTableBizModel.queryAggregation(factTableId,
+        AggregationResultDTO result = nopMetaTableBizModel.queryAggregation(factTableId,
                 Arrays.asList("totalDbl"), Arrays.asList("cat"), null, joinId, null, null, null, null, null, null);
-        List<Map<String, Object>> items = (List<Map<String, Object>>) result.get("items");
+        List<Map<String, Object>> items = result.getItems();
         assertNotNull(items);
         assertEquals(2, items.size(), "group by CAT_NAME must yield 2 groups (A,B): " + items);
         Map<String, Object> rowA = findRow(items, "CAT", "A");
@@ -1942,10 +1942,10 @@ public class TestNopMetaAggregationBizModel extends JunitBaseTestCase {
 
         // HAVING sumA - sumB > 10
         TreeBean having = havingArithmeticLeaf("gt", "sumA - sumB", 10);
-        Map<String, Object> result = nopMetaTableBizModel.queryAggregation(tableId,
+        AggregationResultDTO result = nopMetaTableBizModel.queryAggregation(tableId,
                 Arrays.asList("sumA", "sumB"), Arrays.asList("cat"),
                 null, null, null, null, having, null, null, null);
-        List<Map<String, Object>> items = (List<Map<String, Object>>) result.get("items");
+        List<Map<String, Object>> items = result.getItems();
         assertNotNull(items, "items must not be null");
         // A=24, B=29 satisfy >10; C=4 fails → 2 items
         assertEquals(2, items.size(), "arithmetic having SUM(A)-SUM(B)>10 must keep A(24), B(29); drop C(4)");
@@ -2051,10 +2051,10 @@ public class TestNopMetaAggregationBizModel extends JunitBaseTestCase {
 
         // HAVING cntA - cntB >= 0（count - count = 0 for any group；保留所有 group）
         TreeBean having = havingArithmeticLeaf("ge", "cntA - cntB", 0);
-        Map<String, Object> result = nopMetaTableBizModel.queryAggregation(tableId,
+        AggregationResultDTO result = nopMetaTableBizModel.queryAggregation(tableId,
                 Arrays.asList("cntA", "cntB"), Arrays.asList("st"),
                 null, null, null, null, having, null, null, null);
-        List<Map<String, Object>> items = (List<Map<String, Object>>) result.get("items");
+        List<Map<String, Object>> items = result.getItems();
         assertNotNull(items, "items must not be null");
         assertFalse(items.isEmpty(),
                 "entity path arithmetic having must yield real grouped rows: " + items);
@@ -2099,10 +2099,10 @@ public class TestNopMetaAggregationBizModel extends JunitBaseTestCase {
 
         // HAVING sumAmt - sumX >= 20
         TreeBean having = havingArithmeticLeaf("ge", "sumAmt - sumX", 20);
-        Map<String, Object> result = nopMetaTableBizModel.queryAggregation(factTableId,
+        AggregationResultDTO result = nopMetaTableBizModel.queryAggregation(factTableId,
                 Arrays.asList("sumAmt", "sumX"), Arrays.asList("cat"),
                 null, joinId, null, null, having, null, null, null);
-        List<Map<String, Object>> items = (List<Map<String, Object>>) result.get("items");
+        List<Map<String, Object>> items = result.getItems();
         assertNotNull(items);
         // A: SUM(AMOUNT)=30, SUM(VAL_X)=2 → 28 >= 20 ✓; B: 30-2=28 ✓
         assertEquals(2, items.size(), "arithmetic having sumAmt-sumX>=20 must keep both groups");
@@ -2162,10 +2162,10 @@ public class TestNopMetaAggregationBizModel extends JunitBaseTestCase {
 
         // 常规 having（无 expr 属性，使用 name 属性）→ 与既有行为一致
         TreeBean having = FilterBeans.gt("sumA", 10);
-        Map<String, Object> result = nopMetaTableBizModel.queryAggregation(tableId,
+        AggregationResultDTO result = nopMetaTableBizModel.queryAggregation(tableId,
                 Arrays.asList("sumA"), Arrays.asList("cat"),
                 null, null, null, null, having, null, null, null);
-        List<Map<String, Object>> items = (List<Map<String, Object>>) result.get("items");
+        List<Map<String, Object>> items = result.getItems();
         // A=30, B=30 satisfy >10; C=5 fails → 2 items
         assertEquals(2, items.size(), "regular having SUM(A)>10 must keep A(30), B(30); drop C(5)");
     }
@@ -2252,7 +2252,7 @@ public class TestNopMetaAggregationBizModel extends JunitBaseTestCase {
         saveDataSource("ds-" + querySpace, querySpace, "jdbc", "ACTIVE", dbUrl);
         io.nop.api.core.beans.graphql.GraphQLRequestBean request = new io.nop.api.core.beans.graphql.GraphQLRequestBean();
         request.setQuery("mutation { NopMetaDataSource__syncExternalTables(dataSourceId: \"ds-" + querySpace
-                + "\", schemaPattern: \"PUBLIC\") }");
+                + "\", schemaPattern: \"PUBLIC\") { syncedTableCount errors { code message detail } } }");
         io.nop.api.core.beans.graphql.GraphQLResponseBean resp =
                 graphQLEngine.executeGraphQL(graphQLEngine.newGraphQLContext(request));
         org.junit.jupiter.api.Assertions.assertFalse(resp.hasError(), "sync should not error: " + resp);
@@ -2472,7 +2472,7 @@ public class TestNopMetaAggregationBizModel extends JunitBaseTestCase {
     private void syncExternalTables(String dataSourceId) {
         io.nop.api.core.beans.graphql.GraphQLRequestBean request = new io.nop.api.core.beans.graphql.GraphQLRequestBean();
         request.setQuery("mutation { NopMetaDataSource__syncExternalTables(dataSourceId: \"" + dataSourceId
-                + "\", schemaPattern: \"PUBLIC\") }");
+                + "\", schemaPattern: \"PUBLIC\") { syncedTableCount errors { code message detail } } }");
         io.nop.api.core.beans.graphql.GraphQLResponseBean resp =
                 graphQLEngine.executeGraphQL(graphQLEngine.newGraphQLContext(request));
         org.junit.jupiter.api.Assertions.assertFalse(resp.hasError(), "sync should not error: " + resp);

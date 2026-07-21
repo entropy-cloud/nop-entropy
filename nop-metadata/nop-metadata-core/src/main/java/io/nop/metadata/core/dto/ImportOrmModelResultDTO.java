@@ -6,7 +6,7 @@
  * Github: https://github.com/entropy-cloud/nop-entropy
  */
 
-package io.nop.metadata.service.dto;
+package io.nop.metadata.core.dto;
 
 import io.nop.api.core.annotations.data.DataBean;
 

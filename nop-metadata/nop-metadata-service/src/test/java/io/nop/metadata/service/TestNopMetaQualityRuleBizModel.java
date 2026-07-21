@@ -430,7 +430,7 @@ public class TestNopMetaQualityRuleBizModel extends JunitBaseTestCase {
                         + "\"driverClassName\":\"org.h2.Driver\"}");
         GraphQLResponseBean syncResp = graphQLEngine.executeGraphQL(graphQLEngine.newGraphQLContext(req(
                 "mutation { NopMetaDataSource__syncExternalTables(dataSourceId: \"ds-" + querySpace
-                        + "\", schemaPattern: \"" + schemaPattern + "\") }")));
+                        + "\", schemaPattern: \"" + schemaPattern + "\") { syncedTableCount errors { code message detail } } }")));
         assertFalse(syncResp.hasError(), "sync should not error: " + syncResp);
         return new PreparedEnv("ds-" + querySpace);
     }

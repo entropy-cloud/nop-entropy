@@ -6,30 +6,29 @@
  * Github: https://github.com/entropy-cloud/nop-entropy
  */
 
-package io.nop.metadata.service.dto;
+package io.nop.metadata.core.dto;
 
 import io.nop.api.core.annotations.data.DataBean;
 
 import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 /**
- * 聚合查询结果 DTO（来源：{@code NopMetaTableBizModel.queryAggregation}）。
- *
- * <p>对应原 {@code Map<String,Object>}：{@code {items:[{dimensions:{...}, measures:{...}}]}}。
+ * 跨表 JOIN 查询结果 DTO（来源：{@code NopMetaTableBizModel.queryJoinData}）。
  */
 @DataBean
-public class AggregationResultDTO implements Serializable {
+public class QueryJoinDataResultDTO implements Serializable {
     private static final long serialVersionUID = 1L;
 
-    private List<AggregationRowDTO> items = new ArrayList<>();
+    private List<Map<String, Object>> items = new ArrayList<>();
 
-    public List<AggregationRowDTO> getItems() {
+    public List<Map<String, Object>> getItems() {
         return items;
     }
 
-    public void setItems(List<AggregationRowDTO> items) {
+    public void setItems(List<Map<String, Object>> items) {
         this.items = items;
     }
 }

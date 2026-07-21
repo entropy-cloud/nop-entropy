@@ -275,7 +275,7 @@ public class TestNopMetaModelChangedEvent extends JunitBaseTestCase {
         // createSqlTable 返回 Map（GraphQL 视为标量，不做字段选择）
         GraphQLResponseBean resp = execute(
                 "mutation { NopMetaTable__createSqlTable(sql: \"SELECT 1 AS c1\", tableName: \"t_evt_sql\","
-                        + " metaModuleId: \"" + metaModuleId + "\") }");
+                        + " metaModuleId: \"" + metaModuleId + "\") { metaTableId tableName tableType fields { name alias type } } }");
         assertFalse(resp.hasError(), "createSqlTable should not error: " + resp);
         @SuppressWarnings("unchecked")
         Map<String, Object> data = (Map<String, Object>) resp.getData();

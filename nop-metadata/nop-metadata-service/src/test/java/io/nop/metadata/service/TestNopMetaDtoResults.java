@@ -9,23 +9,23 @@ package io.nop.metadata.service;
 
 import io.nop.api.core.beans.ApiResponse;
 import io.nop.core.lang.json.JsonTool;
-import io.nop.metadata.dao.dto.ErrorDTO;
-import io.nop.metadata.dao.dto.KeyValueDTO;
-import io.nop.metadata.service.dto.AggregationResultDTO;
-import io.nop.metadata.service.dto.AggregationRowDTO;
-import io.nop.metadata.service.dto.CollectCatalogResultDTO;
-import io.nop.metadata.service.dto.CollectCatalogTableDTO;
-import io.nop.metadata.service.dto.CreateSqlTableResultDTO;
-import io.nop.metadata.service.dto.ProfileResultDTO;
-import io.nop.metadata.service.dto.ProfilingColumnStatsDTO;
-import io.nop.metadata.service.dto.QualityRuleResultDTO;
-import io.nop.metadata.service.dto.QualityScoreResultDTO;
-import io.nop.metadata.service.dto.QueryTableDataResultDTO;
-import io.nop.metadata.service.dto.SyncExternalTablesResultDTO;
-import io.nop.metadata.service.dto.TestConnectionResultDTO;
+import io.nop.metadata.core.dto.AggregationResultDTO;
+import io.nop.metadata.core.dto.CollectCatalogResultDTO;
+import io.nop.metadata.core.dto.CollectCatalogTableDTO;
+import io.nop.metadata.core.dto.CreateSqlTableResultDTO;
+import io.nop.metadata.core.dto.ErrorDTO;
+import io.nop.metadata.core.dto.KeyValueDTO;
+import io.nop.metadata.core.dto.ProfileResultDTO;
+import io.nop.metadata.core.dto.ProfilingColumnStatsDTO;
+import io.nop.metadata.core.dto.QualityRuleResultDTO;
+import io.nop.metadata.core.dto.QualityScoreResultDTO;
+import io.nop.metadata.core.dto.QueryTableDataResultDTO;
+import io.nop.metadata.core.dto.SyncExternalTablesResultDTO;
+import io.nop.metadata.core.dto.TestConnectionResultDTO;
 import org.junit.jupiter.api.Test;
 
 import java.util.Collections;
+import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -63,14 +63,14 @@ public class TestNopMetaDtoResults {
 
     @Test
     public void testAggregationResultDtoFields() {
-        AggregationRowDTO row = new AggregationRowDTO();
-        row.getDimensions().put("d1", "v1");
-        row.getMeasures().put("m1", 100L);
         AggregationResultDTO dto = new AggregationResultDTO();
+        Map<String, Object> row = new java.util.LinkedHashMap<>();
+        row.put("d1", "v1");
+        row.put("m1", 100L);
         dto.getItems().add(row);
         assertEquals(1, dto.getItems().size());
-        assertEquals("v1", dto.getItems().get(0).getDimensions().get("d1"));
-        assertEquals(100L, dto.getItems().get(0).getMeasures().get("m1"));
+        assertEquals("v1", dto.getItems().get(0).get("d1"));
+        assertEquals(100L, dto.getItems().get(0).get("m1"));
     }
 
     @Test

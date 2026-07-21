@@ -59,7 +59,7 @@ public class TestSqlTableExecution extends JunitBaseTestCase {
         PreparedEnv env = prepare("qs_sql_cat", "SELECT amount, name FROM test_data");
 
         GraphQLResponseBean resp = graphQLEngine.executeGraphQL(graphQLEngine.newGraphQLContext(req(
-                "mutation { NopMetaDataSource__collectCatalogForTable(metaTableId: \"" + env.tableId + "\") }")));
+                "mutation { NopMetaDataSource__collectCatalogForTable(metaTableId: \"" + env.tableId + "\") { tableCount tables { tableName schema tableType rowCount sizeBytes } errors { code message detail } } }")));
         assertFalse(resp.hasError(), "sql catalog should not error: " + resp);
 
         NopMetaCatalog row = findCatalogRow(env.tableId);
@@ -112,7 +112,7 @@ public class TestSqlTableExecution extends JunitBaseTestCase {
         PreparedEnv env = prepare("qs_sql_prof", "SELECT amount, name FROM test_data");
 
         GraphQLResponseBean resp = graphQLEngine.executeGraphQL(graphQLEngine.newGraphQLContext(req(
-                "mutation { NopMetaTable__profileTable(metaTableId: \"" + env.tableId + "\") }")));
+                "mutation { NopMetaTable__profileTable(metaTableId: \"" + env.tableId + "\") { profilingResultId columnCount columns { columnName rowCount nullCount nullRatio minValue maxValue } unavailable errors { code message detail } } }")));
         assertFalse(resp.hasError(), "sql profiling should not error: " + resp);
 
         NopMetaProfilingResult row = findProfilingResult(env.tableId);
@@ -134,7 +134,7 @@ public class TestSqlTableExecution extends JunitBaseTestCase {
     public void testSqlProfilingNoDataSourceFails() {
         NopMetaTable sqlTable = saveManualSqlTable("SELECT 1", "qs_sql_no_ds");
         GraphQLResponseBean resp = graphQLEngine.executeGraphQL(graphQLEngine.newGraphQLContext(req(
-                "mutation { NopMetaTable__profileTable(metaTableId: \"" + sqlTable.getMetaTableId() + "\") }")));
+                "mutation { NopMetaTable__profileTable(metaTableId: \"" + sqlTable.getMetaTableId() + "\") { profilingResultId columnCount columns { columnName rowCount nullCount nullRatio minValue maxValue } unavailable errors { code message detail } } }")));
         assertTrue(resp.hasError(), "sql table with no datasource must explicitly fail: " + resp);
     }
 

@@ -427,7 +427,7 @@ public class TestNopMetaReconciliationBizModel extends JunitBaseTestCase {
         saveDataSource("ds-" + querySpace, querySpace, dbUrl);
         GraphQLResponseBean syncResp = execute(
                 "mutation { NopMetaDataSource__syncExternalTables(dataSourceId: \"ds-" + querySpace
-                        + "\", schemaPattern: \"PUBLIC\") }");
+                        + "\", schemaPattern: \"PUBLIC\") { syncedTableCount errors { code message detail } } }");
         assertFalse(syncResp.hasError(), "sync should not error: " + syncResp);
         return findExternalTableId(tableName);
     }

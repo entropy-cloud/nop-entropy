@@ -6,29 +6,28 @@
  * Github: https://github.com/entropy-cloud/nop-entropy
  */
 
-package io.nop.metadata.service.dto;
+package io.nop.metadata.core.dto;
 
 import io.nop.api.core.annotations.data.DataBean;
 
 import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 
 /**
- * 跨表 JOIN 查询结果 DTO（来源：{@code NopMetaTableBizModel.queryJoinData}）。
+ * SQL 字段预览结果 DTO（来源：{@code NopMetaTableBizModel.previewSqlFields}）。
  */
 @DataBean
-public class QueryJoinDataResultDTO implements Serializable {
+public class PreviewSqlFieldsResultDTO implements Serializable {
     private static final long serialVersionUID = 1L;
 
-    private List<Map<String, Object>> items = new ArrayList<>();
+    private List<SqlViewFieldDTO> fields = new ArrayList<>();
 
-    public List<Map<String, Object>> getItems() {
-        return items;
+    public List<SqlViewFieldDTO> getFields() {
+        return fields;
     }
 
-    public void setItems(List<Map<String, Object>> items) {
-        this.items = items;
+    public void setFields(List<SqlViewFieldDTO> fields) {
+        this.fields = fields;
     }
 }

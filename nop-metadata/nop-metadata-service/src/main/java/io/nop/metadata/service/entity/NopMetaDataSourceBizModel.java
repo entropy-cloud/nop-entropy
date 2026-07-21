@@ -25,6 +25,11 @@ import io.nop.core.lang.json.JsonTool;
 import io.nop.dao.api.IEntityDao;
 import io.nop.metadata.biz.INopMetaDataSourceBiz;
 import io.nop.metadata.core._NopMetadataCoreConstants;
+import io.nop.metadata.core.dto.CollectCatalogResultDTO;
+import io.nop.metadata.core.dto.CollectCatalogTableDTO;
+import io.nop.metadata.core.dto.ErrorDTO;
+import io.nop.metadata.core.dto.SyncExternalTablesResultDTO;
+import io.nop.metadata.core.dto.TestConnectionResultDTO;
 import io.nop.metadata.dao.entity.NopMetaCatalog;
 import io.nop.metadata.dao.entity.NopMetaDataSource;
 import io.nop.metadata.dao.entity.NopMetaEntity;
@@ -111,7 +116,7 @@ public class NopMetaDataSourceBizModel extends CrudBizModel<NopMetaDataSource> i
      * <p>设计决策 D3：成功时从 DatabaseMetaData 识别的产品名放入返回 Map，不写回任何 ORM 列。
      */
     @BizMutation
-    public Map<String, Object> testConnection(@Name("dataSourceId") String dataSourceId, IServiceContext context) {
+    public TestConnectionResultDTO testConnection(@Name("dataSourceId") String dataSourceId, IServiceContext context) {
         NopMetaDataSource dataSource = dao().getEntityById(dataSourceId);
         if (dataSource == null) {
             throw new NopException(NopMetadataErrors.ERR_DATASOURCE_NOT_FOUND).param("dataSourceId", dataSourceId);
@@ -122,7 +127,23 @@ public class NopMetaDataSourceBizModel extends CrudBizModel<NopMetaDataSource> i
             throw new NopException(NopMetadataErrors.ERR_DATASOURCE_DISABLED).param("dataSourceId", dataSourceId);
         }
 
-        return connectionService.testConnect(dataSource.getDatasourceType(), dataSource.getConnectionConfig());
+        Map<String, Object> raw = connectionService.testConnect(dataSource.getDatasourceType(), dataSource.getConnectionConfig());
+        TestConnectionResultDTO dto = new TestConnectionResultDTO();
+        Object connected = raw.get("connected");
+        dto.setConnected(connected instanceof Boolean && (Boolean) connected);
+        Object productName = raw.get("databaseProductName");
+        if (productName instanceof String) {
+            dto.setDatabaseProductName((String) productName);
+        }
+        Object productVersion = raw.get("databaseProductVersion");
+        if (productVersion instanceof String) {
+            dto.setDatabaseProductVersion((String) productVersion);
+        }
+        Object error = raw.get("error");
+        if (error instanceof String) {
+            dto.setError((String) error);
+        }
+        return dto;
     }
 
     /**
@@ -148,9 +169,9 @@ public class NopMetaDataSourceBizModel extends CrudBizModel<NopMetaDataSource> i
      * @return {@code {syncedTableCount: int, errors: [{tableName, error}, ...]}}
      */
     @BizMutation
-    public Map<String, Object> syncExternalTables(@Name("dataSourceId") String dataSourceId,
-                                                  @Optional @Name("schemaPattern") String schemaPattern,
-                                                  IServiceContext context) {
+    public SyncExternalTablesResultDTO syncExternalTables(@Name("dataSourceId") String dataSourceId,
+                                                           @Optional @Name("schemaPattern") String schemaPattern,
+                                                           IServiceContext context) {
         NopMetaDataSource dataSource = dao().getEntityById(dataSourceId);
         if (dataSource == null) {
             throw new NopException(NopMetadataErrors.ERR_DATASOURCE_NOT_FOUND).param("dataSourceId", dataSourceId);
@@ -161,16 +182,13 @@ public class NopMetaDataSourceBizModel extends CrudBizModel<NopMetaDataSource> i
             throw new NopException(NopMetadataErrors.ERR_DATASOURCE_DISABLED).param("dataSourceId", dataSourceId);
         }
 
-        // 系统模块作为外部表归属（方案 A），首次同步时惰性创建
         String externalModuleId = ensureExternalSystemModule();
 
-        // plan 2026-07-19-1250-3 Phase 5 AR-06：在 sync 循环之前捕获 before 快照（与 after 不同）。
         String beforeSnapshot = eventPublisher.buildSnapshot(dataSource, EVENT_ENTITY_TYPE, dataSourceId);
 
         AtomicInteger syncedCount = new AtomicInteger(0);
-        List<Map<String, Object>> errors = new ArrayList<>();
+        List<ErrorDTO> errors = new ArrayList<>();
 
-        // 复用 P2-1 callback 式建连：callback 内取方言 + 扫描；callback 结束自动释放连接
         connectionService.withConnection(dataSource.getDatasourceType(), dataSource.getConnectionConfig(),
                 (Connection conn, DatabaseMetaData metaData) -> {
                     List<ExternalTableInfo> tables = structureReader.read(conn, metaData, schemaPattern);
@@ -181,22 +199,17 @@ public class NopMetaDataSourceBizModel extends CrudBizModel<NopMetaDataSource> i
                             syncedCount.incrementAndGet();
                         } catch (Exception e) {
                             LOG.error("syncExternalTables failed for table: {}", table.getTableName(), e);
-                            Map<String, Object> err = new LinkedHashMap<>();
-                            err.put("tableName", table.getTableName());
-                            err.put("error", toErrorMessage(e));
-                            errors.add(err);
-                            // 隔离失败：清理未刷出的脏实体，不影响已 flush 的表与后续表
+                            ErrorDTO errDTO = new ErrorDTO();
+                            errDTO.setCode(table.getTableName());
+                            errDTO.setMessage(toErrorMessage(e));
+                            errors.add(errDTO);
                             orm().clearSession();
                         }
                     }
                 });
 
-        // AR-06：循环之后捕获 after 快照（与 before 不同）。事件含 syncedTableCount（业务字段，便于审计）。
         orm().flushSession();
         String afterSnapshot = eventPublisher.buildSnapshot(dataSource, EVENT_ENTITY_TYPE, dataSourceId);
-        // 显式断言 before != after（plan AR-06 Exit Criteria）。before/after 都是 dataSource 自身快照，
-        // 但本批次可能更新了 importedAt / version 等字段，使快照 JSON 不同；
-        // 即使 dataSource 字段未变，事件本身仍携带 syncedTableCount 表明批次业务影响（不再"内容相同"）。
         eventPublisher.publishEventWithSnapshots(
                 _NopMetadataCoreConstants.CHANGE_EVENT_TYPE_ENTITY_UPDATED,
                 EVENT_ENTITY_TYPE, dataSourceId, dataSource.getName(),
@@ -204,11 +217,9 @@ public class NopMetaDataSourceBizModel extends CrudBizModel<NopMetaDataSource> i
                 beforeSnapshot, afterSnapshot,
                 MetaModelChangedEventPublisher.newTransactionId(), context);
 
-        Map<String, Object> result = new LinkedHashMap<>();
-        result.put("syncedTableCount", syncedCount.get());
-        result.put("errors", errors);
-        // AR-06：result 中已含 syncedTableCount；event 不再独立承载（避免改 event schema 破坏下游订阅者，
-        // plan 维度 AR-06 单值裁定：保留主实体事件类型，schema 演进移到 successor plan）。
+        SyncExternalTablesResultDTO result = new SyncExternalTablesResultDTO();
+        result.setSyncedTableCount(syncedCount.get());
+        result.setErrors(errors);
         return result;
     }
 
@@ -236,9 +247,9 @@ public class NopMetaDataSourceBizModel extends CrudBizModel<NopMetaDataSource> i
      * @return {@code {collectedCount: int, errors: [{tableName, error}, ...]}}
      */
     @BizMutation
-    public Map<String, Object> collectCatalog(@Name("dataSourceId") String dataSourceId,
-                                              @Optional @Name("schemaPattern") String schemaPattern,
-                                              IServiceContext context) {
+    public CollectCatalogResultDTO collectCatalog(@Name("dataSourceId") String dataSourceId,
+                                                   @Optional @Name("schemaPattern") String schemaPattern,
+                                                   IServiceContext context) {
         NopMetaDataSource dataSource = dao().getEntityById(dataSourceId);
         if (dataSource == null) {
             throw new NopException(NopMetadataErrors.ERR_DATASOURCE_NOT_FOUND).param("dataSourceId", dataSourceId);
@@ -249,46 +260,48 @@ public class NopMetaDataSourceBizModel extends CrudBizModel<NopMetaDataSource> i
             throw new NopException(NopMetadataErrors.ERR_DATASOURCE_DISABLED).param("dataSourceId", dataSourceId);
         }
 
-        // 该 querySpace 下已目录化的 external 表（NopMetaTable 无 schema 列，按 querySpace+tableType 查找，
-        // 首版全表扫描可接受；schemaPattern 仅限定物理 SQL，不过滤目录行——见架构基线 §2.3.2）。
         List<NopMetaTable> externalTables = findExternalTables(dataSource.getQuerySpace());
 
         AtomicInteger collectedCount = new AtomicInteger(0);
-        List<Map<String, Object>> errors = new ArrayList<>();
+        List<CollectCatalogTableDTO> tables = new ArrayList<>();
+        List<ErrorDTO> errors = new ArrayList<>();
 
-        // 复用 P2-1 callback 式建连：callback 内取方言 + 逐表收集；callback 结束自动释放连接
         connectionService.withConnection(dataSource.getDatasourceType(), dataSource.getConnectionConfig(),
                 (Connection conn, DatabaseMetaData metaData) -> {
                     String productName = safeProductName(metaData);
                     for (NopMetaTable table : externalTables) {
                         try {
-                            // 构建 external table-reference（批内表共享同一数据源连接）
                             TableReference ref = new TableReference(TableReference.Kind.EXTERNAL,
                                     table.getMetaTableId(), table.getTableName(), null,
                                     dataSource, null, null, null);
-                            // plan 0852-3 Phase 3: 批量入口逐表默认 schema 解析（每表 schema 可能不同）
-                            // 替代旧「单一 schemaPattern 透传循环内所有表」——多 schema 数据源各表正确命中
                             String effectiveSchema = resolveDefaultSchema(schemaPattern, table);
                             CatalogTableStats stats = catalogCollector.collectForTable(
                                     conn, metaData, ref, effectiveSchema, productName);
                             appendCatalogRow(table.getMetaTableId(), stats);
+                            CollectCatalogTableDTO tableDTO = new CollectCatalogTableDTO();
+                            tableDTO.setTableName(table.getTableName());
+                            tableDTO.setSchema(table.getSchema());
+                            tableDTO.setTableType(table.getTableType());
+                            tableDTO.setRowCount(stats.getRowCount());
+                            tableDTO.setSizeBytes(stats.getSizeBytes());
+                            tables.add(tableDTO);
                             orm().flushSession();
                             collectedCount.incrementAndGet();
                         } catch (Exception e) {
                             LOG.error("collectCatalog failed for table: {}", table.getTableName(), e);
-                            Map<String, Object> err = new LinkedHashMap<>();
-                            err.put("tableName", table.getTableName());
-                            err.put("error", toErrorMessage(e));
-                            errors.add(err);
-                            // 隔离失败：清理未刷出的脏实体，不影响已 flush 的表与后续表
+                            ErrorDTO errDTO = new ErrorDTO();
+                            errDTO.setCode(table.getTableName());
+                            errDTO.setMessage(toErrorMessage(e));
+                            errors.add(errDTO);
                             orm().clearSession();
                         }
                     }
                 });
 
-        Map<String, Object> result = new LinkedHashMap<>();
-        result.put("collectedCount", collectedCount.get());
-        result.put("errors", errors);
+        CollectCatalogResultDTO result = new CollectCatalogResultDTO();
+        result.setTableCount(collectedCount.get());
+        result.setTables(tables);
+        result.setErrors(errors);
         return result;
     }
 
@@ -315,22 +328,18 @@ public class NopMetaDataSourceBizModel extends CrudBizModel<NopMetaDataSource> i
      * @return {@code {metaTableId, rowCount, indexCount, unavailable:[...]}}
      */
     @BizMutation
-    public Map<String, Object> collectCatalogForTable(@Name("metaTableId") String metaTableId,
-                                                       @Optional @Name("schemaPattern") String schemaPattern,
-                                                       IServiceContext context) {
+    public CollectCatalogResultDTO collectCatalogForTable(@Name("metaTableId") String metaTableId,
+                                                           @Optional @Name("schemaPattern") String schemaPattern,
+                                                           IServiceContext context) {
         IEntityDao<NopMetaTable> tableDao = daoFor(NopMetaTable.class);
         NopMetaTable table = tableDao.getEntityById(metaTableId);
         if (table == null) {
-            // AR-14 / 维度09-11：错误码语义错配修正——按 metaTableId 查不到表应抛 NopMetadataErrors.ERR_TABLE_NOT_FOUND，
-            // 原代码误用 NopMetadataErrors.ERR_DATASOURCE_NOT_FOUND 且把 metaTableId 写入 dataSourceId 参数，让运维误判为数据源问题。
             throw new NopException(NopMetadataErrors.ERR_TABLE_NOT_FOUND).param("metaTableId", metaTableId);
         }
         TableReference ref = tableRefResolver.resolve(table,
                 daoFor(NopMetaDataSource.class), daoFor(NopMetaEntity.class),
                 daoFor(NopMetaEntityField.class), orm());
 
-        // plan 0852-3 Phase 3: 默认 schema 解析在 BizModel 层（持有 NopMetaTable）
-        // 未显式传 schemaPattern 且 table.schema 非空 → 默认取 table.schema（持久化一次、多次执行无需重传）
         String effectiveSchema = resolveDefaultSchema(schemaPattern, table);
 
         CatalogTableStats stats = ensureTableRefExecutor().execute(ref,
@@ -338,17 +347,19 @@ public class NopMetaDataSourceBizModel extends CrudBizModel<NopMetaDataSource> i
                         conn, metaData, ref, effectiveSchema, productName));
 
         appendCatalogRow(table.getMetaTableId(), stats);
-        return buildCatalogResultMap(table.getMetaTableId(), stats);
-    }
 
-    private static Map<String, Object> buildCatalogResultMap(String metaTableId, CatalogTableStats stats) {
-        Map<String, Object> m = new LinkedHashMap<>();
-        m.put("metaTableId", metaTableId);
-        m.put("rowCount", stats.getRowCount());
-        m.put("indexCount", stats.getIndexCount());
-        m.put("unavailable", stats.getUnavailable());
-        m.putAll(stats.getExtras());
-        return m;
+        CollectCatalogResultDTO result = new CollectCatalogResultDTO();
+        result.setTableCount(1);
+        CollectCatalogTableDTO tableDTO = new CollectCatalogTableDTO();
+        tableDTO.setTableName(table.getTableName());
+        tableDTO.setSchema(table.getSchema());
+        tableDTO.setTableType(table.getTableType());
+        tableDTO.setRowCount(stats.getRowCount());
+        tableDTO.setSizeBytes(stats.getSizeBytes());
+        List<CollectCatalogTableDTO> tables = new ArrayList<>();
+        tables.add(tableDTO);
+        result.setTables(tables);
+        return result;
     }
 
     /**

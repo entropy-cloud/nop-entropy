@@ -304,7 +304,7 @@ public class TestNopMetaTableBizModel extends JunitBaseTestCase {
     @Test
     public void testProfileTableNotFound() {
         GraphQLResponseBean resp = graphQLEngine.executeGraphQL(graphQLEngine.newGraphQLContext(req(
-                "mutation { NopMetaTable__profileTable(metaTableId: \"__nope__\") }")));
+                "mutation { NopMetaTable__profileTable(metaTableId: \"__nope__\") { profilingResultId columnCount columns { columnName rowCount nullCount nullRatio minValue maxValue } unavailable errors { code message detail } } }")));
         assertTrue(resp.hasError(), "non-existent table must error (no NPE): " + resp);
     }
 
@@ -354,7 +354,7 @@ public class TestNopMetaTableBizModel extends JunitBaseTestCase {
         String sql = "SELECT id, name AS user_name, amount * 2 FROM orders";
         GraphQLResponseBean resp = graphQLEngine.executeGraphQL(graphQLEngine.newGraphQLContext(req(
                 "mutation { NopMetaTable__createSqlTable(sql: \"" + escapeGraphQL(sql) + "\", "
-                        + "tableName: \"sql_view_basic\", metaModuleId: \"" + moduleId + "\") }")));
+                        + "tableName: \"sql_view_basic\", metaModuleId: \"" + moduleId + "\") { metaTableId tableName tableType fields { name alias type } } }")));
 
         assertFalse(resp.hasError(), "createSqlTable should succeed for valid SELECT: " + resp);
         Map<String, Object> data = (Map<String, Object>) resp.getData();
@@ -390,7 +390,7 @@ public class TestNopMetaTableBizModel extends JunitBaseTestCase {
         String moduleId = ensureExternalSystemModuleId();
         GraphQLResponseBean resp = graphQLEngine.executeGraphQL(graphQLEngine.newGraphQLContext(req(
                 "mutation { NopMetaTable__createSqlTable(sql: \"INSERT INTO t VALUES(1)\", "
-                        + "tableName: \"sql_bad\", metaModuleId: \"" + moduleId + "\") }")));
+                        + "tableName: \"sql_bad\", metaModuleId: \"" + moduleId + "\") { metaTableId tableName tableType fields { name alias type } } }")));
         assertTrue(resp.hasError(), "non-SELECT must explicitly fail: " + resp);
     }
 
@@ -400,7 +400,7 @@ public class TestNopMetaTableBizModel extends JunitBaseTestCase {
         String moduleId = ensureExternalSystemModuleId();
         GraphQLResponseBean resp = graphQLEngine.executeGraphQL(graphQLEngine.newGraphQLContext(req(
                 "mutation { NopMetaTable__createSqlTable(sql: \"   \", "
-                        + "tableName: \"sql_empty\", metaModuleId: \"" + moduleId + "\") }")));
+                        + "tableName: \"sql_empty\", metaModuleId: \"" + moduleId + "\") { metaTableId tableName tableType fields { name alias type } } }")));
         assertTrue(resp.hasError(), "empty SQL must explicitly fail: " + resp);
     }
 
@@ -410,7 +410,7 @@ public class TestNopMetaTableBizModel extends JunitBaseTestCase {
         String moduleId = ensureExternalSystemModuleId();
         GraphQLResponseBean resp = graphQLEngine.executeGraphQL(graphQLEngine.newGraphQLContext(req(
                 "mutation { NopMetaTable__createSqlTable(sql: \"SELEC FROM t\", "
-                        + "tableName: \"sql_syntax\", metaModuleId: \"" + moduleId + "\") }")));
+                        + "tableName: \"sql_syntax\", metaModuleId: \"" + moduleId + "\") { metaTableId tableName tableType fields { name alias type } } }")));
         assertTrue(resp.hasError(), "syntax-error SQL must explicitly fail: " + resp);
     }
 
@@ -421,7 +421,7 @@ public class TestNopMetaTableBizModel extends JunitBaseTestCase {
         String sql = "SELECT 1; DELETE FROM t";
         GraphQLResponseBean resp = graphQLEngine.executeGraphQL(graphQLEngine.newGraphQLContext(req(
                 "mutation { NopMetaTable__createSqlTable(sql: \"" + escapeGraphQL(sql) + "\", "
-                        + "tableName: \"sql_multi\", metaModuleId: \"" + moduleId + "\") }")));
+                        + "tableName: \"sql_multi\", metaModuleId: \"" + moduleId + "\") { metaTableId tableName tableType fields { name alias type } } }")));
         assertTrue(resp.hasError(), "multi-statement SQL must explicitly fail: " + resp);
     }
 
@@ -431,12 +431,12 @@ public class TestNopMetaTableBizModel extends JunitBaseTestCase {
         String moduleId = ensureExternalSystemModuleId();
         GraphQLResponseBean resp = graphQLEngine.executeGraphQL(graphQLEngine.newGraphQLContext(req(
                 "mutation { NopMetaTable__createSqlTable(sql: \"SELECT * FROM t\", "
-                        + "tableName: \"sql_wild\", metaModuleId: \"" + moduleId + "\") }")));
+                        + "tableName: \"sql_wild\", metaModuleId: \"" + moduleId + "\") { metaTableId tableName tableType fields { name alias type } } }")));
         assertTrue(resp.hasError(), "wildcard projection must explicitly fail (not silently skipped): " + resp);
 
         GraphQLResponseBean resp2 = graphQLEngine.executeGraphQL(graphQLEngine.newGraphQLContext(req(
                 "mutation { NopMetaTable__createSqlTable(sql: \"SELECT t.* FROM t\", "
-                        + "tableName: \"sql_wild2\", metaModuleId: \"" + moduleId + "\") }")));
+                        + "tableName: \"sql_wild2\", metaModuleId: \"" + moduleId + "\") { metaTableId tableName tableType fields { name alias type } } }")));
         assertTrue(resp2.hasError(), "t.* wildcard must also explicitly fail: " + resp2);
     }
 
@@ -445,7 +445,7 @@ public class TestNopMetaTableBizModel extends JunitBaseTestCase {
     public void testCreateSqlTableRejectModuleNotFound() {
         GraphQLResponseBean resp = graphQLEngine.executeGraphQL(graphQLEngine.newGraphQLContext(req(
                 "mutation { NopMetaTable__createSqlTable(sql: \"SELECT 1\", "
-                        + "tableName: \"sql_nomod\", metaModuleId: \"__nope_module__\") }")));
+                        + "tableName: \"sql_nomod\", metaModuleId: \"__nope_module__\") { metaTableId tableName tableType fields { name alias type } } }")));
         assertTrue(resp.hasError(), "non-existent module must explicitly fail: " + resp);
     }
 
@@ -456,7 +456,7 @@ public class TestNopMetaTableBizModel extends JunitBaseTestCase {
         long tablesBefore = countAllTables();
         String sql = "SELECT id, name AS label FROM users";
         GraphQLResponseBean resp = graphQLEngine.executeGraphQL(graphQLEngine.newGraphQLContext(req(
-                "query { NopMetaTable__previewSqlFields(sql: \"" + escapeGraphQL(sql) + "\") }")));
+                "query { NopMetaTable__previewSqlFields(sql: \"" + escapeGraphQL(sql) + "\") { fields { name alias type } } }")));
         assertFalse(resp.hasError(), "previewSqlFields should succeed: " + resp);
 
         Map<String, Object> data = (Map<String, Object>) resp.getData();
@@ -479,20 +479,20 @@ public class TestNopMetaTableBizModel extends JunitBaseTestCase {
         String sql = "SELECT order_id, customer_id AS cid, total + 1 FROM orders";
         // preview
         GraphQLResponseBean preview = graphQLEngine.executeGraphQL(graphQLEngine.newGraphQLContext(req(
-                "query { NopMetaTable__previewSqlFields(sql: \"" + escapeGraphQL(sql) + "\") }")));
+                "query { NopMetaTable__previewSqlFields(sql: \"" + escapeGraphQL(sql) + "\") { fields { name alias type } } }")));
         assertFalse(preview.hasError(), "preview should succeed: " + preview);
 
         // create
         GraphQLResponseBean create = graphQLEngine.executeGraphQL(graphQLEngine.newGraphQLContext(req(
                 "mutation { NopMetaTable__createSqlTable(sql: \"" + escapeGraphQL(sql) + "\", "
-                        + "tableName: \"sql_e2e\", metaModuleId: \"" + moduleId + "\") }")));
+                        + "tableName: \"sql_e2e\", metaModuleId: \"" + moduleId + "\") { metaTableId tableName tableType fields { name alias type } } }")));
         assertFalse(create.hasError(), "create should succeed: " + create);
         String tableId = String.valueOf(((Map<String, Object>) ((Map<String, Object>) create.getData())
                 .get("NopMetaTable__createSqlTable")).get("metaTableId"));
 
         // resolve
         GraphQLResponseBean resolve = graphQLEngine.executeGraphQL(graphQLEngine.newGraphQLContext(req(
-                "query { NopMetaTable__resolveTableFields(metaTableId: \"" + tableId + "\") }")));
+                "query { NopMetaTable__resolveTableFields(metaTableId: \"" + tableId + "\") { tableType fields { name sourceType type } } }")));
         assertFalse(resolve.hasError(), "resolve should succeed: " + resolve);
 
         List<Map<String, Object>> previewFields = (List<Map<String, Object>>) ((Map<String, Object>)
@@ -519,7 +519,7 @@ public class TestNopMetaTableBizModel extends JunitBaseTestCase {
         NopMetaTable entityTable = saveManualTable("EXT_NE_RESOLVE", "entity", "qs_ne_resolve");
         GraphQLResponseBean resp = graphQLEngine.executeGraphQL(graphQLEngine.newGraphQLContext(req(
                 "query { NopMetaTable__resolveTableFields(metaTableId: \"" + entityTable.getMetaTableId()
-                        + "\") }")));
+                        + "\") { tableType fields { name sourceType type } } }")));
         assertTrue(resp.hasError(), "entity table with null baseEntityId must explicitly fail: " + resp);
     }
 
@@ -527,7 +527,7 @@ public class TestNopMetaTableBizModel extends JunitBaseTestCase {
     @Test
     public void testResolveTableFieldsFailsOnNotFound() {
         GraphQLResponseBean resp = graphQLEngine.executeGraphQL(graphQLEngine.newGraphQLContext(req(
-                "query { NopMetaTable__resolveTableFields(metaTableId: \"__nope_table__\") }")));
+                "query { NopMetaTable__resolveTableFields(metaTableId: \"__nope_table__\") { tableType fields { name sourceType type } } }")));
         assertTrue(resp.hasError(), "non-existent table must explicitly fail: " + resp);
     }
 
@@ -548,7 +548,7 @@ public class TestNopMetaTableBizModel extends JunitBaseTestCase {
                         + "\"driverClassName\":\"org.h2.Driver\"}");
         GraphQLResponseBean syncResp = graphQLEngine.executeGraphQL(graphQLEngine.newGraphQLContext(req(
                 "mutation { NopMetaDataSource__syncExternalTables(dataSourceId: \"ds-" + querySpace
-                        + "\", schemaPattern: \"" + schemaPattern + "\") }")));
+                        + "\", schemaPattern: \"" + schemaPattern + "\") { syncedTableCount errors { code message detail } } }")));
         assertFalse(syncResp.hasError(), "sync should not error: " + syncResp);
         return tableId(expectedTable);
     }
@@ -557,20 +557,20 @@ public class TestNopMetaTableBizModel extends JunitBaseTestCase {
         String colArg = columns == null ? "" : ", columns: \"" + columns + "\"";
         return graphQLEngine.executeGraphQL(graphQLEngine.newGraphQLContext(req(
                 "mutation { NopMetaTable__profileTable(metaTableId: \"" + tableId + "\", "
-                        + "schemaPattern: \"PUBLIC\"" + colArg + ") }")));
+                        + "schemaPattern: \"PUBLIC\"" + colArg + ") { profilingResultId columnCount columns { columnName rowCount nullCount nullRatio minValue maxValue } unavailable errors { code message detail } } }")));
     }
 
     /** profileTable 不传 schemaPattern（验证默认 schema 解析，plan 0852-3 Phase 3）。 */
     private GraphQLResponseBean profileNoSchema(String tableId) {
         return graphQLEngine.executeGraphQL(graphQLEngine.newGraphQLContext(req(
-                "mutation { NopMetaTable__profileTable(metaTableId: \"" + tableId + "\") }")));
+                "mutation { NopMetaTable__profileTable(metaTableId: \"" + tableId + "\") { profilingResultId columnCount columns { columnName rowCount nullCount nullRatio minValue maxValue } unavailable errors { code message detail } } }")));
     }
 
     /** profileTable 显式传 schemaPattern（验证覆盖语义，plan 0852-3 Phase 3）。 */
     private GraphQLResponseBean profileWithSchema(String tableId, String schemaPattern) {
         return graphQLEngine.executeGraphQL(graphQLEngine.newGraphQLContext(req(
                 "mutation { NopMetaTable__profileTable(metaTableId: \"" + tableId + "\", "
-                        + "schemaPattern: \"" + schemaPattern + "\") }")));
+                        + "schemaPattern: \"" + schemaPattern + "\") { profilingResultId columnCount columns { columnName rowCount nullCount nullRatio minValue maxValue } unavailable errors { code message detail } } }")));
     }
 
     private GraphQLRequestBean req(String query) {

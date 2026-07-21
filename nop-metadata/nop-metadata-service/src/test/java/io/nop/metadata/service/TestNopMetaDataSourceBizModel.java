@@ -69,7 +69,7 @@ public class TestNopMetaDataSourceBizModel extends JunitBaseTestCase {
                         + "\"driverClassName\":\"org.h2.Driver\"}");
 
         GraphQLResponseBean response = execute(
-                "mutation { NopMetaDataSource__testConnection(dataSourceId: \"ds-h2-ok\") }");
+                "mutation { NopMetaDataSource__testConnection(dataSourceId: \"ds-h2-ok\") { connected databaseProductName databaseProductVersion error } }");
         assertFalse(response.hasError(), "success path should not error: " + response);
 
         String data = String.valueOf(response.getData());
@@ -86,7 +86,7 @@ public class TestNopMetaDataSourceBizModel extends JunitBaseTestCase {
     public void testConnectionNotFound() {
         // 不存在的 dataSourceId 必须抛 metadata.datasource-not-found（不 NPE）
         GraphQLResponseBean response = execute(
-                "mutation { NopMetaDataSource__testConnection(dataSourceId: \"__not_exist__\") }");
+                "mutation { NopMetaDataSource__testConnection(dataSourceId: \"__not_exist__\") { connected databaseProductName error } }");
         assertTrue(response.hasError(),
                 "non-existent dataSourceId must error (no NPE): " + response);
     }
@@ -100,7 +100,7 @@ public class TestNopMetaDataSourceBizModel extends JunitBaseTestCase {
                         + "\"driverClassName\":\"org.h2.Driver\"}");
 
         GraphQLResponseBean response = execute(
-                "mutation { NopMetaDataSource__testConnection(dataSourceId: \"ds-disabled\") }");
+                "mutation { NopMetaDataSource__testConnection(dataSourceId: \"ds-disabled\") { connected databaseProductName error } }");
         assertTrue(response.hasError(),
                 "DISABLED datasource must be rejected (no silent pass): " + response);
     }
@@ -111,7 +111,7 @@ public class TestNopMetaDataSourceBizModel extends JunitBaseTestCase {
         saveDataSource("ds-http", "qs_http", "http", "ACTIVE", "{}");
 
         GraphQLResponseBean response = execute(
-                "mutation { NopMetaDataSource__testConnection(dataSourceId: \"ds-http\") }");
+                "mutation { NopMetaDataSource__testConnection(dataSourceId: \"ds-http\") { connected databaseProductName error } }");
         assertTrue(response.hasError(),
                 "non-jdbc datasource must error (NopException ERR_DATASOURCE_TYPE_NOT_SUPPORTED): " + response);
     }
@@ -123,7 +123,7 @@ public class TestNopMetaDataSourceBizModel extends JunitBaseTestCase {
                 "{\"username\":\"sa\",\"password\":\"\"}");
 
         GraphQLResponseBean response = execute(
-                "mutation { NopMetaDataSource__testConnection(dataSourceId: \"ds-bad-cfg\") }");
+                "mutation { NopMetaDataSource__testConnection(dataSourceId: \"ds-bad-cfg\") { connected databaseProductName error } }");
         assertTrue(response.hasError(),
                 "missing required jdbc field (jdbcUrl) must fast-fail: " + response);
     }
@@ -147,7 +147,7 @@ public class TestNopMetaDataSourceBizModel extends JunitBaseTestCase {
                         + "\"driverClassName\":\"org.h2.Driver\"}");
 
         GraphQLResponseBean response = execute(
-                "mutation { NopMetaDataSource__syncExternalTables(dataSourceId: \"ds-sync-write\", schemaPattern: \"PUBLIC\") }");
+                "mutation { NopMetaDataSource__syncExternalTables(dataSourceId: \"ds-sync-write\", schemaPattern: \"PUBLIC\") { syncedTableCount errors { code message detail } } }");
         assertFalse(response.hasError(), "sync should not error: " + response);
 
         String data = String.valueOf(response.getData());
@@ -190,14 +190,14 @@ public class TestNopMetaDataSourceBizModel extends JunitBaseTestCase {
 
         // 第一次同步（限定 PUBLIC schema）
         GraphQLResponseBean r1 = execute(
-                "mutation { NopMetaDataSource__syncExternalTables(dataSourceId: \"ds-sync-idem\", schemaPattern: \"PUBLIC\") }");
+                "mutation { NopMetaDataSource__syncExternalTables(dataSourceId: \"ds-sync-idem\", schemaPattern: \"PUBLIC\") { syncedTableCount errors { code message detail } } }");
         assertFalse(r1.hasError(), "first sync should not error: " + r1);
         long countAfterFirst = countExternalTables("EXT_EMP");
         assertEquals(1L, countAfterFirst, "exactly one EXT_EMP after first sync: " + countAfterFirst);
 
         // 第二次同步同一数据源（幂等，不追加）
         GraphQLResponseBean r2 = execute(
-                "mutation { NopMetaDataSource__syncExternalTables(dataSourceId: \"ds-sync-idem\", schemaPattern: \"PUBLIC\") }");
+                "mutation { NopMetaDataSource__syncExternalTables(dataSourceId: \"ds-sync-idem\", schemaPattern: \"PUBLIC\") { syncedTableCount errors { code message detail } } }");
         assertFalse(r2.hasError(), "second sync should not error: " + r2);
         long countAfterSecond = countExternalTables("EXT_EMP");
         assertEquals(1L, countAfterSecond,
@@ -225,7 +225,7 @@ public class TestNopMetaDataSourceBizModel extends JunitBaseTestCase {
                         + "\"driverClassName\":\"org.h2.Driver\"}");
 
         GraphQLResponseBean response = execute(
-                "mutation { NopMetaDataSource__syncExternalTables(dataSourceId: \"ds-sync-schema\", schemaPattern: \"PUBLIC\") }");
+                "mutation { NopMetaDataSource__syncExternalTables(dataSourceId: \"ds-sync-schema\", schemaPattern: \"PUBLIC\") { syncedTableCount errors { code message detail } } }");
         assertFalse(response.hasError(), "sync should not error: " + response);
 
         NopMetaTable table = findExternalTable(daoProvider.daoFor(NopMetaTable.class), "EXT_SCHEMA_T");
@@ -258,14 +258,14 @@ public class TestNopMetaDataSourceBizModel extends JunitBaseTestCase {
 
         // 扫 SCH_A → 1 行 (schema="SCH_A", tableName="SHARED_T")
         GraphQLResponseBean r1 = execute(
-                "mutation { NopMetaDataSource__syncExternalTables(dataSourceId: \"ds-multi-schema\", schemaPattern: \"SCH_A\") }");
+                "mutation { NopMetaDataSource__syncExternalTables(dataSourceId: \"ds-multi-schema\", schemaPattern: \"SCH_A\") { syncedTableCount errors { code message detail } } }");
         assertFalse(r1.hasError(), "SCH_A sync should not error: " + r1);
         assertEquals(1L, countExternalTables("SHARED_T"),
                 "exactly 1 SHARED_T after SCH_A sync");
 
         // 扫 SCH_B → 第 2 行 (schema="SCH_B", tableName="SHARED_T")，不应覆盖 SCH_A 的行
         GraphQLResponseBean r2 = execute(
-                "mutation { NopMetaDataSource__syncExternalTables(dataSourceId: \"ds-multi-schema\", schemaPattern: \"SCH_B\") }");
+                "mutation { NopMetaDataSource__syncExternalTables(dataSourceId: \"ds-multi-schema\", schemaPattern: \"SCH_B\") { syncedTableCount errors { code message detail } } }");
         assertFalse(r2.hasError(), "SCH_B sync should not error: " + r2);
         assertEquals(2L, countExternalTables("SHARED_T"),
                 "2 SHARED_T rows after SCH_B sync (dedup key now includes schema, no overwrite)");
@@ -297,10 +297,10 @@ public class TestNopMetaDataSourceBizModel extends JunitBaseTestCase {
                 "{\"jdbcUrl\":\"" + dbUrl + "\",\"username\":\"sa\",\"password\":\"\","
                         + "\"driverClassName\":\"org.h2.Driver\"}");
 
-        execute("mutation { NopMetaDataSource__syncExternalTables(dataSourceId: \"ds-idem-sch\", schemaPattern: \"SCH_IDEM\") }");
+        execute("mutation { NopMetaDataSource__syncExternalTables(dataSourceId: \"ds-idem-sch\", schemaPattern: \"SCH_IDEM\") { syncedTableCount errors { code message detail } } }");
         assertEquals(1L, countExternalTables("T_IDEM"), "1 T_IDEM after first sync");
 
-        execute("mutation { NopMetaDataSource__syncExternalTables(dataSourceId: \"ds-idem-sch\", schemaPattern: \"SCH_IDEM\") }");
+        execute("mutation { NopMetaDataSource__syncExternalTables(dataSourceId: \"ds-idem-sch\", schemaPattern: \"SCH_IDEM\") { syncedTableCount errors { code message detail } } }");
         assertEquals(1L, countExternalTables("T_IDEM"),
                 "still 1 T_IDEM after second sync (idempotent: dedup key (modId,SCH_IDEM,T_IDEM) matches)");
     }
@@ -327,14 +327,14 @@ public class TestNopMetaDataSourceBizModel extends JunitBaseTestCase {
                 "{\"jdbcUrl\":\"" + dbUrlB + "\",\"username\":\"sa\",\"password\":\"\","
                         + "\"driverClassName\":\"org.h2.Driver\"}");
 
-        execute("mutation { NopMetaDataSource__syncExternalTables(dataSourceId: \"ds-xds-a\", schemaPattern: \"PUBLIC\") }");
+        execute("mutation { NopMetaDataSource__syncExternalTables(dataSourceId: \"ds-xds-a\", schemaPattern: \"PUBLIC\") { syncedTableCount errors { code message detail } } }");
         NopMetaTable firstRow = findExternalTable(daoProvider.daoFor(NopMetaTable.class), "SHARED_XDS");
         assertNotNull(firstRow, "first sync creates row");
         assertEquals("qs_xds_a", firstRow.getQuerySpace(), "querySpace from ds-a");
         assertTrue(firstRow.getBuildSql().contains("ID_A"),
                 "buildSql from ds-a should contain ID_A column: " + firstRow.getBuildSql());
 
-        execute("mutation { NopMetaDataSource__syncExternalTables(dataSourceId: \"ds-xds-b\", schemaPattern: \"PUBLIC\") }");
+        execute("mutation { NopMetaDataSource__syncExternalTables(dataSourceId: \"ds-xds-b\", schemaPattern: \"PUBLIC\") { syncedTableCount errors { code message detail } } }");
         assertEquals(1L, countExternalTables("SHARED_XDS"),
                 "cross-ds same-name same-schema: still 1 row (dedup key has no querySpace, 2nd sync overwrites)");
 
@@ -353,7 +353,7 @@ public class TestNopMetaDataSourceBizModel extends JunitBaseTestCase {
                         + "\"username\":\"sa\",\"password\":\"\",\"driverClassName\":\"org.h2.Driver\"}");
 
         GraphQLResponseBean response = execute(
-                "mutation { NopMetaDataSource__syncExternalTables(dataSourceId: \"ds-sync-disabled\") }");
+                "mutation { NopMetaDataSource__syncExternalTables(dataSourceId: \"ds-sync-disabled\") { syncedTableCount errors { code message detail } } }");
         assertTrue(response.hasError(),
                 "DISABLED datasource sync must be rejected (no silent pass): " + response);
     }
@@ -364,7 +364,7 @@ public class TestNopMetaDataSourceBizModel extends JunitBaseTestCase {
         saveDataSource("ds-sync-http", "qs_sync_http", "http", "ACTIVE", "{}");
 
         GraphQLResponseBean response = execute(
-                "mutation { NopMetaDataSource__syncExternalTables(dataSourceId: \"ds-sync-http\") }");
+                "mutation { NopMetaDataSource__syncExternalTables(dataSourceId: \"ds-sync-http\") { syncedTableCount errors { code message detail } } }");
         assertTrue(response.hasError(),
                 "non-jdbc datasource sync must error (NopException ERR_DATASOURCE_TYPE_NOT_SUPPORTED): " + response);
     }
@@ -373,7 +373,7 @@ public class TestNopMetaDataSourceBizModel extends JunitBaseTestCase {
     @Test
     public void testSyncExternalTablesNotFound() {
         GraphQLResponseBean response = execute(
-                "mutation { NopMetaDataSource__syncExternalTables(dataSourceId: \"__not_exist__\") }");
+                "mutation { NopMetaDataSource__syncExternalTables(dataSourceId: \"__not_exist__\") { syncedTableCount errors { code message detail } } }");
         assertTrue(response.hasError(),
                 "non-existent dataSourceId sync must error (no NPE): " + response);
     }
@@ -406,7 +406,7 @@ public class TestNopMetaDataSourceBizModel extends JunitBaseTestCase {
 
         // 先同步外部表结构（建目录）
         GraphQLResponseBean syncResp = execute(
-                "mutation { NopMetaDataSource__syncExternalTables(dataSourceId: \"ds-collect\", schemaPattern: \"PUBLIC\") }");
+                "mutation { NopMetaDataSource__syncExternalTables(dataSourceId: \"ds-collect\", schemaPattern: \"PUBLIC\") { syncedTableCount errors { code message detail } } }");
         assertFalse(syncResp.hasError(), "sync should not error: " + syncResp);
 
         NopMetaTable table = findExternalTable(daoProvider.daoFor(NopMetaTable.class), "EXT_DEPT");
@@ -414,10 +414,10 @@ public class TestNopMetaDataSourceBizModel extends JunitBaseTestCase {
 
         // 收集运行时统计（限定 PUBLIC schema）
         GraphQLResponseBean collectResp = execute(
-                "mutation { NopMetaDataSource__collectCatalog(dataSourceId: \"ds-collect\", schemaPattern: \"PUBLIC\") }");
+                "mutation { NopMetaDataSource__collectCatalog(dataSourceId: \"ds-collect\", schemaPattern: \"PUBLIC\") { tableCount tables { tableName schema tableType rowCount sizeBytes } errors { code message detail } } }");
         assertFalse(collectResp.hasError(), "collect should not error: " + collectResp);
-        assertTrue(String.valueOf(collectResp.getData()).contains("collectedCount=1"),
-                "should report collectedCount=1: " + collectResp.getData());
+        assertTrue(String.valueOf(collectResp.getData()).contains("tableCount=1"),
+                "should report tableCount=1: " + collectResp.getData());
 
         // 目录写入验证：NopMetaCatalog 行存在，rowCount 为真实 COUNT 结果（5）
         NopMetaCatalog row = findCatalogRow(table.getMetaTableId());
@@ -454,18 +454,18 @@ public class TestNopMetaDataSourceBizModel extends JunitBaseTestCase {
                 "{\"jdbcUrl\":\"" + dbUrl + "\",\"username\":\"sa\",\"password\":\"\","
                         + "\"driverClassName\":\"org.h2.Driver\"}");
 
-        execute("mutation { NopMetaDataSource__syncExternalTables(dataSourceId: \"ds-collect-ts\", schemaPattern: \"PUBLIC\") }");
+        execute("mutation { NopMetaDataSource__syncExternalTables(dataSourceId: \"ds-collect-ts\", schemaPattern: \"PUBLIC\") { syncedTableCount errors { code message detail } } }");
         NopMetaTable table = findExternalTable(daoProvider.daoFor(NopMetaTable.class), "EXT_EMP");
         assertNotNull(table, "EXT_EMP must be synced");
 
         // 第一次收集
-        execute("mutation { NopMetaDataSource__collectCatalog(dataSourceId: \"ds-collect-ts\", schemaPattern: \"PUBLIC\") }");
+        execute("mutation { NopMetaDataSource__collectCatalog(dataSourceId: \"ds-collect-ts\", schemaPattern: \"PUBLIC\") { tableCount tables { tableName schema tableType rowCount sizeBytes } errors { code message detail } } }");
         long countAfterFirst = countCatalogRows(table.getMetaTableId());
         assertEquals(1L, countAfterFirst, "exactly 1 catalog row after first collect: " + countAfterFirst);
 
         // 第二次收集同一数据源（时序追加，不覆盖）
         GraphQLResponseBean r2 = execute(
-                "mutation { NopMetaDataSource__collectCatalog(dataSourceId: \"ds-collect-ts\", schemaPattern: \"PUBLIC\") }");
+                "mutation { NopMetaDataSource__collectCatalog(dataSourceId: \"ds-collect-ts\", schemaPattern: \"PUBLIC\") { tableCount tables { tableName schema tableType rowCount sizeBytes } errors { code message detail } } }");
         assertFalse(r2.hasError(), "second collect should not error: " + r2);
         long countAfterSecond = countCatalogRows(table.getMetaTableId());
         assertEquals(2L, countAfterSecond,
@@ -486,13 +486,13 @@ public class TestNopMetaDataSourceBizModel extends JunitBaseTestCase {
                 "{\"jdbcUrl\":\"" + dbUrl + "\",\"username\":\"sa\",\"password\":\"\","
                         + "\"driverClassName\":\"org.h2.Driver\"}");
 
-        execute("mutation { NopMetaDataSource__syncExternalTables(dataSourceId: \"ds-collect-def\", schemaPattern: \"PUBLIC\") }");
+        execute("mutation { NopMetaDataSource__syncExternalTables(dataSourceId: \"ds-collect-def\", schemaPattern: \"PUBLIC\") { syncedTableCount errors { code message detail } } }");
         NopMetaTable table = findExternalTable(daoProvider.daoFor(NopMetaTable.class), "EXT_DEF");
         assertNotNull(table, "EXT_DEF must be synced");
 
         // 不传 schemaPattern：COUNT 用 <tableName> 依赖连接默认 schema（H2 默认 PUBLIC）
         GraphQLResponseBean resp = execute(
-                "mutation { NopMetaDataSource__collectCatalog(dataSourceId: \"ds-collect-def\") }");
+                "mutation { NopMetaDataSource__collectCatalog(dataSourceId: \"ds-collect-def\") { tableCount tables { tableName schema tableType rowCount sizeBytes } errors { code message detail } } }");
         assertFalse(resp.hasError(), "collect without schemaPattern should work via default schema: " + resp);
         NopMetaCatalog row = findCatalogRow(table.getMetaTableId());
         assertNotNull(row, "NopMetaCatalog row must be written via default schema");
@@ -514,7 +514,7 @@ public class TestNopMetaDataSourceBizModel extends JunitBaseTestCase {
                         + "\"driverClassName\":\"org.h2.Driver\"}");
 
         // 同步真实存在的表
-        execute("mutation { NopMetaDataSource__syncExternalTables(dataSourceId: \"ds-collect-err\", schemaPattern: \"PUBLIC\") }");
+        execute("mutation { NopMetaDataSource__syncExternalTables(dataSourceId: \"ds-collect-err\", schemaPattern: \"PUBLIC\") { syncedTableCount errors { code message detail } } }");
         NopMetaTable okTable = findExternalTable(daoProvider.daoFor(NopMetaTable.class), "EXT_OK");
         assertNotNull(okTable, "EXT_OK must be synced");
 
@@ -531,12 +531,12 @@ public class TestNopMetaDataSourceBizModel extends JunitBaseTestCase {
 
         // 收集：EXT_OK 应成功（rowCount=4），EXT_GONE 的 COUNT 应失败进 errors
         GraphQLResponseBean resp = execute(
-                "mutation { NopMetaDataSource__collectCatalog(dataSourceId: \"ds-collect-err\", schemaPattern: \"PUBLIC\") }");
+                "mutation { NopMetaDataSource__collectCatalog(dataSourceId: \"ds-collect-err\", schemaPattern: \"PUBLIC\") { tableCount tables { tableName schema tableType rowCount sizeBytes } errors { code message detail } } }");
         assertFalse(resp.hasError(), "collect should not globally error (batched): " + resp);
         String data = String.valueOf(resp.getData());
         // EXT_OK 收集成功，EXT_GONE 失败进 errors
-        assertTrue(data.contains("collectedCount=1"),
-                "EXT_OK must be collected (collectedCount=1): " + data);
+        assertTrue(data.contains("tableCount=1"),
+                "EXT_OK must be collected (tableCount=1): " + data);
         assertTrue(data.contains("EXT_GONE"),
                 "EXT_GONE failure must be recorded in errors (not silently skipped): " + data);
 
@@ -557,7 +557,7 @@ public class TestNopMetaDataSourceBizModel extends JunitBaseTestCase {
                         + "\"username\":\"sa\",\"password\":\"\",\"driverClassName\":\"org.h2.Driver\"}");
 
         GraphQLResponseBean response = execute(
-                "mutation { NopMetaDataSource__collectCatalog(dataSourceId: \"ds-collect-disabled\") }");
+                "mutation { NopMetaDataSource__collectCatalog(dataSourceId: \"ds-collect-disabled\") { tableCount tables { tableName schema tableType rowCount sizeBytes } errors { code message detail } } }");
         assertTrue(response.hasError(),
                 "DISABLED datasource collect must be rejected (no silent pass): " + response);
     }
@@ -568,7 +568,7 @@ public class TestNopMetaDataSourceBizModel extends JunitBaseTestCase {
         saveDataSource("ds-collect-http", "qs_collect_http", "http", "ACTIVE", "{}");
 
         GraphQLResponseBean response = execute(
-                "mutation { NopMetaDataSource__collectCatalog(dataSourceId: \"ds-collect-http\") }");
+                "mutation { NopMetaDataSource__collectCatalog(dataSourceId: \"ds-collect-http\") { tableCount tables { tableName schema tableType rowCount sizeBytes } errors { code message detail } } }");
         assertTrue(response.hasError(),
                 "non-jdbc datasource collect must error (NopException ERR_DATASOURCE_TYPE_NOT_SUPPORTED): " + response);
     }
@@ -577,7 +577,7 @@ public class TestNopMetaDataSourceBizModel extends JunitBaseTestCase {
     @Test
     public void testCollectCatalogNotFound() {
         GraphQLResponseBean response = execute(
-                "mutation { NopMetaDataSource__collectCatalog(dataSourceId: \"__not_exist__\") }");
+                "mutation { NopMetaDataSource__collectCatalog(dataSourceId: \"__not_exist__\") { tableCount tables { tableName schema tableType rowCount sizeBytes } errors { code message detail } } }");
         assertTrue(response.hasError(),
                 "non-existent dataSourceId collect must error (no NPE): " + response);
     }
@@ -607,7 +607,7 @@ public class TestNopMetaDataSourceBizModel extends JunitBaseTestCase {
                         + "\"driverClassName\":\"org.h2.Driver\"}");
 
         // sync SCH_CC_DEF → NopMetaTable.schema = "SCH_CC_DEF"
-        execute("mutation { NopMetaDataSource__syncExternalTables(dataSourceId: \"ds-cc-def\", schemaPattern: \"SCH_CC_DEF\") }");
+        execute("mutation { NopMetaDataSource__syncExternalTables(dataSourceId: \"ds-cc-def\", schemaPattern: \"SCH_CC_DEF\") { syncedTableCount errors { code message detail } } }");
         NopMetaTable table = findExternalTable(daoProvider.daoFor(NopMetaTable.class), "EXT_CC_DEF");
         assertNotNull(table, "EXT_CC_DEF must be synced");
         assertEquals("SCH_CC_DEF", table.getSchema(),
@@ -615,7 +615,7 @@ public class TestNopMetaDataSourceBizModel extends JunitBaseTestCase {
 
         // 不传 schemaPattern：默认取 table.schema=SCH_CC_DEF → 命中 SCH_CC_DEF.ext_cc_def 的 2 行
         GraphQLResponseBean resp = execute(
-                "mutation { NopMetaDataSource__collectCatalogForTable(metaTableId: \"" + table.getMetaTableId() + "\") }");
+                "mutation { NopMetaDataSource__collectCatalogForTable(metaTableId: \"" + table.getMetaTableId() + "\") { tableCount tables { tableName schema tableType rowCount sizeBytes } errors { code message detail } } }");
         assertFalse(resp.hasError(), "default schema path should not error: " + resp);
         String data = String.valueOf(resp.getData());
         assertTrue(data.contains("rowCount=2"),
@@ -653,7 +653,7 @@ public class TestNopMetaDataSourceBizModel extends JunitBaseTestCase {
                 "{\"jdbcUrl\":\"" + dbUrl + "\",\"username\":\"sa\",\"password\":\"\","
                         + "\"driverClassName\":\"org.h2.Driver\"}");
 
-        execute("mutation { NopMetaDataSource__syncExternalTables(dataSourceId: \"ds-cc-ovr\", schemaPattern: \"SCH_CC_A\") }");
+        execute("mutation { NopMetaDataSource__syncExternalTables(dataSourceId: \"ds-cc-ovr\", schemaPattern: \"SCH_CC_A\") { syncedTableCount errors { code message detail } } }");
         NopMetaTable tableA = findExternalTable(daoProvider.daoFor(NopMetaTable.class), "SHARED_CC");
         assertNotNull(tableA, "SHARED_CC must be synced");
         assertEquals("SCH_CC_A", tableA.getSchema(), "persisted schema = SCH_CC_A");
@@ -661,7 +661,7 @@ public class TestNopMetaDataSourceBizModel extends JunitBaseTestCase {
         // 显式传 SCH_CC_B（覆盖持久化的 SCH_CC_A）→ 命中 SCH_CC_B 的 3 行
         GraphQLResponseBean resp = execute(
                 "mutation { NopMetaDataSource__collectCatalogForTable(metaTableId: \"" + tableA.getMetaTableId()
-                        + "\", schemaPattern: \"SCH_CC_B\") }");
+                        + "\", schemaPattern: \"SCH_CC_B\") { tableCount tables { tableName schema tableType rowCount sizeBytes } errors { code message detail } } }");
         assertFalse(resp.hasError(), "explicit schema override should not error: " + resp);
         assertTrue(String.valueOf(resp.getData()).contains("rowCount=3"),
                 "explicit schema=SCH_CC_B should override persisted SCH_CC_A (rowCount=3): " + resp.getData());
@@ -691,17 +691,17 @@ public class TestNopMetaDataSourceBizModel extends JunitBaseTestCase {
                         + "\"driverClassName\":\"org.h2.Driver\"}");
 
         // 分别 sync 两 schema（同名表 T_BATCH，schema 维度区分）
-        execute("mutation { NopMetaDataSource__syncExternalTables(dataSourceId: \"ds-cc-batch\", schemaPattern: \"SCH_CC_B1\") }");
-        execute("mutation { NopMetaDataSource__syncExternalTables(dataSourceId: \"ds-cc-batch\", schemaPattern: \"SCH_CC_B2\") }");
+        execute("mutation { NopMetaDataSource__syncExternalTables(dataSourceId: \"ds-cc-batch\", schemaPattern: \"SCH_CC_B1\") { syncedTableCount errors { code message detail } } }");
+        execute("mutation { NopMetaDataSource__syncExternalTables(dataSourceId: \"ds-cc-batch\", schemaPattern: \"SCH_CC_B2\") { syncedTableCount errors { code message detail } } }");
         assertEquals(2L, countExternalTables("T_BATCH"),
                 "2 T_BATCH rows after both syncs (multi-schema dedup)");
 
         // 批量 collectCatalog 不传 schemaPattern → 各表按自身持久化 schema 命中正确行数
         GraphQLResponseBean resp = execute(
-                "mutation { NopMetaDataSource__collectCatalog(dataSourceId: \"ds-cc-batch\") }");
+                "mutation { NopMetaDataSource__collectCatalog(dataSourceId: \"ds-cc-batch\") { tableCount tables { tableName schema tableType rowCount sizeBytes } errors { code message detail } } }");
         assertFalse(resp.hasError(), "batch collect with per-table default schema should not error: " + resp);
-        assertTrue(String.valueOf(resp.getData()).contains("collectedCount=2"),
-                "both T_BATCH rows collected (collectedCount=2): " + resp.getData());
+        assertTrue(String.valueOf(resp.getData()).contains("tableCount=2"),
+                "both T_BATCH rows collected (tableCount=2): " + resp.getData());
 
         // 两表各按其 schema 命中正确行数（B1=3, B2=5）
         List<NopMetaTable> tables = findAllExternalTables("T_BATCH");

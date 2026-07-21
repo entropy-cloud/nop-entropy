@@ -8,7 +8,7 @@
 package io.nop.metadata.service;
 
 import io.nop.core.lang.json.JsonTool;
-import io.nop.metadata.service.dto.CheckpointExtConfig;
+import io.nop.metadata.core.dto.CheckpointExtConfig;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;

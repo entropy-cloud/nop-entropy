@@ -1,4 +1,4 @@
-package io.nop.metadata.dao.dto;
+package io.nop.metadata.core.dto;
 
 import io.nop.api.core.annotations.data.DataBean;
 

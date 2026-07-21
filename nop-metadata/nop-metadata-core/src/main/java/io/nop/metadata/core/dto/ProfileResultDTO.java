@@ -6,10 +6,10 @@
  * Github: https://github.com/entropy-cloud/nop-entropy
  */
 
-package io.nop.metadata.service.dto;
+package io.nop.metadata.core.dto;
 
 import io.nop.api.core.annotations.data.DataBean;
-import io.nop.metadata.dao.dto.ErrorDTO;
+import io.nop.metadata.core.dto.ErrorDTO;
 
 import java.io.Serializable;
 import java.util.ArrayList;

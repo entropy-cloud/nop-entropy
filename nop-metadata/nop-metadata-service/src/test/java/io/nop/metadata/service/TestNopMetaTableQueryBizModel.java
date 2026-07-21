@@ -21,6 +21,7 @@ import io.nop.graphql.core.engine.IGraphQLEngine;
 import io.nop.metadata.dao.entity.NopMetaDataSource;
 import io.nop.metadata.dao.entity.NopMetaEntity;
 import io.nop.metadata.dao.entity.NopMetaModule;
+import io.nop.metadata.core.dto.QueryTableDataResultDTO;
 import io.nop.metadata.dao.entity.NopMetaTable;
 import io.nop.metadata.service.entity.NopMetaTableBizModel;
 import jakarta.inject.Inject;
@@ -77,9 +78,9 @@ public class TestNopMetaTableQueryBizModel extends JunitBaseTestCase {
         String tableId = findEntityTableId("nop_meta_module");
 
         // 直接调 BizModel（GraphQL Map 返回不支持字段选择；此处验证 entity→ORM 真实分派）
-        Map<String, Object> result = nopMetaTableBizModel.queryTableData(tableId, null, null, null, null, null);
-        assertEquals("entity", result.get("tableType"));
-        List<Map<String, Object>> items = (List<Map<String, Object>>) result.get("items");
+        QueryTableDataResultDTO result = nopMetaTableBizModel.queryTableData(tableId, null, null, null, null, null);
+        assertEquals("entity", result.getTableType());
+        List<Map<String, Object>> items = result.getItems();
         assertNotNull(items, "items must not be null");
         // 接线验证：entity 路径确实通过 ORM 返回了真实导入的 module 行（非空壳）
         assertFalse(items.isEmpty(), "entity query must return real imported rows (not empty stub): " + items);
@@ -95,8 +96,8 @@ public class TestNopMetaTableQueryBizModel extends JunitBaseTestCase {
 
         // 直接调 BizModel 传 filter（TreeBean 非 GraphQL 命名类型）
         TreeBean filter = FilterBeans.eq("moduleId", "__never_matches_anything__");
-        Map<String, Object> result = nopMetaTableBizModel.queryTableData(tableId, filter, null, null, null, null);
-        List<Map<String, Object>> items = (List<Map<String, Object>>) result.get("items");
+        QueryTableDataResultDTO result = nopMetaTableBizModel.queryTableData(tableId, filter, null, null, null, null);
+        List<Map<String, Object>> items = result.getItems();
         assertTrue(items.isEmpty(), "entity filter moduleId=__nope__ must return 0 rows (filter wired to ORM)");
     }
 
@@ -115,6 +116,7 @@ public class TestNopMetaTableQueryBizModel extends JunitBaseTestCase {
 
         Map<String, Object> result = queryTableData(tableId, null, null, null);
         assertEquals("external", result.get("tableType"));
+        @SuppressWarnings("unchecked")
         List<Map<String, Object>> items = (List<Map<String, Object>>) result.get("items");
         assertEquals(3, items.size(), "external query must return all 3 real rows");
 
@@ -140,9 +142,9 @@ public class TestNopMetaTableQueryBizModel extends JunitBaseTestCase {
         // 直接调 BizModel action（TreeBean 非 GraphQL 命名类型，经 GraphQL 变量传不进来；
         // filter→WHERE 翻译由 TestFilterToSqlTranslator 单测覆盖，此处验证整条 external+filter+withConnection 链路）
         TreeBean filter = FilterBeans.gt("AMOUNT", 15);
-        Map<String, Object> result = nopMetaTableBizModel.queryTableData(tableId, filter, null, null, null, null);
-        assertEquals("external", result.get("tableType"));
-        List<Map<String, Object>> items = (List<Map<String, Object>>) result.get("items");
+        QueryTableDataResultDTO result = nopMetaTableBizModel.queryTableData(tableId, filter, null, null, null, null);
+        assertEquals("external", result.getTableType());
+        List<Map<String, Object>> items = result.getItems();
         assertEquals(3, items.size(), "filter amount>15 must return 3 rows (20,30,40)");
     }
 
@@ -157,6 +159,7 @@ public class TestNopMetaTableQueryBizModel extends JunitBaseTestCase {
         String tableId = prepareExternalTable(dbUrl, "qs_q_ext_p", "EXT_QP");
 
         Map<String, Object> result = queryTableData(tableId, null, 2L, 1L);
+        @SuppressWarnings("unchecked")
         List<Map<String, Object>> items = (List<Map<String, Object>>) result.get("items");
         assertEquals(2, items.size(), "limit=2 offset=1 must return 2 rows");
     }
@@ -178,6 +181,7 @@ public class TestNopMetaTableQueryBizModel extends JunitBaseTestCase {
 
         Map<String, Object> result = queryTableData(tableId, null, null, null);
         assertEquals("sql", result.get("tableType"));
+        @SuppressWarnings("unchecked")
         List<Map<String, Object>> items = (List<Map<String, Object>>) result.get("items");
         assertEquals(2, items.size(), "sql query must return 2 real rows");
         // 真实数据断言（sourceSql 子查询返回真实列）
@@ -205,7 +209,7 @@ public class TestNopMetaTableQueryBizModel extends JunitBaseTestCase {
                 .append(escapeGraphQL("SELECT id, val, name FROM typed_src"))
                 .append("\", tableName: \"typed_sql_tab\", metaModuleId: \"")
                 .append(ensureExternalSystemModuleId())
-                .append("\", querySpace: \"qs_type_infer\") }");
+                .append("\", querySpace: \"qs_type_infer\") { metaTableId tableName tableType fields { name alias type } } }");
         GraphQLResponseBean resp = execute(q.toString());
         assertFalse(resp.hasError(), "createSqlTable with querySpace should succeed: " + resp);
         Map<String, Object> data = (Map<String, Object>) ((Map<String, Object>) resp.getData())
@@ -233,7 +237,7 @@ public class TestNopMetaTableQueryBizModel extends JunitBaseTestCase {
                 .append(escapeGraphQL("SELECT 1 AS one, 'a' AS two"))
                 .append("\", tableName: \"no_qs_tab\", metaModuleId: \"")
                 .append(ensureExternalSystemModuleId())
-                .append("\") }");
+                .append("\") { metaTableId tableName tableType fields { name alias type } } }");
         GraphQLResponseBean resp = execute(q.toString());
         assertFalse(resp.hasError(), "createSqlTable without querySpace should succeed: " + resp);
         Map<String, Object> data = (Map<String, Object>) ((Map<String, Object>) resp.getData())
@@ -262,7 +266,7 @@ public class TestNopMetaTableQueryBizModel extends JunitBaseTestCase {
                 "SELECT id, score FROM resolve_src");
 
         StringBuilder q = new StringBuilder("query { NopMetaTable__resolveTableFields(metaTableId: \"")
-                .append(table.getMetaTableId()).append("\") }");
+                .append(table.getMetaTableId()).append("\") { tableType fields { name sourceType type } } }");
         GraphQLResponseBean resp = execute(q.toString());
         assertFalse(resp.hasError(), "resolveTableFields should succeed: " + resp);
         Map<String, Object> data = (Map<String, Object>) ((Map<String, Object>) resp.getData())
@@ -295,7 +299,7 @@ public class TestNopMetaTableQueryBizModel extends JunitBaseTestCase {
                 .append(escapeGraphQL(sql))
                 .append("\", tableName: \"align_tab\", metaModuleId: \"")
                 .append(ensureExternalSystemModuleId())
-                .append("\", querySpace: \"qs_align_infer\") }");
+                .append("\", querySpace: \"qs_align_infer\") { metaTableId tableName tableType fields { name alias type } } }");
         GraphQLResponseBean resp = execute(q.toString());
         assertFalse(resp.hasError(), "createSqlTable with aliased/expr columns should succeed: " + resp);
         Map<String, Object> data = (Map<String, Object>) ((Map<String, Object>) resp.getData())
@@ -321,7 +325,7 @@ public class TestNopMetaTableQueryBizModel extends JunitBaseTestCase {
                 .append(escapeGraphQL("SELECT 1 AS one"))
                 .append("\", tableName: \"unreachable_tab\", metaModuleId: \"")
                 .append(ensureExternalSystemModuleId())
-                .append("\", querySpace: \"qs_unreachable_for_inference\") }");
+                .append("\", querySpace: \"qs_unreachable_for_inference\") { metaTableId tableName tableType fields { name alias type } } }");
         GraphQLResponseBean resp = execute(q.toString());
         assertTrue(resp.hasError(),
                 "createSqlTable with querySpace pointing to non-existent datasource must explicitly fail "
@@ -349,7 +353,7 @@ public class TestNopMetaTableQueryBizModel extends JunitBaseTestCase {
                 .append(escapeGraphQL("SELECT 1 AS one"))
                 .append("\", tableName: \"disabled_ds_tab\", metaModuleId: \"")
                 .append(ensureExternalSystemModuleId())
-                .append("\", querySpace: \"qs_disabled_infer\") }");
+                .append("\", querySpace: \"qs_disabled_infer\") { metaTableId tableName tableType fields { name alias type } } }");
         GraphQLResponseBean resp = execute(q.toString());
         assertTrue(resp.hasError(),
                 "createSqlTable with DISABLED datasource must explicitly fail (not silently fallback): " + resp);
@@ -371,7 +375,7 @@ public class TestNopMetaTableQueryBizModel extends JunitBaseTestCase {
                 .append(escapeGraphQL("SELECT id FROM WHERE broken_syntax"))
                 .append("\", tableName: \"invalid_sql_tab\", metaModuleId: \"")
                 .append(ensureExternalSystemModuleId())
-                .append("\", querySpace: \"qs_invalid_sql\") }");
+                .append("\", querySpace: \"qs_invalid_sql\") { metaTableId tableName tableType fields { name alias type } } }");
         GraphQLResponseBean resp = execute(q.toString());
         assertTrue(resp.hasError(),
                 "createSqlTable with invalid sourceSql must explicitly fail (parse or LIMIT 0 exec): " + resp);
@@ -383,7 +387,7 @@ public class TestNopMetaTableQueryBizModel extends JunitBaseTestCase {
     @Test
     public void testQueryTableNotFound() {
         GraphQLResponseBean resp = execute(
-                "query { NopMetaTable__queryTableData(metaTableId: \"__nope__\") }");
+                "query { NopMetaTable__queryTableData(metaTableId: \"__nope__\") { tableType items } }");
         assertTrue(resp.hasError(), "non-existent table must explicitly fail (no NPE): " + resp);
     }
 
@@ -462,7 +466,7 @@ public class TestNopMetaTableQueryBizModel extends JunitBaseTestCase {
         if (offset != null) {
             q.append(", offset: ").append(offset);
         }
-        q.append(") }");
+        q.append(") { tableType items } }");
         GraphQLResponseBean resp = execute(q.toString());
         assertFalse(resp.hasError(), "queryTableData should succeed: " + resp.getErrorCode()
                 + " :: " + (resp.getErrors() == null ? "" : resp.getErrors()));
@@ -471,7 +475,7 @@ public class TestNopMetaTableQueryBizModel extends JunitBaseTestCase {
 
     private boolean queryTableDataHasError(String tableId) {
         GraphQLResponseBean resp = execute(
-                "query { NopMetaTable__queryTableData(metaTableId: \"" + tableId + "\") }");
+                "query { NopMetaTable__queryTableData(metaTableId: \"" + tableId + "\") { tableType items } }");
         return resp.hasError();
     }
 
@@ -490,7 +494,7 @@ public class TestNopMetaTableQueryBizModel extends JunitBaseTestCase {
         if (querySpace != null) {
             q.append(", querySpace: \"").append(querySpace).append("\"");
         }
-        q.append(") }");
+        q.append(") { metaTableId tableName tableType fields { name alias type } } }");
         GraphQLResponseBean resp = execute(q.toString());
         assertFalse(resp.hasError(), "createSqlTable should succeed: " + resp);
         return String.valueOf(((Map<String, Object>) ((Map<String, Object>) resp.getData())
@@ -502,7 +506,7 @@ public class TestNopMetaTableQueryBizModel extends JunitBaseTestCase {
         saveDataSource("ds-" + querySpace, querySpace, "jdbc", "ACTIVE", dbUrl);
         GraphQLResponseBean syncResp = execute(
                 "mutation { NopMetaDataSource__syncExternalTables(dataSourceId: \"ds-" + querySpace
-                        + "\", schemaPattern: \"PUBLIC\") }");
+                        + "\", schemaPattern: \"PUBLIC\") { syncedTableCount errors { code message detail } } }");
         assertFalse(syncResp.hasError(), "sync should not error: " + syncResp);
         return tableId(expectedTable);
     }

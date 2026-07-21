@@ -66,7 +66,7 @@ public class TestEntityTableExecution extends JunitBaseTestCase {
         String tableId = prepareEntityTable();
 
         GraphQLResponseBean resp = graphQLEngine.executeGraphQL(graphQLEngine.newGraphQLContext(req(
-                "mutation { NopMetaDataSource__collectCatalogForTable(metaTableId: \"" + tableId + "\") }")));
+                "mutation { NopMetaDataSource__collectCatalogForTable(metaTableId: \"" + tableId + "\") { tableCount tables { tableName schema tableType rowCount sizeBytes } errors { code message detail } } }")));
         assertFalse(resp.hasError(), "entity catalog should not error: " + resp);
 
         NopMetaCatalog row = findCatalogRow(tableId);
@@ -112,7 +112,7 @@ public class TestEntityTableExecution extends JunitBaseTestCase {
 
         GraphQLResponseBean resp = graphQLEngine.executeGraphQL(graphQLEngine.newGraphQLContext(req(
                 "mutation { NopMetaTable__profileTable(metaTableId: \"" + tableId + "\", "
-                        + "columns: \"MODULE_VERSION\") }")));
+                        + "columns: \"MODULE_VERSION\") { profilingResultId columnCount columns { columnName rowCount nullCount nullRatio minValue maxValue } unavailable errors { code message detail } } }")));
         assertFalse(resp.hasError(), "entity profiling should not error: " + resp);
 
         NopMetaProfilingResult row = findProfilingResult(tableId);
@@ -146,7 +146,7 @@ public class TestEntityTableExecution extends JunitBaseTestCase {
         String tableId = saveEntityTable(entity.getMetaEntityId());
 
         GraphQLResponseBean resp = graphQLEngine.executeGraphQL(graphQLEngine.newGraphQLContext(req(
-                "mutation { NopMetaTable__profileTable(metaTableId: \"" + tableId + "\") }")));
+                "mutation { NopMetaTable__profileTable(metaTableId: \"" + tableId + "\") { profilingResultId columnCount columns { columnName rowCount nullCount nullRatio minValue maxValue } unavailable errors { code message detail } } }")));
         assertTrue(resp.hasError(), "unregistered entity must explicitly fail (no silent empty set): " + resp);
     }
 

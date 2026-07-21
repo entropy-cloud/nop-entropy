@@ -134,7 +134,7 @@ public class TestNopMetaBiSemanticBizModel extends JunitBaseTestCase {
         String tableId = saveEntityTable(moduleId, "T_RESOLVE_NULL", null);
 
         GraphQLResponseBean resp = runGraphQL(
-                "query { NopMetaTable__resolveTableFields(metaTableId: \"" + tableId + "\") }");
+                "query { NopMetaTable__resolveTableFields(metaTableId: \"" + tableId + "\") { tableType fields { name sourceType type } } }");
         assertTrue(resp.hasError(),
                 "entity table with null baseEntityId must explicitly fail (not silent empty): " + resp);
     }
@@ -144,7 +144,7 @@ public class TestNopMetaBiSemanticBizModel extends JunitBaseTestCase {
     public void testResolveTableFieldsExternalBadBuildSqlFails() {
         String tableId = saveExternalTable("T_RESOLVE_BAD", "qs_resolve_bad", "{not-an-array}");
         GraphQLResponseBean resp = runGraphQL(
-                "query { NopMetaTable__resolveTableFields(metaTableId: \"" + tableId + "\") }");
+                "query { NopMetaTable__resolveTableFields(metaTableId: \"" + tableId + "\") { tableType fields { name sourceType type } } }");
         assertTrue(resp.hasError(), "corrupted buildSql JSON must explicitly fail: " + resp);
     }
 
@@ -899,7 +899,7 @@ public class TestNopMetaBiSemanticBizModel extends JunitBaseTestCase {
     @SuppressWarnings("unchecked")
     private Map<String, Object> resolveTableFields(String tableId) {
         GraphQLResponseBean resp = runGraphQL(
-                "query { NopMetaTable__resolveTableFields(metaTableId: \"" + tableId + "\") }");
+                "query { NopMetaTable__resolveTableFields(metaTableId: \"" + tableId + "\") { tableType fields { name sourceType type } } }");
         assertFalse(resp.hasError(), "resolveTableFields should succeed: " + resp);
         return (Map<String, Object>) ((Map<String, Object>) resp.getData())
                 .get("NopMetaTable__resolveTableFields");
