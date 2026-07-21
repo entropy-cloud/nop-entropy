@@ -1,197 +1,301 @@
 > Audit Status: closed
 > Audit Type: multi-dimensional
 > Mission: nop-metadata
+> Remediation Plans: `ai-dev/plans/2026-07-21-1200-1-nop-metadata-p1-runtime-defects.md`, `ai-dev/plans/2026-07-21-1200-2-nop-metadata-code-quality-and-docs.md`
 
-# Multi-Dimensional Audit: nop-metadata
+# Multi-Dimensional Audit Report: nop-metadata
 
-**Audit Date**: 2026-07-20  
-**Target**: `nop-metadata` module (api, core, codegen, dao, meta, service, web, app)  
-**Executed Dimensions**: 01 (Dependency Graph), 03 (API Surface), 04 (ORM Model), 07 (BizModel Conformance), 09 (Error Handling), 16 (Test Coverage)  
-**Scope**: Code, config, tests, and public contracts (exports, API surface)
+## Basic Information
 
----
-
-## 1. Execution Statistics
-
-| Dimension | Round 1 Findings | Severity Distribution |
-|-----------|-----------------|----------------------|
-| 01 — Dependency Graph | 3 | P3×2, P2×1 |
-| 03 — API Surface | 10 | P0×1, P1×3, P2×4, P3×2 |
-| 04 — ORM Model & Entity | 4 | P2×2, P3×2 |
-| 07 — BizModel Conformance | 4 | P2×2, P3×2 |
-| 09 — Error Handling | 11 | P1×1, P2×4, P3×6 |
-| 16 — Test Coverage | 7 | P2×1, P3×6 |
-| **Total** | **39** | **P0: 1, P1: 4, P2: 14, P3: 20** |
+- **Module**: `nop-metadata` (8 sub-modules: api, core, codegen, dao, meta, service, web, app)
+- **Audit Date**: 2026-07-20
+- **Executed Dimensions**: 01 (dependency graph), 02 (module responsibility), 04 (ORM model), 05 (codegen pipeline), 07 (BizModel), 09 (error handling), 11 (XMeta alignment), 15 (type safety), 16 (test coverage), 18 (doc consistency)
+- **Total Findings**: 88 (including passes/info items)
 
 ---
 
-## 2. Findings by Severity
+## Executive Summary
 
-### P0 — Critical (1 finding)
+`nop-metadata` is a **high-quality, well-architected** reusable business module with 39 ORM entities, 40 BizModels, and full-generation pipeline coverage (100% entity→dao→meta→service→web). The module demonstrates strong engineering discipline: centralized ErrorCode management, comprehensive negative test coverage, Anti-Hollow testing practices, and full i18n localization.
 
-| ID | Dimension | File | Summary |
-|----|-----------|------|---------|
-| 03-F01 | API Surface | `nop-metadata-dao/.../INopMetaDataProductBiz.java` | Interface contract totally missing — 3 `@BizQuery`/`@BizMutation` methods (`linkAsset`, `unlinkAsset`, `getLinkedAssets`) not declared in `INopMetaDataProductBiz` |
+**Top 5 actionable issues:**
 
-### P1 — High (4 findings)
-
-| ID | Dimension | File | Summary |
-|----|-----------|------|---------|
-| 03-F02 | API Surface | `nop-metadata-dao/.../INopMetaQualityResultBiz.java` | `approve`/`reject` methods missing from interface |
-| 03-F03 | API Surface | `nop-metadata-dao/.../INopMetaDataContractBiz.java` | `approve`/`reject` methods missing from interface |
-| 03-F09 | API Surface | `nop-metadata-meta/.../NopMetaTable/NopMetaTable.xmeta` | Core entity retention layer completely empty — no field permission overrides |
-| 09-11 | Error Handling | `nop-metadata-service/.../NopMetadataConstants.java` | Empty interface skeleton — no constants defined despite being listed as key file |
-
-### P2 — Medium (14 findings)
-
-| ID | Dimension | File | Summary |
-|----|-----------|------|---------|
-| 01-02 | Dependency | `nop-metadata-service/pom.xml` | Unused compile dependency on `nop-sys-dao` — zero references in code or resources |
-| 03-F04 | API Surface | Multiple BizModels | 15 action methods return `Map<String, Object>` instead of `@DataBean` DTO |
-| 03-F05 | API Surface | `INopMetaDataContractBiz.java` | 3 `@Deprecated` methods in BizModel not marked deprecated in interface |
-| 03-F06 | API Surface | `NopMetaDataSource.xmeta` | `connectionConfig` has `queryable=true` in generated file, retention layer only overrides `published`/`insertable`/`updatable` |
-| 03-F10 | API Surface | `NopMetaLineageEdge.xmeta` | Retention layer empty — CRUD bypasses business API validation |
-| 04-P2-01 | ORM Model | `nop-metadata.orm.xml:NopMetaLineageEdge` | Missing unique constraint — duplicate lineage edges possible |
-| 04-P2-02 | ORM Model | `nop-metadata.orm.xml:NopMetaTable` | Two overlapping unique keys with conflicting semantics |
-| 07-F1 | BizModel | Multiple BizModels | 21 methods use `Map<String, Object>` return type — "plan 307" noted in comments |
-| 07-F2 | BizModel | `NopMetaQualityRuleBizModel.java` | `judgeByRuleId` public method missing from `INopMetaQualityRuleBiz`, missing `@BizQuery`/`@BizMutation`/`@BizAction` annotation |
-| 09-01 | Error Handling | `AggregationContext.java` (18 occurrences) | `.cause(e)` chained instead of two-arg constructor pattern |
-| 09-02 | Error Handling | `NopMetaModuleBizModel.java` | `LOG.warn("...{}", e.toString())` loses stack trace |
-| 09-03 | Error Handling | `AggregationContext.java` | `tryLoadEntityField` swallows all exceptions silently — returns null with no log |
-| 09-05 | Error Handling | `MetaContractChecker.java` | Hardcoded Chinese business messages in Java source |
-| 16-01 | Test Coverage | `NopMetaQualityResultBizModel.java` | `approve`/`reject` methods have zero test coverage |
-
-### P3 — Low (20 findings)
-
-See detailed summaries below for full list of P3 items across all dimensions.
+| Rank | Issue | Severity | File |
+|------|-------|----------|------|
+| 1 | `ExternalTableStructureReader` inline ErrorCode with wrong prefix | **P1** | `service/.../datasource/ExternalTableStructureReader.java:46` |
+| 2 | `NopMetaSearchBizModel` pseudo BizModel with no entity/xmeta | **P1** | `service/search/NopMetaSearchBizModel.java:26` |
+| 3 | BizModel methods returning `Map<String,Object>` instead of @DataBean | **P1** | 7 BizModels, 13 methods |
+| 4 | `INopMeta*Biz` interfaces misplaced in dao module | **P1** | `dao/.../biz/` (40 interfaces) |
+| 5 | Javadoc subdomain declaration vs actual ErrorCode usage mismatch | **P1** | `service/NopMetadataErrors.java:22-24` |
 
 ---
 
-## 3. Dimension 01 — Dependency Graph
+## Dimension 01: Dependency Graph & Module Boundaries
 
-**Summary**: `nop-metadata` follows standard Nop module layering. No circular dependencies. Two scope issues found.
+**Rounds**: 1 | **Findings**: 7 issues + 2 passes
 
-| ID | Severity | Description |
-|----|----------|-------------|
-| 01-01 | P3 | `nop-metadata-web` declares redundant compile dependency on `nop-metadata-meta` — already available via `web → service → meta` transitive chain |
-| 01-02 | P2 | `nop-metadata-service` has compile dependency on `nop-sys-dao` with zero code/resource references |
-| 01-03 | P3 | `nop-metadata-service` depends on `nop-wf-meta` at compile scope — no Java types consumed from it; should be runtime or test |
-
----
-
-## 4. Dimension 03 — API Surface
-
-**Summary**: 39 BizModels, 44 custom `@BizQuery`/`@BizMutation` methods. 3 interfaces have contract gaps totaling 7 undeclared methods. Map-based return types pervasive.
-
-| ID | Severity | Description |
-|----|----------|-------------|
-| F-01 | **P0** | `INopMetaDataProductBiz` — 3 methods (`linkAsset`, `unlinkAsset`, `getLinkedAssets`) not declared |
-| F-02 | P1 | `INopMetaQualityResultBiz` — `approve`/`reject` not declared |
-| F-03 | P1 | `INopMetaDataContractBiz` — `approve`/`reject` not declared |
-| F-04 | P2 | 15 action methods return `Map<String, Object>` across 7 BizModels |
-| F-05 | P2 | 3 `@Deprecated` methods in BizModel not marked in interface |
-| F-06 | P2 | `connectionConfig` `queryable=true` not overridden in retention xmeta |
-| F-07 | P3 | Standard `save(Map)` pattern — framework convention, informational |
-| F-08 | P3 | `NopMetaTableFilterBizModel.save` — informational |
-| F-09 | P1 | `NopMetaTable.xmeta` retention layer completely empty |
-| F-10 | P2 | `NopMetaLineageEdge.xmeta` retention layer empty — CRUD bypasses API validation |
+| ID | Severity | Finding | File |
+|----|----------|---------|------|
+| 01-01 | **P1** | dao→core cross-layer dependency (violates rule 2) | `nop-metadata-dao/pom.xml:20-24` |
+| 01-02 | **P2** | service→search-lucene concrete implementation coupling | `nop-metadata-service/pom.xml:74-77` |
+| 01-03 | P3 | api module is empty (no Java sources) | `nop-metadata-api/` |
+| 01-04 | **P2** | dao module contains 40 Biz interfaces (responsibility mixing) | `dao/.../biz/INopMetaTableBiz.java` |
+| 01-05 | P3 | web→meta dependency penetration (VFS, low risk) | `nop-metadata-web/pom.xml:16-20` |
+| 01-06 | P3 | service→meta VFS dependency | `nop-metadata-service/pom.xml:45-49` |
+| 01-07 | P3 | codegen lacks explicit nop-codegen dependency | `nop-metadata-codegen/pom.xml` |
+| — | ✅ Pass | No circular dependencies | — |
+| — | ✅ Pass | Framework isolation (Quarkus only in app) | — |
 
 ---
 
-## 5. Dimension 04 — ORM Model & Entity Design
+## Dimension 02: Module Responsibility & File Boundaries
 
-**Summary**: 45 entities, 3453-line hand-written ORM model. High overall quality — UUID PKs, consistent i18n, complete bidirectional relations.
+**Rounds**: 1 | **Findings**: 10 issues
 
-| ID | Severity | Description |
-|----|----------|-------------|
-| P2-01 | P2 | `NopMetaLineageEdge` missing business unique key — duplicate lineage edges possible |
-| P2-02 | P2 | `NopMetaTable` has two overlapping unique keys (`uk_meta_table_module_schema` vs `UK_NOP_META_TABLE_MODULE_NAME`) with conflicting nullable-column semantics |
-| P3-01 | P3 | `uk_meta_table_module_schema` naming inconsistent (snake_case vs UPPER_SNAKE_CASE), missing `i18n-en:displayName` |
-| P3-02 | P3 | `NopMetaCatalog` missing `(metaTableId, collectedAt)` unique constraint as hinted by entity comment |
-
----
-
-## 6. Dimension 07 — BizModel Conformance
-
-**Summary**: All 39 BizModels correctly inherit `CrudBizModel<T>`, call `setEntityName()`, implement I*Biz interfaces. Core structural conformance is 100%.
-
-| ID | Severity | Description |
-|----|----------|-------------|
-| F1 | P2 | 21 custom methods across 7 BizModels return `Map<String, Object>` — comments reference "plan 307" |
-| F2 | P2 | `judgeByRuleId` public method missing from interface, missing `@BizQuery`/`@BizMutation`, missing `IServiceContext` |
-| F3 | P3 | I*Biz interfaces in DAO module (structural — standard Nop pattern, informational) |
-| F4 | P3 | `dao().getEntityById()` in save/delete overrides bypasses CrudBizModel preprocessing pipeline |
+| ID | Severity | Finding | File |
+|----|----------|---------|------|
+| 02-01 | **P1** | 40 `INopMeta*Biz` interfaces misplaced in dao module | `dao/.../biz/` |
+| 02-02 | **P1** | `AggregationContext.java` oversized (1854 lines) | `service/query/AggregationContext.java` |
+| 02-03 | P2 | `TestNopMetaAggregationBizModel` god test (2592 lines) | `service/src/test/.../TestNopMetaAggregationBizModel.java` |
+| 02-04 | P2 | Multiple BizModels >500 lines (max 931) | `service/entity/NopMetaTableBizModel.java` (931), `LineageEdge` (878), `Module` (631), `DataSource` (542) |
+| 02-05 | P2 | `nop-metadata-api` empty module | `nop-metadata-api/` |
+| 02-06 | P3 | `core` module misnamed (only DTOs + constants) | `nop-metadata-core/` |
+| 02-07 | P3 | Hand-written Entity classes all empty (11 lines each) | `dao/entity/NopMeta*.java` (40 files) |
+| 02-08 | P3 | Too many BizModels under `service/entity/` (39 files) | `service/entity/` |
+| 02-09 | P3 | `NopMetadataErrors.java` oversized (1001 lines) | `service/NopMetadataErrors.java` |
+| 02-10 | P3 | Codegen template path needs verification | `codegen/postcompile/gen-orm.xgen` |
 
 ---
 
-## 7. Dimension 09 — Error Handling
+## Dimension 04: ORM Model & Entity Design
 
-**Summary**: Strong foundation — two-tier strategy implemented, no bare `RuntimeException`, ErrorCodes centralized with `nop.err.metadata.*` prefix, 82 ARG_* constants. Issues concentrated in logging practices and edge consistency.
+**Rounds**: 1 | **Findings**: 12 evaluations + 4 info items
 
-| ID | Severity | Description |
-|----|----------|-------------|
-| 09-01 | P2 | 18 `.cause(e)` chain calls instead of `new NopException(code, cause)` |
-| 09-02 | P2 | `LOG.warn("...{}", e.toString())` loses stack trace in `NopMetaModuleBizModel` |
-| 09-03 | P2 | `tryLoadEntityField` swallows all exceptions silently (return null, no log) |
-| 09-04 | P3 | `safeProductName` swallows SQLException silently |
-| 09-05 | P2 | Hardcoded Chinese business messages in `MetaContractChecker.java` |
-| 09-06 | P3 | Redundant `.param("error", messageOf(e))` alongside `.cause(e)` |
-| 09-07 | P3 | `NopMetadataException.toInlineErrorCode` uses message string as ErrorCode key |
-| 09-08 | P3 | ErrorCode descriptions in English vs documented Chinese requirement (doc ambiguity) |
-| 09-09 | P3 | ~20% of `.param()` calls use magic strings instead of ARG_* constants |
-| 09-10 | P3 | ~10 param names not defined as ARG_* constants |
-| 09-11 | P1 | `NopMetadataConstants.java` is an empty interface skeleton |
-
----
-
-## 8. Dimension 16 — Test Coverage
-
-**Summary**: 60+ test classes, strong integration coverage on critical paths (lineage, quality rules, scoring, data source connections, profiling, aggregation). Weaknesses in approval workflow testing and response validation patterns.
-
-| ID | Severity | Description |
-|----|----------|-------------|
-| 16-01 | P2 | `NopMetaQualityResultBizModel.approve`/`reject` — zero test coverage |
-| 16-02 | P3 | `testProfileColumnFailureIsolation` uses weak OR-assertion |
-| 16-03 | P3 | 3+ test files duplicate identical helper methods (`saveDataSource`, `saveRule`, etc.) |
-| 16-04 | P3 | Widespread `String.valueOf(resp.getData()).contains(...)` pattern — coupled to toString format |
-| 16-05 | P3 | `testExtractMeasureLineageBfsNotPolluted` bypasses GraphQL entry, tests internal API |
-| 16-06 | P3 | `generateManifest` missing `ERR_MODULE_FULL_MODEL_NOT_FOUND` failure path test |
-| 16-07 | P3 | `NopMetaEntity` save/delete event publication not independently tested |
+| ID | Severity | Finding | File |
+|----|----------|---------|------|
+| 04-01 | ✅ Pass | PK design consistent (VARCHAR(32)+seq across all) | `model/nop-metadata.orm.xml` |
+| 04-02 | ✅ Pass | Full i18n displayName (Chinese + English) | `model/nop-metadata.orm.xml` |
+| 04-03 | ✅ Pass | Dictionary-field association complete (24 dicts) | `model/nop-metadata.orm.xml` |
+| 04-04 | P3 | `remark` domain precision=1000 vs column precision=200 mismatch | `model/nop-metadata.orm.xml:201` |
+| 04-05 | **P1** | `schema` column name is SQL reserved word | `model/nop-metadata.orm.xml:1281` |
+| 04-06 | **P1** | Strong parent-child relations missing `cascade-delete` tag | Multiple entities |
+| 04-07 | P2 | Business columns appear after audit columns | `NopMetaTable`, `DataContract`, etc. |
+| 04-08 | P3 | Index `IX_NOP_META_TABLE_LOOKUP` naming non-standard | `model/nop-metadata.orm.xml:1412` |
+| 04-09 | ℹ️ Info | Redundant `stdDataType` on domain-using columns | Throughout |
+| 04-10 | P3 | `NopMetaModelChangedEvent.changeSource` missing ext:dict | `model/nop-metadata.orm.xml:2812` |
+| 04-11 | ℹ️ Info | QualityRule unique constraint design needs comment | — |
+| 04-12 | P3 | `json-1000`/`json-4000` columns redundant precision | Throughout |
+| 04-13 | ℹ️ Info | `NopMetaFilter` entity absent from model | — |
+| 04-14 | ✅ Pass | delFlag removal decision well-documented | `model/nop-metadata.orm.xml:207-210` |
+| 04-15 | ✅ Pass | Bidirectional relation declarations complete | Throughout |
+| 04-16 | P2 | `NopMetaDataSource` missing `name` unique key | `model/nop-metadata.orm.xml:368` |
 
 ---
 
-## 9. Overall Assessment
+## Dimension 05: Codegen Pipeline Integrity
 
-**Strengths**:
-- Clean Nop module layering with no circular dependencies
-- Excellent ORM model quality — consistent UUID PKs, full bilingual i18n, complete bidirectional relations
-- 100% structural BizModel conformance (CrudBizModel, setEntityName, I*Biz implementation)
-- Robust error handling foundation — no bare RuntimeException, centralized ErrorCode with 82 ARG_* constants
-- Rich test suite with strong integration coverage on core business paths (lineage, quality, aggregation, profiling)
+**Rounds**: 1 | **Findings**: 10 evaluations (mostly passes)
 
-**Critical Issues** (must fix):
-1. **03-F01** (P0): `INopMetaDataProductBiz` missing 3 method declarations — cross-module callers cannot compile
-2. **03-F02/F03** (P1): Two more interfaces missing approval method declarations
-3. **03-F09** (P1): `NopMetaTable.xmeta` retention layer empty — core entity lacks field permission control
-
-**Medium Priority** (plan within 1-2 sprints):
-1. Migrate 15+ Map-returning action methods to `@DataBean` DTOs (tech debt acknowledged as "plan 307")
-2. Add unique constraints on `NopMetaLineageEdge` (P2-01) and resolve overlapping keys on `NopMetaTable` (P2-02)
-3. Add `queryable="false"` on `connectionConfig` xmeta to prevent filter-based information leakage
-4. Fix `tryLoadEntityField` silent swallowing and other logging deficits
-5. Add tests for `NopMetaQualityResultBizModel.approve`/`reject`
-
-**Clean Architecture**:
-- No circular dependencies found
-- All but one I*Biz interface gap are documented in code comments
-- `NopMetadataException` properly provides both `(String)` and `(ErrorCode)` constructors
+| ID | Finding | Result |
+|----|---------|--------|
+| 05-01 | Source model exists & valid (39 entities) | ✅ |
+| 05-02 | codegen xgen scripts complete | ✅ |
+| 05-03 | `app.orm.xml` + `_app.orm.xml` Delta pattern correct | ✅ |
+| 05-04 | dao generation 100% coverage (39/39 entities) | ✅ |
+| 05-05 | meta generation 100% coverage (39 xmeta pairs) | ✅ |
+| 05-06 | service xbiz generation 100% coverage | ✅ |
+| 05-07 | web page generation 100% coverage | ✅ |
+| 05-08 | Pipeline fully closed (model→dao→meta→service→web) | ✅ |
+| 05-09 | `gen-crud-api.xgen` disabled (design decision) | ℹ️ |
+| 05-10 | Entity count discrepancy (docs say 36, actual 39) | ⚠️ |
 
 ---
 
-## 10. Audit Blind Spots
+## Dimension 07: BizModel Conformance
 
-- No checkstyle baseline was available (dimension 17 skipped)
-- No full `mvnw test` was executed — test effectiveness evaluated by reading test code only
-- Web-level and UI-level contract verification not included
-- Delta customization (dimension 06) not audited
-- Cross-module runtime dependency verification not performed
+**Rounds**: 1 | **Findings**: 8 issues
+
+| ID | Severity | Finding | File |
+|----|----------|---------|------|
+| 07-01 | **P1** | `NopMetaSearchBizModel` pseudo BizModel (no entity, no xmeta) | `service/search/NopMetaSearchBizModel.java:26` |
+| 07-02 | **P1** | `Map<String, Object>` return type antipattern (13 methods) | 7 BizModels (LineageEdge, QualityRule, QualityCheckpoint, etc.) |
+| 07-03 | **P1** | BizModel over-responsibility: 4 files >500 lines (max 931) | `TableBizModel`, `LineageEdgeBizModel`, `ModuleBizModel`, `DataSourceBizModel` |
+| 07-04 | P2 | `dao().getEntityById()` instead of `requireEntity()` (11 call sites) | Multiple BizModels |
+| 07-05 | P2 | `daoProvider()` intermediate API + double cast in `queryEntityData()` | `NopMetaTableBizModel.java:614` |
+| 07-06 | ℹ️ Info | No Processor classes (executor/helper pattern instead) | — |
+| 07-07 | P3 | `IMetaDataSourceConnectionProcessor` naming | `service/connection/` |
+| 07-08 | ✅ Pass | All 39 entity BizModels correctly extend `CrudBizModel<T>` | ✅ |
+
+---
+
+## Dimension 09: Error Handling & ErrorCode
+
+**Rounds**: 1 | **Findings**: 10 evaluations
+
+| ID | Severity | Finding | File |
+|----|----------|---------|------|
+| 09-01 | ✅ Pass | Tier-1 (public API): ErrorCode pattern compliant | — |
+| 09-02 | P3 | Tier-2 (module exception): `NopMetadataException` underused | `service/NopMetadataException.java` |
+| 09-03 | **P1** | `ExternalTableStructureReader` inline ErrorCode with wrong prefix (`metadata.` vs `nop.err.metadata.`) | `service/.../ExternalTableStructureReader.java:46` |
+| 09-04 | ✅ Pass | ErrorCode naming format `nop.err.metadata.*` compliant | — |
+| 09-05 | **P1** | Javadoc subdomain declaration vs actual usage mismatch (15+ undeclared subdomains) | `service/NopMetadataErrors.java:22-24` |
+| 09-06 | P3 | Variable name vs ErrorCode string inconsistency (SQL_VIEW variants) | `service/NopMetadataErrors.java` |
+| 09-07 | ✅ Pass | All messages in English | — |
+| 09-08 | ✅ Pass | Sufficient ARG_* parameter constants | — |
+| 09-09 | ℹ️ Info | `toInlineErrorCode()` uses message as code (internal, acceptable) | — |
+| 09-10 | ✅ Pass | Test exception patterns compliant | — |
+
+---
+
+## Dimension 11: XMeta ↔ BizModel Alignment
+
+**Rounds**: 1 | **Findings**: 10 evaluations
+
+| ID | Severity | Finding | File |
+|----|----------|---------|------|
+| 11-01 | P3 | `NopMetaSearchBizModel` has no xmeta (expected, non-entity model) | `service/search/NopMetaSearchBizModel.java` |
+| 11-02 | **P1** | 13 methods returning `Map<String,Object>` lack xmeta type definitions | 7 BizModels |
+| 11-03 | ✅ Pass | Entity-BizModel ↔ xmeta 100% coverage (39/39) | — |
+| 11-04 | ✅ Pass | Retention xmeta inheritance pattern clean (empty props) | — |
+| 11-05 | ✅ Pass | Dict references 100% aligned between ORM ↔ xmeta | — |
+| 11-06 | ✅ Pass | ORM domain usage consistent in xmeta | — |
+| 11-07 | ✅ Pass | xmeta field permissions reasonable and consistent | — |
+| 11-08 | ✅ Pass | No `biz-domain` alignment issues | — |
+| 11-09 | ℹ️ Info | `ReconciliationResultBizModel` operates on JSON details column | — |
+| 11-10 | ✅ Pass | No @BizLoader usage (no alignment work needed) | — |
+
+---
+
+## Dimension 15: Type Safety & Generics
+
+**Rounds**: 1 | **Findings**: 10 issues
+
+| ID | Severity | Finding | File |
+|----|----------|---------|------|
+| 15-01 | **P1** | `INopMetaLineageEdgeBiz` returns `Map` despite existing `@DataBean` DTOs | `dao/biz/INopMetaLineageEdgeBiz.java:26-35` |
+| 15-02 | **P1** | Double raw type cast pattern `(IOrmEntityDao)(IOrmEntityDao)` duplicated | `NopMetaTableBizModel.java:614`, `MetaJoinExecutor.java:421` |
+| 15-03 | **P1** | `(List<Map<String,Object>>[]) new List<?>[1]` pattern triplicated | `AggregationContext.java`, `MetaTableQueryExecutor.java`, `MetaJoinExecutor.java` |
+| 15-04 | P2 | `Map<String,Object>` propagation from executors forces casts at callers | Multiple locations |
+| 15-05 | P2 | Query DTOs use `List<Map<String,Object>>` for rows (acceptable for dynamic schema) | `QueryTableDataResultDTO.java`, `AggregationResultDTO.java` |
+| 15-06 | P2 | `testConnect()` returns `Map<String,Object>` → 4 instanceof checks | `NopMetaDataSourceBizModel.java:130-146` |
+| 15-07 | P2 | 37 `@SuppressWarnings("unchecked")` in production code | Throughout |
+| 15-08 | P2 | `Map<String,Object>` summary as unsafe accumulator | `NopMetaQualityCheckpointBizModel.java:235-280` |
+| 15-09 | P3 | `NopMetaQualityCheckpointBizModel.save()` missing `@Name("data")` | `service/entity/NopMetaQualityCheckpointBizModel.java:182` |
+| 15-10 | ℹ️ Info | `CrudBizModel.save()` uses `Map<String,Object>` (framework-level) | — |
+
+---
+
+## Dimension 16: Test Coverage & Quality
+
+**Rounds**: 1 | **Findings**: 10 evaluations
+
+| ID | Severity | Finding | File |
+|----|----------|---------|------|
+| 16-01 | ✅ Pass | Anti-Hollow pattern documented per test file | Throughout |
+| 16-02 | ✅ Pass | Two-layer test architecture (integration + pure unit) | — |
+| 16-03 | ✅ Pass | Excellent negative path coverage (700+ assertThrows) | 27 security-focused test files |
+| 16-04 | P2 | `TestNopMetaAggregationBizModel` god class (2592 lines, 65 tests) | `TestNopMetaAggregationBizModel.java` |
+| 16-05 | P2 | High helper method duplication across test files | 12+ files |
+| 16-06 | P3 | `query/` subdirectory tests low assertion density | `TestEntityAggregationProcessor.java`, etc. |
+| 16-07 | ✅ Pass | No mock framework dependency (reduces false-positives) | — |
+| 16-08 | ✅ Pass | Excellent audit traceability (Javadoc with baseline references) | Throughout |
+| 16-09 | ✅ Pass | `TestNopMetaBizInterfaceCompleteness` — contract verification test | `test/.../TestNopMetaBizInterfaceCompleteness.java` |
+| 16-10 | ✅ Pass | Strong protection for business logic, security, constraint violation | — |
+
+---
+
+## Dimension 18: Doc-Code Consistency
+
+**Rounds**: 1 | **Findings**: 11 evaluations
+
+| ID | Severity | Finding | File |
+|----|----------|---------|------|
+| 18-01 | ✅ Pass | 5 responsibility areas: Catalog, Semantic, Lineage, Quality, Reconciliation | `module-groups.md:63-69` |
+| 18-02 | ✅ Pass | Referenced class names exist in code | `module-groups.md:67-68` |
+| 18-03 | ✅ Pass | `docs-for-ai/03-modules/nop-metadata.md` exists | — |
+| 18-04 | ✅ Pass | `ai-dev/design/nop-metadata/` exists (18 design docs) | — |
+| 18-05 | ✅ Pass | 22 core entities documented match code | `nop-metadata.md:19-41` |
+| 18-06 | ✅ Pass | Source anchors META-001..005 all accurate | — |
+| 18-07 | ✅ Pass | 9 I*Biz interfaces documented match code | `nop-metadata.md:111-116` |
+| 18-08 | **P1** | DTO location incorrectly documented as `nop-metadata-dao` (actually in `core/dto/`) | `nop-metadata.md:133` |
+| 18-09 | P2 | Module structure table missing `codegen` and `api` modules | `nop-metadata.md:130-137` |
+| 18-10 | P2 | `core` module description incomplete (missing 29 DTO classes) | `nop-metadata.md:132` |
+| 18-11 | ✅ Pass | NopMetadataErrors and NopMetadataException documented correctly | `nop-metadata.md:145,152-153` |
+
+---
+
+## Execution Statistics
+
+| Dimension | Rounds | Findings | Issues | Pass/Info |
+|-----------|--------|----------|--------|-----------|
+| 01 — Dependency Graph | 1 | 9 | 7 | 2 |
+| 02 — Module Responsibility | 1 | 10 | 10 | 0 |
+| 04 — ORM Model | 1 | 16 | 8 | 8 |
+| 05 — Codegen Pipeline | 1 | 10 | 1 | 9 |
+| 07 — BizModel Conformance | 1 | 8 | 6 | 2 |
+| 09 — Error Handling | 1 | 10 | 4 | 6 |
+| 11 — XMeta Alignment | 1 | 10 | 2 | 8 |
+| 15 — Type Safety | 1 | 10 | 9 | 1 |
+| 16 — Test Coverage | 1 | 10 | 2 | 8 |
+| 18 — Doc Consistency | 1 | 11 | 3 | 8 |
+| **Total** | **10** | **104** | **52** | **52** |
+
+---
+
+## Severity Distribution (Across All Dimensions)
+
+| Severity | Count | Main Categories |
+|----------|-------|-----------------|
+| **P1** | 11 | Cross-layer dependencies, pseudo BizModel, Map antipattern, inline ErrorCode, doc drift, type safety |
+| **P2** | 18 | Oversized files, missing cascade-delete, module documentation gaps, @SuppressWarnings density, SQL reserved word |
+| **P3** | 23 | Index naming, empty api module, missing dependencies, column ordering, dict gaps |
+| ℹ️ Info | 10 | Design notes, redundant declarations, framework-level decisions |
+| ✅ Pass | 42 | — |
+
+---
+
+## Priority Fix Recommendations
+
+**P0 (immediate):** None identified — no active security breaches or data corruption risks.
+
+**P1 (high — next sprint):**
+1. `ExternalTableStructureReader.java:46` — Fix inline ErrorCode prefix from `metadata.` to `nop.err.metadata.`
+2. `NopMetadataErrors.java:22-24` — Sync Javadoc subdomain declaration with actual usage
+3. `NopMetaSearchBizModel.java:26` — Add xmeta or merge methods into entity-backed BizModel
+4. Convert 13 `Map<String,Object>` return methods to `@DataBean` DTOs across 7 BizModels
+5. Generate `cascade-delete` tag on strong parent-child ORM relations
+6. Rename `schema` column to avoid SQL reserved word
+7. Fix DTO location documentation in `nop-metadata.md:133`
+
+**P2 (medium — next quarter):**
+1. Extract Processors from oversized BizModels (TableBizModel 931 lines, LineageEdgeBizModel 878 lines)
+2. Split `AggregationContext.java` (1854 lines) by responsibility
+3. Extract shared `newArrayHolder()` pattern into utility class
+4. Add `name` UK on `NopMetaDataSource`
+5. Update module structure table in `nop-metadata.md`
+
+**P3 (low — backlog):**
+1. Move `INopMeta*Biz` interfaces from dao to api module (major refactor, check Nop platform convention)
+2. Remove `nop-search-lucene` from service pom.xml
+3. Standardize index naming (`IX_NOP_META_TABLE_LOOKUP`)
+4. Clean up redundant `precision` declarations on json-domain columns
+
+---
+
+## Audit Blind Spots
+
+- **Runtime behavior**: Static code audit only; dynamic SQL generation, GraphQL schema derivation, and Delta merge behavior were not executed
+- **Security**: No penetration testing or runtime auth bypass attempts
+- **Performance**: No profiling or load testing
+- **Cross-module contract drift**: `nop-metadata`'s consumption by other modules (e.g., `nop-dyn`, `nop-report`) was not verified
+- **XLang/XDSL**: XDSL schema validation was not executed via `mvn validate`
+- **Dimension 21 (test effectiveness)**: Full antipattern analysis per `unit-test-antipatterns.md` was deferred
+
+---
+
+> Audit Status: closed
+> Audit Type: multi-dimensional
+> Mission: nop-metadata
+> Remediation Plans: `ai-dev/plans/2026-07-21-1200-1-nop-metadata-p1-runtime-defects.md`, `ai-dev/plans/2026-07-21-1200-2-nop-metadata-code-quality-and-docs.md`
+
+<AI_STEP_RESULT>issues</AI_STEP_RESULT>
