@@ -1,4 +1,4 @@
-> Audit Status: planned
+> Audit Status: closed (all findings routed to Plans 08/09/10, now completed)
 > Audit Type: open-ended
 > Mission: nop-metadata
 

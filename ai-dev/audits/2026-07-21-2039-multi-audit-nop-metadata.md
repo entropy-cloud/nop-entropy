@@ -1,4 +1,4 @@
-> Audit Status: planned
+> Audit Status: closed (all findings routed to Plans 08/09/10, now completed)
 > Audit Type: multi-dimensional
 > Mission: nop-metadata
 
@@ -224,4 +224,4 @@
 
 ---
 
-> Audit Status: **planned** — Findings routed to Plans 08/09/10.
+> Audit Status: **closed** — Findings routed to Plans 08/09/10, all completed.
