@@ -24,8 +24,8 @@ public class QualityRulesForDataSourceResultDTO implements Serializable {
 
     private String dataSourceId;
     private int totalRuleCount;
-    private int executedRuleCount;
-    private List<QualityRuleResultDTO> ruleResults = new ArrayList<>();
+    private int executedCount;
+    private List<QualityRuleExecuteResultDTO> results = new ArrayList<>();
     private List<ErrorDTO> errors = new ArrayList<>();
 
     public String getDataSourceId() {
@@ -44,20 +44,20 @@ public class QualityRulesForDataSourceResultDTO implements Serializable {
         this.totalRuleCount = totalRuleCount;
     }
 
-    public int getExecutedRuleCount() {
-        return executedRuleCount;
+    public int getExecutedCount() {
+        return executedCount;
     }
 
-    public void setExecutedRuleCount(int executedRuleCount) {
-        this.executedRuleCount = executedRuleCount;
+    public void setExecutedCount(int executedCount) {
+        this.executedCount = executedCount;
     }
 
-    public List<QualityRuleResultDTO> getRuleResults() {
-        return ruleResults;
+    public List<QualityRuleExecuteResultDTO> getResults() {
+        return results;
     }
 
-    public void setRuleResults(List<QualityRuleResultDTO> ruleResults) {
-        this.ruleResults = ruleResults;
+    public void setResults(List<QualityRuleExecuteResultDTO> results) {
+        this.results = results;
     }
 
     public List<ErrorDTO> getErrors() {

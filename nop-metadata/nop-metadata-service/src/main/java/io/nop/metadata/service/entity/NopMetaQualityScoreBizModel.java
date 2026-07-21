@@ -17,13 +17,12 @@ import io.nop.biz.crud.CrudBizModel;
 import io.nop.core.context.IServiceContext;
 import io.nop.core.lang.json.JsonTool;
 import io.nop.metadata.biz.INopMetaQualityScoreBiz;
+import io.nop.metadata.core.dto.QualityScoreResultDTO;
 import io.nop.metadata.dao.entity.NopMetaQualityScore;
 import io.nop.metadata.service.quality.MetaQualityScorer;
 import jakarta.inject.Inject;
 
 import java.sql.Timestamp;
-import java.util.LinkedHashMap;
-import java.util.Map;
 
 /**
  * 质量评分 BizModel：基线 CRUD（{@link CrudBizModel}）+ 手动评分入口（架构基线 §2.7.4）。
@@ -53,15 +52,15 @@ public class NopMetaQualityScoreBizModel extends CrudBizModel<NopMetaQualityScor
      *
      * <p>委托 {@link MetaQualityScorer#score}（读规则最新 QualityResult → 维度映射 → 维度 pass rate →
      * 加权总分 → 趋势先查后写），落盘一行新 {@link NopMetaQualityScore}（scoreTime=now，时序追加不覆盖），
-     * 返回 {@code {scoreId, overallScore, dimensionScores, ruleSummary, trend}}。
+     * 返回 {@code QualityScoreResultDTO}。
      *
      * @param metaTableId 目标逻辑表 ID（NopMetaTable.metaTableId）
      * @param context     服务上下文
-     * @return 评分摘要 {@code {scoreId, overallScore, dimensionScores, ruleSummary, trend}}
+     * @return 评分摘要 QualityScoreResultDTO
      */
     @BizMutation
-    public Map<String, Object> computeQualityScore(@Name("metaTableId") String metaTableId,
-                                                    IServiceContext context) {
+    public QualityScoreResultDTO computeQualityScore(@Name("metaTableId") String metaTableId,
+                                                      IServiceContext context) {
         MetaQualityScorer.QualityScoreResult result = ensureScorer().score(metaTableId);
 
         // 落盘新评分行（时序语义：scoreTime=now，不覆盖）
@@ -75,13 +74,14 @@ public class NopMetaQualityScoreBizModel extends CrudBizModel<NopMetaQualityScor
         dao().saveEntity(row);
 
         // 返回摘要（含落盘后的 scoreId）
-        Map<String, Object> summary = new LinkedHashMap<>();
-        summary.put("scoreId", row.getQualityScoreId());
-        summary.put("overallScore", result.getOverallScore());
-        summary.put("dimensionScores", result.getDimensionScores());
-        summary.put("ruleSummary", result.getRuleSummary());
-        summary.put("trend", result.getTrend());
-        return summary;
+        QualityScoreResultDTO dto = new QualityScoreResultDTO();
+        dto.setScoreId(row.getQualityScoreId());
+        dto.setQualityScoreId(row.getQualityScoreId());
+        dto.setOverallScore(result.getOverallScore());
+        dto.setDimensionScores(result.getDimensionScores());
+        dto.setRuleSummary(result.getRuleSummary());
+        dto.setTrend(result.getTrend());
+        return dto;
     }
 
     // ============================================================

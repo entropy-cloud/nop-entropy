@@ -259,7 +259,8 @@ public class TestEntityTableExecution extends JunitBaseTestCase {
 
     private GraphQLResponseBean execRule(String ruleId) {
         return graphQLEngine.executeGraphQL(graphQLEngine.newGraphQLContext(req(
-                "mutation { NopMetaQualityRule__executeQualityRule(qualityRuleId: \"" + ruleId + "\") }")));
+                "mutation { NopMetaQualityRule__executeQualityRule(qualityRuleId: \"" + ruleId + "\") "
+                        + "{ qualityResultId status actualValue expectedValue message details } }")));
     }
 
     private GraphQLRequestBean req(String query) {

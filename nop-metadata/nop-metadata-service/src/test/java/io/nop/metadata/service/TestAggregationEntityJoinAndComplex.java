@@ -59,7 +59,7 @@ public class TestAggregationEntityJoinAndComplex extends JunitBaseTestCase {
         ApiResponse<?> resp = _helper.executeRpc(GraphQLOperationType.query, "NopMetaTable__queryAggregation",
                 _helper.queryAggregationRequest(tableId, measures, dims, filter, joinId, limit, offset, having, orderBy));
         if (!resp.isOk()) {
-            throw new NopException("queryAggregation RPC failed: " + resp);
+            throw new NopException(NopMetadataErrors.ERR_AGGR_EXEC_FAILED).param("response", String.valueOf(resp));
         }
         Map<String, Object> data = (Map<String, Object>) resp.getData();
         return (List<Map<String, Object>>) data.get("items");

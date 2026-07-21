@@ -12,13 +12,13 @@ import io.nop.api.core.annotations.biz.BizModel;
 import io.nop.metadata.service.NopMetadataErrors;
 import io.nop.api.core.annotations.biz.BizMutation;
 import io.nop.api.core.annotations.core.Name;
-import io.nop.api.core.exceptions.ErrorCode;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.biz.crud.CrudBizModel;
 import io.nop.core.context.IServiceContext;
 import io.nop.core.lang.json.JsonTool;
 import io.nop.dao.api.IEntityDao;
 import io.nop.metadata.biz.INopMetaReconciliationResultBiz;
+import io.nop.metadata.core.dto.ReconciliationSelectionDTO;
 import io.nop.metadata.dao.entity.NopMetaReconciliationResult;
 
 import java.util.ArrayList;
@@ -95,14 +95,14 @@ public class NopMetaReconciliationResultBizModel extends CrudBizModel<NopMetaRec
      * 人工确认批量匹配（设计 §3.4）。
      *
      * @param resultId   对账结果 ID
-     * @param selections 选择列表，每项 {@code {rowIndex, selectedEntityId}}
+     * @param selections 选择列表
      * @param context    服务上下文
      * @return 更新后的 {@link NopMetaReconciliationResult}
      */
     @BizMutation
     public NopMetaReconciliationResult batchConfirmMatches(@Name("resultId") String resultId,
-                                                            @Name("selections") List<Map<String, Object>> selections,
-                                                            IServiceContext context) {
+                                                             @Name("selections") List<ReconciliationSelectionDTO> selections,
+                                                             IServiceContext context) {
         if (selections == null || selections.isEmpty()) {
             throw new NopException(NopMetadataErrors.ERR_RECON_SELECTIONS_EMPTY).param("resultId", resultId);
         }
@@ -110,10 +110,9 @@ public class NopMetaReconciliationResultBizModel extends CrudBizModel<NopMetaRec
         List<Object> details = parseDetailsOrThrow(result);
         int size = details.size();
 
-        for (Map<String, Object> sel : selections) {
-            int rowIndex = toInt(sel.get(FIELD_ROW_INDEX));
-            // 输入选择项键为 selectedEntityId（与 confirmMatch 入参一致），写入 detail 键为 selectedId
-            String selectedEntityId = toStr(sel.getOrDefault(FIELD_SELECTED_ENTITY_ID, sel.get(FIELD_SELECTED_ID)));
+        for (ReconciliationSelectionDTO sel : selections) {
+            int rowIndex = sel.getRowIndex();
+            String selectedEntityId = sel.getSelectedEntityId();
             checkRowIndex(resultId, rowIndex, size);
 
             @SuppressWarnings("unchecked")
@@ -169,7 +168,16 @@ public class NopMetaReconciliationResultBizModel extends CrudBizModel<NopMetaRec
         if (v instanceof Number) {
             return ((Number) v).intValue();
         }
-        return Integer.parseInt(String.valueOf(v));
+        if (v == null) {
+            throw new NopException(NopMetadataErrors.ERR_RECON_INVALID_SELECTION)
+                    .param("value", "null");
+        }
+        try {
+            return Integer.parseInt(String.valueOf(v));
+        } catch (NumberFormatException e) {
+            throw new NopException(NopMetadataErrors.ERR_RECON_INVALID_SELECTION)
+                    .param("value", String.valueOf(v));
+        }
     }
 
     private static String toStr(Object v) {

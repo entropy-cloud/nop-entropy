@@ -134,7 +134,7 @@ public class CheckpointActionDispatcher {
             }
             actionList = (List<Object>) parsed;
         } catch (Exception e) {
-            // actions 不可解析 —— executor validate 已回退 store-only，此处不应到达
+            LOG.error("actions JSON parse failed (should have been validated): checkpointId={}", cp.getCheckpointId(), e);
             return;
         }
 

@@ -126,6 +126,15 @@ public interface NopMetadataErrors {
     String ARG_TAG_LABEL_ID = "tagLabelId";
     String ARG_LABEL_TYPE = "labelType";
     String ARG_DATA_PRODUCT_ID = "dataProductId";
+    String ARG_VALUE = "value";
+    String ARG_LENGTH = "length";
+    String ARG_CLAUSE = "clause";
+    String ARG_COLUMN = "column";
+    String ARG_EXPR = "expr";
+    String ARG_SQL_HASH = "sqlHash";
+    String ARG_ACTION_TYPE = "actionType";
+    String ARG_GRANULARITY = "granularity";
+    String ARG_MATCH_STRATEGY = "matchStrategy";
 
     // ===== Aggregation (aggr) =====
 
@@ -170,12 +179,12 @@ public interface NopMetadataErrors {
             ErrorCode.define("nop.err.metadata.aggr-expression-too-long",
                     "Expression measure text exceeds VARCHAR(1000) capacity limit (not truncated, "
                             + "not silently stored): {metaTableId} measureName={measureName} length={length} limit={limit}",
-                    ARG_META_TABLE_ID, ARG_MEASURE_NAME, "length", ARG_LIMIT);
+                    ARG_META_TABLE_ID, ARG_MEASURE_NAME, ARG_LENGTH, ARG_LIMIT);
     ErrorCode ERR_AGGR_EXPRESSION_HAVING_ORDER_BY_UNSUPPORTED =
             ErrorCode.define("nop.err.metadata.aggr-expression-having-order-by-unsupported",
                     "Expression-type measure is referenced by HAVING or ORDER BY name: "
                             + "{metaTableId} measureName={measureName} clause={clause}",
-                    ARG_META_TABLE_ID, ARG_MEASURE_NAME, "clause");
+                    ARG_META_TABLE_ID, ARG_MEASURE_NAME, ARG_CLAUSE);
     ErrorCode ERR_AGGR_AGG_FUNC_UNSUPPORTED =
             ErrorCode.define("nop.err.metadata.aggr-agg-func-unsupported",
                     "aggFunc not supported (expected sum/count/avg/min/max/countDistinct): "
@@ -227,7 +236,7 @@ public interface NopMetadataErrors {
             ErrorCode.define("nop.err.metadata.aggr-join-field-not-on-side",
                     "Measure/Dimension column does not exist on the endpoint resolved field set for the given side: "
                             + "{metaTableId} name={name} side={side} endpointTableType={endpointTableType} column={column} "
-                            + "joinId={joinId}", ARG_META_TABLE_ID, ARG_NAME, ARG_SIDE, ARG_ENDPOINT_TABLE_TYPE, "column", ARG_JOIN_ID);
+                            + "joinId={joinId}", ARG_META_TABLE_ID, ARG_NAME, ARG_SIDE, ARG_ENDPOINT_TABLE_TYPE, ARG_COLUMN, ARG_JOIN_ID);
     ErrorCode ERR_AGGR_JOIN_ENTITY_SIDE_MISMATCH =
             ErrorCode.define("nop.err.metadata.aggr-join-entity-side-mismatch",
                     "Measure/Dimension side is inconsistent with entityFieldId->metaEntityId attribution on entity endpoint: "
@@ -283,17 +292,17 @@ public interface NopMetadataErrors {
     ErrorCode ERR_AGGR_HAVING_EXPR_UNPARSEABLE =
             ErrorCode.define("nop.err.metadata.aggr-having-expr-unparseable",
                     "Multi-column arithmetic HAVING expression is unparseable: {metaTableId} expr={expr} error={error}",
-                    ARG_META_TABLE_ID, "expr", ARG_ERROR);
+                    ARG_META_TABLE_ID, ARG_EXPR, ARG_ERROR);
     ErrorCode ERR_AGGR_HAVING_EXPR_UNSAFE =
             ErrorCode.define("nop.err.metadata.aggr-having-expr-unsafe",
                     "Multi-column arithmetic HAVING expression is unsafe: "
                             + "{metaTableId} expr={expr} reason={reason}",
-                    ARG_META_TABLE_ID, "expr", ARG_REASON);
+                    ARG_META_TABLE_ID, ARG_EXPR, ARG_REASON);
     ErrorCode ERR_AGGR_HAVING_EXPR_MEMORY_NOT_COMPUTABLE =
             ErrorCode.define("nop.err.metadata.aggr-having-expr-memory-not-computable",
                     "Multi-column arithmetic HAVING expression is not computable in cross-DB in-memory GROUP BY path: "
                             + "{metaTableId} expr={expr}",
-                    ARG_META_TABLE_ID, "expr");
+                    ARG_META_TABLE_ID, ARG_EXPR);
 
     // ===== Join (join) =====
 
@@ -541,7 +550,7 @@ public interface NopMetadataErrors {
             ErrorCode.define("nop.err.metadata.quality-custom-sql-blocked",
                     "custom_sql rule SQL contains forbidden keyword: "
                             + "{ruleKey} reason={reason} sqlHash={sqlHash}",
-                    ARG_RULE_KEY, ARG_REASON, "sqlHash");
+                    ARG_RULE_KEY, ARG_REASON, ARG_SQL_HASH);
     ErrorCode ERR_QUALITY_SQL_NO_ROW =
             ErrorCode.define("nop.err.metadata.quality-sql-no-row",
                     "Quality custom_sql returned no rows: {ruleKey}", ARG_RULE_KEY);
@@ -566,7 +575,7 @@ public interface NopMetadataErrors {
     ErrorCode ERR_CHECKPOINT_ACTION_NOT_SUPPORTED =
             ErrorCode.define("nop.err.metadata.checkpoint-action-not-supported",
                     "Quality checkpoint action type is not supported (only store/webhook/notify): "
-                            + "{checkpointId} actionType={actionType}", ARG_CHECKPOINT_ID, "actionType");
+                            + "{checkpointId} actionType={actionType}", ARG_CHECKPOINT_ID, ARG_ACTION_TYPE);
     ErrorCode ERR_CHECKPOINT_RULE_TARGET_TABLE_NOT_FOUND =
             ErrorCode.define("nop.err.metadata.checkpoint-rule-target-table-not-found",
                     "Quality rule in checkpoint target table not found: "
@@ -924,7 +933,7 @@ public interface NopMetadataErrors {
             ErrorCode.define("nop.err.metadata.aggr-granularity-not-supported",
                     "granularity value not in supported set [year,quarter,month,week,day,hour]: "
                             + "{granularity} dimensionName={dimensionName}",
-                    "granularity", ARG_DIMENSION_NAME);
+                    ARG_GRANULARITY, ARG_DIMENSION_NAME);
 
     // ===== Reconciliation =====
 
@@ -935,7 +944,7 @@ public interface NopMetadataErrors {
                     ARG_CONFIG_ID, ARG_COLUMN_NAME, ARG_ROW_INDEX);
     ErrorCode ERR_RECON_UNSUPPORTED_MATCH_STRATEGY =
             ErrorCode.define("nop.err.metadata.recon-unsupported-match-strategy",
-                    "Unsupported matchStrategy for reconciliation: {matchStrategy}", "matchStrategy");
+                    "Unsupported matchStrategy for reconciliation: {matchStrategy}", ARG_MATCH_STRATEGY);
     ErrorCode ERR_RECON_UNKNOWN_STATUS =
             ErrorCode.define("nop.err.metadata.recon-unknown-status",
                     "Reconciliation produced unknown status: {status}", ARG_STATUS);
@@ -969,6 +978,10 @@ public interface NopMetadataErrors {
     ErrorCode ERR_RECON_SELECTIONS_EMPTY =
             ErrorCode.define("nop.err.metadata.recon-selections-empty",
                     "Reconciliation batch confirm selections is empty: resultId={resultId}", ARG_RESULT_ID);
+    ErrorCode ERR_RECON_INVALID_SELECTION =
+            ErrorCode.define("nop.err.metadata.recon-invalid-selection",
+                    "Reconciliation selection value is invalid: resultId={resultId} value={value}",
+                    ARG_RESULT_ID, ARG_VALUE);
 
     // ===== Legacy preserved ErrorCodes (Phase 1) now grouped above =====
 
@@ -981,7 +994,7 @@ public interface NopMetadataErrors {
     ErrorCode ERR_QUALITY_EXPECT_PASS_WHEN_INVALID =
             ErrorCode.define("nop.err.metadata.quality-expect-pass-when-invalid",
                     "Quality rule expectPassWhen expression is invalid: {qualityRuleId} expr={expr}",
-                    ARG_QUALITY_RULE_ID, "expr");
+                    ARG_QUALITY_RULE_ID, ARG_EXPR);
 
     /** 字段序列化失败（plan Phase 1 DTO 序列化异常路径，无静默跳过）。 */
     ErrorCode ERR_DTO_SERIALIZE_FAILED =
@@ -996,13 +1009,13 @@ public interface NopMetadataErrors {
 
     /** manifest 模块为空。 */
     ErrorCode ERR_MANIFEST_MODULE_NULL =
-            ErrorCode.define("nop.err.metadata.manifest.module-null",
+            ErrorCode.define("nop.err.metadata.manifest-module-null",
                     "MetaManifest build failed: module is null",
                     ARG_META_MODULE_ID);
 
     /** manifest ORM 模型为空。 */
     ErrorCode ERR_MANIFEST_ORM_MODEL_NULL =
-            ErrorCode.define("nop.err.metadata.manifest.orm-model-null",
+            ErrorCode.define("nop.err.metadata.manifest-orm-model-null",
                     "MetaManifest build failed: full ORM model is null",
                     ARG_META_MODULE_ID);
 

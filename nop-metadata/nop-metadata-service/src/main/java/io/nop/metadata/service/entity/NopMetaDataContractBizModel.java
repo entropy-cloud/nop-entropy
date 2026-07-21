@@ -10,6 +10,7 @@ import io.nop.core.context.IServiceContext;
 import io.nop.core.lang.json.JsonTool;
 import io.nop.metadata.biz.INopMetaDataContractBiz;
 import io.nop.metadata.core._NopMetadataCoreConstants;
+import io.nop.metadata.core.dto.ContractCheckResultDTO;
 import io.nop.metadata.dao.entity.NopMetaDataContract;
 import io.nop.metadata.service.NopMetadataErrors;
 import io.nop.metadata.service.contract.MetaContractChecker;
@@ -123,8 +124,9 @@ public class NopMetaDataContractBizModel extends CrudBizModel<NopMetaDataContrac
     // 契约检查（D2 钉死语义）
     // ============================================================
 
+    @SuppressWarnings("unchecked")
     @BizMutation
-    public Map<String, Object> checkContract(@Name("contractId") String contractId, IServiceContext context) {
+    public ContractCheckResultDTO checkContract(@Name("contractId") String contractId, IServiceContext context) {
         NopMetaDataContract contract = dao().getEntityById(contractId);
         if (contract == null) {
             throw new NopException(ERR_CONTRACT_NOT_FOUND).param("contractId", contractId);
@@ -138,7 +140,20 @@ public class NopMetaDataContractBizModel extends CrudBizModel<NopMetaDataContrac
 
         contract.setLatestResult(JsonTool.stringify(result));
         dao().updateEntity(contract);
-        return result;
+
+        ContractCheckResultDTO dto = new ContractCheckResultDTO();
+        if (result.get("timestamp") instanceof java.sql.Timestamp) {
+            dto.setTimestamp((java.sql.Timestamp) result.get("timestamp"));
+        }
+        dto.setStatus((String) result.get("status"));
+        dto.setMessage((String) result.get("message"));
+        if (result.get("qualitySummary") instanceof Map) {
+            dto.setQualitySummary((Map<String, Object>) result.get("qualitySummary"));
+        }
+        if (result.get("slaSummary") instanceof Map) {
+            dto.setSlaSummary((Map<String, Object>) result.get("slaSummary"));
+        }
+        return dto;
     }
 
     // ============================================================

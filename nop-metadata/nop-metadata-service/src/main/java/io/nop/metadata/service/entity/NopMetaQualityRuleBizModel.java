@@ -23,6 +23,9 @@ import io.nop.core.lang.json.JsonTool;
 import io.nop.dao.api.IEntityDao;
 import io.nop.metadata.biz.INopMetaQualityRuleBiz;
 import io.nop.metadata.core._NopMetadataCoreConstants;
+import io.nop.metadata.core.dto.ErrorDTO;
+import io.nop.metadata.core.dto.QualityRuleExecuteResultDTO;
+import io.nop.metadata.core.dto.QualityRulesForDataSourceResultDTO;
 import io.nop.metadata.dao.entity.NopMetaDataSource;
 import io.nop.metadata.dao.entity.NopMetaEntity;
 import io.nop.metadata.dao.entity.NopMetaEntityField;
@@ -48,7 +51,6 @@ import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -120,12 +122,12 @@ public class NopMetaQualityRuleBizModel extends CrudBizModel<NopMetaQualityRule>
      *
      * @param qualityRuleId 规则 ID
      * @param schemaPattern 可选 schema 限定（null/空串表示依赖连接默认 schema）
-     * @return {@code {qualityResultId, status, actualValue, expectedValue, message, details}}
+     * @return {@code QualityRuleExecuteResultDTO}
      */
     @BizMutation
-    public Map<String, Object> executeQualityRule(@Name("qualityRuleId") String qualityRuleId,
-                                                  @Optional @Name("schemaPattern") String schemaPattern,
-                                                  IServiceContext context) {
+    public QualityRuleExecuteResultDTO executeQualityRule(@Name("qualityRuleId") String qualityRuleId,
+                                                           @Optional @Name("schemaPattern") String schemaPattern,
+                                                           IServiceContext context) {
         NopMetaQualityRule rule = dao().getEntityById(qualityRuleId);
         if (rule == null) {
             throw new NopException(NopMetadataErrors.ERR_QUALITY_RULE_NOT_FOUND).param("qualityRuleId", qualityRuleId);
@@ -140,7 +142,7 @@ public class NopMetaQualityRuleBizModel extends CrudBizModel<NopMetaQualityRule>
             skip.getDetails().put("ruleType", rule.getRuleType());
             skip.getDetails().put("entityType", rule.getEntityType());
             NopMetaQualityResult row = appendQualityResult(rule.getQualityRuleId(), skip);
-            return buildSingleResultMap(row, skip);
+            return buildSingleResultDto(row, skip);
         }
 
         // 解析目标表（任意 tableType）+ table-reference
@@ -172,7 +174,7 @@ public class NopMetaQualityRuleBizModel extends CrudBizModel<NopMetaQualityRule>
             }
         }
 
-        return buildSingleResultMap(row, judgment);
+        return buildSingleResultDto(row, judgment);
     }
 
     // ============================================================
@@ -187,12 +189,12 @@ public class NopMetaQualityRuleBizModel extends CrudBizModel<NopMetaQualityRule>
      *
      * @param dataSourceId  目标数据源 ID
      * @param schemaPattern 可选 schema 限定
-     * @return {@code {executedCount: int, results: [...], errors: [{qualityRuleId, error}, ...]}}
+     * @return {@code QualityRulesForDataSourceResultDTO}
      */
     @BizMutation
-    public Map<String, Object> executeQualityRulesForDataSource(@Name("dataSourceId") String dataSourceId,
-                                                                @Optional @Name("schemaPattern") String schemaPattern,
-                                                                IServiceContext context) {
+    public QualityRulesForDataSourceResultDTO executeQualityRulesForDataSource(@Name("dataSourceId") String dataSourceId,
+                                                                                @Optional @Name("schemaPattern") String schemaPattern,
+                                                                                IServiceContext context) {
         NopMetaDataSource dataSource = daoFor(NopMetaDataSource.class).getEntityById(dataSourceId);
         if (dataSource == null) {
             throw new NopException(NopMetadataErrors.ERR_DATASOURCE_NOT_FOUND).param("dataSourceId", dataSourceId);
@@ -203,12 +205,12 @@ public class NopMetaQualityRuleBizModel extends CrudBizModel<NopMetaQualityRule>
 
         // 该 querySpace 下 external 表
         List<NopMetaTable> externalTables = findExternalTables(dataSource.getQuerySpace());
+        QualityRulesForDataSourceResultDTO dto = new QualityRulesForDataSourceResultDTO();
+        dto.setDataSourceId(dataSourceId);
+
         if (externalTables.isEmpty()) {
-            Map<String, Object> empty = new LinkedHashMap<>();
-            empty.put("executedCount", 0);
-            empty.put("results", new ArrayList<>());
-            empty.put("errors", new ArrayList<>());
-            return empty;
+            dto.setExecutedCount(0);
+            return dto;
         }
 
         // 表 id → 物理表名 + schema（callback 内按规则 entityId 解析；plan 0852-3 Phase 3 多 schema 批量逐表）
@@ -226,17 +228,15 @@ public class NopMetaQualityRuleBizModel extends CrudBizModel<NopMetaQualityRule>
         ruleQuery.addFilter(FilterBeans.in(NopMetaQualityRule.PROP_NAME_entityId, tableIds));
         List<NopMetaQualityRule> rules = ruleDao.findAllByQuery(ruleQuery);
 
-        AtomicInteger executedCount = new AtomicInteger(0);
-        List<Map<String, Object>> results = new ArrayList<>();
-        List<Map<String, Object>> errors = new ArrayList<>();
+        dto.setTotalRuleCount(rules.size());
 
         if (rules.isEmpty()) {
-            Map<String, Object> empty = new LinkedHashMap<>();
-            empty.put("executedCount", 0);
-            empty.put("results", results);
-            empty.put("errors", errors);
-            return empty;
+            return dto;
         }
+
+        AtomicInteger executedCount = new AtomicInteger(0);
+        List<QualityRuleExecuteResultDTO> results = new ArrayList<>();
+        List<ErrorDTO> errors = new ArrayList<>();
 
         connectionService.withConnection(dataSource.getDatasourceType(), dataSource.getConnectionConfig(),
                 (Connection conn, DatabaseMetaData metaData) -> {
@@ -263,26 +263,21 @@ public class NopMetaQualityRuleBizModel extends CrudBizModel<NopMetaQualityRule>
                             NopMetaQualityResult row = appendQualityResult(rule.getQualityRuleId(), judgment);
                             orm().flushSession();
                             executedCount.incrementAndGet();
-                            results.add(buildSingleResultMap(row, judgment));
+                            results.add(buildSingleResultDto(row, judgment));
                         } catch (Exception e) {
                             LOG.error("executeQualityRulesForDataSource failed for rule: {}",
                                     rule.getQualityRuleId(), e);
-                            Map<String, Object> err = new LinkedHashMap<>();
-                            err.put("qualityRuleId", rule.getQualityRuleId());
-                            err.put("ruleName", rule.getRuleName());
-                            err.put("error", toErrorMessage(e));
-                            errors.add(err);
+                            errors.add(new ErrorDTO(rule.getQualityRuleId(), toErrorMessage(e), rule.getRuleName()));
                             // 隔离失败：清理未刷出的脏实体，不影响已 flush 的规则与后续规则
                             orm().clearSession();
                         }
                     }
                 });
 
-        Map<String, Object> result = new LinkedHashMap<>();
-        result.put("executedCount", executedCount.get());
-        result.put("results", results);
-        result.put("errors", errors);
-        return result;
+        dto.setExecutedCount(executedCount.get());
+        dto.setResults(results);
+        dto.setErrors(errors);
+        return dto;
     }
 
     // ============================================================
@@ -358,15 +353,17 @@ public class NopMetaQualityRuleBizModel extends CrudBizModel<NopMetaQualityRule>
         return resultWriter.append(daoFor(NopMetaQualityResult.class), qualityRuleId, judgment);
     }
 
-    private static Map<String, Object> buildSingleResultMap(NopMetaQualityResult row, QualityRuleJudgment j) {
-        Map<String, Object> m = new LinkedHashMap<>();
-        m.put("qualityResultId", row.getQualityResultId());
-        m.put("status", j.getStatus());
-        m.put("actualValue", j.getActualValue());
-        m.put("expectedValue", j.getExpectedValue());
-        m.put("message", j.getMessage());
-        m.put("details", j.getDetails());
-        return m;
+    private static QualityRuleExecuteResultDTO buildSingleResultDto(NopMetaQualityResult row, QualityRuleJudgment j) {
+        QualityRuleExecuteResultDTO dto = new QualityRuleExecuteResultDTO();
+        dto.setQualityResultId(row.getQualityResultId());
+        dto.setStatus(j.getStatus());
+        dto.setActualValue(j.getActualValue());
+        dto.setExpectedValue(j.getExpectedValue());
+        dto.setMessage(j.getMessage());
+        if (j.getDetails() != null) {
+            dto.setDetails(j.getDetails());
+        }
+        return dto;
     }
 
     /**
@@ -374,7 +371,7 @@ public class NopMetaQualityRuleBizModel extends CrudBizModel<NopMetaQualityRule>
      * 从 DB 加载规则全字段，重建执行上下文，返回判定结果。
      */
     @BizQuery
-    public Map<String, Object> judgeByRuleId(@Name("ruleId") String ruleId, IServiceContext context) {
+    public QualityRuleExecuteResultDTO judgeByRuleId(@Name("ruleId") String ruleId, IServiceContext context) {
         NopMetaQualityRule rule = dao().getEntityById(ruleId);
         if (rule == null) {
             throw new NopException(NopMetadataErrors.ERR_QUALITY_RULE_NOT_FOUND).param("qualityRuleId", ruleId);
@@ -393,13 +390,15 @@ public class NopMetaQualityRuleBizModel extends CrudBizModel<NopMetaQualityRule>
                         rule.getParams(), rule.getSqlExpression(),
                         rule.getThreshold(), productName));
 
-        Map<String, Object> m = new LinkedHashMap<>();
-        m.put("status", judgment.getStatus());
-        m.put("actualValue", judgment.getActualValue());
-        m.put("expectedValue", judgment.getExpectedValue());
-        m.put("message", judgment.getMessage());
-        m.put("details", judgment.getDetails());
-        return m;
+        QualityRuleExecuteResultDTO dto = new QualityRuleExecuteResultDTO();
+        dto.setStatus(judgment.getStatus());
+        dto.setActualValue(judgment.getActualValue());
+        dto.setExpectedValue(judgment.getExpectedValue());
+        dto.setMessage(judgment.getMessage());
+        if (judgment.getDetails() != null) {
+            dto.setDetails(judgment.getDetails());
+        }
+        return dto;
     }
 
     private static String safeProductName(DatabaseMetaData metaData) {

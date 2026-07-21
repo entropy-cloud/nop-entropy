@@ -23,6 +23,7 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.TimeZone;
 
 /**
  * Manifest 构建服务：从已导入的逻辑元数据聚合 nodes/sources/parentMap/childMap，生成自包含 JSON 快照。
@@ -147,7 +148,9 @@ public class MetaManifestBuilder {
     private static String formatIso(Date date) {
         if (date == null)
             return null;
-        return new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'").format(date);
+        SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'");
+        sdf.setTimeZone(TimeZone.getTimeZone("UTC"));
+        return sdf.format(date);
     }
 
     /**

@@ -1,14 +1,11 @@
-
 package io.nop.metadata.biz;
 
 import io.nop.api.core.annotations.biz.BizMutation;
 import io.nop.api.core.annotations.core.Name;
 import io.nop.core.context.IServiceContext;
+import io.nop.metadata.core.dto.ContractCheckResultDTO;
 import io.nop.metadata.dao.entity.NopMetaDataContract;
 import io.nop.orm.biz.ICrudBiz;
-
-import java.util.Map;
-
 
 /**
  * NopMetaDataContract BizModel 契约接口（plan 2026-07-19-1250-3 Phase 1）。
@@ -31,7 +28,7 @@ public interface INopMetaDataContractBiz extends ICrudBiz<NopMetaDataContract> {
     NopMetaDataContract retireContract(@Name("contractId") String contractId, IServiceContext context);
 
     @BizMutation
-    Map<String, Object> checkContract(@Name("contractId") String contractId, IServiceContext context);
+    ContractCheckResultDTO checkContract(@Name("contractId") String contractId, IServiceContext context);
 
     @BizMutation
     NopMetaDataContract approve(@Name("id") String id, IServiceContext context);

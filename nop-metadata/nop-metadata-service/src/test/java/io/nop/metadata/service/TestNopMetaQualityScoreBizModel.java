@@ -274,7 +274,8 @@ public class TestNopMetaQualityScoreBizModel extends JunitBaseTestCase {
 
     private GraphQLResponseBean exec(String metaTableId) {
         IGraphQLExecutionContext ctx = graphQLEngine.newGraphQLContext(req(
-                "mutation { NopMetaQualityScore__computeQualityScore(metaTableId: \"" + metaTableId + "\") }"));
+                "mutation { NopMetaQualityScore__computeQualityScore(metaTableId: \"" + metaTableId + "\") "
+                        + "{ scoreId overallScore dimensionScores ruleSummary trend } }"));
         return graphQLEngine.executeGraphQL(ctx);
     }
 

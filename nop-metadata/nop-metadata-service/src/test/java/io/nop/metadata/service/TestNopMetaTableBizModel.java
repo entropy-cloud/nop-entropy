@@ -288,7 +288,8 @@ public class TestNopMetaTableBizModel extends JunitBaseTestCase {
         saveProfilingRule("prof-rule-1", tableId, null, null);
         GraphQLResponseBean resp = graphQLEngine.executeGraphQL(graphQLEngine.newGraphQLContext(req(
                 "mutation { NopMetaProfilingRule__executeProfilingRule(profilingRuleId: \"prof-rule-1\", "
-                        + "schemaPattern: \"PUBLIC\") }")));
+                        + "schemaPattern: \"PUBLIC\") "
+                        + "{ profilingResultId columnCount unavailable columnUnavailable errors { code message detail } } }")));
         assertFalse(resp.hasError(), "executeProfilingRule should not error: " + resp);
 
         NopMetaProfilingResult row = findResultByRule("prof-rule-1");

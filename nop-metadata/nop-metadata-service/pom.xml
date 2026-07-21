@@ -71,6 +71,7 @@
             <groupId>io.github.entropy-cloud</groupId>
             <artifactId>nop-search-api</artifactId>
         </dependency>
+        <!-- nop-search-lucene (optional — replace with search-platform-elasticsearch or another nop-search-* impl for production search) -->
         <dependency>
             <groupId>io.github.entropy-cloud</groupId>
             <artifactId>nop-search-lucene</artifactId>

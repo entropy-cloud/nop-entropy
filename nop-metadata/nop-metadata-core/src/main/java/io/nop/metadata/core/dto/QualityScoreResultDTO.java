@@ -1,38 +1,28 @@
-/**
- * Copyright (c) 2017-2024 Nop Platform. All rights reserved.
- * Author: canonical_entropy@163.com
- * Blog:   https://www.zhihu.com/people/canonical-entropy
- * Gitee:  https://github.com/entropy-cloud/nop-entropy
- * Github: https://github.com/entropy-cloud/nop-entropy
- */
-
 package io.nop.metadata.core.dto;
 
 import io.nop.api.core.annotations.data.DataBean;
 
 import java.io.Serializable;
+import java.util.LinkedHashMap;
+import java.util.Map;
 
-/**
- * 质量评分计算结果 DTO（来源：{@code NopMetaQualityScoreBizModel.computeQualityScore}）。
- */
 @DataBean
 public class QualityScoreResultDTO implements Serializable {
     private static final long serialVersionUID = 1L;
 
-    private String metaTableId;
+    private String scoreId;
     private String qualityScoreId;
-    private double score;
-    private int totalRules;
-    private int passedRules;
-    private int failedRules;
-    private int skippedRules;
+    private double overallScore;
+    private Map<String, Object> dimensionScores = new LinkedHashMap<>();
+    private Map<String, Object> ruleSummary = new LinkedHashMap<>();
+    private Map<String, Object> trend = new LinkedHashMap<>();
 
-    public String getMetaTableId() {
-        return metaTableId;
+    public String getScoreId() {
+        return scoreId;
     }
 
-    public void setMetaTableId(String metaTableId) {
-        this.metaTableId = metaTableId;
+    public void setScoreId(String scoreId) {
+        this.scoreId = scoreId;
     }
 
     public String getQualityScoreId() {
@@ -43,43 +33,35 @@ public class QualityScoreResultDTO implements Serializable {
         this.qualityScoreId = qualityScoreId;
     }
 
-    public double getScore() {
-        return score;
+    public double getOverallScore() {
+        return overallScore;
     }
 
-    public void setScore(double score) {
-        this.score = score;
+    public void setOverallScore(double overallScore) {
+        this.overallScore = overallScore;
     }
 
-    public int getTotalRules() {
-        return totalRules;
+    public Map<String, Object> getDimensionScores() {
+        return dimensionScores;
     }
 
-    public void setTotalRules(int totalRules) {
-        this.totalRules = totalRules;
+    public void setDimensionScores(Map<String, Object> dimensionScores) {
+        this.dimensionScores = dimensionScores;
     }
 
-    public int getPassedRules() {
-        return passedRules;
+    public Map<String, Object> getRuleSummary() {
+        return ruleSummary;
     }
 
-    public void setPassedRules(int passedRules) {
-        this.passedRules = passedRules;
+    public void setRuleSummary(Map<String, Object> ruleSummary) {
+        this.ruleSummary = ruleSummary;
     }
 
-    public int getFailedRules() {
-        return failedRules;
+    public Map<String, Object> getTrend() {
+        return trend;
     }
 
-    public void setFailedRules(int failedRules) {
-        this.failedRules = failedRules;
-    }
-
-    public int getSkippedRules() {
-        return skippedRules;
-    }
-
-    public void setSkippedRules(int skippedRules) {
-        this.skippedRules = skippedRules;
+    public void setTrend(Map<String, Object> trend) {
+        this.trend = trend;
     }
 }

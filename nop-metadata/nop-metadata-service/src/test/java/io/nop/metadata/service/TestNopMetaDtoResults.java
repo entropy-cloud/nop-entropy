@@ -158,16 +158,14 @@ public class TestNopMetaDtoResults {
     @Test
     public void testQualityScoreResultDtoFields() {
         QualityScoreResultDTO dto = new QualityScoreResultDTO();
-        dto.setMetaTableId("t-1");
         dto.setQualityScoreId("s-1");
-        dto.setScore(95.5);
-        dto.setTotalRules(10);
-        dto.setPassedRules(9);
-        dto.setFailedRules(1);
-        dto.setSkippedRules(0);
-        assertEquals("t-1", dto.getMetaTableId());
-        assertEquals(95.5, dto.getScore());
-        assertEquals(10, dto.getTotalRules());
+        dto.setOverallScore(95.5);
+        dto.getDimensionScores().put("completeness", 0.9);
+        dto.getRuleSummary().put("totalRules", 10);
+        dto.getTrend().put("direction", "improving");
+        assertEquals("s-1", dto.getQualityScoreId());
+        assertEquals(95.5, dto.getOverallScore());
+        assertEquals(10, dto.getRuleSummary().get("totalRules"));
     }
 
     @Test

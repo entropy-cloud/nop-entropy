@@ -10,12 +10,12 @@ package io.nop.metadata.service.entity;
 
 import io.nop.api.core.annotations.biz.BizModel;
 import io.nop.metadata.service.NopMetadataErrors;
+import io.nop.metadata.core.dto.QualityScoreResultDTO;
 import io.nop.api.core.annotations.biz.BizMutation;
 import io.nop.api.core.annotations.core.Name;
 import io.nop.api.core.annotations.core.Optional;
 import io.nop.api.core.annotations.ioc.InjectValue;
 import io.nop.api.core.exceptions.NopException;
-import io.nop.api.core.ioc.BeanContainer;
 import io.nop.api.core.message.IMessageService;
 import io.nop.biz.crud.CrudBizModel;
 import io.nop.core.context.IServiceContext;
@@ -81,6 +81,15 @@ public class NopMetaQualityCheckpointBizModel extends CrudBizModel<NopMetaQualit
      */
     @Inject
     protected NopMetaQualityScoreBizModel scoreBizModel;
+
+    /**
+     * 注入 {@link MetaQualityCheckpointScheduler}（NopIoC bean，{@code @Nullable}——未配置调度器时不注入）。
+     * 取代 BeanContainer.tryGetBean() 服务定位器反模式，通过 IoC 注入获得调度器实例。
+     * 用于 save 后 register / delete 前 unregister cron job（旁路能力，失败不影响主路径）。
+     */
+    @Inject
+    @Nullable
+    protected MetaQualityCheckpointScheduler scheduler;
 
     /**
      * 注入 {@link IHttpClient}（NopIoC bean，{@code @Nullable}——宿主未拉 HTTP client impl 时不注入）。
@@ -228,12 +237,11 @@ public class NopMetaQualityCheckpointBizModel extends CrudBizModel<NopMetaQualit
     }
 
     private void notifySchedulerRegister(String checkpointId) {
+        if (scheduler == null) {
+            return;
+        }
         try {
-            MetaQualityCheckpointScheduler scheduler = (MetaQualityCheckpointScheduler)
-                    BeanContainer.tryGetBean(MetaQualityCheckpointScheduler.BEAN_NAME);
-            if (scheduler != null) {
-                scheduler.registerCheckpoint(checkpointId);
-            }
+            scheduler.registerCheckpoint(checkpointId);
         } catch (Exception e) {
             // 调度器注册失败不影响 save 主路径（调度是旁路能力）
             LOG.warn("nop.meta.checkpoint-scheduler.register-after-save-failed: checkpointId={}", checkpointId, e);
@@ -241,12 +249,11 @@ public class NopMetaQualityCheckpointBizModel extends CrudBizModel<NopMetaQualit
     }
 
     private void notifySchedulerUnregister(String checkpointId) {
+        if (scheduler == null) {
+            return;
+        }
         try {
-            MetaQualityCheckpointScheduler scheduler = (MetaQualityCheckpointScheduler)
-                    BeanContainer.tryGetBean(MetaQualityCheckpointScheduler.BEAN_NAME);
-            if (scheduler != null) {
-                scheduler.unregisterCheckpoint(checkpointId);
-            }
+            scheduler.unregisterCheckpoint(checkpointId);
         } catch (Exception e) {
             LOG.warn("nop.meta.checkpoint-scheduler.unregister-before-delete-failed: checkpointId={}", checkpointId, e);
         }
@@ -288,14 +295,14 @@ public class NopMetaQualityCheckpointBizModel extends CrudBizModel<NopMetaQualit
 
         for (String metaTableId : affectedTableIds) {
             try {
-                Map<String, Object> scoreSummary = scoreBizModel.computeQualityScore(metaTableId, context);
+                QualityScoreResultDTO scoreSummary = scoreBizModel.computeQualityScore(metaTableId, context);
                 // flush 以隔离：已落盘的评分行在后续表评分失败时（clearSession）不丢失
                 orm().flushSession();
 
                 Map<String, Object> entry = new LinkedHashMap<>();
                 entry.put("metaTableId", metaTableId);
-                entry.put("scoreId", scoreSummary.get("scoreId"));
-                entry.put("overallScore", scoreSummary.get("overallScore"));
+                entry.put("scoreId", scoreSummary.getScoreId());
+                entry.put("overallScore", scoreSummary.getOverallScore());
                 scoreResults.add(entry);
             } catch (Exception e) {
                 LOG.error("auto-score failed for affected table: {}", metaTableId, e);

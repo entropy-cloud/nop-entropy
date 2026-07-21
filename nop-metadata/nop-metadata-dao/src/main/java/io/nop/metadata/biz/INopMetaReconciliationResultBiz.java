@@ -4,12 +4,11 @@ package io.nop.metadata.biz;
 import io.nop.api.core.annotations.biz.BizMutation;
 import io.nop.api.core.annotations.core.Name;
 import io.nop.core.context.IServiceContext;
+import io.nop.metadata.core.dto.ReconciliationSelectionDTO;
+import io.nop.metadata.dao.entity.NopMetaReconciliationResult;
 import io.nop.orm.biz.ICrudBiz;
 
-import io.nop.metadata.dao.entity.NopMetaReconciliationResult;
-
 import java.util.List;
-import java.util.Map;
 
 
 public interface INopMetaReconciliationResultBiz extends ICrudBiz<NopMetaReconciliationResult>{
@@ -22,6 +21,6 @@ public interface INopMetaReconciliationResultBiz extends ICrudBiz<NopMetaReconci
 
     @BizMutation
     NopMetaReconciliationResult batchConfirmMatches(@Name("resultId") String resultId,
-                                                     @Name("selections") List<Map<String, Object>> selections,
+                                                     @Name("selections") List<ReconciliationSelectionDTO> selections,
                                                      IServiceContext context);
 }

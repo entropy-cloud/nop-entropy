@@ -349,7 +349,8 @@ public class TestNopMetaQualityRuleBizModel extends JunitBaseTestCase {
     public void testExecuteRuleNotFound() {
         GraphQLResponseBean resp = graphQLEngine.executeGraphQL(
                 graphQLEngine.newGraphQLContext(req(
-                        "mutation { NopMetaQualityRule__executeQualityRule(qualityRuleId: \"__nope__\") }")));
+                        "mutation { NopMetaQualityRule__executeQualityRule(qualityRuleId: \"__nope__\") "
+                                + "{ qualityResultId status actualValue expectedValue message details } }")));
         assertTrue(resp.hasError(), "non-existent rule must error (no NPE): " + resp);
     }
 
@@ -442,20 +443,24 @@ public class TestNopMetaQualityRuleBizModel extends JunitBaseTestCase {
     /** 执行规则不传 schemaPattern（验证默认 schema 解析，plan 0852-3 Phase 3）。 */
     private GraphQLResponseBean execNoSchema(String ruleId) {
         return graphQLEngine.executeGraphQL(graphQLEngine.newGraphQLContext(req(
-                "mutation { NopMetaQualityRule__executeQualityRule(qualityRuleId: \"" + ruleId + "\") }")));
+                "mutation { NopMetaQualityRule__executeQualityRule(qualityRuleId: \"" + ruleId + "\") "
+                        + "{ qualityResultId status actualValue expectedValue message details } }")));
     }
 
     /** 执行规则显式传 schemaPattern（验证覆盖语义，plan 0852-3 Phase 3）。 */
     private GraphQLResponseBean execWithSchema(String ruleId, String schemaPattern) {
         return graphQLEngine.executeGraphQL(graphQLEngine.newGraphQLContext(req(
                 "mutation { NopMetaQualityRule__executeQualityRule(qualityRuleId: \"" + ruleId + "\", "
-                        + "schemaPattern: \"" + schemaPattern + "\") }")));
+                        + "schemaPattern: \"" + schemaPattern + "\") "
+                        + "{ qualityResultId status actualValue expectedValue message details } }")));
     }
 
     private GraphQLResponseBean batchExec(String dataSourceId) {
         return graphQLEngine.executeGraphQL(graphQLEngine.newGraphQLContext(req(
                 "mutation { NopMetaQualityRule__executeQualityRulesForDataSource(dataSourceId: \""
-                        + dataSourceId + "\", schemaPattern: \"PUBLIC\") }")));
+                        + dataSourceId + "\", schemaPattern: \"PUBLIC\") "
+                        + "{ executedCount results { qualityResultId status actualValue expectedValue message details } "
+                        + "errors { code message detail } } }")));
     }
 
     private GraphQLRequestBean req(String query) {

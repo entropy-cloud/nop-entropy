@@ -603,7 +603,8 @@ public class TestNopMetaQualityCheckpointBizModel extends JunitBaseTestCase {
     /** 手动调 computeQualityScore（用于与自动评分比对，证明复用同一 scorer）。 */
     private GraphQLResponseBean scoreGraphql(String metaTableId) {
         return graphQLEngine.executeGraphQL(graphQLEngine.newGraphQLContext(req(
-                "mutation { NopMetaQualityScore__computeQualityScore(metaTableId: \"" + metaTableId + "\") }")));
+                "mutation { NopMetaQualityScore__computeQualityScore(metaTableId: \"" + metaTableId + "\") "
+                        + "{ scoreId overallScore dimensionScores ruleSummary trend } }")));
     }
 
     private GraphQLRequestBean req(String query) {

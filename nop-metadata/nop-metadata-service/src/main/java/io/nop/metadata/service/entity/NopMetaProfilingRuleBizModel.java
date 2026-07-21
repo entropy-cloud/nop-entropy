@@ -24,6 +24,8 @@ import io.nop.core.lang.json.JsonTool;
 import io.nop.dao.api.IEntityDao;
 import io.nop.metadata.biz.INopMetaProfilingRuleBiz;
 import io.nop.metadata.core._NopMetadataCoreConstants;
+import io.nop.metadata.core.dto.ErrorDTO;
+import io.nop.metadata.core.dto.ProfileResultDTO;
 import io.nop.metadata.dao.entity.NopMetaDataSource;
 import io.nop.metadata.dao.entity.NopMetaEntity;
 import io.nop.metadata.dao.entity.NopMetaEntityField;
@@ -47,7 +49,6 @@ import java.sql.DatabaseMetaData;
 import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.util.ArrayList;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -91,12 +92,12 @@ public class NopMetaProfilingRuleBizModel extends CrudBizModel<NopMetaProfilingR
      * @param profilingRuleId 规则 ID
      * @param schemaPattern   可选 schema 限定（null/空串表示依赖连接默认 schema）
      * @param context         服务上下文
-     * @return {@code {profilingResultId, columnCount, unavailable:[...], errors:[...]}}
+     * @return {@code ProfileResultDTO}
      */
     @BizMutation
-    public Map<String, Object> executeProfilingRule(@Name("profilingRuleId") String profilingRuleId,
-                                                     @Optional @Name("schemaPattern") String schemaPattern,
-                                                     IServiceContext context) {
+    public ProfileResultDTO executeProfilingRule(@Name("profilingRuleId") String profilingRuleId,
+                                                  @Optional @Name("schemaPattern") String schemaPattern,
+                                                  IServiceContext context) {
         NopMetaProfilingRule rule = dao().getEntityById(profilingRuleId);
         if (rule == null) {
             throw new NopException(NopMetadataErrors.ERR_PROFILING_RULE_NOT_FOUND).param("profilingRuleId", profilingRuleId);
@@ -119,7 +120,7 @@ public class NopMetaProfilingRuleBizModel extends CrudBizModel<NopMetaProfilingR
 
         NopMetaProfilingResult row = appendProfilingResult(
                 rule.getProfilingRuleId(), table.getMetaTableId(), snapshot);
-        return buildResultMap(row, snapshot);
+        return buildProfileResultDTO(row, snapshot);
     }
 
     // ============================================================
@@ -171,19 +172,28 @@ public class NopMetaProfilingRuleBizModel extends CrudBizModel<NopMetaProfilingR
         return row;
     }
 
-    /** 构建返回 Map（profilingResultId + 列数 + 表级不可用 + 列级 errors）。 */
-    private static Map<String, Object> buildResultMap(NopMetaProfilingResult row, ProfilingSnapshot snapshot) {
-        Map<String, Object> m = new LinkedHashMap<>();
-        m.put("profilingResultId", row.getProfilingResultId());
-        m.put("columnCount", snapshot.getColumnStats().size());
-        m.put("unavailable", snapshot.getTableUnavailable());
+    /** 构建 ProfileResultDTO（profilingResultId + 列统计 + 表级不可用 + 列级 errors）。 */
+    private static ProfileResultDTO buildProfileResultDTO(NopMetaProfilingResult row, ProfilingSnapshot snapshot) {
+        ProfileResultDTO dto = new ProfileResultDTO();
+        dto.setProfilingResultId(row.getProfilingResultId());
+        dto.setColumnCount(snapshot.getColumnStats().size());
+        dto.setUnavailable(snapshot.getTableUnavailable());
         List<String> columnUnavailable = new ArrayList<>();
         for (ProfilingColumnStats cs : snapshot.getColumnStats()) {
             columnUnavailable.addAll(cs.getUnavailable());
         }
-        m.put("columnUnavailable", columnUnavailable);
-        m.put("errors", snapshot.getErrors());
-        return m;
+        dto.setColumnUnavailable(columnUnavailable);
+        List<ErrorDTO> errorDTOs = new ArrayList<>(snapshot.getErrors().size());
+        for (Map<String, Object> err : snapshot.getErrors()) {
+            ErrorDTO errDTO = new ErrorDTO();
+            Object colName = err.get("columnName");
+            errDTO.setCode(colName != null ? colName.toString() : null);
+            Object msg = err.get("error");
+            errDTO.setMessage(msg != null ? msg.toString() : null);
+            errorDTOs.add(errDTO);
+        }
+        dto.setErrors(errorDTOs);
+        return dto;
     }
 
     private static String safeProductName(DatabaseMetaData metaData) {

@@ -30,6 +30,7 @@ public class ProfileResultDTO implements Serializable {
     private int columnCount;
     private List<ProfilingColumnStatsDTO> columns = new ArrayList<>();
     private List<String> unavailable = new ArrayList<>();
+    private List<String> columnUnavailable = new ArrayList<>();
     private List<ErrorDTO> errors = new ArrayList<>();
 
     public String getProfilingResultId() {
@@ -62,6 +63,14 @@ public class ProfileResultDTO implements Serializable {
 
     public void setUnavailable(List<String> unavailable) {
         this.unavailable = unavailable;
+    }
+
+    public List<String> getColumnUnavailable() {
+        return columnUnavailable;
+    }
+
+    public void setColumnUnavailable(List<String> columnUnavailable) {
+        this.columnUnavailable = columnUnavailable;
     }
 
     public List<ErrorDTO> getErrors() {

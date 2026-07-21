@@ -1,52 +1,59 @@
-/**
- * Copyright (c) 2017-2024 Nop Platform. All rights reserved.
- * Author: canonical_entropy@163.com
- * Blog:   https://www.zhihu.com/people/canonical-entropy
- * Gitee:  https://github.com/entropy-cloud/nop-entropy
- * Github: https://github.com/entropy-cloud/nop-entropy
- */
-
 package io.nop.metadata.core.dto;
 
 import io.nop.api.core.annotations.data.DataBean;
-import io.nop.metadata.core.dto.ErrorDTO;
 
 import java.io.Serializable;
-import java.util.ArrayList;
-import java.util.List;
+import java.sql.Timestamp;
+import java.util.LinkedHashMap;
+import java.util.Map;
 
-/**
- * 数据契约检查结果 DTO（来源：{@code NopMetaDataContractBizModel.checkContract}）。
- */
 @DataBean
 public class ContractCheckResultDTO implements Serializable {
     private static final long serialVersionUID = 1L;
 
-    private String contractId;
-    private boolean passed;
-    private List<ErrorDTO> errors = new ArrayList<>();
+    private Timestamp timestamp;
+    private String status;
+    private String message;
+    private Map<String, Object> qualitySummary = new LinkedHashMap<>();
+    private Map<String, Object> slaSummary = new LinkedHashMap<>();
 
-    public String getContractId() {
-        return contractId;
+    public Timestamp getTimestamp() {
+        return timestamp;
     }
 
-    public void setContractId(String contractId) {
-        this.contractId = contractId;
+    public void setTimestamp(Timestamp timestamp) {
+        this.timestamp = timestamp;
     }
 
-    public boolean isPassed() {
-        return passed;
+    public String getStatus() {
+        return status;
     }
 
-    public void setPassed(boolean passed) {
-        this.passed = passed;
+    public void setStatus(String status) {
+        this.status = status;
     }
 
-    public List<ErrorDTO> getErrors() {
-        return errors;
+    public String getMessage() {
+        return message;
     }
 
-    public void setErrors(List<ErrorDTO> errors) {
-        this.errors = errors;
+    public void setMessage(String message) {
+        this.message = message;
+    }
+
+    public Map<String, Object> getQualitySummary() {
+        return qualitySummary;
+    }
+
+    public void setQualitySummary(Map<String, Object> qualitySummary) {
+        this.qualitySummary = qualitySummary;
+    }
+
+    public Map<String, Object> getSlaSummary() {
+        return slaSummary;
+    }
+
+    public void setSlaSummary(Map<String, Object> slaSummary) {
+        this.slaSummary = slaSummary;
     }
 }

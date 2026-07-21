@@ -14,7 +14,6 @@ import io.nop.metadata.service.NopMetadataErrors;
 import io.nop.api.core.annotations.biz.BizModel;
 import io.nop.api.core.annotations.biz.BizMutation;
 import io.nop.api.core.annotations.core.Name;
-import io.nop.api.core.exceptions.ErrorCode;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.biz.crud.CrudBizModel;
 import io.nop.core.context.IServiceContext;
@@ -32,7 +31,6 @@ import io.nop.metadata.service.reconciliation.ReconciliationExecutor;
 import jakarta.inject.Inject;
 
 import java.sql.Timestamp;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -138,19 +136,6 @@ public class NopMetaReconciliationConfigBizModel extends CrudBizModel<NopMetaRec
         IEntityDao<NopMetaReconciliationResult> resultDao = daoFor(NopMetaReconciliationResult.class);
         resultDao.saveEntity(result);
         return result;
-    }
-
-    /** 从 queryTableData 返回结构 {tableType, items:[...]} 提取 items 行列表。 */
-    @SuppressWarnings("unchecked")
-    private static List<Map<String, Object>> extractItems(Map<String, Object> queryResult) {
-        if (queryResult == null) {
-            return new ArrayList<>();
-        }
-        Object itemsObj = queryResult.get("items");
-        if (itemsObj instanceof List) {
-            return (List<Map<String, Object>>) itemsObj;
-        }
-        return new ArrayList<>();
     }
 
     private static String messageOf(Throwable t) {

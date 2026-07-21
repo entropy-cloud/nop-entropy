@@ -165,7 +165,8 @@ public class TestNopMetaDataContractBizModel extends JunitBaseTestCase {
     @Test
     public void testCheckContractNotFound() {
         GraphQLResponseBean resp = graphQLEngine.executeGraphQL(graphQLEngine.newGraphQLContext(req(
-                "mutation { NopMetaDataContract__checkContract(contractId: \"__nope_contract__\") }")));
+                "mutation { NopMetaDataContract__checkContract(contractId: \"__nope_contract__\") "
+                        + "{ timestamp status message qualitySummary slaSummary } }")));
         assertTrue(resp.hasError(), "non-existent contract must error (no NPE): " + resp);
     }
 
@@ -184,7 +185,8 @@ public class TestNopMetaDataContractBizModel extends JunitBaseTestCase {
 
     private GraphQLResponseBean check(String id) {
         return graphQLEngine.executeGraphQL(graphQLEngine.newGraphQLContext(req(
-                "mutation { NopMetaDataContract__checkContract(contractId: \"" + id + "\") }")));
+                "mutation { NopMetaDataContract__checkContract(contractId: \"" + id + "\") "
+                        + "{ timestamp status message qualitySummary slaSummary } }")));
     }
 
     private GraphQLRequestBean req(String query) {
