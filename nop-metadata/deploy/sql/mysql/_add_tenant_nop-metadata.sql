@@ -15,6 +15,8 @@ alter table nop_meta_glossary add NOP_TENANT_ID VARCHAR(32) DEFAULT '0' NOT NULL
 
 alter table nop_meta_classification add NOP_TENANT_ID VARCHAR(32) DEFAULT '0' NOT NULL;
 
+alter table nop_meta_business_domain add NOP_TENANT_ID VARCHAR(32) DEFAULT '0' NOT NULL;
+
 alter table nop_meta_orm_model add NOP_TENANT_ID VARCHAR(32) DEFAULT '0' NOT NULL;
 
 alter table nop_meta_table add NOP_TENANT_ID VARCHAR(32) DEFAULT '0' NOT NULL;
@@ -30,6 +32,8 @@ alter table nop_meta_quality_result add NOP_TENANT_ID VARCHAR(32) DEFAULT '0' NO
 alter table nop_meta_glossary_term add NOP_TENANT_ID VARCHAR(32) DEFAULT '0' NOT NULL;
 
 alter table nop_meta_tag add NOP_TENANT_ID VARCHAR(32) DEFAULT '0' NOT NULL;
+
+alter table nop_meta_data_product add NOP_TENANT_ID VARCHAR(32) DEFAULT '0' NOT NULL;
 
 alter table nop_meta_entity add NOP_TENANT_ID VARCHAR(32) DEFAULT '0' NOT NULL;
 
@@ -97,6 +101,9 @@ alter table nop_meta_glossary add primary key (NOP_TENANT_ID, GLOSSARY_ID);
 alter table nop_meta_classification drop primary key;
 alter table nop_meta_classification add primary key (NOP_TENANT_ID, CLASSIFICATION_ID);
 
+alter table nop_meta_business_domain drop primary key;
+alter table nop_meta_business_domain add primary key (NOP_TENANT_ID, BUSINESS_DOMAIN_ID);
+
 alter table nop_meta_orm_model drop primary key;
 alter table nop_meta_orm_model add primary key (NOP_TENANT_ID, ORM_MODEL_ID);
 
@@ -120,6 +127,9 @@ alter table nop_meta_glossary_term add primary key (NOP_TENANT_ID, GLOSSARY_TERM
 
 alter table nop_meta_tag drop primary key;
 alter table nop_meta_tag add primary key (NOP_TENANT_ID, TAG_ID);
+
+alter table nop_meta_data_product drop primary key;
+alter table nop_meta_data_product add primary key (NOP_TENANT_ID, DATA_PRODUCT_ID);
 
 alter table nop_meta_entity drop primary key;
 alter table nop_meta_entity add primary key (NOP_TENANT_ID, META_ENTITY_ID);

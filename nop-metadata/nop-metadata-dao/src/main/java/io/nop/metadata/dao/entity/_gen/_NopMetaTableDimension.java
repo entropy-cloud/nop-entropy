@@ -57,40 +57,44 @@ public class _NopMetaTableDimension extends DynamicOrmEntity{
     public static final String PROP_NAME_sortOrder = "sortOrder";
     public static final int PROP_ID_sortOrder = 9;
     
+    /* 业务域ID: BUSINESS_DOMAIN_ID VARCHAR */
+    public static final String PROP_NAME_businessDomainId = "businessDomainId";
+    public static final int PROP_ID_businessDomainId = 10;
+    
     /* 扩展配置: EXT_CONFIG VARCHAR */
     public static final String PROP_NAME_extConfig = "extConfig";
-    public static final int PROP_ID_extConfig = 10;
+    public static final int PROP_ID_extConfig = 11;
     
     /* 数据版本: VERSION BIGINT */
     public static final String PROP_NAME_version = "version";
-    public static final int PROP_ID_version = 11;
+    public static final int PROP_ID_version = 12;
     
     /* 创建人: CREATED_BY VARCHAR */
     public static final String PROP_NAME_createdBy = "createdBy";
-    public static final int PROP_ID_createdBy = 12;
+    public static final int PROP_ID_createdBy = 13;
     
     /* 创建时间: CREATE_TIME TIMESTAMP */
     public static final String PROP_NAME_createTime = "createTime";
-    public static final int PROP_ID_createTime = 13;
+    public static final int PROP_ID_createTime = 14;
     
     /* 修改人: UPDATED_BY VARCHAR */
     public static final String PROP_NAME_updatedBy = "updatedBy";
-    public static final int PROP_ID_updatedBy = 14;
+    public static final int PROP_ID_updatedBy = 15;
     
     /* 修改时间: UPDATE_TIME TIMESTAMP */
     public static final String PROP_NAME_updateTime = "updateTime";
-    public static final int PROP_ID_updateTime = 15;
+    public static final int PROP_ID_updateTime = 16;
     
     /* 备注: REMARK VARCHAR */
     public static final String PROP_NAME_remark = "remark";
-    public static final int PROP_ID_remark = 16;
+    public static final int PROP_ID_remark = 17;
     
     /* 侧别: SIDE VARCHAR */
     public static final String PROP_NAME_side = "side";
-    public static final int PROP_ID_side = 17;
+    public static final int PROP_ID_side = 18;
     
 
-    private static int _PROP_ID_BOUND = 18;
+    private static int _PROP_ID_BOUND = 19;
 
     
     /* relation: 逻辑表 */
@@ -103,7 +107,7 @@ public class _NopMetaTableDimension extends DynamicOrmEntity{
     protected static final List<String> PK_PROP_NAMES = Arrays.asList(PROP_NAME_dimensionId);
     protected static final int[] PK_PROP_IDS = new int[]{PROP_ID_dimensionId};
 
-    private static final String[] PROP_ID_TO_NAME = new String[18];
+    private static final String[] PROP_ID_TO_NAME = new String[19];
     private static final Map<String,Integer> PROP_NAME_TO_ID = new HashMap<>();
     static{
       
@@ -133,6 +137,9 @@ public class _NopMetaTableDimension extends DynamicOrmEntity{
       
           PROP_ID_TO_NAME[PROP_ID_sortOrder] = PROP_NAME_sortOrder;
           PROP_NAME_TO_ID.put(PROP_NAME_sortOrder, PROP_ID_sortOrder);
+      
+          PROP_ID_TO_NAME[PROP_ID_businessDomainId] = PROP_NAME_businessDomainId;
+          PROP_NAME_TO_ID.put(PROP_NAME_businessDomainId, PROP_ID_businessDomainId);
       
           PROP_ID_TO_NAME[PROP_ID_extConfig] = PROP_NAME_extConfig;
           PROP_NAME_TO_ID.put(PROP_NAME_extConfig, PROP_ID_extConfig);
@@ -187,6 +194,9 @@ public class _NopMetaTableDimension extends DynamicOrmEntity{
     
     /* 排序: SORT_ORDER */
     private java.lang.Integer _sortOrder;
+    
+    /* 业务域ID: BUSINESS_DOMAIN_ID */
+    private java.lang.String _businessDomainId;
     
     /* 扩展配置: EXT_CONFIG */
     private java.lang.String _extConfig;
@@ -313,6 +323,9 @@ public class _NopMetaTableDimension extends DynamicOrmEntity{
             case PROP_ID_sortOrder:
                return getSortOrder();
         
+            case PROP_ID_businessDomainId:
+               return getBusinessDomainId();
+        
             case PROP_ID_extConfig:
                return getExtConfig();
         
@@ -435,6 +448,16 @@ public class _NopMetaTableDimension extends DynamicOrmEntity{
                        err-> newTypeConversionError(PROP_NAME_sortOrder));
                }
                setSortOrder(typedValue);
+               break;
+            }
+        
+            case PROP_ID_businessDomainId:{
+               java.lang.String typedValue = null;
+               if(value != null){
+                   typedValue = ConvertHelper.toString(value,
+                       err-> newTypeConversionError(PROP_NAME_businessDomainId));
+               }
+               setBusinessDomainId(typedValue);
                break;
             }
         
@@ -586,6 +609,13 @@ public class _NopMetaTableDimension extends DynamicOrmEntity{
             case PROP_ID_sortOrder:{
                onInitProp(propId);
                this._sortOrder = (java.lang.Integer)value;
+               
+               break;
+            }
+        
+            case PROP_ID_businessDomainId:{
+               onInitProp(propId);
+               this._businessDomainId = (java.lang.String)value;
                
                break;
             }
@@ -819,6 +849,25 @@ public class _NopMetaTableDimension extends DynamicOrmEntity{
         if(onPropSet(PROP_ID_sortOrder,value)){
             this._sortOrder = value;
             internalClearRefs(PROP_ID_sortOrder);
+            
+        }
+    }
+    
+    /**
+     * 业务域ID: BUSINESS_DOMAIN_ID
+     */
+    public final java.lang.String getBusinessDomainId(){
+         onPropGet(PROP_ID_businessDomainId);
+         return _businessDomainId;
+    }
+
+    /**
+     * 业务域ID: BUSINESS_DOMAIN_ID
+     */
+    public final void setBusinessDomainId(java.lang.String value){
+        if(onPropSet(PROP_ID_businessDomainId,value)){
+            this._businessDomainId = value;
+            internalClearRefs(PROP_ID_businessDomainId);
             
         }
     }

@@ -90,6 +90,9 @@
                 <!--原生SQL类型-->
                 <col id="nativeSqlType" sortable="true"/>
 
+                <!--业务域ID-->
+                <col id="businessDomainId" sortable="true"/>
+
                 <!--扩展配置-->
                 <col id="extConfig" sortable="true"/>
 
@@ -127,9 +130,10 @@
  defaultValue[默认值] semanticType[语义类型]
  tagSet[标签集] displayName[显示名]
  comment[注释] nativeSqlType[原生SQL类型]
- extConfig[扩展配置] createdBy[创建人]
- createTime[创建时间] updatedBy[修改人]
- updateTime[修改时间] remark[备注]
+ businessDomainId[业务域ID] extConfig[扩展配置]
+ createdBy[创建人] createTime[创建时间]
+ updatedBy[修改人] updateTime[修改时间]
+ remark[备注] 
 </layout>
         </form>
         <form id="add" editMode="add" title="新增-实体字段" i18n-en:title="Add Meta Entity Field" x:prototype="edit"/>
@@ -147,7 +151,8 @@
  defaultValue[默认值] semanticType[语义类型]
  tagSet[标签集] displayName[显示名]
  comment[注释] nativeSqlType[原生SQL类型]
- extConfig[扩展配置] remark[备注]
+ businessDomainId[业务域ID] extConfig[扩展配置]
+ remark[备注] 
 </layout>
         </form>
         <form id="query" editMode="query" title="查询条件" i18n-en:title="Query Condition" x:abstract="true"/>

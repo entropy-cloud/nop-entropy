@@ -92,6 +92,10 @@
               sortable="true" insertable="true" updatable="true">
             <schema type="java.lang.String" precision="100"/>
         </prop>
+        <prop name="businessDomainId" displayName="业务域ID" propId="18" i18n-en:displayName="Business Domain Id"
+              queryable="true" sortable="true" insertable="true" updatable="true">
+            <schema type="java.lang.String" precision="32"/>
+        </prop>
         <prop name="metaModule" displayName="元数据模块" i18n-en:displayName="Meta Module" tagSet="pub,ref-pub"
               ext:kind="to-one" internal="true" queryable="true" ext:joinLeftProp="metaModuleId"
               ext:joinRightProp="metaModuleId" ext:joinRightDisplayProp="displayName" insertable="false"

@@ -1,0 +1,23 @@
+# __XGEN_FORCE_OVERRIDE__
+label: 数据产品优先级
+locale: zh-CN
+valueType: string
+description: 
+options:
+
+  - label: 关键
+    value: CRITICAL
+    description: 
+  
+  - label: 高
+    value: HIGH
+    description: 
+  
+  - label: 中
+    value: MEDIUM
+    description: 
+  
+  - label: 低
+    value: LOW
+    description: 
+  

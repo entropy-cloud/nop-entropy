@@ -453,4 +453,129 @@ public interface _NopMetadataCoreConstants {
      */
     String TAG_PROVIDER_USER = "user";
                     
+    /**
+     * 业务域类型: 源对齐 
+     */
+    String BUSINESS_DOMAIN_TYPE_SOURCE_ALIGNED = "SourceAligned";
+                    
+    /**
+     * 业务域类型: 消费对齐 
+     */
+    String BUSINESS_DOMAIN_TYPE_CONSUMER_ALIGNED = "ConsumerAligned";
+                    
+    /**
+     * 业务域类型: 聚合域 
+     */
+    String BUSINESS_DOMAIN_TYPE_AGGREGATE = "Aggregate";
+                    
+    /**
+     * 数据产品生命周期: 构思 
+     */
+    String DATA_PRODUCT_LIFECYCLE_IDEATION = "IDEATION";
+                    
+    /**
+     * 数据产品生命周期: 设计 
+     */
+    String DATA_PRODUCT_LIFECYCLE_DESIGN = "DESIGN";
+                    
+    /**
+     * 数据产品生命周期: 开发 
+     */
+    String DATA_PRODUCT_LIFECYCLE_DEVELOPMENT = "DEVELOPMENT";
+                    
+    /**
+     * 数据产品生命周期: 测试 
+     */
+    String DATA_PRODUCT_LIFECYCLE_TESTING = "TESTING";
+                    
+    /**
+     * 数据产品生命周期: 生产 
+     */
+    String DATA_PRODUCT_LIFECYCLE_PRODUCTION = "PRODUCTION";
+                    
+    /**
+     * 数据产品生命周期: 已废弃 
+     */
+    String DATA_PRODUCT_LIFECYCLE_DEPRECATED = "DEPRECATED";
+                    
+    /**
+     * 数据产品生命周期: 已退役 
+     */
+    String DATA_PRODUCT_LIFECYCLE_RETIRED = "RETIRED";
+                    
+    /**
+     * 数据产品类型: 原始数据 
+     */
+    String DATA_PRODUCT_TYPE_RAW_DATA = "RAW_DATA";
+                    
+    /**
+     * 数据产品类型: 派生数据 
+     */
+    String DATA_PRODUCT_TYPE_DERIVED_DATA = "DERIVED_DATA";
+                    
+    /**
+     * 数据产品类型: 数据集 
+     */
+    String DATA_PRODUCT_TYPE_DATASET = "DATASET";
+                    
+    /**
+     * 数据产品类型: 报告 
+     */
+    String DATA_PRODUCT_TYPE_REPORTS = "REPORTS";
+                    
+    /**
+     * 数据产品类型: 分析视图 
+     */
+    String DATA_PRODUCT_TYPE_ANALYTIC_VIEW = "ANALYTIC_VIEW";
+                    
+    /**
+     * 数据产品类型: 算法 
+     */
+    String DATA_PRODUCT_TYPE_ALGORITHM = "ALGORITHM";
+                    
+    /**
+     * 数据产品可见性: 私有 
+     */
+    String DATA_PRODUCT_VISIBILITY_PRIVATE = "PRIVATE";
+                    
+    /**
+     * 数据产品可见性: 邀请 
+     */
+    String DATA_PRODUCT_VISIBILITY_INVITATION = "INVITATION";
+                    
+    /**
+     * 数据产品可见性: 组织 
+     */
+    String DATA_PRODUCT_VISIBILITY_ORGANISATION = "ORGANISATION";
+                    
+    /**
+     * 数据产品可见性: 数据空间 
+     */
+    String DATA_PRODUCT_VISIBILITY_DATASPACE = "DATASPACE";
+                    
+    /**
+     * 数据产品可见性: 公开 
+     */
+    String DATA_PRODUCT_VISIBILITY_PUBLIC = "PUBLIC";
+                    
+    /**
+     * 数据产品优先级: 关键 
+     */
+    String DATA_PRODUCT_PRIORITY_CRITICAL = "CRITICAL";
+                    
+    /**
+     * 数据产品优先级: 高 
+     */
+    String DATA_PRODUCT_PRIORITY_HIGH = "HIGH";
+                    
+    /**
+     * 数据产品优先级: 中 
+     */
+    String DATA_PRODUCT_PRIORITY_MEDIUM = "MEDIUM";
+                    
+    /**
+     * 数据产品优先级: 低 
+     */
+    String DATA_PRODUCT_PRIORITY_LOW = "LOW";
+                    
 }

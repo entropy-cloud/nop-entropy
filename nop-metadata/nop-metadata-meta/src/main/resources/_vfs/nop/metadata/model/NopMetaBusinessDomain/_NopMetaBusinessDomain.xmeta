@@ -1,0 +1,123 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<meta x:schema="/nop/schema/xmeta.xdef" xmlns:x="/nop/schema/xdsl.xdef" xmlns:i18n-en="i18n-en" xmlns:ext="ext"
+      xmlns:xpl="xpl" ext:model="orm" ext:icon="building" ext:web-renderer="" xmlns:c="c" xmlns:graphql="graphql"
+      xmlns:meta-gen="meta-gen" xmlns:biz="biz" displayName="业务组织域" i18n-en:displayName="Meta Business Domain"
+      xmlns:ui="ui" xmlns:orm="orm">
+
+    <entityName>io.nop.metadata.dao.entity.NopMetaBusinessDomain</entityName>
+
+    <primaryKey>businessDomainId</primaryKey>
+
+    <displayProp>displayName</displayProp>
+
+    <x:gen-extends>
+        <meta-gen:DefaultMetaGenExtends xpl:lib="/nop/core/xlib/meta-gen.xlib"/>
+    </x:gen-extends>
+
+    <x:post-extends>
+        <meta-gen:DefaultMetaPostExtends xpl:lib="/nop/core/xlib/meta-gen.xlib"/>
+    </x:post-extends>
+
+    <keys>
+        <key name="UK_NOP_META_BUSINESS_DOMAIN_PARENT_NAME" props="parentDomainId,name"/>
+    </keys>
+
+    <props>
+        <prop name="businessDomainId" displayName="业务域ID" propId="1" i18n-en:displayName="Business Domain Id"
+              tagSet="seq" mandatory="true" queryable="true" sortable="true" insertable="true" updatable="false">
+            <schema type="java.lang.String" precision="32"/>
+        </prop>
+        <prop name="parentDomainId" displayName="父域ID" propId="2" i18n-en:displayName="Parent Domain Id"
+              queryable="true" sortable="true" insertable="true" updatable="true" ext:relation="parentDomain">
+            <schema type="java.lang.String" precision="32"/>
+        </prop>
+        <prop name="name" displayName="域名" propId="3" i18n-en:displayName="Name" mandatory="true" queryable="true"
+              sortable="true" insertable="true" updatable="true">
+            <schema type="java.lang.String" precision="100"/>
+        </prop>
+        <prop name="displayName" displayName="显示名" propId="4" i18n-en:displayName="Display Name" tagSet="disp"
+              queryable="true" sortable="true" insertable="true" updatable="true">
+            <schema type="java.lang.String" precision="200"/>
+        </prop>
+        <prop name="description" displayName="描述" propId="5" i18n-en:displayName="Description" queryable="true"
+              sortable="true" insertable="true" updatable="true">
+            <schema type="java.lang.String" precision="1000"/>
+        </prop>
+        <prop name="domainType" displayName="业务域类型" propId="6" i18n-en:displayName="Domain Type" queryable="true"
+              sortable="true" insertable="true" updatable="true">
+            <schema type="java.lang.String" precision="20" dict="meta/business-domain-type"/>
+        </prop>
+        <prop name="experts" displayName="专家列表" propId="7" i18n-en:displayName="Experts" queryable="true"
+              sortable="true" insertable="true" updatable="true" graphql:jsonComponentProp="expertsComponent">
+            <schema stdDomain="json" domain="json-1000" type="java.lang.String" precision="1000"/>
+        </prop>
+        <prop name="owners" displayName="负责人列表" propId="8" i18n-en:displayName="Owners" queryable="true" sortable="true"
+              insertable="true" updatable="true" graphql:jsonComponentProp="ownersComponent">
+            <schema stdDomain="json" domain="json-1000" type="java.lang.String" precision="1000"/>
+        </prop>
+        <prop name="extConfig" displayName="扩展配置" propId="9" i18n-en:displayName="Ext Config" queryable="true"
+              sortable="true" insertable="true" updatable="true" graphql:jsonComponentProp="extConfigComponent">
+            <schema stdDomain="json" domain="json-4000" type="java.lang.String" precision="4000"/>
+        </prop>
+        <prop name="version" displayName="数据版本" propId="10" i18n-en:displayName="Version" mandatory="true"
+              queryable="true" sortable="true" insertable="false" updatable="false" internal="true">
+            <schema domain="version" type="java.lang.Long"/>
+        </prop>
+        <prop name="createdBy" displayName="创建人" propId="11" i18n-en:displayName="Created By" mandatory="true"
+              queryable="true" sortable="true" insertable="false" updatable="false">
+            <schema domain="createdBy" type="java.lang.String" precision="50"/>
+        </prop>
+        <prop name="createTime" displayName="创建时间" propId="12" i18n-en:displayName="Create Time" mandatory="true"
+              queryable="true" sortable="true" insertable="false" updatable="false">
+            <schema domain="createTime" type="java.sql.Timestamp"/>
+        </prop>
+        <prop name="updatedBy" displayName="修改人" propId="13" i18n-en:displayName="Updated By" mandatory="true"
+              queryable="true" sortable="true" insertable="false" updatable="false">
+            <schema domain="updatedBy" type="java.lang.String" precision="50"/>
+        </prop>
+        <prop name="updateTime" displayName="修改时间" propId="14" i18n-en:displayName="Update Time" mandatory="true"
+              queryable="true" sortable="true" insertable="false" updatable="false">
+            <schema domain="updateTime" type="java.sql.Timestamp"/>
+        </prop>
+        <prop name="remark" displayName="备注" propId="15" i18n-en:displayName="Remark" queryable="true" sortable="true"
+              insertable="true" updatable="true">
+            <schema domain="remark" type="java.lang.String" precision="200"/>
+        </prop>
+        <prop name="parentDomain" displayName="父域" i18n-en:displayName="Parent Domain" tagSet="pub,ref-pub"
+              ext:kind="to-one" internal="true" queryable="true" ext:joinLeftProp="parentDomainId"
+              ext:joinRightProp="businessDomainId" ext:joinRightDisplayProp="displayName" insertable="false"
+              updatable="false" lazy="true">
+            <schema bizObjName="NopMetaBusinessDomain"/>
+        </prop>
+        <prop name="parentDomain.displayName" displayName="父域" i18n-en:displayName="Parent Domain" internal="true"
+              queryable="true" sortable="true" lazy="true">
+            <schema type="String"/>
+        </prop>
+        <prop name="childDomains" displayName="子域集" i18n-en:displayName="Child Domains" tagSet="pub,ref-pub"
+              ext:kind="to-many" internal="true" ext:joinLeftProp="businessDomainId" ext:joinRightProp="parentDomainId"
+              ext:joinRightDisplayProp="displayName" insertable="false" updatable="false" lazy="true">
+            <schema>
+                <item bizObjName="NopMetaBusinessDomain"/>
+            </schema>
+        </prop>
+        <prop name="dataProducts" tagSet="pub" ext:kind="to-many" internal="true" ext:joinLeftProp="businessDomainId"
+              ext:joinRightProp="businessDomainId" ext:joinRightDisplayProp="displayName" insertable="false"
+              updatable="false" lazy="true">
+            <schema>
+                <item bizObjName="NopMetaDataProduct"/>
+            </schema>
+        </prop>
+        <prop name="expertsComponent" tagSet="json,pub,edit" ext:kind="component" internal="true" insertable="true"
+              updatable="true" lazy="true">
+            <schema type="io.nop.orm.component.JsonOrmComponent"/>
+        </prop>
+        <prop name="ownersComponent" tagSet="json,pub,edit" ext:kind="component" internal="true" insertable="true"
+              updatable="true" lazy="true">
+            <schema type="io.nop.orm.component.JsonOrmComponent"/>
+        </prop>
+        <prop name="extConfigComponent" tagSet="json,pub,edit" ext:kind="component" internal="true" insertable="true"
+              updatable="true" lazy="true">
+            <schema type="io.nop.orm.component.JsonOrmComponent"/>
+        </prop>
+    </props>
+</meta>

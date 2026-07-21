@@ -1,8 +1,10 @@
 entity:
   label:
+    NopMetaBusinessDomain: 业务组织域
     NopMetaCatalog: 运行时统计快照
     NopMetaClassification: 分类体系
     NopMetaDataContract: 数据契约
+    NopMetaDataProduct: 数据产品
     NopMetaDataSource: 数据源
     NopMetaDict: 元数据字典
     NopMetaDictItem: 字典项
@@ -39,6 +41,30 @@ entity:
     NopMetaTagLabel: 语义标注
 prop:
   label:
+    NopMetaBusinessDomain:
+      businessDomainId: 业务域ID
+      childDomains: 子域集
+      createTime: 创建时间
+      createdBy: 创建人
+      dataProducts: null
+      description: 描述
+      displayName: 显示名
+      domainType: 业务域类型
+      domainType_label: 业务域类型
+      experts: 专家列表
+      expertsComponent: null
+      extConfig: 扩展配置
+      extConfigComponent: null
+      name: 域名
+      owners: 负责人列表
+      ownersComponent: null
+      parentDomain: 父域
+      parentDomain.displayName: 父域
+      parentDomainId: 父域ID
+      remark: 备注
+      updateTime: 修改时间
+      updatedBy: 修改人
+      version: 数据版本
     NopMetaCatalog:
       collectedAt: 收集时间
       createTime: 创建时间
@@ -111,6 +137,42 @@ prop:
       updateTime: 修改时间
       updatedBy: 修改人
       version: 数据版本
+    NopMetaDataProduct:
+      assets: 关联资产列表
+      assetsComponent: null
+      businessDomain: 所属业务域
+      businessDomain.displayName: 所属业务域
+      businessDomainId: 所属业务域ID
+      consumesFrom: 依赖产品列表
+      consumesFromComponent: null
+      createTime: 创建时间
+      createdBy: 创建人
+      dataProductId: 数据产品ID
+      dataProductType: 数据产品类型
+      dataProductType_label: 数据产品类型
+      description: 描述
+      displayName: 显示名
+      experts: 专家列表
+      expertsComponent: null
+      extConfig: 扩展配置
+      extConfigComponent: null
+      lifecycleStage: 生命周期阶段
+      lifecycleStage_label: 生命周期阶段
+      name: 产品名
+      portfolioPriority: 投资组合优先级
+      portfolioPriority_label: 投资组合优先级
+      ports: 数据端口列表
+      portsComponent: null
+      providesTo: 被依赖产品列表
+      providesToComponent: null
+      remark: 备注
+      sla: SLA定义
+      slaComponent: null
+      updateTime: 修改时间
+      updatedBy: 修改人
+      version: 数据版本
+      visibility: 可见性
+      visibility_label: 可见性
     NopMetaDataSource:
       connectionConfig: 连接配置
       connectionConfigComponent: null
@@ -195,6 +257,7 @@ prop:
       validationPattern: 校验正则
       version: 数据版本
     NopMetaEntity:
+      businessDomainId: 业务域ID
       className: 类名
       createTime: 创建时间
       createTimeProp: 创建时间属性
@@ -234,6 +297,7 @@ prop:
       version: 数据版本
       versionProp: 版本属性
     NopMetaEntityField:
+      businessDomainId: 业务域ID
       columnCode: 列名
       comment: 注释
       createTime: 创建时间
@@ -728,6 +792,7 @@ prop:
     NopMetaTable:
       baseEntityId: 主要实体ID
       buildSql: 合成SQL
+      businessDomainId: 业务域ID
       catalogs: 运行时统计快照集
       createTime: 创建时间
       createdBy: 创建人
@@ -762,6 +827,7 @@ prop:
       updatedBy: 修改人
       version: 数据版本
     NopMetaTableDimension:
+      businessDomainId: 业务域ID
       createTime: 创建时间
       createdBy: 创建人
       dimensionId: 维度ID
@@ -834,6 +900,7 @@ prop:
     NopMetaTableMeasure:
       aggFunc: 聚合函数
       aggFunc_label: 聚合函数
+      businessDomainId: 业务域ID
       createTime: 创建时间
       createdBy: 创建人
       currencyUnit: 货币单位

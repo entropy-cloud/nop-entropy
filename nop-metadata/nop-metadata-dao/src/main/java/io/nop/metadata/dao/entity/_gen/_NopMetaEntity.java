@@ -113,36 +113,40 @@ public class _NopMetaEntity extends DynamicOrmEntity{
     public static final String PROP_NAME_dbSchema = "dbSchema";
     public static final int PROP_ID_dbSchema = 23;
     
+    /* 业务域ID: BUSINESS_DOMAIN_ID VARCHAR */
+    public static final String PROP_NAME_businessDomainId = "businessDomainId";
+    public static final int PROP_ID_businessDomainId = 24;
+    
     /* 扩展配置: EXT_CONFIG VARCHAR */
     public static final String PROP_NAME_extConfig = "extConfig";
-    public static final int PROP_ID_extConfig = 24;
+    public static final int PROP_ID_extConfig = 25;
     
     /* 数据版本: VERSION BIGINT */
     public static final String PROP_NAME_version = "version";
-    public static final int PROP_ID_version = 25;
+    public static final int PROP_ID_version = 26;
     
     /* 创建人: CREATED_BY VARCHAR */
     public static final String PROP_NAME_createdBy = "createdBy";
-    public static final int PROP_ID_createdBy = 26;
+    public static final int PROP_ID_createdBy = 27;
     
     /* 创建时间: CREATE_TIME TIMESTAMP */
     public static final String PROP_NAME_createTime = "createTime";
-    public static final int PROP_ID_createTime = 27;
+    public static final int PROP_ID_createTime = 28;
     
     /* 修改人: UPDATED_BY VARCHAR */
     public static final String PROP_NAME_updatedBy = "updatedBy";
-    public static final int PROP_ID_updatedBy = 28;
+    public static final int PROP_ID_updatedBy = 29;
     
     /* 修改时间: UPDATE_TIME TIMESTAMP */
     public static final String PROP_NAME_updateTime = "updateTime";
-    public static final int PROP_ID_updateTime = 29;
+    public static final int PROP_ID_updateTime = 30;
     
     /* 备注: REMARK VARCHAR */
     public static final String PROP_NAME_remark = "remark";
-    public static final int PROP_ID_remark = 30;
+    public static final int PROP_ID_remark = 31;
     
 
-    private static int _PROP_ID_BOUND = 31;
+    private static int _PROP_ID_BOUND = 32;
 
     
     /* relation: ORM模型 */
@@ -173,7 +177,7 @@ public class _NopMetaEntity extends DynamicOrmEntity{
     protected static final List<String> PK_PROP_NAMES = Arrays.asList(PROP_NAME_metaEntityId);
     protected static final int[] PK_PROP_IDS = new int[]{PROP_ID_metaEntityId};
 
-    private static final String[] PROP_ID_TO_NAME = new String[31];
+    private static final String[] PROP_ID_TO_NAME = new String[32];
     private static final Map<String,Integer> PROP_NAME_TO_ID = new HashMap<>();
     static{
       
@@ -245,6 +249,9 @@ public class _NopMetaEntity extends DynamicOrmEntity{
       
           PROP_ID_TO_NAME[PROP_ID_dbSchema] = PROP_NAME_dbSchema;
           PROP_NAME_TO_ID.put(PROP_NAME_dbSchema, PROP_ID_dbSchema);
+      
+          PROP_ID_TO_NAME[PROP_ID_businessDomainId] = PROP_NAME_businessDomainId;
+          PROP_NAME_TO_ID.put(PROP_NAME_businessDomainId, PROP_ID_businessDomainId);
       
           PROP_ID_TO_NAME[PROP_ID_extConfig] = PROP_NAME_extConfig;
           PROP_NAME_TO_ID.put(PROP_NAME_extConfig, PROP_ID_extConfig);
@@ -338,6 +345,9 @@ public class _NopMetaEntity extends DynamicOrmEntity{
     
     /* 数据库Schema: DB_SCHEMA */
     private java.lang.String _dbSchema;
+    
+    /* 业务域ID: BUSINESS_DOMAIN_ID */
+    private java.lang.String _businessDomainId;
     
     /* 扩展配置: EXT_CONFIG */
     private java.lang.String _extConfig;
@@ -502,6 +512,9 @@ public class _NopMetaEntity extends DynamicOrmEntity{
         
             case PROP_ID_dbSchema:
                return getDbSchema();
+        
+            case PROP_ID_businessDomainId:
+               return getBusinessDomainId();
         
             case PROP_ID_extConfig:
                return getExtConfig();
@@ -765,6 +778,16 @@ public class _NopMetaEntity extends DynamicOrmEntity{
                break;
             }
         
+            case PROP_ID_businessDomainId:{
+               java.lang.String typedValue = null;
+               if(value != null){
+                   typedValue = ConvertHelper.toString(value,
+                       err-> newTypeConversionError(PROP_NAME_businessDomainId));
+               }
+               setBusinessDomainId(typedValue);
+               break;
+            }
+        
             case PROP_ID_extConfig:{
                java.lang.String typedValue = null;
                if(value != null){
@@ -1001,6 +1024,13 @@ public class _NopMetaEntity extends DynamicOrmEntity{
             case PROP_ID_dbSchema:{
                onInitProp(propId);
                this._dbSchema = (java.lang.String)value;
+               
+               break;
+            }
+        
+            case PROP_ID_businessDomainId:{
+               onInitProp(propId);
+               this._businessDomainId = (java.lang.String)value;
                
                break;
             }
@@ -1493,6 +1523,25 @@ public class _NopMetaEntity extends DynamicOrmEntity{
         if(onPropSet(PROP_ID_dbSchema,value)){
             this._dbSchema = value;
             internalClearRefs(PROP_ID_dbSchema);
+            
+        }
+    }
+    
+    /**
+     * 业务域ID: BUSINESS_DOMAIN_ID
+     */
+    public final java.lang.String getBusinessDomainId(){
+         onPropGet(PROP_ID_businessDomainId);
+         return _businessDomainId;
+    }
+
+    /**
+     * 业务域ID: BUSINESS_DOMAIN_ID
+     */
+    public final void setBusinessDomainId(java.lang.String value){
+        if(onPropSet(PROP_ID_businessDomainId,value)){
+            this._businessDomainId = value;
+            internalClearRefs(PROP_ID_businessDomainId);
             
         }
     }

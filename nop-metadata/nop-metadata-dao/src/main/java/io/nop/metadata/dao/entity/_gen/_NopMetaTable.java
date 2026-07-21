@@ -89,8 +89,12 @@ public class _NopMetaTable extends DynamicOrmEntity{
     public static final String PROP_NAME_schema = "schema";
     public static final int PROP_ID_schema = 17;
     
+    /* 业务域ID: BUSINESS_DOMAIN_ID VARCHAR */
+    public static final String PROP_NAME_businessDomainId = "businessDomainId";
+    public static final int PROP_ID_businessDomainId = 18;
+    
 
-    private static int _PROP_ID_BOUND = 18;
+    private static int _PROP_ID_BOUND = 19;
 
     
     /* relation: 元数据模块 */
@@ -145,7 +149,7 @@ public class _NopMetaTable extends DynamicOrmEntity{
     protected static final List<String> PK_PROP_NAMES = Arrays.asList(PROP_NAME_metaTableId);
     protected static final int[] PK_PROP_IDS = new int[]{PROP_ID_metaTableId};
 
-    private static final String[] PROP_ID_TO_NAME = new String[18];
+    private static final String[] PROP_ID_TO_NAME = new String[19];
     private static final Map<String,Integer> PROP_NAME_TO_ID = new HashMap<>();
     static{
       
@@ -200,6 +204,9 @@ public class _NopMetaTable extends DynamicOrmEntity{
           PROP_ID_TO_NAME[PROP_ID_schema] = PROP_NAME_schema;
           PROP_NAME_TO_ID.put(PROP_NAME_schema, PROP_ID_schema);
       
+          PROP_ID_TO_NAME[PROP_ID_businessDomainId] = PROP_NAME_businessDomainId;
+          PROP_NAME_TO_ID.put(PROP_NAME_businessDomainId, PROP_ID_businessDomainId);
+      
     }
 
     
@@ -253,6 +260,9 @@ public class _NopMetaTable extends DynamicOrmEntity{
     
     /* 源schema: SCHEMA */
     private java.lang.String _schema;
+    
+    /* 业务域ID: BUSINESS_DOMAIN_ID */
+    private java.lang.String _businessDomainId;
     
 
     public _NopMetaTable(){
@@ -378,6 +388,9 @@ public class _NopMetaTable extends DynamicOrmEntity{
         
             case PROP_ID_schema:
                return getSchema();
+        
+            case PROP_ID_businessDomainId:
+               return getBusinessDomainId();
         
            default:
               return super.orm_propValue(propId);
@@ -560,6 +573,16 @@ public class _NopMetaTable extends DynamicOrmEntity{
                break;
             }
         
+            case PROP_ID_businessDomainId:{
+               java.lang.String typedValue = null;
+               if(value != null){
+                   typedValue = ConvertHelper.toString(value,
+                       err-> newTypeConversionError(PROP_NAME_businessDomainId));
+               }
+               setBusinessDomainId(typedValue);
+               break;
+            }
+        
            default:
               super.orm_propValue(propId,value);
         }
@@ -684,6 +707,13 @@ public class _NopMetaTable extends DynamicOrmEntity{
             case PROP_ID_schema:{
                onInitProp(propId);
                this._schema = (java.lang.String)value;
+               
+               break;
+            }
+        
+            case PROP_ID_businessDomainId:{
+               onInitProp(propId);
+               this._businessDomainId = (java.lang.String)value;
                
                break;
             }
@@ -1013,6 +1043,25 @@ public class _NopMetaTable extends DynamicOrmEntity{
         if(onPropSet(PROP_ID_schema,value)){
             this._schema = value;
             internalClearRefs(PROP_ID_schema);
+            
+        }
+    }
+    
+    /**
+     * 业务域ID: BUSINESS_DOMAIN_ID
+     */
+    public final java.lang.String getBusinessDomainId(){
+         onPropGet(PROP_ID_businessDomainId);
+         return _businessDomainId;
+    }
+
+    /**
+     * 业务域ID: BUSINESS_DOMAIN_ID
+     */
+    public final void setBusinessDomainId(java.lang.String value){
+        if(onPropSet(PROP_ID_businessDomainId,value)){
+            this._businessDomainId = value;
+            internalClearRefs(PROP_ID_businessDomainId);
             
         }
     }

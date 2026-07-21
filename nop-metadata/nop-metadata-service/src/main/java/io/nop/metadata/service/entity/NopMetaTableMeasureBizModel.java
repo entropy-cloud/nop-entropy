@@ -68,8 +68,21 @@ public class NopMetaTableMeasureBizModel extends CrudBizModel<NopMetaTableMeasur
         String entityFieldId = stringOf(data, NopMetaTableMeasure.PROP_NAME_entityFieldId);
         String measureName = stringOf(data, NopMetaTableMeasure.PROP_NAME_measureName);
         String expression = stringOf(data, NopMetaTableMeasure.PROP_NAME_expression);
+        inheritBusinessDomain(data, metaTableId);
         validateMeasureField(metaTableId, entityFieldId, measureName, expression);
         return super.save(data, context);
+    }
+
+    private void inheritBusinessDomain(Map<String, Object> data, String metaTableId) {
+        String businessDomainId = stringOf(data, NopMetaTableMeasure.PROP_NAME_businessDomainId);
+        if ((businessDomainId == null || businessDomainId.isEmpty())
+                && metaTableId != null && !metaTableId.isEmpty()) {
+            IEntityDao<NopMetaTable> tableDao = daoFor(NopMetaTable.class);
+            NopMetaTable table = tableDao.getEntityById(metaTableId);
+            if (table != null && table.getBusinessDomainId() != null) {
+                data.put(NopMetaTableMeasure.PROP_NAME_businessDomainId, table.getBusinessDomainId());
+            }
+        }
     }
 
     /**

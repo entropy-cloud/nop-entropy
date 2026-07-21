@@ -1,0 +1,27 @@
+# __XGEN_FORCE_OVERRIDE__
+label: 数据产品可见性
+locale: zh-CN
+valueType: string
+description: 
+options:
+
+  - label: 私有
+    value: PRIVATE
+    description: 
+  
+  - label: 邀请
+    value: INVITATION
+    description: 
+  
+  - label: 组织
+    value: ORGANISATION
+    description: 
+  
+  - label: 数据空间
+    value: DATASPACE
+    description: 
+  
+  - label: 公开
+    value: PUBLIC
+    description: 
+  

@@ -118,6 +118,7 @@ public interface NopMetadataErrors {
     String ARG_ENTITY_TYPE = "entityType";
     String ARG_TAG_LABEL_ID = "tagLabelId";
     String ARG_LABEL_TYPE = "labelType";
+    String ARG_DATA_PRODUCT_ID = "dataProductId";
 
     // ===== Aggregation (aggr) =====
 
@@ -864,6 +865,18 @@ public interface NopMetadataErrors {
             ErrorCode.define("nop.err.metadata.tag-label-invalid-label-type",
                     "Unknown or unsupported labelType for approval trigger: {labelType}",
                     ARG_LABEL_TYPE);
+
+    // ===== DataProduct link-asset =====
+
+    ErrorCode ERR_LINK_ASSET_NOT_FOUND =
+            ErrorCode.define("nop.err.metadata.link-asset-not-found",
+                    "TagLabel not found for DataProduct link-asset: "
+                            + "dataProductId={dataProductId} entityType={entityType} entityId={entityId}",
+                    ARG_DATA_PRODUCT_ID, ARG_ENTITY_TYPE, ARG_ENTITY_ID);
+    ErrorCode ERR_LINK_ASSET_ENTITY_TYPE_INVALID =
+            ErrorCode.define("nop.err.metadata.link-asset-entity-type-invalid",
+                    "Entity type not recognized as a linkable asset: {entityType}",
+                    ARG_ENTITY_TYPE);
 
     // ===== Checkpoint (checkpoint biz) =====
 

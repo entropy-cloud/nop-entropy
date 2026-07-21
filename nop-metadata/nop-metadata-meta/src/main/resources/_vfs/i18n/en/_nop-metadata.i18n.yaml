@@ -1,8 +1,10 @@
 entity:
   label:
+    NopMetaBusinessDomain: Meta Business Domain
     NopMetaCatalog: Meta Catalog
     NopMetaClassification: Meta Classification
     NopMetaDataContract: Meta Data Contract
+    NopMetaDataProduct: Meta Data Product
     NopMetaDataSource: Meta Datasource
     NopMetaDict: Meta Dict
     NopMetaDictItem: Meta Dict Item
@@ -39,6 +41,30 @@ entity:
     NopMetaTagLabel: Meta Tag Label
 prop:
   label:
+    NopMetaBusinessDomain:
+      businessDomainId: Business Domain Id
+      parentDomainId: Parent Domain Id
+      name: Name
+      displayName: Display Name
+      description: Description
+      domainType: Domain Type
+      domainType_label: null
+      experts: Experts
+      owners: Owners
+      extConfig: Ext Config
+      version: Version
+      createdBy: Created By
+      createTime: Create Time
+      updatedBy: Updated By
+      updateTime: Update Time
+      remark: Remark
+      parentDomain: Parent Domain
+      parentDomain.displayName: Parent Domain
+      childDomains: Child Domains
+      dataProducts: null
+      expertsComponent: null
+      ownersComponent: null
+      extConfigComponent: null
     NopMetaCatalog:
       metaCatalogId: Meta Catalog Id
       metaTableId: Meta Table Id
@@ -110,6 +136,42 @@ prop:
       qualityExpectationsComponent: null
       securityComponent: null
       latestResultComponent: null
+      extConfigComponent: null
+    NopMetaDataProduct:
+      dataProductId: Data Product Id
+      businessDomainId: Business Domain Id
+      name: Name
+      displayName: Display Name
+      description: Description
+      lifecycleStage: Lifecycle Stage
+      lifecycleStage_label: null
+      dataProductType: Data Product Type
+      dataProductType_label: null
+      visibility: Visibility
+      visibility_label: null
+      portfolioPriority: Portfolio Priority
+      portfolioPriority_label: null
+      sla: SLA
+      consumesFrom: Consumes From
+      providesTo: Provides To
+      experts: Experts
+      assets: Assets
+      ports: Ports
+      extConfig: Ext Config
+      version: Version
+      createdBy: Created By
+      createTime: Create Time
+      updatedBy: Updated By
+      updateTime: Update Time
+      remark: Remark
+      businessDomain: Business Domain
+      businessDomain.displayName: Business Domain
+      slaComponent: null
+      consumesFromComponent: null
+      providesToComponent: null
+      expertsComponent: null
+      assetsComponent: null
+      portsComponent: null
       extConfigComponent: null
     NopMetaDataSource:
       dataSourceId: Datasource Id
@@ -218,6 +280,7 @@ prop:
       delVersionProp: Del Version Prop
       dbCatalog: DB Catalog
       dbSchema: DB Schema
+      businessDomainId: Business Domain Id
       extConfig: Ext Config
       version: Version
       createdBy: Created By
@@ -258,6 +321,7 @@ prop:
       displayName: Display Name
       comment: Comment
       nativeSqlType: Native Sql Type
+      businessDomainId: Business Domain Id
       extConfig: Ext Config
       version: Version
       createdBy: Created By
@@ -744,6 +808,7 @@ prop:
       updateTime: Update Time
       remark: Remark
       schema: Schema
+      businessDomainId: Business Domain Id
       metaModule: Meta Module
       metaModule.displayName: Meta Module
       dimensions: Dimensions
@@ -772,6 +837,7 @@ prop:
       granularity: Granularity
       format: Format
       sortOrder: Sort Order
+      businessDomainId: Business Domain Id
       extConfig: Ext Config
       version: Version
       createdBy: Created By
@@ -843,6 +909,7 @@ prop:
       format: Format
       currencyUnit: Currency Unit
       description: Description
+      businessDomainId: Business Domain Id
       extConfig: Ext Config
       version: Version
       createdBy: Created By
@@ -941,6 +1008,11 @@ dict:
     meta/tag-label-type: Tag Label Type
     meta/tag-label-state: Tag Label State
     meta/tag-provider: Tag Provider
+    meta/business-domain-type: Business Domain Type
+    meta/data-product-lifecycle: Data Product Lifecycle
+    meta/data-product-type: Data Product Type
+    meta/data-product-visibility: Data Product Visibility
+    meta/data-product-priority: Data Product Priority
 dict.option.label:
   meta/module-status:
     DRAFTING: Drafting
@@ -1059,3 +1131,33 @@ dict.option.label:
   meta/tag-provider:
     system: System
     user: User
+  meta/business-domain-type:
+    SourceAligned: Source Aligned
+    ConsumerAligned: Consumer Aligned
+    Aggregate: Aggregate
+  meta/data-product-lifecycle:
+    IDEATION: Ideation
+    DESIGN: Design
+    DEVELOPMENT: Development
+    TESTING: Testing
+    PRODUCTION: Production
+    DEPRECATED: Deprecated
+    RETIRED: Retired
+  meta/data-product-type:
+    RAW_DATA: Raw Data
+    DERIVED_DATA: Derived Data
+    DATASET: Dataset
+    REPORTS: Reports
+    ANALYTIC_VIEW: Analytic View
+    ALGORITHM: Algorithm
+  meta/data-product-visibility:
+    PRIVATE: Private
+    INVITATION: Invitation
+    ORGANISATION: Organisation
+    DATASPACE: Dataspace
+    PUBLIC: Public
+  meta/data-product-priority:
+    CRITICAL: Critical
+    HIGH: High
+    MEDIUM: Medium
+    LOW: Low

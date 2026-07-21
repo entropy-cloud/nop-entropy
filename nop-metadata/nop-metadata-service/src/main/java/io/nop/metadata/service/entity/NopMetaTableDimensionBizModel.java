@@ -62,8 +62,21 @@ public class NopMetaTableDimensionBizModel extends CrudBizModel<NopMetaTableDime
     public NopMetaTableDimension save(@Name("data") Map<String, Object> data, IServiceContext context) {
         String metaTableId = stringOf(data, NopMetaTableDimension.PROP_NAME_metaTableId);
         String entityFieldId = stringOf(data, NopMetaTableDimension.PROP_NAME_entityFieldId);
+        inheritBusinessDomain(data, metaTableId);
         validateDimensionField(metaTableId, entityFieldId);
         return super.save(data, context);
+    }
+
+    private void inheritBusinessDomain(Map<String, Object> data, String metaTableId) {
+        String businessDomainId = stringOf(data, NopMetaTableDimension.PROP_NAME_businessDomainId);
+        if ((businessDomainId == null || businessDomainId.isEmpty())
+                && metaTableId != null && !metaTableId.isEmpty()) {
+            IEntityDao<NopMetaTable> tableDao = daoFor(NopMetaTable.class);
+            NopMetaTable table = tableDao.getEntityById(metaTableId);
+            if (table != null && table.getBusinessDomainId() != null) {
+                data.put(NopMetaTableDimension.PROP_NAME_businessDomainId, table.getBusinessDomainId());
+            }
+        }
     }
 
     private void validateDimensionField(String metaTableId, String entityFieldId) {

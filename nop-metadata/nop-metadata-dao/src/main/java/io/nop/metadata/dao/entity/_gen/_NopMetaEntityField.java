@@ -117,36 +117,40 @@ public class _NopMetaEntityField extends DynamicOrmEntity{
     public static final String PROP_NAME_nativeSqlType = "nativeSqlType";
     public static final int PROP_ID_nativeSqlType = 24;
     
+    /* 业务域ID: BUSINESS_DOMAIN_ID VARCHAR */
+    public static final String PROP_NAME_businessDomainId = "businessDomainId";
+    public static final int PROP_ID_businessDomainId = 25;
+    
     /* 扩展配置: EXT_CONFIG VARCHAR */
     public static final String PROP_NAME_extConfig = "extConfig";
-    public static final int PROP_ID_extConfig = 25;
+    public static final int PROP_ID_extConfig = 26;
     
     /* 数据版本: VERSION BIGINT */
     public static final String PROP_NAME_version = "version";
-    public static final int PROP_ID_version = 26;
+    public static final int PROP_ID_version = 27;
     
     /* 创建人: CREATED_BY VARCHAR */
     public static final String PROP_NAME_createdBy = "createdBy";
-    public static final int PROP_ID_createdBy = 27;
+    public static final int PROP_ID_createdBy = 28;
     
     /* 创建时间: CREATE_TIME TIMESTAMP */
     public static final String PROP_NAME_createTime = "createTime";
-    public static final int PROP_ID_createTime = 28;
+    public static final int PROP_ID_createTime = 29;
     
     /* 修改人: UPDATED_BY VARCHAR */
     public static final String PROP_NAME_updatedBy = "updatedBy";
-    public static final int PROP_ID_updatedBy = 29;
+    public static final int PROP_ID_updatedBy = 30;
     
     /* 修改时间: UPDATE_TIME TIMESTAMP */
     public static final String PROP_NAME_updateTime = "updateTime";
-    public static final int PROP_ID_updateTime = 30;
+    public static final int PROP_ID_updateTime = 31;
     
     /* 备注: REMARK VARCHAR */
     public static final String PROP_NAME_remark = "remark";
-    public static final int PROP_ID_remark = 31;
+    public static final int PROP_ID_remark = 32;
     
 
-    private static int _PROP_ID_BOUND = 32;
+    private static int _PROP_ID_BOUND = 33;
 
     
     /* relation: 元数据实体 */
@@ -159,7 +163,7 @@ public class _NopMetaEntityField extends DynamicOrmEntity{
     protected static final List<String> PK_PROP_NAMES = Arrays.asList(PROP_NAME_entityFieldId);
     protected static final int[] PK_PROP_IDS = new int[]{PROP_ID_entityFieldId};
 
-    private static final String[] PROP_ID_TO_NAME = new String[32];
+    private static final String[] PROP_ID_TO_NAME = new String[33];
     private static final Map<String,Integer> PROP_NAME_TO_ID = new HashMap<>();
     static{
       
@@ -234,6 +238,9 @@ public class _NopMetaEntityField extends DynamicOrmEntity{
       
           PROP_ID_TO_NAME[PROP_ID_nativeSqlType] = PROP_NAME_nativeSqlType;
           PROP_NAME_TO_ID.put(PROP_NAME_nativeSqlType, PROP_ID_nativeSqlType);
+      
+          PROP_ID_TO_NAME[PROP_ID_businessDomainId] = PROP_NAME_businessDomainId;
+          PROP_NAME_TO_ID.put(PROP_NAME_businessDomainId, PROP_ID_businessDomainId);
       
           PROP_ID_TO_NAME[PROP_ID_extConfig] = PROP_NAME_extConfig;
           PROP_NAME_TO_ID.put(PROP_NAME_extConfig, PROP_ID_extConfig);
@@ -330,6 +337,9 @@ public class _NopMetaEntityField extends DynamicOrmEntity{
     
     /* 原生SQL类型: NATIVE_SQL_TYPE */
     private java.lang.String _nativeSqlType;
+    
+    /* 业务域ID: BUSINESS_DOMAIN_ID */
+    private java.lang.String _businessDomainId;
     
     /* 扩展配置: EXT_CONFIG */
     private java.lang.String _extConfig;
@@ -497,6 +507,9 @@ public class _NopMetaEntityField extends DynamicOrmEntity{
         
             case PROP_ID_nativeSqlType:
                return getNativeSqlType();
+        
+            case PROP_ID_businessDomainId:
+               return getBusinessDomainId();
         
             case PROP_ID_extConfig:
                return getExtConfig();
@@ -770,6 +783,16 @@ public class _NopMetaEntityField extends DynamicOrmEntity{
                break;
             }
         
+            case PROP_ID_businessDomainId:{
+               java.lang.String typedValue = null;
+               if(value != null){
+                   typedValue = ConvertHelper.toString(value,
+                       err-> newTypeConversionError(PROP_NAME_businessDomainId));
+               }
+               setBusinessDomainId(typedValue);
+               break;
+            }
+        
             case PROP_ID_extConfig:{
                java.lang.String typedValue = null;
                if(value != null){
@@ -1013,6 +1036,13 @@ public class _NopMetaEntityField extends DynamicOrmEntity{
             case PROP_ID_nativeSqlType:{
                onInitProp(propId);
                this._nativeSqlType = (java.lang.String)value;
+               
+               break;
+            }
+        
+            case PROP_ID_businessDomainId:{
+               onInitProp(propId);
+               this._businessDomainId = (java.lang.String)value;
                
                break;
             }
@@ -1524,6 +1554,25 @@ public class _NopMetaEntityField extends DynamicOrmEntity{
         if(onPropSet(PROP_ID_nativeSqlType,value)){
             this._nativeSqlType = value;
             internalClearRefs(PROP_ID_nativeSqlType);
+            
+        }
+    }
+    
+    /**
+     * 业务域ID: BUSINESS_DOMAIN_ID
+     */
+    public final java.lang.String getBusinessDomainId(){
+         onPropGet(PROP_ID_businessDomainId);
+         return _businessDomainId;
+    }
+
+    /**
+     * 业务域ID: BUSINESS_DOMAIN_ID
+     */
+    public final void setBusinessDomainId(java.lang.String value){
+        if(onPropSet(PROP_ID_businessDomainId,value)){
+            this._businessDomainId = value;
+            internalClearRefs(PROP_ID_businessDomainId);
             
         }
     }

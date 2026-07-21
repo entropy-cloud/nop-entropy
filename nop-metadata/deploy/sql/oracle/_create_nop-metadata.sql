@@ -156,6 +156,25 @@ CREATE TABLE nop_meta_classification(
   constraint PK_nop_meta_classification primary key (CLASSIFICATION_ID)
 );
 
+CREATE TABLE nop_meta_business_domain(
+  BUSINESS_DOMAIN_ID VARCHAR2(32) NOT NULL ,
+  PARENT_DOMAIN_ID VARCHAR2(32)  ,
+  NAME VARCHAR2(100) NOT NULL ,
+  DISPLAY_NAME VARCHAR2(200)  ,
+  DESCRIPTION VARCHAR2(1000)  ,
+  DOMAIN_TYPE VARCHAR2(20)  ,
+  EXPERTS VARCHAR2(1000)  ,
+  OWNERS VARCHAR2(1000)  ,
+  EXT_CONFIG VARCHAR2(4000)  ,
+  VERSION NUMBER(20) NOT NULL ,
+  CREATED_BY VARCHAR2(50) NOT NULL ,
+  CREATE_TIME TIMESTAMP NOT NULL ,
+  UPDATED_BY VARCHAR2(50) NOT NULL ,
+  UPDATE_TIME TIMESTAMP NOT NULL ,
+  REMARK VARCHAR2(200)  ,
+  constraint PK_nop_meta_business_domain primary key (BUSINESS_DOMAIN_ID)
+);
+
 CREATE TABLE nop_meta_orm_model(
   ORM_MODEL_ID VARCHAR2(32) NOT NULL ,
   META_MODULE_ID VARCHAR2(32) NOT NULL ,
@@ -190,6 +209,7 @@ CREATE TABLE nop_meta_table(
   UPDATE_TIME TIMESTAMP NOT NULL ,
   REMARK VARCHAR2(200)  ,
   SCHEMA VARCHAR2(100)  ,
+  BUSINESS_DOMAIN_ID VARCHAR2(32)  ,
   constraint PK_nop_meta_table primary key (META_TABLE_ID)
 );
 
@@ -310,6 +330,32 @@ CREATE TABLE nop_meta_tag(
   constraint PK_nop_meta_tag primary key (TAG_ID)
 );
 
+CREATE TABLE nop_meta_data_product(
+  DATA_PRODUCT_ID VARCHAR2(32) NOT NULL ,
+  BUSINESS_DOMAIN_ID VARCHAR2(32) NOT NULL ,
+  NAME VARCHAR2(100) NOT NULL ,
+  DISPLAY_NAME VARCHAR2(200)  ,
+  DESCRIPTION VARCHAR2(1000)  ,
+  LIFECYCLE_STAGE VARCHAR2(20)  ,
+  DATA_PRODUCT_TYPE VARCHAR2(30)  ,
+  VISIBILITY VARCHAR2(20)  ,
+  PORTFOLIO_PRIORITY VARCHAR2(10)  ,
+  SLA VARCHAR2(4000)  ,
+  CONSUMES_FROM VARCHAR2(4000)  ,
+  PROVIDES_TO VARCHAR2(4000)  ,
+  EXPERTS VARCHAR2(1000)  ,
+  ASSETS VARCHAR2(4000)  ,
+  PORTS VARCHAR2(4000)  ,
+  EXT_CONFIG VARCHAR2(4000)  ,
+  VERSION NUMBER(20) NOT NULL ,
+  CREATED_BY VARCHAR2(50) NOT NULL ,
+  CREATE_TIME TIMESTAMP NOT NULL ,
+  UPDATED_BY VARCHAR2(50) NOT NULL ,
+  UPDATE_TIME TIMESTAMP NOT NULL ,
+  REMARK VARCHAR2(200)  ,
+  constraint PK_nop_meta_data_product primary key (DATA_PRODUCT_ID)
+);
+
 CREATE TABLE nop_meta_entity(
   META_ENTITY_ID VARCHAR2(32) NOT NULL ,
   ORM_MODEL_ID VARCHAR2(32) NOT NULL ,
@@ -334,6 +380,7 @@ CREATE TABLE nop_meta_entity(
   DEL_VERSION_PROP VARCHAR2(50)  ,
   DB_CATALOG VARCHAR2(100)  ,
   DB_SCHEMA VARCHAR2(100)  ,
+  BUSINESS_DOMAIN_ID VARCHAR2(32)  ,
   EXT_CONFIG VARCHAR2(4000)  ,
   VERSION NUMBER(20) NOT NULL ,
   CREATED_BY VARCHAR2(50) NOT NULL ,
@@ -403,6 +450,7 @@ CREATE TABLE nop_meta_table_dimension(
   GRANULARITY VARCHAR2(20)  ,
   FORMAT VARCHAR2(100)  ,
   SORT_ORDER INTEGER  ,
+  BUSINESS_DOMAIN_ID VARCHAR2(32)  ,
   EXT_CONFIG VARCHAR2(4000)  ,
   VERSION NUMBER(20) NOT NULL ,
   CREATED_BY VARCHAR2(50) NOT NULL ,
@@ -425,6 +473,7 @@ CREATE TABLE nop_meta_table_measure(
   FORMAT VARCHAR2(100)  ,
   CURRENCY_UNIT VARCHAR2(20)  ,
   DESCRIPTION VARCHAR2(1000)  ,
+  BUSINESS_DOMAIN_ID VARCHAR2(32)  ,
   EXT_CONFIG VARCHAR2(4000)  ,
   VERSION NUMBER(20) NOT NULL ,
   CREATED_BY VARCHAR2(50) NOT NULL ,
@@ -629,6 +678,7 @@ CREATE TABLE nop_meta_entity_field(
   DISPLAY_NAME VARCHAR2(200)  ,
   "COMMENT" VARCHAR2(1000)  ,
   NATIVE_SQL_TYPE VARCHAR2(100)  ,
+  BUSINESS_DOMAIN_ID VARCHAR2(32)  ,
   EXT_CONFIG VARCHAR2(4000)  ,
   VERSION NUMBER(20) NOT NULL ,
   CREATED_BY VARCHAR2(50) NOT NULL ,
@@ -1040,6 +1090,38 @@ CREATE TABLE nop_meta_reconciliation_result(
                     
       COMMENT ON COLUMN nop_meta_classification.REMARK IS '备注';
                     
+      COMMENT ON TABLE nop_meta_business_domain IS '业务组织域';
+                
+      COMMENT ON COLUMN nop_meta_business_domain.BUSINESS_DOMAIN_ID IS '业务域ID';
+                    
+      COMMENT ON COLUMN nop_meta_business_domain.PARENT_DOMAIN_ID IS '父域ID';
+                    
+      COMMENT ON COLUMN nop_meta_business_domain.NAME IS '域名';
+                    
+      COMMENT ON COLUMN nop_meta_business_domain.DISPLAY_NAME IS '显示名';
+                    
+      COMMENT ON COLUMN nop_meta_business_domain.DESCRIPTION IS '描述';
+                    
+      COMMENT ON COLUMN nop_meta_business_domain.DOMAIN_TYPE IS '业务域类型';
+                    
+      COMMENT ON COLUMN nop_meta_business_domain.EXPERTS IS '专家列表';
+                    
+      COMMENT ON COLUMN nop_meta_business_domain.OWNERS IS '负责人列表';
+                    
+      COMMENT ON COLUMN nop_meta_business_domain.EXT_CONFIG IS '扩展配置';
+                    
+      COMMENT ON COLUMN nop_meta_business_domain.VERSION IS '数据版本';
+                    
+      COMMENT ON COLUMN nop_meta_business_domain.CREATED_BY IS '创建人';
+                    
+      COMMENT ON COLUMN nop_meta_business_domain.CREATE_TIME IS '创建时间';
+                    
+      COMMENT ON COLUMN nop_meta_business_domain.UPDATED_BY IS '修改人';
+                    
+      COMMENT ON COLUMN nop_meta_business_domain.UPDATE_TIME IS '修改时间';
+                    
+      COMMENT ON COLUMN nop_meta_business_domain.REMARK IS '备注';
+                    
       COMMENT ON TABLE nop_meta_orm_model IS 'ORM模型';
                 
       COMMENT ON COLUMN nop_meta_orm_model.ORM_MODEL_ID IS '模型ID';
@@ -1101,6 +1183,8 @@ CREATE TABLE nop_meta_reconciliation_result(
       COMMENT ON COLUMN nop_meta_table.REMARK IS '备注';
                     
       COMMENT ON COLUMN nop_meta_table.SCHEMA IS '源schema';
+                    
+      COMMENT ON COLUMN nop_meta_table.BUSINESS_DOMAIN_ID IS '业务域ID';
                     
       COMMENT ON TABLE nop_meta_pipeline IS '数据管道';
                 
@@ -1300,6 +1384,52 @@ CREATE TABLE nop_meta_reconciliation_result(
                     
       COMMENT ON COLUMN nop_meta_tag.REMARK IS '备注';
                     
+      COMMENT ON TABLE nop_meta_data_product IS '数据产品';
+                
+      COMMENT ON COLUMN nop_meta_data_product.DATA_PRODUCT_ID IS '数据产品ID';
+                    
+      COMMENT ON COLUMN nop_meta_data_product.BUSINESS_DOMAIN_ID IS '所属业务域ID';
+                    
+      COMMENT ON COLUMN nop_meta_data_product.NAME IS '产品名';
+                    
+      COMMENT ON COLUMN nop_meta_data_product.DISPLAY_NAME IS '显示名';
+                    
+      COMMENT ON COLUMN nop_meta_data_product.DESCRIPTION IS '描述';
+                    
+      COMMENT ON COLUMN nop_meta_data_product.LIFECYCLE_STAGE IS '生命周期阶段';
+                    
+      COMMENT ON COLUMN nop_meta_data_product.DATA_PRODUCT_TYPE IS '数据产品类型';
+                    
+      COMMENT ON COLUMN nop_meta_data_product.VISIBILITY IS '可见性';
+                    
+      COMMENT ON COLUMN nop_meta_data_product.PORTFOLIO_PRIORITY IS '投资组合优先级';
+                    
+      COMMENT ON COLUMN nop_meta_data_product.SLA IS 'SLA定义';
+                    
+      COMMENT ON COLUMN nop_meta_data_product.CONSUMES_FROM IS '依赖产品列表';
+                    
+      COMMENT ON COLUMN nop_meta_data_product.PROVIDES_TO IS '被依赖产品列表';
+                    
+      COMMENT ON COLUMN nop_meta_data_product.EXPERTS IS '专家列表';
+                    
+      COMMENT ON COLUMN nop_meta_data_product.ASSETS IS '关联资产列表';
+                    
+      COMMENT ON COLUMN nop_meta_data_product.PORTS IS '数据端口列表';
+                    
+      COMMENT ON COLUMN nop_meta_data_product.EXT_CONFIG IS '扩展配置';
+                    
+      COMMENT ON COLUMN nop_meta_data_product.VERSION IS '数据版本';
+                    
+      COMMENT ON COLUMN nop_meta_data_product.CREATED_BY IS '创建人';
+                    
+      COMMENT ON COLUMN nop_meta_data_product.CREATE_TIME IS '创建时间';
+                    
+      COMMENT ON COLUMN nop_meta_data_product.UPDATED_BY IS '修改人';
+                    
+      COMMENT ON COLUMN nop_meta_data_product.UPDATE_TIME IS '修改时间';
+                    
+      COMMENT ON COLUMN nop_meta_data_product.REMARK IS '备注';
+                    
       COMMENT ON TABLE nop_meta_entity IS '元数据实体';
                 
       COMMENT ON COLUMN nop_meta_entity.META_ENTITY_ID IS '实体ID';
@@ -1347,6 +1477,8 @@ CREATE TABLE nop_meta_reconciliation_result(
       COMMENT ON COLUMN nop_meta_entity.DB_CATALOG IS '数据库目录';
                     
       COMMENT ON COLUMN nop_meta_entity.DB_SCHEMA IS '数据库Schema';
+                    
+      COMMENT ON COLUMN nop_meta_entity.BUSINESS_DOMAIN_ID IS '业务域ID';
                     
       COMMENT ON COLUMN nop_meta_entity.EXT_CONFIG IS '扩展配置';
                     
@@ -1468,6 +1600,8 @@ CREATE TABLE nop_meta_reconciliation_result(
                     
       COMMENT ON COLUMN nop_meta_table_dimension.SORT_ORDER IS '排序';
                     
+      COMMENT ON COLUMN nop_meta_table_dimension.BUSINESS_DOMAIN_ID IS '业务域ID';
+                    
       COMMENT ON COLUMN nop_meta_table_dimension.EXT_CONFIG IS '扩展配置';
                     
       COMMENT ON COLUMN nop_meta_table_dimension.VERSION IS '数据版本';
@@ -1505,6 +1639,8 @@ CREATE TABLE nop_meta_reconciliation_result(
       COMMENT ON COLUMN nop_meta_table_measure.CURRENCY_UNIT IS '货币单位';
                     
       COMMENT ON COLUMN nop_meta_table_measure.DESCRIPTION IS '描述';
+                    
+      COMMENT ON COLUMN nop_meta_table_measure.BUSINESS_DOMAIN_ID IS '业务域ID';
                     
       COMMENT ON COLUMN nop_meta_table_measure.EXT_CONFIG IS '扩展配置';
                     
@@ -1859,6 +1995,8 @@ CREATE TABLE nop_meta_reconciliation_result(
       COMMENT ON COLUMN nop_meta_entity_field."COMMENT" IS '注释';
                     
       COMMENT ON COLUMN nop_meta_entity_field.NATIVE_SQL_TYPE IS '原生SQL类型';
+                    
+      COMMENT ON COLUMN nop_meta_entity_field.BUSINESS_DOMAIN_ID IS '业务域ID';
                     
       COMMENT ON COLUMN nop_meta_entity_field.EXT_CONFIG IS '扩展配置';
                     

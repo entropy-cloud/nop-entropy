@@ -1,0 +1,31 @@
+# __XGEN_FORCE_OVERRIDE__
+label: 数据产品类型
+locale: zh-CN
+valueType: string
+description: 
+options:
+
+  - label: 原始数据
+    value: RAW_DATA
+    description: 
+  
+  - label: 派生数据
+    value: DERIVED_DATA
+    description: 
+  
+  - label: 数据集
+    value: DATASET
+    description: 
+  
+  - label: 报告
+    value: REPORTS
+    description: 
+  
+  - label: 分析视图
+    value: ANALYTIC_VIEW
+    description: 
+  
+  - label: 算法
+    value: ALGORITHM
+    description: 
+  

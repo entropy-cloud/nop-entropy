@@ -1,0 +1,35 @@
+# __XGEN_FORCE_OVERRIDE__
+label: 数据产品生命周期
+locale: zh-CN
+valueType: string
+description: 
+options:
+
+  - label: 构思
+    value: IDEATION
+    description: 
+  
+  - label: 设计
+    value: DESIGN
+    description: 
+  
+  - label: 开发
+    value: DEVELOPMENT
+    description: 
+  
+  - label: 测试
+    value: TESTING
+    description: 
+  
+  - label: 生产
+    value: PRODUCTION
+    description: 
+  
+  - label: 已废弃
+    value: DEPRECATED
+    description: 
+  
+  - label: 已退役
+    value: RETIRED
+    description: 
+  

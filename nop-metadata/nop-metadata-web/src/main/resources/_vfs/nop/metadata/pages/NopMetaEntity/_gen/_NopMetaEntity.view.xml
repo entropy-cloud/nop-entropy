@@ -87,6 +87,9 @@
                 <!--数据库Schema-->
                 <col id="dbSchema" sortable="true"/>
 
+                <!--业务域ID-->
+                <col id="businessDomainId" sortable="true"/>
+
                 <!--扩展配置-->
                 <col id="extConfig" sortable="true"/>
 
@@ -123,10 +126,10 @@
  updaterProp[修改人属性] updateTimeProp[修改时间属性]
  versionProp[版本属性] delFlagProp[删除标记属性]
  delVersionProp[删除版本属性] dbCatalog[数据库目录]
- dbSchema[数据库Schema] extConfig[扩展配置]
- createdBy[创建人] createTime[创建时间]
- updatedBy[修改人] updateTime[修改时间]
- remark[备注] 
+ dbSchema[数据库Schema] businessDomainId[业务域ID]
+ extConfig[扩展配置] createdBy[创建人]
+ createTime[创建时间] updatedBy[修改人]
+ updateTime[修改时间] remark[备注]
 </layout>
         </form>
         <form id="add" editMode="add" title="新增-元数据实体" i18n-en:title="Add Meta Entity" x:prototype="edit"/>
@@ -143,8 +146,8 @@
  updaterProp[修改人属性] updateTimeProp[修改时间属性]
  versionProp[版本属性] delFlagProp[删除标记属性]
  delVersionProp[删除版本属性] dbCatalog[数据库目录]
- dbSchema[数据库Schema] extConfig[扩展配置]
- remark[备注] 
+ dbSchema[数据库Schema] businessDomainId[业务域ID]
+ extConfig[扩展配置] remark[备注]
 </layout>
         </form>
         <form id="query" editMode="query" title="查询条件" i18n-en:title="Query Condition" x:abstract="true"/>

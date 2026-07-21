@@ -15,6 +15,8 @@ alter table nop_meta_glossary add NOP_TENANT_ID VARCHAR2(32) DEFAULT '0' NOT NUL
 
 alter table nop_meta_classification add NOP_TENANT_ID VARCHAR2(32) DEFAULT '0' NOT NULL;
 
+alter table nop_meta_business_domain add NOP_TENANT_ID VARCHAR2(32) DEFAULT '0' NOT NULL;
+
 alter table nop_meta_orm_model add NOP_TENANT_ID VARCHAR2(32) DEFAULT '0' NOT NULL;
 
 alter table nop_meta_table add NOP_TENANT_ID VARCHAR2(32) DEFAULT '0' NOT NULL;
@@ -30,6 +32,8 @@ alter table nop_meta_quality_result add NOP_TENANT_ID VARCHAR2(32) DEFAULT '0' N
 alter table nop_meta_glossary_term add NOP_TENANT_ID VARCHAR2(32) DEFAULT '0' NOT NULL;
 
 alter table nop_meta_tag add NOP_TENANT_ID VARCHAR2(32) DEFAULT '0' NOT NULL;
+
+alter table nop_meta_data_product add NOP_TENANT_ID VARCHAR2(32) DEFAULT '0' NOT NULL;
 
 alter table nop_meta_entity add NOP_TENANT_ID VARCHAR2(32) DEFAULT '0' NOT NULL;
 
@@ -97,6 +101,9 @@ alter table nop_meta_glossary add constraint PK_nop_meta_glossary primary key (N
 alter table nop_meta_classification drop constraint PK_nop_meta_classification;
 alter table nop_meta_classification add constraint PK_nop_meta_classification primary key (NOP_TENANT_ID, CLASSIFICATION_ID);
 
+alter table nop_meta_business_domain drop constraint PK_nop_meta_business_domain;
+alter table nop_meta_business_domain add constraint PK_nop_meta_business_domain primary key (NOP_TENANT_ID, BUSINESS_DOMAIN_ID);
+
 alter table nop_meta_orm_model drop constraint PK_nop_meta_orm_model;
 alter table nop_meta_orm_model add constraint PK_nop_meta_orm_model primary key (NOP_TENANT_ID, ORM_MODEL_ID);
 
@@ -120,6 +127,9 @@ alter table nop_meta_glossary_term add constraint PK_nop_meta_glossary_term prim
 
 alter table nop_meta_tag drop constraint PK_nop_meta_tag;
 alter table nop_meta_tag add constraint PK_nop_meta_tag primary key (NOP_TENANT_ID, TAG_ID);
+
+alter table nop_meta_data_product drop constraint PK_nop_meta_data_product;
+alter table nop_meta_data_product add constraint PK_nop_meta_data_product primary key (NOP_TENANT_ID, DATA_PRODUCT_ID);
 
 alter table nop_meta_entity drop constraint PK_nop_meta_entity;
 alter table nop_meta_entity add constraint PK_nop_meta_entity primary key (NOP_TENANT_ID, META_ENTITY_ID);

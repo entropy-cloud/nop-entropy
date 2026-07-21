@@ -1,5 +1,9 @@
 site:
   resource:
+    FNPT:NopMetaBusinessDomain:mutation:
+      displayName: Modify Meta Business Domain
+    FNPT:NopMetaBusinessDomain:query:
+      displayName: Query Meta Business Domain
     FNPT:NopMetaCatalog:mutation:
       displayName: Modify Meta Catalog
     FNPT:NopMetaCatalog:query:
@@ -12,6 +16,10 @@ site:
       displayName: Modify Meta Data Contract
     FNPT:NopMetaDataContract:query:
       displayName: Query Meta Data Contract
+    FNPT:NopMetaDataProduct:mutation:
+      displayName: Modify Meta Data Product
+    FNPT:NopMetaDataProduct:query:
+      displayName: Query Meta Data Product
     FNPT:NopMetaDataSource:mutation:
       displayName: Modify Meta Datasource
     FNPT:NopMetaDataSource:query:
@@ -148,12 +156,16 @@ site:
       displayName: Modify Meta Tag Label
     FNPT:NopMetaTagLabel:query:
       displayName: Query Meta Tag Label
+    NopMetaBusinessDomain-main:
+      displayName: Meta Business Domain
     NopMetaCatalog-main:
       displayName: Meta Catalog
     NopMetaClassification-main:
       displayName: Meta Classification
     NopMetaDataContract-main:
       displayName: Meta Data Contract
+    NopMetaDataProduct-main:
+      displayName: Meta Data Product
     NopMetaDataSource-main:
       displayName: Meta Datasource
     NopMetaDict-main:
