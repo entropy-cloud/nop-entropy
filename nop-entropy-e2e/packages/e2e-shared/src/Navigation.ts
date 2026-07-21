@@ -16,7 +16,7 @@ export interface LoginOptions {
  * 3. Default fallback
  */
 function resolveBaseUrl(explicit?: string): string {
-  return explicit ?? process.env.E2E_BASE_URL ?? 'http://127.0.0.1:4173';
+  return explicit ?? process.env.E2E_BASE_URL ?? 'http://localhost:4173';
 }
 
 /**
@@ -49,6 +49,8 @@ export async function login(
     await page.evaluate((t) => localStorage.setItem('accessToken', t), token);
     await page.reload();
     await page.waitForLoadState('networkidle');
+    await waitForAuthenticated(page);
+    await waitForMenuLoaded(page);
     return;
   }
 
@@ -59,8 +61,45 @@ export async function login(
     await usernameInput.fill(username);
     await passwordInput.fill(password);
     await page.locator('button[type="submit"], button:has-text("登录")').click();
-    await page.waitForLoadState('networkidle');
+    await waitForAuthenticated(page);
+    await waitForMenuLoaded(page);
   }
+}
+
+/**
+ * Wait until the React auth store (sessionStorage 'auth:v2') reports
+ * isAuthenticated === true. More reliable than `waitForLoadState('networkidle')`
+ * because it directly observes the application state rather than network timing.
+ */
+async function waitForAuthenticated(page: PlaywrightPage, timeoutMs = 30_000): Promise<void> {
+  await page.waitForFunction(
+    () => {
+      try {
+        const raw = sessionStorage.getItem('auth:v2');
+        if (!raw) return false;
+        const parsed = JSON.parse(raw);
+        return parsed?.state?.isAuthenticated === true;
+      } catch {
+        return false;
+      }
+    },
+    undefined,
+    { timeout: timeoutMs },
+  );
+}
+
+/**
+ * Wait until the sidebar/menu has populated with items, indicating that the
+ * menu query has resolved and route registration is complete. Without this,
+ * direct hash navigation (e.g. #/NopAuthUser-main) may hit the catch-all route
+ * because the menu-driven routes haven't been registered yet.
+ */
+async function waitForMenuLoaded(page: PlaywrightPage, timeoutMs = 15_000): Promise<void> {
+  await page.waitForFunction(
+    () => document.querySelectorAll('nav button[class*="flex-1"]').length >= 2,
+    undefined,
+    { timeout: timeoutMs },
+  );
 }
 
 export async function navigateTo(page: PlaywrightPage, hashRoute: string): Promise<void> {

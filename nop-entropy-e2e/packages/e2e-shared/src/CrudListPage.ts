@@ -24,9 +24,9 @@ export class CrudListPage extends BasePage {
     await this.waitForList();
   }
 
-  async waitForList(): Promise<void> {
-    await this.engine.crudContainer(this.page).waitFor({ state: 'visible' });
-    await this.engine.table(this.page).waitFor({ state: 'visible' });
+  async waitForList(timeoutMs = 30_000): Promise<void> {
+    await this.engine.crudContainer(this.page).waitFor({ state: 'visible', timeout: timeoutMs });
+    await this.engine.table(this.page).waitFor({ state: 'visible', timeout: timeoutMs });
   }
 
   async getAddButton(): Promise<Locator> {
