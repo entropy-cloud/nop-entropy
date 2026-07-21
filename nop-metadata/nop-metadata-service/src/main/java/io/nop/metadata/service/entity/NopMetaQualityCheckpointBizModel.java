@@ -184,6 +184,16 @@ public class NopMetaQualityCheckpointBizModel extends CrudBizModel<NopMetaQualit
         // D6：自动评分触发——按 affectedTableIds 逐表重算评分（复用既有 scorer，零落盘逻辑复制）
         triggerAutoScoring(cp, summary, context);
 
+        // 从 summary 读取 autoScore/scoreSkipped（triggerAutoScoring 写入 summary）
+        Object autoScore = summary.get("autoScore");
+        if (autoScore instanceof Boolean) {
+            dto.setAutoScore((Boolean) autoScore);
+        }
+        Object scoreSkipped = summary.get("scoreSkipped");
+        if (scoreSkipped instanceof Boolean) {
+            dto.setScoreSkipped((Boolean) scoreSkipped);
+        }
+
         // D4：结果动作投递——store 提交后才触发 webhook/notify（post-commit dispatch）
         dispatchActions(cp, summary);
         return dto;

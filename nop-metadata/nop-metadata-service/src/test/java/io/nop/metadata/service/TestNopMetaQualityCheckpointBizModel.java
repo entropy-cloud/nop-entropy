@@ -83,7 +83,7 @@ public class TestNopMetaQualityCheckpointBizModel extends JunitBaseTestCase {
      * tableIds（其上挂载 volume/not_null 规则，经 mount 路径解析）。验证：
      * <ul>
      *   <li>(a) ruleIds 与 tableIds 两路规则都被解析执行（去重后 4 条）</li>
-     *   <li>(b) 摘要 executedCount=4 / passCount=2 / failCount=1（vol PASS + nn PASS + vol-fail FAIL + db SKIP）</li>
+     *   <li>(b) 摘要 executedRuleCount=4 / passCount=2 / failCount=1（vol PASS + nn PASS + vol-fail FAIL + db SKIP）</li>
      *   <li>每条规则对应一行真实 QualityResult（含 database 的 SKIP 行）</li>
      * </ul>
      */
@@ -111,7 +111,7 @@ public class TestNopMetaQualityCheckpointBizModel extends JunitBaseTestCase {
         assertFalse(resp.hasError(), "mixed checkpoint should not globally error: " + resp);
         String data = String.valueOf(resp.getData());
         // 解析集 = {r-cp-db(explicit)} ∪ {r-cp-vol,r-cp-nn,r-cp-fail(mount)} = 4（去重）
-        assertTrue(data.contains("executedCount=4"), "executedCount=4 (deduped mixed set): " + data);
+        assertTrue(data.contains("executedRuleCount=4"), "executedRuleCount=4 (deduped mixed set): " + data);
         assertTrue(data.contains("passCount=2"), "passCount=2 (vol+nn): " + data);
         assertTrue(data.contains("failCount=1"), "failCount=1 (vol-fail minRows=10): " + data);
         assertTrue(data.contains("errorCount=0"), "errorCount=0: " + data);
@@ -214,7 +214,7 @@ public class TestNopMetaQualityCheckpointBizModel extends JunitBaseTestCase {
         GraphQLResponseBean resp = exec("cp-partial");
         assertFalse(resp.hasError(), "non-empty set must execute (missing refs isolated, not abort): " + resp);
         String data = String.valueOf(resp.getData());
-        assertTrue(data.contains("executedCount=1"), "valid rule executes: " + data);
+        assertTrue(data.contains("executedRuleCount=1"), "valid rule executes: " + data);
         assertTrue(data.contains("passCount=1"), "valid rule passes: " + data);
         // 缺失的 ruleId 与 tableId 都记入 errors（不静默丢弃）
         assertTrue(data.contains("__missing_rule__"), "missing ruleId recorded in errors: " + data);
@@ -594,7 +594,10 @@ public class TestNopMetaQualityCheckpointBizModel extends JunitBaseTestCase {
     private GraphQLResponseBean exec(String checkpointId) {
         return graphQLEngine.executeGraphQL(graphQLEngine.newGraphQLContext(req(
                 "mutation { NopMetaQualityCheckpoint__executeCheckpoint(checkpointId: \"" + checkpointId
-                        + "\", schemaPattern: \"PUBLIC\") }")));
+                        + "\", schemaPattern: \"PUBLIC\") { "
+                        + "checkpointId executedRuleCount passCount failCount errorCount "
+                        + "affectedTableIds autoScore scoreSkipped executionErrors "
+                        + "} }")));
     }
 
     /** 手动调 computeQualityScore（用于与自动评分比对，证明复用同一 scorer）。 */

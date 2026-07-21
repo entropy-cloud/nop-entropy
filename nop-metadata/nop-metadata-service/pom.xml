@@ -74,6 +74,7 @@
         <dependency>
             <groupId>io.github.entropy-cloud</groupId>
             <artifactId>nop-search-lucene</artifactId>
+            <optional>true</optional>
         </dependency>
         <!-- nop-job-api: IJobScheduler / JobSpec / TriggerSpec interfaces for cron scheduling
              (架构基线 §2.7.3.1 D6). Runtime impl provided by host app via app-local-scheduler.beans.xml. -->

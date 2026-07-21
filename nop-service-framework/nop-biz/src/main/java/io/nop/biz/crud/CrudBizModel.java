@@ -734,6 +734,8 @@ public abstract class CrudBizModel<T extends IOrmEntity>
     }
 
     protected void checkDataAuth(@Name("action") String action, @Name("entity") T entity, IServiceContext context) {
+        if (context == null)
+            return;
         IDataAuthChecker dataAuthChecker = context.getDataAuthChecker();
         if (dataAuthChecker == null)
             return;
@@ -954,6 +956,8 @@ public abstract class CrudBizModel<T extends IOrmEntity>
     }
 
     protected void checkMetaFilter(T entity, IObjMeta objMeta, IServiceContext context) {
+        if (context == null)
+            return;
         if (objMeta != null && objMeta.getFilter() != null) {
             boolean b = new BizFilterEvaluator(context).testForEntity(objMeta.getFilter(), entity);
 

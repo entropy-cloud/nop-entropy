@@ -35,6 +35,8 @@ public class CheckpointExecutionResultDTO implements Serializable {
     private List<ErrorDTO> errors = new ArrayList<>();
     private List<Map<String, Object>> executionResults = new ArrayList<>();
     private List<Map<String, Object>> executionErrors = new ArrayList<>();
+    private boolean autoScore;
+    private boolean scoreSkipped;
 
     public String getCheckpointId() {
         return checkpointId;
@@ -122,5 +124,21 @@ public class CheckpointExecutionResultDTO implements Serializable {
 
     public void setExecutionErrors(List<Map<String, Object>> executionErrors) {
         this.executionErrors = executionErrors;
+    }
+
+    public boolean isAutoScore() {
+        return autoScore;
+    }
+
+    public void setAutoScore(boolean autoScore) {
+        this.autoScore = autoScore;
+    }
+
+    public boolean isScoreSkipped() {
+        return scoreSkipped;
+    }
+
+    public void setScoreSkipped(boolean scoreSkipped) {
+        this.scoreSkipped = scoreSkipped;
     }
 }
