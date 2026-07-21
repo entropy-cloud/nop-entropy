@@ -116,6 +116,8 @@ public interface NopMetadataErrors {
     String ARG_TABLES = "tables";
     String ARG_UNSUPPORTED_TOKEN = "unsupportedToken";
     String ARG_ENTITY_TYPE = "entityType";
+    String ARG_TAG_LABEL_ID = "tagLabelId";
+    String ARG_LABEL_TYPE = "labelType";
 
     // ===== Aggregation (aggr) =====
 
@@ -852,6 +854,16 @@ public interface NopMetadataErrors {
             ErrorCode.define("nop.err.metadata.contract-sla-invalid",
                     "Failed to parse sla JSON for contract: {contractId} error={error}",
                     ARG_CONTRACT_ID, ARG_ERROR);
+
+    // ===== TagLabel =====
+
+    ErrorCode ERR_TAG_LABEL_NOT_FOUND =
+            ErrorCode.define("nop.err.metadata.tag-label-not-found",
+                    "TagLabel not found: {tagLabelId}", ARG_TAG_LABEL_ID);
+    ErrorCode ERR_TAG_LABEL_INVALID_LABEL_TYPE =
+            ErrorCode.define("nop.err.metadata.tag-label-invalid-label-type",
+                    "Unknown or unsupported labelType for approval trigger: {labelType}",
+                    ARG_LABEL_TYPE);
 
     // ===== Checkpoint (checkpoint biz) =====
 

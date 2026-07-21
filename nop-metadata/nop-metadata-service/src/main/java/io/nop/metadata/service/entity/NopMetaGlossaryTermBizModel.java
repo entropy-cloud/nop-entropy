@@ -5,14 +5,16 @@ import io.nop.api.core.annotations.biz.BizModel;
 import io.nop.api.core.annotations.core.Name;
 import io.nop.api.core.beans.FilterBeans;
 import io.nop.api.core.beans.query.QueryBean;
+import io.nop.api.core.time.CoreMetrics;
 import io.nop.biz.crud.CrudBizModel;
 import io.nop.core.context.IServiceContext;
-import io.nop.api.core.time.CoreMetrics;
 import io.nop.core.lang.json.JsonTool;
 import io.nop.dao.api.IEntityDao;
 import io.nop.metadata.biz.INopMetaGlossaryTermBiz;
 import io.nop.metadata.dao.entity.NopMetaGlossaryTerm;
 import io.nop.metadata.dao.entity.NopMetaTagLabel;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.sql.Timestamp;
 import java.util.HashSet;
@@ -23,6 +25,9 @@ import java.util.UUID;
 
 @BizModel("NopMetaGlossaryTerm")
 public class NopMetaGlossaryTermBizModel extends CrudBizModel<NopMetaGlossaryTerm> implements INopMetaGlossaryTermBiz {
+
+    private static final Logger LOG = LoggerFactory.getLogger(NopMetaGlossaryTermBizModel.class);
+
     public NopMetaGlossaryTermBizModel() {
         setEntityName(NopMetaGlossaryTerm.class.getName());
     }
@@ -57,27 +62,29 @@ public class NopMetaGlossaryTermBizModel extends CrudBizModel<NopMetaGlossaryTer
             existingTagIds.add(label.getTagId());
         }
 
-        Timestamp now = CoreMetrics.currentTimestamp();
         String userId = context.getUserId() != null ? context.getUserId() : "system";
 
         for (String tagId : newTagIds) {
             if (!existingTagIds.contains(tagId)) {
-                NopMetaTagLabel label = tagLabelDao.newEntity();
-                label.setTagLabelId(UUID.randomUUID().toString().replace("-", ""));
-                label.setSource("Classification");
-                label.setTagId(tagId);
-                label.setLabelType("Derived");
-                label.setState("Suggested");
-                label.setEntityType("NopMetaGlossaryTerm");
-                label.setEntityId(glossaryTermId);
-                label.setAppliedBy(userId);
-                label.setAppliedAt(now);
-                label.setVersion(1L);
-                label.setCreatedBy(userId);
-                label.setCreateTime(now);
-                label.setUpdatedBy(userId);
-                label.setUpdateTime(now);
-                tagLabelDao.saveEntity(label);
+                Map<String, Object> data = Map.of(
+                        "tagLabelId", UUID.randomUUID().toString().replace("-", ""),
+                        "source", "Classification",
+                        "tagId", tagId,
+                        "labelType", "Derived",
+                        "state", "Suggested",
+                        "entityType", "NopMetaGlossaryTerm",
+                        "entityId", glossaryTermId,
+                        "appliedBy", userId,
+                        "appliedAt", CoreMetrics.currentTimestamp()
+                );
+
+                try {
+                    bizObjectManager().getBizObject("NopMetaTagLabel")
+                            .invoke("save", Map.of("data", data), null, context);
+                } catch (Exception e) {
+                    LOG.warn("Failed to save TagLabel for glossaryTerm {} tagId={}",
+                            glossaryTermId, tagId, e);
+                }
             }
         }
 

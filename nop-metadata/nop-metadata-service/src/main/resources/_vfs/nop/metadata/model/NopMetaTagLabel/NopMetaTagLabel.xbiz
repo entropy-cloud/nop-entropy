@@ -1,5 +1,43 @@
 <?xml version="1.0" encoding="UTF-8" ?>
-<biz x:schema="/nop/schema/biz/xbiz.xdef" xmlns:x="/nop/schema/xdsl.xdef" x:extends="_NopMetaTagLabel.xbiz">
+<biz x:schema="/nop/schema/biz/xbiz.xdef" xmlns:x="/nop/schema/xdsl.xdef" xmlns:c="c"
+     x:extends="_NopMetaTagLabel.xbiz">
 
-    <actions/>
+    <actions>
+        <mutation name="approve" displayName="通过">
+            <arg name="id" type="String" mandatory="true"/>
+            <arg name="svcCtx" kind="ServiceContext"/>
+            <return>
+                <schema bizObjName="THIS_OBJ"/>
+            </return>
+            <source>
+                <c:script><![CDATA[
+                    const entity = thisObj.invoke("requireEntity", {id}, null, svcCtx);
+                    entity.approveStatus = 'APPROVED';
+                    entity.state = 'Confirmed';
+                    entity.approvedBy = svcCtx.getUserId();
+                    entity.approvedAt = now();
+                    return entity;
+                ]]></c:script>
+            </source>
+        </mutation>
+
+        <mutation name="reject" displayName="驳回">
+            <arg name="id" type="String" mandatory="true"/>
+            <arg name="svcCtx" kind="ServiceContext"/>
+            <return>
+                <schema bizObjName="THIS_OBJ"/>
+            </return>
+            <source>
+                <c:script><![CDATA[
+                    const entity = thisObj.invoke("requireEntity", {id}, null, svcCtx);
+                    entity.approveStatus = 'REJECTED';
+                    entity.approvedBy = svcCtx.getUserId();
+                    entity.approvedAt = now();
+                    const remark = entity.remark;
+                    entity.remark = 'Rejected: ' + (remark != null ? remark : 'No reason provided');
+                    return entity;
+                ]]></c:script>
+            </source>
+        </mutation>
+    </actions>
 </biz>

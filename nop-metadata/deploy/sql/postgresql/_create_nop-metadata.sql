@@ -598,6 +598,9 @@ CREATE TABLE nop_meta_tag_label(
   updated_by VARCHAR(50) NOT NULL ,
   update_time TIMESTAMP NOT NULL ,
   remark VARCHAR(200)  ,
+  approve_status VARCHAR(20)  ,
+  approved_by VARCHAR(50)  ,
+  approved_at TIMESTAMP  ,
   constraint PK_nop_meta_tag_label primary key (tag_label_id)
 );
 
@@ -1800,6 +1803,12 @@ CREATE TABLE nop_meta_reconciliation_result(
       COMMENT ON COLUMN nop_meta_tag_label.update_time IS '修改时间';
                     
       COMMENT ON COLUMN nop_meta_tag_label.remark IS '备注';
+                    
+      COMMENT ON COLUMN nop_meta_tag_label.approve_status IS '审批状态';
+                    
+      COMMENT ON COLUMN nop_meta_tag_label.approved_by IS '审批人';
+                    
+      COMMENT ON COLUMN nop_meta_tag_label.approved_at IS '审批时间';
                     
       COMMENT ON TABLE nop_meta_entity_field IS '实体字段';
                 

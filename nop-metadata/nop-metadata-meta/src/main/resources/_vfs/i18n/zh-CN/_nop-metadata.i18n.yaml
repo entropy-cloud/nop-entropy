@@ -882,6 +882,10 @@ prop:
     NopMetaTagLabel:
       appliedAt: 标注时间
       appliedBy: 标注人
+      approveStatus: 审批状态
+      approveStatus_label: 审批状态
+      approvedAt: 审批时间
+      approvedBy: 审批人
       createTime: 创建时间
       createdBy: 创建人
       entityId: 资产ID

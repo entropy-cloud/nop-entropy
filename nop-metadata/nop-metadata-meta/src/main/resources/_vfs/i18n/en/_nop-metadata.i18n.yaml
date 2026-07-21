@@ -902,6 +902,10 @@ prop:
       updatedBy: Updated By
       updateTime: Update Time
       remark: Remark
+      approveStatus: Approve Status
+      approveStatus_label: null
+      approvedBy: Approved By
+      approvedAt: Approved At
       tag: Tag
       tag.displayName: Tag
       glossaryTerm: Glossary Term

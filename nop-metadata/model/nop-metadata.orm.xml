@@ -3118,7 +3118,8 @@
         <entity className="io.nop.metadata.dao.entity.NopMetaTagLabel" createTimeProp="createTime"
                 createrProp="createdBy" displayName="语义标注" name="io.nop.metadata.dao.entity.NopMetaTagLabel"
                 registerShortName="true" tableName="nop_meta_tag_label" updateTimeProp="updateTime"
-                updaterProp="updatedBy" versionProp="version" ext:icon="tags" i18n-en:displayName="Meta Tag Label">
+                updaterProp="updatedBy" versionProp="version" ext:icon="tags" i18n-en:displayName="Meta Tag Label"
+                tagSet="use-approval">
             <columns>
                 <column code="TAG_LABEL_ID" displayName="标注ID" mandatory="true" name="tagLabelId" precision="32"
                         primary="true" propId="1" stdDataType="string" stdSqlType="VARCHAR" tagSet="seq"
@@ -3170,6 +3171,13 @@
                         i18n-en:displayName="Update Time"/>
                 <column code="REMARK" displayName="备注" domain="remark" name="remark" precision="200" propId="19"
                         stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Remark"/>
+                <column code="APPROVE_STATUS" displayName="审批状态" name="approveStatus" precision="20" propId="20"
+                        stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Approve Status"
+                        ext:dict="wf/approve-status"/>
+                <column code="APPROVED_BY" displayName="审批人" name="approvedBy" precision="50" propId="21"
+                        stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Approved By"/>
+                <column code="APPROVED_AT" displayName="审批时间" name="approvedAt" propId="22"
+                        stdDataType="timestamp" stdSqlType="TIMESTAMP" i18n-en:displayName="Approved At"/>
             </columns>
             <relations>
                 <to-one displayName="标签" name="tag"

@@ -97,8 +97,20 @@ public class _NopMetaTagLabel extends DynamicOrmEntity{
     public static final String PROP_NAME_remark = "remark";
     public static final int PROP_ID_remark = 19;
     
+    /* 审批状态: APPROVE_STATUS VARCHAR */
+    public static final String PROP_NAME_approveStatus = "approveStatus";
+    public static final int PROP_ID_approveStatus = 20;
+    
+    /* 审批人: APPROVED_BY VARCHAR */
+    public static final String PROP_NAME_approvedBy = "approvedBy";
+    public static final int PROP_ID_approvedBy = 21;
+    
+    /* 审批时间: APPROVED_AT TIMESTAMP */
+    public static final String PROP_NAME_approvedAt = "approvedAt";
+    public static final int PROP_ID_approvedAt = 22;
+    
 
-    private static int _PROP_ID_BOUND = 20;
+    private static int _PROP_ID_BOUND = 23;
 
     
     /* relation: 标签 */
@@ -117,7 +129,7 @@ public class _NopMetaTagLabel extends DynamicOrmEntity{
     protected static final List<String> PK_PROP_NAMES = Arrays.asList(PROP_NAME_tagLabelId);
     protected static final int[] PK_PROP_IDS = new int[]{PROP_ID_tagLabelId};
 
-    private static final String[] PROP_ID_TO_NAME = new String[20];
+    private static final String[] PROP_ID_TO_NAME = new String[23];
     private static final Map<String,Integer> PROP_NAME_TO_ID = new HashMap<>();
     static{
       
@@ -178,6 +190,15 @@ public class _NopMetaTagLabel extends DynamicOrmEntity{
           PROP_ID_TO_NAME[PROP_ID_remark] = PROP_NAME_remark;
           PROP_NAME_TO_ID.put(PROP_NAME_remark, PROP_ID_remark);
       
+          PROP_ID_TO_NAME[PROP_ID_approveStatus] = PROP_NAME_approveStatus;
+          PROP_NAME_TO_ID.put(PROP_NAME_approveStatus, PROP_ID_approveStatus);
+      
+          PROP_ID_TO_NAME[PROP_ID_approvedBy] = PROP_NAME_approvedBy;
+          PROP_NAME_TO_ID.put(PROP_NAME_approvedBy, PROP_ID_approvedBy);
+      
+          PROP_ID_TO_NAME[PROP_ID_approvedAt] = PROP_NAME_approvedAt;
+          PROP_NAME_TO_ID.put(PROP_NAME_approvedAt, PROP_ID_approvedAt);
+      
     }
 
     
@@ -237,6 +258,15 @@ public class _NopMetaTagLabel extends DynamicOrmEntity{
     
     /* 备注: REMARK */
     private java.lang.String _remark;
+    
+    /* 审批状态: APPROVE_STATUS */
+    private java.lang.String _approveStatus;
+    
+    /* 审批人: APPROVED_BY */
+    private java.lang.String _approvedBy;
+    
+    /* 审批时间: APPROVED_AT */
+    private java.sql.Timestamp _approvedAt;
     
 
     public _NopMetaTagLabel(){
@@ -368,6 +398,15 @@ public class _NopMetaTagLabel extends DynamicOrmEntity{
         
             case PROP_ID_remark:
                return getRemark();
+        
+            case PROP_ID_approveStatus:
+               return getApproveStatus();
+        
+            case PROP_ID_approvedBy:
+               return getApprovedBy();
+        
+            case PROP_ID_approvedAt:
+               return getApprovedAt();
         
            default:
               return super.orm_propValue(propId);
@@ -570,6 +609,36 @@ public class _NopMetaTagLabel extends DynamicOrmEntity{
                break;
             }
         
+            case PROP_ID_approveStatus:{
+               java.lang.String typedValue = null;
+               if(value != null){
+                   typedValue = ConvertHelper.toString(value,
+                       err-> newTypeConversionError(PROP_NAME_approveStatus));
+               }
+               setApproveStatus(typedValue);
+               break;
+            }
+        
+            case PROP_ID_approvedBy:{
+               java.lang.String typedValue = null;
+               if(value != null){
+                   typedValue = ConvertHelper.toString(value,
+                       err-> newTypeConversionError(PROP_NAME_approvedBy));
+               }
+               setApprovedBy(typedValue);
+               break;
+            }
+        
+            case PROP_ID_approvedAt:{
+               java.sql.Timestamp typedValue = null;
+               if(value != null){
+                   typedValue = ConvertHelper.toTimestamp(value,
+                       err-> newTypeConversionError(PROP_NAME_approvedAt));
+               }
+               setApprovedAt(typedValue);
+               break;
+            }
+        
            default:
               super.orm_propValue(propId,value);
         }
@@ -708,6 +777,27 @@ public class _NopMetaTagLabel extends DynamicOrmEntity{
             case PROP_ID_remark:{
                onInitProp(propId);
                this._remark = (java.lang.String)value;
+               
+               break;
+            }
+        
+            case PROP_ID_approveStatus:{
+               onInitProp(propId);
+               this._approveStatus = (java.lang.String)value;
+               
+               break;
+            }
+        
+            case PROP_ID_approvedBy:{
+               onInitProp(propId);
+               this._approvedBy = (java.lang.String)value;
+               
+               break;
+            }
+        
+            case PROP_ID_approvedAt:{
+               onInitProp(propId);
+               this._approvedAt = (java.sql.Timestamp)value;
                
                break;
             }
@@ -1075,6 +1165,63 @@ public class _NopMetaTagLabel extends DynamicOrmEntity{
         if(onPropSet(PROP_ID_remark,value)){
             this._remark = value;
             internalClearRefs(PROP_ID_remark);
+            
+        }
+    }
+    
+    /**
+     * 审批状态: APPROVE_STATUS
+     */
+    public final java.lang.String getApproveStatus(){
+         onPropGet(PROP_ID_approveStatus);
+         return _approveStatus;
+    }
+
+    /**
+     * 审批状态: APPROVE_STATUS
+     */
+    public final void setApproveStatus(java.lang.String value){
+        if(onPropSet(PROP_ID_approveStatus,value)){
+            this._approveStatus = value;
+            internalClearRefs(PROP_ID_approveStatus);
+            
+        }
+    }
+    
+    /**
+     * 审批人: APPROVED_BY
+     */
+    public final java.lang.String getApprovedBy(){
+         onPropGet(PROP_ID_approvedBy);
+         return _approvedBy;
+    }
+
+    /**
+     * 审批人: APPROVED_BY
+     */
+    public final void setApprovedBy(java.lang.String value){
+        if(onPropSet(PROP_ID_approvedBy,value)){
+            this._approvedBy = value;
+            internalClearRefs(PROP_ID_approvedBy);
+            
+        }
+    }
+    
+    /**
+     * 审批时间: APPROVED_AT
+     */
+    public final java.sql.Timestamp getApprovedAt(){
+         onPropGet(PROP_ID_approvedAt);
+         return _approvedAt;
+    }
+
+    /**
+     * 审批时间: APPROVED_AT
+     */
+    public final void setApprovedAt(java.sql.Timestamp value){
+        if(onPropSet(PROP_ID_approvedAt,value)){
+            this._approvedAt = value;
+            internalClearRefs(PROP_ID_approvedAt);
             
         }
     }
