@@ -35,7 +35,7 @@
 - Opt-followup. queryAggregation having 支持多 measure 算术表达式（`HAVING SUM(a)-SUM(b)>100`）: `done`
 - S1. Semantic Layer Phase 1 — Classification + TagLabel: `planned`（plan 302）
 - S2. Semantic Layer Phase 2 — Glossary: `done`
-- S3. Semantic Layer Phase 3 — BusinessDomain + DataProduct: `todo`
+- S3. Semantic Layer Phase 3 — BusinessDomain + DataProduct: `done`
 - G1. Governance Phase 1 — DataContract 接入审批流: `done`
 - G2. Governance Phase 2 — TagLabel 治理: `todo`
 - G3. Governance Phase 3 — 质量告警工作流: `done`（plan 2026-07-20-2000-3；`NopMetaQualityResult` 新增 `isFalsePositive` 列；`QualityAlertWorkflowService` 实现；`qualityBreachApproval/v1.xwf` 工作流定义；`NopMetaQualityResultBizModel` approve/reject override；`judgeByRuleId` 方法；集成到 `NopMetaQualityRuleBizModel.executeQualityRule` FAIL+ERROR 路径；661 tests；收口所有 Phase 1 + Phase 2 项）
@@ -181,10 +181,10 @@
 
 | 工作项 | 描述 | 状态 |
 |--------|------|------|
-| S3-1 | 新增实体 `NopMetaBusinessDomain`（业务组织域） | todo |
-| S3-2 | 新增实体 `NopMetaDataProduct`（数据产品，含 SLA/ports/生命周期） | todo |
-| S3-3 | 资产实体追加 `businessDomainId` 字段 + 域继承机制 | todo |
-| S3-4 | DataProduct 资产关联（通过 TagLabel 桥接） | todo |
+| S3-1 | 新增实体 `NopMetaBusinessDomain`（业务组织域） | done |
+| S3-2 | 新增实体 `NopMetaDataProduct`（数据产品，含 SLA/ports/生命周期） | done |
+| S3-3 | 资产实体追加 `businessDomainId` 字段 + 域继承机制 | done |
+| S3-4 | DataProduct 资产关联（通过 TagLabel 桥接） | done |
 
 ### G1. Governance Phase 1 — DataContract 接入审批流
 
@@ -242,8 +242,8 @@
 | `NopMetaTagLabel` | S1 | `11-enterprise-semantic-layer.md` §3.2.5 |
 | `NopMetaGlossary` | S2 | `11-enterprise-semantic-layer.md` §3.2.3 |
 | `NopMetaGlossaryTerm` | S2 | `11-enterprise-semantic-layer.md` §3.2.4 |
-| `NopMetaBusinessDomain` | S3 | `11-enterprise-semantic-layer.md` §3.2.6 |
-| `NopMetaDataProduct` | S3 | `11-enterprise-semantic-layer.md` §3.2.7 |
+| ~~`NopMetaBusinessDomain`~~ | ~~S3~~ | ~~`11-enterprise-semantic-layer.md` §3.2.6~~ **已建模** |
+| ~~`NopMetaDataProduct`~~ | ~~S3~~ | ~~`11-enterprise-semantic-layer.md` §3.2.7~~ **已建模** |
 
 ---
 

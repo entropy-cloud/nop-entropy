@@ -1,7 +1,7 @@
 # nop-metadata Architecture Baseline
 
 > Status: draft
-> Date: 2026-07-15
+> Date: 2026-07-21 (Phase 3: +NopMetaBusinessDomain + NopMetaDataProduct)
 
 ---
 
@@ -824,6 +824,51 @@ MetaQualityResult                — 质量执行结果（时序数据）
 **Out-of-Scope（follow-up）**：UI 实时推送（WebSocket/SSE）/ GraphQL Subscription（依赖推送基建）/ 搜索索引自动更新（需搜索引擎）/ 全量 32 实体 CRUD 事件覆盖（首版关键路径 + 核心实体）/ 分布式事件总线 + 可靠投递 + 跨进程（首版事件与业务写同事务或紧邻写后）/ 事件清理/归档策略 / `changeSource` dict 化。
 
 **与 §七（拒绝额外抽象层）的关系**：事件模型复用既有 ORM 持久化 + GraphQL CRUD 自动暴露，不引入独立 EventBus 类（平台无独立 EventBus，首版直接 DB 写为主路径，IMessageService 为可选 overlay）、不引入事件总线/可靠投递/跨进程抽象层（follow-up）、不引入推送基建抽象层（follow-up）。事件发布 helper 为无状态 service 层 IoC bean（`@Inject IEntityDao`），不自造连接、不复制持久化逻辑。
+
+---
+
+### 2.7 业务组织域（企业语义层 Phase 3）
+
+**灵感来源**: OpenMetadata Domain。与 ORM 数据类型域 `NopMetaDomain`（§2.4）是不同概念，独立并存。
+
+```
+NopMetaBusinessDomain             — 业务组织域（有界上下文）
+  ├── businessDomainId            — PK, seq
+  ├── parentDomainId              → NopMetaBusinessDomain（自引用层级，nullable）
+  ├── name                        — 域名，UK with parentDomainId
+  ├── displayName                 — 显示名（tagSet=disp）
+  ├── description
+  ├── domainType                  — ext:dict=meta/business-domain-type（SourceAligned|ConsumerAligned|Aggregate）
+  ├── experts                     — json-1000，专家列表
+  ├── owners                      — json-1000，负责人列表
+  └── extConfig                   — json-4000
+```
+
+**资产归属**：资产实体（NopMetaTable/NopMetaEntity/NopMetaEntityField/NopMetaTableMeasure/NopMetaTableDimension）通过 `businessDomainId` 字段归属。子资产未显式赋值时从父级继承（save-time 继承机制：EntityField→Entity、Measure/Dimension→Table）。NopMetaTable 和 NopMetaEntity 由用户显式赋值或 null。
+
+### 2.8 数据产品（企业语义层 Phase 3）
+
+**灵感来源**: OpenMetadata DataProduct。资产关联通过 TagLabel 桥接（linkAsset/unlinkAsset/getLinkedAssets actions）。
+
+```
+NopMetaDataProduct               — 数据产品
+  ├── dataProductId              — PK, seq
+  ├── businessDomainId           → NopMetaBusinessDomain（mandatory）
+  ├── name                       — 产品名，UK with businessDomainId
+  ├── displayName                — 显示名（tagSet=disp）
+  ├── description
+  ├── lifecycleStage             — ext:dict=meta/data-product-lifecycle
+  ├── dataProductType            — ext:dict=meta/data-product-type
+  ├── visibility                 — ext:dict=meta/data-product-visibility
+  ├── portfolioPriority          — ext:dict=meta/data-product-priority
+  ├── sla                        — json-4000，SLA 定义
+  ├── consumesFrom               — json-4000，依赖产品列表
+  ├── providesTo                 — json-4000，被依赖产品列表
+  ├── experts                    — json-1000
+  ├── assets                     — json-4000，资产列表（UI 冗余缓存，由 TagLabel 精确关联）
+  ├── ports                      — json-4000，数据端口定义
+  └── extConfig                  — json-4000
+```
 
 ---
 
