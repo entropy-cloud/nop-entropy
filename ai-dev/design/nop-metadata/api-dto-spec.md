@@ -11,8 +11,8 @@
 
 ## Design Decisions
 
-- DTO 放在 `nop-metadata-service/.../dto/`（仅服务层内部使用，无跨模块 typed RPC 需求）。
-- 共享 DTO（如 `ErrorDTO`）放在 `nop-metadata-dao/.../dto/`（多个 BizModel 共享）。
+- DTO 放在 `nop-metadata-core/.../dto/`（共享模块，dao 层 I*Biz 接口和 service 层 BizModel 均可引用）。
+- 共享 DTO（如 `ErrorDTO` / `KeyValueDTO`）也放在 `nop-metadata-core/.../dto/`（统一定位）。
 - 字段命名与原 Map key 完全一致，便于迁移期前后兼容对照。
 - 每个方法新增 DTO 返回的 overload，原 Map 版本保留（避免现有测试集体失效）；新代码用 DTO 版本。
 - `@DataBean` 注解由 `io.nop.api.core.annotations.data.DataBean` 提供。
@@ -210,6 +210,6 @@
 
 ## Notes
 
-- 共享 `ErrorDTO` + `KeyValueDTO` 放在 dao 层；其余 DTO 放在 service 层（仅服务层使用）。
+- 所有 DTO 放在 `nop-metadata-core/.../dto/`（`io.nop.metadata.core.dto` 包），供 `nop-metadata-dao` 的 I*Biz 接口和 `nop-metadata-service` 的 BizModel 共同引用。
 - `Map<String, Object>` 内部嵌套结构（如查询行数据 items）保留 Map，因为 schema 跟随物理表结构动态变化，强行引入 DTO 反而损失灵活性（这是 plan Non-Goals 中"50+ @SuppressWarnings 完整 DTO 化延后"的同一裁定）。
 - 每个 BizModel 新增 DTO overload；原 Map 版本保留兼容。新增方法以 `@BizQuery` / `@BizMutation` 直接暴露给 GraphQL（xbiz 自动生成 schema 时 DTO 字段就是 GraphQL field，前端可用 selection 下推）。
