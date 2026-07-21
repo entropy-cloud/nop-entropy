@@ -76,6 +76,7 @@ public interface NopMetadataErrors {
     String ARG_METHOD = "method";
     String ARG_RULE_KEY = "ruleKey";
     String ARG_JDBC_URL = "jdbcUrl";
+    String ARG_RAW_JDBC_URL = "rawJdbcUrl";
     String ARG_DRIVER_CLASS_NAME = "driverClassName";
     String ARG_DATA_SOURCE_COUNT = "dataSourceCount";
     String ARG_INDEX = "index";

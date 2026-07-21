@@ -794,6 +794,12 @@
         ]
       },
       {
+        "name": "appendHeaders",
+        "parameterTypes": [
+          "java.lang.StringBuilder"
+        ]
+      },
+      {
         "name": "cloneInstance",
         "parameterTypes": [
           "boolean"
@@ -50078,6 +50084,26 @@
       }
     ],
     "name": "java.util.HashSet"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "java.util.ImmutableCollections$AbstractImmutableMap"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "java.util.ImmutableCollections$Map1"
   },
   {
     "allDeclaredConstructors": true,

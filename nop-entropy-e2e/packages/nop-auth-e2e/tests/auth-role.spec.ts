@@ -148,9 +148,7 @@ test.describe('角色管理 - 浏览器', () => {
     const rolePO = await browserLogin(page, engine);
     await rolePO.goto();
     await expect(page).toHaveURL(/NopAuthRole-main/);
-    await expect(
-      page.locator('table, .ant-table, .crud-table-wrap').first(),
-    ).toBeVisible({ timeout: 15_000 });
+    await expect(engine.table(page)).toBeVisible({ timeout: 15_000 });
   });
 
   test('浏览器: 创建新角色', async ({ page, engine }) => {
@@ -262,7 +260,7 @@ test.describe('角色管理 - 浏览器', () => {
     await rolePO.goto();
     await rolePO.clickRoleUsers(roleId);
 
-    await expect(page.locator('.cxd-Drawer, .ant-drawer')).toBeVisible({ timeout: 10_000 });
+    await rolePO.assertDrawerVisible();
   });
 
   test('浏览器: 打开角色授权页面', async ({ page, request, engine }) => {
@@ -278,6 +276,6 @@ test.describe('角色管理 - 浏览器', () => {
     await rolePO.goto();
     await rolePO.clickAssignAuth(roleId);
 
-    await expect(page.locator('.cxd-Drawer, .ant-drawer')).toBeVisible({ timeout: 10_000 });
+    await rolePO.assertDrawerVisible();
   });
 });

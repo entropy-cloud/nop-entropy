@@ -10,18 +10,11 @@ export interface TypeHierarchyFormInput {
 }
 
 export class TypeHierarchyPO extends BasePage {
-  private engine: EngineAdapter;
-
-  override get entityName(): string {
-    return 'type-hierarchy';
-  }
-
   constructor(page: Page, engine: EngineAdapter) {
-    super(page);
-    this.engine = engine;
+    super(page, engine);
   }
 
-  override async goto(): Promise<void> {
+  async open(): Promise<void> {
     await this.page.goto('/#/type-hierarchy-main');
     await this.page.waitForLoadState('networkidle');
     await expect(this.page.locator('text=类型层级').first()).toBeVisible({ timeout: 10_000 });

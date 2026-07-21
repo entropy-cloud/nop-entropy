@@ -52,7 +52,7 @@ test.describe('符号搜索', () => {
     await login(page);
 
     const symbolPO = new SymbolSearchPO(page, engine, INDEX_ID);
-    await symbolPO.goto();
+    await symbolPO.open();
 
     await expect(page.locator('text=名称关键词').first()).toBeVisible({ timeout: 10_000 });
   });
@@ -61,7 +61,7 @@ test.describe('符号搜索', () => {
     await login(page);
 
     const symbolPO = new SymbolSearchPO(page, engine, INDEX_ID);
-    await symbolPO.goto();
+    await symbolPO.open();
 
     const result = await symbolPO.searchSymbolAndWait('CodeIndexService');
     expect(result.total).toBeGreaterThan(0);
@@ -74,7 +74,7 @@ test.describe('符号搜索', () => {
     await login(page);
 
     const symbolPO = new SymbolSearchPO(page, engine, INDEX_ID);
-    await symbolPO.goto();
+    await symbolPO.open();
 
     await symbolPO.searchSymbolAndWait('CodeIndexService');
     await symbolPO.assertTableHasData();

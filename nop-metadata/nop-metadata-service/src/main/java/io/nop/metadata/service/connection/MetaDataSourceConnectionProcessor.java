@@ -9,7 +9,6 @@
 package io.nop.metadata.service.connection;
 
 import io.nop.api.core.annotations.ioc.InjectValue;
-import io.nop.api.core.exceptions.ErrorCode;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.commons.util.IoHelper;
 import io.nop.core.lang.json.JsonTool;
@@ -20,6 +19,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.sql.DataSource;
+import java.util.regex.Pattern;
 import java.sql.Connection;
 import java.sql.DatabaseMetaData;
 import java.sql.DriverManager;
@@ -40,7 +40,7 @@ import java.util.function.BiConsumer;
  *
  * <p>安全加固（AR-02）：jdbcUrl 协议白名单（mysql/postgresql/h2）+ 危险参数黑名单
  * （allowLoadLocalInfile/INIT=/allowMultiQueries 等）+ driverClassName 白名单 +
- * DriverManager.setLoginTimeout(5) 兜底（{@link SimpleDataSource#setLoginTimeout} 为 no-op）。
+ * DriverManager.setLoginTimeout(5) 在构造函数中初始化（{@link SimpleDataSource#setLoginTimeout} 为 no-op）。
  */
 public class MetaDataSourceConnectionProcessor implements IMetaDataSourceConnectionProcessor {
 
@@ -83,6 +83,26 @@ public class MetaDataSourceConnectionProcessor implements IMetaDataSourceConnect
 
     /** AR-02: 默认建连超时秒数（{@link SimpleDataSource#setLoginTimeout} 是 no-op，实际靠 {@link DriverManager#setLoginTimeout}）。 */
     public static final int DEFAULT_LOGIN_TIMEOUT_SECONDS = 5;
+
+    /** 从 jdbcUrl 中提取 user:password@ 前缀用于 redaction 的正则。 */
+    private static final Pattern CREDENTIAL_PATTERN = Pattern.compile(
+            "(://)([^:@/]+)(?::[^@/]*)?@");
+
+    public MetaDataSourceConnectionProcessor() {
+        setGlobalLoginTimeout();
+    }
+
+    /**
+     * 包内可重写（测试用）：实际调用 {@link DriverManager#setLoginTimeout(DEFAULT_LOGIN_TIMEOUT_SECONDS)}。
+     * 方法级抽象使测试可以 mock/子类化覆盖而不依赖全局状态副作用。
+     */
+    void setGlobalLoginTimeout() {
+        try {
+            DriverManager.setLoginTimeout(DEFAULT_LOGIN_TIMEOUT_SECONDS);
+        } catch (SecurityException se) {
+            LOG.warn("DriverManager.setLoginTimeout denied by security manager", se);
+        }
+    }
 
     /** AR-02: 可配置的允许内网/RFC1918 主机集合（逗号分隔小写 host）。默认空：禁内网。 */
     @InjectValue(value = "@cfg:nop.metadata.datasource.allowed-hosts|")
@@ -139,7 +159,7 @@ public class MetaDataSourceConnectionProcessor implements IMetaDataSourceConnect
         } catch (SQLException e) {
             LOG.warn("testConnect failed for datasourceType={}", datasourceType, e);
             result.put("connected", false);
-            result.put("error", e.toString());
+            result.put("error", "Connection failed");
             return result;
         } finally {
             IoHelper.safeCloseObject(conn);
@@ -151,7 +171,7 @@ public class MetaDataSourceConnectionProcessor implements IMetaDataSourceConnect
      * 仅 jdbc 类型支持；其余类型抛 {@link NopException}({@link #NopMetadataErrors.ERR_DATASOURCE_TYPE_NOT_SUPPORTED})。
      *
      * <p>AR-02 安全加固：(a) jdbcUrl 协议白名单 + 危险参数黑名单 + 内网主机白名单；
-     * (b) driverClassName 白名单； (c) {@link DriverManager#setLoginTimeout} 兜底建连超时。
+     * (b) driverClassName 白名单； (c) {@link DriverManager#setLoginTimeout} 在构造函数中设置（非每连接调用）。
      */
     private DataSource buildDataSource(String datasourceType, String connectionConfig) {
         requireJdbcType(datasourceType);
@@ -169,14 +189,6 @@ public class MetaDataSourceConnectionProcessor implements IMetaDataSourceConnect
         if (driverClassName != null && !driverClassName.isEmpty()) {
             validateDriverClassName(driverClassName);
         }
-        // AR-02 (c): 建连超时（SimpleDataSource.setLoginTimeout 是 no-op；DriverManager 全局生效）
-        try {
-            DriverManager.setLoginTimeout(DEFAULT_LOGIN_TIMEOUT_SECONDS);
-        } catch (SecurityException se) {
-            // 沙箱可能禁 SecurityManager 相关调用 → 仅 log 不中断（fail-open 优于服务不可用）
-            LOG.warn("DriverManager.setLoginTimeout denied by security manager", se);
-        }
-
         SimpleDataSource ds = new SimpleDataSource();
         ds.setUrl(jdbcUrl);
         ds.setUsername(username);
@@ -216,14 +228,16 @@ public class MetaDataSourceConnectionProcessor implements IMetaDataSourceConnect
         }
         if (!protocolOk) {
             throw new NopException(NopMetadataErrors.ERR_DATASOURCE_JDBC_URL_BLOCKED)
-                    .param("jdbcUrl", jdbcUrl)
+                    .param("jdbcUrl", redactJdbcUrl(jdbcUrl))
+                    .param(NopMetadataErrors.ARG_RAW_JDBC_URL, jdbcUrl)
                     .param("reason", "protocol not in whitelist (mysql/postgresql/h2)");
         }
         // (2) 危险参数黑名单
         for (String dangerous : DANGEROUS_URL_TOKENS) {
             if (lower.contains(dangerous)) {
                 throw new NopException(NopMetadataErrors.ERR_DATASOURCE_JDBC_URL_BLOCKED)
-                        .param("jdbcUrl", jdbcUrl)
+                        .param("jdbcUrl", redactJdbcUrl(jdbcUrl))
+                        .param(NopMetadataErrors.ARG_RAW_JDBC_URL, jdbcUrl)
                         .param("reason", "dangerous parameter/token present: " + dangerous);
             }
         }
@@ -232,9 +246,23 @@ public class MetaDataSourceConnectionProcessor implements IMetaDataSourceConnect
         if (host != null && !host.isEmpty() && isInternalHost(host)
                 && !resolveAllowedInternalHosts().contains(host.toLowerCase())) {
             throw new NopException(NopMetadataErrors.ERR_DATASOURCE_JDBC_URL_BLOCKED)
-                    .param("jdbcUrl", jdbcUrl)
+                    .param("jdbcUrl", redactJdbcUrl(jdbcUrl))
+                    .param(NopMetadataErrors.ARG_RAW_JDBC_URL, jdbcUrl)
                     .param("reason", "internal/link-local/loopback host not in allowed-hosts: " + host);
         }
+    }
+
+    /**
+     * 脱敏 jdbcUrl 中的凭据：移除 {@code user:password@} 段，保留其余部分不变。
+     * <ul>
+     *   <li>{@code jdbc:mysql://user:pass@host:3306/db} → {@code jdbc:mysql://host:3306/db}</li>
+     *   <li>{@code jdbc:mysql://host:3306/db} → {@code jdbc:mysql://host:3306/db}（无变化）</li>
+     *   <li>{@code jdbc:h2:mem:test} → {@code jdbc:h2:mem:test}（无变化）</li>
+     * </ul>
+     */
+    public static String redactJdbcUrl(String jdbcUrl) {
+        if (jdbcUrl == null) return null;
+        return CREDENTIAL_PATTERN.matcher(jdbcUrl).replaceAll("$1");
     }
 
     /** 从 jdbcUrl 粗提取 host（jdbc:h2:mem / jdbc:h2:file 不返回 host，跳过内网校验）。 */

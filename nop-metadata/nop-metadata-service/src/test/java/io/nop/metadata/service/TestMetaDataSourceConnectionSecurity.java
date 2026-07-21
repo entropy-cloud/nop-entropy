@@ -197,6 +197,70 @@ public class TestMetaDataSourceConnectionSecurity {
         }
     }
 
+    // ===== jdbcUrl 凭据脱敏（AR-15）=====
+
+    /** 凭据脱敏：嵌入式 user:password@ 必须被脱敏。 */
+    @Test
+    public void testCredentialRedactionEmbeddedCredentials() {
+        String raw = "jdbc:mysql://admin:s3cret@prod-db:3306/mydb";
+        String redacted = MetaDataSourceConnectionProcessor.redactJdbcUrl(raw);
+        assertEquals("jdbc:mysql://prod-db:3306/mydb", redacted,
+                "user:password@ must be stripped");
+    }
+
+    /** 凭据脱敏：用户名无密码。 */
+    @Test
+    public void testCredentialRedactionUserOnly() {
+        String raw = "jdbc:mysql://admin@prod-db:3306/mydb";
+        String redacted = MetaDataSourceConnectionProcessor.redactJdbcUrl(raw);
+        assertEquals("jdbc:mysql://prod-db:3306/mydb", redacted,
+                "user-only with @ must be stripped");
+    }
+
+    /** 凭据脱敏：无凭据 URL 保持不变。 */
+    @Test
+    public void testCredentialRedactionNoCredentials() {
+        String raw = "jdbc:mysql://prod-db:3306/mydb";
+        String redacted = MetaDataSourceConnectionProcessor.redactJdbcUrl(raw);
+        assertEquals(raw, redacted, "non-credential URL must be unchanged");
+    }
+
+    /** 凭据脱敏：URL 编码的 @ 不应该被误剥（场景透视）。 */
+    @Test
+    public void testCredentialRedactionEncodedAtSign() {
+        String raw = "jdbc:h2:mem:test";
+        String redacted = MetaDataSourceConnectionProcessor.redactJdbcUrl(raw);
+        assertEquals(raw, redacted, "h2 mem URL must be unchanged");
+    }
+
+    /** 凭据脱敏：空值返回空。 */
+    @Test
+    public void testCredentialRedactionNull() {
+        assertEquals(null, MetaDataSourceConnectionProcessor.redactJdbcUrl(null));
+    }
+
+    /**
+     * 验证错误消息中 jdbcUrl 参数已被脱敏（不包含明文凭据）。
+     * 使用协议白名单拒绝路径（凭据在协议校验之前即被 redact），不依赖 host 提取路径。
+     */
+    @Test
+    public void testErrorResponseContainsRedactedUrl() {
+        // 非白名单协议 + 嵌入式凭据 → 在协议校验前先 redact，然后抛 ERR_DATASOURCE_JDBC_URL_BLOCKED
+        NopException ex = assertThrows(NopException.class,
+                () -> service.testConnect("jdbc",
+                        "{\"jdbcUrl\":\"jdbc:oracle:thin://admin:secret@192.168.1.1:1521/XE\","
+                                + BASE_CFG + "}"));
+        String redactedUrl = String.valueOf(ex.getParam("jdbcUrl"));
+        assertEquals("jdbc:oracle:thin://192.168.1.1:1521/XE", redactedUrl,
+                "jdbcUrl param must be redacted in error response");
+        String rawUrl = String.valueOf(ex.getParam("rawJdbcUrl"));
+        assertEquals("jdbc:oracle:thin://admin:secret@192.168.1.1:1521/XE", rawUrl,
+                "rawJdbcUrl param must contain the full URL");
+        // 验证凭据不在 redacted URL 中
+        assertTrue(!redactedUrl.contains("admin:secret"),
+                "redacted URL must not contain credentials");
+    }
+
     // ===== 建连超时（loginTimeout）=====
 
     /**

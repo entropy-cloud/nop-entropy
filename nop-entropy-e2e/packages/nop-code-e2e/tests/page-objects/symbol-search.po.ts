@@ -4,19 +4,13 @@ import type { EngineAdapter } from '@nop-entropy/e2e-shared';
 
 export class SymbolSearchPO extends BasePage {
   private readonly indexId: string;
-  private engine: EngineAdapter;
-
-  override get entityName(): string {
-    return 'NopCodeSymbol';
-  }
 
   constructor(page: Page, engine: EngineAdapter, indexId: string) {
-    super(page);
-    this.engine = engine;
+    super(page, engine);
     this.indexId = indexId;
   }
 
-  override async goto(): Promise<void> {
+  async open(): Promise<void> {
     await this.page.goto(`/#/NopCodeSymbol-main?indexId=${this.indexId}`);
     await this.page.waitForLoadState('networkidle');
     await expect(this.page.locator('text=名称关键词').first()).toBeVisible({ timeout: 10_000 });

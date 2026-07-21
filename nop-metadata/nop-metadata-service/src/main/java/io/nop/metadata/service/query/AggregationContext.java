@@ -1414,6 +1414,7 @@ public class AggregationContext {
         try {
             return metaData.getDatabaseProductName();
         } catch (SQLException e) {
+            LOG.error("safeProductName failed: getDatabaseProductName threw", e);
             return null;
         }
     }

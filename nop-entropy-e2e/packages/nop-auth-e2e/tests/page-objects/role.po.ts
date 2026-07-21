@@ -50,7 +50,7 @@ export class RolePO extends CrudListPage {
     if (row) {
       await this.engine.rowAction(row, /用户/);
     }
-    await this.page.locator('.cxd-Drawer, .ant-drawer, [data-slot="dialog-surface"]').waitFor({ state: 'visible' });
+    await this.engine.drawer(this.page).waitFor({ state: 'visible' });
   }
 
   async clickAssignAuth(roleId: string): Promise<void> {
@@ -58,7 +58,11 @@ export class RolePO extends CrudListPage {
     if (row) {
       await this.engine.rowAction(row, /授权/);
     }
-    await this.page.locator('.cxd-Drawer, .ant-drawer, [data-slot="dialog-surface"]').waitFor({ state: 'visible' });
+    await this.engine.drawer(this.page).waitFor({ state: 'visible' });
+  }
+
+  async assertDrawerVisible(): Promise<void> {
+    await expect(this.engine.drawer(this.page)).toBeVisible({ timeout: 10_000 });
   }
 
   async readViewField(fieldName: string): Promise<string> {

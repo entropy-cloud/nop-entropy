@@ -24,7 +24,7 @@ import java.util.function.BiConsumer;
  *
  * <p><b>安全策略（AR-02）</b>：jdbc 类型解析 connectionConfig（jdbcUrl/username/password，可选 driverClassName）
  * 建连；建连前 jdbcUrl 经协议白名单 + 危险参数黑名单 + 主机白名单校验，driverClassName 经类白名单校验，
- * 建连超时经 {@link java.sql.DriverManager#setLoginTimeout(int)} 兜底。失败路径全部抛 {@link NopException}：
+ * 建连超时经 {@link java.sql.DriverManager#setLoginTimeout(int)} 在构造函数中设置。失败路径全部抛 {@link NopException}：
  * <ul>
  *   <li>非 jdbc 类型 → {@code metadata.datasource-type-not-supported}</li>
  *   <li>connectionConfig 缺必填字段 → {@code metadata.datasource-config-invalid}</li>

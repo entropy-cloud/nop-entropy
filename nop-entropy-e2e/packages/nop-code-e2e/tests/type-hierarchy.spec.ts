@@ -66,6 +66,6 @@ test.describe('类型层级查询', () => {
     await login(page);
 
     const hierarchyPO = new TypeHierarchyPO(page, engine);
-    await hierarchyPO.goto();
+    await hierarchyPO.open();
   });
 });

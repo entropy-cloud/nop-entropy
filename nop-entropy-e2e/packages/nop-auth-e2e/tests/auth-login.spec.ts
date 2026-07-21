@@ -33,9 +33,7 @@ test.describe('登录功能', () => {
     await userPO.goto();
 
     await expect(page).toHaveURL(/NopAuthUser-main/);
-    await expect(
-      page.locator('table, .ant-table, .crud-table-wrap').first(),
-    ).toBeVisible({ timeout: 15_000 });
+    await expect(engine.table(page)).toBeVisible({ timeout: 15_000 });
   });
 
   test('登出后无法访问受保护页面', async ({ page, engine }) => {

@@ -165,9 +165,7 @@ test.describe('资源管理 - 浏览器', () => {
     const resourcePO = await browserLogin(page, engine);
     await resourcePO.goto();
     await expect(page).toHaveURL(/NopAuthResource-main/);
-    await expect(
-      page.locator('table, .ant-table, .crud-table-wrap').first(),
-    ).toBeVisible({ timeout: 15_000 });
+    await expect(engine.table(page)).toBeVisible({ timeout: 15_000 });
   });
 
   test('浏览器: 创建新资源', async ({ page, engine }) => {

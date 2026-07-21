@@ -13,6 +13,7 @@ export interface EngineAdapter {
   rowAction(row: Locator, actionNamePattern: RegExp): Promise<void>;
 
   dialog(page: Page): Locator;
+  drawer(page: Page): Locator;
   formField(dialog: Locator, fieldName: string): Locator;
   submitButton(dialog: Locator): Locator;
   selectOption(dialog: Locator, fieldLabels: string[], optionText: string[]): Promise<void>;
