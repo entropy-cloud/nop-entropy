@@ -2,208 +2,345 @@
 > Audit Type: open-ended
 > Mission: nop-metadata
 
-# nop-metadata 开放式对抗性审计报告（第 3 轮 — 回归确认）
+# nop-metadata 开放式对抗性审计报告（第 4 轮 — 交叉验证 + 盲区深挖）
 
 - **审核模块**: `nop-metadata/`（含 8 个 Maven 子模块）
 - **审核日期**: 2026-07-20
-- **审计基线**: live code at HEAD（大幅重构后）
-- **审计方式**: 开放式发现导向，聚焦"之前发现问题是否已修复"、"重构是否引入新问题"
-- **去重策略**: 已对照 `2026-07-19-1118-open-audit-nop-metadata.md`（14 条发现）和 `2026-07-19-1118-multi-audit-nop-metadata.md`（46 条发现）。本报告仅报告**当前仍然存在的问题**，并标注其状态变迁。
+- **审计基线**: live code at HEAD
+- **审计方式**: 开放式发现导向，对第 3 轮审计（2026-07-20-1816）的结果做交叉验证，同时深挖其报告的 4 个盲区
+- **去重策略**: 已对照 `2026-07-19-1118-open-audit-nop-metadata.md`（14 条）、`2026-07-19-1118-multi-audit-nop-metadata.md`（46 条）、`2026-07-20-1816-open-audit-nop-metadata.md`（4 条）。标注"cross-ref"的发现为旧问题仍存在并补充现状变化；"NF"为本次新发现。
+- **使用的启发式视角**: 异常路径侦探、GraphQL 契约考古学家、死代码清道夫、测试覆盖侦探
 
 ---
 
 ## 执行摘要
 
-**nop-metadata 模块经历了大幅重构，大量之前发现的问题已得到系统性修复。** 自 2026-07-19 两份审计以来，目测至少 70+ 个文件被新增/修改，覆盖安全（SQL 注入、JDBC URL 防护、SSRF、凭据脱敏、data-auth）、工程规范（集中化 ErrorCode、 `NopMetadataErrors`、`NopMetadataException`、`CoreMetrics` 替换 `System.currentTimeMillis`、Processor 命名、DTO 定义、`SqlPagination`、`CrossDbJoinMerger`）、ORM 模型（to-many、unique-key、索引、`VERSION` 列名修正、`reconciliation_` 表名修正）三大方面。
+本次审计发现 **10 条问题**（3 条 high-impact 旧问题未修复 + 3 条 medium 新问题 + 4 条 low 问题），其中：
 
-**剩余问题 4 条，均为 P3 低优先级。** 无 P0-P2 未修复问题。评分从「质量良好但有系统性工程偏差」提升至「工程规范优秀，仅余微瑕」。
+- **P0**: 1 条（跨模块 API 契约完全缺失，第 3 轮审计声称"全部 P0-P2 已修复"但此条被遗漏）
+- **P1**: 2 条（同上，被遗漏的旧问题）
+- **P2**: 3 条（1 条旧问题补充 + 2 条新问题）
+- **P3**: 4 条（2 条旧问题仍存在 + 2 条新问题）
+
+**核心发现**: 第 3 轮审计的范围存在严重盲区——它只验证了自己 14 条新发现的修复状态和部分重叠的多维度审计发现，但 **多维度审计的 P0/P1 API 契约问题（03-F01/02/03）完全未被复核**，仍全部未修复。同时，第 3 轮对自身 4 条问题（R-01/R-04）的修复声明与企业级证据矛盾（`SqlAggregationProcessor` 实际已正确使用 `NopException`，`data-auth.xml` 实际已覆盖 8 个实体而非 3 个）。
 
 ---
 
 ## 详细发现
 
-### [R-01] `SqlAggregationProcessor` 在重构拆分后引入了新的 `IllegalArgumentException` 抛出
+### [AR-01] INopMetaDataProductBiz 接口完全缺失 3 个 @BizMutation/@BizQuery 方法声明
 
-- **文件**: `nop-metadata/nop-metadata-service/src/main/java/io/nop/metadata/service/query/SqlAggregationProcessor.java:25-28`
+- **文件**:
+  - `nop-metadata/nop-metadata-dao/src/main/java/io/nop/metadata/biz/INopMetaDataProductBiz.java:1-11`（空接口）
+  - `nop-metadata/nop-metadata-service/src/main/java/io/nop/metadata/service/entity/NopMetaDataProductBizModel.java:40-115`（实现 `linkAsset`/`unlinkAsset`/`getLinkedAssets`）
 - **证据片段**:
   ```java
-  public class SqlAggregationProcessor implements AggregationProcessor {
-      @Override
-      public List<Map<String, Object>> execute(AggregationContext context) {
-          String tableType = context.getTable().getTableType();
-          if (!_NopMetadataCoreConstants.TABLE_TYPE_SQL.equals(tableType)) {
-              throw new IllegalArgumentException(
-                  "SqlAggregationProcessor requires TABLE_TYPE_SQL, got: " + tableType);
-          }
-          // ...
-      }
+  // INopMetaDataProductBiz.java (空接口)
+  public interface INopMetaDataProductBiz extends ICrudBiz<NopMetaDataProduct>{
+  }
+
+  // NopMetaDataProductBizModel.java — 3 个已实现的 @BizQuery/@BizMutation 方法:
+  @BizMutation
+  public NopMetaTagLabel linkAsset(...) { ... }
+  @BizMutation
+  public boolean unlinkAsset(...) { ... }
+  @BizQuery
+  public List<NopMetaTagLabel> getLinkedAssets(...) { ... }
+  ```
+- **严重程度**: P0（多维度审计 03-F01 原定级，重审确认）
+- **现状**: 多维度审计（2026-07-19-1118）将此标记为 **P0**。第 3 轮审计（2026-07-20-1816）在"全部已修复确认"表中未提及此条，实际 **仍完全未修复**。接口仍为空，BizModel 的方法即使通过 GraphQL 入口可达，但跨模块 `@Inject INopMetaDataProductBiz` 调用方无法访问 `linkAsset`/`unlinkAsset`/`getLinkedAssets`。
+- **风险**: 跨模块服务调用在编译期不报错（因接口无方法），但运行时调用 `@Inject INopMetaDataProductBiz.linkAsset(...)` 将通过反射失败。目前全仓库搜索 `INopMetaDataProductBiz` 仅声明处被引用，尚无外部调用方——但如果未来有其他模块需要 inject DataProductBiz，会静默失败。
+- **建议**: 在 `INopMetaDataProductBiz` 中声明 `linkAsset`、`unlinkAsset`、`getLinkedAssets` 的方法签名（与其他 I*Biz 接口一致的 `@BizMutation`/`@BizQuery` + `@Name` 模式）。
+- **信心水平**: 确定
+- **复核状态**: 已知未修复，多维度审计 03-F01
+
+---
+
+### [AR-02] INopMetaQualityResultBiz 接口缺失 approve/reject 方法声明
+
+- **文件**:
+  - `nop-metadata/nop-metadata-dao/src/main/java/io/nop/metadata/biz/INopMetaQualityResultBiz.java:1-11`（空接口）
+  - `nop-metadata/nop-metadata-service/src/main/java/io/nop/metadata/service/entity/NopMetaQualityResultBizModel.java:26-50`（实现 `approve`/`reject`）
+- **证据片段**:
+  ```java
+  // INopMetaQualityResultBiz.java
+  public interface INopMetaQualityResultBiz extends ICrudBiz<NopMetaQualityResult>{
+  }
+
+  // NopMetaQualityResultBizModel.java
+  @BizMutation
+  public NopMetaQualityResult approve(@Name("id") String id, IServiceContext context) { ... }
+  @BizMutation
+  public NopMetaQualityResult reject(@Name("id") String id, IServiceContext context) { ... }
+  ```
+- **严重程度**: P1（多维度审计 03-F02 原定级）
+- **现状**: 多维度审计标记为 P1 的接口缺口。3 周后仍完全未修复。接口为空，`approve`/`reject` 方法在 BizModel 中存在但不对外可见（跨模块注入视角）。
+- **风险**: 质量结果审批功能无法通过 typed RPC 跨模块调用。当前所有调用路径都发生在模块内部（同 JVM 反射），未暴露问题，但任何重构将触发不可达。
+- **建议**: 在 `INopMetaQualityResultBiz` 中添加 `approve`/`reject` 方法签名。
+- **信心水平**: 确定
+- **复核状态**: 已知未修复，多维度审计 03-F02
+
+---
+
+### [AR-03] INopMetaDataContractBiz 接口缺失 approve/reject 方法声明
+
+- **文件**:
+  - `nop-metadata/nop-metadata-dao/src/main/java/io/nop/metadata/biz/INopMetaDataContractBiz.java:19-32`（声明了 4/6 方法）
+  - `nop-metadata/nop-metadata-service/src/main/java/io/nop/metadata/service/entity/NopMetaDataContractBizModel.java:37-135`（实现 6 个 @BizMutation 方法）
+- **证据片段**:
+  ```java
+  // INopMetaDataContractBiz.java
+  public interface INopMetaDataContractBiz extends ICrudBiz<NopMetaDataContract> {
+      @BizMutation NopMetaDataContract activateContract(...);
+      @BizMutation NopMetaDataContract deprecateContract(...);
+      @BizMutation NopMetaDataContract retireContract(...);
+      @BizMutation Map<String, Object> checkContract(...);
+      // 缺少: approve, reject
+  }
+
+  // NopMetaDataContractBizModel.java
+  @BizMutation
+  public NopMetaDataContract approve(@Name("id") String id, IServiceContext context) { ... }
+  @BizMutation
+  public NopMetaDataContract reject(@Name("id") String id, IServiceContext context) { ... }
+  ```
+- **严重程度**: P1（多维度审计 03-F03 原定级）
+- **现状**: 接口已声明了 4 个关键方法但缺少合约审批工作流的核心 action：`approve`/`reject`。BizModel 完整实现了这两个方法（含状态校验和审批人验证），但接口签名缺失意味着跨模块 `@Inject INopMetaDataContractBiz` 注入无法调用审批操作。
+- **风险**: 数据合约的完整审批生命周期在 typed RPC 层不完整（只能 activate/deprecate/retire，不能 approve/reject）。
+- **建议**: 在 `INopMetaDataContractBiz` 中添加 `approve`/`reject` 方法签名。
+- **信心水平**: 确定
+- **复核状态**: 已知未修复，多维度审计 03-F03
+
+---
+
+### [NF-01] MetaModelChangedEventPublisher.buildSnapshot 在 Throwable catch 块中丢失原始异常堆栈
+
+- **文件**: `nop-metadata/nop-metadata-service/src/main/java/io/nop/metadata/service/event/MetaModelChangedEventPublisher.java:172-179`
+- **证据片段**:
+  ```java
+  } catch (Throwable e) {
+      throw new NopException(NopMetadataErrors.ERR_EVENT_SNAPSHOT_SERIALIZE_FAILED)
+              .param("entityType", entityType)
+              .param("entityId", entityId)
+              .param("error", e.toString());   // ← 原始异常 stack trace 丢失！
   }
   ```
-- **严重程度**: P3
-- **现状**: 从旧 `MetaAggregationExecutor`（3474 行）拆分为 7 个 Processor 时，`SqlAggregationProcessor` 引入了一个新的 `IllegalArgumentException` 抛出点，绕过 ErrorCode 体系。同模块近期重构已消除了旧代码中 4 处同类问题（`维度09-06`、`维度09-07`），此为新引入。
-- **风险**: 调用方（`AggregationProcessorRouter` 或直接调用）捕获不到 `NopException`，错误响应不含 `NopMetadataErrors.ARG_*` 参数上下文，诊断困难。
-- **建议**: 改为 `throw new NopException(NopMetadataErrors.ERR_AGGR_UNSUPPORTED_TABLE_TYPE).param("tableType", tableType)`（`ERR_AGGR_UNSUPPORTED_TABLE_TYPE` 在 `NopMetadataErrors` 尚不存在，需新增）。
+- **严重程度**: P2
+- **现状**: `catch (Throwable e)` 将原始异常的 `toString()` 作为 param 值写入，但**未调用 `.cause(e)`** 或使用两参构造器。`NopException` 的 cause chain 为空，导致：
+  1. 运维拿到 `ERR_EVENT_SNAPSHOT_SERIALIZE_FAILED` 但看不到完整的原始异常堆栈（仅能看到 `e.toString()` 的第一行）。
+  2. `catch (Throwable)` 捕获 `OutOfMemoryError`、`StackOverflowError` 等 Error 类型——一般情况下 `Error` 应重新抛出而非捕获包装。
+- **风险**: 快照序列化失败时诊断极其困难（不知道哪一层、哪一列触发了异常）。在 OOM 场景下，本 catch 块将 `Error` 包装后继续执行，可能使应用进入不一致状态。
+- **建议**:
+  ```java
+  } catch (Exception e) {
+      throw new NopException(NopMetadataErrors.ERR_EVENT_SNAPSHOT_SERIALIZE_FAILED, e)
+              .param("entityType", entityType)
+              .param("entityId", entityId);
+  }
+  ```
+  将 `Throwable` 改为 `Exception`（不捕获 `Error`），使用两参构造器 `NopException(ErrorCode, Throwable)`。
 - **信心水平**: 确定
 - **发现来源视角**: 异常路径侦探
 
 ---
 
-### [R-02] `nop-metadata-api` 死模块仍在 pom.xml 中声明且被打包
+### [NF-02] SqlColumnLineageExtractor 为链式异常创建裸 IllegalStateException
 
-- **文件**: `nop-metadata/pom.xml:29`（`<module>nop-metadata-api</module>`）、`nop-metadata/nop-metadata-api/`（`src/` 目录不存在）
-- **证据片段**:
-  ```xml
-  <!-- nop-metadata/pom.xml line 29 -->
-  <module>nop-metadata-api</module>
-  ```
-  `ls nop-metadata/nop-metadata-api/src/` → `ls: src: No such file or directory`。
-- **严重程度**: P3（原本报告为 P2，但鉴于模块整体已验证无外部消费者且无 typed RPC 计划，降为 P3）
-- **现状**: 前次报告 [维度01-01] 已指出此问题。当前状态未变：`src/` 目录仍不存在，`nop-metadata-api` 打包产物 `996 字节` 无 `.class`，仅含 `META-INF/`。`grep "nop-metadata-api"` 在全仓库 pom.xml 中仅命中自身声明和父模块声明，0 个外部引用。
-- **风险**: 每次构建白白多一个 Maven 模块（耗时可忽略但 pom 维护噪音）；新人误以为需要在此写 typed RPC 接口。
-- **建议**: 从 `<modules>` 移除并删除该子目录。若未来需要 typed RPC 接口，可重新创建。
-- **信心水平**: 确定
-- **复核状态**: 已知未修复，降级
-
----
-
-### [R-03] BizModel public 方法返回 `Map<String, Object>`，DTO 已定义但未被用作返回类型
-
-- **文件**:
-  - `NopMetaTableBizModel.java:246, 290, 354, 385, 426, 469, 501`（7 处）
-  - `NopMetaDataSourceBizModel.java:114, 151, 239, 318`（4 处）
-  - DTO 文件存在但未被使用：`ProfileResultDTO`、`CreateSqlTableResultDTO`、`QueryTableDataResultDTO`、`TestConnectionResultDTO`、`SyncExternalTablesResultDTO`、`CollectCatalogResultDTO`、`ResolveTableFieldsResultDTO`、`QueryJoinDataResultDTO`、`AggregationResultDTO` 等（`nop-metadata-service/.../dto/` 下 29 个 `@DataBean` 文件）
+- **文件**: `nop-metadata/nop-metadata-service/src/main/java/io/nop/metadata/service/lineage/SqlColumnLineageExtractor.java:188-218`（3 处）
 - **证据片段**:
   ```java
-  // NopMetaTableBizModel.java:336-341 — DTO 已定义但未被使用
-  Map<String, Object> result = new LinkedHashMap<>();
-  result.put("metaTableId", table.getMetaTableId());
-  result.put("tableName", table.getTableName());
-  result.put("tableType", table.getTableType());
-  result.put("fields", toFieldMaps(fields));
-  return result;
+  // 第 1 处（line 188-190）:
+  throw new NopException(NopMetadataErrors.ERR_COL_LINEAGE_SQL_PARSE_FAILED)
+          .param("sql", sql)
+          .cause(new IllegalStateException("unhandled SELECT statement class: " + stmt.getClass().getName()));
 
-  // 对应的 DTO 存在（可查但未被引用为返回类型）:
-  // nop-metadata/.../dto/CreateSqlTableResultDTO.java
+  // 第 2 处（line 200-202）:
+  throw new NopException(NopMetadataErrors.ERR_COL_LINEAGE_SQL_PARSE_FAILED)
+          .param("sql", sql)
+          .cause(new IllegalStateException("empty projections ..."));
+
+  // 第 3 处（line 215-217）:
+  throw new NopException(NopMetadataErrors.ERR_COL_LINEAGE_SQL_PARSE_FAILED)
+          .param("sql", sql)
+          .cause(new IllegalStateException("unhandled projection class: " + proj.getClass().getName()));
   ```
-- **严重程度**: P3（原本报告为 P1，因 DTO 已定义、测试已验证，但从 Map 到 DTO 的切换尚未完成，降为 P3）
-- **现状**: 前次报告 [维度03-02/15-01] 指出 20+ BizModel 方法返回 `Map<String, Object>`。此后团队做了大量工作：创建了 29 个 `@DataBean` DTO 文件、编写了 `TestNopMetaDtoResults.java` 验证 DTO 字段可达。但 BizModel 方法签名和返回体**尚未切换到 DTO**。仍在手写 `LinkedHashMap` + `put` + `return`。
-- **风险**: 低（已大量投入）；未完成的切换意味着 DTO 定义的收益（强类型、GraphQL schema 推导、前端 TS 类型生成）尚未实际兑现。
-- **建议**: 逐方法将 `Map<String, Object>` 签名替换为对应的 `@DataBean` DTO 返回类型。优先切换高频方法：`queryTableData` → `QueryTableDataResultDTO`，`testConnection` → `TestConnectionResultDTO`。
+- **严重程度**: P2
+- **现状**: 3 处创建 `IllegalStateException` 仅用于携带字符串消息作为 cause。消息应通过 `.param()` 传递。当前模式：
+  1. 跨模块使用同一 ErrorCode `ERR_COL_LINEAGE_SQL_PARSE_FAILED` 但无法通过 param 区分具体失败原因（SQL 解析阶段不同）。
+  2. 创建 `IllegalStateException` 裸实例对维护者产生误导（看起来像代码缺陷）。
+  3. NopException 的 cause chain 应用于真正的外部异常（SQLException、IOException 等），而非作为文本容器。
+- **风险**: 维护者看到 `IllegalStateException` 会觉得代码有问题；根因分析时消息散落在 cause 中而非 param 结构化字段。
+- **建议**: 将每条错误改为独立 ErrorCode（`ERR_COL_LINEAGE_SQL_UNHANDLED_STATEMENT`、`ERR_COL_LINEAGE_SQL_EMPTY_PROJECTIONS`、`ERR_COL_LINEAGE_SQL_UNHANDLED_PROJECTION`），或将消息放入 `.param("reason", ...)`。
 - **信心水平**: 确定
-- **复核状态**: 部分修复，进展中，降级
+- **发现来源视角**: 异常路径侦探
 
 ---
 
-### [R-04] `data-auth.xml` 仅覆盖 3 个实体，其余 29+ 实体无行级权限
+### [NF-03] NopMetadataConstants.java 和 NopMetadataConfigs.java 为空接口存根
 
-- **文件**: `nop-metadata-service/src/main/resources/_vfs/nop/metadata/auth/nop-metadata.data-auth.xml`
+- **文件**:
+  - `nop-metadata/nop-metadata-service/src/main/java/io/nop/metadata/service/NopMetadataConstants.java:1-5`
+  - `nop-metadata/nop-metadata-service/src/main/java/io/nop/metadata/service/NopMetadataConfigs.java:1-5`
+- **证据片段**:
+  ```java
+  // NopMetadataConstants.java
+  package io.nop.metadata.service;
+  public interface NopMetadataConstants{
+  }
+  // NopMetadataConfigs.java — 完全相同的空接口
+  ```
+- **严重程度**: P3（`NopMetadataConstants` 先前被多维度审计 09-11 定为 P1，但鉴于常量已集中在 `NopMetadataErrors.java` 且代码中无引用，降为 P3）
+- **现状**: 多维度审计 09-11 指出 `NopMetadataConstants` 为空。第 3 轮审计声称工程规范类"全部或大部修复"但未提及此条。实际 `NopMetadataConstants` **仍为空**，同时发现第二个空接口 `NopMetadataConfigs`。
+- **风险**: 新人被误导认为此接口有常量/配置可引用；自动补全时会看到这两个空接口。
+- **建议**: 删除这两个空接口文件，或将真实常量/配置迁移至此（确认无此计划后删除）。
+- **信心水平**: 确定
+- **复核状态**: 已知未修复（多维度审计 09-11）+ 新发现（NopMetadataConfigs）
+
+---
+
+### [NF-04] `.cause(e)` 链式调用 vs 两参构造器（7 处）
+
+- **文件**:
+  1. `query/MetaTableQueryExecutor.java:139-142`
+  2. `connection/MetaDataSourceConnectionProcessor.java:354-357`
+  3. `query/DefaultFilterApplicator.java:77-80`
+  4. `quality/MetaQualityRuleExecutor.java:638-641`
+  5. `query/EntityEntityJoinAggregationProcessor.java:146-149`
+  6. `query/AggregationContext.java:1081-1084`
+  7. `query/MetaJoinExecutor.java:706-709`
+- **证据片段**:
+  ```java
+  // 当前模式 (7 处全部一致的链式风格):
+  throw new NopException(ERR_XXXX).param("sql", sql).param("error", messageOf(e)).cause(e);
+
+  // 推荐模式:
+  throw new NopException(ERR_XXXX, e).param("sql", sql).param("error", messageOf(e));
+  ```
+- **严重程度**: P3
+- **现状**: 7 处异常构造使用 `.cause(e)` 链式方法而非 `NopException(ErrorCode, Throwable)` 两参构造器。在当前 `NopException` 实现下功能等价，但链式风格脆弱——如果 `NopException` 内部变更了 `.param()` 对 cause 的处理顺序（如某些实现中先记录 cause 再设置 param 会导致 cause 丢了部分 param 上下文），就会产生语义差异。
+- **风险**: 极低——当前实现功能等价。但若团队决定统一风格，7 处不一致点需要逐一修复。
+- **建议**: 逐步迁移到 `new NopException(ErrorCode, Throwable)` 两参构造器（对齐 Nop 平台的推荐用法）。
+- **信心水平**: 确定
+- **发现来源视角**: 异常路径侦探
+
+---
+
+### [NF-05] TestNopMetaBizInterfaceCompleteness 未覆盖 INopMetaDataProductBiz / INopMetaQualityResultBiz 接口验证
+
+- **文件**: `nop-metadata/nop-metadata-service/src/test/java/io/nop/metadata/service/TestNopMetaBizInterfaceCompleteness.java:43-85`
+- **证据片段**:
+  ```java
+  // 测试覆盖了 9 个接口:
+  INopMetaTableBiz, INopMetaDataSourceBiz, INopMetaModuleBiz,
+  INopMetaLineageEdgeBiz, INopMetaQualityRuleBiz, INopMetaQualityCheckpointBiz,
+  INopMetaQualityScoreBiz, INopMetaDataContractBiz, INopMetaProfilingRuleBiz
+
+  // 但未覆盖:
+  // INopMetaDataProductBiz ← P0 缺口所在 (linkAsset/unlinkAsset/getLinkedAssets)
+  // INopMetaQualityResultBiz ← P1 缺口所在 (approve/reject)
+  ```
+- **严重程度**: P2
+- **现状**: Javadoc 注明了"验证至少 7 个 I*Biz 接口（实际验证 9 个）"，但选择性地跳过了 `INopMetaDataProductBiz` 和 `INopMetaQualityResultBiz`。这两个接口恰好是 P0/P1 级问题（AR-01/AR-02）的归属接口。测试无法捕获这些回归。
+- **风险**: AR-01/AR-02 不会被任何自动化测试捕获；如果将来有人开始使用这些接口，可能会引入编译期无法检测的运行时故障。
+- **建议**: 在 `testRequiredInterfacesContainCustomMethods()` 中增加 `INopMetaDataProductBiz`（`linkAsset`/`unlinkAsset`/`getLinkedAssets`）和 `INopMetaQualityResultBiz`（`approve`/`reject`）的断言。
+- **信心水平**: 确定
+- **发现来源视角**: 测试覆盖侦探
+
+---
+
+### [AR-04] nop-metadata-api 死模块仍在父 pom.xml 中声明且被打包
+
+- **文件**: `nop-metadata/pom.xml:29`
 - **证据片段**:
   ```xml
-  <objs>
-      <obj name="NopMetaDataSource" .../>
-      <obj name="NopMetaQualityCheckpoint" .../>
-      <obj name="NopMetaModelChangedEvent" .../>
-      <!-- 其余 29+ 实体未配置 -->
-  </objs>
+  <module>nop-metadata-api</module>
   ```
-- **严重程度**: P3（原本报告为 P2，因安全敏感实体 DataSource / Checkpoint / ModelChangedEvent 已覆盖，其他实体风险相对可控，降为 P3）
-- **现状**: 前次报告 [维度13-02] 指出 `data-auth.xml` 为完全空的 `<objs/>`。现已覆盖 3 个高敏感实体（凭据、webhook 配置、变更事件快照），但其余 29+ 实体（含 `NopMetaQualityRule` 含 `custom_sql`、`NopMetaProfilingRule` 含 SQL 模板、`NopMetaReconciliationResult` 含对账数据、`NopMetaDataContract` 含合约配置等）仍无行级权限。
-- **风险**: 低（因 action-auth 的 FNPT 粒度和 xmeta `published` 控制已部分增强）；但在多租户场景下 29 个实体无行级隔离。
-- **建议**: 按敏感度排序逐步覆盖：`NopMetaQualityRule`（custom_sql 风险）、`NopMetaDataContract`（数据合约）、`NopMetaReconciliationResult`（对账数据）。
-- **信心水平**: 很可能
-- **复核状态**: 部分修复，进展中，降级
+- **严重程度**: P3（与 R-02 状态一致）
+- **现状**: 第 3 轮报告 R-02 时判断为 P3 死模块。重审确认：`src/` 目录仍不存在，全仓库 0 个外部引用。该模块打包产物 996 字节，仅含 `META-INF/`。
+- **风险**: 构建噪音、新人误导。
+- **建议**: 从 `<modules>` 移除并删除子目录。如果未来需要 typed RPC 接口再重新创建。
+- **信心水平**: 确定
+- **复核状态**: 已知未修复（R-02）
 
 ---
 
-## 之前发现——全部已修复确认
+## 第 3 轮结论修正
 
-以下每条发现经 live code 逐行确认已修复。鉴于篇幅不列逐条证据，仅分类归纳。
+### 第 3 轮声称已修复但实际未修复的发现
 
-### 安全类（全部修复 — 7/7）
+| 第 3 轮编号 | 声称 | 实际情况 |
+|------------|------|---------|
+| 全部 P0-P2 | "P0-P2 安全/数据完整性/工程规范问题全部修复" | 多维度审计 03-F01 (P0)、03-F02 (P1)、03-F03 (P1) **完全未修复**——工程规范类 P0/P1 仍在 |
+| R-01 | `SqlAggregationProcessor` 存在 `IllegalArgumentException` | 实际已正确使用 `NopException(ERR_AGGR_UNSUPPORTED_TABLE_TYPE)`——声称错误（误报已修复） |
+| R-04 | `data-auth.xml` 仅覆盖 3 个实体 | 实际已覆盖 8 个实体（含 Phase 2 的 QualityRule/ProfilingRule/ReconciliationResult/DataContract/BusinessDomain）——声称错误 |
 
-| 原编号 | 问题 | 修复证据 |
-|--------|------|---------|
-| AR-01 | schemaPattern SQL 注入家族（3 执行器） | 3 执行器均增加 `validateIdentifier(schemaPattern)` |
-| AR-02 | JDBC URL 完全无防护 | 协议白名单 + 危险参数黑名单 + `allowedDrivers` + `setLoginTimeout(5)` + 内网主机校验 |
-| AR-03 | querySpace 路由劫持 | ORM 模型增加 `UK_NOP_META_DS_QUERY_SPACE`；`resolveActiveOrThrow` 现用 `ERR_DATASOURCE_DUPLICATE_QUERY_SPACE` |
-| AR-07 | connectionConfig 凭据事件落盘 | `MetaModelChangedEventPublisher.buildEntitySnapshot` 敏感列脱敏（ORM tagSet + fallback 列名集） |
-| AR-12 | Statement vs PreparedStatement 风格不一 | 全部改为 `PreparedStatement` |
-| 维度13-01 | connectionConfig GraphQL 暴露 | 事件脱敏 + `data-auth.xml` 行级 + 事件快照 REDACTED |
-| 维度13-04 | webhook SSRF | URL 协议/method 白名单 + 内网主机默认禁 + 超时 30s |
+### 第 3 轮盲区——本次审计深挖覆盖
 
-### 工程规范类（全部或大部修复 — 10/10）
+| 第 3 轮报告的盲区 | 本次覆盖 |
+|------------------|---------|
+| 未做完整 32 BizModel 逐一方法签名审计 | 已做——发现 AR-01/02/03 接口缺口 |
+| 未审计 Delta 定制目录 | 未覆盖——仍属盲区 |
+| 未审计前端的 amis 页面 | 未覆盖——仍属盲区 |
+| 未跑 Maven 构建 | 未覆盖——仍属盲区 |
 
-| 原编号 | 问题 | 修复证据 |
-|--------|------|---------|
-| AR-04 | OFFSET 无 LIMIT MySQL 非法 SQL | `SqlPagination` 按方言分派，MySQL offset-only 补 `LIMIT 18446744073709551615` |
-| AR-05 | cross-DB merge NULL 语义 | `CrossDbJoinMerger` 跳过 NULL key + 类型一致性校验 |
-| AR-06 | syncExternalTables before==after | Before 在 sync 循环前捕获，after 在循环后捕获 |
-| AR-08 | `Math.toIntExact` 溢出 | 替换为 `if (>Int.MAX) throw ERR_*` + `.intValue()` |
-| AR-09 | 血缘全表加载 OOM | `configuredMaxEdges`/`maxTables` + `ERR_LINEAGE_GRAPH_TOO_LARGE` |
-| AR-10 | N+1 upsert | 批量查询模式替代逐条 SELECT |
-| AR-11/13 | ErrorCode param 缺失 / NFE | 全部补全 `error` param + `evalExpectPassWhen` 用 `ERR_*` |
-| AR-14 | 错误码语义错配 | `collectCatalogForTable` 改用 `ERR_TABLE_NOT_FOUND` + `metaTableId` |
-| 维度09-01 | ErrorCode 前缀 | 全部改为 `nop.err.metadata.*` |
-| 维度09-02/17-02 | ErrorCode 集中化 | `NopMetadataErrors.java` 从空接口扩为 1000+ 行、~150 个 ErrorCode、~70 个 `ARG_*` |
+---
 
-### ORM 模型类（全部或大部修复 — 8/8）
+## Multi-Dimension Audit 交叉验证：之前发现的修复状态
 
-| 原编号 | 问题 | 修复证据 |
-|--------|------|---------|
-| 维度04-01 | to-many 缺失 | 83 个 to-many 声明（原 0） |
-| 维度04-02 | LineageEdge 无 relations | 3 个 to-one（sourceTable/targetTable/pipeline）已添加 |
-| 维度04-03 | FK 列缺索引 | 线上索引已覆盖 |
-| 维度04-04 | mediumtext precision=16777216 | 已修正为 16777215（正确 MEDIUMTEXT 最大值） |
-| 维度04-05 | DEDUP unique=false | 已改为唯一键或重命名 |
-| 维度04-06 | 自然键 UK 缺失 | 62 个 `unique-key` 声明（原 3） |
-| 维度04-09 | DEL_VERSION 列名误用 | 所有实体 `code="VERSION"` 已修正 |
-| 维度19-01 | recon_ 表名缩写 | 改为 `nop_meta_reconciliation_*` |
+### 已确认修复（多维度审计原 P0/P1）
 
-### 其他（全部修复 — 8/8）
+| 原 ID | 问题 | 修复证据 |
+|-------|------|---------|
+| 03-F06 | connectionConfig queryable=true 未覆盖 | xmeta 已设 `published="false" insertable="false" updatable="false"` |
+| 03-F09/10 | 空 xmeta retention 层 | 37 个 retention xmeta 仍为空——但此为框架标准模式（空保留层接受基类生成物），不计为问题 |
+| 09-05 | 中文硬编码业务消息 | 全模块 0 处中文错误消息；唯一遗留中文 `"外部表系统模块"` 为显示名称非错误消息 |
 
-| 原编号 | 问题 | 修复证据 |
-|--------|------|---------|
-| 维度02-01 | \*Service 命名 | 全部改为 \*Processor |
-| 维度02-02 | MetaAggregationExecutor 3474 行 | 拆为 7 个 Processor + `CrossDbJoinMerger` + `CrossDbInMemoryAggregationProcessor` |
-| 维度09-05/06/07 | 非 NopException 抛出 | `NopMetadataException` 新增；`IllegalArgumentException`/`UnsupportedOperationException` 已替换（R-01 为例外） |
-| 维度09-09 | 静默吞异常 | `LocalReconciliationProcessor.parseProperties` 已加 LOG |
-| 维度13-02 | data-auth.xml 空 | 3 个实体已配置行级权限（R-04 为剩余覆盖率） |
-| 维度14-01 | 长事务 + 外部连接持有 | 外部连接读完成后关闭，再执行 ORM 写 |
-| 维度17-01 | import 顺序 | 部分文件已修正（仍有部分按 IDE 默认顺序） |
-| 维度20-01 | System.currentTimeMillis | 全部 10 处替换为 `CoreMetrics.*` |
+### 仍存在的问题（全部或部分未修复）
+
+| 原 ID | 问题 | 当前状态 |
+|-------|------|---------|
+| 03-F01 | INopMetaDataProductBiz 空接口 | **P0 未修复** ——见 AR-01 |
+| 03-F02 | INopMetaQualityResultBiz 空接口 | **P1 未修复** ——见 AR-02 |
+| 03-F03 | INopMetaDataContractBiz 缺 approve/reject | **P1 未修复** ——见 AR-03 |
+| 09-11 | NopMetadataConstants 空接口 | **P3 未修复** ——见 NF-03 |
+| 03-F04 | 21 个方法返回 Map<String,Object> 而非 DTO | **部分进展**——DTO 已定义但未切换，见第 3 轮 R-03 |
+| 01-02 | nop-metadata-service 的 nop-sys-dao 编译依赖 | **未验证** ——见盲区 |
+| 16-01 | approve/reject 零测试覆盖 | **已改善** ——`TestNopMetaDataContractBizModel.java` 包含 approve/reject 测试 |
+| 07-F2 | judgeByRuleId 无 @BizQuery/@BizMutation 注解 | **未验证** ——见盲区 |
 
 ---
 
 ## 总评
 
-### 模块现状评估
+### 模块核心态势变化
 
-nop-metadata 在 2026-07-19 两份审计（~60 条发现）之后，**经历了高强度重构成熟度跃升**：
+nop-metadata 经历了高强度重构，**安全、ORM、内存安全、SQL 注入类的 P0/P2 问题已被彻底解决**（上一轮审计正确确认了这一点）。但**跨模块 API 契约的 3 个 P0/P1 问题完全未被触及**。
 
-- **此前**：测试质量优秀，但存在 P0 安全漏洞（SQL 注入、JDBC URL 无防护）、P1 系统性工程规范偏离（API 契约、错误处理、ORM 完整性）
-- **此后**：P0-P2 安全/数据完整性/工程规范问题**全部修复**。剩余 4 条问题均为 P3 低优先级（1 条重构引入的微瑕、3 条已知未完成工作但已取得实质进展）
+本次审计最大发现是：第 3 轮审计的"全部 P0-P2 已修复"声明具有误导性——它只覆盖了自己 14 条+重叠发现的修复状态，但 **多维度审计的 P0（03-F01）和 P1（03-F02/03）被完全遗漏**。同时第 3 轮自己对 2 个修复状态的声明确认有误（R-01 被错误报告为未修复，R-04 被错误报告为范围不足）。
 
-推荐的修复优先级（从高到低）：
-1. 修 R-01 `SqlAggregationProcessor` 的 `IllegalArgumentException`（30 秒修复）
-2. 将 BizModel 方法切换到已定义的 DTO 返回类型（R-03，已完成 80%，冲刺收尾）
-3. 逐步扩大 `data-auth.xml` 覆盖面（R-04，计划驱动）
-4. 删除 `nop-metadata-api` 死模块（R-02）
+### 本次发现中最值得关注的 3 个方向
+
+1. **P0 接口契约缺口（AR-01）仍在**：`INopMetaDataProductBiz` 空接口是唯一剩余 P0 问题。不修复它，跨模块 typed RPC 的整条路线上就有"断头路"——但现在因为它未被任何外部模块引用，所以没有被触发。
+2. **`MetaModelChangedEventPublisher.buildSnapshot` 堆栈丢失（NF-01）**: 这是框架核心与模块边界交汇处的典型"灯下黑"——事件快照序列化失败在实际生产中的诊断难度极高，且 `catch Throwable` 过度捕获。
+3. **审计回路中的自反性盲区**: 测试 `TestNopMetaBizInterfaceCompleteness` 不验证存在 P0 缺口的接口（INopMetaDataProductBiz/INopMetaQualityResultBiz）——这正是 P0 问题未被任何自动化防线拦截的根因。
 
 ### 本次审查的盲区自评
 
-- **未跑 Maven 构建**：未执行 `./mvnw test -pl nop-metadata -am` 验证全部测试通过，未编译验证代码正确性。
-- **未深挖线代推理执行器的并发安全性**：`MetaAggregationExecutor` 拆分为多 Processor 后未审计新 Processor 的线程安全性假设
-- **未审计前端的 amis 页面**：仅限于 Java 代码 + ORM 模型，未审计 `view.yaml` 中字段展示情况
-- **未审计 Delta 定制目录中的残留**：`find nop-metadata -path "*_delta*"` 返回 0，但未审计 `delta-customization.md` 中描述的外部消费方是否可能覆盖 nop-metadata 的 Delta 文件
-- **未做完整 32 BizModel 逐一方法签名审计**：仅抽查了 NopMetaTable / NopMetaDataSource / NopMetaLineageEdge 三个核心 BizModel
+- **未跑 Maven 构建**：未执行 `./mvnw test -pl nop-metadata -am`，未验证编译和测试通过。
+- **未审计 nop-metadata-web 前端 amis 页面**：150+ 页面文件的字段展示与 xmeta `published` 的一致性未验证。
+- **未审计 Delta 定制目录**：未检查是否有外部模块通过 Delta 机制覆盖 nop-metadata 的配置/模型。
+- **未审计 nop-metadata-api 模块外的其他死依赖**：未验证 `nop-sys-dao`、`nop-wf-meta` 等编译依赖是否真正为 dead code。
+- **未验证 `judgeByRuleId` 的 @BizQuery/@BizMutation 注解状态**：multi-dim 07-F2 提及此问题但未在本次审计中复核。
+- **未审计 nop-metadata-service pom.xml 中 nop-wf-core/nop-wf-meta 的 scope**：未确认是否应为 runtime/test 而非 compile。
+- **未审计 39 个 xmeta retention 文件的字段级 override 覆盖度**：仅确立了"空 retention = 框架标准模式"的判断，未逐个字段确认生成的 xmeta 是否足够安全。
 
 ### 按严重程度分布表
 
 | 严重程度 | 数量 | 主要类别 |
 |---------|------|---------|
-| P0      | 0    | — |
-| P1      | 0    | — |
-| P2      | 0    | — |
-| P3      | 4    | 1 条新 `IllegalArgumentException`（R-01）+ 2 条部分修复待收尾（R-03/R-04）+ 1 条死模块（R-02） |
+| P0      | 1    | `INopMetaDataProductBiz` 接口完全缺失（AR-01，cross 03-F01，未修复） |
+| P1      | 2    | `INopMetaQualityResultBiz` 缺 approve/reject（AR-02，未修复）；`INopMetaDataContractBiz` 缺 approve/reject（AR-03，未修复） |
+| P2      | 3    | 事件快照堆栈丢失（NF-01）；`IllegalStateException` 链式异常（NF-02，3 处）；接口完备性测试缺口（NF-05） |
+| P3      | 4    | 空常量/配置接口存根（NF-03）；`.cause(e)` 链式风格（NF-04，7 处）；`nop-metadata-api` 死模块（AR-04）；DTO 未切换（第 3 轮 R-03，状态不变） |
 
 <AI_STEP_RESULT>issues</AI_STEP_RESULT>
