@@ -3,6 +3,7 @@ nop:
   debug: true
   auth:
     jwt:
+      # DEV-ONLY DEFAULT: override in production via %prod profile or environment variable NOP_AUTH_JWT_ENC_KEY
       enc-key: bf8433e383424f6dbc19d47a5138875d
 
     login:
@@ -55,3 +56,10 @@ quarkus:
     category:
       "io.nop":
         level: INFO
+
+---
+"%prod":
+  nop:
+    graphql:
+      schema-introspection:
+        enabled: false

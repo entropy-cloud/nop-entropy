@@ -101,8 +101,8 @@ public class TableReferenceExecutor {
                         .param("metaTableId", ref.getMetaTableId())
                         .param("error", e.getMessage());
             } catch (Exception e) {
-                if (e instanceof RuntimeException) {
-                    throw (RuntimeException) e;
+                if (e instanceof NopException) {
+                    throw (NopException) e;
                 }
                 throw new NopMetadataException(NopMetadataErrors.ERR_TABLEREF_EXEC_FAILED, e)
                         .param("metaTableId", ref.getMetaTableId())
@@ -125,7 +125,7 @@ public class TableReferenceExecutor {
                         .param("metaTableId", ref.getMetaTableId())
                         .param("error", messageOf(e));
             } catch (Exception e) {
-                if (e instanceof RuntimeException) {
+                if (e instanceof NopException) {
                     error[0] = (RuntimeException) e;
                 } else {
                     error[0] = new NopMetadataException(NopMetadataErrors.ERR_TABLEREF_EXEC_FAILED, e)

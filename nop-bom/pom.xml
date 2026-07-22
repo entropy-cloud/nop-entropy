@@ -1147,12 +1147,6 @@
 
             <dependency>
                 <groupId>io.github.entropy-cloud</groupId>
-                <artifactId>nop-metadata-api</artifactId>
-                <version>${nop-entropy.version}</version>
-            </dependency>
-
-            <dependency>
-                <groupId>io.github.entropy-cloud</groupId>
                 <artifactId>nop-metadata-codegen</artifactId>
                 <version>${nop-entropy.version}</version>
             </dependency>
