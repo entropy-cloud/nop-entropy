@@ -130,7 +130,6 @@ mutation {
 | 子模块 | 用途 |
 |--------|------|
 | `nop-metadata-core` | 共享常量（`_NopMetadataCoreConstants`，70+ 表/数据源/血缘/质量等枚举常量）+ 29 个 `@DataBean` DTO 类（`nop-metadata-core/dto/`） |
-| `nop-metadata-api` | 跨模块 API 接口定义 |
 | `nop-metadata-dao` | ORM 实体 + BizModel 接口（`INopMeta*Biz`） |
 | `nop-metadata-codegen` | Codegen 模板元数据快照 |
 | `nop-metadata-meta` | xbeans / xmeta / 模型定义 |
