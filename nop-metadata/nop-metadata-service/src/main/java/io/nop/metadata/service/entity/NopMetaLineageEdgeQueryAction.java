@@ -1,6 +1,5 @@
 package io.nop.metadata.service.entity;
 
-import io.nop.api.core.annotations.core.Optional;
 import io.nop.api.core.beans.FilterBeans;
 import io.nop.api.core.beans.query.QueryBean;
 import io.nop.api.core.exceptions.NopException;
@@ -24,12 +23,12 @@ import org.slf4j.LoggerFactory;
 
 import java.util.ArrayDeque;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.Deque;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
-import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -167,17 +166,31 @@ public class NopMetaLineageEdgeQueryAction {
         Map<String, String> nameToId = buildTableNameIndex(daoProvider);
         String targetId = targetTable.getMetaTableId();
         List<String> unresolved = new ArrayList<>();
-        int extracted = 0;
+        List<String> candidateSourceIds = new ArrayList<>();
         for (SqlTableReference ref : refs) {
             String sourceId = nameToId.get(ref.getSimpleName().toLowerCase());
             if (sourceId == null) {
                 unresolved.add(ref.getFullName());
                 continue;
             }
-            upsertSqlParseEdge(sourceId, targetId, dao);
-            extracted++;
+            candidateSourceIds.add(sourceId);
         }
-        return new LineageExtractResult(extracted, unresolved, errors);
+        Set<String> existingSourceIds = batchLoadExistingSqlParseSourceIds(candidateSourceIds, targetId, dao);
+        List<NopMetaLineageEdge> newEdges = new ArrayList<>();
+        for (String sourceId : candidateSourceIds) {
+            if (!existingSourceIds.contains(sourceId)) {
+                NopMetaLineageEdge edge = dao.newEntity();
+                edge.setSourceTableId(sourceId);
+                edge.setTargetTableId(targetId);
+                edge.setLineageSource(_NopMetadataCoreConstants.LINEAGE_SOURCE_SQL_PARSE);
+                edge.setTransformType(_NopMetadataCoreConstants.LINEAGE_TRANSFORM_DIRECT);
+                newEdges.add(edge);
+            }
+        }
+        if (!newEdges.isEmpty()) {
+            dao.batchSaveEntities(newEdges);
+        }
+        return new LineageExtractResult(candidateSourceIds.size(), unresolved, errors);
     }
 
     public LineageExtractResult extractColumnLineageFromSql(String metaTableId,
@@ -209,7 +222,8 @@ public class NopMetaLineageEdgeQueryAction {
         Map<String, String> nameToId = buildTableNameIndex(daoProvider);
         String targetId = targetTable.getMetaTableId();
         List<String> unresolved = new ArrayList<>();
-        int extracted = 0;
+        List<String> resolvedSourceIds = new ArrayList<>();
+        List<ColumnLineageCandidate> resolvedCandidates = new ArrayList<>();
         for (ColumnLineageCandidate c : candidates) {
             if (c.isUnresolvable()) {
                 unresolved.add(c.getTargetColumn() + " <- " + String.valueOf(c.getSourceColumn())
@@ -222,9 +236,38 @@ public class NopMetaLineageEdgeQueryAction {
                         + c.getSourceColumn() + " (source-table-not-in-catalog)");
                 continue;
             }
-            upsertColumnSqlParseEdge(sourceId, targetId, c.getSourceColumn(), c.getTargetColumn(),
-                    c.getTransformType(), dao);
+            resolvedSourceIds.add(sourceId);
+            resolvedCandidates.add(c);
+        }
+        Map<String, NopMetaLineageEdge> existingEdgeMap = batchLoadExistingColumnParseEdgeMap(resolvedSourceIds, targetId, dao);
+        List<NopMetaLineageEdge> toSave = new ArrayList<>();
+        List<NopMetaLineageEdge> toUpdate = new ArrayList<>();
+        int extracted = 0;
+        for (int i = 0; i < resolvedCandidates.size(); i++) {
+            ColumnLineageCandidate c = resolvedCandidates.get(i);
+            String sourceId = resolvedSourceIds.get(i);
+            String key = sourceId + "|" + c.getSourceColumn() + "|" + c.getTargetColumn();
+            NopMetaLineageEdge existing = existingEdgeMap.get(key);
+            if (existing == null) {
+                NopMetaLineageEdge edge = dao.newEntity();
+                edge.setSourceTableId(sourceId);
+                edge.setTargetTableId(targetId);
+                edge.setSourceColumn(c.getSourceColumn());
+                edge.setTargetColumn(c.getTargetColumn());
+                edge.setLineageSource(_NopMetadataCoreConstants.LINEAGE_SOURCE_SQL_PARSE);
+                edge.setTransformType(c.getTransformType());
+                toSave.add(edge);
+            } else if (!c.getTransformType().equals(existing.getTransformType())) {
+                existing.setTransformType(c.getTransformType());
+                toUpdate.add(existing);
+            }
             extracted++;
+        }
+        if (!toSave.isEmpty()) {
+            dao.batchSaveEntities(toSave);
+        }
+        if (!toUpdate.isEmpty()) {
+            dao.batchUpdateEntities(toUpdate);
         }
         return new LineageExtractResult(extracted, unresolved, errors);
     }
@@ -252,6 +295,7 @@ public class NopMetaLineageEdgeQueryAction {
         List<String> unresolved = new ArrayList<>();
         List<Map<String, Object>> errors = new ArrayList<>();
         int extracted = 0;
+        List<NopMetaLineageEdge> toSave = new ArrayList<>();
         for (NopMetaTableMeasure measure : measures) {
             String expression = measure.getExpression();
             if (expression == null || expression.trim().isEmpty()) continue;
@@ -274,7 +318,14 @@ public class NopMetaLineageEdgeQueryAction {
                         unresolved.add(measureName + " <- " + ident + " (column-not-in-table-fields)");
                         continue;
                     }
-                    upsertMeasureParseEdge(targetId, ident, measureName, transformType, dao);
+                    NopMetaLineageEdge edge = dao.newEntity();
+                    edge.setSourceTableId(targetId);
+                    edge.setTargetTableId(targetId);
+                    edge.setSourceColumn(ident);
+                    edge.setTargetColumn(measureName);
+                    edge.setLineageSource(_NopMetadataCoreConstants.LINEAGE_SOURCE_MEASURE_PARSE);
+                    edge.setTransformType(transformType);
+                    toSave.add(edge);
                     extracted++;
                 }
             } catch (NopException e) {
@@ -286,6 +337,9 @@ public class NopMetaLineageEdgeQueryAction {
                 err.put("error", toErrorMessage(e));
                 errors.add(err);
             }
+        }
+        if (!toSave.isEmpty()) {
+            dao.batchSaveEntities(toSave);
         }
         return new LineageExtractResult(extracted, unresolved, errors);
     }
@@ -391,77 +445,40 @@ public class NopMetaLineageEdgeQueryAction {
         return existing;
     }
 
-    void upsertSqlParseEdge(String sourceTableId, String targetTableId,
-                             IEntityDao<NopMetaLineageEdge> dao) {
+    Set<String> batchLoadExistingSqlParseSourceIds(List<String> sourceIds, String targetTableId,
+                                                    IEntityDao<NopMetaLineageEdge> dao) {
+        if (sourceIds.isEmpty()) return Collections.emptySet();
         QueryBean q = new QueryBean();
-        q.addFilter(FilterBeans.eq(NopMetaLineageEdge.PROP_NAME_sourceTableId, sourceTableId));
+        q.addFilter(FilterBeans.in(NopMetaLineageEdge.PROP_NAME_sourceTableId, new HashSet<>(sourceIds)));
         q.addFilter(FilterBeans.eq(NopMetaLineageEdge.PROP_NAME_targetTableId, targetTableId));
         q.addFilter(FilterBeans.eq(NopMetaLineageEdge.PROP_NAME_lineageSource,
                 _NopMetadataCoreConstants.LINEAGE_SOURCE_SQL_PARSE));
         q.addFilter(FilterBeans.isNull(NopMetaLineageEdge.PROP_NAME_sourceColumn));
-        NopMetaLineageEdge edge = dao.findFirstByQuery(q);
-        if (edge == null) {
-            edge = dao.newEntity();
-            edge.setSourceTableId(sourceTableId);
-            edge.setTargetTableId(targetTableId);
-            edge.setLineageSource(_NopMetadataCoreConstants.LINEAGE_SOURCE_SQL_PARSE);
-            edge.setTransformType(_NopMetadataCoreConstants.LINEAGE_TRANSFORM_DIRECT);
-            dao.saveEntity(edge);
-        } else {
-            edge.setTransformType(_NopMetadataCoreConstants.LINEAGE_TRANSFORM_DIRECT);
-            dao.updateEntity(edge);
+        List<NopMetaLineageEdge> edges = dao.findAllByQuery(q);
+        Set<String> existing = new HashSet<>();
+        for (NopMetaLineageEdge e : edges) {
+            existing.add(e.getSourceTableId());
         }
+        return existing;
     }
 
-    void upsertColumnSqlParseEdge(String sourceTableId, String targetTableId,
-                                   String sourceColumn, String targetColumn, String transformType,
-                                   IEntityDao<NopMetaLineageEdge> dao) {
+    Map<String, NopMetaLineageEdge> batchLoadExistingColumnParseEdgeMap(Collection<String> sourceIds,
+                                                                          String targetTableId,
+                                                                          IEntityDao<NopMetaLineageEdge> dao) {
+        if (sourceIds.isEmpty()) return Collections.emptyMap();
         QueryBean q = new QueryBean();
-        q.addFilter(FilterBeans.eq(NopMetaLineageEdge.PROP_NAME_sourceTableId, sourceTableId));
+        q.addFilter(FilterBeans.in(NopMetaLineageEdge.PROP_NAME_sourceTableId, new HashSet<>(sourceIds)));
         q.addFilter(FilterBeans.eq(NopMetaLineageEdge.PROP_NAME_targetTableId, targetTableId));
-        q.addFilter(FilterBeans.eq(NopMetaLineageEdge.PROP_NAME_sourceColumn, sourceColumn));
-        q.addFilter(FilterBeans.eq(NopMetaLineageEdge.PROP_NAME_targetColumn, targetColumn));
         q.addFilter(FilterBeans.eq(NopMetaLineageEdge.PROP_NAME_lineageSource,
                 _NopMetadataCoreConstants.LINEAGE_SOURCE_SQL_PARSE));
-        NopMetaLineageEdge edge = dao.findFirstByQuery(q);
-        if (edge == null) {
-            edge = dao.newEntity();
-            edge.setSourceTableId(sourceTableId);
-            edge.setTargetTableId(targetTableId);
-            edge.setSourceColumn(sourceColumn);
-            edge.setTargetColumn(targetColumn);
-            edge.setLineageSource(_NopMetadataCoreConstants.LINEAGE_SOURCE_SQL_PARSE);
-            edge.setTransformType(transformType);
-            dao.saveEntity(edge);
-        } else {
-            edge.setTransformType(transformType);
-            dao.updateEntity(edge);
+        List<NopMetaLineageEdge> edges = dao.findAllByQuery(q);
+        Map<String, NopMetaLineageEdge> map = new HashMap<>();
+        for (NopMetaLineageEdge e : edges) {
+            if (e.getSourceColumn() != null) {
+                map.put(e.getSourceTableId() + "|" + e.getSourceColumn() + "|" + e.getTargetColumn(), e);
+            }
         }
-    }
-
-    void upsertMeasureParseEdge(String tableId, String sourceColumn, String measureName,
-                                 String transformType, IEntityDao<NopMetaLineageEdge> dao) {
-        QueryBean q = new QueryBean();
-        q.addFilter(FilterBeans.eq(NopMetaLineageEdge.PROP_NAME_sourceTableId, tableId));
-        q.addFilter(FilterBeans.eq(NopMetaLineageEdge.PROP_NAME_targetTableId, tableId));
-        q.addFilter(FilterBeans.eq(NopMetaLineageEdge.PROP_NAME_sourceColumn, sourceColumn));
-        q.addFilter(FilterBeans.eq(NopMetaLineageEdge.PROP_NAME_targetColumn, measureName));
-        q.addFilter(FilterBeans.eq(NopMetaLineageEdge.PROP_NAME_lineageSource,
-                _NopMetadataCoreConstants.LINEAGE_SOURCE_MEASURE_PARSE));
-        NopMetaLineageEdge edge = dao.findFirstByQuery(q);
-        if (edge == null) {
-            edge = dao.newEntity();
-            edge.setSourceTableId(tableId);
-            edge.setTargetTableId(tableId);
-            edge.setSourceColumn(sourceColumn);
-            edge.setTargetColumn(measureName);
-            edge.setLineageSource(_NopMetadataCoreConstants.LINEAGE_SOURCE_MEASURE_PARSE);
-            edge.setTransformType(transformType);
-            dao.saveEntity(edge);
-        } else {
-            edge.setTransformType(transformType);
-            dao.updateEntity(edge);
-        }
+        return map;
     }
 
     void deleteMeasureParseEdges(String tableId, IEntityDao<NopMetaLineageEdge> dao) {
