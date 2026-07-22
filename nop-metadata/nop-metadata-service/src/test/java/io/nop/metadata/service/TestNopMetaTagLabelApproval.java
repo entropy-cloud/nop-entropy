@@ -13,6 +13,7 @@ import io.nop.graphql.core.engine.IGraphQLEngine;
 import io.nop.metadata.dao.entity.NopMetaClassification;
 import io.nop.metadata.dao.entity.NopMetaTag;
 import io.nop.metadata.dao.entity.NopMetaTagLabel;
+import io.nop.metadata.service.NopMetadataException;
 import jakarta.inject.Inject;
 import org.junit.jupiter.api.Test;
 
@@ -161,7 +162,7 @@ public class TestNopMetaTagLabelApproval extends JunitBaseTestCase {
 
     @Test
     public void testNotFoundError() {
-        NopException ex = new NopException(NopMetadataErrors.ERR_TAG_LABEL_NOT_FOUND)
+        NopException ex = new NopMetadataException(NopMetadataErrors.ERR_TAG_LABEL_NOT_FOUND)
                 .param(NopMetadataErrors.ARG_TAG_LABEL_ID, "nonexistent");
         assertEquals("nop.err.metadata.tag-label-not-found", ex.getErrorCode());
         assertTrue(ex.getMessage().contains("nonexistent"));

@@ -23,6 +23,7 @@ import io.nop.metadata.core.dto.CheckpointExecutionResultDTO;
 import io.nop.metadata.dao.entity.NopMetaQualityCheckpoint;
 import io.nop.metadata.service.entity.NopMetaQualityCheckpointBizModel;
 import io.nop.metadata.service.NopMetadataErrors;
+import io.nop.metadata.service.NopMetadataException;
 import jakarta.annotation.Nullable;
 import jakarta.annotation.PostConstruct;
 import jakarta.inject.Inject;
@@ -200,7 +201,7 @@ public class MetaQualityCheckpointScheduler {
     public CheckpointExecutionResultDTO executeScheduledCheckpoint(Map<String, Object> params) {
         Object cpId = params.get(PARAM_CHECKPOINT_ID);
         if (cpId == null) {
-            throw new NopException(NopMetadataErrors.ERR_CHECKPOINT_SCHEDULER_INVALID_CRON)
+            throw new NopMetadataException(NopMetadataErrors.ERR_CHECKPOINT_SCHEDULER_INVALID_CRON)
                     .param("checkpointId", "<null>")
                     .param("cron", "<n/a>");
         }

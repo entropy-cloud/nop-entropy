@@ -14,6 +14,7 @@ import io.nop.commons.util.IoHelper;
 import io.nop.metadata.service.field.ResolvedTableField;
 import io.nop.metadata.service.tableref.TableReference;
 import io.nop.metadata.service.NopMetadataErrors;
+import io.nop.metadata.service.NopMetadataException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -146,7 +147,7 @@ public class MetaTableProfiler {
             }
         } catch (SQLException e) {
             // 表级失败（COUNT(*) 失败、列结构读取失败）包装为运行时异常，由调用方 per-table 处理
-            throw new NopException(NopMetadataErrors.ERR_PROFILING_SQL_FAILED, e)
+            throw new NopMetadataException(NopMetadataErrors.ERR_PROFILING_SQL_FAILED, e)
                     .param("tableName", displayTableName)
                     .param("error", messageOf(e));
         }
@@ -419,7 +420,7 @@ public class MetaTableProfiler {
         try (Statement st = conn.createStatement(); ResultSet rs = st.executeQuery(sql)) {
             if (!rs.next()) {
                 // 维度09-08：不可能发生的逻辑断言用 NopException + ErrorCode，不混用 SQLException 控制流
-                throw new NopException(NopMetadataErrors.ERR_PROFILING_AGGREGATE_NO_ROW).param("sql", sql);
+                throw new NopMetadataException(NopMetadataErrors.ERR_PROFILING_AGGREGATE_NO_ROW).param("sql", sql);
             }
             return toLong(rs, 1);
         }
@@ -580,7 +581,7 @@ public class MetaTableProfiler {
 
     static void validateIdentifier(String identifier) {
         if (identifier == null || !IDENTIFIER_PATTERN.matcher(identifier).matches()) {
-            throw new NopException(NopMetadataErrors.ERR_PROFILING_INVALID_IDENTIFIER)
+            throw new NopMetadataException(NopMetadataErrors.ERR_PROFILING_INVALID_IDENTIFIER)
                     .param("identifier", String.valueOf(identifier));
         }
     }

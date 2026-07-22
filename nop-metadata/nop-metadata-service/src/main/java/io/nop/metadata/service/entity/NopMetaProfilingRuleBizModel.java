@@ -40,6 +40,7 @@ import io.nop.metadata.service.profiling.ProfilingSnapshot;
 import io.nop.metadata.service.tableref.MetaTableReferenceResolver;
 import io.nop.metadata.service.tableref.TableReference;
 import io.nop.metadata.service.tableref.TableReferenceExecutor;
+import io.nop.metadata.service.NopMetadataException;
 import jakarta.inject.Inject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -100,7 +101,7 @@ public class NopMetaProfilingRuleBizModel extends CrudBizModel<NopMetaProfilingR
                                                   IServiceContext context) {
         NopMetaProfilingRule rule = dao().getEntityById(profilingRuleId);
         if (rule == null) {
-            throw new NopException(NopMetadataErrors.ERR_PROFILING_RULE_NOT_FOUND).param("profilingRuleId", profilingRuleId);
+            throw new NopMetadataException(NopMetadataErrors.ERR_PROFILING_RULE_NOT_FOUND).param("profilingRuleId", profilingRuleId);
         }
 
         NopMetaTable table = resolveTargetTableOrThrow(rule);
@@ -132,7 +133,7 @@ public class NopMetaProfilingRuleBizModel extends CrudBizModel<NopMetaProfilingR
         IEntityDao<NopMetaTable> tableDao = daoFor(NopMetaTable.class);
         NopMetaTable table = tableDao.getEntityById(rule.getMetaTableId());
         if (table == null) {
-            throw new NopException(NopMetadataErrors.ERR_PROFILING_TABLE_NOT_FOUND)
+            throw new NopMetadataException(NopMetadataErrors.ERR_PROFILING_TABLE_NOT_FOUND)
                     .param("metaTableId", rule.getMetaTableId());
         }
         return table;

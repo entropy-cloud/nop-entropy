@@ -17,6 +17,7 @@ import io.nop.metadata.dao.entity.NopMetaTableDimension;
 import io.nop.metadata.dao.entity.NopMetaTableJoin;
 import io.nop.metadata.dao.entity.NopMetaTableMeasure;
 import io.nop.metadata.service.NopMetadataErrors;
+import io.nop.metadata.service.NopMetadataException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -50,12 +51,12 @@ public class CrossDbInMemoryAggregationProcessor implements AggregationProcessor
         // Self-join guards
         if (leftEp.isEntity() && rightEp.isEntity()) {
             if (equalsStr(leftEp.entity.getMetaEntityId(), rightEp.entity.getMetaEntityId())) {
-                throw new NopException(NopMetadataErrors.ERR_AGGR_JOIN_SELF_JOIN)
+                throw new NopMetadataException(NopMetadataErrors.ERR_AGGR_JOIN_SELF_JOIN)
                         .param("joinId", joinId).param("entityId", leftEp.entity.getMetaEntityId());
             }
         } else if (!leftEp.isEntity() && !rightEp.isEntity()) {
             if (equalsStr(leftEp.table.getMetaTableId(), rightEp.table.getMetaTableId())) {
-                throw new NopException(NopMetadataErrors.ERR_AGGR_JOIN_SELF_JOIN)
+                throw new NopMetadataException(NopMetadataErrors.ERR_AGGR_JOIN_SELF_JOIN)
                         .param("joinId", joinId).param("entityId", leftEp.table.getMetaTableId());
             }
         }
@@ -82,7 +83,7 @@ public class CrossDbInMemoryAggregationProcessor implements AggregationProcessor
 
         if (having != null) {
             if (MetaAggregationExecutor.containsHavingArithmeticLeaf(having)) {
-                throw new NopException(NopMetadataErrors.ERR_AGGR_HAVING_EXPR_MEMORY_NOT_COMPUTABLE)
+                throw new NopMetadataException(NopMetadataErrors.ERR_AGGR_HAVING_EXPR_MEMORY_NOT_COMPUTABLE)
                         .param("metaTableId", table.getMetaTableId())
                         .param("expr", "<having arithmetic in cross-DB memory path>");
             }
@@ -108,7 +109,7 @@ public class CrossDbInMemoryAggregationProcessor implements AggregationProcessor
         List<CrossDbMeasureSpec> specs = new ArrayList<>(all.size());
         for (NopMetaTableMeasure m : all) {
             if (m.getExpression() != null && !m.getExpression().trim().isEmpty()) {
-                throw new NopException(NopMetadataErrors.ERR_AGGR_EXPRESSION_MEMORY_NOT_COMPUTABLE)
+                throw new NopMetadataException(NopMetadataErrors.ERR_AGGR_EXPRESSION_MEMORY_NOT_COMPUTABLE)
                         .param("metaTableId", table.getMetaTableId())
                         .param("measureName", m.getMeasureName())
                         .param("joinId", resolver.joinId());

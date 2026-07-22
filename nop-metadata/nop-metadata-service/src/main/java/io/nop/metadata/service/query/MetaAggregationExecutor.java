@@ -19,6 +19,7 @@ import io.nop.metadata.dao.entity.NopMetaTable;
 import io.nop.metadata.dao.entity.NopMetaTableFilter;
 import io.nop.metadata.dao.entity.NopMetaTableJoin;
 import io.nop.metadata.service.field.ExpressionMeasureValidator;
+import io.nop.metadata.service.NopMetadataException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -75,10 +76,10 @@ public class MetaAggregationExecutor {
                                                    Long limit, Long offset, TreeBean having,
                                                    List<OrderFieldBean> orderBy, MetaQueryContext ctx) {
         if (measureNames == null || measureNames.isEmpty()) {
-            throw new NopException(NopMetadataErrors.ERR_AGGR_NO_MEASURE).param("metaTableId", table.getMetaTableId());
+            throw new NopMetadataException(NopMetadataErrors.ERR_AGGR_NO_MEASURE).param("metaTableId", table.getMetaTableId());
         }
         if (dimensionNames == null || dimensionNames.isEmpty()) {
-            throw new NopException(NopMetadataErrors.ERR_AGGR_NO_DIMENSION).param("metaTableId", table.getMetaTableId());
+            throw new NopMetadataException(NopMetadataErrors.ERR_AGGR_NO_DIMENSION).param("metaTableId", table.getMetaTableId());
         }
         IEntityDao<NopMetaTableFilter> filterDao = ctx.daoProvider().daoFor(NopMetaTableFilter.class);
         TreeBean mergedFilter = DefaultFilterApplicator.applyDefaults(table, userFilter, filterDao);
@@ -109,7 +110,7 @@ public class MetaAggregationExecutor {
         } else if (_NopMetadataCoreConstants.TABLE_TYPE_SQL.equals(tableType)) {
             processor = new SqlAggregationProcessor();
         } else {
-            throw new NopException(NopMetadataErrors.ERR_AGGR_EXEC_FAILED)
+            throw new NopMetadataException(NopMetadataErrors.ERR_AGGR_EXEC_FAILED)
                     .param("metaTableId", table.getMetaTableId())
                     .param("error", "unsupported tableType: " + tableType);
         }
@@ -195,14 +196,14 @@ public class MetaAggregationExecutor {
             String token = m.group();
             String aggSql = nameToExpr.get(token);
             if (aggSql == null) {
-                throw new NopException(NopMetadataErrors.ERR_AGGR_HAVING_UNKNOWN_NAME)
+                throw new NopMetadataException(NopMetadataErrors.ERR_AGGR_HAVING_UNKNOWN_NAME)
                         .param("metaTableId", table.getMetaTableId())
                         .param("name", token)
                         .param("selectedMeasures", String.valueOf(measureNames))
                         .param("selectedDimensions", String.valueOf(dimensionNames));
             }
             if (aggSql.indexOf('?') >= 0) {
-                throw new NopException(NopMetadataErrors.ERR_AGGR_EXPRESSION_HAVING_ORDER_BY_UNSUPPORTED)
+                throw new NopMetadataException(NopMetadataErrors.ERR_AGGR_EXPRESSION_HAVING_ORDER_BY_UNSUPPORTED)
                         .param("metaTableId", table.getMetaTableId())
                         .param("measureName", token)
                         .param("clause", "HAVING");
@@ -220,18 +221,18 @@ public class MetaAggregationExecutor {
                     table.getMetaTableId(), "<having-arithmetic>");
         } catch (NopException e) {
             if (NopMetadataErrors.ERR_AGGR_EXPRESSION_UNPARSEABLE.getErrorCode().equals(e.getErrorCode())) {
-                throw new NopException(NopMetadataErrors.ERR_AGGR_HAVING_EXPR_UNPARSEABLE, e)
+                throw new NopMetadataException(NopMetadataErrors.ERR_AGGR_HAVING_EXPR_UNPARSEABLE, e)
                         .param("metaTableId", table.getMetaTableId())
                         .param("expr", userExpr)
                         .param("error", String.valueOf(e.getParam("error")));
             }
-            throw new NopException(NopMetadataErrors.ERR_AGGR_HAVING_EXPR_UNSAFE, e)
+            throw new NopMetadataException(NopMetadataErrors.ERR_AGGR_HAVING_EXPR_UNSAFE, e)
                     .param("metaTableId", table.getMetaTableId())
                     .param("expr", userExpr)
                     .param("reason", String.valueOf(e.getParam("reason")));
         }
         if (ve.params != null && !ve.params.isEmpty()) {
-            throw new NopException(NopMetadataErrors.ERR_AGGR_HAVING_EXPR_UNSAFE)
+            throw new NopMetadataException(NopMetadataErrors.ERR_AGGR_HAVING_EXPR_UNSAFE)
                     .param("metaTableId", table.getMetaTableId())
                     .param("expr", userExpr)
                     .param("reason", "literals are not allowed in having arithmetic expression "

@@ -2,6 +2,7 @@ package io.nop.metadata.service;
 
 import io.nop.api.core.exceptions.ErrorCode;
 import io.nop.api.core.exceptions.NopException;
+import io.nop.metadata.service.NopMetadataException;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -26,7 +27,7 @@ public class TestQualityAlertWorkflowServices {
 
     @Test
     public void testQualityResultNotFoundError() {
-        NopException ex = new NopException(NopMetadataErrors.ERR_QUALITY_RESULT_NOT_FOUND)
+        NopException ex = new NopMetadataException(NopMetadataErrors.ERR_QUALITY_RESULT_NOT_FOUND)
                 .param(NopMetadataErrors.ARG_QUALITY_RESULT_ID, "test-id");
         assertEquals("nop.err.metadata.quality-result-not-found", ex.getErrorCode());
         assertTrue(ex.getMessage().contains("test-id"));

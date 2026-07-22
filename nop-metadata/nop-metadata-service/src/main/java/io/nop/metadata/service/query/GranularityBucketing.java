@@ -10,6 +10,7 @@ package io.nop.metadata.service.query;
 
 import io.nop.api.core.exceptions.NopException;
 import io.nop.metadata.service.NopMetadataErrors;
+import io.nop.metadata.service.NopMetadataException;
 
 import java.util.HashMap;
 import java.util.Locale;
@@ -67,7 +68,7 @@ public final class GranularityBucketing {
      */
     public static String translate(String granularity, String columnExpr, String dialect, String dimensionName) {
         if (granularity == null || granularity.trim().isEmpty()) {
-            throw new NopException(NopMetadataErrors.ERR_GRANULARITY_NOT_SUPPORTED)
+            throw new NopMetadataException(NopMetadataErrors.ERR_GRANULARITY_NOT_SUPPORTED)
                     .param("granularity", String.valueOf(granularity))
                     .param("dimensionName", String.valueOf(dimensionName));
         }
@@ -81,7 +82,7 @@ public final class GranularityBucketing {
         }
         String tpl = templates.get(g);
         if (tpl == null) {
-            throw new NopException(NopMetadataErrors.ERR_GRANULARITY_NOT_SUPPORTED)
+            throw new NopMetadataException(NopMetadataErrors.ERR_GRANULARITY_NOT_SUPPORTED)
                     .param("granularity", granularity)
                     .param("dimensionName", String.valueOf(dimensionName));
         }

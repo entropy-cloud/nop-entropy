@@ -22,6 +22,7 @@ import io.nop.metadata.dao.entity.NopMetaTable;
 import io.nop.metadata.dao.entity.NopMetaTableDimension;
 import io.nop.metadata.dao.entity.NopMetaTableJoin;
 import io.nop.metadata.service.field.MetaTableFieldResolver;
+import io.nop.metadata.service.NopMetadataException;
 
 import java.util.Map;
 
@@ -86,7 +87,7 @@ public class NopMetaTableDimensionBizModel extends CrudBizModel<NopMetaTableDime
         IEntityDao<NopMetaTable> tableDao = daoFor(NopMetaTable.class);
         NopMetaTable table = tableDao.getEntityById(metaTableId);
         if (table == null) {
-            throw new NopException(NopMetadataErrors.ERR_DIMENSION_TABLE_NOT_FOUND).param("metaTableId", metaTableId);
+            throw new NopMetadataException(NopMetadataErrors.ERR_DIMENSION_TABLE_NOT_FOUND).param("metaTableId", metaTableId);
         }
         IEntityDao<NopMetaEntityField> fieldDao = daoFor(NopMetaEntityField.class);
         // joinDao 用于 entity 表跨表可达 rightEntityId 集合解析（§2.5.2 D3）+ external/sql name-based 可达列名集合并集（§2.5.2 D4）

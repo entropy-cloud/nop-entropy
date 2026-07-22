@@ -7,6 +7,7 @@ import io.nop.dao.api.IEntityDao;
 import io.nop.metadata.dao.entity.NopMetaEntityField;
 import io.nop.metadata.dao.entity.NopMetaTable;
 import io.nop.metadata.service.NopMetadataErrors;
+import io.nop.metadata.service.NopMetadataException;
 
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -32,14 +33,14 @@ public class JoinFieldResolver {
 
     public AggregationContext.JoinField resolve(String entityFieldId, String name, String declaredSide, String refKind) {
         if (entityFieldId == null || entityFieldId.isEmpty()) {
-            throw new NopException(NopMetadataErrors.ERR_AGGR_FIELD_NOT_RESOLVED)
+            throw new NopMetadataException(NopMetadataErrors.ERR_AGGR_FIELD_NOT_RESOLVED)
                     .param("metaTableId", table.getMetaTableId())
                     .param("name", name).param("entityFieldId", String.valueOf(entityFieldId));
         }
         IEntityDao<NopMetaEntityField> fieldDao = ctx.daoProvider().daoFor(NopMetaEntityField.class);
         NopMetaEntityField field = fieldDao.getEntityById(entityFieldId);
         if (field == null || field.getColumnCode() == null) {
-            throw new NopException(NopMetadataErrors.ERR_AGGR_FIELD_NOT_RESOLVED)
+            throw new NopMetadataException(NopMetadataErrors.ERR_AGGR_FIELD_NOT_RESOLVED)
                     .param("metaTableId", table.getMetaTableId())
                     .param("name", name).param("entityFieldId", entityFieldId);
         }
@@ -54,7 +55,7 @@ public class JoinFieldResolver {
             resolvedSide = "right";
             alias = "r";
         } else {
-            throw new NopException(NopMetadataErrors.ERR_AGGR_JOIN_FIELD_SIDE_UNRESOLVED)
+            throw new NopMetadataException(NopMetadataErrors.ERR_AGGR_JOIN_FIELD_SIDE_UNRESOLVED)
                     .param("metaTableId", table.getMetaTableId())
                     .param("name", name).param("entityFieldId", entityFieldId)
                     .param("fieldMetaEntityId", String.valueOf(fieldMetaEntityId))
@@ -64,7 +65,7 @@ public class JoinFieldResolver {
         }
         if (declaredSide != null && !declaredSide.isEmpty()
                 && !declaredSide.equalsIgnoreCase(resolvedSide)) {
-            throw new NopException(NopMetadataErrors.ERR_AGGR_JOIN_ENTITY_SIDE_MISMATCH)
+            throw new NopMetadataException(NopMetadataErrors.ERR_AGGR_JOIN_ENTITY_SIDE_MISMATCH)
                     .param("metaTableId", table.getMetaTableId())
                     .param("name", name)
                     .param("declaredSide", declaredSide)

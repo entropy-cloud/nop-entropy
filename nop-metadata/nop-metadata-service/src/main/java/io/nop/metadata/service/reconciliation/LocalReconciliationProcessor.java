@@ -18,6 +18,7 @@ import io.nop.dao.api.IEntityDao;
 import io.nop.metadata.core._NopMetadataCoreConstants;
 import io.nop.metadata.dao.entity.NopMetaReconciliationEntity;
 import io.nop.metadata.service.NopMetadataErrors;
+import io.nop.metadata.service.NopMetadataException;
 import jakarta.inject.Inject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -119,7 +120,7 @@ public class LocalReconciliationProcessor implements IReconciliationProcessor {
             double sim = levenshteinSimilarity(value, candidateName);
             return sim > FUZZY_MIN_SCORE ? round(sim) : 0.0;
         }
-        throw new NopException(NopMetadataErrors.ERR_RECON_UNSUPPORTED_MATCH_STRATEGY).param("matchStrategy", String.valueOf(matchStrategy));
+        throw new NopMetadataException(NopMetadataErrors.ERR_RECON_UNSUPPORTED_MATCH_STRATEGY).param("matchStrategy", String.valueOf(matchStrategy));
     }
 
     /** levenshtein 归一化相似度 = 1 - distance / max(len)。忽略大小写。 */

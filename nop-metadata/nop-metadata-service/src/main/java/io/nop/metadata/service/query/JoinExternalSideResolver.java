@@ -4,6 +4,7 @@ import io.nop.api.core.exceptions.NopException;
 import io.nop.metadata.dao.entity.NopMetaTable;
 import io.nop.metadata.dao.entity.NopMetaTableJoin;
 import io.nop.metadata.service.NopMetadataErrors;
+import io.nop.metadata.service.NopMetadataException;
 
 import java.util.Set;
 
@@ -38,12 +39,12 @@ public class JoinExternalSideResolver {
 
     public AggregationContext.JoinField resolve(String columnName, String name, String declaredSide) {
         if (declaredSide == null || declaredSide.isEmpty()) {
-            throw new NopException(NopMetadataErrors.ERR_AGGR_JOIN_SIDE_REQUIRED)
+            throw new NopMetadataException(NopMetadataErrors.ERR_AGGR_JOIN_SIDE_REQUIRED)
                     .param("metaTableId", ownerTable.getMetaTableId())
                     .param("name", name).param("joinId", joinId);
         }
         if (columnName == null || columnName.isEmpty()) {
-            throw new NopException(NopMetadataErrors.ERR_AGGR_FIELD_NOT_RESOLVED)
+            throw new NopMetadataException(NopMetadataErrors.ERR_AGGR_FIELD_NOT_RESOLVED)
                     .param("metaTableId", ownerTable.getMetaTableId())
                     .param("name", name).param("entityFieldId", String.valueOf(columnName));
         }
@@ -59,14 +60,14 @@ public class JoinExternalSideResolver {
             endpointType = String.valueOf(rightTable.getTableType());
             cols = rightCols;
         } else {
-            throw new NopException(NopMetadataErrors.ERR_AGGR_JOIN_FIELD_NOT_ON_SIDE)
+            throw new NopMetadataException(NopMetadataErrors.ERR_AGGR_JOIN_FIELD_NOT_ON_SIDE)
                     .param("metaTableId", ownerTable.getMetaTableId())
                     .param("name", name).param("side", declaredSide)
                     .param("endpointTableType", "unknown")
                     .param("column", columnName).param("joinId", joinId);
         }
         if (!containsIgnoreCase(cols, columnName)) {
-            throw new NopException(NopMetadataErrors.ERR_AGGR_JOIN_FIELD_NOT_ON_SIDE)
+            throw new NopMetadataException(NopMetadataErrors.ERR_AGGR_JOIN_FIELD_NOT_ON_SIDE)
                     .param("metaTableId", ownerTable.getMetaTableId())
                     .param("name", name).param("side", declaredSide)
                     .param("endpointTableType", endpointType)

@@ -45,6 +45,7 @@ import io.nop.metadata.service.sqlview.SqlViewFieldTypeInferrer;
 import io.nop.metadata.service.tableref.TableReference;
 import io.nop.metadata.service.tableref.TableReferenceExecutor;
 import io.nop.search.api.SearchableDoc;
+import io.nop.metadata.service.NopMetadataException;
 import jakarta.inject.Inject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -148,7 +149,7 @@ public class NopMetaTableBizModel extends CrudBizModel<NopMetaTable> implements 
         IEntityDao<NopMetaModule> moduleDao = daoFor(NopMetaModule.class);
         NopMetaModule module = moduleDao.getEntityById(metaModuleId);
         if (module == null) {
-            throw new NopException(NopMetadataErrors.ERR_SQL_VIEW_MODULE_NOT_FOUND).param("metaModuleId", metaModuleId);
+            throw new NopMetadataException(NopMetadataErrors.ERR_SQL_VIEW_MODULE_NOT_FOUND).param("metaModuleId", metaModuleId);
         }
         IEntityDao<NopMetaTable> tableDao = dao();
         NopMetaTable table = tableDao.newEntity();
@@ -186,7 +187,7 @@ public class NopMetaTableBizModel extends CrudBizModel<NopMetaTable> implements 
         IEntityDao<NopMetaTable> tableDao = dao();
         NopMetaTable table = tableDao.getEntityById(metaTableId);
         if (table == null) {
-            throw new NopException(NopMetadataErrors.ERR_SQL_VIEW_TABLE_NOT_FOUND).param("metaTableId", metaTableId);
+            throw new NopMetadataException(NopMetadataErrors.ERR_SQL_VIEW_TABLE_NOT_FOUND).param("metaTableId", metaTableId);
         }
         IEntityDao<NopMetaEntityField> fieldDao = daoFor(NopMetaEntityField.class);
         List<ResolvedTableField> fields = queryAction.fieldResolver().resolve(table, fieldDao);
@@ -210,7 +211,7 @@ public class NopMetaTableBizModel extends CrudBizModel<NopMetaTable> implements 
         IEntityDao<NopMetaTable> tableDao = dao();
         NopMetaTable table = tableDao.getEntityById(metaTableId);
         if (table == null) {
-            throw new NopException(NopMetadataErrors.ERR_QUERY_TABLE_NOT_FOUND).param("metaTableId", metaTableId);
+            throw new NopMetadataException(NopMetadataErrors.ERR_QUERY_TABLE_NOT_FOUND).param("metaTableId", metaTableId);
         }
         String tableType = table.getTableType();
         QueryTableDataResultDTO result = new QueryTableDataResultDTO();
@@ -222,7 +223,7 @@ public class NopMetaTableBizModel extends CrudBizModel<NopMetaTable> implements 
         } else if (_NopMetadataCoreConstants.TABLE_TYPE_SQL.equals(tableType)) {
             result.setItems(queryAction.querySqlData(table, filter, limit, offset, connectionService, daoProvider(), orm()));
         } else {
-            throw new NopException(NopMetadataErrors.ERR_QUERY_UNSUPPORTED_TABLE_TYPE)
+            throw new NopMetadataException(NopMetadataErrors.ERR_QUERY_UNSUPPORTED_TABLE_TYPE)
                     .param("metaTableId", metaTableId)
                     .param("tableType", String.valueOf(tableType));
         }
@@ -240,7 +241,7 @@ public class NopMetaTableBizModel extends CrudBizModel<NopMetaTable> implements 
         IEntityDao<NopMetaTable> tableDao = dao();
         NopMetaTable table = tableDao.getEntityById(metaTableId);
         if (table == null) {
-            throw new NopException(NopMetadataErrors.ERR_QUERY_TABLE_NOT_FOUND).param("metaTableId", metaTableId);
+            throw new NopMetadataException(NopMetadataErrors.ERR_QUERY_TABLE_NOT_FOUND).param("metaTableId", metaTableId);
         }
         Map<String, Object> raw = joinExecutor.executeJoin(table, joinId, filter, limit, offset, buildQueryContext());
         QueryJoinDataResultDTO result = new QueryJoinDataResultDTO();
@@ -268,7 +269,7 @@ public class NopMetaTableBizModel extends CrudBizModel<NopMetaTable> implements 
         IEntityDao<NopMetaTable> tableDao = dao();
         NopMetaTable table = tableDao.getEntityById(metaTableId);
         if (table == null) {
-            throw new NopException(NopMetadataErrors.ERR_QUERY_TABLE_NOT_FOUND).param("metaTableId", metaTableId);
+            throw new NopMetadataException(NopMetadataErrors.ERR_QUERY_TABLE_NOT_FOUND).param("metaTableId", metaTableId);
         }
         Map<String, Object> raw = aggregationExecutor.executeAggregation(table, measures, dimensions, filter, joinId, limit, offset,
                 having, orderBy, buildQueryContext());
@@ -307,7 +308,7 @@ public class NopMetaTableBizModel extends CrudBizModel<NopMetaTable> implements 
         IEntityDao<NopMetaTable> tableDao = dao();
         NopMetaTable table = tableDao.getEntityById(metaTableId);
         if (table == null) {
-            throw new NopException(NopMetadataErrors.ERR_PROFILING_TABLE_NOT_FOUND).param("metaTableId", metaTableId);
+            throw new NopMetadataException(NopMetadataErrors.ERR_PROFILING_TABLE_NOT_FOUND).param("metaTableId", metaTableId);
         }
         return table;
     }

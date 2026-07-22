@@ -14,6 +14,7 @@ import io.nop.metadata.dao.entity.NopMetaTable;
 import io.nop.metadata.dao.entity.NopMetaTableJoin;
 import io.nop.metadata.service.NopMetadataErrors;
 import io.nop.metadata.service.field.ExpressionMeasureValidator;
+import io.nop.metadata.service.NopMetadataException;
 
 import java.util.Arrays;
 import java.util.Collections;
@@ -247,7 +248,7 @@ public class AggregationContext {
 
         static MemAggAccumulator forFunc(String aggFunc, String name) {
             if (aggFunc == null) {
-                throw new NopException(NopMetadataErrors.ERR_AGGR_AGG_FUNC_UNSUPPORTED)
+                throw new NopMetadataException(NopMetadataErrors.ERR_AGGR_AGG_FUNC_UNSUPPORTED)
                         .param("aggFunc", String.valueOf(aggFunc)).param("measureName", name);
             }
             switch (aggFunc) {
@@ -264,7 +265,7 @@ public class AggregationContext {
                 case _NopMetadataCoreConstants.AGG_FUNC_COUNT_DISTINCT:
                     return new CountDistinctAcc();
                 default:
-                    throw new NopException(NopMetadataErrors.ERR_AGGR_AGG_FUNC_UNSUPPORTED)
+                    throw new NopMetadataException(NopMetadataErrors.ERR_AGGR_AGG_FUNC_UNSUPPORTED)
                             .param("aggFunc", aggFunc).param("measureName", name);
             }
         }

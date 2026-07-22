@@ -22,6 +22,7 @@ import io.nop.orm.IOrmTemplate;
 import io.nop.wf.api.WfReference;
 import io.nop.wf.core.IWorkflow;
 import io.nop.wf.core.IWorkflowManager;
+import io.nop.metadata.service.NopMetadataException;
 import jakarta.inject.Inject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -68,7 +69,7 @@ public class QualityAlertWorkflowService {
 
         NopMetaQualityRule rule = daoFor(NopMetaQualityRule.class).getEntityById(result.getQualityRuleId());
         if (rule == null) {
-            throw new NopException(NopMetadataErrors.ERR_QUALITY_RULE_NOT_FOUND)
+            throw new NopMetadataException(NopMetadataErrors.ERR_QUALITY_RULE_NOT_FOUND)
                     .param("qualityRuleId", result.getQualityRuleId());
         }
 
@@ -93,13 +94,13 @@ public class QualityAlertWorkflowService {
     public boolean reJudge(String ruleId, String resultId) {
         NopMetaQualityRule rule = daoFor(NopMetaQualityRule.class).getEntityById(ruleId);
         if (rule == null) {
-            throw new NopException(NopMetadataErrors.ERR_QUALITY_RULE_NOT_FOUND)
+            throw new NopMetadataException(NopMetadataErrors.ERR_QUALITY_RULE_NOT_FOUND)
                     .param("qualityRuleId", ruleId);
         }
 
         NopMetaQualityResult result = daoFor(NopMetaQualityResult.class).getEntityById(resultId);
         if (result == null) {
-            throw new NopException(NopMetadataErrors.ERR_QUALITY_RESULT_NOT_FOUND)
+            throw new NopMetadataException(NopMetadataErrors.ERR_QUALITY_RESULT_NOT_FOUND)
                     .param("qualityResultId", resultId);
         }
 
@@ -129,7 +130,7 @@ public class QualityAlertWorkflowService {
         IEntityDao<NopMetaTable> tableDao = daoFor(NopMetaTable.class);
         NopMetaTable table = tableDao.getEntityById(rule.getEntityId());
         if (table == null) {
-            throw new NopException(NopMetadataErrors.ERR_QUALITY_TABLE_NOT_FOUND)
+            throw new NopMetadataException(NopMetadataErrors.ERR_QUALITY_TABLE_NOT_FOUND)
                     .param("qualityRuleId", rule.getQualityRuleId())
                     .param("entityId", rule.getEntityId());
         }
@@ -143,8 +144,7 @@ public class QualityAlertWorkflowService {
         return tableRefExecutor;
     }
 
-    @SuppressWarnings("unchecked")
     private <T extends IDaoEntity> IEntityDao<T> daoFor(Class<T> clazz) {
-        return (IEntityDao<T>) daoProvider.daoFor(clazz);
+        return daoProvider.daoFor(clazz);
     }
 }

@@ -12,6 +12,7 @@ import io.nop.api.core.beans.query.OrderFieldBean;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.metadata.dao.entity.NopMetaTable;
 import io.nop.metadata.service.NopMetadataErrors;
+import io.nop.metadata.service.NopMetadataException;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
@@ -51,7 +52,7 @@ final class MemoryOrderByComparator {
             String name = f.getName();
             String alias = nameToAlias.get(name);
             if (alias == null) {
-                throw new NopException(NopMetadataErrors.ERR_AGGR_ORDER_BY_UNKNOWN_NAME)
+                throw new NopMetadataException(NopMetadataErrors.ERR_AGGR_ORDER_BY_UNKNOWN_NAME)
                         .param("metaTableId", table.getMetaTableId())
                         .param("name", String.valueOf(name))
                         .param("selectedMeasures", String.valueOf(measureNames))

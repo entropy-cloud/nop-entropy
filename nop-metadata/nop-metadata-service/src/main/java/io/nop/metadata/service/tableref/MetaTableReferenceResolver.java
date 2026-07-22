@@ -23,6 +23,7 @@ import io.nop.metadata.service.datasource.MetaDataSourceResolver;
 import io.nop.metadata.service.field.MetaTableFieldResolver;
 import io.nop.metadata.service.field.ResolvedTableField;
 import io.nop.metadata.service.NopMetadataErrors;
+import io.nop.metadata.service.NopMetadataException;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -90,7 +91,7 @@ public class MetaTableReferenceResolver {
                                    IEntityDao<io.nop.metadata.dao.entity.NopMetaEntityField> fieldDao,
                                    IOrmTemplate orm) {
         if (table == null) {
-            throw new NopException(NopMetadataErrors.ERR_TABLEREF_UNKNOWN_TABLE_TYPE);
+            throw new NopMetadataException(NopMetadataErrors.ERR_TABLEREF_UNKNOWN_TABLE_TYPE);
         }
         String tableType = table.getTableType();
         if (_NopMetadataCoreConstants.TABLE_TYPE_EXTERNAL.equals(tableType)) {
@@ -102,7 +103,7 @@ public class MetaTableReferenceResolver {
         if (_NopMetadataCoreConstants.TABLE_TYPE_SQL.equals(tableType)) {
             return resolveSql(table, dsDao, fieldDao);
         }
-        throw new NopException(NopMetadataErrors.ERR_TABLEREF_UNKNOWN_TABLE_TYPE)
+        throw new NopMetadataException(NopMetadataErrors.ERR_TABLEREF_UNKNOWN_TABLE_TYPE)
                 .param("metaTableId", table.getMetaTableId())
                 .param("tableType", String.valueOf(tableType));
     }
@@ -120,24 +121,24 @@ public class MetaTableReferenceResolver {
     private TableReference resolveEntity(NopMetaTable table, IEntityDao<NopMetaEntity> entityDao, IOrmTemplate orm) {
         String baseEntityId = table.getBaseEntityId();
         if (baseEntityId == null || baseEntityId.isEmpty()) {
-            throw new NopException(NopMetadataErrors.ERR_TABLEREF_ENTITY_BASE_NULL)
+            throw new NopMetadataException(NopMetadataErrors.ERR_TABLEREF_ENTITY_BASE_NULL)
                     .param("metaTableId", table.getMetaTableId());
         }
         NopMetaEntity entity = entityDao.getEntityById(baseEntityId);
         if (entity == null) {
-            throw new NopException(NopMetadataErrors.ERR_TABLEREF_ENTITY_NOT_FOUND)
+            throw new NopMetadataException(NopMetadataErrors.ERR_TABLEREF_ENTITY_NOT_FOUND)
                     .param("metaTableId", table.getMetaTableId())
                     .param("baseEntityId", baseEntityId);
         }
         String entityName = entity.getEntityName();
         if (entityName == null || entityName.isEmpty() || !orm.isValidEntityName(entityName)) {
-            throw new NopException(NopMetadataErrors.ERR_TABLEREF_ENTITY_NOT_REGISTERED)
+            throw new NopMetadataException(NopMetadataErrors.ERR_TABLEREF_ENTITY_NOT_REGISTERED)
                     .param("metaTableId", table.getMetaTableId())
                     .param("entityName", String.valueOf(entityName));
         }
         String physicalTable = entity.getTableName();
         if (physicalTable == null || physicalTable.isEmpty()) {
-            throw new NopException(NopMetadataErrors.ERR_TABLEREF_ENTITY_TABLE_NAME_EMPTY)
+            throw new NopMetadataException(NopMetadataErrors.ERR_TABLEREF_ENTITY_TABLE_NAME_EMPTY)
                     .param("metaTableId", table.getMetaTableId())
                     .param("entityName", entityName);
         }
@@ -174,7 +175,7 @@ public class MetaTableReferenceResolver {
                                        IEntityDao<io.nop.metadata.dao.entity.NopMetaEntityField> fieldDao) {
         String sourceSql = table.getSourceSql();
         if (sourceSql == null || sourceSql.trim().isEmpty()) {
-            throw new NopException(NopMetadataErrors.ERR_TABLEREF_SQL_SOURCE_EMPTY)
+            throw new NopMetadataException(NopMetadataErrors.ERR_TABLEREF_SQL_SOURCE_EMPTY)
                     .param("metaTableId", table.getMetaTableId());
         }
         NopMetaDataSource ds = resolveDataSourceOrThrow(dsDao, table.getQuerySpace(), table.getMetaTableId());

@@ -17,6 +17,7 @@ import io.nop.dao.txn.ITransactionTemplate;
 import io.nop.metadata.service.connection.IMetaDataSourceConnectionProcessor;
 import io.nop.orm.IOrmTemplate;
 import io.nop.metadata.service.NopMetadataErrors;
+import io.nop.metadata.service.NopMetadataException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -80,7 +81,7 @@ public class TableReferenceExecutor {
         ITransactionTemplate txnTemplate = orm.getSessionFactory().txn();
         return txnTemplate.runInTransaction(querySpace, TransactionPropagation.SUPPORTS, (ITransaction txn) -> {
             if (!(txn instanceof IJdbcTransaction)) {
-                throw new NopException(NopMetadataErrors.ERR_TABLEREF_ENTITY_QUERY_SPACE_NOT_JDBC)
+                throw new NopMetadataException(NopMetadataErrors.ERR_TABLEREF_ENTITY_QUERY_SPACE_NOT_JDBC)
                         .param("querySpace", String.valueOf(querySpace))
                         .param("metaTableId", ref.getMetaTableId());
             }
@@ -89,21 +90,21 @@ public class TableReferenceExecutor {
             try {
                 metaData = conn.getMetaData();
             } catch (SQLException e) {
-                throw new NopException(NopMetadataErrors.ERR_TABLEREF_PLATFORM_META_FAILED, e)
+                throw new NopMetadataException(NopMetadataErrors.ERR_TABLEREF_PLATFORM_META_FAILED, e)
                         .param("error", e.getMessage());
             }
             String productName = safeProductName(metaData);
             try {
                 return action.apply(conn, metaData, productName);
             } catch (SQLException e) {
-                throw new NopException(NopMetadataErrors.ERR_TABLEREF_EXEC_FAILED, e)
+                throw new NopMetadataException(NopMetadataErrors.ERR_TABLEREF_EXEC_FAILED, e)
                         .param("metaTableId", ref.getMetaTableId())
                         .param("error", e.getMessage());
             } catch (Exception e) {
                 if (e instanceof RuntimeException) {
                     throw (RuntimeException) e;
                 }
-                throw new NopException(NopMetadataErrors.ERR_TABLEREF_EXEC_FAILED, e)
+                throw new NopMetadataException(NopMetadataErrors.ERR_TABLEREF_EXEC_FAILED, e)
                         .param("metaTableId", ref.getMetaTableId())
                         .param("error", e.getMessage());
             }
@@ -120,14 +121,14 @@ public class TableReferenceExecutor {
             try {
                 holder[0] = action.apply(conn, metaData, productName);
             } catch (SQLException e) {
-                error[0] = new NopException(NopMetadataErrors.ERR_TABLEREF_EXEC_FAILED, e)
+                error[0] = new NopMetadataException(NopMetadataErrors.ERR_TABLEREF_EXEC_FAILED, e)
                         .param("metaTableId", ref.getMetaTableId())
                         .param("error", messageOf(e));
             } catch (Exception e) {
                 if (e instanceof RuntimeException) {
                     error[0] = (RuntimeException) e;
                 } else {
-                    error[0] = new NopException(NopMetadataErrors.ERR_TABLEREF_EXEC_FAILED, e)
+                    error[0] = new NopMetadataException(NopMetadataErrors.ERR_TABLEREF_EXEC_FAILED, e)
                             .param("metaTableId", ref.getMetaTableId())
                             .param("error", messageOf(e));
                 }

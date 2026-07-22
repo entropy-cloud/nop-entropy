@@ -12,6 +12,7 @@ import io.nop.api.core.exceptions.NopException;
 import io.nop.metadata.service.query.FilterToSqlTranslator;
 import io.nop.metadata.service.query.SqlPagination;
 import io.nop.metadata.service.NopMetadataErrors;
+import io.nop.metadata.service.NopMetadataException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -135,7 +136,7 @@ public final class MetaTableQueryExecutor {
             }
             return rows;
         } catch (SQLException e) {
-            throw new NopException(NopMetadataErrors.ERR_QUERY_SQL_EXEC_FAILED, e)
+            throw new NopMetadataException(NopMetadataErrors.ERR_QUERY_SQL_EXEC_FAILED, e)
                     .param("sql", sql)
                     .param("error", messageOf(e));
         }

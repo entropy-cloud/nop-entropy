@@ -28,6 +28,7 @@ import io.nop.metadata.dao.entity.NopMetaTable;
 import io.nop.metadata.service.field.MetaTableFieldResolver;
 import io.nop.metadata.service.reconciliation.IReconciliationProcessor;
 import io.nop.metadata.service.reconciliation.ReconciliationExecutor;
+import io.nop.metadata.service.NopMetadataException;
 import jakarta.inject.Inject;
 
 import java.sql.Timestamp;
@@ -91,7 +92,7 @@ public class NopMetaReconciliationConfigBizModel extends CrudBizModel<NopMetaRec
         IEntityDao<NopMetaReconciliationConfig> configDao = dao();
         NopMetaReconciliationConfig config = configDao.getEntityById(configId);
         if (config == null) {
-            throw new NopException(NopMetadataErrors.ERR_RECON_CONFIG_NOT_FOUND).param("configId", configId);
+            throw new NopMetadataException(NopMetadataErrors.ERR_RECON_CONFIG_NOT_FOUND).param("configId", configId);
         }
         String metaTableId = config.getMetaTableId();
 
@@ -99,7 +100,7 @@ public class NopMetaReconciliationConfigBizModel extends CrudBizModel<NopMetaRec
         IEntityDao<NopMetaTable> tableDao = daoFor(NopMetaTable.class);
         NopMetaTable table = tableDao.getEntityById(metaTableId);
         if (table == null) {
-            throw new NopException(NopMetadataErrors.ERR_RECON_TABLE_NOT_FOUND)
+            throw new NopMetadataException(NopMetadataErrors.ERR_RECON_TABLE_NOT_FOUND)
                     .param("configId", configId)
                     .param("metaTableId", String.valueOf(metaTableId));
         }
@@ -109,7 +110,7 @@ public class NopMetaReconciliationConfigBizModel extends CrudBizModel<NopMetaRec
         Set<String> availableFields = fieldResolver.resolveFieldNames(table, fieldDao);
         String columnName = config.getColumnName();
         if (columnName == null || !availableFields.contains(columnName)) {
-            throw new NopException(NopMetadataErrors.ERR_RECON_COLUMN_NOT_FOUND)
+            throw new NopMetadataException(NopMetadataErrors.ERR_RECON_COLUMN_NOT_FOUND)
                     .param("configId", configId)
                     .param("metaTableId", metaTableId)
                     .param("columnName", String.valueOf(columnName))
@@ -122,7 +123,7 @@ public class NopMetaReconciliationConfigBizModel extends CrudBizModel<NopMetaRec
             items = tableBizModel.queryTableData(metaTableId, null, null, null, null, context).getItems();
         } catch (NopException e) {
             // queryTableData 内部已抛带语义的 ErrorCode，此处附加 config 上下文后重新抛出
-            throw new NopException(NopMetadataErrors.ERR_RECON_FETCH_TABLE_DATA_FAILED, e)
+            throw new NopMetadataException(NopMetadataErrors.ERR_RECON_FETCH_TABLE_DATA_FAILED, e)
                     .param("configId", configId)
                     .param("metaTableId", metaTableId)
                     .param("error", messageOf(e));

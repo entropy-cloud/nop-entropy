@@ -24,6 +24,7 @@ import io.nop.metadata.dao.entity.NopMetaTable;
 import io.nop.metadata.dao.entity.NopMetaTableJoin;
 import io.nop.metadata.service.field.MetaTableFieldResolver;
 import io.nop.metadata.service.field.ResolvedTableField;
+import io.nop.metadata.service.NopMetadataException;
 
 import java.util.LinkedHashSet;
 import java.util.Map;
@@ -106,13 +107,13 @@ public class NopMetaTableJoinBizModel extends CrudBizModel<NopMetaTableJoin> imp
         boolean hasTable = tableId != null && !tableId.isEmpty();
         if (hasEntity && hasTable) {
             // entity/table 互斥：同一端点同时设置 entityId 和 tableId——显式失败（不静默猜测语义）
-            throw new NopException(NopMetadataErrors.ERR_JOIN_ENDPOINT_BOTH_SET)
+            throw new NopMetadataException(NopMetadataErrors.ERR_JOIN_ENDPOINT_BOTH_SET)
                     .param("metaTableId", metaTableId).param("side", side)
                     .param("entityId", entityId).param("tableId", tableId);
         }
         if (!hasEntity && !hasTable) {
             // 端点 mandatory：entity/table 二选一（放宽原 NopMetadataErrors.ERR_JOIN_ENTITY_ID_NULL 的 entityId-only 语义）
-            throw new NopException(NopMetadataErrors.ERR_JOIN_ENTITY_ID_NULL)
+            throw new NopMetadataException(NopMetadataErrors.ERR_JOIN_ENTITY_ID_NULL)
                     .param("metaTableId", metaTableId).param("side", side);
         }
         if (hasEntity) {
@@ -128,7 +129,7 @@ public class NopMetaTableJoinBizModel extends CrudBizModel<NopMetaTableJoin> imp
         IEntityDao<NopMetaEntity> entityDao = daoFor(NopMetaEntity.class);
         NopMetaEntity entity = entityDao.getEntityById(entityId);
         if (entity == null) {
-            throw new NopException(NopMetadataErrors.ERR_JOIN_ENTITY_NOT_FOUND)
+            throw new NopMetadataException(NopMetadataErrors.ERR_JOIN_ENTITY_NOT_FOUND)
                     .param("metaTableId", metaTableId).param("side", side).param("entityId", entityId);
         }
         if (field == null || field.isEmpty()) {
@@ -141,7 +142,7 @@ public class NopMetaTableJoinBizModel extends CrudBizModel<NopMetaTableJoin> imp
             fieldNames.add(f.getName());
         }
         if (!fieldNames.contains(field)) {
-            throw new NopException(NopMetadataErrors.ERR_JOIN_FIELD_NOT_IN_ENTITY)
+            throw new NopMetadataException(NopMetadataErrors.ERR_JOIN_FIELD_NOT_IN_ENTITY)
                     .param("metaTableId", metaTableId).param("side", side)
                     .param("entityId", entityId).param("field", field)
                     .param("availableFields", fieldNames);
@@ -159,14 +160,14 @@ public class NopMetaTableJoinBizModel extends CrudBizModel<NopMetaTableJoin> imp
                                        IEntityDao<NopMetaEntityField> fieldDao) {
         NopMetaTable table = tableDao.getEntityById(tableId);
         if (table == null) {
-            throw new NopException(NopMetadataErrors.ERR_JOIN_TABLE_NOT_FOUND)
+            throw new NopMetadataException(NopMetadataErrors.ERR_JOIN_TABLE_NOT_FOUND)
                     .param("metaTableId", metaTableId).param("side", side).param("tableId", tableId);
         }
         String tableType = table.getTableType();
         if (!_NopMetadataCoreConstants.TABLE_TYPE_EXTERNAL.equals(tableType)
                 && !_NopMetadataCoreConstants.TABLE_TYPE_SQL.equals(tableType)) {
             // table 端点仅允许 external/sql；entity-type 逻辑表应走 entityId 路径（D1）
-            throw new NopException(NopMetadataErrors.ERR_JOIN_TABLE_TYPE_NOT_ALLOWED)
+            throw new NopMetadataException(NopMetadataErrors.ERR_JOIN_TABLE_TYPE_NOT_ALLOWED)
                     .param("metaTableId", metaTableId).param("side", side)
                     .param("tableId", tableId).param("tableType", String.valueOf(tableType));
         }
@@ -177,7 +178,7 @@ public class NopMetaTableJoinBizModel extends CrudBizModel<NopMetaTableJoin> imp
         // 校验字段属于该表可解析列集合（external→buildSql JSON；sql→SELECT 解析；空集/损坏由 resolver 显式失败）
         Set<String> columnNames = fieldResolver.resolveFieldNames(table, fieldDao);
         if (!columnNames.contains(field)) {
-            throw new NopException(NopMetadataErrors.ERR_JOIN_FIELD_NOT_IN_TABLE)
+            throw new NopMetadataException(NopMetadataErrors.ERR_JOIN_FIELD_NOT_IN_TABLE)
                     .param("metaTableId", metaTableId).param("side", side)
                     .param("tableId", tableId).param("field", field)
                     .param("availableFields", columnNames);

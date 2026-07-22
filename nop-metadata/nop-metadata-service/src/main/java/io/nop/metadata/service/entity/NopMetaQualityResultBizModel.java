@@ -9,6 +9,7 @@ import io.nop.core.context.IServiceContext;
 import io.nop.metadata.biz.INopMetaQualityResultBiz;
 import io.nop.metadata.dao.entity.NopMetaQualityResult;
 import io.nop.metadata.service.NopMetadataErrors;
+import io.nop.metadata.service.NopMetadataException;
 import jakarta.inject.Inject;
 
 @BizModel("NopMetaQualityResult")
@@ -27,7 +28,7 @@ public class NopMetaQualityResultBizModel extends CrudBizModel<NopMetaQualityRes
     public NopMetaQualityResult approve(@Name("id") String id, IServiceContext context) {
         NopMetaQualityResult entity = dao().getEntityById(id);
         if (entity == null) {
-            throw new NopException(NopMetadataErrors.ERR_QUALITY_RESULT_NOT_FOUND)
+            throw new NopMetadataException(NopMetadataErrors.ERR_QUALITY_RESULT_NOT_FOUND)
                     .param("qualityResultId", id);
         }
         dao().updateEntity(entity);
@@ -42,7 +43,7 @@ public class NopMetaQualityResultBizModel extends CrudBizModel<NopMetaQualityRes
     public NopMetaQualityResult reject(@Name("id") String id, IServiceContext context) {
         NopMetaQualityResult entity = dao().getEntityById(id);
         if (entity == null) {
-            throw new NopException(NopMetadataErrors.ERR_QUALITY_RESULT_NOT_FOUND)
+            throw new NopMetadataException(NopMetadataErrors.ERR_QUALITY_RESULT_NOT_FOUND)
                     .param("qualityResultId", id);
         }
         entity.setIsFalsePositive((byte) 1);

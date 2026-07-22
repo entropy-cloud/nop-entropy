@@ -11,6 +11,7 @@ package io.nop.metadata.service.sync;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.commons.util.IoHelper;
 import io.nop.metadata.service.NopMetadataErrors;
+import io.nop.metadata.service.NopMetadataException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -85,7 +86,7 @@ public class ExternalTableStructureReader {
                 tables.add(info);
             }
         } catch (SQLException e) {
-            throw new NopException(NopMetadataErrors.ERR_DIALECT_NOT_SUPPORTED, e)
+            throw new NopMetadataException(NopMetadataErrors.ERR_DIALECT_NOT_SUPPORTED, e)
                     .param(NopMetadataErrors.ARG_DATABASE_PRODUCT_NAME, "unknown")
                     .param(NopMetadataErrors.ARG_ERROR, e.getMessage());
         } finally {
@@ -121,7 +122,7 @@ public class ExternalTableStructureReader {
         try {
             productName = metaData.getDatabaseProductName();
         } catch (SQLException e) {
-            throw new NopException(NopMetadataErrors.ERR_DIALECT_NOT_SUPPORTED, e)
+            throw new NopMetadataException(NopMetadataErrors.ERR_DIALECT_NOT_SUPPORTED, e)
                     .param(NopMetadataErrors.ARG_DATABASE_PRODUCT_NAME, "unknown")
                     .param(NopMetadataErrors.ARG_ERROR, e.getMessage());
         }
@@ -139,7 +140,7 @@ public class ExternalTableStructureReader {
      */
     static void requireSupportedProductName(String productName) {
         if (productName == null || !isSupportedDialect(productName)) {
-            throw new NopException(NopMetadataErrors.ERR_DATASOURCE_TYPE_NOT_SUPPORTED)
+            throw new NopMetadataException(NopMetadataErrors.ERR_DATASOURCE_TYPE_NOT_SUPPORTED)
                     .param(NopMetadataErrors.ARG_DATABASE_PRODUCT_NAME, String.valueOf(productName));
         }
     }

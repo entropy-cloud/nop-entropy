@@ -27,6 +27,7 @@ import io.nop.metadata.service.tableref.MetaTableReferenceResolver;
 import io.nop.metadata.service.tableref.TableReference;
 import io.nop.metadata.service.tableref.TableReferenceExecutor;
 import io.nop.metadata.service.NopMetadataErrors;
+import io.nop.metadata.service.NopMetadataException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -101,7 +102,7 @@ public class MetaQualityCheckpointExecutor {
     public Map<String, Object> execute(NopMetaQualityCheckpoint cp, String schemaPattern) {
         // D5：状态门禁——非 ACTIVE 显式失败（不静默跳过）
         if (!_NopMetadataCoreConstants.CHECKPOINT_STATUS_ACTIVE.equals(cp.getStatus())) {
-            throw new NopException(NopMetadataErrors.ERR_CHECKPOINT_NOT_ACTIVE)
+            throw new NopMetadataException(NopMetadataErrors.ERR_CHECKPOINT_NOT_ACTIVE)
                     .param("checkpointId", cp.getCheckpointId())
                     .param("status", String.valueOf(cp.getStatus()));
         }
@@ -113,7 +114,7 @@ public class MetaQualityCheckpointExecutor {
         ResolutionResult resolution = resolveRules(cp);
         if (resolution.rules.isEmpty()) {
             // 解析后规则集为空 → 显式失败（不静默空集、不伪造零计数）
-            throw new NopException(NopMetadataErrors.ERR_CHECKPOINT_NO_RULES)
+            throw new NopMetadataException(NopMetadataErrors.ERR_CHECKPOINT_NO_RULES)
                     .param("checkpointId", cp.getCheckpointId());
         }
 
@@ -196,7 +197,6 @@ public class MetaQualityCheckpointExecutor {
      * {@code NopMetaQualityRule where entityId ∈ tableIds}）；去重。
      * ruleId 不存在 / tableId 不存在 → 记入 errors 不中断（per-item 隔离）。
      */
-    @SuppressWarnings("unchecked")
     private ResolutionResult resolveRules(NopMetaQualityCheckpoint cp) {
         IEntityDao<NopMetaQualityRule> ruleDao = daoProvider.daoFor(NopMetaQualityRule.class);
         IEntityDao<NopMetaTable> tableDao = daoProvider.daoFor(NopMetaTable.class);
@@ -274,7 +274,7 @@ public class MetaQualityCheckpointExecutor {
         IEntityDao<NopMetaTable> tableDao = daoProvider.daoFor(NopMetaTable.class);
         NopMetaTable table = tableDao.getEntityById(rule.getEntityId());
         if (table == null) {
-            throw new NopException(NopMetadataErrors.ERR_CHECKPOINT_RULE_TARGET_TABLE_NOT_FOUND)
+            throw new NopMetadataException(NopMetadataErrors.ERR_CHECKPOINT_RULE_TARGET_TABLE_NOT_FOUND)
                     .param("checkpointId", cp.getCheckpointId())
                     .param("qualityRuleId", rule.getQualityRuleId())
                     .param("entityId", rule.getEntityId());
@@ -327,7 +327,7 @@ public class MetaQualityCheckpointExecutor {
             String actionType = String.valueOf(action.get("actionType"));
             boolean enabled = !Boolean.FALSE.equals(action.get("enabled"));
             if (enabled && !isSupportedActionType(actionType)) {
-                throw new NopException(NopMetadataErrors.ERR_CHECKPOINT_ACTION_NOT_SUPPORTED)
+                throw new NopMetadataException(NopMetadataErrors.ERR_CHECKPOINT_ACTION_NOT_SUPPORTED)
                         .param("checkpointId", cp.getCheckpointId())
                         .param("actionType", actionType);
             }

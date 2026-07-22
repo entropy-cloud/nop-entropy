@@ -23,6 +23,7 @@ import io.nop.metadata.dao.entity.NopMetaTableMeasure;
 import io.nop.metadata.service.field.ExpressionMeasureValidator;
 import io.nop.metadata.service.tableref.TableReference;
 import io.nop.metadata.service.NopMetadataErrors;
+import io.nop.metadata.service.NopMetadataException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -57,7 +58,7 @@ public class EntityAggregationProcessor implements AggregationProcessor {
         NopMetaEntity entity = entityDao.getEntityById(table.getBaseEntityId());
         if (entity == null || entity.getEntityName() == null || entity.getEntityName().isEmpty()
                 || !ctx.orm().isValidEntityName(entity.getEntityName())) {
-            throw new NopException(NopMetadataErrors.ERR_AGGR_ENTITY_NOT_REGISTERED)
+            throw new NopMetadataException(NopMetadataErrors.ERR_AGGR_ENTITY_NOT_REGISTERED)
                     .param("metaTableId", table.getMetaTableId())
                     .param("entityName", entity == null ? null : entity.getEntityName());
         }
@@ -178,7 +179,7 @@ public class EntityAggregationProcessor implements AggregationProcessor {
 
         return ctx.tableRefExecutor().execute(ref, (conn, metaData, productName) -> {
             if (productName == null || !SUPPORTED_DIALECTS.contains(productName)) {
-                throw new NopException(NopMetadataErrors.ERR_AGGR_UNSUPPORTED_DIALECT)
+                throw new NopMetadataException(NopMetadataErrors.ERR_AGGR_UNSUPPORTED_DIALECT)
                         .param("databaseProductName", String.valueOf(productName))
                         .param("metaTableId", table.getMetaTableId());
             }

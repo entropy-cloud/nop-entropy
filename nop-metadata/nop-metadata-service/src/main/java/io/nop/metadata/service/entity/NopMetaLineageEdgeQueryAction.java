@@ -18,6 +18,7 @@ import io.nop.metadata.service.lineage.ColumnLineageCandidate;
 import io.nop.metadata.service.lineage.SqlColumnLineageExtractor;
 import io.nop.metadata.service.lineage.SqlSourceTableExtractor;
 import io.nop.metadata.service.lineage.SqlTableReference;
+import io.nop.metadata.service.NopMetadataException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -146,10 +147,10 @@ public class NopMetaLineageEdgeQueryAction {
         IEntityDao<NopMetaTable> tableDao = daoProvider.daoFor(NopMetaTable.class);
         NopMetaTable targetTable = tableDao.getEntityById(metaTableId);
         if (targetTable == null) {
-            throw new NopException(NopMetadataErrors.ERR_LINEAGE_SQL_TABLE_NOT_FOUND).param("metaTableId", metaTableId);
+            throw new NopMetadataException(NopMetadataErrors.ERR_LINEAGE_SQL_TABLE_NOT_FOUND).param("metaTableId", metaTableId);
         }
         if (!_NopMetadataCoreConstants.TABLE_TYPE_SQL.equals(targetTable.getTableType())) {
-            throw new NopException(NopMetadataErrors.ERR_LINEAGE_NOT_SQL_VIEW_TABLE)
+            throw new NopMetadataException(NopMetadataErrors.ERR_LINEAGE_NOT_SQL_VIEW_TABLE)
                     .param("metaTableId", metaTableId)
                     .param("tableType", targetTable.getTableType());
         }
@@ -185,16 +186,16 @@ public class NopMetaLineageEdgeQueryAction {
         IEntityDao<NopMetaTable> tableDao = daoProvider.daoFor(NopMetaTable.class);
         NopMetaTable targetTable = tableDao.getEntityById(metaTableId);
         if (targetTable == null) {
-            throw new NopException(NopMetadataErrors.ERR_LINEAGE_SQL_TABLE_NOT_FOUND).param("metaTableId", metaTableId);
+            throw new NopMetadataException(NopMetadataErrors.ERR_LINEAGE_SQL_TABLE_NOT_FOUND).param("metaTableId", metaTableId);
         }
         if (!_NopMetadataCoreConstants.TABLE_TYPE_SQL.equals(targetTable.getTableType())) {
-            throw new NopException(NopMetadataErrors.ERR_LINEAGE_NOT_SQL_VIEW_TABLE)
+            throw new NopMetadataException(NopMetadataErrors.ERR_LINEAGE_NOT_SQL_VIEW_TABLE)
                     .param("metaTableId", metaTableId)
                     .param("tableType", targetTable.getTableType());
         }
         String sourceSql = targetTable.getSourceSql();
         if (sourceSql == null || sourceSql.trim().isEmpty()) {
-            throw new NopException(NopMetadataErrors.ERR_LINEAGE_SQL_SOURCE_EMPTY).param("metaTableId", metaTableId);
+            throw new NopMetadataException(NopMetadataErrors.ERR_LINEAGE_SQL_SOURCE_EMPTY).param("metaTableId", metaTableId);
         }
         List<Map<String, Object>> errors = new ArrayList<>();
         List<ColumnLineageCandidate> candidates;
@@ -234,7 +235,7 @@ public class NopMetaLineageEdgeQueryAction {
         IEntityDao<NopMetaTable> tableDao = daoProvider.daoFor(NopMetaTable.class);
         NopMetaTable targetTable = tableDao.getEntityById(metaTableId);
         if (targetTable == null) {
-            throw new NopException(NopMetadataErrors.ERR_LINEAGE_TABLE_NOT_FOUND).param("tableId", metaTableId);
+            throw new NopMetadataException(NopMetadataErrors.ERR_LINEAGE_TABLE_NOT_FOUND).param("tableId", metaTableId);
         }
         IEntityDao<NopMetaEntityField> fieldDao = daoProvider.daoFor(NopMetaEntityField.class);
         Set<String> fieldNames = fieldResolver.resolveFieldNames(targetTable, fieldDao);
@@ -341,7 +342,7 @@ public class NopMetaLineageEdgeQueryAction {
         q.setLimit(maxEdges + 1);
         List<NopMetaLineageEdge> allEdges = dao.findAllByQuery(q);
         if (allEdges.size() > maxEdges) {
-            throw new NopException(NopMetadataErrors.ERR_LINEAGE_GRAPH_TOO_LARGE)
+            throw new NopMetadataException(NopMetadataErrors.ERR_LINEAGE_GRAPH_TOO_LARGE)
                     .param("edges", allEdges.size()).param("limit", maxEdges);
         }
         Map<String, List<String>> forward = new HashMap<>();
@@ -365,7 +366,7 @@ public class NopMetaLineageEdgeQueryAction {
         q.setLimit(maxTables + 1);
         List<NopMetaTable> tables = tableDao.findAllByQuery(q);
         if (tables.size() > maxTables) {
-            throw new NopException(NopMetadataErrors.ERR_LINEAGE_TABLE_INDEX_TOO_LARGE)
+            throw new NopMetadataException(NopMetadataErrors.ERR_LINEAGE_TABLE_INDEX_TOO_LARGE)
                     .param("tables", tables.size()).param("limit", maxTables);
         }
         Map<String, String> map = new LinkedHashMap<>();

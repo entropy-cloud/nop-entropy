@@ -17,6 +17,7 @@ import io.nop.metadata.core.dto.AggregationResultDTO;
 import io.nop.metadata.dao.entity.NopMetaEntity;
 import io.nop.metadata.dao.entity.NopMetaEntityField;
 import io.nop.orm.IOrmTemplate;
+import io.nop.metadata.service.NopMetadataException;
 import jakarta.inject.Inject;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -59,7 +60,7 @@ public class TestAggregationEntityJoinAndComplex extends JunitBaseTestCase {
         ApiResponse<?> resp = _helper.executeRpc(GraphQLOperationType.query, "NopMetaTable__queryAggregation",
                 _helper.queryAggregationRequest(tableId, measures, dims, filter, joinId, limit, offset, having, orderBy));
         if (!resp.isOk()) {
-            throw new NopException(NopMetadataErrors.ERR_AGGR_EXEC_FAILED).param("response", String.valueOf(resp));
+            throw new NopMetadataException(NopMetadataErrors.ERR_AGGR_EXEC_FAILED).param("response", String.valueOf(resp));
         }
         Map<String, Object> data = (Map<String, Object>) resp.getData();
         return (List<Map<String, Object>>) data.get("items");

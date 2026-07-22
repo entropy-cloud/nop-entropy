@@ -32,6 +32,7 @@ import io.nop.metadata.service.sqlview.SqlViewField;
 import io.nop.metadata.service.sqlview.SqlViewFieldTypeInferrer;
 import io.nop.metadata.service.tableref.MetaTableReferenceResolver;
 import io.nop.metadata.service.tableref.TableReferenceExecutor;
+import io.nop.metadata.service.NopMetadataException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -67,20 +68,20 @@ public class NopMetaTableQueryAction {
                                                       IDaoProvider daoProvider, IOrmTemplate orm) {
         String baseEntityId = table.getBaseEntityId();
         if (baseEntityId == null || baseEntityId.isEmpty()) {
-            throw new NopException(NopMetadataErrors.ERR_QUERY_ENTITY_NOT_FOUND)
+            throw new NopMetadataException(NopMetadataErrors.ERR_QUERY_ENTITY_NOT_FOUND)
                     .param("metaTableId", table.getMetaTableId())
                     .param("baseEntityId", String.valueOf(baseEntityId));
         }
         IEntityDao<NopMetaEntity> metaEntityDao = daoProvider.daoFor(NopMetaEntity.class);
         NopMetaEntity entity = metaEntityDao.getEntityById(baseEntityId);
         if (entity == null) {
-            throw new NopException(NopMetadataErrors.ERR_QUERY_ENTITY_NOT_FOUND)
+            throw new NopMetadataException(NopMetadataErrors.ERR_QUERY_ENTITY_NOT_FOUND)
                     .param("metaTableId", table.getMetaTableId())
                     .param("baseEntityId", baseEntityId);
         }
         String entityName = entity.getEntityName();
         if (entityName == null || entityName.isEmpty() || !orm.isValidEntityName(entityName)) {
-            throw new NopException(NopMetadataErrors.ERR_QUERY_ENTITY_NOT_REGISTERED)
+            throw new NopMetadataException(NopMetadataErrors.ERR_QUERY_ENTITY_NOT_REGISTERED)
                     .param("metaTableId", table.getMetaTableId())
                     .param("entityName", String.valueOf(entityName));
         }
@@ -133,7 +134,7 @@ public class NopMetaTableQueryAction {
                                                    IDaoProvider daoProvider, IOrmTemplate orm) {
         String sourceSql = table.getSourceSql();
         if (sourceSql == null || sourceSql.trim().isEmpty()) {
-            throw new NopException(NopMetadataErrors.ERR_QUERY_SQL_SOURCE_EMPTY).param("metaTableId", table.getMetaTableId());
+            throw new NopMetadataException(NopMetadataErrors.ERR_QUERY_SQL_SOURCE_EMPTY).param("metaTableId", table.getMetaTableId());
         }
         NopMetaDataSource dataSource = resolveQueryDataSourceOrThrow(table, daoProvider);
         final List<Map<String, Object>>[] holder = newArrayHolder();
@@ -162,7 +163,7 @@ public class NopMetaTableQueryAction {
 
     private static void requireSupportedDialect(String databaseProductName, String metaTableId) {
         if (databaseProductName == null || !SUPPORTED_DIALECTS.contains(databaseProductName)) {
-            throw new NopException(NopMetadataErrors.ERR_QUERY_UNSUPPORTED_DIALECT)
+            throw new NopMetadataException(NopMetadataErrors.ERR_QUERY_UNSUPPORTED_DIALECT)
                     .param("databaseProductName", String.valueOf(databaseProductName))
                     .param("metaTableId", metaTableId);
         }
@@ -242,7 +243,6 @@ public class NopMetaTableQueryAction {
         }
     }
 
-    @SuppressWarnings("unchecked")
     private static List<Map<String, Object>>[] newArrayHolder() {
         return MetaTableQueryExecutor.newArrayHolder();
     }

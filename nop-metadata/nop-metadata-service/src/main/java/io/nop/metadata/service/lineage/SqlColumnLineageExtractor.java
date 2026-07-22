@@ -31,6 +31,7 @@ import io.nop.orm.eql.ast.SqlUnionSelect;
 import io.nop.orm.eql.parse.EqlASTParser;
 import io.nop.metadata.core._NopMetadataCoreConstants;
 import io.nop.metadata.service.NopMetadataErrors;
+import io.nop.metadata.service.NopMetadataException;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -124,28 +125,28 @@ public class SqlColumnLineageExtractor {
      */
     public List<ColumnLineageCandidate> extract(String sql) {
         if (sql == null || sql.trim().isEmpty()) {
-            throw new NopException(NopMetadataErrors.ERR_COL_LINEAGE_SQL_EMPTY).param("sql", sql);
+            throw new NopMetadataException(NopMetadataErrors.ERR_COL_LINEAGE_SQL_EMPTY).param("sql", sql);
         }
 
         SqlProgram program;
         try {
             program = parser.parseFromText(null, sql);
         } catch (Exception e) {
-            throw new NopException(NopMetadataErrors.ERR_COL_LINEAGE_SQL_PARSE_FAILED, e).param("sql", sql);
+            throw new NopMetadataException(NopMetadataErrors.ERR_COL_LINEAGE_SQL_PARSE_FAILED, e).param("sql", sql);
         }
         if (program == null || program.getStatements() == null || program.getStatements().isEmpty()) {
-            throw new NopException(NopMetadataErrors.ERR_COL_LINEAGE_SQL_PARSE_FAILED).param("sql", sql);
+            throw new NopMetadataException(NopMetadataErrors.ERR_COL_LINEAGE_SQL_PARSE_FAILED).param("sql", sql);
         }
 
         List<SqlStatement> statements = program.getStatements();
         if (statements.size() != 1) {
-            throw new NopException(NopMetadataErrors.ERR_COL_LINEAGE_MULTI_STATEMENT)
+            throw new NopMetadataException(NopMetadataErrors.ERR_COL_LINEAGE_MULTI_STATEMENT)
                     .param("count", statements.size()).param("sql", sql);
         }
 
         SqlStatement stmt = statements.get(0);
         if (stmt.getStatementKind() != SqlStatementKind.SELECT) {
-            throw new NopException(NopMetadataErrors.ERR_COL_LINEAGE_NOT_SELECT)
+            throw new NopMetadataException(NopMetadataErrors.ERR_COL_LINEAGE_NOT_SELECT)
                     .param("statementKind", String.valueOf(stmt.getStatementKind())).param("sql", sql);
         }
 
@@ -185,7 +186,7 @@ public class SqlColumnLineageExtractor {
         SqlQuerySelect query = resolveQuerySelect(stmt);
         if (query == null) {
             // getStatementKind()==SELECT 但非已知子类——不可达，显式失败而非静默
-            throw new NopException(NopMetadataErrors.ERR_COL_LINEAGE_SQL_PARSE_FAILED)
+            throw new NopMetadataException(NopMetadataErrors.ERR_COL_LINEAGE_SQL_PARSE_FAILED)
                     .param("sql", sql)
                     .param("reason", "unhandled SELECT statement class: " + stmt.getClass().getName());
         }
@@ -197,7 +198,7 @@ public class SqlColumnLineageExtractor {
         // 平台对裸 `SELECT *` 会静默丢弃通配符返回空 projections；此处显式失败（不静默返回空候选列表，
         // 因合法显式列 SELECT 必有 ≥1 个 projection，空列表唯一现实成因是被丢弃的裸 *）。
         if (projections == null || projections.isEmpty()) {
-            throw new NopException(NopMetadataErrors.ERR_COL_LINEAGE_SQL_PARSE_FAILED)
+            throw new NopMetadataException(NopMetadataErrors.ERR_COL_LINEAGE_SQL_PARSE_FAILED)
                     .param("sql", sql)
                     .param("reason", "empty projections (bare wildcard '*' cannot be resolved)");
         }
@@ -212,7 +213,7 @@ public class SqlColumnLineageExtractor {
             }
             if (!(proj instanceof SqlExprProjection)) {
                 // 未知 projection 子类——显式失败而非静默跳过
-                throw new NopException(NopMetadataErrors.ERR_COL_LINEAGE_SQL_PARSE_FAILED)
+                throw new NopMetadataException(NopMetadataErrors.ERR_COL_LINEAGE_SQL_PARSE_FAILED)
                         .param("sql", sql)
                         .param("reason", "unhandled projection class: " + proj.getClass().getName());
             }

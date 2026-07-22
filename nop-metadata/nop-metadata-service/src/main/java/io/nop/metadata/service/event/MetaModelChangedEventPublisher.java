@@ -20,6 +20,7 @@ import io.nop.metadata.dao.entity.NopMetaModelChangedEvent;
 import io.nop.orm.model.IColumnModel;
 import io.nop.orm.model.IEntityModel;
 import io.nop.metadata.service.NopMetadataErrors;
+import io.nop.metadata.service.NopMetadataException;
 import jakarta.inject.Inject;
 
 import java.sql.Timestamp;
@@ -170,7 +171,7 @@ public class MetaModelChangedEventPublisher {
         try {
             return JsonTool.stringify(snapshot);
         } catch (Exception e) {
-            throw new NopException(NopMetadataErrors.ERR_EVENT_SNAPSHOT_SERIALIZE_FAILED, e)
+            throw new NopMetadataException(NopMetadataErrors.ERR_EVENT_SNAPSHOT_SERIALIZE_FAILED, e)
                     .param("entityType", entityType)
                     .param("entityId", entityId);
         }

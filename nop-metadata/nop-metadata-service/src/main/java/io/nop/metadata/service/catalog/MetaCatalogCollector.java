@@ -13,6 +13,7 @@ import io.nop.api.core.exceptions.NopException;
 import io.nop.commons.util.IoHelper;
 import io.nop.metadata.service.tableref.TableReference;
 import io.nop.metadata.service.NopMetadataErrors;
+import io.nop.metadata.service.NopMetadataException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -109,7 +110,7 @@ public class MetaCatalogCollector {
         try (Statement st = conn.createStatement(); ResultSet rs = st.executeQuery(sql)) {
             if (!rs.next()) {
                 // 维度09-08：不可能发生的逻辑断言用 NopException + ErrorCode，不混用 SQLException 控制流
-                throw new NopException(NopMetadataErrors.ERR_CATALOG_AGGREGATE_NO_ROW).param("sql", sql);
+                throw new NopMetadataException(NopMetadataErrors.ERR_CATALOG_AGGREGATE_NO_ROW).param("sql", sql);
             }
             return rs.getLong(1);
         }
@@ -172,7 +173,7 @@ public class MetaCatalogCollector {
 
     static void validateIdentifier(String identifier) {
         if (identifier == null || !IDENTIFIER_PATTERN.matcher(identifier).matches()) {
-            throw new NopException(NopMetadataErrors.ERR_CATALOG_INVALID_IDENTIFIER)
+            throw new NopMetadataException(NopMetadataErrors.ERR_CATALOG_INVALID_IDENTIFIER)
                     .param("identifier", String.valueOf(identifier));
         }
     }

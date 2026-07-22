@@ -22,6 +22,7 @@ import io.nop.core.lang.json.JsonTool;
 import io.nop.dao.api.IEntityDao;
 import io.nop.metadata.biz.INopMetaTableFilterBiz;
 import io.nop.metadata.dao.entity.NopMetaTableFilter;
+import io.nop.metadata.service.NopMetadataException;
 
 import java.util.List;
 import java.util.Map;
@@ -81,20 +82,20 @@ public class NopMetaTableFilterBizModel extends CrudBizModel<NopMetaTableFilter>
      */
     private void validateDefinition(String metaTableId, String filterName, String definition) {
         if (definition == null || definition.trim().isEmpty()) {
-            throw new NopException(NopMetadataErrors.ERR_FILTER_DEFINITION_EMPTY)
+            throw new NopMetadataException(NopMetadataErrors.ERR_FILTER_DEFINITION_EMPTY)
                     .param("metaTableId", metaTableId).param("filterName", filterName);
         }
         try {
             // item 1.1 D1 裁定：对齐平台 TreeBean filter 树（非整个 QueryBean，过滤是其 filter 子树）
             TreeBean tree = JsonTool.parseBeanFromText(definition, DEFINITION_TYPE);
             if (tree == null || tree.getTagName() == null || tree.getTagName().isEmpty()) {
-                throw new NopException(NopMetadataErrors.ERR_FILTER_DEFINITION_INVALID)
+                throw new NopMetadataException(NopMetadataErrors.ERR_FILTER_DEFINITION_INVALID)
                         .param("metaTableId", metaTableId).param("filterName", filterName);
             }
         } catch (NopException e) {
             throw e;
         } catch (Exception e) {
-            throw new NopException(NopMetadataErrors.ERR_FILTER_DEFINITION_INVALID, e)
+            throw new NopMetadataException(NopMetadataErrors.ERR_FILTER_DEFINITION_INVALID, e)
                     .param("metaTableId", metaTableId).param("filterName", filterName);
         }
     }
@@ -117,7 +118,7 @@ public class NopMetaTableFilterBizModel extends CrudBizModel<NopMetaTableFilter>
             if (selfFilterId != null && selfFilterId.equals(existing.getFilterId())) {
                 continue;
             }
-            throw new NopException(NopMetadataErrors.ERR_FILTER_DEFAULT_ALREADY_EXISTS)
+            throw new NopMetadataException(NopMetadataErrors.ERR_FILTER_DEFAULT_ALREADY_EXISTS)
                     .param("metaTableId", metaTableId)
                     .param("existingFilterId", existing.getFilterId());
         }

@@ -20,6 +20,7 @@ import io.nop.dao.api.IEntityDao;
 import io.nop.metadata.biz.INopMetaReconciliationResultBiz;
 import io.nop.metadata.core.dto.ReconciliationSelectionDTO;
 import io.nop.metadata.dao.entity.NopMetaReconciliationResult;
+import io.nop.metadata.service.NopMetadataException;
 
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
@@ -104,7 +105,7 @@ public class NopMetaReconciliationResultBizModel extends CrudBizModel<NopMetaRec
                                                              @Name("selections") List<ReconciliationSelectionDTO> selections,
                                                              IServiceContext context) {
         if (selections == null || selections.isEmpty()) {
-            throw new NopException(NopMetadataErrors.ERR_RECON_SELECTIONS_EMPTY).param("resultId", resultId);
+            throw new NopMetadataException(NopMetadataErrors.ERR_RECON_SELECTIONS_EMPTY).param("resultId", resultId);
         }
         NopMetaReconciliationResult result = loadResultOrThrow(resultId);
         List<Object> details = parseDetailsOrThrow(result);
@@ -136,7 +137,7 @@ public class NopMetaReconciliationResultBizModel extends CrudBizModel<NopMetaRec
         IEntityDao<NopMetaReconciliationResult> resultDao = dao();
         NopMetaReconciliationResult result = resultDao.getEntityById(resultId);
         if (result == null) {
-            throw new NopException(NopMetadataErrors.ERR_RECON_RESULT_NOT_FOUND).param("resultId", resultId);
+            throw new NopMetadataException(NopMetadataErrors.ERR_RECON_RESULT_NOT_FOUND).param("resultId", resultId);
         }
         return result;
     }
@@ -144,11 +145,11 @@ public class NopMetaReconciliationResultBizModel extends CrudBizModel<NopMetaRec
     private List<Object> parseDetailsOrThrow(NopMetaReconciliationResult result) {
         String detailsJson = result.getDetails();
         if (detailsJson == null || detailsJson.trim().isEmpty()) {
-            throw new NopException(NopMetadataErrors.ERR_RECON_DETAILS_EMPTY).param("resultId", result.getResultId());
+            throw new NopMetadataException(NopMetadataErrors.ERR_RECON_DETAILS_EMPTY).param("resultId", result.getResultId());
         }
         Object parsed = JsonTool.parse(detailsJson);
         if (!(parsed instanceof List)) {
-            throw new NopException(NopMetadataErrors.ERR_RECON_DETAILS_EMPTY).param("resultId", result.getResultId());
+            throw new NopMetadataException(NopMetadataErrors.ERR_RECON_DETAILS_EMPTY).param("resultId", result.getResultId());
         }
         @SuppressWarnings("unchecked")
         List<Object> list = (List<Object>) parsed;
@@ -157,7 +158,7 @@ public class NopMetaReconciliationResultBizModel extends CrudBizModel<NopMetaRec
 
     private void checkRowIndex(String resultId, int rowIndex, int detailsSize) {
         if (rowIndex < 0 || rowIndex >= detailsSize) {
-            throw new NopException(NopMetadataErrors.ERR_RECON_ROW_INDEX_OUT_OF_RANGE)
+            throw new NopMetadataException(NopMetadataErrors.ERR_RECON_ROW_INDEX_OUT_OF_RANGE)
                     .param("resultId", resultId)
                     .param("rowIndex", rowIndex)
                     .param("detailsSize", detailsSize);
@@ -169,13 +170,13 @@ public class NopMetaReconciliationResultBizModel extends CrudBizModel<NopMetaRec
             return ((Number) v).intValue();
         }
         if (v == null) {
-            throw new NopException(NopMetadataErrors.ERR_RECON_INVALID_SELECTION)
+            throw new NopMetadataException(NopMetadataErrors.ERR_RECON_INVALID_SELECTION)
                     .param("value", "null");
         }
         try {
             return Integer.parseInt(String.valueOf(v));
         } catch (NumberFormatException e) {
-            throw new NopException(NopMetadataErrors.ERR_RECON_INVALID_SELECTION)
+            throw new NopMetadataException(NopMetadataErrors.ERR_RECON_INVALID_SELECTION)
                     .param("value", String.valueOf(v));
         }
     }

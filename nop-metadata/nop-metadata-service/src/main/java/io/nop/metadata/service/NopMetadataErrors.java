@@ -244,12 +244,12 @@ public interface NopMetadataErrors {
                             + "fieldMetaEntityId={fieldMetaEntityId} joinId={joinId}",
                     ARG_META_TABLE_ID, ARG_NAME, ARG_DECLARED_SIDE, ARG_RESOLVED_SIDE, ARG_FIELD_META_ENTITY_ID, ARG_JOIN_ID);
     ErrorCode ERR_AGGR_JOIN_EXTERNAL_CROSS_QUERY_SPACE =
-            ErrorCode.define("nop.err.metadata.aggr-join-external-cross-query-space-deferred",
+            ErrorCode.define("nop.err.metadata.aggr-join-external-cross-query-space",
                     "Cross-querySpace (cross-DB) external<->external JOIN aggregation is deferred: "
                             + "{joinId} leftQuerySpace={leftQuerySpace} rightQuerySpace={rightQuerySpace}",
                     ARG_JOIN_ID, ARG_LEFT_QUERY_SPACE, ARG_RIGHT_QUERY_SPACE);
     ErrorCode ERR_AGGR_JOIN_SELF_JOIN =
-            ErrorCode.define("nop.err.metadata.aggr-join-self-join-unsupported",
+            ErrorCode.define("nop.err.metadata.aggr-join-self-join",
                     "Self-join (leftEntityId == rightEntityId) is not supported for JOIN aggregation: "
                             + "{joinId} entityId={entityId}", ARG_JOIN_ID, ARG_ENTITY_ID);
     ErrorCode ERR_AGGR_JOIN_FIELD_SIDE_UNRESOLVED =
@@ -261,7 +261,7 @@ public interface NopMetadataErrors {
                     ARG_META_TABLE_ID, ARG_NAME, ARG_ENTITY_FIELD_ID, ARG_FIELD_META_ENTITY_ID,
                     ARG_LEFT_ENTITY_ID, ARG_RIGHT_ENTITY_ID, ARG_JOIN_ID);
     ErrorCode ERR_AGGR_JOIN_CROSS_QUERY_SPACE =
-            ErrorCode.define("nop.err.metadata.aggr-join-cross-query-space-deferred",
+            ErrorCode.define("nop.err.metadata.aggr-join-cross-query-space",
                     "Cross-querySpace (cross-DB) entity-entity JOIN aggregation is deferred: "
                             + "{joinId} leftQuerySpace={leftQuerySpace} rightQuerySpace={rightQuerySpace}",
                     ARG_JOIN_ID, ARG_LEFT_QUERY_SPACE, ARG_RIGHT_QUERY_SPACE);
@@ -376,26 +376,26 @@ public interface NopMetadataErrors {
     // ===== Query filter (query-filter) =====
 
     ErrorCode ERR_FILTER_INVALID_IDENTIFIER =
-            ErrorCode.define("nop.err.metadata.query-filter-invalid-identifier",
+            ErrorCode.define("nop.err.metadata.filter-invalid-identifier",
                     "Filter field name does not match identifier whitelist ^[A-Za-z_][A-Za-z0-9_]*$: {identifier}",
                     ARG_IDENTIFIER);
     ErrorCode ERR_FILTER_UNSUPPORTED_OP =
-            ErrorCode.define("nop.err.metadata.query-filter-unsupported-op",
+            ErrorCode.define("nop.err.metadata.filter-unsupported-op",
                     "Filter op not supported in first version: {op}", ARG_OP);
     ErrorCode ERR_FILTER_MISSING_FIELD =
-            ErrorCode.define("nop.err.metadata.query-filter-missing-field",
+            ErrorCode.define("nop.err.metadata.filter-missing-field",
                     "Filter leaf condition missing 'name' attr (field name): {op}", ARG_OP);
     ErrorCode ERR_FILTER_MISSING_VALUE =
-            ErrorCode.define("nop.err.metadata.query-filter-missing-value",
+            ErrorCode.define("nop.err.metadata.filter-missing-value",
                     "Filter leaf condition missing 'value' attr: {op} name={name}", ARG_OP, ARG_NAME);
     ErrorCode ERR_FILTER_IN_VALUE_NOT_COLLECTION =
-            ErrorCode.define("nop.err.metadata.query-filter-in-not-collection",
+            ErrorCode.define("nop.err.metadata.filter-in-value-not-collection",
                     "Filter 'in'/'notIn' value must be a collection: name={name}", ARG_NAME);
     ErrorCode ERR_FILTER_BETWEEN_MISSING_BOUNDS =
-            ErrorCode.define("nop.err.metadata.query-filter-between-missing-bounds",
+            ErrorCode.define("nop.err.metadata.filter-between-missing-bounds",
                     "Filter 'between' requires min and/or max attrs: name={name}", ARG_NAME);
     ErrorCode ERR_FILTER_FIELD_RESOLVER_MISS =
-            ErrorCode.define("nop.err.metadata.query-filter-field-resolver-miss",
+            ErrorCode.define("nop.err.metadata.filter-field-resolver-miss",
                     "Filter field resolver returned no SQL expression for name (likely unknown measure/dimension "
                             + "in having/orderBy): {op} name={name}", ARG_OP, ARG_NAME);
 
@@ -426,7 +426,7 @@ public interface NopMetadataErrors {
             ErrorCode.define("nop.err.metadata.datasource-driver-not-allowed",
                     "JDBC driver class is not in the allowed whitelist: {driverClassName}", ARG_DRIVER_CLASS_NAME);
     ErrorCode ERR_DATASOURCE_RESOLVE_NO_DATASOURCE =
-            ErrorCode.define("nop.err.metadata.datasource-resolve-not-found",
+            ErrorCode.define("nop.err.metadata.datasource-resolve-no-datasource",
                     "No registered MetaDataSource for querySpace: {querySpace}", ARG_QUERY_SPACE);
     ErrorCode ERR_DATASOURCE_RESOLVE_DISABLED =
             ErrorCode.define("nop.err.metadata.datasource-resolve-disabled",
@@ -508,19 +508,19 @@ public interface NopMetadataErrors {
     // ===== SQL views (sql) =====
 
     ErrorCode ERR_SQL_VIEW_SQL_EMPTY =
-            ErrorCode.define("nop.err.metadata.sql-empty",
+            ErrorCode.define("nop.err.metadata.sql-view-sql-empty",
                     "Source sql is empty", ARG_SQL);
     ErrorCode ERR_SQL_VIEW_PARSE_FAILED =
-            ErrorCode.define("nop.err.metadata.sql-parse-failed",
+            ErrorCode.define("nop.err.metadata.sql-view-parse-failed",
                     "Failed to parse source sql", ARG_SQL);
     ErrorCode ERR_SQL_VIEW_MULTI_STATEMENT =
-            ErrorCode.define("nop.err.metadata.sql-multi-statement",
+            ErrorCode.define("nop.err.metadata.sql-view-multi-statement",
                     "Sql view source must be a single SELECT statement, but got {count} statements", ARG_COUNT, ARG_SQL);
     ErrorCode ERR_SQL_VIEW_NOT_SELECT =
-            ErrorCode.define("nop.err.metadata.sql-not-select",
+            ErrorCode.define("nop.err.metadata.sql-view-not-select",
                     "Sql view source must be a SELECT statement, but got {statementKind}", ARG_STATEMENT_KIND, ARG_SQL);
     ErrorCode ERR_SQL_VIEW_WILDCARD_NOT_SUPPORTED =
-            ErrorCode.define("nop.err.metadata.sql-wildcard-not-supported",
+            ErrorCode.define("nop.err.metadata.sql-view-wildcard-not-supported",
                     "Wildcard projection (* or t.*) is not supported in sql view source; "
                             + "please expand to explicit columns (pure AST parse cannot resolve wildcard)", ARG_SQL);
 
@@ -761,10 +761,10 @@ public interface NopMetadataErrors {
     // ===== SQL view module (sql-module) =====
 
     ErrorCode ERR_SQL_VIEW_MODULE_NOT_FOUND =
-            ErrorCode.define("nop.err.metadata.sql-module-not-found",
+            ErrorCode.define("nop.err.metadata.sql-view-module-not-found",
                     "MetaModule not found for createSqlTable: {metaModuleId}", ARG_META_MODULE_ID);
     ErrorCode ERR_SQL_VIEW_TABLE_NOT_FOUND =
-            ErrorCode.define("nop.err.metadata.sql-table-not-found",
+            ErrorCode.define("nop.err.metadata.sql-view-table-not-found",
                     "NopMetaTable not found for resolveTableFields: {metaTableId}", ARG_META_TABLE_ID);
 
     // ===== Join entity (join) =====
@@ -854,7 +854,7 @@ public interface NopMetadataErrors {
                             + "{metaTableId} existingDefault={existingFilterId}",
                     ARG_META_TABLE_ID, ARG_EXISTING_FILTER_ID);
     ErrorCode ERR_DEFAULT_FILTER_PARSE =
-            ErrorCode.define("nop.err.metadata.default-filter-parse-failed",
+            ErrorCode.define("nop.err.metadata.default-filter-parse",
                     "Failed to parse isDefault filter definition JSON: {filterId} -- {error}",
                     ARG_FILTER_ID, ARG_ERROR);
 
@@ -962,7 +962,7 @@ public interface NopMetadataErrors {
     // ===== Granularity =====
 
     ErrorCode ERR_GRANULARITY_NOT_SUPPORTED =
-            ErrorCode.define("nop.err.metadata.aggr-granularity-not-supported",
+            ErrorCode.define("nop.err.metadata.granularity-not-supported",
                     "granularity value not in supported set [year,quarter,month,week,day,hour]: "
                             + "{granularity} dimensionName={dimensionName}",
                     ARG_GRANULARITY, ARG_DIMENSION_NAME);

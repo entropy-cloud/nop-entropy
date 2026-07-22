@@ -15,6 +15,7 @@ import io.nop.metadata.biz.INopMetaDataProductBiz;
 import io.nop.metadata.dao.entity.NopMetaDataProduct;
 import io.nop.metadata.dao.entity.NopMetaTagLabel;
 import io.nop.metadata.service.NopMetadataErrors;
+import io.nop.metadata.service.NopMetadataException;
 
 import java.sql.Timestamp;
 import java.util.List;
@@ -43,7 +44,7 @@ public class NopMetaDataProductBizModel extends CrudBizModel<NopMetaDataProduct>
                                      @Name("entityId") String entityId,
                                      IServiceContext context) {
         if (!LINKABLE_ASSET_TYPES.contains(entityType)) {
-            throw new NopException(NopMetadataErrors.ERR_LINK_ASSET_ENTITY_TYPE_INVALID)
+            throw new NopMetadataException(NopMetadataErrors.ERR_LINK_ASSET_ENTITY_TYPE_INVALID)
                     .param(ARG_ENTITY_TYPE, entityType);
         }
         IEntityDao<NopMetaTagLabel> labelDao = daoFor(NopMetaTagLabel.class);
@@ -91,7 +92,7 @@ public class NopMetaDataProductBizModel extends CrudBizModel<NopMetaDataProduct>
         q.addFilter(FilterBeans.eq(NopMetaTagLabel.PROP_NAME_metadata, metadata));
         List<NopMetaTagLabel> labels = labelDao.findAllByQuery(q);
         if (labels.isEmpty()) {
-            throw new NopException(NopMetadataErrors.ERR_LINK_ASSET_NOT_FOUND)
+            throw new NopMetadataException(NopMetadataErrors.ERR_LINK_ASSET_NOT_FOUND)
                     .param(ARG_DATA_PRODUCT_ID, dataProductId)
                     .param(ARG_ENTITY_TYPE, entityType)
                     .param(ARG_ENTITY_ID, entityId);

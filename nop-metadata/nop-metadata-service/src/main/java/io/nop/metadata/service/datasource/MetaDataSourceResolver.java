@@ -16,6 +16,7 @@ import io.nop.dao.api.IEntityDao;
 import io.nop.metadata.core._NopMetadataCoreConstants;
 import io.nop.metadata.dao.entity.NopMetaDataSource;
 import io.nop.metadata.service.NopMetadataErrors;
+import io.nop.metadata.service.NopMetadataException;
 
 import java.util.List;
 
@@ -60,7 +61,7 @@ public class MetaDataSourceResolver {
     public NopMetaDataSource resolveActiveOrThrow(IEntityDao<NopMetaDataSource> dsDao, String querySpace) {
         if (querySpace == null || querySpace.trim().isEmpty()) {
             // querySpace 为 null/空 → 显式失败（不静默返回 null 当作无数据源）
-            throw new NopException(NopMetadataErrors.ERR_DATASOURCE_RESOLVE_NO_DATASOURCE)
+            throw new NopMetadataException(NopMetadataErrors.ERR_DATASOURCE_RESOLVE_NO_DATASOURCE)
                     .param("querySpace", String.valueOf(querySpace));
         }
         QueryBean q = new QueryBean();
@@ -68,19 +69,19 @@ public class MetaDataSourceResolver {
         // AR-03: findAllByQuery 后按 size 分派（防多匹配路由劫持；ORM 层 UK 是兜底）
         List<NopMetaDataSource> matched = dsDao.findAllByQuery(q);
         if (matched.isEmpty()) {
-            throw new NopException(NopMetadataErrors.ERR_DATASOURCE_RESOLVE_NO_DATASOURCE)
+            throw new NopMetadataException(NopMetadataErrors.ERR_DATASOURCE_RESOLVE_NO_DATASOURCE)
                     .param("querySpace", querySpace);
         }
         if (matched.size() > 1) {
             // AR-03: 多匹配（历史数据违反 UK_NOP_META_DS_QUERY_SPACE）→ 拒绝取首条
-            throw new NopException(NopMetadataErrors.ERR_DATASOURCE_DUPLICATE_QUERY_SPACE)
+            throw new NopMetadataException(NopMetadataErrors.ERR_DATASOURCE_DUPLICATE_QUERY_SPACE)
                     .param("querySpace", querySpace)
                     .param("dataSourceCount", matched.size());
         }
         NopMetaDataSource dataSource = matched.get(0);
         if (_NopMetadataCoreConstants.DATASOURCE_STATUS_DISABLED.equals(dataSource.getStatus())) {
             // DISABLED 数据源不可用于查询执行 → 显式失败（不静默返回 DISABLED 当作可用）
-            throw new NopException(NopMetadataErrors.ERR_DATASOURCE_RESOLVE_DISABLED)
+            throw new NopMetadataException(NopMetadataErrors.ERR_DATASOURCE_RESOLVE_DISABLED)
                     .param("dataSourceId", dataSource.getDataSourceId())
                     .param("querySpace", querySpace);
         }

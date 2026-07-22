@@ -11,6 +11,7 @@ package io.nop.metadata.service.query;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.metadata.core._NopMetadataCoreConstants;
 import io.nop.metadata.service.NopMetadataErrors;
+import io.nop.metadata.service.NopMetadataException;
 
 import java.util.List;
 import java.util.Map;
@@ -26,7 +27,7 @@ public class SqlAggregationProcessor implements AggregationProcessor {
         // 校验 tableType 一定是 SQL
         String tableType = context.getTable().getTableType();
         if (!_NopMetadataCoreConstants.TABLE_TYPE_SQL.equals(tableType)) {
-            throw new NopException(NopMetadataErrors.ERR_AGGR_UNSUPPORTED_TABLE_TYPE)
+            throw new NopMetadataException(NopMetadataErrors.ERR_AGGR_UNSUPPORTED_TABLE_TYPE)
                     .param(NopMetadataErrors.ARG_TABLE_TYPE, tableType);
         }
         // 逻辑与 ExternalAggregationProcessor 一致，复用其静态加载方法

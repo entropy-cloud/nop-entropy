@@ -48,6 +48,7 @@ import io.nop.metadata.service.sync.ExternalTableStructureReader;
 import io.nop.metadata.service.tableref.MetaTableReferenceResolver;
 import io.nop.metadata.service.tableref.TableReference;
 import io.nop.metadata.service.tableref.TableReferenceExecutor;
+import io.nop.metadata.service.NopMetadataException;
 import jakarta.inject.Inject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -121,7 +122,7 @@ public class NopMetaDataSourceBizModel extends CrudBizModel<NopMetaDataSource> i
 
         String status = dataSource.getStatus();
         if (_NopMetadataCoreConstants.DATASOURCE_STATUS_DISABLED.equals(status)) {
-            throw new NopException(NopMetadataErrors.ERR_DATASOURCE_DISABLED).param("dataSourceId", dataSourceId);
+            throw new NopMetadataException(NopMetadataErrors.ERR_DATASOURCE_DISABLED).param("dataSourceId", dataSourceId);
         }
 
         Map<String, Object> raw = connectionService.testConnect(dataSource.getDatasourceType(), dataSource.getConnectionConfig());
@@ -173,7 +174,7 @@ public class NopMetaDataSourceBizModel extends CrudBizModel<NopMetaDataSource> i
 
         String status = dataSource.getStatus();
         if (_NopMetadataCoreConstants.DATASOURCE_STATUS_DISABLED.equals(status)) {
-            throw new NopException(NopMetadataErrors.ERR_DATASOURCE_DISABLED).param("dataSourceId", dataSourceId);
+            throw new NopMetadataException(NopMetadataErrors.ERR_DATASOURCE_DISABLED).param("dataSourceId", dataSourceId);
         }
 
         String externalModuleId = ensureExternalSystemModule();
@@ -248,7 +249,7 @@ public class NopMetaDataSourceBizModel extends CrudBizModel<NopMetaDataSource> i
 
         String status = dataSource.getStatus();
         if (_NopMetadataCoreConstants.DATASOURCE_STATUS_DISABLED.equals(status)) {
-            throw new NopException(NopMetadataErrors.ERR_DATASOURCE_DISABLED).param("dataSourceId", dataSourceId);
+            throw new NopMetadataException(NopMetadataErrors.ERR_DATASOURCE_DISABLED).param("dataSourceId", dataSourceId);
         }
 
         List<NopMetaTable> externalTables = findExternalTables(dataSource.getQuerySpace());
@@ -325,7 +326,7 @@ public class NopMetaDataSourceBizModel extends CrudBizModel<NopMetaDataSource> i
         IEntityDao<NopMetaTable> tableDao = daoFor(NopMetaTable.class);
         NopMetaTable table = tableDao.getEntityById(metaTableId);
         if (table == null) {
-            throw new NopException(NopMetadataErrors.ERR_TABLE_NOT_FOUND).param("metaTableId", metaTableId);
+            throw new NopMetadataException(NopMetadataErrors.ERR_TABLE_NOT_FOUND).param("metaTableId", metaTableId);
         }
         TableReference ref = tableRefResolver.resolve(table,
                 daoFor(NopMetaDataSource.class), daoFor(NopMetaEntity.class),

@@ -15,6 +15,7 @@ import io.nop.metadata.dao.entity.NopMetaDataSource;
 import io.nop.metadata.service.connection.IMetaDataSourceConnectionProcessor;
 import io.nop.metadata.service.datasource.MetaDataSourceResolver;
 import io.nop.metadata.service.NopMetadataErrors;
+import io.nop.metadata.service.NopMetadataException;
 
 import java.sql.Connection;
 import java.sql.DatabaseMetaData;
@@ -144,7 +145,7 @@ public class SqlViewFieldTypeInferrer {
         String productName = safeProductName(metaData);
         if (productName == null || !SUPPORTED_DIALECTS.contains(productName)) {
             // 方言不支持 → 显式失败（不静默 fallback type=null）
-            throw new NopException(NopMetadataErrors.ERR_SQL_TYPE_INFERENCE_DIALECT_NOT_SUPPORTED)
+            throw new NopMetadataException(NopMetadataErrors.ERR_SQL_TYPE_INFERENCE_DIALECT_NOT_SUPPORTED)
                     .param("databaseProductName", String.valueOf(productName))
                     .param("querySpace", querySpace);
         }
@@ -157,7 +158,7 @@ public class SqlViewFieldTypeInferrer {
                 int columnCount = rsMeta.getColumnCount();
                 if (columnCount != expectedCount) {
                     // 列数不匹配（D3 列序对齐失败）→ 显式失败（不静默截断/不静默补 null）
-                    throw new NopException(NopMetadataErrors.ERR_SQL_TYPE_INFERENCE_COLUMN_MISMATCH)
+                    throw new NopMetadataException(NopMetadataErrors.ERR_SQL_TYPE_INFERENCE_COLUMN_MISMATCH)
                             .param("extractedCount", expectedCount)
                             .param("resultSetCount", columnCount)
                             .param("querySpace", querySpace);
@@ -173,7 +174,7 @@ public class SqlViewFieldTypeInferrer {
             }
         } catch (SQLException e) {
             // sourceSql 执行失败 / prepareStatement 失败 → 显式失败（不吞、不静默 fallback）
-            throw new NopException(NopMetadataErrors.ERR_SQL_TYPE_INFERENCE_FAILED, e)
+            throw new NopMetadataException(NopMetadataErrors.ERR_SQL_TYPE_INFERENCE_FAILED, e)
                     .param("error", messageOf(e))
                     .param("querySpace", querySpace);
         }
@@ -188,7 +189,7 @@ public class SqlViewFieldTypeInferrer {
         try {
             return rsMeta.getColumnTypeName(columnIdx);
         } catch (SQLException e) {
-            throw new NopException(NopMetadataErrors.ERR_SQL_TYPE_INFERENCE_FAILED, e)
+            throw new NopMetadataException(NopMetadataErrors.ERR_SQL_TYPE_INFERENCE_FAILED, e)
                     .param("error", "getColumnTypeName failed for column " + columnIdx + ": " + messageOf(e))
                     .param("querySpace", querySpace);
         }

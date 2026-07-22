@@ -17,6 +17,7 @@ import io.nop.dao.api.IEntityDao;
 import io.nop.metadata.dao.entity.NopMetaTable;
 import io.nop.metadata.dao.entity.NopMetaTableFilter;
 import io.nop.metadata.service.NopMetadataErrors;
+import io.nop.metadata.service.NopMetadataException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -74,7 +75,7 @@ public final class DefaultFilterApplicator {
                 }
             } catch (Exception e) {
                 // 解析失败显式抛错（不静默忽略脏过滤器，避免过滤被悄悄跳过导致越权数据返回）
-                throw new NopException(NopMetadataErrors.ERR_DEFAULT_FILTER_PARSE, e)
+                throw new NopMetadataException(NopMetadataErrors.ERR_DEFAULT_FILTER_PARSE, e)
                         .param("filterId", f.getFilterId())
                         .param("error", messageOf(e));
             }

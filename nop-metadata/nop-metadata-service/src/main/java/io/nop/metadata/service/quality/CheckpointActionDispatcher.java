@@ -18,6 +18,7 @@ import io.nop.http.api.client.IHttpResponse;
 import io.nop.metadata.core._NopMetadataCoreConstants;
 import io.nop.metadata.dao.entity.NopMetaQualityCheckpoint;
 import io.nop.metadata.service.NopMetadataErrors;
+import io.nop.metadata.service.NopMetadataException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -192,13 +193,13 @@ public class CheckpointActionDispatcher {
     private void dispatchWebhook(NopMetaQualityCheckpoint cp, Map<String, Object> summary,
                                   Map<String, Object> config) {
         if (httpClient == null) {
-            throw new NopException(NopMetadataErrors.ERR_CHECKPOINT_WEBHOOK_NO_CLIENT)
+            throw new NopMetadataException(NopMetadataErrors.ERR_CHECKPOINT_WEBHOOK_NO_CLIENT)
                     .param("checkpointId", cp.getCheckpointId());
         }
         Object urlObj = config == null ? null : config.get("url");
         String url = urlObj == null ? null : String.valueOf(urlObj).trim();
         if (url == null || url.isEmpty()) {
-            throw new NopException(NopMetadataErrors.ERR_CHECKPOINT_WEBHOOK_NO_URL)
+            throw new NopMetadataException(NopMetadataErrors.ERR_CHECKPOINT_WEBHOOK_NO_URL)
                     .param("checkpointId", cp.getCheckpointId());
         }
         // 维度13-04：URL 协议 + 主机白名单 + method 白名单
@@ -218,13 +219,13 @@ public class CheckpointActionDispatcher {
 
         IHttpResponse response = httpClient.fetch(request, null);
         if (response == null) {
-            throw new NopException(NopMetadataErrors.ERR_CHECKPOINT_WEBHOOK_NULL_RESPONSE)
+            throw new NopMetadataException(NopMetadataErrors.ERR_CHECKPOINT_WEBHOOK_NULL_RESPONSE)
                     .param("checkpointId", cp.getCheckpointId())
                     .param("url", url);
         }
         int status = response.getHttpStatus();
         if (status < 200 || status >= 300) {
-            throw new NopException(NopMetadataErrors.ERR_CHECKPOINT_WEBHOOK_NON_2XX)
+            throw new NopMetadataException(NopMetadataErrors.ERR_CHECKPOINT_WEBHOOK_NON_2XX)
                     .param("checkpointId", cp.getCheckpointId())
                     .param("url", url)
                     .param("status", status);
@@ -248,7 +249,7 @@ public class CheckpointActionDispatcher {
             }
         }
         if (!protocolOk) {
-            throw new NopException(NopMetadataErrors.ERR_CHECKPOINT_WEBHOOK_URL_BLOCKED)
+            throw new NopMetadataException(NopMetadataErrors.ERR_CHECKPOINT_WEBHOOK_URL_BLOCKED)
                     .param("checkpointId", cp.getCheckpointId())
                     .param("url", url)
                     .param("reason", "protocol not in whitelist (http/https)");
@@ -256,7 +257,7 @@ public class CheckpointActionDispatcher {
         String host = extractWebhookHost(url);
         if (host != null && !host.isEmpty() && isInternalHost(host)
                 && !resolveAllowedWebhookHosts().contains(host.toLowerCase())) {
-            throw new NopException(NopMetadataErrors.ERR_CHECKPOINT_WEBHOOK_URL_BLOCKED)
+            throw new NopMetadataException(NopMetadataErrors.ERR_CHECKPOINT_WEBHOOK_URL_BLOCKED)
                     .param("checkpointId", cp.getCheckpointId())
                     .param("url", url)
                     .param("reason", "internal/link-local/loopback host not in allowed-hosts: " + host);
@@ -337,7 +338,7 @@ public class CheckpointActionDispatcher {
     /** 维度13-04：method 白名单校验（仅 POST/PUT）。 */
     void validateWebhookMethod(NopMetaQualityCheckpoint cp, String method) {
         if (!ALLOWED_WEBHOOK_METHODS.contains(method)) {
-            throw new NopException(NopMetadataErrors.ERR_CHECKPOINT_WEBHOOK_METHOD_BLOCKED)
+            throw new NopMetadataException(NopMetadataErrors.ERR_CHECKPOINT_WEBHOOK_METHOD_BLOCKED)
                     .param("checkpointId", cp.getCheckpointId())
                     .param("method", String.valueOf(method));
         }
@@ -351,13 +352,13 @@ public class CheckpointActionDispatcher {
     private void dispatchNotify(NopMetaQualityCheckpoint cp, Map<String, Object> summary,
                                  Map<String, Object> config) {
         if (messageService == null) {
-            throw new NopException(NopMetadataErrors.ERR_CHECKPOINT_NOTIFY_NO_SERVICE)
+            throw new NopMetadataException(NopMetadataErrors.ERR_CHECKPOINT_NOTIFY_NO_SERVICE)
                     .param("checkpointId", cp.getCheckpointId());
         }
         Object channelObj = config == null ? null : config.get("channel");
         String channel = channelObj == null ? null : String.valueOf(channelObj).trim();
         if (channel == null || channel.isEmpty()) {
-            throw new NopException(NopMetadataErrors.ERR_CHECKPOINT_NOTIFY_NO_CHANNEL)
+            throw new NopMetadataException(NopMetadataErrors.ERR_CHECKPOINT_NOTIFY_NO_CHANNEL)
                     .param("checkpointId", cp.getCheckpointId());
         }
         Object recipients = (config != null) ? config.get("recipients") : null;

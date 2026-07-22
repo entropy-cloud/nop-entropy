@@ -14,6 +14,7 @@ import io.nop.metadata.core.dto.ContractCheckResultDTO;
 import io.nop.metadata.dao.entity.NopMetaDataContract;
 import io.nop.metadata.service.NopMetadataErrors;
 import io.nop.metadata.service.contract.MetaContractChecker;
+import io.nop.metadata.service.NopMetadataException;
 import jakarta.inject.Inject;
 
 import java.util.Map;
@@ -42,7 +43,7 @@ public class NopMetaDataContractBizModel extends CrudBizModel<NopMetaDataContrac
             throw new NopException(ERR_CONTRACT_NOT_FOUND).param("contractId", id);
         String approveStatus = entity.getApproveStatus();
         if (!"SUBMITTED".equals(approveStatus)) {
-            throw new NopException(NopMetadataErrors.ERR_CONTRACT_INVALID_TRANSITION)
+            throw new NopMetadataException(NopMetadataErrors.ERR_CONTRACT_INVALID_TRANSITION)
                     .param("contractId", id)
                     .param("currentStatus", approveStatus)
                     .param("expectedStatus", "SUBMITTED");
@@ -71,7 +72,7 @@ public class NopMetaDataContractBizModel extends CrudBizModel<NopMetaDataContrac
             throw new NopException(ERR_CONTRACT_NOT_FOUND).param("contractId", id);
         String approveStatus = entity.getApproveStatus();
         if (!"SUBMITTED".equals(approveStatus)) {
-            throw new NopException(NopMetadataErrors.ERR_CONTRACT_INVALID_TRANSITION)
+            throw new NopMetadataException(NopMetadataErrors.ERR_CONTRACT_INVALID_TRANSITION)
                     .param("contractId", id)
                     .param("currentStatus", approveStatus)
                     .param("expectedStatus", "SUBMITTED");

@@ -18,6 +18,7 @@ import io.nop.metadata.dao.entity.NopMetaCatalog;
 import io.nop.metadata.dao.entity.NopMetaQualityResult;
 import io.nop.metadata.dao.entity.NopMetaQualityRule;
 import io.nop.metadata.service.NopMetadataErrors;
+import io.nop.metadata.service.NopMetadataException;
 import jakarta.inject.Inject;
 
 import java.sql.Timestamp;
@@ -44,7 +45,6 @@ import java.util.concurrent.TimeUnit;
  *
  * <p>本类不自建连接，所有数据来自平台 ORM 查询（元数据目录内聚合，无需物理数据源连接）。
  */
-@SuppressWarnings("unchecked")
 public class MetaContractChecker {
 
 
@@ -76,7 +76,7 @@ public class MetaContractChecker {
         } catch (NopException e) {
             throw e;
         } catch (Exception e) {
-            throw new NopException(NopMetadataErrors.ERR_CONTRACT_QUALITY_EXPECTATIONS_INVALID)
+            throw new NopMetadataException(NopMetadataErrors.ERR_CONTRACT_QUALITY_EXPECTATIONS_INVALID)
                     .param("contractId", contractId).param("error", toMsg(e));
         }
 
@@ -85,7 +85,7 @@ public class MetaContractChecker {
         try {
             slaMap = parseJsonObject(sla);
         } catch (Exception e) {
-            throw new NopException(NopMetadataErrors.ERR_CONTRACT_SLA_INVALID)
+            throw new NopMetadataException(NopMetadataErrors.ERR_CONTRACT_SLA_INVALID)
                     .param("contractId", contractId).param("error", toMsg(e));
         }
 
@@ -150,7 +150,7 @@ public class MetaContractChecker {
             return new ArrayList<>();
         }
         if (!(raw instanceof List)) {
-            throw new NopException(NopMetadataErrors.ERR_CONTRACT_QUALITY_EXPECTATIONS_INVALID)
+            throw new NopMetadataException(NopMetadataErrors.ERR_CONTRACT_QUALITY_EXPECTATIONS_INVALID)
                     .param("contractId", "").param("error",
                             "qualityRuleIds is not an array: " + raw.getClass().getSimpleName());
         }
@@ -378,7 +378,7 @@ public class MetaContractChecker {
         if (parsed instanceof Map) {
             return (Map<String, Object>) parsed;
         }
-        throw new NopException(NopMetadataErrors.ERR_CONTRACT_SLA_INVALID)
+        throw new NopMetadataException(NopMetadataErrors.ERR_CONTRACT_SLA_INVALID)
                 .param("contractId", "").param("error",
                         "expected JSON object but got " + parsed.getClass().getSimpleName());
     }

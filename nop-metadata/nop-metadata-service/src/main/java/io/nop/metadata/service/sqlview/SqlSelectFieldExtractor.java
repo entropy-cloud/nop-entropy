@@ -21,6 +21,7 @@ import io.nop.orm.eql.ast.SqlStatement;
 import io.nop.orm.eql.ast.SqlStatementKind;
 import io.nop.orm.eql.parse.EqlASTParser;
 import io.nop.metadata.service.NopMetadataErrors;
+import io.nop.metadata.service.NopMetadataException;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -69,28 +70,28 @@ public class SqlSelectFieldExtractor {
      */
     public List<SqlViewField> extract(String sql) {
         if (sql == null || sql.trim().isEmpty()) {
-            throw new NopException(NopMetadataErrors.ERR_SQL_VIEW_SQL_EMPTY).param("sql", sql);
+            throw new NopMetadataException(NopMetadataErrors.ERR_SQL_VIEW_SQL_EMPTY).param("sql", sql);
         }
 
         SqlProgram program;
         try {
             program = parser.parseFromText(null, sql);
         } catch (Exception e) {
-            throw new NopException(NopMetadataErrors.ERR_SQL_VIEW_PARSE_FAILED, e).param("sql", sql);
+            throw new NopMetadataException(NopMetadataErrors.ERR_SQL_VIEW_PARSE_FAILED, e).param("sql", sql);
         }
         if (program == null || program.getStatements() == null || program.getStatements().isEmpty()) {
-            throw new NopException(NopMetadataErrors.ERR_SQL_VIEW_PARSE_FAILED).param("sql", sql);
+            throw new NopMetadataException(NopMetadataErrors.ERR_SQL_VIEW_PARSE_FAILED).param("sql", sql);
         }
 
         List<SqlStatement> statements = program.getStatements();
         if (statements.size() != 1) {
-            throw new NopException(NopMetadataErrors.ERR_SQL_VIEW_MULTI_STATEMENT)
+            throw new NopMetadataException(NopMetadataErrors.ERR_SQL_VIEW_MULTI_STATEMENT)
                     .param("count", statements.size()).param("sql", sql);
         }
 
         SqlStatement stmt = statements.get(0);
         if (stmt.getStatementKind() != SqlStatementKind.SELECT) {
-            throw new NopException(NopMetadataErrors.ERR_SQL_VIEW_NOT_SELECT)
+            throw new NopMetadataException(NopMetadataErrors.ERR_SQL_VIEW_NOT_SELECT)
                     .param("statementKind", String.valueOf(stmt.getStatementKind())).param("sql", sql);
         }
 
@@ -117,7 +118,7 @@ public class SqlSelectFieldExtractor {
             return projections == null ? new ArrayList<>() : projections;
         }
         // getStatementKind()==SELECT 但非 SqlSelect/SqlSelectWithCte 子类——不可达，显式失败而非静默
-        throw new NopException(NopMetadataErrors.ERR_SQL_VIEW_PARSE_FAILED)
+        throw new NopMetadataException(NopMetadataErrors.ERR_SQL_VIEW_PARSE_FAILED)
                 .param("sql", "unhandled SELECT statement class: " + stmt.getClass().getName());
     }
 
@@ -128,14 +129,14 @@ public class SqlSelectFieldExtractor {
         // 一条合法的显式列 SELECT 解析后必有 ≥1 个 projection，故空列表的唯一现实成因就是被丢弃的裸 `*`。
         // 依 §4.2.1 通配符裁定（显式失败、不静默跳过），此处对空 projections 显式失败。
         if (projections.isEmpty()) {
-            throw new NopException(NopMetadataErrors.ERR_SQL_VIEW_WILDCARD_NOT_SUPPORTED).param("sql", sql);
+            throw new NopMetadataException(NopMetadataErrors.ERR_SQL_VIEW_WILDCARD_NOT_SUPPORTED).param("sql", sql);
         }
         List<SqlViewField> fields = new ArrayList<>(projections.size());
         int exprIndex = 0;
         for (SqlProjection proj : projections) {
             if (proj instanceof SqlAllProjection) {
                 // 通配符 t.* 纯 AST 无法展开，显式失败（不静默跳过、不伪造）
-                throw new NopException(NopMetadataErrors.ERR_SQL_VIEW_WILDCARD_NOT_SUPPORTED).param("sql", sql);
+                throw new NopMetadataException(NopMetadataErrors.ERR_SQL_VIEW_WILDCARD_NOT_SUPPORTED).param("sql", sql);
             }
             if (proj instanceof SqlExprProjection) {
                 SqlViewField field = toField((SqlExprProjection) proj, exprIndex);
@@ -146,7 +147,7 @@ public class SqlSelectFieldExtractor {
                 fields.add(field);
             } else {
                 // 未知 projection 子类——显式失败而非静默跳过
-                throw new NopException(NopMetadataErrors.ERR_SQL_VIEW_PARSE_FAILED)
+                throw new NopMetadataException(NopMetadataErrors.ERR_SQL_VIEW_PARSE_FAILED)
                         .param("sql", sql)
                         .param("reason",
                                 "unhandled projection class: " + proj.getClass().getName());
@@ -167,7 +168,7 @@ public class SqlSelectFieldExtractor {
             String colName = ((SqlColumnName) proj.getExpr()).getName();
             if (colName == null || colName.isEmpty()) {
                 // 列名为空——不可达（SqlColumnName.getName mandatory），显式失败
-                throw new NopException(NopMetadataErrors.ERR_SQL_VIEW_PARSE_FAILED)
+                throw new NopMetadataException(NopMetadataErrors.ERR_SQL_VIEW_PARSE_FAILED)
                         .param("sql", "empty column name in projection");
             }
             return new SqlViewField(colName, null, null);

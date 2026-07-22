@@ -20,6 +20,7 @@ import io.nop.metadata.dao.entity.NopMetaTableJoin;
 import io.nop.metadata.dao.entity.NopMetaTableMeasure;
 import io.nop.metadata.service.field.ExpressionMeasureValidator;
 import io.nop.metadata.service.NopMetadataErrors;
+import io.nop.metadata.service.NopMetadataException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -58,7 +59,7 @@ public class EntityEntityJoinAggregationProcessor implements AggregationProcesso
         joinExecutor.requireRegistered(rightEntity, "right", joinId, ctx);
 
         if (equalsStr(leftEntity.getMetaEntityId(), rightEntity.getMetaEntityId())) {
-            throw new NopException(NopMetadataErrors.ERR_AGGR_JOIN_SELF_JOIN)
+            throw new NopMetadataException(NopMetadataErrors.ERR_AGGR_JOIN_SELF_JOIN)
                     .param("joinId", joinId).param("entityId", leftEntity.getMetaEntityId());
         }
 
@@ -144,7 +145,7 @@ public class EntityEntityJoinAggregationProcessor implements AggregationProcesso
         try {
             return ctx.orm().executeQuery(sqlObj, null, AggregationHelper::collectRows);
         } catch (Exception e) {
-            throw new NopException(NopMetadataErrors.ERR_AGGR_JOIN_COMPILE_FAILED, e)
+            throw new NopMetadataException(NopMetadataErrors.ERR_AGGR_JOIN_COMPILE_FAILED, e)
                     .param("joinId", joinId)
                     .param("error", messageOf(e));
         }

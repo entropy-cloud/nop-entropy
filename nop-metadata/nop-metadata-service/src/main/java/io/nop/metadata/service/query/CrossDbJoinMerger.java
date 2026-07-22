@@ -12,6 +12,7 @@ import io.nop.api.core.exceptions.NopException;
 import io.nop.metadata.service.NopMetadataErrors;
 import io.nop.metadata.core._NopMetadataCoreConstants;
 import io.nop.metadata.dao.entity.NopMetaTableJoin;
+import io.nop.metadata.service.NopMetadataException;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -32,7 +33,7 @@ class CrossDbJoinMerger {
     private final int maxCrossDbRows;
 
     CrossDbJoinMerger() {
-        this(10000);
+        this(CrossDbConfigHolder.maxCrossDbRows);
     }
 
     CrossDbJoinMerger(int maxCrossDbRows) {
@@ -98,7 +99,7 @@ class CrossDbJoinMerger {
 
     private void checkSizeLimit(int rows, String side, String joinId) {
         if (rows > maxCrossDbRows) {
-            throw new NopException(NopMetadataErrors.ERR_JOIN_CROSS_DB_SIZE_LIMIT)
+            throw new NopMetadataException(NopMetadataErrors.ERR_JOIN_CROSS_DB_SIZE_LIMIT)
                     .param("joinId", joinId).param("side", side).param("rows", rows)
                     .param("limit", maxCrossDbRows);
         }
@@ -119,7 +120,7 @@ class CrossDbJoinMerger {
             return;
         }
         if (!leftType.equals(rightType)) {
-            throw new NopException(NopMetadataErrors.ERR_JOIN_CROSS_DB_KEY_TYPE_MISMATCH)
+            throw new NopMetadataException(NopMetadataErrors.ERR_JOIN_CROSS_DB_KEY_TYPE_MISMATCH)
                     .param("joinId", join.getJoinId())
                     .param("leftType", leftType.getName())
                     .param("rightType", rightType.getName());
@@ -141,7 +142,7 @@ class CrossDbJoinMerger {
             if (resultType == null) {
                 resultType = type;
             } else if (!resultType.equals(type)) {
-                throw new NopException(NopMetadataErrors.ERR_JOIN_CROSS_DB_KEY_TYPE_MISMATCH)
+                throw new NopMetadataException(NopMetadataErrors.ERR_JOIN_CROSS_DB_KEY_TYPE_MISMATCH)
                         .param("leftType", resultType.getName())
                         .param("rightType", type.getName());
             }
@@ -155,7 +156,7 @@ class CrossDbJoinMerger {
         }
         Map<String, Object> sample = rows.get(0);
         if (!containsKeyIgnoreCase(sample, field)) {
-            throw new NopException(NopMetadataErrors.ERR_JOIN_NAMESPACE_MISMATCH)
+            throw new NopMetadataException(NopMetadataErrors.ERR_JOIN_NAMESPACE_MISMATCH)
                     .param("joinId", joinId).param("side", side)
                     .param("field", field).param("rowKeys", sample.keySet());
         }
@@ -222,7 +223,7 @@ class CrossDbJoinMerger {
         int from = 0;
         if (offset != null && offset > 0) {
             if (offset > Integer.MAX_VALUE) {
-                throw new NopException(NopMetadataErrors.ERR_PAGINATION_OFFSET_TOO_LARGE).param("offset", offset);
+                throw new NopMetadataException(NopMetadataErrors.ERR_PAGINATION_OFFSET_TOO_LARGE).param("offset", offset);
             }
             from = offset.intValue();
         }
@@ -232,7 +233,7 @@ class CrossDbJoinMerger {
         int to = rows.size();
         if (limit != null) {
             if (limit > Integer.MAX_VALUE) {
-                throw new NopException(NopMetadataErrors.ERR_PAGINATION_LIMIT_TOO_LARGE).param("limit", limit);
+                throw new NopMetadataException(NopMetadataErrors.ERR_PAGINATION_LIMIT_TOO_LARGE).param("limit", limit);
             }
             to = Math.min(rows.size(), from + limit.intValue());
         }

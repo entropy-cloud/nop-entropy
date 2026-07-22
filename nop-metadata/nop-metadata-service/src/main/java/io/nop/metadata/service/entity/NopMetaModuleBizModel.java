@@ -78,6 +78,7 @@ import java.util.Set;
 
 import io.nop.metadata.service.search.NopMetaSearchService;
 import io.nop.search.api.SearchableDoc;
+import io.nop.metadata.service.NopMetadataException;
 import jakarta.inject.Inject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -169,7 +170,7 @@ public class NopMetaModuleBizModel extends CrudBizModel<NopMetaModule> implement
     public NopMetaModule importOrmModel(@Name("path") String path, IServiceContext context) {
         IResource resource = VirtualFileSystem.instance().getResource(path);
         if (resource == null || !resource.exists())
-            throw new NopException(NopMetadataErrors.ERR_ORM_RESOURCE_NOT_FOUND).param("path", path);
+            throw new NopMetadataException(NopMetadataErrors.ERR_ORM_RESOURCE_NOT_FOUND).param("path", path);
 
         // full 定义：x:extends 完全展开后的完整模型
         OrmModel fullModel = new OrmModelLoader().loadFromResource(resource, true);
@@ -389,11 +390,11 @@ public class NopMetaModuleBizModel extends CrudBizModel<NopMetaModule> implement
     public NopMetaModule releaseModule(@Name("metaModuleId") String metaModuleId, IServiceContext context) {
         NopMetaModule module = dao().getEntityById(metaModuleId);
         if (module == null)
-            throw new NopException(NopMetadataErrors.ERR_MODULE_NOT_FOUND).param("metaModuleId", metaModuleId);
+            throw new NopMetadataException(NopMetadataErrors.ERR_MODULE_NOT_FOUND).param("metaModuleId", metaModuleId);
 
         String status = module.getStatus();
         if (!_NopMetadataCoreConstants.MODULE_STATUS_DRAFTING.equals(status))
-            throw new NopException(NopMetadataErrors.ERR_MODULE_NOT_DRAFTING).param("status", status);
+            throw new NopMetadataException(NopMetadataErrors.ERR_MODULE_NOT_DRAFTING).param("status", status);
 
         checkDataAuth(BizConstants.METHOD_UPDATE, module, context);
 
@@ -445,7 +446,7 @@ public class NopMetaModuleBizModel extends CrudBizModel<NopMetaModule> implement
     public NopMetaManifest generateManifest(@Name("metaModuleId") String metaModuleId, IServiceContext context) {
         NopMetaModule module = dao().getEntityById(metaModuleId);
         if (module == null)
-            throw new NopException(NopMetadataErrors.ERR_MODULE_NOT_FOUND).param("metaModuleId", metaModuleId);
+            throw new NopMetadataException(NopMetadataErrors.ERR_MODULE_NOT_FOUND).param("metaModuleId", metaModuleId);
 
         IEntityDao<NopMetaOrmModel> ormModelDao = daoFor(NopMetaOrmModel.class);
         IEntityDao<NopMetaEntity> entityDao = daoFor(NopMetaEntity.class);
@@ -458,7 +459,7 @@ public class NopMetaModuleBizModel extends CrudBizModel<NopMetaModule> implement
         fullOrmQ.addFilter(FilterBeans.eq(NopMetaOrmModel.PROP_NAME_isDelta, (byte) 0));
         NopMetaOrmModel fullOrmModel = ormModelDao.findFirstByQuery(fullOrmQ);
         if (fullOrmModel == null)
-            throw new NopException(NopMetadataErrors.ERR_MODULE_FULL_MODEL_NOT_FOUND).param("metaModuleId", metaModuleId);
+            throw new NopMetadataException(NopMetadataErrors.ERR_MODULE_FULL_MODEL_NOT_FOUND).param("metaModuleId", metaModuleId);
 
         String ormModelId = fullOrmModel.getOrmModelId();
 
@@ -571,7 +572,7 @@ public class NopMetaModuleBizModel extends CrudBizModel<NopMetaModule> implement
         try (InputStream in = resource.getInputStream()) {
             return new String(in.readAllBytes(), StandardCharsets.UTF_8);
         } catch (IOException e) {
-            throw new NopException(NopMetadataErrors.ERR_ORM_RESOURCE_READ_FAILED, e).param("path", resource.getPath());
+            throw new NopMetadataException(NopMetadataErrors.ERR_ORM_RESOURCE_READ_FAILED, e).param("path", resource.getPath());
         }
     }
 

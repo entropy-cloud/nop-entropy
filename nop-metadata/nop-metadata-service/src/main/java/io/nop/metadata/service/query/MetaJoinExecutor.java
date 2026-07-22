@@ -30,6 +30,7 @@ import io.nop.orm.IOrmTemplate;
 import io.nop.orm.dao.IOrmEntityDao;
 import io.nop.orm.model.IColumnModel;
 import io.nop.orm.model.IEntityModel;
+import io.nop.metadata.service.NopMetadataException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -74,13 +75,10 @@ import java.util.Set;
 public class MetaJoinExecutor {
     private static final Logger LOG = LoggerFactory.getLogger(MetaJoinExecutor.class);
 
-    /** 跨库拼接单侧结果集行数上限（防 OOM，超限显式失败，D5）。 */
-    static final int MAX_CROSS_DB_ROWS = 10000;
-
     private final CrossDbJoinMerger crossDbMerger;
 
     public MetaJoinExecutor() {
-        this.crossDbMerger = new CrossDbJoinMerger();
+        this.crossDbMerger = new CrossDbJoinMerger(CrossDbConfigHolder.maxCrossDbRows);
     }
 
     MetaJoinExecutor(CrossDbJoinMerger crossDbMerger) {
@@ -167,17 +165,17 @@ public class MetaJoinExecutor {
         IEntityDao<NopMetaTableJoin> joinDao = ctx.daoProvider().daoFor(NopMetaTableJoin.class);
         NopMetaTableJoin join = joinDao.getEntityById(joinId);
         if (join == null || !equalsStr(leftTable.getMetaTableId(), join.getMetaTableId())) {
-            throw new NopException(NopMetadataErrors.ERR_JOIN_NOT_FOUND)
+            throw new NopMetadataException(NopMetadataErrors.ERR_JOIN_NOT_FOUND)
                     .param("metaTableId", leftTable.getMetaTableId())
                     .param("joinId", String.valueOf(joinId));
         }
         String joinType = join.getJoinType();
         if (_NopMetadataCoreConstants.JOIN_TYPE_RIGHT.equals(joinType)) {
-            throw new NopException(NopMetadataErrors.ERR_JOIN_TYPE_RIGHT_UNSUPPORTED).param("joinId", joinId);
+            throw new NopMetadataException(NopMetadataErrors.ERR_JOIN_TYPE_RIGHT_UNSUPPORTED).param("joinId", joinId);
         }
         if (!_NopMetadataCoreConstants.JOIN_TYPE_INNER.equals(joinType)
                 && !_NopMetadataCoreConstants.JOIN_TYPE_LEFT.equals(joinType)) {
-            throw new NopException(NopMetadataErrors.ERR_JOIN_TYPE_UNKNOWN)
+            throw new NopMetadataException(NopMetadataErrors.ERR_JOIN_TYPE_UNKNOWN)
                     .param("joinType", String.valueOf(joinType)).param("joinId", joinId);
         }
         return join;
@@ -193,10 +191,10 @@ public class MetaJoinExecutor {
         String joinId = join.getJoinId();
         if (hasEntity && hasTable) {
             // 互斥校验在 save 路径已做（0700-1）；executor 防御性显式失败
-            throw new NopException(NopMetadataErrors.ERR_JOIN_NO_ENDPOINT).param("joinId", joinId).param("side", side);
+            throw new NopMetadataException(NopMetadataErrors.ERR_JOIN_NO_ENDPOINT).param("joinId", joinId).param("side", side);
         }
         if (!hasEntity && !hasTable) {
-            throw new NopException(NopMetadataErrors.ERR_JOIN_NO_ENDPOINT).param("joinId", joinId).param("side", side);
+            throw new NopMetadataException(NopMetadataErrors.ERR_JOIN_NO_ENDPOINT).param("joinId", joinId).param("side", side);
         }
         if (hasEntity) {
             return Endpoint.entity(resolveEntityOrThrow(entityId, side, joinId, ctx));
@@ -209,13 +207,13 @@ public class MetaJoinExecutor {
         IEntityDao<NopMetaTable> tableDao = ctx.daoProvider().daoFor(NopMetaTable.class);
         NopMetaTable table = tableDao.getEntityById(tableId);
         if (table == null) {
-            throw new NopException(NopMetadataErrors.ERR_JOIN_TABLE_DANGLING)
+            throw new NopMetadataException(NopMetadataErrors.ERR_JOIN_TABLE_DANGLING)
                     .param("joinId", joinId).param("side", side).param("tableId", tableId);
         }
         String tableType = table.getTableType();
         if (!_NopMetadataCoreConstants.TABLE_TYPE_EXTERNAL.equals(tableType)
                 && !_NopMetadataCoreConstants.TABLE_TYPE_SQL.equals(tableType)) {
-            throw new NopException(NopMetadataErrors.ERR_JOIN_TABLE_TYPE_NOT_ALLOWED)
+            throw new NopMetadataException(NopMetadataErrors.ERR_JOIN_TABLE_TYPE_NOT_ALLOWED)
                     .param("joinId", joinId).param("side", side)
                     .param("tableId", tableId).param("tableType", String.valueOf(tableType));
         }
@@ -427,7 +425,7 @@ public class MetaJoinExecutor {
         if (filter != null) {
             q.setFilter(filter);
         }
-        q.setLimit(MAX_CROSS_DB_ROWS + 1);
+        q.setLimit(CrossDbConfigHolder.maxCrossDbRows + 1);
         List<IOrmEntity> entities = dao.findAllByQuery(q);
         IEntityModel entityModel = dao.getEntityModel();
         List<String> propNames = new ArrayList<>();
@@ -459,7 +457,7 @@ public class MetaJoinExecutor {
         ctx.connectionService().withConnection(dataSource.getDatasourceType(), dataSource.getConnectionConfig(),
                 (Connection conn, DatabaseMetaData metaData) -> {
                     FilterToSqlTranslator.TranslatedFilter tf = ctx.filterTranslator().translate(filter);
-                    Long fetchLimit = (long) MAX_CROSS_DB_ROWS + 1;
+                    Long fetchLimit = (long) CrossDbConfigHolder.maxCrossDbRows + 1;
                     String sql = buildTableSelectSql(table, columns, tf.getSql(), fetchLimit, null);
                     holder[0] = executeJdbcQuery(conn, sql, tf.getParams(), fetchLimit, null, joinId, side);
                 });
@@ -470,13 +468,13 @@ public class MetaJoinExecutor {
 
     private NopMetaEntity resolveEntityOrThrow(String entityId, String side, String joinId, MetaQueryContext ctx) {
         if (entityId == null || entityId.isEmpty()) {
-            throw new NopException(NopMetadataErrors.ERR_JOIN_ENTITY_DANGLING)
+            throw new NopMetadataException(NopMetadataErrors.ERR_JOIN_ENTITY_DANGLING)
                     .param("joinId", joinId).param("side", side).param("entityId", String.valueOf(entityId));
         }
         IEntityDao<NopMetaEntity> dao = ctx.daoProvider().daoFor(NopMetaEntity.class);
         NopMetaEntity entity = dao.getEntityById(entityId);
         if (entity == null) {
-            throw new NopException(NopMetadataErrors.ERR_JOIN_ENTITY_DANGLING)
+            throw new NopMetadataException(NopMetadataErrors.ERR_JOIN_ENTITY_DANGLING)
                     .param("joinId", joinId).param("side", side).param("entityId", entityId);
         }
         return entity;
@@ -489,7 +487,7 @@ public class MetaJoinExecutor {
         }
         String name = entity.getEntityName();
         if (name == null || name.isEmpty() || !ctx.orm().isValidEntityName(name)) {
-            throw new NopException(NopMetadataErrors.ERR_JOIN_ENTITY_NOT_REGISTERED)
+            throw new NopMetadataException(NopMetadataErrors.ERR_JOIN_ENTITY_NOT_REGISTERED)
                     .param("joinId", joinId).param("side", side).param("entityName", String.valueOf(name));
         }
     }
@@ -497,7 +495,7 @@ public class MetaJoinExecutor {
     private String requirePhysicalTable(NopMetaEntity entity) {
         String t = entity.getTableName();
         if (t == null || t.trim().isEmpty()) {
-            throw new NopException(NopMetadataErrors.ERR_JOIN_FIELD_NOT_RESOLVED)
+            throw new NopMetadataException(NopMetadataErrors.ERR_JOIN_FIELD_NOT_RESOLVED)
                     .param("side", "table").param("entityId", entity.getMetaEntityId())
                     .param("field", "tableName").param("joinId", "");
         }
@@ -523,13 +521,13 @@ public class MetaJoinExecutor {
     String resolveFieldToColumn(Map<String, String> propToCol, String field, NopMetaEntity entity,
                                         String side, String joinId) {
         if (field == null) {
-            throw new NopException(NopMetadataErrors.ERR_JOIN_FIELD_NOT_RESOLVED)
+            throw new NopMetadataException(NopMetadataErrors.ERR_JOIN_FIELD_NOT_RESOLVED)
                     .param("joinId", joinId).param("side", side)
                     .param("entityId", entity.getMetaEntityId()).param("field", String.valueOf(field));
         }
         String col = propToCol.get(field);
         if (col == null) {
-            throw new NopException(NopMetadataErrors.ERR_JOIN_FIELD_NOT_RESOLVED)
+            throw new NopMetadataException(NopMetadataErrors.ERR_JOIN_FIELD_NOT_RESOLVED)
                     .param("joinId", joinId).param("side", side)
                     .param("entityId", entity.getMetaEntityId()).param("field", field);
         }
@@ -551,7 +549,7 @@ public class MetaJoinExecutor {
     private String resolveTableFieldOrThrow(Set<String> columns, String field, NopMetaTable table,
                                             String side, String joinId) {
         if (field == null || !columns.contains(field)) {
-            throw new NopException(NopMetadataErrors.ERR_JOIN_TABLE_FIELD_NOT_RESOLVED)
+            throw new NopMetadataException(NopMetadataErrors.ERR_JOIN_TABLE_FIELD_NOT_RESOLVED)
                     .param("joinId", joinId).param("side", side)
                     .param("tableId", table.getMetaTableId()).param("field", String.valueOf(field));
         }
@@ -577,7 +575,7 @@ public class MetaJoinExecutor {
         if (_NopMetadataCoreConstants.TABLE_TYPE_SQL.equals(table.getTableType())) {
             String sourceSql = table.getSourceSql();
             if (sourceSql == null || sourceSql.trim().isEmpty()) {
-                throw new NopException(NopMetadataErrors.ERR_JOIN_TABLE_EXEC_FAILED)
+                throw new NopMetadataException(NopMetadataErrors.ERR_JOIN_TABLE_EXEC_FAILED)
                         .param("joinId", "").param("side", "from")
                         .param("error", "sql table sourceSql is empty: " + table.getMetaTableId());
             }
@@ -598,7 +596,7 @@ public class MetaJoinExecutor {
         if (_NopMetadataCoreConstants.TABLE_TYPE_SQL.equals(table.getTableType())) {
             String sourceSql = table.getSourceSql();
             if (sourceSql == null || sourceSql.trim().isEmpty()) {
-                throw new NopException(NopMetadataErrors.ERR_JOIN_TABLE_EXEC_FAILED)
+                throw new NopMetadataException(NopMetadataErrors.ERR_JOIN_TABLE_EXEC_FAILED)
                         .param("joinId", "").param("side", "from")
                         .param("error", "sql table sourceSql is empty: " + table.getMetaTableId());
             }
@@ -703,7 +701,7 @@ public class MetaJoinExecutor {
             }
             return rows;
         } catch (SQLException e) {
-            throw new NopException(NopMetadataErrors.ERR_JOIN_TABLE_EXEC_FAILED, e)
+            throw new NopMetadataException(NopMetadataErrors.ERR_JOIN_TABLE_EXEC_FAILED, e)
                     .param("joinId", joinId).param("side", side)
                     .param("error", messageOf(e));
         }

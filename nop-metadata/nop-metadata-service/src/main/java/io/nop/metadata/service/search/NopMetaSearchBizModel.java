@@ -10,6 +10,7 @@ import io.nop.search.api.ISearchEngine;
 import io.nop.search.api.SearchHit;
 import io.nop.search.api.SearchRequest;
 import io.nop.search.api.SearchResponse;
+import io.nop.metadata.service.NopMetadataException;
 import jakarta.annotation.Nullable;
 import jakarta.inject.Inject;
 import jakarta.inject.Named;
@@ -38,7 +39,7 @@ public class NopMetaSearchBizModel {
     public List<IndexResult> rebuildSearchIndex(List<String> entityTypes,
                                                  IServiceContext context) {
         if (searchEngine == null) {
-            throw new NopException(NopMetadataErrors.ERR_SEARCH_ENGINE_UNAVAILABLE)
+            throw new NopMetadataException(NopMetadataErrors.ERR_SEARCH_ENGINE_UNAVAILABLE)
                     .param(NopMetadataErrors.ARG_ERROR, "searchEngine not available");
         }
         return indexBuilder.buildFullIndex(entityTypes);
@@ -61,7 +62,7 @@ public class NopMetaSearchBizModel {
         request.setLimit(limit);
 
         if (searchEngine == null) {
-            throw new NopException(NopMetadataErrors.ERR_SEARCH_ENGINE_UNAVAILABLE)
+            throw new NopMetadataException(NopMetadataErrors.ERR_SEARCH_ENGINE_UNAVAILABLE)
                     .param(NopMetadataErrors.ARG_ERROR, "searchEngine not available");
         }
         SearchResponse response = searchEngine.search(request);

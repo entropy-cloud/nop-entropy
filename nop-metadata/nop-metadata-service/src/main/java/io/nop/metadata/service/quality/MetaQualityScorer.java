@@ -20,6 +20,7 @@ import io.nop.metadata.dao.entity.NopMetaQualityRule;
 import io.nop.metadata.dao.entity.NopMetaQualityScore;
 import io.nop.metadata.dao.entity.NopMetaTable;
 import io.nop.metadata.service.NopMetadataErrors;
+import io.nop.metadata.service.NopMetadataException;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -99,7 +100,7 @@ public class MetaQualityScorer {
         IEntityDao<NopMetaTable> tableDao = daoProvider.daoFor(NopMetaTable.class);
         NopMetaTable table = tableDao.getEntityById(metaTableId);
         if (table == null) {
-            throw new NopException(NopMetadataErrors.ERR_SCORE_TABLE_NOT_FOUND).param("metaTableId", metaTableId);
+            throw new NopMetadataException(NopMetadataErrors.ERR_SCORE_TABLE_NOT_FOUND).param("metaTableId", metaTableId);
         }
 
         // 加载挂载规则（entityId = metaTableId，即 §2.7.1 D1 规则仅挂载于 NopMetaTable）
@@ -110,7 +111,7 @@ public class MetaQualityScorer {
 
         // D6：表无任何挂载规则 → 显式失败（不静默 0 分）
         if (rules.isEmpty()) {
-            throw new NopException(NopMetadataErrors.ERR_SCORE_NO_RULES).param("metaTableId", metaTableId);
+            throw new NopMetadataException(NopMetadataErrors.ERR_SCORE_NO_RULES).param("metaTableId", metaTableId);
         }
 
         IEntityDao<NopMetaQualityResult> resultDao = daoProvider.daoFor(NopMetaQualityResult.class);
@@ -189,7 +190,7 @@ public class MetaQualityScorer {
 
         // D6：全维度 null（无任何可评规则或全 SKIP）→ 显式失败（不静默 0 分、不伪造）
         if (weightSum == 0.0d) {
-            throw new NopException(NopMetadataErrors.ERR_SCORE_ALL_SKIP).param("metaTableId", metaTableId);
+            throw new NopMetadataException(NopMetadataErrors.ERR_SCORE_ALL_SKIP).param("metaTableId", metaTableId);
         }
         double overallScore = weightedSum / weightSum;
 

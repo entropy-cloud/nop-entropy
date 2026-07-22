@@ -16,6 +16,7 @@ import io.nop.commons.util.StringHelper;
 import io.nop.core.lang.json.JsonTool;
 import io.nop.metadata.service.tableref.TableReference;
 import io.nop.metadata.service.NopMetadataErrors;
+import io.nop.metadata.service.NopMetadataException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -323,7 +324,7 @@ public class MetaQualityRuleExecutor {
         String upper = sql.trim().toUpperCase();
         for (String keyword : CUSTOM_SQL_FORBIDDEN_KEYWORDS) {
             if (upper.contains(keyword)) {
-                throw new NopException(NopMetadataErrors.ERR_QUALITY_CUSTOM_SQL_BLOCKED)
+                throw new NopMetadataException(NopMetadataErrors.ERR_QUALITY_CUSTOM_SQL_BLOCKED)
                         .param("ruleKey", String.valueOf(ruleKey))
                         .param("reason", "forbidden keyword present: " + keyword)
                         .param("sqlHash", sqlHash);
@@ -550,13 +551,13 @@ public class MetaQualityRuleExecutor {
         LOG.info("qualityRule SQL: {}", sql);
         try (PreparedStatement st = conn.prepareStatement(sql); ResultSet rs = st.executeQuery()) {
             if (!rs.next()) {
-                throw new NopException(NopMetadataErrors.ERR_QUALITY_SQL_NO_ROW)
+                throw new NopMetadataException(NopMetadataErrors.ERR_QUALITY_SQL_NO_ROW)
                         .param("sql", sql);
             }
             return rs.getLong(1);
         } catch (SQLException e) {
             // AR-13: ErrorCode 描述含 {error} 占位符，throw 时同时设置 sql + error 参数（原仅设置 sql）
-            throw new NopException(NopMetadataErrors.ERR_QUALITY_SQL_FAILED, e)
+            throw new NopMetadataException(NopMetadataErrors.ERR_QUALITY_SQL_FAILED, e)
                     .param("sql", sql)
                     .param("error", messageOf(e));
         }
@@ -571,7 +572,7 @@ public class MetaQualityRuleExecutor {
             return rs.getTimestamp(1);
         } catch (SQLException e) {
             // AR-13: ErrorCode 描述含 {error} 占位符，throw 时同时设置 sql + error 参数（原仅设置 sql）
-            throw new NopException(NopMetadataErrors.ERR_QUALITY_SQL_FAILED, e)
+            throw new NopMetadataException(NopMetadataErrors.ERR_QUALITY_SQL_FAILED, e)
                     .param("sql", sql)
                     .param("error", messageOf(e));
         }
@@ -678,7 +679,7 @@ public class MetaQualityRuleExecutor {
 
     static void validateIdentifier(String identifier) {
         if (identifier == null || !IDENTIFIER_PATTERN.matcher(identifier).matches()) {
-            throw new NopException(NopMetadataErrors.ERR_QUALITY_INVALID_IDENTIFIER)
+            throw new NopMetadataException(NopMetadataErrors.ERR_QUALITY_INVALID_IDENTIFIER)
                     .param("identifier", String.valueOf(identifier));
         }
     }

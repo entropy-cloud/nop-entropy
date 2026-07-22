@@ -41,7 +41,7 @@ export class AmisAdapter implements EngineAdapter {
   }
 
   formField(dialog: Locator, fieldName: string): Locator {
-    return dialog.locator(`input[name="${fieldName}"]`);
+    return dialog.locator(`input[name="${fieldName}"], textarea[name="${fieldName}"], select[name="${fieldName}"]`);
   }
 
   submitButton(dialog: Locator): Locator {

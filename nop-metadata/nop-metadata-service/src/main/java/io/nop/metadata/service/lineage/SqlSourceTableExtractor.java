@@ -15,6 +15,7 @@ import io.nop.orm.eql.ast.SqlSingleTableSource;
 import io.nop.orm.eql.ast.SqlTableName;
 import io.nop.orm.eql.parse.EqlASTParser;
 import io.nop.metadata.service.NopMetadataErrors;
+import io.nop.metadata.service.NopMetadataException;
 
 import java.util.ArrayList;
 import java.util.LinkedHashSet;
@@ -50,17 +51,17 @@ public class SqlSourceTableExtractor {
      */
     public List<SqlTableReference> extract(String sql) {
         if (sql == null || sql.trim().isEmpty()) {
-            throw new NopException(NopMetadataErrors.ERR_LINEAGE_SQL_EMPTY).param("sql", sql);
+            throw new NopMetadataException(NopMetadataErrors.ERR_LINEAGE_SQL_EMPTY).param("sql", sql);
         }
 
         SqlProgram program;
         try {
             program = parser.parseFromText(null, sql);
         } catch (Exception e) {
-            throw new NopException(NopMetadataErrors.ERR_LINEAGE_SQL_PARSE_FAILED, e).param("sql", sql);
+            throw new NopMetadataException(NopMetadataErrors.ERR_LINEAGE_SQL_PARSE_FAILED, e).param("sql", sql);
         }
         if (program == null) {
-            throw new NopException(NopMetadataErrors.ERR_LINEAGE_SQL_PARSE_FAILED).param("sql", sql);
+            throw new NopMetadataException(NopMetadataErrors.ERR_LINEAGE_SQL_PARSE_FAILED).param("sql", sql);
         }
 
         // 递归遍历整个 AST，收集所有 SqlSingleTableSource 的表名。子查询（SqlSubqueryTableSource）

@@ -19,6 +19,7 @@ import io.nop.metadata.core.dto.RecordLineageDTO;
 import io.nop.metadata.dao.entity.NopMetaLineageEdge;
 import io.nop.metadata.dao.entity.NopMetaTable;
 import io.nop.metadata.service.NopMetadataErrors;
+import io.nop.metadata.service.NopMetadataException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -59,7 +60,7 @@ public class NopMetaLineageEdgeBizModel extends CrudBizModel<NopMetaLineageEdge>
     public LineageRecordResultDTO recordLineage(@Name("edges") List<RecordLineageDTO> edges,
                                                   IServiceContext context) {
         if (edges == null || edges.isEmpty()) {
-            throw new NopException(NopMetadataErrors.ERR_LINEAGE_NO_EDGES).param("size", 0);
+            throw new NopMetadataException(NopMetadataErrors.ERR_LINEAGE_NO_EDGES).param("size", 0);
         }
         List<NopMetaLineageEdge> parsed = new ArrayList<>(edges.size());
         Set<String> referencedTableIds = new LinkedHashSet<>();
@@ -68,7 +69,7 @@ public class NopMetaLineageEdgeBizModel extends CrudBizModel<NopMetaLineageEdge>
             String sourceTableId = dto.getSourceTableId();
             String targetTableId = dto.getTargetTableId();
             if (sourceTableId == null || sourceTableId.isEmpty() || targetTableId == null || targetTableId.isEmpty()) {
-                throw new NopException(NopMetadataErrors.ERR_LINEAGE_TABLE_ID_MISSING).param("index", i).param("edge", dto);
+                throw new NopMetadataException(NopMetadataErrors.ERR_LINEAGE_TABLE_ID_MISSING).param("index", i).param("edge", dto);
             }
             referencedTableIds.add(sourceTableId);
             referencedTableIds.add(targetTableId);
@@ -90,7 +91,7 @@ public class NopMetaLineageEdgeBizModel extends CrudBizModel<NopMetaLineageEdge>
         Set<String> existingIds = queryAction().loadExistingTableIds(referencedTableIds, daoProvider());
         for (String id : referencedTableIds) {
             if (!existingIds.contains(id)) {
-                throw new NopException(NopMetadataErrors.ERR_LINEAGE_TABLE_NOT_FOUND).param("tableId", id);
+                throw new NopMetadataException(NopMetadataErrors.ERR_LINEAGE_TABLE_NOT_FOUND).param("tableId", id);
             }
         }
         for (NopMetaLineageEdge edge : parsed) {

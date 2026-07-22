@@ -13,6 +13,7 @@ import io.nop.api.core.beans.TreeBean;
 import io.nop.api.core.exceptions.ErrorCode;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.metadata.service.NopMetadataErrors;
+import io.nop.metadata.service.NopMetadataException;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -106,7 +107,7 @@ public class FilterToSqlTranslator {
     private String translateNode(TreeBean node, List<Object> params, Function<String, String> fieldResolver) {
         String op = node.getTagName();
         if (op == null) {
-            throw new NopException(NopMetadataErrors.ERR_FILTER_UNSUPPORTED_OP).param("op", String.valueOf(op));
+            throw new NopMetadataException(NopMetadataErrors.ERR_FILTER_UNSUPPORTED_OP).param("op", String.valueOf(op));
         }
         switch (op) {
             case FilterBeanConstants.FILTER_OP_AND:
@@ -139,7 +140,7 @@ public class FilterToSqlTranslator {
                 return "1=0";
             default:
                 // 首版不支持的 op → 显式失败（不静默跳过、不伪造）
-                throw new NopException(NopMetadataErrors.ERR_FILTER_UNSUPPORTED_OP).param("op", op);
+                throw new NopMetadataException(NopMetadataErrors.ERR_FILTER_UNSUPPORTED_OP).param("op", op);
         }
     }
 
@@ -186,7 +187,7 @@ public class FilterToSqlTranslator {
         String sqlOp = sqlOpOf(op);
         Object value = node.getAttr(FilterBeanConstants.FILTER_ATTR_VALUE);
         if (value == null && !hasAttr(node, FilterBeanConstants.FILTER_ATTR_VALUE)) {
-            throw new NopException(NopMetadataErrors.ERR_FILTER_MISSING_VALUE)
+            throw new NopMetadataException(NopMetadataErrors.ERR_FILTER_MISSING_VALUE)
                     .param("op", op).param("name", col);
         }
         params.add(value);
@@ -198,11 +199,11 @@ public class FilterToSqlTranslator {
         String col = requireField(node, fieldResolver);
         Object value = node.getAttr(FilterBeanConstants.FILTER_ATTR_VALUE);
         if (value == null && !hasAttr(node, FilterBeanConstants.FILTER_ATTR_VALUE)) {
-            throw new NopException(NopMetadataErrors.ERR_FILTER_MISSING_VALUE)
+            throw new NopMetadataException(NopMetadataErrors.ERR_FILTER_MISSING_VALUE)
                     .param("op", node.getTagName()).param("name", col);
         }
         if (!(value instanceof java.util.Collection) && !(value instanceof Object[])) {
-            throw new NopException(NopMetadataErrors.ERR_FILTER_IN_VALUE_NOT_COLLECTION).param("name", col);
+            throw new NopMetadataException(NopMetadataErrors.ERR_FILTER_IN_VALUE_NOT_COLLECTION).param("name", col);
         }
         java.util.Collection<?> coll;
         if (value instanceof java.util.Collection) {
@@ -234,7 +235,7 @@ public class FilterToSqlTranslator {
         Object min = node.getAttr(FilterBeanConstants.FILTER_ATTR_MIN);
         Object max = node.getAttr(FilterBeanConstants.FILTER_ATTR_MAX);
         if (min == null && max == null) {
-            throw new NopException(NopMetadataErrors.ERR_FILTER_BETWEEN_MISSING_BOUNDS).param("name", col);
+            throw new NopMetadataException(NopMetadataErrors.ERR_FILTER_BETWEEN_MISSING_BOUNDS).param("name", col);
         }
         StringBuilder sb = new StringBuilder();
         if (min != null && max != null) {
@@ -263,14 +264,14 @@ public class FilterToSqlTranslator {
     private String requireField(TreeBean node, Function<String, String> fieldResolver) {
         Object nameObj = node.getAttr(FilterBeanConstants.FILTER_ATTR_NAME);
         if (nameObj == null || nameObj.toString().isEmpty()) {
-            throw new NopException(NopMetadataErrors.ERR_FILTER_MISSING_FIELD).param("op", String.valueOf(node.getTagName()));
+            throw new NopMetadataException(NopMetadataErrors.ERR_FILTER_MISSING_FIELD).param("op", String.valueOf(node.getTagName()));
         }
         String name = nameObj.toString();
         if (fieldResolver != null) {
             String resolved = fieldResolver.apply(name);
             if (resolved == null || resolved.isEmpty()) {
                 // fieldResolver 命中失败（未选定 measure/dimension name）→ 显式失败（不静默跳过、不伪造）
-                throw new NopException(NopMetadataErrors.ERR_FILTER_FIELD_RESOLVER_MISS)
+                throw new NopMetadataException(NopMetadataErrors.ERR_FILTER_FIELD_RESOLVER_MISS)
                         .param("op", String.valueOf(node.getTagName()))
                         .param("name", name);
             }
@@ -301,13 +302,13 @@ public class FilterToSqlTranslator {
             case FilterBeanConstants.FILTER_OP_LIKE:
                 return "LIKE";
             default:
-                throw new NopException(NopMetadataErrors.ERR_FILTER_UNSUPPORTED_OP).param("op", filterOp);
+                throw new NopMetadataException(NopMetadataErrors.ERR_FILTER_UNSUPPORTED_OP).param("op", filterOp);
         }
     }
 
     public static void validateIdentifier(String identifier) {
         if (identifier == null || !IDENTIFIER_PATTERN.matcher(identifier).matches()) {
-            throw new NopException(NopMetadataErrors.ERR_FILTER_INVALID_IDENTIFIER)
+            throw new NopMetadataException(NopMetadataErrors.ERR_FILTER_INVALID_IDENTIFIER)
                     .param("identifier", String.valueOf(identifier));
         }
     }}
