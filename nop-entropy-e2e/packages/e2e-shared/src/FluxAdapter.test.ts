@@ -38,9 +38,9 @@ describe('FluxAdapter', () => {
     expect(typeof adapter.datePickerSelect).toBe('function');
   });
 
-  it('confirmDialog is a public helper method', () => {
+  it('confirmDialogAction is a public method from EngineAdapter', () => {
     const adapter = new FluxAdapter();
-    expect(typeof adapter.confirmDialog).toBe('function');
+    expect(typeof adapter.confirmDialogAction).toBe('function');
   });
 
   it('alertDialog is a public helper method', () => {

@@ -210,6 +210,44 @@ export class AmisAdapter implements EngineAdapter {
     return '';
   }
 
+  // ── Tab 支持 ──
+
+  async switchToTab(scope: Page | Locator, tabLabel: string): Promise<Locator> {
+    const s = scope as Locator;
+    const page = 'url' in scope ? (scope as Page) : s.page();
+    const tabBtn = s.locator('ul.Tabs-links li.Tabs-link').filter({ hasText: tabLabel }).first();
+    await tabBtn.click();
+    await page.waitForTimeout(300);
+    return s.locator('div.Tabs-pane.is-active').first();
+  }
+
+  activeTabPanel(scope: Page | Locator): Locator {
+    const s = scope as Locator;
+    return s.locator('div.Tabs-pane.is-active').first();
+  }
+
+  // ── Sub-Form 支持 ──
+
+  subForm(scope: Page | Locator, _fieldName: string): Locator {
+    const s = scope as Locator;
+    // AMIS Combo by field name: data-amis-name="fieldName" > div.Combo
+    // Or just: div.Combo.Combo--multi / div.Combo.Combo--single
+    return s.locator(`[data-amis-name="${_fieldName}"]`).first();
+  }
+
+  subFormItem(scope: Page | Locator, _fieldName: string, index: number): Locator {
+    const container = this.subForm(scope, _fieldName);
+    return container.locator('div.Combo-item').nth(index);
+  }
+
+  // ── Sub-Table / 嵌套 CRUD ──
+
+  subTable(scope: Page | Locator, index = 0): Locator {
+    const s = scope as Locator;
+    // Nested CRUD inside scope: div.Crud (skip the first? No — scope is the parent, so nth(0) is the first nested)
+    return s.locator('div.Crud, div.Crud2').nth(index);
+  }
+
   // ── 确认对话框 ──
 
   async confirmDialogAction(page: Page): Promise<void> {

@@ -31,6 +31,22 @@ export interface EngineAdapter {
 
   // 确认对话框
   confirmDialogAction(page: Page): Promise<void>;
+
+  // ── Tab 支持 ──
+  /** 按标签文本切换到指定标签页，返回标签面板的 Locator（作用域上下文） */
+  switchToTab(scope: Page | Locator, tabLabel: string): Promise<Locator>;
+  /** 获取当前激活的标签面板 Locator */
+  activeTabPanel(scope: Page | Locator): Locator;
+
+  // ── Sub-Form 支持（内联子表单 / Combo / ObjectField） ──
+  /** 获取指定字段名的子表单容器 Locator */
+  subForm(scope: Page | Locator, fieldName: string): Locator;
+  /** 获取数组型子表单中指定索引的条目 Locator */
+  subFormItem(scope: Page | Locator, fieldName: string, index: number): Locator;
+
+  // ── Sub-Table / 嵌套 CRUD 支持 ──
+  /** 获取 scope 范围内第 index 个嵌套 CRUD 表格容器（0 起始） */
+  subTable(scope: Page | Locator, index?: number): Locator;
 }
 
 export interface CrudPageConfig {

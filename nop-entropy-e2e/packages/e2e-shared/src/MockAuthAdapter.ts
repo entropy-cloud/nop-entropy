@@ -301,6 +301,15 @@ export const defaultMenuResponse = {
         sort: 9,
       },
       {
+        id: 'flux-complex-form',
+        title: 'Flux Complex Form',
+        path: '/flux-complex-form',
+        icon: 'table-properties',
+        pageType: 'flux',
+        schemaPath: '/data/flux-complex-form.json',
+        sort: 10,
+      },
+      {
       id: 'settings',
       title: 'Settings',
       path: '/settings',
