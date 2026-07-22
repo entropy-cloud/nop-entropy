@@ -19,9 +19,8 @@ export class FormDialog {
     await this.dialog.waitFor({ state: 'hidden' });
   }
 
-  async setField(name: string, value: string): Promise<void> {
-    const field = this.engine.formField(this.dialog, name);
-    await field.fill(value);
+  async setField(name: string, value: string | boolean | number): Promise<void> {
+    await this.engine.setFieldValue(this.dialog, name, value);
   }
 
   async getField(name: string): Promise<string> {
@@ -35,20 +34,8 @@ export class FormDialog {
         return (await field.first().textContent()) ?? '';
       }
     }
-    // Try 2: AMIS static field identified by data-amis-name attribute
-    const amisField = this.dialog.locator(`[data-amis-name="${name}"]`).first();
-    if (await amisField.count().then((c) => c > 0)) {
-      const staticEl = amisField.locator('.cxd-Form-static, .cxd-PlainField, .cxd-MappingField').first();
-      if (await staticEl.count().then((c) => c > 0)) {
-        return ((await staticEl.textContent()) ?? '').trim();
-      }
-      // Fallback: read the value column
-      const valueEl = amisField.locator('.cxd-Form-value').first();
-      if (await valueEl.count().then((c) => c > 0)) {
-        return ((await valueEl.textContent()) ?? '').trim();
-      }
-    }
-    return '';
+    // Try 2: engine-specific static field reader
+    return this.engine.staticFieldValue(this.dialog, name);
   }
 
   async selectOption(fieldLabels: string[], optionTexts: string[]): Promise<void> {

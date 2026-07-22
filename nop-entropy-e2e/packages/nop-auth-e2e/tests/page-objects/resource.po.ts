@@ -33,138 +33,49 @@ export class ResourcePO extends CrudListPage {
   }
 
   async searchBySite(siteId: string): Promise<void> {
-    const filterInput = this.page.locator('input[name^="filter_siteId"]').first();
-    const visible = await filterInput.isVisible().catch(() => false);
-    if (visible) {
-      await filterInput.clear();
-      await filterInput.fill(siteId);
-    }
-    await this.engine.crudContainer(this.page).locator('[class*="fa-sync"]').first().click();
-    await this.page.keyboard.press("Enter");
-    await this.engine.table(this.page).waitFor({ state: 'visible' });
+    await this.search('siteId', siteId);
   }
 
   async selectSite(siteId: string): Promise<void> {
     const dialog = new FormDialog(this.page, this.engine);
-    await dialog.selectOption(['siteId'], [siteId]);
-    await this.engine.crudContainer(this.page).locator('[class*="fa-sync"]').first().click();
-    await this.page.keyboard.press("Enter");
+    await dialog.setField('siteId', siteId);
+    await this.engine.refreshButton(this.page).click();
+    await this.page.keyboard.press('Enter');
     await this.engine.table(this.page).waitFor({ state: 'visible' });
   }
 
   async fillForm(data: ResourceFormData): Promise<void> {
     const dialog = new FormDialog(this.page, this.engine);
-    if (data.resourceId !== undefined) {
-      await dialog.setField('resourceId', data.resourceId);
-    }
-    if (data.siteId !== undefined) {
-      await dialog.selectOption(['siteId'], [data.siteId]);
-    }
+    if (data.resourceId !== undefined) await dialog.setField('resourceId', data.resourceId);
+    if (data.siteId !== undefined) await dialog.setField('siteId', data.siteId);
     await dialog.setField('displayName', data.displayName);
-    if (data.orderNo !== undefined) {
-      await dialog.setField('orderNo', String(data.orderNo));
-    }
-    await dialog.selectOption(['resourceType'], [data.resourceType]);
-    if (data.parentId !== undefined) {
-      await dialog.setField('parentId', data.parentId);
-    }
-    if (data.icon !== undefined) {
-      await dialog.setField('icon', data.icon);
-    }
-    if (data.routePath !== undefined) {
-      await dialog.setField('routePath', data.routePath);
-    }
-    if (data.url !== undefined) {
-      await dialog.setField('url', data.url);
-    }
-    if (data.component !== undefined) {
-      await dialog.setField('component', data.component);
-    }
-    if (data.hidden !== undefined) {
-      await this.setCheckbox('hidden', data.hidden);
-    }
-    if (data.keepAlive !== undefined) {
-      await this.setCheckbox('keepAlive', data.keepAlive);
-    }
-    if (data.permissions !== undefined) {
-      await dialog.setField('permissions', data.permissions);
-    }
-    if (data.noAuth !== undefined) {
-      await this.setCheckbox('noAuth', data.noAuth);
-    }
-    if (data.status !== undefined) {
-      await dialog.selectOption(['status'], [String(data.status)]);
-    }
-    if (data.remark !== undefined) {
-      await dialog.setField('remark', data.remark);
-    }
-  }
-
-  async readViewField(fieldName: string): Promise<string> {
-    const dialog = new FormDialog(this.page, this.engine);
-    return dialog.getField(fieldName);
-  }
-
-  async clickSave(): Promise<void> {
-    const dialog = new FormDialog(this.page, this.engine);
-    await dialog.submit();
-    await this.waitForList();
-  }
-
-  async clickView(rowId: string): Promise<void> {
-    const row = await this.findRowByText(rowId);
-    if (row) {
-      await this.engine.rowAction(row, /查看/);
-    }
-    await this.engine.dialog(this.page).waitFor({ state: 'visible' });
-  }
-
-  async clickEdit(rowId: string): Promise<void> {
-    const row = await this.findRowByText(rowId);
-    if (row) {
-      await this.engine.rowAction(row, /编辑/);
-    }
-    await this.engine.dialog(this.page).waitFor({ state: 'visible' });
-  }
-
-  async clickDelete(rowId: string): Promise<void> {
-    const row = await this.findRowByText(rowId);
-    if (row) {
-      await this.deleteRow(row);
-    }
-    await this.waitForList();
+    if (data.orderNo !== undefined) await dialog.setField('orderNo', String(data.orderNo));
+    await dialog.setField('resourceType', data.resourceType);
+    if (data.parentId !== undefined) await dialog.setField('parentId', data.parentId);
+    if (data.icon !== undefined) await dialog.setField('icon', data.icon);
+    if (data.routePath !== undefined) await dialog.setField('routePath', data.routePath);
+    if (data.url !== undefined) await dialog.setField('url', data.url);
+    if (data.component !== undefined) await dialog.setField('component', data.component);
+    if (data.hidden !== undefined) await dialog.setField('hidden', data.hidden);
+    if (data.keepAlive !== undefined) await dialog.setField('keepAlive', data.keepAlive);
+    if (data.permissions !== undefined) await dialog.setField('permissions', data.permissions);
+    if (data.noAuth !== undefined) await dialog.setField('noAuth', data.noAuth);
+    if (data.status !== undefined) await dialog.setField('status', String(data.status));
+    if (data.remark !== undefined) await dialog.setField('remark', data.remark);
   }
 
   async assertResourceExists(resourceId: string): Promise<void> {
-    const row = await this.findRowByText(resourceId);
-    expect(row).not.toBeNull();
+    await this.assertEntityExists(resourceId);
   }
 
   async assertResourceNotExists(resourceId: string): Promise<void> {
-    const row = await this.findRowByText(resourceId);
-    expect(row).toBeNull();
+    await this.assertEntityNotExists(resourceId);
   }
 
   async createResource(data: ResourceFormData): Promise<void> {
     await this.clickAdd();
     await this.fillForm(data);
     await this.clickSave();
-  }
-
-  async getTableRowCount(): Promise<number> {
-    return this.engine.rows(this.page).count();
-  }
-
-  private async setCheckbox(fieldName: string, checked: boolean): Promise<void> {
-    const dialog = new FormDialog(this.page, this.engine);
-    const container = dialog.dialog;
-    const checkbox = container
-      .locator(`[name="${fieldName}"] input[type="checkbox"]`)
-      .first();
-    const isChecked = await checkbox.isChecked();
-    if (isChecked !== checked) {
-      await checkbox.click();
-    }
   }
 }
 

@@ -41,6 +41,40 @@ export class CrudListPage extends BasePage {
     return dialog;
   }
 
+  // ── 搜索 ──
+
+  async search(fieldName: string, value: string): Promise<void> {
+    await this.page
+      .locator('[data-slot="alert-dialog-overlay"], .cxd-Modal-overlay')
+      .waitFor({ state: 'hidden', timeout: 5_000 })
+      .catch(() => {});
+    await this.page.waitForTimeout(300);
+
+    const filterInput = this.engine.searchField(this.page, fieldName);
+    const visible = await filterInput.isVisible().catch(() => false);
+    if (visible) {
+      await filterInput.clear();
+      await filterInput.fill(value);
+      const searchBtn = this.engine.searchButton(this.page);
+      const searchBtnVisible = await searchBtn.isVisible().catch(() => false);
+      if (searchBtnVisible) {
+        await searchBtn.click({ force: true });
+      } else {
+        await filterInput.press('Enter');
+      }
+      await this.page.waitForTimeout(1500);
+    } else {
+      const refreshBtn = this.engine.refreshButton(this.page);
+      const refreshVisible = await refreshBtn.isVisible().catch(() => false);
+      if (refreshVisible) {
+        await refreshBtn.click();
+      }
+    }
+    await this.page.waitForLoadState('networkidle').catch(() => {});
+  }
+
+  // ── 行操作（通用） ──
+
   async editRow(row: Locator): Promise<FormDialog> {
     await this.engine.rowAction(row, /编辑|Edit/);
     const dialog = new FormDialog(this.page, this.engine);
@@ -50,30 +84,64 @@ export class CrudListPage extends BasePage {
 
   async deleteRow(row: Locator): Promise<void> {
     await this.engine.rowAction(row, /删除|Delete/);
-    // Wait for the confirmation dialog to appear, then click confirm
-    const dialog = this.page.locator('[role="alertdialog"]').last();
-    await dialog.waitFor({ state: 'visible', timeout: 5_000 }).catch(() => {});
-    await this.page.waitForTimeout(500);
-    // Use role-based selector inside the dialog for precision
-    const confirmBtn = dialog.getByRole('button', { name: /^Confirm$|^确定$|^确认$/ }).first();
-    if (await confirmBtn.count().then((c) => c > 0)) {
-      await confirmBtn.click();
-    } else {
-      // Fallback: generic button search
-      await this.page
-        .locator('button:has-text("Confirm"), button:has-text("确定"), button:has-text("确认")')
-        .last()
-        .click({ force: true });
-    }
-    // Wait for dialog to disappear
-    await dialog.waitFor({ state: 'hidden', timeout: 5_000 }).catch(() => {});
-    await this.page.waitForLoadState('networkidle').catch(() => {});
+    await this.engine.confirmDialogAction(this.page);
     await this.page.waitForTimeout(1000);
+  }
+
+  async clickView(rowIdentifier: string): Promise<void> {
+    const row = await this.findRowByText(rowIdentifier);
+    if (row) {
+      await this.engine.rowAction(row, /查看/);
+    }
+    await this.engine.dialog(this.page).waitFor({ state: 'visible' });
+  }
+
+  async clickEdit(rowIdentifier: string): Promise<void> {
+    const row = await this.findRowByText(rowIdentifier);
+    if (row) {
+      await this.engine.rowAction(row, /编辑/);
+    }
+    await this.engine.dialog(this.page).waitFor({ state: 'visible' });
+  }
+
+  async clickDelete(rowIdentifier: string): Promise<void> {
+    const row = await this.findRowByText(rowIdentifier);
+    if (row) {
+      await this.deleteRow(row);
+    }
+    await this.waitForList();
+  }
+
+  async clickSave(): Promise<void> {
+    const dialog = new FormDialog(this.page, this.engine);
+    await dialog.submit();
+    await this.waitForList();
+  }
+
+  async readViewField(fieldName: string): Promise<string> {
+    const dialog = new FormDialog(this.page, this.engine);
+    return dialog.getField(fieldName);
+  }
+
+  // ── 断言 ──
+
+  async assertEntityExists(text: string): Promise<void> {
+    const { expect } = await import('@playwright/test');
+    const row = await this.findRowByText(text);
+    expect(row).not.toBeNull();
+  }
+
+  async assertEntityNotExists(text: string): Promise<void> {
+    const { expect } = await import('@playwright/test');
+    const row = await this.findRowByText(text);
+    expect(row).toBeNull();
   }
 
   async deleteEntityViaApi(entityName: string, id: string | number): Promise<void> {
     await this._graphQL.delete(entityName, id);
   }
+
+  // ── 行查询 ──
 
   async findRowByField(field: string, value: string): Promise<Locator | null> {
     const allRows = this.engine.rows(this.page);
@@ -102,6 +170,10 @@ export class CrudListPage extends BasePage {
     const allRows = this.engine.rows(this.page);
     const row = allRows.nth(rowIndex);
     return this.engine.cellValue(row, fieldName, this.config.columnHeaders ?? []);
+  }
+
+  async getTableRowCount(): Promise<number> {
+    return this.engine.rows(this.page).count();
   }
 
   async assertGraphQLOk(): Promise<void> {

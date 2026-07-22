@@ -46,6 +46,53 @@ export class FluxAdapter implements EngineAdapter {
     return dialog.getByLabel(fieldName);
   }
 
+  async setFieldValue(dialog: Locator, fieldName: string, value: string | boolean | number): Promise<void> {
+    const page = dialog.page();
+    const strValue = String(value);
+
+    // 1. Boolean → checkbox / switch
+    if (typeof value === 'boolean') {
+      const checkbox = dialog.locator(`input[type="checkbox"][name="${fieldName}"]`).first();
+      if (await checkbox.count().then((c) => c > 0)) {
+        const isChecked = await checkbox.isChecked();
+        if (isChecked !== value) await checkbox.click();
+        return;
+      }
+      const switchEl = dialog.locator(`[data-slot="switch"][data-field="${fieldName}"]`).first();
+      if (await switchEl.count().then((c) => c > 0)) {
+        const ariaChecked = await switchEl.getAttribute('aria-checked');
+        const isOn = ariaChecked === 'true';
+        if (isOn !== value) await switchEl.click();
+        return;
+      }
+    }
+
+    // 2. Native input / textarea
+    const field = this.formField(dialog, fieldName);
+    if (await field.count().then((c) => c > 0)) {
+      const tagName = await field.evaluate((el: Element) => el.tagName);
+      if (tagName === 'SELECT') {
+        await field.selectOption({ label: strValue });
+        return;
+      }
+      await field.fill(strValue);
+      return;
+    }
+
+    // 3. Flux Select: click → pick option
+    const selectTrigger = dialog.locator(`[data-slot="select-trigger"][data-field="${fieldName}"]`).first();
+    if (await selectTrigger.count().then((c) => c > 0)) {
+      await selectTrigger.click();
+      await page.waitForTimeout(300);
+      const option = page.getByRole('option').filter({ hasText: strValue }).first();
+      await option.click();
+      return;
+    }
+
+    // 4. Fallback: try getByLabel fill
+    await field.fill(strValue).catch(() => {});
+  }
+
   submitButton(dialog: Locator): Locator {
     return dialog.getByRole('button', {
       name: /确定|确认|保存|Confirm|Save/,
@@ -172,5 +219,35 @@ export class FluxAdapter implements EngineAdapter {
     const okBtn = dialog.getByRole('button', { name: /确定|确认|OK/ }).first();
     await okBtn.click();
     await dialog.waitFor({ state: 'hidden', timeout: 3000 });
+  }
+
+  // ── CRUD 搜索 ──
+
+  searchField(page: Page, fieldName: string): Locator {
+    return page.locator(`[data-slot="filter-input"][data-field="${fieldName}"]`).first();
+  }
+
+  searchButton(page: Page): Locator {
+    return page.locator('[data-testid="btn-search"], button[type="submit"]').first();
+  }
+
+  refreshButton(page: Page): Locator {
+    return page.locator('[data-testid="btn-refresh"]').first();
+  }
+
+  // ── 只读字段 ──
+
+  async staticFieldValue(dialog: Locator, fieldName: string): Promise<string> {
+    const cell = dialog.locator(`[data-field="${fieldName}"]`).first();
+    if (await cell.count().then((c) => c > 0)) {
+      return ((await cell.textContent()) ?? '').trim();
+    }
+    return '';
+  }
+
+  // ── 确认对话框 ──
+
+  async confirmDialogAction(page: Page): Promise<void> {
+    await this.confirmDialog(page);
   }
 }
