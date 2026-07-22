@@ -1,5 +1,9 @@
 package io.nop.metadata.service.search;
 
+import io.nop.api.core.annotations.biz.BizModel;
+import io.nop.api.core.annotations.biz.BizMutation;
+import io.nop.api.core.annotations.biz.BizQuery;
+import io.nop.api.core.annotations.core.Name;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.core.context.IServiceContext;
 import io.nop.metadata.core.dto.IndexResult;
@@ -21,6 +25,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
+@BizModel("NopMetaSearch")
 public class NopMetaSearchBizModel {
 
     private static final Logger LOG = LoggerFactory.getLogger(NopMetaSearchBizModel.class);
@@ -36,8 +41,9 @@ public class NopMetaSearchBizModel {
     @Named("nopSearchEngine")
     protected ISearchEngine searchEngine;
 
-    public List<IndexResult> rebuildSearchIndex(List<String> entityTypes,
-                                                 IServiceContext context) {
+    @BizMutation
+    public List<IndexResult> rebuildSearchIndex(@Name("entityTypes") List<String> entityTypes,
+                                                IServiceContext context) {
         if (searchEngine == null) {
             throw new NopMetadataException(NopMetadataErrors.ERR_SEARCH_ENGINE_UNAVAILABLE)
                     .param(NopMetadataErrors.ARG_ERROR, "searchEngine not available");
@@ -45,9 +51,10 @@ public class NopMetaSearchBizModel {
         return indexBuilder.buildFullIndex(entityTypes);
     }
 
-    public SearchResultDTO searchMetadata(String query,
-                                          String entityType,
-                                          Integer limit,
+    @BizQuery
+    public SearchResultDTO searchMetadata(@Name("query") String query,
+                                          @Name("entityType") String entityType,
+                                          @Name("limit") Integer limit,
                                           IServiceContext context) {
         if (limit == null) {
             limit = 20;

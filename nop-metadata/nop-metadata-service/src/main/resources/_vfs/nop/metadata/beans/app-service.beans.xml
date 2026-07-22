@@ -47,9 +47,13 @@
           class="io.nop.metadata.service.search.NopMetaIndexBuilder" ioc:default="true"/>
 
     <!-- 搜索引擎增量索引服务（plan 312 Phase 3）：BizModel save/delete hook 调用的增量索引更新（addDoc/removeDocs）。
-         封装 ISearchEngine 调用 + 容错日志。 -->
+         封装 ISearchEngine 调用 + 容错日志。
+         默认 fail-close（搜索异常传播给调用方，由 BizModel 边界转为 GraphQL 错误）。
+         设置 nop.metadata.search.fail-open=true 切换为 fail-open（ERROR 日志 + 吞异常）。 -->
     <bean id="io.nop.metadata.service.search.NopMetaSearchService"
-          class="io.nop.metadata.service.search.NopMetaSearchService" ioc:default="true"/>
+          class="io.nop.metadata.service.search.NopMetaSearchService" ioc:default="true">
+        <property name="searchIndexFailOpen" value="${nop.metadata.search.fail-open:false}"/>
+    </bean>
 
     <!-- 元数据搜索 GraphQL BizModel（plan 312 Phase 4）：searchMetadata query + rebuildSearchIndex mutation。 -->
     <bean id="io.nop.metadata.service.search.NopMetaSearchBizModel"

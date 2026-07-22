@@ -12462,6 +12462,16 @@
     "allPublicMethods": true,
     "fields": [],
     "methods": [],
+    "name": "io.nop.sys.dao.entity.NopSysBroadcastEvent"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
     "name": "io.nop.sys.dao.entity.NopSysChangeLog"
   },
   {
@@ -12633,6 +12643,21 @@
     "fields": [],
     "methods": [],
     "name": "io.nop.sys.dao.entity.NopSysVariable"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [
+      {
+        "name": "newInstance",
+        "parameterTypes": []
+      }
+    ],
+    "name": "io.nop.sys.dao.entity._gen._NopSysBroadcastEvent"
   },
   {
     "allDeclaredConstructors": true,
@@ -13006,6 +13031,16 @@
       }
     ],
     "name": "io.nop.sys.dao.seq.SysSequenceGenerator"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.sys.service.entity.NopSysBroadcastEventBizModel"
   },
   {
     "allDeclaredConstructors": true,
@@ -14208,6 +14243,16 @@
     "allPublicMethods": true,
     "fields": [],
     "methods": [],
+    "name": "io.nop.wf.core.support.ApprovalFlowHelper"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
     "name": "io.nop.wf.dao.dataobject.DefaultWorkflowDOProvider"
   },
   {
@@ -14219,6 +14264,26 @@
     "fields": [],
     "methods": [],
     "name": "io.nop.wf.dao.entity.NopWfAction"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.wf.dao.entity.NopWfApprovableForm"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.wf.dao.entity.NopWfApprovableItem"
   },
   {
     "allDeclaredConstructors": true,
@@ -14334,6 +14399,36 @@
       }
     ],
     "name": "io.nop.wf.dao.entity._gen._NopWfAction"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [
+      {
+        "name": "newInstance",
+        "parameterTypes": []
+      }
+    ],
+    "name": "io.nop.wf.dao.entity._gen._NopWfApprovableForm"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [
+      {
+        "name": "newInstance",
+        "parameterTypes": []
+      }
+    ],
+    "name": "io.nop.wf.dao.entity._gen._NopWfApprovableItem"
   },
   {
     "allDeclaredConstructors": true,
@@ -14622,6 +14717,26 @@
     "fields": [],
     "methods": [],
     "name": "io.nop.wf.service.entity.NopWfActionBizModel"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.wf.service.entity.NopWfApprovableFormBizModel"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.wf.service.entity.NopWfApprovableItemBizModel"
   },
   {
     "allDeclaredConstructors": true,

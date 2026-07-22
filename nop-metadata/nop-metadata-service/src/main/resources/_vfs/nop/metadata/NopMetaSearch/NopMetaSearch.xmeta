@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<meta x:schema="/nop/schema/xmeta.xdef" xmlns:x="/nop/schema/xdsl.xdef"
+      displayName="元数据搜索" i18n-en:displayName="Metadata Search">
+
+    <props>
+        <prop name="items" displayName="搜索结果列表" i18n-en:displayName="Search Result Items">
+            <schema type="List&lt;io.nop.metadata.core.dto.SearchHitDTO&gt;"/>
+        </prop>
+        <prop name="total" displayName="总记录数" i18n-en:displayName="Total Count">
+            <schema type="Long"/>
+        </prop>
+        <prop name="limit" displayName="每页限制" i18n-en:displayName="Page Limit">
+            <schema type="Integer"/>
+        </prop>
+    </props>
+</meta>

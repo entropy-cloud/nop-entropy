@@ -1,0 +1,4 @@
+nop:
+  metadata:
+    search:
+      fail-open: true

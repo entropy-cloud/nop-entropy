@@ -1063,6 +1063,16 @@ public interface NopMetadataErrors {
                     "Search engine is not available: {error}",
                     ARG_ERROR);
 
+    ErrorCode ERR_SEARCH_INDEX_ADD_FAILED =
+            ErrorCode.define("nop.err.metadata.search-index-add-failed",
+                    "Failed to add document to search index: entityType={entityType} entityId={entityId}",
+                    ARG_ENTITY_TYPE, ARG_ENTITY_ID);
+
+    ErrorCode ERR_SEARCH_INDEX_REMOVE_FAILED =
+            ErrorCode.define("nop.err.metadata.search-index-remove-failed",
+                    "Failed to remove document from search index: entityType={entityType} entityId={entityId}",
+                    ARG_ENTITY_TYPE, ARG_ENTITY_ID);
+
     // ===== Sync =====
 
     ErrorCode ERR_DIALECT_NOT_SUPPORTED =

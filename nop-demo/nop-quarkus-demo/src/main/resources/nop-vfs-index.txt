@@ -577,6 +577,7 @@
 /nop/core/registry/prompt.register-model.xml
 /nop/core/registry/rule.register-model.xml
 /nop/core/registry/sql-lib.register-model.xml
+/nop/core/registry/table-validator.register-model.xml
 /nop/core/registry/task.register-model.xml
 /nop/core/registry/validator.register-model.xml
 /nop/core/registry/view.register-model.xml
@@ -1118,6 +1119,7 @@
 /nop/schema/stream/pattern.xdef
 /nop/schema/stream/resource-spec.xdef
 /nop/schema/stream/stream.xdef
+/nop/schema/table-validator.xdef
 /nop/schema/task/batch.xdef
 /nop/schema/task/task.xdef
 /nop/schema/validator.xdef
@@ -1157,6 +1159,10 @@
 /nop/sys/beans/_service.beans.xml
 /nop/sys/beans/app-dao.beans.xml
 /nop/sys/beans/app-service.beans.xml
+/nop/sys/model/NopSysBroadcastEvent/NopSysBroadcastEvent.xbiz
+/nop/sys/model/NopSysBroadcastEvent/NopSysBroadcastEvent.xmeta
+/nop/sys/model/NopSysBroadcastEvent/_NopSysBroadcastEvent.xbiz
+/nop/sys/model/NopSysBroadcastEvent/_NopSysBroadcastEvent.xmeta
 /nop/sys/model/NopSysChangeLog/NopSysChangeLog.xbiz
 /nop/sys/model/NopSysChangeLog/NopSysChangeLog.xmeta
 /nop/sys/model/NopSysChangeLog/_NopSysChangeLog.xbiz
@@ -1233,6 +1239,11 @@
 /nop/sys/model/module-meta.json
 /nop/sys/orm/_app.orm.xml
 /nop/sys/orm/app.orm.xml
+/nop/sys/pages/NopSysBroadcastEvent/NopSysBroadcastEvent.lib.xjs
+/nop/sys/pages/NopSysBroadcastEvent/NopSysBroadcastEvent.view.xml
+/nop/sys/pages/NopSysBroadcastEvent/_gen/_NopSysBroadcastEvent.view.xml
+/nop/sys/pages/NopSysBroadcastEvent/main.page.yaml
+/nop/sys/pages/NopSysBroadcastEvent/picker.page.yaml
 /nop/sys/pages/NopSysChangeLog/NopSysChangeLog.lib.xjs
 /nop/sys/pages/NopSysChangeLog/NopSysChangeLog.view.xml
 /nop/sys/pages/NopSysChangeLog/_gen/_NopSysChangeLog.view.xml
@@ -1452,6 +1463,7 @@
 /nop/templates/orm/{!disableWebModule}{appName}-web/precompile2/gen-i18n.xgen.xgen
 /nop/templates/orm/{!disableWebModule}{appName}-web/src/main/resources/_vfs/{moduleId}/_module
 /nop/templates/orm/{!disableWebModule}{appName}-web/src/test/java/{basePackagePath}/web/{moduleClassPrefix}WebCodeGen.java.xgen
+/nop/templates/orm/{!disableWebModule}{appName}-web/src/test/java/{basePackagePath}/web/{moduleClassPrefix}WebPagesTest.java.xgen
 /nop/templates/orm/{appName}-api/pom.xml.xgen
 /nop/templates/orm/{appName}-app/pom.xml.xgen
 /nop/templates/orm/{appName}-app/src/main/docker/Dockerfile.jvm.xgen
@@ -1530,6 +1542,7 @@
 /nop/web/xlib/web/impl_GenForm.xpl
 /nop/web/xlib/web/impl_GenGrid.xpl
 /nop/web/xlib/web/impl_GenPage.xpl
+/nop/web/xlib/web/impl_flux_mode.xpl
 /nop/web/xlib/web/init_grid_gen_scope.xpl
 /nop/web/xlib/web/page_crud.xpl
 /nop/web/xlib/web/page_picker.xpl
@@ -1574,6 +1587,14 @@
 /nop/wf/model/NopWfAction/NopWfAction.xmeta
 /nop/wf/model/NopWfAction/_NopWfAction.xbiz
 /nop/wf/model/NopWfAction/_NopWfAction.xmeta
+/nop/wf/model/NopWfApprovableForm/NopWfApprovableForm.xbiz
+/nop/wf/model/NopWfApprovableForm/NopWfApprovableForm.xmeta
+/nop/wf/model/NopWfApprovableForm/_NopWfApprovableForm.xbiz
+/nop/wf/model/NopWfApprovableForm/_NopWfApprovableForm.xmeta
+/nop/wf/model/NopWfApprovableItem/NopWfApprovableItem.xbiz
+/nop/wf/model/NopWfApprovableItem/NopWfApprovableItem.xmeta
+/nop/wf/model/NopWfApprovableItem/_NopWfApprovableItem.xbiz
+/nop/wf/model/NopWfApprovableItem/_NopWfApprovableItem.xmeta
 /nop/wf/model/NopWfDefinition/NopWfDefinition.xbiz
 /nop/wf/model/NopWfDefinition/NopWfDefinition.xmeta
 /nop/wf/model/NopWfDefinition/_NopWfDefinition.xbiz
@@ -1645,6 +1666,16 @@
 /nop/wf/pages/NopWfAction/_gen/_NopWfAction.view.xml
 /nop/wf/pages/NopWfAction/main.page.yaml
 /nop/wf/pages/NopWfAction/picker.page.yaml
+/nop/wf/pages/NopWfApprovableForm/NopWfApprovableForm.lib.xjs
+/nop/wf/pages/NopWfApprovableForm/NopWfApprovableForm.view.xml
+/nop/wf/pages/NopWfApprovableForm/_gen/_NopWfApprovableForm.view.xml
+/nop/wf/pages/NopWfApprovableForm/main.page.yaml
+/nop/wf/pages/NopWfApprovableForm/picker.page.yaml
+/nop/wf/pages/NopWfApprovableItem/NopWfApprovableItem.lib.xjs
+/nop/wf/pages/NopWfApprovableItem/NopWfApprovableItem.view.xml
+/nop/wf/pages/NopWfApprovableItem/_gen/_NopWfApprovableItem.view.xml
+/nop/wf/pages/NopWfApprovableItem/main.page.yaml
+/nop/wf/pages/NopWfApprovableItem/picker.page.yaml
 /nop/wf/pages/NopWfDefinition/NopWfDefinition.lib.js
 /nop/wf/pages/NopWfDefinition/NopWfDefinition.lib.xjs
 /nop/wf/pages/NopWfDefinition/NopWfDefinition.view.xml

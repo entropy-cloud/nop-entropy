@@ -1,6 +1,11 @@
 package io.nop.metadata.service.search;
 
+import io.nop.api.core.annotations.biz.BizModel;
+import io.nop.api.core.annotations.biz.BizMutation;
+import io.nop.api.core.annotations.biz.BizQuery;
+import io.nop.core.context.IServiceContext;
 import io.nop.dao.api.IEntityDao;
+import io.nop.metadata.service.NopMetadataException;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.metadata.core.dto.IndexResult;
 import io.nop.metadata.core.dto.SearchResultDTO;
@@ -160,10 +165,38 @@ class TestNopMetadataSearchIntegration {
         verify(searchEngine).removeDocs(eq("nop-meta-metadata"), eq(List.of("entity-1")));
     }
 
-    // ===== AR-16: error-path coverage — engine throws =====
+    // ===== Phase 2: error-path coverage — fail-close (default) =====
 
     @Test
-    void testAddToIndex_engineThrows_doesNotPropagate() {
+    void testAddToIndex_engineThrows_failClose() {
+        searchService.setSearchIndexFailOpen(false);
+        doThrow(new RuntimeException("search engine down"))
+                .when(searchEngine).addDoc(anyString(), any());
+
+        SearchableDoc doc = new SearchableDoc();
+        doc.setId("e-err");
+        doc.setName("err");
+        doc.setTitle("Err");
+
+        assertThrows(NopMetadataException.class,
+                () -> searchService.addToIndex("MetaEntity", "e-err", doc));
+    }
+
+    @Test
+    void testRemoveFromIndex_engineThrows_failClose() {
+        searchService.setSearchIndexFailOpen(false);
+        doThrow(new RuntimeException("search engine down"))
+                .when(searchEngine).removeDocs(anyString(), anyList());
+
+        assertThrows(NopMetadataException.class,
+                () -> searchService.removeFromIndex("MetaEntity", "e-err"));
+    }
+
+    // ===== Phase 2: fail-open mode =====
+
+    @Test
+    void testAddToIndex_engineThrows_failOpen() {
+        searchService.setSearchIndexFailOpen(true);
         doThrow(new RuntimeException("search engine down"))
                 .when(searchEngine).addDoc(anyString(), any());
 
@@ -179,7 +212,8 @@ class TestNopMetadataSearchIntegration {
     }
 
     @Test
-    void testRemoveFromIndex_engineThrows_doesNotPropagate() {
+    void testRemoveFromIndex_engineThrows_failOpen() {
+        searchService.setSearchIndexFailOpen(true);
         doThrow(new RuntimeException("search engine down"))
                 .when(searchEngine).removeDocs(anyString(), anyList());
 
@@ -205,6 +239,29 @@ class TestNopMetadataSearchIntegration {
 
         assertDoesNotThrow(() ->
                 searchService.removeFromIndex("MetaEntity", "e-null"));
+    }
+
+    // ===== Phase 1: GraphQL annotation verification =====
+
+    @Test
+    void testBizModelAnnotationPresent() {
+        BizModel bizModel = NopMetaSearchBizModel.class.getAnnotation(BizModel.class);
+        assertNotNull(bizModel, "NopMetaSearchBizModel should have @BizModel annotation");
+        assertEquals("NopMetaSearch", bizModel.value());
+    }
+
+    @Test
+    void testRebuildSearchIndexHasBizMutation() throws NoSuchMethodException {
+        var method = NopMetaSearchBizModel.class.getMethod("rebuildSearchIndex", List.class, IServiceContext.class);
+        BizMutation mutation = method.getAnnotation(BizMutation.class);
+        assertNotNull(mutation, "rebuildSearchIndex should have @BizMutation annotation");
+    }
+
+    @Test
+    void testSearchMetadataHasBizQuery() throws NoSuchMethodException {
+        var method = NopMetaSearchBizModel.class.getMethod("searchMetadata", String.class, String.class, Integer.class, IServiceContext.class);
+        BizQuery query = method.getAnnotation(BizQuery.class);
+        assertNotNull(query, "searchMetadata should have @BizQuery annotation");
     }
 
     @SuppressWarnings("unchecked")
