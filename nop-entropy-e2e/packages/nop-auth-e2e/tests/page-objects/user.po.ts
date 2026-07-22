@@ -20,7 +20,11 @@ export interface UserFormData {
 
 export class UserPO extends CrudListPage {
   constructor(page: Page, engine: EngineAdapter) {
-    super(page, engine, { entityRoute: 'NopAuthUser-main', entityName: 'NopAuthUser' });
+    super(page, engine, {
+      entityRoute: 'NopAuthUser-main',
+      entityName: 'NopAuthUser',
+      columnHeaders: ['', 'userName', 'nickName', 'deptId', 'gender', 'phone', 'userType', 'status'],
+    });
   }
 
   async goto(): Promise<void> {
@@ -30,14 +34,40 @@ export class UserPO extends CrudListPage {
   }
 
   async searchUser(userName: string): Promise<void> {
+    // Wait for any leftover dialog overlays to disappear (both custom and AMIS)
+    await this.page
+      .locator('[data-slot="alert-dialog-overlay"], .cxd-Modal-overlay')
+      .waitFor({ state: 'hidden', timeout: 5_000 })
+      .catch(() => {});
+    await this.page.waitForTimeout(500);
+
+    // AMIS CRUD filter form: fill input and click 搜索 button
     const filterInput = this.page.locator('input[name^="filter_userName"]').first();
     const visible = await filterInput.isVisible().catch(() => false);
     if (visible) {
       await filterInput.clear();
       await filterInput.fill(userName);
+      // Click the 搜索 (Search) submit button in the filter form
+      const searchBtn = this.page.locator('.cxd-Table-searchableForm button[type="submit"]').first();
+      const searchBtnVisible = await searchBtn.isVisible().catch(() => false);
+      if (searchBtnVisible) {
+        await searchBtn.click({ force: true });
+      } else {
+        await filterInput.press('Enter');
+      }
+      await this.page.waitForTimeout(1500);
+    } else {
+      // Fallback: refresh the list
+      const refreshBtn = this.engine
+        .crudContainer(this.page)
+        .locator('[class*="fa-sync"]')
+        .first();
+      const refreshVisible = await refreshBtn.isVisible().catch(() => false);
+      if (refreshVisible) {
+        await refreshBtn.click();
+      }
     }
-    await this.engine.addButton(this.page).click();
-    await this.engine.table(this.page).waitFor({ state: 'visible' });
+    await this.page.waitForLoadState('networkidle').catch(() => {});
   }
 
   async fillAddForm(data: UserFormData): Promise<void> {

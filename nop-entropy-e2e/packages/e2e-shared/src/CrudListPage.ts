@@ -50,7 +50,25 @@ export class CrudListPage extends BasePage {
 
   async deleteRow(row: Locator): Promise<void> {
     await this.engine.rowAction(row, /删除|Delete/);
-    await this.page.locator('button:has-text("确定")').click();
+    // Wait for the confirmation dialog to appear, then click confirm
+    const dialog = this.page.locator('[role="alertdialog"]').last();
+    await dialog.waitFor({ state: 'visible', timeout: 5_000 }).catch(() => {});
+    await this.page.waitForTimeout(500);
+    // Use role-based selector inside the dialog for precision
+    const confirmBtn = dialog.getByRole('button', { name: /^Confirm$|^确定$|^确认$/ }).first();
+    if (await confirmBtn.count().then((c) => c > 0)) {
+      await confirmBtn.click();
+    } else {
+      // Fallback: generic button search
+      await this.page
+        .locator('button:has-text("Confirm"), button:has-text("确定"), button:has-text("确认")')
+        .last()
+        .click({ force: true });
+    }
+    // Wait for dialog to disappear
+    await dialog.waitFor({ state: 'hidden', timeout: 5_000 }).catch(() => {});
+    await this.page.waitForLoadState('networkidle').catch(() => {});
+    await this.page.waitForTimeout(1000);
   }
 
   async deleteEntityViaApi(entityName: string, id: string | number): Promise<void> {

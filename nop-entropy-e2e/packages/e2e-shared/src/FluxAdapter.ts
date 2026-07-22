@@ -25,6 +25,10 @@ export class FluxAdapter implements EngineAdapter {
     return page.locator('[data-testid="btn-add"]').first();
   }
 
+  queryButton(page: Page): Locator {
+    return page.locator('button:has-text("查询"), button:has-text("搜索")').first();
+  }
+
   async rowAction(row: Locator, _actionNamePattern: RegExp): Promise<void> {
     const button = row.getByRole('button').filter({ hasText: _actionNamePattern }).first();
     await button.click();

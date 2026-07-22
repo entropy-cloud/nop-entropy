@@ -27,9 +27,36 @@ export class AmisAdapter implements EngineAdapter {
     return page.locator('button:has(.fa-plus)').first();
   }
 
+  queryButton(page: Page): Locator {
+    return page.locator('button:has-text("查询"), button:has-text("搜索"), button:has-text("Query")').first();
+  }
+
   async rowAction(row: Locator, actionNamePattern: RegExp): Promise<void> {
-    const button = row.locator('button').filter({ hasText: actionNamePattern }).first();
-    await button.click();
+    // Try 1: direct button in the row matching the pattern (e.g. "查看")
+    const directButton = row.locator('button').filter({ hasText: actionNamePattern }).first();
+    if (await directButton.count().then((c) => c > 0)) {
+      await directButton.click();
+      return;
+    }
+
+    // Try 2: AMIS "更多" (More) dropdown — click to expand, then select menu item
+    const page = row.page();
+    const moreButton = row.locator('button').filter({ hasText: /更多|More/ }).first();
+    if (await moreButton.count().then((c) => c > 0)) {
+      await moreButton.click();
+      await page.waitForTimeout(300);
+      // Menu items appear in a portal overlay outside the row
+      const menuItem = page
+        .locator('.cxd-DropDown-menuItem, .cxd-DropDown-menu > *')
+        .filter({ hasText: actionNamePattern })
+        .first();
+      await menuItem.click();
+      return;
+    }
+
+    // Fallback: click any matching link/button
+    const fallback = row.locator('a, button').filter({ hasText: actionNamePattern }).first();
+    await fallback.click();
   }
 
   dialog(page: Page): Locator {
@@ -52,12 +79,37 @@ export class AmisAdapter implements EngineAdapter {
 
   async selectOption(_dialog: Locator, _fieldLabels: string[], _optionText: string[]): Promise<void> {
     const dialog = _dialog;
-    const fieldLabel = _fieldLabels[0];
+    const page = dialog.page();
+    const fieldKey = _fieldLabels[0];
     const optionText = _optionText[0];
-    const input = dialog.locator(`input[name="${fieldLabel}"]`);
-    await input.click();
-    const option = dialog.locator('.cxd-DropDown-menuItem').filter({ hasText: optionText }).first();
-    await option.click();
+
+    // Strategy: AMIS Select form control, located by data-amis-name attribute
+    // AMIS form items have: <div data-amis-name="gender" class="cxd-Form-item">
+    // The Select trigger is: .cxd-Select inside that form item
+    // Options popup uses: .cxd-Select-option (NOT .cxd-DropDown-menuItem which doesn't exist)
+    const formItem = dialog.locator(`[data-amis-name="${fieldKey}"]`).first();
+    if (await formItem.count().then((c) => c > 0)) {
+      const selectTrigger = formItem.locator('.cxd-Select').first();
+      if (await selectTrigger.count().then((c) => c > 0)) {
+        await selectTrigger.click();
+        await page.waitForTimeout(300);
+        const option = page.locator('.cxd-Select-option').filter({ hasText: optionText }).first();
+        await option.click();
+        return;
+      }
+      // Could be a native <select> inside the form item
+      const nativeSelect = formItem.locator('select').first();
+      if (await nativeSelect.count().then((c) => c > 0)) {
+        await nativeSelect.selectOption({ label: optionText });
+        return;
+      }
+    }
+
+    // Fallback: native <select> by name attribute (for non-AMIS forms)
+    const nativeSelect = dialog.locator(`select[name="${fieldKey}"]`).first();
+    if (await nativeSelect.count().then((c) => c > 0)) {
+      await nativeSelect.selectOption({ label: optionText });
+    }
   }
 
   dateInputByLabel(page: Page, labelText: string): Locator {

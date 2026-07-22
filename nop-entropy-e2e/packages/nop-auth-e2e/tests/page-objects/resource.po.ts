@@ -39,14 +39,16 @@ export class ResourcePO extends CrudListPage {
       await filterInput.clear();
       await filterInput.fill(siteId);
     }
-    await this.engine.addButton(this.page).click();
+    await this.engine.crudContainer(this.page).locator('[class*="fa-sync"]').first().click();
+    await this.page.keyboard.press("Enter");
     await this.engine.table(this.page).waitFor({ state: 'visible' });
   }
 
   async selectSite(siteId: string): Promise<void> {
     const dialog = new FormDialog(this.page, this.engine);
     await dialog.selectOption(['siteId'], [siteId]);
-    await this.engine.addButton(this.page).click();
+    await this.engine.crudContainer(this.page).locator('[class*="fa-sync"]').first().click();
+    await this.page.keyboard.press("Enter");
     await this.engine.table(this.page).waitFor({ state: 'visible' });
   }
 

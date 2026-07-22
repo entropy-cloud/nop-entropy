@@ -550,7 +550,7 @@ public class ModelBasedBatchTaskBuilderFactory {
         if (listenersModel.getOnLoadEnd() != null) {
             builder.addTaskInitializer(context -> {
                 context.onLoadEnd((ctx, err) -> {
-                    listenersModel.getOnTaskEnd().call2(null, ctx, err, ctx.getEvalScope());
+                    listenersModel.getOnLoadEnd().call2(null, ctx, err, ctx.getEvalScope());
                 });
             });
         }

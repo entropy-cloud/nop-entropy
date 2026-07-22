@@ -184,6 +184,8 @@ These rules exist because agents routinely skip plan maintenance when focused on
   - ✅ Prefer **setter injection** when you want explicit dependencies but don't want constructor-based wiring.
   - ❌ Avoid examples like `@Inject private Foo foo;` in code and documentation.
 
+- **No annotation-driven bean scanning**: Nop IoC discovers beans purely through `beans.xml` files under `_vfs/` — not via Java classpath annotation scanning (`@Component`, `@Service`, etc.). `@BizModel` and `@Inject` are metadata/field-injection annotations only; they do not auto-register beans. Every bean must have an explicit `<bean>` definition in a `beans.xml`.
+
 - **Value/config injection**: inject configuration values with `@InjectValue` (avoid Spring-only patterns like `@Value`).
 
 - **AOP usage**: Do not assume Spring AOP patterns (`@Aspect`, `@Around`) work in Nop. Verify actual implementations exist in codebase before documenting or using them. Nop uses source-code generated AOP, not runtime bytecode manipulation.

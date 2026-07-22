@@ -21,14 +21,38 @@ export class RolePO extends CrudListPage {
   }
 
   async searchRole(roleName: string): Promise<void> {
+    // Wait for any leftover dialog overlays to disappear
+    await this.page
+      .locator('[data-slot="alert-dialog-overlay"]')
+      .waitFor({ state: 'hidden', timeout: 5_000 })
+      .catch(() => {});
+
+    // AMIS CRUD filter form: fill input and click 搜索 button
     const filterInput = this.page.locator('input[name^="filter_roleName"]').first();
     const visible = await filterInput.isVisible().catch(() => false);
     if (visible) {
       await filterInput.clear();
       await filterInput.fill(roleName);
+      const searchBtn = this.page.locator('.cxd-Table-searchableForm button[type="submit"]').first();
+      const searchBtnVisible = await searchBtn.isVisible().catch(() => false);
+      if (searchBtnVisible) {
+        await searchBtn.click({ force: true });
+      } else {
+        await filterInput.press('Enter');
+      }
+      await this.page.waitForTimeout(1500);
+    } else {
+      // Fallback: refresh the list
+      const refreshBtn = this.engine
+        .crudContainer(this.page)
+        .locator('[class*="fa-sync"]')
+        .first();
+      const refreshVisible = await refreshBtn.isVisible().catch(() => false);
+      if (refreshVisible) {
+        await refreshBtn.click();
+      }
     }
-    await this.engine.addButton(this.page).click();
-    await this.engine.table(this.page).waitFor({ state: 'visible' });
+    await this.page.waitForLoadState('networkidle').catch(() => {});
   }
 
   async fillForm(data: RoleFormData): Promise<void> {

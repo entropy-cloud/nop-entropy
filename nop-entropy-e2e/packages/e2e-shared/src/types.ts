@@ -10,6 +10,7 @@ export interface EngineAdapter {
   rows(page: Page): Locator;
   cellValue(row: Locator, fieldName: string, columnHeaders: string[]): Promise<string>;
   addButton(page: Page): Locator;
+  queryButton(page: Page): Locator;
   rowAction(row: Locator, actionNamePattern: RegExp): Promise<void>;
 
   dialog(page: Page): Locator;
