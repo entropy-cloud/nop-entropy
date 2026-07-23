@@ -13,6 +13,8 @@ import io.nop.api.core.beans.FilterBeans;
 import io.nop.api.core.beans.graphql.GraphQLRequestBean;
 import io.nop.api.core.beans.graphql.GraphQLResponseBean;
 import io.nop.api.core.beans.query.QueryBean;
+import io.nop.api.core.time.CoreMetrics;
+import io.nop.api.core.time.IClock;
 import io.nop.autotest.junit.JunitBaseTestCase;
 import io.nop.dao.api.IDaoProvider;
 import io.nop.dao.api.IEntityDao;
@@ -30,6 +32,8 @@ import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.Statement;
 import java.sql.Timestamp;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -273,11 +277,28 @@ public class TestNopMetaQualityRuleBizModel extends JunitBaseTestCase {
         assertFalse(r1.hasError(), "first exec should not error: " + r1);
         assertEquals(1, countResults("r-ts"));
 
-        // 确保时间戳不同（executeTime 精度为秒，强制间隔）
-        Thread.sleep(1100);
+        // 确保时间戳不同（executeTime 精度为秒，强制间隔 2 秒）
+        IClock saved = CoreMetrics.defaultClock();
+        long t0 = CoreMetrics.currentTimeMillis();
+        CoreMetrics.registerClock(new IClock() {
+            @Override public long currentTimeMillis() { return t0 + 2000; }
+            @Override public long nanoTime() { return System.nanoTime(); }
+            @Override public LocalDate currentDate() { return LocalDate.now(); }
+            @Override public LocalDateTime currentDateTime() { return LocalDateTime.now(); }
+        });
         GraphQLResponseBean r2 = exec("r-ts");
+        CoreMetrics.registerClock(saved);
         assertFalse(r2.hasError(), "second exec should not error: " + r2);
         assertEquals(2, countResults("r-ts"), "time-series: 2 result rows after second exec (appended, not overwritten)");
+    }
+
+    // ===== judgeByRuleId =====
+
+    @Test
+    public void testJudgeByRuleId() {
+        GraphQLResponseBean resp = graphQLEngine.executeGraphQL(graphQLEngine.newGraphQLContext(req(
+                "query { NopMetaQualityRule__judgeByRuleId(ruleId: \"__not_exist__\") { status } }")));
+        assertNotNull(resp);
     }
 
     // ===== 不可执行路径显式失败 / SKIP =====

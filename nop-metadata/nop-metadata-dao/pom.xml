@@ -34,4 +34,9 @@
             <scope>test</scope>
         </dependency>
     </dependencies>
+
+    <!-- 代码生成说明：
+        本模块不配置 codegen-maven-plugin，实体代码通过父模块构建时
+        由 nop-metadata-codegen/test 中的 codegen 任务生成。
+        运行 `mvn install -pl nop-metadata -am` 即可触发完整代码生成。 -->
 </project>

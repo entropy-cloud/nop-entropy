@@ -49,7 +49,6 @@ public class NopMetaGlossaryTermBizModel extends CrudBizModel<NopMetaGlossaryTer
 
     @Override
     @io.nop.api.core.annotations.biz.BizMutation
-    @io.nop.api.core.annotations.graphql.GraphQLReturn(bizObjName = "NopMetaGlossaryTerm")
     public NopMetaGlossaryTerm update(@Name("data") Map<String, Object> data, IServiceContext context) {
         NopMetaGlossaryTerm updated = super.update(data, context);
         syncTagLabels(updated, context);

@@ -21,6 +21,9 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  *
  * <p>{@link CheckpointExtConfig} 是 plan Phase 4 引入的 3 个高频 JSON 字段（extConfig / actions / validations）
  * 之一的 @DataBean，消除一处 {@code @SuppressWarnings("unchecked")}。
+ *
+ * <p>纯 getter/setter 测试（testExplicitAutoScoreFalse, testExplicitAutoScoreTrue, testScheduleValue）已在
+ * plan 15 中移除——@DataBean 的字段映射由 Nop AutoTest 框架保证，重复测试无业务价值。
  */
 public class TestCheckpointExtConfigDataBean {
 
@@ -31,27 +34,6 @@ public class TestCheckpointExtConfigDataBean {
         assertNull(cfg.getAutoScore());
         // null autoScore 视为 true（默认开启）
         assertTrue(cfg.isAutoScoreEffective(), "null autoScore must default to true");
-    }
-
-    @Test
-    public void testExplicitAutoScoreFalse() {
-        CheckpointExtConfig cfg = new CheckpointExtConfig();
-        cfg.setAutoScore(false);
-        assertFalse(cfg.isAutoScoreEffective(), "explicit false must be respected");
-    }
-
-    @Test
-    public void testExplicitAutoScoreTrue() {
-        CheckpointExtConfig cfg = new CheckpointExtConfig();
-        cfg.setAutoScore(true);
-        assertTrue(cfg.isAutoScoreEffective());
-    }
-
-    @Test
-    public void testScheduleValue() {
-        CheckpointExtConfig cfg = new CheckpointExtConfig();
-        cfg.setSchedule("0 0/5 * * * ?");
-        assertEquals("0 0/5 * * * ?", cfg.getSchedule());
     }
 
     @Test

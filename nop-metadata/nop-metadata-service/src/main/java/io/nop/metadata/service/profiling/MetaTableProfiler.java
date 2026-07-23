@@ -483,7 +483,7 @@ public class MetaTableProfiler {
                 return v;
             }
         } catch (SQLException ignore) {
-            // 非数值列类型，回退按字符串解析
+            LOG.trace("Non-numeric column type, falling back to string parsing", ignore);
         }
         String s = rs.getString(col);
         return s == null ? 0L : Long.parseLong(s.trim());

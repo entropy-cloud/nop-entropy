@@ -12,8 +12,8 @@ import io.nop.api.core.annotations.biz.BizModel;
 import io.nop.metadata.service.NopMetadataErrors;
 import io.nop.api.core.annotations.biz.BizMutation;
 import io.nop.api.core.annotations.core.Name;
-import io.nop.api.core.exceptions.NopException;
 import io.nop.biz.crud.CrudBizModel;
+import io.nop.metadata.core._NopMetadataCoreConstants;
 import io.nop.core.context.IServiceContext;
 import io.nop.core.lang.json.JsonTool;
 import io.nop.dao.api.IEntityDao;
@@ -56,7 +56,7 @@ public class NopMetaReconciliationResultBizModel extends CrudBizModel<NopMetaRec
     private static final String FIELD_SELECTED_ENTITY_ID = "selectedEntityId";
     private static final String FIELD_ROW_INDEX = "rowIndex";
     /** status 常量（人工确认写入）。 */
-    private static final String STATUS_MANUAL = "MANUAL";
+    private static final String STATUS_MANUAL = _NopMetadataCoreConstants.RECONCILIATION_STATUS_MANUAL;
 
     public NopMetaReconciliationResultBizModel() {
         setEntityName(NopMetaReconciliationResult.class.getName());

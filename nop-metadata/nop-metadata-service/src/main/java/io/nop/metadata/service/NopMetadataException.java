@@ -13,10 +13,12 @@ import io.nop.api.core.exceptions.NopException;
 /**
  * nop-metadata 模块级异常类。
  *
- * <p>提供两个 ErrorCode 构造器：
+ * <p>提供四类构造器：
  * <ul>
  *   <li>{@link #NopMetadataException(ErrorCode)} — 错误码</li>
  *   <li>{@link #NopMetadataException(ErrorCode, Throwable)} — 错误码 + cause</li>
+ *   <li>{@link #NopMetadataException(String)} — 消息文本</li>
+ *   <li>{@link #NopMetadataException(String, Throwable)} — 消息文本 + cause</li>
  * </ul>
  */
 public class NopMetadataException extends NopException {
@@ -28,5 +30,13 @@ public class NopMetadataException extends NopException {
 
     public NopMetadataException(ErrorCode errorCode, Throwable cause) {
         super(errorCode, cause);
+    }
+
+    public NopMetadataException(String message) {
+        super(message, null, true, true);
+    }
+
+    public NopMetadataException(String message, Throwable cause) {
+        super(message, cause, true, true);
     }
 }

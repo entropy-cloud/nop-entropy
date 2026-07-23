@@ -4,7 +4,6 @@ import io.nop.api.core.annotations.biz.BizModel;
 import io.nop.api.core.annotations.biz.BizMutation;
 import io.nop.api.core.annotations.biz.BizQuery;
 import io.nop.api.core.annotations.core.Name;
-import io.nop.api.core.exceptions.NopException;
 import io.nop.api.core.time.CoreMetrics;
 import io.nop.biz.crud.CrudBizModel;
 import io.nop.core.context.IServiceContext;
@@ -20,6 +19,7 @@ import jakarta.inject.Inject;
 
 import java.util.Map;
 
+import static io.nop.metadata.service.NopMetadataErrors.ARG_CONTRACT_ID;
 import static io.nop.metadata.service.NopMetadataErrors.ERR_CONTRACT_NOT_FOUND;
 
 /**
@@ -43,15 +43,15 @@ public class NopMetaDataContractBizModel extends CrudBizModel<NopMetaDataContrac
         return txn().runInTransaction(txn -> {
             NopMetaDataContract entity = dao().getEntityById(id);
             if (entity == null)
-                throw new NopException(ERR_CONTRACT_NOT_FOUND).param("contractId", id);
+                throw new NopMetadataException(ERR_CONTRACT_NOT_FOUND).param(ARG_CONTRACT_ID, id);
             checkDataAuth("approve", entity, context);
 
             String approveStatus = entity.getApproveStatus();
             if (!"SUBMITTED".equals(approveStatus)) {
                 throw new NopMetadataException(NopMetadataErrors.ERR_CONTRACT_INVALID_TRANSITION)
-                        .param("contractId", id)
-                        .param("currentStatus", approveStatus)
-                        .param("expectedStatus", "SUBMITTED");
+                        .param(ARG_CONTRACT_ID, id)
+                        .param(NopMetadataErrors.ARG_CURRENT_STATUS, approveStatus)
+                        .param(NopMetadataErrors.ARG_EXPECTED_STATUS, "SUBMITTED");
             }
             entity.setApproveStatus("APPROVED");
             entity.setApprovedBy(context.getUserId());
@@ -76,15 +76,15 @@ public class NopMetaDataContractBizModel extends CrudBizModel<NopMetaDataContrac
         return txn().runInTransaction(txn -> {
             NopMetaDataContract entity = dao().getEntityById(id);
             if (entity == null)
-                throw new NopException(ERR_CONTRACT_NOT_FOUND).param("contractId", id);
+                throw new NopMetadataException(ERR_CONTRACT_NOT_FOUND).param(ARG_CONTRACT_ID, id);
             checkDataAuth("reject", entity, context);
 
             String approveStatus = entity.getApproveStatus();
             if (!"SUBMITTED".equals(approveStatus)) {
                 throw new NopMetadataException(NopMetadataErrors.ERR_CONTRACT_INVALID_TRANSITION)
-                        .param("contractId", id)
-                        .param("currentStatus", approveStatus)
-                        .param("expectedStatus", "SUBMITTED");
+                        .param(ARG_CONTRACT_ID, id)
+                        .param(NopMetadataErrors.ARG_CURRENT_STATUS, approveStatus)
+                        .param(NopMetadataErrors.ARG_EXPECTED_STATUS, "SUBMITTED");
             }
             entity.setApproveStatus("REJECTED");
             entity.setApprovedBy(context.getUserId());
@@ -102,7 +102,7 @@ public class NopMetaDataContractBizModel extends CrudBizModel<NopMetaDataContrac
     public NopMetaDataContract activateContract(@Name("contractId") String contractId, IServiceContext context) {
         NopMetaDataContract contract = dao().getEntityById(contractId);
         if (contract == null)
-            throw new NopException(ERR_CONTRACT_NOT_FOUND).param("contractId", contractId);
+            throw new NopMetadataException(ERR_CONTRACT_NOT_FOUND).param(ARG_CONTRACT_ID, contractId);
         checkDataAuth(io.nop.biz.BizConstants.METHOD_UPDATE, contract, context);
         return submitForApproval(contractId, context);
     }
@@ -112,7 +112,7 @@ public class NopMetaDataContractBizModel extends CrudBizModel<NopMetaDataContrac
     public NopMetaDataContract deprecateContract(@Name("contractId") String contractId, IServiceContext context) {
         NopMetaDataContract contract = dao().getEntityById(contractId);
         if (contract == null)
-            throw new NopException(ERR_CONTRACT_NOT_FOUND).param("contractId", contractId);
+            throw new NopMetadataException(ERR_CONTRACT_NOT_FOUND).param(ARG_CONTRACT_ID, contractId);
         checkDataAuth(io.nop.biz.BizConstants.METHOD_UPDATE, contract, context);
         return submitForApproval(contractId, context);
     }
@@ -122,7 +122,7 @@ public class NopMetaDataContractBizModel extends CrudBizModel<NopMetaDataContrac
     public NopMetaDataContract retireContract(@Name("contractId") String contractId, IServiceContext context) {
         NopMetaDataContract contract = dao().getEntityById(contractId);
         if (contract == null)
-            throw new NopException(ERR_CONTRACT_NOT_FOUND).param("contractId", contractId);
+            throw new NopMetadataException(ERR_CONTRACT_NOT_FOUND).param(ARG_CONTRACT_ID, contractId);
         checkDataAuth(io.nop.biz.BizConstants.METHOD_UPDATE, contract, context);
         return submitForApproval(contractId, context);
     }
@@ -132,7 +132,7 @@ public class NopMetaDataContractBizModel extends CrudBizModel<NopMetaDataContrac
     public ContractCheckResultDTO checkContract(@Name("contractId") String contractId, IServiceContext context) {
         NopMetaDataContract contract = dao().getEntityById(contractId);
         if (contract == null)
-            throw new NopException(ERR_CONTRACT_NOT_FOUND).param("contractId", contractId);
+            throw new NopMetadataException(ERR_CONTRACT_NOT_FOUND).param(ARG_CONTRACT_ID, contractId);
         checkDataAuth("check", contract, context);
 
         Map<String, Object> result = contractChecker.check(
@@ -164,7 +164,7 @@ public class NopMetaDataContractBizModel extends CrudBizModel<NopMetaDataContrac
     public ContractCheckResultDTO checkContractReadOnly(@Name("contractId") String contractId, IServiceContext context) {
         NopMetaDataContract contract = dao().getEntityById(contractId);
         if (contract == null)
-            throw new NopException(ERR_CONTRACT_NOT_FOUND).param("contractId", contractId);
+            throw new NopMetadataException(ERR_CONTRACT_NOT_FOUND).param(ARG_CONTRACT_ID, contractId);
         checkDataAuth("check", contract, context);
 
         Map<String, Object> result = contractChecker.check(

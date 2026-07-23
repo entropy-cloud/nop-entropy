@@ -20,6 +20,11 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 /**
  * 并发测试 {@link CheckpointActionDispatcher#dispatch}：多线程同时 dispatch 同一 checkpoint，
  * 验证 per-action try/catch 隔离在并发下仍正确（不串错误、不 panic、不 deadlock）。
+ *
+ * <p>本测试为 stateless-parallelism-only：每个线程创建独立的 summary map（共享 checkpoint 对象仅用于读取）。
+ * 不验证共享可变状态的正确性——那是 CheckpointActionDispatcher 内部的职责（由
+ * {@code TestCheckpointActionDispatcher} 的同步测试覆盖）。如需增加共享状态验证，需引入
+ * {@code synchronized} 的汇总 map 或 {@code AtomicReference} 模式。
  */
 public class TestCheckpointActionDispatcherConcurrency {
 

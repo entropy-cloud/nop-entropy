@@ -10,7 +10,7 @@ package io.nop.metadata.service;
 /**
  * ARG_* parameter name constants for {@link NopMetadataErrors} ErrorCode definitions.
  */
-interface NopMetadataArgs {
+public interface NopMetadataArgs {
 
     String ARG_META_TABLE_ID = "metaTableId";
     String ARG_DATA_SOURCE_ID = "dataSourceId";

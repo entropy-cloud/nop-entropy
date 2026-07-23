@@ -3,7 +3,7 @@ package io.nop.metadata.service.entity;
 
 import io.nop.api.core.beans.FilterBeans;
 import io.nop.api.core.beans.query.QueryBean;
-import io.nop.api.core.exceptions.NopException;
+import io.nop.metadata.service.NopMetadataException;
 import io.nop.core.lang.json.JsonTool;
 import io.nop.biz.api.IBizObjectManager;
 import io.nop.core.context.IServiceContext;
@@ -58,7 +58,7 @@ public class AutoClassificationProcessor {
     public List<NopMetaTagLabel> suggestTags(String entityType, String entityId,
                                               IServiceContext context) {
         if (!ENTITY_TYPE_NOP_META_TABLE.equals(entityType)) {
-            throw new NopException(ERR_AUTOCLASSIFY_UNSUPPORTED_ENTITY_TYPE)
+            throw new NopMetadataException(ERR_AUTOCLASSIFY_UNSUPPORTED_ENTITY_TYPE)
                     .param(ARG_ENTITY_TYPE, entityType);
         }
 
@@ -69,7 +69,7 @@ public class AutoClassificationProcessor {
         }
 
         if (!_NopMetadataCoreConstants.TABLE_TYPE_ENTITY.equals(table.getTableType())) {
-            throw new NopException(ERR_AUTOCLASSIFY_UNSUPPORTED_TABLE_TYPE)
+            throw new NopMetadataException(ERR_AUTOCLASSIFY_UNSUPPORTED_TABLE_TYPE)
                     .param(ARG_TABLE_TYPE, table.getTableType());
         }
 

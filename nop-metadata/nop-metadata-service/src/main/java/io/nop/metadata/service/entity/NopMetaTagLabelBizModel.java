@@ -7,7 +7,7 @@ import io.nop.api.core.annotations.core.Name;
 import io.nop.api.core.annotations.core.Optional;
 import io.nop.api.core.beans.FilterBeans;
 import io.nop.api.core.beans.query.QueryBean;
-import io.nop.api.core.exceptions.NopException;
+import io.nop.metadata.service.NopMetadataException;
 
 import io.nop.api.core.time.CoreMetrics;
 import io.nop.biz.crud.CrudBizModel;
@@ -98,7 +98,7 @@ public class NopMetaTagLabelBizModel extends CrudBizModel<NopMetaTagLabel> imple
             dao().updateEntity(entity);
             trySubmitForApproval(entity, context);
         } else {
-            throw new NopException(ERR_TAG_LABEL_INVALID_LABEL_TYPE)
+            throw new NopMetadataException(ERR_TAG_LABEL_INVALID_LABEL_TYPE)
                     .param(ARG_LABEL_TYPE, labelType);
         }
     }

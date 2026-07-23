@@ -3,7 +3,7 @@ package io.nop.metadata.service.entity;
 
 import io.nop.api.core.beans.FilterBeans;
 import io.nop.api.core.beans.query.QueryBean;
-import io.nop.api.core.exceptions.NopException;
+import io.nop.metadata.service.NopMetadataException;
 import io.nop.biz.api.IBizObjectManager;
 import io.nop.core.context.IServiceContext;
 import io.nop.dao.api.IDaoProvider;
@@ -54,7 +54,7 @@ public class LineageTagPropagationProcessor {
     public List<NopMetaTagLabel> propagateTags(String entityType, String entityId, String tagId,
                                                   IServiceContext context) {
         if (!ENTITY_TYPE_NOP_META_TABLE.equals(entityType)) {
-            throw new NopException(ERR_PROPAGATE_UNSUPPORTED_ENTITY_TYPE)
+            throw new NopMetadataException(ERR_PROPAGATE_UNSUPPORTED_ENTITY_TYPE)
                     .param(ARG_ENTITY_TYPE, entityType);
         }
 

@@ -10,9 +10,6 @@ import io.nop.autotest.junit.JunitBaseTestCase;
 import io.nop.dao.api.IDaoProvider;
 import io.nop.dao.api.IEntityDao;
 import io.nop.graphql.core.engine.IGraphQLEngine;
-import io.nop.dao.api.IDaoProvider;
-import io.nop.dao.api.IEntityDao;
-import io.nop.graphql.core.engine.IGraphQLEngine;
 import io.nop.metadata.dao.entity.NopMetaCatalog;
 import io.nop.metadata.dao.entity.NopMetaDataContract;
 import io.nop.metadata.dao.entity.NopMetaModule;
@@ -325,5 +322,28 @@ public class TestNopMetaDataContractBizModel extends JunitBaseTestCase {
         assertNotNull(latest, "latestResult must be written back");
         assertTrue(latest.contains("\"status\":\"" + expectedStatus + "\""),
                 "latestResult must contain status=" + expectedStatus + ": " + latest);
+    }
+
+    // ===== activateContract / deprecateContract / retireContract 路径验证 =====
+
+    @Test
+    public void testActivateContractNotFound() {
+        GraphQLResponseBean resp = graphQLEngine.executeGraphQL(graphQLEngine.newGraphQLContext(req(
+                "mutation { NopMetaDataContract__activateContract(contractId: \"__not_exist__\") { status } }")));
+        assertTrue(resp.hasError(), "activateContract on non-existent must fail: " + resp);
+    }
+
+    @Test
+    public void testDeprecateContractNotFound() {
+        GraphQLResponseBean resp = graphQLEngine.executeGraphQL(graphQLEngine.newGraphQLContext(req(
+                "mutation { NopMetaDataContract__deprecateContract(contractId: \"__not_exist__\") { status } }")));
+        assertTrue(resp.hasError(), "deprecateContract on non-existent must fail: " + resp);
+    }
+
+    @Test
+    public void testRetireContractNotFound() {
+        GraphQLResponseBean resp = graphQLEngine.executeGraphQL(graphQLEngine.newGraphQLContext(req(
+                "mutation { NopMetaDataContract__retireContract(contractId: \"__not_exist__\") { status } }")));
+        assertTrue(resp.hasError(), "retireContract on non-existent must fail: " + resp);
     }
 }
