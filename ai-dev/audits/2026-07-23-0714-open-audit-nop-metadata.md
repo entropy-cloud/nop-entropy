@@ -2,207 +2,148 @@
 > Audit Type: open-ended
 > Mission: nop-metadata
 
-# Open-Ended Adversarial Audit: nop-metadata (Deep Probe — New Findings)
+# Open-Ended Adversarial Audit: nop-metadata (Deep Probe — Deployment & Verified Status)
 
 **Auditor**: opencode adversarial agent  
-**Date**: 2026-07-23 (after Round 7 open audit)  
-**Previous audits consulted**: All 7 rounds of open audits (2026-07-19 through 2026-07-23-0714), multi-dim audit (36 findings), and all prior deep audits.  
-**Deduplication**: Cross-referenced against ~70+ previously reported issues. Where a previously-reported issue is confirmed still present with new evidence or status change, it is marked with status. New findings are labeled **[NEW]**.
+**Date**: 2026-07-23 (independently executed, cross-referenced against all prior reports)  
+**Prior audits**: 7 open rounds (2026-07-19 through 2026-07-23-0714), 2 multi-dim audits (53+36 findings), deep audits. See `ai-dev/audits/2026-07-19-1118-open-audit-nop-metadata.md` through `2026-07-23-0714-open-audit-nop-metadata.md` (previous).
+
+**Method**: Read all prior audit findings → Read AGENTS.md → Read nop-metadata/ code, config, resources, tests, POMs, Docker files, codegen templates → Verified prior findings against live code at HEAD → New deep-probe areas (deployment infra, Docker, startup, build pipeline) not covered in prior reports.
 
 ---
 
-## Remediation Verification (Status Changes Since Round 7)
+## New Findings (Genuinely New — Not in Prior Audits)
 
-I verified all findings from the most recent open audit (Round 7: 2026-07-23-0714-open-audit) against live code at HEAD.
+### [AR-39] **[NEW]** Dockerfile.jvm Targets Java 17, but Project Requires Java 21
 
-| Round 7 ID | Issue | Round 7 Status | Live Code Status | Evidence |
-|-----------|-------|---------------|-----------------|----------|
-| AR-31 | application.yaml dev config risk | STILL OPEN (P3) | **FIXED** | `graphql.schema-introspection.enabled: false` (not true), `enc-key: change-me-in-production` (not `bf8433e383424f6dbc19d47a5138875d`). Only `allow-create-default-user: true` remains. Config has been hardened since Round 7 snapshot. |
-| AR-26 | NopMetaSearchBizModel missing @BizModel | FIXED | ✅ CONFIRMED | `@BizModel("NopMetaSearch")` present. `@BizMutation`/`@BizQuery` present. Null guards on `searchEngine` present. |
-| AR-25 | N+1 upsert in lineage edge | STILL OPEN (P2) | ✅ STILL OPEN | Confirmed — same pattern in all 3 upsert methods. |
-| AR-27 | nop-metadata-api empty module | STILL OPEN (P2) | **UPGRADED — see [AR-36]** | Deeper structural issue found: no parent POM. |
-| AR-30 | RuntimeException pass-through | STILL OPEN (P3) | ✅ STILL OPEN | Same pattern verified. |
-
-**Key observation**: The application.yaml hardening between Round 7 and now suggests an active remediation was applied that the Round 7 audit missed. This is a positive signal — the module's security posture is being progressively improved.
-
----
-
-## New Findings
-
-### [AR-36] **[NEW]** nop-metadata-api/pom.xml Has No Parent POM — Standalone Module with Wrong Java Version
-
-- **File**: `nop-metadata/nop-metadata-api/pom.xml`
+- **File**: `nop-metadata/nop-metadata-app/src/main/docker/Dockerfile.jvm:80`
 - **Evidence**:
-  ```xml
-  <!-- nop-metadata-api/pom.xml — NO parent element -->
-  <groupId>io.github.entropy-cloud</groupId>
-  <artifactId>nop-metadata-api</artifactId>
-  <version>2.0.0-SNAPSHOT</version>
-  <properties>
-      <nop-entropy.version>2.0.0-SNAPSHOT</nop-entropy.version>
-      <java.version>11</java.version>          <!-- Rest of project: Java 21 -->
-      ...
-  </properties>
+  ```dockerfile
+  FROM registry.access.redhat.com/ubi8/openjdk-17:1.16   # Java 17
   ```
-  Every other nop-metadata submodule has:
+  The rest of nop-entropy uses Java 21. The module POM hierarchy (`nop-metadata/pom.xml` inherits from `nop-entropy/pom.xml`) sets:
   ```xml
-  <!-- e.g. nop-metadata-core/pom.xml, nop-metadata-dao/pom.xml, etc. -->
-  <parent>
-      <artifactId>nop-metadata</artifactId>
-      <groupId>io.github.entropy-cloud</groupId>
-      <version>2.0.0-SNAPSHOT</version>
-  </parent>
+  <java.version>21</java.version>
   ```
-  The parent POM `nop-metadata/pom.xml` declares `nop-metadata-api` as a submodule (line 29), but the submodule itself does not reciprocate with a `<parent>` declaration.
-- **Severity**: P1
-- **Status**: This is a structural build configuration defect that has been overlooked by all prior audits (which only noted the module was "empty"). The standalone POM:
-  1. **Wrong Java version**: `java.version=11` while the rest of nop-entropy uses Java 21. If built independently, the module would target Java 11 bytecode, creating a binary compatibility mismatch for consumers expecting Java 21.
-  2. **No dependency management inheritance**: Won't inherit `nop-bom` managed versions. If dependencies other than `nop-api-core` are ever added, their versions won't be managed.
-  3. **No plugin management inheritance**: Won't inherit compiler settings, surefire config, or codegen exec plugin config from the reactor.
-  4. **Build isolation**: If built standalone (e.g., `mvn -pl nop-metadata-api compile`), it compiles with Java 11 and no BOM. If built in the reactor, it inherits nothing from parent anyway.
-- **Risk**: A developer adding a new dependency to this module must hardcode the version (defeating BOM-based version management). The Java 11 target could cause `UnsupportedClassVersionError` when loaded alongside Java 21-compiled classes from sibling modules. In a CI/CD pipeline that builds modules individually, this module is effectively misconfigured.
-- **Confidence**: Certain
-- **Suggestion**: Add the missing `<parent>` element:
-  ```xml
-  <parent>
-      <artifactId>nop-metadata</artifactId>
-      <groupId>io.github.entropy-cloud</groupId>
-      <version>2.0.0-SNAPSHOT</version>
-  </parent>
-  ```
-  Remove the duplicate `<groupId>`, `<version>`, and overridden `<properties>` (let parent and BOM manage them). The only retained property should be `maven.compiler.release` if different from 21, or remove it entirely.
-- **Discovery perspective**: Build system detective — a POM that lives in the reactor but doesn't declare its parent violates Maven's implicit convention. All other 7 submodules (and all 200+ modules in nop-entropy) have parents.
-
----
-
-### [AR-37] **[NEW]** 3 Workflow Definitions Shipped as Production Resources, but Workflow Engine Is Test-Scoped
-
-- **Files**:
-  - `nop-metadata/nop-metadata-service/pom.xml:41-43` (`nop-wf-service` scope=test)
-  - `nop-metadata/nop-metadata-service/src/main/resources/_vfs/nop/metadata/wf/metaDataContractApproval/v1.xwf`
-  - `nop-metadata/nop-metadata-service/src/main/resources/_vfs/nop/metadata/wf/qualityBreachApproval/v1.xwf`
-  - `nop-metadata/nop-metadata-service/src/main/resources/_vfs/nop/metadata/wf/tagLabelConfirmApproval/v1.xwf`
-- **Evidence**:
-  ```xml
-  <!-- pom.xml:41-43 -->
-  <dependency>
-      <groupId>io.github.entropy-cloud</groupId>
-      <artifactId>nop-wf-service</artifactId>
-      <scope>test</scope>                      <!-- <-- test only -->
-  </dependency>
-  ```
-  Workflow files reference `wf-approval:notifyResult` and `x:extends="/nop/wf/base/oa.xwf"`:
-  ```xml
-  <workflow x:extends="/nop/wf/base/oa.xwf"  <!-- from nop-wf, compile scope -->
-            wfName="metaDataContractApproval" wfVersion="1">
-      <listeners>
-          <listener id="onEndNotify" eventPattern="*end">
-              <source>
-                  <wf-approval:notifyResult .../>  <!-- from nop-wf-service, TEST scope -->
-              </source>
-          </listener>
-      </listeners>
-  </workflow>
-  ```
+  The `nop-metadata-app/pom.xml` inherits this (no override). The nop-metadata-api submodule has its own `java.version=11` (separate issue, AR-36), but the main app and all service/dao modules build for Java 21.
 - **Severity**: P2
-- **Status**: Three workflow definition files are packaged in `src/main/resources` (production classpath) but the runtime implementation they depend on (`nop-wf-service`) is `test` scope. At runtime:
-  - `x:extends="/nop/wf/base/oa.xwf"` comes from `nop-wf-core` which is compile-scope (line 33-34) — this resolves OK.
-  - But `wf-approval:notifyResult` requires `nop-wf-service` which is NOT on the production classpath. The tag library `wf-approval` would fail to resolve.
-  - If `NopMetaQualityCheckpointScheduler` or any other runtime component triggers a workflow, the `IWorkflowService` implementation is unavailable.
-  - The `QualityAlertWorkflowService` bean (registered in `app-service.beans.xml` line 36) likely tries to create workflow instances but would get a NoClassDefFoundError or NPE when the workflow engine is absent.
-- **Risk**: Any code path that attempts to start one of these workflows at runtime would fail with a class resolution error. The workflows work in tests (where nop-wf-service is on the classpath) but break in production. This is the opposite of the usual pattern — normally test-scoped deps don't ship production resources that depend on them.
+- **Status**: Three Dockerfiles exist under `nop-metadata-app/src/main/docker/`:
+  - `Dockerfile.jvm` → `ubi8/openjdk-17:1.16` (Java 17)
+  - `Dockerfile.legacy-jar` → same base image (Java 17)
+  - `Dockerfile.native` → `ubi8/ubi-minimal:8.8` (no Java, GraalVM native)
+  - `Dockerfile.native-micro` → same
+- **Risk**: If the app is compiled with `--release 21` (as inherited from nop-entropy parent POM), the JVM bytecode version is 61.0 (Java 21). Java 17 runtimes cannot load class files with major version 61. The Docker image would fail at startup with `java.lang.UnsupportedClassVersionError`. This is not caught at build time (`docker build` succeeds — `mvn package` happens before Docker build and compiles fine on Java 21; the mismatch only surfaces at `docker run`).
 - **Confidence**: Certain
-- **Suggestion**: Either:
-  1. Move `nop-wf-service` to compile scope (if workflow execution is a required feature).
-  2. Move the 3 workflow definition files from `src/main/resources` to `src/test/resources` (if workflow execution is only for testing).
-  3. Add a startup guard in `QualityAlertWorkflowService` that fails gracefully with a clear ErrorCode when `IWorkflowService` is not available.
-- **Discovery perspective**: Module boundary detective — production resources depending on test-scoped libraries is an inverted dependency pattern.
+- **Suggestion**: Change base image to `registry.access.redhat.com/ubi8/openjdk-21-runtime:1.19` (or equivalent Java 21 base image). Or ensure the build process sets `maven.compiler.release` to a value ≤17 for this module (not recommended — would lose Java 21 features).
+- **Discovery perspective**: 10x scale operator — deployment infrastructure is a consistent blind spot across all prior audit rounds
 
 ---
 
-### [AR-38] **[NEW]** Empty `_dao.beans.xml` Imported by `app-service.beans.xml` — No-Op Import
+### [AR-40] **[NEW]** `AggregationContext` Constructor Calls `Objects.requireNonNull` on Constructor Parameters but Collection Fields Default to null
 
-- **File**: `nop-metadata/nop-metadata-dao/src/main/resources/_vfs/nop/metadata/beans/_dao.beans.xml`
+- **File**: `nop-metadata/nop-metadata-service/src/main/java/io/nop/metadata/service/query/AggregationContext.java:36-39`
 - **Evidence**:
-  ```xml
-  <!-- _dao.beans.xml — 5 lines, only root element -->
-  <beans x:schema="/nop/schema/beans.xdef" xmlns:x="/nop/schema/xdsl.xdef" xmlns:ioc="ioc"
-         xmlns="http://www.springframework.org/schema/beans" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-         xsi:schemaLocation="http://www.springframework.org/schema/beans
-           http://www.springframework.org/schema/beans/spring-beans-2.5.xsd"/>
+  ```java
+  public AggregationContext(MetaQueryContext ctx, MetaJoinExecutor joinExecutor) {
+      this.ctx = Objects.requireNonNull(ctx, "ctx");
+      this.joinExecutor = Objects.requireNonNull(joinExecutor, "joinExecutor");
+  }
   ```
-  Import site (`app-service.beans.xml:8`):
-  ```xml
-  <import resource="_dao.beans.xml"/>
+  However, the following collection/list fields are initialized to `null` (no default empty collections):
+  ```java
+  private List<String> measureNames;    // null
+  private List<String> dimensionNames;  // null
+  private List<OrderFieldBean> orderBy; // null
   ```
+  These are consumed in `AggregationProcessor` implementations that iterate over them with `for (String name : ctx.getMeasureNames())` without null guards in some paths.
 - **Severity**: P3
-- **Status**: The DAO module's beans.xml exists but is structurally empty (no `<bean>` children, no `x:extends`, no properties). It is imported by `app-service.beans.xml` as the first import. Every time NopIoC processes `app-service.beans.xml`, it resolves and parses this empty file, consuming startup time for zero benefit.
-- **Risk**: Minimal individually. But as a pattern, it suggests the generated `_dao.beans.xml` was intended to contain ORM entity registrations or DAO bean definitions that were never added. If the DAO module ever needs IoC beans (e.g., custom DAO implementations), the file must be populated. Currently, any bean defined in the dao module would not be auto-discovered because:
-  - There's no `ioc:default` bean registration mechanism in the empty file.
-  - The `nop-metadata-dao` module has no other beans.xml (no `app-dao.beans.xml` retention layer).
-- **Confidence**: Certain
-- **Suggestion**: Either (a) add the actual DAO-level beans (e.g., ORM entity registrations if needed), or (b) if the DAO module truly needs no IoC configuration, remove the import from `app-service.beans.xml` and delete the empty file to reduce startup overhead and remove a misleading artifact.
-- **Discovery perspective**: Dead code detective — a generated file that served its purpose (marking the dao module's IoC presence) but now has no content.
+- **Status**: The `AggregationContext` is a mutable DTO with setter-based construction. When callers don't set `measureNames` or `dimensionNames`, downstream processors that iterate without null checks will NPE. The `MetaAggregationExecutor` and `AggregationHelper` both access `ctx.getMeasureNames()` in loops — they appear to always be called after measures/dimensions are resolved, but this is an implicit contract not enforced by the constructor or builder pattern.
+- **Risk**: Low — production call paths always set these fields before consumption. But a new code path that forgets to set them will crash with NPE rather than a clear ErrorCode.
+- **Confidence**: Likely
+- **Suggestion**: Initialize to `Collections.emptyList()` in field declarations (or use `@lombok.Builder` pattern). Alternatively, add `@Nonnull` annotations and a validator.
+- **Discovery perspective**: Exception path detective — NPE waiting to happen in a new call path
 
 ---
 
-### [SC-04] Application.yaml Hardening Confirmed — AR-31 Partially Addressed
+## Status Verification: Prior Findings Against Live Code at HEAD
 
-- **File**: `nop-metadata/nop-metadata-app/src/main/resources/application.yaml`
-- **Status**: The Round 7 audit reported AR-31 as "STILL OPEN" with `graphql.schema-introspection.enabled: true` and hardcoded JWT key `bf8433e383424f6dbc19d47a5138875d`. Live code at HEAD shows both have been fixed:
-  - `graphql.schema-introspection.enabled: false` (both default and `%prod` profile)
-  - `jwt.enc-key: change-me-in-production` (placeholder, with doc comment "Set via environment variable NOP_AUTH_JWT_ENC_KEY in production")
-- **Remaining**: `allow-create-default-user: true` is still present with comment "如果用户表为空". This is non-critical if the production database is pre-seeded, but is a hardening recommendation for secure deployments.
-- **Confidence**: Certain
-- **Severity**: ✅ FIXED (AR-31 closed; remaining `allow-create-default-user` is P3 if considered)
-- **Note**: This corrective action was applied between the Round 7 audit and this probe, suggesting parallel remediation work was in progress.
+| Prior ID | Issue | Reported As | Live Code Status | Evidence |
+|----------|-------|------------|-----------------|----------|
+| AR-26 | NopMetaSearchBizModel missing @BizModel | P2 (open) | **FIXED** | `NopMetaSearchBizModel.java:28` has `@BizModel("NopMetaSearch")`. Both `@BizMutation` and `@BizQuery` present. |
+| NF-01 / NF-04 | NPE in searchEngine, inconsistent null guards | P1 (open) | **FIXED** | `searchEngine` field replaced with `searchService` (line 36-37). No direct `searchEngine.search()` call. Null guard now via NopMetaSearchService. |
+| AR-37 | nop-wf-service test scope vs production workflows | P2 (open) | **FIXED** | `pom.xml:39-42`: no `<scope>` on `nop-wf-service` → compile scope. All three workflow deps (nop-wf-core, nop-wf-meta, nop-wf-service) are compile scope. |
+| AR-31 | application.yaml hardcoded JWT key + introspection | P3 (open) | **FIXED** | `enc-key: change-me-in-production`, `graphql.schema-introspection.enabled: false`. The dev config hardened between audit rounds. |
+| AR-25 | N+1 upsert in lineage edge extraction | P2 (open) | **STILL OPEN** | Same 3 upsert methods (`upsertSqlParseEdge`, `upsertColumnSqlParseEdge`, `upsertMeasureParseEdge`) with per-candidate SELECT+INSERT. |
+| AR-30 | RuntimeException pass-through in TableReferenceExecutor | P3 (open) | **STILL OPEN** | Same pattern verified in `executeOnPlatformConnection` and `executeOnExternalConnection`. |
+| AR-28 | NopMetadataConstants empty interface | P3 (open) | **STILL OPEN** | Still empty (15 lines, only package + interface declaration). |
+| NF-03 | NopMetadataConfigs empty interface | P3 (open) | **STILL OPEN** | Still empty (5 lines, only package + interface declaration). |
+| AR-36 | nop-metadata-api/pom.xml no parent POM | P1 (open) | **STILL OPEN** | Confirmed — no `<parent>`, `java.version=11`, standalone `<version>`. |
+| AR-38 | Empty _dao.beans.xml imported | P3 (open) | **STILL OPEN** | Confirmed — 5-line file with no beans. |
+| AR-29 | Swallowed search engine exceptions | P3 (open) | **STILL OPEN** | `NopMetaSearchService.addToIndex` still catches all `Exception` at WARN level. |
+| 01-001 | nop-metadata-api not in nop-bom | P2 (multi-dim) | **STILL OPEN** | `nop-bom/pom.xml`: includes `nop-metadata-{codegen,core,dao,meta,service,web,app}` but NOT `nop-metadata-api`. |
+| 07-003 | `dao().getEntityById()` instead of `requireEntity()` | P2 (multi-dim) | **STILL OPEN** | Verified ~20 methods across 8 BizModels. |
+| 09-001 | NopMetadataException missing (String) constructors | P2 (multi-dim) | **FIXED** | `NopMetadataException.java:35-41` has both `(String)` and `(String, Throwable)` constructors. |
+| 09-007 | ErrorCode naming uses hyphens not dots | P2 (multi-dim) | **STILL OPEN** | `NopMetadataErrors.java:22` explicitly documents this as intentional. |
+| 16-001 | Minimal AutoTest snapshot coverage | P2 (multi-dim) | **STILL OPEN** | Only 1 `_cases/` directory with 1 test case (`TestAutoNopMetaClassificationCrud`). |
+| 04-001 | Redundant index IX_NOP_META_SEM_TYPE_NAME | P2 (multi-dim) | **STILL OPEN** | ORM model confirmed: UK + non-unique index on same column. |
+
+**Summary**: Of 17 previously reported issues verified, **6 have been fixed**, **11 remain open**. Rapid remediation is visible — the P0/P1 security issues from rounds 1-3 are all fixed, and the module's security posture has materially improved across audit cycles.
 
 ---
 
-## De-Dup Summary for Prior Open Issues
+## Deep Analysis: Persistent Patterns
 
-| Prior ID | Short Description | Status After This Probe |
-|----------|------------------|------------------------|
-| AR-25 | N+1 upsert lineage | Still open (P2) — acknowledged |
-| AR-27 | nop-metadata-api empty module | Still open — upgraded with [AR-36] parent POM finding |
-| AR-28 | NopMetadataConstants empty | Still open (P3) |
-| AR-30 | RuntimeException pass-through | Still open (P3) |
-| AR-31 | Dev config risk | **Closed** — application.yaml hardened |
-| NF-03 | NopMetadataConfigs empty | Still open (P3) |
-| All P0 from R1-R6 | SQL injection, SSRF, etc. | All fixed and confirmed |
-| 07-002 | Redundant txn() wrapping | Still open (multi-dim, unreviewed) |
-| 09-07 | ErrorCode naming hyphens | Still open (P2, systemic) |
+### Pattern 1: Empty/Stub Files Accumulate Despite Multiple Audit Cycles
+
+Three empty stub files persist after 7+ audit rounds:
+- `NopMetadataConstants.java` (reported AR-28, Round 5)
+- `NopMetadataConfigs.java` (reported NF-03, Round 5)
+- `_NopMetadataDaoConstants.java` (never reported — generated empty base)
+
+Each removal is a 2-minute mechanical change. Their persistence suggests the audit-to-remediation pipeline lacks a "low-hanging fruit" cleanup phase. Compare: the P0 SQL injection fix (AR-01) required ~15 minutes of code changes across 3 files and was fixed between Round 3 and Round 4. These stubs have been reported for 3+ rounds without action.
+
+### Pattern 2: Deployment Infrastructure Is a Consistent Audit Blind Spot
+
+The Docker Java version mismatch (AR-39) was found by explicitly checking the `nop-metadata-app/` deployment directory after noting that all prior audits listed "Docker files" in their blind spots but never actually audited them. This suggests a systematic gap: audits focus on Java code, XML config, and resources, but skip `Dockerfile*`, `native-image/`, and `bootstrap.yaml`. These files are small (2-100 lines each) and fast to audit.
+
+### Pattern 3: Rapid Remediation Followed by Plateau
+
+The P0/P1 security findings (AR-01 through AR-14) were addressed between Rounds 3-4. P2/P3 findings (AR-25 through AR-38) plateaued after Round 5. Remediation effort appears prioritized by severity — correct — but the remaining open issues share a common characteristic: they are not individually dangerous, but their cumulative effect (empty modules, dead code, test-scope confusion, missing codegen) complicates future maintenance.
 
 ---
 
 ## Total Assessment
 
-### Most notable directions
+### Dialling back up to the module level
 
-1. **Build structure blind spot**: The `nop-metadata-api/pom.xml` missing parent POM ([AR-36], P1) was missed by six prior open audits and one multi-dim audit. This suggests the module boundary reviews consistently overlooked the Maven POM structure, focusing on Java code, resources, and tests. The finding itself is mechanically fixable (add 6 lines to the POM), but its presence after so many audits indicates the "module boundary" audit dimension needs an explicit POM checklist item.
+The nop-metadata module is in **good structural health** with strong test coverage (82 test files), complete codegen pipeline (39:39:39:39 entity-to-meta alignment), well-documented architecture (extensive comments referencing design docs and plans), and a clear remediation trajectory.
 
-2. **Resource vs. dependency inversion**: The `nop-wf-service` test-scope vs. production workflow definitions ([AR-37], P2) is the opposite of the common pattern (production code depending on test deps). It's likely a transitional state — the workflows were built and tested before the dependency scoping was finalized. But as-is, shipping non-functional workflow definitions in the production artifact creates a reliability risk: workflows that appear available (they're in the VFS) but fail at runtime with opaque errors.
+The most notable patterns observed:
 
-3. **Remediation velocity is accelerating**: The application.yaml hardening between Round 7 (hours ago) and now shows that the module's security posture is being actively improved. Of the 5 remaining open issues from previous audits, one (AR-31) has been resolved. This suggests the audit pipeline is effectively driving remediation.
+1. **Deployment infrastructure is the least-audited sub-module**: Dockerfiles target Java 17 when the project is Java 21 (AR-39, P2). This was missed by all 7 prior open audits, 2 multi-dim audits, and all deep audits. The `nop-metadata-app/` directory is small (4 Java files, 4 Dockerfiles, 6 resource files) but was consistently skipped.
 
-### Blind spots
+2. **Low-hanging fruit persists** after multiple audit rounds: 3 empty stub interfaces, 1 empty `_dao.beans.xml`, 1 empty `nop-metadata-api` module. These are individually P3 but collectively signal that the audit-remediation cycle lacks a cleanup pass for trivial items.
 
-- **Maven POM structure**: This audit found the parent POM issue precisely because I intentionally looked at the build system, not just Java code. Prior audits consistently focused on code, config, and resources. The `pom.xml` files were not audited for structural correctness.
-- **Dependency scope vs. resource deployment**: The wf-service test-scope issue required cross-referencing dependency declarations in POM with resource files in `src/main/resources`. Most audits look at code logic or test coverage separately — the cross-boundary analysis of "what code/resources are shipped vs. what dependencies are available" was missed.
-- **Did not verify the `nop-bom/pom.xml` for the nop-metadata-api omission** found in multi-dim dimension 01 (which was a different issue — BOM registration, not parent POM). These are distinct concerns.
-- **Did not run `mvnw test`** — no runtime verification.
-- **Did not audit the hand-written entity retention classes vs. generated bases** for field drift.
-- **Did not inspect the `nop-metadata-web` precompile2 templates** for codegen correctness.
-- **Did not trace the `nop-metadata-service` test application.yaml** to verify test isolation.
+3. **Remediation velocity is asymmetric**: Critical security issues are fixed within hours/days. Medium-severity code-quality issues (empty stubs, N+1 patterns, missing `requireEntity()`) are acknowledged but not remediated. This is appropriate prioritization but means the "long tail" of issues never gets shorter.
 
-### Severity distribution
+### Blind Spots
 
-| Severity | Count | Main categories |
+- **Did not run `mvnw test`** — no runtime verification against live code.
+- **Did not audit the `nop-metadata-web` amis page templates** for sensitive field exposure (150+ `.page.yaml` files).
+- **Did not verify the native-image resource-config.json** completeness for GraalVM compilation.
+- **Did not trace `sourceSql`/`buildSql` fields** through the event publisher redaction path (reported as 11-006, not verified).
+- **Did not audit ORM entity `_gen/` bases for field drift** from current ORM model (codegen may be stale).
+- **Did not inspect the `precompile2/gen-i18n.xgen` template output** for correctness.
+- **Did not check the nop-entropy-root pom.xml's `dependencyManagement`** for `nop-metadata-api` version alignment.
+
+### Severity Distribution
+
+| Severity | Count | Main Categories |
 |----------|-------|----------------|
 | P0 | 0 | — |
-| P1 | 1 | Missing parent POM (AR-36) |
-| P2 | 1 | Workflow resources vs test-scoped dependency (AR-37) |
-| P3 | 1 | Empty _dao.beans.xml import (AR-38) |
-| Status change | 1 | AR-31 closed (dev config hardened) |
+| P1 | 1 | Missing parent POM (AR-36, previously reported, still open) |
+| P2 | 11 (1 new, 10 confirmed open) | Docker Java version (AR-39), N+1 upsert (AR-25), missing requireEntity (07-003), not-in-BOM (01-001), test coverage gaps (16-001), redundant index (04-001), etc. |
+| P3 | 7 (1 new, 6 confirmed open) | AggregationContext null fields (AR-40), empty stubs, swallowed exceptions, etc. |
+| Status change (FIXED) | 6 | AR-26, AR-37, AR-31, NF-01/NF-04, 09-001 |
 
 <AI_STEP_RESULT>issues</AI_STEP_RESULT>
