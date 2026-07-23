@@ -5,8 +5,6 @@
        xsi:schemaLocation="http://www.springframework.org/schema/beans
         http://www.springframework.org/schema/beans/spring-beans-2.5.xsd">
 
-    <import resource="_dao.beans.xml"/>
-
     <import resource="_service.beans.xml"/>
 
     <!-- 外部数据源按需建连服务：callback 式 withConnection / testConnect。

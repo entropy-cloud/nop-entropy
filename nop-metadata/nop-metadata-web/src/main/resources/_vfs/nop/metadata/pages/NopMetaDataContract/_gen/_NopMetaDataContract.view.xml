@@ -28,7 +28,7 @@
                 <col id="displayName" sortable="true"/>
 
                 <!--关联数据表ID-->
-                <col id="entityTableId" sortable="true"/>
+                <col id="metaTableId" sortable="true"/>
 
                 <!--契约状态-->
                 <col id="status" mandatory="true" sortable="true"/>
@@ -89,7 +89,7 @@
         <form id="view" editMode="view" title="查看-数据契约" i18n-en:title="View Meta Data Contract">
             <layout>
  contractId[契约ID] contractName[契约名]
- displayName[显示名] entityTableId[关联数据表ID]
+ displayName[显示名] metaTableId[关联数据表ID]
  status[契约状态] ownerUserId[契约所有者]
  schema[JSON Schema 定义] sla[SLA 定义]
  qualityExpectations[质量期望] security[安全策略]
@@ -105,7 +105,7 @@
         <form id="edit" editMode="edit" title="编辑-数据契约" i18n-en:title="Edit Meta Data Contract">
             <layout>
  contractId[契约ID] contractName[契约名]
- displayName[显示名] entityTableId[关联数据表ID]
+ displayName[显示名] metaTableId[关联数据表ID]
  status[契约状态] ownerUserId[契约所有者]
  schema[JSON Schema 定义] sla[SLA 定义]
  qualityExpectations[质量期望] security[安全策略]

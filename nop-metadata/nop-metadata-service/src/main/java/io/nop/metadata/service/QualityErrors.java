@@ -116,4 +116,10 @@ interface QualityErrors extends NopMetadataArgs {
             ErrorCode.define("nop.err.metadata.quality-expect-pass-when-invalid",
                     "Quality rule expectPassWhen expression is invalid: {qualityRuleId} expr={expr}",
                     ARG_QUALITY_RULE_ID, ARG_EXPR);
+
+    ErrorCode ERR_WORKFLOW_MANAGER_UNAVAILABLE =
+            ErrorCode.define("nop.err.metadata.workflow-manager-unavailable",
+                    "Workflow manager (IWorkflowManager) is not available: cannot create alert workflow"
+                            + " for qualityResultId={qualityResultId}",
+                    ARG_QUALITY_RESULT_ID);
 }

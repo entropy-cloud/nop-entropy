@@ -425,7 +425,7 @@
                     </children>
                 </resource>
                 <resource id="NopMetaReconciliationEntity-main" displayName="对账实体" orderNo="10088"
-                          i18n-en:displayName="Meta Reconciliation Entity" icon="database" component="AMIS"
+                          i18n-en:displayName="Meta Reconciliation Entity" icon="list-checks" component="AMIS"
                           resourceType="SUBM" url="/nop/metadata/pages/NopMetaReconciliationEntity/main.page.yaml">
                     <children>
                         <resource id="FNPT:NopMetaReconciliationEntity:query" displayName="查询对账实体"

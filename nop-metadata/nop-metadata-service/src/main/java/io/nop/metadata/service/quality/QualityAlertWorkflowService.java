@@ -57,9 +57,8 @@ public class QualityAlertWorkflowService {
      */
     public WfReference createAlertWorkflow(NopMetaQualityResult result) {
         if (wfManager == null) {
-            LOG.warn("IWorkflowManager not available, cannot create alert workflow for result: {}",
-                    result.getQualityResultId());
-            return null;
+            throw new NopMetadataException(NopMetadataErrors.ERR_WORKFLOW_MANAGER_UNAVAILABLE)
+                    .param(NopMetadataErrors.ARG_QUALITY_RESULT_ID, result.getQualityResultId());
         }
 
         NopMetaQualityRule rule = daoFor(NopMetaQualityRule.class).getEntityById(result.getQualityRuleId());

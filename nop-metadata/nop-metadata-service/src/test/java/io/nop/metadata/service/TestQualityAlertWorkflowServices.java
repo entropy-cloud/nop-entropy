@@ -36,10 +36,12 @@ public class TestQualityAlertWorkflowServices {
     }
 
     @Test
-    public void testCreateAlertWorkflowReturnsNullWhenWfManagerNull() {
+    public void testCreateAlertWorkflowThrowsWhenWfManagerNull() {
         QualityAlertWorkflowService svc = new QualityAlertWorkflowService();
         NopMetaQualityResult result = new NopMetaQualityResult();
         result.setQualityResultId("test-id");
-        assertNull(svc.createAlertWorkflow(result));
+        NopException ex = assertThrows(NopMetadataException.class,
+                () -> svc.createAlertWorkflow(result));
+        assertEquals("nop.err.metadata.workflow-manager-unavailable", ex.getErrorCode());
     }
 }
