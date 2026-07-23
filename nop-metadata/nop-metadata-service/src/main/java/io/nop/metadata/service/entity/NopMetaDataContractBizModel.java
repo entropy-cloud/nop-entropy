@@ -24,9 +24,6 @@ import static io.nop.metadata.service.NopMetadataErrors.ERR_CONTRACT_NOT_FOUND;
 
 /**
  * Data Contract BizModel.
- * <p>The {@code submitForApproval} method uses reflective
- * {@code bizObjectManager().getBizObject(...).invoke("submitForApproval", ...)} which requires the
- * {@code approval-support.xbiz} delta to be deployed. Without that delta, the method will fail at runtime.</p>
  */
 @BizModel("NopMetaDataContract")
 public class NopMetaDataContractBizModel extends CrudBizModel<NopMetaDataContract> implements INopMetaDataContractBiz {
@@ -40,100 +37,57 @@ public class NopMetaDataContractBizModel extends CrudBizModel<NopMetaDataContrac
 
     @BizMutation
     public NopMetaDataContract approve(@Name("id") String id, IServiceContext context) {
-        return txn().runInTransaction(txn -> {
-            NopMetaDataContract entity = dao().getEntityById(id);
-            if (entity == null)
-                throw new NopMetadataException(ERR_CONTRACT_NOT_FOUND).param(ARG_CONTRACT_ID, id);
-            checkDataAuth("approve", entity, context);
+        NopMetaDataContract entity = requireEntity(id, "approve", context);
 
-            String approveStatus = entity.getApproveStatus();
-            if (!"SUBMITTED".equals(approveStatus)) {
-                throw new NopMetadataException(NopMetadataErrors.ERR_CONTRACT_INVALID_TRANSITION)
-                        .param(ARG_CONTRACT_ID, id)
-                        .param(NopMetadataErrors.ARG_CURRENT_STATUS, approveStatus)
-                        .param(NopMetadataErrors.ARG_EXPECTED_STATUS, "SUBMITTED");
-            }
-            entity.setApproveStatus("APPROVED");
-            entity.setApprovedBy(context.getUserId());
-            entity.setApprovedAt(new java.sql.Timestamp(CoreMetrics.currentTimeMillis()));
+        String approveStatus = entity.getApproveStatus();
+        if (!"SUBMITTED".equals(approveStatus)) {
+            throw new NopMetadataException(NopMetadataErrors.ERR_CONTRACT_INVALID_TRANSITION)
+                    .param(ARG_CONTRACT_ID, id)
+                    .param(NopMetadataErrors.ARG_CURRENT_STATUS, approveStatus)
+                    .param(NopMetadataErrors.ARG_EXPECTED_STATUS, "SUBMITTED");
+        }
+        entity.setApproveStatus("APPROVED");
+        entity.setApprovedBy(context.getUserId());
+        entity.setApprovedAt(new java.sql.Timestamp(CoreMetrics.currentTimeMillis()));
 
-            String status = entity.getStatus();
-            if (_NopMetadataCoreConstants.CONTRACT_STATUS_DRAFT.equals(status)) {
-                entity.setStatus(_NopMetadataCoreConstants.CONTRACT_STATUS_ACTIVE);
-            } else if (_NopMetadataCoreConstants.CONTRACT_STATUS_ACTIVE.equals(status)) {
-                entity.setStatus(_NopMetadataCoreConstants.CONTRACT_STATUS_DEPRECATED);
-            } else if (_NopMetadataCoreConstants.CONTRACT_STATUS_DEPRECATED.equals(status)) {
-                entity.setStatus(_NopMetadataCoreConstants.CONTRACT_STATUS_RETIRED);
-            }
+        String status = entity.getStatus();
+        if (_NopMetadataCoreConstants.CONTRACT_STATUS_DRAFT.equals(status)) {
+            entity.setStatus(_NopMetadataCoreConstants.CONTRACT_STATUS_ACTIVE);
+        } else if (_NopMetadataCoreConstants.CONTRACT_STATUS_ACTIVE.equals(status)) {
+            entity.setStatus(_NopMetadataCoreConstants.CONTRACT_STATUS_DEPRECATED);
+        } else if (_NopMetadataCoreConstants.CONTRACT_STATUS_DEPRECATED.equals(status)) {
+            entity.setStatus(_NopMetadataCoreConstants.CONTRACT_STATUS_RETIRED);
+        }
 
-            dao().updateEntity(entity);
-            return entity;
-        });
+        dao().updateEntity(entity);
+        return entity;
     }
 
     @BizMutation
     public NopMetaDataContract reject(@Name("id") String id, IServiceContext context) {
-        return txn().runInTransaction(txn -> {
-            NopMetaDataContract entity = dao().getEntityById(id);
-            if (entity == null)
-                throw new NopMetadataException(ERR_CONTRACT_NOT_FOUND).param(ARG_CONTRACT_ID, id);
-            checkDataAuth("reject", entity, context);
+        NopMetaDataContract entity = requireEntity(id, "reject", context);
 
-            String approveStatus = entity.getApproveStatus();
-            if (!"SUBMITTED".equals(approveStatus)) {
-                throw new NopMetadataException(NopMetadataErrors.ERR_CONTRACT_INVALID_TRANSITION)
-                        .param(ARG_CONTRACT_ID, id)
-                        .param(NopMetadataErrors.ARG_CURRENT_STATUS, approveStatus)
-                        .param(NopMetadataErrors.ARG_EXPECTED_STATUS, "SUBMITTED");
-            }
-            entity.setApproveStatus("REJECTED");
-            entity.setApprovedBy(context.getUserId());
-            entity.setApprovedAt(new java.sql.Timestamp(CoreMetrics.currentTimeMillis()));
-            entity.setStatus(_NopMetadataCoreConstants.CONTRACT_STATUS_DRAFT);
-            entity.setRemark("Rejected: " + (entity.getRemark() != null ? entity.getRemark() : "No reason provided"));
+        String approveStatus = entity.getApproveStatus();
+        if (!"SUBMITTED".equals(approveStatus)) {
+            throw new NopMetadataException(NopMetadataErrors.ERR_CONTRACT_INVALID_TRANSITION)
+                    .param(ARG_CONTRACT_ID, id)
+                    .param(NopMetadataErrors.ARG_CURRENT_STATUS, approveStatus)
+                    .param(NopMetadataErrors.ARG_EXPECTED_STATUS, "SUBMITTED");
+        }
+        entity.setApproveStatus("REJECTED");
+        entity.setApprovedBy(context.getUserId());
+        entity.setApprovedAt(new java.sql.Timestamp(CoreMetrics.currentTimeMillis()));
+        entity.setStatus(_NopMetadataCoreConstants.CONTRACT_STATUS_DRAFT);
+        entity.setRemark("Rejected: " + (entity.getRemark() != null ? entity.getRemark() : "No reason provided"));
 
-            dao().updateEntity(entity);
-            return entity;
-        });
-    }
-
-    @Deprecated
-    @BizMutation
-    public NopMetaDataContract activateContract(@Name("contractId") String contractId, IServiceContext context) {
-        NopMetaDataContract contract = dao().getEntityById(contractId);
-        if (contract == null)
-            throw new NopMetadataException(ERR_CONTRACT_NOT_FOUND).param(ARG_CONTRACT_ID, contractId);
-        checkDataAuth(io.nop.biz.BizConstants.METHOD_UPDATE, contract, context);
-        return submitForApproval(contractId, context);
-    }
-
-    @Deprecated
-    @BizMutation
-    public NopMetaDataContract deprecateContract(@Name("contractId") String contractId, IServiceContext context) {
-        NopMetaDataContract contract = dao().getEntityById(contractId);
-        if (contract == null)
-            throw new NopMetadataException(ERR_CONTRACT_NOT_FOUND).param(ARG_CONTRACT_ID, contractId);
-        checkDataAuth(io.nop.biz.BizConstants.METHOD_UPDATE, contract, context);
-        return submitForApproval(contractId, context);
-    }
-
-    @Deprecated
-    @BizMutation
-    public NopMetaDataContract retireContract(@Name("contractId") String contractId, IServiceContext context) {
-        NopMetaDataContract contract = dao().getEntityById(contractId);
-        if (contract == null)
-            throw new NopMetadataException(ERR_CONTRACT_NOT_FOUND).param(ARG_CONTRACT_ID, contractId);
-        checkDataAuth(io.nop.biz.BizConstants.METHOD_UPDATE, contract, context);
-        return submitForApproval(contractId, context);
+        dao().updateEntity(entity);
+        return entity;
     }
 
     @SuppressWarnings("unchecked")
     @BizMutation
     public ContractCheckResultDTO checkContract(@Name("contractId") String contractId, IServiceContext context) {
-        NopMetaDataContract contract = dao().getEntityById(contractId);
-        if (contract == null)
-            throw new NopMetadataException(ERR_CONTRACT_NOT_FOUND).param(ARG_CONTRACT_ID, contractId);
-        checkDataAuth("check", contract, context);
+        NopMetaDataContract contract = requireEntity(contractId, "check", context);
 
         Map<String, Object> result = contractChecker.check(
                 contractId,
@@ -162,10 +116,7 @@ public class NopMetaDataContractBizModel extends CrudBizModel<NopMetaDataContrac
     @SuppressWarnings("unchecked")
     @BizQuery
     public ContractCheckResultDTO checkContractReadOnly(@Name("contractId") String contractId, IServiceContext context) {
-        NopMetaDataContract contract = dao().getEntityById(contractId);
-        if (contract == null)
-            throw new NopMetadataException(ERR_CONTRACT_NOT_FOUND).param(ARG_CONTRACT_ID, contractId);
-        checkDataAuth("check", contract, context);
+        NopMetaDataContract contract = requireEntity(contractId, "check", context);
 
         Map<String, Object> result = contractChecker.check(
                 contractId,
@@ -188,8 +139,4 @@ public class NopMetaDataContractBizModel extends CrudBizModel<NopMetaDataContrac
         return dto;
     }
 
-    private NopMetaDataContract submitForApproval(String contractId, IServiceContext context) {
-        return (NopMetaDataContract) bizObjectManager().getBizObject("NopMetaDataContract")
-                .invoke("submitForApproval", Map.of("id", contractId), null, context);
-    }
 }

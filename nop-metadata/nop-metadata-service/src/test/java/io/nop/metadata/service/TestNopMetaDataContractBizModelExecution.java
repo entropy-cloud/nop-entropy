@@ -32,11 +32,11 @@ public class TestNopMetaDataContractBizModelExecution extends JunitBaseTestCase 
     }
 
     @Test
-    public void testActivateContract_notFound() {
-        ApiResponse<?> resp = executeRpc(GraphQLOperationType.mutation, "NopMetaDataContract__activateContract",
+    public void testCheckContract_notFound() {
+        ApiResponse<?> resp = executeRpc(GraphQLOperationType.mutation, "NopMetaDataContract__checkContract",
                 ApiRequest.build(Map.of("contractId", "__not_exist__")));
         assertFalse(resp.isOk(), "must fail for non-existent contract");
-        String msg = resp.getMsg() != null ? resp.getMsg().toLowerCase() : "";
-        assertTrue(msg.contains("not found"), "error must indicate not found: " + resp.getMsg());
+        assertTrue(resp.getCode() != null && (resp.getCode().contains("ERR_DAO_UNKNOWN_ENTITY") || resp.getCode().contains("unknown-entity")),
+                "error must use unknown-entity code: " + resp.getCode());
     }
 }

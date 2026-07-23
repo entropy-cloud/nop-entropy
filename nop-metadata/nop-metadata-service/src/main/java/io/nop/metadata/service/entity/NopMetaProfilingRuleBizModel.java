@@ -99,10 +99,7 @@ public class NopMetaProfilingRuleBizModel extends CrudBizModel<NopMetaProfilingR
     public ProfileResultDTO executeProfilingRule(@Name("profilingRuleId") String profilingRuleId,
                                                   @Optional @Name("schemaPattern") String schemaPattern,
                                                   IServiceContext context) {
-        NopMetaProfilingRule rule = dao().getEntityById(profilingRuleId);
-        if (rule == null) {
-            throw new NopMetadataException(NopMetadataErrors.ERR_PROFILING_RULE_NOT_FOUND).param("profilingRuleId", profilingRuleId);
-        }
+        NopMetaProfilingRule rule = requireEntity(profilingRuleId, "executeProfilingRule", context);
 
         NopMetaTable table = resolveTargetTableOrThrow(rule);
         TableReference ref = tableRefResolver.resolve(table,

@@ -122,7 +122,7 @@ public class NopMetaTableBizModel extends CrudBizModel<NopMetaTable> implements 
                                           @Optional @Name("schemaPattern") String schemaPattern,
                                           @Optional @Name("columns") String columns,
                                           IServiceContext context) {
-        NopMetaTable table = resolveTableOrThrow(metaTableId);
+        NopMetaTable table = requireEntity(metaTableId, "profile", context);
         TableReference ref = queryAction.tableRefResolver().resolve(table,
                 daoFor(NopMetaDataSource.class), daoFor(NopMetaEntity.class),
                 daoFor(NopMetaEntityField.class), orm());
@@ -183,11 +183,7 @@ public class NopMetaTableBizModel extends CrudBizModel<NopMetaTable> implements 
     @BizQuery
     public ResolveTableFieldsResultDTO resolveTableFields(@Name("metaTableId") String metaTableId,
                                                            IServiceContext context) {
-        IEntityDao<NopMetaTable> tableDao = dao();
-        NopMetaTable table = tableDao.getEntityById(metaTableId);
-        if (table == null) {
-            throw new NopMetadataException(NopMetadataErrors.ERR_SQL_VIEW_TABLE_NOT_FOUND).param("metaTableId", metaTableId);
-        }
+        NopMetaTable table = requireEntity(metaTableId, "query", context);
         IEntityDao<NopMetaEntityField> fieldDao = daoFor(NopMetaEntityField.class);
         List<ResolvedTableField> fields = queryAction.fieldResolver().resolve(table, fieldDao);
         if (_NopMetadataCoreConstants.TABLE_TYPE_SQL.equals(table.getTableType())
@@ -207,11 +203,7 @@ public class NopMetaTableBizModel extends CrudBizModel<NopMetaTable> implements 
                                                    @Optional @Name("offset") Long offset,
                                                    @Optional @Name("selection") FieldSelectionBean selection,
                                                    IServiceContext context) {
-        IEntityDao<NopMetaTable> tableDao = dao();
-        NopMetaTable table = tableDao.getEntityById(metaTableId);
-        if (table == null) {
-            throw new NopMetadataException(NopMetadataErrors.ERR_QUERY_TABLE_NOT_FOUND).param("metaTableId", metaTableId);
-        }
+        NopMetaTable table = requireEntity(metaTableId, "query", context);
         String tableType = table.getTableType();
         QueryTableDataResultDTO result = new QueryTableDataResultDTO();
         result.setTableType(tableType);
@@ -231,17 +223,13 @@ public class NopMetaTableBizModel extends CrudBizModel<NopMetaTable> implements 
 
     @BizQuery
     public QueryJoinDataResultDTO queryJoinData(@Name("metaTableId") String metaTableId,
-                                                 @Name("joinId") String joinId,
-                                                 @Optional @Name("filter") TreeBean filter,
-                                                 @Optional @Name("limit") Long limit,
-                                                 @Optional @Name("offset") Long offset,
-                                                 @Optional @Name("selection") FieldSelectionBean selection,
-                                                 IServiceContext context) {
-        IEntityDao<NopMetaTable> tableDao = dao();
-        NopMetaTable table = tableDao.getEntityById(metaTableId);
-        if (table == null) {
-            throw new NopMetadataException(NopMetadataErrors.ERR_QUERY_TABLE_NOT_FOUND).param("metaTableId", metaTableId);
-        }
+                                                  @Name("joinId") String joinId,
+                                                  @Optional @Name("filter") TreeBean filter,
+                                                  @Optional @Name("limit") Long limit,
+                                                  @Optional @Name("offset") Long offset,
+                                                  @Optional @Name("selection") FieldSelectionBean selection,
+                                                  IServiceContext context) {
+        NopMetaTable table = requireEntity(metaTableId, "query", context);
         Map<String, Object> raw = joinExecutor.executeJoin(table, joinId, filter, limit, offset, buildQueryContext());
         QueryJoinDataResultDTO result = new QueryJoinDataResultDTO();
         Object items = raw.get("items");
@@ -265,11 +253,7 @@ public class NopMetaTableBizModel extends CrudBizModel<NopMetaTable> implements 
                                                   @Optional @Name("orderBy") List<OrderFieldBean> orderBy,
                                                   @Optional @Name("selection") FieldSelectionBean selection,
                                                   IServiceContext context) {
-        IEntityDao<NopMetaTable> tableDao = dao();
-        NopMetaTable table = tableDao.getEntityById(metaTableId);
-        if (table == null) {
-            throw new NopMetadataException(NopMetadataErrors.ERR_QUERY_TABLE_NOT_FOUND).param("metaTableId", metaTableId);
-        }
+        NopMetaTable table = requireEntity(metaTableId, "query", context);
         Map<String, Object> raw = aggregationExecutor.executeAggregation(table, measures, dimensions, filter, joinId, limit, offset,
                 having, orderBy, buildQueryContext());
         AggregationResultDTO result = new AggregationResultDTO();
@@ -301,15 +285,6 @@ public class NopMetaTableBizModel extends CrudBizModel<NopMetaTable> implements 
             out.add(new ResolvedTableField(orig.getName(), orig.getSourceType(), inferred.get(i).getType()));
         }
         return out;
-    }
-
-    NopMetaTable resolveTableOrThrow(String metaTableId) {
-        IEntityDao<NopMetaTable> tableDao = dao();
-        NopMetaTable table = tableDao.getEntityById(metaTableId);
-        if (table == null) {
-            throw new NopMetadataException(NopMetadataErrors.ERR_PROFILING_TABLE_NOT_FOUND).param("metaTableId", metaTableId);
-        }
-        return table;
     }
 
     NopMetaProfilingResult appendProfilingResult(String profilingRuleId, String metaTableId,

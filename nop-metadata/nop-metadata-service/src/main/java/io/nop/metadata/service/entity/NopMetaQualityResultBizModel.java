@@ -26,11 +26,7 @@ public class NopMetaQualityResultBizModel extends CrudBizModel<NopMetaQualityRes
      */
     @BizMutation
     public NopMetaQualityResult approve(@Name("id") String id, IServiceContext context) {
-        NopMetaQualityResult entity = dao().getEntityById(id);
-        if (entity == null) {
-            throw new NopMetadataException(NopMetadataErrors.ERR_QUALITY_RESULT_NOT_FOUND)
-                    .param("qualityResultId", id);
-        }
+        NopMetaQualityResult entity = requireEntity(id, "approve", context);
         dao().updateEntity(entity);
         return entity;
     }
@@ -41,11 +37,7 @@ public class NopMetaQualityResultBizModel extends CrudBizModel<NopMetaQualityRes
      */
     @BizMutation
     public NopMetaQualityResult reject(@Name("id") String id, IServiceContext context) {
-        NopMetaQualityResult entity = dao().getEntityById(id);
-        if (entity == null) {
-            throw new NopMetadataException(NopMetadataErrors.ERR_QUALITY_RESULT_NOT_FOUND)
-                    .param("qualityResultId", id);
-        }
+        NopMetaQualityResult entity = requireEntity(id, "reject", context);
         entity.setIsFalsePositive((byte) 1);
         dao().updateEntity(entity);
         return entity;

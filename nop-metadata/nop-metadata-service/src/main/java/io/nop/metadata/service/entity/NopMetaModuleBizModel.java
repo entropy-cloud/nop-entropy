@@ -383,15 +383,11 @@ public class NopMetaModuleBizModel extends CrudBizModel<NopMetaModule> implement
 
     @BizMutation
     public NopMetaModule releaseModule(@Name("metaModuleId") String metaModuleId, IServiceContext context) {
-        NopMetaModule module = dao().getEntityById(metaModuleId);
-        if (module == null)
-            throw new NopMetadataException(NopMetadataErrors.ERR_MODULE_NOT_FOUND).param("metaModuleId", metaModuleId);
+        NopMetaModule module = requireEntity(metaModuleId, "update", context);
 
         String status = module.getStatus();
         if (!_NopMetadataCoreConstants.MODULE_STATUS_DRAFTING.equals(status))
             throw new NopMetadataException(NopMetadataErrors.ERR_MODULE_NOT_DRAFTING).param("status", status);
-
-        checkDataAuth(BizConstants.METHOD_UPDATE, module, context);
 
         // 元数据变更事件（架构基线 §2.8 D3）：版本发布主实体级记录 1 行 Module UPDATED（changeSource=UI）。
         // before 快照必须在变更前捕获（status=DRAFTING），after 为发布后（status=RELEASED）。
@@ -439,9 +435,7 @@ public class NopMetaModuleBizModel extends CrudBizModel<NopMetaModule> implement
      */
     @BizMutation
     public NopMetaManifest generateManifest(@Name("metaModuleId") String metaModuleId, IServiceContext context) {
-        NopMetaModule module = dao().getEntityById(metaModuleId);
-        if (module == null)
-            throw new NopMetadataException(NopMetadataErrors.ERR_MODULE_NOT_FOUND).param("metaModuleId", metaModuleId);
+        NopMetaModule module = requireEntity(metaModuleId, "generateManifest", context);
 
         IEntityDao<NopMetaOrmModel> ormModelDao = daoFor(NopMetaOrmModel.class);
         IEntityDao<NopMetaEntity> entityDao = daoFor(NopMetaEntity.class);

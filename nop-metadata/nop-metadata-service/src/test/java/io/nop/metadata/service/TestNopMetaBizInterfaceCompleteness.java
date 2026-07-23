@@ -18,6 +18,7 @@ import io.nop.metadata.biz.INopMetaQualityResultBiz;
 import io.nop.metadata.biz.INopMetaQualityRuleBiz;
 import io.nop.metadata.biz.INopMetaQualityScoreBiz;
 import io.nop.metadata.biz.INopMetaTableBiz;
+import io.nop.metadata.biz.INopMetaTagLabelBiz;
 import org.junit.jupiter.api.Test;
 
 import java.lang.reflect.Method;
@@ -79,10 +80,8 @@ public class TestNopMetaBizInterfaceCompleteness {
 
         assertDeclaresMethod(INopMetaQualityScoreBiz.class, "computeQualityScore", 2);
 
-        assertDeclaresMethod(INopMetaDataContractBiz.class, "activateContract", 2);
-        assertDeclaresMethod(INopMetaDataContractBiz.class, "deprecateContract", 2);
-        assertDeclaresMethod(INopMetaDataContractBiz.class, "retireContract", 2);
         assertDeclaresMethod(INopMetaDataContractBiz.class, "checkContract", 2);
+        assertDeclaresMethod(INopMetaDataContractBiz.class, "checkContractReadOnly", 2);
         assertDeclaresMethod(INopMetaDataContractBiz.class, "approve", 2);
         assertDeclaresMethod(INopMetaDataContractBiz.class, "reject", 2);
 
@@ -94,6 +93,9 @@ public class TestNopMetaBizInterfaceCompleteness {
         assertDeclaresMethod(INopMetaQualityResultBiz.class, "reject", 2);
 
         assertDeclaresMethod(INopMetaProfilingRuleBiz.class, "executeProfilingRule", 3);
+
+        assertDeclaresMethod(INopMetaTagLabelBiz.class, "propagateTags", 4);
+        assertDeclaresMethod(INopMetaTagLabelBiz.class, "suggestTags", 3);
     }
 
     /**

@@ -94,8 +94,8 @@ public class NopMetaLineageEdgeBizModel extends CrudBizModel<NopMetaLineageEdge>
                 throw new NopMetadataException(NopMetadataErrors.ERR_LINEAGE_TABLE_NOT_FOUND).param("tableId", id);
             }
         }
-        for (NopMetaLineageEdge edge : parsed) {
-            dao().saveEntity(edge);
+        if (!parsed.isEmpty()) {
+            dao().batchSaveEntities(parsed);
         }
         orm().flushSession();
         LineageRecordResultDTO result = new LineageRecordResultDTO();

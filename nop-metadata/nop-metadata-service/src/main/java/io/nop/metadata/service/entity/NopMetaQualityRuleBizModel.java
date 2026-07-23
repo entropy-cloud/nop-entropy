@@ -130,10 +130,7 @@ public class NopMetaQualityRuleBizModel extends CrudBizModel<NopMetaQualityRule>
     public QualityRuleExecuteResultDTO executeQualityRule(@Name("qualityRuleId") String qualityRuleId,
                                                            @Optional @Name("schemaPattern") String schemaPattern,
                                                            IServiceContext context) {
-        NopMetaQualityRule rule = dao().getEntityById(qualityRuleId);
-        if (rule == null) {
-            throw new NopMetadataException(NopMetadataErrors.ERR_QUALITY_RULE_NOT_FOUND).param("qualityRuleId", qualityRuleId);
-        }
+        NopMetaQualityRule rule = requireEntity(qualityRuleId, "executeQualityRule", context);
 
         // entityType=database 首版 SKIP（§2.7.1 D1）——不解析表/数据源，直接写 SKIP 结果行
         if (_NopMetadataCoreConstants.QUALITY_ENTITY_TYPE_DATABASE.equals(rule.getEntityType())) {
@@ -374,10 +371,7 @@ public class NopMetaQualityRuleBizModel extends CrudBizModel<NopMetaQualityRule>
      */
     @BizQuery
     public QualityRuleExecuteResultDTO judgeByRuleId(@Name("ruleId") String ruleId, IServiceContext context) {
-        NopMetaQualityRule rule = dao().getEntityById(ruleId);
-        if (rule == null) {
-            throw new NopMetadataException(NopMetadataErrors.ERR_QUALITY_RULE_NOT_FOUND).param("qualityRuleId", ruleId);
-        }
+        NopMetaQualityRule rule = requireEntity(ruleId, "judgeByRuleId", context);
 
         NopMetaTable table = resolveTargetTableOrThrow(rule);
         TableReference ref = tableRefResolver.resolve(table,

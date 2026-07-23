@@ -96,11 +96,7 @@ public class NopMetaReconciliationConfigBizModel extends CrudBizModel<NopMetaRec
     @BizMutation
     public NopMetaReconciliationResult executeReconciliation(@Name("configId") String configId,
                                                               IServiceContext context) {
-        IEntityDao<NopMetaReconciliationConfig> configDao = dao();
-        NopMetaReconciliationConfig config = configDao.getEntityById(configId);
-        if (config == null) {
-            throw new NopMetadataException(NopMetadataErrors.ERR_RECON_CONFIG_NOT_FOUND).param("configId", configId);
-        }
+        NopMetaReconciliationConfig config = requireEntity(configId, "executeReconciliation", context);
         String metaTableId = config.getMetaTableId();
 
         // 校验目标表存在
