@@ -109,4 +109,29 @@ public class TestConvertHelper {
         LocalDateTime dt = LocalDateTime.now();
         assertFalse(ConvertHelper.toString(dt).contains("."));
     }
+
+    @Test
+    public void testEpochString() {
+        // 13位毫秒时间戳保持按毫秒
+        long millis = 1500000000000L;
+        assertEquals(ConvertHelper.millisToLocalDate(millis),
+                ConvertHelper.toLocalDate(String.valueOf(millis)));
+        assertEquals(ConvertHelper.millisToLocalDateTime(millis),
+                ConvertHelper.toLocalDateTime(String.valueOf(millis)));
+
+        // 10位秒级时间戳按秒处理(等价于秒*1000毫秒)
+        long secs = 1500000000L;
+        assertEquals(ConvertHelper.millisToLocalDate(secs * 1000L),
+                ConvertHelper.toLocalDate(String.valueOf(secs)));
+        assertEquals(ConvertHelper.millisToLocalDateTime(secs * 1000L),
+                ConvertHelper.toLocalDateTime(String.valueOf(secs)));
+
+        // 10位不再被误当毫秒(否则会等于 millisToLocalDate(secs))
+        Assertions.assertNotEquals(ConvertHelper.millisToLocalDate(secs),
+                ConvertHelper.toLocalDate(String.valueOf(secs)));
+
+        // 空串 -> null
+        Assertions.assertNull(ConvertHelper.toLocalDate(""));
+        Assertions.assertNull(ConvertHelper.toLocalDateTime(""));
+    }
 }

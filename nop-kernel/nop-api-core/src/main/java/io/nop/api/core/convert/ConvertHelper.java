@@ -910,6 +910,9 @@ public class ConvertHelper {
 
         if (ApiStringHelper.isAllDigit(str)) {
             long ts = stringToLong(str, errorFactory);
+            // 10位及以下按秒级时间戳,13位按毫秒
+            if (str.length() <= 10)
+                ts = ts * 1000L;
             return millisToLocalDate(ts);
         }
 
@@ -956,6 +959,9 @@ public class ConvertHelper {
 
         if (ApiStringHelper.isAllDigit(str)) {
             long ts = stringToLong(str, errorFactory);
+            // 10位及以下按秒级时间戳,13位按毫秒
+            if (str.length() <= 10)
+                ts = ts * 1000L;
             return millisToLocalDateTime(ts);
         }
 
