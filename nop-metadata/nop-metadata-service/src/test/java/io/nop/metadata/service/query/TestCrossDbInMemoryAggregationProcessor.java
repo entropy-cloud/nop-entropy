@@ -145,7 +145,7 @@ public class TestCrossDbInMemoryAggregationProcessor {
     @Test
     public void testMemoryGroupByCountDistinct() {
         List<AggregationContext.CrossDbMeasureSpec> measures = new ArrayList<>();
-        measures.add(new AggregationContext.CrossDbMeasureSpec("VAL", "countDistinct", "value", "left"));
+        measures.add(new AggregationContext.CrossDbMeasureSpec("VAL", "count_distinct", "value", "left"));
         List<AggregationContext.CrossDbDimensionSpec> dims = new ArrayList<>();
 
         List<Map<String, Object>> rows = new ArrayList<>();

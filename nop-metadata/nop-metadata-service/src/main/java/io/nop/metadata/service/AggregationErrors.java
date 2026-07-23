@@ -60,7 +60,7 @@ interface AggregationErrors extends NopMetadataArgs {
                     ARG_META_TABLE_ID, ARG_MEASURE_NAME, ARG_CLAUSE);
     ErrorCode ERR_AGGR_AGG_FUNC_UNSUPPORTED =
             ErrorCode.define("nop.err.metadata.aggr-agg-func-unsupported",
-                    "aggFunc not supported (expected sum/count/avg/min/max/countDistinct): "
+                    "aggFunc not supported (expected sum/count/avg/min/max/count_distinct): "
                             + "{aggFunc} measureName={measureName}", ARG_AGG_FUNC, ARG_MEASURE_NAME);
     ErrorCode ERR_AGGR_FIELD_NOT_RESOLVED =
             ErrorCode.define("nop.err.metadata.aggr-field-not-resolved",

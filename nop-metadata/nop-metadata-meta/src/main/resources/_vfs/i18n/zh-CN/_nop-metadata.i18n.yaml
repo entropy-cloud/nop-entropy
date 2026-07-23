@@ -1,6 +1,5 @@
 entity:
   label:
-    MetadataPropagation: null
     NopMetaBusinessDomain: 业务组织域
     NopMetaCatalog: 运行时统计快照
     NopMetaClassification: 分类体系
@@ -42,8 +41,6 @@ entity:
     NopMetaTagLabel: 语义标注
 prop:
   label:
-    MetadataPropagation: {
-      }
     NopMetaBusinessDomain:
       businessDomainId: 业务域ID
       childDomains: 子域集

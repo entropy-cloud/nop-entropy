@@ -50,7 +50,7 @@
             <option code="AVG" label="平均" value="avg" i18n-en:label="Average"/>
             <option code="MIN" label="最小值" value="min" i18n-en:label="Minimum"/>
             <option code="MAX" label="最大值" value="max" i18n-en:label="Maximum"/>
-            <option code="COUNT_DISTINCT" label="去重计数" value="countDistinct" i18n-en:label="Count Distinct"/>
+            <option code="COUNT_DISTINCT" label="去重计数" value="count_distinct" i18n-en:label="Count Distinct"/>
         </dict>
         <dict label="关联类型" name="meta/join-type" valueType="string" i18n-en:label="Join Type">
             <option code="INNER" label="内连接" value="inner" i18n-en:label="Inner"/>
@@ -391,6 +391,11 @@
                 <column code="REMARK" displayName="备注" domain="remark" name="remark" precision="200" propId="13"
                         stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Remark"/>
             </columns>
+            <indexes>
+                <index name="IX_NOP_META_DATA_SOURCE_STATUS" unique="false">
+                    <column name="status"/>
+                </index>
+            </indexes>
             <unique-keys>
                 <unique-key columns="querySpace" name="UK_NOP_META_DS_QUERY_SPACE"
                             i18n-en:displayName="Unique Query Space"/>
@@ -506,11 +511,6 @@
                 <column code="REMARK" displayName="备注" domain="remark" name="remark" precision="200" propId="12"
                         stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Remark"/>
             </columns>
-            <indexes>
-                <index name="IX_NOP_META_SEM_TYPE_NAME" unique="false">
-                    <column name="typeName"/>
-                </index>
-            </indexes>
             <unique-keys>
                 <unique-key columns="typeName" name="UK_NOP_META_SEM_TYPE_NAME"
                             i18n-en:displayName="Unique Semantic Type Name"/>

@@ -105,7 +105,7 @@ public class TestAggregationCategoricalAndTemporal extends JunitBaseTestCase {
         String dbUrl = "jdbc:h2:mem:meta_agg_cd;DB_CLOSE_DELAY=-1";
         _helper.seedAggTable(dbUrl);
         String tableId = _helper.prepareExternalTable(dbUrl, "qs_agg_cd", "EXT_AGG");
-        _helper.createMeasure(tableId, "dc", "CATEGORY", "countDistinct", null);
+        _helper.createMeasure(tableId, "dc", "CATEGORY", "count_distinct", null);
         _helper.createDimension(tableId, "mon", "CREATED_AT", "temporal", "month");
 
         List<Map<String, Object>> items = queryAggregationItems(tableId,

@@ -26,6 +26,6 @@ options:
     description: 
   
   - label: 去重计数
-    value: countDistinct
+    value: count_distinct
     description: 
   

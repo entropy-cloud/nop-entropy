@@ -116,7 +116,7 @@ public interface _NopMetadataCoreConstants {
     /**
      * 聚合函数: 去重计数 
      */
-    String AGG_FUNC_COUNT_DISTINCT = "countDistinct";
+    String AGG_FUNC_COUNT_DISTINCT = "count_distinct";
                     
     /**
      * 关联类型: 内连接 

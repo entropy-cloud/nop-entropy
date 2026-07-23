@@ -1,6 +1,5 @@
 entity:
   label:
-    MetadataPropagation: null
     NopMetaBusinessDomain: Meta Business Domain
     NopMetaCatalog: Meta Catalog
     NopMetaClassification: Meta Classification
@@ -42,8 +41,6 @@ entity:
     NopMetaTagLabel: Meta Tag Label
 prop:
   label:
-    MetadataPropagation: {
-      }
     NopMetaBusinessDomain:
       businessDomainId: Business Domain Id
       parentDomainId: Parent Domain Id
@@ -1049,7 +1046,7 @@ dict.option.label:
     avg: Average
     min: Minimum
     max: Maximum
-    countDistinct: Count Distinct
+    count_distinct: Count Distinct
   meta/join-type:
     inner: Inner
     left: Left

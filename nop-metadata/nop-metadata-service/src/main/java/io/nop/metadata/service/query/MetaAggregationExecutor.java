@@ -44,7 +44,7 @@ import java.util.regex.Pattern;
  *   <li>JOIN 聚合：经对应 Join Processor 按端点组合路由。</li>
  * </ul>
  *
- * <p>aggFunc 翻译：sum/count/avg/min/max/countDistinct。时间维度 granularity 按 {@link GranularityBucketing}
+ * <p>aggFunc 翻译：sum/count/avg/min/max/count_distinct。时间维度 granularity 按 {@link GranularityBucketing}
  * 翻译为 SQL 分桶表达式（D7，仅 external/sql 路径完整支持）。
  *
  * <p>失败路径显式（Minimum Rules #24）：无 measure/dimension / 字段无法解析 / aggFunc 不支持 /

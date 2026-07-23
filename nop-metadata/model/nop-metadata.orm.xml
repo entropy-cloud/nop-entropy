@@ -42,7 +42,7 @@
             <option code="AVG" label="平均" value="avg" i18n-en:label="Average"/>
             <option code="MIN" label="最小值" value="min" i18n-en:label="Minimum"/>
             <option code="MAX" label="最大值" value="max" i18n-en:label="Maximum"/>
-            <option code="COUNT_DISTINCT" label="去重计数" value="countDistinct" i18n-en:label="Count Distinct"/>
+            <option code="COUNT_DISTINCT" label="去重计数" value="count_distinct" i18n-en:label="Count Distinct"/>
         </dict>
         <dict label="关联类型" name="meta/join-type" valueType="string" i18n-en:label="Join Type">
             <option code="INNER" label="内连接" value="inner" i18n-en:label="Inner"/>
@@ -101,6 +101,8 @@
             <option code="PAUSED" label="暂停" value="PAUSED" i18n-en:label="Paused"/>
             <option code="DISABLED" label="已禁用" value="DISABLED" i18n-en:label="Disabled"/>
         </dict>
+        <!-- 维度04-005：以下两个 dict 无 column ext:dict 引用，但 Java 代码通过生成的常量引用其值，
+             因此保留定义。 -->
         <dict label="检查点动作类型" name="meta/checkpoint-action-type" valueType="string" i18n-en:label="Checkpoint Action Type">
             <option code="STORE" label="存储结果" value="store" i18n-en:label="Store"/>
             <option code="WEBHOOK" label="Webhook投递" value="webhook" i18n-en:label="Webhook"/>
@@ -117,6 +119,8 @@
             <option code="DEPRECATED" label="已废弃" value="DEPRECATED" i18n-en:label="Deprecated"/>
             <option code="RETIRED" label="已退役" value="RETIRED" i18n-en:label="Retired"/>
         </dict>
+        <!-- 维度04-005：No column ext:dict references this dict; retained because ReconciliationExecutor.java
+             uses its values (MATCHED/UNMATCHED/MULTIPLE/MANUAL) in code. -->
         <dict label="对账状态" name="meta/reconciliation-status" valueType="string" i18n-en:label="Reconciliation Status">
             <option code="MATCHED" label="已匹配" value="MATCHED" i18n-en:label="Matched"/>
             <option code="UNMATCHED" label="未匹配" value="UNMATCHED" i18n-en:label="Unmatched"/>
@@ -248,6 +252,8 @@
                         stdDataType="string" stdSqlType="VARCHAR" tagSet="disp" i18n-en:displayName="Display Name"/>
                 <column code="MODULE_VERSION" displayName="模块版本号" mandatory="true" name="moduleVersion" propId="5"
                         stdDataType="long" stdSqlType="BIGINT" i18n-en:displayName="Module Version"/>
+                <!-- 维度04-007: baseModuleId 自引用。不设 cascadeDelete，防止误删整个模块版本树。
+                     基线模块版本由 BizModel 显式管理。 -->
                 <column code="BASE_MODULE_ID" displayName="基线模块版本ID" name="baseModuleId" precision="32"
                         propId="6" stdDataType="string" stdSqlType="VARCHAR"
                         i18n-en:displayName="Base Module Id"/>
@@ -415,6 +421,11 @@
         <unique-key name="UK_NOP_META_DATA_SOURCE_NAME" columns="name"
                     i18n-en:displayName="Unique Datasource Name"/>
     </unique-keys>
+            <indexes>
+                <index name="IX_NOP_META_DATA_SOURCE_STATUS" unique="false">
+                    <column name="status"/>
+                </index>
+            </indexes>
         </entity>
 
         <!-- =====================================================
@@ -546,11 +557,6 @@
                 <unique-key name="UK_NOP_META_SEM_TYPE_NAME" columns="typeName"
                             i18n-en:displayName="Unique Semantic Type Name"/>
             </unique-keys>
-            <indexes>
-                <index name="IX_NOP_META_SEM_TYPE_NAME" unique="false">
-                    <column name="typeName"/>
-                </index>
-            </indexes>
         </entity>
 
         <!-- =====================================================
@@ -2124,7 +2130,7 @@
                         stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Status"
                         ext:dict="meta/checkpoint-status"/>
                 <column code="EXT_CONFIG" displayName="扩展配置" domain="json-4000" name="extConfig"
-                        propId="9" stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Ext Config"/>
+                        propId="9" stdDataType="string" stdDomain="json" stdSqlType="VARCHAR" i18n-en:displayName="Ext Config"/>
                 <column code="VERSION" displayName="数据版本" domain="version" mandatory="true" name="version"
                         propId="10" stdDataType="long" stdSqlType="BIGINT" i18n-en:displayName="Version"/>
                 <column code="CREATED_BY" displayName="创建人" domain="createdBy" mandatory="true" name="createdBy"
@@ -3413,8 +3419,7 @@
         </entity>
 
         <!-- =====================================================
-             NopMetaReportDefinition:
-             报表定义（预留）
+             NopMetaDataProduct: 数据产品（Data Product）定义
              ===================================================== -->
         <entity className="io.nop.metadata.dao.entity.NopMetaDataProduct" createTimeProp="createTime"
                 createrProp="createdBy" displayName="数据产品"
