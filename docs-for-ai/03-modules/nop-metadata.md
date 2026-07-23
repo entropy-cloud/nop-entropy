@@ -129,13 +129,28 @@ mutation {
 
 | 子模块 | 用途 |
 |--------|------|
+| `nop-metadata-api` | DTO 类（`io.nop.metadata.api.dto.*`），供 Biz 接口和跨模块调用契约引用 |
 | `nop-metadata-core` | 共享常量（`_NopMetadataCoreConstants`，70+ 表/数据源/血缘/质量等枚举常量）+ 29 个 `@DataBean` DTO 类（`nop-metadata-core/dto/`） |
-| `nop-metadata-dao` | ORM 实体 + BizModel 接口（`INopMeta*Biz`） |
+| `nop-metadata-dao` | ORM 实体 + BizModel 接口（`INopMeta*Biz`）—— Biz 接口因引用 dao.entity.* 类型而驻留在此，不迁至 api |
 | `nop-metadata-codegen` | Codegen 模板元数据快照 |
 | `nop-metadata-meta` | xbeans / xmeta / 模型定义 |
 | `nop-metadata-service` | BizModel 实现 + Executor / Processor / Helper |
 | `nop-metadata-web` | GraphQL / xbiz 自动注册入口 |
 | `nop-metadata-app` | Quarkus 启动入口（demo 应用） |
+
+### 子模块依赖规则
+
+| 子模块 | 依赖 |
+|--------|------|
+| `nop-metadata-api` | `nop-api-core`（DTO 基类） |
+| `nop-metadata-core` | `nop-metadata-api`、`nop-api-core` |
+| `nop-metadata-dao` | `nop-metadata-api`、`nop-api-core`、`nop-orm` |
+| `nop-metadata-meta` | 纯模型定义，无 Java 代码依赖 |
+| `nop-metadata-service` | `nop-metadata-api`、`nop-metadata-core`、`nop-metadata-dao`、`nop-metadata-meta`、`nop-biz`、框架模块 |
+| `nop-metadata-web` | `nop-metadata-service` + Web 入口 |
+| `nop-metadata-app` | `nop-metadata-web` + Quarkus 启动器 |
+
+`INopMeta*Biz` 接口驻留在 `nop-metadata-dao` 而非 `nop-metadata-api`，因为这些接口的类型参数引用 `dao.entity.*` 实体类，移入 api 会导致循环依赖（api → dao → api）。
 
 ## 失败路径显式化
 
