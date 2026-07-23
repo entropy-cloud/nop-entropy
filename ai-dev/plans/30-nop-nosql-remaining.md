@@ -1,6 +1,6 @@
 # 30 nop-nosql-remaining
 
-> Plan Status: completed
+> Plan Status: completed (closure-audited)
 > Last Reviewed: 2026-07-21
 > Source: code audit of `nop-nosql` module; known gaps documented in `ai-dev/design/nop-nosql/architecture.md` §6
 > Related: `LettuceMessageService.java`, `LettuceRedisConnectionProvider.java`, `RedisConfig.java`, `INosqlService.java`
@@ -160,7 +160,7 @@ Exit Criteria:
 - [x] `./mvnw compile -pl nop-nosql/nop-nosql-lettuce -am` 通过
 - [x] 不存在被静默降级到 deferred / follow-up 的 in-scope live defect 或 contract drift
 - [x] 受影响的 owner docs（README.md、README.en.md、architecture.md）已同步
-- [x] 独立子 agent closure-audit 已完成并记录证据
+- [x] 独立子 agent closure-audit 已完成并记录证据（ses_07aecc1e5ffed6WMSm4fpTbGwU，16/16 PASS）
 - [x] **Anti-Hollow Check**：`LettucePubSubService` 通过 `LettuceMessageService.getMessageService()` 返回（延迟初始化）；`forEachEntryAsync` 不再静默返回 `completedFuture(null)`；`forEachEntry` 不再抛异常
 - [x] 代码规范检查（imports 分组、无 dead code 等）通过
 
@@ -180,12 +180,13 @@ Exit Criteria:
 
 ## Closure
 
-Status Note: 全部 Phase 执行完毕
+Status Note: 全部 Phase 执行完毕 + 独立子 agent closure-audit 通过
 Completed: 2026-07-21
 
 Closure Audit Evidence:
 
-- Reviewer / Agent: 独立子 agent ses_07b0b40b6ffeOLPc3rqETTmq4w（第二轮 adversarial review）
+- Reviewer / Agent: 独立子 agent ses_07aecc1e5ffed6WMSm4fpTbGwU（closure audit，16/16 PASS）
+- 第二轮 adversarial review: agent ses_07b0b40b6ffeOLPc3rqETTmq4w（pre-execution review）
 - Evidence:
   - Phase 1 Exit Criteria: ✅ SSL 标志代码已合并，buildRedisURI/buildClusterURIs 同步修改，不破坏非 SSL 连接（52 测试通过）
   - Phase 2 Exit Criteria: ✅ 5 个新增测试覆盖基础遍历/空库/异步/大数据量；错误消息已修正
