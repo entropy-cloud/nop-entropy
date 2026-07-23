@@ -99,6 +99,8 @@ catch (IOException e) {
 nop.err.[模块].[子域].[错误]
 ```
 
+> **nop-metadata 模块特例**：该模块使用连字符而非点号作为子域分隔符，如 `nop.err.metadata.aggr-no-measure`。这是该模块的有意选择（见 `NopMetadataErrors.java` 文档注释），不在其他模块推广。新增模块应遵循默认的点号分隔约定。
+
 ### 参数名
 
 为动态参数定义统一常量，例如：
