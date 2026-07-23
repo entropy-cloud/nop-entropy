@@ -13,12 +13,13 @@ import io.nop.metadata.service.sync.ExternalTableStructureReader;
 import org.junit.jupiter.api.Test;
 
 import java.lang.reflect.Field;
+import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
@@ -27,7 +28,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * <p>覆盖：
  * <ul>
  *   <li>{@link NopMetadataErrors} 常量集中化（a 部分）</li>
- *   <li>{@link NopMetadataException} 四构造器可用（b 部分）</li>
+ *   <li>{@link NopMetadataException} 两构造器可用（b 部分）</li>
  *   <li>{@link ExternalTableStructureReader#requireSupportedProductName} 不再抛
  *       {@link UnsupportedOperationException}，改为 {@link NopException}（c 部分）</li>
  *   <li>ARG_* 参数常量已引入（d 部分）</li>
@@ -73,36 +74,32 @@ public class TestNopMetadataErrorsCentralized {
     @Test
     public void testAllErrorsUseNopErrPrefix() {
         Set<String> allCodes = new HashSet<>();
-        for (Field f : NopMetadataErrors.class.getDeclaredFields()) {
-            if (f.getType() == ErrorCode.class) {
-                try {
-                    ErrorCode ec = (ErrorCode) f.get(null);
-                    allCodes.add(ec.getErrorCode());
-                } catch (IllegalAccessException ignored) {
-                    // skip
+        List<Class<?>> errorInterfaces = List.of(
+                AggregationErrors.class, JoinErrors.class, QualityErrors.class,
+                DataSourceErrors.class, SqlErrors.class, FieldErrors.class,
+                LineageErrors.class, ModuleErrors.class, ReconErrors.class, MiscErrors.class);
+        for (Class<?> cls : errorInterfaces) {
+            for (Field f : cls.getDeclaredFields()) {
+                if (f.getType() == ErrorCode.class) {
+                    try {
+                        ErrorCode ec = (ErrorCode) f.get(null);
+                        allCodes.add(ec.getErrorCode());
+                    } catch (IllegalAccessException e) {
+                        throw NopException.adapt(e);
+                    }
                 }
             }
         }
-        assertTrue(!allCodes.isEmpty(), "NopMetadataErrors must declare ErrorCode constants");
+        assertTrue(!allCodes.isEmpty(), "ErrorCode interfaces must declare ErrorCode constants");
         for (String code : allCodes) {
             assertTrue(code.startsWith("nop.err.metadata."),
                     "ErrorCode must use nop.err.metadata.* prefix: " + code);
         }
     }
 
-    /** 验证 {@link NopMetadataException} 四构造器可用。 */
+    /** 验证 {@link NopMetadataException} 两构造器可用。 */
     @Test
     public void testNopMetadataExceptionConstructors() {
-        // (String)
-        NopMetadataException e1 = new NopMetadataException("inner helper failure");
-        assertTrue(e1.getMessage().contains("inner helper failure"));
-
-        // (String, Throwable)
-        NopMetadataException e2 = new NopMetadataException("inner helper failure with cause",
-                new RuntimeException("root"));
-        assertTrue(e2.getMessage().contains("inner helper failure"));
-        assertNotNull(e2.getCause());
-
         // (ErrorCode)
         NopMetadataException e3 = new NopMetadataException(NopMetadataErrors.ERR_MANIFEST_BUILD_FAILED);
         assertEquals(NopMetadataErrors.ERR_MANIFEST_BUILD_FAILED.getErrorCode(), e3.getErrorCode());

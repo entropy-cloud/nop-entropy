@@ -14,7 +14,7 @@ import io.nop.dao.api.IDaoProvider;
 import io.nop.dao.api.IEntityDao;
 import io.nop.graphql.core.ast.GraphQLOperationType;
 import io.nop.graphql.core.engine.IGraphQLEngine;
-import io.nop.metadata.core.dto.AggregationResultDTO;
+import io.nop.metadata.api.dto.AggregationResultDTO;
 import io.nop.metadata.dao.entity.NopMetaEntityField;
 import io.nop.metadata.dao.entity.NopMetaTableMeasure;
 import io.nop.orm.IOrmTemplate;

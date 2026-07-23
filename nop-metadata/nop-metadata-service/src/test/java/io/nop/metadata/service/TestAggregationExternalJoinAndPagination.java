@@ -9,7 +9,7 @@ import io.nop.api.core.exceptions.NopException;
 import io.nop.autotest.junit.JunitBaseTestCase;
 import io.nop.dao.api.IDaoProvider;
 import io.nop.graphql.core.engine.IGraphQLEngine;
-import io.nop.metadata.core.dto.AggregationResultDTO;
+import io.nop.metadata.api.dto.AggregationResultDTO;
 import io.nop.metadata.dao.entity.NopMetaEntity;
 import io.nop.metadata.dao.entity.NopMetaEntityField;
 import io.nop.orm.IOrmTemplate;

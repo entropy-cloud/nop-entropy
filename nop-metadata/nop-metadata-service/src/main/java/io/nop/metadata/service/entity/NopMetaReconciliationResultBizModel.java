@@ -18,7 +18,7 @@ import io.nop.core.context.IServiceContext;
 import io.nop.core.lang.json.JsonTool;
 import io.nop.dao.api.IEntityDao;
 import io.nop.metadata.biz.INopMetaReconciliationResultBiz;
-import io.nop.metadata.core.dto.ReconciliationSelectionDTO;
+import io.nop.metadata.api.dto.ReconciliationSelectionDTO;
 import io.nop.metadata.dao.entity.NopMetaReconciliationResult;
 import io.nop.metadata.service.NopMetadataException;
 

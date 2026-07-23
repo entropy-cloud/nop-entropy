@@ -10,6 +10,7 @@ package io.nop.metadata.service.entity;
 
 import io.nop.api.core.annotations.biz.BizModel;
 import io.nop.metadata.service.NopMetadataErrors;
+import io.nop.metadata.service.NopMetadataHelper;
 import io.nop.api.core.annotations.core.Name;
 import io.nop.api.core.exceptions.ErrorCode;
 import io.nop.api.core.exceptions.NopException;
@@ -65,17 +66,17 @@ public class NopMetaTableMeasureBizModel extends CrudBizModel<NopMetaTableMeasur
      */
     @Override
     public NopMetaTableMeasure save(@Name("data") Map<String, Object> data, IServiceContext context) {
-        String metaTableId = stringOf(data, NopMetaTableMeasure.PROP_NAME_metaTableId);
-        String entityFieldId = stringOf(data, NopMetaTableMeasure.PROP_NAME_entityFieldId);
-        String measureName = stringOf(data, NopMetaTableMeasure.PROP_NAME_measureName);
-        String expression = stringOf(data, NopMetaTableMeasure.PROP_NAME_expression);
+        String metaTableId = NopMetadataHelper.stringOf(data, NopMetaTableMeasure.PROP_NAME_metaTableId);
+        String entityFieldId = NopMetadataHelper.stringOf(data, NopMetaTableMeasure.PROP_NAME_entityFieldId);
+        String measureName = NopMetadataHelper.stringOf(data, NopMetaTableMeasure.PROP_NAME_measureName);
+        String expression = NopMetadataHelper.stringOf(data, NopMetaTableMeasure.PROP_NAME_expression);
         inheritBusinessDomain(data, metaTableId);
         validateMeasureField(metaTableId, entityFieldId, measureName, expression);
         return super.save(data, context);
     }
 
     private void inheritBusinessDomain(Map<String, Object> data, String metaTableId) {
-        String businessDomainId = stringOf(data, NopMetaTableMeasure.PROP_NAME_businessDomainId);
+        String businessDomainId = NopMetadataHelper.stringOf(data, NopMetaTableMeasure.PROP_NAME_businessDomainId);
         if ((businessDomainId == null || businessDomainId.isEmpty())
                 && metaTableId != null && !metaTableId.isEmpty()) {
             IEntityDao<NopMetaTable> tableDao = daoFor(NopMetaTable.class);
@@ -119,8 +120,4 @@ public class NopMetaTableMeasureBizModel extends CrudBizModel<NopMetaTableMeasur
                 NopMetadataErrors.ERR_MEASURE_FIELD_NOT_FOUND, "measure");
     }
 
-    private static String stringOf(Map<String, Object> data, String key) {
-        Object v = data.get(key);
-        return v == null ? null : v.toString();
-    }
 }

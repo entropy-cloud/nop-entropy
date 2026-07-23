@@ -24,7 +24,7 @@ import io.nop.metadata.dao.entity.NopMetaDataSource;
 import io.nop.metadata.dao.entity.NopMetaEntity;
 import io.nop.metadata.dao.entity.NopMetaModule;
 import io.nop.metadata.biz.INopMetaTableBiz;
-import io.nop.metadata.core.dto.QueryTableDataResultDTO;
+import io.nop.metadata.api.dto.QueryTableDataResultDTO;
 import io.nop.metadata.dao.entity.NopMetaTable;
 import jakarta.inject.Inject;
 import org.junit.jupiter.api.Test;

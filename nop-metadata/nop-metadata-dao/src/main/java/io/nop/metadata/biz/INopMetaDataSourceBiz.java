@@ -5,9 +5,9 @@ import io.nop.api.core.annotations.biz.BizMutation;
 import io.nop.api.core.annotations.core.Name;
 import io.nop.api.core.annotations.core.Optional;
 import io.nop.core.context.IServiceContext;
-import io.nop.metadata.core.dto.CollectCatalogResultDTO;
-import io.nop.metadata.core.dto.SyncExternalTablesResultDTO;
-import io.nop.metadata.core.dto.TestConnectionResultDTO;
+import io.nop.metadata.api.dto.CollectCatalogResultDTO;
+import io.nop.metadata.api.dto.SyncExternalTablesResultDTO;
+import io.nop.metadata.api.dto.TestConnectionResultDTO;
 import io.nop.metadata.dao.entity.NopMetaDataSource;
 import io.nop.orm.biz.ICrudBiz;
 

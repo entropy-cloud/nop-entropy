@@ -1,13 +1,14 @@
 package io.nop.metadata.service.search;
 
 import io.nop.dao.api.IDaoProvider;
-import io.nop.metadata.core.dto.IndexResult;
+import io.nop.metadata.api.dto.IndexResult;
 import io.nop.metadata.dao.entity.NopMetaClassification;
 import io.nop.metadata.dao.entity.NopMetaEntity;
 import io.nop.metadata.dao.entity.NopMetaEntityField;
 import io.nop.metadata.dao.entity.NopMetaGlossaryTerm;
 import io.nop.metadata.dao.entity.NopMetaTable;
 import io.nop.metadata.dao.entity.NopMetaTag;
+import io.nop.metadata.service.NopMetadataHelper;
 import io.nop.search.api.ISearchEngine;
 import io.nop.search.api.SearchableDoc;
 import jakarta.annotation.Nullable;
@@ -33,11 +34,7 @@ public class NopMetaIndexBuilder {
     @Inject
     protected IDaoProvider daoProvider;
 
-    private static String truncate(String s, int maxLen) {
-        if (s == null)
-            return "";
-        return s.length() > maxLen ? s.substring(0, maxLen) : s;
-    }
+    // truncate and join moved to NopMetadataHelper
 
     public List<IndexResult> buildFullIndex(List<String> entityTypes) {
         if (searchEngine == null) {
@@ -134,8 +131,8 @@ public class NopMetaIndexBuilder {
                 doc.setId(e.getClassificationId());
                 doc.setName(name);
                 doc.setTitle(displayName);
-                doc.setSummary(truncate(description, 500));
-                doc.setContent(join(" ", name, displayName, description));
+                doc.setSummary(NopMetadataHelper.truncate(description, 500));
+                doc.setContent(NopMetadataHelper.join(" ", name, displayName, description));
                 doc.setTagSet(Set.of("Classification"));
                 docs.add(doc);
             } catch (Exception ex) {
@@ -158,8 +155,8 @@ public class NopMetaIndexBuilder {
                 doc.setId(e.getTagId());
                 doc.setName(name);
                 doc.setTitle(displayName);
-                doc.setSummary(truncate(description, 500));
-                doc.setContent(join(" ", name, e.getFullyQualifiedName(), displayName, description));
+                doc.setSummary(NopMetadataHelper.truncate(description, 500));
+                doc.setContent(NopMetadataHelper.join(" ", name, e.getFullyQualifiedName(), displayName, description));
                 doc.setTagSet(Set.of("Tag"));
                 docs.add(doc);
             } catch (Exception ex) {
@@ -182,8 +179,8 @@ public class NopMetaIndexBuilder {
                 doc.setId(e.getGlossaryTermId());
                 doc.setName(name);
                 doc.setTitle(displayName);
-                doc.setSummary(truncate(description, 500));
-                doc.setContent(join(" ", name, e.getFullyQualifiedName(), displayName, description, e.getSynonyms()));
+                doc.setSummary(NopMetadataHelper.truncate(description, 500));
+                doc.setContent(NopMetadataHelper.join(" ", name, e.getFullyQualifiedName(), displayName, description, e.getSynonyms()));
                 doc.setTagSet(Set.of("GlossaryTerm"));
                 docs.add(doc);
             } catch (Exception ex) {
@@ -205,8 +202,8 @@ public class NopMetaIndexBuilder {
                 doc.setId(e.getMetaTableId());
                 doc.setName(e.getTableName());
                 doc.setTitle(displayName);
-                doc.setSummary(truncate(description, 500));
-                doc.setContent(join(" ", e.getTableName(), displayName, description));
+                doc.setSummary(NopMetadataHelper.truncate(description, 500));
+                doc.setContent(NopMetadataHelper.join(" ", e.getTableName(), displayName, description));
                 doc.setTagSet(Set.of("MetaTable"));
                 docs.add(doc);
             } catch (Exception ex) {
@@ -229,8 +226,8 @@ public class NopMetaIndexBuilder {
                 doc.setId(e.getMetaEntityId());
                 doc.setName(name);
                 doc.setTitle(displayName);
-                doc.setSummary(truncate(remark, 500));
-                doc.setContent(join(" ", e.getEntityName(), e.getClassName(), displayName, e.getTagSet(), remark));
+                doc.setSummary(NopMetadataHelper.truncate(remark, 500));
+                doc.setContent(NopMetadataHelper.join(" ", e.getEntityName(), e.getClassName(), displayName, e.getTagSet(), remark));
                 doc.setTagSet(Set.of("MetaEntity"));
                 docs.add(doc);
             } catch (Exception ex) {
@@ -253,8 +250,8 @@ public class NopMetaIndexBuilder {
                 doc.setId(e.getEntityFieldId());
                 doc.setName(name);
                 doc.setTitle(displayName);
-                doc.setSummary(truncate(comment, 500));
-                doc.setContent(join(" ", e.getFieldName(), e.getColumnCode(), displayName, comment));
+                doc.setSummary(NopMetadataHelper.truncate(comment, 500));
+                doc.setContent(NopMetadataHelper.join(" ", e.getFieldName(), e.getColumnCode(), displayName, comment));
                 doc.setTagSet(Set.of("MetaEntityField"));
                 docs.add(doc);
             } catch (Exception ex) {
@@ -265,15 +262,4 @@ public class NopMetaIndexBuilder {
         return docs;
     }
 
-    private static String join(String delimiter, String... parts) {
-        StringBuilder sb = new StringBuilder();
-        for (String part : parts) {
-            if (part != null && !part.isEmpty()) {
-                if (sb.length() > 0)
-                    sb.append(delimiter);
-                sb.append(part);
-            }
-        }
-        return sb.toString();
-    }
 }

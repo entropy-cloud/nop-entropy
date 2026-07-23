@@ -10,6 +10,7 @@ package io.nop.metadata.service.entity;
 
 import io.nop.api.core.annotations.biz.BizModel;
 import io.nop.metadata.service.NopMetadataErrors;
+import io.nop.metadata.service.NopMetadataHelper;
 import io.nop.api.core.annotations.core.Name;
 import io.nop.api.core.exceptions.ErrorCode;
 import io.nop.api.core.exceptions.NopException;
@@ -69,13 +70,13 @@ public class NopMetaTableJoinBizModel extends CrudBizModel<NopMetaTableJoin> imp
      */
     @Override
     public NopMetaTableJoin save(@Name("data") Map<String, Object> data, IServiceContext context) {
-        String metaTableId = stringOf(data, NopMetaTableJoin.PROP_NAME_metaTableId);
-        String leftEntityId = stringOf(data, NopMetaTableJoin.PROP_NAME_leftEntityId);
-        String rightEntityId = stringOf(data, NopMetaTableJoin.PROP_NAME_rightEntityId);
-        String leftTableId = stringOf(data, NopMetaTableJoin.PROP_NAME_leftTableId);
-        String rightTableId = stringOf(data, NopMetaTableJoin.PROP_NAME_rightTableId);
-        String leftField = stringOf(data, NopMetaTableJoin.PROP_NAME_leftField);
-        String rightField = stringOf(data, NopMetaTableJoin.PROP_NAME_rightField);
+        String metaTableId = NopMetadataHelper.stringOf(data, NopMetaTableJoin.PROP_NAME_metaTableId);
+        String leftEntityId = NopMetadataHelper.stringOf(data, NopMetaTableJoin.PROP_NAME_leftEntityId);
+        String rightEntityId = NopMetadataHelper.stringOf(data, NopMetaTableJoin.PROP_NAME_rightEntityId);
+        String leftTableId = NopMetadataHelper.stringOf(data, NopMetaTableJoin.PROP_NAME_leftTableId);
+        String rightTableId = NopMetadataHelper.stringOf(data, NopMetaTableJoin.PROP_NAME_rightTableId);
+        String leftField = NopMetadataHelper.stringOf(data, NopMetaTableJoin.PROP_NAME_leftField);
+        String rightField = NopMetadataHelper.stringOf(data, NopMetaTableJoin.PROP_NAME_rightField);
         validateJoin(metaTableId, leftEntityId, rightEntityId, leftTableId, rightTableId,
                 leftField, rightField);
         return super.save(data, context);
@@ -185,8 +186,4 @@ public class NopMetaTableJoinBizModel extends CrudBizModel<NopMetaTableJoin> imp
         }
     }
 
-    private static String stringOf(Map<String, Object> data, String key) {
-        Object v = data.get(key);
-        return v == null ? null : v.toString();
-    }
 }

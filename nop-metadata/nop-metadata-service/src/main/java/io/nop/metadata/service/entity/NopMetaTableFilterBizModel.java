@@ -10,6 +10,7 @@ package io.nop.metadata.service.entity;
 
 import io.nop.api.core.beans.FilterBeans;
 import io.nop.metadata.service.NopMetadataErrors;
+import io.nop.metadata.service.NopMetadataHelper;
 import io.nop.api.core.beans.TreeBean;
 import io.nop.api.core.annotations.biz.BizModel;
 import io.nop.api.core.annotations.core.Name;
@@ -61,11 +62,11 @@ public class NopMetaTableFilterBizModel extends CrudBizModel<NopMetaTableFilter>
      */
     @Override
     public NopMetaTableFilter save(@Name("data") Map<String, Object> data, IServiceContext context) {
-        String metaTableId = stringOf(data, NopMetaTableFilter.PROP_NAME_metaTableId);
-        String filterName = stringOf(data, NopMetaTableFilter.PROP_NAME_filterName);
-        String definition = stringOf(data, NopMetaTableFilter.PROP_NAME_definition);
+        String metaTableId = NopMetadataHelper.stringOf(data, NopMetaTableFilter.PROP_NAME_metaTableId);
+        String filterName = NopMetadataHelper.stringOf(data, NopMetaTableFilter.PROP_NAME_filterName);
+        String definition = NopMetadataHelper.stringOf(data, NopMetaTableFilter.PROP_NAME_definition);
         boolean isDefault = booleanOf(data, NopMetaTableFilter.PROP_NAME_isDefault);
-        String selfFilterId = stringOf(data, NopMetaTableFilter.PROP_NAME_filterId);
+        String selfFilterId = NopMetadataHelper.stringOf(data, NopMetaTableFilter.PROP_NAME_filterId);
 
         validateDefinition(metaTableId, filterName, definition);
         if (isDefault) {
@@ -122,11 +123,6 @@ public class NopMetaTableFilterBizModel extends CrudBizModel<NopMetaTableFilter>
                     .param("metaTableId", metaTableId)
                     .param("existingFilterId", existing.getFilterId());
         }
-    }
-
-    private static String stringOf(Map<String, Object> data, String key) {
-        Object v = data.get(key);
-        return v == null ? null : v.toString();
     }
 
     private static boolean booleanOf(Map<String, Object> data, String key) {

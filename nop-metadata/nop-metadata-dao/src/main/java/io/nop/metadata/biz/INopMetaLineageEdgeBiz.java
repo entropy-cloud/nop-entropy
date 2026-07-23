@@ -9,9 +9,9 @@ import io.nop.core.context.IServiceContext;
 import io.nop.metadata.dao.entity.NopMetaLineageEdge;
 import io.nop.orm.biz.ICrudBiz;
 
-import io.nop.metadata.core.dto.LineageExtractResultDTO;
-import io.nop.metadata.core.dto.LineageRecordResultDTO;
-import io.nop.metadata.core.dto.RecordLineageDTO;
+import io.nop.metadata.api.dto.LineageExtractResultDTO;
+import io.nop.metadata.api.dto.LineageRecordResultDTO;
+import io.nop.metadata.api.dto.RecordLineageDTO;
 
 import java.util.List;
 

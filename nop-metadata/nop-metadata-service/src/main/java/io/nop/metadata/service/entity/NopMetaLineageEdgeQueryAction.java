@@ -5,6 +5,7 @@ import io.nop.api.core.beans.query.QueryBean;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.dao.api.IEntityDao;
 import io.nop.dao.api.IDaoProvider;
+import io.nop.metadata.service.NopMetadataHelper;
 import io.nop.metadata.core._NopMetadataCoreConstants;
 import io.nop.metadata.dao.entity.NopMetaEntityField;
 import io.nop.metadata.dao.entity.NopMetaLineageEdge;
@@ -334,7 +335,7 @@ public class NopMetaLineageEdgeQueryAction {
                 Map<String, Object> err = new LinkedHashMap<>();
                 err.put("stage", "measure_parse");
                 err.put("measureName", measureName);
-                err.put("error", toErrorMessage(e));
+                err.put("error", NopMetadataHelper.toErrorMessage(e));
                 errors.add(err);
             }
         }
@@ -501,15 +502,8 @@ public class NopMetaLineageEdgeQueryAction {
     private static Map<String, Object> errorMap(String stage, NopException e) {
         Map<String, Object> err = new LinkedHashMap<>();
         err.put("stage", stage);
-        err.put("error", toErrorMessage(e));
+        err.put("error", NopMetadataHelper.toErrorMessage(e));
         return err;
-    }
-
-    private static String toErrorMessage(Exception e) {
-        String msg = e.getMessage();
-        if (msg != null) return msg;
-        if (e instanceof NopException) return ((NopException) e).getErrorCode();
-        return e.getClass().getName();
     }
 
     public static final class LineageGraph {

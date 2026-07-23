@@ -1,8 +1,6 @@
 package io.nop.metadata.service.quality;
 
 import io.nop.api.core.exceptions.NopException;
-import io.nop.api.core.ioc.BeanContainer;
-import io.nop.api.core.ioc.IBeanContainer;
 import io.nop.core.lang.json.JsonTool;
 import io.nop.dao.api.IDaoEntity;
 import io.nop.dao.api.IDaoProvider;
@@ -23,6 +21,7 @@ import io.nop.wf.api.WfReference;
 import io.nop.wf.core.IWorkflow;
 import io.nop.wf.core.IWorkflowManager;
 import io.nop.metadata.service.NopMetadataException;
+import jakarta.annotation.Nullable;
 import jakarta.inject.Inject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -45,22 +44,18 @@ public class QualityAlertWorkflowService {
     @Inject
     protected IOrmTemplate orm;
 
+    @Inject
+    @Nullable
+    protected IWorkflowManager wfManager;
+
     private final MetaQualityRuleExecutor executor = new MetaQualityRuleExecutor();
     private final MetaTableReferenceResolver tableRefResolver = new MetaTableReferenceResolver();
     private TableReferenceExecutor tableRefExecutor;
-
-    private IWorkflowManager getWfManager() {
-        IBeanContainer container = BeanContainer.instance();
-        if (container == null)
-            return null;
-        return container.getBeanByType(IWorkflowManager.class);
-    }
 
     /**
      * 在质量规则 FAIL + severity=ERROR 时创建质量告警工作流实例
      */
     public WfReference createAlertWorkflow(NopMetaQualityResult result) {
-        IWorkflowManager wfManager = getWfManager();
         if (wfManager == null) {
             LOG.warn("IWorkflowManager not available, cannot create alert workflow for result: {}",
                     result.getQualityResultId());

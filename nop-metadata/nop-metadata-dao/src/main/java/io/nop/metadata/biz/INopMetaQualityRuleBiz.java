@@ -5,8 +5,8 @@ import io.nop.api.core.annotations.biz.BizQuery;
 import io.nop.api.core.annotations.core.Name;
 import io.nop.api.core.annotations.core.Optional;
 import io.nop.core.context.IServiceContext;
-import io.nop.metadata.core.dto.QualityRuleExecuteResultDTO;
-import io.nop.metadata.core.dto.QualityRulesForDataSourceResultDTO;
+import io.nop.metadata.api.dto.QualityRuleExecuteResultDTO;
+import io.nop.metadata.api.dto.QualityRulesForDataSourceResultDTO;
 import io.nop.metadata.dao.entity.NopMetaQualityRule;
 import io.nop.orm.biz.ICrudBiz;
 

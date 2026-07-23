@@ -4,7 +4,7 @@ import io.nop.api.core.annotations.biz.BizMutation;
 import io.nop.api.core.annotations.core.Name;
 import io.nop.api.core.annotations.core.Optional;
 import io.nop.core.context.IServiceContext;
-import io.nop.metadata.core.dto.ProfileResultDTO;
+import io.nop.metadata.api.dto.ProfileResultDTO;
 import io.nop.metadata.dao.entity.NopMetaProfilingRule;
 import io.nop.orm.biz.ICrudBiz;
 

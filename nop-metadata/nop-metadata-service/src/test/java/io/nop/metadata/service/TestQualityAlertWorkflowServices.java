@@ -2,7 +2,9 @@ package io.nop.metadata.service;
 
 import io.nop.api.core.exceptions.ErrorCode;
 import io.nop.api.core.exceptions.NopException;
+import io.nop.metadata.dao.entity.NopMetaQualityResult;
 import io.nop.metadata.service.NopMetadataException;
+import io.nop.metadata.service.quality.QualityAlertWorkflowService;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -31,5 +33,13 @@ public class TestQualityAlertWorkflowServices {
                 .param(NopMetadataErrors.ARG_QUALITY_RESULT_ID, "test-id");
         assertEquals("nop.err.metadata.quality-result-not-found", ex.getErrorCode());
         assertTrue(ex.getMessage().contains("test-id"));
+    }
+
+    @Test
+    public void testCreateAlertWorkflowReturnsNullWhenWfManagerNull() {
+        QualityAlertWorkflowService svc = new QualityAlertWorkflowService();
+        NopMetaQualityResult result = new NopMetaQualityResult();
+        result.setQualityResultId("test-id");
+        assertNull(svc.createAlertWorkflow(result));
     }
 }

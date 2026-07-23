@@ -13,6 +13,7 @@ import io.nop.api.core.beans.query.QueryBean;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.core.lang.json.JsonTool;
 import io.nop.dao.api.IDaoProvider;
+import io.nop.metadata.service.NopMetadataHelper;
 import io.nop.dao.api.IEntityDao;
 import io.nop.orm.IOrmTemplate;
 import io.nop.metadata.core._NopMetadataCoreConstants;
@@ -401,7 +402,7 @@ public class MetaQualityCheckpointExecutor {
         m.put("source", "execution");
         m.put("qualityRuleId", rule.getQualityRuleId());
         m.put("ruleName", rule.getRuleName());
-        m.put("error", toErrorMessage(e));
+        m.put("error", NopMetadataHelper.toErrorMessage(e));
         return m;
     }
 
@@ -414,8 +415,4 @@ public class MetaQualityCheckpointExecutor {
         return m;
     }
 
-    private static String toErrorMessage(Exception e) {
-        String msg = e.getMessage();
-        return msg != null ? msg : e.getClass().getName();
-    }
 }

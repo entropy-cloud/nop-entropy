@@ -18,6 +18,7 @@ import io.nop.api.core.beans.FilterBeans;
 import io.nop.api.core.beans.query.QueryBean;
 import io.nop.api.core.exceptions.ErrorCode;
 import io.nop.api.core.exceptions.NopException;
+import io.nop.metadata.service.NopMetadataHelper;
 import io.nop.metadata.service.NopMetadataErrors;
 import io.nop.biz.crud.CrudBizModel;
 import io.nop.core.context.IServiceContext;
@@ -25,11 +26,11 @@ import io.nop.core.lang.json.JsonTool;
 import io.nop.dao.api.IEntityDao;
 import io.nop.metadata.biz.INopMetaDataSourceBiz;
 import io.nop.metadata.core._NopMetadataCoreConstants;
-import io.nop.metadata.core.dto.CollectCatalogResultDTO;
-import io.nop.metadata.core.dto.CollectCatalogTableDTO;
-import io.nop.metadata.core.dto.ErrorDTO;
-import io.nop.metadata.core.dto.SyncExternalTablesResultDTO;
-import io.nop.metadata.core.dto.TestConnectionResultDTO;
+import io.nop.metadata.api.dto.CollectCatalogResultDTO;
+import io.nop.metadata.api.dto.CollectCatalogTableDTO;
+import io.nop.metadata.api.dto.ErrorDTO;
+import io.nop.metadata.api.dto.SyncExternalTablesResultDTO;
+import io.nop.metadata.api.dto.TestConnectionResultDTO;
 import io.nop.metadata.dao.entity.NopMetaCatalog;
 import io.nop.metadata.dao.entity.NopMetaDataSource;
 import io.nop.metadata.dao.entity.NopMetaEntity;
@@ -196,7 +197,7 @@ public class NopMetaDataSourceBizModel extends CrudBizModel<NopMetaDataSource> i
                             LOG.error("syncExternalTables failed for table: {}", table.getTableName(), e);
                             ErrorDTO errDTO = new ErrorDTO();
                             errDTO.setCode(table.getTableName());
-                            errDTO.setMessage(toErrorMessage(e));
+                            errDTO.setMessage(NopMetadataHelper.toErrorMessage(e));
                             errors.add(errDTO);
                             orm().clearSession();
                         }
@@ -283,7 +284,7 @@ public class NopMetaDataSourceBizModel extends CrudBizModel<NopMetaDataSource> i
                             LOG.error("collectCatalog failed for table: {}", table.getTableName(), e);
                             ErrorDTO errDTO = new ErrorDTO();
                             errDTO.setCode(table.getTableName());
-                            errDTO.setMessage(toErrorMessage(e));
+                            errDTO.setMessage(NopMetadataHelper.toErrorMessage(e));
                             errors.add(errDTO);
                             orm().clearSession();
                         }
@@ -527,8 +528,4 @@ public class NopMetaDataSourceBizModel extends CrudBizModel<NopMetaDataSource> i
         return JsonTool.stringify(list);
     }
 
-    private static String toErrorMessage(Exception e) {
-        String msg = e.getMessage();
-        return msg != null ? msg : e.getClass().getName();
-    }
 }

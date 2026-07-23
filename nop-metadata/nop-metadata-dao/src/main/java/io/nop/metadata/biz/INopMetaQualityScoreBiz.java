@@ -3,7 +3,7 @@ package io.nop.metadata.biz;
 import io.nop.api.core.annotations.biz.BizMutation;
 import io.nop.api.core.annotations.core.Name;
 import io.nop.core.context.IServiceContext;
-import io.nop.metadata.core.dto.QualityScoreResultDTO;
+import io.nop.metadata.api.dto.QualityScoreResultDTO;
 import io.nop.metadata.dao.entity.NopMetaQualityScore;
 import io.nop.orm.biz.ICrudBiz;
 

@@ -5,7 +5,7 @@ import io.nop.api.core.annotations.biz.BizMutation;
 import io.nop.api.core.annotations.core.Name;
 import io.nop.api.core.annotations.core.Optional;
 import io.nop.core.context.IServiceContext;
-import io.nop.metadata.core.dto.CheckpointExecutionResultDTO;
+import io.nop.metadata.api.dto.CheckpointExecutionResultDTO;
 import io.nop.metadata.dao.entity.NopMetaQualityCheckpoint;
 import io.nop.orm.biz.ICrudBiz;
 

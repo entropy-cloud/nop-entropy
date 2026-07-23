@@ -12,6 +12,7 @@
     -->
     <props>
         <prop name="connectionConfig" published="false" insertable="false" updatable="false" queryable="false" sortable="false"/>
+        <prop name="connectionConfigComponent" published="false" insertable="false" updatable="false"/>
     </props>
 
 </meta>

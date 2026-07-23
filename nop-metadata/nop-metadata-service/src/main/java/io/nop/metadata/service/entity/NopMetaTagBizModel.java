@@ -11,6 +11,7 @@ import io.nop.core.context.IServiceContext;
 import io.nop.metadata.biz.INopMetaTagBiz;
 import io.nop.metadata.dao.entity.NopMetaClassification;
 import io.nop.metadata.dao.entity.NopMetaTag;
+import io.nop.metadata.service.NopMetadataHelper;
 import io.nop.metadata.service.search.NopMetaSearchService;
 import io.nop.search.api.SearchableDoc;
 import jakarta.inject.Inject;
@@ -66,25 +67,9 @@ public class NopMetaTagBizModel extends CrudBizModel<NopMetaTag> implements INop
         doc.setId(entity.getTagId());
         doc.setName(entity.getName());
         doc.setTitle(entity.getDisplayName());
-        doc.setSummary(truncate(entity.getDescription(), 500));
-        doc.setContent(join(" ", entity.getName(), entity.getFullyQualifiedName(), entity.getDisplayName(), entity.getDescription()));
+        doc.setSummary(NopMetadataHelper.truncate(entity.getDescription(), 500));
+        doc.setContent(NopMetadataHelper.join(" ", entity.getName(), entity.getFullyQualifiedName(), entity.getDisplayName(), entity.getDescription()));
         doc.setTagSet(Set.of("Tag"));
         return doc;
-    }
-
-    private static String truncate(String s, int maxLen) {
-        if (s == null) return "";
-        return s.length() <= maxLen ? s : s.substring(0, maxLen);
-    }
-
-    private static String join(String delimiter, String... parts) {
-        StringBuilder sb = new StringBuilder();
-        for (String part : parts) {
-            if (part != null && !part.isEmpty()) {
-                if (sb.length() > 0) sb.append(delimiter);
-                sb.append(part);
-            }
-        }
-        return sb.toString();
     }
 }

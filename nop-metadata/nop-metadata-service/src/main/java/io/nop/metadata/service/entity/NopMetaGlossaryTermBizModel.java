@@ -13,6 +13,7 @@ import io.nop.dao.api.IEntityDao;
 import io.nop.metadata.biz.INopMetaGlossaryTermBiz;
 import io.nop.metadata.dao.entity.NopMetaGlossaryTerm;
 import io.nop.metadata.dao.entity.NopMetaTagLabel;
+import io.nop.metadata.service.NopMetadataHelper;
 import io.nop.metadata.service.search.NopMetaSearchService;
 import io.nop.search.api.SearchableDoc;
 import jakarta.inject.Inject;
@@ -71,26 +72,10 @@ public class NopMetaGlossaryTermBizModel extends CrudBizModel<NopMetaGlossaryTer
         doc.setId(entity.getGlossaryTermId());
         doc.setName(entity.getName());
         doc.setTitle(entity.getDisplayName());
-        doc.setSummary(truncate(entity.getDescription(), 500));
-        doc.setContent(join(" ", entity.getName(), entity.getFullyQualifiedName(), entity.getDisplayName(), entity.getDescription(), entity.getSynonyms()));
+        doc.setSummary(NopMetadataHelper.truncate(entity.getDescription(), 500));
+        doc.setContent(NopMetadataHelper.join(" ", entity.getName(), entity.getFullyQualifiedName(), entity.getDisplayName(), entity.getDescription(), entity.getSynonyms()));
         doc.setTagSet(Set.of("GlossaryTerm"));
         return doc;
-    }
-
-    private static String truncate(String s, int maxLen) {
-        if (s == null) return "";
-        return s.length() <= maxLen ? s : s.substring(0, maxLen);
-    }
-
-    private static String join(String delimiter, String... parts) {
-        StringBuilder sb = new StringBuilder();
-        for (String part : parts) {
-            if (part != null && !part.isEmpty()) {
-                if (sb.length() > 0) sb.append(delimiter);
-                sb.append(part);
-            }
-        }
-        return sb.toString();
     }
 
     private void syncTagLabels(NopMetaGlossaryTerm term, IServiceContext context) {

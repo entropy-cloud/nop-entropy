@@ -31,7 +31,7 @@ import io.nop.core.resource.VirtualFileSystem;
 import io.nop.dao.api.IDaoProvider;
 import io.nop.dao.api.IEntityDao;
 import io.nop.metadata.biz.INopMetaModuleBiz;
-import io.nop.metadata.core.dto.ImportOrmModelResultDTO;
+import io.nop.metadata.api.dto.ImportOrmModelResultDTO;
 import io.nop.metadata.service.SeedGlossaryData;
 import io.nop.metadata.core._NopMetadataCoreConstants;
 import io.nop.metadata.dao.entity.NopMetaDict;
@@ -76,6 +76,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import io.nop.metadata.service.NopMetadataHelper;
 import io.nop.metadata.service.search.NopMetaSearchService;
 import io.nop.search.api.SearchableDoc;
 import io.nop.metadata.service.NopMetadataException;
@@ -122,7 +123,7 @@ public class NopMetaModuleBizModel extends CrudBizModel<NopMetaModule> implement
      */
     @Override
     public NopMetaModule save(@Name("data") Map<String, Object> data, IServiceContext context) {
-        String id = data == null ? null : stringOf(data, NopMetaModule.PROP_NAME_metaModuleId);
+        String id = data == null ? null : NopMetadataHelper.stringOf(data, NopMetaModule.PROP_NAME_metaModuleId);
         NopMetaModule before = id != null ? dao().getEntityById(id) : null;
         NopMetaModule saved = super.save(data, context);
         String entityType = EVENT_ENTITY_TYPE;
@@ -159,11 +160,6 @@ public class NopMetaModuleBizModel extends CrudBizModel<NopMetaModule> implement
                     MetaModelChangedEventPublisher.newTransactionId(), context);
         }
         return deleted;
-    }
-
-    private static String stringOf(Map<String, Object> data, String key) {
-        Object v = data.get(key);
-        return v == null ? null : v.toString();
     }
 
     @BizMutation
@@ -376,7 +372,7 @@ public class NopMetaModuleBizModel extends CrudBizModel<NopMetaModule> implement
             } catch (Exception e) {
                 LOG.error("importOrmModels failed for path: {}", path, e);
                 result.setSuccess(false);
-                result.setError(toErrorMessage(e));
+                result.setError(NopMetadataHelper.toErrorMessage(e));
                 // 单个导入失败后清理 session，避免未刷新的脏实体或约束违例状态
                 // 污染 session 导致后续导入级联失败
                 orm().clearSession();
@@ -576,57 +572,15 @@ public class NopMetaModuleBizModel extends CrudBizModel<NopMetaModule> implement
         }
     }
 
-    private static String toErrorMessage(Exception e) {
-        String msg = e.getMessage();
-        return msg != null ? msg : e.getClass().getName();
-    }
-
     private SearchableDoc toSearchableDoc(NopMetaEntity entity) {
-        SearchableDoc doc = new SearchableDoc();
-        doc.setId(entity.getMetaEntityId());
-        doc.setName(entity.getEntityName());
-        doc.setTitle(entity.getDisplayName());
-        doc.setSummary(truncate(entity.getRemark(), 500));
-        doc.setContent(join(" ", entity.getEntityName(), entity.getClassName(), entity.getDisplayName(), entity.getTagSet(), entity.getRemark()));
-        doc.setTagSet(Set.of("MetaEntity"));
-        return doc;
+        return NopMetadataHelper.toSearchableDoc(entity);
     }
 
     private SearchableDoc toSearchableDoc(NopMetaEntityField entity) {
-        SearchableDoc doc = new SearchableDoc();
-        doc.setId(entity.getEntityFieldId());
-        doc.setName(entity.getFieldName());
-        doc.setTitle(entity.getDisplayName());
-        doc.setSummary(truncate(entity.getComment(), 500));
-        doc.setContent(join(" ", entity.getFieldName(), entity.getColumnCode(), entity.getDisplayName(), entity.getComment()));
-        doc.setTagSet(Set.of("MetaEntityField"));
-        return doc;
+        return NopMetadataHelper.toSearchableDoc(entity);
     }
 
     private SearchableDoc toSearchableDoc(NopMetaTable entity) {
-        SearchableDoc doc = new SearchableDoc();
-        doc.setId(entity.getMetaTableId());
-        doc.setName(entity.getTableName());
-        doc.setTitle(entity.getDisplayName());
-        doc.setSummary(truncate(entity.getDescription(), 500));
-        doc.setContent(join(" ", entity.getTableName(), entity.getDisplayName(), entity.getDescription()));
-        doc.setTagSet(Set.of("MetaTable"));
-        return doc;
-    }
-
-    private static String truncate(String s, int maxLen) {
-        if (s == null) return "";
-        return s.length() <= maxLen ? s : s.substring(0, maxLen);
-    }
-
-    private static String join(String delimiter, String... parts) {
-        StringBuilder sb = new StringBuilder();
-        for (String part : parts) {
-            if (part != null && !part.isEmpty()) {
-                if (sb.length() > 0) sb.append(delimiter);
-                sb.append(part);
-            }
-        }
-        return sb.toString();
+        return NopMetadataHelper.toSearchableDoc(entity);
     }
 }

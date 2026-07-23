@@ -1,7 +1,7 @@
 package io.nop.metadata.service.search;
 
 import io.nop.dao.api.IEntityDao;
-import io.nop.metadata.core.dto.IndexResult;
+import io.nop.metadata.api.dto.IndexResult;
 import io.nop.metadata.dao.entity.NopMetaClassification;
 import io.nop.metadata.dao.entity.NopMetaEntity;
 import io.nop.metadata.dao.entity.NopMetaEntityField;

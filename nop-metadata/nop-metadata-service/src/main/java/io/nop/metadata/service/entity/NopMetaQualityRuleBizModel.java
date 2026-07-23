@@ -10,6 +10,7 @@ package io.nop.metadata.service.entity;
 
 import io.nop.api.core.annotations.biz.BizModel;
 import io.nop.metadata.service.NopMetadataErrors;
+import io.nop.metadata.service.NopMetadataHelper;
 import io.nop.api.core.annotations.biz.BizMutation;
 import io.nop.api.core.annotations.biz.BizQuery;
 import io.nop.api.core.annotations.core.Name;
@@ -23,9 +24,9 @@ import io.nop.core.lang.json.JsonTool;
 import io.nop.dao.api.IEntityDao;
 import io.nop.metadata.biz.INopMetaQualityRuleBiz;
 import io.nop.metadata.core._NopMetadataCoreConstants;
-import io.nop.metadata.core.dto.ErrorDTO;
-import io.nop.metadata.core.dto.QualityRuleExecuteResultDTO;
-import io.nop.metadata.core.dto.QualityRulesForDataSourceResultDTO;
+import io.nop.metadata.api.dto.ErrorDTO;
+import io.nop.metadata.api.dto.QualityRuleExecuteResultDTO;
+import io.nop.metadata.api.dto.QualityRulesForDataSourceResultDTO;
 import io.nop.metadata.dao.entity.NopMetaDataSource;
 import io.nop.metadata.dao.entity.NopMetaEntity;
 import io.nop.metadata.dao.entity.NopMetaEntityField;
@@ -268,7 +269,7 @@ public class NopMetaQualityRuleBizModel extends CrudBizModel<NopMetaQualityRule>
                         } catch (Exception e) {
                             LOG.error("executeQualityRulesForDataSource failed for rule: {}",
                                     rule.getQualityRuleId(), e);
-                            errors.add(new ErrorDTO(rule.getQualityRuleId(), toErrorMessage(e), rule.getRuleName()));
+                            errors.add(new ErrorDTO(rule.getQualityRuleId(), NopMetadataHelper.toErrorMessage(e), rule.getRuleName()));
                             // 隔离失败：清理未刷出的脏实体，不影响已 flush 的规则与后续规则
                             orm().clearSession();
                         }
@@ -411,8 +412,4 @@ public class NopMetaQualityRuleBizModel extends CrudBizModel<NopMetaQualityRule>
         }
     }
 
-    private static String toErrorMessage(Exception e) {
-        String msg = e.getMessage();
-        return msg != null ? msg : e.getClass().getName();
-    }
 }

@@ -10,7 +10,8 @@ package io.nop.metadata.service.entity;
 
 import io.nop.api.core.annotations.biz.BizModel;
 import io.nop.metadata.service.NopMetadataErrors;
-import io.nop.metadata.core.dto.QualityScoreResultDTO;
+import io.nop.metadata.service.NopMetadataHelper;
+import io.nop.metadata.api.dto.QualityScoreResultDTO;
 import io.nop.api.core.annotations.biz.BizMutation;
 import io.nop.api.core.annotations.core.Name;
 import io.nop.api.core.annotations.core.Optional;
@@ -23,7 +24,7 @@ import io.nop.core.lang.json.JsonTool;
 import io.nop.dao.txn.ITransactionTemplate;
 import io.nop.http.api.client.IHttpClient;
 import io.nop.metadata.biz.INopMetaQualityCheckpointBiz;
-import io.nop.metadata.core.dto.CheckpointExecutionResultDTO;
+import io.nop.metadata.api.dto.CheckpointExecutionResultDTO;
 import io.nop.metadata.dao.entity.NopMetaQualityCheckpoint;
 import io.nop.metadata.service.connection.IMetaDataSourceConnectionProcessor;
 import io.nop.metadata.service.datasource.MetaDataSourceResolver;
@@ -231,7 +232,7 @@ public class NopMetaQualityCheckpointBizModel extends CrudBizModel<NopMetaQualit
      * （触发时 {@code executeCheckpoint} 会因检查点不存在抛 {@code NopMetadataErrors.ERR_CHECKPOINT_NOT_FOUND}，但提前移除更干净）。
      */
     @Override
-    public boolean delete(String id, IServiceContext context) {
+    public boolean delete(@Name("id") String id, IServiceContext context) {
         notifySchedulerUnregister(id);
         return super.delete(id, context);
     }
@@ -309,7 +310,7 @@ public class NopMetaQualityCheckpointBizModel extends CrudBizModel<NopMetaQualit
                 Map<String, Object> errEntry = new LinkedHashMap<>();
                 errEntry.put("source", "autoScore");
                 errEntry.put("metaTableId", metaTableId);
-                errEntry.put("error", toErrorMessage(e));
+                errEntry.put("error", NopMetadataHelper.toErrorMessage(e));
                 errors.add(errEntry);
                 // 失败隔离：清理未刷出的脏实体，不影响已 flush 的评分行与其他表评分
                 orm().clearSession();
@@ -345,11 +346,6 @@ public class NopMetaQualityCheckpointBizModel extends CrudBizModel<NopMetaQualit
     // ============================================================
     // helpers
     // ============================================================
-
-    private static String toErrorMessage(Exception e) {
-        String msg = e.getMessage();
-        return msg != null ? msg : e.getClass().getName();
-    }
 
     // ============================================================
     // D4：结果动作投递（transaction-isolated dispatch）

@@ -15,15 +15,15 @@ import io.nop.core.lang.json.JsonTool;
 import io.nop.dao.api.IEntityDao;
 import io.nop.metadata.biz.INopMetaTableBiz;
 import io.nop.metadata.core._NopMetadataCoreConstants;
-import io.nop.metadata.core.dto.AggregationResultDTO;
-import io.nop.metadata.core.dto.CreateSqlTableResultDTO;
-import io.nop.metadata.core.dto.PreviewSqlFieldsResultDTO;
-import io.nop.metadata.core.dto.ProfileResultDTO;
-import io.nop.metadata.core.dto.QueryJoinDataResultDTO;
-import io.nop.metadata.core.dto.QueryTableDataResultDTO;
-import io.nop.metadata.core.dto.ResolveTableFieldsResultDTO;
-import io.nop.metadata.core.dto.ResolvedTableFieldDTO;
-import io.nop.metadata.core.dto.SqlViewFieldDTO;
+import io.nop.metadata.api.dto.AggregationResultDTO;
+import io.nop.metadata.api.dto.CreateSqlTableResultDTO;
+import io.nop.metadata.api.dto.PreviewSqlFieldsResultDTO;
+import io.nop.metadata.api.dto.ProfileResultDTO;
+import io.nop.metadata.api.dto.QueryJoinDataResultDTO;
+import io.nop.metadata.api.dto.QueryTableDataResultDTO;
+import io.nop.metadata.api.dto.ResolveTableFieldsResultDTO;
+import io.nop.metadata.api.dto.ResolvedTableFieldDTO;
+import io.nop.metadata.api.dto.SqlViewFieldDTO;
 import io.nop.metadata.dao.entity.NopMetaDataSource;
 import io.nop.metadata.dao.entity.NopMetaEntity;
 import io.nop.metadata.dao.entity.NopMetaEntityField;
@@ -39,6 +39,7 @@ import io.nop.metadata.service.profiling.ProfilingSnapshot;
 import io.nop.metadata.service.query.MetaAggregationExecutor;
 import io.nop.metadata.service.query.MetaJoinExecutor;
 import io.nop.metadata.service.query.MetaQueryContext;
+import io.nop.metadata.service.NopMetadataHelper;
 import io.nop.metadata.service.search.NopMetaSearchService;
 import io.nop.metadata.service.sqlview.SqlViewField;
 import io.nop.metadata.service.sqlview.SqlViewFieldTypeInferrer;
@@ -84,7 +85,7 @@ public class NopMetaTableBizModel extends CrudBizModel<NopMetaTable> implements 
 
     @Override
     public NopMetaTable save(@Name("data") Map<String, Object> data, IServiceContext context) {
-        String id = data == null ? null : stringOf(data, NopMetaTable.PROP_NAME_metaTableId);
+        String id = data == null ? null : NopMetadataHelper.stringOf(data, NopMetaTable.PROP_NAME_metaTableId);
         NopMetaTable before = id != null ? dao().getEntityById(id) : null;
         NopMetaTable saved = super.save(data, context);
         String eventType = before == null
@@ -356,35 +357,7 @@ public class NopMetaTableBizModel extends CrudBizModel<NopMetaTable> implements 
         return tableRefExecutor;
     }
 
-    private static String stringOf(Map<String, Object> data, String key) {
-        Object v = data.get(key);
-        return v == null ? null : v.toString();
-    }
-
     private SearchableDoc toSearchableDoc(NopMetaTable entity) {
-        SearchableDoc doc = new SearchableDoc();
-        doc.setId(entity.getMetaTableId());
-        doc.setName(entity.getTableName());
-        doc.setTitle(entity.getDisplayName());
-        doc.setSummary(truncate(entity.getDescription(), 500));
-        doc.setContent(join(" ", entity.getTableName(), entity.getDisplayName(), entity.getDescription()));
-        doc.setTagSet(Set.of("MetaTable"));
-        return doc;
-    }
-
-    private static String truncate(String s, int maxLen) {
-        if (s == null) return "";
-        return s.length() <= maxLen ? s : s.substring(0, maxLen);
-    }
-
-    private static String join(String delimiter, String... parts) {
-        StringBuilder sb = new StringBuilder();
-        for (String part : parts) {
-            if (part != null && !part.isEmpty()) {
-                if (sb.length() > 0) sb.append(delimiter);
-                sb.append(part);
-            }
-        }
-        return sb.toString();
+        return NopMetadataHelper.toSearchableDoc(entity);
     }
 }

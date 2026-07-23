@@ -11,6 +11,7 @@ package io.nop.metadata.service.quality;
 import io.nop.api.core.exceptions.ErrorCode;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.api.core.message.IMessageService;
+import io.nop.metadata.service.NopMetadataHelper;
 import io.nop.core.lang.json.JsonTool;
 import io.nop.http.api.client.HttpRequest;
 import io.nop.http.api.client.IHttpClient;
@@ -391,12 +392,8 @@ public class CheckpointActionDispatcher {
         Map<String, Object> m = new LinkedHashMap<>();
         m.put("source", "actionDispatch");
         m.put("actionType", actionType);
-        m.put("error", toErrorMessage(e));
+        m.put("error", NopMetadataHelper.toErrorMessage(e));
         return m;
     }
 
-    private static String toErrorMessage(Exception e) {
-        String msg = e.getMessage();
-        return msg != null ? msg : e.getClass().getName();
-    }
 }

@@ -1,10 +1,10 @@
 
 nop:
-  debug: true
+  debug: false
   auth:
     jwt:
-      # DEV-ONLY DEFAULT: override in production via %prod profile or environment variable NOP_AUTH_JWT_ENC_KEY
-      enc-key: bf8433e383424f6dbc19d47a5138875d
+      # Set via environment variable NOP_AUTH_JWT_ENC_KEY in production
+      enc-key: change-me-in-production
 
     login:
       allow-create-default-user: true # 如果用户表为空，则自动创建缺省账户nop, 密码nop-test
@@ -32,10 +32,9 @@ nop:
 #    username: nop
 #    password: nop-test
 
-# 支持graphql __schema查询，
   graphql:
     schema-introspection:
-      enabled: true
+      enabled: false
 
 # devservices 会启用testcontainers来管理测试数据库
 quarkus:

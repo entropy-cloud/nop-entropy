@@ -10,6 +10,7 @@ package io.nop.metadata.service.entity;
 
 import io.nop.api.core.annotations.biz.BizModel;
 import io.nop.metadata.service.NopMetadataErrors;
+import io.nop.metadata.service.NopMetadataHelper;
 import io.nop.api.core.annotations.core.Name;
 import io.nop.api.core.exceptions.ErrorCode;
 import io.nop.api.core.exceptions.NopException;
@@ -61,15 +62,15 @@ public class NopMetaTableDimensionBizModel extends CrudBizModel<NopMetaTableDime
      */
     @Override
     public NopMetaTableDimension save(@Name("data") Map<String, Object> data, IServiceContext context) {
-        String metaTableId = stringOf(data, NopMetaTableDimension.PROP_NAME_metaTableId);
-        String entityFieldId = stringOf(data, NopMetaTableDimension.PROP_NAME_entityFieldId);
+        String metaTableId = NopMetadataHelper.stringOf(data, NopMetaTableDimension.PROP_NAME_metaTableId);
+        String entityFieldId = NopMetadataHelper.stringOf(data, NopMetaTableDimension.PROP_NAME_entityFieldId);
         inheritBusinessDomain(data, metaTableId);
         validateDimensionField(metaTableId, entityFieldId);
         return super.save(data, context);
     }
 
     private void inheritBusinessDomain(Map<String, Object> data, String metaTableId) {
-        String businessDomainId = stringOf(data, NopMetaTableDimension.PROP_NAME_businessDomainId);
+        String businessDomainId = NopMetadataHelper.stringOf(data, NopMetaTableDimension.PROP_NAME_businessDomainId);
         if ((businessDomainId == null || businessDomainId.isEmpty())
                 && metaTableId != null && !metaTableId.isEmpty()) {
             IEntityDao<NopMetaTable> tableDao = daoFor(NopMetaTable.class);
@@ -97,8 +98,4 @@ public class NopMetaTableDimensionBizModel extends CrudBizModel<NopMetaTableDime
                 NopMetadataErrors.ERR_DIMENSION_FIELD_NOT_FOUND, "dimension");
     }
 
-    private static String stringOf(Map<String, Object> data, String key) {
-        Object v = data.get(key);
-        return v == null ? null : v.toString();
-    }
 }
