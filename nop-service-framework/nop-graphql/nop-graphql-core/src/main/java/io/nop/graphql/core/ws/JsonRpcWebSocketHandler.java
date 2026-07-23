@@ -348,8 +348,8 @@ public class JsonRpcWebSocketHandler implements IWebSocketHandler {
 
     private void sendStreamingMessage(String operationId, Flow.Publisher<ApiResponse<?>> stream) {
         SubscriptionSubscriber subscriber = new SubscriptionSubscriber(session, operationId);
-        activeOperations.put(operationId, subscriber);
         stream.subscribe(subscriber);
+        activeOperations.put(operationId, subscriber);
     }
 
     private void sendKeepAlive() {
@@ -486,7 +486,6 @@ public class JsonRpcWebSocketHandler implements IWebSocketHandler {
             } catch (Exception e) {
                 LOG.warn("nop.websocket.send-fail", e);
             }
-            activeOperations.remove(operationId);
         }
 
         public void cancel() {
