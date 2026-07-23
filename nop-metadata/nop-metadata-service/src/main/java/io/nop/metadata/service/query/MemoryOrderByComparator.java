@@ -53,10 +53,10 @@ final class MemoryOrderByComparator {
             String alias = nameToAlias.get(name);
             if (alias == null) {
                 throw new NopMetadataException(NopMetadataErrors.ERR_AGGR_ORDER_BY_UNKNOWN_NAME)
-                        .param("metaTableId", table.getMetaTableId())
-                        .param("name", String.valueOf(name))
-                        .param("selectedMeasures", String.valueOf(measureNames))
-                        .param("selectedDimensions", String.valueOf(dimensionNames));
+                        .param(NopMetadataErrors.ARG_META_TABLE_ID, table.getMetaTableId())
+                        .param(NopMetadataErrors.ARG_NAME, String.valueOf(name))
+                        .param(NopMetadataErrors.ARG_SELECTED_MEASURES, String.valueOf(measureNames))
+                        .param(NopMetadataErrors.ARG_SELECTED_DIMENSIONS, String.valueOf(dimensionNames));
             }
             boolean nullsFirst = f.getNullsFirst() != null ? f.getNullsFirst() : !f.isDesc();
             keys.add(new SortKey(alias, f.isDesc(), nullsFirst));

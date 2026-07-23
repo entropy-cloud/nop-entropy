@@ -43,15 +43,15 @@ public class AggregationContext {
     public MetaJoinExecutor joinExecutor() { return joinExecutor; }
 
     private NopMetaTable table;
-    private List<String> measureNames;
-    private List<String> dimensionNames;
+    private List<String> measureNames = Collections.emptyList();
+    private List<String> dimensionNames = Collections.emptyList();
     private String joinId;
     private NopMetaTableJoin join;
     private io.nop.api.core.beans.TreeBean filter;
     private Long limit;
     private Long offset;
     private io.nop.api.core.beans.TreeBean having;
-    private List<io.nop.api.core.beans.query.OrderFieldBean> orderBy;
+    private List<io.nop.api.core.beans.query.OrderFieldBean> orderBy = Collections.emptyList();
     private MetaJoinExecutor.Endpoint leftEndpoint;
     private MetaJoinExecutor.Endpoint rightEndpoint;
 
@@ -249,7 +249,7 @@ public class AggregationContext {
         static MemAggAccumulator forFunc(String aggFunc, String name) {
             if (aggFunc == null) {
                 throw new NopMetadataException(NopMetadataErrors.ERR_AGGR_AGG_FUNC_UNSUPPORTED)
-                        .param("aggFunc", String.valueOf(aggFunc)).param("measureName", name);
+                        .param(NopMetadataErrors.ARG_AGG_FUNC, String.valueOf(aggFunc)).param(NopMetadataErrors.ARG_MEASURE_NAME, name);
             }
             switch (aggFunc) {
                 case _NopMetadataCoreConstants.AGG_FUNC_SUM:

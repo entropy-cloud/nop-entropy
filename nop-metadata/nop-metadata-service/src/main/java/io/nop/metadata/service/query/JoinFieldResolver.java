@@ -34,15 +34,15 @@ public class JoinFieldResolver {
     public AggregationContext.JoinField resolve(String entityFieldId, String name, String declaredSide, String refKind) {
         if (entityFieldId == null || entityFieldId.isEmpty()) {
             throw new NopMetadataException(NopMetadataErrors.ERR_AGGR_FIELD_NOT_RESOLVED)
-                    .param("metaTableId", table.getMetaTableId())
-                    .param("name", name).param("entityFieldId", String.valueOf(entityFieldId));
+                    .param(NopMetadataErrors.ARG_META_TABLE_ID, table.getMetaTableId())
+                    .param(NopMetadataErrors.ARG_NAME, name).param(NopMetadataErrors.ARG_ENTITY_FIELD_ID, String.valueOf(entityFieldId));
         }
         IEntityDao<NopMetaEntityField> fieldDao = ctx.daoProvider().daoFor(NopMetaEntityField.class);
         NopMetaEntityField field = fieldDao.getEntityById(entityFieldId);
         if (field == null || field.getColumnCode() == null) {
             throw new NopMetadataException(NopMetadataErrors.ERR_AGGR_FIELD_NOT_RESOLVED)
-                    .param("metaTableId", table.getMetaTableId())
-                    .param("name", name).param("entityFieldId", entityFieldId);
+                    .param(NopMetadataErrors.ARG_META_TABLE_ID, table.getMetaTableId())
+                    .param(NopMetadataErrors.ARG_NAME, name).param(NopMetadataErrors.ARG_ENTITY_FIELD_ID, entityFieldId);
         }
         String fieldMetaEntityId = field.getMetaEntityId();
         String column = field.getColumnCode();
@@ -56,22 +56,22 @@ public class JoinFieldResolver {
             alias = "r";
         } else {
             throw new NopMetadataException(NopMetadataErrors.ERR_AGGR_JOIN_FIELD_SIDE_UNRESOLVED)
-                    .param("metaTableId", table.getMetaTableId())
-                    .param("name", name).param("entityFieldId", entityFieldId)
-                    .param("fieldMetaEntityId", String.valueOf(fieldMetaEntityId))
-                    .param("leftEntityId", String.valueOf(leftEntityId))
-                    .param("rightEntityId", String.valueOf(rightEntityId))
-                    .param("joinId", joinId);
+                    .param(NopMetadataErrors.ARG_META_TABLE_ID, table.getMetaTableId())
+                    .param(NopMetadataErrors.ARG_NAME, name).param(NopMetadataErrors.ARG_ENTITY_FIELD_ID, entityFieldId)
+                    .param(NopMetadataErrors.ARG_FIELD_META_ENTITY_ID, String.valueOf(fieldMetaEntityId))
+                    .param(NopMetadataErrors.ARG_LEFT_ENTITY_ID, String.valueOf(leftEntityId))
+                    .param(NopMetadataErrors.ARG_RIGHT_ENTITY_ID, String.valueOf(rightEntityId))
+                    .param(NopMetadataErrors.ARG_JOIN_ID, joinId);
         }
         if (declaredSide != null && !declaredSide.isEmpty()
                 && !declaredSide.equalsIgnoreCase(resolvedSide)) {
             throw new NopMetadataException(NopMetadataErrors.ERR_AGGR_JOIN_ENTITY_SIDE_MISMATCH)
-                    .param("metaTableId", table.getMetaTableId())
-                    .param("name", name)
-                    .param("declaredSide", declaredSide)
-                    .param("resolvedSide", resolvedSide)
-                    .param("fieldMetaEntityId", String.valueOf(fieldMetaEntityId))
-                    .param("joinId", joinId);
+                    .param(NopMetadataErrors.ARG_META_TABLE_ID, table.getMetaTableId())
+                    .param(NopMetadataErrors.ARG_NAME, name)
+                    .param(NopMetadataErrors.ARG_DECLARED_SIDE, declaredSide)
+                    .param(NopMetadataErrors.ARG_RESOLVED_SIDE, resolvedSide)
+                    .param(NopMetadataErrors.ARG_FIELD_META_ENTITY_ID, String.valueOf(fieldMetaEntityId))
+                    .param(NopMetadataErrors.ARG_JOIN_ID, joinId);
         }
         return new AggregationContext.JoinField(column, alias + "." + column);
     }

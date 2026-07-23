@@ -76,10 +76,10 @@ public class MetaAggregationExecutor {
                                                    Long limit, Long offset, TreeBean having,
                                                    List<OrderFieldBean> orderBy, MetaQueryContext ctx) {
         if (measureNames == null || measureNames.isEmpty()) {
-            throw new NopMetadataException(NopMetadataErrors.ERR_AGGR_NO_MEASURE).param("metaTableId", table.getMetaTableId());
+            throw new NopMetadataException(NopMetadataErrors.ERR_AGGR_NO_MEASURE).param(NopMetadataErrors.ARG_META_TABLE_ID, table.getMetaTableId());
         }
         if (dimensionNames == null || dimensionNames.isEmpty()) {
-            throw new NopMetadataException(NopMetadataErrors.ERR_AGGR_NO_DIMENSION).param("metaTableId", table.getMetaTableId());
+            throw new NopMetadataException(NopMetadataErrors.ERR_AGGR_NO_DIMENSION).param(NopMetadataErrors.ARG_META_TABLE_ID, table.getMetaTableId());
         }
         IEntityDao<NopMetaTableFilter> filterDao = ctx.daoProvider().daoFor(NopMetaTableFilter.class);
         TreeBean mergedFilter = DefaultFilterApplicator.applyDefaults(table, userFilter, filterDao);

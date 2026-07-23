@@ -52,12 +52,12 @@ public class CrossDbInMemoryAggregationProcessor implements AggregationProcessor
         if (leftEp.isEntity() && rightEp.isEntity()) {
             if (equalsStr(leftEp.entity.getMetaEntityId(), rightEp.entity.getMetaEntityId())) {
                 throw new NopMetadataException(NopMetadataErrors.ERR_AGGR_JOIN_SELF_JOIN)
-                        .param("joinId", joinId).param("entityId", leftEp.entity.getMetaEntityId());
+                        .param(NopMetadataErrors.ARG_JOIN_ID, joinId).param(NopMetadataErrors.ARG_ENTITY_ID, leftEp.entity.getMetaEntityId());
             }
         } else if (!leftEp.isEntity() && !rightEp.isEntity()) {
             if (equalsStr(leftEp.table.getMetaTableId(), rightEp.table.getMetaTableId())) {
                 throw new NopMetadataException(NopMetadataErrors.ERR_AGGR_JOIN_SELF_JOIN)
-                        .param("joinId", joinId).param("entityId", leftEp.table.getMetaTableId());
+                        .param(NopMetadataErrors.ARG_JOIN_ID, joinId).param(NopMetadataErrors.ARG_ENTITY_ID, leftEp.table.getMetaTableId());
             }
         }
 
@@ -84,8 +84,8 @@ public class CrossDbInMemoryAggregationProcessor implements AggregationProcessor
         if (having != null) {
             if (MetaAggregationExecutor.containsHavingArithmeticLeaf(having)) {
                 throw new NopMetadataException(NopMetadataErrors.ERR_AGGR_HAVING_EXPR_MEMORY_NOT_COMPUTABLE)
-                        .param("metaTableId", table.getMetaTableId())
-                        .param("expr", "<having arithmetic in cross-DB memory path>");
+                        .param(NopMetadataErrors.ARG_META_TABLE_ID, table.getMetaTableId())
+                        .param(NopMetadataErrors.ARG_EXPR, "<having arithmetic in cross-DB memory path>");
             }
             Map<String, String> nameToAlias = buildCrossDbNameToAliasTable(measures, dims, measureNames,
                     dimensionNames, table);
@@ -110,9 +110,9 @@ public class CrossDbInMemoryAggregationProcessor implements AggregationProcessor
         for (NopMetaTableMeasure m : all) {
             if (m.getExpression() != null && !m.getExpression().trim().isEmpty()) {
                 throw new NopMetadataException(NopMetadataErrors.ERR_AGGR_EXPRESSION_MEMORY_NOT_COMPUTABLE)
-                        .param("metaTableId", table.getMetaTableId())
-                        .param("measureName", m.getMeasureName())
-                        .param("joinId", resolver.joinId());
+                        .param(NopMetadataErrors.ARG_META_TABLE_ID, table.getMetaTableId())
+                        .param(NopMetadataErrors.ARG_MEASURE_NAME, m.getMeasureName())
+                        .param(NopMetadataErrors.ARG_JOIN_ID, resolver.joinId());
             }
             CrossDbField f = resolver.resolve(m.getEntityFieldId(), m.getMeasureName(), m.getSide(), "measure");
             specs.add(new CrossDbMeasureSpec(safeAlias(m.getMeasureName()), m.getAggFunc(), f.rawKey, f.side));

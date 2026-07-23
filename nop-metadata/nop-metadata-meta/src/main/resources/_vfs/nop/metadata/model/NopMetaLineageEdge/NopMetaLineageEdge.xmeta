@@ -6,5 +6,6 @@
         因此 retention 层无字段级 published/queryable 覆盖需求。
         所有字段继承 _NopMetaLineageEdge.xmeta 生成的默认值。
     -->
+    <!-- No field-level overrides needed; all props inherit from base xmeta. -->
     <props/>
 </meta>

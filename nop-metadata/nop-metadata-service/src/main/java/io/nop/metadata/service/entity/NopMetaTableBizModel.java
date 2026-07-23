@@ -146,10 +146,7 @@ public class NopMetaTableBizModel extends CrudBizModel<NopMetaTable> implements 
                     fields, sql, querySpace, daoFor(NopMetaDataSource.class));
         }
         IEntityDao<NopMetaModule> moduleDao = daoFor(NopMetaModule.class);
-        NopMetaModule module = moduleDao.getEntityById(metaModuleId);
-        if (module == null) {
-            throw new NopMetadataException(NopMetadataErrors.ERR_SQL_VIEW_MODULE_NOT_FOUND).param("metaModuleId", metaModuleId);
-        }
+        NopMetaModule module = moduleDao.requireEntityById(metaModuleId);
         IEntityDao<NopMetaTable> tableDao = dao();
         NopMetaTable table = tableDao.newEntity();
         table.setMetaModuleId(metaModuleId);

@@ -47,8 +47,8 @@
               sortable="true" insertable="true" updatable="true">
             <schema type="java.lang.String" precision="100"/>
         </prop>
-        <prop name="sourceSql" displayName="来源SQL" propId="7" i18n-en:displayName="Source Sql" queryable="true"
-              sortable="true" insertable="true" updatable="true">
+        <prop name="sourceSql" displayName="来源SQL" propId="7" i18n-en:displayName="Source Sql" tagSet="sensitive"
+              queryable="true" sortable="true" insertable="true" updatable="true">
             <schema domain="mediumtext" type="java.lang.String" precision="16777215"/>
         </prop>
         <prop name="baseEntityId" displayName="主要实体ID" propId="8" i18n-en:displayName="Base Entity Id" queryable="true"
@@ -59,8 +59,8 @@
               sortable="true" insertable="true" updatable="true">
             <schema type="java.lang.String" precision="1000"/>
         </prop>
-        <prop name="buildSql" displayName="合成SQL" propId="10" i18n-en:displayName="Build Sql" queryable="true"
-              sortable="true" insertable="true" updatable="true">
+        <prop name="buildSql" displayName="合成SQL" propId="10" i18n-en:displayName="Build Sql" tagSet="sensitive"
+              queryable="true" sortable="true" insertable="true" updatable="true">
             <schema domain="mediumtext" type="java.lang.String" precision="16777215"/>
         </prop>
         <prop name="version" displayName="数据版本" propId="11" i18n-en:displayName="Version" mandatory="true"

@@ -6,6 +6,7 @@ import io.nop.api.core.annotations.biz.BizMutation;
 import io.nop.api.core.annotations.core.Name;
 import io.nop.biz.crud.CrudBizModel;
 import io.nop.core.context.IServiceContext;
+import io.nop.core.context.ServiceContextImpl;
 import io.nop.core.lang.json.JsonTool;
 import io.nop.metadata.biz.INopMetaQualityScoreBiz;
 import io.nop.metadata.api.dto.QualityScoreResultDTO;
@@ -13,7 +14,8 @@ import io.nop.metadata.dao.entity.NopMetaQualityScore;
 import io.nop.metadata.service.quality.MetaQualityScorer;
 import jakarta.inject.Inject;
 
-import java.sql.Timestamp;
+import java.util.HashMap;
+import java.util.Map;
 
 @BizModel("NopMetaQualityScore")
 public class NopMetaQualityScoreBizModel extends CrudBizModel<NopMetaQualityScore>
@@ -33,20 +35,25 @@ public class NopMetaQualityScoreBizModel extends CrudBizModel<NopMetaQualityScor
                                                        IServiceContext context) {
         MetaQualityScorer.QualityScoreResult result = ensureScorer().score(metaTableId);
 
-        NopMetaQualityScore row = dao().newEntity();
-        row.setMetaTableId(metaTableId);
-        row.setScoreTime(CoreMetrics.currentTimestamp());
-        row.setOverallScore(result.getOverallScore());
-        row.setDimensionScores(JsonTool.stringify(result.getDimensionScores()));
-        row.setRuleSummary(JsonTool.stringify(result.getRuleSummary()));
-        row.setTrend(JsonTool.stringify(result.getTrend()));
+        // Cron/scheduler path may pass null context; create a minimal one for pipeline compatibility
+        if (context == null) {
+            context = new ServiceContextImpl();
+        }
 
-        checkDataAuth(io.nop.biz.BizConstants.METHOD_SAVE, row, context);
-        dao().saveEntity(row);
+        // Build data map for pipeline-based save (respects xmeta insertable/updatable validation)
+        Map<String, Object> data = new HashMap<>();
+        data.put("metaTableId", metaTableId);
+        data.put("scoreTime", CoreMetrics.currentTimestamp());
+        data.put("overallScore", result.getOverallScore());
+        data.put("dimensionScores", JsonTool.stringify(result.getDimensionScores()));
+        data.put("ruleSummary", JsonTool.stringify(result.getRuleSummary()));
+        data.put("trend", JsonTool.stringify(result.getTrend()));
+
+        NopMetaQualityScore saved = doSave(data, null, (entityData, ctx) -> {}, context);
 
         QualityScoreResultDTO dto = new QualityScoreResultDTO();
-        dto.setScoreId(row.getQualityScoreId());
-        dto.setQualityScoreId(row.getQualityScoreId());
+        dto.setScoreId(saved.getQualityScoreId());
+        dto.setQualityScoreId(saved.getQualityScoreId());
         dto.setOverallScore(result.getOverallScore());
         dto.setDimensionScores(result.getDimensionScores());
         dto.setRuleSummary(result.getRuleSummary());

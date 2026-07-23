@@ -172,8 +172,8 @@ public class MetaModelChangedEventPublisher {
             return JsonTool.stringify(snapshot);
         } catch (Exception e) {
             throw new NopMetadataException(NopMetadataErrors.ERR_EVENT_SNAPSHOT_SERIALIZE_FAILED, e)
-                    .param("entityType", entityType)
-                    .param("entityId", entityId);
+                    .param(NopMetadataErrors.ARG_ENTITY_TYPE, entityType)
+                    .param(NopMetadataErrors.ARG_ENTITY_ID, entityId);
         }
     }
 
