@@ -1,155 +1,115 @@
-> Audit Status: closed
+> Audit Status: planned
 > Audit Type: multi-dimensional
 > Mission: nop-metadata
+> Dimension: 07 — BizModel 规范遵循
 
-# Dimension 07: BizModel Conformance
+## 第 1 轮（初审）
 
-### [Dimension07-01] NopMetaQualityCheckpointBizModel.delete override missing `@Name` annotation on `id` parameter
+### [维度07-001] NopMetaSearchBizModel: 无对应实体的"伪 BizModel"
 
-- **File**: `nop-metadata/nop-metadata-service/src/main/java/io/nop/metadata/service/entity/NopMetaQualityCheckpointBizModel.java:235`
-- **Evidence**:
+- **文件**: `nop-metadata/nop-metadata-service/src/main/java/io/nop/metadata/service/search/NopMetaSearchBizModel.java`
+- **严重程度**: P2
+- **现状**: `@BizModel("NopMetaSearch")` 没有对应的 ORM 实体（`NopMetaSearch` 实体不存在），没有对应的 `*.xmeta` 文件，也不扩展 `CrudBizModel`。
+- **风险**: 违反 service-layer.md 规定的"每个 @BizModel 必须对应一个有 xmeta 的实体"。
+- **建议**: 将搜索方法移至现有实体 BizModel（如 NopMetaTableBizModel），或创建带对应 xmeta 的 `@DataBean` 虚拟实体。
+- **信心水平**: 确定
+- **误报排除**: 这不是 Nop 平台的标准模式。其他 BizModel 都有对应的实体和 xmeta。
+- **复核状态**: 未复核
+
+### [维度07-002] NopMetaDataContractBizModel @BizMutation 内冗余事务包裹
+
+- **文件**: `nop-metadata/nop-metadata-service/src/main/java/io/nop/metadata/service/entity/NopMetaDataContractBizModel.java:43,76`
+- **证据片段**:
   ```java
-  @Override
-  public boolean delete(String id, IServiceContext context) {
-      notifySchedulerUnregister(id);
-      return super.delete(id, context);
-  }
-  ```
-- **Severity**: P2
-- **Status**: The override drops the `@Name("id")` annotation. Java parameter annotations are not inherited in overrides.
-- **Risk**: When called via I*Biz dynamic proxy, the BizProxyInvocationHandler cannot map the parameter without @Name.
-- **Suggestion**: Add `@Name("id")` to the method signature.
-- **Confidence**: certain
-- **Review Status**: unreviewed
-
----
-
-### [Dimension07-02] NopMetaDataContractBizModel mutation methods bypass requireEntity() data auth
-
-- **File**: `nop-metadata/nop-metadata-service/src/main/java/io/nop/metadata/service/entity/NopMetaDataContractBizModel.java:41,70,131`
-- **Evidence**:
-  ```java
+  @BizMutation
   public NopMetaDataContract approve(@Name("id") String id, IServiceContext context) {
-      NopMetaDataContract entity = dao().getEntityById(id);  // should be requireEntity()
-      ...
-  ```
-- **Severity**: P2
-- **Status**: Five mutation methods load entities via `dao().getEntityById()` rather than `requireEntity(id, action, context)`. Three of those (`approve`, `reject`, `checkContract`) also skip `checkDataAuth()` entirely.
-- **Risk**: Users with access to the GraphQL mutation endpoint can change contract lifecycle states without any data permission check.
-- **Suggestion**: Replace `dao().getEntityById(id)` with `requireEntity(id, "approve"/"reject"/"checkContract", context)`.
-- **Confidence**: certain
-- **Review Status**: unreviewed
-
----
-
-### [Dimension07-03] NopMetaTagLabelBizModel uses BeanContainer.getBeanByType() service locator
-
-- **File**: `nop-metadata/nop-metadata-service/src/main/java/io/nop/metadata/service/entity/NopMetaTagLabelBizModel.java:45,53`
-- **Evidence**:
-  ```java
-  LineageTagPropagationService svc = BeanContainer.getBeanByType(LineageTagPropagationService.class);
-  return svc.propagateTags(entityType, entityId, tagId, context);
-  ```
-- **Severity**: P3
-- **Status**: BizModel retrieves dependencies via static `BeanContainer.getBeanByType()` rather than `@Inject` fields.
-- **Risk**: Dependencies hidden from IoC static analysis. Tests must mock static BeanContainer. Errors occur at invocation time, not at startup.
-- **Suggestion**: Declare both as `@Inject`-ed protected fields.
-- **Confidence**: certain
-- **Review Status**: unreviewed
-
----
-
-### [Dimension07-04] `AutoClassificationService` and `LineageTagPropagationService` violate naming convention
-
-- **File**:
-  - `nop-metadata/nop-metadata-service/src/main/java/io/nop/metadata/service/entity/AutoClassificationService.java`
-  - `nop-metadata/nop-metadata-service/src/main/java/io/nop/metadata/service/entity/LineageTagPropagationService.java`
-- **Evidence**:
-  ```java
-  public class AutoClassificationService {
-  public class LineageTagPropagationService {
-  ```
-- **Severity**: P3
-- **Status**: Nop convention avoids `*Service` suffix (reserved for Spring convention). These are utility helpers named with prohibited suffix.
-- **Suggestion**: Rename to `*Processor` suffix to align with Nop naming conventions.
-- **Confidence**: certain
-- **Review Status**: unreviewed
-
----
-
-### [Dimension07-05] NopMetaModuleBizModel exceeds appropriate BizModel complexity (586 lines)
-
-- **File**: `nop-metadata/nop-metadata-service/src/main/java/io/nop/metadata/service/entity/NopMetaModuleBizModel.java`
-- **Evidence**: 586 lines, 17 methods (11 private), implementing ORM parsing, XML DSK resolution, cross-module aggregation, manifest building, event publishing.
-- **Severity**: P3
-- **Status**: The BizModel hosts operations across multiple domains. At least `importOrmModel`, `generateManifest`, and `buildGlobalClassNameToModuleId` meet the criteria for Processor extraction per service-layer.md.
-- **Suggestion**: Extract `OrmModelImportProcessor` and `ManifestGenerationProcessor`.
-- **Confidence**: likely
-- **Review Status**: unreviewed
-
----
-
-### [Dimension07-06] NopMetaDataContractBizModel uses reflective self-call via bizObjectManager()
-
-- **File**: `nop-metadata/nop-metadata-service/src/main/java/io/nop/metadata/service/entity/NopMetaDataContractBizModel.java:165-168`
-- **Evidence**:
-  ```java
-  return (NopMetaDataContract) bizObjectManager().getBizObject("NopMetaDataContract")
-          .invoke("submitForApproval", Map.of("id", contractId), null, context);
-  ```
-- **Severity**: P3
-- **Status**: Private helper uses reflective BizObject invocation for a method provided by `approval-support.xbiz`.
-- **Risk**: If `approval-support.xbiz` is not deployed, the reflective call fails at runtime.
-- **Suggestion**: Document the xbiz dependency in the class javadoc.
-- **Confidence**: likely
-- **Review Status**: unreviewed
-
----
-
-### [Dimension07-07] 7 BizModels load "before" snapshots via dao().getEntityById() in save overrides
-
-- **File**: `NopMetaTableBizModel.java:87-103`, `NopMetaEntityBizModel.java:28`, `NopMetaEntityFieldBizModel.java:29`, `NopMetaModuleBizModel.java:125`, `NopMetaTagBizModel.java:30`, `NopMetaClassificationBizModel.java:29`, `NopMetaGlossaryTermBizModel.java:43`
-- **Evidence**:
-  ```java
-  NopMetaTable before = id != null ? dao().getEntityById(id) : null;
-  ```
-- **Severity**: P3
-- **Status**: The `dao().getEntityById()` for loading "before" snapshot is acceptable for read-only event building, but loads without data auth check.
-- **Risk**: If user has permission to call `save` but not to read the entity, snapshot creation could leak info through event publish path.
-- **Suggestion**: Use `requireEntity(id, "save", context)` for event snapshot loading.
-- **Confidence**: speculative
-- **Review Status**: unreviewed
-
----
-
-### [Dimension07-08] NopMetaReconciliationConfigBizModel uses non-standard constructor injection
-
-- **File**: `nop-metadata/nop-metadata-service/src/main/java/io/nop/metadata/service/entity/NopMetaReconciliationConfigBizModel.java:76-80`
-- **Evidence**:
-  ```java
-  @Inject
-  public NopMetaReconciliationConfigBizModel(IReconciliationProcessor reconciliationService) {
-      setEntityName(NopMetaReconciliationConfig.class.getName());
-      ...
+      return txn().runInTransaction(txn -> {   // 冗余：@BizMutation 已包裹事务
+          ...
+      });
   }
   ```
-- **Severity**: P3
-- **Status**: Only BizModel in the module using constructor injection. All 39 others use no-arg constructor + `@Inject` field pattern.
-- **Suggestion**: Refactor to standard no-arg constructor + `@Inject` setter pattern.
-- **Confidence**: likely
-- **Review Status**: unreviewed
+- **严重程度**: P2
+- **现状**: `approve()` 和 `reject()` 方法在 `@BizMutation` 内部使用 `txn().runInTransaction(...)` 创建了嵌套事务包裹。
+- **风险**: 嵌套事务虽不会报错，但违反了平台约定，且可能导致事务边界混淆。
+- **建议**: 移除显式的 `txn().runInTransaction(...)` 包裹，让 `@BizMutation` 提供的事务边界工作。
+- **信心水平**: 确定
+- **误报排除**: 这不是"平台标准模式"。service-layer.md 明确警告不要这样写。
+- **复核状态**: 未复核
 
----
+### [维度07-003] 多个 BizModel 方法使用 dao().getEntityById() 替代 requireEntity()，可能绕过数据权限
 
-## Summary
+- **文件**: 8 个 BizModel 文件中的约 20 个方法
+  - `NopMetaDataContractBizModel.java:44,76,102-106,112-116,122-126,133`
+  - `NopMetaTableBizModel.java:127,187,211,241,268`
+  - `NopMetaQualityRuleBizModel.java:133,200,377`
+  - `NopMetaModuleBizModel.java:386,442`
+  - `NopMetaReconciliationConfigBizModel.java:99-100,107-108`
+- **严重程度**: P2
+- **现状**: 上述方法直接调用 `dao().getEntityById(id)` 并手动抛异常，而非使用 `requireEntity(id, actionName, context)`。部分方法（如 `releaseModule`）调用了 `checkDataAuth`，但大多数未调用数据权限检查。
+- **风险**: 绕过 `CrudBizModel` 的统一流程，可能绕过数据权限检查。
+- **建议**: 将 `dao().getEntityById(id)` + null 检查 + 手动抛出替换为 `requireEntity(id, actionName, context)`。
+- **信心水平**: 确定
+- **误报排除**: service-layer.md 明确将 `dao().getEntityById()` 列为反模式："绕过 CrudBizModel 的统一流程"。
+- **复核状态**: 未复核
 
-| ID | Finding | Severity | Confidence |
-|----|---------|----------|------------|
-| 07-01 | NopMetaQualityCheckpointBizModel.delete missing `@Name("id")` | P2 | certain |
-| 07-02 | NopMetaDataContractBizModel mutation methods bypass requireEntity() | P2 | certain |
-| 07-03 | BeanContainer.getBeanByType() service locator | P3 | certain |
-| 07-04 | *Service naming convention violation | P3 | certain |
-| 07-05 | NopMetaModuleBizModel excessive complexity (586 lines) | P3 | likely |
-| 07-06 | Reflective self-call via bizObjectManager() | P3 | likely |
-| 07-07 | 7 BizModels use dao().getEntityById() for snapshot loading | P3 | speculative |
-| 07-08 | Non-standard constructor injection | P3 | likely |
+### [维度07-004] NopMetaTableBizModel.queryJoinData/queryAggregation 使用 List<Map<String, Object>> 丧失类型安全
+
+- **文件**: `nop-metadata/nop-metadata-service/src/main/java/io/nop/metadata/service/entity/NopMetaTableBizModel.java:245-283`
+- **证据片段**:
+  ```java
+  List<Map<String, Object>> itemsList = (List<Map<String, Object>>) items;
+  result.setItems(itemsList);
+  ```
+- **严重程度**: P2
+- **现状**: DTO 对象包含未类型化的 `List<Map<String, Object>>`，丧失了平台能施加给 GraphQL 返回类型的所有类型安全性。
+- **风险**: GraphQL 查询无法进行字段级验证，客户端可能接收到意料之外的结构。
+- **建议**: 将 `QueryJoinDataResultDTO` / `AggregationResultDTO` 中的 `List<Map<String, Object>>` 替换为类型化的 `@DataBean` 容器类。
+- **信心水平**: 确定
+- **误报排除**: service-layer.md 明确说："不要把复杂返回值做成 Map<String, Object>"。
+- **复核状态**: 未复核
+
+### [维度07-005] INopMetaDataContractBiz 接口遗漏 checkContractReadOnly 声明
+
+- **文件**: `nop-metadata/nop-metadata-dao/src/main/java/io/nop/metadata/biz/INopMetaDataContractBiz.java`
+- **严重程度**: P2
+- **现状**: `checkContractReadOnly` 被注解为 `@BizQuery` 并且是 public 的（在 `NopMetaDataContractBizModel.java:164`），但在 `INopMetaDataContractBiz` 接口上缺少声明。
+- **建议**: 将 `checkContractReadOnly` 方法签名添加到 `INopMetaDataContractBiz` 接口。
+- **信心水平**: 确定
+- **误报排除**: service-layer.md 明确规则："BizModel 上新增的每一个 public 方法，都必须在对应的 I*Biz 接口上声明"。
+- **复核状态**: 未复核
+
+### [维度07-006] INopMetaTagLabelBiz 接口遗漏 propagateTags/suggestTags 声明
+
+- **文件**: `nop-metadata/nop-metadata-dao/src/main/java/io/nop/metadata/biz/INopMetaTagLabelBiz.java`
+- **严重程度**: P2
+- **现状**: `propagateTags`（`@BizMutation`）和 `suggestTags`（`@BizMutation`）是 public 且存在于 `NopMetaTagLabelBizModel.java:48,56`，但 `INopMetaTagLabelBiz` 接口缺少对应声明。
+- **建议**: 将这两个方法添加到 `INopMetaTagLabelBiz` 接口。
+- **信心水平**: 确定
+- **误报排除**: 与 F5 同类型问题，独立文件。
+- **复核状态**: 未复核
+
+### [维度07-007] NopMetaLineageEdgeBizModel.recordLineage 通过 dao().saveEntity() 绕过 CrudBizModel 统一持久化
+
+- **文件**: `nop-metadata/nop-metadata-service/src/main/java/io/nop/metadata/service/entity/NopMetaLineageEdgeBizModel.java:76-98`
+- **证据片段**:
+  ```java
+  NopMetaLineageEdge edge = dao().newEntity();
+  // ... 设置字段 ...
+  dao().saveEntity(edge);
+  ```
+- **严重程度**: P3
+- **现状**: 在 `@BizMutation recordLineage` 内部使用裸 `dao().saveEntity(entity)`，绕过 CrudBizModel 的 save 管道。
+- **建议**: 将批量处理提取到一个 Processor 中，或添加 `saveBatch` `@BizMutation` 接受 `List<RecordLineageDTO>`。
+- **信心水平**: 很可能
+- **误报排除**: 批量插入是该方法的本质要求，属于边界场景灰色地带。
+- **复核状态**: 未复核
+
+### [维度07-008] NopMetaDataContractBizModel 已废弃方法存留
+
+- **文件**: `nop-metadata/nop-metadata-service/src/main/java/io/nop/metadata/service/entity/NopMetaDataContractBizModel.java:102-128`
+- **严重程度**: P3
+- **现状**: `activateContract`、`deprecateContract`、`retireContract` 已被 `@Deprecated` 注解但仍存留。接口与实现之间的 `@Name` 参数名不一致。
+- **建议**: 下一步移除这些已废弃的方法。
+- **信心水平**: 确定
+- **误报排除**: 已废弃代码增加维护负担，有真实清理价值。
+- **复核状态**: 未复核
