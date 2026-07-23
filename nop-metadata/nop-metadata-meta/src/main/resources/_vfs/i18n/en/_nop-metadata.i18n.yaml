@@ -111,7 +111,7 @@ prop:
       contractId: Contract Id
       contractName: Contract Name
       displayName: Display Name
-      entityTableId: Entity Table Id
+      metaTableId: Meta Table Id
       status: Status
       status_label: null
       ownerUserId: Owner User Id
@@ -1018,6 +1018,7 @@ dict:
     meta/data-product-visibility: Data Product Visibility
     meta/data-product-priority: Data Product Priority
     meta/change-source: Change Source
+    meta/approve-status: Approve Status
 dict.option.label:
   meta/module-status:
     DRAFTING: Drafting
@@ -1173,3 +1174,8 @@ dict.option.label:
     UI: UI
     API: API
     SYNC: Sync
+  meta/approve-status:
+    UNSUBMITTED: Unsubmitted
+    SUBMITTED: Submitted
+    APPROVED: Approved
+    REJECTED: Rejected

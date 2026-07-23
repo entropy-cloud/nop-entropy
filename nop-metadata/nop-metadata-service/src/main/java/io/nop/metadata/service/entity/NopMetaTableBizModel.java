@@ -104,18 +104,16 @@ public class NopMetaTableBizModel extends CrudBizModel<NopMetaTable> implements 
 
     @Override
     public boolean delete(@Name("id") String id, IServiceContext context) {
-        NopMetaTable before = dao().getEntityById(id);
+        NopMetaTable before = requireEntity(id, "delete", context);
         boolean deleted = super.delete(id, context);
-        if (before != null) {
-            String beforeSnapshot = eventPublisher.buildSnapshot(before, EVENT_ENTITY_TYPE, id);
-            eventPublisher.publishEventWithSnapshots(
-                    _NopMetadataCoreConstants.CHANGE_EVENT_TYPE_ENTITY_DELETED,
-                    EVENT_ENTITY_TYPE, id, before.getTableName(),
-                    MetaModelChangedEventPublisher.CHANGE_SOURCE_API,
-                    beforeSnapshot, null,
-                    MetaModelChangedEventPublisher.newTransactionId(), context);
-            searchService.removeFromIndex("MetaTable", id);
-        }
+        String beforeSnapshot = eventPublisher.buildSnapshot(before, EVENT_ENTITY_TYPE, id);
+        eventPublisher.publishEventWithSnapshots(
+                _NopMetadataCoreConstants.CHANGE_EVENT_TYPE_ENTITY_DELETED,
+                EVENT_ENTITY_TYPE, id, before.getTableName(),
+                MetaModelChangedEventPublisher.CHANGE_SOURCE_API,
+                beforeSnapshot, null,
+                MetaModelChangedEventPublisher.newTransactionId(), context);
+        searchService.removeFromIndex("MetaTable", id);
         return deleted;
     }
 

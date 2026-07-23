@@ -33,9 +33,9 @@ public class _NopMetaDataContract extends DynamicOrmEntity{
     public static final String PROP_NAME_displayName = "displayName";
     public static final int PROP_ID_displayName = 3;
     
-    /* 关联数据表ID: ENTITY_TABLE_ID VARCHAR */
-    public static final String PROP_NAME_entityTableId = "entityTableId";
-    public static final int PROP_ID_entityTableId = 4;
+    /* 关联数据表ID: META_TABLE_ID VARCHAR */
+    public static final String PROP_NAME_metaTableId = "metaTableId";
+    public static final int PROP_ID_metaTableId = 4;
     
     /* 契约状态: STATUS VARCHAR */
     public static final String PROP_NAME_status = "status";
@@ -151,8 +151,8 @@ public class _NopMetaDataContract extends DynamicOrmEntity{
           PROP_ID_TO_NAME[PROP_ID_displayName] = PROP_NAME_displayName;
           PROP_NAME_TO_ID.put(PROP_NAME_displayName, PROP_ID_displayName);
       
-          PROP_ID_TO_NAME[PROP_ID_entityTableId] = PROP_NAME_entityTableId;
-          PROP_NAME_TO_ID.put(PROP_NAME_entityTableId, PROP_ID_entityTableId);
+          PROP_ID_TO_NAME[PROP_ID_metaTableId] = PROP_NAME_metaTableId;
+          PROP_NAME_TO_ID.put(PROP_NAME_metaTableId, PROP_ID_metaTableId);
       
           PROP_ID_TO_NAME[PROP_ID_status] = PROP_NAME_status;
           PROP_NAME_TO_ID.put(PROP_NAME_status, PROP_ID_status);
@@ -220,8 +220,8 @@ public class _NopMetaDataContract extends DynamicOrmEntity{
     /* 显示名: DISPLAY_NAME */
     private java.lang.String _displayName;
     
-    /* 关联数据表ID: ENTITY_TABLE_ID */
-    private java.lang.String _entityTableId;
+    /* 关联数据表ID: META_TABLE_ID */
+    private java.lang.String _metaTableId;
     
     /* 契约状态: STATUS */
     private java.lang.String _status;
@@ -360,8 +360,8 @@ public class _NopMetaDataContract extends DynamicOrmEntity{
             case PROP_ID_displayName:
                return getDisplayName();
         
-            case PROP_ID_entityTableId:
-               return getEntityTableId();
+            case PROP_ID_metaTableId:
+               return getMetaTableId();
         
             case PROP_ID_status:
                return getStatus();
@@ -458,13 +458,13 @@ public class _NopMetaDataContract extends DynamicOrmEntity{
                break;
             }
         
-            case PROP_ID_entityTableId:{
+            case PROP_ID_metaTableId:{
                java.lang.String typedValue = null;
                if(value != null){
                    typedValue = ConvertHelper.toString(value,
-                       err-> newTypeConversionError(PROP_NAME_entityTableId));
+                       err-> newTypeConversionError(PROP_NAME_metaTableId));
                }
-               setEntityTableId(typedValue);
+               setMetaTableId(typedValue);
                break;
             }
         
@@ -678,9 +678,9 @@ public class _NopMetaDataContract extends DynamicOrmEntity{
                break;
             }
         
-            case PROP_ID_entityTableId:{
+            case PROP_ID_metaTableId:{
                onInitProp(propId);
-               this._entityTableId = (java.lang.String)value;
+               this._metaTableId = (java.lang.String)value;
                
                break;
             }
@@ -875,20 +875,20 @@ public class _NopMetaDataContract extends DynamicOrmEntity{
     }
     
     /**
-     * 关联数据表ID: ENTITY_TABLE_ID
+     * 关联数据表ID: META_TABLE_ID
      */
-    public final java.lang.String getEntityTableId(){
-         onPropGet(PROP_ID_entityTableId);
-         return _entityTableId;
+    public final java.lang.String getMetaTableId(){
+         onPropGet(PROP_ID_metaTableId);
+         return _metaTableId;
     }
 
     /**
-     * 关联数据表ID: ENTITY_TABLE_ID
+     * 关联数据表ID: META_TABLE_ID
      */
-    public final void setEntityTableId(java.lang.String value){
-        if(onPropSet(PROP_ID_entityTableId,value)){
-            this._entityTableId = value;
-            internalClearRefs(PROP_ID_entityTableId);
+    public final void setMetaTableId(java.lang.String value){
+        if(onPropSet(PROP_ID_metaTableId,value)){
+            this._metaTableId = value;
+            internalClearRefs(PROP_ID_metaTableId);
             
         }
     }
@@ -1246,12 +1246,12 @@ public class _NopMetaDataContract extends DynamicOrmEntity{
    
            if(refEntity == null){
            
-                   this.setEntityTableId(null);
+                   this.setMetaTableId(null);
                
            }else{
            internalSetRefEntity(PROP_NAME_metaTable, refEntity,()->{
            
-                           this.setEntityTableId(refEntity.getMetaTableId());
+                           this.setMetaTableId(refEntity.getMetaTableId());
                        
            });
            }

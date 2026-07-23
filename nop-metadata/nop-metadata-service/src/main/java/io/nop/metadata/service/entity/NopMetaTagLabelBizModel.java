@@ -8,7 +8,7 @@ import io.nop.api.core.annotations.core.Optional;
 import io.nop.api.core.beans.FilterBeans;
 import io.nop.api.core.beans.query.QueryBean;
 import io.nop.api.core.exceptions.NopException;
-import io.nop.api.core.ioc.BeanContainer;
+
 import io.nop.api.core.time.CoreMetrics;
 import io.nop.biz.crud.CrudBizModel;
 import io.nop.core.context.IServiceContext;
@@ -17,6 +17,7 @@ import io.nop.dao.api.IEntityDao;
 import io.nop.metadata.biz.INopMetaTagLabelBiz;
 import io.nop.metadata.dao.entity.NopMetaGlossaryTerm;
 import io.nop.metadata.dao.entity.NopMetaTagLabel;
+import jakarta.inject.Inject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -33,6 +34,12 @@ public class NopMetaTagLabelBizModel extends CrudBizModel<NopMetaTagLabel> imple
 
     private static final Logger LOG = LoggerFactory.getLogger(NopMetaTagLabelBizModel.class);
 
+    @Inject
+    protected LineageTagPropagationProcessor lineageTagPropagationProcessor;
+
+    @Inject
+    protected AutoClassificationProcessor autoClassificationProcessor;
+
     public NopMetaTagLabelBizModel() {
         setEntityName(NopMetaTagLabel.class.getName());
     }
@@ -42,16 +49,14 @@ public class NopMetaTagLabelBizModel extends CrudBizModel<NopMetaTagLabel> imple
                                                 @Name("entityId") String entityId,
                                                 @Optional @Name("tagId") String tagId,
                                                 IServiceContext context) {
-        LineageTagPropagationService svc = BeanContainer.getBeanByType(LineageTagPropagationService.class);
-        return svc.propagateTags(entityType, entityId, tagId, context);
+        return lineageTagPropagationProcessor.propagateTags(entityType, entityId, tagId, context);
     }
 
     @BizMutation
     public List<NopMetaTagLabel> suggestTags(@Name("entityType") String entityType,
                                               @Name("entityId") String entityId,
                                               IServiceContext context) {
-        AutoClassificationService svc = BeanContainer.getBeanByType(AutoClassificationService.class);
-        return svc.suggestTags(entityType, entityId, context);
+        return autoClassificationProcessor.suggestTags(entityType, entityId, context);
     }
 
     @Override

@@ -117,13 +117,13 @@ prop:
       createTime: 创建时间
       createdBy: 创建人
       displayName: 显示名
-      entityTableId: 关联数据表ID
       extConfig: 扩展配置
       extConfigComponent: null
       latestResult: 最新执行结果
       latestResultComponent: null
       metaTable: 逻辑表
       metaTable.displayName: 逻辑表
+      metaTableId: 关联数据表ID
       ownerUserId: 契约所有者
       qualityExpectations: 质量期望
       qualityExpectationsComponent: null

@@ -22,6 +22,12 @@ import java.util.Map;
 
 import static io.nop.metadata.service.NopMetadataErrors.ERR_CONTRACT_NOT_FOUND;
 
+/**
+ * Data Contract BizModel.
+ * <p>The {@code submitForApproval} method uses reflective
+ * {@code bizObjectManager().getBizObject(...).invoke("submitForApproval", ...)} which requires the
+ * {@code approval-support.xbiz} delta to be deployed. Without that delta, the method will fail at runtime.</p>
+ */
 @BizModel("NopMetaDataContract")
 public class NopMetaDataContractBizModel extends CrudBizModel<NopMetaDataContract> implements INopMetaDataContractBiz {
 
@@ -131,7 +137,7 @@ public class NopMetaDataContractBizModel extends CrudBizModel<NopMetaDataContrac
 
         Map<String, Object> result = contractChecker.check(
                 contractId,
-                contract.getEntityTableId(),
+                contract.getMetaTableId(),
                 contract.getQualityExpectations(),
                 contract.getSla());
 
@@ -163,7 +169,7 @@ public class NopMetaDataContractBizModel extends CrudBizModel<NopMetaDataContrac
 
         Map<String, Object> result = contractChecker.check(
                 contractId,
-                contract.getEntityTableId(),
+                contract.getMetaTableId(),
                 contract.getQualityExpectations(),
                 contract.getSla());
 

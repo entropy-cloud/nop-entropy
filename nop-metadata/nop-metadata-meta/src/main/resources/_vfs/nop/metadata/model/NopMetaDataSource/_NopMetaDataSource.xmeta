@@ -20,7 +20,7 @@
 
     <keys>
         <key name="UK_NOP_META_DS_QUERY_SPACE" props="querySpace"/>
-        <key name="uk_meta_datasource_name" props="name"/>
+        <key name="UK_NOP_META_DATA_SOURCE_NAME" props="name"/>
     </keys>
 
     <props>

@@ -99,7 +99,7 @@
         </prop>
         <prop name="approveStatus" displayName="审批状态" propId="20" i18n-en:displayName="Approve Status" queryable="true"
               sortable="true" insertable="true" updatable="true">
-            <schema type="java.lang.String" precision="20" dict="wf/approve-status"/>
+            <schema type="java.lang.String" precision="20" dict="meta/approve-status"/>
         </prop>
         <prop name="approvedBy" displayName="审批人" propId="21" i18n-en:displayName="Approved By" queryable="true"
               sortable="true" insertable="true" updatable="true">

@@ -32,9 +32,9 @@ import static io.nop.metadata.service.NopMetadataErrors.ARG_TABLE_TYPE;
 import static io.nop.metadata.service.NopMetadataErrors.ERR_AUTOCLASSIFY_UNSUPPORTED_ENTITY_TYPE;
 import static io.nop.metadata.service.NopMetadataErrors.ERR_AUTOCLASSIFY_UNSUPPORTED_TABLE_TYPE;
 
-public class AutoClassificationService {
+public class AutoClassificationProcessor {
 
-    private static final Logger LOG = LoggerFactory.getLogger(AutoClassificationService.class);
+    private static final Logger LOG = LoggerFactory.getLogger(AutoClassificationProcessor.class);
 
     private static final String ENTITY_TYPE_NOP_META_TABLE = "NopMetaTable";
     private static final String SOURCE_AUTO_CLASSIFY = "auto-classify";

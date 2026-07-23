@@ -54,11 +54,9 @@ public class NopMetaTagBizModel extends CrudBizModel<NopMetaTag> implements INop
 
     @Override
     public boolean delete(@Name("id") String id, IServiceContext context) {
-        NopMetaTag before = dao().getEntityById(id);
+        NopMetaTag before = requireEntity(id, "delete", context);
         boolean deleted = super.delete(id, context);
-        if (before != null) {
-            searchService.removeFromIndex("Tag", id);
-        }
+        searchService.removeFromIndex("Tag", id);
         return deleted;
     }
 

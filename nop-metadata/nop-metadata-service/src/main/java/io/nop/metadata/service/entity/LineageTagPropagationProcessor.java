@@ -28,9 +28,9 @@ import static io.nop.metadata.service.NopMetadataErrors.ERR_PROPAGATE_UNSUPPORTE
 
 
 
-public class LineageTagPropagationService {
+public class LineageTagPropagationProcessor {
 
-    private static final Logger LOG = LoggerFactory.getLogger(LineageTagPropagationService.class);
+    private static final Logger LOG = LoggerFactory.getLogger(LineageTagPropagationProcessor.class);
 
     private static final int MAX_DEPTH = 3;
     private static final String ENTITY_TYPE_NOP_META_TABLE = "NopMetaTable";
@@ -52,14 +52,14 @@ public class LineageTagPropagationService {
     }
 
     public List<NopMetaTagLabel> propagateTags(String entityType, String entityId, String tagId,
-                                                 IServiceContext context) {
+                                                  IServiceContext context) {
         if (!ENTITY_TYPE_NOP_META_TABLE.equals(entityType)) {
             throw new NopException(ERR_PROPAGATE_UNSUPPORTED_ENTITY_TYPE)
                     .param(ARG_ENTITY_TYPE, entityType);
         }
 
         if (daoProvider == null) {
-            LOG.error("daoProvider is null in LineageTagPropagationService");
+            LOG.error("daoProvider is null in LineageTagPropagationProcessor");
             return Collections.emptyList();
         }
 

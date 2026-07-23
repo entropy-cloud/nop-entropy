@@ -59,16 +59,16 @@
     <bean id="io.nop.metadata.service.search.NopMetaSearchBizModel"
           class="io.nop.metadata.service.search.NopMetaSearchBizModel" ioc:type="@bean:id" ioc:default="true"/>
 
-    <!-- 血缘驱动 TagLabel 传播服务（plan Phase 4） -->
-    <bean id="io.nop.metadata.service.entity.LineageTagPropagationService"
-          class="io.nop.metadata.service.entity.LineageTagPropagationService" ioc:default="true">
+    <!-- 血缘驱动 TagLabel 传播处理器（plan Phase 4） -->
+    <bean id="io.nop.metadata.service.entity.LineageTagPropagationProcessor"
+          class="io.nop.metadata.service.entity.LineageTagPropagationProcessor" ioc:default="true">
         <property name="daoProvider" ref="nopDaoProvider"/>
         <property name="bizObjectManager" ref="nopBizObjectManager"/>
     </bean>
 
     <!-- AutoClassification 规则引擎（plan Phase 4） -->
-    <bean id="io.nop.metadata.service.entity.AutoClassificationService"
-          class="io.nop.metadata.service.entity.AutoClassificationService" ioc:default="true">
+    <bean id="io.nop.metadata.service.entity.AutoClassificationProcessor"
+          class="io.nop.metadata.service.entity.AutoClassificationProcessor" ioc:default="true">
         <property name="daoProvider" ref="nopDaoProvider"/>
         <property name="bizObjectManager" ref="nopBizObjectManager"/>
     </bean>

@@ -84,6 +84,7 @@ import jakarta.inject.Inject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+// TODO: Consider extracting OrmModelImportProcessor (importOrmModel, resolveEntityXmlDsk) and ManifestGenerationProcessor (generateManifest, buildGlobalClassNameToModuleId) when module exceeds 600 lines
 @BizModel("NopMetaModule")
 public class NopMetaModuleBizModel extends CrudBizModel<NopMetaModule> implements INopMetaModuleBiz {
 
@@ -148,17 +149,15 @@ public class NopMetaModuleBizModel extends CrudBizModel<NopMetaModule> implement
      */
     @Override
     public boolean delete(@Name("id") String id, IServiceContext context) {
-        NopMetaModule before = dao().getEntityById(id);
+        NopMetaModule before = requireEntity(id, "delete", context);
         boolean deleted = super.delete(id, context);
-        if (before != null) {
-            String beforeSnapshot = eventPublisher.buildSnapshot(before, EVENT_ENTITY_TYPE, id);
-            eventPublisher.publishEventWithSnapshots(
-                    _NopMetadataCoreConstants.CHANGE_EVENT_TYPE_ENTITY_DELETED,
-                    EVENT_ENTITY_TYPE, id, before.getModuleName(),
-                    MetaModelChangedEventPublisher.CHANGE_SOURCE_API,
-                    beforeSnapshot, null,
-                    MetaModelChangedEventPublisher.newTransactionId(), context);
-        }
+        String beforeSnapshot = eventPublisher.buildSnapshot(before, EVENT_ENTITY_TYPE, id);
+        eventPublisher.publishEventWithSnapshots(
+                _NopMetadataCoreConstants.CHANGE_EVENT_TYPE_ENTITY_DELETED,
+                EVENT_ENTITY_TYPE, id, before.getModuleName(),
+                MetaModelChangedEventPublisher.CHANGE_SOURCE_API,
+                beforeSnapshot, null,
+                MetaModelChangedEventPublisher.newTransactionId(), context);
         return deleted;
     }
 

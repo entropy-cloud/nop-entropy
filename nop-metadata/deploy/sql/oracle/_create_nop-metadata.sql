@@ -544,7 +544,7 @@ CREATE TABLE nop_meta_data_contract(
   CONTRACT_ID VARCHAR2(32) NOT NULL ,
   CONTRACT_NAME VARCHAR2(100) NOT NULL ,
   DISPLAY_NAME VARCHAR2(200)  ,
-  ENTITY_TABLE_ID VARCHAR2(32)  ,
+  META_TABLE_ID VARCHAR2(32)  ,
   STATUS CLOB NOT NULL ,
   OWNER_USER_ID VARCHAR2(50)  ,
   SCHEMA CLOB  ,
@@ -1758,7 +1758,7 @@ CREATE TABLE nop_meta_reconciliation_result(
                     
       COMMENT ON COLUMN nop_meta_data_contract.DISPLAY_NAME IS '显示名';
                     
-      COMMENT ON COLUMN nop_meta_data_contract.ENTITY_TABLE_ID IS '关联数据表ID';
+      COMMENT ON COLUMN nop_meta_data_contract.META_TABLE_ID IS '关联数据表ID';
                     
       COMMENT ON COLUMN nop_meta_data_contract.STATUS IS '契约状态';
                     

@@ -199,6 +199,12 @@
             <option code="API" label="API调用" value="API" i18n-en:label="API"/>
             <option code="SYNC" label="同步" value="SYNC" i18n-en:label="Sync"/>
         </dict>
+        <dict label="审批状态" name="meta/approve-status" valueType="string" i18n-en:label="Approve Status">
+            <option code="UNSUBMITTED" label="未提交" value="UNSUBMITTED" i18n-en:label="Unsubmitted"/>
+            <option code="SUBMITTED" label="待审批" value="SUBMITTED" i18n-en:label="Submitted"/>
+            <option code="APPROVED" label="已通过" value="APPROVED" i18n-en:label="Approved"/>
+            <option code="REJECTED" label="已驳回" value="REJECTED" i18n-en:label="Rejected"/>
+        </dict>
     </dicts>
 
     <domains>
@@ -406,7 +412,7 @@
     <unique-keys>
         <unique-key name="UK_NOP_META_DS_QUERY_SPACE" columns="querySpace"
                     i18n-en:displayName="Unique Query Space"/>
-        <unique-key name="uk_meta_datasource_name" columns="name"
+        <unique-key name="UK_NOP_META_DATA_SOURCE_NAME" columns="name"
                     i18n-en:displayName="Unique Datasource Name"/>
     </unique-keys>
         </entity>
@@ -1399,7 +1405,7 @@
                          refEntityName="io.nop.metadata.dao.entity.NopMetaDataContract" refPropName="metaTable"
                          tagSet="pub,ref-pub" cascadeDelete="true" i18n-en:displayName="Data Contracts">
                     <join>
-                        <on leftProp="metaTableId" rightProp="entityTableId"/>
+                        <on leftProp="metaTableId" rightProp="metaTableId"/>
                     </join>
                 </to-many>
                 <to-many displayName="对账配置集" name="reconciliationConfigs"
@@ -2452,8 +2458,8 @@
                         propId="2" stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Contract Name"/>
                 <column code="DISPLAY_NAME" displayName="显示名" name="displayName" precision="200" propId="3"
                         stdDataType="string" stdSqlType="VARCHAR" tagSet="disp" i18n-en:displayName="Display Name"/>
-                <column code="ENTITY_TABLE_ID" displayName="关联数据表ID" name="entityTableId" precision="32" propId="4"
-                        stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Entity Table Id"/>
+                <column code="META_TABLE_ID" displayName="关联数据表ID" name="metaTableId" precision="32" propId="4"
+                        stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Meta Table Id"/>
                 <column code="STATUS" displayName="契约状态" mandatory="true" name="status" propId="5"
                         stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Status"
                         ext:dict="meta/contract-status"/>
@@ -2497,7 +2503,7 @@
                         stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Remark"/>
                 <column code="APPROVE_STATUS" displayName="审批状态" name="approveStatus" precision="20" propId="20"
                         stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Approve Status"
-                        ext:dict="wf/approve-status"/>
+                        ext:dict="meta/approve-status"/>
                 <column code="APPROVED_BY" displayName="审批人" name="approvedBy" precision="50" propId="21"
                         stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Approved By"/>
                 <column code="APPROVED_AT" displayName="审批时间" name="approvedAt" propId="22"
@@ -2508,13 +2514,13 @@
                         refEntityName="io.nop.metadata.dao.entity.NopMetaTable" refPropName="dataContracts"
                         tagSet="pub,ref-pub" i18n-en:displayName="Meta Table">
                     <join>
-                        <on leftProp="entityTableId" rightProp="metaTableId"/>
+                        <on leftProp="metaTableId" rightProp="metaTableId"/>
                     </join>
                 </to-one>
             </relations>
             <indexes>
                 <index name="IX_NOP_META_CONTRACT_TABLE" unique="false">
-                    <column name="entityTableId"/>
+                    <column name="metaTableId"/>
                 </index>
             </indexes>
             <unique-keys>
@@ -2696,8 +2702,11 @@
                 createrProp="createdBy" displayName="对账实体"
                 name="io.nop.metadata.dao.entity.NopMetaReconciliationEntity" registerShortName="true"
                 tableName="nop_meta_reconciliation_entity" updateTimeProp="updateTime" updaterProp="updatedBy"
-                versionProp="version" ext:icon="database"
+                versionProp="version" ext:icon="list-checks"
                 i18n-en:displayName="Meta Reconciliation Entity">
+            <!-- 无 relations：NopMetaReconciliationEntity 是候选实体缓存，用于对账匹配候选集来源（P4-5 组件），
+                 不直接 FK 到 NopMetaTable 或其他实体。其 entityId/entityType 字段仅用于标识匹配目标，
+                 不通过 ORM 关联加载。这是有意的设计决策，参见 04-data-governance.md §4。 -->
             <columns>
                 <column code="RECON_ENTITY_ID" displayName="对账实体ID" mandatory="true" name="reconEntityId"
                         precision="32" primary="true" propId="1" stdDataType="string" stdSqlType="VARCHAR"
@@ -2817,6 +2826,12 @@
              NopMetaModelChangedEvent: 元数据变更事件（时序追加行，P-event）
              审计日志 / 下游拉取 / 未来实时推送的事件源
              beforeSnapshot/afterSnapshot 用 mediumtext+json（快照可能超长，不得 json-4000）
+
+             双审计字段说明：
+             - createdBy/createTime + updatedBy/updateTime：ORM 标准审计字段，记录本条 event 行的创建和最后修改。
+             - changedBy/changeTime：业务语义字段，记录元数据变更的实际操作人和操作时间（可能与 createdBy/createTime 不同，
+               例如系统下发的变更由 system 操作，但审计字段记录数据导入者的身份）。
+             两条审计维度的区别：标准审计追踪 event 行本身的数据管理痕迹；业务审计追踪被记录元数据变更的真实来源。
              ===================================================== -->
         <entity className="io.nop.metadata.dao.entity.NopMetaModelChangedEvent" createTimeProp="createTime"
                 createrProp="createdBy" displayName="元数据变更事件"
@@ -3273,7 +3288,7 @@
                         stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Remark"/>
                 <column code="APPROVE_STATUS" displayName="审批状态" name="approveStatus" precision="20" propId="20"
                         stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Approve Status"
-                        ext:dict="wf/approve-status"/>
+                        ext:dict="meta/approve-status"/>
                 <column code="APPROVED_BY" displayName="审批人" name="approvedBy" precision="50" propId="21"
                         stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Approved By"/>
                 <column code="APPROVED_AT" displayName="审批时间" name="approvedAt" propId="22"

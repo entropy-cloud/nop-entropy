@@ -35,8 +35,8 @@
               queryable="true" sortable="true" insertable="true" updatable="true">
             <schema type="java.lang.String" precision="200"/>
         </prop>
-        <prop name="entityTableId" displayName="关联数据表ID" propId="4" i18n-en:displayName="Entity Table Id"
-              queryable="true" sortable="true" insertable="true" updatable="true" ext:relation="metaTable">
+        <prop name="metaTableId" displayName="关联数据表ID" propId="4" i18n-en:displayName="Meta Table Id" queryable="true"
+              sortable="true" insertable="true" updatable="true" ext:relation="metaTable">
             <schema type="java.lang.String" precision="32"/>
         </prop>
         <prop name="status" displayName="契约状态" propId="5" i18n-en:displayName="Status" mandatory="true" queryable="true"
@@ -102,7 +102,7 @@
         </prop>
         <prop name="approveStatus" displayName="审批状态" propId="20" i18n-en:displayName="Approve Status" queryable="true"
               sortable="true" insertable="true" updatable="true">
-            <schema type="java.lang.String" precision="20" dict="wf/approve-status"/>
+            <schema type="java.lang.String" precision="20" dict="meta/approve-status"/>
         </prop>
         <prop name="approvedBy" displayName="审批人" propId="21" i18n-en:displayName="Approved By" queryable="true"
               sortable="true" insertable="true" updatable="true">
@@ -113,7 +113,7 @@
             <schema type="java.sql.Timestamp"/>
         </prop>
         <prop name="metaTable" displayName="逻辑表" i18n-en:displayName="Meta Table" tagSet="pub,ref-pub" ext:kind="to-one"
-              internal="true" queryable="true" ext:joinLeftProp="entityTableId" ext:joinRightProp="metaTableId"
+              internal="true" queryable="true" ext:joinLeftProp="metaTableId" ext:joinRightProp="metaTableId"
               ext:joinRightDisplayProp="displayName" insertable="false" updatable="false" lazy="true">
             <schema bizObjName="NopMetaTable"/>
         </prop>

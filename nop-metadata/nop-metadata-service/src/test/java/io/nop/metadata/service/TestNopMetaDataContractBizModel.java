@@ -203,7 +203,7 @@ public class TestNopMetaDataContractBizModel extends JunitBaseTestCase {
         c.setContractName(contractId + "-name");
         c.setDisplayName(contractId + "-name");
         c.setStatus(status);
-        c.setEntityTableId(entityTableId);
+        c.setMetaTableId(entityTableId);
         c.setQualityExpectations(qualityExpectations);
         c.setSla(sla);
         c.setOwnerUserId("autotest");

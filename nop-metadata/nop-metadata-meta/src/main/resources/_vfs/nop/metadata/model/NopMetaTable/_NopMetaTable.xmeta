@@ -190,7 +190,7 @@
             </schema>
         </prop>
         <prop name="dataContracts" displayName="数据契约集" i18n-en:displayName="Data Contracts" tagSet="pub,ref-pub"
-              ext:kind="to-many" internal="true" ext:joinLeftProp="metaTableId" ext:joinRightProp="entityTableId"
+              ext:kind="to-many" internal="true" ext:joinLeftProp="metaTableId" ext:joinRightProp="metaTableId"
               ext:joinRightDisplayProp="displayName" insertable="false" updatable="false" lazy="true">
             <schema>
                 <item bizObjName="NopMetaDataContract"/>

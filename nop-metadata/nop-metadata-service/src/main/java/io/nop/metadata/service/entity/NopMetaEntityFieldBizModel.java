@@ -45,11 +45,9 @@ public class NopMetaEntityFieldBizModel extends CrudBizModel<NopMetaEntityField>
 
     @Override
     public boolean delete(@Name("id") String id, IServiceContext context) {
-        NopMetaEntityField before = dao().getEntityById(id);
+        NopMetaEntityField before = requireEntity(id, "delete", context);
         boolean deleted = super.delete(id, context);
-        if (before != null) {
-            searchService.removeFromIndex("MetaEntityField", id);
-        }
+        searchService.removeFromIndex("MetaEntityField", id);
         return deleted;
     }
 

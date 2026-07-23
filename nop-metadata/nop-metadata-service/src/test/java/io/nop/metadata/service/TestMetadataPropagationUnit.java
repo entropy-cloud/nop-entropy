@@ -14,8 +14,8 @@ import io.nop.metadata.dao.entity.NopMetaLineageEdge;
 import io.nop.metadata.dao.entity.NopMetaTable;
 import io.nop.metadata.dao.entity.NopMetaTag;
 import io.nop.metadata.dao.entity.NopMetaTagLabel;
-import io.nop.metadata.service.entity.AutoClassificationService;
-import io.nop.metadata.service.entity.LineageTagPropagationService;
+import io.nop.metadata.service.entity.AutoClassificationProcessor;
+import io.nop.metadata.service.entity.LineageTagPropagationProcessor;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
@@ -37,8 +37,8 @@ import static org.mockito.Mockito.when;
 
 public class TestMetadataPropagationUnit {
 
-    private LineageTagPropagationService propagationService;
-    private AutoClassificationService classificationService;
+    private LineageTagPropagationProcessor propagationService;
+    private AutoClassificationProcessor classificationService;
     private IDaoProvider daoProvider;
     private IEntityDao<NopMetaTagLabel> tagLabelDao;
     private IEntityDao<NopMetaLineageEdge> edgeDao;
@@ -69,16 +69,16 @@ public class TestMetadataPropagationUnit {
         when(daoProvider.daoFor(NopMetaTag.class)).thenReturn(tagDao);
         when(daoProvider.daoFor(NopMetaEntityField.class)).thenReturn(fieldDao);
 
-        propagationService = new LineageTagPropagationService();
+        propagationService = new LineageTagPropagationProcessor();
         propagationService.setDaoProvider(daoProvider);
         propagationService.setBizObjectManager(bizObjectManager);
 
-        classificationService = new AutoClassificationService();
+        classificationService = new AutoClassificationProcessor();
         classificationService.setDaoProvider(daoProvider);
         classificationService.setBizObjectManager(bizObjectManager);
     }
 
-    // ===== LineageTagPropagationService Tests =====
+    // ===== LineageTagPropagationProcessor Tests =====
 
     @Test
     public void testPropagationRejectsNonNopMetaTableEntityType() {
@@ -143,7 +143,7 @@ public class TestMetadataPropagationUnit {
         assertTrue(result.isEmpty());
     }
 
-    // ===== AutoClassificationService Tests =====
+    // ===== AutoClassificationProcessor Tests =====
 
     @Test
     public void testAutoClassifyRejectsNonNopMetaTable() {

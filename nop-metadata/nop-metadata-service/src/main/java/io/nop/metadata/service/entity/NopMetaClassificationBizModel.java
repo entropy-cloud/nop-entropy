@@ -34,11 +34,9 @@ public class NopMetaClassificationBizModel extends CrudBizModel<NopMetaClassific
 
     @Override
     public boolean delete(@Name("id") String id, IServiceContext context) {
-        NopMetaClassification before = dao().getEntityById(id);
+        NopMetaClassification before = requireEntity(id, "delete", context);
         boolean deleted = super.delete(id, context);
-        if (before != null) {
-            searchService.removeFromIndex("Classification", id);
-        }
+        searchService.removeFromIndex("Classification", id);
         return deleted;
     }
 

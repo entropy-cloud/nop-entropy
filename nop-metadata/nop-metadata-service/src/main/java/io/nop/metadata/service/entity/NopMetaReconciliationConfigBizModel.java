@@ -29,6 +29,7 @@ import io.nop.metadata.service.field.MetaTableFieldResolver;
 import io.nop.metadata.service.reconciliation.IReconciliationProcessor;
 import io.nop.metadata.service.reconciliation.ReconciliationExecutor;
 import io.nop.metadata.service.NopMetadataException;
+import jakarta.annotation.PostConstruct;
 import jakarta.inject.Inject;
 
 import java.sql.Timestamp;
@@ -71,11 +72,17 @@ public class NopMetaReconciliationConfigBizModel extends CrudBizModel<NopMetaRec
     private final MetaTableFieldResolver fieldResolver = new MetaTableFieldResolver();
 
     /** 对账执行器（纯组件，rows 由本 BizModel 传入）。 */
-    private final ReconciliationExecutor reconciliationExecutor;
+    protected ReconciliationExecutor reconciliationExecutor;
 
     @Inject
-    public NopMetaReconciliationConfigBizModel(IReconciliationProcessor reconciliationService) {
+    protected IReconciliationProcessor reconciliationService;
+
+    public NopMetaReconciliationConfigBizModel() {
         setEntityName(NopMetaReconciliationConfig.class.getName());
+    }
+
+    @PostConstruct
+    public void init() {
         this.reconciliationExecutor = new ReconciliationExecutor(reconciliationService);
     }
 

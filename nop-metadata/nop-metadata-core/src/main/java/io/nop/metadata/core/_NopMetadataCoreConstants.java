@@ -608,4 +608,24 @@ public interface _NopMetadataCoreConstants {
      */
     String CHANGE_SOURCE_SYNC = "SYNC";
                     
+    /**
+     * 审批状态: 未提交 
+     */
+    String APPROVE_STATUS_UNSUBMITTED = "UNSUBMITTED";
+                    
+    /**
+     * 审批状态: 待审批 
+     */
+    String APPROVE_STATUS_SUBMITTED = "SUBMITTED";
+                    
+    /**
+     * 审批状态: 已通过 
+     */
+    String APPROVE_STATUS_APPROVED = "APPROVED";
+                    
+    /**
+     * 审批状态: 已驳回 
+     */
+    String APPROVE_STATUS_REJECTED = "REJECTED";
+                    
 }

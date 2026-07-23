@@ -59,7 +59,7 @@ public class TestNopMetaDataContractCrud extends JunitBaseTestCase {
 
         GraphQLResponseBean resp = graphQLEngine.executeGraphQL(graphQLEngine.newGraphQLContext(req(
                 "query { NopMetaDataContract__get(id: \"" + contractId + "\") { contractId contractName status "
-                        + "sla qualityExpectations ownerUserId entityTableId } }")));
+                        + "sla qualityExpectations ownerUserId metaTableId } }")));
         assertFalse(resp.hasError(), "get should not error: " + resp);
         String data = String.valueOf(resp.getData());
         assertTrue(data.contains("contractId=" + contractId), "contractId must be returned: " + data);

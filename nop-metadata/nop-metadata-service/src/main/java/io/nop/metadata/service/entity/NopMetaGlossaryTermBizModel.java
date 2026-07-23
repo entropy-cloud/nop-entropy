@@ -59,11 +59,9 @@ public class NopMetaGlossaryTermBizModel extends CrudBizModel<NopMetaGlossaryTer
 
     @Override
     public boolean delete(@Name("id") String id, IServiceContext context) {
-        NopMetaGlossaryTerm before = dao().getEntityById(id);
+        NopMetaGlossaryTerm before = requireEntity(id, "delete", context);
         boolean deleted = super.delete(id, context);
-        if (before != null) {
-            searchService.removeFromIndex("GlossaryTerm", id);
-        }
+        searchService.removeFromIndex("GlossaryTerm", id);
         return deleted;
     }
 
