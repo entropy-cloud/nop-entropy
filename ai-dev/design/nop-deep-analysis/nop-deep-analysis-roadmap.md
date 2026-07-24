@@ -30,7 +30,7 @@
 - A3. 模型驱动开发、代码生成与 Delta 定制 + 联网对标代码生成生态: `done`
 - A4. GraphQL 引擎、服务层与前后端一体化渲染 + 联网对标 GraphQL / BFF / 低代码前端: `done`
 - A5. 业务模块矩阵全景与定位 + 联网对标各领域竞品: `done`
-- A6. 工程化、开发者体验与 AI 辅助开发（mission-driver / cli / AutoTest / e2e / 文档体系）+ 联网对标 AI 开发工具链: `planned`
+- A6. 工程化、开发者体验与 AI 辅助开发（mission-driver / cli / AutoTest / e2e / 文档体系）+ 联网对标 AI 开发工具链: `done`
 - A7. 综合评估、下一代框架对标与平台演进建议（capstone 深度介绍材料）: `todo`
 
 ## Status Values
@@ -154,7 +154,7 @@
 **Goal：** 评估平台在工程化、可测试性与 AI 协同开发上的能力与差异化。
 
 **Deliverables：**
-- 分析文档 `ai-dev/analysis/2026-07/2026-07-XX-nop-engineering-dx-ai-dev.md`
+- 分析文档 `ai-dev/analysis/2026-07/2026-07-24-nop-engineering-dx-ai-dev.md`
 - 覆盖：mission-driver 自动开发闭环、nop-cli 脚手架、AutoTest、`nop-entropy-e2e`（Playwright）、文档体系（`docs-for-ai/` 作为 AI 运行手册）、可逆计算对 AI 生成代码的友好性
 - **联网调研**：对标 AI 驱动开发工具链（Devin、Cursor、Claude Code、各类 agent 框架 / AGE / mission-driver 同类），说明「文档即 AI 契约 + Delta 定制」对 AI 协同的独特价值
 
