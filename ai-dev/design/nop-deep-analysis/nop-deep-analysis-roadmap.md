@@ -28,9 +28,9 @@
 - A1. 理论基石与设计哲学（可逆计算 / XLang / XDSL / XDef）+ 联网对标模型驱动与 DSL 理论: `done`
 - A2. 核心引擎剖析（nop-core / xlang / xdef / dao / graphql / NopIoC）+ 联网对标 Spring 生态与云原生框架: `done`
 - A3. 模型驱动开发、代码生成与 Delta 定制 + 联网对标代码生成生态: `done`
-- A4. GraphQL 引擎、服务层与前后端一体化渲染 + 联网对标 GraphQL / BFF / 低代码前端: `todo`
-- A5. 业务模块矩阵全景与定位 + 联网对标各领域竞品: `todo`
-- A6. 工程化、开发者体验与 AI 辅助开发（mission-driver / cli / AutoTest / e2e / 文档体系）+ 联网对标 AI 开发工具链: `todo`
+- A4. GraphQL 引擎、服务层与前后端一体化渲染 + 联网对标 GraphQL / BFF / 低代码前端: `done`
+- A5. 业务模块矩阵全景与定位 + 联网对标各领域竞品: `planned`
+- A6. 工程化、开发者体验与 AI 辅助开发（mission-driver / cli / AutoTest / e2e / 文档体系）+ 联网对标 AI 开发工具链: `planned`
 - A7. 综合评估、下一代框架对标与平台演进建议（capstone 深度介绍材料）: `todo`
 
 ## Status Values
@@ -124,7 +124,7 @@
 **Goal：** 剖析从数据模型到 GraphQL API 再到前端渲染的一体化链路。
 
 **Deliverables：**
-- 分析文档 `ai-dev/analysis/2026-07/2026-07-XX-nop-graphql-service-frontend.md`
+- 分析文档 `ai-dev/analysis/2026-07/2026-07-24-nop-graphql-service-frontend.md`
 - 覆盖：GraphQL 自动暴露（`CrudBizModel`、`@BizModel`/`@BizMutation`）、xbiz、服务层约定、AMIS / Flux 渲染管线、xmeta 字段可见性
 - **联网调研**：对标 Spring for GraphQL、Hasura、Supergraph/Federation、BFF 模式、低代码前端（AMIS 同类如 Formily/Lowcode Engine），说明前后端一体化的取舍
 
