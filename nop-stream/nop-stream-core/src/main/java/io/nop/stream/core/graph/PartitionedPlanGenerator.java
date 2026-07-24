@@ -24,8 +24,11 @@ import io.nop.stream.core.model.StreamModelFingerprint;
 import io.nop.stream.core.exceptions.StreamException;
 
 import io.nop.stream.core.exceptions.NopStreamErrors;
+import io.nop.stream.core.model.StreamModel;
 import static io.nop.stream.core.exceptions.NopStreamErrors.ARG_ARG_NAME;
+import static io.nop.stream.core.exceptions.NopStreamErrors.ARG_DETAIL;
 import static io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_NULL_ARG;
+import static io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_INVALID_STATE;
 
 public class PartitionedPlanGenerator {
 
@@ -33,6 +36,8 @@ public class PartitionedPlanGenerator {
         if (jobGraph == null) {
             throw new StreamException(ERR_STREAM_NULL_ARG).param(ARG_ARG_NAME, "jobGraph");
         }
+
+        validateFingerprint(jobGraph, fingerprint);
 
         Map<String, PartitionedPlan.VertexPlan> vertexPlans = new LinkedHashMap<>();
         List<PartitionedPlan.EdgePlan> edgePlans = new ArrayList<>();
@@ -61,6 +66,18 @@ public class PartitionedPlanGenerator {
                 edgePlans,
                 checkpointAckSet,
                 fingerprint);
+    }
+
+    void validateFingerprint(JobGraph jobGraph, StreamModelFingerprint receivedFingerprint) {
+        StreamModel model = jobGraph.getStreamModel();
+        if (model == null) {
+            return;
+        }
+        StreamModelFingerprint computedFingerprint = model.computeFingerprint();
+        if (!computedFingerprint.isCompatibleWith(receivedFingerprint)) {
+            throw new StreamException(ERR_STREAM_INVALID_STATE)
+                    .param(ARG_DETAIL, "StreamModel requirements incompatible");
+        }
     }
 
     PartitionPolicy inferPartitionPolicy(JobEdge edge) {

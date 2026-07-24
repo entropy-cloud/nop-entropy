@@ -40,6 +40,7 @@ import io.nop.stream.core.jobgraph.JobVertex;
 import io.nop.stream.core.model.StreamBackendCapability;
 import io.nop.stream.core.model.StreamComponents;
 import io.nop.stream.core.model.StreamModel;
+import io.nop.stream.core.model.StreamModelFingerprint;
 import io.nop.stream.core.model.StreamRequirementValidator;
 import io.nop.stream.core.transformation.SinkTransformation;
 import io.nop.stream.core.transformation.SourceTransformation;
@@ -248,8 +249,11 @@ public class StreamExecutionEnvironment {
 
             // Generate PartitionedPlan and DeploymentPlan for execution planning
             PartitionedPlanGenerator partitionedPlanGenerator = new PartitionedPlanGenerator();
+            StreamModel populatedModel = jobGraph.getStreamModel();
+            StreamModelFingerprint fp = populatedModel != null
+                    ? populatedModel.computeFingerprint() : streamModel.computeFingerprint();
             PartitionedPlan partitionedPlan = partitionedPlanGenerator.generate(
-                    jobGraph, streamModel.computeFingerprint());
+                    jobGraph, fp);
             DeploymentPlan deploymentPlan = generateDeploymentPlan(partitionedPlan);
 
             if (checkpointConfig.isCheckpointEnabled() && checkpointExecutorFactory != null) {

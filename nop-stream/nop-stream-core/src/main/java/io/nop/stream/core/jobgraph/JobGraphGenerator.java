@@ -26,6 +26,7 @@ import io.nop.stream.core.graph.ForwardPartitioner;
 import io.nop.stream.core.graph.StreamEdge;
 import io.nop.stream.core.graph.StreamGraph;
 import io.nop.stream.core.graph.StreamNode;
+import io.nop.stream.core.model.StreamModel;
 import io.nop.stream.core.operators.ChainingStrategy;
 import io.nop.stream.core.operators.StreamOperator;
 import io.nop.stream.core.operators.StreamOperatorFactory;
@@ -143,6 +144,11 @@ public class JobGraphGenerator implements Serializable {
 
         // Step 3: Create JobEdges to connect vertices
         createJobEdges(streamGraph, jobGraph, nodeToVertexMap, deploymentPlan);
+
+        StreamModel streamModel = streamGraph.getStreamModel();
+        if (streamModel != null) {
+            jobGraph.setStreamModel(streamModel);
+        }
 
         return jobGraph;
     }

@@ -20,9 +20,13 @@ import io.nop.stream.core.common.state.AggregatingStateDescriptor;
 import io.nop.stream.core.common.state.ListStateDescriptor;
 import io.nop.stream.core.common.state.MapStateDescriptor;
 import io.nop.stream.core.common.state.ReducingStateDescriptor;
+import io.nop.stream.core.common.state.StateDescriptor;
 import io.nop.stream.core.common.state.ValueStateDescriptor;
 import io.nop.stream.core.common.state.backend.IKeyedStateBackend;
 import io.nop.stream.core.common.state.backend.StateSnapshot;
+import io.nop.stream.core.common.typeutils.IStreamSerializer;
+import io.nop.stream.core.common.typeutils.JsonToolSerializer;
+import io.nop.stream.core.common.typeutils.TypeSerializer;
 import io.nop.stream.core.util.ClassNameValidator;
 import io.nop.stream.core.windowing.windows.GlobalWindow;
 import io.nop.stream.core.windowing.windows.TimeWindow;
@@ -155,7 +159,7 @@ class MemoryStateSerDe {
                 TypedNamespaceAndKey nk = new TypedNamespaceAndKey(
                         deserializeNamespace(e.get("namespace")),
                         backend.routeKey(deserializeKey(e.get("key"))));
-                Object value = deserializeValue(e.get("value"), valueClass);
+                Object value = deserializeValue(e.get("value"), valueClass, descriptor);
                 state.storage.put(nk, value);
             }
         }
@@ -233,7 +237,7 @@ class MemoryStateSerDe {
                 TypedNamespaceAndKey nk = new TypedNamespaceAndKey(
                         deserializeNamespace(e.get("namespace")),
                         backend.routeKey(deserializeKey(e.get("key"))));
-                Object value = deserializeValue(e.get("value"), valueClass);
+                Object value = deserializeValue(e.get("value"), valueClass, descriptor);
                 if (value != null && !valueClass.isInstance(value)) {
                     throw new StreamException(ERR_STREAM_TYPE_MISMATCH)
                             .param(ARG_EXPECTED_TYPE, valueClass.getName())
@@ -268,7 +272,7 @@ class MemoryStateSerDe {
                 List<Object> values = (List<Object>) e.get("listValue");
                 if (values != null) {
                     for (Object v : values) {
-                        list.add(deserializeValue(v, valueClass));
+                        list.add(deserializeValue(v, valueClass, descriptor));
                     }
                 }
                 state.storage.put(nk, list);
@@ -301,7 +305,7 @@ class MemoryStateSerDe {
                 List<Object> values = (List<Object>) e.get("listValue");
                 if (values != null) {
                     for (Object v : values) {
-                        list.add(deserializeValue(v, valueClass));
+                        list.add(deserializeValue(v, valueClass, descriptor));
                     }
                 }
                 state.storage.put(nk, list);
@@ -331,7 +335,7 @@ class MemoryStateSerDe {
                 TypedNamespaceAndKey nk = new TypedNamespaceAndKey(
                         deserializeNamespace(e.get("namespace")),
                         backend.routeKey(deserializeKey(e.get("key"))));
-                Object value = deserializeValue(e.get("value"), valueClass);
+                Object value = deserializeValue(e.get("value"), valueClass, descriptor);
                 if (value != null && !valueClass.isInstance(value)) {
                     throw new StreamException(ERR_STREAM_TYPE_MISMATCH)
                             .param(ARG_EXPECTED_TYPE, valueClass.getName())
@@ -385,7 +389,7 @@ class MemoryStateSerDe {
                 TypedNamespaceAndKey nk = new TypedNamespaceAndKey(
                         deserializeNamespace(e.get("namespace")),
                         backend.routeKey(deserializeKey(e.get("key"))));
-                Object value = deserializeValue(e.get("value"), valueClass);
+                Object value = deserializeValue(e.get("value"), valueClass, descriptor);
                 state.storage.put(nk, value);
             }
         }
@@ -416,7 +420,7 @@ class MemoryStateSerDe {
                 TypedNamespaceAndKey nk = new TypedNamespaceAndKey(
                         deserializeNamespace(e.get("namespace")),
                         backend.routeKey(deserializeKey(e.get("key"))));
-                Object value = deserializeValue(e.get("value"), valueClass);
+                Object value = deserializeValue(e.get("value"), valueClass, descriptor);
                 state.storage.put(nk, value);
             }
         }
@@ -433,16 +437,12 @@ class MemoryStateSerDe {
         }
 
         List<Map<String, Object>> entries = new ArrayList<>();
+        IStreamSerializer<Object> valueSer = getSerializerIfAvailable(state.descriptor);
         for (Map.Entry<TypedNamespaceAndKey, ?> e : state.storage.entrySet()) {
             Map<String, Object> entry = new LinkedHashMap<>();
             entry.put("namespace", serializeNamespace(e.getKey().namespace));
             entry.put("key", serializeKey(unwrapStorageKey(e.getKey().key)));
-            Object value = e.getValue();
-            if (value instanceof List) {
-                entry.put("value", new ArrayList<>((List<?>) value));
-            } else {
-                entry.put("value", value);
-            }
+            entry.put("value", serializeWithSerializer(e.getValue(), valueSer));
             entries.add(entry);
         }
         info.put("entries", entries);
@@ -459,6 +459,7 @@ class MemoryStateSerDe {
         }
 
         List<Map<String, Object>> entries = new ArrayList<>();
+        IStreamSerializer<Object> valueSer = getSerializerIfAvailable(state.descriptor);
         for (Map.Entry<TypedNamespaceAndKey, ? extends Map<?, ?>> e : state.storage.entrySet()) {
             Map<String, Object> entry = new LinkedHashMap<>();
             entry.put("namespace", serializeNamespace(e.getKey().namespace));
@@ -467,7 +468,7 @@ class MemoryStateSerDe {
             for (Map.Entry<?, ?> me : e.getValue().entrySet()) {
                 List<Object> pair = new ArrayList<>();
                 pair.add(me.getKey());
-                pair.add(me.getValue());
+                pair.add(serializeWithSerializer(me.getValue(), valueSer));
                 mapEntries.add(pair);
             }
             entry.put("mapValue", mapEntries);
@@ -512,11 +513,16 @@ class MemoryStateSerDe {
         }
 
         List<Map<String, Object>> entries = new ArrayList<>();
+        IStreamSerializer<Object> valueSer = getSerializerIfAvailable(state.descriptor);
         for (Map.Entry<TypedNamespaceAndKey, ? extends List<?>> e : state.storage.entrySet()) {
             Map<String, Object> entry = new LinkedHashMap<>();
             entry.put("namespace", serializeNamespace(e.getKey().namespace));
             entry.put("key", serializeKey(unwrapStorageKey(e.getKey().key)));
-            entry.put("listValue", new ArrayList<>(e.getValue()));
+            List<Object> serializedList = new ArrayList<>();
+            for (Object v : e.getValue()) {
+                serializedList.add(serializeWithSerializer(v, valueSer));
+            }
+            entry.put("listValue", serializedList);
             entries.add(entry);
         }
         info.put("entries", entries);
@@ -532,11 +538,16 @@ class MemoryStateSerDe {
         }
 
         List<Map<String, Object>> entries = new ArrayList<>();
+        IStreamSerializer<Object> valueSer = getSerializerIfAvailable(state.descriptor);
         for (Map.Entry<TypedNamespaceAndKey, ? extends List<?>> e : state.storage.entrySet()) {
             Map<String, Object> entry = new LinkedHashMap<>();
             entry.put("namespace", serializeNamespace(e.getKey().namespace));
             entry.put("key", serializeKey(unwrapStorageKey(e.getKey().key)));
-            entry.put("listValue", new ArrayList<>(e.getValue()));
+            List<Object> serializedList = new ArrayList<>();
+            for (Object v : e.getValue()) {
+                serializedList.add(serializeWithSerializer(v, valueSer));
+            }
+            entry.put("listValue", serializedList);
             entries.add(entry);
         }
         info.put("entries", entries);
@@ -553,11 +564,12 @@ class MemoryStateSerDe {
         }
 
         List<Map<String, Object>> entries = new ArrayList<>();
+        IStreamSerializer<Object> valueSer = getSerializerIfAvailable(state.descriptor);
         for (Map.Entry<TypedNamespaceAndKey, ? extends SimpleAccumulator<?>> e : state.storage.entrySet()) {
             Map<String, Object> entry = new LinkedHashMap<>();
             entry.put("namespace", serializeNamespace(e.getKey().namespace));
             entry.put("key", serializeKey(unwrapStorageKey(e.getKey().key)));
-            entry.put("value", e.getValue().getLocalValue());
+            entry.put("value", serializeWithSerializer(e.getValue().getLocalValue(), valueSer));
             entries.add(entry);
         }
         info.put("entries", entries);
@@ -574,16 +586,12 @@ class MemoryStateSerDe {
         }
 
         List<Map<String, Object>> entries = new ArrayList<>();
+        IStreamSerializer<Object> valueSer = getSerializerIfAvailable(state.descriptor);
         for (Map.Entry<TypedNamespaceAndKey, ?> e : state.storage.entrySet()) {
             Map<String, Object> entry = new LinkedHashMap<>();
             entry.put("namespace", serializeNamespace(e.getKey().namespace));
             entry.put("key", serializeKey(unwrapStorageKey(e.getKey().key)));
-            Object value = e.getValue();
-            if (value instanceof List) {
-                entry.put("value", new ArrayList<>((List<?>) value));
-            } else {
-                entry.put("value", value);
-            }
+            entry.put("value", serializeWithSerializer(e.getValue(), valueSer));
             entries.add(entry);
         }
         info.put("entries", entries);
@@ -600,16 +608,12 @@ class MemoryStateSerDe {
         }
 
         List<Map<String, Object>> entries = new ArrayList<>();
+        IStreamSerializer<Object> valueSer = getSerializerIfAvailable(state.descriptor);
         for (Map.Entry<TypedNamespaceAndKey, ?> e : state.storage.entrySet()) {
             Map<String, Object> entry = new LinkedHashMap<>();
             entry.put("namespace", serializeNamespace(e.getKey().namespace));
             entry.put("key", serializeKey(unwrapStorageKey(e.getKey().key)));
-            Object value = e.getValue();
-            if (value instanceof List) {
-                entry.put("value", new ArrayList<>((List<?>) value));
-            } else {
-                entry.put("value", value);
-            }
+            entry.put("value", serializeWithSerializer(e.getValue(), valueSer));
             entries.add(entry);
         }
         info.put("entries", entries);
@@ -676,9 +680,41 @@ class MemoryStateSerDe {
     }
 
     @SuppressWarnings("unchecked")
+    private <T> IStreamSerializer<T> getSerializerIfAvailable(StateDescriptor<?> descriptor) {
+        if (descriptor == null) return null;
+        TypeSerializer<?> ser = descriptor.getSerializer();
+        if (ser instanceof IStreamSerializer && !(ser instanceof JsonToolSerializer)) {
+            return (IStreamSerializer<T>) ser;
+        }
+        return null;
+    }
+
+    private <T> Object serializeWithSerializer(Object value, IStreamSerializer<T> serializer) {
+        if (serializer == null || value == null) {
+            return value;
+        }
+        try {
+            return serializer.serialize((T) value);
+        } catch (Exception e) {
+            return value;
+        }
+    }
+
+    @SuppressWarnings("unchecked")
     private <T> T deserializeValue(Object obj, Class<T> type) {
+        return deserializeValue(obj, type, null);
+    }
+
+    @SuppressWarnings("unchecked")
+    private <T> T deserializeValue(Object obj, Class<T> type, StateDescriptor<?> descriptor) {
         if (obj == null) {
             return null;
+        }
+        if (descriptor != null) {
+            TypeSerializer<?> ser = descriptor.getSerializer();
+            if (ser instanceof IStreamSerializer && obj instanceof byte[]) {
+                return ((IStreamSerializer<T>) ser).deserialize((byte[]) obj, type);
+            }
         }
         if (type.isInstance(obj)) {
             return (T) obj;

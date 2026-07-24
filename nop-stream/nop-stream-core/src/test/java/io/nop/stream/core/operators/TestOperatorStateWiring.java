@@ -100,7 +100,7 @@ class TestOperatorStateWiring {
                             capturedAfterRestore.add(s);
                         }
                     } catch (Exception e) {
-                        throw new StreamRuntimeException(e);
+                        throw new StreamRuntimeException(e.getMessage(), e);
                     }
                 } else {
                     try {
@@ -108,7 +108,7 @@ class TestOperatorStateWiring {
                         listState.add("b");
                         listState.add("c");
                     } catch (Exception e) {
-                        throw new StreamRuntimeException(e);
+                        throw new StreamRuntimeException(e.getMessage(), e);
                     }
                 }
             }
@@ -153,7 +153,7 @@ class TestOperatorStateWiring {
                             restoredItems.add(s);
                         }
                     } catch (Exception e) {
-                        throw new StreamRuntimeException(e);
+                        throw new StreamRuntimeException(e.getMessage(), e);
                     }
                 }
             }

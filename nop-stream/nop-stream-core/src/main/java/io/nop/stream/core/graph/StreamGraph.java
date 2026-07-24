@@ -13,7 +13,9 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+
 import io.nop.stream.core.exceptions.StreamException;
+import io.nop.stream.core.model.StreamModel;
 
 import io.nop.stream.core.exceptions.NopStreamErrors;
 import static io.nop.stream.core.exceptions.NopStreamErrors.ARG_ARG_NAME;
@@ -61,13 +63,15 @@ public class StreamGraph implements Serializable {
     private final List<Integer> sourceIDs;
     
     /**
-     * List of sink node IDs in the graph.
-     * Sink nodes are the terminal points of the streaming topology.
+     * 汇节点 ID 的列表。
+     * 汇节点是流拓扑的终端点。
      */
     private final List<Integer> sinkIDs;
     
+    private StreamModel streamModel;
+    
     /**
-     * Creates a new empty StreamGraph.
+     * 创建一个新的空 StreamGraph。
      */
     public StreamGraph() {
         this.streamNodes = new HashMap<>();
@@ -241,6 +245,14 @@ public class StreamGraph implements Serializable {
         sinkIDs.clear();
     }
     
+    public StreamModel getStreamModel() {
+        return streamModel;
+    }
+
+    public void setStreamModel(StreamModel streamModel) {
+        this.streamModel = streamModel;
+    }
+
     @Override
     public String toString() {
         return "StreamGraph{" +

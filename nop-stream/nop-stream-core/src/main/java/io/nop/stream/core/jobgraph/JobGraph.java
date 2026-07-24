@@ -13,7 +13,9 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+
 import io.nop.stream.core.exceptions.StreamException;
+import io.nop.stream.core.model.StreamModel;
 
 import io.nop.stream.core.exceptions.NopStreamErrors;
 import static io.nop.stream.core.exceptions.NopStreamErrors.ARG_ARG_NAME;
@@ -72,6 +74,8 @@ public class JobGraph implements Serializable {
      * Each edge represents data flow between two vertices.
      */
     private final List<JobEdge> edges;
+
+    private StreamModel streamModel;
 
     /**
      * Creates a new empty JobGraph with the specified name.
@@ -206,6 +210,14 @@ public class JobGraph implements Serializable {
     public void clear() {
         vertices.clear();
         edges.clear();
+    }
+
+    public StreamModel getStreamModel() {
+        return streamModel;
+    }
+
+    public void setStreamModel(StreamModel streamModel) {
+        this.streamModel = streamModel;
     }
 
     @Override

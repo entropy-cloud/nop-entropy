@@ -16,10 +16,14 @@ import java.util.Set;
 
 import io.nop.api.core.annotations.core.Internal;
 
+import io.nop.stream.core.checkpoint.participant.CheckpointParticipant;
 import io.nop.stream.core.common.functions.KeySelector;
 import io.nop.stream.core.common.functions.SinkFunction;
 import io.nop.stream.core.common.functions.source.SourceFunction;
 import io.nop.stream.core.common.typeinfo.TypeInformation;
+import io.nop.stream.core.model.StreamComponents;
+import io.nop.stream.core.model.StreamModel;
+import io.nop.stream.core.model.StreamRequirement;
 import io.nop.stream.core.operators.SimpleStreamOperatorFactory;
 import io.nop.stream.core.operators.StreamOperator;
 import io.nop.stream.core.operators.StreamOperatorFactory;
@@ -104,14 +108,90 @@ public class StreamGraphGenerator {
         if (transformations == null) {
             throw new StreamException(ERR_STREAM_NULL_ARG).param(ARG_ARG_NAME, "transformations");
         }
-        
+
         for (Transformation<?> transformation : transformations) {
             transform(transformation);
         }
-        
+
         propagateKeySelectors();
-        
+
+        populateStreamModel(transformations);
+
         return streamGraph;
+    }
+
+    private void populateStreamModel(List<Transformation<?>> transformations) {
+        StreamComponents components = new StreamComponents();
+        Map<String, Transformation<?>> transformMap = new HashMap<>();
+        for (Transformation<?> t : transformations) {
+            collectTransforms(t, transformMap);
+        }
+        populateComponents(components, transformMap);
+        registerStreams(components);
+        detectWindowingStrategies(components, transformMap);
+        StreamModel model = new StreamModel(components, transformMap);
+        streamGraph.setStreamModel(model);
+    }
+
+    private void collectTransforms(Transformation<?> t, Map<String, Transformation<?>> map) {
+        if (t == null || map.containsKey(String.valueOf(t.getId()))) return;
+        map.put(String.valueOf(t.getId()), t);
+        if (t.getInputs() != null) {
+            for (Transformation<?> input : t.getInputs()) {
+                collectTransforms(input, map);
+            }
+        }
+    }
+
+    private void populateComponents(StreamComponents components, Map<String, Transformation<?>> transformMap) {
+        for (Map.Entry<String, Transformation<?>> entry : transformMap.entrySet()) {
+            String id = entry.getKey();
+            Transformation<?> t = entry.getValue();
+            components.registerTransform(id, t);
+            if (t instanceof SinkTransformation) {
+                SinkFunction<?> sinkFn = ((SinkTransformation<?>) t).getSinkFunction();
+                if (sinkFn instanceof CheckpointParticipant) {
+                    components.addCheckpointParticipant(id);
+                }
+            }
+        }
+        detectRequirements(components, transformMap);
+    }
+
+    private void registerStreams(StreamComponents components) {
+        for (Map.Entry<Integer, List<StreamEdge>> entry : streamGraph.getAllStreamEdges().entrySet()) {
+            int sourceId = entry.getKey();
+            for (StreamEdge edge : entry.getValue()) {
+                String streamId = sourceId + "->" + edge.getTargetId();
+                components.registerStream(streamId, edge);
+            }
+        }
+    }
+
+    private void detectWindowingStrategies(StreamComponents components, Map<String, Transformation<?>> transformMap) {
+        for (Transformation<?> t : transformMap.values()) {
+            if (t instanceof OneInputTransformation) {
+                StreamOperatorFactory<?> factory = ((OneInputTransformation<?, ?>) t).getOperatorFactory();
+                if (factory != null) {
+                    String factoryName = factory.getClass().getName();
+                    if (factoryName.contains("WindowOperator") || factoryName.contains("window")) {
+                        components.registerWindowingStrategy(String.valueOf(t.getId()), factory);
+                    }
+                }
+            }
+        }
+    }
+
+    private void detectRequirements(StreamComponents components, Map<String, Transformation<?>> transformMap) {
+        for (Transformation<?> t : transformMap.values()) {
+            if (t instanceof SinkTransformation) {
+                SinkFunction<?> sinkFn = ((SinkTransformation<?>) t).getSinkFunction();
+                if (sinkFn instanceof io.nop.stream.core.common.functions.sink.TwoPhaseCommitSinkFunction) {
+                    components.addRequirement(StreamRequirement.TWO_PHASE_COMMIT_SINK);
+                }
+            }
+        }
+        components.addRequirement(StreamRequirement.DISTRIBUTED_EXECUTION);
     }
     
     /**
