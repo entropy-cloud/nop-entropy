@@ -280,6 +280,12 @@ public class GlobalFunctions {
         }
     }
 
+    @Description("判断IoC容器中是否存在指定名称的bean")
+    @EvalMethod
+    public static boolean beanExists(IEvalScope scope, @Name("beanName") String beanName) {
+        return scope.getBeanProvider().containsBean(beanName);
+    }
+
     @Description("在资源依赖管理器中增加对本资源对象的依赖跟踪")
     public static void track(@Name("value") Object value) {
         if (value instanceof IComponentModel) {
