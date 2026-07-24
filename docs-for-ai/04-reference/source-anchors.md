@@ -176,6 +176,31 @@
 6. 不要把固定调试 URL 当作平台不变量；优先按 DevDoc / DevTool 的 GraphQL 能力理解。
 7. 不要把 ORM 模块级 TOPM icon 的来源误写成 `/{moduleId}/orm/app.orm.xml`；当前默认链路是 `model/*.orm.xml` 根 `<orm ext:icon>` -> `*-meta/module-meta.json` -> `*-web`。
 
+## nop-stream 锚点
+
+| 规则 ID | 锚点 | 说明 |
+|---------|------|------|
+| `STRM-001` | `nop-stream/nop-stream-core/src/main/java/io/nop/stream/core/model/StreamModel.java` | 管道规范模型容器，持有 `StreamComponents` 和 transformations map |
+| `STRM-002` | `nop-stream/nop-stream-core/src/main/java/io/nop/stream/core/model/StreamComponents.java` | 管道元数据注册表：transforms/streams/windowingStrategies/requirements/checkpointParticipants |
+| `STRM-003` | `nop-stream/nop-stream-core/src/main/java/io/nop/stream/core/model/StreamModelFingerprint.java` | 编译期 fingerprint，`isCompatibleWith()` 拒绝不兼容 requirements 组合 |
+| `STRM-004` | `nop-stream/nop-stream-core/src/main/java/io/nop/stream/core/graph/StreamGraphGenerator.java` | Transformation DAG → StreamGraph （Graph Path 第一阶段），含 `populateStreamModel()` |
+| `STRM-005` | `nop-stream/nop-stream-core/src/main/java/io/nop/stream/core/graph/StreamGraph.java` | 逻辑流拓扑；现携带 `StreamModel` |
+| `STRM-006` | `nop-stream/nop-stream-core/src/main/java/io/nop/stream/core/jobgraph/JobGraphGenerator.java` | StreamGraph → JobGraph（Graph Path 第二阶段，算子链化优化）；现传播 `StreamModel` |
+| `STRM-007` | `nop-stream/nop-stream-core/src/main/java/io/nop/stream/core/jobgraph/JobGraph.java` | 可执行 DAG；现携带 `StreamModel` |
+| `STRM-008` | `nop-stream/nop-stream-core/src/main/java/io/nop/stream/core/graph/PartitionedPlanGenerator.java` | JobGraph → PartitionedPlan；负责 fingerprint 验证 |
+| `STRM-009` | `nop-stream/nop-stream-core/src/main/java/io/nop/stream/core/common/typeutils/IStreamSerializer.java` | `TypeSerializer` 子接口，增加 `serialize()`/`deserialize()` 方法（G40 桥接） |
+| `STRM-010` | `nop-stream/nop-stream-core/src/main/java/io/nop/stream/core/common/typeutils/JsonToolSerializer.java` | `IStreamSerializer` 默认实现，包装 `JsonTool` |
+| `STRM-011` | `nop-stream/nop-stream-core/src/main/java/io/nop/stream/core/common/typeutils/TypeSerializer.java` | Flink 风格序列化器接口（copy/clone 方法，无 serialize/deserialize） |
+| `STRM-012` | `nop-stream/nop-stream-core/src/main/java/io/nop/stream/core/common/state/StateDescriptor.java` | 状态描述符；现携带 `TypeSerializer` 引用（G41，默认 `JsonToolSerializer`） |
+| `STRM-013` | `nop-stream/nop-stream-core/src/main/java/io/nop/stream/core/common/state/backend/memory/MemoryStateSerDe.java` | 序列化桥接：使用 `IStreamSerializer` 从 descriptor（G40 落地） |
+| `STRM-014` | `nop-stream/nop-stream-core/src/main/java/io/nop/stream/core/common/state/backend/memory/MemoryOperatorStateBackend.java` | Operator state 后端（Plan 12a） |
+| `STRM-015` | `nop-stream/nop-stream-core/src/main/java/io/nop/stream/core/common/state/backend/memory/MemoryKeyedStateBackend.java` | Keyed state 后端 |
+| `STRM-016` | `nop-stream/nop-stream-runtime/src/main/java/io/nop/stream/runtime/checkpoint/CheckpointCoordinator.java` | Checkpoint 协调器 |
+| `STRM-017` | `nop-stream/nop-stream-runtime/src/main/java/io/nop/stream/runtime/checkpoint/PendingCheckpoint.java` | 待完成 checkpoint 状态 |
+| `STRM-018` | `nop-stream/nop-stream-runtime/src/main/java/io/nop/stream/runtime/operators/windowing/WindowOperator.java` | 窗口算子 |
+| `STRM-019` | `nop-stream/nop-stream-core/src/main/java/io/nop/stream/core/operators/IWindowOperatorFactory.java` | 窗口算子工厂接口 |
+| `STRM-020` | `nop-stream/nop-stream-core/src/main/java/io/nop/stream/core/operators/HeapInternalTimerService.java` | 堆内 timer 服务 |
+
 ## 当 `docs-for-ai` 仍有歧义时
 
 1. 先回到这里找锚点。

@@ -166,9 +166,14 @@ MemoryKeyedStateBackend<K>
 - **checksum**：每个 segment 必须有 checksum
 - **compatibility**：savepoint 恢复必须检查 codec 和 schema version
 
-### 6.3 TypeSerializer 接口
+### 6.3 IStreamSerializer 接口
 
-nop-stream 保留了 Flink 的 `TypeSerializer<T>` 接口，但大幅简化。唯一实现是 `VoidNamespaceSerializer`。没有 `serialize/deserialize` 方法——纯结构接口。
+nop-stream 引入 `IStreamSerializer<T>` 扩展 `TypeSerializer<T>`，新增 `serialize()`/`deserialize()` 方法，填补 G40 缺口：
+- `IStreamSerializer.serialize(T)` → `byte[]`
+- `IStreamSerializer.deserialize(byte[], Class<T>)` → `T`
+- 默认实现 `JsonToolSerializer` 包装 `JsonTool`
+- `StateDescriptor` 现携带 `TypeSerializer` 引用，默认 `JsonToolSerializer`（G41 解决）
+- `MemoryStateSerDe` 在 snapshot/restore 中优先使用 descriptor 的 `IStreamSerializer`
 
 ### 6.4 JSON 约束
 
