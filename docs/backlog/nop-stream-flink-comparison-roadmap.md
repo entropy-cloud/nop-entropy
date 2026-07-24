@@ -33,7 +33,7 @@ Does not contain implementation details. Each `planned` stage is owned by its ex
 - 10. Watermark 集成修复（PaneInfo/PaneState wiring、AccumulationMode、Evictor.evictAfter、pane timing EARLY/ON_TIME/LATE）：`done`
 - 11. CEP 状态后端接入（移除 SimpleKeyedStateStore、接线 IKeyedStateBackend）：`done`
 - 12a. Operator State 基础体系（CheckpointedFunction 接口、OperatorStateStore 基本 list state、operator state 快照/恢复）：`todo`
-- 12b. Operator State 重分布与完整管线（union/broadcast redistribution、snapshot pipeline 接线、重分布恢复）：`todo`（depends on 12a）
+- 12b. Operator State 重分布与完整管线（union/broadcast redistribution、snapshot pipeline 接线、重分布恢复）：`done`
 - 13. StreamModel 做实（buildStreamModel 注册 StreamComponents、Fingerprint 真正生效）：`todo`
 
 ## Status values
