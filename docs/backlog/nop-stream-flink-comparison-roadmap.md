@@ -1,6 +1,6 @@
 # nop-stream Flink 源码深度对比与完善路线图
 
-> Last updated: 2026-07-24
+> Last updated: 2026-07-25
 > Sources: `ai-dev/design/nop-stream/`（全部设计文档）、`~/sources/flink/`（Flink 源码，tag release-1.20.0）、`nop-stream/`（当前实现）、`ai-dev/design/nop-stream/comparison.md`（现有高层对比）、`ai-dev/design/nop-stream/completion-roadmap.md`（现有完善路线图，本路线图的分析阶段产出将与之对齐）
 
 ## Purpose
@@ -29,7 +29,7 @@ Does not contain implementation details. Each `planned` stage is owned by its ex
 - 6. CEP 引擎源码级对比分析：`done`
 - 7. 分布式执行模型源码级对比分析：`done`
 - 8. 综合缺口分析文档（汇总所有发现、分类、优先级排序）：`done`
-- 9. Checkpoint & barrier 修复（启用 BarrierAligner、修复 findCompletedCheckpointId、接线 abort 通道）：`todo`
+- 9. Checkpoint & barrier 修复（启用 BarrierAligner、修复 findCompletedCheckpointId、接线 abort 通道）：`done`
 - 10. Watermark 集成修复（自动插入 TimestampsAndWatermarksOperator、修复 watermarkInterval）：`todo`
 - 11. CEP 状态后端接入（移除 SimpleKeyedStateStore、接线 IKeyedStateBackend）：`todo`
 - 12a. Operator State 基础体系（CheckpointedFunction 接口、OperatorStateStore 基本 list state、operator state 快照/恢复）：`todo`
