@@ -26,7 +26,7 @@
 > **注意**：header 必须为 `## Work Item Status`，mission-driver 的 `roadmap-check.mjs` 只识别此标题或 `## 阶段状态`。
 
 - A1. 理论基石与设计哲学（可逆计算 / XLang / XDSL / XDef）+ 联网对标模型驱动与 DSL 理论: `done`
-- A2. 核心引擎剖析（nop-core / xlang / xdef / dao / graphql / NopIoC）+ 联网对标 Spring 生态与云原生框架: `planned`
+- A2. 核心引擎剖析（nop-core / xlang / xdef / dao / graphql / NopIoC）+ 联网对标 Spring 生态与云原生框架: `done`
 - A3. 模型驱动开发、代码生成与 Delta 定制 + 联网对标代码生成生态: `planned`
 - A4. GraphQL 引擎、服务层与前后端一体化渲染 + 联网对标 GraphQL / BFF / 低代码前端: `todo`
 - A5. 业务模块矩阵全景与定位 + 联网对标各领域竞品: `todo`
@@ -94,7 +94,7 @@
 **Goal：** 剖析平台骨架模块如何协作支撑「可逆计算」在运行时的执行。
 
 **Deliverables：**
-- 分析文档 `ai-dev/analysis/2026-07/2026-07-XX-nop-core-engine-deep-dive.md`
+- 分析文档 `ai-dev/analysis/2026-07/2026-07-24-nop-core-engine-deep-dive.md`
 - 覆盖：`nop-core`（核心抽象）、`nop-xlang`（DSL 解析与 Delta）、`nop-xdef`（元模型）、`nop-dao`（ORM/EQL）、`nop-graphql`（GraphQL 引擎）、NopIoC（与 Spring 的关键差异：字段注入可见性、无注解扫描、`beans.xml` 发现）
 - **联网调研**：对标 Spring（Boot/Context）、Quarkus、Micronaut、Helidon 的 IoC / 核心抽象 / 启动模型，给出工程权衡对比
 
