@@ -1,0 +1,24 @@
+{
+  "name": "nop-stream-flink-comparison",
+  "description": "Deep source-code-level comparison between nop-stream and Apache Flink, driving systematic improvement of nop-stream's checkpoint, state, window, CEP, and distributed execution",
+  "model": "deepseek/deepseek-v4-flash",
+  "variant": "max",
+  "agent": "build",
+  "roadmapPath": "docs/backlog/nop-stream-flink-comparison-roadmap.md",
+  "plansDir": "docs/plans/nop-stream-flink-comparison",
+  "planGuide": "ai-dev/plans/00-plan-authoring-and-execution-guide.md",
+  "auditsDir": "docs/audits/nop-stream-flink-comparison",
+  "contextDir": "docs-for-ai/00-start-here",
+  "moduleDir": "nop-stream",
+  "prompts": {
+    "multiAudit": "ai-dev/skills/deep-audit-prompts.md",
+    "openAudit": "ai-dev/skills/open-ended-adversarial-review-prompt.md"
+  },
+  "commands": {
+    "test": "echo 'test not configured for nop-stream comparison mission'",
+    "build": "echo 'build not configured for nop-stream comparison mission'",
+    "lint": "echo 'lint not configured for nop-stream comparison mission'",
+    "typecheck": "echo 'typecheck not configured for nop-stream comparison mission'"
+  },
+  "commitFormat": "feat(nop-stream): <description>"
+}
