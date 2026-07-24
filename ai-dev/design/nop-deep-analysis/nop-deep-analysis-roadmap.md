@@ -27,7 +27,7 @@
 
 - A1. 理论基石与设计哲学（可逆计算 / XLang / XDSL / XDef）+ 联网对标模型驱动与 DSL 理论: `done`
 - A2. 核心引擎剖析（nop-core / xlang / xdef / dao / graphql / NopIoC）+ 联网对标 Spring 生态与云原生框架: `done`
-- A3. 模型驱动开发、代码生成与 Delta 定制 + 联网对标代码生成生态: `planned`
+- A3. 模型驱动开发、代码生成与 Delta 定制 + 联网对标代码生成生态: `done`
 - A4. GraphQL 引擎、服务层与前后端一体化渲染 + 联网对标 GraphQL / BFF / 低代码前端: `todo`
 - A5. 业务模块矩阵全景与定位 + 联网对标各领域竞品: `todo`
 - A6. 工程化、开发者体验与 AI 辅助开发（mission-driver / cli / AutoTest / e2e / 文档体系）+ 联网对标 AI 开发工具链: `todo`
@@ -109,7 +109,7 @@
 **Goal：** 讲清「先模型、再 Delta、最后 Java」的开发范式与代码生成链路。
 
 **Deliverables：**
-- 分析文档 `ai-dev/analysis/2026-07/2026-07-XX-nop-model-driven-and-codegen.md`
+- 分析文档 `ai-dev/analysis/2026-07/2026-07-24-nop-model-driven-and-codegen.md`
 - 覆盖：ORM `*.orm.xml` model-first、`_gen/` 与 `_*.java`/`_*.xml` 生成物、codegen 模板、Delta 定制（`post-eval`/差量）、生成物不可手改的约束
 - **联网调研**：对标 JHipster、OpenAPI Generator、Spring Initializr、Annotation Processor / build-time codegen（如 AutoValue/Immutables/RecordBuilder）、Meta-Programming System，说明「生成即一等公民」的差异
 

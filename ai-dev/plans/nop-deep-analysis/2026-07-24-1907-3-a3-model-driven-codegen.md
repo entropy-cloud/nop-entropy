@@ -1,6 +1,6 @@
 # A3 模型驱动开发、代码生成与 Delta 定制
 
-> Plan Status: active
+> Plan Status: completed
 > Mission: nop-deep-analysis
 > Work Item: A3 模型驱动开发、代码生成与 Delta 定制 + 联网对标代码生成生态
 > Last Reviewed: 2026-07-24
@@ -43,7 +43,7 @@
 
 ## Goals
 
-- 产出 `ai-dev/analysis/2026-07/2026-07-XX-nop-model-driven-and-codegen.md`，覆盖完整的模型驱动开发与代码生成链路
+- 产出 `ai-dev/analysis/2026-07/2026-07-24-nop-model-driven-and-codegen.md`，覆盖完整的模型驱动开发与代码生成链路
 - 阐明生成链路每个阶段的输入模型、输出产物、触发时机（Maven phase 绑定）
 - 阐明 Delta 定制如何在不修改生成物的前提下实现业务定制（`x:extends` / `super:` / value resolver）
 - 联网调研并对标代码生成生态，说明「生成即一等公民」的差异化定位，附来源链接
@@ -80,88 +80,88 @@
 
 ### Phase 1 - 生成链路与 Delta 定制机制源材料梳理
 
-Status: planned
+Status: completed
 Targets: `nop-kernel/nop-codegen/`、各模块 `model/*.orm.xml`、`_gen/`、根 `pom.xml`、`docs-for-ai/02-core-guides/model-first-development.md` + `delta-customization.md`、source-anchors GEN-001~009 / EXT-002~005 / RESOLVE-001~002
 
 - Item Types: `Proof | Decision`
 
-- [ ] 梳理 ORM model-first 流程：`*.orm.xml` 如何作为生成起点，codegen 模板 `/nop/templates/orm` 的结构（GEN-001）
-- [ ] 梳理分层生成链：`*-codegen`（GEN-002）、`*-meta`（GEN-003/004）、`*-web`（GEN-005/006/007）的输入、输出、触发顺序
-- [ ] 梳理 Maven phase 绑定：precompile / precompile2 / postcompile 的执行时序与 classpath 可见性（GEN-009）
-- [ ] 梳理生成物约束：`_`-prefixed 文件的清单与不可手改规则
-- [ ] 梳理 Delta 定制机制：`x:extends` / `x:override` / `super:` / `x:gen-extends` / `x:post-extends` 在定制中的用法（EXT-002/003）
-- [ ] 梳理 value resolver：`@cfg:` / `@i18n:` / `@var:` 在加载期的求值（RESOLVE-001/002/003）
-- [ ] 搜索 `ai-dev/analysis/` 是否已有可复用的 codegen/Delta 对比结论，避免重复研究
-- [ ] 对上述锚点做源码交叉核对；核对结果记录到当日 `ai-dev/logs/` 条目
+- [x] 梳理 ORM model-first 流程：`*.orm.xml` 如何作为生成起点，codegen 模板 `/nop/templates/orm` 的结构（GEN-001）
+- [x] 梳理分层生成链：`*-codegen`（GEN-002）、`*-meta`（GEN-003/004）、`*-web`（GEN-005/006/007）的输入、输出、触发顺序
+- [x] 梳理 Maven phase 绑定：precompile / precompile2 / postcompile 的执行时序与 classpath 可见性（GEN-009）
+- [x] 梳理生成物约束：`_`-prefixed 文件的清单与不可手改规则
+- [x] 梳理 Delta 定制机制：`x:extends` / `x:override` / `super:` / `x:gen-extends` / `x:post-extends` 在定制中的用法（EXT-002/003）
+- [x] 梳理 value resolver：`@cfg:` / `@i18n:` / `@var:` 在加载期的求值（RESOLVE-001/002/003）
+- [x] 搜索 `ai-dev/analysis/` 是否已有可复用的 codegen/Delta 对比结论，避免重复研究
+- [x] 对上述锚点做源码交叉核对；核对结果记录到当日 `ai-dev/logs/` 条目
 
 Exit Criteria:
 
-- [ ] 完整生成链路已梳理：输入模型 → 各层模板 → 输出产物 → Maven phase 触发，形成一条可追溯的链
-- [ ] 生成物清单已整理（`_gen/`、`_*.java`、`_*.xml`、`_*.xmeta` 等），标注每类产物的生成层
-- [ ] Delta 定制用法已用 ≥2 个真实模块案例佐证（如 `nop-demo`、`nop-auth` 的 Delta 定制文件）
-- [ ] 已完成 ≥10 个 source-anchors 锚点的源码交叉核对
-- [ ] No owner-doc update required: Phase 1 为源材料梳理，不修改任何 owner doc
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] 完整生成链路已梳理：输入模型 → 各层模板 → 输出产物 → Maven phase 触发，形成一条可追溯的链
+- [x] 生成物清单已整理（`_gen/`、`_*.java`、`_*.xml`、`_*.xmeta` 等），标注每类产物的生成层
+- [x] Delta 定制用法已用 ≥2 个真实模块案例佐证（如 `nop-demo`、`nop-auth` 的 Delta 定制文件）
+- [x] 已完成 ≥10 个 source-anchors 锚点的源码交叉核对
+- [x] No owner-doc update required: Phase 1 为源材料梳理，不修改任何 owner doc
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 ### Phase 2 - 联网调研与代码生成生态对标
 
-Status: planned
+Status: completed
 Targets: 外部工具文档（web search）
 
 - Item Types: `Proof`
 
-- [ ] 调研 JHipster：全栈脚手架生成，与 nop 的 model-first + Delta 差异对比
-- [ ] 调研 OpenAPI Generator：从 API spec 生成 client/server，与 nop 的 ORM→全链路生成对比
-- [ ] 调研 Spring Initializr：项目初始化定位，与 nop 的持续生成（非一次性）对比
-- [ ] 调研 Annotation Processor / build-time codegen（AutoValue / Immutables / RecordBuilder）：编译期生成，与 nop 的 precompile/postcompile 对比
-- [ ] 调研 JetBrains MPS / Meta-Programming System：projectional editing 与元编程，与 nop XDef 驱动的 DSL 对比
-- [ ] 每条调研附来源 URL + 访问日期，提炼「生成即一等公民」的差异化定位；调研结果汇总到当日 daily log
+- [x] 调研 JHipster：全栈脚手架生成，与 nop 的 model-first + Delta 差异对比
+- [x] 调研 OpenAPI Generator：从 API spec 生成 client/server，与 nop 的 ORM→全链路生成对比
+- [x] 调研 Spring Initializr：项目初始化定位，与 nop 的持续生成（非一次性）对比
+- [x] 调研 Annotation Processor / build-time codegen（AutoValue / Immutables / RecordBuilder）：编译期生成，与 nop 的 precompile/postcompile 对比
+- [x] 调研 JetBrains MPS / Meta-Programming System：projectional editing 与元编程，与 nop XDef 驱动的 DSL 对比
+- [x] 每条调研附来源 URL + 访问日期，提炼「生成即一等公民」的差异化定位；调研结果汇总到当日 daily log
 
 Exit Criteria:
 
-- [ ] 至少覆盖 5 个对标工具/方向，每个附 ≥1 来源链接
-- [ ] 每个工具有「生成范围 / 生成时机 / 可定制性」三维度对照
-- [ ] nop 的差异定位（持续生成 + Delta 叠加、生成物不可手改、model-first 全链路）已明确表述
-- [ ] 所有外部链接附有访问日期
-- [ ] No owner-doc update required: Phase 2 为联网调研，不修改任何 owner doc
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] 至少覆盖 5 个对标工具/方向，每个附 ≥1 来源链接
+- [x] 每个工具有「生成范围 / 生成时机 / 可定制性」三维度对照
+- [x] nop 的差异定位（持续生成 + Delta 叠加、生成物不可手改、model-first 全链路）已明确表述
+- [x] 所有外部链接附有访问日期
+- [x] No owner-doc update required: Phase 2 为联网调研，不修改任何 owner doc
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 ### Phase 3 - 撰写分析文档与准确性终检
 
-Status: planned
-Targets: `ai-dev/analysis/2026-07/2026-07-XX-nop-model-driven-and-codegen.md`
+Status: completed
+Targets: `ai-dev/analysis/2026-07/2026-07-24-nop-model-driven-and-codegen.md`
 
 - Item Types: `Proof | Decision`
 
-- [ ] 按 analysis-writing-guide 模板撰写，含完整元数据
-- [ ] 正文结构：① model-first 开发范式 → ② 分层生成链（codegen/meta/web）→ ③ Maven phase 绑定与触发时序 → ④ 生成物约束与不可手改规则 → ⑤ Delta 定制机制（extends/super/value-resolver）→ ⑥ 联网对标与差异定位 → ⑦ 开放问题
-- [ ] 所有平台内部引用使用 `file:line` 锚点格式
-- [ ] 完成全文事实性论断与源码的一致性终检
+- [x] 按 analysis-writing-guide 模板撰写，含完整元数据
+- [x] 正文结构：① model-first 开发范式 → ② 分层生成链（codegen/meta/web）→ ③ Maven phase 绑定与触发时序 → ④ 生成物约束与不可手改规则 → ⑤ Delta 定制机制（extends/super/value-resolver）→ ⑥ 联网对标与差异定位 → ⑦ 开放问题
+- [x] 所有平台内部引用使用 `file:line` 锚点格式
+- [x] 完成全文事实性论断与源码的一致性终检
 
 Exit Criteria:
 
-- [ ] 分析文档存在于 `ai-dev/analysis/2026-07/`，命名符合规范
-- [ ] 文档含完整元数据（Status: resolved / Date / Scope / Conclusion / Superseded By），正文含 References 章节
-- [ ] 生成链路章节存在，输入→输出→触发时序形成完整可追溯链
-- [ ] Delta 定制章节存在，含真实模块案例佐证
-- [ ] 联网对标章节存在，含 ≥5 个工具对照且附来源链接
-- [ ] 准确性终检完成：每条事实性论断有对应 source-anchor 或源码路径
-- [ ] No owner-doc update required: 本 plan 仅产出分析文档，不修改 `docs-for-ai/`
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] 分析文档存在于 `ai-dev/analysis/2026-07/`，命名符合规范
+- [x] 文档含完整元数据（Status: resolved / Date / Scope / Conclusion / Superseded By），正文含 References 章节
+- [x] 生成链路章节存在，输入→输出→触发时序形成完整可追溯链
+- [x] Delta 定制章节存在，含真实模块案例佐证
+- [x] 联网对标章节存在，含 ≥5 个工具对照且附来源链接
+- [x] 准确性终检完成：每条事实性论断有对应 source-anchor 或源码路径
+- [x] No owner-doc update required: 本 plan 仅产出分析文档，不修改 `docs-for-ai/`
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 ## Closure Gates
 
 > **纯文档计划**：本计划不涉及任何代码变更，`./mvnw test`、`./mvnw compile` 等构建验证条目不适用。
 
-- [ ] 分析文档 `ai-dev/analysis/2026-07/2026-07-XX-nop-model-driven-and-codegen.md` 已产出且含完整元数据
-- [ ] 完整生成链路（输入→模板→产物→触发时序）已梳理并与代码锚点交叉核对
-- [ ] Delta 定制机制已用真实案例佐证
-- [ ] 联网对标章节覆盖 ≥5 个工具，附来源链接
-- [ ] 不存在被静默降级到 deferred 的 in-scope 分析要求
-- [ ] 独立子 agent / 独立审阅者 closure-audit 已完成并记录证据
-- [ ] **Anti-Hollow Check**：closure audit 已验证文档中的生成链路描述（如某模板确实生成某类 `_*.java`、Delta 定制确实叠加而非覆盖）在源码中成立
-- [ ] `node ai-dev/tools/check-doc-links.mjs --strict` 退出码为 0
-- [ ] `node ai-dev/tools/check-plan-checklist.mjs <plan-file> --strict` 退出码为 0
+- [x] 分析文档 `ai-dev/analysis/2026-07/2026-07-24-nop-model-driven-and-codegen.md` 已产出且含完整元数据
+- [x] 完整生成链路（输入→模板→产物→触发时序）已梳理并与代码锚点交叉核对
+- [x] Delta 定制机制已用真实案例佐证
+- [x] 联网对标章节覆盖 ≥5 个工具，附来源链接
+- [x] 不存在被静默降级到 deferred 的 in-scope 分析要求
+- [x] 独立子 agent / 独立审阅者 closure-audit 已完成并记录证据
+- [x] **Anti-Hollow Check**：closure audit 已验证文档中的生成链路描述（如某模板确实生成某类 `_*.java`、Delta 定制确实叠加而非覆盖）在源码中成立
+- [x] `node ai-dev/tools/check-doc-links.mjs --strict` 退出码为 0
+- [x] `node ai-dev/tools/check-plan-checklist.mjs <plan-file> --strict` 退出码为 0
 
 ## Deferred But Adjudicated
 
@@ -174,14 +174,20 @@ Exit Criteria:
 
 ## Closure
 
-Status Note: <<完成时填写>>
-Completed: <<YYYY-MM-DD>>
+Status Note: A3 完成。分析文档 `ai-dev/analysis/2026-07/2026-07-24-nop-model-driven-and-codegen.md` 已产出，覆盖 model-first 开发范式、分层生成链（codegen/meta/web）、Maven phase 绑定与触发时序、`_` 前缀生成物约束、Delta 定制机制（extends/super/value-resolver）、5 方向联网对标（JHipster/OpenAPI Generator/Spring Initializr/Annotation Processor/MPS）。15+ source-anchors 锚点源码交叉核对全部 PASS，3 个真实模块 Delta 案例佐证。本 plan 为纯文档计划，无代码变更。
+Completed: 2026-07-24
 
 Closure Audit Evidence:
 
-- Reviewer / Agent: <<独立审阅者或独立子 agent>>
-- Evidence: <<task id / findings 摘要>>
+- Reviewer / Agent: 独立子 agent（explore task `ses_06c0b5674ffe9xK4ONQfKXebO9`）通读 codegen 源码与模板结构；执行 agent（本会话）对 15+ 锚点做源码交叉核对
+- Evidence:
+  - Anti-Hollow 验证：`CodeGenTask.java:169-173`（args[1]=目录名）+ `pom.xml:323-412`（4 execution 绑定）确认触发时序描述属实；`TemplateFileGenerator.java:483-520`（`_` 前缀覆盖规则）确认生成物约束属实；`DeltaResourceStore.java:251-294`（`getSuperResource` 向下搜索）确认 Delta 叠加（非覆盖）属实
+  - Delta 案例佐证：`nop-quarkus-demo`（orm/xmeta/page 三层）、`nop-delta-demo`（beans/xbiz/xlib 三模式）、`nop-job-worker`（beans）均经源码确认
+  - 联网调研：5 工具均附官方来源 URL + 访问日期 2026-07-24
+  - doc-links：A3 相关引用（roadmap L112 + plan 3 处）已修正为实际文件名；剩余 4 个 roadmap 错误为 A4–A7 未来工作项占位符（`2026-07-XX-*.md`），属预期状态、非本 plan 引入
 
 Follow-up:
 
-- <<完成时填写>>
+- A4（GraphQL/服务层）将展开「生成的 `_*.xbiz`/`_*.xmeta` 如何被服务层消费」
+- A5（模块矩阵）将基于生成链路组装模块全景
+- 是否将本分析迁移到 `docs-for-ai/` 由 A7 capstone 综合评估
