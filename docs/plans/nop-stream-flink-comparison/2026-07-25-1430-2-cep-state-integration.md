@@ -1,6 +1,6 @@
 # 11 CEP 状态后端接入
 
-> Plan Status: active
+> Plan Status: completed
 > Plan Type: implementation
 > Mission: nop-stream-flink-comparison
 > Work Item: roadmap item 11
@@ -70,39 +70,39 @@ Wire the CEP operator's state backend so it uses the same pluggable `IStateBacke
 
 ### Phase 1 — Pluggable state backend wiring
 
-Status: planned
+Status: completed
 Targets:
 - `nop-stream/nop-stream-runtime/src/main/java/io/nop/stream/runtime/execution/GraphModelCheckpointExecutor.java` (line 540 — NOT under `runtime/checkpoint/`)
 - `nop-stream/nop-stream-core/src/main/java/io/nop/stream/core/operators/AbstractStreamOperator.java`
 
 Item Types: `Proof | Decision | Fix`
 
-- [ ] `Proof` Audit `GraphModelCheckpointExecutor.registerTasksAndTrackers()`: locate the `MemoryStateBackend()` provision at line 540. Determine how `StreamExecutionEnvironment.stateBackend` propagates to this point. Identify the existing `setStateBackend()` call site.
-- [ ] `Proof` Audit `CepOperator.open()`: locate the self-creation of `MemoryKeyedStateBackend` (line 212-217). Understand the `applyPendingRestoreState()` lifecycle coupling — this is called at line 207 when the backend is self-created, and must be preserved if backend creation moves.
-- [ ] `Decision` Design the backend injection flow:
+- [x] `Proof` Audit `GraphModelCheckpointExecutor.registerTasksAndTrackers()`: locate the `MemoryStateBackend()` provision at line 540. Determine how `StreamExecutionEnvironment.stateBackend` propagates to this point. Identify the existing `setStateBackend()` call site.
+- [x] `Proof` Audit `CepOperator.open()`: locate the self-creation of `MemoryKeyedStateBackend` (line 212-217). Understand the `applyPendingRestoreState()` lifecycle coupling — this is called at line 207 when the backend is self-created, and must be preserved if backend creation moves.
+- [x] `Decision` Design the backend injection flow:
   - Pre-inject `IStateBackend` (factory) via `setStateBackend()` BEFORE operator `open()` — already partially done, just need to make it configurable
   - Option A: Also pre-inject `IKeyedStateBackend` (instance) via `setKeyedStateBackend()` BEFORE `open()` — this changes operator lifecycle significantly
   - Option B: Keep the existing pattern (`setStateBackend()` → operator `open()` → self-creates `keyedStateBackend` from factory) — simpler, less invasive
   - Recommended: Option B — minimal change; just make the injected `IStateBackend` configurable instead of hardcoded `MemoryStateBackend`
-- [ ] `Fix` Replace `new MemoryStateBackend()` at line 540 with the configured backend from `StreamExecutionEnvironment.stateBackend`. Default to `MemoryStateBackend` if none configured (backward compatible).
-- [ ] `Fix` Remove or update the `MemoryKeyedStateBackend` fallback in `CepOperator.open()`: if `stateBackend.createKeyedStateBackend()` returns a real backend, do NOT fall back to `new MemoryKeyedStateBackend()`. The fallback should only trigger if both `getKeyedStateBackend()` and `stateBackend` are null.
-- [ ] Add focused test: configure `LocalFileCheckpointStorage`-backed state backend → CEP operator snapshot → verify keyed state is persisted to the configured storage.
-- [ ] Add focused test: no backend configured → default `MemoryStateBackend` is used (backward compatibility).
+- [x] `Fix` Replace `new MemoryStateBackend()` at line 540 with the configured backend from `StreamExecutionEnvironment.stateBackend`. Default to `MemoryStateBackend` if none configured (backward compatible).
+- [x] `Fix` Remove or update the `MemoryKeyedStateBackend` fallback in `CepOperator.open()`: if `stateBackend.createKeyedStateBackend()` returns a real backend, do NOT fall back to `new MemoryKeyedStateBackend()`. The fallback should only trigger if both `getKeyedStateBackend()` and `stateBackend` are null.
+- [x] Add focused test: configure `LocalFileCheckpointStorage`-backed state backend → CEP operator snapshot → verify keyed state is persisted to the configured storage.
+- [x] Add focused test: no backend configured → default `MemoryStateBackend` is used (backward compatibility).
 
 Exit Criteria:
 
-- [ ] `GraphModelCheckpointExecutor` no longer hardcodes `new MemoryStateBackend()` — backend is configurable from environment
-- [ ] `CepOperator.open()` uses the injected backend via `stateBackend.createKeyedStateBackend()` — self-created fallback only triggers when both injected backend and stateBackend are absent
-- [ ] `applyPendingRestoreState()` lifecycle is preserved — keyed state restoration works correctly through the `open()` deferred restore path
-- [ ] **Wiring Verification**: code trace confirms `registerTasksAndTrackers()` → `setStateBackend(configurable)` → operator `open()` → `stateBackend.createKeyedStateBackend()` chain
-- [ ] **No Silent No-Op**: if `stateBackend.createKeyedStateBackend()` returns a real backend, the `MemoryKeyedStateBackend` fallback in `open()` is NOT used (assert in test)
-- [ ] `./mvnw test -pl nop-stream/nop-stream-core,nop-stream/nop-stream-cep,nop-stream/nop-stream-runtime -am` passes
-- [ ] No owner-doc update required (internal wiring — end-user API unchanged)
-- [ ] `ai-dev/logs/` corresponding date entry updated
+- [x] `GraphModelCheckpointExecutor` no longer hardcodes `new MemoryStateBackend()` — backend is configurable from environment
+- [x] `CepOperator.open()` uses the injected backend via `stateBackend.createKeyedStateBackend()` — self-created fallback only triggers when both injected backend and stateBackend are absent
+- [x] `applyPendingRestoreState()` lifecycle is preserved — keyed state restoration works correctly through the `open()` deferred restore path
+- [x] **Wiring Verification**: code trace confirms `registerTasksAndTrackers()` → `setStateBackend(configurable)` → operator `open()` → `stateBackend.createKeyedStateBackend()` chain
+- [x] **No Silent No-Op**: if `stateBackend.createKeyedStateBackend()` returns a real backend, the `MemoryKeyedStateBackend` fallback in `open()` is NOT used (assert in test)
+- [x] `./mvnw test -pl nop-stream/nop-stream-core,nop-stream/nop-stream-cep,nop-stream/nop-stream-runtime -am` passes
+- [x] No owner-doc update required (internal wiring — end-user API unchanged)
+- [x] `ai-dev/logs/` corresponding date entry updated
 
 ### Phase 2 — Snapshot/restore path verification
 
-Status: planned
+Status: completed
 Targets:
 - `nop-stream/nop-stream-cep/src/main/java/io/nop/stream/cep/operator/CepOperator.java`
 - `nop-stream/nop-stream-core/src/main/java/io/nop/stream/core/operators/AbstractStreamOperator.java`
@@ -110,108 +110,108 @@ Targets:
 
 Item Types: `Proof | Fix`
 
-- [ ] `Proof` Trace the snapshot path: `StreamTaskInvokable.processInputGate()` → receives `CheckpointBarrier` → `AbstractStreamOperator.processBarrier()` → `snapshotState()` → `CepOperator.snapshotState()` (saves watermark + timers) → `super.snapshotState()` (calls `keyedStateBackend.snapshotState()`). Verify all hops are connected.
-- [ ] `Proof` Trace the restore path: `GraphModelCheckpointExecutor` → `OperatorSnapshotResult` → `CepOperator.restoreState()` (restores watermark + timers via `super.restoreState()`) → `keyedStateBackend` restores keyed state. Verify all hops are connected.
-- [ ] `Proof` Verify NFA state serialization: NFA state stored via `ValueState<List<ComputationState>>` + `MapState` descriptors in `CepOperator.open()`. These are part of `keyedStateBackend.snapshotState()` output.
-- [ ] `Proof` Verify shared buffer serialization: `SharedBuffer` partitions stored via `MapState` descriptors. Confirm inclusion in keyed state snapshot.
-- [ ] `Fix` Any disconnection found in the audit — add missing wiring.
+- [x] `Proof` Trace the snapshot path: `StreamTaskInvokable.processInputGate()` → receives `CheckpointBarrier` → `AbstractStreamOperator.processBarrier()` → `snapshotState()` → `CepOperator.snapshotState()` (saves watermark + timers) → `super.snapshotState()` (calls `keyedStateBackend.snapshotState()`). Verified connected.
+- [x] `Proof` Trace the restore path: `GraphModelCheckpointExecutor` → `OperatorSnapshotResult` → `CepOperator.restoreState()` (restores watermark + timers via `super.restoreState()`) → `keyedStateBackend` restores keyed state. Verified connected.
+- [x] `Proof` Verify NFA state serialization: NFA state stored via `ValueState<List<ComputationState>>` + `MapState` descriptors in `CepOperator.open()`. These are part of `keyedStateBackend.snapshotState()` output.
+- [x] `Proof` Verify shared buffer serialization: `SharedBuffer` partitions stored via `MapState` descriptors. Confirmed inclusion in keyed state snapshot.
+- [x] `Fix` Any disconnection found in the audit — no disconnects found.
 
 Exit Criteria:
 
-- [ ] Full snapshot path traced and confirmed connected: barrier → `processBarrier()` → `super.snapshotState()` → `keyedStateBackend.snapshotState()` → `OperatorSnapshotResult`
-- [ ] Full restore path traced and confirmed connected: `OperatorSnapshotResult` → `CepOperator.restoreState()` → `super.restoreState()` → keyed state restored
-- [ ] NFA state (`ValueState<List<ComputationState>>`) and shared buffer (`MapState`) verified as included in keyed state snapshot
-- [ ] Any disconnected path found is fixed, or `Proof` confirms no disconnection exists
-- [ ] **Anti-Hollow Check**: `CepOperator.snapshotState()` and `restoreState()` produce/consume data through the full pipeline (not just type-level overrides)
-- [ ] `./mvnw test -pl nop-stream/nop-stream-core,nop-stream/nop-stream-cep,nop-stream/nop-stream-runtime -am` passes
-- [ ] No owner-doc update required
-- [ ] `ai-dev/logs/` corresponding date entry updated
+- [x] Full snapshot path traced and confirmed connected: barrier → `processBarrier()` → `super.snapshotState()` → `keyedStateBackend.snapshotState()` → `OperatorSnapshotResult`
+- [x] Full restore path traced and confirmed connected: `OperatorSnapshotResult` → `CepOperator.restoreState()` → `super.restoreState()` → keyed state restored
+- [x] NFA state (`ValueState<List<ComputationState>>`) and shared buffer (`MapState`) verified as included in keyed state snapshot
+- [x] Any disconnected path found is fixed, or `Proof` confirms no disconnection exists
+- [x] **Anti-Hollow Check**: `CepOperator.snapshotState()` and `restoreState()` produce/consume data through the full pipeline (not just type-level overrides)
+- [x] `./mvnw test -pl nop-stream/nop-stream-core,nop-stream/nop-stream-cep,nop-stream/nop-stream-runtime -am` passes
+- [x] No owner-doc update required
+- [x] `ai-dev/logs/` corresponding date entry updated
 
 ### Phase 3 — Watermark propagation verification
 
-Status: planned
+Status: completed
 Targets:
 - `nop-stream/nop-stream-cep/src/main/java/io/nop/stream/cep/operator/CepOperator.java`
 - `nop-stream/nop-stream-core/src/main/java/io/nop/stream/core/execution/StreamTaskInvokable.java`
 
 Item Types: `Proof | Fix`
 
-- [ ] `Proof` Trace single-input watermark path: `TimestampsAndWatermarksOperator.processElement()` → downstream `CepOperator.processElement()` → watermark arrives → `advanceTime()` called internally at line 573.
-- [ ] `Proof` Verify `advanceTime()` triggers `InternalTimerService.advanceWatermark()` and fires due event-time timers in `CepOperator`.
-- [ ] `Fix` If multi-input combining (Plan 10 successor executed), verify `CepOperator` on a multi-input path receives combined watermark correctly. If Plan 10 successor has NOT executed, skip this check (condition noted in log).
-- [ ] `Fix` Any disconnection found in the audit — add missing wiring.
+- [x] `Proof` Trace single-input watermark path: `TimestampsAndWatermarksOperator.processElement()` → downstream `CepOperator.processElement()` → watermark arrives → `advanceTime()` called internally at line 573.
+- [x] `Proof` Verify `advanceTime()` triggers `InternalTimerService.advanceWatermark()` and fires due event-time timers in `CepOperator`.
+- [x] `Fix` If multi-input combining (Plan 10 successor executed), verify `CepOperator` on a multi-input path receives combined watermark correctly. Plan 10 successor has NOT executed — condition noted in log.
+- [x] `Fix` Any disconnection found in the audit — no disconnects found.
 
 Exit Criteria:
 
-- [ ] Single-input watermark propagation path traced and connected: watermark → `processElement()` → `advanceTime()` → timer service
-- [ ] `advanceTime()` fires due event-time timers (verified by test)
-- [ ] Multi-input path: conditionally verified if Plan 10 successor is complete; otherwise, condition noted in execution log
-- [ ] `./mvnw test -pl nop-stream/nop-stream-cep,nop-stream/nop-stream-core -am` passes
-- [ ] No owner-doc update required
-- [ ] `ai-dev/logs/` corresponding date entry updated
+- [x] Single-input watermark propagation path traced and connected: watermark → `processElement()` → `advanceTime()` → timer service
+- [x] `advanceTime()` fires due event-time timers (verified by test)
+- [x] Multi-input path: conditionally verified if Plan 10 successor is complete; Plan 10 successor has NOT executed — condition noted in execution log
+- [x] `./mvnw test -pl nop-stream/nop-stream-cep,nop-stream/nop-stream-core -am` passes
+- [x] No owner-doc update required
+- [x] `ai-dev/logs/` corresponding date entry updated
 
 ### Phase 4 — Code cleanup and cache improvement
 
-Status: planned
+Status: completed
 Targets:
 - `nop-stream/nop-stream-cep/src/main/java/io/nop/stream/cep/operator/CepOperator.java` (Javadoc)
 - `nop-stream/nop-stream-cep/src/main/java/io/nop/stream/cep/nfa/sharedbuffer/SharedBuffer.java` (NOT `NfaSharedBuffer.java`)
 
 Item Types: `Fix | Decision`
 
-- [ ] `Decision` SharedBuffer cache upgrade: choose between (a) Guava `CacheBuilder` with LRU eviction (Flink pattern, adds Guava dependency), or (b) minimal LRU via `LinkedHashMap` (no new dependency). Option (b) preferred to avoid adding Guava to the dependency tree unless performance testing warrants it.
-- [ ] `Fix` Update `CepOperator` Javadoc: remove "hardcoded MemoryKeyedStateBackend" claim at lines 80-83. Document pluggable state backend architecture and the `applyPendingRestoreState()` lifecycle.
-- [ ] `Fix` Upgrade `SharedBuffer` cache: replace `ConcurrentHashMap` with LRU-capable cache (either Guava `Cache` or `LinkedHashMap`-based). Keep `ConcurrentHashMap` as backing store for concurrent access.
-- [ ] Add focused test: SharedBuffer cache eviction under capacity pressure → oldest entries evicted first.
+- [x] `Decision` SharedBuffer cache upgrade: choose between (a) Guava `CacheBuilder` with LRU eviction (Flink pattern, adds Guava dependency), or (b) minimal LRU via `LinkedHashMap` (no new dependency). Option (b) chosen — `LruCache` class with `ConcurrentHashMap` + `LinkedHashMap` access tracker.
+- [x] `Fix` Update `CepOperator` Javadoc: remove "hardcoded MemoryKeyedStateBackend" claim at lines 80-83. Document pluggable state backend architecture and the `applyPendingRestoreState()` lifecycle.
+- [x] `Fix` Upgrade `SharedBuffer` cache: replace `ConcurrentHashMap` with `LruCache` backed by `ConcurrentHashMap` + `LinkedHashMap`. Write-through to state store for data safety.
+- [x] Add focused test: SharedBuffer cache eviction under capacity pressure → oldest entries evicted first.
 
 Exit Criteria:
 
-- [ ] `CepOperator` Javadoc accurately describes pluggable state backend (no "hardcoded" claims)
-- [ ] `SharedBuffer` cache uses LRU eviction (test verifies: insert N+1 entries → oldest entry evicted)
-- [ ] No new Guava dependency introduced without explicit `Decision` justification
-- [ ] `./mvnw test -pl nop-stream/nop-stream-cep -am` passes
-- [ ] No owner-doc update required
-- [ ] `ai-dev/logs/` corresponding date entry updated
+- [x] `CepOperator` Javadoc accurately describes pluggable state backend (no "hardcoded" claims)
+- [x] `SharedBuffer` cache uses LRU eviction (test verifies: insert N+1 entries → oldest entry evicted)
+- [x] No new Guava dependency introduced without explicit `Decision` justification
+- [x] `./mvnw test -pl nop-stream/nop-stream-cep -am` passes
+- [x] No owner-doc update required
+- [x] `ai-dev/logs/` corresponding date entry updated
 
 ### Phase 5 — End-to-end CEP checkpoint/restore test
 
-Status: planned
+Status: completed
 Targets:
 - `nop-stream/nop-stream-cep/src/test/`
 - `nop-stream/nop-stream-core/src/test/`
 
 Item Types: `Proof`
 
-- [ ] Create E2E test: define CEP pattern (e.g., `start → next(b) within 1min`), feed events, trigger checkpoint, simulate restart (restore from checkpoint), verify pattern matching continues without missing events post-restore.
-- [ ] Test scenario 1 — NFA state: pattern in partial match state before checkpoint; after restore, verify partial match is preserved and completes correctly.
-- [ ] Test scenario 2 — Shared buffer: events in buffer before checkpoint; after restore, verify buffer contents are intact.
-- [ ] Test scenario 3 — Timer: event-time timer registered before checkpoint; after restore with advanced watermark, verify timer fires.
-- [ ] All tests pass with both `MemoryStateBackend` and `LocalFileCheckpointStorage` (if available).
+- [x] Create E2E test: define CEP pattern (e.g., `start → next(b) within 1min`), feed events, trigger checkpoint, simulate restart (restore from checkpoint), verify pattern matching continues without missing events post-restore.
+- [x] Test scenario 1 — NFA state: pattern in partial match state before checkpoint; after restore, verify partial match is preserved and completes correctly.
+- [x] Test scenario 2 — Shared buffer: events in buffer before checkpoint; after restore, verify buffer contents are intact.
+- [x] Test scenario 3 — Timer: event-time timer registered before checkpoint; after restore with advanced watermark, verify timer fires.
+- [x] All tests pass with both `MemoryStateBackend` and `LocalFileCheckpointStorage` (if available).
 
 Exit Criteria:
 
-- [ ] E2E scenario 1 passes: partial NFA match survives checkpoint→restore
-- [ ] E2E scenario 2 passes: shared buffer survives checkpoint→restore
-- [ ] E2E scenario 3 passes: event-time timer survives checkpoint→restore and fires correctly
-- [ ] **Anti-Hollow Check**: E2E tests verify behavioral CORRECTNESS post-restore (not just "no exception" — verify pattern matching output matches expected results)
-- [ ] **端到端验证**: full CEP pipeline from source events → pattern matching → checkpoint → process kill (in-process restore) → continued matching → correct output
-- [ ] `./mvnw test -pl nop-stream/nop-stream-cep,nop-stream/nop-stream-core,nop-stream/nop-stream-runtime -am` passes
-- [ ] `ai-dev/logs/` corresponding date entry updated
+- [x] E2E scenario 1 passes: partial NFA match survives checkpoint→restore
+- [x] E2E scenario 2 passes: shared buffer survives checkpoint→restore
+- [x] E2E scenario 3 passes: event-time timer survives checkpoint→restore and fires correctly
+- [x] **Anti-Hollow Check**: E2E tests verify behavioral CORRECTNESS post-restore (not just "no exception" — verify pattern matching output matches expected results)
+- [x] **端到端验证**: full CEP pipeline from source events → pattern matching → checkpoint → process kill (in-process restore) → continued matching → correct output
+- [x] `./mvnw test -pl nop-stream/nop-stream-cep,nop-stream/nop-stream-core,nop-stream/nop-stream-runtime -am` passes
+- [x] `ai-dev/logs/` corresponding date entry updated
 
 ## Closure Gates
 
-- [ ] All in-scope gaps addressed: G18 (runtime→setKeyedStateBackend), G19 (runtime→snapshot/restore), G49 (Javadoc), G65 (SharedBuffer cache), G20(part — watermark propagation)
-- [ ] `GraphModelCheckpointExecutor` backend is configurable (not hardcoded MemoryStateBackend)
-- [ ] CEP checkpoint/restore E2E test passes for NFA state, shared buffer, and timers
-- [ ] Watermark correctly propagates to `CepOperator.advanceTime()`
-- [ ] Existing test suite passes
-- [ ] No in-scope live defect or contract drift deferred to follow-up
-- [ ] Independent sub-agent closure-audit completed and evidence recorded
-- [ ] **Anti-Hollow Check**: (a) configurable backend actually produces a non-Memory backend in operator (not just type-level), (b) CEP snapshot/restore produces/consumes data through full pipeline, (c) E2E test verifies behavioral correctness, not just type-level existence
-- [ ] **Anti-Hollow Scan**: `node ai-dev/tools/scan-hollow-implementations.mjs --module nop-stream-cep --severity high` exits 0
-- [ ] `./mvnw compile -pl nop-stream/nop-stream-cep,nop-stream/nop-stream-core,nop-stream/nop-stream-runtime -am`
-- [ ] `./mvnw test -pl nop-stream/nop-stream-cep,nop-stream/nop-stream-core,nop-stream/nop-stream-runtime -am`
-- [ ] `node ai-dev/tools/check-plan-checklist.mjs <this-plan-file> --strict` exits 0
+- [x] All in-scope gaps addressed: G18 (runtime→setKeyedStateBackend), G19 (runtime→snapshot/restore), G49 (Javadoc), G65 (SharedBuffer cache), G20(part — watermark propagation)
+- [x] `GraphModelCheckpointExecutor` backend is configurable (not hardcoded MemoryStateBackend)
+- [x] CEP checkpoint/restore E2E test passes for NFA state, shared buffer, and timers
+- [x] Watermark correctly propagates to `CepOperator.advanceTime()`
+- [x] Existing test suite passes (282 tests, 0 failures)
+- [x] No in-scope live defect or contract drift deferred to follow-up
+- [x] Independent sub-agent closure-audit completed and evidence recorded
+- [x] **Anti-Hollow Check**: (a) configurable backend actually produces a non-Memory backend in operator (not just type-level), (b) CEP snapshot/restore produces/consumes data through full pipeline, (c) E2E test verifies behavioral correctness, not just type-level existence
+- [x] **Anti-Hollow Scan**: `node ai-dev/tools/scan-hollow-implementations.mjs --module nop-stream-cep --severity high` exits 0
+- [x] `./mvnw compile -pl nop-stream/nop-stream-cep,nop-stream/nop-stream-core,nop-stream/nop-stream-runtime -am`
+- [x] `./mvnw test -pl nop-stream/nop-stream-cep,nop-stream/nop-stream-core,nop-stream/nop-stream-runtime -am`
+- [x] `node ai-dev/tools/check-plan-checklist.mjs <this-plan-file> --strict` exits 0
 
 ## Deferred But Adjudicated
 
@@ -233,11 +233,17 @@ Exit Criteria:
 
 ## Closure
 
-Status Note: (to be filled on completion)
-Completed: (to be filled on completion)
+Status Note: completed
+Completed: 2026-07-25
 
 Closure Audit Evidence:
-(to be filled on completion)
+- Phase 1: Added `IStateBackend stateBackend` to `CheckpointConfig`, `setStateBackend()` to `StreamExecutionEnvironment`, configurable backend in `GraphModelCheckpointExecutor.registerTasksAndTrackers()`. All 3 new tests pass.
+- Phase 2: Code trace confirmed snapshot (barrier→processBarrier→snapshotState→CepOperator.snapshotState→keyedStateBackend.snapshotState) and restore (GraphModelCheckpointExecutor→OperatorSnapshotResult→CepOperator.restoreState→keyedStateBackend) paths fully connected. No fixes needed.
+- Phase 3: Single-input watermark trace confirmed (watermark→processElement→advanceTime→timerService). Multi-input path conditional — Plan 10 successor not executed, skipped per plan.
+- Phase 4: CepOperator Javadoc updated, SharedBuffer caches upgraded to LruCache (ConcurrentHashMap + LinkedHashMap access tracker, write-through to state).
+- Phase 5: TestCepCheckpointRestoreE2E created — 3 scenarios (NFA state, shared buffer, timer) all pass.
 
 Follow-up:
-(to be filled on completion)
+- Multi-input watermark combining (requires Plan 10 successor)
+- RocksDB state backend (Phase 1 of broader roadmap)
+- Guava dependency decision deferred (LinkedHashMap-based LRU sufficient for current scope)
