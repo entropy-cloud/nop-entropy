@@ -77,10 +77,17 @@ import static io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_STATE_ERR
  * and a priority queue to buffer out of order elements. Both data structures are stored using the
  * managed keyed state.
  *
- * <p><b>Design note:</b> This operator currently uses a hardcoded {@link io.nop.stream.core.common.state.backend.memory.MemoryKeyedStateBackend}
- * for its internal keyed state store. This is a simplified approach that does not support pluggable
- * state backends. Future improvements should accept an external {@link io.nop.stream.core.common.state.backend.IStateBackend}
- * via constructor or configuration, enabling persistent state backends for production use.
+ * <p><b>Design note:</b> This operator uses a pluggable state backend architecture. The
+ * {@link io.nop.stream.core.common.state.backend.IStateBackend} is injected via
+ * {@link #setStateBackend(io.nop.stream.core.common.state.backend.IStateBackend)} before
+ * {@link #open()} is called. In {@code open()}, the operator creates a keyed state backend from
+ * the injected factory via {@code stateBackend.createKeyedStateBackend()}. If no state backend
+ * is configured, the operator falls back to an in-memory keyed state store.
+ *
+ * <p>The keyed state restoration lifecycle uses deferred restore: during checkpoint recovery,
+ * {@link #restoreState(io.nop.stream.core.checkpoint.OperatorSnapshotResult)} saves the pending
+ * keyed state. When {@code open()} creates the keyed state backend,
+ * {@link #applyPendingRestoreState()} is called to replay the saved state into the backend.
  *
  * @param <IN>  Type of the input elements
  * @param <KEY> Type of the key on which the input stream is keyed

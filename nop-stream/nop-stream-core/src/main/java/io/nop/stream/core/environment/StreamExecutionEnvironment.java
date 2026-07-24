@@ -17,6 +17,7 @@ import java.util.Map;
 import io.nop.stream.core.checkpoint.CheckpointConfig;
 import io.nop.stream.core.checkpoint.ProcessingGuarantee;
 import io.nop.stream.core.common.functions.source.SourceFunction;
+import io.nop.stream.core.common.state.backend.IStateBackend;
 import io.nop.stream.core.common.typeinfo.TypeInformation;
 import io.nop.stream.core.datastream.DataStreamSource;
 import io.nop.stream.core.datastream.SingleOutputStreamOperatorImpl;
@@ -130,6 +131,11 @@ public class StreamExecutionEnvironment {
     public StreamExecutionEnvironment enableCheckpointing(long interval) {
         checkpointConfig.setCheckpointEnabled(true);
         checkpointConfig.setCheckpointInterval(interval);
+        return this;
+    }
+
+    public StreamExecutionEnvironment setStateBackend(IStateBackend stateBackend) {
+        checkpointConfig.setStateBackend(stateBackend);
         return this;
     }
 

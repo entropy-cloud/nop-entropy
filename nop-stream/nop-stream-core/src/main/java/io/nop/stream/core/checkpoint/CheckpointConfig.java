@@ -11,6 +11,8 @@ import java.io.Serializable;
 import java.util.HashMap;
 import java.util.Map;
 
+import io.nop.stream.core.common.state.backend.IStateBackend;
+
 /**
  * Checkpoint 配置类。
  */
@@ -40,6 +42,8 @@ public class CheckpointConfig implements Serializable {
     private String jobId = java.util.UUID.randomUUID().toString();
     private String pipelineId = "1";
     private JobTerminationMode jobTerminationMode = JobTerminationMode.CANCEL;
+
+    private IStateBackend stateBackend;
 
     public CheckpointConfig() {
     }
@@ -164,6 +168,14 @@ public class CheckpointConfig implements Serializable {
         this.jobTerminationMode = jobTerminationMode != null ? jobTerminationMode : JobTerminationMode.CANCEL;
     }
 
+    public IStateBackend getStateBackend() {
+        return stateBackend;
+    }
+
+    public void setStateBackend(IStateBackend stateBackend) {
+        this.stateBackend = stateBackend;
+    }
+
     public static Builder builder() {
         return new Builder();
     }
@@ -243,6 +255,11 @@ public class CheckpointConfig implements Serializable {
 
         public Builder jobTerminationMode(JobTerminationMode mode) {
             config.setJobTerminationMode(mode);
+            return this;
+        }
+
+        public Builder stateBackend(IStateBackend stateBackend) {
+            config.setStateBackend(stateBackend);
             return this;
         }
 

@@ -21,7 +21,6 @@ package io.nop.stream.cep.nfa.sharedbuffer;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Objects;
-import java.util.concurrent.ConcurrentHashMap;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -75,14 +74,14 @@ public class SharedBuffer<V> {
     private final MapState<NodeId, Lockable<SharedBufferNode>> entries;
 
     /**
-     * The cache of eventsBuffer State.
+     * The cache of eventsBuffer State, with LRU eviction.
      */
-    private final ConcurrentHashMap<EventId, Lockable<V>> eventsBufferCache;
+    private final LruCache<EventId, Lockable<V>> eventsBufferCache;
 
     /**
-     * The cache of sharedBufferNode.
+     * The cache of sharedBufferNode, with LRU eviction.
      */
-    private final ConcurrentHashMap<NodeId, Lockable<SharedBufferNode>> entryCache;
+    private final LruCache<NodeId, Lockable<SharedBufferNode>> entryCache;
 
     @SuppressWarnings({"unchecked", "rawtypes"})
     public SharedBuffer(
@@ -111,10 +110,10 @@ public class SharedBuffer<V> {
                                 Long.class,
                                 Integer.class));
 
-        // set the events buffer cache and strategy of exchanging out
-        this.eventsBufferCache = new ConcurrentHashMap<>(cacheConfig.getEventsBufferCacheSlots());
-        // set the entry cache and strategy of exchanging out
-        this.entryCache = new ConcurrentHashMap<>(cacheConfig.getEntryCacheSlots());
+        // set the events buffer cache with LRU eviction strategy
+        this.eventsBufferCache = new LruCache<>(cacheConfig.getEventsBufferCacheSlots());
+        // set the entry cache with LRU eviction strategy
+        this.entryCache = new LruCache<>(cacheConfig.getEntryCacheSlots());
     }
 
     private void copyEntries(MapState<NodeId, Lockable<SharedBufferNode>> state) throws Exception {
@@ -177,8 +176,8 @@ public class SharedBuffer<V> {
                 iterator.remove();
             }
         }
-        eventsBufferCache.entrySet().removeIf(e ->
-                e.getKey() != null && e.getKey().getTimestamp() < timestamp);
+        eventsBufferCache.removeIf(eventId ->
+                eventId != null && eventId.getTimestamp() < timestamp);
     }
 
     EventId registerEvent(V value, long timestamp) {
@@ -239,16 +238,28 @@ public class SharedBuffer<V> {
      */
     void upsertEvent(EventId eventId, Lockable<V> event) {
         this.eventsBufferCache.put(eventId, event);
+        try {
+            this.eventsBuffer.put(eventId, event);
+        } catch (Exception e) {
+            this.eventsBufferCache.remove(eventId);
+            throw new StreamException(ERR_CEP_NFA_SHARED_BUFFER_ACCESS_FAILED, e).param(ARG_DETAIL, "upsertEvent");
+        }
     }
 
     /**
-     * Inserts or updates a shareBufferNode in cache.
+     * Inserts or updates a shareBufferNode in cache and backing state (write-through).
      *
      * @param nodeId id of the event
      * @param entry  SharedBufferNode
      */
     void upsertEntry(NodeId nodeId, Lockable<SharedBufferNode> entry) {
         this.entryCache.put(nodeId, entry);
+        try {
+            this.entries.put(nodeId, entry);
+        } catch (Exception e) {
+            this.entryCache.remove(nodeId);
+            throw new StreamException(ERR_CEP_NFA_SHARED_BUFFER_ACCESS_FAILED, e).param(ARG_DETAIL, "upsertEntry");
+        }
     }
 
     /**
@@ -324,20 +335,22 @@ public class SharedBuffer<V> {
      */
     void flushCache() {
         if (!entryCache.isEmpty()) {
-            Map<NodeId, Lockable<SharedBufferNode>> snapshot1 = new java.util.HashMap<>(entryCache);
+            java.util.HashMap<NodeId, Lockable<SharedBufferNode>> snapshot1 = new java.util.HashMap<>();
+            entryCache.forEach(snapshot1::put);
             try {
                 entries.putAll(snapshot1);
-                entryCache.keySet().removeAll(snapshot1.keySet());
+                entryCache.keySetRemoveAll(snapshot1.keySet());
             } catch (Exception e) {
                 entryCache.putAll(snapshot1);
                 throw new StreamException(ERR_CEP_NFA_SHARED_BUFFER_ACCESS_FAILED, e).param(ARG_DETAIL, "flushCache-entries");
             }
         }
         if (!eventsBufferCache.isEmpty()) {
-            Map<EventId, Lockable<V>> snapshot2 = new java.util.HashMap<>(eventsBufferCache);
+            java.util.HashMap<EventId, Lockable<V>> snapshot2 = new java.util.HashMap<>();
+            eventsBufferCache.forEach(snapshot2::put);
             try {
                 eventsBuffer.putAll(snapshot2);
-                eventsBufferCache.keySet().removeAll(snapshot2.keySet());
+                eventsBufferCache.keySetRemoveAll(snapshot2.keySet());
             } catch (Exception e) {
                 eventsBufferCache.putAll(snapshot2);
                 throw new StreamException(ERR_CEP_NFA_SHARED_BUFFER_ACCESS_FAILED, e).param(ARG_DETAIL, "flushCache-events");

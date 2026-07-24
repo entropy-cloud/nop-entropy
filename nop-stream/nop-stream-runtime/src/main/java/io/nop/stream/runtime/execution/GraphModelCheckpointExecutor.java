@@ -97,7 +97,7 @@ public class GraphModelCheckpointExecutor {
         CheckpointPlan checkpointPlan = CheckpointPlanBuilder.build(execPlan, jobId, pipelineId, null, checkpointConfig);
 
         CheckpointCoordinator coordinator = createCoordinator(jobId, pipelineId, idCounter, storage, checkpointConfig);
-        List<StreamTaskInvokable> allInvokables = registerTasksAndTrackers(execPlan, checkpointPlan, coordinator);
+        List<StreamTaskInvokable> allInvokables = registerTasksAndTrackers(execPlan, checkpointPlan, coordinator, checkpointConfig);
 
         ScheduledExecutorService barrierScheduler = startBarrierScheduler(allInvokables, coordinator, checkpointConfig, jobId);
 
@@ -158,7 +158,7 @@ public class GraphModelCheckpointExecutor {
         StreamModelFingerprint fingerprint = streamModel.computeFingerprint();
         coordinator.setCurrentFingerprint(fingerprint);
 
-        List<StreamTaskInvokable> allInvokables = registerTasksAndTrackers(execPlan, checkpointPlan, coordinator);
+        List<StreamTaskInvokable> allInvokables = registerTasksAndTrackers(execPlan, checkpointPlan, coordinator, checkpointConfig);
 
         ScheduledExecutorService barrierScheduler = startBarrierScheduler(allInvokables, coordinator, checkpointConfig, jobId);
 
@@ -226,7 +226,7 @@ public class GraphModelCheckpointExecutor {
         StreamModelFingerprint fingerprint = streamModel.computeFingerprint();
         coordinator.setCurrentFingerprint(fingerprint);
 
-        List<StreamTaskInvokable> allInvokables = registerTasksAndTrackers(execPlan, checkpointPlan, coordinator);
+        List<StreamTaskInvokable> allInvokables = registerTasksAndTrackers(execPlan, checkpointPlan, coordinator, checkpointConfig);
 
         ScheduledExecutorService barrierScheduler = startBarrierScheduler(allInvokables, coordinator, checkpointConfig, jobId);
 
@@ -286,7 +286,7 @@ public class GraphModelCheckpointExecutor {
         CheckpointPlan checkpointPlan = CheckpointPlanBuilder.build(execPlan, jobId, pipelineId, null, checkpointConfig);
 
         CheckpointCoordinator coordinator = createCoordinator(jobId, pipelineId, idCounter, storage, checkpointConfig);
-        List<StreamTaskInvokable> allInvokables = registerTasksAndTrackers(execPlan, checkpointPlan, coordinator);
+        List<StreamTaskInvokable> allInvokables = registerTasksAndTrackers(execPlan, checkpointPlan, coordinator, checkpointConfig);
 
         ScheduledExecutorService barrierScheduler = startBarrierScheduler(allInvokables, coordinator, checkpointConfig, jobId);
 
@@ -335,7 +335,7 @@ public class GraphModelCheckpointExecutor {
         CheckpointPlan checkpointPlan = CheckpointPlanBuilder.build(execPlan, jobId, pipelineId, null, checkpointConfig);
 
         CheckpointCoordinator coordinator = createCoordinator(jobId, pipelineId, idCounter, storage, checkpointConfig);
-        List<StreamTaskInvokable> allInvokables = registerTasksAndTrackers(execPlan, checkpointPlan, coordinator);
+        List<StreamTaskInvokable> allInvokables = registerTasksAndTrackers(execPlan, checkpointPlan, coordinator, checkpointConfig);
 
         ScheduledExecutorService barrierScheduler = startBarrierScheduler(allInvokables, coordinator, checkpointConfig, jobId);
 
@@ -489,7 +489,8 @@ public class GraphModelCheckpointExecutor {
     private static List<StreamTaskInvokable> registerTasksAndTrackers(
             GraphExecutionPlan execPlan,
             CheckpointPlan checkpointPlan,
-            CheckpointCoordinator coordinator) {
+            CheckpointCoordinator coordinator,
+            CheckpointConfig checkpointConfig) {
 
         List<StreamTaskInvokable> allInvokables = new ArrayList<>();
 
@@ -537,7 +538,11 @@ public class GraphModelCheckpointExecutor {
                         if (op instanceof AbstractStreamOperator) {
                             AbstractStreamOperator<?> abstractOp = (AbstractStreamOperator<?>) op;
                             if (abstractOp.getStateBackend() == null) {
-                                IStateBackend stateBackend = new MemoryStateBackend();
+                                IStateBackend configuredBackend = checkpointConfig != null
+                                        ? checkpointConfig.getStateBackend() : null;
+                                IStateBackend stateBackend = configuredBackend != null
+                                        ? configuredBackend
+                                        : new MemoryStateBackend();
                                 abstractOp.setStateBackend(stateBackend);
                             }
                         }
