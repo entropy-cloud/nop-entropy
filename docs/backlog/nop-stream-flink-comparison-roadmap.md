@@ -25,7 +25,7 @@ Does not contain implementation details. Each `planned` stage is owned by its ex
 - 2. nop-stream 现有实现审计（core API、图模型、算子运行时、checkpoint）：`todo`
 - 3. Checkpoint & barrier 机制源码级对比分析：`done`
 - 4. 状态管理 & 状态后端源码级对比分析：`done`
-- 5. 窗口机制 & 时间模型源码级对比分析：`todo`
+- 5. 窗口机制 & 时间模型源码级对比分析：`done`
 - 6. CEP 引擎源码级对比分析：`todo`
 - 7. 分布式执行模型源码级对比分析：`todo`
 - 8. 综合缺口分析文档（汇总所有发现、分类、优先级排序）：`todo`
