@@ -54,6 +54,7 @@ import static io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_CHECKPOIN
 import static io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_CHECKPOINT_EXECUTOR_SAVEPOINT_FAILED;
 import io.nop.stream.core.execution.CheckpointBarrierTracker;
 import io.nop.stream.core.execution.GraphExecutionPlan;
+import io.nop.stream.core.execution.InputGate;
 import io.nop.stream.core.execution.StreamTaskInvokable;
 import io.nop.stream.core.execution.Subtask;
 import io.nop.stream.core.execution.SubtaskTask;
@@ -658,6 +659,18 @@ public class GraphModelCheckpointExecutor {
             abortMarked.set(true);
             LOG.warn("Checkpoint {} aborted, cancelling all local tasks", abortedCheckpointId);
             for (SubtaskTask task : tasks.values()) {
+                // Notify barrier tracker to release ACK wait
+                StreamTaskInvokable invokable = task.getSubtask().getInvokable();
+                CheckpointBarrierTracker tracker = invokable.getBarrierTracker();
+                if (tracker != null) {
+                    tracker.notifyCheckpointAborted(abortedCheckpointId);
+                }
+                // Resume consumption on InputGate (unblock channels)
+                InputGate inputGate = invokable.getInputGate();
+                if (inputGate != null) {
+                    inputGate.resumeConsumptionAll();
+                }
+                // Cancel the task thread
                 task.cancel();
             }
         });

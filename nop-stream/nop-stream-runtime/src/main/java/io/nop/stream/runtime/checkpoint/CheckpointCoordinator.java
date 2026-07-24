@@ -192,7 +192,7 @@ public class CheckpointCoordinator {
     }
 
     public synchronized PendingCheckpoint tryTriggerPendingCheckpoint(CheckpointType checkpointType) {
-        int effectiveMaxConcurrent = Math.min(1, config.getMaxConcurrentCheckpoints());
+        int effectiveMaxConcurrent = config.getMaxConcurrentCheckpoints();
         if (numPendingCheckpoints.get() >= effectiveMaxConcurrent) {
             LOG.debug("Cannot trigger checkpoint: too many pending checkpoints ({})",
                     numPendingCheckpoints.get());

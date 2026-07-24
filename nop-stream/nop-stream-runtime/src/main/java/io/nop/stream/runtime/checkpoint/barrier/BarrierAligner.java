@@ -25,7 +25,12 @@ import io.nop.stream.core.checkpoint.CheckpointType;
 
 /**
  * 多输入 Barrier 对齐器，用于多输入顶点的 barrier 同步。当前 GraphModelCheckpointExecutor 未使用
+ * <p>
+ * Designed for multi-logical-input barrier alignment (Flink's SingleCheckpointBarrierHandler
+ * equivalent). Currently unwirable without multi-input operator infrastructure. Preserved as
+ * reference implementation.
  */
+@Deprecated
 @Internal
 public class BarrierAligner {
 

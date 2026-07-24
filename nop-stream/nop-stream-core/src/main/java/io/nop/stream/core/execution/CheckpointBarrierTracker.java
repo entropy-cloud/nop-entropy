@@ -175,4 +175,17 @@ public class CheckpointBarrierTracker {
     public long getCurrentCheckpointId() {
         return currentCheckpointId;
     }
+
+    /**
+     * Called when a pending checkpoint is aborted. Resets the tracker state so that
+     * the next checkpoint trigger is accepted, and releases any pending ACK wait.
+     */
+    public synchronized void notifyCheckpointAborted(long checkpointId) {
+        if (this.currentCheckpointId == checkpointId) {
+            LOG.debug("Tracker aborting checkpoint {} for task {}", checkpointId, taskLocation);
+            this.currentCheckpointId = -1;
+            this.currentSnapshot = null;
+            this.operatorsToAck.set(0);
+        }
+    }
 }

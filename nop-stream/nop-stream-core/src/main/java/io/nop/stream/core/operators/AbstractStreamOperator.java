@@ -213,6 +213,10 @@ public abstract class AbstractStreamOperator<OUT> implements StreamOperator<OUT>
 
     @Override
     public void notifyCheckpointAborted(long checkpointId) throws Exception {
+        if (lastSnapshotResult != null) {
+            LOG.debug("Checkpoint {} aborted — discarding in-flight snapshot state", checkpointId);
+            lastSnapshotResult = null;
+        }
     }
 
     @SuppressWarnings("unchecked")

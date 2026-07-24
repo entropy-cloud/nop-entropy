@@ -128,6 +128,23 @@ class TestCheckpointCoordinator {
     }
 
     @Test
+    void testMaxConcurrentCheckpointsRespectsConfig() {
+        config.setMaxConcurrentCheckpoints(3);
+
+        PendingCheckpoint first = coordinator.tryTriggerPendingCheckpoint(CheckpointType.CHECKPOINT);
+        assertNotNull(first);
+
+        PendingCheckpoint second = coordinator.tryTriggerPendingCheckpoint(CheckpointType.CHECKPOINT);
+        assertNotNull(second, "Second concurrent checkpoint should be allowed when maxConcurrentCheckpoints=3");
+
+        PendingCheckpoint third = coordinator.tryTriggerPendingCheckpoint(CheckpointType.CHECKPOINT);
+        assertNotNull(third, "Third concurrent checkpoint should be allowed when maxConcurrentCheckpoints=3");
+
+        PendingCheckpoint fourth = coordinator.tryTriggerPendingCheckpoint(CheckpointType.CHECKPOINT);
+        assertNull(fourth, "Fourth concurrent checkpoint should be rejected when maxConcurrentCheckpoints=3");
+    }
+
+    @Test
     void testSetTasksToAcknowledge() {
         coordinator.setTasksToAcknowledge(java.util.Arrays.asList(LOC_11, LOC_22, LOC_33));
 

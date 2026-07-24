@@ -8,6 +8,8 @@
 package io.nop.stream.core.execution;
 
 import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.LockSupport;
 import java.util.List;
@@ -65,6 +67,7 @@ public class InputGate {
 
     // Barrier alignment state
     private final boolean[] barrierReceived;
+    private final Set<Integer> blockedChannels;
     private CheckpointBarrier pendingBarrier;
     private int barriersRemaining;
     private boolean barrierEmitted;
@@ -127,6 +130,7 @@ public class InputGate {
             currentWatermarks[i] = Long.MIN_VALUE;
         }
         this.barrierReceived = new boolean[channels.size()];
+        this.blockedChannels = new HashSet<>();
         this.barriersRemaining = 0;
         this.pendingBarrier = null;
         this.barrierEmitted = false;
@@ -158,6 +162,7 @@ public class InputGate {
         this.barrierAlignmentTimeout = DEFAULT_ALIGNMENT_TIMEOUT_MS;
         this.currentWatermarks = new long[]{Long.MIN_VALUE};
         this.barrierReceived = new boolean[1];
+        this.blockedChannels = new HashSet<>();
         this.barriersRemaining = 0;
         this.pendingBarrier = null;
         this.currentChannelIndex = 0;
@@ -206,6 +211,42 @@ public class InputGate {
     }
 
     /**
+     * Blocks consumption from the specified channel during barrier alignment.
+     * Only effective when {@link #barrierAlignment} is true.
+     *
+     * @param channelIndex the channel to block (0-based)
+     * @throws IllegalArgumentException if channelIndex is out of range
+     */
+    public void blockConsumption(int channelIndex) {
+        if (channelIndex < 0 || channelIndex >= channels.size()) {
+            throw new IllegalArgumentException("Invalid channel index: " + channelIndex);
+        }
+        blockedChannels.add(channelIndex);
+    }
+
+    /**
+     * Resumes consumption from the specified channel. Safe no-op if the channel
+     * is not currently blocked.
+     *
+     * @param channelIndex the channel to resume (0-based)
+     * @throws IllegalArgumentException if channelIndex is out of range
+     */
+    public void resumeConsumption(int channelIndex) {
+        if (channelIndex < 0 || channelIndex >= channels.size()) {
+            throw new IllegalArgumentException("Invalid channel index: " + channelIndex);
+        }
+        blockedChannels.remove(channelIndex);
+    }
+
+    /**
+     * Resumes consumption from all channels. Called when alignment completes
+     * or when a checkpoint is aborted.
+     */
+    public void resumeConsumptionAll() {
+        blockedChannels.clear();
+    }
+
+    /**
      * Returns the current minimum watermark across all channels.
      */
     public long getCurrentWatermark() {
@@ -247,7 +288,7 @@ public class InputGate {
                 currentChannelIndex = (currentChannelIndex + 1) % totalChannels;
                 channelsChecked++;
 
-                if (barrierAlignment && barrierReceived[channelIndex]) {
+                if (barrierAlignment && blockedChannels.contains(channelIndex)) {
                     continue;
                 }
 
@@ -306,6 +347,9 @@ public class InputGate {
     private Optional<StreamElement> handleBarrierNonRecursive(int channelIndex, CheckpointBarrier barrier) {
         if (!barrierReceived[channelIndex]) {
             barrierReceived[channelIndex] = true;
+            if (barrierAlignment) {
+                blockConsumption(channelIndex);
+            }
             if (pendingBarrier == null) {
                 pendingBarrier = barrier;
                 barriersRemaining = channels.size();
@@ -329,6 +373,7 @@ public class InputGate {
 
             if (barriersRemaining <= 0) {
                 CheckpointBarrier aligned = pendingBarrier;
+                resumeConsumptionAll();
                 resetBarrierState();
                 return Optional.of(aligned);
             }
@@ -384,6 +429,7 @@ public class InputGate {
     private Optional<StreamElement> checkBarrierAlignmentComplete() {
         if (barrierAlignment && barriersRemaining <= 0 && pendingBarrier != null) {
             CheckpointBarrier aligned = pendingBarrier;
+            resumeConsumptionAll();
             resetBarrierState();
             return Optional.of(aligned);
         }
