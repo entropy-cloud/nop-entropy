@@ -85,6 +85,8 @@ import io.nop.stream.core.operators.Triggerable;
 import io.nop.stream.core.streamrecord.StreamRecord;
 import io.nop.stream.core.streamrecord.watermark.Watermark;
 import io.nop.stream.core.util.OutputTag;
+import io.nop.stream.core.windowing.AccumulationMode;
+import io.nop.stream.core.windowing.PaneInfo;
 import io.nop.stream.core.windowing.assigners.MergingWindowAssigner;
 import io.nop.stream.core.windowing.assigners.WindowAssigner;
 import io.nop.stream.core.windowing.triggers.Trigger;
@@ -184,7 +186,11 @@ public class WindowOperator<K, IN, ACC, OUT, W extends Window>
 
     protected final Evictor<IN, W> evictor;
 
+    protected final AccumulationMode accumulationMode;
+
     private static final String LATE_ELEMENTS_DROPPED_METRIC_NAME = "numLateRecordsDropped";
+
+    private transient Map<String, PaneTrackingInfo> paneTracking;
 
     // ------------------------------------------------------------------------
     // State that is not checkpointed
@@ -240,7 +246,7 @@ public class WindowOperator<K, IN, ACC, OUT, W extends Window>
             OutputTag<IN> lateDataOutputTag) {
         this(windowAssigner, windowSerializer, keySelector, keySerializer, keyClass,
                 windowFunction, trigger, allowedLateness, lateDataOutputTag,
-                (Class<ACC>) (Class<?>) Object.class, null, null, null);
+                (Class<ACC>) (Class<?>) Object.class, null, null, null, null);
     }
 
     public WindowOperator(
@@ -256,7 +262,7 @@ public class WindowOperator<K, IN, ACC, OUT, W extends Window>
             Class<ACC> accClass) {
         this(windowAssigner, windowSerializer, keySelector, keySerializer, keyClass,
                 windowFunction, trigger, allowedLateness, lateDataOutputTag,
-                accClass, null, null, null);
+                accClass, null, null, null, null);
     }
 
     public WindowOperator(
@@ -273,7 +279,7 @@ public class WindowOperator<K, IN, ACC, OUT, W extends Window>
             BiFunction<ACC, ACC, ACC> mergeFunction) {
         this(windowAssigner, windowSerializer, keySelector, keySerializer, keyClass,
                 windowFunction, trigger, allowedLateness, lateDataOutputTag,
-                (Class<ACC>) (Class<?>) Object.class, windowStateDescriptor, mergeFunction, null);
+                (Class<ACC>) (Class<?>) Object.class, windowStateDescriptor, mergeFunction, null, null);
     }
 
     WindowOperator(
@@ -289,7 +295,8 @@ public class WindowOperator<K, IN, ACC, OUT, W extends Window>
             Class<ACC> accClass,
             StateDescriptor<?> windowStateDescriptor,
             BiFunction<ACC, ACC, ACC> mergeFunction,
-            Evictor<IN, W> evictor) {
+            Evictor<IN, W> evictor,
+            AccumulationMode accumulationMode) {
 
         super(windowFunction);
 
@@ -307,6 +314,7 @@ public class WindowOperator<K, IN, ACC, OUT, W extends Window>
         this.windowStateDescriptor = windowStateDescriptor;
         this.mergeFunction = mergeFunction;
         this.evictor = evictor;
+        this.accumulationMode = accumulationMode != null ? accumulationMode : AccumulationMode.ACCUMULATING;
     }
 
     @Override
@@ -316,6 +324,9 @@ public class WindowOperator<K, IN, ACC, OUT, W extends Window>
         timestampedCollector = new TimestampedCollector<>(output);
         if (this.triggerAccumulators == null) {
             this.triggerAccumulators = new HashMap<>();
+        }
+        if (this.paneTracking == null) {
+            this.paneTracking = new HashMap<>();
         }
 
         if (this.stateBackend == null) {
@@ -403,6 +414,7 @@ public class WindowOperator<K, IN, ACC, OUT, W extends Window>
         windowContentsState = null;
         elementTimestampsState = null;
         triggerAccumulators = null;
+        paneTracking = null;
     }
 
     @Override
@@ -602,7 +614,6 @@ public class WindowOperator<K, IN, ACC, OUT, W extends Window>
                 // trigger did not clean up timers. We have already cleared the merging
                 // window and therefore the Trigger state, however, so nothing to do.
                 return;
-            } else {
             }
         } else {
             mergingWindows = null;
@@ -659,7 +670,6 @@ public class WindowOperator<K, IN, ACC, OUT, W extends Window>
                 // trigger did not clean up timers. We have already cleared the merging
                 // window and therefore the Trigger state, however, so nothing to do.
                 return;
-            } else {
             }
         } else {
             mergingWindows = null;
@@ -701,20 +711,13 @@ public class WindowOperator<K, IN, ACC, OUT, W extends Window>
         }
     }
 
-    /**
-     * Drops all state for the given window and calls {@link Trigger#clear(Window,
-     * Trigger.TriggerContext)}.
-     *
-     * <p>The caller must ensure that the correct key is set in the state backend and the
-     * triggerContext object.
-     */
-    /**
-     * Emits the contents of the given window using the {@link InternalWindowFunction}.
-     */
     @SuppressWarnings("unchecked")
     private void emitWindowContents(K key, W window, ACC contents) throws Exception {
         timestampedCollector.setAbsoluteTimestamp(window.maxTimestamp());
         processContext.window = window;
+
+        PaneInfo paneInfo = computePaneInfo(key, window);
+        processContext.currentPaneInfo = paneInfo;
 
         if (evictor != null) {
             Iterable<IN> elements = (Iterable<IN>) contents;
@@ -749,10 +752,52 @@ public class WindowOperator<K, IN, ACC, OUT, W extends Window>
             }
             userFunction.process(
                     key, window, processContext, (ACC) (Iterable<IN>) evictedElements, timestampedCollector);
+            evictor.evictAfter(wrapped, wrapped.size(), window, evictorContext);
         } else {
             userFunction.process(
                     key, window, processContext, contents, timestampedCollector);
         }
+
+        if (accumulationMode == AccumulationMode.DISCARDING) {
+            clearWindowContents(key, window);
+        }
+    }
+
+    private PaneInfo computePaneInfo(K key, W window) {
+        String paneKey = paneKey(key, window);
+        PaneTrackingInfo tracking = paneTracking.get(paneKey);
+        if (tracking == null) {
+            tracking = new PaneTrackingInfo();
+            paneTracking.put(paneKey, tracking);
+        }
+
+        long watermark = internalTimerService.currentWatermark();
+        PaneInfo.PaneTiming timing;
+        boolean isOnTimeOrLate = watermark >= window.maxTimestamp();
+
+        if (isOnTimeOrLate && !tracking.onTimeEmitted) {
+            timing = PaneInfo.PaneTiming.ON_TIME;
+            tracking.onTimeEmitted = true;
+        } else if (isOnTimeOrLate && tracking.onTimeEmitted) {
+            timing = PaneInfo.PaneTiming.LATE;
+        } else {
+            timing = PaneInfo.PaneTiming.EARLY;
+        }
+
+        boolean isFirst = tracking.paneIndex == 0;
+        int index = tracking.paneIndex;
+        tracking.paneIndex++;
+
+        return new PaneInfo(index, isFirst, false, timing);
+    }
+
+    private String paneKey(K key, W window) {
+        return key + STATE_KEY_SEPARATOR + windowNamespace(window);
+    }
+
+    private static class PaneTrackingInfo {
+        int paneIndex = 0;
+        boolean onTimeEmitted = false;
     }
 
     /**
@@ -1021,6 +1066,10 @@ public class WindowOperator<K, IN, ACC, OUT, W extends Window>
     }
 
     private void clearWindowContents(K key, W window) {
+        String paneKey = paneKey(key, window);
+        if (paneTracking != null) {
+            paneTracking.remove(paneKey);
+        }
         if (newAppendingWindowState != null) {
             IKeyedStateBackend<K> typedBackend = this.getKeyedStateBackend();
             typedBackend.setCurrentKey(key);
@@ -1540,6 +1589,7 @@ public class WindowOperator<K, IN, ACC, OUT, W extends Window>
      */
     public class WindowContext implements InternalWindowFunction.InternalWindowContext {
         protected W window;
+        protected PaneInfo currentPaneInfo;
 
         public WindowContext(W window) {
             this.window = window;
@@ -1588,6 +1638,11 @@ public class WindowOperator<K, IN, ACC, OUT, W extends Window>
                 throw new StreamException(ERR_STREAM_NULL_ARG).param(ARG_ARG_NAME, "outputTag");
             }
             output.collect(outputTag, new StreamRecord<>(value, window.maxTimestamp()));
+        }
+
+        @Override
+        public PaneInfo getPaneInfo() {
+            return currentPaneInfo;
         }
     }
 

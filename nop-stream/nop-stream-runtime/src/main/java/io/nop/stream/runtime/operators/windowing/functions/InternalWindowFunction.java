@@ -22,6 +22,7 @@ import io.nop.stream.core.common.functions.StreamFunction;
 import io.nop.stream.core.common.state.KeyedStateStore;
 import io.nop.stream.core.util.Collector;
 import io.nop.stream.core.util.OutputTag;
+import io.nop.stream.core.windowing.PaneInfo;
 import io.nop.stream.core.windowing.windows.Window;
 
 /**
@@ -66,5 +67,7 @@ public interface InternalWindowFunction<IN, OUT, KEY, W extends Window> extends 
         KeyedStateStore globalState();
 
         <X> void output(OutputTag<X> outputTag, X value);
+
+        PaneInfo getPaneInfo();
     }
 }

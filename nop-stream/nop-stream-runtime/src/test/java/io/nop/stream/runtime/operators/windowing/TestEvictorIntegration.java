@@ -49,7 +49,8 @@ public class TestEvictorIntegration {
                         (Class) Object.class,
                         new ListStateDescriptor<>("window-contents", Integer.class),
                         null,
-                        CountEvictor.of(2));
+                        CountEvictor.of(2),
+                        null);
 
         operator.setOutput((Output) output);
         operator.open();
@@ -89,6 +90,7 @@ public class TestEvictorIntegration {
                         (Class) Object.class,
                         new ListStateDescriptor<>("window-contents", Integer.class),
                         null,
+                        null,
                         null);
 
         operator.setOutput((Output) output);
@@ -122,10 +124,11 @@ public class TestEvictorIntegration {
                 Class accClass,
                 io.nop.stream.core.common.state.StateDescriptor windowStateDescriptor,
                 BiFunction mergeFunction,
-                io.nop.stream.core.windowing.evictors.Evictor evictor) {
+                io.nop.stream.core.windowing.evictors.Evictor evictor,
+                io.nop.stream.core.windowing.AccumulationMode accumulationMode) {
             super(windowAssigner, windowSerializer, keySelector, keySerializer, keyClass,
                     windowFunction, trigger, allowedLateness, lateDataOutputTag,
-                    accClass, windowStateDescriptor, mergeFunction, evictor);
+                    accClass, windowStateDescriptor, mergeFunction, evictor, accumulationMode);
         }
 
         void advanceInternalWatermark(long timestamp) throws Exception {

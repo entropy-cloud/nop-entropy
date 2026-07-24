@@ -5,6 +5,7 @@ import io.nop.stream.core.common.functions.WindowFunction;
 import io.nop.stream.core.common.state.KeyedStateStore;
 import io.nop.stream.core.util.Collector;
 import io.nop.stream.core.util.OutputTag;
+import io.nop.stream.core.windowing.PaneInfo;
 import io.nop.stream.core.windowing.windows.TimeWindow;
 import org.junit.jupiter.api.Test;
 
@@ -55,6 +56,11 @@ public class TestInternalWindowFunctionAdapters {
 
         @Override
         public <X> void output(OutputTag<X> outputTag, X value) {
+        }
+
+        @Override
+        public PaneInfo getPaneInfo() {
+            return new PaneInfo(0, true, true, PaneInfo.PaneTiming.ON_TIME);
         }
     }
 

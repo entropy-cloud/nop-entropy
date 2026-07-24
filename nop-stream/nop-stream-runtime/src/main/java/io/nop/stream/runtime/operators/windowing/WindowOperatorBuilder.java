@@ -32,6 +32,7 @@ import io.nop.stream.core.common.typeutils.TypeSerializer;
 import io.nop.stream.core.exceptions.StreamException;
 import io.nop.stream.core.util.Collector;
 import io.nop.stream.core.util.OutputTag;
+import io.nop.stream.core.windowing.AccumulationMode;
 import io.nop.stream.core.windowing.assigners.WindowAssigner;
 import io.nop.stream.core.windowing.evictors.Evictor;
 import io.nop.stream.core.windowing.triggers.Trigger;
@@ -55,6 +56,7 @@ public class WindowOperatorBuilder<IN, K, W extends Window> {
     private TypeSerializer<K> keySerializer;
     private TypeSerializer<W> windowSerializer;
     private OutputTag<IN> lateDataOutputTag;
+    private AccumulationMode accumulationMode;
 
     public WindowOperatorBuilder<IN, K, W> windowAssigner(WindowAssigner<? super IN, W> windowAssigner) {
         this.windowAssigner = windowAssigner;
@@ -98,6 +100,11 @@ public class WindowOperatorBuilder<IN, K, W extends Window> {
 
     public WindowOperatorBuilder<IN, K, W> lateDataOutputTag(OutputTag<IN> lateDataOutputTag) {
         this.lateDataOutputTag = lateDataOutputTag;
+        return this;
+    }
+
+    public WindowOperatorBuilder<IN, K, W> accumulationMode(AccumulationMode accumulationMode) {
+        this.accumulationMode = accumulationMode;
         return this;
     }
 
@@ -191,7 +198,8 @@ public class WindowOperatorBuilder<IN, K, W extends Window> {
                 (Class) accClass,
                 stateDesc,
                 mergeFn,
-                evictor);
+                evictor,
+                accumulationMode);
     }
 
     private static <T> AggregateFunction<T, T, T> reduceFunctionAsAggregate(ReduceFunction<T> reduceFunction) {

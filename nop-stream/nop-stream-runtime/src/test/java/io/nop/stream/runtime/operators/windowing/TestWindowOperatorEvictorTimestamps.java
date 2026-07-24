@@ -123,7 +123,7 @@ class TestWindowOperatorEvictorTimestamps {
                 Evictor<Integer, TimeWindow> evictor) {
             super(windowAssigner, windowSerializer, keySelector, keySerializer, keyClass,
                     windowFunction, trigger, allowedLateness, lateDataOutputTag,
-                    (Class<Object>) (Class<?>) Object.class, null, null, evictor);
+                    (Class<Object>) (Class<?>) Object.class, null, null, evictor, null);
         }
 
         void advanceInternalWatermark(long timestamp) throws Exception {
