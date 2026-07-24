@@ -14,6 +14,7 @@ import io.nop.batch.core.IBatchLoaderProvider;
 import io.nop.batch.core.IBatchTaskContext;
 import io.nop.batch.core.impl.BatchTaskContextImpl;
 
+import io.nop.stream.core.common.functions.source.ReplayableSourceFunction;
 import io.nop.stream.core.common.functions.source.SourceConsistencyCapability;
 import io.nop.stream.core.common.functions.source.SourceFunction;
 import io.nop.stream.core.exceptions.StreamException;
@@ -29,7 +30,7 @@ import static io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_NULL_ARG;
  * Calls {@code loader.load(batchSize, chunkContext)} in a loop, emitting each record
  * individually to the stream. When the loader returns an empty list, the source completes.
  */
-public class BatchLoaderSourceFunction<S> implements SourceFunction<S> {
+public class BatchLoaderSourceFunction<S> implements ReplayableSourceFunction<S> {
 
     private static final long serialVersionUID = 1L;
 
@@ -37,6 +38,8 @@ public class BatchLoaderSourceFunction<S> implements SourceFunction<S> {
     private final int batchSize;
 
     private volatile boolean running = true;
+
+    private long currentOffset = -1;
 
     public BatchLoaderSourceFunction(IBatchLoaderProvider<S> loaderProvider) {
         this(loaderProvider, 1);
@@ -71,6 +74,7 @@ public class BatchLoaderSourceFunction<S> implements SourceFunction<S> {
                         return;
                     }
                     ctx.collect(item);
+                    currentOffset++;
                 }
             }
         } finally {
@@ -88,5 +92,15 @@ public class BatchLoaderSourceFunction<S> implements SourceFunction<S> {
     @Override
     public SourceConsistencyCapability getSourceConsistency() {
         return SourceConsistencyCapability.AT_LEAST_ONCE;
+    }
+
+    @Override
+    public long getCurrentOffset() {
+        return currentOffset;
+    }
+
+    @Override
+    public void seek(long offset) {
+        this.currentOffset = offset;
     }
 }

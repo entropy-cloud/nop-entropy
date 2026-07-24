@@ -38,4 +38,6 @@ public interface IStateBackend extends Serializable {
      * @return KeyedStateBackend 实例
      */
     <K> IKeyedStateBackend<K> createKeyedStateBackend(Class<K> keyType);
+
+    IOperatorStateBackend createOperatorStateBackend();
 }

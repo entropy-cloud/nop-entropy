@@ -118,4 +118,48 @@ class TestOperatorSnapshotResult {
         OperatorSnapshotResult built = OperatorSnapshotResult.builder().build();
         assertSame(OperatorSnapshotResult.empty(), built);
     }
+
+    @Test
+    void testCheckpointParallelismDefault() {
+        assertEquals(-1, result.getCheckpointParallelism());
+    }
+
+    @Test
+    void testCheckpointParallelismSetAndGet() {
+        result.setCheckpointParallelism(4);
+        assertEquals(4, result.getCheckpointParallelism());
+    }
+
+    @Test
+    void testIsParallelismChangedUnknown() {
+        result.setCheckpointParallelism(-1);
+        assertFalse(result.isParallelismChanged(4));
+    }
+
+    @Test
+    void testIsParallelismChangedSame() {
+        result.setCheckpointParallelism(4);
+        assertFalse(result.isParallelismChanged(4));
+    }
+
+    @Test
+    void testIsParallelismChangedDifferent() {
+        result.setCheckpointParallelism(2);
+        assertTrue(result.isParallelismChanged(4));
+    }
+
+    @Test
+    void testCheckpointParallelismSerializedThroughSnapshot() {
+        result.setCheckpointParallelism(3);
+        result.putOperatorState("test-key", "test-value");
+
+        OperatorSnapshotResult copy = new OperatorSnapshotResult(
+                result.getOperatorStates(),
+                result.getKeyedStates(),
+                result.getRawKeyedStates());
+        copy.setCheckpointParallelism(result.getCheckpointParallelism());
+
+        assertEquals(3, copy.getCheckpointParallelism());
+        assertEquals("test-value", copy.getOperatorState("test-key"));
+    }
 }

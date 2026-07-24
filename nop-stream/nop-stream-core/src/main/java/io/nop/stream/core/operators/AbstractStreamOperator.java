@@ -17,6 +17,7 @@ import io.nop.stream.core.checkpoint.StateSnapshotContext;
 import io.nop.stream.core.checkpoint.TaskStateSnapshot;
 import io.nop.stream.core.common.eventtime.IndexedCombinedWatermarkStatus;
 import io.nop.stream.core.common.state.backend.IKeyedStateBackend;
+import io.nop.stream.core.common.state.backend.IOperatorStateBackend;
 import io.nop.stream.core.common.state.backend.IStateBackend;
 import io.nop.stream.core.common.state.backend.StateSnapshot;
 import io.nop.stream.core.streamrecord.LatencyMarker;
@@ -39,6 +40,7 @@ public abstract class AbstractStreamOperator<OUT> implements StreamOperator<OUT>
 
     protected IStateBackend stateBackend;
     protected IKeyedStateBackend<?> keyedStateBackend;
+    protected IOperatorStateBackend operatorStateBackend;
 
     protected transient TimerServiceManager timeServiceManager;
 
@@ -98,6 +100,14 @@ public abstract class AbstractStreamOperator<OUT> implements StreamOperator<OUT>
 
     public void setKeyedStateBackend(IKeyedStateBackend<?> keyedStateBackend) {
         this.keyedStateBackend = keyedStateBackend;
+    }
+
+    public IOperatorStateBackend getOperatorStateBackend() {
+        return operatorStateBackend;
+    }
+
+    public void setOperatorStateBackend(IOperatorStateBackend operatorStateBackend) {
+        this.operatorStateBackend = operatorStateBackend;
     }
 
     public TimerServiceManager getTimeServiceManager() {

@@ -23,6 +23,8 @@ public class OperatorSnapshotResult implements Serializable {
     private final Map<String, Object> keyedStates;
     private final Map<String, Object> rawKeyedStates;
 
+    private int checkpointParallelism = -1;
+
     private Exception error;
 
     public OperatorSnapshotResult() {
@@ -56,6 +58,20 @@ public class OperatorSnapshotResult implements Serializable {
 
     public boolean isEmpty() {
         return operatorStates.isEmpty() && keyedStates.isEmpty() && rawKeyedStates.isEmpty();
+    }
+
+    public int getCheckpointParallelism() {
+        return checkpointParallelism;
+    }
+
+    public void setCheckpointParallelism(int checkpointParallelism) {
+        this.checkpointParallelism = checkpointParallelism;
+    }
+
+    public boolean isParallelismChanged(int currentParallelism) {
+        if (checkpointParallelism <= 0)
+            return false;
+        return checkpointParallelism != currentParallelism;
     }
 
     public boolean hasError() {

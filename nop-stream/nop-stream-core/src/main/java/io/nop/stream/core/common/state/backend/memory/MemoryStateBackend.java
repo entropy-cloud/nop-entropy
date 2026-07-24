@@ -10,6 +10,7 @@ package io.nop.stream.core.common.state.backend.memory;
 import java.io.Serializable;
 
 import io.nop.stream.core.common.state.backend.IKeyedStateBackend;
+import io.nop.stream.core.common.state.backend.IOperatorStateBackend;
 import io.nop.stream.core.common.state.backend.IStateBackend;
 import io.nop.stream.core.exceptions.StreamException;
 
@@ -69,5 +70,10 @@ public class MemoryStateBackend implements IStateBackend, Serializable {
     @Override
     public <K> IKeyedStateBackend<K> createKeyedStateBackend(Class<K> keyType) {
         return new MemoryKeyedStateBackend<>(keyType, shardCount);
+    }
+
+    @Override
+    public IOperatorStateBackend createOperatorStateBackend() {
+        return new MemoryOperatorStateBackend();
     }
 }
