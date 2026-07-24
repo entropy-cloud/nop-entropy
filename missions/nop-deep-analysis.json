@@ -1,0 +1,20 @@
+{
+  "name": "nop-deep-analysis",
+  "description": "Nop 平台设计与实现的深度分析 + 下一代框架联网对标，产出深度介绍材料（分析型任务，轻量验证，closure audit 为质量门）",
+  "roadmapPath": "ai-dev/design/nop-deep-analysis/nop-deep-analysis-roadmap.md",
+  "plansDir": "ai-dev/plans/nop-deep-analysis",
+  "planGuide": "ai-dev/plans/00-plan-authoring-and-execution-guide.md",
+  "auditsDir": "ai-dev/audits",
+  "moduleDir": ".",
+  "contextDir": "docs-for-ai/00-start-here",
+  "prompts": {
+    "multiAudit": "ai-dev/skills/deep-audit-prompts.md",
+    "openAudit": "ai-dev/skills/open-ended-adversarial-review-prompt.md"
+  },
+  "commands": {
+    "test": "node ai-dev/tools/check-doc-links.mjs --strict; echo \"doc-links check (non-blocking, analysis mission)\"",
+    "build": "echo 'nop-deep-analysis: no build step (analysis mission)'",
+    "lint": "echo 'nop-deep-analysis: no lint step (analysis mission)'",
+    "typecheck": "echo 'nop-deep-analysis: no typecheck step (analysis mission)'"
+  }
+}
