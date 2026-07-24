@@ -148,6 +148,16 @@ public class MemoryOperatorStateBackend implements IOperatorStateBackend {
         operatorStates.putAll(redistributed);
     }
 
+    @Override
+    public Object getRawState(String key) {
+        return operatorStates.get(key);
+    }
+
+    @Override
+    public void putRawState(String key, Object value) {
+        operatorStates.put(key, value);
+    }
+
     public Map<String, Object> getOperatorStates() {
         return operatorStates;
     }

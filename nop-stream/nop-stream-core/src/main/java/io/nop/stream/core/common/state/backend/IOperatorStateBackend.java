@@ -20,4 +20,8 @@ public interface IOperatorStateBackend extends Serializable {
 
     void restoreState(List<OperatorSnapshotResult> oldSnapshots, int oldParallelism,
                       RedistributionMode mode, int taskIndex, int newParallelism) throws Exception;
+
+    Object getRawState(String key);
+
+    void putRawState(String key, Object value);
 }

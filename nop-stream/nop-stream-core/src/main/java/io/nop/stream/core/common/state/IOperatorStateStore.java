@@ -5,12 +5,9 @@
  * Gitee:  https://gitee.com/canonical-entropy/nop-entropy
  * Github: https://github.com/entropy-cloud/nop-entropy
  */
-package io.nop.stream.core.checkpoint;
+package io.nop.stream.core.common.state;
 
-import io.nop.stream.core.common.state.IOperatorStateStore;
+public interface IOperatorStateStore {
 
-public interface FunctionInitializationContext {
-    boolean isRestored();
-
-    IOperatorStateStore getOperatorStateStore();
+    <T> ListState<T> getListState(ListStateDescriptor<T> descriptor);
 }

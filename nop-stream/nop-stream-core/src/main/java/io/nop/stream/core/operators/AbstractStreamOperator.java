@@ -60,7 +60,9 @@ public abstract class AbstractStreamOperator<OUT> implements StreamOperator<OUT>
 
     @Override
     public void open() throws Exception {
-        // subclasses may override
+        if (stateBackend != null && operatorStateBackend == null) {
+            operatorStateBackend = stateBackend.createOperatorStateBackend();
+        }
     }
 
     @Override
@@ -120,7 +122,8 @@ public abstract class AbstractStreamOperator<OUT> implements StreamOperator<OUT>
 
     /**
      * Restores operator state from a previously taken snapshot.
-     * Default implementation restores keyed state from the state backend.
+     * Default implementation restores keyed state from the state backend
+     * and operator state from the operator state backend.
      *
      * @param snapshotResult the snapshot to restore from
      * @throws Exception if restoration fails
@@ -128,6 +131,13 @@ public abstract class AbstractStreamOperator<OUT> implements StreamOperator<OUT>
     public void restoreState(OperatorSnapshotResult snapshotResult) throws Exception {
         if (snapshotResult == null) {
             return;
+        }
+
+        if (operatorStateBackend != null) {
+            Map<String, Object> operatorStates = snapshotResult.getOperatorStates();
+            if (operatorStates != null && !operatorStates.isEmpty()) {
+                operatorStateBackend.restoreState(snapshotResult);
+            }
         }
 
         Map<String, Object> keyedStates = snapshotResult.getKeyedStates();
@@ -188,6 +198,15 @@ public abstract class AbstractStreamOperator<OUT> implements StreamOperator<OUT>
             StateSnapshot snapshot = keyedStateBackend.snapshotState();
             if (snapshot != null && !snapshot.isEmpty()) {
                 result.putKeyedState("keyed-state", snapshot);
+            }
+        }
+
+        if (operatorStateBackend != null) {
+            OperatorSnapshotResult opResult = operatorStateBackend.snapshotState(context.getCheckpointId());
+            if (opResult != null && !opResult.isEmpty()) {
+                for (Map.Entry<String, Object> entry : opResult.getOperatorStates().entrySet()) {
+                    result.putOperatorState(entry.getKey(), entry.getValue());
+                }
             }
         }
 

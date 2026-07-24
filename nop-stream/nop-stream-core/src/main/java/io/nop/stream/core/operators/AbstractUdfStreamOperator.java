@@ -29,6 +29,8 @@ import io.nop.stream.core.common.functions.ICheckpointedFunction;
 import io.nop.stream.core.common.functions.SinkFunction;
 import io.nop.stream.core.common.functions.StreamFunction;
 import io.nop.stream.core.common.state.CheckpointListener;
+import io.nop.stream.core.common.state.DefaultOperatorStateStore;
+import io.nop.stream.core.common.state.IOperatorStateStore;
 
 import io.nop.stream.core.util.FunctionUtils;
 
@@ -108,12 +110,23 @@ public abstract class AbstractUdfStreamOperator<OUT, F extends StreamFunction>
     @Override
     public void initializeState(TaskStateSnapshot taskStateSnapshot) throws Exception {
         if (userFunction instanceof ICheckpointedFunction) {
+            if (operatorStateBackend == null && stateBackend != null) {
+                operatorStateBackend = stateBackend.createOperatorStateBackend();
+            }
+            IOperatorStateStore operatorStateStore = operatorStateBackend != null
+                    ? new DefaultOperatorStateStore(operatorStateBackend)
+                    : null;
             FunctionInitializationContext fnCtx = new FunctionInitializationContext() {
                 private static final long serialVersionUID = 1L;
 
                 @Override
                 public boolean isRestored() {
                     return taskStateSnapshot != null && !taskStateSnapshot.isEmpty();
+                }
+
+                @Override
+                public IOperatorStateStore getOperatorStateStore() {
+                    return operatorStateStore;
                 }
             };
             ((ICheckpointedFunction) userFunction).initializeState(fnCtx);
