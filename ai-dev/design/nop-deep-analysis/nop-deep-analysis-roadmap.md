@@ -29,7 +29,7 @@
 - A2. 核心引擎剖析（nop-core / xlang / xdef / dao / graphql / NopIoC）+ 联网对标 Spring 生态与云原生框架: `done`
 - A3. 模型驱动开发、代码生成与 Delta 定制 + 联网对标代码生成生态: `done`
 - A4. GraphQL 引擎、服务层与前后端一体化渲染 + 联网对标 GraphQL / BFF / 低代码前端: `done`
-- A5. 业务模块矩阵全景与定位 + 联网对标各领域竞品: `planned`
+- A5. 业务模块矩阵全景与定位 + 联网对标各领域竞品: `done`
 - A6. 工程化、开发者体验与 AI 辅助开发（mission-driver / cli / AutoTest / e2e / 文档体系）+ 联网对标 AI 开发工具链: `planned`
 - A7. 综合评估、下一代框架对标与平台演进建议（capstone 深度介绍材料）: `todo`
 
@@ -139,7 +139,7 @@
 **Goal：** 给出平台模块生态的全景图与各模块定位，避免把平台讲成「单一能力」。
 
 **Deliverables：**
-- 分析文档 `ai-dev/analysis/2026-07/2026-07-XX-nop-module-matrix.md`
+- 分析文档 `ai-dev/analysis/2026-07/2026-07-24-nop-module-matrix.md`
 - 覆盖：`nop-auth`（权限/认证）、`nop-wf`（工作流）、`nop-task`/`nop-job`（任务/调度）、`nop-ai`（AI Agent）、`nop-rule`（规则）、`nop-report`（报表）、`nop-batch`（批处理）、`nop-stream`（流处理）、`nop-code`（低代码）、`nop-metadata`（元数据治理）等模块矩阵 + 依赖关系
 - **联网调研**：逐领域对标主流竞品（工作流 Flowable/Camunda、调度 XXL-Job/PowerJob/SnailJob、规则 Drools、流 Flink、AI 编排 LangGraph/Agno、元数据 DataHub/OpenMetadata）——优先复用 `ai-dev/analysis/` 既有对比结论
 
