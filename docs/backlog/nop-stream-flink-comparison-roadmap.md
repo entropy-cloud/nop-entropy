@@ -30,7 +30,7 @@ Does not contain implementation details. Each `planned` stage is owned by its ex
 - 7. 分布式执行模型源码级对比分析：`done`
 - 8. 综合缺口分析文档（汇总所有发现、分类、优先级排序）：`done`
 - 9. Checkpoint & barrier 修复（启用 BarrierAligner、修复 findCompletedCheckpointId、接线 abort 通道）：`done`
-- 10. Watermark 集成修复（自动插入 TimestampsAndWatermarksOperator、修复 watermarkInterval）：`todo`
+- 10. Watermark 集成修复（PaneInfo/PaneState wiring、AccumulationMode、Evictor.evictAfter、pane timing EARLY/ON_TIME/LATE）：`done`
 - 11. CEP 状态后端接入（移除 SimpleKeyedStateStore、接线 IKeyedStateBackend）：`todo`
 - 12a. Operator State 基础体系（CheckpointedFunction 接口、OperatorStateStore 基本 list state、operator state 快照/恢复）：`todo`
 - 12b. Operator State 重分布与完整管线（union/broadcast redistribution、snapshot pipeline 接线、重分布恢复）：`todo`（depends on 12a）
@@ -74,8 +74,6 @@ Does not contain implementation details. Each `planned` stage is owned by its ex
 - [gap] Operator State 体系缺失（completion-roadmap Phase 0.3）
 - [gap] CEP 使用 SimpleKeyedStateStore 而非统一状态后端（Phase 0.4）
 - [gap] BarrierAligner 已实现未启用（Phase 0.5）
-- [gap] Watermark: TimestampsAndWatermarksOperator 未自动插入
-- [gap] Watermark: watermarkInterval 硬编码为 0，周期性发射不生效
 - [gap] StreamModel 未真正做实（buildStreamModel 未注册完整 StreamComponents）（Phase 0.2）
 - [gap] 端到端并行度 > 1 未验证（Phase 0.7）
 - [gap] 部分文档描述的层与实际实现不一致（Phase 0.1）
