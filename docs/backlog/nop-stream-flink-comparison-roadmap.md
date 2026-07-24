@@ -26,7 +26,7 @@ Does not contain implementation details. Each `planned` stage is owned by its ex
 - 3. Checkpoint & barrier 机制源码级对比分析：`done`
 - 4. 状态管理 & 状态后端源码级对比分析：`done`
 - 5. 窗口机制 & 时间模型源码级对比分析：`done`
-- 6. CEP 引擎源码级对比分析：`todo`
+- 6. CEP 引擎源码级对比分析：`done`
 - 7. 分布式执行模型源码级对比分析：`todo`
 - 8. 综合缺口分析文档（汇总所有发现、分类、优先级排序）：`todo`
 - 9. Checkpoint & barrier 修复（启用 BarrierAligner、修复 findCompletedCheckpointId、接线 abort 通道）：`todo`
@@ -413,3 +413,37 @@ graph TD
 - Status changes happen only in the Work Items block at the top.
 - **Document review rule**: any doc created or modified under this roadmap must go through independent sub-agent iterative review (different task_id each round, must reach consensus with no Blocker remaining). This rule applies to the roadmap itself, all analysis docs, execution plans, and design docs created/modified as part of this mission.
 - Analysis artifacts output to `ai-dev/analysis/nop-stream/` with naming pattern `NN-<topic>.md` (per deliverable paths specified in each stage detail section).
+
+## Follow-up Backlog
+
+> P2 findings from completed audits, not warranting a dedicated plan. Source audit paths preserved for traceability.
+
+### `source-anchors.md` has zero nop-stream entries
+
+- **Source**: `docs/audits/nop-stream-flink-comparison/2026-07-24-2227-multi-audit-nop-stream-flink-comparison.md` (P2)
+- **Description**: `source-anchors.md` (193 lines) has zero matches for "nop-stream" or any major nop-stream class.
+- **Recommendation**: Add anchor entries for `HeapInternalTimerService`, `JobGraphGenerator`, `ForwardPartitioner`, `WindowOperator`, `PendingCheckpoint`, `CheckpointCoordinator`, `CheckpointMetrics`, `StreamModel`, `WindowOperatorBuilder`, etc.
+
+### `CheckpointMetricsSnapshot.toString()` omits `failureCause`
+
+- **Source**: `docs/audits/nop-stream-flink-comparison/2026-07-24-2227-multi-audit-nop-stream-flink-comparison.md` (P2)
+- **Description**: `CheckpointMetricsSnapshot.toString()` at line 80-90 does not include the `failureCause` field.
+- **Recommendation**: Add `", failureCause='" + failureCause + '\''` to the `toString()` output.
+
+### `WindowOperator` has empty else blocks (AR-5)
+
+- **Source**: `docs/audits/nop-stream-flink-comparison/2026-07-24-2227-open-audit-nop-stream-flink-comparison.md` (P2)
+- **Description**: `WindowOperator.java:606, 663` — empty `else {}` blocks after the `stateWindow == null` early return check.
+- **Recommendation**: Remove the empty `else {}` blocks as dead code.
+
+### `OperatorChain.open()` javadoc contradicts implementation (AR-6)
+
+- **Source**: `docs/audits/nop-stream-flink-comparison/2026-07-24-2227-open-audit-nop-stream-flink-comparison.md` (P2)
+- **Description**: Javadoc at line 92-93 says "forward order" but implementation at lines 98-110 iterates in reverse.
+- **Recommendation**: Fix javadoc to match reverse-order implementation, or correct the loop direction if forward-order was intended.
+
+### `PartitionPolicy` enum values `UNION` and `SINGLETON` are dead code (AR-7)
+
+- **Source**: `docs/audits/nop-stream-flink-comparison/2026-07-24-2227-open-audit-nop-stream-flink-comparison.md` (P2)
+- **Description**: `PartitionPolicy.java:10-18` declares `UNION` and `SINGLETON` but no production code ever sets them.
+- **Recommendation**: Either (a) remove `UNION` and `SINGLETON`, or (b) add `@Deprecated` javadoc noting they are reserved.
