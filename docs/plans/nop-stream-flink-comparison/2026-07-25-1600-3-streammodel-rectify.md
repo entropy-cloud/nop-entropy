@@ -1,6 +1,6 @@
 # 13 StreamModel Rectify
 
-> Plan Status: draft
+> Plan Status: active
 > Plan Type: implementation
 > Mission: nop-stream-flink-comparison
 > Work Item: roadmap item 13
