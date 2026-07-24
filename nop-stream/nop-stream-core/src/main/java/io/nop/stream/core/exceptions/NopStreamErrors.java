@@ -157,6 +157,9 @@ public interface NopStreamErrors {
     ErrorCode ERR_STREAM_CHECKPOINT_ABORTED =
             define("nop.err.stream.checkpoint-aborted", "Checkpoint aborted: {reason}", ARG_REASON);
 
+    ErrorCode ERR_STREAM_CHECKPOINT_FAILED =
+            define("nop.err.stream.checkpoint-failed", "Checkpoint failed: {reason}", ARG_REASON);
+
     String ARG_TIMEOUT_MS = "timeoutMs";
 
     ErrorCode ERR_STREAM_BARRIER_ALIGNMENT_TIMEOUT =

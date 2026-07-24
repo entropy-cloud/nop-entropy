@@ -20,6 +20,7 @@ import io.nop.stream.core.exceptions.StreamException;
 
 import static io.nop.stream.core.exceptions.NopStreamErrors.ARG_REASON;
 import static io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_CHECKPOINT_ABORTED;
+import static io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_CHECKPOINT_FAILED;
 import io.nop.stream.core.checkpoint.CompletedCheckpoint;
 import io.nop.stream.core.checkpoint.TaskLocation;
 import io.nop.stream.core.checkpoint.TaskStateSnapshot;
@@ -177,8 +178,8 @@ public class PendingCheckpoint {
             isDisposed = true;
             if (!completableFuture.isDone()) {
                 Exception error = cause != null
-                        ? new StreamException(ERR_STREAM_CHECKPOINT_ABORTED, cause).param(ARG_REASON, reason)
-                        : new StreamException(ERR_STREAM_CHECKPOINT_ABORTED).param(ARG_REASON, reason);
+                        ? new StreamException(ERR_STREAM_CHECKPOINT_FAILED, cause).param(ARG_REASON, reason)
+                        : new StreamException(ERR_STREAM_CHECKPOINT_FAILED).param(ARG_REASON, reason);
                 completableFuture.completeExceptionally(error);
             }
         }

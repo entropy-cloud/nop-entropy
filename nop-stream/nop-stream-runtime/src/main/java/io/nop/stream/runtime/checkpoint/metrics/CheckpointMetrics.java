@@ -82,6 +82,11 @@ public class CheckpointMetrics {
         totalStateSize.addAndGet(bytes);
     }
 
+    public void recordAborted(String reason) {
+        numAbortedCheckpoints.incrementAndGet();
+        this.failureCause = reason;
+    }
+
     public void recordFailure(String cause) {
         incrementFailedCheckpoints();
         this.failureCause = cause;

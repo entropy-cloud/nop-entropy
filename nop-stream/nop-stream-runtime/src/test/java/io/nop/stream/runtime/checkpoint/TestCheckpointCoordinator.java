@@ -428,6 +428,21 @@ class TestCheckpointCoordinator {
     }
 
     @Test
+    void testAbortMetricsDoesNotInflateFailureCounter() {
+        PendingCheckpoint pending = coordinator.tryTriggerPendingCheckpoint(CheckpointType.CHECKPOINT);
+        assertNotNull(pending);
+
+        coordinator.abortPendingCheckpoint(pending, "Test abort");
+
+        assertEquals(0, coordinator.getMetrics().getNumFailedCheckpoints(),
+                "Abort should NOT increment failed checkpoint counter");
+        assertEquals(1, coordinator.getMetrics().getNumAbortedCheckpoints(),
+                "Abort should increment aborted checkpoint counter");
+        assertTrue(coordinator.getMetrics().getFailureCause().contains("Aborted"),
+                "Failure cause should contain 'Aborted'");
+    }
+
+    @Test
     void testEpochManifestStorageFailureAbortsCheckpoint() throws Exception {
         java.util.concurrent.atomic.AtomicBoolean storeCheckpointCalled = new java.util.concurrent.atomic.AtomicBoolean(false);
         java.util.concurrent.atomic.AtomicBoolean storeManifestFailed = new java.util.concurrent.atomic.AtomicBoolean(false);

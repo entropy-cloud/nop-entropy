@@ -333,7 +333,7 @@ public class CheckpointCoordinator {
         removed.abort(reason);
         decrementPendingCheckpointCount();
 
-        metrics.recordFailure("Aborted: " + reason);
+        metrics.recordAborted("Aborted: " + reason);
 
         // Notify participants about abort: finishCommit(false) keeps prepared transactions for subsuming
         notifyParticipantsFinishCommit(checkpointId, false);

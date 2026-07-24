@@ -66,6 +66,26 @@ class TestCheckpointMetrics {
     }
 
     @Test
+    void testRecordAborted_incrementsAbortedNotFailed() {
+        metrics.recordAborted("Aborted: Timeout");
+        assertEquals(0, metrics.getNumFailedCheckpoints());
+        assertEquals(1, metrics.getNumAbortedCheckpoints());
+        assertEquals("Aborted: Timeout", metrics.getFailureCause());
+    }
+
+    @Test
+    void testRecordAborted_doesNotOverwriteFailureCause() {
+        metrics.recordFailure("Real failure");
+        assertEquals("Real failure", metrics.getFailureCause());
+        assertEquals(1, metrics.getNumFailedCheckpoints());
+
+        metrics.recordAborted("Aborted: Timeout");
+        assertEquals("Aborted: Timeout", metrics.getFailureCause());
+        assertEquals(1, metrics.getNumFailedCheckpoints());
+        assertEquals(1, metrics.getNumAbortedCheckpoints());
+    }
+
+    @Test
     void testSnapshot_isDecoupledFromSubsequentChanges() {
         metrics.incrementCompletedCheckpoints();
         CheckpointMetricsSnapshot snap = metrics.snapshot();
