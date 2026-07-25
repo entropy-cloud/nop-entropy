@@ -240,6 +240,17 @@ class TestTaskManagerLivenessAndReporting {
         public void reportNodeTaskLiveness(String nodeId, List<TaskProgress> progress) {
             livenessBatches.add(new ArrayList<>(progress));
         }
+
+        @Override
+        public void terminate(io.nop.stream.core.checkpoint.JobTerminationMode mode) {}
+
+        @Override
+        public void abortCheckpoint(long epochId) {}
+
+        @Override
+        public io.nop.stream.runtime.coordinator.JobStatusResponse getJobStatus() {
+            return new io.nop.stream.runtime.coordinator.JobStatusResponse();
+        }
     }
 
     static class NoopMessageService implements IMessageService {

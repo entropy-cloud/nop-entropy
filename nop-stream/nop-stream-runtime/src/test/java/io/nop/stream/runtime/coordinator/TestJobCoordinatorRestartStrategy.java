@@ -89,9 +89,9 @@ class TestJobCoordinatorRestartStrategy {
 
     @Test
     void jobStatusStartsAsCreatedThenRunning() {
-        assertEquals(JobStatus.CREATED, coordinator.getJobStatus());
+        assertEquals(JobStatus.CREATED, coordinator.getJobStatus().getJobStatus());
         coordinator.start();
-        assertEquals(JobStatus.RUNNING, coordinator.getJobStatus());
+        assertEquals(JobStatus.RUNNING, coordinator.getJobStatus().getJobStatus());
     }
 
     @Test
@@ -114,16 +114,16 @@ class TestJobCoordinatorRestartStrategy {
         coordinator.assignTasks();
 
         assertEquals(0, coordinator.getRestartCount());
-        assertEquals(JobStatus.RUNNING, coordinator.getJobStatus());
+        assertEquals(JobStatus.RUNNING, coordinator.getJobStatus().getJobStatus());
 
         coordinator.globalRecovery();
         assertEquals(1, coordinator.getRestartCount());
-        assertEquals(JobStatus.RUNNING, coordinator.getJobStatus(),
+        assertEquals(JobStatus.RUNNING, coordinator.getJobStatus().getJobStatus(),
                 "1st recovery (count=1, cap=2) should keep job RUNNING");
 
         coordinator.globalRecovery();
         assertEquals(2, coordinator.getRestartCount());
-        assertEquals(JobStatus.RUNNING, coordinator.getJobStatus(),
+        assertEquals(JobStatus.RUNNING, coordinator.getJobStatus().getJobStatus(),
                 "2nd recovery (count=2, cap=2) should keep job RUNNING");
 
         // 3rd recovery attempt: counter increments to 3 (3 > cap=2) → failJob.
@@ -131,7 +131,7 @@ class TestJobCoordinatorRestartStrategy {
         coordinator.globalRecovery();
         assertEquals(3, coordinator.getRestartCount(),
                 "counter increments before the cap check; failJob fires when count > cap");
-        assertEquals(JobStatus.FAILED, coordinator.getJobStatus(),
+        assertEquals(JobStatus.FAILED, coordinator.getJobStatus().getJobStatus(),
                 "3rd recovery attempt (count > cap=2) must call failJob");
         assertNotNull(coordinator.getJobFailureCause(),
                 "failJob must capture a cause");
@@ -146,7 +146,7 @@ class TestJobCoordinatorRestartStrategy {
 
         // maxRestarts=0 → first globalRecovery immediately fails the job
         coordinator.globalRecovery();
-        assertEquals(JobStatus.FAILED, coordinator.getJobStatus());
+        assertEquals(JobStatus.FAILED, coordinator.getJobStatus().getJobStatus());
 
         coordinator.assignTasks();
         int assignmentsAfter = coordinator.getTaskAssignments().size();
@@ -158,11 +158,11 @@ class TestJobCoordinatorRestartStrategy {
     void failJobIsIdempotent() {
         coordinator.start();
         coordinator.failJob(new RuntimeException("first"));
-        assertEquals(JobStatus.FAILED, coordinator.getJobStatus());
+        assertEquals(JobStatus.FAILED, coordinator.getJobStatus().getJobStatus());
         Throwable cause1 = coordinator.getJobFailureCause();
 
         coordinator.failJob(new RuntimeException("second"));
-        assertEquals(JobStatus.FAILED, coordinator.getJobStatus());
+        assertEquals(JobStatus.FAILED, coordinator.getJobStatus().getJobStatus());
         assertSame(cause1, coordinator.getJobFailureCause(),
                 "Second failJob must not overwrite the original cause (idempotent)");
     }
@@ -174,7 +174,7 @@ class TestJobCoordinatorRestartStrategy {
         coordinator.assignTasks();
 
         coordinator.globalRecovery();
-        assertEquals(JobStatus.FAILED, coordinator.getJobStatus());
+        assertEquals(JobStatus.FAILED, coordinator.getJobStatus().getJobStatus());
         assertEquals(1, coordinator.getRestartCount(),
                 "with maxRestarts=0, the first recovery increments the counter to 1 "
                         + "and immediately fails (1 > 0 cap)");
@@ -195,7 +195,7 @@ class TestJobCoordinatorRestartStrategy {
                 JOB_ID, "source", 0, 1,
                 TaskStatusReport.TerminalState.FAILED, "fail-1",
                 System.currentTimeMillis(), token, System.currentTimeMillis()));
-        assertEquals(JobStatus.RUNNING, coordinator.getJobStatus());
+        assertEquals(JobStatus.RUNNING, coordinator.getJobStatus().getJobStatus());
         token = coordinator.getFencingToken(); // token changed by recovery
 
         // Second FAILED → recovery #2 (count=2, still RUNNING)
@@ -203,7 +203,7 @@ class TestJobCoordinatorRestartStrategy {
                 JOB_ID, "source", 0, 2,
                 TaskStatusReport.TerminalState.FAILED, "fail-2",
                 System.currentTimeMillis(), token, System.currentTimeMillis()));
-        assertEquals(JobStatus.RUNNING, coordinator.getJobStatus());
+        assertEquals(JobStatus.RUNNING, coordinator.getJobStatus().getJobStatus());
         token = coordinator.getFencingToken();
 
         // Third FAILED → recovery #3 attempt → cap exceeded → failJob
@@ -211,7 +211,7 @@ class TestJobCoordinatorRestartStrategy {
                 JOB_ID, "source", 0, 3,
                 TaskStatusReport.TerminalState.FAILED, "fail-3",
                 System.currentTimeMillis(), token, System.currentTimeMillis()));
-        assertEquals(JobStatus.FAILED, coordinator.getJobStatus(),
+        assertEquals(JobStatus.FAILED, coordinator.getJobStatus().getJobStatus(),
                 "after 3 FAILED reports with cap=2, job must be FAILED");
     }
 

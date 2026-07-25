@@ -17,8 +17,9 @@ import io.nop.api.core.annotations.core.Internal;
  *   <li>{@code CREATED → RUNNING} on {@code JobCoordinator.start()}</li>
  *   <li>{@code RUNNING → FAILED} on {@code failJob(Throwable)} (e.g. when the
  *       global restart cap is exceeded)</li>
- *   <li>{@code RUNNING → CANCELED} on terminate(CANCEL) once we surface that
- *       transition explicitly (currently {@code stop()} path)</li>
+ *   <li>{@code RUNNING → CANCELED} on {@code terminate(CANCEL)} — Stage 28 closed
+ *       the previously-known gap: {@code terminateCancel()} now sets
+ *       {@code jobStatus = CANCELED} before {@code stop()}</li>
  * </ul>
  *
  * <p>Once {@code FAILED} or {@code CANCELED}, the coordinator stops accepting

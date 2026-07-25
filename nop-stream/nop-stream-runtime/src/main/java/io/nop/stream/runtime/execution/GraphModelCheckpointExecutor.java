@@ -409,8 +409,12 @@ public class GraphModelCheckpointExecutor {
                 triggerTerminalSavepoint(allInvokables, coordinator, config, CheckpointType.TERMINAL_SAVEPOINT);
                 break;
             case SUSPEND:
-                LOG.info("Job termination mode: SUSPEND - triggering savepoint then stopping sources");
-                triggerTerminalSavepoint(allInvokables, coordinator, config, CheckpointType.SAVEPOINT);
+                LOG.info("Job termination mode: SUSPEND - triggering terminal savepoint then stopping sources");
+                // Stage 28: CheckpointType aligned to checkpoint-design.md §7.3
+                // (TERMINAL_SAVEPOINT for DRAIN/SUSPEND). The previous SAVEPOINT
+                // was inconsistent with JobCoordinator.terminateSuspend() and
+                // with the authoritative §7.3 table.
+                triggerTerminalSavepoint(allInvokables, coordinator, config, CheckpointType.TERMINAL_SAVEPOINT);
                 stopSources(allInvokables);
                 break;
             case CANCEL:

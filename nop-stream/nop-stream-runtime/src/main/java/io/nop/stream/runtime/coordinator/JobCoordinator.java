@@ -713,6 +713,7 @@ public class JobCoordinator implements IStreamCoordinatorRpcService {
      *
      * @param mode the termination mode
      */
+    @Override
     public void terminate(JobTerminationMode mode) {
         LOG.info("Terminating job {} with mode {}", jobId, mode);
 
@@ -737,14 +738,23 @@ public class JobCoordinator implements IStreamCoordinatorRpcService {
 
     private void terminateCancel() {
         LOG.info("CANCEL: immediately stopping job {}", jobId);
+        // G56 / Stage 28: surface the CANCELED terminal transition explicitly
+        // (closes the known gap recorded in JobStatus.java — terminateCancel
+        // previously only called stop() and left jobStatus at RUNNING).
+        this.jobStatus = JobStatus.CANCELED;
         stop();
     }
 
     private void terminateDrain() {
         LOG.info("DRAIN: triggering final checkpoint for job {}", jobId);
         try {
+            // Stage 28: CheckpointType aligned to checkpoint-design.md §7.3
+            // (TERMINAL_SAVEPOINT for DRAIN/SUSPEND). The previous
+            // COMPLETED_POINT_TYPE was inconsistent with
+            // GraphModelCheckpointExecutor.handleJobTermination (DRAIN branch)
+            // and with the authoritative §7.3 table.
             PendingCheckpoint finalCheckpoint = checkpointCoordinator.tryTriggerPendingCheckpoint(
-                    CheckpointType.COMPLETED_POINT_TYPE);
+                    CheckpointType.TERMINAL_SAVEPOINT);
             if (finalCheckpoint != null) {
                 CheckpointBarrier barrier = new CheckpointBarrier(
                         finalCheckpoint.getCheckpointId(),
@@ -810,6 +820,35 @@ public class JobCoordinator implements IStreamCoordinatorRpcService {
     }
 
     // ==================== Status ====================
+
+    /**
+     * G23 / Stage 28: aborts the pending checkpoint identified by {@code epochId}
+     * via {@link CheckpointCoordinator#abortPendingCheckpoint}. This triggers the
+     * existing abort path which fires the LOCAL abort handler (registered by
+     * {@code GraphModelCheckpointExecutor.registerLocalAbortHandler}) to cancel
+     * the coordinator-JVM tasks in-process. Recovery strategy is unchanged.
+     *
+     * <p>If {@code epochId} does not match any currently-pending checkpoint, the
+     * call logs a warning and returns — the unmatched case is explicitly
+     * observable (no silent swallow, #24).
+     */
+    @Override
+    public void abortCheckpoint(long epochId) {
+        if (!running) {
+            LOG.debug("Ignoring abortCheckpoint({}) — coordinator not running for job {}", epochId, jobId);
+            return;
+        }
+        PendingCheckpoint pending = checkpointCoordinator.getPendingCheckpoint(epochId);
+        if (pending == null) {
+            // #24: explicit handling of unmatched epochId (log + return), not a
+            // silent no-op. A stale or unknown epoch may arrive from a slow/raced
+            // RPC caller; the warning makes it observable.
+            LOG.warn("abortCheckpoint({}) for job {}: no pending checkpoint matches this epochId "
+                    + "(already completed/aborted/unknown). No-op.", epochId, jobId);
+            return;
+        }
+        checkpointCoordinator.abortPendingCheckpoint(pending, "Coordinator RPC abortCheckpoint(" + epochId + ")");
+    }
 
     public String getJobId() {
         return jobId;
@@ -878,8 +917,18 @@ public class JobCoordinator implements IStreamCoordinatorRpcService {
         return restartCount.get();
     }
 
-    public JobStatus getJobStatus() {
-        return jobStatus;
+    /**
+     * G23 / Stage 28: returns a serializable snapshot of the current job status
+     * plus the captured failure cause. Satisfies
+     * {@link IStreamCoordinatorRpcService#getJobStatus()} so that local callers
+     * and (Stage 39) cross-JVM callers observe the same contract.
+     *
+     * @return a {@link JobStatusResponse} carrying the current status (never null)
+     */
+    @Override
+    public JobStatusResponse getJobStatus() {
+        String cause = jobFailureCause == null ? null : jobFailureCause.toString();
+        return new JobStatusResponse(jobStatus, cause);
     }
 
     public Throwable getJobFailureCause() {

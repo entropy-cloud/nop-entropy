@@ -326,7 +326,8 @@ class TestJobCoordinator {
         // Before termination, coordinator is running
         assertTrue(coordinator.isRunning());
 
-        // DRAIN triggers COMPLETED_POINT_TYPE checkpoint then stops
+        // DRAIN triggers TERMINAL_SAVEPOINT checkpoint then stops
+        // (Stage 28: aligned to checkpoint-design.md §7.3)
         coordinator.terminate(JobTerminationMode.DRAIN);
 
         // After DRAIN, coordinator should be stopped
@@ -334,7 +335,7 @@ class TestJobCoordinator {
 
         // The mock RPC service should have received at least one barrier
         // (from assignTasks via triggerCheckpoint or from the DRAIN termination)
-        // For DRAIN, the barrier type should be COMPLETED_POINT_TYPE
+        // For DRAIN, the barrier type should be TERMINAL_SAVEPOINT
         // Since our mock doesn't complete the future, the DRAIN will timeout
         // (configured to 500ms in setUp), but it should still have sent the barrier.
         // Let's verify the last barrier was sent (it may be null if terminateDrain

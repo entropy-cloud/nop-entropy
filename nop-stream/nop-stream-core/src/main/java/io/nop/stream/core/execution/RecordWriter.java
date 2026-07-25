@@ -121,18 +121,25 @@ public class RecordWriter<T> {
     }
 
     /**
-     * Validates that the flow control policy is supported in the local runtime.
+     * Validates that the flow control policy is the supported in-process policy.
      *
-     * <p>BLOCKING_QUEUE (the default) is the only supported policy for local execution.
-     * CREDIT_BASED and ACK_WINDOW are reserved for distributed runtime and will throw
-     * UnsupportedOperationException if used locally.
+     * <p>Stage 28 (G27): {@code BLOCKING_QUEUE} is the only in-process policy.
+     * The Flink Netty credit-based policies were permanently removed from the
+     * enum (never needed — in-process backpressure is provided by
+     * {@code BLOCKING_QUEUE} +
+     * {@link io.nop.stream.core.execution.buffer.IBufferPool}, cross-JVM by
+     * {@code IMessageService} in Stage 40). This validation is retained as a
+     * fail-fast guard so that any future unknown policy value is caught here
+     * rather than silently accepted.
      */
     private void validateFlowControlPolicy() {
         if (edgeConfig != null) {
             FlowControlPolicy policy = edgeConfig.getFlowControlPolicy();
             if (policy != FlowControlPolicy.BLOCKING_QUEUE) {
                 throw new UnsupportedOperationException(
-                        "Flow control policy " + policy + " is not supported in local runtime");
+                        "Flow control policy " + policy + " is not supported. "
+                                + "Only BLOCKING_QUEUE is supported in-process "
+                                + "(Flink Netty policies were permanently removed, G27).");
             }
         }
     }

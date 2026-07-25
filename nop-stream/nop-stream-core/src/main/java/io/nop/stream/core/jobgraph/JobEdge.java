@@ -76,7 +76,7 @@ public class JobEdge implements Serializable {
      * Gets the optional edge configuration for flow control.
      *
      * <p>When set, this configuration controls the flow control policy
-     * (e.g., BLOCKING_QUEUE, CREDIT_BASED, ACK_WINDOW) and associated parameters
+     * (e.g., BLOCKING_QUEUE) and associated parameters
      * for data exchange on this edge.
      *
      * @return the edge configuration, or null if not set

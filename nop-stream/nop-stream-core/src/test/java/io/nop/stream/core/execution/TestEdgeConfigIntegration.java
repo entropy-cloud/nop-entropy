@@ -11,12 +11,17 @@ import static org.junit.jupiter.api.Assertions.*;
 /**
  * Tests for EdgeConfig flow control integration into RecordWriter.
  *
+ * <p>Stage 28 (G27): the Flink Netty credit-based policies were permanently
+ * removed from {@link FlowControlPolicy}. The tests that verified "unsupported
+ * policy throws" were removed together with the enum values — there is no longer
+ * a test object for "unsupported policy". The enum now contains only
+ * {@link FlowControlPolicy#BLOCKING_QUEUE}.
+ *
  * <p>Verifies that:
  * <ul>
- *   <li>BLOCKING_QUEUE (default) policy works normally</li>
- *   <li>CREDIT_BASED policy throws UnsupportedOperationException</li>
- *   <li>ACK_WINDOW policy throws UnsupportedOperationException</li>
+ *   <li>BLOCKING_QUEUE (the only policy) works normally</li>
  *   <li>null EdgeConfig (no config) works normally</li>
+ *   <li>default EdgeConfig works normally</li>
  * </ul>
  */
 public class TestEdgeConfigIntegration {
@@ -73,25 +78,13 @@ public class TestEdgeConfigIntegration {
     }
 
     @Test
-    public void testCreditBasedPolicyThrows() {
-        ResultPartition partition = new ResultPartition();
-        EdgeConfig config = new EdgeConfig(FlowControlPolicy.CREDIT_BASED, 512, 256, 2048);
-
-        UnsupportedOperationException ex = assertThrows(UnsupportedOperationException.class,
-                () -> new RecordWriter<>(partition, config));
-        assertTrue(ex.getMessage().contains("CREDIT_BASED"),
-                "Exception message should mention CREDIT_BASED");
-    }
-
-    @Test
-    public void testAckWindowPolicyThrows() {
-        ResultPartition partition = new ResultPartition();
-        EdgeConfig config = new EdgeConfig(FlowControlPolicy.ACK_WINDOW, 512, 256, 2048);
-
-        UnsupportedOperationException ex = assertThrows(UnsupportedOperationException.class,
-                () -> new RecordWriter<>(partition, config));
-        assertTrue(ex.getMessage().contains("ACK_WINDOW"),
-                "Exception message should mention ACK_WINDOW");
+    public void testFlowControlPolicyEnumContainsOnlyBlockingQueue() {
+        // Stage 28 (G27): the Flink Netty credit-based policies were permanently removed.
+        // This test pins the enum to a single value so that any future re-addition
+        // is caught explicitly.
+        assertEquals(1, FlowControlPolicy.values().length,
+                "FlowControlPolicy must contain exactly one value after G27 cleanup");
+        assertEquals(FlowControlPolicy.BLOCKING_QUEUE, FlowControlPolicy.values()[0]);
     }
 
     @Test
@@ -119,17 +112,6 @@ public class TestEdgeConfigIntegration {
             }
         }
         assertEquals(3, totalRecords, "All 3 records should be written");
-    }
-
-    @Test
-    public void testMultiPartitionCreditBasedThrows() {
-        ResultPartition p0 = new ResultPartition();
-        ResultPartition p1 = new ResultPartition();
-        EdgeConfig config = new EdgeConfig(FlowControlPolicy.CREDIT_BASED, 512, 256, 2048);
-
-        assertThrows(UnsupportedOperationException.class,
-                () -> new RecordWriter<>(
-                        new ResultPartition[]{p0, p1}, null, config));
     }
 
     @Test

@@ -495,5 +495,18 @@ class TestTaskManager {
         public void reportNodeTaskLiveness(String nodeId, java.util.List<io.nop.stream.runtime.coordinator.TaskProgress> progress) {
             livenessReports.addAll(progress);
         }
+
+        @Override
+        public void terminate(io.nop.stream.core.checkpoint.JobTerminationMode mode) {
+        }
+
+        @Override
+        public void abortCheckpoint(long epochId) {
+        }
+
+        @Override
+        public io.nop.stream.runtime.coordinator.JobStatusResponse getJobStatus() {
+            return new io.nop.stream.runtime.coordinator.JobStatusResponse();
+        }
     }
 }
