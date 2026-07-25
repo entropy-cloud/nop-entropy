@@ -589,7 +589,7 @@ nop-stream-cep 直接从 Flink CEP 剥离，两者架构一致：
 |------|-------|-----------|------------|
 | 类型抽象 | `TypeInformation<T>` 层次（Basic/Composite/Generic） | `SeaTunnelDataType` 层次（BasicType/ArrayType/MapType/DecimalType） | `TypeInformation<T>`（Flink 兼容接口） |
 | 行类型 | `Row` + `RowTypeInfo` | `SeaTunnelRow` + `SeaTunnelRowType`（强 Schema 约束） | `Row` + `RowTypeInfo`（移植） |
-| 序列化器 | `TypeSerializer<T>` + `TypeSerializerSnapshot<T>`（完整版本兼容） | `Serializer<T>` 接口 + Java 序列化（默认） | `TypeSerializer<T>`（简化，无实际序列化） |
+| 序列化器 | `TypeSerializer<T>` + `TypeSerializerSnapshot<T>`（完整版本兼容） | `Serializer<T>` 接口 + Java 序列化（默认） | **不暴露序列化接口**。Store 只存取对象，内部用 `JsonTool`（JSON 反射，对象无需特殊支持）。内存 store 零序列化 |
 | 传递方式 | `TypeInformation` 在 Transformation 中传递 | `CatalogTable` + `TableSchema` 在 Action 中传递 | `TypeInformation` 在 Transformation 中传递 |
 | 泛型擦除 | `TypeHint` 辅助信息 | 强类型 Schema（列名+类型+约束） | `UnknownTypeInformation`（当前默认） |
 
@@ -597,10 +597,10 @@ nop-stream-cep 直接从 Flink CEP 剥离，两者架构一致：
 
 | 维度 | Flink | SeaTunnel | nop-stream |
 |------|-------|-----------|------------|
-| 数据序列化 | Flink Serializer（自定义高性能）、Kryo、Avro | Java 序列化（默认）、Avro、Protobuf（可插拔） | `JsonTool.serialize()`（JSON） |
+| 数据序列化 | Flink Serializer（自定义高性能）、Kryo、Avro | Java 序列化（默认）、Avro、Protobuf（可插拔） | `JsonTool`（JSON 反射，**唯一实现**）。内存 store 零序列化 |
 | Meta 序列化 | Java 序列化（可配置） | Java 序列化 | JSON（`JsonTool`） |
-| 状态序列化 | TypeSerializer + Key-Group 编码 | Java 序列化（`byte[]`） | JSON（状态值 `snapshotState()` 时序列化） |
-| Schema 版本 | `TypeSerializerSnapshot.resolveSchemaCompatibility()`（4 态：兼容/需迁移/需重配/不兼容） | 无 | `SerializerFingerprint`（2 态：兼容/不兼容） + `StateMigrationFunction` |
+| 状态序列化 | TypeSerializer + Key-Group 编码 | Java 序列化（`byte[]`） | 内存 store 直接对象引用；持久化时内部 `JsonTool`。**不暴露序列化接口** |
+| Schema 版本 | `TypeSerializerSnapshot.resolveSchemaCompatibility()`（4 态：兼容/需迁移/需重配/不兼容） | 无 | `SerializerFingerprint`（JSON schema 指纹） + `StateMigrationFunction` |
 | Checksum | 可选 | 无 | 每个 segment 必须有 checksum |
 
 **性能权衡**：
@@ -714,4 +714,4 @@ nop-stream 的分布式模式采用**三面分离**架构，与 Flink 和 SeaTun
 | 连接器 | `connector-design.md` |
 | CEP 引擎 | `cep-design.md` |
 | 组件路线 | `component-roadmap.md` |
-| 完善路线图 | `completion-roadmap.md` |
+| 完善路线图 | `ai-dev/backlog/completion-roadmap.md` |

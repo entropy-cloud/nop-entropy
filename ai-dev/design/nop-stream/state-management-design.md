@@ -21,7 +21,7 @@ State (clear)
 ├── MapState<UK, UV>           (get, put, remove, entries, keys, values)
 ├── ListState<T>               (add, addAll, update, get)          ← 仅 Internal
 └── AppendingState<IN, OUT>    (add, get)
-    └── InternalAppendingState<K,N,IN,ACC,OUT>  (+setCurrentNamespace, getAccumulator)
+    └── InternalAppendingState<K,N,IN,ACC,OUT>  (+setCurrentNamespace, getAccumulator, setAccumulator)
 ```
 
 `ListState` 不通过 `KeyedStateStore` 暴露给用户，只作为 `InternalListState<K,N,T>` 存在于 `IInternalStateBackend` 中，由 WindowOperator 用于合并窗口元数据存储。
@@ -40,7 +40,7 @@ State (clear)
 | 属性 | 类型 | 含义 |
 |---|---|---|
 | `name` | String | 状态名称（唯一标识） |
-| `valueType` | Class\<T\> | 值的类型（用于 JSON 序列化） |
+| `valueType` | Class\<T\> | 值的类型（用于 JSON 反射，**非**二进制序列化） |
 | `defaultValue` | T | 默认值 |
 
 ### 2.3 Namespace
@@ -147,33 +147,58 @@ MemoryKeyedStateBackend<K>
 
 ## 6. 序列化策略
 
-### 6.1 分层原则
+### 6.1 核心原则：序列化是内部实现细节
 
-| 层 | 接口 | 序列化 |
+nop-stream 的序列化设计遵循一个铁律：**Store 接口只存取对象，序列化是否发生完全是 Store 的内部实现细节，对算子和用户不可见。**
+
+| 层 | 接口 | 是否感知序列化 |
 |---|---|---|
-| 算子层 | `putState(name, object)` / `getState(name, type)` | 不感知 |
-| Backend 层 | `snapshotState() → StateSnapshot` / `restoreState(StateSnapshot)` | 不感知 |
-| Storage 层 | `storeCheckPoint(CompletedCheckpoint)` | 不感知 |
-| 实现层 | 内部 `JsonTool.serialize()` | JSON |
+| 算子层 | `putState(name, object)` / `getState(name, type)` | **不感知** |
+| Backend 层 | `snapshotState() → StateSnapshot` / `restoreState(snapshot)` | **不感知** |
+| Storage 层 | `storeCheckpoint(CompletedCheckpoint)` / `getCheckpoint(id)` | **不感知** |
+| Store 实现层（内部） | Memory store：直接对象引用，**零序列化**；持久化 store：内部 `JsonTool` | 内部 |
 
-所有层都是对象存取。序列化仅在持久化实现层内部发生。
+**关键含义：**
+
+1. **内存 Store 零序列化**：`MemoryKeyedStateBackend` 直接存储对象引用（`HashMap`），checkpoint 快照也是对象引用传递。从算子到 store 到快照，**没有任何序列化/反序列化开销**。只有当 checkpoint 需要持久化到外部（文件、数据库）时，才在 storage 实现内部使用 `JsonTool`。
+
+2. **不暴露序列化接口**：`StateDescriptor` **不携带** serializer 引用。`IStreamSerializer` / `TypeSerializer` 接口**不向上暴露**。算子代码只调用 `getState()` / `putState()`，不接触任何序列化 API。
+
+3. **不采用 Flink Type-based 二进制序列化**：Flink 根据 `TypeInformation` 为每种类型生成专用 `TypeSerializer`，导致大量业务代码被序列化逻辑污染（每个 `StateDescriptor` 必须绑定 serializer、每种数据结构需要配套的 serializer 工厂、schema 演进需要 `TypeSerializerSnapshot` 全套机制）。nop-stream 明确拒绝此路径：
+   - JSON 序列化通过类型反射工作，**对象上不需要任何特殊支持**（无 `@Serializable`、无 serializer 工厂、无 `TypeInfo` 注解）
+   - 业务对象保持 POJO 纯净性，不被序列化代码污染
+   - 唯一的序列化实现是 `JsonTool`，没有第二个实现，也不需要 SPI 扩展点
+
+4. **Flink 序列化体系的反面教训**：Flink 的 `TypeSerializer` 体系为了性能引入了极高的复杂度——`TypeSerializerSnapshot`、`TypeSerializerConfigSnapshot`、schema 兼容性四态解析、每种容器类型的专用 serializer（`ListSerializer`、`MapSerializer`、`RowSerializer`...）。这些代码渗透到 Flink 几乎每个模块。nop-stream 用 JSON 反射 + `JsonTool` 一行代码替代这套体系，代价是序列化性能略低（适合几十 GB 级状态），换来的是**业务代码零污染**。
 
 ### 6.2 控制面元数据
 
 - **metadata**：plan、manifest、state segment descriptor 必须可 JSON round-trip
-- **payload pluggable**：默认 JSON（`JsonTool`），大状态可选择二进制 payload，但 descriptor 必须说明 codec
+- **payload**：默认 JSON（`JsonTool`）。descriptor 记录 schema version + checksum 用于兼容性检查
 - **schema version**：每个 state name 必须记录 value schema version
 - **checksum**：每个 segment 必须有 checksum
-- **compatibility**：savepoint 恢复必须检查 codec 和 schema version
+- **compatibility**：savepoint 恢复时通过 `SerializerFingerprint` 比对 schema version + checksum
 
-### 6.3 IStreamSerializer 接口
+### 6.3 Schema 兼容性（内部实现）
 
-nop-stream 引入 `IStreamSerializer<T>` 扩展 `TypeSerializer<T>`，新增 `serialize()`/`deserialize()` 方法，填补 G40 缺口：
-- `IStreamSerializer.serialize(T)` → `byte[]`
-- `IStreamSerializer.deserialize(byte[], Class<T>)` → `T`
-- 默认实现 `JsonToolSerializer` 包装 `JsonTool`
-- `StateDescriptor` 现携带 `TypeSerializer` 引用，默认 `JsonToolSerializer`（G41 解决）
-- `MemoryStateSerDe` 在 snapshot/restore 中优先使用 descriptor 的 `IStreamSerializer`
+schema 演进兼容性检查是 **checkpoint storage 的内部实现细节**，不向上暴露给算子或用户。算子只调用 `getState()` / `putState()`，不知道也不需要知道 schema 指纹的存在。
+
+**内部实现可选方案**：
+
+- 平台已有的 `record-object.xdef` 对象描述机制可以用于生成结构化的 schema 描述（字段名、类型、编码规则）
+- 但具体采用哪种 schema 描述技术是 **storage 实现的内部决策**，不在 store 接口上暴露，也不在设计文档中固定为实现耦合
+
+**`SerializerFingerprint` 的定位**：
+
+`SerializerFingerprint` 不是用户 API，而是 checkpoint manifest 内部记录的元数据。它的作用是：持久化 store 在恢复时**内部**比对 savepoint 的 schema 与当前代码的 schema 是否兼容。如果发现不兼容，store 内部决定拒绝恢复或触发已注册的 `StateMigrationFunction`。这一切对算子透明。
+
+| 字段 | 含义 | 暴露层级 |
+|---|---|---|
+| `stateName` | 状态名 | 算子已知（StateDescriptor.name） |
+| `schemaVersion` | schema 版本号 | **内部**（store 自动管理） |
+| `schemaChecksum` | schema 结构 checksum | **内部**（store 自动生成） |
+
+用户唯一需要做的：如果 schema 发生了不兼容变更（如字段改名、类型变更），注册一个 `StateMigrationFunction`。其余全自动。
 
 ### 6.4 JSON 约束
 
@@ -301,7 +326,7 @@ interface OperatorStateStore {
 | 状态大小 | 大（O(key count × state per key)） | 小（O(splits × offset size)） |
 | 实现 | `IKeyedStateBackend` → `IInternalStateBackend` | `OperatorStateStore` → `MemoryOperatorStateBackend` |
 
-**当前缺口**：Operator State 尚未实现。实现计划见 `completion-roadmap.md` Phase 0.3。
+**当前缺口**：Operator State 尚未实现。实现计划见 `ai-dev/backlog/completion-roadmap.md` Phase 0.3。
 
 ## 11. 已知限制
 
@@ -313,4 +338,4 @@ interface OperatorStateStore {
 6. **无状态恢复路径** — `AbstractUdfStreamOperator.snapshotState()` 被注释掉，当前运行时不实际执行状态快照
 7. **无状态重分布** — 不支持并行度变更后重新分配状态
 8. **仅 Memory 后端** — `IStateBackend` 接口注释中提到 `RedisStateBackend`，未实现
-9. **无 Operator State 实现** — `OperatorStateStore` 接口未实现，source offset checkpoint 缺口。见 `completion-roadmap.md` Phase 0.3
+9. **无 Operator State 实现** — `OperatorStateStore` 接口未实现，source offset checkpoint 缺口。见 `ai-dev/backlog/completion-roadmap.md` Phase 0.3

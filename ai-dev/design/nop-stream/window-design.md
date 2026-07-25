@@ -247,6 +247,7 @@ processElement(element)
 #### 8.6.1 合并窗口约束
 
 - **存储格式**：`MergingWindowSet` 的映射使用 `InternalListState`（namespace=VoidNamespace）存储 `(W, W)` 对列表。每次 `persist()` 时全量覆盖
+- **累加器写回（AggregatingState 路径）**：`mergeWindowContents()` 合并多个 namespace 的 accumulator 后，必须通过 `InternalAppendingState.setAccumulator()` 将合并后的 ACC 直接写入目标窗口的 namespace，**不可**使用 `clear()` + `add()`——后者会对已经合并的 ACC 再施加一次 `AggregateFunction.add()` 变换，导致结果错误或 ACC/IN 类型不匹配异常。`setAccumulator()` 是 `getAccumulator()` 的逆操作，绕过累加变换直接存储原始 ACC
 - **定时器迁移顺序**：先删除所有被合并窗口的 cleanup timer，再注册合并后窗口的 cleanup timer。如果被合并窗口的定时器已触发（即定时器已在队列中但尚未处理），合并逻辑仍需正确处理——合并后的窗口以新的 cleanup time 为准
 - **合并失败处理**：如果 `trigger.onMerge` 抛异常，已迁移的状态不回滚。合并操作发生在 `addWindow` 内部，此时元素尚未加入，窗口状态处于一致状态。异常向上传播导致该元素处理失败
 

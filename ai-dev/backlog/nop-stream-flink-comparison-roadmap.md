@@ -1,7 +1,7 @@
 # nop-stream Flink 源码深度对比与完善路线图
 
 > Last updated: 2026-07-25
-> Sources: `ai-dev/design/nop-stream/`（全部设计文档）、`~/sources/flink/`（Flink 源码，tag release-1.20.0）、`nop-stream/`（当前实现）、`ai-dev/design/nop-stream/comparison.md`（现有高层对比）、`ai-dev/design/nop-stream/completion-roadmap.md`（现有完善路线图，本路线图的分析阶段产出将与之对齐）
+> Sources: `ai-dev/design/nop-stream/`（全部设计文档）、`~/sources/flink/`（Flink 源码，tag release-1.20.0）、`nop-stream/`（当前实现）、`ai-dev/design/nop-stream/comparison.md`（现有高层对比）、`ai-dev/backlog/completion-roadmap.md`（现有完善路线图，本路线图的分析阶段产出将与之对齐）
 
 ## Purpose
 
@@ -418,30 +418,30 @@ graph TD
 
 ### `source-anchors.md` has zero nop-stream entries
 
-- **Source**: `docs/audits/nop-stream-flink-comparison/2026-07-24-2227-multi-audit-nop-stream-flink-comparison.md` (P2)
+- **Source**: `ai-dev/audits/nop-stream-flink-comparison/2026-07-24-2227-multi-audit-nop-stream-flink-comparison.md` (P2)
 - **Description**: `source-anchors.md` (193 lines) has zero matches for "nop-stream" or any major nop-stream class.
 - **Recommendation**: Add anchor entries for `HeapInternalTimerService`, `JobGraphGenerator`, `ForwardPartitioner`, `WindowOperator`, `PendingCheckpoint`, `CheckpointCoordinator`, `CheckpointMetrics`, `StreamModel`, `WindowOperatorBuilder`, etc.
 
 ### `CheckpointMetricsSnapshot.toString()` omits `failureCause`
 
-- **Source**: `docs/audits/nop-stream-flink-comparison/2026-07-24-2227-multi-audit-nop-stream-flink-comparison.md` (P2)
+- **Source**: `ai-dev/audits/nop-stream-flink-comparison/2026-07-24-2227-multi-audit-nop-stream-flink-comparison.md` (P2)
 - **Description**: `CheckpointMetricsSnapshot.toString()` at line 80-90 does not include the `failureCause` field.
 - **Recommendation**: Add `", failureCause='" + failureCause + '\''` to the `toString()` output.
 
 ### `WindowOperator` has empty else blocks (AR-5)
 
-- **Source**: `docs/audits/nop-stream-flink-comparison/2026-07-24-2227-open-audit-nop-stream-flink-comparison.md` (P2)
+- **Source**: `ai-dev/audits/nop-stream-flink-comparison/2026-07-24-2227-open-audit-nop-stream-flink-comparison.md` (P2)
 - **Description**: `WindowOperator.java:606, 663` — empty `else {}` blocks after the `stateWindow == null` early return check.
 - **Recommendation**: Remove the empty `else {}` blocks as dead code.
 
 ### `OperatorChain.open()` javadoc contradicts implementation (AR-6)
 
-- **Source**: `docs/audits/nop-stream-flink-comparison/2026-07-24-2227-open-audit-nop-stream-flink-comparison.md` (P2)
+- **Source**: `ai-dev/audits/nop-stream-flink-comparison/2026-07-24-2227-open-audit-nop-stream-flink-comparison.md` (P2)
 - **Description**: Javadoc at line 92-93 says "forward order" but implementation at lines 98-110 iterates in reverse.
 - **Recommendation**: Fix javadoc to match reverse-order implementation, or correct the loop direction if forward-order was intended.
 
 ### `PartitionPolicy` enum values `UNION` and `SINGLETON` are dead code (AR-7)
 
-- **Source**: `docs/audits/nop-stream-flink-comparison/2026-07-24-2227-open-audit-nop-stream-flink-comparison.md` (P2)
+- **Source**: `ai-dev/audits/nop-stream-flink-comparison/2026-07-24-2227-open-audit-nop-stream-flink-comparison.md` (P2)
 - **Description**: `PartitionPolicy.java:10-18` declares `UNION` and `SINGLETON` but no production code ever sets them.
 - **Recommendation**: Either (a) remove `UNION` and `SINGLETON`, or (b) add `@Deprecated` javadoc noting they are reserved.

@@ -417,7 +417,7 @@ Operator State 的恢复需要指定重分布模式，以适应并行度变化�
 | 快照 | operatorStateBackend.snapshot() | operatorStateBackend.snapshot() |
 | 恢复 | operatorStateBackend.restore() | operatorStateBackend.restore() |
 
-**当前缺口**：Operator State 尚未实现（见 `completion-roadmap.md` Phase 0.3）。
+**当前缺口**：Operator State 尚未实现（见 `ai-dev/backlog/completion-roadmap.md` Phase 0.3）。
 
 ### 7.4 实现要求
 

@@ -1,0 +1,22 @@
+{
+  "name": "nop-stream-production",
+  "description": "Drive nop-stream from design-mature to full distributed production-grade: close all 73 source-code-level comparison gaps (G1-G68, D69-D73), build RocksDB state backend, Key-Group rescale, cross-JVM distributed execution via platform WIRE, unaligned checkpoint, and XDSL declarative orchestration",
+  "agent": "build",
+  "roadmapPath": "ai-dev/backlog/nop-stream-production-roadmap.md",
+  "plansDir": "ai-dev/plans/nop-stream-production",
+  "planGuide": "ai-dev/plans/00-plan-authoring-and-execution-guide.md",
+  "auditsDir": "ai-dev/audits/nop-stream-production",
+  "contextDir": "docs-for-ai/00-start-here",
+  "moduleDir": "nop-stream",
+  "prompts": {
+    "multiAudit": "ai-dev/skills/deep-audit-prompts.md",
+    "openAudit": "ai-dev/skills/open-ended-adversarial-review-prompt.md"
+  },
+  "commands": {
+    "test": "./mvnw test -pl nop-stream -am -T 1C",
+    "build": "./mvnw clean install -pl nop-stream -am -T 1C -DskipTests",
+    "lint": "echo 'lint not configured'",
+    "typecheck": "echo 'typecheck not configured'"
+  },
+  "commitFormat": "feat(nop-stream): <description>"
+}

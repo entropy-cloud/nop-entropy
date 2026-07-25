@@ -3,7 +3,7 @@
 > Plan Status: completed
 > Last Reviewed: 2026-06-30
 > Source: `ai-dev/analysis/2026-06-30-nop-stream-code-audit.md`
-> Related: `ai-dev/design/nop-stream/completion-roadmap.md`（Phase 0 包含 Operator State 等功能缺口）
+> Related: `ai-dev/backlog/completion-roadmap.md`（Phase 0 包含 Operator State 等功能缺口）
 
 ## Purpose
 
@@ -119,7 +119,7 @@ Exit Criteria:
 ### Phase 3 - 文档同步：runtime→cep 幽灵依赖已消除
 
 Status: completed
-Targets: `ai-dev/design/nop-stream/component-roadmap.md`, `ai-dev/design/nop-stream/completion-roadmap.md`
+Targets: `ai-dev/design/nop-stream/component-roadmap.md`, `ai-dev/backlog/completion-roadmap.md`
 
 - Item Types: `Fix`
 

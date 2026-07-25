@@ -634,25 +634,27 @@ Savepoint 可以支持显式迁移，但迁移必须通过模型级 action 描�
 
 **Fingerprint 结构**：
 
-每个 `StateDescriptor` 在注册时生成一个 `SerializerFingerprint`，随 TaskEpochSnapshot 一起持久化到 Epoch Manifest：
+每个 `StateDescriptor` 在注册时由 store **内部自动**生成 `SerializerFingerprint`，随 TaskEpochSnapshot 一起持久化到 Epoch Manifest。算子和用户不接触此过程。
 
 ```java
 class SerializerFingerprint {
-    String serializerClass;     // 状态序列化器类名（如 "io.nop.stream.core.common.typeinfo.SimpleTypeSerializer"）
-    int version;                // 序列化器自声明的格式版本（默认 1）
-    String configChecksum;      // 配置参数校验和（如 TypeInformation 的 JSON 序列化后 MD5）
+    String stateName;           // 状态名
+    int schemaVersion;          // store 内部自动管理（schema 变更时自动递增）
+    String schemaChecksum;      // JSON schema 结构 checksum（store 内部自动生成）
 }
 ```
 
+nop-stream **不暴露序列化接口**，`SerializerFingerprint` 不是序列化器指纹，而是 checkpoint manifest 内部记录的 **JSON schema 结构指纹**。它是 storage 实现的内部元数据，算子和用户不直接接触。序列化实现固定为 `JsonTool`（见 `state-management-design.md` §6）。内存 store 不经过任何序列化。具体 schema 描述技术（如平台 `record-object.xdef` 对象描述机制）是 storage 实现的内部决策，不在接口上暴露。
+
 **生成规则**：
 
-| 状态类型 | serializerClass | version | configChecksum |
-|---------|----------------|---------|---------------|
-| ValueState\<T> | JsonTool 序列化的类名 | 1 | TypeInformation 的 fingerprint |
-| ListState\<T> | JsonTool 序列化的类名 | 1 | 元素 TypeInformation 的 fingerprint |
-| MapState\<K,V> | JsonTool 序列化的类名 | 1 | key + value TypeInformation 的联合 fingerprint |
-| Timer State | 内部 TimerSerializer | 1 | 空 |
-| Source Split State | Connector 定义的 SplitSerializer | Connector 自定义 | Connector 自定义 |
+| 状态类型 | schemaVersion | schemaChecksum |
+|---------|---------------|----------------|
+| ValueState\<T> | store 自动管理 | T 的 JSON schema checksum（自动生成） |
+| ListState\<T> | store 自动管理 | 元素 T 的 JSON schema checksum（自动生成） |
+| MapState\<K,V> | store 自动管理 | K + V 的联合 JSON schema checksum（自动生成） |
+| Timer State | store 自动管理 | Timer 结构 checksum（自动生成） |
+| Source Split State | store 自动管理 | Connector 结构 checksum（自动生成） |
 
 **Manifest 中的存储**：
 
