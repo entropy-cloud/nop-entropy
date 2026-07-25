@@ -24,10 +24,11 @@
 
 ### 关键发现
 
-1. **P0 级缺口 3 个**: Session window merge 对 AggregatingState 失败、timer 无 checkpoint/restore、BarrierAligner 无生产调用者
+1. **P0 级缺口 3 个**: Session window merge 对 AggregatingState 失败、timer 无 checkpoint/restore、BarrierAligner 无生产调用者（G3 已由 plan 3 重分类为已解决——`BarrierAligner` 正确 `@Deprecated`，对齐由 `InputGate` 承担）
 2. **CEP 状态后端在代码层面已正确**（分级 backend wiring），真缺口在 runtime 层是否调用 `setKeyedStateBackend()` 和 `snapshotState()`/`restoreState()`
 3. **Roadmap 多个 known gap 被对比分析纠正**: SimpleKeyedStateStore 说法不准确、watermarkInterval 默认 200L 非 0、NFA 状态已参与 checkpoint（代码层面）
 4. **Plan 303 和 checkpoint-lifecycle-fixes 已解决 4 个缺口**: processing time timer no-op、WindowAggregationOperator 清理、abort metrics 混淆、错误码不匹配
+5. **Plan `3-multi-input-barrier-alignment` 又解决 3 个缺口 (R7/R8/R9)**: G3（BarrierAligner 重分类）、G4（multi-input barrier alignment 已在 `InputGate` 实现）、G7（channel blocking 已在 `InputGate` 实现）。G5/G34（CancelCheckpointMarker / abort data-channel propagation）显式 deferred 到 Stage 39（跨 JVM RPC prerequisite）
 
 ## Classification Taxonomy
 
@@ -57,16 +58,16 @@
 |---|------|------|------|------|-----------|----------------|-----------|
 | G1 | window | Session window merge 对 AggregatingState 失败（`clear()+add()` 应为 `mergeNamespaces()`） | Bug/P0 | 05-window: G1 | `WindowOperator.mergeWindowContents()` uses `state.mergeNamespaces()` | `WindowOperator.mergeWindowContents()` uses `clear()+add()`, throws "Failed to set merged accumulator" | Item 9 |
 | G2 | window | Timer 无 checkpoint/restore（HeapInternalTimerService 和 WindowOperatorTimerService 均为纯内存） | Bug/P0 | 05-window: G2, 03-checkpoint: #9(partial) | `InternalTimerServiceImpl.snapshotTimersForKeyGroup()` + restore | 两个 timer service 实现在内存中操作，无 `snapshotTimersForKeyGroup()`/`restoreTimersForKeyGroup()` 等效 | Item 9 |
-| G3 | checkpoint | BarrierAligner 无生产调用者 | Hollow/P0 | 03-checkpoint: #1, 03-checkpoint: #3 | `SingleCheckpointBarrierHandler` (multi-input alignment) | `BarrierAligner.java` — 0 production callers, 3 test files only. Javadoc: "当前 GraphModelCheckpointExecutor 未使用" | Item 9 |
+| G3 | checkpoint | BarrierAligner 无生产调用者 | Hollow/P0 | 03-checkpoint: #1, 03-checkpoint: #3 | `SingleCheckpointBarrierHandler` (multi-input alignment) | `BarrierAligner.java` `@Deprecated`（正确，作为 reference code，零生产调用者）。生产对齐由 `InputGate.handleBarrierNonRecursive()` (`InputGate.java:347`) 承担 | RESOLVED → R7 |
 
 ### P1 — Design Contract Violation（24）
 
 | # | 维度 | 发现 | 分类 | 来源 | Flink Ref | nop-stream Ref | 修复 Plan |
 |---|------|------|------|------|-----------|----------------|-----------|
-| G4 | checkpoint | 无 multi-input barrier alignment 运行时 | Gap/P1 | 03-checkpoint: #2 | `CheckpointedInputGate` → `SingleCheckpointBarrierHandler` with state machine | `AbstractStreamOperator.processBarrier()` — sequential per-input only | Item 9 |
-| G5 | checkpoint | 无 CancelCheckpointMarker 事件类型 | Gap/P1 | 03-checkpoint: #4 | `CancelCheckpointMarker` extends `RuntimeEvent` | No equivalent | Item 9 |
+| G4 | checkpoint | 无 multi-input barrier alignment 运行时 | Gap/P1 | 03-checkpoint: #2 | `CheckpointedInputGate` → `SingleCheckpointBarrierHandler` with state machine | `InputGate.handleBarrierNonRecursive()` (`InputGate.java:347`) — 完整对齐状态机：首 barrier 阻塞 channel，全 channel 到齐 `resumeConsumptionAll()` 输出对齐 barrier，超时抛 `ERR_STREAM_BARRIER_ALIGNMENT_TIMEOUT`，重叠 barrier 抛 abort | RESOLVED → R8 |
+| G5 | checkpoint | 无 CancelCheckpointMarker 事件类型 | Gap/P1 | 03-checkpoint: #4 | `CancelCheckpointMarker` extends `RuntimeEvent` | No equivalent | deferred → Stage 39（跨 JVM RPC prerequisite，见 `checkpoint-design.md:911` 硬约束：abort 信号必须有独立于数据流的控制通道，对齐阻塞时数据队列读不到 marker） |
 | G6 | checkpoint | 无 unaligned checkpoint 支持 | Gap/P1 | 03-checkpoint: #5 | `AlignmentType.UNALIGNED` + channel state in `OperatorSnapshotFutures` | Not present | deferred (Phase 4) |
-| G7 | checkpoint | 无 channel blocking 机制 | Gap/P1 | 03-checkpoint: #6 | `InputGate.blockConsumption(channelInfo)` | No `blockConsumption()`/`resumeConsumption()` on `Input` | Item 9 |
+| G7 | checkpoint | 无 channel blocking 机制 | Gap/P1 | 03-checkpoint: #6 | `InputGate.blockConsumption(channelInfo)` | `InputGate.blockConsumption()` (`InputGate.java:220`) / `resumeConsumption()` (line 234) / `resumeConsumptionAll()` (line 245)；在 `readMultiChannel():291` 生效；`registerLocalAbortHandler` abort 时调用 `resumeConsumptionAll()` | RESOLVED → R9 |
 | G8 | state | 缺少 OperatorStateStore 接口 | Gap/P1 | 04-state: #4 | `OperatorStateStore` interface | `TaskStateSnapshot.putOperatorState(key, value)` — `Map<String, Object>` 直接操作 | Item 12a |
 | G9 | state | 缺少重分布模式 (SPLIT/UNION/BROADCAST) | Gap/P1 | 04-state: #5 | `PartitionableListState` + `SPLIT_DISTRIBUTE`/`UNION`/`BROADCAST` | 完全不支持 | Item 12b |
 | G10 | state | 缺少 IOperatorStateBackend | Gap/P1 | 04-state: #6 | `OperatorStateBackend` interface (extends `OperatorStateStore` + `Snapshotable`) | `TaskStateSnapshot` + `OperatorSnapshotResult` — Map<String, Object> | Item 12a |
@@ -98,7 +99,7 @@
 | G31 | checkpoint | maxConcurrentCheckpoints config hard-coded to 1 | Bug/P2 | 03-checkpoint: #10 | Item 9 |
 | G32 | checkpoint | 无 HA checkpoint store | Gap/P2 | 03-checkpoint: #11 | deferred (Phase 3) |
 | G33 | checkpoint | 无 shared state registry | Gap/P2 | 03-checkpoint: #12 | Item 9 |
-| G34 | checkpoint | 无 abort propagation via data channel | Gap/P2 | 03-checkpoint: #13 | Item 9 |
+| G34 | checkpoint | 无 abort propagation via data channel | Gap/P2 | 03-checkpoint: #13 | deferred → Stage 39（跨 JVM RPC prerequisite；当前 local 执行用控制路径 abort：`registerLocalAbortHandler` → `inputGate.resumeConsumptionAll()` + `task.cancel()`，见 `checkpoint-design.md:911`） |
 | G35 | checkpoint | 无 operator coordinator ACK tracking | Gap/P2 | 03-checkpoint: #14, 07-dist: D14 | deferred (Phase 3) |
 | G36 | state | 缺少 BroadcastState 类型 | Gap/P2 | 04-state: #1 | Item 12b |
 | G37 | state | 缺少 maxParallelism 概念 | Gap/P2 | 04-state: #11 | 独立 plan 或 state backend 重构 |
@@ -162,6 +163,14 @@
 | R5 | abort 指标污染 numFailedCheckpoints | Bug | checkpoint-lifecycle Phase 1 | completed | `recordAborted()` 新增；`abortPendingCheckpoint()` 调用 `recordAborted()` 非 `recordFailure()` |
 | R6 | PendingCheckpoint.fail() 使用 ERR_STREAM_CHECKPOINT_ABORTED | Bug | checkpoint-lifecycle Phase 2 | completed | `ERR_STREAM_CHECKPOINT_FAILED` 新增；`fail()` 使用正确错误码 |
 
+被 Plan `2026-07-25-0800-3-multi-input-barrier-alignment` 关闭的缺口（verification-only，确认已存在实现并修正 BarrierAligner 文档误差）：
+
+| # | 发现 | 原分类 | 解决 Plan | Plan 状态 | 证据 |
+|---|------|--------|-----------|----------|------|
+| R7 | BarrierAligner 无生产调用者 (G3) | Hollow/P0 | 3-multi-input-barrier-alignment | completed | `BarrierAligner.java` 正确 `@Deprecated`（reference code）。生产对齐由 `InputGate.handleBarrierNonRecursive()` (`InputGate.java:347`) 承担。"无生产调用者"是设计意图，非缺陷。原 P0 判定"配置 STRICT_EXACTLY_ONCE 无效果"不准确——`barrierAlignment` 由 `ProcessingGuarantee.isBarrierAlignment()` 派生并传入 `InputGate` |
+| R8 | 无 multi-input barrier alignment 运行时 (G4) | Gap/P1 | 3-multi-input-barrier-alignment | completed | `InputGate.handleBarrierNonRecursive()` (`InputGate.java:347`) 实现完整对齐状态机。生产接线：`GraphExecutionPlan.java:285`（4-arg ctor）。测试覆盖：`TestInputGateBarrierAlignment`、`TestInputGateAlignmentTimeout`、`TestProcessingGuaranteeBehavior` |
+| R9 | 无 channel blocking 机制 (G7) | Gap/P1 | 3-multi-input-barrier-alignment | completed | `InputGate.blockConsumption/resumeConsumption/resumeConsumptionAll` (`InputGate.java:220/234/245`)，在 `readMultiChannel():291` 生效。abort 路径 `registerLocalAbortHandler` (`GraphModelCheckpointExecutor.java:659`) 调用 `resumeConsumptionAll()`。测试覆盖：`TestInputGateBlockingApi`（含 `testBarrierAlignmentUsesBlockingApi` 验证对齐→阻塞→恢复→对齐 barrier 输出完整路径） |
+
 ## Cross-Cutting Gaps
 
 以下缺口跨多个对比维度，需要跨 plan 协调：
@@ -181,11 +190,11 @@
 3 个 P0 全部与 data correctness 直接相关：
 - **G1 (session window merge)**：当前有 4 个 disabled test，AggregatingState merge 路径抛出异常。影响所有 session window 用户
 - **G2 (timer no checkpoint)**：故障恢复后 timer 丢失 → window 永不触发
-- **G3 (BarrierAligner unwired)**：配置 `STRICT_EXACTLY_ONCE` 无效果
+- **G3 (BarrierAligner unwired)**：~~配置 `STRICT_EXACTLY_ONCE` 无效果~~ **已解决 (R7)** — `BarrierAligner` 正确 `@Deprecated` 为 reference code，生产对齐由 `InputGate.handleBarrierNonRecursive()` 承担；`barrierAlignment` 由 `ProcessingGuarantee.isBarrierAlignment()` 派生并接线到 `InputGate`，`STRICT_EXACTLY_ONCE` 有效
 
 ### P1 缺口分析
 24 个 P1。按修复 plan 分组：
-- **Item 9**（checkpoint/barrier fixes）：G4, G5, G7, G21, G22, G16（timer 去重合并）
+- **Item 9**（checkpoint/barrier fixes）：~~G4, G5, G7~~（G4/G7 已由 plan 3 解决见 R8/R9；G5 deferred 到 Stage 39），G21, G22, G16（timer 去重合并）
 - **Item 10**（watermark）：G14, G15, G17, G20（部分）
 - **Item 11**（CEP）：G18, G19, G20（部分）
 - **Item 12a**（operator state）：G8, G10, G11, G13, G23, G26, G27

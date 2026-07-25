@@ -2,7 +2,7 @@
 
 > Status: active（**已对接执行路径**）
 > Created: 2026-05-19
-> Updated: 2026-05-22（统一执行路径，去除快速路径相关描述）
+> Updated: 2026-07-25（统一 Timer Service 实现，G16 + G2 timer checkpoint/restore）
 > Parent: `01-architecture-baseline.md` §4（执行模型）、`window-design.md` §6（Timer Service）
 
 ## 1. 定位
@@ -231,3 +231,53 @@ Source → TimestampsAndWatermarksOperator → Map → Window → Sink
 3. **Watermark 对齐未实现** — `withWatermarkAlignment()` 接口存在，但 `WatermarksWithWatermarkAlignment` 内部需要 Coordinator 通信，nop-stream 无此基础设施
 4. **CEP 的 currentWatermark() 返回 Long.MIN_VALUE** — CEP 使用独立执行路径，不感知 watermark 推进。FraudDetectionDemo 通过 `advanceTime()` 直接使用传入的 timestamp 绕过
 5. **WatermarkOutputMultiplexer 未使用** — 单 Source 场景不需要多路合并，但多 Source 场景会需要
+
+## 10. 统一 Timer Service（G16 + G2）
+
+> **Updated: 2026-07-25** — 合并 `HeapInternalTimerService` 与 `WindowOperatorTimerService` 为单一实现，并增加 timer snapshot/restore。
+
+### 10.1 统一实现
+
+历史上有两个重复的 timer service 实现：
+
+| 旧实现 | 位置 | 状态 |
+|---|---|---|
+| `HeapInternalTimerService<N>` | `nop-stream-core` | **存活**，增加 `K` 类型参数 |
+| `WindowOperatorTimerService<K, N>` | `nop-stream-runtime` | **已废弃**（`@Deprecated`），保留仅供源码兼容 |
+
+统一后：
+
+```java
+public class HeapInternalTimerService<K, N> implements InternalTimerService<N>
+```
+
+- `K` = key 类型（`WindowOperator` 使用 `K=keyType`，`ProcessOperator` 使用 `K=Object`）
+- `N` = namespace 类型（通常是 `Window` 或 `VoidNamespace`）
+
+`WindowOperator.internalTimerService` 字段类型从接口 `InternalTimerService<W>` 改为具体类 `HeapInternalTimerService<K, W>`，消除了 `processWatermark()` 中的 `instanceof` + cast。
+
+### 10.2 Timer Checkpoint/Restore（G2）
+
+`HeapInternalTimerService` 提供两个方法支持 checkpoint：
+
+| 方法 | 用途 |
+|---|---|
+| `snapshotTimers() → TimerSnapshot<K,N>` | 返回包含所有未触发 timer 的可序列化 DTO |
+| `restoreTimers(TimerSnapshot<K,N>)` | 从 snapshot 恢复 timer（直接插入，绕过 `currentKeySupplier`） |
+
+`TimerSnapshot` 包含：
+- `eventTimeTimers: List<TimerEntry<K,N>>` — 事件时间 timer 列表
+- `processingTimeTimers: List<TimerEntry<K,N>>` — 处理时间 timer 列表
+- `currentWatermark: long` — 快照时的 watermark
+
+**接线方式**（`WindowOperator`）：
+
+| 生命周期 | 调用 | 说明 |
+|---|---|---|
+| `snapshotState()` | `result.putOperatorState("internal-timers", internalTimerService.snapshotTimers())` | 已触发的 timer 不在 snapshot 中（天然去重，不会重复触发） |
+| `restoreState()` | `this.restoredTimerSnapshot = snapshot.getOperatorState("internal-timers")` | **延迟应用**：此时 `internalTimerService` 为 null |
+| `open()` | `internalTimerService.restoreTimers(restoredTimerSnapshot)` | 在 timer service 创建后应用 snapshot |
+
+**关键约束**：`restoreState()` 在 `open()` **之前**调用（见 `TestCheckpointRecovery.java:478`），因此 timer restore 必须使用延迟应用模式。
+
+**CepOperator 兼容性**：`snapshotTimers()`/`restoreTimers()` 仅添加到 `HeapInternalTimerService` 具体类，**不**添加到 `InternalTimerService<N>` 接口。CepOperator 的匿名 `InternalTimerService<VoidNamespace>` 实现不受影响（它有自己的 bypass 持久化机制）。

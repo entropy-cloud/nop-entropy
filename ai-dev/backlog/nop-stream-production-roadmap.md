@@ -20,8 +20,8 @@ Does not contain implementation details. Each `planned` stage is owned by its ex
 ### Phase 0 — 正确性缺口补齐与文档收敛
 
 - 14. Session window merge 修复（G1，P0）: `done`
-- 15. Timer checkpoint/restore + timer service 统一（G2, G16，P0/P1）: `planned`
-- 16. Multi-input barrier alignment + abort 通道（G4, G5, G7, G34，P1/P2）: `planned`
+- 15. Timer checkpoint/restore + timer service 统一（G2, G16，P0/P1）: `done`
+- 16. Multi-input barrier alignment（G4, G7，P1）: `done`（G5/G34 deferred to Stage 39 — 跨 JVM RPC prerequisite，见 `checkpoint-design.md:911`）
 - 17. Mailbox 执行模型（G22，P1）: `todo`
 - 18. 异步两阶段 snapshot pipeline（G30, G44，P2）: `todo`
 - 19. Checkpoint 并发与共享状态（G31, G33，P2）: `todo`
@@ -108,7 +108,7 @@ Does not contain implementation details. Each `planned` stage is owned by its ex
 ## Current baseline
 
 **Already shipped（前序路线图 Items 9—13）:**
-- BarrierAligner 启用、findCompletedCheckpointId 修复、abort 通道 local 路径
+- InputGate barrier alignment enabled（`InputGate.handleBarrierNonRecursive()` 承担多输入对齐；`BarrierAligner` 类 `@Deprecated` 为 reference code，无生产调用者）、findCompletedCheckpointId 修复、abort 通道 local 路径
 - TimestampsAndWatermarksOperator 自动插入、AccumulationMode/PaneInfo 接线、evictAfter
 - CEP 统一 IKeyedStateBackend，移除 SimpleKeyedStateStore
 - Operator State 基础体系 + 重分布
@@ -124,9 +124,12 @@ Does not contain implementation details. Each `planned` stage is owned by its ex
 - ~~G18, G19, G49: CEP 状态后端/SimpleKeyedStateStore~~ ✅ Closed (item 11)
 - ~~G20: Watermark runtime→CepOperator 传播管路~~ ✅ Closed (items 10/11)
 - ~~G21: OperatorChain double-open~~ ✅ Closed (item 9)
+- ~~G4: 无 multi-input barrier alignment~~ ✅ Closed (item 16) — `InputGate.handleBarrierNonRecursive()`
+- ~~G7: 无 channel blocking~~ ✅ Closed (item 16) — `InputGate.blockConsumption()`/`resumeConsumption()`
+- G5, G34: CancelCheckpointMarker / abort data-channel propagation → Stage 39（deferred from item 16，跨 JVM RPC prerequisite，见 `checkpoint-design.md:911`）
 - G22: 无 mailbox 执行模型 → Stage 17
 - G23—G25: 无跨 JVM RPC / leader election → Stages 28/38/39
-- G28—G35: Checkpoint 管线多项缺口 → Stages 16/18/19/20
+- G28—G35（除 G34）: Checkpoint 管线多项缺口 → Stages 18/19/20
 - ~~G60, G61, G63: bulk cleanup / Jdbc dup-key / Timer O(n)~~ ✅ Closed (item 9)
 - RocksDB 状态后端缺失 → Stages 30-31
 - Key-Group / rescale 缺失 → Stages 34-35
@@ -139,7 +142,7 @@ Does not contain implementation details. Each `planned` stage is owned by its ex
 | --- | --- | --- | --- | --- | --- |
 | 14 | Session window merge | `14-session-window-merge` | — | **Yes** | Flink `mergeNamespaces` |
 | 15 | Timer checkpoint + 统一 | `15-timer-checkpoint` | — | **Yes** | Flink `snapshotTimersForKeyGroup` |
-| 16 | Multi-input barrier + abort | `16-barrier-alignment` | 15 | **Yes** | existing `BarrierAligner` |
+| 16 | Multi-input barrier + abort | `16-barrier-alignment` | 15 | **Yes** | existing `InputGate` alignment |
 | 17 | Mailbox 执行模型 | `17-mailbox-model` | 16 | **Yes** | nop-stream 原生 minimal task queue |
 | 18 | 异步两阶段 snapshot | `18-async-snapshot` | 17 | No | Flink `OperatorSnapshotFutures` |
 | 19 | Checkpoint 并发与共享 | `19-checkpoint-concurrency` | 18 | No | — |
@@ -216,13 +219,13 @@ Does not contain implementation details. Each `planned` stage is owned by its ex
 
 > Status: see Work Items above
 
-**Goal:** 启用 BarrierAligner 多输入对齐状态机，补齐 cancel marker 与 abort 数据通道传播。
+**Goal:** 验证 InputGate 多输入对齐状态机（已实现于 `InputGate.handleBarrierNonRecursive()`），补齐 cancel marker 与 abort 数据通道传播。
 
 **Deliverables:**
-- G4: 多输入 barrier 对齐运行时（BarrierAligner 状态机）
-- G5: `CancelCheckpointMarker` 事件类型
-- G7: `Input.blockConsumption()`/`resumeConsumption()` channel blocking
-- G34: abort 信号通过数据 channel 传播
+- G4: 多输入 barrier 对齐运行时（InputGate 状态机）✅ verified — `InputGate.java:347`，`GraphExecutionPlan.java:285` 接线，`TestInputGateBarrierAlignment` 覆盖
+- G5: `CancelCheckpointMarker` 事件类型 — deferred to Stage 39（跨 JVM RPC prerequisite，见 `checkpoint-design.md:911`：abort 信号须有独立于数据流的控制通道）
+- G7: `Input.blockConsumption()`/`resumeConsumption()` channel blocking ✅ verified — `InputGate.java:220/234/245`，`TestInputGateBlockingApi` 覆盖
+- G34: abort 信号通过数据 channel 传播 — deferred to Stage 39（同 G5；当前 local 执行由控制路径 `registerLocalAbortHandler` → `inputGate.resumeConsumptionAll()` + `task.cancel()` 承担）
 
 **Out of scope:** unaligned checkpoint（Stage 43）。
 
@@ -552,6 +555,8 @@ Does not contain implementation details. Each `planned` stage is owned by its ex
 - `RpcServiceProxyFactoryBean` + `ClusterRpcClient` 远程代理
 - stream UUID fencing token → 单调 `LeaderEpoch.epoch`
 - abort 控制通道 distributed 路径（`cancelTask` RPC）
+- G5: `CancelCheckpointMarker` 事件类型（作为已恢复 channel 的补充通知，非主 abort 机制；主 abort 仍为控制通道，见 `checkpoint-design.md:911`）
+- G34: abort 信号跨 JVM 数据 channel 传播（G5 的延续，distributed abort 协议设计项）
 
 **Module / area:** `nop-stream/nop-stream-runtime/rpc/`
 

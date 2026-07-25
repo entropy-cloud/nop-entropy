@@ -2,7 +2,7 @@
 
 > Status: active
 > Created: 2026-05-19
-> Updated: 2026-05-23
+> Updated: 2026-07-25（timer state checkpoint/restore 已实现，G2）
 > Parent: `01-architecture-baseline.md` §4（执行模型）、`state-management-design.md`（状态管理）
 > See also: `component-roadmap.md` §3 C5（Checkpoint 生产化计划）
 
@@ -32,7 +32,7 @@ nop-stream 的 checkpoint 子系统为流处理管线提供**容错和状态一�
 |---|---|
 | source offset | 每个 source split 在 epoch 切点的读取位置 |
 | operator state | 每个 operator/subtask/state shard 的状态快照 |
-| timer state | event-time 和 processing-time timer 的待触发集合 |
+| timer state | event-time 和 processing-time timer 的待触发集合（**已实现**：`WindowOperator` 通过 `HeapInternalTimerService.snapshotTimers()` 持久化；`CepOperator` 通过自有 bypass 机制持久化 `registeredEventTimeTimers`） |
 | watermark state | 输入 watermark 和 idle 状态 |
 | sink transaction | 每个 sink subtask 的 pending transaction |
 | plan fingerprint | 生成该 epoch 时的 PartitionedPlan 指纹 |
@@ -53,7 +53,7 @@ CREATED → INJECTING → ALIGNING → SNAPSHOTTING → PRECOMMITTED → DURABLE
 |---|---|
 | `CREATED` | Coordinator 分配 epochId，建立待 ACK 集合 |
 | `INJECTING` | source subtask 在读取线程中注入 barrier |
-| `ALIGNING` | 多输入 task 等待所有输入 channel barrier 到齐 |
+| `ALIGNING` | 多输入 task 等待所有输入 channel barrier 到齐。**实现**：`InputGate.handleBarrierNonRecursive()`（`InputGate.java:347`）— 首 barrier 到达调用 `blockConsumption(channelIndex)`（line 220）阻塞该 channel，所有 channel 到齐调用 `resumeConsumptionAll()`（line 245）并输出单一对齐 barrier；累计超 `barrierAlignmentTimeout`（默认 30s）抛 `ERR_STREAM_BARRIER_ALIGNMENT_TIMEOUT`（`readMultiChannel():335`）；重叠 barrier 抛 `ERR_STREAM_CHECKPOINT_ABORTED`（line 381）。`barrierAlignment` 标志由 `ProcessingGuarantee.isBarrierAlignment()` 派生（STRICT_EXACTLY_ONCE=true / AT_LEAST_ONCE=false）。注：`BarrierAligner` 类（`nop-stream-runtime/.../checkpoint/barrier/`）`@Deprecated` 为 reference code，`GraphModelCheckpointExecutor` 未使用，生产对齐一律走 `InputGate` |
 | `SNAPSHOTTING` | task 生成本地 state snapshot |
 | `PRECOMMITTED` | sink 已完成 epoch 对应 transaction 的 preCommit |
 | `DURABLE` | epoch manifest 和 state segment 已持久化 |
