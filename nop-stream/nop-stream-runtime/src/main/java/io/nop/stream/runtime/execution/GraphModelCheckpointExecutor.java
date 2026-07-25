@@ -758,7 +758,7 @@ public class GraphModelCheckpointExecutor {
 
             validateFingerprintCompatibility(epochManifest, streamModel, coordinator);
 
-            restoreTaskStatesFromSource(execPlan, checkpointPlan,
+            restoreTaskStatesFromSource(execPlan, checkpointPlan, epochManifest.getEpochId(),
                     (taskLocation) -> {
                         TaskStateSnapshot state = epochManifest.getTaskSnapshots().get(taskLocation);
                         if (state == null) {
@@ -861,6 +861,7 @@ public class GraphModelCheckpointExecutor {
     private static void restoreTaskStatesFromSource(
             GraphExecutionPlan execPlan,
             CheckpointPlan checkpointPlan,
+            long epochId,
             TaskStateLookup stateLookup) throws Exception {
         for (String vertexId : execPlan.getSortedVertexIds()) {
             for (Subtask subtask : execPlan.getSubtasks(vertexId)) {
@@ -871,7 +872,7 @@ public class GraphModelCheckpointExecutor {
                 TaskStateSnapshot taskState = stateLookup.lookup(taskLocation);
 
                 List<OperatorStateMapping> mappings = checkpointPlan.getStateMappings(taskLocation);
-                restoreOperatorsFromState(invokable.getOperatorChain(), taskState, mappings);
+                restoreOperatorsFromState(invokable.getOperatorChain(), epochId, taskState, mappings);
             }
         }
     }
@@ -880,7 +881,7 @@ public class GraphModelCheckpointExecutor {
             GraphExecutionPlan execPlan,
             CheckpointPlan checkpointPlan,
             CompletedCheckpoint checkpoint) throws Exception {
-        restoreTaskStatesFromSource(execPlan, checkpointPlan,
+        restoreTaskStatesFromSource(execPlan, checkpointPlan, checkpoint.getCheckpointId(),
                 (taskLocation) -> {
                     TaskStateSnapshot state = checkpoint.getTaskState(taskLocation);
                     if (state == null) {
@@ -889,6 +890,7 @@ public class GraphModelCheckpointExecutor {
                                 .param(ARG_TASK_INDEX, taskLocation.getTaskIndex())
                                 .param(ARG_TASK_LOCATION, taskLocation)
                                 .param(ARG_CHECKPOINT_ID, checkpoint.getCheckpointId())
+                                .param(ARG_EPOCH_ID, checkpoint.getCheckpointId())
                                 .param(ARG_DETAIL, "Available keys: " + checkpoint.getTaskStates().keySet());
                     }
                     return state;
@@ -897,6 +899,7 @@ public class GraphModelCheckpointExecutor {
 
     private static void restoreOperatorsFromState(
             OperatorChain chain,
+            long epochId,
             TaskStateSnapshot taskState,
             List<OperatorStateMapping> mappings) throws Exception {
 
@@ -920,8 +923,8 @@ public class GraphModelCheckpointExecutor {
 
             if (op instanceof CheckpointParticipant) {
                 try {
-                    ((CheckpointParticipant) op).restoreFromEpoch(0, taskState);
-                    LOG.debug("Restored from epoch for CheckpointParticipant operator index {}", i);
+                    ((CheckpointParticipant) op).restoreFromEpoch(epochId, taskState);
+                    LOG.debug("Restored from epoch {} for CheckpointParticipant operator index {}", epochId, i);
                 } catch (Exception e) {
                     LOG.error("Failed to restoreFromEpoch for operator index {}", i, e);
                     throw e;
@@ -930,8 +933,8 @@ public class GraphModelCheckpointExecutor {
                 Object udf = ((AbstractUdfStreamOperator<?, ?>) op).getUserFunction();
                 if (udf instanceof CheckpointParticipant && udf != op) {
                     try {
-                        ((CheckpointParticipant) udf).restoreFromEpoch(0, taskState);
-                        LOG.debug("Restored from epoch for CheckpointParticipant UDF operator index {}", i);
+                        ((CheckpointParticipant) udf).restoreFromEpoch(epochId, taskState);
+                        LOG.debug("Restored from epoch {} for CheckpointParticipant UDF operator index {}", epochId, i);
                     } catch (Exception e) {
                         LOG.error("Failed to restoreFromEpoch for UDF operator index {}", i, e);
                         throw e;
