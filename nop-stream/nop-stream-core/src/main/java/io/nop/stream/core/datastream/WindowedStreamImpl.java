@@ -9,6 +9,9 @@ package io.nop.stream.core.datastream;
 
 import java.io.Serializable;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import io.nop.stream.core.common.functions.AggregateFunction;
 import io.nop.stream.core.common.functions.KeySelector;
 import io.nop.stream.core.common.functions.ProcessWindowFunction;
@@ -35,6 +38,8 @@ public class WindowedStreamImpl<T, K, W extends Window>
         extends DataStreamImpl<T> implements WindowedStream<T, K, W>, Serializable {
 
     private static final long serialVersionUID = 1L;
+
+    private static final Logger LOG = LoggerFactory.getLogger(WindowedStreamImpl.class);
 
     private final KeyedStream<T, K> keyedStream;
     private final WindowAssigner<? super T, W> windowAssigner;
@@ -159,7 +164,11 @@ public class WindowedStreamImpl<T, K, W extends Window>
                         defaultFactory = (IWindowOperatorFactory)
                                 factoryClass.getDeclaredConstructor().newInstance();
                     } catch (Exception e) {
-                        // nop-stream-runtime not on classpath
+                        // nop-stream-runtime not on classpath. Leave defaultFactory=null so that the
+                        // call-sites (apply/aggregate/reduce/process) fail fast with StreamException
+                        // ("requires nop-stream-runtime on classpath") rather than silently swallowing.
+                        LOG.warn("nop-stream-runtime not on classpath; IWindowOperatorFactory unavailable"
+                                + " (window operations will fail fast at call-site)", e);
                     }
                 }
             }

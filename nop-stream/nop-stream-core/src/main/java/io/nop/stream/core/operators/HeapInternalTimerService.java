@@ -26,7 +26,6 @@ import java.util.function.Supplier;
  * new watermark are fired via the registered {@link Triggerable} callback.
  *
  * <p>This is the unified timer service used by both {@code WindowOperator} and {@code ProcessOperator}.
- * The legacy {@code WindowOperatorTimerService} has been deprecated in favor of this class.
  *
  * @param <K> the key type to which timers are scoped
  * @param <N> the namespace type for timers

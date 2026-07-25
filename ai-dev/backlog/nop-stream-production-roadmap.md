@@ -28,7 +28,7 @@ Does not contain implementation details. Each `planned` stage is owned by its ex
 - 20. Partial/subtask 级恢复（G28, G29，P2）: done（G29 — plan `2026-07-25-2200-2-partial-subtask-recovery`，completed；G28 design-gated，需先起草 region/drain/reconnect 设计文档，见 plan Deferred）
 - 21. Evictor/Pane/Watermark 集成（G46—G48，P2）: `done`
 - 22. 文档合同对齐与 source-anchors 补全（D69—D73，Doc）: `done`
-- 23. 代码清理与 P3 次要改进（G68, G62, G64，P3）: `planned`（plan `2026-07-25-2200-3-code-cleanup-p3`，active；G62 降级为 Decision-only）
+- 23. 代码清理与 P3 次要改进（G68, G62, G64，P3）: done（plan `2026-07-25-2200-3-code-cleanup-p3`，completed；G62 降级为 Decision-only）
 
 ### Phase 1 — 分布式运行时基础
 
@@ -330,10 +330,11 @@ Does not contain implementation details. Each `planned` stage is owned by its ex
 
 **Deliverables:**
 - G68: OperatorChain javadoc 修复（forward vs reverse）
-- G62: MergingState 中间接口
-- G64: 反射工厂加载优化
+- G62: MergingState 中间接口 — **Decision-only**（不引入无消费方的空壳接口；设计决策记录于 `state-management-design.md` §2.4，延后至有真实消费方的 window/state 重构 successor）
+- G64: 反射工厂加载优化（消除空 catch，保持既有 call-site fail-fast）
 - 空 else 块清理、`CheckpointMetricsSnapshot.toString()` 补 failureCause
 - `PartitionPolicy` 死代码处理
+- BarrierAligner + AlignedBarrier 删除（跨 plan deferred 死代码）；@Deprecated 死类清理
 
 **Out of scope:** 功能性变更。
 

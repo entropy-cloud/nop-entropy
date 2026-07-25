@@ -12,7 +12,5 @@ public enum PartitionPolicy {
     FORWARD,
     HASH,
     REBALANCE,
-    BROADCAST,
-    UNION,
-    SINGLETON
+    BROADCAST
 }

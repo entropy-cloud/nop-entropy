@@ -86,6 +86,7 @@ public class CheckpointMetricsSnapshot implements Serializable {
                 ", latestCheckpointDuration=" + latestCheckpointDuration +
                 ", totalStateSize=" + totalStateSize +
                 ", lastCheckpointTimestamp=" + lastCheckpointTimestamp +
+                ", failureCause=" + failureCause +
                 '}';
     }
 }

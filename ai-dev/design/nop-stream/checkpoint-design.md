@@ -66,7 +66,7 @@ CREATED → INJECTING → ALIGNING → SNAPSHOTTING → PRECOMMITTED → DURABLE
 |---|---|
 | `CREATED` | Coordinator 分配 epochId，建立待 ACK 集合 |
 | `INJECTING` | source subtask 在读取线程中注入 barrier |
-| `ALIGNING` | 多输入 task 等待所有输入 channel barrier 到齐。**实现**：`InputGate.handleBarrierNonRecursive()`（`InputGate.java:347`）— 首 barrier 到达调用 `blockConsumption(channelIndex)`（line 220）阻塞该 channel，所有 channel 到齐调用 `resumeConsumptionAll()`（line 245）并输出单一对齐 barrier；累计超 `barrierAlignmentTimeout`（默认 30s）抛 `ERR_STREAM_BARRIER_ALIGNMENT_TIMEOUT`（`readMultiChannel():335`）；重叠 barrier 抛 `ERR_STREAM_CHECKPOINT_ABORTED`（line 381）。`barrierAlignment` 标志由 `ProcessingGuarantee.isBarrierAlignment()` 派生（STRICT_EXACTLY_ONCE=true / AT_LEAST_ONCE=false）。注：`BarrierAligner` 类（`nop-stream-runtime/.../checkpoint/barrier/`）`@Deprecated` 为 reference code，`GraphModelCheckpointExecutor` 未使用，生产对齐一律走 `InputGate` |
+| `ALIGNING` | 多输入 task 等待所有输入 channel barrier 到齐。**实现**：`InputGate.handleBarrierNonRecursive()`（`InputGate.java:347`）— 首 barrier 到达调用 `blockConsumption(channelIndex)`（line 220）阻塞该 channel，所有 channel 到齐调用 `resumeConsumptionAll()`（line 245）并输出单一对齐 barrier；累计超 `barrierAlignmentTimeout`（默认 30s）抛 `ERR_STREAM_BARRIER_ALIGNMENT_TIMEOUT`（`readMultiChannel():335`）；重叠 barrier 抛 `ERR_STREAM_CHECKPOINT_ABORTED`（line 381）。`barrierAlignment` 标志由 `ProcessingGuarantee.isBarrierAlignment()` 派生（STRICT_EXACTLY_ONCE=true / AT_LEAST_ONCE=false）。注：原 `BarrierAligner`/`AlignedBarrier` 类（runtime/checkpoint/barrier/）已于 Stage 23 代码清理删除（`@Deprecated` reference code，零生产调用者，对齐一律走 `InputGate`） |
 | `SNAPSHOTTING` | task 生成本地 state snapshot |
 | `PRECOMMITTED` | sink 已完成 epoch 对应 transaction 的 preCommit |
 | `DURABLE` | epoch manifest 和 state segment 已持久化 |

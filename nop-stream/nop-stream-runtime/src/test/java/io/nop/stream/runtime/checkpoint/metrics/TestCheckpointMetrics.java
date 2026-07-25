@@ -94,4 +94,14 @@ class TestCheckpointMetrics {
         assertEquals(1, snap.getNumCompletedCheckpoints());
         assertEquals(2, metrics.getNumCompletedCheckpoints());
     }
+
+    @Test
+    void testSnapshotToString_includesFailureCause() {
+        metrics.recordFailure("disk-full");
+        CheckpointMetricsSnapshot snap = metrics.snapshot();
+
+        String str = snap.toString();
+        assertTrue(str.contains("failureCause="), () -> "toString must include failureCause: " + str);
+        assertTrue(str.contains("disk-full"), () -> "toString must include failureCause value: " + str);
+    }
 }

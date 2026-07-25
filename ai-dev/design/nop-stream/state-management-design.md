@@ -50,6 +50,26 @@ State (clear)
 | `VoidNamespace` | 不需要 namespace 时的占位符 | SimpleKeyedStateStore |
 | 泛型 N（通常为 Window） | 按 namespace 分区状态 | WindowOperator、合并窗口 |
 
+### 2.4 MergingState 抽象：设计决策（G62）
+
+> **决策**：当前**不**引入 `MergingState`（一个把「合并语义」从 `WindowOperator` 内联代码抽离出来的状态类型抽象层）。判定为 `optimization candidate`，延后至有真实消费方的 successor。
+
+**背景**：Flink 用 `MergingState` 接口把 session-window 的状态合并语义建模为 state 层能力（`mergeNamespaces` + accumulator merge）。nop-stream 当前没有这层抽象——窗口合并是 `WindowOperator` 的内联逻辑：
+
+| 合并调用点 | 位置 | 现有实现 |
+|---|---|---|
+| 窗口元数据合并 | `WindowOperator.mergeWindowContents()`（`:1294`） | 内联遍历 sourceWindows，逐个归并到 targetWindow |
+| ACC 归并（Reduce/Aggregate） | `:1333` | `mergeFunction.apply(targetValue, sourceValue)` |
+| ACC 归并（Aggregate ACC） | `:1417` | `accumulator.merge((SimpleAccumulator<ACC>) sourceValue)` |
+
+**为何不在本批引入**（Anti-Hollow）：
+
+1. **无消费方即空壳**：`MergingState` 若仅作为新接口存在而 `WindowOperator.mergeWindowContents()` 仍用现有内联逻辑，则接口无真实消费者，构成 Hollow Implementation（接口/单测通过但运行时路径未变）。
+2. **引入须同时迁移调用点**：要让接口有真实消费方，必须把 `mergeWindowContents()` 的三个合并调用点（`:1333` / `:1417`）迁移到 `MergingState` API，这属于行为保持的重构优化（非纯清理），超出「代码清理」plan 的范围。
+3. **收益有限**：当前唯一 merge 场景是 session window，调用点集中在一个方法内，抽象的复用收益尚未出现第二个合并语义消费者。
+
+**Successor 路径**：未来 window/state 重构 plan 应同时完成（a）定义 `MergingState` 接口 + state backend 支持，与（b）迁移 `WindowOperator.mergeWindowContents()` 三个调用点为该接口的消费者，二者一并交付以避免空壳。
+
 ## 3. StateShard
 
 分布式状态下，keyed state 需要稳定的逻辑分片以支持跨节点定位和恢复。nop-stream 引入 `StateShard`：

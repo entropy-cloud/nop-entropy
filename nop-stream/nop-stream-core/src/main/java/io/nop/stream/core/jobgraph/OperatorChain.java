@@ -90,8 +90,9 @@ public class OperatorChain implements Serializable {
      * If any operator fails to open, previously opened operators are closed before
      * propagating the exception.
      *
-     * <p><strong>Implementation Note:</strong> The operators are opened in forward order.
-     * If an exception occurs during opening, cleanup is performed for already opened operators.
+     * <p><strong>Implementation Note:</strong> The operators are opened in reverse order
+     * (tail to head, i.e. last operator first). If an exception occurs during opening,
+     * cleanup is performed for already opened operators.
      *
      * @throws RuntimeException if any operator fails to open
      */

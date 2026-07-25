@@ -212,7 +212,6 @@
 | `STRM-030` | `nop-stream/nop-stream-core/src/main/java/io/nop/stream/core/jobgraph/OperatorChain.java` | 算子链融合容器（core/jobgraph）；`open()`/`close()` 生命周期，链内通过 `ChainingOutput` 直接调用，跨链走 `RecordWriter`/`InputGate` |
 | `STRM-031` | `nop-stream/nop-stream-core/src/main/java/io/nop/stream/core/operators/TimestampsAndWatermarksOperator.java` | 自动插入的 watermark 注入算子（core/operators）；按 `watermarkInterval`（默认 200ms）周期发射，`WatermarkStrategy` + `TimestampAssigner` + idle 标记 |
 | `STRM-032` | `nop-stream/nop-stream-cep/src/main/java/io/nop/stream/cep/operator/CepOperator.java` | CEP 算子（cep/operator）；`open()` 从 `stateBackend` 创建 `IKeyedStateBackend`（无配置时 fallback `MemoryKeyedStateBackend` + WARN），NFA state / element queue / SharedBuffer 全部落到 keyed state store |
-| `STRM-033` | `nop-stream/nop-stream-runtime/src/main/java/io/nop/stream/runtime/checkpoint/barrier/BarrierAligner.java` | `@Deprecated` 多输入 barrier 对齐 reference 实现（runtime/checkpoint/barrier，`@Internal`）；**生产路径未使用**——`GraphModelCheckpointExecutor` 一律走 `InputGate.handleBarrierNonRecursive()`，保留供未来多输入算子基础设施参考 |
 
 ## 当 `docs-for-ai` 仍有歧义时
 
