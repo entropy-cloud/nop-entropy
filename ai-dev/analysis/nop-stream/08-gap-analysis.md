@@ -3,7 +3,7 @@
 > Status: resolved
 > Date: 2026-07-25
 > Scope: 汇总 items 3—7（checkpoint/barrier、状态管理、窗口/时间、CEP、分布式执行）的全部对比发现，形成统一的缺口清单
-> Conclusion: 87 total active gaps (deduplicated), 4 resolved gaps, mapped to roadmap items 9—13
+> Conclusion: 87 total active gaps (deduplicated), 4 resolved gaps, mapped to roadmap items 9—13. Stage 25/26/28 subsequently closed G23/G26/G27/G52/G53/G54/G56/G58 (see strikethrough entries below).
 > Source: `03-checkpoint-comparison.md`, `04-state-comparison.md`, `05-window-comparison.md`, `06-cep-comparison.md`, `07-distributed-comparison.md`
 > Plan: `docs/plans/nop-stream-flink-comparison/2026-07-25-1210-2-gap-analysis.md`
 
@@ -83,11 +83,11 @@
 | G20 | cep | Watermark 从 runtime 到 CepOperator 的传播管路未验证 | Hollow/P1 | 06-cep: #9 | Flink 通过 InternalTimerService.advanceWatermark() 自动传播 | CepOperator 内部 watermark 处理正确但外部触发路径未验证 | Item 10/11 |
 | G21 | distributed | OperatorChain double-open（Task + Invokable 都调 .open()） | Bug/P1 | 07-dist: D1 | `StreamTask.invoke()` — 单一生命周期 | `Task.java:61-68` (openOperatorChains) + `StreamTaskInvokable.java:170-185` (wireOperators → chain.open()) | Item 9 |
 | G22 | distributed | 无 mailbox/interleaving 执行模型 | Gap/P1 | 07-dist: D2 | `MailboxProcessor.runMailboxLoop()` interleaves mail + data | 同步 `inputGate.read()` 阻塞循环 | Item 9 |
-| G23 | distributed | RPC 接口仅 local 实现（无跨 JVM） | Hollow/P1 | 07-dist: D3 | `AkkaRpcService`/`PekkoRpcService` with network transport | `IStreamTaskRpcService`(4 methods), `IStreamCoordinatorRpcService`(1 method) — local-only | Item 12a |
+| ~~G23~~ | distributed | RPC 接口仅 local 实现（无跨 JVM） | Hollow/P1 | 07-dist: D3 | `AkkaRpcService`/`PekkoRpcService` with network transport | `IStreamTaskRpcService`(4 methods), `IStreamCoordinatorRpcService`(6 methods — Stage 28 暴露 terminate/abortCheckpoint/getJobStatus) — local-only, complete contract; cross-JVM transport 属 Stage 39 | ~~Item 12a~~ ✅ Closed (Stage 28) — local 契约完整（coordinator 6 方法 + task 4 方法），Stage 39 仅加 transport。Plan `2026-07-26-0433-1-rpc-dispatcher-backpressure` |
 | G24 | distributed | ILeaderElector 未实现（零代码） | Hollow/P1 | 07-dist: D4 | `LeaderElectionService` + `LeaderContender` + ZooKeeper driver | `ILeaderElector` + `SysDaoLeaderElector` — 在代码库中不存在 | deferred (Phase 3) |
 | G25 | distributed | 无 leader election / HA for coordinator | Gap/P1 | 07-dist: D5 | `FencedRpcEndpoint` + `StandbyJobManager` + ZooKeeper HA | 单一 `JobCoordinator` — 无 standby, 无 election | deferred (Phase 3) |
-| G26 | distributed | IStreamExecutionDispatcher 接口空壳（2 methods） | Hollow/P1 | 07-dist: D8 | `SchedulerNG` (15+ methods) with state tracking | `IStreamExecutionDispatcher` (2 methods, 21 lines) | Item 12a |
-| G27 | distributed | Credit-based 和 ACK_WINDOW flow control 为 no-op | Hollow/P1 | 07-dist: D11 | `CreditBasedSequenceNumbering`, `PartitionRequestClient.notifyCreditAvailable()` | `FlowControlPolicy.CREDIT_BASED` / `ACK_WINDOW` — throw `UnsupportedOperationException` | Item 12a |
+| ~~G26~~ | distributed | IStreamExecutionDispatcher 接口空壳（2 methods） | ~~Hollow/P1~~ Decision | 07-dist: D8 | `SchedulerNG` (15+ methods) with state tracking | `IStreamExecutionDispatcher` (3 methods: supportsDeploymentMode/getExpectedNodeIds/execute) — **Stage 28 裁定为有意设计**（部署入口，非生命周期管理器；coordinator 是 execute() 局部变量，生命周期管理在 coordinator RPC 侧；异步 submit+poll 属 Stage 39） | ~~Item 12a~~ ✅ Closed (Stage 28) — Decision: dispatcher 最小化有意。Plan `2026-07-26-0433-1-rpc-dispatcher-backpressure` |
+| ~~G27~~ | distributed | ~~Credit-based 和 ACK_WINDOW flow control 为 no-op~~ | ~~Hollow/P1~~ Closed | 07-dist: D11 | `CreditBasedSequenceNumbering`, `PartitionRequestClient.notifyCreditAvailable()` | `FlowControlPolicy` 仅含 `BLOCKING_QUEUE`（Stage 28 永久移除 Flink Netty policies）；in-process backpressure = `IBufferPool` 两级（Stage 26）；跨 JVM 由 `IMessageService` 后端提供（Stage 40，vision 约束 7） | ~~Item 12a~~ ✅ Closed (Stage 28) — 永久排除裁定 + 枚举清理 + IBufferPool 契约定位。Plan `2026-07-26-0433-1-rpc-dispatcher-backpressure` |
 
 ### P2 — Missing Capability（43）
 
@@ -221,7 +221,7 @@
 | **Item 9** — Checkpoint & barrier 修复 | G1, G2, G3, G4, G5, G7, G21, G22, G28, G29, G30, G31, G33, G34, G60, G61, G63, G68 | 18 gaps + G16(timer去重) | P0+P1+P2 checkpoint/window 修复；启用 BarrierAligner；统一 timer service；修复 session window merge |
 | **Item 10** — Watermark 集成修复 | G14, G15, G17, G46, G47, G48, G20(部分) | 7 gaps | SourceFunction watermark 自动插入；AccumulationMode/ PaneInfo 接线；StatusWatermarkValve 等效 |
 | **Item 11** — CEP 状态后端接入 | G18, G19, G49, G65, G20(部分) | 5 gaps | Runtime 层审计 state backend 注入 + snapshot/restore 调用；更新过时 Javadoc；SharedBuffer 缓存改进 |
-| **Item 12a** — Operator State 基础 | G8, G10, G11, G13, G23, G26, G27, G50, G51, G52, G53, G54, G55, G56, G57, G58 | 16 gaps | OperatorStateStore IOperatorStateBackend；分布式 RPC 扩容；resource manager；buffer pool；execution state machine；region scheduling |
+| **Item 12a** — Operator State 基础 | G8, G10, G11, G13, ~~G23~~, ~~G26~~, ~~G27~~, G50, G51, ~~G52~~, ~~G53~~, ~~G54~~, G55, ~~G56~~, G57, ~~G58~~ | 16 gaps → 9 active | OperatorStateStore IOperatorStateBackend；分布式 RPC 扩容；resource manager；buffer pool；execution state machine；region scheduling。G23/G26/G27 closed by Stage 28, G52/G54/G56/G58 closed by Stage 25, G53 closed by Stage 26 |
 | **Item 12b** — Operator State 重分布 | G9, G36, (G12 部分) | 3 gaps | SPLIT/UNION/BROADCAST redistribution；BroadcastState 类型 |
 | **Item 13** — StreamModel 做实 | G12, G40, G41, G59, (G37-G39 部分) | 6 gaps | TypeSerializerSnapshot 体系；serializer 注册管理；fingerprint 接线 |
 | **Deferred / 独立 plan** | G6, G24, G25, G32, G35, G37-G39, G42-G43, G45, G66, G67 | 13 gaps | Unaligned checkpoint (Phase 4), Leader election (Phase 3), Key-Group migration, State TTL, 增量 checkpoint, 自适应调度 |

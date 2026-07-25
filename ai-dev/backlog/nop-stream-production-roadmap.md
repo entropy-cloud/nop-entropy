@@ -35,8 +35,8 @@ Does not contain implementation details. Each `planned` stage is owned by its ex
 - 24. DeploymentPlan subtask 分配 + 平台 discovery 接入（G50, G51，P2）: done（plan `ai-dev/plans/nop-stream-production/2026-07-26-0207-1-deployment-plan-discovery.md`，completed）
 - 25. Per-task failure detection + execution state machine（G52, G54—G56, G58，P2）: done（plan `ai-dev/plans/nop-stream-production/2026-07-26-0207-2-per-task-failure-detection.md`，completed；G55 region scheduling 明确 Out-of-Scope，属 Stage 27/44）
 - 26. Buffer pool 抽象（G53，P2）: done（plan `ai-dev/plans/nop-stream-production/2026-07-26-0207-3-buffer-pool.md`，completed）
-- 27. Targeted failover（G57，P2）: `todo`
-- 28. 分布式 RPC 接口扩容 + 进程内 backpressure（G23, G26，P1）: `todo`
+- 27. Targeted failover（G57，P2）: `planned`（plan `ai-dev/plans/nop-stream-production/2026-07-26-0433-2-targeted-failover.md`，active — 可行性裁定优先 go/no-go；draft review 验证全 pipelined→单 region 架构事实，Phase 1 裁定是否可行）
+- 28. 分布式 RPC 接口扩容 + 进程内 backpressure（G23, G26，P1）: done（plan `ai-dev/plans/nop-stream-production/2026-07-26-0433-1-rpc-dispatcher-backpressure.md`，completed — 控制面 RPC 暴露 terminate/abort/status + G26 dispatcher 最小化 Decision + G27 backpressure 契约 + CREDIT_BASED/ACK_WINDOW 永久排除）
 
 ### Phase 2 — 状态后端生产化
 

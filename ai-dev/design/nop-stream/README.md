@@ -188,7 +188,7 @@ Checkpoint 是流处理引擎的**横切关注点**，与算子、执行层、�
 │     ├── transport backend 绑定（local BlockingQueue / remote IMessageService）   │
 │     ├── state backend 绑定（Memory / 未来 RocksDB）                              │
 │     ├── checkpoint storage 绑定（LocalFile / JDBC）                              │
-│     ├── EdgeConfig flow control（BLOCKING_QUEUE / CREDIT_BASED / ACK_WINDOW）    │
+│     ├── EdgeConfig flow control（BLOCKING_QUEUE — Stage 28 G27 移除其余）        │
 │     └── MemoryBudget 分配                                                       │
 └────────────────────────────────┬────────────────────────────────────────────────┘
                                  │ execute() 分发

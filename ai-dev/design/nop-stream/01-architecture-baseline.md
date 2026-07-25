@@ -290,11 +290,27 @@ CheckpointCoordinator (manifest durable → sink commit)
 
 | 角色 | 职责 |
 |---|---|
-| `JobCoordinator` | 持有 canonical plan、消费 DeploymentPlan 已物化的 subtask→node 分配（或 fallback 到 runtime round-robin）、触发 epoch、维护 fencing token、per-subtask attempt 编号（G56）、global restart 上限（G56）、JobStatus 终态（FAILED）、per-task 终态上报处理（G52） |
+| `JobCoordinator` | 持有 canonical plan、消费 DeploymentPlan 已物化的 subtask→node 分配（或 fallback 到 runtime round-robin）、触发 epoch、维护 fencing token、per-subtask attempt 编号（G56）、global restart 上限（G56）、JobStatus 终态（FAILED/CANCELED）、per-task 终态上报处理（G52）。Stage 28 起经 `IStreamCoordinatorRpcService` 暴露完整控制面契约：`terminate(JobTerminationMode)`（4 模式）、`abortCheckpoint(epochId)`（触发 LOCAL abort handler）、`getJobStatus()`（返回 `JobStatusResponse` 含状态 + 失败原因）—— local 契约完整，Stage 39 远程化仅加 transport 层 |
 | `RuntimeNode` | 注册到集群、汇报心跳、承载 task attempt、暴露本节点资源和 transport endpoint、per-task liveness 上报（piggyback heartbeat） |
 | `TaskAttempt` | 某个 stable task 的一次执行尝试，绑定 attemptId（UUID）、attemptNumber（单调递增，per-subtask）和 fencing token；历史保留于 `ClusterRegistry.getAttemptHistory`（G56） |
 | `NodeLease` | RuntimeNode 的存活租约，超时后其 task attempt 被视为失效（节点级兜底检测，与 per-task liveness 并存 G52） |
 | `ClusterRegistry` | 记录 active coordinator、runtime nodes、node lease 和 task assignment 的一致视图；attempt 历史 append-only（G56，非覆盖式） |
+
+### Dispatcher 最小化 — 有意设计（G26, Stage 28 Decision）
+
+**裁定**：`IStreamExecutionDispatcher` 仅含三个**部署入口**方法（`supportsDeploymentMode` / `getExpectedNodeIds` / `execute`），不承载 job 生命周期管理。这是有意设计，非缺口。
+
+**理由**：在当前同步 `execute()` 模型下，`JobCoordinator` 是 `execute()` 方法内的局部变量，`execute()` 返回后即销毁（见 `EmbeddedDistributedExecutor`）。dispatcher 上新增生命周期方法（terminate/query）在当前架构下**无 coordinator 可委托**。job 生命周期管理（terminate / abort / status）经 Phase 1 暴露的 coordinator RPC 接口（`IStreamCoordinatorRpcService`）完成。
+
+**Successor**：异步 submit + poll 形态的 dispatcher（持有长生命周期 coordinator）属 Stage 39（cross-JVM RPC）。在此之前，dispatcher 保持为部署入口，所有生命周期控制走 coordinator RPC。
+
+### 进程内 backpressure 契约 — IBufferPool 两级（G27, Stage 28 Decision）
+
+**裁定**：in-process backpressure = Stage 26 `IBufferPool`（两级）：(1) per-partition `ResultPartition` 队列阻塞（`queue.put()` 满时阻塞生产者）；(2) per-job `IBufferPool.acquire()` 全局阻塞（跨多 partition 全局聚合内存上限，防 fan-out OOM）。两级均在**进程内**生效。
+
+**跨 JVM backpressure** 由 `IMessageService` 后端提供（Stage 40）：`SysDaoMessageService`（DB）天然有界，`PulsarMessageService` 天然 pub/sub 背压。nop-stream **不重建 Flink Netty 网络栈**（vision 约束 7）。
+
+**CREDIT_BASED / ACK_WINDOW 永久排除**：这两个 `FlowControlPolicy` 枚举值是 Flink Netty credit-based flow control 的产物，在 nop-stream 的设计下**永远不需要**（进程内走 BLOCKING_QUEUE + IBufferPool，跨 JVM 走 IMessageService 后端）。Stage 28 将其从枚举中移除并清理所有引用（测试 / javadoc / 注释），闭合 Hollow gap。
 
 ### 作业终止模式
 
@@ -312,7 +328,7 @@ CheckpointCoordinator (manifest durable → sink commit)
 | `CREATED` | JobCoordinator 构造后、start 前 | 构造器 |
 | `RUNNING` | 正常运行 | `start()` |
 | `FAILED` | 终态：global restart 上限耗尽 | `failJob(cause)` —— 仅 `globalRecovery()` 内部当 `restartCount > maxRestarts` 触发 |
-| `CANCELED` | 终态：用户主动 CANCEL | `terminate(CANCEL)` 路径 |
+| `CANCELED` | 终态：用户主动 CANCEL | `terminate(CANCEL)` 路径 —— Stage 28 起 `terminateCancel()` 显式设 `jobStatus = CANCELED` 后再 `stop()` |
 
 - 重启计数器 **仅 `globalRecovery()` 递增**；默认上限 `maxRestarts=3`（可配）。Stage 27 scoped/targeted 重启不走 `globalRecovery()`，需自带 per-region 计数器（Deferred）。
 - `JobStatus.FAILED` 后 `assignTasks()` 显式拒绝（#24 — 不静默跳过）。
@@ -376,15 +392,15 @@ StreamSource → ChainingOutput → StreamMap → ChainingOutput → WindowOpera
 | `UNION` | 多上游合并到下游输入集合 | 多 source 合并 |
 | `SINGLETON` | 所有数据汇聚到 subtask 0 | 全局 sink、全局聚合 |
 
-### 分布式背压
+### 进程内背压（Stage 28 G27 裁定）
 
-分布式 edge 通过 `EdgeConfig` 配置 flow control：
+进程内 edge 通过 `EdgeConfig` 配置 flow control。Stage 28 起 `FlowControlPolicy` 仅保留 `BLOCKING_QUEUE`（CREDIT_BASED / ACK_WINDOW 永久排除，见 §五 G27 裁定）：
 
 | 策略 | 行为 | 适用场景 |
 |---|---|---|
-| `BLOCKING_QUEUE` | 队列满时阻塞 sender | 单进程、低延迟 |
-| `CREDIT_BASED` | receiver 授予 sender 发送额度 | 分布式、高吞吐 |
-| `ACK_WINDOW` | sender 只能领先 receiver 一个窗口 | 有序、可靠传输 |
+| `BLOCKING_QUEUE` | 队列满时阻塞 sender | 进程内（per-partition `ResultPartition` 队列 + per-job `IBufferPool` 全局配额，见 §六「进程内缓冲池」） |
+
+跨 JVM 背压由 `IMessageService` 后端提供（Stage 40），不在 `FlowControlPolicy` 枚举中建模。
 
 ### 统一数据通道
 
