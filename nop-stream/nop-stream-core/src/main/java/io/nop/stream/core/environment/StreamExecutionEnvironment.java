@@ -396,12 +396,23 @@ public class StreamExecutionEnvironment {
 
     /**
      * Generates a DeploymentPlan from a PartitionedPlan.
-     * Uses a ServiceLoader-based approach to find the DeploymentPlanGenerator
-     * in the runtime module, or creates a minimal local plan if unavailable.
+     *
+     * <p>For LOCAL mode, uses {@link IDeploymentPlanProvider#generateLocal} which
+     * produces a plan without physical node mapping (the runtime assigns at execution time).
+     *
+     * <p>For DISTRIBUTED mode, asks the {@link IStreamExecutionDispatcher} for the expected
+     * node set and uses {@link IDeploymentPlanProvider#generateDistributed} to materialize
+     * a round-robin subtask→node assignment into the plan.
      */
     private DeploymentPlan generateDeploymentPlan(PartitionedPlan partitionedPlan) {
-        return IDeploymentPlanProvider.getProvider()
-                .generateLocal(partitionedPlan);
+        IDeploymentPlanProvider provider = IDeploymentPlanProvider.getProvider();
+
+        if (deploymentMode == DeploymentMode.DISTRIBUTED && executionDispatcher != null) {
+            List<String> nodeIds = executionDispatcher.getExpectedNodeIds(partitionedPlan);
+            return provider.generateDistributed(partitionedPlan, nodeIds);
+        }
+
+        return provider.generateLocal(partitionedPlan);
     }
 
     private JobGraph buildJobGraph(String jobName) {

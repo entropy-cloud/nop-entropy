@@ -8,6 +8,7 @@
 package io.nop.stream.core.execution;
 
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 
 import io.nop.api.core.annotations.core.Internal;
@@ -27,7 +28,8 @@ import static io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_NULL_ARG;
  * used when no runtime module is on the classpath.
  *
  * <p>Creates a minimal DeploymentPlan with default edge configs
- * and a local memory budget.
+ * and a local memory budget. Distributed generation is not supported
+ * because the core module has no access to a cluster registry.
  */
 @Internal
 class DefaultDeploymentPlanProvider implements IDeploymentPlanProvider {
@@ -55,5 +57,13 @@ class DefaultDeploymentPlanProvider implements IDeploymentPlanProvider {
                 "local",
                 edgeConfigs,
                 MemoryBudget.defaultLocalBudget(64 * 1024 * 1024));
+    }
+
+    @Override
+    public DeploymentPlan generateDistributed(PartitionedPlan partitionedPlan, List<String> activeNodeIds) {
+        throw new StreamException(NopStreamErrors.ERR_STREAM_UNSUPPORTED)
+                .param(NopStreamErrors.ARG_OPERATION,
+                        "DefaultDeploymentPlanProvider.generateDistributed"
+                                + " — runtime module is not on the classpath");
     }
 }

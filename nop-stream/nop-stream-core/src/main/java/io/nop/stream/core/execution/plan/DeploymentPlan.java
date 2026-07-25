@@ -30,6 +30,7 @@ public class DeploymentPlan implements Serializable {
     private final String checkpointStorage;
     private final Map<String, EdgeConfig> edgeConfigs;
     private final MemoryBudget memoryBudget;
+    private final DeploymentAssignment assignment;
 
     public DeploymentPlan(String jobId, String pipelineId,
                           PartitionedPlan partitionedPlan,
@@ -38,6 +39,18 @@ public class DeploymentPlan implements Serializable {
                           String checkpointStorage,
                           Map<String, EdgeConfig> edgeConfigs,
                           MemoryBudget memoryBudget) {
+        this(jobId, pipelineId, partitionedPlan, transportBackend, stateBackendBinding,
+                checkpointStorage, edgeConfigs, memoryBudget, null);
+    }
+
+    public DeploymentPlan(String jobId, String pipelineId,
+                          PartitionedPlan partitionedPlan,
+                          String transportBackend,
+                          String stateBackendBinding,
+                          String checkpointStorage,
+                          Map<String, EdgeConfig> edgeConfigs,
+                          MemoryBudget memoryBudget,
+                          DeploymentAssignment assignment) {
         this.jobId = jobId;
         this.pipelineId = pipelineId;
         this.partitionedPlan = partitionedPlan;
@@ -47,10 +60,11 @@ public class DeploymentPlan implements Serializable {
         this.edgeConfigs = edgeConfigs != null
                 ? Collections.unmodifiableMap(new LinkedHashMap<>(edgeConfigs)) : Collections.emptyMap();
         this.memoryBudget = memoryBudget;
+        this.assignment = assignment;
     }
 
     public DeploymentPlan() {
-        this(null, null, null, "local", "memory", "local", null, null);
+        this(null, null, null, "local", "memory", "local", null, null, null);
     }
 
     public String getJobId() { return jobId; }
@@ -61,4 +75,10 @@ public class DeploymentPlan implements Serializable {
     public String getCheckpointStorage() { return checkpointStorage; }
     public Map<String, EdgeConfig> getEdgeConfigs() { return edgeConfigs; }
     public MemoryBudget getMemoryBudget() { return memoryBudget; }
+
+    /**
+     * @return the materialized subtask→node assignment, or {@code null} when the plan
+     *         was generated for LOCAL mode (no physical node mapping).
+     */
+    public DeploymentAssignment getAssignment() { return assignment; }
 }

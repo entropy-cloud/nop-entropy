@@ -7,6 +7,8 @@
  */
 package io.nop.stream.runtime.execution;
 
+import java.util.List;
+
 import io.nop.api.core.annotations.core.Internal;
 
 import io.nop.stream.core.execution.IDeploymentPlanProvider;
@@ -25,5 +27,10 @@ public class DeploymentPlanProviderImpl implements IDeploymentPlanProvider {
     @Override
     public DeploymentPlan generateLocal(PartitionedPlan partitionedPlan) {
         return generator.generateLocal(partitionedPlan);
+    }
+
+    @Override
+    public DeploymentPlan generateDistributed(PartitionedPlan partitionedPlan, List<String> activeNodeIds) {
+        return generator.generateDistributed(partitionedPlan, activeNodeIds);
     }
 }
