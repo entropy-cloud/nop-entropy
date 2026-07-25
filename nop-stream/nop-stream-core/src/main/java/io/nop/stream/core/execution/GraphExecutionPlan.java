@@ -25,6 +25,8 @@ import io.nop.api.core.annotations.core.Internal;
 import io.nop.commons.partition.IPartitioner;
 
 import io.nop.stream.core.checkpoint.TaskLocation;
+import io.nop.stream.core.execution.buffer.BufferPool;
+import io.nop.stream.core.execution.buffer.IBufferPool;
 import io.nop.stream.core.execution.flow.EdgeConfig;
 import io.nop.stream.core.execution.plan.DeploymentPlan;
 import io.nop.stream.core.execution.plan.PartitionedPlan;
@@ -36,8 +38,10 @@ import io.nop.stream.core.jobgraph.OperatorChain;
 
 import io.nop.stream.core.exceptions.StreamException;
 
+import static io.nop.stream.core.exceptions.NopStreamErrors.ARG_ARG_NAME;
 import static io.nop.stream.core.exceptions.NopStreamErrors.ARG_DETAIL;
 import static io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_CYCLIC_JOB_GRAPH;
+import static io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_NULL_ARG;
 
 /**
  * Builds an execution plan from a JobGraph, creating data exchange channels
@@ -68,6 +72,17 @@ public class GraphExecutionPlan {
 
     private static final Logger LOG = LoggerFactory.getLogger(GraphExecutionPlan.class);
 
+    /**
+     * Default global (cross-partition aggregate) element capacity used when a caller
+     * invokes a {@code build(...)} overload that does not pass an explicit pool.
+     *
+     * <p>This is intentionally generous so that existing tests and small jobs are
+     * unaffected by the global bound; production deployments should pass an explicit
+     * {@link IBufferPool} sized to the real memory budget. The constant exists so the
+     * global bound is observable (and testable) rather than unbounded.
+     */
+    public static final int DEFAULT_GLOBAL_BUFFER_CAPACITY = 65536;
+
     private final List<String> sortedVertexIds;
     private final Map<String, JobVertex> executionVertices;
     private final Map<String, StreamTaskInvokable> invokables;
@@ -78,14 +93,23 @@ public class GraphExecutionPlan {
      */
     private final Map<String, List<Subtask>> subtasks;
 
+    /**
+     * The per-job buffer pool shared by all local {@code ResultPartition} instances in
+     * this plan. May be {@code null} for plans built via {@link #create(...)} (runtime
+     * builders that supply their own, possibly remote, partitions).
+     */
+    private final IBufferPool bufferPool;
+
     private GraphExecutionPlan(List<String> sortedVertexIds,
                                 Map<String, JobVertex> executionVertices,
                                 Map<String, StreamTaskInvokable> invokables,
-                                Map<String, List<Subtask>> subtasks) {
+                                Map<String, List<Subtask>> subtasks,
+                                IBufferPool bufferPool) {
         this.sortedVertexIds = sortedVertexIds;
         this.executionVertices = executionVertices;
         this.invokables = invokables;
         this.subtasks = subtasks;
+        this.bufferPool = bufferPool;
     }
 
     /**
@@ -102,7 +126,10 @@ public class GraphExecutionPlan {
                                             Map<String, JobVertex> executionVertices,
                                             Map<String, StreamTaskInvokable> invokables,
                                             Map<String, List<Subtask>> subtasks) {
-        return new GraphExecutionPlan(sortedVertexIds, executionVertices, invokables, subtasks);
+        // create() is used by runtime-level builders that supply their own partitions
+        // (e.g. RemoteResultPartition). Such partitions intentionally bypass the pool,
+        // so no pool is attached to a create()-built plan.
+        return new GraphExecutionPlan(sortedVertexIds, executionVertices, invokables, subtasks, null);
     }
 
     /**
@@ -158,6 +185,11 @@ public class GraphExecutionPlan {
      * Builds an execution plan from the given JobGraph with full configuration including
      * barrier alignment timeout.
      *
+     * <p>A per-job {@link IBufferPool} with {@link #DEFAULT_GLOBAL_BUFFER_CAPACITY} is
+     * created internally (one pool shared by all partitions in the returned plan). Use
+     * {@link #build(JobGraph, DeploymentPlan, boolean, long, IBufferPool)} to pass an
+     * explicit pool (e.g. sized to a real memory budget).
+     *
      * @param jobGraph                the job graph to plan execution for
      * @param deploymentPlan          optional deployment plan (null uses default behavior)
      * @param barrierAlignment        if true, InputGates use barrier alignment
@@ -166,6 +198,38 @@ public class GraphExecutionPlan {
      */
     public static GraphExecutionPlan build(JobGraph jobGraph, DeploymentPlan deploymentPlan,
                                            boolean barrierAlignment, long barrierAlignmentTimeout) {
+        return build(jobGraph, deploymentPlan, barrierAlignment, barrierAlignmentTimeout,
+                new BufferPool(DEFAULT_GLOBAL_BUFFER_CAPACITY));
+    }
+
+    /**
+     * Builds an execution plan from the given JobGraph with an explicit per-job
+     * {@link IBufferPool}.
+     *
+     * <p>The supplied pool is shared by all local {@code ResultPartition} instances in
+     * the returned plan, giving a single observable cross-partition global aggregate
+     * bound for one execution. Each partition's per-partition capacity is resolved from
+     * {@link EdgeConfig#getQueueCapacity()} (falling back to
+     * {@link ResultPartition#DEFAULT_CAPACITY} when no {@code EdgeConfig} is available).
+     *
+     * <p>Pool ownership: the returned plan holds the pool reference via
+     * {@link #getBufferPool()}; callers should {@link IBufferPool#close()} it (directly
+     * or via {@link #closeBufferPool()}) when execution ends or the plan is abandoned on
+     * recovery, so any producer blocked on global exhaustion is woken.
+     *
+     * @param jobGraph                the job graph to plan execution for
+     * @param deploymentPlan          optional deployment plan (null uses default behavior)
+     * @param barrierAlignment        if true, InputGates use barrier alignment
+     * @param barrierAlignmentTimeout maximum time in ms for barrier alignment before timeout
+     * @param bufferPool              the per-job buffer pool (must not be null)
+     * @return the execution plan
+     */
+    public static GraphExecutionPlan build(JobGraph jobGraph, DeploymentPlan deploymentPlan,
+                                           boolean barrierAlignment, long barrierAlignmentTimeout,
+                                           IBufferPool bufferPool) {
+        if (bufferPool == null) {
+            throw new StreamException(ERR_STREAM_NULL_ARG).param(ARG_ARG_NAME, "bufferPool");
+        }
         // --- 1. Build adjacency maps ---
         Map<String, List<JobEdge>> outgoingEdges = new HashMap<>();
         Map<String, List<JobEdge>> incomingEdges = new HashMap<>();
@@ -179,14 +243,19 @@ public class GraphExecutionPlan {
 
         // --- 3. Allocate partition matrix per edge ---
         // Key: edge -> [sourceSubtaskIndex][targetSubtaskIndex] = ResultPartition
+        // Each partition is bound to the per-job pool so the cross-partition global
+        // aggregate in-flight element count is bounded. Per-partition capacity comes
+        // from EdgeConfig.queueCapacity (wired here), defaulting to DEFAULT_CAPACITY.
         Map<JobEdge, ResultPartition[][]> edgePartitionMatrix = new LinkedHashMap<>();
         for (JobEdge edge : jobGraph.getEdges()) {
             int srcP = parallelismMap.getOrDefault(edge.getSourceVertex(), 1);
             int tgtP = parallelismMap.getOrDefault(edge.getTargetVertex(), 1);
+            EdgeConfig edgeConfig = resolveEdgeConfig(edge, deploymentPlan);
+            int partitionCapacity = resolvePartitionCapacity(edgeConfig);
             ResultPartition[][] matrix = new ResultPartition[srcP][tgtP];
             for (int s = 0; s < srcP; s++) {
                 for (int t = 0; t < tgtP; t++) {
-                    matrix[s][t] = new ResultPartition();
+                    matrix[s][t] = new ResultPartition(partitionCapacity, bufferPool);
                 }
             }
             edgePartitionMatrix.put(edge, matrix);
@@ -321,7 +390,7 @@ public class GraphExecutionPlan {
 
         List<String> sorted = topologicalSort(jobGraph);
 
-        return new GraphExecutionPlan(sorted, executionVertices, invokables, subtasksMap);
+        return new GraphExecutionPlan(sorted, executionVertices, invokables, subtasksMap, bufferPool);
     }
 
     /**
@@ -397,6 +466,21 @@ public class GraphExecutionPlan {
             return deploymentPlan.getEdgeConfigs().get(edgeKey);
         }
         return null;
+    }
+
+    /**
+     * Resolves the per-partition queue capacity (in element count) from the
+     * {@link EdgeConfig}. Falls back to {@link ResultPartition#DEFAULT_CAPACITY} when
+     * no {@code EdgeConfig} is available or {@code queueCapacity} is not positive.
+     *
+     * <p>This is the wiring point for the previously-unconnected
+     * {@code EdgeConfig.queueCapacity} declaration.
+     */
+    private static int resolvePartitionCapacity(EdgeConfig edgeConfig) {
+        if (edgeConfig != null && edgeConfig.getQueueCapacity() > 0) {
+            return edgeConfig.getQueueCapacity();
+        }
+        return ResultPartition.DEFAULT_CAPACITY;
     }
 
     /**
@@ -479,5 +563,31 @@ public class GraphExecutionPlan {
      */
     public List<Subtask> getSubtasks(String vertexId) {
         return subtasks.getOrDefault(vertexId, Collections.emptyList());
+    }
+
+    /**
+     * Returns the per-job buffer pool shared by all local {@code ResultPartition}
+     * instances in this plan, or {@code null} for plans built via {@link #create(...)}
+     * that intentionally do not use a pool (e.g. distributed runtime with remote
+     * partitions).
+     *
+     * @return the per-job pool, or {@code null}
+     */
+    public IBufferPool getBufferPool() {
+        return bufferPool;
+    }
+
+    /**
+     * Closes the per-job buffer pool, waking any producer blocked on global exhaustion.
+     * Safe to call when the pool is {@code null} (no-op) or already closed (idempotent).
+     *
+     * <p>Should be invoked when execution ends (normal or exceptional) or when the plan
+     * is abandoned on checkpoint recovery so that blocked producers are released and a
+     * fresh pool is created for the recovery attempt.
+     */
+    public void closeBufferPool() {
+        if (bufferPool != null) {
+            bufferPool.close();
+        }
     }
 }

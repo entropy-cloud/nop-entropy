@@ -14,6 +14,7 @@ import java.util.concurrent.TimeUnit;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import io.nop.stream.core.execution.buffer.IBufferPool;
 import io.nop.stream.core.streamrecord.StreamElement;
 import io.nop.stream.core.exceptions.StreamException;
 
@@ -46,26 +47,54 @@ public class ResultPartition implements IWriteStatus {
     public static final int DEFAULT_CAPACITY = 1024;
 
     private final LinkedBlockingQueue<StreamElement> queue;
+    private final IBufferPool bufferPool;
     private volatile boolean finished;
 
     /**
-     * Creates a ResultPartition with the default capacity (1024).
+     * Creates a ResultPartition with the default capacity (1024) and no global pool.
      */
     public ResultPartition() {
-        this(DEFAULT_CAPACITY);
+        this(DEFAULT_CAPACITY, null);
     }
 
     /**
-     * Creates a ResultPartition with the specified capacity.
+     * Creates a ResultPartition with the specified capacity and no global pool.
+     *
+     * <p>When no pool is attached ({@code bufferPool == null}), only the per-partition
+     * bounded queue limits in-flight elements (legacy behavior). Direct-construction
+     * callers (tests, {@code RemoteResultPartition}, {@code RemoteInputChannel}) use this path.
      *
      * @param capacity the bounded queue capacity (must be positive)
      * @throws IllegalArgumentException if capacity is not positive
      */
     public ResultPartition(int capacity) {
+        this(capacity, null);
+    }
+
+    /**
+     * Creates a ResultPartition bound to a global {@link IBufferPool}.
+     *
+     * <p>When {@code bufferPool != null}, each {@link #write(StreamElement)} acquires one
+     * permit from the pool before enqueueing (blocking if the global pool is exhausted),
+     * and each consumed element releases one permit back. The per-partition queue capacity
+     * remains in force: write blocks on the queue when full (per-partition backpressure),
+     * and blocks on the pool when the aggregate cross-partition budget is exhausted
+     * (global backpressure). This is the production {@code GraphExecutionPlan.build()}
+     * path.
+     *
+     * <p>When {@code bufferPool == null}, this behaves identically to
+     * {@link #ResultPartition(int)} (no global aggregation constraint).
+     *
+     * @param capacity   the bounded queue capacity (must be positive)
+     * @param bufferPool optional global buffer pool (nullable)
+     * @throws IllegalArgumentException if capacity is not positive
+     */
+    public ResultPartition(int capacity, IBufferPool bufferPool) {
         if (capacity <= 0) {
             throw new StreamException(ERR_STREAM_INVALID_ARG).param(ARG_ARG_NAME, "capacity").param(ARG_DETAIL, "must be positive, got: " + capacity);
         }
         this.queue = new LinkedBlockingQueue<>(capacity);
+        this.bufferPool = bufferPool;
         this.finished = false;
     }
 
@@ -84,7 +113,18 @@ public class ResultPartition implements IWriteStatus {
             throw new StreamException(ERR_STREAM_INVALID_STATE)
                     .param(ARG_DETAIL, "Cannot write to a finished ResultPartition");
         }
-        queue.put(element);
+        if (bufferPool != null) {
+            bufferPool.acquire();
+            try {
+                queue.put(element);
+            } catch (InterruptedException e) {
+                // Acquired a permit but never enqueued; return it to avoid a leak.
+                bufferPool.release();
+                throw e;
+            }
+        } else {
+            queue.put(element);
+        }
     }
 
     /**
@@ -99,6 +139,9 @@ public class ResultPartition implements IWriteStatus {
         StreamElement element = queue.take();
         if (element == END_OF_STREAM) {
             return null;
+        }
+        if (bufferPool != null) {
+            bufferPool.release();
         }
         return element;
     }
@@ -120,6 +163,9 @@ public class ResultPartition implements IWriteStatus {
         if (element == END_OF_STREAM) {
             return null;
         }
+        if (bufferPool != null) {
+            bufferPool.release();
+        }
         return element;
     }
 
@@ -132,6 +178,15 @@ public class ResultPartition implements IWriteStatus {
     public void close() {
         finished = true;
         if (!queue.offer(END_OF_STREAM)) {
+            // Queue full: discard pending elements to make room for the sentinel.
+            // When a pool is attached, return a permit for each discarded element
+            // so the global budget is not permanently leaked by a forced drain.
+            if (bufferPool != null) {
+                int discarded = queue.size();
+                for (int i = 0; i < discarded; i++) {
+                    bufferPool.release();
+                }
+            }
             queue.clear();
             queue.offer(END_OF_STREAM);
         }
@@ -177,5 +232,18 @@ public class ResultPartition implements IWriteStatus {
     @Override
     public int getTotalCapacity() {
         return queue.size() + queue.remainingCapacity();
+    }
+
+    /**
+     * Returns the global buffer pool attached to this partition, or {@code null}
+     * if this partition operates in legacy (per-partition-only) mode.
+     *
+     * <p>Used by wiring verification tests to assert that production-built partitions
+     * share a single per-job pool instance.
+     *
+     * @return the attached pool, or {@code null}
+     */
+    public IBufferPool getBufferPool() {
+        return bufferPool;
     }
 }

@@ -240,6 +240,15 @@ public class RecordWriter<T> {
         return partitions.length;
     }
 
+    /**
+     * Returns the downstream partitions (for inspection / wiring verification).
+     * Package-private; the returned array is the internal reference, callers must
+     * not mutate it.
+     */
+    ResultPartition[] getPartitions() {
+        return partitions;
+    }
+
     private int selectChannel(StreamRecord<T> record) {
         // Priority 1: Explicit PartitionRouter (HASH/FORWARD/REBALANCE strategies)
         if (partitionRouter != null) {

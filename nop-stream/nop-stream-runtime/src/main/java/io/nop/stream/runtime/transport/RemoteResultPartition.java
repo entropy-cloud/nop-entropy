@@ -38,6 +38,14 @@ import io.nop.stream.core.streamrecord.StreamElement;
  * an internal queue. All writes are immediately sent via the message service.
  * Read operations are unsupported on the producer side — the consumer uses
  * {@link RemoteInputChannel} instead.
+ *
+ * <p><strong>Buffer pool exclusion (intentional, G53)</strong>: this class calls
+ * {@code super(1)} and overrides {@link #write(StreamElement)} to send directly via
+ * {@code IMessageService}, bypassing both the per-partition queue and the per-job
+ * {@code IBufferPool}. Cross-JVM producer-side bound is therefore NOT provided here;
+ * it is the responsibility of the {@code IMessageService} backend (Stage 40). This
+ * exclusion is by design and documented in {@code 01-architecture-baseline.md} §六,
+ * not an accidental omission.
  */
 public class RemoteResultPartition extends ResultPartition {
 

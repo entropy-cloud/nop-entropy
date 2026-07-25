@@ -119,6 +119,11 @@ public class GraphModelCheckpointExecutor {
             return new StreamExecutionResult(jobName, executionTime);
         } finally {
             shutdown(barrierScheduler, coordinator, executor);
+            // Release the per-job buffer pool so any producer blocked on global
+            // exhaustion is woken. On a recovery attempt a fresh plan (and fresh
+            // pool) is built; closing the prior pool avoids leaked permits from
+            // the failed attempt starving the new one.
+            execPlan.closeBufferPool();
         }
     }
 
@@ -180,6 +185,11 @@ public class GraphModelCheckpointExecutor {
             return new StreamExecutionResult(jobName, executionTime);
         } finally {
             shutdown(barrierScheduler, coordinator, executor);
+            // Release the per-job buffer pool so any producer blocked on global
+            // exhaustion is woken. On a recovery attempt a fresh plan (and fresh
+            // pool) is built; closing the prior pool avoids leaked permits from
+            // the failed attempt starving the new one.
+            execPlan.closeBufferPool();
         }
     }
 
@@ -248,6 +258,11 @@ public class GraphModelCheckpointExecutor {
             return new StreamExecutionResult(jobName, executionTime);
         } finally {
             shutdown(barrierScheduler, coordinator, executor);
+            // Release the per-job buffer pool so any producer blocked on global
+            // exhaustion is woken. On a recovery attempt a fresh plan (and fresh
+            // pool) is built; closing the prior pool avoids leaked permits from
+            // the failed attempt starving the new one.
+            execPlan.closeBufferPool();
         }
     }
 
@@ -314,6 +329,11 @@ public class GraphModelCheckpointExecutor {
             return savepointPath;
         } finally {
             shutdown(barrierScheduler, coordinator, executor);
+            // Release the per-job buffer pool so any producer blocked on global
+            // exhaustion is woken. On a recovery attempt a fresh plan (and fresh
+            // pool) is built; closing the prior pool avoids leaked permits from
+            // the failed attempt starving the new one.
+            execPlan.closeBufferPool();
         }
     }
 
@@ -357,6 +377,11 @@ public class GraphModelCheckpointExecutor {
             return new StreamExecutionResult(jobName, executionTime);
         } finally {
             shutdown(barrierScheduler, coordinator, executor);
+            // Release the per-job buffer pool so any producer blocked on global
+            // exhaustion is woken. On a recovery attempt a fresh plan (and fresh
+            // pool) is built; closing the prior pool avoids leaked permits from
+            // the failed attempt starving the new one.
+            execPlan.closeBufferPool();
         }
     }
 

@@ -39,6 +39,13 @@ import static io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_STATE_ERR
  * <p><strong>Fencing:</strong> Only envelopes whose fencing token and epoch id
  * match the expected values are accepted. Stale messages are silently discarded.
  *
+ * <p><strong>Buffer pool exclusion (intentional, G53)</strong>: this class constructs
+ * a dummy {@code super(new ResultPartition(1))} and uses its own local
+ * {@link LinkedBlockingQueue}. It does not consume the per-job {@code IBufferPool}.
+ * Cross-JVM producer-side bound is the responsibility of the {@code IMessageService}
+ * backend (Stage 40). This exclusion is by design and documented in
+ * {@code 01-architecture-baseline.md} §六, not an accidental omission.
+ *
  * <p><strong>Lifecycle:</strong>
  * <ol>
  *   <li>Constructor subscribes to the topic</li>

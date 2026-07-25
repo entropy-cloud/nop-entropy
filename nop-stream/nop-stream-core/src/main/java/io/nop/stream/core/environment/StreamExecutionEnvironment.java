@@ -305,6 +305,9 @@ public class StreamExecutionEnvironment {
                 return new StreamExecutionResult(jobName, executionTime);
             } finally {
                 executor.shutdown();
+                // Release the per-job buffer pool so any producer blocked on global
+                // exhaustion is woken, and permits do not leak across executions.
+                plan.closeBufferPool();
             }
         } catch (Exception e) {
             throw new StreamException(ERR_STREAM_JOB_EXECUTE_FAILED, e).param(ARG_JOB_NAME, jobName);
