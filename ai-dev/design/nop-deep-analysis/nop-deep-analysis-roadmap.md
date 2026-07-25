@@ -1,6 +1,6 @@
 # nop-entropy 平台深度分析与下一代框架对标 Roadmap
 
-> Last Updated: 2026-07-24
+> Last Updated: 2026-07-26
 > Sources:
 > - 平台使用文档 `docs-for-ai/`（`INDEX.md` 为导航基线，`04-reference/source-anchors.md` 为实现锚点）
 > - 理论文档语料 `docs/theory/`（可逆计算 / XLang / XDSL / GRC 等）
@@ -31,7 +31,7 @@
 - A4. GraphQL 引擎、服务层与前后端一体化渲染 + 联网对标 GraphQL / BFF / 低代码前端: `done`
 - A5. 业务模块矩阵全景与定位 + 联网对标各领域竞品: `done`
 - A6. 工程化、开发者体验与 AI 辅助开发（mission-driver / cli / AutoTest / e2e / 文档体系）+ 联网对标 AI 开发工具链: `done`
-- A7. 综合评估、下一代框架对标与平台演进建议（capstone 深度介绍材料）: `todo`
+- A7. 综合评估、下一代框架对标与平台演进建议（capstone 深度介绍材料）: `done`
 
 ## Status Values
 
@@ -169,7 +169,7 @@
 **Goal：** 汇总 A1–A6，产出顶层「深度介绍材料」，并给出面向下一代框架趋势的定位与演进建议。
 
 **Deliverables：**
-- capstone 文档 `ai-dev/analysis/2026-07/2026-07-XX-nop-platform-deep-introduction.md`（深度介绍材料主体）
+- capstone 文档 `ai-dev/analysis/2026-07/2026-07-26-nop-platform-deep-introduction.md`（深度介绍材料主体）
 - 覆盖：整体设计哲学一句话定位、架构总览图、核心差异化能力、优势 / 差距矩阵、与下一代框架（云原生、AI 原生、低代码、代码生成）趋势的对标、演进建议
 - **结论分支**：就「是否更新 `docs-for-ai/`」「是否作为平台下一步路线图输入」给出带依据的建议（最终决策由人确认）
 
