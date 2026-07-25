@@ -24,11 +24,13 @@
 
 ### Flink Architecture
 
-Flink uses a **two-layer graph model** connecting the logical plan to physical execution:
+Flink uses a **three-layer graph model** (StreamGraph → JobGraph → ExecutionGraph). JobGraph is a serializable intermediate plan; ExecutionGraph is the runtime scheduling DAG. This analysis uses **graph-model layer count** as the comparison caliber (consistent with `graph-model-design.md` §1.1 and `01-architecture-baseline.md` §四 / §8.1):
 
 1. **`StreamGraph`** (logical DAG) — `StreamNode` + `StreamEdge`, built by `StreamGraphGenerator` from `Transformation` DAG. Integer vertex IDs, operator factories, parallelism, chaining strategy.
 
-2. **`ExecutionGraph`** (runtime DAG) — built by `DefaultExecutionGraphFactory` / `SchedulerBase` from `JobGraph`:
+2. **`JobGraph`** (serializable execution plan) — `JobVertex` + `JobEdge` + `IntermediateDataSet`. Built by `StreamingJobGraphGenerator` from `StreamGraph`; performs operator chaining and serializes to the `JobGraph` submitted to the JobManager.
+
+3. **`ExecutionGraph`** (runtime DAG) — built by `DefaultExecutionGraphFactory` / `SchedulerBase` from `JobGraph`:
    - **`ExecutionJobVertex`** — one per `JobVertex` (one chained operator group). Holds `ExecutionVertex[] taskVertices` (one per parallel subtask), `IntermediateResult[] producedDataSets` (outputs), `SlotSharingGroup`, `CoLocationGroup`, `OperatorCoordinatorHolder[]`.
    - **`ExecutionVertex`** — single parallel subtask. Holds `Execution currentExecution` (current attempt), `ExecutionHistory` (past attempts), `Map<IntermediateResultPartitionID, IntermediateResultPartition> resultPartitions`, `int subTaskIndex`.
    - **`Execution`** — single attempt to run an ExecutionVertex. State machine: `CREATED -> SCHEDULED -> DEPLOYING -> INITIALIZING -> RUNNING -> FINISHED/FAILED/CANCELED`. Holds `ExecutionAttemptID attemptId`, `LogicalSlot assignedResource`, `JobManagerTaskRestore taskRestore` (checkpoint restore).
@@ -43,7 +45,7 @@ Flink uses a **two-layer graph model** connecting the logical plan to physical e
 
 ### nop-stream Architecture
 
-nop-stream uses a **four-layer graph model**:
+nop-stream uses a **two-layer graph model** (StreamGraph → JobGraph). `PartitionedPlan` and `DeploymentPlan` are an **independent deployment-abstraction dimension** and are **not counted as graph-model layers** (see `graph-model-design.md` §1.1 "为什么不是三层" and `01-architecture-baseline.md` §四 for the intentional-design rationale — nop-stream rejects Flink's ExecutionGraph third layer via `IStreamExecutionDispatcher` SPI).
 
 1. **`StreamGraph`** (logical DAG) — `StreamNode` (Integer ID, operatorFactory, parallelism, KeySelector, WindowAssigner, ChainingStrategy) + `StreamEdge`. Built by `StreamGraphGenerator` from `Transformation` DAG.
 
@@ -67,7 +69,7 @@ Source: `nop-stream-core/.../execution/GraphExecutionPlan`
 
 | Aspect | Flink | nop-stream | Gap |
 |--------|-------|-----------|-----|
-| Graph layers | 2 layers: StreamGraph → ExecutionGraph (via JobGraph as serialization format) | 4 layers: StreamGraph → JobGraph → PartitionedPlan → DeploymentPlan | **Doc**: both have similar coverage; nop-stream separates deployment concerns into explicit plan objects |
+| Graph layers (graph-model caliber) | **3 layers**: StreamGraph → JobGraph → ExecutionGraph | **2 layers**: StreamGraph → JobGraph (PartitionedPlan/DeploymentPlan are a separate deployment-abstraction dimension, not graph-model layers — see `01-architecture-baseline.md` §四) | **Doc**: graph coverage equivalent at the 2-layer logical/optimized level; nop-stream rejects ExecutionGraph via `IStreamExecutionDispatcher` SPI; deployment concerns are split into explicit plan objects |
 | Runtime DAG | `ExecutionJobVertex` + `ExecutionVertex` + `IntermediateResult` with state machine | `GraphExecutionPlan` + adjacency maps + per-subtask `Subtask`/`StreamTaskInvokable` | **Improvement**: nop-stream's plan is simpler but lacks state machine tracking |
 | Vertex ID system | `JobVertexID` (UUID) for logical; `ExecutionVertexID` (JobVertexID + subtaskIndex) for physical | `String` IDs for JobVertex; integer indices for subtasks | No gap — functionally equivalent |
 | Intermediate data | `IntermediateResult` + `IntermediateResultPartition` with `ResultPartitionType` (PIPELINED/BLOCKING/HYBRID) | `ResultPartition[][]` matrix (pre-allocated per source × target parallelism) | **Improvement**: nop-stream's matrix approach is simpler but lacks `IntermediateResult` abstraction |
@@ -84,7 +86,7 @@ Source: `nop-stream-core/.../execution/GraphExecutionPlan`
 | Missing intermediate execution states (FAILING, SCHEDULED, DEPLOYING, INITIALIZING) | **Gap** | **P1** | nop-stream: `Task.java` enum has 5 states; Flink: `Execution` has 8 states with CAS transitions |
 | No execution retry / attempt tracking | **Gap** | **P2** | nop-stream: single attempt per Task; Flink: `ExecutionHistory` with `nextAttemptNumber` |
 | No operator coordinator concept | **Gap** | **P2** | Flink: `OperatorCoordinatorHolder[]` per ExecutionJobVertex; nop-stream: none |
-| Four-layer model provides equivalent coverage | **Doc** | — | PartitionedPlan + DeploymentPlan add explicit deployment abstraction absent in Flink |
+| Two-layer graph model + explicit deployment plans (D71) | **Doc** | — | nop-stream: 2 graph-model layers (StreamGraph→JobGraph) + PartitionedPlan/DeploymentPlan as separate deployment dimension; Flink: 3 graph-model layers (StreamGraph→JobGraph→ExecutionGraph). See `graph-model-design.md` §1.1/§8 and `01-architecture-baseline.md` §四 for the intentional-design rationale |
 
 ---
 
@@ -587,7 +589,7 @@ removeTaskAssignment(jobId, vertexId, subtaskIndex);         // → void
 | D17 | ClusterRegistry provides JDBC durability | **Improvement** | — | ZooKeeper HA services require external coordination service | `JdbcClusterRegistry` provides database-backed durability | Document as intentional simplification |
 | D18 | Fencing token model is well-designed | — | — | `FencedRpcEndpoint` + leader session UUID | `fencingToken` (UUID) in all RPC method signatures | No action needed |
 | D19 | Remote transport uses IMessageService | **Improvement** | — | Netty-based direct connections | Pub/sub message topics per edge | Document as leveraging existing infrastructure |
-| D20 | Four-layer graph model adds deployment abstraction | **Doc** | — | Two-layer: StreamGraph → ExecutionGraph | Four-layer: StreamGraph → JobGraph → PartitionedPlan → DeploymentPlan | Document as intentional design choice |
+| D20 | Two-layer graph model + explicit deployment plans (D71) | **Doc** | — | Three-layer: StreamGraph → JobGraph → ExecutionGraph | Two-layer: StreamGraph → JobGraph (PartitionedPlan/DeploymentPlan are a separate deployment-abstraction dimension, not graph-model layers) | Document as intentional design choice — see `graph-model-design.md` §1.1, `01-architecture-baseline.md` §四 |
 
 ### Gap Distribution Summary
 

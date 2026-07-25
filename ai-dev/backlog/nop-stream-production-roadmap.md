@@ -27,7 +27,7 @@ Does not contain implementation details. Each `planned` stage is owned by its ex
 - 19. Checkpoint 并发与共享状态（G31, G33，P2）: `todo`
 - 20. Partial/subtask 级恢复（G28, G29，P2）: `todo`
 - 21. Evictor/Pane/Watermark 集成（G46—G48，P2）: `done`
-- 22. 文档合同对齐与 source-anchors 补全（D69—D73，Doc）: `todo`
+- 22. 文档合同对齐与 source-anchors 补全（D69—D73，Doc）: `done`
 - 23. 代码清理与 P3 次要改进（G68, G62, G64，P3）: `todo`
 
 ### Phase 1 — 分布式运行时基础
@@ -134,7 +134,7 @@ Does not contain implementation details. Each `planned` stage is owned by its ex
 - RocksDB 状态后端缺失 → Stages 30-31
 - Key-Group / rescale 缺失 → Stages 34-35
 - Unaligned checkpoint 缺失（G6）→ Stage 43
-- 文档与实现多处不一致（D69—D73）→ Stage 22
+- 文档与实现多处不一致（D69—D73）→ Stage 22 ✅ Closed (item 22)
 
 ## Stages
 
@@ -198,7 +198,7 @@ Does not contain implementation details. Each `planned` stage is owned by its ex
 
 **Out of scope:** MergingWindowSet 本身（已实现）、非 session 窗口类型。
 
-**Module / area:** `nop-stream/nop-stream-core/window/`
+**Module / area:** nop-stream/nop-stream-core/window/
 
 #### 15. Timer checkpoint/restore + timer service 统一
 
@@ -213,7 +213,7 @@ Does not contain implementation details. Each `planned` stage is owned by its ex
 
 **Out of scope:** Timer 差量 checkpoint（优化项，后续）。
 
-**Module / area:** `nop-stream/nop-stream-core/time/`, `nop-stream/nop-stream-core/window/`
+**Module / area:** nop-stream/nop-stream-core/time/, nop-stream/nop-stream-core/window/
 
 #### 16. Multi-input barrier alignment + abort 通道
 
@@ -229,7 +229,7 @@ Does not contain implementation details. Each `planned` stage is owned by its ex
 
 **Out of scope:** unaligned checkpoint（Stage 43）。
 
-**Module / area:** `nop-stream/nop-stream-core/checkpoint/`, `nop-stream/nop-stream-runtime/checkpoint/`
+**Module / area:** nop-stream/nop-stream-core/checkpoint/, nop-stream/nop-stream-runtime/checkpoint/
 
 #### 17. Mailbox 执行模型
 
@@ -243,7 +243,7 @@ Does not contain implementation details. Each `planned` stage is owned by its ex
 
 **Out of scope:** 异步算子（vision Non-Goal）。
 
-**Module / area:** `nop-stream/nop-stream-runtime/task/`
+**Module / area:** nop-stream/nop-stream-runtime/task/
 
 #### 18. 异步两阶段 snapshot pipeline
 
@@ -256,7 +256,7 @@ Does not contain implementation details. Each `planned` stage is owned by its ex
 
 **Out of scope:** RocksDB 增量 checkpoint（Stage 31）。
 
-**Module / area:** `nop-stream/nop-stream-core/checkpoint/`, `nop-stream/nop-stream-runtime/checkpoint/`
+**Module / area:** nop-stream/nop-stream-core/checkpoint/, nop-stream/nop-stream-runtime/checkpoint/
 
 #### 19. Checkpoint 并发与共享状态
 
@@ -270,7 +270,7 @@ Does not contain implementation details. Each `planned` stage is owned by its ex
 
 **Out of scope:** unaligned 下的多并发（Stage 45）。
 
-**Module / area:** `nop-stream/nop-stream-core/checkpoint/`
+**Module / area:** nop-stream/nop-stream-core/checkpoint/
 
 #### 20. Partial/subtask 级恢复
 
@@ -284,7 +284,7 @@ Does not contain implementation details. Each `planned` stage is owned by its ex
 
 **Out of scope:** region-aware scheduling（Stage 27/44）。
 
-**Module / area:** `nop-stream/nop-stream-runtime/recovery/`
+**Module / area:** nop-stream/nop-stream-runtime/recovery/
 
 #### 21. Evictor/Pane/Watermark 集成
 
@@ -300,11 +300,11 @@ Does not contain implementation details. Each `planned` stage is owned by its ex
 
 **Out of scope:** 并行源 watermark 对齐（需 coordinator，Phase 5+）。
 
-**Module / area:** `nop-stream/nop-stream-core/window/`, `nop-stream/nop-stream-core/time/`
+**Module / area:** nop-stream/nop-stream-core/window/, nop-stream/nop-stream-core/time/
 
 #### 22. 文档合同对齐与 source-anchors 补全
 
-> Status: see Work Items above
+> Status: done (2026-07-25) — plan `2026-07-25-1500-3-doc-contract-alignment`
 
 **Goal:** 消除文档与实现的落差，补全 source-anchors 的 nop-stream 条目。
 
@@ -320,7 +320,7 @@ Does not contain implementation details. Each `planned` stage is owned by its ex
 
 **Out of scope:** 代码变更（纯文档）。
 
-**Module / area:** `ai-dev/design/nop-stream/`, `docs-for-ai/`
+**Module / area:** ai-dev/design/nop-stream/, docs-for-ai/
 
 #### 23. 代码清理与 P3 次要改进
 
@@ -337,7 +337,7 @@ Does not contain implementation details. Each `planned` stage is owned by its ex
 
 **Out of scope:** 功能性变更。
 
-**Module / area:** `nop-stream/nop-stream-core/`, `nop-stream/nop-stream-runtime/`
+**Module / area:** nop-stream/nop-stream-core/, nop-stream/nop-stream-runtime/
 
 #### 24. DeploymentPlan subtask 分配 + 平台 discovery 接入
 
@@ -351,7 +351,7 @@ Does not contain implementation details. Each `planned` stage is owned by its ex
 
 **Out of scope:** slot pool、SlotSharingGroup（vision Non-Goal）、跨 JVM resource manager（Phase 4 WIRE 平台）。
 
-**Module / area:** `nop-stream/nop-stream-runtime/scheduler/`, `nop-stream/nop-stream-runtime/cluster/`
+**Module / area:** nop-stream/nop-stream-runtime/scheduler/, nop-stream/nop-stream-runtime/cluster/
 
 #### 25. Per-task failure detection + execution state machine
 
@@ -367,7 +367,7 @@ Does not contain implementation details. Each `planned` stage is owned by its ex
 
 **Out of scope:** region-aware scheduling（Stage 44 容错阶段）、Flink ExecutionGraph 三层抽象。
 
-**Module / area:** `nop-stream/nop-stream-runtime/task/`, `nop-stream/nop-stream-runtime/scheduler/`
+**Module / area:** nop-stream/nop-stream-runtime/task/, nop-stream/nop-stream-runtime/scheduler/
 
 #### 26. Buffer pool 抽象
 
@@ -378,7 +378,7 @@ Does not contain implementation details. Each `planned` stage is owned by its ex
 **Deliverables:**
 - G53: `IBufferPool` SPI + 基于有界队列的 Memory 实现（进程内 backpressure）
 
-**Module / area:** `nop-stream/nop-stream-runtime/transport/`
+**Module / area:** nop-stream/nop-stream-runtime/transport/
 
 #### 27. Targeted failover
 
@@ -391,7 +391,7 @@ Does not contain implementation details. Each `planned` stage is owned by its ex
 
 **Out of scope:** 完整 region-based failover（Stage 44，含跨 JVM）。
 
-**Module / area:** `nop-stream/nop-stream-runtime/recovery/`
+**Module / area:** nop-stream/nop-stream-runtime/recovery/
 
 #### 28. 分布式 RPC 接口扩容 + 进程内 backpressure
 
@@ -406,7 +406,7 @@ Does not contain implementation details. Each `planned` stage is owned by its ex
 
 **Out of scope:** credit-based flow control、ACK_WINDOW（Flink Netty 网络栈概念，vision 约束 7 排除）、跨 JVM 传输（Stage 39）。
 
-**Module / area:** `nop-stream/nop-stream-runtime/rpc/`, `nop-stream/nop-stream-runtime/transport/`
+**Module / area:** nop-stream/nop-stream-runtime/rpc/, nop-stream/nop-stream-runtime/transport/
 
 #### 29. SerializerFingerprint schema 兼容性体系
 
@@ -422,7 +422,7 @@ Does not contain implementation details. Each `planned` stage is owned by its ex
 
 **Out of scope:** 向算子/用户暴露 schema 接口、Flink `TypeSerializer`/`TypeSerializerSnapshot` 二进制体系、`IStreamSerializer` 接口、多序列化器 SPI。
 
-**Module / area:** `nop-stream/nop-stream-core/state/`, `nop-stream/nop-stream-core/checkpoint/`
+**Module / area:** nop-stream/nop-stream-core/state/, nop-stream/nop-stream-core/checkpoint/
 
 #### 30. RocksDB 状态后端核心
 
@@ -437,7 +437,7 @@ Does not contain implementation details. Each `planned` stage is owned by its ex
 
 **Out of scope:** 增量 checkpoint（Stage 31）、State TTL（Stage 32）。
 
-**Module / area:** `nop-stream/nop-stream-core/state/`（新建 rocksdb 子包）
+**Module / area:** nop-stream/nop-stream-core/state/（新建 rocksdb 子包）
 
 #### 31. 增量 checkpoint（SST 共享）
 
@@ -450,7 +450,7 @@ Does not contain implementation details. Each `planned` stage is owned by its ex
 - 多 checkpoint 共享同一 SST，subsumption 时清理
 - 增量 checkpoint < 5s 基准
 
-**Module / area:** `nop-stream/nop-stream-core/state/rocksdb/`
+**Module / area:** nop-stream/nop-stream-core/state/rocksdb/
 
 #### 32. State TTL
 
@@ -462,7 +462,7 @@ Does not contain implementation details. Each `planned` stage is owned by its ex
 - G42: `StateTtlConfig`
 - G43: TTL 装饰器 + RocksDB compaction filter / memory lazy eviction
 
-**Module / area:** `nop-stream/nop-stream-core/state/`
+**Module / area:** nop-stream/nop-stream-core/state/
 
 #### 33. 状态迁移接线
 
@@ -474,7 +474,7 @@ Does not contain implementation details. Each `planned` stage is owned by its ex
 - `SerializerFingerprint` 比对 + `StateMigrationFunction` 注册与触发（基于 JSON schema 差异检测）
 - Integer→Long 迁移 action 验证
 
-**Module / area:** `nop-stream/nop-stream-core/state/`, `nop-stream/nop-stream-core/checkpoint/`
+**Module / area:** nop-stream/nop-stream-core/state/, nop-stream/nop-stream-core/checkpoint/
 
 #### 34. Key-Group 模型
 
@@ -490,7 +490,7 @@ Does not contain implementation details. Each `planned` stage is owned by its ex
 
 **Out of scope:** rescale 恢复（Stage 35）、自动迁移（Stage 37）。
 
-**Module / area:** `nop-stream/nop-stream-core/state/`
+**Module / area:** nop-stream/nop-stream-core/state/
 
 #### 35. KeyGroupRange 恢复 + RocksDB key-group 感知 restore
 
@@ -503,7 +503,7 @@ Does not contain implementation details. Each `planned` stage is owned by its ex
 - RocksDB SST 文件 key-group 前缀 + range 交集读取
 - parallelism=4→16、16→4 savepoint restore 测试
 
-**Module / area:** `nop-stream/nop-stream-core/state/`, `nop-stream/nop-stream-core/state/rocksdb/`
+**Module / area:** nop-stream/nop-stream-core/state/, nop-stream/nop-stream-core/state/rocksdb/
 
 #### 36. BroadcastState（推迟 — 需 vision 决策）
 
@@ -542,7 +542,7 @@ Does not contain implementation details. Each `planned` stage is owned by its ex
 
 **Out of scope:** 完整 HA 测试矩阵（Stage 46）。
 
-**Module / area:** `nop-stream/nop-stream-runtime/cluster/`
+**Module / area:** nop-stream/nop-stream-runtime/cluster/
 
 #### 39. 跨 JVM RPC + fencing token 统一
 
@@ -558,7 +558,7 @@ Does not contain implementation details. Each `planned` stage is owned by its ex
 - G5: `CancelCheckpointMarker` 事件类型（作为已恢复 channel 的补充通知，非主 abort 机制；主 abort 仍为控制通道，见 `checkpoint-design.md:911`）
 - G34: abort 信号跨 JVM 数据 channel 传播（G5 的延续，distributed abort 协议设计项）
 
-**Module / area:** `nop-stream/nop-stream-runtime/rpc/`
+**Module / area:** nop-stream/nop-stream-runtime/rpc/
 
 #### 40. 数据面 IMessageService 跨 JVM
 
@@ -570,7 +570,7 @@ Does not contain implementation details. Each `planned` stage is owned by its ex
 - `RemoteResultPartition`/`RemoteInputChannel` 注入 `SysDaoMessageService`（DB）或 `PulsarMessageService`
 - 两种后端各验证一次
 
-**Module / area:** `nop-stream/nop-stream-runtime/transport/`
+**Module / area:** nop-stream/nop-stream-runtime/transport/
 
 #### 41. ClusterRegistry 收敛到平台 discovery
 
@@ -582,7 +582,7 @@ Does not contain implementation details. Each `planned` stage is owned by its ex
 - `IDiscoveryClient` + `INamingService` + `AutoRegistration` 接入
 - 决策点：完全替换 vs 对接（需人确认）
 
-**Module / area:** `nop-stream/nop-stream-runtime/cluster/`
+**Module / area:** nop-stream/nop-stream-runtime/cluster/
 
 #### 42. 多 JVM 集成测试基建
 
@@ -595,7 +595,7 @@ Does not contain implementation details. Each `planned` stage is owned by its ex
 - 端口/消息主题分配、日志聚合、进程级 kill/restart
 - CI 集成
 
-**Module / area:** `nop-stream/nop-stream-runtime/test/`（新建）
+**Module / area:** nop-stream/nop-stream-runtime/test/（新建）
 
 #### 43. Channel 心跳 + unaligned checkpoint
 
@@ -608,7 +608,7 @@ Does not contain implementation details. Each `planned` stage is owned by its ex
 - G6: channel state 持久化 + priority event + aligned→unaligned timeout fallback
 - 持续背压下 unaligned checkpoint 完成测试
 
-**Module / area:** `nop-stream/nop-stream-runtime/transport/`, `nop-stream/nop-stream-runtime/checkpoint/`
+**Module / area:** nop-stream/nop-stream-runtime/transport/, nop-stream/nop-stream-runtime/checkpoint/
 
 #### 44. Region-based failover
 
@@ -619,7 +619,7 @@ Does not contain implementation details. Each `planned` stage is owned by its ex
 **Deliverables:**
 - G28（续）: 1000 vertex 中单 task 失败只重启 region（< 10 vertex）
 
-**Module / area:** `nop-stream/nop-stream-runtime/recovery/`
+**Module / area:** nop-stream/nop-stream-runtime/recovery/
 
 #### 45. 多并发 checkpoint 完整支持
 
@@ -631,7 +631,7 @@ Does not contain implementation details. Each `planned` stage is owned by its ex
 - G31（续）: `CheckpointBarrierTracker` + `BarrierAligner` 多 epoch 追踪
 - maxConcurrent=3 互不干扰测试
 
-**Module / area:** `nop-stream/nop-stream-runtime/checkpoint/`
+**Module / area:** nop-stream/nop-stream-runtime/checkpoint/
 
 #### 46. Coordinator HA 端到端 + HA checkpoint store
 
@@ -644,7 +644,7 @@ Does not contain implementation details. Each `planned` stage is owned by its ex
 - G35: operator coordinator ACK tracking
 - 完整测试矩阵：leader 切换、脑裂、fencing、commit uncertainty
 
-**Module / area:** `nop-stream/nop-stream-runtime/checkpoint/`, `nop-stream/nop-stream-runtime/cluster/`
+**Module / area:** nop-stream/nop-stream-runtime/checkpoint/, nop-stream/nop-stream-runtime/cluster/
 
 #### 47. Unaligned + rescale 交互
 
@@ -656,7 +656,7 @@ Does not contain implementation details. Each `planned` stage is owned by its ex
 - in-flight data 跨新并行度重映射（`InflightDataRescalingDescriptor` 等价物）
 - 首版限制：rescale 时强制 aligned
 
-**Module / area:** `nop-stream/nop-stream-runtime/checkpoint/`
+**Module / area:** nop-stream/nop-stream-runtime/checkpoint/
 
 #### 48. Kafka IMessageService
 
@@ -667,7 +667,7 @@ Does not contain implementation details. Each `planned` stage is owned by its ex
 **Deliverables:**
 - 按 `PulsarMessageService` 形态实现 Kafka 后端
 
-**Module / area:** `nop-message-kafka/`
+**Module / area:** nop-message-kafka/
 
 #### 49. Source split 体系
 
@@ -679,7 +679,7 @@ Does not contain implementation details. Each `planned` stage is owned by its ex
 - `SourceEnumerator`（动态 split 发现分配）
 - `SourceReader`（split-based 消费）
 
-**Module / area:** `nop-stream/nop-stream-connector/`
+**Module / area:** nop-stream/nop-stream-connector/
 
 #### 50. nop-stream-flow XDSL 声明式编排
 
@@ -691,7 +691,7 @@ Does not contain implementation details. Each `planned` stage is owned by its ex
 - `nop-stream-flow` 模块
 - XDSL StreamModel 与等价 DataStream API fingerprint 一致
 
-**Module / area:** `nop-stream/nop-stream-flow/`（新建）
+**Module / area:** nop-stream/nop-stream-flow/（新建）
 
 #### 51. Delta 定制 StreamModel
 
@@ -702,7 +702,7 @@ Does not contain implementation details. Each `planned` stage is owned by its ex
 **Deliverables:**
 - Delta 修改 StreamModel 后 fingerprint 正确反映变更
 
-**Module / area:** `nop-stream/nop-stream-flow/`
+**Module / area:** nop-stream/nop-stream-flow/
 
 #### 52. 事务型 JDBC sink（2PC）
 
@@ -714,7 +714,7 @@ Does not contain implementation details. Each `planned` stage is owned by its ex
 - `TwoPhaseCommitSinkFunction` 的 JDBC 实现（preCommit → commit → abort）
 - 幂等 commit 验证
 
-**Module / area:** `nop-stream/nop-stream-connector/`
+**Module / area:** nop-stream/nop-stream-connector/
 
 #### 53. CDC 深化 + 文件 sink
 
@@ -726,7 +726,7 @@ Does not contain implementation details. Each `planned` stage is owned by its ex
 - CDC（Debezium 桥接深化）
 - 文件 sink（temp file + atomic rename + manifest commit）
 
-**Module / area:** `nop-stream/nop-stream-connector/`
+**Module / area:** nop-stream/nop-stream-connector/
 
 #### 54. CEP SharedBuffer 缓存改进
 
@@ -737,7 +737,7 @@ Does not contain implementation details. Each `planned` stage is owned by its ex
 **Deliverables:**
 - G65: Guava Cache 替代 ConcurrentHashMap
 
-**Module / area:** `nop-stream/nop-stream-cep/`
+**Module / area:** nop-stream/nop-stream-cep/
 
 #### 55. 推迟项跟踪
 

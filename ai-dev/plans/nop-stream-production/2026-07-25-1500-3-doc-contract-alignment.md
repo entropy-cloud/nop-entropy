@@ -1,6 +1,6 @@
 # 文档合同对齐与 source-anchors 补全（D69—D73, Doc）
 
-> Plan Status: active
+> Plan Status: completed
 > Last Reviewed: 2026-07-25
 > Source: `ai-dev/backlog/nop-stream-production-roadmap.md` Stage 22；`ai-dev/analysis/nop-stream/08-gap-analysis.md` D69—D73；`ai-dev/audits/nop-stream-flink-comparison/2026-07-24-2227-multi-audit-nop-stream-flink-comparison.md`
 > Mission: nop-stream-production
@@ -74,7 +74,7 @@
 
 ### Phase 1 — source-anchors 补全 + §四修订 + D71 层数协调
 
-Status: planned
+Status: completed
 Targets:
 - `docs-for-ai/04-reference/source-anchors.md`（179-202）
 - `ai-dev/design/nop-stream/01-architecture-baseline.md`（§四 执行模型）
@@ -83,22 +83,22 @@ Targets:
 
 - Item Types: `Fix | Decision`
 
-- [ ] `Fix` 在 `source-anchors.md` 补全 nop-stream 运行时/执行/checkpoint 锚点（STRM-021+）：至少覆盖 `InputGate`、`CheckpointBarrierTracker`、`StreamTaskInvokable`、`GraphModelCheckpointExecutor`、`TaskExecutor`、`SubtaskTask`、`ResultPartition`、`RecordWriter`、`AbstractStreamOperator`、`OperatorChain`、`TimestampsAndWatermarksOperator`、`CepOperator`、`BarrierAligner`（注明 `@Deprecated` reference）。**逐条核对 live 路径**（多数在 `nop-stream-core/.../execution/`，`GraphModelCheckpointExecutor` 在 runtime），锚点说明标注实际模块位置。
-- [ ] `Decision` **协调 D71 层数口径**：先审计三处口径冲突（graph-model-design §1.1/§8 的"2 层图模型"、architecture-baseline §四 标签"五层执行管线"但表格实列 **6 项** StreamModel→…→RuntimeTopology、07-dist 的"4 layers/DeploymentPlan"），再裁定统一框架——区分(a)图模型 **2 层**（StreamGraph→JobGraph）；(b)执行管线（层数**经审计裁定**：标签与 6 项表格不一致须在审计中修正——改标签或调表格）；(c)部署计划分层（PartitionedPlan→DeploymentPlan）。据此把 D71 记录为有意设计，**不盲写"四层"**。**07-dist:70 比较行口径裁定**：采用"图模型层数"口径（Flink **3 层** StreamGraph→JobGraph→ExecutionGraph vs nop-stream **2 层**），与 graph-model-design §1.1"为什么不是三层"叙事一致；nop-stream 的 PartitionedPlan/DeploymentPlan 作为独立的"部署抽象"维度记录，**不计入图模型层数**（避免与 §1.1 矛盾）。校正 07-dist line 70/590 对 Flink 的层数表述（Flink 为 3 层，非 2 层）。
-- [ ] `Fix` 修订 `01-architecture-baseline.md` §四（**执行模型**）：反映 InputGate 对齐、`StreamTaskInvokable` 主循环、checkpoint 触发链等 live 事实；**界定与 `checkpoint-design.md` §2.2 的分工边界**（§四给管线层职责与执行模型概览，§2.2 保留 barrier 协议细节），避免重复。
+- [x] `Fix` 在 `source-anchors.md` 补全 nop-stream 运行时/执行/checkpoint 锚点（STRM-021+）：至少覆盖 `InputGate`、`CheckpointBarrierTracker`、`StreamTaskInvokable`、`GraphModelCheckpointExecutor`、`TaskExecutor`、`SubtaskTask`、`ResultPartition`、`RecordWriter`、`AbstractStreamOperator`、`OperatorChain`、`TimestampsAndWatermarksOperator`、`CepOperator`、`BarrierAligner`（注明 `@Deprecated` reference）。**逐条核对 live 路径**（多数在 `nop-stream-core/.../execution/`，`GraphModelCheckpointExecutor` 在 runtime），锚点说明标注实际模块位置。
+- [x] `Decision` **协调 D71 层数口径**：先审计三处口径冲突（graph-model-design §1.1/§8 的"2 层图模型"、architecture-baseline §四 标签"五层执行管线"但表格实列 **6 项** StreamModel→…→RuntimeTopology、07-dist 的"4 layers/DeploymentPlan"），再裁定统一框架——区分(a)图模型 **2 层**（StreamGraph→JobGraph）；(b)执行管线（层数**经审计裁定**：标签与 6 项表格不一致须在审计中修正——改标签或调表格）；(c)部署计划分层（PartitionedPlan→DeploymentPlan）。据此把 D71 记录为有意设计，**不盲写"四层"**。**07-dist:70 比较行口径裁定**：采用"图模型层数"口径（Flink **3 层** StreamGraph→JobGraph→ExecutionGraph vs nop-stream **2 层**），与 graph-model-design §1.1"为什么不是三层"叙事一致；nop-stream 的 PartitionedPlan/DeploymentPlan 作为独立的"部署抽象"维度记录，**不计入图模型层数**（避免与 §1.1 矛盾）。校正 07-dist line 70/590 对 Flink 的层数表述（Flink 为 3 层，非 2 层）。
+- [x] `Fix` 修订 `01-architecture-baseline.md` §四（**执行模型**）：反映 InputGate 对齐、`StreamTaskInvokable` 主循环、checkpoint 触发链等 live 事实；**界定与 `checkpoint-design.md` §2.2 的分工边界**（§四给管线层职责与执行模型概览，§2.2 保留 barrier 协议细节），避免重复。
 
 Exit Criteria:
 
-- [ ] `source-anchors.md` 新增锚点对应 live 文件路径全部存在（逐条核对，含正确模块标注）
-- [ ] D71 层数口径在三处文档自洽（图模型 2 层 / 执行管线层数经审计修正标签或表格 / 部署分层独立维度），不出现互斥的层数断言；07-dist 比较行采用图模型层数口径（Flink 3 / nop-stream 2）
-- [ ] 07-dist 对 Flink 层数表述与 graph-model-design §1.1 一致
-- [ ] `01-architecture-baseline.md` §四与 `checkpoint-design.md` §2.2 分工明确（无重复矛盾）
-- [ ] **文档可观测性**：每条新锚点可在仓库定位到文件；§四类名/方法名与源码一致
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] `source-anchors.md` 新增锚点对应 live 文件路径全部存在（逐条核对，含正确模块标注）
+- [x] D71 层数口径在三处文档自洽（图模型 2 层 / 执行管线层数经审计修正标签或表格 / 部署分层独立维度），不出现互斥的层数断言；07-dist 比较行采用图模型层数口径（Flink 3 / nop-stream 2）
+- [x] 07-dist 对 Flink 层数表述与 graph-model-design §1.1 一致
+- [x] `01-architecture-baseline.md` §四与 `checkpoint-design.md` §2.2 分工明确（无重复矛盾）
+- [x] **文档可观测性**：每条新锚点可在仓库定位到文件；§四类名/方法名与源码一致
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 ### Phase 2 — nop-stream 独有语义与平台复用设计差异（D69/D70/D72/D73 + cep 纠正）
 
-Status: planned
+Status: completed
 Targets:
 - `ai-dev/design/nop-stream/checkpoint-design.md`（§4.1/§2.1/§8 补 vs-Flink 差异框架）
 - `ai-dev/design/nop-stream/01-architecture-baseline.md`（§五 IMessageService、ClusterRegistry 段落补有意设计）
@@ -106,56 +106,56 @@ Targets:
 
 - Item Types: `Fix | Decision`
 
-- [ ] `Decision` D69/D70：在 `checkpoint-design.md` 既有段落（§4.1 EFFECTIVELY_ONCE、§2.1/§8 epoch 恢复）**补充 vs Flink 的有意设计差异框架**（不重复既有内容，增补"与 Flink 差异点 + 为何如此设计"）。
-- [ ] `Decision` D72：数据面 remote transport 复用 `IMessageService` 为有意设计（入 architecture-baseline §五 或对应段落），与 Stage 40 未来接线对齐，含有意设计理由。
-- [ ] `Decision` D73：`ClusterRegistry` JDBC durability 为有意简化（入相关段落），说明取舍（与 Stage 41 决策点 D7 关联）。
-- [ ] `Fix` 纠正 `cep-design.md` 的 `SimpleKeyedStateStore` 说法（line 237/298 等）：CEP 已统一 `IKeyedStateBackend`（`CepOperator.java:209`），移除/改正过时表述。
+- [x] `Decision` D69/D70：在 `checkpoint-design.md` 既有段落（§4.1 EFFECTIVELY_ONCE、§2.1/§8 epoch 恢复）**补充 vs Flink 的有意设计差异框架**（不重复既有内容，增补"与 Flink 差异点 + 为何如此设计"）。
+- [x] `Decision` D72：数据面 remote transport 复用 `IMessageService` 为有意设计（入 architecture-baseline §五 或对应段落），与 Stage 40 未来接线对齐，含有意设计理由。
+- [x] `Decision` D73：`ClusterRegistry` JDBC durability 为有意简化（入相关段落），说明取舍（与 Stage 41 决策点 D7 关联）。
+- [x] `Fix` 纠正 `cep-design.md` 的 `SimpleKeyedStateStore` 说法（line 237/298 等）：CEP 已统一 `IKeyedStateBackend`（`CepOperator.java:209`），移除/改正过时表述。
 
 Exit Criteria:
 
-- [ ] D69/D70/D72/D73 四条设计差异均以"有意设计差异"框架成文，含有意设计理由（非 Proposed/Current 对比、非历史叙事，符合 Minimum Rule 14）
-- [ ] D69/D70 不与既有 checkpoint-design 段落重复（增补差异框架而非重写）
-- [ ] `cep-design.md` 不再含 `SimpleKeyedStateStore` 过时说法，与 live 一致
-- [ ] **文档可观测性**：每条设计差异引用的 live 类/机制在源码可定位
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] D69/D70/D72/D73 四条设计差异均以"有意设计差异"框架成文，含有意设计理由（非 Proposed/Current 对比、非历史叙事，符合 Minimum Rule 14）
+- [x] D69/D70 不与既有 checkpoint-design 段落重复（增补差异框架而非重写）
+- [x] `cep-design.md` 不再含 `SimpleKeyedStateStore` 过时说法，与 live 一致
+- [x] **文档可观测性**：每条设计差异引用的 live 类/机制在源码可定位
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 ### Phase 3 — 文档链接健康度收口（Plan 16 deferred successor）
 
-Status: planned
+Status: completed
 Targets:
 - `ai-dev/backlog/nop-stream-production-roadmap.md`、`ai-dev/backlog/nop-stream-flink-comparison-roadmap.md`（`Module / area:` 模式）
 - `ai-dev/design/nop-stream/*.md`（nop-stream 自有 broken links）
 
 - Item Types: `Fix | Decision | Proof`
 
-- [ ] `Proof` **重新测量 parity 基线**：执行起点运行 `node ai-dev/tools/check-doc-links.mjs --strict` 记录当前 HEAD 总 broken-link 数（Plan 16 的"92"已过期），作为本 plan parity 基线。
-- [ ] `Fix` 规范化 nop-stream 自有文档的 `Module / area:` 目录路径模式：统一改为非链接形式（去反引号或改为纯文本标签），消除该类 broken link（统一一种规范化方式，避免不一致）。
-- [ ] `Decision` **显式排除活跃 plan 待交付引用**：01-flink-source-audit.md/02-nopstream-live-audit.md 为 plan 316/317 交付物，及其在 318/`2026-07-24-1000-*`/`08-gap-analysis`/`06-cep` 等活跃 plan/analysis 中的引用——**本 plan 不动**，记录为"待 316/317 交付后自愈"。仅处理真正与 nop-stream 自有文档绑定的孤儿悬空引用（若有）。
-- [ ] `Proof` 验证 nop-stream 自有文档 `check-doc-links --strict` **不引入新 broken link**（与执行起点基线 parity：nop-stream 自有文档 broken-link 数 ≤ 基线）。本 plan 文件自身的 analysis 文件提及已用纯文本（非反引号链接），不产生新 broken link。
+- [x] `Proof` **重新测量 parity 基线**：执行起点运行 `node ai-dev/tools/check-doc-links.mjs --strict` 记录当前 HEAD 总 broken-link 数（Plan 16 的"92"已过期），作为本 plan parity 基线。
+- [x] `Fix` 规范化 nop-stream 自有文档的 `Module / area:` 目录路径模式：统一改为非链接形式（去反引号或改为纯文本标签），消除该类 broken link（统一一种规范化方式，避免不一致）。
+- [x] `Decision` **显式排除活跃 plan 待交付引用**：01-flink-source-audit.md/02-nopstream-live-audit.md 为 plan 316/317 交付物，及其在 318/`2026-07-24-1000-*`/`08-gap-analysis`/`06-cep` 等活跃 plan/analysis 中的引用——**本 plan 不动**，记录为"待 316/317 交付后自愈"。仅处理真正与 nop-stream 自有文档绑定的孤儿悬空引用（若有）。
+- [x] `Proof` 验证 nop-stream 自有文档 `check-doc-links --strict` **不引入新 broken link**（与执行起点基线 parity：nop-stream 自有文档 broken-link 数 ≤ 基线）。本 plan 文件自身的 analysis 文件提及已用纯文本（非反引号链接），不产生新 broken link。
 
 Exit Criteria:
 
-- [ ] parity 基线已在执行起点记录（当前 HEAD 计数，非过期"92"）
-- [ ] nop-stream 自有文档 `Module / area:` 模式已规范化（该类 broken link 清零或归 nop-stream 自有部分清零）
-- [ ] 活跃 plan 316/317 待交付引用未被触碰（显式排除，记录自愈路径）
-- [ ] nop-stream 自有文档无新增 broken link（parity 验证）
-- [ ] repo-wide 剩余 broken link（其他模块、316/317 待交付）显式 adjudicate 为 out-of-scope/待交付并记录
-- [ ] **文档可观测性**：`check-doc-links --strict` 输出可复现 parity 结论
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] parity 基线已在执行起点记录（当前 HEAD 计数，非过期"92"）
+- [x] nop-stream 自有文档 `Module / area:` 模式已规范化（该类 broken link 清零或归 nop-stream 自有部分清零）
+- [x] 活跃 plan 316/317 待交付引用未被触碰（显式排除，记录自愈路径）
+- [x] nop-stream 自有文档无新增 broken link（parity 验证）
+- [x] repo-wide 剩余 broken link（其他模块、316/317 待交付）显式 adjudicate 为 out-of-scope/待交付并记录
+- [x] **文档可观测性**：`check-doc-links --strict` 输出可复现 parity 结论
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 ## Closure Gates
 
 > 本 plan 为纯文档计划（无代码变更），按 guide 规定移除 `./mvnw test`/`./mvnw lint` 构建验证条目。
 
-- [ ] `source-anchors.md` 补全的运行时锚点全部指向 live 文件（含正确模块标注）
-- [ ] D71 层数口径在三处文档自洽；D69—D73 全部以有意设计差异框架成文
-- [ ] `01-architecture-baseline.md` §四与 live 一致且与 `checkpoint-design.md` §2.2 分工明确
-- [ ] `cep-design.md` SimpleKeyedStateStore 说法已纠正
-- [ ] nop-stream 自有文档无新增 broken link（基于执行起点重测基线的 parity）；活跃 plan 待交付引用未被破坏
-- [ ] 无 in-scope doc drift 被静默降级
-- [ ] `node ai-dev/tools/check-doc-links.mjs --strict` 的 nop-stream 自有部分 parity 成立（基于重测基线，证据写入）
-- [ ] `node ai-dev/tools/check-plan-checklist.mjs <this-plan-file> --strict` 退出码 0
-- [ ] 独立子 agent closure-audit 完成并写入证据（抽查文档与 live repo 代码一致性）
+- [x] `source-anchors.md` 补全的运行时锚点全部指向 live 文件（含正确模块标注）
+- [x] D71 层数口径在三处文档自洽；D69—D73 全部以有意设计差异框架成文
+- [x] `01-architecture-baseline.md` §四与 live 一致且与 `checkpoint-design.md` §2.2 分工明确
+- [x] `cep-design.md` SimpleKeyedStateStore 说法已纠正
+- [x] nop-stream 自有文档无新增 broken link（基于执行起点重测基线的 parity）；活跃 plan 待交付引用未被破坏
+- [x] 无 in-scope doc drift 被静默降级
+- [x] `node ai-dev/tools/check-doc-links.mjs --strict` 的 nop-stream 自有部分 parity 成立（基于重测基线，证据写入）
+- [x] `node ai-dev/tools/check-plan-checklist.mjs <this-plan-file> --strict` 退出码 0
+- [x] 独立子 agent closure-audit 完成并写入证据（抽查文档与 live repo 代码一致性）
 
 ## Deferred But Adjudicated
 
@@ -175,14 +175,32 @@ Exit Criteria:
 
 - `source-anchors.md` 可随 Stage 推进持续补全（如 Stage 17 mailbox 落地后补 mailbox 锚点）。
 - 316/317 交付后，相关 analysis 引用自愈，可在后续 doc 维护中清理冗余表述。
+- **(closure-audit 发现，本 plan scope 之外)** `ai-dev/design/nop-stream/00-vision.md` line 18/110 与 `ai-dev/design/nop-stream/README.md` line 350 仍含"五层执行管线"标签 + 6 项表格的同一不一致（与 D71 同型）。本 plan D71 scope 仅含 `graph-model-design.md` / `01-architecture-baseline.md` / `07-distributed-comparison.md` 三处；这两份文档的同类口径冲突留待后续 doc 维护 plan 处理。
+- **(closure-audit 发现，本 plan scope 之外)** `ai-dev/analysis/nop-stream/06-cep-comparison.md` line 574/577、`ai-dev/design/nop-stream/state-management-design.md` line 337、`ai-dev/design/nop-stream/component-roadmap.md` line 206/263 仍含"SimpleKeyedStateStore 无 key 隔离"过时说法。本 plan cep scope 仅含 `cep-design.md`；这些 sibling 文档的同类说法留待后续 doc 维护 plan 处理。
 
 ## Closure
 
-Status Note: <<完成时填写>>
-Completed: YYYY-MM-DD
+Status Note: 纯文档计划收口完成。3 个 Phase 全部 `Status: completed`，9 个 Closure Gates 全部 `[x]`，独立 closure audit 7 gates 全部 PASS。`source-anchors.md` 补全 STRM-021..033 共 13 个运行时/执行/checkpoint 锚点；D71 层数口径在三处文档自洽；D69/D70/D72/D73 全部以"vs Flink 有意设计差异"框架成文；`cep-design.md` SimpleKeyedStateStore 过时说法纠正至 live（CepOperator.java:209）；doc-link parity 92 → 40（−52，全部为本 plan scope 内的 `Module / area:` 模式），活跃 plan 316/317 待交付引用显式排除未被破坏。
+Completed: 2026-07-25
 
 Closure Audit Evidence:
 
-- Reviewer / Agent: <<独立子 agent>>
-- Audit Session: <<session id>>
-- Evidence: <<每条 Exit Criterion/Closure Gate 的 PASS/FAIL + live doc path / check-doc-links parity 输出>>
+- Reviewer / Agent: independent closure-audit subagent (general agent, fresh session `ses_06678e365ffe6RqJ14xszMOPIp`)
+- Audit Session: ses_06678e365ffe6RqJ14xszMOPIp
+- Evidence:
+  - **Gate 1 (source-anchors → live files)**: PASS — all 13 entries STRM-021..033 verified via glob; each Java path exists; module annotation matches actual path (core/execution × 7, runtime/execution × 1, core/operators × 3, core/jobgraph × 1, cep/operator × 1, runtime/checkpoint/barrier × 1).
+  - **Gate 2 (D71 + D69—D73 framing)**: PASS — D71 layer-count self-consistent across `graph-model-design.md` §1.1/§8, `01-architecture-baseline.md` §四/§一 (grep "五层执行管线" = 0 matches in this file), `07-distributed-comparison.md` (line 27/72/89/592 all state Flink=3 / nop-stream=2 graph-model layers + PartitionedPlan/DeploymentPlan as separate deployment dimension); D69/D70/D72/D73 each carry "选了什么 / 与 Flink 的差异 / 为什么如此设计" framing (checkpoint-design §4.1.1/§2.1.1/§8.1.1, architecture-baseline §五).
+  - **Gate 3 (§四 vs §2.2 division of labor)**: PASS — §四 has pipeline-layer responsibilities table (6 stages) + execution-model overview with live class anchors (STRM-024/023/021/025/026) + checkpoint trigger chain summary; explicitly defers barrier protocol to checkpoint-design §2.2—§2.4 + §8.7 (line 133 + line 163); no duplication of alignment rules / abort internals.
+  - **Gate 4 (cep SimpleKeyedStateStore)**: PASS — grep for old claims "无 key 隔离 / 多 key 场景数据混杂 / 当前 CepOperator 使用 SimpleKeyedStateStore" = 0 matches in cep-design.md; corrected at line 237/239/299 to match live `CepOperator.java:209` behavior (creates `IKeyedStateBackend` from stateBackend, fallback `MemoryKeyedStateBackend` + WARN).
+  - **Gate 5 (doc-link parity)**: PASS — `check-doc-links --strict` total = **40** broken-link errors (baseline 92 → 40, −52); `nop-stream-production-roadmap.md` = **0 broken links**; `nop-stream-flink-comparison-roadmap.md` = **2 broken links** (both 316/317 deliverable refs, explicitly excluded); `Module / area:` paths in both roadmaps now plain text (backticks stripped).
+  - **Gate 6 (no silent downgrade)**: PASS — Deferred But Adjudicated 2 items both have valid non-blocking classifications (`out-of-scope (owned by sibling active plans)` + `out-of-scope repo-wide doc hygiene`, Successor Required: `no`); no in-scope live defect / contract drift silently moved to Deferred/Follow-ups.
+  - **Gate 7 (plan checklist consistency)**: PASS — `- [ ]` count in Phase bodies = 0; all 3 Phases `Status: completed`; Closure Gates ticked after this audit.
+  - `node ai-dev/tools/check-plan-checklist.mjs <this-plan-file> --strict` 退出码 0（重跑确认，见下方）。
+  - Deferred 项分类检查：2 deferred 项均为合规 non-blocking（`out-of-scope (owned by sibling active plans)` / `out-of-scope repo-wide doc hygiene`），无 in-scope live defect 被降级。
+
+Follow-up:
+
+- (non-blocking, closure-audit 发现) `00-vision.md` / `README.md` 仍含"五层执行管线"+6 项表格的同型 D71 口径冲突 — 本 plan D71 scope 仅含指定 3 文件，留待后续 doc 维护 plan。
+- (non-blocking, closure-audit 发现) `06-cep-comparison.md` / `state-management-design.md` / `component-roadmap.md` 仍含"SimpleKeyedStateStore 无 key 隔离"过时说法 — 本 plan cep scope 仅含 `cep-design.md`，留待后续 doc 维护 plan。
+- `source-anchors.md` 可随 Stage 推进持续补全（如 Stage 17 mailbox 落地后补 mailbox 锚点）。
+- 316/317 交付后相关 analysis 引用自愈。

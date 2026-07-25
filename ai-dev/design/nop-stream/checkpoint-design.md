@@ -41,6 +41,19 @@ nop-stream 的 checkpoint 子系统为流处理管线提供**容错和状态一�
 
 Exactly-once 的含义是：系统恢复到 epoch N 后，对外可见副作用等价于所有 epoch ≤ N 已提交，所有 epoch > N 未提交。
 
+#### 2.1.1 Epoch-centered vs Flink checkpoint-centered — vs Flink 的有意设计差异（D70）
+
+**选了什么**：nop-stream 以 `epochId`（= `checkpointId`）为**一致性的中心对象**，把 source offset、operator state、timer state、watermark state、sink transaction、plan fingerprint、participant states、fencing token 全部绑定到同一个 epoch 切点（见上表）。Recovery 的语义以 epoch 为单位：恢复到 epoch N 等价于"所有 epoch ≤ N 已提交、所有 epoch > N 未提交"。
+
+**与 Flink 的差异**：Flink 以 `CheckpointID` 为编号，但**一致性语义以"job 恢复后从 checkpointed state 重启"为单位**——coordinator 触发 checkpoint → task snapshot → JobManager 持久化 metadata → 恢复时从 metadata 反序列化。Flink 不把 fencing token、plan fingerprint、participant states 显式绑到每个 checkpoint 元数据里（fencing 由 `JobMaster` leader session 管理，不在 per-checkpoint 元数据中；participant states 通过算子级 `OperatorSnapshotFinisher` 隐式完成，没有统一的 per-checkpoint participant manifest）。nop-stream 把它们**全部聚合成 epoch 对象**，使 recovery 决策可以"从单一 epoch 完整重放一致性上下文"。
+
+**为什么如此设计**：
+
+- fencing 与一致性绑定：nop-stream 的 fencing token 在 **coordinator 切换**时刷新（§8.2），每个 epoch 显式记录允许提交它的 fencing token；旧 coordinator 在 durable 之前被 fence，对应的 epoch 永不 commit。Flink 的 leader session 与 checkpoint 元数据解耦，recovery 时需要交叉验证，nop-stream 选择**把 fencing 直接编入 epoch**简化 cross-epoch 不变式。
+- plan fingerprint 内嵌：`PartitionedPlan` 指纹随 epoch 持久化（§2.6 manifest），恢复时直接从 epoch 校验 backend 能力，不需要单独的 savepoint 元数据与 plan 元数据交叉。
+- participant 显式化：所有 transactional operator 显式注册为 `CheckpointParticipant`（§3），其快照和 transaction handle 进入 epoch manifest；Flink 的 2PC sink 通过 `TwoPhaseCommitSinkFunction` 隐式处理，没有统一的 participant manifest 概念。
+- 全局 epoch recovery（§8.1）的简洁性来源：因为一个 epoch 自带全部一致性上下文，"恢复到 epoch N"是一个原子语义；region/local failover 只是优化，不是 exactly-once 前置条件。
+
 ### 2.2 Epoch 生命周期
 
 ```
@@ -354,6 +367,18 @@ onRestore(epoch N):
 | `EFFECTIVELY_ONCE` | 数据层可按 exactly-once 或 at-least-once 执行，外部效果依赖幂等/upsert/去重键 | sink 至少 IDEMPOTENT |
 | `BEST_EFFORT` | 可禁用 checkpoint，不保证状态一致性 | 无要求 |
 
+#### 4.1.1 `EFFECTIVELY_ONCE` — vs Flink 的有意设计差异（D69）
+
+**选了什么**：nop-stream 把 `EFFECTIVELY_ONCE` 提升为 **ProcessingGuarantee 一级保证级别**（与 `STRICT_EXACTLY_ONCE`/`AT_LEAST_ONCE`/`BEST_EFFORT` 并列），通过 `barrierAlignment=false` + `requiresDurableCheckpoint=true` 表达"数据层不强对齐、外部效果靠 sink 幂等/upsert/去重键收敛"。
+
+**与 Flink 的差异**：Flink 在 `CheckpointingMode` 之外用 **`ProcessingMode` + side-effect sink 能力分级（`SinkV2`/`GenericWriteAheadSink`/两阶段提交）** 表达同一意图，没有把"数据层不对齐 + 外部效果幂等收敛"列为独立保证级别——它通过 sink 的 exactly-once/at-least-once 修饰符来表达，语义层在 sink 而不在 ProcessingGuarantee。nop-stream 选择把它**显式列为 ProcessingGuarantee**，使运行时指标（§10 semantic mode）能直接暴露当前模式，且配置映射（§4.3 `semanticMode=EFFECTIVELY_ONCE`）在编译期即可校验 sink 至少 IDEMPOTENT。
+
+**为什么如此设计**：
+
+- 运维与可观测：semantic mode 是用户最关心的对外语义契约，把它压到 sink 修饰符会导致"为什么 checkpoint 看起来对齐了但效果仍然 effectively-once"难以解释。
+- 容错契约（§13）的逃生通道：当算子状态一致快照的对齐代价不可接受时（背压、对齐超时频繁），`EFFECTIVELY_ONCE` 是合规逃生路径——barrier 不阻塞，靠 sink 两阶段提交保证 exactly-once。这条逃生通道需要是一个**保证级别**才能在 `ProcessingGuarantee.isBarrierAlignment()` 等运行时判定中被消费。
+- 与 source 能力（§5.1）解耦：source 只需声明是否 REPLAYABLE，无需关心下游 sink 是否严格 2PC；EFFECTIVELY_ONCE 把"数据层一致性 vs 外部效果一致性"的取舍从 source/sink 组合判定中提出来，作为顶层模式。
+
 ### 4.2 Barrier 行为差异
 
 | 行为 | STRICT_EXACTLY_ONCE | AT_LEAST_ONCE |
@@ -593,6 +618,26 @@ detect failure
 ```
 
 全局恢复比局部恢复更简单，但语义完整。Region/local failover 是后续优化，不是 exactly-once 的前置条件。
+
+#### 8.1.1 全局 epoch recovery — vs Flink 的有意设计差异（D70 续）
+
+**选了什么**：nop-stream 采用**全局 epoch recovery**——任意 task 失败/lease 过期 → fence 所有 attempt → 停止整个 pipeline 的所有 task → 从最新 durable epoch manifest 重建 DeploymentPlan、source offset、operator state、timer、sink transaction → 用新 attemptId + fencingToken 重启所有 task → 从 epoch+1 继续。
+
+**与 Flink 的差异**：
+
+| 维度 | Flink | nop-stream |
+|---|---|---|
+| 恢复粒度 | 默认 `RestartPipelinedRegionFailoverStrategy`（region 级）+ 可选全局恢复 | 全局 epoch recovery（region/local 为后续优化） |
+| 状态来源 | per-job `CompletedCheckpointStore` + `ExecutionGraph` 的 `JobManagerTaskRestore` | 单一 durable epoch manifest（含全部一致性上下文，§2.1.1） |
+| fencing | `JobMaster` leader session（独立于 checkpoint） | fencing token 编入 epoch（§8.2） |
+| coordinator HA | ZooKeeper + Standby JobManager | 持久化 epoch log + cluster lease（§8.3） |
+
+**为什么如此设计**：
+
+- 全局 recovery 语义完整且简单：因为 epoch 自带全部一致性上下文（§2.1.1），"恢复到 epoch N"是单一原子操作，无需 region 边界识别、partial state restore 等复杂语义。
+- 单一恢复路径降低正确性风险：region/local failover 的实现复杂度极高（需精确识别哪些 vertex 可独立恢复、哪些 state shard 跨 region 共享、barrier 在 region 边界如何重对齐），首版选择全局 recovery 把正确性风险降到最低。
+- nop-stream 的分布式粒度天然较粗：当前 `ClusterRegistry` + lease 是节点级故障检测（§13），不存在 region 级独立故障域；region failover 的收益要在 Stage 25/44 引入 region 概念后才浮现。
+- 拒绝 Flink `ExecutionGraph` 三层调度（D71 一致）：恢复直接基于 epoch manifest + DeploymentPlan，不需要 ExecutionVertex/ExecutionAttempt 三层抽象。
 
 ### 8.2 Fencing
 

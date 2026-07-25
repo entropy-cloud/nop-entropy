@@ -10,7 +10,7 @@
 
 1. 系统分为七层：API → StreamComponents → Transformation → 执行计划 → 算子 → 状态&时间 → 存储
 2. 核心模型是 StreamModel——可序列化算子图，三种入口（XDSL / Java API / Delta）最终生成同一类 canonical 模型
-3. 五层执行管线：StreamModel → StreamGraph → JobGraph → PartitionedPlan → DeploymentPlan → RuntimeTopology
+3. 六阶段执行管线：StreamModel → StreamGraph → JobGraph → PartitionedPlan → DeploymentPlan → RuntimeTopology（图模型层数仍为 2：StreamGraph → JobGraph；详见 §四）
 4. 依赖方向严格单向：runtime/checkpoint/connector/cep/flow → core → api
 
 ## 二、模块划分
@@ -90,7 +90,23 @@ runtime / connector / cep / flow  →  core
 
 ## 四、执行模型
 
-### 五层执行管线
+### 图模型层数与执行管线分层（D71 — vs Flink 有意设计差异）
+
+nop-stream 区分三个互不混用的视角，避免层数口径在三份文档间冲突：
+
+| 视角 | 层数 | 内容 | 出处 |
+|---|---|---|---|
+| **图模型**（与 Flink 同口径） | **2 层** | `StreamGraph` → `JobGraph` | `graph-model-design.md` §1.1/§8 |
+| **执行管线**（nop-stream 自身视角） | **6 阶段** | `StreamModel` → `StreamGraph` → `JobGraph` → `PartitionedPlan` → `DeploymentPlan` → `RuntimeTopology` | 本节下表 |
+| **部署计划分层**（独立的部署抽象维度，**不计入图模型层数**） | 2 层 | `PartitionedPlan` → `DeploymentPlan` | 本节下表后两行 |
+
+**有意设计差异（vs Flink）**：
+
+- **拒绝 Flink `ExecutionGraph`（第三层图模型）**：nop-stream 的分布式调度通过 `IStreamExecutionDispatcher` SPI + `DeploymentMode` 枚举实现，不需要 Flink 风格的 `ExecutionVertex` + `ExecutionAttempt` 三层调度抽象。LOCAL 模式 `JobGraph` 直接生成 `Task`，由 `TaskExecutor` 线程池执行；DISTRIBUTED 模式 `JobGraph` 生成 `Subtask` 集合，由 `EmbeddedDistributedExecutor` 拆分到多个 `TaskManager` 实例。
+- **将部署抽象独立成 `PartitionedPlan`/`DeploymentPlan`**：Flink 把部署信息内联在 `ExecutionGraph`；nop-stream 把并行展开、分区策略、state shard 路由、checkpoint ACK 集合、节点映射、transport/state backend binding 独立成可序列化的 plan 对象，使部署决策可脱离 runtime 单独持久化与审计。这是**部署维度的有意细化**，不增加图模型层数。
+- 因此比较 Flink vs nop-stream 的**图模型层数**应为：Flink **3 层**（StreamGraph → JobGraph → ExecutionGraph）vs nop-stream **2 层**（StreamGraph → JobGraph）；`PartitionedPlan`/`DeploymentPlan` 作为 nop-stream 的部署抽象维度另行记录，不计入图模型层数。
+
+### 六阶段执行管线
 
 ```
 StreamModel
@@ -101,16 +117,50 @@ StreamModel
     → RuntimeTopology
 ```
 
-| 层 | 职责 | 是否持久化 |
+| 阶段 | 职责 | 是否持久化 |
 |---|---|---|
 | `StreamModel` | 用户意图的规范模型，包含 StreamComponents registry 和 Transformation DAG。来自 Java API、XDSL 或 Delta 合成 | 是 |
 | `StreamGraph` | 逻辑 DAG，表达 source、operator、sink 和边语义 | 可持久化 |
 | `JobGraph` | 算子链化和逻辑优化后的作业图 | 可持久化 |
-| `PartitionedPlan` | 并行展开、state shard、subtask、edge channel、partition policy、checkpoint route 的语义计划。是分布式 exactly-once 的中心模型 | 必须持久化 |
-| `DeploymentPlan` | 将 partitioned task 映射到 runtime node、transport backend、state backend binding、checkpoint storage、EdgeConfig flow control、memory budget | 必须持久化 |
+| `PartitionedPlan` | 并行展开、state shard、subtask、edge channel、partition policy、checkpoint route 的语义计划。是分布式 exactly-once 的中心模型（**部署计划分层**） | 必须持久化 |
+| `DeploymentPlan` | 将 partitioned task 映射到 runtime node、transport backend、state backend binding、checkpoint storage、EdgeConfig flow control、memory budget（**部署计划分层**） | 必须持久化 |
 | `RuntimeTopology` | 运行时实例视图：attempt、心跳、通道状态、checkpoint 进度。可重建，不允许反向生成状态路径或分区规则 | 可重建 |
 
 **关键决策**：`PartitionedPlan` 承载并行度、分区、状态路由和 checkpoint ACK 集合。运行时只能执行它，不能重新发明拓扑语义。本地线程执行只是 `DeploymentPlan` 的一种 backend，分布式语义不能依赖本地线程模型。
+
+### 运行时执行链路（live 概览，与 checkpoint-design §2.2 分工）
+
+> 本节给执行模型概览与管线层职责；**barrier 协议细节、对齐规则、abort 接线契约以 `checkpoint-design.md` §2.2—§2.4 与 §8.7 为权威**，此处不重复。
+
+执行入口与控制面：
+
+| 组件 | 角色 | live 锚点 |
+|---|---|---|
+| `GraphModelCheckpointExecutor` | checkpoint 启用时的执行入口；构建 `GraphExecutionPlan` → 装配 `CheckpointCoordinator`、per-subtask `CheckpointBarrierTracker`、`InputGate` | `STRM-024` |
+| `StreamTaskInvokable` | 每个 task 的执行 invokable；按 JobGraph 位置扮演 SOURCE/MIDDLE/SINK/SELF_CONTAINED；持有 `MailboxExecutor` 控制面，主循环 `processInputGate()` | `STRM-023` |
+| `InputGate` | 多输入合并读取 + 生产 barrier 对齐 + watermark 合并 + channel 阻塞/恢复 | `STRM-021` |
+| `TaskExecutor` | 线程池调度器，按 `JobVertex` parallelism 创建 `Task`/`SubtaskTask` | `STRM-025` |
+| `SubtaskTask` | 分布式执行单元，状态机 CREATED→RUNNING→CANCELING→COMPLETED/FAILED/CANCELED | `STRM-026` |
+
+Checkpoint 触发链路（概览）：
+
+```
+CheckpointCoordinator (runtime/checkpoint)
+   ↓ triggerCheckpoint (injector 线程, 同步 prime ack 计数)
+StreamSourceOperator.offerBarrier()
+   ↓ CONTROL-priority mail (非 finished source) / injector 线程直接调用 (finished source)
+SourceContext.collect() (source task 线程, drain mail)
+   ↓ snapshotState → emitBarrier
+RecordWriter.emitBarrier() (广播到全部分区)
+   ↓ in-band 数据通道
+InputGate.handleBarrierNonRecursive() (下游 task)
+   ↓ blockConsumption / resumeConsumptionAll / 单一对齐 barrier 输出
+CheckpointBarrierTracker.processBarrier() (per-task ACK 聚合)
+   ↓ 收齐回调 Consumer<TaskStateSnapshot>
+CheckpointCoordinator (manifest durable → sink commit)
+```
+
+完整 barrier 注入规则、对齐规则、对齐超时、abort 接线见 `checkpoint-design.md` §2.2—§2.4、§8.7。本节只标注"链路上有哪些 live 类"，避免重复 barrier 协议细节。
 
 ### PartitionedPlan 必须记录的信息
 
@@ -191,6 +241,32 @@ StreamModel
 1. **DSL 驱动**：引擎执行 DSL（XLang StreamModel），各节点从 DSL 构建本地的 StreamGraph → JobGraph → OperatorChain
 2. **Bean 容器**：NopIoC 容器中注册了所需的 operator、source、sink 等 bean，各节点通过容器获取依赖
 3. **编排面只传 plan 描述**：跨 JVM 时编排面不下发 invokable 对象，只下发 `PartitionedPlan` / `DeploymentPlan` 描述（可序列化）
+
+### 数据面 — `IMessageService` 复用为有意设计（D72）
+
+**选了什么**：数据面（记录传输、barrier 传播、watermark 传播）跨 JVM 复用 Nop 平台的 `IMessageService`（`SysDaoMessageService` / `PulsarMessageService`），通过 `RemoteResultPartition`（生产端）和 `RemoteInputChannel`（消费端）以 pub/sub topic 形式传输，topic 命名为 `nop-stream.{jobId}.{edgeId}.{sourceSubtask}.{targetSubtask}`。
+
+**与 Flink 的差异**：Flink 数据面基于 **Netty + MemorySegments + NetworkBufferPool**——自建专用网络栈、独立线程模型、credit-based flow control、buffer 引用计数回收。nop-stream 选择**不自建网络栈**，把传输委托给平台消息基础设施。
+
+**为什么如此设计**：
+
+- **平台基建复用优先**：`IMessageService` 在 Nop 平台已有成熟实现（DB-backed `SysDaoMessageService`、`PulsarMessageService`），跨 JVM 传输是其本职能力。流处理引擎重复造网络栈违反"分布式能力一律 WIRE 平台，不自建"的路线图原则（见 `nop-stream-production-roadmap.md` Cross-cutting concerns）。
+- **背压与持久化由后端承担**：`SysDaoMessageService`（DB）天然持久化、天然有界；`PulsarMessageService` 天然 pub/sub 背压。flow control 不需要在 nop-stream 内重造（Stage 26 的 `IBufferPool` 仅承担**进程内** backpressure，跨 JVM 由后端提供）。
+- **与 Stage 40 接线对齐**：`RemoteResultPartition`/`RemoteInputChannel` 已预留 `IMessageService` 注入点，Stage 40 只需 WIRE `SysDaoMessageService`/`PulsarMessageService`，无需重写数据面。
+- **拒绝的方案**：移植 Flink Netty 栈（引入 Netty 依赖、NetworkBufferPool 抽象、credit-based flow control 协议）—— vision 约束 7 明确排除。
+
+### `ClusterRegistry` JDBC durability — 有意简化（D73）
+
+**选了什么**：`ClusterRegistry`（coordinator / runtime node / lease / task assignment 的一致视图）提供 `InMemoryClusterRegistry`（开发测试）和 `JdbcClusterRegistry`（生产）两种实现。生产实现用 JDBC + `IJdbcTemplate` 多数据库适配，自动建表（`nop_stream_coordinator` / `nop_stream_node` / `nop_stream_task_assignment`），索引 `lease_expire_at` / `node_id`。
+
+**与 Flink 的差异**：Flink HA 依赖 **ZooKeeper**（`LeaderElectionService` + `ZooKeeperLeaderElectionDriver` + `ZooKeeperHaServices`），需要外部协调服务作为强一致性后端。nop-stream 选择**用业务库 JDBC 表承担 durability**，不引入 ZooKeeper 依赖。
+
+**为什么如此设计**：
+
+- **零基建部署**：JDBC 后端复用业务库（与 `JdbcCheckpointStorage` 同库），生产部署无需额外 ZooKeeper/Kubernetes 集群，降低 nop-stream 的部署门槛（中小规模生产场景）。
+- **与 Stage 41 决策点 D7 关联**：`ClusterRegistry` 收敛到平台 discovery（`IDiscoveryClient`/`INamingService`）是 Stage 41 的决策点——JDBC 实现作为**当前阶段的简化**，等 Stage 41 平台 discovery 接入后由平台基建承担，而非在 nop-stream 内自建 HA 栈。
+- **拒绝的方案**：(a) 引入 ZooKeeper 强依赖（违反"零基建部署"目标）；(b) 完全自建 leader election 与 HA 协议（与 Stage 38 `SysDaoLeaderElector` 接入路径矛盾）。JDBC + leader elector（Stage 38）的组合是 nop-stream HA 的最小基建路径。
+- **已知取舍**：JDBC 写 lease 与 ZooKeeper 比较，lease TTL 粒度更粗（默认 15s）、跨节点时钟漂移敏感——这是为"零基建部署"付出的代价，由 `ClusterRegistry` 实现负责 lease TTL 校验的容错（详见 `07-distributed-comparison.md` §6 "JdbcClusterRegistry provides durable alternative"）。
 
 ### 控制面角色
 

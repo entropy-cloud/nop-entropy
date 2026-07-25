@@ -234,8 +234,9 @@ SharedBuffer 内部维护：
 ### 5.3 状态依赖
 
 SharedBuffer 需要通过 `KeyedStateStore` 进行状态持久化：
-- 当前 `CepOperator` 使用 `SimpleKeyedStateStore`（无 key 隔离）
-- 生产环境应使用 `MemoryKeyedStateBackend` 以实现 per-key 状态隔离
+- `CepOperator.open()`（`CepOperator.java:209`）从 `stateBackend` 创建 `IKeyedStateBackend`（与 `WindowOperator` 同一模式）；若未配置 state backend，fallback 到 `MemoryKeyedStateBackend` 并发 WARN 日志（checkpoint 一致性不保证）。
+- 所有 CEP 状态（`computationStates` ValueState、`elementQueueState` MapState、SharedBuffer 引用）落到 `IKeyedStateBackend`，参与 checkpoint/restore。
+- 平台 `SimpleKeyedStateStore` 仍存在但**不再被 `CepOperator` 使用**——它是 nop-stream-core 内部的简易实现（`common/state/simple/`），仅作测试或无算子后端场景的占位；生产 CEP 走 `IKeyedStateBackend` 统一路径（G18/G19/G20 已闭环，见 `nop-stream-production-roadmap.md` Current baseline）。
 
 ## 6. CepOperator
 
@@ -284,7 +285,7 @@ OneInputStreamOperator<IN, OUT>
 
 ## 8. 成熟度与限制
 
-**推荐使用方式**：当前推荐使用方式二（直接使用 NFA + SharedBuffer），因为方式一（DataStream API）的 CepOperator 存在 key 隔离和 watermark 问题。
+**推荐使用方式**：方式二（直接使用 NFA + SharedBuffer）已通过 FraudDetectionDemo 验证；方式一（DataStream API）的 `CepOperator` 现已通过 `IKeyedStateBackend` 统一接入 keyed state（key 隔离已闭环，见 §5.3），但事件时间 watermark 路径仍有已知限制（见下"已知限制"）。两种方式的选择取决于是否需要 checkpoint 与 keyed state。
 
 **已验证的能力**（通过 FraudDetectionDemo，使用方式二）：
 - 4 种欺诈模式全部可运行
@@ -295,4 +296,4 @@ OneInputStreamOperator<IN, OUT>
 **已知限制**：
 - 事件时间超时未生效（`currentWatermark()` 返回 `Long.MIN_VALUE`）
 - SharedBuffer 传入 `null` serializer，不支持持久化
-- 无 key 隔离（SimpleKeyedStateStore），多 key 场景数据混杂
+- `CepOperator.open()` 未配置 state backend 时 fallback 到 `MemoryKeyedStateBackend` + WARN（checkpoint 一致性不保证）；正确用法是显式配置 `IStateBackend`（如 `MemoryStateBackend`）使 CEP 走 `IKeyedStateBackend` 统一 checkpoint 路径

@@ -142,7 +142,7 @@ _Deliverables output to:_ `ai-dev/analysis/nop-stream/02-nopstream-live-audit.md
 
 **Out of scope:** nop-stream-flow（规划模块，几乎无代码）、nop-stream-fraud-example。
 
-**Module / area:** `nop-stream/nop-stream-core/`, `nop-stream/nop-stream-runtime/`, `nop-stream/nop-stream-cep/`, `nop-stream/nop-stream-connector/`
+**Module / area:** nop-stream/nop-stream-core/, nop-stream/nop-stream-runtime/, nop-stream/nop-stream-cep/, nop-stream/nop-stream-connector/
 
 #### 3. Checkpoint & barrier 机制源码级对比分析
 
@@ -263,7 +263,7 @@ _Deliverables output to:_ `ai-dev/analysis/nop-stream/08-gap-analysis.md`
 
 **Out of scope:** unaligned checkpoint（属于后续阶段）、Coordinator HA（Phase 3）
 
-**Module / area:** `nop-stream/nop-stream-core/checkpoint/`, `nop-stream/nop-stream-runtime/checkpoint/`
+**Module / area:** nop-stream/nop-stream-core/checkpoint/, nop-stream/nop-stream-runtime/checkpoint/
 
 #### 10. Watermark 集成修复
 
@@ -280,7 +280,7 @@ _Deliverables output to:_ `ai-dev/analysis/nop-stream/08-gap-analysis.md`
 
 **Out of scope:** 并行源 watermark 对齐（WatermarkAlignment group + coordinator 支持）
 
-**Module / area:** `nop-stream/nop-stream-core/time/`, `nop-stream/nop-stream-core/datastream/`, `nop-stream/nop-stream-runtime/watermark/`
+**Module / area:** nop-stream/nop-stream-core/time/, nop-stream/nop-stream-core/datastream/, nop-stream/nop-stream-runtime/watermark/
 
 #### 11. CEP 状态后端接入
 
@@ -296,7 +296,7 @@ _Deliverables output to:_ `ai-dev/analysis/nop-stream/08-gap-analysis.md`
 
 **Out of scope:** CEP watermark 集成修复（currentWatermark() 返回 Long.MIN_VALUE 的问题在对比分析后可能属于本项，由 analysis 决定）
 
-**Module / area:** `nop-stream/nop-stream-cep/`
+**Module / area:** nop-stream/nop-stream-cep/
 
 #### 12a. Operator State 基础体系
 
@@ -313,7 +313,7 @@ _Deliverables output to:_ `ai-dev/analysis/nop-stream/08-gap-analysis.md`
 
 **Out of scope:** union/broadcast redistribution（属于 12b）、与具体 connector 的集成
 
-**Module / area:** `nop-stream/nop-stream-core/state/`, `nop-stream/nop-stream-core/checkpoint/`
+**Module / area:** nop-stream/nop-stream-core/state/, nop-stream/nop-stream-core/checkpoint/
 
 #### 12b. Operator State 重分布与完整管线
 
@@ -331,7 +331,7 @@ _Deliverables output to:_ `ai-dev/analysis/nop-stream/08-gap-analysis.md`
 
 **Out of scope:** RocksDB 后端承载 operator state（属于 Phase 1）
 
-**Module / area:** `nop-stream/nop-stream-core/state/`, `nop-stream/nop-stream-connector/`
+**Module / area:** nop-stream/nop-stream-core/state/, nop-stream/nop-stream-connector/
 
 #### 13. StreamModel 做实
 
@@ -348,7 +348,7 @@ _Deliverables output to:_ `ai-dev/analysis/nop-stream/08-gap-analysis.md`
 
 **Out of scope:** XDSL 声明式入口（属于 Phase 5）、Delta 定制（属于 Phase 5）
 
-**Module / area:** `nop-stream/nop-stream-core/model/`, `nop-stream/nop-stream-core/datastream/`
+**Module / area:** nop-stream/nop-stream-core/model/, nop-stream/nop-stream-core/datastream/
 
 ## Dependency graph
 

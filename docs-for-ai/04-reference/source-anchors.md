@@ -200,6 +200,19 @@
 | `STRM-018` | `nop-stream/nop-stream-runtime/src/main/java/io/nop/stream/runtime/operators/windowing/WindowOperator.java` | 窗口算子 |
 | `STRM-019` | `nop-stream/nop-stream-core/src/main/java/io/nop/stream/core/operators/IWindowOperatorFactory.java` | 窗口算子工厂接口 |
 | `STRM-020` | `nop-stream/nop-stream-core/src/main/java/io/nop/stream/core/operators/HeapInternalTimerService.java` | 堆内 timer 服务 |
+| `STRM-021` | `nop-stream/nop-stream-core/src/main/java/io/nop/stream/core/execution/InputGate.java` | 多 `InputChannel` 合并读取入口（core/execution）；承担生产 barrier 对齐（`handleBarrierNonRecursive()`）、watermark 合并、channel 阻塞/恢复（`blockConsumption`/`resumeConsumptionAll`） |
+| `STRM-022` | `nop-stream/nop-stream-core/src/main/java/io/nop/stream/core/execution/CheckpointBarrierTracker.java` | task 内 barrier ACK 聚合器（core/execution，`@Internal`）；追踪 `operatorsToAck` 计数，收齐后回调 `Consumer<TaskStateSnapshot>` 通知 task snapshot 完成 |
+| `STRM-023` | `nop-stream/nop-stream-core/src/main/java/io/nop/stream/core/execution/StreamTaskInvokable.java` | 图模型执行 invokable（core/execution）；按 JobGraph 位置扮演 SOURCE/MIDDLE/SINK/SELF_CONTAINED 四种角色，持有 `MailboxExecutor` 控制面，主循环 `processInputGate()` |
+| `STRM-024` | `nop-stream/nop-stream-runtime/src/main/java/io/nop/stream/runtime/execution/GraphModelCheckpointExecutor.java` | checkpoint 启用的执行入口（runtime/execution）；构建 `GraphExecutionPlan` → `CheckpointCoordinator` → `CheckpointBarrierTracker` per subtask，注册 abort handler，处理 DRAIN/CANCEL/SUSPEND 终止 |
+| `STRM-025` | `nop-stream/nop-stream-core/src/main/java/io/nop/stream/core/execution/TaskExecutor.java` | task 线程池调度器（core/execution，`@Internal`）；按 `JobVertex` parallelism 创建 N 个 `Task`/`SubtaskTask` 并提交，`awaitCompletion`/`shutdown` 生命周期 |
+| `STRM-026` | `nop-stream/nop-stream-core/src/main/java/io/nop/stream/core/execution/SubtaskTask.java` | 分布式执行单元（core/execution），`Runnable`，绑定 `Subtask` 实例；状态机 CREATED→RUNNING→CANCELING→COMPLETED/FAILED/CANCELED，`cancel()` 经 `Thread.interrupt()` 中断阻塞读 |
+| `STRM-027` | `nop-stream/nop-stream-core/src/main/java/io/nop/stream/core/execution/ResultPartition.java` | 进程内数据交换生产端（core/execution）；`LinkedBlockingQueue<StreamElement>`（容量 1024）+ `END_OF_STREAM` sentinel；`RemoteResultPartition`（runtime/transport）扩展为 `IMessageService` 跨 JVM |
+| `STRM-028` | `nop-stream/nop-stream-core/src/main/java/io/nop/stream/core/execution/RecordWriter.java` | 算子输出 facade（core/execution）；按 `IPartitioner` 选择 `ResultPartition`，watermark/barrier 广播到全部分区 |
+| `STRM-029` | `nop-stream/nop-stream-core/src/main/java/io/nop/stream/core/operators/AbstractStreamOperator.java` | 算子基类（core/operators）；持有 `IStateBackend`/`IKeyedStateBackend`/`IOperatorStateBackend`、`TimerServiceManager`、`lastSnapshotResult`、`pendingRestoreState`（restore-before-open 桥接） |
+| `STRM-030` | `nop-stream/nop-stream-core/src/main/java/io/nop/stream/core/jobgraph/OperatorChain.java` | 算子链融合容器（core/jobgraph）；`open()`/`close()` 生命周期，链内通过 `ChainingOutput` 直接调用，跨链走 `RecordWriter`/`InputGate` |
+| `STRM-031` | `nop-stream/nop-stream-core/src/main/java/io/nop/stream/core/operators/TimestampsAndWatermarksOperator.java` | 自动插入的 watermark 注入算子（core/operators）；按 `watermarkInterval`（默认 200ms）周期发射，`WatermarkStrategy` + `TimestampAssigner` + idle 标记 |
+| `STRM-032` | `nop-stream/nop-stream-cep/src/main/java/io/nop/stream/cep/operator/CepOperator.java` | CEP 算子（cep/operator）；`open()` 从 `stateBackend` 创建 `IKeyedStateBackend`（无配置时 fallback `MemoryKeyedStateBackend` + WARN），NFA state / element queue / SharedBuffer 全部落到 keyed state store |
+| `STRM-033` | `nop-stream/nop-stream-runtime/src/main/java/io/nop/stream/runtime/checkpoint/barrier/BarrierAligner.java` | `@Deprecated` 多输入 barrier 对齐 reference 实现（runtime/checkpoint/barrier，`@Internal`）；**生产路径未使用**——`GraphModelCheckpointExecutor` 一律走 `InputGate.handleBarrierNonRecursive()`，保留供未来多输入算子基础设施参考 |
 
 ## 当 `docs-for-ai` 仍有歧义时
 
