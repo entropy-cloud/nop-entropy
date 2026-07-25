@@ -117,13 +117,13 @@
 | G49 | cep | 设计注释过时（Javadoc 声称 "hardcoded MemoryKeyedStateBackend"） | Doc/P2 | 06-cep: #7 | Item 11 |
 | G50 | distributed | 无 slot sharing / co-location groups | Gap/P2 | 07-dist: D6 | Item 12a |
 | G51 | distributed | 无 resource manager 组件 | Gap/P2 | 07-dist: D7 | Item 12a |
-| G52 | distributed | 无 per-task failure detection | Gap/P2 | 07-dist: D9 | Item 12a |
+| ~~G52~~ | distributed | 无 per-task failure detection | Gap/P2 | 07-dist: D9 | ✅ Closed (item 25) — `reportTaskStatus(FAILED)` 触发 recovery even when node alive；`reportNodeTaskLiveness` + per-invokable `lastProgressTime` enable stall detection; piggyback on existing heartbeat; node-lease 保留兜底。Plan `2026-07-26-0207-2-per-task-failure-detection` |
 | G53 | distributed | 无 buffer pool abstraction | Gap/P2 | 07-dist: D12 | Item 12a |
-| G54 | distributed | 缺少中间 execution 状态 (SCHEDULED/ DEPLOYING/ INITIALIZING) | Gap/P2 | 07-dist: D13 | Item 12a |
-| G55 | distributed | 无 region-aware scheduling | Gap/P2 | 07-dist: D15 | Item 12a |
-| G56 | distributed | 无 execution retry/attempt tracking | Gap/P2 | 07-dist: D16 | Item 12a |
+| ~~G54~~ | distributed | 缺少中间 execution 状态 (SCHEDULED/ DEPLOYING/ INITIALIZING) | Gap/P2 | 07-dist: D13 | ✅ Closed (item 25) — `TaskStateTransition` 统一 9 态转换表（Task/SubtaskTask）；显式合法转换 + 终态吸收 + 自环/跨阶段跳跃非法（#24）。Plan `2026-07-26-0207-2-per-task-failure-detection` |
+| G55 | distributed | 无 region-aware scheduling | Gap/P2 | 07-dist: D15 | Item 12a (Stage 27/44 — explicitly out-of-scope for Stage 25) |
+| ~~G56~~ | distributed | 无 execution retry/attempt tracking | Gap/P2 | 07-dist: D16 | ✅ Closed (item 25) — `TaskAssignment.attemptNumber` + `ClusterRegistry.getAttemptHistory` (append-only, history-preserving); `JobCoordinator.attemptCounters` per-subtask; `JobStatus` + `failJob` + global `maxRestarts` cap。Plan `2026-07-26-0207-2-per-task-failure-detection` |
 | G57 | distributed | 无 targeted failover (仅 globalRecovery) | Gap/P2 | 07-dist: D10(dup) | Item 12a |
-| G58 | distributed | CANCELING 状态仅在 SubtaskTask 中有，Task 中没有 | Improvement/P2 | 07-dist: (line 182) | Item 12a |
+| ~~G58~~ | distributed | CANCELING 状态仅在 SubtaskTask 中有，Task 中没有 | Improvement/P2 | 07-dist: (line 182) | ✅ Closed (item 25) — Task 补 CANCELING/SCHEDULED/DEPLOYING/RECOVERING；Task/SubtaskTask 统一经 CANCELING；RunningTask.cancel() 调用 mailbox.signalCancel()（对齐 Stage 17 cooperative cancel）；null-check 处理 cancel-before-invokable。Plan `2026-07-26-0207-2-per-task-failure-detection` |
 
 ### P3 — Optimization / Minor（10）
 

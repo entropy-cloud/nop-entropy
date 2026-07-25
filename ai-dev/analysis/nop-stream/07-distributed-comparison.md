@@ -548,7 +548,7 @@ removeTaskAssignment(jobId, vertexId, subtaskIndex);         // → void
 | Fencing | `FencedRpcEndpoint` + leader session ID | UUID `fencingToken` in every RPC interface | No gap — both have fencing |
 | Node registry | TM registration via `registerTaskExecutor()` RPC | `registerNode()` + lease renewal via `ClusterRegistry` | No gap — both track node membership |
 | Task assignment | Slot allocation via `SlotPool` + `SlotRequest` → `LogicalSlot` | `assignTask()` directly in `ClusterRegistry`; round-robin strategy | **Improvement**: simpler but less flexible |
-| Failure detection scope | Per-TM heartbeat timeout + task failure + JM failure | Node lease expiry only (5s check) | **Gap**: no per-task failure detection |
+| Failure detection scope | Per-TM heartbeat timeout + task failure + JM failure | Node lease expiry (5s check) **+ per-task liveness (G52, Stage 25)** via `reportTaskStatus`/`reportNodeTaskLiveness` piggyback on heartbeat + `lastProgressTime` per invokable | **Closed (Stage 25)**: per-task terminal-state reporting + liveness detection added |
 | Global recovery | `RestartPipelinedRegionFailoverStrategy` for targeted recovery | `globalRecovery()` — full reassignment + checkpoint restore | **Gap**: no targeted failover |
 | Cluster registry persistence | ZooKeeper-backed HA services | `InMemoryClusterRegistry` (volatile) or `JdbcClusterRegistry` (durable) | **Improvement**: JDBC provides persistence without ZooKeeper dependency |
 
@@ -559,7 +559,7 @@ removeTaskAssignment(jobId, vertexId, subtaskIndex);         // → void
 | ILeaderElector interface and SysDaoLeaderElector have zero code | **Hollow** | **P1** | `ILeaderElector` and `SysDaoLeaderElector` — not found anywhere in nop-stream codebase; mentioned in design docs only |
 | No leader election implementation | **Gap** | **P1** | Current `EmbeddedDistributedExecutor` creates single coordinator; no `LeaderContender` or `LeaderElectionService` equivalent |
 | No standby/HA for JobCoordinator | **Gap** | **P1** | Single `JobCoordinator`; no standby or ZooKeeper HA services |
-| No per-task failure detection | **Gap** | **P2** | `JobCoordinator.detectFailures()` checks node lease only; Flink has per-task state tracking |
+| No per-task failure detection | ~~Gap~~ → **Closed (Stage 25, G52)** | **P2** | ~~`JobCoordinator.detectFailures()` checks node lease only~~ Now: `reportTaskStatus(FAILED)` triggers recovery even when node alive; `reportNodeTaskLiveness` + `lastProgressTime` per invokable enables stall detection |
 | JdbcClusterRegistry provides durable alternative | **Improvement** | — | Database-backed cluster registry with auto-created tables |
 | Fencing token approach is sound | — | — | UUID-based fencing with regeneration on recovery |
 | No targeted failover (only globalRecovery) | **Gap** | **P2** | `globalRecovery()` is full restart; Flink: `RestartPipelinedRegionFailoverStrategy` |

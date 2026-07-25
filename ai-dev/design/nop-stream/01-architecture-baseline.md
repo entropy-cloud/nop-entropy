@@ -290,11 +290,11 @@ CheckpointCoordinator (manifest durable → sink commit)
 
 | 角色 | 职责 |
 |---|---|
-| `JobCoordinator` | 持有 canonical plan、消费 DeploymentPlan 已物化的 subtask→node 分配（或 fallback 到 runtime round-robin）、触发 epoch、维护 fencing token |
-| `RuntimeNode` | 注册到集群、汇报心跳、承载 task attempt、暴露本节点资源和 transport endpoint |
-| `TaskAttempt` | 某个 stable task 的一次执行尝试，绑定 attemptId 和 fencing token |
-| `NodeLease` | RuntimeNode 的存活租约，超时后其 task attempt 被视为失效 |
-| `ClusterRegistry` | 记录 active coordinator、runtime nodes、node lease 和 task assignment 的一致视图 |
+| `JobCoordinator` | 持有 canonical plan、消费 DeploymentPlan 已物化的 subtask→node 分配（或 fallback 到 runtime round-robin）、触发 epoch、维护 fencing token、per-subtask attempt 编号（G56）、global restart 上限（G56）、JobStatus 终态（FAILED）、per-task 终态上报处理（G52） |
+| `RuntimeNode` | 注册到集群、汇报心跳、承载 task attempt、暴露本节点资源和 transport endpoint、per-task liveness 上报（piggyback heartbeat） |
+| `TaskAttempt` | 某个 stable task 的一次执行尝试，绑定 attemptId（UUID）、attemptNumber（单调递增，per-subtask）和 fencing token；历史保留于 `ClusterRegistry.getAttemptHistory`（G56） |
+| `NodeLease` | RuntimeNode 的存活租约，超时后其 task attempt 被视为失效（节点级兜底检测，与 per-task liveness 并存 G52） |
+| `ClusterRegistry` | 记录 active coordinator、runtime nodes、node lease 和 task assignment 的一致视图；attempt 历史 append-only（G56，非覆盖式） |
 
 ### 作业终止模式
 
@@ -304,6 +304,19 @@ CheckpointCoordinator (manifest durable → sink commit)
 | `DRAIN` | Source truncate 成有限 work，terminal epoch durable 后结束，保证已处理数据的 exactly-once | 优雅关闭、版本升级 |
 | `SUSPEND` | 停止新输入，导出可恢复 savepoint，不要求 sink final commit | 暂停作业、状态迁移 |
 | `EXPORT_SAVEPOINT` | 生成 protected checkpointNamespace 的 savepoint，不停止作业 | 定期备份、状态快照 |
+
+### JobStatus + Restart Strategy（G56）
+
+| 状态 | 含义 | 触发 |
+|---|---|---|
+| `CREATED` | JobCoordinator 构造后、start 前 | 构造器 |
+| `RUNNING` | 正常运行 | `start()` |
+| `FAILED` | 终态：global restart 上限耗尽 | `failJob(cause)` —— 仅 `globalRecovery()` 内部当 `restartCount > maxRestarts` 触发 |
+| `CANCELED` | 终态：用户主动 CANCEL | `terminate(CANCEL)` 路径 |
+
+- 重启计数器 **仅 `globalRecovery()` 递增**；默认上限 `maxRestarts=3`（可配）。Stage 27 scoped/targeted 重启不走 `globalRecovery()`，需自带 per-region 计数器（Deferred）。
+- `JobStatus.FAILED` 后 `assignTasks()` 显式拒绝（#24 — 不静默跳过）。
+- cancel 规范化（G58）：`Task.cancel` / `SubtaskTask.cancel` / `RunningTask.cancel` 统一经 `CANCELING` 中间态；分布式 `RunningTask.cancel()` 在 `future.cancel(true)` 之前先调用 `invokable.getMailboxExecutor().signalCancel()`（与 Stage 17 mailbox cooperative cancel 对齐）；`RunningTask.cancel()` null-check `invokable` 处理 cancel-before-invokable 竞态。
 
 ### 处理保证
 
