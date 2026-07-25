@@ -123,7 +123,7 @@ StreamModel
 | `StreamGraph` | 逻辑 DAG，表达 source、operator、sink 和边语义 | 可持久化 |
 | `JobGraph` | 算子链化和逻辑优化后的作业图 | 可持久化 |
 | `PartitionedPlan` | 并行展开、state shard、subtask、edge channel、partition policy、checkpoint route 的语义计划。是分布式 exactly-once 的中心模型（**部署计划分层**） | 必须持久化 |
-| `DeploymentPlan` | 将 partitioned task 映射到 runtime node、transport backend、state backend binding、checkpoint storage、EdgeConfig flow control、memory budget（**部署计划分层**） | 必须持久化 |
+| `DeploymentPlan` | 将 partitioned task 映射到 runtime node、transport backend、state backend binding、checkpoint storage、EdgeConfig flow control、memory budget、subtask→node 物理分配（`DeploymentAssignment`）（**部署计划分层**） | 必须持久化 |
 | `RuntimeTopology` | 运行时实例视图：attempt、心跳、通道状态、checkpoint 进度。可重建，不允许反向生成状态路径或分区规则 | 可重建 |
 
 **关键决策**：`PartitionedPlan` 承载并行度、分区、状态路由和 checkpoint ACK 集合。运行时只能执行它，不能重新发明拓扑语义。本地线程执行只是 `DeploymentPlan` 的一种 backend，分布式语义不能依赖本地线程模型。
@@ -268,11 +268,29 @@ CheckpointCoordinator (manifest durable → sink commit)
 - **拒绝的方案**：(a) 引入 ZooKeeper 强依赖（违反"零基建部署"目标）；(b) 完全自建 leader election 与 HA 协议（与 Stage 38 `SysDaoLeaderElector` 接入路径矛盾）。JDBC + leader elector（Stage 38）的组合是 nop-stream HA 的最小基建路径。
 - **已知取舍**：JDBC 写 lease 与 ZooKeeper 比较，lease TTL 粒度更粗（默认 15s）、跨节点时钟漂移敏感——这是为"零基建部署"付出的代价，由 `ClusterRegistry` 实现负责 lease TTL 校验的容错（详见 `07-distributed-comparison.md` §6 "JdbcClusterRegistry provides durable alternative"）。
 
+### 平台 discovery 单向注册 — 有意共存（G51, D7 deferred）
+
+**选了什么**：nop-stream 节点通过声明平台 `AutoRegistration` 范式的 bean（`StreamNodeAutoRegistration`，消费 `INamingService`），在启动时注册到平台 discovery，注销时从 discovery 移除。注册为**单向**（nop-stream → 平台 discovery），不在 nop-stream 内消费 discovery 读取做分配或故障检测——ClusterRegistry 仍是 nop-stream 运行时分配/故障检测的唯一消费源。二者在节点存活期保持一致（注册的节点 = lease 活跃的节点）。
+
+**ServiceInstance 字段映射**（`ServiceInstance` 无 `capacity` 字段）：
+
+| ServiceInstance 字段 | 来源 |
+|---|---|
+| `instanceId` | nodeId |
+| `addr` + `port` | endpoint（解析 host:port） |
+| `weight` | capacity |
+| `metadata["capacity"]` | capacity（显式冗余，便于读取） |
+| `serviceName` | `"nop-stream"` |
+
+**注册用 `INamingService.registerInstance`（非只读的 `IDiscoveryClient`）**。遵循平台 bean 生命周期范式（`@PostConstruct` 注册 / `@PreDestroy` 注销），而非在 `TaskManager.start()` 内嵌注册逻辑。
+
+**与 Stage 41 决策点 D7 关联**：ClusterRegistry 完全替换为平台 discovery vs 对接共存，是 Stage 41 决策点。本阶段让二者共存且 discovery 单向注册已满足 G51「节点注册/发现 WIRE 平台」目标，不预判 D7。
+
 ### 控制面角色
 
 | 角色 | 职责 |
 |---|---|
-| `JobCoordinator` | 持有 canonical plan、生成 DeploymentPlan、分配 task、触发 epoch、维护 fencing token |
+| `JobCoordinator` | 持有 canonical plan、消费 DeploymentPlan 已物化的 subtask→node 分配（或 fallback 到 runtime round-robin）、触发 epoch、维护 fencing token |
 | `RuntimeNode` | 注册到集群、汇报心跳、承载 task attempt、暴露本节点资源和 transport endpoint |
 | `TaskAttempt` | 某个 stable task 的一次执行尝试，绑定 attemptId 和 fencing token |
 | `NodeLease` | RuntimeNode 的存活租约，超时后其 task attempt 被视为失效 |
