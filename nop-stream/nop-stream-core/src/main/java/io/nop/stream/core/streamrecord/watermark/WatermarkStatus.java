@@ -58,8 +58,8 @@ import static io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_INVALID_A
  *
  * <p>Watermark Status elements received at downstream tasks also affect and control how their
  * operators process and advance their watermarks. The below describes the effects (the logic is
- * implemented as a {@link StatusWatermarkValve} which downstream tasks should use for such
- * purposes):
+ * implemented by {@link io.nop.stream.core.common.eventtime.IndexedCombinedWatermarkStatus}
+ * which combines multiple input partial watermarks/status into one combined watermark):
  *
  * <ul>
  *   <li>Since there may be watermark generators that might produce watermarks anywhere in the

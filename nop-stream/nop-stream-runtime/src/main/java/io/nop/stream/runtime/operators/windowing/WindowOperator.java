@@ -190,6 +190,11 @@ public class WindowOperator<K, IN, ACC, OUT, W extends Window>
 
     private static final String LATE_ELEMENTS_DROPPED_METRIC_NAME = "numLateRecordsDropped";
 
+    /**
+     * Per-(key,window) pane tracking: pane index + onTimeEmitted flag. Used by
+     * {@link #computePaneInfo} to classify firings as EARLY/ON_TIME/LATE and assign
+     * pane indices. Participates in checkpoint/restore (G48, TimeWindow-scoped only).
+     */
     private transient Map<String, PaneTrackingInfo> paneTracking;
 
     // ------------------------------------------------------------------------
@@ -226,6 +231,16 @@ public class WindowOperator<K, IN, ACC, OUT, W extends Window>
      * for the lifecycle constraint that motivates this pattern.
      */
     private transient HeapInternalTimerService.TimerSnapshot<K, W> restoredTimerSnapshot;
+
+    /**
+     * Pane-tracking snapshot captured by {@link #restoreState} (runs before {@link #open()}).
+     * Applied deferredly in {@link #open()} after {@code paneTracking} is initialized.
+     *
+     * <p>Only {@code TimeWindow}-scoped panes participate (see {@link #isTimeWindowPaneKey}).
+     * Non-TimeWindow panes are skipped because {@code windowNamespace} is irreversible for them,
+     * which could cause restore mismatch.
+     */
+    private transient PaneTrackingSnapshot restoredPaneTrackingSnapshot;
 
     /**
      * Namespace-backed window contents state.
@@ -329,12 +344,33 @@ public class WindowOperator<K, IN, ACC, OUT, W extends Window>
     public void open() throws Exception {
         super.open();
 
+        if (accumulationMode == AccumulationMode.ACCUMULATING_AND_RETRACTING) {
+            throw new StreamException(ERR_STREAM_UNSUPPORTED)
+                    .param(ARG_OPERATION, "WindowOperator.emitWindowContents")
+                    .param(ARG_DETAIL, "AccumulationMode.ACCUMULATING_AND_RETRACTING is spec-only "
+                            + "and not implemented; retract logic has no downstream consumer. "
+                            + "Use DISCARDING or ACCUMULATING instead.");
+        }
+
         timestampedCollector = new TimestampedCollector<>(output);
         if (this.triggerAccumulators == null) {
             this.triggerAccumulators = new HashMap<>();
         }
         if (this.paneTracking == null) {
             this.paneTracking = new HashMap<>();
+        }
+
+        // Apply any pane-tracking snapshot captured by restoreState() (called before open()).
+        // Restores pane index / onTimeEmitted so that post-recovery firings are not mistaken
+        // for ON_TIME / isFirst. Only TimeWindow-scoped panes are snapshotted.
+        if (restoredPaneTrackingSnapshot != null) {
+            for (PaneTrackingSnapshot.PaneTrackingEntry entry : restoredPaneTrackingSnapshot.getEntries()) {
+                PaneTrackingInfo info = new PaneTrackingInfo();
+                info.paneIndex = entry.getPaneIndex();
+                info.onTimeEmitted = entry.isOnTimeEmitted();
+                this.paneTracking.put(entry.getPaneKey(), info);
+            }
+            restoredPaneTrackingSnapshot = null;
         }
 
         if (this.stateBackend == null) {
@@ -452,6 +488,13 @@ public class WindowOperator<K, IN, ACC, OUT, W extends Window>
         if (internalTimerService != null) {
             result.putOperatorState("internal-timers", internalTimerService.snapshotTimers());
         }
+        // G48: persist pane-tracking (pane index + onTimeEmitted) so that post-recovery
+        // window firings are not mistaken for ON_TIME / isFirst. Only TimeWindow-scoped
+        // panes participate (see isTimeWindowPaneKey); non-TimeWindow panes are skipped
+        // because their windowNamespace is irreversible.
+        if (paneTracking != null && !paneTracking.isEmpty()) {
+            result.putOperatorState("pane-tracking", snapshotPaneTracking());
+        }
         return result;
     }
 
@@ -480,6 +523,11 @@ public class WindowOperator<K, IN, ACC, OUT, W extends Window>
             if (timerSnapshot instanceof HeapInternalTimerService.TimerSnapshot) {
                 this.restoredTimerSnapshot =
                         (HeapInternalTimerService.TimerSnapshot<K, W>) timerSnapshot;
+            }
+            // G48: capture pane-tracking snapshot for deferred application in open().
+            Object paneSnapshot = snapshotResult.getOperatorState("pane-tracking");
+            if (paneSnapshot instanceof PaneTrackingSnapshot) {
+                this.restoredPaneTrackingSnapshot = (PaneTrackingSnapshot) paneSnapshot;
             }
         }
     }
@@ -842,9 +890,79 @@ public class WindowOperator<K, IN, ACC, OUT, W extends Window>
         return key + STATE_KEY_SEPARATOR + windowNamespace(window);
     }
 
+    /**
+     * Returns true if the pane key corresponds to a {@link TimeWindow}-scoped pane. Only such
+     * panes participate in checkpoint/restore because {@link #windowNamespace} is reversible
+     * (stable, unique {@code TW:start,end}) for TimeWindow but irreversible
+     * ({@code className#toString}) for other window types.
+     */
+    private static boolean isTimeWindowPaneKey(String paneKey) {
+        return paneKey != null && paneKey.contains(STATE_KEY_SEPARATOR + "TW:");
+    }
+
+    /**
+     * Snapshots the TimeWindow-scoped pane-tracking entries into a serializable DTO.
+     */
+    private PaneTrackingSnapshot snapshotPaneTracking() {
+        List<PaneTrackingSnapshot.PaneTrackingEntry> entries = new ArrayList<>();
+        for (Map.Entry<String, PaneTrackingInfo> e : paneTracking.entrySet()) {
+            if (!isTimeWindowPaneKey(e.getKey())) {
+                continue;
+            }
+            PaneTrackingInfo info = e.getValue();
+            entries.add(new PaneTrackingSnapshot.PaneTrackingEntry(
+                    e.getKey(), info.paneIndex, info.onTimeEmitted));
+        }
+        return new PaneTrackingSnapshot(entries);
+    }
+
     private static class PaneTrackingInfo {
         int paneIndex = 0;
         boolean onTimeEmitted = false;
+    }
+
+    /**
+     * Serializable snapshot DTO of the pane-tracking map (G48). Only TimeWindow-scoped
+     * entries are stored (see {@link #isTimeWindowPaneKey}).
+     */
+    public static final class PaneTrackingSnapshot implements java.io.Serializable {
+        private static final long serialVersionUID = 1L;
+
+        private final List<PaneTrackingEntry> entries;
+
+        public PaneTrackingSnapshot(List<PaneTrackingEntry> entries) {
+            this.entries = entries != null ? entries : new ArrayList<>();
+        }
+
+        public List<PaneTrackingEntry> getEntries() {
+            return entries;
+        }
+
+        public static final class PaneTrackingEntry implements java.io.Serializable {
+            private static final long serialVersionUID = 1L;
+
+            private final String paneKey;
+            private final int paneIndex;
+            private final boolean onTimeEmitted;
+
+            public PaneTrackingEntry(String paneKey, int paneIndex, boolean onTimeEmitted) {
+                this.paneKey = paneKey;
+                this.paneIndex = paneIndex;
+                this.onTimeEmitted = onTimeEmitted;
+            }
+
+            public String getPaneKey() {
+                return paneKey;
+            }
+
+            public int getPaneIndex() {
+                return paneIndex;
+            }
+
+            public boolean isOnTimeEmitted() {
+                return onTimeEmitted;
+            }
+        }
     }
 
     /**

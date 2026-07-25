@@ -1,5 +1,7 @@
 package io.nop.stream.runtime.operators.windowing;
 
+import io.nop.stream.core.checkpoint.OperatorSnapshotResult;
+import io.nop.stream.core.checkpoint.StateSnapshotContext;
 import io.nop.stream.core.common.functions.KeySelector;
 import io.nop.stream.core.common.typeutils.TypeSerializer;
 import io.nop.stream.core.operators.Output;
@@ -207,6 +209,103 @@ class TestPaneInfoAndAccumulationMode {
                 "Window function should receive correct element value");
         assertEquals(PaneInfo.PaneTiming.EARLY, windowFunction.lastPaneInfo.getTiming(),
                 "PaneInfo must have correct EARLY timing (anti-hollow check)");
+    }
+
+    /**
+     * G48: proves paneTracking participates in checkpoint/restore so that post-recovery
+     * window firings are not mistaken for ON_TIME / isFirst.
+     *
+     * <p>Scenario: register EARLY (paneIndex=0, isFirst=true) then ON_TIME (paneIndex=1,
+     * onTimeEmitted=true) on operator-1 → snapshot → restore into operator-2 → fire the
+     * same window again. Without paneTracking restore, the post-recovery firing would be
+     * misclassified as ON_TIME/isFirst. With restore, it correctly continues as LATE with
+     * paneIndex=2.
+     */
+    @Test
+    void testPaneTrackingSurvivesCheckpointRestore() throws Exception {
+        // --- Operator 1: register EARLY + ON_TIME panes ---
+        createOperator(AccumulationMode.ACCUMULATING, WINDOW_SIZE);
+
+        advanceWatermark(50);
+        processElement(10, 10);
+        PaneInfo earlyPane = windowFunction.lastPaneInfo;
+        assertEquals(PaneInfo.PaneTiming.EARLY, earlyPane.getTiming());
+        assertTrue(earlyPane.isFirst());
+        assertEquals(0, earlyPane.getIndex());
+
+        advanceWatermark(100);
+        processElement(20, 20);
+        PaneInfo onTimePane = windowFunction.lastPaneInfo;
+        assertEquals(PaneInfo.PaneTiming.ON_TIME, onTimePane.getTiming());
+        assertFalse(onTimePane.isFirst());
+        assertEquals(1, onTimePane.getIndex());
+
+        // --- Snapshot operator-1 ---
+        OperatorSnapshotResult snapshot = operator.snapshotState(
+                new StateSnapshotContext(1L, System.currentTimeMillis()));
+        assertNotNull(snapshot.getOperatorState("pane-tracking"),
+                "pane-tracking state must be present in the snapshot");
+
+        // --- Operator 2: restoreState (before open, as per lifecycle) then open ---
+        operator.close();
+        operator = null;
+
+        TestableWindowOperator restoredOperator = new TestableWindowOperator(
+                TumblingEventTimeWindows.of(WINDOW_SIZE),
+                new SimpleTimeWindowSerializer(),
+                (KeySelector<Integer, String>) v -> "key1",
+                new SimpleStringSerializer(),
+                String.class,
+                windowFunction,
+                new FiringTrigger(),
+                WINDOW_SIZE,
+                null,
+                AccumulationMode.ACCUMULATING
+        );
+        TestOutput<String> restoredOutput = new TestOutput<>();
+        restoredOperator.setOutput((Output) restoredOutput);
+        restoredOperator.restoreState(snapshot);
+        restoredOperator.open();
+        operator = restoredOperator; // so tearDown() closes it
+
+        // --- Fire the same window again (watermark still >= window.maxTimestamp) ---
+        advanceWatermark(100);
+        processElement(30, 30);
+
+        PaneInfo restoredPane = windowFunction.lastPaneInfo;
+        assertNotNull(restoredPane, "A pane info must be produced after restore");
+        assertEquals(PaneInfo.PaneTiming.LATE, restoredPane.getTiming(),
+                "After restore, onTimeEmitted=true must persist => next firing is LATE, not ON_TIME");
+        assertEquals(2, restoredPane.getIndex(),
+                "After restore, paneIndex must continue from 2 (was 1 before snapshot)");
+        assertFalse(restoredPane.isFirst(),
+                "After restore, isFirst must be false (paneTracking was restored)");
+    }
+
+    /**
+     * G48: ACCUMULATING_AND_RETRACTING is spec-only and must fail fast on open, not silently
+     * behave as ACCUMULATING.
+     */
+    @Test
+    void testRetractingModeFailsFastOnOpen() throws Exception {
+        TestableWindowOperator retractOp = new TestableWindowOperator(
+                TumblingEventTimeWindows.of(WINDOW_SIZE),
+                new SimpleTimeWindowSerializer(),
+                (KeySelector<Integer, String>) v -> "key1",
+                new SimpleStringSerializer(),
+                String.class,
+                windowFunction,
+                new FiringTrigger(),
+                0L,
+                null,
+                AccumulationMode.ACCUMULATING_AND_RETRACTING
+        );
+        TestOutput<String> retractOutput = new TestOutput<>();
+        retractOp.setOutput((Output) retractOutput);
+
+        assertThrows(Exception.class, retractOp::open,
+                "ACCUMULATING_AND_RETRACTING must fail fast on open (spec-only, not implemented)");
+        retractOp.close();
     }
 
     @Test
