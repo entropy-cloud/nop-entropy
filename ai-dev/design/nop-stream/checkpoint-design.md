@@ -175,7 +175,13 @@ Epoch log 必须持久化 `DURABLE` 和 `COMMITTED` 的状态变化。`COMMITTED
 
 ### 2.8 Checkpoint 并发策略
 
-基线设计只允许一个 checkpoint epoch in-flight。原因：
+Coordinator 层并发模型：`CheckpointCoordinator` 完整尊重 `CheckpointConfig.maxConcurrentCheckpoints` 配置值（不再 clamp 到 1）与 `minPause`（last-completed 节流）。多个 pending checkpoint 可在 coordinator 的 `pendingCheckpoints` map 中安全共存，各自独立 ACK / complete / abort / timeout（经 coordinator 路径，由 `TestCheckpointCoexistenceViaCoordinator` 与 `TestCheckpointMinPauseAndFailureCounter` 覆盖；Anti-Hollow：禁止 `new PendingCheckpoint` + `forceComplete()` 绕过 coordinator 的 hollow 模式）。
+
+**共存 pending 独立流转的正确性来源**（live 设计，非新引入）：`tryTriggerPendingCheckpoint` 为每次触发调用 `getTasksToAcknowledge()` 返回 `new HashSet` 独立快照；每个 `PendingCheckpoint` 持有独立的 `notYetAcknowledgedTasks` / `taskStates` 内部 map；`scheduleTimeout(pending)` 为每个 pending 在共享 `timeoutScheduler` 上独立调度（lambda 捕获特定 pending 引用，abort 仅作用于该 pending）；`acknowledgeTask` / `completePendingCheckpoint` / `abortPendingCheckpoint` 均 `synchronized` 且按 `checkpointId` 索引 `pendingCheckpoints` map（`remove(checkpointId, pending)` 条件删除，不会误删在途的其它 pending）；`cleanupOldCheckpoints` 仅作用于 storage 中已 durable 的 completed checkpoint（不会触碰仍在途的 pending）。Phase 2 在 sync fallback 路径下证明了上述不变量（async persist 路径的 pending 重叠验证属 Stage 18 集成验证项）。
+
+**minPause（last-completed）**：上一个 checkpoint **完成**（`onCompletePersistSuccess` 写入 storage 后）后须经过 ≥ `config.getMinPause()` 才允许触发下一个。首次触发（无前序完成）不受限。minPause == 0 关闭节流。节流仅作用于周期性 `CheckpointType.CHECKPOINT`；savepoint 与 terminal 类型（`SAVEPOINT` / `COMPLETED_POINT_TYPE` / `TERMINAL_SAVEPOINT` / `EXPORTED_SAVEPOINT`）是显式动作，**绕过** minPause，仍受 `maxConcurrentCheckpoints` 串行化约束。minPause 节流命中时返回 `TriggerOutcome.reason == THROTTLED_MIN_PAUSE` 并打 DEBUG 日志（非静默跳过），与 `REJECTED_MAX_CONCURRENT` 在 reason / 日志层面可区分。节流与拒绝都不计入 `consecutiveTriggerFailures`——只有「真失败」（如无 task 可 ACK、触发异常）才计数。
+
+**Task 层未满足的硬约束**（forward-looking，由 Stage 45 满足）：`CheckpointBarrierTracker` 和 `InputGate` 当前只支持单 checkpoint 对齐（一次只追踪一个 in-flight barrier）。Coordinator 端多 pending 共存可成立，但 task 端 ACK 追踪无法正确处理多并发 epoch——这意味着配置 `maxConcurrentCheckpoints > 1` 时，Coordinator 会发出第 N+1 个 barrier，但 task 侧的 InputGate 会按单 barrier 顺序处理，多 pending 共存的实际数据正确性依赖 Stage 45 的 task 级多 epoch 重构（含 unaligned checkpoint，Stage 43）。
 
 | 原因 | 说明 |
 |---|---|
@@ -183,8 +189,6 @@ Epoch log 必须持久化 `DURABLE` 和 `COMMITTED` 的状态变化。`COMMITTED
 | 简化 barrier 对齐 | 不需要同时维护多个 epoch 的 channel 阻塞状态 |
 | 简化恢复 | 最新 durable epoch 之后的状态全部 abort 或重试 commit |
 | 满足首版语义 | exactly-once 正确性优先于 checkpoint 吞吐 |
-
-**当前实现约束**：`CheckpointCoordinator` 对 `maxConcurrentCheckpoints>1` 仅 `LOG.warn`（**不强制降级**，配置值原样用于 `effectiveMaxConcurrent`），但 `CheckpointBarrierTracker` 和 `InputGate` 当前只支持单 checkpoint 对齐——因此配置 >1 不会崩溃，trigger 层允许通过，但 task 侧 ACK 追踪无法正确处理多并发 epoch（这是 G31，属 Stage 19）。task 层多 checkpoint 支持（CheckpointBarrierTracker/InputGate 重构为多 checkpoint 追踪）作为 Deferred。
 
 ### 2.9 Bounded Source 与 Final Epoch
 
@@ -879,8 +883,8 @@ Retention 必须以解析后的 `checkpointNamespace` 为范围，不能跨 name
 | `checkpointInterval` | 60000ms | 触发间隔 |
 | `checkpointTimeout` | 600000ms | 单次 checkpoint 超时 |
 | `barrierAlignmentTimeout` | 30000ms | 多输入 barrier 对齐累计超时（超时后 task 主动失败，不等 checkpointTimeout） |
-| `minPause` | 500ms | 两次 checkpoint 之间的最小间隔 |
-| `maxConcurrentCheckpoints` | 1 | 最大并发 checkpoint 数（coordinator 对 >1 仅 warn，不强制降级；task 侧对齐当前只支持单 checkpoint，属 G31/Stage 19） |
+| `minPause` | 500ms | 两次 checkpoint 之间的最小间隔（last-completed 语义：上一个 checkpoint 完成后须经过 ≥ minPause 才允许触发下一个；首次触发不受限；仅作用于 `CheckpointType.CHECKPOINT`，savepoint/terminal 绕过；minPause=0 关闭节流） |
+| `maxConcurrentCheckpoints` | 1 | 最大并发 checkpoint 数（Coordinator 层完整尊重配置值，不再 clamp 到 1；task 层单 barrier 对齐属 Stage 45） |
 | `maxRetainedCheckpoints` | 5 | 保留的已完成 checkpoint 数 |
 | `maxConsecutiveCheckpointFailures` | 3 | 连续 checkpoint 触发失败的告警阈值（超阈值触发 ERROR 日志） |
 | `asyncSnapshotEnabled` | true | 是否将 coordinator 侧持久化（storeCheckPoint + storeEpochManifest）卸载到专用 persist executor。true 时 ACK 线程提交后即返回，存储 I/O 不阻塞 abort/timeout/trigger bookkeeping；false 保留同步行为（段 1+2+3a 全在 ACK 线程 synchronized 方法内） |
@@ -970,10 +974,10 @@ nop-stream 有两条执行路径，容错能力分层不同：
 | **对齐超时** | multi-input barrier 对齐必须有累计超时上限。stuck channel（不 finish、不 close、不发 barrier）不得导致对齐永久阻塞 |
 | **abort 接线** | Coordinator 的 checkpoint abort 必须能终止已阻塞的对齐读，不得依赖外部被动干预。task cancel + 线程中断机制是接线基础，abort 路径必须使用它 |
 | **触发线程安全** | checkpoint 触发路径的复合操作（并发数检查 + 计数自增）必须原子，不得有 check-then-act 竞态 |
-| **失败可观测** | 连续 checkpoint 失败必须计数，超阈值触发恢复或显式告警，不得静默降级 |
+| **失败可观测** | 连续 checkpoint 失败必须计数，超阈值触发恢复或显式告警，不得静默降级（minPause 节流 / numPending 拒绝属正常背压，**不**计入 `consecutiveTriggerFailures`；仅「真失败」——无 task 可 ACK / 触发异常——才计数） |
 | **abort 传播通道** | abort 信号必须有独立于数据流的控制通道传播到所有 task。不得仅靠数据队列内的 marker——对齐等待时数据队列读不到 marker |
 | **多输入对齐统一** | 多输入 barrier 对齐应使用统一、线程安全、带超时的对齐器实现，不得在不同执行路径存在双轨制 |
-| **并发能力一致** | 配置的 `maxConcurrentCheckpoints` 必须 Coordinator/task/对齐器各层一致，不得配置允许但实现拒绝 |
+| **并发能力一致**（forward-looking，跨层契约） | 配置的 `maxConcurrentCheckpoints` 必须 Coordinator/task/对齐器各层一致，不得配置允许但实现拒绝。**各层当前状态**：Coordinator 层 ✅ 已满足（Stage 19 完整尊重配置值）；task 层 / 对齐器层 ❌ 仍单 barrier（`CheckpointBarrierTracker` / `InputGate` 一次只追踪一个 in-flight checkpoint），属 Stage 45 |
 | **channel 心跳（distributed）** | 分布式 `RemoteInputChannel` 应有 channel 级心跳/超时检测，不得仅靠粗粒度 lease 兜底 |
 | **背压逃生（unaligned）** | 持续背压场景需 barrier 抢占式传播通道（unaligned checkpoint），不得仅靠 aligned 对齐（背压下对齐时延无上限） |
 

@@ -24,7 +24,7 @@ Does not contain implementation details. Each `planned` stage is owned by its ex
 - 16. Multi-input barrier alignment（G4, G7，P1）: `done`（G5/G34 deferred to Stage 39 — 跨 JVM RPC prerequisite，见 `checkpoint-design.md:911`）
 - 17. Mailbox 执行模型（G22，P1）: `done`
 - 18. 异步两阶段 snapshot pipeline（G30, G44，P2）: `done`（plan `2026-07-25-2200-1-async-snapshot-pipeline`，completed）
-- 19. Checkpoint 并发与共享状态（G31, G33，P2）: `planned`（plan `ai-dev/plans/nop-stream-production/2026-07-25-2300-1-checkpoint-concurrency.md`；G31 收口，G33 裁定延后 Stage 31）
+- 19. Checkpoint 并发与共享状态（G31, G33，P2）: `done`（plan `ai-dev/plans/nop-stream-production/2026-07-25-2300-1-checkpoint-concurrency.md`，completed — G31 收口：Coordinator 尊重 `maxConcurrentCheckpoints` + minPause(last-completed) 接线 + stale 警告/文档修正 + 共存 pending 经 coordinator 路径独立 ACK/complete/abort/timeout 由 focused test 覆盖；G33 裁定延后 Stage 31 — 内存后端无共享状态可消费，引入空壳抽象违反 plan 指南 #22/#24）
 - 20. Partial/subtask 级恢复（G28, G29，P2）: done（G29 — plan `2026-07-25-2200-2-partial-subtask-recovery`，completed；G28 design-gated，需先起草 region/drain/reconnect 设计文档，见 plan Deferred）
 - 21. Evictor/Pane/Watermark 集成（G46—G48，P2）: `done`
 - 22. 文档合同对齐与 source-anchors 补全（D69—D73，Doc）: `done`
@@ -265,12 +265,12 @@ Does not contain implementation details. Each `planned` stage is owned by its ex
 **Goal:** 解开 `maxConcurrentCheckpoints=1` 硬上限，引入 shared state registry。
 
 **Deliverables:**
-- G31: 多并发 checkpoint 基础支持（完整多 epoch 追踪在 Stage 45）
-- G33: `SharedStateRegistry` 引用计数
+- G31: 多并发 checkpoint 基础支持（完整多 epoch 追踪在 Stage 45）— ✅ done（Coordinator 尊重配置值；minPause(last-completed) 接线；共存 pending 独立 ACK/complete/abort/timeout 经 coordinator 路径覆盖；stale 警告/文档修正）
+- ~~G33: `SharedStateRegistry` 引用计数~~ → 移交 Stage 31（plan `2026-07-25-2300-1` Deferred 裁定：内存全量后端下 `CompletedCheckpoint.taskStates` 为独立 `byte[]`/`HashMap` 拷贝，无跨 checkpoint 共享状态可消费；唯一 load-bearing 消费者为 Stage 31 RocksDB 增量 SST 共享。本 plan 不引入无消费者空壳抽象）
 
 **Out of scope:** unaligned 下的多并发（Stage 45）。
 
-**Module / area:** nop-stream/nop-stream-core/checkpoint/
+**Module / area:** nop-stream/nop-stream-core/checkpoint/, nop-stream/nop-stream-runtime/checkpoint/
 
 #### 20. Partial/subtask 级恢复
 

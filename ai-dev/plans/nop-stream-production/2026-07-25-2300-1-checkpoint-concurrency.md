@@ -1,7 +1,7 @@
 # Checkpoint 并发与共享状态基础（G31, G33, P2）
 
-> Plan Status: active
-> Last Reviewed: 2026-07-25
+> Plan Status: completed
+> Last Reviewed: 2026-07-26
 > Draft Review: 2 轮独立子 agent 对抗性审查通过（ses_0666a54c3ffePjlUEv8jeHvTrk + ses_066616634ffeBee2MXTSDO627B）；F1–F5 Major 全 PASS，R1 Major（失败计数器污染）已修，Minors R2–R6 已清。
 > Source: `ai-dev/backlog/nop-stream-production-roadmap.md` Stage 19；`ai-dev/analysis/nop-stream/08-gap-analysis.md` G31(`:99`)/G33(`:101`)（03-checkpoint: #10/`162/169`、#12/`163/171`）；`ai-dev/analysis/nop-stream/03-checkpoint-comparison.md` 行 158/162/163
 > Mission: nop-stream-production
@@ -67,73 +67,73 @@
 
 ### Phase 1 - minPause 接线 + stale 警告/文档修正
 
-Status: planned
+Status: completed
 Targets: `nop-stream-runtime/.../checkpoint/CheckpointCoordinator.java:91-95,144-169,194-222`；`nop-stream-core/.../checkpoint/CheckpointConfig.java`（minPause，已有）；`ai-dev/design/nop-stream/checkpoint-design.md:183,874,965`；`ai-dev/analysis/nop-stream/08-gap-analysis.md:99`（G31 行）
 
 - Item Types: `Fix | Decision | Proof`
 
-- [ ] 在触发路径接线 `minPause`，锚点语义定为 **last-completed**（对齐 `checkpoint-design.md:873`「两次 checkpoint 之间的最小间隔」与 Flink `minPauseBetweenCheckpoints`）：即「上一个 checkpoint **完成**（complete）后须经过 ≥ `config.getMinPause()` 才允许触发下一个」。首次触发（无前序完成）不受限。若上一个 checkpoint 尚未完成，由 `maxConcurrentCheckpoints` gating 决定（不在此 item 重复）。
-- [ ] 调度模型适配：当前 `scheduleAtFixedRate(interval, interval)`（`:144-169`）固定速率触发，与 last-completed minPause 节流冲突（minPause 计时起点是完成时刻，非固定速率）。倾向在 `tryTriggerPendingCheckpoint`（`:194-222`）内做 minPause 门控：命中时记 DEBUG/WARN + 返回 null，与 numPending 上限拒绝**可区分**（不同日志/metric）；调度器保持 fixed-rate 但每次调用受 trigger 内门控过滤。若实现期证明该方向有正确性障碍，改为自重调度并在代码注释记录理由。
-- [ ] 移除构造器 stale 警告（`:91-95`），替换为与 live 行为一致的描述（Coordinator 尊重配置值；task 级多 epoch 追踪尚未支持，见 Stage 45）。
-- [ ] **无静默跳过**：minPause 节流命中时不得静默 `continue` 吞掉；必须有可观测行为（日志 DEBUG/WARN + 返回 null），调用方可区分「因 minPause 节流」与「因 numPending 上限拒绝」。
-- [ ] **失败计数器不被节流/拒绝污染**：当前 scheduler loop（`:147-156`）对**任何** `result == null` 都 `consecutiveTriggerFailures.incrementAndGet()`，到阈值 3 误报 ERROR「3 consecutive failures」。minPause 节流与 numPending 拒绝都返回 null → 会被误计为失败。须改造使「节流/拒绝」（正常背压，非失败）**不** inflate `consecutiveTriggerFailures`：仅「真失败」（如无 task 可 ACK、异常）才计数。实现方式可选（如 `tryTriggerPendingCheckpoint` 返回/暴露拒绝原因，或 scheduler 侧区分），但语义上节流/拒绝不得触发失败计数与 ERROR 日志。
+- [x] 在触发路径接线 `minPause`，锚点语义定为 **last-completed**（对齐 `checkpoint-design.md:873`「两次 checkpoint 之间的最小间隔」与 Flink `minPauseBetweenCheckpoints`）：即「上一个 checkpoint **完成**（complete）后须经过 ≥ `config.getMinPause()` 才允许触发下一个」。首次触发（无前序完成）不受限。若上一个 checkpoint 尚未完成，由 `maxConcurrentCheckpoints` gating 决定（不在此 item 重复）。
+- [x] 调度模型适配：当前 `scheduleAtFixedRate(interval, interval)`（`:144-169`）固定速率触发，与 last-completed minPause 节流冲突（minPause 计时起点是完成时刻，非固定速率）。倾向在 `tryTriggerPendingCheckpoint`（`:194-222`）内做 minPause 门控：命中时记 DEBUG/WARN + 返回 null，与 numPending 上限拒绝**可区分**（不同日志/metric）；调度器保持 fixed-rate 但每次调用受 trigger 内门控过滤。若实现期证明该方向有正确性障碍，改为自重调度并在代码注释记录理由。
+- [x] 移除构造器 stale 警告（`:91-95`），替换为与 live 行为一致的描述（Coordinator 尊重配置值；task 级多 epoch 追踪尚未支持，见 Stage 45）。
+- [x] **无静默跳过**：minPause 节流命中时不得静默 `continue` 吞掉；必须有可观测行为（日志 DEBUG/WARN + 返回 null），调用方可区分「因 minPause 节流」与「因 numPending 上限拒绝」。
+- [x] **失败计数器不被节流/拒绝污染**：当前 scheduler loop（`:147-156`）对**任何** `result == null` 都 `consecutiveTriggerFailures.incrementAndGet()`，到阈值 3 误报 ERROR「3 consecutive failures」。minPause 节流与 numPending 拒绝都返回 null → 会被误计为失败。须改造使「节流/拒绝」（正常背压，非失败）**不** inflate `consecutiveTriggerFailures`：仅「真失败」（如无 task 可 ACK、异常）才计数。实现方式可选（如 `tryTriggerPendingCheckpoint` 返回/暴露拒绝原因，或 scheduler 侧区分），但语义上节流/拒绝不得触发失败计数与 ERROR 日志。
 
 Exit Criteria:
 
 > 每个 Phase 完成后，必须逐条勾选本节。所有 `[x]` 后才能将 Phase Status 改为 `completed`。
 
-- [ ] `minPause` 被 `CheckpointCoordinator` 触发路径实际检查（repo-observable：grep `getMinPause` 在 `CheckpointCoordinator` 有 ≥1 命中；且门控逻辑在 `tryTriggerPendingCheckpoint` 内基于「上次完成时间 + minPause」判定）。
-- [ ] 新增 focused test 验证 **last-completed minPause 语义**：完成 cp1 后立即触发 cp2（间隔 < minPause）应被节流（返回 null）；等待 ≥ minPause 后再触发 cp2 应成功。断言「minPause 节流拒绝」与「numPending 上限拒绝」可区分（不同日志/metric/返回原因）。测试须用默认或 ≥100ms 的 `minPause`，禁止缩小到接近调度抖动量级（防 flaky）。
-- [ ] **失败计数器回归测试**：在「minPause 节流」与「numPending 拒绝」连续多次发生时，`getConsecutiveTriggerFailures()` **不**自增、不触发 ERROR「consecutive failures」（断言计数保持 0）；只有真失败才计数。
-- [ ] 构造器 stale 警告（原 `:91-95`）已删除/改写，不再声称「降级到 1 / 不会生效」。
-- [ ] `checkpoint-design.md:183/874` stale 表述修正为「Coordinator 尊重配置值；task 级多 epoch 追踪为 Stage 45」；`:965` forward-looking 不变量**保留**并补注「Coordinator 层已满足；task 层单 barrier 属 Stage 45」。
-- [ ] `08-gap-analysis.md:99`（G31 行）更新：标注「`Math.min(1,...)` 硬编码已移除；minPause(last-completed) 已接线；共存 pending gating 已测（`testMaxConcurrentCheckpointsRespectsConfig`）；共存 pending 独立 ACK/complete 见 Stage 19 Phase 2；task 级多 epoch 见 Stage 45」。
-- [ ] **无静默跳过**：minPause 节流路径有断言覆盖，验证命中时返回 null + 日志，而非返回静默默认值。
-- [ ] owner-doc 更新：`checkpoint-design.md` §配置表 + §并发约束段落已同步 live 行为。
-- [ ] `ai-dev/logs/` 对应日期条目已更新。
+- [x] `minPause` 被 `CheckpointCoordinator` 触发路径实际检查（repo-observable：grep `getMinPause` 在 `CheckpointCoordinator` 有 ≥1 命中；且门控逻辑在 `tryTriggerPendingCheckpoint` 内基于「上次完成时间 + minPause」判定）。
+- [x] 新增 focused test 验证 **last-completed minPause 语义**：完成 cp1 后立即触发 cp2（间隔 < minPause）应被节流（返回 null）；等待 ≥ minPause 后再触发 cp2 应成功。断言「minPause 节流拒绝」与「numPending 上限拒绝」可区分（不同日志/metric/返回原因）。测试须用默认或 ≥100ms 的 `minPause`，禁止缩小到接近调度抖动量级（防 flaky）。
+- [x] **失败计数器回归测试**：在「minPause 节流」与「numPending 拒绝」连续多次发生时，`getConsecutiveTriggerFailures()` **不**自增、不触发 ERROR「consecutive failures」（断言计数保持 0）；只有真失败才计数。
+- [x] 构造器 stale 警告（原 `:91-95`）已删除/改写，不再声称「降级到 1 / 不会生效」。
+- [x] `checkpoint-design.md:183/874` stale 表述修正为「Coordinator 尊重配置值；task 级多 epoch 追踪为 Stage 45」；`:965` forward-looking 不变量**保留**并补注「Coordinator 层已满足；task 层单 barrier 属 Stage 45」。
+- [x] `08-gap-analysis.md:99`（G31 行）更新：标注「`Math.min(1,...)` 硬编码已移除；minPause(last-completed) 已接线；共存 pending gating 已测（`testMaxConcurrentCheckpointsRespectsConfig`）；共存 pending 独立 ACK/complete 见 Stage 19 Phase 2；task 级多 epoch 见 Stage 45」。
+- [x] **无静默跳过**：minPause 节流路径有断言覆盖，验证命中时返回 null + 日志，而非返回静默默认值。
+- [x] owner-doc 更新：`checkpoint-design.md` §配置表 + §并发约束段落已同步 live 行为。
+- [x] `ai-dev/logs/` 对应日期条目已更新。
 
 ### Phase 2 - Coordinator 共存 pending 独立 ACK/complete/abort（G31 basic 补齐）
 
-Status: planned
+Status: completed
 Targets: `CheckpointCoordinator.java:224-317,319-353,420-450`（acknowledge/complete/abort/timeout/cleanup）；新增 focused test（经 coordinator 路径的共存 pending 独立流转）
 
 - Item Types: `Fix | Proof`
 
-- [ ] 验证并（必要时）加固共存 ≥2 pending 经 coordinator 路径独立流转的正确性：`completePendingCheckpoint`/`abortPendingCheckpoint`/`scheduleTimeout`/`cleanupOldCheckpoints` 在多 pending 下不串扰、不误删、numPending 计数准确。基于 Current Baseline 已记录的 `synchronized` + 独立 ack 快照现状，逐路径核对而非盲改。此为**补齐现有测试缺口**（gating 共存已由 `testMaxConcurrentCheckpointsRespectsConfig` 覆盖，独立流转未覆盖），而非从零创建共存能力。
-- [ ] 新增 focused test（**必须经 coordinator 路径**）：用 `coordinator.tryTriggerPendingCheckpoint` 触发 cp1 **不 ACK** → 再触发 cp2（二者真实共存于 `pendingCheckpoints` map，复用 `testMaxConcurrentCheckpointsRespectsConfig` 的构造方式）→ 对 cp1、cp2 分别 `coordinator.acknowledgeTask` 至 complete，断言两者各自经 `completePendingCheckpoint` 独立到达完成态、`getLatestCheckpoint` 各自正确、taskStates 内容不串扰（cp1 的 state 不出现在 cp2，反之亦然）、`numPending` 最终归零。**禁止**用 `new PendingCheckpoint(...)` + `forceComplete()` 绕过 coordinator（这是 `TestCheckpointConcurrencySafety.testConcurrentAcknowledgeTask_noCorruption` 的 hollow 模式，本 test 不得复制）。
-- [ ] 覆盖 abort 场景：cp1 在途时 `coordinator.abortPendingCheckpoint(cp1)`，断言 cp2 不受影响、仍可独立 ACK/complete；numPending 正确归位。
-- [ ] 覆盖 timeout 场景：cp1 在途时让其 `scheduleTimeout` 到期触发 abort，断言 cp2 不被误 abort、仍独立完成。
-- [ ] 记录与 Stage 18 async persist 的集成点：本 Phase 在 sync 路径上完成共存 pending 独立流转证明（不依赖 async persist）。async 重叠场景（cp N 持久化在途时 cp N+1 已触发并独立完成）作为 Stage 18 落地后的集成验证项，记入 Non-Blocking Follow-ups。
-- [ ] **无静默跳过**：多 pending 下任一 pending 的 complete/abort 失败必须传播，不得因「另一个 pending 在处理」而 catch-and-log 吞掉。
+- [x] 验证并（必要时）加固共存 ≥2 pending 经 coordinator 路径独立流转的正确性：`completePendingCheckpoint`/`abortPendingCheckpoint`/`scheduleTimeout`/`cleanupOldCheckpoints` 在多 pending 下不串扰、不误删、numPending 计数准确。基于 Current Baseline 已记录的 `synchronized` + 独立 ack 快照现状，逐路径核对而非盲改。此为**补齐现有测试缺口**（gating 共存已由 `testMaxConcurrentCheckpointsRespectsConfig` 覆盖，独立流转未覆盖），而非从零创建共存能力。
+- [x] 新增 focused test（**必须经 coordinator 路径**）：用 `coordinator.tryTriggerPendingCheckpoint` 触发 cp1 **不 ACK** → 再触发 cp2（二者真实共存于 `pendingCheckpoints` map，复用 `testMaxConcurrentCheckpointsRespectsConfig` 的构造方式）→ 对 cp1、cp2 分别 `coordinator.acknowledgeTask` 至 complete，断言两者各自经 `completePendingCheckpoint` 独立到达完成态、`getLatestCheckpoint` 各自正确、taskStates 内容不串扰（cp1 的 state 不出现在 cp2，反之亦然）、`numPending` 最终归零。**禁止**用 `new PendingCheckpoint(...)` + `forceComplete()` 绕过 coordinator（这是 `TestCheckpointConcurrencySafety.testConcurrentAcknowledgeTask_noCorruption` 的 hollow 模式，本 test 不得复制）。
+- [x] 覆盖 abort 场景：cp1 在途时 `coordinator.abortPendingCheckpoint(cp1)`，断言 cp2 不受影响、仍可独立 ACK/complete；numPending 正确归位。
+- [x] 覆盖 timeout 场景：cp1 在途时让其 `scheduleTimeout` 到期触发 abort，断言 cp2 不被误 abort、仍独立完成。
+- [x] 记录与 Stage 18 async persist 的集成点：本 Phase 在 sync 路径上完成共存 pending 独立流转证明（不依赖 async persist）。async 重叠场景（cp N 持久化在途时 cp N+1 已触发并独立完成）作为 Stage 18 落地后的集成验证项，记入 Non-Blocking Follow-ups。
+- [x] **无静默跳过**：多 pending 下任一 pending 的 complete/abort 失败必须传播，不得因「另一个 pending 在处理」而 catch-and-log 吞掉。
 
 Exit Criteria:
 
 > 每个 Phase 完成后，必须逐条勾选本节。所有 `[x]` 后才能将 Phase Status 改为 `completed`。
 
-- [ ] 新增 focused test 通过且**经 coordinator 路径**：用 `tryTriggerPendingCheckpoint` 构造 2 pending（不 ACK cp1），对二者分别 `acknowledgeTask` 至 complete，taskStates 各自正确不串扰（断言 cp1 state ∉ cp2，反之亦然），numPending 最终归零。
-- [ ] abort 场景测试通过：cp1 在途 abort，cp2 不受影响独立完成（断言 cp2 达完成态、numPending 最终归零）。
-- [ ] timeout 场景测试通过：cp1 超时 abort 不误伤 cp2（断言 cp2 仍独立完成）。
-- [ ] **Anti-Hollow**：测试通过 `coordinator.tryTriggerPendingCheckpoint`/`acknowledgeTask`/`completePendingCheckpoint` 真实路径，**未**用 `new PendingCheckpoint`+`forceComplete()` 绕过（审查 test 源码确认无 `new PendingCheckpoint` 直接构造 coordinator-managed pending）。
-- [ ] **端到端验证**：从 `tryTriggerPendingCheckpoint` 入口到 `completePendingCheckpoint` 写入 storage + `getLatestCheckpoint` 的多 pending 路径完整跑通；两个 pending 各自端到端独立完成。
-- [ ] **接线验证**：多 pending 下 `scheduleTimeout`/`cleanupOldCheckpoints` 确实按 checkpointId 独立作用（断言 cp1 的 timeout 不误 abort cp2；cleanup 不误删仍在途的 pending）。
-- [ ] **无静默跳过**：多 pending 下 complete/abort 失败传播有断言覆盖（不吞异常）。
-- [ ] numPending 计数在多 pending complete/abort/timeout 后准确归零（断言 `getNumberOfPendingCheckpoints() == 0`）。
-- [ ] owner-doc 更新：`checkpoint-design.md` 记录「Coordinator 端共存 pending 独立流转已落地（gating + 独立 ACK/complete/abort/timeout）；task 级多 epoch 追踪 = Stage 45；async persist 重叠验证依赖 Stage 18」。
-- [ ] `ai-dev/logs/` 对应日期条目已更新。
+- [x] 新增 focused test 通过且**经 coordinator 路径**：用 `tryTriggerPendingCheckpoint` 构造 2 pending（不 ACK cp1），对二者分别 `acknowledgeTask` 至 complete，taskStates 各自正确不串扰（断言 cp1 state ∉ cp2，反之亦然），numPending 最终归零。
+- [x] abort 场景测试通过：cp1 在途 abort，cp2 不受影响独立完成（断言 cp2 达完成态、numPending 最终归零）。
+- [x] timeout 场景测试通过：cp1 超时 abort 不误伤 cp2（断言 cp2 仍独立完成）。
+- [x] **Anti-Hollow**：测试通过 `coordinator.tryTriggerPendingCheckpoint`/`acknowledgeTask`/`completePendingCheckpoint` 真实路径，**未**用 `new PendingCheckpoint`+`forceComplete()` 绕过（审查 test 源码确认无 `new PendingCheckpoint` 直接构造 coordinator-managed pending）。
+- [x] **端到端验证**：从 `tryTriggerPendingCheckpoint` 入口到 `completePendingCheckpoint` 写入 storage + `getLatestCheckpoint` 的多 pending 路径完整跑通；两个 pending 各自端到端独立完成。
+- [x] **接线验证**：多 pending 下 `scheduleTimeout`/`cleanupOldCheckpoints` 确实按 checkpointId 独立作用（断言 cp1 的 timeout 不误 abort cp2；cleanup 不误删仍在途的 pending）。
+- [x] **无静默跳过**：多 pending 下 complete/abort 失败传播有断言覆盖（不吞异常）。
+- [x] numPending 计数在多 pending complete/abort/timeout 后准确归零（断言 `getNumberOfPendingCheckpoints() == 0`）。
+- [x] owner-doc 更新：`checkpoint-design.md` 记录「Coordinator 端共存 pending 独立流转已落地（gating + 独立 ACK/complete/abort/timeout）；task 级多 epoch 追踪 = Stage 45；async persist 重叠验证依赖 Stage 18」。
+- [x] `ai-dev/logs/` 对应日期条目已更新。
 
 ## Closure Gates
 
 > **关闭条件**：所有条目及每个 Phase 的 Exit Criteria 全部 `[x]` 后才能 `completed`。
 
-- [ ] G31 基础支持收敛：`minPause`(last-completed) 接线 + stale 警告/文档修正 + Coordinator 共存 pending 经 coordinator 路径独立 ACK/complete/abort/timeout 不串扰，由 focused test 证明（区别于现有 gating-only / hollow 测试）。
-- [ ] 不存在被静默降级到 deferred 的 in-scope live defect（G33 已诚实裁定为 optimization candidate 并附 roadmap scope-change 同步，见 Deferred）。
-- [ ] 受影响 owner docs（`checkpoint-design.md:183/874` stale 修正、`:965` 不变量补注、`08-gap-analysis.md:99` G31 行）已同步 live baseline。
-- [ ] G33 roadmap scope-change 已同步（Stage 19 deliverable 移除 G33 → Stage 31，见 Non-Blocking Follow-ups），无 roadmap owner-doc drift。
-- [ ] 必要 focused verification（minPause last-completed 节流断言、共存 pending 独立 ACK/complete/abort/timeout 断言、numPending 计数断言、Anti-Hollow 经 coordinator 路径断言）已完成。
-- [ ] 独立子 agent closure-audit 已完成并记录证据。
-- [ ] **Anti-Hollow Check**：closure audit 验证（a）minPause 节流在运行时确实被触发路径执行（非仅字段存在），（b）共存 pending 独立流转测试**经 coordinator 路径**（`tryTriggerPendingCheckpoint`/`acknowledgeTask`/`completePendingCheckpoint`），非 `new PendingCheckpoint`+`forceComplete()` hollow 绕过，（c）无空方法体/静默跳过。
-- [ ] `./mvnw test -pl nop-stream -am -T 1C` 通过。
-- [ ] checkstyle / 代码规范检查通过。
+- [x] G31 基础支持收敛：`minPause`(last-completed) 接线 + stale 警告/文档修正 + Coordinator 共存 pending 经 coordinator 路径独立 ACK/complete/abort/timeout 不串扰，由 focused test 证明（区别于现有 gating-only / hollow 测试）。
+- [x] 不存在被静默降级到 deferred 的 in-scope live defect（G33 已诚实裁定为 optimization candidate 并附 roadmap scope-change 同步，见 Deferred）。
+- [x] 受影响 owner docs（`checkpoint-design.md:183/874` stale 修正、`:965` 不变量补注、`08-gap-analysis.md:99` G31 行）已同步 live baseline。
+- [x] G33 roadmap scope-change 已同步（Stage 19 deliverable 移除 G33 → Stage 31，见 Non-Blocking Follow-ups），无 roadmap owner-doc drift。
+- [x] 必要 focused verification（minPause last-completed 节流断言、共存 pending 独立 ACK/complete/abort/timeout 断言、numPending 计数断言、Anti-Hollow 经 coordinator 路径断言）已完成。
+- [x] 独立子 agent closure-audit 已完成并记录证据。
+- [x] **Anti-Hollow Check**：closure audit 验证（a）minPause 节流在运行时确实被触发路径执行（非仅字段存在），（b）共存 pending 独立流转测试**经 coordinator 路径**（`tryTriggerPendingCheckpoint`/`acknowledgeTask`/`completePendingCheckpoint`），非 `new PendingCheckpoint`+`forceComplete()` hollow 绕过，（c）无空方法体/静默跳过。
+- [x] `./mvnw test -pl nop-stream -am -T 1C` 通过。
+- [x] checkstyle / 代码规范检查通过。
 
 ## Deferred But Adjudicated
 
@@ -160,22 +160,55 @@ Exit Criteria:
 
 ## Closure
 
-Status Note: <<完成时填写>>
-Completed: <<YYYY-MM-DD>>
+Status Note: G31（checkpoint 并发与 minPause 节流基础支持）已收口——Coordinator 完整尊重 `maxConcurrentCheckpoints` 配置值，minPause(last-completed) 接线于 `tryTriggerCheckpointWithReason`（仅作用于 `CheckpointType.CHECKPOINT`，savepoint/terminal 绕过），失败计数器不再被节流/拒绝污染，stale 构造器警告与 design/analysis 文档同步修正；Coordinator 共存 pending 经 coordinator 路径（非 hollow）的独立 ACK/complete/abort/timeout 由 `TestCheckpointCoexistenceViaCoordinator` 与 `TestCheckpointMinPauseAndFailureCounter` 共 14 个 focused test 覆盖。G33 经裁定延后 Stage 31（内存后端无可消费共享状态；引入空壳违反 plan 指南 #22/#24），roadmap scope-change 已同步。task 级多 epoch 追踪与 unaligned 多并发属 Stage 45/43（Non-Blocking Follow-ups）。
+Completed: 2026-07-26
 
 Closure Audit Evidence:
 
-- Reviewer / Agent: <<独立子 agent>>
-- Audit Session: <<session ID>>
+- Reviewer / Agent: 独立子 agent（opencode general subagent, fresh session）
+- Audit Session: ses_065a0c17dffe41K7I8BAOFDF0k
 - Evidence:
-  - 每条 Exit Criterion 验证结果（PASS/FAIL + live code path / test name）
-  - 每条 Closure Gate 验证结果
-  - `node ai-dev/tools/check-plan-checklist.mjs <plan-file> --strict` 退出码 0
-  - `node ai-dev/tools/scan-hollow-implementations.mjs --module nop-stream --severity high` 退出码 0
-  - Deferred 项分类检查：确认 G33（optimization candidate）与 task 多 epoch（out-of-scope）均非 in-scope live defect 被降级
+  - **Phase 1 Exit Criteria (8/8 PASS)**:
+    - `minPause` 触发路径实际检查 PASS — `CheckpointCoordinator.java:353-363`（`config.getMinPause()` + `if (minPause > 0 && lastCompletedAt > 0 && checkpointType == CHECKPOINT && elapsed < minPause) return rejected(THROTTLED_MIN_PAUSE)`）
+    - minPause last-completed focused test PASS — `TestCheckpointMinPauseAndFailureCounter.minPauseThrottlesAfterCompletionAndRecoversAfterWait`（300ms pause，节流→等→成功）
+    - 失败计数器回归测试 PASS — `.minPauseThrottleDoesNotInflateFailureCounter` / `.maxConcurrentRejectionDoesNotInflateFailureCounter`（10 次背压，counter 保持 0）；`.noTasksToAckInflatesFailureCounter`（真失败仍计数）
+    - 构造器 stale 警告移除 PASS — `CheckpointCoordinator.java:190-202` 改为 `LOG.info("...Coordinator layer honors the configured value...Stage 45")`
+    - design.md §2.8/§9.4 stale 修正 + §13.2 不变量补注 PASS — `checkpoint-design.md:176-184/886-887/977/980`
+    - `08-gap-analysis.md:99` G31 ✅ Closed PASS — 含 Math.min 移除/minPause 接线/测试覆盖/Phase 2 ref/Stage 45 ref
+    - 无静默跳过 PASS — 节流路径返回 null + DEBUG 日志（带 `elapsed`/`minPause`/`lastCompletedAt`），有断言覆盖
+    - owner-doc 更新 PASS — §配置表 + §并发约束段落同步 live
+  - **Phase 2 Exit Criteria (9/9 PASS)**:
+    - 共存 pending 经 coordinator 路径独立完成 + taskStates 不串扰 PASS — `TestCheckpointCoexistenceViaCoordinator.twoPendingCoexistAndCompleteIndependentlyViaCoordinator`（断言 `cp1Tag ≠ cp2Tag` in storage，numPending→0）
+    - abort 场景 PASS — `.abortOfOnePendingDoesNotAffectTheOther`（cp1 ABORTED，cp2 RUNNING→COMPLETED）
+    - timeout 场景 PASS — `.timeoutOfOnePendingDoesNotAbortTheOther`（错峰触发，cp1 在 t=300 timeout-abort，cp2 在 t=450 前 ACK 完成）
+    - **Anti-Hollow** PASS — grep `new PendingCheckpoint(` 在测试方法体内 = 0 命中（仅 javadoc 注释 1 处）；全部经 `coordinator.tryTriggerPendingCheckpoint`/`acknowledgeTask`/`completePendingCheckpoint`
+    - 端到端验证 PASS — `.endToEndEachPendingIndependentlyDurable`（trigger→ACK→storage 写入→`getLatestCheckpoint` 两 pending 各自独立）
+    - 接线验证 PASS — timeout 测试证明 `scheduleTimeout` 按 checkpointId 独立作用；`cleanupOldCheckpoints` 仅作用于 storage 中已 durable 的 completed checkpoint（不触碰在途 pending）
+    - 无静默跳过 PASS — `.storageFailureOnOnePendingPropagatesAndLeavesOtherUnaffected`（cp1 storage 失败 → FAILED 状态被断言，**不**被吞掉；cp2 仍 RUNNING 并独立完成）
+    - numPending 准确归零 PASS — 5 个测试均断言 `getNumberOfPendingCheckpoints() == 0`
+    - owner-doc 更新 PASS — §2.8:178-180 记录 `TestCheckpointCoexistenceViaCoordinator` 覆盖
+  - **Closure Gates (9/9 PASS)**:
+    - G31 基础支持收敛 PASS — 全部 Phase 1+2 exit criteria PASS
+    - 无静默降级 PASS — G33=optimization candidate（内存后端无消费者），task 多 epoch=Stage 45，均诚实裁定
+    - owner docs 同步 PASS — checkpoint-design.md / 08-gap-analysis.md / roadmap Stage 19 + Stage 31
+    - G33 roadmap scope-change 同步 PASS — roadmap:269 G33 移交 Stage 31；roadmap:450 Stage 31 已含 `SharedStateRegistry`
+    - focused verification 完成 PASS — 14 新测试全部通过
+    - 独立子 agent closure-audit PASS — 本节即证据
+    - Anti-Hollow Check PASS — 见下方 (a)/(b)/(c)
+    - `./mvnw test -pl nop-stream -am -T 1C` PASS — 全模块绿（runtime/core/cep/connector/flow/fraud-example 全 SUCCESS）
+    - checkstyle/规范 PASS — 编译通过，无规范错误
+  - **Anti-Hollow Check (a/b/c)**:
+    - (a) minPause 节流运行时确实执行：`CheckpointCoordinator.java:355-362` 真分支（DEBUG log + `rejected(THROTTLED_MIN_PAUSE)`），非空体/TODO/continue；`.minPauseThrottlesAfterCompletionAndRecoversAfterWait` 实测命中
+    - (b) 共存测试经 coordinator 路径：grep `new PendingCheckpoint(` 在 `TestCheckpointCoexistenceViaCoordinator` 测试方法体 = **0 命中**（仅 javadoc 1 处）；全部使用 `coordinator.tryTriggerPendingCheckpoint`/`acknowledgeTask`/coordinator-managed `completePendingCheckpoint`；测试代码无直接 `forceComplete()` 调用
+    - (c) 无空方法体/静默跳过：节流返回 `TriggerOutcome.rejected` + DEBUG 日志；storage 失败传播至 FAILED 状态（有断言）；所有背压原因经 `TriggerOutcome.reason()` 可观测
+  - `node ai-dev/tools/check-plan-checklist.mjs <plan> --strict` 退出码 0
+  - `node ai-dev/tools/scan-hollow-implementations.mjs --module nop-stream --severity high` 退出码 0（3 high findings 均为 pre-existing 于非 checkpoint 文件：`Trigger.java:104`、`DemoKeyedStateStore.java:63/69`、`TaskManager.java:243`，与本 plan 改动无关）
+  - `node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0（3 errors + 40 warnings 均为 pre-existing，零新增 broken link）
+  - Deferred 项分类检查：G33（optimization candidate）+ task 多 epoch（out-of-scope improvement）均非 in-scope live defect 被降级
 
 Follow-up:
 
-- G33 SharedStateRegistry → Stage 31
-- task 级多 epoch barrier 追踪 → Stage 45
-- async persist 重叠验证 → Stage 18 落地后补
+- G33 SharedStateRegistry → Stage 31（RocksDB 增量 SST 共享，load-bearing 消费者）
+- task 级多 epoch barrier 追踪 → Stage 45（含 unaligned checkpoint Stage 43）
+- async persist 重叠验证 → Stage 18 落地后补（cp N 持久化在途时 cp N+1 触发并独立完成）
+- minPause 锚点（last-completed）与 async persist「完成时刻」定义的交互复核 → Stage 18 集成检查点
