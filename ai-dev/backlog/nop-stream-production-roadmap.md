@@ -35,7 +35,7 @@ Does not contain implementation details. Each `planned` stage is owned by its ex
 - 24. DeploymentPlan subtask 分配 + 平台 discovery 接入（G50, G51，P2）: done（plan `ai-dev/plans/nop-stream-production/2026-07-26-0207-1-deployment-plan-discovery.md`，completed）
 - 25. Per-task failure detection + execution state machine（G52, G54—G56, G58，P2）: done（plan `ai-dev/plans/nop-stream-production/2026-07-26-0207-2-per-task-failure-detection.md`，completed；G55 region scheduling 明确 Out-of-Scope，属 Stage 27/44）
 - 26. Buffer pool 抽象（G53，P2）: done（plan `ai-dev/plans/nop-stream-production/2026-07-26-0207-3-buffer-pool.md`，completed）
-- 27. Targeted failover（G57，P2）: `planned`（plan `ai-dev/plans/nop-stream-production/2026-07-26-0433-2-targeted-failover.md`，active — 可行性裁定优先 go/no-go；draft review 验证全 pipelined→单 region 架构事实，Phase 1 裁定是否可行）
+- 27. Targeted failover（G57，P2）: `done`（plan `ai-dev/plans/nop-stream-production/2026-07-26-0433-2-targeted-failover.md`，裁定交付 **NO-GO** — all-pipelined→单 region + drain/reconnect 不可设计；设计文档 `ai-dev/design/nop-stream/failover-design.md`；G57/G28(续)/per-region-counter deferred → Stage 44，需 blocking edge + supervision loop 前置）
 - 28. 分布式 RPC 接口扩容 + 进程内 backpressure（G23, G26，P1）: done（plan `ai-dev/plans/nop-stream-production/2026-07-26-0433-1-rpc-dispatcher-backpressure.md`，completed — 控制面 RPC 暴露 terminate/abort/status + G26 dispatcher 最小化 Decision + G27 backpressure 契约 + CREDIT_BASED/ACK_WINDOW 永久排除）
 
 ### Phase 2 — 状态后端生产化
@@ -282,7 +282,7 @@ Does not contain implementation details. Each `planned` stage is owned by its ex
 - G28: partial failover 基础（完整 region failover 在 Stage 44）— design-gated，deferred
 - G29: subtask-level granular restoration — done（`restoreFromEpoch` epochId 透传 + 多 subtask 独立恢复验证）
 
-**Out of scope:** region-aware scheduling（Stage 27/44）。
+**Out of scope:** region-aware scheduling（Stage 44；Stage 27 裁定 no-go，未引入 region 概念）。
 
 **Module / area:** nop-stream/nop-stream-runtime/recovery/
 
@@ -383,16 +383,18 @@ Does not contain implementation details. Each `planned` stage is owned by its ex
 
 #### 27. Targeted failover
 
-> Status: see Work Items above
+> Status: done（裁定交付 NO-GO）
 
-**Goal:** 替代当前 `globalRecovery`，按 region/vertex 级故障隔离。
+**Goal:** 裁定 targeted failover 在当前架构下是否可行。裁定结果：**NO-GO**。
 
 **Deliverables:**
-- G57: targeted failover 实现（基于 Stage 20 partial 恢复 + Stage 25 region scheduling）
+- G57: targeted failover 可行性裁定文档 `ai-dev/design/nop-stream/failover-design.md`（NO-GO：all-pipelined→单 region + drain/reconnect 不可设计）
 
-**Out of scope:** 完整 region-based failover（Stage 44，含跨 JVM）。
+**Deferred → Stage 44（需架构前置）：** G57 实现、G28（续，partial/region 恢复）、per-region restart 计数器。前置 = blocking edge + region 概念 + supervision loop + drain/reconnect + per-region 计数器。
 
-**Module / area:** nop-stream/nop-stream-runtime/recovery/
+**Out of scope:** 完整 region-based failover（Stage 44，含跨 JVM）；region-aware scheduling（G55）。
+
+**Module / area:** ai-dev/design/nop-stream/failover-design.md（裁定文档；无代码变更）
 
 #### 28. 分布式 RPC 接口扩容 + 进程内 backpressure
 

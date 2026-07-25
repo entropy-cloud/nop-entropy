@@ -330,7 +330,7 @@ CheckpointCoordinator (manifest durable → sink commit)
 | `FAILED` | 终态：global restart 上限耗尽 | `failJob(cause)` —— 仅 `globalRecovery()` 内部当 `restartCount > maxRestarts` 触发 |
 | `CANCELED` | 终态：用户主动 CANCEL | `terminate(CANCEL)` 路径 —— Stage 28 起 `terminateCancel()` 显式设 `jobStatus = CANCELED` 后再 `stop()` |
 
-- 重启计数器 **仅 `globalRecovery()` 递增**；默认上限 `maxRestarts=3`（可配）。Stage 27 scoped/targeted 重启不走 `globalRecovery()`，需自带 per-region 计数器（Deferred）。
+- 重启计数器 **仅 `globalRecovery()` 递增**；默认上限 `maxRestarts=3`（可配）。Stage 27 已正式裁定 targeted/scoped 重启在当前架构下 **NO-GO**（全 pipelined → 单 region，drain/reconnect 不可设计），详见 `failover-design.md`。per-region 计数器随 G57/G28 一起 deferred → Stage 44（需 blocking edge + supervision loop 前置）。
 - `JobStatus.FAILED` 后 `assignTasks()` 显式拒绝（#24 — 不静默跳过）。
 - cancel 规范化（G58）：`Task.cancel` / `SubtaskTask.cancel` / `RunningTask.cancel` 统一经 `CANCELING` 中间态；分布式 `RunningTask.cancel()` 在 `future.cancel(true)` 之前先调用 `invokable.getMailboxExecutor().signalCancel()`（与 Stage 17 mailbox cooperative cancel 对齐）；`RunningTask.cancel()` null-check `invokable` 处理 cancel-before-invokable 竞态。
 

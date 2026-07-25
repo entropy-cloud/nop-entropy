@@ -647,8 +647,20 @@ detect failure
 
 - 全局 recovery 语义完整且简单：因为 epoch 自带全部一致性上下文（§2.1.1），"恢复到 epoch N"是单一原子操作，无需 region 边界识别、partial state restore 等复杂语义。
 - 单一恢复路径降低正确性风险：region/local failover 的实现复杂度极高（需精确识别哪些 vertex 可独立恢复、哪些 state shard 跨 region 共享、barrier 在 region 边界如何重对齐），首版选择全局 recovery 把正确性风险降到最低。
-- nop-stream 的分布式粒度天然较粗：当前 `ClusterRegistry` + lease 是节点级故障检测（§13），不存在 region 级独立故障域；region failover 的收益要在 Stage 25/44 引入 region 概念后才浮现。
+- nop-stream 的分布式粒度天然较粗：当前 `ClusterRegistry` + lease 是节点级故障检测（§13），不存在 region 级独立故障域；region failover 的收益要在 Stage 44 引入 region 概念后才浮现（Stage 27 已正式裁定 no-go，见 §8.1.2）。
 - 拒绝 Flink `ExecutionGraph` 三层调度（D71 一致）：恢复直接基于 epoch manifest + DeploymentPlan，不需要 ExecutionVertex/ExecutionAttempt 三层抽象。
+
+#### 8.1.2 Region failover 可行性裁定（Stage 27 — NO-GO）
+
+**裁定**：Stage 27（targeted failover）经 live 仓库核对正式裁定为 **NO-GO**——在 nop-stream 当前 all-pipelined + by-reference-queue 架构下，region/subtask 级局部恢复**不可行**。
+
+**裁定依据**（详见 `failover-design.md`）：
+
+- `JobGraphGenerator.determinePartitionType()`（`JobGraphGenerator.java:546-554`）从不返回 `BLOCKING`——所有 edge 为 `PIPELINED`/`PIPELINED_BOUNDED`（`pipelined=true`），因此每个 JobGraph = 单 pipelined connected component = **单 region**。vertex 级 targeted = global，零收益。
+- 数据交换为 by-reference `LinkedBlockingQueue`（`ResultPartition` ↔ `InputChannel` 直连），scoped 重启存在三个结构死锁（上游 `queue.put()` 永久阻塞 / 下游 channel 不 close 永挂 / 无 mid-execution 重启入口），**drain/reconnect 不可设计**（关键路径）。
+- 解除 no-go 需五项架构前置（blocking edge + region 概念 + supervision loop + drain/reconnect + per-region 计数器），全部超出 in-process scope，归属 Stage 44 / vision 决策。
+
+**对 baseline 的影响**：无。`globalRecovery()` 仍是唯一恢复入口，语义完整。targeted failover 从始至终是优化项，不是 exactly-once 正确性前置——本裁定确认该立场成立。G57 / G28（续）/ per-region 计数器保持 deferred → Stage 44。
 
 ### 8.2 Fencing
 

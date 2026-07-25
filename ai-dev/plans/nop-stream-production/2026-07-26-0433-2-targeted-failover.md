@@ -1,6 +1,6 @@
 # 27 — Targeted failover 可行性裁定 + 设计（region 模型）
 
-> Plan Status: active
+> Plan Status: deferred
 > Last Reviewed: 2026-07-26
 > Source: `ai-dev/backlog/nop-stream-production-roadmap.md` Stage 27 (G57); `ai-dev/design/nop-stream/01-architecture-baseline.md` §五 Restart Strategy（line 317 显式 deferred per-region 计数器给 Stage 27）; `ai-dev/design/nop-stream/checkpoint-design.md` §8.1/§8.1.1（global epoch recovery baseline，region failover 为后续优化）; `ai-dev/analysis/nop-stream/08-gap-analysis.md` (G57 P2; G28 P2; G55 P2); Stage 20 plan Deferred（G28 design-gated，需先起草 region/drain/reconnect 设计文档）; Stage 25 plan Deferred（per-region restart 计数器）
 > Mission: nop-stream-production
@@ -72,93 +72,114 @@ draft review（独立子 agent）已通过 live code 验证确认一个**架构�
 
 ### Phase 1 — 可行性裁定 + 设计文档
 
-Status: planned
+Status: completed
 Targets: `ai-dev/design/nop-stream/failover-design.md`（新增）；`ai-dev/design/nop-stream/checkpoint-design.md` §8（增补 region failover 小节）；`ai-dev/design/nop-stream/01-architecture-baseline.md` §五 Restart Strategy；`ai-dev/backlog/nop-stream-production-roadmap.md`（Stage 27 状态更新）
 
 - Item Types: `Decision | Proof`
 
-- [ ] **可行性调查**（回答以下，每条不留 open）：
-  - **架构事实确认**：当前 `JobGraphGenerator` 全 pipelined → 单 region → vertex 级 targeted = global（零收益）。此事实已由 draft review 验证，Phase 1 正式记录于设计文档。
-  - **subtask 级 blast-radius**：在 all-pipelined 图中，单 subtask 失败时，仅 point-to-point（forward/rescale）连接的对端 subtask 受影响（vs all-to-all hash/rebalance 全部受影响）。**须回答**：subtask 级粒度的 targeted restart 是否有足够收益（parallelism>1 + forward/rescale 占比）值得 drain/reconnect 的复杂度？
-  - **region 边界引入可行性**：是否可通过引入 blocking edge / 物化点创建 region 边界（使多 region 成立）？**须回答**：blocking edge 与流式低延迟连续执行是否冲突？是否需 vision（`00-vision.md` §四/§七）决策？
-  - **supervision loop 可行性**：mid-execution 重启是否需执行模型变更（当前 `checkTaskFailures` 在 `awaitCompletion` 后运行）？**须回答**：变更量是否在本 plan scope 内？还是属 Stage 44？
-  - **drain/reconnect 可行性（可行性关键路径）**：pipelined 队列按引用直连下，scoped 重启如何避免上游 `queue.put()` 永久阻塞 / 下游 channel 不 close 永挂（Stage 20 G28 deferred 根因）？**须回答**：是否存在不引入 blocking edge 即可解决死锁的 drain/reconnect 设计？若无，则 go 不可达成。此调查是 go/no-go 的**关键路径**（drain/reconnect 不可设计 → 直接 no-go）。
-  - **partitioner 分布调查**：调查 nop-stream 典型 DAG 的 partitioner 分布（`ForwardPartitioner`、`KeySelectorPartitioner`/hash、rebalance 等）与 parallelism 使用，判断 subtask 级 blast-radius 是否有收益（forward/rescale + parallelism>1 时仅对端 subtask 受影响）。参考类：`ForwardPartitioner`、`DataStreamImpl` 中 partitioner 选择逻辑、`JobGraphGenerator` 中 partitioner→edge 映射。
-- [ ] **go/no-go 裁定**：基于上述调查，给出明确裁定（go = subtask 级或 region 级 targeted failover 在当前架构下可行且值得；no-go = 需架构前置超出本 plan scope）。
-- [ ] **go 路径设计文档**（仅 go 时完整）：region/blast-radius 模型 + drain/reconnect（解决 Stage 20 G28 死锁根因）+ supervision loop + partial restore scope + per-region restart 计数器。
-- [ ] **no-go 路径收口**（仅 no-go 时）：plan 转 `deferred`；记录架构前置（blocking edge / region 边界 / supervision loop 执行模型变更 / drain/reconnect 不可设计）+ 建议归属（Stage 44 或新 vision 决策 plan）；**roadmap Stage 27 标记为 `done`（裁定交付：no-go，参照 Stage 20 将 G28 deferred 但 Stage 20 自身标 done 的先例），实现归属记录到 Stage 44**；G28/per-region-counter 保持 deferred 记录于 successor（Stage 44）。注：roadmap status 值仅 `todo/planned/done`（无 `deferred`），裁定交付即 `done`。
-- [ ] 更新 `checkpoint-design.md` §8（增补 region failover 小节，引用 `failover-design.md`，定位与 global recovery 关系）+ `01-architecture-baseline.md` §五 Restart Strategy。
+- [x] **可行性调查**（回答以下，每条不留 open）：
+  - **架构事实确认**：当前 `JobGraphGenerator` 全 pipelined → 单 region → vertex 级 targeted = global（零收益）。此事实已由 draft review 验证，Phase 1 正式记录于 `failover-design.md` §2.1。
+  - **subtask 级 blast-radius**：在 all-pipelined 图中，forward 边（parallelism>1）理论上仅对端 subtask 受影响。**裁定**：理论可行但 moot——受 drain/reconnect 不可达阻断（§3.2/§3.3）。partitioner 分布调查确认生产代码仅 `ForwardPartitioner` + `KeySelectorPartitioner`。
+  - **region 边界引入可行性**：引入 blocking edge 需改变流式连续执行模型假设（`graph-model-design.md:143` BLOCKING=批式，当前未使用；`:204` 假设所有 vertex 同时启动）。**裁定**：需 vision 决策，超出本 Stage scope（§3.4）。
+  - **supervision loop 可行性**：mid-execution 重启需将 `submitAndRun`→`awaitCompletion` 全量阻塞模型改为可观测单 task 失败 + 重启调度。**裁定**：属 Stage 44 执行模型变更（§3.5）。
+  - **drain/reconnect 可行性（可行性关键路径）**：by-reference `LinkedBlockingQueue` 下 scoped 重启存在三个结构死锁（上游 `queue.put()` 永久阻塞 / 下游 channel 不 close 永挂 / 无 mid-execution 重启入口）。**裁定：drain/reconnect 不可设计（无 blocking edge 前提下）→ 直接 no-go**（§3.3，关键路径）。
+  - **partitioner 分布调查**：生产代码仅 `ForwardPartitioner`（point-to-point→PIPELINED）+ `KeySelectorPartitioner`（hash/all-to-all→PIPELINED_BOUNDED）；无生产 Rebalance/Rescale partitioner（仅测试 stub）。
+- [x] **go/no-go 裁定**：**NO-GO**。targeted failover 在 nop-stream 当前 all-pipelined + by-reference-queue 架构下不可行；所需前置（blocking edge + supervision loop + drain/reconnect + region 概念 + per-region 计数器）超出本 Stage scope。裁定记录于 `failover-design.md` §一/§四。
+- [x] **go 路径设计文档**（仅 go 时完整）：N/A — 裁定为 no-go，不执行。
+- [x] **no-go 路径收口**：plan 转 `deferred`（Plan Status 已改）；架构前置明确记录于 `failover-design.md` §五（blocking edge + region 概念 + supervision loop + drain/reconnect + per-region 计数器）；建议归属 Stage 44 / vision 决策；roadmap Stage 27 标记为 `done`（裁定交付：no-go）；G57/G28(续)/per-region-counter 保持 deferred → Stage 44（记录于 `failover-design.md` §六 + plan `Deferred But Adjudicated`）。
+- [x] 更新 `checkpoint-design.md` §8.1.2（新增 region failover 裁定小节，引用 `failover-design.md`）+ `01-architecture-baseline.md` §五 Restart Strategy（line 333 更新为 no-go 裁定引用）。
 
 Exit Criteria:
 
-- [ ] `failover-design.md` 存在，含架构事实确认（全 pipelined → 单 region）+ go/no-go 裁定。
-- [ ] 若 go：设计文档覆盖 region/blast-radius + drain/reconnect（回答 Stage 20 死锁根因）+ supervision loop + partial restore + per-region 计数器，每项有裁定（无 TBD）。
-- [ ] 若 no-go：plan 顶部 `Plan Status` 改为 `deferred`；架构前置明确记录（含 drain/reconnect 不可设计结论）；roadmap Stage 27 标记 `done`（裁定交付）；G28/per-region-counter 归属明确（Stage 44）。
-- [ ] `checkpoint-design.md` §8 + `01-architecture-baseline.md` §五 已更新。
-- [ ] **Phase 2/3 在 go 裁定后重新审视**：若 go，Phase 1 完成时据设计文档裁定修订 Phase 2/3 Exit Criteria（使其与设计结论一致，非沿用占位符）。
-- [ ] `ai-dev/logs/` 对应日期条目已更新。
+- [x] `failover-design.md` 存在，含架构事实确认（全 pipelined → 单 region）+ go/no-go 裁定（NO-GO）。
+- [x] 若 go：N/A（裁定为 no-go）。
+- [x] 若 no-go：plan 顶部 `Plan Status` 改为 `deferred`；架构前置明确记录（`failover-design.md` §五，含 drain/reconnect 不可设计结论）；roadmap Stage 27 标记为 `done`（裁定交付）；G28/per-region-counter 归属明确（Stage 44，`failover-design.md` §六）。
+- [x] `checkpoint-design.md` §8.1.2 + `01-architecture-baseline.md` §五 已更新。
+- [x] **Phase 2/3 在 go 裁定后重新审视**：裁定为 no-go → Phase 2/3 不执行（Status: cancelled），不修订其 Exit Criteria。
+- [x] `ai-dev/logs/` 对应日期条目已更新。
 
 ### Phase 2 — Region/blast-radius 模型（仅 go 时执行）
 
-Status: planned
+Status: cancelled（Phase 1 裁定 NO-GO，go gate 未通过，本 Phase 不执行）
 Targets: `nop-stream-core/.../jobgraph/` 或 `nop-stream-runtime/.../recovery/`（新建包，若 go）
 
 - Item Types: `Fix`
 
-- [ ] 按 Phase 1 设计实现 region/blast-radius 识别（vertex 级或 subtask 级，取决于 Phase 1 裁定）。
-- [ ] affected-set 计算（失败 task → 受影响集合）。
+- [x] 按 Phase 1 设计实现 region/blast-radius 识别（vertex 级或 subtask 级，取决于 Phase 1 裁定）。— N/A：Phase 1 裁定 no-go（drain/reconnect 不可设计，需 blocking edge 前置），实现 deferred 到 Stage 44。
+- [x] affected-set 计算（失败 task → 受影响集合）。— N/A：同上。
 
 Exit Criteria:
 
-- [ ] **Phase 1 go 裁定后重新审视并修订**本 Exit Criteria（当前为占位）。
-- [ ] region/blast-radius 识别对典型 DAG 正确分组，focused test 覆盖（场景由 Phase 1 裁定决定）。
-- [ ] **无静默跳过**（#24）：边界情况显式处理。
-- [ ] owner-doc：`failover-design.md` 已记录算法。
-- [ ] `ai-dev/logs/` 对应日期条目已更新。
+- [x] **Phase 1 go 裁定后重新审视并修订**本 Exit Criteria（当前为占位）。— N/A：裁定为 no-go，不修订。
+- [x] region/blast-radius 识别对典型 DAG 正确分组，focused test 覆盖（场景由 Phase 1 裁定决定）。— N/A：no-go，不实现。
+- [x] **无静默跳过**（#24）：边界情况显式处理。— N/A：no-go，无新代码。
+- [x] owner-doc：`failover-design.md` 已记录算法。— N/A：no-go 路径，`failover-design.md` 记录的是 no-go 裁定（§四裁定汇总），非实现算法。
+- [x] `ai-dev/logs/` 对应日期条目已更新。— 已更新（Phase 1 收口记录覆盖 Phase 2/3 取消）。
 
 ### Phase 3 — Supervision loop + 受限重启 + per-region 计数器（仅 go 时执行）
 
-Status: planned
+Status: cancelled（Phase 1 裁定 NO-GO，go gate 未通过，本 Phase 不执行）
 Targets: `nop-stream-runtime/.../recovery/`；`JobCoordinator.java`；`GraphModelCheckpointExecutor.java`
 
 - Item Types: `Fix`
 
-- [ ] 按 Phase 1 设计实现 supervision loop（mid-execution 重启入口，解决 `checkTaskFailures` 在 `awaitCompletion` 后的限制）。
-- [ ] drain/reconnect（解决 Stage 20 G28 死锁根因）。
-- [ ] targeted 重启（受影响集合从 durable epoch 恢复 + source replay）。
-- [ ] per-region restart 计数器 + 上限（Stage 25 deferred）。
-- [ ] `detectFailures`/`reportTaskStatus` 路径切换（优先 targeted，globalRecovery fallback）。
+- [x] 按 Phase 1 设计实现 supervision loop（mid-execution 重启入口，解决 `checkTaskFailures` 在 `awaitCompletion` 后的限制）。— N/A：Phase 1 裁定 no-go（supervision loop 属 Stage 44 执行模型变更），deferred 到 Stage 44。
+- [x] drain/reconnect（解决 Stage 20 G28 死锁根因）。— N/A：Phase 1 裁定 drain/reconnect 不可设计（无 blocking edge 前提），deferred 到 Stage 44。
+- [x] targeted 重启（受影响集合从 durable epoch 恢复 + source replay）。— N/A：同上。
+- [x] per-region restart 计数器 + 上限（Stage 25 deferred）。— N/A：scoped 重启入口不存在，deferred 到 Stage 44。
+- [x] `detectFailures`/`reportTaskStatus` 路径切换（优先 targeted，globalRecovery fallback）。— N/A：同上。
 
 Exit Criteria:
 
-- [ ] **Phase 1 go 裁定后重新审视并修订**本 Exit Criteria（当前为占位）。
-- [ ] **端到端验证**（#22）：单 task 失败 → 仅受影响子集重启 → 非受影响部分继续运行 → job 完成。E2E 断言非受影响 task attemptNumber 不变。
-- [ ] **接线验证**（#23）：测试断言 detectFailures 在可 targeted 时走 targeted 路径（非 globalRecovery）。
-- [ ] per-region 计数器：focused test 验证超上限降级。
-- [ ] **无静默跳过**（#24）：无法确定 region/drain 失败/restore 缺数据时显式失败或降级。
-- [ ] **Anti-Hollow**：targeted 路径运行时确实被调用（E2E verify），非仅类型存在。
-- [ ] owner-doc + `ai-dev/logs/` 已更新。
+- [x] **Phase 1 go 裁定后重新审视并修订**本 Exit Criteria（当前为占位）。— N/A：裁定为 no-go，不修订。
+- [x] **端到端验证**（#22）：单 task 失败 → 仅受影响子集重启 → 非受影响部分继续运行 → job 完成。E2E 断言非受影响 task attemptNumber 不变。— N/A：no-go，不实现。
+- [x] **接线验证**（#23）：测试断言 detectFailures 在可 targeted 时走 targeted 路径（非 globalRecovery）。— N/A：no-go，不实现。
+- [x] per-region 计数器：focused test 验证超上限降级。— N/A：no-go，不实现。
+- [x] **无静默跳过**（#24）：无法确定 region/drain 失败/restore 缺数据时显式失败或降级。— N/A：no-go，无新代码；现有 `globalRecovery()` 路径不静默跳过（`JobCoordinator` FAILED 后 `assignTasks()` 显式拒绝）。
+- [x] **Anti-Hollow**：targeted 路径运行时确实被调用（E2E verify），非仅类型存在。— N/A：no-go，无 targeted 路径引入。
+- [x] owner-doc + `ai-dev/logs/` 已更新。— `failover-design.md` 记录 no-go 裁定；logs 已更新。
 
 ## Closure Gates
 
-- [ ] go/no-go 裁定已做出并记录于 `failover-design.md`。
-- [ ] **若 go**：G57/G28(续)/per-region-counter 落地，E2E 验证 targeted 重启收益（非空壳）。
-- [ ] **若 no-go**：plan 转 `deferred`，架构前置记录，G28/per-region-counter 归属明确 successor，roadmap 更新。
-- [ ] **不声称关闭 G55**（region-aware scheduling 仍 out-of-scope）。
-- [ ] 不存在被静默降级的 in-scope gap。
-- [ ] 受影响 owner docs 已同步。
-- [ ] 独立子 agent closure-audit 已完成并记录证据。
-- [ ] **Anti-Hollow Check**（仅 go）：closure audit 验证 targeted 路径运行时被调用、旧 attempt 终止、非受影响部分未被重启、无死锁。
-- [ ] `./mvnw test -pl nop-stream -am -T 1C` 通过（go 路径含代码变更时）。
-- [ ] `node ai-dev/tools/check-plan-checklist.mjs <plan-file> --strict` 退出码 0。
-- [ ] `node ai-dev/tools/scan-hollow-implementations.mjs --module nop-stream --severity high` 退出码 0（go 路径）。
+- [x] go/no-go 裁定已做出并记录于 `failover-design.md`（NO-GO，§一/§四）。
+- [x] **若 go**：N/A（裁定为 no-go）。
+- [x] **若 no-go**：plan 转 `deferred`（Plan Status 已改）；架构前置记录于 `failover-design.md` §五；G28/per-region-counter 归属明确 successor（Stage 44，§六 + Deferred But Adjudicated）；roadmap Stage 27 更新为 `done`。
+- [x] **不声称关闭 G55**（region-aware scheduling 仍 out-of-scope，Deferred But Adjudicated 已记录）。
+- [x] 不存在被静默降级的 in-scope gap（G57/G28/per-region-counter 均显式裁定为 deferred → Stage 44，附 Why Not Blocking Closure）。
+- [x] 受影响 owner docs 已同步（`failover-design.md` 新增；`checkpoint-design.md` §8.1.2；`01-architecture-baseline.md` §五 line 333）。
+- [x] 独立子 agent closure-audit 已完成并记录证据（见 Closure Audit Evidence）。
+- [x] **Anti-Hollow Check**（仅 go）：N/A（裁定为 no-go，无新代码引入，无 targeted 路径空壳风险）。
+- [x] `./mvnw test -pl nop-stream -am -T 1C` 通过（no-go 路径无代码变更，baseline 绿；见 Closure Audit Evidence）。
+- [x] `node ai-dev/tools/check-plan-checklist.mjs <plan-file> --strict` 退出码 0。
+- [x] `node ai-dev/tools/scan-hollow-implementations.mjs --module nop-stream --severity high` — 12 pre-existing high findings（CEP GroupPattern / RuntimeContext keyed-state guards / FunctionUtils / Trigger / fraud-demo / TaskManager:283 placeholder），全部为本 plan 之前已存在、与本 plan scope 无关；本 plan 零代码变更，未引入新空壳。
 
 ## Deferred But Adjudicated
+
+### G57 targeted failover 实现
+
+- Classification: `out-of-scope improvement`（架构前置未满足，非优化降级）
+- Why Not Blocking Closure: Stage 27 裁定 no-go——all-pipelined→单 region（vertex 级零收益）+ drain/reconnect 不可设计（by-reference 队列死锁）。实现需 blocking edge + supervision loop 前置，超出 in-process scope。裁定交付（`failover-design.md`）即 Stage 27 的 done 交付物。
+- Successor Required: yes
+- Successor Path: Stage 44（`44-region-failover`）/ 新 vision 决策 plan（引入 blocking edge）
+
+### G28（续）partial/region 恢复
+
+- Classification: `out-of-scope improvement`（架构前置未满足）
+- Why Not Blocking Closure: Stage 20 deferred 到 Stage 27；Stage 27 裁定 drain/reconnect 不可设计（需 blocking edge 解耦 producer/consumer 生命周期）。partial restore 入口仍 whole-job。
+- Successor Required: yes
+- Successor Path: Stage 44
+
+### per-region restart 计数器
+
+- Classification: `out-of-scope improvement`（架构前置未满足）
+- Why Not Blocking Closure: Stage 25 deferred 到 Stage 27；Stage 27 裁定 scoped 重启入口不存在（需 supervision loop）。`restartCount` 仍 global-only。
+- Successor Required: yes
+- Successor Path: Stage 44
 
 ### G55 region-aware scheduling
 
 - Classification: `out-of-scope improvement`
-- Why Not Blocking Closure: region-aware scheduling（按 region 分配 slot/node）是调度优化，非 failover 正确性前置。
+- Why Not Blocking Closure: region-aware scheduling（按 region 分配 slot/node）是调度优化，非 failover 正确性前置。Stage 27 裁定 no-go，未引入 region 概念。
 - Successor Required: no
 
 ### 跨 JVM region failover + scale（Stage 44）
@@ -175,14 +196,28 @@ Exit Criteria:
 
 ## Closure
 
-Status Note: <<完成或关闭时填写>>
-Completed: <<YYYY-MM-DD>>
+Status Note: Stage 27 裁定 NO-GO。targeted failover 在 nop-stream 当前 all-pipelined + by-reference-queue 架构下不可行：(1) `determinePartitionType()` 从不返回 BLOCKING → 全 pipelined → 单 region → vertex 级 targeted = global（零收益）；(2) by-reference `LinkedBlockingQueue` 下 drain/reconnect 不可设计（三个结构死锁）；(3) 解除 no-go 需五项架构前置（blocking edge + region 概念 + supervision loop + drain/reconnect + per-region 计数器），超出 in-process scope。裁定交付物 = `failover-design.md`。G57/G28(续)/per-region-counter deferred → Stage 44。Plan Status = deferred（实现 deferred 到 Stage 44）；roadmap Stage 27 = done（裁定交付）。
+Completed: 2026-07-26
 
 Closure Audit Evidence:
 
-- Reviewer / Agent: <<待 closure audit 填写>>
-- Evidence: <<待 closure audit 填写>>
+- Reviewer / Agent: 独立子 agent（explore, task_id `ses_064a0de2dffeAPa5SdYWWkjsaU`）
+- Audit Session: ses_064a0de2dffeAPa5SdYWWkjsaU
+- Evidence:
+  - **Check 1 (design doc)**: PASS — `failover-design.md` 含 NO-GO 裁定（§一）、架构事实（§2.1，`determinePartitionType` 行号与 live code `JobGraphGenerator.java:546-553` 一致）、drain/reconnect 不可达（§3.3）、架构前置（§五，5 项）、G57/G28/counter 归属（§六）。
+  - **Check 2 (live code)**: PASS — `ResultPartitionType.java` PIPELINED(true,false)/PIPELINED_BOUNDED(true,true) 均 pipelined=true，BLOCKING(false,true) pipelined=false；`JobCoordinator.globalRecovery():647` 唯一恢复入口，restartCount :155 仅 globalRecovery 递增；`region|Region` 生产代码零匹配（仅注释 :151/:649）。
+  - **Check 3 (checkpoint-design)**: PASS — §8.1.2 新增 "Region failover 可行性裁定（Stage 27 — NO-GO）" 小节，引用 `failover-design.md`。
+  - **Check 4 (architecture-baseline)**: PASS — line 333 更新为 Stage 27 NO-GO 裁定引用。
+  - **Check 5 (roadmap)**: PASS — Stage 27 标记 `done`（裁定交付 NO-GO），详细 section 反映 no-go + deferred → Stage 44。
+  - **Check 6 (plan consistency)**: PASS — Plan Status=deferred，Phase 1=completed（全 [x]），Phase 2/3=cancelled（全 [x] N/A），Closure Gates 全 [x]，Deferred But Adjudicated 含 G57/G28/counter → Stage 44。
+  - **Check 7 (no code changes)**: PASS — git status 仅 4 个 .md 修改 + 1 个 .md 新增，零 .java 变更。
+  - `node ai-dev/tools/check-plan-checklist.mjs <plan-file> --strict`: exit 0（all 41 items checked）。
+  - `./mvnw test -pl nop-stream -am -T 1C`: exit 0（baseline 绿，无代码变更）。
+  - Anti-Hollow: N/A（no-go 路径，零代码变更，无新组件引入）。
+  - Deferred 项分类检查：G57/G28/per-region-counter 均为架构前置未满足的 out-of-scope improvement（非 live defect 降级），附 Why Not Blocking Closure + Stage 44 successor path。
 
 Follow-up:
 
-- <<待 closure audit 填写>>
+- G57/G28(续)/per-region-counter 实现归属 Stage 44（需 blocking edge + supervision loop 前置）。
+- blocking edge 引入需 vision 决策（`00-vision.md` §四/§七 流式连续执行定位）。
+- 无 plan-owned 剩余工作（本 plan 为裁定交付，实现全部 deferred）。
