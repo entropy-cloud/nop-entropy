@@ -286,13 +286,10 @@ class TestE2EWindowOperatorWithCheckpoint {
         sourceOp.run();
 
         // Then trigger checkpoint to capture the state.
-        // Since source has already finished, triggerCheckpoint offers to the source's queue,
-        // but no collect() calls remain to pull it. We drain and inject manually.
+        // Since source has already finished (finished=true), triggerCheckpoint ->
+        // offerBarrier takes the finished-source exception path and directly injects
+        // the barrier on this (injector) thread. No mailbox drain is needed.
         tracker.triggerCheckpoint(1L, System.currentTimeMillis(), CheckpointType.CHECKPOINT);
-        CheckpointBarrier pendingBarrier = sourceOp.drainPendingBarrier();
-        if (pendingBarrier != null) {
-            sourceOp.injectBarrier(pendingBarrier);
-        }
 
         assertTrue(checkpointComplete.await(5, TimeUnit.SECONDS));
         assertEquals(Arrays.asList("a:1", "b:1", "c:1"), results);

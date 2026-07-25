@@ -58,6 +58,18 @@ public class StreamTaskInvokable implements Invokable<Void> {
     private final RecordWriter<Object> outputWriter;
     private final InputGate inputGate;
 
+    /**
+     * Per-task mailbox executor: the control-plane anchor for this task thread.
+     * Holds the {@link TaskMailbox} (multi-producer, single-consumer) and the cooperative
+     * cancel flag. See {@code ai-dev/design/nop-stream/mailbox-design.md}.
+     *
+     * <p>SOURCE/SELF_CONTAINED: the head source operator's trigger-checkpoint mails are
+     * delivered here and drained at the {@code SourceContext.collect()} emission point.
+     * MIDDLE/SINK: the main loop ({@code processInputGate}) polls this at the top of each
+     * iteration. The abort handler delivers a cancel mail + raises the cancel flag here.
+     */
+    private final MailboxExecutor mailboxExecutor = new MailboxExecutor();
+
     private CheckpointBarrierTracker barrierTracker;
 
     private Input<Object> headInput;
@@ -70,6 +82,7 @@ public class StreamTaskInvokable implements Invokable<Void> {
         this.outputWriter = null;
         this.inputGate = null;
         wireOperators();
+        wireMailboxToHeadSource();
     }
 
     public StreamTaskInvokable(OperatorChain operatorChain, List<RecordWriter<Object>> fanOutWriters) {
@@ -80,6 +93,7 @@ public class StreamTaskInvokable implements Invokable<Void> {
         this.outputWriter = !fanOutWriters.isEmpty() ? fanOutWriters.get(0) : null;
         this.inputGate = null;
         wireOperators(fanOutWriters);
+        wireMailboxToHeadSource();
     }
 
     @SuppressWarnings("unchecked")
@@ -93,6 +107,7 @@ public class StreamTaskInvokable implements Invokable<Void> {
         this.outputWriter = (RecordWriter<Object>) outputWriter;
         this.inputGate = inputGate;
         wireOperators();
+        wireMailboxToHeadSource();
     }
 
     public StreamTaskInvokable(OperatorChain operatorChain,
@@ -105,6 +120,7 @@ public class StreamTaskInvokable implements Invokable<Void> {
         this.outputWriter = !fanOutWriters.isEmpty() ? fanOutWriters.get(0) : null;
         this.inputGate = inputGate;
         wireOperators(fanOutWriters);
+        wireMailboxToHeadSource();
     }
 
     public TaskRole getRole() {
@@ -213,10 +229,38 @@ public class StreamTaskInvokable implements Invokable<Void> {
         if (tracker != null) {
             setupSnapshotCallbacks();
         }
+        // Ensure the head source operator (if any) can deliver trigger-checkpoint mails
+        // to this task's mailbox. Idempotent and safe for non-source roles.
+        wireMailboxToHeadSource();
+    }
+
+    /**
+     * Wires this task's {@link MailboxExecutor} to the head operator when it is a
+     * {@link StreamSourceOperator}, so that {@code offerBarrier()} delivers
+     * trigger-checkpoint mails to the task mailbox. Applies to SOURCE and SELF_CONTAINED
+     * roles. No-op for MIDDLE/SINK and when no head source operator is present.
+     */
+    private void wireMailboxToHeadSource() {
+        List<StreamOperator<?>> operators = operatorChain.getOperators();
+        if (!operators.isEmpty()) {
+            StreamOperator<?> head = operators.get(0);
+            if (head instanceof StreamSourceOperator) {
+                ((StreamSourceOperator<?>) head).setMailboxExecutor(mailboxExecutor);
+            }
+        }
     }
 
     public CheckpointBarrierTracker getBarrierTracker() {
         return barrierTracker;
+    }
+
+    /**
+     * @return this task's mailbox executor (control-plane anchor). Never null. The
+     *         barrier-injector thread and abort handler deliver control mails here; the
+     *         task thread drains them at safe points.
+     */
+    public MailboxExecutor getMailboxExecutor() {
+        return mailboxExecutor;
     }
 
     public OperatorChain getOperatorChain() {
@@ -349,6 +393,16 @@ public class StreamTaskInvokable implements Invokable<Void> {
     @SuppressWarnings("unchecked")
     private void processInputGate(Input<Object> headInput) throws Exception {
         while (true) {
+            // Control-plane drain at the top of the main loop: process any pending
+            // control mails (cancel marker, future processing-time timer) and observe
+            // the cooperative cancel flag so abort exits gracefully instead of relying
+            // solely on InterruptedException from interrupt. Barrier/element processing
+            // below stays in-line and unchanged.
+            if (mailboxExecutor.processAvailableMails()) {
+                LOG.info("Task {} exiting main loop after cooperative cancel", getRole());
+                break;
+            }
+
             Optional<StreamElement> elementOpt = inputGate.read();
             if (!elementOpt.isPresent()) {
                 break;

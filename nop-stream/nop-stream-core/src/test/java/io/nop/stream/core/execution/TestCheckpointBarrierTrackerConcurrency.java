@@ -116,7 +116,12 @@ class TestCheckpointBarrierTrackerConcurrency {
     }
 
     @Test
-    void testExtraAckTriggersCallbackAgainKnownIssue() throws Exception {
+    void testExtraAckIsSafelyIgnored() throws Exception {
+        // Previously a known issue (operatorsToAck going negative → callback re-fired on
+        // extra ACK). After source-path serialization (mailbox) + middle/sink sync trigger,
+        // the `operatorsToAck.get() <= 0` guard in acknowledgeOperator safely ignores the
+        // extra ACK: the counter stays at 0 and the completion callback is NOT re-fired.
+        // This is now a strict positive assertion (was previously a soft `>= 1`).
         List<AbstractStreamOperator<?>> operators = createMockOperators(3);
         AtomicInteger callbackCount = new AtomicInteger(0);
 
@@ -132,13 +137,13 @@ class TestCheckpointBarrierTrackerConcurrency {
         tracker.acknowledgeOperator(1, new OperatorSnapshotResult());
         tracker.acknowledgeOperator(2, new OperatorSnapshotResult());
 
-        assertEquals(1, callbackCount.get());
+        assertEquals(1, callbackCount.get(), "completion callback fires exactly once after all operators ACK");
 
+        // Extra/duplicate ACK for operator 0: must be safely ignored, not re-fire the callback.
         tracker.acknowledgeOperator(0, new OperatorSnapshotResult());
 
-        assertTrue(callbackCount.get() >= 1,
-                "Known issue: extra ACK triggers callback again (operatorsToAck goes negative). " +
-                "Actual callback count: " + callbackCount.get());
+        assertEquals(1, callbackCount.get(),
+                "extra ACK must NOT re-fire the completion callback (operatorsToAck guard holds)");
     }
 
     private List<AbstractStreamOperator<?>> createMockOperators(int count) {

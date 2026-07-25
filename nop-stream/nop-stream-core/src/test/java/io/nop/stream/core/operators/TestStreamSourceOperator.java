@@ -162,6 +162,9 @@ class TestStreamSourceOperator {
 
         StreamSourceOperator<String> operator = new StreamSourceOperator<>(source);
         operator.setOutput(output);
+        // Wire a mailbox executor so offerBarrier delivers a trigger-checkpoint mail that
+        // is drained at the SourceContext.collect() emission point on the source thread.
+        operator.setMailboxExecutor(new io.nop.stream.core.execution.MailboxExecutor());
 
         Thread runner = new Thread(() -> {
             try { operator.run(); } catch (Exception e) { /* expected */ }
@@ -210,7 +213,8 @@ class TestStreamSourceOperator {
         operator.setOutput(output);
         operator.run();
 
-        assertTrue(operator.hasPendingBarrier() == false, "No pending barriers expected after run");
+        // After run() the source is finished; offerBarrier takes the finished-source
+        // exception path and directly injects on the caller (injector) thread.
         CheckpointBarrier barrier = new CheckpointBarrier(42L, System.currentTimeMillis(), CheckpointType.SAVEPOINT);
         assertTrue(operator.offerBarrier(barrier), "Barrier should be accepted after source finished");
         assertTrue(emitted.contains("barrier-42"), "Barrier should have been directly injected");

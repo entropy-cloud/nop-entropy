@@ -7,7 +7,6 @@
  */
 package io.nop.stream.core.operators;
 
-import java.util.concurrent.LinkedBlockingQueue;
 import java.util.Map;
 
 import org.slf4j.Logger;
@@ -22,11 +21,15 @@ import io.nop.stream.core.common.functions.source.CheckpointedSourceFunction;
 import io.nop.stream.core.common.functions.source.ReplayableSourceFunction;
 import io.nop.stream.core.common.functions.source.SourceFunction;
 import io.nop.stream.core.common.state.CheckpointListener;
+import io.nop.stream.core.execution.Mail;
+import io.nop.stream.core.execution.MailboxExecutor;
 import io.nop.stream.core.streamrecord.StreamRecord;
 import io.nop.stream.core.exceptions.StreamException;
 
 import static io.nop.stream.core.exceptions.NopStreamErrors.ARG_DETAIL;
+import static io.nop.stream.core.exceptions.NopStreamErrors.ARG_REASON;
 import static io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_BARRIER_INJECTION_FAILED;
+import static io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_CHECKPOINT_ABORTED;
 
 /**
  * A stream operator that wraps a {@link SourceFunction} and emits elements through the
@@ -46,11 +49,18 @@ public class StreamSourceOperator<OUT> extends AbstractStreamOperator<OUT> {
     public static final String SOURCE_OFFSET_KEY = "source-offset";
 
     /**
-     * Queue of pending barriers to be injected by the source reading thread.
-     * Capacity 1: if a barrier is already queued, new triggers are rejected
-     * (overlapping checkpoints are not allowed).
+     * Mailbox executor used to deliver control-plane mails (trigger-checkpoint,
+     * cancel) to this source's owning task thread. Wired by
+     * {@link io.nop.stream.core.execution.StreamTaskInvokable} via
+     * {@link #setMailboxExecutor(MailboxExecutor)} before {@link #run()} is invoked.
+     *
+     * <p>When non-null and the source is still running, checkpoint triggers are delivered
+     * as control mails and drained at the {@code SourceContext.collect()} emission point
+     * on the task thread (mailbox-based handoff). When null (e.g. direct unit-test usage
+     * without a task), {@link #offerBarrier(CheckpointBarrier)} falls back to direct
+     * injection so the operator remains usable in isolation.
      */
-    private final LinkedBlockingQueue<CheckpointBarrier> pendingBarriers = new LinkedBlockingQueue<>(1);
+    private MailboxExecutor mailboxExecutor;
 
     private final SourceFunction<OUT> sourceFunction;
 
@@ -58,7 +68,8 @@ public class StreamSourceOperator<OUT> extends AbstractStreamOperator<OUT> {
 
     /**
      * Set to true once sourceFunction.run() has returned.
-     * After this point, offerBarrier() directly injects instead of queueing.
+     * After this point, offerBarrier() directly injects on the injector thread
+     * (finished-source final-checkpoint exception; no task thread exists anymore).
      */
     private volatile boolean finished = false;
 
@@ -67,18 +78,42 @@ public class StreamSourceOperator<OUT> extends AbstractStreamOperator<OUT> {
     }
 
     /**
-     * Non-blocking offer of a barrier into the pending queue.
-     * Called by the scheduler/checkpoint thread (source-pull pattern).
+     * Wires the mailbox executor that owns this source's control-plane mailbox. Called by
+     * {@link io.nop.stream.core.execution.StreamTaskInvokable} before {@link #run()}.
      *
-     * <p>If the source has already finished ({@code finished == true}), the barrier
-     * is directly injected instead of being queued. This handles the case where
-     * a checkpoint/savepoint is triggered after a finite source completes.
+     * @param mailboxExecutor the per-task mailbox executor; must not be null
+     */
+    public void setMailboxExecutor(MailboxExecutor mailboxExecutor) {
+        if (mailboxExecutor == null) {
+            throw new IllegalArgumentException("MailboxExecutor must not be null");
+        }
+        this.mailboxExecutor = mailboxExecutor;
+    }
+
+    /**
+     * Delivers a checkpoint barrier to this source for injection.
      *
-     * @return true if the barrier was accepted, false if a barrier is already queued
+     * <p>Two paths:
+     * <ul>
+     *   <li><b>Source still running ({@code finished == false})</b>: if a mailbox
+     *       executor is wired, a control-priority trigger-checkpoint mail is put into the
+     *       task mailbox. The mail is drained and executed (snapshotState + emitBarrier)
+     *       on the task thread at the next {@code SourceContext.collect()} emission point.
+     *       If no mailbox is wired (isolated unit-test usage), the barrier is injected
+     *       directly on the caller thread as a fallback.</li>
+     *   <li><b>Source already finished ({@code finished == true})</b>: the barrier is
+     *       injected directly on the injector thread. This is the explicit
+     *       finished-source final-checkpoint exception: the task thread no longer exists,
+     *       so there is no mailbox consumer. See {@code ai-dev/design/nop-stream/mailbox-design.md} §3.3.</li>
+     * </ul>
+     *
+     * @return true if the barrier was accepted (always true; overlap is guarded at the
+     *         {@link io.nop.stream.core.execution.CheckpointBarrierTracker} level)
      */
     public boolean offerBarrier(CheckpointBarrier barrier) {
         if (finished) {
-            // Source has finished running; directly inject the barrier.
+            // Finished-source final-checkpoint exception: inject directly on the
+            // injector thread (no task thread exists to consume a mail).
             try {
                 injectBarrier(barrier);
             } catch (Exception e) {
@@ -86,27 +121,30 @@ public class StreamSourceOperator<OUT> extends AbstractStreamOperator<OUT> {
             }
             return true;
         }
-        boolean accepted = pendingBarriers.offer(barrier);
-        if (!accepted) {
-            LOG.warn("Barrier {} rejected: pending queue already has a barrier", barrier.getId());
+        MailboxExecutor exec = this.mailboxExecutor;
+        if (exec == null) {
+            // Isolated usage (e.g. unit tests without a task): direct inject on caller
+            // thread. The mailbox-based handoff requires a wired MailboxExecutor.
+            try {
+                injectBarrier(barrier);
+            } catch (Exception e) {
+                throw new StreamException(ERR_STREAM_BARRIER_INJECTION_FAILED, e).param(ARG_DETAIL, "no mailbox wired");
+            }
+            return true;
         }
-        return accepted;
-    }
-
-    /**
-     * Returns true if there is a pending barrier waiting to be injected.
-     */
-    public boolean hasPendingBarrier() {
-        return !pendingBarriers.isEmpty();
-    }
-
-    /**
-     * Drains and returns a pending barrier from the queue, if any.
-     * Useful for testing or when the source has already finished and
-     * barriers need to be manually injected.
-     */
-    public CheckpointBarrier drainPendingBarrier() {
-        return pendingBarriers.poll();
+        // Mailbox-based handoff: the mail runs snapshotState + emitBarrier on the task
+        // thread when drained at the SourceContext.collect() emission point.
+        exec.getMailbox().put(Mail.control(
+                () -> {
+                    try {
+                        injectBarrier(barrier);
+                    } catch (Exception e) {
+                        throw new StreamException(ERR_STREAM_BARRIER_INJECTION_FAILED, e)
+                                .param(ARG_DETAIL, "trigger-checkpoint mail " + barrier.getId());
+                    }
+                },
+                "trigger-checkpoint-" + barrier.getId()));
+        return true;
     }
 
     /**
@@ -121,7 +159,9 @@ public class StreamSourceOperator<OUT> extends AbstractStreamOperator<OUT> {
     /**
      * Runs the source function, emitting elements through the operator chain.
      * The source function calls {@link SourceFunction.SourceContext#collect(Object)},
-     * which we forward to {@code output.collect(new StreamRecord<>(element))}.
+     * which drains the control-plane mailbox (processing trigger-checkpoint mails) before
+     * emitting each record, so that source {@code snapshotState}/{@code emitBarrier} run
+     * on this task thread.
      *
      * @throws Exception if the source function fails
      */
@@ -131,13 +171,13 @@ public class StreamSourceOperator<OUT> extends AbstractStreamOperator<OUT> {
 
             @Override
             public void collect(OUT element) {
-                injectPendingBarrier();
+                drainControlMails();
                 output.collect(new StreamRecord<>(element));
             }
 
             @Override
             public void collectWithTimestamp(OUT element, long timestamp) {
-                injectPendingBarrier();
+                drainControlMails();
                 output.collect(new StreamRecord<>(element, timestamp));
             }
 
@@ -159,36 +199,30 @@ public class StreamSourceOperator<OUT> extends AbstractStreamOperator<OUT> {
 
         isRunning = true;
         sourceFunction.run(ctx);
-        // Mark finished BEFORE draining so that concurrent offerBarrier() calls
-        // will either (a) see finished=true and inject directly, or (b) see
-        // finished=false, queue the barrier, and we drain it here.
+        // Mark finished BEFORE draining so that concurrent offerBarrier() calls will
+        // either (a) see finished=true and inject directly, or (b) see finished=false,
+        // put a trigger-checkpoint mail, and we drain it here on the task thread.
         finished = true;
-        drainAndInjectPendingBarriers();
+        // Drain any trigger-checkpoint mail that arrived between the last collect() and
+        // finished=true. Mirrors the legacy cap-1 drainAndInjectPendingBarriers().
+        drainControlMails();
     }
 
     /**
-     * Drains all barriers from the pending queue and injects them.
-     * Called after the source function finishes to ensure any barriers
-     * that were queued during the last collect() calls are processed.
+     * Drains and runs all pending control-plane mails (trigger-checkpoint, cancel marker)
+     * on this task thread. Replaces the legacy cap-1 {@code pendingBarriers} handoff with
+     * a mailbox drain at the {@code SourceContext} emission point. If the mailbox
+     * executor reports the task has been cooperatively cancelled (abort path), a
+     * checkpoint-aborted exception is thrown to unwind the source function cooperatively
+     * rather than relying solely on {@link InterruptedException} from interrupt.
      */
-    private void drainAndInjectPendingBarriers() {
-        CheckpointBarrier barrier;
-        while ((barrier = pendingBarriers.poll()) != null) {
-            try {
-                injectBarrier(barrier);
-            } catch (Exception e) {
-                throw new StreamException(ERR_STREAM_BARRIER_INJECTION_FAILED, e).param(ARG_DETAIL, "pending barrier after source finished");
-            }
-        }
-    }
-
-    private void injectPendingBarrier() {
-        CheckpointBarrier barrier = pendingBarriers.poll();
-        if (barrier != null) {
-            try {
-                injectBarrier(barrier);
-            } catch (Exception e) {
-                throw new StreamException(ERR_STREAM_BARRIER_INJECTION_FAILED, e).param(ARG_DETAIL, "pending barrier");
+    private void drainControlMails() {
+        MailboxExecutor exec = this.mailboxExecutor;
+        if (exec != null) {
+            exec.processAvailableMails();
+            if (exec.isCancelled()) {
+                throw new StreamException(ERR_STREAM_CHECKPOINT_ABORTED)
+                        .param(ARG_REASON, "source cancelled via mailbox (cooperative abort)");
             }
         }
     }

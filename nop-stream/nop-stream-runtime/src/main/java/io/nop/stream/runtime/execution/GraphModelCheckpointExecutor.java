@@ -496,7 +496,6 @@ public class GraphModelCheckpointExecutor {
 
         for (String vertexId : execPlan.getSortedVertexIds()) {
             JobVertex execVertex = execPlan.getExecutionVertices().get(vertexId);
-            List<OperatorChain> chains = execVertex.getOperatorChains();
 
             for (Subtask subtask : execPlan.getSubtasks(vertexId)) {
                 StreamTaskInvokable invokable = subtask.getInvokable();
@@ -507,44 +506,50 @@ public class GraphModelCheckpointExecutor {
 
                 List<OperatorStateMapping> mappings = checkpointPlan.getStateMappings(taskLocation);
 
-                for (OperatorChain chain : chains) {
-                    List<StreamOperator<?>> operators = chain.getOperators();
+                // IMPORTANT: use the invokable's ACTUAL operator chain, not the original
+                // execVertex chains. For multi-vertex topologies the execution plan
+                // deep-copies each chain (GraphExecutionPlan line ~215), so the original
+                // chains reference different operator instances than the ones the invokable
+                // runs. Creating the tracker / snapshot callbacks / state-backend wiring
+                // from the original chains would disconnect checkpoint priming, barrier
+                // injection, and ACKs from the live operators.
+                OperatorChain chain = invokable.getOperatorChain();
+                List<StreamOperator<?>> operators = chain.getOperators();
 
-                    CheckpointBarrierTracker tracker = new CheckpointBarrierTracker(
-                            taskLocation, operators, mappings,
-                            snapshot -> coordinator.acknowledgeTask(taskLocation, snapshot.getCheckpointId(), snapshot)
-                    );
+                CheckpointBarrierTracker tracker = new CheckpointBarrierTracker(
+                        taskLocation, operators, mappings,
+                        snapshot -> coordinator.acknowledgeTask(taskLocation, snapshot.getCheckpointId(), snapshot)
+                );
 
-                    invokable.setBarrierTracker(tracker);
+                invokable.setBarrierTracker(tracker);
 
-                    for (StreamOperator<?> op : operators) {
-                        if (op instanceof CheckpointListener) {
-                            coordinator.addListener((CheckpointListener) op);
+                for (StreamOperator<?> op : operators) {
+                    if (op instanceof CheckpointListener) {
+                        coordinator.addListener((CheckpointListener) op);
+                    }
+                    if (op instanceof AbstractUdfStreamOperator) {
+                        Object udf = ((AbstractUdfStreamOperator<?, ?>) op).getUserFunction();
+                        if (udf instanceof CheckpointListener && udf != op) {
+                            coordinator.addListener((CheckpointListener) udf);
                         }
-                        if (op instanceof AbstractUdfStreamOperator) {
-                            Object udf = ((AbstractUdfStreamOperator<?, ?>) op).getUserFunction();
-                            if (udf instanceof CheckpointListener && udf != op) {
-                                coordinator.addListener((CheckpointListener) udf);
-                            }
-                            if (udf instanceof CheckpointParticipant && udf != op) {
-                                coordinator.addParticipant((CheckpointParticipant) udf);
-                            }
+                        if (udf instanceof CheckpointParticipant && udf != op) {
+                            coordinator.addParticipant((CheckpointParticipant) udf);
                         }
-                        if (op instanceof CheckpointParticipant && !(op instanceof AbstractUdfStreamOperator)) {
-                            coordinator.addParticipant((CheckpointParticipant) op);
-                        }
+                    }
+                    if (op instanceof CheckpointParticipant && !(op instanceof AbstractUdfStreamOperator)) {
+                        coordinator.addParticipant((CheckpointParticipant) op);
+                    }
 
-                        // Provision state backend for operators that need managed keyed state
-                        if (op instanceof AbstractStreamOperator) {
-                            AbstractStreamOperator<?> abstractOp = (AbstractStreamOperator<?>) op;
-                            if (abstractOp.getStateBackend() == null) {
-                                IStateBackend configuredBackend = checkpointConfig != null
-                                        ? checkpointConfig.getStateBackend() : null;
-                                IStateBackend stateBackend = configuredBackend != null
-                                        ? configuredBackend
-                                        : new MemoryStateBackend();
-                                abstractOp.setStateBackend(stateBackend);
-                            }
+                    // Provision state backend for operators that need managed keyed state
+                    if (op instanceof AbstractStreamOperator) {
+                        AbstractStreamOperator<?> abstractOp = (AbstractStreamOperator<?>) op;
+                        if (abstractOp.getStateBackend() == null) {
+                            IStateBackend configuredBackend = checkpointConfig != null
+                                    ? checkpointConfig.getStateBackend() : null;
+                            IStateBackend stateBackend = configuredBackend != null
+                                    ? configuredBackend
+                                    : new MemoryStateBackend();
+                            abstractOp.setStateBackend(stateBackend);
                         }
                     }
                 }
@@ -670,12 +675,18 @@ public class GraphModelCheckpointExecutor {
                 if (tracker != null) {
                     tracker.notifyCheckpointAborted(abortedCheckpointId);
                 }
+                // Cooperative cancel via mailbox: raise the cancel flag and deliver a
+                // control mail so a task blocked in a drain point wakes up and observes
+                // the cancellation at the top of its main loop. The interrupt below
+                // remains the mechanism that unblocks a blocking InputGate.read() /
+                // source I/O (there is no non-blocking read API yet).
+                invokable.getMailboxExecutor().signalCancel();
                 // Resume consumption on InputGate (unblock channels)
                 InputGate inputGate = invokable.getInputGate();
                 if (inputGate != null) {
                     inputGate.resumeConsumptionAll();
                 }
-                // Cancel the task thread
+                // Cancel the task thread (CAS RUNNING->CANCELING + Thread.interrupt())
                 task.cancel();
             }
         });
