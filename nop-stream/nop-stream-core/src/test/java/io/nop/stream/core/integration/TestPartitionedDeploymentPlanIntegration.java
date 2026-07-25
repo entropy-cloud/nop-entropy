@@ -20,7 +20,6 @@ import io.nop.stream.core.graph.StreamGraph;
 import io.nop.stream.core.graph.StreamGraphGenerator;
 import io.nop.stream.core.jobgraph.JobGraph;
 import io.nop.stream.core.jobgraph.JobGraphGenerator;
-import io.nop.stream.core.model.StreamModel;
 import io.nop.stream.core.model.StreamModelFingerprint;
 import io.nop.stream.core.transformation.*;
 import org.junit.jupiter.api.Test;
@@ -74,15 +73,7 @@ public class TestPartitionedDeploymentPlanIntegration {
                 .generate(Collections.singletonList(sink));
         JobGraph jobGraph = new JobGraphGenerator().generate(streamGraph);
 
-        // Build a minimal StreamModel
-        Map<String, Transformation<?>> transformMap = new LinkedHashMap<>();
-        transformMap.put(String.valueOf(source.getId()), source);
-        transformMap.put(String.valueOf(map.getId()), map);
-        transformMap.put(String.valueOf(sink.getId()), sink);
-        StreamModel streamModel = new StreamModel(
-                new io.nop.stream.core.model.StreamComponents(), transformMap);
-
-        StreamModelFingerprint fingerprint = streamModel.computeFingerprint();
+        StreamModelFingerprint fingerprint = jobGraph.getStreamModel().computeFingerprint();
 
         // Generate PartitionedPlan
         PartitionedPlanGenerator planGenerator = new PartitionedPlanGenerator();
@@ -111,9 +102,7 @@ public class TestPartitionedDeploymentPlanIntegration {
                 .generate(Collections.singletonList(sink));
         JobGraph jobGraph = new JobGraphGenerator().generate(streamGraph);
 
-        StreamModelFingerprint fingerprint = StreamModelFingerprint.builder()
-                .dagTopologyHash("test-hash")
-                .build();
+        StreamModelFingerprint fingerprint = jobGraph.getStreamModel().computeFingerprint();
 
         PartitionedPlan partitionedPlan = new PartitionedPlanGenerator()
                 .generate(jobGraph, fingerprint);
@@ -145,9 +134,7 @@ public class TestPartitionedDeploymentPlanIntegration {
                 .generate(Collections.singletonList(sink));
         JobGraph jobGraph = new JobGraphGenerator().generate(streamGraph);
 
-        StreamModelFingerprint fingerprint = StreamModelFingerprint.builder()
-                .dagTopologyHash("test-hash")
-                .build();
+        StreamModelFingerprint fingerprint = jobGraph.getStreamModel().computeFingerprint();
 
         PartitionedPlan partitionedPlan = new PartitionedPlanGenerator()
                 .generate(jobGraph, fingerprint);

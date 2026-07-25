@@ -77,6 +77,12 @@ class MemoryInternalAppendingState<K, N, IN, ACC>
     }
 
     @Override
+    public void setAccumulator(ACC accumulator) throws Exception {
+        TypedNamespaceAndKey key = getStorageKey();
+        storage.put(key, accumulator);
+    }
+
+    @Override
     public ACC get() throws IOException {
         try {
             return getAccumulator();

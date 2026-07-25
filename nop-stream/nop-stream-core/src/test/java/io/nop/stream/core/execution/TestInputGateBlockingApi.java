@@ -32,14 +32,12 @@ class TestInputGateBlockingApi {
         assertEquals("data-ch1", first.get().asRecord().getValue(),
                 "Should read from channel 1 while channel 0 is blocked");
 
-        Optional<StreamElement> second = gate.read();
-        assertTrue(second.isPresent());
-        assertTrue(second.get().isRecord());
-        assertEquals("data-ch1", second.get().asRecord().getValue(),
-                "Channel 0 should still be blocked, reading again from channel 1 should return null");
-
         p0.close();
         p1.close();
+
+        Optional<StreamElement> second = gate.read();
+        assertFalse(second.isPresent(),
+                "Channel 0 is blocked and channel 1 is drained, no more data should be available");
     }
 
     @Test

@@ -53,4 +53,17 @@ public interface InternalAppendingState<K, N, IN, ACC, OUT> extends AppendingSta
      * @throws Exception If the state cannot be accessed
      */
     ACC getAccumulator() throws Exception;
+
+    /**
+     * Sets the accumulated value in the current namespace, bypassing the
+     * {@code add()} transformation (i.e. no {@code AggregateFunction.add()} /
+     * {@code ReduceFunction} is applied). This is the inverse of
+     * {@link #getAccumulator()} and is used to write back a pre-merged
+     * accumulator during namespace-based state merge (e.g. session window merge
+     * in {@code WindowOperator.mergeWindowContents()}).
+     *
+     * @param accumulator The accumulator value to store for the current key+namespace
+     * @throws Exception If the state cannot be accessed
+     */
+    void setAccumulator(ACC accumulator) throws Exception;
 }

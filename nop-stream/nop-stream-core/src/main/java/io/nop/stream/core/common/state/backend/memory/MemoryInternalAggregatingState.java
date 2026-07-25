@@ -57,6 +57,12 @@ class MemoryInternalAggregatingState<K, N, IN, ACC, OUT>
     }
 
     @Override
+    public void setAccumulator(ACC accumulator) throws Exception {
+        TypedNamespaceAndKey key = getStorageKey();
+        storage.put(key, accumulator);
+    }
+
+    @Override
     public OUT get() throws IOException {
         try {
             TypedNamespaceAndKey key = getStorageKey();

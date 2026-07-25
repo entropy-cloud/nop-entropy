@@ -127,14 +127,19 @@ public class TestWindowOperatorUnificationE2E {
 
     @Test
     void testAggregateViaFactory() throws Exception {
+        // Events are ordered by timestamp and the timestamps operator uses
+        // watermarkInterval=0 (emit a watermark after every element) so that
+        // watermark progression is deterministic and no element is dropped as
+        // late. The default wall-clock-based periodic emission (200ms) races
+        // with element processing under load and makes the test flaky.
         List<KeyValue> events = Arrays.asList(
                 new KeyValue("key1", 1, 10),
-                new KeyValue("key1", 2, 50),
                 new KeyValue("key2", 3, 30),
-                new KeyValue("key1", 4, 120),
+                new KeyValue("key1", 2, 50),
                 new KeyValue("key2", 5, 90),
-                new KeyValue("key1", 6, 180),
+                new KeyValue("key1", 4, 120),
                 new KeyValue("key2", 7, 150),
+                new KeyValue("key1", 6, 180),
                 new KeyValue("key1", 8, 250)
         );
 
@@ -150,7 +155,7 @@ public class TestWindowOperatorUnificationE2E {
         SingleOutputStreamOperator<KeyValue> timestamped = env.fromCollection(events)
                 .transform("TimestampsAndWatermarks",
                         (TypeInformation<KeyValue>) UnknownTypeInformation.INSTANCE,
-                        new TimestampsAndWatermarksOperator<>(strategy));
+                        new TimestampsAndWatermarksOperator<>(strategy, 0));
 
         DataStreamImpl<KeyValue> timestampedImpl = (DataStreamImpl<KeyValue>) timestamped;
 

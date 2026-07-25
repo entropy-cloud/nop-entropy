@@ -384,7 +384,12 @@ public class StreamTaskInvokable implements Invokable<Void> {
 
         @Override
         public void collect(StreamRecord<Object> record) {
-            writer.emit(record);
+            // Cross-task exchange queues the record for asynchronous consumption by a
+            // different task. The producer operator may reuse a single StreamRecord
+            // instance (TimestampedCollector), so snapshot it here; otherwise
+            // subsequent collect() calls mutate the queued object and every queued
+            // entry ends up holding the last emitted value.
+            writer.emit(record.copy(record.getValue()));
         }
 
         @Override

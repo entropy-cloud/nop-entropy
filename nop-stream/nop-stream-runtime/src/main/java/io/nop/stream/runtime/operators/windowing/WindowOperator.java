@@ -604,6 +604,16 @@ public class WindowOperator<K, IN, ACC, OUT, W extends Window>
         triggerContext.key = timer.getKey();
         triggerContext.window = timer.getNamespace();
 
+        // Restore the key context before reading any key-scoped state (e.g.
+        // MergingWindowSet). Timers fire in timestamp order across all keys, so
+        // the backend's current key may still point at whichever key was being
+        // processed when this timer was registered. Without this, getMergingWindowSet()
+        // would read the wrong key's mapping and getStateWindow() would return null,
+        // silently dropping the window's output.
+        if (keyedStateBackend != null) {
+            this.<K>getKeyedStateBackend().setCurrentKey(triggerContext.key);
+        }
+
         MergingWindowSet<W> mergingWindows;
 
         if (windowAssigner instanceof MergingWindowAssigner) {
@@ -659,6 +669,11 @@ public class WindowOperator<K, IN, ACC, OUT, W extends Window>
     public void onProcessingTime(InternalTimer<K, W> timer) throws Exception {
         triggerContext.key = timer.getKey();
         triggerContext.window = timer.getNamespace();
+
+        // Restore the key context before reading any key-scoped state (see onEventTime).
+        if (keyedStateBackend != null) {
+            this.<K>getKeyedStateBackend().setCurrentKey(triggerContext.key);
+        }
 
         MergingWindowSet<W> mergingWindows;
 
@@ -1175,9 +1190,8 @@ public class WindowOperator<K, IN, ACC, OUT, W extends Window>
             if (targetValue != null) {
                 newAppendingWindowState.setCurrentNamespace(targetWindow);
                 try {
-                    newAppendingWindowState.clear();
-                    newAppendingWindowState.add((IN) targetValue);
-                } catch (java.io.IOException e) {
+                    newAppendingWindowState.setAccumulator(targetValue);
+                } catch (Exception e) {
                     throw new StreamException(ERR_STREAM_STATE_ERROR, e)
                             .param(ARG_DETAIL, "Failed to set merged accumulator");
                 }

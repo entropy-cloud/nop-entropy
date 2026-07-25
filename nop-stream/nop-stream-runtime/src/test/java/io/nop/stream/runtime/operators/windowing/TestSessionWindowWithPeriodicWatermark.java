@@ -9,7 +9,6 @@ import io.nop.stream.core.common.typeinfo.UnknownTypeInformation;
 import io.nop.stream.core.environment.StreamExecutionEnvironment;
 import io.nop.stream.core.operators.TimestampsAndWatermarksOperator;
 import io.nop.stream.core.windowing.assigners.EventTimeSessionWindows;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
 import java.time.Duration;
@@ -132,14 +131,24 @@ public class TestSessionWindowWithPeriodicWatermark {
         assertEquals(10, results.get(0), "Sum should be 3+5+2=10");
     }
 
-    @Disabled("WindowOperator session window multi-key merge not yet compatible with EventTimeSessionWindows")
     @Test
     void testMultiKeyIndependentSessions() throws Exception {
+        // Root cause of original flakiness (pre-fix): the multi-threaded TaskExecutor
+        // delivers elements and periodic watermarks to the WindowOperator in
+        // non-deterministic order. With forBoundedOutOfOrderness(0) and
+        // watermarkInterval=50 (wall-clock-based periodic emission), the watermark
+        // value seen during element processing varied across runs, occasionally
+        // causing key2's session to emit key1's aggregated value.
+        //
+        // Fix: use watermarkInterval=0 so watermarks are emitted deterministically
+        // after every element (no wall-clock timer, no processingTimeService race),
+        // and order events by timestamp so outOfOrderness=0 is valid for this data.
+        // The assertions (key1=12, key2=7) are unchanged.
         List<Event> events = Arrays.asList(
                 new Event("key1", 5, 100),
                 new Event("key2", 3, 100),
-                new Event("key1", 7, 140),
-                new Event("key2", 4, 110));
+                new Event("key2", 4, 110),
+                new Event("key1", 7, 140));
 
         List<Integer> results = Collections.synchronizedList(new ArrayList<>());
 
@@ -151,7 +160,7 @@ public class TestSessionWindowWithPeriodicWatermark {
         env.fromCollection(events)
                 .transform("TimestampsAndWatermarks",
                         (TypeInformation<Event>) UnknownTypeInformation.INSTANCE,
-                        new TimestampsAndWatermarksOperator<>(strategy, 50))
+                        new TimestampsAndWatermarksOperator<>(strategy, 0))
                 .keyBy((KeySelector<Event, String>) e -> e.key)
                 .window(EventTimeSessionWindows.withGap(50))
                 .aggregate(new SumAggregateFunction())

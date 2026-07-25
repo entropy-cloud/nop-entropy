@@ -59,4 +59,27 @@ class TestMemoryInternalAppendingState {
         assertNotNull(result);
         assertEquals(30L, result);
     }
+
+    /**
+     * Verify that setAccumulator() directly stores the value without invoking
+     * the ReduceFunction/SimpleAccumulator, mirroring the contract used by
+     * WindowOperator.mergeWindowContents() on the reducing path.
+     */
+    @Test
+    void testSetAccumulatorStoresRawValue() throws Exception {
+        MemoryKeyedStateBackend<String> backend = new MemoryKeyedStateBackend<>(String.class);
+        ReducingStateDescriptor<Long> descriptor = new ReducingStateDescriptor<>("test", Long.class, LongCounter.class);
+
+        MemoryInternalAppendingState<String, Object, Long, Object> state =
+                new MemoryInternalAppendingState<>(backend, descriptor);
+
+        state.setCurrentNamespace("default");
+        backend.setCurrentKey("key1");
+
+        state.setAccumulator(999L);
+
+        Object acc = state.getAccumulator();
+        assertEquals(999L, acc);
+        assertEquals(999L, state.get());
+    }
 }

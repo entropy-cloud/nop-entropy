@@ -104,11 +104,13 @@ class TestCheckpointTriggerSafety {
     }
 
     /**
-     * Concurrent capability consistency: maxConcurrentCheckpoints=2 should be
-     * effectively limited to 1, not crash with barrier overlap.
+     * Concurrent capability consistency: maxConcurrentCheckpoints=2 should allow up
+     * to 2 concurrent checkpoints under thread contention, with the remaining
+     * concurrent triggers rejected. Validates the configured limit is enforced
+     * atomically without crashing from barrier overlap.
      */
     @Test
-    void testMaxConcurrentCheckpointsLargerThanOneIsLimitedToOne() throws Exception {
+    void testMaxConcurrentCheckpointsRespectedUnderConcurrency() throws Exception {
         coordinator = createCoordinator(2);
 
         int numThreads = 8;
@@ -137,9 +139,9 @@ class TestCheckpointTriggerSafety {
         assertTrue(doneLatch.await(5, TimeUnit.SECONDS));
         executor.shutdown();
 
-        assertEquals(1, successCount.get(),
-                "maxConcurrentCheckpoints=2 should be effectively limited to 1");
-        assertEquals(1, coordinator.getNumberOfPendingCheckpoints());
+        assertEquals(2, successCount.get(),
+                "maxConcurrentCheckpoints=2 should allow exactly 2 concurrent checkpoints");
+        assertEquals(2, coordinator.getNumberOfPendingCheckpoints());
     }
 
     /**
