@@ -1,6 +1,6 @@
 # Evictor / Watermark Valve / Pane 集成（G46, G47, G48, P2）
 
-> Plan Status: active
+> Plan Status: completed
 > Last Reviewed: 2026-07-25
 > Source: `ai-dev/backlog/nop-stream-production-roadmap.md` Stage 21；`ai-dev/analysis/nop-stream/08-gap-analysis.md` G46/G47/G48（05-window: G7/G8/G9）
 > Mission: nop-stream-production
@@ -78,7 +78,7 @@
 
 ### Phase 1 — G46 Evictor 接线核对 + transient 语义文档化
 
-Status: planned
+Status: completed
 Targets:
 - `nop-stream/nop-stream-runtime/src/main/java/io/nop/stream/runtime/operators/windowing/WindowOperator.java`（`emitWindowContents` 761-811，只读核对）
 - `nop-stream/nop-stream-runtime/src/test/java/io/nop/stream/runtime/operators/windowing/`（生产路径 evictor 测试）
@@ -86,22 +86,22 @@ Targets:
 
 - Item Types: `Proof | Decision`
 
-- [ ] `Proof` 反空壳核对：追踪确认 `evictBefore`(795) 与 `evictAfter`(802) 在 firing 路径被调用，且 eviction 作用于局部瞬态 `wrapped`(771) 不写回 state；ACCUMULATING 模式跳过 clear(808) 故元素跨 firing 持久化、eviction 每次 firing 重算。
-- [ ] `Proof` 新增聚焦测试覆盖**生产 `InternalListState` 路径**（非仅现有 MapState 测试路径）：ACCUMULATING + evictor 场景下，跨两次 firing 验证 eviction 为瞬态重算（第二次 firing 看到完整元素集 + eviction 重新应用），与 Flink transient 语义一致。
-- [ ] `Decision` 裁定 G46 收口为"核对 + 文档"：明确**不引入裁剪持久化**（持久化会丢弃 Flink 会重淘汰的元素，构成回归）。决策写入 `window-design.md`。
+- [x] `Proof` 反空壳核对：追踪确认 `evictBefore`(795) 与 `evictAfter`(802) 在 firing 路径被调用，且 eviction 作用于局部瞬态 `wrapped`(771) 不写回 state；ACCUMULATING 模式跳过 clear(808) 故元素跨 firing 持久化、eviction 每次 firing 重算。
+- [x] `Proof` 新增聚焦测试覆盖**生产 `InternalListState` 路径**（非仅现有 MapState 测试路径）：ACCUMULATING + evictor 场景下，跨两次 firing 验证 eviction 为瞬态重算（第二次 firing 看到完整元素集 + eviction 重新应用），与 Flink transient 语义一致。
+- [x] `Decision` 裁定 G46 收口为"核对 + 文档"：明确**不引入裁剪持久化**（持久化会丢弃 Flink 会重淘汰的元素，构成回归）。决策写入 `window-design.md`。
 
 Exit Criteria:
 
-- [ ] evictBefore/evictAfter 调用接线经反空壳核对（生产路径追踪）
-- [ ] 生产 `InternalListState` 路径有聚焦测试证明瞬态重算语义
-- [ ] G46 不做裁剪持久化的裁定已写入 `window-design.md`（含 Flink transient 语义对照理由）
-- [ ] `window-design.md` §3/§8.7 更新为 before/after 两次调用现实 + 瞬态语义；§11 注明 evictAfter 不持久化
-- [ ] **接线验证**：测试断言 evictBefore/evictAfter 被实际调用 + eviction 不写回 state（读取持久化元素集验证瞬态）
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] evictBefore/evictAfter 调用接线经反空壳核对（生产路径追踪）
+- [x] 生产 `InternalListState` 路径有聚焦测试证明瞬态重算语义
+- [x] G46 不做裁剪持久化的裁定已写入 `window-design.md`（含 Flink transient 语义对照理由）
+- [x] `window-design.md` §3/§8.7 更新为 before/after 两次调用现实 + 瞬态语义；§11 注明 evictAfter 不持久化
+- [x] **接线验证**：测试断言 evictBefore/evictAfter 被实际调用 + eviction 不写回 state（读取持久化元素集验证瞬态）
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 ### Phase 2 — G47 悬空引用修正 + 输入数来源裁定 + Anti-Hollow 豁免
 
-Status: planned
+Status: completed
 Targets:
 - `nop-stream/nop-stream-core/src/main/java/io/nop/stream/core/streamrecord/watermark/WatermarkStatus.java`（line 61 悬空 `@link`）
 - `nop-stream/nop-stream-core/src/main/java/io/nop/stream/core/operators/AbstractStreamOperator.java`（`processWatermark(mark,index)` 324-331 输入数来源）
@@ -110,22 +110,22 @@ Targets:
 
 - Item Types: `Fix | Decision | Proof`
 
-- [ ] `Fix` 修正 `WatermarkStatus.java:61` 悬空 `@link StatusWatermarkValve` → 指向 live 的 `IndexedCombinedWatermarkStatus`/`CombinedWatermarkStatus`（或改为准确文字，不含悬空 `@link`）。
-- [ ] `Decision` 裁定 `AbstractStreamOperator` 输入数来源：因无两输入算子，valve 为 dormant。裁定为——保留现有 2 输入路径但记录现状（输入数当前为字面量 2，待两输入算子 successor 提供真实输入数），**不在本 plan 建造两输入算子或新 valve**（避免空壳）。决策写入 `time-model-design.md`。
-- [ ] `Proof` 确认 valve 数学（`CombinedWatermarkStatus` min-combine + idleness）有单测覆盖；若缺则补 N 输入 min-combine/idleness 单测（valve 本身 N-capable，单测级验证即可）。
+- [x] `Fix` 修正 `WatermarkStatus.java:61` 悬空 `@link StatusWatermarkValve` → 指向 live 的 `IndexedCombinedWatermarkStatus`/`CombinedWatermarkStatus`（或改为准确文字，不含悬空 `@link`）。
+- [x] `Decision` 裁定 `AbstractStreamOperator` 输入数来源：因无两输入算子，valve 为 dormant。裁定为——保留现有 2 输入路径但记录现状（输入数当前为字面量 2，待两输入算子 successor 提供真实输入数），**不在本 plan 建造两输入算子或新 valve**（避免空壳）。决策写入 `time-model-design.md`。
+- [x] `Proof` 确认 valve 数学（`CombinedWatermarkStatus` min-combine + idleness）有单测覆盖；若缺则补 N 输入 min-combine/idleness 单测（valve 本身 N-capable，单测级验证即可）。
 
 Exit Criteria:
 
-- [ ] `WatermarkStatus.java:61` 不再含悬空 `@link`
-- [ ] 输入数来源裁定写入 `time-model-design.md`（dormant 现状 + successor 路径 + 不建造无消费者算子的理由）
-- [ ] valve 数学有单测覆盖（min-combine + idleness）
-- [ ] `time-model-design.md` §6.4/§9 item 1-2 修正（interval 默认 200、已接入执行路径），§5.3 补 `IndexedCombinedWatermarkStatus`，§8 注明 valve N-capable 但 dormant + Anti-Hollow 豁免
-- [ ] **Anti-Hollow 豁免（显式）**：G47 valve 为单测级验证 by design；e2e/wiring 验证（运行时生效）显式 defer 至两输入算子 successor——本 phase 不要求运行时生效，因无消费者（建造消费者即空壳）。该豁免写入 plan 与 design doc。
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] `WatermarkStatus.java:61` 不再含悬空 `@link`
+- [x] 输入数来源裁定写入 `time-model-design.md`（dormant 现状 + successor 路径 + 不建造无消费者算子的理由）
+- [x] valve 数学有单测覆盖（min-combine + idleness）
+- [x] `time-model-design.md` §6.4/§9 item 1-2 修正（interval 默认 200、已接入执行路径），§5.3 补 `IndexedCombinedWatermarkStatus`，§8 注明 valve N-capable 但 dormant + Anti-Hollow 豁免
+- [x] **Anti-Hollow 豁免（显式）**：G47 valve 为单测级验证 by design；e2e/wiring 验证（运行时生效）显式 defer 至两输入算子 successor——本 phase 不要求运行时生效，因无消费者（建造消费者即空壳）。该豁免写入 plan 与 design doc。
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 ### Phase 3 — G48 paneTracking 持久化 + isLast 裁定 + RETRACTING spec-only
 
-Status: planned
+Status: completed
 Targets:
 - `nop-stream/nop-stream-runtime/src/main/java/io/nop/stream/runtime/operators/windowing/WindowOperator.java`（`paneTracking` 193、`snapshotState` 435-456、restore 路径、`computePaneInfo` 813-839、`AccumulationMode` 325）
 - `nop-stream/nop-stream-runtime/src/test/.../operators/windowing/TestPaneInfoAndAccumulationMode.java`
@@ -133,33 +133,33 @@ Targets:
 
 - Item Types: `Fix | Decision | Proof`
 
-- [ ] `Fix` 使 `paneTracking`(193) 参与 `snapshotState`(435-456) 与 restore：新增 `PaneTrackingInfo` 的序列化 DTO；**键限定为可逆的 `TimeWindow`**（`paneKey` 用可重建的 TimeWindow 表示；非 TimeWindow 窗口的 paneTracking 不参与持久化并在文档注明限制，避免 `windowNamespace` 不可逆导致 restore 错配）；restore 在 `open` 阶段、state backend 初始化后应用（与 timer deferred-restore 序对齐）。
-- [ ] `Decision` 裁定 `isLast`：`PaneInfo.isLast`(838) 清理前不可知，且 `computePaneInfo` 在 emit 前构造不可变 PaneInfo，清理时回填在当前架构时间上不可行——裁定为"清理前不可知，恒为 false"并文档化为已知契约限制（**不采用回填方案**）。若未来需要，须改为清理时独立 emit 一次 cleanup pane（属未来增强，本 plan 不做）。
-- [ ] `Fix` `ACCUMULATING_AND_RETRACTING` 未实现分支抛 `UnsupportedOperationException`（非静默当作 ACCUMULATING）；`window-design.md` §6 标 spec-only 且**将 `RETRACTING` 改为代码枚举名 `ACCUMULATING_AND_RETRACTING`**。
-- [ ] `Proof` 新增聚焦测试：注册 pane → snapshot → restore → 验证 pane index/onTimeEmitted 续接（恢复后窗口触发不再被误判为 ON_TIME/isFirst），限定 `TimeWindow`。
+- [x] `Fix` 使 `paneTracking`(193) 参与 `snapshotState`(435-456) 与 restore：新增 `PaneTrackingInfo` 的序列化 DTO；**键限定为可逆的 `TimeWindow`**（`paneKey` 用可重建的 TimeWindow 表示；非 TimeWindow 窗口的 paneTracking 不参与持久化并在文档注明限制，避免 `windowNamespace` 不可逆导致 restore 错配）；restore 在 `open` 阶段、state backend 初始化后应用（与 timer deferred-restore 序对齐）。
+- [x] `Decision` 裁定 `isLast`：`PaneInfo.isLast`(838) 清理前不可知，且 `computePaneInfo` 在 emit 前构造不可变 PaneInfo，清理时回填在当前架构时间上不可行——裁定为"清理前不可知，恒为 false"并文档化为已知契约限制（**不采用回填方案**）。若未来需要，须改为清理时独立 emit 一次 cleanup pane（属未来增强，本 plan 不做）。
+- [x] `Fix` `ACCUMULATING_AND_RETRACTING` 未实现分支抛 `UnsupportedOperationException`（非静默当作 ACCUMULATING）；`window-design.md` §6 标 spec-only 且**将 `RETRACTING` 改为代码枚举名 `ACCUMULATING_AND_RETRACTING`**。
+- [x] `Proof` 新增聚焦测试：注册 pane → snapshot → restore → 验证 pane index/onTimeEmitted 续接（恢复后窗口触发不再被误判为 ON_TIME/isFirst），限定 `TimeWindow`。
 
 Exit Criteria:
 
-- [ ] `paneTracking` 在 snapshot/restore 中持久化与恢复（TimeWindow 限定，DTO + open 阶段恢复）
-- [ ] 聚焦测试证明恢复后 pane 状态续接（非首次触发误判）
-- [ ] `isLast` 裁定为"清理前不可知"并文档化（含回填不可行的理由）
-- [ ] `ACCUMULATING_AND_RETRACTING` 未实现分支抛异常（非静默），spec-only 文档化且 doc 用代码枚举名
-- [ ] `window-design.md` §6（RETRACTING→`ACCUMULATING_AND_RETRACTING` spec-only）、§13（live pane 现状 + isLast 裁定 + checkpoint 事实 + TimeWindow 限制）更新
-- [ ] **端到端验证**：至少一条测试覆盖 注册 pane → window 触发 emit → snapshot → restore → 再次触发，pane info 连续正确
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] `paneTracking` 在 snapshot/restore 中持久化与恢复（TimeWindow 限定，DTO + open 阶段恢复）
+- [x] 聚焦测试证明恢复后 pane 状态续接（非首次触发误判）
+- [x] `isLast` 裁定为"清理前不可知"并文档化（含回填不可行的理由）
+- [x] `ACCUMULATING_AND_RETRACTING` 未实现分支抛异常（非静默），spec-only 文档化且 doc 用代码枚举名
+- [x] `window-design.md` §6（RETRACTING→`ACCUMULATING_AND_RETRACTING` spec-only）、§13（live pane 现状 + isLast 裁定 + checkpoint 事实 + TimeWindow 限制）更新
+- [x] **端到端验证**：至少一条测试覆盖 注册 pane → window 触发 emit → snapshot → restore → 再次触发，pane info 连续正确
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 ## Closure Gates
 
-- [ ] G46 收敛：evictBefore/evictAfter 接线经反空壳核对（含生产路径），transient 语义与 Flink 一致并文档化；未引入持久化回归
-- [ ] G47 收敛：悬空 `@link` 修正 + 输入数来源裁定 + dormant/Anti-Hollow 豁免文档化；未建造无消费者算子
-- [ ] G48 收敛：paneTracking 持久化（TimeWindow 限定）、isLast 裁定、RETRACTING spec-only
-- [ ] `window-design.md` 与 `time-model-design.md` 列出的过时段落已同步至 live baseline
-- [ ] 无 in-scope live defect 被静默降级（RETRACTING、两输入算子、evictAfter 持久化为明确 out-of-scope，非 in-scope defect 降级）
-- [ ] `./mvnw compile -pl nop-stream -am`
-- [ ] `./mvnw test -pl nop-stream -am -T 1C`
-- [ ] `node ai-dev/tools/scan-hollow-implementations.mjs --module nop-stream --severity high` 退出码 0
-- [ ] `node ai-dev/tools/check-plan-checklist.mjs <this-plan-file> --strict` 退出码 0
-- [ ] 独立子 agent closure-audit 完成并写入证据
+- [x] G46 收敛：evictBefore/evictAfter 接线经反空壳核对（含生产路径），transient 语义与 Flink 一致并文档化；未引入持久化回归
+- [x] G47 收敛：悬空 `@link` 修正 + 输入数来源裁定 + dormant/Anti-Hollow 豁免文档化；未建造无消费者算子
+- [x] G48 收敛：paneTracking 持久化（TimeWindow 限定）、isLast 裁定、RETRACTING spec-only
+- [x] `window-design.md` 与 `time-model-design.md` 列出的过时段落已同步至 live baseline
+- [x] 无 in-scope live defect 被静默降级（RETRACTING、两输入算子、evictAfter 持久化为明确 out-of-scope，非 in-scope defect 降级）
+- [x] `./mvnw compile -pl nop-stream -am`
+- [x] `./mvnw test -pl nop-stream -am -T 1C`
+- [x] `node ai-dev/tools/scan-hollow-implementations.mjs --module nop-stream --severity high` 退出码 0
+- [x] `node ai-dev/tools/check-plan-checklist.mjs <this-plan-file> --strict` 退出码 0
+- [x] 独立子 agent closure-audit 完成并写入证据
 
 ## Deferred But Adjudicated
 
@@ -184,11 +184,16 @@ Exit Criteria:
 
 ## Closure
 
-Status Note: <<完成时填写>>
-Completed: YYYY-MM-DD
+Status Note: G46/G47/G48 三个 P2 集成缺口收口。经 live 核对，每个 gap 的现状与 roadmap 假设有偏差，本 plan 据此把每个 gap 收口为"核对 + 补真实 gap + 文档"，避免建造无消费者的空壳。475 tests pass。
+Completed: 2026-07-25
 
 Closure Audit Evidence:
 
-- Reviewer / Agent: <<独立子 agent>>
-- Audit Session: <<session id>>
-- Evidence: <<每条 Exit Criterion/Closure Gate 的 PASS/FAIL + live code path / test name>>
+- Reviewer / Agent: independent closure-audit subagent (general, fresh session ses_0668bdb90ffeOEKvBSyZda7yZp)
+- Audit Session: read-only verification of all 10 checks against live code/test/docs
+- Evidence:
+  - G46 gate: PASS — `WindowOperator.emitWindowContents()` evictBefore(843)→process(848)→evictAfter(850), eviction on local transient `wrapped`(819) not written back; DISCARDING-only clear(856-858). Test `testEvictionIsTransientPerFireOnProductionListStatePath` (TestEvictorIntegration.java:131) uses ListStateDescriptor production path + ACCUMULATING, asserts sizesSeen=[1,2,3,4]. Docs §3/§8.7/§11 updated.
+  - G47 gate: PASS — `StatusWatermarkValve` grep across nop-stream = ZERO matches; `WatermarkStatus.java:61` now links `IndexedCombinedWatermarkStatus`. `TestIndexedCombinedWatermarkStatus` (6 tests: N-input min-combine + idleness). `time-model-design.md` §6.4 (interval=200), §5.4 (input-count decision + Anti-Hollow exemption), §9 updated.
+  - G48 gate: PASS — `snapshotState` writes `"pane-tracking"`(495-497), `restoreState` captures(528-531), `open()` applies(366-374); `PaneTrackingSnapshot` DTO(928) + `isTimeWindowPaneKey` filter(899-901). `open()` throws on ACCUMULATING_AND_RETRACTING(347-353). `window-design.md` §6 (ACCUMULATING_AND_RETRACTING spec-only) + §13 (isLast decision, checkpoint facts, TimeWindow limit). Tests `testPaneTrackingSurvivesCheckpointRestore`(225) + `testRetractingModeFailsFastOnOpen`(290).
+  - All exit criteria met; no in-scope defect silently downgraded (RETRACTING/two-input/evictAfter-persist are explicit out-of-scope).
+  - `./mvnw test -pl nop-stream -am -T 1C` → 475 pass, 0 failures. `scan-hollow --severity high` exit 0. `check-plan-checklist --strict` exit 0.

@@ -155,13 +155,19 @@ Source → [TimestampsAndWatermarksOperator] → 算子链
 
 支持即时（immediate）和延迟（deferred）两种输出模式。延迟模式在 `onPeriodicEmit` 时才合并更新。
 
-### 5.4 CombinedWatermarkStatus
+> **状态**：`WatermarkOutputMultiplexer` 仅被自身单测引用，尚未接入执行路径（source 侧多 split 合并属后续接线项）。
 
-跟踪多个输入的 watermark + idle 状态，计算组合 watermark：
+### 5.4 多输入 watermark 合并（IndexedCombinedWatermarkStatus）
 
-- 所有输入 active → 取最小 watermark
-- 部分输入 idle → 只从 active 输入取最小
-- 所有输入 idle → 输出也 idle
+nop-stream 的多输入 watermark + idle 状态合并由 `IndexedCombinedWatermarkStatus`（公开，`@Internal`）承担，内部委托 `CombinedWatermarkStatus`（包级可见）：
+
+- `IndexedCombinedWatermarkStatus.forInputsCount(int)` —— **N 输入 capable**（参数本就是 `int`，非硬编码 2）。
+- `CombinedWatermarkStatus.updateCombinedWatermark()` —— 取所有 active 输入 watermark 的 `Math.min`（木桶效应）；所有输入 idle 时 valve 整体 idle。
+- `updateWatermark(index, ts)` / `updateStatus(index, idle)` —— 按 index 更新单个输入，返回 combined 是否推进。
+
+> **输入数来源裁定（G47）**：`AbstractStreamOperator.processWatermark(mark, index)` / `processWatermarkStatus(status, index)` 中通过 `IndexedCombinedWatermarkStatus.forInputsCount(2)` 创建 valve，**输入数当前为字面量 2**。nop-stream **零 `TwoInputStreamOperator` 实现**、零 `processWatermark1/2` 调用者，故该合并路径在 live 执行中**dormant**（不触发）。裁定：**保留现有 2 输入路径但不在本阶段建造两输入算子或新 valve**（建造无消费者即空壳，违反 Anti-Hollow）；真实输入数来源（基于拓扑输入度）defer 至两输入算子 successor（connect/union/join）。
+>
+> **Anti-Hollow 豁免（显式）**：G47 valve 为**单测级验证 by design**（`TestIndexedCombinedWatermarkStatus` 覆盖 N 输入 min-combine + idleness）；e2e/wiring 验证（运行时生效）显式 defer 至两输入算子 successor——本阶段不要求运行时生效，因无消费者。
 
 ## 6. TimestampsAndWatermarksOperator
 
@@ -193,7 +199,7 @@ runtime 模块中的 `TimestampsAndWatermarksOperator` 是时间模型与算子�
 
 ### 6.4 周期性发射
 
-`open()` 中注册定时器，按 `watermarkInterval` 间隔周期调用 `onProcessingTime` → `onPeriodicEmit`。**当前 `watermarkInterval = 0L`**（硬编码），因此周期性发射不生效。
+`open()` 中注册定时器，按 `watermarkInterval` 间隔周期调用 `onProcessingTime` → `onPeriodicEmit`。`watermarkInterval` 默认 `200`ms（`TimestampsAndWatermarksOperator.DEFAULT_WATERMARK_INTERVAL_MS=200`，`StreamExecutionEnvironment.watermarkInterval=200L`），可通过 `StreamExecutionEnvironment.setWatermarkInterval(long)` 配置；`watermarkInterval=0` 时退化为每元素发射一次 watermark（用于确定性测试）。
 
 ## 7. 与执行路径的集成
 
@@ -219,18 +225,17 @@ Source → TimestampsAndWatermarksOperator → Map → Window → Sink
 | 维度 | Flink | nop-stream |
 |---|---|---|
 | WatermarkStrategy | 完整实现，4 个工厂方法 + 对齐 + 空闲 | 完整移植（接口和策略类一致） |
-| TimestampsAndWatermarksOperator | 自动插入，watermarkInterval 可配置 | 存在但未插入，watermarkInterval 硬编码为 0 |
+| TimestampsAndWatermarksOperator | 自动插入，watermarkInterval 可配置 | 自动插入，watermarkInterval 默认 200ms、可配置（`setWatermarkInterval`） |
 | Watermark 对齐 | 分布式对齐（Source → Coordinator → Tasks） | 接口存在（`withWatermarkAlignment`），但无 Coordinator |
-| 多 Source watermark 合并 | 通过 InputGate + StatusWatermarkValve | WatermarkOutputMultiplexer 存在，但未接入执行路径 |
+| 多 Source watermark 合并 | 通过 InputGate + StatusWatermarkValve | `IndexedCombinedWatermarkStatus`（N-capable，valve 数学已单测覆盖）；`AbstractStreamOperator` 内 2 输入路径 dormant（无两输入算子消费者，见 §5.4 裁定） |
 | 自定义 WatermarkGenerator | 完整支持 | 接口完整，可使用 |
 
 ## 9. 已知限制
 
-1. **未与执行路径集成** — TimestampsAndWatermarksOperator 不在 execute() 的算子链中。当前只有 Source 结束时的 MAX_WATERMARK
-2. **watermarkInterval 硬编码为 0** — 周期性 watermark 发射不生效。需要从配置中读取（如 Flink 的 `ExecutionConfig.autoWatermarkInterval`）
-3. **Watermark 对齐未实现** — `withWatermarkAlignment()` 接口存在，但 `WatermarksWithWatermarkAlignment` 内部需要 Coordinator 通信，nop-stream 无此基础设施
-4. **CEP 的 currentWatermark() 返回 Long.MIN_VALUE** — CEP 使用独立执行路径，不感知 watermark 推进。FraudDetectionDemo 通过 `advanceTime()` 直接使用传入的 timestamp 绕过
-5. **WatermarkOutputMultiplexer 未使用** — 单 Source 场景不需要多路合并，但多 Source 场景会需要
+1. **多输入 watermark 合并 dormant** — `IndexedCombinedWatermarkStatus`（N-capable）与 `AbstractStreamOperator` 的 2 输入路径已存在且 valve 数学有单测覆盖，但 nop-stream 无 `TwoInputStreamOperator` 消费者，故运行时不触发。e2e 验证 defer 至两输入算子 successor（见 §5.4 裁定 + Anti-Hollow 豁免）。
+2. **Watermark 对齐未实现** — `withWatermarkAlignment()` 接口存在，但 `WatermarksWithWatermarkAlignment` 内部需要 Coordinator 通信，nop-stream 无此基础设施。
+3. **CEP 的 currentWatermark() 返回 Long.MIN_VALUE** — CEP 使用独立执行路径，不感知 watermark 推进。FraudDetectionDemo 通过 `advanceTime()` 直接使用传入的 timestamp 绕过。
+4. **WatermarkOutputMultiplexer 未接线** — source 侧多 split 合并的 `WatermarkOutputMultiplexer` 仅被自身单测引用，未接入执行路径；若 Stage 49 source split 需要，再接入。
 
 ## 10. 统一 Timer Service（G16 + G2）
 

@@ -48,8 +48,9 @@ WindowAssigner.assignWindows(element, timestamp) → 窗口集合 W[]
   │     └─ FIRE_AND_PURGE → 触发计算 + 清除
   │
   ├─► 如果 FIRE:
-  │     ├─ Evictor.evict(元素列表) [可选]
-  │     └─ InternalWindowFunction.apply() → 输出结果
+  │     ├─ Evictor.evictBefore(元素列表) [可选，计算前]
+  │     ├─ InternalWindowFunction.apply() → 输出结果
+  │     └─ Evictor.evictAfter(元素列表) [可选，计算后]
   │
   └─► 注册清理定时器 → 定时器触发后清除窗口状态
 ```
@@ -114,11 +115,13 @@ Trigger 的 `ctx` 提供注册/删除定时器和获取当前 watermark 的能�
 
 ## 6. AccumulationMode
 
-| 模式 | 语义 |
-|---|---|
-| `ACCUMULATING` | 窗口触发时输出累积结果，不清除状态，下次触发包含之前所有数据 |
-| `DISCARDING` | 窗口触发时输出结果，清除状态，下次触发只包含新数据 |
-| `RETRACTING` | 窗口触发时输出新结果并回撤之前的输出（需要下游支持 retraction） |
+| 模式 | 语义 | 状态 |
+|---|---|---|
+| `ACCUMULATING` | 窗口触发时输出累积结果，不清除状态，下次触发包含之前所有数据 | 已实现 |
+| `DISCARDING` | 窗口触发时输出结果，清除状态，下次触发只包含新数据 | 已实现 |
+| `ACCUMULATING_AND_RETRACTING` | 窗口触发时输出新结果并回撤之前的输出（需要下游支持 retraction） | **spec-only**（未实现，`WindowOperator.open()` 快速失败抛 `UnsupportedOperationException`） |
+
+> **注**：枚举值名与代码一致（`AccumulationMode.ACCUMULATING_AND_RETRACTING`）。nop-stream 无 retract 下游消费者，故该模式标 spec-only 并在未实现分支快速失败，而非静默当作 ACCUMULATING。
 
 ## 7. WindowingStrategy
 
@@ -266,15 +269,21 @@ emitWindowContents(key, window)
 
 ```
 emitWindowContents(key, window)
-  ├── 从 windowState 读取元素列表
-  ├── evictor.evict(元素列表, key, window, EvictorContext)
+  ├── 从 windowState 读取元素列表到局部瞬态副本 wrapped (ArrayList)
+  ├── evictor.evictBefore(wrapped, size, window, EvictorContext)   [计算前裁剪]
+  ├── 将 wrapped 转换为 evictedElements
   ├── 增量函数（AggregateFunction/ReduceFunction）:
   │     └── 在内部遍历剩余元素执行聚合 → 得到 ACC
   │         → internalWindowFunction.apply(key, window, ACC, collector)
   ├── 全量函数（ProcessWindowFunction/WindowFunction）:
   │     └── internalWindowFunction.apply(key, window, 剩余元素集合, collector)
+  ├── evictor.evictAfter(wrapped, size, window, EvictorContext)    [计算后裁剪]
   └── collector.collect(result)
 ```
+
+**Evictor 瞬态语义（transient-per-fire，与 Flink 一致）**：eviction 作用于**局部瞬态副本** `wrapped`，**不写回 state**。在 `ACCUMULATING` 模式下，窗口触发后不清除状态（`emitWindowContents` 仅在 `DISCARDING` 模式调用 `clearWindowContents`），故**全量元素跨 firing 持久化，eviction 每次 firing 从 state 重新读取并重算**。这与 Flink `EvictingWindowOperator` 的语义一致（Flink 同样从 `ListState` 读副本、eviction 不写回、每次重算）。
+
+> **决策（G46）**：nop-stream 收口为"核对 + 文档"，**不引入 evictAfter 持久化裁剪**。持久化会永久丢弃 Flink 在每次 firing 会重新淘汰的元素，构成回归（破坏 ACCUMULATING 模式的全量累积契约）。live 实现：`WindowOperator.emitWindowContents()` evictor 分支构造 `wrapped`（局部 `ArrayList`，从 state 读取），`evictBefore` → `userFunction.process` → `evictAfter`，全程不写回 state。
 
 **Evictor 路径的类型桥接**：有 Evictor 时，状态存储原始元素（`IN`），但 `InternalWindowFunction` 接收的可能是聚合后的 `ACC`（增量函数）或 `Iterable<IN>`（全量函数）。这个转换由算子在 `emitWindowContents` 内部完成，不在适配器中。
 
@@ -381,6 +390,14 @@ Evictor 是可选组件，在窗口触发后、计算前执行，用于移除窗
 
 Evictor 在 `emitWindowContents` 中执行，不是独立的算子或外部策略。
 
+**两次调用（evictBefore / evictAfter）**：`Evictor` 接口定义 `evictBefore`（计算前裁剪）与 `evictAfter`（计算后裁剪）两个回调，`emitWindowContents` 按序调用：先 `evictBefore` → 再 `userFunction.process` → 最后 `evictAfter`。两者均作用于局部瞬态副本，**不持久化**。
+
+**瞬态淘汰语义（transient-per-fire）**：eviction 每次窗口触发从 state 读取全量元素到局部副本后裁剪，裁剪结果**不写回 state**。因此：
+- `DISCARDING` 模式：触发后 `clearWindowContents` 清空 state，下次触发从空开始。
+- `ACCUMULATING` 模式：触发后不清空 state，全量元素跨 firing 持久化，eviction 每次 firing 重算。
+
+此语义与 Flink `EvictingWindowOperator` 一致。**明确不引入"evictAfter 持久化裁剪"**——后者会永久丢弃 ACCUMULATING 模式下本应跨 firing 保留的元素，构成回归。
+
 ## 12. Timer Service
 
 ### 12.1 InternalTimerService
@@ -400,33 +417,45 @@ Evictor 在 `emitWindowContents` 中执行，不是独立的算子或外部策�
 
 窗口定时器进入 checkpoint（见 `state-management-design.md` §8）。不 checkpoint 定时器的窗口实现不能声明支持 exactly-once 恢复。
 
-## 13. PaneState
+## 13. PaneState / Pane 跟踪
 
-PaneState 是窗口多次触发（early/on-time/late firing）的元信息模型。每次窗口触发产生一个 Pane，`PaneState` 记录该 pane 的状态，进入 checkpoint。
+Pane 跟踪记录窗口多次触发（early/on-time/late firing）的元信息，用于在 `WindowOperator.computePaneInfo` 中分类 firing 并分配 pane index。
 
-**设计状态**：PaneState 定义了窗口多次触发的语义契约（§6 AccumulationMode 的 DISCARDING/ACCUMULATING/RETRACTING 交互），但与 §8 输出逻辑的集成属于后续迭代。当前设计中 `emitWindowContents` 不更新 PaneState——PaneState 的完整集成需要在算子中增加 per-window pane 元数据的存储和更新逻辑。
+### 13.1 live 实现
+
+`WindowOperator` 通过 `paneTracking`（`Map<String, PaneTrackingInfo>`）跟踪 per-(key,window) 的 pane 状态：
 
 | 字段 | 说明 |
 |---|---|
-| `paneIndex` | 窗口内第几次触发（0-based） |
-| `paneTiming` | EARLY / ON_TIME / LATE |
-| `accumulator` | 当前累积器状态 |
-| `retracted` | 之前已回撤的输出（RETRACTING 模式） |
-| `lastFiringTimestamp` | 上次触发时间 |
+| `paneIndex` | 窗口内第几次触发（0-based），每次 firing 递增 |
+| `onTimeEmitted` | 是否已发射过 ON_TIME firing（首次跨 watermark 为 ON_TIME 并置 true，其后为 LATE） |
 
-| PaneTiming | 含义 |
-|---|---|
-| `EARLY` | 在 watermark 到达窗口结束时间之前触发 |
-| `ON_TIME` | 在 watermark 到达窗口结束时间时触发 |
-| `LATE` | 在 watermark 超过窗口结束时间但未超过 cleanupTime 时触发 |
+`PaneInfo`（不可变，每次 firing 构造）字段：`index`、`isFirst`（`paneIndex==0`）、`isLast`（**见 §13.3 裁定**）、`timing`（EARLY/ON_TIME/LATE）。
 
-与 AccumulationMode 的交互：
+PaneTiming 判定（`computePaneInfo`）：
+- `watermark < window.maxTimestamp()` → **EARLY**
+- `watermark >= window.maxTimestamp()` 且首次跨过 → **ON_TIME**（置 `onTimeEmitted=true`）
+- `watermark >= window.maxTimestamp()` 且已发射过 ON_TIME → **LATE**
 
-- `DISCARDING`：每次触发后清除 accumulator，paneIndex 递增
-- `ACCUMULATING`：accumulator 持续累积，paneIndex 递增，每次输出包含全部累积数据
-- `RETRACTING`：输出新结果 + 回撤上一 pane 的输出，下游合并后得到正确结果
+### 13.2 Checkpoint / Restore（G48）
 
-PaneState 作为 per-window namespace 的 operator state 存储，与窗口内容状态在同一 namespace 下。
+`paneTracking` 参与 `snapshotState` / `restoreState`，以 `PaneTrackingSnapshot` DTO（可序列化）持久化：
+
+- **snapshot**：`snapshotState` 将 TimeWindow-scoped 的 pane 条目写入 operator state `"pane-tracking"`。
+- **restore**：`restoreState`（在 `open()` 之前调用）捕获 snapshot；`open()` 在初始化 `paneTracking` map 后延迟应用，恢复 `paneIndex` / `onTimeEmitted`。
+- **TimeWindow 限制**：仅 `TimeWindow`-scoped pane 参与持久化（`windowNamespace` 为可逆的 `TW:start,end`）。非 TimeWindow 窗口的 `windowNamespace` 为 `className#toString`（不可逆），不参与持久化以避免 restore 错配。未来可扩展可逆 namespace 编码。
+
+恢复后窗口首次触发不再被误判为 ON_TIME / isFirst —— pane index/onTimeEmitted 续接。
+
+### 13.3 isLast 裁定
+
+`PaneInfo.isLast` 在当前架构下**清理前不可知，恒为 false**。理由：`computePaneInfo` 在 `emitWindowContents` 内构造不可变 `PaneInfo` 并立即随 emit 输出；清理时（`clearWindowContents`）已无法回填已输出的 `isLast`。**不采用时间上不可行的回填方案**。若未来需要真实 `isLast` 语义，须改为清理时独立 emit 一次 cleanup pane（属未来增强，本设计不做）。
+
+### 13.4 与 AccumulationMode 的交互（spec）
+
+- `DISCARDING`：每次触发后清除窗口内容，paneIndex 递增
+- `ACCUMULATING`：窗口内容持续累积，paneIndex 递增，每次输出包含全部累积数据
+- `ACCUMULATING_AND_RETRACTING`：spec-only，输出新结果 + 回撤上一 pane 的输出（未实现，见 §6）
 
 ## 14. WindowCompatibilityCheck
 

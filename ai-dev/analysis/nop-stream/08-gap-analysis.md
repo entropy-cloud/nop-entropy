@@ -111,9 +111,9 @@
 | G43 | state | TTL 装饰器/清理策略完全缺失 | Gap/P2 | 04-state: #19 | 独立 plan |
 | G44 | state | 缺少异步两阶段 snapshot | Gap/P2 | 04-state: #9(dup) | Item 9 |
 | G45 | state | 缺少增量 checkpoint | Gap/P2 | 04-state: #10(partial) | deferred (Phase 4) |
-| G46 | window | Evictor.evictAfter() 未被调用 | Gap/P2 | 05-window: G7 | Item 10 或独立 |
-| G47 | window | StatusWatermarkValve 等效缺失 | Gap/P2 | 05-window: G8 | Item 10 |
-| G48 | window | Early/on-time/late pane tracking 缺失 | Gap/P2 | 05-window: G9 | Item 10 |
+| ~~G46~~ | window | Evictor.evictAfter() 未被调用 | Gap/P2 | 05-window: G7 | ✅ Closed (item 21) — `emitWindowContents` evictBefore/evictAfter 已接线，transient-per-fire 语义核对，不引入持久化回归。Plan `2026-07-25-1500-2-evictor-watermark-pane` |
+| ~~G47~~ | window | StatusWatermarkValve 等效缺失 | Gap/P2 | 05-window: G8 | ✅ Closed (item 21) — `IndexedCombinedWatermarkStatus` N-capable + valve 数学单测；悬空 `@link` 修正；dormant + Anti-Hollow 豁免。Plan `2026-07-25-1500-2-evictor-watermark-pane` |
+| ~~G48~~ | window | Early/on-time/late pane tracking 缺失 | Gap/P2 | 05-window: G9 | ✅ Closed (item 21) — paneTracking checkpoint/restore（TimeWindow 限定）；isLast 裁定；ACCUMULATING_AND_RETRACTING spec-only。Plan `2026-07-25-1500-2-evictor-watermark-pane` |
 | G49 | cep | 设计注释过时（Javadoc 声称 "hardcoded MemoryKeyedStateBackend"） | Doc/P2 | 06-cep: #7 | Item 11 |
 | G50 | distributed | 无 slot sharing / co-location groups | Gap/P2 | 07-dist: D6 | Item 12a |
 | G51 | distributed | 无 resource manager 组件 | Gap/P2 | 07-dist: D7 | Item 12a |

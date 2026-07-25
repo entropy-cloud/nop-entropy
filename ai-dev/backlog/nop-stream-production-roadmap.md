@@ -26,7 +26,7 @@ Does not contain implementation details. Each `planned` stage is owned by its ex
 - 18. 异步两阶段 snapshot pipeline（G30, G44，P2）: `todo`
 - 19. Checkpoint 并发与共享状态（G31, G33，P2）: `todo`
 - 20. Partial/subtask 级恢复（G28, G29，P2）: `todo`
-- 21. Evictor/Pane/Watermark 集成（G46—G48，P2）: `todo`
+- 21. Evictor/Pane/Watermark 集成（G46—G48，P2）: `done`
 - 22. 文档合同对齐与 source-anchors 补全（D69—D73，Doc）: `todo`
 - 23. 代码清理与 P3 次要改进（G68, G62, G64，P3）: `todo`
 
