@@ -66,12 +66,29 @@ public class Task implements Runnable, Serializable {
 
     /**
      * Enumeration of possible task states.
+     *
+     * <p>State machine (G54/G58 unified transition model — see {@link TaskStateTransition}):
+     * <ul>
+     *   <li>{@code CREATED → SCHEDULED → DEPLOYING → RUNNING → COMPLETED} (normal deployment)</li>
+     *   <li>{@code FAILED/non-terminal → RECOVERING → SCHEDULED → DEPLOYING → RUNNING} (recovery)</li>
+     *   <li>{@code non-terminal → CANCELING → CANCELED} (cancel)</li>
+     *   <li>{@code RUNNING/SCHEDULED/DEPLOYING/RECOVERING → FAILED} (failure)</li>
+     * </ul>
+     * Terminal states (COMPLETED/FAILED/CANCELED) are absorbing; transitions out throw.
      */
     public enum State {
-        /** Task is created but not yet running */
+        /** Task is created but not yet scheduled */
         CREATED,
+        /** Task has been scheduled to a node */
+        SCHEDULED,
+        /** Task is being deployed (operator chain opening) */
+        DEPLOYING,
         /** Task is currently executing */
         RUNNING,
+        /** Task is recovering from a previous failure */
+        RECOVERING,
+        /** Task is being cooperatively canceled (intermediate) */
+        CANCELING,
         /** Task completed successfully */
         COMPLETED,
         /** Task failed with an error */
@@ -142,30 +159,74 @@ public class Task implements Runnable, Serializable {
      */
     @Override
     public void run() {
-        // Transition to RUNNING state
-        if (!state.compareAndSet(State.CREATED, State.RUNNING)) {
-            LOG.warn("Task {} cannot start - current state is {}",
-                getTaskName(), state.get());
+        // Honor terminal / cancel states set before invocation
+        State initial = state.get();
+        if (initial == State.CANCELED || initial == State.COMPLETED || initial == State.FAILED) {
+            LOG.warn("Task {} cannot start - already in terminal state {}", getTaskName(), initial);
+            return;
+        }
+        if (initial == State.CANCELING) {
+            // cancel() was invoked before run(); finalize the cancel closure
+            state.compareAndSet(State.CANCELING, State.CANCELED);
+            LOG.info("Task {} finalized CANCELING → CANCELED at run() entry", getTaskName());
+            return;
+        }
+
+        // CREATED → SCHEDULED → DEPLOYING → RUNNING transition chain
+        if (!transitionFromCreatedTo(State.SCHEDULED)) {
+            LOG.warn("Task {} cannot advance to SCHEDULED - state is {}", getTaskName(), state.get());
             return;
         }
 
         LOG.info("Starting task: {}", getTaskName());
 
         try {
+            // SCHEDULED → DEPLOYING (opening operator chains)
+            if (!compareAndTransition(State.SCHEDULED, State.DEPLOYING)) {
+                LOG.warn("Task {} state changed from SCHEDULED during deployment to {}",
+                        getTaskName(), state.get());
+                return;
+            }
+
             openOperatorChains();
+
+            // DEPLOYING → RUNNING (about to invoke)
+            if (!compareAndTransition(State.DEPLOYING, State.RUNNING)) {
+                LOG.warn("Task {} state changed from DEPLOYING to {} before invoke",
+                        getTaskName(), state.get());
+                return;
+            }
 
             Invokable<?> invokable = jobVertex.getInvokable();
             invokable.invoke();
 
-            if (!state.compareAndSet(State.RUNNING, State.COMPLETED)) {
-                LOG.warn("Task {} state changed from RUNNING during execution to {}", getTaskName(), state.get());
+            // RUNNING → COMPLETED (success path)
+            if (!compareAndTransition(State.RUNNING, State.COMPLETED)) {
+                // Could have transitioned to CANCELING or FAILED in the meantime
+                State current = state.get();
+                if (current == State.CANCELING) {
+                    state.compareAndSet(State.CANCELING, State.CANCELED);
+                    LOG.info("Task {} finalized CANCELING → CANCELED after invoke", getTaskName());
+                } else {
+                    LOG.warn("Task {} state changed from RUNNING during execution to {}",
+                            getTaskName(), current);
+                }
             } else {
                 LOG.info("Task completed successfully: {}", getTaskName());
             }
 
         } catch (Throwable t) {
             this.error = t;
-            state.set(State.FAILED);
+            // RUNNING/SCHEDULED/DEPLOYING → FAILED (validate-then-CAS); fallback to set for safety
+            State current = state.get();
+            if (current == State.RUNNING || current == State.SCHEDULED || current == State.DEPLOYING) {
+                state.set(State.FAILED);
+            } else {
+                // Already terminal (CANCELED/CANCELING); leave as-is so we don't overwrite cancel
+                if (current == State.CANCELING) {
+                    state.compareAndSet(State.CANCELING, State.CANCELED);
+                }
+            }
             LOG.error("Task failed: " + getTaskName(), t);
 
         } finally {
@@ -248,16 +309,91 @@ public class Task implements Runnable, Serializable {
     }
 
     /**
-     * Attempts to cancel the task.
+     * Attempts to cancel the task (G58: unified cancel semantics).
      *
-     * <p>If the task is in CREATED state, it transitions to CANCELED state
-     * and will not execute. If the task is already running or completed,
-     * this method has no effect.
+     * <p>Cancels the task by transitioning through {@code CANCELING} (the cooperative
+     * intermediate state) toward {@code CANCELED}. For non-RUNNING states (no active
+     * execution thread), the cancel closure itself advances {@code CANCELING → CANCELED}
+     * atomically. For RUNNING state, the state stays in {@code CANCELING} and the run
+     * loop is responsible for the {@code CANCELING → CANCELED} finalization.
      *
-     * @return true if the task was canceled, false otherwise
+     * @return true if a cancel transition was performed (state changed), false if the
+     *         task was already in a terminal state (COMPLETED/FAILED/CANCELED)
      */
     public boolean cancel() {
-        return state.compareAndSet(State.CREATED, State.CANCELED);
+        while (true) {
+            State current = state.get();
+            if (current == State.COMPLETED || current == State.FAILED || current == State.CANCELED) {
+                return false;
+            }
+            if (current == State.CANCELING) {
+                // Another thread already canceled; idempotent
+                return false;
+            }
+            // Validate the transition is legal for the current state
+            if (!TaskStateTransition.isLegalTransition(current, State.CANCELING)) {
+                return false;
+            }
+            if (!state.compareAndSet(current, State.CANCELING)) {
+                // CAS failed because another thread moved state; retry
+                continue;
+            }
+            // For non-RUNNING states there is no execution thread to finalize the
+            // CANCELING → CANCELED transition, so the cancel closure does it.
+            if (current != State.RUNNING) {
+                state.compareAndSet(State.CANCELING, State.CANCELED);
+            }
+            return true;
+        }
+    }
+
+    /**
+     * Forcibly marks the task as FAILED (used by external recovery paths). Validates
+     * the transition; no-op if the task is already in a terminal state.
+     */
+    public void markFailed(Throwable cause) {
+        if (cause != null && this.error == null) {
+            this.error = cause;
+        }
+        while (true) {
+            State current = state.get();
+            if (current == State.COMPLETED || current == State.FAILED || current == State.CANCELED) {
+                return;
+            }
+            if (!TaskStateTransition.isLegalTransition(current, State.FAILED)) {
+                return;
+            }
+            if (state.compareAndSet(current, State.FAILED)) {
+                return;
+            }
+        }
+    }
+
+    /**
+     * Transitions to the SCHEDULED state from CREATED (initial schedule step).
+     * Returns false if another thread already advanced the state.
+     */
+    private boolean transitionFromCreatedTo(State target) {
+        State current = state.get();
+        if (current == target) {
+            return true;
+        }
+        if (!TaskStateTransition.isLegalTransition(current, target)) {
+            // Illegal; current may have advanced past CREATED. Allow if it's already
+            // at or beyond target on the deployment path.
+            return current == State.SCHEDULED
+                    || current == State.DEPLOYING
+                    || current == State.RUNNING;
+        }
+        return state.compareAndSet(current, target);
+    }
+
+    /**
+     * Validates + CAS transition. Returns false if the CAS failed.
+     */
+    private boolean compareAndTransition(State expected, State target) {
+        TaskStateTransition.validateTransition(expected, target);
+        return state.compareAndSet(expected, target);
     }
 
     /**
@@ -267,6 +403,31 @@ public class Task implements Runnable, Serializable {
      */
     public State getState() {
         return state.get();
+    }
+
+    /**
+     * Marks the task as scheduled (CREATED → SCHEDULED). Returns false if the
+     * transition is illegal or lost a CAS race. Used by external orchestrators
+     * (e.g. JobCoordinator) that drive the lifecycle explicitly.
+     */
+    public boolean markScheduled() {
+        return casTransition(State.CREATED, State.SCHEDULED);
+    }
+
+    /**
+     * Marks the task as recovering (RECOVERING entry from a non-terminal state).
+     */
+    public boolean markRecovering() {
+        State current = state.get();
+        if (!TaskStateTransition.isLegalTransition(current, State.RECOVERING)) {
+            return false;
+        }
+        return state.compareAndSet(current, State.RECOVERING);
+    }
+
+    private boolean casTransition(State expected, State target) {
+        TaskStateTransition.validateTransition(expected, target);
+        return state.compareAndSet(expected, target);
     }
 
     /**

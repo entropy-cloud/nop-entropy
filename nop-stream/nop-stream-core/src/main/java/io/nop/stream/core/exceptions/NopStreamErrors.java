@@ -29,6 +29,11 @@ public interface NopStreamErrors {
     String ARG_STATE_VERSION = "stateVersion";
     String ARG_STATE_TYPE = "stateType";
     String ARG_DESCRIPTOR_NAME = "descriptorName";
+    String ARG_CURRENT_STATE = "currentState";
+    String ARG_TARGET_STATE = "targetState";
+    String ARG_ATTEMPT_NUMBER = "attemptNumber";
+    String ARG_CAUSE = "cause";
+    String ARG_NODE_ID = "nodeId";
 
     ErrorCode ERR_STREAM_NULL_ARG =
             define("nop.err.stream.null-arg", "Argument {argName} must not be null", ARG_ARG_NAME);

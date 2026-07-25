@@ -482,13 +482,19 @@ class TestJobCoordinator {
 
         @Override
         public void assignTask(String jobId, String vertexId, int subtaskIndex,
-                               String nodeId, String attemptId, String fencingToken) {
+                               String nodeId, String attemptId, String fencingToken,
+                               int attemptNumber) {
             // no-op in mock
         }
 
         @Override
         public TaskAssignment getTaskAssignment(String jobId, String vertexId, int subtaskIndex) {
             return null;
+        }
+
+        @Override
+        public java.util.List<TaskAssignment> getAttemptHistory(String jobId, String vertexId, int subtaskIndex) {
+            return new ArrayList<>();
         }
 
         @Override

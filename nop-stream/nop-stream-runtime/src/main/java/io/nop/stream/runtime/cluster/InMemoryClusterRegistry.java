@@ -8,6 +8,7 @@
 package io.nop.stream.runtime.cluster;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.List;
 import java.util.Map;
@@ -28,7 +29,11 @@ public class InMemoryClusterRegistry implements ClusterRegistry {
     private final Map<String, CoordinatorInfo> coordinators = new ConcurrentHashMap<>();
     private final Map<String, NodeInfo> nodes = new ConcurrentHashMap<>();
     private final Map<String, Long> leaseTimestamps = new ConcurrentHashMap<>();
-    private final Map<String, TaskAssignment> taskAssignments = new ConcurrentHashMap<>();
+    /**
+     * G56: attempt history per task key. Each list is append-only and ordered by
+     * insertion (= monotonically increasing attemptNumber, enforced by callers).
+     */
+    private final Map<String, List<TaskAssignment>> taskAssignmentHistory = new ConcurrentHashMap<>();
     private final long leaseTtlMs;
 
     public InMemoryClusterRegistry() {
@@ -115,22 +120,54 @@ public class InMemoryClusterRegistry implements ClusterRegistry {
 
     @Override
     public void assignTask(String jobId, String vertexId, int subtaskIndex,
-                           String nodeId, String attemptId, String fencingToken) {
+                           String nodeId, String attemptId, String fencingToken,
+                           int attemptNumber) {
         String key = assignmentKey(jobId, vertexId, subtaskIndex);
         TaskAssignment assignment = new TaskAssignment(jobId, vertexId, subtaskIndex, nodeId,
-                attemptId, fencingToken, System.currentTimeMillis());
-        taskAssignments.put(key, assignment);
-        LOG.debug("Assigned task {}/{}/{} to node {} (attempt={})", jobId, vertexId, subtaskIndex, nodeId, attemptId);
+                attemptId, fencingToken, System.currentTimeMillis(), attemptNumber);
+        // G56: append, do not overwrite. Synchronized block guards the read-modify-write
+        // so concurrent attempt-n writers cannot interleave (single atomic append per call).
+        synchronized (taskAssignmentHistory) {
+            List<TaskAssignment> existing = taskAssignmentHistory.get(key);
+            if (existing == null) {
+                existing = new ArrayList<>();
+                taskAssignmentHistory.put(key, existing);
+            }
+            // Defensive monotonic check (#24 — no silent skip): reject regressions.
+            if (!existing.isEmpty()) {
+                int lastAttempt = existing.get(existing.size() - 1).getAttemptNumber();
+                if (attemptNumber <= lastAttempt) {
+                    LOG.warn("Attempt number regression for {}/{}/{}: last={}, attempted={}. Appending anyway (caller bug?).",
+                            jobId, vertexId, subtaskIndex, lastAttempt, attemptNumber);
+                }
+            }
+            existing.add(assignment);
+        }
+        LOG.debug("Assigned task {}/{}/{} to node {} (attempt={}, attemptNumber={})",
+                jobId, vertexId, subtaskIndex, nodeId, attemptId, attemptNumber);
     }
 
     @Override
     public TaskAssignment getTaskAssignment(String jobId, String vertexId, int subtaskIndex) {
-        return taskAssignments.get(assignmentKey(jobId, vertexId, subtaskIndex));
+        List<TaskAssignment> history = taskAssignmentHistory.get(assignmentKey(jobId, vertexId, subtaskIndex));
+        if (history == null || history.isEmpty()) {
+            return null;
+        }
+        return history.get(history.size() - 1);
+    }
+
+    @Override
+    public List<TaskAssignment> getAttemptHistory(String jobId, String vertexId, int subtaskIndex) {
+        List<TaskAssignment> history = taskAssignmentHistory.get(assignmentKey(jobId, vertexId, subtaskIndex));
+        if (history == null) {
+            return new ArrayList<>();
+        }
+        return Collections.unmodifiableList(new ArrayList<>(history));
     }
 
     @Override
     public void removeTaskAssignment(String jobId, String vertexId, int subtaskIndex) {
-        taskAssignments.remove(assignmentKey(jobId, vertexId, subtaskIndex));
+        taskAssignmentHistory.remove(assignmentKey(jobId, vertexId, subtaskIndex));
     }
 
     private String assignmentKey(String jobId, String vertexId, int subtaskIndex) {

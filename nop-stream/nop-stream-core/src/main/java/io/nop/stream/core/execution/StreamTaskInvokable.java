@@ -70,6 +70,18 @@ public class StreamTaskInvokable implements Invokable<Void> {
      */
     private final MailboxExecutor mailboxExecutor = new MailboxExecutor();
 
+    /**
+     * G52: per-invokable liveness timestamp. Updated at every data-plane progress
+     * point (record emission for SOURCE/SELF_CONTAINED via {@link #markProgress()},
+     * input-gate iteration for MIDDLE/SINK inside {@link #processInputGate}).
+     * Read by {@code TaskManager.heartbeat()} via {@link #getLastProgressTime()}
+     * and reported to the coordinator piggybacked on the existing node heartbeat.
+     *
+     * <p>Volatile because the writer is the task thread and the reader is the
+     * heartbeat thread; only ever assigned monotonically non-decreasing values.
+     */
+    private volatile long lastProgressTime = System.currentTimeMillis();
+
     private CheckpointBarrierTracker barrierTracker;
 
     private Input<Object> headInput;
@@ -239,13 +251,19 @@ public class StreamTaskInvokable implements Invokable<Void> {
      * {@link StreamSourceOperator}, so that {@code offerBarrier()} delivers
      * trigger-checkpoint mails to the task mailbox. Applies to SOURCE and SELF_CONTAINED
      * roles. No-op for MIDDLE/SINK and when no head source operator is present.
+     *
+     * <p>G52: also wires {@code setProgressMarker(this::markProgress)} so that
+     * {@link StreamSourceOperator}'s SourceContext refreshes
+     * {@link #getLastProgressTime()} on every emitted record.
      */
     private void wireMailboxToHeadSource() {
         List<StreamOperator<?>> operators = operatorChain.getOperators();
         if (!operators.isEmpty()) {
             StreamOperator<?> head = operators.get(0);
             if (head instanceof StreamSourceOperator) {
-                ((StreamSourceOperator<?>) head).setMailboxExecutor(mailboxExecutor);
+                StreamSourceOperator<?> sourceOp = (StreamSourceOperator<?>) head;
+                sourceOp.setMailboxExecutor(mailboxExecutor);
+                sourceOp.setProgressMarker(this::markProgress);
             }
         }
     }
@@ -261,6 +279,26 @@ public class StreamTaskInvokable implements Invokable<Void> {
      */
     public MailboxExecutor getMailboxExecutor() {
         return mailboxExecutor;
+    }
+
+    /**
+     * G52: liveness timestamp. Updated at every data-plane progress point.
+     *
+     * @return monotonic timestamp of the last data-plane progress; never decreases
+     */
+    public long getLastProgressTime() {
+        return lastProgressTime;
+    }
+
+    /**
+     * G52: marks a data-plane progress event. Called from {@link #processInputGate}
+     * (MIDDLE/SINK) and from the source emission paths
+     * ({@link #invokeSource}/{@link #invokeSelfContained} via SourceContext.collect
+     * or the source operator's pull loop). Idempotent and thread-safe (volatile
+     * assignment from the task thread only).
+     */
+    public void markProgress() {
+        this.lastProgressTime = System.currentTimeMillis();
     }
 
     public OperatorChain getOperatorChain() {
@@ -316,6 +354,10 @@ public class StreamTaskInvokable implements Invokable<Void> {
 
     private void invokeSource() throws Exception {
         operatorChain.open();
+        // G52: liveness marker for the SOURCE role at the start of the run loop.
+        // SourceContext.collect() (the per-record emission path) also marks progress;
+        // this initial marker covers a slow-start source that has not emitted yet.
+        markProgress();
         try {
             List<StreamOperator<?>> operators = operatorChain.getOperators();
             StreamOperator<?> head = operators.get(0);
@@ -324,6 +366,9 @@ public class StreamTaskInvokable implements Invokable<Void> {
                 StreamSourceOperator<?> sourceOp = (StreamSourceOperator<?>) head;
                 if (sourceOp.getOutput() != null) {
                     sourceOp.run();
+                    // G52: mark progress after source run returns (covers a source
+                    // that emits in batches and might otherwise look idle mid-run).
+                    markProgress();
                 }
             }
         } finally {
@@ -374,6 +419,8 @@ public class StreamTaskInvokable implements Invokable<Void> {
 
     private void invokeSelfContained() throws Exception {
         operatorChain.open();
+        // G52: liveness marker for SELF_CONTAINED at the start of run.
+        markProgress();
         try {
             List<StreamOperator<?>> operators = operatorChain.getOperators();
             StreamOperator<?> head = operators.get(0);
@@ -382,6 +429,8 @@ public class StreamTaskInvokable implements Invokable<Void> {
                 StreamSourceOperator<?> sourceOp = (StreamSourceOperator<?>) head;
                 if (sourceOp.getOutput() != null) {
                     sourceOp.run();
+                    // G52: mark progress after run (covers batched emission).
+                    markProgress();
                     sourceOp.processWatermark(Watermark.MAX_WATERMARK);
                 }
             }
@@ -407,6 +456,9 @@ public class StreamTaskInvokable implements Invokable<Void> {
             if (!elementOpt.isPresent()) {
                 break;
             }
+
+            // G52: per-iteration liveness marker for MIDDLE/SINK roles.
+            markProgress();
 
             StreamElement element = elementOpt.get();
             if (element.isRecord()) {

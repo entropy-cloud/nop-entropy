@@ -179,32 +179,28 @@ public class JdbcClusterRegistry implements ClusterRegistry {
 
     @Override
     public void assignTask(String jobId, String vertexId, int subtaskIndex,
-                           String nodeId, String attemptId, String fencingToken) {
+                           String nodeId, String attemptId, String fencingToken,
+                           int attemptNumber) {
         ensureTables();
 
         long now = System.currentTimeMillis();
 
-        // Delete existing assignment for this task (upsert pattern)
-        SQL deleteSql = SQL.begin().name("deleteTaskAssignment").querySpace(querySpace)
-                .sql("DELETE FROM " + TASK_ASSIGNMENT_TABLE +
-                                " WHERE job_id = ? AND vertex_id = ? AND subtask_index = ?",
-                        jobId, vertexId, subtaskIndex)
-                .end();
-
+        // G56: preserve attempt history. Do NOT delete prior rows for the same
+        // (jobId, vertexId, subtaskIndex) — INSERT a new row with an incremented
+        // attempt_number. The PRIMARY KEY now includes attempt_number so the same
+        // task can carry multiple attempt rows. (#24 — no silent skip: a duplicate
+        // INSERT will throw a constraint violation that surfaces the caller bug.)
         SQL insertSql = SQL.begin().name("insertTaskAssignment").querySpace(querySpace)
                 .sql("INSERT INTO " + TASK_ASSIGNMENT_TABLE +
-                                " (job_id, vertex_id, subtask_index, node_id, attempt_id, fencing_token, assigned_at)" +
-                                " VALUES (?,?,?,?,?,?,?)",
-                        jobId, vertexId, subtaskIndex, nodeId, attemptId, fencingToken, now)
+                                " (job_id, vertex_id, subtask_index, node_id, attempt_id, fencing_token, assigned_at, attempt_number)" +
+                                " VALUES (?,?,?,?,?,?,?,?)",
+                        jobId, vertexId, subtaskIndex, nodeId, attemptId, fencingToken, now, attemptNumber)
                 .end();
 
-        jdbcTemplate.txn().runInTransaction(querySpace, TransactionPropagation.REQUIRED, txn -> {
-            jdbcTemplate.executeUpdate(deleteSql);
-            jdbcTemplate.executeUpdate(insertSql);
-            return null;
-        });
+        jdbcTemplate.executeUpdate(insertSql);
 
-        LOG.debug("Assigned task {}/{}/{} to node {} with attempt {}", jobId, vertexId, subtaskIndex, nodeId, attemptId);
+        LOG.debug("Assigned task {}/{}/{} to node {} with attempt {} (attemptNumber={})",
+                jobId, vertexId, subtaskIndex, nodeId, attemptId, attemptNumber);
     }
 
     @Override
@@ -213,14 +209,40 @@ public class JdbcClusterRegistry implements ClusterRegistry {
             return null;
         }
 
+        // Latest attempt = MAX(attempt_number) for the same (job, vertex, subtask)
         SQL sql = SQL.begin().name("getTaskAssignment").querySpace(querySpace)
-                .sql("SELECT job_id, vertex_id, subtask_index, node_id, attempt_id, fencing_token, assigned_at" +
+                .sql("SELECT job_id, vertex_id, subtask_index, node_id, attempt_id, fencing_token, assigned_at, attempt_number" +
                         " FROM " + TASK_ASSIGNMENT_TABLE +
-                        " WHERE job_id = ? AND vertex_id = ? AND subtask_index = ?",
+                        " WHERE job_id = ? AND vertex_id = ? AND subtask_index = ?" +
+                        " ORDER BY attempt_number DESC LIMIT 1",
                         jobId, vertexId, subtaskIndex)
                 .end();
 
         return queryFirst(sql, this::mapTaskAssignment);
+    }
+
+    @Override
+    public List<TaskAssignment> getAttemptHistory(String jobId, String vertexId, int subtaskIndex) {
+        List<TaskAssignment> result = new ArrayList<>();
+        if (!taskAssignmentTableExists()) {
+            return result;
+        }
+
+        SQL sql = SQL.begin().name("getAttemptHistory").querySpace(querySpace)
+                .sql("SELECT job_id, vertex_id, subtask_index, node_id, attempt_id, fencing_token, assigned_at, attempt_number" +
+                        " FROM " + TASK_ASSIGNMENT_TABLE +
+                        " WHERE job_id = ? AND vertex_id = ? AND subtask_index = ?" +
+                        " ORDER BY attempt_number ASC",
+                        jobId, vertexId, subtaskIndex)
+                .end();
+
+        jdbcTemplate.executeQuery(sql, dataSet -> {
+            for (IDataRow row : dataSet) {
+                result.add(mapTaskAssignmentRow(row));
+            }
+            return null;
+        });
+        return result;
     }
 
     @Override
@@ -229,6 +251,7 @@ public class JdbcClusterRegistry implements ClusterRegistry {
             return;
         }
 
+        // G56: remove ALL attempt rows for this task (used by globalRecovery clear)
         SQL sql = SQL.begin().name("removeTaskAssignment").querySpace(querySpace)
                 .sql("DELETE FROM " + TASK_ASSIGNMENT_TABLE +
                                 " WHERE job_id = ? AND vertex_id = ? AND subtask_index = ?",
@@ -341,6 +364,9 @@ public class JdbcClusterRegistry implements ClusterRegistry {
             return;
         }
 
+        // G56: PRIMARY KEY now includes attempt_number so the table preserves
+        // full attempt history (each (job, vertex, subtask) row is unique per
+        // attempt rather than per task).
         String ddl = "CREATE TABLE " + TASK_ASSIGNMENT_TABLE + " (" +
                 "job_id VARCHAR(255) NOT NULL, " +
                 "vertex_id VARCHAR(255) NOT NULL, " +
@@ -349,7 +375,8 @@ public class JdbcClusterRegistry implements ClusterRegistry {
                 "attempt_id VARCHAR(255) NOT NULL, " +
                 "fencing_token VARCHAR(255) NOT NULL, " +
                 "assigned_at BIGINT NOT NULL, " +
-                "PRIMARY KEY (job_id, vertex_id, subtask_index)" +
+                "attempt_number INT NOT NULL DEFAULT 1, " +
+                "PRIMARY KEY (job_id, vertex_id, subtask_index, attempt_number)" +
                 ")";
 
         SQL sql = SQL.begin().name("createTaskAssignmentTable").querySpace(querySpace)
@@ -409,17 +436,30 @@ public class JdbcClusterRegistry implements ClusterRegistry {
 
     private TaskAssignment mapTaskAssignment(IDataSet dataSet) {
         for (IDataRow row : dataSet) {
-            return new TaskAssignment(
-                    row.getString(0),
-                    row.getString(1),
-                    row.getInt(2),
-                    row.getString(3),
-                    row.getString(4),
-                    row.getString(5),
-                    getLong(row, 6)
-            );
+            return mapTaskAssignmentRow(row);
         }
         return null;
+    }
+
+    private TaskAssignment mapTaskAssignmentRow(IDataRow row) {
+        return new TaskAssignment(
+                row.getString(0),
+                row.getString(1),
+                row.getInt(2),
+                row.getString(3),
+                row.getString(4),
+                row.getString(5),
+                getLong(row, 6),
+                getInt(row, 7)
+        );
+    }
+
+    private int getInt(IDataRow row, int index) {
+        Object val = row.getObject(index);
+        if (val instanceof Number) {
+            return ((Number) val).intValue();
+        }
+        return 0;
     }
 
     private long getLong(IDataRow row, int index) {

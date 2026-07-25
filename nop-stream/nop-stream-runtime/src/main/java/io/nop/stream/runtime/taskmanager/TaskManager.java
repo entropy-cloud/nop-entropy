@@ -7,6 +7,7 @@
  */
 package io.nop.stream.runtime.taskmanager;
 
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
@@ -41,6 +42,8 @@ import static io.nop.stream.core.exceptions.NopStreamErrors.ARG_DETAIL;
 import static io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_INVALID_STATE;
 import io.nop.stream.runtime.cluster.ClusterRegistry;
 import io.nop.stream.runtime.cluster.TaskAssignment;
+import io.nop.stream.runtime.coordinator.TaskProgress;
+import io.nop.stream.runtime.coordinator.TaskStatusReport;
 import io.nop.stream.runtime.rpc.IStreamCoordinatorRpcService;
 import io.nop.stream.runtime.rpc.IStreamTaskRpcService;
 import io.nop.stream.runtime.transport.RemoteInputChannel;
@@ -184,7 +187,14 @@ public class TaskManager implements IStreamTaskRpcService {
     // ==================== Heartbeat ====================
 
     /**
-     * Renews the lease for this node in the ClusterRegistry.
+     * Renews the lease for this node in the ClusterRegistry and (G52) piggybacks
+     * per-task liveness to the coordinator on the existing heartbeat cadence.
+     *
+     * <p>No new task-level heartbeat thread is introduced: this method reads each
+     * RunningTask's invokable {@code lastProgressTime} (null-checking the invokable
+     * since it is set lazily by {@link RunningTask#setInvokable} after a 30s
+     * {@code waitForInvokable} window) and reports a {@link TaskProgress} batch to
+     * the coordinator via {@link IStreamCoordinatorRpcService#reportNodeTaskLiveness}.
      */
     public void heartbeat() {
         if (!running) {
@@ -198,6 +208,36 @@ public class TaskManager implements IStreamTaskRpcService {
             }
         } catch (Exception e) {
             LOG.error("Heartbeat failed for node {}", nodeId, e);
+        }
+
+        // G52: piggyback per-task liveness on the node heartbeat
+        IStreamCoordinatorRpcService rpc = this.coordinatorRpcService;
+        if (rpc == null || runningTasks.isEmpty()) {
+            return;
+        }
+        List<TaskProgress> progress = new ArrayList<>();
+        for (RunningTask task : runningTasks.values()) {
+            StreamTaskInvokable inv = task.invokable;
+            // null-check defense: invokable is volatile, lazily set by setInvokable()
+            // (30s waitForInvokable window). Skip liveness for tasks whose invokable
+            // is not yet installed — consistent with Phase 3 cancel null-check.
+            if (inv == null) {
+                continue;
+            }
+            progress.add(new TaskProgress(
+                    task.vertexId,
+                    task.subtaskIndex,
+                    task.attemptNumber,
+                    inv.getLastProgressTime()));
+        }
+        if (!progress.isEmpty()) {
+            try {
+                rpc.reportNodeTaskLiveness(nodeId, progress);
+            } catch (Exception e) {
+                // #24 — no silent skip: log and continue. A transient RPC failure
+                // does not tear down the heartbeat loop; the next beat retries.
+                LOG.warn("reportNodeTaskLiveness failed for node {} ({} tasks)", nodeId, progress.size(), e);
+            }
         }
     }
 
@@ -249,7 +289,8 @@ public class TaskManager implements IStreamTaskRpcService {
                 assignment.getVertexId(),
                 assignment.getSubtaskIndex(),
                 assignment.getFencingToken(),
-                assignment.getAttemptId());
+                assignment.getAttemptId(),
+                assignment.getAttemptNumber());
 
         RunningTask existing = runningTasks.putIfAbsent(taskKey, runningTask);
         if (existing != null) {
@@ -422,6 +463,12 @@ public class TaskManager implements IStreamTaskRpcService {
         private final int subtaskIndex;
         private final String fencingToken;
         private final String attemptId;
+        /**
+         * G56: per-subtask attempt number (mirrors {@link TaskAssignment#getAttemptNumber()}).
+         * Carried in {@link TaskStatusReport} so the coordinator can correlate reports
+         * with the right attempt.
+         */
+        private final int attemptNumber;
         private final TaskLocation taskLocation;
         private final CountDownLatch invokableLatch;
 
@@ -433,11 +480,17 @@ public class TaskManager implements IStreamTaskRpcService {
 
         public RunningTask(String jobId, String vertexId, int subtaskIndex,
                            String fencingToken, String attemptId) {
+            this(jobId, vertexId, subtaskIndex, fencingToken, attemptId, 1);
+        }
+
+        public RunningTask(String jobId, String vertexId, int subtaskIndex,
+                           String fencingToken, String attemptId, int attemptNumber) {
             this.jobId = jobId;
             this.vertexId = vertexId;
             this.subtaskIndex = subtaskIndex;
             this.fencingToken = fencingToken;
             this.attemptId = attemptId;
+            this.attemptNumber = attemptNumber;
             this.taskLocation = new TaskLocation(jobId, "pipeline-0", vertexId, subtaskIndex);
             this.invokableLatch = new CountDownLatch(1);
         }
@@ -471,8 +524,9 @@ public class TaskManager implements IStreamTaskRpcService {
                 }
             } finally {
                 String key = taskKey(jobId, vertexId, subtaskIndex);
+                boolean success = error == null && !canceled;
                 completedTasks.put(key, new TaskResult(jobId, vertexId, subtaskIndex,
-                        error == null && !canceled, canceled, error));
+                        success, canceled, error));
                 if (completedTasks.size() > MAX_COMPLETED_TASKS) {
                     Iterator<String> it = completedTasks.keySet().iterator();
                     if (it.hasNext()) {
@@ -484,6 +538,46 @@ public class TaskManager implements IStreamTaskRpcService {
                 if (semaphoreReleased.compareAndSet(false, true)) {
                     capacitySemaphore.release();
                 }
+
+                // G52: per-task terminal-state report to the coordinator. Only
+                // COMPLETED / FAILED are reported (CANCELED is initiated by the
+                // coordinator itself, no need to echo back). #24 — failure to
+                // report is logged (no silent swallow).
+                if (!canceled) {
+                    reportTerminalStatus(success);
+                }
+            }
+        }
+
+        /**
+         * G52: reports this task's terminal state to the coordinator. Failures
+         * are logged but do not tear down the run loop (#24 — explicit handling,
+         * not silent).
+         */
+        private void reportTerminalStatus(boolean success) {
+            IStreamCoordinatorRpcService rpc = TaskManager.this.coordinatorRpcService;
+            if (rpc == null) {
+                // No coordinator wired (e.g. unit-test fixture); skip silently.
+                return;
+            }
+            long lastProgress = -1L;
+            StreamTaskInvokable inv = this.invokable;
+            if (inv != null) {
+                lastProgress = inv.getLastProgressTime();
+            }
+            TaskStatusReport.TerminalState state = success
+                    ? TaskStatusReport.TerminalState.COMPLETED
+                    : TaskStatusReport.TerminalState.FAILED;
+            String cause = error != null ? error.toString() : null;
+            TaskStatusReport report = new TaskStatusReport(
+                    jobId, vertexId, subtaskIndex, attemptNumber,
+                    state, cause, lastProgress, fencingToken,
+                    System.currentTimeMillis());
+            try {
+                rpc.reportTaskStatus(report);
+            } catch (Exception e) {
+                LOG.warn("Failed to report terminal status for {}/{}/{} (state={})",
+                        jobId, vertexId, subtaskIndex, state, e);
             }
         }
 
@@ -507,6 +601,27 @@ public class TaskManager implements IStreamTaskRpcService {
         public void cancel() {
             canceled = true;
             invokableLatch.countDown();
+            // G58: cooperative mailbox cancel first, then interrupt. Mirrors the
+            // LOCAL path (GraphModelCheckpointExecutor.java:683) — the mailbox
+            // signalCancel() raises the cancel flag and queues a cancel marker so
+            // the task thread observes cancellation at its next mailbox drain even
+            // if it is not in a blocking-interruptible section.
+            //
+            // null-check defense: invokable is volatile, lazily set by
+            // setInvokable() (30s waitForInvokable window). If cancel arrives
+            // before the invokable is installed, skip the mailbox call (no NPE);
+            // the state-transition + future.cancel(true) + latch countdown still
+            // apply so the task exits cleanly once the invokable arrives (or
+            // waitForInvokable times out).
+            StreamTaskInvokable inv = this.invokable;
+            if (inv != null) {
+                try {
+                    inv.getMailboxExecutor().signalCancel();
+                } catch (Exception e) {
+                    LOG.warn("signalCancel failed for {}/{}/{} (falling back to interrupt-only)",
+                            jobId, vertexId, subtaskIndex, e);
+                }
+            }
             if (future != null) {
                 future.cancel(true);
             }

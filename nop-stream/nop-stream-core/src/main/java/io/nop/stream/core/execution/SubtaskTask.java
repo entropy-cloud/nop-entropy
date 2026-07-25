@@ -28,9 +28,16 @@ public class SubtaskTask implements Runnable {
 
     private static final Logger LOG = LoggerFactory.getLogger(SubtaskTask.class);
 
+    /**
+     * SubtaskTask lifecycle states. Shares the unified transition model defined in
+     * {@link TaskStateTransition} (G54/G58).
+     */
     public enum State {
         CREATED,
+        SCHEDULED,
+        DEPLOYING,
         RUNNING,
+        RECOVERING,
         CANCELING,
         COMPLETED,
         FAILED,
@@ -63,8 +70,22 @@ public class SubtaskTask implements Runnable {
 
     @Override
     public void run() {
-        if (!state.compareAndSet(State.CREATED, State.RUNNING)) {
-            LOG.warn("SubtaskTask {} cannot start - current state is {}", getTaskName(), state.get());
+        State initial = state.get();
+        if (initial == State.CANCELED || initial == State.COMPLETED || initial == State.FAILED) {
+            LOG.warn("SubtaskTask {} cannot start - already in terminal state {}", getTaskName(), initial);
+            return;
+        }
+        if (initial == State.CANCELING) {
+            // cancel() before run(); finalize the cancel closure
+            state.compareAndSet(State.CANCELING, State.CANCELED);
+            LOG.info("Subtask {} finalized CANCELING → CANCELED at run() entry", getTaskName());
+            return;
+        }
+
+        // CREATED → SCHEDULED → DEPLOYING → RUNNING chain (G54)
+        if (!state.compareAndSet(State.CREATED, State.SCHEDULED)) {
+            LOG.warn("SubtaskTask {} cannot advance to SCHEDULED - state is {}",
+                    getTaskName(), state.get());
             return;
         }
 
@@ -72,7 +93,21 @@ public class SubtaskTask implements Runnable {
         executingThread = Thread.currentThread();
 
         try {
+            // SCHEDULED → DEPLOYING
+            if (!compareAndTransition(State.SCHEDULED, State.DEPLOYING)) {
+                LOG.warn("Subtask {} state changed from SCHEDULED to {}",
+                        getTaskName(), state.get());
+                return;
+            }
+
             openOperatorChains();
+
+            // DEPLOYING → RUNNING
+            if (!compareAndTransition(State.DEPLOYING, State.RUNNING)) {
+                LOG.warn("Subtask {} state changed from DEPLOYING to {}",
+                        getTaskName(), state.get());
+                return;
+            }
 
             while (state.get() == State.RUNNING) {
                 subtask.getInvokable().invoke();
@@ -88,7 +123,8 @@ public class SubtaskTask implements Runnable {
             }
         } catch (Throwable t) {
             this.error = t;
-            if (state.get() == State.CANCELING) {
+            State s = state.get();
+            if (s == State.CANCELING) {
                 state.set(State.CANCELED);
                 LOG.info("Subtask canceled with error: {}", getTaskName());
             } else {
@@ -102,17 +138,36 @@ public class SubtaskTask implements Runnable {
     }
 
     public boolean cancel() {
-        if (state.compareAndSet(State.CREATED, State.CANCELED)) {
-            return true;
-        }
-        if (state.compareAndSet(State.RUNNING, State.CANCELING)) {
-            Thread t = executingThread;
-            if (t != null) {
-                t.interrupt();
+        while (true) {
+            State current = state.get();
+            if (current == State.COMPLETED || current == State.FAILED || current == State.CANCELED) {
+                return false;
+            }
+            if (current == State.CANCELING) {
+                return false;
+            }
+            if (!TaskStateTransition.isLegalTransition(current, State.CANCELING)) {
+                return false;
+            }
+            if (!state.compareAndSet(current, State.CANCELING)) {
+                continue;
+            }
+            if (current == State.RUNNING) {
+                Thread t = executingThread;
+                if (t != null) {
+                    t.interrupt();
+                }
+            } else {
+                // No execution thread to finalize; cancel closure advances to CANCELED
+                state.compareAndSet(State.CANCELING, State.CANCELED);
             }
             return true;
         }
-        return false;
+    }
+
+    private boolean compareAndTransition(State expected, State target) {
+        TaskStateTransition.validateTransition(expected, target);
+        return state.compareAndSet(expected, target);
     }
 
     public State getState() {

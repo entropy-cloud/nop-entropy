@@ -24,11 +24,25 @@ public class TaskAssignment implements Serializable {
     private String fencingToken;
     private long assignedAt;
 
+    /**
+     * Monotonically increasing attempt number per (jobId, vertexId, subtaskIndex).
+     * Driven by {@code JobCoordinator} on every (re)assignment so that the
+     * {@link ClusterRegistry} can preserve full attempt history (G56).
+     * First attempt = 1; increments on each global recovery.
+     */
+    private int attemptNumber;
+
     public TaskAssignment() {
     }
 
     public TaskAssignment(String jobId, String vertexId, int subtaskIndex, String nodeId,
                           String attemptId, String fencingToken, long assignedAt) {
+        this(jobId, vertexId, subtaskIndex, nodeId, attemptId, fencingToken, assignedAt, 1);
+    }
+
+    public TaskAssignment(String jobId, String vertexId, int subtaskIndex, String nodeId,
+                          String attemptId, String fencingToken, long assignedAt,
+                          int attemptNumber) {
         this.jobId = jobId;
         this.vertexId = vertexId;
         this.subtaskIndex = subtaskIndex;
@@ -36,6 +50,7 @@ public class TaskAssignment implements Serializable {
         this.attemptId = attemptId;
         this.fencingToken = fencingToken;
         this.assignedAt = assignedAt;
+        this.attemptNumber = attemptNumber;
     }
 
     public String getJobId() {
@@ -92,5 +107,13 @@ public class TaskAssignment implements Serializable {
 
     public void setAssignedAt(long assignedAt) {
         this.assignedAt = assignedAt;
+    }
+
+    public int getAttemptNumber() {
+        return attemptNumber;
+    }
+
+    public void setAttemptNumber(int attemptNumber) {
+        this.attemptNumber = attemptNumber;
     }
 }

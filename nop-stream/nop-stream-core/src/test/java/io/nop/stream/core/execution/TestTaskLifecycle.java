@@ -67,11 +67,99 @@ class TestTaskLifecycle {
         JobVertex v = createVertex(() -> {});
         Task task = new Task(v, 0);
 
+        // G58: cancel() from CREATED advances through CANCELING → CANCELED
+        // (cancel closure finalizes since there is no execution thread)
         assertTrue(task.cancel());
         assertEquals(Task.State.CANCELED, task.getState());
 
         task.run();
         assertEquals(Task.State.CANCELED, task.getState());
+    }
+
+    @Test
+    void testTaskCancelIsIdempotentAfterCanceled() {
+        JobVertex v = createVertex(() -> {});
+        Task task = new Task(v, 0);
+
+        assertTrue(task.cancel());
+        assertEquals(Task.State.CANCELED, task.getState());
+
+        // Second cancel returns false; state stays CANCELED
+        assertFalse(task.cancel());
+        assertEquals(Task.State.CANCELED, task.getState());
+    }
+
+    @Test
+    void testTaskCancelFromRunningTransitionsToCanceling() throws Exception {
+        // G58: cancel() from RUNNING must transition to CANCELING (observable
+        // intermediate state), not be a no-op like the legacy 5-state model.
+        JobVertex v = createVertex(() -> {});
+        Task task = new Task(v, 0);
+
+        // Manually drive the task into RUNNING via the same chain run() uses
+        // (CREATED → SCHEDULED → DEPLOYING → RUNNING).
+        // Use reflection-free path: invoke run() in a thread, cancel from main.
+        java.util.concurrent.CountDownLatch runningLatch = new java.util.concurrent.CountDownLatch(1);
+        java.util.concurrent.atomic.AtomicReference<Throwable> threadError = new java.util.concurrent.atomic.AtomicReference<>();
+
+        Thread t = new Thread(() -> {
+            try {
+                // Drive CREATED → SCHEDULED → DEPLOYING → RUNNING explicitly so the
+                // test does not depend on run()'s internal scheduling timing.
+                // However Task.run() does this internally; the simplest path is to
+                // call run() and let it advance through the chain. The invokable
+                // below blocks on the latch so the task is in RUNNING when we cancel.
+                task.run();
+            } catch (Throwable e) {
+                threadError.set(e);
+            }
+        });
+        t.setDaemon(true);
+
+        // Use an invokable that signals "running" then blocks until interrupted
+        JobVertex blockingVertex = createVertex(() -> {
+            runningLatch.countDown();
+            try {
+                Thread.sleep(60_000);
+            } catch (InterruptedException ie) {
+                Thread.currentThread().interrupt();
+            }
+        });
+        Task blockingTask = new Task(blockingVertex, 0);
+
+        Thread bt = new Thread(() -> {
+            try {
+                blockingTask.run();
+            } catch (Throwable e) {
+                threadError.set(e);
+            }
+        });
+        bt.setDaemon(true);
+        bt.start();
+
+        // Wait until the task thread has entered the invokable (RUNNING state)
+        assertTrue(runningLatch.await(5, java.util.concurrent.TimeUnit.SECONDS),
+                "task should reach RUNNING within 5s");
+
+        assertEquals(Task.State.RUNNING, blockingTask.getState(),
+                "task must be in RUNNING before cancel");
+
+        // G58: cancel() from RUNNING must transition to CANCELING
+        boolean canceled = blockingTask.cancel();
+        assertTrue(canceled, "cancel() from RUNNING must return true (G58)");
+        assertEquals(Task.State.CANCELING, blockingTask.getState(),
+                "cancel() from RUNNING must leave task in CANCELING (G58 intermediate state)");
+
+        // Cleanup: interrupt the blocking task thread
+        bt.interrupt();
+        bt.join(2000);
+
+        // Final state: either CANCELED (if run loop observed CANCELING) or FAILED
+        // (if interrupted ungracefully). Both are acceptable terminal states for
+        // this test — the key assertion is that cancel() produced CANCELING.
+        Task.State finalState = blockingTask.getState();
+        assertTrue(finalState == Task.State.CANCELED || finalState == Task.State.FAILED,
+                "unexpected final state: " + finalState);
     }
 
     @Test

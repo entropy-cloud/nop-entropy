@@ -153,6 +153,11 @@ public class EmbeddedDistributedExecutor implements IStreamExecutionDispatcher {
                 taskRpcServices);
 
         coordinator.setFencingToken(fencingToken);
+        // G52: embedded path uses synchronous failure propagation via
+        // checkTaskResults; auto-recovery on FAILED would reassign tasks without
+        // reinstalling invokables (which the embedded loop does only once),
+        // causing the executor to deadlock. Disable it for embedded execution.
+        coordinator.setAutoRecoverOnFailedReport(false);
 
         for (TaskManager tm : taskManagers) {
             tm.setCoordinatorRpcService(coordinator);

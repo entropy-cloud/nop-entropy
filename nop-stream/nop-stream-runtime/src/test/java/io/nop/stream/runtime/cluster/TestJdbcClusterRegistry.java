@@ -62,6 +62,7 @@ class TestJdbcClusterRegistry {
             SQL dropSql = SQL.begin().sql("DROP TABLE IF EXISTS " + tableName).end();
             jdbcTemplate.executeUpdate(dropSql);
         } catch (Exception ignored) {
+            // Best-effort cleanup before each test; table may not exist on first run.
         }
     }
 
@@ -208,15 +209,31 @@ class TestJdbcClusterRegistry {
     }
 
     @Test
-    void testAssignTaskOverwrite() {
-        registry.assignTask("job-1", "vertex-1", 0, "node-1", "attempt-1", "fence-1");
-        registry.assignTask("job-1", "vertex-1", 0, "node-2", "attempt-2", "fence-2");
+    void testAssignTaskPreservesAttemptHistory() {
+        // G56: assignTask no longer overwrites; it appends to attempt history.
+        registry.assignTask("job-1", "vertex-1", 0, "node-1", "attempt-1", "fence-1", 1);
+        registry.assignTask("job-1", "vertex-1", 0, "node-2", "attempt-2", "fence-2", 2);
 
-        TaskAssignment assignment = registry.getTaskAssignment("job-1", "vertex-1", 0);
-        assertNotNull(assignment);
-        assertEquals("node-2", assignment.getNodeId());
-        assertEquals("attempt-2", assignment.getAttemptId());
-        assertEquals("fence-2", assignment.getFencingToken());
+        // Latest = attempt 2
+        TaskAssignment latest = registry.getTaskAssignment("job-1", "vertex-1", 0);
+        assertNotNull(latest);
+        assertEquals("node-2", latest.getNodeId());
+        assertEquals("attempt-2", latest.getAttemptId());
+        assertEquals("fence-2", latest.getFencingToken());
+        assertEquals(2, latest.getAttemptNumber());
+
+        // Full history preserved
+        List<TaskAssignment> history = registry.getAttemptHistory("job-1", "vertex-1", 0);
+        assertEquals(2, history.size());
+        assertEquals(1, history.get(0).getAttemptNumber());
+        assertEquals(2, history.get(1).getAttemptNumber());
+    }
+
+    @Test
+    void testAttemptHistoryEmptyForUnknownTask() {
+        List<TaskAssignment> history = registry.getAttemptHistory("nope", "nope", 99);
+        assertNotNull(history);
+        assertTrue(history.isEmpty());
     }
 
     @Test
@@ -291,23 +308,28 @@ class TestJdbcClusterRegistry {
         List<NodeInfo> activeNodes = registry.getActiveNodes();
         assertEquals(2, activeNodes.size());
 
-        // 5. Assign tasks
-        registry.assignTask("job-e2e", "source", 0, "node-a", "att-1", "token-e2e");
-        registry.assignTask("job-e2e", "source", 1, "node-b", "att-1", "token-e2e");
-        registry.assignTask("job-e2e", "sink", 0, "node-a", "att-1", "token-e2e");
+        // 5. Assign tasks (G56: explicit attempt numbers)
+        registry.assignTask("job-e2e", "source", 0, "node-a", "att-1", "token-e2e", 1);
+        registry.assignTask("job-e2e", "source", 1, "node-b", "att-1", "token-e2e", 1);
+        registry.assignTask("job-e2e", "sink", 0, "node-a", "att-1", "token-e2e", 1);
 
         // 6. Verify assignments
         assertNotNull(registry.getTaskAssignment("job-e2e", "source", 0));
         assertNotNull(registry.getTaskAssignment("job-e2e", "source", 1));
         assertNotNull(registry.getTaskAssignment("job-e2e", "sink", 0));
 
-        // 7. Reassign a task (failover scenario)
-        registry.assignTask("job-e2e", "source", 1, "node-a", "att-2", "token-e2e-v2");
+        // 7. Reassign a task (failover scenario) — append new attempt
+        registry.assignTask("job-e2e", "source", 1, "node-a", "att-2", "token-e2e-v2", 2);
         TaskAssignment reassigned = registry.getTaskAssignment("job-e2e", "source", 1);
         assertNotNull(reassigned);
         assertEquals("node-a", reassigned.getNodeId());
         assertEquals("att-2", reassigned.getAttemptId());
         assertEquals("token-e2e-v2", reassigned.getFencingToken());
+        assertEquals(2, reassigned.getAttemptNumber());
+
+        // Attempt history preserves both attempts
+        List<TaskAssignment> source1History = registry.getAttemptHistory("job-e2e", "source", 1);
+        assertEquals(2, source1History.size());
 
         // 8. Remove completed task
         registry.removeTaskAssignment("job-e2e", "sink", 0);

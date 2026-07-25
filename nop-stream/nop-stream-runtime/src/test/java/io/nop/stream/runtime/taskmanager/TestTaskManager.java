@@ -436,11 +436,17 @@ class TestTaskManager {
 
         @Override
         public void assignTask(String jobId, String vertexId, int subtaskIndex,
-                               String nodeId, String attemptId, String fencingToken) {}
+                               String nodeId, String attemptId, String fencingToken,
+                               int attemptNumber) {}
 
         @Override
         public TaskAssignment getTaskAssignment(String jobId, String vertexId, int subtaskIndex) {
             return null;
+        }
+
+        @Override
+        public List<TaskAssignment> getAttemptHistory(String jobId, String vertexId, int subtaskIndex) {
+            return new ArrayList<>();
         }
 
         @Override
@@ -470,10 +476,24 @@ class TestTaskManager {
 
     static class MockCoordinatorRpcService implements IStreamCoordinatorRpcService {
         volatile CheckpointAckMessage lastAck;
+        final java.util.List<io.nop.stream.runtime.coordinator.TaskStatusReport> statusReports =
+                new java.util.concurrent.CopyOnWriteArrayList<>();
+        final java.util.List<io.nop.stream.runtime.coordinator.TaskProgress> livenessReports =
+                new java.util.concurrent.CopyOnWriteArrayList<>();
 
         @Override
         public void receiveCheckpointAck(CheckpointAckMessage ack) {
             this.lastAck = ack;
+        }
+
+        @Override
+        public void reportTaskStatus(io.nop.stream.runtime.coordinator.TaskStatusReport report) {
+            statusReports.add(report);
+        }
+
+        @Override
+        public void reportNodeTaskLiveness(String nodeId, java.util.List<io.nop.stream.runtime.coordinator.TaskProgress> progress) {
+            livenessReports.addAll(progress);
         }
     }
 }

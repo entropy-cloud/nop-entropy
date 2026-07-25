@@ -62,6 +62,14 @@ public class StreamSourceOperator<OUT> extends AbstractStreamOperator<OUT> {
      */
     private MailboxExecutor mailboxExecutor;
 
+    /**
+     * G52: per-record progress marker wired by the owning {@code StreamTaskInvokable}.
+     * Called from {@link SourceFunction.SourceContext#collect(Object)} on every record
+     * emission so that a healthy-but-slow source is not misjudged as stalled. May be
+     * null (e.g. isolated unit-test usage); collect() null-checks before invoking.
+     */
+    private Runnable progressMarker;
+
     private final SourceFunction<OUT> sourceFunction;
 
     private volatile boolean isRunning = true;
@@ -88,6 +96,16 @@ public class StreamSourceOperator<OUT> extends AbstractStreamOperator<OUT> {
             throw new IllegalArgumentException("MailboxExecutor must not be null");
         }
         this.mailboxExecutor = mailboxExecutor;
+    }
+
+    /**
+     * G52: wires the per-record progress marker. Called by the owning
+     * {@code StreamTaskInvokable} before {@link #run()} so that
+     * {@link SourceFunction.SourceContext#collect(Object)} can refresh the
+     * invokable's {@code lastProgressTime} on every emitted record.
+     */
+    public void setProgressMarker(Runnable progressMarker) {
+        this.progressMarker = progressMarker;
     }
 
     /**
@@ -172,12 +190,15 @@ public class StreamSourceOperator<OUT> extends AbstractStreamOperator<OUT> {
             @Override
             public void collect(OUT element) {
                 drainControlMails();
+                // G52: per-record liveness marker for SOURCE / SELF_CONTAINED.
+                markProgress();
                 output.collect(new StreamRecord<>(element));
             }
 
             @Override
             public void collectWithTimestamp(OUT element, long timestamp) {
                 drainControlMails();
+                markProgress();
                 output.collect(new StreamRecord<>(element, timestamp));
             }
 
@@ -224,6 +245,18 @@ public class StreamSourceOperator<OUT> extends AbstractStreamOperator<OUT> {
                 throw new StreamException(ERR_STREAM_CHECKPOINT_ABORTED)
                         .param(ARG_REASON, "source cancelled via mailbox (cooperative abort)");
             }
+        }
+    }
+
+    /**
+     * G52: invokes the wired progress marker (if any). Called from
+     * {@link SourceFunction.SourceContext#collect} so the owning invokable's
+     * {@code lastProgressTime} tracks every emitted record.
+     */
+    private void markProgress() {
+        Runnable m = this.progressMarker;
+        if (m != null) {
+            m.run();
         }
     }
 

@@ -68,25 +68,54 @@ public interface ClusterRegistry {
     /**
      * Assign a task to a node.
      *
+     * <p>G56: assignTask <strong>preserves attempt history</strong> — successive calls
+     * for the same (jobId, vertexId, subtaskIndex) with monotonically increasing
+     * {@code attemptNumber} do NOT overwrite prior records. Use
+     * {@link #getAttemptHistory(String, String, int)} to read the full history; use
+     * {@link #getTaskAssignment(String, String, int)} to read only the latest attempt.
+     *
      * @param jobId        the job identifier
      * @param vertexId     the vertex identifier within the job
      * @param subtaskIndex the subtask index
      * @param nodeId       the node to assign to
-     * @param attemptId    execution attempt identifier
+     * @param attemptId    execution attempt identifier (UUID)
      * @param fencingToken fencing token for this assignment
+     * @param attemptNumber monotonic attempt number per (job, vertex, subtask); starts at 1
      */
     void assignTask(String jobId, String vertexId, int subtaskIndex,
-                    String nodeId, String attemptId, String fencingToken);
+                    String nodeId, String attemptId, String fencingToken, int attemptNumber);
 
     /**
-     * Get the task assignment for a specific task.
+     * Backward-compatible overload defaulting {@code attemptNumber = 1}. Existing
+     * callers that have not been migrated to attempt tracking still work; new
+     * callers (JobCoordinator) must pass an explicit attempt number.
+     */
+    default void assignTask(String jobId, String vertexId, int subtaskIndex,
+                            String nodeId, String attemptId, String fencingToken) {
+        assignTask(jobId, vertexId, subtaskIndex, nodeId, attemptId, fencingToken, 1);
+    }
+
+    /**
+     * Get the task assignment for a specific task. Returns the latest attempt
+     * (highest {@code attemptNumber}) or null if never assigned.
      *
      * @param jobId        the job identifier
      * @param vertexId     the vertex identifier
      * @param subtaskIndex the subtask index
-     * @return task assignment, or null if not assigned
+     * @return latest task assignment, or null if not assigned
      */
     TaskAssignment getTaskAssignment(String jobId, String vertexId, int subtaskIndex);
+
+    /**
+     * G56: Returns the full attempt history for a specific task, ordered by
+     * {@code attemptNumber} monotonically increasing. Empty list if no attempts.
+     *
+     * @param jobId        the job identifier
+     * @param vertexId     the vertex identifier
+     * @param subtaskIndex the subtask index
+     * @return unmodifiable list of all attempts in monotonic order
+     */
+    List<TaskAssignment> getAttemptHistory(String jobId, String vertexId, int subtaskIndex);
 
     /**
      * Remove a task assignment.

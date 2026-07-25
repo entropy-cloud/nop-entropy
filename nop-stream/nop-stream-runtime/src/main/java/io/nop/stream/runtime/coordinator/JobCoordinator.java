@@ -79,6 +79,8 @@ public class JobCoordinator implements IStreamCoordinatorRpcService {
     private static final long DEFAULT_LEASE_CHECK_INTERVAL_MS = 5000L;
     private static final long DEFAULT_LEASE_EXPIRE_THRESHOLD_MS = 30000L;
     private static final long DEFAULT_TERMINATION_CHECKPOINT_TIMEOUT_MS = 60_000L;
+    /** G52: default per-task liveness timeout (a task whose lastProgressTime is older than this is considered stalled). */
+    static final long DEFAULT_TASK_TIMEOUT_MS = 60_000L;
 
     private final String jobId;
     private final String coordinatorId;
@@ -107,6 +109,56 @@ public class JobCoordinator implements IStreamCoordinatorRpcService {
 
     /** AR-6: Guard against double initialization */
     private final AtomicBoolean initialized = new AtomicBoolean(false);
+
+    /**
+     * G56: per-subtask attempt counter. Keyed by "{vertexId}/{subtaskIndex}".
+     * Incremented on every (re)assignment so that ClusterRegistry preserves a
+     * monotonically increasing attempt history. Initialized lazily on first
+     * assignTasks(); incremented per-subtask on each globalRecovery().
+     */
+    private final Map<String, Integer> attemptCounters = new ConcurrentHashMap<>();
+
+    /**
+     * G52: per-subtask liveness tracking. Key = "{vertexId}/{subtaskIndex}".
+     * Values are the latest known lastProgressTime (updated by
+     * {@link #reportNodeTaskLiveness} / {@link #reportTaskStatus}).
+     */
+    private final Map<String, Long> subtaskLiveness = new ConcurrentHashMap<>();
+
+    /** G52: per-task liveness timeout (configurable). */
+    private volatile long taskTimeoutMs = DEFAULT_TASK_TIMEOUT_MS;
+
+    /**
+     * G52: when {@code true} (default), a per-task FAILED report triggers
+     * {@link #globalRecovery()} automatically. Set to {@code false} for the
+     * embedded E2E path (which uses synchronous failure propagation via
+     * {@code EmbeddedDistributedExecutor.checkTaskResults} and does not
+     * reinstall invokables after recovery).
+     */
+    private volatile boolean autoRecoverOnFailedReport = true;
+
+    /**
+     * G56: job-level terminal status. Transitions {@code CREATED → RUNNING → (FAILED | CANCELED)}
+     * Once FAILED, the coordinator stops accepting new assignments / triggers.
+     */
+    private volatile JobStatus jobStatus = JobStatus.CREATED;
+
+    /**
+     * G56: global restart counter. Incremented only inside {@link #globalRecovery()}.
+     * When it exceeds {@link #maxRestarts}, the next recovery request calls
+     * {@link #failJob(Throwable)} instead.
+     *
+     * <p>Stage 27 scoped restart (targeted failover) will need its own per-region
+     * counter because it does not flow through {@code globalRecovery()} — recorded
+     * as a deferred follow-up.
+     */
+    private final java.util.concurrent.atomic.AtomicInteger restartCount = new java.util.concurrent.atomic.AtomicInteger(0);
+
+    /** G56: max global restarts before the job is marked FAILED (default 3). */
+    private volatile int maxRestarts = 3;
+
+    /** G56: cause captured by {@link #failJob(Throwable)}; null until FAILED. */
+    private volatile Throwable jobFailureCause;
 
     public JobCoordinator(String jobId,
                           String coordinatorId,
@@ -161,6 +213,8 @@ public class JobCoordinator implements IStreamCoordinatorRpcService {
                 TimeUnit.MILLISECONDS);
 
         running = true;
+        // G56: lifecycle job status CREATED → RUNNING
+        jobStatus = JobStatus.RUNNING;
         LOG.info("JobCoordinator {} started for job {} with fencing token {}",
                 coordinatorId, jobId, token);
     }
@@ -179,6 +233,33 @@ public class JobCoordinator implements IStreamCoordinatorRpcService {
         checkpointCoordinator.shutdown();
 
         LOG.info("JobCoordinator {} stopped for job {}", coordinatorId, jobId);
+    }
+
+    /**
+     * G56: marks the job as FAILED and shuts down coordinator-side machinery.
+     *
+     * <p>Effects:
+     * <ul>
+     *   <li>Sets {@link #jobStatus} to {@link JobStatus#FAILED}; subsequent
+     *       {@link #assignTasks()} calls are rejected.</li>
+     *   <li>Stops the failure detector (no more recovery attempts).</li>
+     *   <li>Captures the cause for diagnostics.</li>
+     * </ul>
+     *
+     * <p>Idempotent: a second invocation when already FAILED is a no-op.
+     */
+    public void failJob(Throwable cause) {
+        if (jobStatus == JobStatus.FAILED) {
+            return;
+        }
+        this.jobFailureCause = cause;
+        this.jobStatus = JobStatus.FAILED;
+        LOG.error("Job {} FAILED (cause={})", jobId, cause == null ? "unknown" : cause.toString(), cause);
+        try {
+            failureDetector.shutdownNow();
+        } catch (Exception e) {
+            LOG.warn("Failed to shut down failure detector during failJob", e);
+        }
     }
 
     // ==================== Task Assignment ====================
@@ -201,6 +282,12 @@ public class JobCoordinator implements IStreamCoordinatorRpcService {
     public void assignTasks() {
         if (!running) {
             LOG.warn("JobCoordinator not running, cannot assign tasks");
+            return;
+        }
+        // G56: once the job is FAILED, no new assignments are permitted
+        if (jobStatus == JobStatus.FAILED) {
+            LOG.warn("Job {} is FAILED (cause={}); rejecting assignTasks",
+                    jobId, jobFailureCause == null ? "unknown" : jobFailureCause.toString());
             return;
         }
 
@@ -245,15 +332,19 @@ public class JobCoordinator implements IStreamCoordinatorRpcService {
                     }
 
                     String attemptId = UUID.randomUUID().toString();
+                    // G56: per-subtask monotonically-increasing attempt number
+                    String attemptKey = vertexId + "/" + subtaskIndex;
+                    int attemptNumber = attemptCounters.computeIfAbsent(attemptKey, k -> 0) + 1;
+                    attemptCounters.put(attemptKey, attemptNumber);
 
                     TaskAssignment taskAssignment = new TaskAssignment(
                             jobId, vertexId, subtaskIndex,
                             targetNodeId, attemptId, token,
-                            System.currentTimeMillis());
+                            System.currentTimeMillis(), attemptNumber);
 
                     clusterRegistry.assignTask(
                             jobId, vertexId, subtaskIndex,
-                            targetNodeId, attemptId, token);
+                            targetNodeId, attemptId, token, attemptNumber);
 
                     IStreamTaskRpcService rpc = taskRpcServices.get(targetNodeId);
                     if (rpc != null) {
@@ -384,6 +475,89 @@ public class JobCoordinator implements IStreamCoordinatorRpcService {
     }
 
     /**
+     * G52: per-task terminal-state report handler.
+     *
+     * <p>Updates per-subtask liveness on every report. On a FAILED report from a
+     * task whose host node is still alive, triggers global recovery (so the
+     * coordinator no longer depends solely on node-lease detection to react to
+     * a single-task failure). Rejects reports with stale fencing tokens.
+     */
+    @Override
+    public void reportTaskStatus(TaskStatusReport report) {
+        if (!running) {
+            LOG.debug("Ignoring task status report (coordinator not running): {}/{}/{} state={}",
+                    report.getVertexId(), report.getSubtaskIndex(), report.getAttemptNumber(),
+                    report.getTerminalState());
+            return;
+        }
+        // Fencing token verification
+        String token = fencingToken.get();
+        if (token == null || !token.equals(report.getFencingToken())) {
+            LOG.warn("Rejecting task status report with stale fencing token: {}/{}/{} state={} (expected token={})",
+                    report.getVertexId(), report.getSubtaskIndex(), report.getAttemptNumber(),
+                    report.getTerminalState(), token);
+            return;
+        }
+
+        String livenessKey = report.getVertexId() + "/" + report.getSubtaskIndex();
+        long now = System.currentTimeMillis();
+        long reportedProgress = report.getLastProgressTime();
+        if (reportedProgress > 0) {
+            subtaskLiveness.put(livenessKey, reportedProgress);
+        } else {
+            subtaskLiveness.put(livenessKey, now);
+        }
+
+        LOG.info("Task status report: {}/{}/{} attempt={} state={} cause={}",
+                report.getVertexId(), report.getSubtaskIndex(), report.getAttemptNumber(),
+                report.getTerminalState(),
+                report.getTerminalState(),
+                report.getErrorCause());
+
+        if (report.getTerminalState() == TaskStatusReport.TerminalState.FAILED) {
+            if (autoRecoverOnFailedReport) {
+                // G52: per-task failure (node still alive) — trigger recovery rather
+                // than waiting for a node-lease timeout. The recovery increments the
+                // attempt counter; if the global cap (Phase 3) is hit, failJob runs.
+                LOG.warn("Task {}/{}/{} reported FAILED (cause={}); triggering global recovery",
+                        report.getVertexId(), report.getSubtaskIndex(), report.getAttemptNumber(),
+                        report.getErrorCause());
+                try {
+                    globalRecovery();
+                } catch (Exception e) {
+                    LOG.error("globalRecovery triggered by FAILED report threw for job {}", jobId, e);
+                }
+            } else {
+                // Embedded E2E path: synchronous propagation handles the failure;
+                // recovery would deadlock the executor (no invokable reinstall).
+                LOG.warn("Task {}/{}/{} reported FAILED (cause={}); auto-recovery disabled",
+                        report.getVertexId(), report.getSubtaskIndex(), report.getAttemptNumber(),
+                        report.getErrorCause());
+            }
+        }
+    }
+
+    /**
+     * G52: per-node liveness piggybacked on the heartbeat. Updates the
+     * per-subtask liveness map; the {@link #detectFailures()} loop checks for
+     * stalls against {@link #taskTimeoutMs}.
+     */
+    @Override
+    public void reportNodeTaskLiveness(String nodeId, List<TaskProgress> progress) {
+        if (!running || progress == null || progress.isEmpty()) {
+            return;
+        }
+        for (TaskProgress p : progress) {
+            String livenessKey = p.getVertexId() + "/" + p.getSubtaskIndex();
+            long current = subtaskLiveness.getOrDefault(livenessKey, 0L);
+            // Monotonic: only update if the reported progress is newer
+            if (p.getLastProgressTime() > current) {
+                subtaskLiveness.put(livenessKey, p.getLastProgressTime());
+            }
+        }
+    }
+
+    /**
      * Returns the current CheckpointCoordinator for inspection.
      */
     public CheckpointCoordinator getCheckpointCoordinator() {
@@ -393,8 +567,9 @@ public class JobCoordinator implements IStreamCoordinatorRpcService {
     // ==================== Failure Detection & Recovery ====================
 
     /**
-     * Checks ClusterRegistry node leases. If any assigned node has expired,
-     * triggers global recovery.
+     * Checks ClusterRegistry node leases AND per-task liveness (G52). If any assigned
+     * node has expired, OR if any task's {@code lastProgressTime} is older than
+     * {@link #taskTimeoutMs}, triggers global recovery.
      */
     public void detectFailures() {
         if (!running) {
@@ -408,8 +583,9 @@ public class JobCoordinator implements IStreamCoordinatorRpcService {
                 activeNodeIds.add(node.getNodeId());
             }
 
-            // Check if any assigned node has gone down
-            boolean failureDetected = false;
+            // Check if any assigned node has gone down (node-level lease detection,
+            // retained as the bottom-line safety net alongside per-task liveness).
+            boolean nodeFailureDetected = false;
             for (List<TaskAssignment> assignments : taskAssignmentMap.values()) {
                 for (TaskAssignment assignment : assignments) {
                     if (!activeNodeIds.contains(assignment.getNodeId())) {
@@ -417,13 +593,36 @@ public class JobCoordinator implements IStreamCoordinatorRpcService {
                                 assignment.getNodeId(),
                                 assignment.getVertexId(),
                                 assignment.getSubtaskIndex());
-                        failureDetected = true;
+                        nodeFailureDetected = true;
                     }
                 }
             }
 
-            if (failureDetected) {
-                LOG.warn("Failures detected, triggering global recovery for job {}", jobId);
+            // G52: per-task liveness check. A task whose lastProgressTime is older
+            // than taskTimeoutMs is considered stalled (node alive but task hung).
+            boolean taskStallDetected = false;
+            long now = System.currentTimeMillis();
+            long cutoff = now - taskTimeoutMs;
+            for (List<TaskAssignment> assignments : taskAssignmentMap.values()) {
+                for (TaskAssignment assignment : assignments) {
+                    String livenessKey = assignment.getVertexId() + "/" + assignment.getSubtaskIndex();
+                    Long lastProgress = subtaskLiveness.get(livenessKey);
+                    // Only flag stall if we have a recorded liveness timestamp that
+                    // is older than the cutoff. A task with no liveness record yet
+                    // (just-assigned, before first heartbeat) gets the benefit of
+                    // the doubt — node-lease detection will catch a true failure.
+                    if (lastProgress != null && lastProgress < cutoff) {
+                        LOG.warn("Task {}/{}/{} stalled: lastProgressTime={} (cutoff={})",
+                                assignment.getVertexId(), assignment.getSubtaskIndex(),
+                                lastProgress, cutoff);
+                        taskStallDetected = true;
+                    }
+                }
+            }
+
+            if (nodeFailureDetected || taskStallDetected) {
+                LOG.warn("Failures detected (nodeLoss={}, taskStall={}), triggering global recovery for job {}",
+                        nodeFailureDetected, taskStallDetected, jobId);
                 globalRecovery();
             }
         } catch (Exception e) {
@@ -438,9 +637,26 @@ public class JobCoordinator implements IStreamCoordinatorRpcService {
      *   <li>Fence all old tasks</li>
      *   <li>Reassign tasks from the latest durable EpochManifest</li>
      * </ol>
+     *
+     * <p>G56 note: ClusterRegistry attempt history is <strong>preserved</strong>
+     * across recoveries — only the in-memory coordinator working set is cleared.
+     * Each reassigned subtask bumps its {@code attemptNumber} so
+     * {@code ClusterRegistry.getAttemptHistory(...)} retains the full attempt
+     * sequence for observability and for Stage 27 targeted failover.
      */
     public void globalRecovery() {
-        LOG.info("Starting global recovery for job {}", jobId);
+        // G56: global restart strategy. The counter is incremented only here
+        // (Stage 27 scoped restart will need its own per-region counter, since
+        // scoped restart does not flow through globalRecovery).
+        int newCount = restartCount.incrementAndGet();
+        if (newCount > maxRestarts) {
+            LOG.error("Global restart cap exceeded for job {}: count={} maxRestarts={}",
+                    jobId, newCount, maxRestarts);
+            failJob(new StreamException(ERR_STREAM_INVALID_STATE).param(ARG_DETAIL,
+                    "Global restart cap exceeded: count=" + newCount + " maxRestarts=" + maxRestarts));
+            return;
+        }
+        LOG.info("Starting global recovery #{} for job {} (cap={})", newCount, jobId, maxRestarts);
 
         // 1. Generate new fencing token
         String newToken = UUID.randomUUID().toString();
@@ -449,13 +665,8 @@ public class JobCoordinator implements IStreamCoordinatorRpcService {
         // 2. Update coordinator registration with new token
         clusterRegistry.registerCoordinator(jobId, coordinatorId, newToken);
 
-        // 3. Clear old assignments
-        for (List<TaskAssignment> assignments : taskAssignmentMap.values()) {
-            for (TaskAssignment assignment : assignments) {
-                clusterRegistry.removeTaskAssignment(
-                        jobId, assignment.getVertexId(), assignment.getSubtaskIndex());
-            }
-        }
+        // 3. Clear the in-memory working set only. Do NOT wipe the ClusterRegistry
+        //    attempt history — G56 requires it to be preserved across recoveries.
         taskAssignmentMap.clear();
         allTaskLocations.clear();
 
@@ -480,7 +691,8 @@ public class JobCoordinator implements IStreamCoordinatorRpcService {
         // confirmed available so that invokables can call checkpointCoordinator.restoreFromCheckpoint()
         // during initialization.
 
-        // 5. Reassign tasks with new fencing token
+        // 5. Reassign tasks with new fencing token (assignTasks bumps attemptNumber
+        //    per subtask so the ClusterRegistry history appends a new entry)
         assignTasks();
 
         LOG.info("Global recovery completed for job {} with new fencing token {}", jobId, newToken);
@@ -621,6 +833,57 @@ public class JobCoordinator implements IStreamCoordinatorRpcService {
 
     public void setTerminationCheckpointTimeoutMs(long timeoutMs) {
         this.terminationCheckpointTimeoutMs = timeoutMs;
+    }
+
+    /**
+     * G52: per-task liveness timeout. A task whose {@code lastProgressTime} is
+     * older than this is considered stalled and triggers recovery on the next
+     * {@link #detectFailures()} tick.
+     */
+    public void setTaskTimeoutMs(long taskTimeoutMs) {
+        this.taskTimeoutMs = taskTimeoutMs;
+    }
+
+    public long getTaskTimeoutMs() {
+        return taskTimeoutMs;
+    }
+
+    /**
+     * G52: configures whether a per-task FAILED report triggers automatic
+     * {@link #globalRecovery()}. Default {@code true} (production behavior).
+     * Embedded E2E paths set this to {@code false} to preserve synchronous
+     * failure propagation.
+     */
+    public void setAutoRecoverOnFailedReport(boolean enabled) {
+        this.autoRecoverOnFailedReport = enabled;
+    }
+
+    public boolean isAutoRecoverOnFailedReport() {
+        return autoRecoverOnFailedReport;
+    }
+
+    /**
+     * G56: max global restarts before {@link #failJob(Throwable)} fires.
+     * Default 3. The counter is incremented only inside {@link #globalRecovery()}.
+     */
+    public void setMaxRestarts(int maxRestarts) {
+        this.maxRestarts = Math.max(0, maxRestarts);
+    }
+
+    public int getMaxRestarts() {
+        return maxRestarts;
+    }
+
+    public int getRestartCount() {
+        return restartCount.get();
+    }
+
+    public JobStatus getJobStatus() {
+        return jobStatus;
+    }
+
+    public Throwable getJobFailureCause() {
+        return jobFailureCause;
     }
 
     private void sendBarrierToAllTaskManagers(CheckpointBarrier barrier) {
