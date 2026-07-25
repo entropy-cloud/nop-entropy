@@ -404,6 +404,23 @@ StreamSource → ChainingOutput → StreamMap → ChainingOutput → WindowOpera
 
 算子层不感知 `ResultPartition` 的实现方式。Barrier 不需要独立 RPC 通道。
 
+### 进程内缓冲池（IBufferPool，G53）
+
+进程内 per-partition backpressure **已存在**（`ResultPartition.queue.put()` 满时阻塞生产者）。为治理**跨多 partition 的全局聚合内存上限**（防止 fan-out 场景下 N 个 partition 各占 1024 导致 OOM），引入 `IBufferPool` SPI：
+
+| 维度 | 决策 |
+|---|---|
+| **单位** | 元素计数制（与 `ResultPartition` 队列、`EdgeConfig.queueCapacity` 单位一致）。**不与 `MemoryBudget.networkBuffers`（字节制）换算**——单位不可比；字节制治理留给 off-heap/RocksDB 工作（Stage 30+）。 |
+| **基数** | **per-job 单实例**。一次 `execute()` 内所有 partition 共享同一 pool，跨 partition 全局聚合上限才可观测。 |
+| **注入路径** | 经 `GraphExecutionPlan.build(...)` 工厂传入。旧 build() 重载内部默认创建一个 per-build pool（向后兼容、不强制迁移调用点/测试）；新重载显式接收 pool 参数。 |
+| **ResultPartition 构造** | 保留现有 2 构造向后兼容（pool=null 表示仅 per-partition 有界队列=当前行为，测试/Remote 子类不改）；新增 pool 感知构造供生产 build() 路径使用。pool 非 null 时 write 先向 pool 申请配额（满时阻塞=全局 backpressure），再入队（满时阻塞=per-partition backpressure）；read 归还配额。 |
+| **耗尽契约** | pool 耗尽时**阻塞**申请方（与 `queue.put()` 阻塞语义一致），**不抛 RuntimeException**。阻塞可被 cancel/interrupt/close 唤醒，不永久死锁。 |
+| **公平性** | Memory 实现用**公平** Semaphore（FIFO），防止单一高速 partition 独占配额饿死其它 partition。 |
+| **`EdgeConfig.queueCapacity`** | 接线到 per-partition 容量（`GraphExecutionPlan` 创建 partition 时传入），不再恒用 1024 默认值。 |
+| **Remote 排除** | `RemoteResultPartition` / `RemoteInputChannel` **有意不消费 pool**（前者 override write() 直接走 `IMessageService`，后者自带本地队列）。跨 JVM 生产端 bound 属 Stage 40 `IMessageService` 后端，非遗漏。 |
+| **`IWriteStatus` 语义** | `isBackpressured`/`getAvailableCapacity`/`getTotalCapacity` 保持 **per-partition 私有队列口径**（不变）；pool 另外暴露独立的**全局聚合计量**（`IBufferPool.getGlobalUsage()` 等），二者不混用。 |
+| **生命周期** | `GraphExecutionPlan` 持有 pool 引用；`execute()` 结束/异常时关闭 pool（唤醒被全局耗尽阻塞的生产者）。checkpoint 恢复重建 plan 时**创建新 pool**（不复用失败 attempt 的 pool，避免 leaked permits 饿死恢复）。 |
+
 ## 七、与 Nop 平台的集成
 
 | 集成点 | 方式 | 模块 |
