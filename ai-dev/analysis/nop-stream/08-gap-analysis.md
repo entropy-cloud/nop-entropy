@@ -94,7 +94,7 @@
 | # | 维度 | 发现 | 分类 | 来源 | 修复 Plan |
 |---|------|------|------|------|-----------|
 | G28 | checkpoint | 无 partial/region failover | Gap/P2 | 03-checkpoint: #7, 07-dist: D10 | Item 9 |
-| G29 | checkpoint | 无 subtask-level granular restoration | Gap/P2 | 03-checkpoint: #8 | Item 9 |
+| ~~G29~~ | checkpoint | 无 subtask-level granular restoration | Gap/P2 | 03-checkpoint: #8 | ✅ Closed (item 20, G29 only) — `restoreFromEpoch` epochId 透传修复（不再硬编码 0，三入口 EpochManifest/CompletedCheckpoint/savepoint 透传），多 subtask (parallelism>1) 独立恢复验证；G28 design-gated (Stage 27/44)。Plan `2026-07-25-2200-2-partial-subtask-recovery` |
 | ~~G30~~ | checkpoint | 无 async snapshot pipeline | Gap/P2 | 03-checkpoint: #9, 04-state: #9 | ✅ Closed (item 18) — coordinator 侧 persist 卸载到专用 `checkpoint-persist-*` executor，ACK 线程提交后即返回；段 1(CAS+快照)→段 2(I/O 不持锁)→段 3a/3b(重新获取 monitor) 三段模型；§12 不变量 5 与 §13.2 保持。Plan `2026-07-25-2200-1-async-snapshot-pipeline` |
 | G31 | checkpoint | maxConcurrentCheckpoints config hard-coded to 1 | Bug/P2 | 03-checkpoint: #10 | Item 9 |
 | G32 | checkpoint | 无 HA checkpoint store | Gap/P2 | 03-checkpoint: #11 | deferred (Phase 3) |

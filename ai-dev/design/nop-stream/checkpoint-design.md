@@ -266,8 +266,11 @@ interface CheckpointParticipant {
      */
     void finishCommit(long checkpointId, boolean success) throws Exception;
 
-    /** 阶段 4：从 epoch 恢复。Durable transaction 必须 commit 或证明 already committed。 */
-    void restoreFromEpoch(long checkpointId) throws Exception;
+    /** 阶段 4：从 epoch 恢复。Durable transaction 必须 commit 或证明 already committed。
+     *  epochId 从 EpochManifest.epochId / CompletedCheckpoint.checkpointId / savepoint.checkpointId
+     *  透传（由 GraphModelCheckpointExecutor.restoreOperatorsFromState 注入），使 participant
+     *  恢复时能感知真实 durable epoch 而非硬编码值。state 为该 subtask 自身的 TaskStateSnapshot。 */
+    void restoreFromEpoch(long epochId, TaskStateSnapshot state) throws Exception;
 }
 ```
 
