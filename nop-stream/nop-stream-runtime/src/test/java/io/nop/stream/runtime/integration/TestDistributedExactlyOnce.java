@@ -207,6 +207,7 @@ class TestDistributedExactlyOnce {
         CheckpointIDCounter idCounter = new CheckpointIDCounter();
         CheckpointConfig config = new CheckpointConfig();
         config.setAsyncSnapshotEnabled(false);
+        config.setMinPause(0); // Plan 2026-07-25-2300-1: minPause now enforced; tests not about throttle
         config.setCheckpointInterval(1000);
         CheckpointCoordinator coordinator = new CheckpointCoordinator("job-1", "pipe-0", idCounter, storage, config);
 
@@ -282,6 +283,7 @@ class TestDistributedExactlyOnce {
         CheckpointIDCounter idCounter = new CheckpointIDCounter();
         CheckpointConfig config = new CheckpointConfig();
         config.setAsyncSnapshotEnabled(false);
+        config.setMinPause(0); // Plan 2026-07-25-2300-1: minPause now enforced; tests not about throttle
         config.setCheckpointInterval(1000);
         CheckpointCoordinator coordinator = new CheckpointCoordinator("job-1", "pipe-0", idCounter, storage, config);
 
@@ -423,6 +425,7 @@ class TestDistributedExactlyOnce {
         CheckpointIDCounter idCounter = new CheckpointIDCounter();
         CheckpointConfig config = new CheckpointConfig();
         config.setAsyncSnapshotEnabled(false);
+        config.setMinPause(0); // Plan 2026-07-25-2300-1: minPause now enforced; tests not about throttle
         config.setCheckpointInterval(1000);
         CheckpointCoordinator coordinator = new CheckpointCoordinator("job-1", "pipe-0", idCounter, storage, config);
 
@@ -533,6 +536,7 @@ class TestDistributedExactlyOnce {
         CheckpointIDCounter idCounter = new CheckpointIDCounter();
         CheckpointConfig config = new CheckpointConfig();
         config.setAsyncSnapshotEnabled(false);
+        config.setMinPause(0); // Plan 2026-07-25-2300-1: minPause now enforced; tests not about throttle
         config.setCheckpointInterval(1000);
         CheckpointCoordinator coordinator = new CheckpointCoordinator("job-1", "pipe-0", idCounter, storage, config);
 
@@ -589,6 +593,7 @@ class TestDistributedExactlyOnce {
         CheckpointIDCounter idCounter = new CheckpointIDCounter();
         CheckpointConfig config = new CheckpointConfig();
         config.setAsyncSnapshotEnabled(false);
+        config.setMinPause(0); // Plan 2026-07-25-2300-1: minPause now enforced; tests not about throttle
         config.setCheckpointInterval(1000);
         config.setMaxConcurrentCheckpoints(2);
         CheckpointCoordinator coordinator = new CheckpointCoordinator("job-1", "pipe-0", idCounter, storage, config);
@@ -837,6 +842,7 @@ class TestDistributedExactlyOnce {
         CheckpointIDCounter idCounter = new CheckpointIDCounter();
         CheckpointConfig config = new CheckpointConfig();
         config.setAsyncSnapshotEnabled(false);
+        config.setMinPause(0); // Plan 2026-07-25-2300-1: minPause now enforced; tests not about throttle
         config.setCheckpointInterval(1000);
         CheckpointCoordinator coordinator = new CheckpointCoordinator("job-1", "pipe-0", idCounter, storage, config);
 

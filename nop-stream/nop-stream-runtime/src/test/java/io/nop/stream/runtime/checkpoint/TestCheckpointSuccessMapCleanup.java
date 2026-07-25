@@ -30,10 +30,13 @@ class TestCheckpointSuccessMapCleanup {
     void setUp() {
         storage = new LocalFileCheckpointStorage(tempDir.toString());
         idCounter = new CheckpointIDCounter();
+        // Plan 2026-07-25-2300-1: minPause is now enforced in the trigger path; this suite
+        // fires 10 consecutive checkpoints in tight succession, so disable minPause.
         config = CheckpointConfig.builder()
                 .checkpointEnabled(true)
                 .checkpointInterval(1000L)
                 .checkpointTimeout(30000L)
+                .minPause(0L)
                 .maxConcurrentCheckpoints(3)
                 .maxRetainedCheckpoints(10)
                 .asyncSnapshotEnabled(false)

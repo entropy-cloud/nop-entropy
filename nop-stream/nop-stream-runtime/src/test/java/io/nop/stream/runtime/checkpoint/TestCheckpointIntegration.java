@@ -38,12 +38,24 @@ class TestCheckpointIntegration {
     void setUp() {
         storage = new LocalFileCheckpointStorage(tempDir.toString());
         CheckpointIDCounter idCounter = new CheckpointIDCounter();
+        // Plan 2026-07-25-2300-1: minPause is now enforced in the trigger path; this suite
+        // (testMultipleCheckpoints etc.) fires consecutive checkpoints in tight succession
+        // and is not about throttle semantics, so disable minPause explicitly.
+        // asyncSnapshotEnabled=false: this suite verifies post-completion state
+        // (getLatestCheckpoint, listener notification) synchronously after future.get();
+        // sync fallback makes the listener fire on the same thread before future.get()
+        // returns, matching the established pattern in TestCheckpointCoordinator.setUp().
+        // Without this, Stage 18 async-persist introduces a race where forceComplete()
+        // completes the future on the persist-executor thread before
+        // notifyCheckpointCompleted runs, so the test thread reads stale listener state.
         CheckpointConfig config = CheckpointConfig.builder()
                 .checkpointEnabled(true)
                 .checkpointInterval(1000L)
                 .checkpointTimeout(30000L)
+                .minPause(0L)
                 .maxConcurrentCheckpoints(1)
                 .maxRetainedCheckpoints(5)
+                .asyncSnapshotEnabled(false)
                 .build();
 
         coordinator = new CheckpointCoordinator("1", "1", idCounter, storage, config);

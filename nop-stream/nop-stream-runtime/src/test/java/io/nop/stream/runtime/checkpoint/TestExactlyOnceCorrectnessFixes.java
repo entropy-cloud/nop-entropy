@@ -36,6 +36,9 @@ class TestExactlyOnceCorrectnessFixes {
         config.setAsyncSnapshotEnabled(false);
         config.setCheckpointEnabled(true);
         config.setCheckpointInterval(60000L);
+        // Plan 2026-07-25-2300-1: minPause is now enforced in the trigger path; this test
+        // verifies commit-retry semantics, not throttling, so disable minPause explicitly.
+        config.setMinPause(0L);
         config.setMaxConcurrentCheckpoints(10);
 
         CheckpointCoordinator coordinator = new CheckpointCoordinator(
@@ -96,6 +99,9 @@ class TestExactlyOnceCorrectnessFixes {
         config.setAsyncSnapshotEnabled(false);
         config.setCheckpointEnabled(true);
         config.setCheckpointInterval(60000L);
+        // Plan 2026-07-25-2300-1: minPause is now enforced in the trigger path; this test
+        // verifies commit-retry semantics, not throttling, so disable minPause explicitly.
+        config.setMinPause(0L);
 
         CheckpointCoordinator coordinator = new CheckpointCoordinator(
                 "job-2", "pipe-2", new CheckpointIDCounter(), storage, config);

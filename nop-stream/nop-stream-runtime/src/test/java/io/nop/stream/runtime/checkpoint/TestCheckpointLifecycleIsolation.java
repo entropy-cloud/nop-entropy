@@ -28,10 +28,13 @@ class TestCheckpointLifecycleIsolation {
     void setUp() {
         storage = new LocalFileCheckpointStorage(tempDir.toString());
         idCounter = new CheckpointIDCounter();
+        // Plan 2026-07-25-2300-1: minPause is now enforced in the trigger path; this suite
+        // fires consecutive checkpoints and is not about throttle semantics.
         config = CheckpointConfig.builder()
                 .checkpointEnabled(true)
                 .checkpointInterval(1000L)
                 .checkpointTimeout(5000L)
+                .minPause(0L)
                 .maxConcurrentCheckpoints(2)
                 .maxRetainedCheckpoints(3)
                 .asyncSnapshotEnabled(false)

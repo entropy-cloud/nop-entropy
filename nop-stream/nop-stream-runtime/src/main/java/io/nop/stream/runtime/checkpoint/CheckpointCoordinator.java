@@ -48,6 +48,70 @@ public class CheckpointCoordinator {
 
     private static final Logger LOG = LoggerFactory.getLogger(CheckpointCoordinator.class);
 
+    /**
+     * Reason a {@link #tryTriggerPendingCheckpoint(CheckpointType)} call did not produce a
+     * new {@link PendingCheckpoint}. Exposed via {@link TriggerOutcome} so that the scheduler
+     * loop can distinguish back-pressure (throttle / concurrent-limit rejection) from real
+     * failures, ensuring {@link #consecutiveTriggerFailures} only inflates on genuine
+     * trigger errors (Plan 2026-07-25-2300-1 Phase 1: 「失败计数器不被节流/拒绝污染」).
+     */
+    public enum TriggerRejectionReason {
+        /** A new PendingCheckpoint was created. Only valid when paired with a non-null pending. */
+        TRIGGERED,
+        /**
+         * Rejected because the wall-clock gap since the last checkpoint completion is shorter
+         * than {@link CheckpointConfig#getMinPause()} (last-completed semantics). This is
+         * expected back-pressure — NOT a failure.
+         */
+        THROTTLED_MIN_PAUSE,
+        /**
+         * Rejected because {@code numPendingCheckpoints >= config.getMaxConcurrentCheckpoints()}.
+         * Expected back-pressure — NOT a failure.
+         */
+        REJECTED_MAX_CONCURRENT,
+        /**
+         * Rejected because there are no registered tasks to acknowledge. A genuine trigger
+         * failure (the coordinator is misconfigured or all tasks have unregistered).
+         */
+        NO_TASKS_TO_ACK
+    }
+
+    /**
+     * Result of a trigger attempt. {@link #pending()} is non-null iff {@link #reason()} is
+     * {@link TriggerRejectionReason#TRIGGERED}.
+     */
+    public static final class TriggerOutcome {
+        private final TriggerRejectionReason reason;
+        private final PendingCheckpoint pending;
+
+        private TriggerOutcome(TriggerRejectionReason reason, PendingCheckpoint pending) {
+            this.reason = reason;
+            this.pending = pending;
+        }
+
+        static TriggerOutcome triggered(PendingCheckpoint pending) {
+            return new TriggerOutcome(TriggerRejectionReason.TRIGGERED, pending);
+        }
+
+        static TriggerOutcome rejected(TriggerRejectionReason reason) {
+            return new TriggerOutcome(reason, null);
+        }
+
+        public TriggerRejectionReason reason() {
+            return reason;
+        }
+
+        public PendingCheckpoint pending() {
+            return pending;
+        }
+
+        /** Convenience: true when this is a back-pressure rejection, not a real failure. */
+        public boolean isBackPressure() {
+            return reason == TriggerRejectionReason.THROTTLED_MIN_PAUSE
+                    || reason == TriggerRejectionReason.REJECTED_MAX_CONCURRENT;
+        }
+    }
+
     private final String jobId;
     private final String pipelineId;
     private final CheckpointIDCounter checkpointIdCounter;
@@ -58,6 +122,27 @@ public class CheckpointCoordinator {
     private final AtomicInteger numPendingCheckpoints;
     private volatile CompletedCheckpoint latestCompletedCheckpoint;
     private volatile Set<TaskLocation> tasksToAcknowledge;
+
+    /**
+     * Wall-clock timestamp (ms) at which the most recent checkpoint entered the COMPLETED
+     * durable state via {@link #onCompletePersistSuccess}. Used to enforce last-completed
+     * {@code minPause} gating in {@link #tryTriggerPendingCheckpoint}: the next trigger is
+     * allowed only after {@code now - lastCompletedTimestamp >= config.getMinPause()}.
+     *
+     * <p>Semantics rationale (Plan 2026-07-25-2300-1 Phase 1): the anchor is the
+     * <em>completion</em> instant, not the trigger instant, matching
+     * {@code checkpoint-design.md} §配置表「两次 checkpoint 之间的最小间隔」and Flink's
+     * {@code minPauseBetweenCheckpoints}. The first trigger after coordinator construction
+     * (no prior completion) is never throttled; if a prior checkpoint is still in-flight,
+     * {@code maxConcurrentCheckpoints} gating decides — minPause does not duplicate that
+     * decision.
+     *
+     * <p>Volatile because the field is written under the coordinator monitor inside
+     * {@code onCompletePersistSuccess} but may be read from {@code tryTriggerPendingCheckpoint}
+     * (also under the monitor) and from observers. Writes happen-before the matching monitor
+     * exit, so volatile-read here is sufficient for visibility without re-acquiring the lock.
+     */
+    private volatile long lastCompletedTimestamp = 0L;
 
     private ScheduledExecutorService scheduler;
     private final ScheduledExecutorService timeoutScheduler;
@@ -102,9 +187,17 @@ public class CheckpointCoordinator {
         this.pendingCheckpoints = new ConcurrentHashMap<>();
         this.numPendingCheckpoints = new AtomicInteger(0);
         this.tasksToAcknowledge = ConcurrentHashMap.newKeySet();
+        // G31 (Plan 2026-07-25-2300-1): the Coordinator layer honors the configured
+        // maxConcurrentCheckpoints value directly (see tryTriggerPendingCheckpoint gating).
+        // Task-side multi-epoch barrier tracking (CheckpointBarrierTracker / InputGate
+        // simultaneously tracking multiple in-flight checkpoints) is still single-barrier
+        // and belongs to Stage 45 — see checkpoint-design.md §2.8 and §13.2 forward-looking
+        // invariant. This constructor therefore no longer emits a stale "downgrade to 1"
+        // warning that would mislead operators about Coordinator behavior.
         if (config.getMaxConcurrentCheckpoints() > 1) {
-            LOG.warn("maxConcurrentCheckpoints={} is configured for job {} but the current implementation " +
-                    "only supports concurrent=1. Checkpoints will be limited to maxConcurrent=1.",
+            LOG.info("maxConcurrentCheckpoints={} configured for job {}: Coordinator layer honors "
+                    + "the configured value; task-side multi-epoch barrier tracking is single-barrier "
+                    + "until Stage 45 (see checkpoint-design.md §2.8).",
                     config.getMaxConcurrentCheckpoints(), jobId);
         }
         this.timeoutScheduler = Executors.newSingleThreadScheduledExecutor(r -> {
@@ -158,15 +251,31 @@ public class CheckpointCoordinator {
         scheduler.scheduleAtFixedRate(
                 () -> {
                     try {
-                        PendingCheckpoint result = tryTriggerPendingCheckpoint(CheckpointType.CHECKPOINT);
-                        if (result != null) {
-                            consecutiveTriggerFailures.set(0);
-                        } else {
-                            int failures = consecutiveTriggerFailures.incrementAndGet();
-                            if (failures == CONSECUTIVE_FAILURE_THRESHOLD) {
-                                LOG.error("Checkpoint trigger failed {} consecutive times for job {}",
-                                        failures, jobId);
-                            }
+                        TriggerOutcome outcome = tryTriggerCheckpointWithReason(CheckpointType.CHECKPOINT);
+                        switch (outcome.reason()) {
+                            case TRIGGERED:
+                                consecutiveTriggerFailures.set(0);
+                                break;
+                            case THROTTLED_MIN_PAUSE:
+                            case REJECTED_MAX_CONCURRENT:
+                                // Expected back-pressure: do NOT inflate the failure counter
+                                // (Plan 2026-07-25-2300-1 Phase 1: 「失败计数器不被节流/拒绝污染」).
+                                // Logging already happened inside tryTriggerCheckpointWithReason
+                                // at DEBUG level with the back-pressure reason.
+                                break;
+                            case NO_TASKS_TO_ACK:
+                            default:
+                                // Real trigger failure: no tasks to ack means the coordinator
+                                // is misconfigured or every task has unregistered.
+                                int failures = consecutiveTriggerFailures.incrementAndGet();
+                                if (failures == CONSECUTIVE_FAILURE_THRESHOLD) {
+                                    LOG.error("Checkpoint trigger failed {} consecutive times for job {} (reason={})",
+                                            failures, jobId, outcome.reason());
+                                } else {
+                                    LOG.warn("Checkpoint trigger rejected for job {} (reason={}, consecutive failures={})",
+                                            jobId, outcome.reason(), failures);
+                                }
+                                break;
                         }
                     } catch (Exception e) {
                         int failures = consecutiveTriggerFailures.incrementAndGet();
@@ -206,11 +315,51 @@ public class CheckpointCoordinator {
     }
 
     public synchronized PendingCheckpoint tryTriggerPendingCheckpoint(CheckpointType checkpointType) {
+        return tryTriggerCheckpointWithReason(checkpointType).pending();
+    }
+
+    /**
+     * Trigger a new pending checkpoint and report the precise outcome. The scheduler loop
+     * uses this method so that {@code THROTTLED_MIN_PAUSE} and {@code REJECTED_MAX_CONCURRENT}
+     * back-pressure does NOT inflate {@link #consecutiveTriggerFailures} (Plan 2026-07-25-2300-1
+     * Phase 1). Callers that only need the PendingCheckpoint reference can use
+     * {@link #tryTriggerPendingCheckpoint(CheckpointType)} instead.
+     *
+     * <p>Gating order: (1) maxConcurrent → (2) minPause (last-completed) → (3) tasks-to-ack.
+     * Each rejection is observable (DEBUG/WARN log + distinct {@link TriggerRejectionReason})
+     * so callers can distinguish back-pressure from genuine failures — there is no silent
+     * {@code continue} / null-as-default (Plan rule #24).
+     */
+    public synchronized TriggerOutcome tryTriggerCheckpointWithReason(CheckpointType checkpointType) {
         int effectiveMaxConcurrent = config.getMaxConcurrentCheckpoints();
         if (numPendingCheckpoints.get() >= effectiveMaxConcurrent) {
-            LOG.debug("Cannot trigger checkpoint: too many pending checkpoints ({})",
-                    numPendingCheckpoints.get());
-            return null;
+            LOG.debug("Cannot trigger checkpoint: too many pending checkpoints ({}/{})",
+                    numPendingCheckpoints.get(), effectiveMaxConcurrent);
+            return TriggerOutcome.rejected(TriggerRejectionReason.REJECTED_MAX_CONCURRENT);
+        }
+
+        // G31 / minPause(last-completed): once at least one checkpoint has completed, the
+        // next trigger is allowed only after `now - lastCompletedTimestamp >= minPause`.
+        // First-ever trigger (no prior completion) is never throttled. minPause == 0 disables
+        // the gate. The anchor is completion (not trigger) to match checkpoint-design.md
+        // §配置表 and Flink minPauseBetweenCheckpoints.
+        //
+        // Scope: only the regular periodic CHECKPOINT type is throttled. Savepoints and
+        // terminal checkpoints (COMPLETED_POINT_TYPE / TERMINAL_SAVEPOINT / EXPORTED_SAVEPOINT)
+        // are explicit user- or job-driven actions and must not be delayed by minPause —
+        // matching Flink semantics where minPauseBetweenCheckpoints applies only to periodic
+        // checkpoints, not savepoints. The maxConcurrent gate above continues to apply to all
+        // types so that terminal / savepoint snapshots still serialize against in-flight work.
+        long minPause = config.getMinPause();
+        long lastCompletedAt = lastCompletedTimestamp;
+        if (minPause > 0 && lastCompletedAt > 0 && checkpointType == CheckpointType.CHECKPOINT) {
+            long now = System.currentTimeMillis();
+            long elapsed = now - lastCompletedAt;
+            if (elapsed < minPause) {
+                LOG.debug("Cannot trigger checkpoint: minPause throttle (elapsed={}ms < minPause={}ms since last completion {})",
+                        elapsed, minPause, lastCompletedAt);
+                return TriggerOutcome.rejected(TriggerRejectionReason.THROTTLED_MIN_PAUSE);
+            }
         }
 
         long checkpointId = checkpointIdCounter.getAndIncrement();
@@ -219,7 +368,7 @@ public class CheckpointCoordinator {
         Set<TaskLocation> tasksToAck = getTasksToAcknowledge();
         if (tasksToAck.isEmpty()) {
             LOG.debug("No tasks to acknowledge for checkpoint {}", checkpointId);
-            return null;
+            return TriggerOutcome.rejected(TriggerRejectionReason.NO_TASKS_TO_ACK);
         }
 
         PendingCheckpoint pending = new PendingCheckpoint(
@@ -232,7 +381,7 @@ public class CheckpointCoordinator {
         scheduleTimeout(pending);
 
         LOG.info("Triggered checkpoint {} for job {}", checkpointId, jobId);
-        return pending;
+        return TriggerOutcome.triggered(pending);
     }
 
     public synchronized boolean acknowledgeTask(TaskLocation taskLocation, long checkpointId, TaskStateSnapshot state) {
@@ -391,6 +540,10 @@ public class CheckpointCoordinator {
         pending.forceComplete();
 
         latestCompletedCheckpoint = completed;
+        // G31 / minPause(last-completed): anchor the next-trigger throttle clock at the
+        // instant this checkpoint became durable. Set before decrement so a racing trigger
+        // (also under monitor) sees the new anchor when numPending drops to 0.
+        lastCompletedTimestamp = System.currentTimeMillis();
         decrementPendingCheckpointCount();
 
         metrics.incrementCompletedCheckpoints();

@@ -47,6 +47,7 @@ class TestE2EMultipleCheckpoints {
         CheckpointIDCounter idCounter = new CheckpointIDCounter();
         CheckpointConfig config = new CheckpointConfig();
         config.setAsyncSnapshotEnabled(false);
+        config.setMinPause(0); // Plan 2026-07-25-2300-1: minPause now enforced; tests not about throttle
         config.setCheckpointInterval(1000);
         CheckpointCoordinator coordinator = new CheckpointCoordinator("1", "0", idCounter, storage, config);
         coordinator.registerTask(LOC_0);
@@ -92,6 +93,7 @@ class TestE2EMultipleCheckpoints {
         CheckpointIDCounter idCounter = new CheckpointIDCounter();
         CheckpointConfig config = new CheckpointConfig();
         config.setAsyncSnapshotEnabled(false);
+        config.setMinPause(0); // Plan 2026-07-25-2300-1: minPause now enforced; tests not about throttle
         config.setCheckpointInterval(1000);
         CheckpointCoordinator coordinator = new CheckpointCoordinator("1", "0", idCounter, storage, config);
         coordinator.registerTask(LOC_0);
@@ -141,6 +143,7 @@ class TestE2EMultipleCheckpoints {
         CheckpointIDCounter idCounter = new CheckpointIDCounter();
         CheckpointConfig config = new CheckpointConfig();
         config.setAsyncSnapshotEnabled(false);
+        config.setMinPause(0); // Plan 2026-07-25-2300-1: minPause now enforced; tests not about throttle
         config.setCheckpointInterval(1000);
         config.setMaxRetainedCheckpoints(2);
         CheckpointCoordinator coordinator = new CheckpointCoordinator("1", "0", idCounter, storage, config);
@@ -188,6 +191,7 @@ class TestE2EMultipleCheckpoints {
         CheckpointIDCounter idCounter = new CheckpointIDCounter();
         CheckpointConfig config = new CheckpointConfig();
         config.setAsyncSnapshotEnabled(false);
+        config.setMinPause(0); // Plan 2026-07-25-2300-1: minPause now enforced; tests not about throttle
         config.setCheckpointInterval(100);
         config.setCheckpointTimeout(5000);
         CheckpointCoordinator coordinator = new CheckpointCoordinator("1", "1", idCounter, storage, config);
@@ -300,6 +304,7 @@ class TestE2EMultipleCheckpoints {
         CheckpointIDCounter idCounter1 = new CheckpointIDCounter();
         CheckpointConfig config = new CheckpointConfig();
         config.setAsyncSnapshotEnabled(false);
+        config.setMinPause(0); // Plan 2026-07-25-2300-1: minPause now enforced; tests not about throttle
         config.setCheckpointInterval(1000);
 
         CheckpointCoordinator coordinator1 = new CheckpointCoordinator("1", "0", idCounter1, storage, config);

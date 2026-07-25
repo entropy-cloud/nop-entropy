@@ -50,10 +50,13 @@ class TestCheckpointCoordinator {
         // (Plan 2026-07-25-2200-1 Exit Criterion: "sync fallback 行为与改造前一致"). They rely
         // on the pre-async timing where all side effects complete before acknowledgeTask
         // returns. The async path is exercised by TestAsyncSnapshotPipeline.
+        // Plan 2026-07-25-2300-1: minPause is now enforced in the trigger path (Phase 1);
+        // these tests are not about throttle semantics, so disable minPause explicitly.
         config = CheckpointConfig.builder()
                 .checkpointEnabled(true)
                 .checkpointInterval(1000L)
                 .checkpointTimeout(5000L)
+                .minPause(0L)
                 .maxConcurrentCheckpoints(1)
                 .maxRetainedCheckpoints(3)
                 .asyncSnapshotEnabled(false)
