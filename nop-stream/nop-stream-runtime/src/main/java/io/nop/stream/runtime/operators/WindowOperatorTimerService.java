@@ -22,7 +22,15 @@ import io.nop.stream.core.operators.Triggerable;
 /**
  * Timer service implementation for WindowOperator.
  * Uses priority queues for efficient timer management.
+ *
+ * @deprecated Deprecated in favor of the unified {@link io.nop.stream.core.operators.HeapInternalTimerService}
+ *             (which now carries a proper {@code <K>} key type parameter and supports
+ *             checkpoint snapshot/restore). This class is retained only for source
+ *             compatibility — it is no longer used by {@code WindowOperator} or any
+ *             production code path. New code MUST use {@code HeapInternalTimerService<K, N>}.
+ *             This class will be removed in a future release.
  */
+@Deprecated
 public class WindowOperatorTimerService<K, N> implements InternalTimerService<N> {
     private final PriorityQueue<InternalTimer<K, N>> eventTimeTimers = new PriorityQueue<>(
             Comparator.comparingLong(InternalTimer::getTimestamp)

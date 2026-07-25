@@ -36,7 +36,7 @@ public class TestWindowOperatorWatermarkReception {
     void testWatermarkAdvancesTimerService() throws Exception {
         List<Long> firedTimers = new ArrayList<>();
 
-        HeapInternalTimerService<String> heapTimerService = new HeapInternalTimerService<>(
+        HeapInternalTimerService<Object, String> heapTimerService = new HeapInternalTimerService<>(
                 new Triggerable<Object, String>() {
                     @Override
                     public void onEventTime(InternalTimer<Object, String> timer) {
@@ -73,7 +73,7 @@ public class TestWindowOperatorWatermarkReception {
     void testWatermarkNotGoingBackwards() throws Exception {
         List<Long> firedTimers = new ArrayList<>();
 
-        HeapInternalTimerService<String> heapTimerService = new HeapInternalTimerService<>(
+        HeapInternalTimerService<Object, String> heapTimerService = new HeapInternalTimerService<>(
                 new Triggerable<Object, String>() {
                     @Override
                     public void onEventTime(InternalTimer<Object, String> timer) {
@@ -105,7 +105,7 @@ public class TestWindowOperatorWatermarkReception {
     void testNoTimerFiredBeforeWatermarkReachesThreshold() throws Exception {
         List<Long> firedTimers = new ArrayList<>();
 
-        HeapInternalTimerService<String> heapTimerService = new HeapInternalTimerService<>(
+        HeapInternalTimerService<Object, String> heapTimerService = new HeapInternalTimerService<>(
                 new Triggerable<Object, String>() {
                     @Override
                     public void onEventTime(InternalTimer<Object, String> timer) {

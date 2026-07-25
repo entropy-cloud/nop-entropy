@@ -19,7 +19,7 @@ class TestTimerServiceManagerRobustness {
     void testAdvanceWatermarkContinuesAfterServiceFailure() throws Exception {
         TimerServiceManager manager = new TimerServiceManager();
 
-        HeapInternalTimerService<String> failingService = new HeapInternalTimerService<>(NOOP_TRIGGERABLE) {
+        HeapInternalTimerService<Object, String> failingService = new HeapInternalTimerService<>(NOOP_TRIGGERABLE) {
             @Override
             public void advanceWatermark(long timestamp) {
                 throw new StreamException(ARG_DETAIL).param(ARG_DETAIL, "Simulated failure");
@@ -27,7 +27,7 @@ class TestTimerServiceManagerRobustness {
         };
 
         final boolean[] secondCalled = {false};
-        HeapInternalTimerService<String> goodService = new HeapInternalTimerService<>(NOOP_TRIGGERABLE) {
+        HeapInternalTimerService<Object, String> goodService = new HeapInternalTimerService<>(NOOP_TRIGGERABLE) {
             @Override
             public void advanceWatermark(long timestamp) {
                 secondCalled[0] = true;

@@ -77,6 +77,7 @@ import io.nop.stream.core.common.state.StateDescriptor;
 import io.nop.stream.core.common.state.VoidNamespace;
 import io.nop.stream.core.common.typeutils.TypeSerializer;
 import io.nop.stream.core.operators.AbstractUdfStreamOperator;
+import io.nop.stream.core.operators.HeapInternalTimerService;
 import io.nop.stream.core.operators.InternalTimer;
 import io.nop.stream.core.operators.InternalTimerService;
 import io.nop.stream.core.operators.OneInputStreamOperator;
@@ -96,7 +97,6 @@ import io.nop.stream.core.windowing.utils.TimestampedValue;
 import io.nop.stream.core.windowing.windows.TimeWindow;
 import io.nop.stream.core.windowing.windows.Window;
 import io.nop.stream.runtime.operators.windowing.functions.InternalWindowFunction;
-import io.nop.stream.runtime.operators.WindowOperatorTimerService;
 
 /**
  * An operator that implements the logic for windowing based on a {@link WindowAssigner} and {@link
@@ -217,7 +217,15 @@ public class WindowOperator<K, IN, ACC, OUT, W extends Window>
     // State that needs to be checkpointed
     // ------------------------------------------------------------------------
 
-    protected transient InternalTimerService<W> internalTimerService;
+    protected transient HeapInternalTimerService<K, W> internalTimerService;
+
+    /**
+     * Timer snapshot captured by {@link #restoreState} when the timer service is not yet
+     * created (restoreState runs before open). Applied deferredly in {@link #open()} after
+     * {@code internalTimerService} is constructed. See {@code TestCheckpointRecovery.java:478}
+     * for the lifecycle constraint that motivates this pattern.
+     */
+    private transient HeapInternalTimerService.TimerSnapshot<K, W> restoredTimerSnapshot;
 
     /**
      * Namespace-backed window contents state.
@@ -366,8 +374,16 @@ public class WindowOperator<K, IN, ACC, OUT, W extends Window>
             elementTimestampsState = this.keyedStateBackend.getMapState(timestampsDescriptor);
         }
 
-        internalTimerService = new WindowOperatorTimerService<>(this,
+        internalTimerService = new HeapInternalTimerService<>(this,
                 () -> getKeyedStateBackend() != null ? (K) getKeyedStateBackend().getCurrentKey() : null);
+
+        // Apply any timer snapshot captured by restoreState() (called before open()).
+        // This deferred-application pattern is required because restoreState() runs
+        // before open() creates the timer service (see TestCheckpointRecovery.java:478).
+        if (restoredTimerSnapshot != null) {
+            internalTimerService.restoreTimers(restoredTimerSnapshot);
+            restoredTimerSnapshot = null;
+        }
 
         triggerContext = new Context(null, null);
         processContext = new WindowContext(null);
@@ -398,9 +414,7 @@ public class WindowOperator<K, IN, ACC, OUT, W extends Window>
 
     @Override
     public void processWatermark(Watermark mark) throws Exception {
-        if (internalTimerService instanceof WindowOperatorTimerService) {
-            ((WindowOperatorTimerService<K, W>) internalTimerService).advanceWatermark(mark.getTimestamp());
-        }
+        internalTimerService.advanceWatermark(mark.getTimestamp());
         super.processWatermark(mark);
     }
 
@@ -429,6 +443,15 @@ public class WindowOperator<K, IN, ACC, OUT, W extends Window>
             }
             result.putOperatorState("trigger-accumulators", snapshot);
         }
+        // G2: include in-flight timers in the checkpoint so that event-time and
+        // processing-time timers registered before the checkpoint fire correctly
+        // after restore. checkpoint-design.md §2.1 lists "timer state" as part of
+        // the epoch binding. Only already-registered (not-yet-fired) timers are
+        // snapshotted — fired timers are naturally excluded because they are removed
+        // from the internal data structures when they fire (no double-fire risk).
+        if (internalTimerService != null) {
+            result.putOperatorState("internal-timers", internalTimerService.snapshotTimers());
+        }
         return result;
     }
 
@@ -448,6 +471,15 @@ public class WindowOperator<K, IN, ACC, OUT, W extends Window>
                     }
                 }
                 this.triggerAccumulators = (Map<String, SimpleAccumulator<?>>) restored;
+            }
+            // G2: capture timer snapshot for deferred application in open(). At this
+            // point internalTimerService is still null (restoreState runs before
+            // open()), so we cannot apply the snapshot immediately — we store it
+            // and apply it in open() after the timer service is constructed.
+            Object timerSnapshot = snapshotResult.getOperatorState("internal-timers");
+            if (timerSnapshot instanceof HeapInternalTimerService.TimerSnapshot) {
+                this.restoredTimerSnapshot =
+                        (HeapInternalTimerService.TimerSnapshot<K, W>) timerSnapshot;
             }
         }
     }

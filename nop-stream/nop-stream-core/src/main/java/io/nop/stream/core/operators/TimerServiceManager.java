@@ -23,16 +23,16 @@ public class TimerServiceManager {
 
     private static final Logger LOG = LoggerFactory.getLogger(TimerServiceManager.class);
 
-    private final List<HeapInternalTimerService<?>> timerServices = new ArrayList<>();
+    private final List<HeapInternalTimerService<?, ?>> timerServices = new ArrayList<>();
 
-    public void registerTimerService(HeapInternalTimerService<?> timerService) {
+    public void registerTimerService(HeapInternalTimerService<?, ?> timerService) {
         timerServices.add(timerService);
     }
 
     public void advanceWatermark(Watermark mark) throws Exception {
-        for (HeapInternalTimerService<?> service : timerServices) {
+        for (HeapInternalTimerService<?, ?> service : timerServices) {
             try {
-                service.advanceWatermark(mark.getTimestamp());
+                advanceWatermarkUnchecked(service, mark.getTimestamp());
             } catch (Exception e) {
                 LOG.error("Failed to advance watermark for timer service: {}", service, e);
             }
@@ -40,12 +40,22 @@ public class TimerServiceManager {
     }
 
     public void fireProcessingTimeTimers(long timestamp) throws Exception {
-        for (HeapInternalTimerService<?> service : timerServices) {
+        for (HeapInternalTimerService<?, ?> service : timerServices) {
             try {
-                service.fireProcessingTimeTimers(timestamp);
+                fireProcessingTimeTimersUnchecked(service, timestamp);
             } catch (Exception e) {
                 LOG.error("Failed to fire processing time timers for service: {}", service, e);
             }
         }
+    }
+
+    @SuppressWarnings({"unchecked", "rawtypes"})
+    private void advanceWatermarkUnchecked(HeapInternalTimerService<?, ?> service, long timestamp) throws Exception {
+        ((HeapInternalTimerService) service).advanceWatermark(timestamp);
+    }
+
+    @SuppressWarnings({"unchecked", "rawtypes"})
+    private void fireProcessingTimeTimersUnchecked(HeapInternalTimerService<?, ?> service, long timestamp) throws Exception {
+        ((HeapInternalTimerService) service).fireProcessingTimeTimers(timestamp);
     }
 }

@@ -32,7 +32,7 @@ import io.nop.stream.core.windowing.assigners.TumblingEventTimeWindows;
 import io.nop.stream.core.windowing.evictors.CountEvictor;
 import io.nop.stream.core.windowing.triggers.EventTimeTrigger;
 import io.nop.stream.core.windowing.windows.TimeWindow;
-import io.nop.stream.runtime.operators.WindowOperatorTimerService;
+import io.nop.stream.core.operators.HeapInternalTimerService;
 import io.nop.stream.runtime.operators.windowing.functions.InternalIterableProcessWindowFunction;
 import io.nop.stream.runtime.operators.windowing.functions.InternalIterableWindowFunction;
 import io.nop.stream.runtime.operators.windowing.functions.InternalSingleValueWindowFunction;
@@ -371,8 +371,8 @@ public class TestWindowOperatorBuilder {
         }
 
         public void advanceInternalWatermark(long timestamp) throws Exception {
-            if (internalTimerService instanceof WindowOperatorTimerService) {
-                ((WindowOperatorTimerService<String, TimeWindow>) internalTimerService).advanceWatermark(timestamp);
+            if (internalTimerService instanceof HeapInternalTimerService) {
+                ((HeapInternalTimerService<String, TimeWindow>) internalTimerService).advanceWatermark(timestamp);
             }
         }
 

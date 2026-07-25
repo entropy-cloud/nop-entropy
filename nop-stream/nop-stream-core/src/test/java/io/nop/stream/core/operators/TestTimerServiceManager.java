@@ -27,7 +27,7 @@ public class TestTimerServiceManager {
         firedTimers = new ArrayList<>();
     }
 
-    private HeapInternalTimerService<String> createTimerService(String name) {
+    private HeapInternalTimerService<Object, String> createTimerService(String name) {
         Triggerable<Object, String> triggerable = new Triggerable<Object, String>() {
             @Override
             public void onEventTime(InternalTimer<Object, String> timer) throws Exception {
@@ -44,8 +44,8 @@ public class TestTimerServiceManager {
 
     @Test
     void testAdvanceWatermarkPropagatesToAllServices() throws Exception {
-        HeapInternalTimerService<String> svc1 = createTimerService("svc1");
-        HeapInternalTimerService<String> svc2 = createTimerService("svc2");
+        HeapInternalTimerService<Object, String> svc1 = createTimerService("svc1");
+        HeapInternalTimerService<Object, String> svc2 = createTimerService("svc2");
 
         manager.registerTimerService(svc1);
         manager.registerTimerService(svc2);
@@ -68,8 +68,8 @@ public class TestTimerServiceManager {
 
     @Test
     void testFireProcessingTimeTimersPropagatesToAllServices() throws Exception {
-        HeapInternalTimerService<String> svc1 = createTimerService("svc1");
-        HeapInternalTimerService<String> svc2 = createTimerService("svc2");
+        HeapInternalTimerService<Object, String> svc1 = createTimerService("svc1");
+        HeapInternalTimerService<Object, String> svc2 = createTimerService("svc2");
 
         manager.registerTimerService(svc1);
         manager.registerTimerService(svc2);

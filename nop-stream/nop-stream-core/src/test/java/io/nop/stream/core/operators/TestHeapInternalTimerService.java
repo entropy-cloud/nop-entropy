@@ -17,7 +17,7 @@ import static org.junit.jupiter.api.Assertions.*;
 
 public class TestHeapInternalTimerService {
 
-    private HeapInternalTimerService<String> timerService;
+    private HeapInternalTimerService<Object, String> timerService;
     private List<InternalTimer<Object, String>> firedTimers;
 
     @BeforeEach

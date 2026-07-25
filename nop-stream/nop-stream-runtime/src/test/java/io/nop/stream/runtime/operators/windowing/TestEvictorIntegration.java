@@ -13,7 +13,7 @@ import io.nop.stream.core.windowing.triggers.EventTimeTrigger;
 import io.nop.stream.core.windowing.windows.TimeWindow;
 import io.nop.stream.runtime.operators.windowing.functions.InternalIterableProcessWindowFunction;
 import io.nop.stream.runtime.operators.windowing.functions.InternalWindowFunction;
-import io.nop.stream.runtime.operators.WindowOperatorTimerService;
+import io.nop.stream.core.operators.HeapInternalTimerService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -132,8 +132,8 @@ public class TestEvictorIntegration {
         }
 
         void advanceInternalWatermark(long timestamp) throws Exception {
-            if (internalTimerService instanceof WindowOperatorTimerService) {
-                ((WindowOperatorTimerService) internalTimerService).advanceWatermark(timestamp);
+            if (internalTimerService instanceof HeapInternalTimerService) {
+                ((HeapInternalTimerService<?, ?>) internalTimerService).advanceWatermark(timestamp);
             }
         }
     }

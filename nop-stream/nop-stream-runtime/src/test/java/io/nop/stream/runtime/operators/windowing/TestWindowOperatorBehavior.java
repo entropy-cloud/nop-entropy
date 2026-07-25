@@ -16,7 +16,7 @@ import io.nop.stream.core.util.OutputTag;
 import io.nop.stream.core.windowing.assigners.TumblingEventTimeWindows;
 import io.nop.stream.core.windowing.triggers.EventTimeTrigger;
 import io.nop.stream.core.windowing.windows.TimeWindow;
-import io.nop.stream.runtime.operators.WindowOperatorTimerService;
+import io.nop.stream.core.operators.HeapInternalTimerService;
 import io.nop.stream.runtime.operators.windowing.functions.InternalWindowFunction;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -171,8 +171,8 @@ public class TestWindowOperatorBehavior {
         }
 
         void advanceInternalWatermark(long timestamp) throws Exception {
-            if (internalTimerService instanceof WindowOperatorTimerService) {
-                ((WindowOperatorTimerService<String, TimeWindow>) internalTimerService).advanceWatermark(timestamp);
+            if (internalTimerService instanceof HeapInternalTimerService) {
+                ((HeapInternalTimerService<String, TimeWindow>) internalTimerService).advanceWatermark(timestamp);
             }
         }
     }

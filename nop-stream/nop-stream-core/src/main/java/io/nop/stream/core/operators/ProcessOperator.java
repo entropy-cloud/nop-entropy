@@ -11,7 +11,7 @@ public class ProcessOperator<IN, OUT> extends AbstractUdfStreamOperator<OUT, Pro
         implements OneInputStreamOperator<IN, OUT>, Triggerable<Object, VoidNamespace> {
 
     private transient TimestampedCollector<OUT> collector;
-    private transient HeapInternalTimerService<VoidNamespace> internalTimerService;
+    private transient HeapInternalTimerService<Object, VoidNamespace> internalTimerService;
     private transient TimerService userTimerService;
     private transient ContextImpl context;
     private transient OnTimerContextImpl onTimerContext;
@@ -125,9 +125,9 @@ public class ProcessOperator<IN, OUT> extends AbstractUdfStreamOperator<OUT, Pro
 
     private static class InternalTimerServiceTimerWrapper implements TimerService {
 
-        private final HeapInternalTimerService<VoidNamespace> internalTimerService;
+        private final HeapInternalTimerService<Object, VoidNamespace> internalTimerService;
 
-        InternalTimerServiceTimerWrapper(HeapInternalTimerService<VoidNamespace> internalTimerService) {
+        InternalTimerServiceTimerWrapper(HeapInternalTimerService<Object, VoidNamespace> internalTimerService) {
             this.internalTimerService = internalTimerService;
         }
 

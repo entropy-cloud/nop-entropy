@@ -15,7 +15,7 @@ import io.nop.stream.core.windowing.triggers.Trigger;
 import io.nop.stream.core.windowing.triggers.TriggerResult;
 import io.nop.stream.core.windowing.utils.TimestampedValue;
 import io.nop.stream.core.windowing.windows.TimeWindow;
-import io.nop.stream.runtime.operators.WindowOperatorTimerService;
+import io.nop.stream.core.operators.HeapInternalTimerService;
 import io.nop.stream.runtime.operators.windowing.functions.InternalWindowFunction;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -360,8 +360,8 @@ class TestPaneInfoAndAccumulationMode {
         }
 
         void advanceInternalWatermark(long timestamp) throws Exception {
-            if (internalTimerService instanceof WindowOperatorTimerService) {
-                ((WindowOperatorTimerService<String, TimeWindow>) internalTimerService).advanceWatermark(timestamp);
+            if (internalTimerService instanceof HeapInternalTimerService) {
+                ((HeapInternalTimerService<String, TimeWindow>) internalTimerService).advanceWatermark(timestamp);
             }
         }
     }
