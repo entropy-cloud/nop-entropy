@@ -381,6 +381,14 @@ JobCoordinator / CheckpointCoordinator
   - 可观测性契约
   - 容错约束边界（§13：执行路径分层 + 容错契约 + 缓解选项 + 不变量与契约的关系；实现状态与缺口见 `component-roadmap.md` §3 C5）
 
+- `mailbox-design.md`
+  - Mailbox 控制面原语（`Mail` / `TaskMailbox` / `MailboxExecutor`）归属契约
+  - 三种用法：SOURCE trigger-checkpoint 经 mail（发射点 drain）、middle/sink 循环顶 poll、abort 投递 cancel mail
+  - middle/sink `triggerCheckpoint` 保持 injector 线程同步的理由（跨 task priming 不变式）
+  - finished-source final checkpoint 例外（保留 injector 线程）
+  - abort 协作式 cancel（interrupt 解除阻塞 + cancel flag 循环顶检查）
+  - `synchronized` 处置裁定、ACK 越界缺陷处置
+
 ## 状态与时间层
 
 - `state-management-design.md`

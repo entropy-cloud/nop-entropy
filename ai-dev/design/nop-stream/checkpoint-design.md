@@ -84,6 +84,12 @@ source reader observes pending epoch N
 
 Safe point 由 source connector 定义。文件、批量加载、消息队列、CDC 的 safe point 不同，但都必须能给出可恢复 offset。
 
+**实现接线（mailbox 控制面）**：barrier-injector 线程对 source task 的 `CheckpointBarrierTracker.triggerCheckpoint()` 同步 prime ack 计数后，经 `StreamSourceOperator.offerBarrier()` 向 source task 的 `TaskMailbox` 投递 trigger-checkpoint mail（CONTROL 优先级）。source task 线程在 `SourceContext.collect()` 发射点 drain 该 mail，执行 `snapshotState`→`emitBarrier`（在 task 线程，与切点序一致）。详见 `mailbox-design.md` §3.1。
+
+**middle/sink trigger 保持 injector 线程同步**：middle/sink 的 `triggerCheckpoint()` 仅同步 prime ack 计数（不执行 operator 代码、已 `synchronized` 安全），不改 mail。理由：middle/sink 的 barrier 经数据流 in-band 到达，"下游 ack 计数先于 barrier prime"是 checkpoint 不 hang 的跨 task 不变式。详见 `mailbox-design.md` §3.2。
+
+**finished-source 例外**：源完成后 task 线程不存在，`offerBarrier()` 的 `finished` 分支直接在 injector 线程调 `injectBarrier()`（final checkpoint）。无 mailbox 消费者，保留 injector 线程执行。详见 `mailbox-design.md` §3.3。
+
 ### 2.4 Barrier 对齐规则
 
 单输入 task 收到 barrier 后立即 snapshot。
@@ -756,6 +762,7 @@ Parallelism 变化必须通过显式 rescale manifest 或 migration action 描�
 - `CheckpointCoordinator` 提供 `setAbortHandler(Consumer<Long>)`，在 `abortPendingCheckpoint` 中调用。
 - `GraphModelCheckpointExecutor.executeWithCheckpoint()` 构建 tasks 后，注册 abort handler：置位 `AtomicBoolean abortMarked` + 遍历 tasks 调 `SubtaskTask.cancel()`（中断阻塞线程）。
 - abort 标记插在 `submitAndRun` 返回后、`handleJobTermination` 之前：`if (abortMarked) throw StreamException`，同时实现"抛异常使 job 失败"和"跳过 handleJobTermination 的 final checkpoint"（task 已取消，final barrier 无人处理）。
+- **协作式 cancel（mailbox 控制面）**：abort handler 在 `task.cancel()` 之前经 `invokable.getMailboxExecutor().signalCancel()` 置 cancel flag + 投递 CONTROL marker mail。`Thread.interrupt()` 仍是解除阻塞 `InputGate.read()` / source I/O 的手段（无现成非阻塞 read API）；cancel flag 在 middle/sink 主循环（`processInputGate`）顶部和 source `SourceContext.collect()` 发射点检查，使退出为受控优雅退出。详见 `mailbox-design.md` §3.5。
 
 **为什么不能靠 task FAILED 传播**：
 - `SubtaskTask.cancel()` 的状态机先 CAS `RUNNING→CANCELING` 再 `t.interrupt()`，被取消的 task 中断后进入 `CANCELED`（非 `FAILED`），而 `checkTaskFailures` 只检 `FAILED`。

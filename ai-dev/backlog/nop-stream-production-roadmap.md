@@ -22,7 +22,7 @@ Does not contain implementation details. Each `planned` stage is owned by its ex
 - 14. Session window merge 修复（G1，P0）: `done`
 - 15. Timer checkpoint/restore + timer service 统一（G2, G16，P0/P1）: `done`
 - 16. Multi-input barrier alignment（G4, G7，P1）: `done`（G5/G34 deferred to Stage 39 — 跨 JVM RPC prerequisite，见 `checkpoint-design.md:911`）
-- 17. Mailbox 执行模型（G22，P1）: `todo`
+- 17. Mailbox 执行模型（G22，P1）: `done`
 - 18. 异步两阶段 snapshot pipeline（G30, G44，P2）: `todo`
 - 19. Checkpoint 并发与共享状态（G31, G33，P2）: `todo`
 - 20. Partial/subtask 级恢复（G28, G29，P2）: `todo`
@@ -233,7 +233,7 @@ Does not contain implementation details. Each `planned` stage is owned by its ex
 
 #### 17. Mailbox 执行模型
 
-> Status: see Work Items above
+> Status: done (2026-07-25) — plan `2026-07-25-1500-1-mailbox-execution-model`
 
 **Goal:** 引入最小化单线程任务队列，使 checkpoint barrier 与 timer 正确交错。**不移植 Flink MailboxProcessor 全套机制**，实现 nop-stream 原生的 `processInput`/`processMail` 交错循环。
 
