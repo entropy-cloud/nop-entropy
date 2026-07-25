@@ -95,7 +95,7 @@
 |---|------|------|------|------|-----------|
 | G28 | checkpoint | 无 partial/region failover | Gap/P2 | 03-checkpoint: #7, 07-dist: D10 | Item 9 |
 | G29 | checkpoint | 无 subtask-level granular restoration | Gap/P2 | 03-checkpoint: #8 | Item 9 |
-| G30 | checkpoint | 无 async snapshot pipeline | Gap/P2 | 03-checkpoint: #9, 04-state: #9 | Item 9 |
+| ~~G30~~ | checkpoint | 无 async snapshot pipeline | Gap/P2 | 03-checkpoint: #9, 04-state: #9 | ✅ Closed (item 18) — coordinator 侧 persist 卸载到专用 `checkpoint-persist-*` executor，ACK 线程提交后即返回；段 1(CAS+快照)→段 2(I/O 不持锁)→段 3a/3b(重新获取 monitor) 三段模型；§12 不变量 5 与 §13.2 保持。Plan `2026-07-25-2200-1-async-snapshot-pipeline` |
 | G31 | checkpoint | maxConcurrentCheckpoints config hard-coded to 1 | Bug/P2 | 03-checkpoint: #10 | Item 9 |
 | G32 | checkpoint | 无 HA checkpoint store | Gap/P2 | 03-checkpoint: #11 | deferred (Phase 3) |
 | G33 | checkpoint | 无 shared state registry | Gap/P2 | 03-checkpoint: #12 | Item 9 |
@@ -109,7 +109,7 @@
 | G41 | state | 缺少 serializer 注册/管理机制 | Gap/P2 | 04-state: #16 | Item 13 |
 | G42 | state | StateTtlConfig 完全缺失 | Gap/P2 | 04-state: #18 | 独立 plan |
 | G43 | state | TTL 装饰器/清理策略完全缺失 | Gap/P2 | 04-state: #19 | 独立 plan |
-| G44 | state | 缺少异步两阶段 snapshot | Gap/P2 | 04-state: #9(dup) | Item 9 |
+| ~~G44~~ | state | 缺少异步两阶段 snapshot | Gap/P2 | 04-state: #9(dup) | ✅ Closed (item 18) — 同 G30（coordinator 侧 async persist）。Plan `2026-07-25-2200-1-async-snapshot-pipeline` |
 | G45 | state | 缺少增量 checkpoint | Gap/P2 | 04-state: #10(partial) | deferred (Phase 4) |
 | ~~G46~~ | window | Evictor.evictAfter() 未被调用 | Gap/P2 | 05-window: G7 | ✅ Closed (item 21) — `emitWindowContents` evictBefore/evictAfter 已接线，transient-per-fire 语义核对，不引入持久化回归。Plan `2026-07-25-1500-2-evictor-watermark-pane` |
 | ~~G47~~ | window | StatusWatermarkValve 等效缺失 | Gap/P2 | 05-window: G8 | ✅ Closed (item 21) — `IndexedCombinedWatermarkStatus` N-capable + valve 数学单测；悬空 `@link` 修正；dormant + Anti-Hollow 豁免。Plan `2026-07-25-1500-2-evictor-watermark-pane` |

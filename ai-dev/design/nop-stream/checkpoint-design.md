@@ -73,6 +73,10 @@ CREATED → INJECTING → ALIGNING → SNAPSHOTTING → PRECOMMITTED → DURABLE
 | `COMMITTED` | sink commit 通知已完成或可重试完成 |
 | `ABORTED` | epoch 未 durable。若作业继续运行，已 preCommit 的 sink transaction 保留等待后续 durable epoch subsuming commit；若进入全局恢复，回滚最新 durable epoch 之后的 non-durable transaction |
 
+> **Async persist（SNAPSHOTTING → DURABLE 间的异步阶段）**：当 `CheckpointConfig.asyncSnapshotEnabled=true`（默认）时，coordinator 的 `completePendingCheckpoint` 在 ACK 到齐后分三段执行。**段 1**（ACK 线程，持有 coordinator monitor）：CAS(RUNNING→COMPLETED)，构建不可变 `CompletedCheckpoint` + `EpochManifest` 快照，提交 persist task 到专用 `checkpoint-persist-<jobId>-<n>` executor，释放 monitor，ACK 线程立即返回。**段 2**（persist executor 线程，不持锁）：`storeCheckPoint` + `storeEpochManifest`（I/O 卸载）。**段 3a/3b**（persist executor 线程，重新获取 monitor）：成功则 `forceComplete`（DURABLE）→ `decrementPendingCheckpointCount` → `notifyParticipantsFinishCommit(true)`（commit，在 DURABLE 之后，§12 不变量 5）；失败则 status=FAILED + `notifyParticipantsFinishCommit(false)`。
+>
+> **线程上下文变更（observable）**：`forceComplete`/`notifyCheckpointCompleted`/`notifyParticipantsFinishCommit` 在 async 模式下由 `checkpoint-persist-*` 线程执行（原本在 ACK 线程）。消费方语义不变：savepoint `.get()` 仍阻塞至 DURABLE；`CheckpointListener` 回调仍按 §12 不变量 5 顺序触发。`asyncSnapshotEnabled=false` 时保留改造前同步行为（段 1+2+3a 全在 ACK 线程的 synchronized 方法内），用于回退。详细并发模型与不变量见 Plan `2026-07-25-2200-1`。
+
 ### 2.3 Barrier 注入规则
 
 Barrier 只能从 source subtask 注入，且必须由 source 读取线程注入。
@@ -180,7 +184,7 @@ Epoch log 必须持久化 `DURABLE` 和 `COMMITTED` 的状态变化。`COMMITTED
 | 简化恢复 | 最新 durable epoch 之后的状态全部 abort 或重试 commit |
 | 满足首版语义 | exactly-once 正确性优先于 checkpoint 吞吐 |
 
-**当前实现约束**：`CheckpointCoordinator` 强制 `maxConcurrentCheckpoints=1`（配置 >1 会被警告并降级到 1），`CheckpointBarrierTracker` 和 `InputGate` 也只支持单 checkpoint 对齐。配置 >1 不会崩溃，但不会生效。task 层多 checkpoint 支持（CheckpointBarrierTracker/InputGate 重构为多 checkpoint 追踪）作为 Deferred。
+**当前实现约束**：`CheckpointCoordinator` 对 `maxConcurrentCheckpoints>1` 仅 `LOG.warn`（**不强制降级**，配置值原样用于 `effectiveMaxConcurrent`），但 `CheckpointBarrierTracker` 和 `InputGate` 当前只支持单 checkpoint 对齐——因此配置 >1 不会崩溃，trigger 层允许通过，但 task 侧 ACK 追踪无法正确处理多并发 epoch（这是 G31，属 Stage 19）。task 层多 checkpoint 支持（CheckpointBarrierTracker/InputGate 重构为多 checkpoint 追踪）作为 Deferred。
 
 ### 2.9 Bounded Source 与 Final Epoch
 
@@ -835,6 +839,8 @@ Epoch manifest 的发布必须是原子的。
 
 如果 state segment 已写入但 manifest 未发布，该 epoch 不可恢复，后续 cleanup 可删除孤儿 segment。
 
+> **异步发布时机**：当 `CheckpointConfig.asyncSnapshotEnabled=true`（默认）时，`storeCheckPoint` + `storeEpochManifest` 在 coordinator 的专用 persist executor 线程执行（段 2，不持 coordinator monitor），ACK 线程提交后即返回。Atomic Publish 规则不变：两个 store 仍在段 2 顺序执行，manifest 写入成功（段 2 完成）后才进入段 3a 置 DURABLE 并 commit（§12 不变量 5）。persist 失败经段 3b 显式置 FAILED + `finishCommit(false)`，不静默降级。
+
 ### 9.2 Checkpoint Retention
 
 Retention 必须以解析后的 `checkpointNamespace` 为范围，不能跨 namespace 计数后删除当前 namespace 的 checkpoint。默认 `checkpointNamespace` 由 `jobId + pipelineId` 决定。
@@ -871,9 +877,11 @@ Retention 必须以解析后的 `checkpointNamespace` 为范围，不能跨 name
 | `checkpointTimeout` | 600000ms | 单次 checkpoint 超时 |
 | `barrierAlignmentTimeout` | 30000ms | 多输入 barrier 对齐累计超时（超时后 task 主动失败，不等 checkpointTimeout） |
 | `minPause` | 500ms | 两次 checkpoint 之间的最小间隔 |
-| `maxConcurrentCheckpoints` | 1 | 最大并发 checkpoint 数（**当前实现强制为 1，配置 >1 会被降级**） |
+| `maxConcurrentCheckpoints` | 1 | 最大并发 checkpoint 数（coordinator 对 >1 仅 warn，不强制降级；task 侧对齐当前只支持单 checkpoint，属 G31/Stage 19） |
 | `maxRetainedCheckpoints` | 5 | 保留的已完成 checkpoint 数 |
 | `maxConsecutiveCheckpointFailures` | 3 | 连续 checkpoint 触发失败的告警阈值（超阈值触发 ERROR 日志） |
+| `asyncSnapshotEnabled` | true | 是否将 coordinator 侧持久化（storeCheckPoint + storeEpochManifest）卸载到专用 persist executor。true 时 ACK 线程提交后即返回，存储 I/O 不阻塞 abort/timeout/trigger bookkeeping；false 保留同步行为（段 1+2+3a 全在 ACK 线程 synchronized 方法内） |
+| `asyncSnapshotThreadPoolSize` | 1 | persist executor 线程池大小。Stage 19 解禁并发时需重新评估 |
 | `storageType` | "local" | 存储类型（"local" / "jdbc"） |
 
 ## 10. 可观测性契约

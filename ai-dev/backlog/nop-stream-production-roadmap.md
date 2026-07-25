@@ -23,12 +23,12 @@ Does not contain implementation details. Each `planned` stage is owned by its ex
 - 15. Timer checkpoint/restore + timer service 统一（G2, G16，P0/P1）: `done`
 - 16. Multi-input barrier alignment（G4, G7，P1）: `done`（G5/G34 deferred to Stage 39 — 跨 JVM RPC prerequisite，见 `checkpoint-design.md:911`）
 - 17. Mailbox 执行模型（G22，P1）: `done`
-- 18. 异步两阶段 snapshot pipeline（G30, G44，P2）: `todo`
-- 19. Checkpoint 并发与共享状态（G31, G33，P2）: `todo`
-- 20. Partial/subtask 级恢复（G28, G29，P2）: `todo`
+- 18. 异步两阶段 snapshot pipeline（G30, G44，P2）: `done`（plan `2026-07-25-2200-1-async-snapshot-pipeline`，completed）
+- 19. Checkpoint 并发与共享状态（G31, G33，P2）: `planned`（plan `ai-dev/plans/nop-stream-production/2026-07-25-2300-1-checkpoint-concurrency.md`；G31 收口，G33 裁定延后 Stage 31）
+- 20. Partial/subtask 级恢复（G28, G29，P2）: `planned`（G29 only — plan `2026-07-25-2200-2-partial-subtask-recovery`，active；G28 design-gated，需先起草 region/drain/reconnect 设计文档，见 plan Deferred）
 - 21. Evictor/Pane/Watermark 集成（G46—G48，P2）: `done`
 - 22. 文档合同对齐与 source-anchors 补全（D69—D73，Doc）: `done`
-- 23. 代码清理与 P3 次要改进（G68, G62, G64，P3）: `todo`
+- 23. 代码清理与 P3 次要改进（G68, G62, G64，P3）: `planned`（plan `2026-07-25-2200-3-code-cleanup-p3`，active；G62 降级为 Decision-only）
 
 ### Phase 1 — 分布式运行时基础
 
@@ -252,7 +252,7 @@ Does not contain implementation details. Each `planned` stage is owned by its ex
 **Goal:** 把同步 snapshot 改为同步 phase（状态冻结）+ 异步 phase（持久化），降低 checkpoint 延迟。
 
 **Deliverables:**
-- G30, G44: `OperatorSnapshotFutures` 等价物，异步 snapshot pipeline 接线
+- ✅ G30, G44: coordinator 侧 async persist pipeline（专用 `checkpoint-persist-*` executor，三段模型：段 1 ACK 线程 CAS+快照 → 段 2 executor I/O 不持锁 → 段 3a/3b 重新获取 monitor）。**Note**: draft review 修正了初稿「引入 task 侧 `OperatorSnapshotFutures` 等价物」方向——nop-stream 无 task 侧持久化，改为 coordinator 侧 async persist。Plan `2026-07-25-2200-1-async-snapshot-pipeline` (completed)
 
 **Out of scope:** RocksDB 增量 checkpoint（Stage 31）。
 
