@@ -17,7 +17,9 @@ import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentSkipListMap;
 import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -60,6 +62,18 @@ public class CheckpointCoordinator {
     private ScheduledExecutorService scheduler;
     private final ScheduledExecutorService timeoutScheduler;
     private volatile boolean isSchedulerStarted = false;
+
+    /**
+     * Dedicated executor for checkpoint persistence (storeCheckPoint + storeEpochManifest).
+     * Lazily created on first use (see {@link #getOrCreatePersistExecutor()}) so that
+     * coordinator instances which never complete a checkpoint do not spawn extra threads.
+     * Lifecycle is decoupled from {@link #startCheckpointScheduler()}/{@link #stopCheckpointScheduler()}
+     * (which are restartable) per N2: only the terminal {@link #shutdown()} tears it down,
+     * and {@link RejectedExecutionException} submitted after shutdown is handled inline.
+     */
+    private ExecutorService persistExecutor;
+    private final AtomicInteger persistExecutorThreadIndex = new AtomicInteger(0);
+    private volatile boolean isShutdown = false;
 
     private final List<CheckpointListener> listeners = new CopyOnWriteArrayList<>();
     private final List<CheckpointParticipant> participants = new CopyOnWriteArrayList<>();
@@ -228,6 +242,18 @@ public class CheckpointCoordinator {
             return false;
         }
 
+        // N1: status guard. In async-snapshot mode there is a window between
+        // CAS(RUNNING->COMPLETED) (段1) and pendingCheckpoints.remove (段3a/3b) during
+        // which the pending entry is still registered with status COMPLETED. A duplicate
+        // or stale ACK arriving in that window must return false (matching the sync-mode
+        // semantics where a duplicate ACK finds the entry already removed) instead of
+        // throwing from PendingCheckpoint.acknowledgeTask.
+        if (pending.getStatus().get() != PendingCheckpoint.Status.RUNNING) {
+            LOG.debug("Received ACK for checkpoint {} in non-RUNNING state {}, ignoring",
+                    checkpointId, pending.getStatus().get());
+            return false;
+        }
+
         pending.acknowledgeTask(taskLocation, state);
         LOG.debug("Task {} acknowledged checkpoint {}, pending tasks: {}",
                 taskLocation, checkpointId, pending.getNumberOfNotAcknowledgedTasks());
@@ -252,36 +278,108 @@ public class CheckpointCoordinator {
             return;
         }
 
-        try {
-            checkpointStorage.storeCheckPoint(completed);
-        } catch (Exception e) {
-            LOG.error("Failed to store checkpoint {}", checkpointId, e);
-            metrics.recordFailure("Failed to store checkpoint");
-            pending.getStatus().set(PendingCheckpoint.Status.FAILED);
-            pendingCheckpoints.remove(checkpointId, pending);
-            decrementPendingCheckpointCount();
-            notifyParticipantsFinishCommit(checkpointId, false);
-            notifyCheckpointAborted(checkpointId);
-            LOG.warn("Failed checkpoint {} for job {}: {}", checkpointId, jobId, "Failed to store checkpoint", e);
+        // 段1: build immutable manifest snapshot while holding monitor. buildEpochManifest
+        // captures currentFingerprint; building it here (under monitor) preserves the same
+        // fingerprint-observation ordering as the pre-async implementation. The manifest and
+        // the completed checkpoint are immutable, so they can be safely handed to the persist
+        // executor without holding the monitor during I/O.
+        final EpochManifest manifest = buildEpochManifest(completed);
+
+        if (!config.isAsyncSnapshotEnabled()) {
+            // sync fallback: 段2 (storage I/O) + 段3 (completion side effects) execute inline
+            // on the ACK caller thread under the monitor — pre-async behavior preserved.
+            completePersistSynchronously(completed, pending, manifest);
             return;
         }
 
-        // Build and persist EpochManifest
+        // async path: hand 段2 + 段3 to the dedicated persist executor. The ACK caller thread
+        // returns as soon as the task is queued, so storage I/O no longer blocks the
+        // coordinator's responsiveness (abort registration, timeout scheduling, trigger
+        // bookkeeping).
+        ExecutorService executor = getOrCreatePersistExecutor();
         try {
-            EpochManifest manifest = buildEpochManifest(completed);
+            executor.submit(() -> executePersistAsync(completed, pending, manifest));
+        } catch (RejectedExecutionException ree) {
+            // Executor was shut down (terminal shutdown racing with a final ACK). Execute
+            // 段3b inline — we still hold the monitor from this synchronized method.
+            LOG.warn("Persist executor rejected checkpoint {}, failing inline", checkpointId, ree);
+            onCompletePersistFailure(completed, pending, "submit persist task", ree);
+        }
+    }
+
+    /**
+     * Sync-fallback path: runs entirely on the ACK caller thread under the coordinator
+     * monitor. Equivalent to the pre-async implementation of {@code completePendingCheckpoint}.
+     */
+    private synchronized void completePersistSynchronously(
+            CompletedCheckpoint completed, PendingCheckpoint pending, EpochManifest manifest) {
+        long checkpointId = completed.getCheckpointId();
+
+        try {
+            checkpointStorage.storeCheckPoint(completed);
+        } catch (Exception e) {
+            onCompletePersistFailure(completed, pending, "Failed to store checkpoint", e);
+            return;
+        }
+
+        try {
             checkpointStorage.storeEpochManifest(jobId, pipelineId, manifest);
             LOG.debug("Stored EpochManifest for epoch {}", checkpointId);
         } catch (Exception e) {
-            LOG.error("Failed to store EpochManifest for checkpoint {}, failing checkpoint", checkpointId, e);
-            metrics.recordFailure("Failed to store EpochManifest");
-            pending.getStatus().set(PendingCheckpoint.Status.FAILED);
-            pendingCheckpoints.remove(checkpointId, pending);
-            decrementPendingCheckpointCount();
-            notifyParticipantsFinishCommit(checkpointId, false);
-            notifyCheckpointAborted(checkpointId);
-            LOG.warn("Failed checkpoint {} for job {}: {}", checkpointId, jobId, "Failed to store EpochManifest for checkpoint " + checkpointId, e);
+            onCompletePersistFailure(completed, pending,
+                    "Failed to store EpochManifest for checkpoint " + checkpointId, e);
             return;
         }
+
+        onCompletePersistSuccess(completed, pending);
+    }
+
+    /**
+     * Async path body, executed on a {@code checkpoint-persist-<jobId>-<n>} thread.
+     * 段2 performs storage I/O WITHOUT holding the monitor (operating on immutable snapshot
+     * data). 段3a/3b re-acquire the monitor so that decrementPendingCheckpointCount stays
+     * atomic with tryTriggerPendingCheckpoint's concurrent-check (§13.2).
+     */
+    private void executePersistAsync(
+            CompletedCheckpoint completed, PendingCheckpoint pending, EpochManifest manifest) {
+        long checkpointId = completed.getCheckpointId();
+
+        try {
+            checkpointStorage.storeCheckPoint(completed);
+        } catch (Exception e) {
+            synchronized (this) {
+                onCompletePersistFailure(completed, pending, "Failed to store checkpoint", e);
+            }
+            return;
+        }
+
+        try {
+            checkpointStorage.storeEpochManifest(jobId, pipelineId, manifest);
+            LOG.debug("Stored EpochManifest for epoch {}", checkpointId);
+        } catch (Exception e) {
+            synchronized (this) {
+                onCompletePersistFailure(completed, pending,
+                        "Failed to store EpochManifest for checkpoint " + checkpointId, e);
+            }
+            return;
+        }
+
+        synchronized (this) {
+            onCompletePersistSuccess(completed, pending);
+        }
+    }
+
+    /**
+     * 段3a: success callback. Caller MUST hold the coordinator monitor.
+     *
+     * <p>Preserves the exact side-effect ordering of the pre-async implementation:
+     * pendingCheckpoints.remove → forceComplete (DURABLE) → latestCompletedCheckpoint →
+     * decrementPendingCheckpointCount → metrics → cleanup → retryFailedCommits →
+     * notifyParticipantsFinishCommit(true) (commit, after forceComplete per §12 invariant 5)
+     * → notifyCheckpointCompleted → checkpointSuccessMap.remove → consecutiveTriggerFailures.reset.
+     */
+    private void onCompletePersistSuccess(CompletedCheckpoint completed, PendingCheckpoint pending) {
+        long checkpointId = completed.getCheckpointId();
 
         if (!pendingCheckpoints.remove(checkpointId, pending)) {
             LOG.debug("Skip completing checkpoint {} because pending state changed", checkpointId);
@@ -303,7 +401,8 @@ public class CheckpointCoordinator {
         // Retry previously failed commits before processing current epoch
         retryFailedCommits();
 
-        // Notify participants first: finishCommit in reverse topology order
+        // Notify participants first: finishCommit in reverse topology order.
+        // §12 invariant 5: commit happens only after manifest is durable (forceComplete above).
         notifyParticipantsFinishCommit(checkpointId, true);
 
         notifyCheckpointCompleted(checkpointId);
@@ -314,6 +413,43 @@ public class CheckpointCoordinator {
 
         LOG.info("Completed checkpoint {} for job {}, duration: {}ms",
                 checkpointId, jobId, completed.getDuration());
+    }
+
+    /**
+     * 段3b: failure callback. Caller MUST hold the coordinator monitor.
+     *
+     * <p>The pending checkpoint status is forced to FAILED (NOT aborted via
+     * {@link #abortPendingCheckpoint}, whose RUNNING→ABORTED CAS would fail because 段1
+     * already transitioned to COMPLETED). finishCommit(false) keeps prepared sink
+     * transactions for subsuming, matching the pre-async failure semantics.
+     */
+    private void onCompletePersistFailure(CompletedCheckpoint completed, PendingCheckpoint pending,
+                                          String failMessage, Exception cause) {
+        long checkpointId = completed.getCheckpointId();
+        LOG.error("Failed checkpoint {} for job {}: {}", checkpointId, jobId, failMessage, cause);
+        metrics.recordFailure(failMessage);
+        pending.getStatus().set(PendingCheckpoint.Status.FAILED);
+        pendingCheckpoints.remove(checkpointId, pending);
+        decrementPendingCheckpointCount();
+        notifyParticipantsFinishCommit(checkpointId, false);
+        notifyCheckpointAborted(checkpointId);
+        LOG.warn("Failed checkpoint {} for job {}: {}", checkpointId, jobId, failMessage, cause);
+    }
+
+    private ExecutorService getOrCreatePersistExecutor() {
+        if (persistExecutor == null) {
+            persistExecutor = createPersistExecutor();
+        }
+        return persistExecutor;
+    }
+
+    private ExecutorService createPersistExecutor() {
+        int poolSize = Math.max(1, config.getAsyncSnapshotThreadPoolSize());
+        return Executors.newFixedThreadPool(poolSize, r -> {
+            Thread t = new Thread(r, "checkpoint-persist-" + jobId + "-" + persistExecutorThreadIndex.incrementAndGet());
+            t.setDaemon(true);
+            return t;
+        });
     }
 
     public synchronized void abortPendingCheckpoint(PendingCheckpoint pending, String reason) {
@@ -517,7 +653,25 @@ public class CheckpointCoordinator {
     }
 
     public void shutdown() {
+        isShutdown = true;
         stopCheckpointScheduler();
+
+        // N2/N3: persist executor lifecycle is tied to terminal shutdown() only, not to the
+        // restartable stopCheckpointScheduler(). awaitTermination mirrors trigger scheduler
+        // discipline so in-flight persist tasks (段2 storage writes) get a brief grace window
+        // to finish before shutdownNow interrupts them.
+        ExecutorService pe = persistExecutor;
+        if (pe != null) {
+            pe.shutdown();
+            try {
+                if (!pe.awaitTermination(5000, TimeUnit.MILLISECONDS)) {
+                    pe.shutdownNow();
+                }
+            } catch (InterruptedException e) {
+                pe.shutdownNow();
+                Thread.currentThread().interrupt();
+            }
+        }
 
         timeoutScheduler.shutdownNow();
         try {

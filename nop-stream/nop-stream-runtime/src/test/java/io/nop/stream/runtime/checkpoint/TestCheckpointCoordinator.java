@@ -46,12 +46,17 @@ class TestCheckpointCoordinator {
     void setUp() {
         storage = new LocalFileCheckpointStorage(tempDir.toString());
         idCounter = new CheckpointIDCounter();
+        // These tests verify general coordinator semantics and the sync-fallback parity
+        // (Plan 2026-07-25-2200-1 Exit Criterion: "sync fallback 行为与改造前一致"). They rely
+        // on the pre-async timing where all side effects complete before acknowledgeTask
+        // returns. The async path is exercised by TestAsyncSnapshotPipeline.
         config = CheckpointConfig.builder()
                 .checkpointEnabled(true)
                 .checkpointInterval(1000L)
                 .checkpointTimeout(5000L)
                 .maxConcurrentCheckpoints(1)
                 .maxRetainedCheckpoints(3)
+                .asyncSnapshotEnabled(false)
                 .build();
 
         coordinator = new CheckpointCoordinator("1", "1", idCounter, storage, config);

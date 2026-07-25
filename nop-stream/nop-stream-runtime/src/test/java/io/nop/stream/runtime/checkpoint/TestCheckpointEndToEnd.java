@@ -103,6 +103,7 @@ public class TestCheckpointEndToEnd {
         // Setup checkpoint coordinator
         CheckpointIDCounter idCounter = new CheckpointIDCounter();
         CheckpointConfig config = new CheckpointConfig();
+        config.setAsyncSnapshotEnabled(false);
         config.setCheckpointEnabled(true);
         config.setCheckpointInterval(100);
         config.setCheckpointTimeout(5000);
@@ -230,6 +231,7 @@ public class TestCheckpointEndToEnd {
         // Setup checkpoint
         CheckpointIDCounter idCounter = new CheckpointIDCounter();
         CheckpointConfig config = new CheckpointConfig();
+        config.setAsyncSnapshotEnabled(false);
         config.setCheckpointEnabled(true);
         config.setCheckpointInterval(100);
         config.setCheckpointTimeout(5000);

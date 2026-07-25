@@ -55,6 +55,7 @@ class TestCheckpointTriggerSafety {
                 .maxConcurrentCheckpoints(maxConcurrent)
                 .maxRetainedCheckpoints(5)
                 .maxConsecutiveCheckpointFailures(3)
+                .asyncSnapshotEnabled(false)
                 .build();
 
         coordinator = new CheckpointCoordinator("j", "p", idCounter, storage, config);

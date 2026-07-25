@@ -61,6 +61,7 @@ class TestCheckpointParticipantIntegration {
         storage = new LocalFileCheckpointStorage(tempDir.toString());
         CheckpointIDCounter idCounter = new CheckpointIDCounter();
         CheckpointConfig config = new CheckpointConfig();
+        config.setAsyncSnapshotEnabled(false);
         config.setCheckpointInterval(1000);
         coordinator = new CheckpointCoordinator("job-1", "p-0", idCounter, storage, config);
         coordinator.registerTask(LOC_0);

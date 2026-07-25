@@ -36,6 +36,7 @@ class TestCheckpointSuccessMapCleanup {
                 .checkpointTimeout(30000L)
                 .maxConcurrentCheckpoints(3)
                 .maxRetainedCheckpoints(10)
+                .asyncSnapshotEnabled(false)
                 .build();
 
         coordinator = new CheckpointCoordinator("test-job", "p1", idCounter, storage, config);

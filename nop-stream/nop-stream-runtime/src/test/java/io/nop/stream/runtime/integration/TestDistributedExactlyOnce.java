@@ -18,6 +18,7 @@ import io.nop.stream.core.common.state.backend.IKeyedStateBackend;
 import io.nop.stream.core.common.state.backend.memory.MemoryStateBackend;
 import io.nop.stream.core.common.state.CheckpointListener;
 import io.nop.stream.core.connector.DrainableSource;
+import io.nop.stream.core.exceptions.StreamRuntimeException;
 import io.nop.stream.core.execution.CheckpointBarrierTracker;
 import io.nop.stream.core.operators.*;
 import io.nop.stream.core.streamrecord.StreamRecord;
@@ -158,7 +159,7 @@ class TestDistributedExactlyOnce {
                         map1.processElement(record);
                     }
                 } catch (Exception e) {
-                    throw new RuntimeException(e);
+                    throw new StreamRuntimeException("Failed to collect element", e);
                 }
             }
 
@@ -205,6 +206,7 @@ class TestDistributedExactlyOnce {
     void testDistributedTimerState_CheckpointAndRestore() throws Exception {
         CheckpointIDCounter idCounter = new CheckpointIDCounter();
         CheckpointConfig config = new CheckpointConfig();
+        config.setAsyncSnapshotEnabled(false);
         config.setCheckpointInterval(1000);
         CheckpointCoordinator coordinator = new CheckpointCoordinator("job-1", "pipe-0", idCounter, storage, config);
 
@@ -279,6 +281,7 @@ class TestDistributedExactlyOnce {
     void testDistributedRecovery_CheckpointAndContinue() throws Exception {
         CheckpointIDCounter idCounter = new CheckpointIDCounter();
         CheckpointConfig config = new CheckpointConfig();
+        config.setAsyncSnapshotEnabled(false);
         config.setCheckpointInterval(1000);
         CheckpointCoordinator coordinator = new CheckpointCoordinator("job-1", "pipe-0", idCounter, storage, config);
 
@@ -419,6 +422,7 @@ class TestDistributedExactlyOnce {
     void testDistributedDrain_TerminalCheckpoint() throws Exception {
         CheckpointIDCounter idCounter = new CheckpointIDCounter();
         CheckpointConfig config = new CheckpointConfig();
+        config.setAsyncSnapshotEnabled(false);
         config.setCheckpointInterval(1000);
         CheckpointCoordinator coordinator = new CheckpointCoordinator("job-1", "pipe-0", idCounter, storage, config);
 
@@ -528,6 +532,7 @@ class TestDistributedExactlyOnce {
         // The "old" coordinator triggers a checkpoint
         CheckpointIDCounter idCounter = new CheckpointIDCounter();
         CheckpointConfig config = new CheckpointConfig();
+        config.setAsyncSnapshotEnabled(false);
         config.setCheckpointInterval(1000);
         CheckpointCoordinator coordinator = new CheckpointCoordinator("job-1", "pipe-0", idCounter, storage, config);
 
@@ -583,6 +588,7 @@ class TestDistributedExactlyOnce {
     void testSubsumingContract_ConsecutiveCheckpoints() throws Exception {
         CheckpointIDCounter idCounter = new CheckpointIDCounter();
         CheckpointConfig config = new CheckpointConfig();
+        config.setAsyncSnapshotEnabled(false);
         config.setCheckpointInterval(1000);
         config.setMaxConcurrentCheckpoints(2);
         CheckpointCoordinator coordinator = new CheckpointCoordinator("job-1", "pipe-0", idCounter, storage, config);
@@ -830,6 +836,7 @@ class TestDistributedExactlyOnce {
     void testFullE2EPipelineWithExactlyOnce() throws Exception {
         CheckpointIDCounter idCounter = new CheckpointIDCounter();
         CheckpointConfig config = new CheckpointConfig();
+        config.setAsyncSnapshotEnabled(false);
         config.setCheckpointInterval(1000);
         CheckpointCoordinator coordinator = new CheckpointCoordinator("job-1", "pipe-0", idCounter, storage, config);
 

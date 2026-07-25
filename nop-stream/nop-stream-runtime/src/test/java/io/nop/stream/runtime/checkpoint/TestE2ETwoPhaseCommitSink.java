@@ -42,6 +42,7 @@ class TestE2ETwoPhaseCommitSink {
         storage = new LocalFileCheckpointStorage(tempDir.toString());
         CheckpointIDCounter idCounter = new CheckpointIDCounter();
         CheckpointConfig config = new CheckpointConfig();
+        config.setAsyncSnapshotEnabled(false);
         config.setCheckpointInterval(1000);
         coordinator = new CheckpointCoordinator("1", "0", idCounter, storage, config);
         coordinator.registerTask(LOC_0);

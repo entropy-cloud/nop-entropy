@@ -46,6 +46,7 @@ class TestE2EMultipleCheckpoints {
         storage = new LocalFileCheckpointStorage(tempDir.toString());
         CheckpointIDCounter idCounter = new CheckpointIDCounter();
         CheckpointConfig config = new CheckpointConfig();
+        config.setAsyncSnapshotEnabled(false);
         config.setCheckpointInterval(1000);
         CheckpointCoordinator coordinator = new CheckpointCoordinator("1", "0", idCounter, storage, config);
         coordinator.registerTask(LOC_0);
@@ -90,6 +91,7 @@ class TestE2EMultipleCheckpoints {
         storage = new LocalFileCheckpointStorage(tempDir.toString());
         CheckpointIDCounter idCounter = new CheckpointIDCounter();
         CheckpointConfig config = new CheckpointConfig();
+        config.setAsyncSnapshotEnabled(false);
         config.setCheckpointInterval(1000);
         CheckpointCoordinator coordinator = new CheckpointCoordinator("1", "0", idCounter, storage, config);
         coordinator.registerTask(LOC_0);
@@ -138,6 +140,7 @@ class TestE2EMultipleCheckpoints {
         storage = new LocalFileCheckpointStorage(tempDir.toString());
         CheckpointIDCounter idCounter = new CheckpointIDCounter();
         CheckpointConfig config = new CheckpointConfig();
+        config.setAsyncSnapshotEnabled(false);
         config.setCheckpointInterval(1000);
         config.setMaxRetainedCheckpoints(2);
         CheckpointCoordinator coordinator = new CheckpointCoordinator("1", "0", idCounter, storage, config);
@@ -184,6 +187,7 @@ class TestE2EMultipleCheckpoints {
         storage = new LocalFileCheckpointStorage(tempDir.toString());
         CheckpointIDCounter idCounter = new CheckpointIDCounter();
         CheckpointConfig config = new CheckpointConfig();
+        config.setAsyncSnapshotEnabled(false);
         config.setCheckpointInterval(100);
         config.setCheckpointTimeout(5000);
         CheckpointCoordinator coordinator = new CheckpointCoordinator("1", "1", idCounter, storage, config);
@@ -295,6 +299,7 @@ class TestE2EMultipleCheckpoints {
         List<Long> firstRunIds = new ArrayList<>();
         CheckpointIDCounter idCounter1 = new CheckpointIDCounter();
         CheckpointConfig config = new CheckpointConfig();
+        config.setAsyncSnapshotEnabled(false);
         config.setCheckpointInterval(1000);
 
         CheckpointCoordinator coordinator1 = new CheckpointCoordinator("1", "0", idCounter1, storage, config);

@@ -33,6 +33,7 @@ class TestExactlyOnceCorrectnessFixes {
     void testCommitFailureRetrySucceeds() throws Exception {
         LocalFileCheckpointStorage storage = new LocalFileCheckpointStorage(tempDir.toString());
         CheckpointConfig config = new CheckpointConfig();
+        config.setAsyncSnapshotEnabled(false);
         config.setCheckpointEnabled(true);
         config.setCheckpointInterval(60000L);
         config.setMaxConcurrentCheckpoints(10);
@@ -92,6 +93,7 @@ class TestExactlyOnceCorrectnessFixes {
     void testFailedCommitsAreRetriedOnNextCheckpoint() throws Exception {
         LocalFileCheckpointStorage storage = new LocalFileCheckpointStorage(tempDir.toString());
         CheckpointConfig config = new CheckpointConfig();
+        config.setAsyncSnapshotEnabled(false);
         config.setCheckpointEnabled(true);
         config.setCheckpointInterval(60000L);
 
@@ -327,6 +329,7 @@ class TestExactlyOnceCorrectnessFixes {
         jobGraph.addVertex(vertex);
 
         CheckpointConfig config = new CheckpointConfig();
+        config.setAsyncSnapshotEnabled(false);
         config.setJobId("1");
         config.setPipelineId("1");
         config.setCheckpointEnabled(true);

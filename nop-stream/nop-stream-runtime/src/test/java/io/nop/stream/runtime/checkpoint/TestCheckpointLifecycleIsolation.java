@@ -34,6 +34,7 @@ class TestCheckpointLifecycleIsolation {
                 .checkpointTimeout(5000L)
                 .maxConcurrentCheckpoints(2)
                 .maxRetainedCheckpoints(3)
+                .asyncSnapshotEnabled(false)
                 .build();
 
         coordinator = new CheckpointCoordinator("1", "1", idCounter, storage, config);

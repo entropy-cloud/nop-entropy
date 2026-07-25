@@ -27,6 +27,8 @@ public class CheckpointConfig implements Serializable {
     public static final int DEFAULT_MAX_CONCURRENT_CHECKPOINTS = 1;
     public static final int DEFAULT_MAX_RETAINED_CHECKPOINTS = 5;
     public static final int DEFAULT_MAX_CONSECUTIVE_CHECKPOINT_FAILURES = 3;
+    public static final boolean DEFAULT_ASYNC_SNAPSHOT_ENABLED = true;
+    public static final int DEFAULT_ASYNC_SNAPSHOT_THREAD_POOL_SIZE = 1;
 
     private boolean checkpointEnabled = true;
     private long checkpointInterval = DEFAULT_CHECKPOINT_INTERVAL;
@@ -36,6 +38,8 @@ public class CheckpointConfig implements Serializable {
     private int maxConcurrentCheckpoints = DEFAULT_MAX_CONCURRENT_CHECKPOINTS;
     private int maxRetainedCheckpoints = DEFAULT_MAX_RETAINED_CHECKPOINTS;
     private int maxConsecutiveCheckpointFailures = DEFAULT_MAX_CONSECUTIVE_CHECKPOINT_FAILURES;
+    private boolean asyncSnapshotEnabled = DEFAULT_ASYNC_SNAPSHOT_ENABLED;
+    private int asyncSnapshotThreadPoolSize = DEFAULT_ASYNC_SNAPSHOT_THREAD_POOL_SIZE;
     private ProcessingGuarantee processingGuarantee = ProcessingGuarantee.STRICT_EXACTLY_ONCE;
     private String storageType = "local";
     private Map<String, String> storageConfig = new HashMap<>();
@@ -110,6 +114,35 @@ public class CheckpointConfig implements Serializable {
 
     public void setMaxConsecutiveCheckpointFailures(int maxConsecutiveCheckpointFailures) {
         this.maxConsecutiveCheckpointFailures = maxConsecutiveCheckpointFailures;
+    }
+
+    /**
+     * Whether checkpoint persistence (storeCheckPoint + storeEpochManifest) is offloaded
+     * from the coordinator ACK thread to a dedicated persist executor. When {@code true}
+     * (default), the ACK thread submits the persist task and returns immediately so that
+     * storage I/O does not block abort handling, timeout scheduling and trigger bookkeeping.
+     * When {@code false}, the pre-async behavior is preserved (persistence runs inline on
+     * the ACK caller thread under the coordinator monitor).
+     */
+    public boolean isAsyncSnapshotEnabled() {
+        return asyncSnapshotEnabled;
+    }
+
+    public void setAsyncSnapshotEnabled(boolean asyncSnapshotEnabled) {
+        this.asyncSnapshotEnabled = asyncSnapshotEnabled;
+    }
+
+    /**
+     * Size of the dedicated persist thread pool used when {@link #isAsyncSnapshotEnabled()}
+     * is {@code true}. Defaults to {@code 1}; the pool is re-evaluated when Stage 19 lifts
+     * the {@code maxConcurrentCheckpoints=1} task-side alignment restriction.
+     */
+    public int getAsyncSnapshotThreadPoolSize() {
+        return asyncSnapshotThreadPoolSize;
+    }
+
+    public void setAsyncSnapshotThreadPoolSize(int asyncSnapshotThreadPoolSize) {
+        this.asyncSnapshotThreadPoolSize = asyncSnapshotThreadPoolSize;
     }
 
     public String getStorageType() {
@@ -220,6 +253,16 @@ public class CheckpointConfig implements Serializable {
 
         public Builder maxConsecutiveCheckpointFailures(int max) {
             config.setMaxConsecutiveCheckpointFailures(max);
+            return this;
+        }
+
+        public Builder asyncSnapshotEnabled(boolean enabled) {
+            config.setAsyncSnapshotEnabled(enabled);
+            return this;
+        }
+
+        public Builder asyncSnapshotThreadPoolSize(int size) {
+            config.setAsyncSnapshotThreadPoolSize(size);
             return this;
         }
 
