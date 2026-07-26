@@ -47,7 +47,7 @@
 │  IStateBackend      │            │  CheckpointCoordinator             │
 │  IKeyedStateBackend │            │  Epoch Manifest + Barrier          │
 │  InternalTimerSvc   │            │  CheckpointParticipant + 2PC       │
-│  WatermarkStrategy  │            │  (nop-stream-core: checkpoint 包)   │
+│  WatermarkStrategy  │            │  (core: 数据对象+SPI / runtime:协调器)│
 │  (nop-stream-core)  │            └──────────────┬─────────────────────┘
 └──────────┬──────────┘                           │ 存储
            │                          ┌───────────▼─────────────────────┐
@@ -61,8 +61,8 @@
            ▼
 ┌──────────────────────────────────────────────────────────────────────┐
 │                     集成层                                            │
-│  连接器: BatchLoaderSource / BatchConsumerSink / MessageSource       │
-│  (nop-stream-connector)                                              │
+│  连接器: MessageSource / BatchLoader / BatchConsumer / Debezium     │
+│  (nop-stream-connector[-batch|-debezium])                            │
 │  CEP: NFA + SharedBuffer + Pattern DSL                              │
 │  (nop-stream-cep)                                                    │
 └──────────────────────────────────────────────────────────────────────┘
@@ -77,19 +77,21 @@
 | | `graph` | `StreamGraph`, `StreamNode`, `StreamEdge`, `StreamGraphGenerator` | 逻辑 DAG 生成 | `model` | Client JVM |
 | | `jobgraph` | `JobGraph`, `JobVertex`, `JobEdge`, `OperatorChain`, `JobGraphGenerator` | 算子链优化 + 物理执行图 | `graph` | Client JVM |
 | | `execution` | `PartitionedPlan`, `DeploymentPlan`, `GraphExecutionPlan`, `IStreamExecutionDispatcher` | 并行展开 + 节点映射 + 执行分发 SPI | `jobgraph` | Client JVM |
-| | `operators` | `StreamOperator`, `OneInputStreamOperator`, `AbstractStreamOperator`, `StreamOperatorFactory`, `Output`, `ChainingStrategy` | 算子基类 + 接口 + 工厂 + 链化策略 | 无 | 所有 JVM |
-| | `state` | `IStateBackend`, `IKeyedStateBackend`, `IInternalStateBackend`, `ValueState`, `MapState`, `ListState`, `StateDescriptor` | 状态接口 + 状态后端 SPI | 无 | 所有 JVM |
-| | `checkpoint` | `CheckpointCoordinator`, `CheckpointBarrier`, `CheckpointPlan`, `CheckpointParticipant`, `EpochManifest`, `TaskEpochSnapshot`, `ProcessingGuarantee` | Checkpoint 协议 + 协调器 + 参与者 SPI | `operators`, `state` | Task JVM |
-| | `time` | `WatermarkStrategy`, `WatermarkGenerator`, `TimestampAssigner`, `Watermark` | 时间模型 + Watermark 接口 | 无 | Task JVM |
-| | `functions` | `MapFunction`, `FlatMapFunction`, `FilterFunction`, `KeySelector`, `ReduceFunction`, `AggregateFunction`, `WindowFunction`, `SourceFunction`, `SinkFunction` | 用户函数接口 | 无 | 所有 JVM |
+| | `operators` | `StreamOperator`, `OneInputStreamOperator`, `AbstractStreamOperator`, `StreamOperatorFactory`, `Output`, `ChainingStrategy`, `TimestampsAndWatermarksOperator` | 算子基类 + 接口 + 工厂 + 链化策略 + watermark 注入算子 | 无 | 所有 JVM |
+| | `common/state` | `IStateBackend`, `IKeyedStateBackend`, `IInternalStateBackend`, `ValueState`, `MapState`, `ListState`, `StateDescriptor` | 状态接口 + 状态后端 SPI | 无 | 所有 JVM |
+| | `checkpoint` | `CheckpointBarrier`, `CheckpointPlan`, `CheckpointParticipant`, `EpochManifest`, `TaskEpochSnapshot`, `ProcessingGuarantee` | Checkpoint 数据对象 + 参与者 SPI（协调器在 runtime） | `operators`, `common/state` | Task JVM |
+| | `common/eventtime` | `WatermarkStrategy`, `WatermarkGenerator`, `TimestampAssigner` | 时间模型 + Watermark 接口（`Watermark` 类位于 `streamrecord/watermark`） | 无 | Task JVM |
+| | `common/functions` | `MapFunction`, `FlatMapFunction`, `FilterFunction`, `KeySelector`, `ReduceFunction`, `AggregateFunction`, `WindowFunction`, `SourceFunction`, `SinkFunction` | 用户函数接口 | 无 | 所有 JVM |
 | **nop-stream-runtime** | `taskmanager` | `TaskExecutor`, `Task`, `SubtaskTask`, `StreamTaskInvokable` | Task 线程池 + 生命周期管理 | → core | Task JVM |
 | | `transport` | `RecordWriter`, `RecordReader`, `InputGate`, `ResultPartition`, `InputChannel` | 算子间数据交换（同进程 BlockingQueue / 跨进程 IMessageService） | → core | Task JVM |
 | | `coordinator` | `JobCoordinator`, `IStreamCoordinatorRpcService` | 作业协调（plan 分发 + epoch 触发 + fencing） | → core | Coordinator JVM |
 | | `rpc` | `IStreamTaskRpcService` | TaskManager 控制面接口 | → core | Task JVM |
-| | `checkpoint` | `GraphModelCheckpointExecutor`, `JdbcCheckpointStorage`, `LocalFileCheckpointStorage` | Checkpoint 执行器 + 持久化实现 | → core | Task JVM |
-| | `watermark` | `TimestampsAndWatermarksOperator` | Watermark 生成算子实现 | → core | Task JVM |
+| | `execution` | `GraphModelCheckpointExecutor`, `EmbeddedDistributedExecutor` | Checkpoint 执行器 + 嵌入式分布式执行器 | → core | Task JVM |
+| | `checkpoint` | `CheckpointCoordinator`, `JdbcCheckpointStorage`, `LocalFileCheckpointStorage` | Checkpoint 协调器 + 持久化实现 | → core | Task JVM |
 | | `cluster` | `InMemoryClusterRegistry`, `NodeLease`, `RuntimeNode` | 集群注册表 + 租约管理 | → core | Coordinator JVM |
-| **nop-stream-connector** | — | `BatchLoaderSourceFunction`, `BatchConsumerSinkFunction`, `MessageSourceFunction`, `MessageSinkFunction`, `DebeziumCdcSourceFunction` | 连接器适配器 | → core, nop-batch | Source/Sink JVM |
+| **nop-stream-connector** | — | `MessageSourceFunction`, `MessageSinkFunction` | 消息源/汇连接器（无 optional 依赖，仅依赖 `IMessageService`） | → core | Source/Sink JVM |
+| **nop-stream-connector-batch** | — | `BatchLoaderSourceFunction`, `BatchConsumerSinkFunction`, `StreamConnectors` | nop-batch 桥接连接器 | → core, nop-batch-core | Source/Sink JVM |
+| **nop-stream-connector-debezium** | — | `DebeziumCdcSourceFunction` | Debezium CDC 连接器 | → core, nop-message-debezium | Source JVM |
 | **nop-stream-cep** | — | `NFA`, `NFACompiler`, `SharedBuffer`, `Pattern`, `CepOperator`, `CepPatternModel` | CEP 引擎 | → core, nop-xlang | Task JVM |
 | **nop-stream-flow** | — | (规划) XDSL StreamModel 编排 | 声明式定义 + Delta 定制 | → core | Client JVM |
 
@@ -122,10 +124,12 @@ Checkpoint 是流处理引擎的**横切关注点**，与算子、执行层、�
               nop-platform（IJdbcTemplate / IMessageService / IEvalFunction / IDialect 等）
 
 具体：
-  nop-stream-runtime       → nop-stream-core
-  nop-stream-connector     → nop-stream-core + nop-batch-core
-  nop-stream-cep           → nop-stream-core + nop-xlang
-  nop-stream-flow (规划)    → nop-stream-core
+  nop-stream-runtime            → nop-stream-core
+  nop-stream-connector          → nop-stream-core (仅 IMessageService)
+  nop-stream-connector-batch    → nop-stream-core + nop-batch-core
+  nop-stream-connector-debezium → nop-stream-core + nop-message-debezium
+  nop-stream-cep                → nop-stream-core + nop-xlang
+  nop-stream-flow (规划)         → nop-stream-core
 ```
 
 ---

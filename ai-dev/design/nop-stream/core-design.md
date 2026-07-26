@@ -31,17 +31,16 @@ StreamModel 是唯一入口：Java DataStream API、XDSL 和测试构造器都�
 
 ```java
 class StreamComponents {
-    Map<String, PTransform> transforms;
-    Map<String, PCollection> streams;
-    Map<String, WindowingStrategy> windowingStrategies;
-    Map<String, Coder> coders;
-    Map<String, Schema> schemas;
-    Map<String, StreamEnvironment> environments;
-    Map<String, SideInput> sideInputs;
+    Map<String, Transformation<?>> transforms;           // 算子定义（DAG 节点）
+    Map<String, StreamEdge> streams;                      // 流定义（DAG 边）
+    Map<String, WindowingStrategy> windowingStrategies;   // 窗口策略（可序列化配置）
+    // coders/schemas/environments/sideInputs 为设计预留，尚未实现（无 register 方法）
     List<StreamRequirement> requirements;
     Set<String> checkpointParticipants;  // operatorId 集合
 }
 ```
+
+> **类型映射说明**：设计文档曾使用 Beam 模型的 aspirational 类型名（`PTransform`、`PCollection`、`Coder`、`Schema`、`SideInput`），这些类在 nop-stream 中**不作为类存在**。实际存储类型已映射到 live 代码中的真实类型：`transforms` → `Transformation<?>`、`streams` → `StreamEdge`、`windowingStrategies` → `WindowingStrategy`。`coders`/`schemas`/`environments`/`sideInputs` 4 个 registry 当前为**预留设计**（无 register 方法、无写入路径、无读取路径），已在代码中移除以消除死 registry；未来需要时重新添加。
 
 **设计要点**：
 

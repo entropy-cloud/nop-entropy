@@ -45,7 +45,7 @@
 |----------|---------|---------|
 | **模型设计** | **`00-required-reading-model-design.md`** | `02-core-guides/orm-model-design.md` |
 | **后台开发** | **`00-required-reading-backend.md`** | `02-core-guides/service-layer.md` |
-| **前台开发** | **`00-required-reading-frontend.md`** | `02-core-guides/frontend-rendering-pipeline.md`（通用）、`02-core-guides/amis-rendering.md`（AMIS）、`02-core-guides/flux-rendering.md`（Flux） |
+| **前台开发** | **`00-required-reading-frontend.md`** | `02-core-guides/frontend-rendering-pipeline.md`（通用）、`02-core-guides/amis-rendering.md`（AMIS）、`02-core-guides/flux-rendering.md`（Flux）、`02-core-guides/xpl-escaping-reference.md`（表达式转义） |
 | **权限开发** | **`02-core-guides/auth-and-permissions.md`** | 同左（操作权限、数据权限、菜单资源） |
 | **单元/集成测试** | **`00-required-reading-testing.md`** | `02-core-guides/testing.md` |
 | **E2E 测试** | **`00-required-reading-e2e-testing.md`** | `02-core-guides/e2e-testing.md` |
@@ -103,8 +103,9 @@
 | 理解页面生成管线（框架无关） | `02-core-guides/frontend-rendering-pipeline.md` |
 | 定制 view / page 页面（快速参考） | `02-core-guides/view-and-page-customization.md` |
 | **查 form layout DSL 完整语法（分组、折叠、Tab、跨列、查询运算符）** | **`02-core-guides/layout-syntax-reference.md`** |
-| AMIS 渲染细节 | `02-core-guides/amis-rendering.md` |
+| AMIS 渲染细节（含 AMIS 变量引用规则） | `02-core-guides/amis-rendering.md` |
 | Flux 渲染细节 | `02-core-guides/flux-rendering.md` |
+| **Xpl 表达式转义规则（所有上下文速查）** | **`02-core-guides/xpl-escaping-reference.md`** |
 | 查复杂页面 DSL 配置模式 | `02-core-guides/page-dsl-pattern-catalog.md` |
 | 查外部应用页面 DSL 示例代码片段 | `02-core-guides/external-app-examples.md` |
 | 理解认证与权限控制 | `02-core-guides/auth-and-permissions.md` |
@@ -209,7 +210,7 @@
 - `nop-kernel`、`nop-core-framework`、`nop-persistence`、`nop-service-framework` 是框架主干。
 - `nop-runner/` 和 `scripts/nop-cli.cmd` 是 CLI / runner 入口；`nop-demo/` 和 `demo/` 是示例入口。
 - `docs/theory/` 下的论文与技术报告属于研究/论证材料，不是开发 AI 的默认规范入口；出现解释歧义时，不要把其中术语直接当作 `docs-for-ai/` 级别的开发规则。
-- `nop-stream/` 是流处理引擎子模块组，包含 `nop-stream-core`（核心 API、状态、算子）、`nop-stream-cep`（CEP 复杂事件处理）、`nop-stream-runtime`（运行时、检查点、协调器）、`nop-stream-connector`（消息源/汇连接器）、`nop-stream-checkpoint`（检查点存储）、`nop-stream-flow`（流控）、`nop-stream-flink`（Flink 兼容层）、`nop-stream-fraud-example`（欺诈检测示例）。
+- `nop-stream/` 是流处理引擎子模块组，包含 `nop-stream-core`（核心 API、状态、算子）、`nop-stream-cep`（CEP 复杂事件处理）、`nop-stream-runtime`（运行时、检查点、协调器）、`nop-stream-connector`（消息源/汇连接器）、`nop-stream-connector-batch`（nop-batch 桥接连接器）、`nop-stream-connector-debezium`（Debezium CDC 连接器）、`nop-stream-flow`（流控）、`nop-stream-fraud-example`（欺诈检测示例）。
 
 ## 外部应用项目规则
 

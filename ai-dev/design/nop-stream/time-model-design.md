@@ -171,7 +171,7 @@ nop-stream 的多输入 watermark + idle 状态合并由 `IndexedCombinedWaterma
 
 ## 6. TimestampsAndWatermarksOperator
 
-runtime 模块中的 `TimestampsAndWatermarksOperator` 是时间模型与算子链的桥梁。
+core 模块（`nop-stream-core/.../operators/`）中的 `TimestampsAndWatermarksOperator` 是时间模型与算子链的桥梁。
 
 ### 6.1 职责
 

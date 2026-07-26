@@ -32,7 +32,7 @@ State (clear)
 
 | 重载 | 描述符 | 返回类型 | 累积模式 |
 |---|---|---|---|
-| `getInternalAppendingState(ReducingStateDescriptor<IN>)` | `ReducingStateDescriptor` | `InternalAppendingState<K,N,IN,ACC,ACC>` | OUT==ACC，ReduceFunction 归约 |
+| `getInternalAppendingState(ReducingStateDescriptor<IN>)` | `ReducingStateDescriptor` | `InternalAppendingState<K,N,IN,IN,IN>` | IN==ACC==OUT，ReduceFunction 归约（reduce 语义为 (IN,IN)→IN） |
 | `getInternalAppendingState(AggregatingStateDescriptor<IN,ACC,OUT>)` | `AggregatingStateDescriptor` | `InternalAppendingState<K,N,IN,ACC,OUT>` | AggregateFunction 累积，支持 ACC≠OUT |
 
 ### 2.2 StateDescriptor
@@ -42,6 +42,7 @@ State (clear)
 | `name` | String | 状态名称（唯一标识） |
 | `valueType` | Class\<T\> | 值的类型（用于 JSON 反射，**非**二进制序列化） |
 | `defaultValue` | T | 默认值 |
+| `serializer` | TypeSerializer\<T\> | 序列化器引用（默认 `JsonToolSerializer<T>`，类型与 descriptor 的 T 一致） |
 
 ### 2.3 Namespace
 

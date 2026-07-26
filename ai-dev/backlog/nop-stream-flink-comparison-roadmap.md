@@ -109,7 +109,7 @@ Does not contain implementation details. Each `planned` stage is owned by its ex
 
 **Goal:** 系统审计 Flink 源码的关键包结构、核心类层次、设计模式和执行流程，为后续 nop-stream 逐项对比建立精确的 Flink baseline。
 
-_Deliverables output to:_ `ai-dev/analysis/nop-stream/01-flink-source-audit.md`
+_Deliverables output to:_ `ai-dev/plans/316-flink-source-audit.md`
 
 **Deliverables:**
 - Flink streaming-api 源码映射：DataStream/KeyedStream/WindowedStream、Transformation 体系、TypeInformation
@@ -130,7 +130,7 @@ _Deliverables output to:_ `ai-dev/analysis/nop-stream/01-flink-source-audit.md`
 
 **Goal:** 以执行审计的视角遍历 nop-stream 所有模块的实际代码，记录当前实现的真实状态、接口完整度、标称实现但实际 no-op 的组件、hollow implementation。
 
-_Deliverables output to:_ `ai-dev/analysis/nop-stream/02-nopstream-live-audit.md`
+_Deliverables output to:_ `ai-dev/plans/317-nopstream-live-audit.md`
 
 **Deliverables:**
 - nop-stream-core 审计：DataStream API 实现度、Transformation 覆盖度、StreamGraph/JobGraph/PartitionedPlan 状态
