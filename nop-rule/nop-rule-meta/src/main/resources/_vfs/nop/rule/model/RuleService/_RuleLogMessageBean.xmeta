@@ -15,5 +15,8 @@
         <prop name="ruleNodeLabel" displayName="规则节点标题" i18n-en:displayName="Rule Node Label">
             <schema type="String" precision="200"/>
         </prop>
+        <prop name="context" displayName="上下文" i18n-en:displayName="Context">
+            <schema type="Map&lt;String,Object&gt;" precision="160000"/>
+        </prop>
     </props>
 </meta>

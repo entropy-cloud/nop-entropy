@@ -59,6 +59,9 @@
             <field propId="4" name="ruleNodeLabel" i18n-en:displayName="Rule Node Label" displayName="规则节点标题">
                 <schema type="String" precision="200"/>
             </field>
+            <field propId="5" name="context" i18n-en:displayName="Context" displayName="上下文">
+                <schema type="Map&lt;String,Object&gt;" precision="160000"/>
+            </field>
         </message>
         <message name="RuleKeyBean" displayName="规则唯一标识" i18n-en:displayName="Rule Key">
             <field propId="1" name="ruleName" i18n-en:displayName="Rule Name" displayName="规则名称" mandatory="true">

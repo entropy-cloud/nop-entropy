@@ -116,6 +116,7 @@ prop:
       message: Message
       ruleNodeId: Rule Node Id
       ruleNodeLabel: Rule Node Label
+      context: Context
     RuleMetaBean:
       ruleName: Rule Name
       ruleVersion: Rule Version

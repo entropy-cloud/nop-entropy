@@ -112,6 +112,7 @@ prop:
       ruleName: 规则名称
       ruleVersion: 规则版本
     RuleLogMessageBean:
+      context: 上下文
       logTime: 日志时间
       message: 消息
       ruleNodeId: 规则节点Id

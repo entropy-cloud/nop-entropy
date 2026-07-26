@@ -61,23 +61,6 @@
             this._ruleNodeId = value;
         }
     
-        private java.util.Map<String,Object> _context;
-
-        /**
-         * 结构化上下文 
-         */
-        @PropMeta(propId=5,displayName="结构化上下文")
-        public java.util.Map<String,Object> getContext(){
-            return _context;
-        }
-
-        /**
-         * 结构化上下文 
-         */
-        public void setContext(java.util.Map<String,Object> value){
-            this._context = value;
-        }
-    
         private String _ruleNodeLabel;
 
         /**
@@ -93,6 +76,23 @@
          */
         public void setRuleNodeLabel(String value){
             this._ruleNodeLabel = value;
+        }
+    
+        private Map<String,Object> _context;
+
+        /**
+         * 上下文 
+         */
+        @PropMeta(propId=5,displayName="上下文")
+        public Map<String,Object> getContext(){
+            return _context;
+        }
+
+        /**
+         * 上下文 
+         */
+        public void setContext(Map<String,Object> value){
+            this._context = value;
         }
     
     }
