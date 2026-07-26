@@ -1,1 +1,0 @@
-import{Qn as e,Xn as t,Zn as n}from"./vendor-amis-C3Fz2yFP.js";e();export{t as BaseTabsTransferRenderer,n as TabsTransferRenderer};

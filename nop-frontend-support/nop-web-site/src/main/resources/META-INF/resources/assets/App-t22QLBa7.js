@@ -1,1 +1,0 @@
-import{bs as e,xs as t,ys as n}from"./vendor-amis-C3Fz2yFP.js";t();export{n as App,e as default};

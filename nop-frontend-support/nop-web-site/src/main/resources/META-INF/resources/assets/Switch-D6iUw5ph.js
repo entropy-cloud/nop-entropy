@@ -1,1 +1,0 @@
-import{$n as e,er as t,tr as n}from"./vendor-amis-C3Fz2yFP.js";n();export{t as SwitchControlRenderer,e as default};

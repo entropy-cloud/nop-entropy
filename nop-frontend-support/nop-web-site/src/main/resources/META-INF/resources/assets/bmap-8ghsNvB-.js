@@ -1,1 +1,0 @@
-import{a as e,o as t}from"./vendor-echarts-BxRLUlxO.js";e();export{t as version};

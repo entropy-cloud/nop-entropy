@@ -1,1 +1,0 @@
-import{n as e,r as t,t as n}from"./vendor-amis-rich-text-BLH6kHmE.js";t();export{e as RichTextControlRenderer,n as default};

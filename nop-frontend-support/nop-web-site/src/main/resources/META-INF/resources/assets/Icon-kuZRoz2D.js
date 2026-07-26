@@ -1,1 +1,0 @@
-import{Cn as e,Tn as t,wn as n}from"./vendor-amis-C3Fz2yFP.js";t();export{e as Icon,n as IconRenderer};

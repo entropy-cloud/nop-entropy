@@ -1,1 +1,0 @@
-import{G as e,U as t,W as n}from"./vendor-amis-C3Fz2yFP.js";e();export{n as TableRenderer,t as default};

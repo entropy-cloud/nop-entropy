@@ -1,1 +1,0 @@
-import{n as e,t}from"./host-amis-route-runtime-DEYLsXtQ.js";e();export{t as AmisRouteRenderer};

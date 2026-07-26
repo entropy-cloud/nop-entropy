@@ -1,1 +1,0 @@
-import{io as e,no as t,ro as n}from"./vendor-amis-C3Fz2yFP.js";e();export{n as DividerRenderer,t as default};

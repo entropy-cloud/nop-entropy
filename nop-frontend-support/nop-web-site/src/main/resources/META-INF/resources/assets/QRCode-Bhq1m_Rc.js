@@ -1,1 +1,0 @@
-import{_t as e,vt as t,yt as n}from"./vendor-amis-C3Fz2yFP.js";n();export{t as QRCodeRenderer,e as default};

@@ -1,1 +1,0 @@
-import{Dn as e,En as t,On as n}from"./vendor-amis-C3Fz2yFP.js";n();export{e as IFrameRenderer,t as default};

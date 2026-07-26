@@ -1,1 +1,0 @@
-import{Fo as e,Io as t,Lo as n}from"./vendor-amis-C3Fz2yFP.js";n();export{t as CardsRenderer,e as default};

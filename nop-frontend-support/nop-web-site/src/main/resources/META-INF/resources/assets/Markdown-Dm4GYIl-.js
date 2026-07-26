@@ -1,1 +1,0 @@
-import{c as e,s as t}from"./vendor-amis-ui-C4m50gE8.js";e();export{t as default};

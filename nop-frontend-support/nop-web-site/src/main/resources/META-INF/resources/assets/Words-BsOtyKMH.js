@@ -1,1 +1,0 @@
-import{a as e,i as t,o as n,s as r}from"./vendor-amis-C3Fz2yFP.js";r();export{t as TagsRenderer,e as WordsField,n as WordsRenderer};

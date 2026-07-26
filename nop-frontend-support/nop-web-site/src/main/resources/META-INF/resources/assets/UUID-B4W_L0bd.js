@@ -1,1 +1,0 @@
-import{Ln as e,Rn as t,zn as n}from"./vendor-amis-C3Fz2yFP.js";n();export{t as UUIDControlRenderer,e as default};

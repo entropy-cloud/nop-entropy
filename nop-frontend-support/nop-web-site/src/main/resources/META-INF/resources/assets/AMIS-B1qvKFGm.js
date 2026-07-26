@@ -1,1 +1,0 @@
-import{n as e,t}from"./vendor-amis-renderer-aVzLZ8z6.js";e();export{t as AMISRenderer};

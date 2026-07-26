@@ -1,1 +1,0 @@
-import{Ir as e,Lr as t,Rr as n}from"./vendor-amis-C3Fz2yFP.js";n();export{t as JSONSchemaRenderer,e as default};

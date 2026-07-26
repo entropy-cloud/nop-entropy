@@ -1,1 +1,0 @@
-import{_o as e,vo as t,yo as n}from"./vendor-amis-C3Fz2yFP.js";n();export{e as Custom,t as CustomRenderer};

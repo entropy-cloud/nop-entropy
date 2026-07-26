@@ -1,1 +1,0 @@
-import{Er as e,Tr as t,wr as n}from"./vendor-amis-C3Fz2yFP.js";e();export{t as MatrixRenderer,n as default};

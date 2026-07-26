@@ -1,1 +1,0 @@
-import{Bo as e,Ro as t,zo as n}from"./vendor-amis-C3Fz2yFP.js";e();export{n as Card2Renderer,t as default};

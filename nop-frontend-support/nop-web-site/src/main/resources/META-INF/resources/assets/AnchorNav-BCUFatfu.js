@@ -1,1 +1,0 @@
-import{Cs as e,Ss as t,ws as n}from"./vendor-amis-C3Fz2yFP.js";n();export{e as AnchorNavRenderer,t as default};

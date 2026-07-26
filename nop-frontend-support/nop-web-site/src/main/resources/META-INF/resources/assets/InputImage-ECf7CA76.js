@@ -1,1 +1,0 @@
-import{Ms as e,Ns as t,Ps as n}from"./vendor-amis-C3Fz2yFP.js";n();export{t as ImageControlRenderer,e as default};
