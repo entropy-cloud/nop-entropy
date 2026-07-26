@@ -60,6 +60,7 @@
 | **单元/集成测试** | **`00-required-reading-testing.md`**（测试必读总入口） |
 | **调试诊断** | **`04-reference/debugging-checklist.md`**（按症状索引根因） |
 | **E2E 测试** | **`00-required-reading-e2e-testing.md`**（E2E 测试必读总入口） |
+| **E2E 测试排障** | **`02-core-guides/e2e-testing-troubleshooting.md`**（常见失败模式与根因） |
 | 获取项目当前状态快照 | `00-start-here/project-context.md` |
 | 在外部 Nop 应用项目中工作 | `00-start-here/application-project-defaults.md` |
 | 理解业务应用的完整开发闭环 | `02-core-guides/application-development-workflow.md` |
@@ -118,6 +119,7 @@
 | 定制 index.html 扩展注入 | `02-core-guides/index-html-extensions.md` |
 | 编写测试 | `02-core-guides/testing.md` |
 | 编写 E2E 测试 | `02-core-guides/e2e-testing.md` |
+| E2E 测试排障 | `02-core-guides/e2e-testing-troubleshooting.md` |
 | 修改流处理引擎（nop-stream） | `01-repo-map/module-groups.md`（nop-stream 子模块） |
 | CEP 模式匹配开发 | `01-repo-map/module-groups.md`（nop-stream-cep） |
 | 检查点/状态管理机制 | `01-repo-map/module-groups.md`（nop-stream-runtime） |

@@ -28,6 +28,7 @@
 | 文档 | 场景 |
 |------|------|
 | `02-core-guides/e2e-testing.md` → 浏览器 E2E 测试要点 | 登录、页面路由、AMIS 表单交互、字段名映射 |
+| `02-core-guides/e2e-testing-troubleshooting.md` | 「500 模块渲染失败」、`waitForMenuLoaded` 引擎选择器、`ensureDefaultSite` duplicate-key、测试间状态泄漏、Playwright context 生命周期 |
 
 ### 平台内部参考
 

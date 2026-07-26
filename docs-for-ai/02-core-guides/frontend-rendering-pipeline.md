@@ -8,6 +8,51 @@
 > **如果你需要复杂页面模式**，见 `page-dsl-pattern-catalog.md`。
 > **如果不确定该走哪条文档路径**，先看 `../03-runbooks/admin-page-development-roadmap.md`。
 
+## SPA 路由 → page.yaml 映射
+
+前端 SPA 通过 hash fragment（如 `#/NopAuthResource-main`）确定要加载哪个页面。这个映射由三个环节串联：
+
+### 1. action-auth.xml 定义资源
+
+`_vfs/{moduleId}/auth/{moduleName}.action-auth.xml` 中定义每个资源：
+
+```xml
+<resource id="NopAuthResource-main" displayName="菜单资源"
+          component="AMIS" resourceType="SUBM"
+          url="/nop/auth/pages/NopAuthResource/main.page.yaml"/>
+```
+
+关键属性：
+- `id` — 资源唯一标识（如 `NopAuthResource-main`）
+- `routePath` — **可选**，缺省时自动生成为 `/{id}`（如 `/NopAuthResource-main`）
+- `url` — VFS 路径，指向 `.page.yaml` 文件
+- `component` — `AMIS`（默认）或 `FLUX`
+- `resourceType` — `TOPM`（顶级菜单）、`SUBM`（子菜单）、`FNPT`（功能点）
+
+### 2. SiteMapApi 供前端获取路由表
+
+前端调用 `POST /r/SiteMapApi__getSiteMap` 获取站点树。每个 `SiteResourceBean` 包含：
+
+| 字段 | 来源 | 示例 |
+|------|------|------|
+| `routePath` | 资源定义的 `routePath` 或 `/{id}` | `/NopAuthResource-main` |
+| `url` | 资源定义中的 `url` | `/nop/auth/pages/NopAuthResource/main.page.yaml` |
+| `component` | 资源定义中的 `component` | `AMIS` |
+| `resourceType` | 资源定义中的 `resourceType` | `SUBM` |
+
+SPA 据此构建路由表：`path = routePath`，`schemaPath = url`（AMIS 类型时），`pageType = "amis"`。
+
+### 3. 页面加载
+
+当用户访问 `#/NopAuthResource-main` 时：
+
+1. react-router 匹配到 `path="/NopAuthResource-main"` 的路由
+2. SPA 根据 `pageType="amis"` 识别为 AMIS 页面，取 `schemaPath` 作为页面地址
+3. SPA 调用 `POST /r/PageProvider__getPage`，请求体 `{path: "/nop/auth/pages/NopAuthResource/main.page.yaml"}`
+4. 后端加载 page.yaml → 触发 `x:gen-extends` → 详见下文「运行时渲染」
+
+> 注意：`routePath` 为空时自动补 `/{id}`。这由 `SiteCacheDataBuilder.fixResource()`（`nop-auth/nop-auth-service/.../sitemap/SiteCacheDataBuilder.java`）处理。
+
 ## 两阶段生成
 
 页面生成分两个阶段：
