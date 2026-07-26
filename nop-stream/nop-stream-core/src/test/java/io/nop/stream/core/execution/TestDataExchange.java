@@ -103,7 +103,7 @@ public class TestDataExchange {
     }
 
     @Test
-    public void testInputChannelIsFinished() {
+    public void testInputChannelIsFinished() throws Exception {
         ResultPartition partition = new ResultPartition();
         InputChannel channel = new InputChannel(partition);
 
@@ -343,7 +343,7 @@ public class TestDataExchange {
     }
 
     @Test
-    public void testInputGateIsAllFinished() {
+    public void testInputGateIsAllFinished() throws Exception {
         ResultPartition p1 = new ResultPartition();
         ResultPartition p2 = new ResultPartition();
         List<InputChannel> channels = Arrays.asList(new InputChannel(p1), new InputChannel(p2));

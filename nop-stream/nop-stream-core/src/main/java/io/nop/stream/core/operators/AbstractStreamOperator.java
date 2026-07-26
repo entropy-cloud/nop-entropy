@@ -14,6 +14,7 @@ import io.nop.stream.core.checkpoint.CheckpointBarrier;
 import io.nop.stream.core.checkpoint.OperatorSnapshotResult;
 import io.nop.stream.core.checkpoint.participant.CheckpointParticipant;
 import io.nop.stream.core.checkpoint.StateSnapshotContext;
+import io.nop.stream.core.checkpoint.TaskLocation;
 import io.nop.stream.core.checkpoint.TaskStateSnapshot;
 import io.nop.stream.core.common.eventtime.IndexedCombinedWatermarkStatus;
 import io.nop.stream.core.common.state.backend.IKeyedStateBackend;
@@ -125,11 +126,21 @@ public abstract class AbstractStreamOperator<OUT> implements StreamOperator<OUT>
      * Default implementation restores keyed state from the state backend
      * and operator state from the operator state backend.
      *
+     * <p>P1-4: this method also propagates the snapshot to
+     * {@link #initializeState(TaskStateSnapshot)} so subclasses and UDFs that
+     * implement {@link io.nop.stream.core.common.functions.ICheckpointedFunction}
+     * receive the restore callback in production (the prior implementation never
+     * invoked {@code initializeState} in the restore path, silently skipping the
+     * UDF's restore hook).
+     *
      * @param snapshotResult the snapshot to restore from
      * @throws Exception if restoration fails
      */
     public void restoreState(OperatorSnapshotResult snapshotResult) throws Exception {
         if (snapshotResult == null) {
+            // Still propagate the restore signal so initializeState hooks fire even
+            // when the durable snapshot is empty (no-op restore is not a silent skip).
+            initializeState(null);
             return;
         }
 
@@ -147,6 +158,28 @@ public abstract class AbstractStreamOperator<OUT> implements StreamOperator<OUT>
             // Backend not ready yet (open() hasn't run). Save for deferred restore.
             this.pendingRestoreState = snapshotResult;
         }
+
+        // P1-4: propagate the restore signal to initializeState hooks so UDFs
+        // implementing ICheckpointedFunction observe the restored snapshot.
+        TaskStateSnapshot taskState = (snapshotResult.getOperatorStates() != null
+                && !snapshotResult.getOperatorStates().isEmpty())
+                ? wrapAsTaskStateSnapshot(snapshotResult)
+                : null;
+        initializeState(taskState);
+    }
+
+    private TaskStateSnapshot wrapAsTaskStateSnapshot(OperatorSnapshotResult snapshotResult) {
+        // Wrap into a TaskStateSnapshot shell so initializeState hooks that read
+        // getOperatorStates() / getKeyedStates() see the restored data. The
+        // checkpointId is unknown here, so we use -1 (restored-snapshot marker).
+        TaskStateSnapshot shell = new TaskStateSnapshot(new TaskLocation(), -1L);
+        for (Map.Entry<String, Object> e : snapshotResult.getOperatorStates().entrySet()) {
+            shell.putOperatorState(e.getKey(), e.getValue());
+        }
+        for (Map.Entry<String, Object> e : snapshotResult.getKeyedStates().entrySet()) {
+            shell.putKeyedState(e.getKey(), e.getValue());
+        }
+        return shell;
     }
 
     /**

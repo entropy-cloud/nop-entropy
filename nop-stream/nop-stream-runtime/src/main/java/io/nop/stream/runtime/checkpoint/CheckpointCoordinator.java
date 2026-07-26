@@ -659,6 +659,35 @@ public class CheckpointCoordinator {
         return pendingCheckpoints.get(checkpointId);
     }
 
+    /**
+     * Reports a task-level snapshot failure for the given {@code checkpointId} and
+     * routes it to {@link #abortPendingCheckpoint(PendingCheckpoint, String)} so that
+     * the matching {@link PendingCheckpoint} is aborted (rather than being silently
+     * marked complete by a later successful ACK).
+     *
+     * <p>P1-11 closure: prior to this entry the {@link io.nop.stream.core.execution.CheckpointBarrierTracker}
+     * had only a success channel and silently treated failed snapshots as successful
+     * ACKs, which corrupted checkpoint state. {@code GraphModelCheckpointExecutor}
+     * wires the tracker's abort callback to this method.
+     *
+     * @param taskLocation the task that reported the snapshot failure (for diagnostics)
+     * @param checkpointId the checkpoint whose operator snapshot failed
+     * @param error        the snapshot error
+     */
+    public void reportTaskCheckpointFailure(TaskLocation taskLocation, long checkpointId, Exception error) {
+        PendingCheckpoint pending = getPendingCheckpoint(checkpointId);
+        if (pending == null) {
+            LOG.debug("reportTaskCheckpointFailure: no pending checkpoint {} (already completed/aborted?) for task {}",
+                    checkpointId, taskLocation);
+            return;
+        }
+        String reason = "Operator snapshot failure reported by task " + taskLocation
+                + ": " + (error == null ? "(no cause)" : error.getMessage());
+        LOG.error("Aborting checkpoint {} due to task snapshot failure from {}",
+                checkpointId, taskLocation, error);
+        abortPendingCheckpoint(pending, reason);
+    }
+
     public int getNumberOfPendingCheckpoints() {
         return numPendingCheckpoints.get();
     }

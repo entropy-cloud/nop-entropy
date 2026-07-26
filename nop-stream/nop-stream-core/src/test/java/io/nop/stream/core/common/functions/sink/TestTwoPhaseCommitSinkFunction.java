@@ -16,11 +16,16 @@ import static org.junit.jupiter.api.Assertions.*;
 class TestTwoPhaseCommitSinkFunction {
 
     /**
-     * A test sink that tracks rollback calls and can simulate rollback failures
+     * A test sink that tracks rollback/abort/commit calls and can simulate rollback failures
      * only during the pending-rollback loop (not during recover).
      */
     static class TestSink extends TwoPhaseCommitSinkFunction<String> {
         int rollbackCallCount = 0;
+        int abortCallCount = 0;
+        int commitCallCount = 0;
+        int beginCallCount = 0;
+        final List<Long> committedEpochs = new ArrayList<>();
+        final List<Long> abortedEpochs = new ArrayList<>();
         int failOnRollbackCall = -1;
 
         TestSink withPendingCommits() {
@@ -33,15 +38,27 @@ class TestTwoPhaseCommitSinkFunction {
             return this;
         }
 
-        @Override public void beginTransaction() {}
+        @Override public void beginTransaction() { beginCallCount++; }
         @Override public void invoke(String value) {}
         @Override public void preCommit(long checkpointId) {}
-        @Override public void commit(long checkpointId) {}
+        @Override public void commit(long checkpointId) {
+            commitCallCount++;
+            committedEpochs.add(checkpointId);
+        }
         @Override public void rollback() throws Exception {
             rollbackCallCount++;
             if (rollbackCallCount == failOnRollbackCall) {
                 throw new StreamRuntimeException("rollback failed on call " + rollbackCallCount);
             }
+        }
+
+        @Override
+        public void abort(long epochId) throws Exception {
+            abortCallCount++;
+            abortedEpochs.add(epochId);
+            // Default behavior preserves parity with rollback() count semantics so
+            // legacy assertions about rollback still work.
+            rollback();
         }
 
         @Override
@@ -52,22 +69,71 @@ class TestTwoPhaseCommitSinkFunction {
 
     @Test
     void testRestoreFromEpoch_pendingRollbackFailureIsCaught() throws Exception {
-        // The first rollback call (during pending rollback loop) should fail,
-        // but restoreFromEpoch catches it and logs. The test verifies the method
-        // does not throw even when pending rollback fails.
-        TestSink sink = new TestSink().withPendingCommits().failOnRollbackCall(1);
+        // With the P0-2 fix: pending(1L) with epochId=1 is durable (1 <= 1), so it
+        // is committed (no rollback). To exercise the rollback-failure-caught path
+        // we use a pending tx whose epoch is strictly greater than the durable
+        // epochId, which routes through abort() -> rollback() and remains
+        // best-effort (no throw).
+        TestSink sink = new TestSink();
+        sink.getPendingCommits().put(5L, "tx-non-durable");
+        sink.failOnRollbackCall(1);
 
         assertDoesNotThrow(() -> sink.restoreFromEpoch(1, null));
-        assertTrue(sink.rollbackCallCount >= 1, "Rollback should have been attempted at least once");
+        assertTrue(sink.rollbackCallCount >= 1, "Abort path should have invoked rollback at least once");
     }
 
     @Test
     void testRestoreFromEpoch_successfulRollbackClearsPending() throws Exception {
-        TestSink sink = new TestSink().withPendingCommits();
+        // After P0-2: a pending tx with epochId=1 against durable epoch=0 is
+        // non-durable, so abort() -> rollback() must run and clear it from pending.
+        TestSink sink = new TestSink();
+        sink.getPendingCommits().put(1L, "tx1");
 
-        sink.restoreFromEpoch(1, null);
+        sink.restoreFromEpoch(0, null);
         assertTrue(sink.getPendingCommits().isEmpty(),
                 "Pending commits should be cleared after restore");
+        assertTrue(sink.abortedEpochs.contains(1L),
+                "Non-durable pending tx should be aborted");
+    }
+
+    @Test
+    void testRestoreFromEpoch_durablePendingIsCommittedNotAborted() throws Exception {
+        // P0-2 anti-hollow proof: durable pending (epoch <= restore epoch) MUST be
+        // committed, not rolled back. Removing the commit() call in restoreFromEpoch
+        // makes this test fail.
+        TestSink sink = new TestSink();
+        sink.getPendingCommits().put(1L, "tx-durable-1");
+        sink.getPendingCommits().put(2L, "tx-durable-2");
+
+        sink.restoreFromEpoch(5L, null);
+
+        assertEquals(2, sink.commitCallCount, "Both durable pending tx must be committed");
+        assertTrue(sink.committedEpochs.contains(1L));
+        assertTrue(sink.committedEpochs.contains(2L));
+        assertEquals(0, sink.abortCallCount, "Durable pending tx must NOT be aborted");
+        assertEquals(0, sink.rollbackCallCount, "Durable pending tx must NOT trigger rollback");
+        assertTrue(sink.getPendingCommits().isEmpty(), "Cleared after restore");
+        assertEquals(1, sink.beginCallCount,
+                "beginTransaction() invoked exactly once at end");
+    }
+
+    @Test
+    void testRestoreFromEpoch_mixedDurableAndNonDurable() throws Exception {
+        TestSink sink = new TestSink();
+        sink.getPendingCommits().put(1L, "durable");
+        sink.getPendingCommits().put(2L, "durable");
+        sink.getPendingCommits().put(8L, "non-durable");
+        sink.getPendingCommits().put(9L, "non-durable");
+
+        sink.restoreFromEpoch(3L, null);
+
+        assertEquals(2, sink.commitCallCount, "epochId <= 3 must be committed");
+        assertTrue(sink.committedEpochs.contains(1L));
+        assertTrue(sink.committedEpochs.contains(2L));
+        assertEquals(2, sink.abortCallCount, "epochId > 3 must be aborted");
+        assertTrue(sink.abortedEpochs.contains(8L));
+        assertTrue(sink.abortedEpochs.contains(9L));
+        assertTrue(sink.getPendingCommits().isEmpty());
     }
 
     @Test
@@ -75,7 +141,22 @@ class TestTwoPhaseCommitSinkFunction {
         TestSink sink = new TestSink();
 
         assertDoesNotThrow(() -> sink.restoreFromEpoch(1, null));
-        assertEquals(0, sink.rollbackCallCount, "No rollback should be called when no pending");
+        assertEquals(0, sink.commitCallCount, "No commit when pending is empty");
+        assertEquals(0, sink.abortCallCount, "No abort when pending is empty");
+        assertEquals(0, sink.rollbackCallCount, "No rollback when pending is empty");
+        assertEquals(1, sink.beginCallCount,
+                "beginTransaction still invoked exactly once at end of restore");
+    }
+
+    @Test
+    void testAbortDefaultsToRollbackForBackCompat() throws Exception {
+        // Anti-regression: subclasses that only override rollback() still observe
+        // rollback being called via the default abort() delegation.
+        TestSink sink = new TestSink();
+        sink.getPendingCommits().put(9L, "non-durable");
+        sink.restoreFromEpoch(1L, null);
+        assertEquals(1, sink.rollbackCallCount, "Default abort() should delegate to rollback()");
+        assertTrue(sink.abortedEpochs.contains(9L));
     }
 
     @Test
@@ -148,6 +229,11 @@ class TestTwoPhaseCommitSinkFunction {
 
     @Test
     void testRestoreStateRecoversPendingCommitsAndRollbacks() throws Exception {
+        // P0-2 fix: StreamSinkOperator.restoreState no longer calls restoreFromEpoch(-1, null).
+        // It only rebuilds pendingCommits from durable snapshot. The pending set
+        // must therefore contain the durable pending tx (1L) untouched — the real
+        // restoreFromEpoch(realEpochId) is now invoked solely by
+        // GraphModelCheckpointExecutor.restoreOperatorsFromState.
         TestSink sink = new TestSink();
         sink.getPendingCommits().put(1L, "tx1");
 
@@ -163,14 +249,22 @@ class TestTwoPhaseCommitSinkFunction {
         StreamSinkOperator<String> operator = new StreamSinkOperator<>(restoredSink);
         operator.restoreState(snapshotResult);
 
-        assertTrue(restoredSink.rollbackCallCount >= 1,
-                "rollback should have been called for pending tx");
-        assertTrue(restoredSink.getPendingCommits().isEmpty(),
-                "pending commits should be cleared after restoreFromEpoch");
+        // P0-3: restoreState no longer triggers restoreFromEpoch, so the pending
+        // tx must survive and no commit/abort/rollback may have fired yet.
+        assertEquals(1, restoredSink.getPendingCommits().size(),
+                "Pending commits must be rebuilt from durable snapshot and survive until restoreFromEpoch is called");
+        assertTrue(restoredSink.getPendingCommits().containsKey(1L));
+        assertEquals(0, restoredSink.rollbackCallCount, "No rollback during restoreState");
+        assertEquals(0, restoredSink.commitCallCount, "No commit during restoreState");
+        assertEquals(0, restoredSink.abortCallCount, "No abort during restoreState");
     }
 
     @Test
     void testTwoPhaseCommitSaveRestoreRoundTrip() throws Exception {
+        // After P0-2/P0-3: restoreState no longer touches pending commits semantically;
+        // the real restoreFromEpoch(realEpochId) is owned by the executor. The test
+        // verifies that restoreState restores the pending map intact and defers the
+        // commit/abort decision to restoreFromEpoch.
         TestSink sink = new TestSink();
         sink.beginTransaction();
         sink.preCommit(1L);
@@ -188,8 +282,16 @@ class TestTwoPhaseCommitSinkFunction {
         StreamSinkOperator<String> operator = new StreamSinkOperator<>(restoredSink);
         operator.restoreState(snapshotResult);
 
+        // After P0-3 fix: pendingCommits are rebuilt but not consumed in restoreState.
+        assertEquals(1, restoredSink.getPendingCommits().size(),
+                "Pending commits restored from durable snapshot, awaiting restoreFromEpoch");
+        // Now simulate the executor-driven restoreFromEpoch with the real epochId:
+        restoredSink.restoreFromEpoch(1L, null);
+        // durable pending (1 <= 1) must be committed, not rolled back
+        assertEquals(1, restoredSink.commitCallCount, "Durable pending tx committed");
+        assertTrue(restoredSink.committedEpochs.contains(1L));
         assertTrue(restoredSink.getPendingCommits().isEmpty(),
-                "Restored pending commits should be rolled back and cleared");
+                "Pending cleared after restoreFromEpoch(realEpochId)");
     }
 
     @Test

@@ -45,6 +45,7 @@ import static io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_OPERATOR_
  * <p><strong>Lifecycle Management:</strong>
  * <ul>
  *   <li>{@link #open()}: Initializes all operators in the chain before processing begins</li>
+ *   <li>{@link #finish()}: Flushes any buffered data in each operator after the source returns</li>
  *   <li>{@link #close()}: Cleans up all operators after processing completes</li>
  * </ul>
  *
@@ -120,6 +121,45 @@ public class OperatorChain implements Serializable {
             }
             throw new StreamException(ERR_STREAM_OPERATOR_ERROR, firstException)
                     .param(ARG_DETAIL, "Failed to open operator chain");
+        }
+    }
+
+    /**
+     * Finishes all operators in the chain after data processing is complete.
+     *
+     * <p>This method should be called after the head source returns and BEFORE the
+     * MAX_WATERMARK is emitted and {@link #close()} is invoked. It drives the
+     * 5-segment operator lifecycle: {@code open() → process*() → finish() → close()}.
+     * The prior implementation skipped {@code finish()}, collapsing the lifecycle
+     * to 3 segments and silently dropping any buffered data that connectors
+     * (e.g. {@code BatchConsumerSinkFunction}) were relying on {@code finish()} to flush.
+     *
+     * <p><strong>Implementation Note:</strong> Operators are finished in reverse
+     * order (tail to head, matching {@link #close()} ordering) so a downstream
+     * sink fully drains its buffers before its upstream peers finish. Exceptions
+     * during finishing are collected (suppressed on the first failure) and
+     * propagated after all operators have been attempted — mirroring {@link #close()}.
+     *
+     * @throws RuntimeException if any operator fails to finish
+     */
+    public void finish() {
+        Exception firstException = null;
+
+        for (int i = operators.size() - 1; i >= 0; i--) {
+            try {
+                operators.get(i).finish();
+            } catch (Exception e) {
+                if (firstException == null) {
+                    firstException = e;
+                } else {
+                    firstException.addSuppressed(e);
+                }
+            }
+        }
+
+        if (firstException != null) {
+            throw new StreamException(ERR_STREAM_OPERATOR_ERROR, firstException)
+                    .param(ARG_DETAIL, "Failed to finish operator chain");
         }
     }
 

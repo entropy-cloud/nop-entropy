@@ -130,19 +130,14 @@ public class StreamSinkOperator<IN> extends AbstractUdfStreamOperator<Void, Sink
     @SuppressWarnings("unchecked")
     public void restoreState(OperatorSnapshotResult snapshotResult) throws Exception {
         super.restoreState(snapshotResult);
-        if (userFunction instanceof CheckpointParticipant) {
-            CheckpointParticipant participant = (CheckpointParticipant) userFunction;
-            if (snapshotResult != null && !snapshotResult.isEmpty()) {
-                String pendingKey = "participant-" + TwoPhaseCommitSinkFunction.PENDING_COMMITS_KEY;
-                Object raw = snapshotResult.getOperatorState(pendingKey);
-                if (raw instanceof Map && userFunction instanceof TwoPhaseCommitSinkFunction) {
-                    Map<Long, Object> pending = (Map<Long, Object>) raw;
-                    ((TwoPhaseCommitSinkFunction<Object>) userFunction).setPendingCommits(
-                            Collections.synchronizedMap(new TreeMap<>(pending)));
-                }
-            }
-            participant.restoreFromEpoch(-1, null);
-        } else if (userFunction instanceof TwoPhaseCommitSinkFunction) {
+        // P0-3: previously this method invoked restoreFromEpoch with sentinel
+        // arguments (-1, null) that immediately cleared the just-restored
+        // pendingCommits map, breaking the downstream restoreFromEpoch call
+        // dispatched by GraphModelCheckpointExecutor.restoreOperatorsFromState
+        // (udf branch). The real epochId restore is now owned solely by that
+        // executor path, so here we only rebuild the pendingCommits map from
+        // the durable snapshot.
+        if (userFunction instanceof TwoPhaseCommitSinkFunction) {
             TwoPhaseCommitSinkFunction<Object> tpcSink = (TwoPhaseCommitSinkFunction<Object>) userFunction;
             if (snapshotResult != null && !snapshotResult.isEmpty()) {
                 String pendingKey = "participant-" + TwoPhaseCommitSinkFunction.PENDING_COMMITS_KEY;
@@ -152,7 +147,6 @@ public class StreamSinkOperator<IN> extends AbstractUdfStreamOperator<Void, Sink
                     tpcSink.setPendingCommits(Collections.synchronizedMap(new TreeMap<>(pending)));
                 }
             }
-            tpcSink.restoreFromEpoch(-1, null);
         }
     }
 }

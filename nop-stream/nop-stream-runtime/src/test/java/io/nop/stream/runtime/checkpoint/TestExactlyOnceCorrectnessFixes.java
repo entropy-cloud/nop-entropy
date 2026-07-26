@@ -235,6 +235,8 @@ class TestExactlyOnceCorrectnessFixes {
     @Test
     void testRestoreFromEpochRollsbackPendingCommits() throws Exception {
         AtomicInteger rollbackCount = new AtomicInteger(0);
+        AtomicInteger commitCount = new AtomicInteger(0);
+        List<Long> committedEpochs = Collections.synchronizedList(new ArrayList<>());
         TreeMap<Long, Object> pendingCommits = new TreeMap<>();
         pendingCommits.put(1L, "tx-1");
         pendingCommits.put(2L, "tx-2");
@@ -245,17 +247,28 @@ class TestExactlyOnceCorrectnessFixes {
             @Override public void beginTransaction() {}
             @Override public void invoke(String value) {}
             @Override public void preCommit(long checkpointId) {}
-            @Override public void commit(long checkpointId) {}
+            @Override public void commit(long checkpointId) {
+                commitCount.incrementAndGet();
+                committedEpochs.add(checkpointId);
+            }
             @Override public void rollback() { rollbackCount.incrementAndGet(); }
             @Override public void recover(long checkpointId) {}
             @Override public Map<Long, Object> getPendingCommits() { return pending; }
             @Override public void setPendingCommits(Map<Long, Object> p) { this.pending = p; }
         };
 
+        // P0-2 fix: durable pending (epoch <= restore epoch) MUST be committed,
+        // NOT rolled back. This is the exactly-once invariant from
+        // checkpoint-design.md §6.4. Removing the commit() call in
+        // restoreFromEpoch makes this test fail.
         sink.restoreFromEpoch(3, null);
 
-        assertEquals(2, rollbackCount.get(), "Should rollback each pending transaction");
-        assertTrue(pendingCommits.isEmpty(), "Pending commits should be cleared");
+        assertEquals(2, commitCount.get(),
+                "Both durable pending transactions must be committed on restore");
+        assertEquals(0, rollbackCount.get(),
+                "Durable pending transactions must NOT be rolled back");
+        assertEquals(List.of(1L, 2L), committedEpochs);
+        assertTrue(pendingCommits.isEmpty(), "Pending commits should be cleared after restore");
     }
 
     @Test

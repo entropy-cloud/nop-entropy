@@ -9,6 +9,7 @@ package io.nop.stream.runtime.taskmanager;
 
 import io.nop.api.core.message.*;
 import io.nop.stream.core.checkpoint.*;
+import io.nop.stream.core.exceptions.StreamException;
 import io.nop.stream.runtime.cluster.ClusterRegistry;
 import io.nop.stream.runtime.cluster.TaskAssignment;
 import io.nop.stream.runtime.rpc.IStreamCoordinatorRpcService;
@@ -85,6 +86,8 @@ class TestTaskManager {
 
     @Test
     void testReceiveAssignmentRejectsStaleFencingToken() {
+        // P0-6: stale-token handling hardened from LOG.warn + return to throw
+        // StreamException. Previously the assignment was silently swallowed.
         taskManager.start();
         taskManager.updateFencingToken("current-token");
 
@@ -93,8 +96,8 @@ class TestTaskManager {
                 NODE_ID, "attempt-1", "old-token",
                 System.currentTimeMillis());
 
-        taskManager.receiveAssignment(assignment);
-
+        assertThrows(StreamException.class, () -> taskManager.receiveAssignment(assignment),
+                "stale fencing token must throw, not be silently swallowed");
         assertEquals(0, taskManager.getRunningTaskCount());
     }
 
@@ -384,14 +387,19 @@ class TestTaskManager {
     }
 
     @Test
-    void testTriggerCheckpointWithStaleTokenIsIgnored() {
+    void testTriggerCheckpointWithStaleTokenThrows() {
+        // P0-6: stale-token handling hardened from LOG.warn + return to throw
+        // StreamException. The TaskManager Javadoc contract states it "rejects
+        // any operation carrying an old fencing token" — silently dropping
+        // the barrier was a No-Silent-No-Op violation.
         taskManager.start();
         String token = UUID.randomUUID().toString();
         taskManager.updateFencingToken(token);
 
-        // Trigger checkpoint with stale fencing token - should not crash
         CheckpointBarrier barrier = new CheckpointBarrier(1L, System.currentTimeMillis(), CheckpointType.CHECKPOINT);
-        assertDoesNotThrow(() -> taskManager.triggerCheckpoint(barrier, "stale-token"));
+        assertThrows(StreamException.class,
+                () -> taskManager.triggerCheckpoint(barrier, "stale-token"),
+                "stale fencing token must throw, not be silently swallowed");
     }
 
     // ==================== Mocks ====================

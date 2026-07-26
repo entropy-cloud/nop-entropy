@@ -45,18 +45,26 @@ class TestCheckpointParticipant {
     }
 
     @Test
-    void testRestoreFromEpochCallsRecover() throws Exception {
+    void testRestoreFromEpochCallsBeginTransactionOnEmptyPending() throws Exception {
+        // P0-2 fix: restoreFromEpoch no longer routes through recover() — durable
+        // pending are committed, non-durable are aborted, then beginTransaction()
+        // starts a fresh transaction. With no pending, recover/commit/abort are
+        // NOT called, only beginTransaction.
         TestTwoPhaseSink sink = new TestTwoPhaseSink();
         sink.restoreFromEpoch(1, null);
-        assertTrue(sink.recovered);
+        assertTrue(sink.beginTransactionCalled,
+                "beginTransaction must be invoked exactly once at end of restore");
+        assertFalse(sink.recovered,
+                "recover() must NOT be called by restoreFromEpoch (durable pending are committed)");
     }
 
     static class TestTwoPhaseSink extends TwoPhaseCommitSinkFunction<String> {
         boolean committed = false;
         boolean rolledBack = false;
         boolean recovered = false;
+        boolean beginTransactionCalled = false;
 
-        @Override public void beginTransaction() {}
+        @Override public void beginTransaction() { beginTransactionCalled = true; }
         @Override public void invoke(String value) {}
         @Override public void preCommit(long checkpointId) {}
         @Override public void commit(long checkpointId) { committed = true; }

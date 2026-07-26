@@ -155,9 +155,12 @@ public class TestBufferPoolResultPartitionIntegration {
     }
 
     @Test
-    public void testCloseOnFullQueueReleasesPoolPermits() throws InterruptedException {
-        // Reproduces the close()-drains-full-queue scenario but with a pool attached,
-        // asserting that discarded elements' permits are returned (no leak).
+    public void testCloseOnFullQueueBackpressuresThenReleasesPoolPermits() throws Exception {
+        // P1-10: close() now uses a blocking queue.put(END_OF_STREAM). On a full
+        // queue it backpressures until the consumer drains enough room — it no
+        // longer discards in-flight elements. This test verifies that after the
+        // consumer drains all records and close() completes, every permit is
+        // returned to the global pool (no leak).
         BufferPool pool = new BufferPool(8);
         ResultPartition partition = new ResultPartition(3, pool);
 
@@ -166,10 +169,28 @@ public class TestBufferPoolResultPartitionIntegration {
         partition.write(new StreamRecord<>(3));
         assertEquals(3, pool.getGlobalUsage());
 
-        // close() on a full queue clears and offers the sentinel; permits must be returned
-        partition.close();
+        // close() on a full queue blocks; run it in a separate thread.
+        CountDownLatch closed = new CountDownLatch(1);
+        Thread closer = new Thread(() -> {
+            try {
+                partition.close();
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+            }
+            closed.countDown();
+        });
+        closer.start();
 
-        assertEquals(0, pool.getGlobalUsage(), "close() must release permits for discarded elements");
+        // Drain all 3 records from the consumer side; each release frees a permit
+        // and makes room for the sentinel.
+        for (int i = 0; i < 3; i++) {
+            assertNotNull(partition.read(), "no in-flight record should be lost during close");
+        }
+        assertEquals(0, pool.getGlobalUsage(), "draining must release all permits");
+
+        // close() should now complete once there is room for the sentinel.
+        assertTrue(closed.await(5, TimeUnit.SECONDS), "close() should complete once the consumer drains");
+
         assertTrue(partition.isFinished());
         assertNull(partition.read(), "sentinel after close");
         assertEquals(0, pool.getGlobalUsage(), "reading sentinel must not consume a permit");

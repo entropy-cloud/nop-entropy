@@ -38,7 +38,10 @@ import io.nop.stream.core.execution.StreamTaskInvokable;
 import io.nop.stream.core.execution.plan.DeploymentPlan;
 import io.nop.stream.core.jobgraph.OperatorChain;
 
+import static io.nop.stream.core.exceptions.NopStreamErrors.ARG_ACTUAL_TOKEN;
 import static io.nop.stream.core.exceptions.NopStreamErrors.ARG_DETAIL;
+import static io.nop.stream.core.exceptions.NopStreamErrors.ARG_EXPECTED_TOKEN;
+import static io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_FENCING_TOKEN_MISMATCH;
 import static io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_INVALID_STATE;
 import io.nop.stream.runtime.cluster.ClusterRegistry;
 import io.nop.stream.runtime.cluster.TaskAssignment;
@@ -258,11 +261,16 @@ public class TaskManager implements IStreamTaskRpcService {
         }
 
         // Fencing token check
+        // P0-6: harden stale-token handling to throw StreamException. The prior
+        // implementation only LOG.warn'd and returned, silently swallowing the
+        // operation despite the documented contract (TaskManager Javadoc: "rejects
+        // any operation carrying an old fencing token"). Cross-JVM fencing is
+        // still owned by Stage 39 — this hardens the in-process check.
         String activeToken = currentFencingToken.get();
         if (activeToken != null && !activeToken.equals(assignment.getFencingToken())) {
-            LOG.warn("Rejecting assignment with stale fencing token: expected={}, got={}",
-                    activeToken, assignment.getFencingToken());
-            return;
+            throw new StreamException(ERR_STREAM_FENCING_TOKEN_MISMATCH)
+                    .param(ARG_EXPECTED_TOKEN, activeToken)
+                    .param(ARG_ACTUAL_TOKEN, assignment.getFencingToken());
         }
 
         // AR-9: Use semaphore for capacity control instead of race-prone size check
@@ -336,10 +344,15 @@ public class TaskManager implements IStreamTaskRpcService {
      */
     @Override
     public void triggerCheckpoint(CheckpointBarrier barrier, String fencingToken) {
+        // P0-6: harden stale-token handling to throw StreamException. The prior
+        // implementation only LOG.warn'd and returned, silently dropping the
+        // barrier — which let a stale coordinator's checkpoint succeed against
+        // the active epoch's state, breaking fencing semantics.
         String activeToken = currentFencingToken.get();
         if (activeToken != null && !activeToken.equals(fencingToken)) {
-            LOG.warn("Ignoring checkpoint signal with stale fencing token");
-            return;
+            throw new StreamException(ERR_STREAM_FENCING_TOKEN_MISMATCH)
+                    .param(ARG_EXPECTED_TOKEN, activeToken)
+                    .param(ARG_ACTUAL_TOKEN, fencingToken);
         }
 
         for (RunningTask task : runningTasks.values()) {

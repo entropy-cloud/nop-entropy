@@ -214,11 +214,14 @@ class TestE2ETwoPhaseCommitSink {
 
         sinkOp.restoreState(OperatorSnapshotResult.empty());
 
-        assertTrue(rollbackCount.get() >= 1, "rollback should have been called during restore. Actions: " + actions);
-        assertTrue(actions.contains("rollback"), "Actions should contain rollback: " + actions);
-
+        // P0-3 fix: restoreState no longer calls restoreFromEpoch(-1, null); it only
+        // rebuilds pending map. With empty snapshot and no restoreFromEpoch, rollback
+        // must NOT be called and only the initial beginTransaction() is observed.
+        assertEquals(0, rollbackCount.get(),
+                "rollback must NOT be called by restoreState when no restoreFromEpoch runs. Actions: " + actions);
         long beginCount = actions.stream().filter(a -> a.equals("begin")).count();
-        assertTrue(beginCount >= 2, "begin should have been called at least twice (initial + after rollback). Actions: " + actions);
+        assertEquals(1, beginCount,
+                "Only the initial beginTransaction should have fired (no second begin from a rollback-then-begin path). Actions: " + actions);
     }
 
     @Test

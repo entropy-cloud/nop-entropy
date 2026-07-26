@@ -36,6 +36,16 @@ public class CheckpointBarrierTracker {
     private final List<StreamOperator<?>> operators;
     private final List<OperatorStateMapping> stateMappings;
     private final Consumer<TaskStateSnapshot> completionCallback;
+    /**
+     * Error channel invoked when an operator snapshot reports
+     * {@link OperatorSnapshotResult#hasError()}. Receives the checkpointId and the
+     * cause so the coordinator can abort the matching {@link
+     * io.nop.stream.runtime.checkpoint.PendingCheckpoint}. When set, the tracker
+     * forwards the error to this callback instead of treating the failed ACK as a
+     * successful snapshot (P1-11). Nullable for back-compat with test constructors
+     * that do not inject an abort sink.
+     */
+    private final CheckpointFailureListener abortCallback;
 
     private volatile long currentCheckpointId = -1;
     private final AtomicInteger operatorsToAck = new AtomicInteger(0);
@@ -45,16 +55,34 @@ public class CheckpointBarrierTracker {
                                     List<StreamOperator<?>> operators,
                                     List<OperatorStateMapping> stateMappings,
                                     Consumer<TaskStateSnapshot> completionCallback) {
-        this.taskLocation = taskLocation;
-        this.operators = operators;
-        this.stateMappings = stateMappings;
-        this.completionCallback = completionCallback;
+        this(taskLocation, operators, stateMappings, completionCallback, null);
     }
 
     public CheckpointBarrierTracker(TaskLocation taskLocation,
                                     List<StreamOperator<?>> operators,
                                     Consumer<TaskStateSnapshot> completionCallback) {
-        this(taskLocation, operators, Collections.emptyList(), completionCallback);
+        this(taskLocation, operators, Collections.emptyList(), completionCallback, null);
+    }
+
+    /**
+     * Full constructor with an explicit abort/error channel.
+     *
+     * <p>When {@code abortCallback} is non-null, an operator ACK whose
+     * {@link OperatorSnapshotResult} carries an error routes the error through the
+     * abort callback (and does NOT deliver {@code snapshotToDeliver} as a successful
+     * snapshot). This closes the P1-11 silent-corruption path where snapshot failures
+     * were treated as successful ACKs.
+     */
+    public CheckpointBarrierTracker(TaskLocation taskLocation,
+                                    List<StreamOperator<?>> operators,
+                                    List<OperatorStateMapping> stateMappings,
+                                    Consumer<TaskStateSnapshot> completionCallback,
+                                    CheckpointFailureListener abortCallback) {
+        this.taskLocation = taskLocation;
+        this.operators = operators;
+        this.stateMappings = stateMappings;
+        this.completionCallback = completionCallback;
+        this.abortCallback = abortCallback;
     }
 
     public synchronized boolean triggerCheckpoint(long checkpointId, long timestamp, CheckpointType type) throws Exception {
@@ -98,6 +126,8 @@ public class CheckpointBarrierTracker {
     public void acknowledgeOperator(int operatorIndex, OperatorSnapshotResult snapshot) {
         Consumer<TaskStateSnapshot> callbackToFire = null;
         TaskStateSnapshot snapshotToDeliver = null;
+        long abortCheckpointId = -1L;
+        Exception abortError = null;
 
         synchronized (this) {
             TaskStateSnapshot snap = this.currentSnapshot;
@@ -112,7 +142,24 @@ public class CheckpointBarrierTracker {
                 return;
             }
 
-            if (snapshot != null) {
+            // P1-11: fail-fast on snapshot error. The tracker MUST NOT deliver a
+            // failed snapshot as a successful ACK — that silently corrupted
+            // checkpoint state. When abortCallback is wired, route the error to
+            // the coordinator's abort entry; otherwise (legacy callers/tests) we
+            // still refuse to deliver the snapshot and log the failure loudly so
+            // it can never be silently swallowed (No-Silent-No-Op).
+            if (snapshot != null && snapshot.hasError()) {
+                abortError = snapshot.getError();
+                abortCheckpointId = currentCheckpointId;
+                LOG.error("Operator {} reported snapshot failure for checkpoint {} (abortError={})",
+                        operatorIndex, abortCheckpointId,
+                        abortError == null ? "n/a" : abortError.getMessage(), abortError);
+                // Reset tracker state so the next trigger is accepted, mirroring
+                // notifyCheckpointAborted semantics.
+                this.currentCheckpointId = -1;
+                this.currentSnapshot = null;
+                this.operatorsToAck.set(0);
+            } else if (snapshot != null) {
                 String opStateKey = getOperatorStateKey(operatorIndex);
                 if (snapshot.getOperatorStates() != null && !snapshot.getOperatorStates().isEmpty()) {
                     for (Map.Entry<String, Object> entry : snapshot.getOperatorStates().entrySet()) {
@@ -129,14 +176,28 @@ public class CheckpointBarrierTracker {
                         snap.putKeyedState(entry.getKey(), entry.getValue());
                     }
                 }
-            }
 
-            if (operatorsToAck.decrementAndGet() == 0) {
-                snapshotToDeliver = snap;
-                callbackToFire = completionCallback;
+                if (operatorsToAck.decrementAndGet() == 0) {
+                    snapshotToDeliver = snap;
+                    callbackToFire = completionCallback;
+                }
+            } else {
+                // snapshot == null with no error: treat as empty success ACK.
+                if (operatorsToAck.decrementAndGet() == 0) {
+                    snapshotToDeliver = snap;
+                    callbackToFire = completionCallback;
+                }
             }
         }
 
+        if (abortError != null && abortCallback != null) {
+            try {
+                abortCallback.reportFailure(abortCheckpointId, abortError);
+            } catch (Exception e) {
+                LOG.error("abortCallback itself failed for checkpoint {} at operator {}",
+                        abortCheckpointId, operatorIndex, e);
+            }
+        }
         if (callbackToFire != null && snapshotToDeliver != null) {
             callbackToFire.accept(snapshotToDeliver);
         }

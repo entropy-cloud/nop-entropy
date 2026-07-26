@@ -49,6 +49,21 @@ public abstract class TwoPhaseCommitSinkFunction<IN> implements SinkFunction<IN>
 
     public abstract void rollback() throws Exception;
 
+    /**
+     * Abort a transaction that was prepared for an epoch strictly greater than the
+     * durable epoch {@code epochId} (i.e. non-durable, in-flight work that the runtime
+     * never durably committed). The default implementation delegates to {@link #rollback()}
+     * so existing subclasses (including the 13+ test sinks) keep their pre-existing
+     * behavior without override. Subclasses that distinguish per-epoch transactions
+     * should override this to abort exactly the transaction for {@code epochId}.
+     *
+     * <p>See {@code checkpoint-design.md} §6.4: durable-but-not-committed transactions
+     * must NOT be aborted here — they are re-committed by {@link #restoreFromEpoch}.
+     */
+    public void abort(long epochId) throws Exception {
+        rollback();
+    }
+
     public void recover(long checkpointId) throws Exception {
         rollback();
         beginTransaction();
@@ -108,21 +123,75 @@ public abstract class TwoPhaseCommitSinkFunction<IN> implements SinkFunction<IN>
         }
     }
 
+    /**
+     * Restore the sink from a given durable {@code epochId}.
+     *
+     * <p>This method consumes the in-memory {@link #getPendingCommits()} map that the
+     * upstream {@code StreamSinkOperator.restoreState} has already rebuilt from the
+     * durable checkpoint (the {@code participant-" + PENDING_COMMITS_KEY} operator-state
+     * entry). It then separates durable-but-not-committed pending transactions
+     * ({@code epochId <= N}, committed on restore to honor exactly-once) from non-durable
+     * in-flight transactions ({@code epochId > N}, aborted since they were never durable).
+     *
+     * <p>Implements {@code checkpoint-design.md} §6.4 invariant: durable-but-not-committed
+     * sink transactions MUST be re-committed, not blindly rolled back. The prior
+     * implementation blindly called {@link #rollback()} N times on the same current tx
+     * and then {@code pending.clear()} — that silently dropped durable pending
+     * transactions and broke exactly-once.
+     *
+     * <p>Signature strategy: a new {@link #abort(long)} method (with a default
+     * implementation delegating to {@link #rollback()}) is added so 13+ existing test
+     * subclasses that only override {@code rollback()} continue to work — the per-epoch
+     * abort path stays equivalent to the previous rollback path for them, but durable
+     * pending transactions ({@code epochId <= N}) are now committed via {@link #commit(long)}.
+     *
+     * @param epochId the durable epoch restored from the checkpoint
+     * @param state   the task-level state snapshot (not used by this base implementation;
+     *                the per-sink pending map has already been rebuilt upstream)
+     */
     @Override
     public void restoreFromEpoch(long epochId, TaskStateSnapshot state) throws Exception {
         Map<Long, Object> pending = getPendingCommits();
         if (pending != null && !pending.isEmpty()) {
+            TreeMap<Long, Object> toCommit = new TreeMap<>();
+            TreeMap<Long, Object> toAbort = new TreeMap<>();
             synchronized (pending) {
-                for (Object tx : pending.values()) {
-                    try {
-                        rollback();
-                    } catch (Exception e) {
-                        LOG.warn("Rollback failed for pending transaction during recovery: {}", tx, e);
+                for (Map.Entry<Long, Object> entry : pending.entrySet()) {
+                    Long eid = entry.getKey();
+                    if (eid <= epochId) {
+                        toCommit.put(eid, entry.getValue());
+                    } else {
+                        toAbort.put(eid, entry.getValue());
                     }
                 }
-                pending.clear();
+            }
+
+            for (Map.Entry<Long, Object> entry : toCommit.entrySet()) {
+                Long eid = entry.getKey();
+                try {
+                    commit(eid);
+                } catch (Exception e) {
+                    LOG.error("Commit failed for durable pending transaction epoch={} on restore; "
+                            + "retaining in pending for subsuming commit", eid, e);
+                    continue;
+                }
+                synchronized (pending) {
+                    pending.remove(eid);
+                }
+            }
+
+            for (Map.Entry<Long, Object> entry : toAbort.entrySet()) {
+                Long eid = entry.getKey();
+                try {
+                    abort(eid);
+                } catch (Exception e) {
+                    LOG.warn("Abort failed for non-durable pending transaction epoch={} on restore", eid, e);
+                }
+                synchronized (pending) {
+                    pending.remove(eid);
+                }
             }
         }
-        recover(epochId);
+        beginTransaction();
     }
 }

@@ -7,10 +7,12 @@
  */
 package io.nop.stream.core.operators;
 
+import io.nop.api.core.exception.NopException;
 import io.nop.stream.core.checkpoint.CheckpointBarrier;
 import io.nop.stream.core.checkpoint.CheckpointType;
 import io.nop.stream.core.checkpoint.FunctionInitializationContext;
 import io.nop.stream.core.checkpoint.FunctionSnapshotContext;
+import io.nop.stream.core.checkpoint.OperatorSnapshotResult;
 import io.nop.stream.core.checkpoint.StateSnapshotContext;
 import io.nop.stream.core.checkpoint.TaskStateSnapshot;
 import io.nop.stream.core.common.functions.AbstractRichFunction;
@@ -231,6 +233,77 @@ public class TestOperatorLifecycle {
     }
 
     @Test
+    void testProductionRestorePathInvokesUdfInitializeState() throws Exception {
+        // P1-4: the production restore path (restoreState) must invoke
+        // initializeState so UDFs implementing ICheckpointedFunction observe
+        // the restored snapshot. The prior implementation never invoked
+        // initializeState in this path, silently skipping the UDF's restore
+        // hook.
+        AtomicBoolean initCalled = new AtomicBoolean(false);
+        AtomicBoolean isRestored = new AtomicBoolean(false);
+
+        ICheckpointedFunction fn = new ICheckpointedFunction() {
+            private static final long serialVersionUID = 1L;
+
+            @Override
+            public void snapshotState(FunctionSnapshotContext context) {
+            }
+
+            @Override
+            public void initializeState(FunctionInitializationContext context) {
+                initCalled.set(true);
+                isRestored.set(context.isRestored());
+            }
+        };
+
+        AbstractUdfStreamOperator<Void, ICheckpointedFunction> operator = new AbstractUdfStreamOperator<>(fn) {
+            private static final long serialVersionUID = 1L;
+        };
+        operator.setStateBackend(new io.nop.stream.core.common.state.backend.memory.MemoryStateBackend());
+        operator.open();
+
+        // Build a non-empty snapshot and route it through restoreState — the
+        // production restore entry point. Anti-hollow: if the wiring between
+        // restoreState and initializeState is removed, this test fails because
+        // initCalled stays false.
+        OperatorSnapshotResult snapshotResult = new OperatorSnapshotResult();
+        snapshotResult.putOperatorState("test-restore-key", "test-restore-value");
+        operator.restoreState(snapshotResult);
+
+        assertTrue(initCalled.get(), "ICheckpointedFunction.initializeState must be invoked via the restoreState production path");
+        assertTrue(isRestored.get(), "isRestored() must be true when restoreState receives a non-empty snapshot");
+    }
+
+    @Test
+    void testProductionRestorePathWithNullSnapshotStillFiresInitializeState() throws Exception {
+        // P1-4: even a null snapshot must still trigger initializeState so the
+        // UDF receives a restore signal. The prior implementation silently
+        // skipped the hook entirely when no durable state existed.
+        AtomicBoolean initCalled = new AtomicBoolean(false);
+
+        ICheckpointedFunction fn = new ICheckpointedFunction() {
+            private static final long serialVersionUID = 1L;
+
+            @Override
+            public void snapshotState(FunctionSnapshotContext context) {
+            }
+
+            @Override
+            public void initializeState(FunctionInitializationContext context) {
+                initCalled.set(true);
+            }
+        };
+
+        AbstractUdfStreamOperator<Void, ICheckpointedFunction> operator = new AbstractUdfStreamOperator<>(fn) {
+            private static final long serialVersionUID = 1L;
+        };
+
+        operator.restoreState(null);
+
+        assertTrue(initCalled.get(), "initializeState must fire even when restoreState receives a null snapshot");
+    }
+
+    @Test
     void testNonCheckpointedUserFunctionDoesNotCallSnapshotState() throws Exception {
         SinkFunction<String> sink = new SinkFunction<String>() {
             private static final long serialVersionUID = 1L;
@@ -254,7 +327,7 @@ public class TestOperatorLifecycle {
         AbstractStreamOperator<String> operator = new AbstractStreamOperator<>() {
             @Override
             public void processWatermark(Watermark mark) throws Exception {
-                throw new RuntimeException("test exception in processWatermark");
+                throw new NopException("test exception in processWatermark");
             }
         };
 

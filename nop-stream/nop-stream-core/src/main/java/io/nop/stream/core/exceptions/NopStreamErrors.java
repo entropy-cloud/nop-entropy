@@ -216,4 +216,36 @@ public interface NopStreamErrors {
 
     ErrorCode ERR_STREAM_COMPARABLE_REQUIRED =
             define("nop.err.stream.comparable-required", "Aggregation requires Comparable elements");
+
+    String ARG_EXPECTED_TOKEN = "expectedToken";
+    String ARG_ACTUAL_TOKEN = "actualToken";
+
+    /**
+     * P0-6: a stale fencing token was presented to a TaskManager RPC entry
+     * point. The contract documented on {@code TaskManager} is that any
+     * operation carrying an old fencing token is rejected; the prior
+     * implementation only warned and returned, silently swallowing the
+     * operation (No-Silent-No-Op violation).
+     */
+    ErrorCode ERR_STREAM_FENCING_TOKEN_MISMATCH =
+            define("nop.err.stream.fencing-token-mismatch",
+                    "Fencing token mismatch: expected={expectedToken}, actual={actualToken}",
+                    ARG_EXPECTED_TOKEN, ARG_ACTUAL_TOKEN);
+
+    String ARG_CHECKPOINT_VERTEX_IDS = "checkpointVertexIds";
+    String ARG_CURRENT_VERTEX_IDS = "currentVertexIds";
+    String ARG_MISSING_VERTEX_IDS = "missingVertexIds";
+
+    /**
+     * P0-7: reverse-direction savepoint vertex differential. The checkpoint
+     * contains vertices that are not present in the current graph — i.e. a
+     * stateful vertex was removed. Per {@code checkpoint-design.md} §8.6 the
+     * safe default is to reject such a restore rather than silently dropping
+     * the orphan state.
+     */
+    ErrorCode ERR_STREAM_SAVEPOINT_VERTEX_DIFFERENTIAL =
+            define("nop.err.stream.savepoint-vertex-differential",
+                    "Checkpoint contains stateful vertices absent from the current graph (likely deleted): "
+                            + "missing={missingVertexIds}; checkpoint-vertices={checkpointVertexIds}; current-vertices={currentVertexIds}",
+                    ARG_MISSING_VERTEX_IDS, ARG_CHECKPOINT_VERTEX_IDS, ARG_CURRENT_VERTEX_IDS);
 }

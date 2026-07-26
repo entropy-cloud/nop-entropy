@@ -226,10 +226,45 @@ public class RecordWriter<T> {
 
     /**
      * Closes all downstream partitions to signal end-of-stream.
+     *
+     * <p>P1-10: each partition's {@code close()} now uses a blocking
+     * {@code queue.put(END_OF_STREAM)} so the producer thread naturally
+     * backpressures until the consumer drains enough room — no in-flight
+     * records are discarded. An {@link InterruptedException} here is
+     * propagated to the caller so cancel/abort can still tear down the
+     * producer; remaining partitions are still attempted (suppressed on the
+     * first failure) to mirror {@link OperatorChain#close()} semantics.
      */
     public void close() {
+        Exception firstException = null;
         for (ResultPartition partition : partitions) {
-            partition.close();
+            try {
+                partition.close();
+            } catch (InterruptedException ie) {
+                Thread.currentThread().interrupt();
+                if (firstException == null) {
+                    firstException = new StreamException(ERR_STREAM_INTERRUPTED_WRITE, ie)
+                            .param(ARG_DETAIL, "close");
+                } else {
+                    firstException.addSuppressed(ie);
+                }
+            } catch (Exception e) {
+                if (firstException == null) {
+                    firstException = e;
+                } else {
+                    firstException.addSuppressed(e);
+                }
+            }
+        }
+        if (firstException != null) {
+            if (firstException instanceof StreamException) {
+                throw (StreamException) firstException;
+            }
+            if (firstException instanceof RuntimeException) {
+                throw (RuntimeException) firstException;
+            }
+            throw new StreamException(ERR_STREAM_INTERRUPTED_WRITE, firstException)
+                    .param(ARG_DETAIL, "close");
         }
     }
 

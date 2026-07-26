@@ -358,6 +358,7 @@ public class StreamTaskInvokable implements Invokable<Void> {
         // SourceContext.collect() (the per-record emission path) also marks progress;
         // this initial marker covers a slow-start source that has not emitted yet.
         markProgress();
+        Exception sourceError = null;
         try {
             List<StreamOperator<?>> operators = operatorChain.getOperators();
             StreamOperator<?> head = operators.get(0);
@@ -365,11 +366,23 @@ public class StreamTaskInvokable implements Invokable<Void> {
             if (head instanceof StreamSourceOperator) {
                 StreamSourceOperator<?> sourceOp = (StreamSourceOperator<?>) head;
                 if (sourceOp.getOutput() != null) {
-                    sourceOp.run();
+                    try {
+                        sourceOp.run();
+                    } catch (Exception e) {
+                        sourceError = e;
+                    }
                     // G52: mark progress after source run returns (covers a source
                     // that emits in batches and might otherwise look idle mid-run).
                     markProgress();
                 }
+            }
+
+            // P1-5: finish() must run after the source returns and BEFORE the
+            // MAX_WATERMARK is emitted and operators are closed. Without this,
+            // connectors that buffer (e.g. BatchConsumerSinkFunction) silently
+            // dropped the tail batch on bounded source EOS.
+            if (sourceError == null) {
+                operatorChain.finish();
             }
         } finally {
             try {
@@ -386,15 +399,27 @@ public class StreamTaskInvokable implements Invokable<Void> {
             }
             operatorChain.close();
         }
+        if (sourceError != null) {
+            throw sourceError;
+        }
     }
 
     @SuppressWarnings("unchecked")
     private void invokeMiddle() throws Exception {
         operatorChain.open();
+        Exception inputError = null;
         try {
             if (headInput != null) {
-                processInputGate(headInput);
-                headInput.processWatermark(Watermark.MAX_WATERMARK);
+                try {
+                    processInputGate(headInput);
+                } catch (Exception e) {
+                    inputError = e;
+                }
+                // P1-5: finish() before MAX_WATERMARK and close so connectors flush.
+                if (inputError == null) {
+                    headInput.processWatermark(Watermark.MAX_WATERMARK);
+                    operatorChain.finish();
+                }
             }
         } finally {
             if (outputWriter != null) {
@@ -402,18 +427,33 @@ public class StreamTaskInvokable implements Invokable<Void> {
             }
             operatorChain.close();
         }
+        if (inputError != null) {
+            throw inputError;
+        }
     }
 
     @SuppressWarnings("unchecked")
     private void invokeSink() throws Exception {
         operatorChain.open();
+        Exception inputError = null;
         try {
             if (headInput != null) {
-                processInputGate(headInput);
-                headInput.processWatermark(Watermark.MAX_WATERMARK);
+                try {
+                    processInputGate(headInput);
+                } catch (Exception e) {
+                    inputError = e;
+                }
+                // P1-5: finish() before MAX_WATERMARK and close so connectors flush.
+                if (inputError == null) {
+                    headInput.processWatermark(Watermark.MAX_WATERMARK);
+                    operatorChain.finish();
+                }
             }
         } finally {
             operatorChain.close();
+        }
+        if (inputError != null) {
+            throw inputError;
         }
     }
 
@@ -421,6 +461,7 @@ public class StreamTaskInvokable implements Invokable<Void> {
         operatorChain.open();
         // G52: liveness marker for SELF_CONTAINED at the start of run.
         markProgress();
+        Exception sourceError = null;
         try {
             List<StreamOperator<?>> operators = operatorChain.getOperators();
             StreamOperator<?> head = operators.get(0);
@@ -428,14 +469,25 @@ public class StreamTaskInvokable implements Invokable<Void> {
             if (head instanceof StreamSourceOperator) {
                 StreamSourceOperator<?> sourceOp = (StreamSourceOperator<?>) head;
                 if (sourceOp.getOutput() != null) {
-                    sourceOp.run();
+                    try {
+                        sourceOp.run();
+                    } catch (Exception e) {
+                        sourceError = e;
+                    }
                     // G52: mark progress after run (covers batched emission).
                     markProgress();
-                    sourceOp.processWatermark(Watermark.MAX_WATERMARK);
+                    if (sourceError == null) {
+                        // P1-5: finish() before MAX_WATERMARK and close.
+                        operatorChain.finish();
+                        sourceOp.processWatermark(Watermark.MAX_WATERMARK);
+                    }
                 }
             }
         } finally {
             operatorChain.close();
+        }
+        if (sourceError != null) {
+            throw sourceError;
         }
     }
 

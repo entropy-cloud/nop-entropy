@@ -8,9 +8,12 @@
 package io.nop.stream.runtime.execution;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import java.util.TreeSet;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
@@ -40,8 +43,11 @@ import io.nop.stream.core.environment.StreamExecutionResult;
 import io.nop.stream.core.exceptions.StreamException;
 import io.nop.stream.core.exceptions.NopStreamErrors;
 import static io.nop.stream.core.exceptions.NopStreamErrors.ARG_CHECKPOINT_ID;
+import static io.nop.stream.core.exceptions.NopStreamErrors.ARG_CHECKPOINT_VERTEX_IDS;
+import static io.nop.stream.core.exceptions.NopStreamErrors.ARG_CURRENT_VERTEX_IDS;
 import static io.nop.stream.core.exceptions.NopStreamErrors.ARG_DETAIL;
 import static io.nop.stream.core.exceptions.NopStreamErrors.ARG_EPOCH_ID;
+import static io.nop.stream.core.exceptions.NopStreamErrors.ARG_MISSING_VERTEX_IDS;
 import static io.nop.stream.core.exceptions.NopStreamErrors.ARG_REASON;
 import static io.nop.stream.core.exceptions.NopStreamErrors.ARG_TASK_INDEX;
 import static io.nop.stream.core.exceptions.NopStreamErrors.ARG_TASK_LOCATION;
@@ -52,7 +58,9 @@ import static io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_CHECKPOIN
 import static io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_CHECKPOINT_EXECUTOR_JOB_GRAPH_INVALID;
 import static io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_CHECKPOINT_EXECUTOR_RESTORE_FAILED;
 import static io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_CHECKPOINT_EXECUTOR_SAVEPOINT_FAILED;
+import static io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_SAVEPOINT_VERTEX_DIFFERENTIAL;
 import io.nop.stream.core.execution.CheckpointBarrierTracker;
+import io.nop.stream.core.execution.CheckpointFailureListener;
 import io.nop.stream.core.execution.GraphExecutionPlan;
 import io.nop.stream.core.execution.InputGate;
 import io.nop.stream.core.execution.StreamTaskInvokable;
@@ -547,7 +555,9 @@ public class GraphModelCheckpointExecutor {
 
                 CheckpointBarrierTracker tracker = new CheckpointBarrierTracker(
                         taskLocation, operators, mappings,
-                        snapshot -> coordinator.acknowledgeTask(taskLocation, snapshot.getCheckpointId(), snapshot)
+                        snapshot -> coordinator.acknowledgeTask(taskLocation, snapshot.getCheckpointId(), snapshot),
+                        (CheckpointFailureListener) (checkpointId, error) ->
+                                coordinator.reportTaskCheckpointFailure(taskLocation, checkpointId, error)
                 );
 
                 invokable.setBarrierTracker(tracker);
@@ -787,7 +797,11 @@ public class GraphModelCheckpointExecutor {
 
             validateFingerprintCompatibility(epochManifest, streamModel, coordinator);
 
+            // P0-7: pass the checkpoint's TaskLocation set so the shared restore
+            // path can perform the reverse-direction vertex differential check.
+            Set<TaskLocation> checkpointLocations = epochManifest.getTaskSnapshots().keySet();
             restoreTaskStatesFromSource(execPlan, checkpointPlan, epochManifest.getEpochId(),
+                    checkpointLocations,
                     (taskLocation) -> {
                         TaskStateSnapshot state = epochManifest.getTaskSnapshots().get(taskLocation);
                         if (state == null) {
@@ -891,7 +905,18 @@ public class GraphModelCheckpointExecutor {
             GraphExecutionPlan execPlan,
             CheckpointPlan checkpointPlan,
             long epochId,
+            Set<TaskLocation> checkpointLocations,
             TaskStateLookup stateLookup) throws Exception {
+
+        // P0-7: reverse-direction vertex differential check. The forward
+        // direction (current vertex absent from checkpoint) is already rejected
+        // below via stateLookup.lookup throwing. The reverse direction — a
+        // stateful vertex present in the checkpoint but absent from the current
+        // graph — was previously silently dropped (the loop only walked current
+        // vertices). Per checkpoint-design.md §8.6 the safe default is to
+        // reject such a restore (it indicates a stateful vertex was deleted).
+        validateReverseVertexDifferential(execPlan, checkpointPlan, checkpointLocations);
+
         for (String vertexId : execPlan.getSortedVertexIds()) {
             for (Subtask subtask : execPlan.getSubtasks(vertexId)) {
                 StreamTaskInvokable invokable = subtask.getInvokable();
@@ -906,11 +931,83 @@ public class GraphModelCheckpointExecutor {
         }
     }
 
+    /**
+     * P0-7: enforce reverse-direction savepoint/checkpoint vertex differential.
+     * Computes the set of stateful vertices (vertexId) referenced by the
+     * checkpoint and rejects restore if any of them are absent from the current
+     * execution plan — i.e. a stateful vertex was deleted. Aligns with
+     * {@code checkpoint-design.md} §8.6 "delete stateful vertex = default
+     * reject". Forward direction (current vertex not in checkpoint) is
+     * rejected by {@code stateLookup.lookup} in the caller — also hardened
+     * here as an explicit forward-differential pre-check so the reject fires
+     * independent of invokable installation state.
+     *
+     * <p>Vertex-level granularity only — operatorId-level differential and the
+     * nuanced state-aware §8.6 classification (distinguish stateful vs
+     * stateless new vertex, initial-state fallback) are deferred to the
+     * roadmap successor (see plan Deferred But Adjudicated §"P0-7 operatorId
+     * 粒度差分").
+     */
+    static void validateReverseVertexDifferential(
+            GraphExecutionPlan execPlan,
+            CheckpointPlan checkpointPlan,
+            Set<TaskLocation> checkpointLocations) {
+        if (checkpointLocations == null || checkpointLocations.isEmpty()) {
+            return;
+        }
+
+        // Current graph's vertex set (only vertices present in the execution
+        // plan with installed subtasks count — others are not state-bearing).
+        Set<String> currentVertexIds = new TreeSet<>();
+        for (String vertexId : execPlan.getSortedVertexIds()) {
+            if (!execPlan.getSubtasks(vertexId).isEmpty()) {
+                currentVertexIds.add(vertexId);
+            }
+        }
+
+        // Checkpoint's vertex set (extracted from TaskLocation.vertexId).
+        Set<String> checkpointVertexIds = new TreeSet<>();
+        for (TaskLocation loc : checkpointLocations) {
+            if (loc != null && loc.getVertexId() != null) {
+                checkpointVertexIds.add(loc.getVertexId());
+            }
+        }
+
+        // Forward differential: current vertices absent from checkpoint.
+        // Mirrors the existing throw at the production stateLookup lambda —
+        // hardened here as a pre-check so it fires independent of invokable
+        // installation state. Removing this check would lose the contract
+        // that a new stateful vertex is rejected on restore.
+        Set<String> forwardMissing = new TreeSet<>(currentVertexIds);
+        forwardMissing.removeAll(checkpointVertexIds);
+        if (!forwardMissing.isEmpty()) {
+            throw new StreamException(ERR_STREAM_CHECKPOINT_EXECUTOR_RESTORE_FAILED)
+                    .param(ARG_DETAIL, "Current graph contains stateful vertices absent from checkpoint "
+                            + "(likely new): missing=" + forwardMissing
+                            + "; current-vertices=" + currentVertexIds
+                            + "; checkpoint-vertices=" + checkpointVertexIds);
+        }
+
+        // Reverse differential: checkpoint vertices not in current graph.
+        Set<String> missing = new TreeSet<>(checkpointVertexIds);
+        missing.removeAll(currentVertexIds);
+        if (!missing.isEmpty()) {
+            throw new StreamException(ERR_STREAM_SAVEPOINT_VERTEX_DIFFERENTIAL)
+                    .param(ARG_MISSING_VERTEX_IDS, missing)
+                    .param(ARG_CHECKPOINT_VERTEX_IDS, checkpointVertexIds)
+                    .param(ARG_CURRENT_VERTEX_IDS, currentVertexIds);
+        }
+    }
+
     private static void restoreTaskStatesFromCheckpoint(
             GraphExecutionPlan execPlan,
             CheckpointPlan checkpointPlan,
             CompletedCheckpoint checkpoint) throws Exception {
+        // P0-7: pass the checkpoint's TaskLocation set so the shared restore
+        // path can perform the reverse-direction vertex differential check.
+        Set<TaskLocation> checkpointLocations = checkpoint.getTaskStates().keySet();
         restoreTaskStatesFromSource(execPlan, checkpointPlan, checkpoint.getCheckpointId(),
+                checkpointLocations,
                 (taskLocation) -> {
                     TaskStateSnapshot state = checkpoint.getTaskState(taskLocation);
                     if (state == null) {

@@ -424,8 +424,15 @@ class TestCheckpointRecovery {
         StreamSinkOperator<String> sinkOp = new StreamSinkOperator<>(sink);
         sinkOp.restoreState(OperatorSnapshotResult.empty());
 
-        assertEquals(1, rollbackCount.get());
-        assertEquals(2, beginCount.get());
+        // P0-3 fix: StreamSinkOperator.restoreState no longer calls restoreFromEpoch(-1, null).
+        // It only rebuilds the pending map. With an empty snapshot there is nothing
+        // to rebuild and no rollback / beginTransaction side-effect is expected.
+        // The durable-pending commit/abort decision is now made by the real
+        // restoreFromEpoch(realEpochId) dispatched by GraphModelCheckpointExecutor.
+        assertEquals(0, rollbackCount.get(),
+                "restoreState must not call rollback when no restoreFromEpoch runs");
+        assertEquals(1, beginCount.get(),
+                "restoreState must not call beginTransaction when no restoreFromEpoch runs");
     }
 
     private static void deleteDirectory(File dir) {

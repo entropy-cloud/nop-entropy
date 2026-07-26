@@ -174,21 +174,28 @@ public class ResultPartition implements IWriteStatus {
      *
      * <p>This method places a sentinel value into the queue so that any consumer
      * currently blocked on {@link #read()} will wake up and detect end-of-stream.
+     *
+     * <p>P1-10: when the queue is full, the prior implementation called
+     * {@code queue.clear()} to make room for the sentinel — silently discarding
+     * every in-flight record the consumer had not yet seen. That broke at-least-once
+     * delivery for the bounded-source EOS path. The fix uses a blocking
+     * {@code queue.put(END_OF_STREAM)}: the producer thread blocks on natural
+     * backpressure until the consumer drains enough room, then enqueues the
+     * sentinel. No data is lost; an {@code InterruptedException} is propagated
+     * to the caller so cancel/abort still unblocks the producer.
      */
-    public void close() {
+    public void close() throws InterruptedException {
         finished = true;
-        if (!queue.offer(END_OF_STREAM)) {
-            // Queue full: discard pending elements to make room for the sentinel.
-            // When a pool is attached, return a permit for each discarded element
-            // so the global budget is not permanently leaked by a forced drain.
-            if (bufferPool != null) {
-                int discarded = queue.size();
-                for (int i = 0; i < discarded; i++) {
-                    bufferPool.release();
-                }
-            }
-            queue.clear();
-            queue.offer(END_OF_STREAM);
+        try {
+            // Blocking put: respects backpressure and never drops in-flight data.
+            queue.put(END_OF_STREAM);
+        } catch (InterruptedException ie) {
+            // Restore interrupt status and rethrow so callers (cancel/abort) can
+            // still tear down the producer. The sentinel was never placed, so the
+            // consumer must rely on its own cancel path; we explicitly do NOT
+            // discard pending elements here.
+            Thread.currentThread().interrupt();
+            throw ie;
         }
     }
 

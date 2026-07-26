@@ -27,6 +27,7 @@ import static io.nop.stream.core.exceptions.NopStreamErrors.ARG_ARG_NAME;
 import static io.nop.stream.core.exceptions.NopStreamErrors.ARG_DETAIL;
 import static io.nop.stream.core.exceptions.NopStreamErrors.ARG_EXPECTED_TYPE;
 import static io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_INVALID_ARG;
+import static io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_INVALID_STATE;
 import static io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_NULL_ARG;
 import static io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_TYPE_MISMATCH;
 
@@ -57,6 +58,13 @@ public class MessageSourceFunction<T> implements SourceFunction<T> {
 
     private volatile boolean running = true;
     private volatile boolean failed = false;
+    /**
+     * P1-9: captures the first error raised inside {@code onMessage} so {@code run()}
+     * can rethrow it instead of silently returning normally. Without this, a
+     * collect() failure was logged, the run loop exited cleanly, and the pipeline
+     * was misreported as a successful EOS — silently losing data.
+     */
+    private volatile Throwable pendingError;
     private volatile IMessageSubscription subscription;
     private transient volatile CountDownLatch shutdownLatch = new CountDownLatch(1);
 
@@ -122,16 +130,36 @@ public class MessageSourceFunction<T> implements SourceFunction<T> {
             @Override
             public Object onMessage(String t, Object msg, IMessageConsumeContext context) {
                 if (typeClass != null && msg != null && !typeClass.isInstance(msg)) {
-                    throw new StreamException(ERR_STREAM_TYPE_MISMATCH)
-                            .param(ARG_EXPECTED_TYPE, typeClass.getName())
+                    // P1-9: capture-and-rethrow. The subscriber thread propagates the
+                    // failure to run() via pendingError so the pipeline fails instead
+                    // of silently marking EOS as a success.
+                    StreamException typeMismatch = new StreamException(ERR_STREAM_TYPE_MISMATCH);
+                    typeMismatch.param(ARG_EXPECTED_TYPE, typeClass.getName())
                             .param(ARG_ACTUAL_TYPE, msg.getClass().getName());
+                    if (pendingError == null) {
+                        pendingError = typeMismatch;
+                    }
+                    failed = true;
+                    if (shutdownLatch != null) {
+                        shutdownLatch.countDown();
+                    }
+                    return null;
                 }
                 synchronized (ctx) {
                     try {
                         ctx.collect((T) msg);
                     } catch (Exception e) {
+                        // P1-9: do NOT swallow the failure. Record it as the pending
+                        // error so run() rethrows after the loop exits, surfacing the
+                        // pipeline as FAILED rather than a false-success EOS.
                         LOG.error("Failed to collect message from topic {}", effectiveTopic, e);
+                        if (pendingError == null) {
+                            pendingError = e;
+                        }
                         failed = true;
+                        if (shutdownLatch != null) {
+                            shutdownLatch.countDown();
+                        }
                         return null;
                     }
                 }
@@ -141,6 +169,16 @@ public class MessageSourceFunction<T> implements SourceFunction<T> {
 
         while (running && !failed) {
             shutdownLatch.await(1, TimeUnit.SECONDS);
+        }
+
+        // P1-9: surface the captured error to the invokable so the task is
+        // recognized as FAILED rather than completing normally (silent data loss).
+        if (pendingError != null) {
+            if (pendingError instanceof Exception) {
+                throw (Exception) pendingError;
+            }
+            throw new StreamException(ERR_STREAM_INVALID_STATE).param(ARG_DETAIL,
+                    "Message source failed: " + pendingError.getMessage());
         }
     }
 
