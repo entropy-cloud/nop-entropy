@@ -36,8 +36,19 @@ public class CheckpointSerDe {
 
     private static final Logger LOG = LoggerFactory.getLogger(CheckpointSerDe.class);
 
+    /**
+     * Stage 29 (G59): format version envelope. {@code 1} = legacy (no marker in JSON, treated as
+     * v1 on read). {@code 2} = current (explicit {@code formatVersion} field present). Future
+     * format changes bump this number; {@link #deserializeCheckpoint} and
+     * {@link #deserializeEpochManifest} log a debug message and accept legacy v1 JSON.
+     */
+    public static final int CURRENT_FORMAT_VERSION = 2;
+    public static final int LEGACY_FORMAT_VERSION = 1;
+    private static final String FORMAT_VERSION_KEY = "formatVersion";
+
     public static byte[] serializeCheckpoint(CompletedCheckpoint checkpoint) {
         Map<String, Object> serializable = new LinkedHashMap<>();
+        serializable.put(FORMAT_VERSION_KEY, CURRENT_FORMAT_VERSION);
         serializable.put("jobId", checkpoint.getJobId());
         serializable.put("pipelineId", checkpoint.getPipelineId());
         serializable.put("checkpointId", checkpoint.getCheckpointId());
@@ -71,6 +82,12 @@ public class CheckpointSerDe {
         Map<String, Object> map = JsonTool.parseMap(json);
         if (map == null) {
             return null;
+        }
+
+        int formatVersion = detectFormatVersion(map);
+        if (formatVersion < CURRENT_FORMAT_VERSION) {
+            LOG.debug("Deserializing legacy checkpoint (formatVersion={}, current={}) — backward-compatible",
+                    formatVersion, CURRENT_FORMAT_VERSION);
         }
 
         String jobId = (String) map.get("jobId");
@@ -128,6 +145,7 @@ public class CheckpointSerDe {
 
     public static byte[] serializeEpochManifest(EpochManifest manifest) {
         Map<String, Object> serializable = new LinkedHashMap<>();
+        serializable.put(FORMAT_VERSION_KEY, CURRENT_FORMAT_VERSION);
         serializable.put("epochId", manifest.getEpochId());
         serializable.put("jobId", manifest.getJobId());
         serializable.put("pipelineId", manifest.getPipelineId());
@@ -189,6 +207,12 @@ public class CheckpointSerDe {
         Map<String, Object> map = JsonTool.parseMap(json);
         if (map == null) {
             return null;
+        }
+
+        int formatVersion = detectFormatVersion(map);
+        if (formatVersion < CURRENT_FORMAT_VERSION) {
+            LOG.debug("Deserializing legacy epoch manifest (formatVersion={}, current={}) — backward-compatible",
+                    formatVersion, CURRENT_FORMAT_VERSION);
         }
 
         long epochId = map.get("epochId") instanceof Number ? ((Number) map.get("epochId")).longValue() : -1;
@@ -307,5 +331,18 @@ public class CheckpointSerDe {
         }
 
         return snapshot;
+    }
+
+    /**
+     * Stage 29 (G59): detect the format version from a deserialized JSON map. Absent
+     * {@code formatVersion} field means legacy version {@code 1}; otherwise the explicit
+     * integer value is used. Never throws — unknown / non-numeric values are treated as legacy.
+     */
+    private static int detectFormatVersion(Map<String, Object> map) {
+        Object v = map.get(FORMAT_VERSION_KEY);
+        if (v instanceof Number) {
+            return ((Number) v).intValue();
+        }
+        return LEGACY_FORMAT_VERSION;
     }
 }

@@ -179,6 +179,21 @@ public interface NopStreamErrors {
             define("nop.err.stream.type-mismatch", "Type mismatch: expected {expectedType} but got {actualType}",
                     ARG_EXPECTED_TYPE, ARG_ACTUAL_TYPE);
 
+    String ARG_EXPECTED_CHECKSUM = "expectedChecksum";
+    String ARG_ACTUAL_CHECKSUM = "actualChecksum";
+
+    /**
+     * Stage 29: state schema fingerprint mismatch detected at {@code getState()} time.
+     * The current descriptor's schema checksum differs from the restored state's
+     * descriptor checksum. Stage 29 fails fast (no migration). Stage 33 will extend
+     * this path to check for registered {@code StateMigrationFunction}s before failing.
+     */
+    ErrorCode ERR_STREAM_STATE_SCHEMA_MISMATCH =
+            define("nop.err.stream.state-schema-mismatch",
+                    "State schema mismatch for state '{stateName}': restored schema checksum differs from current descriptor. "
+                            + "expected={expectedChecksum}, actual={actualChecksum}",
+                    ARG_STATE_NAME, ARG_EXPECTED_CHECKSUM, ARG_ACTUAL_CHECKSUM);
+
     ErrorCode ERR_STREAM_CYCLIC_JOB_GRAPH =
             define("nop.err.stream.cyclic-job-graph", "Cyclic job graph detected: {detail}", ARG_DETAIL);
 

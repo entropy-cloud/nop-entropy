@@ -23,17 +23,23 @@ import io.nop.stream.core.common.state.MapState;
 import io.nop.stream.core.common.state.MapStateDescriptor;
 import io.nop.stream.core.common.state.ReducingState;
 import io.nop.stream.core.common.state.ReducingStateDescriptor;
+import io.nop.stream.core.common.state.StateDescriptor;
+import io.nop.stream.core.common.state.StateSchemaResolver;
 import io.nop.stream.core.common.state.ValueState;
 import io.nop.stream.core.common.state.ValueStateDescriptor;
+import io.nop.stream.core.checkpoint.SerializerFingerprint;
 import io.nop.stream.core.common.state.shard.StateShard;
 import io.nop.stream.core.exceptions.StreamException;
 
+import static io.nop.stream.core.exceptions.NopStreamErrors.ARG_ACTUAL_CHECKSUM;
+import static io.nop.stream.core.exceptions.NopStreamErrors.ARG_EXPECTED_CHECKSUM;
 import static io.nop.stream.core.exceptions.NopStreamErrors.ARG_ACTUAL_TYPE;
 import static io.nop.stream.core.exceptions.NopStreamErrors.ARG_ARG_NAME;
 import static io.nop.stream.core.exceptions.NopStreamErrors.ARG_DETAIL;
 import static io.nop.stream.core.exceptions.NopStreamErrors.ARG_EXPECTED_TYPE;
 import static io.nop.stream.core.exceptions.NopStreamErrors.ARG_STATE_NAME;
 import static io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_INVALID_ARG;
+import static io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_STATE_SCHEMA_MISMATCH;
 import static io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_TYPE_MISMATCH;
 
 /**
@@ -129,6 +135,10 @@ public class MemoryKeyedStateBackend<K> implements IInternalStateBackend<K>, Ser
             state = new MemoryValueState<>(this, stateProperties);
             registerStateType(stateProperties.getName(), ValueState.class);
             states.put(stateProperties.getName(), state);
+        } else {
+            verifySchemaCompatibility(stateProperties.getName(),
+                    StateSchemaResolver.STATE_TYPE_VALUE,
+                    stateProperties, ((MemoryValueState<?>) state).descriptor);
         }
         return state;
     }
@@ -141,6 +151,10 @@ public class MemoryKeyedStateBackend<K> implements IInternalStateBackend<K>, Ser
             state = new MemoryMapState<>(this, stateProperties);
             registerStateType(stateProperties.getName(), MapState.class);
             states.put(stateProperties.getName(), state);
+        } else {
+            verifySchemaCompatibility(stateProperties.getName(),
+                    StateSchemaResolver.STATE_TYPE_MAP,
+                    stateProperties, ((MemoryMapState<?, ?>) state).descriptor);
         }
         return state;
     }
@@ -153,6 +167,10 @@ public class MemoryKeyedStateBackend<K> implements IInternalStateBackend<K>, Ser
             state = new MemoryListState<>(this, stateProperties);
             registerStateType(stateProperties.getName(), ListState.class);
             states.put(stateProperties.getName(), state);
+        } else {
+            verifySchemaCompatibility(stateProperties.getName(),
+                    StateSchemaResolver.STATE_TYPE_LIST,
+                    stateProperties, ((MemoryListState<?>) state).descriptor);
         }
         return state;
     }
@@ -165,6 +183,10 @@ public class MemoryKeyedStateBackend<K> implements IInternalStateBackend<K>, Ser
             state = new MemoryReducingState<>(this, stateProperties);
             registerStateType(stateProperties.getName(), ReducingState.class);
             states.put(stateProperties.getName(), state);
+        } else {
+            verifySchemaCompatibility(stateProperties.getName(),
+                    StateSchemaResolver.STATE_TYPE_REDUCING,
+                    stateProperties, ((MemoryReducingState<?>) state).descriptor);
         }
         return state;
     }
@@ -178,6 +200,10 @@ public class MemoryKeyedStateBackend<K> implements IInternalStateBackend<K>, Ser
             state = new MemoryAggregatingState<>(this, stateProperties);
             registerStateType(stateProperties.getName(), AggregatingState.class);
             states.put(stateProperties.getName(), state);
+        } else {
+            verifySchemaCompatibility(stateProperties.getName(),
+                    StateSchemaResolver.STATE_TYPE_AGGREGATING,
+                    stateProperties, ((MemoryAggregatingState<?, ?, ?>) state).descriptor);
         }
         return state;
     }
@@ -192,6 +218,10 @@ public class MemoryKeyedStateBackend<K> implements IInternalStateBackend<K>, Ser
             state = new MemoryInternalAppendingState<>(this, descriptor);
             registerStateType(descriptor.getName(), InternalAppendingState.class);
             states.put(descriptor.getName(), state);
+        } else {
+            verifySchemaCompatibility(descriptor.getName(),
+                    StateSchemaResolver.STATE_TYPE_APPENDING,
+                    descriptor, ((MemoryInternalAppendingState<?, ?, ?, ?>) state).descriptor);
         }
         return state;
     }
@@ -206,6 +236,10 @@ public class MemoryKeyedStateBackend<K> implements IInternalStateBackend<K>, Ser
             state = new MemoryInternalAggregatingState<>(this, descriptor);
             registerStateType(descriptor.getName(), InternalAppendingState.class);
             states.put(descriptor.getName(), state);
+        } else {
+            verifySchemaCompatibility(descriptor.getName(),
+                    StateSchemaResolver.STATE_TYPE_INTERNAL_AGGREGATING,
+                    descriptor, ((MemoryInternalAggregatingState<?, ?, ?, ?, ?>) state).descriptor);
         }
         return state;
     }
@@ -219,8 +253,32 @@ public class MemoryKeyedStateBackend<K> implements IInternalStateBackend<K>, Ser
             state = new MemoryInternalListState<>(this, descriptor);
             registerStateType(descriptor.getName(), InternalListState.class);
             states.put(descriptor.getName(), state);
+        } else {
+            verifySchemaCompatibility(descriptor.getName(),
+                    StateSchemaResolver.STATE_TYPE_INTERNAL_LIST,
+                    descriptor, ((MemoryInternalListState<?, ?, ?>) state).descriptor);
         }
         return state;
+    }
+
+    /**
+     * Stage 29: when {@code getState()} is called on an already-restored state, verify the current
+     * descriptor's schema checksum matches the restored descriptor's schema checksum. Both
+     * descriptors come from independent sources (current code vs checkpoint), so the comparison
+     * is NOT tautological. If they differ, fail fast with {@code ERR_STREAM_STATE_SCHEMA_MISMATCH}.
+     * Stage 33 will extend this path to consult registered {@code StateMigrationFunction}s.
+     */
+    private void verifySchemaCompatibility(String stateName, String stateType,
+                                           StateDescriptor<?> currentDescriptor,
+                                           StateDescriptor<?> restoredDescriptor) {
+        SerializerFingerprint currentFp = StateSchemaResolver.fromDescriptor(stateType, currentDescriptor);
+        SerializerFingerprint restoredFp = StateSchemaResolver.fromDescriptor(stateType, restoredDescriptor);
+        if (!StateSchemaResolver.fingerprintsCompatible(currentFp, restoredFp)) {
+            throw new StreamException(ERR_STREAM_STATE_SCHEMA_MISMATCH)
+                    .param(ARG_STATE_NAME, stateName)
+                    .param(ARG_EXPECTED_CHECKSUM, currentFp.getSchemaChecksum())
+                    .param(ARG_ACTUAL_CHECKSUM, restoredFp.getSchemaChecksum());
+        }
     }
 
     @Override

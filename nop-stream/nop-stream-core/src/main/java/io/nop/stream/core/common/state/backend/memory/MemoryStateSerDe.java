@@ -21,7 +21,9 @@ import io.nop.stream.core.common.state.ListStateDescriptor;
 import io.nop.stream.core.common.state.MapStateDescriptor;
 import io.nop.stream.core.common.state.ReducingStateDescriptor;
 import io.nop.stream.core.common.state.StateDescriptor;
+import io.nop.stream.core.common.state.StateSchemaResolver;
 import io.nop.stream.core.common.state.ValueStateDescriptor;
+import io.nop.stream.core.checkpoint.SerializerFingerprint;
 import io.nop.stream.core.common.state.backend.IKeyedStateBackend;
 import io.nop.stream.core.common.state.backend.StateSnapshot;
 import io.nop.stream.core.common.typeutils.IStreamSerializer;
@@ -38,6 +40,14 @@ import static io.nop.stream.core.exceptions.NopStreamErrors.ARG_DETAIL;
 import static io.nop.stream.core.exceptions.NopStreamErrors.ARG_EXPECTED_TYPE;
 import static io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_STATE_ERROR;
 import static io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_TYPE_MISMATCH;
+import static io.nop.stream.core.common.state.StateSchemaResolver.STATE_TYPE_AGGREGATING;
+import static io.nop.stream.core.common.state.StateSchemaResolver.STATE_TYPE_APPENDING;
+import static io.nop.stream.core.common.state.StateSchemaResolver.STATE_TYPE_INTERNAL_AGGREGATING;
+import static io.nop.stream.core.common.state.StateSchemaResolver.STATE_TYPE_INTERNAL_LIST;
+import static io.nop.stream.core.common.state.StateSchemaResolver.STATE_TYPE_LIST;
+import static io.nop.stream.core.common.state.StateSchemaResolver.STATE_TYPE_MAP;
+import static io.nop.stream.core.common.state.StateSchemaResolver.STATE_TYPE_REDUCING;
+import static io.nop.stream.core.common.state.StateSchemaResolver.STATE_TYPE_VALUE;
 
 class MemoryStateSerDe {
 
@@ -432,6 +442,7 @@ class MemoryStateSerDe {
         Map<String, Object> info = new LinkedHashMap<>();
         info.put("stateType", "ValueState");
         info.put("valueType", state.descriptor.getValueType().getName());
+        embedSchemaFingerprint(info, STATE_TYPE_VALUE, state.descriptor);
         if (shardCount > 1) {
             info.put("shardCount", shardCount);
         }
@@ -454,6 +465,7 @@ class MemoryStateSerDe {
         info.put("stateType", "MapState");
         info.put("valueType", state.descriptor.getValueType().getName());
         info.put("mapKeyType", state.descriptor.getKeyClass().getName());
+        embedSchemaFingerprint(info, STATE_TYPE_MAP, state.descriptor);
         if (shardCount > 1) {
             info.put("shardCount", shardCount);
         }
@@ -483,6 +495,7 @@ class MemoryStateSerDe {
         info.put("stateType", "AppendingState");
         info.put("valueType", state.descriptor.getValueType().getName());
         info.put("accumulatorType", state.descriptor.getAccumulatorType().getName());
+        embedSchemaFingerprint(info, STATE_TYPE_APPENDING, state.descriptor);
         if (shardCount > 1) {
             info.put("shardCount", shardCount);
         }
@@ -508,6 +521,7 @@ class MemoryStateSerDe {
         Map<String, Object> info = new LinkedHashMap<>();
         info.put("stateType", "ListState");
         info.put("valueType", state.descriptor.getValueType().getName());
+        embedSchemaFingerprint(info, STATE_TYPE_LIST, state.descriptor);
         if (shardCount > 1) {
             info.put("shardCount", shardCount);
         }
@@ -533,6 +547,7 @@ class MemoryStateSerDe {
         Map<String, Object> info = new LinkedHashMap<>();
         info.put("stateType", "InternalListState");
         info.put("valueType", state.descriptor.getValueType().getName());
+        embedSchemaFingerprint(info, STATE_TYPE_INTERNAL_LIST, state.descriptor);
         if (shardCount > 1) {
             info.put("shardCount", shardCount);
         }
@@ -559,6 +574,7 @@ class MemoryStateSerDe {
         info.put("stateType", "ReducingState");
         info.put("valueType", state.descriptor.getValueType().getName());
         info.put("accumulatorType", state.descriptor.getAccumulatorType().getName());
+        embedSchemaFingerprint(info, STATE_TYPE_REDUCING, state.descriptor);
         if (shardCount > 1) {
             info.put("shardCount", shardCount);
         }
@@ -581,6 +597,7 @@ class MemoryStateSerDe {
         info.put("stateType", "AggregatingState");
         info.put("valueType", state.descriptor.getValueType().getName());
         info.put("aggregateFunctionType", state.descriptor.getAggregateFunction().getClass().getName());
+        embedSchemaFingerprint(info, STATE_TYPE_AGGREGATING, state.descriptor);
         if (shardCount > 1) {
             info.put("shardCount", shardCount);
         }
@@ -603,6 +620,7 @@ class MemoryStateSerDe {
         info.put("stateType", "InternalAggregatingState");
         info.put("valueType", state.descriptor.getValueType().getName());
         info.put("aggregateFunctionType", state.descriptor.getAggregateFunction().getClass().getName());
+        embedSchemaFingerprint(info, STATE_TYPE_INTERNAL_AGGREGATING, state.descriptor);
         if (shardCount > 1) {
             info.put("shardCount", shardCount);
         }
@@ -625,6 +643,12 @@ class MemoryStateSerDe {
             return ((ShardPrefixedKey) storageKey).key;
         }
         return storageKey;
+    }
+
+    private void embedSchemaFingerprint(Map<String, Object> info, String stateType, StateDescriptor<?> descriptor) {
+        SerializerFingerprint fingerprint = StateSchemaResolver.fromDescriptor(stateType, descriptor);
+        info.put("schemaChecksum", fingerprint.getSchemaChecksum());
+        info.put("schemaVersion", fingerprint.getSchemaVersion());
     }
 
     private Object serializeNamespace(Object namespace) {

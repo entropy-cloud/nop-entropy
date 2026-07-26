@@ -98,4 +98,59 @@ class TestCheckpointSerDeConsistency {
         String taskKey = map.containsKey("taskStates") ? "taskStates" : "taskSnapshots";
         return (Map<String, Object>) map.get(taskKey);
     }
+
+    @Test
+    void testSerializedCheckpointContainsFormatVersion() {
+        TaskLocation loc = new TaskLocation("job1", "pipe1", "v1", 0);
+        TaskStateSnapshot snapshot = new TaskStateSnapshot(loc);
+        snapshot.putOperatorState("op-key", "op-value");
+
+        Map<TaskLocation, TaskStateSnapshot> taskStates = new LinkedHashMap<>();
+        taskStates.put(loc, snapshot);
+
+        CompletedCheckpoint checkpoint = CompletedCheckpoint.builder()
+                .jobId("job1")
+                .pipelineId("pipe1")
+                .checkpointId(1L)
+                .triggerTimestamp(1000L)
+                .completedTimestamp(2000L)
+                .checkpointType(CheckpointType.CHECKPOINT)
+                .taskStates(taskStates)
+                .build();
+
+        byte[] checkpointBytes = CheckpointSerDe.serializeCheckpoint(checkpoint);
+        Map<String, Object> map = io.nop.core.lang.json.JsonTool.parseMap(
+                new String(checkpointBytes, java.nio.charset.StandardCharsets.UTF_8));
+        assertEquals(2, ((Number) map.get("formatVersion")).intValue(),
+                "formatVersion must be present and equal 2 in serialized checkpoint");
+
+        EpochManifest manifest = new EpochManifest(
+                1L, "job1", "pipe1", 2000L,
+                CheckpointType.CHECKPOINT, null, taskStates, null, null);
+        byte[] manifestBytes = CheckpointSerDe.serializeEpochManifest(manifest);
+        Map<String, Object> manifestMap = io.nop.core.lang.json.JsonTool.parseMap(
+                new String(manifestBytes, java.nio.charset.StandardCharsets.UTF_8));
+        assertEquals(2, ((Number) manifestMap.get("formatVersion")).intValue(),
+                "formatVersion must be present and equal 2 in serialized epoch manifest");
+    }
+
+    @Test
+    void testDeserializeLegacyCheckpointWithoutFormatVersionSucceeds() {
+        // Legacy JSON without formatVersion field — must still deserialize without error.
+        String legacyJson = "{"
+                + "\"jobId\":\"job1\","
+                + "\"pipelineId\":\"pipe1\","
+                + "\"checkpointId\":1,"
+                + "\"triggerTimestamp\":1000,"
+                + "\"completedTimestamp\":2000,"
+                + "\"checkpointType\":\"CHECKPOINT\","
+                + "\"restored\":false,"
+                + "\"taskStates\":{}"
+                + "}";
+        byte[] legacyBytes = legacyJson.getBytes(java.nio.charset.StandardCharsets.UTF_8);
+        CompletedCheckpoint restored = CheckpointSerDe.deserializeCheckpoint(legacyBytes);
+        assertNotNull(restored);
+        assertEquals("job1", restored.getJobId());
+        assertEquals(1L, restored.getCheckpointId());
+    }
 }
