@@ -13,7 +13,8 @@ async function cleanupTestRoles(request: import('@playwright/test').APIRequestCo
   if (!resp.ok) return;
   for (const item of resp.data.items) {
     if (item.roleId.startsWith('e2e_role_')) {
-      await rpc(request, 'NopAuthRole__delete', { id: item.roleId }).catch(() => {});
+      const del = await rpc(request, 'NopAuthRole__delete', { id: item.roleId });
+      if (!del.ok) console.warn(`cleanup delete role ${item.roleId}: status=${del.status}`);
     }
   }
 }
@@ -26,7 +27,8 @@ test.describe('角色管理 - RPC', () => {
 
   test.afterAll(async ({ request }) => {
     for (const id of createdRoleIds) {
-      await rpc(request, 'NopAuthRole__delete', { id }).catch(() => {});
+      const del = await rpc(request, 'NopAuthRole__delete', { id });
+      if (!del.ok) console.warn(`RPC afterAll delete ${id}: status=${del.status}`);
     }
     createdRoleIds.length = 0;
   });
@@ -134,7 +136,8 @@ test.describe('角色管理 - 浏览器', () => {
   test.afterEach(async ({ request }) => {
     await loginRpc(request);
     for (const id of createdRoleIds) {
-      await rpc(request, 'NopAuthRole__delete', { id }).catch(() => {});
+      const del = await rpc(request, 'NopAuthRole__delete', { id });
+      if (!del.ok) console.warn(`afterEach delete role ${id}: status=${del.status}`);
     }
     createdRoleIds.length = 0;
   });

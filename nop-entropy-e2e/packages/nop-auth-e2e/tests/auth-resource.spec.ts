@@ -8,9 +8,12 @@ const createdResourceIds: string[] = [];
 const SITE_ID = 'main';
 
 async function ensureDefaultSite(request: import('@playwright/test').APIRequestContext): Promise<void> {
-  await rpc(request, 'NopAuthSite__save', {
+  const resp = await rpc(request, 'NopAuthSite__save', {
     data: { siteId: SITE_ID, displayName: 'Main Site', orderNo: 1, status: 1 },
-  }).catch(() => {});
+  });
+  if (!resp.ok) {
+    console.warn(`ensureDefaultSite: status=${resp.status} (site likely already exists)`);
+  }
 }
 
 async function cleanupTestResources(request: import('@playwright/test').APIRequestContext): Promise<void> {
@@ -20,7 +23,8 @@ async function cleanupTestResources(request: import('@playwright/test').APIReque
   if (!resp.ok) return;
   for (const item of resp.data.items) {
     if (item.resourceId.startsWith('e2e_res_')) {
-      await rpc(request, 'NopAuthResource__delete', { id: item.resourceId }).catch(() => {});
+      const del = await rpc(request, 'NopAuthResource__delete', { id: item.resourceId });
+      if (!del.ok) console.warn(`cleanup delete ${item.resourceId}: status=${del.status}`);
     }
   }
 }
@@ -34,7 +38,8 @@ test.describe('资源管理 - RPC', () => {
 
   test.afterAll(async ({ request }) => {
     for (const id of createdResourceIds) {
-      await rpc(request, 'NopAuthResource__delete', { id }).catch(() => {});
+      const del = await rpc(request, 'NopAuthResource__delete', { id });
+      if (!del.ok) console.warn(`RPC afterAll delete ${id}: status=${del.status}`);
     }
     createdResourceIds.length = 0;
   });
@@ -143,6 +148,12 @@ test.describe('资源管理 - RPC', () => {
 });
 
 test.describe('资源管理 - 浏览器', () => {
+  test.beforeAll(async ({ request }) => {
+    await loginRpc(request);
+    await ensureDefaultSite(request);
+    await cleanupTestResources(request);
+  });
+
   test.beforeEach(async ({ request }) => {
     await loginRpc(request);
     await ensureDefaultSite(request);
@@ -151,7 +162,8 @@ test.describe('资源管理 - 浏览器', () => {
   test.afterEach(async ({ request }) => {
     await loginRpc(request);
     for (const id of createdResourceIds) {
-      await rpc(request, 'NopAuthResource__delete', { id }).catch(() => {});
+      const del = await rpc(request, 'NopAuthResource__delete', { id });
+      if (!del.ok) console.warn(`afterEach delete ${id}: status=${del.status}`);
     }
     createdResourceIds.length = 0;
   });
@@ -190,19 +202,23 @@ test.describe('资源管理 - 浏览器', () => {
       .toBeVisible({ timeout: 10_000 });
   });
 
-  test('浏览器: 查看资源详情', async ({ page, request, engine }) => {
+  test('浏览器: 查看资源详情', async ({ page, engine }) => {
     const resourceId = `${TEST_ID}_ui_view`;
     const displayName = `E2E_UI查看_${TEST_ID}`;
 
-    await rpc(request, 'NopAuthResource__save', {
-      data: { resourceId, siteId: SITE_ID, displayName, resourceType: 'TOPM', orderNo: 1, status: 1, remark: 'view test' },
-    });
-    createdResourceIds.push(resourceId);
-
     const resourcePO = await browserLogin(page, engine);
     await resourcePO.goto();
-    await resourcePO.clickView(resourceId);
 
+    // Create resource via UI (not RPC) so it appears in the CRUD table
+    const dialog = await resourcePO.clickAdd();
+    await resourcePO.fillForm({
+      resourceId, siteId: SITE_ID, displayName, resourceType: 'TOPM', orderNo: 1, status: 1, remark: 'view test',
+    });
+    await dialog.submit();
+    await resourcePO.waitForList();
+    createdResourceIds.push(resourceId);
+
+    await resourcePO.clickView(resourceId);
     const viewName = await resourcePO.readViewField('displayName');
     expect(viewName).toBe(displayName);
   });
@@ -211,15 +227,20 @@ test.describe('资源管理 - 浏览器', () => {
     const resourceId = `${TEST_ID}_ui_edit`;
     const displayName = `E2E_UI编辑_${TEST_ID}`;
 
-    await rpc(request, 'NopAuthResource__save', {
-      data: { resourceId, siteId: SITE_ID, displayName, resourceType: 'TOPM', orderNo: 1, status: 1 },
-    });
-    createdResourceIds.push(resourceId);
-
     const updatedName = `${displayName}_done`;
 
     const resourcePO = await browserLogin(page, engine);
     await resourcePO.goto();
+
+    // Create resource via UI so it appears in the CRUD table
+    const dialog = await resourcePO.clickAdd();
+    await resourcePO.fillForm({
+      resourceId, siteId: SITE_ID, displayName, resourceType: 'TOPM', orderNo: 1, status: 1,
+    });
+    await dialog.submit();
+    await resourcePO.waitForList();
+    createdResourceIds.push(resourceId);
+
     await resourcePO.clickEdit(resourceId);
     await resourcePO.fillForm({ displayName: updatedName, resourceType: 'TOPM' });
     await resourcePO.clickSave();
@@ -238,12 +259,17 @@ test.describe('资源管理 - 浏览器', () => {
     const resourceId = `${TEST_ID}_ui_delete`;
     const displayName = `E2E_UI删除_${TEST_ID}`;
 
-    await rpc(request, 'NopAuthResource__save', {
-      data: { resourceId, siteId: SITE_ID, displayName, resourceType: 'TOPM', orderNo: 1, status: 1 },
-    });
-
     const resourcePO = await browserLogin(page, engine);
     await resourcePO.goto();
+
+    // Create resource via UI so it appears in the CRUD table
+    const dialog = await resourcePO.clickAdd();
+    await resourcePO.fillForm({
+      resourceId, siteId: SITE_ID, displayName, resourceType: 'TOPM', orderNo: 1, status: 1,
+    });
+    await dialog.submit();
+    await resourcePO.waitForList();
+
     await resourcePO.clickDelete(resourceId);
 
     await expect(page.locator('tr').filter({ hasText: resourceId }).first())

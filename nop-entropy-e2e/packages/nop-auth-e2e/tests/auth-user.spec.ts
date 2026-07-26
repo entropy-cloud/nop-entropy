@@ -39,7 +39,8 @@ async function cleanupTestUsers(request: import('@playwright/test').APIRequestCo
   if (!resp.ok) return;
   for (const item of resp.data.items) {
     if (item.userName.startsWith('e2e_')) {
-      await rpc(request, 'NopAuthUser__delete', { id: item.id }).catch(() => {});
+      const del = await rpc(request, 'NopAuthUser__delete', { id: item.id });
+      if (!del.ok) console.warn(`cleanup delete user ${item.id}: status=${del.status}`);
     }
   }
 }
@@ -65,7 +66,8 @@ test.describe('用户管理 - RPC', () => {
 
   test.afterAll(async ({ request }) => {
     for (const id of createdUserIds) {
-      await rpc(request, 'NopAuthUser__delete', { id }).catch(() => {});
+      const del = await rpc(request, 'NopAuthUser__delete', { id });
+      if (!del.ok) console.warn(`RPC afterAll delete ${id}: status=${del.status}`);
     }
     createdUserIds.length = 0;
   });
@@ -181,7 +183,8 @@ test.describe('用户管理 - 浏览器', () => {
 
   test.afterEach(async ({ request }) => {
     for (const id of createdUserIds) {
-      await rpc(request, 'NopAuthUser__delete', { id }).catch(() => {});
+      const del = await rpc(request, 'NopAuthUser__delete', { id });
+      if (!del.ok) console.warn(`afterEach delete user ${id}: status=${del.status}`);
     }
     createdUserIds.length = 0;
   });
