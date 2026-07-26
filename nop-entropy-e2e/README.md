@@ -575,3 +575,4 @@ Copy from an existing package and adjust `outDir`.
 | `Playwright not found` | Browsers not installed | Run `pnpm exec playwright install --with-deps chromium` |
 | `Module not found` | pnpm deps not installed | Run `pnpm install` |
 | Build fails after code change | Stale jars | Run `./mvnw clean install -DskipTests -T 1C` |
+| SPA blank (white screen after login) | Missing or mismatched frontend build | Not a `.js.gz` decompression issue. Quarkus/Undertow serves `.js.gz` transparently with `Content-Encoding: gzip` — **do not decompress**. Rebuild the frontend at `nop-frontend-support/nop-web-site` |
