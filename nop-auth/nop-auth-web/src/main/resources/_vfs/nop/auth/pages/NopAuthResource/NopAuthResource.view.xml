@@ -134,7 +134,7 @@
 
         <form id="add">
             <data>
-                <siteId>${'$'}{siteId}</siteId>
+                <siteId>${siteId}</siteId>
             </data>
         </form>
     </forms>
@@ -171,15 +171,15 @@
 
         <simple name="add-child">
             <data>
-                <parentId>${'$'}{id}</parentId>
-                <siteId>${'$'}{siteId}</siteId>
+                <parentId>${id}</parentId>
+                <siteId>${siteId}</siteId>
                 <resourceType>SUBM</resourceType>
             </data>
         </simple>
 
         <picker name="picker">
             <table loadDataOnce="true" sortable="false">
-                <api url="@query:NopAuthResource__findList/{@listSelection}?filter_siteId=${'$'}{siteId}&amp;filter_resourceType=TOPM"/>
+                <api url="@query:NopAuthResource__findList/{@listSelection}?filter_siteId=${siteId}&amp;filter_resourceType=TOPM"/>
             </table>
         </picker>
     </pages>

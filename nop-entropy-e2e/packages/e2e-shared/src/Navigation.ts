@@ -17,7 +17,7 @@ export interface LoginOptions {
  * 3. Default fallback
  */
 function resolveBaseUrl(explicit?: string): string {
-  return explicit ?? process.env.E2E_BASE_URL ?? process.env.BASE_URL ?? 'http://localhost:4173';
+  return explicit ?? process.env.E2E_BASE_URL ?? process.env.BASE_URL ?? 'http://localhost:8080';
 }
 
 /**
