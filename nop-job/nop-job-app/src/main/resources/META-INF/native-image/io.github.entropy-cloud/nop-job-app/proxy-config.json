@@ -4,5 +4,8 @@
   ],
   [
     "io.nop.auth.dao.mapper.NopAuthUserMapper"
+  ],
+  [
+    "io.nop.job.dao.mapper.NopJobTaskMapper"
   ]
 ]
