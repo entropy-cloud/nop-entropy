@@ -83,96 +83,96 @@ Establish per-state schema fingerprinting as checkpoint-internal metadata, enabl
 
 ### Phase 1 — SerializerFingerprint Core + Schema Computation
 
-Status: planned
+Status: completed
 Targets: `nop-stream/nop-stream-core/src/main/java/io/nop/stream/core/checkpoint/SerializerFingerprint.java` (new), `nop-stream/nop-stream-core/src/main/java/io/nop/stream/core/common/state/` (new resolver class or method)
 
 - Item Types: `Fix` (G12 — missing schema fingerprint system), `Decision` (checksum computation approach)
 
-- [ ] Create `SerializerFingerprint` class in `io.nop.stream.core.checkpoint` package as a `@DataBean` `Serializable` with fields: `stateName: String`, `schemaVersion: int`, `schemaChecksum: String`. Include `equals()`/`hashCode()` based on all three fields. `schemaVersion` defaults to `1`.
-- [ ] Create an internal schema resolver that computes a `SerializerFingerprint` from a state's type signature. The checksum must be a deterministic hash (e.g., SHA-256 hex digest) of a canonical type-signature string composed from: `stateType` string + `valueType` class FQN + relevant sub-type FQNs (`mapKeyType`, `accumulatorType`, `aggregateFunctionType` as applicable). The canonical string format is an internal implementation detail but must be deterministic and stable across JVM restarts.
-- [ ] The resolver must support two input modes: (a) from a `StateDescriptor` (or its subclasses — `ValueStateDescriptor`, `MapStateDescriptor`, `ReducingStateDescriptor`, `AggregatingStateDescriptor`, `ListStateDescriptor`), used at `getState()` time; and (b) from the type-metadata strings that `MemoryStateSerDe` records (`stateType`/`valueType`/`mapKeyType`/`accumulatorType`/`aggregateFunctionType`), used during snapshot serialization. Both modes must produce identical checksums for the same logical type signature.
-- [ ] Unit tests: `TestSerializerFingerprint` covering: (a) same type signature → same checksum (determinism), (b) different `valueType` (`Integer` vs `Long`) → different checksum, (c) different `stateType` → different checksum, (d) `MapState` with different `mapKeyType` → different checksum, (e) `equals()`/`hashCode()` contract.
-- [ ] Unit tests: `TestStateSchemaResolver` covering fingerprint computation from both input modes (descriptor-based and string-based) for all keyed state types, verifying that descriptor-based and string-based modes produce identical results.
+- [x] Create `SerializerFingerprint` class in `io.nop.stream.core.checkpoint` package as a `@DataBean` `Serializable` with fields: `stateName: String`, `schemaVersion: int`, `schemaChecksum: String`. Include `equals()`/`hashCode()` based on all three fields. `schemaVersion` defaults to `1`.
+- [x] Create an internal schema resolver that computes a `SerializerFingerprint` from a state's type signature. The checksum must be a deterministic hash (e.g., SHA-256 hex digest) of a canonical type-signature string composed from: `stateType` string + `valueType` class FQN + relevant sub-type FQNs (`mapKeyType`, `accumulatorType`, `aggregateFunctionType` as applicable). The canonical string format is an internal implementation detail but must be deterministic and stable across JVM restarts.
+- [x] The resolver must support two input modes: (a) from a `StateDescriptor` (or its subclasses — `ValueStateDescriptor`, `MapStateDescriptor`, `ReducingStateDescriptor`, `AggregatingStateDescriptor`, `ListStateDescriptor`), used at `getState()` time; and (b) from the type-metadata strings that `MemoryStateSerDe` records (`stateType`/`valueType`/`mapKeyType`/`accumulatorType`/`aggregateFunctionType`), used during snapshot serialization. Both modes must produce identical checksums for the same logical type signature.
+- [x] Unit tests: `TestSerializerFingerprint` covering: (a) same type signature → same checksum (determinism), (b) different `valueType` (`Integer` vs `Long`) → different checksum, (c) different `stateType` → different checksum, (d) `MapState` with different `mapKeyType` → different checksum, (e) `equals()`/`hashCode()` contract.
+- [x] Unit tests: `TestStateSchemaResolver` covering fingerprint computation from both input modes (descriptor-based and string-based) for all keyed state types, verifying that descriptor-based and string-based modes produce identical results.
 
 Exit Criteria:
 
-- [ ] `SerializerFingerprint` class exists in `io.nop.stream.core.checkpoint` with the three fields and working `equals()`/`hashCode()`
-- [ ] Schema resolver produces deterministic, stable checksums for all keyed state types, from both descriptor and string inputs
-- [ ] Descriptor-based and string-based computation produce identical checksums for the same type signature
-- [ ] `TestSerializerFingerprint` and `TestStateSchemaResolver` pass with the cases listed above
-- [ ] No owner-doc update required for Phase 1 (pure internal computation, no behavior change yet)
-- [ ] `ai-dev/logs/` corresponding date entry updated
+- [x] `SerializerFingerprint` class exists in `io.nop.stream.core.checkpoint` with the three fields and working `equals()`/`hashCode()`
+- [x] Schema resolver produces deterministic, stable checksums for all keyed state types, from both descriptor and string inputs
+- [x] Descriptor-based and string-based computation produce identical checksums for the same type signature
+- [x] `TestSerializerFingerprint` and `TestStateSchemaResolver` pass with the cases listed above
+- [x] No owner-doc update required for Phase 1 (pure internal computation, no behavior change yet)
+- [x] `ai-dev/logs/` corresponding date entry updated
 
 ### Phase 2 — Snapshot Embedding + getState()-Time Compatibility Check
 
-Status: planned
+Status: completed
 Targets: `nop-stream/nop-stream-core/.../state/backend/memory/MemoryStateSerDe.java`, `nop-stream/nop-stream-core/.../state/backend/memory/MemoryKeyedStateBackend.java`, `nop-stream/nop-stream-core/.../exceptions/NopStreamErrors.java`
 
 - Item Types: `Fix` (G12 fingerprint wiring, G40/G41 state schema record), `Proof` (compatibility check verification)
 
 **Snapshot path — embed checksum in per-state JSON info map:**
 
-- [ ] In `MemoryStateSerDe.snapshotValueState()`, `snapshotMapState()`, `snapshotAppendingState()`, `snapshotListStateFromPublic()`, `snapshotListState()`, `snapshotReducingState()`, `snapshotAggregatingState()`, `snapshotInternalAggregatingState()` — add `schemaChecksum` (String) and `schemaVersion` (int, always 1) to each state's info `Map<String, Object>`. The checksum is computed via the Phase 1 resolver from the state's type metadata that is already available in each method (e.g., `state.descriptor.getValueType().getName()` in `snapshotValueState` at line 434). Since the info map is inside `StateSnapshot.stateData` which flows through `TaskStateSnapshot.keyedStates` → `CheckpointSerDe` → JSON, **no changes to `TaskStateSnapshot`, `StateSnapshot`, or `CheckpointSerDe` are needed for fingerprint serialization** — the new fields ride inside the existing per-state JSON structure.
+- [x] In `MemoryStateSerDe.snapshotValueState()`, `snapshotMapState()`, `snapshotAppendingState()`, `snapshotListStateFromPublic()`, `snapshotListState()`, `snapshotReducingState()`, `snapshotAggregatingState()`, `snapshotInternalAggregatingState()` — add `schemaChecksum` (String) and `schemaVersion` (int, always 1) to each state's info `Map<String, Object>`. The checksum is computed via the Phase 1 resolver from the state's type metadata that is already available in each method (e.g., `state.descriptor.getValueType().getName()` in `snapshotValueState` at line 434). Since the info map is inside `StateSnapshot.stateData` which flows through `TaskStateSnapshot.keyedStates` → `CheckpointSerDe` → JSON, **no changes to `TaskStateSnapshot`, `StateSnapshot`, or `CheckpointSerDe` are needed for fingerprint serialization** — the new fields ride inside the existing per-state JSON structure.
 
 **Compatibility check — at `getState()` time in `MemoryKeyedStateBackend`:**
 
-- [ ] In `MemoryKeyedStateBackend`, for each `getState()`/`getMapState()`/`getListState()`/`getReducingState()`/`getAggregatingState()`/`getInternalAppendingState()` (both overloads: `ReducingStateDescriptor` and `AggregatingStateDescriptor`)/`getInternalListState()` method (lines 124-224): when a state already exists in the `states` map (i.e., restored from checkpoint), compute `SerializerFingerprint` from the **current descriptor** (the method argument) and from the **restored state's descriptor** (accessible via the state object's `descriptor` field, e.g., `((MemoryValueState<?>) state).descriptor`). If the fingerprints differ, throw `NopStreamException(ERR_STREAM_STATE_SCHEMA_MISMATCH)` with `.param(ARG_STATE_NAME, name)` and `.param(ARG_EXPECTED_TYPE, ...)` and `.param(ARG_ACTUAL_TYPE, ...)`. The comparison is between two independently-sourced descriptors (live code vs checkpoint), so it is NOT tautological.
-- [ ] If no state exists in the `states` map (fresh start, no restore), skip the check and create new state as before.
-- [ ] The check must cover the full type signature, not just `valueType`: for `MapState`, compare both `mapKeyType` and `valueType`; for `ReducingState`, compare `valueType` and `accumulatorType`; for `AggregatingState`, compare `valueType` and `aggregateFunctionType`.
+- [x] In `MemoryKeyedStateBackend`, for each `getState()`/`getMapState()`/`getListState()`/`getReducingState()`/`getAggregatingState()`/`getInternalAppendingState()` (both overloads: `ReducingStateDescriptor` and `AggregatingStateDescriptor`)/`getInternalListState()` method (lines 124-224): when a state already exists in the `states` map (i.e., restored from checkpoint), compute `SerializerFingerprint` from the **current descriptor** (the method argument) and from the **restored state's descriptor** (accessible via the state object's `descriptor` field, e.g., `((MemoryValueState<?>) state).descriptor`). If the fingerprints differ, throw `NopStreamException(ERR_STREAM_STATE_SCHEMA_MISMATCH)` with `.param(ARG_STATE_NAME, name)` and `.param(ARG_EXPECTED_TYPE, ...)` and `.param(ARG_ACTUAL_TYPE, ...)`. The comparison is between two independently-sourced descriptors (live code vs checkpoint), so it is NOT tautological.
+- [x] If no state exists in the `states` map (fresh start, no restore), skip the check and create new state as before.
+- [x] The check must cover the full type signature, not just `valueType`: for `MapState`, compare both `mapKeyType` and `valueType`; for `ReducingState`, compare `valueType` and `accumulatorType`; for `AggregatingState`, compare `valueType` and `aggregateFunctionType`.
 
 **Error code:**
 
-- [ ] Add `ERR_STREAM_STATE_SCHEMA_MISMATCH` to `NopStreamErrors.java` with appropriate error message template.
+- [x] Add `ERR_STREAM_STATE_SCHEMA_MISMATCH` to `NopStreamErrors.java` with appropriate error message template.
 
 **Tests:**
 
-- [ ] Unit tests: `TestStateSchemaCompatibility` covering: (a) `getState()` with matching descriptor type → succeeds and returns restored state, (b) `getState()` with mismatched `valueType` (e.g., restored as `Integer`, current code declares `Long`) → throws `ERR_STREAM_STATE_SCHEMA_MISMATCH` with state name in error, (c) `getState()` with mismatched `mapKeyType` → throws, (d) fresh start (no restored state) → no check, creates new state, (e) matching types but different state name → no conflict (different map key).
-- [ ] Unit tests: extend `TestCheckpointSerDeConsistency` to verify that serialized checkpoint JSON contains `schemaChecksum` field in each state's info map.
-- [ ] **E2E test**: extend or add a test in `nop-stream-runtime/src/test/java/.../checkpoint/` that runs a full pipeline with keyed state → checkpoint → verify persisted JSON contains `schemaChecksum` per state → restore with same code → succeeds. This validates the full snapshot→serialize→persist→deserialize→restore→getState() chain.
-- [ ] Verify all existing E2E checkpoint tests pass without modification (backward compat — no `schemaChecksum` in old checkpoints is fine because the `getState()` check compares restored descriptor vs current descriptor, not stored checksum vs computed checksum).
+- [x] Unit tests: `TestStateSchemaCompatibility` covering: (a) `getState()` with matching descriptor type → succeeds and returns restored state, (b) `getState()` with mismatched `valueType` (e.g., restored as `Integer`, current code declares `Long`) → throws `ERR_STREAM_STATE_SCHEMA_MISMATCH` with state name in error, (c) `getState()` with mismatched `mapKeyType` → throws, (d) fresh start (no restored state) → no check, creates new state, (e) matching types but different state name → no conflict (different map key).
+- [x] Unit tests: extend `TestCheckpointSerDeConsistency` to verify that serialized checkpoint JSON contains `schemaChecksum` field in each state's info map.
+- [x] **E2E test**: extend or add a test in `nop-stream-runtime/src/test/java/.../checkpoint/` that runs a full pipeline with keyed state → checkpoint → verify persisted JSON contains `schemaChecksum` per state → restore with same code → succeeds. This validates the full snapshot→serialize→persist→deserialize→restore→getState() chain.
+- [x] Verify all existing E2E checkpoint tests pass without modification (backward compat — no `schemaChecksum` in old checkpoints is fine because the `getState()` check compares restored descriptor vs current descriptor, not stored checksum vs computed checksum).
 
 Exit Criteria:
 
-- [ ] Each `MemoryStateSerDe.snapshot*()` method writes `schemaChecksum` and `schemaVersion` into the state info map
-- [ ] Serialized checkpoint JSON contains `schemaChecksum` per keyed state (verifiable by reading the JSON)
-- [ ] `getState()` with matching descriptor type returns restored state normally
-- [ ] `getState()` with mismatched descriptor type throws `ERR_STREAM_STATE_SCHEMA_MISMATCH` with state name and type details in the error
-- [ ] **端到端验证**: a test exists that runs pipeline → checkpoint → persist → reload JSON → verify `schemaChecksum` present → restore → `getState()` succeeds. This validates the full chain from `MemoryStateSerDe.snapshotState()` through `CheckpointSerDe` serialization through storage through deserialization through `MemoryStateSerDe.restoreState()` through `MemoryKeyedStateBackend.getState()`.
-- [ ] **接线验证**: `MemoryKeyedStateBackend.getState()` is confirmed to invoke the fingerprint comparison when a restored state exists (verified by test asserting mismatch throws); `MemoryStateSerDe.snapshotValueState()` is confirmed to write `schemaChecksum` (verified by test asserting JSON contains the field).
-- [ ] **无静默跳过**: the compatibility check does NOT silently return a mismatched state — it throws explicitly. The only "no check" path is when no restored state exists (fresh start), which is correct behavior, not a silent skip.
-- [ ] **新功能必有测试**: `TestStateSchemaCompatibility` explicitly tests the new `getState()`-time check for matching, mismatching, and fresh-start cases; `TestCheckpointSerDeConsistency` extension tests the new JSON field.
-- [ ] All existing E2E checkpoint tests pass without modification (backward compat)
-- [ ] No owner-doc update required for Phase 2 code changes (internal implementation, no user-visible API change). Design doc update is in Phase 3.
-- [ ] `ai-dev/logs/` corresponding date entry updated
+- [x] Each `MemoryStateSerDe.snapshot*()` method writes `schemaChecksum` and `schemaVersion` into the state info map
+- [x] Serialized checkpoint JSON contains `schemaChecksum` per keyed state (verifiable by reading the JSON)
+- [x] `getState()` with matching descriptor type returns restored state normally
+- [x] `getState()` with mismatched descriptor type throws `ERR_STREAM_STATE_SCHEMA_MISMATCH` with state name and type details in the error
+- [x] **端到端验证**: a test exists that runs pipeline → checkpoint → persist → reload JSON → verify `schemaChecksum` present → restore → `getState()` succeeds. This validates the full chain from `MemoryStateSerDe.snapshotState()` through `CheckpointSerDe` serialization through storage through deserialization through `MemoryStateSerDe.restoreState()` through `MemoryKeyedStateBackend.getState()`.
+- [x] **接线验证**: `MemoryKeyedStateBackend.getState()` is confirmed to invoke the fingerprint comparison when a restored state exists (verified by test asserting mismatch throws); `MemoryStateSerDe.snapshotValueState()` is confirmed to write `schemaChecksum` (verified by test asserting JSON contains the field).
+- [x] **无静默跳过**: the compatibility check does NOT silently return a mismatched state — it throws explicitly. The only "no check" path is when no restored state exists (fresh start), which is correct behavior, not a silent skip.
+- [x] **新功能必有测试**: `TestStateSchemaCompatibility` explicitly tests the new `getState()`-time check for matching, mismatching, and fresh-start cases; `TestCheckpointSerDeConsistency` extension tests the new JSON field.
+- [x] All existing E2E checkpoint tests pass without modification (backward compat)
+- [x] No owner-doc update required for Phase 2 code changes (internal implementation, no user-visible API change). Design doc update is in Phase 3.
+- [x] `ai-dev/logs/` corresponding date entry updated
 
 ### Phase 3 — CheckpointSerDe Format Versioning + Doc Updates
 
-Status: planned
+Status: completed
 Targets: `nop-stream/nop-stream-runtime/.../checkpoint/storage/CheckpointSerDe.java`, `ai-dev/design/nop-stream/state-management-design.md`, `ai-dev/design/nop-stream/checkpoint-design.md`, `ai-dev/analysis/nop-stream/08-gap-analysis.md`
 
 - Item Types: `Fix` (G59 — checkpoint format versioning), `Decision` (doc finalization)
 
 **G59 — CheckpointSerDe format version envelope:**
 
-- [ ] Add a `"formatVersion": 2` field to the top-level JSON map in `CheckpointSerDe.serializeCheckpoint()` and `CheckpointSerDe.serializeEpochManifest()`. This is a simple `serializable.put("formatVersion", 2)` addition — it does NOT change the data layout, only adds a top-level marker.
-- [ ] In `CheckpointSerDe.deserializeCheckpoint()` and the epoch manifest load path: detect missing `formatVersion` as legacy (version 1). Log a debug message. Do NOT fail — backward compatible.
-- [ ] Unit tests: extend `TestCheckpointSerDeConsistency` to verify `formatVersion` appears in serialized output; verify deserialization of legacy JSON (without `formatVersion`) succeeds.
+- [x] Add a `"formatVersion": 2` field to the top-level JSON map in `CheckpointSerDe.serializeCheckpoint()` and `CheckpointSerDe.serializeEpochManifest()`. This is a simple `serializable.put("formatVersion", 2)` addition — it does NOT change the data layout, only adds a top-level marker.
+- [x] In `CheckpointSerDe.deserializeCheckpoint()` and the epoch manifest load path: detect missing `formatVersion` as legacy (version 1). Log a debug message. Do NOT fail — backward compatible.
+- [x] Unit tests: extend `TestCheckpointSerDeConsistency` to verify `formatVersion` appears in serialized output; verify deserialization of legacy JSON (without `formatVersion`) succeeds.
 
 **Doc updates:**
 
-- [ ] Update `ai-dev/design/nop-stream/state-management-design.md` §6: document the finalized fingerprint computation approach (type-signature-based checksum via SHA-256, not deep POJO introspection; checksum embedded in per-state JSON info map; comparison at `getState()` time).
-- [ ] Update `ai-dev/design/nop-stream/checkpoint-design.md` §8.4.1: document the implementation divergence from the original pseudo-code (fingerprints embedded in per-state info map inside `StateSnapshot.stateData`, not in a separate `OperatorSnapshot` wrapper; comparison at `getState()` time in `MemoryKeyedStateBackend`, not at restore time in storage layer).
-- [ ] Update `ai-dev/analysis/nop-stream/08-gap-analysis.md`: mark G12 `✅ Closed` with plan path; mark G59 `✅ Closed`; update G40/G41 stale references.
+- [x] Update `ai-dev/design/nop-stream/state-management-design.md` §6: document the finalized fingerprint computation approach (type-signature-based checksum via SHA-256, not deep POJO introspection; checksum embedded in per-state JSON info map; comparison at `getState()` time).
+- [x] Update `ai-dev/design/nop-stream/checkpoint-design.md` §8.4.1: document the implementation divergence from the original pseudo-code (fingerprints embedded in per-state info map inside `StateSnapshot.stateData`, not in a separate `OperatorSnapshot` wrapper; comparison at `getState()` time in `MemoryKeyedStateBackend`, not at restore time in storage layer).
+- [x] Update `ai-dev/analysis/nop-stream/08-gap-analysis.md`: mark G12 `✅ Closed` with plan path; mark G59 `✅ Closed`; update G40/G41 stale references.
 
 Exit Criteria:
 
-- [ ] `CheckpointSerDe.serializeCheckpoint()` output includes `formatVersion` field
-- [ ] `CheckpointSerDe.serializeEpochManifest()` output includes `formatVersion` field
-- [ ] Deserialization of legacy JSON (no `formatVersion`) succeeds without error
-- [ ] `state-management-design.md` §6 reflects the finalized approach
-- [ ] `checkpoint-design.md` §8.4.1 documents the implementation divergence
-- [ ] `08-gap-analysis.md` G12 and G59 marked closed with plan reference
-- [ ] `ai-dev/logs/` corresponding date entry updated
+- [x] `CheckpointSerDe.serializeCheckpoint()` output includes `formatVersion` field
+- [x] `CheckpointSerDe.serializeEpochManifest()` output includes `formatVersion` field
+- [x] Deserialization of legacy JSON (no `formatVersion`) succeeds without error
+- [x] `state-management-design.md` §6 reflects the finalized approach
+- [x] `checkpoint-design.md` §8.4.1 documents the implementation divergence
+- [x] `08-gap-analysis.md` G12 and G59 marked closed with plan reference
+- [x] `ai-dev/logs/` corresponding date entry updated
 
 ## Closure Gates
 

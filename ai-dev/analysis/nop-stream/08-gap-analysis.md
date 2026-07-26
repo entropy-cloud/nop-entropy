@@ -72,7 +72,7 @@
 | G9 | state | 缺少重分布模式 (SPLIT/UNION/BROADCAST) | Gap/P1 | 04-state: #5 | `PartitionableListState` + `SPLIT_DISTRIBUTE`/`UNION`/`BROADCAST` | 完全不支持 | Item 12b |
 | G10 | state | 缺少 IOperatorStateBackend | Gap/P1 | 04-state: #6 | `OperatorStateBackend` interface (extends `OperatorStateStore` + `Snapshotable`) | `TaskStateSnapshot` + `OperatorSnapshotResult` — Map<String, Object> | Item 12a |
 | G11 | state | 缺少 IStateBackend.createOperatorStateBackend() | Gap/P1 | 04-state: #8 | `StateBackend.createOperatorStateBackend(params)` | 不存在 | Item 12a |
-| G12 | state | 缺少 TypeSerializerSnapshot 接口体系 | Gap/P1 | 04-state: #14 | `TypeSerializerSnapshot<T>` + `resolveSchemaCompatibility()` | 不存在 | Item 13 或独立 serialization plan |
+| ~~G12~~ | state | ~~缺少 TypeSerializerSnapshot 接口体系~~ | ~~Gap/P1~~ ✅ Closed | 04-state: #14 | ✅ Closed (Stage 29) — `SerializerFingerprint` + `StateSchemaResolver` 落地，type-signature SHA-256 checksum 嵌入 per-state JSON info map，`getState()` 时 fail-fast 比对（不实现 Flink 四态兼容性模型）。Plan `ai-dev/plans/nop-stream-production/2026-07-26-1000-1-serializer-fingerprint-schema-compat.md` |
 | G13 | state | ICheckpointedFunction 的 FunctionInitializationContext 不暴露 state store | Hollow/P1 | 04-state: #7 | `FunctionInitializationContext.getOperatorStateStore()` + `getKeyedStateStore()` | `FunctionInitializationContext` 仅提供 `isRestored()` | Item 12a |
 | G14 | window | PaneInfo/PaneState 数据模型存在但未接线 | Hollow/P1 | 05-window: G3 | 无显式 PaneState 类（pane 隐含在 per-window state） | `PaneInfo.java`, `PaneState.java` 为 @DataBean 类，WindowOperator 不读写 | Item 10 |
 | G15 | window | AccumulationMode 未接线 | Gap/P1 | 05-window: G4 | `WindowingStrategy.accumulationMode` 影响窗口函数行为 | Enum 存在但 WindowOperator 忽略 | Item 10 |
@@ -105,8 +105,8 @@
 | G37 | state | 缺少 maxParallelism 概念 | Gap/P2 | 04-state: #11 | 独立 plan 或 state backend 重构 |
 | G38 | state | StateShard 使用 Object.hashCode() 非稳定哈希 | Gap(Hollow)/P2 | 04-state: #12 | 独立 plan |
 | G39 | state | StateShard 无 range 交集/分割能力 | Gap/P2 | 04-state: #13 | 独立 plan |
-| G40 | state | TypeSerializer 接口未实际使用 (MemoryStateSerDe 用 JsonTool) | Hollow/P2 | 04-state: #15 | Item 13 |
-| G41 | state | 缺少 serializer 注册/管理机制 | Gap/P2 | 04-state: #16 | Item 13 |
+| ~~G40~~ | state | ~~TypeSerializer 接口未实际使用 (MemoryStateSerDe 用 JsonTool)~~ | ~~Hollow/P2~~ ✅ Closed | 04-state: #15 | ✅ Closed (Stage 29) — per-state schema checksum 通过 `StateSchemaResolver` 自动管理，state name → checksum 记录在 per-state JSON info map 中；算子不接触 fingerprint（保持设计原则）。Plan `ai-dev/plans/nop-stream-production/2026-07-26-1000-1-serializer-fingerprint-schema-compat.md` |
+| ~~G41~~ | state | ~~缺少 serializer 注册/管理机制~~ | ~~Gap/P2~~ ✅ Closed | 04-state: #16 | ✅ Closed (Stage 29) — checksum 注册/管理由 `StateSchemaResolver.fromDescriptor` / `fromTypeMetadata` 统一接管，无需用户侧 serializer 注册 API（nop-stream 拒绝 Flink TypeSerializer 体系）。Plan `ai-dev/plans/nop-stream-production/2026-07-26-1000-1-serializer-fingerprint-schema-compat.md` |
 | G42 | state | StateTtlConfig 完全缺失 | Gap/P2 | 04-state: #18 | 独立 plan |
 | G43 | state | TTL 装饰器/清理策略完全缺失 | Gap/P2 | 04-state: #19 | 独立 plan |
 | ~~G44~~ | state | 缺少异步两阶段 snapshot | Gap/P2 | 04-state: #9(dup) | ✅ Closed (item 18) — 同 G30（coordinator 侧 async persist）。Plan `2026-07-25-2200-1-async-snapshot-pipeline` |
@@ -129,7 +129,7 @@
 
 | # | 维度 | 发现 | 分类 | 来源 | 修复 Plan |
 |---|------|------|------|------|-----------|
-| G59 | checkpoint | CheckpointSerDe 缺少 schema versioning | Improvement/P3 | 03-checkpoint: #15 | Item 13 |
+| ~~G59~~ | checkpoint | ~~CheckpointSerDe 缺少 schema versioning~~ | ~~Improvement/P3~~ ✅ Closed | 03-checkpoint: #15 | ✅ Closed (Stage 29) — `CheckpointSerDe` 顶层 JSON 新增 `formatVersion: 2` envelope（`serializeCheckpoint` + `serializeEpochManifest`）；legacy JSON（无 `formatVersion`）按 v1 处理，debug 日志，不报错。Plan `ai-dev/plans/nop-stream-production/2026-07-26-1000-1-serializer-fingerprint-schema-compat.md` |
 | G60 | checkpoint | Bulk cleanup instead of precise subsume | Improvement/P3 | 03-checkpoint: #16 | Item 9 |
 | G61 | checkpoint | JdbcCheckpointStorage 脆弱 duplicate key 检测（字符串匹配） | Improvement/P3 | 03-checkpoint: #17 | Item 9 |
 | G62 | state | 缺少 MergingState 中间接口 | Gap/P3 | 04-state: #2 | 可选项 |

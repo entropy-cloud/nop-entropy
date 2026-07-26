@@ -40,7 +40,7 @@ Does not contain implementation details. Each `planned` stage is owned by its ex
 
 ### Phase 2 — 状态后端生产化
 
-- 29. SerializerFingerprint schema 兼容性体系（G12, G40, G41, G59，P1/P2/P3）: `todo`
+- 29. SerializerFingerprint schema 兼容性体系（G12, G40, G41, G59，P1/P2/P3）: `done`（plan `ai-dev/plans/nop-stream-production/2026-07-26-1000-1-serializer-fingerprint-schema-compat.md`，completed — `SerializerFingerprint` + `StateSchemaResolver` + `getState()`-time fail-fast + per-state JSON `schemaChecksum` 嵌入 + `CheckpointSerDe` `formatVersion` envelope；G12/G40/G41/G59 ✅ Closed）
 - 30. RocksDB 状态后端核心: `todo`
 - 31. 增量 checkpoint（SST 共享）: `todo`
 - 32. State TTL（G42, G43，P2）: `todo`

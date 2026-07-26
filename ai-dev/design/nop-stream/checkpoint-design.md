@@ -788,6 +788,14 @@ interface StateMigrationFunction<Old, New> {
 
 Migration function 通过 `StreamComponents` 注册，恢复时 Coordinator 查找匹配的 migration function 并执行。迁移是全量扫描（读所有旧值、转换、写回），仅在显式声明时触发。
 
+**Stage 29 实现分歧**（与上方 pseudo-code 的差异）：
+
+- **checksum 嵌入位置**：伪代码把 fingerprint 描述为存在 `OperatorSnapshot.stateFingerprints` 这种外层 wrapper 中。实际实现把 `schemaChecksum` + `schemaVersion` 直接嵌入 `MemoryStateSerDe` 写出的 per-state JSON info map（与 `stateType` / `valueType` 同层），随 `StateSnapshot.stateData` 透传到 `CheckpointSerDe` → JSON。**不引入** `OperatorSnapshot` wrapper 类，避免对 `TaskStateSnapshot` / `StateSnapshot` / `CheckpointSerDe` 的数据结构改动。
+- **比对时机**：伪代码描述比对发生在 storage 层的 manifest 恢复时。实际实现把比对移到 `MemoryKeyedStateBackend.getState()` 时 —— 即算子真正消费恢复出的 state 的入口点。这样 fail-fast 时机更精确（首次 `getState()` 调用），且复用了恢复出的 descriptor（`MemoryStateSerDe.restoreState` 时已从持久化的 type 字符串重建 descriptor 对象）。
+- **比对数据源**：不比较"持久化的 checksum 字段"与"当前 descriptor 的 checksum"，而是比较"恢复出的 state 对象上的 descriptor 算出的 checksum"与"当前算子 `getState(descriptor)` 入参 descriptor 算出的 checksum"。两边都从代码侧 type 信息独立计算 checksum，因此旧 checkpoint（无 `schemaChecksum` 字段）也能做检查 —— 持久化的 checksum 字段仅用于人工 inspect 和 Stage 33 的 migration 决策。
+- **schemaVersion 恒为 1**：Stage 29 不激活 version-based branching（lower→migrate / higher→reject 的四分支逻辑）。仅当 checksum 不同即 fail-fast。`schemaVersion=1` 作为前向兼容元数据持久化，version-based 分支需要 Stage 33 的 `StateMigrationFunction` 基础设施。
+- **checksum 算法**：type-signature 级 SHA-256（`stateType` + class FQN），不采用 deep POJO field-level introspection。具体 canonical 字符串格式见 `StateSchemaResolver.java`。
+
 ### 8.5 Rescale 与状态重分配
 
 Parallelism 变化必须通过显式 rescale manifest 或 migration action 描述。
