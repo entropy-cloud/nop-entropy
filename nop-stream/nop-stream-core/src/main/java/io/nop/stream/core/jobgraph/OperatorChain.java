@@ -233,44 +233,19 @@ public class OperatorChain implements Serializable {
      * be able to observe all elements from their subtask, and collected results should be visible
      * to the test caller regardless of which subtask produced them.
      *
+     * <p>Per-operator copy semantics are delegated to {@link
+     * io.nop.stream.core.operators.StreamOperator#copyForSubtask()}. Operators that do not
+     * declare copy semantics (no override, not {@link io.nop.stream.core.operators.Shareable})
+     * throw {@link UnsupportedOperationException} here so that parallelism &gt; 1 cannot silently
+     * fall back to sharing mutable state across subtasks (No-Silent-No-Op).
+     *
      * @return a new OperatorChain with fresh operator state but shared user functions
      */
     public OperatorChain deepCopy() {
         List<io.nop.stream.core.operators.StreamOperator<?>> copiedOperators = new ArrayList<>(operators.size());
         for (io.nop.stream.core.operators.StreamOperator<?> op : operators) {
-            copiedOperators.add(shallowCopyOperator(op));
+            copiedOperators.add(op.copyForSubtask());
         }
         return new OperatorChain(copiedOperators, new ArrayList<>(keySelectors));
-    }
-
-    @SuppressWarnings("unchecked")
-    private static io.nop.stream.core.operators.StreamOperator<?> shallowCopyOperator(
-            io.nop.stream.core.operators.StreamOperator<?> op) {
-        if (op instanceof io.nop.stream.core.operators.StreamSourceOperator) {
-            io.nop.stream.core.operators.StreamSourceOperator<?> src =
-                    (io.nop.stream.core.operators.StreamSourceOperator<?>) op;
-            return new io.nop.stream.core.operators.StreamSourceOperator<>(src.getSourceFunction());
-        }
-        if (op instanceof io.nop.stream.core.operators.StreamMap) {
-            return new io.nop.stream.core.operators.StreamMap<>(
-                    ((io.nop.stream.core.operators.StreamMap<?, ?>) op).getUserFunction());
-        }
-        if (op instanceof io.nop.stream.core.operators.StreamFilter) {
-            return new io.nop.stream.core.operators.StreamFilter<>(
-                    ((io.nop.stream.core.operators.StreamFilter<?>) op).getUserFunction());
-        }
-        if (op instanceof io.nop.stream.core.operators.StreamFlatMap) {
-            return new io.nop.stream.core.operators.StreamFlatMap<>(
-                    ((io.nop.stream.core.operators.StreamFlatMap<?, ?>) op).getUserFunction());
-        }
-        if (op instanceof io.nop.stream.core.operators.StreamSinkOperator) {
-            return new io.nop.stream.core.operators.StreamSinkOperator<>(
-                    ((io.nop.stream.core.operators.StreamSinkOperator<?>) op).getUserFunction());
-        }
-        if (op instanceof io.nop.stream.core.operators.StreamReduceOperator) {
-            return new io.nop.stream.core.operators.StreamReduceOperator<>(
-                    ((io.nop.stream.core.operators.StreamReduceOperator<?>) op).getUserFunction());
-        }
-        return op;
     }
 }

@@ -250,8 +250,9 @@ public class StreamGraphGenerator {
             transformation.getName(),
             operatorFactory,
             transformation.getOutputType(),
-            transformation.getParallelism()
+            resolveParallelism(transformation)
         );
+        applyParallelismLock(node, transformation);
         node.setChainingStrategy(operatorFactory.getChainingStrategy());
         
         // Add node to graph and mark as source
@@ -286,8 +287,9 @@ public class StreamGraphGenerator {
             transformation.getName(),
             transformation.getOperatorFactory(),
             transformation.getOutputType(),
-            transformation.getParallelism()
+            resolveParallelism(transformation)
         );
+        applyParallelismLock(node, transformation);
         node.setChainingStrategy(transformation.getOperatorFactory().getChainingStrategy());
         
         // Set key selector if present
@@ -339,8 +341,9 @@ public class StreamGraphGenerator {
             transformation.getName(),
             operatorFactory,
             transformation.getOutputType(),
-            transformation.getParallelism()
+            resolveParallelism(transformation)
         );
+        applyParallelismLock(node, transformation);
         node.setChainingStrategy(operatorFactory.getChainingStrategy());
         
         // Add node to graph
@@ -384,8 +387,9 @@ public class StreamGraphGenerator {
             transformation.getName(),
             partitionFactory,
             transformation.getOutputType(),
-            transformation.getParallelism()
+            resolveParallelism(transformation)
         );
+        applyParallelismLock(node, transformation);
         node.setChainingStrategy(partitionFactory.getChainingStrategy());
         
         streamGraph.addStreamNode(node);
@@ -409,15 +413,16 @@ public class StreamGraphGenerator {
         TimestampsAndWatermarksOperator<T> operator =
             new TimestampsAndWatermarksOperator<>(transformation.getWatermarkStrategy(), transformation.getWatermarkInterval());
         StreamOperatorFactory<T> operatorFactory =
-            new SimpleStreamOperatorFactory<>(operator, transformation.getName(), transformation.getParallelism());
+            new SimpleStreamOperatorFactory<>(operator, transformation.getName(), resolveParallelism(transformation));
 
         StreamNode node = new StreamNode(
             transformation.getId(),
             transformation.getName(),
             operatorFactory,
             transformation.getOutputType(),
-            transformation.getParallelism()
+            resolveParallelism(transformation)
         );
+        applyParallelismLock(node, transformation);
         node.setChainingStrategy(operatorFactory.getChainingStrategy());
 
         streamGraph.addStreamNode(node);
@@ -428,6 +433,29 @@ public class StreamGraphGenerator {
         );
 
         streamGraph.addStreamEdge(edge);
+    }
+
+    /**
+     * Resolves the effective parallelism for a StreamNode created from the
+     * given Transformation. When the Transformation has been locked to
+     * parallel-1 via {@code forceNonParallel()}, the node is forced to 1
+     * regardless of the Transformation's configured parallelism.
+     */
+    private static int resolveParallelism(Transformation<?> transformation) {
+        if (transformation.isParallelismLocked()) {
+            return 1;
+        }
+        return transformation.getParallelism();
+    }
+
+    /**
+     * Propagates the parallelism lock from Transformation to StreamNode when
+     * the transformation has been locked via {@code forceNonParallel()}.
+     */
+    private static void applyParallelismLock(StreamNode node, Transformation<?> transformation) {
+        if (transformation.isParallelismLocked()) {
+            node.setParallelismLocked(true);
+        }
     }
 
     private void propagateKeySelectors() {

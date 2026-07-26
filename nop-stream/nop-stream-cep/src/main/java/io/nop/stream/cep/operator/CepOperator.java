@@ -197,6 +197,27 @@ public class CepOperator<IN, KEY, OUT>
         }
     }
 
+    /**
+     * {@inheritDoc}
+     *
+     * <p>CEP operator: the NFA factory, user process function, comparator and
+     * skip strategy (all immutable configuration) are shared across subtasks.
+     * Per-subtask mutable state (computation states, element queue, shared
+     * buffer, NFA, timers, current watermark) is left null and re-initialized
+     * by {@link #open()}.
+     */
+    @Override
+    public CepOperator<IN, KEY, OUT> copyForSubtask() {
+        return new CepOperator<>(
+                inputSerializer,
+                isProcessingTime,
+                nfaFactory,
+                comparator,
+                afterMatchSkipStrategy,
+                getUserFunction(),
+                lateDataOutputTag);
+    }
+
     @Override
    @SuppressWarnings({"unchecked", "rawtypes"})
    public void open() throws Exception {

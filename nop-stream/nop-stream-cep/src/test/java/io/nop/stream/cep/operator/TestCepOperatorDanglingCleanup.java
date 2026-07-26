@@ -80,7 +80,23 @@ public class TestCepOperatorDanglingCleanup {
 
     @Test
     void testDanglingCleanupReleasesSharedBuffer() throws Exception {
-        CepOperator<Event, Integer, String> operator = createOperator();
+        // Use a windowed pattern so the dangling-cleanup logic has a window-time
+        // timeout to evaluate against. Without `within()` the cleanup predicate
+        // short-circuits on `wt <= 0` and never fires.
+        Pattern<Event, ?> windowedPattern = Pattern.<Event>begin("start")
+                .where(SimpleCondition.of(event -> event.getId() >= 42))
+                .followedBy("end")
+                .where(SimpleCondition.of(event -> event.getName().equals("end")))
+                .within(java.time.Duration.ofSeconds(10));
+        NFACompiler.NFAFactory<Event> windowedFactory =
+                NFACompiler.compileFactory(windowedPattern, false);
+
+        CepOperator<Event, Integer, String> operator = new CepOperator<>(
+                new EventTypeSerializer(), false, windowedFactory,
+                null, null, function, null);
+        operator.setOutput(output);
+        CepTestUtils.injectProcessingTimeService(operator, MOCK_PTS);
+        operator.open();
 
         operator.processElement(new StreamRecord<>(new Event(42, "a"), 1));
         operator.processWatermark(new Watermark(5));
@@ -92,8 +108,18 @@ public class TestCepOperatorDanglingCleanup {
         operator.processWatermark(new Watermark(farFuture));
 
         NFAState state = operator.getNFAStateForTesting();
+        // P0-4 fix: assert the cleanup predicate before close(), so this test
+        // actually fails if the dangling-cleanup logic is deleted. Previously
+        // the computed boolean was discarded, leaving the assertion hollow.
         boolean partialMatchesEmpty = state.getPartialMatches().size() <= 1
                 && state.getCompletedMatches().isEmpty();
+        assertTrue(partialMatchesEmpty,
+                "Dangling partial matches must be cleaned up once the watermark advances past "
+                        + "the window timeout. NFA partialMatches=" + state.getPartialMatches().size()
+                        + ", completedMatches=" + state.getCompletedMatches().size());
+        // SharedBuffer entries for the dangling partial match must have been released.
+        assertTrue(operator.getPartialMatches().isEmpty(),
+                "SharedBuffer must be empty after dangling cleanup releases all entries");
 
         operator.close();
     }
@@ -147,6 +173,10 @@ public class TestCepOperatorDanglingCleanup {
         NFAState state = operator.getNFAStateForTesting();
         assertTrue(state.getPartialMatches().size() <= 1,
                 "Partial matches should be cleaned up after window timeout");
+        // P0-4 fix: also assert the dangling cleanup actually released SharedBuffer
+        // entries — the prior assertion only checked NFA state, not the buffer.
+        assertTrue(operator.getPartialMatches().isEmpty(),
+                "SharedBuffer must be empty after window-timeout cleanup releases entries");
 
         operator.close();
     }

@@ -389,7 +389,18 @@ public class JobGraphGenerator implements Serializable {
 
         Invokable<?> invokable = createInvokable(operatorChain);
 
-        return new JobVertex(vertexId, vertexName, parallelism, operatorChains, invokable);
+        // Propagate the parallelism lock from the chain's StreamNodes (originating
+        // from Transformation.lockParallelismToOne() via forceNonParallel()). Any
+        // node in the chain carrying the lock forces the whole vertex to parallel-1.
+        boolean parallelismLocked = false;
+        for (StreamNode node : chain) {
+            if (node.isParallelismLocked()) {
+                parallelismLocked = true;
+                break;
+            }
+        }
+
+        return new JobVertex(vertexId, vertexName, parallelism, operatorChains, invokable, parallelismLocked);
     }
 
     /**

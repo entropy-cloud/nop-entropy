@@ -175,6 +175,18 @@ public class StreamSourceOperator<OUT> extends AbstractStreamOperator<OUT> {
     }
 
     /**
+     * {@inheritDoc}
+     *
+     * <p>Source operators are copied per subtask: the source function is shared
+     * across subtasks (it is generally a serializable closure), and per-subtask
+     * mutable state (mailbox executor, progress marker, running flags) is fresh.
+     */
+    @Override
+    public StreamSourceOperator<OUT> copyForSubtask() {
+        return new StreamSourceOperator<>(sourceFunction);
+    }
+
+    /**
      * Runs the source function, emitting elements through the operator chain.
      * The source function calls {@link SourceFunction.SourceContext#collect(Object)},
      * which drains the control-plane mailbox (processing trigger-checkpoint mails) before

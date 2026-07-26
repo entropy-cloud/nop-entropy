@@ -76,6 +76,15 @@ public class StreamNode implements Serializable {
      * The parallelism (number of parallel instances) for this node.
      */
     private final int parallelism;
+
+    /**
+     * Lock flag set by StreamGraphGenerator when the source Transformation has
+     * been locked to parallelism = 1 via {@code forceNonParallel()}.
+     * Propagates to JobVertex.parallelismLocked so GraphExecutionPlan can
+     * reject any DeploymentPlan/runtime override that would raise the
+     * vertex parallelism above 1.
+     */
+    private boolean parallelismLocked;
     
     /**
      * Optional key selector for keyed stream operations.
@@ -165,6 +174,25 @@ public class StreamNode implements Serializable {
      */
     public int getParallelism() {
         return parallelism;
+    }
+
+    /**
+     * Returns whether this node has been locked to parallelism = 1 by
+     * {@code forceNonParallel()} on the upstream Transformation.
+     *
+     * @return true if this node is locked to parallel-1
+     */
+    public boolean isParallelismLocked() {
+        return parallelismLocked;
+    }
+
+    /**
+     * Marks this node as locked to parallelism = 1. Called by
+     * StreamGraphGenerator when the source Transformation has
+     * {@code parallelismLocked = true}.
+     */
+    public void setParallelismLocked(boolean parallelismLocked) {
+        this.parallelismLocked = parallelismLocked;
     }
     
     /**

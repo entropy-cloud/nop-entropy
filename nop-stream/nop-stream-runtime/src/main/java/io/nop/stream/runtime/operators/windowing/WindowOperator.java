@@ -340,6 +340,48 @@ public class WindowOperator<K, IN, ACC, OUT, W extends Window>
         this.accumulationMode = accumulationMode != null ? accumulationMode : AccumulationMode.ACCUMULATING;
     }
 
+    /**
+     * Package-private copy constructor used by {@link #copyForSubtask()}.
+     *
+     * <p>Copies the immutable configuration (window assigner, serializers,
+     * trigger, accumulator class, descriptors, merge function, evictor,
+     * accumulation mode, user function) by reference — they are shared across
+     * subtasks. All transient per-subtask state (timer service, collectors,
+     * contexts, in-flight window contents) is left null and re-initialized by
+     * {@link #open()}.
+     *
+     * @param other the source operator to copy configuration from
+     */
+    WindowOperator(WindowOperator<K, IN, ACC, OUT, W> other) {
+        super(other.userFunction);
+        this.windowAssigner = other.windowAssigner;
+        this.windowSerializer = other.windowSerializer;
+        this.keySelector = other.keySelector;
+        this.keySerializer = other.keySerializer;
+        this.keyClass = other.keyClass;
+        this.trigger = other.trigger;
+        this.allowedLateness = other.allowedLateness;
+        this.lateDataOutputTag = other.lateDataOutputTag;
+        this.accClass = other.accClass;
+        this.windowStateDescriptor = other.windowStateDescriptor;
+        this.mergeFunction = other.mergeFunction;
+        this.evictor = other.evictor;
+        this.accumulationMode = other.accumulationMode;
+    }
+
+    /**
+     * {@inheritDoc}
+     *
+     * <p>Window operator: immutable configuration is shared across subtasks,
+     * per-subtask mutable state (timer service, collectors, contexts, in-flight
+     * window contents, pane tracking) is left null and re-initialized by
+     * {@link #open()}.
+     */
+    @Override
+    public WindowOperator<K, IN, ACC, OUT, W> copyForSubtask() {
+        return new WindowOperator<>(this);
+    }
+
     @Override
     public void open() throws Exception {
         super.open();

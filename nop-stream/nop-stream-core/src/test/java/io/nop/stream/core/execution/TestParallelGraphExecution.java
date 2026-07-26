@@ -109,8 +109,9 @@ public class TestParallelGraphExecution {
 
     @Test
     public void testParallelism2_hash() throws Exception {
-        IPartitioner<String> keyPartitioner = (key, numPartitions) ->
-                Math.abs(key.hashCode()) % numPartitions;
+        // Use a PartitionPolicyAware partitioner so partition-policy inference
+        // resolves to HASH via the typed contract (no class-name matching, AR-3).
+        IPartitioner<String> keyPartitioner = new HashPartitioner<>();
 
         JobGraph graph = new JobGraph("p2-hash");
         graph.addVertex(vertex("source", 2));
@@ -148,6 +149,24 @@ public class TestParallelGraphExecution {
             totalReceived += count;
         }
         assertEquals(20, totalReceived, "All 20 records should be received across sink subtasks");
+    }
+
+    /**
+     * Hash partitioner that explicitly declares HASH via {@link io.nop.stream.core.execution.plan.PartitionPolicyAware}.
+     * Used in place of the prior lambda partitioner so policy inference resolves
+     * via the typed contract (post-AR-3 de-string-ification).
+     */
+    private static class HashPartitioner<T> implements IPartitioner<T>,
+            io.nop.stream.core.execution.plan.PartitionPolicyAware {
+        @Override
+        public int partition(T key, int numPartitions) {
+            return Math.abs(key.hashCode()) % numPartitions;
+        }
+
+        @Override
+        public io.nop.stream.core.execution.plan.PartitionPolicy getPartitionPolicy() {
+            return io.nop.stream.core.execution.plan.PartitionPolicy.HASH;
+        }
     }
 
     // ---- Parallelism 2: source (p=2) -> sink (p=3) REBALANCE via DeploymentPlan ----
@@ -317,6 +336,7 @@ public class TestParallelGraphExecution {
 
     // ---- Stub operator ----
 
+    @io.nop.stream.core.operators.Shareable
     private static class StubOperator implements StreamOperator<Object> {
 
         @Override

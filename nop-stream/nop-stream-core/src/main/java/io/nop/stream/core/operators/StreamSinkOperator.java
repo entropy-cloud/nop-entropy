@@ -39,6 +39,19 @@ public class StreamSinkOperator<IN> extends AbstractUdfStreamOperator<Void, Sink
         super(sinkFunction);
     }
 
+    /**
+     * {@inheritDoc}
+     *
+     * <p>Sink operator: the user sink function is shared across subtasks so
+     * that collected results remain visible to the test caller regardless of
+     * which subtask produced them. A fresh operator instance is created per
+     * subtask to hold per-subtask snapshot state.
+     */
+    @Override
+    public StreamSinkOperator<IN> copyForSubtask() {
+        return new StreamSinkOperator<>(userFunction);
+    }
+
     @Override
     public void processElement(StreamRecord<IN> element) throws Exception {
         userFunction.consume(element.getValue());

@@ -30,6 +30,18 @@ public class StreamMap<IN, OUT> extends AbstractUdfStreamOperator<OUT, MapFuncti
     public StreamMap(MapFunction<IN, OUT> mapper) {
         super(mapper);
     }
+
+    /**
+     * {@inheritDoc}
+     *
+     * <p>Stateless map operator: the user function is shared across subtasks,
+     * a fresh instance is created for each subtask. This preserves captured
+     * external references in the map function (e.g. result collectors).
+     */
+    @Override
+    public StreamMap<IN, OUT> copyForSubtask() {
+        return new StreamMap<>(userFunction);
+    }
     
     @Override
     public void processElement(StreamRecord<IN> element) throws Exception {

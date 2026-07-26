@@ -138,6 +138,48 @@ public interface StreamOperator<OUT> extends CheckpointListener, KeyContext, Ser
     }
 
     // ------------------------------------------------------------------------
+    //  parallelism / subtask isolation
+    // ------------------------------------------------------------------------
+
+    /**
+     * Produces an independent copy of this operator suitable for execution as a
+     * distinct parallel subtask.
+     *
+     * <p>When {@code parallelism > 1}, each subtask must hold its own operator
+     * instance so that mutable operator state (output wiring, watermark tracking,
+     * NFA, collectors, timer services, etc.) is not silently shared across
+     * subtasks. User functions (closures, sink/map functions) and immutable
+     * configuration are typically shared across subtask copies to preserve
+     * captured external references — see the contract documented on
+     * {@link io.nop.stream.core.jobgraph.OperatorChain#deepCopy()}.
+     *
+     * <p><strong>Default behavior:</strong> throws {@link UnsupportedOperationException}
+     * so that operators which forget to declare copy semantics fail loudly rather
+     * than silently share mutable state across subtasks (No-Silent-No-Op).
+     *
+     * <p>Concrete operators extending {@link AbstractStreamOperator} inherit a
+     * serialization-based default; operators that must share user-function
+     * references override with an efficient constructor-based copy. Operators
+     * that are explicitly safe to share across subtasks (stateless markers)
+     * may return {@code this} and should be annotated {@link Shareable}.
+     *
+     * @return a new operator instance with fresh mutable state (transient fields
+     *         left empty — they are re-initialized by {@link #open()})
+     * @throws UnsupportedOperationException if this operator does not declare
+     *         copy semantics and is not marked {@link Shareable}
+     */
+    default StreamOperator<?> copyForSubtask() {
+        if (getClass().isAnnotationPresent(Shareable.class)) {
+            return this;
+        }
+        throw new UnsupportedOperationException(
+                "Operator " + getClass().getName() + " does not implement copyForSubtask(). "
+                        + "Parallel subtasks would silently share mutable state. "
+                        + "Either override copyForSubtask() to return an independent instance, "
+                        + "or annotate the class with @Shareable if cross-subtask sharing is safe.");
+    }
+
+    // ------------------------------------------------------------------------
     //  miscellaneous
     // ------------------------------------------------------------------------
 

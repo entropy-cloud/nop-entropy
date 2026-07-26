@@ -44,6 +44,18 @@ public class StreamReduceOperator<T>
         super(reducer);
     }
 
+    /**
+     * {@inheritDoc}
+     *
+     * <p>Reduce operator: the user reduce function is shared across subtasks,
+     * a fresh instance is created with empty {@code values} map (rebuilt in
+     * {@link #open()}). Per-subtask reduction state is independent.
+     */
+    @Override
+    public StreamReduceOperator<T> copyForSubtask() {
+        return new StreamReduceOperator<>(userFunction);
+    }
+
     @Override
     public void setCurrentKey(Object key) {
         this.currentKey = key;

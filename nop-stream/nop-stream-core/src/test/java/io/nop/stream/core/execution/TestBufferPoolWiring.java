@@ -239,6 +239,7 @@ public class TestBufferPoolWiring {
         assertTrue(pool.isClosed(), "closeBufferPool must close the per-job pool");
     }
 
+    @io.nop.stream.core.operators.Shareable
     private static class StubOperator implements StreamOperator<Object> {
         @Override public void open() throws Exception {}
         @Override public void finish() throws Exception {}

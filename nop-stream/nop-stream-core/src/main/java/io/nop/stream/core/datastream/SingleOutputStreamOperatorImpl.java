@@ -39,13 +39,21 @@ public class SingleOutputStreamOperatorImpl<T> extends DataStreamImpl<T> impleme
      * operator as non-parallelizable.
      * 
      * <p>This is useful for operations that require global ordering or single-threaded execution,
-     * such as global aggregation or output to a single external system.
+     * such as global aggregation or output to a single external system, and for CEP's non-keyed
+     * entry point which requires a single global NFA.
+     *
+     * <p>Implementation: sets {@link Transformation#lockParallelismToOne()} so the lock flag
+     * propagates through {@code Transformation → StreamNode → JobVertex → GraphExecutionPlan}.
+     * Each downstream consumer forces the vertex to parallelism = 1 and rejects any override
+     * (PartitionedPlan, DeploymentPlan, or runtime).
      * 
      * @return The operator with only one parallelism
      */
     @Override
     public SingleOutputStreamOperator<T> forceNonParallel() {
-        throw new UnsupportedOperationException(
-                "forceNonParallel is not supported in this implementation");
+        if (transformation != null) {
+            transformation.lockParallelismToOne();
+        }
+        return this;
     }
 }

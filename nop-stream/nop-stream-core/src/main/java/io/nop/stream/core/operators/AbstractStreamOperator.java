@@ -66,6 +66,54 @@ public abstract class AbstractStreamOperator<OUT> implements StreamOperator<OUT>
         }
     }
 
+    /**
+     * Serialization-based default for {@link StreamOperator#copyForSubtask()}.
+     *
+     * <p>Each parallel subtask receives a deep copy of the operator via Java
+     * serialization. Transient fields (output wiring, keyed state backend,
+     * watermark tracking, NFA, collectors, etc.) are skipped by serialization
+     * and left null; they are re-initialized by {@link #open()} on the subtask.
+     *
+     * <p><strong>Important:</strong> this default also deep-copies the user
+     * function. Operators whose contract requires the user function to be
+     * shared across subtasks (to preserve captured external references such as
+     * result lists, counters) must override this method with a
+     * constructor-based copy. See {@code OperatorChain.deepCopy()} for the
+     * sharing contract.
+     *
+     * <p>This default is the safety net: it ensures any
+     * {@code AbstractStreamOperator} subclass that forgets to declare explicit
+     * copy semantics still produces independent subtask instances rather than
+     * silently sharing mutable state.
+     */
+    @Override
+    @SuppressWarnings("unchecked")
+    public StreamOperator<?> copyForSubtask() {
+        if (getClass().isAnnotationPresent(Shareable.class)) {
+            return this;
+        }
+        try {
+            java.io.ByteArrayOutputStream baos = new java.io.ByteArrayOutputStream();
+            try (java.io.ObjectOutputStream oos = new java.io.ObjectOutputStream(baos)) {
+                oos.writeObject(this);
+            }
+            java.io.ByteArrayInputStream bais = new java.io.ByteArrayInputStream(baos.toByteArray());
+            try (java.io.ObjectInputStream ois = new java.io.ObjectInputStream(bais)) {
+                return (StreamOperator<?>) ois.readObject();
+            }
+        } catch (java.io.NotSerializableException e) {
+            throw new UnsupportedOperationException(
+                    "Operator " + getClass().getName() + " is not serializable and does not "
+                            + "override copyForSubtask(). Override copyForSubtask() with a "
+                            + "constructor-based copy, or annotate with @Shareable if sharing "
+                            + "across subtasks is safe.", e);
+        } catch (Exception e) {
+            throw new UnsupportedOperationException(
+                    "Failed to copy operator " + getClass().getName() + " for subtask via "
+                            + "serialization. Override copyForSubtask() with an explicit copy.", e);
+        }
+    }
+
     @Override
     public void finish() throws Exception {
         // subclasses may override

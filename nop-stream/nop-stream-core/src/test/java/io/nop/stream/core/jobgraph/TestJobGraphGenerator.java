@@ -297,6 +297,7 @@ public class TestJobGraphGenerator {
         }
     }
     
+    @io.nop.stream.core.operators.Shareable
     private static class TestOperator implements StreamOperator<Object> {
         private final String name;
         

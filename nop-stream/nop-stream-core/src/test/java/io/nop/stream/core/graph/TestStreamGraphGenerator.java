@@ -482,6 +482,7 @@ public class TestStreamGraphGenerator {
         }
     }
 
+    @io.nop.stream.core.operators.Shareable
     private static class TestOperator implements StreamOperator<String> {
         private final String name;
 

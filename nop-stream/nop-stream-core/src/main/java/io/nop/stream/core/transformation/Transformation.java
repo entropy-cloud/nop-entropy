@@ -30,6 +30,19 @@ public abstract class Transformation<T> implements Serializable {
     private final String name;
     private final int parallelism;
     private final TypeInformation<T> outputType;
+
+    /**
+     * Mutable flag set by {@code SingleOutputStreamOperator.forceNonParallel()} to
+     * lock this transformation (and any downstream vertex) to parallelism = 1.
+     *
+     * <p>StreamGraphGenerator reads this flag and forces the corresponding
+     * StreamNode's parallelism to 1 with {@code parallelismLocked = true}; the
+     * lock propagates through StreamNode → JobVertex → GraphExecutionPlan so
+     * that no downstream consumer (PartitionedPlan, DeploymentPlan, runtime)
+     * can override the parallel-1 requirement. Used by CEP's non-keyed entry
+     * point ({@code CEP.pattern}) which requires a single global NFA.
+     */
+    private boolean parallelismLocked;
     
     /**
      * Creates a new transformation with the specified name and output type.
@@ -44,7 +57,7 @@ public abstract class Transformation<T> implements Serializable {
         this.outputType = outputType;
         this.parallelism = parallelism;
     }
-    
+
     /**
      * Returns the unique ID of this transformation.
      * 
@@ -70,6 +83,28 @@ public abstract class Transformation<T> implements Serializable {
      */
     public int getParallelism() {
         return parallelism;
+    }
+
+    /**
+     * Returns whether this transformation has been locked to parallelism = 1
+     * via {@code forceNonParallel()}.
+     *
+     * @return true if the transformation is locked to parallel-1
+     */
+    public boolean isParallelismLocked() {
+        return parallelismLocked;
+    }
+
+    /**
+     * Locks this transformation to parallelism = 1. Once locked, the
+     * corresponding execution vertex is forced to parallel-1 regardless of
+     * the environment parallelism or any downstream DeploymentPlan override.
+     *
+     * <p>This is intended for operators that require a single global instance
+     * (e.g. CEP's non-keyed entry point with a single global NFA).
+     */
+    public void lockParallelismToOne() {
+        this.parallelismLocked = true;
     }
     
     /**

@@ -323,6 +323,7 @@ class TestSavepointEndToEnd {
      * {@link CheckpointParticipant#restoreFromEpoch} directly on it with the real epochId.
      * Records the epochId and per-subtask state it observes during restore.
      */
+    @io.nop.stream.core.operators.Shareable
     static final class EpochCapturingOperator extends AbstractStreamOperator<String>
             implements CheckpointParticipant {
         private static final long serialVersionUID = 1L;

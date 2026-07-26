@@ -74,6 +74,14 @@ public class JobVertex implements Serializable {
     private final int parallelism;
 
     /**
+     * Lock flag propagated from StreamNode.parallelismLocked (originating from
+     * {@code Transformation.lockParallelismToOne()} via {@code forceNonParallel()}).
+     * When true, GraphExecutionPlan.build() forces the vertex parallelism to 1
+     * and rejects any DeploymentPlan override that would raise it.
+     */
+    private final boolean parallelismLocked;
+
+    /**
      * The list of operator chains that will be executed by this vertex.
      * Each chain represents a fused sequence of operators.
      */
@@ -100,6 +108,23 @@ public class JobVertex implements Serializable {
      */
     public JobVertex(String id, String name, int parallelism,
                       List<OperatorChain> operatorChains, Invokable<?> invokable) {
+        this(id, name, parallelism, operatorChains, invokable, false);
+    }
+
+    /**
+     * Constructs a new JobVertex with parallelism-lock awareness.
+     *
+     * @param id Unique identifier for this vertex (must not be null)
+     * @param name Human-readable name for this vertex (must not be null)
+     * @param parallelism Number of parallel task instances (must be > 0)
+     * @param operatorChains List of operator chains (must not be null or empty)
+     * @param invokable Executable task for this vertex (must not be null)
+     * @param parallelismLocked if true, GraphExecutionPlan forces parallelism=1
+     *        and rejects any DeploymentPlan override
+     */
+    public JobVertex(String id, String name, int parallelism,
+                      List<OperatorChain> operatorChains, Invokable<?> invokable,
+                      boolean parallelismLocked) {
         if (id == null) {
             throw new StreamException(ERR_STREAM_NULL_ARG).param(ARG_ARG_NAME, "id");
         }
@@ -121,6 +146,7 @@ public class JobVertex implements Serializable {
         this.parallelism = parallelism;
         this.operatorChains = new ArrayList<>(operatorChains); // Defensive copy
         this.invokable = invokable;
+        this.parallelismLocked = parallelismLocked;
     }
 
     /**
@@ -148,6 +174,18 @@ public class JobVertex implements Serializable {
      */
     public int getParallelism() {
         return parallelism;
+    }
+
+    /**
+     * Returns whether this vertex has been locked to parallelism = 1.
+     *
+     * <p>When true, GraphExecutionPlan forces this vertex's parallelism to 1
+     * regardless of any DeploymentPlan/PartitionedPlan override.
+     *
+     * @return true if this vertex is locked to parallel-1
+     */
+    public boolean isParallelismLocked() {
+        return parallelismLocked;
     }
 
     /**

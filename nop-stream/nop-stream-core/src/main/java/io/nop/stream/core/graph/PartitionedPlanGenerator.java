@@ -26,6 +26,7 @@ import io.nop.stream.core.exceptions.StreamException;
 import io.nop.stream.core.exceptions.NopStreamErrors;
 import io.nop.stream.core.model.StreamModel;
 import static io.nop.stream.core.exceptions.NopStreamErrors.ARG_ARG_NAME;
+import static io.nop.stream.core.exceptions.NopStreamErrors.ARG_CLASS_NAME;
 import static io.nop.stream.core.exceptions.NopStreamErrors.ARG_DETAIL;
 import static io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_NULL_ARG;
 import static io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_INVALID_STATE;
@@ -87,14 +88,22 @@ public class PartitionedPlanGenerator {
         if (edge.getPartitioner() instanceof PartitionPolicyAware) {
             return ((PartitionPolicyAware) edge.getPartitioner()).getPartitionPolicy();
         }
-        String partitionerClassName = edge.getPartitioner().getClass().getName();
-        if (partitionerClassName.contains("Hash") || partitionerClassName.contains("hash")) {
-            return PartitionPolicy.HASH;
-        } else if (partitionerClassName.contains("Rebalance") || partitionerClassName.contains("rebalance")) {
-            return PartitionPolicy.REBALANCE;
-        } else if (partitionerClassName.contains("Broadcast") || partitionerClassName.contains("broadcast")) {
-            return PartitionPolicy.BROADCAST;
-        }
-        return PartitionPolicy.FORWARD;
+        // Fail-fast: an unidentified partitioner must not be silently classified by
+        // class-name substring matching (the prior behaviour). Historical bug AR-3:
+        // class-name matching mis-routed custom partitioners whose class name happened
+        // to contain "hash"/"rebalance"/"broadcast" substrings, and silently defaulted
+        // everything else to FORWARD — both paths corrupted parallel routing. The
+        // partitioner must implement PartitionPolicyAware to declare its policy; if it
+        // does not, we throw so the missing declaration is fixed at the source.
+        throw new StreamException(ERR_STREAM_INVALID_STATE)
+                .param(ARG_DETAIL,
+                        "Partitioner on edge " + edge.getSourceVertex() + "->"
+                                + edge.getTargetVertex()
+                                + " does not implement PartitionPolicyAware. "
+                                + "Partition policy cannot be inferred by class-name matching "
+                                + "(removed: silent mis-routing bug AR-3). Have the partitioner "
+                                + "implement PartitionPolicyAware#getPartitionPolicy() to declare "
+                                + "its policy.")
+                .param(ARG_CLASS_NAME, edge.getPartitioner().getClass().getName());
     }
 }

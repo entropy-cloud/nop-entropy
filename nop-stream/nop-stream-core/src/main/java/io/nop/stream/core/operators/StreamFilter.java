@@ -29,6 +29,17 @@ public class StreamFilter<T> extends AbstractUdfStreamOperator<T, FilterFunction
     public StreamFilter(FilterFunction<T> filter) {
         super(filter);
     }
+
+    /**
+     * {@inheritDoc}
+     *
+     * <p>Stateless filter operator: the user function is shared across subtasks,
+     * a fresh instance is created for each subtask.
+     */
+    @Override
+    public StreamFilter<T> copyForSubtask() {
+        return new StreamFilter<>(userFunction);
+    }
     
     @Override
     public void processElement(StreamRecord<T> element) throws Exception {

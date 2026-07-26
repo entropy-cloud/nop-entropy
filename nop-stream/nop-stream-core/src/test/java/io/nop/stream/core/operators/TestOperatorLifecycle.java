@@ -7,7 +7,8 @@
  */
 package io.nop.stream.core.operators;
 
-import io.nop.api.core.exception.NopException;
+import io.nop.stream.core.exceptions.StreamException;
+import io.nop.stream.core.exceptions.NopStreamErrors;
 import io.nop.stream.core.checkpoint.CheckpointBarrier;
 import io.nop.stream.core.checkpoint.CheckpointType;
 import io.nop.stream.core.checkpoint.FunctionInitializationContext;
@@ -327,7 +328,8 @@ public class TestOperatorLifecycle {
         AbstractStreamOperator<String> operator = new AbstractStreamOperator<>() {
             @Override
             public void processWatermark(Watermark mark) throws Exception {
-                throw new NopException("test exception in processWatermark");
+                throw new StreamException(NopStreamErrors.ERR_STREAM_OPERATOR_ERROR,
+                        new Exception("test exception in processWatermark"));
             }
         };
 

@@ -20,6 +20,8 @@ import static io.nop.stream.core.operators.ChainingStrategy.ALWAYS;
 public class SimpleStreamOperatorFactory<OUT> implements StreamOperatorFactory<OUT>, Serializable {
     
     private static final long serialVersionUID = 1L;
+
+    private static final org.slf4j.Logger LOG = org.slf4j.LoggerFactory.getLogger(SimpleStreamOperatorFactory.class);
     
     private final StreamOperator<OUT> operator;
     private final String name;
@@ -44,9 +46,12 @@ public class SimpleStreamOperatorFactory<OUT> implements StreamOperatorFactory<O
     
     @Override
     public StreamOperator<OUT> createStreamOperator(TypeInformation<OUT> outputType) {
+        // Shareable operators opt out of the per-subtask copy contract entirely.
+        if (operator.getClass().isAnnotationPresent(Shareable.class)) {
+            return operator;
+        }
         // If the operator is Serializable, create a deep copy so each invocation
-        // returns an independent instance. Otherwise fall back to returning the
-        // shared template instance (documented limitation for non-serializable operators).
+        // returns an independent instance.
         if (operator instanceof Serializable) {
             try {
                 ByteArrayOutputStream baos = new ByteArrayOutputStream();
@@ -61,8 +66,19 @@ public class SimpleStreamOperatorFactory<OUT> implements StreamOperatorFactory<O
                 }
             } catch (java.io.NotSerializableException e) {
                 // Operator contains non-serializable fields (e.g. lambdas).
-                // Return the shared template instance instead of failing.
-                return operator;
+                // Defensive SPI guard: previously this silently returned the shared
+                // template instance, which corrupts parallel execution. Fail fast so
+                // future SPI consumers (codegen/test harness) cannot silently regress.
+                // Production code bypasses this path via getRawOperator(), so this is
+                // a defense-in-depth guard for the public SPI contract.
+                LOG.warn("Operator '{}' is not serializable; refusing to silently share "
+                        + "template instance across subtasks (parallel SPI consumer would "
+                        + "see cross-subtask state corruption). Throwing fail-fast.", name);
+                throw new StreamException(
+                        "Cannot create independent copy of non-serializable operator '" + name
+                                + "'. Mark the operator @Shareable if cross-subtask sharing is safe, "
+                                + "or override copyForSubtask() / make the operator Serializable.",
+                        e);
             } catch (Exception e) {
                 throw new StreamException(
                         "Failed to create copy of operator via serialization: " + name, e);

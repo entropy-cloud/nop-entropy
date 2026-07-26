@@ -386,6 +386,7 @@ public class TestTaskExecutor {
         return new JobVertex(id, name, parallelism, Collections.singletonList(chain), invokable);
     }
 
+    @io.nop.stream.core.operators.Shareable
     private static class TestOperator implements StreamOperator<Object> {
         private final String name;
 

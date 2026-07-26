@@ -31,6 +31,17 @@ public class StreamFlatMap<IN, OUT> extends AbstractUdfStreamOperator<OUT, FlatM
     public StreamFlatMap(FlatMapFunction<IN, OUT> flatMapper) {
         super(flatMapper);
     }
+
+    /**
+     * {@inheritDoc}
+     *
+     * <p>Stateless flat-map operator: the user function is shared across subtasks,
+     * a fresh instance is created for each subtask.
+     */
+    @Override
+    public StreamFlatMap<IN, OUT> copyForSubtask() {
+        return new StreamFlatMap<>(userFunction);
+    }
     
     @Override
     public void processElement(StreamRecord<IN> element) throws Exception {

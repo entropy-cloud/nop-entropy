@@ -20,6 +20,18 @@ public class ProcessOperator<IN, OUT> extends AbstractUdfStreamOperator<OUT, Pro
         super(userFunction);
     }
 
+    /**
+     * {@inheritDoc}
+     *
+     * <p>Process operator: the user process function is shared across subtasks
+     * (it may capture external state). All transient state (collector, timer
+     * service, contexts) is left null and re-initialized by {@link #open()}.
+     */
+    @Override
+    public ProcessOperator<IN, OUT> copyForSubtask() {
+        return new ProcessOperator<>(userFunction);
+    }
+
     @Override
     public void open() throws Exception {
         super.open();

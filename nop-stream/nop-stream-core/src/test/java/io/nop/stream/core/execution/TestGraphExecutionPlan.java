@@ -133,8 +133,9 @@ public class TestGraphExecutionPlan {
 
     @Test
     public void testPartitionerWiredThroughJobEdge() throws Exception {
-        IPartitioner<String> partitioner = (key, numPartitions) ->
-                Math.abs(key.hashCode()) % numPartitions;
+        // Use a PartitionPolicyAware partitioner so policy inference resolves via
+        // the typed contract (no class-name matching, AR-3 fix).
+        IPartitioner<String> partitioner = new HashPartitioner<>();
 
         JobGraph graph = new JobGraph("partitioner-test");
         graph.addVertex(vertex("source"));
@@ -233,6 +234,7 @@ public class TestGraphExecutionPlan {
                 "Subtask 0 must not share the original OperatorChain reference");
     }
 
+    @io.nop.stream.core.operators.Shareable
     private static class StubOperator implements StreamOperator<Object> {
 
         @Override
@@ -270,6 +272,24 @@ public class TestGraphExecutionPlan {
         @Override
         public Object getCurrentKey() {
             return null;
+        }
+    }
+
+    /**
+     * Hash partitioner that explicitly declares HASH via PartitionPolicyAware.
+     * Used in place of the prior lambda partitioner so policy inference resolves
+     * via the typed contract (post-AR-3 de-string-ification).
+     */
+    private static class HashPartitioner<T> implements IPartitioner<T>,
+            io.nop.stream.core.execution.plan.PartitionPolicyAware {
+        @Override
+        public int partition(T key, int numPartitions) {
+            return Math.abs(key.hashCode()) % numPartitions;
+        }
+
+        @Override
+        public io.nop.stream.core.execution.plan.PartitionPolicy getPartitionPolicy() {
+            return io.nop.stream.core.execution.plan.PartitionPolicy.HASH;
         }
     }
 }

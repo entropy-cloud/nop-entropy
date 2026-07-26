@@ -384,6 +384,7 @@ public class TestOneInputTransformation {
         }
     }
 
+    @io.nop.stream.core.operators.Shareable
     private static class TestOperator<OUT> implements StreamOperator<OUT> {
         private final String name;
 

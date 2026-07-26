@@ -345,6 +345,7 @@ public class TestEndToEndPipeline {
         }
     }
 
+    @io.nop.stream.core.operators.Shareable
     private static class TestMapOperator<IN, OUT> implements StreamOperator<OUT> {
         private static final long serialVersionUID = 1L;
 
@@ -386,6 +387,7 @@ public class TestEndToEndPipeline {
         }
     }
 
+    @io.nop.stream.core.operators.Shareable
     private static class TestFilterOperator<T> implements StreamOperator<T> {
         private static final long serialVersionUID = 1L;
 

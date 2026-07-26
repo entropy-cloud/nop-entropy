@@ -31,6 +31,7 @@ import io.nop.stream.core.execution.flow.EdgeConfig;
 import io.nop.stream.core.execution.plan.DeploymentPlan;
 import io.nop.stream.core.execution.plan.PartitionedPlan;
 import io.nop.stream.core.execution.plan.PartitionPolicy;
+import io.nop.stream.core.execution.plan.PartitionPolicyAware;
 import io.nop.stream.core.jobgraph.JobEdge;
 import io.nop.stream.core.jobgraph.JobGraph;
 import io.nop.stream.core.jobgraph.JobVertex;
@@ -41,6 +42,7 @@ import io.nop.stream.core.exceptions.StreamException;
 import static io.nop.stream.core.exceptions.NopStreamErrors.ARG_ARG_NAME;
 import static io.nop.stream.core.exceptions.NopStreamErrors.ARG_DETAIL;
 import static io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_CYCLIC_JOB_GRAPH;
+import static io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_INVALID_STATE;
 import static io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_NULL_ARG;
 
 /**
@@ -412,9 +414,16 @@ public class GraphExecutionPlan {
 
         for (Map.Entry<String, JobVertex> entry : jobGraph.getVertices().entrySet()) {
             String vertexId = entry.getKey();
-            int parallelism = entry.getValue().getParallelism();
+            JobVertex vertex = entry.getValue();
+            int parallelism = vertex.getParallelism();
             if (planParallelism != null && planParallelism.containsKey(vertexId)) {
                 parallelism = planParallelism.get(vertexId);
+            }
+            // Honor the parallelism lock: a vertex marked parallelismLocked by
+            // forceNonParallel() (e.g. CEP non-keyed entry) is forced to 1 regardless
+            // of any DeploymentPlan/PartitionedPlan override.
+            if (vertex.isParallelismLocked()) {
+                parallelism = 1;
             }
             result.put(vertexId, Math.max(1, parallelism));
         }
@@ -424,8 +433,12 @@ public class GraphExecutionPlan {
     /**
      * Resolves the PartitionPolicy for a given JobEdge.
      *
-     * <p>Checks the DeploymentPlan's PartitionedPlan edge plans first,
-     * then defaults to FORWARD.
+     * <p>Checks the DeploymentPlan's PartitionedPlan edge plans first, then
+     * resolves from the edge's partitioner via {@link PartitionPolicyAware}.
+     * Falls back to FORWARD only when the partitioner is null. A non-null
+     * partitioner that does not implement {@link PartitionPolicyAware} fails
+     * fast — class-name substring matching was removed (silent mis-routing
+     * bug AR-3).
      */
     private static PartitionPolicy resolvePartitionPolicy(JobEdge edge, DeploymentPlan deploymentPlan) {
         if (deploymentPlan != null && deploymentPlan.getPartitionedPlan() != null) {
@@ -437,11 +450,24 @@ public class GraphExecutionPlan {
                 }
             }
         }
-        // If edge has a partitioner, assume HASH
-        if (edge.getPartitioner() != null) {
-            return PartitionPolicy.HASH;
+        if (edge.getPartitioner() == null) {
+            return PartitionPolicy.FORWARD;
         }
-        return PartitionPolicy.FORWARD;
+        if (edge.getPartitioner() instanceof PartitionPolicyAware) {
+            return ((PartitionPolicyAware) edge.getPartitioner()).getPartitionPolicy();
+        }
+        // Fail-fast: do not silently classify by class-name substring matching
+        // (removed: silent mis-routing bug AR-3). Partitioner must implement
+        // PartitionPolicyAware to declare its policy.
+        throw new StreamException(ERR_STREAM_INVALID_STATE)
+                .param(ARG_DETAIL,
+                        "Partitioner on edge " + edge.getSourceVertex() + "->"
+                                + edge.getTargetVertex()
+                                + " does not implement PartitionPolicyAware. "
+                                + "Partition policy cannot be inferred by class-name matching "
+                                + "(removed: silent mis-routing bug AR-3). Have the partitioner "
+                                + "implement PartitionPolicyAware#getPartitionPolicy() to declare "
+                                + "its policy.");
     }
 
     /**

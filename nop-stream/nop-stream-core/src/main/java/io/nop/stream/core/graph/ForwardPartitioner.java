@@ -8,6 +8,8 @@
 package io.nop.stream.core.graph;
 
 import io.nop.commons.partition.IPartitioner;
+import io.nop.stream.core.execution.plan.PartitionPolicy;
+import io.nop.stream.core.execution.plan.PartitionPolicyAware;
 
 /**
  * Marker implementation of {@link IPartitioner} representing forward (pointwise) partitioning.
@@ -22,14 +24,23 @@ import io.nop.commons.partition.IPartitioner;
  *   <li>Can be distinguished from "no partitioner set"</li>
  *   <li>Is treated identically to {@code null} in chaining decisions</li>
  *   <li>Allows operators to explicitly document their partitioning strategy</li>
+ *   <li>Implements {@link PartitionPolicyAware} so partition-policy inference is fully
+ *       typed (no class-name-string matching). Non-{@link PartitionPolicyAware}
+ *       partitioners now fail-fast at inference time rather than silently defaulting
+ *       to a guessed policy.</li>
  * </ul>
  */
-public class ForwardPartitioner implements IPartitioner<Object> {
+public class ForwardPartitioner implements IPartitioner<Object>, PartitionPolicyAware {
     private static final long serialVersionUID = 1L;
 
     @Override
     public int partition(Object key, int numPartitions) {
         return 0;
+    }
+
+    @Override
+    public PartitionPolicy getPartitionPolicy() {
+        return PartitionPolicy.FORWARD;
     }
 
     @Override

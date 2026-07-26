@@ -49,6 +49,19 @@ public class TimestampsAndWatermarksOperator<T>
         this.watermarkInterval = watermarkInterval;
     }
 
+    /**
+     * {@inheritDoc}
+     *
+     * <p>Watermark operator: the watermark strategy (immutable configuration)
+     * is shared across subtasks. Per-subtask mutable state (timestamp assigner,
+     * generator, last watermark timestamp, scheduled timer future) is left null
+     * and re-initialized by {@link #open()}.
+     */
+    @Override
+    public TimestampsAndWatermarksOperator<T> copyForSubtask() {
+        return new TimestampsAndWatermarksOperator<>(watermarkStrategy, watermarkInterval);
+    }
+
     @Override
     public void open() throws Exception {
         super.open();
