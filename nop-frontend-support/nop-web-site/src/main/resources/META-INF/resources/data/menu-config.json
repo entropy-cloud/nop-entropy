@@ -108,7 +108,7 @@
       "path": "/amis/preview",
       "icon": "workflow",
       "pageType": "amis",
-      "schemaPath": "mock://preview",
+      "schemaPath": "/data/amis-preview.json",
       "sort": 6
     },
     {
@@ -117,8 +117,26 @@
       "path": "/flux-demo",
       "icon": "sparkles",
       "pageType": "flux",
-      "schemaPath": "mock://flux-demo",
+      "schemaPath": "/data/flux-demo.json",
       "sort": 7
+    },
+    {
+      "id": "flux-dashboard",
+      "title": "Flux Dashboard",
+      "path": "/flux-dashboard",
+      "icon": "layout-dashboard",
+      "pageType": "flux",
+      "schemaPath": "/data/flux-dashboard.json",
+      "sort": 8
+    },
+    {
+      "id": "flux-report",
+      "title": "Flux Report",
+      "path": "/flux-report",
+      "icon": "file-text",
+      "pageType": "flux",
+      "schemaPath": "/data/flux-report.json",
+      "sort": 9
     },
     {
       "id": "settings",
@@ -173,6 +191,24 @@
           "componentId": "help-guide"
         }
       ]
+    },
+    {
+      "id": "flux-complex-form",
+      "title": "Flux Complex Form",
+      "path": "/flux-complex-form",
+      "icon": "table-properties",
+      "pageType": "flux",
+      "schemaPath": "/data/flux-complex-form.json",
+      "sort": 10
+    },
+    {
+      "id": "amis-tabs-test",
+      "title": "AMIS Tabs Test",
+      "path": "/amis-tabs-test",
+      "pageType": "amis",
+      "schemaPath": "/data/amis-tabs-test.json",
+      "icon": "list",
+      "sort": 999
     }
   ]
 }

@@ -1,0 +1,82 @@
+{
+  "type": "page",
+  "title": "Flux Complex Form Test",
+  "body": {
+    "type": "tabs",
+    "items": [
+      {
+        "title": "Home",
+        "body": [
+          {
+            "type": "text",
+            "text": "Home tab — no CRUD here"
+          }
+        ]
+      },
+      {
+        "title": "CRUD",
+        "body": {
+          "type": "crud",
+          "id": "complex-crud",
+          "name": "complexCrud",
+          "rowKey": "id",
+          "selection": {},
+          "autoClearSelectionOnRefresh": true,
+          "source": [
+            { "id": 1, "name": "Item A", "status": "active" },
+            { "id": 2, "name": "Item B", "status": "draft" }
+          ],
+          "toolbar": [
+            {
+              "type": "button",
+              "label": "Open Form Dialog",
+              "onClick": {
+                "action": "openDialog",
+                "args": {
+                  "title": "Simple Form",
+                  "body": {
+                    "type": "form",
+                    "data": { "name": "", "featured": false, "notes": "" },
+                    "body": [
+                      { "type": "input-text", "name": "name", "label": "Name" },
+                      { "type": "switch", "name": "featured", "label": "Featured" },
+                      { "type": "textarea", "name": "notes", "label": "Notes" }
+                    ],
+                    "actions": [
+                      {
+                        "type": "button",
+                        "label": "Submit",
+                        "onClick": { "action": "submitForm" }
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          ],
+          "columns": [
+            { "name": "name", "label": "Name" },
+            { "name": "status", "label": "Status" }
+          ]
+        }
+      },
+      {
+        "title": "Dashboard",
+        "body": {
+          "type": "crud",
+          "id": "dashboard-crud",
+          "name": "dashboardCrud",
+          "rowKey": "id",
+          "source": [
+            { "id": 1, "metric": "Revenue", "value": "100K" },
+            { "id": 2, "metric": "Users", "value": "2K" }
+          ],
+          "columns": [
+            { "name": "metric", "label": "Metric" },
+            { "name": "value", "label": "Value" }
+          ]
+        }
+      }
+    ]
+  }
+}

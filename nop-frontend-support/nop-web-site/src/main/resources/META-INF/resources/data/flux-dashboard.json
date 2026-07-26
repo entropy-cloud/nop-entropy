@@ -1,0 +1,71 @@
+{
+  "type": "page",
+  "body": [
+    {
+      "type": "text",
+      "text": "Flux Dashboard Demo"
+    },
+    {
+      "type": "text",
+      "text": "KPI Overview",
+      "tag": "h2"
+    },
+    {
+      "type": "crud",
+      "source": [
+        { "id": "1", "metric": "Total Users", "value": "1,280", "change": "+12%", "period": "This Month" },
+        { "id": "2", "metric": "Total Orders", "value": "456", "change": "+8%", "period": "This Month" },
+        { "id": "3", "metric": "Revenue", "value": "¥128,000", "change": "+15%", "period": "This Month" },
+        { "id": "4", "metric": "Conversion", "value": "3.2%", "change": "+0.5%", "period": "This Month" }
+      ],
+      "columns": [
+        { "name": "metric", "label": "Metric" },
+        { "name": "value", "label": "Value" },
+        { "name": "change", "label": "Change" },
+        { "name": "period", "label": "Period" }
+      ]
+    },
+    {
+      "type": "text",
+      "text": "Charts",
+      "tag": "h2"
+    },
+    {
+      "type": "crud",
+      "source": [
+        { "id": "c1", "month": "Jan", "sales": 400, "target": 380 },
+        { "id": "c2", "month": "Feb", "sales": 300, "target": 350 },
+        { "id": "c3", "month": "Mar", "sales": 200, "target": 300 },
+        { "id": "c4", "month": "Apr", "sales": 278, "target": 320 },
+        { "id": "c5", "month": "May", "sales": 189, "target": 280 },
+        { "id": "c6", "month": "Jun", "sales": 239, "target": 290 }
+      ],
+      "columns": [
+        { "name": "month", "label": "Month" },
+        { "name": "sales", "label": "Sales" },
+        { "name": "target", "label": "Target" }
+      ]
+    },
+    {
+      "type": "text",
+      "text": "Recent Orders",
+      "tag": "h2"
+    },
+    {
+      "type": "crud",
+      "source": [
+        { "id": "ORD-001", "customer": "Alice", "amount": 1250, "status": "Paid" },
+        { "id": "ORD-002", "customer": "Bob", "amount": 800, "status": "Pending" },
+        { "id": "ORD-003", "customer": "Carol", "amount": 2300, "status": "Paid" },
+        { "id": "ORD-004", "customer": "Dave", "amount": 450, "status": "Pending" },
+        { "id": "ORD-005", "customer": "Eve", "amount": 1670, "status": "Paid" }
+      ],
+      "columns": [
+        { "name": "id", "label": "Order ID" },
+        { "name": "customer", "label": "Customer" },
+        { "name": "amount", "label": "Amount (¥)" },
+        { "name": "status", "label": "Status" }
+      ]
+    }
+  ]
+}

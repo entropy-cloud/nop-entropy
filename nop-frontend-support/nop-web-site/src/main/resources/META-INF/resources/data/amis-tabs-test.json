@@ -1,0 +1,98 @@
+{
+  "type": "page",
+  "title": "AMIS Tabs Form Test",
+  "body": [
+    {
+      "type": "crud",
+      "api": {
+        "method": "get",
+        "url": "/mock/api/tabs-test",
+        "mockResponse": {
+          "status": 0,
+          "data": {
+            "items": [
+              { "id": 1, "name": "Alice", "email": "alice@test.com", "remark": "Test user 1" },
+              { "id": 2, "name": "Bob", "email": "bob@test.com", "remark": "Test user 2" }
+            ],
+            "count": 2
+          }
+        }
+      },
+      "columns": [
+        { "name": "name", "label": "Name" },
+        { "name": "email", "label": "Email" },
+        {
+          "type": "operation",
+          "label": "Actions",
+          "buttons": [
+            {
+              "type": "button",
+              "label": "View",
+              "actionType": "dialog",
+              "dialog": {
+                "title": "View Record",
+                "body": {
+                  "type": "form",
+                  "body": {
+                    "type": "tabs",
+                    "tabs": [
+                      {
+                        "title": "Basic Info",
+                        "body": [
+                          { "type": "input-text", "name": "name", "label": "Name" },
+                          { "type": "input-text", "name": "email", "label": "Email" }
+                        ]
+                      },
+                      {
+                        "title": "Extra Info",
+                        "body": [
+                          { "type": "input-text", "name": "remark", "label": "Remark" },
+                          { "type": "textarea", "name": "notes", "label": "Notes" }
+                        ]
+                      }
+                    ]
+                  }
+                }
+              }
+            },
+            {
+              "type": "button",
+              "label": "Add",
+              "actionType": "dialog",
+              "dialog": {
+                "title": "Add Record",
+                "body": {
+                  "type": "form",
+                  "api": {
+                    "method": "post",
+                    "url": "/mock/api/tabs-test",
+                    "mockResponse": { "status": 0 }
+                  },
+                  "body": {
+                    "type": "tabs",
+                    "tabs": [
+                      {
+                        "title": "Basic",
+                        "body": [
+                          { "type": "input-text", "name": "name", "label": "Name", "required": true },
+                          { "type": "input-text", "name": "email", "label": "Email" }
+                        ]
+                      },
+                      {
+                        "title": "Extra",
+                        "body": [
+                          { "type": "textarea", "name": "remark", "label": "Remark" },
+                          { "type": "textarea", "name": "notes", "label": "Notes" }
+                        ]
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

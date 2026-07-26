@@ -1,0 +1,77 @@
+{
+  "type": "page",
+  "body": [
+    {
+      "type": "text",
+      "text": "Flux Report Demo"
+    },
+    {
+      "type": "crud",
+      "source": [
+        { "id": "RPT-001", "title": "Q2 Sales Report", "author": "Alice", "status": "published", "createdAt": "2026-07-01", "views": 1250 },
+        { "id": "RPT-002", "title": "User Growth Analysis", "author": "Bob", "status": "draft", "createdAt": "2026-07-05", "views": 320 },
+        { "id": "RPT-003", "title": "Product Roadmap 2026", "author": "Carol", "status": "published", "createdAt": "2026-07-10", "views": 890 },
+        { "id": "RPT-004", "title": "Customer Satisfaction Survey", "author": "Dave", "status": "review", "createdAt": "2026-07-15", "views": 560 },
+        { "id": "RPT-005", "title": "Market Research Summary", "author": "Eve", "status": "published", "createdAt": "2026-07-20", "views": 2100 },
+        { "id": "RPT-006", "title": "Bug Bounty Program Results", "author": "Alice", "status": "draft", "createdAt": "2026-07-22", "views": 180 }
+      ],
+      "rowKey": "id",
+      "columns": [
+        { "name": "id", "label": "Report ID", "width": 100 },
+        { "name": "title", "label": "Title" },
+        { "name": "author", "label": "Author" },
+        { "name": "status", "label": "Status", "type": "mapping", "map": { "published": "Published", "draft": "Draft", "review": "In Review" } },
+        { "name": "createdAt", "label": "Created Date" },
+        { "name": "views", "label": "Views" },
+        {
+          "type": "operation",
+          "label": "Actions",
+          "buttons": [
+            {
+              "type": "button",
+              "label": "View",
+              "onClick": {
+                "action": "openDialog",
+                "args": {
+                  "title": "Report Detail",
+                  "body": [
+                    { "type": "text", "text": "Report ID: ${$slot.record.id}" },
+                    { "type": "text", "text": "Title: ${$slot.record.title}" },
+                    { "type": "text", "text": "Author: ${$slot.record.author}" }
+                  ]
+                }
+              }
+            },
+            {
+              "type": "button",
+              "label": "Export",
+              "onClick": {
+                "action": "ajax",
+                "args": { "url": "/api/reports/${$slot.record.id}/export" }
+              }
+            }
+          ]
+        }
+      ],
+      "queryForm": {
+        "body": [
+          {
+            "type": "input-text",
+            "name": "keyword",
+            "label": "Search"
+          }
+        ]
+      },
+      "toolbar": [
+        {
+          "type": "button",
+          "label": "Export All",
+          "onClick": {
+            "action": "ajax",
+            "args": { "url": "/api/reports/export" }
+          }
+        }
+      ]
+    }
+  ]
+}

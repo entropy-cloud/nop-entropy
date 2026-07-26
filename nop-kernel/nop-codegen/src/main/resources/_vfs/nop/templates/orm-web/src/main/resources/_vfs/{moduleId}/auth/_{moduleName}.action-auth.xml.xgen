@@ -24,7 +24,7 @@
                         <resource id="${objName}-main" displayName="${objMeta.displayName}" orderNo="${10000+(index++)}"
                                   i18n-en:displayName="${enDisplayName}"
                                   icon="${objMeta['ext:icon'] || 'blocks'}"
-                                  component="AMIS" resourceType="SUBM"
+                                  component="${objMeta['ext:web-renderer'] == 'flux' ? 'FLUX': 'AMIS'}" resourceType="SUBM"
                                   url="/${moduleId}/pages/${objName}/main.page.yaml">
                             <children>
                                 <resource id="FNPT:${objName}:query" displayName="查询${objMeta.displayName}"
