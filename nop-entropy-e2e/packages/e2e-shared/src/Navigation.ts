@@ -1,5 +1,6 @@
 import type { Page as PlaywrightPage } from '@playwright/test';
 import { loginRpc } from './RpcClient';
+import { getEngineType } from './engine';
 
 const LOCALE_KEY = 'nop-language:v1';
 
@@ -16,7 +17,7 @@ export interface LoginOptions {
  * 3. Default fallback
  */
 function resolveBaseUrl(explicit?: string): string {
-  return explicit ?? process.env.E2E_BASE_URL ?? 'http://localhost:4173';
+  return explicit ?? process.env.E2E_BASE_URL ?? process.env.BASE_URL ?? 'http://localhost:4173';
 }
 
 /**
@@ -90,16 +91,18 @@ async function waitForAuthenticated(page: PlaywrightPage, timeoutMs = 30_000): P
 
 /**
  * Wait until the sidebar/menu has populated with items, indicating that the
- * menu query has resolved and route registration is complete. Without this,
- * direct hash navigation (e.g. #/NopAuthUser-main) may hit the catch-all route
- * because the menu-driven routes haven't been registered yet.
+ * user is fully logged in and the application shell is ready. Uses engine-
+ * specific selectors to detect the menu.
+ *
+ * - AMIS engine: wait for `.cxd-Page` (main page container) to be present
+ * - Flux/chaos engine: wait for `nav button[class*="flex-1"]` (sidebar items)
  */
 async function waitForMenuLoaded(page: PlaywrightPage, timeoutMs = 15_000): Promise<void> {
-  await page.waitForFunction(
-    () => document.querySelectorAll('nav button[class*="flex-1"]').length >= 2,
-    undefined,
-    { timeout: timeoutMs },
-  );
+  const engine = getEngineType();
+  const checkFn = engine === 'amis'
+    ? `document.querySelector('.cxd-Page, #main-content, main') !== null`
+    : `document.querySelectorAll('nav button[class*="flex-1"]').length >= 2`;
+  await page.waitForFunction(checkFn, undefined, { timeout: timeoutMs });
 }
 
 export async function navigateTo(page: PlaywrightPage, hashRoute: string): Promise<void> {
