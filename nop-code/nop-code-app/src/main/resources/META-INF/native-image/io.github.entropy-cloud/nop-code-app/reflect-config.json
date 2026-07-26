@@ -56,7 +56,14 @@
     "allPublicFields": true,
     "allPublicMethods": true,
     "fields": [],
-    "methods": [],
+    "methods": [
+      {
+        "name": "appendHeaders",
+        "parameterTypes": [
+          "java.lang.StringBuilder"
+        ]
+      }
+    ],
     "name": "io.nop.api.core.beans.ApiMessage"
   },
   {
@@ -2731,6 +2738,316 @@
     "allPublicMethods": true,
     "fields": [],
     "methods": [],
+    "name": "io.nop.code.api.dto.CallHierarchyDTO"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.code.api.dto.CodeSearchResultDTO"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.code.api.dto.CohesionBreakdownDTO"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.code.api.dto.CommunityChangeDTO"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.code.api.dto.CommunityDTO"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.code.api.dto.CommunityDetectionResultDTO"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.code.api.dto.CriticalNodeResultDTO"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.code.api.dto.CriticalNodeScoreDTO"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.code.api.dto.DepEdgeDTO"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.code.api.dto.DepGraphDTO"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.code.api.dto.DepNodeDTO"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.code.api.dto.EdgeKeyDTO"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.code.api.dto.FileOutlineDTO"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.code.api.dto.FileTreeNode"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.code.api.dto.GodNodeDTO"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.code.api.dto.GraphAnalysisResultDTO"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.code.api.dto.GraphDiffDTO"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.code.api.dto.ImpactResultDTO"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.code.api.dto.ImpactedSymbolDTO"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.code.api.dto.IndexStatsDTO"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.code.api.dto.IsolatedSymbolDTO"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.code.api.dto.KnowledgeGapResultDTO"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.code.api.dto.ModuleDigestDTO"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.code.api.dto.PublicAPIDTO"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.code.api.dto.ReferenceDTO"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.code.api.dto.SymbolInfoDTO"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.code.api.dto.SymbolSourceDTO"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.code.api.dto.TypeHierarchyDTO"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.code.api.dto.TypeOutlineDTO"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.code.api.dto.WeakCommunityDTO"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.code.core.adapter.LanguageAdapterRegistry"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
     "name": "io.nop.code.core.model.CodeAnnotationUsage"
   },
   {
@@ -2771,7 +3088,27 @@
     "allPublicMethods": true,
     "fields": [],
     "methods": [],
+    "name": "io.nop.code.core.model.CodeRouteInfo"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
     "name": "io.nop.code.core.model.CodeSymbol"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.code.core.semantic.CodeSemanticEdge"
   },
   {
     "allDeclaredConstructors": true,
@@ -2821,6 +3158,26 @@
     "allPublicMethods": true,
     "fields": [],
     "methods": [],
+    "name": "io.nop.code.dao.entity.NopCodeFlow"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.code.dao.entity.NopCodeFlowMembership"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
     "name": "io.nop.code.dao.entity.NopCodeIndex"
   },
   {
@@ -2832,6 +3189,16 @@
     "fields": [],
     "methods": [],
     "name": "io.nop.code.dao.entity.NopCodeInheritance"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.code.dao.entity.NopCodeSemanticEdge"
   },
   {
     "allDeclaredConstructors": true,
@@ -2926,6 +3293,36 @@
         "parameterTypes": []
       }
     ],
+    "name": "io.nop.code.dao.entity._gen._NopCodeFlow"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [
+      {
+        "name": "newInstance",
+        "parameterTypes": []
+      }
+    ],
+    "name": "io.nop.code.dao.entity._gen._NopCodeFlowMembership"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [
+      {
+        "name": "newInstance",
+        "parameterTypes": []
+      }
+    ],
     "name": "io.nop.code.dao.entity._gen._NopCodeIndex"
   },
   {
@@ -2956,6 +3353,21 @@
         "parameterTypes": []
       }
     ],
+    "name": "io.nop.code.dao.entity._gen._NopCodeSemanticEdge"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [
+      {
+        "name": "newInstance",
+        "parameterTypes": []
+      }
+    ],
     "name": "io.nop.code.dao.entity._gen._NopCodeSymbol"
   },
   {
@@ -2972,6 +3384,175 @@
       }
     ],
     "name": "io.nop.code.dao.entity._gen._NopCodeUsage"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.code.flow.ChangeAnalysisResult"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.code.flow.ChangeAnalysisResult$AffectedSymbol"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.code.flow.ChangeAnalysisResult$RiskBreakdown"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.code.flow.ChangeAnalysisResult$RiskSummary"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [
+      {
+        "name": "parseGitDiff",
+        "parameterTypes": [
+          "java.lang.String",
+          "java.lang.String",
+          "java.lang.String"
+        ]
+      }
+    ],
+    "name": "io.nop.code.flow.ChangeAnalyzer"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.code.flow.DeadCodeDetector"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.code.flow.DeadCodeReport"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.code.flow.DeadCodeReport$DeadCodeEntry"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.code.flow.DeadCodeReport$DeadCodeStats"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.code.flow.DeadCodeReport$DeadSymbol"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.code.flow.ExecutionFlow"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.code.flow.ExecutionFlow$FlowStats"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.code.flow.FlowDetector"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.code.lang.java.JavaLanguageAdapter"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.code.lang.python.PythonLanguageAdapter"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.code.lang.typescript.TypeScriptLanguageAdapter"
   },
   {
     "allDeclaredConstructors": true,
@@ -3304,6 +3885,26 @@
     "allPublicConstructors": true,
     "allPublicFields": true,
     "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.code.service.entity.NopCodeFlowBizModel"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.code.service.entity.NopCodeFlowMembershipBizModel"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
     "fields": [
       {
         "allowWrite": true,
@@ -3332,6 +3933,16 @@
     "fields": [],
     "methods": [],
     "name": "io.nop.code.service.entity.NopCodeInheritanceBizModel"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.code.service.entity.NopCodeSemanticEdgeBizModel"
   },
   {
     "allDeclaredConstructors": true,
@@ -3396,7 +4007,12 @@
     "allPublicMethods": true,
     "fields": [
       {
+        "allowWrite": true,
         "name": "analyzer"
+      },
+      {
+        "allowWrite": true,
+        "name": "changeAnalyzer"
       },
       {
         "allowWrite": true,
@@ -3404,7 +4020,18 @@
       },
       {
         "allowWrite": true,
+        "name": "deadCodeDetector"
+      },
+      {
+        "allowWrite": true,
         "name": "fingerprintStore"
+      },
+      {
+        "allowWrite": true,
+        "name": "flowDetector"
+      },
+      {
+        "name": "heuristicSynthesizers"
       },
       {
         "name": "importResolvers"
@@ -3414,7 +4041,16 @@
         "name": "ormTemplate"
       },
       {
+        "allowWrite": true,
         "name": "registry"
+      },
+      {
+        "allowWrite": true,
+        "name": "searchEngine"
+      },
+      {
+        "allowWrite": true,
+        "name": "transactionTemplate"
       }
     ],
     "methods": [
@@ -7416,6 +8052,16 @@
     "allPublicMethods": true,
     "fields": [],
     "methods": [],
+    "name": "io.nop.sys.dao.entity.NopSysBroadcastEvent"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
     "name": "io.nop.sys.dao.entity.NopSysChangeLog"
   },
   {
@@ -7447,6 +8093,16 @@
     "fields": [],
     "methods": [],
     "name": "io.nop.sys.dao.entity.NopSysCodeRule"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.sys.dao.entity.NopSysCompactExtField"
   },
   {
     "allDeclaredConstructors": true,
@@ -7591,6 +8247,21 @@
         "parameterTypes": []
       }
     ],
+    "name": "io.nop.sys.dao.entity._gen._NopSysBroadcastEvent"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [
+      {
+        "name": "newInstance",
+        "parameterTypes": []
+      }
+    ],
     "name": "io.nop.sys.dao.entity._gen._NopSysChangeLog"
   },
   {
@@ -7637,6 +8308,21 @@
       }
     ],
     "name": "io.nop.sys.dao.entity._gen._NopSysCodeRule"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [
+      {
+        "name": "newInstance",
+        "parameterTypes": []
+      }
+    ],
+    "name": "io.nop.sys.dao.entity._gen._NopSysCompactExtField"
   },
   {
     "allDeclaredConstructors": true,
@@ -7918,6 +8604,211 @@
     "allPublicConstructors": true,
     "allPublicFields": true,
     "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.sys.service.entity.NopSysBroadcastEventBizModel"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.sys.service.entity.NopSysChangeLogBizModel"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.sys.service.entity.NopSysCheckerRecordBizModel"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.sys.service.entity.NopSysClusterLeaderBizModel"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.sys.service.entity.NopSysCodeRuleBizModel"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.sys.service.entity.NopSysCompactExtFieldBizModel"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.sys.service.entity.NopSysDictBizModel"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.sys.service.entity.NopSysDictOptionBizModel"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.sys.service.entity.NopSysEventBizModel"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.sys.service.entity.NopSysExtFieldBizModel"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.sys.service.entity.NopSysI18nBizModel"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.sys.service.entity.NopSysLockBizModel"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.sys.service.entity.NopSysNoticeTemplateBizModel"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.sys.service.entity.NopSysObjTagBizModel"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.sys.service.entity.NopSysSequenceBizModel"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.sys.service.entity.NopSysServiceInstanceBizModel"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.sys.service.entity.NopSysTagBizModel"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.sys.service.entity.NopSysUserVariableBizModel"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.sys.service.entity.NopSysVariableBizModel"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [
+      {
+        "allowWrite": true,
+        "name": "daoProvider"
+      }
+    ],
+    "methods": [],
+    "name": "io.nop.sys.service.impl.SysCompactExtFieldHelper"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
     "fields": [
       {
         "allowWrite": true,
@@ -8008,6 +8899,16 @@
     ],
     "methods": [],
     "name": "io.nop.web.page.DynamicWebFileProvider"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.web.page.IndexHtmlProvider"
   },
   {
     "allDeclaredConstructors": true,
@@ -8359,6 +9260,16 @@
     "allPublicMethods": true,
     "fields": [],
     "methods": [],
+    "name": "io.nop.xlang.xmeta.impl.ObjConditionExpr"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
     "name": "io.nop.xlang.xmeta.impl.ObjKeyModel"
   },
   {
@@ -8435,6 +9346,33 @@
     "fields": [],
     "methods": [],
     "name": "io.nop.xlang.xmeta.impl.SchemaNodeImpl"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [
+      {
+        "name": "copyTo",
+        "parameterTypes": [
+          "io.nop.xlang.xmeta.impl.ObjConditionExpr"
+        ]
+      },
+      {
+        "name": "newInstance",
+        "parameterTypes": []
+      },
+      {
+        "name": "outputJson",
+        "parameterTypes": [
+          "io.nop.core.lang.json.IJsonHandler"
+        ]
+      }
+    ],
+    "name": "io.nop.xlang.xmeta.impl._gen._ObjConditionExpr"
   },
   {
     "allDeclaredConstructors": true,
@@ -9522,86 +10460,6 @@
     "allPublicMethods": true,
     "fields": [],
     "methods": [],
-     "name": "java.util.Set"
-  },
-  {
-    "allDeclaredConstructors": true,
-    "allDeclaredMethods": true,
-    "allPublicConstructors": true,
-    "allPublicFields": true,
-    "allPublicMethods": true,
-    "fields": [],
-    "methods": [],
-    "name": "io.nop.code.flow.ExecutionFlow"
-  },
-  {
-    "allDeclaredConstructors": true,
-    "allDeclaredMethods": true,
-    "allPublicConstructors": true,
-    "allPublicFields": true,
-    "allPublicMethods": true,
-    "fields": [],
-    "methods": [],
-    "name": "io.nop.code.flow.ExecutionFlow$FlowStats"
-  },
-  {
-    "allDeclaredConstructors": true,
-    "allDeclaredMethods": true,
-    "allPublicConstructors": true,
-    "allPublicFields": true,
-    "allPublicMethods": true,
-    "fields": [],
-    "methods": [],
-    "name": "io.nop.code.flow.ChangeAnalysisResult"
-  },
-  {
-    "allDeclaredConstructors": true,
-    "allDeclaredMethods": true,
-    "allPublicConstructors": true,
-    "allPublicFields": true,
-    "allPublicMethods": true,
-    "fields": [],
-    "methods": [],
-    "name": "io.nop.code.flow.ChangeAnalysisResult$AffectedSymbol"
-  },
-  {
-    "allDeclaredConstructors": true,
-    "allDeclaredMethods": true,
-    "allPublicConstructors": true,
-    "allPublicFields": true,
-    "allPublicMethods": true,
-    "fields": [],
-    "methods": [],
-    "name": "io.nop.code.flow.ChangeAnalysisResult$RiskBreakdown"
-  },
-  {
-    "allDeclaredConstructors": true,
-    "allDeclaredMethods": true,
-    "allPublicConstructors": true,
-    "allPublicFields": true,
-    "allPublicMethods": true,
-    "fields": [],
-    "methods": [],
-    "name": "io.nop.code.flow.ChangeAnalysisResult$RiskSummary"
-  },
-  {
-    "allDeclaredConstructors": true,
-    "allDeclaredMethods": true,
-    "allPublicConstructors": true,
-    "allPublicFields": true,
-    "allPublicMethods": true,
-    "fields": [],
-    "methods": [],
-    "name": "io.nop.code.flow.DeadCodeReport"
-  },
-  {
-    "allDeclaredConstructors": true,
-    "allDeclaredMethods": true,
-    "allPublicConstructors": true,
-    "allPublicFields": true,
-    "allPublicMethods": true,
-    "fields": [],
-    "methods": [],
-    "name": "io.nop.code.flow.DeadCodeReport$DeadSymbol"
+    "name": "java.util.Set"
   }
 ]
