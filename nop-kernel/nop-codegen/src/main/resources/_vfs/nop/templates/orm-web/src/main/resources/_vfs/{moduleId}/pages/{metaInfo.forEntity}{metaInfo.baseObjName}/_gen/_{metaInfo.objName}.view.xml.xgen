@@ -154,7 +154,7 @@
             <listActions>
                 <action id="batch-delete-button" label="@i18n:common.batchDelete" batch="true"
                         x:abstract="${supportDelete?null:'true'}">
-                    <api url="@mutation:${metaInfo.objName}__batchDelete?ids=$ids"/>
+                    <api url="@mutation:${metaInfo.objName}__batchDelete?ids=${'$'}{ids}"/>
                     <confirmText>@i18n:common.confirmBatchDelete</confirmText>
                 </action>
 
@@ -179,7 +179,7 @@
 
                 <action id="row-delete-button" level="danger" label="@i18n:common.delete"
                         x:abstract="true">
-                    <api url="@mutation:${metaInfo.objName}__delete?id=$id"/>
+                    <api url="@mutation:${metaInfo.objName}__delete?id=${'$'}{id}"/>
                     <confirmText>@i18n:common.confirmDelete</confirmText>
                 </action>
 
@@ -197,7 +197,7 @@
 
                     <action id="row-delete-button" label="@i18n:common.delete"
                             x:abstract="${supportDelete?null:'true'}">
-                        <api url="@mutation:${metaInfo.objName}__delete?id=$id"/>
+                        <api url="@mutation:${metaInfo.objName}__delete?id=${'$'}{id}"/>
                         <confirmText>@i18n:common.confirmDelete</confirmText>
                     </action>
                 </actionGroup>
@@ -219,19 +219,19 @@
         </simple>
 
         <simple name="view" form="view">
-            <initApi url="@query:${metaInfo.objName}__get?id=$id" gql:selection="{@formSelection}"/>
+            <initApi url="@query:${metaInfo.objName}__get?id=${'$'}{id}" gql:selection="{@formSelection}"/>
         </simple>
 
         <simple name="update" form="edit" xpl:if="supportUpdate">
-            <initApi url="@query:${metaInfo.objName}__get?id=$id" gql:selection="{@formSelection}"/>
-            <api url="@mutation:${metaInfo.objName}__update/id?id=$id" withFormData="true"/>
+            <initApi url="@query:${metaInfo.objName}__get?id=${'$'}{id}" gql:selection="{@formSelection}"/>
+            <api url="@mutation:${metaInfo.objName}__update/id?id=${'$'}{id}" withFormData="true"/>
         </simple>
 
         <simple name="add-child" form="add" xpl:if="supportAdd and parentProp">
             <api url="@mutation:${metaInfo.objName}__save/id" withFormData="true"/>
 
             <data>
-                <_ j:key="${parentProp}">$id</_>
+                <_ j:key="${parentProp}">${'$'}{id}</_>
             </data>
         </simple>
 

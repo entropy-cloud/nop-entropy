@@ -89,7 +89,7 @@
             </table>
             <listActions>
                 <action id="batch-delete-button" label="@i18n:common.batchDelete" batch="true">
-                    <api url="@mutation:NopAuthOpLog__batchDelete?ids=$ids"/>
+                    <api url="@mutation:NopAuthOpLog__batchDelete?ids=${ids}"/>
                     <confirmText>@i18n:common.confirmBatchDelete</confirmText>
                 </action>
             </listActions>
@@ -101,7 +101,7 @@
                     <dialog page="update"/>
                 </action>
                 <action id="row-delete-button" level="danger" label="@i18n:common.delete" x:abstract="true">
-                    <api url="@mutation:NopAuthOpLog__delete?id=$id"/>
+                    <api url="@mutation:NopAuthOpLog__delete?id=${id}"/>
                     <confirmText>@i18n:common.confirmDelete</confirmText>
                 </action>
                 <actionGroup id="row-more-button" label="@i18n:common.more" level="primary">
@@ -109,7 +109,7 @@
                         <dialog page="update"/>
                     </action>
                     <action id="row-delete-button" label="@i18n:common.delete">
-                        <api url="@mutation:NopAuthOpLog__delete?id=$id"/>
+                        <api url="@mutation:NopAuthOpLog__delete?id=${id}"/>
                         <confirmText>@i18n:common.confirmDelete</confirmText>
                     </action>
                 </actionGroup>
@@ -121,7 +121,7 @@
             </table>
         </picker>
         <simple name="view" form="view">
-            <initApi url="@query:NopAuthOpLog__get?id=$id" gql:selection="{@formSelection}"/>
+            <initApi url="@query:NopAuthOpLog__get?id=${id}" gql:selection="{@formSelection}"/>
         </simple>
     </pages>
 </view>

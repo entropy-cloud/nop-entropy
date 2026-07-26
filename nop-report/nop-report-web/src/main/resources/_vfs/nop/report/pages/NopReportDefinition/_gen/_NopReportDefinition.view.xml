@@ -92,7 +92,7 @@
             </table>
             <listActions>
                 <action id="batch-delete-button" label="@i18n:common.batchDelete" batch="true">
-                    <api url="@mutation:NopReportDefinition__batchDelete?ids=$ids"/>
+                    <api url="@mutation:NopReportDefinition__batchDelete?ids=${ids}"/>
                     <confirmText>@i18n:common.confirmBatchDelete</confirmText>
                 </action>
                 <action id="add-button" level="primary" label="@i18n:common.add" icon="fa fa-plus pull-left">
@@ -107,7 +107,7 @@
                     <dialog page="update"/>
                 </action>
                 <action id="row-delete-button" level="danger" label="@i18n:common.delete" x:abstract="true">
-                    <api url="@mutation:NopReportDefinition__delete?id=$id"/>
+                    <api url="@mutation:NopReportDefinition__delete?id=${id}"/>
                     <confirmText>@i18n:common.confirmDelete</confirmText>
                 </action>
                 <actionGroup id="row-more-button" label="@i18n:common.more" level="primary">
@@ -115,7 +115,7 @@
                         <dialog page="update"/>
                     </action>
                     <action id="row-delete-button" label="@i18n:common.delete">
-                        <api url="@mutation:NopReportDefinition__delete?id=$id"/>
+                        <api url="@mutation:NopReportDefinition__delete?id=${id}"/>
                         <confirmText>@i18n:common.confirmDelete</confirmText>
                     </action>
                 </actionGroup>
@@ -130,11 +130,11 @@
             <api url="@mutation:NopReportDefinition__save/id"/>
         </simple>
         <simple name="view" form="view">
-            <initApi url="@query:NopReportDefinition__get?id=$id" gql:selection="{@formSelection}"/>
+            <initApi url="@query:NopReportDefinition__get?id=${id}" gql:selection="{@formSelection}"/>
         </simple>
         <simple name="update" form="edit">
-            <initApi url="@query:NopReportDefinition__get?id=$id" gql:selection="{@formSelection}"/>
-            <api url="@mutation:NopReportDefinition__update/id?id=$id" withFormData="true"/>
+            <initApi url="@query:NopReportDefinition__get?id=${id}" gql:selection="{@formSelection}"/>
+            <api url="@mutation:NopReportDefinition__update/id?id=${id}" withFormData="true"/>
         </simple>
     </pages>
 </view>

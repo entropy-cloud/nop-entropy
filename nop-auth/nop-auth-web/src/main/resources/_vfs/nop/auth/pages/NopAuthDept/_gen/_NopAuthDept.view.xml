@@ -103,7 +103,7 @@
             </table>
             <listActions>
                 <action id="batch-delete-button" label="@i18n:common.batchDelete" batch="true">
-                    <api url="@mutation:NopAuthDept__batchDelete?ids=$ids"/>
+                    <api url="@mutation:NopAuthDept__batchDelete?ids=${ids}"/>
                     <confirmText>@i18n:common.confirmBatchDelete</confirmText>
                 </action>
                 <action id="add-button" level="primary" label="@i18n:common.add" icon="fa fa-plus pull-left">
@@ -118,7 +118,7 @@
                     <dialog page="update"/>
                 </action>
                 <action id="row-delete-button" level="danger" label="@i18n:common.delete" x:abstract="true">
-                    <api url="@mutation:NopAuthDept__delete?id=$id"/>
+                    <api url="@mutation:NopAuthDept__delete?id=${id}"/>
                     <confirmText>@i18n:common.confirmDelete</confirmText>
                 </action>
                 <actionGroup id="row-more-button" label="@i18n:common.more" level="primary">
@@ -129,7 +129,7 @@
                         <dialog page="add-child"/>
                     </action>
                     <action id="row-delete-button" label="@i18n:common.delete">
-                        <api url="@mutation:NopAuthDept__delete?id=$id"/>
+                        <api url="@mutation:NopAuthDept__delete?id=${id}"/>
                         <confirmText>@i18n:common.confirmDelete</confirmText>
                     </action>
                 </actionGroup>
@@ -144,16 +144,16 @@
             <api url="@mutation:NopAuthDept__save/id"/>
         </simple>
         <simple name="view" form="view">
-            <initApi url="@query:NopAuthDept__get?id=$id" gql:selection="{@formSelection}"/>
+            <initApi url="@query:NopAuthDept__get?id=${id}" gql:selection="{@formSelection}"/>
         </simple>
         <simple name="update" form="edit">
-            <initApi url="@query:NopAuthDept__get?id=$id" gql:selection="{@formSelection}"/>
-            <api url="@mutation:NopAuthDept__update/id?id=$id" withFormData="true"/>
+            <initApi url="@query:NopAuthDept__get?id=${id}" gql:selection="{@formSelection}"/>
+            <api url="@mutation:NopAuthDept__update/id?id=${id}" withFormData="true"/>
         </simple>
         <simple name="add-child" form="add">
             <api url="@mutation:NopAuthDept__save/id" withFormData="true"/>
             <data>
-                <_ j:key="parentId">$id</_>
+                <_ j:key="parentId">${id}</_>
             </data>
         </simple>
     </pages>
