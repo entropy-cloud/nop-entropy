@@ -1,6 +1,6 @@
 # nop-stream 生产级完善路线图
 
-> Last updated: 2026-07-25
+> Last updated: 2026-07-26
 > Sources: `ai-dev/analysis/nop-stream/08-gap-analysis.md`（73 条显式缺口 ID [G1-G68, D69-D73] + 6 条已解决附录 [R1-R6]，primary）, `ai-dev/backlog/completion-roadmap.md`（Phase 0—5 战略框架）, `ai-dev/backlog/nop-stream-flink-comparison-roadmap.md`（前序路线图，Items 9—13 已完成）
 
 ## Purpose
@@ -889,6 +889,146 @@ graph TD
 - **Source**: `08-gap-analysis.md` Priority Summary
 - **Description**: 声称 P2=43，显式列出仅 31 条（G28-G58）。
 - **Recommendation**: 修复 08 分类计数；不影响本路线图执行。
+
+---
+
+> 以下 P2 findings 来自 2026-07-25/26 nop-stream-production 审计轮（multi-audit + open-audit），不单独建 plan，按 mission-driver 规则归入 backlog。每条保留 source audit 路径以保可追溯。
+
+### nop-stream-flow 依赖 nop-stream-cep（与 README §1.4 / architecture-baseline §2 矛盾）
+
+- **Source**: `ai-dev/audits/nop-stream-production/2026-07-25-1948-multi-audit-nop-stream-production.md` [P2-1]
+- **Description**: `nop-stream-flow/pom.xml:20-23` 依赖 `nop-stream-cep`（被生成 `_StreamModel.java:104` 的 `CepPatternModel` 使用）。文档说 `flow → core`。
+- **Recommendation**: 更新文档或解耦。
+
+### nop-stream/src/ 重复源码树（60 文件，pom-parent 下不编译）
+
+- **Source**: 同上 [P2-2]
+- **Description**: `nop-stream/src/main/java/io/nop/stream/flow/model/` 是重复源码树（git-tracked），30 个 `_gen` 文件已偏离规范副本。
+- **Recommendation**: `git rm -r nop-stream/src/`。
+
+### 公共算子接口 Javadoc 引用不存在的类型
+
+- **Source**: 同上 [P2-3]
+- **Description**: `StreamOperator.java:28-31`、`OneInputStreamOperator.java:24-26`、`Input.java:28-35` Javadoc 引用 `TwoInputStreamOperator`/`MultipleInputStreamOperator`/`AbstractStreamOperatorV2`/`AbstractInput`（vision §4 Non-Goals）。
+- **Recommendation**: 修正 Javadoc。
+
+### CheckpointedSourceFunction Javadoc 说「未使用」但生产实际调用
+
+- **Source**: 同上 [P2-4]
+- **Description**: `CheckpointedSourceFunction.java:14-19` 说「API 预留，当前未被使用」，但 `StreamSourceOperator.java:296-302,321-332` 调用其 `snapshotState`/`initializeState`。
+- **Recommendation**: 修正 Javadoc。
+
+### DataStream API 强转 UnknownTypeInformation 为 Class<R>
+
+- **Source**: 同上 [P2-5]
+- **Description**: `DataStreamImpl.java:135-186` 等 6+ 入口把 `UnknownTypeInformation.INSTANCE`（`<?>`）强转为 `TypeInformation<R>`，传播 `Object.class`。
+- **Recommendation**: 仅通过 `TypeInformation<?>` 暴露 `UnknownTypeInformation`。
+
+### IWindowOperatorFactory performative Class<...> 参数
+
+- **Source**: 同上 [P2-6]
+- **Description**: `WindowedStreamImpl.java:184-242` 总传 `(Class<T>)(Class<?>)Object.class`，工厂仅用于建 dummy serializer。
+- **Recommendation**: 改用可选 `TypeSerializer<...>`。
+
+### CheckpointCoordinator.onCompletePersistFailure 重复日志
+
+- **Source**: 同上 [P2-7]
+- **Description**: `:579-590` 同一失败信息 ERROR（582）+ WARN（589）记两次。
+- **Recommendation**: 去重，影响 failure-rate 指标。
+
+### Lockable.release 抛裸 IllegalStateException
+
+- **Source**: 同上 [P2-8]
+- **Description**: cep sharedbuffer `Lockable.release:54-79` 引用计数下溢抛裸 `IllegalStateException`，绕过平台异常体系。
+- **Recommendation**: 改 `StreamException`/`NopException`。
+
+### TestCountTrigger 仅测 canMerge() 返回 false
+
+- **Source**: 同上 [P2-9]
+- **Description**: `TestCountTrigger.java:1-15` 无 `onElement` 边界测试。
+- **Recommendation**: 补 count=max-1 CONTINUE vs count=max FIRE。
+
+### TestCheckpointBarrier 纯 getter/setter 往返
+
+- **Source**: 同上 [P2-10]
+- **Recommendation**: 评估删除或补序列化保真测试。
+
+### TestTaskStateSnapshot 等纯 map put/get 往返
+
+- **Source**: 同上 [P2-11]
+- **Description**: `TestTaskStateSnapshot`/`TestOperatorSnapshotResult`/`TestCompletedCheckpoint` 无序列化保真测试。
+- **Recommendation**: 批量清理。
+
+### TestCheckpointType 断言枚举数量与 getName 常量
+
+- **Source**: 同上 [P2-12]
+- **Description**: 已 `@Tag("low-value")`，应删除。
+- **Recommendation**: 删除。
+
+### TestProcessingGuarantee 冗余于 TestInputGateProcessingGuarantee
+
+- **Source**: 同上 [P2-13]
+- **Recommendation**: 删除。
+
+### TestJobTerminationContext 工厂字段断言，已被 TestFingerprintAndTerminationMode 覆盖
+
+- **Source**: 同上 [P2-14]
+- **Recommendation**: 删除。
+
+### TestCheckpointIDCounter 仅测 AtomicLong 语义，无并发测试
+
+- **Source**: 同上 [P2-15]
+- **Recommendation**: 删除或补并发测试（唯一真实风险）。
+
+### TestWindowOperatorBasic 测 TimeWindow 几何原语，文件名误导
+
+- **Source**: 同上 [P2-16]
+- **Recommendation**: 重命名或删除。
+
+### TestSharedBuffer 过度用 assertNotNull
+
+- **Source**: 同上 [P2-17]
+- **Recommendation**: 用具体 EventId 值断言。
+
+### TestNFAState equals/hashCode 镜像测试
+
+- **Source**: 同上 [P2-18]
+- **Description**: 仅 `testNotEqualWhenMatchesDiffer` 有真实保护。
+- **Recommendation**: 精简。
+
+### StreamExecutionEnvironment 文档归 datastream，实在 core/environment
+
+- **Source**: 同上 [P2-19]
+- **Recommendation**: 更新 README §1.2。
+
+### cep 文档说依赖 nop-xlang，实际依赖 nop-core
+
+- **Source**: 同上 [P2-20]
+- **Description**: `IEvalFunction` 来自 `nop-core`（`io.nop.core.lang.eval`）；component-roadmap §2.1 与 §2.5 内部矛盾。
+- **Recommendation**: 更新文档。
+
+### flow 文档说只依赖 core，实际依赖 cep + xdefs
+
+- **Source**: 同上 [P2-21]
+- **Recommendation**: 更新 README §1.2/§1.4。
+
+### ResultPartition.close() bufferPool permit double-release race
+
+- **Source**: `ai-dev/audits/nop-stream-production/2026-07-25-1948-open-audit-nop-stream-production.md` [AR-5]
+- **Description**: `close()` 的 `queue.size()` 与 `queue.clear()` 之间消费端并发 release 导致 permit 过释放（区别于 multi-audit P1-10 的数据丢失角度）。
+- **Recommendation**: 逐元素 drain+release，或让 `close()` 不 release permit 改由 `BufferPool.close()` 兜底。
+
+### JobGraphGenerator determinePartitionType javadoc 错位
+
+- **Source**: 同上 [AR-6]
+- **Description**: `:509-518` javadoc 描述 `determinePartitionType` 却挂在 `hasNonVirtualOperator`（`:523`）上；`determinePartitionType`（`:546`）无 javadoc。
+- **Recommendation**: 移动 javadoc 块。
+
+### PartitionPolicy.UNION / SINGLETON 死枚举值
+
+- **Source**: 同上 [AR-7]
+- **Description**: 生产代码从不产生这两个值（0 引用）。
+- **Recommendation**: 删除或加 `@ReservedForFutureUse`。
 
 ## References
 
