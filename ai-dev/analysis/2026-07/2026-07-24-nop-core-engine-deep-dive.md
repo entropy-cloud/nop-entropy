@@ -30,7 +30,7 @@
 | `nop-dao` | 数据访问抽象、Dialect、事务 | `DaoConfigs`（DB-001）、`DialectImpl`（DB-002）、`TransactionalMethodInterceptor`（TXN）、`dao-defaults.beans.xml`（IOC-003） |
 | `nop-orm` | ORM 会话/模板、EQL 执行、租户隔离、拦截器 | `IOrmTemplate`（DQL-002）、`DaoQueryHelper`（DQL-006）、`EntityPersisterImpl`（TNT-004）、`IOrmInterceptor`（AUDIT-002） |
 | `nop-orm-eql` | EQL → SQL 编译（含租户/逻辑删除注入） | `EqlTransformVisitor`（TNT-003） |
-| `nop-graphql-core` | GraphQL 引擎、HTTP 入口、BizModel 反射暴露 | `GraphQLEngine`（IGraphQLEngine 实现）、`GraphQLWebService`（GQL-008）、`ReflectionBizModelBuilder`、`RpcServiceOnGraphQL`（RPC-008） |
+| `nop-graphql-core` | GraphQL 引擎、HTTP 入口、BizModel 反射暴露 | `GraphQLEngine`（IGraphQLEngine 实现）、`GraphQLWebService`（GQL-009）、`ReflectionBizModelBuilder`、`RpcServiceOnGraphQL`（RPC-008） |
 | `nop-graphql-orm` | ORM relation fetcher 生成 | `OrmFetcherBuilder`（GQL-001） |
 | `nop-biz` | BizModel 服务层、事务封装、Biz 对象管理 | `BizActionInvoker`（TXN-001）、`BizObjectManager`、`CrudBizModel`（BIZ-002） |
 
@@ -40,7 +40,7 @@
 
 ```
 HTTP /r/{opName}
-  └─> GraphQLWebService.runRest(opType, operationName, ...)          [GQL-008: GraphQLWebService.java:229]
+  └─> GraphQLWebService.runRest(opType, operationName, ...)          [GQL-009: GraphQLWebService.java:229]
         解析 operationName = "{bizObj}__{method}"（分隔符 OBJ_ACTION_SEPARATOR="__", GraphQLConstants.java:96）
         engine = BeanContainer.getBeanByType(IGraphQLEngine.class)   [GraphQLWebService.java:233]
       └─> IGraphQLEngine.executeRpcAsync(ctx)                        [GraphQLEngine.java:492]
@@ -56,7 +56,7 @@ HTTP /r/{opName}
                                                     └─> 编译为方言 SQL → ISqlExecutor
 ```
 
-**所有 HTTP 入口**（`/graphql`、`/r/{opName}`、`/p/{opName}`、`/px/{svc}/{method}`、`/jsonrpc`）统一由 `GraphQLWebService` 适配到 `IGraphQLEngine`（GQL-008）。`/r/` 与 `/p/` 共用 `runRest()`；`/px/` 分布式代理走 `runProxy()`（RPC-007）；`/jsonrpc` 走 `runJsonRpc()`。
+**所有 HTTP 入口**（`/graphql`、`/r/{opName}`、`/p/{opName}`、`/px/{svc}/{method}`、`/jsonrpc`）统一由 `GraphQLWebService` 适配到 `IGraphQLEngine`（GQL-009）。`/r/` 与 `/p/` 共用 `runRest()`；`/px/` 分布式代理走 `runProxy()`（RPC-007）；`/jsonrpc` 走 `runJsonRpc()`。
 
 **事务边界**：mutation 默认进入事务（`TransactionPropagation.REQUIRED`），query 不进入（`BizActionInvoker.java:43` 分支 `opType == query` 跳过 txn）。两条路径都强制 `ormTemplate.runInSession(...)`。
 
@@ -196,11 +196,11 @@ ORM 拦截器（AUDIT-002）：`IOrmInterceptor` 8 个 hook（pre/post save/upda
 
 ## 5. nop-graphql：引擎核心与 BizModel 自动暴露
 
-### 5.1 引擎与 HTTP 入口（GQL-008）
+### 5.1 引擎与 HTTP 入口（GQL-009）
 
 - **接口**：`IGraphQLEngine.java:34`
 - **默认实现**：`engine/GraphQLEngine.java:95`（`implements IGraphQLEngine`）：`executeRpcAsync`(L492)、`executeGraphQLAsync`(L535)
-- **HTTP 入口**：`GraphQLWebService`（抽象类，GQL-008）—— JAX-RS 子类（Spring/Quarkus 适配）路由请求到统一方法：`runGraphQL`(L70)、`runRest`(L229)、`runProxy`(L166)、`runJsonRpc`(L395)。各方法经 `BeanContainer.getBeanByType(IGraphQLEngine.class)`(L72/L181/L233) 取引擎
+- **HTTP 入口**：`GraphQLWebService`（抽象类，GQL-009）—— JAX-RS 子类（Spring/Quarkus 适配）路由请求到统一方法：`runGraphQL`(L70)、`runRest`(L229)、`runProxy`(L166)、`runJsonRpc`(L395)。各方法经 `BeanContainer.getBeanByType(IGraphQLEngine.class)`(L72/L181/L233) 取引擎
 - **operationName 格式**：`{bizObj}__{method}`，分隔符 `__` 定义于 `GraphQLConstants.OBJ_ACTION_SEPARATOR`(L96)
 
 ### 5.2 BizModel 自动暴露机制（引擎层，A2 边界）

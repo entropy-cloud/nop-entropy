@@ -20,7 +20,7 @@ AI 不需要一开始记住所有模块名，但必须知道应该先去哪个�
 | 测试与示例 | `nop-autotest/`、`nop-demo/`、`demo/` | 测试基建、demo、模板 |
 | WIP 实验模块 | `nop-code/` | 多语言代码索引与智能分析服务。子模块：`nop-code-core`（通用模型+图数据结构+CodeCallGraph 适配层）、`nop-code-flow`（执行流追踪、变更分析、死代码检测）、`nop-code-lang-java/python/typescript`（语言适配器）、`nop-code-service`（BizModel + CodeIndexService + 业务图分析类）、`nop-code-api`（外部 RPC 接口）、`nop-code-dao/meta/web/app`（标准 Nop 分层）。已加入根 pom.xml modules。 |
 | 通用图算法库 | `nop-graph/` | 通用图接口与算法库。子模块：`nop-graph-api`（`IGraph` 接口+`Edge`+结果类型，零外部依赖）、`nop-graph-core`（算法实现：BFS、PageRank、TarjanSCC、ImpactPropagator、LeidenDetector、BetweennessCentrality、GraphExporter 等，依赖 JGraphT+CWTS）。供 `nop-code`、未来可供 `nop-wf`/`nop-task`/`nop-stream` 复用。 |
-| 流处理引擎 | `nop-stream/` | 分布式流处理引擎。子模块：`nop-stream-core`（核心 API、状态后端、算子、数据类型）、`nop-stream-cep`（CEP 复杂事件处理、NFA、模式匹配）、`nop-stream-runtime`（运行时、检查点协调器、窗口算子、任务调度）、`nop-stream-connector`（消息源/汇连接器、批消费适配器）、`nop-stream-checkpoint`（检查点存储抽象）、`nop-stream-flow`（流控）、`nop-stream-flink`（Flink API 兼容层）、`nop-stream-fraud-example`（欺诈检测示例应用）。 |
+| 流处理引擎 | `nop-stream/` | 分布式流处理引擎。子模块（与 `nop-stream/pom.xml` `<modules>` 一一对应，共 6 个）：`nop-stream-core`（核心 API、状态后端、算子、数据类型；Flink API 兼容层 `DataStreamSource`/`Transformation`/`StreamGraph`/`JobGraph` 位于本模块内部，非独立子模块）、`nop-stream-cep`（CEP 复杂事件处理、NFA、模式匹配）、`nop-stream-runtime`（运行时、检查点协调器、检查点存储抽象、窗口算子、任务调度）、`nop-stream-connector`（消息源/汇连接器、批消费适配器）、`nop-stream-flow`（流控）、`nop-stream-fraud-example`（欺诈检测示例应用）。仓库内不存在 `nop-stream-flink` / `nop-stream-checkpoint` 子模块。 |
 
 ## 最值得先理解的模块
 

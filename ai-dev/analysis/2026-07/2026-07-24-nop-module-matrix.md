@@ -45,7 +45,7 @@
 
 | 模块 | 一句话定位 | 代表依据 |
 |------|-----------|----------|
-| `nop-network` | 网络通信：HTTP（client/server filters）、Netty、RPC、Socket、Vert.x；`nop-rpc-api`/`nop-http-api` 契约归属 | RPC-001~008、GQL-008 |
+| `nop-network` | 网络通信：HTTP（client/server filters）、Netty、RPC、Socket、Vert.x；`nop-rpc-api`/`nop-http-api` 契约归属 | RPC-001~008、GQL-009 |
 | `nop-search` | 搜索引擎抽象：Lucene 实现；`nop-search-api` 被 code/metadata/ai 复用 | `nop-search-api` 消费者清单 |
 | `nop-cluster` | 集群基础设施：服务发现、负载均衡、限流（Sentinel）、Nacos 集成 | RPC-003~004（ClusterRpcServiceInvoker/Client） |
 | `nop-message` | 消息抽象层：Kafka/Pulsar/Debezium 连接器 | `reusable-modules-overview.md` §基础设施 |
@@ -94,7 +94,7 @@
 | `nop-task-api` | 0 | — | **独立/叶子** |
 
 **关键发现（证据驱动，印证了 plan 的初查假设）**：
-1. **基础设施型契约横切全平台**：`nop-http-api`(9) 与 `nop-rpc-api`(7) 是真正的「平台脊梁」，被几乎所有上层模块消费——它们定义了 HTTP/RPC 的统一抽象（RPC-001 `IRpcService.callAsync`、GQL-008 五入口统一分发）。
+1. **基础设施型契约横切全平台**：`nop-http-api`(9) 与 `nop-rpc-api`(7) 是真正的「平台脊梁」，被几乎所有上层模块消费——它们定义了 HTTP/RPC 的统一抽象（RPC-001 `IRpcService.callAsync`、GQL-009 五入口统一分发）。
 2. **`nop-auth-api`/`nop-sys-api` 外部消费者为 0**：认证与系统服务**不通过 Maven `-api` 制品被消费**，而是通过运行期机制到达应用——`nop-auth` 的 `AuthFilterConfig`/`AuthHttpServerFilter`（AUTH-001~003）作为 HTTP server filter、`nop-sys` 的 `OrmEntityChangeLogInterceptor`（AUDIT-001）作为 ORM 拦截器、`SysSequenceGenerator`（CODE-002）作为 bean，经 `_module` 发现与 `beans.xml` 装配注入。这是 nop 的设计选择：**横切能力走运行期织入而非编译期依赖**。
 3. **`nop-job-api` 被 `nop-metadata` 消费**：印证 META-005——`MetaQualityCheckpointScheduler` 复用 nop-job 的 cron 调度（`BeanMethodJobInvoker`）做质量检查点定时执行。这是「编排模块被数据模块复用」的实证。
 4. **`nop-graph-api` 被 `nop-code` 消费**：印证图算法库作为代码索引的底座（CodeCallGraph 复用 PageRank/SCC 等算法）。
@@ -204,8 +204,8 @@ graph TD
 ### 5.3 流处理：Flink vs nop-stream
 
 - **竞品做什么**：Apache Flink 是成熟的分布式流处理引擎，状态后端、checkpoint、窗口、CEP、exactly-once、大规模集群。
-- **nop-stream 做什么**：核心 API/状态后端/算子、CEP（NFA 模式匹配）、runtime（checkpoint 协调器、窗口算子）、connector、`nop-stream-flink`（Flink API 兼容层）。
-- **差异点**：**复用** `nop-stream-flink-comparison-deep-dive.md`（2026-07-20）+ `2026-06-14-nop-stream-barrier-checkpoint-comparison.md` + `2026-07-20-nop-stream-dataflow-api-gap-analysis.md` 结论——nop-stream 是「从 Flink 低成本迁移设计」的轻量实现，**不追求 Flink 的大规模生产级集群能力**，定位为平台内的嵌入式流处理（与 ORM/EQL/IoC 同进程）。`nop-stream-flink` 兼容层说明设计意图是「API 对齐 Flink、实现自研」。差异化：流处理纳入平台统一资源/IoC 体系，而非独立部署的集群组件。
+- **nop-stream 做什么**：核心 API/状态后端/算子（`nop-stream-core`）、CEP（NFA 模式匹配，`nop-stream-cep`）、runtime（checkpoint 协调器、窗口算子、检查点存储抽象，`nop-stream-runtime`）、connector（`nop-stream-connector`）、流控（`nop-stream-flow`）、欺诈检测示例（`nop-stream-fraud-example`）。Flink API 兼容代码（`DataStreamSource`/`Transformation`/`StreamGraph`/`JobGraph`）位于 `nop-stream-core` 内部，**非独立子模块**（仓库内不存在 `nop-stream-flink` / `nop-stream-checkpoint` 子模块，详见 `module-groups.md` §流处理引擎）。
+- **差异点**：**复用** `nop-stream-flink-comparison-deep-dive.md`（2026-07-20）+ `2026-06-14-nop-stream-barrier-checkpoint-comparison.md` + `2026-07-20-nop-stream-dataflow-api-gap-analysis.md` 结论——nop-stream 是「从 Flink 低成本迁移设计」的轻量实现，**不追求 Flink 的大规模生产级集群能力**，定位为平台内的嵌入式流处理（与 ORM/EQL/IoC 同进程）。位于 `nop-stream-core` 内部的 Flink API 兼容代码说明设计意图是「API 对齐 Flink、实现自研」。差异化：流处理纳入平台统一资源/IoC 体系，而非独立部署的集群组件。
 
 ### 5.4 元数据 / BI：DataHub / OpenMetadata vs nop-metadata
 

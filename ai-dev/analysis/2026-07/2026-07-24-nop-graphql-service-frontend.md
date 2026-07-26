@@ -110,7 +110,7 @@ xmeta 是「一体化」的枢纽：它既是 GraphQL object definition 的来�
 | `XuiViewAnalyzer` | `labelProp`/`jsonComponentProp`/`selection` → 补 selection | GQL-006 `XuiViewAnalyzer.java:397-409,267-277,248-265` |
 | `ExtPropsGetter` | 通用 `getTreeBean`/`getOrderBy` 读 `filter`/`orderBy` | GQL-007 `ExtPropsGetter.java:25-33,35-51` |
 
-`graphql:queryMethod` 是关联子表查询的核心——配置后该字段在 GraphQL 中变为带分页/排序/条件的可查询关联（返回类型 `findCount`→Int、`findFirst`→单对象、`findList`→`[对象]`、`findPage`→`PageBean`、`findConnection`→`Connection`）。
+`graphql:queryMethod` 是关联子表查询的核心——配置后该字段在 GraphQL 中变为带分页/排序/条件的可查询关联（返回类型 `findCount`→Long、`findFirst`→单对象、`findList`→`[对象]`、`findPage`→`PageBean`、`findConnection`→`Connection`）。
 
 #### 3.2 字段可见性：selection 由 xmeta props 约束
 

@@ -108,14 +108,14 @@ graph TD
 | XDef / xdsl.xdef | A1 §2.1 + A2 §3.1 | EXT-001/XLANG-003（`2026-07-24-nop-core-engine-deep-dive.md:120-126`） |
 | XDSL / XDslExtender + DeltaMerger | A1 §2.2 + A2 §3.2 | EXT-002（`2026-07-24-nop-core-engine-deep-dive.md:127-141`） |
 | BizModel / ReflectionBizModelBuilder | A2 §5.2 | `2026-07-24-nop-core-engine-deep-dive.md:208-216` |
-| GraphQL / IGraphQLEngine + 5 入口 | A2 §5.1 | GQL-008（`2026-07-24-nop-core-engine-deep-dive.md:200-205`） |
+| GraphQL / IGraphQLEngine + 5 入口 | A2 §5.1 | GQL-009（`2026-07-24-nop-core-engine-deep-dive.md:200-205`） |
 | ORM / EQL | A2 §4 | DQL-002/006、TNT-003（`2026-07-24-nop-core-engine-deep-dive.md:153-188`） |
 | model/*.orm.xml 唯一源 | A3 §1.1 | `2026-07-24-nop-model-driven-and-codegen.md:21-23` |
 | codegen 持续再生 | A3 §1.3 + §3 | GEN-001~009（`2026-07-24-nop-model-driven-and-codegen.md:42-46`） |
 | `_` 前缀不可手改 | A3 §4 | `CoreConstants.java:146-155`（`2026-07-24-nop-model-driven-and-codegen.md:175-186`） |
 | Delta 叠加 | A3 §5 | EXT-002/003（`2026-07-24-nop-model-driven-and-codegen.md:215-258`） |
 | xmeta 单一事实源 | A4 §3 | GQL-001~008（`2026-07-24-nop-graphql-service-frontend.md:90-113`） |
-| 单引擎统一分发 | A4 §2 + A2 §5.1 | GQL-008（`2026-07-24-nop-graphql-service-frontend.md:73-83`） |
+| 单引擎统一分发 | A4 §2 + A2 §5.1 | GQL-009（`2026-07-24-nop-graphql-service-frontend.md:73-83`） |
 | 三层 Delta 渲染 | A4 §4.2 | UI-001~004（`2026-07-24-nop-graphql-service-frontend.md:168-183`） |
 | GenPage 渲染 AMIS/Flux | A4 §4.4 | EXT-007/008/009（`2026-07-24-nop-graphql-service-frontend.md:201-215`） |
 | model-first 统一骨架 | A5 §1.1 | `2026-07-24-nop-module-matrix.md:23-43` |
@@ -139,7 +139,7 @@ graph TD
 | **Delta 跨模块定制** | `_delta/{layer}/` 分层资源；8 种 `x:override`；可定制 `beans.xml` / `*.xmeta` / `*.view.xml` / xlib | A3 §5；A5 §4；EXT-003 | profile / 条件注解 / 扩展机制；无结构化差量组合 |
 | **AOP 源码生成式** | build 期 `GenAopProxy` 生成 `__aop.java`；运行期注入拦截器数组（`IAopProxy`） | A2 §6.4（`2026-07-24-nop-core-engine-deep-dive.md:269-289`） | Spring CGLIB/JDK 动态代理运行期字节码；Quarkus build-time 织入；Micronaut APT |
 | **NopIoC 文件化 Bean 发现** | 完全文件化 `beans.xml`；无注解扫描；private 字段不可注入 | A2 §6.1 + §6.2；IOC-001/002 | Spring `@ComponentScan`；Quarkus Arc CDI；Micronaut JSR 330 |
-| **GraphQL 单引擎统一分发** | 5 个 HTTP 入口（`/graphql`/`/r/`/`/p/`/`/px/`/`/jsonrpc`）收敛到 `IGraphQLEngine` | A2 §5.1；A4 §2；GQL-008 | Spring for GraphQL schema-first；Hasura DB-introspection；Apollo Federation 多服务 compose |
+| **GraphQL 单引擎统一分发** | 5 个 HTTP 入口（`/graphql`/`/r/`/`/p/`/`/px/`/`/jsonrpc`）收敛到 `IGraphQLEngine` | A2 §5.1；A4 §2；GQL-009 | Spring for GraphQL schema-first；Hasura DB-introspection；Apollo Federation 多服务 compose |
 | **xmeta 单一事实源** | xmeta 同时驱动 GraphQL schema + 字段可见性 + view 基线 + AMIS/Flux JSON | A4 §3 + §4（`2026-07-24-nop-graphql-service-frontend.md:90-134`） | Formily JSON Schema 前端独立；Lowcode Engine 拖拽产物 |
 | **三层 Delta 渲染** | xmeta(源) → `_gen/_*.view.xml`(生成) → `*.view.xml`(手写) → `main.page.yaml` → 框架 JSON | A4 §4.1 + §4.2（`2026-07-24-nop-graphql-service-frontend.md:140-183`） | 单层 schema → 渲染；无生成/手写分离 |
 | **model-first 模块矩阵** | 每个业务模块都从 `model/*.orm.xml` 出发，共享同一套 codegen 模板 | A5 §1 + §4（`2026-07-24-nop-module-matrix.md:23-43,180-187`） | Flowable BPMN；PowerJob DAG；DataHub 独立部署；JasperReports 独立库 |
