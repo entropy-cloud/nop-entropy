@@ -301,7 +301,7 @@ A,@var:NopAuthSession@sessionId,@var:NopAuthUser@userId,...
 | 方式 | 作用域 | 用法 | 说明 |
 |------|--------|------|------|
 | **命令行参数** | 全局（覆盖所有） | `-Dnop.autotest.force-save-output=true` | Maven 传参：`mvn test -Dnop.autotest.force-save-output=true`。此属性会**强制**所有测试以录制模式运行，覆盖代码中的任何注解设置 |
-| **环境变量** | 全局（覆盖所有） | `export NOP_AUTOTEST_FORCE_SAVE_OUTPUT=true` | Nop 配置系统支持将 `.` 替换为 `_` 的环境变量名 |
+| **环境变量** | 全局（覆盖所有） | `export NOP_AUTOTEST_FORCE_SAVE_OUTPUT=true` | Nop 配置系统的环境变量映射规则：`_` → `.`、`__` → `-`、`___` → `_`。详见 `ioc-and-config.md` 的"环境变量命名规则" |
 | **类级注解** | 整个测试类 | `@NopTestConfig(snapshotTest = SnapshotTest.RECORDING)` | 类中所有方法的快照测试都走录制模式 |
 | **类级注解（便捷方式）** | 整个测试类 | `@NopTestConfig(forceSaveOutput = true)` | 等同上者的简写，设置 `nop.autotest.force-save-output=true` |
 | **方法级注解** | 单个方法 | `@EnableSnapshot(saveOutput = true)` | 只对加了此注解的方法生效，其他方法仍走校验 |

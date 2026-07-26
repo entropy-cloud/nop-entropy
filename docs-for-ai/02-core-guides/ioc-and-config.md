@@ -42,13 +42,40 @@ public class MyComponent {
 |------|--------|------|
 | 1 | 配置中心 | Nacos / Apollo |
 | 2 | key file / props file | `keyfile:/...`, `propsfile:/...` |
-| 3 | 环境变量 | `NOP_DATASOURCE_JDBC_URL=...` |
+| 3 | 环境变量 | `NOP_DATASOURCE_JDBC__URL=...` |
 | 4 | **系统属性 `-D`** | `-Dnop.datasource.jdbc-url=...` |
 | 5 | `bootstrap.yaml` | 启动期基础配置 |
 | 6 | 扩展配置加载器 | SPI `IConfigSourceLoader` |
 | 7 | `application.yaml` + `application-{profile}.yaml` | 应用主配置 |
 
 **关键规则**：`-D` 系统属性可以覆盖 `application.yaml` 中的一切值，包括 `%dev.xxx` 等 profile 专有值。
+
+### 环境变量命名规则
+
+Nop 通过 `StringHelper.envToConfigVar()` 将环境变量名映射为配置键。映射规则（实现见 `EnvConfigSourceLoader.java`）：
+
+| 环境变量中的模式 | 映射为配置键 | 说明 |
+|---|---|---|
+| `_` （单下划线） | `.` （点号） | 配置键的层级分隔符 |
+| `__` （双下划线） | `-` （连字符） | 配置键中的 kebab-case 连字符 |
+| `___` （三下划线） | `_` （下划线） | 配置键中原生的下划线 |
+
+**示例：**
+
+| 配置键 | 等价的 `-D` 参数 | 环境变量 |
+|---|---|---|
+| `nop.datasource.jdbc-url` | `-Dnop.datasource.jdbc-url=...` | `NOP_DATASOURCE_JDBC__URL=...` |
+| `nop.web.render-mode` | `-Dnop.web.render-mode=...` | `NOP_WEB_RENDER__MODE=...` |
+| `nop.profile` | `-Dnop.profile=...` | `NOP_PROFILE=...` |
+
+**常见误区：**
+
+- ❌ `NOP_WEB_RENDER_MODE` → 实际解析为 `nop.web.render.mode`（多了一个点，变成四级路径）
+- ❌ `NOP_DATASOURCE_JDBC_URL` → 实际解析为 `nop.datasource.jdbc.url`（连字符变点）
+- ✅ `NOP_WEB_RENDER__MODE` → 正确解析为 `nop.web.render-mode`
+- ✅ `NOP_DATASOURCE_JDBC__URL` → 正确解析为 `nop.datasource.jdbc-url`
+
+反向映射 `StringHelper.configVarToEnv()` 用于从配置键生成环境变量名，规则同上逆推。
 
 ### 激活 profile
 
