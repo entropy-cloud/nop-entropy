@@ -5,6 +5,7 @@ const backendTimeout = parseInt(process.env.BACKEND_TIMEOUT || '120000', 10);
 const frontendDevMode = process.env.FRONTEND_DEV_MODE === 'true';
 const frontendPort = parseInt(process.env.FRONTEND_PORT || '4173', 10);
 const nopChaosNextDir = process.env.NOP_CHAOS_NEXT_DIR || '../../../nop-chaos-next';
+const engineType = process.env.E2E_ENGINE || 'amis';
 
 const explicitBaseUrl = process.env.BASE_URL;
 const baseURL = explicitBaseUrl ?? (
@@ -43,7 +44,7 @@ export default defineConfig({
 
     if (!process.env.SKIP_WEBSERVER) {
       servers.push({
-        command: `mvn quarkus:dev -Dquarkus.http.port=${backendPort} -Dquarkus.profile=dev`,
+        command: `mvn quarkus:dev -Dquarkus.http.port=${backendPort} -Dquarkus.profile=dev${engineType === 'flux' ? ' -Dnop.web.render-mode=flux' : ''}`,
         cwd: '../../../nop-auth/nop-auth-app',
         port: backendPort,
         timeout: backendTimeout,

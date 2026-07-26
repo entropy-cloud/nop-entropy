@@ -69,17 +69,22 @@ check(data.get('data',{}), 'root')
    - Flux/chaos 引擎等待 `nav button[class*="flex-1"]` — React SPA 侧边栏按钮
    - 如果引擎类型配错，`waitForMenuLoaded` 会超时或过早返回
 
-2. **检查 `page.goto('#/...')` 格式**
+2. **检查后端 render-mode 是否匹配**
+   - 设置 `E2E_ENGINE=flux` 时，`playwright.config.ts` 自动传递 `-Dnop.web.render-mode=flux` 到 `mvn quarkus:dev`
+   - 如果直接运行 `mvn quarkus:dev` 而没有经过 Playwright webServer，需手动设置 `-Dnop.web.render-mode=flux`
+   - 前后端渲染模式不匹配时，页面可能渲染为空或组件无法被适配器识别
+
+3. **检查 `page.goto('#/...')` 格式**
    - `page.goto('/#/NopAuthResource-main')` — 完整 URL 导航（触发 React SPA 全量加载）
    - `page.goto('#/NopAuthResource-main')` — 仅 hash 变更（不触发后端头发请求，但可能不被 SPA 识别）
    - 页面对象中统一用 `page.goto('#/{route}')` 是当前做法。如果页面异常，先检查 hash 导航前后的 URL
 
-3. **检查共享 context 中的 cookie 冲突**
+4. **检查共享 context 中的 cookie 冲突**
    - `request.post('/r/LoginApi__login', {data: {principalId, principalSecret, loginType: 1}})` 使用 `APIRequestContext`，不设 cookie
    - 浏览器表单登录后，context 中会设置 `nop-token` cookie — 这是浏览器会话的凭证
    - 两个登录方式共享同一个 context 的 cookie jar，但 token 机制不同，一般不会冲突。如果设了请求级别的 auth header，优先于 cookie
 
-4. **RPC 创建的资源在 CRUD 表中不可见**
+5. **RPC 创建的资源在 CRUD 表中不可见**
    Playwright 的 `APIRequestContext`（`loginRpc` + `rpc` 调用）和浏览器页面会话隔离。通过 RPC 创建的 `NopAuthResource` 不会出现在后续 `page.goto` 加载的 CRUD 表格中。
 
    **根因**：不同会话上下文 + AMIS 页面只在首次渲染时查询一次数据，不自动拉取后续 RPC 创建的数据。
