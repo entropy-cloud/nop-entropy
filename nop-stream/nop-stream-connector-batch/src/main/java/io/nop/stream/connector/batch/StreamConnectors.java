@@ -5,18 +5,22 @@
  * Gitee:  https://gitee.com/canonical-entropy/nop-entropy
  * Github: https://github.com/entropy-cloud/nop-entropy
  */
-package io.nop.stream.connector;
+package io.nop.stream.connector.batch;
 
 import io.nop.batch.core.IBatchConsumerProvider;
 import io.nop.batch.core.IBatchLoaderProvider;
 
-import io.nop.stream.core.common.functions.SinkFunction;
 import io.nop.stream.core.datastream.DataStream;
 import io.nop.stream.core.datastream.DataStreamSource;
 import io.nop.stream.core.environment.StreamExecutionEnvironment;
 
 /**
  * Convenience methods for creating sources and sinks from nop-batch providers.
+ *
+ * <p>This class lives in {@code nop-stream-connector-batch} (not the base
+ * {@code nop-stream-connector}) because it references {@code nop-batch-core}
+ * types directly. Keeping it out of the base module ensures the base connector
+ * stays loadable when {@code nop-batch-core} is absent (AR-2 contract).</p>
  */
 public final class StreamConnectors {
 

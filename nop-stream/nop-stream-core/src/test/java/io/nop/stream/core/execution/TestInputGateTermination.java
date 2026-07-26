@@ -53,22 +53,28 @@ public class TestInputGateTermination {
     }
 
     @Test
-    void testSingleChannelInterruptThrowsException() throws Exception {
+    void testSingleChannelInterruptReturnsEmpty() throws Exception {
+        // P1-8: single-channel interrupt now aligns with multi-input handling:
+        // set interrupt flag + return Optional.empty() (instead of throwing StreamException).
+        // The SubtaskTask state machine uses the cancel flag to determine CANCELED state.
         ResultPartition partition = new ResultPartition();
         InputChannel channel = new InputChannel(partition);
         InputGate gate = new InputGate(channel);
 
+        AtomicReference<Optional<StreamElement>> result = new AtomicReference<>();
         AtomicReference<Throwable> error = new AtomicReference<>();
+        AtomicBoolean interruptFlagSet = new AtomicBoolean(false);
         CountDownLatch latch = new CountDownLatch(1);
 
         Thread reader = new Thread(() -> {
             try {
-                gate.read();
-            } catch (StreamException e) {
-                error.set(e);
+                result.set(gate.read());
             } catch (Exception e) {
                 error.set(e);
             } finally {
+                // Capture the reader thread's interrupt status BEFORE it exits,
+                // because Thread.isInterrupted() is cleared when a thread dies.
+                interruptFlagSet.set(Thread.currentThread().isInterrupted());
                 latch.countDown();
             }
         });
@@ -78,8 +84,10 @@ public class TestInputGateTermination {
         reader.interrupt();
 
         assertTrue(latch.await(5, TimeUnit.SECONDS), "Reader thread should complete after interrupt");
-        assertNotNull(error.get(), "Interrupt should cause StreamException");
-        assertInstanceOf(StreamException.class, error.get());
+        assertNull(error.get(), "Interrupt should NOT cause an exception — it returns empty");
+        assertNotNull(result.get(), "read() should have returned a result");
+        assertFalse(result.get().isPresent(), "Interrupt should cause read() to return Optional.empty()");
+        assertTrue(interruptFlagSet.get(), "Interrupt flag should be set on the reader thread");
     }
 
     @Test

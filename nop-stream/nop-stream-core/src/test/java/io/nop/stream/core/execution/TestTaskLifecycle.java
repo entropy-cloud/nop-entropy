@@ -7,6 +7,7 @@ import io.nop.stream.core.jobgraph.Invokable;
 import io.nop.stream.core.jobgraph.JobVertex;
 import io.nop.stream.core.jobgraph.OperatorChain;
 import io.nop.stream.core.operators.StreamMap;
+import io.nop.stream.core.operators.StreamSinkOperator;
 
 import java.util.Collections;
 import java.util.concurrent.atomic.AtomicReference;
@@ -227,5 +228,70 @@ class TestTaskLifecycle {
                 }
             }
         }
+    }
+
+    @Test
+    void testSubtaskTaskCancelViaInterruptReachesCanceled() throws Exception {
+        // P1-8: verify that cancel() → interrupt → SubtaskTask ends in CANCELED
+        // (not FAILED, not mistaken SUCCESS/COMPLETED). Uses a real blocking
+        // InputGate (single channel, empty ResultPartition) so the task thread
+        // blocks in InputGate.readSingleChannel — the exact code path P1-8 fixed.
+        // cancel() sets CANCELING + interrupts the thread; readSingleChannel
+        // catches InterruptedException, re-sets the interrupt flag, and returns
+        // Optional.empty(); processInputGate breaks on empty; invoke() returns;
+        // SubtaskTask.run() sees state==CANCELING and transitions to CANCELED.
+
+        StreamSinkOperator<String> sinkOp = new StreamSinkOperator<>(
+                new io.nop.stream.core.common.functions.SinkFunction<String>() {
+                    private static final long serialVersionUID = 1L;
+                    @Override public void consume(String value) {}
+                });
+        OperatorChain chain = new OperatorChain(Collections.singletonList(sinkOp));
+
+        // Empty ResultPartition: channel.read() blocks until interrupted.
+        ResultPartition partition = new ResultPartition();
+        InputChannel channel = new InputChannel(partition);
+        InputGate inputGate = new InputGate(Collections.singletonList(channel));
+
+        StreamTaskInvokable invokable = new StreamTaskInvokable(chain, (RecordWriter<Object>) null, inputGate);
+
+        JobVertex v = new JobVertex("test-vertex", "test", 1,
+                Collections.singletonList(chain), () -> {});
+        Subtask subtask = new Subtask("v1", 0,
+                new io.nop.stream.core.checkpoint.TaskLocation("j", "p", "v1", 0),
+                invokable);
+        SubtaskTask task = new SubtaskTask(subtask, v,
+                Collections.singletonList(chain));
+
+        Thread t = new Thread(task::run);
+        t.setDaemon(true);
+        t.start();
+
+        // Wait until the task reaches RUNNING (it will then block in InputGate.read).
+        long deadline = System.currentTimeMillis() + 5_000;
+        while (task.getState() != SubtaskTask.State.RUNNING
+                && task.getState() != SubtaskTask.State.FAILED
+                && System.currentTimeMillis() < deadline) {
+            Thread.sleep(10);
+        }
+        assertEquals(SubtaskTask.State.RUNNING, task.getState(),
+                "task should reach RUNNING within 5s (state=" + task.getState() + ")");
+
+        // cancel() from RUNNING → CANCELING + interrupt the task thread.
+        assertTrue(task.cancel(), "cancel() from RUNNING must return true");
+        // After cancel(), the state is CANCELING or already CANCELED (if the
+        // task thread processed the interrupt and finalized before this check).
+        // Both are valid — the race between the interrupt and the task thread's
+        // CANCELING→CANCELED transition is inherent.
+        SubtaskTask.State stateAfterCancel = task.getState();
+        assertTrue(stateAfterCancel == SubtaskTask.State.CANCELING
+                || stateAfterCancel == SubtaskTask.State.CANCELED,
+                "state after cancel() must be CANCELING or CANCELED, got " + stateAfterCancel);
+
+        t.join(5_000);
+        assertFalse(t.isAlive(), "task thread should have completed within 5s");
+
+        assertEquals(SubtaskTask.State.CANCELED, task.getState(),
+                "Final state must be CANCELED (not FAILED, not COMPLETED)");
     }
 }

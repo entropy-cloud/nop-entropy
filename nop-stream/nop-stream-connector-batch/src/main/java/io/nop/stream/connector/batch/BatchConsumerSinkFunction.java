@@ -5,7 +5,7 @@
  * Gitee:  https://gitee.com/canonical-entropy/nop-entropy
  * Github: https://github.com/entropy-cloud/nop-entropy
  */
-package io.nop.stream.connector;
+package io.nop.stream.connector.batch;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -35,6 +35,14 @@ import static io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_STATE_ERR
  * <p>
  * Buffers incoming records and flushes them in batches to the underlying consumer.
  * Implements {@link AutoCloseable} so the operator lifecycle can flush remaining records.
+ *
+ * <p><strong>Thread-safety contract</strong> (P1-15): the nop-stream operator
+ * model executes each subtask on a single task thread
+ * ({@code StreamSinkOperator.processElement} → {@code consume} is invoked
+ * sequentially from one thread). Accordingly {@code consume()} is NOT
+ * designed for concurrent invocation and the internal {@code buffer} is
+ * unsynchronized. If a future execution model introduces concurrency,
+ * synchronization must be added here.</p>
  */
 public class BatchConsumerSinkFunction<R> implements SinkFunction<R>, AutoCloseable {
 
@@ -67,6 +75,13 @@ public class BatchConsumerSinkFunction<R> implements SinkFunction<R>, AutoClosea
 
     @Override
     public void consume(R value) {
+        // P1-15: reject null at the boundary instead of accepting it into the
+        // buffer, where it would surface later as an opaque NPE during flush
+        // (or worse, be silently persisted). Failing fast preserves the
+        // stream's data contract.
+        if (value == null) {
+            throw new StreamException(ERR_STREAM_NULL_ARG).param(ARG_ARG_NAME, "value");
+        }
         buffer.add(value);
         if (buffer.size() >= batchSize) {
             flush();

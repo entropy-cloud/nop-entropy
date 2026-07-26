@@ -5,7 +5,7 @@
  * Gitee:  https://gitee.com/canonical-entropy/nop-entropy
  * Github: https://github.com/entropy-cloud/nop-entropy
  */
-package io.nop.stream.connector;
+package io.nop.stream.connector.batch;
 
 import io.nop.batch.core.IBatchChunkContext;
 import io.nop.batch.core.IBatchConsumerProvider;

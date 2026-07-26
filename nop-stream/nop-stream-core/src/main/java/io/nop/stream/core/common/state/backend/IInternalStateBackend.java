@@ -24,18 +24,36 @@ import io.nop.stream.core.common.state.ReducingStateDescriptor;
 public interface IInternalStateBackend<K> extends IKeyedStateBackend<K> {
 
     /**
-     * 获取或创建 InternalAppendingState。
-     * 
+     * 获取或创建 InternalAppendingState（reducing 重载）。
+     *
      * <p>用于 Window 状态存储，支持按 namespace（如 Window）分区。
+     * 对于 reducing state，输入类型 IN 同时也是累加器类型和输出类型
+     * （reduce 函数语义为 (IN, IN) → IN），因此返回
+     * {@code InternalAppendingState<K, N, IN, IN, IN>}。
      *
      * @param descriptor 状态描述符
-     * @param <IN> 输入元素类型
-     * @param <ACC> 累加器类型
+     * @param <N> namespace 类型（如 Window）
+     * @param <IN> 输入元素类型（同时为累加器和输出类型）
      * @return InternalAppendingState 实例
      */
-    <N, IN, ACC> InternalAppendingState<K, N, IN, ACC, ACC> getInternalAppendingState(
+    <N, IN> InternalAppendingState<K, N, IN, IN, IN> getInternalAppendingState(
             ReducingStateDescriptor<IN> descriptor);
 
+    /**
+     * 获取或创建 InternalAppendingState（aggregating 重载）。
+     *
+     * <p>用于 Window 状态存储，支持按 namespace（如 Window）分区。
+     * IN/ACC/OUT 三个类型参数由 {@link AggregatingStateDescriptor} 携带的
+     * {@link io.nop.stream.core.common.functions.AggregateFunction} 确定，
+     * 方法签名仅声明 namespace 自由类型参数 N。
+     *
+     * @param descriptor 状态描述符
+     * @param <N> namespace 类型（如 Window）
+     * @param <IN> 输入元素类型
+     * @param <ACC> 累加器类型
+     * @param <OUT> 输出类型
+     * @return InternalAppendingState 实例
+     */
     <N, IN, ACC, OUT> InternalAppendingState<K, N, IN, ACC, OUT> getInternalAppendingState(
             AggregatingStateDescriptor<IN, ACC, OUT> descriptor);
 

@@ -19,7 +19,7 @@ public class StateDescriptor<T> implements Serializable {
     private final Class<T> valueType;
     private final T defaultValue;
 
-    private TypeSerializer<?> serializer;
+    private TypeSerializer<T> serializer;
 
     public StateDescriptor(String name, Class<T> valueType) {
         this.name = name;
@@ -47,12 +47,11 @@ public class StateDescriptor<T> implements Serializable {
         return defaultValue;
     }
 
-    @SuppressWarnings("unchecked")
-    public <S> TypeSerializer<S> getSerializer() {
-        return (TypeSerializer<S>) serializer;
+    public TypeSerializer<T> getSerializer() {
+        return serializer;
     }
 
-    public void setSerializer(TypeSerializer<?> serializer) {
+    public void setSerializer(TypeSerializer<T> serializer) {
         this.serializer = serializer;
     }
 }

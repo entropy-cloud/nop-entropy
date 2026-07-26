@@ -272,8 +272,13 @@ public class InputGate {
             }
             return Optional.of(element);
         } catch (InterruptedException e) {
+            // P1-8: Align with multi-input interrupt handling — set interrupt flag
+            // and return empty. The caller (processInputGate) breaks on empty, and
+            // SubtaskTask's state machine (state==CANCELING after cancel() set the
+            // flag and interrupted this thread) transitions to CANCELED — not FAILED,
+            // not mistaken SUCCESS/EOS.
             Thread.currentThread().interrupt();
-            throw new StreamException(ERR_STREAM_INVALID_STATE).param(ARG_DETAIL, "InputGate interrupted");
+            return Optional.empty();
         }
     }
 

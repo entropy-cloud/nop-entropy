@@ -169,17 +169,14 @@ public class StreamGraphGenerator {
     }
 
     private void detectWindowingStrategies(StreamComponents components, Map<String, Transformation<?>> transformMap) {
-        for (Transformation<?> t : transformMap.values()) {
-            if (t instanceof OneInputTransformation) {
-                StreamOperatorFactory<?> factory = ((OneInputTransformation<?, ?>) t).getOperatorFactory();
-                if (factory != null) {
-                    String factoryName = factory.getClass().getName();
-                    if (factoryName.contains("WindowOperator") || factoryName.contains("window")) {
-                        components.registerWindowingStrategy(String.valueOf(t.getId()), factory);
-                    }
-                }
-            }
-        }
+        // P1-1: Previously this method stored StreamOperatorFactory<?> into the
+        // windowingStrategies registry, which was a type mismatch — the registry is
+        // typed Map<String, WindowingStrategy> and WindowingStrategy is a serializable
+        // config bean, not a factory. No code path reads this registry at runtime
+        // (WindowedStreamImpl.getBean is never called in production), so the writes
+        // were dead and type-unsafe. WindowingStrategy objects should be registered
+        // explicitly via registerWindowingStrategy when they exist; factory detection
+        // belongs to the graph/jobgraph layers, not the components registry.
     }
 
     private void detectRequirements(StreamComponents components, Map<String, Transformation<?>> transformMap) {

@@ -5,15 +5,13 @@
  * Gitee:  https://gitee.com/canonical-entropy/nop-entropy
  * Github: https://github.com/entropy-cloud/nop-entropy
  */
-package io.nop.stream.connector;
+package io.nop.stream.connector.batch;
 
 import io.nop.batch.core.IBatchConsumerProvider;
-import io.nop.batch.core.IBatchTaskContext;
 import org.junit.jupiter.api.Test;
 import io.nop.stream.core.exceptions.StreamException;
 
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
 
@@ -99,5 +97,34 @@ public class TestBatchConsumerSinkFunction {
 
         sink.close();
         assertEquals(2, flushed.size(), "nothing left to flush");
+    }
+
+    // ---- P1-15 boundary tests ----
+
+    @Test
+    void testBatchSizeZeroRejected() {
+        // P1-15: batchSize=0 must be rejected at construction (would cause
+        // buffer to never fill / infinite loop on flush threshold).
+        IBatchConsumerProvider<String> provider = ctx -> (items, chunkCtx) -> {};
+        assertThrows(StreamException.class, () -> new BatchConsumerSinkFunction<>(provider, 0),
+                "batchSize=0 must be rejected");
+    }
+
+    @Test
+    void testBatchSizeNegativeRejected() {
+        IBatchConsumerProvider<String> provider = ctx -> (items, chunkCtx) -> {};
+        assertThrows(StreamException.class, () -> new BatchConsumerSinkFunction<>(provider, -1),
+                "negative batchSize must be rejected");
+    }
+
+    @Test
+    void testConsumeNullRejected() {
+        // P1-15: consume(null) must be rejected at the boundary rather than
+        // accepted into the buffer (where it would surface as an opaque NPE
+        // during flush, or worse be silently persisted).
+        IBatchConsumerProvider<String> provider = ctx -> (items, chunkCtx) -> {};
+        BatchConsumerSinkFunction<String> sink = new BatchConsumerSinkFunction<>(provider, 10);
+        assertThrows(StreamException.class, () -> sink.consume(null),
+                "consume(null) must be rejected");
     }
 }

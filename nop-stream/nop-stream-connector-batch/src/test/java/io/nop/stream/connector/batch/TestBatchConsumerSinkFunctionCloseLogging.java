@@ -1,4 +1,4 @@
-package io.nop.stream.connector;
+package io.nop.stream.connector.batch;
 
 import io.nop.batch.core.IBatchConsumerProvider;
 import io.nop.batch.core.IBatchTaskContext;

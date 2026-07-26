@@ -86,8 +86,6 @@ public class StreamSinkOperator<IN> extends AbstractUdfStreamOperator<Void, Sink
                     }
 
                     ((CheckpointParticipant) userFunction).prepareCommit(barrier.getId());
-                } else if (userFunction instanceof TwoPhaseCommitSinkFunction) {
-                    ((TwoPhaseCommitSinkFunction<?>) userFunction).preCommit(barrier.getId());
                 }
 
                 this.lastSnapshotResult = snapshotResult;
@@ -120,8 +118,6 @@ public class StreamSinkOperator<IN> extends AbstractUdfStreamOperator<Void, Sink
         if (userFunction instanceof CheckpointParticipant) {
             // Commit is handled by CheckpointCoordinator via finishCommit(epochId, true) path.
             // Skip direct commit() to avoid double commit.
-        } else if (userFunction instanceof TwoPhaseCommitSinkFunction) {
-            ((TwoPhaseCommitSinkFunction<?>) userFunction).commit(checkpointId);
         } else if (userFunction instanceof CheckpointListener) {
             ((CheckpointListener) userFunction).notifyCheckpointComplete(checkpointId);
         }
@@ -132,8 +128,6 @@ public class StreamSinkOperator<IN> extends AbstractUdfStreamOperator<Void, Sink
         if (userFunction instanceof CheckpointParticipant) {
             // Abort is handled by CheckpointCoordinator via finishCommit(epochId, false) path.
             // Skip direct rollback() — prepared transactions are kept for subsuming commit.
-        } else if (userFunction instanceof TwoPhaseCommitSinkFunction) {
-            ((TwoPhaseCommitSinkFunction<?>) userFunction).rollback();
         } else if (userFunction instanceof CheckpointListener) {
             ((CheckpointListener) userFunction).notifyCheckpointAborted(checkpointId);
         }

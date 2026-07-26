@@ -183,11 +183,11 @@ public class MemoryKeyedStateBackend<K> implements IInternalStateBackend<K>, Ser
     }
 
     @Override
-    public <N, IN, ACC> InternalAppendingState<K, N, IN, ACC, ACC> getInternalAppendingState(
+    public <N, IN> InternalAppendingState<K, N, IN, IN, IN> getInternalAppendingState(
             ReducingStateDescriptor<IN> descriptor) {
         @SuppressWarnings("unchecked")
-        InternalAppendingState<K, N, IN, ACC, ACC> state =
-                (InternalAppendingState<K, N, IN, ACC, ACC>) states.get(descriptor.getName());
+        InternalAppendingState<K, N, IN, IN, IN> state =
+                (InternalAppendingState<K, N, IN, IN, IN>) states.get(descriptor.getName());
         if (state == null) {
             state = new MemoryInternalAppendingState<>(this, descriptor);
             registerStateType(descriptor.getName(), InternalAppendingState.class);
