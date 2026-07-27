@@ -1,0 +1,10 @@
+{
+  "id": "link-btn",
+  "label": "Go to Page",
+  "onClick": {
+    "action": "navigate",
+    "args": {
+      "url": "/my-page"
+    }
+  }
+}

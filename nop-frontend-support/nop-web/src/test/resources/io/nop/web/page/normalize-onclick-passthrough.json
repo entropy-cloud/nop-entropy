@@ -1,0 +1,8 @@
+{
+  "id": "test-btn",
+  "label": "Test",
+  "onClick": {
+    "type": "custom",
+    "customField": "abc"
+  }
+}

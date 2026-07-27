@@ -27,6 +27,8 @@ export class CrudListPage extends BasePage {
   async waitForList(timeoutMs = 30_000): Promise<void> {
     await this.engine.crudContainer(this.page).waitFor({ state: 'visible', timeout: timeoutMs });
     await this.engine.table(this.page).waitFor({ state: 'visible', timeout: timeoutMs });
+    await this.page.waitForLoadState('networkidle', { timeout: timeoutMs }).catch(() => {});
+    await this.page.waitForTimeout(500);
   }
 
   async getAddButton(): Promise<Locator> {
@@ -127,7 +129,15 @@ export class CrudListPage extends BasePage {
 
   async assertEntityExists(text: string): Promise<void> {
     const { expect } = await import('@playwright/test');
-    const row = await this.findRowByText(text);
+    // 先用基于 textContent 的方式查找（兼容性好）
+    const row = await this.findRowByText(text, 8_000);
+    // 如果没找到，再用基于 Playwright locator 的方式兜底
+    if (!row) {
+      const locatorRow = this.page.locator('[data-slot="table-body"] tr').filter({ hasText: text }).first();
+      const exists = await locatorRow.count().then((c) => c > 0);
+      expect(exists).toBe(true);
+      return;
+    }
     expect(row).not.toBeNull();
   }
 
@@ -155,14 +165,19 @@ export class CrudListPage extends BasePage {
     return null;
   }
 
-  async findRowByText(text: string): Promise<Locator | null> {
-    const allRows = this.engine.rows(this.page);
-    const count = await allRows.count();
-    for (let i = 0; i < count; i++) {
-      const row = allRows.nth(i);
-      const rowText = (await row.textContent()) ?? '';
-      if (rowText.includes(text)) return row;
-    }
+  async findRowByText(text: string, timeoutMs = 0): Promise<Locator | null> {
+    const deadline = Date.now() + timeoutMs;
+    do {
+      const allRows = this.engine.rows(this.page);
+      const count = await allRows.count();
+      for (let i = 0; i < count; i++) {
+        const row = allRows.nth(i);
+        const rowText = (await row.textContent()) ?? '';
+        if (rowText.includes(text)) return row;
+      }
+      if (Date.now() >= deadline) break;
+      await this.page.waitForTimeout(300);
+    } while (timeoutMs > 0);
     return null;
   }
 

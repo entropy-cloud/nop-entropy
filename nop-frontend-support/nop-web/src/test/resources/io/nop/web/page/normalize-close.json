@@ -1,0 +1,7 @@
+{
+  "id": "close-btn",
+  "label": "Close",
+  "onClick": {
+    "action": "closeSurface"
+  }
+}

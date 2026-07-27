@@ -38,7 +38,8 @@
 | 修改工作流定义（`.xwf`）、理解审批流配置 | `docs-for-ai/02-core-guides/workflow-configuration.md` | `docs-for-ai/03-runbooks/build-approval-flow.md` |
 | 修改平台框架核心（nop-core/nop-xlang/nop-xdef 等） | `docs-for-ai/02-core-guides/xlang-and-xpl-basics.md` | `docs-for-ai/02-core-guides/xdef-and-xdsl.md` |
 | 编写或修改测试 | `docs-for-ai/02-core-guides/testing.md` | — |
-| 编写或运行平台 E2E 测试（Playwright） | `nop-entropy-e2e/README.md` | — |
+| 编写或运行平台 E2E 测试（Playwright） | `nop-entropy-e2e/README.md` | `docs-for-ai/02-core-guides/e2e-testing-troubleshooting.md` |
+| E2E Playwright 测试失败排查 | `docs-for-ai/02-core-guides/e2e-testing-troubleshooting.md` | `docs-for-ai/02-core-guides/debugging-and-diagnostics.md` |
 | 执行特定类型任务（按 runbook） | `docs-for-ai/03-runbooks/README.md` | 对应 runbook 文件 |
 | 新增模块或修改包结构 | `docs-for-ai/01-repo-map/module-groups.md` | `docs-for-ai/01-repo-map/domain-module-pattern.md` |
 | Draft, execute, or audit a plan under `ai-dev/plans/` | `ai-dev/plans/00-plan-authoring-and-execution-guide.md` | `ai-dev/logs/00-log-writing-guide.md` |

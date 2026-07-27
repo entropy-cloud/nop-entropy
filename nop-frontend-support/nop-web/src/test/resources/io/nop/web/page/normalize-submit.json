@@ -1,0 +1,7 @@
+{
+  "id": "submit-btn",
+  "label": "Submit",
+  "onClick": {
+    "action": "submitForm"
+  }
+}

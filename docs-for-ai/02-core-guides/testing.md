@@ -242,6 +242,49 @@ public class TestOrder extends JunitAutoTestCase {
 
 这个清单的核心思路：**快照保护结构，断言保护语义。** 两者缺一不可。重新录制时，显式断言仍然是代码的一部分，框架不会跳过它们——如果回归了，断言依然会失败。这就是你的安全网。
 
+## XPL Tag 输出 Golden JSON 快照测试
+
+测试 XPL tag（如 `NormalizeAction`）的转换输出时，推荐使用 **golden JSON 快照**模式而非纯手写字段断言：
+
+### 模式
+
+1. **录入（regenerateSnapshots）**：一个 `@Disabled` 方法，调用 tag 并 `ResourceHelper.writeText` 输出到 `target/`，或 `System.out.println(JSON.serialize(result, true))`。开发者在本地解除 `@Disabled` 运行一次，确认输出正确后复制到 `test/resources/` 下。
+2. **验证**：正式测试方法中只保留 1-2 个关键字段断言 + `assertEquals(attachmentJsonText("golden.json"), serialized)` 全结构比对。
+3. **更新**：当业务逻辑变更导致输出变化时，重新运行录入方法、人工审查 diff、复制新 golden 文件。
+
+### 优点
+
+- 全结构比对，不会遗漏未预期字段变更
+- golden 文件可纳入版本控制，review 时能看到输出变化
+- 录入方法为 `@Disabled`，不干扰 CI
+
+### 文件组织
+
+- golden 文件放在 `src/test/resources/<package-path>/`（与测试类同 package）
+- 命名约定：`normalize-{测试场景}.json`
+
+### 示例
+
+见 `TestFluxNormalizeAction.java`：
+- `regenerateSnapshots()` — @Disabled 录入方法，遍历所有场景
+- `testAjaxAction()` → 对比 `normalize-ajax.json`
+- `testConfirmText()` → 对比 `normalize-confirm.json`
+
+```java
+@Disabled("Run to regenerate golden snapshots, copy target output to test resources")
+@Test
+public void regenerateSnapshots() {
+    // ... 遍历各场景，输出到 target/ 或 stdout
+}
+
+@Test
+public void testAjaxAction() {
+    // ... 构造输入 ...
+    String text = normalizeAndSerialize(action);
+    assertEquals(attachmentJsonText("normalize-ajax.json"), text);
+}
+```
+
 ## 自动测试变量（`@var:`）机制
 
 ### 哪些字段会成为变量

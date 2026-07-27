@@ -1,0 +1,11 @@
+{
+  "id": "copy-btn",
+  "label": "Copy",
+  "onClick": {
+    "action": "setValue",
+    "args": {
+      "path": "orderNo",
+      "value": "ORD-001"
+    }
+  }
+}

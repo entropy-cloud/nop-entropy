@@ -321,6 +321,7 @@
                     type: 'list-select',
                     clearable: true,
                     selectFirst: dispMeta?.selectFirst,
+                    dict: propMeta?.schema?.dict,
                     source: '@dict:' + propMeta?.schema?.dict,
                     value: dispMeta?.defaultValue ?? ((editMode == 'add' || editMode == 'list-edit') ? propMeta?.defaultValue: null)
                  }
@@ -337,6 +338,7 @@
                  return {
                     type: 'radios',
                     clearable: true,
+                    dict: propMeta?.schema?.dict,
                     source: '@dict:' + propMeta?.schema?.dict,
                     value: dispMeta?.defaultValue ?? ((editMode == 'add' || editMode == 'list-edit') ? propMeta?.defaultValue: null)
                  }
@@ -356,6 +358,7 @@
                     clearable: true,
                     multiple: false,
                     selectFirst: dispMeta?.selectFirst,
+                    dict: propMeta?.schema?.dict,
                     source: '@dict:' + propMeta?.schema?.dict,
                     value: dispMeta?.defaultValue ?? ((editMode == 'add' || editMode == 'list-edit') ? propMeta?.defaultValue: null)
                  }

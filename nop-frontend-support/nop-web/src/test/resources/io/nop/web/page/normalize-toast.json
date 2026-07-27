@@ -1,0 +1,10 @@
+{
+  "id": "toast-btn",
+  "label": "Show Toast",
+  "onClick": {
+    "action": "showToast",
+    "args": {
+      "message": "Operation successful"
+    }
+  }
+}

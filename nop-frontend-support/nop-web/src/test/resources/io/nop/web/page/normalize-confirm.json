@@ -1,0 +1,18 @@
+{
+  "id": "del-btn",
+  "label": "Delete",
+  "onClick": {
+    "action": "confirm",
+    "args": {
+      "message": "Are you sure?"
+    },
+    "then": [
+      {
+        "action": "ajax",
+        "args": {
+          "url": "/test/delete"
+        }
+      }
+    ]
+  }
+}

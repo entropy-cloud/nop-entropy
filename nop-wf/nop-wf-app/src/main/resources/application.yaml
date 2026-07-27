@@ -36,6 +36,13 @@ nop:
 
 # devservices 会启用testcontainers来管理测试数据库
 quarkus:
+  dev:
+    watch:
+      enabled: false
+
+  live-reload:
+    enabled: false
+
   devservices:
     enabled: false
 
@@ -43,9 +50,17 @@ quarkus:
     devservices:
       enabled: false
 
+  smallrye-graphql:
+    ui:
+      always-include: true
+
+  http:
+    cors: true
+
   log:
     level: INFO
 
     category:
       "io.nop":
         level: DEBUG
+

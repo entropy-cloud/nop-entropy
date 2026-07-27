@@ -2,6 +2,40 @@
 
 > **受众**：基于 Nop 平台编写 E2E 测试的开发者与 AI。列出常见失败模式、根因和修复方向。
 
+## 通用调试方法
+
+### 0. `page.content()` —— 不猜，先看 DOM
+
+**不要猜选择器为什么失效。Playwright 超时时，第一步永远是 `page.content()` 抓取完整 DOM。**
+
+```typescript
+import { writeFileSync } from 'fs';
+
+// 在测试中插入（调试用，提交前删除）
+const html = await page.content();
+writeFileSync('/tmp/debug.html', html);
+console.log('Saved /tmp/debug.html — check main-content area for error boundaries');
+```
+
+**排查步骤**：
+1. 在超时前（或 `.waitForSelector` 失败后）调用 `page.content()` 写入文件
+2. 搜索 `main-content` 区域：查找 `error`、`Error`、`ErrorBoundary`、`circle-alert` 等关键词
+3. 如果页面是空白或报错 text，不要花时间猜选择器是否写对——先确认页面本身渲染了正确的组件
+
+**典型例子**：Flux 模式下 `waitForList` 超时，根因可能是 React rolldown 打包错误（error boundary 显示 `Calling "require" for "react"...`），而不是 `.nop-table` 选择器写错。`page.content()` 可以直接暴露这类错误信息。
+
+### 1. `curl` 验证后端 API
+
+在后端 API 层面验证数据是否正确返回：
+
+```bash
+curl -s -X POST http://localhost:8080/r/SiteMapApi__getSiteMap \
+  -H 'Content-Type: application/json' \
+  -H 'Authorization: Bearer <token>' \
+  -H 'nop-locale: zh-CN' -H 'nop-tenant: 0' \
+  | python3 -m json.tool | head -50
+```
+
 ## 页面显示「500 模块渲染失败」
 
 ### 1. SiteMapApi 返回 `children: null` 导致侧边栏崩溃

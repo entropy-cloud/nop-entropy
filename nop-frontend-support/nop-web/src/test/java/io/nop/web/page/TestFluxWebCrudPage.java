@@ -44,10 +44,13 @@ public class TestFluxWebCrudPage extends JunitBaseTestCase {
         assertNotNull(lastCol.get("buttons"), "last column should be rowActions column with buttons");
         assertEquals("right", lastCol.get("fixed"), "rowActions column should be fixed right");
 
-        Object api = crud.get("api");
-        assertNotNull(api, "crud should have api");
-        Map<String, Object> apiMap = (Map<String, Object>) api;
-        assertNotNull(apiMap.get("url"), "api should have url");
+        Object loadAction = crud.get("loadAction");
+        assertNotNull(loadAction, "crud should have loadAction");
+        Map<String, Object> loadActionMap = (Map<String, Object>) loadAction;
+        assertEquals("ajax", loadActionMap.get("action"), "loadAction should be ajax action");
+        Object args = loadActionMap.get("args");
+        assertNotNull(args, "loadAction should have args");
+        assertNotNull(((Map<?, ?>) args).get("url"), "loadAction args should have url");
 
         Object footerToolbar = crud.get("footerToolbar");
         if (footerToolbar != null) {
@@ -128,10 +131,12 @@ public class TestFluxWebCrudPage extends JunitBaseTestCase {
             Object onClick = btnMap.get("onClick");
             if (onClick instanceof Map) {
                 Map<String, Object> onClickMap = (Map<String, Object>) onClick;
-                if ("confirm".equals(onClickMap.get("type"))) {
+                if ("confirm".equals(onClickMap.get("action"))) {
                     hasConfirmGuard = true;
-                    Object when = onClickMap.get("when");
-                    assertNotNull(when, "confirm guard should have when");
+                    Object args = onClickMap.get("args");
+                    assertNotNull(args, "confirm guard should have args");
+                    Map<String, Object> argsMap = (Map<String, Object>) args;
+                    assertNotNull(argsMap.get("message"), "confirm guard should have message in args");
                     break;
                 }
             }

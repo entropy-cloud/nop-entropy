@@ -1,0 +1,10 @@
+{
+  "id": "del-btn",
+  "label": "Delete",
+  "onClick": {
+    "action": "ajax",
+    "args": {
+      "url": "/test/delete"
+    }
+  }
+}

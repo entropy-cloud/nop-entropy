@@ -1,0 +1,11 @@
+{
+  "id": "save-btn",
+  "label": "Save",
+  "onClick": {
+    "action": "ajax",
+    "args": {
+      "url": "/test/save",
+      "method": "POST"
+    }
+  }
+}

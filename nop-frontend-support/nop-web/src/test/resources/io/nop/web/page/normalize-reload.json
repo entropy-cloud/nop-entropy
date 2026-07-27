@@ -1,0 +1,7 @@
+{
+  "id": "reload-btn",
+  "label": "Reload",
+  "onClick": {
+    "action": "refreshTable"
+  }
+}

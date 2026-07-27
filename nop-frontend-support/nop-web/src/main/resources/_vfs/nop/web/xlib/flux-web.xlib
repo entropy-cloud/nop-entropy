@@ -81,10 +81,14 @@
             <attr name="ignoreCols" implicit="true" optional="true" stdDomain="csv-set"/>
 
             <source>
+                <c:script><![CDATA[
+                    // flux crud 没有 api 字段，取数走 loadAction（ActionSchema）
+                    const _crudApi = gridModel.api || gridModel.initApi;
+                    const _loadApi = _crudApi != null ? xpl('thisLib:NormalizeApi', _crudApi, genScope) : null;
+                    const loadAction = _loadApi != null ? {action:'ajax', args: _loadApi} : null;
+                ]]></c:script>
                 <crud xpl:attrs="xpl('thisLib:FluxGridDefaultAttrs', gridModel)">
-                    <initApi xpl:attrs="xpl('thisLib:NormalizeApi',gridModel.initApi,genScope)"
-                             xpl:if="gridModel.initApi"/>
-                    <api xpl:attrs="xpl('thisLib:NormalizeApi',gridModel.api,genScope)"/>
+                    <loadAction xpl:attrs="loadAction" xpl:if="loadAction"/>
 
                     <saveOrderApi xpl:attrs="xpl('thisLib:NormalizeApi',gridModel.saveOrderApi,genScope)"
                                   xpl:if="gridModel.saveOrderApi"/>
@@ -188,7 +192,7 @@
 
             <source>
                 <tabs id="${id}">
-                    <tabs j:list="true">
+                    <items j:list="true">
                         <c:for var="formTable" items="${layoutGroups}">
                             <c:script>
                                 const groupModel = formModel.getCell(formTable.id);
@@ -203,7 +207,7 @@
                                 </tab>
                             </_>
                         </c:for>
-                    </tabs>
+                    </items>
                 </tabs>
             </source>
         </GenLayoutTabs>
@@ -594,9 +598,11 @@
             <source><![CDATA[
                 if(!api) return null;
 
+                const _selection = api['gql:selection']?.$renderTemplateForScope('{@','}',genScope);
                 return _.filterNull({...api,
                     url:api.url.$renderTemplateForScope("{@","}",genScope),
-                    "gql:selection": api['gql:selection']?.$renderTemplateForScope('{@','}',genScope),
+                    "gql:selection": _selection,
+                    selection: _selection,
                     data: api.withFormData ? genScope.formData : api.data
                 })
             ]]></source>
@@ -662,15 +668,8 @@
         <FluxGridDefaultAttrs>
             <attr name="gridModel"/>
             <source><![CDATA[
-                const attrs = _.pickNotNull(gridModel, ["className",
-                     "columnNum", "affixHeader","checkOnItemClick",
-                     "selectable", "multiple", "combineNum",
-                     "combineFromIndex", "placeholder", "rowClassName",
-                     "headerClassName", "footerClassName","toolbarClassName",
-                     "stopAutoRefreshWhen","itemCheckableOn",
-                     "prefixRow", "affixRow", "affixRowClassName",
-                     "affixRowClassNameExpr", "prefixRowClassName","prefixRowClassNameExpr",
-                    ]);
+                // 仅保留 CrudSchema/BaseSchema 支持的字段，其余 AMIS 残留字段（affixHeader/combineNum/selectable 等）flux 不识别
+                const attrs = _.pickNotNull(gridModel, ["className"]);
                 return attrs;
             ]]></source>
         </FluxGridDefaultAttrs>
@@ -716,7 +715,7 @@
             <source><![CDATA[
                 import io.nop.api.core.exceptions.NopException;
 
-                let result = _.delete({...action}, ['actionType','type','actions','api','dialog','drawer','feedback','confirmText','initApi','onEvent']);
+                let result = _.delete({...action}, ['actionType','type','actions','api','dialog','drawer','feedback','confirmText','initApi','onEvent','content','link','url','blank','copyFormat','target','iconOnly']);
 
                 const iconOnly = action.iconOnly && action.icon;
                 result.label = iconOnly ? null : action.label;
@@ -748,45 +747,58 @@
                     let api = action.api;
                     if(api){
                         then.push(_.filterNull({
-                            type: 'api',
-                            url: api.url.$renderTemplateForScope('{@','}',scope),
-                            "gql:selection": api['gql:selection']?.$renderTemplateForScope('{@','}',scope),
-                            method: api.method,
-                            data: api.withFormData ? scope.formData : api.data
+                            action: 'ajax',
+                            args: _.filterNull({
+                                url: api.url.$renderTemplateForScope('{@','}',scope),
+                                "gql:selection": api['gql:selection']?.$renderTemplateForScope('{@','}',scope),
+                                method: api.method,
+                                data: api.withFormData ? scope.formData : api.data
+                            })
                         }));
                     }
                 } else if(actionType == 'dialog'){
                     let dialog = xpl('thisLib:LoadPage', action.dialog.page, action.dialog, scope.fixedProps);
-                    then.push({ type: 'dialog', dialog });
+                    let args = _.delete({...dialog}, ['page','name']);
+                    then.push({ action: 'openDialog', args });
                 } else if(actionType == 'drawer'){
                     let drawer = xpl('thisLib:LoadPage', (action.drawer||action.dialog).page,
                                     action.drawer||action.dialog, scope.fixedProps);
-                    then.push({ type: 'drawer', drawer });
+                    let args = _.delete({...drawer}, ['page','name']);
+                    then.push({ action: 'openDrawer', args });
                 } else if(actionType == 'reload'){
-                    then.push(_.filterNull({ type: 'component', action: 'reload', target: action.target }));
+                    if(action.target){
+                        then.push({ action: 'refreshSource', targetId: action.target });
+                    } else {
+                        then.push({ action: 'refreshTable' });
+                    }
                 } else if(actionType == 'close'){
-                    then.push({ type: 'component', action: 'close' });
+                    then.push({ action: 'closeSurface' });
                 } else if(actionType == 'copy'){
-                    then.push(_.filterNull({ type: 'set-value', copyFormat: action.copyFormat, content: action.content }));
+                    then.push({ action: 'setValue', args: _.filterNull({ path: action.copyFormat, value: action.content }) });
                 } else if(actionType == 'toast'){
-                    then.push(_.filterNull({ type: 'toast', content: action.content }));
+                    then.push({ action: 'showToast', args: _.filterNull({ message: action.content, level: action.level }) });
                 } else if(actionType == 'link'){
-                    then.push(_.filterNull({ type: 'link', link: action.link }));
+                    then.push({ action: 'navigate', args: { url: action.link } });
                 } else if(actionType == 'url'){
-                    then.push(_.filterNull({ type: 'url', url: action.url, blank: action.blank }));
+                    then.push({ action: 'navigate', args: _.filterNull({ url: action.url, replace: action.blank, back: action.back }) });
+                } else if(actionType == 'submit'){
+                    then.push({ action: 'submitForm' });
+                } else if(actionType == 'custom'){
+                    // custom actions define their own behavior via onEvent
                 } else {
-                    throw new NopException("Unsupported actionType: " + actionType);
+                    throw new NopScriptError("nop.err.web.unsupported-action-type").param("actionType", actionType);
                 }
 
                 if(action.feedback?.page){
-                    let feedback = xpl('thisLib:LoadPage', action.feedback.page, action.feedback);
-                    then.push({ type: 'dialog', dialog: feedback });
+                    let fb = xpl('thisLib:LoadPage', action.feedback.page, action.feedback);
+                    let args = _.delete({...fb}, ['page','name']);
+                    then.push({ action: 'openDialog', args });
                 }
 
                 if(whenGuard){
-                    result.onClick = { type: 'confirm', when: whenGuard, then };
+                    result.onClick = { action: 'confirm', args: { message: whenGuard.message }, then };
                 } else {
-                    result.onClick = then.length == 1 ? then[0] : { type: 'sequence', then };
+                    result.onClick = then.length == 1 ? then[0] : { then };
                 }
 
                 return _.filterNull(result);

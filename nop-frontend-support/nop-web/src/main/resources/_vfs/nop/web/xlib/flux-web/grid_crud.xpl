@@ -16,6 +16,11 @@
         gridApi = { ...gridApi, url : XuiHelper.appendFilterProps(gridApi.url,fixedProps)}
 
         let filter = gridModel.filter;
+
+        // flux crud 用 loadAction 取数（crud.md §2）。flux fetcher 把 @query:/@mutation: 转 /r/ RPC。
+        const _loadApiNorm = xpl('thisLib:NormalizeApi', gridApi, genScope);
+        const loadAction = _loadApiNorm != null ? {action:'ajax', args: _loadApiNorm} : null;
+        const crudName = pageModel.table.name || 'crud-grid';
     ]]></c:script>
 
     <c:if test="${pageModel.type == 'picker'}">
@@ -25,11 +30,9 @@
                labelField="${objMeta?.displayProp}" filter="${filter?.toJsonObject()}"/>
     </c:if>
 
-    <crud xpl:is="${pageModel.type == 'picker'? 'pickerSchema': 'crud'}" name="${pageModel.table.name || 'crud-grid'}"
-          xpl:attrs="xpl('thisLib:FluxGridDefaultAttrs', gridModel)" autoFillHeight="${pageModel.table.autoFillHeight}"
-          pickerMode="${pageModel.table.pickerMode}" defaultParams="${pageModel.defaultParams}"
-          maxItemSelectionLength="${pageModel.table.maxItemSelectionLength}"
-          multiple="${pageModel.table.multiple ?? gridModel.multiple}" footable="${gridModel.containsBreakpoint()}"
+    <crud xpl:is="${pageModel.type == 'picker'? 'pickerSchema': 'crud'}" name="${crudName}" id="${crudName}"
+          xpl:attrs="xpl('thisLib:FluxGridDefaultAttrs', gridModel)"
+          defaultParams="${pageModel.defaultParams}"
     >
 
         <toolbar j:list="true">
@@ -42,29 +45,12 @@
             <pagination type="pagination"/>
         </footerToolbar>
 
-        <api xpl:attrs="xpl('thisLib:NormalizeApi',gridApi,genScope)" filter="${filter?.toJsonObject()}"/>
-
-        <saveOrderApi
-                xpl:attrs="xpl('thisLib:NormalizeApi',pageModel.table?.saveOrderApi || gridModel.saveOrderApi,genScope)"
-                xpl:if="pageModel.table?.saveOrderApi || gridModel.saveOrderApi"/>
-
-        <c:if test="${objMeta?.displayProp}">
-            <labelTpl>${'$'}{${objMeta.displayProp}}</labelTpl>
-        </c:if>
+        <loadAction xpl:attrs="loadAction" xpl:if="loadAction"/>
 
         <columns j:list="true">
             <thisLib:GenGridCols gridModel="${gridModel}" objMeta="${objMeta}" ignoreCols="${genScope.ignoreCols}"
                                  filterForm="${pageModel.autoGenerateFilter ? filterForm:null}"/>
-            <column label="@i18n:common.operation" width="${pageModel.table?.operationSize || 140}"
-                    fixed="right" toggled="@:true"
-                    xpl:if="!pageModel.table?.noOperations and pageModel.rowActions?.size() > 0">
-                <buttons j:list="true">
-                    <thisLib:GenActions actions="${pageModel.rowActions}" genScope="${genScope}"/>
-                </buttons>
-            </column>
+            <!-- flux crud/table 不支持 column 级别的 buttons 属性，暂不生成操作列 -->
         </columns>
-
-        <itemAction xpl:attrs="xpl('thisLib:NormalizeAction',pageModel.itemAction,genScope)"
-                    xpl:if="pageModel.itemAction"/>
     </crud>
 </c:unit>

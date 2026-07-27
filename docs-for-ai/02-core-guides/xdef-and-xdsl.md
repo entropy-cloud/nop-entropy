@@ -206,6 +206,36 @@ DSL = Delta x-extends Generator<DSLx>
 
 典型场景：工作流引擎的 OA 会签节点——底层引擎只有普通步骤节点 + Join 合并节点，会签的 UI 简化配置由 `x:post-extends` 在编译期展开为底层引擎可识别的模型。
 
+**真实案例：Flux 模式下自动替换 controlLib**
+
+`nop-web` 中 `view-gen.xlib:DefaultViewPostExtends` 是 `x:post-extends` 的一个典型应用。每个 view.xml 模型加载时都会经过这个 post-extends：
+
+```xml
+<!-- _gen/_NopAuthUser.view.xml 中声明： -->
+<x:post-extends>
+    <view-gen:DefaultViewPostExtends xpl:lib="/nop/web/xlib/view-gen.xlib"/>
+</x:post-extends>
+```
+
+`DefaultViewPostExtends` 的实现（`view-gen.xlib:12-26`）：
+
+```javascript
+let renderMode = $config.var('nop.web.render-mode', 'amis');
+if (renderMode == 'flux') {
+    let child = _dsl_root.childByTag('controlLib');
+    if (child != null) {
+        child.content('/nop/web/xlib/flux-control.xlib');
+    }
+}
+```
+
+它在 view 模型加载期（`x:post-extends` 阶段）直接修改 DOM 树：将 `<controlLib>/nop/web/xlib/control.xlib</controlLib>` 重写为 `/nop/web/xlib/flux-control.xlib`。当后续 `impl_GenForm.xpl` 读取 `viewModel.controlLib` 时，拿到的已经是正确的 Flux 控件库路径。
+
+这个案例说明：
+- `x:post-extends` 不限于 xlib 级别的变换，同样适用于**单个 XDSL 模型实例**的编译期修改
+- 变换发生在模型加载期而非运行时，对下游代码完全透明
+- 不需要在 GenForm 实现中写渲染模式判断——模型数据已经被正确预处理
+
 ## Union schema 的 subtype 约定
 
 当 schema kind 为 `UNION` 时，运行时对象与 XDSL transform 都依赖显式 subtype 字段路由到具体子 schema：

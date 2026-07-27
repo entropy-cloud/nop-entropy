@@ -131,34 +131,46 @@ export class FluxAdapter implements EngineAdapter {
         .evaluate((el: Element) => (el as HTMLInputElement).type)
         .catch(() => '');
       if (tagName === 'INPUT' && inputType !== 'checkbox' && inputType !== 'radio') {
-        await nativeField.first().fill(strValue);
-        return;
+        // Skip fill if input is inside a combobox (flux select uses internal input)
+        const isInsideCombobox = await nativeField.evaluate(
+          (el: Element) => !!el.closest('[role="combobox"]')
+        ).catch(() => false);
+        if (!isInsideCombobox) {
+          await nativeField.first().fill(strValue);
+          return;
+        }
       }
       if (tagName === 'TEXTAREA') {
         await nativeField.first().fill(strValue);
         return;
       }
       if (tagName === 'SELECT') {
-        await nativeField.selectOption({ label: strValue });
+        await nativeField.selectOption(strValue);
         return;
       }
       // tagName === 'BUTTON' or input[type=checkbox/radio] → fall through to combobox
     }
 
-    // 3. Combobox (Flux Select)
-    const selectWrapper = dialog.locator(
-      `[data-slot="select-wrapper"]`,
-    ).filter({ has: page.locator(`#${fieldName}-control, [name="${fieldName}"]`) }).first();
-    const comboboxTrigger = selectWrapper.locator('[data-slot="combobox-trigger"]').first();
-    if (await comboboxTrigger.count().then((c) => c > 0)) {
-      await comboboxTrigger.click();
-      await page.waitForTimeout(300);
-      const option = page.locator('[data-slot="combobox-item"]').filter({ hasText: strValue }).first();
-      await option.click();
-      return;
+    // 3. Combobox (Flux Select) — focus input, press ArrowDown, select first option
+    const comboInput = dialog.locator(`#${fieldName}-control`);
+    if (await comboInput.count().then((c) => c > 0)) {
+      await comboInput.focus();
+      await page.waitForTimeout(100);
+      await page.keyboard.press('ArrowDown');
+      await page.waitForTimeout(500);
+      // Try clicking first visible option
+      const option = page.getByRole('option').first();
+      try {
+        await option.waitFor({ state: 'visible', timeout: 5000 });
+        await option.click();
+        await page.waitForTimeout(300);
+        return;
+      } catch {
+        // Option didn't appear
+      }
     }
 
-    // 4. Fallback: try fill on getByLabel
+    // 5. Last resort: try fill on getByLabel
     const labelField = dialog.getByLabel(fieldName);
     if (await labelField.count().then((c) => c > 0)) {
       await labelField.fill(strValue).catch(() => {});
@@ -166,9 +178,7 @@ export class FluxAdapter implements EngineAdapter {
   }
 
   submitButton(dialog: Locator): Locator {
-    return dialog
-      .getByRole('button', { name: /确定|确认|保存|Submit|Save|提交/ })
-      .first();
+    return dialog.locator('button').filter({ hasText: /确定|确认|保存|Submit|Save|提交/ }).first();
   }
 
   async selectOption(

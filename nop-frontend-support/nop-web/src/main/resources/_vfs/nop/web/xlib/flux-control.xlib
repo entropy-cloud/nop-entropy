@@ -314,7 +314,7 @@ Flux 控件映射库。控件名格式为 {mode}-{type}，与 control.xlib 保�
                     type: 'list-select',
                     clearable: true,
                     selectFirst: dispMeta?.selectFirst,
-                    source: '@dict:' + propMeta?.schema?.dict,
+                    dict: propMeta?.schema?.dict,
                     value: dispMeta?.defaultValue ?? ((editMode == 'add' || editMode == 'list-edit') ? propMeta?.defaultValue: null)
                  }
             ]]></source>
@@ -330,7 +330,7 @@ Flux 控件映射库。控件名格式为 {mode}-{type}，与 control.xlib 保�
                  return {
                     type: 'radio-group',
                     clearable: true,
-                    source: '@dict:' + propMeta?.schema?.dict,
+                    dict: propMeta?.schema?.dict,
                     value: dispMeta?.defaultValue ?? ((editMode == 'add' || editMode == 'list-edit') ? propMeta?.defaultValue: null)
                  }
             ]]></source>
@@ -349,7 +349,7 @@ Flux 控件映射库。控件名格式为 {mode}-{type}，与 control.xlib 保�
                     clearable: true,
                     multiple: false,
                     selectFirst: dispMeta?.selectFirst,
-                    source: '@dict:' + propMeta?.schema?.dict,
+                    dict: propMeta?.schema?.dict,
                     value: dispMeta?.defaultValue ?? ((editMode == 'add' || editMode == 'list-edit') ? propMeta?.defaultValue: null)
                  }
             ]]></source>

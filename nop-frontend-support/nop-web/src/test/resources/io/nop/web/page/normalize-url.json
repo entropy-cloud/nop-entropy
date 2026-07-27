@@ -1,0 +1,11 @@
+{
+  "id": "url-btn",
+  "label": "Open URL",
+  "onClick": {
+    "action": "navigate",
+    "args": {
+      "url": "https://example.com",
+      "replace": true
+    }
+  }
+}

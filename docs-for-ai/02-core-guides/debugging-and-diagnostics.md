@@ -349,6 +349,23 @@ if (result.getStatus() != 0) {
 
 surefire 的 stdout 输出在 `{module}/target/surefire-reports/{TestClass}-output.txt`。
 
+### Playwright E2E 调试铁则
+
+**不要猜选择器为什么失效。第一步永远是 `page.content()` 看页面实际 DOM。**
+
+Playwright 超时（`waitForSelector`、`toBeVisible` 等）时，用 `page.content()` 抓取完整 DOM 确认当前渲染状态：
+
+```typescript
+const html = await page.content();
+require('fs').writeFileSync('/tmp/page-debug.html', html);
+// 然后检查 /tmp/page-debug.html 中的实际 DOM 内容
+```
+
+**常见陷阱**：
+- 侧边栏加载成功 ≠ 主内容区渲染完成。必须检查 `main-content` 区域是否有 error boundary。
+- React error boundary 的文字信息直接出现在 DOM 中，`page.content()` 可精确捕获当前页面内容。
+- 不要依赖控制台无报错来判断页面正常——Playwright 默认不监听 console 事件，需显式 `page.on('console', msg => ...)`。
+
 ### CrudBizModel 方法调用必须传 context
 
 `CrudBizModel` 的 `findFirst`、`findList`、`findPage` 等方法内部会调用 `context.getDataAuthChecker()`。在私有辅助方法中调用这些方法时，**必须把 context 透传下去**，不能传 null：

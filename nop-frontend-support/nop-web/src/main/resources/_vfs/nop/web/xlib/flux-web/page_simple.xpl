@@ -9,12 +9,35 @@
 
         let formData = {}
         formProps.forEach(name=>{
-            formData[name] = '$' + name;
+            formData[name] = '$' + '{' + name + '}';
         })
 
         const api = pageModel.api || formModel.api;
 
         const genScope = {formSelection,formProps,formData}
+
+        // flux form 用 submitAction 提交（非 AMIS 的 api）。把 page/form 的 api 转成 flux ActionSchema，
+        // 这样缺省 submit 按钮（submitForm action）才能正确触发提交。
+        let submitAction = null;
+        if(api != null){
+            const _n = xpl('thisLib:NormalizeApi', api, genScope);
+            if(_n != null){
+                submitAction = { action:'ajax', args: _.filterNull({url:_n.url, method: api.method || 'post', data: _n.data || genScope.formData, 'gql:selection': _n['gql:selection']}) };
+            }
+        }
+
+        // flux 前端不会像 AMIS 那样为空 actions 的 dialog 隐式渲染 submit/cancel 按钮。
+        // 当 form 没有显式 actions 且未设 noActions 时，补充缺省的提交、取消两个按钮。
+        const _submitLabel = formModel.submitText != null ? formModel.submitText : ('@i18n:common.confirm').$i18n('确认');
+        const _cancelLabel = ('@i18n:common.cancel').$i18n('取消');
+        const defaultFormActions = [
+            { id:'_default_cancel', label: _cancelLabel, actionType:'close' },
+            { id:'_default_submit', label: _submitLabel, level:'primary', onClick: { action:'component:submit', componentId: formModel.id } }
+        ];
+
+        // AMIS form 提交成功后会隐式关闭 dialog 并刷新 crud，flux 需要显式声明 onSubmitSuccess。
+        // 注意：refreshTable 必须在 closeSurface 之前执行（closeSurface 会卸载 surface 上下文）。
+        const _onSubmitSuccess = { action:'refreshTable', then:{action:'closeSurface'} };
 
     ]]></c:script>
 
@@ -23,7 +46,7 @@
         <title>${ ('@i18n:'+i18nRoot+'.forms.'+formModel.id+'.$title').$i18n(formModel.title)}</title>
 
         <body>
-            <form name="${formModel.id}" mode="${formModel.layoutMode || 'horizontal'}"
+            <form name="${formModel.id}" id="${formModel.id}" mode="${formModel.layoutMode || 'horizontal'}"
                   panelClassName="${pageModel.panelClassName || formModel.panelClassName}"
                   redirect="${pageModel.redirect || formModel.redirect}"
                   resetAfterSubmit="${pageModel.resetAfterSubmit ?? pageModel.resetAfterSubmit}"
@@ -34,6 +57,8 @@
                 <initApi xpl:attrs="xpl('thisLib:NormalizeApi',pageModel.initApi || formModel.initApi,genScope)"
                          xpl:if="pageModel.initApi || formModel.initApi"/>
                 <api xpl:attrs="xpl('thisLib:NormalizeApi',api,genScope)" xpl:if="api"/>
+                <submitAction xpl:attrs="submitAction" xpl:if="submitAction"/>
+                <onSubmitSuccess xpl:attrs="_onSubmitSuccess" xpl:if="submitAction"/>
 
                 <messages xpl:attrs="{...pageModel.messages,...formModel.messages}" />
 
@@ -52,6 +77,10 @@
 
         <actions j:list="true" xpl:if="!pageModel.noActions and !pageModel.useFormActions and pageModel.actions?.size() > 0">
             <thisLib:GenActions actions="${pageModel.actions}" genScope="${genScope}"/>
+        </actions>
+
+        <actions j:list="true" xpl:if="!pageModel.noActions and !pageModel.useFormActions and !(pageModel.actions?.size() > 0)">
+            <thisLib:GenActions actions="${defaultFormActions}" genScope="${genScope}"/>
         </actions>
 
         <actions j:list="true" xpl:if="pageModel.noActions" />

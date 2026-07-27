@@ -322,6 +322,8 @@ xmeta <prop graphql:*>
 
 view.xml 中 `<api url="@query:BizObjName__actionName?param=$param"/>` 的处理流程：
 
+> **注意**：`$param` 是旧的 AMIS 模板语法，正逐步被 `${param}` 替代。新代码统一使用 `${expr}` 格式。
+
 1. **后端**（`WebPageHelper.fixPage`）：仅转义空格/换行，`@query:` 原样输出到 AMIS JSON
 2. **前端**（`nop-chaos/packages/nop-core/src/core/graphql.ts`）：
    - 解析 URL，取最后一个 `_` 后的方法名后缀作为 `stdAction`

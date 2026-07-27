@@ -14,12 +14,16 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.List;
 import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 @NopTestConfig
@@ -124,5 +128,114 @@ public class TestFluxPage extends JunitBaseTestCase {
         Map<String, Object> dialog = (Map<String, Object>) pageData.get("dialog");
         Map<String, Object> body = (Map<String, Object>) dialog.get("body");
         assertInstanceOf(Map.class, body, "flux mode: group body should remain a Map");
+    }
+
+    @SuppressWarnings("unchecked")
+    private void collectOnClickActions(Object node, List<Map<String, Object>> actions) {
+        if (node instanceof Map) {
+            Map<String, Object> map = (Map<String, Object>) node;
+            if (map.containsKey("onClick")) {
+                Object onClick = map.get("onClick");
+                if (onClick instanceof Map) {
+                    actions.add((Map<String, Object>) onClick);
+                }
+            }
+            for (Object val : map.values()) {
+                collectOnClickActions(val, actions);
+            }
+        } else if (node instanceof Collection) {
+            for (Object item : (Collection<Object>) node) {
+                collectOnClickActions(item, actions);
+            }
+        }
+    }
+
+    @Test
+    public void testFluxCrudPageActionsUseNativeFormat() {
+        String[] pages = {
+            "/nop/auth/pages/NopAuthUser/main.page.yaml",
+            "/nop/auth/pages/NopAuthRole/main.page.yaml",
+            "/nop/auth/pages/NopAuthResource/main.page.yaml",
+            "/nop/auth/pages/NopAuthDept/main.page.yaml",
+        };
+
+        String[][] expectedActions = {
+            {"NopAuthUser", "openDialog", "ajax", "submitForm", "refreshTable"},
+            {"NopAuthRole", "openDialog", "ajax", "submitForm", "refreshTable"},
+            {"NopAuthResource", "openDialog", "ajax", "submitForm", "refreshTable"},
+            {"NopAuthDept", "openDialog", "ajax", "submitForm", "refreshTable"},
+        };
+
+        for (int i = 0; i < pages.length; i++) {
+            String path = pages[i];
+            System.out.println("\n=== Verifying: " + path + " ===");
+            Map<String, Object> page = pageProvider.getPage(path, null);
+            assertNotNull(page, "Page should not be null: " + path);
+
+            String text = JSON.serialize(page, true);
+
+            // 1. All onClick actions should use native `action` field, not old `type` field
+            assertFalse(text.contains("\"type\": \"dialog\""),
+                    path + " should not contain old type='dialog' action format");
+            assertFalse(text.contains("\"type\": \"api\""),
+                    path + " should not contain old type='api' action format");
+            assertFalse(text.contains("\"type\": \"component\""),
+                    path + " should not contain old type='component' action format");
+            assertFalse(text.contains("\"type\": \"toast\""),
+                    path + " should not contain old type='toast' action format");
+            assertFalse(text.contains("\"type\": \"confirm\""),
+                    path + " should not contain old type='confirm' action format");
+            assertFalse(text.contains("\"type\": \"sequence\""),
+                    path + " should not contain old type='sequence' action format");
+            assertFalse(text.contains("\"type\": \"link\""),
+                    path + " should not contain old type='link' action format");
+            assertFalse(text.contains("\"type\": \"url\""),
+                    path + " should not contain old type='url' action format");
+
+            // 2. Collect all onClick objects
+            List<Map<String, Object>> actions = new ArrayList<>();
+            collectOnClickActions(page, actions);
+            System.out.println("Found " + actions.size() + " onClick actions in " + pages[i]);
+
+            // 3. Each onClick must have `action` field
+            for (Map<String, Object> act : actions) {
+                assertTrue(act.containsKey("action") || act.containsKey("then"),
+                        "Each onClick should have 'action' or 'then' field. Found: " + act);
+            }
+
+            // 4. Verify key action types exist in the page
+            String pageName = expectedActions[i][0];
+            int expectedCount = expectedActions[i].length - 1;
+            int foundCount = 0;
+            for (int j = 1; j < expectedActions[i].length; j++) {
+                String expected = expectedActions[i][j];
+                if (text.contains("\"action\": \"" + expected + "\"")) {
+                    System.out.println("  [OK] Found action: " + expected);
+                    foundCount++;
+                } else {
+                    System.out.println("  [WARN] Action not found: " + expected + " in " + pageName);
+                }
+            }
+            assertTrue(foundCount > 0, pageName + " should have at least one expected action type");
+        }
+    }
+
+    @Test
+    public void testFluxUserMainPageKeyButtons() {
+        String path = "/nop/auth/pages/NopAuthUser/main.page.yaml";
+        Map<String, Object> page = pageProvider.getPage(path, null);
+        assertNotNull(page, "NopAuthUser page should not be null");
+
+        List<Map<String, Object>> actions = new ArrayList<>();
+        collectOnClickActions(page, actions);
+        System.out.println("NopAuthUser-main onClick actions: " + JSON.serialize(actions, true));
+
+        assertFalse(actions.isEmpty(), "NopAuthUser-main should have onClick actions");
+
+        for (Map<String, Object> act : actions) {
+            if (act.containsKey("action")) {
+                assertNull(act.get("type"), "onClick should not have 'type' field, found: " + act);
+            }
+        }
     }
 }

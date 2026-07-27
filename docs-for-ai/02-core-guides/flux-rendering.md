@@ -17,11 +17,40 @@ x:gen-extends: |
   <flux-web:GenPage view="Xxx.view.xml" page="main" xpl:lib="/nop/web/xlib/flux-web.xlib" />
 ```
 
-### view.xml 指定 Flux 控件库
+### view.xml 指定 Flux 控件库（通常不需要手动设置）
 
 ```xml
 <controlLib>/nop/web/xlib/flux-control.xlib</controlLib>
 ```
+
+> **大多数情况下不需要手动设置这一行**。当 `nop.web.render-mode=flux` 时，view 模型加载管线中的 `x:post-extends`（`view-gen.xlib:DefaultViewPostExtends`）会自动将 view.xml 中的 `<controlLib>` 从 `control.xlib` 替换为 `flux-control.xlib`。详见下文「自动切换机制」。
+
+## 自动切换机制
+
+### 切换触发点
+
+当后端配置 `nop.web.render-mode=flux`（通过 `-Dnop.web.render-mode=flux` 或 application.yaml）时，系统通过两层 XDSL 元编程完成从 AMIS 到 Flux 的切换，**无需修改任何 view.xml 或 page.yaml**：
+
+1. **xlib 级别的 post-extends**（`web.xlib` → `web/impl_flux_mode.xpl`）：在 `web.xlib` 编译期，检测到 `renderMode == 'flux'` 后，用 `x:override="replace"` 将 `GenPage`、`GenForm`、`GenGrid` 等标签的实现替换为 `flux-web.xlib` 版本。
+
+2. **view 模型级别的 post-extends**（`view-gen.xlib:DefaultViewPostExtends`）：在 XDSL view 模型加载期，检测到 `renderMode == 'flux'` 后，通过 `_dsl_root.childByTag('controlLib')` 找到 `<controlLib>` 子节点，将其内容从 `/nop/web/xlib/control.xlib` 重写为 `/nop/web/xlib/flux-control.xlib`。
+
+### 关键源码位置
+
+- 替换 GenPage/GenForm/GenGrid 等标签：`nop-web/src/main/resources/_vfs/nop/web/xlib/web/impl_flux_mode.xpl`
+- 替换 controlLib：`nop-web/src/main/resources/_vfs/nop/web/xlib/view-gen.xlib` 中的 `DefaultViewPostExtends` 标签（第 12-26 行）
+- 替换后的 Flux 控件库：`nop-web/src/main/resources/_vfs/nop/web/xlib/flux-control.xlib`（75 个控件映射标签）
+
+### 这个设计的意义
+
+这是 Nop 平台 XDSL 统一元编程机制的具体应用：不是在 GenForm 的实现代码里写条件分支判断渲染模式，而是在**模型加载的编译期**通过 `x:post-extends` 做声明式变换。两层 post-extends 各司其职：
+
+| 层次 | 作用域 | 职责 |
+|------|--------|------|
+| xlib post-extends（`impl_flux_mode.xpl`） | `web.xlib` 标签库 | 替换页面生成器（GenPage → flux-web:GenPage） |
+| XDSL post-extends（`DefaultViewPostExtends`） | 每个 view.xml 模型实例 | 替换控件库引用（controlLib → flux-control） |
+
+这样一来，`flux-web/impl_GenForm.xpl` 等实现中完全不需要写 `if (renderMode == 'flux')` 类条件判断——它们读取到的 `viewModel.controlLib` 已经在加载期被正确设置为 `flux-control.xlib`。
 
 ## ORM 模型级启用
 
@@ -85,6 +114,12 @@ view.xml action 中只写 `api`，不写 `onClick`。NormalizeAction 自动转�
 | `includeScope: ["field1", "field2"]` | 仅注入指定字段 |
 | `data: { name: "${name}" }` | 显式映射请求体（支持模板表达式） |
 
+> **模板表达式语法**：统一使用 `${expr}` 格式（如 `${userName}`、`${status}`）。
+> 旧的 `$propName` 语法（如 `$userName`、`$status`）正在被逐步废弃。
+> XPL 生成代码时如果使用 `formData[name] = '$' + name` 生成的 `$fieldName`，
+> 应改为 `formData[name] = '${' + name + '}'` 生成 `${fieldName}`。
+> 这适用于 AMIS 和 Flux 双渲染模式，两种运行时的后续版本都将仅支持 `${expr}` 语法。
+
 ```xml
 <!-- 显式传递上下文 -->
 <onClick>
@@ -124,9 +159,9 @@ view.xml action 中只写 `api`，不写 `onClick`。NormalizeAction 自动转�
 ### 自动转换逻辑概要
 
 - 如果 action 中已有 `onClick`（Flux 原生 ActionSchema），直接透传，不做任何转换。
-- 如果没有 `onClick`，则从 `api`/`actionType`/`dialog`/`drawer` 自动转换为 Flux ActionSchema：
-  1. 转换后的结构用 `type` 字段（非 `action`），包含 `api`、`dialog`、`drawer`、`reload`、`close`、`toast`、`link`、`url`、`copy`（简洁格式，与原生 Flux `action` 格式不同，由前端运行时统一归一化）。
-  2. 有 `confirmText` 时套 `{ type: 'confirm', when, then }`；单步时直接返回该 step；多步时套 `{ type: 'sequence', then }`。
+- 如果没有 `onClick`，则从 `api`/`actionType`/`dialog`/`drawer` 自动转换为 Flux 原生 ActionSchema：
+  1. 直接输出 `action` 字段（而非 `type` 简洁格式），无需前端归一化。映射表详见 `flux-web.xlib:NormalizeAction`。
+  2. 有 `confirmText` 时套 `{ action: 'confirm', args: { message }, then: [...] }`；单步时直接返回该 step；多步时用 `then: [...]` 数组。
 
 ## AMIS vs Flux 关键差异
 

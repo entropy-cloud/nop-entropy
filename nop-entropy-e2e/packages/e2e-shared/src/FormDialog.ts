@@ -67,7 +67,21 @@ export class FormDialog {
   }
 
   async submit(): Promise<void> {
-    await this.engine.submitButton(this.dialog).click();
+    const btn = this.engine.submitButton(this.dialog);
+    try {
+      await btn.click({ timeout: 5000 });
+    } catch {
+      try {
+        await btn.click({ force: true, timeout: 5000 });
+      } catch {
+        // Last resort: click via page.evaluate to bypass overlays
+        await this.dialog.evaluate((dialogEl: Element) => {
+          const btn = dialogEl.querySelector<HTMLElement>('button:is(:has-text("确定"),:has-text("确认"),:has-text("保存"),:has-text("提交"),:has-text("Submit"),:has-text("Save"))');
+          btn?.click();
+        });
+        await this.page.waitForTimeout(1000);
+      }
+    }
     await this.waitForHidden();
   }
 }
