@@ -36,8 +36,8 @@
         ];
 
         // AMIS form 提交成功后会隐式关闭 dialog 并刷新 crud，flux 需要显式声明 onSubmitSuccess。
-        // 注意：refreshTable 必须在 closeSurface 之前执行（closeSurface 会卸载 surface 上下文）。
-        const _onSubmitSuccess = { action:'refreshTable', then:{action:'closeSurface'} };
+        // refreshSource 通过 targetId 刷新指定数据源（refreshTable 依赖 page context，在 dialog 中可能不可用）。
+        const _onSubmitSuccess = { action:'refreshSource', args: { targetId: 'crud-grid' }, then:{action:'closeSurface'} };
 
     ]]></c:script>
 

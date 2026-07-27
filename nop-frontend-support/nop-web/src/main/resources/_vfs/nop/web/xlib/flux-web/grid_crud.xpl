@@ -47,6 +47,12 @@
 
         <loadAction xpl:attrs="loadAction" xpl:if="loadAction"/>
 
+        <queryForm xpl:if="filterForm">
+            <title>@i18n:common.search</title>
+            <data xpl:attrs="filterForm.data" xpl:if="filterForm.data"/>
+            <thisLib:GenFormBody formModel="${filterForm}" objMeta="${objMeta}"/>
+        </queryForm>
+
         <columns j:list="true">
             <thisLib:GenGridCols gridModel="${gridModel}" objMeta="${objMeta}" ignoreCols="${genScope.ignoreCols}"
                                  filterForm="${pageModel.autoGenerateFilter ? filterForm:null}"/>

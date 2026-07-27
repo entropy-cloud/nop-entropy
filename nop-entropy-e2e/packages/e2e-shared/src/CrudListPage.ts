@@ -54,7 +54,16 @@ export class CrudListPage extends BasePage {
 
     const filterInput = this.engine.searchField(this.page, fieldName);
     const visible = await filterInput.isVisible().catch(() => false);
-    if (visible) {
+    if (!visible) {
+      // 尝试展开可折叠的查询表单（flux CRUD 默认折叠）
+      const expandToggle = this.page.locator('[data-slot="crud-query-collapse"] button[aria-expanded="false"]');
+      if (await expandToggle.count().then((c) => c > 0)) {
+        await expandToggle.click();
+        await this.page.waitForTimeout(500);
+      }
+    }
+    const visible2 = await filterInput.isVisible().catch(() => false);
+    if (visible2) {
       await filterInput.clear();
       await filterInput.fill(value);
       const searchBtn = this.engine.searchButton(this.page);
