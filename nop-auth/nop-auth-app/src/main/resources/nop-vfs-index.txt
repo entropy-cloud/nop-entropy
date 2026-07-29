@@ -222,6 +222,7 @@
 /nop/auth/pages/NopAuthUser/NopAuthUser_tenant.view.xml
 /nop/auth/pages/NopAuthUser/_gen/_NopAuthUser.view.xml
 /nop/auth/pages/NopAuthUser/_gen/_NopAuthUser_tenant.view.xml
+/nop/auth/pages/NopAuthUser/add.page.yaml
 /nop/auth/pages/NopAuthUser/change-self-pass.page.yaml
 /nop/auth/pages/NopAuthUser/deleted.page.yaml
 /nop/auth/pages/NopAuthUser/demo.page.yaml

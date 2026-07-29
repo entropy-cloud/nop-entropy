@@ -40,12 +40,29 @@ export class FluxAdapter implements EngineAdapter {
   }
 
   async rowAction(row: Locator, actionNamePattern: RegExp): Promise<void> {
+    const page = row.page();
     const actionContainer = row.locator('[data-slot="table-actions"]').first();
     const button = actionContainer.getByRole('button').filter({ hasText: actionNamePattern }).first();
     if (await button.count().then((c) => c > 0)) {
       await button.click();
       return;
     }
+
+    // 操作在"更多"下拉菜单中 → 展开 dropdown，点击菜单项
+    const moreButton = row.getByRole('button').filter({ hasText: /更多|More/ }).first();
+    if (await moreButton.count().then((c) => c > 0)) {
+      await moreButton.click();
+      await page.waitForTimeout(300);
+      const menuItem = page
+        .locator('[data-slot="dropdown-menu-item"], [role="menuitem"]')
+        .filter({ hasText: actionNamePattern })
+        .first();
+      if (await menuItem.count().then((c) => c > 0)) {
+        await menuItem.click();
+        return;
+      }
+    }
+
     const fallback = row.getByRole('button').filter({ hasText: actionNamePattern }).first();
     await fallback.click();
   }
@@ -55,7 +72,7 @@ export class FluxAdapter implements EngineAdapter {
   searchField(page: Page, fieldName: string): Locator {
     return page
       .locator('[data-slot="crud-query"]')
-      .locator(`input[name="${fieldName}"], #${fieldName}-control`)
+      .locator(`input[name="filter_${fieldName}"], input[name^="filter_${fieldName}__"], #${fieldName}-control`)
       .first();
   }
 

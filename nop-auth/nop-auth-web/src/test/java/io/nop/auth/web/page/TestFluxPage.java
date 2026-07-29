@@ -9,6 +9,7 @@ import io.nop.web.WebConfigs;
 import io.nop.web.page.PageProvider;
 import io.nop.web.page.WebPageHelper;
 import jakarta.inject.Inject;
+import java.io.File;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Disabled;
@@ -44,7 +45,7 @@ public class TestFluxPage extends JunitBaseTestCase {
         ResourceComponentManager.instance().clearCache("xlib");
     }
 
-    @Disabled("启用此方法重新生成快照文件，运行后复制 _tmp/ 下输出到 test/resources")
+    @Disabled("启用此方法重新生成快照文件")
     @Test
     public void regenerateSnapshots() {
         String[][] paths = {
@@ -55,8 +56,9 @@ public class TestFluxPage extends JunitBaseTestCase {
         for (String[] pair : paths) {
             Map<String, Object> page = pageProvider.getPage(pair[0], null);
             String text = JSON.serialize(page, true);
-            System.out.println("=== " + pair[1] + " ===");
-            System.out.println(text);
+            File file = attachmentFile(pair[1]);
+            io.nop.commons.util.FileHelper.writeText(file, text, null);
+            System.out.println("Written: " + file.getAbsolutePath() + " (" + text.length() + " chars)");
         }
     }
 
@@ -237,5 +239,54 @@ public class TestFluxPage extends JunitBaseTestCase {
                 assertNull(act.get("type"), "onClick should not have 'type' field, found: " + act);
             }
         }
+    }
+
+    @Test
+    public void testFluxAddPageHasSubmitScopeAndRefreshNearest() {
+        String path = "/nop/auth/pages/NopAuthUser/add.page.yaml";
+        Map<String, Object> page = pageProvider.getPage(path, null);
+        assertNotNull(page, "NopAuthUser add page should not be null");
+
+        String text = JSON.serialize(page, true);
+        System.out.println("=== NopAuthUser add page (flux) ===");
+        System.out.println(text);
+
+        assertTrue(text.contains("\"submitScope\""),
+                "Flux add page should have submitScope for surface lifecycle");
+        assertTrue(text.contains("\"submitAction\""),
+                "Flux add page should have submitAction");
+        assertTrue(text.contains("closeSurface"),
+                "Flux add page onSubmitSuccess should contain closeSurface");
+        assertTrue(text.contains("refreshNearest"),
+                "Flux add page onSubmitSuccess should contain refreshNearest");
+    }
+
+    @Test
+    public void testFluxCrudPageHasOperationColumn() {
+        String path = "/nop/auth/pages/NopAuthUser/main.page.yaml";
+        Map<String, Object> page = pageProvider.getPage(path, null);
+        assertNotNull(page, "NopAuthUser main page should not be null");
+
+        String text = JSON.serialize(page, true);
+
+        assertTrue(text.contains("\"type\": \"operation\""),
+                "Flux CRUD page should have an operation column with type='operation'");
+    }
+
+    @Test
+    public void testFluxCrudRowActionDialogHasOnSubmitSuccess() {
+        String path = "/nop/auth/pages/NopAuthUser/main.page.yaml";
+        Map<String, Object> page = pageProvider.getPage(path, null);
+        String text = JSON.serialize(page, true);
+
+        List<Map<String, Object>> actions = new ArrayList<>();
+        collectOnClickActions(page, actions);
+
+        boolean hasOpenDialog = actions.stream()
+                .anyMatch(a -> "openDialog".equals(a.get("action")));
+        assertTrue(hasOpenDialog, "CRUD page should have openDialog actions for row buttons");
+
+        assertTrue(text.contains("refreshNearest"),
+                "Dialog actions should include refreshNearest in onSubmitSuccess");
     }
 }

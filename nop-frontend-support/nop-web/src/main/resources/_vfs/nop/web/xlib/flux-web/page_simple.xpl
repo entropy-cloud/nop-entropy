@@ -35,9 +35,7 @@
             { id:'_default_submit', label: _submitLabel, level:'primary', onClick: { action:'component:submit', componentId: formModel.id } }
         ];
 
-        // AMIS form 提交成功后会隐式关闭 dialog 并刷新 crud，flux 需要显式声明 onSubmitSuccess。
-        // refreshSource 通过 targetId 刷新指定数据源（refreshTable 依赖 page context，在 dialog 中可能不可用）。
-        const _onSubmitSuccess = { action:'refreshSource', args: { targetId: 'crud-grid' }, then:{action:'closeSurface'} };
+        // flux 用 refreshNearest 沿 scope 链向上刷新最近的 CRUD/data-source（不需要知道 targetId）。
 
     ]]></c:script>
 
@@ -51,6 +49,7 @@
                   redirect="${pageModel.redirect || formModel.redirect}"
                   resetAfterSubmit="${pageModel.resetAfterSubmit ?? pageModel.resetAfterSubmit}"
                   reload="${pageModel.reload || formModel.reload}"
+                  submitScope="surface"
                   xpl:attrs="xpl('thisLib:FluxFormDefaultAttrs',formModel)">
                 <data xpl:attrs="formModel.data" xpl:if="formModel.data"/>
 
@@ -58,7 +57,10 @@
                          xpl:if="pageModel.initApi || formModel.initApi"/>
                 <api xpl:attrs="xpl('thisLib:NormalizeApi',api,genScope)" xpl:if="api"/>
                 <submitAction xpl:attrs="submitAction" xpl:if="submitAction"/>
-                <onSubmitSuccess xpl:attrs="_onSubmitSuccess" xpl:if="submitAction"/>
+                <onSubmitSuccess j:list="true" xpl:if="submitAction">
+                    <action action="closeSurface"/>
+                    <action action="refreshNearest"/>
+                </onSubmitSuccess>
 
                 <messages xpl:attrs="{...pageModel.messages,...formModel.messages}" />
 

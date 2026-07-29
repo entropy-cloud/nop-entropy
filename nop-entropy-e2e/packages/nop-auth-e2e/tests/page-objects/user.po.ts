@@ -100,6 +100,11 @@ export class UserPO extends CrudListPage {
     await this.clickAdd();
     await this.fillAddForm(data);
     await this.clickSave();
+    // flux CRUD 的 dialog submit 无法刷新父页面数据源（page context 不可用），
+    // 重新导航确保表格数据最新
+    if (this.engine.engineName === 'flux') {
+      await this.goto();
+    }
     await this.waitForList();
   }
 }

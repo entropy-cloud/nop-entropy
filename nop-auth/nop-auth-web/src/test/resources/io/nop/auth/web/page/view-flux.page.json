@@ -5,7 +5,9 @@
   "body": {
     "type": "form",
     "name": "viewControls",
+    "id": "viewControls",
     "mode": "horizontal",
+    "submitScope": "surface",
     "submitText": "",
     "body": [
       {
@@ -599,5 +601,25 @@
         }
       }
     ]
-  }
+  },
+  "actions": [
+    {
+      "type": "button",
+      "id": "_default_cancel",
+      "label": "取消",
+      "onClick": {
+        "action": "closeSurface"
+      }
+    },
+    {
+      "type": "button",
+      "id": "_default_submit",
+      "label": "",
+      "level": "primary",
+      "onClick": {
+        "action": "component:submit",
+        "componentId": "viewControls"
+      }
+    }
+  ]
 }

@@ -759,11 +759,17 @@
                 } else if(actionType == 'dialog'){
                     let dialog = xpl('thisLib:LoadPage', action.dialog.page, action.dialog, scope.fixedProps);
                     let args = _.delete({...dialog}, ['page','name']);
+                    if (!args.onSubmitSuccess) {
+                        args.onSubmitSuccess = [{ action: 'refreshNearest' }];
+                    }
                     then.push({ action: 'openDialog', args });
                 } else if(actionType == 'drawer'){
                     let drawer = xpl('thisLib:LoadPage', (action.drawer||action.dialog).page,
                                     action.drawer||action.dialog, scope.fixedProps);
                     let args = _.delete({...drawer}, ['page','name']);
+                    if (!args.onSubmitSuccess) {
+                        args.onSubmitSuccess = [{ action: 'refreshNearest' }];
+                    }
                     then.push({ action: 'openDrawer', args });
                 } else if(actionType == 'reload'){
                     if(action.target){
@@ -837,7 +843,7 @@
                         <when test="${action.type == 'actionGroup'}">
                             <dropdown-button id="${action.id}"
                                              xpl:attrs="_.delete({...action,
-                                             buttons:action.actions.map(a=>{...xpl('thisLib:NormalizeAction',a,genScope),type:'button'})},
+                                             items:action.actions.map(a=>{...xpl('thisLib:NormalizeAction',a,genScope),type:'button'})},
                                              ['type','actions'])"/>
                         </when>
                         <otherwise>

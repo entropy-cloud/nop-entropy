@@ -56,7 +56,13 @@
         <columns j:list="true">
             <thisLib:GenGridCols gridModel="${gridModel}" objMeta="${objMeta}" ignoreCols="${genScope.ignoreCols}"
                                  filterForm="${pageModel.autoGenerateFilter ? filterForm:null}"/>
-            <!-- flux crud/table 不支持 column 级别的 buttons 属性，暂不生成操作列 -->
+            <column type="operation" label="@i18n:common.operation" name="operation"
+                    width="${pageModel.table?.operationSize || 140}" fixed="right"
+                    xpl:if="!pageModel.table?.noOperations">
+                <buttons j:list="true">
+                    <thisLib:GenActions actions="${pageModel.rowActions}" genScope="${genScope}"/>
+                </buttons>
+            </column>
         </columns>
     </crud>
 </c:unit>

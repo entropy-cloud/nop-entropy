@@ -5,7 +5,9 @@
   "body": {
     "type": "form",
     "name": "editControls",
+    "id": "editControls",
     "mode": "horizontal",
+    "submitScope": "surface",
     "submitText": "",
     "body": [
       {
@@ -284,8 +286,7 @@
             "clearValueWhenHidden": false
           },
           "type": "radio-group",
-          "clearable": true,
-          "source": "@dict:null"
+          "clearable": true
         }
       },
       {
@@ -300,8 +301,7 @@
           "type": "select",
           "searchable": true,
           "clearable": true,
-          "multiple": false,
-          "source": "@dict:null"
+          "multiple": false
         }
       },
       {
@@ -540,11 +540,12 @@
             "valueField": "roleId",
             "labelField": "roleName",
             "url": "@query:NopAuthRole__findPage",
-            "gql:selection": "total,page,items{ id,roleId,roleName,isPrimary,createdBy,createTime,updatedBy,updateTime,remark }"
+            "gql:selection": "total,page,items{ id,roleId,roleName,isPrimary,createdBy,createTime,updatedBy,updateTime,remark }",
+            "selection": "total,page,items{ id,roleId,roleName,isPrimary,createdBy,createTime,updatedBy,updateTime,remark }"
           },
           "pickerSchema": {
             "name": "crud-grid",
-            "footable": false,
+            "id": "crud-grid",
             "toolbar": [],
             "footerToolbar": [
               {
@@ -554,11 +555,14 @@
                 "type": "pagination"
               }
             ],
-            "api": {
-              "url": "@query:NopAuthRole__findPage",
-              "gql:selection": "total,page,items{ id,roleId,roleName,isPrimary,createdBy,createTime,updatedBy,updateTime,remark }"
+            "loadAction": {
+              "action": "ajax",
+              "args": {
+                "url": "@query:NopAuthRole__findPage",
+                "gql:selection": "total,page,items{ id,roleId,roleName,isPrimary,createdBy,createTime,updatedBy,updateTime,remark }",
+                "selection": "total,page,items{ id,roleId,roleName,isPrimary,createdBy,createTime,updatedBy,updateTime,remark }"
+              }
             },
-            "labelTpl": "${roleName}",
             "columns": [
               {
                 "name": "roleId",
@@ -652,12 +656,12 @@
             "valueField": "userId",
             "labelField": "userName",
             "url": "@query:NopAuthUser__active_findPage",
-            "gql:selection": "total,page,items{ id,userId,userName,nickName,dept{deptName},deptId,gender,gender_label,phone,userType,userType_label,status,status_label }"
+            "gql:selection": "total,page,items{ id,userId,userName,nickName,dept{deptName},deptId,gender,gender_label,phone,userType,userType_label,status,status_label }",
+            "selection": "total,page,items{ id,userId,userName,nickName,dept{deptName},deptId,gender,gender_label,phone,userType,userType_label,status,status_label }"
           },
           "pickerSchema": {
             "name": "crud-grid",
-            "footable": false,
-            "affixHeader": false,
+            "id": "crud-grid",
             "toolbar": [],
             "footerToolbar": [
               {
@@ -667,11 +671,67 @@
                 "type": "pagination"
               }
             ],
-            "api": {
-              "url": "@query:NopAuthUser__active_findPage",
-              "gql:selection": "total,page,items{ id,userId,userName,nickName,dept{deptName},deptId,gender,gender_label,phone,userType,userType_label,status,status_label }"
+            "loadAction": {
+              "action": "ajax",
+              "args": {
+                "url": "@query:NopAuthUser__active_findPage",
+                "gql:selection": "total,page,items{ id,userId,userName,nickName,dept{deptName},deptId,gender,gender_label,phone,userType,userType_label,status,status_label }",
+                "selection": "total,page,items{ id,userId,userName,nickName,dept{deptName},deptId,gender,gender_label,phone,userType,userType_label,status,status_label }"
+              }
             },
-            "labelTpl": "${userName}",
+            "queryForm": {
+              "title": "搜索",
+              "body": [
+                {
+                  "type": "flex",
+                  "id": "row-userName-gender-status",
+                  "body": [
+                    {
+                      "name": "filter_userName__contains",
+                      "label": "用户名",
+                      "type": "input-text",
+                      "clearable": true
+                    },
+                    {
+                      "name": "filter_gender",
+                      "label": "性别",
+                      "type": "select",
+                      "searchable": true,
+                      "clearable": true,
+                      "multiple": false,
+                      "dict": "auth/gender"
+                    },
+                    {
+                      "name": "filter_status",
+                      "label": "用户状态",
+                      "type": "select",
+                      "searchable": true,
+                      "clearable": true,
+                      "multiple": false,
+                      "dict": "auth/user-status"
+                    }
+                  ]
+                },
+                {
+                  "type": "flex",
+                  "id": "row-nickName-phone",
+                  "body": [
+                    {
+                      "name": "filter_nickName",
+                      "label": "昵称",
+                      "type": "input-text",
+                      "clearable": true
+                    },
+                    {
+                      "name": "filter_phone",
+                      "label": "电话",
+                      "type": "input-text",
+                      "clearable": true
+                    }
+                  ]
+                }
+              ]
+            },
             "columns": [
               {
                 "name": "userName",
@@ -802,5 +862,25 @@
         }
       }
     ]
-  }
+  },
+  "actions": [
+    {
+      "type": "button",
+      "id": "_default_cancel",
+      "label": "取消",
+      "onClick": {
+        "action": "closeSurface"
+      }
+    },
+    {
+      "type": "button",
+      "id": "_default_submit",
+      "label": "",
+      "level": "primary",
+      "onClick": {
+        "action": "component:submit",
+        "componentId": "editControls"
+      }
+    }
+  ]
 }
