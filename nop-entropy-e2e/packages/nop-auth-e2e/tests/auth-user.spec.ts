@@ -182,6 +182,7 @@ test.describe('用户管理 - 浏览器', () => {
   });
 
   test.afterEach(async ({ request }) => {
+    await loginRpc(request).catch(() => {});
     for (const id of createdUserIds) {
       const del = await rpc(request, 'NopAuthUser__delete', { id });
       if (!del.ok) console.warn(`afterEach delete user ${id}: status=${del.status}`);

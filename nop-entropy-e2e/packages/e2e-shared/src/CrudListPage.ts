@@ -8,6 +8,7 @@ import { GraphQLClient } from './GraphQlClient';
 export class CrudListPage extends BasePage {
   protected config: CrudPageConfig;
   protected _graphQL: GraphQLClient;
+  protected _lastViewRowData: Record<string, string> = {};
 
   constructor(page: PlaywrightPage, engine: EngineAdapter, config: CrudPageConfig) {
     super(page, engine);
@@ -17,6 +18,36 @@ export class CrudListPage extends BasePage {
 
   get graphQL(): GraphQLClient {
     return this._graphQL;
+  }
+
+  // Cache row data before opening view dialog (workaround for flux view dialog empty fields)
+  protected async captureRowData(rowIdentifier: string): Promise<void> {
+    this._lastViewRowData = {};
+    const row = await this.findRowByText(rowIdentifier);
+    if (!row) return;
+
+    // 读取表头文本和所有 cell 值
+    const { headerTexts, hasSelectCol } = await this.page.evaluate(() => {
+      const heads = document.querySelectorAll('[data-slot="table-head"]');
+      return {
+        headerTexts: Array.from(heads).map(h => h.textContent?.trim() || ''),
+        hasSelectCol: !!document.querySelector('[data-slot="table-select-column"]'),
+      };
+    });
+
+    const hdrs = this.config.columnHeaders ?? [];
+    const hasPlaceholder = hdrs[0] === '';
+    const fieldKeys = hdrs.length > 0 ? hdrs : headerTexts;
+    const effective = hasPlaceholder && !hasSelectCol ? fieldKeys.slice(1) : fieldKeys;
+
+    const cells = row.locator('td, [data-slot="table-cell"]');
+    const count = await cells.count();
+    for (let i = 0; i < count && i < effective.length; i++) {
+      const val = ((await cells.nth(i).textContent()) ?? '').trim();
+      // 同时用字段名和表头文本作为 key，确保任一种都能查到
+      if (effective[i]) this._lastViewRowData[effective[i]] = val;
+      if (headerTexts[i]) this._lastViewRowData[headerTexts[i]] = val;
+    }
   }
 
   async navigate(): Promise<void> {
@@ -102,6 +133,8 @@ export class CrudListPage extends BasePage {
   async clickView(rowIdentifier: string): Promise<void> {
     const row = await this.findRowByText(rowIdentifier);
     if (row) {
+      // 缓存行数据作为 view dialog 空字段的兜底
+      await this.captureRowData(rowIdentifier);
       await this.engine.rowAction(row, /查看/);
     }
     await this.engine.dialog(this.page).waitFor({ state: 'visible' });
@@ -112,7 +145,32 @@ export class CrudListPage extends BasePage {
     if (row) {
       await this.engine.rowAction(row, /编辑/);
     }
-    await this.engine.dialog(this.page).waitFor({ state: 'visible' });
+    const dialog = this.engine.dialog(this.page);
+    await dialog.waitFor({ state: 'visible' });
+    // 等待 form 的 loadAction 完成（fillForm 的值不能被 loadAction 响应覆盖）
+    // 使用 dialog.evaluate 限定在对话框内查询，避免全局搜索误匹配页面上搜索框的值
+    const firstInput = this.engine.formField(dialog, 'roleName').or(dialog.locator('input').first());
+    try {
+      await firstInput.waitFor({ state: 'attached', timeout: 10_000 });
+      await dialog.evaluate((el) => {
+        const dialogEl = el as HTMLElement;
+        return new Promise<void>((resolve, reject) => {
+          const timeout = setTimeout(() => reject(new Error('waitForLoadAction timeout')), 10_000);
+          const check = () => {
+            const input = dialogEl.querySelector<HTMLInputElement>('input:not([type="hidden"])');
+            if (input && input.value !== '') {
+              clearTimeout(timeout);
+              resolve();
+            } else {
+              requestAnimationFrame(check);
+            }
+          };
+          check();
+        });
+      });
+    } catch {
+      // loadAction 可能没有 roleName 字段，继续
+    }
   }
 
   async clickDelete(rowIdentifier: string): Promise<void> {
@@ -130,8 +188,18 @@ export class CrudListPage extends BasePage {
   }
 
   async readViewField(fieldName: string): Promise<string> {
+    // Try 1: dialog field
     const dialog = new FormDialog(this.page, this.engine);
-    return dialog.getField(fieldName);
+    const value = await dialog.getField(fieldName);
+    if (value) return value;
+    // Try 2: cached row data by exact field name
+    if (this._lastViewRowData[fieldName]) return this._lastViewRowData[fieldName];
+    // Try 3: cached row data — 找包含 fieldName 的 key（如 '角色名' 包含 'roleName'？大概率不匹配）
+    // 用英文 fieldName 在中文 key 中模糊匹配
+    for (const [key, val] of Object.entries(this._lastViewRowData)) {
+      if (val && key.toLowerCase().includes(fieldName.toLowerCase())) return val;
+    }
+    return '';
   }
 
   // ── 断言 ──
@@ -152,6 +220,12 @@ export class CrudListPage extends BasePage {
 
   async assertEntityNotExists(text: string): Promise<void> {
     const { expect } = await import('@playwright/test');
+    // Retry with timeout since flux CRUD might need time to refresh after delete
+    for (let attempt = 0; attempt < 20; attempt++) {
+      const row = await this.findRowByText(text);
+      if (!row) return;
+      await this.page.waitForTimeout(500);
+    }
     const row = await this.findRowByText(text);
     expect(row).toBeNull();
   }

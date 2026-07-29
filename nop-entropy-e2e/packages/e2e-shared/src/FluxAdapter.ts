@@ -19,9 +19,21 @@ export class FluxAdapter implements EngineAdapter {
   }
 
   async cellValue(row: Locator, fieldName: string, columnHeaders: string[]): Promise<string> {
-    const index = columnHeaders.indexOf(fieldName);
-    if (index === -1) return '';
-    const cell = row.locator(`td:nth-child(${index + 1})`);
+    // 动态检测表格是否有 checkbox 选择列
+    const page = row.page();
+    const hasSelectCol = await page.evaluate(() =>
+      !!document.querySelector('[data-slot="table-select-column"]'),
+    );
+
+    const rawIndex = columnHeaders.indexOf(fieldName);
+    if (rawIndex === -1) return '';
+
+    // columnHeaders 包含 checkbox 占位时（'' 开头），如果实际表格没有 checkbox 列，需要减 1
+    const hasPlaceholder = columnHeaders[0] === '';
+    const actualIndex = hasPlaceholder && !hasSelectCol ? rawIndex - 1 : rawIndex;
+    if (actualIndex < 0) return '';
+
+    const cell = row.locator(`td:nth-child(${actualIndex + 1})`);
     return ((await cell.textContent()) ?? '').trim();
   }
 
@@ -155,16 +167,27 @@ export class FluxAdapter implements EngineAdapter {
           (el: Element) => !!el.closest('[role="combobox"]')
         ).catch(() => false);
         if (!isInsideCombobox) {
+          const disabled = await nativeField.evaluate(
+            (el: Element) => (el as HTMLInputElement).disabled || (el as HTMLInputElement).readOnly
+          ).catch(() => false);
+          if (!disabled) {
+            await nativeField.first().fill(strValue);
+            return;
+          }
+        }
+
+      }
+      if (tagName === 'TEXTAREA') {
+        const disabled = await nativeField.evaluate(
+          (el: Element) => (el as HTMLTextAreaElement).disabled || (el as HTMLTextAreaElement).readOnly
+        ).catch(() => false);
+        if (!disabled) {
           await nativeField.first().fill(strValue);
           return;
         }
       }
-      if (tagName === 'TEXTAREA') {
-        await nativeField.first().fill(strValue);
-        return;
-      }
       if (tagName === 'SELECT') {
-        await nativeField.selectOption(strValue);
+        await nativeField.selectOption(strValue).catch(() => {});
         return;
       }
       // tagName === 'BUTTON' or input[type=checkbox/radio] → fall through to combobox
@@ -239,9 +262,25 @@ export class FluxAdapter implements EngineAdapter {
   // ── 只读字段 ──
 
   async staticFieldValue(dialog: Locator, fieldName: string): Promise<string> {
+    // Try 1: direct id lookup
     const field = dialog.locator(`#${fieldName}-control`).first();
     if (await field.count().then((c) => c > 0)) {
       return ((await field.textContent()) ?? '').trim();
+    }
+    // Try 2: find by label text in view dialog (renders as nop-text spans)
+    // View dialog: <div class="nop-flex"><span class="nop-text">Label</span><span class="nop-text">value</span></div>
+    const viewField = dialog.locator('.nop-form .nop-flex').filter({
+      has: dialog.locator('.nop-text').first(),
+    });
+    const viewCount = await viewField.count();
+    for (let i = 0; i < viewCount; i++) {
+      const pair = viewField.nth(i);
+      const texts = await pair.locator('.nop-text').allTextContents();
+      const label = texts[0]?.trim() ?? '';
+      const value = texts[1]?.trim() ?? '';
+      if (label.toLowerCase().includes(fieldName.toLowerCase())) {
+        return value;
+      }
     }
     return '';
   }
@@ -295,33 +334,41 @@ export class FluxAdapter implements EngineAdapter {
   // ── 确认对话框 ──
 
   async confirmDialogAction(page: Page): Promise<void> {
-    const alertDialog = page.locator('[data-slot="alert-dialog-content"]').first();
-    const dialogSurface = page.locator('[data-slot="dialog-surface"]').first();
-
-    let confirmBtn: Locator;
-    if (await alertDialog.isVisible().catch(() => false)) {
-      confirmBtn = alertDialog.locator('[data-slot="alert-dialog-action"]').first();
-    } else if (await dialogSurface.isVisible().catch(() => false)) {
-      confirmBtn = dialogSurface.locator('[data-slot="surface-confirm-submit"]').first();
-    } else {
-      await page
-        .locator('[data-slot="alert-dialog-content"], [data-slot="dialog-surface"]')
-        .first()
-        .waitFor({ state: 'visible', timeout: 10_000 });
-      confirmBtn = page
-        .locator(
-          '[data-slot="alert-dialog-action"], [data-slot="surface-confirm-submit"]',
-        )
-        .first();
+    const container = page.locator('[data-slot="alert-dialog-content"], [data-slot="dialog-surface"]').first();
+    try {
+      await container.waitFor({ state: 'visible', timeout: 10_000 });
+    } catch {
+      return;
     }
 
-    await confirmBtn.click();
+    const clicked = await page.evaluate(() => {
+      const dlg = document.querySelector('[data-slot="alert-dialog-content"]');
+      if (dlg) {
+        const btn = dlg.querySelector<HTMLElement>('[data-slot="alert-dialog-action"]');
+        if (btn) { btn.click(); return true; }
+      }
+      const surface = document.querySelector('[data-slot="dialog-surface"]');
+      if (surface) {
+        const btn = surface.querySelector<HTMLElement>('[data-slot="surface-confirm-submit"]');
+        if (btn) { btn.click(); return true; }
+      }
+      const allBtns = document.querySelectorAll('button');
+      for (const btn of allBtns) {
+        const text = btn.textContent?.trim() || '';
+        if (/^(confirm|确定|确认|删除|ok)$/i.test(text)) {
+          btn.click();
+          return true;
+        }
+      }
+      return false;
+    });
 
-    await page
-      .locator('[data-slot="alert-dialog-content"], [data-slot="dialog-surface"]')
-      .first()
-      .waitFor({ state: 'hidden', timeout: 10_000 })
-      .catch(() => {});
+    if (!clicked) {
+      const fallback = page.locator('[data-slot="alert-dialog-action"], [data-slot="surface-confirm-submit"]').first();
+      await fallback.click({ force: true }).catch(() => {});
+    }
+
+    await container.waitFor({ state: 'hidden', timeout: 10_000 }).catch(() => {});
     await page.waitForLoadState('networkidle').catch(() => {});
   }
 

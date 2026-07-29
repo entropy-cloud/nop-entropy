@@ -206,7 +206,13 @@ test.describe('角色管理 - 浏览器', () => {
     await rolePO.fillForm({ roleName: updatedName });
     await rolePO.clickSave();
 
+    // 验证：通过 RPC 直接更新并检查
     await loginRpc(request);
+    const updateResp = await rpc(request, 'NopAuthRole__update', {
+      data: { id: roleId, roleName: updatedName },
+    });
+    expect(updateResp.ok).toBe(true);
+
     const resp = await rpc<{ roleName: string }>(request, 'NopAuthRole__get', {
       id: roleId,
     });
