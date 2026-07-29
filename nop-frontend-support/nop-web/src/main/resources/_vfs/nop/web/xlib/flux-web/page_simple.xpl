@@ -28,11 +28,16 @@
 
         // flux 前端不会像 AMIS 那样为空 actions 的 dialog 隐式渲染 submit/cancel 按钮。
         // 当 form 没有显式 actions 且未设 noActions 时，补充缺省的提交、取消两个按钮。
+        // 没有 submitAction 时为纯查看模式，submit 按钮只关闭 dialog。
         const _submitLabel = formModel.submitText != null ? formModel.submitText : ('@i18n:common.confirm').$i18n('确认');
         const _cancelLabel = ('@i18n:common.cancel').$i18n('取消');
+        const _hasSubmitAction = submitAction != null;
         const defaultFormActions = [
             { id:'_default_cancel', label: _cancelLabel, actionType:'close' },
-            { id:'_default_submit', label: _submitLabel, level:'primary', onClick: { action:'component:submit', componentId: formModel.id } }
+            { id:'_default_submit', label: _submitLabel, level:'primary',
+              onClick: _hasSubmitAction
+                ? { action:'submitForm', then: { action:'closeSurface' } }
+                : { action:'closeSurface' } }
         ];
 
         // flux 用 refreshNearest 沿 scope 链向上刷新最近的 CRUD/data-source（不需要知道 targetId）。
