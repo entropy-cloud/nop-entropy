@@ -47,9 +47,10 @@
 
         <loadAction xpl:attrs="loadAction" xpl:if="loadAction"/>
 
-        <queryForm xpl:if="filterForm">
+        <queryForm xpl:if="filterForm" id="${crudName}-query-form">
             <title>@i18n:common.search</title>
             <data xpl:attrs="filterForm.data" xpl:if="filterForm.data"/>
+            <submitAction action="component:querySubmit" componentId="${crudName}"/>
             <thisLib:GenFormBody formModel="${filterForm}" objMeta="${objMeta}"/>
         </queryForm>
 

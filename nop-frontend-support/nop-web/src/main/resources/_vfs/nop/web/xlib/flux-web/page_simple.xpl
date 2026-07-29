@@ -37,6 +37,18 @@
 
         // flux 用 refreshNearest 沿 scope 链向上刷新最近的 CRUD/data-source（不需要知道 targetId）。
 
+        let loadAction = null;
+        const initApi = pageModel.initApi || formModel.initApi;
+        if(initApi != null){
+            const _n = xpl('thisLib:NormalizeApi', initApi, genScope);
+            if(_n != null){
+                // 保持 URL 中的 {@...} 模板不被求值（id 来自父 scope 的行数据，不在 genScope 中），
+                // NormalizeApi 求值过的 url 会丢失行级模板变量，直接用 initApi 的原始 url
+                const rawUrl = initApi.url;
+                loadAction = { action:'ajax', args: _.filterNull({url: rawUrl, method: initApi.method || 'post', data: _n.data, 'gql:selection': _n['gql:selection']}) };
+            }
+        }
+
     ]]></c:script>
 
     <page name="${pageModel.name}" size="${formModel.size || xpl('thisLib:GetFormDefaultSize',formModel)}"
@@ -53,8 +65,7 @@
                   xpl:attrs="xpl('thisLib:FluxFormDefaultAttrs',formModel)">
                 <data xpl:attrs="formModel.data" xpl:if="formModel.data"/>
 
-                <initApi xpl:attrs="xpl('thisLib:NormalizeApi',pageModel.initApi || formModel.initApi,genScope)"
-                         xpl:if="pageModel.initApi || formModel.initApi"/>
+                <loadAction xpl:if="loadAction" xpl:attrs="loadAction"/>
                 <api xpl:attrs="xpl('thisLib:NormalizeApi',api,genScope)" xpl:if="api"/>
                 <submitAction xpl:attrs="submitAction" xpl:if="submitAction"/>
                 <onSubmitSuccess j:list="true" xpl:if="submitAction">

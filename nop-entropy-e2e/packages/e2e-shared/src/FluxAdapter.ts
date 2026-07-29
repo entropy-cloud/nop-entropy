@@ -78,7 +78,8 @@ export class FluxAdapter implements EngineAdapter {
 
   searchButton(page: Page): Locator {
     return page
-      .locator('[data-slot="crud-query-controls"] button')
+      .locator('[data-slot="crud-query"] [data-slot="form-actions"] button')
+      .or(page.locator('[data-slot="crud-query-controls"] button'))
       .or(page.locator('[data-slot="crud-query"] button[type="submit"]'))
       .or(page.locator('[data-slot="crud-query"] button').filter({ hasText: /搜索|查询|Search/ }))
       .first();

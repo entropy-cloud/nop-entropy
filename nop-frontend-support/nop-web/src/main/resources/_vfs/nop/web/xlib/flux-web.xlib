@@ -601,7 +601,6 @@
                 const _selection = api['gql:selection']?.$renderTemplateForScope('{@','}',genScope);
                 return _.filterNull({...api,
                     url:api.url.$renderTemplateForScope("{@","}",genScope),
-                    "gql:selection": _selection,
                     selection: _selection,
                     data: api.withFormData ? genScope.formData : api.data
                 })
@@ -750,7 +749,7 @@
                             action: 'ajax',
                             args: _.filterNull({
                                 url: api.url.$renderTemplateForScope('{@','}',scope),
-                                "gql:selection": api['gql:selection']?.$renderTemplateForScope('{@','}',scope),
+                                "selection": api['gql:selection']?.$renderTemplateForScope('{@','}',scope),
                                 method: api.method,
                                 data: api.withFormData ? scope.formData : api.data
                             })
@@ -772,11 +771,7 @@
                     }
                     then.push({ action: 'openDrawer', args });
                 } else if(actionType == 'reload'){
-                    if(action.target){
-                        then.push({ action: 'refreshSource', targetId: action.target });
-                    } else {
-                        then.push({ action: 'refreshTable' });
-                    }
+                    then.push({ action: 'refreshNearest' });
                 } else if(actionType == 'close'){
                     then.push({ action: 'closeSurface' });
                 } else if(actionType == 'copy'){
@@ -790,7 +785,10 @@
                 } else if(actionType == 'submit'){
                     then.push({ action: 'submitForm' });
                 } else if(actionType == 'custom'){
-                    // custom actions define their own behavior via onEvent
+                    // custom action: skip if no onClick, otherwise pass through existing onClick
+                    if(!action.onClick){
+                        // no-op, silently skip
+                    }
                 } else {
                     throw new NopScriptError("nop.err.web.unsupported-action-type").param("actionType", actionType);
                 }
