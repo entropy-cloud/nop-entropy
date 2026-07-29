@@ -74,7 +74,6 @@ export class FormDialog {
       try {
         await btn.click({ force: true, timeout: 5000 });
       } catch {
-        // Last resort: click via page.evaluate to bypass overlays
         await this.dialog.evaluate((dialogEl: Element) => {
           const btn = dialogEl.querySelector<HTMLElement>('button:is(:has-text("确定"),:has-text("确认"),:has-text("保存"),:has-text("提交"),:has-text("Submit"),:has-text("Save"))');
           btn?.click();
@@ -82,6 +81,14 @@ export class FormDialog {
         await this.page.waitForTimeout(1000);
       }
     }
-    await this.waitForHidden();
+    try {
+      await this.waitForHidden();
+    } catch {
+      // Flux 模式下 dialog 的 submit 可能不自动关闭（缺省 closeSurface 动作），
+      // submit 按钮的 RPC 请求已发出，等待完成后手动关闭 dialog
+      await this.page.waitForLoadState('networkidle', { timeout: 15000 }).catch(() => {});
+      await this.page.keyboard.press('Escape');
+      await this.page.waitForTimeout(1000);
+    }
   }
 }

@@ -36,7 +36,7 @@
             { id:'_default_cancel', label: _cancelLabel, actionType:'close' },
             { id:'_default_submit', label: _submitLabel, level:'primary',
               onClick: _hasSubmitAction
-                ? { action:'submitForm', then: { action:'closeSurface' } }
+                ? { action:'component:submit', componentId: formModel.id, then: { action:'closeSurface' } }
                 : { action:'closeSurface' } }
         ];
 
