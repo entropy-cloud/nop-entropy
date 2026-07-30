@@ -4,7 +4,7 @@
 > 目标模块组：nop-ai（18 子模块，排除 MCP——MCP 协议集成模块，独立发布周期，需单独审计）
 > 总览：ai-dev/backlog/audit-remediation-roadmap.md
 > 维度矩阵：arm-audit-dimension-matrix.md
-> 状态汇总：已完成 19 | 进行中 0 | 待办 11 | P0 未解决 0
+> 状态汇总：已完成 23 | 进行中 0 | 待办 9 | P0 未解决 0
 
 ## 报告清单
 
@@ -25,11 +25,11 @@
 | [`2026-07-31-0422-arm-MA3.3-nop-ai-async-txn.md`](./2026-07-31-0422-arm-MA3.3-nop-ai-async-txn.md) | MA3.3 | 异步/事务 | 全模块 | 0 | 0 | 2(P3:2) | `done` |
 | [`2026-07-31-0423-arm-MA3.4-nop-ai-error-handling.md`](./2026-07-31-0423-arm-MA3.4-nop-ai-error-handling.md) | MA3.4 | 错误处理 | 全模块 | 0 | 2 | 9+2(P2:4, P3:5+2downgraded) | `done` |
 | [`2026-07-31-0423-arm-MA3.5-nop-ai-cross-module-contract.md`](./2026-07-31-0423-arm-MA3.5-nop-ai-cross-module-contract.md) | MA3.5 | 跨模块契约 | 全模块 | 0 | 2 | 6(P2:4, P3:2) | `done` |
-| — | MA4.1 | 类型安全 | 全模块 | — | — | — | todo |
-| — | MA4.2 | 代码风格 | 全模块 | — | — | — | todo |
-| — | MA4.3 | 测试覆盖 | 全模块 | — | — | — | todo |
-| — | MA4.4 | 测试有效性 | 全模块 | — | — | — | todo |
-| — | MA4.5 | 文档一致性 | 全模块 | — | — | — | todo |
+| [`2026-07-31-XXXX-arm-MA4.1-nop-ai-typesafety.md`](./2026-07-31-XXXX-arm-MA4.1-nop-ai-typesafety.md) | MA4.1 | 类型安全 | 全模块 | 0 | 0 | 11(P2:5, P3:6) | `done` |
+| [`2026-07-31-0539-arm-MA4.2-nop-ai-style.md`](./2026-07-31-0539-arm-MA4.2-nop-ai-style.md) | MA4.2 | 代码风格 | 全模块 | 0 | 0 | 14(P2:7, P3:7) | `done` |
+| [`2026-07-31-XXXX-arm-MA4.3-nop-ai-test-coverage.md`](./2026-07-31-XXXX-arm-MA4.3-nop-ai-test-coverage.md) | MA4.3 | 测试覆盖 | 全模块 | 0 | 6 | 8(P2:8) | `done` |
+| [`2026-07-31-arm-MA4.4-nop-ai-test-effectiveness.md`](./2026-07-31-arm-MA4.4-nop-ai-test-effectiveness.md) | MA4.4 | 测试有效性 | 全模块 | 0 | 0 | 8(P2:3, P3:5) | `done` |
+| [`2026-07-31-XXXX-arm-MA4.5-nop-ai-doc-consistency.md`](./2026-07-31-XXXX-arm-MA4.5-nop-ai-doc-consistency.md) | MA4.5 | 文档一致性 | 全模块 | 0 | 0 | 9(P2:6, P3:3) | `done` |
 | [`2026-07-30-2100-arm-MA5.1-nop-ai-hollow-scan.md`](./2026-07-30-2100-arm-MA5.1-nop-ai-hollow-scan.md) | MA5.1 | 空壳实现 | 全模块 | 0 | 2 | 7 | `done` |
 | [`2026-07-30-2100-arm-MA5.2-nop-ai-silent-noop.md`](./2026-07-30-2100-arm-MA5.2-nop-ai-silent-noop.md) | MA5.2 | 静默跳过 | 全模块 | 0 | 2 | 20 | `done` |
 | [`2026-07-30-2130-arm-MA5.3-nop-ai-wiring.md`](./2026-07-30-2130-arm-MA5.3-nop-ai-wiring.md) | MA5.3 | 接线完整性 | 全模块 | 0 | 2 | 7 | `done` |
