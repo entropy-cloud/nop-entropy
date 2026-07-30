@@ -130,7 +130,6 @@ export class FluxAdapter implements EngineAdapter {
 
     // 1. Boolean → Checkbox / Switch
     if (typeof value === 'boolean') {
-      // Flux checkbox: button[data-slot="checkbox"] with id
       const checkbox = dialog.locator(
         `button[data-slot="checkbox"][id="${fieldName}-control"]`,
       ).first();
@@ -139,8 +138,6 @@ export class FluxAdapter implements EngineAdapter {
         if ((ariaChecked === 'true') !== value) await checkbox.click();
         return;
       }
-      // Flux switch: Base UI renders <span role="switch"> + hidden <input type="checkbox" id="name-control">
-      // The span has aria-checked; click toggles via synthetic event on hidden input
       const switchEl = dialog
         .locator(`[data-slot="switch-wrapper"]:has(#${fieldName}-control) [role="switch"]`)
         .first();
@@ -154,7 +151,7 @@ export class FluxAdapter implements EngineAdapter {
       }
     }
 
-    // 2. Native input / textarea (skip buttons and checkboxes)
+    // 2. Native input / textarea
     const nativeField = this.formField(dialog, fieldName);
     if (await nativeField.count().then((c) => c > 0)) {
       const tagName = await nativeField.evaluate((el: Element) => el.tagName);
@@ -162,7 +159,6 @@ export class FluxAdapter implements EngineAdapter {
         .evaluate((el: Element) => (el as HTMLInputElement).type)
         .catch(() => '');
       if (tagName === 'INPUT' && inputType !== 'checkbox' && inputType !== 'radio') {
-        // Skip fill if input is inside a combobox (flux select uses internal input)
         const isInsideCombobox = await nativeField.evaluate(
           (el: Element) => !!el.closest('[role="combobox"]')
         ).catch(() => false);
@@ -175,7 +171,6 @@ export class FluxAdapter implements EngineAdapter {
             return;
           }
         }
-
       }
       if (tagName === 'TEXTAREA') {
         const disabled = await nativeField.evaluate(
@@ -186,25 +181,26 @@ export class FluxAdapter implements EngineAdapter {
           return;
         }
       }
-      if (tagName === 'SELECT') {
-        await nativeField.selectOption(strValue).catch(() => {});
-        return;
-      }
-      // tagName === 'BUTTON' or input[type=checkbox/radio] → fall through to combobox
     }
 
-    // 3. Combobox (Flux Select) — focus input, press ArrowDown, select first option
+    // 3. Combobox (Flux Select)
     const comboInput = dialog.locator(`#${fieldName}-control`);
     if (await comboInput.count().then((c) => c > 0)) {
-      await comboInput.focus();
-      await page.waitForTimeout(100);
+      await comboInput.first().click();
+      await page.waitForTimeout(200);
+      // Try matching by text first, then fall back to first option
+      const matchingOption = page.locator(`[role="option"]:has-text("${strValue}")`).first();
+      if (await matchingOption.count().then((c) => c > 0)) {
+        await matchingOption.click();
+        return;
+      }
+      // Fallback: press ArrowDown and select first option
       await page.keyboard.press('ArrowDown');
       await page.waitForTimeout(500);
-      // Try clicking first visible option
-      const option = page.getByRole('option').first();
+      const firstOption = page.getByRole('option').first();
       try {
-        await option.waitFor({ state: 'visible', timeout: 5000 });
-        await option.click();
+        await firstOption.waitFor({ state: 'visible', timeout: 5000 });
+        await firstOption.click();
         await page.waitForTimeout(300);
         return;
       } catch {
@@ -212,7 +208,7 @@ export class FluxAdapter implements EngineAdapter {
       }
     }
 
-    // 5. Last resort: try fill on getByLabel
+    // 4. Last resort: getByLabel fill
     const labelField = dialog.getByLabel(fieldName);
     if (await labelField.count().then((c) => c > 0)) {
       await labelField.fill(strValue).catch(() => {});
@@ -334,12 +330,25 @@ export class FluxAdapter implements EngineAdapter {
   // ── 确认对话框 ──
 
   async confirmDialogAction(page: Page): Promise<void> {
-    const container = page.locator('[data-slot="alert-dialog-content"], [data-slot="dialog-surface"]').first();
+    // Narrow to alert-dialog only — a stale hidden [data-slot="dialog-surface"]
+    // can linger in the DOM after a previous dialog closed, causing .first()
+    // to resolve to the wrong element and silently time out without clicking.
+    const container = page.locator('[data-slot="alert-dialog-content"]').first();
     try {
       await container.waitFor({ state: 'visible', timeout: 10_000 });
     } catch {
-      return;
+      // No alert-dialog appeared; maybe the action was confirmed inline
+      // or uses a regular dialog surface instead.
+      const surface = page.locator('[data-slot="dialog-surface"]').first();
+      try {
+        await surface.waitFor({ state: 'visible', timeout: 2_000 });
+      } catch {
+        return;
+      }
     }
+
+    // Give the action button a moment to mount after the dialog becomes visible
+    await page.waitForTimeout(200);
 
     const clicked = await page.evaluate(() => {
       const dlg = document.querySelector('[data-slot="alert-dialog-content"]');
@@ -368,7 +377,7 @@ export class FluxAdapter implements EngineAdapter {
       await fallback.click({ force: true }).catch(() => {});
     }
 
-    await container.waitFor({ state: 'hidden', timeout: 10_000 }).catch(() => {});
+    await page.locator('[data-slot="alert-dialog-content"]').first().waitFor({ state: 'hidden', timeout: 10_000 }).catch(() => {});
     await page.waitForLoadState('networkidle').catch(() => {});
   }
 

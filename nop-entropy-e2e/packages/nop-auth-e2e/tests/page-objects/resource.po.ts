@@ -23,7 +23,26 @@ export interface ResourceFormData {
 
 export class ResourcePO extends CrudListPage {
   constructor(page: Page, engine: EngineAdapter) {
-    super(page, engine, { entityRoute: 'NopAuthResource-main', entityName: 'NopAuthResource' });
+    super(page, engine, {
+      entityRoute: 'NopAuthResource-main',
+      entityName: 'NopAuthResource',
+      columnHeaders: [
+        'resourceId',
+        'displayName',
+        'resourceType',
+        'icon',
+        'routePath',
+        'url',
+        'component',
+        'target',
+        'hidden',
+        'keepAlive',
+        'noAuth',
+        'status',
+        'authCascadeUp',
+        'remark',
+      ],
+    });
   }
 
   async goto(): Promise<void> {

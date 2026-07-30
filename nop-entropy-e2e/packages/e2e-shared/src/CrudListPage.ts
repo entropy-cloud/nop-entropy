@@ -147,30 +147,9 @@ export class CrudListPage extends BasePage {
     }
     const dialog = this.engine.dialog(this.page);
     await dialog.waitFor({ state: 'visible' });
-    // 等待 form 的 loadAction 完成（fillForm 的值不能被 loadAction 响应覆盖）
-    // 使用 dialog.evaluate 限定在对话框内查询，避免全局搜索误匹配页面上搜索框的值
-    const firstInput = this.engine.formField(dialog, 'roleName').or(dialog.locator('input').first());
-    try {
-      await firstInput.waitFor({ state: 'attached', timeout: 10_000 });
-      await dialog.evaluate((el) => {
-        const dialogEl = el as HTMLElement;
-        return new Promise<void>((resolve, reject) => {
-          const timeout = setTimeout(() => reject(new Error('waitForLoadAction timeout')), 10_000);
-          const check = () => {
-            const input = dialogEl.querySelector<HTMLInputElement>('input:not([type="hidden"])');
-            if (input && input.value !== '') {
-              clearTimeout(timeout);
-              resolve();
-            } else {
-              requestAnimationFrame(check);
-            }
-          };
-          check();
-        });
-      });
-    } catch {
-      // loadAction 可能没有 roleName 字段，继续
-    }
+    // Wait for edit form's initApi to settle
+    await this.page.waitForLoadState('networkidle', { timeout: 10_000 }).catch(() => {});
+    await this.page.waitForTimeout(1000);
   }
 
   async clickDelete(rowIdentifier: string): Promise<void> {
