@@ -47,7 +47,9 @@ public class SimpleStreamOperatorFactory<OUT> implements StreamOperatorFactory<O
     @Override
     public StreamOperator<OUT> createStreamOperator(TypeInformation<OUT> outputType) {
         // Shareable operators opt out of the per-subtask copy contract entirely.
-        if (operator.getClass().isAnnotationPresent(Shareable.class)) {
+        if (operator.isShareable()) {
+            LOG.warn("Operator '{}' is shareable; returning shared instance across subtasks. "
+                    + "Ensure operator holds no per-subtask mutable state.", name);
             return operator;
         }
         // If the operator is Serializable, create a deep copy so each invocation
@@ -84,7 +86,13 @@ public class SimpleStreamOperatorFactory<OUT> implements StreamOperatorFactory<O
                         "Failed to create copy of operator via serialization: " + name, e);
             }
         }
-        return operator;
+        // Non-serializable operators that are not shareable must fail fast —
+        // returning the shared instance would silently corrupt parallel execution.
+        throw new StreamException(
+                "Cannot create independent copy of non-serializable operator '" + name
+                        + "'. The operator is not Serializable and does not declare isShareable(). "
+                        + "Mark the operator @Shareable if cross-subtask sharing is safe, "
+                        + "or override copyForSubtask() / make the operator Serializable.");
     }
     
     public StreamOperator<OUT> getRawOperator() {

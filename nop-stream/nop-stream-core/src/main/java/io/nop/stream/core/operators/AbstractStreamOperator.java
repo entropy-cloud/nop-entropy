@@ -89,7 +89,7 @@ public abstract class AbstractStreamOperator<OUT> implements StreamOperator<OUT>
     @Override
     @SuppressWarnings("unchecked")
     public StreamOperator<?> copyForSubtask() {
-        if (getClass().isAnnotationPresent(Shareable.class)) {
+        if (isShareable()) {
             return this;
         }
         try {

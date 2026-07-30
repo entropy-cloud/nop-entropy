@@ -168,8 +168,19 @@ public interface StreamOperator<OUT> extends CheckpointListener, KeyContext, Ser
      * @throws UnsupportedOperationException if this operator does not declare
      *         copy semantics and is not marked {@link Shareable}
      */
+    /**
+     * Returns {@code true} if this operator is safe to share across parallel
+     * subtasks without copying.
+     *
+     * <p>The default implementation checks for the {@link Shareable} annotation.
+     * Operators that need dynamic shareability may override this method.
+     */
+    default boolean isShareable() {
+        return getClass().isAnnotationPresent(Shareable.class);
+    }
+
     default StreamOperator<?> copyForSubtask() {
-        if (getClass().isAnnotationPresent(Shareable.class)) {
+        if (isShareable()) {
             return this;
         }
         throw new UnsupportedOperationException(
