@@ -115,7 +115,8 @@
              NopAiProject: AI项目（AI Coder场景）
              ===================================================== -->
         <entity className="io.nop.ai.dao.entity.NopAiProject" displayName="AI项目" i18n-en:displayName="AI Project" name="io.nop.ai.dao.entity.NopAiProject"
-                registerShortName="true" tableName="nop_ai_project" ext:icon="folder-kanban">
+                registerShortName="true" tableName="nop_ai_project" ext:icon="folder-kanban"
+                createTimeProp="createTime" createrProp="createdBy" updateTimeProp="updateTime" updaterProp="updatedBy">
             <columns>
                 <column code="id" displayName="主键" mandatory="true" name="id" precision="36" primary="true" propId="1"
                         stdDataType="string" stdSqlType="VARCHAR" tagSet="seq" ui:show="X"/>
@@ -341,8 +342,10 @@
              ===================================================== -->
         <entity className="io.nop.ai.dao.entity.NopAiRequirement" displayName="需求条目" i18n-en:displayName="Requirement Item"
                 name="io.nop.ai.dao.entity.NopAiRequirement" registerShortName="true" tableName="nop_ai_requirement"
-                ext:icon="clipboard-list" versionProp="version" createTimeProp="createTime" createrProp="createdBy"
+                ext:icon="clipboard-list" createTimeProp="createTime" createrProp="createdBy"
                 updateTimeProp="updateTime" updaterProp="updatedBy">
+            <!-- versionProp intentionally omitted: "version" column is VARCHAR (semantic string version identifier),
+                 not an integer optimistic-lock column. Optimistic locking via nanoLock can be added later. -->
             <columns>
                 <column code="id" displayName="主键" mandatory="true" name="id" precision="36" primary="true" propId="1"
                         stdDataType="string" stdSqlType="VARCHAR" tagSet="seq" ui:show="X"/>
@@ -1272,7 +1275,7 @@
                 </index>
             </indexes>
             <relations>
-                <to-one name="session" refEntityName="io.nop.ai.dao.entity.NopAiSession" refPropName="context">
+                <to-one name="session" refEntityName="io.nop.ai.dao.entity.NopAiSession" refPropName="contexts">
                     <join>
                         <on leftProp="sessionId" rightProp="id"/>
                     </join>

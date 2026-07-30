@@ -5,10 +5,11 @@ import java.util.List;
 import java.util.Set;
 
 /**
+ * AI chat tool set interface. Part of the legacy {@code IAiChat*} naming convention.
  * @deprecated This internal AI core interface is deprecated and will be removed in future versions.
  * Please use the new AI API instead.
  */
-@Deprecated
+@Deprecated(forRemoval = true)
 public interface IAiChatToolSet {
     Set<String> getToolNames();
 

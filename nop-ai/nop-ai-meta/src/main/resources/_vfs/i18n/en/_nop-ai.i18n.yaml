@@ -283,7 +283,6 @@ prop:
       inputs: null
       todos: null
       events: null
-      context: null
       contextMetadataComponent: null
       metadataComponent: null
     NopAiSessionContext:

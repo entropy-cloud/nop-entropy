@@ -7,10 +7,11 @@ import java.util.Map;
 import java.util.concurrent.CompletionStage;
 
 /**
+ * AI chat function tool interface. Part of the legacy {@code IAiChat*} naming convention.
  * @deprecated This internal AI core interface is deprecated and will be removed in future versions.
  * Please use the new AI API instead.
  */
-@Deprecated
+@Deprecated(forRemoval = true)
 public interface IAiChatFunctionTool {
     String getName();
 

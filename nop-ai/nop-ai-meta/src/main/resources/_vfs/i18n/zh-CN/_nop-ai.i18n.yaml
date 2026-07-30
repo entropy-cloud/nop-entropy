@@ -251,7 +251,6 @@ prop:
       archivedAt: 归档时间
       childSessions: 子会话
       compactedAt: 压缩时间
-      context: null
       contextMetadata: 上下文元数据
       contextMetadataComponent: null
       contexts: 上下文快照

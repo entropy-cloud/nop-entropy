@@ -1,4 +1,5 @@
 # __XGEN_FORCE_OVERRIDE__
+# @deprecated Use kebab-case variant: rule-type.dict.yaml
 label: 规则类型
 locale: zh-CN
 valueType: 

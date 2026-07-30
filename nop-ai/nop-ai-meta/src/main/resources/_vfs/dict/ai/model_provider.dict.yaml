@@ -1,4 +1,5 @@
 # __XGEN_FORCE_OVERRIDE__
+# @deprecated Use kebab-case variant: model-provider.dict.yaml
 label: AI供应商
 locale: zh-CN
 valueType: 

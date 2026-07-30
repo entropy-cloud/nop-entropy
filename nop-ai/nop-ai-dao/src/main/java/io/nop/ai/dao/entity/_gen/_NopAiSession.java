@@ -153,9 +153,6 @@ public class _NopAiSession extends DynamicOrmEntity{
     /* relation: 事件日志 */
     public static final String PROP_NAME_events = "events";
     
-    /* relation:  */
-    public static final String PROP_NAME_context = "context";
-    
     /* component:  */
     public static final String PROP_NAME_contextMetadataComponent = "contextMetadataComponent";
     
@@ -1547,16 +1544,6 @@ public class _NopAiSession extends DynamicOrmEntity{
      */
     public final IOrmEntitySet<io.nop.ai.dao.entity.NopAiEvent> getEvents(){
        return _events;
-    }
-       
-    private final OrmEntitySet<io.nop.ai.dao.entity.NopAiSessionContext> _context = new OrmEntitySet<>(this, PROP_NAME_context,
-        io.nop.ai.dao.entity.NopAiSessionContext.PROP_NAME_session, null,io.nop.ai.dao.entity.NopAiSessionContext.class);
-
-    /**
-     * 。 refPropName: session, keyProp: {rel.keyProp}
-     */
-    public final IOrmEntitySet<io.nop.ai.dao.entity.NopAiSessionContext> getContext(){
-       return _context;
     }
        
    private io.nop.orm.component.JsonOrmComponent _contextMetadataComponent;

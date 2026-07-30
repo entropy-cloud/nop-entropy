@@ -20,7 +20,13 @@ import java.io.File;
 import java.util.List;
 import java.util.stream.Collectors;
 
+/**
+ * File tool operations. Uses {@link io.nop.ai.core.file.IFileOperator} (deprecated).
+ * Migration target: {@link io.nop.ai.toolkit.fs.IToolFileSystem} from nop-ai-toolkit.
+ * Full migration deferred — IToolFileSystem API differs from IFileOperator.
+ */
 @BizModel("FileTool")
+@SuppressWarnings("deprecation")
 public class FileToolBizModel {
 
     private File baseDir;
@@ -85,7 +91,6 @@ public class FileToolBizModel {
         IFileOperator operator = getFileOperator(projectName);
         operator.mergeFile(filePath, text);
     }
-
 
     @Description("使用glob模式搜索文件")
     @BizQuery

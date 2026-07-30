@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<beans x:schema="/nop/schema/beans.xdef" xmlns:x="/nop/schema/xdsl.xdef" xmlns:ioc="ioc">
+
+    <!-- nop-ai-code-analyzer: code analysis utility classes.
+         These are loaded on-demand via skill mechanism, not as IoC beans.
+         No IToolExecutor implementations currently exist in this module. -->
+</beans>

@@ -27,6 +27,7 @@ import io.nop.commons.util.StringHelper;
 import java.util.List;
 
 /**
+ * Base AI message. Part of the legacy {@code AiMessage*} naming convention.
  * @deprecated This internal AI core class is deprecated and will be removed in future versions.
  * Please use the new AI API instead.
  */
@@ -35,7 +36,7 @@ import java.util.List;
         @JsonSubTypes.Type(value = AiAssistantMessage.class, name = "assistant"),
         @JsonSubTypes.Type(value = AiSystemMessage.class, name = "system"),
 })
-@Deprecated
+@Deprecated(forRemoval = true)
 public abstract class AiMessage extends Metadata {
     private String messageId;
 

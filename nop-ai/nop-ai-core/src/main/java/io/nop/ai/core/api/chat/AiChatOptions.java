@@ -20,11 +20,12 @@ import java.util.Set;
 import java.util.function.Consumer;
 
 /**
+ * AI chat options. Part of the legacy {@code AiChat*} naming convention.
  * @deprecated This internal AI core class is deprecated and will be removed in future versions.
  * Please use the new AI API instead.
  */
 @DataBean
-@Deprecated
+@Deprecated(forRemoval = true)
 public class AiChatOptions extends ExtensibleBean {
     private String sessionId;
     private String provider;

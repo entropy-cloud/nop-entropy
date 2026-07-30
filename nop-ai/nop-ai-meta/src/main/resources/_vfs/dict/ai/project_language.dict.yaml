@@ -1,4 +1,5 @@
 # __XGEN_FORCE_OVERRIDE__
+# @deprecated Use kebab-case variant: project-language.dict.yaml
 label: 项目语言
 locale: zh-CN
 valueType: 

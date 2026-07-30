@@ -120,8 +120,9 @@
     </domains>
 
     <entities>
-        <entity className="io.nop.ai.dao.entity.NopAiProject" displayName="AI项目"
-                name="io.nop.ai.dao.entity.NopAiProject" registerShortName="true" tableName="nop_ai_project"
+        <entity className="io.nop.ai.dao.entity.NopAiProject" createTimeProp="createTime" createrProp="createdBy"
+                displayName="AI项目" name="io.nop.ai.dao.entity.NopAiProject" registerShortName="true"
+                tableName="nop_ai_project" updateTimeProp="updateTime" updaterProp="updatedBy"
                 i18n-en:displayName="AI Project" ext:icon="folder-kanban">
             <columns>
                 <column code="id" displayName="主键" mandatory="true" name="id" precision="36" primary="true" propId="1"
@@ -326,7 +327,7 @@
         </entity>
         <entity className="io.nop.ai.dao.entity.NopAiRequirement" createTimeProp="createTime" createrProp="createdBy"
                 displayName="需求条目" name="io.nop.ai.dao.entity.NopAiRequirement" registerShortName="true"
-                tableName="nop_ai_requirement" updateTimeProp="updateTime" updaterProp="updatedBy" versionProp="version"
+                tableName="nop_ai_requirement" updateTimeProp="updateTime" updaterProp="updatedBy"
                 i18n-en:displayName="Requirement Item" ext:icon="clipboard-list">
             <columns>
                 <column code="id" displayName="主键" mandatory="true" name="id" precision="36" primary="true" propId="1"
@@ -995,11 +996,6 @@
                         <on leftProp="id" rightProp="sessionId"/>
                     </join>
                 </to-many>
-                <to-many name="context" refEntityName="io.nop.ai.dao.entity.NopAiSessionContext" refPropName="session">
-                    <join>
-                        <on leftProp="id" rightProp="sessionId"/>
-                    </join>
-                </to-many>
             </relations>
         </entity>
         <entity className="io.nop.ai.dao.entity.NopAiSessionMessage" createTimeProp="createTime" createrProp="createdBy"
@@ -1163,7 +1159,7 @@
                 </index>
             </indexes>
             <relations>
-                <to-one name="session" refEntityName="io.nop.ai.dao.entity.NopAiSession" refPropName="context">
+                <to-one name="session" refEntityName="io.nop.ai.dao.entity.NopAiSession" refPropName="contexts">
                     <join>
                         <on leftProp="sessionId" rightProp="id"/>
                     </join>

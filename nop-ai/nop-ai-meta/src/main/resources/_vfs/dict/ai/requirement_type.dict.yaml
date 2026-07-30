@@ -1,4 +1,5 @@
 # __XGEN_FORCE_OVERRIDE__
+# @deprecated Use kebab-case variant: requirement-type.dict.yaml
 label: 需求类型
 locale: zh-CN
 valueType: 

@@ -169,12 +169,6 @@
                 <item bizObjName="NopAiEvent"/>
             </schema>
         </prop>
-        <prop name="context" ext:kind="to-many" internal="true" ext:joinLeftProp="id" ext:joinRightProp="sessionId"
-              lazy="true" published="false">
-            <schema>
-                <item bizObjName="NopAiSessionContext"/>
-            </schema>
-        </prop>
         <prop name="contextMetadataComponent" tagSet="json,pub,edit" ext:kind="component" internal="true"
               insertable="true" updatable="true" lazy="true">
             <schema type="io.nop.orm.component.JsonOrmComponent"/>

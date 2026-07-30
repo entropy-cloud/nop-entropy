@@ -2,6 +2,8 @@
 
 Nop AI Maven Extension - 支持虚拟文件系统的Maven工具
 
+> **关于模块名**：尽管名为 `nop-ai-maven`，该模块提供的是通用的虚拟文件系统（VFS）和增量仓库管理能力，**不依赖 Maven API**。模块名称中的 "maven" 源自最初的上下文（Maven CLI 集成），但功能可独立使用。模块位于 `nop-ai` 组是因为 VFS 能力最初服务于 AI 代码生成场景（nop-ai-coder）。
+
 ## 概述
 
 `nop-ai-maven` 是一个支持虚拟文件系统的Maven工具，允许通过base目录和delta目录实现文件系统的虚拟化。该工具特别适用于需要隔离和增量修改场景的Maven构建。

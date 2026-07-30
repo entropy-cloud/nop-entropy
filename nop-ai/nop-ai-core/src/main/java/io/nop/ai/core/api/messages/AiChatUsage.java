@@ -3,11 +3,12 @@ package io.nop.ai.core.api.messages;
 import io.nop.api.core.annotations.data.DataBean;
 
 /**
+ * AI chat usage statistics. Part of the legacy {@code AiChat*} naming convention.
  * @deprecated This internal AI core class is deprecated and will be removed in future versions.
  * Please use the new AI API instead.
  */
 @DataBean
-@Deprecated
+@Deprecated(forRemoval = true)
 public class AiChatUsage {
     private Integer promptTokens;
     private Integer completionTokens;

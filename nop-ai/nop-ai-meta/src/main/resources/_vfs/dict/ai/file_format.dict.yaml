@@ -1,4 +1,5 @@
 # __XGEN_FORCE_OVERRIDE__
+# @deprecated Use kebab-case variant: file-format.dict.yaml
 label: 文件格式
 locale: zh-CN
 valueType: 

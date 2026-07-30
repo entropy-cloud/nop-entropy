@@ -27,9 +27,6 @@
                 <!--API地址-->
                 <col id="baseUrl" sortable="true"/>
 
-                <!--API密钥-->
-                <col id="apiKey" sortable="true"/>
-
                 <!--数据版本-->
                 <col id="version" mandatory="true" ui:number="true" sortable="true"/>
 
@@ -71,24 +68,22 @@
         <form id="view" editMode="view" title="查看-AI模型" i18n-en:title="View AI Model">
             <layout>
  provider[供应商] modelName[模型名称]
- baseUrl[API地址] apiKey[API密钥]
- version[数据版本] createdBy[创建人]
- createTime[创建时间] updatedBy[修改人]
- updateTime[修改时间] inputPricePer1m[输入单价]
- outputPricePer1m[输出单价] reasoningPricePer1m[推理单价]
- cacheReadPricePer1m[缓存读单价] cacheWritePricePer1m[缓存写单价]
- currency[币种] 
+ baseUrl[API地址] version[数据版本]
+ createdBy[创建人] createTime[创建时间]
+ updatedBy[修改人] updateTime[修改时间]
+ inputPricePer1m[输入单价] outputPricePer1m[输出单价]
+ reasoningPricePer1m[推理单价] cacheReadPricePer1m[缓存读单价]
+ cacheWritePricePer1m[缓存写单价] currency[币种]
 </layout>
         </form>
         <form id="add" editMode="add" title="新增-AI模型" i18n-en:title="Add AI Model" x:prototype="edit"/>
         <form id="edit" editMode="edit" title="编辑-AI模型" i18n-en:title="Edit AI Model">
             <layout>
  provider[供应商] modelName[模型名称]
- baseUrl[API地址] apiKey[API密钥]
- version[数据版本] inputPricePer1m[输入单价]
- outputPricePer1m[输出单价] reasoningPricePer1m[推理单价]
- cacheReadPricePer1m[缓存读单价] cacheWritePricePer1m[缓存写单价]
- currency[币种] 
+ baseUrl[API地址] version[数据版本]
+ inputPricePer1m[输入单价] outputPricePer1m[输出单价]
+ reasoningPricePer1m[推理单价] cacheReadPricePer1m[缓存读单价]
+ cacheWritePricePer1m[缓存写单价] currency[币种]
 </layout>
         </form>
         <form id="query" editMode="query" title="查询条件" i18n-en:title="Query Condition" x:abstract="true"/>

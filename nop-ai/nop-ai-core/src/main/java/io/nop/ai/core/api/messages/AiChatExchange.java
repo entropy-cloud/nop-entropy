@@ -54,11 +54,12 @@ import static io.nop.ai.core.AiCoreErrors.ERR_AI_RESULT_NO_EXPECTED_PART;
 import static io.nop.ai.core.api.messages.AiMessage.indexOfMark;
 
 /**
+ * AI chat exchange (response/request). Part of the legacy {@code AiChat*} naming convention.
  * @deprecated This internal AI core class is deprecated and will be removed in future versions.
  * Please use the new AI API instead.
  */
 @DataBean
-@Deprecated
+@Deprecated(forRemoval = true)
 public class AiChatExchange {
     static final Logger LOG = LoggerFactory.getLogger(AiChatExchange.class);
 

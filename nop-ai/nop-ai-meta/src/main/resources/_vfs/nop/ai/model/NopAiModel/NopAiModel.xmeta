@@ -1,5 +1,8 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 <meta x:schema="/nop/schema/xmeta.xdef" xmlns:x="/nop/schema/xdsl.xdef" x:extends="_NopAiModel.xmeta">
 
-    <props/>
+    <props>
+        <!-- Restrict apiKey: credential field, not exposed in queries/sorts -->
+        <prop name="apiKey" queryable="false" sortable="false" insertable="false" updatable="false" internal="true"/>
+    </props>
 </meta>

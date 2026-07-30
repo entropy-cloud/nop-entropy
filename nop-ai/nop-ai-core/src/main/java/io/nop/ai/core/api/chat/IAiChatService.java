@@ -8,10 +8,11 @@ import io.nop.api.core.util.ICancelToken;
 import java.util.concurrent.CompletionStage;
 
 /**
+ * AI chat service interface. Part of the legacy {@code IAiChat*} naming convention.
  * @deprecated This internal AI core interface is deprecated and will be removed in future versions.
  * Please use the new AI API instead.
  */
-@Deprecated
+@Deprecated(forRemoval = true)
 public interface IAiChatService {
     IAiChatSession newSession(AiChatOptions options);
 

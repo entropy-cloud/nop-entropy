@@ -1,4 +1,9 @@
 <?xml version="1.0" encoding="UTF-8" ?>
+<!--
+  nop-ai-codegen: zero production Java source (intentional).
+  Provides test-only bootstrap (NopAiCodeGen) and postcompile codegen scripts.
+  Generates dao/entity/xbiz from ORM models during build.
+-->
 <c:script>
 // 根据ORM模型生成dao/entity/xbiz
 codeGenerator.withTargetDir("../").renderModel('../../model/nop-ai.orm.xml','/nop/templates/orm', '/',$scope);

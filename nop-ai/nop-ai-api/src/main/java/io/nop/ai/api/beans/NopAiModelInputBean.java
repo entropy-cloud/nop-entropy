@@ -68,20 +68,6 @@
         }
 
 
-        private String _apiKey;
-
-    
-        @PropMeta(propId=5)
-    
-        public String getApiKey(){
-            return _apiKey;
-        }
-
-        public void setApiKey(String value){
-            this._apiKey = value;
-        }
-
-
         private Integer _version;
 
     

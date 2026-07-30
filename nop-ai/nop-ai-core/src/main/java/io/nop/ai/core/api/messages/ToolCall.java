@@ -5,11 +5,12 @@ import io.nop.api.core.annotations.data.DataBean;
 import java.util.Map;
 
 /**
+ * Tool call data. Part of the legacy {@code ToolCall} naming convention.
  * @deprecated This internal AI core class is deprecated and will be removed in future versions.
  * Please use the new AI API instead.
  */
 @DataBean
-@Deprecated
+@Deprecated(forRemoval = true)
 public class ToolCall {
     private int index;
     private String id;

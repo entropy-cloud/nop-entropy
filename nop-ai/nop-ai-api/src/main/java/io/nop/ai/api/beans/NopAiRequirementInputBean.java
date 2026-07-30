@@ -82,6 +82,20 @@
         }
 
 
+        private String _version;
+
+    
+        @PropMeta(propId=6)
+    
+        public String getVersion(){
+            return _version;
+        }
+
+        public void setVersion(String value){
+            this._version = value;
+        }
+
+
         private String _parentId;
 
     

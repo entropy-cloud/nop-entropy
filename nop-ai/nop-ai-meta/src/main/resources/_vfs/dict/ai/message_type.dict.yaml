@@ -1,4 +1,5 @@
 # __XGEN_FORCE_OVERRIDE__
+# @deprecated Use kebab-case variant: message-type.dict.yaml
 label: 消息类型
 locale: zh-CN
 valueType: 
