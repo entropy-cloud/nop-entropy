@@ -13,6 +13,7 @@ import io.nop.core.resource.component.ResourceComponentManager;
 import io.nop.core.resource.impl.FileResource;
 import io.nop.core.resource.zip.ZipOptions;
 import io.nop.dataset.record.IRecordOutput;
+import io.nop.excel.ExcelConfigs;
 import io.nop.excel.model.ExcelCell;
 import io.nop.excel.model.ExcelRow;
 import io.nop.excel.model.ExcelSheet;
@@ -39,6 +40,8 @@ public class ExcelRecordOutput<T> implements IRecordOutput<T> {
     private final ExcelIOConfig config;
 
     private long writeCount;
+    private long sheetDataRowCount;
+    private int sheetSeqNum;
     private File tempDir;
     private final IXptRuntime xptRt;
     private final IEvalScope scope;
@@ -113,12 +116,22 @@ public class ExcelRecordOutput<T> implements IRecordOutput<T> {
     }
 
     @Override
-    public void write(T record) {
+    public void write(T record) throws IOException {
         writeCount++;
+
+        int maxCount = config.getMaxCountPerSheet();
+        if (maxCount > 0 && sheetDataRowCount >= maxCount) {
+            closeDataSheetWriter();
+            newDataSheetWriter();
+            sheetDataRowCount = 0;
+            headersWritten = false;
+        }
+
         writeHeaders();
 
         ExcelRow row = makeRow(record);
-        out.writeRow((int) writeCount, row);
+        out.writeRow((int) sheetDataRowCount + 1, row);
+        sheetDataRowCount++;
     }
 
     private void writeHeaders() {
@@ -177,12 +190,28 @@ public class ExcelRecordOutput<T> implements IRecordOutput<T> {
     void newDataSheetWriter() {
         int index = genState.genSheetIndex();
         ExcelOfficePackage pkg = genState.pkg;
-        String sheetName = config.getDataSheetName();
-        if (StringHelper.isEmpty(sheetName))
-            sheetName = "Data";
+
+        String baseName = config.getDataSheetName();
+        if (StringHelper.isEmpty(baseName))
+            baseName = "Data";
+
+        String sheetName;
+        if (sheetSeqNum == 0) {
+            sheetName = baseName;
+        } else {
+            String suffix = "-" + (sheetSeqNum + 1);
+            int maxLen = ExcelConfigs.CFG_EXCEL_MAX_SHEET_NAME_LENGTH.get();
+            if ((baseName + suffix).length() > maxLen) {
+                sheetName = baseName.substring(0, maxLen - suffix.length()) + suffix;
+            } else {
+                sheetName = baseName + suffix;
+            }
+        }
+        sheetSeqNum++;
+
         String sheetPath = pkg.addSheet(index, sheetName, false);
 
-        dataSheetModel = xptModel.requireSheet(sheetName);
+        dataSheetModel = xptModel.requireSheet(baseName);
 
         IResource file = new FileResource(new File(tempDir, sheetPath));
         pkg.addFile(sheetPath, file);
