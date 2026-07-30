@@ -4,7 +4,7 @@
 > 目标模块组：nop-ai（18 子模块，排除 MCP——MCP 协议集成模块，独立发布周期，需单独审计）
 > 总览：ai-dev/backlog/audit-remediation-roadmap.md
 > 维度矩阵：arm-audit-dimension-matrix.md
-> 状态汇总：已完成 5 | 进行中 1 | 待办 24 | P0 未解决 1（有异步修复 plan）
+> 状态汇总：已完成 6 | 进行中 0 | 待办 24 | P0 未解决 0
 
 ## 报告清单
 
@@ -47,7 +47,7 @@
 
 | Finding ID | 报告 | 描述 | 修复路径 | 修复状态 |
 |-----------|------|------|---------|---------|
-| P0-MA2-01 | MA2.1 | 双 ORM 源文件漂移（nop-ai.orm.xml vs ai-gen.orm.xml） | [异步修复 plan](ai-dev/plans/2026-07-30-2130-arm-fix-p0-ma2-01.md) | `fix-plan-injected` |
+| P0-MA2-01 ✅ | MA2.1 | 双 ORM 源文件漂移（nop-ai.orm.xml vs ai-gen.orm.xml） | [异步修复 plan](ai-dev/plans/2026-07-30-2130-arm-fix-p0-ma2-01.md) | `fixed` |
 
 ## P1 发现汇总（待 MR 批量修复）
 
