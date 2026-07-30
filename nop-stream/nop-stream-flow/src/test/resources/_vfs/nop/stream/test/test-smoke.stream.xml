@@ -1,0 +1,25 @@
+<stream x:schema="/nop/schema/stream/stream.xdef"
+        name="test-smoke-pipeline" version="1" parallelism="2">
+
+    <transforms>
+        <source id="src" name="TestSource"
+                bean="testSourceFunction"
+                parallelism="1"
+                consistencyCapability="REPLAYABLE"/>
+
+        <map id="upper" name="ToUpperCase">
+            <source>return event.toString().toUpperCase();</source>
+        </map>
+
+        <sink id="out" name="TestSink"
+              parallelism="1"
+              consistencyCapability="IDEMPOTENT">
+            <source>log.info('Output: {}', event);</source>
+        </sink>
+    </transforms>
+
+    <edges>
+        <edge id="e0" from="src" to="upper" partition="FORWARD"/>
+        <edge id="e1" from="upper" to="out" partition="FORWARD"/>
+    </edges>
+</stream>
