@@ -1,6 +1,6 @@
 # 297 nop-rule 执行追踪实现
 
-> Plan Status: active
+> Plan Status: completed
 > Last Reviewed: 2026-07-17
 > Source: `ai-dev/design/nop-rule/nop-rule-tracing-design.md`
 > Related: `nop-kernel/nop-xdefs/src/main/resources/_vfs/nop/schema/rule.xdef`, `nop-rule/nop-rule-core/src/main/java/io/nop/rule/core/`
@@ -173,7 +173,7 @@ Exit Criteria:
 - [x] `./mvnw test -pl nop-rule/nop-rule-core -am` 通过
 - [x] 无静默跳过：所有新增方法在未实现时抛出异常而非静默返回
 - [x] 接线验证：`RuleServiceImpl.executeRule` → 完整链 → `RuleResultBean.logMessages` 端到端连通（code path 可见：`RuleServiceImpl` → `RuleManager.getExecutableRule` → `RuleModelCompiler.compileRule` → `TraceVarsExecutableRule` → `NormalizeOutput` → `core` → `ExecutableRule.buildMessage` → `RuleRuntime.logMessage` → `RuleLogMessageBean.context`）
-- [ ] 独立子 agent closure-audit 已完成并记录证据
+- [x] 独立子 agent closure-audit 已完成并记录证据
 
 ## Deferred But Adjudicated
 
@@ -190,8 +190,8 @@ Completed:
 
 Closure Audit Evidence:
 
-- Reviewer / Agent:
-- Evidence:
+- Reviewer / Agent: independent subagent (ses_04c1cd320ffemgQmqK89iUPW5s)
+- Evidence: All 16 exit criteria verified against live code — see audit report in session transcript: PASS ✅
 
 Follow-up:
 
