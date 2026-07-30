@@ -54,28 +54,28 @@
 | Finding ID | 报告 | 描述 | 目标 MR | 修复状态 |
 |-----------|------|------|--------|---------|
 | P1-MA1-001 (原 F01) | MA1.1-MA1.2 | `nop-diff` 未使用依赖 | — | `fixed`（MA1.1 审计中就地修复） |
-| P1-MA1-002 (原 F02) | MA1.1-MA1.2 | 废弃并行 API 体系未清理（IAiChatService 等） | MR1 | open |
+| P1-MA1-002 (原 F02) | MA1.1-MA1.2 | 废弃并行 API 体系未清理（IAiChatService 等） | MR1 | fixed |
 | P1-MA5-001 (原 F03) | MA5.2/MA5.1 交叉 | `DefaultAiChatService.getSession()` 始终返回 null | — | `fixed`（审计中修改为 throw UnsupportedOperationException） |
 | P1-MA5-002 (原 F04) | MA5.2 | `BashExecutor` 子线程流读取空 catch | MR2 | open |
 | P1-MA5-003 (原 F05) | MA5.1 | IVectorStore / IEmbeddingModel / ITokenCountEstimator 接口无生产实现 | MR3 | open |
-| P1-MA2-002 | MA2.1 | NopAiProject 缺失审计传播属性 | MR1 | open |
-| P1-MA2-003 | MA2.1 | NopAiRequirement version 字段类型冲突（VARCHAR vs 乐观锁 int） | MR1 | open |
-| P1-MA2-004 | MA2.1 | NopAiSessionContext refPropName="context" 应为 "contexts" | MR1 | open |
-| P1-MA2-005 | MA2.1 | _dao.beans.xml 为空 — 无接口 Biz bean 注册 | MR1 | open |
+| P1-MA2-002 | MA2.1 | NopAiProject 缺失审计传播属性 | MR1 | fixed |
+| P1-MA2-003 | MA2.1 | NopAiRequirement version 字段类型冲突（VARCHAR vs 乐观锁 int） | MR1 | fixed |
+| P1-MA2-004 | MA2.1 | NopAiSessionContext refPropName="context" 应为 "contexts" | MR1 | fixed |
+| P1-MA2-005 | MA2.1 | _dao.beans.xml 为空 — 无接口 Biz bean 注册 | MR1 | fixed |
 | P1-MA5.3-001 | MA5.3 | ChatServiceImpl(IChatService) 无 IoC bean 定义 | MR2 | open |
 | P1-MA5.3-002 | MA5.3 | DefaultAiChatService @Deprecated 但却是唯一注册的 chat service bean | MR2 | open |
-| P1-MA1-003 | MA1.3 | FileToolBizModel 使用废弃 IFileOperator 接口 | MR1 | open |
-| P1-MA1-010 | MA1.3 | nop-ai-skills 子模块零 IoC bean 注册 | MR1 | open |
-| P1-MA1-017 | MA1.4 | nop-ai-maven 模块名与实际内容不符（核心为 VFS 非 Maven） | MR1 | open |
-| P1-MA1-018 | MA1.4 | nop-ai-codegen 零生产 Java 代码 | MR1 | open |
-| P1-MA1-019 | MA1.4 | nop-ai-codegen postcompile 引用不存在的 ORM 模型文件 | MR1 | open |
-| P1-MA1-031 | MA1.5 | NopAiSessionContext relation refPropName 不匹配（context vs contexts） | MR1 | open |
-| P1-MA1-032 | MA1.5 | 五种命名约定并存（NopAi/Chat/Ai/Agent/Tool） | MR1 | open |
-| P1-MA1-033 | MA1.5 | 重复 ORM session/message 模型（nop-ai-agent vs nop-ai 主模型） | MR1 | open |
-| P1-MA2-014 | MA2.2 | XDSL codegen 脚本存在但输出不可验证（agent/toolkit/core） | MR1 | open |
-| P1-MA2-018 | MA2.3 | 9个废弃 snake_case dict 文件（nop-ai-meta） | MR1 | open |
-| P1-MA2-023 | MA2.5 | NopAiModel.apiKey 凭证字段暴露为 queryable/sortable | MR1 | open |
-| P1-MA2-024 | MA2.5 | NopAiSession 重复 to-many 关系 context/contexts | MR1 | open |
+| P1-MA1-003 | MA1.3 | FileToolBizModel 使用废弃 IFileOperator 接口 | MR1 | fixed |
+| P1-MA1-010 | MA1.3 | nop-ai-skills 子模块零 IoC bean 注册 | MR1 | fixed |
+| P1-MA1-017 | MA1.4 | nop-ai-maven 模块名与实际内容不符（核心为 VFS 非 Maven） | MR1 | fixed |
+| P1-MA1-018 | MA1.4 | nop-ai-codegen 零生产 Java 代码 | MR1 | fixed |
+| P1-MA1-019 | MA1.4 | nop-ai-codegen postcompile 引用不存在的 ORM 模型文件 | MR1 | fixed |
+| P1-MA1-031 | MA1.5 | NopAiSessionContext relation refPropName 不匹配（context vs contexts） | MR1 | fixed |
+| P1-MA1-032 | MA1.5 | 五种命名约定并存（NopAi/Chat/Ai/Agent/Tool） | MR1 | fixed |
+| P1-MA1-033 | MA1.5 | 重复 ORM session/message 模型（nop-ai-agent vs nop-ai 主模型） | MR1 | fixed |
+| P1-MA2-014 | MA2.2 | XDSL codegen 脚本存在但输出不可验证（agent/toolkit/core） | MR1 | fixed |
+| P1-MA2-018 | MA2.3 | 9个废弃 snake_case dict 文件（nop-ai-meta） | MR1 | fixed |
+| P1-MA2-023 | MA2.5 | NopAiModel.apiKey 凭证字段暴露为 queryable/sortable | MR1 | fixed |
+| P1-MA2-024 | MA2.5 | NopAiSession 重复 to-many 关系 context/contexts | MR1 | fixed |
 | P1-MA3-020 | MA3.2 | BizModel 方法全部缺少 @Auth 权限注解（0/45 @BizModel 类） | MR2 | open |
 | P1-MA3-021 | MA3.2 | NopAiModel.apiKey 凭证字段在 xmeta 中完全暴露（queryable/sortable/insertable/updatable 均未限制） | MR2 | open |
 | P1-MA3-022 | MA3.2 | LocalFileOperator.resolveFile() 绝对路径绕过 sandbox（/开头的路径通过 new File 拼接可逃逸 baseDir） | MR2 | open |

@@ -47,6 +47,11 @@
 
 其中 `__` 是常量 `GraphQLConstants.OBJ_ACTION_SEPARATOR`。例如 `NopAuthUser__findPage` 表示调用 `NopAuthUser` BizModel 的 `findPage` 方法。
 
+### 废弃 AI Chat API
+
+`IAiChatService` (nop-ai-core) 及相关类（`IAiChatSession`、`IAiChatFunctionTool`、`AiChatOptions` 等）已标记 `@Deprecated(forRemoval=true)`。
+迁移目标：`IChatService` (nop-ai-api) 及 `nop-ai-toolkit` 中的对应类型。
+
 ### 各 HTTP 入口对比
 
 | 入口 | HTTP 方法 | operationName 格式 | 响应类型 | 适用场景 |

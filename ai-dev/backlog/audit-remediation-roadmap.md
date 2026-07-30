@@ -93,8 +93,8 @@
 
 | # | Work Item | Status | Owner Doc | Deps | Skill |
 |---|-----------|--------|-----------|------|-------|
-| R1.0 | MA1+MA2 P1 发现汇总、排序并展开为具体修复工作项行 | todo | `ai-dev/audits/arm-index.md` §P1 | MA1+MA2 done | none（展开器） |
-| R1.x | （R1.0 执行后自动展开） | todo | — | R1.0 | 按具体修复工作项确定 |
+| R1.0 | MA1+MA2 P1 发现汇总、排序并展开为具体修复工作项行 | done | `ai-dev/audits/arm-index.md` §P1 | MA1+MA2 done | none（展开器） |
+| R1.x | MA1+MA2 修复（17 P1 findings fixed） | done | — | R1.0 | MR1 plan executed |
 
 ### MR2 — P1 批量修复（第二批：运行时 + 质量）
 
@@ -143,7 +143,7 @@
 | MA4 | M0 | 审计报告（代码质量, 测试, 文档） |
 | MA5 | M0 | 审计报告（残留风险 7 维度） |
 | MA6 | M0 | 审计报告（AI/LLM 特有风险） |
-| MR1 | MA1+MA2 | 修复代码 + 测试 |
+| MR1 ✅ | MA1+MA2 | 修复代码 + 测试（closed 2026-07-31） |
 | MR2 | MA3+MA4 | 修复代码 + 测试 |
 | MR3 | MA5+MA6 | 修复代码 + 测试 |
 | MR4 | MR1+MR2+MR3 | 裁决文档 |
