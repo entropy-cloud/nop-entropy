@@ -11,13 +11,7 @@
                 可以为字段指定宽度
                 -->
                 <col id="resourceType" width="100px"/>
-                <col id="icon" align="center">
-                    <gen-control>
-                        <vue-renderer vueComponent="icon">
-                            <props icon="${'$'}{icon}"/>
-                        </vue-renderer>
-                    </gen-control>
-                </col>
+                <col id="icon" align="center"/>
 
                 <col id="status" width="50px"/>
             </cols>
@@ -120,12 +114,6 @@
                                 </url>
                             </source>
                         </tree-select>
-                    </gen-control>
-                </cell>
-
-                <cell id="icon">
-                    <gen-control>
-                        <vue-form-item vueComponent="icon-picker"/>
                     </gen-control>
                 </cell>
             </cells>

@@ -1151,5 +1151,32 @@ Flux 控件映射库。控件名格式为 {mode}-{type}，与 control.xlib 保�
                  }
             ]]></source>
         </edit-select>
+
+        <edit-icon>
+            <attr name="dispMeta"/>
+            <attr name="propMeta"/>
+            <attr name="editMode"/>
+
+            <source><![CDATA[
+                return {
+                    type: 'icon-picker',
+                    clearable: true,
+                    value: dispMeta?.defaultValue ?? ((editMode == 'add' || editMode == 'list-edit') ? propMeta?.defaultValue: null)
+                }
+            ]]></source>
+        </edit-icon>
+
+        <view-icon>
+            <attr name="dispMeta"/>
+            <attr name="propMeta"/>
+
+            <source><![CDATA[
+                return {
+                    type: 'icon'
+                }
+            ]]></source>
+        </view-icon>
+
+        <list-view-icon x:prototype="view-icon"/>
     </tags>
 </lib>

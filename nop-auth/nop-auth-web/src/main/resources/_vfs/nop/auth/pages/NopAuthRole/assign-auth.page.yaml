@@ -2,6 +2,10 @@ type: page
 title: "@i18n:common.authorization"
 body:
   - type: form
+    initApi:
+      url: "@query:NopAuthRole__get/resourceIds"
+      data:
+        id: ${roleId}
     body:
       - label: '@i18n:prop.label.NopAuthResource.siteId|站点ID'
         required: true
@@ -11,23 +15,17 @@ body:
         value: main
         name: siteId
 
-      - type: service
-        api:
-          url: "@query:NopAuthRole__get/resourceIds:roleResourceIds"
+      - type: input-tree
+        name: resourceIds
+        multiple: true
+        cascade: true
+        label: false
+        source:
+          url: "@query:NopAuthResource__findList/value:id,label:displayName,children @TreeChildren(max:5)"
           data:
-            id: ${roleId}
-        body:
-          type: input-tree
-          name: resourceIds
-          multiple: true
-          cascade: true
-          label: false
-          source:
-            url: "@query:NopAuthResource__findList/value:id,label:displayName,children @TreeChildren(max:5)"
-            data:
-              filter_resourceType: TOPM
-              filter_siteId: ${siteId}
-            trackExpression: ${siteId}
+            filter_resourceType: TOPM
+            filter_siteId: ${siteId}
+          trackExpression: ${siteId}
 
       - type: wrapper
         body:

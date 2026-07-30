@@ -74,7 +74,6 @@
                 <api xpl:attrs="xpl('thisLib:NormalizeApi',api,genScope)" xpl:if="api"/>
                 <submitAction xpl:attrs="submitAction" xpl:if="submitAction"/>
                 <onSubmitSuccess j:list="true" xpl:if="submitAction">
-                    <action action="closeSurface"/>
                     <action action="refreshNearest"/>
                 </onSubmitSuccess>
 

@@ -1205,5 +1205,35 @@
                  }
             ]]></source>
         </edit-select>
+
+        <edit-icon>
+            <attr name="dispMeta"/>
+            <attr name="propMeta"/>
+            <attr name="editMode"/>
+
+            <source><![CDATA[
+                return {
+                    type: 'vue-form-item',
+                    vueComponent: 'icon-picker'
+                }
+            ]]></source>
+        </edit-icon>
+
+        <view-icon>
+            <attr name="dispMeta"/>
+            <attr name="propMeta"/>
+
+            <source><![CDATA[
+                return {
+                    type: 'vue-renderer',
+                    vueComponent: 'icon',
+                    props: {
+                        icon: '${' + (dispMeta?.id || propMeta.name) + '}'
+                    }
+                }
+            ]]></source>
+        </view-icon>
+
+        <list-view-icon x:prototype="view-icon"/>
     </tags>
 </lib>
