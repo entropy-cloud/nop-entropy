@@ -1,6 +1,6 @@
 # 1 修复 nop-deep-analysis P2 审计发现（交付物事实性精度修正）
 
-> Plan Status: draft
+> Plan Status: active
 > Mission: nop-deep-analysis
 > Work Item: P2 audit findings remediation（跨 A2/A4/A5/A6/A7 交付物）
 > Last Reviewed: 2026-07-26

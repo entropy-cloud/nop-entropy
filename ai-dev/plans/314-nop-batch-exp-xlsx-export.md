@@ -1,7 +1,7 @@
 # 314 为 ExportDbTool 增加 xlsx 导出格式
 
-> Plan Status: draft
-> Last Reviewed: 2026-07-23
+> Plan Status: active
+> Last Reviewed: 2026-07-30
 > Source: 用户需求；代码考察见 `ExportDbTool.newConsumer`、`BizExportTaskBuilder.newExcelWriter`、`ExcelResourceIO`
 > Related: 无
 
@@ -61,12 +61,12 @@ Targets: `nop-batch-exp/.../ExportDbTool.java`, `nop-batch-exp/pom.xml`, `nop-xd
 
 - Item Types: `Fix | Decision | Proof`
 
-- [ ] 在 `nop-batch-exp/pom.xml` 新增 `nop-report-core` 依赖（Decision：复用已验证的 `ExcelResourceIO`，而非新造写出逻辑）
-- [ ] 在 `ExportDbTool` 新增 `newExcelConsumer(String resourcePath, List<String> fields)` 方法：构造 `ExcelResourceIO<Map<String,Object>>`，设置 `headers = fields`，用 `newResourceConsumer(recordIO, resourcePath)` 包成 `ResourceRecordConsumerProvider`，模式对齐 `newCsvConsumer`（`ExportDbTool.java:352-359`）
-- [ ] 在 `ExportDbTool.newConsumer` 的格式分派循环中新增 `"xlsx"` 分支，调用 `newExcelConsumer`（`ExportDbTool.java:335-345`）
-- [ ] 更新 `/nop/schema/db/export-db.xdef:4` 注释：`exportFormats` 合法值增加 `xlsx`
-- [ ] 新增端到端测试 `TestExportDbTool`（参照 `TestImportDbTool` 的 H2 local DB 模式）：建表 → 插入若干行 → 用 `exportFormats="xlsx"` 执行 `ExportDbTool` → 用 `ExcelResourceIO.openInput` 读回生成的 `.xlsx` → 断言行数与字段值一致
-- [ ] 新增测试用 config `test.export-db-xlsx.xml`（H2 连接、`exportFormats="xlsx"`）
+- [ ] (Decision) 在 `nop-batch-exp/pom.xml` 新增 `nop-report-core` 依赖——复用已验证的 `ExcelResourceIO`，而非新造写出逻辑
+- [ ] (Fix) 在 `ExportDbTool` 新增 `newExcelConsumer(String resourcePath, List<String> fields)` 方法：构造 `ExcelResourceIO<Map<String,Object>>`，设置 `headers = fields`，用 `newResourceConsumer(recordIO, resourcePath)` 包成 `ResourceRecordConsumerProvider`，模式对齐 `newCsvConsumer`（`ExportDbTool.java:352-359`）
+- [ ] (Fix) 在 `ExportDbTool.newConsumer` 的格式分派循环中新增 `"xlsx"` 分支，调用 `newExcelConsumer`（`ExportDbTool.java:335-345`）
+- [ ] (Fix) 更新 `/nop/schema/db/export-db.xdef:4` 注释：`exportFormats` 合法值增加 `xlsx`
+- [ ] (Proof) 新增端到端测试 `TestExportDbTool`（参照 `TestImportDbTool` 的 H2 local DB 模式）：建表 → 插入若干行 → 用 `exportFormats="xlsx"` 执行 `ExportDbTool` → 用 `ExcelResourceIO.openInput` 读回生成的 `.xlsx` → 断言行数与字段值一致
+- [ ] (Proof) 新增测试用 config `test.export-db-xlsx.xml`（H2 连接、`exportFormats="xlsx"`）
 
 Exit Criteria:
 

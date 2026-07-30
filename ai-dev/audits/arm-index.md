@@ -1,0 +1,66 @@
+# 审计-修复报告索引（arm）
+
+> 启动时间：2026-07-30
+> 目标模块组：nop-ai（18 子模块，排除 MCP——MCP 协议集成模块，独立发布周期，需单独审计）
+> 总览：ai-dev/backlog/audit-remediation-roadmap.md
+> 维度矩阵：arm-audit-dimension-matrix.md
+> 状态汇总：已完成 5 | 进行中 1 | 待办 24 | P0 未解决 1（有异步修复 plan）
+
+## 报告清单
+
+| 报告 | 里程碑 | 维度 | 范围 | P0 | P1 | P2/P3 | 状态 |
+|------|--------|------|------|----|----|-------|------|
+| [`2026-07-30-2100-arm-MA1.1-nop-ai-api-core-dependency.md`](./2026-07-30-2100-arm-MA1.1-nop-ai-api-core-dependency.md) | MA1.1+MA1.2 | 依赖图+API契约 | api-core | 0 | 2 | 5(P2)+2(P3) | `done` |
+| — | MA1.3 | 模块职责 | toolkit | — | — | — | todo |
+| — | MA1.4 | 模块职责 | infra | — | — | — | todo |
+| — | MA1.5 | 命名与术语 | 全模块 | — | — | — | todo |
+| [`2026-07-30-2130-arm-MA2.1-2.4-nop-ai-orm-biz.md`](./2026-07-30-2130-arm-MA2.1-2.4-nop-ai-orm-biz.md) | MA2.1+MA2.4 | ORM模型+BizModel | biz-dao+biz-svc | 1 | 4 | 6 | `done` |
+| — | MA2.2 | 生成管线 | biz | — | — | — | todo |
+| — | MA2.3 | Delta 合规 | biz | — | — | — | todo |
+| — | MA2.5 | XMeta 对齐 | biz-svc | — | — | — | todo |
+| — | MA2.6 | GraphQL/API | biz-svc | — | — | — | todo |
+| — | MA2.7 | IoC/Bean | 全模块 | — | — | — | todo |
+| — | MA3.1 | 跨模块依赖 | 全模块 | — | — | — | todo |
+| — | MA3.2 | 安全权限 | 全模块 | — | — | — | todo |
+| — | MA3.3 | 异步/事务 | 全模块 | — | — | — | todo |
+| — | MA3.4 | 错误处理 | 全模块 | — | — | — | todo |
+| — | MA3.5 | 跨模块契约 | 全模块 | — | — | — | todo |
+| — | MA4.1 | 类型安全 | 全模块 | — | — | — | todo |
+| — | MA4.2 | 代码风格 | 全模块 | — | — | — | todo |
+| — | MA4.3 | 测试覆盖 | 全模块 | — | — | — | todo |
+| — | MA4.4 | 测试有效性 | 全模块 | — | — | — | todo |
+| — | MA4.5 | 文档一致性 | 全模块 | — | — | — | todo |
+| [`2026-07-30-2100-arm-MA5.1-nop-ai-hollow-scan.md`](./2026-07-30-2100-arm-MA5.1-nop-ai-hollow-scan.md) | MA5.1 | 空壳实现 | 全模块 | 0 | 2 | 7 | `done` |
+| [`2026-07-30-2100-arm-MA5.2-nop-ai-silent-noop.md`](./2026-07-30-2100-arm-MA5.2-nop-ai-silent-noop.md) | MA5.2 | 静默跳过 | 全模块 | 0 | 2 | 20 | `done` |
+| [`2026-07-30-2130-arm-MA5.3-nop-ai-wiring.md`](./2026-07-30-2130-arm-MA5.3-nop-ai-wiring.md) | MA5.3 | 接线完整性 | 全模块 | 0 | 2 | 7 | `done` |
+| — | MA5.4 | 设计文档 drift | 全模块 | — | — | — | todo |
+| — | MA5.5 | 敏感泄露 | 全模块 | — | — | — | todo |
+| — | MA5.6 | 测试隔离 | 全模块 | — | — | — | todo |
+| — | MA5.7 | 修复验证 | 全模块 | — | — | — | todo |
+| — | MA6.1 | LLM 配置安全 | 全模块 | — | — | — | todo |
+| — | MA6.2 | Agent 编排安全 | 全模块 | — | — | — | todo |
+| — | MA6.3 | Token 计量与调用可靠性 | 全模块 | — | — | — | todo |
+| — | MA6.4 | 向量存储/Embedding 隔离 | 全模块 | — | — | — | todo |
+| — | MA6.5 | 对话历史与 Prompt 安全 | 全模块 | — | — | — | todo |
+
+## P0 发现追踪（即时通道）
+
+| Finding ID | 报告 | 描述 | 修复路径 | 修复状态 |
+|-----------|------|------|---------|---------|
+| P0-MA2-01 | MA2.1 | 双 ORM 源文件漂移（nop-ai.orm.xml vs ai-gen.orm.xml） | [异步修复 plan](ai-dev/plans/2026-07-30-2130-arm-fix-p0-ma2-01.md) | `fix-plan-injected` |
+
+## P1 发现汇总（待 MR 批量修复）
+
+| Finding ID | 报告 | 描述 | 目标 MR | 修复状态 |
+|-----------|------|------|--------|---------|
+| P1-MA1-001 (原 F01) | MA1.1-MA1.2 | `nop-diff` 未使用依赖 | — | `fixed`（MA1.1 审计中就地修复） |
+| P1-MA1-002 (原 F02) | MA1.1-MA1.2 | 废弃并行 API 体系未清理（IAiChatService 等） | MR1 | open |
+| P1-MA5-001 (原 F03) | MA5.2/MA5.1 交叉 | `DefaultAiChatService.getSession()` 始终返回 null | — | `fixed`（审计中修改为 throw UnsupportedOperationException） |
+| P1-MA5-002 (原 F04) | MA5.2 | `BashExecutor` 子线程流读取空 catch | MR2 | open |
+| P1-MA5-003 (原 F05) | MA5.1 | IVectorStore / IEmbeddingModel / ITokenCountEstimator 接口无生产实现 | MR3 | open |
+| P1-MA2-002 | MA2.1 | NopAiProject 缺失审计传播属性 | MR1 | open |
+| P1-MA2-003 | MA2.1 | NopAiRequirement version 字段类型冲突（VARCHAR vs 乐观锁 int） | MR1 | open |
+| P1-MA2-004 | MA2.1 | NopAiSessionContext refPropName="context" 应为 "contexts" | MR1 | open |
+| P1-MA2-005 | MA2.1 | _dao.beans.xml 为空 — 无接口 Biz bean 注册 | MR1 | open |
+| P1-MA5.3-001 | MA5.3 | ChatServiceImpl(IChatService) 无 IoC bean 定义 | MR2 | open |
+| P1-MA5.3-002 | MA5.3 | DefaultAiChatService @Deprecated 但却是唯一注册的 chat service bean | MR2 | open |

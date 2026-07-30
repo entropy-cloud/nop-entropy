@@ -1,6 +1,6 @@
 # 2056 nop-ai-agent Guardrail Safety & NoOp Baseline
 
-> Plan Status: draft
+> Plan Status: active
 > Last Reviewed: 2026-07-23
 > Source: `ai-dev/analysis/2026-07/2026-07-23-nop-ai-architecture-governance.md` (Findings F3, F4, F10, F11)
 > Related: `nop-ai/nop-ai-agent/`
@@ -110,7 +110,7 @@ Must execute AFTER Phase 1 (both modify the same method).
 
 Exit Criteria:
 
-> 每个 Phase 完成后，必须逐条勾选本节。所有 `[x]` 后才能将 Phase Status 改为 `complete`。
+> 每个 Phase 完成后，必须逐条勾选本节。所有 `[x]` 后才能将 Phase Status 改为 `completed`。
 
 - [ ] Constructing engine with `NoOpContentGuardrail` (the default) emits an INFO message (verify via test)
 - [ ] Constructing engine with `NoOpBudgetProvider` emits an INFO message (verify via test)

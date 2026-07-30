@@ -76,6 +76,19 @@ Output format:
 - <short recommendation>
 ```
 
+## Historical Value of Draft Review
+
+Draft review has intercepted multiple P0-level defects before implementation. Common pitfalls to check:
+
+| Defect Pattern | Type | Unreviewed Consequence |
+|---|---|---|
+| Enum value conflict (duplicate code) | Data routing corruption | Runtime data contamination requiring rollback |
+| Shared enum between semantically different business types | Semantic aliasing → indistinguishable classification | Reports misclassification |
+| Field referenced in design does not exist in target xmeta | Discovery only at development time → design rework | Phase rework, schedule slip |
+| Field filter in plan scope (`asideFilter`, etc.) does not exist on target entity | Discovery only at implementation → rework | Phase repartitioning |
+
+**Extension check**: Scan the plan for any field/entity/configuration that the plan assumes exists — verify each against the actual codebase. Common AI failure: referencing fields that don't exist, assuming configurations without verification.
+
 ## Notes
 
 - This reviewer is read-only.

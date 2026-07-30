@@ -1,6 +1,6 @@
 # 315 接线 ExcelRecordOutput.maxCountPerSheet 实现自动分 Sheet
 
-> Plan Status: draft
+> Plan Status: active
 > Last Reviewed: 2026-07-23
 > Source: `ExcelIOConfig.maxCountPerSheet` 死代码；`ExcelRecordOutput.write/newDataSheetWriter`
 > Related: `314-nop-batch-exp-xlsx-export.md`（其 Deferred 段将本项列为 successor）

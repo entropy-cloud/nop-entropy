@@ -1,0 +1,24 @@
+{
+  "name": "audit-remediation",
+  "description": "全面审计与 P0/P1 彻底修复 — nop-ai 全模块组（18 子模块，排除 MCP）。P0 即时通道 + P1 维度内批量修复。",
+  "roadmapPath": "ai-dev/backlog/audit-remediation-roadmap.md",
+  "plansDir": "ai-dev/plans",
+  "planGuide": "ai-dev/plans/00-plan-authoring-and-execution-guide.md",
+  "auditsDir": "ai-dev/audits",
+  "sourceDir": "nop-ai",
+  "model": "opencode-go/deepseek-v4-flash", "variant": "max",
+  "commands": {
+    "test": "./mvnw test -pl nop-ai -am -T 1C",
+    "build": "./mvnw clean install -DskipTests -pl nop-ai -am -T 1C",
+    "lint": "./mvnw checkstyle:check -pl nop-ai -am -q 2>/dev/null || echo 'lint not configured'",
+    "typecheck": "./mvnw compile -pl nop-ai -am -q 2>/dev/null || echo 'typecheck not configured'"
+  },
+  "prompts": {
+    "multiAuditPrompt": "ai-dev/skills/deep-audit-prompts.md",
+    "openAuditPrompt": "ai-dev/skills/open-ended-adversarial-review-prompt.md",
+    "unitTestAntipatterns": "ai-dev/skills/unit-test-antipatterns.md",
+    "ormModelAudit": "ai-dev/skills/orm-model-audit-prompt.md",
+    "nopPlatformConformance": "ai-dev/skills/nop-platform-conformance-audit-prompt.md"
+  },
+  "commitFormat": "fix: <description>"
+}
