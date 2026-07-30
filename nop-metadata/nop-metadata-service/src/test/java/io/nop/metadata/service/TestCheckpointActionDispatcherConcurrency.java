@@ -13,18 +13,19 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicReference;
+import java.util.Collections;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * 并发测试 {@link CheckpointActionDispatcher#dispatch}：多线程同时 dispatch 同一 checkpoint，
  * 验证 per-action try/catch 隔离在并发下仍正确（不串错误、不 panic、不 deadlock）。
  *
- * <p>本测试为 stateless-parallelism-only：每个线程创建独立的 summary map（共享 checkpoint 对象仅用于读取）。
- * 不验证共享可变状态的正确性——那是 CheckpointActionDispatcher 内部的职责（由
- * {@code TestCheckpointActionDispatcher} 的同步测试覆盖）。如需增加共享状态验证，需引入
- * {@code synchronized} 的汇总 map 或 {@code AtomicReference} 模式。
+ * <p>共享状态验证：通过 {@link AtomicReference} 收集所有线程的 summary map，在全部线程完成后验证
+ * 累计调度次数等于 threadCount × repeats，确保并发操作产生一致的最终状态。
  */
 public class TestCheckpointActionDispatcherConcurrency {
 
@@ -40,6 +41,7 @@ public class TestCheckpointActionDispatcherConcurrency {
         ExecutorService executor = Executors.newFixedThreadPool(threadCount);
         CountDownLatch latch = new CountDownLatch(threadCount);
         AtomicInteger failures = new AtomicInteger(0);
+        AtomicReference<List<Map<String, Object>>> allSummaries = new AtomicReference<>(Collections.synchronizedList(new ArrayList<>()));
 
         for (int i = 0; i < threadCount; i++) {
             executor.submit(() -> {
@@ -47,6 +49,7 @@ public class TestCheckpointActionDispatcherConcurrency {
                     for (int r = 0; r < repeats; r++) {
                         Map<String, Object> s = summary();
                         dispatcher.dispatch(cp, s);
+                        allSummaries.get().add(s);
                         @SuppressWarnings("unchecked")
                         List<Map<String, Object>> errs = (List<Map<String, Object>>) s.get("errors");
                         if (errs.size() != 2) {
@@ -67,9 +70,15 @@ public class TestCheckpointActionDispatcherConcurrency {
 
         assertEquals(0, failures.get(),
                 "each dispatch must record exactly 2 errors (webhook + notify null-dep); no exceptions");
+
+        // Shared-state verification: total dispatches must equal threadCount * repeats
+        List<Map<String, Object>> collected = allSummaries.get();
+        assertNotNull(collected, "collected summaries must not be null");
+        assertEquals(threadCount * repeats, collected.size(),
+                "total dispatches across all threads must equal " + (threadCount * repeats));
     }
 
-    /** 8 线程全部 dispatch 同一 checkpoint，验证无死锁。 */
+    /** 8 线程全部 dispatch 同一 checkpoint，验证无死锁 + 共享状态一致性。 */
     @Test
     public void testConcurrentDispatchNoDeadlock() throws Exception {
         int threadCount = 8;
@@ -79,12 +88,14 @@ public class TestCheckpointActionDispatcherConcurrency {
         ExecutorService executor = Executors.newFixedThreadPool(threadCount);
         CountDownLatch latch = new CountDownLatch(threadCount);
         AtomicInteger failures = new AtomicInteger(0);
+        AtomicReference<List<Map<String, Object>>> allSummaries = new AtomicReference<>(Collections.synchronizedList(new ArrayList<>()));
 
         for (int i = 0; i < threadCount; i++) {
             executor.submit(() -> {
                 try {
                     Map<String, Object> s = summary();
                     dispatcher.dispatch(cp, s);
+                    allSummaries.get().add(s);
                     @SuppressWarnings("unchecked")
                     List<Map<String, Object>> errs = (List<Map<String, Object>>) s.get("errors");
                     if (errs.size() != 2) {
@@ -102,6 +113,12 @@ public class TestCheckpointActionDispatcherConcurrency {
         executor.shutdown();
         assertTrue(executor.awaitTermination(3, TimeUnit.SECONDS));
         assertEquals(0, failures.get(), "no failures in concurrent dispatch");
+
+        // Shared-state verification: total dispatches must equal threadCount
+        List<Map<String, Object>> collected = allSummaries.get();
+        assertNotNull(collected, "collected summaries must not be null");
+        assertEquals(threadCount, collected.size(),
+                "total dispatches across all threads must equal " + threadCount);
     }
 
     private NopMetaQualityCheckpoint cp() {

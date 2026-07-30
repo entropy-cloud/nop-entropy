@@ -1,0 +1,11 @@
+{
+  data: {
+    data: {
+      businessDomainId: "auto-test-bd-01",
+      name: "auto-test-domain",
+      displayName: "Auto Test Business Domain",
+      description: "Created by automated snapshot test",
+      domainType: "BUSINESS"
+    }
+  }
+}

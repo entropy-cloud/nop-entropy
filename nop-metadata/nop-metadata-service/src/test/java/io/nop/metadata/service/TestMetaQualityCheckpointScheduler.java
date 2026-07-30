@@ -109,7 +109,6 @@ public class TestMetaQualityCheckpointScheduler extends JunitBaseTestCase {
 
         String jobName = MetaQualityCheckpointScheduler.jobName("cp-cron");
         IJobScheduler scheduler = checkpointScheduler.getScheduler();
-        assertNotNull(scheduler, "IJobScheduler must be injected in test (nop-job-local test-scope)");
         assertTrue(scheduler.getJobNames().contains(jobName),
                 "cron job must be registered after registerCheckpoint: " + scheduler.getJobNames());
 

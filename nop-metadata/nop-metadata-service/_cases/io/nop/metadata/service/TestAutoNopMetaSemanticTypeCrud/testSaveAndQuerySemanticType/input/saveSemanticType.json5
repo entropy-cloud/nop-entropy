@@ -1,0 +1,11 @@
+{
+  data: {
+    data: {
+      semanticTypeId: "auto-test-st-01",
+      typeName: "auto-test-semantic-type",
+      displayName: "Auto Test Semantic Type",
+      description: "Created by automated snapshot test",
+      applicableTo: "string"
+    }
+  }
+}

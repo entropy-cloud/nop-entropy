@@ -1,0 +1,41 @@
+{
+  "data": {
+    "extData": null,
+    "hasNext": null,
+    "hasPrev": null,
+    "items": [
+      {
+        "metaModuleId": "auto-test-mod-1",
+        "moduleId": "nop/test-module",
+        "moduleName": "test-module",
+        "displayName": "Auto Test Module",
+        "moduleVersion": 1,
+        "baseModuleId": null,
+        "status": "RELEASED",
+        "status_label": "RELEASED-已发布",
+        "mavenGroupId": "io.nop",
+        "mavenArtifactId": "test-module",
+        "mavenVersion": null,
+        "gitRepoPath": null,
+        "gitBranch": null,
+        "gitCommitId": null,
+        "importedAt": null,
+        "extConfig": null,
+        "version": 0,
+        "createdBy": "autotest-ref",
+        "createTime": "2024-01-01 00:00:00.0",
+        "updatedBy": "autotest-ref",
+        "updateTime": "2024-01-01 00:00:00.0",
+        "remark": null
+      }
+    ],
+    "limit": 10,
+    "nextCursor": null,
+    "offset": 0,
+    "page": 1,
+    "pageCount": 1,
+    "prevCursor": null,
+    "total": 1
+  },
+  "status": 0
+}

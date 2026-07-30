@@ -1,0 +1,2 @@
+_chgType,DATA_SOURCE_ID,QUERY_SPACE,NAME,DISPLAY_NAME,DATASOURCE_TYPE,CONNECTION_CONFIG,STATUS,VERSION,CREATED_BY,CREATE_TIME,UPDATED_BY,UPDATE_TIME,REMARK
+A,@var:NopMetaDataSource@dataSourceId,ds-test,auto-test-ds-01,Auto Test DataSource,jdbc,,ACTIVE,0,autotest-ref,*,autotest-ref,*,

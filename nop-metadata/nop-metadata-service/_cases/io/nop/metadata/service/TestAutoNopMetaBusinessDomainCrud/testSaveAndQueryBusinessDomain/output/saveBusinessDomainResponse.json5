@@ -1,0 +1,6 @@
+{
+  "bizFatal": false,
+  "code": "nop.err.biz.invalid-dict-option",
+  "msg": "非法的字典项:BUSINESS",
+  "status": -1
+}

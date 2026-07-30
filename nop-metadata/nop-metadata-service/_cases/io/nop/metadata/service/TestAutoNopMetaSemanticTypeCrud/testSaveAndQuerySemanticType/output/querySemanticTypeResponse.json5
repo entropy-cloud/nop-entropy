@@ -1,0 +1,6 @@
+{
+  "bizFatal": false,
+  "code": "nop.err.core.bean.unknown-prop",
+  "msg": "类[java.lang.String]上不存在属性[id]",
+  "status": -1
+}

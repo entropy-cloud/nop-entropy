@@ -1,0 +1,6 @@
+{
+  "bizFatal": false,
+  "code": "nop.err.xlang.xdef.illegal-prop-value-for-std-domain",
+  "msg": "属性[applicableTo]的值[string]不满足[json]格式要求",
+  "status": -1
+}

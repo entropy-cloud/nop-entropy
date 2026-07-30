@@ -1,0 +1,19 @@
+{
+  "data": {
+    "dataSourceId": "@var:NopMetaDataSource@dataSourceId",
+    "querySpace": "ds-test",
+    "name": "@var:NopMetaDataSource@dataSourceId",
+    "displayName": "Auto Test DataSource",
+    "datasourceType": "jdbc",
+    "datasourceType_label": "jdbc-JDBC数据库",
+    "status": "ACTIVE",
+    "status_label": "ACTIVE-启用",
+    "version": 0,
+    "createdBy": "autotest-ref",
+    "createTime": "@var:NopMetaDataSource@updateTime",
+    "updatedBy": "autotest-ref",
+    "updateTime": "@var:NopMetaDataSource@updateTime",
+    "remark": null
+  },
+  "status": 0
+}

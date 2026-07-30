@@ -1,0 +1,14 @@
+{
+  data: {
+    data: {
+      dataSourceId: "auto-test-ds-01",
+      querySpace: "ds-test",
+      name: "auto-test-ds-01",
+      displayName: "Auto Test DataSource",
+      datasourceType: "jdbc",
+      connectionConfig: "{\"jdbcUrl\":\"jdbc:h2:mem:ds-test;DB_CLOSE_DELAY=-1\",\"username\":\"sa\"}",
+      status: "ACTIVE",
+      version: 1
+    }
+  }
+}
