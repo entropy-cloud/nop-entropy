@@ -4,7 +4,7 @@
 > 目标模块组：nop-ai（18 子模块，排除 MCP——MCP 协议集成模块，独立发布周期，需单独审计）
 > 总览：ai-dev/backlog/audit-remediation-roadmap.md
 > 维度矩阵：arm-audit-dimension-matrix.md
-> 状态汇总：已完成 9 | 进行中 0 | 待办 21 | P0 未解决 0
+> 状态汇总：已完成 14 | 进行中 0 | 待办 16 | P0 未解决 0
 
 ## 报告清单
 
@@ -15,11 +15,11 @@
 | [`2026-07-31-2201-arm-MA1.4-nop-ai-infra.md`](./2026-07-31-2201-arm-MA1.4-nop-ai-infra.md) | MA1.4 | 模块职责 | infra | 0 | 3 | 11(P2:3, P3:8) | `done` |
 | [`2026-07-31-2202-arm-MA1.5-nop-ai-naming.md`](./2026-07-31-2202-arm-MA1.5-nop-ai-naming.md) | MA1.5 | 命名与术语 | 全模块 | 0 | 3 | 6(P2:4, P3:2) | `done` |
 | [`2026-07-30-2130-arm-MA2.1-2.4-nop-ai-orm-biz.md`](./2026-07-30-2130-arm-MA2.1-2.4-nop-ai-orm-biz.md) | MA2.1+MA2.4 | ORM模型+BizModel | biz-dao+biz-svc | 1 | 4 | 6 | `done` |
-| — | MA2.2 | 生成管线 | biz | — | — | — | todo |
-| — | MA2.3 | Delta 合规 | biz | — | — | — | todo |
-| — | MA2.5 | XMeta 对齐 | biz-svc | — | — | — | todo |
-| — | MA2.6 | GraphQL/API | biz-svc | — | — | — | todo |
-| — | MA2.7 | IoC/Bean | 全模块 | — | — | — | todo |
+| [`2026-07-31-0334-arm-MA2.2-nop-ai-pipeline.md`](./2026-07-31-0334-arm-MA2.2-nop-ai-pipeline.md) | MA2.2 | 生成管线 | biz | 0 | 1 | 5(P2:3, P3:2) | `done` |
+| [`2026-07-31-0348-arm-MA2.3-nop-ai-delta.md`](./2026-07-31-0348-arm-MA2.3-nop-ai-delta.md) | MA2.3 | Delta 合规 | biz | 0 | 1 | 4(P2:2, P3:2) | `done` |
+| [`2026-07-31-0353-arm-MA2.5-nop-ai-xmeta.md`](./2026-07-31-0353-arm-MA2.5-nop-ai-xmeta.md) | MA2.5 | XMeta 对齐 | biz-svc | 0 | 2 | 2(P2:1, P3:1) | `done` |
+| [`2026-07-31-0359-arm-MA2.6-nop-ai-graphql.md`](./2026-07-31-0359-arm-MA2.6-nop-ai-graphql.md) | MA2.6 | GraphQL/API | biz-svc | 0 | 0 | 1(P3:1) | `done` |
+| [`2026-07-31-0409-arm-MA2.7-nop-ai-ioc.md`](./2026-07-31-0409-arm-MA2.7-nop-ai-ioc.md) | MA2.7 | IoC/Bean | 全模块 | 0 | 0 | 4(P2:1, P3:3) | `done` |
 | — | MA3.1 | 跨模块依赖 | 全模块 | — | — | — | todo |
 | — | MA3.2 | 安全权限 | 全模块 | — | — | — | todo |
 | — | MA3.3 | 异步/事务 | 全模块 | — | — | — | todo |
@@ -72,3 +72,7 @@
 | P1-MA1-031 | MA1.5 | NopAiSessionContext relation refPropName 不匹配（context vs contexts） | MR1 | open |
 | P1-MA1-032 | MA1.5 | 五种命名约定并存（NopAi/Chat/Ai/Agent/Tool） | MR1 | open |
 | P1-MA1-033 | MA1.5 | 重复 ORM session/message 模型（nop-ai-agent vs nop-ai 主模型） | MR1 | open |
+| P1-MA2-014 | MA2.2 | XDSL codegen 脚本存在但输出不可验证（agent/toolkit/core） | MR1 | open |
+| P1-MA2-018 | MA2.3 | 9个废弃 snake_case dict 文件（nop-ai-meta） | MR1 | open |
+| P1-MA2-023 | MA2.5 | NopAiModel.apiKey 凭证字段暴露为 queryable/sortable | MR1 | open |
+| P1-MA2-024 | MA2.5 | NopAiSession 重复 to-many 关系 context/contexts | MR1 | open |

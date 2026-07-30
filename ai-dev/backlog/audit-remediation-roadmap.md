@@ -40,12 +40,12 @@
 | # | Work Item | Status | Owner Doc | Deps | Skill |
 |---|-----------|--------|-----------|------|-------|
 | 2.1 | ORM 模型与实体设计审计 | done | `nop-ai/model/nop-ai.orm.xml` | 0.3 | `orm-model-audit-prompt.md` |
-| 2.2 | 生成管线完整性审计 | todo | `nop-ai/model/` | 0.3 | `deep-audit-prompts.md`（维度 05） |
-| 2.3 | Delta 定制合规性审计 | todo | `nop-ai/nop-ai-dao/src/main/resources/_vfs/` | 0.3 | `deep-audit-prompts.md`（维度 06） |
+| 2.2 | 生成管线完整性审计 | done | `nop-ai/model/` | 0.3 | `deep-audit-prompts.md`（维度 05） |
+| 2.3 | Delta 定制合规性审计 | done | `nop-ai/nop-ai-dao/src/main/resources/_vfs/` | 0.3 | `deep-audit-prompts.md`（维度 06） |
 | 2.4 | BizModel 规范遵循审计 | done | `nop-ai/nop-ai-service/src/main/java/io/nop/ai/service/entity/` | 0.3 | `deep-audit-prompts.md`（维度 07） |
-| 2.5 | XMeta 与 BizModel 对齐审计 | todo | `nop-ai/nop-ai-meta/src/main/resources/_vfs/nop/ai/model/` | 0.3 | `deep-audit-prompts.md`（维度 11） |
-| 2.6 | GraphQL 与 API 层审计 | todo | `nop-ai/nop-ai-service/` + `nop-ai/nop-ai-api/` | 0.3 | `deep-audit-prompts.md`（维度 12） |
-| 2.7 | IoC 与 Bean 配置审计 | todo | `nop-ai/*/src/main/resources/_vfs/**/*.beans.xml` | 0.3 | `deep-audit-prompts.md`（维度 08） |
+| 2.5 | XMeta 与 BizModel 对齐审计 | done | `nop-ai/nop-ai-meta/src/main/resources/_vfs/nop/ai/model/` | 0.3 | `deep-audit-prompts.md`（维度 11） |
+| 2.6 | GraphQL 与 API 层审计 | done | `nop-ai/nop-ai-service/` + `nop-ai/nop-ai-api/` | 0.3 | `deep-audit-prompts.md`（维度 12） |
+| 2.7 | IoC 与 Bean 配置审计 | done | `nop-ai/*/src/main/resources/_vfs/**/*.beans.xml` | 0.3 | `deep-audit-prompts.md`（维度 08） |
 
 ### MA3 — 运行时与安全审计（全模块）
 

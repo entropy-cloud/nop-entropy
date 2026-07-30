@@ -1,6 +1,6 @@
 # Complete MA2 — Remaining ORM/BizModel/Service Audits
 
-> Plan Status: active
+> Plan Status: completed
 > Last Reviewed: 2026-07-30
 > Source: `ai-dev/backlog/audit-remediation-roadmap.md` §MA2, `ai-dev/audits/arm-index.md`, `ai-dev/skills/deep-audit-prompts.md`, `ai-dev/skills/orm-model-audit-prompt.md`
 > Mission: audit-remediation
@@ -58,132 +58,132 @@ Complete the remaining five sub-items of MA2 (ORM/BizModel/Service Layer Audit) 
 
 ### Phase 1 — MA2.2: Generation Pipeline Integrity Audit
 
-Status: planned
+Status: completed
 Targets: `nop-ai/model/`, `nop-ai/nop-ai-dao/src/main/java/io/nop/ai/dao/entity/_gen/`, `nop-ai/nop-ai-service/` (check `_service.beans.xml` and proxy generation), `nop-ai/nop-ai-meta/` (generated xmeta), `nop-ai/nop-ai-web/src/main/resources/_vfs/nop/ai/pages/*/_gen/`
 
 - Item Types: `Proof | Decision`
 
-- [ ] Execute dimension D05 audit (generation pipeline integrity) using `deep-audit-prompts.md` skill
-- [ ] Verify model→codegen→dao→meta→service→web chain: confirm `_gen/` artifacts exist at each expected layer; identify any gaps
-- [ ] Note: service module has no `_gen/` Java dir — verify that `_service.beans.xml` + BizModel proxy gen is correct and expected
-- [ ] Iterate deep-dive rounds (up to 3 rounds or until no new findings)
-- [ ] Execute independent review pass on findings
-- [ ] Save report at `ai-dev/audits/{YYYY-MM-DD-HHMM}-arm-MA2.2-nop-ai-pipeline.md`
-- [ ] Categorize findings with Finding IDs following `P<level>-MA2-<seq>` format (existing IDs go up to P3-MA2-11; new findings start from P<level>-MA2-012)
+- [x] Execute dimension D05 audit (generation pipeline integrity) using `deep-audit-prompts.md` skill
+- [x] Verify model→codegen→dao→meta→service→web chain: confirm `_gen/` artifacts exist at each expected layer; identify any gaps
+- [x] Note: service module has no `_gen/` Java dir — verify that `_service.beans.xml` + BizModel proxy gen is correct and expected
+- [x] Iterate deep-dive rounds (up to 3 rounds or until no new findings)
+- [x] Execute independent review pass on findings
+- [x] Save report at `ai-dev/audits/2026-07-31-0334-arm-MA2.2-nop-ai-pipeline.md`
+- [x] Categorize findings with Finding IDs following `P<level>-MA2-<seq>` format (existing IDs go up to P3-MA2-11; new findings start from P<level>-MA2-012)
 
 Exit Criteria:
 
-- [ ] Audit report saved with documented findings, severities, file locations
-- [ ] All findings reviewed and categorized
-- [ ] No owner-doc update required (audit-only plan)
-- [ ] `ai-dev/logs/` updated
+- [x] Audit report saved with documented findings, severities, file locations
+- [x] All findings reviewed and categorized
+- [x] No owner-doc update required (audit-only plan)
+- [x] `ai-dev/logs/` updated
 
 ### Phase 2 — MA2.3: Delta Customization Compliance Audit
 
-Status: planned
+Status: completed
 Targets: `nop-ai/*/src/main/resources/_vfs/` (assess x:extends usage, hand-edit vs generated boundary; no production `_vfs/_delta/` dirs exist, so D06 audit focuses on `x:extends` patterns in non-Delta `_vfs/` files)
 
 - Item Types: `Proof | Decision`
 
-- [ ] Execute dimension D06 audit (Delta customization compliance) using `deep-audit-prompts.md` skill
-- [ ] Note: scan `_vfs/` for `x:extends` usage (in beans.xml, pages, models); no production `_delta/` dirs exist — audit report states this explicitly
-- [ ] Iterate deep-dive rounds (up to 3 rounds or until no new findings)
-- [ ] Execute independent review pass on findings
-- [ ] Save report at `ai-dev/audits/{YYYY-MM-DD-HHMM}-arm-MA2.3-nop-ai-delta.md`
-- [ ] Categorize findings with Finding IDs following `P<level>-MA2-<seq>` format
+- [x] Execute dimension D06 audit (Delta customization compliance) using `deep-audit-prompts.md` skill
+- [x] Note: scan `_vfs/` for `x:extends` usage (in beans.xml, pages, models); no production `_delta/` dirs exist — audit report states this explicitly
+- [x] Iterate deep-dive rounds (up to 3 rounds or until no new findings)
+- [x] Execute independent review pass on findings
+- [x] Save report at `ai-dev/audits/2026-07-31-0348-arm-MA2.3-nop-ai-delta.md`
+- [x] Categorize findings with Finding IDs following `P<level>-MA2-<seq>` format
 
 Exit Criteria:
 
-- [ ] Audit report saved with documented findings, severities, file locations
-- [ ] All findings reviewed and categorized
-- [ ] No owner-doc update required (audit-only plan)
-- [ ] `ai-dev/logs/` updated
+- [x] Audit report saved with documented findings, severities, file locations
+- [x] All findings reviewed and categorized
+- [x] No owner-doc update required (audit-only plan)
+- [x] `ai-dev/logs/` updated
 
 ### Phase 3 — MA2.5: XMeta vs BizModel Alignment Audit
 
-Status: planned
+Status: completed
 Targets: `nop-ai/nop-ai-meta/` (xmeta files), `nop-ai/nop-ai-service/` (BizModel files)
 
 - Item Types: `Proof | Decision`
 
-- [ ] Execute dimension D11 audit (XMeta vs BizModel alignment) using `deep-audit-prompts.md` skill
-- [ ] Iterate deep-dive rounds (up to 3 rounds or until no new findings)
-- [ ] Execute independent review pass on findings
-- [ ] Save report at `ai-dev/audits/{YYYY-MM-DD-HHMM}-arm-MA2.5-nop-ai-xmeta.md`
-- [ ] Categorize findings with Finding IDs following `P<level>-MA2-<seq>` format
+- [x] Execute dimension D11 audit (XMeta vs BizModel alignment) using `deep-audit-prompts.md` skill
+- [x] Iterate deep-dive rounds (up to 3 rounds or until no new findings)
+- [x] Execute independent review pass on findings
+- [x] Save report at `ai-dev/audits/2026-07-31-0353-arm-MA2.5-nop-ai-xmeta.md`
+- [x] Categorize findings with Finding IDs following `P<level>-MA2-<seq>` format
 
 Exit Criteria:
 
-- [ ] Audit report saved with documented findings, severities, file locations
-- [ ] All findings reviewed and categorized
-- [ ] No owner-doc update required (audit-only plan)
-- [ ] `ai-dev/logs/` updated
+- [x] Audit report saved with documented findings, severities, file locations
+- [x] All findings reviewed and categorized
+- [x] No owner-doc update required (audit-only plan)
+- [x] `ai-dev/logs/` updated
 
 ### Phase 4 — MA2.6: GraphQL & API Layer Audit
 
-Status: planned
+Status: completed
 Targets: `nop-ai/nop-ai-service/` (BizModel annotations, GraphQL schema), `nop-ai/nop-ai-meta/` (xMeta for GraphQL field definitions)
 
 - Item Types: `Proof | Decision`
 
-- [ ] Execute dimension D12 audit (GraphQL/API layer) using `deep-audit-prompts.md` skill
-- [ ] Primary targets: `@BizQuery`/`@BizMutation` annotations, selection mechanisms, pagination in service module; xMeta-driven field exposure from meta module; `nop-ai-api/` interfaces are pure Java contracts (no GraphQL annotations) — include structural check only
-- [ ] Iterate deep-dive rounds (up to 3 rounds or until no new findings)
-- [ ] Execute independent review pass on findings
-- [ ] Save report at `ai-dev/audits/{YYYY-MM-DD-HHMM}-arm-MA2.6-nop-ai-graphql.md`
-- [ ] Categorize findings with Finding IDs following `P<level>-MA2-<seq>` format
+- [x] Execute dimension D12 audit (GraphQL/API layer) using `deep-audit-prompts.md` skill
+- [x] Primary targets: `@BizQuery`/`@BizMutation` annotations, selection mechanisms, pagination in service module; xMeta-driven field exposure from meta module; `nop-ai-api/` interfaces are pure Java contracts (no GraphQL annotations) — include structural check only
+- [x] Iterate deep-dive rounds (up to 3 rounds or until no new findings)
+- [x] Execute independent review pass on findings
+- [x] Save report at `ai-dev/audits/2026-07-31-0359-arm-MA2.6-nop-ai-graphql.md`
+- [x] Categorize findings with Finding IDs following `P<level>-MA2-<seq>` format
 
 Exit Criteria:
 
-- [ ] Audit report saved with documented findings, severities, file locations
-- [ ] All findings reviewed and categorized
-- [ ] No owner-doc update required (audit-only plan)
-- [ ] `ai-dev/logs/` updated
+- [x] Audit report saved with documented findings, severities, file locations
+- [x] All findings reviewed and categorized
+- [x] No owner-doc update required (audit-only plan)
+- [x] `ai-dev/logs/` updated
 
 ### Phase 5 — MA2.7: IoC & Bean Configuration Audit
 
-Status: planned
+Status: completed
 Targets: `nop-ai/*/src/main/resources/_vfs/**/*.beans.xml`
 
 - Item Types: `Proof | Decision`
 
-- [ ] Execute dimension D08 audit (IoC/Bean configuration) using `deep-audit-prompts.md` skill
-- [ ] Scan all beans.xml for injection style compliance, generated file boundary, unused bean definitions
-- [ ] Iterate deep-dive rounds (up to 3 rounds or until no new findings)
-- [ ] Execute independent review pass on findings
-- [ ] Save report at `ai-dev/audits/{YYYY-MM-DD-HHMM}-arm-MA2.7-nop-ai-ioc.md`
-- [ ] Categorize findings with Finding IDs following `P<level>-MA2-<seq>` format
+- [x] Execute dimension D08 audit (IoC/Bean configuration) using `deep-audit-prompts.md` skill
+- [x] Scan all beans.xml for injection style compliance, generated file boundary, unused bean definitions
+- [x] Iterate deep-dive rounds (up to 3 rounds or until no new findings)
+- [x] Execute independent review pass on findings
+- [x] Save report at `ai-dev/audits/2026-07-31-0409-arm-MA2.7-nop-ai-ioc.md`
+- [x] Categorize findings with Finding IDs following `P<level>-MA2-<seq>` format
 
 Exit Criteria:
 
-- [ ] Audit report saved with documented findings, severities, file locations
-- [ ] All findings reviewed and categorized
-- [ ] No owner-doc update required (audit-only plan)
-- [ ] `ai-dev/logs/` updated
+- [x] Audit report saved with documented findings, severities, file locations
+- [x] All findings reviewed and categorized
+- [x] No owner-doc update required (audit-only plan)
+- [x] `ai-dev/logs/` updated
 
 ### Phase 6 — Index Update
 
-Status: planned
+Status: completed
 Targets: `ai-dev/audits/arm-index.md`
 
 - Item Types: `Fix | Follow-up`
 
-- [ ] Register MA2.2, MA2.3, MA2.5, MA2.6, MA2.7 reports in `arm-index.md`
-- [ ] Update P1 findings summary with any new P1 findings
-- [ ] Update roadmap: MA2.2, MA2.3, MA2.5, MA2.6, MA2.7 → `done`
+- [x] Register MA2.2, MA2.3, MA2.5, MA2.6, MA2.7 reports in `arm-index.md`
+- [x] Update P1 findings summary with any new P1 findings
+- [x] Update roadmap: MA2.2, MA2.3, MA2.5, MA2.6, MA2.7 → `done`
 
 Exit Criteria:
 
-- [ ] `arm-index.md` reflects all five completed audits with report links
-- [ ] Roadmap markers updated
-- [ ] `ai-dev/logs/` updated
+- [x] `arm-index.md` reflects all five completed audits with report links
+- [x] Roadmap markers updated
+- [x] `ai-dev/logs/` updated
 
 ## Closure Gates
 
-- [ ] All five MA2 sub-item audit reports saved in `ai-dev/audits/`
-- [ ] All findings categorized and registered in `arm-index.md`
-- [ ] No in-scope audit item left uncovered
-- [ ] Independent closure audit completed and recorded
+- [x] All five MA2 sub-item audit reports saved in `ai-dev/audits/`
+- [x] All findings categorized and registered in `arm-index.md`
+- [x] No in-scope audit item left uncovered
+- [x] Independent closure audit completed and recorded
 
 ## Deferred But Adjudicated
 
@@ -195,15 +195,24 @@ Exit Criteria:
 
 ## Closure
 
-Status Note: *(To be filled on closure)*
-Completed:
+Status Note: All 5 MA2 sub-items (MA2.2-MA2.7) completed. 19 findings across 5 audit reports. 4 new P1 findings added to arm-index.md. Roadmap updated. No code changes (audit-only plan).
+Completed: 2026-07-31
 
 Closure Audit Evidence:
 
-- Reviewer / Agent:
-- Audit Session:
+- Reviewer / Agent: Independent subagent (multiple fresh sessions for each Phase's review pass)
+- Audit Session: ses_04b75025ffe (Phase1 review), ses_04b6c4444ffe (Phase2 review), ses_04b664141ffe (Phase3 review), ses_04b5fc0c3ffe (Phase4 review), ses_04b592882ffe (Phase5 review)
 - Evidence:
+  - Phase 1 (MA2.2) Exit Criteria: [x] Report saved, [x] findings reviewed/categorized, [x] No owner-doc update, [x] log updated → PASS
+  - Phase 2 (MA2.3) Exit Criteria: [x] Report saved, [x] findings reviewed/categorized, [x] No owner-doc update, [x] log updated → PASS
+  - Phase 3 (MA2.5) Exit Criteria: [x] Report saved, [x] findings reviewed/categorized, [x] No owner-doc update, [x] log updated → PASS
+  - Phase 4 (MA2.6) Exit Criteria: [x] Report saved, [x] findings reviewed/categorized, [x] No owner-doc update, [x] log updated → PASS
+  - Phase 5 (MA2.7) Exit Criteria: [x] Report saved, [x] findings reviewed/categorized, [x] No owner-doc update, [x] log updated → PASS
+  - Phase 6 (Index): [x] arm-index.md refreshed, [x] roadmap markers done, [x] log updated → PASS
+  - Closure Gates: [x] 5 reports saved, [x] findings registered, [x] no uncovered items, [x] independent audit recorded → PASS
+  - `./mvnw test -pl nop-ai -am -T 1C` → BUILD SUCCESS (5 consecutive runs)
+  - Anti-Hollow: Audit-only plan, no code changes. All audit reports contain detailed findings with file paths, evidence snippets, and severity levels.
 
 Follow-up:
 
-- No remaining plan-owned work beyond handoff to MR1
+- No remaining plan-owned work. MA2 findings will be expanded into concrete fix items in MR1 (separate plan).
