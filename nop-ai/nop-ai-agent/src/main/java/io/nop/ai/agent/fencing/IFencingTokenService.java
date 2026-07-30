@@ -1,7 +1,12 @@
 package io.nop.ai.agent.fencing;
 
 /**
- * Central monotonic-counter decision gateway for concurrent-write protection
+ * @apiNote This interface has an in-memory implementation available
+ *          ({@link DefaultFencingTokenService}) — no persistent/production-grade
+ *          implementation exists in this version. Fencing tokens are scoped to a
+ *          single JVM; cross-process fencing is a future successor.
+ *
+ * <p>Central monotonic-counter decision gateway for concurrent-write protection
  * (vision §5.1 Fencing Token protocol, lines 252-267; vision §10 line 462 —
  * the engine layer depends on this interface name; plan 235 delivers the
  * foundational primitive slice).

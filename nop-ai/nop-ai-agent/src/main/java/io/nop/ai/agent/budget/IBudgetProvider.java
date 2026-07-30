@@ -35,6 +35,12 @@ import io.nop.ai.agent.engine.AgentExecutionContext;
  * equivalent (unlimited) snapshot rather than null, so the router always sees a
  * well-formed snapshot. Implementations that hit an unexpected error should
  * throw {@code NopAiAgentException} rather than swallow it (no silent skip).
+ *
+ * @apiNote This interface has only a NoOp implementation available
+ *          ({@link NoOpBudgetProvider}) — no production-grade implementation
+ *          exists in this version. Execution budget is unlimited with the
+ *          shipped default. Production deployments should provide a custom
+ *          implementation via {@code DefaultAgentEngine.setBudgetProvider()}.
  */
 public interface IBudgetProvider {
 

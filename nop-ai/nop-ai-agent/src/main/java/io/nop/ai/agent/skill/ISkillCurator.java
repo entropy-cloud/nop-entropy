@@ -3,7 +3,12 @@ package io.nop.ai.agent.skill;
 import java.util.Collection;
 
 /**
- * Skill curation contract (design {@code skill-system-design.md} §5.5). An
+ * @apiNote The shipped implementation ({@link LLMCurator}) is a basic
+ *          LLM-based curator — not production-grade. Production deployments
+ *          requiring deterministic or rule-based curation should provide a
+ *          custom implementation.
+ *
+ * <p>Skill curation contract (design {@code skill-system-design.md} §5.5). An
  * {@code ISkillCurator} evaluates a skill registry and produces advisory
  * curation recommendations — per-skill quality assessments, coverage gaps, and
  * redundancies.

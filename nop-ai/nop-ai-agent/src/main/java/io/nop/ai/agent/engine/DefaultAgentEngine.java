@@ -554,9 +554,7 @@ public class DefaultAgentEngine implements IAgentEngine {
                     permissionProvider, toolAccessChecker, pathAccessChecker,
                     contentGuardrail, modelRouter, contextCompactor);
             applyTo(engine);
-            warnIfInsecureDefaults(toolAccessChecker, pathAccessChecker,
-                    auditLogger, approvalGate, securityLevelResolver,
-                    permissionMatrix, denialLedger, postDenialGuard);
+            engine.warnIfInsecureDefaults();
             return engine;
         }
 
@@ -668,6 +666,7 @@ public class DefaultAgentEngine implements IAgentEngine {
         this.modelRouter = modelRouter != null ? modelRouter : PassThroughModelRouter.passThrough();
         this.contextCompactor = contextCompactor != null ? contextCompactor : defaultPipelineCompactor(chatService);
         this.tokenEstimator = CalibratedTokenEstimator.defaultInstance();
+        this.warnIfInsecureDefaults();
     }
 
     /**
@@ -720,30 +719,23 @@ public class DefaultAgentEngine implements IAgentEngine {
      * when an insecure instance is detected — never silently swallowed or
      * written as an empty body.
      */
-    private static void warnIfInsecureDefaults(IToolAccessChecker toolChecker,
-                                               IPathAccessChecker pathChecker,
-                                               IAuditLogger auditLogger,
-                                               IApprovalGate approvalGate,
-                                               ISecurityLevelResolver securityLevelResolver,
-                                               IPermissionMatrix permissionMatrix,
-                                               IDenialLedger denialLedger,
-                                               IPostDenialGuard postDenialGuard) {
+    private void warnIfInsecureDefaults() {
         // --- Always-checked: components with secure defaults ---
-        if (toolChecker instanceof AllowAllToolAccessChecker) {
+        if (this.toolAccessChecker instanceof AllowAllToolAccessChecker) {
             LOG.warn("DefaultAgentEngine constructed with AllowAllToolAccessChecker: "
                     + "dangerous tools (bash/write-file/delete-file/move-file/patch-file/apply-delta/"
                     + "http-request/graphql-query) are NOT blocked. This is an insecure default. "
                     + "To restore secure-by-default behaviour, do not pass an AllowAllToolAccessChecker "
                     + "to the constructor — the default already uses DefaultToolAccessChecker.");
         }
-        if (pathChecker instanceof AllowAllPathAccessChecker) {
+        if (this.pathAccessChecker instanceof AllowAllPathAccessChecker) {
             LOG.warn("DefaultAgentEngine constructed with AllowAllPathAccessChecker: "
                     + "sensitive paths (~/.ssh/, ~/.aws/, /etc/, .env, id_rsa, ...) are NOT blocked. "
                     + "This is an insecure default. To restore secure-by-default behaviour, do not pass "
                     + "an AllowAllPathAccessChecker to the constructor — the default already uses "
                     + "DefaultPathAccessChecker.");
         }
-        if (auditLogger instanceof NoOpAuditLogger) {
+        if (this.auditLogger instanceof NoOpAuditLogger) {
             LOG.warn("DefaultAgentEngine constructed with NoOpAuditLogger: "
                     + "audit events are being DISCARDED — tool decisions (deny/approve/override) "
                     + "leave NO record. This is an insecure downgrade of the audit trail. "
@@ -751,7 +743,7 @@ public class DefaultAgentEngine implements IAgentEngine {
                     + "to setAuditLogger — the default already uses Slf4jAuditLogger. "
                     + "For a custom audit sink (e.g. database), supply your own IAuditLogger.");
         }
-        if (approvalGate instanceof AutoApproveGate) {
+        if (this.approvalGate instanceof AutoApproveGate) {
             LOG.warn("DefaultAgentEngine wired with AutoApproveGate: "
                     + "ALL operations including RESTRICTED are unconditionally auto-approved — "
                     + "the defense-in-depth RESTRICTED deny provided by the default "
@@ -762,7 +754,7 @@ public class DefaultAgentEngine implements IAgentEngine {
         }
 
         // --- Layer 2/3 NoOp/PassThrough: always-checked (plan 200 migrated to Default* defaults) ---
-        if (securityLevelResolver instanceof NoOpSecurityLevelResolver) {
+        if (this.securityLevelResolver instanceof NoOpSecurityLevelResolver) {
             LOG.warn("DefaultAgentEngine wired with NoOpSecurityLevelResolver: "
                     + "all operations resolve to STANDARD — no security-level classification is "
                     + "performed. RESTRICTED/ELEVATED levels are never produced, so the approval "
@@ -771,27 +763,41 @@ public class DefaultAgentEngine implements IAgentEngine {
                     + "NoOpSecurityLevelResolver to setSecurityLevelResolver — the default already "
                     + "uses DefaultSecurityLevelResolver.");
         }
-        if (permissionMatrix instanceof PassThroughPermissionMatrix) {
+        if (this.permissionMatrix instanceof PassThroughPermissionMatrix) {
             LOG.warn("DefaultAgentEngine wired with PassThroughPermissionMatrix: "
                     + "all channels allow all security levels — no channel-based permission "
                     + "restrictions are enforced. To restore secure-by-default behaviour, do not "
                     + "pass a PassThroughPermissionMatrix to setPermissionMatrix — the default "
                     + "already uses DefaultPermissionMatrix.");
         }
-        if (denialLedger instanceof NoOpDenialLedger) {
+        if (this.denialLedger instanceof NoOpDenialLedger) {
             LOG.warn("DefaultAgentEngine wired with NoOpDenialLedger: "
                     + "denials are not counted and no sessions are paused on threshold — "
                     + "repeated security denials do not trigger autonomous-execution pause. "
                     + "To restore secure-by-default behaviour, do not pass a NoOpDenialLedger "
                     + "to setDenialLedger — the default already uses DefaultDenialLedger.");
         }
-        if (postDenialGuard instanceof PassThroughPostDenialGuard) {
+        if (this.postDenialGuard instanceof PassThroughPostDenialGuard) {
             LOG.warn("DefaultAgentEngine wired with PassThroughPostDenialGuard: "
                     + "blind retries of denied actions are not detected or blocked — "
                     + "the agent can repeatedly attempt the same denied operation. "
                     + "To restore secure-by-default behaviour, do not pass a "
                     + "PassThroughPostDenialGuard to setPostDenialGuard — the default already "
                     + "uses DefaultPostDenialGuard.");
+        }
+
+        // --- NoOp awareness: no production alternative exists, INFO not WARN ---
+        if (this.contentGuardrail instanceof NoOpContentGuardrail) {
+            LOG.info("DefaultAgentEngine constructed with NoOpContentGuardrail: "
+                    + "No production implementation available for IContentGuardrail — "
+                    + "content safety is not enforced. Provide a custom implementation "
+                    + "via setContentGuardrail() for production use.");
+        }
+        if (this.budgetProvider instanceof NoOpBudgetProvider) {
+            LOG.info("DefaultAgentEngine constructed with NoOpBudgetProvider: "
+                    + "No production implementation available for IBudgetProvider — "
+                    + "execution budget is unlimited. Provide a custom implementation "
+                    + "via setBudgetProvider() for production use.");
         }
     }
 

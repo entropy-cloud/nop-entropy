@@ -1,7 +1,13 @@
 package io.nop.ai.agent.conflict;
 
 /**
- * Process-level registry of active {@link WriteIntent}s, consulted by the
+ * @apiNote This interface has only an in-memory implementation available
+ *          ({@link InMemoryWriteIntentRegistry}) — no persistent/production-grade
+ *          implementation exists in this version. Cross-process write-conflict
+ *          detection (DB-backed) depends on the L4-8 Actor Runtime and is a
+ *          future successor.
+ *
+ * <p>Process-level registry of active {@link WriteIntent}s, consulted by the
  * dispatch path to detect concurrent write conflicts before a tool is
  * allowed to execute.
  *

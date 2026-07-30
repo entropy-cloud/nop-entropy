@@ -22,6 +22,13 @@ import java.util.Set;
  * {@link InMemoryContributionRegistry} achieves this via per-type
  * {@code ConcurrentHashMap} plus synchronized compound operations.
  *
+ * @apiNote This interface has only an in-memory implementation available
+ *          ({@link InMemoryContributionRegistry}) — no persistent/production-grade
+ *          implementation exists in this version. Contributions registered via
+ *          the in-memory registry are lost on JVM restart. Production
+ *          deployments requiring durable contribution registration should
+ *          provide a custom DB-backed implementation.
+ *
  * <h2>Assembly-time resolution</h2>
  * <p>The engine resolves registered contributions <em>once at assembly time</em>
  * (before the first LLM call of an execution, alongside skill consultation).

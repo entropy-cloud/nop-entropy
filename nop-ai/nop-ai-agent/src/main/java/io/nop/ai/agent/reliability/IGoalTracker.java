@@ -1,7 +1,12 @@
 package io.nop.ai.agent.reliability;
 
 /**
- * Layer 3 extension point for session-level progress tracking and behaviour
+ * @apiNote The shipped implementation ({@link SessionGoalTracker}) is a
+ *          basic session-level tracker — not production-grade. Production
+ *          deployments requiring persistent progress tracking across JVM
+ *          restarts should provide a custom DB-backed implementation.
+ *
+ * <p>Layer 3 extension point for session-level progress tracking and behaviour
  * fault detection (design {@code nop-ai-agent-reliability.md} §5.3 /
  * plan 211 / L3-3).
  *

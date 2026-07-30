@@ -3,7 +3,12 @@ package io.nop.ai.agent.skill;
 import java.util.Collection;
 
 /**
- * Skill discovery contract (design {@code nop-ai-agent-hook-skill-engine.md} §3,
+ * @apiNote The shipped implementation ({@link FileSystemSkillProvider}) is a
+ *          basic filesystem-based provider — not production-grade. Production
+ *          deployments requiring dynamic skill discovery or database-backed
+ *          skill storage should provide a custom implementation.
+ *
+ * <p>Skill discovery contract (design {@code nop-ai-agent-hook-skill-engine.md} §3,
  * {@code skill-system-design.md} §5.1). An {@code ISkillProvider} returns the
  * set of all registered skills keyed by name. It performs no matching —
  * matching an agent's {@code availableSkills} / {@code requiredSkills}
