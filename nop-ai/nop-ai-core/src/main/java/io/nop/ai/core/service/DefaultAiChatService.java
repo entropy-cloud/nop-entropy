@@ -617,6 +617,6 @@ public class DefaultAiChatService implements IAiChatService {
 
     @Override
     public IAiChatSession getSession(String sessionId) {
-        return null;
+        throw new UnsupportedOperationException("Deprecated: use IChatService instead");
     }
 }

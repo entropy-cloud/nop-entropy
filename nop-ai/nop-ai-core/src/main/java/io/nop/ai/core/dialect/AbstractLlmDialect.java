@@ -33,27 +33,13 @@ public abstract class AbstractLlmDialect {
     /**
      * Baseline token estimation for a list of chat messages.
      * <p>
-     * Sum of non-null content length divided by {@value #CHARS_PER_TOKEN},
-     * plus a fixed {@value #PER_MESSAGE_TOKEN_OVERHEAD} tokens per message
-     * to approximate role/format overhead. Empty/null-safe: empty list or
-     * null returns 0.
+     * Delegates to {@link ILlmDialect#estimateTokensDefault(List)}.
      *
      * @param messages the messages to estimate, may be null or empty
      * @return estimated token count (always {@code >= 0})
      */
     public static long estimateTokensBaseline(List<ChatMessage> messages) {
-        if (messages == null || messages.isEmpty()) {
-            return 0;
-        }
-        long total = 0;
-        for (ChatMessage msg : messages) {
-            total += PER_MESSAGE_TOKEN_OVERHEAD;
-            String content = msg.getContent();
-            if (content != null) {
-                total += content.length() / CHARS_PER_TOKEN;
-            }
-        }
-        return total;
+        return ILlmDialect.estimateTokensDefault(messages);
     }
 
     /**

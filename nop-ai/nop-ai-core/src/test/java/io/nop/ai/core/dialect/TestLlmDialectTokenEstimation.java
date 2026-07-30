@@ -16,7 +16,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * Tests for {@link ILlmDialect#estimateTokens(List)} default implementation
- * and {@link AbstractLlmDialect#estimateTokensBaseline(List)}.
+ * and {@link ILlmDialect#estimateTokensDefault(List)}.
  */
 public class TestLlmDialectTokenEstimation {
 
@@ -84,8 +84,8 @@ public class TestLlmDialectTokenEstimation {
         String content = "12345678";
         ChatUserMessage msg = new ChatUserMessage(content);
 
-        long expected = content.length() / AbstractLlmDialect.CHARS_PER_TOKEN
-                + AbstractLlmDialect.PER_MESSAGE_TOKEN_OVERHEAD;
+        long expected = content.length() / ILlmDialect.CHARS_PER_TOKEN
+                + ILlmDialect.PER_MESSAGE_TOKEN_OVERHEAD;
         long actual = dialect.estimateTokens(Collections.singletonList(msg));
 
         assertEquals(expected, actual);

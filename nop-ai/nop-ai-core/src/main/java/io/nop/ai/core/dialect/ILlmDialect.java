@@ -158,8 +158,27 @@ public interface ILlmDialect {
      * @param messages the messages to estimate, may be null or empty
      * @return estimated token count (always {@code >= 0})
      */
+    int PER_MESSAGE_TOKEN_OVERHEAD = 4;
+
+    int CHARS_PER_TOKEN = 4;
+
     default long estimateTokens(List<ChatMessage> messages) {
-        return AbstractLlmDialect.estimateTokensBaseline(messages);
+        return ILlmDialect.estimateTokensDefault(messages);
+    }
+
+    static long estimateTokensDefault(List<ChatMessage> messages) {
+        if (messages == null || messages.isEmpty()) {
+            return 0;
+        }
+        long total = 0;
+        for (ChatMessage msg : messages) {
+            total += PER_MESSAGE_TOKEN_OVERHEAD;
+            String content = msg.getContent();
+            if (content != null) {
+                total += content.length() / CHARS_PER_TOKEN;
+            }
+        }
+        return total;
     }
 
     // ==================== 反向转换：Map ↔ 标准模型 ====================
