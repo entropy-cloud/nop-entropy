@@ -147,9 +147,24 @@ export class CrudListPage extends BasePage {
     }
     const dialog = this.engine.dialog(this.page);
     await dialog.waitFor({ state: 'visible' });
-    // Wait for edit form's initApi to settle
-    await this.page.waitForLoadState('networkidle', { timeout: 10_000 }).catch(() => {});
-    await this.page.waitForTimeout(1000);
+
+    // Wait for the edit form's loadAction to populate fields.
+    // The loadAction fires __get and calls form.setValues() with the
+    // response. If we fill fields before setValues() runs, the loaded
+    // data will overwrite our filled values.
+    // We poll the first input until it has a non-empty value, which
+    // indicates the loadAction has completed.
+    await this.page.waitForFunction(
+      () => {
+        const input = document.querySelector(
+          '[data-slot="dialog-surface"] input:not([type="hidden"]):not([type="checkbox"]):not([type="radio"]), [data-slot="dialog-content"] input:not([type="hidden"]):not([type="checkbox"]):not([type="radio"])',
+        ) as HTMLInputElement | null;
+        return input !== null && input.value !== '';
+      },
+      { timeout: 10_000 },
+    ).catch(() => {});
+    // Extra settle time for React state flush
+    await this.page.waitForTimeout(300);
   }
 
   async clickDelete(rowIdentifier: string): Promise<void> {

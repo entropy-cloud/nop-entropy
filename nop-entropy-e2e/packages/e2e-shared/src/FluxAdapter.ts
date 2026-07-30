@@ -167,7 +167,12 @@ export class FluxAdapter implements EngineAdapter {
             (el: Element) => (el as HTMLInputElement).disabled || (el as HTMLInputElement).readOnly
           ).catch(() => false);
           if (!disabled) {
-            await nativeField.first().fill(strValue);
+            const input = nativeField.first();
+            await input.click();
+            await page.keyboard.press('Control+a');
+            await page.keyboard.press('Meta+a');
+            await page.keyboard.press('Backspace');
+            await page.keyboard.type(strValue, { delay: 10 });
             return;
           }
         }
