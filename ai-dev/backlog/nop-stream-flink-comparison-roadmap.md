@@ -21,7 +21,7 @@ Does not contain implementation details. Each `planned` stage is owned by its ex
 >
 > 文档审核规则：见 Rules 节。
 
-- 1. Flink 核心源码结构审计（streaming-api、runtime、checkpoint、state、window、CEP 六大包）：`todo`
+- 1. Flink 核心源码结构审计（streaming-api、runtime、checkpoint、state、window、CEP 六大包）：`done`
 - 2. nop-stream 现有实现审计（core API、图模型、算子运行时、checkpoint）：`todo`
 - 3. Checkpoint & barrier 机制源码级对比分析：`done`
 - 4. 状态管理 & 状态后端源码级对比分析：`done`

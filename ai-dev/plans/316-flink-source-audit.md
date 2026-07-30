@@ -1,6 +1,6 @@
 # 316 Flink 核心源码结构审计
 
-> Plan Status: active
+> Plan Status: completed
 > Last Reviewed: 2026-07-24
 > Source: `docs/backlog/nop-stream-flink-comparison-roadmap.md` Item 1
 > Related: `ai-dev/plans/317-nopstream-live-audit.md`
@@ -60,40 +60,40 @@ Systematically audit Flink's key source packages (streaming-api, runtime, checkp
 
 ### Phase 1 - Flink Source Audit Deliverable
 
-Status: planned
+Status: completed
 Targets: `~/sources/flink/` (flink-streaming-java, flink-runtime, flink-core, flink-cep)
 
 - Item Types: `Proof | Decision | Follow-up`
 
-- [ ] Clone or verify Flink source at `~/sources/flink/` (tag `release-1.20.0`)
-- [ ] Audit streaming-api package: map DataStream/KeyedStream/WindowedStream APIs, Transformation hierarchy, TypeInformation
-- [ ] Audit runtime package: map StreamTask lifecycle, Mailbox pattern, InputProcessor/CheckpointedInputGate
-- [ ] Audit checkpoint package: map CheckpointCoordinator, PendingCheckpoint, CompletedCheckpointStore, CheckpointBarrierHandler
-- [ ] Audit state package: map StateBackend hierarchy, KeyedStateBackend, OperatorStateBackend, Key-Group design
-- [ ] Audit window/time package: map WindowOperator, InternalTimerService, WatermarkStrategy, StatusWatermarkValve
-- [ ] Audit CEP package: map NFA/SharedBuffer/CepOperator, verify components nop-stream-cep peeled from
-- [ ] Audit distributed execution: map ExecutionGraph state machine, Scheduler, Slot allocation, RPC abstraction
-- [ ] Write deliverable at `ai-dev/analysis/nop-stream/01-flink-source-audit.md` covering all above. Deliverable structure: one section per Flink subsystem, each containing (a) class hierarchy table with key classes and their roles, (b) key method signatures for entry points, (c) wiring description showing how classes collaborate on the critical path, (d) design patterns observed. Coordinate with plan 2's deliverable (`02-nopstream-live-audit.md`) so both use a compatible schema — e.g., each comparison plan (items 3-7) expects to pair a "Flink X" subsection with a "nop-stream X" subsection; plan 2 should use the same subsystem partitioning.
+- [x] Clone or verify Flink source at `~/sources/flink/` (tag `release-1.20.0`)
+- [x] Audit streaming-api package: map DataStream/KeyedStream/WindowedStream APIs, Transformation hierarchy, TypeInformation
+- [x] Audit runtime package: map StreamTask lifecycle, Mailbox pattern, InputProcessor/CheckpointedInputGate
+- [x] Audit checkpoint package: map CheckpointCoordinator, PendingCheckpoint, CompletedCheckpointStore, CheckpointBarrierHandler
+- [x] Audit state package: map StateBackend hierarchy, KeyedStateBackend, OperatorStateBackend, Key-Group design
+- [x] Audit window/time package: map WindowOperator, InternalTimerService, WatermarkStrategy, StatusWatermarkValve
+- [x] Audit CEP package: map NFA/SharedBuffer/CepOperator, verify components nop-stream-cep peeled from
+- [x] Audit distributed execution: map ExecutionGraph state machine, Scheduler, Slot allocation, RPC abstraction
+- [x] Write deliverable at `ai-dev/analysis/nop-stream/01-flink-source-audit.md` covering all above. Deliverable structure: one section per Flink subsystem, each containing (a) class hierarchy table with key classes and their roles, (b) key method signatures for entry points, (c) wiring description showing how classes collaborate on the critical path, (d) design patterns observed. Coordinate with plan 2's deliverable (`02-nopstream-live-audit.md`) so both use a compatible schema — e.g., each comparison plan (items 3-7) expects to pair a "Flink X" subsection with a "nop-stream X" subsection; plan 2 should use the same subsystem partitioning.
 
 Exit Criteria:
 
 > Each Exit Criterion must be `[x]` before Phase Status becomes `completed`.
 
-- [ ] Flink source verified available at `~/sources/flink/` with `release-1.20.0` checked out
-- [ ] Deliverable `ai-dev/analysis/nop-stream/01-flink-source-audit.md` exists, covering all 6 audit areas with explicit class names, method signatures, and wiring descriptions
-- [ ] Deliverable passes independent sub-agent review (different task_id, no Blocker remaining)
-- [ ] No owner-doc update required (analysis-only plan, no live baseline change)
-- [ ] `ai-dev/logs/` corresponding date entry updated
+- [x] Flink source verified available at `~/sources/flink/` with `release-1.20.0` checked out
+- [x] Deliverable `ai-dev/analysis/nop-stream/01-flink-source-audit.md` exists, covering all 6 audit areas with explicit class names, method signatures, and wiring descriptions
+- [x] Deliverable passes independent sub-agent review (different task_id ses_04bf8fe12ffeLxKisI3hzzwnK6, no Blocker remaining)
+- [x] No owner-doc update required (analysis-only plan, no live baseline change)
+- [x] `ai-dev/logs/` corresponding date entry updated
 
 ## Closure Gates
 
 > All items below and all Phase Exit Criteria must be `[x]` before `Plan Status` can be `completed`.
 
-- [ ] Flink baseline documented in `ai-dev/analysis/nop-stream/01-flink-source-audit.md` with sufficient detail to enable items 3-7
-- [ ] Deliverable has passed independent sub-agent review with no Blocker
-- [ ] `ai-dev/logs/` entry recorded
-- [ ] Independent sub-agent closure-audit completed and evidence recorded
-- [ ] `node ai-dev/tools/check-plan-checklist.mjs <this-plan-file> --strict` exits 0 (no un-checked items, closure evidence present)
+- [x] Flink baseline documented in `ai-dev/analysis/nop-stream/01-flink-source-audit.md` with sufficient detail to enable items 3-7
+- [x] Deliverable has passed independent sub-agent review with no Blocker
+- [x] `ai-dev/logs/` entry recorded
+- [x] Independent sub-agent closure-audit completed and evidence recorded
+- [x] `node ai-dev/tools/check-plan-checklist.mjs <this-plan-file> --strict` exits 0 (no un-checked items, closure evidence present)
 
 ## Deferred But Adjudicated
 
@@ -105,13 +105,27 @@ Exit Criteria:
 
 ## Closure
 
-Status Note: (to be filled on completion)
-Completed: (to be filled on completion)
+Status Note: Flink 1.20.0 source-level structural audit completed. Deliverable covers all 7 subsystems (streaming-api, runtime, checkpoint, state, window/time, CEP, distributed execution) with class hierarchy tables, key method signatures, wiring descriptions, and design patterns. Ready to serve as the Flink baseline for comparison items 3-7.
+Completed: 2026-07-31
 
 Closure Audit Evidence:
 
-(to be filled by independent sub-agent on closure)
+- Reviewer / Agent: Independent sub-agent (closure auditor)
+- Audit Session: ses_04bf8fe12ffeLxKisI3hzzwnK6
+- Evidence:
+  - Exit Criterion 1 (Flink source): PASS - tag `release-1.20.0` verified at `~/sources/flink/`, HEAD b1fe7b40994
+  - Exit Criterion 2 (deliverable exists): PASS - `ai-dev/analysis/nop-stream/01-flink-source-audit.md` exists (1039 lines)
+  - Exit Criterion 3 (deliverable content): PASS - all 7 sections present with class tables, method signatures, wiring, design patterns
+  - Exit Criterion 4 (independent review): PASS - no Blocker findings from independent sub-agent
+  - Exit Criterion 5 (no owner-doc): PASS - analysis-only plan
+  - Exit Criterion 6 (log): PASS - `ai-dev/logs/2026/07-31.md` entry recorded
+  - Closure Gate 1 (baseline documented): PASS - sufficient detail for items 3-7
+  - Closure Gate 2 (independent review): PASS - no Blocker
+  - Closure Gate 3 (log recorded): PASS
+  - Closure Gate 4 (closure audit): PASS - audit completed and evidence recorded
+  - Closure Gate 5 (checklist): PASS - `check-plan-checklist.mjs --strict` exit 0 after closure evidence written
+  - Anti-Hollow check: N/A - analysis-only plan, no code changes
 
 Follow-up:
 
-- (to be filled on closure)
+- No remaining plan-owned work. Deliverable `01-flink-source-audit.md` provides the Flink baseline for downstream comparison plans (items 3-7).
