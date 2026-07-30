@@ -2,7 +2,7 @@
 
 > Status: resolved
 > Date: 2026-07-24
-> Scope: `nop-kernel`（nop-core / nop-xlang / nop-xdefs / nop-api-core / nop-commons）、`nop-core-framework`（nop-ioc / nop-config）、`nop-persistence`（nop-dao / nop-orm / nop-orm-eql）、`nop-service-framework`（nop-graphql-core / nop-graphql-orm / nop-biz）；六大引擎模块职责、协作链、运行时执行链 + NopIoC vs Spring 工程差异 + 4 框架联网对标
+> Scope: `nop-kernel`（nop-core / nop-xlang / nop-xdefs / nop-api-core / nop-commons）、`nop-core-framework`（nop-ioc / nop-config）、`nop-persistence`（nop-dao / nop-orm / nop-orm-eql）、`nop-service-framework`（nop-graphql-core / nop-graphql-orm / nop-biz）；七大引擎模块职责、协作链、运行时执行链 + NopIoC vs Spring 工程差异 + 4 框架联网对标
 > Conclusion: nop-entropy 的核心引擎以「VFS + Delta 资源层 → XDef 元模型 → XDSL 加载期合并 → 反射式 BizModel → GraphQL 自动暴露 → ORM/EQL 执行」为运行时主干；其差异化定位在于 (1) Bean 发现完全文件化（`beans.xml`，无注解扫描）；(2) AOP 是**源码生成式**（build-time 生成 `__aop` 子类 + 运行时注入拦截器数组，非 CGLIB/ASM 运行时字节码）；(3) 字段注入要求非 `private`（反射层 `ClassModelBuilder` 直接跳过 private 字段）；(4) 配置注入双实现（IoC 容器 `@cfg:`/`@r-cfg:` 与 DSL 加载期 `@cfg:` 写法相同但实现独立）。相比 Spring（运行时反射+扫描）、Quarkus Arc（构建时 CDI 织入）、Micronaut（编译时 APT DI），nop 把"复杂性预算"放在**加载期代码生成 + XDSL Delta**，而非启动期反射。
 > Mission: nop-deep-analysis（Work Item A2）
 > Superseded By: （本分析为 A4 GraphQL/服务层、A5 模块矩阵提供核心引擎参照；若 A7 capstone 重新组织引擎章节，则被替代）
@@ -14,7 +14,7 @@
 - **约束**：仅引擎机制剖析——A2 覆盖 GraphQL BizModel 如何注册为 operation；A4 覆盖 CRUD 约定（`CrudBizModel`、`@BizMutation`、xbiz、xmeta 字段可见性）。不重复 A1 已建立的可逆计算公理体系（`ai-dev/analysis/2026-07/2026-07-24-nop-theory-foundation.md`）。
 - **来源基线**：`docs-for-ai/04-reference/source-anchors.md`（IOC/EXT/VFS/DQL/GQL/CFG/MOD/TNT/TXN 系列）、`docs-for-ai/02-core-guides/`（ioc-and-config 等）、`docs/compare/nop-vs-springcloud.md`、`docs/theory/lowcode-ioc.md`。本分析通过 3 个并行 explore 子 agent 对 **25+ 个 source-anchors 锚点**做源码交叉核对（全部 PASS）建立。
 
-## 1. 六大引擎模块职责与协作总览
+## 1. 七大引擎模块职责与协作总览
 
 ### 1.1 模块职责矩阵
 
@@ -223,7 +223,7 @@ relation 字段经 `OrmFetcherBuilder`（GQL-001, `nop-graphql-orm/.../OrmFetche
 - `getConnectionFetcher`(L135) 读 `graphql:connectionProp`(L137)/`graphql:queryMethod`(L136)
 - `buildConnectionFetcher`(L158) 读 `graphql:disableLogicalDelete`(L160)/`graphql:maxFetchSize`(L161)/`graphql:filter`(L169)/`graphql:orderBy`(L177) → 返回 `OrmEntityPropConnectionFetcher`(L180)
 - `buildFetcher`(L192) 按 relation kind 选 ref/set/column fetcher
-- `graphql:*` 属性名常量全集定义于 `GraphQLConstants.java`(GQL-008, L26-43)
+- `graphql:*` 属性名常量全集定义于 `GraphQLConstants.java`(GQL-008, L23-45)
 
 ### 5.4 RPC 包装（RPC-008）
 
@@ -237,7 +237,8 @@ relation 字段经 `OrmFetcherBuilder`（GQL-001, `nop-graphql-orm/.../OrmFetche
 
 - `AppBeanContainerLoader.loadBeansFile()`（IOC-002, `AppBeanContainerLoader.java:107-150`）：遍历 `ModuleManager.getEnabledModules()`(L129)，对每个模块 `getModuleAppResources`(L254-273) 列出 `/{moduleId}/beans` 子项
 - **L275-284 `isAppBeans`**：只接受 `app.beans.xml` 或任意 `app-*.beans.xml`
-- L170-185：`/nop/autoconfig` 下的 `.beans` 资源 + `nop.ioc.app-beans.files` 配置补充
+- **L108-126 `loadBeansFile()`**：auto-config 资源加载（`/nop/autoconfig` 下的 `.beans` 文件，通过 `getAutoConfigResources()` L170-185 读取）
+- **L144-149 `loadBeansFile()`**：`nop.ioc.app-beans.files` 配置补充（显式列出的 beans 文件）
 - **结论**：`@BizModel`/`@Inject` 等注解**只用于元数据标记和字段注入**，不会触发自动 bean 注册。所有 bean 必须在 `beans.xml` 有显式 `<bean>` 定义（`docs-for-ai/02-core-guides/ioc-and-config.md:127`）
 
 平台内置 bean 广泛使用 `nop*` 命名约定（IOC-003，`dao-defaults.beans.xml`/`orm-defaults.beans.xml`/`biz-defaults.beans.xml`），这是仓库强约定但非 IoC 保留前缀规则。
@@ -277,7 +278,7 @@ AOP 是**两阶段设计**：(1) build/codegen 期生成代理源码；(2) 运�
 | 代理标记接口 | `IAopProxy.java:10-17` | 生成类 `implements IAopProxy`，暴露 `$$aop_interceptors(IMethodInterceptor[])` 供容器运行期注入拦截器链 |
 | 源码生成器 | `AopCodeGenerator.java:40-88`（发代理 L73-74；重写拦截方法 L145-188） | `buildForMethods` 生成 `<Name>__aop extends <BaseClass> implements IAopProxy`，标 `@AopProxy({...})` 列出拦截的注解；被拦截方法 override 后构造 `AopMethodInvocation` 调 `$$inv.proceed()`，无拦截器时回退 `super.x()`(L162-165) |
 | 构建期 codegen 任务 | `GenAopProxy.java:37-96` | 扫描 `target/classes` 的 `.class`，跳过已实现 `IAopProxy` 的(L72)与抽象类(L70)，运行 `AopCodeGenerator`，写 `__aop.java` 到 `target/generated-sources`，用 `JdkJavaCompiler`(L87-95) 编译 |
-| 注解注册表（数据驱动） | `AopAnnotationsLoader.java:31-56`；注册表路径 `CoreConstants.java:26` `/nop/aop` 后缀 `.annotations`；示例 `nop-api-core/.../nop/aop/nop-api-core.annotations` | "可拦截注解"集合**数据驱动**：从 `_vfs/nop/aop/*.annotations` 读，非硬编码（列出 `@Transactional`、`@Cache`、`@SingleSession`、`@TccTransactional` 等） |
+| 注解注册表（数据驱动） | `AopAnnotationsLoader.java:31-56`；注册表路径 `CoreConstants.java:27` `/nop/aop` 后缀 `.annotations`；示例 `nop-api-core/.../nop/aop/nop-api-core.annotations` | "可拦截注解"集合**数据驱动**：从 `_vfs/nop/aop/*.annotations` 读，非硬编码（列出 `@Transactional`、`@Cache`、`@SingleSession`、`@TccTransactional` 等） |
 | IoC 运行期织入 | `AopBeanProcessor.java:67-417`（pointcut 匹配 L256-323；加载 AOP 类 L406-416；构造器重接 L343-355） | 收集声明 `ioc:pointcut` 的拦截器 bean 与标 `ioc:aop` 的 bean，匹配 pointcut 注解到 bean 的 `@AopProxy` 声明，**改写构造器**实例化生成的 `__aop` 子类 |
 | 运行期拦截器注入 | `BeanDefinition.java:572-583`(`addInterceptors`) | bean 构造后 `((IAopProxy) bean).$$aop_interceptors(interceptors)`(L581) 注入容器解析的 `IMethodInterceptor[]` |
 | 拦截器链执行 | `AopMethodInvocation.java:28-35` | `proceed()` 按索引走拦截器数组，耗尽后委托底层 `CallableMethodInvocation`（调 `__aop` 方法体里的 lambda，即 `super.x()`） |
@@ -370,7 +371,7 @@ nop-entropy 的核心引擎工程权衡可浓缩为三点，与上述框架形�
 
 ## Conclusion
 
-- 本分析建立了六大引擎模块（nop-core / nop-xlang / nop-xdef / nop-dao / nop-orm / nop-graphql / NopIoC）的职责矩阵、协作关系与端到端运行时调用链（HTTP → GraphQL 引擎 → BizModel → 事务 → ORM → EQL → SQL），并用 **25+ 个 source-anchors 锚点**源码交叉核对（全部 PASS）验证。
+- 本分析建立了七大引擎模块（nop-core / nop-xlang / nop-xdef / nop-dao / nop-orm / nop-graphql / NopIoC）的职责矩阵、协作关系与端到端运行时调用链（HTTP → GraphQL 引擎 → BizModel → 事务 → ORM → EQL → SQL），并用 **25+ 个 source-anchors 锚点**源码交叉核对（全部 PASS）验证。
 - NopIoC 与 Spring 的系统性差异已明确为 **6 个维度**（Bean 发现、字段注入可见性、AOP 机制、配置注入、条件加载、多 bean 收集），其中 **AOP 源码生成式**（`GenAopProxy` 生成 `__aop.java` + `IAopProxy` 拦截器数组注入）是重大发现，填补了 source-anchors 的 AOP 空白。
 - 联网对标覆盖 **4 个框架**（Spring Boot/Context、Quarkus Arc、Micronaut、Helidon），每个附 ≥1 来源链接，给出"IoC 模型 / 核心抽象 / 启动模型 / AOP"四维度对照。
 - nop 的差异化工程定位：**复杂性预算放在加载期+codegen、Bean 定义可被 Delta 定制、GraphQL 统一 HTTP 中枢**——前两者区别于 Spring/Quarkus/Micronaut/Helidon（它们无结构化差量组合代数）。

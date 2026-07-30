@@ -47,7 +47,7 @@
 
 因此强约束：`I*Biz` 接口方法**必须**标注注解（否则代理无法路由，运行时抛 `unsupported-method`），且 BizModel 新增的每个 `public` 方法都必须同步到 `I*Biz`（代理只识别接口上的方法）。
 
-**真实案例**（BIZ-005）：`INopJobScheduleBiz extends ICrudBiz<NopJobSchedule>`（`nop-job-dao/.../biz/INopJobScheduleBiz.java:13`）声明 5 个额外 `@BizMutation`（`enableSchedule`/`disableSchedule`/`pauseSchedule`/`resumeSchedule`/`triggerNow`/`archiveSchedule`）；`NopJobScheduleBizModel`（`nop-job-service/.../entity/NopJobScheduleBizModel.java:41`）`@BizModel("NopJobSchedule") extends CrudBizModel<NopJobSchedule> implements INopJobScheduleBiz`，内部用继承的 `requireEntity(id, "...", context)` 拉实体再 mutate/persist——演示了 BizModel 调用自身 ICrudBiz action surface 的跨 action 协作。
+**真实案例**（BIZ-005）：`INopJobScheduleBiz extends ICrudBiz<NopJobSchedule>`（`nop-job-dao/.../biz/INopJobScheduleBiz.java:13`）声明 6 个额外 `@BizMutation`（`enableSchedule`/`disableSchedule`/`pauseSchedule`/`resumeSchedule`/`triggerNow`/`archiveSchedule`）；`NopJobScheduleBizModel`（`nop-job-service/.../entity/NopJobScheduleBizModel.java:41`）`@BizModel("NopJobSchedule") extends CrudBizModel<NopJobSchedule> implements INopJobScheduleBiz`，内部用继承的 `requireEntity(id, "...", context)` 拉实体再 mutate/persist——演示了 BizModel 调用自身 ICrudBiz action surface 的跨 action 协作。
 
 #### 1.3 扩展返回字段：`@BizLoader`（BIZ-006）
 

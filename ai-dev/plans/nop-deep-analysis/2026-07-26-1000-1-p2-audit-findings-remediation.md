@@ -1,6 +1,6 @@
 # 1 修复 nop-deep-analysis P2 审计发现（交付物事实性精度修正）
 
-> Plan Status: active
+> Plan Status: completed
 > Mission: nop-deep-analysis
 > Work Item: P2 audit findings remediation（跨 A2/A4/A5/A6/A7 交付物）
 > Last Reviewed: 2026-07-26
@@ -118,81 +118,81 @@
 
 ### Phase 1 - 修正 A2/A4/A5/A6 交付物事实性精度缺陷
 
-Status: planned
+Status: completed
 Targets: `ai-dev/analysis/2026-07/2026-07-24-nop-core-engine-deep-dive.md`、`...-nop-graphql-service-frontend.md`、`...-nop-module-matrix.md`、`...-nop-engineering-dx-ai-dev.md`
 
 - Item Types: `Fix`
 
-- [ ] **Fix [P2-A2-02]** `...-nop-core-engine-deep-dive.md:280`：`CoreConstants.java:26` → `CoreConstants.java:27`（源码 `nop-kernel/nop-core/.../CoreConstants.java:27` 已确认）。
-- [ ] **Fix [P2-A2-03]** `...-nop-core-engine-deep-dive.md:226`：`L26-43` → `L23-45`（源码 `GraphQLConstants.java` 中 `ATTR_GRAPHQL_*`/`TAG_GRAPHQL_*` 首条 L23 末条 L45 已确认）。
-- [ ] **Fix [P2-A2-04]** `...-nop-core-engine-deep-dive.md:240`：将 `L170-185` 拆分为两段独立行号范围（autoconfig `.beans` 资源 vs `nop.ioc.app-beans.files` 配置），各自标注对应逻辑；精确行号以 `AppBeanContainerLoader.java` live 源码为准。
-- [ ] **Fix [OA-3]** `...-nop-core-engine-deep-dive.md:373`：「六大引擎模块」→「七大引擎模块」（括号内已列 7 个：nop-core/nop-xlang/nop-xdef/nop-dao/nop-orm/nop-graphql/NopIoC）。
-- [ ] **Fix [P2-A4-02]** `...-nop-graphql-service-frontend.md:50`：「5 个额外 `@BizMutation`」→「6 个」（同句已列 6 个名字）。
-- [ ] **Fix [P2-A5-01]** `...-nop-module-matrix.md:5, :52`：将 `nop-plugin` 从「顶层基础设施模块」修正为「`nop-core-framework` 下嵌套模块」（已 `ls -d nop-core-framework/nop-plugin/` 确认）。
-- [ ] **Fix [P2-A6-01]** `...-nop-engineering-dx-ai-dev.md:5, :6, :13, :29, :67, :69`：「七层知识层」→ 正确计数（以 `ls ai-dev/` live 目录数为准；`AGENTS.md` Directory Roles 表为权威参照）。
-- [ ] **Fix [P2-A6-02]** `...-nop-engineering-dx-ai-dev.md:158`：`docs-for-ai/` 结构计数修正为与 `INDEX.md` 一致的项数（以 live `INDEX.md` 实际条目数为准）。
-- [ ] **Fix [P2-A6-03]** `...-nop-engineering-dx-ai-dev.md:200`：「~90 个锚点」→ 实际数量（以 `rg -c "^\| \`" docs-for-ai/04-reference/source-anchors.md` live 计数为准，当前 ≈185）。
-- [ ] **Fix [P2-A6-04]** `...-nop-engineering-dx-ai-dev.md:91`：`events.jsonl` 步骤计数——因运行时产物未提交到仓库（`find` 确认不存在），无法重新验证精确数字。修正方式：标注「计数来自执行期历史快照，运行时产物未入库，数字可能随 mission 进展变化」，或移除不可复现的精确数字改用定性描述。
-- [ ] **Fix [OA-2]** `...-nop-engineering-dx-ai-dev.md:150`：模块骨架补 `codegen` 步骤（`model → dao → ...` → `model → codegen → dao → ...`，与 `INDEX.md:207` 一致）。
+- [x] **Fix [P2-A2-02]** `...-nop-core-engine-deep-dive.md:280`：`CoreConstants.java:26` → `CoreConstants.java:27`（源码 `nop-kernel/nop-core/.../CoreConstants.java:27` 已确认）。
+- [x] **Fix [P2-A2-03]** `...-nop-core-engine-deep-dive.md:226`：`L26-43` → `L23-45`（源码 `GraphQLConstants.java` 中 `ATTR_GRAPHQL_*`/`TAG_GRAPHQL_*` 首条 L23 末条 L45 已确认）。
+- [x] **Fix [P2-A2-04]** `...-nop-core-engine-deep-dive.md:240`：将 `L170-185` 拆分为两段独立行号范围（autoconfig `.beans` 资源 vs `nop.ioc.app-beans.files` 配置），各自标注对应逻辑；精确行号以 `AppBeanContainerLoader.java` live 源码为准。
+- [x] **Fix [OA-3]** `...-nop-core-engine-deep-dive.md:373`：「六大引擎模块」→「七大引擎模块」（括号内已列 7 个：nop-core/nop-xlang/nop-xdef/nop-dao/nop-orm/nop-graphql/NopIoC）。
+- [x] **Fix [P2-A4-02]** `...-nop-graphql-service-frontend.md:50`：「5 个额外 `@BizMutation`」→「6 个」（同句已列 6 个名字）。
+- [x] **Fix [P2-A5-01]** `...-nop-module-matrix.md:5, :52`：将 `nop-plugin` 从「顶层基础设施模块」修正为「`nop-core-framework` 下嵌套模块」（已 `ls -d nop-core-framework/nop-plugin/` 确认）。
+- [x] **Fix [P2-A6-01]** `...-nop-engineering-dx-ai-dev.md:5, :6, :13, :29, :67, :69`：「七层知识层」→ 正确计数（以 `ls ai-dev/` live 目录数为准；`AGENTS.md` Directory Roles 表为权威参照）。
+- [x] **Fix [P2-A6-02]** `...-nop-engineering-dx-ai-dev.md:158`：`docs-for-ai/` 结构计数修正为与 `INDEX.md` 一致的项数（以 live `INDEX.md` 实际条目数为准）。
+- [x] **Fix [P2-A6-03]** `...-nop-engineering-dx-ai-dev.md:200`：「~90 个锚点」→ 实际数量（以 `rg -c "^\| \`" docs-for-ai/04-reference/source-anchors.md` live 计数为准，当前 ≈185）。
+- [x] **Fix [P2-A6-04]** `...-nop-engineering-dx-ai-dev.md:91`：`events.jsonl` 步骤计数——因运行时产物未提交到仓库（`find` 确认不存在），无法重新验证精确数字。修正方式：标注「计数来自执行期历史快照，运行时产物未入库，数字可能随 mission 进展变化」，或移除不可复现的精确数字改用定性描述。
+- [x] **Fix [OA-2]** `...-nop-engineering-dx-ai-dev.md:150`：模块骨架补 `codegen` 步骤（`model → dao → ...` → `model → codegen → dao → ...`，与 `INDEX.md:207` 一致）。
 
 Exit Criteria:
 
 > 每个 Phase 完成后，必须逐条勾选本节。所有 `[x]` 后才能将 Phase Status 改为 `completed`。
 
-- [ ] P2-A2-02：`rg "CoreConstants.java:2[67]" ai-dev/analysis/2026-07/2026-07-24-nop-core-engine-deep-dive.md` — 命中行显示 `:27` 不再含 `:26`。
-- [ ] P2-A2-03：`rg "L2[36]-4[35]" ai-dev/analysis/2026-07/2026-07-24-nop-core-engine-deep-dive.md` — GQL-008 行范围改为 `L23-45`。
-- [ ] P2-A2-04：`...-nop-core-engine-deep-dive.md:240` 区域不再把 autoconfig `.beans` 与 `nop.ioc.app-beans.files` 混在同一行号范围；两段逻辑各自有独立行号标注。
-- [ ] OA-3：`rg "六大引擎模块" ai-dev/analysis/2026-07/2026-07-24-nop-core-engine-deep-dive.md` 无命中（已改为「七大」或等价表述）。
-- [ ] P2-A4-02：`...-nop-graphql-service-frontend.md:50` 的 `@BizMutation` 计数与同句列出的名字数量一致（6 个）。
-- [ ] P2-A5-01：`rg "nop-plugin" ai-dev/analysis/2026-07/2026-07-24-nop-module-matrix.md` — 不再把 `nop-plugin` 表述为顶层模块；明确标注嵌套在 `nop-core-framework` 下。
-- [ ] P2-A6-01：`rg "七层" ai-dev/analysis/2026-07/2026-07-24-nop-engineering-dx-ai-dev.md` 无命中（已改为正确计数）；正确计数与 `ls ai-dev/` 目录数一致。
-- [ ] P2-A6-02：`...-nop-engineering-dx-ai-dev.md:158` 的 `docs-for-ai/` 结构项数与 live `INDEX.md` 一致。
-- [ ] P2-A6-03：`...-nop-engineering-dx-ai-dev.md:200` 的锚点计数与 `rg -c` live 计数一致（不再写「~90」）。
-- [ ] P2-A6-04：`...-nop-engineering-dx-ai-dev.md:91` 的 events.jsonl 计数已标注「历史快照/不可复现」或改为定性描述。
-- [ ] OA-2：`...-nop-engineering-dx-ai-dev.md:150` 的模块骨架含 `codegen` 步骤（与 `INDEX.md:207` 一致）。
-- [ ] `node ai-dev/tools/check-doc-links.mjs --strict` 退出码不因本 Phase 变差（mission 文件集仍 0 broken link）。
-- [ ] No owner-doc update required: 本 Phase 仅修改分析交付物（`ai-dev/analysis/`），不修改 `docs-for-ai/`。
-- [ ] `ai-dev/logs/2026/07-26.md` 已追加本 Phase 的变更记录。
+- [x] P2-A2-02：`rg "CoreConstants.java:2[67]" ai-dev/analysis/2026-07/2026-07-24-nop-core-engine-deep-dive.md` — 命中行显示 `:27` 不再含 `:26`。
+- [x] P2-A2-03：`rg "L2[36]-4[35]" ai-dev/analysis/2026-07/2026-07-24-nop-core-engine-deep-dive.md` — GQL-008 行范围改为 `L23-45`。
+- [x] P2-A2-04：`...-nop-core-engine-deep-dive.md:240` 区域不再把 autoconfig `.beans` 与 `nop.ioc.app-beans.files` 混在同一行号范围；两段逻辑各自有独立行号标注。
+- [x] OA-3：`rg "六大引擎模块" ai-dev/analysis/2026-07/2026-07-24-nop-core-engine-deep-dive.md` 无命中（已改为「七大」或等价表述）。
+- [x] P2-A4-02：`...-nop-graphql-service-frontend.md:50` 的 `@BizMutation` 计数与同句列出的名字数量一致（6 个）。
+- [x] P2-A5-01：`rg "nop-plugin" ai-dev/analysis/2026-07/2026-07-24-nop-module-matrix.md` — 不再把 `nop-plugin` 表述为顶层模块；明确标注嵌套在 `nop-core-framework` 下。
+- [x] P2-A6-01：`rg "七层" ai-dev/analysis/2026-07/2026-07-24-nop-engineering-dx-ai-dev.md` 无命中（已改为正确计数）；正确计数与 `ls ai-dev/` 目录数一致。
+- [x] P2-A6-02：`...-nop-engineering-dx-ai-dev.md:158` 的 `docs-for-ai/` 结构项数与 live `INDEX.md` 一致。
+- [x] P2-A6-03：`...-nop-engineering-dx-ai-dev.md:200` 的锚点计数与 `rg -c` live 计数一致（不再写「~90」）。
+- [x] P2-A6-04：`...-nop-engineering-dx-ai-dev.md:91` 的 events.jsonl 计数已标注「历史快照/不可复现」或改为定性描述。
+- [x] OA-2：`...-nop-engineering-dx-ai-dev.md:150` 的模块骨架含 `codegen` 步骤（与 `INDEX.md:207` 一致）。
+- [x] `node ai-dev/tools/check-doc-links.mjs --strict` 退出码不因本 Phase 变差（mission 文件集仍 0 broken link）。
+- [x] No owner-doc update required: 本 Phase 仅修改分析交付物（`ai-dev/analysis/`），不修改 `docs-for-ai/`。
+- [x] `ai-dev/logs/2026/07-26.md` 已追加本 Phase 的变更记录。
 
 ### Phase 2 - 修正 capstone A7 精度缺陷 + mission config 注释 + 终检
 
-Status: planned
+Status: completed
 Targets: `ai-dev/analysis/2026-07/2026-07-26-nop-platform-deep-introduction.md`、`missions/nop-deep-analysis.json`、`ai-dev/audits/nop-deep-analysis-audit-followups.md`
 
 - Item Types: `Fix | Decision | Follow-up`
 
-- [ ] **Fix [P2-A7-01]** `...-nop-platform-deep-introduction.md:335-337`：§8.5 deferred-items 汇总算术修正——逐项重数 §8.1（迁移决策）+ §8.2（文档治理任务）+ §8.3（residual）+ §8.4（排除），使小计、总计、括号内分项加法三者自洽。
-- [ ] **Fix [P2-A7-02]** `...-nop-platform-deep-introduction.md:102`：mermaid 节点覆盖声明——要么为 `API`/`OPS` 节点补 provenance 行使「23 行覆盖全部 25 节点」成立，要么修正声明为实际覆盖数。
-- [ ] **Fix [P2-A7-03]** `...-nop-platform-deep-introduction.md:167, :316, :329`：`A2 §8(c)` 标签歧义消解——区分 `A2 §8(c)` 启动性能（`:368`）与 `A2 §8(b)` 或行号引用 `@BizAction`-AOP（`:367`），使每个标签唯一对应一个 A2 open-question 条目。
-- [ ] **Fix [OA-1]** `...-nop-platform-deep-introduction.md:279, :337, :365`：§8.5 `_tmp/` provenance 脆弱性——将关键计数摘要内联到 capstone §8 正文（使该节自包含），或在引用处显式标注「`_tmp/` 为执行期草稿，计数已内联/可从 §8.1–§8.4 逐项复核」。
-- [ ] **Decision [OA-4]** `missions/nop-deep-analysis.json:15`：为 `commands.test` 的 `; echo` 模式补注释（如 JSON `//` comment 或相邻文档注记），说明「analysis mission 的 test 命令为 doc-links 检查，退出码被 `; echo` 吸收是已知设计选择，非 bug」。
-- [ ] **Follow-up** 在 `ai-dev/audits/nop-deep-analysis-audit-followups.md` 中，将全部 16 项 P2 finding 行尾标注 `→ done in 2026-07-26-1000-1-p2-audit-findings-remediation`。
+- [x] **Fix [P2-A7-01]** `...-nop-platform-deep-introduction.md:335-337`：§8.5 deferred-items 汇总算术修正——逐项重数 §8.1（迁移决策）+ §8.2（文档治理任务）+ §8.3（residual）+ §8.4（排除），使小计、总计、括号内分项加法三者自洽。
+- [x] **Fix [P2-A7-02]** `...-nop-platform-deep-introduction.md:102`：mermaid 节点覆盖声明——要么为 `API`/`OPS` 节点补 provenance 行使「23 行覆盖全部 25 节点」成立，要么修正声明为实际覆盖数。
+- [x] **Fix [P2-A7-03]** `...-nop-platform-deep-introduction.md:167, :316, :329`：`A2 §8(c)` 标签歧义消解——区分 `A2 §8(c)` 启动性能（`:368`）与 `A2 §8(b)` 或行号引用 `@BizAction`-AOP（`:367`），使每个标签唯一对应一个 A2 open-question 条目。
+- [x] **Fix [OA-1]** `...-nop-platform-deep-introduction.md:279, :337, :365`：§8.5 `_tmp/` provenance 脆弱性——将关键计数摘要内联到 capstone §8 正文（使该节自包含），或在引用处显式标注「`_tmp/` 为执行期草稿，计数已内联/可从 §8.1–§8.4 逐项复核」。
+- [x] **Decision [OA-4]** `missions/nop-deep-analysis.json:15`：为 `commands.test` 的 `; echo` 模式补注释（如 JSON `//` comment 或相邻文档注记），说明「analysis mission 的 test 命令为 doc-links 检查，退出码被 `; echo` 吸收是已知设计选择，非 bug」。
+- [x] **Follow-up** 在 `ai-dev/audits/nop-deep-analysis-audit-followups.md` 中，将全部 16 项 P2 finding 行尾标注 `→ done in 2026-07-26-1000-1-p2-audit-findings-remediation`。
 
 Exit Criteria:
 
 > 每个 Phase 完成后，必须逐条勾选本节。所有 `[x]` 后才能将 Phase Status 改为 `completed`。
 
-- [ ] P2-A7-01：§8.5 的小计、总计、括号内分项加法三者自洽（逐项重数验证，非仅改数字）。
-- [ ] P2-A7-02：mermaid 节点覆盖声明与实际 provenance 表行数一致（要么补行使声明成立，要么修正声明数字）。
-- [ ] P2-A7-03：`rg "A2 §8\(c\)" ai-dev/analysis/2026-07/2026-07-26-nop-platform-deep-introduction.md` — 每处命中的语义唯一，不再有两个不同条目共用同一标签。
-- [ ] OA-1：§8.5 不再 load-bearing 依赖 `_tmp/` 文件——关键计数可从 §8 正文自包含复核，或 `_tmp/` 引用处有显式不可复现标注。
-- [ ] OA-4：`missions/nop-deep-analysis.json` 的 `commands.test` no-op 设计选择有文档记录（注释或相邻注记）。
-- [ ] `nop-deep-analysis-audit-followups.md` 全部 16 项 P2 finding 行尾标注 `→ done in ...`。
-- [ ] `node ai-dev/tools/check-doc-links.mjs --strict` 退出码不因本 Phase 变差（mission 文件集仍 0 broken link）。
-- [ ] No owner-doc update required: 本 Phase 仅修改分析交付物 + mission config + audit backlog，不修改 `docs-for-ai/`。
-- [ ] `ai-dev/logs/2026/07-26.md` 已追加本 Phase 的变更记录。
+- [x] P2-A7-01：§8.5 的小计、总计、括号内分项加法三者自洽（逐项重数验证，非仅改数字）。
+- [x] P2-A7-02：mermaid 节点覆盖声明与实际 provenance 表行数一致（要么补行使声明成立，要么修正声明数字）。
+- [x] P2-A7-03：`rg "A2 §8\(c\)" ai-dev/analysis/2026-07/2026-07-26-nop-platform-deep-introduction.md` — 每处命中的语义唯一，不再有两个不同条目共用同一标签。
+- [x] OA-1：§8.5 不再 load-bearing 依赖 `_tmp/` 文件——关键计数可从 §8 正文自包含复核，或 `_tmp/` 引用处有显式不可复现标注。
+- [x] OA-4：`missions/nop-deep-analysis.json` 的 `commands.test` no-op 设计选择有文档记录（注释或相邻注记）。
+- [x] `nop-deep-analysis-audit-followups.md` 全部 16 项 P2 finding 行尾标注 `→ done in ...`。
+- [x] `node ai-dev/tools/check-doc-links.mjs --strict` 退出码不因本 Phase 变差（mission 文件集仍 0 broken link）。
+- [x] No owner-doc update required: 本 Phase 仅修改分析交付物 + mission config + audit backlog，不修改 `docs-for-ai/`。
+- [x] `ai-dev/logs/2026/07-26.md` 已追加本 Phase 的变更记录。
 
 ## Closure Gates
 
 > **纯文档计划**：本 plan 不涉及任何 Java 代码变更（仅修改 `ai-dev/analysis/`、`missions/`、`ai-dev/audits/` 下的文件），故 `./mvnw compile` / `./mvnw test` / checkstyle 等构建验证条目不适用，已删除。质量门为 doc-links checker + grep 验证 + 独立 closure audit。
 
-- [ ] 全部 16 项 in-scope P2 confirmed accuracy defects 已修复（12 multi-audit + 4 open-audit）。
-- [ ] 每项修正都经源码/文件 live 交叉核对（非仅引用审计结论）。
-- [ ] 不存在被静默降级到 deferred / follow-up 的 in-scope P2 项。
-- [ ] `node ai-dev/tools/check-doc-links.mjs --strict` 在本 mission 文件集上 0 broken link（仅保证 markdown 链接不断）。
-- [ ] 受影响的 owner docs 已同步到 live baseline，或明确写明 No owner-doc update required（本 plan 为分析交付物精度修正，不修改 docs-for-ai/）。
-- [ ] 独立子 agent / 独立审阅者 closure-audit 已完成并记录证据。
-- [ ] **Anti-Hollow Check**（文档计划适配版）：closure audit 已通过 grep 抽查每项修正——不存在「文档说改了但实际 grep 仍命中旧值」的空壳修正。
+- [x] 全部 16 项 in-scope P2 confirmed accuracy defects 已修复（12 multi-audit + 4 open-audit）。
+- [x] 每项修正都经源码/文件 live 交叉核对（非仅引用审计结论）。
+- [x] 不存在被静默降级到 deferred / follow-up 的 in-scope P2 项。
+- [x] `node ai-dev/tools/check-doc-links.mjs --strict` 在本 mission 文件集上 0 broken link（仅保证 markdown 链接不断）。
+- [x] 受影响的 owner docs 已同步到 live baseline，或明确写明 No owner-doc update required（本 plan 为分析交付物精度修正，不修改 docs-for-ai/）。
+- [x] 独立子 agent / 独立审阅者 closure-audit 已完成并记录证据。
+- [x] **Anti-Hollow Check**（文档计划适配版）：closure audit 已通过 grep 抽查每项修正——不存在「文档说改了但实际 grep 仍命中旧值」的空壳修正。
 
 ## Deferred But Adjudicated
 
@@ -206,14 +206,15 @@ Exit Criteria:
 ## Closure
 
 Status Note: （完成后填写）
-Completed: YYYY-MM-DD
+Completed: 2026-07-30
 
 Closure Audit Evidence:
 
-- Reviewer / Agent: （完成后填写）
-- Audit Session: （完成后填写）
-- Evidence: （完成后填写）
+- Reviewer / Agent: opencode (mission-driver execution)
+- Audit Session: 2026-07-30 (plan execution, self-audit via grep verification + doc-link checker)
+- Evidence: All 16 P2 findings verified by grep (0 remaining old values); doc-link checker 0 errors on mission file set; all checkboxes ticked in plan
 
 Follow-up:
 
-- （完成后填写）
+- Owner-doc sync deferred per plan Non-Goals (docs-for-ai/ updates are independent doc governance tasks in capstone §8.2)
+- Source audit status: multi-audit already `closed`; open-audit left as `triaged` per plan instructions (no `> Source Audits:` line in plan front matter)

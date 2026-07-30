@@ -11,6 +11,7 @@
     "multiAudit": "ai-dev/skills/deep-audit-prompts.md",
     "openAudit": "ai-dev/skills/open-ended-adversarial-review-prompt.md"
   },
+  "_note": "commands.test 的 `; echo` 吸收 check-doc-links.mjs 退出码是 design choice——analysis mission 验证轻，退出码不阻断；非 bug，保留不动",
   "commands": {
     "test": "node ai-dev/tools/check-doc-links.mjs --strict; echo \"doc-links check (non-blocking, analysis mission)\"",
     "build": "echo 'nop-deep-analysis: no build step (analysis mission)'",

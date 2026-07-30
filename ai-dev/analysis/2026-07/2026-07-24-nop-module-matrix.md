@@ -2,7 +2,7 @@
 
 > Status: resolved
 > Date: 2026-07-24
-> Scope: 全平台业务模块（`nop-auth`/`nop-sys`/`nop-wf`/`nop-task`/`nop-job`/`nop-batch`/`nop-report`/`nop-rule`/`nop-dyn`/`nop-file`/`nop-retry`/`nop-tcc`/`nop-metadata`/`nop-stream`/`nop-code`/`nop-graph`/`nop-ai` + 基础设施 `nop-network`/`nop-integration`/`nop-search`/`nop-cluster`/`nop-message`/`nop-plugin`）；模块职责分类 + `*-api` 依赖矩阵 + 模块发现机制 + 7 领域竞品对标
+> Scope: 全平台业务模块（`nop-auth`/`nop-sys`/`nop-wf`/`nop-task`/`nop-job`/`nop-batch`/`nop-report`/`nop-rule`/`nop-dyn`/`nop-file`/`nop-retry`/`nop-tcc`/`nop-metadata`/`nop-stream`/`nop-code`/`nop-graph`/`nop-ai` + 基础设施 `nop-network`/`nop-integration`/`nop-search`/`nop-cluster`/`nop-message`/`nop-plugin`（嵌套于 `nop-core-framework` 下））；模块职责分类 + `*-api` 依赖矩阵 + 模块发现机制 + 7 领域竞品对标
 > Conclusion: nop-entropy 的业务模块生态以「统一 model-first 骨架 + 可插拔 `_module` 发现 + 跨模块 `-api` 契约分层」为组织主线。依赖矩阵实证显示：**跨领域被广泛依赖的契约是 HTTP/RPC/集成/调度/认证等基础设施型 `-api`（≥3 外部消费者）**，而 `nop-auth-api`/`nop-sys-api`/`nop-batch-api`/`nop-dyn-api`/`nop-file-api`/`nop-report-api`/`nop-task-api` 等**领域型 `-api` 外部消费者为 0**——它们通过运行期 bean/拦截器/`_module` 发现到达应用，而非 Maven 制品依赖。竞品对标（工作流/调度/流/元数据/AI/规则/报表 7 领域）显示 nop 的差异化不在单模块功能清单的覆盖率，而在「一套 XDSL/Delta 机制统管所有领域 DSL（wf.xdef/batch.xdef/rule 模型/orm 模型）+ model-first 一致骨架 + 可逆计算定制」，这是 Flowable/PowerJob/Flink/DataHub/LangGraph/Drools/JasperReports 等单点竞品不具备的横向一致性。
 > Mission: nop-deep-analysis（Work Item A5）
 > Superseded By: （本分析为 A7 capstone 提供「业务模块矩阵」层面的参照；若 A7 重新组织模块生态章节，则被替代）
@@ -49,7 +49,7 @@
 | `nop-search` | 搜索引擎抽象：Lucene 实现；`nop-search-api` 被 code/metadata/ai 复用 | `nop-search-api` 消费者清单 |
 | `nop-cluster` | 集群基础设施：服务发现、负载均衡、限流（Sentinel）、Nacos 集成 | RPC-003~004（ClusterRpcServiceInvoker/Client） |
 | `nop-message` | 消息抽象层：Kafka/Pulsar/Debezium 连接器 | `reusable-modules-overview.md` §基础设施 |
-| `nop-plugin` | 插件管理：`nop-plugin-api`/`-manager`/`-support` | `nop-plugin-api` 消费者 |
+| `nop-plugin`（嵌套于 `nop-core-framework` 下） | 插件管理：`nop-plugin-api`/`-manager`/`-support` | `nop-plugin-api` 消费者（非顶层独立模块） |
 
 > **说明**：`nop-graph` 无独立 `03-modules/` 专题（是内部算法库而非业务模块），定位取自 `module-groups.md` §通用图算法库 + 其 `*-api` 制品定义。`nop-job`/`nop-task` 无专属 source-anchor 编号，依据取 `03-modules/` 专题 + 既有对比分析（见 §5）。
 

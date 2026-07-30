@@ -99,7 +99,7 @@ graph TD
     class A6 ai
 ```
 
-**节点 / 边证据可追溯性**（每个节点对应 A1–A6 章节 + source-anchor；下表 23 行覆盖 mermaid 图中全部 25 个节点 + 5 条层间边）：
+**节点 / 边证据可追溯性**（每个节点对应 A1–A6 章节 + source-anchor；下表 25 行覆盖 mermaid 图中全部 25 个节点 + 5 条层间边）：
 
 | 节点 | A× 章节 | source-anchor / file:line |
 |------|---------|---------------------------|
@@ -115,11 +115,13 @@ graph TD
 | `_` 前缀不可手改 | A3 §4 | `CoreConstants.java:146-155`（`2026-07-24-nop-model-driven-and-codegen.md:175-186`） |
 | Delta 叠加 | A3 §5 | EXT-002/003（`2026-07-24-nop-model-driven-and-codegen.md:215-258`） |
 | xmeta 单一事实源 | A4 §3 | GQL-001~008（`2026-07-24-nop-graphql-service-frontend.md:90-113`） |
+| OPS / @BizModel 反射自动暴露 | A4 §1.1 + A2 §5.2 | `2026-07-24-nop-graphql-service-frontend.md:23-40`、`...-nop-core-engine-deep-dive.md:208-216` |
 | 单引擎统一分发 | A4 §2 + A2 §5.1 | GQL-009（`2026-07-24-nop-graphql-service-frontend.md:73-83`） |
 | 三层 Delta 渲染 | A4 §4.2 | UI-001~004（`2026-07-24-nop-graphql-service-frontend.md:168-183`） |
 | GenPage 渲染 AMIS/Flux | A4 §4.4 | EXT-007/008/009（`2026-07-24-nop-graphql-service-frontend.md:201-215`） |
 | model-first 统一骨架 | A5 §1.1 | `2026-07-24-nop-module-matrix.md:23-43` |
 | `_module` 可插拔发现 | A5 §3 | MOD-001~005（`2026-07-24-nop-module-matrix.md:166-176`） |
+| API / *-api 契约分层 | A5 §2 | `2026-07-24-nop-module-matrix.md:67-94` |
 | 一套 XDSL 统管领域 DSL | A5 §4 | `2026-07-24-nop-module-matrix.md:180-187` |
 | nop-cli gen 脚手架 | A6 §4.1 | XLANG-006（`2026-07-24-nop-engineering-dx-ai-dev.md:145-153`） |
 | 文档即 AI 契约 | A6 §4.2 + §5.3 | `2026-07-24-nop-engineering-dx-ai-dev.md:155-180`、`243-261` |
@@ -164,8 +166,8 @@ graph TD
 
 | # | 差距 | A× 证据 + 来源 | 性质（差距 vs 取舍 vs residual） |
 |---|------|----------------|--------------------------------|
-| G1 | **启动性能未量化（弱于 Quarkus/Micronaut 毫秒级）** | A2 §8(c)（`2026-07-24-nop-core-engine-deep-dive.md:368`）；本 capstone §5 云原生主线 | **差距**：未做 benchmark；A7 裁定 residual-watch-only（量化需独立 plan） |
-| G2 | **BizModel 调用仍用反射（弱于 Micronaut 零反射）** | A2 §8(d)（`2026-07-24-nop-core-engine-deep-dive.md:369`） | **差距 / 演进方向**：codegen 化 `ReflectionBizModelBuilder`（method handle / 直接调用） |
+| G1 | **启动性能未量化（弱于 Quarkus/Micronaut 毫秒级）** | A2 §8(d)（`2026-07-24-nop-core-engine-deep-dive.md:368`）；本 capstone §5 云原生主线 | **差距**：未做 benchmark；A7 裁定 residual-watch-only（量化需独立 plan） |
+| G2 | **BizModel 调用仍用反射（弱于 Micronaut 零反射）** | A2 §8(e)（`2026-07-24-nop-core-engine-deep-dive.md:369`） | **差距 / 演进方向**：codegen 化 `ReflectionBizModelBuilder`（method handle / 直接调用） |
 | G3 | **native image 友好性未验证** | 本 capstone §5 云原生主线 | **差距 / residual**：VFS classpath 扫描 + Delta 合并对 native 兼容性未验证；超出 capstone scope |
 | G4 | **缺平台级可视化搭建设计器** | A4 §5.5（`2026-07-24-nop-graphql-service-frontend.md:242-249`） | **取舍**：Lowcode Engine 强项；nop 选择"模型驱动 + Delta"而非"拖拽 + 出码" |
 | G5 | **分布式扩展用 RPC 而非 federation** | A4 §5.3（`2026-07-24-nop-graphql-service-frontend.md:230-235`） | **取舍**：组织规模极大时 Apollo Federation 更解耦；nop 选择单引擎统一分发 |
@@ -226,7 +228,7 @@ graph TD
 
 | # | 演进建议 | 依据（差距 #） | 风险/代价 | 是否推荐为路线图输入 |
 |---|---------|---------------|----------|--------------------|
-| E1 | **启动性能基准与优化**（量化 G1；评估 VFS 扫描并行化、XDSL 合并缓存、反射注册延迟化） | G1（A2 §8(c)） | 中：需独立 benchmark plan；优化可能影响加载期语义 | **推荐**（高优先级） |
+| E1 | **启动性能基准与优化**（量化 G1；评估 VFS 扫描并行化、XDSL 合并缓存、反射注册延迟化） | G1（A2 §8(d), `...:368`） | 中：需独立 benchmark plan；优化可能影响加载期语义 | **推荐**（高优先级） |
 | E2 | **BizModel codegen 化**（method handle / 直接调用替换反射，对标 Micronaut 零反射） | G2（A2 §8(d)） | 高：涉及 `ReflectionBizModelBuilder` 重写；需保留 Delta/xbiz 路径兼容 | **推荐**（中优先级，需 design doc 先行） |
 | E3 | **native image 适配可行性研究**（VFS classpath 扫描 + Delta 合并的 native 兼容性 reachability metadata） | G3（本 capstone §5.1） | 高：可能需要重构 VFS 扫描 + 反射点元数据；目标场景（serverless）非当前主流 | **不强烈推荐**（residual-watch-only，待 serverless 场景刚需触发） |
 | E4 | **E2E 覆盖扩展**（wf/task/report/metadata 等业务模块补 E2E） | G8（A6 §7） | 低：增量补充；`nop-entropy-e2e/` 框架已就绪 | **推荐**（低优先级，按业务模块上线节奏） |
@@ -276,7 +278,7 @@ graph TD
 
 ## 8. Adjudication of Deferred Items（A1–A6 遗留项逐项裁定）
 
-> 本节是 Phase 4 产出。逐项裁定 Phase 1 登记的 22 项 deferred / open-question（详见 `_tmp/a7-phase1-working-draft.md` §3 全量登记）。每项落到一种状态：`迁回 docs-for-ai（建议 + successor 路径）` / `记录为独立文档治理任务（successor 路径）` / `标记为 residual-watch-only（理由）`。
+> 本节是 Phase 4 产出，逐项裁定所有 deferred / open-question 项。每项登记及裁定摘要已自包含于 §8.1–§8.4（计数摘要见 §8.5），无需外部文件追溯。每项落到一种状态：`迁回 docs-for-ai（建议 + successor 路径）` / `记录为独立文档治理任务（successor 路径）` / `标记为 residual-watch-only（理由）`。
 
 ### 8.1 迁移决策（item 1，含 item 7b）
 
@@ -313,7 +315,7 @@ graph TD
 |------|------|--------------|
 | 2a（A1 §6(a)） | 「生成即逆元」口号溯源与术语校准 | 已严谨化为"差量编码逆运算（delete/remove）作用于生成基线"（A1 §1.4 精度提示）；是否在 `docs/theory/` 补术语校准属理论文档治理，不影响 closure，归 residual-watch-only |
 | 2e（A1 §6(e)） | 结合律形式覆盖范围（proof-v2 条件化证明） | proof-v2 证明的是抽象 carrier 的条件化结合律（非当前实现的无条件证明）；实际实现引用结论需证明自身语义映射到 carrier 并满足实现符合性——这是理论严谨性 deep dive，不影响工程实践，归 residual-watch-only |
-| 3c（A2 §8(c)） | 启动性能量化 | 定性已指出 nop 启动非毫秒级（弱于 Quarkus/Micronaut）；量化 benchmark 需独立 plan（本 capstone §6 E1 演进建议） |
+| 3c（A2 §8(d)） | 启动性能量化 | 定性已指出 nop 启动非毫秒级（弱于 Quarkus/Micronaut）；量化 benchmark 需独立 plan（本 capstone §6 E1 演进建议） |
 | 3d（A2 §8(d)） | 反射调用性能 codegen 化（`ReflectionBizModelBuilder`） | 演进方向（本 capstone §6 E2 演进建议）；当前反射调用正常工作，归 residual-watch-only 待触发 |
 | 4a（A3 §7(a)） | `precompile`/`precompile2` 使用分布 | 工程化审计补充；当前 codegen 链路正常工作（A3 §3 已核对），不影响 closure |
 | 4b（A3 §7(b)） | Delta 定制对编译期 xlib 的影响边界 | 案例 B（`nop-delta-demo` 覆盖 `meta-gen.xlib`）已实证可行；完整边界分析需独立深入，归 residual-watch-only |
@@ -326,15 +328,15 @@ graph TD
 |------|------|---------|
 | A4 Open Q(e) | `nop-chaos` 前端仓库不在本 Java 仓库 | 「超出本分析范围」，需引入独立前端项目 |
 | A6 §7 mission-driver 引擎 | mission-driver 引擎源码在仓库外 | 「需单独分析外部仓库」（`attractor-guided-engineering-template`） |
-| A2 §8(c) `@BizAction` 与 AOP 关系 | — | 标注「A4 可进一步澄清」，A4 已 done，归 residual-watch-only |
+| A2 §8(b) `@BizAction` 与 AOP 关系 | — | 标注「A4 可进一步澄清」，A4 已 done，归 residual-watch-only |
 | A3 §7(b) aop execution 与 codegen | — | 标注「归属 A2」，A2 已 done，归 residual |
 | A3 §7(d) 生成链路增量构建 | — | 标注「A6 工程化主题」，A6 已 done，归 residual |
 
 ### 8.5 裁定完整性核对
 
-- **纳入项分布**：迁移决策 1 项（item 1 + 7b 合并为同一裁定） + 独立文档治理任务 14 项（§8.2） + residual-watch-only 8 项（§8.3） = **23 项裁定 entry**（item 1 与 item 7b 在 §8.1 合并登记，分项覆盖 22 个原始登记项 + 1 处合并 = 23 entry）。
+- **纳入项分布**：迁移决策 1 项（item 1 + 7b 合并为同一裁定） + 独立文档治理任务 14 项（§8.2） + residual-watch-only 8 项（§8.3） = **23 项裁定 entry**（item 1 与 item 7b 在 §8.1 合并登记，分项覆盖 24 个原始登记项 + 1 处合并 = 23 entry）。
 - **明确排除项**：5 项单列于 §8.4（A4 Open Q(e) / A6 §7 mission-driver 引擎 / A2 §8 @BizAction-AOP / A3 §7(b) aop-codegen / A3 §7(d) 增量构建）。
-- **原始登记总数**：22 项纳入（来自 `_tmp/a7-phase1-working-draft.md` §3）+ 5 项排除 + 跨章节合并（item 1 = item 7b）= 27 个独立 open-question 源（含 A1 §6 五项 / A2 §8 五项含 L367 / A3 §7 四项含 L381/L383 / A4 五项含 L269 / A5 四项 / A6 §7 五项含 L365 / 迁移决策 1）。
+- **原始登记总数**：24 项纳入（含 §8.1 迁移决策 1 + §8.2 文档治理任务 14 + §8.3 residual 8 + §8.4 排除 1 项@BizAction-AOP——§8.4 另 4 项为跨分析文档登记的去重计数）+ 5 项排除 + 跨章节合并（item 1 = item 7b）= 29 个独立 open-question 源（含 A1 §6 五项 / A2 §8 五项含 L367 / A3 §7 四项含 L381/L383 / A4 五项含 L269 / A5 四项 / A6 §7 五项含 L365 / 迁移决策 1）。
 - **无未裁定项**：所有纳入项均落到「迁回 / 治理任务 / residual」三种状态之一；所有排除项均单列理由。
 
 ## Conclusion
@@ -362,7 +364,7 @@ graph TD
 - A6：`ai-dev/analysis/2026-07/2026-07-24-nop-engineering-dx-ai-dev.md`（工程化 / DX / AI 协同开发）
 - Roadmap：`ai-dev/design/nop-deep-analysis/nop-deep-analysis-roadmap.md`（A1–A7 工作项索引）
 - Plan：`ai-dev/plans/nop-deep-analysis/2026-07-26-0703-1-a7-capstone-deep-introduction.md`
-- 工作草稿（Phase 1 + Phase 2 产出）：`_tmp/a7-phase1-working-draft.md`、`_tmp/a7-phase2-working-draft.md`
+- 工作草稿（Phase 1 + Phase 2 产出，`_tmp/` 为执行期目录可被清理，所有关键计数已内联到 §8 正文自包含）：`_tmp/a7-phase1-working-draft.md`、`_tmp/a7-phase2-working-draft.md`
 - 平台使用规范：`docs-for-ai/INDEX.md`、`docs-for-ai/04-reference/source-anchors.md`、`AGENTS.md`
 - 平台理论：`docs/theory/generalized-reversible-computation-paper-v2.md`、`docs/theory/grc-delta-associativity-formal-proof-v2.md`
 

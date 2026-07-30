@@ -2,15 +2,15 @@
 
 > Status: resolved
 > Date: 2026-07-24
-> Scope: 工程化基础设施（mission-driver 自动开发闭环 / `ai-dev/` 七层知识层 / `ai-dev/tools/` 自动化校验工具链）、可测试性（AutoTest 快照 / E2E Playwright / DevDoc-DevTool 调试）、脚手架与文档体系（nop-cli gen / `docs-for-ai/` 作为 AI 运行手册 / `AGENTS.md` 路由 / source-anchors 最小源码入口）、可逆计算对 AI 生成代码的友好性（`_` 前缀约束 / Delta 隔离生成物 / 文档即契约）、联网对标 AI 驱动开发工具链（Devin / Cursor / Claude Code / roadmap-driven dev-loop 同类）
-> Conclusion: nop-entropy 的工程化叙事是一条**自洽的闭环**：脚手架（nop-cli gen 从 ORM 模型生成一致骨架）→ 文档体系（`docs-for-ai/` 作为 AI 运行手册 + `AGENTS.md` 路由 + source-anchors 最小源码入口）→ 自动开发闭环（mission-driver 驱动 roadmap→plan→exec→audit 循环，`ai-dev/` 七层知识被引擎消费）→ 可测试性（AutoTest 快照录制/回放 + E2E Playwright + DevDoc/DevTool/`_dump` 调试出口）→ 可逆计算对 AI 的友好性（Delta 定制隔离生成物、`_` 前缀不可手改约束、文档即契约降低幻觉）。联网对标（Devin/Cursor/Claude Code）显示：nop 的差异化**不在「单步执行能力强」**——外部工具的 agent 循环与多文件编辑已经很强；差异化在**「平台自身的结构对 AI 协同友好」**：生成物与手改隔离（可逆计算）、领域知识固化为 DSL/文档契约（降低 agent 幻觉面）、roadmap-driven 的有审计闭环（保证交付质量而非仅产出代码）。这是通用 AI coding 工具（无论多强）不具备的「平台原生 AI 协同设计」。
+> Scope: 工程化基础设施（mission-driver 自动开发闭环 / `ai-dev/` 八层知识层 / `ai-dev/tools/` 自动化校验工具链）、可测试性（AutoTest 快照 / E2E Playwright / DevDoc-DevTool 调试）、脚手架与文档体系（nop-cli gen / `docs-for-ai/` 作为 AI 运行手册 / `AGENTS.md` 路由 / source-anchors 最小源码入口）、可逆计算对 AI 生成代码的友好性（`_` 前缀约束 / Delta 隔离生成物 / 文档即契约）、联网对标 AI 驱动开发工具链（Devin / Cursor / Claude Code / roadmap-driven dev-loop 同类）
+> Conclusion: nop-entropy 的工程化叙事是一条**自洽的闭环**：脚手架（nop-cli gen 从 ORM 模型生成一致骨架）→ 文档体系（`docs-for-ai/` 作为 AI 运行手册 + `AGENTS.md` 路由 + source-anchors 最小源码入口）→ 自动开发闭环（mission-driver 驱动 roadmap→plan→exec→audit 循环，`ai-dev/` 八层知识被引擎消费）→ 可测试性（AutoTest 快照录制/回放 + E2E Playwright + DevDoc/DevTool/`_dump` 调试出口）→ 可逆计算对 AI 的友好性（Delta 定制隔离生成物、`_` 前缀不可手改约束、文档即契约降低幻觉）。联网对标（Devin/Cursor/Claude Code）显示：nop 的差异化**不在「单步执行能力强」**——外部工具的 agent 循环与多文件编辑已经很强；差异化在**「平台自身的结构对 AI 协同友好」**：生成物与手改隔离（可逆计算）、领域知识固化为 DSL/文档契约（降低 agent 幻觉面）、roadmap-driven 的有审计闭环（保证交付质量而非仅产出代码）。这是通用 AI coding 工具（无论多强）不具备的「平台原生 AI 协同设计」。
 > Mission: nop-deep-analysis（Work Item A6）
 > Superseded By: （本分析为 A7 capstone 提供「工程化 / DX / AI 辅助开发」层面的参照；若 A7 重新组织该章节，则被替代）
 
 ## Context
 
 - **要回答的问题**：nop-entropy 平台在工程化、可测试性与 AI 协同开发上的能力与差异化是什么？相对主流 AI 驱动开发工具链（Devin、Cursor、Claude Code、各类 agent 框架 / roadmap-driven dev-loop 同类）的独特价值在哪里？为 A7（综合评估与演进建议）提供「工程化 / DX / AI 辅助开发」层面的参照。
-- **涉及模块/子系统**：`ai-dev/tools/`（自动化校验工具链 + mission-driver.sh 启动器）、`ai-dev/`（七层开发知识层）、`.opencode/skills/mission-driver/`（流程契约）、`missions/`（mission 配置）、`nop-autotest/`（快照测试）、`nop-entropy-e2e/`（Playwright E2E）、`nop-runner/nop-cli-core/`（脚手架）、`nop-service-framework/nop-biz/`（调试能力 DevDoc/DevTool）、`docs-for-ai/`（文档体系）、`AGENTS.md`（运行手册）。
+- **涉及模块/子系统**：`ai-dev/tools/`（自动化校验工具链 + mission-driver.sh 启动器）、`ai-dev/`（八层开发知识层）、`.opencode/skills/mission-driver/`（流程契约）、`missions/`（mission 配置）、`nop-autotest/`（快照测试）、`nop-entropy-e2e/`（Playwright E2E）、`nop-runner/nop-cli-core/`（脚手架）、`nop-service-framework/nop-biz/`（调试能力 DevDoc/DevTool）、`docs-for-ai/`（文档体系）、`AGENTS.md`（运行手册）。
 - **约束**：仅工程化/DX/AI 协同层面——A1 覆盖可逆计算理论、A2 覆盖核心引擎、A3 覆盖 codegen/Delta、A4 覆盖 GraphQL/服务/前端、A5 覆盖业务模块矩阵。mission-driver 引擎本体源码在仓库外部（`attractor-guided-engineering-template`），本分析仅引用仓库内流程契约（`ai-dev/tools/mission-driver.sh` + `.opencode/skills/mission-driver/SKILL.md` + `00-plan-authoring-and-execution-guide.md`），不审计引擎内部实现。
 - **来源基线**：`docs-for-ai/04-reference/source-anchors.md`（TEST-001~005 / DBG-001~005 / XLANG-006）、`docs-for-ai/00-start-here/`（project-context / ai-defaults）、`docs-for-ai/INDEX.md`、`AGENTS.md`、`nop-entropy-e2e/README.md`、`ai-dev/tools/README.md`、`ai-dev/analysis/agent-survey/`（40+ 份既有 AI 工具对比）。**11 个 source-anchors 锚点经源码交叉核对全部 PASS**（见 §6 终检）。
 - **重要边界声明**：A1 产出为纯理论（GRC/XLang/XDSL/XDef），不含「对 AI 友好性」论证。本分析 §5 的「可逆计算对 AI 友好性」从具体仓库证据（`_` 前缀不可手改约束、Delta 隔离生成物、source-anchors 最小源码入口策略、文档即契约）**独立论证**，不依赖 A1 提供现成结论。
@@ -26,7 +26,7 @@ nop-entropy 的工程化不是一组零散工具的堆叠，而是一条**可追
 ② 文档体系 (docs-for-ai/ + AGENTS.md + source-anchors)
    作为「AI 运行手册」：路由规则 + 默认规则 + 反模式 + 最小源码入口
         ↓ 固化领域知识与平台契约，降低 AI 幻觉面
-③ 自动开发闭环 (mission-driver + ai-dev/ 七层)
+③ 自动开发闭环 (mission-driver + ai-dev/ 八层)
    roadmap → CHECK → REVIEW_PLANS → EXEC_PLANS → DRAFT_PLANS → DEEP_AUDIT
         ↓ 驱动有审计的交付（plan 自记录进度，closure audit 验证证据）
 ④ 可测试性 (AutoTest 快照 + E2E Playwright + DevDoc/DevTool)
@@ -64,9 +64,9 @@ CHECK (健康预检：typecheck/build/test)
 - Plan 生命周期：`draft` →（REVIEW_PLANS）→ `active` →（EXEC_PLANS）→ `completed`（SKILL.md:58）。
 - Plan 格式是固定契约，由 `tools/mission-driver/src/plan-check.mjs` 强制（SKILL.md:61）。
 
-### 2.2 `ai-dev/` 七层知识层如何被引擎消费
+### 2.2 `ai-dev/` 八层知识层如何被引擎消费
 
-`ai-dev/` 是平台自身的**开发知识层**（区别于面向业务应用开发者的 `docs-for-ai/`）。七层各有定位，且都被 mission-driver 在不同阶段消费：
+`ai-dev/` 是平台自身的**开发知识层**（区别于面向业务应用开发者的 `docs-for-ai/`）。八层各有定位，且都被 mission-driver 在不同阶段消费：
 
 | 层 | 定位 | 引擎消费点 |
 |----|------|-----------|
@@ -88,7 +88,7 @@ CHECK (健康预检：typecheck/build/test)
 - **启动器存在**：`ai-dev/tools/mission-driver.sh`（20 行，`exec node ... --dir "$DIR/../.."`）。
 - **mission 配置存在且引用本 roadmap**：`missions/nop-deep-analysis.json:4` `"roadmapPath": "ai-dev/design/nop-deep-analysis/nop-deep-analysis-roadmap.md"`。
 - **run-state.json 证明步骤确实执行**：`steps[]` 含 CHECK(1 次,pass)、REVIEW_PLANS(2 次)、EXEC_PLANS(2 次)、DRAFT_PLANS(1 次,created 3 个 plan)。
-- **events.jsonl 证明子流执行**：`step` 字段计数——EXECUTE(11)、CLOSURE_SCRIPT_CHECK(10)、BUILD_VERIFY(10)、DRAFT_PLANS(4)、CHECK(2)、REVIEW_PLANS(6)；`marker` 字段含 `pass`(37)、`all_complete`(10)、`created`(4)。
+- **events.jsonl 证明子流执行**：`step` 字段计数——EXECUTE(11)、CLOSURE_SCRIPT_CHECK(10)、BUILD_VERIFY(10)、DRAFT_PLANS(4)、CHECK(2)、REVIEW_PLANS(6)；`marker` 字段含 `pass`(37)、`all_complete`(10)、`created`(4)。**注意**：`events.jsonl` / `run-state.json` 为运行时产物，未提交到仓库，以上数字来自执行期历史快照，可能随 mission 进展变化。
 - **A1–A5 计划已产出并通过 closure**：`ai-dev/plans/nop-deep-analysis/` 下 5 份计划 + `ai-dev/analysis/2026-07/` 下 5 份对应分析文档（A1 理论/A2 引擎/A3 codegen/A4 GraphQL/A5 模块矩阵）。
 
 **结论**：mission-driver 闭环在仓库内可观测成立——不是空壳流程文档，而是有运行日志、有状态文件、有交付产物的真实循环。引擎本体源码在仓库外部，按 plan 边界声明不作为 in-repo 审计目标。
@@ -147,7 +147,7 @@ AutoTest（`nop-autotest/`）是平台的核心测试范式——**快照录制/
 `nop-runner/nop-cli-core/` 是 CLI 入口，`tasks/gen-web.xrun`（XLANG-006）是 `xpl:lib` 调用 XLib 的 runner 任务例子。codegen-master skill（`.opencode/skills/nop-codegen-master/SKILL.md`）驱动 `nop-cli gen` 从 ORM 模型（`model/*.orm.xml`）生成初始项目脚手架。
 
 **工程化价值**（引用 A3 的 codegen 链路结论）：
-- **一致性骨架**：每个业务模块都遵循 `model → dao → meta → service → web → app → api` 骨架（`docs-for-ai/INDEX.md:207`）。脚手架保证全平台模块结构一致，使文档可以「按位置索引」（「模型在 `model/*.orm.xml`」「生成物在 `_gen/`」）。
+- **一致性骨架**：每个业务模块都遵循 `model → codegen → dao → meta → service → web → app → api` 骨架（`docs-for-ai/INDEX.md:210`）。脚手架保证全平台模块结构一致，使文档可以「按位置索引」（「模型在 `model/*.orm.xml`」「生成物在 `_gen/`」）。
 - **生成即一等公民**：`_gen/`、`_*.java`、`_*.xml`、`_*.xmeta`、`_app.orm.xml`、`_service.beans.xml` 都是 codegen 产物，`mvn install` 时重新生成（`docs-for-ai/00-start-here/ai-defaults.md:42-44`）。
 - **迭代式开发**：生成初始骨架后，通过 `mvn install` 迭代而非手改生成物。
 
@@ -155,7 +155,7 @@ AutoTest（`nop-autotest/`）是平台的核心测试范式——**快照录制/
 
 `docs-for-ai/` 是 nop-entropy 仓库中**唯一有效的平台使用文档目录**（`docs-for-ai/INDEX.md:8`）。它的设计目标是「让 AI 高效使用平台」，而非「让人理解平台理论」。
 
-**七区结构**（`docs-for-ai/INDEX.md:191-202`）：
+**九区结构**（`docs-for-ai/INDEX.md:195-205`）：
 
 | 目录 | 作用 | AI 使用场景 |
 |------|------|------------|
@@ -166,6 +166,7 @@ AutoTest（`nop-autotest/`）是平台的核心测试范式——**快照录制/
 | `03-runbooks/` | 任务型手册（这件事具体怎么做） | 按任务查找（build-approval-flow/create-new-entity 等） |
 | `04-reference/` | 速查与实现锚点 | 确认符号定义（`source-anchors.md`、`common-java-helpers.md`） |
 | `06-extensibility/` | 平台级可扩展设计 | 判断「为什么能力可外置到 DSL/Delta/元编程」 |
+| `90-maintenance/` | 文档治理规则，不是日常开发入口 | 理解文档维护流程与索引健康度 |
 | `05-examples/` | 精简代码示例 | 查「各类文件实际长什么样」 |
 
 **「文档即 AI 契约」的具体体现**：
@@ -197,7 +198,7 @@ AutoTest（`nop-autotest/`）是平台的核心测试范式——**快照录制/
 - **控制上下文成本**：把源码阅读限制在「锚点对应的少量符号」，而非「整个类/整个包」。这对 token 预算敏感的 AI 协作至关重要。
 - **文档与代码的弱耦合**：锚点用「规则 ID」（如 `TEST-001`、`DBG-005`）引用，源码重构时只需更新锚点表，文档主体不依赖具体行号。
 
-当前 `source-anchors.md` 维护了 ~90 个锚点（GEN/EXT/BIZ/DDD/MODEL-INIT/MAP/TXN/IOC/RESOLVE/CFG/INFRA/TEST/DBG/GQL/AUTH/TNT/VFS/INT/RPT/DB/DQL/RPC/MOD/AISEC/AIREL/META/SYS/AUDIT/REPORT/CODE/DOC/UI/BATCH/WF/XLANG 系列），覆盖平台所有关键契约。
+当前 `source-anchors.md` 维护了 ~185 个锚点（GEN/EXT/BIZ/DDD/MODEL-INIT/MAP/TXN/IOC/RESOLVE/CFG/INFRA/TEST/DBG/GQL/AUTH/TNT/VFS/INT/RPT/DB/DQL/RPC/MOD/AISEC/AIREL/META/SYS/AUDIT/REPORT/CODE/DOC/UI/BATCH/WF/XLANG 系列），覆盖平台所有关键契约。
 
 ### 4.5 自动化校验工具链（`ai-dev/tools/`）
 
