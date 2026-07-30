@@ -74,20 +74,20 @@
 | 5.1 | 空壳实现扫描（H01） | done | — | 0.3 | `open-ended-adversarial-review-prompt.md` |
 | 5.2 | 静默跳过检测（H02） | done | — | 0.3 | `open-ended-adversarial-review-prompt.md` |
 | 5.3 | 接线完整性验证（H03） | done | — | 0.3 | `open-ended-adversarial-review-prompt.md` |
-| 5.4 | 设计文档与代码 drift（H04） | todo | `ai-dev/design/` + `docs-for-ai/` | 0.3 | `design-doc-audit-prompt.md` |
-| 5.5 | 敏感信息泄露扫描（H05） | todo | — | 0.3 | `open-ended-adversarial-review-prompt.md` |
-| 5.6 | 测试隔离性审查（H06） | todo | — | 0.3 | `open-ended-adversarial-review-prompt.md` |
-| 5.7 | 既有修复验证（H07） | todo | `ai-dev/audits/arm-*.md` | 5.1-5.3 done | `closure-audit-prompt.md` |
+| 5.4 | 设计文档与代码 drift（H04） | done | `ai-dev/design/` + `docs-for-ai/` | 0.3 | `design-doc-audit-prompt.md` |
+| 5.5 | 敏感信息泄露扫描（H05） | done | — | 0.3 | `open-ended-adversarial-review-prompt.md` |
+| 5.6 | 测试隔离性审查（H06） | done | — | 0.3 | `open-ended-adversarial-review-prompt.md` |
+| 5.7 | 既有修复验证（H07） | done | `ai-dev/audits/arm-*.md` | 5.1-5.3 done | `closure-audit-prompt.md` |
 
 ### MA6 — AI/LLM 特有风险审计（全模块）
 
 | # | Work Item | Status | Owner Doc | Deps | Skill |
 |---|-----------|--------|-----------|------|-------|
-| 6.1 | LLM 配置安全与密钥管理审计 | todo | — | 0.3 | `open-ended-adversarial-review-prompt.md` |
-| 6.2 | Agent 编排安全审计（指令注入/SSRF） | todo | — | 0.3 | `open-ended-adversarial-review-prompt.md` |
-| 6.3 | Token 计量与 LLM 调用可靠性审计 | todo | — | 0.3 | `deep-audit-prompts.md`（维度 09/14） |
-| 6.4 | 向量存储/Embedding 数据隔离审计 | todo | — | 0.3 | `open-ended-adversarial-review-prompt.md` |
-| 6.5 | 对话历史与 Prompt 安全审计 | todo | — | 0.3 | `open-ended-adversarial-review-prompt.md` |
+| 6.1 | LLM 配置安全与密钥管理审计 | done | — | 0.3 | `open-ended-adversarial-review-prompt.md` |
+| 6.2 | Agent 编排安全审计（指令注入/SSRF） | done | — | 0.3 | `open-ended-adversarial-review-prompt.md` |
+| 6.3 | Token 计量与 LLM 调用可靠性审计 | done | — | 0.3 | `deep-audit-prompts.md`（维度 09/14） |
+| 6.4 | 向量存储/Embedding 数据隔离审计 | done | — | 0.3 | `open-ended-adversarial-review-prompt.md` |
+| 6.5 | 对话历史与 Prompt 安全审计 | done | — | 0.3 | `open-ended-adversarial-review-prompt.md` |
 
 ### MR1 — P1 批量修复（第一批：结构 + ORM/Biz）
 

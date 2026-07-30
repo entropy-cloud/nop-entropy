@@ -4,7 +4,8 @@
   "onClick": {
     "action": "ajax",
     "args": {
-      "url": "/test/delete"
+      "url": "/test/delete",
+      "includeScope": "*"
     }
   }
 }

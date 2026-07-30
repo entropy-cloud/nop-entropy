@@ -4,7 +4,7 @@
 > 目标模块组：nop-ai（18 子模块，排除 MCP——MCP 协议集成模块，独立发布周期，需单独审计）
 > 总览：ai-dev/backlog/audit-remediation-roadmap.md
 > 维度矩阵：arm-audit-dimension-matrix.md
-> 状态汇总：已完成 23 | 进行中 0 | 待办 9 | P0 未解决 0
+> 状态汇总：已完成 32 | 进行中 0 | 待办 0 | P0 未解决 1
 
 ## 报告清单
 
@@ -33,21 +33,22 @@
 | [`2026-07-30-2100-arm-MA5.1-nop-ai-hollow-scan.md`](./2026-07-30-2100-arm-MA5.1-nop-ai-hollow-scan.md) | MA5.1 | 空壳实现 | 全模块 | 0 | 2 | 7 | `done` |
 | [`2026-07-30-2100-arm-MA5.2-nop-ai-silent-noop.md`](./2026-07-30-2100-arm-MA5.2-nop-ai-silent-noop.md) | MA5.2 | 静默跳过 | 全模块 | 0 | 2 | 20 | `done` |
 | [`2026-07-30-2130-arm-MA5.3-nop-ai-wiring.md`](./2026-07-30-2130-arm-MA5.3-nop-ai-wiring.md) | MA5.3 | 接线完整性 | 全模块 | 0 | 2 | 7 | `done` |
-| — | MA5.4 | 设计文档 drift | 全模块 | — | — | — | todo |
-| — | MA5.5 | 敏感泄露 | 全模块 | — | — | — | todo |
-| — | MA5.6 | 测试隔离 | 全模块 | — | — | — | todo |
-| — | MA5.7 | 修复验证 | 全模块 | — | — | — | todo |
-| — | MA6.1 | LLM 配置安全 | 全模块 | — | — | — | todo |
-| — | MA6.2 | Agent 编排安全 | 全模块 | — | — | — | todo |
-| — | MA6.3 | Token 计量与调用可靠性 | 全模块 | — | — | — | todo |
-| — | MA6.4 | 向量存储/Embedding 隔离 | 全模块 | — | — | — | todo |
-| — | MA6.5 | 对话历史与 Prompt 安全 | 全模块 | — | — | — | todo |
+| [`2026-07-31-arm-MA5.4-nop-ai-design-drift.md`](./2026-07-31-arm-MA5.4-nop-ai-design-drift.md) | MA5.4 | 设计文档 drift | 全模块 | 0 | 1 | 5(P2)+3(P3) | `done` |
+| [`2026-07-31-arm-MA5.5-nop-ai-sensitive-leak.md`](./2026-07-31-arm-MA5.5-nop-ai-sensitive-leak.md) | MA5.5 | 敏感泄露 | 全模块 | 0 | 4 | 4(P2)+2(P3) | `done` |
+| [`2026-07-31-arm-MA5.6-nop-ai-test-isolation.md`](./2026-07-31-arm-MA5.6-nop-ai-test-isolation.md) | MA5.6 | 测试隔离 | 全模块 | 0 | 1 | 2(P2)+3(P3) | `done` |
+| [`2026-07-31-arm-MA5.7-nop-ai-fix-verification.md`](./2026-07-31-arm-MA5.7-nop-ai-fix-verification.md) | MA5.7 | 修复验证 | 全模块 | 0 | 5(open)+1(fixed) | — | `done` |
+| [`2026-07-31-1240-arm-MA6.1-nop-ai-llm-config-security.md`](./2026-07-31-1240-arm-MA6.1-nop-ai-llm-config-security.md) | MA6.1 | LLM 配置安全 | 全模块 | 1 | 4 | 3(P2) | `done` |
+| [`2026-07-31-arm-MA6.2-nop-ai-agent-security.md`](./2026-07-31-arm-MA6.2-nop-ai-agent-security.md) | MA6.2 | Agent 编排安全 | 全模块 | 0 | 4 | 3(P2) | `done` |
+| [`2026-07-31-0000-arm-MA6.3-nop-ai-token-reliability.md`](./2026-07-31-0000-arm-MA6.3-nop-ai-token-reliability.md) | MA6.3 | Token 计量与调用可靠性 | 全模块 | 0 | 2 | 4(P2) | `done` |
+| [`2026-07-31-arm-MA6.4-nop-ai-vector-isolation.md`](./2026-07-31-arm-MA6.4-nop-ai-vector-isolation.md) | MA6.4 | 向量存储/Embedding 隔离 | 全模块 | 0 | 3 | 2(P2)+1(P3) | `done` |
+| [`2026-07-31-arm-MA6.5-nop-ai-chat-prompt-security.md`](./2026-07-31-arm-MA6.5-nop-ai-chat-prompt-security.md) | MA6.5 | 对话历史与 Prompt 安全 | 全模块 | 0 | 5 | 3(P2) | `done` |
 
 ## P0 发现追踪（即时通道）
 
 | Finding ID | 报告 | 描述 | 修复路径 | 修复状态 |
 |-----------|------|------|---------|---------|
 | P0-MA2-01 ✅ | MA2.1 | 双 ORM 源文件漂移（nop-ai.orm.xml vs ai-gen.orm.xml） | [异步修复 plan](ai-dev/plans/2026-07-30-2130-arm-fix-p0-ma2-01.md) | `fixed` |
+| P0-MA6-01 | MA6.1 | Gemini API key 在 URL query parameter 中以明文传输（GeminiDialect.buildUrl） | MR3 | open |
 
 ## P1 发现汇总（待 MR 批量修复）
 
@@ -83,3 +84,28 @@
 | P1-MA3-002 | MA3.4 | SequentialThinkingBizModel.processThought @BizMutation 使用 IllegalArgumentException 而非 ErrorCode | MR2 | open |
 | P1-MA3-01 | MA3.5 | nop-ai-agent 依赖 core 内部模型包（ChatOptionsModel） | MR2 | open |
 | P1-MA3-02 | MA3.5 | nop-ai-agent 依赖 core 内部 dialect 包（ILlmDialect/LlmDialectFactory） | MR2 | open |
+| P1-MA5.4-001 | MA5.4 | Gateway bidirectional dialect conversion only works for OpenAI; other 3 dialects throw UOE at runtime | MR3 | open |
+| P1-MA5.5-001 | MA5.5 | Hardcoded JWT enc-key in nop-ai-app/application.yaml | MR3 | open |
+| P1-MA5.5-002 | MA5.5 | Plaintext MySQL password in nop-ai-coder/tools/application.yaml | MR3 | open |
+| P1-MA5.5-003 | MA5.5 | Gemini URL apiKey leakage via GeminiDialect.buildUrl() | MR3 | open |
+| P1-MA5.5-004 | MA5.5 | apiKey serialized in NopAiModelOutputBean (GraphQL DTO exposed to API response) | MR3 | open |
+| P1-MA5.6-001 | MA5.6 | CoreInitialization lifecycle race across 40+ test classes (parallel test execution risk) | MR3 | open |
+| P1-MA5.7-001 | MA5.7 | MA5.2 F-016 (ReActAgentExecutor hook catch+LOG.warn) untracked in arm-index — P1 gap | MR3 | open |
+| P1-MA6.1-001 | MA6.1 | DefaultAiChatService.getApiVersion() reads wrong config key (reads API key instead of version) | MR3 | open |
+| P1-MA6.1-002 | MA6.1 | NopAiModelOutputBean exposes apiKey in API response (same as MA5.5-004, consolidated) | MR3 | open |
+| P1-MA6.1-003 | MA6.1 | DefaultChatLogger logs chat content without sanitization (potential credential leakage) | MR3 | open |
+| P1-MA6.1-004 | MA6.1 | NopAiModel DAO entity stores API key in plaintext VARCHAR in DB | MR3 | open |
+| P1-MA6.2-001 | MA6.2 | HttpRequestExecutor SSRF — no URL whitelist or internal-IP blocklist | MR3 | open |
+| P1-MA6.2-002 | MA6.2 | GraphqlQueryExecutor SSRF — endpoint URL accepted verbatim without validation | MR3 | open |
+| P1-MA6.2-003 | MA6.2 | LocalToolFileSystem.isPathAllowed() silently bypassed — not called from any file operation | MR3 | open |
+| P1-MA6.2-004 | MA6.2 | BashExecutor zero input validation — any shell command accepted | MR3 | open |
+| P1-MA6.3-001 | MA6.3 | ChatServiceImpl has no timeout — LLM calls can hang indefinitely | MR3 | open |
+| P1-MA6.3-002 | MA6.3 | Default retry policy and circuit breaker are both pass-through — zero resilience defaults | MR3 | open |
+| P1-MA6.4-001 | MA6.4 | VectorStoreOptions missing tenantId field — no tenant isolation at API contract level | MR3 | open |
+| P1-MA6.4-002 | MA6.4 | IEmbeddingModel has no auth/tenant context in its API | MR3 | open |
+| P1-MA6.4-003 | MA6.4 | memory adapters (IStorageAdapter/IVectorAdapter) not integrated with ITenantResolver | MR3 | open |
+| P1-MA6.5-001 | MA6.5 | User message content shipped to LLM without input sanitization (no-op guardrail by default) | MR3 | open |
+| P1-MA6.5-002 | MA6.5 | DefaultAiChatExchangePersister writes full conversation to plaintext files (no encryption) | MR3 | open |
+| P1-MA6.5-003 | MA6.5 | No session access authentication — AgentEngine.getSession() has no auth check | MR3 | open |
+| P1-MA6.5-004 | MA6.5 | User messages stored verbatim → loaded into system prompt on next turn (injection amplification) | MR3 | open |
+| P1-MA6.5-005 | MA6.5 | DefaultPathAccessChecker allows absolute path traversal in file operations | MR3 | open |

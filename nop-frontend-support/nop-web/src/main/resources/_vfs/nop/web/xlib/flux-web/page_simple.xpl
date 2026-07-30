@@ -22,7 +22,7 @@
         if(api != null){
             const _n = xpl('thisLib:NormalizeApi', api, genScope);
             if(_n != null){
-                submitAction = { action:'ajax', args: _.filterNull({url:_n.url, method: api.method || 'post', data: _n.data || genScope.formData, 'gql:selection': _n['gql:selection']}) };
+                submitAction = { action:'ajax', args: _.filterNull({url:_n.url, method: api.method || 'post', data: _n.data, includeScope: _n.includeScope, 'gql:selection': _n['gql:selection']}) };
             }
         }
 
@@ -50,7 +50,7 @@
                 // 保持 URL 中的 {@...} 模板不被求值（id 来自父 scope 的行数据，不在 genScope 中），
                 // NormalizeApi 求值过的 url 会丢失行级模板变量，直接用 initApi 的原始 url
                 const rawUrl = initApi.url;
-                loadAction = { action:'ajax', args: _.filterNull({url: rawUrl, method: initApi.method || 'post', data: _n.data, 'gql:selection': _n['gql:selection']}) };
+                loadAction = { action:'ajax', args: _.filterNull({url: rawUrl, method: initApi.method || 'post', data: _n.data, includeScope: _n.includeScope, 'gql:selection': _n['gql:selection']}) };
             }
         }
 

@@ -6,7 +6,10 @@
     "args": {
       "url": "/test/save",
       "method": "POST",
-      "includeScope": "*"
+      "data": {
+        "field1": "${field1}",
+        "field2": "${field2}"
+      }
     }
   }
 }

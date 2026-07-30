@@ -80,6 +80,8 @@ public class TestFluxNormalizeAction extends JunitBaseTestCase {
                 {"submit", "{\"id\":\"submit-btn\",\"label\":\"Submit\",\"actionType\":\"submit\"}"},
                 {"icon-only", "{\"id\":\"icon-btn\",\"label\":\"Save\",\"icon\":\"fa fa-save\",\"iconOnly\":true,\"level\":\"primary\",\"actionType\":\"reload\"}"},
                 {"onclick-passthrough", "{\"id\":\"test-btn\",\"label\":\"Test\",\"onClick\":{\"type\":\"custom\",\"customField\":\"abc\"}}"},
+                {"ajax-default-scope", "{\"id\":\"save-btn\",\"label\":\"Save\",\"actionType\":\"ajax\",\"api\":{\"url\":\"/test/save\",\"method\":\"POST\"}}"},
+                {"ajax-explicit-includescope", "{\"id\":\"save-btn\",\"label\":\"Save\",\"actionType\":\"ajax\",\"api\":{\"url\":\"/test/save\",\"method\":\"POST\",\"includeScope\":\"*\"}}"},
         };
 
         for (String[] c : cases) {
@@ -213,6 +215,43 @@ public class TestFluxNormalizeAction extends JunitBaseTestCase {
         action.put("onClick", onClick);
         String text = normalizeAndSerialize(action);
         assertEquals(attachmentJsonText("normalize-onclick-passthrough.json"), text);
+    }
+
+    @Test
+    public void testAjaxWithFormDataEmitsDataNotIncludeScope() {
+        Map<String, Object> action = actionWithId("save-btn", "Save");
+        action.put("actionType", "ajax");
+        Map<String, Object> apiDef = api("/test/save", "POST");
+        apiDef.put("withFormData", true);
+        action.put("api", apiDef);
+        Map<String, Object> genScope = new LinkedHashMap<>();
+        Map<String, Object> formData = new LinkedHashMap<>();
+        formData.put("field1", "${field1}");
+        formData.put("field2", "${field2}");
+        genScope.put("formData", formData);
+        Object result = invokeNormalizeAction(action, genScope);
+        String text = JSON.serialize(result, true);
+        assertEquals(attachmentJsonText("normalize-ajax-with-formdata.json"), text);
+    }
+
+    @Test
+    public void testAjaxNoDataNoWithFormDefaultsToIncludeScope() {
+        Map<String, Object> action = actionWithId("save-btn", "Save");
+        action.put("actionType", "ajax");
+        action.put("api", api("/test/save", "POST"));
+        String text = normalizeAndSerialize(action);
+        assertEquals(attachmentJsonText("normalize-ajax-default-scope.json"), text);
+    }
+
+    @Test
+    public void testAjaxExplicitIncludeScopePassThrough() {
+        Map<String, Object> action = actionWithId("save-btn", "Save");
+        action.put("actionType", "ajax");
+        Map<String, Object> apiDef = api("/test/save", "POST");
+        apiDef.put("includeScope", "*");
+        action.put("api", apiDef);
+        String text = normalizeAndSerialize(action);
+        assertEquals(attachmentJsonText("normalize-ajax-explicit-includescope.json"), text);
     }
 
     // Dialog/drawer require PageProvider/GenPage infra; covered by TestFluxPage end-to-end tests

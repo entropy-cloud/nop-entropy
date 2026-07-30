@@ -539,6 +539,7 @@
           "source": {
             "valueField": "roleId",
             "labelField": "roleName",
+            "includeScope": "*",
             "url": "@query:NopAuthRole__findPage",
             "gql:selection": "{@pageSelection}",
             "selection": "total,page,items{ id,roleId,roleName,isPrimary,createdBy,createTime,updatedBy,updateTime,remark }"
@@ -558,6 +559,7 @@
             "loadAction": {
               "action": "ajax",
               "args": {
+                "includeScope": "*",
                 "url": "@query:NopAuthRole__findPage",
                 "gql:selection": "{@pageSelection}",
                 "selection": "total,page,items{ id,roleId,roleName,isPrimary,createdBy,createTime,updatedBy,updateTime,remark }"
@@ -655,6 +657,7 @@
           "source": {
             "valueField": "userId",
             "labelField": "userName",
+            "includeScope": "*",
             "url": "@query:NopAuthUser__active_findPage",
             "gql:selection": "{@pageSelection}",
             "selection": "total,page,items{ id,userId,userName,nickName,dept{deptName},deptId,gender,gender_label,phone,userType,userType_label,status,status_label }"
@@ -674,6 +677,7 @@
             "loadAction": {
               "action": "ajax",
               "args": {
+                "includeScope": "*",
                 "url": "@query:NopAuthUser__active_findPage",
                 "gql:selection": "{@pageSelection}",
                 "selection": "total,page,items{ id,userId,userName,nickName,dept{deptName},deptId,gender,gender_label,phone,userType,userType_label,status,status_label }"

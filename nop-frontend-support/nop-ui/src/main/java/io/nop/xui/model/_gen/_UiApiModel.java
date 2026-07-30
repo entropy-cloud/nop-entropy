@@ -68,6 +68,13 @@ public abstract class _UiApiModel extends io.nop.core.resource.component.Abstrac
     
     /**
      *  
+     * xml name: includeScope
+     * 
+     */
+    private java.lang.String _includeScope ;
+    
+    /**
+     *  
      * xml name: method
      * 
      */
@@ -269,6 +276,25 @@ public abstract class _UiApiModel extends io.nop.core.resource.component.Abstrac
     
     /**
      * 
+     * xml name: includeScope
+     *  
+     */
+    
+    public java.lang.String getIncludeScope(){
+      return _includeScope;
+    }
+
+    
+    public void setIncludeScope(java.lang.String value){
+        checkAllowChange();
+        
+        this._includeScope = value;
+           
+    }
+
+    
+    /**
+     * 
      * xml name: method
      *  
      */
@@ -464,6 +490,7 @@ public abstract class _UiApiModel extends io.nop.core.resource.component.Abstrac
         out.putNotNull("data",this.getData());
         out.putNotNull("dataType",this.getDataType());
         out.putNotNull("headers",this.getHeaders());
+        out.putNotNull("includeScope",this.getIncludeScope());
         out.putNotNull("method",this.getMethod());
         out.putNotNull("replaceData",this.getReplaceData());
         out.putNotNull("requestAdaptor",this.getRequestAdaptor());
@@ -491,6 +518,7 @@ public abstract class _UiApiModel extends io.nop.core.resource.component.Abstrac
         instance.setData(this.getData());
         instance.setDataType(this.getDataType());
         instance.setHeaders(this.getHeaders());
+        instance.setIncludeScope(this.getIncludeScope());
         instance.setMethod(this.getMethod());
         instance.setReplaceData(this.getReplaceData());
         instance.setRequestAdaptor(this.getRequestAdaptor());

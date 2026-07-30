@@ -15,7 +15,8 @@
      xdef:name="UiApiModel" xdef:bean-package="io.nop.xui.model"
      url="#!string" method="string" convertKeyToPath="boolean"
      dataType="string" cache="int" responseType="string" gql:selection="string"
-     replaceData="boolean" autoRefresh="boolean" withFormData="boolean">
+      replaceData="boolean" autoRefresh="boolean" withFormData="boolean"
+      includeScope="string">
 
     <headers>xjson-map</headers>
 

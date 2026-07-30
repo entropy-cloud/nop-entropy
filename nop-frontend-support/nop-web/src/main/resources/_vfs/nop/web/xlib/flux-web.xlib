@@ -599,10 +599,12 @@
                 if(!api) return null;
 
                 const _selection = api['gql:selection']?.$renderTemplateForScope('{@','}',genScope);
+                const data = api.withFormData ? genScope.formData : api.data;
                 return _.filterNull({...api,
                     url:api.url.$renderTemplateForScope("{@","}",genScope),
                     selection: _selection,
-                    data: api.withFormData ? genScope.formData : api.data
+                    data,
+                    includeScope: api['includeScope'] || (data == null ? '*' : null)
                 })
             ]]></source>
         </NormalizeApi>
@@ -745,13 +747,16 @@
                 if(actionType == 'ajax' || action.api){
                     let api = action.api;
                     if(api){
+                        const data = api.withFormData ? scope.formData : api.data;
+                        const includeScope = api['includeScope'] || (data == null ? '*' : null);
                         then.push(_.filterNull({
                             action: 'ajax',
                             args: _.filterNull({
                                 url: api.url.$renderTemplateForScope('{@','}',scope),
                                 "selection": api['gql:selection']?.$renderTemplateForScope('{@','}',scope),
                                 method: api.method,
-                                data: api.withFormData ? scope.formData : api.data
+                                data,
+                                includeScope
                             })
                         }));
                     }
