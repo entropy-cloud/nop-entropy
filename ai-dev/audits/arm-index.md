@@ -4,7 +4,7 @@
 > 目标模块组：nop-ai（18 子模块，排除 MCP——MCP 协议集成模块，独立发布周期，需单独审计）
 > 总览：ai-dev/backlog/audit-remediation-roadmap.md
 > 维度矩阵：arm-audit-dimension-matrix.md
-> 状态汇总：已完成 14 | 进行中 0 | 待办 16 | P0 未解决 0
+> 状态汇总：已完成 19 | 进行中 0 | 待办 11 | P0 未解决 0
 
 ## 报告清单
 
@@ -20,11 +20,11 @@
 | [`2026-07-31-0353-arm-MA2.5-nop-ai-xmeta.md`](./2026-07-31-0353-arm-MA2.5-nop-ai-xmeta.md) | MA2.5 | XMeta 对齐 | biz-svc | 0 | 2 | 2(P2:1, P3:1) | `done` |
 | [`2026-07-31-0359-arm-MA2.6-nop-ai-graphql.md`](./2026-07-31-0359-arm-MA2.6-nop-ai-graphql.md) | MA2.6 | GraphQL/API | biz-svc | 0 | 0 | 1(P3:1) | `done` |
 | [`2026-07-31-0409-arm-MA2.7-nop-ai-ioc.md`](./2026-07-31-0409-arm-MA2.7-nop-ai-ioc.md) | MA2.7 | IoC/Bean | 全模块 | 0 | 0 | 4(P2:1, P3:3) | `done` |
-| — | MA3.1 | 跨模块依赖 | 全模块 | — | — | — | todo |
-| — | MA3.2 | 安全权限 | 全模块 | — | — | — | todo |
-| — | MA3.3 | 异步/事务 | 全模块 | — | — | — | todo |
-| — | MA3.4 | 错误处理 | 全模块 | — | — | — | todo |
-| — | MA3.5 | 跨模块契约 | 全模块 | — | — | — | todo |
+| [`2026-07-31-0753-arm-MA3.1-nop-ai-cross-module-deps.md`](./2026-07-31-0753-arm-MA3.1-nop-ai-cross-module-deps.md) | MA3.1 | 跨模块依赖 | 全模块 | 0 | 0 | 5(P2:1, P3:4) | `done` |
+| [`2026-07-31-1550-arm-MA3.2-nop-ai-security.md`](./2026-07-31-1550-arm-MA3.2-nop-ai-security.md) | MA3.2 | 安全权限 | 全模块 | 0 | 3 | 4(P2:4) | `done` |
+| [`2026-07-31-0422-arm-MA3.3-nop-ai-async-txn.md`](./2026-07-31-0422-arm-MA3.3-nop-ai-async-txn.md) | MA3.3 | 异步/事务 | 全模块 | 0 | 0 | 2(P3:2) | `done` |
+| [`2026-07-31-0423-arm-MA3.4-nop-ai-error-handling.md`](./2026-07-31-0423-arm-MA3.4-nop-ai-error-handling.md) | MA3.4 | 错误处理 | 全模块 | 0 | 2 | 9+2(P2:4, P3:5+2downgraded) | `done` |
+| [`2026-07-31-0423-arm-MA3.5-nop-ai-cross-module-contract.md`](./2026-07-31-0423-arm-MA3.5-nop-ai-cross-module-contract.md) | MA3.5 | 跨模块契约 | 全模块 | 0 | 2 | 6(P2:4, P3:2) | `done` |
 | — | MA4.1 | 类型安全 | 全模块 | — | — | — | todo |
 | — | MA4.2 | 代码风格 | 全模块 | — | — | — | todo |
 | — | MA4.3 | 测试覆盖 | 全模块 | — | — | — | todo |
@@ -76,3 +76,10 @@
 | P1-MA2-018 | MA2.3 | 9个废弃 snake_case dict 文件（nop-ai-meta） | MR1 | open |
 | P1-MA2-023 | MA2.5 | NopAiModel.apiKey 凭证字段暴露为 queryable/sortable | MR1 | open |
 | P1-MA2-024 | MA2.5 | NopAiSession 重复 to-many 关系 context/contexts | MR1 | open |
+| P1-MA3-020 | MA3.2 | BizModel 方法全部缺少 @Auth 权限注解（0/45 @BizModel 类） | MR2 | open |
+| P1-MA3-021 | MA3.2 | NopAiModel.apiKey 凭证字段在 xmeta 中完全暴露（queryable/sortable/insertable/updatable 均未限制） | MR2 | open |
+| P1-MA3-022 | MA3.2 | LocalFileOperator.resolveFile() 绝对路径绕过 sandbox（/开头的路径通过 new File 拼接可逃逸 baseDir） | MR2 | open |
+| P1-MA3-001 | MA3.4 | AiCoreErrors.ERR_AI_RESULT_INVALID_NUMBER 描述模板错位（value={name} 应为 value={value}） | MR2 | open |
+| P1-MA3-002 | MA3.4 | SequentialThinkingBizModel.processThought @BizMutation 使用 IllegalArgumentException 而非 ErrorCode | MR2 | open |
+| P1-MA3-01 | MA3.5 | nop-ai-agent 依赖 core 内部模型包（ChatOptionsModel） | MR2 | open |
+| P1-MA3-02 | MA3.5 | nop-ai-agent 依赖 core 内部 dialect 包（ILlmDialect/LlmDialectFactory） | MR2 | open |

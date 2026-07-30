@@ -51,11 +51,11 @@
 
 | # | Work Item | Status | Owner Doc | Deps | Skill |
 |---|-----------|--------|-----------|------|-------|
-| 3.1 | 跨模块依赖链审计 | todo | `docs-for-ai/01-repo-map/module-groups.md` | 0.3 | `cross-module-dependency-audit-prompt.md` |
-| 3.2 | 安全与权限模型审计 | todo | `nop-ai/nop-ai-core/src/main/java/io/nop/ai/core/` | 0.3 | `deep-audit-prompts.md`（维度 13） |
-| 3.3 | 异步与事务模式审计 | todo | — | 0.3 | `deep-audit-prompts.md`（维度 14） |
-| 3.4 | 错误处理与错误码审计 | todo | `nop-ai/*/src/main/java/**/*Errors.java` | 0.3 | `deep-audit-prompts.md`（维度 09） |
-| 3.5 | 跨模块契约一致性审计 | todo | `nop-ai/nop-ai-api/` + `nop-ai/nop-ai-core/` | 0.3 | `deep-audit-prompts.md`（维度 20） |
+| 3.1 | 跨模块依赖链审计 | done | `docs-for-ai/01-repo-map/module-groups.md` | 0.3 | `cross-module-dependency-audit-prompt.md` |
+| 3.2 | 安全与权限模型审计 | done | `nop-ai/nop-ai-core/src/main/java/io/nop/ai/core/` | 0.3 | `deep-audit-prompts.md`（维度 13） |
+| 3.3 | 异步与事务模式审计 | done | — | 0.3 | `deep-audit-prompts.md`（维度 14） |
+| 3.4 | 错误处理与错误码审计 | done | `nop-ai/*/src/main/java/**/*Errors.java` | 0.3 | `deep-audit-prompts.md`（维度 09） |
+| 3.5 | 跨模块契约一致性审计 | done | `nop-ai/nop-ai-api/` + `nop-ai/nop-ai-core/` | 0.3 | `deep-audit-prompts.md`（维度 20） |
 
 ### MA4 — 代码质量审计（全模块）
 
