@@ -665,7 +665,7 @@ public class DefaultAgentEngine implements IAgentEngine {
         this.contentGuardrail = contentGuardrail != null ? contentGuardrail : NoOpContentGuardrail.noOp();
         this.modelRouter = modelRouter != null ? modelRouter : PassThroughModelRouter.passThrough();
         this.contextCompactor = contextCompactor != null ? contextCompactor : defaultPipelineCompactor(chatService);
-        this.tokenEstimator = CalibratedTokenEstimator.defaultInstance();
+        this.tokenEstimator = TokenEstimators.defaultEstimator();
         this.warnIfInsecureDefaults();
     }
 
@@ -1888,6 +1888,9 @@ public class DefaultAgentEngine implements IAgentEngine {
      * ({@code tryRenew == false}), delegates to {@link #handleLeaseLost}.
      */
     private void renewOnceSafe(CancelHandle handle, String sessionId, String ownerId) {
+        if (!runningExecutions.containsKey(sessionId)) {
+            return;
+        }
         try {
             boolean renewed = sessionTakeoverLock.tryRenew(sessionId, ownerId, lockLeaseMs);
             if (!renewed) {

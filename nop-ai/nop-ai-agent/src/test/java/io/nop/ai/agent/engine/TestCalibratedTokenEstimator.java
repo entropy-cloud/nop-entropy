@@ -183,7 +183,7 @@ public class TestCalibratedTokenEstimator {
 
     @Test
     void defaultInstanceHasFactorOne() {
-        ITokenEstimator default1 = CalibratedTokenEstimator.defaultInstance();
+        ITokenEstimator default1 = TokenEstimators.defaultEstimator();
         List<ChatMessage> msgs = messages("test message content");
 
         long baseEstimate = dialect.estimateTokens(msgs);

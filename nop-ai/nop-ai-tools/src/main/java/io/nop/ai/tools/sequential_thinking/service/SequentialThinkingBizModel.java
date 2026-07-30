@@ -10,11 +10,16 @@ import io.nop.api.core.annotations.biz.BizModel;
 import io.nop.api.core.annotations.biz.BizMutation;
 import io.nop.api.core.annotations.biz.BizQuery;
 import io.nop.api.core.annotations.biz.RequestBean;
+import io.nop.api.core.annotations.directive.Auth;
+import io.nop.api.core.exceptions.NopException;
 import io.nop.core.context.IServiceContext;
 import jakarta.annotation.PostConstruct;
 
 import java.util.List;
 import java.util.Objects;
+
+import static io.nop.ai.core.AiCoreErrors.ARG_VALUE;
+import static io.nop.ai.core.AiCoreErrors.ERR_AI_TOOLS_INVALID_THOUGHT;
 
 @BizModel("SequentialThinking")
 public class SequentialThinkingBizModel {
@@ -43,28 +48,34 @@ public class SequentialThinkingBizModel {
     }
 
     @BizMutation
+    @Auth(permissions = "SequentialThinking:process")
     public ThoughtAnalysis processThought(@RequestBean ProcessThoughtRequest request, IServiceContext ctx) {
         Objects.requireNonNull(request, "request cannot be null");
 
         String thought = request.getThought();
         if (thought == null || thought.trim().isEmpty()) {
-            throw new IllegalArgumentException("Thought cannot be empty");
+            throw new NopException(ERR_AI_TOOLS_INVALID_THOUGHT)
+                    .param(ARG_VALUE, "Thought cannot be empty");
         }
 
         if (request.getThoughtNumber() <= 0) {
-            throw new IllegalArgumentException("Thought number must be positive");
+            throw new NopException(ERR_AI_TOOLS_INVALID_THOUGHT)
+                    .param(ARG_VALUE, "Thought number must be positive");
         }
 
         if (request.getTotalThoughts() <= 0) {
-            throw new IllegalArgumentException("Total thoughts must be positive");
+            throw new NopException(ERR_AI_TOOLS_INVALID_THOUGHT)
+                    .param(ARG_VALUE, "Total thoughts must be positive");
         }
 
         if (request.getThoughtNumber() > request.getTotalThoughts()) {
-            throw new IllegalArgumentException("Thought number cannot exceed total thoughts");
+            throw new NopException(ERR_AI_TOOLS_INVALID_THOUGHT)
+                    .param(ARG_VALUE, "Thought number cannot exceed total thoughts");
         }
 
         if (request.getStage() == null) {
-            throw new IllegalArgumentException("Stage cannot be null");
+            throw new NopException(ERR_AI_TOOLS_INVALID_THOUGHT)
+                    .param(ARG_VALUE, "Stage cannot be null");
         }
 
         String sessionId = AiToolsHelper.makeChatSessionId(ctx);
@@ -89,6 +100,7 @@ public class SequentialThinkingBizModel {
     }
 
     @BizQuery
+    @Auth(permissions = "SequentialThinking:query")
     public ThoughtSummary generateSummary(IServiceContext ctx) {
         String sessionId = AiToolsHelper.makeChatSessionId(ctx);
         List<ThoughtData> allThoughts = storage.getAllThoughts(sessionId);
@@ -96,6 +108,7 @@ public class SequentialThinkingBizModel {
     }
 
     @BizQuery
+    @Auth(permissions = "SequentialThinking:delete")
     public void clearHistory(IServiceContext ctx) {
         String sessionId = AiToolsHelper.makeChatSessionId(ctx);
         storage.clearHistory(sessionId);

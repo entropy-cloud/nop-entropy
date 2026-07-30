@@ -10,6 +10,7 @@ import io.nop.api.core.annotations.biz.BizQuery;
 import io.nop.api.core.annotations.core.Description;
 import io.nop.api.core.annotations.core.Name;
 import io.nop.api.core.annotations.core.Optional;
+import io.nop.api.core.annotations.directive.Auth;
 import io.nop.api.core.annotations.ioc.InjectValue;
 import io.nop.api.core.convert.ConvertHelper;
 import io.nop.api.core.exceptions.NopException;
@@ -47,6 +48,7 @@ public class AiFileTool {
     }
 
     @Description("@18n:ai.get-nop-file-xdef|加载Nop文件的XDef元模型\n")
+    @Auth(permissions = "AiFileTool:read")
     public String loadNopFileXDef(@Name("fileType") String fileType) {
         IDocumentObjectBuilder builder = DocumentConverterManager.instance().requireDocumentObjectBuilder(fileType);
         String xdefPath = builder.getXdefPath(fileType);
@@ -58,6 +60,7 @@ public class AiFileTool {
 
     @Description("@18n:ai.load-nop-file|加载Nop文件\n")
     @BizQuery
+    @Auth(permissions = "AiFileTool:read")
     public String loadNopFile(@Name("path") String path,
                               @Optional @Name("toFileType") String toFileType,
                               @Optional @Name("filter") String filter) {
@@ -107,6 +110,7 @@ public class AiFileTool {
 
     @Description("@18n:ai.save-nop-file|保存Nop文件\n")
     @BizMutation
+    @Auth(permissions = "AiFileTool:write")
     public String saveNopFile(@Name("path") String path,
                               @Optional @Name("fromFileType") String fromFileType,
                               @Optional @Name("content") String content,

@@ -130,7 +130,7 @@ public class TestTokenEstimatorWiring {
     void reactLoopDoesNotFeedWhenUsageNull() {
         AtomicInteger recordCount = new AtomicInteger(0);
         ITokenEstimator countingEstimator = new ITokenEstimator() {
-            final ITokenEstimator delegate = CalibratedTokenEstimator.defaultInstance();
+            final ITokenEstimator delegate = TokenEstimators.defaultEstimator();
 
             @Override
             public long estimateTokens(List<ChatMessage> messages) {
@@ -180,7 +180,7 @@ public class TestTokenEstimatorWiring {
         AtomicReference<List<ChatMessage>> capturedMessages = new AtomicReference<>();
 
         ITokenEstimator capturingEstimator = new ITokenEstimator() {
-            final ITokenEstimator delegate = CalibratedTokenEstimator.defaultInstance();
+            final ITokenEstimator delegate = TokenEstimators.defaultEstimator();
 
             @Override
             public long estimateTokens(List<ChatMessage> messages) {

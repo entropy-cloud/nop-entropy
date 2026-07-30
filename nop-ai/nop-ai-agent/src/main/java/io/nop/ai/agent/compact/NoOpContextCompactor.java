@@ -1,6 +1,6 @@
 package io.nop.ai.agent.compact;
 
-import io.nop.ai.agent.engine.CalibratedTokenEstimator;
+import io.nop.ai.agent.engine.TokenEstimators;
 import io.nop.ai.agent.engine.ITokenEstimator;
 import io.nop.ai.agent.session.CompactionResult;
 import io.nop.ai.api.chat.messages.ChatMessage;
@@ -14,7 +14,7 @@ public class NoOpContextCompactor implements IContextCompactor {
     private final ITokenEstimator defaultEstimator;
 
     public NoOpContextCompactor() {
-        this.defaultEstimator = CalibratedTokenEstimator.defaultInstance();
+        this.defaultEstimator = TokenEstimators.defaultEstimator();
     }
 
     @Override
@@ -36,6 +36,6 @@ public class NoOpContextCompactor implements IContextCompactor {
         if (estimator != null) {
             return estimator;
         }
-        return CalibratedTokenEstimator.defaultInstance();
+        return TokenEstimators.defaultEstimator();
     }
 }

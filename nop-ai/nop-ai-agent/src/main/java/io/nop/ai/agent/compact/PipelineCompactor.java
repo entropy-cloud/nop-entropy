@@ -6,7 +6,7 @@ import io.nop.ai.agent.engine.ReActAgentExecutor;
 import io.nop.ai.agent.session.CompactionResult;
 import io.nop.ai.agent.session.CompactConfig;
 import io.nop.ai.api.chat.messages.ChatMessage;
-import io.nop.ai.core.model.ChatOptionsModel;
+import io.nop.ai.api.chat.ChatOptions;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -150,7 +150,7 @@ public class PipelineCompactor implements IContextCompactor {
     private long resolveMaxContextTokens(CompactionContext ctx) {
         AgentExecutionContext execCtx = ctx.getExecutionContext();
         if (execCtx != null) {
-            ChatOptionsModel chatOptions = execCtx.getChatOptionsModel();
+            ChatOptions chatOptions = execCtx.getChatOptions();
             if (chatOptions != null && chatOptions.getMaxTokens() != null) {
                 return chatOptions.getMaxTokens();
             }

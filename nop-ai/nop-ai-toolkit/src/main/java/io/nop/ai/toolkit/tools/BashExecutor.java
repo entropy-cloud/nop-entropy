@@ -15,8 +15,11 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.TimeUnit;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class BashExecutor implements IToolExecutor {
+    static final Logger LOG = LoggerFactory.getLogger(BashExecutor.class);
     public static final String TOOL_NAME = "bash";
 
     @Override
@@ -63,7 +66,8 @@ public class BashExecutor implements IToolExecutor {
                     while ((line = reader.readLine()) != null) {
                         stdout.append(line).append("\n");
                     }
-                } catch (Exception ignored) {
+                } catch (Exception e) {
+                    LOG.warn("BashExecutor.stdout-read-failed", e);
                 }
             });
 
@@ -73,7 +77,8 @@ public class BashExecutor implements IToolExecutor {
                     while ((line = reader.readLine()) != null) {
                         stderr.append(line).append("\n");
                     }
-                } catch (Exception ignored) {
+                } catch (Exception e) {
+                    LOG.warn("BashExecutor.stderr-read-failed", e);
                 }
             });
 

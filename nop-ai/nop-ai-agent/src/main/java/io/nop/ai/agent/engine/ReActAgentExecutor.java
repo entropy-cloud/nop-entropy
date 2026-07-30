@@ -139,7 +139,7 @@ import io.nop.ai.api.chat.messages.ChatToolCall;
 import io.nop.ai.api.chat.messages.ChatToolDefinition;
 import io.nop.ai.api.chat.messages.ChatToolResponseMessage;
 import io.nop.ai.api.chat.messages.ChatUserMessage;
-import io.nop.ai.core.model.ChatOptionsModel;
+import io.nop.ai.api.chat.ChatOptions;
 import io.nop.ai.toolkit.api.IToolManager;
 import io.nop.ai.toolkit.model.AiToolCall;
 import io.nop.ai.toolkit.model.AiToolCallResult;
@@ -397,7 +397,7 @@ public class ReActAgentExecutor implements IAgentExecutor {
         this.contextCompactor = contextCompactor != null ? contextCompactor : NoOpContextCompactor.INSTANCE;
         this.contentGuardrail = contentGuardrail != null ? contentGuardrail : NoOpContentGuardrail.noOp();
         this.modelRouter = modelRouter != null ? modelRouter : PassThroughModelRouter.passThrough();
-        this.tokenEstimator = tokenEstimator != null ? tokenEstimator : CalibratedTokenEstimator.defaultInstance();
+        this.tokenEstimator = tokenEstimator != null ? tokenEstimator : TokenEstimators.defaultEstimator();
         this.completionJudge = completionJudge != null ? completionJudge : NoOpCompletionJudge.noOp();
         this.talents = talents != null ? List.copyOf(talents) : List.of();
         this.skillProvider = skillProvider != null ? skillProvider : NoOpSkillProvider.noOp();
@@ -1303,7 +1303,7 @@ public class ReActAgentExecutor implements IAgentExecutor {
                     contextCompactor != null ? contextCompactor : NoOpContextCompactor.INSTANCE,
                     contentGuardrail != null ? contentGuardrail : NoOpContentGuardrail.noOp(),
                     modelRouter != null ? modelRouter : PassThroughModelRouter.passThrough(),
-                    tokenEstimator != null ? tokenEstimator : CalibratedTokenEstimator.defaultInstance(),
+                    tokenEstimator != null ? tokenEstimator : TokenEstimators.defaultEstimator(),
                     completionJudge != null ? completionJudge : NoOpCompletionJudge.noOp(),
                     talents,
                     skillProvider,
@@ -1376,7 +1376,7 @@ public class ReActAgentExecutor implements IAgentExecutor {
         consultTalents(ctx, toolDefs);
         consultSkills(ctx, agentModel, toolDefs);
         consultPromptContributions(ctx);
-        ChatOptions options = buildChatOptions(agentModel.getChatOptions(), toolDefs);
+        ChatOptions options = buildChatOptions(ChatOptionsHelper.toChatOptions(agentModel.getChatOptions()), toolDefs);
 
         // AR-06 (plan 277): reentryCounters is declared per-iteration (inside
         // the reactLoop body below), NOT here. The old per-execute declaration
@@ -2683,8 +2683,9 @@ public class ReActAgentExecutor implements IAgentExecutor {
     }
 
     private long resolveMaxContextTokens(AgentExecutionContext ctx) {
-        if (ctx.getChatOptionsModel() != null && ctx.getChatOptionsModel().getMaxTokens() != null) {
-            return ctx.getChatOptionsModel().getMaxTokens();
+        ChatOptions chatOpts = ctx.getChatOptions();
+        if (chatOpts != null && chatOpts.getMaxTokens() != null) {
+            return chatOpts.getMaxTokens();
         }
         return DEFAULT_MAX_CONTEXT_TOKENS;
     }
@@ -3655,7 +3656,7 @@ public class ReActAgentExecutor implements IAgentExecutor {
         }
     }
 
-    private ChatOptions buildChatOptions(ChatOptionsModel model, List<ChatToolDefinition> toolDefs) {
+    private ChatOptions buildChatOptions(ChatOptions model, List<ChatToolDefinition> toolDefs) {
         ChatOptions options = new ChatOptions();
         if (model != null) {
             if (model.getProvider() != null)

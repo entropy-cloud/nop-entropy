@@ -7,6 +7,7 @@ import io.nop.ai.dao.entity.NopAiChatResponse;
 import io.nop.api.core.annotations.biz.BizModel;
 import io.nop.api.core.annotations.biz.BizQuery;
 import io.nop.api.core.annotations.core.Name;
+import io.nop.api.core.annotations.directive.Auth;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.biz.crud.CrudBizModel;
 import io.nop.commons.util.StringHelper;
@@ -57,6 +58,7 @@ public class NopAiChatResponseBizModel extends CrudBizModel<NopAiChatResponse> i
      */
     @Override
     @BizQuery
+    @Auth(permissions = "NopAiChatResponse:query")
     public List<ModelUsageSummary> summarizeByModel(@Name("sessionId") String sessionId, IServiceContext context) {
         if (StringHelper.isBlank(sessionId)) {
             throw new NopException(ERR_AI_SESSION_ID_REQUIRED).param(ARG_SESSION_ID, sessionId);

@@ -5,6 +5,9 @@
 
     <bean id="nopAiChatService" class="io.nop.ai.core.service.DefaultAiChatService" ioc:default="true"/>
 
+    <bean id="nopChatService" class="io.nop.ai.core.service.ChatServiceImpl" ioc:default="true"
+          ioc:type="io.nop.ai.api.chat.IChatService"/>
+
     <bean id="nopAiChatLogger" class="io.nop.ai.core.service.DefaultChatLogger" ioc:default="true"/>
 
     <bean id="nopAiChatResponseCache" class="io.nop.ai.core.persist.DefaultAiChatResponseCache" ioc:default="true">

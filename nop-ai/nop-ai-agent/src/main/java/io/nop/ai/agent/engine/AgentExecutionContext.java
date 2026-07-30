@@ -7,8 +7,8 @@ import io.nop.ai.agent.model.AgentModel;
 import io.nop.ai.agent.plan.model.AgentPlan;
 import io.nop.ai.agent.security.ChannelKind;
 import io.nop.ai.agent.security.Principal;
+import io.nop.ai.api.chat.ChatOptions;
 import io.nop.ai.api.chat.messages.ChatMessage;
-import io.nop.ai.core.model.ChatOptionsModel;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -23,7 +23,7 @@ public class AgentExecutionContext {
     private final List<ChatMessage> messages;
     private AgentPlan plan;
     private String sessionId;
-    private ChatOptionsModel chatOptionsModel;
+    private ChatOptions chatOptions;
     private int currentIteration;
     private long tokensUsed;
     private AgentExecStatus status;
@@ -94,9 +94,9 @@ public class AgentExecutionContext {
                 ctx.setMaxIterations(constraints.getMaxIterations());
             }
 
-            ChatOptionsModel chatOptions = agentModel.getChatOptions();
-            if (chatOptions != null) {
-                ctx.setChatOptionsModel(chatOptions);
+            io.nop.ai.core.model.ChatOptionsModel chatOpts = agentModel.getChatOptions();
+            if (chatOpts != null) {
+                ctx.setChatOptions(ChatOptionsHelper.toChatOptions(chatOpts));
             }
         }
 
@@ -131,12 +131,12 @@ public class AgentExecutionContext {
         this.sessionId = sessionId;
     }
 
-    public ChatOptionsModel getChatOptionsModel() {
-        return chatOptionsModel;
+    public ChatOptions getChatOptions() {
+        return chatOptions;
     }
 
-    public void setChatOptionsModel(ChatOptionsModel chatOptionsModel) {
-        this.chatOptionsModel = chatOptionsModel;
+    public void setChatOptions(ChatOptions chatOptions) {
+        this.chatOptions = chatOptions;
     }
 
     public int getCurrentIteration() {

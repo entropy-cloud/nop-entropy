@@ -12,6 +12,7 @@ import io.nop.api.core.annotations.biz.BizQuery;
 import io.nop.api.core.annotations.core.Description;
 import io.nop.api.core.annotations.core.Name;
 import io.nop.api.core.annotations.core.Optional;
+import io.nop.api.core.annotations.directive.Auth;
 import io.nop.api.core.annotations.ioc.InjectValue;
 import io.nop.commons.util.StringHelper;
 import io.nop.core.lang.xml.XNode;
@@ -44,6 +45,7 @@ public class FileToolBizModel {
 
     @Description("读取文件")
     @BizQuery
+    @Auth(permissions = "FileTool:read")
     public String readFiles(
             @Name("projectName") String projectName,
             @Name("filePaths") List<String> filePaths,
@@ -61,6 +63,7 @@ public class FileToolBizModel {
 
     @Description("读取文件的一部分")
     @BizQuery
+    @Auth(permissions = "FileTool:read")
     public String readFilePart(@Name("projectName") String projectName,
                                @Name("filePath") String filePath,
                                @Name("offset") int offset,
@@ -71,6 +74,7 @@ public class FileToolBizModel {
 
     @Description("保存文件")
     @BizMutation
+    @Auth(permissions = "FileTool:write")
     public void saveFile(@Name("projectName") String projectName, @Name("filePath") String filePath, @Name("text") String text) {
         IFileOperator operator = getFileOperator(projectName);
         operator.writeFileContent(new FileContent(filePath, text));
@@ -78,6 +82,7 @@ public class FileToolBizModel {
 
     @Description("保存多个文件。fileContents参数必须是XML格式的多文件内容表达。<files><file path='string'>!<[CDATA[ file-content-string ]]></file></files>")
     @BizMutation
+    @Auth(permissions = "FileTool:write")
     public void saveFiles(@Name("projectName") String projectName, @Name("String") String fileContents) {
         IFileOperator operator = getFileOperator(projectName);
         XNode node = XNode.parse(fileContents);
@@ -87,6 +92,7 @@ public class FileToolBizModel {
 
     @Description("基于Nop平台中XDef元模型，使用Delta合并算法合并文件")
     @BizMutation
+    @Auth(permissions = "FileTool:write")
     public void mergeFile(@Name("projectName") String projectName, @Name("filePath") String filePath, @Name("text") String text) {
         IFileOperator operator = getFileOperator(projectName);
         operator.mergeFile(filePath, text);
@@ -94,6 +100,7 @@ public class FileToolBizModel {
 
     @Description("使用glob模式搜索文件")
     @BizQuery
+    @Auth(permissions = "FileTool:search")
     public List<String> glob(
             @Name("projectName") String projectName,
             @Name("directory") String directory,
@@ -108,6 +115,7 @@ public class FileToolBizModel {
 
     @Description("使用glob模式查找文件，并在匹配的文件中搜索符合正则表达式的行")
     @BizQuery
+    @Auth(permissions = "FileTool:search")
     public String globGrep(
             @Name("projectName") String projectName,
             @Name("directory") String directory,
@@ -126,6 +134,7 @@ public class FileToolBizModel {
 
     @Description("在文件中搜索匹配正则表达式的行")
     @BizQuery
+    @Auth(permissions = "FileTool:search")
     public String grep(
             @Name("projectName") String projectName,
             @Name("filePath") String filePath,
@@ -142,6 +151,7 @@ public class FileToolBizModel {
 
     @Description("在多个文件中搜索匹配正则表达式的行")
     @BizQuery
+    @Auth(permissions = "FileTool:search")
     public String grepFiles(
             @Name("projectName") String projectName,
             @Name("filePaths") List<String> filePaths,
@@ -159,6 +169,7 @@ public class FileToolBizModel {
 
     @Description("加载DSL文件的元模型定义")
     @BizQuery
+    @Auth(permissions = "FileTool:read")
     public String loadDslSchema(
             @Name("projectName") String projectName,
             @Name("schemaPath") String schemaPath) {
@@ -168,6 +179,7 @@ public class FileToolBizModel {
 
     @Description("根据文件类型加载对应的DSL元模型定义")
     @BizQuery
+    @Auth(permissions = "FileTool:read")
     public String loadDslSchemaForFileType(
             @Name("projectName") String projectName,
             @Name("fileType") String fileType) {
@@ -177,6 +189,7 @@ public class FileToolBizModel {
 
     @Description("加载DSL文件并转换为指定格式")
     @BizQuery
+    @Auth(permissions = "FileTool:read")
     public String loadDslFile(
             @Name("projectName") String projectName,
             @Name("filePath") String filePath,
@@ -187,6 +200,7 @@ public class FileToolBizModel {
 
     @Description("保存DSL文件，支持格式转换")
     @BizMutation
+    @Auth(permissions = "FileTool:write")
     public void saveDslFile(
             @Name("projectName") String projectName,
             @Name("filePath") String filePath,

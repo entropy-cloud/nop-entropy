@@ -64,7 +64,10 @@ public interface AiCoreErrors {
             define("nop.err.ai.service.result-no-expected-part", "大语言模型返回的结果没有符合预期模式, 缺少内容：{expected}", ARG_EXPECTED);
 
     ErrorCode ERR_AI_RESULT_INVALID_NUMBER =
-            define("nop.err.ai.service.result-invalid-number", "大语言模型返回的结果不是数字:name={name},value={name}", ARG_NAME, ARG_VALUE);
+            define("nop.err.ai.service.result-invalid-number", "大语言模型返回的结果不是数字:name={name},value={value}", ARG_NAME, ARG_VALUE);
+
+    ErrorCode ERR_AI_TOOLS_INVALID_THOUGHT =
+            define("nop.err.ai.tools.invalid-thought", "思维处理请求无效: {value}", ARG_VALUE);
 
     ErrorCode ERR_AI_INVALID_RESPONSE =
             define("nop.err.ai.service.invalid-response", "大语言模型返回的结果不正确");

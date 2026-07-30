@@ -21,6 +21,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.File;
+import java.io.IOException;
 import java.nio.file.FileVisitResult;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -72,7 +73,19 @@ public class LocalFileOperator implements IFileOperator {
             throw new NopException(ERR_FILE_INVALID_PATH)
                     .param(ARG_PATH, path);
         }
-        return path.isEmpty() ? baseDir : new File(baseDir, path);
+        File resolved = path.isEmpty() ? baseDir : new File(baseDir, path);
+        try {
+            String resolvedCanonical = resolved.getCanonicalPath();
+            String baseCanonical = baseDir.getCanonicalPath();
+            if (!resolvedCanonical.startsWith(baseCanonical)) {
+                throw new NopException(ERR_FILE_INVALID_PATH)
+                        .param(ARG_PATH, path);
+            }
+        } catch (IOException e) {
+            throw new NopException(ERR_FILE_INVALID_PATH, e)
+                    .param(ARG_PATH, path);
+        }
+        return resolved;
     }
 
     @Override

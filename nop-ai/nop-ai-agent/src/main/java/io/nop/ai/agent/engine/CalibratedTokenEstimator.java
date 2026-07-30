@@ -2,7 +2,6 @@ package io.nop.ai.agent.engine;
 
 import io.nop.ai.api.chat.messages.ChatMessage;
 import io.nop.ai.core.dialect.ILlmDialect;
-import io.nop.ai.core.dialect.LlmDialectFactory;
 import io.nop.ai.core.model.ApiStyle;
 
 import java.util.List;
@@ -42,15 +41,6 @@ public class CalibratedTokenEstimator implements ITokenEstimator {
         }
         this.dialect = dialect;
         this.apiStyle = apiStyle != null ? apiStyle : ApiStyle.openai;
-    }
-
-    /**
-     * A default estimator wrapping the OpenAI dialect with factor 1.0.
-     * Used as a fallback when no estimator is explicitly injected.
-     */
-    public static ITokenEstimator defaultInstance() {
-        return new CalibratedTokenEstimator(
-                LlmDialectFactory.getDialect(ApiStyle.openai), ApiStyle.openai);
     }
 
     public ApiStyle getApiStyle() {

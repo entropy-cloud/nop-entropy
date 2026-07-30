@@ -5,7 +5,7 @@ import io.nop.ai.agent.model.AgentExecStatus;
 import io.nop.ai.agent.model.AgentModel;
 import io.nop.ai.api.chat.messages.ChatMessage;
 import io.nop.ai.api.chat.messages.ChatUserMessage;
-import io.nop.ai.core.model.ChatOptionsModel;
+import io.nop.ai.api.chat.ChatOptions;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -31,7 +31,7 @@ public class TestAgentExecutionContext {
         assertNull(ctx.getLastError());
         assertNull(ctx.getPlan());
         assertNull(ctx.getSessionId());
-        assertNull(ctx.getChatOptionsModel());
+        assertNull(ctx.getChatOptions());
     }
 
     @Test
@@ -81,7 +81,7 @@ public class TestAgentExecutionContext {
 
         assertEquals(10, ctx.getMaxIterations());
         assertNull(ctx.getSessionId());
-        assertNull(ctx.getChatOptionsModel());
+        assertNull(ctx.getChatOptions());
     }
 
     @Test
@@ -108,7 +108,7 @@ public class TestAgentExecutionContext {
     @Test
     public void testFactoryMethodExtractsChatOptions() {
         AgentModel model = new AgentModel();
-        ChatOptionsModel chatOptions = new ChatOptionsModel();
+        io.nop.ai.core.model.ChatOptionsModel chatOptions = new io.nop.ai.core.model.ChatOptionsModel();
         model.setChatOptions(chatOptions);
 
         AgentConstraintsModel constraints = new AgentConstraintsModel();
@@ -117,7 +117,7 @@ public class TestAgentExecutionContext {
 
         AgentExecutionContext ctx = AgentExecutionContext.create(model, "session-1");
 
-        assertNotNull(ctx.getChatOptionsModel());
+        assertNotNull(ctx.getChatOptions());
         assertEquals(15, ctx.getMaxIterations());
         assertEquals("session-1", ctx.getSessionId());
     }
