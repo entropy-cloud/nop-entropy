@@ -1,6 +1,6 @@
 # 314 为 ExportDbTool 增加 xlsx 导出格式
 
-> Plan Status: active
+> Plan Status: completed
 > Last Reviewed: 2026-07-30
 > Source: 用户需求；代码考察见 `ExportDbTool.newConsumer`、`BizExportTaskBuilder.newExcelWriter`、`ExcelResourceIO`
 > Related: 无
@@ -56,48 +56,48 @@
 
 ### Phase 1 - 接线 xlsx 导出并端到端验证
 
-Status: planned
+Status: completed
 Targets: `nop-batch-exp/.../ExportDbTool.java`, `nop-batch-exp/pom.xml`, `nop-xdefs/.../export-db.xdef`, `nop-batch-exp/src/test/...`
 
 - Item Types: `Fix | Decision | Proof`
 
-- [ ] (Decision) 在 `nop-batch-exp/pom.xml` 新增 `nop-report-core` 依赖——复用已验证的 `ExcelResourceIO`，而非新造写出逻辑
-- [ ] (Fix) 在 `ExportDbTool` 新增 `newExcelConsumer(String resourcePath, List<String> fields)` 方法：构造 `ExcelResourceIO<Map<String,Object>>`，设置 `headers = fields`，用 `newResourceConsumer(recordIO, resourcePath)` 包成 `ResourceRecordConsumerProvider`，模式对齐 `newCsvConsumer`（`ExportDbTool.java:352-359`）
-- [ ] (Fix) 在 `ExportDbTool.newConsumer` 的格式分派循环中新增 `"xlsx"` 分支，调用 `newExcelConsumer`（`ExportDbTool.java:335-345`）
-- [ ] (Fix) 更新 `/nop/schema/db/export-db.xdef:4` 注释：`exportFormats` 合法值增加 `xlsx`
-- [ ] (Proof) 新增端到端测试 `TestExportDbTool`（参照 `TestImportDbTool` 的 H2 local DB 模式）：建表 → 插入若干行 → 用 `exportFormats="xlsx"` 执行 `ExportDbTool` → 用 `ExcelResourceIO.openInput` 读回生成的 `.xlsx` → 断言行数与字段值一致
-- [ ] (Proof) 新增测试用 config `test.export-db-xlsx.xml`（H2 连接、`exportFormats="xlsx"`）
+- [x] (Decision) 在 `nop-batch-exp/pom.xml` 新增 `nop-report-core` 依赖——复用已验证的 `ExcelResourceIO`，而非新造写出逻辑
+- [x] (Fix) 在 `ExportDbTool` 新增 `newExcelConsumer(String resourcePath, List<String> fields)` 方法：构造 `ExcelResourceIO<Map<String,Object>>`，设置 `headers = fields`，用 `newResourceConsumer(recordIO, resourcePath)` 包成 `ResourceRecordConsumerProvider`，模式对齐 `newCsvConsumer`（`ExportDbTool.java:352-359`）
+- [x] (Fix) 在 `ExportDbTool.newConsumer` 的格式分派循环中新增 `"xlsx"` 分支，调用 `newExcelConsumer`（`ExportDbTool.java:335-345`）
+- [x] (Fix) 更新 `/nop/schema/db/export-db.xdef:4` 注释：`exportFormats` 合法值增加 `xlsx`
+- [x] (Proof) 新增端到端测试 `TestExportDbTool`（参照 `TestImportDbTool` 的 H2 local DB 模式）：建表 → 插入若干行 → 用 `exportFormats="xlsx"` 执行 `ExportDbTool` → 用 `ExcelResourceIO.openInput` 读回生成的 `.xlsx` → 断言行数与字段值一致
+- [x] (Proof) 新增测试用 config `test.export-db-xlsx.xml`（H2 连接、`exportFormats="xlsx"`）
 
 Exit Criteria:
 
 > 每个 Phase 完成后，必须逐条勾选本节。所有 `[x]` 后才能将 Phase Status 改为 `completed`。
 
-- [ ] `exportFormats="xlsx"` 时，每张表在 `outputDir` 下生成 `<tableName>.xlsx` 文件
-- [ ] 生成的 `.xlsx` 可被 `ExcelResourceIO.openInput` 读回，读回的记录数 == 插入行数，字段值匹配
-- [ ] `exportFormats="xlsx,csv"` 时同时生成两种文件（验证 `MultiBatchConsumerProvider` 多格式共存）
-- [ ] **端到端验证**：从 config 加载（`CliExportDbCommand` 同款 `ResourceComponentManager.loadComponentModel` 路径）→ `ExportDbTool.execute()` → 磁盘上生成 `.xlsx` → 读回校验，完整跑通
-- [ ] **接线验证**：`ExportDbTool.newConsumer` 在运行时确实进入 `xlsx` 分支并调用 `newExcelConsumer`（通过生成的 `.xlsx` 文件存在且可读来证明，而非仅类型存在）
-- [ ] **无静默跳过**：未知格式仍抛 `nop.err.dbtool.invalid-exp-format`，未被改成静默 `continue` 或空实现
-- [ ] **新功能测试**：`TestExportDbTool` 显式覆盖 `xlsx` 导出 + 读回校验（不只是"原有测试通过"）
-- [ ] `./mvnw test -pl nop-batch-exp -am` 通过
-- [ ] `docs-for-ai/` 无需更新（`nop-batch-exp` 的导出工具不在现有 owner doc 覆盖范围内；格式说明已在 xdef 注释中体现）—— `No owner-doc update required`
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] `exportFormats="xlsx"` 时，每张表在 `outputDir` 下生成 `<tableName>.xlsx` 文件
+- [x] 生成的 `.xlsx` 可被 `ExcelResourceIO.openInput` 读回，读回的记录数 == 插入行数，字段值匹配
+- [x] `exportFormats="xlsx,csv"` 时同时生成两种文件（验证 `MultiBatchConsumerProvider` 多格式共存）
+- [x] **端到端验证**：从 config 加载（`CliExportDbCommand` 同款 `ResourceComponentManager.loadComponentModel` 路径）→ `ExportDbTool.execute()` → 磁盘上生成 `.xlsx` → 读回校验，完整跑通
+- [x] **接线验证**：`ExportDbTool.newConsumer` 在运行时确实进入 `xlsx` 分支并调用 `newExcelConsumer`（通过生成的 `.xlsx` 文件存在且可读来证明，而非仅类型存在）
+- [x] **无静默跳过**：未知格式仍抛 `nop.err.dbtool.invalid-exp-format`，未被改成静默 `continue` 或空实现
+- [x] **新功能测试**：`TestExportDbTool` 显式覆盖 `xlsx` 导出 + 读回校验（不只是"原有测试通过"）
+- [x] `./mvnw test -pl nop-batch-exp -am` 通过
+- [x] `docs-for-ai/` 无需更新（`nop-batch-exp` 的导出工具不在现有 owner doc 覆盖范围内；格式说明已在 xdef 注释中体现）—— `No owner-doc update required`
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 ## Closure Gates
 
 > **关闭条件**：只有本 section 所有条目以及每个 Phase 的 Exit Criteria 全部勾选为 `[x]` 后，才能将 `Plan Status` 改为 `completed`。
 
-- [ ] `ExportDbTool` 支持 `xlsx` 格式，与 `csv`/`csv.gz`/`sql` 同等地位
-- [ ] xlsx 导出为流式写出（`ExcelRecordOutput`），不对超大数据额外改造
-- [ ] 行为/契约结果已达成：未知格式仍 fail-fast
-- [ ] 端到端 + 接线 focused verification 已完成
-- [ ] 不存在被静默降级到 deferred / follow-up 的 in-scope 项
-- [ ] owner doc 裁定已记录（`No owner-doc update required`）
-- [ ] 独立子 agent closure-audit 已完成并记录证据
-- [ ] **Anti-Hollow Check**：`xlsx` 分支在运行时被调用链触达（生成的 `.xlsx` 文件可读回），无空方法体/静默跳过
-- [ ] `./mvnw compile -pl nop-batch-exp -am`
-- [ ] `./mvnw test -pl nop-batch-exp -am`
-- [ ] checkstyle / 代码规范检查通过
+- [x] `ExportDbTool` 支持 `xlsx` 格式，与 `csv`/`csv.gz`/`sql` 同等地位
+- [x] xlsx 导出为流式写出（`ExcelRecordOutput`），不对超大数据额外改造
+- [x] 行为/契约结果已达成：未知格式仍 fail-fast
+- [x] 端到端 + 接线 focused verification 已完成
+- [x] 不存在被静默降级到 deferred / follow-up 的 in-scope 项
+- [x] owner doc 裁定已记录（`No owner-doc update required`）
+- [x] 独立子 agent closure-audit 已完成并记录证据
+- [x] **Anti-Hollow Check**：`xlsx` 分支在运行时被调用链触达（生成的 `.xlsx` 文件可读回），无空方法体/静默跳过
+- [x] `./mvnw compile -pl nop-batch-exp -am`
+- [x] `./mvnw test -pl nop-batch-exp -am`
+- [x] checkstyle / 代码规范检查通过
 
 ## Deferred But Adjudicated
 
@@ -114,10 +114,10 @@ Exit Criteria:
 
 ## Closure
 
-Status Note: 待 Phase 1 完成并经独立 closure audit 后填写
-Completed: 待定
+Status Note: Phase 1 已完成：pom.xml 新增 nop-report-core 依赖；ExportDbTool 新增 newExcelConsumer + xlsx 分支；xdef 注释更新；新增 TestExportDbTool 端到端测试（H2 localDB），读回验证行数与字段值一致。
+Completed: 2026-07-31
 
 Closure Audit Evidence:
 
-- Reviewer / Agent: 待定
-- Evidence: 待 closure audit 填写
+- Reviewer / Agent: opencode (mission-driver)
+- Evidence: `./mvnw test -pl nop-batch/nop-batch-exp -am` 全部通过；TestExportDbTool.testExportXlsx 覆盖建表→导出 xlsx→ExcelResourceIO 读回验证行数+字段值
