@@ -180,7 +180,7 @@
 | CC1 | checkpoint × window | Timer 无 checkpoint/restore (G2) | 需要 checkpoint 快照管线 + timer service 实现 snapshot/restore 方法。Item 9 主责 |
 | CC2 | checkpoint × state | 无 async snapshot pipeline (G30) | 影响 checkpoint latency 和状态快照。Item 9 主责，需与 state backend 协调 |
 | CC3 | checkpoint × distributed | 无 partial/region failover (G28) + 无 targeted failover (G57) | Checkpoint 恢复 + 分布式调度共同设计。Item 9 + Item 12a |
-| CC4 | state × serialization | TypeSerializerSnapshot 缺失 (G12) | 状态序列化兼容性影响所有 state backend。独立 serialization plan 或 Item 13 |
+| CC4 | state × serialization | TypeSerializerSnapshot 缺失 (G12) | 已关闭（Stage 29 — `SerializerFingerprint` + type-signature SHA-256 checksum，不采用二进制序列化体系）。
 | CC5 | window × watermark | AccumulationMode 未接线 (G15) + 多输入 watermark 对齐 (G47) | Watermark 是 AccumulationMode 触发条件。Item 10 主责 |
 | CC6 | cep × distributed | Runtime 状态后端注入 + snapshot/restore 调用未验证 (G18, G19) | 需要 runtime 层的 operator 生命周期审计。Item 11 作为审计入口 |
 
@@ -199,7 +199,7 @@
 - **Item 11**（CEP）：G18, G19, G20（部分）
 - **Item 12a**（operator state）：G8, G10, G11, G13, G23, G26, G27
 - **Item 12b**（redistribution）：G9
-- **Item 13**（serialization）：G12
+- **Item 13**（serialization）：G12 ✅ Closed（Stage 29 — `SerializerFingerprint` + type-signature checksum，不采用二进制序列化）
 - **deferred**：G6（unaligned checkpoint, Phase 4）, G24, G25（leader election/HA, Phase 3）
 
 ### P2 缺口分析
@@ -222,8 +222,8 @@
 | **Item 10** — Watermark 集成修复 | G14, G15, G17, G46, G47, G48, G20(部分) | 7 gaps | SourceFunction watermark 自动插入；AccumulationMode/ PaneInfo 接线；StatusWatermarkValve 等效 |
 | **Item 11** — CEP 状态后端接入 | G18, G19, G49, G65, G20(部分) | 5 gaps | Runtime 层审计 state backend 注入 + snapshot/restore 调用；更新过时 Javadoc；SharedBuffer 缓存改进 |
 | **Item 12a** — Operator State 基础 | G8, G10, G11, G13, ~~G23~~, ~~G26~~, ~~G27~~, G50, G51, ~~G52~~, ~~G53~~, ~~G54~~, G55, ~~G56~~, G57, ~~G58~~ | 16 gaps → 9 active | OperatorStateStore IOperatorStateBackend；分布式 RPC 扩容；resource manager；buffer pool；execution state machine；region scheduling。G23/G26/G27 closed by Stage 28, G52/G54/G56/G58 closed by Stage 25, G53 closed by Stage 26 |
-| **Item 12b** — Operator State 重分布 | G9, G36, (G12 部分) | 3 gaps | SPLIT/UNION/BROADCAST redistribution；BroadcastState 类型 |
-| **Item 13** — StreamModel 做实 | G12, G40, G41, G59, (G37-G39 部分) | 6 gaps | TypeSerializerSnapshot 体系；serializer 注册管理；fingerprint 接线 |
+| **Item 12b** — Operator State 重分布 | G9, G36 | 2 gaps | SPLIT/UNION/BROADCAST redistribution；BroadcastState 类型。G12 serialization ✅ Closed（Stage 29 — `SerializerFingerprint` checksum，不涉及 operator state） |
+| **Item 13** — StreamModel 做实 | G12 ✅, G40 ✅, G41 ✅, G59 ✅, (G37-G39 部分) | 6 gaps (4 closed by Stage 29) | serializer 注册管理（G12/G40/G41/G59 ✅ Closed by Stage 29 — `SerializerFingerprint` type-signature checksum + per-state info map 嵌入 + `CheckpointSerDe` `formatVersion`，不采用二进制序列化）；G37-G39 待 Key-Group 阶段 |
 | **Deferred / 独立 plan** | G6, G24, G25, G32, G35, G37-G39, G42-G43, G45, G66, G67 | 13 gaps | Unaligned checkpoint (Phase 4), Leader election (Phase 3), Key-Group migration, State TTL, 增量 checkpoint, 自适应调度 |
 
 ## completion-roadmap.md Alignment
