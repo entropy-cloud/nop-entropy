@@ -31,9 +31,9 @@
 |---|-----------|--------|-----------|------|-------|
 | 1.1 | api-core 依赖图与模块边界 | done | `ai-dev/design/nop-ai-agent/01-architecture-baseline.md` | 0.3 | `deep-audit-prompts.md`（维度 01） |
 | 1.2 | api-core API 表面积与契约一致性 | done | —（无独立设计文档，以 `nop-ai/nop-ai-api/` 源码为基线） | 0.3 | `deep-audit-prompts.md`（维度 03） |
-| 1.3 | toolkit 模块职责与工具接口审计 | todo | — | 0.3 | `deep-audit-prompts.md`（维度 02） |
-| 1.4 | infra 模块（gateway/dsl-orm/maven/codegen）审计 | todo | — | 0.3 | `deep-audit-prompts.md`（维度 02） |
-| 1.5 | 命名与术语一致性（全模块） | todo | — | 0.3 | `deep-audit-prompts.md`（维度 19） |
+| 1.3 | toolkit 模块职责与工具接口审计 | done | — | 0.3 | `deep-audit-prompts.md`（维度 02） |
+| 1.4 | infra 模块（gateway/dsl-orm/maven/codegen）审计 | done | — | 0.3 | `deep-audit-prompts.md`（维度 02） |
+| 1.5 | 命名与术语一致性（全模块） | done | — | 0.3 | `deep-audit-prompts.md`（维度 19） |
 
 ### MA2 — ORM/BizModel/服务层审计（biz-dao + biz-svc）
 

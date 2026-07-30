@@ -4,16 +4,16 @@
 > 目标模块组：nop-ai（18 子模块，排除 MCP——MCP 协议集成模块，独立发布周期，需单独审计）
 > 总览：ai-dev/backlog/audit-remediation-roadmap.md
 > 维度矩阵：arm-audit-dimension-matrix.md
-> 状态汇总：已完成 6 | 进行中 0 | 待办 24 | P0 未解决 0
+> 状态汇总：已完成 9 | 进行中 0 | 待办 21 | P0 未解决 0
 
 ## 报告清单
 
 | 报告 | 里程碑 | 维度 | 范围 | P0 | P1 | P2/P3 | 状态 |
 |------|--------|------|------|----|----|-------|------|
 | [`2026-07-30-2100-arm-MA1.1-nop-ai-api-core-dependency.md`](./2026-07-30-2100-arm-MA1.1-nop-ai-api-core-dependency.md) | MA1.1+MA1.2 | 依赖图+API契约 | api-core | 0 | 2 | 5(P2)+2(P3) | `done` |
-| — | MA1.3 | 模块职责 | toolkit | — | — | — | todo |
-| — | MA1.4 | 模块职责 | infra | — | — | — | todo |
-| — | MA1.5 | 命名与术语 | 全模块 | — | — | — | todo |
+| [`2026-07-31-2200-arm-MA1.3-nop-ai-toolkit.md`](./2026-07-31-2200-arm-MA1.3-nop-ai-toolkit.md) | MA1.3 | 模块职责 | toolkit | 0 | 2 | 12(P2:8, P3:4) | `done` |
+| [`2026-07-31-2201-arm-MA1.4-nop-ai-infra.md`](./2026-07-31-2201-arm-MA1.4-nop-ai-infra.md) | MA1.4 | 模块职责 | infra | 0 | 3 | 11(P2:3, P3:8) | `done` |
+| [`2026-07-31-2202-arm-MA1.5-nop-ai-naming.md`](./2026-07-31-2202-arm-MA1.5-nop-ai-naming.md) | MA1.5 | 命名与术语 | 全模块 | 0 | 3 | 6(P2:4, P3:2) | `done` |
 | [`2026-07-30-2130-arm-MA2.1-2.4-nop-ai-orm-biz.md`](./2026-07-30-2130-arm-MA2.1-2.4-nop-ai-orm-biz.md) | MA2.1+MA2.4 | ORM模型+BizModel | biz-dao+biz-svc | 1 | 4 | 6 | `done` |
 | — | MA2.2 | 生成管线 | biz | — | — | — | todo |
 | — | MA2.3 | Delta 合规 | biz | — | — | — | todo |
@@ -64,3 +64,11 @@
 | P1-MA2-005 | MA2.1 | _dao.beans.xml 为空 — 无接口 Biz bean 注册 | MR1 | open |
 | P1-MA5.3-001 | MA5.3 | ChatServiceImpl(IChatService) 无 IoC bean 定义 | MR2 | open |
 | P1-MA5.3-002 | MA5.3 | DefaultAiChatService @Deprecated 但却是唯一注册的 chat service bean | MR2 | open |
+| P1-MA1-003 | MA1.3 | FileToolBizModel 使用废弃 IFileOperator 接口 | MR1 | open |
+| P1-MA1-010 | MA1.3 | nop-ai-skills 子模块零 IoC bean 注册 | MR1 | open |
+| P1-MA1-017 | MA1.4 | nop-ai-maven 模块名与实际内容不符（核心为 VFS 非 Maven） | MR1 | open |
+| P1-MA1-018 | MA1.4 | nop-ai-codegen 零生产 Java 代码 | MR1 | open |
+| P1-MA1-019 | MA1.4 | nop-ai-codegen postcompile 引用不存在的 ORM 模型文件 | MR1 | open |
+| P1-MA1-031 | MA1.5 | NopAiSessionContext relation refPropName 不匹配（context vs contexts） | MR1 | open |
+| P1-MA1-032 | MA1.5 | 五种命名约定并存（NopAi/Chat/Ai/Agent/Tool） | MR1 | open |
+| P1-MA1-033 | MA1.5 | 重复 ORM session/message 模型（nop-ai-agent vs nop-ai 主模型） | MR1 | open |
