@@ -33,6 +33,8 @@ import io.nop.core.resource.component.ResourceComponentManager;
 import io.nop.core.resource.impl.FileResource;
 import io.nop.core.resource.record.IResourceRecordIO;
 import io.nop.core.resource.record.csv.CsvResourceRecordIO;
+import io.nop.report.core.record.ExcelIOConfig;
+import io.nop.report.core.record.ExcelResourceIO;
 import io.nop.dao.dialect.DialectManager;
 import io.nop.dao.dialect.IDialect;
 import io.nop.dao.jdbc.impl.JdbcFactory;
@@ -339,6 +341,8 @@ public class ExportDbTool {
                     list.add(newGenSqlConsumer(fileName, fields));
                 } else if ("csv".equals(format) || "csv.gz".equals(format)) {
                     list.add(newCsvConsumer(fileName, fields));
+                } else if ("xlsx".equals(format)) {
+                    list.add(newExcelConsumer(fileName, fields));
                 } else {
                     throw new IllegalArgumentException("nop.err.dbtool.invalid-exp-format:" + format);
                 }
@@ -353,6 +357,15 @@ public class ExportDbTool {
         CsvResourceRecordIO<Map<String, Object>> recordIO = new CsvResourceRecordIO<>();
         recordIO.setRecordType(Map.class);
         recordIO.setSupportZip(true);
+        recordIO.setHeaders(fields);
+
+        return newResourceConsumer(recordIO, resourcePath);
+    }
+
+    private IBatchConsumerProvider<Map<String, Object>> newExcelConsumer(String resourcePath, List<String> fields) {
+        ExcelResourceIO<Map<String, Object>> recordIO = new ExcelResourceIO<>();
+        ExcelIOConfig ioConfig = new ExcelIOConfig();
+        recordIO.setIOConfig(ioConfig);
         recordIO.setHeaders(fields);
 
         return newResourceConsumer(recordIO, resourcePath);

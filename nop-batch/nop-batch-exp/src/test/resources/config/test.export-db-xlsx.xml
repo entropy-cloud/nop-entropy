@@ -1,0 +1,7 @@
+<export-db x:schema="/nop/schema/db/export-db.xdef" xmlns:x="/nop/schema/xdsl.xdef"
+           exportFormats="xlsx">
+
+    <tables>
+        <table name="test_export"/>
+    </tables>
+</export-db>

@@ -1,7 +1,7 @@
 <!--
 @tableNamePattern 查找数据库中所有表名满足模式要求的表，例如nop_%会匹配nop_auth_user等表。
 @exportAllTables 如果设置为true，则导出所有满足tableNamePattern的表。否则以tables配置的表为准，只导出指定的表
-@exportFormats 导出文件格式，可以是csv, csv.gz和sql
+@exportFormats 导出文件格式，可以是csv, csv.gz, sql和xlsx
 @fetchSize 设置jdbc底层连接使用的fetchSize。MySQL数据库要求fetchSize设置为一个特殊值来启用流数据读取模式
 @schemaPattern ORACLE数据库需要指定具体Schema，但是MySQL指定的是Catalog
 -->
