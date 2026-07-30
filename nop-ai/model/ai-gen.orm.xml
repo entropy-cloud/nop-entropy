@@ -1,3 +1,23 @@
+<!-- ================================================================
+     ARCHIVE FILE — NOT THE ACTIVE CANONICAL ORM SOURCE
+     ================================================================
+     This file (ai-gen.orm.xml) has been superseded by nop-ai.orm.xml
+     as the single canonical ORM model source for module nop-ai.
+     
+     ai-gen.orm.xml contains 14 entities (subset) and lacks audit
+     columns, compatible dict values, and several entities found in
+     the production nop-ai.orm.xml (21 entities).
+     
+     The production ORM reference chain in nop-ai-dao uses
+     _app.orm.xml → app.orm.xml, neither of which x:extends this file.
+     
+     Retained in repo because nop-ai-coder codegen templates reference
+     it for scaffolding new projects. Do NOT modify or use this file
+     as the canonical model source.
+     
+     See: ai-dev/plans/2026-07-30-2130-arm-fix-p0-ma2-01.md
+     Audit Finding: P0-MA2-01 — Dual ORM Source File Drift
+     ================================================================ -->
 <orm ext:icon="bot" xmlns:i18n-en="i18n-en">
     <dicts>
         <dict name="message_type" label="消息类型">

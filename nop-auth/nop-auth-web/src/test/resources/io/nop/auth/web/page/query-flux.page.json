@@ -538,7 +538,7 @@
             "valueField": "roleId",
             "labelField": "roleName",
             "url": "@query:NopAuthRole__findPage",
-            "gql:selection": "total,page,items{ id,roleId,roleName,isPrimary,createdBy,createTime,updatedBy,updateTime,remark }",
+            "gql:selection": "{@pageSelection}",
             "selection": "total,page,items{ id,roleId,roleName,isPrimary,createdBy,createTime,updatedBy,updateTime,remark }"
           },
           "pickerSchema": {
@@ -557,7 +557,7 @@
               "action": "ajax",
               "args": {
                 "url": "@query:NopAuthRole__findPage",
-                "gql:selection": "total,page,items{ id,roleId,roleName,isPrimary,createdBy,createTime,updatedBy,updateTime,remark }",
+                "gql:selection": "{@pageSelection}",
                 "selection": "total,page,items{ id,roleId,roleName,isPrimary,createdBy,createTime,updatedBy,updateTime,remark }"
               }
             },
@@ -654,7 +654,7 @@
             "valueField": "userId",
             "labelField": "userName",
             "url": "@query:NopAuthUser__active_findPage",
-            "gql:selection": "total,page,items{ id,userId,userName,nickName,dept{deptName},deptId,gender,gender_label,phone,userType,userType_label,status,status_label }",
+            "gql:selection": "{@pageSelection}",
             "selection": "total,page,items{ id,userId,userName,nickName,dept{deptName},deptId,gender,gender_label,phone,userType,userType_label,status,status_label }"
           },
           "pickerSchema": {
@@ -673,12 +673,17 @@
               "action": "ajax",
               "args": {
                 "url": "@query:NopAuthUser__active_findPage",
-                "gql:selection": "total,page,items{ id,userId,userName,nickName,dept{deptName},deptId,gender,gender_label,phone,userType,userType_label,status,status_label }",
+                "gql:selection": "{@pageSelection}",
                 "selection": "total,page,items{ id,userId,userName,nickName,dept{deptName},deptId,gender,gender_label,phone,userType,userType_label,status,status_label }"
               }
             },
             "queryForm": {
+              "id": "crud-grid-query-form",
               "title": "搜索",
+              "submitAction": {
+                "action": "component:querySubmit",
+                "componentId": "crud-grid"
+              },
               "body": [
                 {
                   "type": "flex",
@@ -876,8 +881,7 @@
       "label": "",
       "level": "primary",
       "onClick": {
-        "action": "component:submit",
-        "componentId": "queryControls"
+        "action": "closeSurface"
       }
     }
   ]

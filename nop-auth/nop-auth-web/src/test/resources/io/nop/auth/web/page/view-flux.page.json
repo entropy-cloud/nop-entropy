@@ -617,8 +617,7 @@
       "label": "",
       "level": "primary",
       "onClick": {
-        "action": "component:submit",
-        "componentId": "viewControls"
+        "action": "closeSurface"
       }
     }
   ]

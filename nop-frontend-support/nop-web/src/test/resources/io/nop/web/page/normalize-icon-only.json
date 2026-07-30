@@ -3,6 +3,6 @@
   "icon": "fa fa-save",
   "tooltip": "Save",
   "onClick": {
-    "action": "refreshTable"
+    "action": "refreshNearest"
   }
 }

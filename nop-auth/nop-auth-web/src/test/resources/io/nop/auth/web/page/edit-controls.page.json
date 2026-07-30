@@ -742,6 +742,7 @@
                         "searchable": true,
                         "clearable": true,
                         "multiple": false,
+                        "dict": "auth/gender",
                         "source": "@dict:auth/gender"
                       },
                       {
@@ -751,6 +752,7 @@
                         "searchable": true,
                         "clearable": true,
                         "multiple": false,
+                        "dict": "auth/user-status",
                         "source": "@dict:auth/user-status"
                       }
                     ]

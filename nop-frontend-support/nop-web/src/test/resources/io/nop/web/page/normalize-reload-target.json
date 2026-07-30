@@ -2,7 +2,6 @@
   "id": "reload-btn",
   "label": "Reload",
   "onClick": {
-    "action": "refreshSource",
-    "targetId": "myTable"
+    "action": "refreshNearest"
   }
 }
