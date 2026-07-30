@@ -100,8 +100,8 @@
 
 | # | Work Item | Status | Owner Doc | Deps | Skill |
 |---|-----------|--------|-----------|------|-------|
-| R2.0 | MA3+MA4 P1 发现汇总、排序并展开 | todo | `ai-dev/audits/arm-index.md` §P1 | MA3+MA4 done | none（展开器） |
-| R2.x | （R2.0 执行后自动展开） | todo | — | R2.0 | 按具体修复工作项确定 |
+| R2.0 | MA3+MA4 P1 发现汇总、排序并展开 | done | `ai-dev/audits/arm-index.md` §P1 | MA3+MA4 done | none（展开器） |
+| R2.x | MR2 P1 修复执行 | done | — | R2.0 | 按具体修复工作项确定 |
 
 ### MR3 — P1 批量修复（第三批：残留风险 + AI 特有）
 

@@ -57,14 +57,14 @@
 | P1-MA1-001 (原 F01) | MA1.1-MA1.2 | `nop-diff` 未使用依赖 | — | `fixed`（MA1.1 审计中就地修复） |
 | P1-MA1-002 (原 F02) | MA1.1-MA1.2 | 废弃并行 API 体系未清理（IAiChatService 等） | MR1 | fixed |
 | P1-MA5-001 (原 F03) | MA5.2/MA5.1 交叉 | `DefaultAiChatService.getSession()` 始终返回 null | — | `fixed`（审计中修改为 throw UnsupportedOperationException） |
-| P1-MA5-002 (原 F04) | MA5.2 | `BashExecutor` 子线程流读取空 catch | MR2 | open |
+| P1-MA5-002 (原 F04) | MA5.2 | `BashExecutor` 子线程流读取空 catch | MR2 | fixed |
 | P1-MA5-003 (原 F05) | MA5.1 | IVectorStore / IEmbeddingModel / ITokenCountEstimator 接口无生产实现 | MR3 | open |
 | P1-MA2-002 | MA2.1 | NopAiProject 缺失审计传播属性 | MR1 | fixed |
 | P1-MA2-003 | MA2.1 | NopAiRequirement version 字段类型冲突（VARCHAR vs 乐观锁 int） | MR1 | fixed |
 | P1-MA2-004 | MA2.1 | NopAiSessionContext refPropName="context" 应为 "contexts" | MR1 | fixed |
 | P1-MA2-005 | MA2.1 | _dao.beans.xml 为空 — 无接口 Biz bean 注册 | MR1 | fixed |
-| P1-MA5.3-001 | MA5.3 | ChatServiceImpl(IChatService) 无 IoC bean 定义 | MR2 | open |
-| P1-MA5.3-002 | MA5.3 | DefaultAiChatService @Deprecated 但却是唯一注册的 chat service bean | MR2 | open |
+| P1-MA5.3-001 | MA5.3 | ChatServiceImpl(IChatService) 无 IoC bean 定义 | MR2 | fixed |
+| P1-MA5.3-002 | MA5.3 | DefaultAiChatService @Deprecated 但却是唯一注册的 chat service bean | MR2 | fixed |
 | P1-MA1-003 | MA1.3 | FileToolBizModel 使用废弃 IFileOperator 接口 | MR1 | fixed |
 | P1-MA1-010 | MA1.3 | nop-ai-skills 子模块零 IoC bean 注册 | MR1 | fixed |
 | P1-MA1-017 | MA1.4 | nop-ai-maven 模块名与实际内容不符（核心为 VFS 非 Maven） | MR1 | fixed |
@@ -77,13 +77,13 @@
 | P1-MA2-018 | MA2.3 | 9个废弃 snake_case dict 文件（nop-ai-meta） | MR1 | fixed |
 | P1-MA2-023 | MA2.5 | NopAiModel.apiKey 凭证字段暴露为 queryable/sortable | MR1 | fixed |
 | P1-MA2-024 | MA2.5 | NopAiSession 重复 to-many 关系 context/contexts | MR1 | fixed |
-| P1-MA3-020 | MA3.2 | BizModel 方法全部缺少 @Auth 权限注解（0/45 @BizModel 类） | MR2 | open |
-| P1-MA3-021 | MA3.2 | NopAiModel.apiKey 凭证字段在 xmeta 中完全暴露（queryable/sortable/insertable/updatable 均未限制） | MR2 | open |
-| P1-MA3-022 | MA3.2 | LocalFileOperator.resolveFile() 绝对路径绕过 sandbox（/开头的路径通过 new File 拼接可逃逸 baseDir） | MR2 | open |
-| P1-MA3-001 | MA3.4 | AiCoreErrors.ERR_AI_RESULT_INVALID_NUMBER 描述模板错位（value={name} 应为 value={value}） | MR2 | open |
-| P1-MA3-002 | MA3.4 | SequentialThinkingBizModel.processThought @BizMutation 使用 IllegalArgumentException 而非 ErrorCode | MR2 | open |
-| P1-MA3-01 | MA3.5 | nop-ai-agent 依赖 core 内部模型包（ChatOptionsModel） | MR2 | open |
-| P1-MA3-02 | MA3.5 | nop-ai-agent 依赖 core 内部 dialect 包（ILlmDialect/LlmDialectFactory） | MR2 | open |
+| P1-MA3-020 | MA3.2 | BizModel 方法全部缺少 @Auth 权限注解（0/45 @BizModel 类） | MR2 | fixed |
+| P1-MA3-021 | MA3.2 | NopAiModel.apiKey 凭证字段在 xmeta 中完全暴露（queryable/sortable/insertable/updatable 均未限制） | MR2 | fixed |
+| P1-MA3-022 | MA3.2 | LocalFileOperator.resolveFile() 绝对路径绕过 sandbox（/开头的路径通过 new File 拼接可逃逸 baseDir） | MR2 | fixed |
+| P1-MA3-001 | MA3.4 | AiCoreErrors.ERR_AI_RESULT_INVALID_NUMBER 描述模板错位（value={name} 应为 value={value}） | MR2 | fixed |
+| P1-MA3-002 | MA3.4 | SequentialThinkingBizModel.processThought @BizMutation 使用 IllegalArgumentException 而非 ErrorCode | MR2 | fixed |
+| P1-MA3-01 | MA3.5 | nop-ai-agent 依赖 core 内部模型包（ChatOptionsModel） | MR2 | fixed |
+| P1-MA3-02 | MA3.5 | nop-ai-agent 依赖 core 内部 dialect 包（ILlmDialect/LlmDialectFactory） | MR2 | fixed |
 | P1-MA5.4-001 | MA5.4 | Gateway bidirectional dialect conversion only works for OpenAI; other 3 dialects throw UOE at runtime | MR3 | open |
 | P1-MA5.5-001 | MA5.5 | Hardcoded JWT enc-key in nop-ai-app/application.yaml | MR3 | open |
 | P1-MA5.5-002 | MA5.5 | Plaintext MySQL password in nop-ai-coder/tools/application.yaml | MR3 | open |
