@@ -295,6 +295,138 @@ codegen 生成的 `_*.action-auth.xml` 会带一个测试用的 TOPM 根（id �
 | `nop.auth.use-data-auth-table` | `false` | 是否启用数据库表驱动的数据权限 |
 | `nop.auth.data-auth-config-path` | `/nop/main/auth/app.data-auth.xml` | 静态数据权限配置路径 |
 
+## Bearer Token 认证流程
+
+Nop 平台的认证使用 JWT Bearer Token，流程如下：
+
+### 登录获取 Token
+
+向公开端点 `POST /r/LoginApi__login` 发送凭证，返回 `accessToken`（JWT）：
+
+```bash
+curl -s -X POST "http://localhost:8080/r/LoginApi__login" \
+  -H "Content-Type: application/json" \
+  -d '{"principalId":"nop","principalSecret":"123","loginType":1}'
+```
+
+**响应**（`LoginResult`）：
+
+| 字段 | 说明 |
+|------|------|
+| `accessToken` | JWT 字符串，默认 1800 秒（30 分钟）过期 |
+| `refreshToken` | 刷新 Token，默认 5 小时过期 |
+| `expiresIn` | accessToken 剩余秒数 |
+| `tokenType` | 固定 `"bearer"` |
+| `userInfo` | 用户信息（userName, nickName, roles, deptName 等） |
+
+### 后续请求携带 Token
+
+```bash
+curl -s "http://localhost:8080/r/NopAuthUser__findList" \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer <accessToken>" \
+  -d '{}'
+```
+
+### Token 解析与验证流程
+
+`AuthHttpServerFilter._filterAsync()` 的完整处理链路：
+
+1. **路径判断**：检查请求路径是否公开（`isPublicPath`）→ 公开路径跳过认证
+2. **解析 Token**：`parseAuthToken(routeContext)` → 从以下位置依次读取（先到先用）：
+   - `Authorization` header（忽略大小写，`Bearer ` 前缀自动去除）
+   - `X-Access-Token` header
+   - `nop-token` cookie
+3. **验签与解析**：`JwtAuthTokenProvider.parseAuthToken(token)` → `JwtHelper.parseToken(signKey, token)`
+   - 使用 HMAC-SHA256（HS256）验证签名
+   - 检查是否过期（`exp` 时间戳）
+   - 提取 claims 构建 `AuthToken` 对象（含 sessionId、userName、expireAt）
+4. **加载用户上下文**：`loginService.getUserContextAsync(authToken, headers)` → 从 session 缓存中加载 `IUserContext`
+5. **处理用户上下文**：`handleUserContext(userContext, ...)` → 设置到当前线程的 `IContext`
+   - 若 Token 已过半衰期，自动刷新 Token：`loginService.refreshToken(userContext, authToken)` → 新 Token 设置在 `X-Access-Token` 响应 header 和 cookie
+6. **无 Token 或无效**：返回 401 `{"code":"nop.err.auth.not-authorized","status":401,"msg":"用户未登录或者会话已过期"}`
+
+### JWT Claims 结构
+
+| Claim | 值 | 说明 |
+|-------|-----|------|
+| `iss` | `"nop"` | 签发者 |
+| `sub` | `"a"`（access）/ `"r"`（refresh）/ `"c"`（code） | 令牌类型 |
+| `exp` | Unix 时间戳（秒） | 过期时间 |
+| `iat` | Unix 时间戳（秒） | 签发时间 |
+| `jti` | UUID | JWT ID = sessionId |
+| `preferred_username` | 用户名 | 登录名 |
+
+### Token 自动刷新
+
+当 `nop.auth.auto-refresh-token=true`（默认开启）：
+
+- `AuthHttpServerFilter.isNeedRefresh()` 检查：当前 Token 剩余时间 < 半衰期时长
+- 需要刷新时调用 `loginService.refreshToken()` 生成新 JWT
+- 新 Token 通过 `X-Access-Token` 响应 header 和 cookie 返回给客户端
+
+### Token 存储
+
+用户上下文（`IUserContext`）通过 sessionId 缓存：
+
+| 实现类 | 用途 | 激活条件 |
+|--------|------|---------|
+| `LocalUserContextCache` | 进程内内存缓存（LocalCache） | 默认 |
+| `DaoUserContextCache` | 数据库持久化（NopAuthSession 表） | `nop.auth.login.use-dao-user-context-cache=true` |
+
+### 密码编码
+
+默认使用 SHA256 加盐哈希（`IPasswordEncoder`），可扩展。
+
+### curl 测试速查
+
+```bash
+# 1. 登录获取 token
+TOKEN=$(curl -s -X POST "http://localhost:8080/r/LoginApi__login" \
+  -H "Content-Type: application/json" \
+  -d '{"principalId":"nop","principalSecret":"123","loginType":1}' \
+  | python3 -c "import sys,json; print(json.load(sys.stdin).get('data',{}).get('accessToken',''))")
+
+# 2. 携带 Bearer token 访问受保护 API
+curl -s "http://localhost:8080/r/NopAuthUser__findList" \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer $TOKEN" \
+  -d '{}'
+
+# 3. 无 token（预期 401）
+curl -s "http://localhost:8080/r/NopAuthUser__findList" \
+  -H "Content-Type: application/json" -d '{}'
+
+# 4. 无效 token（预期 401）
+curl -s "http://localhost:8080/r/NopAuthUser__findList" \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer invalidtoken123" -d '{}'
+
+# 5. 刷新 token
+curl -s -X POST "http://localhost:8080/r/LoginApi__refreshToken" \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer $TOKEN" \
+  -d "{\"refreshToken\":\"$REFRESH_TOKEN\"}"
+```
+
+### 源码锚点
+
+| 组件 | 路径 |
+|------|------|
+| 认证过滤器主逻辑 | `AuthHttpServerFilter._filterAsync()` — `nop-biz-auth-core/.../filter/AuthHttpServerFilter.java` |
+| 从 Header 提取 Token | `getAuthTokenFromHeader()` — 同上 |
+| JWT 签名/验证 | `JwtHelper.genToken()` / `parseToken()` — `nop-biz-auth-core/.../jwt/JwtHelper.java` |
+| Token 提供者 | `JwtAuthTokenProvider` — `nop-biz-auth-core/.../jwt/JwtAuthTokenProvider.java` |
+| 登录处理 | `LoginServiceImpl.loginAsync()` / `saveSession()` — `nop-auth-service/.../login/LoginServiceImpl.java` |
+| 登录 API 端点 | `LoginApiBizModel` — `nop-auth-service/.../biz/LoginApiBizModel.java` |
+| 登录请求/响应 DTO | `LoginRequest` / `LoginResult` — `nop-biz-auth-api/.../messages/` |
+| `AuthToken` 模型 | `AuthToken` — `nop-biz-auth-core/.../login/AuthToken.java` |
+| 用户上下文接口 | `IUserContext` — `nop-api-core/.../auth/IUserContext.java` |
+| 用户上下文实现 | `UserContextImpl` — `nop-biz-auth-core/.../login/UserContextImpl.java` |
+| 用户上下文缓存 | `LocalUserContextCache` / `DaoUserContextCache` — `nop-biz-auth-core` / `nop-auth-service` |
+| SSO 认证 | `OAuthLoginServiceImpl` — `nop-auth-sso/.../login/OAuthLoginServiceImpl.java` |
+| JWK 密钥定位 | `JWKPublicKeyLocator` — `nop-auth-sso/.../jwk/JWKPublicKeyLocator.java` |
+
 ## 平台默认权限实体
 
 | 实体 | 表 | 用途 |
