@@ -150,10 +150,22 @@ public interface ILlmDialect {
     /**
      * Estimate the token count for a list of chat messages (pre-call approximation).
      * <p>
-     * The default implementation delegates to {@link AbstractLlmDialect#estimateTokensBaseline(List)},
+     * The default implementation delegates to {@link ILlmDialect#estimateTokensDefault(List)},
      * which sums content length / 4 plus a small per-message overhead. Concrete dialects
      * may override for Provider-specific accuracy. The result is intended as a rough
      * estimate for compaction accounting; runtime calibration refines it further.
+     *
+     * <p><b>Error claim (MA6.3-AR-3)</b>: {@code chars/4} is a baseline heuristic,
+     * NOT a bounded approximation. Accuracy varies widely by language and model
+     * (CJK text is typically more token-dense; some tokenizers encode far fewer
+     * tokens per char). The <b>calibrated</b> estimate (see
+     * {@code CalibratedTokenEstimator} in nop-ai-agent) converges via EMA toward
+     * the observed prompt-token ratio; the error bound "≤ 4×" applies ONLY after
+     * calibration convergence (its {@code MAX_FACTOR=4.0} is an EMA clamp cap, not
+     * a guarantee — uncalibrated factor=1.0 estimates can undercount by far more
+     * than 4×). Compaction triggers should therefore keep a conservative margin
+     * (e.g. trigger well below the model context limit) until per-deployment
+     * calibration has converged.
      *
      * @param messages the messages to estimate, may be null or empty
      * @return estimated token count (always {@code >= 0})
@@ -166,6 +178,19 @@ public interface ILlmDialect {
         return ILlmDialect.estimateTokensDefault(messages);
     }
 
+    /**
+     * Baseline heuristic: {@code sum(4 + content.length() / 4)} per message.
+     * <p>
+     * <b>Error claim (MA6.3-AR-3)</b>: this is deliberately rough — a baseline
+     * for compaction accounting, not a bounded tokenizer approximation. The
+     * {@code chars/4} ratio is an English-optimized heuristic; CJK text and
+     * tokenizer-dependent models can deviate by an order of magnitude before
+     * calibration. The "≤ 4×" error bound is a property of the <b>calibrated</b>
+     * estimator only (EMA clamp cap {@code MAX_FACTOR=4.0} after convergence),
+     * never of this uncalibrated baseline. Integrators replacing this default
+     * (e.g. {@code ITokenCountEstimator}, an SPI extension point by MV ruling
+     * P1-MA5-003) should declare their own error bounds.
+     */
     static long estimateTokensDefault(List<ChatMessage> messages) {
         if (messages == null || messages.isEmpty()) {
             return 0;

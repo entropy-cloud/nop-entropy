@@ -91,8 +91,14 @@ public class TestAdapterBackedMemoryEndToEnd {
         CoreInitialization.destroy();
     }
 
-    private static final AtomicReference<IAiMemoryStore> firstStoreSeen = new AtomicReference<>();
-    private static final AtomicInteger storeObservationCount = new AtomicInteger(0);
+    private final AtomicReference<IAiMemoryStore> firstStoreSeen = new AtomicReference<>();
+    private final AtomicInteger storeObservationCount = new AtomicInteger(0);
+
+    @org.junit.jupiter.api.BeforeEach
+    void resetObservationState() {
+        firstStoreSeen.set(null);
+        storeObservationCount.set(0);
+    }
 
     private IToolManager toolManagerWithMemoryTools() {
         ReadMemoryExecutor readMemory = new ReadMemoryExecutor();

@@ -23,6 +23,17 @@ import java.util.List;
  *   <li>skip when {@code baseEstimate <= 0} (nothing to learn)</li>
  * </ol>
  * Calibrated estimate = {@code round(dialect.estimateTokens(messages) * factor)}.
+ *
+ * <p><b>Error claim (MA6.3-AR-3)</b>: {@code MAX_FACTOR = 4.0} is an EMA clamp
+ * cap, NOT an accuracy guarantee. The "≤ 4×" error bound holds only AFTER the
+ * EMA has converged to the deployment's real prompt-token ratio (enough
+ * observed responses). An uncalibrated instance (factor = 1.0) can undercount
+ * far beyond 4× (the {@code chars/4} baseline heuristic is English-optimized;
+ * CJK text and tokenizer-dependent models deviate the most). Compaction
+ * triggers consuming this estimate should keep a conservative margin until
+ * per-deployment calibration has converged, and should monitor
+ * {@link #getFactor()} (e.g. log it at startup / periodically) to detect
+ * non-convergence.
  */
 public class CalibratedTokenEstimator implements ITokenEstimator {
 

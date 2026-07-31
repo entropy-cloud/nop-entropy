@@ -44,4 +44,11 @@ public interface AiCoreConfigs {
             + "读取时惰性过期：缓存条目超过 TTL 视为 miss 并删除，不主动清扫")
     IConfigReference<Long> CFG_AI_SERVICE_CACHE_TTL =
             varRef(s_loc, "nop.ai.service.cache-ttl", Long.class, 0L);
+
+    @Description("LLM 调用本地限流（llm.xml 配置了 rateLimit 时）的许可获取超时（毫秒）。"
+            + "超时未获许可时抛 ERR_AI_RATE_LIMITED（携带 httpStatus=429，LlmErrorClassifier 判为 "
+            + "RATE_LIMITED 可重试）——替换旧的无限阻塞 acquire()，消除挂起风险（MA6.3-AR-6）。"
+            + "0 = 立即失败（fail-fast），不等待")
+    IConfigReference<Long> CFG_AI_SERVICE_RATE_LIMIT_ACQUIRE_TIMEOUT =
+            varRef(s_loc, "nop.ai.service.rate-limit-acquire-timeout", Long.class, 1000L);
 }

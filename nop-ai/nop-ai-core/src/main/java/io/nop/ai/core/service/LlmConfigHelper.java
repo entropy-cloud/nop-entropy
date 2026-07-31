@@ -40,6 +40,17 @@ public class LlmConfigHelper {
     }
 
     /**
+     * 复位全部静态可变状态（MA6.1-AR-6）：清空 {@code secretCache} **并**重置
+     * {@code secretDir} 为 null。与 {@link #clearSecretCache()}（只清缓存）不同，
+     * 本方法保证测试间/调用间无静态状态泄漏——测试应在 {@code @BeforeEach} 调用，
+     * 或需要在运行时切换 secret 目录且不想被缓存污染时调用。
+     */
+    public static void reset() {
+        secretCache.clear();
+        secretDir = null;
+    }
+
+    /**
      * 加载LLM配置
      */
     public static LlmModel loadConfig(String provider) {

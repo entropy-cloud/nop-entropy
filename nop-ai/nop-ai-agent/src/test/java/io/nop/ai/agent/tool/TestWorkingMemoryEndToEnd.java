@@ -79,10 +79,17 @@ public class TestWorkingMemoryEndToEnd {
     /**
      * Captures the store that the executor observed at tool-call time so the
      * test can assert the dispatch loop wired it through (non-null + same
-     * instance across calls).
+     * instance across calls). Instance fields (MA5.6-AR-2): no static mutable
+     * test state shared across test methods; @BeforeEach resets explicitly.
      */
-    private static final AtomicReference<IAiMemoryStore> firstStoreSeen = new AtomicReference<>();
-    private static final AtomicInteger storeObservationCount = new AtomicInteger(0);
+    private final AtomicReference<IAiMemoryStore> firstStoreSeen = new AtomicReference<>();
+    private final AtomicInteger storeObservationCount = new AtomicInteger(0);
+
+    @org.junit.jupiter.api.BeforeEach
+    void resetObservationState() {
+        firstStoreSeen.set(null);
+        storeObservationCount.set(0);
+    }
 
     private IToolManager createToolManagerWithMemoryTools() {
         ReadMemoryExecutor readMemory = new ReadMemoryExecutor();

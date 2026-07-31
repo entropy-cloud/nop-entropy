@@ -1,13 +1,18 @@
 package io.nop.ai.agent.reliability;
 
+import java.util.concurrent.ThreadLocalRandom;
+
 /**
  * Functional {@link IRetryPolicy} implementing the Standard retry mode
  * (design {@code nop-ai-agent-llm-layer.md} §7.3 / plan 207 / L3-2).
  *
  * <p>Retries transient and rate-limited failures up to
  * {@code maxAttempts} total call attempts (1 initial call +
- * {@code maxAttempts - 1} retries), with exponential backoff
- * ({@code baseDelay * 2^attempt}, capped at {@code maxDelay}). Non-transient
+ * {@code maxAttempts - 1} retries), with exponential backoff plus
+ * <b>full jitter</b>: the RETRY delay is uniformly random in
+ * {@code [0, min(baseDelay * 2^attempt, maxDelay)]}. Jitter decorrelates
+ * concurrent retry waves (thundering-herd suppression, MA6.3-AR-5); the
+ * deterministic exponential formula is the upper-bound baseline. Non-transient
  * and quota-exceeded failures fail fast (immediate STOP).
  *
  * <h2>Decision rules</h2>
@@ -16,8 +21,8 @@ package io.nop.ai.agent.reliability;
  *       {@link ErrorClassification#RATE_LIMITED} → RETRY when
  *       {@code attempt < maxAttempts - 1} (there is still room for another
  *       attempt); STOP when {@code attempt >= maxAttempts - 1} (max attempts
- *       exhausted). The RETRY delay is
- *       {@code min(baseDelay * 2^attempt, maxDelay)}.</li>
+ *       exhausted). The RETRY delay is uniformly random in
+ *       {@code [0, min(baseDelay * 2^attempt, maxDelay)]} (full jitter).</li>
  *   <li>{@link ErrorClassification#NON_TRANSIENT} /
  *       {@link ErrorClassification#QUOTA_EXCEEDED} → immediate STOP
  *       (retrying the identical request fails identically; quota is not
@@ -125,8 +130,13 @@ public final class StandardRetryPolicy implements IRetryPolicy {
     }
 
     /**
-     * Exponential backoff: {@code min(baseDelayMs * 2^attempt, maxDelayMs)}.
-     * Overflow-safe: if {@code 2^attempt} would overflow, the cap applies.
+     * Exponential backoff with full jitter:
+     * {@code uniform(0, min(baseDelayMs * 2^attempt, maxDelayMs))}. The
+     * deterministic formula {@code min(baseDelayMs * 2^attempt, maxDelayMs)}
+     * is the upper-bound baseline; a uniformly random offset in {@code [0, cap]}
+     * decorrelates concurrent retry waves (thundering-herd suppression,
+     * MA6.3-AR-5). Overflow-safe: if {@code 2^attempt} would overflow, the cap
+     * applies. {@code baseDelayMs == 0} (or a zero cap) returns exactly 0.
      */
     private long computeBackoff(int attempt) {
         if (baseDelayMs == 0) {
@@ -144,6 +154,11 @@ public final class StandardRetryPolicy implements IRetryPolicy {
             }
             delay = next;
         }
-        return Math.min(delay, maxDelayMs);
+        long cap = Math.min(delay, maxDelayMs);
+        if (cap <= 0) {
+            return 0L;
+        }
+        // Full jitter: uniform in [0, cap] (inclusive upper bound).
+        return ThreadLocalRandom.current().nextLong(0, cap + 1);
     }
 }

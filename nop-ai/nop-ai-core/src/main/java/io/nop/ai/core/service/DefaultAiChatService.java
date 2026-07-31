@@ -54,6 +54,7 @@ import java.util.concurrent.CompletionStage;
 import java.util.concurrent.ConcurrentHashMap;
 
 import static io.nop.ai.core.AiCoreConfigs.CFG_AI_SERVICE_DEFAULT_LLM;
+import static io.nop.ai.core.AiCoreConfigs.CFG_AI_SERVICE_RATE_LIMIT_ACQUIRE_TIMEOUT;
 import static io.nop.ai.core.AiCoreConstants.CONFIG_VAR_LLM_API_KEY;
 import static io.nop.ai.core.AiCoreConstants.CONFIG_VAR_LLM_API_VERSION;
 import static io.nop.ai.core.AiCoreConstants.CONFIG_VAR_LLM_BASE_URL;
@@ -64,6 +65,7 @@ import static io.nop.ai.core.AiCoreErrors.ARG_LLM_NAME;
 import static io.nop.ai.core.AiCoreErrors.ARG_OPTION_NAME;
 import static io.nop.ai.core.AiCoreErrors.ARG_PROP_PATH;
 import static io.nop.ai.core.AiCoreErrors.ERR_AI_INVALID_RESPONSE;
+import static io.nop.ai.core.AiCoreErrors.ERR_AI_RATE_LIMITED;
 import static io.nop.ai.core.AiCoreErrors.ERR_AI_SERVICE_HTTP_ERROR;
 import static io.nop.ai.core.AiCoreErrors.ERR_AI_SERVICE_NO_BASE_URL;
 import static io.nop.ai.core.AiCoreErrors.ERR_AI_SERVICE_NO_DEFAULT_LLMS;
@@ -161,8 +163,18 @@ public class DefaultAiChatService implements IAiChatService {
 
         IRateLimiter rateLimiter = getRateLimiter(llmName);
 
-        if (rateLimiter != null)
-            rateLimiter.acquire();
+        if (rateLimiter != null) {
+            // MA6.3-AR-6 alignment: bounded tryAcquire instead of the old
+            // infinite-blocking acquire() — on quota exhaustion fail fast with
+            // ERR_AI_RATE_LIMITED (httpStatus=429 → LlmErrorClassifier
+            // RATE_LIMITED, retryable) instead of blocking indefinitely.
+            long timeoutMs = CFG_AI_SERVICE_RATE_LIMIT_ACQUIRE_TIMEOUT.get();
+            if (!rateLimiter.tryAcquire(1, timeoutMs)) {
+                throw new NopException(ERR_AI_RATE_LIMITED)
+                        .param(ARG_LLM_NAME, llmName)
+                        .param(ARG_HTTP_STATUS, 429);
+            }
+        }
         return doSendChat(llmName, llmModel, prompt, options, cancelToken);
     }
 

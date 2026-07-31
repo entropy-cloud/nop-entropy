@@ -202,8 +202,15 @@ public class DefaultAgentEngine implements IAgentEngine {
     private IMemoryStoreProvider memoryStoreProvider = new InMemoryMemoryStoreProvider();
     // ReAct loop's token accumulation point is wired out-of-the-box without
     // forcing a persistence sink. A functional recorder (e.g. DbUsageRecorder,
-    // L2-18) is registered via setUsageRecorder.
+    // L2-18, or SimpleUsageRecorder for structured logs) is registered via
+    // setUsageRecorder. The NoOp default is NOT silent (MA6.3-AR-4): a
+    // one-shot WARN is emitted at first execution (warnIfNoOpUsageRecorder)
+    // making the missing metering visible.
     private IUsageRecorder usageRecorder = NoOpUsageRecorder.noOp();
+    // One-shot guard so the NoOp-usage-recorder WARN fires exactly once per
+    // engine instance, at first execution (after Builder wiring is complete —
+    // see warnIfNoOpUsageRecorder).
+    private volatile boolean usageRecorderNoOpWarned;
     // NoOpModelSwitchedMessageWriter so the ReAct loop's model-switch detection
     // is wired out-of-the-box without forcing a persistence sink. A functional
     // writer (e.g. DbModelSwitchedMessageWriter) is registered via
@@ -811,6 +818,27 @@ public class DefaultAgentEngine implements IAgentEngine {
     }
 
     /**
+     * MA6.3-AR-4: emit a one-time WARN when the resolved usage recorder is the
+     * {@link NoOpUsageRecorder} pass-through, making the missing token
+     * metering visible rather than silent. Called from
+     * {@link #resolveExecutor(AgentModel, IToolAccessChecker, IPathAccessChecker)}
+     * (first execution), where the final wired value is known — the Builder
+     * path (constructor → applyTo → build) has already completed by then, so
+     * an engine wiring a real recorder never gets a spurious WARN. One-shot:
+     * the flag is reset by {@link #setUsageRecorder} so a later re-wire to
+     * NoOp warns again.
+     */
+    private void warnIfNoOpUsageRecorder() {
+        if (!usageRecorderNoOpWarned && usageRecorder instanceof NoOpUsageRecorder) {
+            usageRecorderNoOpWarned = true;
+            LOG.warn("DefaultAgentEngine wired with NoOpUsageRecorder: per-LLM-call usage data "
+                    + "(token metering) is being discarded — usage is not observable. "
+                    + "To make usage observable, wire a functional recorder via setUsageRecorder() "
+                    + "(e.g. SimpleUsageRecorder for structured logs, DbUsageRecorder for persistence).");
+        }
+    }
+
+    /**
      * Register the set of dynamic-admission talents ({@link ITalent}) passed to
      * the executor on the ReAct path. Composition via the executor Builder —
      * no constructor chain change. Default is an empty list (no talents), so
@@ -1288,13 +1316,18 @@ public class DefaultAgentEngine implements IAgentEngine {
      * Wire the {@link IUsageRecorder} consulted at the ReAct loop's token
      * accumulation point (plan 201 / design
      * {@code nop-ai-agent-usage-and-billing.md} §3.1). The shipped default is
-     * {@link NoOpUsageRecorder} (usage data discarded — pass-through). When
-     * explicitly set to {@code null} the recorder falls back to
-     * {@link NoOpUsageRecorder} so the accumulation point always has a non-null
-     * sink.
+     * {@link NoOpUsageRecorder} (usage data discarded — pass-through; a
+     * one-shot WARN at first execution makes the missing metering visible,
+     * MA6.3-AR-4). When explicitly set to {@code null} the recorder falls back
+     * to {@link NoOpUsageRecorder} so the accumulation point always has a
+     * non-null sink. Functional options: {@link SimpleUsageRecorder}
+     * (structured SLF4J log line), {@code DbUsageRecorder} (persistence, L2-18).
      */
     public void setUsageRecorder(IUsageRecorder usageRecorder) {
         this.usageRecorder = usageRecorder != null ? usageRecorder : NoOpUsageRecorder.noOp();
+        // A later re-wire may replace a NoOp default; allow the WARN to fire
+        // again only if the newly wired recorder is still NoOp.
+        this.usageRecorderNoOpWarned = false;
     }
 
     public IUsageRecorder getUsageRecorder() {
@@ -3225,6 +3258,12 @@ public class DefaultAgentEngine implements IAgentEngine {
      */
     IAgentExecutor resolveExecutor(AgentModel model, IToolAccessChecker toolAccessChecker,
                                    IPathAccessChecker pathAccessChecker) {
+        // MA6.3-AR-4: make the NoOp usage-recorder default observable instead
+        // of silent. Fired lazily at first execution (not at construction):
+        // the Builder wiring sequence (constructor → applyTo → build) would
+        // otherwise emit a spurious WARN for an engine that wires a real
+        // recorder after construction. One-shot per engine instance.
+        warnIfNoOpUsageRecorder();
         String mode = model.getMode();
         if (mode == null || mode.isEmpty() || "react".equals(mode)) {
             DefaultHookRegistry hookRegistry = DefaultHookRegistry.fromAgentModel(model);

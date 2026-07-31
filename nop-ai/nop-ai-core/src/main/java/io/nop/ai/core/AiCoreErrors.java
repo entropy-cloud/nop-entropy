@@ -54,6 +54,21 @@ public interface AiCoreErrors {
     ErrorCode ERR_AI_SERVICE_HTTP_ERROR =
             define("nop.err.ai.service.http-error", "大语言模型{llmName}调用失败，HTTP状态码={httpStatus}", ARG_LLM_NAME, ARG_HTTP_STATUS);
 
+    /**
+     * Local rate-limit rejection (MA6.3-AR-6): thrown by
+     * {@code ChatServiceImpl.checkRateLimit} when the in-memory token bucket
+     * cannot grant a permit within the configured acquire timeout
+     * ({@code nop.ai.service.rate-limit-acquire-timeout}).
+     *
+     * <p>Deliberately carries {@code ARG_HTTP_STATUS = 429} so
+     * {@code LlmErrorClassifier} classifies it as RATE_LIMITED (retryable with
+     * backoff) — a local quota rejection is exactly the 429 semantic. It must
+     * NEVER carry any other 4xx status: a non-429 4xx would classify as
+     * NON_TRANSIENT and wrongly fail fast (MA6.3-AR-6 adjudication).
+     */
+    ErrorCode ERR_AI_RATE_LIMITED =
+            define("nop.err.ai.service.rate-limited", "大语言模型{llmName}调用被限流（本地配额耗尽）", ARG_LLM_NAME);
+
     ErrorCode ERR_AI_RESULT_IS_EMPTY =
             define("nop.err.ai.service.result-is-empty", "大语言模型返回的结果为空");
 

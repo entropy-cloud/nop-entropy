@@ -21,9 +21,14 @@ import io.nop.api.core.util.ICancelToken;
 import io.nop.core.CoreConstants;
 import io.nop.core.initialize.CoreInitialization;
 import io.nop.core.resource.component.ResourceComponentManager;
+import ch.qos.logback.classic.Level;
+import ch.qos.logback.classic.Logger;
+import ch.qos.logback.classic.spi.ILoggingEvent;
+import ch.qos.logback.core.read.ListAppender;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
+import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -34,8 +39,10 @@ import java.util.concurrent.CompletionStage;
 import java.util.concurrent.Flow;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.stream.Collectors;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -99,6 +106,141 @@ public class TestUsageRecorderWiring {
         IUsageRecorder recorder = engine.getUsageRecorder();
         assertNotNull(recorder, "null setter must fall back to a non-null NoOp default");
         assertTrue(recorder instanceof NoOpUsageRecorder);
+    }
+
+    // ========================================================================
+    // MA6.3-AR-4: NoOp default is observable (one-shot WARN at first
+    // execution), and a Builder-wired functional recorder never produces the
+    // spurious WARN (wiring-timing guard).
+    // ========================================================================
+
+    @Test
+    void noOpDefaultEmitsUsageRecorderWarnAtExecution() throws Exception {
+        Logger engineLogger = (Logger) LoggerFactory.getLogger(DefaultAgentEngine.class);
+        ListAppender<ILoggingEvent> appender = new ListAppender<>();
+        appender.start();
+        engineLogger.addAppender(appender);
+        try {
+            DefaultAgentEngine engine = new DefaultAgentEngine(
+                    singleTurnChatService("hello"), noOpToolManager());
+            assertTrue(engine.getUsageRecorder() instanceof NoOpUsageRecorder,
+                    "Shipped default must be the NoOp pass-through");
+
+            AgentMessageRequest request = new AgentMessageRequest("test-agent", "hi");
+            AgentExecutionResult result = engine.execute(request).toCompletableFuture()
+                    .get(10, TimeUnit.SECONDS);
+            assertEquals(AgentExecStatus.completed, result.getStatus());
+
+            boolean warnSeen = appender.list.stream()
+                    .anyMatch(e -> e.getLevel() == Level.WARN
+                            && e.getFormattedMessage() != null
+                            && e.getFormattedMessage().contains("NoOpUsageRecorder"));
+            assertTrue(warnSeen,
+                    "NoOp usage-recorder default must emit a WARN at first execution "
+                            + "(MA6.3-AR-4 — no silent metering gap). Messages: "
+                            + appender.list.stream().map(ILoggingEvent::getFormattedMessage)
+                                    .collect(Collectors.toList()));
+        } finally {
+            engineLogger.detachAppender(appender);
+            appender.stop();
+        }
+    }
+
+    @Test
+    void builderWiredFunctionalRecorderDoesNotEmitUsageRecorderWarn() throws Exception {
+        Logger engineLogger = (Logger) LoggerFactory.getLogger(DefaultAgentEngine.class);
+        ListAppender<ILoggingEvent> appender = new ListAppender<>();
+        appender.start();
+        engineLogger.addAppender(appender);
+        try {
+            RecordingUsageRecorder recorder = new RecordingUsageRecorder();
+            DefaultAgentEngine engine = DefaultAgentEngine.builder(
+                            singleTurnChatService("hello"), noOpToolManager())
+                    .usageRecorder(recorder)
+                    .build();
+
+            AgentMessageRequest request = new AgentMessageRequest("test-agent", "hi");
+            AgentExecutionResult result = engine.execute(request).toCompletableFuture()
+                    .get(10, TimeUnit.SECONDS);
+            assertEquals(AgentExecStatus.completed, result.getStatus());
+
+            // Anti-false-positive: the Builder path wires the recorder AFTER
+            // construction; the WARN must fire only when the FINAL resolved
+            // recorder is NoOp — never for a Builder-wired functional one.
+            boolean warnSeen = appender.list.stream()
+                    .anyMatch(e -> e.getLevel() == Level.WARN
+                            && e.getFormattedMessage() != null
+                            && e.getFormattedMessage().contains("NoOpUsageRecorder"));
+            assertFalse(warnSeen,
+                    "Builder-wired functional recorder must NOT produce the NoOp usage-recorder WARN. Messages: "
+                            + appender.list.stream().map(ILoggingEvent::getFormattedMessage)
+                                    .collect(Collectors.toList()));
+        } finally {
+            engineLogger.detachAppender(appender);
+            appender.stop();
+        }
+    }
+
+    @Test
+    void simpleUsageRecorderEmitsStructuredLogLine() {
+        Logger recorderLogger = (Logger) LoggerFactory.getLogger(SimpleUsageRecorder.class);
+        ListAppender<ILoggingEvent> appender = new ListAppender<>();
+        appender.start();
+        recorderLogger.addAppender(appender);
+        try {
+            SimpleUsageRecorder recorder = new SimpleUsageRecorder();
+            UsageRecord record = new UsageRecord();
+            record.setSessionId("s1");
+            record.setAgentName("test-agent");
+            record.setRequestId("req-1");
+            record.setAiProvider("test-provider");
+            record.setAiModel("test-model");
+            record.setPromptTokens(100);
+            record.setCompletionTokens(20);
+            record.setResponseDurationMs(42L);
+            record.setResponseTimestamp(12345L);
+            recorder.record(record);
+
+            List<ILoggingEvent> infos = appender.list.stream()
+                    .filter(e -> e.getLevel() == Level.INFO
+                            && e.getFormattedMessage() != null
+                            && e.getFormattedMessage().contains("nop.ai.agent.usage-record"))
+                    .collect(Collectors.toList());
+            assertEquals(1, infos.size(),
+                    "SimpleUsageRecorder must emit exactly one structured log line");
+            String line = infos.get(0).getFormattedMessage();
+            assertTrue(line.contains("sessionId=s1"), "line must carry sessionId: " + line);
+            assertTrue(line.contains("agentName=test-agent"), "line must carry agentName: " + line);
+            assertTrue(line.contains("requestId=req-1"), "line must carry requestId: " + line);
+            assertTrue(line.contains("aiProvider=test-provider"), "line must carry aiProvider: " + line);
+            assertTrue(line.contains("aiModel=test-model"), "line must carry aiModel: " + line);
+            assertTrue(line.contains("promptTokens=100"), "line must carry promptTokens: " + line);
+            assertTrue(line.contains("completionTokens=20"), "line must carry completionTokens: " + line);
+        } finally {
+            recorderLogger.detachAppender(appender);
+            appender.stop();
+        }
+    }
+
+    private static IChatService singleTurnChatService(String content) {
+        return new IChatService() {
+            @Override
+            public CompletionStage<ChatResponse> callAsync(ChatRequest request, ICancelToken cancelToken) {
+                return CompletableFuture.completedFuture(ChatResponse.success(
+                        new ChatAssistantMessage(content)));
+            }
+
+            @Override
+            public ChatResponse call(ChatRequest request, ICancelToken cancelToken) {
+                return ChatResponse.success(new ChatAssistantMessage(content));
+            }
+
+            @Override
+            public Flow.Publisher<ChatStreamChunk> callStream(ChatRequest request, ICancelToken cancelToken) {
+                return subscriber -> {
+                };
+            }
+        };
     }
 
     @Test

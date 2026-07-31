@@ -125,36 +125,61 @@ public class TestStandardRetryPolicy {
     }
 
     // ========================================================================
-    // Exponential backoff formula and cap
+    // Exponential backoff formula, cap and full jitter (MA6.3-AR-5)
     // ========================================================================
 
     @Test
-    void backoffIsExponential() {
+    void backoffStaysWithinJitterRange() {
         StandardRetryPolicy p = new StandardRetryPolicy(5, 100L, 10_000L);
-        // attempt 0 → 100 * 2^0 = 100
-        assertEquals(100L, p.shouldRetry(ctx(0, ErrorClassification.TRANSIENT)).getDelayMs(),
-                "attempt 0 backoff = baseDelay * 2^0 = 100");
-        // attempt 1 → 100 * 2^1 = 200
-        assertEquals(200L, p.shouldRetry(ctx(1, ErrorClassification.TRANSIENT)).getDelayMs(),
-                "attempt 1 backoff = baseDelay * 2^1 = 200");
-        // attempt 2 → 100 * 2^2 = 400
-        assertEquals(400L, p.shouldRetry(ctx(2, ErrorClassification.TRANSIENT)).getDelayMs(),
-                "attempt 2 backoff = baseDelay * 2^2 = 400");
-        // attempt 3 → 100 * 2^3 = 800
-        assertEquals(800L, p.shouldRetry(ctx(3, ErrorClassification.TRANSIENT)).getDelayMs(),
-                "attempt 3 backoff = baseDelay * 2^3 = 800");
+        // Full jitter: delay is uniformly random in [0, min(base*2^attempt, max)].
+        // The deterministic formula is the upper bound, never an exact value.
+        assertDelayInRange(p.shouldRetry(ctx(0, ErrorClassification.TRANSIENT)).getDelayMs(),
+                0L, 100L, "attempt 0 upper bound = baseDelay * 2^0 = 100");
+        assertDelayInRange(p.shouldRetry(ctx(1, ErrorClassification.TRANSIENT)).getDelayMs(),
+                0L, 200L, "attempt 1 upper bound = baseDelay * 2^1 = 200");
+        assertDelayInRange(p.shouldRetry(ctx(2, ErrorClassification.TRANSIENT)).getDelayMs(),
+                0L, 400L, "attempt 2 upper bound = baseDelay * 2^2 = 400");
+        assertDelayInRange(p.shouldRetry(ctx(3, ErrorClassification.TRANSIENT)).getDelayMs(),
+                0L, 800L, "attempt 3 upper bound = baseDelay * 2^3 = 800");
     }
 
     @Test
-    void backoffCappedAtMaxDelay() {
-        // baseDelay=1000, maxDelay=3000 → attempt 0=1000, 1=2000, 2=4000 capped to 3000
+    void backoffJitterUpperBoundCappedAtMaxDelay() {
+        // baseDelay=1000, maxDelay=3000 → upper bound: attempt 0=1000, 1=2000,
+        // 2=4000 capped to 3000. Every sample must stay within [0, cap].
         StandardRetryPolicy p = new StandardRetryPolicy(5, 1000L, 3000L);
-        assertEquals(1000L, p.shouldRetry(ctx(0, ErrorClassification.TRANSIENT)).getDelayMs());
-        assertEquals(2000L, p.shouldRetry(ctx(1, ErrorClassification.TRANSIENT)).getDelayMs());
-        assertEquals(3000L, p.shouldRetry(ctx(2, ErrorClassification.TRANSIENT)).getDelayMs(),
-                "attempt 2 backoff must be capped at maxDelay=3000");
-        assertEquals(3000L, p.shouldRetry(ctx(3, ErrorClassification.TRANSIENT)).getDelayMs(),
-                "attempt 3 backoff must stay capped at maxDelay=3000");
+        assertDelayInRange(p.shouldRetry(ctx(0, ErrorClassification.TRANSIENT)).getDelayMs(),
+                0L, 1000L, "attempt 0 upper bound = baseDelay = 1000");
+        assertDelayInRange(p.shouldRetry(ctx(1, ErrorClassification.TRANSIENT)).getDelayMs(),
+                0L, 2000L, "attempt 1 upper bound = 2000");
+        assertDelayInRange(p.shouldRetry(ctx(2, ErrorClassification.TRANSIENT)).getDelayMs(),
+                0L, 3000L, "attempt 2 upper bound must be capped at maxDelay=3000");
+        assertDelayInRange(p.shouldRetry(ctx(3, ErrorClassification.TRANSIENT)).getDelayMs(),
+                0L, 3000L, "attempt 3 upper bound must stay capped at maxDelay=3000");
+    }
+
+    @Test
+    void backoffJitterProducesDifferentValues() {
+        // Real randomness (not a constant offset): across many draws over the
+        // range [0, 800] (attempt 3, baseDelay=100 → cap 100*2^3=800), observing
+        // at least two distinct values. The probability of all draws landing on
+        // the same value is negligible ((1/801)^100 per value), so this is a
+        // stable anti-hollow assertion: jitter must be a real random source,
+        // not a deterministic shift. (attempt 3 < maxAttempts-1=4 → RETRY.)
+        StandardRetryPolicy p = new StandardRetryPolicy(5, 100L, 10_000L);
+        long first = p.shouldRetry(ctx(3, ErrorClassification.TRANSIENT)).getDelayMs();
+        assertTrue(first >= 0 && first <= 800L, "delay must stay in [0, 800]: " + first);
+        boolean sawDifferent = false;
+        for (int i = 0; i < 100; i++) {
+            long next = p.shouldRetry(ctx(3, ErrorClassification.TRANSIENT)).getDelayMs();
+            assertTrue(next >= 0 && next <= 800L, "delay must stay in [0, 800]: " + next);
+            if (next != first) {
+                sawDifferent = true;
+                break;
+            }
+        }
+        assertTrue(sawDifferent,
+                "Full jitter must produce different values across repeated calls (real random source)");
     }
 
     @Test
@@ -163,6 +188,11 @@ public class TestStandardRetryPolicy {
         assertEquals(0L, p.shouldRetry(ctx(0, ErrorClassification.TRANSIENT)).getDelayMs(),
                 "baseDelay=0 means retry immediately (no wait)");
         assertTrue(p.shouldRetry(ctx(0, ErrorClassification.TRANSIENT)).isRetry());
+    }
+
+    private static void assertDelayInRange(long delay, long min, long max, String message) {
+        assertTrue(delay >= min && delay <= max,
+                message + " — actual delay: " + delay);
     }
 
     private static RetryContext ctx(int attempt, ErrorClassification classification) {

@@ -44,9 +44,11 @@ import java.util.concurrent.Flow;
 import java.util.concurrent.SubmissionPublisher;
 
 import static io.nop.ai.core.AiCoreConfigs.CFG_AI_SERVICE_LOG_MESSAGE;
+import static io.nop.ai.core.AiCoreConfigs.CFG_AI_SERVICE_RATE_LIMIT_ACQUIRE_TIMEOUT;
 import static io.nop.ai.core.AiCoreConfigs.CFG_AI_SERVICE_READ_TIMEOUT;
 import static io.nop.ai.core.AiCoreErrors.ARG_HTTP_STATUS;
 import static io.nop.ai.core.AiCoreErrors.ARG_LLM_NAME;
+import static io.nop.ai.core.AiCoreErrors.ERR_AI_RATE_LIMITED;
 import static io.nop.ai.core.AiCoreErrors.ERR_AI_SERVICE_HTTP_ERROR;
 import static io.nop.ai.core.AiCoreErrors.ERR_AI_SERVICE_NO_BASE_URL;
 
@@ -238,9 +240,19 @@ public class ChatServiceImpl implements IChatService {
     }
 
     /**
-     * 检查并应用速率限制
+     * 检查并应用速率限制（MA6.3-AR-6）：限时 {@code tryAcquire} 替代旧的无限阻塞
+     * {@code acquire()}——配额耗尽时在 {@code nop.ai.service.rate-limit-acquire-timeout}
+     * 内等待许可，超时抛 {@code ERR_AI_RATE_LIMITED}（携带 httpStatus=429，经
+     * {@code LlmErrorClassifier} 判为 RATE_LIMITED 可重试，与上层 ReAct 重试循环联动）。
+     * 失败面不静默：错误可被上层观察/重试。
+     *
+     * <p>per-tenant 配额：当前实现无 tenant 身份来源（无 ITenantResolver、无请求头解析），
+     * 按 MA6.3-AR-6 裁定为<b>文档化扩展点</b>——子类可覆盖
+     * {@link #createRateLimiter(double)}（按需 per-tenant key 建 limiter）或本方法
+     * 引入自己的租户维度；跨 JVM 分布式限流同样为文档化扩展点（替换
+     * {@code IRateLimiter} 实现即可，接口已抽象 tryAcquire 语义）。
      */
-    private void checkRateLimit(String provider, LlmModel config) {
+    void checkRateLimit(String provider, LlmModel config) {
         if (config.getRateLimit() == null) {
             return;
         }
@@ -250,7 +262,12 @@ public class ChatServiceImpl implements IChatService {
             return createRateLimiter(config.getRateLimit());
         });
 
-        rateLimiter.acquire();
+        long timeoutMs = CFG_AI_SERVICE_RATE_LIMIT_ACQUIRE_TIMEOUT.get();
+        if (!rateLimiter.tryAcquire(1, timeoutMs)) {
+            throw new NopException(ERR_AI_RATE_LIMITED)
+                    .param(ARG_LLM_NAME, provider)
+                    .param(ARG_HTTP_STATUS, 429);
+        }
     }
 
     private boolean shouldLogMessage(LlmModel config) {

@@ -34,6 +34,29 @@ public class TestLlmErrorClassifier {
     }
 
     @Test
+    void rateLimitedErrorCarrying429ParamClassifiesAsRateLimited() {
+        // MA6.3-AR-6 linkage: ChatServiceImpl/DefaultAiChatService throw
+        // ERR_AI_RATE_LIMITED carrying httpStatus=429 (local quota rejection
+        // with 429 semantics). The classifier must map it to RATE_LIMITED
+        // (retryable with backoff) — never NON_TRANSIENT.
+        NopException ex = new NopException(AiCoreErrors.ERR_AI_RATE_LIMITED)
+                .param(AiCoreErrors.ARG_LLM_NAME, "test-provider")
+                .param(ARG_HTTP_STATUS, 429);
+        assertEquals(ErrorClassification.RATE_LIMITED, LlmErrorClassifier.classify(ex),
+                "ERR_AI_RATE_LIMITED (httpStatus=429) must classify as RATE_LIMITED (retryable)");
+    }
+
+    @Test
+    void rateLimitedErrorWithoutHttpStatusClassifiesAsTransient() {
+        // Safety net: if the ERR_AI_RATE_LIMITED error ever lost its
+        // httpStatus param, the unknown-error default (TRANSIENT) still keeps
+        // it retryable — the classification never wrongly fails fast.
+        NopException ex = new NopException(AiCoreErrors.ERR_AI_RATE_LIMITED)
+                .param(AiCoreErrors.ARG_LLM_NAME, "test-provider");
+        assertEquals(ErrorClassification.TRANSIENT, LlmErrorClassifier.classify(ex));
+    }
+
+    @Test
     void http500ClassifiesAsTransient() {
         assertEquals(ErrorClassification.TRANSIENT,
                 LlmErrorClassifier.classify(httpError(500)));
