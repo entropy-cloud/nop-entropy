@@ -10,8 +10,18 @@ import io.nop.core.resource.impl.FileResource;
 import java.io.File;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.regex.Pattern;
 
 public class ChatLogHelper {
+
+    /**
+     * Same allow-list as nop-ai-agent's
+     * {@code SessionIds.requireValidIdentifier} (MA6.5-AR-9): the caller-
+     * supplied sessionId is embedded into the log file path, so any character
+     * outside [A-Za-z0-9_-] would allow path traversal outside the log dir.
+     */
+    private static final Pattern SAFE_SESSION_ID = Pattern.compile("^[A-Za-z0-9_-]+$");
+
     public static IResource getSessionResource(String dir, ChatRequest request, String postfix) {
         String sessionId = makeSessionId(request);
         LocalDate date = CoreMetrics.currentDate();
@@ -30,6 +40,7 @@ public class ChatLogHelper {
             sessionId = StringHelper.generateUUID();
             exchange.setExchangeId(sessionId);
         }
+        requireValidSessionId(sessionId);
         LocalDate date = CoreMetrics.currentDate();
         String today = date.getYear() + "/" + StringHelper.padInt(date.getMonthValue(), 2)
                 + "-" + StringHelper.padInt(date.getDayOfMonth(), 2);
@@ -45,6 +56,19 @@ public class ChatLogHelper {
             sessionId = prefix + '-' + StringHelper.generateUUID();
             request.getOptions().setSessionId(sessionId);
         }
+        requireValidSessionId(sessionId);
         return sessionId;
+    }
+
+    static void requireValidSessionId(String sessionId) {
+        if (sessionId == null || sessionId.isEmpty()) {
+            throw new IllegalArgumentException(
+                    "sessionId must not be null or empty (path-traversal guard)");
+        }
+        if (!SAFE_SESSION_ID.matcher(sessionId).matches()) {
+            throw new IllegalArgumentException(
+                    "sessionId contains invalid characters; only [A-Za-z0-9_-] are allowed "
+                            + "(path-traversal guard): sessionId=" + sessionId);
+        }
     }
 }

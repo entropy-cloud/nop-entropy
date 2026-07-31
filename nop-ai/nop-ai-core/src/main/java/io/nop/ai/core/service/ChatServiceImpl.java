@@ -107,7 +107,7 @@ public class ChatServiceImpl implements IChatService {
         if (request.getRequestId() == null)
             request.setRequestId(StringHelper.generateUUID());
 
-        boolean logMessage = CFG_AI_SERVICE_LOG_MESSAGE.get();
+        boolean logMessage = shouldLogMessage(config);
         if (logMessage) {
             chatLogger.logRequest(request);
         }
@@ -149,7 +149,7 @@ public class ChatServiceImpl implements IChatService {
         if (request.getRequestId() == null)
             request.setRequestId(StringHelper.generateUUID());
 
-        boolean logMessage = CFG_AI_SERVICE_LOG_MESSAGE.get();
+        boolean logMessage = shouldLogMessage(config);
         if (logMessage) {
             chatLogger.logRequest(request);
         }
@@ -253,6 +253,10 @@ public class ChatServiceImpl implements IChatService {
         rateLimiter.acquire();
     }
 
+    private boolean shouldLogMessage(LlmModel config) {
+        return CFG_AI_SERVICE_LOG_MESSAGE.get() && config.isLogMessage();
+    }
+
     /**
      * 创建速率限制器（可由子类覆盖）
      */
@@ -266,6 +270,9 @@ public class ChatServiceImpl implements IChatService {
     protected CompletionStage<ChatResponse> aggregateStreamToResponse(ChatRequest request, ICancelToken cancelToken) {
         StreamAggregator aggregator = new StreamAggregator();
         CompletableFuture<ChatResponse> future = new CompletableFuture<>();
+
+        boolean logMessage = shouldLogMessage(
+                LlmConfigHelper.loadConfig(LlmConfigHelper.getProvider(request.getOptions())));
 
         callStream(request, cancelToken).subscribe(new Flow.Subscriber<ChatStreamChunk>() {
             @Override
@@ -289,7 +296,6 @@ public class ChatServiceImpl implements IChatService {
                 response.setRequestId(request.getRequestId());
                 response.setResponseTime(CoreMetrics.currentTimeMillis());
 
-                boolean logMessage = CFG_AI_SERVICE_LOG_MESSAGE.get();
                 if (logMessage) {
                     chatLogger.logResponse(request, response);
                 }

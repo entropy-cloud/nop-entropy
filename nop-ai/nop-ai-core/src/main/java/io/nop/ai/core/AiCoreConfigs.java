@@ -13,9 +13,11 @@ public interface AiCoreConfigs {
     IConfigReference<String> CFG_AI_SERVICE_DEFAULT_LLM =
             varRef(s_loc, "nop.ai.service.default-llm", String.class, null);
 
-    @Description("LLM引擎执行时是否自动打印所有请求和响应消息")
+    @Description("LLM引擎执行时是否自动打印所有请求和响应消息。"
+            + "全局默认关闭（安全，凭据脱敏见 DefaultChatLogger）；"
+            + "开启需显式配置为 true，且单模型可经 llm 配置 logMessage=false 覆盖关闭")
     IConfigReference<Boolean> CFG_AI_SERVICE_LOG_MESSAGE =
-            varRef(s_loc, "nop.ai.service.log-message", Boolean.class, true);
+            varRef(s_loc, "nop.ai.service.log-message", Boolean.class, false);
 
     @Description("LLM引擎采用mock方式执行时所使用的输入输出目录")
     IConfigReference<String> CFG_AI_SERVICE_MOCK_DIR =
@@ -37,4 +39,9 @@ public interface AiCoreConfigs {
             + "默认关闭以兼容历史明文文件；开启后新写入内容加密，旧明文文件仍可读取")
     IConfigReference<Boolean> CFG_AI_PERSIST_EXCHANGE_ENCRYPT =
             varRef(s_loc, "nop.ai.persist.exchange-encrypt", Boolean.class, false);
+
+    @Description("AiChat 响应缓存的过期时间（秒），0=永不过期（兼容默认）。"
+            + "读取时惰性过期：缓存条目超过 TTL 视为 miss 并删除，不主动清扫")
+    IConfigReference<Long> CFG_AI_SERVICE_CACHE_TTL =
+            varRef(s_loc, "nop.ai.service.cache-ttl", Long.class, 0L);
 }

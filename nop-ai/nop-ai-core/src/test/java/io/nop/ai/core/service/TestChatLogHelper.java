@@ -17,6 +17,7 @@ import java.nio.file.Files;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class TestChatLogHelper extends JunitBaseTestCase {
@@ -166,5 +167,44 @@ public class TestChatLogHelper extends JunitBaseTestCase {
         String sessionId = ChatLogHelper.makeSessionId(request);
         assertNotNull(sessionId);
         assertEquals(sessionId, request.getOptions().getSessionId());
+    }
+
+    @Test
+    public void testMakeSessionIdAcceptsValidCallerSessionId() {
+        ChatRequest request = ChatRequest.userPrompt("hello");
+        ChatOptions options = new ChatOptions();
+        options.setSessionId("user-42_abc");
+        request.setOptions(options);
+
+        assertEquals("user-42_abc", ChatLogHelper.makeSessionId(request));
+    }
+
+    @Test
+    public void testMakeSessionIdRejectsPathTraversal() {
+        ChatRequest request = ChatRequest.userPrompt("hello");
+        ChatOptions options = new ChatOptions();
+        options.setSessionId("../etc/passwd");
+        request.setOptions(options);
+
+        assertThrows(IllegalArgumentException.class, () -> ChatLogHelper.makeSessionId(request),
+                "path-traversal sessionId must be rejected (MA6.5-AR-9)");
+    }
+
+    @Test
+    public void testMakeSessionIdRejectsSlashesAndDots() {
+        assertThrows(IllegalArgumentException.class, () -> {
+            ChatRequest request = ChatRequest.userPrompt("hello");
+            ChatOptions options = new ChatOptions();
+            options.setSessionId("a/b");
+            request.setOptions(options);
+            ChatLogHelper.makeSessionId(request);
+        });
+        assertThrows(IllegalArgumentException.class, () -> {
+            ChatRequest request = ChatRequest.userPrompt("hello");
+            ChatOptions options = new ChatOptions();
+            options.setSessionId("..");
+            request.setOptions(options);
+            ChatLogHelper.makeSessionId(request);
+        });
     }
 }

@@ -12,6 +12,7 @@
 
     <bean id="nopAiChatResponseCache" class="io.nop.ai.core.persist.DefaultAiChatResponseCache" ioc:default="true">
         <property name="cacheDir" value="/nop/ai/cache"/>
+        <property name="cacheTtlSeconds" value="@cfg:nop.ai.service.cache-ttl|0"/>
         <property name="chatExchangePersister" ref="nopAiChatExchangePersister"/>
     </bean>
 

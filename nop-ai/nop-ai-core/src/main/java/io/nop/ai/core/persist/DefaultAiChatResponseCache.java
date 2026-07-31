@@ -16,10 +16,22 @@ public class DefaultAiChatResponseCache implements IAiChatResponseCache {
 
     private String cacheDir;
 
+    private long cacheTtlSeconds;
+
     private IAiChatExchangePersister chatExchangePersister;
 
     public void setCacheDir(String cacheDir) {
         this.cacheDir = cacheDir;
+    }
+
+    /**
+     * Cache entry time-to-live in seconds. 0 (default) means entries never
+     * expire (backward compatible). Expiry is lazy: a cached entry whose
+     * file mtime is older than the TTL is treated as a cache miss on read
+     * and deleted. The cache file format is not modified.
+     */
+    public void setCacheTtlSeconds(long cacheTtlSeconds) {
+        this.cacheTtlSeconds = cacheTtlSeconds;
     }
 
     public void setChatExchangePersister(IAiChatExchangePersister chatExchangePersister) {
@@ -32,10 +44,22 @@ public class DefaultAiChatResponseCache implements IAiChatResponseCache {
         if (!resource.exists())
             return null;
 
+        if (cacheTtlSeconds > 0 && isExpired(resource)) {
+            LOG.info("nop.ai.cache-expired:promptName={},cachedPath={},ttlSeconds={}",
+                    prompt.getName(), resource.getPath(), cacheTtlSeconds);
+            resource.delete();
+            return null;
+        }
+
         LOG.info("nop.ai.use-cached-response:promptName={},cachedPath={}", prompt.getName(), resource.getPath());
         AiChatExchange exchange = chatExchangePersister.load(resource);
         exchange.makeChatOptions().setSessionId(options.getSessionId());
         return exchange;
+    }
+
+    private boolean isExpired(IResource resource) {
+        long ageMs = System.currentTimeMillis() - resource.lastModified();
+        return ageMs > cacheTtlSeconds * 1000L;
     }
 
     @Override
