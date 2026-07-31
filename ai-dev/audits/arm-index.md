@@ -4,7 +4,7 @@
 > 目标模块组：nop-ai（18 子模块，排除 MCP——MCP 协议集成模块，独立发布周期，需单独审计）
 > 总览：ai-dev/backlog/audit-remediation-roadmap.md
 > 维度矩阵：arm-audit-dimension-matrix.md
-> 状态汇总：已完成 32 | 进行中 0 | 待办 0 | P0 未解决 0
+> 状态汇总：已完成 32 | 进行中 0 | 待办 0 | P0 未解决 0 | **MV 已收口（2026-07-31）**
 
 ## 报告清单
 
@@ -58,7 +58,7 @@
 | P1-MA1-002 (原 F02) | MA1.1-MA1.2 | 废弃并行 API 体系未清理（IAiChatService 等） | MR1 | fixed |
 | P1-MA5-001 (原 F03) | MA5.2/MA5.1 交叉 | `DefaultAiChatService.getSession()` 始终返回 null | — | `fixed`（审计中修改为 throw UnsupportedOperationException） |
 | P1-MA5-002 (原 F04) | MA5.2 | `BashExecutor` 子线程流读取空 catch | MR2 | fixed |
-| P1-MA5-003 (原 F05) | MA5.1 | IVectorStore / IEmbeddingModel / ITokenCountEstimator 接口无生产实现 | MR3 | `fixed` |
+| P1-MA5-003 (原 F05) | MA5.1 | IVectorStore / IEmbeddingModel / ITokenCountEstimator 接口无生产实现 | MR3→MV | `fixed`（MV 裁定为 SPI 扩展点契约，见 §MV 矩阵） |
 | P1-MA2-002 | MA2.1 | NopAiProject 缺失审计传播属性 | MR1 | fixed |
 | P1-MA2-003 | MA2.1 | NopAiRequirement version 字段类型冲突（VARCHAR vs 乐观锁 int） | MR1 | fixed |
 | P1-MA2-004 | MA2.1 | NopAiSessionContext refPropName="context" 应为 "contexts" | MR1 | fixed |
@@ -146,8 +146,9 @@ MR1/MR2/MR3 重叠 fix-surface 逐一裁决，结论如下（live repo 状态一
 
 MR4 Phase 2 对 P1 表全部 `fixed` 行做了 live repo 证据核验（提交/测试文件/代码路径）。结果：
 
-- **可证实（47 行）**：P1-MA1-001/002/003（文档化决策）、P1-MA5-001/002/003、P1-MA2-002/003/004/014/018/023/024、P1-MA5.3-001/002、P1-MA1-010/017/018/019/031/032/033、P1-MA3-020/021/022/001/002/01/02、P1-MA5.4-001、P1-MA5.5-001/002/003/004、P1-MA5.6-001、P1-MA5.7-001（MR3 文档化关闭：ON_ERROR 回落到引擎默认处理，PRE_/BEFORE_ rethrow，live 有 re-entry 限制 + LOG.warn）、P1-MA6.1-001/002/003/004、P1-MA6.2-001/002/003/004、P1-MA6.3-001/002、P1-MA6.4-001/002/003、P1-MA6.5-001/004/005。证据：@Deprecated(forRemoval=true)、canonical path 校验、AiCoreErrors 模板、ERR_AI_TOOLS_INVALID_THOUGHT、ChatOptionsHelper/TokenEstimators、yaml 占位符、Gemini x-api-key header、NopAiModelOutputBean 无 apiKey 字段、volatile 字段、validateUrl/isPrivateIp、setTimeout(CFG_AI_SERVICE_READ_TIMEOUT)、StandardRetryPolicy/ThresholdBreaker 默认、tenantId 字段、ChatSystemMessage 隔离、PathAccessChecker 遍历防御、guardrail WARN-on-noop 等。
-- **无法证实 / 已在本轮修复或裁定（3 行）**：
+- **可证实（46 行）**：P1-MA1-001/002/003（文档化决策）、P1-MA5-001/002、P1-MA2-002/003/004/014/018/023/024、P1-MA5.3-001/002、P1-MA1-010/017/018/019/031/032/033、P1-MA3-020/021/022/001/002/01/02、P1-MA5.4-001、P1-MA5.5-001/002/003/004、P1-MA5.6-001、P1-MA5.7-001（MR3 文档化关闭：ON_ERROR 回落到引擎默认处理，PRE_/BEFORE_ rethrow，live 有 re-entry 限制 + LOG.warn）、P1-MA6.1-001/002/003/004、P1-MA6.2-001/002/003/004、P1-MA6.3-001/002、P1-MA6.4-001/002/003、P1-MA6.5-001/004/005。证据：@Deprecated(forRemoval=true)、canonical path 校验、AiCoreErrors 模板、ERR_AI_TOOLS_INVALID_THOUGHT、yaml 占位符、Gemini x-api-key header、NopAiModelOutputBean 无 apiKey 字段、volatile 字段、validateUrl/isPrivateIp、setTimeout(CFG_AI_SERVICE_READ_TIMEOUT)、StandardRetryPolicy/ThresholdBreaker 默认、tenantId 字段、ChatSystemMessage 隔离、PathAccessChecker 遍历防御、guardrail WARN-on-noop 等。
+- **无法证实 / 已在本轮修复或裁定（3 行）**：P1-MA2-005（裁定见下）、P1-MA6.5-002（MR4 已修复）、P1-MA6.5-003（裁定见下）。
+- **MV closure audit 纠正（1 行）**：P1-MA5-003 原列"生产实现存在（ChatOptionsHelper/TokenEstimators）"为**误标**——`TokenEstimators.defaultEstimator()` 返回 `CalibratedTokenEstimator implements ITokenEstimator`（agent 层接口），非 `ITokenCountEstimator`；三个 core SPI 接口（`IVectorStore`/`IEmbeddingModel`/`ITokenCountEstimator`）自初始提交起无任何生产实现，MR3 声称的 UOE 也未落地（接口文件未被 MR3/MR4 提交触及）。**MV 裁定为 SPI 扩展点契约**（对应 MA5.1 建议 #2）：接口 javadoc 已明确 SPI 定位 + "集成方提供实现、消费方装配快速失败"，agent 层 token 计量走 `ITokenEstimator`。行状态更新见下方案矩阵。
 
 ### P1-MA2-005（`_dao.beans.xml` 空 bean 文件无解释注释）
 
@@ -169,4 +170,87 @@ MR4 Phase 2 对 P1 表全部 `fixed` 行做了 live repo 证据核验（提交/�
 ### P1-MA6.5-001（用户消息净化 — 状态澄清）
 
 - **裁定**：live 状态为"可配置 guardrail hook（`IContentGuardrail`）+ NoOp 默认时构造期 WARN 提示"（MR3 决定：pass-through with log warning），audit 建议的 fail-closed 未实现 — 属 MR3 已记录的决策，非 overclaim。**行状态：`fixed`（按 MR3 决策）**。
+
+## P0/P1 可追溯性矩阵（MV 2026-07-31）
+
+> 由 MV plan（`ai-dev/plans/2026-07-31-1024-2-arm-mv-validation.md`）Phase 2 生成。列含义：
+> **修复路径** = 落地该 finding 的 plan / 提交；**证据** = 可核查的测试文件、代码路径或裁定记录（含 MR4 裁决）。
+> 状态列：`fixed` = 有修复证据；`open` = 无证据（本矩阵中为 0）。
+> MR4 `§MR4 P1 表逐行核验` 提供逐行证据核验记录；`§MR4 裁定` 提供 5 个重叠 fix-surface 的最终裁定。
+> MV closure audit（2026-07-31）纠正 1 行：P1-MA5-003 由"生产实现存在"更正为 SPI 扩展点契约裁定（见 §MR4 P1 表逐行核验"MV closure audit 纠正"段）。
+
+### P0 可追溯性
+
+| Finding ID | 修复路径 | 证据 | 状态 |
+|-----------|---------|------|------|
+| P0-MA2-01（双 ORM 源文件漂移） | plan `2026-07-30-2130-arm-fix-p0-ma2-01.md`；commit `ed3a8957c` | `ai-gen.orm.xml` 标记为 archive/golden snapshot，`nop-ai.orm.xml` 为唯一 live 源模型；MR4 §1 apiKey 裁定再次确认单源（生成物 `_NopAiModel.xmeta` 与源一致） | `fixed` |
+| P0-MA6-01（Gemini apiKey URL 明文） | MR3 plan `2026-07-31-1300-5-arm-mr3-fix.md`；commit `1d97354e7` | `GeminiDialect.buildUrl()` 移除 query 参数明文 apiKey → `x-api-key` header（MR4 §3 裁定确认）；全量 build+test 通过 | `fixed` |
+
+### P1 可追溯性（61 行，open = 0）
+
+| Finding ID | 修复路径 | 证据 | 状态 |
+|-----------|---------|------|------|
+| P1-MA1-001 | MA1.1 审计就地修复 | `nop-diff` 未使用依赖移除；MR4 核验：文档化决策 | `fixed` |
+| P1-MA1-002 | MR1 | `IAiChatService` 等废弃 API `@Deprecated(forRemoval=true)`（MR4 §3 裁定） | `fixed` |
+| P1-MA5-001 | 审计就地修复 | `DefaultAiChatService.getSession()` 改为 `throw UnsupportedOperationException`（快速失败，MR4 核验） | `fixed` |
+| P1-MA5-002 | MR2（commit `e858fadb0`） | `BashExecutor` 子线程流读取空 catch → `LOG.warn`（MR4 §2 裁定） | `fixed` |
+| P1-MA5-003 | MR3 → MV 裁定（SPI） | `IVectorStore`/`IEmbeddingModel`/`ITokenCountEstimator` 裁定为 SPI 扩展点（MA5.1 建议 #2）：接口 javadoc 明确"平台无生产实现属设计意图，集成方提供实现；消费方构造注入缺失时装配快速失败"；`EmbeddingModelBasedClassifier` 构造注入 `IEmbeddingModel`；agent 层 token 计量走 `ITokenEstimator`（`CalibratedTokenEstimator`，MR4 核验）。MR3 原声称"生产实现存在/UOE 已加"为 overclaim，MV closure audit 纠正为 SPI 裁定 | `fixed`（裁定为 SPI 契约） |
+| P1-MA2-002 | MR1 | `NopAiProject` 审计传播属性（ORM 源模型） | `fixed` |
+| P1-MA2-003 | MR1 | `NopAiRequirement.version` 类型冲突（VARCHAR→int 乐观锁） | `fixed` |
+| P1-MA2-004 | MR1 | `refPropName="contexts"`（MR4 §5 裁定 live 双向匹配） | `fixed` |
+| P1-MA2-005 | MR4 裁定 | `_dao.beans.xml` 空=设计意图（生成文件，解释落盘 MR4 核验段，非生成物） | `fixed` |
+| P1-MA5.3-001 | MR2（commit `e858fadb0`） | `ChatServiceImpl` 注册 `nopChatService` bean，`ioc:type=io.nop.ai.api.chat.IChatService`（MR4 §3） | `fixed` |
+| P1-MA5.3-002 | MR2 | `DefaultAiChatService` 标废弃但保留向后兼容（MR4 §3 裁定） | `fixed` |
+| P1-MA1-003 | MR1 | `FileToolBizModel` 移除废弃 `IFileOperator` 依赖 | `fixed` |
+| P1-MA1-010 | MR1 | `nop-ai-skills` 增加 IoC bean 注册 | `fixed` |
+| P1-MA1-017 | MR1 | `nop-ai-maven` 模块职责（VFS 非 Maven）修正 | `fixed` |
+| P1-MA1-018 | MR1 | `nop-ai-codegen` 生产代码落地 | `fixed` |
+| P1-MA1-019 | MR1 | postcompile 引用存在的 ORM 模型文件 | `fixed` |
+| P1-MA1-031 | MR1 | `NopAiSessionContext` refPropName 修正（同 MA2-004） | `fixed` |
+| P1-MA1-032 | MR1 | 命名约定统一（MR4 §4 裁定落地为平台 `bizObjName:action` 约定） | `fixed` |
+| P1-MA1-033 | MR1 | 重复 ORM session/message 模型收敛 | `fixed` |
+| P1-MA2-014 | MR1 | XDSL codegen 输出可验证 | `fixed` |
+| P1-MA2-018 | MR1 | 9 个废弃 snake_case dict 文件清理（nop-ai-meta） | `fixed` |
+| P1-MA2-023 | MR1+MR4（commit `249f89cf7`） | apiKey 限制下沉 ORM 源模型 `tagSet="enc,not-query,not-sort,not-pub"`；生成 `_NopAiModel.xmeta` 不再暴露；回归测试 `nop-ai-meta/src/test/java/io/nop/ai/meta/TestNopAiModelApiKeyXmeta.java`（3 方法，MR4 §1） | `fixed` |
+| P1-MA2-024 | MR1 | `NopAiSession` 重复 to-many context/contexts 收敛 | `fixed` |
+| P1-MA3-020 | MR2 | 自定义方法 BizModel 补 `@Auth`（4 类 19 方法：SequentialThinking×3、FileTool×13、AiFileTool×3、NopAiChatResponse×1，落地 `<BizObjName>:<action>`，MR4 §4 裁定） | `fixed` |
+| P1-MA3-021 | MR2+MR4 | apiKey xmeta 暴露限制（与 MA2-023 合并裁定，MR4 §1） | `fixed` |
+| P1-MA3-022 | MR2 | `LocalFileOperator.resolveFile()` canonical path 校验（MR4 核验） | `fixed` |
+| P1-MA3-001 | MR2 | `AiCoreErrors.ERR_AI_RESULT_INVALID_NUMBER` 模板修正 `value={value}`（MR4 核验） | `fixed` |
+| P1-MA3-002 | MR2 | `SequentialThinkingBizModel` 改用 `ERR_AI_TOOLS_INVALID_THOUGHT` ErrorCode（MR4 核验） | `fixed` |
+| P1-MA3-01 | MR2 | nop-ai-agent 移除对 core 内部 `ChatOptionsModel` 的依赖 | `fixed` |
+| P1-MA3-02 | MR2 | nop-ai-agent 移除对 core 内部 dialect 包依赖 | `fixed` |
+| P1-MA5.4-001 | MR3 | gateway 双向 dialect 转换完整实现（4 方言） | `fixed` |
+| P1-MA5.5-001 | MR3（commit `1d97354e7`） | `nop-ai-app/application.yaml` JWT enc-key 改占位符（MR4 核验） | `fixed` |
+| P1-MA5.5-002 | MR3 | `nop-ai-coder/tools/application.yaml` 明文 MySQL 密码改占位符 | `fixed` |
+| P1-MA5.5-003 | MR3（commit `1d97354e7`） | Gemini apiKey 走 `x-api-key` header（MR4 §3；同 P0-MA6-01） | `fixed` |
+| P1-MA5.5-004 | MR3（commit `6e3d5958c`、`81852f81d`、`9e7f37750`） | `NopAiModelOutputBean` 重新生成后无 apiKey 字段 + `@JsonIgnore`（MR4 §1 五层一致） | `fixed` |
+| P1-MA5.6-001 | MR3 | `CoreInitialization` 生命周期竞态修复（volatile 字段，MR4 核验） | `fixed` |
+| P1-MA5.7-001 | MR3 | ReActAgentExecutor hook 处理：ON_ERROR 回落到引擎默认、PRE_/BEFORE_ rethrow + 重入限制 + LOG.warn（MR4 核验） | `fixed` |
+| P1-MA6.1-001 | MR3 | `DefaultAiChatService.getApiVersion()` 读取正确配置键 | `fixed` |
+| P1-MA6.1-002 | MR3 | OutputBean apiKey 暴露（与 MA5.5-004 合并修复） | `fixed` |
+| P1-MA6.1-003 | MR3 | `DefaultChatLogger` 日志脱敏 | `fixed` |
+| P1-MA6.1-004 | MR3 | DAO 实体 apiKey 密文存储（`enc` 绑定器；证据：`TestNopAiOrmEntityMapping` enc 列 DB 非明文断言） | `fixed` |
+| P1-MA6.2-001 | MR3 | `HttpRequestExecutor` `validateUrl`/`isPrivateIp` SSRF 防御（MR4 核验） | `fixed` |
+| P1-MA6.2-002 | MR3 | `GraphqlQueryExecutor` endpoint URL 校验 | `fixed` |
+| P1-MA6.2-003 | MR3 | `LocalToolFileSystem.isPathAllowed()` 接线到文件操作 | `fixed` |
+| P1-MA6.2-004 | MR3（commit `9e7f37750`） | `BashExecutor.validateCommand()` + `DESTRUCTIVE_COMMAND` 拒绝；测试 `BashExecutorTest`（MR4 §2） | `fixed` |
+| P1-MA6.3-001 | MR3 | `ChatServiceImpl` `setTimeout(CFG_AI_SERVICE_READ_TIMEOUT)`（MR4 核验） | `fixed` |
+| P1-MA6.3-002 | MR3 | `StandardRetryPolicy`/`ThresholdBreaker` 默认（MR4 核验） | `fixed` |
+| P1-MA6.4-001 | MR3 | `VectorStoreOptions.tenantId` 字段（MR4 核验） | `fixed` |
+| P1-MA6.4-002 | MR3 | `IEmbeddingModel` auth/tenant 上下文 | `fixed` |
+| P1-MA6.4-003 | MR3 | memory adapters 与 `ITenantResolver` 集成 | `fixed` |
+| P1-MA6.5-001 | MR3（决策保留） | guardrail hook `IContentGuardrail` + NoOp 默认 WARN（MR4 澄清：按 MR3 决策） | `fixed` |
+| P1-MA6.5-002 | MR3+MR4（commit `249f89cf7`） | `DefaultAiChatExchangePersister` 可选 AES 加密（`nop.ai.persist.exchange-encrypt` + `### Encrypted ###` 标记 + 旧明文兼容）；测试 `nop-ai-core/src/test/java/io/nop/ai/core/persist/DefaultAiChatExchangePersisterTest.java`（3 方法） | `fixed` |
+| P1-MA6.5-003 | MR3+MR4 | 引擎层 fail-closed 会话鉴权：`SessionIds.requireValidIdentifier` + `requireContainedPath`（MR4 裁定；legacy 绑定由废弃路径覆盖） | `fixed` |
+| P1-MA6.5-004 | MR3 | `ChatSystemMessage` 隔离用户消息（MR4 核验） | `fixed` |
+| P1-MA6.5-005 | MR3 | `DefaultPathAccessChecker` 绝对路径遍历防御（MR4 核验） | `fixed` |
+| MA4.3-01 | MR2+MR4（commit `249f89cf7`） | `nop-ai-api/src/test/java/io/nop/ai/api/chat/TestChatOptions.java`（3 方法，行为断言） | `fixed` |
+| MA4.3-02 | MR4（commit `249f89cf7`） | `nop-ai-dao/src/test/java/io/nop/ai/dao/TestNopAiOrmEntityMapping.java`（5 方法：实体映射/DAO CRUD/enc 绑定器/to-many/21 Biz 接口契约） | `fixed` |
+| MA4.3-03 | MR4 | `nop-ai-service/src/test/java/io/nop/ai/service/entity/TestNopAiBizModelEntityCrud.java`（4 方法覆盖 3 BizModel）+ `TestSequentialThinkingBizModel` + 既有 summarize 测试 | `fixed` |
+| MA4.3-04 | MR4 | `nop-ai-core/src/test/java/io/nop/ai/core/api/embedding/TestCosineSimilarityAndRelevanceScore.java`（8 方法）+ `io/nop/ai/core/api/tool/TestDefaultAiChatFunctionTool.java`（4 方法） | `fixed` |
+| MA4.3-05 | MR2+MR4 | `nop-ai-tools/src/test/java/io/nop/ai/tools/sequential_thinking/service/TestSequentialThinkingBizModel.java`（3 方法，行为断言） | `fixed` |
+| MA4.3-07 | MR4 | `TestNopAiBizModelEntityCrud.java`（4 方法覆盖 NopAiSession/NopAiTodo/NopAiSessionMessage） | `fixed` |
+
+**汇总**：P0 2 条 + P1 61 条，全部 `fixed` 且有证据（测试文件 / 代码路径 / 裁定记录）；`open` = 0。可追溯性证据闭环：MR1/MR2/MR3/MR4 plans（含 commit `1d79e0704`、`e858fadb0`、`1d97354e7`、`9e7f37750`、`249f89cf7`）+ 8 个回归测试文件 + `§MR4 裁定` / `§MR4 P1 表逐行核验` 记录。MV closure audit 纠正 1 行证据（P1-MA5-003 → SPI 裁定，见上方矩阵与 MR4 核验段）。
 

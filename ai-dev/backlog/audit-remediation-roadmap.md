@@ -120,9 +120,9 @@
 
 | # | Work Item | Status | Owner Doc | Deps | Skill |
 |---|-----------|--------|-----------|------|-------|
-| V.1 | 全量 build + test | todo | — | MR4 done | none |
-| V.2 | 独立子代理 closure audit | todo | `ai-dev/audits/arm-index.md` | V.1 | `closure-audit-prompt.md` |
-| V.3 | 所有 P0/P1 finding 可追溯至修复或 deferred | todo | `ai-dev/audits/arm-index.md` | V.2 | `closure-audit-prompt.md` |
+| V.1 | 全量 build + test | done | — | MR4 done | none |
+| V.2 | 独立子代理 closure audit | done | `ai-dev/audits/arm-index.md` | V.1 | `closure-audit-prompt.md` |
+| V.3 | 所有 P0/P1 finding 可追溯至修复或 deferred | done | `ai-dev/audits/arm-index.md` | V.2 | `closure-audit-prompt.md` |
 
 ### MG — Guard 与知识沉淀
 
@@ -147,7 +147,7 @@
 | MR2 ✅ | MA3+MA4 | 修复代码 + 测试（closed 2026-07-31） |
 | MR3 ✅ | MA5+MA6 | 修复代码 + 测试（closed 2026-07-31） |
 | MR4 ✅ | MR1+MR2+MR3 | 裁决文档（closed 2026-07-31） |
-| MV | MR1+MR2+MR3+MR4 | 验证报告 + closure audit |
+| MV ✅ | MR1+MR2+MR3+MR4 | 验证报告 + closure audit（closed 2026-07-31） |
 | MG | MV | lessons + docs |
 
 ## 依赖图
@@ -236,7 +236,7 @@ MA5+MA6 产出的 P1 发现展开为具体修复工作项
 无跨维度冲突时直接 N/A
 
 ### MV
-全量构建 + 独立子代理 closure audit（验证所有 P0/P1 finding 可追溯）
+全量构建 + 独立子代理 closure audit（验证所有 P0/P1 finding 可追溯）— **closed 2026-07-31**：V.1 全量 build+test 绿（`./mvnw clean install -DskipTests -pl nop-ai -am -T 1C` + `./mvnw test -pl nop-ai -am -T 1C`，877 tests run / 0 failures）；V.3 P0/P1 可追溯矩阵写入 arm-index（P0 2 行 + P1 61 行，open=0，MV closure audit 纠正 P1-MA5-003 为 SPI 裁定）；V.2 独立子 agent closure audit 完成（见 plan `2026-07-31-1024-2-arm-mv-validation.md` Closure 段）。
 
 ### MG
 失败模式提升为 lessons + 文档更新
