@@ -426,3 +426,15 @@ plan `ai-dev/plans/2026-07-31-2248-2-arm-hollow-baseline-clearance.md`（第七�
 | P3-MA1-015 | `fixed` | `nop-ai-deepwiki/pom.xml` 移除 `nop-ai-code-analyzer`（生产+测试 0 引用）、`nop-ai-tools` 改 `<scope>test</scope>`（仅 TestDeepWikiPrompts:10/:38 import FileToolBizModel）；依赖树验证 direct test scope；deepwiki compile+test BUILD SUCCESS；docs-for-ai grep deepwiki/code-analyzer 0 引用 → No owner-doc update required |
 
 **验证**：`./mvnw test -pl nop-ai/nop-ai-skills/nop-ai-code-analyzer -am -T 1C` BUILD SUCCESS（26 tests 0 failures）；`./mvnw test -pl nop-ai/nop-ai-skills/nop-ai-deepwiki -am -T 1C` BUILD SUCCESS；import 顺序新建/触及文件 0 违规（模块内其余为既有基线）。
+
+## P3 追踪（第九批 — tools/rag 结构残余，2026-08-01）
+
+第九批批量修复（plan `ai-dev/plans/2026-08-01-0206-2-arm-p2-tools-structure-residual.md`）已执行并收口。三个结构类 P3 finding 全部 `fixed` 或裁定落盘：
+
+| Finding ID | 修复状态 | 修复位置 / 测试 |
+|-----------|---------|----------------|
+| P3-MA1-016 | `fixed` | `nopGraphQLToolSet` 条件注册：`ai-tools-defaults.beans.xml` 增加 `<ioc:condition><on-bean>nopGraphQLEngine</on-bean></ioc:condition>`（Nop IoC 语法，bean 名匹配非接口名；audit 原建议的属性语法在 beans.xdef 不存在）。测试 = `TestGraphQLToolSetConditionalRegistration`（4 例：xdef 模型解析、biz-defaults 仓库实例一致性、有引擎容器接线注册、无引擎自定义容器跳过且装配不失败）；pom 补 `nop-autotest-junit`/`nop-http-client-jdk` test 依赖；deepwiki `TestDeepWikiPrompts` 消费面 @Disabled 状态不变 |
+| P3-MA1-013 | `fixed`（裁定保持 + 修正 2 个 live defect） | 裁定 = 保持文件持久化（会话级工具）。默认路径 `/nop/ai/sequential-thinking/store`（绝对路径不可写）→ `./_tmp/ai/sequential-thinking/store`（相对 CWD 可写）；测试暴露 2 个 live defect 就地修复：`ThoughtSession` 缺 `@DataBean`（序列化必失败）+ `Instant` 无 JsonTool 支持（模型字段改 epoch millis long）。测试 = `TestThoughtStorage`（8 例：持久化 round-trip/路径解析/会话隔离/阶段过滤/清空/导出导入/未知会话/null 拒绝）+ `TestSequentialThinkingBizModel` +1 成功路径（原 storage 必抛错，成功路径从未跑通）。裁定落盘 `ai-dev/design/nop-ai/03-sequential-thinking-storage.md`；`docs-for-ai/03-modules/nop-ai.md` 配置节同步 |
+| P3-MA3-003 | `fixed`（裁定保留 + 文档化） | 裁定 = 保留空模块 + 文档化为 SPI 预期实现落点（不补 InMemory 实现——零消费方投机代码违反 Anti-Hollow；不从父 pom 移除——结构声明价值）。与 P1-MA5-003 SPI 裁定兼容。落盘 `nop-ai-rag/README.md` + `ai-dev/design/nop-ai/04-rag-module-position.md`；`docs-for-ai/03-modules/nop-ai.md` 子模块表同步 |
+
+**验证**：`./mvnw clean install -DskipTests -pl nop-ai -am -T 1C` BUILD SUCCESS；`./mvnw test -pl nop-ai -am -T 1C` BUILD SUCCESS；`scan-hollow-implementations.mjs --module nop-ai --severity high` exit 0；`check-doc-links.mjs --strict` exit 0。
