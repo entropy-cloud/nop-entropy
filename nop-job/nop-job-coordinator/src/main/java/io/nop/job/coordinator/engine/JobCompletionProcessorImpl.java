@@ -2,7 +2,10 @@ package io.nop.job.coordinator.engine;
 
 import io.nop.api.core.annotations.ioc.InjectValue;
 import io.nop.api.core.annotations.orm.SingleSession;
+import io.nop.api.core.annotations.txn.TransactionPropagation;
+import io.nop.api.core.annotations.txn.Transactional;
 import io.nop.api.core.beans.IntRangeSet;
+import io.nop.api.core.convert.ConvertHelper;
 import io.nop.commons.util.DateHelper;
 import io.nop.core.exceptions.ErrorMessageManager;
 import io.nop.job.api.alarm.IJobAlarmHandler;
@@ -114,7 +117,6 @@ public class JobCompletionProcessorImpl extends AbstractBatchScanner implements 
     }
 
     @Override
-    @SingleSession
     protected boolean scanBatch() {
         IntRangeSet partitions = partitionResolver != null ? partitionResolver.resolvePartitions() : null;
         List<NopJobFire> fires = fireStore.fetchRunningFires(batchSize, partitions);
@@ -124,7 +126,8 @@ public class JobCompletionProcessorImpl extends AbstractBatchScanner implements 
         int completedCount = 0;
         for (NopJobFire fire : fires) {
             try {
-                if (tryCompleteFireAndGetStatus(fire) != null) {
+                Integer status = completeSingleFire(fire.getJobFireId());
+                if (status != null) {
                     completedCount++;
                 }
             } catch (Exception e) {
@@ -138,32 +141,40 @@ public class JobCompletionProcessorImpl extends AbstractBatchScanner implements 
         return fires.size() >= batchSize;
     }
 
-    private Integer tryCompleteFireAndGetStatus(NopJobFire fire) {
-        List<NopJobTask> tasks = taskStore.findTasksByFireId(fire.getJobFireId());
-        if (tasks.isEmpty()) {
+    @Transactional(propagation = TransactionPropagation.REQUIRES_NEW)
+    @SingleSession
+    protected Integer completeSingleFire(String fireId) {
+        NopJobFire fire = fireStore.getFireById(fireId);
+        if (fire == null)
             return null;
-        }
+
+        List<NopJobTask> tasks = taskStore.findTasksByFireId(fireId);
+        if (tasks.isEmpty())
+            return null;
 
         Integer finalFireStatus = resolveFinalFireStatus(tasks);
-        if (finalFireStatus == null) {
+        if (finalFireStatus == null)
             return null;
-        }
 
         NopJobSchedule schedule = scheduleStore.tryLoadSchedule(fire.getJobScheduleId());
         if (schedule == null) {
-            LOG.warn("nop.job.completion.schedule-deleted:fireId={}", fire.getJobFireId());
+            LOG.warn("nop.job.completion.schedule-deleted:fireId={}", fireId);
             String localized = ErrorMessageManager.instance().getLocalizedDescription(null,
                     JobCoreErrors.ERR_JOB_SCHEDULE_DELETED.getErrorCode());
-            fireStore.failFireWithoutSchedule(fire.getJobFireId(),
-                    JobCoreErrors.ERR_JOB_SCHEDULE_DELETED.getErrorCode(),
-                    localized != null ? localized : JobCoreErrors.ERR_JOB_SCHEDULE_DELETED.getDescription());
+            fire.setFireStatus(_NopJobCoreConstants.FIRE_STATUS_FAILED);
+            fire.setEndTime(new Timestamp(scheduleStore.getCurrentTime()));
+            fire.setDurationMs(DateHelper.durationMs(fire.getStartTime(), fire.getEndTime()));
+            fire.setErrorCode(JobCoreErrors.ERR_JOB_SCHEDULE_DELETED.getErrorCode());
+            fire.setErrorMessage(localized != null ? localized
+                    : JobCoreErrors.ERR_JOB_SCHEDULE_DELETED.getDescription());
             return _NopJobCoreConstants.FIRE_STATUS_FAILED;
         }
 
-        if (schedule.getScheduleStatus() != null
-                && schedule.getScheduleStatus() != _NopJobCoreConstants.SCHEDULE_STATUS_ENABLED) {
+        boolean scheduleEnabled = schedule.getScheduleStatus() == null
+                || schedule.getScheduleStatus() == _NopJobCoreConstants.SCHEDULE_STATUS_ENABLED;
+        if (!scheduleEnabled) {
             LOG.debug("nop.job.completion.schedule-not-enabled:fireId={},status={}",
-                    fire.getJobFireId(), schedule.getScheduleStatus());
+                    fireId, schedule.getScheduleStatus());
         }
 
         Timestamp fireStartTime = earliestStartTime(tasks, fire.getStartTime());
@@ -175,7 +186,7 @@ public class JobCompletionProcessorImpl extends AbstractBatchScanner implements 
         fire.setEndTime(fireEndTime);
         fire.setDurationMs(DateHelper.durationMs(fireStartTime, fireEndTime));
 
-        NopJobTask errorTask = findFirstErrorTask(tasks);
+        NopJobTask errorTask = findMatchingErrorTask(tasks, finalFireStatus);
         if (errorTask != null) {
             fire.setErrorCode(errorTask.getErrorCode());
             fire.setErrorMessage(errorTask.getErrorMessage());
@@ -194,17 +205,19 @@ public class JobCompletionProcessorImpl extends AbstractBatchScanner implements 
         } else {
             schedule.setFailFireCount(defaultLong(schedule.getFailFireCount()) + 1);
         }
-        if (completionDecision.completed) {
-            schedule.setScheduleStatus(_NopJobCoreConstants.SCHEDULE_STATUS_COMPLETED);
-            schedule.setNextFireTime(null);
-        } else if (completionDecision.nextScheduleTime != null) {
-            schedule.setNextFireTime(completionDecision.nextScheduleTime);
-        } else if (isFixedDelay(schedule)) {
-            schedule.setNextFireTime(calculateFixedDelayNextFireTime(schedule, fireEndTime));
+        if (scheduleEnabled) {
+            if (completionDecision.completed) {
+                schedule.setScheduleStatus(_NopJobCoreConstants.SCHEDULE_STATUS_COMPLETED);
+                schedule.setNextFireTime(null);
+            } else if (completionDecision.nextScheduleTime != null) {
+                schedule.setNextFireTime(completionDecision.nextScheduleTime);
+            } else if (isFixedDelay(schedule)) {
+                schedule.setNextFireTime(calculateFixedDelayNextFireTime(schedule, fireEndTime));
+            }
         }
 
-        fireStore.completeFireAndUpdateSchedule(fire, schedule);
-
+        // Entities are managed by @SingleSession — dirty fields flushed on
+        // @Transactional commit. No need for completeFireAndUpdateSchedule.
         long duration = fire.getDurationMs() != null ? fire.getDurationMs() : 0L;
         if (finalFireStatus == _NopJobCoreConstants.FIRE_STATUS_SUCCESS) {
             completionMetrics.onFireSuccess(duration);
@@ -343,7 +356,17 @@ public class JobCompletionProcessorImpl extends AbstractBatchScanner implements 
         return _NopJobCoreConstants.FIRE_STATUS_SUCCESS;
     }
 
-    private NopJobTask findFirstErrorTask(List<NopJobTask> tasks) {
+    private NopJobTask findMatchingErrorTask(List<NopJobTask> tasks, Integer finalFireStatus) {
+        Integer targetTaskStatus = toTaskStatus(finalFireStatus);
+        if (targetTaskStatus != null) {
+            for (NopJobTask task : tasks) {
+                Integer taskStatus = task.getTaskStatus();
+                if (taskStatus != null && taskStatus == targetTaskStatus) {
+                    return task;
+                }
+            }
+        }
+
         for (NopJobTask task : tasks) {
             Integer taskStatus = task.getTaskStatus();
             if (taskStatus != null && taskStatus != _NopJobCoreConstants.TASK_STATUS_SUCCESS) {
@@ -393,6 +416,22 @@ public class JobCompletionProcessorImpl extends AbstractBatchScanner implements 
         return next <= 0 ? null : new Timestamp(next);
     }
 
+    private Integer toTaskStatus(Integer fireStatus) {
+        if (fireStatus == null) {
+            return null;
+        }
+        if (fireStatus == _NopJobCoreConstants.FIRE_STATUS_TIMEOUT) {
+            return _NopJobCoreConstants.TASK_STATUS_TIMEOUT;
+        }
+        if (fireStatus == _NopJobCoreConstants.FIRE_STATUS_FAILED) {
+            return _NopJobCoreConstants.TASK_STATUS_FAILED;
+        }
+        if (fireStatus == _NopJobCoreConstants.FIRE_STATUS_CANCELED) {
+            return _NopJobCoreConstants.TASK_STATUS_CANCELED;
+        }
+        return null;
+    }
+
     private TriggerSpec toTriggerSpec(NopJobSchedule schedule) {
         return TriggerSpecHelper.toTriggerSpec(schedule);
     }
@@ -407,11 +446,7 @@ public class JobCompletionProcessorImpl extends AbstractBatchScanner implements 
     }
 
     private Timestamp toTimestamp(Object value) {
-        if (value instanceof Number) {
-            long time = ((Number) value).longValue();
-            return time > 0 ? new Timestamp(time) : null;
-        }
-        return null;
+        return ConvertHelper.toTimestamp(value);
     }
 
     private long toTime(Timestamp value) {

@@ -684,13 +684,14 @@ public class TestJobTimeoutChecker {
         @Override public List<NopJobFire> fetchRunningFires(int limit, IntRangeSet partitions) { return Collections.emptyList(); }
         @Override public List<NopJobFire> tryLockFiresForDispatch(List<NopJobFire> fires, String dispatchInstanceId, long lockTimeoutMs) { return fires; }
         @Override public void insertTasksAndMarkFireDispatching(NopJobFire fire, List<NopJobTask> tasks) {}
-        @Override public void completeFireAndUpdateSchedule(NopJobFire fire, NopJobSchedule schedule) {}
+        @Override public boolean completeFireAndUpdateSchedule(NopJobFire fire, NopJobSchedule schedule) { return true; }
         @Override public boolean cancelFire(String jobFireId) { return false; }
         @Override public void failFireWithoutSchedule(String jobFireId, String errorCode, String errorMessage) {
             this.failedFireId = jobFireId;
             this.failedErrorCode = errorCode;
         }
         @Override public NopJobFire loadFire(String jobFireId) { return fireMap.get(jobFireId); }
+        @Override public NopJobFire getFireById(String jobFireId) { return fireMap.get(jobFireId); }
         @Override public void updateRetryRecordId(String jobFireId, String retryRecordId) {}
     }
 

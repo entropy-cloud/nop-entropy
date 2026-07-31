@@ -65,7 +65,7 @@ public class TestJobE2E {
         scheduleStore.currentTime = currentTime;
 
         SimpleFireStore fireStore = new SimpleFireStore();
-        fireStore.runningFires.add(fire);
+        fireStore.fires.put(fire.getJobFireId(), fire);
 
         SimpleTaskStore taskStore = new SimpleTaskStore();
         taskStore.tasksByFire.put("f1", List.of(task));
@@ -115,7 +115,7 @@ public class TestJobE2E {
         scheduleStore.currentTime = currentTime;
 
         SimpleFireStore fireStore = new SimpleFireStore();
-        fireStore.runningFires.add(fire);
+        fireStore.fires.put(fire.getJobFireId(), fire);
 
         SimpleTaskStore taskStore = new SimpleTaskStore();
         taskStore.tasksByFire.put("f1", List.of(task));
@@ -163,7 +163,7 @@ public class TestJobE2E {
         scheduleStore.currentTime = currentTime;
 
         SimpleFireStore fireStore = new SimpleFireStore();
-        fireStore.runningFires.add(fire);
+        fireStore.fires.put(fire.getJobFireId(), fire);
 
         SimpleTaskStore taskStore = new SimpleTaskStore();
         taskStore.tasksByFire.put("f1", List.of(task));
@@ -256,11 +256,15 @@ public class TestJobE2E {
     }
 
     static class SimpleFireStore implements IJobFireStore {
-        final List<NopJobFire> runningFires = new ArrayList<>();
         final Map<String, NopJobFire> fires = new HashMap<>();
         final java.util.concurrent.atomic.AtomicBoolean completeFireCalled = new java.util.concurrent.atomic.AtomicBoolean();
 
-        @Override public List<NopJobFire> fetchRunningFires(int limit, IntRangeSet p) { return new ArrayList<>(runningFires); }
+        @Override public List<NopJobFire> fetchRunningFires(int limit, IntRangeSet p) {
+            return fires.values().stream()
+                    .filter(f -> f.getFireStatus() != null
+                            && f.getFireStatus() == _NopJobCoreConstants.FIRE_STATUS_RUNNING)
+                    .collect(java.util.stream.Collectors.toList());
+        }
         @Override public Map<String, NopJobFire> batchLoadFires(Set<String> ids) {
             Map<String, NopJobFire> result = new HashMap<>();
             for (String id : ids) { NopJobFire f = fires.get(id); if (f != null) result.put(id, f); }
@@ -272,10 +276,11 @@ public class TestJobE2E {
         @Override public List<NopJobFire> fetchWaitingFires(int limit, IntRangeSet p) { return Collections.emptyList(); }
         @Override public List<NopJobFire> tryLockFiresForDispatch(List<NopJobFire> f, String d, long t) { return f; }
         @Override public void insertTasksAndMarkFireDispatching(NopJobFire f, List<NopJobTask> t) {}
-        @Override public void completeFireAndUpdateSchedule(NopJobFire f, NopJobSchedule s) { completeFireCalled.set(true); }
+        @Override public boolean completeFireAndUpdateSchedule(NopJobFire f, NopJobSchedule s) { completeFireCalled.set(true); return true; }
         @Override public boolean cancelFire(String id) { return false; }
         @Override public void failFireWithoutSchedule(String jobFireId, String errorCode, String errorMessage) {}
         @Override public NopJobFire loadFire(String id) { return fires.get(id); }
+        @Override public NopJobFire getFireById(String id) { return fires.get(id); }
     }
 
     static class SimpleTaskStore implements IJobTaskStore {

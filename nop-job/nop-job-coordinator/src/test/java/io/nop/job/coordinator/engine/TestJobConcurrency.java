@@ -53,6 +53,9 @@ public class TestJobConcurrency extends JunitBaseTestCase {
     @Inject
     IJobTaskStore taskStore;
 
+    @Inject
+    IJobCompletionProcessor completionProcessorBean;
+
     /**
      * Two planner instances compete for the same due schedule.
      * The first planner locks the schedule and creates a fire;
@@ -314,10 +317,7 @@ public class TestJobConcurrency extends JunitBaseTestCase {
     }
 
     private JobCompletionProcessorImpl newCompletionProcessor() {
-        JobCompletionProcessorImpl completion = new JobCompletionProcessorImpl();
-        completion.setFireStore(fireStore);
-        completion.setScheduleStore(scheduleStore);
-        completion.setTaskStore(taskStore);
+        JobCompletionProcessorImpl completion = (JobCompletionProcessorImpl) completionProcessorBean;
         completion.setBatchSize(10);
         completion.setAssignedPartitions("1");
         return completion;

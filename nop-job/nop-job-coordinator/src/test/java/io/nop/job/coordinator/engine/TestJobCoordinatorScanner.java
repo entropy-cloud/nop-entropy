@@ -71,6 +71,9 @@ public class TestJobCoordinatorScanner extends JunitBaseTestCase {
     @Inject
     IJobTaskStore taskStore;
 
+    @Inject
+    IJobCompletionProcessor completionProcessorBean;
+
     private IBeanContainer originalBeanContainer;
 
     @AfterEach
@@ -719,10 +722,7 @@ public class TestJobCoordinatorScanner extends JunitBaseTestCase {
         task.setUpdateTime(endTime);
         taskStore.updateTask(task);
 
-        JobCompletionProcessorImpl completion = new JobCompletionProcessorImpl();
-        completion.setFireStore(fireStore);
-        completion.setScheduleStore(scheduleStore);
-        completion.setTaskStore(taskStore);
+        JobCompletionProcessorImpl completion = (JobCompletionProcessorImpl) completionProcessorBean;
         completion.setBatchSize(10);
         completion.setAssignedPartitions("1");
         completion.scanOnce();
@@ -755,10 +755,7 @@ public class TestJobCoordinatorScanner extends JunitBaseTestCase {
         task.setUpdateTime(endTime);
         taskStore.updateTask(task);
 
-        JobCompletionProcessorImpl completion = new JobCompletionProcessorImpl();
-        completion.setFireStore(fireStore);
-        completion.setScheduleStore(scheduleStore);
-        completion.setTaskStore(taskStore);
+        JobCompletionProcessorImpl completion = (JobCompletionProcessorImpl) completionProcessorBean;
         completion.setBatchSize(10);
         completion.setAssignedPartitions("1");
         completion.scanOnce();
@@ -877,10 +874,7 @@ public class TestJobCoordinatorScanner extends JunitBaseTestCase {
         assertEquals("JOB_TIMEOUT", timedOutTask.getErrorCode());
         assertNotNull(timedOutTask.getEndTime());
 
-        JobCompletionProcessorImpl completion = new JobCompletionProcessorImpl();
-        completion.setFireStore(fireStore);
-        completion.setScheduleStore(scheduleStore);
-        completion.setTaskStore(taskStore);
+        JobCompletionProcessorImpl completion = (JobCompletionProcessorImpl) completionProcessorBean;
         completion.setBatchSize(10);
         completion.setAssignedPartitions("1");
         completion.scanOnce();
@@ -1051,10 +1045,7 @@ public class TestJobCoordinatorScanner extends JunitBaseTestCase {
     }
 
     private JobCompletionProcessorImpl newCompletionProcessor() {
-        JobCompletionProcessorImpl completion = new JobCompletionProcessorImpl();
-        completion.setFireStore(fireStore);
-        completion.setScheduleStore(scheduleStore);
-        completion.setTaskStore(taskStore);
+        JobCompletionProcessorImpl completion = (JobCompletionProcessorImpl) completionProcessorBean;
         completion.setBatchSize(10);
         completion.setAssignedPartitions("1");
         return completion;
