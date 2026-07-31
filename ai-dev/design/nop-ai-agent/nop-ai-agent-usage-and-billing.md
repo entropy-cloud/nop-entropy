@@ -80,7 +80,9 @@ ReAct 循环每次 LLM 调用
   │     │      查 nop_ai_model 解析；找不到时为 null（graceful degradation）。
   │     │      responseDurationMs 由 ReActAgentExecutor 在 chatService.call() 前后
   │     │      计量并填充。
-  │     └── NoOpUsageRecorder: 丢弃（pass-through，测试用）
+  │     └── NoOpUsageRecorder: 丢弃（pass-through；**MA6.3-AR-4 ✅**：不再静默——引擎首次执行时
+  │         单次 WARN 声明无计量（warnIfNoOpUsageRecorder，懒判定避开 Builder 接线时序误报）；
+  │         另有 SimpleUsageRecorder（结构化 SLF4J 日志行，开箱可观测）可选装配
   │
   └── AgentSession 累加（保持现有 totalTokensUsed 用于内存预算控制）
         └── 不在内存维护 per-model 分项——查询时从 DB 聚合
@@ -99,7 +101,8 @@ ReAct 循环每次 LLM 调用
 ```
 IUsageRecorder
   └── void record(UsageRecord record)        ← 唯一方法（plan 201 裁定）
-      NoOpUsageRecorder（默认 pass-through，plan 201 L2-17 已交付）
+      NoOpUsageRecorder（默认 pass-through，plan 201 L2-17 已交付；MA6.3-AR-4 ✅：首次执行 WARN 声明缺口）
+      SimpleUsageRecorder（MA6.3-AR-4 ✅：SLF4J 结构化日志行，开箱可观测，无持久化）
       DbUsageRecorder（生产，写 NopAiChatResponse，plan 202 L2-18 已交付）
       InMemoryUsageRecorder（测试）
 

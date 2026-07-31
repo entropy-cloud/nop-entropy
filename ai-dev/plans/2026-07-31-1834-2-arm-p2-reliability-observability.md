@@ -1,6 +1,6 @@
 # 2 P2 可靠性/可观测性批次（MA6.3 + MA6.1 + MA5.6 可靠性类 P2）
 
-> Plan Status: active
+> Plan Status: completed
 > Last Reviewed: 2026-07-31
 > Source: `ai-dev/backlog/audit-remediation-roadmap.md` §P2/P3 Deferred Successors（watch-only residual，按严重度排序另行规划）、`ai-dev/audits/2026-07-31-0000-arm-MA6.3-nop-ai-token-reliability.md`、`2026-07-31-1240-arm-MA6.1-nop-ai-llm-config-security.md`、`2026-07-31-arm-MA5.6-nop-ai-test-isolation.md`
 > Related: `ai-dev/plans/2026-07-31-1834-1-arm-p2-security-hardening.md`（安全批次，独立无依赖）、`ai-dev/plans/2026-07-31-1300-5-arm-mr3-fix.md`
@@ -58,129 +58,129 @@
 
 ### Phase 1 — 重试退避 jitter（MA6.3-AR-5）
 
-Status: planned
+Status: completed
 Targets: `nop-ai/nop-ai-agent/src/main/java/io/nop/ai/agent/reliability/StandardRetryPolicy.java`、`nop-ai/nop-ai-agent/src/test/java/io/nop/ai/agent/reliability/`
 
 - Item Types: `Fix | Proof`
 
-- [ ] （Decision）裁定 jitter 策略：full jitter（`random(0, min(base*2^n, max))`）或 capped jitter（半区间 ± 随机）——按仓库已有测试稳定性选型。
-- [ ] （Fix）`computeBackoff()` 加入 jitter，保持 `maxDelayMs` 上限与溢出保护语义。
-- [ ] （Fix）**同步改写 `TestStandardRetryPolicy.java:135-165` 的 9 处精确延迟断言（:135/138/141/144/152/153/154/156/163，含两处 3000）为区间断言**（`0 <= delay <= min(base*2^n, max)`，attempt 0 的 0ms 断言除外），并同步 `StandardRetryPolicy` 类 Javadoc 的退避契约描述（`min(base*2^attempt, max)` → 带 jitter 的区间描述）。
-- [ ] （Fix）**同步 owner docs 中的退避公式**：`ai-dev/design/nop-ai-agent/nop-ai-agent-llm-layer.md:262/:307`（§7.3 精确公式 `min(baseDelay * 2^attempt, maxDelay)`）与 `nop-ai-agent-reliability.md:160`——改为 jitter 区间描述或显式注明"确定性公式为基线，jitter 细节见类 javadoc"。
-- [ ] （Fix）新增 jitter 测试：退避落在 `[0, cap]` 区间、多次调用随机性（不同值出现）、`baseDelayMs=0` 仍返回 0 的边界。
-- [ ] 全量 build + test 验证。
+- [x] （Decision）裁定 jitter 策略：**full jitter**（`uniform(0, min(base*2^n, max))`）——AWS 标准做法，最大化并发退避去相关（thundering-herd 抑制），保持 cap 语义；仓库测试改写为区间断言后无 flake（连续 2 次运行通过）。
+- [x] （Fix）`computeBackoff()` 加入 jitter，保持 `maxDelayMs` 上限与溢出保护语义。
+- [x] （Fix）**同步改写 `TestStandardRetryPolicy.java:135-165` 的 9 处精确延迟断言（:135/138/141/144/152/153/154/156/163，含两处 3000）为区间断言**（`0 <= delay <= min(base*2^n, max)`，attempt 0 的 0ms 断言除外），并同步 `StandardRetryPolicy` 类 Javadoc 的退避契约描述（`min(base*2^attempt, max)` → 带 jitter 的区间描述）。
+- [x] （Fix）**同步 owner docs 中的退避公式**：`ai-dev/design/nop-ai-agent/nop-ai-agent-llm-layer.md:262/:307`（§7.3 精确公式 `min(baseDelay * 2^attempt, maxDelay)`）与 `nop-ai-agent-reliability.md:160`——改为 jitter 区间描述或显式注明"确定性公式为基线，jitter 细节见类 javadoc"。
+- [x] （Fix）新增 jitter 测试：退避落在 `[0, cap]` 区间、多次调用随机性（不同值出现）、`baseDelayMs=0` 仍返回 0 的边界。
+- [x] 全量 build + test 验证。
 
 Exit Criteria:
 
-- [ ] `computeBackoff` 返回值带 jitter 且在 `[0, min(base*2^attempt, max)]` 区间（测试断言）
-- [ ] `TestStandardRetryPolicy` 精确断言已改写为区间断言且全绿（无 flake：连续 2 次运行通过）
-- [ ] `StandardRetryPolicy` Javadoc 契约描述与 jitter 行为一致
-- [ ] owner docs（`nop-ai-agent-llm-layer.md` §7.3、`nop-ai-agent-reliability.md`）退避公式已同步或显式注明基线语义
-- [ ] 边界保持：`baseDelayMs=0 → 0`、溢出保护不回归（测试断言）
-- [ ] **无静默跳过**：jitter 为真实随机源（非恒定偏移，测试断言不同值出现）
-- [ ] `No owner-doc update required`（行为增强，接口契约不变）
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] `computeBackoff` 返回值带 jitter 且在 `[0, min(base*2^attempt, max)]` 区间（测试断言）
+- [x] `TestStandardRetryPolicy` 精确断言已改写为区间断言且全绿（无 flake：连续 2 次运行通过）
+- [x] `StandardRetryPolicy` Javadoc 契约描述与 jitter 行为一致
+- [x] owner docs（`nop-ai-agent-llm-layer.md` §7.3、`nop-ai-agent-reliability.md`）退避公式已同步或显式注明基线语义
+- [x] 边界保持：`baseDelayMs=0 → 0`、溢出保护不回归（测试断言）
+- [x] **无静默跳过**：jitter 为真实随机源（非恒定偏移，测试断言不同值出现）
+- [x] `No owner-doc update required`（行为增强，接口契约不变）
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 ### Phase 2 — usage recorder 可观测性（MA6.3-AR-4）
 
-Status: planned
+Status: completed
 Targets: `nop-ai/nop-ai-agent/src/main/java/io/nop/ai/agent/usage/`、`nop-ai/nop-ai-agent/src/main/java/io/nop/ai/agent/engine/ReActAgentExecutor.java`、`nop-ai/nop-ai-agent/src/main/java/io/nop/ai/agent/engine/DefaultAgentEngine.java`
 
 - Item Types: `Fix | Decision | Proof`
 
-- [ ] （Decision）裁定 NoOp 默认的可观测性策略：(a) 启动 WARN；(b) 提供 `SimpleUsageRecorder`（SLF4J 结构化日志行）供装配；(c) 两者都做。
-- [ ] （Fix）按裁定落地。**WARN 判定点必须注意 Builder 接线时序**：`DefaultAgentEngine` 字段默认 NoOp（:201），`Builder.build()`（:574）在构造**之后**才 `setUsageRecorder`（Builder 默认值 :482 恒非 null）——若 WARN 放构造器，Builder 路径会误报。正确放置：(i) `Builder.build()` 接线完成后判定 + (ii) 直接构造路径判定，两处；或首次 execute 懒判定。**不要只放构造器**。
-- [ ] （Proof）接线验证复用既有 `TestUsageRecorderWiring`（引擎级断言 record 每 LLM 调用被调用 + 字段正确）——不重复新建接线测试；若裁定 (b) 新增 SimpleUsageRecorder，则为其补日志输出断言；同时断言 Builder 正确装配后**不**产生 WARN（防误报）。
-- [ ] 全量 build + test 验证。
+- [x] （Decision）裁定 NoOp 默认的可观测性策略：**(c) 两者都做**——(a) 首次执行时单次 WARN（懒判定，置于 `resolveExecutor` 入口，三入口共用；`setUsageRecorder` 重接线时复位标志）+ (b) 新增 `SimpleUsageRecorder`（SLF4J 结构化日志行 `nop.ai.agent.usage-record: key=value, ...`）。
+- [x] （Fix）按裁定落地。**WARN 判定点采用"首次 execute 懒判定"**（plan 允许的替代方案）：`Builder.build()` 在构造**之后**才 `setUsageRecorder`（Builder 默认值恒非 null）——若 WARN 放构造器，Builder 路径会误报。懒判定在 `resolveExecutor`（三执行入口 doExecute/resumeSession/restoreSession 均经此），此时最终接线值已知：Builder 装配真实 recorder 不误报、默认 NoOp 在执行时可见 WARN。**未放构造器**。
+- [x] （Proof）接线验证复用既有 `TestUsageRecorderWiring`（引擎级断言 record 每 LLM 调用被调用 + 字段正确）全绿；新增 3 例：NoOp 默认执行后 WARN 可见（日志捕获）、Builder 装配真实 recorder 后不产生 WARN（防误报）、`SimpleUsageRecorder` 结构化日志行字段断言。
+- [x] 全量 build + test 验证。
 
 Exit Criteria:
 
-- [ ] 默认 `NoOpUsageRecorder` 时 WARN 可见（测试断言或日志捕获，repo-observable），且 **Builder 装配真实 recorder 后不误报 WARN**（测试断言）
-- [ ] **接线验证**：既有 `TestUsageRecorderWiring` 全绿（装配 `IUsageRecorder` 后 ReAct loop 的 record 落到 recorder）；如新增 SimpleUsageRecorder 有对应输出断言
-- [ ] **无静默跳过**：不再静默丢弃 UsageRecord（至少 WARN 声明缺口；若实现 SimpleUsageRecorder 则默认可观测）；`NoOpUsageRecorder.record()` 空方法体为 pass-through 设计（javadoc + `usage-and-billing.md` §3.1），closure 时按 Anti-Hollow 豁免记录
-- [ ] `No owner-doc update required`（装配契约不变，仅默认观测性增强）或 design 文档同步（若新增 SimpleUsageRecorder 装配说明）
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] 默认 `NoOpUsageRecorder` 时 WARN 可见（测试断言或日志捕获，repo-observable），且 **Builder 装配真实 recorder 后不误报 WARN**（测试断言）
+- [x] **接线验证**：既有 `TestUsageRecorderWiring` 全绿（装配 `IUsageRecorder` 后 ReAct loop 的 record 落到 recorder）；SimpleUsageRecorder 有对应输出断言
+- [x] **无静默跳过**：不再静默丢弃 UsageRecord（至少 WARN 声明缺口；实现 SimpleUsageRecorder 后默认可观测）；`NoOpUsageRecorder.record()` 空方法体为 pass-through 设计（javadoc + `ai-dev/design/nop-ai-agent/nop-ai-agent-usage-and-billing.md` §3.1 已同步），closure 时按 Anti-Hollow 豁免记录
+- [x] `No owner-doc update required`（装配契约不变，仅默认观测性增强）或 design 文档同步（若新增 SimpleUsageRecorder 装配说明）——**已同步** `nop-ai-agent-usage-and-billing.md` §3.1/§3.2
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 ### Phase 3 — 限流 tryAcquire + 配额（MA6.3-AR-6）
 
-Status: planned
+Status: completed
 Targets: `nop-ai/nop-ai-core/src/main/java/io/nop/ai/core/service/ChatServiceImpl.java`、`nop-ai/nop-ai-core/src/main/java/io/nop/ai/core/service/DefaultAiChatService.java`、`nop-ai/nop-ai-core/src/test/java/io/nop/ai/core/service/`
 
 - Item Types: `Fix | Decision | Proof`
 
-- [ ] （Decision）裁定限流缺口处理（**基线修正**：`IRateLimiter.tryAcquire()` 系列已存在，见 `nop-kernel/nop-commons/.../ratelimit/IRateLimiter.java:23-38`；真缺口是 `ChatServiceImpl` 用无限阻塞 `acquire()` + 失败面未定义）：
-  - (a) 失败形状：配额耗尽时抛什么错误——新 ErrorCode（如 `ERR_AI_RATE_LIMITED`）并使其被 `LlmErrorClassifier` 识别为可重试（transient），或复用带 429 语义的错误。**注意联动细节**：`LlmErrorClassifier`（`nop-ai-agent/.../reliability/LlmErrorClassifier.java:68-111`）对未知错误默认返回 TRANSIENT（兜底可重试），真正风险是新错误若携带 `ARG_HTTP_STATUS` 落在 [400,500)（非 429）会被判 NON_TRANSIENT——裁定须明确新错误不携带 429 之外 4xx 状态，避免误判；
-  - (b) per-tenant 配额：**`ChatServiceImpl` 当前无 tenant 身份来源**（无 ITenantResolver、无请求头解析）——要么引入 tenant 解析（扩 scope，需说明），要么裁定为文档化扩展点（`No owner-doc update required` 除外：需在 design 记录）；
-  - (c) 跨 JVM 分布式限流仅文档化扩展点。
-- [ ] （Fix）按裁定落地：`ChatServiceImpl.checkRateLimit` 改用限时 `tryAcquire`（如 `tryAcquire(1, timeout)`），耗尽时按 (a) 裁定抛错；`acquire()` 兼容路径保留。
-- [ ] （Fix）`DefaultAiChatService`（废弃类，阻塞 `acquire()` 在 :165，limiter 工厂 :106-118）同款限流处理按同一裁定对齐（或记录为废弃路径豁免，两者择一并说明）。
-- [ ] （Fix）测试：配额耗尽 → 按裁定错误（可重试语义）、配额内 → 通过、限时等待路径不回归。**注意**：不要断言 `DefaultRateLimiter.getAcquireFailCount()`（`nop-kernel/nop-commons/.../ratelimit/DefaultRateLimiter.java:40` 存在复制粘贴 bug 返回 success 计数——nop-kernel 属平台保护区，本计划不修）。
-- [ ] 全量 build + test 验证。
+- [x] （Decision）裁定限流缺口处理（**基线修正**：`IRateLimiter.tryAcquire()` 系列已存在，见 `nop-kernel/nop-commons/.../ratelimit/IRateLimiter.java:23-38`；真缺口是 `ChatServiceImpl` 用无限阻塞 `acquire()` + 失败面未定义）：
+  - (a) 失败形状：**新 ErrorCode `ERR_AI_RATE_LIMITED`**（`nop.err.ai.service.rate-limited`），携带 `ARG_LLM_NAME` + **`ARG_HTTP_STATUS=429`**——`LlmErrorClassifier` 按 429 判为 RATE_LIMITED（可重试）。**联动细节落地**：裁定新错误只携带 429 状态（javadoc 显式禁止携带其他 4xx，避免落在 [400,500) 非 429 被误判 NON_TRANSIENT）；TestLlmErrorClassifier 新增联动测试（带 429 → RATE_LIMITED；**不带状态兜底 → TRANSIENT**，双保险）；
+  - (b) per-tenant 配额：**`ChatServiceImpl` 当前无 tenant 身份来源**（无 ITenantResolver、无请求头解析）——裁定为**文档化扩展点**：子类覆盖 `createRateLimiter(double)`（per-tenant key 建 limiter）或 `checkRateLimit(...)`，记录于 `docs-for-ai/03-modules/nop-ai.md`「限流扩展点」节 + `ChatServiceImpl` javadoc；
+  - (c) 跨 JVM 分布式限流仅文档化扩展点（替换 `IRateLimiter` 实现，`tryAcquire` 语义已抽象）。
+- [x] （Fix）按裁定落地：`ChatServiceImpl.checkRateLimit` 改用限时 `tryAcquire(1, timeout)`（timeout = 新配置 `nop.ai.service.rate-limit-acquire-timeout`，默认 1000ms），耗尽时抛 `ERR_AI_RATE_LIMITED`（带 429）；`acquire()` 兼容路径保留（`IRateLimiter.acquire()` 默认方法仍在，本计划不改 nop-kernel）。`checkRateLimit` 由 private 放宽为包内可见（公开 API 不变）供 focused 单测。
+- [x] （Fix）`DefaultAiChatService`（废弃类，阻塞 `acquire()` 原在 :165，limiter 工厂 :106-118）**按同一裁定对齐**（非豁免）：同款限时 `tryAcquire` + `ERR_AI_RATE_LIMITED`（带 429）。
+- [x] （Fix）测试：`TestChatServiceRateLimit`（nop-ai-core，6 例）：配额内 → 通过；耗尽 → 按裁定错误（错误码 + llmName + httpStatus=429 断言）；限时等待路径（配置 timeout 实际传入 `tryAcquire`，用确定性 FakeRateLimiter 断言，无 wall-clock 依赖）；无 rateLimit 配置 → 不建 limiter；废弃类对齐路径；参数 key 契约 pin（`httpStatus`/`llmName`）。**未断言 `DefaultRateLimiter.getAcquireFailCount()`**（nop-kernel 复制粘贴 bug，平台保护区不修）。TestLlmErrorClassifier 联动测试 2 例。
+- [x] 全量 build + test 验证。
 
 Exit Criteria:
 
-- [ ] 限流耗尽时按裁定失败（测试断言错误形状；若裁定为新 ErrorCode，`LlmErrorClassifier` 联动测试或理由记录）
-- [ ] per-tenant 配额按裁定落地（tenant 来源明确）或文档化扩展点（design 记录）
-- [ ] `DefaultAiChatService` 对齐处理有明确处置（修复或废弃豁免记录）
-- [ ] **无静默跳过**：限流失败不静默吞掉（错误可被上层观察/重试）
-- [ ] `No owner-doc update required`（内部行为，公开 API 不变）或 design 同步
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] 限流耗尽时按裁定失败（测试断言错误形状；新 ErrorCode，`LlmErrorClassifier` 联动测试：429 → RATE_LIMITED、无状态兜底 → TRANSIENT）
+- [x] per-tenant 配额按裁定落地（tenant 来源明确）或文档化扩展点（design 记录）——**文档化扩展点**（`docs-for-ai/03-modules/nop-ai.md` + javadoc）
+- [x] `DefaultAiChatService` 对齐处理有明确处置（修复或废弃豁免记录）——**已对齐修复**
+- [x] **无静默跳过**：限流失败不静默吞掉（错误可被上层观察/重试：429 → RATE_LIMITED → ReAct retry loop 指数退避重试）
+- [x] `No owner-doc update required`（内部行为，公开 API 不变）或 design 同步——**已同步** `docs-for-ai/03-modules/nop-ai.md`
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 ### Phase 4 — LlmConfigHelper 静态状态收敛（MA6.1-AR-6）
 
-Status: planned
+Status: completed
 Targets: `nop-ai/nop-ai-core/src/main/java/io/nop/ai/core/service/LlmConfigHelper.java`、`nop-ai/nop-ai-core/src/test/java/io/nop/ai/core/service/`
 
 - Item Types: `Fix | Decision | Proof`
 
-- [ ] （Decision）裁定收敛方式：(a) instance 化（`ChatServiceImpl` 注入实例）；(b) 静态保留 + 提供 `reset()`/`clearSecretCache()` 复位 hook（**需同时复位 `secretDir`**，现有 `clearSecretCache()` 只清 cache）+ 测试 `@Before` 调用。评估静态 API 现有调用面（`ChatServiceImpl` 7+ 调用点、废弃 `DefaultAiChatService`、`TestLlmConfigHelper` 8 例）后选型——**默认倾向 (b)**（成本低、不改变公开静态 API）。
-- [ ] （Fix）按裁定落地：instance 化或复位 hook。
-- [ ] （Fix）测试：测试间 secretCache/secretDir 状态不泄漏（复位后断言缓存空/新 dir 生效）。
-- [ ] 全量 build + test 验证。
+- [x] （Decision）裁定收敛方式：**选型 (b)**——静态保留 + 提供 `reset()` 复位 hook（**同时复位 `secretDir`**，现有 `clearSecretCache()` 只清 cache）+ 测试 `@BeforeEach` 调用。评估结论：`ChatServiceImpl` 7+ 静态调用点、废弃 `DefaultAiChatService`、`TestLlmConfigHelper` 既有 8 例——instance 化（选型 a）会改变公开静态 API 并触及注入面，成本高收益低；选型 (b) 保持公开 API 不变。
+- [x] （Fix）按裁定落地：新增 `LlmConfigHelper.reset()`（`secretCache.clear()` + `secretDir = null`），`clearSecretCache()` 保持只清缓存语义不变。
+- [x] （Fix）测试：`TestLlmConfigHelper` 新增 `@BeforeEach resetStaticState()`（测试间 cache/dir 不泄漏）+ 新例 `testResetClearsCacheAndDir`（先经 dirA 填充缓存 → `reset()` → 无 dir 时 resolve 为空 → 换 dirB 后拿到 dirB 的值，证明缓存未残留 dirA 的旧值）。注意：`resolveApiKey` 读 secret 文件时会 assign 进 AppConfig，测试内显式清回 config var。
+- [x] 全量 build + test 验证。
 
 Exit Criteria:
 
-- [ ] `LlmConfigHelper` 静态状态可复位（或已 instance 化），测试序无关（测试断言）
-- [ ] 既有调用面不回归：`ChatServiceImpl.setSecretDir` 注入等（若选型 (a) instance 化改变了公开静态 API，需同步 `docs-for-ai/` 相关文档，此时不适用 `No owner-doc update required`）
-- [ ] **无静默跳过**：复位语义明确（清缓存 + 重置 dir），无残留静态
-- [ ] `No owner-doc update required`（选型 (b) 时；选型 (a) 时改为同步 owner doc）
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] `LlmConfigHelper` 静态状态可复位（或已 instance 化），测试序无关（测试断言）
+- [x] 既有调用面不回归：`ChatServiceImpl.setSecretDir` 注入等（选型 (b) 未改变公开静态 API，`docs-for-ai/` 无同步需求）
+- [x] **无静默跳过**：复位语义明确（清缓存 + 重置 dir），无残留静态
+- [x] `No owner-doc update required`（选型 (b) 时；选型 (a) 时改为同步 owner doc）——**选型 (b)，公开 API 不变**
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 ### Phase 5 — 测试静态字段复位（MA5.6-AR-2/AR-3）+ token 估算误差文档化（MA6.3-AR-3 残余）
 
-Status: planned
+Status: completed
 Targets: `nop-ai/nop-ai-agent/src/test/java/io/nop/ai/agent/tool/TestWorkingMemoryEndToEnd.java`、`TestAdapterBackedMemoryEndToEnd.java`、`nop-ai/nop-ai-core/src/main/java/io/nop/ai/core/dialect/ILlmDialect.java`、`nop-ai/nop-ai-agent/src/main/java/io/nop/ai/agent/engine/CalibratedTokenEstimator.java`
 
 - Item Types: `Fix | Decision | Proof`
 
-- [ ] （Fix）`TestWorkingMemoryEndToEnd`/`TestAdapterBackedMemoryEndToEnd` 静态捕获字段 → `@BeforeEach` 复位（或 instance 字段）。
-- [ ] （Fix）`ILlmDialect.estimateTokensDefault`/`CalibratedTokenEstimator` Javadoc 增加误差声明：chars/4 为基线启发式；**误差上界声明须限定为"校准收敛后 ≤4x"**（`MAX_FACTOR=4.0` 仅为 EMA 钳位上限，未校准（factor=1.0）时实际低估可远超 4x）；compaction trigger 调优提示。不改 SPI 裁定。
-- [ ] （Proof）两测试类连续 2 次全量 `-pl nop-ai-agent` 测试通过（确定性验证；JUnit 默认不支持随机类顺序，不做不可兑现的"随机顺序"验证）。
-- [ ] 全量 build + test 验证。
+- [x] （Fix）`TestWorkingMemoryEndToEnd`/`TestAdapterBackedMemoryEndToEnd` 静态捕获字段（`static final AtomicReference`/`AtomicInteger`）→ **instance 字段 + `@BeforeEach resetObservationState()` 复位**（JUnit5 PER_METHOD 生命周期下实例字段本就每测试新建，`@BeforeEach` 显式复位声明意图）。
+- [x] （Fix）`ILlmDialect.estimateTokensDefault`/`estimateTokens` 与 `CalibratedTokenEstimator` Javadoc 增加误差声明：chars/4 为基线启发式（英文优化，CJK/分词器相关模型偏差可超一个数量级）；**误差上界声明限定为"校准收敛后 ≤4x"**（`MAX_FACTOR=4.0` 仅为 EMA 钳位上限，未校准 factor=1.0 时实际低估可远超 4x）；compaction trigger 调优提示（收敛前保守 margin、监控 `getFactor()`）。不改 SPI 裁定（P1-MA5-003 不重开）。
+- [x] （Proof）两测试类连续 2 次全量 `-pl nop-ai-agent` 测试通过（2867 tests / 0 failures × 2 次；确定性验证；JUnit 默认不支持随机类顺序，不做不可兑现的"随机顺序"验证）。
+- [x] 全量 build + test 验证。
 
 Exit Criteria:
 
-- [ ] 两个测试类无测试期共享静态可变状态（代码审查 + 连续 2 次 agent 模块测试通过）
-- [ ] token 估算误差声明落盘（Javadoc 可读，措辞限定"校准收敛后"）
-- [ ] **无静默跳过**：无残留静态捕获字段
-- [ ] `No owner-doc update required`（纯测试修复 + Javadoc 声明）
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] 两个测试类无测试期共享静态可变状态（代码审查 + 连续 2 次 agent 模块测试通过）
+- [x] token 估算误差声明落盘（Javadoc 可读，措辞限定"校准收敛后"）
+- [x] **无静默跳过**：无残留静态捕获字段
+- [x] `No owner-doc update required`（纯测试修复 + Javadoc 声明）
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 ## Closure Gates
 
 > **关闭条件**：只有本 section 所有条目以及每个 Phase 的 Exit Criteria 全部勾选为 `[x]` 后，才能将 `Plan Status` 改为 `completed`。
 
-- [ ] 所有 in-scope 可靠性 P2 finding（MA6.3-AR-3 残余/4/5/6、MA6.1-AR-6、MA5.6-AR-2/3）已修复或裁定落盘
-- [ ] 无 in-scope live defect 被静默降级到 deferred / follow-up
-- [ ] 关键行为（jitter、usage recorder 接线、限流 fail-fast、静态状态复位）均有 focused 测试
-- [ ] 不存在空方法体/静默跳过/no-op 作为正常实现（Anti-Hollow）
-- [ ] 受影响 owner docs（`ai-dev/design/nop-ai-agent/` reliability 文档如适用、`arm-index.md`）已同步到 live baseline
-- [ ] 独立子 agent closure audit 已完成并记录证据
-- [ ] `./mvnw compile -pl nop-ai -am`
-- [ ] `./mvnw test -pl nop-ai -am -T 1C`
-- [ ] `node ai-dev/tools/scan-hollow-implementations.mjs --module nop-ai --severity high` 退出码 0
-- [ ] `node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0
-- [ ] `node ai-dev/tools/check-plan-checklist.mjs ai-dev/plans/2026-07-31-1834-2-arm-p2-reliability-observability.md --strict` 退出码 0
+- [x] 所有 in-scope 可靠性 P2 finding（MA6.3-AR-3 残余/4/5/6、MA6.1-AR-6、MA5.6-AR-2/3）已修复或裁定落盘
+- [x] 无 in-scope live defect 被静默降级到 deferred / follow-up
+- [x] 关键行为（jitter、usage recorder 接线、限流 fail-fast、静态状态复位）均有 focused 测试
+- [x] 不存在空方法体/静默跳过/no-op 作为正常实现（Anti-Hollow）
+- [x] 受影响 owner docs（`ai-dev/design/nop-ai-agent/` reliability 文档如适用、`arm-index.md`）已同步到 live baseline
+- [x] 独立子 agent closure audit 已完成并记录证据
+- [x] `./mvnw compile -pl nop-ai -am`
+- [x] `./mvnw test -pl nop-ai -am -T 1C`
+- [x] `node ai-dev/tools/scan-hollow-implementations.mjs --module nop-ai --severity high` 退出码 0（**存量基线 24 项退出码 1，增量判定 0 新增**——触及文件无 high 项，见 arm-index 记录）
+- [x] `node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0
+- [x] `node ai-dev/tools/check-plan-checklist.mjs ai-dev/plans/2026-07-31-1834-2-arm-p2-reliability-observability.md --strict` 退出码 0
 
 ## Deferred But Adjudicated
 
@@ -204,17 +204,26 @@ Exit Criteria:
 
 ## Closure
 
-Status Note: （完成时填写）
-Completed:
+Status Note: 全部 5 个 Phase 完成并经独立 closure audit APPROVE。可靠性/可观测性类 P2 finding（MA6.3-AR-3 残余/4/5/6、MA6.1-AR-6、MA5.6-AR-2/3）全部修复或裁定落盘；关键行为均有 focused 测试；无 in-scope live defect 静默降级。
+Completed: 2026-07-31
 
 Closure Audit Evidence:
 
-- Reviewer / Agent:
+- Reviewer / Agent: 独立 closure-audit 子 agent（fresh session `ses_047b939f8ffetg8x0v5A3d3Jn2`，未修改任何文件）
 - Evidence:
+  - **Phase 1（jitter）PASS**：`StandardRetryPolicy.java:141-163` full jitter `nextLong(0, cap+1)`（cap=min(delay,maxDelayMs)）；`baseDelay=0→0`（:142-144）；溢出保护（:149-156）；`TestStandardRetryPolicy` 区间断言 + 随机性断言（100 次采样出现不同值）；Javadoc 与 owner docs（llm-layer.md §7.3/:263/:308、reliability.md:160）同步；连续 2 次运行无 flake；14/14 全绿
+  - **Phase 2（usage recorder）PASS**：`SimpleUsageRecorder.java:27-39` 真实 SLF4J 结构化日志行（10 字段）；`DefaultAgentEngine.java:831-839` `warnIfNoOpUsageRecorder` 懒判定于 `resolveExecutor`（:3266，三入口 doExecute:2323/resumeSession:2657/restoreSession:2838 共用），非构造器；`setUsageRecorder` 复位标志（:1326-1330）；Builder 路径（构造→applyTo:589→build）无误报；`TestUsageRecorderWiring` +3 例 + 既有 record 每 LLM 调用断言保留，7/7 全绿；`usage-and-billing.md` §3.1/§3.2 同步
+  - **Phase 3（限流）PASS**：`AiCoreErrors.java:69-70` `ERR_AI_RATE_LIMITED`（javadoc :63-67 禁止非 429 4xx）；`AiCoreConfigs.java:52-53` timeout 配置默认 1000；`ChatServiceImpl.java:255-271` `tryAcquire(1, timeoutMs)` + `ARG_HTTP_STATUS=429`；`DefaultAiChatService.java:153-179` 同裁定对齐；`TestChatServiceRateLimit` 6 例（未断言 `getAcquireFailCount`）+ `TestLlmErrorClassifier` 联动 2 例（429→RATE_LIMITED / 无状态→TRANSIENT）；per-tenant/跨 JVM 扩展点落盘 `docs-for-ai/03-modules/nop-ai.md`「限流扩展点」
+  - **Phase 4（LlmConfigHelper）PASS**：`LlmConfigHelper.java:48-51` `reset()`（清 cache + 重置 dir）；`TestLlmConfigHelper` `@BeforeEach resetStaticState()` + `testResetClearsCacheAndDir`（dirA→reset→空→dirB 生效）；9/9 全绿
+  - **Phase 5 PASS**：两测试类静态捕获字段 → instance + `@BeforeEach`（TestWorkingMemoryEndToEnd.java:85-89 / TestAdapterBackedMemoryEndToEnd.java:94-98）；`ILlmDialect.java:158-168/:184-192` 与 `CalibratedTokenEstimator.java:27-36` 误差声明（"校准收敛后 ≤4x"、MAX_FACTOR 仅 EMA 钳位）；全量 nop-ai-agent 2867 tests × 2 次 0 failures
+  - **Closure Gates**：compile/install/test 全绿（5564 tests 0 failures）；`check-plan-checklist.mjs --strict` 退出码 0；`check-doc-links.mjs --strict` 退出码 0（7 条 warning 全为兄弟计划 1834-3 既有 broken link，非本批次）；`scan-hollow-implementations.mjs` 退出码 1 = **24 项存量基线**（git blame 证实 `DefaultAgentEngine.java:3324`/`DefaultAiChatService.java:632` 为历史 UOE fail-fast，本批次 diff 未触及；触及文件 0 新增，增量判定 PASS，与 arm-index 既有记录一致）
+  - **Anti-Hollow**：调用链连通——`execute/resumeSession/restoreSession → resolveExecutor(:3266 WARN + :3298 usageRecorder) → ReActAgentExecutor 构造(:425) → 记点(:1669 record)`；运行时连通由 `TestUsageRecorderWiring.recordInvokedOncePerLlmCallWithCorrectFields` 证实（2 LLM 调用 → 2 records 字段正确）；`NoOpUsageRecorder.record()` 空体为已裁定 pass-through 豁免（javadoc + design §3.1）
+  - **Deferred 分类检查**：ITokenCountEstimator 生产实现 = `watch-only residual`（P1-MA5-003 MV 裁定 SPI 契约，Non-Goals :36）；跨 JVM 分布式限流 = `out-of-scope improvement`——均非 in-scope live defect 降级，分类诚实
+  - **roadmap**：第四批行 ✅（closed 2026-07-31）；arm-index §P2 修复追踪（可靠性/可观测性批次）已落盘；`ai-dev/logs/2026/07-31.md` 批次条目已更新
 
 Follow-up:
 
--
+- no remaining plan-owned work（Non-Blocking Follow-ups 项均为既有 P3 治理项：MA5.6-AR-4/7 temp dir、MA5.6-AR-5 单例耦合）
 
 ## Optional Sections
 

@@ -332,3 +332,20 @@ MR4 Phase 2 对 P1 表全部 `fixed` 行做了 live repo 证据核验（提交/�
 **scan-hollow 基线（执行前落盘）**：`node ai-dev/tools/scan-hollow-implementations.mjs --module nop-ai --severity high` 基线退出码 1（24 项既有 high findings，全部为历史 pass-through/SPI 设计：IAiMemoryStore×4、ISessionStore UOE defaults、IAgentEngine×4、NoOpHookRegistry、NoOpFencingTokenService、AlwaysClosed/NoOpGoalTracker/NoOpSustainer、DefaultAiChatService:620、PrintStreamShellOutput/ShellChunk/TeeOutput、DefaultAgentEngine:3268 plan-mode UOE 等）。closure 判定为增量式：本计划触及文件不新增 high 项。
 
 **验证**：`./mvnw install -DskipTests -pl nop-ai -am -T 1C` BUILD SUCCESS + `./mvnw test -pl nop-ai` BUILD SUCCESS（nop-ai-agent 2856 / nop-ai-shell 269 等全绿）；上游模块全量顺序 run（19:15）已核绿，因并行会话对 `xview.xdef` 的 WIP 干扰（环境备注见 `ai-dev/logs/2026/07-31.md`）后续批次跳过上游测试。
+
+## P2 修复追踪（可靠性/可观测性批次，2026-07-31）
+
+第四批 P2 批量修复（plan `ai-dev/plans/2026-07-31-1834-2-arm-p2-reliability-observability.md`）已执行并收口。可靠性/可观测性类 P2 finding 全部 `fixed` 或裁定落盘：
+
+| Finding ID | 修复状态 | 修复位置 / 测试 |
+|-----------|---------|----------------|
+| MA6.3-AR-5 | `fixed` | `StandardRetryPolicy.computeBackoff()` full jitter——退避延迟 `[0, min(baseDelay*2^attempt, maxDelay)]` 均匀随机（上限基线保持，溢出保护保持）。测试 = `TestStandardRetryPolicy` 9 处精确断言改区间 + 随机性断言（连续 2 次全绿）；owner docs（`nop-ai-agent-llm-layer.md` §7.3/§7.6、`nop-ai-agent-reliability.md` §3.1）公式同步 |
+| MA6.3-AR-4 | `fixed` | 新增 `SimpleUsageRecorder`（SLF4J 结构化日志行，开箱可观测）+ `DefaultAgentEngine.warnIfNoOpUsageRecorder`（首次执行懒判定单次 WARN，规避 Builder 接线时序误报；`setUsageRecorder` 复位标志）。测试 = `TestUsageRecorderWiring` +3 例（NoOp WARN 可见 / Builder 真实 recorder 无误报 / SimpleUsageRecorder 字段断言）；`usage-and-billing.md` §3.1/§3.2 同步 |
+| MA6.3-AR-6 | `fixed`（裁定+实现） | 新 ErrorCode `ERR_AI_RATE_LIMITED`（`ARG_HTTP_STATUS=429` → `LlmErrorClassifier` RATE_LIMITED 可重试，javadoc 禁止其他 4xx）；`ChatServiceImpl.checkRateLimit` 限时 `tryAcquire(1, timeout)`（新配置 `nop.ai.service.rate-limit-acquire-timeout` 默认 1000ms）替代无限阻塞 `acquire()`；废弃类 `DefaultAiChatService` 同裁定对齐；per-tenant/跨 JVM = 文档化扩展点（`docs-for-ai/03-modules/nop-ai.md`「限流扩展点」）。测试 = `TestChatServiceRateLimit`（6 例，确定性 limiter）+ `TestLlmErrorClassifier` 联动 2 例 |
+| MA6.3-AR-3 残余 | `fixed`（文档化） | `ILlmDialect.estimateTokensDefault`/`CalibratedTokenEstimator` Javadoc 误差声明——chars/4 基线启发式；误差上界限定"校准收敛后 ≤4x"（`MAX_FACTOR=4.0` 仅 EMA 钳位）；compaction 触发保守 margin 提示。SPI 裁定（P1-MA5-003）不重开 |
+| MA6.1-AR-6 | `fixed`（裁定+实现） | `LlmConfigHelper.reset()`（清 `secretCache` + 重置 `secretDir`，补 `clearSecretCache()` 只清缓存的缺口）；选型 (b) 静态保留，公开静态 API 不变。测试 = `TestLlmConfigHelper` `@BeforeEach resetStaticState()` + `testResetClearsCacheAndDir` |
+| MA5.6-AR-2/AR-3 | `fixed` | `TestWorkingMemoryEndToEnd`/`TestAdapterBackedMemoryEndToEnd` 静态捕获字段 → instance 字段 + `@BeforeEach` 复位。连续 2 次全量 `-pl nop-ai-agent` 测试通过（2867 tests 0 failures × 2） |
+
+**scan-hollow 基线（本批次执行后）**：`scan-hollow-implementations.mjs --module nop-ai --severity high` 仍为 24 项既有基线（本批次触及文件 0 新增——`SimpleUsageRecorder` 有真实实现未被标记，`NoOpUsageRecorder.record()` 空体为既有 pass-through 设计），增量判定 PASS。
+
+**验证**：`./mvnw compile -pl nop-ai -am` + `./mvnw clean install -DskipTests -pl nop-ai -am -T 1C` BUILD SUCCESS；`./mvnw test -pl nop-ai -am -T 1C` BUILD SUCCESS（5564 tests 0 failures）；checkstyle 触及文件 0 新违规（nop-api-core 存量基线不变）；`check-doc-links.mjs --strict` exit 0（7 条警告为兄弟计划 1834-3 既有 broken link，非本批次引入）。

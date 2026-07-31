@@ -157,7 +157,7 @@ LLM 输出的工具调用 JSON 经常存在参数丢失、JSON 截断、重复�
 - 重试
 - 超时
 
-**实现状态（plan 207 ✅ 已落地 — 错误分类 + 重试）**：`LlmErrorClassifier`（按 `ARG_HTTP_STATUS` 把异常映射为 `ErrorClassification`：429→RATE_LIMITED、5xx/超时→TRANSIENT、4xx→NON_TRANSIENT、配额→QUOTA_EXCEEDED）+ `IRetryPolicy`（RETRY/STOP/FALLBACK 决策）+ `NoRetryPolicy`（shipped 默认，恒 STOP，零行为回归）+ `StandardRetryPolicy`（功能性 opt-in：最多 3 次指数退避，仅 TRANSIENT/RATE_LIMITED 重试）。重试循环接线到 `ReActAgentExecutor` 的单次 LLM 调用点（`chatService.call`）。注意：当前 `nop-ai-core` 的 `ChatServiceImpl` 抛出的 `ERR_AI_SERVICE_HTTP_ERROR` 异常丢弃 HTTP headers/body（仅保留状态码），因此 Retry-After header 解析不可达——429 使用指数退避而非 Retry-After 等待（独立 successor）。单次 LLM 调用超时预算是独立能力（Non-Goal），本计划的重试由调用本身抛出的超时异常（`NopTimeoutException`/`SocketTimeoutException`）驱动。roadmap §4 L3-2 ✅。
+**实现状态（plan 207 ✅ 已落地 — 错误分类 + 重试）**：`LlmErrorClassifier`（按 `ARG_HTTP_STATUS` 把异常映射为 `ErrorClassification`：429→RATE_LIMITED、5xx/超时→TRANSIENT、4xx→NON_TRANSIENT、配额→QUOTA_EXCEEDED）+ `IRetryPolicy`（RETRY/STOP/FALLBACK 决策）+ `NoRetryPolicy`（shipped 默认，恒 STOP，零行为回归）+ `StandardRetryPolicy`（功能性 opt-in：最多 3 次指数退避 + **full jitter（MA6.3-AR-5 ✅，延迟在 `[0, min(baseDelay*2^attempt, maxDelay)]` 均匀随机）**，仅 TRANSIENT/RATE_LIMITED 重试）。重试循环接线到 `ReActAgentExecutor` 的单次 LLM 调用点（`chatService.call`）。注意：当前 `nop-ai-core` 的 `ChatServiceImpl` 抛出的 `ERR_AI_SERVICE_HTTP_ERROR` 异常丢弃 HTTP headers/body（仅保留状态码），因此 Retry-After header 解析不可达——429 使用指数退避而非 Retry-After 等待（独立 successor）。单次 LLM 调用超时预算是独立能力（Non-Goal），本计划的重试由调用本身抛出的超时异常（`NopTimeoutException`/`SocketTimeoutException`）驱动。roadmap §4 L3-2 ✅。
 
 ### 3.2 运行层
 

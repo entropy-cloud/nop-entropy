@@ -260,7 +260,7 @@ Step 6: Zero-usage Retry Detection → 检测空用量自动重试           [de
 **实现状态（plan 207 ✅ 已落地 — IRetryPolicy 契约 + NoRetryPolicy 默认 + StandardRetryPolicy）**：
 
 - **契约 + NoRetry 默认 + 重试循环接线（Phase 1 ✅）**：`IRetryPolicy` 接口 + `RetryDecision`（RETRY/STOP/FALLBACK）枚举 + `RetryOutcome`（决策 + 延迟毫秒）+ `RetryContext`（attempt/lastError/errorClassification/hasStreamedContent）+ `ErrorClassification`（TRANSIENT/NON_TRANSIENT/RATE_LIMITED/QUOTA_EXCEEDED）+ `NoRetryPolicy`（恒 STOP）+ `LlmErrorClassifier`（按 HTTP 状态码映射）全部落地于 `io.nop.ai.agent.reliability` 包。`ReActAgentExecutor` 的单次 LLM 调用点（`chatService.call`）被重试循环包装：捕获异常 → `LlmErrorClassifier.classify` → 构造 `RetryContext` → `policy.shouldRetry` → RETRY(sleep backoff 后重试同一 request)/STOP(rethrow)/FALLBACK(plan 209：向 `IModelRouter.getFallback(...)` 查询回退模型，有则切换模型重试、无则 fail-loud 抛 `NopAiAgentException`，Minimum Rules #24)。`DefaultAgentEngine` 通过 field+setter+`resolveExecutor` 装配（默认 `NoRetryPolicy`，零行为回归）。
-- **StandardRetryPolicy 功能实现（Phase 2 ✅）**：最大尝试次数（默认 3）+ 指数退避（baseDelay * 2^attempt，封顶 maxDelay）+ 仅 TRANSIENT/RATE_LIMITED 重试、NON_TRANSIENT/QUOTA_EXCEEDED 立即 STOP。429 RATE_LIMITED 使用指数退避（当前调用路径异常不含 Retry-After header，见 Non-Goals）。
+- **StandardRetryPolicy 功能实现（Phase 2 ✅）**：最大尝试次数（默认 3）+ 指数退避 + **full jitter（MA6.3-AR-5 ✅）**：实际退避延迟在 `[0, min(baseDelay * 2^attempt, maxDelay)]` 区间内均匀随机（确定性指数公式为上限基线，jitter 消除并发重试同步风暴；`baseDelay=0` 时精确返回 0）+ 仅 TRANSIENT/RATE_LIMITED 重试、NON_TRANSIENT/QUOTA_EXCEEDED 立即 STOP。429 RATE_LIMITED 使用指数退避（当前调用路径异常不含 Retry-After header，见 Non-Goals）。
 
 ### 7.1 问题
 
@@ -305,7 +305,7 @@ non-transient 错误时，自动移除请求中的图片重试。成功后永久
   1. HTTP header: retry-after-ms
   2. HTTP header: retry-after
   3. 响应体文本提取
-  4. 默认退避: min(baseDelay * 2^attempt, maxDelay)
+  4. 默认退避: 确定性基线 min(baseDelay * 2^attempt, maxDelay)；`StandardRetryPolicy` 实际实现加 full jitter（延迟在 `[0, min(baseDelay * 2^attempt, maxDelay)]` 均匀随机，jitter 细节见类 javadoc）
 ```
 
 ---
