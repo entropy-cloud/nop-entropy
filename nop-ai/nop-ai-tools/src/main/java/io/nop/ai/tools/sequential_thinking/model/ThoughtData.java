@@ -2,7 +2,6 @@ package io.nop.ai.tools.sequential_thinking.model;
 
 import io.nop.api.core.annotations.data.DataBean;
 
-import java.time.Instant;
 import java.util.List;
 import java.util.Objects;
 import java.util.UUID;
@@ -18,12 +17,19 @@ public class ThoughtData {
     private List<String> tags;
     private List<String> axiomsUsed;
     private List<String> assumptionsChallenged;
-    private Instant timestamp;
+
+    /**
+     * Epoch millis of creation. Stored as {@code long} (not {@code Instant}) because
+     * JsonTool strict mode ({@code nop.core.json.serialize-only-data-bean}) has no
+     * serializer/converter for {@code java.time.Instant} — {@code ThoughtStorage}
+     * round-trips this bean through JsonTool (P3-MA1-013 live defect fix).
+     */
+    private long timestamp;
 
     // 构造函数
     public ThoughtData() {
         this.id = UUID.randomUUID().toString();
-        this.timestamp = Instant.now();
+        this.timestamp = System.currentTimeMillis();
     }
 
     // Getter和Setter方法
@@ -111,11 +117,11 @@ public class ThoughtData {
         this.assumptionsChallenged = assumptionsChallenged != null ? assumptionsChallenged : List.of();
     }
 
-    public Instant getTimestamp() {
+    public long getTimestamp() {
         return timestamp;
     }
 
-    public void setTimestamp(Instant timestamp) {
-        this.timestamp = Objects.requireNonNull(timestamp, "Timestamp cannot be null");
+    public void setTimestamp(long timestamp) {
+        this.timestamp = timestamp;
     }
 }

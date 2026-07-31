@@ -36,7 +36,7 @@
 |--------|------|
 | `nop-ai-core` | AI 核心接口（含 LLM 集成） |
 | `nop-ai-agent` | Agent 框架 |
-| `nop-ai-rag` | RAG 检索增强 |
+| `nop-ai-rag` | RAG 实现落点模块——空占位（P3-MA3-003 裁定保留）：`IVectorStore` / `IEmbeddingModel` 为 nop-ai-core 的 SPI 扩展点契约（P1-MA5-003），无生产实现属设计意图；未来实现放本模块 |
 | `nop-ai-skills` | AI 技能 |
 | `nop-ai-tools` | AI 工具 |
 | `nop-ai-toolkit` | 工具包 |
@@ -78,6 +78,13 @@
 | `nop.ai.service.rate-limit-acquire-timeout` | `1000` | LLM 调用本地限流（llm.xml 配 `rateLimit` 时）的许可获取超时（毫秒）。超时未获许可抛 `ERR_AI_RATE_LIMITED`（携带 `httpStatus=429`，`LlmErrorClassifier` 判为 RATE_LIMITED 可重试）——替代旧的无限阻塞 `acquire()`，消除挂起风险（MA6.3-AR-6）。`0`=立即失败（fail-fast） |
 
 **限流扩展点（MA6.3-AR-6 裁定）**：`ChatServiceImpl` 每 provider 一个 in-memory token bucket（`DefaultRateLimiter`），无 tenant 身份来源。per-tenant 配额 = **文档化扩展点**：子类覆盖 `createRateLimiter(double)`（按需 per-tenant key 建 limiter）或 `checkRateLimit(...)`；跨 JVM 分布式限流 = **文档化扩展点**：替换 `IRateLimiter` 实现（接口已抽象 `tryAcquire` 语义）。`DefaultAiChatService`（废弃类）同款限时 tryAcquire 处理已对齐。
+
+## 工具配置（nop-ai-tools）
+
+| 配置键 | 默认值 | 语义 |
+|--------|--------|------|
+| `nop.ai.sequential-thinking-tool.storage-dir-path` | `./_tmp/ai/sequential-thinking/store` | SequentialThinking 会话 thought 的 JSON 文件存储目录。默认值相对 JVM 工作目录解析（`FileHelper.resolveFile`：`/` 开头为绝对路径，其余相对 `user.dir`）；配置为空回退 `~/.mcp_sequential_thinking`。裁定（P3-MA1-013）：保持文件持久化（会话级工具），多实例部署需配置共享路径或迁移 ORM |
+| `nop.ai.tools.graphql-tool-names` | （空） | `nopGraphQLToolSet` 暴露的 GraphQL 操作名集合（csv）。为空时 tool set 无函数。`nopGraphQLToolSet` bean 仅在存在 `nopGraphQLEngine` bean 时注册（`<ioc:condition><on-bean>`，P3-MA1-016） |
 
 ## 业务权限模型（nop-ai-service）
 

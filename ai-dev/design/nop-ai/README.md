@@ -8,13 +8,17 @@
 |------|------|------|
 | `01-file-operator-abstraction-contract.md` | 架构基线 | `IFileOperator` vs `IToolFileSystem` 双抽象边界契约（P2-MA1-012 裁定：保持 + forRemoval=true + 迁移前置条件） |
 | `02-code-analyzer-module-boundary.md` | 架构基线 | nop-ai-code-analyzer 模块职责边界（P3-MA1-014 裁定：不拆模块 + maven 包内部子域 + git 包公共面 + nop-shell 保留） |
+| `03-sequential-thinking-storage.md` | 架构基线 | SequentialThinking 会话存储方案（P3-MA1-013 裁定：保持文件持久化 + 默认路径修正 + 迁移触发条件） |
+| `04-rag-module-position.md` | 架构基线 | nop-ai-rag 空模块定位（P3-MA3-003 裁定：保留 + SPI 预期实现落点，与 P1-MA5-003 兼容） |
 
 ## 阅读顺序
 
 1. **必读**：`01-file-operator-abstraction-contract.md` — 触碰任何 nop-ai 文件操作抽象（`IFileOperator` / `IToolFileSystem` / `FileToolBizModel` / `DslToolImpl`）前必须先读。
 2. **必读**：`02-code-analyzer-module-boundary.md` — 触碰 `nop-ai-code-analyzer` 模块边界（maven/git/stats 包归属、nop-shell 依赖）前必须先读。
-3. **按需深入**：nop-ai-agent 子系统的引擎/DSL/会话设计见 `../nop-ai-agent/`（独立子系统目录）。
-4. **扩展方向**：新的 nop-ai 架构决策按 `00-design-writing-guide.md` 模板追加到本目录（两位数字编号递增）。
+3. **必读**：`03-sequential-thinking-storage.md` — 触碰 `ThoughtStorage` / `SequentialThinkingBizModel` 存储方案（文件持久化裁定、默认路径、迁移触发条件）前必须先读。
+4. **必读**：`04-rag-module-position.md` — 触碰 `nop-ai-rag` 模块或 `IVectorStore` / `IEmbeddingModel` 实现面（SPI 落点裁定）前必须先读。
+5. **按需深入**：nop-ai-agent 子系统的引擎/DSL/会话设计见 `../nop-ai-agent/`（独立子系统目录）。
+6. **扩展方向**：新的 nop-ai 架构决策按 `00-design-writing-guide.md` 模板追加到本目录（两位数字编号递增）。
 
 ## 职责边界
 

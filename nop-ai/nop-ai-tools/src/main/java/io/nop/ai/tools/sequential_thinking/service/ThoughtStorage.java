@@ -14,6 +14,37 @@ import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.stream.Collectors;
 
+/**
+ * JSON file-backed storage for sequential-thinking session thoughts (P3-MA1-013 ruling).
+ * <p>
+ * <b>Ruling (2026-08-01): keep file persistence — do not migrate to ORM.</b> See
+ * {@code ai-dev/design/nop-ai/03-sequential-thinking-storage.md} for the full decision
+ * record. Summary:
+ * <ul>
+ * <li>Session-scoped tool: {@code SequentialThinkingBizModel} keys all data by the chat
+ * session id ({@code AiToolsHelper.makeChatSessionId}); each session's thoughts are an
+ * independent, ephemeral conversation aid — not business data with cross-entity
+ * consistency requirements.</li>
+ * <li>Data volume is tiny (tens of thoughts per session, ~1KB each); full read/write per
+ * operation is acceptable.</li>
+ * <li>Concurrency: a single {@code ReentrantLock} guards all operations; the storage is
+ * single-JVM (framework module), no cluster semantics.</li>
+ * <li>ORM migration was rejected: nop-ai-tools has no ORM/DAO dependency and nop-ai-core
+ * intentionally dropped {@code nop-dao} (P2-MA3-001); a session-scoped conversation aid
+ * does not justify DB schema + DAO + transaction wiring.</li>
+ * </ul>
+ * <p>
+ * <b>Storage directory resolution:</b> the config default
+ * {@code nop.ai.sequential-thinking-tool.storage-dir-path} is {@code ./_tmp/ai/sequential-thinking/store}
+ * — resolved relative to the JVM working directory ({@link FileHelper#resolveFile}),
+ * writable by default. An empty/null path falls back to {@code ~/.mcp_sequential_thinking}
+ * (user home). The previous default {@code /nop/ai/sequential-thinking/store} was an
+ * absolute file-system path that ordinary users cannot write (live defect, fixed).
+ * <p>
+ * <b>Limitation (documented, not a defect):</b> file persistence is per-JVM. Multi-instance
+ * deployments must configure a shared path, or a future migration trigger applies
+ * (see the design doc).
+ */
 public class ThoughtStorage {
     private final Lock lock = new ReentrantLock();
     private final File storageDir;

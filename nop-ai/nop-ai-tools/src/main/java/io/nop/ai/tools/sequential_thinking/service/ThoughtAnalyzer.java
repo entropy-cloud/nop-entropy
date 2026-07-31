@@ -11,6 +11,7 @@ import io.nop.ai.tools.sequential_thinking.model.ThoughtStage;
 import io.nop.ai.tools.sequential_thinking.model.ThoughtSummary;
 import io.nop.ai.tools.sequential_thinking.model.TimelineEntry;
 
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Comparator;
@@ -185,7 +186,7 @@ public class ThoughtAnalyzer {
                         thought.isNextThoughtNeeded(),
                         thought.getStage(),
                         thought.getTags(),
-                        thought.getTimestamp()
+                        Instant.ofEpochMilli(thought.getTimestamp())
                 ),
                 new AnalysisResult(
                         relatedThoughts.size(),

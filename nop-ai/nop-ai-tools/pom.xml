@@ -36,6 +36,22 @@
             <artifactId>nop-biz</artifactId>
         </dependency>
 
+        <!--
+        nop-ai-core 的 ai-defaults.beans.xml（ChatServiceImpl）按类型装配 IHttpClient，
+        test classpath 需要 http-client-jdk 提供该 bean（与 nop-ai-core/nop-ai-coder 测试一致）。
+        -->
+        <dependency>
+            <groupId>io.github.entropy-cloud</groupId>
+            <artifactId>nop-http-client-jdk</artifactId>
+            <scope>test</scope>
+        </dependency>
+
+        <dependency>
+            <groupId>io.github.entropy-cloud</groupId>
+            <artifactId>nop-autotest-junit</artifactId>
+            <scope>test</scope>
+        </dependency>
+
         <dependency>
             <groupId>org.junit.jupiter</groupId>
             <artifactId>junit-jupiter</artifactId>
