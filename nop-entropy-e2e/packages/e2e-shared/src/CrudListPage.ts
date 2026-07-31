@@ -8,6 +8,7 @@ import { GraphQLClient } from './GraphQlClient';
 export class CrudListPage extends BasePage {
   protected config: CrudPageConfig;
   protected _graphQL: GraphQLClient;
+  protected _lastViewRowData: Record<string, string> = {};
 
   constructor(page: PlaywrightPage, engine: EngineAdapter, config: CrudPageConfig) {
     super(page, engine);
@@ -17,6 +18,35 @@ export class CrudListPage extends BasePage {
 
   get graphQL(): GraphQLClient {
     return this._graphQL;
+  }
+
+  // 打开 view dialog 前缓存表格行数据，作为 view dialog 字段读取的兜底
+  //（view 表单字段渲染为无 label 的 nop-text span，无法按字段名定位时使用）。
+  protected async captureRowData(rowIdentifier: string): Promise<void> {
+    this._lastViewRowData = {};
+    const row = await this.findRowByText(rowIdentifier);
+    if (!row) return;
+
+    const { headerTexts, hasSelectCol } = await this.page.evaluate(() => {
+      const heads = document.querySelectorAll('[data-slot="table-head"]');
+      return {
+        headerTexts: Array.from(heads).map((h) => h.textContent?.trim() || ''),
+        hasSelectCol: !!document.querySelector('[data-slot="table-select-column"]'),
+      };
+    });
+
+    const hdrs = this.config.columnHeaders ?? [];
+    const hasPlaceholder = hdrs[0] === '';
+    const fieldKeys = hdrs.length > 0 ? hdrs : headerTexts;
+    const effective = hasPlaceholder && !hasSelectCol ? fieldKeys.slice(1) : fieldKeys;
+
+    const cells = row.locator('td, [data-slot="table-cell"]');
+    const count = await cells.count();
+    for (let i = 0; i < count && i < effective.length; i++) {
+      const val = ((await cells.nth(i).textContent()) ?? '').trim();
+      if (effective[i]) this._lastViewRowData[effective[i]] = val;
+      if (headerTexts[i]) this._lastViewRowData[headerTexts[i]] = val;
+    }
   }
 
   async navigate(): Promise<void> {
@@ -91,6 +121,7 @@ export class CrudListPage extends BasePage {
   async clickView(rowIdentifier: string): Promise<void> {
     const row = await this.findRowByText(rowIdentifier);
     if (row) {
+      await this.captureRowData(rowIdentifier);
       await this.engine.rowAction(row, /查看/);
     }
     await this.engine.dialog(this.page).waitFor({ state: 'visible' });
@@ -101,7 +132,25 @@ export class CrudListPage extends BasePage {
     if (row) {
       await this.engine.rowAction(row, /编辑/);
     }
-    await this.engine.dialog(this.page).waitFor({ state: 'visible' });
+    const dialog = this.engine.dialog(this.page);
+    await dialog.waitFor({ state: 'visible' });
+
+    // 等待编辑表单的 loadAction 填充字段后再填写：
+    // loadAction 触发 __get 并用 form.setValues() 填充响应数据，
+    // 若在 setValues() 完成前填写字段，加载的数据会覆盖填写值。
+    // 轮询第一个输入框直到有非空值，表示 loadAction 已完成。
+    await this.page
+      .waitForFunction(
+        () => {
+          const input = document.querySelector(
+            '[data-slot="dialog-surface"] input, [data-slot="dialog-content"] input',
+          );
+          return !!input && (input as HTMLInputElement).value.trim() !== '';
+        },
+        undefined,
+        { timeout: 15_000 },
+      )
+      .catch(() => {});
   }
 
   async clickDelete(rowIdentifier: string): Promise<void> {
@@ -119,8 +168,17 @@ export class CrudListPage extends BasePage {
   }
 
   async readViewField(fieldName: string): Promise<string> {
+    // Try 1: dialog field
     const dialog = new FormDialog(this.page, this.engine);
-    return dialog.getField(fieldName);
+    const value = await dialog.getField(fieldName);
+    if (value) return value;
+    // Try 2: cached row data（view 表单字段渲染无 label 时的兜底）
+    if (this._lastViewRowData[fieldName]) return this._lastViewRowData[fieldName];
+    // Try 3: 模糊匹配包含 fieldName 的缓存 key
+    for (const [key, val] of Object.entries(this._lastViewRowData)) {
+      if (val && key.toLowerCase().includes(fieldName.toLowerCase())) return val;
+    }
+    return '';
   }
 
   // ── 断言 ──

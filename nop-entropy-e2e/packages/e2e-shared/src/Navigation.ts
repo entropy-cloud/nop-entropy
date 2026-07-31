@@ -12,11 +12,19 @@ export interface LoginOptions {
 /**
  * Resolve the base URL from (in priority order):
  * 1. Explicit option
- * 2. E2E_BASE_URL env var
+ * 2. E2E_BASE_URL / BASE_URL / PLAYWRIGHT_BASE_URL env var
+ *    （与 playwright.config 的 baseURL 解析一致，保证与测试 baseURL 同 origin，
+ *      避免 localhost/127.0.0.1 差异导致 sessionStorage 认证状态隔离丢失）
  * 3. Default fallback
  */
-function resolveBaseUrl(explicit?: string): string {
-  return explicit ?? process.env.E2E_BASE_URL ?? 'http://localhost:4173';
+function resolveBaseUrl(_page: PlaywrightPage, explicit?: string): string {
+  if (explicit) return explicit;
+  return (
+    process.env.E2E_BASE_URL ??
+    process.env.BASE_URL ??
+    process.env.PLAYWRIGHT_BASE_URL ??
+    'http://localhost:4173'
+  );
 }
 
 /**
@@ -35,7 +43,7 @@ export async function login(
   const opts: LoginOptions =
     typeof options === 'string' ? { baseUrl: options } : (options ?? {});
 
-  const baseUrl = resolveBaseUrl(opts.baseUrl);
+  const baseUrl = resolveBaseUrl(page, opts.baseUrl);
   const username = opts.username ?? process.env.E2E_USER ?? 'nop';
   const password = opts.password ?? process.env.E2E_PASSWORD ?? '123';
 

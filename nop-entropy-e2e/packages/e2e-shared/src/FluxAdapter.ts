@@ -40,12 +40,29 @@ export class FluxAdapter implements EngineAdapter {
   }
 
   async rowAction(row: Locator, actionNamePattern: RegExp): Promise<void> {
+    const page = row.page();
     const actionContainer = row.locator('[data-slot="table-actions"]').first();
     const button = actionContainer.getByRole('button').filter({ hasText: actionNamePattern }).first();
     if (await button.count().then((c) => c > 0)) {
       await button.click();
       return;
     }
+
+    // 操作在"更多"下拉菜单中 → 展开 dropdown，点击菜单项
+    const moreButton = row.getByRole('button').filter({ hasText: /更多|More/ }).first();
+    if (await moreButton.count().then((c) => c > 0)) {
+      await moreButton.click();
+      await page.waitForTimeout(300);
+      const menuItem = page
+        .locator('[data-slot="dropdown-menu-item"], [role="menuitem"]')
+        .filter({ hasText: actionNamePattern })
+        .first();
+      if (await menuItem.count().then((c) => c > 0)) {
+        await menuItem.click();
+        return;
+      }
+    }
+
     const fallback = row.getByRole('button').filter({ hasText: actionNamePattern }).first();
     await fallback.click();
   }
@@ -131,8 +148,44 @@ export class FluxAdapter implements EngineAdapter {
         .evaluate((el: Element) => (el as HTMLInputElement).type)
         .catch(() => '');
       if (tagName === 'INPUT' && inputType !== 'checkbox' && inputType !== 'radio') {
-        await nativeField.first().fill(strValue);
-        return;
+        // combobox 结构（input[role=combobox] + input-group-button）不能直接 fill：
+        // 直接输入文本不会触发选中，需走第 3 分支点击展开后选择选项。
+        const isInsideCombobox = await nativeField
+          .evaluate((el: Element) => !!el.closest('[role="combobox"]'))
+          .catch(() => false);
+        if (!isInsideCombobox) {
+          const disabled = await nativeField
+            .evaluate(
+              (el: Element) =>
+                (el as HTMLInputElement).disabled || (el as HTMLInputElement).readOnly,
+            )
+            .catch(() => false);
+          if (!disabled) {
+            // 用原生事件方式设置值（与单测 fireEvent.input 对齐）：
+            // Playwright fill/type 可能被 React 受控组件的 value tracker 拦截，
+            // 导致 onChange 不触发、表单 store 不更新（e2e 编辑失败的根因）。
+            // 通过 prototype setter 设置 value + dispatch input/change 事件，
+            // React 正常捕获并更新 store。
+            await nativeField.first().evaluate(
+              (el, value) => {
+                const inputEl = el as HTMLInputElement;
+                const setter = Object.getOwnPropertyDescriptor(
+                  window.HTMLInputElement.prototype,
+                  'value',
+                )?.set;
+                if (setter) {
+                  setter.call(inputEl, value);
+                } else {
+                  inputEl.value = value;
+                }
+                inputEl.dispatchEvent(new Event('input', { bubbles: true }));
+                inputEl.dispatchEvent(new Event('change', { bubbles: true }));
+              },
+              strValue,
+            );
+            return;
+          }
+        }
       }
       if (tagName === 'TEXTAREA') {
         await nativeField.first().fill(strValue);
@@ -142,20 +195,36 @@ export class FluxAdapter implements EngineAdapter {
         await nativeField.selectOption({ label: strValue });
         return;
       }
-      // tagName === 'BUTTON' or input[type=checkbox/radio] → fall through to combobox
+      // tagName === 'BUTTON' or input[type=checkbox/radio] or combobox → fall through to combobox
     }
 
-    // 3. Combobox (Flux Select)
-    const selectWrapper = dialog.locator(
-      `[data-slot="select-wrapper"]`,
-    ).filter({ has: page.locator(`#${fieldName}-control, [name="${fieldName}"]`) }).first();
-    const comboboxTrigger = selectWrapper.locator('[data-slot="combobox-trigger"]').first();
-    if (await comboboxTrigger.count().then((c) => c > 0)) {
-      await comboboxTrigger.click();
-      await page.waitForTimeout(300);
-      const option = page.locator('[data-slot="combobox-item"]').filter({ hasText: strValue }).first();
-      await option.click();
-      return;
+    // 3. Combobox (Flux Select) — 兼容两种结构：
+    //    a) input[role=combobox]（id=#fieldName-control）+ input-group-button 展开
+    //    b) [data-slot="select-wrapper"] + [data-slot="combobox-trigger"]
+    const comboInput = dialog.locator(`#${fieldName}-control`).first();
+    if (await comboInput.count().then((c) => c > 0)) {
+      await comboInput.click();
+      // popup 异步渲染：等待匹配 option 出现（而不是立即 count）
+      const matchingOption = page.locator(`[role="option"]:has-text("${strValue}")`).first();
+      try {
+        await matchingOption.waitFor({ state: 'visible', timeout: 3000 });
+        await matchingOption.click();
+        return;
+      } catch {
+        // option 未出现 → 尝试展开按钮后选择
+      }
+      const groupButton = dialog
+        .locator(`[data-slot="input-group"]:has(#${fieldName}-control) [data-slot="input-group-button"]`)
+        .first();
+      if (await groupButton.count().then((c) => c > 0)) {
+        await groupButton.click();
+        await page.waitForTimeout(300);
+      }
+      const option = page.locator('[data-slot="combobox-item"], [role="option"]').filter({ hasText: strValue }).first();
+      if (await option.count().then((c) => c > 0)) {
+        await option.click();
+        return;
+      }
     }
 
     // 4. Fallback: try fill on getByLabel

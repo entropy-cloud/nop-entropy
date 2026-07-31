@@ -686,7 +686,24 @@ export async function dumpFluxDebug(page: Page): Promise<FluxDebugDump> {
   return page.evaluate(() => {
     const w = window as any;
     const list: unknown[] = w.__fluxDebug ?? [];
-    const entries = list.map(toEntryDumpBrowser);
+    const toDump = (e: any): FluxDebugEntryDump => ({
+      phase: e?.phase,
+      ts: e?.ts,
+      url: e?.url,
+      method: e?.method,
+      ok: e?.ok,
+      status: e?.status,
+      error: e?.error,
+      level: e?.level,
+      message: e?.message,
+      dataPreview:
+        typeof e?.data === 'string'
+          ? e.data.slice(0, 300)
+          : e?.data != null
+            ? JSON.stringify(e.data).slice(0, 300)
+            : e?.dataPreview,
+    });
+    const entries = list.map(toDump);
     return {
       enabled: w.__FLUX_DEBUG__ === true,
       entryCount: entries.length,
@@ -697,26 +714,6 @@ export async function dumpFluxDebug(page: Page): Promise<FluxDebugDump> {
       requests: entries.filter((e: FluxDebugEntryDump) => e.phase === 'request' || e.phase === 'response'),
     };
   });
-}
-
-function toEntryDumpBrowser(e: any): FluxDebugEntryDump {
-  return {
-    phase: e?.phase,
-    ts: e?.ts,
-    url: e?.url,
-    method: e?.method,
-    ok: e?.ok,
-    status: e?.status,
-    error: e?.error,
-    level: e?.level,
-    message: e?.message,
-    dataPreview:
-      typeof e?.data === 'string'
-        ? e.data.slice(0, 300)
-        : e?.data != null
-          ? JSON.stringify(e.data).slice(0, 300)
-          : e?.dataPreview,
-  };
 }
 
 /**
