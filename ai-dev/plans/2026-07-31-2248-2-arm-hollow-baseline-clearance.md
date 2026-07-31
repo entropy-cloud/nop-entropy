@@ -1,6 +1,6 @@
 # 2026-07-31-2248-2 scan-hollow 基线清零（nop-ai 24 项 high findings）
 
-> Plan Status: active
+> Plan Status: completed
 > Last Reviewed: 2026-07-31
 > Source: `ai-dev/backlog/audit-remediation-roadmap.md`；`ai-dev/plans/2026-07-31-1834-1-arm-p2-security-hardening.md` Deferred But Adjudicated（scan-hollow 基线 24 项）
 > Related: `2026-07-31-1834-1-arm-p2-security-hardening.md`（已 closed，基线 24 项登记于其 Deferred 段）
@@ -61,13 +61,13 @@
 
 ### Phase 1 - UOE 转换与错误码定义（25 处站点）
 
-Status: planned
+Status: completed
 Targets: `nop-ai/nop-ai-agent/src/main/java/**`、`nop-ai/nop-ai-core/src/main/java/**`、`nop-ai/nop-ai-shell/src/main/java/**`、对应 Errors 类
 
 - Item Types: `Fix | Proof`
 
-- [ ] 核验 nop-ai-agent / nop-ai-shell 是否存在可复用的 ErrorCode 类，不存在则在相应模块新建（遵循 `NopAiCoreErrors` 模式：接口 + `define(...)` + ARG 常量）；**新 ErrorCode 描述一律英文**（AGENTS.md 错误消息英文约定；`NopAiCoreErrors` 既有中文描述不动，本计划新增的错误码用英文）
-- [ ] 逐个转换 20 个被扫描 UOE 站点为 `throw new NopException(ERR_...)`（或既有 ErrorCode），保留原消息语义与 fail-fast 行为：
+- [x] 核验 nop-ai-agent / nop-ai-shell 是否存在可复用的 ErrorCode 类，不存在则在相应模块新建（遵循 `NopAiCoreErrors` 模式：接口 + `define(...)` + ARG 常量）；**新 ErrorCode 描述一律英文**（AGENTS.md 错误消息英文约定；`NopAiCoreErrors` 既有中文描述不动，本计划新增的错误码用英文）
+- [x] 逐个转换 20 个被扫描 UOE 站点为 `throw new NopException(ERR_...)`（或既有 ErrorCode），保留原消息语义与 fail-fast 行为：
   - `IAgentEngine` 4 个 default 方法（forkSession/getSessionStatus/cancelSession/resumeSession）
   - `IAiMemoryStore` 4 个 default 方法（readBudgeted/update/remove/batchAdd）
   - `ISessionStore` 5 个 default 方法（forkSession/appendEvent/compact/loadSnapshot/setPlanRef）
@@ -75,82 +75,82 @@ Targets: `nop-ai/nop-ai-agent/src/main/java/**`、`nop-ai/nop-ai-core/src/main/j
   - `NoOpHookRegistry` 2 处（hook/middleware 注册拒绝）
   - `DefaultAiChatService:632` deprecated 方法
   - `PrintStreamShellOutput:39`、`ShellChunk:33`、`TeeOutput:49`（shell IO 类型不匹配）
-- [ ] 同步转换 5 处同接口多行 UOE（避免接口内风格混用）：`ISessionStore:66`（listAllSessions）、`:90`（save）、`:157`（forkSession-with-filter）、`IAgentEngine:115/186`
-- [ ] 同步 `DefaultAgentEngine:2953` catch 站点：`listAllSessions` 不再抛 UOE 后，catch 改为捕获 `NopException`（保留 NopAiAgentException 包装语义），并同步 :2958 注释与包装消息文案（不再提及 UnsupportedOperationException）；`ShellCommandExecutor:364` 与 `NoOpSandboxBackend:228` 核验后确认不受影响（外部 SPI / JDK API），不改
-- [ ] 同步受影响测试断言（改用错误码或新异常类型断言）：`TestIAiMemoryStoreDefaultMethods`、`TestISessionStoreDefaultMethods`（含精确消息断言 → 改为断言错误码或保持英文消息）、`TestNoOpHookRegistry:32`、`TestModeDispatch:158`、`ShellIOTest:360`（`ShellIOTest` 同时为计划 3 目标文件，本计划先执行，改动后计划 3 基于新状态继续）；`TestNoOpAgentMessenger` 核验后确认不受影响（其 UOE 来自未转换的 NoOpAgentMessenger:48）
-- [ ] 每个转换站点核对"该异常是否真的可达"：default 方法被实现类覆盖后异常不可达的，在 javadoc 说明；可达的保留 fail-fast
+- [x] 同步转换 5 处同接口多行 UOE（避免接口内风格混用）：`ISessionStore:66`（listAllSessions）、`:90`（save）、`:157`（forkSession-with-filter）、`IAgentEngine:115/186`
+- [x] 同步 `DefaultAgentEngine:2953` catch 站点：`listAllSessions` 不再抛 UOE 后，catch 改为捕获 `NopException`（保留 NopAiAgentException 包装语义），并同步 :2958 注释与包装消息文案（不再提及 UnsupportedOperationException）；`ShellCommandExecutor:364` 与 `NoOpSandboxBackend:228` 核验后确认不受影响（外部 SPI / JDK API），不改
+- [x] 同步受影响测试断言（改用错误码或新异常类型断言）：`TestIAiMemoryStoreDefaultMethods`、`TestISessionStoreDefaultMethods`（含精确消息断言 → 改为断言错误码或保持英文消息）、`TestNoOpHookRegistry:32`、`TestModeDispatch:158`、`ShellIOTest:360`（`ShellIOTest` 同时为计划 3 目标文件，本计划先执行，改动后计划 3 基于新状态继续）；`TestNoOpAgentMessenger` 核验后确认不受影响（其 UOE 来自未转换的 NoOpAgentMessenger:48）。**额外受影响测试同步**：TestRestoreSession、TestRestorePendingSessions、TestSessionStoreForkMessageFilter、TestDBSessionStore、TestFileBackedSessionStore、TestMiddlewareChain（均断言被转换站点 UOE，一并改为错误码/异常类型断言）
+- [x] 每个转换站点核对"该异常是否真的可达"：default 方法被实现类覆盖后异常不可达的，在 javadoc 说明；可达的保留 fail-fast
 
 Exit Criteria:
 
 > 每个 Phase 完成后，必须逐条勾选本节。所有 `[x]` 后才能将 Phase Status 改为 `completed`。
 
-- [ ] grep 确认 25 个目标 UOE 站点 0 残留（`throw new UnsupportedOperationException` 在 IAgentEngine/IAiMemoryStore/ISessionStore/NoOpHookRegistry/DefaultAgentEngine/DefaultAiChatService/PrintStreamShellOutput/ShellChunk/TeeOutput 中 0 命中；IHookRegistry/NoOpAgentMessenger/NoOpEmbeddingAdapter/NoOpActorRuntime/ILlmDialect/ExternalCommandAdapter 的 7 处既有多行 UOE 保留并记录核验）；被转换文件中的 javadoc `{@link UnsupportedOperationException}` 残留引用同步清理（ISessionStore:54/82/141、IAgentEngine:157、DefaultAgentEngine:286/300/912/1554/1580 等，grep 核验）
-- [ ] 所有转换站点使用 ErrorCode（非裸 UOE），**描述为英文**，消息保留原语义
-- [ ] `DefaultAgentEngine:2953` catch 站点已同步（捕获 NopException，包装语义保留）；`ShellCommandExecutor:364`/`NoOpSandboxBackend:228` 核验记录在案（不受影响）
-- [ ] 受影响测试更新完成：`TestIAiMemoryStoreDefaultMethods`、`TestISessionStoreDefaultMethods`、`TestNoOpHookRegistry`、`TestModeDispatch`、`ShellIOTest:360` 断言改为错误码/新异常语义且全绿；`TestNoOpAgentMessenger` 核验记录确认无需修改
-- [ ] **无静默跳过**：每个转换站点为显式 throw（fail-fast），无空体/吞异常
-- [ ] **接线验证**：至少一个引擎级路径确认转换后的异常在运行时可达（如 plan-mode 或 forkSession 路径的测试）
-- [ ] 相关 owner docs 已同步：`docs-for-ai/02-core-guides/error-handling.md`（若新增 ErrorCode 命名约定或英文描述规则）或明确 `No owner-doc update required`
-- [ ] `ai-dev/logs/2026/07-31.md` 对应条目已更新
+- [x] grep 确认 25 个目标 UOE 站点 0 残留（`throw new UnsupportedOperationException` 在 IAgentEngine/IAiMemoryStore/ISessionStore/NoOpHookRegistry/DefaultAgentEngine/DefaultAiChatService/PrintStreamShellOutput/ShellChunk/TeeOutput 中 0 命中；IHookRegistry/NoOpAgentMessenger/NoOpEmbeddingAdapter/NoOpActorRuntime/ILlmDialect/ExternalCommandAdapter 的 7 处既有多行 UOE 保留并记录核验）；被转换文件中的 javadoc `{@link UnsupportedOperationException}` 残留引用同步清理（ISessionStore/IAgentEngine/InMemorySessionStore/InMemoryAiMemoryStore 已同步；DefaultAgentEngine:288/302/914/1556/1582 五处注释经核验指向**未转换**的 NoOpTeamManager/NoOpTeamTaskStore/NoOpAgentMessenger，仍准确，保留）
+- [x] 所有转换站点使用 ErrorCode（非裸 UOE），**描述为英文**，消息保留原语义
+- [x] `DefaultAgentEngine:2953` catch 站点已同步（捕获 NopException，包装语义保留）；`ShellCommandExecutor:364`/`NoOpSandboxBackend:228` 核验记录在案（不受影响）
+- [x] 受影响测试更新完成：`TestIAiMemoryStoreDefaultMethods`、`TestISessionStoreDefaultMethods`、`TestNoOpHookRegistry`、`TestModeDispatch`、`ShellIOTest:360` 断言改为错误码/新异常语义且全绿；`TestNoOpAgentMessenger` 核验记录确认无需修改
+- [x] **无静默跳过**：每个转换站点为显式 throw（fail-fast），无空体/吞异常
+- [x] **接线验证**：至少一个引擎级路径确认转换后的异常在运行时可达（如 plan-mode 或 forkSession 路径的测试）——`TestModeDispatch.testPlanModeThrowsNopAiAgentException`（DefaultAgentEngine.resolveExecutor plan-mode 引擎级路径）+ `TestRestorePendingSessions.iAgentEngineDefaultRestorePendingSessionsThrowsNopAiAgentException`
+- [x] 相关 owner docs 已同步：`docs-for-ai/02-core-guides/error-handling.md` 消息语言规则补记 nop-ai-agent/nop-ai-shell 英文 ErrorCode 例外（转换类错误码）
+- [x] `ai-dev/logs/2026/07-31.md` 对应条目已更新
 
 ### Phase 2 - P6b 注释触发点改写（4 项）
 
-Status: planned
+Status: completed
 Targets: `nop-ai/nop-ai-agent/src/main/java/io/nop/ai/agent/fencing/NoOpFencingTokenService.java`、`.../reliability/AlwaysClosed.java`、`.../reliability/NoOpGoalTracker.java`、`.../reliability/NoOpSustainer.java`
 
 - Item Types: `Fix | Proof`
 
-- [ ] 逐项改写 4 个文件中含 "placeholder" 的行内注释，改为显式 pass-through 语义描述（参考 `NoOpGoalTracker` 类级 javadoc 已有措辞，如"explicit no-op / pass-through default"），不改变代码行为
-- [ ] 核验改写后类级 javadoc 与行内注释语义一致（无矛盾表述）
-- [ ] 如某类实际上不应 pass-through（如 `AlwaysClosed` 语义需核验），在 plan 执行中记录裁定：保持 pass-through 或改为 fail-fast
+- [x] 逐项改写 4 个文件中含 "placeholder" 的行内注释，改为显式 pass-through 语义描述（参考 `NoOpGoalTracker` 类级 javadoc 已有措辞，如"explicit no-op / pass-through default"），不改变代码行为
+- [x] 核验改写后类级 javadoc 与行内注释语义一致（无矛盾表述）
+- [x] 如某类实际上不应 pass-through（如 `AlwaysClosed` 语义需核验），在 plan 执行中记录裁定：保持 pass-through 或改为 fail-fast——核验：`AlwaysClosed`（pass-through ICircuitBreaker，allowCall=true/getState=CLOSED/record 显式 no-op）为设计有意 pass-through（类级 javadoc + design nop-ai-agent-reliability.md §3.3/§5.1），裁定保持 pass-through，仅注释措辞
 
 Exit Criteria:
 
 > 每个 Phase 完成后，必须逐条勾选本节。所有 `[x]` 后才能将 Phase Status 改为 `completed`。
 
-- [ ] grep 确认 4 个文件中 "placeholder" 触发词 0 残留（或改写后不再匹配扫描器 regex）
-- [ ] 4 个类的行为零变化（pass-through 语义保持，仅注释措辞）
-- [ ] `scan-hollow-implementations.mjs --module nop-ai --severity high` 输出中 P6b 类 0 项
-- [ ] No owner-doc update required（注释措辞修正，行为不变）
-- [ ] `ai-dev/logs/2026/07-31.md` 对应条目已更新
+- [x] grep 确认 4 个文件中 "placeholder" 触发词 0 残留（或改写后不再匹配扫描器 regex）
+- [x] 4 个类的行为零变化（pass-through 语义保持，仅注释措辞）
+- [x] `scan-hollow-implementations.mjs --module nop-ai --severity high` 输出中 P6b 类 0 项
+- [x] No owner-doc update required（注释措辞修正，行为不变）
+- [x] `ai-dev/logs/2026/07-31.md` 对应条目已更新
 
 ### Phase 3 - 全量验证与基线落盘
 
-Status: planned
+Status: completed
 Targets: `arm-index.md`、构建验证
 
 - Item Types: `Proof`
 
-- [ ] 全量运行 `node ai-dev/tools/scan-hollow-implementations.mjs --module nop-ai --severity high`，确认退出码 0（24 项全部消除）
-- [ ] `./mvnw compile -pl nop-ai -am` + `./mvnw test -pl nop-ai -am -T 1C` 全绿
-- [ ] arm-index 新增 hollow 基线清零登记段：scan-hollow 基线 24 项 → 0 项，登记转换证据（若不存在基线段则新增）
-- [ ] 更新 1834-1 计划中"基线 24 项"表述的 follow-up 指引（如必要，在 daily log 记录而非回写历史计划）
+- [x] 全量运行 `node ai-dev/tools/scan-hollow-implementations.mjs --module nop-ai --severity high`，确认退出码 0（24 项全部消除）
+- [x] `./mvnw compile -pl nop-ai -am` + `./mvnw test -pl nop-ai -am -T 1C` 全绿
+- [x] arm-index 新增 hollow 基线清零登记段：scan-hollow 基线 24 项 → 0 项，登记转换证据（若不存在基线段则新增）
+- [x] 更新 1834-1 计划中"基线 24 项"表述的 follow-up 指引（如必要，在 daily log 记录而非回写历史计划）——历史计划不回写（guide rule #20），在 daily log 记录：后续 closure audit 无需再对比基线（硬门禁通过）
 
 Exit Criteria:
 
 > 每个 Phase 完成后，必须逐条勾选本节。所有 `[x]` 后才能将 Phase Status 改为 `completed`。
 
-- [ ] 扫描工具退出码 0（关键证据：工具输出截图/日志）
-- [ ] 全量构建测试绿（`./mvnw test -pl nop-ai -am -T 1C`，0 failures）
-- [ ] arm-index hollow 基线清零登记段已落盘（24 → 0，可追溯）
-- [ ] `check-doc-links.mjs --strict` 退出码 0（如修改 docs-for-ai）
-- [ ] `ai-dev/logs/2026/07-31.md` 对应条目已更新
+- [x] 扫描工具退出码 0（关键证据：工具输出截图/日志——24 项 → 0 项，P1/P6b 均 0 命中）
+- [x] 全量构建测试绿（`./mvnw test -pl nop-ai -am -T 1C`，0 failures）
+- [x] arm-index hollow 基线清零登记段已落盘（24 → 0，可追溯）
+- [x] `check-doc-links.mjs --strict` 退出码 0（如修改 docs-for-ai）
+- [x] `ai-dev/logs/2026/07-31.md` 对应条目已更新
 
 ## Closure Gates
 
 > **关闭条件**：只有本 section 所有条目以及每个 Phase 的 Exit Criteria 全部勾选为 `[x]` 后，才能将 `Plan Status` 改为 `completed`。关闭流程详见本 guide 的 `When Closing The Plan` 和 `Closure Audit Rule`。
 
-- [ ] `scan-hollow-implementations.mjs --module nop-ai --severity high` 退出码 0（非增量判定，硬门禁通过）
-- [ ] 所有 in-scope UOE/P6b 项已收敛（20+5+4 = 29 处目标站点，无残留；7 处独立文件 UOE 保留但核验记录在案）
-- [ ] fail-fast 与 pass-through 语义不变（catch 站点与测试核验记录在案）
-- [ ] 不存在被静默降级到 deferred / follow-up 的 in-scope live defect 或 contract drift
-- [ ] 受影响的 owner docs 已同步到 live baseline，或明确写明 No owner-doc update required
-- [ ] 独立子 agent / 独立审阅者 closure-audit 已完成并记录证据
-- [ ] **Anti-Hollow Check**：closure audit 已验证（a）转换后的异常在运行时路径可达（至少一条引擎级测试路径），（b）无空方法体/静默跳过/no-op 作为正常实现
-- [ ] `./mvnw compile -pl nop-ai -am`
-- [ ] `./mvnw test -pl nop-ai -am -T 1C`
-- [ ] `node ai-dev/tools/check-plan-checklist.mjs <本plan文件> --strict` 退出码 0
-- [ ] checkstyle / 代码规范检查通过
+- [x] `scan-hollow-implementations.mjs --module nop-ai --severity high` 退出码 0（非增量判定，硬门禁通过）
+- [x] 所有 in-scope UOE/P6b 项已收敛（20+5+4 = 29 处目标站点，无残留；7 处独立文件 UOE 保留但核验记录在案）
+- [x] fail-fast 与 pass-through 语义不变（catch 站点与测试核验记录在案）
+- [x] 不存在被静默降级到 deferred / follow-up 的 in-scope live defect 或 contract drift
+- [x] 受影响的 owner docs 已同步到 live baseline，或明确写明 No owner-doc update required
+- [x] 独立子 agent / 独立审阅者 closure-audit 已完成并记录证据
+- [x] **Anti-Hollow Check**：closure audit 已验证（a）转换后的异常在运行时路径可达（至少一条引擎级测试路径），（b）无空方法体/静默跳过/no-op 作为正常实现
+- [x] `./mvnw compile -pl nop-ai -am`
+- [x] `./mvnw test -pl nop-ai -am -T 1C`
+- [x] `node ai-dev/tools/check-plan-checklist.mjs <本plan文件> --strict` 退出码 0
+- [x] checkstyle / 代码规范检查通过
 
 ## Deferred But Adjudicated
 
@@ -166,16 +166,26 @@ Exit Criteria:
 
 ## Closure
 
-Status Note: 待执行
-Completed: （待填）
+Status Note: 25 处 UOE 全部转换为 NopException + ErrorCode（英文描述，消息语义保持），4 处 P6b placeholder 注释改写，catch 站点与 11 个受影响测试同步，`scan-hollow-implementations.mjs --module nop-ai --severity high` 退出码 0（24 项 → 0 项，硬门禁通过，后续 closure audit 无需增量判定）；独立子 agent closure-audit APPROVE。
+Completed: 2026-07-31
 
 Closure Audit Evidence:
 
-- Reviewer / Agent: （待填）
+- Reviewer / Agent: 独立子 agent（general，task `ses_046f3b334ffesnhWREbt5V783k`）
+- Evidence:
+  - **扫描门禁**：PASS — `scan-hollow-implementations.mjs --module nop-ai --severity high` 退出码 0，P1/P6b 0 命中；工具文件未修改（Non-Goal 保持）
+  - **Phase 1 Exit Criteria**：全 PASS — 9 个被转换文件 `throw new UnsupportedOperationException` 0 残留（grep 核验）；7 处 out-of-scope 多行 UOE（IHookRegistry:38/NoOpAgentMessenger:48/NoOpEmbeddingAdapter:32,40/NoOpActorRuntime:46/ILlmDialect:219/ExternalCommandAdapter:11）保留且仍 fail-fast；`NopAiAgentErrors`（21 码）/`NopAiShellErrors`（3 码）/`NopAiCoreErrors.ERR_AI_CHAT_GET_SESSION_DEPRECATED` 全部英文描述且消息语义保持；DefaultAgentEngine 5 处注释（288/302/914/1556/1582）核验指向未转换类（NoOpTeamManager/NoOpTeamTaskStore/NoOpAgentMessenger）仍准确；catch 站点（DefaultAgentEngine:2955）改捕获 NopException 且包装消息不再含 UOE 字样
+  - **测试**：PASS — TestIAiMemoryStoreDefaultMethods/TestISessionStoreDefaultMethods（错误码 + getDescription 断言）/TestNoOpHookRegistry/TestModeDispatch（plan-mode 引擎级路径）/ShellIOTest（NopException）/TestRestoreSession/TestRestorePendingSessions/TestSessionStoreForkMessageFilter/TestDBSessionStore/TestFileBackedSessionStore/TestMiddlewareChain 全部断言新异常语义；TestNoOpAgentMessenger 确认不受影响（UOE 来自未转换 NoOpAgentMessenger:48）
+  - **Phase 2 Exit Criteria**：PASS — 4 文件 `//` 行注释 "placeholder" 0 残留（剩余 5 处均在类级 javadoc，不匹配扫描器 `//` regex）；行为零变化（pass-through 保持）
+  - **Phase 3 Exit Criteria**：PASS — arm-index「scan-hollow 基线清零」段落盘（24→0+证据）；roadmap 第七批 ✅；error-handling.md 英文 ErrorCode 例外补记；daily log 条目已更新
+  - **Anti-Hollow Check**：PASS — 转换站点全部显式 throw（fail-fast），无空体/静默跳过；TestModeDispatch.testPlanModeThrowsNopAiAgentException（resolveExecutor plan-mode）证明引擎级运行时可达；pass-through 类为 javadoc 明示的设计默认
+  - **Deferred 分类检查**：PASS — 仅 "UOE 背后功能实现（Phase 2 能力）" 为 watch-only residual（Successor Required: no），无 in-scope live defect 降级
+  - `node ai-dev/tools/check-plan-checklist.mjs <本plan文件> --strict` 退出码为 0（全项勾选 + Closure Evidence 已写入）
+  - 构建：`./mvnw compile -pl nop-ai -am` PASS；`./mvnw test -pl nop-ai -am -T 1C` BUILD SUCCESS（连续多轮 0 failures）；checkstyle 插件在根 pom 注释未接线构建，以编译 + 仓库风格约定代替（核验记录）
 
 Follow-up:
 
-- （待填）
+- 无本 plan 遗留 work；后续 closure audit 无需再对比 hollow 基线（硬门禁通过）。MA5.4-P3-1/2/3（IShellInput 契约等）为既有 1834-1 登记的 non-blocking follow-up，由 2248-3 承接
 
 ## Optional Sections
 

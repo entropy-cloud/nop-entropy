@@ -1,5 +1,7 @@
 package io.nop.ai.agent.session;
 
+import io.nop.ai.agent.NopAiAgentErrors;
+import io.nop.ai.agent.engine.NopAiAgentException;
 import org.junit.jupiter.api.Test;
 
 import java.util.Collections;
@@ -12,32 +14,36 @@ public class TestISessionStoreDefaultMethods {
     private final InMemorySessionStore store = new InMemorySessionStore();
 
     @Test
-    void appendEventThrowsUOE() {
+    void appendEventThrowsNopAiAgentException() {
         VfsEvent event = new VfsEvent("test", Collections.emptyMap(), System.currentTimeMillis());
-        UnsupportedOperationException ex = assertThrows(UnsupportedOperationException.class,
+        NopAiAgentException ex = assertThrows(NopAiAgentException.class,
                 () -> store.appendEvent("s1", event));
-        assertEquals("appendEvent requires VfsSessionStore", ex.getMessage());
+        assertEquals(NopAiAgentErrors.ERR_AGENT_SESSION_APPEND_EVENT_NOT_SUPPORTED.getErrorCode(), ex.getErrorCode());
+        assertEquals("appendEvent requires VfsSessionStore", ex.getDescription());
     }
 
     @Test
-    void compactThrowsUOE() {
+    void compactThrowsNopAiAgentException() {
         CompactConfig config = new CompactConfig(1000, "truncate", true);
-        UnsupportedOperationException ex = assertThrows(UnsupportedOperationException.class,
+        NopAiAgentException ex = assertThrows(NopAiAgentException.class,
                 () -> store.compact("s1", config));
-        assertEquals("compact requires VfsSessionStore", ex.getMessage());
+        assertEquals(NopAiAgentErrors.ERR_AGENT_SESSION_COMPACT_NOT_SUPPORTED.getErrorCode(), ex.getErrorCode());
+        assertEquals("compact requires VfsSessionStore", ex.getDescription());
     }
 
     @Test
-    void loadSnapshotThrowsUOE() {
-        UnsupportedOperationException ex = assertThrows(UnsupportedOperationException.class,
+    void loadSnapshotThrowsNopAiAgentException() {
+        NopAiAgentException ex = assertThrows(NopAiAgentException.class,
                 () -> store.loadSnapshot("s1", "snap-1"));
-        assertEquals("loadSnapshot requires VfsSessionStore", ex.getMessage());
+        assertEquals(NopAiAgentErrors.ERR_AGENT_SESSION_LOAD_SNAPSHOT_NOT_SUPPORTED.getErrorCode(), ex.getErrorCode());
+        assertEquals("loadSnapshot requires VfsSessionStore", ex.getDescription());
     }
 
     @Test
-    void setPlanRefThrowsUOE() {
-        UnsupportedOperationException ex = assertThrows(UnsupportedOperationException.class,
+    void setPlanRefThrowsNopAiAgentException() {
+        NopAiAgentException ex = assertThrows(NopAiAgentException.class,
                 () -> store.setPlanRef("s1", "plan-1"));
-        assertEquals("setPlanRef requires VfsSessionStore", ex.getMessage());
+        assertEquals(NopAiAgentErrors.ERR_AGENT_SESSION_SET_PLAN_REF_NOT_SUPPORTED.getErrorCode(), ex.getErrorCode());
+        assertEquals("setPlanRef requires VfsSessionStore", ex.getDescription());
     }
 }

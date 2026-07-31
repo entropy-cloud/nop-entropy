@@ -1,5 +1,6 @@
 package io.nop.ai.agent.hook;
 
+import io.nop.ai.agent.engine.NopAiAgentException;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
@@ -27,9 +28,9 @@ public class TestNoOpHookRegistry {
     }
 
     @Test
-    void registerThrowsUnsupportedOperationException() {
+    void registerThrowsNopAiAgentException() {
         NoOpHookRegistry registry = NoOpHookRegistry.INSTANCE;
-        assertThrows(UnsupportedOperationException.class, () ->
+        assertThrows(NopAiAgentException.class, () ->
                 registry.register(AgentLifecyclePoint.PRE_REASONING, ctx -> HookResult.PassResult.instance()));
     }
 

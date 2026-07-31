@@ -2,6 +2,7 @@ package io.nop.ai.shell.io;
 
 import io.nop.ai.toolkit.fs.IToolFileSystem;
 import io.nop.ai.toolkit.fs.LocalToolFileSystem;
+import io.nop.api.core.exceptions.NopException;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
 
@@ -357,6 +358,6 @@ class ShellIOTest {
         output.println("test line");
         output.flush();
         assertTrue(baos.toString().contains("test line"));
-        assertThrows(UnsupportedOperationException.class, output::asInput);
+        assertThrows(NopException.class, output::asInput);
     }
 }

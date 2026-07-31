@@ -319,7 +319,7 @@ public class TestFileBackedSessionStore {
     // ========================================================================
 
     @Test
-    void isessionStoreDefaultSaveThrowsUOE() {
+    void isessionStoreDefaultSaveFailsFast() {
         ISessionStore store = new ISessionStore() {
             @Override
             public AgentSession getOrCreate(String sessionId, String agentName) { return null; }
@@ -331,8 +331,8 @@ public class TestFileBackedSessionStore {
             public Collection<AgentSession> getAll() { return null; }
         };
         AgentSession session = AgentSession.create("x", "y");
-        assertThrows(UnsupportedOperationException.class, () -> store.save(session),
-                "ISessionStore default save must throw UOE (Minimum Rules #24 No Silent No-Op)");
+        assertThrows(NopAiAgentException.class, () -> store.save(session),
+                "ISessionStore default save must fail fast (Minimum Rules #24 No Silent No-Op)");
     }
 
     @Test
@@ -518,7 +518,7 @@ public class TestFileBackedSessionStore {
     }
 
     @Test
-    void isessionStoreDefaultListAllSessionsThrowsUOE() {
+    void isessionStoreDefaultListAllSessionsFailsFast() {
         ISessionStore store = new ISessionStore() {
             @Override
             public AgentSession getOrCreate(String sessionId, String agentName) { return null; }
@@ -529,8 +529,8 @@ public class TestFileBackedSessionStore {
             @Override
             public Collection<AgentSession> getAll() { return null; }
         };
-        assertThrows(UnsupportedOperationException.class, store::listAllSessions,
-                "ISessionStore default listAllSessions must throw UOE (Minimum Rules #24)");
+        assertThrows(NopAiAgentException.class, store::listAllSessions,
+                "ISessionStore default listAllSessions must fail fast (Minimum Rules #24)");
     }
 
     @Test

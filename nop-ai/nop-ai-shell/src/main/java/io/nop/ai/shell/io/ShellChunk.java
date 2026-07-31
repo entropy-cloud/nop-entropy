@@ -1,5 +1,8 @@
 package io.nop.ai.shell.io;
 
+import io.nop.ai.shell.NopAiShellErrors;
+import io.nop.api.core.exceptions.NopException;
+
 public abstract class ShellChunk {
 
     private ShellChunk() {
@@ -30,7 +33,7 @@ public abstract class ShellChunk {
     }
 
     public String asText() {
-        throw new UnsupportedOperationException("Not a text chunk");
+        throw new NopException(NopAiShellErrors.ERR_AI_SHELL_CHUNK_NOT_TEXT);
     }
 
     public static final class TextChunk extends ShellChunk {

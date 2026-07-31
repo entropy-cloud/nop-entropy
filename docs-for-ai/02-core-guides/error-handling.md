@@ -117,6 +117,7 @@ String ARG_ORDER_ID = "orderId";
 
 **消息语言规则**：
 - `ErrorCode.define(...)` 中的描述消息使用**中文**，框架会通过 i18n 机制翻译。
+- **例外（nop-ai-agent / nop-ai-shell 模块）**：`NopAiAgentErrors` / `NopAiShellErrors` 的 fail-fast 转换类错误码（`ERR_*_NOT_SUPPORTED` 等）使用**英文**描述——它们由历史上的 `UnsupportedOperationException("...")` 消息转换而来（plan 2026-07-31-2248-2 scan-hollow 基线清零），英文描述保证 `getMessage()` / `getDescription()` 语义与转换前完全一致，且不再经 i18n 改写。新增此类转换错误码沿用英文；其他模块的新增业务错误码仍按默认规则使用中文。
 - 不走 `ErrorCode` 的异常（如直接 `new NopException("...")` 或模块异常类的字符串构造器）必须使用**英文**，因为这类消息可能被 AI 直接阅读分析。
 
 ### 定义模块异常类

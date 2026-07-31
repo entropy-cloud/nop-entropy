@@ -123,4 +123,14 @@ public interface NopAiCoreErrors {
 
     ErrorCode ERR_AI_FILE_PATH_IS_EMPTY =
             define("nop.err.ai.command.file-path-empty", "文件路径不能为空", ARG_NODE_NAME);
+
+    /**
+     * Deprecated {@code IAiChatService.getSession} entry point (plan
+     * 2026-07-31-2248-2 scan-hollow baseline clearance): the method is
+     * deprecated in favour of {@code IChatService}; the English description
+     * preserves the historical UOE message semantics (AGENTS.md English
+     * error-message convention for newly added codes).
+     */
+    ErrorCode ERR_AI_CHAT_GET_SESSION_DEPRECATED =
+            define("nop.err.ai.service.get-session-deprecated", "Deprecated: use IChatService instead");
 }

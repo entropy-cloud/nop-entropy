@@ -1,5 +1,6 @@
 package io.nop.ai.agent.engine;
 
+import io.nop.ai.agent.NopAiAgentErrors;
 import io.nop.ai.agent.model.AgentExecStatus;
 
 import java.util.concurrent.CompletableFuture;
@@ -35,15 +36,15 @@ public interface IAgentEngine extends AutoCloseable {
      * @return a completed future holding the new child session id
      */
     default CompletableFuture<String> forkSession(AgentMessageRequest request, boolean inheritContext) {
-        throw new UnsupportedOperationException("forkSession requires Phase 2 ISessionStore");
+        throw new NopAiAgentException(NopAiAgentErrors.ERR_AGENT_FORK_SESSION_NOT_SUPPORTED);
     }
 
     default AgentExecStatus getSessionStatus(String sessionId) {
-        throw new UnsupportedOperationException("getSessionStatus requires Phase 2");
+        throw new NopAiAgentException(NopAiAgentErrors.ERR_AGENT_GET_SESSION_STATUS_NOT_SUPPORTED);
     }
 
     default CompletableFuture<Void> cancelSession(String sessionId, String reason, boolean forced) {
-        throw new UnsupportedOperationException("cancelSession requires Phase 2");
+        throw new NopAiAgentException(NopAiAgentErrors.ERR_AGENT_CANCEL_SESSION_NOT_SUPPORTED);
     }
 
     /**
@@ -73,7 +74,7 @@ public interface IAgentEngine extends AutoCloseable {
      * @return a future that completes with the result of the re-execution
      */
     default CompletableFuture<AgentExecutionResult> resumeSession(String sessionId, String approver, String reason) {
-        throw new UnsupportedOperationException("resumeSession requires a registered denial ledger and a paused session");
+        throw new NopAiAgentException(NopAiAgentErrors.ERR_AGENT_RESUME_SESSION_NOT_SUPPORTED);
     }
 
     /**
@@ -112,8 +113,7 @@ public interface IAgentEngine extends AutoCloseable {
      * @return a future that completes with the result of the resumed execution
      */
     default CompletableFuture<AgentExecutionResult> restoreSession(String sessionId, String approver, String reason) {
-        throw new UnsupportedOperationException(
-                "restoreSession requires a FileBackedSessionStore-backed engine");
+        throw new NopAiAgentException(NopAiAgentErrors.ERR_AGENT_RESTORE_SESSION_NOT_SUPPORTED);
     }
 
     /**
@@ -154,8 +154,10 @@ public interface IAgentEngine extends AutoCloseable {
      * </ol>
      *
      * <p><b>Fail-fast</b>: if the session store does not support discovery
-     * (its {@code listAllSessions()} throws {@link UnsupportedOperationException}
-     * or is not overridden), this method throws
+     * (its {@code listAllSessions()} default throws
+     * {@code NopAiAgentException} carrying
+     * {@code NopAiAgentErrors.ERR_AGENT_SESSION_LIST_ALL_NOT_SUPPORTED}, or
+     * is not overridden), this method throws
      * {@link NopAiAgentException} rather than silently returning an empty
      * summary — "store cannot discover" is a deployment misconfiguration that
      * must surface to the operator. An <em>empty</em> store (no persisted
@@ -183,8 +185,7 @@ public interface IAgentEngine extends AutoCloseable {
      *         never null, possibly empty if no sessions were discovered
      */
     default SessionRestoreSummary restorePendingSessions(String approver, String reason) {
-        throw new UnsupportedOperationException(
-                "restorePendingSessions requires a DefaultAgentEngine with a discovery-capable session store");
+        throw new NopAiAgentException(NopAiAgentErrors.ERR_AGENT_RESTORE_PENDING_SESSIONS_NOT_SUPPORTED);
     }
 
     /**

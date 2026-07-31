@@ -1,5 +1,6 @@
 package io.nop.ai.agent.engine;
 
+import io.nop.ai.agent.NopAiAgentErrors;
 import io.nop.ai.agent.model.AgentExecStatus;
 import io.nop.ai.agent.reliability.FileBackedCheckpointManager;
 import io.nop.ai.agent.session.AgentSession;
@@ -572,16 +573,19 @@ public class TestRestorePendingSessions {
     // ========================================================================
 
     @Test
-    void iAgentEngineDefaultRestorePendingSessionsThrowsUOE() {
+    void iAgentEngineDefaultRestorePendingSessionsThrowsNopAiAgentException() {
         IAgentEngine engine = new IAgentEngine() {
             @Override
             public AgentMessageAck sendMessage(AgentMessageRequest request) { return null; }
             @Override
             public CompletableFuture<AgentExecutionResult> execute(AgentMessageRequest request) { return null; }
         };
-        assertThrows(UnsupportedOperationException.class,
+        NopAiAgentException ex = assertThrows(NopAiAgentException.class,
                 () -> engine.restorePendingSessions("x", "y"),
-                "IAgentEngine default restorePendingSessions must throw UOE");
+                "IAgentEngine default restorePendingSessions must fail fast");
+        assertEquals(NopAiAgentErrors.ERR_AGENT_RESTORE_PENDING_SESSIONS_NOT_SUPPORTED.getErrorCode(),
+                ex.getErrorCode(),
+                "Default restorePendingSessions must carry the not-supported error code");
     }
 
     @Test

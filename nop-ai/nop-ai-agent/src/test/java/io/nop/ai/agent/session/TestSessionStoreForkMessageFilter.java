@@ -2,6 +2,7 @@ package io.nop.ai.agent.session;
 
 import io.nop.ai.agent.engine.AgentMessageRequest;
 import io.nop.ai.agent.engine.DefaultAgentEngine;
+import io.nop.ai.agent.engine.NopAiAgentException;
 import io.nop.ai.api.chat.ChatRequest;
 import io.nop.ai.api.chat.ChatResponse;
 import io.nop.ai.api.chat.IChatService;
@@ -143,7 +144,7 @@ public class TestSessionStoreForkMessageFilter {
             }
         };
 
-        assertThrows(UnsupportedOperationException.class,
+        assertThrows(NopAiAgentException.class,
                 () -> bareStore.forkSession("p", true, null, userMessagesOnly()),
                 "a store without filter support must fail fast instead of silently ignoring the filter");
     }

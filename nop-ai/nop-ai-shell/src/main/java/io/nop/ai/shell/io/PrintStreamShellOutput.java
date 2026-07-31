@@ -1,5 +1,8 @@
 package io.nop.ai.shell.io;
 
+import io.nop.ai.shell.NopAiShellErrors;
+import io.nop.api.core.exceptions.NopException;
+
 import java.io.PrintStream;
 
 public class PrintStreamShellOutput implements IShellOutput {
@@ -36,7 +39,7 @@ public class PrintStreamShellOutput implements IShellOutput {
 
     @Override
     public IShellInput asInput() {
-        throw new UnsupportedOperationException("PrintStreamOutputAdapter cannot be used as input");
+        throw new NopException(NopAiShellErrors.ERR_AI_SHELL_OUTPUT_NOT_INPUT);
     }
 
     protected PrintStream getPrintStream() {

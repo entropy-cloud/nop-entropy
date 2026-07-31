@@ -1,5 +1,7 @@
 package io.nop.ai.agent.memory;
 
+import io.nop.ai.agent.NopAiAgentErrors;
+import io.nop.ai.agent.engine.NopAiAgentException;
 import org.junit.jupiter.api.Test;
 
 import java.util.Collections;
@@ -33,30 +35,34 @@ public class TestIAiMemoryStoreDefaultMethods {
     };
 
     @Test
-    void readBudgetedThrowsUOE() {
-        UnsupportedOperationException ex = assertThrows(UnsupportedOperationException.class,
+    void readBudgetedThrowsNopAiAgentException() {
+        NopAiAgentException ex = assertThrows(NopAiAgentException.class,
                 () -> store.readBudgeted(1000, Collections.emptyMap()));
-        assertEquals("readBudgeted requires Phase 2", ex.getMessage());
+        assertEquals(NopAiAgentErrors.ERR_AI_MEMORY_READ_BUDGETED_NOT_SUPPORTED.getErrorCode(), ex.getErrorCode());
+        assertEquals("readBudgeted requires Phase 2", ex.getDescription());
     }
 
     @Test
-    void updateThrowsUOE() {
-        UnsupportedOperationException ex = assertThrows(UnsupportedOperationException.class,
+    void updateThrowsNopAiAgentException() {
+        NopAiAgentException ex = assertThrows(NopAiAgentException.class,
                 () -> store.update("k1", new AiMemoryItem()));
-        assertEquals("update requires Phase 2", ex.getMessage());
+        assertEquals(NopAiAgentErrors.ERR_AI_MEMORY_UPDATE_NOT_SUPPORTED.getErrorCode(), ex.getErrorCode());
+        assertEquals("update requires Phase 2", ex.getDescription());
     }
 
     @Test
-    void removeThrowsUOE() {
-        UnsupportedOperationException ex = assertThrows(UnsupportedOperationException.class,
+    void removeThrowsNopAiAgentException() {
+        NopAiAgentException ex = assertThrows(NopAiAgentException.class,
                 () -> store.remove("k1"));
-        assertEquals("remove requires Phase 2", ex.getMessage());
+        assertEquals(NopAiAgentErrors.ERR_AI_MEMORY_REMOVE_NOT_SUPPORTED.getErrorCode(), ex.getErrorCode());
+        assertEquals("remove requires Phase 2", ex.getDescription());
     }
 
     @Test
-    void batchAddThrowsUOE() {
-        UnsupportedOperationException ex = assertThrows(UnsupportedOperationException.class,
+    void batchAddThrowsNopAiAgentException() {
+        NopAiAgentException ex = assertThrows(NopAiAgentException.class,
                 () -> store.batchAdd(Collections.emptyList()));
-        assertEquals("batchAdd requires Phase 2", ex.getMessage());
+        assertEquals(NopAiAgentErrors.ERR_AI_MEMORY_BATCH_ADD_NOT_SUPPORTED.getErrorCode(), ex.getErrorCode());
+        assertEquals("batchAdd requires Phase 2", ex.getDescription());
     }
 }

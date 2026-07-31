@@ -48,10 +48,11 @@ public final class NoOpSustainer implements ISustainer {
     public SustainDecision onStop(SustainContext context) {
         // Explicit no-op decision: the pass-through default allows every stop,
         // so the terminal-state change + event publication proceed as normal.
-        // This is not an empty placeholder for required behaviour — the correct
-        // behaviour of a pass-through sustainer is to never force a continuation.
-        // A functional sustainer (SisypheanSustainer) returns CONTINUE on
-        // sustainable exits (MAX_ITERATIONS) under its maxSustainCount ceiling.
+        // This is not an empty body standing in for required behaviour — the
+        // correct behaviour of a pass-through sustainer is to never force a
+        // continuation. A functional sustainer (SisypheanSustainer) returns
+        // CONTINUE on sustainable exits (MAX_ITERATIONS) under its
+        // maxSustainCount ceiling.
         return SustainDecision.STOP;
     }
 }

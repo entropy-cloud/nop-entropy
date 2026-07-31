@@ -149,13 +149,13 @@ public class TestModeDispatch {
     }
 
     @Test
-    void testPlanModeThrowsUnsupportedOperationException() {
+    void testPlanModeThrowsNopAiAgentException() {
         DefaultAgentEngine engine = createEngine();
         AgentModel model = new AgentModel();
         model.setName("test");
         model.setMode("plan");
 
-        UnsupportedOperationException ex = assertThrows(UnsupportedOperationException.class,
+        NopAiAgentException ex = assertThrows(NopAiAgentException.class,
                 () -> engine.resolveExecutor(model));
 
         assertTrue(ex.getMessage().contains("Plan execution mode is not yet implemented"),

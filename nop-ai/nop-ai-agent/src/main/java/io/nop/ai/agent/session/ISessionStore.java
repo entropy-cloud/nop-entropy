@@ -4,6 +4,7 @@ import java.util.Collection;
 import java.util.Map;
 import java.util.function.Predicate;
 
+import io.nop.ai.agent.NopAiAgentErrors;
 import io.nop.ai.agent.engine.NopAiAgentException;
 import io.nop.ai.api.chat.messages.ChatMessage;
 
@@ -51,21 +52,21 @@ public interface ISessionStore {
      * </ul>
      *
      * <p><b>Fail-fast</b>: the interface default throws
-     * {@link UnsupportedOperationException} so that any store implementation
+     * {@code NopAiAgentException} carrying
+     * {@code NopAiAgentErrors.ERR_AGENT_SESSION_LIST_ALL_NOT_SUPPORTED} so
+     * that any store implementation
      * which silently does nothing on discovery is detected at runtime
      * (Minimum Rules #24 No Silent No-Op). A store that does not provide
      * discovery must surface this explicitly; the auto-restore orchestrator
-     * treats the UOE as "store does not support discovery" and propagates it
-     * as a {@link io.nop.ai.agent.engine.NopAiAgentException} rather than
-     * silently returning an empty restore result.
+     * treats the exception as "store does not support discovery" and
+     * propagates it as a {@link io.nop.ai.agent.engine.NopAiAgentException}
+     * rather than silently returning an empty restore result.
      *
      * @return all sessions known to this store (cache + persisted-but-uncached);
      *         never null, possibly empty if the store is empty
      */
     default Collection<AgentSession> listAllSessions() {
-        throw new UnsupportedOperationException(
-                "listAllSessions requires a session store that supports discovery "
-                        + "(e.g. FileBackedSessionStore or InMemorySessionStore)");
+        throw new NopAiAgentException(NopAiAgentErrors.ERR_AGENT_SESSION_LIST_ALL_NOT_SUPPORTED);
     }
 
     /**
@@ -79,7 +80,9 @@ public interface ISessionStore {
      * disk.
      * <p>
      * <b>Fail-fast</b>: the interface default throws
-     * {@link UnsupportedOperationException} so that any store implementation
+     * {@code NopAiAgentException} carrying
+     * {@code NopAiAgentErrors.ERR_AGENT_SESSION_SAVE_NOT_SUPPORTED} so that
+     * any store implementation
      * which silently does nothing on {@code save} is detected at runtime
      * (Minimum Rules #24 No Silent No-Op), rather than silently dropping
      * persistence requests.
@@ -87,8 +90,7 @@ public interface ISessionStore {
      * @param session the session to persist; never null
      */
     default void save(AgentSession session) {
-        throw new UnsupportedOperationException(
-                "save requires a persistent session store (e.g. FileBackedSessionStore)");
+        throw new NopAiAgentException(NopAiAgentErrors.ERR_AGENT_SESSION_SAVE_NOT_SUPPORTED);
     }
 
     /**
@@ -126,7 +128,7 @@ public interface ISessionStore {
      * @return the new child session id
      */
     default String forkSession(String parentSessionId, boolean inheritContext, Map<String, Object> props) {
-        throw new UnsupportedOperationException("forkSession requires VfsSessionStore");
+        throw new NopAiAgentException(NopAiAgentErrors.ERR_AGENT_SESSION_FORK_NOT_SUPPORTED);
     }
 
     /**
@@ -138,8 +140,10 @@ public interface ISessionStore {
      * inheritance behaviour of {@link #forkSession(String, boolean, Map)}.
      * <p>
      * Fail-fast: an implementation that does not support message filtering
-     * must throw {@link UnsupportedOperationException} when a non-null filter
-     * is supplied — it must not silently ignore the filter (Minimum Rules #24).
+     * must throw {@code NopAiAgentException} carrying
+     * {@code NopAiAgentErrors.ERR_AGENT_SESSION_FORK_WITH_FILTER_NOT_SUPPORTED}
+     * when a non-null filter is supplied — it must not silently ignore the
+     * filter (Minimum Rules #24).
      *
      * @param parentSessionId the parent session to fork from
      * @param inheritContext  whether to inherit the parent's message history,
@@ -154,23 +158,22 @@ public interface ISessionStore {
         if (messageFilter == null) {
             return forkSession(parentSessionId, inheritContext, props);
         }
-        throw new UnsupportedOperationException(
-                "forkSession with message filter requires store support (FileBackedSessionStore/InMemorySessionStore/DBSessionStore)");
+        throw new NopAiAgentException(NopAiAgentErrors.ERR_AGENT_SESSION_FORK_WITH_FILTER_NOT_SUPPORTED);
     }
 
     default long appendEvent(String sessionId, VfsEvent event) {
-        throw new UnsupportedOperationException("appendEvent requires VfsSessionStore");
+        throw new NopAiAgentException(NopAiAgentErrors.ERR_AGENT_SESSION_APPEND_EVENT_NOT_SUPPORTED);
     }
 
     default CompactionResult compact(String sessionId, CompactConfig config) {
-        throw new UnsupportedOperationException("compact requires VfsSessionStore");
+        throw new NopAiAgentException(NopAiAgentErrors.ERR_AGENT_SESSION_COMPACT_NOT_SUPPORTED);
     }
 
     default SessionSnapshot loadSnapshot(String sessionId, String snapshotId) {
-        throw new UnsupportedOperationException("loadSnapshot requires VfsSessionStore");
+        throw new NopAiAgentException(NopAiAgentErrors.ERR_AGENT_SESSION_LOAD_SNAPSHOT_NOT_SUPPORTED);
     }
 
     default void setPlanRef(String sessionId, String planId) {
-        throw new UnsupportedOperationException("setPlanRef requires VfsSessionStore");
+        throw new NopAiAgentException(NopAiAgentErrors.ERR_AGENT_SESSION_SET_PLAN_REF_NOT_SUPPORTED);
     }
 }

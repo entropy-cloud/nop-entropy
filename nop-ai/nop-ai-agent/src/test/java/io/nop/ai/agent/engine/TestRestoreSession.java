@@ -1,5 +1,6 @@
 package io.nop.ai.agent.engine;
 
+import io.nop.ai.agent.NopAiAgentErrors;
 import io.nop.ai.agent.model.AgentExecStatus;
 import io.nop.ai.agent.reliability.Checkpoint;
 import io.nop.ai.agent.reliability.CheckpointType;
@@ -592,16 +593,17 @@ public class TestRestoreSession {
 
     @Test
     void iAgentEngineDefaultRestoreSessionThrowsUOE() {
-        // Default IAgentEngine.restoreSession throws UOE (Minimum Rules #24)
+        // Default IAgentEngine.restoreSession fails fast (Minimum Rules #24)
         IAgentEngine engine = new IAgentEngine() {
             @Override
             public AgentMessageAck sendMessage(AgentMessageRequest request) { return null; }
             @Override
             public CompletableFuture<AgentExecutionResult> execute(AgentMessageRequest request) { return null; }
         };
-        assertThrows(UnsupportedOperationException.class,
+        NopAiAgentException ex = assertThrows(NopAiAgentException.class,
                 () -> engine.restoreSession("x", "y", "z"),
-                "IAgentEngine default restoreSession must throw UOE");
+                "IAgentEngine default restoreSession must fail fast");
+        assertEquals(NopAiAgentErrors.ERR_AGENT_RESTORE_SESSION_NOT_SUPPORTED.getErrorCode(), ex.getErrorCode());
     }
 
     // ========================================================================

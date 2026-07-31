@@ -1,5 +1,6 @@
 package io.nop.ai.agent.engine;
 
+import io.nop.ai.agent.NopAiAgentErrors;
 import io.nop.ai.agent.compact.IContextCompactor;
 import io.nop.ai.agent.compact.Layer2TurnPruningStrategy;
 import io.nop.ai.agent.compact.Layer3FullSummaryStrategy;
@@ -122,6 +123,7 @@ import io.nop.ai.api.chat.messages.ChatSystemMessage;
 import io.nop.ai.api.chat.messages.ChatUserMessage;
 import io.nop.ai.api.chat.messages.ChatAssistantMessage;
 import io.nop.ai.toolkit.api.IToolManager;
+import io.nop.api.core.exceptions.NopException;
 import io.nop.api.core.message.IMessageSubscription;
 import io.nop.core.resource.component.ResourceComponentManager;
 import org.slf4j.Logger;
@@ -2950,13 +2952,13 @@ public class DefaultAgentEngine implements IAgentEngine {
         Collection<AgentSession> discovered;
         try {
             discovered = sessionStore.listAllSessions();
-        } catch (UnsupportedOperationException e) {
+        } catch (NopException e) {
             // Fail-fast: store does not support discovery. Surface as
             // NopAiAgentException so the operator learns the deployment is
             // misconfigured rather than seeing a silent empty summary.
             throw new NopAiAgentException(
                     "restorePendingSessions failed: the session store does not support "
-                            + "discovery (listAllSessions threw UnsupportedOperationException). "
+                            + "discovery (listAllSessions threw NopException: " + e.getErrorCode() + "). "
                             + "Auto-restore requires a discovery-capable store such as "
                             + "FileBackedSessionStore. Underlying error: " + e.getMessage(), e);
         }
@@ -3321,7 +3323,8 @@ public class DefaultAgentEngine implements IAgentEngine {
             return new SingleTurnExecutor(chatService, eventPublisher);
         }
         if ("plan".equals(mode)) {
-            throw new UnsupportedOperationException("Plan execution mode is not yet implemented: mode=plan");
+            throw new NopAiAgentException(NopAiAgentErrors.ERR_AGENT_PLAN_MODE_NOT_IMPLEMENTED)
+                    .param(NopAiAgentErrors.ARG_MODE, mode);
         }
         throw new NopAiAgentException("Unknown agent execution mode: " + mode);
     }

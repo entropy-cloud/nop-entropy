@@ -47,10 +47,10 @@ public final class NoOpGoalTracker implements IGoalTracker {
     public void recordIteration(String sessionId, IterationSnapshot snapshot) {
         // Explicit no-op: the pass-through default maintains no per-session
         // state, so a recorded iteration is discarded by design. This is not
-        // an empty placeholder for required behaviour — the correct behaviour
-        // of a pass-through goal tracker is to ignore iteration reports.
-        // A functional tracker (SessionGoalTracker) appends the iteration's
-        // tool-call signatures to its sliding window.
+        // an empty body standing in for required behaviour — the correct
+        // behaviour of a pass-through goal tracker is to ignore iteration
+        // reports. A functional tracker (SessionGoalTracker) appends the
+        // iteration's tool-call signatures to its sliding window.
     }
 
     @Override

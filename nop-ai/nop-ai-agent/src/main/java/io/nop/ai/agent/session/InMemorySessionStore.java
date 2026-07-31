@@ -67,9 +67,11 @@ public class InMemorySessionStore implements ISessionStore {
      * side-channel is unnecessary for an in-memory store: there is nothing to
      * copy. This is the correct, complete implementation of {@code save} for
      * an in-memory backend — distinct from the interface default
-     * {@link UnsupportedOperationException}, which is reserved for stores that
-     * claim no persistence capability at all (and thus must fail fast to
-     * surface programmer error rather than silently swallow the save).
+     * {@code NopAiAgentException} (carrying
+     * {@code NopAiAgentErrors.ERR_AGENT_SESSION_SAVE_NOT_SUPPORTED}), which is
+     * reserved for stores that claim no persistence capability at all (and
+     * thus must fail fast to surface programmer error rather than silently
+     * swallow the save).
      */
     @Override
     public void save(AgentSession session) {

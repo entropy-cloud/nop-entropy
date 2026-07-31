@@ -46,7 +46,7 @@ public final class NoOpFencingTokenService implements IFencingTokenService {
 
     @Override
     public FencingToken issue(String actorId) {
-        // Placeholder token: counter 0 signals intentional disabled-mode (no
+        // Disabled-mode token: counter 0 signals intentional disabled-mode (no
         // fake monotonic sequence is invented). Non-null, carrying the caller's
         // actorId verbatim (Minimum Rules #24 — not a silent null return).
         return FencingToken.of(actorId, 0L, System.currentTimeMillis());

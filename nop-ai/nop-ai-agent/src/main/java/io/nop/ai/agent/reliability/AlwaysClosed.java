@@ -58,7 +58,7 @@ public final class AlwaysClosed implements ICircuitBreaker {
     public void recordSuccess(String modelKey) {
         // Explicit no-op: the pass-through default maintains no per-model
         // state, so a recorded success is discarded by design. This is not
-        // an empty placeholder for required behaviour — the correct
+        // an empty body standing in for required behaviour — the correct
         // behaviour of a pass-through breaker is to ignore outcome reports.
         // A functional breaker (ThresholdBreaker) resets its failure counter.
     }

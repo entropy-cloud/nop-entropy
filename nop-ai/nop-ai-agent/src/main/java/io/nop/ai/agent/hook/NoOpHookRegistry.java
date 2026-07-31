@@ -1,5 +1,7 @@
 package io.nop.ai.agent.hook;
 
+import io.nop.ai.agent.NopAiAgentErrors;
+import io.nop.ai.agent.engine.NopAiAgentException;
 import io.nop.ai.agent.middleware.IAgentMiddleware;
 
 import java.util.Collections;
@@ -19,7 +21,7 @@ public final class NoOpHookRegistry implements IHookRegistry {
 
     @Override
     public void register(AgentLifecyclePoint point, IAgentLifecycleHook hook) {
-        throw new UnsupportedOperationException("NoOpHookRegistry does not support hook registration");
+        throw new NopAiAgentException(NopAiAgentErrors.ERR_AGENT_HOOK_REGISTRY_REGISTER_NOT_SUPPORTED);
     }
 
     @Override
@@ -29,6 +31,6 @@ public final class NoOpHookRegistry implements IHookRegistry {
 
     @Override
     public void registerMiddleware(AgentLifecyclePoint point, IAgentMiddleware middleware) {
-        throw new UnsupportedOperationException("NoOpHookRegistry does not support middleware registration");
+        throw new NopAiAgentException(NopAiAgentErrors.ERR_AGENT_HOOK_REGISTRY_MIDDLEWARE_NOT_SUPPORTED);
     }
 }

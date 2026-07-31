@@ -1,5 +1,6 @@
 package io.nop.ai.agent.middleware;
 
+import io.nop.ai.agent.engine.NopAiAgentException;
 import io.nop.ai.agent.hook.AgentLifecyclePoint;
 import io.nop.ai.agent.hook.DefaultHookRegistry;
 import io.nop.ai.agent.hook.HookContext;
@@ -185,7 +186,7 @@ public class TestMiddlewareChain {
 
     @Test
     void noOpRegistryRegisterMiddlewareThrows() {
-        assertThrows(UnsupportedOperationException.class, () ->
+        assertThrows(NopAiAgentException.class, () ->
                 NoOpHookRegistry.INSTANCE.registerMiddleware(AgentLifecyclePoint.PRE_CALL, (ctx, next) -> next.proceed(ctx)));
     }
 

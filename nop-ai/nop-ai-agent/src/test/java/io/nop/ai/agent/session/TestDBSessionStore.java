@@ -479,7 +479,7 @@ public class TestDBSessionStore {
     // ========================================================================
 
     @Test
-    void isessionStoreDefaultSaveThrowsUOE() {
+    void isessionStoreDefaultSaveFailsFast() {
         ISessionStore store = new ISessionStore() {
             @Override
             public AgentSession getOrCreate(String sessionId, String agentName) { return null; }
@@ -491,8 +491,8 @@ public class TestDBSessionStore {
             public Collection<AgentSession> getAll() { return null; }
         };
         AgentSession session = AgentSession.create("x", "y");
-        assertThrows(UnsupportedOperationException.class, () -> store.save(session),
-                "ISessionStore default save must throw UOE (Minimum Rules #24)");
+        assertThrows(NopAiAgentException.class, () -> store.save(session),
+                "ISessionStore default save must fail fast (Minimum Rules #24)");
     }
 
     @Test

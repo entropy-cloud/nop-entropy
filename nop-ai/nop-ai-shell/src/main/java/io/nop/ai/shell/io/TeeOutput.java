@@ -1,5 +1,7 @@
 package io.nop.ai.shell.io;
 
+import io.nop.ai.shell.NopAiShellErrors;
+import io.nop.api.core.exceptions.NopException;
 import io.nop.commons.util.IoHelper;
 
 import java.util.ArrayList;
@@ -46,7 +48,7 @@ public class TeeOutput implements IShellOutput {
         if (!outputs.isEmpty()) {
             return outputs.get(0).asInput();
         }
-        throw new UnsupportedOperationException("No output available to convert to input");
+        throw new NopException(NopAiShellErrors.ERR_AI_SHELL_TEE_NO_OUTPUT);
     }
 
     @Override

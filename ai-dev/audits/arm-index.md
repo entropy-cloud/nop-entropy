@@ -387,3 +387,17 @@ MR4 Phase 2 对 P1 表全部 `fixed` 行做了 live repo 证据核验（提交/�
 | P2-MA1-007 | `fixed` | `SkillExecutor` 三处修复：① `discoverSkills()` 空 catch → SLF4J WARN（`nop.ai.skill.fail-discover-skills`）+ 返回空列表；② 删除硬编码幻影技能回退（log-analysis/translator/calculator/code-review/test-generator）；③ 删除 write-only 死代码 `loadedSkills` map + `getContextKey()`（grep 全仓 0 残留）。测试 = `SkillExecutorTest`（7 例，含 `testLoadFormerPhantomSkillFails` 回归）+ `SkillExecutorVfsTest`（3 例，CoreInitialization + `_vfs/nop/skills/sample-analysis/` 静态资源接线验证 list/load 数据来自真实 VFS）。连带：`skill.tool.xml` 示例幻影技能名替换为中性示例名 |
 | P2-MA1-009 | `fixed` | `nop-ai/nop-ai-tools/pom.xml` 显式声明 `nop-graphql-core` 直接依赖（nop-bom dependencyManagement 管理版本，`GraphQLToolProvider`/`GraphQLToolSetFactoryBean` 的 `io.nop.graphql.core.*` import 消除硬传递依赖）；pom diff 仅含新增依赖行；`dependency:tree` 确认 direct scope；`./mvnw compile -pl nop-ai/nop-ai-tools -am` PASS |
 | P2-MA1-012 | `fixed`（裁定+落盘） | 裁定 = **保持双抽象 + `IFileOperator` 标注 `@Deprecated(forRemoval=true)`**（两抽象方法面差异大、语义不同：base-dir 资源面 vs 沙箱权限面；忠实迁移需先收敛抽象，属 future major）。边界契约落盘 `ai-dev/design/nop-ai/01-file-operator-abstraction-contract.md`（新目录 + README + `ai-dev/design/README.md` 注册）；consumer 清单（FileToolBizModel/DslToolImpl/FileDiffApplier/LocalFileOperator/CliFileCommand）与迁移前置条件（方法面收敛 → 语义对齐 → 消费者迁移 → 删除接口）文档化 |
+
+## scan-hollow 基线清零（2026-07-31）
+
+plan `ai-dev/plans/2026-07-31-2248-2-arm-hollow-baseline-clearance.md`（第七批）已执行并收口：scan-hollow 基线 **24 项 → 0 项**，`node ai-dev/tools/scan-hollow-implementations.mjs --module nop-ai --severity high` 退出码 **0**（非增量判定，硬门禁通过——后续 closure audit 不再需要对比基线）。
+
+转换证据：
+
+- **25 处 UOE → NopException + ErrorCode（英文描述，`getMessage()` 语义保持）**：新增 `NopAiAgentErrors`（21 码，`io.nop.ai.agent`）、`NopAiShellErrors`（3 码，`io.nop.ai.shell`）、`NopAiCoreErrors.ERR_AI_CHAT_GET_SESSION_DEPRECATED`（1 码）。覆盖 IAgentEngine×6（forkSession/getSessionStatus/cancelSession/resumeSession/restoreSession/restorePendingSessions）、IAiMemoryStore×4、ISessionStore×8（listAllSessions/save/fork×2/appendEvent/compact/loadSnapshot/setPlanRef）、NoOpHookRegistry×2、DefaultAgentEngine plan-mode、DefaultAiChatService deprecated getSession、PrintStreamShellOutput/ShellChunk/TeeOutput。
+- **4 处 P6b placeholder 注释 → 显式 pass-through 语义描述**（NoOpFencingTokenService/AlwaysClosed/NoOpGoalTracker/NoOpSustainer），行为零变化，仅注释措辞。
+- **catch 站点同步**：`DefaultAgentEngine.restorePendingSessions` catch UOE → catch `NopException`（NopAiAgentException 包装语义保留，消息不含 UOE 字样）；`ShellCommandExecutor:364`（外部 SPI externalAdapter）/`NoOpSandboxBackend:228`（JDK ProcessHandle API）核验不受影响，未改。
+- **7 处独立文件多行 UOE 按既有裁定保留**（pass-through/SPI fail-fast）：IHookRegistry:38、NoOpAgentMessenger:48、NoOpEmbeddingAdapter:32/40、NoOpActorRuntime:46、ILlmDialect:219、ExternalCommandAdapter:11；DefaultAgentEngine 内关于 NoOpTeamManager/NoOpTeamTaskStore/NoOpAgentMessenger 的 5 处注释仍准确（这些类未转换），保留。
+- **测试同步**：受影响断言改错误码/异常类型（TestIAiMemoryStoreDefaultMethods、TestISessionStoreDefaultMethods、TestNoOpHookRegistry、TestModeDispatch、ShellIOTest、TestRestoreSession、TestRestorePendingSessions、TestSessionStoreForkMessageFilter、TestDBSessionStore、TestFileBackedSessionStore、TestMiddlewareChain）；`./mvnw test -pl nop-ai -am -T 1C` BUILD SUCCESS（2867+ tests 0 failures）。
+- **接线验证**：`TestModeDispatch.testPlanModeThrowsNopAiAgentException`（引擎级 resolveExecutor plan-mode 路径）+ `TestRestorePendingSessions.iAgentEngineDefaultRestorePendingSessionsThrowsNopAiAgentException` 证明转换后异常运行时可达；可达性说明入 IAiMemoryStore javadoc。
+- **owner doc**：`docs-for-ai/02-core-guides/error-handling.md` 消息语言规则补记 nop-ai-agent/nop-ai-shell 英文 ErrorCode 例外（转换类错误码沿用英文，其他新增业务错误码仍中文）。

@@ -15,7 +15,8 @@ import io.nop.ai.agent.engine.NopAiAgentException;
  * Functional in-memory {@link IAiMemoryStore} implementation covering all 8
  * interface methods, including the 4 Phase 2 default methods
  * ({@code readBudgeted} / {@code update} / {@code remove} / {@code batchAdd})
- * that the interface declares as {@link UnsupportedOperationException}.
+ * that the interface defaults fail fast on (carrying
+ * {@code NopAiAgentErrors.ERR_AI_MEMORY_*_NOT_SUPPORTED}).
  *
  * <p>Each instance represents one session's working memory (per-session
  * isolation). A {@link io.nop.ai.agent.memory.IMemoryStoreProvider} resolves
