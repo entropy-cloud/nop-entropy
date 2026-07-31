@@ -1,6 +1,6 @@
 import { test } from '@nop-entropy/e2e-shared';
 import { expect } from '@playwright/test';
-import { login, loginRpc, rpc } from '@nop-entropy/e2e-shared';
+import { login, loginRpc, rpc, enableFluxDebug, dumpFluxDebugFor, formatFluxDebug } from '@nop-entropy/e2e-shared';
 import { ResourcePO } from './page-objects/resource.po.js';
 
 const TEST_ID = `e2e_res_${Date.now()}`;
@@ -244,6 +244,9 @@ test.describe('资源管理 - 浏览器', () => {
     await resourcePO.clickEdit(resourceId);
     await resourcePO.fillForm({ displayName: updatedName, resourceType: 'TOPM' });
     await resourcePO.clickSave();
+
+    const diag = await dumpFluxDebugFor(page, 'NopAuthResource');
+    console.log(formatFluxDebug(diag));
 
     await loginRpc(request);
     const resp = await rpc<{ displayName: string }>(

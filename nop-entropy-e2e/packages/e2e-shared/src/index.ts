@@ -16,7 +16,7 @@ export type { GraphQLResponse } from './GraphQlClient';
 export { RpcClient, loginRpc, rpc, resetAuth, setAuthToken } from './RpcClient';
 export type { RpcRequest, RpcResponse } from './RpcClient';
 
-export { login, navigateTo, loginAndNavigate, forceLocale } from './Navigation';
+export { login, navigateTo, openMenuRoute, waitForSidebar, loginAndNavigate, forceLocale } from './Navigation';
 export type { LoginOptions } from './Navigation';
 
 export {
@@ -39,6 +39,10 @@ export {
   dumpPageStructure,
   diagnose,
   formatReport,
+  enableFluxDebug,
+  dumpFluxDebug,
+  dumpFluxDebugFor,
+  formatFluxDebug,
 } from './debug';
 export type {
   EnvDump,
@@ -53,4 +57,6 @@ export type {
   PageStructureDump,
   DiagnosticOptions,
   DiagnosticReport,
+  FluxDebugEntryDump,
+  FluxDebugDump,
 } from './debug';

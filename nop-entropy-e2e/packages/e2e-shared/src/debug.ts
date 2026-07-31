@@ -607,3 +607,157 @@ export function formatReport(report: DiagnosticReport): string {
 
   return lines.join('\n');
 }
+
+// ─── Flux runtime debug recorder ────────────────────────────────────────────
+
+/**
+ * 手动开启 flux 调试记录器（`window.__FLUX_DEBUG__ = true`）。
+ *
+ * 注意：e2e-shared 的 `test` fixture 已默认开启（无需调用本函数）。
+ * 仅当使用 Playwright 原生 `test`（而非 `@nop-chaos/e2e-shared` 的 `test`）时，
+ * 需要手动调用，且必须在导航前（页面加载前）执行，因为 flux env 在首次渲染时创建。
+ *
+ * 用法：
+ *   import { enableFluxDebug, dumpFluxDebug, formatFluxDebug } from '@nop-chaos/e2e-shared';
+ *
+ *   test.beforeEach(async ({ page }) => {
+ *     await enableFluxDebug(page);
+ *   });
+ *
+ *   test('...', async ({ page }) => {
+ *     // ... 测试逻辑
+ *     if (hasError) console.log(formatFluxDebug(await dumpFluxDebug(page)));
+ *   });
+ */
+export async function enableFluxDebug(page: Page): Promise<void> {
+  await page.addInitScript(() => {
+    (window as any).__FLUX_DEBUG__ = true;
+  });
+}
+
+export interface FluxDebugEntryDump {
+  phase: string;
+  ts: number;
+  url?: string;
+  method?: string;
+  ok?: boolean;
+  status?: number;
+  error?: string;
+  level?: string;
+  message?: string;
+  dataPreview?: string;
+}
+
+export interface FluxDebugDump {
+  enabled: boolean;
+  entryCount: number;
+  entries: FluxDebugEntryDump[];
+  /** 过滤后的错误条目（phase=error 或 notify level=error） */
+  errors: FluxDebugEntryDump[];
+  /** 与给定 URL 片段匹配的请求/响应条目 */
+  requests: FluxDebugEntryDump[];
+}
+
+function toEntryDump(e: any): FluxDebugEntryDump {
+  return {
+    phase: e?.phase,
+    ts: e?.ts,
+    url: e?.url,
+    method: e?.method,
+    ok: e?.ok,
+    status: e?.status,
+    error: e?.error,
+    level: e?.level,
+    message: e?.message,
+    dataPreview:
+      typeof e?.data === 'string'
+        ? e.data.slice(0, 300)
+        : e?.data != null
+          ? JSON.stringify(e.data).slice(0, 300)
+          : e?.dataPreview,
+  };
+}
+
+/**
+ * 从页面读取 flux 调试记录（`window.__fluxDebug`）。
+ * 若调试开关未开启，entries 为空且 enabled 为 false。
+ */
+export async function dumpFluxDebug(page: Page): Promise<FluxDebugDump> {
+  return page.evaluate(() => {
+    const w = window as any;
+    const list: unknown[] = w.__fluxDebug ?? [];
+    const entries = list.map(toEntryDumpBrowser);
+    return {
+      enabled: w.__FLUX_DEBUG__ === true,
+      entryCount: entries.length,
+      entries,
+      errors: entries.filter(
+        (e: FluxDebugEntryDump) => e.phase === 'error' || (e.phase === 'notify' && e.level === 'error'),
+      ),
+      requests: entries.filter((e: FluxDebugEntryDump) => e.phase === 'request' || e.phase === 'response'),
+    };
+  });
+}
+
+function toEntryDumpBrowser(e: any): FluxDebugEntryDump {
+  return {
+    phase: e?.phase,
+    ts: e?.ts,
+    url: e?.url,
+    method: e?.method,
+    ok: e?.ok,
+    status: e?.status,
+    error: e?.error,
+    level: e?.level,
+    message: e?.message,
+    dataPreview:
+      typeof e?.data === 'string'
+        ? e.data.slice(0, 300)
+        : e?.data != null
+          ? JSON.stringify(e.data).slice(0, 300)
+          : e?.dataPreview,
+  };
+}
+
+/**
+ * 按 URL 片段过滤 flux 调试记录（如 'NopAuthResource__update'）。
+ */
+export async function dumpFluxDebugFor(
+  page: Page,
+  urlFragment: string,
+): Promise<FluxDebugDump> {
+  const dump = await dumpFluxDebug(page);
+  return {
+    ...dump,
+    entries: dump.entries.filter((e) => (e.url ?? '').includes(urlFragment)),
+    errors: dump.errors.filter((e) => (e.url ?? '').includes(urlFragment)),
+    requests: dump.requests.filter((e) => (e.url ?? '').includes(urlFragment)),
+  };
+}
+
+/**
+ * 格式化 flux 调试记录为可读文本（console 输出用）。
+ */
+export function formatFluxDebug(dump: FluxDebugDump): string {
+  const lines: string[] = [];
+  lines.push(`=== Flux Debug (enabled: ${dump.enabled}, entries: ${dump.entryCount}) ===`);
+  for (const e of dump.entries) {
+    const t = new Date(e.ts).toISOString().slice(11, 23);
+    const detail =
+      e.phase === 'request'
+        ? `${e.method ?? 'POST'} ${e.url} data=${e.dataPreview ?? ''}`
+        : e.phase === 'response'
+          ? `${e.url} ok=${e.ok} status=${e.status} data=${e.dataPreview ?? ''}`
+          : e.phase === 'error'
+            ? `${e.url ?? ''} ${e.error ?? ''}`
+            : `${e.level} ${e.message}`;
+    lines.push(`  [${t}] ${e.phase}: ${detail}`);
+  }
+  if (dump.errors.length > 0) {
+    lines.push(`--- Errors (${dump.errors.length}) ---`);
+    for (const e of dump.errors) {
+      lines.push(`  [${e.level ?? 'error'}] ${e.url ?? ''} ${e.error ?? e.message ?? ''}`);
+    }
+  }
+  return lines.join('\n');
+}

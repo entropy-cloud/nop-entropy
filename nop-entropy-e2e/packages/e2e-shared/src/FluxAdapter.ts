@@ -19,21 +19,9 @@ export class FluxAdapter implements EngineAdapter {
   }
 
   async cellValue(row: Locator, fieldName: string, columnHeaders: string[]): Promise<string> {
-    // 动态检测表格是否有 checkbox 选择列
-    const page = row.page();
-    const hasSelectCol = await page.evaluate(() =>
-      !!document.querySelector('[data-slot="table-select-column"]'),
-    );
-
-    const rawIndex = columnHeaders.indexOf(fieldName);
-    if (rawIndex === -1) return '';
-
-    // columnHeaders 包含 checkbox 占位时（'' 开头），如果实际表格没有 checkbox 列，需要减 1
-    const hasPlaceholder = columnHeaders[0] === '';
-    const actualIndex = hasPlaceholder && !hasSelectCol ? rawIndex - 1 : rawIndex;
-    if (actualIndex < 0) return '';
-
-    const cell = row.locator(`td:nth-child(${actualIndex + 1})`);
+    const index = columnHeaders.indexOf(fieldName);
+    if (index === -1) return '';
+    const cell = row.locator(`td:nth-child(${index + 1})`);
     return ((await cell.textContent()) ?? '').trim();
   }
 
@@ -52,29 +40,12 @@ export class FluxAdapter implements EngineAdapter {
   }
 
   async rowAction(row: Locator, actionNamePattern: RegExp): Promise<void> {
-    const page = row.page();
     const actionContainer = row.locator('[data-slot="table-actions"]').first();
     const button = actionContainer.getByRole('button').filter({ hasText: actionNamePattern }).first();
     if (await button.count().then((c) => c > 0)) {
       await button.click();
       return;
     }
-
-    // 操作在"更多"下拉菜单中 → 展开 dropdown，点击菜单项
-    const moreButton = row.getByRole('button').filter({ hasText: /更多|More/ }).first();
-    if (await moreButton.count().then((c) => c > 0)) {
-      await moreButton.click();
-      await page.waitForTimeout(300);
-      const menuItem = page
-        .locator('[data-slot="dropdown-menu-item"], [role="menuitem"]')
-        .filter({ hasText: actionNamePattern })
-        .first();
-      if (await menuItem.count().then((c) => c > 0)) {
-        await menuItem.click();
-        return;
-      }
-    }
-
     const fallback = row.getByRole('button').filter({ hasText: actionNamePattern }).first();
     await fallback.click();
   }
@@ -84,15 +55,13 @@ export class FluxAdapter implements EngineAdapter {
   searchField(page: Page, fieldName: string): Locator {
     return page
       .locator('[data-slot="crud-query"]')
-      .locator(`input[name="filter_${fieldName}"], input[name^="filter_${fieldName}__"], #${fieldName}-control`)
+      .locator(`input[name="${fieldName}"], #${fieldName}-control`)
       .first();
   }
 
   searchButton(page: Page): Locator {
     return page
-      .locator('[data-slot="crud-query"] [data-slot="form-actions"] button')
-      .or(page.locator('[data-slot="crud-query-controls"] button'))
-      .or(page.locator('[data-slot="crud-query"] button[type="submit"]'))
+      .locator('[data-slot="crud-query"] button[type="submit"]')
       .or(page.locator('[data-slot="crud-query"] button').filter({ hasText: /搜索|查询|Search/ }))
       .first();
   }
@@ -130,6 +99,7 @@ export class FluxAdapter implements EngineAdapter {
 
     // 1. Boolean → Checkbox / Switch
     if (typeof value === 'boolean') {
+      // Flux checkbox: button[data-slot="checkbox"] with id
       const checkbox = dialog.locator(
         `button[data-slot="checkbox"][id="${fieldName}-control"]`,
       ).first();
@@ -138,6 +108,8 @@ export class FluxAdapter implements EngineAdapter {
         if ((ariaChecked === 'true') !== value) await checkbox.click();
         return;
       }
+      // Flux switch: Base UI renders <span role="switch"> + hidden <input type="checkbox" id="name-control">
+      // The span has aria-checked; click toggles via synthetic event on hidden input
       const switchEl = dialog
         .locator(`[data-slot="switch-wrapper"]:has(#${fieldName}-control) [role="switch"]`)
         .first();
@@ -151,7 +123,7 @@ export class FluxAdapter implements EngineAdapter {
       }
     }
 
-    // 2. Native input / textarea
+    // 2. Native input / textarea (skip buttons and checkboxes)
     const nativeField = this.formField(dialog, fieldName);
     if (await nativeField.count().then((c) => c > 0)) {
       const tagName = await nativeField.evaluate((el: Element) => el.tagName);
@@ -159,61 +131,34 @@ export class FluxAdapter implements EngineAdapter {
         .evaluate((el: Element) => (el as HTMLInputElement).type)
         .catch(() => '');
       if (tagName === 'INPUT' && inputType !== 'checkbox' && inputType !== 'radio') {
-        const isInsideCombobox = await nativeField.evaluate(
-          (el: Element) => !!el.closest('[role="combobox"]')
-        ).catch(() => false);
-        if (!isInsideCombobox) {
-          const disabled = await nativeField.evaluate(
-            (el: Element) => (el as HTMLInputElement).disabled || (el as HTMLInputElement).readOnly
-          ).catch(() => false);
-          if (!disabled) {
-            const input = nativeField.first();
-            await input.click();
-            await page.keyboard.press('Control+a');
-            await page.keyboard.press('Meta+a');
-            await page.keyboard.press('Backspace');
-            await page.keyboard.type(strValue, { delay: 10 });
-            return;
-          }
-        }
+        await nativeField.first().fill(strValue);
+        return;
       }
       if (tagName === 'TEXTAREA') {
-        const disabled = await nativeField.evaluate(
-          (el: Element) => (el as HTMLTextAreaElement).disabled || (el as HTMLTextAreaElement).readOnly
-        ).catch(() => false);
-        if (!disabled) {
-          await nativeField.first().fill(strValue);
-          return;
-        }
+        await nativeField.first().fill(strValue);
+        return;
       }
+      if (tagName === 'SELECT') {
+        await nativeField.selectOption({ label: strValue });
+        return;
+      }
+      // tagName === 'BUTTON' or input[type=checkbox/radio] → fall through to combobox
     }
 
     // 3. Combobox (Flux Select)
-    const comboInput = dialog.locator(`#${fieldName}-control`);
-    if (await comboInput.count().then((c) => c > 0)) {
-      await comboInput.first().click();
-      await page.waitForTimeout(200);
-      // Try matching by text first, then fall back to first option
-      const matchingOption = page.locator(`[role="option"]:has-text("${strValue}")`).first();
-      if (await matchingOption.count().then((c) => c > 0)) {
-        await matchingOption.click();
-        return;
-      }
-      // Fallback: press ArrowDown and select first option
-      await page.keyboard.press('ArrowDown');
-      await page.waitForTimeout(500);
-      const firstOption = page.getByRole('option').first();
-      try {
-        await firstOption.waitFor({ state: 'visible', timeout: 5000 });
-        await firstOption.click();
-        await page.waitForTimeout(300);
-        return;
-      } catch {
-        // Option didn't appear
-      }
+    const selectWrapper = dialog.locator(
+      `[data-slot="select-wrapper"]`,
+    ).filter({ has: page.locator(`#${fieldName}-control, [name="${fieldName}"]`) }).first();
+    const comboboxTrigger = selectWrapper.locator('[data-slot="combobox-trigger"]').first();
+    if (await comboboxTrigger.count().then((c) => c > 0)) {
+      await comboboxTrigger.click();
+      await page.waitForTimeout(300);
+      const option = page.locator('[data-slot="combobox-item"]').filter({ hasText: strValue }).first();
+      await option.click();
+      return;
     }
 
-    // 4. Last resort: getByLabel fill
+    // 4. Fallback: try fill on getByLabel
     const labelField = dialog.getByLabel(fieldName);
     if (await labelField.count().then((c) => c > 0)) {
       await labelField.fill(strValue).catch(() => {});
@@ -263,25 +208,9 @@ export class FluxAdapter implements EngineAdapter {
   // ── 只读字段 ──
 
   async staticFieldValue(dialog: Locator, fieldName: string): Promise<string> {
-    // Try 1: direct id lookup
     const field = dialog.locator(`#${fieldName}-control`).first();
     if (await field.count().then((c) => c > 0)) {
       return ((await field.textContent()) ?? '').trim();
-    }
-    // Try 2: find by label text in view dialog (renders as nop-text spans)
-    // View dialog: <div class="nop-flex"><span class="nop-text">Label</span><span class="nop-text">value</span></div>
-    const viewField = dialog.locator('.nop-form .nop-flex').filter({
-      has: dialog.locator('.nop-text').first(),
-    });
-    const viewCount = await viewField.count();
-    for (let i = 0; i < viewCount; i++) {
-      const pair = viewField.nth(i);
-      const texts = await pair.locator('.nop-text').allTextContents();
-      const label = texts[0]?.trim() ?? '';
-      const value = texts[1]?.trim() ?? '';
-      if (label.toLowerCase().includes(fieldName.toLowerCase())) {
-        return value;
-      }
     }
     return '';
   }
@@ -335,54 +264,33 @@ export class FluxAdapter implements EngineAdapter {
   // ── 确认对话框 ──
 
   async confirmDialogAction(page: Page): Promise<void> {
-    // Narrow to alert-dialog only — a stale hidden [data-slot="dialog-surface"]
-    // can linger in the DOM after a previous dialog closed, causing .first()
-    // to resolve to the wrong element and silently time out without clicking.
-    const container = page.locator('[data-slot="alert-dialog-content"]').first();
-    try {
-      await container.waitFor({ state: 'visible', timeout: 10_000 });
-    } catch {
-      // No alert-dialog appeared; maybe the action was confirmed inline
-      // or uses a regular dialog surface instead.
-      const surface = page.locator('[data-slot="dialog-surface"]').first();
-      try {
-        await surface.waitFor({ state: 'visible', timeout: 2_000 });
-      } catch {
-        return;
-      }
+    const alertDialog = page.locator('[data-slot="alert-dialog-content"]').first();
+    const dialogSurface = page.locator('[data-slot="dialog-surface"]').first();
+
+    let confirmBtn: Locator;
+    if (await alertDialog.isVisible().catch(() => false)) {
+      confirmBtn = alertDialog.locator('[data-slot="alert-dialog-action"]').first();
+    } else if (await dialogSurface.isVisible().catch(() => false)) {
+      confirmBtn = dialogSurface.locator('[data-slot="surface-confirm-submit"]').first();
+    } else {
+      await page
+        .locator('[data-slot="alert-dialog-content"], [data-slot="dialog-surface"]')
+        .first()
+        .waitFor({ state: 'visible', timeout: 10_000 });
+      confirmBtn = page
+        .locator(
+          '[data-slot="alert-dialog-action"], [data-slot="surface-confirm-submit"]',
+        )
+        .first();
     }
 
-    // Give the action button a moment to mount after the dialog becomes visible
-    await page.waitForTimeout(200);
+    await confirmBtn.click();
 
-    const clicked = await page.evaluate(() => {
-      const dlg = document.querySelector('[data-slot="alert-dialog-content"]');
-      if (dlg) {
-        const btn = dlg.querySelector<HTMLElement>('[data-slot="alert-dialog-action"]');
-        if (btn) { btn.click(); return true; }
-      }
-      const surface = document.querySelector('[data-slot="dialog-surface"]');
-      if (surface) {
-        const btn = surface.querySelector<HTMLElement>('[data-slot="surface-confirm-submit"]');
-        if (btn) { btn.click(); return true; }
-      }
-      const allBtns = document.querySelectorAll('button');
-      for (const btn of allBtns) {
-        const text = btn.textContent?.trim() || '';
-        if (/^(confirm|确定|确认|删除|ok)$/i.test(text)) {
-          btn.click();
-          return true;
-        }
-      }
-      return false;
-    });
-
-    if (!clicked) {
-      const fallback = page.locator('[data-slot="alert-dialog-action"], [data-slot="surface-confirm-submit"]').first();
-      await fallback.click({ force: true }).catch(() => {});
-    }
-
-    await page.locator('[data-slot="alert-dialog-content"]').first().waitFor({ state: 'hidden', timeout: 10_000 }).catch(() => {});
+    await page
+      .locator('[data-slot="alert-dialog-content"], [data-slot="dialog-surface"]')
+      .first()
+      .waitFor({ state: 'hidden', timeout: 10_000 })
+      .catch(() => {});
     await page.waitForLoadState('networkidle').catch(() => {});
   }
 

@@ -1,6 +1,5 @@
 import type { Page as PlaywrightPage } from '@playwright/test';
 import { loginRpc } from './RpcClient';
-import { getEngineType } from './engine';
 
 const LOCALE_KEY = 'nop-language:v1';
 
@@ -17,7 +16,7 @@ export interface LoginOptions {
  * 3. Default fallback
  */
 function resolveBaseUrl(explicit?: string): string {
-  return explicit ?? process.env.E2E_BASE_URL ?? process.env.BASE_URL ?? 'http://localhost:8080';
+  return explicit ?? process.env.E2E_BASE_URL ?? 'http://localhost:4173';
 }
 
 /**
@@ -91,23 +90,46 @@ async function waitForAuthenticated(page: PlaywrightPage, timeoutMs = 30_000): P
 
 /**
  * Wait until the sidebar/menu has populated with items, indicating that the
- * user is fully logged in and the application shell is ready. Uses engine-
- * specific selectors to detect the menu.
- *
- * - AMIS engine: wait for `.cxd-Page` (main page container) to be present
- * - Flux/chaos engine: wait for `nav button[class*="flex-1"]` (sidebar items)
+ * menu query has resolved and route registration is complete. Without this,
+ * direct hash navigation (e.g. #/NopAuthUser-main) may hit the catch-all route
+ * because the menu-driven routes haven't been registered yet.
  */
 async function waitForMenuLoaded(page: PlaywrightPage, timeoutMs = 15_000): Promise<void> {
-  const engine = getEngineType();
-  const checkFn = engine === 'amis'
-    ? `document.querySelector('.cxd-Page, #main-content, main') !== null`
-    : `document.querySelectorAll('nav button[class*="flex-1"]').length >= 2`;
-  await page.waitForFunction(checkFn, undefined, { timeout: timeoutMs });
+  await page.waitForFunction(
+    () => document.querySelectorAll('nav button[class*="flex-1"]').length >= 2,
+    undefined,
+    { timeout: timeoutMs },
+  );
 }
 
 export async function navigateTo(page: PlaywrightPage, hashRoute: string): Promise<void> {
   await page.goto(`#/${hashRoute}`);
   await page.waitForLoadState('networkidle');
+}
+
+/**
+ * Click a sidebar menu button by exact title and wait for navigation.
+ * Handles exact matching to avoid ambiguity (e.g. "Dashboard" vs "Flux Dashboard").
+ */
+export async function openMenuRoute(
+  page: PlaywrightPage,
+  menuTitle: string,
+  urlPattern?: RegExp,
+): Promise<void> {
+  const btn = page.locator('aside, nav').getByRole('button', { name: menuTitle, exact: true }).first();
+  await btn.click();
+  if (urlPattern) {
+    await page.waitForURL(urlPattern, { timeout: 10_000 });
+  }
+  await page.waitForLoadState('networkidle');
+}
+
+/**
+ * Wait for the sidebar to be visible and contain at least the Dashboard entry.
+ * Use after login to confirm the app shell has rendered.
+ */
+export async function waitForSidebar(page: PlaywrightPage, timeoutMs = 15_000): Promise<void> {
+  await page.locator('aside, nav').first().waitFor({ state: 'visible', timeout: timeoutMs });
 }
 
 /**
