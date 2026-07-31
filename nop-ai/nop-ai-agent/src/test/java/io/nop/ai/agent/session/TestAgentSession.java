@@ -121,24 +121,18 @@ public class TestAgentSession {
     }
 
     @Test
-    void testParentSessionIdRoundTrip() {
+    void testAllFieldsRoundTrip() {
+        // MA4.4-02 adjudication: the three former per-field round-trip tests
+        // (parentSessionId / planId / compactedAt) were merged into one —
+        // pure setter/getter round-trips are type-checked by the compiler,
+        // so a single combined test retains the value-level coverage.
         AgentSession session = AgentSession.create("sess-1", "agent");
 
         session.setParentSessionId("parent-1");
         assertEquals("parent-1", session.getParentSessionId());
-    }
-
-    @Test
-    void testPlanIdRoundTrip() {
-        AgentSession session = AgentSession.create("sess-1", "agent");
 
         session.setPlanId("plan-42");
         assertEquals("plan-42", session.getPlanId());
-    }
-
-    @Test
-    void testCompactedAtRoundTrip() {
-        AgentSession session = AgentSession.create("sess-1", "agent");
 
         Long ts = System.currentTimeMillis();
         session.setCompactedAt(ts);

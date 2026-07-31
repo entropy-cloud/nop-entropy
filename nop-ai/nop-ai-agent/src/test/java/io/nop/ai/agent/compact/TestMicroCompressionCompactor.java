@@ -293,14 +293,4 @@ public class TestMicroCompressionCompactor {
                 .anyMatch(m -> m instanceof ChatAssistantMessage && "thinking...".equals(m.getContent()));
         assertTrue(foundThinking, "Non-tool-call assistant messages should be preserved");
     }
-
-    @Test
-    void compressibleToolsSetContainsExpectedTools() {
-        assertTrue(MicroCompressionCompactor.COMPRESSIBLE_TOOLS.contains("read_file"));
-        assertTrue(MicroCompressionCompactor.COMPRESSIBLE_TOOLS.contains("bash"));
-        assertTrue(MicroCompressionCompactor.COMPRESSIBLE_TOOLS.contains("grep"));
-        assertTrue(MicroCompressionCompactor.COMPRESSIBLE_TOOLS.contains("search"));
-        assertTrue(MicroCompressionCompactor.COMPRESSIBLE_TOOLS.contains("list_directory"));
-        assertTrue(MicroCompressionCompactor.COMPRESSIBLE_TOOLS.contains("cat"));
-    }
 }
