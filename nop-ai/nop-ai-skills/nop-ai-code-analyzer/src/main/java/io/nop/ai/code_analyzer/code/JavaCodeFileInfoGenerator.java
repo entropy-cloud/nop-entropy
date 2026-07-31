@@ -16,8 +16,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.function.Predicate;
 
-import static io.nop.ai.core.AiCoreErrors.ARG_FILE_PATH;
-import static io.nop.ai.core.AiCoreErrors.ERR_AI_INVALID_RESPONSE;
+import static io.nop.ai.core.NopAiCoreErrors.ARG_FILE_PATH;
+import static io.nop.ai.core.NopAiCoreErrors.ERR_AI_INVALID_RESPONSE;
 
 public class JavaCodeFileInfoGenerator {
     static final Logger LOG = LoggerFactory.getLogger(JavaCodeFileInfoGenerator.class);

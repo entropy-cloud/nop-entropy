@@ -649,9 +649,9 @@
                         stdDataType="string" stdSqlType="VARCHAR"/>
                 <column code="model_id" displayName="模型ID" mandatory="true" name="modelId" precision="36" propId="4"
                         stdDataType="string" stdSqlType="VARCHAR"/>
-                <column code="ai_provider" displayName="供应商" mandatory="true" name="aiProvider" precision="4" propId="5"
+                <column code="ai_provider" comment="响应时快照的供应商（区别于 modelId 指向 NopAiModel 的 FK；ai_ 前缀为快照列有意设计，P2-MA1-036 裁定）" displayName="供应商" mandatory="true" name="aiProvider" precision="4" propId="5"
                         stdDataType="string" stdSqlType="VARCHAR" ext:dict="ai/model-provider"/>
-                <column code="ai_model" displayName="模型名称" mandatory="true" name="aiModel" precision="50" propId="6"
+                <column code="ai_model" comment="响应时快照的模型名称（区别于 modelId 指向 NopAiModel 的 FK；ai_ 前缀为快照列有意设计，P2-MA1-036 裁定）" displayName="模型名称" mandatory="true" name="aiModel" precision="50" propId="6"
                         stdDataType="string" stdSqlType="VARCHAR"/>
                 <column code="response_content" displayName="响应内容" mandatory="true" name="responseContent"
                         precision="65536" propId="7" stdDataType="string" stdSqlType="VARCHAR" ui:control="textarea"/>

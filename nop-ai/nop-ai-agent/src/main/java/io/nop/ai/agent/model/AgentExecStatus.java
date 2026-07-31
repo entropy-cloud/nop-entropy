@@ -1,5 +1,18 @@
 package io.nop.ai.agent.model;
 
+/**
+ * Agent runtime execution status (agent engine internal, not persisted).
+ * <p>
+ * <b>P2-MA1-035 ruling (2026-07-31) — boundary documented, no merge:</b> this
+ * enum is the agent-engine runtime status. The ORM entity
+ * {@code NopAiSession.status} uses its own lifecycle dict {@code ai/session-status}
+ * (int: CREATED/RUNNING/IDLE/COMPLETED/FAILED/STOPPED) managed by the
+ * nop-ai-dao/service persistence layer. The two layers do not exchange status
+ * values (no conversion code exists) and represent different concepts (runtime
+ * execution state incl. paused/truncated vs persisted session lifecycle).
+ * Merging them would be a cross-module contract change; keep the boundary and
+ * do not "unify" without a dedicated design decision.
+ */
 public enum AgentExecStatus {
     pending,
 

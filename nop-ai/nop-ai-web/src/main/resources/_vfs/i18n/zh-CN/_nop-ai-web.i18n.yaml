@@ -1,0 +1,130 @@
+site:
+  resource:
+    FNPT:NopAiChatRequest:mutation:
+      displayName: 修改对话请求
+    FNPT:NopAiChatRequest:query:
+      displayName: 查询对话请求
+    FNPT:NopAiChatResponse:mutation:
+      displayName: 修改响应结果
+    FNPT:NopAiChatResponse:query:
+      displayName: 查询响应结果
+    FNPT:NopAiEvent:mutation:
+      displayName: 修改Agent事件
+    FNPT:NopAiEvent:query:
+      displayName: 查询Agent事件
+    FNPT:NopAiGenFile:mutation:
+      displayName: 修改生成文件
+    FNPT:NopAiGenFile:query:
+      displayName: 查询生成文件
+    FNPT:NopAiGenFileHistory:mutation:
+      displayName: 修改文件历史
+    FNPT:NopAiGenFileHistory:query:
+      displayName: 查询文件历史
+    FNPT:NopAiKnowledge:mutation:
+      displayName: 修改知识库
+    FNPT:NopAiKnowledge:query:
+      displayName: 查询知识库
+    FNPT:NopAiModel:mutation:
+      displayName: 修改AI模型
+    FNPT:NopAiModel:query:
+      displayName: 查询AI模型
+    FNPT:NopAiProject:mutation:
+      displayName: 修改AI项目
+    FNPT:NopAiProject:query:
+      displayName: 查询AI项目
+    FNPT:NopAiProjectConfig:mutation:
+      displayName: 修改项目配置
+    FNPT:NopAiProjectConfig:query:
+      displayName: 查询项目配置
+    FNPT:NopAiProjectRule:mutation:
+      displayName: 修改项目规则
+    FNPT:NopAiProjectRule:query:
+      displayName: 查询项目规则
+    FNPT:NopAiPromptTemplate:mutation:
+      displayName: 修改提示词模板
+    FNPT:NopAiPromptTemplate:query:
+      displayName: 查询提示词模板
+    FNPT:NopAiPromptTemplateHistory:mutation:
+      displayName: 修改模板历史
+    FNPT:NopAiPromptTemplateHistory:query:
+      displayName: 查询模板历史
+    FNPT:NopAiRequirement:mutation:
+      displayName: 修改需求条目
+    FNPT:NopAiRequirement:query:
+      displayName: 查询需求条目
+    FNPT:NopAiRequirementHistory:mutation:
+      displayName: 修改需求历史
+    FNPT:NopAiRequirementHistory:query:
+      displayName: 查询需求历史
+    FNPT:NopAiSession:mutation:
+      displayName: 修改Agent会话
+    FNPT:NopAiSession:query:
+      displayName: 查询Agent会话
+    FNPT:NopAiSessionContext:mutation:
+      displayName: 修改会话上下文
+    FNPT:NopAiSessionContext:query:
+      displayName: 查询会话上下文
+    FNPT:NopAiSessionInput:mutation:
+      displayName: 修改会话输入
+    FNPT:NopAiSessionInput:query:
+      displayName: 查询会话输入
+    FNPT:NopAiSessionMessage:mutation:
+      displayName: 修改会话消息
+    FNPT:NopAiSessionMessage:query:
+      displayName: 查询会话消息
+    FNPT:NopAiTestCase:mutation:
+      displayName: 修改测试用例
+    FNPT:NopAiTestCase:query:
+      displayName: 查询测试用例
+    FNPT:NopAiTestResult:mutation:
+      displayName: 修改测试结果
+    FNPT:NopAiTestResult:query:
+      displayName: 查询测试结果
+    FNPT:NopAiTodo:mutation:
+      displayName: 修改Agent待办
+    FNPT:NopAiTodo:query:
+      displayName: 查询Agent待办
+    NopAiChatRequest-main:
+      displayName: 对话请求
+    NopAiChatResponse-main:
+      displayName: 响应结果
+    NopAiEvent-main:
+      displayName: Agent事件
+    NopAiGenFile-main:
+      displayName: 生成文件
+    NopAiGenFileHistory-main:
+      displayName: 文件历史
+    NopAiKnowledge-main:
+      displayName: 知识库
+    NopAiModel-main:
+      displayName: AI模型
+    NopAiProject-main:
+      displayName: AI项目
+    NopAiProjectConfig-main:
+      displayName: 项目配置
+    NopAiProjectRule-main:
+      displayName: 项目规则
+    NopAiPromptTemplate-main:
+      displayName: 提示词模板
+    NopAiPromptTemplateHistory-main:
+      displayName: 模板历史
+    NopAiRequirement-main:
+      displayName: 需求条目
+    NopAiRequirementHistory-main:
+      displayName: 需求历史
+    NopAiSession-main:
+      displayName: Agent会话
+    NopAiSessionContext-main:
+      displayName: 会话上下文
+    NopAiSessionInput-main:
+      displayName: 会话输入
+    NopAiSessionMessage-main:
+      displayName: 会话消息
+    NopAiTestCase-main:
+      displayName: 测试用例
+    NopAiTestResult-main:
+      displayName: 测试结果
+    NopAiTodo-main:
+      displayName: Agent待办
+    test-orm-nop-ai:
+      displayName: 测试nop-ai

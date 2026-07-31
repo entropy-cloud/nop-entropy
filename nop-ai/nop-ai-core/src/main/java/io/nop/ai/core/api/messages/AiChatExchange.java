@@ -42,15 +42,15 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import static io.nop.ai.core.AiCoreErrors.ARG_BLOCK_BEGIN;
-import static io.nop.ai.core.AiCoreErrors.ARG_BLOCK_END;
-import static io.nop.ai.core.AiCoreErrors.ARG_CONTENT;
-import static io.nop.ai.core.AiCoreErrors.ARG_EXPECTED;
-import static io.nop.ai.core.AiCoreErrors.ARG_LINE;
-import static io.nop.ai.core.AiCoreErrors.ERR_AI_INVALID_RESPONSE;
-import static io.nop.ai.core.AiCoreErrors.ERR_AI_RESULT_INVALID_END_LINE;
-import static io.nop.ai.core.AiCoreErrors.ERR_AI_RESULT_IS_EMPTY;
-import static io.nop.ai.core.AiCoreErrors.ERR_AI_RESULT_NO_EXPECTED_PART;
+import static io.nop.ai.core.NopAiCoreErrors.ARG_BLOCK_BEGIN;
+import static io.nop.ai.core.NopAiCoreErrors.ARG_BLOCK_END;
+import static io.nop.ai.core.NopAiCoreErrors.ARG_CONTENT;
+import static io.nop.ai.core.NopAiCoreErrors.ARG_EXPECTED;
+import static io.nop.ai.core.NopAiCoreErrors.ARG_LINE;
+import static io.nop.ai.core.NopAiCoreErrors.ERR_AI_INVALID_RESPONSE;
+import static io.nop.ai.core.NopAiCoreErrors.ERR_AI_RESULT_INVALID_END_LINE;
+import static io.nop.ai.core.NopAiCoreErrors.ERR_AI_RESULT_IS_EMPTY;
+import static io.nop.ai.core.NopAiCoreErrors.ERR_AI_RESULT_NO_EXPECTED_PART;
 import static io.nop.ai.core.api.messages.AiMessage.indexOfMark;
 
 /**

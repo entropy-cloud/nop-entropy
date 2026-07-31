@@ -10,9 +10,9 @@ import io.nop.commons.concurrent.ratelimit.IRateLimiter;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 
-import static io.nop.ai.core.AiCoreErrors.ARG_HTTP_STATUS;
-import static io.nop.ai.core.AiCoreErrors.ARG_LLM_NAME;
-import static io.nop.ai.core.AiCoreErrors.ERR_AI_RATE_LIMITED;
+import static io.nop.ai.core.NopAiCoreErrors.ARG_HTTP_STATUS;
+import static io.nop.ai.core.NopAiCoreErrors.ARG_LLM_NAME;
+import static io.nop.ai.core.NopAiCoreErrors.ERR_AI_RATE_LIMITED;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 

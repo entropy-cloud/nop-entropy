@@ -46,11 +46,11 @@ import java.util.concurrent.SubmissionPublisher;
 import static io.nop.ai.core.AiCoreConfigs.CFG_AI_SERVICE_LOG_MESSAGE;
 import static io.nop.ai.core.AiCoreConfigs.CFG_AI_SERVICE_RATE_LIMIT_ACQUIRE_TIMEOUT;
 import static io.nop.ai.core.AiCoreConfigs.CFG_AI_SERVICE_READ_TIMEOUT;
-import static io.nop.ai.core.AiCoreErrors.ARG_HTTP_STATUS;
-import static io.nop.ai.core.AiCoreErrors.ARG_LLM_NAME;
-import static io.nop.ai.core.AiCoreErrors.ERR_AI_RATE_LIMITED;
-import static io.nop.ai.core.AiCoreErrors.ERR_AI_SERVICE_HTTP_ERROR;
-import static io.nop.ai.core.AiCoreErrors.ERR_AI_SERVICE_NO_BASE_URL;
+import static io.nop.ai.core.NopAiCoreErrors.ARG_HTTP_STATUS;
+import static io.nop.ai.core.NopAiCoreErrors.ARG_LLM_NAME;
+import static io.nop.ai.core.NopAiCoreErrors.ERR_AI_RATE_LIMITED;
+import static io.nop.ai.core.NopAiCoreErrors.ERR_AI_SERVICE_HTTP_ERROR;
+import static io.nop.ai.core.NopAiCoreErrors.ERR_AI_SERVICE_NO_BASE_URL;
 
 /**
  * 基于 llm.xml 配置的多模型 ChatService 实现。

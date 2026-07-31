@@ -37,7 +37,7 @@ import java.util.concurrent.Flow;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import static io.nop.ai.core.AiCoreErrors.ARG_HTTP_STATUS;
+import static io.nop.ai.core.NopAiCoreErrors.ARG_HTTP_STATUS;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 
@@ -197,7 +197,7 @@ public class TestStandardRetryPolicyEndToEnd {
         AtomicInteger callCount = new AtomicInteger(0);
         // Chat service: throws a 400 NON_TRANSIENT on every call.
         io.nop.api.core.exceptions.NopException badRequest =
-                new io.nop.api.core.exceptions.NopException(io.nop.ai.core.AiCoreErrors.ERR_AI_SERVICE_HTTP_ERROR)
+                new io.nop.api.core.exceptions.NopException(io.nop.ai.core.NopAiCoreErrors.ERR_AI_SERVICE_HTTP_ERROR)
                         .param(ARG_HTTP_STATUS, 400);
         IChatService chatService = new IChatService() {
             @Override
@@ -253,7 +253,7 @@ public class TestStandardRetryPolicyEndToEnd {
         success.setRequestId("req-429-ok");
 
         io.nop.api.core.exceptions.NopException rateLimit =
-                new io.nop.api.core.exceptions.NopException(io.nop.ai.core.AiCoreErrors.ERR_AI_SERVICE_HTTP_ERROR)
+                new io.nop.api.core.exceptions.NopException(io.nop.ai.core.NopAiCoreErrors.ERR_AI_SERVICE_HTTP_ERROR)
                         .param(ARG_HTTP_STATUS, 429);
         IChatService chatService = new IChatService() {
             @Override

@@ -8,8 +8,8 @@ import io.nop.xlang.api.source.IWithSourceCode;
 import java.util.LinkedHashSet;
 import java.util.Set;
 
-import static io.nop.ai.core.AiCoreErrors.ARG_VAR_NAME;
-import static io.nop.ai.core.AiCoreErrors.ERR_AI_NO_VAR_IN_SCOPE;
+import static io.nop.ai.core.NopAiCoreErrors.ARG_VAR_NAME;
+import static io.nop.ai.core.NopAiCoreErrors.ERR_AI_NO_VAR_IN_SCOPE;
 
 public interface IPromptSyntaxNode extends ISourceLocationGetter, IWithSourceCode {
 

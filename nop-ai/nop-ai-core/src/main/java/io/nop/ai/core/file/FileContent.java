@@ -15,7 +15,7 @@ import io.nop.markdown.model.MarkdownSection;
 
 import java.util.List;
 
-import static io.nop.ai.core.AiCoreErrors.ERR_AI_FILE_CONTENT_NO_PATH;
+import static io.nop.ai.core.NopAiCoreErrors.ERR_AI_FILE_CONTENT_NO_PATH;
 
 @DataBean
 public class FileContent implements ITextSerializable {

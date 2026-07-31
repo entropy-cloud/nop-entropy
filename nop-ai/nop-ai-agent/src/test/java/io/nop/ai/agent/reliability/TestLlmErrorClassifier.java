@@ -1,11 +1,11 @@
 package io.nop.ai.agent.reliability;
 
-import io.nop.ai.core.AiCoreErrors;
+import io.nop.ai.core.NopAiCoreErrors;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.api.core.exceptions.NopTimeoutException;
 import org.junit.jupiter.api.Test;
 
-import static io.nop.ai.core.AiCoreErrors.ARG_HTTP_STATUS;
+import static io.nop.ai.core.NopAiCoreErrors.ARG_HTTP_STATUS;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 /**
@@ -39,8 +39,8 @@ public class TestLlmErrorClassifier {
         // ERR_AI_RATE_LIMITED carrying httpStatus=429 (local quota rejection
         // with 429 semantics). The classifier must map it to RATE_LIMITED
         // (retryable with backoff) — never NON_TRANSIENT.
-        NopException ex = new NopException(AiCoreErrors.ERR_AI_RATE_LIMITED)
-                .param(AiCoreErrors.ARG_LLM_NAME, "test-provider")
+        NopException ex = new NopException(NopAiCoreErrors.ERR_AI_RATE_LIMITED)
+                .param(NopAiCoreErrors.ARG_LLM_NAME, "test-provider")
                 .param(ARG_HTTP_STATUS, 429);
         assertEquals(ErrorClassification.RATE_LIMITED, LlmErrorClassifier.classify(ex),
                 "ERR_AI_RATE_LIMITED (httpStatus=429) must classify as RATE_LIMITED (retryable)");
@@ -51,8 +51,8 @@ public class TestLlmErrorClassifier {
         // Safety net: if the ERR_AI_RATE_LIMITED error ever lost its
         // httpStatus param, the unknown-error default (TRANSIENT) still keeps
         // it retryable — the classification never wrongly fails fast.
-        NopException ex = new NopException(AiCoreErrors.ERR_AI_RATE_LIMITED)
-                .param(AiCoreErrors.ARG_LLM_NAME, "test-provider");
+        NopException ex = new NopException(NopAiCoreErrors.ERR_AI_RATE_LIMITED)
+                .param(NopAiCoreErrors.ARG_LLM_NAME, "test-provider");
         assertEquals(ErrorClassification.TRANSIENT, LlmErrorClassifier.classify(ex));
     }
 
@@ -96,7 +96,7 @@ public class TestLlmErrorClassifier {
     void nopExceptionWithoutHttpStatusClassifiesAsTransient() {
         // A NopException without ARG_HTTP_STATUS is an unknown provider
         // failure → assume transient (safer default for network calls).
-        NopException ex = new NopException(AiCoreErrors.ERR_AI_SERVICE_HTTP_ERROR);
+        NopException ex = new NopException(NopAiCoreErrors.ERR_AI_SERVICE_HTTP_ERROR);
         assertEquals(ErrorClassification.TRANSIENT, LlmErrorClassifier.classify(ex));
     }
 
@@ -112,7 +112,7 @@ public class TestLlmErrorClassifier {
         // The http client may wrap a SocketTimeoutException inside a
         // NopException/CompletionException — the classifier walks the cause
         // chain to detect timeout markers.
-        NopException wrapped = new NopException(AiCoreErrors.ERR_AI_SERVICE_HTTP_ERROR,
+        NopException wrapped = new NopException(NopAiCoreErrors.ERR_AI_SERVICE_HTTP_ERROR,
                 new java.net.SocketTimeoutException("read timed out"));
         assertEquals(ErrorClassification.TRANSIENT, LlmErrorClassifier.classify(wrapped));
     }
@@ -121,7 +121,7 @@ public class TestLlmErrorClassifier {
     void http5xxWrappedInNopExceptionClassifiesAsTransient() {
         // The actual shape thrown by ChatServiceImpl: a NopException with
         // ERR_AI_SERVICE_HTTP_ERROR + ARG_HTTP_STATUS param.
-        NopException ex = new NopException(AiCoreErrors.ERR_AI_SERVICE_HTTP_ERROR)
+        NopException ex = new NopException(NopAiCoreErrors.ERR_AI_SERVICE_HTTP_ERROR)
                 .param(ARG_HTTP_STATUS, 502);
         assertEquals(ErrorClassification.TRANSIENT, LlmErrorClassifier.classify(ex));
     }
@@ -131,7 +131,7 @@ public class TestLlmErrorClassifier {
      * the shape thrown by {@code ChatServiceImpl} on a non-200 response.
      */
     private static NopException httpError(int status) {
-        return new NopException(AiCoreErrors.ERR_AI_SERVICE_HTTP_ERROR)
+        return new NopException(NopAiCoreErrors.ERR_AI_SERVICE_HTTP_ERROR)
                 .param(ARG_HTTP_STATUS, status);
     }
 }

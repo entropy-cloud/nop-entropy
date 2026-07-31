@@ -1,6 +1,6 @@
 package io.nop.ai.agent.reliability;
 
-import io.nop.ai.core.AiCoreErrors;
+import io.nop.ai.core.NopAiCoreErrors;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.api.core.exceptions.NopTimeoutException;
 
@@ -121,7 +121,7 @@ public final class LlmErrorClassifier {
         if (!(error instanceof NopException)) {
             return null;
         }
-        Object value = ((NopException) error).getParam(AiCoreErrors.ARG_HTTP_STATUS);
+        Object value = ((NopException) error).getParam(NopAiCoreErrors.ARG_HTTP_STATUS);
         if (value instanceof Number) {
             return ((Number) value).intValue();
         }

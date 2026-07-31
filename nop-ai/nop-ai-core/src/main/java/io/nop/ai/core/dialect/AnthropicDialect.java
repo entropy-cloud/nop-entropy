@@ -25,7 +25,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
-import static io.nop.ai.core.AiCoreErrors.ERR_AI_INVALID_RESPONSE;
+import static io.nop.ai.core.NopAiCoreErrors.ERR_AI_INVALID_RESPONSE;
 
 /**
  * Anthropic (Claude) 方言实现。

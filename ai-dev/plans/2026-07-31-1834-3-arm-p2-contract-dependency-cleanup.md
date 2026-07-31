@@ -171,27 +171,33 @@ Exit Criteria:
 
 ### Phase 5 — dict 一致性 + zh-CN i18n + 命名裁定（P2-D06-019/020 + P2-MA1-034/035/036/037）
 
-Status: planned
+Status: completed
 Targets: `nop-ai/nop-ai-meta/src/main/resources/_vfs/dict/ai/`、`nop-ai/model/nop-ai.orm.xml`、`nop-ai/nop-ai-web/src/main/resources/_vfs/i18n/`、命名相关文件
 
 - Item Types: `Fix | Decision | Proof`
 
-- [ ] （Fix）**删除 9 个废弃 snake_case dict 文件**（`config_type`、`file_format`、`message_type`、`model_provider`、`module_type`、`project_language`、`requirement_type`、`rule_type`、`status_type` `.dict.yaml`）——无条件 Fix（P1-MA2-018 声称 fixed 但 live 仍在，属 overclaim 纠正；删除前 grep 确认无引用），并在 arm-index 补记 P1-MA2-018 实际落地。
-- [ ] （Decision）15 个 active dict 的双源问题（ORM `<dicts>` vs 独立 `.dict.yaml`）裁定：单源化（ORM 为准）或加 build-time 一致性校验脚本（复用 `ai-dev/tools/` 模式）。
-- [ ] （Fix）按裁定落地：一致性校验脚本（运行 0 错误）或文件收敛。
-- [ ] （Fix）`nop-ai-web` zh-CN i18n 补齐：**镜像 `en/` 的 extends 链**（`en/` 含 `_nop-ai-web.i18n.yaml` base + `nop-ai-web.i18n.yaml` 外层，外层 `x:extends` 内层）——zh-CN 需同时建 `zh-CN/_nop-ai-web.i18n.yaml` 与 `zh-CN/nop-ai-web.i18n.yaml`（外层 extends 内层），翻译键对齐 en 文件。
-- [ ] （Decision）P2-MA1-034/035/036/037 逐项复核 live 状态并裁定（错误码前缀、`ai_` 列前缀、enum vs dict、类名前缀）：可低成本修复则修复，否则记录裁定理由（落盘于 arm-index 新 §P2 追踪）。
-- [ ] 全量 build + test + i18n 加载验证。
+- [x] （Fix）**删除 9 个废弃 snake_case dict 文件**（`config_type`/`file_format`/`message_type`/`model_provider`/`module_type`/`project_language`/`requirement_type`/`rule_type`/`status_type` `.dict.yaml`）——删除前 grep `ai/config_type` 等 9 个 dict 名全仓 0 引用；15 个 kebab-case 文件保留。arm-index P1-MA2-018 行补记实际落地（overclaim 纠正）。
+- [x] （Decision）15 个 active dict 双源问题裁定：**单源化（ORM 为准）**——`_vfs/dict/ai/*.dict.yaml` 实为 ORM `<dicts>` 的 **codegen 生成物**（模板 `nop-codegen/.../templates/orm/{appName}-meta/.../{dict.name}.dict.yaml.xgen`，`# __XGEN_FORCE_OVERRIDE__` 标记），非真双源；代码生成链路即一致性机制。
+- [x] （Fix）按裁定落地：**新增 build-time 一致性校验脚本** `ai-dev/tools/check-ai-dict-consistency.mjs`（js-yaml，比较 ORM `<dicts>` vs 生成 `.dict.yaml` 的 dict 名集合 + option 值集合；YAML 1.1 `001`→1 数值归一化）——运行 exit 0（15/15 一致）。
+- [x] （Fix）`nop-ai-web` zh-CN i18n 补齐：新建 `zh-CN/_nop-ai-web.i18n.yaml`（base，44 个 site.resource displayName 键镜像 en/ 全量翻译）+ `zh-CN/nop-ai-web.i18n.yaml`（外层 `x:extends` 内层，对齐 en/ 结构）。`NopAiWebPagesTest.testValidateAllPages` zh-CN 页面加载验证绿。
+- [x] （Decision）P2-MA1-034/035/036/037 逐项复核 + 裁定：
+  - **034（错误码前缀）＝修复**：`nop.err.gpt.orm.unknown-sql-type` → `nop.err.ai.dsl-orm.unknown-sql-type`（常量 `ERR_GPT_ORM_UNKNOWN_SQL_TYPE` → `ERR_DSL_ORM_UNKNOWN_SQL_TYPE`，使用方 `GptOrmSqlType` 同步）。
+  - **035（状态模型 enum vs dict）＝裁定保留 + 记录边界**：`AgentExecStatus`（agent 运行时 9 态，不落库）vs `NopAiSession.status` dict `ai/session-status`（ORM 持久化 6 态生命周期）——两层无语义交换、无转换代码，合并 = 跨模块契约变更；边界说明写入 `AgentExecStatus` javadoc。
+  - **036（`ai_` 列前缀）＝裁定保留 + 记录（有意设计）**：`NopAiChatResponse.ai_provider`/`ai_model` 为**响应时快照列**，区别于 `modelId` FK（指向 `NopAiModel`）；`ai_` 前缀区分快照 vs FK，ORM 源模型两列补 `comment` 说明（再生成 `_app.orm.xml` 同步，git diff 仅此意图内变更）。
+  - **037（类名前缀）＝修复**：`AiCoreErrors` → `NopAiCoreErrors`（对齐 `NopAiErrors`/`NopAiException` 约定；19 文件机械重命名，全量编译绿；`docs-for-ai/02-core-guides/error-handling.md` 代码示例同步）。
+- [x] 全量 build + test + i18n 加载验证。
 
 Exit Criteria:
 
-- [ ] 9 个 snake_case dict 文件已删除（grep/ls 验证）且 arm-index P1-MA2-018 补记实际落地
-- [ ] 15 个 active dict 一致性：单源或校验脚本存在（运行 0 错误）
-- [ ] `nop-ai-web` 有 `zh-CN` i18n 文件且加载验证通过
-- [ ] 命名 4 项逐项有裁定记录（修复证据或理由，落盘于 arm-index §P2 追踪）
-- [ ] **无静默跳过**：无"清理声明但文件仍在"的残留状态
-- [ ] `No owner-doc update required`（i18n/dict 为资源补充）或 `docs-for-ai/` 同步（如有约定变化）
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+> 每个 Phase 完成后，必须逐条勾选本节。所有 `[x]` 后才能将 Phase Status 改为 `completed`。
+
+- [x] 9 个 snake_case dict 文件已删除（grep/ls 验证）且 arm-index P1-MA2-018 补记实际落地
+- [x] 15 个 active dict 一致性：单源或校验脚本存在（运行 0 错误）——`node ai-dev/tools/check-ai-dict-consistency.mjs` exit 0
+- [x] `nop-ai-web` 有 `zh-CN` i18n 文件且加载验证通过——`NopAiWebPagesTest.testValidateAllPages`（zh-CN 页面加载）绿
+- [x] 命名 4 项逐项有裁定记录（修复证据或理由，落盘于 arm-index §P2 追踪）
+- [x] **无静默跳过**：无"清理声明但文件仍在"的残留状态——snake_case 删除后 `ls` 0 残留，ORM/生成物一致
+- [x] `No owner-doc update required`（i18n/dict 为资源补充）或 `docs-for-ai/` 同步（如有约定变化）——`error-handling.md` 类名示例同步
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 ## Closure Gates
 

@@ -16,8 +16,8 @@ import java.io.File;
 import static io.nop.ai.core.AiCoreConfigs.CFG_AI_SERVICE_DEFAULT_LLM;
 import static io.nop.ai.core.AiCoreConstants.CONFIG_VAR_LLM_API_KEY;
 import static io.nop.ai.core.AiCoreConstants.PLACE_HOLDER_LLM_NAME;
-import static io.nop.ai.core.AiCoreErrors.ARG_LLM_NAME;
-import static io.nop.ai.core.AiCoreErrors.ERR_AI_SERVICE_NO_DEFAULT_LLMS;
+import static io.nop.ai.core.NopAiCoreErrors.ARG_LLM_NAME;
+import static io.nop.ai.core.NopAiCoreErrors.ERR_AI_SERVICE_NO_DEFAULT_LLMS;
 
 /**
  * LLM配置帮助类。

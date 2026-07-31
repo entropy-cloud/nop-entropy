@@ -4,7 +4,7 @@ import io.nop.api.core.exceptions.ErrorCode;
 
 import static io.nop.api.core.exceptions.ErrorCode.define;
 
-public interface AiCoreErrors {
+public interface NopAiCoreErrors {
     String ARG_LLM_NAME = "llmName";
     String ARG_OPTION_NAME = "optionName";
     String ARG_HTTP_STATUS = "httpStatus";

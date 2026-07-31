@@ -212,7 +212,7 @@ MR4 Phase 2 对 P1 表全部 `fixed` 行做了 live repo 证据核验（提交/�
 | P1-MA1-032 | MR1 | 命名约定统一（MR4 §4 裁定落地为平台 `bizObjName:action` 约定） | `fixed` |
 | P1-MA1-033 | MR1 | 重复 ORM session/message 模型收敛 | `fixed` |
 | P1-MA2-014 | MR1 | XDSL codegen 输出可验证 | `fixed` |
-| P1-MA2-018 | MR1 | 9 个废弃 snake_case dict 文件清理（nop-ai-meta） | `fixed` |
+| P1-MA2-018 | MR1 + plan `2026-07-31-1834-3` Phase 5 | 9 个废弃 snake_case dict 文件清理（nop-ai-meta）——overclaim 纠正：MR1 声称 fixed 但 live 仍在，实际删除落地于 2026-07-31（config_type/file_format/message_type/model_provider/module_type/project_language/requirement_type/rule_type/status_type `.dict.yaml`，删除前 grep 0 引用） | `fixed` |
 | P1-MA2-023 | MR1+MR4（commit `249f89cf7`） | apiKey 限制下沉 ORM 源模型 `tagSet="enc,not-query,not-sort,not-pub"`；生成 `_NopAiModel.xmeta` 不再暴露；回归测试 `nop-ai-meta/src/test/java/io/nop/ai/meta/TestNopAiModelApiKeyXmeta.java`（3 方法，MR4 §1） | `fixed` |
 | P1-MA2-024 | MR1 | `NopAiSession` 重复 to-many context/contexts 收敛 | `fixed` |
 | P1-MA3-020 | MR2 | 自定义方法 BizModel 补 `@Auth`（4 类 19 方法：SequentialThinking×3、FileTool×13、AiFileTool×3、NopAiChatResponse×1，落地 `<BizObjName>:<action>`，MR4 §4 裁定） | `fixed` |
@@ -371,3 +371,9 @@ MR4 Phase 2 对 P1 表全部 `fixed` 行做了 live repo 证据核验（提交/�
 | P2-MA3-2 | `fixed` | nop-ai-maven 13 处裸 IAE/RTE → `NopException`（新 `NopAiMavenErrors`：`ERR_VFS_INVALID_ARG`/`ERR_VFS_IO_FAILED`；IO 失败保留 cause）；测试 = `DeltaVirtualFileSystemTest` +3（含 IO cause 链）/`DeltaWorkspaceReaderTest` +3 |
 | P2-MA3-3 | `fixed`（复验） | `System.out/err` 在 nop-ai-maven main 0 命中（MA4.2-11 修复证据留档） |
 | P2-MA3-4 | `fixed` | `FileLanguageStats:313` RTE → `NopException`（新 `NopAiCodeAnalyzerErrors.ERR_STATS_IO_FAILED`，保留 cause）；连带模块内 4 处裸 IAE（MavenDependencyParser/TreeParser）→ `ERR_MAVEN_PARSE_INVALID_ARG`（exit criterion grep 0 残留）；测试断言更新 |
+| P2-D06-019 | `fixed` | 9 个 snake_case dict 文件删除（删除前 grep 0 引用；P1-MA2-018 overclaim 补记实际落地）；15 个 active dict 裁定单源化（ORM `<dicts>` 为准，`.dict.yaml` 为 codegen 生成物，模板 `{dict.name}.dict.yaml.xgen`）+ 新增一致性校验脚本 `ai-dev/tools/check-ai-dict-consistency.mjs`（exit 0：15/15 一致） |
+| P2-D06-020 | `fixed` | `nop-ai-web` 新增 `zh-CN/_nop-ai-web.i18n.yaml`（44 键全量镜像 en/）+ `zh-CN/nop-ai-web.i18n.yaml`（外层 x:extends）；`NopAiWebPagesTest.testValidateAllPages` zh-CN 加载绿 |
+| P2-MA1-034 | `fixed` | 错误码前缀统一：`nop.err.gpt.orm.unknown-sql-type` → `nop.err.ai.dsl-orm.unknown-sql-type`（`ERR_GPT_ORM_UNKNOWN_SQL_TYPE` → `ERR_DSL_ORM_UNKNOWN_SQL_TYPE`，`GptOrmSqlType` 同步） |
+| P2-MA1-035 | `fixed`（裁定保留+记录边界） | `AgentExecStatus`（agent 运行时 9 态，不落库）vs `NopAiSession.status` dict `ai/session-status`（ORM 6 态生命周期）：两层无语义交换/无转换代码，合并=跨模块契约变更；边界说明入 `AgentExecStatus` javadoc |
+| P2-MA1-036 | `fixed`（裁定保留+记录有意设计） | `NopAiChatResponse.ai_provider`/`ai_model` = 响应时快照列（区别于 `modelId` FK 指向 NopAiModel）；`ai_` 前缀为快照 vs FK 区分的有意设计；ORM 源模型补 comment（再生成 `_app.orm.xml` 同步） |
+| P2-MA1-037 | `fixed` | `AiCoreErrors` → `NopAiCoreErrors`（19 文件机械重命名，对齐 `NopAiErrors`/`NopAiException` 约定）；`error-handling.md` 示例同步 |

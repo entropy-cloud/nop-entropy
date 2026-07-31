@@ -33,10 +33,10 @@ import org.slf4j.LoggerFactory;
 import java.util.List;
 import java.util.Map;
 
-import static io.nop.ai.core.AiCoreErrors.ARG_INPUT_NAME;
-import static io.nop.ai.core.AiCoreErrors.ARG_OUTPUT_NAME;
-import static io.nop.ai.core.AiCoreErrors.ERR_AI_MANDATORY_INPUT_IS_EMPTY;
-import static io.nop.ai.core.AiCoreErrors.ERR_AI_MANDATORY_OUTPUT_IS_EMPTY;
+import static io.nop.ai.core.NopAiCoreErrors.ARG_INPUT_NAME;
+import static io.nop.ai.core.NopAiCoreErrors.ARG_OUTPUT_NAME;
+import static io.nop.ai.core.NopAiCoreErrors.ERR_AI_MANDATORY_INPUT_IS_EMPTY;
+import static io.nop.ai.core.NopAiCoreErrors.ERR_AI_MANDATORY_OUTPUT_IS_EMPTY;
 
 public class ModelBasedPromptTemplate implements IPromptTemplate {
     static final Logger LOG = LoggerFactory.getLogger(ModelBasedPromptTemplate.class);

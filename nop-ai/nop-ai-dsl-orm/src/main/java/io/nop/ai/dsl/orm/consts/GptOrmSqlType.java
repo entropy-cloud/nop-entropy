@@ -14,7 +14,7 @@ import io.nop.commons.type.StdSqlType;
 import java.util.Map;
 
 import static io.nop.ai.dsl.orm.GptOrmErrors.ARG_SQL_TYPE;
-import static io.nop.ai.dsl.orm.GptOrmErrors.ERR_GPT_ORM_UNKNOWN_SQL_TYPE;
+import static io.nop.ai.dsl.orm.GptOrmErrors.ERR_DSL_ORM_UNKNOWN_SQL_TYPE;
 
 public enum GptOrmSqlType {
     BOOLEAN("BOOLEAN", StdSqlType.BOOLEAN),
@@ -76,7 +76,7 @@ public enum GptOrmSqlType {
     public static StdSqlType getStdSqlType(String text) {
         GptOrmSqlType sqlType = textMap.get(text);
         if (sqlType == null)
-            throw new NopException(ERR_GPT_ORM_UNKNOWN_SQL_TYPE)
+            throw new NopException(ERR_DSL_ORM_UNKNOWN_SQL_TYPE)
                     .param(ARG_SQL_TYPE, text);
         return sqlType.getStdSqlType();
     }

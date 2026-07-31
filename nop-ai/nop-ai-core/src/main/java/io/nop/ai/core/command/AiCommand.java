@@ -43,9 +43,9 @@ import java.util.concurrent.CancellationException;
 import java.util.concurrent.CompletionStage;
 
 import static io.nop.ai.core.AiCoreConfigs.CFG_AI_SERVICE_ENABLE_WORK_MODE_SYSTEM_PROMPT;
-import static io.nop.ai.core.AiCoreErrors.ARG_TOOL_NAME;
-import static io.nop.ai.core.AiCoreErrors.ERR_AI_RESULT_IS_EMPTY;
-import static io.nop.ai.core.AiCoreErrors.ERR_AI_UNKNOWN_TOOL_CALL;
+import static io.nop.ai.core.NopAiCoreErrors.ARG_TOOL_NAME;
+import static io.nop.ai.core.NopAiCoreErrors.ERR_AI_RESULT_IS_EMPTY;
+import static io.nop.ai.core.NopAiCoreErrors.ERR_AI_UNKNOWN_TOOL_CALL;
 
 public class AiCommand {
     static final Logger LOG = LoggerFactory.getLogger(AiCommand.class);

@@ -163,8 +163,8 @@ throw new NopAiException("LLM response is empty for prompt: " + promptName);
 throw new NopAiException("Failed to parse tool call response", e);
 
 // 仍然支持 ErrorCode（当需要稳定错误码时）
-throw new NopAiException(AiCoreErrors.ERR_AI_SERVICE_HTTP_ERROR)
-    .param(AiCoreErrors.ARG_LLM_NAME, llmName);
+throw new NopAiException(NopAiCoreErrors.ERR_AI_SERVICE_HTTP_ERROR)
+    .param(NopAiCoreErrors.ARG_LLM_NAME, llmName);
 ```
 
 ### 其他模块的参考实现

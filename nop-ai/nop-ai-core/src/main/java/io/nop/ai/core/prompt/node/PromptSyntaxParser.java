@@ -16,13 +16,13 @@ import java.util.ArrayList;
 import java.util.List;
 
 import static io.nop.ai.core.AiCoreConstants.PROMPT_PREFIX_INCLUDE;
-import static io.nop.ai.core.AiCoreErrors.ARG_INPUT;
-import static io.nop.ai.core.AiCoreErrors.ARG_PREFIX;
-import static io.nop.ai.core.AiCoreErrors.ARG_VAR_NAME;
-import static io.nop.ai.core.AiCoreErrors.ERR_AI_INVALID_EXPR_VAR_NAME;
-import static io.nop.ai.core.AiCoreErrors.ERR_AI_PROMPT_EMPTY_EXPR;
-import static io.nop.ai.core.AiCoreErrors.ERR_AI_PROMPT_UNCLOSED_EXPR;
-import static io.nop.ai.core.AiCoreErrors.ERR_AI_UNKNOWN_PROMPT_EXPR_PREFIX;
+import static io.nop.ai.core.NopAiCoreErrors.ARG_INPUT;
+import static io.nop.ai.core.NopAiCoreErrors.ARG_PREFIX;
+import static io.nop.ai.core.NopAiCoreErrors.ARG_VAR_NAME;
+import static io.nop.ai.core.NopAiCoreErrors.ERR_AI_INVALID_EXPR_VAR_NAME;
+import static io.nop.ai.core.NopAiCoreErrors.ERR_AI_PROMPT_EMPTY_EXPR;
+import static io.nop.ai.core.NopAiCoreErrors.ERR_AI_PROMPT_UNCLOSED_EXPR;
+import static io.nop.ai.core.NopAiCoreErrors.ERR_AI_UNKNOWN_PROMPT_EXPR_PREFIX;
 
 public class PromptSyntaxParser extends AbstractTextResourceParser<IPromptSyntaxNode> {
 
