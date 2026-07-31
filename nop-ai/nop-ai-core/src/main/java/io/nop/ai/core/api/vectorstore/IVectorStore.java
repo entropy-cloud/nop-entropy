@@ -22,7 +22,13 @@ import java.util.Collections;
 import java.util.List;
 
 /**
- * Vector Store
+ * Vector Store SPI extension contract (adjudicated per MA5.1 P1-01 / arm-index P1-MA5-003).
+ * <p>
+ * This is an SPI extension point: the platform ships no production implementation by
+ * design — integrators provide concrete subclasses (e.g. FAISS / pgvector / Milvus
+ * adapters). The abstract methods cannot be instantiated without an implementation, so
+ * there is no silent no-op path: any consumer must inject a concrete subclass and fails
+ * fast at wiring/compile time if none is provided.
  *
  * @param <T> The Vector Data
  */
