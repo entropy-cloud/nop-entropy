@@ -364,3 +364,6 @@ MR4 Phase 2 对 P1 表全部 `fixed` 行做了 live repo 证据核验（提交/�
 | P2-MA3-05 | `fixed`（裁定保留+记录） | `FileToolBizModel`/`DslToolImpl` 保留 `IFileOperator`（已 @Deprecated 指向 `IToolFileSystem`；抽象收敛 = P2-MA1-012 后续批次）；裁定入 javadoc |
 | P2-MA3-06 | `fixed`（裁定记录） | `ChatOptions` vs `AiChatOptions` 字段差异记录为历史残留（legacy 管线合并属 future major）；两 class javadoc 交叉引用 + 新代码必须用 `ChatOptions` |
 | P2-MA3-08 | `fixed` | `AiXDefHelper` 从 `io.nop.ai.core.xdef` 提升到 `io.nop.ai.core.api.xdef`（公开契约，5 处 import 同步；`TestAiCoderHelper`/`TestDslToolImpl` 接线验证） |
+| P2-MA1-006 / P2-MA2-029 | `fixed` | `nop-ai-tools/.../beans/ai-tools-defaults.beans.xml:1` `xmlns:x="/nop/schema/xdsl.xef"` → `xdsl.xdef`（nop-ai-toolkit 复核已正确；全组 grep 0 残留） |
+| P2-MA1-008 | `fixed`（裁定接线） | `SearchEngineExecutor` 重新接线：beans.xml 取消注释 + `setSearchEngine` 加 `@Nullable`（无 `ISearchEngine` bean 时容器正常启动，执行时明确 errorResult）；平台存在生产实现 `nop-search-lucene`；`SearchEngineExecutorTest` 8 例绿 |
+| P2-MA1-011 | `fixed`（裁定快速失败） | `AskOracleExecutor` 两分支均快速失败（无 ORACLE_ENDPOINT → 配置缺失 errorResult；有 endpoint → "not implemented" errorResult，不再伪造第一个 option 为成功）；`buildSuccessResult` 删除；测试改写 + 新增 endpoint 分支断言（5 例绿）；tool.xml description 同步。**覆盖** 1834-1 安全批次"stub 保持"记录 |

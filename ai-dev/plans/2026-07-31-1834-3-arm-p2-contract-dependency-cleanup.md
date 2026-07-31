@@ -121,26 +121,28 @@ Exit Criteria:
 
 ### Phase 3 — IoC 与结构卫生（P2-MA1-006/029 + P2-MA1-008 + P2-MA1-011）
 
-Status: planned
+Status: completed
 Targets: `nop-ai/nop-ai-tools/src/main/resources/_vfs/nop/ai/beans/ai-tools-defaults.beans.xml`、`nop-ai/nop-ai-toolkit/src/main/java/io/nop/ai/toolkit/tools/SearchEngineExecutor.java`、`nop-ai/nop-ai-toolkit/src/main/java/io/nop/ai/toolkit/tools/AskOracleExecutor.java`、`nop-ai/nop-ai-toolkit/src/main/resources/_vfs/nop/ai/beans/ai-tools-defaults.beans.xml`
 
 - Item Types: `Fix | Decision | Proof`
 
-- [ ] （Fix）`ai-tools-defaults.beans.xml` 命名空间 `xdsl.xef` → `xdsl.xdef`（两个 beans.xml 均检查：nop-ai-tools 与 nop-ai-toolkit）。
-- [ ] （Decision）`SearchEngineExecutor`：裁定删除（死代码 + 注释 bean 清理）或重新接线（补 bean 定义 + 实现校验）。**若选删除，连带面**：`SearchEngineExecutorTest.java`（含 MockSearchEngine，删类后编译失败）、`search-engine.tool.xml`、`nop-search-api` 依赖——需一并清理。
-- [ ] （Fix）`AskOracleExecutor` 存根行为（**两个分支都要处理，live 现状**：无 `ORACLE_ENDPOINT` 时 :44-47 静默返回第一个 option；**有 endpoint 时 :49 也静默返回第一个 option，endpoint 从未被使用**；`timeoutMs` 解析后未用）：裁定快速失败（无 endpoint/未实现时返回错误结果，符合 Anti-Silent-NoOp 规则）或实现真实 oracle 调用；**快速失败为默认倾向**。
-- [ ] （Fix）**改写 `AskOracleExecutorTest` 现有成功断言**（`testExecuteWithQuestionAndOptions` 断言静默成功行为）为快速失败断言；新增有 endpoint 分支的测试。
-- [ ] 全量 build + test 验证。
+- [x] （Fix）`ai-tools-defaults.beans.xml` 命名空间 `xdsl.xef` → `xdsl.xdef`（两个 beans.xml 均检查：nop-ai-tools **已修复**（:1 `xmlns:x="/nop/schema/xdsl.xef"` → `xdsl.xdef`）；nop-ai-toolkit 复核本已正确；全 nop-ai 组 grep `xdsl.xef` 0 残留）。
+- [x] （Decision）`SearchEngineExecutor`：**裁定重新接线**——实现完整（138 行真实 IToolExecutor，MockSearchEngine 测试 8 例全绿），且平台存在生产实现 `nop-search-lucene`（`LuceneSearchEngine`，apps 注册 bean 即可用）；`search-engine.tool.xml` 已注册但此前无 executor（调用即"unknown tool"，静默降级）。接线：beans.xml 取消注释 + `setSearchEngine` 加 `@Nullable`（NopIoC 支持，`DefaultBeanClassIntrospection:230`）——无 `ISearchEngine` bean 时容器正常启动，执行时返回明确 errorResult（"Search engine not available"），符合 Anti-Silent-NoOp。
+- [x] （Fix）`AskOracleExecutor` 存根行为——**裁定快速失败（两个分支）**：(1) 无 `ORACLE_ENDPOINT` → errorResult（配置缺失说明）；(2) 有 endpoint → errorResult（"oracle 调用尚未实现，快速失败而非伪造答案"——真实 oracle 客户端调用无 spec，实现属后续批次）；`timeoutMs` 解析保留（工具 schema 兼容）。删除了 `buildSuccessResult`（无调用方）。注意：本裁定**覆盖**安全批次日志（1834-1 Phase 5）中"ORACLE_ENDPOINT 缺失 stub 属 P2-MA1-011 已裁定契约，保持"的记录——本计划是 P2-MA1-011 的正式裁定归属。
+- [x] （Fix）**改写 `AskOracleExecutorTest` 现有成功断言**：`testExecuteWithQuestionAndOptions`（断言静默成功）→ `testExecuteWithQuestionAndOptionsWithoutEndpoint`（断言 failure + ORACLE_ENDPOINT 消息）；新增 `testExecuteWithEndpointFailsFastNotImplemented`（endpoint 分支 failure + "not implemented"）。MockContext 改为可注入 envs。5 例全绿。
+- [x] 全量 build + test 验证。
 
 Exit Criteria:
 
-- [ ] 两个 beans.xml 命名空间正确（xdef），加载无校验告警
-- [ ] `SearchEngineExecutor` 裁定落盘：删除（文件 + 注释 bean + 测试 + tool.xml + 依赖均无残留）或接线（bean 定义存在 + 测试）
-- [ ] `AskOracleExecutor` 两个分支行为明确：无 endpoint 快速失败（测试断言）、有 endpoint 不再静默返回第一个 option（实现真实调用或同样快速失败）；**不存在静默 stub 成功**
-- [ ] `AskOracleExecutorTest` 已改写（旧"成功"断言不再存在）
-- [ ] **无静默跳过**：stub 语义不再以"成功返回第一个 option"形式存在
-- [ ] `No owner-doc update required` 或 design 文档同步（如工具清单变化）
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+> 每个 Phase 完成后，必须逐条勾选本节。所有 `[x]` 后才能将 Phase Status 改为 `completed`。
+
+- [x] 两个 beans.xml 命名空间正确（xdef），加载无校验告警
+- [x] `SearchEngineExecutor` 裁定落盘：删除（文件 + 注释 bean + 测试 + tool.xml + 依赖均无残留）或接线（bean 定义存在 + 测试）——**接线**：bean `ai-tools:search-engine` 定义存在（取消注释），`SearchEngineExecutorTest` 8 例绿（MockSearchEngine 接线），`search-engine.tool.xml` 与 `TOOL_NAME` 匹配
+- [x] `AskOracleExecutor` 两个分支行为明确：无 endpoint 快速失败（测试断言）、有 endpoint 不再静默返回第一个 option（实现真实调用或同样快速失败）——两分支均 errorResult + 测试断言；**不存在静默 stub 成功**
+- [x] `AskOracleExecutorTest` 已改写（旧"成功"断言不再存在）——grep 无 success 断言残留
+- [x] **无静默跳过**：stub 语义不再以"成功返回第一个 option"形式存在（代码 + `ask-oracle.tool.xml` description 同步说明当前行为）
+- [x] `No owner-doc update required` 或 design 文档同步（如工具清单变化）——工具清单无变化（search-engine 恢复接线、ask-oracle 契约不变，仅行为从伪造成功变快速失败）；arm-index §P2 追踪 + 日志记录裁定
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 ### Phase 4 — 错误处理与硬编码修复（P2-MA1-020 + P2-MA3-2 + P2-MA3-4）
 

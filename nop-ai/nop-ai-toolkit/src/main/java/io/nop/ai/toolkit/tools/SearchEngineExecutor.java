@@ -12,6 +12,7 @@ import io.nop.search.api.SearchHit;
 import io.nop.search.api.SearchRequest;
 import io.nop.search.api.SearchResponse;
 import io.nop.search.api.SearchType;
+import jakarta.annotation.Nullable;
 import jakarta.inject.Inject;
 
 import java.util.ArrayList;
@@ -27,8 +28,14 @@ public class SearchEngineExecutor implements IToolExecutor {
 
     private ISearchEngine searchEngine;
 
+    /**
+     * Optional injection (P2-MA1-008 ruling — rewired 2026-07-31): the search
+     * engine backend is optional at runtime. When no {@code ISearchEngine} bean
+     * is registered (e.g. app without nop-search-lucene), this executor still
+     * starts and {@link #executeAsync} returns a clear error result.
+     */
     @Inject
-    public void setSearchEngine(ISearchEngine searchEngine) {
+    public void setSearchEngine(@Nullable ISearchEngine searchEngine) {
         this.searchEngine = searchEngine;
     }
 

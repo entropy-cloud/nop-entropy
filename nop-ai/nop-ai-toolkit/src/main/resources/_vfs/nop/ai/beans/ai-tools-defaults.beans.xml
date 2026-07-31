@@ -23,7 +23,7 @@
     <bean id="ai-tools:patch-file" class="io.nop.ai.toolkit.tools.PatchFileExecutor"/>
 
     <!-- Search tools -->
-<!--    <bean id="ai-tools:search-engine" class="io.nop.ai.toolkit.tools.SearchEngineExecutor"/>-->
+    <bean id="ai-tools:search-engine" class="io.nop.ai.toolkit.tools.SearchEngineExecutor"/>
 
     <!-- Agent tools -->
     <bean id="ai-tools:ask-oracle" class="io.nop.ai.toolkit.tools.AskOracleExecutor"/>

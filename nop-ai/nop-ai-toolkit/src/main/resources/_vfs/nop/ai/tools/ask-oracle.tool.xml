@@ -12,7 +12,9 @@
 
     <description><![CDATA[当执行过程中遇到不确定事项时，调用Oracle高级智能体进行决策。需要提供问题描述和选项列表。
         选项需用A、B、C等字母作为key，且将AI自身倾向的选项放在第一个（即A选项）。Oracle会分析并返回所选选项的字母（如"A"）。
-        适用于需要外部智能辅助决策的场景。]]></description>
+        适用于需要外部智能辅助决策的场景。
+        当前行为（P2-MA1-011 裁定，2026-07-31）：未配置 ORACLE_ENDPOINT 环境变量时返回错误（快速失败，不返回伪造答案）；
+        已配置 endpoint 时同样返回错误（oracle 客户端调用尚未实现，快速失败）。]]></description>
 
     <examples>
         <example index="1">

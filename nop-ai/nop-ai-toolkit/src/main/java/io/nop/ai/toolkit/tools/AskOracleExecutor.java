@@ -4,7 +4,6 @@ import io.nop.ai.toolkit.api.IToolExecuteContext;
 import io.nop.ai.toolkit.api.IToolExecutor;
 import io.nop.ai.toolkit.model.AiToolCall;
 import io.nop.ai.toolkit.model.AiToolCallResult;
-import io.nop.ai.toolkit.model.AiToolOutput;
 import io.nop.core.lang.xml.XNode;
 
 import java.util.ArrayList;
@@ -42,11 +41,19 @@ public class AskOracleExecutor implements IToolExecutor {
             Map<String, String> envs = context.getEnvs();
             String oracleEndpoint = envs.get("ORACLE_ENDPOINT");
             if (oracleEndpoint == null || oracleEndpoint.isEmpty()) {
-                String firstKey = options.get(0).key;
-                return buildSuccessResult(call, firstKey);
+                // P2-MA1-011 ruling (2026-07-31): fast-fail instead of silently returning the first option.
+                // A tool that returns a fabricated answer is worse than an explicit failure.
+                return AiToolCallResult.errorResult(call.getId(),
+                        "ask-oracle is not configured: environment variable ORACLE_ENDPOINT is missing. "
+                                + "Set ORACLE_ENDPOINT to enable the oracle tool.");
             }
 
-            return buildSuccessResult(call, options.get(0).key);
+            // P2-MA1-011 ruling (2026-07-31): the oracle client call is not implemented yet.
+            // Failing fast here (instead of returning the first option as a fake success) keeps the
+            // Anti-Silent-NoOp contract: unimplemented behavior must be explicit.
+            return AiToolCallResult.errorResult(call.getId(),
+                    "ask-oracle oracle invocation is not implemented yet (ORACLE_ENDPOINT is set to '" + oracleEndpoint
+                            + "' but no client call exists). Failing fast instead of returning a fabricated answer.");
         } catch (Exception e) {
             return AiToolCallResult.errorResult(call.getId(), e);
         }
@@ -80,15 +87,5 @@ public class AskOracleExecutor implements IToolExecutor {
             this.key = key;
             this.description = description;
         }
-    }
-
-    private AiToolCallResult buildSuccessResult(AiToolCall call, String answer) {
-        AiToolCallResult result = new AiToolCallResult();
-        result.setId(call.getId());
-        result.setStatus("success");
-        AiToolOutput output = new AiToolOutput();
-        output.setBody(answer);
-        result.setOutput(output);
-        return result;
     }
 }

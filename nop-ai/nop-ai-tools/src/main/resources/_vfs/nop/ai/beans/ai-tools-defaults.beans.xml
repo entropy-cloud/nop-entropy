@@ -1,4 +1,4 @@
-<beans x:schema="/nop/schema/beans.xdef" xmlns:x="/nop/schema/xdsl.xef">
+<beans x:schema="/nop/schema/beans.xdef" xmlns:x="/nop/schema/xdsl.xdef">
 
     <bean id="nopFileToolBizModel" class="io.nop.ai.tools.file.FileToolBizModel">
     </bean>
