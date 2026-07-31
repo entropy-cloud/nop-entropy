@@ -41,8 +41,8 @@ public class CoreInitialization {
 
     private static List<ICoreInitializer> initializers;
     private static int initializationLevel = -1;
-    private static boolean initialized;
-    private static long initializeBeginTime;
+    private static volatile boolean initialized;
+    private static volatile long initializeBeginTime;
 
     private static volatile boolean suspended;
     private static volatile boolean initializerRunning = false;

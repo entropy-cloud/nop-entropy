@@ -43,6 +43,8 @@ import io.nop.ai.agent.reliability.ICircuitBreaker;
 import io.nop.ai.agent.reliability.IGoalTracker;
 import io.nop.ai.agent.reliability.IRetryPolicy;
 import io.nop.ai.agent.reliability.ISustainer;
+import io.nop.ai.agent.reliability.StandardRetryPolicy;
+import io.nop.ai.agent.reliability.ThresholdBreaker;
 import io.nop.ai.agent.reliability.NoOpCheckpoint;
 import io.nop.ai.agent.reliability.NoOpGoalTracker;
 import io.nop.ai.agent.reliability.NoOpSustainer;
@@ -213,13 +215,8 @@ public class DefaultAgentEngine implements IAgentEngine {
     // unconditionally returns STOP → the call executes exactly once and any
     // exception propagates as-is). A functional policy (e.g.
     // StandardRetryPolicy) is registered via setRetryPolicy.
-    private IRetryPolicy retryPolicy = NoRetryPolicy.noRetry();
-    // loop's single-LLM-call outer check is wired out-of-the-box without
-    // changing the pre-plan-210 zero-circuit-breaking behaviour (AlwaysClosed
-    // unconditionally allows every call and treats recording as explicit
-    // no-ops). A functional breaker (e.g. ThresholdBreaker) is registered via
-    // setCircuitBreaker.
-    private ICircuitBreaker circuitBreaker = AlwaysClosed.alwaysClosed();
+    private IRetryPolicy retryPolicy = new StandardRetryPolicy();
+    private ICircuitBreaker circuitBreaker = new ThresholdBreaker();
     // loop's per-iteration progress assessment is wired out-of-the-box without
     // changing the pre-plan-211 behaviour (NoOpGoalTracker unconditionally
     // reports PROGRESSING and treats recordIteration as an explicit no-op, so
@@ -484,8 +481,8 @@ public class DefaultAgentEngine implements IAgentEngine {
         private IUsageRecorder usageRecorder = NoOpUsageRecorder.noOp();
         private IModelSwitchedMessageWriter modelSwitchedMessageWriter = NoOpModelSwitchedMessageWriter.noOp();
         private IBudgetProvider budgetProvider = NoOpBudgetProvider.noOp();
-        private IRetryPolicy retryPolicy = NoRetryPolicy.noRetry();
-        private ICircuitBreaker circuitBreaker = AlwaysClosed.alwaysClosed();
+        private IRetryPolicy retryPolicy = new StandardRetryPolicy();
+        private ICircuitBreaker circuitBreaker = new ThresholdBreaker();
         private IGoalTracker goalTracker = NoOpGoalTracker.noOp();
         private ISustainer sustainer = NoOpSustainer.noOp();
         private IConflictStrategy conflictStrategy = FailFastStrategy.failFast();
@@ -786,9 +783,8 @@ public class DefaultAgentEngine implements IAgentEngine {
                     + "uses DefaultPostDenialGuard.");
         }
 
-        // --- NoOp awareness: no production alternative exists, INFO not WARN ---
         if (this.contentGuardrail instanceof NoOpContentGuardrail) {
-            LOG.info("DefaultAgentEngine constructed with NoOpContentGuardrail: "
+            LOG.warn("DefaultAgentEngine constructed with NoOpContentGuardrail: "
                     + "No production implementation available for IContentGuardrail — "
                     + "content safety is not enforced. Provide a custom implementation "
                     + "via setContentGuardrail() for production use.");
@@ -1334,27 +1330,15 @@ public class DefaultAgentEngine implements IAgentEngine {
      * so no insecure-default WARN is emitted.
      */
     public void setRetryPolicy(IRetryPolicy retryPolicy) {
-        this.retryPolicy = retryPolicy != null ? retryPolicy : NoRetryPolicy.noRetry();
+        this.retryPolicy = retryPolicy != null ? retryPolicy : new StandardRetryPolicy();
     }
 
     public IRetryPolicy getRetryPolicy() {
         return retryPolicy;
     }
 
-    /**
-     * Plan 210 (L3-1): wire a functional {@link ICircuitBreaker} consulted at
-     * the ReAct loop's single-LLM-call retry loop outer layer (design
-     * {@code nop-ai-agent-reliability.md} §3.3 / §5.1). Before entering the
-     * retry loop the breaker is asked whether the primary model may be called;
-     * per-attempt failures and the eventual success are recorded back. A
-     * functional breaker (e.g. ThresholdBreaker) trips on consecutive failures.
-     * Optional: when null, falls back to {@link AlwaysClosed} (unconditional
-     * allow + explicit no-op recording — backward compatible, zero-regression)
-     * so the ReAct loop always has a non-null breaker. Circuit-breaking is not
-     * a security component, so no insecure-default WARN is emitted.
-     */
     public void setCircuitBreaker(ICircuitBreaker circuitBreaker) {
-        this.circuitBreaker = circuitBreaker != null ? circuitBreaker : AlwaysClosed.alwaysClosed();
+        this.circuitBreaker = circuitBreaker != null ? circuitBreaker : new ThresholdBreaker();
     }
 
     public ICircuitBreaker getCircuitBreaker() {
@@ -2459,17 +2443,19 @@ public class DefaultAgentEngine implements IAgentEngine {
         // budgeted memory is injected (backward compatible). A null provider
         // (test-only opt-out) or budget <= 0 (explicit opt-out) skips injection
         // without throwing.
-        String memorySection = buildBudgetedMemorySection(session.getSessionId());
-        if (memorySection != null) {
-            if (systemPrompt == null || systemPrompt.isEmpty()) {
-                systemPrompt = memorySection;
-            } else {
-                systemPrompt = systemPrompt + "\n\n" + memorySection;
-            }
-        }
-
         if (systemPrompt != null && !systemPrompt.isEmpty()) {
             ctx.addMessage(new ChatSystemMessage(systemPrompt));
+        }
+
+        String memorySection = buildBudgetedMemorySection(session.getSessionId());
+        if (memorySection != null) {
+            // Memory content is added as a separate system message, not
+            // concatenated into the original system prompt. This creates a
+            // natural privilege boundary: the LLM architecture gives the
+            // first (original) system message higher priority over subsequent
+            // system messages, preventing cross-turn prompt injection
+            // amplification via user-derived memory content.
+            ctx.addMessage(new ChatSystemMessage(memorySection));
         }
 
         if (session.getMessageCount() > 0) {

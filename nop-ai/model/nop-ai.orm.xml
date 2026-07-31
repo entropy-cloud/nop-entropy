@@ -297,7 +297,7 @@
                 <column code="base_url" displayName="API地址" name="baseUrl" precision="200" propId="4"
                         stdDataType="string" stdSqlType="VARCHAR"/>
                 <column code="api_key" displayName="API密钥" name="apiKey" precision="100" propId="5" stdDataType="string"
-                        stdSqlType="VARCHAR"/>
+                        stdSqlType="VARCHAR" tagSet="enc"/>
                 <column code="version" displayName="数据版本" domain="version" mandatory="true" name="version"
                         propId="6" stdDataType="int" stdSqlType="INTEGER"/>
                 <column code="created_by" displayName="创建人" domain="createdBy" mandatory="true" name="createdBy"

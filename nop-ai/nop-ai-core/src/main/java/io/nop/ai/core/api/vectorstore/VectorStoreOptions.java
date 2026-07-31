@@ -50,6 +50,11 @@ public class VectorStoreOptions extends Metadata {
      */
     private EmbeddingOptions embeddingOptions;
 
+    /**
+     * tenant isolation identifier (null = no tenant context)
+     */
+    private String tenantId;
+
 
     public String getCollectionName() {
         return collectionName;
@@ -94,6 +99,19 @@ public class VectorStoreOptions extends Metadata {
 
     public void setEmbeddingOptions(EmbeddingOptions embeddingOptions) {
         this.embeddingOptions = embeddingOptions;
+    }
+
+    public String getTenantId() {
+        return tenantId;
+    }
+
+    public void setTenantId(String tenantId) {
+        this.tenantId = tenantId;
+    }
+
+    public VectorStoreOptions withTenantId(String tenantId) {
+        this.tenantId = tenantId;
+        return this;
     }
 
 

@@ -40,7 +40,7 @@ public class LocalToolFileSystem implements IToolFileSystem {
     public boolean isPathAllowed(String path) {
         if (path == null) return false;
         try {
-            File resolved = resolveFile(path);
+            File resolved = resolveFileInternal(path);
             String canonicalWorkDir = workDir.getCanonicalPath();
             String canonicalPath = resolved.getCanonicalPath();
             return StringHelper.pathStartsWith(canonicalPath, canonicalWorkDir);
@@ -50,6 +50,13 @@ public class LocalToolFileSystem implements IToolFileSystem {
     }
 
     private File resolveFile(String path) {
+        if (!isPathAllowed(path)) {
+            throw new IllegalArgumentException("Path not allowed: " + path);
+        }
+        return resolveFileInternal(path);
+    }
+
+    private File resolveFileInternal(String path) {
         File file = new File(path);
         if (file.isAbsolute()) {
             return file;

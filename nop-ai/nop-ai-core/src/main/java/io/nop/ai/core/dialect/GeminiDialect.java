@@ -65,17 +65,17 @@ public class GeminiDialect extends AbstractLlmDialect implements ILlmDialect {
     @Override
     public String buildUrl(String baseUrl, String chatUrl, String apiKey) {
         String url = StringHelper.appendPath(baseUrl, chatUrl);
-        // Gemini 使用 URL 查询参数传递 API key
-        if (!StringHelper.isEmpty(apiKey)) {
-            url = url + (url.contains("?") ? "&" : "?") + "key=" + apiKey;
-        }
+        // API key is passed via x-api-key header instead of URL query parameter
         return url;
     }
 
     @Override
     public void setHeaders(HttpRequest httpRequest, String apiKey, String apiKeyHeader) {
-        // Gemini 在 URL 中传递 key，不需要 header
         httpRequest.setHeader("Content-Type", "application/json");
+        // Gemini supports API key via x-api-key header (preferred over URL query param)
+        if (!StringHelper.isEmpty(apiKey)) {
+            httpRequest.setHeader("x-api-key", apiKey);
+        }
     }
 
     @Override

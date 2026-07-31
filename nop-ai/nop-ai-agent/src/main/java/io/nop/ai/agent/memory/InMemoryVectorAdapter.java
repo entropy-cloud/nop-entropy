@@ -1,5 +1,7 @@
 package io.nop.ai.agent.memory;
 
+import io.nop.ai.agent.security.ITenantResolver;
+
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashMap;
@@ -41,14 +43,23 @@ public class InMemoryVectorAdapter implements IVectorAdapter {
 
     private final Map<String, double[]> index = new HashMap<>();
 
+    private ITenantResolver tenantResolver;
+
+    public void setTenantResolver(ITenantResolver tenantResolver) {
+        this.tenantResolver = tenantResolver;
+    }
+
+    private String tenantKey(String key) {
+        String tenantId = tenantResolver != null ? tenantResolver.resolveTenantId() : null;
+        return tenantId != null ? tenantId + ":" + key : key;
+    }
+
     @Override
     public synchronized void index(String itemKey, double[] vector) {
         if (itemKey == null || itemKey.isEmpty()) {
             return;
         }
-        // Defensive copy so later caller-side mutation of the array does not
-        // corrupt the index (matches InMemoryStorageAdapter's copy-on-write).
-        index.put(itemKey, vector.clone());
+        index.put(tenantKey(itemKey), vector.clone());
     }
 
     @Override
@@ -64,7 +75,7 @@ public class InMemoryVectorAdapter implements IVectorAdapter {
         int limit = Math.min(topK, scored.size());
         List<String> result = new ArrayList<>(limit);
         for (int i = 0; i < limit; i++) {
-            result.add(scored.get(i).getKey());
+            result.add(stripTenantPrefix(scored.get(i).getKey()));
         }
         return result;
     }
@@ -74,7 +85,12 @@ public class InMemoryVectorAdapter implements IVectorAdapter {
         if (itemKey == null || itemKey.isEmpty()) {
             return;
         }
-        index.remove(itemKey);
+        index.remove(tenantKey(itemKey));
+    }
+
+    private String stripTenantPrefix(String key) {
+        int colon = key.indexOf(':');
+        return colon > 0 ? key.substring(colon + 1) : key;
     }
 
     public synchronized int size() {

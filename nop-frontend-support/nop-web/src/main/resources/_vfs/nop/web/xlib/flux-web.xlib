@@ -771,7 +771,11 @@
                     let drawer = xpl('thisLib:LoadPage', (action.drawer||action.dialog).page,
                                     action.drawer||action.dialog, scope.fixedProps);
                     let args = _.delete({...drawer}, ['page','name']);
-                    if (!args.onSubmitSuccess) {
+                    if (args.onSubmitSuccess) {
+                        if (!args.onSubmitSuccess.some(a => a?.action === 'refreshNearest')) {
+                            args.onSubmitSuccess.push({ action: 'refreshNearest' });
+                        }
+                    } else {
                         args.onSubmitSuccess = [{ action: 'refreshNearest' }];
                     }
                     then.push({ action: 'openDrawer', args });

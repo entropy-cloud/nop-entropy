@@ -242,14 +242,12 @@ class ShellIOTest {
 
     @Test
     void testFileShellOutputOverwriteMode() throws Exception {
-        Path tmp = Files.createTempFile("test", ".txt");
-        tmp.toFile().deleteOnExit();
-        Files.writeString(tmp, "old line\n");
-
         Path tempDir = Files.createTempDirectory("shell-io-test");
         tempDir.toFile().deleteOnExit();
         IToolFileSystem fs = new LocalToolFileSystem(tempDir.toFile());
-        String relPath = tempDir.relativize(tmp).toString();
+        String relPath = "test.txt";
+
+        Files.writeString(tempDir.resolve(relPath), "old line\n");
 
         FileShellOutput output = new FileShellOutput(relPath, fs);
         output.println("new line 1");
@@ -264,14 +262,12 @@ class ShellIOTest {
 
     @Test
     void testFileShellOutputAppendMode() throws Exception {
-        Path tmp = Files.createTempFile("test", ".txt");
-        tmp.toFile().deleteOnExit();
-        Files.writeString(tmp, "existing\n");
-
         Path tempDir = Files.createTempDirectory("shell-io-test");
         tempDir.toFile().deleteOnExit();
         IToolFileSystem fs = new LocalToolFileSystem(tempDir.toFile());
-        String relPath = tempDir.relativize(tmp).toString();
+        String relPath = "test.txt";
+
+        Files.writeString(tempDir.resolve(relPath), "existing\n");
 
         FileShellOutput output = new FileShellOutput(relPath, fs, true);
         output.println("appended");

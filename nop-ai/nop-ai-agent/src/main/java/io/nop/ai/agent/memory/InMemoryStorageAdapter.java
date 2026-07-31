@@ -1,11 +1,13 @@
 package io.nop.ai.agent.memory;
 
 import io.nop.ai.agent.engine.NopAiAgentException;
+import io.nop.ai.agent.security.ITenantResolver;
 
 import java.time.LocalDateTime;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
@@ -43,13 +45,25 @@ public class InMemoryStorageAdapter implements IStorageAdapter {
 
     private final Map<String, AiMemoryItem> items = new ConcurrentHashMap<>();
 
+    private ITenantResolver tenantResolver;
+
+    public void setTenantResolver(ITenantResolver tenantResolver) {
+        this.tenantResolver = tenantResolver;
+    }
+
+    private String tenantKey(String key) {
+        String tenantId = tenantResolver != null ? tenantResolver.resolveTenantId() : null;
+        return tenantId != null ? tenantId + ":" + key : key;
+    }
+
     @Override
     public void save(AiMemoryItem item) {
         if (item == null) {
             throw new NopAiAgentException("AiMemoryItem must not be null");
         }
         AiMemoryItem normalized = normalize(item);
-        items.put(resolveKey(normalized), normalized);
+        String key = resolveKey(normalized);
+        items.put(tenantKey(key), normalized);
     }
 
     @Override
@@ -67,7 +81,7 @@ public class InMemoryStorageAdapter implements IStorageAdapter {
         if (key == null || key.isEmpty()) {
             return null;
         }
-        return items.get(key);
+        return items.get(tenantKey(key));
     }
 
     @Override
@@ -80,7 +94,7 @@ public class InMemoryStorageAdapter implements IStorageAdapter {
         }
         AiMemoryItem normalized = normalize(item);
         normalized.setKey(key);
-        items.put(key, normalized);
+        items.put(tenantKey(key), normalized);
     }
 
     @Override
@@ -88,7 +102,7 @@ public class InMemoryStorageAdapter implements IStorageAdapter {
         if (key == null || key.isEmpty()) {
             return;
         }
-        items.remove(key);
+        items.remove(tenantKey(key));
     }
 
     @Override

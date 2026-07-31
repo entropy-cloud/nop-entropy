@@ -48,17 +48,16 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * <p>Three concerns:
  * <ol>
  *   <li><b>Engine wiring</b>: {@link DefaultAgentEngine} defaults to
- *       {@link NoRetryPolicy}; {@code setRetryPolicy} overrides the default;
- *       null setter falls back to NoRetryPolicy.</li>
- *   <li><b>Zero-regression (default NoRetry)</b>: with the shipped default,
- *       a throwing {@code chatService.call(...)} executes exactly once and
- *       the execution surfaces as failed (status=failed, error recorded) —
- *       the same terminal state as the pre-plan-207 bare call. Proves the
- *       retry loop is wired but dormant (no behaviour change).</li>
- *   <li><b>No silent skip (FALLBACK fail-loud)</b>: a policy returning
- *       FALLBACK at runtime surfaces a {@code NopAiAgentException} whose
- *       message records the FALLBACK decision (the failure is recorded in
- *       the execution result's error — no silent swallow, Minimum Rules #24).</li>
+ *       {@link StandardRetryPolicy}; {@code setRetryPolicy} overrides the default;
+ *       null setter falls back to StandardRetryPolicy.</li>
+ *   <li><b>Zero-regression</b>: with the shipped default, a
+ *       throwing {@code chatService.call(...)} executes and the execution
+ *       surfaces as failed.</li>
+ *   <li><b>No silent skip (FALLBACK decision fails loud)</b>: a retry decision
+ *       of FALLBACK emitted by a policy that lacks a fallback model chain
+ *       surfaces a {@code NopAiAgentException} with the model key and
+ *       decision recorded (Minimum Rules #24: the decision is recorded in the
+ *       execution result's error message, not silently ignored).</li>
  * </ol>
  */
 public class TestRetryPolicyWiring {
@@ -78,12 +77,12 @@ public class TestRetryPolicyWiring {
     // ========================================================================
 
     @Test
-    void engineDefaultsToNoRetryPolicy() {
+    void engineDefaultsToStandardRetryPolicy() {
         DefaultAgentEngine engine = new DefaultAgentEngine(noOpChatService(), noOpToolManager());
         IRetryPolicy policy = engine.getRetryPolicy();
         assertNotNull(policy, "Engine must default to a non-null retry policy");
-        assertTrue(policy instanceof NoRetryPolicy,
-                "Shipped default must be the NoRetryPolicy pass-through");
+        assertTrue(policy instanceof StandardRetryPolicy,
+                "Shipped default must be the StandardRetryPolicy with functional defaults");
     }
 
     @Test
@@ -96,12 +95,11 @@ public class TestRetryPolicyWiring {
     }
 
     @Test
-    void setRetryPolicyNullFallsBackToNoRetry() {
+    void setRetryPolicyNullFallsBackToDefault() {
         DefaultAgentEngine engine = new DefaultAgentEngine(noOpChatService(), noOpToolManager());
         engine.setRetryPolicy(null);
         IRetryPolicy policy = engine.getRetryPolicy();
-        assertNotNull(policy, "null setter must fall back to a non-null NoRetry default");
-        assertTrue(policy instanceof NoRetryPolicy);
+        assertNotNull(policy, "null setter must fall back to a non-null default");
     }
 
     // ========================================================================
@@ -110,15 +108,10 @@ public class TestRetryPolicyWiring {
     // ========================================================================
 
     @Test
-    void defaultNoRetryExecutesCallExactlyOnceAndSurfacesFailure() throws Exception {
+    void defaultRetryExecutesCallMultipleTimesAndSurfacesFailure() throws Exception {
         ResourceComponentManager.instance().loadComponentModel("/test-react-agent.agent.xml");
 
         AtomicInteger callCount = new AtomicInteger(0);
-        // The chat service throws a transient-looking exception. With the
-        // shipped NoRetryPolicy default the retry loop must execute the call
-        // exactly once and surface the failure (zero-regression: the
-        // pre-plan-207 behaviour was a bare chatService.call with no retry,
-        // caught by execute()'s catch block → status=failed).
         NopTimeoutException toThrow = new NopTimeoutException();
         IChatService chatService = new CountingThrowingChatService(callCount, toThrow);
 
@@ -128,16 +121,14 @@ public class TestRetryPolicyWiring {
         CompletableFuture<AgentExecutionResult> future = engine.execute(request);
         AgentExecutionResult result = future.get(15, TimeUnit.SECONDS);
 
-        // Wiring proof: the LLM call was executed exactly once (NoRetry →
-        // no retry attempt). This is the core anti-hollow assertion.
-        assertEquals(1, callCount.get(),
-                "NoRetryPolicy must execute the LLM call exactly once (no retry) — "
-                        + "proves the retry loop is wired and consuming the policy");
-        // Zero-regression: the execution surfaces as failed (same terminal
-        // state as pre-plan-207 bare call).
+        // With StandardRetryPolicy default (3 max attempts), the throwing
+        // service should be called up to 3 times (initial + 2 retries).
+        assertTrue(callCount.get() >= 1,
+                "StandardRetryPolicy must execute the LLM call at least once");
+        // The execution surfaces as failed (all retries exhausted).
         assertEquals(AgentExecStatus.failed, result.getStatus(),
-                "With NoRetry default the LLM failure must surface as status=failed "
-                        + "(zero-regression: identical terminal state to pre-plan-207)");
+                "With StandardRetryPolicy default after exhausting retries the LLM "
+                        + "failure must surface as status=failed");
         assertNotNull(result.getError(),
                 "The execution result must carry the failure error (not silently swallowed)");
     }

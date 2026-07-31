@@ -58,7 +58,7 @@ public class GraphqlQueryExecutorTest {
     @Test
     public void testExecuteSuccess() {
         mockHttpClient.setResponse(200, "{\"data\":{\"__typename\":\"Query\"}}");
-        AiToolCall call = createCall("{ __typename }");
+        AiToolCall call = createCall("{ __typename }", "http://api.example.com/graphql");
         AiToolCallResult result = executor.executeAsync(call, new MockContext()).toCompletableFuture().join();
         assertEquals("success", result.getStatus());
         assertTrue(result.getOutput().getBody().contains("__typename"));
@@ -67,7 +67,7 @@ public class GraphqlQueryExecutorTest {
     @Test
     public void testExecuteHttpError() {
         mockHttpClient.setResponse(500, "Internal Server Error");
-        AiToolCall call = createCall("{ __typename }");
+        AiToolCall call = createCall("{ __typename }", "http://api.example.com/graphql");
         AiToolCallResult result = executor.executeAsync(call, new MockContext()).toCompletableFuture().join();
         assertEquals("failure", result.getStatus());
         assertTrue(result.getError().getBody().contains("HTTP 500"));
@@ -77,17 +77,22 @@ public class GraphqlQueryExecutorTest {
     public void testExecuteWithCustomEndpoint() {
         mockHttpClient.setResponse(200, "{\"data\":{}}");
         XNode node = XNode.make("graphql-query");
-        node.setAttr("endpoint", "http://custom:9090/graphql");
+        node.setAttr("endpoint", "http://api.example.com:9090/graphql");
         XNode input = node.makeChild("input");
         input.setContentValue("{ test }");
         AiToolCall call = AiToolCall.fromNode(node);
         executor.executeAsync(call, new MockContext()).toCompletableFuture().join();
-        assertEquals("http://custom:9090/graphql", mockHttpClient.getLastRequest().getUrl());
+        assertEquals("http://api.example.com:9090/graphql", mockHttpClient.getLastRequest().getUrl());
     }
 
     private AiToolCall createCall(String query) {
+        return createCall(query, "http://api.example.com/graphql");
+    }
+
+    private AiToolCall createCall(String query, String endpoint) {
         XNode node = XNode.make("graphql-query");
         node.setAttr("id", "1");
+        node.setAttr("endpoint", endpoint);
         XNode input = node.makeChild("input");
         input.setContentValue(query);
         return AiToolCall.fromNode(node);

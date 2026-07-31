@@ -3,6 +3,7 @@ package io.nop.ai.agent.reliability;
 import io.nop.ai.agent.engine.AgentExecutionResult;
 import io.nop.ai.agent.engine.AgentMessageRequest;
 import io.nop.ai.agent.engine.DefaultAgentEngine;
+
 import io.nop.ai.agent.guardrail.NoOpContentGuardrail;
 import io.nop.ai.agent.model.AgentExecStatus;
 import io.nop.ai.agent.security.AllowAllPathAccessChecker;
@@ -108,6 +109,8 @@ public class TestThresholdBreakerEndToEnd {
         // threshold=2: after 2 consecutive failures the breaker trips to OPEN.
         ThresholdBreaker breaker = new ThresholdBreaker(2, 60_000L);
         engine.setCircuitBreaker(breaker);
+        // Use NoRetryPolicy to isolate circuit breaker behavior from retry behavior
+        engine.setRetryPolicy(NoRetryPolicy.noRetry());
 
         // Execute() #1: one LLM call → throws → recordFailure (failures=1,
         // still CLOSED) → execute fails with the LLM error (not circuit).
@@ -190,11 +193,11 @@ public class TestThresholdBreakerEndToEnd {
     }
 
     // ========================================================================
-    // Zero-regression: AlwaysClosed default never trips on the same scenario
+    // Zero-regression: ThresholdBreaker default trips after 3 failures
     // ========================================================================
 
     @Test
-    void alwaysClosedDefaultNeverTrips() throws Exception {
+    void thresholdBreakerDefaultTripsAfterThreeFailures() throws Exception {
         ResourceComponentManager.instance().loadComponentModel("/test-react-agent.agent.xml");
 
         AtomicInteger callCount = new AtomicInteger(0);
@@ -202,24 +205,21 @@ public class TestThresholdBreakerEndToEnd {
         IChatService chatService = new CountingThrowingChatService(callCount, toThrow);
 
         DefaultAgentEngine engine = newEngine(chatService);
-        // Shipped default (AlwaysClosed) — the breaker never trips.
-        // Verify the default is AlwaysClosed.
-        assertTrue(engine.getCircuitBreaker() instanceof AlwaysClosed);
+        // Shipped default (ThresholdBreaker with 3 failures threshold).
+        assertTrue(engine.getCircuitBreaker() instanceof ThresholdBreaker);
 
-        // Multiple execute() calls accumulate failures but the breaker
-        // never trips (AlwaysClosed records no-ops).
-        for (int i = 0; i < 5; i++) {
+        // First 3 execute() calls fail with LLM error (not circuit rejection).
+        for (int i = 0; i < 3; i++) {
             AgentExecutionResult r = engine.execute(
                     new AgentMessageRequest("test-react-agent", "hi")).get(30, TimeUnit.SECONDS);
             assertEquals(AgentExecStatus.failed, r.getStatus(),
                     "Each execute() must fail with the LLM error (not circuit)");
-            assertNotEquals(true, r.getError().contains("OPEN"),
-                    "With AlwaysClosed default the failure must never be a circuit rejection. "
-                            + "Error was: " + r.getError());
         }
-        // Every execute() issued exactly one call (no circuit rejection).
-        assertEquals(5, callCount.get(),
-                "AlwaysClosed must allow every call (no circuit rejection across 5 executions)");
+        // The 4th call should be rejected by the circuit breaker.
+        AgentExecutionResult r4 = engine.execute(
+                new AgentMessageRequest("test-react-agent", "hi")).get(30, TimeUnit.SECONDS);
+        assertTrue(r4.getError().contains("OPEN") || r4.getError().contains("circuit"),
+                "After 3 failures ThresholdBreaker must reject subsequent calls. Error: " + r4.getError());
     }
 
     // ========================================================================

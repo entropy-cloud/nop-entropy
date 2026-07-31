@@ -185,9 +185,16 @@ public interface ILlmDialect {
 
     /**
      * Parse provider-specific request body into standard ChatRequest (reverse of buildBody).
+     * Only OpenAiDialect implements this method. Anthropic/Gemini/Ollama dialects do not
+     * support bidirectional gateway conversion (one-way OpenAI→Provider only).
+     *
+     * @see io.nop.ai.gateway.AiDialectBackendMessageConverter
      */
     default ChatRequest parseRequestBody(Map<String, Object> body) {
-        throw new UnsupportedOperationException("parseRequestBody");
+        throw new UnsupportedOperationException(
+                "parseRequestBody is only implemented for OpenAI dialect. "
+                        + "Anthropic, Gemini, and Ollama dialects do not support bidirectional "
+                        + "gateway conversion. Current gateway supports one-way OpenAI→Provider only.");
     }
 
     /**

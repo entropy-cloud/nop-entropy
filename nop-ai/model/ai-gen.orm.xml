@@ -164,7 +164,7 @@
                         stdSqlType="VARCHAR" precision="4"/>
                 <column name="model_name" displayName="模型名称" mandatory="true" stdSqlType="VARCHAR" precision="50"/>
                 <column name="base_url" displayName="API地址" stdSqlType="VARCHAR" precision="200"/>
-                <column name="api_key" displayName="API密钥" stdSqlType="VARCHAR" precision="100"/>
+                <column name="api_key" displayName="API密钥" stdSqlType="VARCHAR" precision="100" tagSet="enc"/>
             </columns>
         </entity>
 

@@ -40,7 +40,6 @@ import io.nop.ai.agent.message.IAgentMessenger;
 import io.nop.ai.agent.repair.ChainRepairer;
 import io.nop.ai.agent.repair.IToolCallRepairer;
 import io.nop.ai.agent.repair.NoOpToolCallRepairer;
-import io.nop.ai.agent.reliability.AlwaysClosed;
 import io.nop.ai.agent.reliability.Checkpoint;
 import io.nop.ai.agent.reliability.CheckpointType;
 import io.nop.ai.agent.reliability.CircuitState;
@@ -55,8 +54,9 @@ import io.nop.ai.agent.reliability.LlmErrorClassifier;
 import io.nop.ai.agent.reliability.NoOpCheckpoint;
 import io.nop.ai.agent.reliability.NoOpGoalTracker;
 import io.nop.ai.agent.reliability.NoOpSustainer;
-import io.nop.ai.agent.reliability.NoRetryPolicy;
 import io.nop.ai.agent.reliability.ISustainer;
+import io.nop.ai.agent.reliability.StandardRetryPolicy;
+import io.nop.ai.agent.reliability.ThresholdBreaker;
 import io.nop.ai.agent.reliability.RetryContext;
 import io.nop.ai.agent.reliability.RetryOutcome;
 import io.nop.ai.agent.reliability.SustainContext;
@@ -428,8 +428,8 @@ public class ReActAgentExecutor implements IAgentExecutor {
                 ? modelSwitchedMessageWriter
                 : NoOpModelSwitchedMessageWriter.noOp();
         this.budgetProvider = budgetProvider != null ? budgetProvider : NoOpBudgetProvider.noOp();
-        this.retryPolicy = retryPolicy != null ? retryPolicy : NoRetryPolicy.noRetry();
-        this.circuitBreaker = circuitBreaker != null ? circuitBreaker : AlwaysClosed.alwaysClosed();
+        this.retryPolicy = retryPolicy != null ? retryPolicy : new StandardRetryPolicy();
+        this.circuitBreaker = circuitBreaker != null ? circuitBreaker : new ThresholdBreaker();
         this.goalTracker = goalTracker != null ? goalTracker : NoOpGoalTracker.noOp();
         this.sustainer = sustainer != null ? sustainer : NoOpSustainer.noOp();
         this.conflictStrategy = conflictStrategy != null
@@ -1322,8 +1322,8 @@ public class ReActAgentExecutor implements IAgentExecutor {
                             ? modelSwitchedMessageWriter
                             : NoOpModelSwitchedMessageWriter.noOp(),
                     budgetProvider != null ? budgetProvider : NoOpBudgetProvider.noOp(),
-                    retryPolicy != null ? retryPolicy : NoRetryPolicy.noRetry(),
-                    circuitBreaker != null ? circuitBreaker : AlwaysClosed.alwaysClosed(),
+                    retryPolicy != null ? retryPolicy : new StandardRetryPolicy(),
+                    circuitBreaker != null ? circuitBreaker : new ThresholdBreaker(),
                     goalTracker != null ? goalTracker : NoOpGoalTracker.noOp(),
                     sustainer != null ? sustainer : NoOpSustainer.noOp(),
                     conflictStrategy != null ? conflictStrategy : FailFastStrategy.failFast(),

@@ -10,8 +10,8 @@ nop:
     #    password:
     driver-class-name: com.mysql.cj.jdbc.Driver
     jdbc-url: jdbc:mysql://127.0.0.1:3306/dev?useUnicode=true&characterEncoding=utf-8&useSSL=true&serverTimezone=UTC
-    username: nop
-    password: nop-test
+    username: "${nop.datasource.username}"
+    password: "${nop.datasource.password}"
     metrics-enabled: true
     max-size: 20
 

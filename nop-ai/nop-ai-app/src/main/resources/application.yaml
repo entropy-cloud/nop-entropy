@@ -3,7 +3,7 @@ nop:
   debug: true
   auth:
     jwt:
-      enc-key: 380732e8bdf34857974d97d3da3036e6
+      enc-key: "${nop.auth.jwt.enc-key}"
 
     login:
       allow-create-default-user: true # 如果用户表为空，则自动创建缺省账户nop, 密码nop-test

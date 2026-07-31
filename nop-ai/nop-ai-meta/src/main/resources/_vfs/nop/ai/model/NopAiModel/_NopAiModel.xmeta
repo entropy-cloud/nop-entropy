@@ -35,8 +35,8 @@
               updatable="true">
             <schema type="java.lang.String" precision="200"/>
         </prop>
-        <prop name="apiKey" displayName="API密钥" propId="5" queryable="true" sortable="true" insertable="true"
-              updatable="true">
+        <prop name="apiKey" displayName="API密钥" propId="5" tagSet="enc" queryable="true" sortable="true"
+              insertable="true" updatable="true">
             <schema type="java.lang.String" precision="100"/>
         </prop>
         <prop name="version" displayName="数据版本" propId="6" mandatory="true" queryable="true" sortable="true"

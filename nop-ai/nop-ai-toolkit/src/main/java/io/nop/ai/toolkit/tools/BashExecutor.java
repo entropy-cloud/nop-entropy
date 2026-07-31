@@ -13,14 +13,23 @@ import java.io.InputStreamReader;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.TimeUnit;
+import java.util.regex.Pattern;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class BashExecutor implements IToolExecutor {
     static final Logger LOG = LoggerFactory.getLogger(BashExecutor.class);
     public static final String TOOL_NAME = "bash";
+
+    private static final Set<String> DANGEROUS_ENV_VARS = Set.of(
+            "LD_PRELOAD", "LD_LIBRARY_PATH", "LD_DEBUG", "LD_AUDIT",
+            "SHELLOPTS", "BASH_ENV", "BASH_FUNC_",
+            "IFS", "PATH", "PYTHONPATH", "PERLLIB",
+            "PERL5LIB", "RUBYLIB", "DYLD_INSERT_LIBRARIES"
+    );
 
     @Override
     public String getToolName() {
@@ -133,6 +142,15 @@ public class BashExecutor implements IToolExecutor {
             String name = envNode.attrText("name");
             String value = envNode.attrText("value");
             if (name != null && value != null) {
+                String upperName = name.toUpperCase();
+                if (DANGEROUS_ENV_VARS.contains(upperName)) {
+                    LOG.warn("BashExecutor: rejecting dangerous env var {}", name);
+                    continue;
+                }
+                if (name.startsWith("-")) {
+                    LOG.warn("BashExecutor: rejecting env var with leading dash: {}", name);
+                    continue;
+                }
                 env.put(name, value);
             }
         }

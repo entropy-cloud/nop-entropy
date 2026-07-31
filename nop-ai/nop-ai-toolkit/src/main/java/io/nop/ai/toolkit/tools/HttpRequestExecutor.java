@@ -12,14 +12,28 @@ import io.nop.http.api.client.HttpRequest;
 import io.nop.http.api.client.IHttpClient;
 import io.nop.http.api.client.IHttpResponse;
 import jakarta.inject.Inject;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
+import java.net.URI;
 import java.util.Base64;
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.CompletionStage;
+import java.util.regex.Pattern;
 
 public class HttpRequestExecutor implements IToolExecutor {
+    static final Logger LOG = LoggerFactory.getLogger(HttpRequestExecutor.class);
     public static final String TOOL_NAME = "http-request";
+
+    private static final Pattern URL_WHITELIST_PATTERN = Pattern.compile(
+            "^https?://[a-zA-Z0-9.-]+(:\\d+)?(/.*)?$");
+
+    private static final Set<String> BLOCKED_HOSTS = Set.of(
+            "169.254.169.254", "169.254.170.2", "fd00:ec2::23", "100.100.100.200",
+            "metadata.google.internal", "169.254.169.253"
+    );
 
     private IHttpClient httpClient;
 
@@ -51,7 +65,45 @@ public class HttpRequestExecutor implements IToolExecutor {
             );
         }
 
+        String validationError = validateUrl(url);
+        if (validationError != null) {
+            return FutureHelper.success(
+                    AiToolCallResult.errorResult(call.getId(), "URL blocked: " + validationError)
+            );
+        }
+
         return context.getExecutor().submit(() -> doExecute(call, url, method, timeoutMs));
+    }
+
+    private String validateUrl(String url) {
+        try {
+            URI uri = new URI(url);
+            String host = uri.getHost();
+            if (host == null || host.isEmpty()) {
+                return "No host in URL";
+            }
+            String scheme = uri.getScheme();
+            if (scheme == null || (!scheme.equals("http") && !scheme.equals("https"))) {
+                return "Only http and https schemes are allowed";
+            }
+            String lowerHost = host.toLowerCase();
+            String strippedHost = lowerHost.replaceAll("\\[|\\]", "");
+            if (BLOCKED_HOSTS.contains(strippedHost)) {
+                return "Blocked host: " + host;
+            }
+            if (strippedHost.equals("localhost") || isPrivateIp(strippedHost)) {
+                return "Internal/private IP addresses are not allowed: " + host;
+            }
+            return null;
+        } catch (Exception e) {
+            LOG.warn("Invalid URL: {}", url, e);
+            return "Invalid URL: " + e.toString();
+        }
+    }
+
+    private boolean isPrivateIp(String host) {
+        if (host == null) return false;
+        return host.matches("^(127\\..*|10\\..*|172\\.(1[6-9]|2\\d|3[01])\\..*|192\\.168\\..*|0\\.0\\.0\\.0|::1|fc00:.*|fe80:.*|169\\.254\\..*)$");
     }
 
     private AiToolCallResult doExecute(AiToolCall call, String url, String method, int timeoutMs) {
@@ -82,7 +134,8 @@ public class HttpRequestExecutor implements IToolExecutor {
 
             return buildSuccessResult(call, response);
         } catch (Exception e) {
-            return AiToolCallResult.errorResult(call.getId(), e.getMessage());
+            LOG.error("HTTP request to {} failed", url, e);
+            return AiToolCallResult.errorResult(call.getId(), e.toString());
         }
     }
 

@@ -44,6 +44,7 @@ import java.util.concurrent.Flow;
 import java.util.concurrent.SubmissionPublisher;
 
 import static io.nop.ai.core.AiCoreConfigs.CFG_AI_SERVICE_LOG_MESSAGE;
+import static io.nop.ai.core.AiCoreConfigs.CFG_AI_SERVICE_READ_TIMEOUT;
 import static io.nop.ai.core.AiCoreErrors.ARG_HTTP_STATUS;
 import static io.nop.ai.core.AiCoreErrors.ARG_LLM_NAME;
 import static io.nop.ai.core.AiCoreErrors.ERR_AI_SERVICE_HTTP_ERROR;
@@ -196,7 +197,7 @@ public class ChatServiceImpl implements IChatService {
      * 构建 HTTP 请求
      */
     private HttpRequest buildHttpRequest(LlmModel config, String provider, String model,
-                                          ChatRequest request, boolean stream, ILlmDialect dialect) {
+                                           ChatRequest request, boolean stream, ILlmDialect dialect) {
         String baseUrl = resolveBaseUrl(config, provider);
         String apiKey = LlmConfigHelper.resolveApiKey(provider);
         LlmModelModel modelConfig = LlmConfigHelper.getModelConfig(config, model);
@@ -205,7 +206,9 @@ public class ChatServiceImpl implements IChatService {
         httpRequest.setMethod("POST");
         httpRequest.setUrl(dialect.buildUrl(baseUrl, config.getChatUrl(), apiKey));
         dialect.setHeaders(httpRequest, apiKey, config.getApiKeyHeader());
-        
+
+        httpRequest.setTimeout(CFG_AI_SERVICE_READ_TIMEOUT.get());
+
         Map<String, Object> body = dialect.buildBody(request, config, modelConfig, model, stream);
         httpRequest.setBody(JsonTool.serialize(body, false));
 

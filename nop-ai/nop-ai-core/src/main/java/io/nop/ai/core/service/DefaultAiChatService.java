@@ -56,6 +56,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import static io.nop.ai.core.AiCoreConfigs.CFG_AI_SERVICE_DEFAULT_LLM;
 import static io.nop.ai.core.AiCoreConfigs.CFG_AI_SERVICE_LOG_MESSAGE;
 import static io.nop.ai.core.AiCoreConstants.CONFIG_VAR_LLM_API_KEY;
+import static io.nop.ai.core.AiCoreConstants.CONFIG_VAR_LLM_API_VERSION;
 import static io.nop.ai.core.AiCoreConstants.CONFIG_VAR_LLM_BASE_URL;
 import static io.nop.ai.core.AiCoreConstants.PLACE_HOLDER_LLM_NAME;
 import static io.nop.ai.core.AiCoreErrors.ARG_CONFIG_VAR;
@@ -259,7 +260,7 @@ public class DefaultAiChatService implements IAiChatService {
     }
 
     private String getApiVersion(String llmName) {
-        String apiVersionKey = StringHelper.replace(CONFIG_VAR_LLM_API_KEY, PLACE_HOLDER_LLM_NAME, llmName);
+        String apiVersionKey = StringHelper.replace(CONFIG_VAR_LLM_API_VERSION, PLACE_HOLDER_LLM_NAME, llmName);
         return AppConfig.var(apiVersionKey, "");
     }
 
