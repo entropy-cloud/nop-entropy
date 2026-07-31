@@ -1,6 +1,7 @@
 package io.nop.ai.shell.executor;
 
 import io.nop.ai.shell.adapter.ExternalCommandAdapter;
+import io.nop.ai.shell.checker.DefaultCommandChecker;
 import io.nop.ai.shell.checker.ICommandCheckContext;
 import io.nop.ai.shell.checker.ICommandChecker;
 import io.nop.ai.shell.commands.DefaultShellExecutionContext;
@@ -31,7 +32,12 @@ import java.util.concurrent.CompletionStage;
 import java.util.concurrent.Executor;
 import java.util.concurrent.atomic.AtomicLong;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 public class ShellCommandExecutor implements Closeable {
+
+    static final Logger LOG = LoggerFactory.getLogger(ShellCommandExecutor.class);
 
     private final ShellCommandRegistry registry;
     private final Executor executor;
@@ -49,13 +55,16 @@ public class ShellCommandExecutor implements Closeable {
     public ShellCommandExecutor(ShellCommandRegistry registry, Executor executor, ICommandChecker checker, IToolFileSystem fileSystem) {
         this.registry = registry;
         this.executor = executor != null ? executor : GlobalExecutors.globalWorker();
+        if (checker == null) {
+            LOG.warn("ShellCommandExecutor constructed without a command checker: dangerous commands are not filtered");
+        }
         this.checker = checker;
         this.externalAdapter = new ExternalCommandAdapter();
         this.fileSystem = fileSystem;
     }
 
     public ShellCommandExecutor(ShellCommandRegistry registry, IToolFileSystem fileSystem) {
-        this(registry, null, null, fileSystem);
+        this(registry, null, new DefaultCommandChecker(), fileSystem);
     }
 
     public CompletionStage<ExecutionResult> execute(String commandLine, IShellCommandExecutionContext context) {

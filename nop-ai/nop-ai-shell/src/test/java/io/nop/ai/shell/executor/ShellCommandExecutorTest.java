@@ -417,7 +417,38 @@ class ShellCommandExecutorTest {
     }
 
     @Test
-    void testDefaultCommandCheckerAllowsAll() {
+    void testDefaultExecutorAssemblesDefaultCommandChecker() throws Exception {
+        IShellCommandExecutionContext context = createContext(
+                new BlockingQueueShellInput(1),
+                new BlockingQueueShellOutput(),
+                new BlockingQueueShellOutput()
+        );
+
+        ExecutionResult result = executor.execute("rm -rf /", context)
+                .toCompletableFuture().get(5, TimeUnit.SECONDS);
+
+        assertEquals(126, result.exitCode(), "dangerous command must be rejected by the default checker");
+        assertTrue(result.stderr().contains("blocked") || result.stderr().contains("deny"),
+                "rejection reason must be returned, got: " + result.stderr());
+    }
+
+    @Test
+    void testDefaultExecutorStillAllowsSafeCommands() throws Exception {
+        IShellCommandExecutionContext context = createContext(
+                new BlockingQueueShellInput(1),
+                new BlockingQueueShellOutput(),
+                new BlockingQueueShellOutput()
+        );
+
+        ExecutionResult result = executor.execute("echo hello", context)
+                .toCompletableFuture().get(5, TimeUnit.SECONDS);
+
+        assertEquals(0, result.exitCode());
+        assertTrue(result.stdout().contains("hello"));
+    }
+
+    @Test
+    void testDefaultCommandCheckerAllowsEcho() {
         DefaultCommandChecker checker = new DefaultCommandChecker();
         assertNull(checker.check(
                 SimpleCommand.builder("echo").arg("test").build(),
