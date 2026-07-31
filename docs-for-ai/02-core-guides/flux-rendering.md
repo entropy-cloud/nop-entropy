@@ -208,10 +208,88 @@ Flux `PageSchema` **完全支持** aside 相关属性（与 AMIS 命名差异：
 
 > `FluxPageDefaultAttrs` 已 pick 上述 6 个可配置属性（含 `asideResizor → asideResizable` 命名映射）。`asidePosition` 因 `xview.xdef` UiPageModel 未定义，view.xml 模型层暂无配置入口。
 
+## 页面级容器：tabs / wizard / group 的 Flux JSON 映射
+
+`flux-web.xlib` 支持 xview.xdef 的三种容器化页面类型（`tabs`/`wizard`/`group`），输出直接对齐 nop-chaos-flux 的权威 schema。**字段名是硬契约**：Flux 编译期按定义表过滤未知字段，字段名错误表现为静默空白而非报错。
+
+### 容器 body 渲染与分派
+
+- `tab`/`step` 节点支持内嵌 `body` 容器（`xdef:bean-body-prop="body"`），渲染优先级：**`page` > `body` > `name` 兜底**（`name` 在 xview.xdef 中必填，兜底恒命中）。
+- `page` 存在 → `LoadPage(page)` 结果包入数组；`body` 非空 → body 中每个 `UiContainerModel` 经共享分派标签 `GenContainerModel` 渲染；两者皆无 → `LoadPage(name)`。
+- `GenContainerModel` 是页面级与 body 级共用的容器分派标签（`flux-web.xlib`）：按 `type` 分派 `crud`/`simple`/`tabs`/`wizard`/`group`，均不包 `page` 外壳；其余类型抛 `nop.err.web.unknown-page-type`（body 内配置 `picker` 同样抛错——Flux 无页面级 picker schema）。
+- `items[].body` / `steps[].body` 直接写 JSON 数组，由 Flux 编译期 `deepFields.nestedRegions` 提取为 region 渲染，不需要也不应该输出 `bodyRegionKey`。
+
+### tabs 页面（Flux `TabsSchema`）
+
+```json
+{
+  "type": "page",
+  "body": {
+    "type": "tabs",
+    "items": [
+      { "key": "tabA", "title": "Tab A", "body": [ { "type": "form", "name": "edit", "...": "..." } ] }
+    ]
+  }
+}
+```
+
+- **`items` 数组**（Flux `TabsSchema` 字段）——不是 AMIS 的 `tabs` 字段；输出 `tabs` 字段在 Flux 下为 silent no-op。
+- `items[].key` ← tab 的 `name`（Flux 用 key/value 定位激活 tab）；`title`/`icon` 等属性沿用 `FluxTabDefaultAttrs` 透传。
+- `items[].body`：`page` 属性 → `LoadPage` 结果包数组；`body` 属性 → 容器分派 JSON 数组。
+
+### form 级 tabs（`layoutControl="tabs"`）
+
+表单内分组渲染为 `<tabs>`：`items[].body` 为表单行 JSON 数组（`flex`/`separator` 节点），`items[].key` ← 分组 id。**内容必须写入 `items[].body`**——写在其他字段（如 `tab`）会被 Flux 静默丢弃。
+
+### wizard 页面（Flux `WizardSchema`）
+
+```json
+{
+  "type": "page",
+  "body": {
+    "type": "wizard",
+    "steps": [
+      { "key": "stepA", "title": "Step A", "body": [ { "type": "form", "name": "step1" } ] }
+    ]
+  }
+}
+```
+
+- `steps[].key` ← step 的 `name`；step 内容优先级同 tab（`page` > `body` > `name`）。
+- 属性映射：`mode`/`actionPrevLabel`/`actionNextLabel`/`actionNextSaveLabel`/`actionFinishLabel` 透传；`startStep` **暂不映射**（Flux 0-based 实现 vs xview 1-based 模板串，语义错位）；`className`/`actionClassName`/`initFetch`/`initFetchOn`/`initApi`/`reload`/`redirect`/`target` 丢弃。
+
+### group 页面（Flux `GridSchema`）
+
+```json
+{
+  "type": "page",
+  "body": {
+    "type": "grid",
+    "columns": 2,
+    "gap": 8,
+    "autoFlow": "row dense",
+    "items": [
+      { "key": "grid-a", "colSpan": 2, "rowSpan": 1, "body": [ { "type": "crud", "name": "grid-a" } ] }
+    ]
+  }
+}
+```
+
+- `columns`/`gap` 透传；`autoFlow` 枚举映射：`row-dense`→`row dense`、`column-dense`→`column dense`。
+- `alignItems`/`justifyItems` **过滤 `normal` 与 `baseline`**（不在 Flux 枚举）；`responsiveColumns` 暂不输出（xview string 与 Flux `{sm,md,lg}` 类型不匹配）。
+- `items[].body` 为子容器分派 JSON 数组；`items[].colSpan/rowSpan` 来自子容器（仅 crud/tabs 容器支持，simple/wizard/group 无此字段）；`items[].key` ← 子容器 `name`（Flux 运行时 React key 契约）。
+
+### 不支持的类型
+
+- `complex`（四槽位）页面类型：Flux 无对应容器，维持抛 `nop.err.web.unknown-page-type`。
+- 页面级 `picker`：Flux 无页面级 picker schema（`PickerSchema` 仅为表单字段类型），`page_picker.xpl` 为 AMIS 遗留，暂不处理。
+
 ## 相关文件
 
-- `nop-frontend-support/nop-web/src/main/resources/_vfs/nop/web/xlib/flux-web.xlib` — Flux 页面生成库（37 个标签）
+- `nop-frontend-support/nop-web/src/main/resources/_vfs/nop/web/xlib/flux-web.xlib` — Flux 页面生成库（28 个标签，含共享容器分派 `GenContainerModel`）
 - `nop-frontend-support/nop-web/src/main/resources/_vfs/nop/web/xlib/flux-control.xlib` — Flux 控件映射库（75 个标签）
+- `nop-frontend-support/nop-web/src/main/resources/_vfs/nop/web/xlib/flux-web/page_tabs.xpl` / `page_wizard.xpl` / `page_group.xpl` — 页面级容器模板（包 `page` 外壳）
+- `nop-frontend-support/nop-web/src/main/resources/_vfs/nop/web/xlib/flux-web/container_tabs.xpl` / `container_wizard.xpl` / `container_group.xpl` / `container_crud.xpl` / `container_simple.xpl` — 容器级模板（不包外壳，页面级与 body 级共用）
 
 ## 相关文档
 

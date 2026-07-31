@@ -1,3 +1,10 @@
+## 特性 2026-08-01
+* flux-web 页面级 tabs 修复：输出字段由 `tabs` 改为 `items`（Flux `TabsSchema` 契约），tab 项补 `key` ← name，修复 Flux 下 tab 内容 silent no-op (commit: 待填)
+* flux-web 新增 tab/step 内嵌 body 容器渲染：内容优先级 `page` > `body` > `name` 兜底，共享分派标签 `GenContainerModel` 支持 crud/simple/tabs/wizard/group 五类容器 (commit: 待填)
+* flux-web 新增 wizard 页面类型（Flux `WizardSchema`）：steps 数组、step 内容优先级 page/body/name、mode/action*Label 透传 (commit: 待填)
+* flux-web 新增 group 页面类型（Flux `GridSchema`）：columns/gap/autoFlow 映射、alignItems/justifyItems 过滤 normal/baseline、子容器 colSpan/rowSpan 透传 (commit: 待填)
+* form 级 `layoutControl="tabs"` 修复：tab 内容移入 `items[].body` 并补 `key`，修复 Flux 下 form tabs 内容 silent no-op (commit: 待填)
+
 ## 变更 2026-07-21
 * **破坏性变更**: nop-search-lucene 的错误码 `nop.err.lucene.vector-search-not-implemented` 重命名为 `nop.err.lucene.invalid-query-vector`，并删除死代码常量 `ERR_LUCENE_HYBRID_SEARCH_NOT_IMPLEMENTED`
   - 旧错误码字面意义（"向量搜索未实现"）与实际行为不符——`vectorSearch()` 已基于 Lucene `KnnFloatVectorQuery` 实现真正的 kNN 搜索，错误码只在 query vector 解析为空/无效时抛出

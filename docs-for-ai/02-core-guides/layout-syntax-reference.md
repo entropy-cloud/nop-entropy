@@ -287,6 +287,48 @@ remark[备注]
 
 > **注意**：`form.xdef` 中还定义了 `layoutControl="wizard"`（向导布局），但 AMIS 渲染器目前仅实现了 `tabs`。
 
+**Flux 渲染（`layoutControl="tabs"`）**：分组渲染为 `<tabs>`，`items[].body` 为表单行 JSON 数组，`items[].key` ← 分组 id。tab 内容必须写在 `items[].body` 字段（Flux 只提取该字段渲染），其余字段会被编译期过滤成静默空白。详见 `flux-rendering.md` 的「页面级容器」章节。
+
+## 7.1 页面级容器：tabs / wizard / group（Flux）
+
+`<pages>` 下除 `crud`/`simple` 外，`tabs`/`wizard`/`group` 三种容器页面类型在 Flux（`flux-web.xlib`）下渲染为 `TabsSchema`/`WizardSchema`/`GridSchema`（AMIS 侧暂不消费，见 `flux-rendering.md`）。
+
+**`tab`/`step` 内容来源优先级：`page` > `body` > `name` 兜底**：
+
+- `page="xxx"` — 引用同 view 中另一个页面（`LoadPage` 加载）
+- `body` 子节点 — 内嵌容器定义（`crud`/`simple`/`tabs`/`wizard`/`group`），按容器类型递归渲染
+- 两者皆无 — 以 `name` 作为页面名兜底（`name` 必填，恒命中）
+
+```xml
+<tabs name="main">
+    <tab name="tab-page" title="Page Tab" page="add"/>
+    <tab name="tab-body" title="Body Tab">
+        <simple name="inner-form" form="edit"/>
+    </tab>
+</tabs>
+
+<wizard name="main">
+    <step name="step-simple" title="Step Simple">
+        <simple name="inner-simple" form="step1"/>
+    </step>
+    <step name="step-page" title="Step Page" page="finish"/>
+</wizard>
+
+<group name="main" columns="2" gap="8" autoFlow="row-dense">
+    <crud name="grid-a" grid="list" colSpan="2" rowSpan="1">
+        <table>
+            <api url="@query:Xxx__findPage" gql:selection="{@pageSelection}"/>
+        </table>
+    </crud>
+    <simple name="form-b" form="edit"/>
+</group>
+```
+
+- tab/step 的 `body` 可嵌套任意层级（tab 内嵌 tabs 等），由共享分派标签 `GenContainerModel` 递归渲染
+- group 的 `columns`/`gap`/`autoFlow` 透传；`autoFlow` 的 `row-dense`/`column-dense` 映射为 `row dense`/`column dense`
+- group 子容器的 `colSpan`/`rowSpan` 透传为 `items[].colSpan/rowSpan`（仅 crud/tabs 容器支持 span）
+- `complex` 页面类型未实现（Flux 无对应容器）；`responsiveColumns`/`startStep` 暂不映射——详见 `flux-rendering.md`
+
 ## 8. 弹窗大小（size）
 
 ```xml
