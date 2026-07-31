@@ -2,7 +2,9 @@
 <meta x:schema="/nop/schema/xmeta.xdef" xmlns:x="/nop/schema/xdsl.xdef" x:extends="_NopAiModel.xmeta">
 
     <props>
-        <!-- Restrict apiKey: credential field, not exposed in queries/sorts -->
-        <prop name="apiKey" queryable="false" sortable="false" insertable="false" updatable="false" internal="true"/>
+        <!-- Restrict apiKey: credential field, not exposed in queries/sorts or
+             GraphQL output (published=false excludes it from output type) -->
+        <prop name="apiKey" queryable="false" sortable="false" insertable="false" updatable="false"
+              internal="true" published="false"/>
     </props>
 </meta>
