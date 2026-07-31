@@ -9,6 +9,7 @@ import io.nop.job.core._NopJobCoreConstants;
 import io.nop.job.dao.entity.NopJobFire;
 import io.nop.job.dao.entity.NopJobSchedule;
 import io.nop.job.dao.entity.NopJobTask;
+import io.nop.job.dao.store.FireScheduleOutcome;
 import io.nop.job.dao.store.IJobFireStore;
 import io.nop.job.dao.store.IJobScheduleStore;
 import io.nop.job.dao.store.IJobTaskStore;
@@ -494,12 +495,12 @@ public class TestJobCompletionProcessor {
         @Override public void updateRetryRecordId(String jobFireId, String retryRecordId) {}
         @Override public List<NopJobFire> tryLockFiresForDispatch(List<NopJobFire> fires, String dispatchInstanceId, long lockTimeoutMs) { return fires; }
         @Override public void insertTasksAndMarkFireDispatching(NopJobFire fire, List<NopJobTask> tasks) {}
-        @Override public boolean completeFireAndUpdateSchedule(NopJobFire fire, NopJobSchedule schedule) {
-            if (simulateConflict.get()) return false;
+        @Override public FireScheduleOutcome completeFireAndUpdateSchedule(NopJobFire fire, NopJobSchedule schedule) {
+            if (simulateConflict.get()) return FireScheduleOutcome.bothFailed();
             completeFireCalled.set(true);
-            return true;
+            return FireScheduleOutcome.bothUpdated();
         }
-        @Override public boolean cancelFire(String jobFireId) { return false; }
+        @Override public FireScheduleOutcome cancelFire(String jobFireId) { return FireScheduleOutcome.bothFailed(); }
         @Override public NopJobFire loadFire(String jobFireId) { return firesById.get(jobFireId); }
         @Override public NopJobFire getFireById(String jobFireId) { return firesById.get(jobFireId); }
         @Override public Map<String, NopJobFire> batchLoadFires(Set<String> fireIds) { return Collections.emptyMap(); }

@@ -17,6 +17,7 @@ import static io.nop.job.core.JobCoreErrors.ERR_JOB_TIMEOUT;
 import io.nop.job.dao.entity.NopJobFire;
 import io.nop.job.dao.entity.NopJobSchedule;
 import io.nop.job.dao.entity.NopJobTask;
+import io.nop.job.dao.store.FireScheduleOutcome;
 import io.nop.job.dao.store.IJobFireStore;
 import io.nop.job.dao.store.IJobScheduleStore;
 import io.nop.job.dao.store.IJobTaskStore;
@@ -239,7 +240,9 @@ public class JobTimeoutCheckerImpl extends AbstractBatchScanner implements IJobT
     }
 
     private void tryMarkSuspiciousIfWorkerGone(NopJobTask task, Set<String> aliveWorkerIds) {
-        if (task.getTaskStatus() == null || task.getTaskStatus() != _NopJobCoreConstants.TASK_STATUS_RUNNING) {
+        Integer status = task.getTaskStatus();
+        if (status == null || (status != _NopJobCoreConstants.TASK_STATUS_RUNNING
+                && status != _NopJobCoreConstants.TASK_STATUS_CLAIMED)) {
             return;
         }
 
@@ -330,13 +333,16 @@ public class JobTimeoutCheckerImpl extends AbstractBatchScanner implements IJobT
         schedule.setTotalFireCount(defaultLong(schedule.getTotalFireCount()) + 1);
         schedule.setFailFireCount(defaultLong(schedule.getFailFireCount()) + 1);
 
-        fireStore.completeFireAndUpdateSchedule(fire, schedule);
+        FireScheduleOutcome outcome = fireStore.completeFireAndUpdateSchedule(fire, schedule);
 
-        // Bug C fix: tryUpdateWithVersionCheck sets orm_readonly(true) on version
-        // conflict. If fire wasn't actually updated, skip task cancellation to avoid
-        // ending with RUNNING fire + CANCELED tasks.
-        if (fire.orm_readonly()) {
+        // Bug C fix: if fire wasn't actually updated (version conflict), skip task
+        // cancellation to avoid ending up with RUNNING fire + CANCELED tasks.
+        if (!outcome.fireUpdated()) {
             return;
+        }
+        if (!outcome.scheduleUpdated()) {
+            LOG.warn("nop.job.timeout.schedule-counter-not-updated:scheduleId={},fireId={}",
+                    schedule.getJobScheduleId(), fire.getJobFireId());
         }
 
         List<NopJobTask> tasks = taskStore.findTasksByFireId(fire.getJobFireId());

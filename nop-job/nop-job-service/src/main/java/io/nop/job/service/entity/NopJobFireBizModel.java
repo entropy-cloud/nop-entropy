@@ -14,11 +14,14 @@ import io.nop.job.core._NopJobCoreConstants;
 import io.nop.job.dao.entity.NopJobFire;
 import io.nop.job.dao.entity.NopJobSchedule;
 import io.nop.job.dao.helper.JobStatusHelper;
+import io.nop.job.dao.store.FireScheduleOutcome;
 import io.nop.job.dao.store.IJobFireStore;
 import io.nop.job.dao.store.IJobScheduleStore;
 import io.nop.job.service.JobContextHelper;
 import io.nop.job.service.fire.FireFactory;
 import jakarta.inject.Inject;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.sql.Timestamp;
 
@@ -34,6 +37,8 @@ import java.util.Map;
 
 @BizModel("NopJobFire")
 public class NopJobFireBizModel extends CrudBizModel<NopJobFire> implements INopJobFireBiz{
+    static final Logger LOG = LoggerFactory.getLogger(NopJobFireBizModel.class);
+
     protected IJobFireStore fireStore;
     protected IJobScheduleStore scheduleStore;
 
@@ -75,8 +80,12 @@ public class NopJobFireBizModel extends CrudBizModel<NopJobFire> implements INop
             throwCancelNotAllowed(fire, "cancelFire");
         }
 
-        if (!fireStore.cancelFire(id)) {
+        FireScheduleOutcome outcome = fireStore.cancelFire(id);
+        if (!outcome.fireUpdated()) {
             throwCancelNotAllowed(fireStore.loadFire(id), "cancelFire");
+        }
+        if (!outcome.scheduleUpdated()) {
+            LOG.warn("nop.job.cancel.schedule-counter-not-updated:fireId={}", id);
         }
 
         afterEntityChange(fireStore.loadFire(id), "cancelFire", context);

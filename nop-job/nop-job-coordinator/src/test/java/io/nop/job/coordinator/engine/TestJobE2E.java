@@ -9,6 +9,7 @@ import io.nop.job.core._NopJobCoreConstants;
 import io.nop.job.dao.entity.NopJobFire;
 import io.nop.job.dao.entity.NopJobSchedule;
 import io.nop.job.dao.entity.NopJobTask;
+import io.nop.job.dao.store.FireScheduleOutcome;
 import io.nop.job.dao.store.IJobFireStore;
 import io.nop.job.dao.store.IJobScheduleStore;
 import io.nop.job.dao.store.IJobTaskStore;
@@ -276,8 +277,8 @@ public class TestJobE2E {
         @Override public List<NopJobFire> fetchWaitingFires(int limit, IntRangeSet p) { return Collections.emptyList(); }
         @Override public List<NopJobFire> tryLockFiresForDispatch(List<NopJobFire> f, String d, long t) { return f; }
         @Override public void insertTasksAndMarkFireDispatching(NopJobFire f, List<NopJobTask> t) {}
-        @Override public boolean completeFireAndUpdateSchedule(NopJobFire f, NopJobSchedule s) { completeFireCalled.set(true); return true; }
-        @Override public boolean cancelFire(String id) { return false; }
+        @Override public FireScheduleOutcome completeFireAndUpdateSchedule(NopJobFire f, NopJobSchedule s) { completeFireCalled.set(true); return FireScheduleOutcome.bothUpdated(); }
+        @Override public FireScheduleOutcome cancelFire(String id) { return FireScheduleOutcome.bothFailed(); }
         @Override public void failFireWithoutSchedule(String jobFireId, String errorCode, String errorMessage) {}
         @Override public NopJobFire loadFire(String id) { return fires.get(id); }
         @Override public NopJobFire getFireById(String id) { return fires.get(id); }

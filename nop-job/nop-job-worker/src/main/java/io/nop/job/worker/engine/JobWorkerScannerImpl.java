@@ -282,10 +282,7 @@ public class JobWorkerScannerImpl extends AbstractBatchScanner implements IJobWo
         try {
             NopJobTask task = taskStore.loadTask(jobTaskId);
             Integer taskStatus = task.getTaskStatus();
-            if (taskStatus != null
-                    && (taskStatus == io.nop.job.core._NopJobCoreConstants.TASK_STATUS_TIMEOUT
-                    || taskStatus == io.nop.job.core._NopJobCoreConstants.TASK_STATUS_CANCELED
-                    || taskStatus == io.nop.job.core._NopJobCoreConstants.TASK_STATUS_SUSPICIOUS)) {
+            if (io.nop.job.dao.helper.JobStatusHelper.isConcurrentlyFinalizedTask(taskStatus)) {
                 return;
             }
             if (taskStatus == null) {
@@ -335,9 +332,7 @@ public class JobWorkerScannerImpl extends AbstractBatchScanner implements IJobWo
                 NopJobTask freshTask = taskStore.loadTask(jobTaskId);
                 Integer freshStatus = freshTask.getTaskStatus();
                 if (freshStatus == null
-                        || freshStatus == io.nop.job.core._NopJobCoreConstants.TASK_STATUS_TIMEOUT
-                        || freshStatus == io.nop.job.core._NopJobCoreConstants.TASK_STATUS_CANCELED
-                        || freshStatus == io.nop.job.core._NopJobCoreConstants.TASK_STATUS_SUSPICIOUS) {
+                        || io.nop.job.dao.helper.JobStatusHelper.isConcurrentlyFinalizedTask(freshStatus)) {
                     return;
                 }
 
@@ -384,10 +379,7 @@ public class JobWorkerScannerImpl extends AbstractBatchScanner implements IJobWo
 
     private void completeTaskWithFailure(NopJobTask task, String errorCode, String errorMessage) {
         NopJobTask freshTask = taskStore.loadTask(task.getJobTaskId());
-        if (freshTask.getTaskStatus() != null
-                && (freshTask.getTaskStatus() == io.nop.job.core._NopJobCoreConstants.TASK_STATUS_SUSPICIOUS
-                || freshTask.getTaskStatus() == io.nop.job.core._NopJobCoreConstants.TASK_STATUS_TIMEOUT
-                || freshTask.getTaskStatus() == io.nop.job.core._NopJobCoreConstants.TASK_STATUS_CANCELED)) {
+        if (io.nop.job.dao.helper.JobStatusHelper.isConcurrentlyFinalizedTask(freshTask.getTaskStatus())) {
             return;
         }
 

@@ -120,12 +120,12 @@ public class JobFireStoreImpl implements IJobFireStore {
 
     @Transactional(propagation = TransactionPropagation.REQUIRES_NEW)
     @Override
-    public boolean completeFireAndUpdateSchedule(NopJobFire fire, NopJobSchedule schedule) {
+    public FireScheduleOutcome completeFireAndUpdateSchedule(NopJobFire fire, NopJobSchedule schedule) {
         // Bug A fix: removed requireEntityById + isTerminalFire short-circuit
         // (it returned the @SingleSession-cached entity already modified by caller)
 
         if (!fireDao().tryUpdateWithVersionCheck(fire)) {
-            return false;
+            return FireScheduleOutcome.bothFailed();
         }
 
         // Under @SingleSession, requireEntityById returns the same cached entity as the
@@ -135,17 +135,18 @@ public class JobFireStoreImpl implements IJobFireStore {
         // (cache always returns the same object), making retries pointless.
         if (!scheduleDao().tryUpdateWithVersionCheck(schedule)) {
             LOG.warn("nop.job.complete.schedule-update-conflict:fireId={}", fire.getJobFireId());
+            return FireScheduleOutcome.fireOnly();
         }
-        return true;
+        return FireScheduleOutcome.bothUpdated();
     }
 
     @Transactional(propagation = TransactionPropagation.REQUIRES_NEW)
     @Override
-    public boolean cancelFire(String jobFireId) {
+    public FireScheduleOutcome cancelFire(String jobFireId) {
         NopJobFire fire = fireDao().requireEntityById(jobFireId);
         List<NopJobTask> tasks = findTasksByFireId(jobFireId);
         if (!isCancelableFire(fire, tasks)) {
-            return false;
+            return FireScheduleOutcome.bothFailed();
         }
 
         NopJobSchedule schedule = scheduleDao().requireEntityById(fire.getJobScheduleId());
@@ -157,7 +158,7 @@ public class JobFireStoreImpl implements IJobFireStore {
         fire.setErrorCode(ERR_JOB_CANCELED.getErrorCode());
         fire.setErrorMessage(ERR_JOB_CANCELED.getDescription());
         if (!fireDao().tryUpdateWithVersionCheck(fire)) {
-            return false;
+            return FireScheduleOutcome.bothFailed();
         }
 
         for (NopJobTask task : tasks) {
@@ -186,7 +187,7 @@ public class JobFireStoreImpl implements IJobFireStore {
         }
 
         // Under @SingleSession, schedule is the same cached entity. It's already
-        // dirty with the caller's counter modifications (set at lines 188-195 below).
+        // dirty with the caller's counter modifications (set at lines below).
         // Single try (same reasoning as completeFireAndUpdateSchedule — with
         // @SingleSession, requireEntityById returns the same cached entity, making
         // retries pointless).
@@ -200,8 +201,9 @@ public class JobFireStoreImpl implements IJobFireStore {
         }
         if (!scheduleDao().tryUpdateWithVersionCheck(schedule)) {
             LOG.warn("nop.job.cancel.schedule-update-conflict:fireId={}", fire.getJobFireId());
+            return FireScheduleOutcome.fireOnly();
         }
-        return true;
+        return FireScheduleOutcome.bothUpdated();
     }
 
     @Override

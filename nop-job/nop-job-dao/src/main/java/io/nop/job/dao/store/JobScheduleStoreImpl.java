@@ -140,7 +140,7 @@ public class JobScheduleStoreImpl implements IJobScheduleStore {
                     schedule.setTotalFireCount(defaultLong(schedule.getTotalFireCount()) + cancelledCount);
                     schedule.setFailFireCount(defaultLong(schedule.getFailFireCount()) + cancelledCount);
                     schedule.setFireCount(defaultLong(schedule.getFireCount()) + 1);
-                    schedule.setActiveFireCount(1);
+                    schedule.setActiveFireCount(defaultInt(schedule.getActiveFireCount()) - cancelledCount + 1);
                     schedule.setLastFireTime(fire.getScheduledFireTime());
                     if (!activeFires.isEmpty()) {
                         schedule.setLastEndTime(cancelTime);
@@ -283,7 +283,8 @@ public class JobScheduleStoreImpl implements IJobScheduleStore {
                     }
 
                     schedule.setFireCount(defaultLong(schedule.getFireCount()) + 1);
-                    schedule.setActiveFireCount(isOverlay(schedule) ? 1 : defaultInt(schedule.getActiveFireCount()) + 1);
+                    schedule.setActiveFireCount(defaultInt(schedule.getActiveFireCount())
+                            - (isOverlay(schedule) ? finalCancelledCount : 0) + 1);
                     if (isOverlay(schedule) && !activeFires.isEmpty()) {
                         schedule.setLastEndTime(updateTime);
                         schedule.setLastFireStatus(_NopJobCoreConstants.FIRE_STATUS_CANCELED);
@@ -411,11 +412,7 @@ public class JobScheduleStoreImpl implements IJobScheduleStore {
     }
 
     private boolean isTaskFailed(Integer taskStatus) {
-        return taskStatus != null
-                && (taskStatus == _NopJobCoreConstants.TASK_STATUS_CANCELED
-                || taskStatus == _NopJobCoreConstants.TASK_STATUS_FAILED
-                || taskStatus == _NopJobCoreConstants.TASK_STATUS_TIMEOUT
-                || taskStatus == _NopJobCoreConstants.TASK_STATUS_SUSPICIOUS);
+        return JobStatusHelper.isRecoverableTask(taskStatus);
     }
 
     private boolean cancelFire(NopJobFire fire, Timestamp cancelTime) {

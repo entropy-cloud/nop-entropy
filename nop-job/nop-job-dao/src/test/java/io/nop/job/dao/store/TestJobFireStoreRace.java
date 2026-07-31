@@ -63,11 +63,11 @@ public class TestJobFireStoreRace extends JunitBaseTestCase {
         List<NopJobFire> lockedFires = fireStore.tryLockFiresForDispatch(waitingFires, "dispatcher-1", 1000);
         assertEquals(1, lockedFires.size());
 
-        boolean firstCancel = fireStore.cancelFire(fire.getJobFireId());
-        assert firstCancel;
+        FireScheduleOutcome firstCancel = fireStore.cancelFire(fire.getJobFireId());
+        assert firstCancel.fireUpdated();
 
-        boolean secondCancel = fireStore.cancelFire(fire.getJobFireId());
-        assertFalse(secondCancel, "cancelFire should return false for an already-canceled fire");
+        FireScheduleOutcome secondCancel = fireStore.cancelFire(fire.getJobFireId());
+        assertFalse(secondCancel.fireUpdated(), "cancelFire should return fireUpdated=false for an already-canceled fire");
 
         NopJobFire reloaded = fireStore.loadFire(fire.getJobFireId());
         assertEquals(FIRE_STATUS_CANCELED, reloaded.getFireStatus());
@@ -96,8 +96,8 @@ public class TestJobFireStoreRace extends JunitBaseTestCase {
         runningFire.setEndTime(new Timestamp(System.currentTimeMillis()));
         daoProvider.daoFor(NopJobFire.class).updateEntityDirectly(runningFire);
 
-        boolean cancelResult = fireStore.cancelFire(fire.getJobFireId());
-        assertFalse(cancelResult, "cancelFire should return false for an already-completed fire");
+        FireScheduleOutcome cancelResult = fireStore.cancelFire(fire.getJobFireId());
+        assertFalse(cancelResult.fireUpdated(), "cancelFire should return fireUpdated=false for an already-completed fire");
 
         NopJobFire reloaded = fireStore.loadFire(fire.getJobFireId());
         assertEquals(FIRE_STATUS_SUCCESS, reloaded.getFireStatus(),
@@ -127,8 +127,8 @@ public class TestJobFireStoreRace extends JunitBaseTestCase {
         staleFire.setFireStatus(FIRE_STATUS_SUCCESS);
         staleFire.setEndTime(new Timestamp(System.currentTimeMillis()));
 
-        boolean cancelResult = fireStore.cancelFire(fire.getJobFireId());
-        assert cancelResult;
+        FireScheduleOutcome cancelResult = fireStore.cancelFire(fire.getJobFireId());
+        assert cancelResult.fireUpdated();
 
         NopJobSchedule currentSchedule = scheduleStore.loadSchedule(schedule.getJobScheduleId());
         fireStore.completeFireAndUpdateSchedule(staleFire, currentSchedule);
@@ -168,9 +168,9 @@ public class TestJobFireStoreRace extends JunitBaseTestCase {
         NopJobFire reloadedBefore = fireStore.loadFire(fire.getJobFireId());
         assertEquals(FIRE_STATUS_TIMEOUT, reloadedBefore.getFireStatus());
 
-        boolean cancelResult = fireStore.cancelFire(fireForCancel.getJobFireId());
-        assertFalse(cancelResult,
-                "cancelFire should detect version mismatch and return false");
+        FireScheduleOutcome cancelResult = fireStore.cancelFire(fireForCancel.getJobFireId());
+        assertFalse(cancelResult.fireUpdated(),
+                "cancelFire should detect version mismatch and return fireUpdated=false");
 
         NopJobFire reloadedAfter = fireStore.loadFire(fire.getJobFireId());
         assertEquals(FIRE_STATUS_TIMEOUT, reloadedAfter.getFireStatus(),
@@ -200,8 +200,8 @@ public class TestJobFireStoreRace extends JunitBaseTestCase {
         concurrentSchedule.setActiveFireCount(10);
         schedDao.updateEntityDirectly(concurrentSchedule);
 
-        boolean cancelResult = fireStore.cancelFire(fire.getJobFireId());
-        assertTrue(cancelResult, "cancelFire should succeed after optimistic lock retry");
+        FireScheduleOutcome cancelResult = fireStore.cancelFire(fire.getJobFireId());
+        assertTrue(cancelResult.fireUpdated(), "cancelFire should succeed after optimistic lock retry");
 
         NopJobFire reloadedFire = fireStore.loadFire(fire.getJobFireId());
         assertEquals(FIRE_STATUS_CANCELED, reloadedFire.getFireStatus());

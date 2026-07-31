@@ -99,7 +99,7 @@ public class TestJobStoreImpl extends JunitBaseTestCase {
         List<NopJobFire> lockedFires = fireStore.tryLockFiresForDispatch(waitingFires, "dispatcher-2", 1000);
         assertEquals(1, lockedFires.size());
 
-        assertEquals(true, fireStore.cancelFire(fire.getJobFireId()));
+        assertEquals(true, fireStore.cancelFire(fire.getJobFireId()).fireUpdated());
 
         NopJobTask task = newTask("task-2", fire);
         fireStore.insertTasksAndMarkFireDispatching(lockedFires.get(0), Collections.singletonList(task));

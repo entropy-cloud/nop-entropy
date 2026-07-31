@@ -11,6 +11,7 @@ import io.nop.job.core.JobCoreErrors;
 import io.nop.job.dao.entity.NopJobFire;
 import io.nop.job.dao.entity.NopJobSchedule;
 import io.nop.job.dao.entity.NopJobTask;
+import io.nop.job.dao.store.FireScheduleOutcome;
 import io.nop.job.dao.store.IJobFireStore;
 import io.nop.job.dao.store.IJobScheduleStore;
 import io.nop.job.dao.store.IJobTaskStore;
@@ -144,6 +145,58 @@ public class TestJobTimeoutChecker {
     }
 
     @Test
+    void testDispatchTimeout_skipsTaskCancelWhenFireUpdateFails() {
+        // Bug C protection: fire version conflict (bothFailed) must skip task cancellation
+        // to avoid ending up with RUNNING/TIMEOUT fire + CANCELED tasks inconsistency.
+        namingService.setAliveInstances(List.of("worker-a"));
+
+        NopJobFire fire = createFire("f-fire-conflict", "s-fire-conflict",
+                _NopJobCoreConstants.FIRE_STATUS_DISPATCHING, new Timestamp(currentTime - 10000));
+        fireStore.addDispatchingFire(fire);
+
+        NopJobSchedule schedule = createSchedule("s-fire-conflict", "testJob");
+        scheduleStore.addSchedule("s-fire-conflict", schedule);
+
+        NopJobTask task = createTask("t-fire-conflict", "f-fire-conflict",
+                _NopJobCoreConstants.TASK_STATUS_WAITING);
+        taskStore.addTaskForFire("f-fire-conflict", task);
+
+        fireStore.setCompleteOutcome(FireScheduleOutcome.bothFailed());
+        scheduleStore.setCurrentTime(currentTime);
+
+        checker.scanOnce();
+
+        assertEquals(_NopJobCoreConstants.TASK_STATUS_WAITING, task.getTaskStatus(),
+                "Bug C: task cancellation must be skipped when fire update failed (bothFailed)");
+    }
+
+    @Test
+    void testDispatchTimeout_cancelsTasksWhenOnlyScheduleUpdateFails() {
+        // fire succeeded but schedule failed (fireOnly): tasks must still be canceled
+        // (fire is terminal), and the schedule-counter miss is observable via WARN.
+        namingService.setAliveInstances(List.of("worker-a"));
+
+        NopJobFire fire = createFire("f-sched-conflict", "s-sched-conflict",
+                _NopJobCoreConstants.FIRE_STATUS_DISPATCHING, new Timestamp(currentTime - 10000));
+        fireStore.addDispatchingFire(fire);
+
+        NopJobSchedule schedule = createSchedule("s-sched-conflict", "testJob");
+        scheduleStore.addSchedule("s-sched-conflict", schedule);
+
+        NopJobTask task = createTask("t-sched-conflict", "f-sched-conflict",
+                _NopJobCoreConstants.TASK_STATUS_WAITING);
+        taskStore.addTaskForFire("f-sched-conflict", task);
+
+        fireStore.setCompleteOutcome(FireScheduleOutcome.fireOnly());
+        scheduleStore.setCurrentTime(currentTime);
+
+        checker.scanOnce();
+
+        assertEquals(_NopJobCoreConstants.TASK_STATUS_CANCELED, task.getTaskStatus(),
+                "fire succeeded (fireOnly) → task cancellation must proceed despite schedule update failure");
+    }
+
+    @Test
     void testWorkerLiveness_marksSuspiciousThenTimeoutWhenWorkerGone() {
         namingService.setAliveInstances(List.of("worker-a"));
 
@@ -191,6 +244,58 @@ public class TestJobTimeoutChecker {
         checker.scanOnce();
 
         assertEquals(_NopJobCoreConstants.TASK_STATUS_RUNNING, task.getTaskStatus());
+    }
+
+    @Test
+    void testClaimedTask_reclaimedWhenWorkerGone() {
+        namingService.setAliveInstances(List.of("worker-a"));
+
+        NopJobTask task = createTask("t-claimed", "f-claimed", _NopJobCoreConstants.TASK_STATUS_CLAIMED);
+        task.setWorkerInstanceId("worker-gone");
+        taskStore.addRunningTask(task);
+
+        NopJobFire fire = createFire("f-claimed", "s-claimed", _NopJobCoreConstants.FIRE_STATUS_RUNNING, null);
+        fireStore.addFire("f-claimed", fire);
+
+        NopJobSchedule schedule = createSchedule("s-claimed", "testJob");
+        schedule.setTimeoutSeconds(60);
+        scheduleStore.addSchedule("s-claimed", schedule);
+
+        scheduleStore.setCurrentTime(currentTime);
+
+        checker.scanOnce();
+
+        assertEquals(_NopJobCoreConstants.TASK_STATUS_SUSPICIOUS, task.getTaskStatus(),
+                "CLAIMED task whose worker has disappeared must be marked SUSPICIOUS on first scan");
+
+        checker.scanOnce();
+
+        assertEquals(_NopJobCoreConstants.TASK_STATUS_TIMEOUT, task.getTaskStatus(),
+                "SUSPICIOUS task must progress to TIMEOUT on second scan via markSuspiciousAsTimeout");
+    }
+
+    @Test
+    void testClaimedTask_notMarkedWhenWorkerAlive() {
+        namingService.setAliveInstances(List.of("worker-a"));
+
+        NopJobTask task = createTask("t-claimed-alive", "f-claimed-alive", _NopJobCoreConstants.TASK_STATUS_CLAIMED);
+        task.setWorkerInstanceId("worker-a");
+        taskStore.addRunningTask(task);
+
+        NopJobFire fire = createFire("f-claimed-alive", "s-claimed-alive",
+                _NopJobCoreConstants.FIRE_STATUS_RUNNING, null);
+        fireStore.addFire("f-claimed-alive", fire);
+
+        NopJobSchedule schedule = createSchedule("s-claimed-alive", "testJob");
+        schedule.setTimeoutSeconds(60);
+        scheduleStore.addSchedule("s-claimed-alive", schedule);
+
+        scheduleStore.setCurrentTime(currentTime);
+
+        checker.scanOnce();
+
+        assertEquals(_NopJobCoreConstants.TASK_STATUS_CLAIMED, task.getTaskStatus(),
+                "CLAIMED task whose worker is still alive must not be touched");
     }
 
     @Test
@@ -639,7 +744,15 @@ public class TestJobTimeoutChecker {
         @Override public List<NopJobTask> fetchWaitingTasks(int limit, IntRangeSet partitions) { return Collections.emptyList(); }
         @Override public List<NopJobTask> fetchWaitingTasks(int limit, IntRangeSet p, String wid, boolean enfo) { return Collections.emptyList(); }
         @Override public List<NopJobTask> tryLockTasksForExecute(List<NopJobTask> tasks, String workerInstanceId, long lockTimeoutMs) { return tasks; }
-        @Override public List<NopJobTask> findTasksByFireId(String jobFireId) { return Collections.emptyList(); }
+        private java.util.Map<String, List<NopJobTask>> tasksByFireId = new java.util.HashMap<>();
+
+        void addTaskForFire(String fireId, NopJobTask task) {
+            tasksByFireId.computeIfAbsent(fireId, k -> new ArrayList<>()).add(task);
+        }
+
+        @Override public List<NopJobTask> findTasksByFireId(String jobFireId) {
+            return tasksByFireId.getOrDefault(jobFireId, Collections.emptyList());
+        }
         @Override public NopJobTask loadTask(String jobTaskId) { return null; }
         @Override public long countInFlightTasks(String workerInstanceId) { return 0; }
         @Override public io.nop.job.api.resource.ResourceVector sumReservedCost(String workerInstanceId) { return io.nop.job.api.resource.ResourceVector.ZERO; }
@@ -684,8 +797,12 @@ public class TestJobTimeoutChecker {
         @Override public List<NopJobFire> fetchRunningFires(int limit, IntRangeSet partitions) { return Collections.emptyList(); }
         @Override public List<NopJobFire> tryLockFiresForDispatch(List<NopJobFire> fires, String dispatchInstanceId, long lockTimeoutMs) { return fires; }
         @Override public void insertTasksAndMarkFireDispatching(NopJobFire fire, List<NopJobTask> tasks) {}
-        @Override public boolean completeFireAndUpdateSchedule(NopJobFire fire, NopJobSchedule schedule) { return true; }
-        @Override public boolean cancelFire(String jobFireId) { return false; }
+
+        private FireScheduleOutcome completeOutcome = FireScheduleOutcome.bothUpdated();
+        void setCompleteOutcome(FireScheduleOutcome outcome) { this.completeOutcome = outcome; }
+
+        @Override public FireScheduleOutcome completeFireAndUpdateSchedule(NopJobFire fire, NopJobSchedule schedule) { return completeOutcome; }
+        @Override public FireScheduleOutcome cancelFire(String jobFireId) { return FireScheduleOutcome.bothFailed(); }
         @Override public void failFireWithoutSchedule(String jobFireId, String errorCode, String errorMessage) {
             this.failedFireId = jobFireId;
             this.failedErrorCode = errorCode;

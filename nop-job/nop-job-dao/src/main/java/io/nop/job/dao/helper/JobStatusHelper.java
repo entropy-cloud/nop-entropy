@@ -55,4 +55,35 @@ public final class JobStatusHelper {
                 && taskStatus != _NopJobCoreConstants.TASK_STATUS_CLAIMED
                 && taskStatus != _NopJobCoreConstants.TASK_STATUS_RUNNING;
     }
+
+    /**
+     * Whether a task is in a state that the recovery flow can reset back to WAITING.
+     * Covers CANCELED, FAILED, TIMEOUT, and SUSPICIOUS. This is the recovery counterpart
+     * to {@link #isFinishedTask}: cancel-flow treats SUSPICIOUS as finished (skips it),
+     * while recovery treats SUSPICIOUS as resettable (a SUSPICIOUS task whose fire is
+     * FAILED/TIMEOUT should get a fresh execution opportunity).
+     */
+    public static boolean isRecoverableTask(Integer taskStatus) {
+        if (taskStatus == null)
+            return false;
+        return taskStatus == _NopJobCoreConstants.TASK_STATUS_CANCELED
+                || taskStatus == _NopJobCoreConstants.TASK_STATUS_FAILED
+                || taskStatus == _NopJobCoreConstants.TASK_STATUS_TIMEOUT
+                || taskStatus == _NopJobCoreConstants.TASK_STATUS_SUSPICIOUS;
+    }
+
+    /**
+     * Whether a task has been concurrently finalized or marked by an external flow
+     * (timeout checker or cancel flow) such that the worker must NOT overwrite its result.
+     * Covers TIMEOUT, CANCELED, and SUSPICIOUS. A RUNNING task that was independently
+     * flipped to one of these (e.g. worker lost → SUSPICIOUS, dispatch timeout → CANCELED)
+     * should not be overwritten by a late-arriving execution result.
+     */
+    public static boolean isConcurrentlyFinalizedTask(Integer taskStatus) {
+        if (taskStatus == null)
+            return false;
+        return taskStatus == _NopJobCoreConstants.TASK_STATUS_TIMEOUT
+                || taskStatus == _NopJobCoreConstants.TASK_STATUS_CANCELED
+                || taskStatus == _NopJobCoreConstants.TASK_STATUS_SUSPICIOUS;
+    }
 }

@@ -72,4 +72,46 @@ class TestJobStatusHelper {
     void isFinishedTask_returnsFalseForNull() {
         assertFalse(JobStatusHelper.isFinishedTask(null));
     }
+
+    @Test
+    void isRecoverableTask_returnsTrueForCanceledFailedTimeoutSuspicious() {
+        assertTrue(JobStatusHelper.isRecoverableTask(_NopJobCoreConstants.TASK_STATUS_CANCELED));
+        assertTrue(JobStatusHelper.isRecoverableTask(_NopJobCoreConstants.TASK_STATUS_FAILED));
+        assertTrue(JobStatusHelper.isRecoverableTask(_NopJobCoreConstants.TASK_STATUS_TIMEOUT));
+        assertTrue(JobStatusHelper.isRecoverableTask(_NopJobCoreConstants.TASK_STATUS_SUSPICIOUS));
+    }
+
+    @Test
+    void isRecoverableTask_returnsFalseForWaitingClaimedRunningSuccess() {
+        assertFalse(JobStatusHelper.isRecoverableTask(_NopJobCoreConstants.TASK_STATUS_WAITING));
+        assertFalse(JobStatusHelper.isRecoverableTask(_NopJobCoreConstants.TASK_STATUS_CLAIMED));
+        assertFalse(JobStatusHelper.isRecoverableTask(_NopJobCoreConstants.TASK_STATUS_RUNNING));
+        assertFalse(JobStatusHelper.isRecoverableTask(_NopJobCoreConstants.TASK_STATUS_SUCCESS));
+    }
+
+    @Test
+    void isRecoverableTask_returnsFalseForNull() {
+        assertFalse(JobStatusHelper.isRecoverableTask(null));
+    }
+
+    @Test
+    void isConcurrentlyFinalizedTask_returnsTrueForTimeoutCanceledSuspicious() {
+        assertTrue(JobStatusHelper.isConcurrentlyFinalizedTask(_NopJobCoreConstants.TASK_STATUS_TIMEOUT));
+        assertTrue(JobStatusHelper.isConcurrentlyFinalizedTask(_NopJobCoreConstants.TASK_STATUS_CANCELED));
+        assertTrue(JobStatusHelper.isConcurrentlyFinalizedTask(_NopJobCoreConstants.TASK_STATUS_SUSPICIOUS));
+    }
+
+    @Test
+    void isConcurrentlyFinalizedTask_returnsFalseForWaitingClaimedRunningSuccessFailed() {
+        assertFalse(JobStatusHelper.isConcurrentlyFinalizedTask(_NopJobCoreConstants.TASK_STATUS_WAITING));
+        assertFalse(JobStatusHelper.isConcurrentlyFinalizedTask(_NopJobCoreConstants.TASK_STATUS_CLAIMED));
+        assertFalse(JobStatusHelper.isConcurrentlyFinalizedTask(_NopJobCoreConstants.TASK_STATUS_RUNNING));
+        assertFalse(JobStatusHelper.isConcurrentlyFinalizedTask(_NopJobCoreConstants.TASK_STATUS_SUCCESS));
+        assertFalse(JobStatusHelper.isConcurrentlyFinalizedTask(_NopJobCoreConstants.TASK_STATUS_FAILED));
+    }
+
+    @Test
+    void isConcurrentlyFinalizedTask_returnsFalseForNull() {
+        assertFalse(JobStatusHelper.isConcurrentlyFinalizedTask(null));
+    }
 }
