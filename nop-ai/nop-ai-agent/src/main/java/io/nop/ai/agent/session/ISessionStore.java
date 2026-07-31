@@ -2,7 +2,10 @@ package io.nop.ai.agent.session;
 
 import java.util.Collection;
 import java.util.Map;
+import java.util.function.Predicate;
+
 import io.nop.ai.agent.engine.NopAiAgentException;
+import io.nop.ai.api.chat.messages.ChatMessage;
 
 public interface ISessionStore {
 
@@ -124,6 +127,35 @@ public interface ISessionStore {
      */
     default String forkSession(String parentSessionId, boolean inheritContext, Map<String, Object> props) {
         throw new UnsupportedOperationException("forkSession requires VfsSessionStore");
+    }
+
+    /**
+     * Fork a session with an optional message filter (security hook, MA6.5-AR-8).
+     * <p>
+     * When {@code messageFilter} is non-null and {@code inheritContext} is
+     * {@code true}, only the parent messages accepted by the filter are copied
+     * into the child session. A null filter preserves the default full
+     * inheritance behaviour of {@link #forkSession(String, boolean, Map)}.
+     * <p>
+     * Fail-fast: an implementation that does not support message filtering
+     * must throw {@link UnsupportedOperationException} when a non-null filter
+     * is supplied — it must not silently ignore the filter (Minimum Rules #24).
+     *
+     * @param parentSessionId the parent session to fork from
+     * @param inheritContext  whether to inherit the parent's message history,
+     *                        planId, and metadata
+     * @param props           additional properties (agentName override + metadata entries)
+     * @param messageFilter   message predicate applied to the inherited history;
+     *                        null = inherit all messages (default behaviour)
+     * @return the new child session id
+     */
+    default String forkSession(String parentSessionId, boolean inheritContext, Map<String, Object> props,
+                               Predicate<ChatMessage> messageFilter) {
+        if (messageFilter == null) {
+            return forkSession(parentSessionId, inheritContext, props);
+        }
+        throw new UnsupportedOperationException(
+                "forkSession with message filter requires store support (FileBackedSessionStore/InMemorySessionStore/DBSessionStore)");
     }
 
     default long appendEvent(String sessionId, VfsEvent event) {

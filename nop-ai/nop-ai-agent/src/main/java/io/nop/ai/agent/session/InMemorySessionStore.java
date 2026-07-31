@@ -1,12 +1,16 @@
 package io.nop.ai.agent.session;
 
 import io.nop.ai.agent.engine.NopAiAgentException;
+import io.nop.ai.api.chat.messages.ChatMessage;
 
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.function.Predicate;
+import java.util.stream.Collectors;
 
 public class InMemorySessionStore implements ISessionStore {
 
@@ -76,6 +80,12 @@ public class InMemorySessionStore implements ISessionStore {
 
     @Override
     public String forkSession(String parentSessionId, boolean inheritContext, Map<String, Object> props) {
+        return forkSession(parentSessionId, inheritContext, props, null);
+    }
+
+    @Override
+    public String forkSession(String parentSessionId, boolean inheritContext, Map<String, Object> props,
+                              Predicate<ChatMessage> messageFilter) {
         AgentSession parent = sessions.get(parentSessionId);
         if (parent == null) {
             throw new NopAiAgentException(
@@ -87,7 +97,7 @@ public class InMemorySessionStore implements ISessionStore {
         AgentSession child = AgentSession.create(childSessionId, childAgentName);
 
         if (inheritContext) {
-            child.appendMessages(parent.getMessages());
+            child.appendMessages(filterMessages(parent.getMessages(), messageFilter));
             child.setPlanId(parent.getPlanId());
             child.setMetadata(parent.getMetadata());
         }
@@ -98,6 +108,13 @@ public class InMemorySessionStore implements ISessionStore {
         sessions.put(childSessionId, child);
 
         return childSessionId;
+    }
+
+    private static List<ChatMessage> filterMessages(List<ChatMessage> messages, Predicate<ChatMessage> filter) {
+        if (filter == null) {
+            return messages;
+        }
+        return messages.stream().filter(filter).collect(Collectors.toList());
     }
 
     private static String resolveChildAgentName(AgentSession parent, Map<String, Object> props) {

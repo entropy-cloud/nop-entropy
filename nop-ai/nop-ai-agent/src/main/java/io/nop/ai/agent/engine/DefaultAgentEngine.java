@@ -145,6 +145,7 @@ import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Function;
+import java.util.function.Predicate;
 
 public class DefaultAgentEngine implements IAgentEngine {
 
@@ -158,6 +159,10 @@ public class DefaultAgentEngine implements IAgentEngine {
     private final IToolAccessChecker toolAccessChecker;
     private final IPathAccessChecker pathAccessChecker;
     private final IContentGuardrail contentGuardrail;
+    // Optional message filter applied by forkSession when context inheritance
+    // is requested (MA6.5-AR-8). null = inherit all parent messages (default,
+    // backward compatible). Registered via setForkMessageFilter / builder.
+    private Predicate<ChatMessage> forkMessageFilter;
     private final IModelRouter modelRouter;
     private final IContextCompactor contextCompactor;
     private final ITokenEstimator tokenEstimator;
@@ -463,6 +468,7 @@ public class DefaultAgentEngine implements IAgentEngine {
         private IToolAccessChecker toolAccessChecker = new DefaultToolAccessChecker();
         private IPathAccessChecker pathAccessChecker = new DefaultPathAccessChecker();
         private IContentGuardrail contentGuardrail = NoOpContentGuardrail.noOp();
+        private Predicate<ChatMessage> forkMessageFilter;
         private IModelRouter modelRouter = PassThroughModelRouter.passThrough();
         private IContextCompactor contextCompactor;
         private List<ITalent> talents = java.util.Collections.emptyList();
@@ -510,6 +516,7 @@ public class DefaultAgentEngine implements IAgentEngine {
         public Builder toolAccessChecker(IToolAccessChecker val) { this.toolAccessChecker = val; return this; }
         public Builder pathAccessChecker(IPathAccessChecker val) { this.pathAccessChecker = val; return this; }
         public Builder contentGuardrail(IContentGuardrail val) { this.contentGuardrail = val; return this; }
+        public Builder forkMessageFilter(Predicate<ChatMessage> val) { this.forkMessageFilter = val; return this; }
         public Builder modelRouter(IModelRouter val) { this.modelRouter = val; return this; }
         public Builder contextCompactor(IContextCompactor val) { this.contextCompactor = val; return this; }
         public Builder talents(List<ITalent> val) { this.talents = val; return this; }
@@ -558,6 +565,7 @@ public class DefaultAgentEngine implements IAgentEngine {
 
         private void applyTo(DefaultAgentEngine engine) {
             if (talents != null) engine.setTalents(talents);
+            if (forkMessageFilter != null) engine.setForkMessageFilter(forkMessageFilter);
             if (skillProvider != null) engine.setSkillProvider(skillProvider);
             if (skillCurator != null) engine.setSkillCurator(skillCurator);
             if (toolCallRepairer != null) engine.setToolCallRepairer(toolCallRepairer);
@@ -895,6 +903,15 @@ public class DefaultAgentEngine implements IAgentEngine {
         IAgentMessenger resolved = messenger != null ? messenger : NoOpAgentMessenger.noOp();
         this.messenger = resolved;
         registerCallAgentHandler(resolved);
+    }
+
+    /**
+     * Register the optional message filter applied by {@link #forkSession}
+     * when context inheritance is requested (MA6.5-AR-8). null (default)
+     * preserves the full-inheritance behaviour.
+     */
+    public void setForkMessageFilter(Predicate<ChatMessage> forkMessageFilter) {
+        this.forkMessageFilter = forkMessageFilter;
     }
 
     /**
@@ -2136,7 +2153,7 @@ public class DefaultAgentEngine implements IAgentEngine {
                 props.putAll(request.getMetadata());
             }
 
-            String childSessionId = sessionStore.forkSession(parentSessionId, inheritContext, props);
+            String childSessionId = sessionStore.forkSession(parentSessionId, inheritContext, props, forkMessageFilter);
 
             Map<String, Object> eventPayload = new HashMap<>();
             eventPayload.put("parentSessionId", parentSessionId);

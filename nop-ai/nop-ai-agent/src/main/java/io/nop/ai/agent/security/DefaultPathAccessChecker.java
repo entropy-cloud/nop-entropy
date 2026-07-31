@@ -7,6 +7,8 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
@@ -52,6 +54,36 @@ public class DefaultPathAccessChecker implements IPathAccessChecker {
         SENSITIVE_PREFIX_PATTERNS = prefixes.toArray(new String[0]);
     }
 
+    /**
+     * Instance-level sensitive-path rules: the built-in defaults extended by
+     * any additional patterns injected via the constructor (MA5.4-P2-3).
+     * The built-in default set is never modified.
+     */
+    private final List<String> sensitivePrefixPatterns = new ArrayList<>(Arrays.asList(SENSITIVE_PREFIX_PATTERNS));
+
+    private final Set<String> sensitiveFilenames = new HashSet<>(SENSITIVE_FILENAMES);
+
+    public DefaultPathAccessChecker() {
+    }
+
+    /**
+     * Inject additional sensitive-path rules (appended to, never replacing,
+     * the built-in defaults). Null or empty arguments are ignored.
+     *
+     * @param extraSensitivePrefixes additional path prefixes denied by
+     *                               {@code sensitive_path_prefix}; may be null
+     * @param extraSensitiveFilenames additional filenames denied by
+     *                                {@code sensitive_path_filename}; may be null
+     */
+    public DefaultPathAccessChecker(List<String> extraSensitivePrefixes, Set<String> extraSensitiveFilenames) {
+        if (extraSensitivePrefixes != null) {
+            this.sensitivePrefixPatterns.addAll(extraSensitivePrefixes);
+        }
+        if (extraSensitiveFilenames != null) {
+            this.sensitiveFilenames.addAll(extraSensitiveFilenames);
+        }
+    }
+
     @Override
     public PathAccessResult checkAccess(String path, AgentExecutionContext ctx) {
         if (path == null || path.trim().isEmpty()) {
@@ -76,7 +108,7 @@ public class DefaultPathAccessChecker implements IPathAccessChecker {
 
         String lower = normalized.toLowerCase();
 
-        for (String prefix : SENSITIVE_PREFIX_PATTERNS) {
+        for (String prefix : sensitivePrefixPatterns) {
             if (lower.startsWith(prefix.toLowerCase())) {
                 return PathAccessResult.denyByRule("sensitive_path_prefix", normalized);
             }
@@ -87,7 +119,7 @@ public class DefaultPathAccessChecker implements IPathAccessChecker {
             if (fileName.equals(".env") || fileName.startsWith(".env.")) {
                 return PathAccessResult.denyByRule("sensitive_path_env_file", normalized);
             }
-            if (SENSITIVE_FILENAMES.contains(fileName)) {
+            if (sensitiveFilenames.contains(fileName)) {
                 return PathAccessResult.denyByRule("sensitive_path_filename", normalized);
             }
         }
@@ -117,9 +149,9 @@ public class DefaultPathAccessChecker implements IPathAccessChecker {
      * symlink-resolved real path. Returns a denial if the real path hits a
      * sensitive rule, or {@code null} if the real path is allowed.
      */
-    private static PathAccessResult checkSensitiveRealPath(String realPath) {
+    private PathAccessResult checkSensitiveRealPath(String realPath) {
         String realLower = realPath.toLowerCase();
-        for (String prefix : SENSITIVE_PREFIX_PATTERNS) {
+        for (String prefix : sensitivePrefixPatterns) {
             if (realLower.startsWith(prefix.toLowerCase())) {
                 return PathAccessResult.denyByRule("sensitive_path_symlink", realPath);
             }
@@ -129,7 +161,7 @@ public class DefaultPathAccessChecker implements IPathAccessChecker {
             if (realFileName.equals(".env") || realFileName.startsWith(".env.")) {
                 return PathAccessResult.denyByRule("sensitive_path_env_file", realPath);
             }
-            if (SENSITIVE_FILENAMES.contains(realFileName)) {
+            if (sensitiveFilenames.contains(realFileName)) {
                 return PathAccessResult.denyByRule("sensitive_path_filename", realPath);
             }
         }

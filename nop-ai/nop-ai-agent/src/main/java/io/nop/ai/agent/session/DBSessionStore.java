@@ -4,6 +4,7 @@ import io.nop.ai.agent.engine.NopAiAgentException;
 import io.nop.ai.agent.security.ITenantResolver;
 import io.nop.ai.agent.security.NullTenantResolver;
 import io.nop.ai.agent.security.TenantSql;
+import io.nop.ai.api.chat.messages.ChatMessage;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -16,10 +17,13 @@ import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.function.Predicate;
+import java.util.stream.Collectors;
 
 /**
  * Database-backed {@link ISessionStore} — the third implementation (sibling of
@@ -334,6 +338,12 @@ public class DBSessionStore implements ISessionStore {
 
     @Override
     public String forkSession(String parentSessionId, boolean inheritContext, Map<String, Object> props) {
+        return forkSession(parentSessionId, inheritContext, props, null);
+    }
+
+    @Override
+    public String forkSession(String parentSessionId, boolean inheritContext, Map<String, Object> props,
+                              Predicate<ChatMessage> messageFilter) {
         AgentSession parent = get(parentSessionId);
         if (parent == null) {
             throw new NopAiAgentException(
@@ -345,7 +355,7 @@ public class DBSessionStore implements ISessionStore {
         AgentSession child = AgentSession.create(childSessionId, childAgentName);
 
         if (inheritContext) {
-            child.appendMessages(parent.getMessages());
+            child.appendMessages(filterMessages(parent.getMessages(), messageFilter));
             child.setPlanId(parent.getPlanId());
             child.setMetadata(parent.getMetadata());
         }
@@ -356,6 +366,13 @@ public class DBSessionStore implements ISessionStore {
         save(child);
 
         return childSessionId;
+    }
+
+    private static List<ChatMessage> filterMessages(List<ChatMessage> messages, Predicate<ChatMessage> filter) {
+        if (filter == null) {
+            return messages;
+        }
+        return messages.stream().filter(filter).collect(Collectors.toList());
     }
 
     // ========================================================================
