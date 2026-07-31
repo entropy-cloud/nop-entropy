@@ -249,6 +249,7 @@ MA5+MA6 产出的 P1 发现展开为具体修复工作项
 |------|---------------|---------|------|
 | 第一批（代码质量） | `ai-dev/plans/2026-07-31-1446-2-arm-ma4-p2-code-quality.md` | MA4.1 P2（5）+ MA4.2 P2（7）+ MA4.5 P2（7）批量修复 | ✅（closed 2026-07-31） |
 | 第二批（测试质量） | `ai-dev/plans/2026-07-31-1446-3-arm-ma4-p2-test-quality.md` | MA4.3 P2（含 MA4.3-14）+ MA4.4 P2 批量修复 | ✅（closed 2026-07-31） |
+| 第三批（安全优先） | `ai-dev/plans/2026-07-31-1834-1-arm-p2-security-hardening.md` | 安全类 P2 批量修复：P2-MA3-023、MA6.2-AR-5/6/7 残余、MA6.5-AR-7/8/9、MA5.5-AR-6/7、MA6.1-AR-7、P2-MA3-026、MA5.4-P2-1/2/3/5 | ✅（closed 2026-07-31） |
 
 其余 MA1-MA3/MA5-MA6 各里程碑的 P2/P3 findings 已由 MR1/MR2/MR3 计划逐批裁定为 `out-of-scope improvement`（MV 矩阵 open=0，无已确认 live defect 残留），登记为 **watch-only residual**：后续批次按严重度排序另行规划，本批不入 scope。
 
