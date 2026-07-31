@@ -28,6 +28,12 @@
         <when test="${pageModel.type == 'tabs'}">
             <c:include src="page_tabs.xpl"/>
         </when>
+        <when test="${pageModel.type == 'wizard'}">
+            <c:include src="page_wizard.xpl"/>
+        </when>
+        <when test="${pageModel.type == 'group'}">
+            <c:include src="page_group.xpl"/>
+        </when>
         <otherwise>
             <thisLib:GenPageDefault />
         </otherwise>

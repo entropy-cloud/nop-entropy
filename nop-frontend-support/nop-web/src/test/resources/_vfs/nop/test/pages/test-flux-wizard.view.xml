@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<view bizObjName="TestFluxWizard" x:schema="/nop/schema/xui/xview.xdef" xmlns:x="/nop/schema/xdsl.xdef">
+    <objMeta>test-flux-wizard.xmeta</objMeta>
+    <controlLib>/nop/web/xlib/flux-control.xlib</controlLib>
+
+    <grids>
+        <grid id="list">
+            <cols>
+                <col id="id" sortable="true"/>
+                <col id="name" sortable="true"/>
+            </cols>
+        </grid>
+    </grids>
+
+    <forms>
+        <form id="step1" editMode="edit">
+            <layout>
+                name status
+            </layout>
+        </form>
+        <form id="finish" editMode="edit">
+            <layout>
+                remark
+            </layout>
+        </form>
+    </forms>
+
+    <pages>
+        <wizard name="main" mode="vertical" actionPrevLabel="上一步" actionNextLabel="下一步" actionFinishLabel="完成">
+            <step name="step-simple" title="Step Simple">
+                <simple name="inner-simple" form="step1"/>
+            </step>
+            <step name="step-crud" title="Step Crud">
+                <crud name="inner-crud" grid="list">
+                    <table>
+                        <api url="@query:TestFluxWizard__findPage" gql:selection="{@pageSelection}"/>
+                    </table>
+                </crud>
+            </step>
+            <step name="step-page" title="Step Page" page="finish"/>
+        </wizard>
+
+        <simple name="finish" form="finish">
+            <initApi url="@query:TestFluxWizard__get?id=${id}" gql:selection="{@formSelection}"/>
+        </simple>
+    </pages>
+</view>

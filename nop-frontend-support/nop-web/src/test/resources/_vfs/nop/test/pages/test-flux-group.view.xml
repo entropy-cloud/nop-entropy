@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<view bizObjName="TestFluxGroup" x:schema="/nop/schema/xui/xview.xdef" xmlns:x="/nop/schema/xdsl.xdef">
+    <objMeta>test-flux-group.xmeta</objMeta>
+    <controlLib>/nop/web/xlib/flux-control.xlib</controlLib>
+
+    <grids>
+        <grid id="list">
+            <cols>
+                <col id="id" sortable="true"/>
+                <col id="name" sortable="true"/>
+            </cols>
+        </grid>
+    </grids>
+
+    <forms>
+        <form id="edit" editMode="edit">
+            <layout>
+                name status remark
+            </layout>
+        </form>
+    </forms>
+
+    <pages>
+        <group name="main" columns="2" gap="8" autoFlow="row-dense"
+               alignItems="baseline" justifyItems="normal" responsiveColumns="1fr 2fr">
+            <crud name="grid-a" grid="list" colSpan="2" rowSpan="1">
+                <table>
+                    <api url="@query:TestFluxGroup__findPage" gql:selection="{@pageSelection}"/>
+                </table>
+            </crud>
+            <simple name="form-b" form="edit"/>
+        </group>
+    </pages>
+</view>

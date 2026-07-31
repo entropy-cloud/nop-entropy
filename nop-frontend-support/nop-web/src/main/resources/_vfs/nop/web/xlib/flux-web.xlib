@@ -25,6 +25,44 @@
             </source>
         </GenPageDefault>
 
+        <!--
+        @containerModel 页面级与 body 级共用的容器分派标签：按 UiContainerModel.type 分派到
+        crud/simple/tabs/wizard/group 五类容器渲染，均不包 page 外壳。
+        body 容器类型不含 picker（Flux 无页面级 picker schema），配置 picker 落入 otherwise 抛错。
+        -->
+        <GenContainerModel outputMode="xjson">
+            <attr name="containerModel" mandatory="true"/>
+            <attr name="viewModel" implicit="true"/>
+            <attr name="objMeta" implicit="true"/>
+            <attr name="controlLib" implicit="true"/>
+            <attr name="bizObjName" implicit="true"/>
+            <attr name="i18nRoot" implicit="true"/>
+            <attr name="fixedProps" optional="true" stdDomain="csv-set"/>
+
+            <source>
+                <c:choose>
+                    <when test="${containerModel.type == 'crud'}">
+                        <c:include src="flux-web/container_crud.xpl"/>
+                    </when>
+                    <when test="${containerModel.type == 'simple'}">
+                        <c:include src="flux-web/container_simple.xpl"/>
+                    </when>
+                    <when test="${containerModel.type == 'tabs'}">
+                        <c:include src="flux-web/container_tabs.xpl"/>
+                    </when>
+                    <when test="${containerModel.type == 'wizard'}">
+                        <c:include src="flux-web/container_wizard.xpl"/>
+                    </when>
+                    <when test="${containerModel.type == 'group'}">
+                        <c:include src="flux-web/container_group.xpl"/>
+                    </when>
+                    <otherwise>
+                        <c:throw errorCode="nop.err.web.unknown-page-type" params="${{type:containerModel.type}}"/>
+                    </otherwise>
+                </c:choose>
+            </source>
+        </GenContainerModel>
+
         <GenForm outputMode="xjson">
             <attr name="view" mandatory="true" type="String" stdDomain="v-path"/>
             <attr name="form" mandatory="true" type="string"/>
@@ -199,12 +237,13 @@
                             </c:script>
 
                             <_ title="@i18n:forms.${i18nRoot}.${formModel.id}.${formTable.id}|${formTable.label}" name="${formTable.id}">
+                                <key>${formTable.id}</key>
                                 <visible>${groupModel?.visibleOn}</visible>
-                                <tab j:list="true">
+                                <body j:list="true">
                                     <c:for var="formRow" items="${formTable.rows}" index="rowIndex">
                                         <thisLib:GenFormRow formRow="${formRow}" rowIndex="${rowIndex}"/>
                                     </c:for>
-                                </tab>
+                                </body>
                             </_>
                         </c:for>
                     </items>
@@ -953,8 +992,11 @@
         <FluxTabDefaultAttrs outputMode="none">
             <attr name="tabModel"/>
             <source><![CDATA[
-                return _.pickNotNull(tabModel,["icon", "title","iconPosition","name",
-                    "unmountOnExit", "hash","reload", "className", "disabled"])
+                const attrs = _.pickNotNull(tabModel,["icon", "title","iconPosition","name",
+                    "unmountOnExit", "hash","reload", "className", "disabled"]);
+                // Flux TabsItemSchema 用 key/value 定位激活 tab；key 来自 tab 的 name
+                attrs.key = tabModel.name;
+                return attrs;
             ]]></source>
         </FluxTabDefaultAttrs>
     </tags>

@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<view bizObjName="TestFluxTabs" x:schema="/nop/schema/xui/xview.xdef" xmlns:x="/nop/schema/xdsl.xdef">
+    <objMeta>test-flux-tabs.xmeta</objMeta>
+    <controlLib>/nop/web/xlib/flux-control.xlib</controlLib>
+
+    <forms>
+        <form id="edit" editMode="edit" layoutControl="tabs">
+            <layout>
+                =====base[基本信息]======
+                name status
+                =====more[更多信息]======
+                remark
+            </layout>
+        </form>
+        <form id="add" editMode="add" x:prototype="edit"/>
+    </forms>
+
+    <pages>
+        <tabs name="main">
+            <tab name="tab-page" title="Page Tab" page="add"/>
+            <tab name="tab-body" title="Body Tab">
+                <simple name="inner-form" form="edit"/>
+            </tab>
+        </tabs>
+
+        <simple name="add" form="add">
+            <api url="@mutation:TestFluxTabs__save/id"/>
+        </simple>
+    </pages>
+</view>
