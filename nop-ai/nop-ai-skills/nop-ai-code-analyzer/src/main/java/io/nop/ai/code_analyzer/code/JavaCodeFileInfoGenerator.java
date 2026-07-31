@@ -96,7 +96,7 @@ public class JavaCodeFileInfoGenerator {
             }
             @SuppressWarnings("unchecked")
             List<Map<String, Object>> functions = (List<Map<String, Object>>) functionsObj;
-            CodeFileInfo.CodeClassInfo cls = fileInfo.getClassInfo(name);
+            CodeClassInfo cls = fileInfo.getClassInfo(name);
             if (cls == null) {
                 LOG.info("nop.ai.code.ignore-unknown-class-for-summary:class={},file={}", name, fileName);
                 continue;
@@ -105,7 +105,7 @@ public class JavaCodeFileInfoGenerator {
             for (Map<String, Object> fnJson : functions) {
                 String fnName = (String) fnJson.get("name");
                 String fnSummary = (String) fnJson.get("summary");
-                CodeFileInfo.CodeFunctionInfo fn = cls.getFunction(fnName);
+                CodeFunctionInfo fn = cls.getFunction(fnName);
                 if (fn == null) {
                     LOG.info("nop.ai.code.ignore-unknown-function-for-summary:function={},class={},file={}", fnName, name, fileName);
                     continue;

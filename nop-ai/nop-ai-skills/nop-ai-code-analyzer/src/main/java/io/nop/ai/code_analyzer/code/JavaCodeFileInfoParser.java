@@ -1,5 +1,9 @@
 package io.nop.ai.code_analyzer.code;
 
+import io.nop.api.core.exceptions.NopException;
+import io.nop.commons.util.FileHelper;
+import io.nop.commons.util.IoHelper;
+
 import com.github.javaparser.JavaParser;
 import com.github.javaparser.ast.AccessSpecifier;
 import com.github.javaparser.ast.CompilationUnit;
@@ -22,9 +26,6 @@ import com.github.javaparser.resolution.declarations.ResolvedMethodDeclaration;
 import com.github.javaparser.resolution.declarations.ResolvedReferenceTypeDeclaration;
 import com.github.javaparser.resolution.declarations.ResolvedValueDeclaration;
 import com.github.javaparser.resolution.types.ResolvedType;
-import io.nop.api.core.exceptions.NopException;
-import io.nop.commons.util.FileHelper;
-import io.nop.commons.util.IoHelper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -87,7 +88,7 @@ public class JavaCodeFileInfoParser {
             fileInfo.setImports(imports);
 
             // Parse classes
-            List<CodeFileInfo.CodeClassInfo> classes = new ArrayList<>();
+            List<CodeClassInfo> classes = new ArrayList<>();
             new ClassVisitor(fileInfo).visit(cu, classes);
 
             // For simplicity, we're not setting all fields of CodeFileInfo
@@ -102,7 +103,7 @@ public class JavaCodeFileInfoParser {
         }
     }
 
-    private class ClassVisitor extends VoidVisitorAdapter<List<CodeFileInfo.CodeClassInfo>> {
+    private class ClassVisitor extends VoidVisitorAdapter<List<CodeClassInfo>> {
         private final CodeFileInfo fileInfo;
         private String currentPackage;
         private String currentOuterClassName = "";
@@ -114,8 +115,8 @@ public class JavaCodeFileInfoParser {
         }
 
         @Override
-        public void visit(EnumDeclaration enumDecl, List<CodeFileInfo.CodeClassInfo> classes) {
-            CodeFileInfo.CodeClassInfo classInfo = new CodeFileInfo.CodeClassInfo();
+        public void visit(EnumDeclaration enumDecl, List<CodeClassInfo> classes) {
+            CodeClassInfo classInfo = new CodeClassInfo();
             String className = getFullClassName(enumDecl);
             classInfo.setName(className);
             classInfo.setLine(enumDecl.getBegin().map(p -> p.line).orElse(-1));
@@ -130,11 +131,11 @@ public class JavaCodeFileInfoParser {
         }
 
         @Override
-        public void visit(ClassOrInterfaceDeclaration classDecl, List<CodeFileInfo.CodeClassInfo> classes) {
+        public void visit(ClassOrInterfaceDeclaration classDecl, List<CodeClassInfo> classes) {
             String originalOuterClassName = currentOuterClassName;
 
             // Create class info
-            CodeFileInfo.CodeClassInfo classInfo = new CodeFileInfo.CodeClassInfo();
+            CodeClassInfo classInfo = new CodeClassInfo();
             String className = getFullClassName(classDecl);
             classInfo.setName(className);
             classInfo.setLine(classDecl.getBegin().map(p -> p.line).orElse(-1));
@@ -168,7 +169,7 @@ public class JavaCodeFileInfoParser {
             currentOuterClassName = className;
 
             // Parse fields - with fully qualified type names
-            List<CodeFileInfo.CodeVariableInfo> fields = new ArrayList<>();
+            List<CodeVariableInfo> fields = new ArrayList<>();
             for (FieldDeclaration field : classDecl.getFields()) {
                 AccessSpecifier accessSpecifier = field.getAccessSpecifier();
                 boolean isPublic = accessSpecifier == AccessSpecifier.PUBLIC;
@@ -176,7 +177,7 @@ public class JavaCodeFileInfoParser {
                     continue;
 
                 for (VariableDeclarator var : field.getVariables()) {
-                    CodeFileInfo.CodeVariableInfo varInfo = new CodeFileInfo.CodeVariableInfo();
+                    CodeVariableInfo varInfo = new CodeVariableInfo();
                     varInfo.setName(var.getNameAsString());
 
                     try {
@@ -193,9 +194,9 @@ public class JavaCodeFileInfoParser {
             classInfo.setVariables(fields);
 
             // Parse methods
-            List<CodeFileInfo.CodeFunctionInfo> methods = new ArrayList<>();
+            List<CodeFunctionInfo> methods = new ArrayList<>();
             for (MethodDeclaration method : classDecl.getMethods()) {
-                CodeFileInfo.CodeFunctionInfo methodInfo = parseMethod(method, classInfo);
+                CodeFunctionInfo methodInfo = parseMethod(method, classInfo);
                 methods.add(methodInfo);
             }
             classInfo.setFunctions(methods);
@@ -213,12 +214,12 @@ public class JavaCodeFileInfoParser {
             currentOuterClassName = originalOuterClassName;
         }
 
-        private CodeFileInfo.CodeFunctionInfo parseMethod(MethodDeclaration method, CodeFileInfo.CodeClassInfo classInfo) {
+        private CodeFunctionInfo parseMethod(MethodDeclaration method, CodeClassInfo classInfo) {
             String ownerClassName = classInfo.getName();
             String fnName = ownerClassName + "::" + method.getNameAsString() + "(" + method.getParameters().size() + ")";
-            CodeFileInfo.AccessModifier specifier = getAccessModifier(method.getAccessSpecifier());
+            AccessModifier specifier = getAccessModifier(method.getAccessSpecifier());
 
-            CodeFileInfo.CodeFunctionInfo methodInfo = classInfo.makeFunction(fnName);
+            CodeFunctionInfo methodInfo = classInfo.makeFunction(fnName);
             methodInfo.setLine(method.getBegin().map(p -> p.line).orElse(-1));
             methodInfo.setSignature(buildMethodSignature(method));
 
@@ -247,16 +248,16 @@ public class JavaCodeFileInfoParser {
             return currentOuterClassName + "." + className;
         }
 
-        private CodeFileInfo.AccessModifier getAccessModifier(AccessSpecifier specifier) {
+        private AccessModifier getAccessModifier(AccessSpecifier specifier) {
             switch (specifier) {
                 case PUBLIC:
-                    return CodeFileInfo.AccessModifier.PUBLIC;
+                    return AccessModifier.PUBLIC;
                 case PRIVATE:
-                    return CodeFileInfo.AccessModifier.PRIVATE;
+                    return AccessModifier.PRIVATE;
                 case PROTECTED:
-                    return CodeFileInfo.AccessModifier.PROTECTED;
+                    return AccessModifier.PROTECTED;
                 default:
-                    return CodeFileInfo.AccessModifier.PACKAGE_PRIVATE;
+                    return AccessModifier.PACKAGE_PRIVATE;
             }
         }
     }
@@ -367,7 +368,7 @@ public class JavaCodeFileInfoParser {
         return param.getType().asString() + " " + param.getNameAsString();
     }
 
-    private class MethodBodyVisitor extends VoidVisitorAdapter<CodeFileInfo.CodeFunctionInfo> {
+    private class MethodBodyVisitor extends VoidVisitorAdapter<CodeFunctionInfo> {
         private final CodeFileInfo fileInfo;
         private final String ownerClassName;
 
@@ -377,7 +378,7 @@ public class JavaCodeFileInfoParser {
         }
 
         @Override
-        public void visit(MethodCallExpr call, CodeFileInfo.CodeFunctionInfo methodInfo) {
+        public void visit(MethodCallExpr call, CodeFunctionInfo methodInfo) {
             super.visit(call, methodInfo);
 
             try {
@@ -418,7 +419,7 @@ public class JavaCodeFileInfoParser {
         }
 
         @Override
-        public void visit(NameExpr nameExpr, CodeFileInfo.CodeFunctionInfo methodInfo) {
+        public void visit(NameExpr nameExpr, CodeFunctionInfo methodInfo) {
             super.visit(nameExpr, methodInfo);
 
             try {
@@ -433,7 +434,7 @@ public class JavaCodeFileInfoParser {
         }
 
         @Override
-        public void visit(FieldAccessExpr fieldAccess, CodeFileInfo.CodeFunctionInfo methodInfo) {
+        public void visit(FieldAccessExpr fieldAccess, CodeFunctionInfo methodInfo) {
             super.visit(fieldAccess, methodInfo);
 
             try {
@@ -447,7 +448,7 @@ public class JavaCodeFileInfoParser {
             }
         }
 
-        private void addField(CodeFileInfo.CodeFunctionInfo methodInfo, ResolvedFieldDeclaration field) {
+        private void addField(CodeFunctionInfo methodInfo, ResolvedFieldDeclaration field) {
             boolean isPublic = field.accessSpecifier() == AccessSpecifier.PUBLIC;
             if (isPublic) {
                 // 获取字段详细信息

@@ -1,12 +1,9 @@
 package io.nop.ai.code_analyzer.code;
 
-import com.fasterxml.jackson.annotation.JsonIgnore;
-import com.fasterxml.jackson.annotation.JsonInclude;
 import io.nop.api.core.annotations.data.DataBean;
-import io.nop.commons.util.CollectionHelper;
-import io.nop.commons.util.StringHelper;
 
-import java.util.ArrayList;
+import com.fasterxml.jackson.annotation.JsonInclude;
+
 import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -16,366 +13,6 @@ import java.util.Set;
 
 @DataBean
 public class CodeFileInfo {
-
-    public enum AccessModifier {
-        PRIVATE, PACKAGE_PRIVATE, PROTECTED, PUBLIC
-    }
-
-    @DataBean
-    public static class CodeSymbol {
-        private String name;
-        private int line;
-        private Map<String, String> metadata;
-
-
-        // Getters and setters
-        public String getName() {
-            return name;
-        }
-
-        public void setName(String name) {
-            this.name = name;
-        }
-
-        public int getLine() {
-            return line;
-        }
-
-        public void setLine(int line) {
-            this.line = line;
-        }
-
-        @JsonInclude(JsonInclude.Include.NON_EMPTY)
-        public Map<String, String> getMetadata() {
-            return metadata;
-        }
-
-        public void setMetadata(Map<String, String> metadata) {
-            this.metadata = metadata;
-        }
-
-
-        public void intern() {
-            name = internString(name);
-            if (metadata != null) {
-                metadata = internStringMap(metadata);
-            }
-        }
-    }
-
-    @DataBean
-    public static class CodeClassInfo extends CodeSymbol {
-        private String signature;
-        private AccessModifier accessModifier;
-        private String extendsType;
-        private Set<String> implementsTypes;
-        private List<CodeFunctionInfo> functions;
-        private List<CodeVariableInfo> variables;
-        private String summary;
-
-        @JsonInclude(JsonInclude.Include.NON_EMPTY)
-        public String getSignature() {
-            return signature;
-        }
-
-        public void setSignature(String signature) {
-            this.signature = signature;
-        }
-
-        public CodeFunctionInfo getFunction(String fnName) {
-            if (functions == null) {
-                return null;
-            }
-            return functions.stream().filter(fn ->
-                    Objects.equals(fn.getName(), fnName) || Objects.equals(fn.getSimpleName(), fnName)).findFirst().orElse(null);
-        }
-
-        @JsonIgnore
-        public String getSimpleClassName() {
-            return StringHelper.simpleClassName(getName());
-        }
-
-        public CodeFunctionInfo makeFunction(String fnName) {
-            CodeFunctionInfo fn = getFunction(fnName);
-            if (fn == null) {
-                fn = new CodeFunctionInfo();
-                fn.setName(fnName);
-                if (functions == null) {
-                    functions = new ArrayList<>();
-                }
-                functions.add(fn);
-            }
-            return fn;
-        }
-
-        @JsonInclude(JsonInclude.Include.NON_EMPTY)
-        public AccessModifier getAccessModifier() {
-            return accessModifier;
-        }
-
-        public void setAccessModifier(AccessModifier accessModifier) {
-            this.accessModifier = accessModifier;
-        }
-
-        @JsonInclude(JsonInclude.Include.NON_EMPTY)
-        public String getExtendsType() {
-            return extendsType;
-        }
-
-        public void setExtendsType(String extendsType) {
-            this.extendsType = extendsType;
-        }
-
-        @JsonInclude(JsonInclude.Include.NON_EMPTY)
-        public Set<String> getImplementsTypes() {
-            return implementsTypes;
-        }
-
-        public void setImplementsTypes(Set<String> implementsTypes) {
-            this.implementsTypes = implementsTypes;
-        }
-
-        @JsonInclude(JsonInclude.Include.NON_EMPTY)
-        public List<CodeFunctionInfo> getFunctions() {
-            return functions;
-        }
-
-        public void setFunctions(List<CodeFunctionInfo> functions) {
-            this.functions = functions;
-        }
-
-        @JsonInclude(JsonInclude.Include.NON_EMPTY)
-        public List<CodeVariableInfo> getVariables() {
-            return variables;
-        }
-
-        public void setVariables(List<CodeVariableInfo> variables) {
-            this.variables = variables;
-        }
-
-        @JsonInclude(JsonInclude.Include.NON_EMPTY)
-        public String getSummary() {
-            return summary;
-        }
-
-        public void setSummary(String summary) {
-            this.summary = summary;
-        }
-
-        public void intern() {
-            super.intern();
-            summary = internString(summary);
-            extendsType = internString(extendsType);
-            implementsTypes = internStringSet(implementsTypes);
-
-            if (functions != null) {
-                functions.forEach(CodeFunctionInfo::intern);
-            }
-            if (variables != null) {
-                variables.forEach(CodeVariableInfo::intern);
-            }
-        }
-    }
-
-
-    @DataBean
-    public static class CodeFunctionInfo extends CodeSymbol {
-        private String signature;
-        private Set<String> usedVars;
-        private Set<String> usedFns;
-        private String summary;
-
-
-        @JsonIgnore
-        public String getSimpleName() {
-            String name = getName();
-            int pos = name.indexOf("::");
-            if (pos > 0) {
-                int pos2 = name.indexOf('(', pos);
-                if (pos2 > 0)
-                    return name.substring(pos + 2, pos2);
-            }
-            return name;
-        }
-
-        @JsonIgnore
-        public String getOwnerClassName() {
-            return StringHelper.firstPart(getName(), ':');
-        }
-
-        @JsonInclude(JsonInclude.Include.NON_EMPTY)
-        public String getSignature() {
-            return signature;
-        }
-
-        public void setSignature(String signature) {
-            this.signature = signature;
-        }
-
-        @JsonInclude(JsonInclude.Include.NON_EMPTY)
-        public Set<String> getUsedVars() {
-            return usedVars;
-        }
-
-        public void setUsedVars(Set<String> usedVars) {
-            this.usedVars = usedVars;
-        }
-
-        public void setUsedFns(Set<String> usedFns) {
-            this.usedFns = usedFns;
-        }
-
-        @JsonInclude(JsonInclude.Include.NON_EMPTY)
-        public Set<String> getUsedFns() {
-            return usedFns;
-        }
-
-        public void addUsedFn(String fnName) {
-            if (usedFns == null) {
-                usedFns = new LinkedHashSet<>();
-            }
-            usedFns.add(fnName);
-        }
-
-        public void addUsedVar(String varName) {
-            if (usedVars == null) {
-                usedVars = new LinkedHashSet<>();
-            }
-            usedVars.add(varName);
-        }
-
-        @JsonInclude(JsonInclude.Include.NON_EMPTY)
-        public String getSummary() {
-            return summary;
-        }
-
-        public void setSummary(String summary) {
-            this.summary = summary;
-        }
-
-        public void intern() {
-            super.intern();
-            summary = internString(summary);
-
-            if (usedVars != null) {
-                usedVars = internStringSet(usedVars);
-            }
-            if (usedFns != null) {
-                usedFns = internStringSet(usedFns);
-            }
-        }
-    }
-
-    @DataBean
-    public static class CodeCallInfo {
-        private String ownerClassName;
-        private String fnName;
-        private List<CodeVariableInfo> params;
-
-
-        public String getOwnerClassName() {
-            return ownerClassName;
-        }
-
-        public void setOwnerClassName(String ownerClassName) {
-            this.ownerClassName = ownerClassName;
-        }
-
-        public String getFnName() {
-            return fnName;
-        }
-
-        public void setFnName(String fnName) {
-            this.fnName = fnName;
-        }
-
-        @JsonInclude(JsonInclude.Include.NON_EMPTY)
-        public List<CodeVariableInfo> getParams() {
-            return params;
-        }
-
-        public void setParams(List<CodeVariableInfo> params) {
-            this.params = params;
-        }
-
-        public void intern() {
-            ownerClassName = internString(ownerClassName);
-            fnName = internString(fnName);
-
-            if (params != null) {
-                params.forEach(CodeVariableInfo::intern);
-            }
-        }
-
-        @Override
-        public boolean equals(Object o) {
-            if (this == o) return true;
-            if (o == null || getClass() != o.getClass()) return false;
-            CodeCallInfo that = (CodeCallInfo) o;
-            return Objects.equals(ownerClassName, that.ownerClassName) &&
-                    Objects.equals(fnName, that.fnName) &&
-                    Objects.equals(params, that.params);
-        }
-
-        @Override
-        public int hashCode() {
-            return Objects.hash(ownerClassName, fnName, params);
-        }
-    }
-
-    @DataBean
-    public static class CodeVariableInfo {
-        private String name;
-        private String type;
-
-        public String getName() {
-            return name;
-        }
-
-        public void setName(String name) {
-            this.name = name;
-        }
-
-        public String getType() {
-            return type;
-        }
-
-        public void setType(String type) {
-            this.type = type;
-        }
-
-        public void intern() {
-            name = internString(name);
-            type = internString(type);
-        }
-
-        @Override
-        public boolean equals(Object o) {
-            if (this == o) return true;
-            if (o == null || getClass() != o.getClass()) return false;
-            CodeVariableInfo that = (CodeVariableInfo) o;
-            return Objects.equals(name, that.name) &&
-                    Objects.equals(type, that.type);
-        }
-
-        @Override
-        public int hashCode() {
-            return Objects.hash(name, type);
-        }
-    }
-
-    private String filePath;
-    private String packageName;
-    private String artifactId;
-    private long lastModified;
-    private String md5;
-    private String language; // e.g., "java", "python", etc.
-    private int lineCount; // total lines in file
-
-    private Set<String> imports;
-    private Map<String, String> metadata;
-    private String summary;
-    private List<CodeClassInfo> classes;
 
 //    public void trimPrivate() {
 //        if (classes != null) {
@@ -457,6 +94,19 @@ public class CodeFileInfo {
         }
         return null;
     }
+
+    private String filePath;
+    private String packageName;
+    private String artifactId;
+    private long lastModified;
+    private String md5;
+    private String language; // e.g., "java", "python", etc.
+    private int lineCount; // total lines in file
+
+    private Set<String> imports;
+    private Map<String, String> metadata;
+    private String summary;
+    private List<CodeClassInfo> classes;
 
     @JsonInclude(JsonInclude.Include.NON_EMPTY)
     public String getSummary() {
@@ -549,42 +199,19 @@ public class CodeFileInfo {
     }
 
     public void intern() {
-        filePath = internString(filePath);
-        packageName = internString(packageName);
-        artifactId = internString(artifactId);
-        md5 = internString(md5);
-        language = internString(language);
-        summary = internString(summary);
+        filePath = CodeSymbolInterning.internString(filePath);
+        packageName = CodeSymbolInterning.internString(packageName);
+        artifactId = CodeSymbolInterning.internString(artifactId);
+        md5 = CodeSymbolInterning.internString(md5);
+        language = CodeSymbolInterning.internString(language);
+        summary = CodeSymbolInterning.internString(summary);
 
         if (imports != null) {
-            imports = internStringSet(imports);
+            imports = CodeSymbolInterning.internStringSet(imports);
         }
 
         if (metadata != null) {
-            metadata = internStringMap(metadata);
+            metadata = CodeSymbolInterning.internStringMap(metadata);
         }
-    }
-
-    private static String internString(String str) {
-        return str != null ? str.intern() : null;
-    }
-
-    private static Set<String> internStringSet(Set<String> set) {
-        if (set == null) return null;
-        // 推荐：更直观的写法
-        Set<String> ret = new LinkedHashSet<>();
-        for (String s : set) {
-            ret.add(s != null ? s.intern() : null);
-        }
-        return ret;
-    }
-
-    private static Map<String, String> internStringMap(Map<String, String> map) {
-        if (map == null) return null;
-        Map<String, String> ret = CollectionHelper.newLinkedHashMap(map.size());
-        map.forEach((k, v) -> {
-            ret.put(internString(k), internString(v));
-        });
-        return ret;
     }
 }
