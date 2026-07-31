@@ -4,8 +4,13 @@
  * check-import-order.mjs
  *
  * Check import ordering in Java source files.
- * Expected order: java.* → jakarta.* → third-party → io.nop.*
+ * Expected order: io.nop.* → third-party (incl. jakarta.* and javax.*) → java.*
  * Groups should be separated by blank lines.
+ * Static imports are expected last.
+ *
+ * NOTE: The expected order follows the actual codebase convention
+ * (see AGENTS.md and ai-dev/audits/2026-07-31-0539-arm-MA4.2-nop-ai-style.md MA4.2-14).
+ * This tool is advisory (AI code generation guidance), not a CI hard gate.
  *
  * Usage:
  *   node check-import-order.mjs                          # check all modules
@@ -24,14 +29,14 @@ const args = process.argv.slice(2);
 const FIX_MODE = args.includes('--fix');
 const moduleArg = args.find((a, i) => args[i - 1] === '--module');
 
-function classifyImport(importPath) {
-  if (importPath.startsWith('java.')) return 'java';
-  if (importPath.startsWith('javax.') || importPath.startsWith('jakarta.')) return 'jakarta';
+function classifyImport(importPath, isStatic) {
+  if (isStatic) return 'static';
   if (importPath.startsWith('io.nop.')) return 'nop';
-  return 'third';
+  if (importPath.startsWith('java.')) return 'java';
+  return 'third'; // third-party, incl. jakarta.* / javax.*
 }
 
-const CATEGORY_ORDER = { java: 0, jakarta: 1, third: 2, nop: 3 };
+const CATEGORY_ORDER = { nop: 0, third: 1, java: 2, static: 3 };
 
 async function getJavaFiles() {
   const target = moduleArg ? moduleArg : '.';
@@ -56,10 +61,10 @@ function checkFileContent(content, filePath) {
 
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i];
-    const match = line.match(/^import\s+(?:static\s+)?([a-zA-Z0-9_.]+)/);
+    const match = line.match(/^import\s+(static\s+)?([a-zA-Z0-9_.]+)/);
     if (match) {
       inImportBlock = true;
-      imports.push({ lineNum: i + 1, importPath: match[1], raw: line });
+      imports.push({ lineNum: i + 1, importPath: match[2], raw: line, isStatic: !!match[1] });
     } else if (inImportBlock && line.trim() === '') {
       // blank line between imports is fine
       continue;
@@ -72,7 +77,7 @@ function checkFileContent(content, filePath) {
   let prevCategory = -1;
 
   for (const imp of imports) {
-    const category = classifyImport(imp.importPath);
+    const category = classifyImport(imp.importPath, imp.isStatic);
     const order = CATEGORY_ORDER[category];
 
     if (order < prevCategory) {
@@ -114,8 +119,8 @@ async function main() {
   console.log(`\nChecked ${files.length} files, ${totalErrors} errors in ${errorFiles.length} files.`);
 
   if (totalErrors > 0 && FIX_MODE) {
-    console.log('\nFix hint: Reorder imports in each file to: java.* → jakarta.* → third-party → io.nop.*');
-    console.log('Each group separated by a blank line.');
+    console.log('\nFix hint: Reorder imports in each file to: io.nop.* → third-party (incl. jakarta.*/javax.*) → java.*');
+    console.log('Each group separated by a blank line. Static imports last.');
   }
 
   process.exit(totalErrors > 0 ? 1 : 0);

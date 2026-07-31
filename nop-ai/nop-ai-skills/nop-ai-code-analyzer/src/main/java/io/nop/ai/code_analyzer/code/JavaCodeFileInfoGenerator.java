@@ -1,11 +1,12 @@
 package io.nop.ai.code_analyzer.code;
 
-import com.github.javaparser.JavaParser;
 import io.nop.ai.code_analyzer.maven.MavenModule;
+import io.nop.api.core.exceptions.NopException;
 import io.nop.commons.util.FileHelper;
 import io.nop.commons.util.StringHelper;
 import io.nop.core.lang.json.JsonTool;
 import io.nop.core.resource.impl.FileResource;
+import com.github.javaparser.JavaParser;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -14,6 +15,9 @@ import java.nio.file.FileVisitResult;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Predicate;
+
+import static io.nop.ai.core.AiCoreErrors.ARG_FILE_PATH;
+import static io.nop.ai.core.AiCoreErrors.ERR_AI_INVALID_RESPONSE;
 
 public class JavaCodeFileInfoGenerator {
     static final Logger LOG = LoggerFactory.getLogger(JavaCodeFileInfoGenerator.class);
@@ -66,7 +70,13 @@ public class JavaCodeFileInfoGenerator {
         fileInfo.setFilePath(filePath);
         fileInfo.setArtifactId(module.getArtifactId());
         if (summaryFile != null && summaryFile.exists()) {
-            List<Map<String, Object>> json = (List<Map<String, Object>>) JsonTool.parseBeanFromResource(new FileResource(summaryFile));
+            Object jsonObj = JsonTool.parseBeanFromResource(new FileResource(summaryFile));
+            if (!(jsonObj instanceof List)) {
+                throw new NopException(ERR_AI_INVALID_RESPONSE)
+                        .param(ARG_FILE_PATH, summaryFile.getPath());
+            }
+            @SuppressWarnings("unchecked")
+            List<Map<String, Object>> json = (List<Map<String, Object>>) jsonObj;
             addSummary(summaryFile.getName(), fileInfo, json);
         }
         FileHelper.writeText(destFile, JsonTool.serialize(fileInfo, true), null);
@@ -79,7 +89,13 @@ public class JavaCodeFileInfoGenerator {
         for (Map<String, Object> classJson : json) {
             String name = (String) classJson.get("name");
             String summary = (String) classJson.get("summary");
-            List<Map<String, Object>> functions = (List<Map<String, Object>>) classJson.get("functions");
+            Object functionsObj = classJson.get("functions");
+            if (!(functionsObj instanceof List)) {
+                throw new NopException(ERR_AI_INVALID_RESPONSE)
+                        .param(ARG_FILE_PATH, fileName);
+            }
+            @SuppressWarnings("unchecked")
+            List<Map<String, Object>> functions = (List<Map<String, Object>>) functionsObj;
             CodeFileInfo.CodeClassInfo cls = fileInfo.getClassInfo(name);
             if (cls == null) {
                 LOG.info("nop.ai.code.ignore-unknown-class-for-summary:class={},file={}", name, fileName);

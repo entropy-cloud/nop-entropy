@@ -5,11 +5,13 @@ import io.nop.ai.api.chat.ChatRequest;
 import io.nop.ai.api.chat.ChatResponse;
 import io.nop.ai.api.chat.messages.ChatMessage;
 import io.nop.ai.api.chat.messages.ChatSystemMessage;
+import io.nop.ai.api.chat.messages.ChatToolCall;
 import io.nop.ai.api.chat.messages.ChatUserMessage;
 import io.nop.ai.api.chat.messages.ChatUsage;
 import io.nop.ai.api.chat.stream.ChatStreamChunk;
 import io.nop.ai.core.model.ApiStyle;
 import io.nop.ai.core.model.LlmModel;
+import io.nop.api.core.exceptions.NopException;
 import io.nop.autotest.junit.JunitBaseTestCase;
 import org.junit.jupiter.api.Test;
 
@@ -129,6 +131,76 @@ public class TestAnthropicDialect extends JunitBaseTestCase {
         assertEquals(50, chunk.getUsage().getCompletionTokens().intValue());
         assertEquals(100, chunk.getUsage().getCacheHitTokens().intValue());
         assertEquals(0, chunk.getUsage().getCacheCreationTokens().intValue());
+    }
+
+    @Test
+    public void testParseResponseWithToolUseMapInput() {
+        AnthropicDialect dialect = new AnthropicDialect();
+
+        String responseJson = "{\"id\":\"msg_123\",\"model\":\"claude-3-5-sonnet-20241022\"," +
+                "\"content\":[{\"type\":\"tool_use\",\"id\":\"toolu_1\",\"name\":\"get_weather\"," +
+                "\"input\":{\"location\":\"beijing\"}}]," +
+                "\"stop_reason\":\"tool_use\",\"usage\":{\"input_tokens\":10,\"output_tokens\":20}}";
+
+        LlmModel config = new LlmModel();
+        config.setApiStyle(ApiStyle.anthropic);
+
+        ChatResponse response = dialect.parseResponse(responseJson, config);
+
+        List<ChatToolCall> toolCalls = response.getMessage().getToolCalls();
+        assertEquals(1, toolCalls.size());
+        ChatToolCall toolCall = toolCalls.get(0);
+        assertEquals("toolu_1", toolCall.getId());
+        assertEquals("get_weather", toolCall.getName());
+        assertEquals("beijing", toolCall.getArguments().get("location"));
+    }
+
+    @Test
+    public void testParseResponseWithToolUseStringInput() {
+        AnthropicDialect dialect = new AnthropicDialect();
+
+        String responseJson = "{\"id\":\"msg_123\",\"model\":\"claude-3-5-sonnet-20241022\"," +
+                "\"content\":[{\"type\":\"tool_use\",\"id\":\"toolu_1\",\"name\":\"get_weather\"," +
+                "\"input\":\"{\\\"location\\\":\\\"beijing\\\"}\"}]," +
+                "\"stop_reason\":\"tool_use\",\"usage\":{\"input_tokens\":10,\"output_tokens\":20}}";
+
+        LlmModel config = new LlmModel();
+        config.setApiStyle(ApiStyle.anthropic);
+
+        ChatResponse response = dialect.parseResponse(responseJson, config);
+
+        ChatToolCall toolCall = response.getMessage().getToolCalls().get(0);
+        assertEquals("get_weather", toolCall.getName());
+        assertEquals("beijing", toolCall.getArguments().get("location"));
+    }
+
+    @Test
+    public void testParseResponseToolUseNullInputFails() {
+        AnthropicDialect dialect = new AnthropicDialect();
+
+        String responseJson = "{\"id\":\"msg_123\",\"model\":\"claude-3-5-sonnet-20241022\"," +
+                "\"content\":[{\"type\":\"tool_use\",\"id\":\"toolu_1\",\"name\":\"get_weather\"}]," +
+                "\"stop_reason\":\"tool_use\",\"usage\":{\"input_tokens\":10,\"output_tokens\":20}}";
+
+        LlmModel config = new LlmModel();
+        config.setApiStyle(ApiStyle.anthropic);
+
+        assertThrows(NopException.class, () -> dialect.parseResponse(responseJson, config));
+    }
+
+    @Test
+    public void testParseResponseToolUseInvalidInputFails() {
+        AnthropicDialect dialect = new AnthropicDialect();
+
+        String responseJson = "{\"id\":\"msg_123\",\"model\":\"claude-3-5-sonnet-20241022\"," +
+                "\"content\":[{\"type\":\"tool_use\",\"id\":\"toolu_1\",\"name\":\"get_weather\"," +
+                "\"input\":[1,2,3]}]," +
+                "\"stop_reason\":\"tool_use\",\"usage\":{\"input_tokens\":10,\"output_tokens\":20}}";
+
+        LlmModel config = new LlmModel();
+        config.setApiStyle(ApiStyle.anthropic);
+
+        assertThrows(NopException.class, () -> dialect.parseResponse(responseJson, config));
     }
 
     @Test

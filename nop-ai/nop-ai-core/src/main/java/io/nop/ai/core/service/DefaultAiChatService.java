@@ -54,7 +54,6 @@ import java.util.concurrent.CompletionStage;
 import java.util.concurrent.ConcurrentHashMap;
 
 import static io.nop.ai.core.AiCoreConfigs.CFG_AI_SERVICE_DEFAULT_LLM;
-import static io.nop.ai.core.AiCoreConfigs.CFG_AI_SERVICE_LOG_MESSAGE;
 import static io.nop.ai.core.AiCoreConstants.CONFIG_VAR_LLM_API_KEY;
 import static io.nop.ai.core.AiCoreConstants.CONFIG_VAR_LLM_API_VERSION;
 import static io.nop.ai.core.AiCoreConstants.CONFIG_VAR_LLM_BASE_URL;
@@ -64,13 +63,14 @@ import static io.nop.ai.core.AiCoreErrors.ARG_HTTP_STATUS;
 import static io.nop.ai.core.AiCoreErrors.ARG_LLM_NAME;
 import static io.nop.ai.core.AiCoreErrors.ARG_OPTION_NAME;
 import static io.nop.ai.core.AiCoreErrors.ARG_PROP_PATH;
+import static io.nop.ai.core.AiCoreErrors.ERR_AI_INVALID_RESPONSE;
 import static io.nop.ai.core.AiCoreErrors.ERR_AI_SERVICE_HTTP_ERROR;
 import static io.nop.ai.core.AiCoreErrors.ERR_AI_SERVICE_NO_BASE_URL;
 import static io.nop.ai.core.AiCoreErrors.ERR_AI_SERVICE_NO_DEFAULT_LLMS;
 import static io.nop.ai.core.AiCoreErrors.ERR_AI_SERVICE_OPTION_NOT_SET;
 
 /**
- * 被ChatServiceImpl替代
+ * @deprecated 被ChatServiceImpl替代
  */
 @Deprecated
 public class DefaultAiChatService implements IAiChatService {
@@ -176,11 +176,6 @@ public class DefaultAiChatService implements IAiChatService {
         chatExchange.setChatOptions(options);
         chatExchange.setBeginTime(CoreMetrics.currentTimeMillis());
         chatExchange.setExchangeId(StringHelper.generateUUID());
-
-        boolean logMessage = CFG_AI_SERVICE_LOG_MESSAGE.get();
-        if (logMessage) {
-            //chatLogger.logRequest(chatExchange);
-        }
 
         HttpRequest request = buildHttpRequest(llmName, llmModel, prompt, options);
 
@@ -499,11 +494,6 @@ public class DefaultAiChatService implements IAiChatService {
         try {
             parseToResult(chatResponse, llmModel, response);
             checkThink(chatResponse, llmModel, chatResponse.getChatOptions().getModel(), response);
-
-
-            if (CFG_AI_SERVICE_LOG_MESSAGE.get()) {
-                //chatLogger.logResponse(chatResponse);
-            }
         } catch (Exception e) {
             LOG.info("nop.ai.parse-result-fail", e);
             throw NopException.adapt(e);
@@ -534,8 +524,17 @@ public class DefaultAiChatService implements IAiChatService {
         if (StringHelper.isEmpty(toolCallsPath))
             return null;
 
-        List<Map<String, Object>> toolCalls = (List<Map<String, Object>>) BeanTool.getComplexProperty(result, toolCallsPath);
-        if (toolCalls == null || toolCalls.isEmpty())
+        Object toolCallsObj = BeanTool.getComplexProperty(result, toolCallsPath);
+        if (toolCallsObj == null)
+            return null;
+
+        if (!(toolCallsObj instanceof List)) {
+            throw new NopException(ERR_AI_INVALID_RESPONSE);
+        }
+
+        @SuppressWarnings("unchecked")
+        List<Map<String, Object>> toolCalls = (List<Map<String, Object>>) toolCallsObj;
+        if (toolCalls.isEmpty())
             return null;
 
         List<ToolCall> ret = new ArrayList<>();

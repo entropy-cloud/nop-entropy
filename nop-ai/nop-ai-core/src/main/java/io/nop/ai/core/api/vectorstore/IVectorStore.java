@@ -29,6 +29,12 @@ import java.util.List;
  * adapters). The abstract methods cannot be instantiated without an implementation, so
  * there is no silent no-op path: any consumer must inject a concrete subclass and fails
  * fast at wiring/compile time if none is provided.
+ * <p>
+ * Naming note (MA4.5-002 adjudication): this type is an {@code abstract class} with an
+ * {@code I} prefix because it originated from the Agents-Flex SPI contract. Renaming it
+ * to {@code AbstractVectorStore} or converting it to an {@code interface} would break
+ * existing integrators for cosmetic gain; the I-prefix-on-abstract-class naming is kept
+ * as-is and tracked as a watch-only residual.
  *
  * @param <T> The Vector Data
  */
@@ -86,9 +92,9 @@ public abstract class IVectorStore<T extends VectorData> {
     public abstract VectorStoreResult update(List<T> vectorDataList, VectorStoreOptions options);
 
     /**
-     * search vector data by SearchWrapper with options
+     * search vector data by VectorQueryBean with options
      *
-     * @param wrapper SearchWrapper
+     * @param wrapper VectorQueryBean
      * @param options Store Options
      * @return the vector data list
      */

@@ -426,9 +426,10 @@ public class DefaultAgentEngine implements IAgentEngine {
 
     // sub-agent execution. On timeout the sub-agent's session is cancelled via
     // engine.cancelSession(forced=true) so its LLM/DB resources are released
-    // rather than left running as a zombie. The default mirrors the
-    // CallAgentExecutor's historical default (60s).
-    private long callAgentTimeoutMs = 60_000L;
+    // rather than left running as a zombie. The default (120s) matches the
+    // Builder's recommended default (120s); constructor-chain and Builder
+    // construction paths now always agree (MA4.5-004).
+    private long callAgentTimeoutMs = 120_000L;
 
     // inside the ReAct loop. A value <= 0 disables the timeout (backward-
     // compatible escape hatch). The shipped default (120s) is generous enough

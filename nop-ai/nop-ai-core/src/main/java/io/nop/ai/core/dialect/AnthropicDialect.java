@@ -14,14 +14,18 @@ import io.nop.ai.core.model.LlmModelModel;
 import io.nop.ai.core.model.LlmResponseModel;
 import io.nop.ai.api.chat.stream.ChatStreamChunk;
 import io.nop.ai.api.chat.stream.ChatToolCallChunk;
+import io.nop.api.core.exceptions.NopException;
 import io.nop.api.core.json.JSON;
 import io.nop.commons.util.StringHelper;
+import io.nop.core.lang.json.JsonTool;
 import io.nop.http.api.client.HttpRequest;
 
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+
+import static io.nop.ai.core.AiCoreErrors.ERR_AI_INVALID_RESPONSE;
 
 /**
  * Anthropic (Claude) 方言实现。
@@ -142,6 +146,7 @@ public class AnthropicDialect extends AbstractLlmDialect implements ILlmDialect 
         if (contentObj instanceof List) {
             for (Object block : (List<?>) contentObj) {
                 if (block instanceof Map) {
+                    @SuppressWarnings("unchecked")
                     Map<String, Object> blockMap = (Map<String, Object>) block;
                     String type = (String) blockMap.get("type");
 
@@ -166,7 +171,7 @@ public class AnthropicDialect extends AbstractLlmDialect implements ILlmDialect 
                         ChatToolCall toolCall = new ChatToolCall();
                         toolCall.setId((String) blockMap.get("id"));
                         toolCall.setName((String) blockMap.get("name"));
-                        toolCall.setArguments((Map<String, Object>) blockMap.get("input"));
+                        toolCall.setArguments(parseToolInput(blockMap.get("input")));
                         toolCalls.add(toolCall);
                     }
                 }
@@ -213,6 +218,30 @@ public class AnthropicDialect extends AbstractLlmDialect implements ILlmDialect 
         response.setUsage(usage);
 
         return response;
+    }
+
+    /**
+     * 解析 Anthropic API tool_use 块的 input 字段。
+     * <p>
+     * input 的合法形态为 JSON object；部分兼容实现以 JSON 字符串形式返回 input，
+     * 与 {@code DefaultAiChatService.parseToolCalls} 使用相同的 String → parseMap 降级规则。
+     * input 缺失或形态不符时显式抛错，避免把畸形响应静默降级为空 Map。
+     */
+    private Map<String, Object> parseToolInput(Object input) {
+        if (input instanceof Map) {
+            @SuppressWarnings("unchecked")
+            Map<String, Object> inputMap = (Map<String, Object>) input;
+            return inputMap;
+        }
+
+        if (input instanceof String) {
+            Map<String, Object> inputMap = JsonTool.parseMap(input.toString());
+            if (inputMap == null)
+                throw new NopException(ERR_AI_INVALID_RESPONSE);
+            return inputMap;
+        }
+
+        throw new NopException(ERR_AI_INVALID_RESPONSE);
     }
 
     @Override

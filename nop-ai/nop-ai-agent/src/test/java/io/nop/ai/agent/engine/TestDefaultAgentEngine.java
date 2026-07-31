@@ -245,4 +245,27 @@ public class TestDefaultAgentEngine {
         assertTrue(chatServiceCalled.get(), "ChatService.call should have been invoked");
         assertEquals(1, callCount.get());
     }
+
+    @Test
+    void testCallAgentTimeoutMsDefaultsAgreeAcrossConstructionPaths() {
+        IChatService chatService = createMockChatService(buildSuccessResponse("Response"));
+        IToolManager toolManager = createNoOpToolManager();
+
+        DefaultAgentEngine constructorEngine = new DefaultAgentEngine(chatService, toolManager);
+        DefaultAgentEngine builderEngine = DefaultAgentEngine.builder(chatService, toolManager).build();
+
+        assertEquals(constructorEngine.getCallAgentTimeoutMs(), builderEngine.getCallAgentTimeoutMs(),
+                "constructor-chain and Builder construction paths must agree on callAgentTimeoutMs (MA4.5-004)");
+        assertEquals(120_000L, constructorEngine.getCallAgentTimeoutMs());
+    }
+
+    @Test
+    void testCallAgentTimeoutMsRejectsNonPositive() {
+        IChatService chatService = createMockChatService(buildSuccessResponse("Response"));
+        IToolManager toolManager = createNoOpToolManager();
+        DefaultAgentEngine engine = new DefaultAgentEngine(chatService, toolManager);
+
+        assertThrows(Exception.class, () -> engine.setCallAgentTimeoutMs(0));
+        assertThrows(Exception.class, () -> engine.setCallAgentTimeoutMs(-1));
+    }
 }

@@ -43,7 +43,6 @@ import java.util.concurrent.CancellationException;
 import java.util.concurrent.CompletionStage;
 
 import static io.nop.ai.core.AiCoreConfigs.CFG_AI_SERVICE_ENABLE_WORK_MODE_SYSTEM_PROMPT;
-import static io.nop.ai.core.AiCoreConfigs.CFG_AI_SERVICE_LOG_MESSAGE;
 import static io.nop.ai.core.AiCoreErrors.ARG_TOOL_NAME;
 import static io.nop.ai.core.AiCoreErrors.ERR_AI_RESULT_IS_EMPTY;
 import static io.nop.ai.core.AiCoreErrors.ERR_AI_UNKNOWN_TOOL_CALL;
@@ -288,13 +287,6 @@ public class AiCommand {
         return chatLogger;
     }
 
-    protected void logCachedResponse(AiChatExchange exchange) {
-        boolean logMessage = CFG_AI_SERVICE_LOG_MESSAGE.get();
-        if (logMessage) {
-            //getChatLogger().logChatExchange(exchange);
-        }
-    }
-
     public CompletionStage<AiChatExchange> executeAsync(Map<String, Object> vars, ICancelToken cancelToken, IEvalContext ctx) {
         IEvalScope scope = prepareInputs(vars, ctx);
         Prompt prompt = newPrompt(scope);
@@ -305,7 +297,6 @@ public class AiCommand {
             try {
                 AiChatExchange exchange = chatCache.loadCachedResponse(prompt, options);
                 if (exchange != null) {
-                    logCachedResponse(exchange);
                     promptTemplate.processChatResponse(exchange, scope);
                     CompletionStage<AiChatExchange> future = FutureHelper.success(exchange);
                     if (chatResponseProcessor != null)

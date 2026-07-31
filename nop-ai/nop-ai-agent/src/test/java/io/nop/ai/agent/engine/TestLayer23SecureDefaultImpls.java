@@ -11,15 +11,12 @@ import io.nop.ai.agent.security.DefaultSecurityLevelResolver;
 import io.nop.ai.agent.security.IAuditLogger;
 import io.nop.ai.agent.security.ISecurityLevelResolver;
 import io.nop.ai.agent.security.LevelHints;
+import io.nop.ai.agent.security.NoOpDenialLedger;
 import io.nop.ai.agent.security.NoOpSecurityLevelResolver;
-
-import java.io.File;
-import java.util.Map;
 import io.nop.ai.agent.security.PassThroughPermissionMatrix;
 import io.nop.ai.agent.security.PassThroughPostDenialGuard;
 import io.nop.ai.agent.security.Principal;
 import io.nop.ai.agent.security.SecurityLevel;
-import io.nop.ai.agent.security.NoOpDenialLedger;
 import io.nop.ai.api.chat.ChatRequest;
 import io.nop.ai.api.chat.ChatResponse;
 import io.nop.ai.api.chat.IChatService;
@@ -36,10 +33,12 @@ import io.nop.ai.toolkit.model.AiToolModel;
 import io.nop.api.core.util.ICancelToken;
 import io.nop.core.CoreConstants;
 import io.nop.core.initialize.CoreInitialization;
+
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
+import java.io.File;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -48,8 +47,8 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.Flow;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;

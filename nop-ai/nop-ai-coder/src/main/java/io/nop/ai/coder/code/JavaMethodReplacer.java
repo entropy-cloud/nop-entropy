@@ -104,14 +104,4 @@ public class JavaMethodReplacer {
 
         return (count == 0) ? index - 1 : -1; // 返回右大括号位置
     }
-
-    // 示例用法
-    public static void main(String[] args) throws IOException {
-        String file = "Test.java";
-        String signature = "public void example()";
-        String newBody = "{\n    System.out.println(\"New implementation!\");\n}";
-        
-        applyMethodDiff(file, signature, newBody);
-        System.out.println("Method replaced successfully!");
-    }
 }

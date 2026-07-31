@@ -1,12 +1,14 @@
 package io.nop.ai.maven.cli;
 
+import io.nop.ai.maven.config.DeltaWorkspaceReaderConfigurator;
+import io.nop.ai.maven.vfs.DeltaVirtualFileSystem;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.io.File;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
-
-import io.nop.ai.maven.config.DeltaWorkspaceReaderConfigurator;
-import io.nop.ai.maven.vfs.DeltaVirtualFileSystem;
 
 /**
  * VFS Maven CLI 工具
@@ -16,6 +18,7 @@ import io.nop.ai.maven.vfs.DeltaVirtualFileSystem;
  * @author Nop AI
  */
 public class VfsMavenCli {
+    static final Logger LOG = LoggerFactory.getLogger(VfsMavenCli.class);
 
     private final DeltaVirtualFileSystem vfs;
 
@@ -109,7 +112,7 @@ public class VfsMavenCli {
             }
             sb.append(" ");
         }
-        System.out.println("Maven Command: " + sb.toString().trim());
+        LOG.info("Maven Command: {}", sb.toString().trim());
     }
 
     /**

@@ -1,9 +1,5 @@
 package io.nop.ai.agent.engine;
 
-import ch.qos.logback.classic.Level;
-import ch.qos.logback.classic.Logger;
-import ch.qos.logback.classic.spi.ILoggingEvent;
-import ch.qos.logback.core.read.ListAppender;
 import io.nop.ai.agent.model.AgentExecStatus;
 import io.nop.ai.agent.security.AuditDecision;
 import io.nop.ai.agent.security.AuditEvent;
@@ -13,9 +9,6 @@ import io.nop.ai.agent.security.DefaultApprovalGate;
 import io.nop.ai.agent.security.IAuditLogger;
 import io.nop.ai.agent.security.ISecurityLevelResolver;
 import io.nop.ai.agent.security.LevelHints;
-
-import java.io.File;
-import java.util.Map;
 import io.nop.ai.agent.security.NoOpDenialLedger;
 import io.nop.ai.agent.security.NoOpSecurityLevelResolver;
 import io.nop.ai.agent.security.PassThroughPermissionMatrix;
@@ -37,6 +30,11 @@ import io.nop.ai.toolkit.model.AiToolModel;
 import io.nop.api.core.util.ICancelToken;
 import io.nop.core.CoreConstants;
 import io.nop.core.initialize.CoreInitialization;
+
+import ch.qos.logback.classic.Level;
+import ch.qos.logback.classic.Logger;
+import ch.qos.logback.classic.spi.ILoggingEvent;
+import ch.qos.logback.core.read.ListAppender;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
@@ -44,6 +42,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.slf4j.LoggerFactory;
 
+import java.io.File;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
