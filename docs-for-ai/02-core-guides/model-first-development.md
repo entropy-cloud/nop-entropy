@@ -326,6 +326,33 @@ NopAuthUser (平台模块实体)
 
 ## ORM 列类型与 JSON 组件
 
+### 凭证/敏感字段的多层收敛约定
+
+含 apiKey/secret/password/token 语义的字段存在完整暴露链：**ORM 源模型 → 生成 xmeta → Delta xmeta → GraphQL DTO/API 响应**。限制必须写在 ORM 源模型（`model/*.orm.xml`），写在任何生成物（`_*.xmeta`、Delta 兜底）上的限制会在下次 codegen 时被覆盖或漂移。
+
+**标准写法**（列上同时标注）：
+
+```xml
+<column name="apiKey" code="API_KEY" displayName="API密钥"
+        tagSet="enc,not-query,not-sort,not-pub" ui:show="X"/>
+```
+
+各 tag 的含义与覆盖链路：
+
+| 标注 | 作用层 | 效果 |
+|------|--------|------|
+| `enc` | ORM 列 | 列级 AES 加密（`DefaultOrmColumnBinderEnhancer`），DB 不存明文；`toString()` 等输出自动掩码 |
+| `not-query` | 生成 xmeta | `queryable="false"`，不能作为查询条件 |
+| `not-sort` | 生成 xmeta | `sortable="false"`，不能参与排序 |
+| `not-pub` | 生成 xmeta | `published="false" internal="true"`，不进入 GraphQL schema 输出 |
+| `ui:show="X"` | 生成 xmeta/view | 不在 UI 表单/列表中展示 |
+
+链路验证：限制写在 ORM 源模型后，codegen 生成的 `_NopAiModel.xmeta` 自动继承；Delta xmeta 只需补充 `insertable="false" updatable="false"`（GraphQL 级写入限制）；DTO（OutputBean）生成时自动剔除凭证字段。**判定以运行时最终可见性为准**——GraphQL 响应/API DTO 实际输出的字段集合，而不是某层模型的属性标注。
+
+标准回归测试：`nop-ai/nop-ai-meta/src/test/java/io/nop/ai/meta/TestNopAiModelApiKeyXmeta.java`（base xmeta 限制、merged xmeta 完全限制、非凭证字段不受影响三断言）。
+
+> **历史教训（nop-ai MR4 §1）**：凭证字段曾被 3 个 MR 分头修复（xmeta 限制、Delta 兜底、DTO 剔除），但限制未下沉 ORM 源模型时生成的 xmeta 仍暴露——任何"只改生成物/Delta"的凭证收敛都按脆弱修复处理，必须回源。
+
 ### VARCHAR precision → 实际 SQL 类型的自动选择
 
 框架在 `SqlDataTypeMapping` 中根据 dialect 配置自动将 `stdSqlType="VARCHAR"` + `precision` 映射为最合适的数据库类型（以 MySQL 为例）：

@@ -14,7 +14,7 @@ AI 不需要一开始记住所有模块名，但必须知道应该先去哪个�
 | 服务框架 | `nop-service-framework/` | BizModel、GraphQL、Gateway |
 | 典型业务模块 | `nop-auth/`、`nop-job/`、`nop-task/`、`nop-wf/` | 最标准的业务骨架样板 |
 | 可复用业务模块 | `nop-sys/`、`nop-report/`、`nop-rule/`、`nop-batch/`、`nop-dyn/`、`nop-file/`、`nop-retry/`、`nop-tcc/`、`nop-metadata/` | 系统管理、报表、规则、批处理、动态表单、文件、重试、分布式事务、联邦式元数据。详见 `03-modules/` |
-| AI 子系统 | `nop-ai/` | AI 相关的 model/codegen/dao/service/web/app 以及 agent、skills、toolkit。`nop-ai-agent` 的 `nop-dao`/`nop-message-core` 为 test scope（仅测试需要，不泄漏给下游消费者） |
+| AI 子系统 | `nop-ai/` | AI 相关的 model/codegen/dao/meta/service/web/app 以及 agent、skills、toolkit、tools。分层：`nop-ai-api`（公开 API 契约，`IChatService`/`ChatOptions` 等）、`nop-ai-core`（LLM 调用 + `ILlmDialect` Provider 适配）、`nop-ai-agent`（执行引擎）、`nop-ai-toolkit`（工具抽象层）、`nop-ai-tools`（具体工具实现）。其余模块：`nop-ai-coder`（AI 编程助手）、`nop-ai-maven`（VFS 集成）、`nop-ai-dsl-orm`（ORM DSL 集成）、`nop-ai-rag`、`nop-ai-shell`、`nop-ai-gateway`、`nop-ai-codegen`。废弃 chat API（`IAiChatService` 等，nop-ai-core）已标 `@Deprecated(forRemoval=true)`，迁移目标为 `IChatService`（nop-ai-api，bean `nopChatService`）。`nop-ai-agent` 的 `nop-dao`/`nop-message-core` 为 test scope（仅测试需要，不泄漏给下游消费者）；MCP 集成模块（`nop-ai-mcp-server`、`nop-spring-mcp-server*`）独立发布周期 |
 | Runner / CLI | `nop-runner/`、`scripts/` | CLI、runner、命令入口 |
 | 集成与运行时外围 | `nop-spring/`、`nop-quarkus/`、`nop-network/`、`nop-integration/` | 宿主集成与运行环境支持 |
 | 测试与示例 | `nop-autotest/`、`nop-demo/`、`demo/` | 测试基建、demo、模板 |
@@ -75,6 +75,23 @@ AI 不需要一开始记住所有模块名，但必须知道应该先去哪个�
 - `nop-ai/`
 
 当任务直接涉及 AI agent、tool、skill、RAG、shell、MCP、AI service 时，再深入 `nop-ai/`。
+
+`nop-ai` 分层速查：
+
+| 模块 | 职责 |
+|------|------|
+| `nop-ai-api` | 公开 API 契约：`IChatService`、`ChatOptions`、`ChatMessage`（Agent Engine 直接消费的类型） |
+| `nop-ai-core` | LLM 调用实现（`ChatServiceImpl` + `ILlmDialect` Provider 适配）、token 估算基线、错误码。**废弃 chat API（`IAiChatService` 等）保留于此，勿在新代码使用** |
+| `nop-ai-agent` | Agent DSL + 执行引擎（`DefaultAgentEngine`/`ReActAgentExecutor`）。经 `IChatService` 调 LLM，经 `ITokenEstimator` bridge 消费 token 估算（不直接依赖 core 内部包） |
+| `nop-ai-toolkit` | 工具抽象层：`IToolExecutor`/`IToolManager`、工具 DSL（tool.xdef） |
+| `nop-ai-tools` / `nop-ai-skills` | 具体工具实现 / skill 引擎 |
+| `nop-ai-gateway` | LLM 网关（多 Provider 路由/转换） |
+| `nop-ai-rag` | RAG 检索增强 |
+| `nop-ai-shell` | Shell 沙箱执行环境 |
+| `nop-ai-coder` | AI 编程助手 |
+| `nop-ai-maven` | Maven/VFS 集成（模块名历史沿用，核心为 VFS 职责） |
+| `nop-ai-dsl-orm` | ORM 与 DSL 模型集成 |
+| `nop-ai-dao`/`nop-ai-meta`/`nop-ai-service`/`nop-ai-web`/`nop-ai-app` | 标准 Nop 分层（ORM 实体/元数据/BizModel/页面/启动应用） |
 
 ## 常见任务应该先看哪里
 

@@ -190,6 +190,25 @@ public interface IOrderBiz extends ICrudBiz<LitemallOrder> {
 
 Nop 平台回避 Controller / Service 这类命名。这些词在 Spring 中有特定含义，容易产生误解。Nop 使用 BizModel（业务模型）、Processor（处理器）、`I*Biz`（服务实现层接口）、Api（外部 RPC 接口）等名称。不要在 Nop 模块中创建 `*Controller` 或 `*Service` 类——这些职责由 BizModel 和 `I*Biz` 接口承担。
 
+## BizModel 自定义方法的 @Auth 权限命名约定
+
+自定义 BizModel 方法（`@BizQuery`/`@BizMutation`）需要权限控制时，用 `@Auth(permissions = ...)` 注解。
+
+**权限名 = `<BizObjName>:<action>`**（与平台 GraphQL 权限约定一致：`bizObjName + ':' + action`，见 `ReflectionBizModelBuilder`）。`BizObjName` 即 `@BizModel("...")` 声明的对象名，`action` 用动词/查询语义命名：
+
+| BizObjName | action | 示例 permission 字符串 |
+|-----------|--------|----------------------|
+| `FileTool` | read / write / search | `FileTool:read`、`FileTool:write` |
+| `SequentialThinking` | process / query / delete | `SequentialThinking:process` |
+| `AiFileTool` | read / write | `AiFileTool:read` |
+| `NopAiChatResponse` | query | `NopAiChatResponse:query` |
+
+要点：
+
+- 不要自创 `ai:` 之类的命名空间前缀（历史上 MR2 计划文本曾写 `ai:<entity>:<action>`，实际落地为 `<BizObjName>:<action>` 平台约定，见 nop-ai MR4 裁定记录）。
+- `@Auth` 只放在自定义方法上；标准 CRUD 方法（`CrudBizModel` 继承的 `findPage`/`save` 等）由平台按 BizObjName 自动派生权限，不需要也不应该重复标注。
+- 权限字符串应能对应到权限配置/数据字典中的条目，保持与 `I*Biz` 调用方期望一致；不要用空字符串或占位符绕过权限检查。
+
 ## 普通 BizModel 默认优先的 API
 
 | 场景 | 默认方法 |

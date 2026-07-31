@@ -483,7 +483,7 @@ ReAct reason 循环开始前（每轮检查）:
 
 **两个触发点**：
 
-1. **Pre-iteration**（每轮 ReAct reason 前检查）：`ILlmDialect.estimateTokens()` 本地估算 vs 阈值
+1. **Pre-iteration**（每轮 ReAct reason 前检查）：经 `ITokenEstimator.estimateTokens()` 本地估算 vs 阈值（默认实现 `CalibratedTokenEstimator` 包装 `ILlmDialect` 基线 + EMA 校准，经 `TokenEstimators.defaultEstimator()` 装配 — MR2 bridge，见 `nop-ai-agent-llm-layer.md` §4.0）
 2. **Post-response**（每次 LLM 响应后检查）：Provider 报告的精确 `usage.prompt_tokens` vs 阈值。Post-response 使用精确值，可校准 Pre-iteration 的估算偏差
 
 ### 7.4 Token 计数
@@ -491,8 +491,8 @@ ReAct reason 循环开始前（每轮检查）:
 双层策略：Provider 报告为主，轻量估算为辅。
 
 - **Post-call（精确）**：直接使用 LLM API 响应中的 `usage.prompt_tokens` / `usage.completion_tokens`。这是精确值，无需自行计算
-- **Pre-call（估算）**：通过 `ILlmDialect.estimateTokens()` 估算，缺省 chars/4（见 `nop-ai-agent-llm-layer.md` §4.0）。对触发阈值（80%）来说精度够用——chars/4 的 ±10% 偏差不会导致错误决策
-- **校准**：Post-call 精确值与 Pre-call 估算值的偏差记录在 Dialect 内部，用于修正后续估算
+- **Pre-call（估算）**：通过 agent 层 `ITokenEstimator` 估算（`CalibratedTokenEstimator` 包装 `ILlmDialect.estimateTokens()`，缺省 chars/4，见 `nop-ai-agent-llm-layer.md` §4.0）。对触发阈值（80%）来说精度够用——chars/4 的 ±10% 偏差不会导致错误决策
+- **校准**：Post-call 精确值与 Pre-call 估算值的偏差记录在 `CalibratedTokenEstimator` 内部（EMA 平滑 + 因子钳制），用于修正后续估算
 
 ### 7.5 摘要策略
 

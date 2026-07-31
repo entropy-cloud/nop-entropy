@@ -128,9 +128,9 @@
 
 | # | Work Item | Status | Owner Doc | Deps | Skill |
 |---|-----------|--------|-----------|------|-------|
-| G.1 | 新失败模式提升为 lessons | todo | `ai-dev/lessons/` | MV done | none |
-| G.2 | 重复审计维度提升为 skills/ 新提示 | todo | `ai-dev/skills/` | MV done | none |
-| G.3 | 更新 docs-for-ai/ 和 design 文档 | todo | `docs-for-ai/` + `ai-dev/design/` | MV done | none |
+| G.1 | 新失败模式提升为 lessons | done | `ai-dev/lessons/` | MV done | none |
+| G.2 | 重复审计维度提升为 skills/ 新提示 | done | `ai-dev/skills/` | MV done | none |
+| G.3 | 更新 docs-for-ai/ 和 design 文档 | done | `docs-for-ai/` + `ai-dev/design/` | MV done | none |
 
 ## 里程碑
 
@@ -148,7 +148,7 @@
 | MR3 ✅ | MA5+MA6 | 修复代码 + 测试（closed 2026-07-31） |
 | MR4 ✅ | MR1+MR2+MR3 | 裁决文档（closed 2026-07-31） |
 | MV ✅ | MR1+MR2+MR3+MR4 | 验证报告 + closure audit（closed 2026-07-31） |
-| MG | MV | lessons + docs |
+| MG ✅ | MV | lessons + docs（closed 2026-07-31） |
 
 ## 依赖图
 
@@ -239,7 +239,7 @@ MA5+MA6 产出的 P1 发现展开为具体修复工作项
 全量构建 + 独立子代理 closure audit（验证所有 P0/P1 finding 可追溯）— **closed 2026-07-31**：V.1 全量 build+test 绿（`./mvnw clean install -DskipTests -pl nop-ai -am -T 1C` + `./mvnw test -pl nop-ai -am -T 1C`，877 tests run / 0 failures）；V.3 P0/P1 可追溯矩阵写入 arm-index（P0 2 行 + P1 61 行，open=0，MV closure audit 纠正 P1-MA5-003 为 SPI 裁定）；V.2 独立子 agent closure audit 完成（见 plan `2026-07-31-1024-2-arm-mv-validation.md` Closure 段）。
 
 ### MG
-失败模式提升为 lessons + 文档更新
+失败模式提升为 lessons + 文档更新 — **closed 2026-07-31**：G.1 新增 4 条 lessons（05-08：overclaimed closure / 凭证字段跨层收敛 / zero-test 模块 / tool executor 安全边界，全部有 live 证据）；G.2 新增 `ai-dev/skills/audit-remediation-verification-prompt.md`（fix-status 追溯核验 / zero-test 扫描 / 凭证跨层核查三类检查项）；G.3 同步 `docs-for-ai/01-repo-map/module-groups.md`（nop-ai 模块组分层 + 废弃 API + nopChatService）、`docs-for-ai/02-core-guides/service-layer.md`（@Auth `<BizObjName>:<action>` 约定）、`docs-for-ai/02-core-guides/model-first-development.md`（凭证字段 ORM 源模型收敛约定）及 `ai-dev/design/nop-ai-agent/` bridge 文档（llm-layer/01-architecture-baseline/reliability/usage-and-billing/glossary）。独立 closure audit 见 plan `2026-07-31-1024-3-arm-mg-guard-retention.md` Closure 段。
 
 ## 框架/平台复用
 
@@ -251,6 +251,7 @@ MA5+MA6 产出的 P1 发现展开为具体修复工作项
 | 设计文档审计 | `ai-dev/skills/design-doc-audit-prompt.md` |
 | 设计完整性扫描 | `ai-dev/skills/design-completeness-scan-prompt.md` |
 | 开放式对抗审查 | `ai-dev/skills/open-ended-adversarial-review-prompt.md` |
+| 修复-闭环核验（fix-status/zero-test/凭证跨层） | `ai-dev/skills/audit-remediation-verification-prompt.md` |
 | Closure audit | `ai-dev/skills/closure-audit-prompt.md` |
 | 构建验证 | `./mvnw clean install -DskipTests -T 1C` |
 | 测试验证 | `./mvnw test -pl <模块> -am -T 1C` |

@@ -37,7 +37,8 @@
 | `IAgentExecutor` | Layer 1 | 执行策略接口（`execute()` 返回 `CompletionStage<AgentExecutionResult>`） |
 | `IAgentMemory` | Layer 1 | 三层记忆管理（短期 compaction + Working Memory 工具 + 长期 IMemoryAdapter） |
 | `IMessageService` | 基础设施 | Agent 间内部通信（LocalMessageService / DB-backed） |
-| `ILlmDialect` | nop-ai-core | Provider 消息格式转换（Formatter pattern）+ Token 估算（default chars/4，具体 Dialect 可覆盖为精确实现）。Agent Engine 不直接依赖 |
+| `ILlmDialect` | nop-ai-core | Provider 消息格式转换（Formatter pattern）+ Token 估算（default chars/4，具体 Dialect 可覆盖为精确实现）。Agent Engine 不直接依赖（经 `ITokenEstimator` bridge 消费，MR2 P1-MA3-02） |
+| `ITokenEstimator` | nop-ai-agent (engine) | agent 层 token 估算扩展点：`estimateTokens(List<ChatMessage>)` + `record(messages, actualPromptTokens)` 运行时校准。默认实现 `CalibratedTokenEstimator`（包装 `ILlmDialect` 基线 + EMA 因子平滑），经 `TokenEstimators.defaultEstimator()` 装配 |
 | `ICompressionStrategy` | Layer 3 | 可插拔压缩策略扩展点（默认 5 层管道不使用此接口，定制 Layer 3 摘要逻辑时才引入） |
 | `IModelRouter` | Layer 2 | 请求路由策略（Judge + Fallback Chain） |
 | `ITalent` | Layer 2 | 动态行为准入（运行时上下文开关工具集） |

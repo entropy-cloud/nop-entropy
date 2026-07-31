@@ -4,7 +4,7 @@
 > 目标模块组：nop-ai（18 子模块，排除 MCP——MCP 协议集成模块，独立发布周期，需单独审计）
 > 总览：ai-dev/backlog/audit-remediation-roadmap.md
 > 维度矩阵：arm-audit-dimension-matrix.md
-> 状态汇总：已完成 32 | 进行中 0 | 待办 0 | P0 未解决 0 | **MV 已收口（2026-07-31）**
+> 状态汇总：已完成 32 | 进行中 0 | 待办 0 | P0 未解决 0 | **MV+MG 已收口（2026-07-31）**
 
 ## 报告清单
 

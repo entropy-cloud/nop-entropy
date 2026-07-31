@@ -107,6 +107,15 @@ token 估算本质上是 Provider 特定的——OpenAI 用 o200k_base，DeepSee
 2. Provider 的 tokenizer 与 Provider 的序列化格式天然绑定
 3. 引擎层通过 `IChatService` 获取当前 Dialect，调用 `estimateTokens()` 即可，不感知具体实现
 
+#### 引擎侧消费契约（MR2 bridge，P1-MA3-01/P1-MA3-02 落地）
+
+引擎层代码**不直接依赖** core 内部包（`ChatOptionsModel`、`ILlmDialect`/`LlmDialectFactory`）。MR2 将跨包耦合收敛到两个 bridge：
+
+- **`ChatOptionsHelper.toChatOptions(ChatOptionsModel)`**（`io.nop.ai.agent.engine`）：AgentModel 配置的 `ChatOptionsModel`（core 内部模型）→ 公开 API 类型 `ChatOptions`（nop-ai-api）的转换入口。`AgentExecutionContext` / `PipelineCompactor` / `ReActAgentExecutor` 全部消费 `ChatOptions`（api），不直接 import core 内部模型。
+- **`TokenEstimators.defaultEstimator()`**：返回 agent 层 token 估算扩展点 `ITokenEstimator`（`io.nop.ai.agent.engine`）的默认实现 `CalibratedTokenEstimator`——包装 core `ILlmDialect` 的 `estimateTokens()` 基线并用 Provider 实际 usage 做 EMA 校准（alpha=0.3，因子钳制 [0.25, 4.0]）。引擎/compactor 只依赖 agent 层 `ITokenEstimator` 接口，dialect 访问集中在 bridge 内。
+
+这两个 bridge 保持「引擎不直接依赖 core 内部包」的模块边界约束（见 `01-architecture-baseline.md` §边界约束），dialect/内部模型的演进只影响 bridge 单点。
+
 #### 为什么缺省用 chars/4 而不是 jtokkit
 
 - **Provider API 返回的 token 数是 source of truth**——自行 BPE 计数对各模型 tokenizer 不同，都不精确，且增加依赖
@@ -120,6 +129,8 @@ Post-call 使用 Provider API 返回的 `usage.prompt_tokens` 作为精确值，
 1. 校准本地估算偏差（记录 ratio，修正后续估算）
 2. 作为 compaction 触发的精确判据（参见 `nop-ai-agent-reliability.md` §7）
 3. 更新 `AgentSession` 的 token 累计计数
+
+**校准落地（MR2 bridge）**：校准实现位于 agent 层 `CalibratedTokenEstimator`（`io.nop.ai.agent.engine`）——包装 `ILlmDialect` 基线估算，对每次带正数 `promptTokens` 的响应做 EMA 平滑（`factor = factor * 0.7 + observedRatio * 0.3`，钳制 `[0.25, 4.0]`），估算 = `round(dialect.estimateTokens(messages) * factor)`。该实现是 `ITokenEstimator` 接口的默认实现，经 `TokenEstimators.defaultEstimator()` 装配，测试见 `TestCalibratedTokenEstimator` / `TestTokenEstimatorWiring`。
 
 ### 4.1 问题
 

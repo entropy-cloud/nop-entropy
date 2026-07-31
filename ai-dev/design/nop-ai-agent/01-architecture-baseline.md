@@ -46,7 +46,7 @@
 | `nop-ai-toolkit` | 工具 DSL（tool.xdef） | Agent 引擎通过此层发现和调用工具 |
 | `nop-ai-tools` | 具体工具实现 | Agent 引擎不直接依赖 |
 
-**边界约束**：Agent Engine Layer 不直接依赖 `nop-ai-tools`。所有 LLM 调用通过 `nop-ai-core` 的 `IChatService` + `ILlmDialect`，所有工具调用通过 `nop-ai-toolkit` 抽象层。
+**边界约束**：Agent Engine Layer 不直接依赖 `nop-ai-tools`。所有 LLM 调用通过 `nop-ai-core` 的 `IChatService` + `ILlmDialect`，所有工具调用通过 `nop-ai-toolkit` 抽象层。引擎层不直接依赖 core 内部包（`ChatOptionsModel`、dialect 包）：AgentModel 的 `ChatOptionsModel` 配置经 `ChatOptionsHelper` 转换为 api 类型 `ChatOptions`，token 估算经 `ITokenEstimator`/`TokenEstimators` bridge 消费（MR2 P1-MA3-01/P1-MA3-02，见 `nop-ai-agent-llm-layer.md` §4.0）。
 
 ## 四、核心对象职责契约
 

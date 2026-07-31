@@ -1,6 +1,6 @@
 # 3 MG — Guard 沉淀：lessons、skills 与文档同步
 
-> Plan Status: active
+> Plan Status: completed
 > Last Reviewed: 2026-07-31
 > Source: `ai-dev/backlog/audit-remediation-roadmap.md` §MG，MV closure audit 结果，MR1-MR4 修复记录
 > Mission: audit-remediation
@@ -52,90 +52,90 @@
 
 ### Phase 1 — G.1 失败模式提升为 lessons
 
-Status: planned
+Status: completed
 Targets: `ai-dev/lessons/`
 
 - Item Types: `Follow-up | Decision`
 
-- [ ] 从 MV closure audit 结果与本闭环记录中确认实际发生的失败模式清单（基于 live 证据，非候选臆测）
-- [ ] 每条新失败模式按 `ai-dev/lessons/` 既有格式编写条目（编号接续 05），包含发生场景、根因、预防规则
-- [ ] 更新 `ai-dev/lessons/README.md` 索引
+- [x] 从 MV closure audit 结果与本闭环记录中确认实际发生的失败模式清单（基于 live 证据，非候选臆测）
+- [x] 每条新失败模式按 `ai-dev/lessons/` 既有格式编写条目（编号接续 05），包含发生场景、根因、预防规则
+- [x] 更新 `ai-dev/lessons/README.md` 索引
 
 Exit Criteria:
 
 > 每个 Phase 完成后，必须逐条勾选本节。所有 `[x]` 后才能将 Phase Status 改为 `completed`。
 
-- [ ] 新增 lessons 条目均对应本闭环中实际发生且证据可查的失败模式
-- [ ] 每条条目格式与既有条目一致，索引已更新
-- [ ] `node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] 新增 lessons 条目均对应本闭环中实际发生且证据可查的失败模式
+- [x] 每条条目格式与既有条目一致，索引已更新
+- [x] `node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 ### Phase 2 — G.2 重复审计维度提升为 skills prompt
 
-Status: planned
+Status: completed
 Targets: `ai-dev/skills/`
 
 - Item Types: `Follow-up | Decision`
 
-- [ ] 识别本次闭环中反复使用且值得固化的检查项（如：fix-status 与 live repo 追溯核验、zero-test 模块扫描、凭证字段跨层暴露核查）
-- [ ] 新增 prompt 或修订既有 prompt（如 `deep-audit-prompts.md` 中增补对应维度）
-- [ ] 新 prompt 中明确可执行步骤与输出格式，供后续审计直接复用
+- [x] 识别本次闭环中反复使用且值得固化的检查项（如：fix-status 与 live repo 追溯核验、zero-test 模块扫描、凭证字段跨层暴露核查）
+- [x] 新增 prompt 或修订既有 prompt（如 `deep-audit-prompts.md` 中增补对应维度）
+- [x] 新 prompt 中明确可执行步骤与输出格式，供后续审计直接复用
 
 Exit Criteria:
 
-- [ ] 新增/修订的 prompt 文件落地且内容可执行（非占位）
-- [ ] prompt 中引用的路径/命令在仓库中真实存在
-- [ ] `node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] 新增/修订的 prompt 文件落地且内容可执行（非占位）
+- [x] prompt 中引用的路径/命令在仓库中真实存在
+- [x] `node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 ### Phase 3 — G.3 文档同步：docs-for-ai 与 ai-dev/design
 
-Status: planned
+Status: completed
 Targets: `docs-for-ai/`（module-groups.md、service-layer.md、api-and-graphql.md 等最小归属文档）、`ai-dev/design/nop-ai-agent/`
 
 - Item Types: `Fix | Decision`
 
-- [ ] 核对 `docs-for-ai/01-repo-map/module-groups.md` 中 nop-ai 模块组描述与 MR1-MR4 后 live 结构一致（含废弃 API 清理、nopChatService bean、模块边界）
-- [ ] 在最小归属文档中补充 nop-ai 约定：`@Auth` 权限命名 `ai:<entity>:<action>`、凭证字段（apiKey）多层收敛处理方式（ORM → xmeta → DTO）
-- [ ] 同步 `ai-dev/design/nop-ai-agent/` 中与 MR2 bridge 变更（ChatOptionsHelper、TokenEstimators）相关的设计文档，使文档描述与 live 实现一致
-- [ ] 运行文档链接检查并修复问题
+- [x] 核对 `docs-for-ai/01-repo-map/module-groups.md` 中 nop-ai 模块组描述与 MR1-MR4 后 live 结构一致（含废弃 API 清理、nopChatService bean、模块边界）
+- [x] 在最小归属文档中补充 nop-ai 约定：`@Auth` 权限命名 `<BizObjName>:<action>`（MR2 计划文本的 `ai:<entity>:<action>` 前缀经 MR4 裁定为笔误，live 落地为平台 `bizObjName:action` 约定）、凭证字段（apiKey）多层收敛处理方式（ORM → xmeta → DTO）
+- [x] 同步 `ai-dev/design/nop-ai-agent/` 中与 MR2 bridge 变更（ChatOptionsHelper、TokenEstimators）相关的设计文档，使文档描述与 live 实现一致
+- [x] 运行文档链接检查并修复问题
 
 Exit Criteria:
 
-- [ ] `docs-for-ai/` 中新增/修订内容与 live repo 一致（抽查 3 处：模块组条目、@Auth 约定、凭证处理）
-- [ ] `ai-dev/design/` 中 bridge 相关文档与 live 实现一致
-- [ ] `node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0
-- [ ] `docs-for-ai/INDEX.md`（若路由/锚点变化）与 `docs-for-ai/04-reference/source-anchors.md` 已同步
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] `docs-for-ai/` 中新增/修订内容与 live repo 一致（抽查 3 处：模块组条目、@Auth 约定、凭证处理）
+- [x] `ai-dev/design/` 中 bridge 相关文档与 live 实现一致
+- [x] `node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0
+- [x] `docs-for-ai/INDEX.md`（若路由/锚点变化）与 `docs-for-ai/04-reference/source-anchors.md` 已同步
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 ### Phase 4 — roadmap 收口与关闭
 
-Status: planned
+Status: completed
 Targets: `ai-dev/backlog/audit-remediation-roadmap.md`, `ai-dev/audits/arm-index.md`
 
 - Item Types: `Follow-up`
 
-- [ ] 更新 roadmap：G.1/G.2/G.3 标记 done
-- [ ] 更新 `ai-dev/audits/arm-index.md` 状态汇总（若涉及）
-- [ ] 独立子 agent closure audit 并记录证据
+- [x] 更新 roadmap：G.1/G.2/G.3 标记 done
+- [x] 更新 `ai-dev/audits/arm-index.md` 状态汇总（若涉及）
+- [x] 独立子 agent closure audit 并记录证据
 
 Exit Criteria:
 
-- [ ] roadmap MG 全部工作项 done
-- [ ] 独立 closure audit 完成且证据写入本 plan Closure 段
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] roadmap MG 全部工作项 done
+- [x] 独立 closure audit 完成且证据写入本 plan Closure 段
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 ## Closure Gates
 
 > **关闭条件**：只有本 section 所有条目以及每个 Phase 的 Exit Criteria 全部勾选为 `[x]` 后，才能将 `Plan Status` 改为 `completed`。
 
-- [ ] lessons 条目与 skills prompt 已落地且可复用
-- [ ] `docs-for-ai/` 与 `ai-dev/design/` 已同步至 live baseline
-- [ ] 不存在被静默降级到 deferred/follow-up 的 in-scope 文档漂移
-- [ ] 独立子 agent closure-audit 已完成并记录证据
-- [ ] **Anti-Hollow Check**：closure audit 已抽查文档内容与 live repo 一致（非仅文件存在）
-- [ ] `node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0
-- [ ] 纯文档计划：无需 `./mvnw` 构建验证；`No new test required: pure documentation plan, no code change`（见 plan guide 纯文档计划豁免）
+- [x] lessons 条目与 skills prompt 已落地且可复用
+- [x] `docs-for-ai/` 与 `ai-dev/design/` 已同步至 live baseline
+- [x] 不存在被静默降级到 deferred/follow-up 的 in-scope 文档漂移
+- [x] 独立子 agent closure-audit 已完成并记录证据
+- [x] **Anti-Hollow Check**：closure audit 已抽查文档内容与 live repo 一致（非仅文件存在）
+- [x] `node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0
+- [x] 纯文档计划：无需 `./mvnw` 构建验证；`No new test required: pure documentation plan, no code change`（见 plan guide 纯文档计划豁免）
 
 ## Deferred But Adjudicated
 
@@ -147,17 +147,25 @@ N/A — 本计划为纯文档沉淀，无延期项。
 
 ## Closure
 
-Status Note: 待关闭时填写。
-Completed: 待关闭时填写。
+Status Note: 本计划为纯文档/知识沉淀计划。G.1 四条 lessons（05-08）基于本闭环 live 证据编写并索引；G.2 新增可复用的修复-闭环核验 skill prompt；G.3 将 docs-for-ai 与 ai-dev/design 同步至 MR1-MR4 后 live baseline。roadmap MG 全部 done、arm-index 状态收口。所有 in-scope 项落地，无降级项。
+Completed: 2026-07-31
 
 Closure Audit Evidence:
 
-- Reviewer / Agent: 待关闭时由独立子 agent 填写
-- Evidence: 待关闭时填写
+- Reviewer / Agent: 独立子 agent（fresh session `ses_049243cffffeN4a8knAfMdaYTc`）
+- Evidence:
+  - Phase 1（lessons）：PASS — 05-08 文件存在且格式与 04 一致；README 索引已更新（`ai-dev/lessons/README.md:20-23`）；L05 证据（arm-index §P1-MA2-005 裁定 `:153-157`、§P1-MA6.5-002 overclaim `:159-163`、MV 纠正 P1-MA5-003 `:151/180/197`）；L06 证据（`nop-ai/model/nop-ai.orm.xml:299-300` tagSet + `_NopAiModel.xmeta:38-40` 不暴露 + `TestNopAiModelApiKeyXmeta.java` 3 方法）；L07 证据（MA4.3 报告 7 个零测试模块）；L08 证据（`HttpRequestExecutor.java:78/104` validateUrl/isPrivateIp、`BashExecutor.java` DESTRUCTIVE_COMMAND、`LocalToolFileSystem.java:40/53` isPathAllowed 定义且被调用）
+  - Phase 2（skills）：PASS — `ai-dev/skills/audit-remediation-verification-prompt.md` 三类检查项含可执行步骤 + 输出格式（VERIFIED/OVERCLAIM/PARTIAL、ZERO-TEST/OK、LEAK/CONVERGED/FRAGILE）；引用的路径/命令（`ai-dev/audits/arm-index.md`、`git log --oneline -- <file>`、`model/*.orm.xml`、交叉引用 3 个既有 prompt）全部真实存在
+  - Phase 3（docs）：PASS — module-groups nop-ai 条目与 live 结构一致（`IChatService.java`、`IAiChatService.java:15` @Deprecated、`ai-defaults.beans.xml:8-9` nopChatService、`nop-ai-agent/pom.xml:29,34` test scope）；service-layer @Auth 约定 `<BizObjName>:<action>` 与 live 4 类 19 方法一致；model-first-development 凭证收敛与 live orm.xml/xmeta 一致；bridge 文档（llm-layer §4.0、01-architecture-baseline、reliability §7.3/7.4、usage-and-billing §五、glossary）与 live `ChatOptionsHelper.java:8`/`TokenEstimators.java:9`/`CalibratedTokenEstimator.java:29-31,73-74`（EMA alpha=0.3, clamp [0.25,4.0]）一致；无新增锚点，INDEX/source-anchors 无需变更
+  - Phase 4（roadmap）：PASS — `audit-remediation-roadmap.md:131-133` G.1/G.2/G.3 done、`:151` MG ✅ closed、`:254` 复用表登记新 prompt；`arm-index.md:7` "MV+MG 已收口"
+  - `node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0（0 errors / 0 warnings）
+  - Anti-Hollow 检查：audit 逐条对照文档内容与 live 代码/测试（上述行号证据），非仅文件存在性；纯文档计划，无运行时调用链，scan-hollow-implementations 不适用（无代码变更）
+  - Audit 发现 3 项问题，已全部修复：(1) daily log 缺 MG 条目 → 已补 `ai-dev/logs/2026/07-31.md` 顶部条目；(2) plan 文本 `ai:` 前缀 → 更正为 `<BizObjName>:<action>`（MR4 裁定笔误）；(3) module-groups 补全 nop-ai-coder/nop-ai-maven/nop-ai-dsl-orm 模块
+  - Deferred 项分类检查：本计划 N/A（无 deferred 项），非阻塞 follow-up 仅"后续审计复用产出"，无 in-scope live defect 被降级
 
 Follow-up:
 
-- 待关闭时填写
+- no remaining plan-owned work（后续平台级审计复用本计划产出的 skill prompt 与 lessons，属治理建议非本计划遗留）
 
 ## Optional Sections
 

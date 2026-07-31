@@ -266,7 +266,7 @@ lastModelKey = currentModelKey;
 | `nop-ai-agent-llm-layer.md` §6（IModelRouter） | 本设计补充了路由决策的**记录**：router 选择模型后产生 `model-switched` 消息，使计费可追溯。 |
 | `nop-ai-agent-session-and-storage.md` §17（数据流） | 已有设计提到"LLM turn 结束 → NopAiSession UPDATE（累加 cost/tokensOutput）"，但未设计 per-model 维度。本设计**修正**为：per-model 聚合通过 SQL 查询 `NopAiChatResponse`，`NopAiSession` 的累计字段可选保留（作为快速概览，非权威来源）。 |
 | `nop-ai-agent-session-and-storage.md` §17.3（消息类型） | 已定义 `model-switched`（role=80），本设计补充了**产生条件**和 metadata 结构。 |
-| `nop-ai-agent-roadmap.md` L2-16（Token 计数） | 已完成 `ILlmDialect.estimateTokens()` + Provider usage 校准。本设计是 L2-16 的**下游消费者**：token 估算/校准的结果通过 `IUsageRecorder` 持久化。 |
+| `nop-ai-agent-roadmap.md` L2-16（Token 计数） | 已完成：agent 层 `ITokenEstimator`（`CalibratedTokenEstimator` 包装 core `ILlmDialect` 基线 + Provider usage EMA 校准，经 `TokenEstimators.defaultEstimator()` 装配 — MR2 bridge）。本设计是 L2-16 的**下游消费者**：token 估算/校准的结果通过 `IUsageRecorder` 持久化。 |
 | `nop-ai-agent-roadmap.md` Layer 2 扩展点 | 本设计新增 `IUsageRecorder` 作为 Layer 2 扩展点（pass-through 默认 + Db 实现）。 |
 
 ### 对 session-and-storage.md 的修正建议
