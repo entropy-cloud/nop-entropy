@@ -1,5 +1,7 @@
 package io.nop.ai.maven.vfs;
 
+import io.nop.ai.maven.NopAiMavenErrors;
+import io.nop.api.core.exceptions.NopException;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -199,6 +201,33 @@ public class DeltaWorkspaceReaderTest {
         File artifactFile = new File(artifactDir, fileName.toString());
         Files.write(artifactFile.toPath(),
                 ("Artifact: " + groupId + ":" + artifactId + ":" + version).getBytes());
+    }
+
+    @Test
+    public void testConstructorRejectsNullRepoPaths() {
+        // P2-MA3-2: validation failures must throw NopException
+        NopException ex = assertThrows(NopException.class, () -> new DeltaWorkspaceReader((File) null, deltaRepo));
+        assertEquals(NopAiMavenErrors.ERR_VFS_INVALID_ARG.getErrorCode(), ex.getErrorCode());
+        assertThrows(NopException.class, () -> new DeltaWorkspaceReader(baseRepo, (File) null));
+    }
+
+    @Test
+    public void testInstallArtifactValidation() {
+        NopException ex = assertThrows(NopException.class,
+                () -> reader.installArtifact(new File(baseRepo, "missing.jar"), new ArtifactInfo("g", "a", "1.0")));
+        assertEquals(NopAiMavenErrors.ERR_VFS_INVALID_ARG.getErrorCode(), ex.getErrorCode());
+
+        NopException ex2 = assertThrows(NopException.class,
+                () -> reader.installArtifact(new File(baseRepo, "test-artifact-1.0.0.jar"), null));
+        assertEquals(NopAiMavenErrors.ERR_VFS_INVALID_ARG.getErrorCode(), ex2.getErrorCode());
+    }
+
+    @Test
+    public void testArtifactInfoValidation() {
+        NopException ex = assertThrows(NopException.class, () -> new ArtifactInfo(null, "a", "1.0"));
+        assertEquals(NopAiMavenErrors.ERR_VFS_INVALID_ARG.getErrorCode(), ex.getErrorCode());
+        assertThrows(NopException.class, () -> new ArtifactInfo("g", "", "1.0"));
+        assertThrows(NopException.class, () -> new ArtifactInfo("g", "a", "  "));
     }
 
     private void deleteDirectory(File directory) throws IOException {

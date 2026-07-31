@@ -9,4 +9,10 @@ package io.nop.ai.dsl.orm;
 
 public interface GptOrmConstants {
     String XDEF_GPT_ORM = "/nop/schema/gpt/orm.xdef";
+
+    /**
+     * Base package for generated entity class names (P2-MA1-020: no more hardcoded
+     * "app.demo." prefix). Default keeps the historical "app.demo" value.
+     */
+    String CFG_BASE_PACKAGE = "nop.ai.dsl-orm.base-package";
 }

@@ -367,3 +367,7 @@ MR4 Phase 2 对 P1 表全部 `fixed` 行做了 live repo 证据核验（提交/�
 | P2-MA1-006 / P2-MA2-029 | `fixed` | `nop-ai-tools/.../beans/ai-tools-defaults.beans.xml:1` `xmlns:x="/nop/schema/xdsl.xef"` → `xdsl.xdef`（nop-ai-toolkit 复核已正确；全组 grep 0 残留） |
 | P2-MA1-008 | `fixed`（裁定接线） | `SearchEngineExecutor` 重新接线：beans.xml 取消注释 + `setSearchEngine` 加 `@Nullable`（无 `ISearchEngine` bean 时容器正常启动，执行时明确 errorResult）；平台存在生产实现 `nop-search-lucene`；`SearchEngineExecutorTest` 8 例绿 |
 | P2-MA1-011 | `fixed`（裁定快速失败） | `AskOracleExecutor` 两分支均快速失败（无 ORACLE_ENDPOINT → 配置缺失 errorResult；有 endpoint → "not implemented" errorResult，不再伪造第一个 option 为成功）；`buildSuccessResult` 删除；测试改写 + 新增 endpoint 分支断言（5 例绿）；tool.xml description 同步。**覆盖** 1834-1 安全批次"stub 保持"记录 |
+| P2-MA1-020 | `fixed` | `GptOrmModelParser` 硬编码 `"app.demo." +` → 配置 `nop.ai.dsl-orm.base-package`（默认 "app.demo" 保持历史行为）；测试 `TestGptOrmModelParser.testParseWithCustomBasePackage`（自定义包名断言 + 配置复位） |
+| P2-MA3-2 | `fixed` | nop-ai-maven 13 处裸 IAE/RTE → `NopException`（新 `NopAiMavenErrors`：`ERR_VFS_INVALID_ARG`/`ERR_VFS_IO_FAILED`；IO 失败保留 cause）；测试 = `DeltaVirtualFileSystemTest` +3（含 IO cause 链）/`DeltaWorkspaceReaderTest` +3 |
+| P2-MA3-3 | `fixed`（复验） | `System.out/err` 在 nop-ai-maven main 0 命中（MA4.2-11 修复证据留档） |
+| P2-MA3-4 | `fixed` | `FileLanguageStats:313` RTE → `NopException`（新 `NopAiCodeAnalyzerErrors.ERR_STATS_IO_FAILED`，保留 cause）；连带模块内 4 处裸 IAE（MavenDependencyParser/TreeParser）→ `ERR_MAVEN_PARSE_INVALID_ARG`（exit criterion grep 0 残留）；测试断言更新 |

@@ -146,26 +146,28 @@ Exit Criteria:
 
 ### Phase 4 — 错误处理与硬编码修复（P2-MA1-020 + P2-MA3-2 + P2-MA3-4）
 
-Status: planned
+Status: completed
 Targets: `nop-ai/nop-ai-dsl-orm/src/main/java/io/nop/ai/dsl/orm/GptOrmModelParser.java`、`nop-ai/nop-ai-maven/src/main/java/io/nop/ai/maven/vfs/DeltaVirtualFileSystem.java`、`DeltaWorkspaceReader.java`、`ArtifactInfo.java`、`nop-ai/nop-ai-skills/nop-ai-code-analyzer/src/main/java/io/nop/ai/code_analyzer/stats/FileLanguageStats.java`
 
 - Item Types: `Fix | Decision | Proof`
 
-- [ ] （Decision）`GptOrmModelParser` 包名来源裁定：配置注入（默认值可配置）或按 ORM 模型命名推导；修复 `"app.demo." +` 硬编码（`GptOrmModelParser.java:49`）。
-- [ ] （Fix）`nop-ai-maven` 3 文件 IAE → 按 Phase 1 依赖裁定选择异常类型：若保留 `nop-api-core` 用 `NopException`；若移除则用模块级异常类（英文消息；nop-ai-maven 无独立 ErrorCode 类则按模块内部约定，见 AGENTS.md 错误处理规则）。覆盖 `DeltaVirtualFileSystem.java:46-56,73,146,173,199-200,:68 RTE`、`DeltaWorkspaceReader.java:44,47,158,161`、`ArtifactInfo.java:30,33,36` 全部实例。
-- [ ] （Fix）`FileLanguageStats.java:313` RTE → 规范异常（保留 cause）。
-- [ ] （Proof）复验 P2-MA3-3：grep `System.out` 于 `nop-ai-maven/src/main/java/` 应 0 命中（MA4.2-11 已修，此处仅留证据）。
-- [ ] （Fix）测试：异常类型变更后行为断言（构造期参数校验抛错 + 原因链保留）。
-- [ ] 全量 build + test 验证。
+- [x] （Decision）`GptOrmModelParser` 包名来源裁定：**配置注入**——新增 `nop.ai.dsl-orm.base-package` 配置（`GptOrmConstants.CFG_BASE_PACKAGE`，默认 "app.demo" 保持历史行为），`getBasePackage()` 经 `AppConfig.var` 读取；`"app.demo." +` 硬编码移除（:49 改为 `getBasePackage() + "." + ...`）。
+- [x] （Fix）`nop-ai-maven` 3 文件 IAE → **NopException**（Phase 1 裁定 (a) 保留 nop-api-core）：新增 `NopAiMavenErrors`（`ERR_VFS_INVALID_ARG`/`ERR_VFS_IO_FAILED`，模块 error code 前缀 `nop.err.ai.maven.*`）；`DeltaVirtualFileSystem.java` 9 IAE + 1 RTE（:46-56,73,146,173,199-200,:68）全部转换（IO 失败保留 cause）；`DeltaWorkspaceReader.java` 4 IAE（:44,47,158,161）；`ArtifactInfo.java` 3 IAE（:30,33,36）。
+- [x] （Fix）`FileLanguageStats.java:313` RTE → **NopException**（保留 cause）：新增 `NopAiCodeAnalyzerErrors.ERR_STATS_IO_FAILED`。**连带**：exit criterion 要求 code-analyzer 无裸 IAE/RTE，模块内其余 4 处（`MavenDependencyParser` 3 + `MavenDependencyTreeParser` 1）一并转换（`ERR_MAVEN_PARSE_INVALID_ARG`），grep 0 残留。
+- [x] （Proof）复验 P2-MA3-3：grep `System.out`/`System.err` 于 `nop-ai-maven/src/main/java/` 0 命中（MA4.2-11 已修，证据留档）。
+- [x] （Fix）测试：异常类型变更后行为断言——`DeltaVirtualFileSystemTest` +3（null/missing dir 校验、IO 失败 cause 链 `ERR_VFS_IO_FAILED` + IOException cause、空 relativePath/sourceFile 校验）；`DeltaWorkspaceReaderTest` +3（null repoPath、installArtifact 参数校验、ArtifactInfo 构造校验）；`TestGptOrmModelParser` +1（自定义 base package `com.acme.project.Product`，配置复位）；`MavenDependencyTreeParserTest` 2 处 IAE 断言更新为 NopException + errorCode 断言。
+- [x] 全量 build + test 验证。
 
 Exit Criteria:
 
-- [ ] `GptOrmModelParser` 无硬编码包名（代码 + 测试验证）
-- [ ] `nop-ai-maven`/code-analyzer 无裸 `IllegalArgumentException`/`RuntimeException`（grep 验证；允许参数校验用 `NopException` + ErrorCode 或模块异常）
-- [ ] P2-MA3-3 复验证据：`System.out` 在 nop-ai-maven main 0 命中（记录于本 Phase）
-- [ ] **无静默跳过**：异常仍抛（快速失败），仅类型/规范变化
-- [ ] `No owner-doc update required`（内部错误处理规范，无公开 API 变化）
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+> 每个 Phase 完成后，必须逐条勾选本节。所有 `[x]` 后才能将 Phase Status 改为 `completed`。
+
+- [x] `GptOrmModelParser` 无硬编码包名（代码 + 测试验证）——grep `app.demo.` 仅剩注释说明；测试覆盖默认 + 自定义包名
+- [x] `nop-ai-maven`/code-analyzer 无裸 `IllegalArgumentException`/`RuntimeException`（grep 验证；允许参数校验用 `NopException` + ErrorCode 或模块异常）——两模块 main 均 0 命中
+- [x] P2-MA3-3 复验证据：`System.out` 在 nop-ai-maven main 0 命中（记录于本 Phase）
+- [x] **无静默跳过**：异常仍抛（快速失败），仅类型/规范变化——所有转换点均为同一位置抛 NopException，无 catch 吞异常
+- [x] `No owner-doc update required`（内部错误处理规范，无公开 API 变化）
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 ### Phase 5 — dict 一致性 + zh-CN i18n + 命名裁定（P2-D06-019/020 + P2-MA1-034/035/036/037）
 

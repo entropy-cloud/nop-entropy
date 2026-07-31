@@ -1,5 +1,7 @@
 package io.nop.ai.maven.vfs;
 
+import io.nop.ai.maven.NopAiMavenErrors;
+import io.nop.api.core.exceptions.NopException;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -186,6 +188,46 @@ public class DeltaVirtualFileSystemTest {
         // 应该返回delta目录中的文件
         assertNotNull(file);
         assertEquals(deltaDir, file.getParentFile().getParentFile());
+    }
+
+    @Test
+    public void testConstructorRejectsNullAndMissingDirs() {
+        // P2-MA3-2: validation failures must throw NopException (not IllegalArgumentException/RuntimeException)
+        NopException ex = assertThrows(NopException.class, () -> new DeltaVirtualFileSystem((File) null, deltaDir));
+        assertEquals(NopAiMavenErrors.ERR_VFS_INVALID_ARG.getErrorCode(), ex.getErrorCode());
+
+        assertThrows(NopException.class, () -> new DeltaVirtualFileSystem(baseDir, (File) null));
+
+        File missing = new File(baseDir, "does-not-exist");
+        NopException ex2 = assertThrows(NopException.class, () -> new DeltaVirtualFileSystem(missing, deltaDir));
+        assertEquals(NopAiMavenErrors.ERR_VFS_INVALID_ARG.getErrorCode(), ex2.getErrorCode());
+    }
+
+    @Test
+    public void testConstructorRejectsFileAsDeltaDir() throws IOException {
+        // deltaDir whose parent is a regular file: createDirectories fails -> NopException with IO cause preserved
+        File notDir = Files.createTempFile("vfs-notdir-", "").toFile();
+        try {
+            File badDelta = new File(notDir, "sub");
+            NopException ex = assertThrows(NopException.class,
+                    () -> new DeltaVirtualFileSystem(baseDir, badDelta));
+            assertEquals(NopAiMavenErrors.ERR_VFS_IO_FAILED.getErrorCode(), ex.getErrorCode());
+            assertTrue(ex.getCause() instanceof IOException);
+        } finally {
+            Files.deleteIfExists(notDir.toPath());
+        }
+    }
+
+    @Test
+    public void testInvalidRelativePathRejected() throws IOException {
+        NopException ex = assertThrows(NopException.class, () -> vfs.getOutputStream(""));
+        assertEquals(NopAiMavenErrors.ERR_VFS_INVALID_ARG.getErrorCode(), ex.getErrorCode());
+
+        NopException ex2 = assertThrows(NopException.class, () -> vfs.deleteFile(""));
+        assertEquals(NopAiMavenErrors.ERR_VFS_INVALID_ARG.getErrorCode(), ex2.getErrorCode());
+
+        NopException ex3 = assertThrows(NopException.class, () -> vfs.copyToVirtual(new File(baseDir, "missing.txt"), "x.txt"));
+        assertEquals(NopAiMavenErrors.ERR_VFS_INVALID_ARG.getErrorCode(), ex3.getErrorCode());
     }
 
     // ========== 辅助方法 ==========

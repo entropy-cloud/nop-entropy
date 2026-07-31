@@ -1,5 +1,7 @@
 package io.nop.ai.code_analyzer.maven;
 
+import io.nop.ai.code_analyzer.NopAiCodeAnalyzerErrors;
+import io.nop.api.core.exceptions.NopException;
 import org.junit.jupiter.api.Test;
 import java.util.Arrays;
 import java.util.List;
@@ -59,8 +61,9 @@ class MavenDependencyTreeParserTest {
 
     @Test
     void parseEmptyInputShouldThrow() {
-        assertThrows(IllegalArgumentException.class, 
-            () -> MavenDependencyTreeParser.parse(List.of()));
+        NopException ex = assertThrows(NopException.class,
+                () -> MavenDependencyTreeParser.parse(List.of()));
+        assertEquals(NopAiCodeAnalyzerErrors.ERR_MAVEN_PARSE_INVALID_ARG.getErrorCode(), ex.getErrorCode());
     }
 
     @Test
@@ -70,7 +73,8 @@ class MavenDependencyTreeParserTest {
             "+- invalid-dependency-format"
         );
         
-        assertThrows(IllegalArgumentException.class, 
-            () -> MavenDependencyTreeParser.parse(input));
+        NopException ex = assertThrows(NopException.class,
+                () -> MavenDependencyTreeParser.parse(input));
+        assertEquals(NopAiCodeAnalyzerErrors.ERR_MAVEN_PARSE_INVALID_ARG.getErrorCode(), ex.getErrorCode());
     }
 }

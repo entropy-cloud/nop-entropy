@@ -11,6 +11,7 @@ import io.nop.core.initialize.CoreInitialization;
 import io.nop.core.lang.xml.XNode;
 import io.nop.core.unittest.BaseTestCase;
 import io.nop.ai.core.response.XmlResponseParser;
+import io.nop.api.core.config.AppConfig;
 import io.nop.orm.model.IColumnModel;
 import io.nop.orm.model.IEntityModel;
 import io.nop.orm.model.OrmModel;
@@ -79,5 +80,28 @@ public class TestGptOrmModelParser extends BaseTestCase {
         assertNotNull(customerId);
         assertEquals("customerId", customerId.getName());
         assertEquals(2, customerId.getPropId());
+    }
+
+    @Test
+    public void testParseWithCustomBasePackage() {
+        // P2-MA1-020: base package must be configurable, not hardcoded "app.demo"
+        AppConfig.getConfigProvider().updateConfigValue(
+                AppConfig.varRef(null, GptOrmConstants.CFG_BASE_PACKAGE, String.class, "app.demo"),
+                "com.acme.project");
+
+        try {
+            String response = classpathResource("orm-response1.txt").readText();
+            XNode node = XmlResponseParser.instance().parseResponse(response);
+            OrmModel ormModel = new GptOrmModelParser().parseOrmModel(node);
+            ormModel.init();
+
+            IEntityModel product = ormModel.getEntityModel("Product");
+            assertNotNull(product);
+            assertEquals("com.acme.project.Product", product.getClassName());
+        } finally {
+            AppConfig.getConfigProvider().updateConfigValue(
+                    AppConfig.varRef(null, GptOrmConstants.CFG_BASE_PACKAGE, String.class, "app.demo"),
+                    null);
+        }
     }
 }

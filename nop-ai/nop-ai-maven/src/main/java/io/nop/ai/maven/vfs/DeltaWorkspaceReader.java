@@ -1,5 +1,8 @@
 package io.nop.ai.maven.vfs;
 
+import io.nop.ai.maven.NopAiMavenErrors;
+import io.nop.api.core.exceptions.NopException;
+
 import java.io.File;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -41,10 +44,10 @@ public class DeltaWorkspaceReader {
      */
     public DeltaWorkspaceReader(File baseRepoPath, File deltaRepoPath) {
         if (baseRepoPath == null) {
-            throw new IllegalArgumentException("baseRepoPath cannot be null");
+            throw new NopException(NopAiMavenErrors.ERR_VFS_INVALID_ARG).param(NopAiMavenErrors.ARG_MSG, "baseRepoPath cannot be null");
         }
         if (deltaRepoPath == null) {
-            throw new IllegalArgumentException("deltaRepoPath cannot be null");
+            throw new NopException(NopAiMavenErrors.ERR_VFS_INVALID_ARG).param(NopAiMavenErrors.ARG_MSG, "deltaRepoPath cannot be null");
         }
 
         this.vfs = new DeltaVirtualFileSystem(baseRepoPath, deltaRepoPath);
@@ -155,10 +158,10 @@ public class DeltaWorkspaceReader {
      */
     public void installArtifact(File sourceFile, ArtifactInfo artifact) throws Exception {
         if (sourceFile == null || !sourceFile.exists()) {
-            throw new IllegalArgumentException("sourceFile does not exist: " + sourceFile);
+            throw new NopException(NopAiMavenErrors.ERR_VFS_INVALID_ARG).param(NopAiMavenErrors.ARG_MSG, "sourceFile does not exist: " + sourceFile);
         }
         if (artifact == null) {
-            throw new IllegalArgumentException("artifact cannot be null");
+            throw new NopException(NopAiMavenErrors.ERR_VFS_INVALID_ARG).param(NopAiMavenErrors.ARG_MSG, "artifact cannot be null");
         }
 
         String artifactPath = getArtifactPath(artifact);

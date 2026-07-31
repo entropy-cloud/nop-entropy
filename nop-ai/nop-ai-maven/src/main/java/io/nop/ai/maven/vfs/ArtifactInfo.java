@@ -1,5 +1,8 @@
 package io.nop.ai.maven.vfs;
 
+import io.nop.ai.maven.NopAiMavenErrors;
+import io.nop.api.core.exceptions.NopException;
+
 /**
  * Artifact信息类
  * <p>
@@ -27,13 +30,13 @@ public class ArtifactInfo {
     public ArtifactInfo(String groupId, String artifactId, String version,
                        String classifier, String extension) {
         if (groupId == null || groupId.trim().isEmpty()) {
-            throw new IllegalArgumentException("groupId cannot be null or empty");
+            throw new NopException(NopAiMavenErrors.ERR_VFS_INVALID_ARG).param(NopAiMavenErrors.ARG_MSG, "groupId cannot be null or empty");
         }
         if (artifactId == null || artifactId.trim().isEmpty()) {
-            throw new IllegalArgumentException("artifactId cannot be null or empty");
+            throw new NopException(NopAiMavenErrors.ERR_VFS_INVALID_ARG).param(NopAiMavenErrors.ARG_MSG, "artifactId cannot be null or empty");
         }
         if (version == null || version.trim().isEmpty()) {
-            throw new IllegalArgumentException("version cannot be null or empty");
+            throw new NopException(NopAiMavenErrors.ERR_VFS_INVALID_ARG).param(NopAiMavenErrors.ARG_MSG, "version cannot be null or empty");
         }
 
         this.groupId = groupId;

@@ -8,6 +8,7 @@
 package io.nop.ai.dsl.orm;
 
 import io.nop.ai.dsl.orm.consts.GptOrmSqlType;
+import io.nop.api.core.config.AppConfig;
 import io.nop.commons.type.StdSqlType;
 import io.nop.commons.util.StringHelper;
 import io.nop.core.lang.xml.XNode;
@@ -21,6 +22,15 @@ import io.nop.xlang.xdsl.DslModelParser;
 import io.nop.xlang.xdsl.XDslKeys;
 
 public class GptOrmModelParser {
+    /**
+     * Base package for generated entity class names, configurable via
+     * {@link GptOrmConstants#CFG_BASE_PACKAGE} (default "app.demo",
+     * historical value). P2-MA1-020: previously hardcoded.
+     */
+    protected String getBasePackage() {
+        return AppConfig.var(GptOrmConstants.CFG_BASE_PACKAGE, "app.demo");
+    }
+
     public OrmModel parseOrmModel(XNode node) {
         node.setAttr(XDslKeys.DEFAULT.SCHEMA, GptOrmConstants.XDEF_GPT_ORM);
         node.setAttr(XDslKeys.DEFAULT.VALIDATED, true);
@@ -46,7 +56,7 @@ public class GptOrmModelParser {
         if(StringHelper.isEmpty(entityModel.getDisplayName()))
             entityModel.setDisplayName(name);
 
-        entityModel.setClassName("app.demo." + StringHelper.simpleClassName(name));
+        entityModel.setClassName(getBasePackage() + "." + StringHelper.simpleClassName(name));
 
         int nextId = 1;
         for (OrmColumnModel col : entityModel.getColumns()) {

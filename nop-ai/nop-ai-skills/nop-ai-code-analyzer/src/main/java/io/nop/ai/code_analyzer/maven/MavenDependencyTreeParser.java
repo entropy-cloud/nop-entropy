@@ -1,5 +1,7 @@
 package io.nop.ai.code_analyzer.maven;
 
+import io.nop.ai.code_analyzer.NopAiCodeAnalyzerErrors;
+import io.nop.api.core.exceptions.NopException;
 import io.nop.commons.util.FileHelper;
 
 import java.io.File;
@@ -17,7 +19,8 @@ public class MavenDependencyTreeParser {
      */
     public static MavenDependencyNode parse(List<String> treeLines) {
         if (treeLines == null || treeLines.isEmpty()) {
-            throw new IllegalArgumentException("Input lines cannot be null or empty");
+            throw new NopException(NopAiCodeAnalyzerErrors.ERR_MAVEN_PARSE_INVALID_ARG)
+                    .param(NopAiCodeAnalyzerErrors.ARG_MSG, "Input lines cannot be null or empty");
         }
 
         // 解析根节点

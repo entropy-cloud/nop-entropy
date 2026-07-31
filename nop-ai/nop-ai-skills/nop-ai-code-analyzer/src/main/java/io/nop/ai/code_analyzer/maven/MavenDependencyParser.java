@@ -1,5 +1,8 @@
 package io.nop.ai.code_analyzer.maven;
 
+import io.nop.ai.code_analyzer.NopAiCodeAnalyzerErrors;
+import io.nop.api.core.exceptions.NopException;
+
 public class MavenDependencyParser {
     
     /**
@@ -9,12 +12,14 @@ public class MavenDependencyParser {
      */
     public static MavenDependency parse(String dependencyStr) {
         if (dependencyStr == null || dependencyStr.trim().isEmpty()) {
-            throw new IllegalArgumentException("Dependency string cannot be null or empty");
+            throw new NopException(NopAiCodeAnalyzerErrors.ERR_MAVEN_PARSE_INVALID_ARG)
+                    .param(NopAiCodeAnalyzerErrors.ARG_MSG, "Dependency string cannot be null or empty");
         }
 
         String[] parts = dependencyStr.split(":");
         if (parts.length < 4) {
-            throw new IllegalArgumentException("Invalid dependency format. Expected at least 4 parts: " + dependencyStr);
+            throw new NopException(NopAiCodeAnalyzerErrors.ERR_MAVEN_PARSE_INVALID_ARG)
+                    .param(NopAiCodeAnalyzerErrors.ARG_MSG, "Invalid dependency format. Expected at least 4 parts: " + dependencyStr);
         }
 
         String groupId = parts[0];
@@ -33,7 +38,8 @@ public class MavenDependencyParser {
      */
     public static MavenDependency parseFromTreeLine(String treeLine) {
         if (treeLine == null || treeLine.trim().isEmpty()) {
-            throw new IllegalArgumentException("Tree line cannot be null or empty");
+            throw new NopException(NopAiCodeAnalyzerErrors.ERR_MAVEN_PARSE_INVALID_ARG)
+                    .param(NopAiCodeAnalyzerErrors.ARG_MSG, "Tree line cannot be null or empty");
         }
 
         // 清理树形结构标记

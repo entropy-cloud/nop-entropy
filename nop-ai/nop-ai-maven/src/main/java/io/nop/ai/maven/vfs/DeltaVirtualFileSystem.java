@@ -1,5 +1,8 @@
 package io.nop.ai.maven.vfs;
 
+import io.nop.ai.maven.NopAiMavenErrors;
+import io.nop.api.core.exceptions.NopException;
+
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
@@ -43,17 +46,17 @@ public class DeltaVirtualFileSystem {
      */
     public DeltaVirtualFileSystem(File baseDir, File deltaDir) {
         if (baseDir == null) {
-            throw new IllegalArgumentException("baseDir cannot be null");
+            throw new NopException(NopAiMavenErrors.ERR_VFS_INVALID_ARG).param(NopAiMavenErrors.ARG_MSG, "baseDir cannot be null");
         }
         if (deltaDir == null) {
-            throw new IllegalArgumentException("deltaDir cannot be null");
+            throw new NopException(NopAiMavenErrors.ERR_VFS_INVALID_ARG).param(NopAiMavenErrors.ARG_MSG, "deltaDir cannot be null");
         }
 
         if (!baseDir.exists()) {
-            throw new IllegalArgumentException("baseDir does not exist: " + baseDir.getAbsolutePath());
+            throw new NopException(NopAiMavenErrors.ERR_VFS_INVALID_ARG).param(NopAiMavenErrors.ARG_MSG, "baseDir does not exist: " + baseDir.getAbsolutePath());
         }
         if (!baseDir.isDirectory()) {
-            throw new IllegalArgumentException("baseDir is not a directory: " + baseDir.getAbsolutePath());
+            throw new NopException(NopAiMavenErrors.ERR_VFS_INVALID_ARG).param(NopAiMavenErrors.ARG_MSG, "baseDir is not a directory: " + baseDir.getAbsolutePath());
         }
 
         this.baseDir = baseDir.getAbsoluteFile();
@@ -65,12 +68,14 @@ public class DeltaVirtualFileSystem {
                 Files.createDirectories(this.deltaDir.toPath());
                 LOG.info("Created delta directory: {}", this.deltaDir.getAbsolutePath());
             } catch (IOException e) {
-                throw new RuntimeException("Failed to create delta directory: " + this.deltaDir.getAbsolutePath(), e);
+                throw new NopException(NopAiMavenErrors.ERR_VFS_IO_FAILED)
+                        .param(NopAiMavenErrors.ARG_MSG, "Failed to create delta directory: " + this.deltaDir.getAbsolutePath())
+                        .cause(e);
             }
         }
 
         if (!this.deltaDir.isDirectory()) {
-            throw new IllegalArgumentException("deltaDir is not a directory: " + this.deltaDir.getAbsolutePath());
+            throw new NopException(NopAiMavenErrors.ERR_VFS_INVALID_ARG).param(NopAiMavenErrors.ARG_MSG, "deltaDir is not a directory: " + this.deltaDir.getAbsolutePath());
         }
 
         LOG.info("Initialized DeltaVirtualFileSystem with base={}, delta={}",
@@ -143,7 +148,7 @@ public class DeltaVirtualFileSystem {
      */
     public OutputStream getOutputStream(String relativePath) throws IOException {
         if (relativePath == null || relativePath.isEmpty()) {
-            throw new IllegalArgumentException("relativePath cannot be null or empty");
+            throw new NopException(NopAiMavenErrors.ERR_VFS_INVALID_ARG).param(NopAiMavenErrors.ARG_MSG, "relativePath cannot be null or empty");
         }
 
         String normalizedPath = normalizePath(relativePath);
@@ -170,7 +175,7 @@ public class DeltaVirtualFileSystem {
      */
     public void copyToVirtual(File sourceFile, String relativePath) throws IOException {
         if (sourceFile == null || !sourceFile.exists()) {
-            throw new IllegalArgumentException("sourceFile does not exist: " + sourceFile);
+            throw new NopException(NopAiMavenErrors.ERR_VFS_INVALID_ARG).param(NopAiMavenErrors.ARG_MSG, "sourceFile does not exist: " + sourceFile);
         }
 
         String normalizedPath = normalizePath(relativePath);
@@ -197,7 +202,7 @@ public class DeltaVirtualFileSystem {
      */
     public void deleteFile(String relativePath) throws IOException {
         if (relativePath == null || relativePath.isEmpty()) {
-            throw new IllegalArgumentException("relativePath cannot be null or empty");
+            throw new NopException(NopAiMavenErrors.ERR_VFS_INVALID_ARG).param(NopAiMavenErrors.ARG_MSG, "relativePath cannot be null or empty");
         }
 
         String normalizedPath = normalizePath(relativePath);

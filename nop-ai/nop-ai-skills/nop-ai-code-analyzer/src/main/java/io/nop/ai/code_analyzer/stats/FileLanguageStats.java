@@ -1,5 +1,8 @@
 package io.nop.ai.code_analyzer.stats;
 
+import io.nop.ai.code_analyzer.NopAiCodeAnalyzerErrors;
+import io.nop.api.core.exceptions.NopException;
+
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.FileVisitResult;
@@ -310,7 +313,9 @@ public class FileLanguageStats {
                 }
             });
         } catch (IOException e) {
-            throw new RuntimeException("Error walking file tree: " + e.getMessage(), e);
+            throw new NopException(NopAiCodeAnalyzerErrors.ERR_STATS_IO_FAILED)
+                    .param(NopAiCodeAnalyzerErrors.ARG_MSG, "Error walking file tree: " + e.getMessage())
+                    .cause(e);
         }
 
         return languageStats;
