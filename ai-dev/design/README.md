@@ -33,7 +33,7 @@ Each subsystem directory contains architecture decisions and usage contracts for
 | Directory | Subsystem | README | Status |
 |-----------|-----------|--------|--------|
 | `nop-ai-agent/` | AI Agent DSL + Engine | [README](nop-ai-agent/README.md) | active — 8-layer structure (Vision / Architecture Baseline / Execution Model / DSL / Engine / Semantics / Strategy / Vision) |
-| `nop-ai/` | nop-ai 模块组跨模块契约（文件操作抽象） | [README](nop-ai/README.md) | active — IFileOperator vs IToolFileSystem 双抽象边界契约（P2-MA1-012 裁定：保持 + forRemoval=true + 迁移前置条件） |
+| `nop-ai/` | nop-ai 模块组跨模块契约（文件操作抽象 + code-analyzer 边界） | [README](nop-ai/README.md) | active — IFileOperator vs IToolFileSystem 双抽象边界契约（P2-MA1-012 裁定：保持 + forRemoval=true + 迁移前置条件）；nop-ai-code-analyzer 模块职责边界（P3-MA1-014 裁定：不拆模块 + maven 包内部子域 + git 包公共面） |
 | `nop-job/` | Job Scheduling | [README](nop-job/README.md) | active — AGE owner-doc (Vision / Architecture Baseline / Execution Strategy / Observability / Cluster) |
 | `nop-code/` | Code Indexing & Semantic Analysis | [README](nop-code/README.md) | active — AGE owner-doc (Vision / Architecture Baseline / Query / Analysis / Integration) |
 | `nop-stream/` | Stream Processing | [README](nop-stream/README.md) | active — AGE 8-layer structure (Vision / Architecture Baseline / Core Model / Graph & Execution / Checkpoint / State & Time / Integration / Reference) |

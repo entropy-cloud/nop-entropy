@@ -413,3 +413,16 @@ plan `ai-dev/plans/2026-07-31-2248-2-arm-hollow-baseline-clearance.md`（第七�
 | MA5.4-P3-1 | `fixed`（裁定接口 default + doc 同步） | `IShellInput` 新增 default 方法 `readLine()/readAllText()/lines()/chunks()` + `pushBack(ShellChunk)` 无状态 hook（基于 `read()` 的通用实现；`AbstractShellInput` 覆写保持 buffer 语义并实现 `pushBack`）；`ShellCommandExecutor.collectOutput` 简化直接调用 `readAllText()`（消除手动循环双份逻辑）；design doc `nop-ai-shell/02-io-and-pipeline.md` §3.3 重写与代码一致；`ShellIOTest` +6 例（纯 IShellInput 实现 default 方法可用性 + 换行剩余文本 pushBack + binary 跳过路径） |
 | MA5.4-P3-3 | `fixed` | `AbstractShellInput.readAllText()`/`readLine()` 与接口 default 实现遇非文本块（binary）均记录 WARN（`skip non-text chunk while reading ...: type=...`）不再静默丢弃；javadoc 明确 text-only 读取语义；`ShellIOTest.testInterfaceDefaultReadAllTextSkipsBinaryWithWarn` 覆盖 |
 | P3-MA1-038 | `fixed`（裁定保留 + 落盘） | 裁定 = **保留 `GptOrm*` 类名与 `/nop/schema/gpt/orm.xdef` 路径**：nop-ai-dsl-orm 为独立发布模块，类名/常量属公开 API 表面，重命名 = 破坏性变更（low-value/high-risk）；错误码前缀已由 P2-MA1-034 统一为 `nop.err.ai.dsl-orm.*`；历史命名缘由入 `GptOrmErrors`/`GptOrmConstants` 类级 javadoc（xdef 路径保留并注明） |
+
+## P2 修复追踪（第九批 — skills 结构治理，2026-08-01）
+
+第九批批量修复（plan `ai-dev/plans/2026-08-01-0206-1-arm-p2-skills-code-analyzer-structure.md`）已执行并收口。P2-MA1-004/005（1834-3 Deferred 重开）与 P3-MA1-014/015（Non-Blocking Follow-ups 承接）全部 `fixed` 或裁定落盘：
+
+| Finding ID | 修复状态 | 修复位置 / 测试 |
+|-----------|---------|----------------|
+| P2-MA1-004 | `fixed` | `CodeFileInfo.java` 590→216 行：7 类型提取为同包顶层文件（CodeSymbol/CodeClassInfo/CodeFunctionInfo/CodeCallInfo/CodeVariableInfo/AccessModifier）+ `CodeSymbolInterning` 工具类（internString*/驻留委托）；`collectUsedFns()` 递归逻辑留在 CodeFileInfo 行为不变；消费者 JavaCodeFileInfoParser（25 处限定名）/JavaCodeFileInfoGenerator（2 处）适配，全仓 grep `CodeFileInfo.X` 0 残留。契约核对：脚本归一化对比 6 类型+主类全部 IDENTICAL（继承关系/成员签名 diff=0）。测试 = `TestCodeFileInfoStructure`（7 方法：顶层类型/继承/interning 引用相等/解析/JSON round-trip） |
+| P2-MA1-005 | `fixed`（裁定=拆分，落盘理由） | `FileLanguageStats.java` 516→188 行：4 关注点拆分（`IgnoredItems`/`FileTreeWalker`/`CodeLineAnalyzer`/`LanguageStatsAggregator`），主类仅编排入口。裁定：拒绝删除（完整可用能力）+拒绝接线（无自然消费点）；零生产调用者由直接调用测试提供消费者证据。语义对比全部 IDENTICAL。测试 = `TestFileLanguageStats`（5 方法：样本目录统计→语言分类→聚合端到端全值断言 + GitHub API 字符串 + 忽略规则 + 注释边界） |
+| P3-MA1-014 | `fixed`（裁定=保持现状+边界文档化） | 裁定理由：code→maven→project→git 依赖链拆 maven 即双向环（破环须迁 7/10 maven 文件，拆分自溶解）；nop-shell 仅 MavenProject.java 使用（拒绝 optional/provided）；git 包（GitIgnoreFile，nop-cli-core 经 nop-ai-coder 传递消费）为跨模块公共面。落盘 `ai-dev/design/nop-ai/02-code-analyzer-module-boundary.md`（使用约束：maven 包=内部子域禁止外部 import + 未来迁移触发条件）；nop-ai/README.md + design/README.md 注册 |
+| P3-MA1-015 | `fixed` | `nop-ai-deepwiki/pom.xml` 移除 `nop-ai-code-analyzer`（生产+测试 0 引用）、`nop-ai-tools` 改 `<scope>test</scope>`（仅 TestDeepWikiPrompts:10/:38 import FileToolBizModel）；依赖树验证 direct test scope；deepwiki compile+test BUILD SUCCESS；docs-for-ai grep deepwiki/code-analyzer 0 引用 → No owner-doc update required |
+
+**验证**：`./mvnw test -pl nop-ai/nop-ai-skills/nop-ai-code-analyzer -am -T 1C` BUILD SUCCESS（26 tests 0 failures）；`./mvnw test -pl nop-ai/nop-ai-skills/nop-ai-deepwiki -am -T 1C` BUILD SUCCESS；import 顺序新建/触及文件 0 违规（模块内其余为既有基线）。

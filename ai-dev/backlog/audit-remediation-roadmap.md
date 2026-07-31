@@ -1,6 +1,6 @@
 # 审计-修复路线图：nop-ai 全模块组
 
-> 最后更新：2026-07-31（v7 — 第八批 P3 残余清理已 ✅ closed 2026-07-31：MA5.6-AR-4/5/7 + MA5.4-P3-1/3 + P3-MA1-038 全部收口；P2/P3 Deferred Successors 全批次 closed）
+> 最后更新：2026-08-01（v8 — 第九批 P2/P3 deferred 重开登记：skills 结构治理 + tools/rag 结构残余 + 测试质量 P3 残余，3 plans active 2026-08-01）
 > 来源：`ai-dev/skills/audit-remediation-roadmap-authoring-prompt.md`
 > 目标模块组：nop-ai（18 子模块，~1275 main Java, ~426 test）
 > 模块排除：`nop-ai-mcp-server`、`nop-spring-mcp-server`、`nop-spring-mcp-server-support`（MCP 协议集成模块，独立发布周期，需单独审计）
@@ -255,8 +255,11 @@ MA5+MA6 产出的 P1 发现展开为具体修复工作项
 | 第六批（结构类 P2 后续） | `ai-dev/plans/2026-07-31-2248-1-arm-p2-structural-successor.md` | P2-MA1-007（SkillExecutor 空 catch + 幻影技能回退 + loadedSkills 死代码）、P2-MA1-009（GraphQLToolProvider 传递依赖显式声明）、P2-MA1-012（IToolFileSystem/IFileOperator 抽象收敛裁定） | ✅（closed 2026-07-31） |
 | 第七批（scan-hollow 基线清零） | `ai-dev/plans/2026-07-31-2248-2-arm-hollow-baseline-clearance.md` | 25 处 UOE → NopException + ErrorCode（英文）、4 处 P6b placeholder 注释改写；目标 scan-hollow 工具 nop-ai 退出码 0 | ✅（closed 2026-07-31） |
 | 第八批（P3 残余清理） | `ai-dev/plans/2026-07-31-2248-3-arm-p3-residual-cleanup.md` | MA5.6-AR-4/7（temp dir deleteOnExit）、MA5.6-AR-5（PassThroughModelRouter 单例）、MA5.4-P3-1/3（IShellInput 契约 + readAllText 非文本丢弃）、P3-MA1-038（GptOrm* 命名裁定） | ✅（closed 2026-07-31） |
+| 第九批（结构治理 + 测试质量，2026-08-01 重开登记） | `ai-dev/plans/2026-08-01-0206-1-arm-p2-skills-code-analyzer-structure.md` | P2-MA1-004/005（CodeFileInfo/FileLanguageStats 拆分，1834-3 Deferred 重开）+ P3-MA1-014/015（code-analyzer 职责裁定 + deepwiki 依赖 scope） | ✅（closed 2026-08-01） |
+| 第九批（同批次 2） | `ai-dev/plans/2026-08-01-0206-2-arm-p2-tools-structure-residual.md` | P3-MA1-016（GraphQLToolSetFactoryBean on-bean 条件注册）+ P3-MA1-013（ThoughtStorage 持久化裁定）+ P3-MA3-003（nop-ai-rag 空模块裁定） | 🟡 active 2026-08-01 |
+| 第九批（同批次 3） | `ai-dev/plans/2026-08-01-0206-3-arm-p3-test-quality-residual.md` | MA4.3-09/13（assertTrue-only 升级，audit Suggestion 点名 2 文件）+ MA4.4-01/02/03（低价值测试裁定）+ MA4.2-06（大测试文件拆分） | 🟡 active 2026-08-01 |
 
-其余 MA1-MA3/MA5-MA6 各里程碑的 P2/P3 findings 已由 MR1/MR2/MR3 计划逐批裁定为 `out-of-scope improvement`（MV 矩阵 open=0，无已确认 live defect 残留），登记为 **watch-only residual**：后续批次按严重度排序另行规划，本批不入 scope。
+其余 MA1-MA3/MA5-MA6 各里程碑的 P2/P3 findings 已由 MR1/MR2/MR3 计划逐批裁定为 `out-of-scope improvement`（MV 矩阵 open=0，无已确认 live defect 残留），登记为 **watch-only residual**。第九批（2026-08-01）按严重度排序重开了其中结构性/测试质量类高价值项（P2-MA1-004/005、P3-MA1-013/014/015/016、P3-MA3-003、MA4.3-09/13、MA4.4-01/02/03、MA4.2-06），其余低价值 watch-only 项（如 P3-MA1-023~030、P3-MA1-039）仍不入 scope。
 
 ## 框架/平台复用
 
