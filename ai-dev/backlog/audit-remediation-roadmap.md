@@ -1,6 +1,6 @@
 # 审计-修复路线图：nop-ai 全模块组
 
-> 最后更新：2026-07-30（v3 — 修复 Owner Doc 路径、Finding ID 格式、MR3 恢复、MA6 扩展）
+> 最后更新：2026-07-31（v4 — MA4 done + P2/P3 deferred successor 登记）
 > 来源：`ai-dev/skills/audit-remediation-roadmap-authoring-prompt.md`
 > 目标模块组：nop-ai（18 子模块，~1275 main Java, ~426 test）
 > 模块排除：`nop-ai-mcp-server`、`nop-spring-mcp-server`、`nop-spring-mcp-server-support`（MCP 协议集成模块，独立发布周期，需单独审计）
@@ -61,11 +61,11 @@
 
 | # | Work Item | Status | Owner Doc | Deps | Skill |
 |---|-----------|--------|-----------|------|-------|
-| 4.1 | 类型安全与泛型使用 | todo | — | 0.3 | `deep-audit-prompts.md`（维度 15） |
-| 4.2 | 代码风格与规范 | todo | — | 0.3 | `deep-audit-prompts.md`（维度 17） |
-| 4.3 | 测试覆盖与质量 | todo | — | 0.3 | `deep-audit-prompts.md`（维度 16） |
-| 4.4 | 单元测试有效性 | todo | — | 0.3 | `deep-audit-prompts.md`（维度 21） |
-| 4.5 | 文档-代码一致性 | todo | `docs-for-ai/` | 0.3 | `deep-audit-prompts.md`（维度 18） |
+| 4.1 | 类型安全与泛型使用 | done | `ai-dev/audits/2026-07-31-XXXX-arm-MA4.1-nop-ai-typesafety.md` | 0.3 | `deep-audit-prompts.md`（维度 15） |
+| 4.2 | 代码风格与规范 | done | `ai-dev/audits/2026-07-31-0539-arm-MA4.2-nop-ai-style.md` | 0.3 | `deep-audit-prompts.md`（维度 17） |
+| 4.3 | 测试覆盖与质量 | done | `ai-dev/audits/2026-07-31-XXXX-arm-MA4.3-nop-ai-test-coverage.md` | 0.3 | `deep-audit-prompts.md`（维度 16） |
+| 4.4 | 单元测试有效性 | done | `ai-dev/audits/2026-07-31-arm-MA4.4-nop-ai-test-effectiveness.md` | 0.3 | `deep-audit-prompts.md`（维度 21） |
+| 4.5 | 文档-代码一致性 | done | `ai-dev/audits/2026-07-31-XXXX-arm-MA4.5-nop-ai-doc-consistency.md` | 0.3 | `deep-audit-prompts.md`（维度 18） |
 
 ### MA5 — 残留风险审计专项（全模块）
 
@@ -240,6 +240,17 @@ MA5+MA6 产出的 P1 发现展开为具体修复工作项
 
 ### MG
 失败模式提升为 lessons + 文档更新 — **closed 2026-07-31**：G.1 新增 4 条 lessons（05-08：overclaimed closure / 凭证字段跨层收敛 / zero-test 模块 / tool executor 安全边界，全部有 live 证据）；G.2 新增 `ai-dev/skills/audit-remediation-verification-prompt.md`（fix-status 追溯核验 / zero-test 扫描 / 凭证跨层核查三类检查项）；G.3 同步 `docs-for-ai/01-repo-map/module-groups.md`（nop-ai 模块组分层 + 废弃 API + nopChatService）、`docs-for-ai/02-core-guides/service-layer.md`（@Auth `<BizObjName>:<action>` 约定）、`docs-for-ai/02-core-guides/model-first-development.md`（凭证字段 ORM 源模型收敛约定）及 `ai-dev/design/nop-ai-agent/` bridge 文档（llm-layer/01-architecture-baseline/reliability/usage-and-billing/glossary）。独立 closure audit 见 plan `2026-07-31-1024-3-arm-mg-guard-retention.md` Closure 段。
+
+## P2/P3 Deferred Successors（2026-07-31 登记）
+
+按 roadmap 规则 1（本 roadmap 只处理 P0/P1，P2/P3 记录为 deferred successor），以下为已登记的 P2/P3 承接路径：
+
+| 批次 | Successor Plan | 承接范围 | 状态 |
+|------|---------------|---------|------|
+| 第一批（代码质量） | `ai-dev/plans/2026-07-31-1446-2-arm-ma4-p2-code-quality.md` | MA4.1 P2（5）+ MA4.2 P2（7）+ MA4.5 P2（7）批量修复 | active |
+| 第二批（测试质量） | `ai-dev/plans/2026-07-31-1446-3-arm-ma4-p2-test-quality.md` | MA4.3 P2（含 MA4.3-14）+ MA4.4 P2 批量修复 | active |
+
+其余 MA1-MA3/MA5-MA6 各里程碑的 P2/P3 findings 已由 MR1/MR2/MR3 计划逐批裁定为 `out-of-scope improvement`（MV 矩阵 open=0，无已确认 live defect 残留），登记为 **watch-only residual**：后续批次按严重度排序另行规划，本批不入 scope。
 
 ## 框架/平台复用
 

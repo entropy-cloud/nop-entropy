@@ -25,23 +25,25 @@
 | [`2026-07-31-0422-arm-MA3.3-nop-ai-async-txn.md`](./2026-07-31-0422-arm-MA3.3-nop-ai-async-txn.md) | MA3.3 | 异步/事务 | 全模块 | 0 | 0 | 2(P3:2) | `done` |
 | [`2026-07-31-0423-arm-MA3.4-nop-ai-error-handling.md`](./2026-07-31-0423-arm-MA3.4-nop-ai-error-handling.md) | MA3.4 | 错误处理 | 全模块 | 0 | 2 | 9+2(P2:4, P3:5+2downgraded) | `done` |
 | [`2026-07-31-0423-arm-MA3.5-nop-ai-cross-module-contract.md`](./2026-07-31-0423-arm-MA3.5-nop-ai-cross-module-contract.md) | MA3.5 | 跨模块契约 | 全模块 | 0 | 2 | 6(P2:4, P3:2) | `done` |
-| [`2026-07-31-XXXX-arm-MA4.1-nop-ai-typesafety.md`](./2026-07-31-XXXX-arm-MA4.1-nop-ai-typesafety.md) | MA4.1 | 类型安全 | 全模块 | 0 | 0 | 11(P2:5, P3:6) | `done` |
+| [`2026-07-31-XXXX-arm-MA4.1-nop-ai-typesafety.md`](./2026-07-31-XXXX-arm-MA4.1-nop-ai-typesafety.md) | MA4.1 | 类型安全 | 全模块 | 0 | 0 | 7(P2:5, P3:2) | `done` |
 | [`2026-07-31-0539-arm-MA4.2-nop-ai-style.md`](./2026-07-31-0539-arm-MA4.2-nop-ai-style.md) | MA4.2 | 代码风格 | 全模块 | 0 | 0 | 14(P2:7, P3:7) | `done` |
-| [`2026-07-31-XXXX-arm-MA4.3-nop-ai-test-coverage.md`](./2026-07-31-XXXX-arm-MA4.3-nop-ai-test-coverage.md) | MA4.3 | 测试覆盖 | 全模块 | 0 | 6 | 8(P2:8) | `done` |
-| [`2026-07-31-arm-MA4.4-nop-ai-test-effectiveness.md`](./2026-07-31-arm-MA4.4-nop-ai-test-effectiveness.md) | MA4.4 | 测试有效性 | 全模块 | 0 | 0 | 8(P2:3, P3:5) | `done` |
-| [`2026-07-31-XXXX-arm-MA4.5-nop-ai-doc-consistency.md`](./2026-07-31-XXXX-arm-MA4.5-nop-ai-doc-consistency.md) | MA4.5 | 文档一致性 | 全模块 | 0 | 0 | 9(P2:6, P3:3) | `done` |
+| [`2026-07-31-XXXX-arm-MA4.3-nop-ai-test-coverage.md`](./2026-07-31-XXXX-arm-MA4.3-nop-ai-test-coverage.md) | MA4.3 | 测试覆盖 | 全模块 | 0 | 6 | P1:6, P2:4, P3:3, Positive:1 | `done` |
+| [`2026-07-31-arm-MA4.4-nop-ai-test-effectiveness.md`](./2026-07-31-arm-MA4.4-nop-ai-test-effectiveness.md) | MA4.4 | 测试有效性 | 全模块 | 0 | 0 | P2:4, P3:3, N/A:1 | `done` |
+| [`2026-07-31-XXXX-arm-MA4.5-nop-ai-doc-consistency.md`](./2026-07-31-XXXX-arm-MA4.5-nop-ai-doc-consistency.md) | MA4.5 | 文档一致性 | 全模块 | 0 | 0 | 9(P2:7, P3:2) | `done` |
 | [`2026-07-30-2100-arm-MA5.1-nop-ai-hollow-scan.md`](./2026-07-30-2100-arm-MA5.1-nop-ai-hollow-scan.md) | MA5.1 | 空壳实现 | 全模块 | 0 | 2 | 7 | `done` |
 | [`2026-07-30-2100-arm-MA5.2-nop-ai-silent-noop.md`](./2026-07-30-2100-arm-MA5.2-nop-ai-silent-noop.md) | MA5.2 | 静默跳过 | 全模块 | 0 | 2 | 20 | `done` |
 | [`2026-07-30-2130-arm-MA5.3-nop-ai-wiring.md`](./2026-07-30-2130-arm-MA5.3-nop-ai-wiring.md) | MA5.3 | 接线完整性 | 全模块 | 0 | 2 | 7 | `done` |
 | [`2026-07-31-arm-MA5.4-nop-ai-design-drift.md`](./2026-07-31-arm-MA5.4-nop-ai-design-drift.md) | MA5.4 | 设计文档 drift | 全模块 | 0 | 1 | 5(P2)+3(P3) | `done` |
 | [`2026-07-31-arm-MA5.5-nop-ai-sensitive-leak.md`](./2026-07-31-arm-MA5.5-nop-ai-sensitive-leak.md) | MA5.5 | 敏感泄露 | 全模块 | 0 | 4 | 4(P2)+2(P3) | `done` |
 | [`2026-07-31-arm-MA5.6-nop-ai-test-isolation.md`](./2026-07-31-arm-MA5.6-nop-ai-test-isolation.md) | MA5.6 | 测试隔离 | 全模块 | 0 | 1 | 2(P2)+3(P3) | `done` |
-| [`2026-07-31-arm-MA5.7-nop-ai-fix-verification.md`](./2026-07-31-arm-MA5.7-nop-ai-fix-verification.md) | MA5.7 | 修复验证 | 全模块 | 0 | 5(open)+1(fixed) | — | `done` |
+| [`2026-07-31-arm-MA5.7-nop-ai-fix-verification.md`](./2026-07-31-arm-MA5.7-nop-ai-fix-verification.md) | MA5.7 | 修复验证 | 全模块 | 0 | 6（MA5.7 时点 5 open + 1 fixed；5 项 open 均已由 MR2/MR3 修复或裁定关闭 → MV 矩阵 61 行 P1 `fixed`、open=0） | — | `done` |
 | [`2026-07-31-1240-arm-MA6.1-nop-ai-llm-config-security.md`](./2026-07-31-1240-arm-MA6.1-nop-ai-llm-config-security.md) | MA6.1 | LLM 配置安全 | 全模块 | 1 | 4 | 3(P2) | `done` |
 | [`2026-07-31-arm-MA6.2-nop-ai-agent-security.md`](./2026-07-31-arm-MA6.2-nop-ai-agent-security.md) | MA6.2 | Agent 编排安全 | 全模块 | 0 | 4 | 3(P2) | `done` |
 | [`2026-07-31-0000-arm-MA6.3-nop-ai-token-reliability.md`](./2026-07-31-0000-arm-MA6.3-nop-ai-token-reliability.md) | MA6.3 | Token 计量与调用可靠性 | 全模块 | 0 | 2 | 4(P2) | `done` |
 | [`2026-07-31-arm-MA6.4-nop-ai-vector-isolation.md`](./2026-07-31-arm-MA6.4-nop-ai-vector-isolation.md) | MA6.4 | 向量存储/Embedding 隔离 | 全模块 | 0 | 3 | 2(P2)+1(P3) | `done` |
 | [`2026-07-31-arm-MA6.5-nop-ai-chat-prompt-security.md`](./2026-07-31-arm-MA6.5-nop-ai-chat-prompt-security.md) | MA6.5 | 对话历史与 Prompt 安全 | 全模块 | 0 | 5 | 3(P2) | `done` |
+
+> **计数说明（2026-07-31 收敛修正）**：本清单各行 finding 计数以对应报告**明细**为准。MA4.1 行修正为 `7(P2:5, P3:2)`（-01/02/03/05/06 为 P2，-04/07 为 P3）；MA4.3 行修正为 `P1:6, P2:4, P3:3, Positive:1`（报告自身摘要表 P2=3 漏计 **-14**，内部矛盾，以明细为准；MA4.3-14 为 P2 且有 successor 计划 `2026-07-31-1446-3-arm-ma4-p2-test-quality.md` 承接，未静默丢弃）；MA4.4 行修正为 `P2:4, P3:3, N/A:1`（-07 为 N/A pass）；MA4.5 行修正为 `9(P2:7, P3:2)`（报告自身摘要表 P2=6/P3=3 与明细矛盾，以明细为准：-001~007 为 P2，-008/009 为 P3）；MA4.2 行 `14(P2:7, P3:7)` 与明细一致未改。MA5.7 行 P1 计数为最终状态：MA5.7 审计时点 5 项 open（P1-MA5-002、P1-MA5.3-001/002 → MR2；MA5.2 F-016 → MR3；P1-MA5-003 → MR3+MV 裁定为 SPI 扩展点契约）均已关闭，MV 矩阵 61 行 P1 全部 `fixed`、open=0（见 §MV 矩阵）。
 
 ## P0 发现追踪（即时通道）
 
