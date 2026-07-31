@@ -40,7 +40,7 @@
                  asideClassName="string" asideSticky="boolean"
                  className="string" headerClassName="string" bodyClassName="string"
                  title="string" subTitle="string" initFetch="boolean"
-                 interval="int" silentPolling="boolean"
+                 interval="int" silentPolling="boolean" colSpan="int" rowSpan="int"
                  xdef:name="UiPageModel">
 
         <!--
@@ -64,7 +64,7 @@
 
     </xdef:define>
 
-    <pages xdef:key-attr="name" xdef:body-type="list">
+    <xdef:define xdef:name="UiContainerModel">
 
         <!--
         @layoutMode 布局模式。bottom-detail表示上面是列表，下方是明细
@@ -159,7 +159,8 @@
             -->
             <tab xdef:unique-attr="name" name="!string" page="string" hash="string"
                  icon="string" title="!string" iconPosition="string" lazyLoad="boolean"
-                 unmountOnExit="boolean" reload="boolean" className="string" disabled="boolean"/>
+                 unmountOnExit="boolean" reload="boolean" className="string" disabled="boolean"
+                 xdef:ref="UiContainerModel" xdef:bean-body-prop="body" xdef:body-type="list"/>
         </tabs>
 
         <!--
@@ -188,7 +189,37 @@
             <!--
             @page 应该对应于一个表单页面
             -->
-            <step xdef:unique-attr="name" name="!string" page="!string" title="!string"/>
+            <step xdef:unique-attr="name" name="!string" page="string" title="!string"
+                  xdef:ref="UiContainerModel" xdef:bean-body-prop="body" xdef:body-type="list"/>
         </wizard>
+
+        <!--
+        group: 二维网格布局容器，按 columns 列数自动排列 item 子项。
+        注意:后端 flux-web / web 生成器(impl_GenPage.xpl)目前未实现 type='group' 的渲染分支，
+        会抛 nop.err.web.unknown-page-type。group/grid 渲染由独立前端项目消费 view.xml 的 pages/group 完成。
+        @columns 网格列数。为整数时按等分列排列；也可直接填 CSS grid-template-columns 原始串(如 "1fr 2fr")
+        @gap 行列间距(px)
+        @autoFlow 对应 CSS grid-auto-flow，自动排列方向/稠密模式
+        @alignItems 对应 CSS grid 容器 align-items，子项纵向对齐
+        @justifyItems 对应 CSS grid 容器 justify-items，子项横向对齐
+        -->
+        <group name="!string" xdef:ref="UiPageModel"
+               columns="int-or-string" gap="int"
+               autoFlow="enum:row|column|dense|row-dense|column-dense"
+               alignItems="enum:normal|stretch|center|start|end|baseline"
+               justifyItems="enum:normal|stretch|center|start|end|baseline"
+               responsiveColumns="string"
+               xdef:bean-tag-prop="type"
+               xdef:ref="UiContainerModel" xdef:bean-body-prop="body" xdef:body-type="list">
+        </group>
+    </xdef:define>
+
+    <pages xdef:key-attr="name" xdef:body-type="list" xdef:ref="UiContainerModel">
+        <complex name="!string" xdef:ref="UiContainerModel" xdef:body-type="list" xdef:bean-body-prop="body">
+            <left xdef:ref="UiContainerModel" xdef:body-type="list" />
+            <right xdef:ref="UiContainerModel" xdef:body-type="list" />
+            <top xdef:ref="UiContainerModel" xdef:body-type="list" />
+            <bottom xdef:ref="UiContainerModel" xdef:body-type="list" />
+        </complex>
     </pages>
 </view>
