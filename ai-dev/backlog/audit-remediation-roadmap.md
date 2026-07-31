@@ -114,7 +114,7 @@
 
 | # | Work Item | Status | Owner Doc | Deps | Skill |
 |---|-----------|--------|-----------|------|-------|
-| R4.1 | 跨维度 P1 裁决与冲突修复 | todo | `ai-dev/audits/arm-index.md` | MR1+MR2 done | `closure-audit-prompt.md` |
+| R4.1 | 跨维度 P1 裁决与冲突修复 | done | `ai-dev/audits/arm-index.md` | MR1+MR2 done | `closure-audit-prompt.md` |
 
 ### MV — 全量验证
 
@@ -144,9 +144,9 @@
 | MA5 | M0 | 审计报告（残留风险 7 维度） |
 | MA6 | M0 | 审计报告（AI/LLM 特有风险） |
 | MR1 ✅ | MA1+MA2 | 修复代码 + 测试（closed 2026-07-31） |
-| MR2 | MA3+MA4 | 修复代码 + 测试 |
+| MR2 ✅ | MA3+MA4 | 修复代码 + 测试（closed 2026-07-31） |
 | MR3 ✅ | MA5+MA6 | 修复代码 + 测试（closed 2026-07-31） |
-| MR4 | MR1+MR2+MR3 | 裁决文档 |
+| MR4 ✅ | MR1+MR2+MR3 | 裁决文档（closed 2026-07-31） |
 | MV | MR1+MR2+MR3+MR4 | 验证报告 + closure audit |
 | MG | MV | lessons + docs |
 

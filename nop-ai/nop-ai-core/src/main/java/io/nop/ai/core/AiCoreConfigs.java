@@ -32,4 +32,9 @@ public interface AiCoreConfigs {
     @Description("LLM HTTP读取超时（毫秒），默认60秒")
     IConfigReference<Integer> CFG_AI_SERVICE_READ_TIMEOUT =
             varRef(s_loc, "nop.ai.service.read-timeout", Integer.class, 60000);
+
+    @Description("AiChatExchange 持久化是否启用AES加密（nop.crypt.default-enc-key 或 setTextCipher 注入密钥）。"
+            + "默认关闭以兼容历史明文文件；开启后新写入内容加密，旧明文文件仍可读取")
+    IConfigReference<Boolean> CFG_AI_PERSIST_EXCHANGE_ENCRYPT =
+            varRef(s_loc, "nop.ai.persist.exchange-encrypt", Boolean.class, false);
 }

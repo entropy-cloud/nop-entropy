@@ -1,5 +1,6 @@
 package io.nop.ai.core.persist;
 
+import io.nop.ai.core.AiCoreConfigs;
 import io.nop.ai.core.api.chat.AiChatOptions;
 import io.nop.ai.core.api.messages.AbstractTextMessage;
 import io.nop.ai.core.api.messages.AiAssistantMessage;
@@ -10,7 +11,10 @@ import io.nop.ai.core.api.messages.AiMessageAttachment;
 import io.nop.ai.core.api.messages.AiUserMessage;
 import io.nop.ai.core.api.messages.Prompt;
 import io.nop.ai.core.api.tool.ToolSpecification;
+import io.nop.api.core.annotations.ioc.InjectValue;
 import io.nop.api.core.beans.ErrorBean;
+import io.nop.commons.crypto.ITextCipher;
+import io.nop.commons.crypto.impl.AESTextCipher;
 import io.nop.commons.text.tokenizer.TextScanner;
 import io.nop.commons.util.StringHelper;
 import io.nop.core.lang.json.JsonTool;
@@ -23,6 +27,25 @@ import java.util.List;
 
 public class DefaultAiChatExchangePersister implements IAiChatExchangePersister {
     static final String TITLE_CHAT = "# Chat: ";
+
+    static final String ENCRYPTED_MARKER = "### Encrypted ###\n";
+
+    private ITextCipher textCipher = new AESTextCipher();
+
+    private boolean encryptEnabled = AiCoreConfigs.CFG_AI_PERSIST_EXCHANGE_ENCRYPT.get();
+
+    public void setTextCipher(ITextCipher textCipher) {
+        this.textCipher = textCipher;
+    }
+
+    @InjectValue("@cfg:nop.ai.persist.exchange-encrypt|false")
+    public void setEncryptEnabled(boolean encryptEnabled) {
+        this.encryptEnabled = encryptEnabled;
+    }
+
+    public boolean isEncryptEnabled() {
+        return encryptEnabled;
+    }
 
     static final String TITLE_CHAT_OPTIONS = "## ChatOptions\n";
 
@@ -123,7 +146,7 @@ public class DefaultAiChatExchangePersister implements IAiChatExchangePersister 
     public String serialize(AiChatExchange exchange) {
         StringBuilder sb = new StringBuilder();
         writeExchange(sb, exchange);
-        return sb.toString();
+        return maybeEncrypt(sb.toString());
     }
 
     @Override
@@ -135,7 +158,20 @@ public class DefaultAiChatExchangePersister implements IAiChatExchangePersister 
             AiChatExchange exchange = exchangeList.get(i);
             writeExchange(sb, exchange);
         }
-        return sb.toString();
+        return maybeEncrypt(sb.toString());
+    }
+
+    protected String maybeEncrypt(String text) {
+        if (!encryptEnabled)
+            return text;
+        return ENCRYPTED_MARKER + textCipher.encrypt(text);
+    }
+
+    protected String maybeDecrypt(String text) {
+        if (text != null && text.startsWith(ENCRYPTED_MARKER)) {
+            return textCipher.decrypt(text.substring(ENCRYPTED_MARKER.length()));
+        }
+        return text;
     }
 
     protected void writeExchange(StringBuilder sb, AiChatExchange exchange) {
@@ -216,7 +252,7 @@ public class DefaultAiChatExchangePersister implements IAiChatExchangePersister 
 
     @Override
     public AiChatExchange deserialize(String text) {
-        text = StringHelper.replace(text, "\r\n", "\n");
+        text = StringHelper.replace(maybeDecrypt(text), "\r\n", "\n");
 
         TextScanner scanner = TextScanner.fromString(null, text);
 
@@ -227,7 +263,7 @@ public class DefaultAiChatExchangePersister implements IAiChatExchangePersister 
 
     @Override
     public List<AiChatExchange> deserializeList(String text) {
-        text = StringHelper.replace(text, "\r\n", "\n");
+        text = StringHelper.replace(maybeDecrypt(text), "\r\n", "\n");
 
         TextScanner scanner = TextScanner.fromString(null, text);
         scanner.skipBlank();
