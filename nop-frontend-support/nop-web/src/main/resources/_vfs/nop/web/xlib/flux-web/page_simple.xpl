@@ -22,11 +22,10 @@
         if(api != null){
             const _n = xpl('thisLib:NormalizeApi', api, genScope);
             if(_n != null){
-                // api 未显式配置 data/withFormData 时，用 formData 显式映射表单字段，
-                // 避免 includeScope:'*' 把 $form 等运行时内部状态字段一起提交
-                const data = _n.data ?? genScope.formData;
-                const includeScope = data != null ? null : _n.includeScope;
-                submitAction = { action:'ajax', args: _.filterNull({url:_n.url, method: api.method || 'post', data, includeScope, selection: _n.selection}) };
+                // data 语义：withFormData 时显式映射表单字段（genScope.formData）；
+                // 未指定 data 时走 includeScope 机制（运行时从 scope 收集数据）。
+                // $form 等运行时内部状态由 host 侧 removeSpecialKeys 顶层过滤。
+                submitAction = { action:'ajax', args: _.filterNull({url:_n.url, method: api.method || 'post', data: _n.data, includeScope: _n.includeScope, selection: _n.selection}) };
             }
         }
 
@@ -54,9 +53,9 @@
                 // 保持 URL 中的 {@...} 模板不被求值（id 来自父 scope 的行数据，不在 genScope 中），
                 // NormalizeApi 求值过的 url 会丢失行级模板变量，直接用 initApi 的原始 url
                 const rawUrl = initApi.url;
-                // loadAction 是查询操作（URL 已带 ?id= 参数），不携带表单字段数据；
-                // 显式 includeScope=null 避免 '*' 把 $form 等运行时状态发给后端
-                loadAction = { action:'ajax', args: _.filterNull({url: rawUrl, method: initApi.method || 'post', includeScope: null, selection: _n.selection}) };
+                // 与 submitAction 相同：data/includeScope 语义由 NormalizeApi 决定，
+                // $form 等运行时状态由 host 侧 removeSpecialKeys 顶层过滤
+                loadAction = { action:'ajax', args: _.filterNull({url: rawUrl, method: initApi.method || 'post', data: _n.data, includeScope: _n.includeScope, selection: _n.selection}) };
             }
         }
 

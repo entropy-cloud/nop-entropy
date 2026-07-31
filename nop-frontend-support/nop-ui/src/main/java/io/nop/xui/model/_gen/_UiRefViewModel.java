@@ -18,6 +18,13 @@ public abstract class _UiRefViewModel extends io.nop.core.resource.component.Abs
     
     /**
      *  
+     * xml name: actions
+     * 
+     */
+    private KeyedList<io.nop.xui.model.IUiActionModel> _actions = KeyedList.emptyList();
+    
+    /**
+     *  
      * xml name: addable
      * 
      */
@@ -87,6 +94,33 @@ public abstract class _UiRefViewModel extends io.nop.core.resource.component.Abs
      * 
      */
     private java.lang.String _title ;
+    
+    /**
+     * 
+     * xml name: actions
+     *  
+     */
+    
+    public java.util.List<io.nop.xui.model.IUiActionModel> getActions(){
+      return _actions;
+    }
+
+    
+    public void setActions(java.util.List<io.nop.xui.model.IUiActionModel> value){
+        checkAllowChange();
+        
+        this._actions = KeyedList.fromList(value, io.nop.xui.model.IUiActionModel::getId);
+           
+    }
+
+    
+    public java.util.Set<String> keySet_actions(){
+        return this._actions.keySet();
+    }
+
+    public boolean hasActions(){
+        return !this._actions.isEmpty();
+    }
     
     /**
      * 
@@ -288,6 +322,8 @@ public abstract class _UiRefViewModel extends io.nop.core.resource.component.Abs
 
         if(cascade){ //NOPMD - suppressed EmptyControlStatement - Auto Gen Code
         
+           this._actions = io.nop.api.core.util.FreezeHelper.deepFreeze(this._actions);
+            
         }
     }
 
@@ -295,6 +331,7 @@ public abstract class _UiRefViewModel extends io.nop.core.resource.component.Abs
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         
+        out.putNotNull("actions",this.getActions());
         out.putNotNull("addable",this.getAddable());
         out.putNotNull("buttonLabel",this.getButtonLabel());
         out.putNotNull("data",this.getData());
@@ -316,6 +353,7 @@ public abstract class _UiRefViewModel extends io.nop.core.resource.component.Abs
     protected void copyTo(UiRefViewModel instance){
         super.copyTo(instance);
         
+        instance.setActions(this.getActions());
         instance.setAddable(this.getAddable());
         instance.setButtonLabel(this.getButtonLabel());
         instance.setData(this.getData());
