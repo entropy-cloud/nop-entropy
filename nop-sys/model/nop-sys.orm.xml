@@ -331,7 +331,7 @@
                 tableName="nop_sys_user_variable" updateTimeProp="updateTime" updaterProp="updatedBy"
                 versionProp="version" ext:icon="user-round" i18n-en:displayName="User Variable">
             <columns>
-                <column code="USER_ID" displayName="用户ID" domain="userId" mandatory="true" name="userId" precision="32"
+                <column code="USER_ID" displayName="用户ID" domain="userId" mandatory="true" name="userId" precision="50"
                         primary="true" propId="1" stdDataType="string" stdSqlType="VARCHAR"
                         i18n-en:displayName="User ID"/>
                 <column code="VAR_NAME" displayName="变量名" mandatory="true" name="varName" precision="32" primary="true"

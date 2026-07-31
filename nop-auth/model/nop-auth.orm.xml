@@ -291,7 +291,7 @@
                 tableName="nop_auth_user_role" tagSet="no-web,many-to-many" updateTimeProp="updateTime"
                 updaterProp="updatedBy" versionProp="version" ext:icon="link-2" i18n-en:displayName="User Role">
             <columns>
-                <column code="USER_ID" displayName="用户ID" domain="userId" mandatory="true" name="userId" precision="32"
+                <column code="USER_ID" displayName="用户ID" domain="userId" mandatory="true" name="userId" precision="50"
                         primary="true" propId="1" stdDataType="string" stdSqlType="VARCHAR"
                         i18n-en:displayName="User ID"/>
                 <column code="ROLE_ID" displayName="角色ID" mandatory="true" name="roleId" precision="50" primary="true"
@@ -337,10 +337,10 @@
             <columns>
                 <column code="SID" displayName="主键" mandatory="true" name="sid" precision="32" primary="true" propId="1"
                         stdDataType="string" stdSqlType="VARCHAR" tagSet="seq" ui:show="X" i18n-en:displayName="SID"/>
-                <column code="USER_ID" displayName="用户ID" domain="userId" mandatory="true" name="userId" precision="32"
+                <column code="USER_ID" displayName="用户ID" domain="userId" mandatory="true" name="userId" precision="50"
                         propId="2" stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="User ID"/>
                 <column code="SUBSTITUTED_USER_ID" displayName="被代理的用户ID" domain="userId" mandatory="true"
-                        name="substitutedUserId" precision="32" propId="3" stdDataType="string" stdSqlType="VARCHAR"
+                        name="substitutedUserId" precision="50" propId="3" stdDataType="string" stdSqlType="VARCHAR"
                         i18n-en:displayName="Substituted User"/>
                 <column code="WORK_SCOPE" displayName="工作范围" mandatory="true" name="workScope" precision="50" propId="4"
                         stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Work Scope"/>
@@ -485,7 +485,7 @@
                 <column code="AUTH_CASCADE_UP" defaultValue="0" displayName="自动更新父节点的权限" domain="boolFlag"
                         name="authCascadeUp" precision="1" propId="19" stdDataType="byte" stdSqlType="TINYINT"
                         i18n-en:displayName="Auth Cascade Up"/>
-                <column code="Meta_CONFIG" displayName="扩展配置" domain="json-1000" name="metaConfig" precision="1000"
+                <column code="META_CONFIG" displayName="扩展配置" domain="json-1000" name="metaConfig" precision="1000"
                         propId="20" stdDataType="string" stdDomain="json" stdSqlType="VARCHAR" ui:show="L"
                         i18n-en:displayName="Meta"/>
                 <column code="PROPS_CONFIG" displayName="组件属性" domain="json-1000" name="propsConfig" precision="1000"
@@ -643,7 +643,7 @@
                 <column code="SESSION_ID" displayName="会话ID" mandatory="true" name="sessionId" precision="100"
                         primary="true" propId="1" stdDataType="string" stdSqlType="VARCHAR" tagSet="var"
                         i18n-en:displayName="Session ID"/>
-                <column code="USER_ID" displayName="用户ID" domain="userId" mandatory="true" name="userId" precision="32"
+                <column code="USER_ID" displayName="用户ID" domain="userId" mandatory="true" name="userId" precision="50"
                         propId="2" stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="User ID"/>
                 <column code="USER_NAME" displayName="用户名" domain="userName" mandatory="true" name="userName"
                         precision="100" propId="3" stdDataType="string" stdSqlType="VARCHAR"
