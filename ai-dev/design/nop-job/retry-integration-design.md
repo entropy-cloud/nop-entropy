@@ -105,8 +105,14 @@ fire 失败 (FIRE_STATUS_FAILED)
   ↓
 将返回的 retry_record_id 回填到 fire.setRetryRecordId(...)
   ↓
-fireStore.completeFireAndUpdateSchedule(fire, schedule)
+fireStore.completeFireAndUpdateSchedule(fire, schedule)  → boolean
+  ↓
+返回 true → 继续触发指标/告警
+返回 false → 版本冲突，跳过指标/告警（Fire 将在下次扫描中重新处理）
 ```
+
+> 2026-07-28 更新：`completeFireAndUpdateSchedule` 的返回类型从 `void` 改为 `boolean`。
+> 调用方必须在返回 false 时跳过 retry/alarm/metrics 触发，避免双 Coordinator 部署下的误触发。
 
 ### 3.4 retryPolicyId 的优先级
 

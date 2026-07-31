@@ -66,6 +66,12 @@ Meter 名称是使用者在 Grafana/Prometheus 中直接看到的契约，属于
 
 注入：`JobCompletionProcessorImpl.completionMetrics`
 
+### 触发语义（2026-07-28 更新）
+
+`IJobFireStore.completeFireAndUpdateSchedule()` 现在返回 `boolean`。指标/告警**仅在 DB 写入确认后触发**：
+- 返回 `true` → Fire 已写入 DB → 正常触发指标/告警
+- 返回 `false` → 版本冲突（Fire 已被其他 Coordinator 更新）→ 跳过指标/告警。该 Fire 将在下一次扫描周期中重新处理
+
 ## 7. Schedule 聚合统计字段
 
 `NopJobSchedule` 新增列：
