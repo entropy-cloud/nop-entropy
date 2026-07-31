@@ -101,6 +101,28 @@ public class BashExecutorTest {
     }
 
     @Test
+    void testEmptyCommandRejected() {
+        XNode node = XNode.make("bash");
+        node.setAttr("id", "1");
+        AiToolCall call = AiToolCall.fromNode(node);
+        AiToolCallResult result = executor.executeAsync(call, new MockContext()).toCompletableFuture().join();
+        assertEquals("failure", result.getStatus());
+        assertTrue(result.getError().getBody().contains("empty command"),
+                "Empty command must be rejected with validation message. Error: " + result.getError().getBody());
+    }
+
+    @Test
+    void testBlankCommandRejected() {
+        XNode node = XNode.make("bash");
+        node.setAttr("id", "1");
+        node.makeChild("command").setContentValue("   \t ");
+        AiToolCall call = AiToolCall.fromNode(node);
+        AiToolCallResult result = executor.executeAsync(call, new MockContext()).toCompletableFuture().join();
+        assertEquals("failure", result.getStatus());
+        assertTrue(result.getError().getBody().contains("empty command"));
+    }
+
+    @Test
     void testDangerousEnvVarRejected() {
         boolean isWin = System.getProperty("os.name").toLowerCase().contains("win");
         XNode node = XNode.make("bash");

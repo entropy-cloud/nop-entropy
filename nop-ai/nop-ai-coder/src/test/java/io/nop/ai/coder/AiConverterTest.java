@@ -26,6 +26,17 @@ public class AiConverterTest extends JunitBaseTestCase {
         manager.convertResource(aiOrmResource, ormResource, options);
         manager.convertResource(aiOrmResource, xlsxResource, options);
         manager.convertResource(aiOrmResource, javaResource, options);
+
+        String ormXml = ormResource.readText();
+        assertTrue(ormXml.contains("<orm"), "orm.xml should contain orm root: " + firstLine(ormXml));
+        assertTrue(ormXml.contains("<entity"), "orm.xml should contain entities");
+        assertTrue(ormXml.contains("tableName"), "orm.xml should contain normalized table names");
+
+        assertTrue(xlsxResource.exists(), "converted xlsx should exist");
+        assertTrue(xlsxResource.length() > 0, "converted xlsx should not be empty");
+
+        String javaCode = javaResource.readText();
+        assertTrue(javaCode.contains("class"), "converted java should contain class declarations");
     }
 
     @Test
@@ -49,5 +60,13 @@ public class AiConverterTest extends JunitBaseTestCase {
         DocumentConvertOptions options = DocumentConvertOptions.create();
 
         manager.convertResource(resource,toResource, options);
+
+        assertTrue(toResource.exists(), "converted xlsx should exist");
+        assertTrue(toResource.length() > 0, "converted xlsx should not be empty");
+    }
+
+    private static String firstLine(String text) {
+        int pos = text.indexOf('\n');
+        return pos < 0 ? text : text.substring(0, pos);
     }
 }

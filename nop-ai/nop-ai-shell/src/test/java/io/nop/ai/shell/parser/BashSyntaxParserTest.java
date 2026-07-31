@@ -241,6 +241,67 @@ class BashSyntaxParserTest {
     }
 
     @Test
+    void testNullInputFails() {
+        assertThrows(Exception.class, () -> new BashSyntaxParser(null));
+    }
+
+    @Test
+    void testEmptyInputFails() {
+        BashSyntaxParser parser = new BashSyntaxParser("");
+        assertThrows(BashSyntaxParser.ParseException.class, parser::parse);
+    }
+
+    @Test
+    void testBlankInputFails() {
+        BashSyntaxParser parser = new BashSyntaxParser("   \t  ");
+        assertThrows(BashSyntaxParser.ParseException.class, parser::parse);
+    }
+
+    @Test
+    void testLongInputParses() {
+        StringBuilder sb = new StringBuilder();
+        for (int i = 0; i < 2000; i++) {
+            if (i > 0)
+                sb.append(" && ");
+            sb.append("cmd").append(i);
+        }
+        BashSyntaxParser parser = new BashSyntaxParser(sb.toString());
+        CommandExpression expr = parser.parse();
+        assertNotNull(expr);
+        assertTrue(expr instanceof LogicalExpr);
+    }
+
+    @Test
+    void testMalformedRedirectNoTargetFails() {
+        BashSyntaxParser parser = new BashSyntaxParser("cat >");
+        assertThrows(BashSyntaxParser.ParseException.class, parser::parse);
+    }
+
+    @Test
+    void testMalformedRedirectNoFdTargetFails() {
+        BashSyntaxParser parser = new BashSyntaxParser("cmd 2>&");
+        assertThrows(BashSyntaxParser.ParseException.class, parser::parse);
+    }
+
+    @Test
+    void testLeadingPipeFails() {
+        BashSyntaxParser parser = new BashSyntaxParser("| echo hi");
+        assertThrows(BashSyntaxParser.ParseException.class, parser::parse);
+    }
+
+    @Test
+    void testTrailingPipeFails() {
+        BashSyntaxParser parser = new BashSyntaxParser("echo hi |");
+        assertThrows(BashSyntaxParser.ParseException.class, parser::parse);
+    }
+
+    @Test
+    void testMalformedHereStringFails() {
+        BashSyntaxParser parser = new BashSyntaxParser("cmd <<<");
+        assertThrows(BashSyntaxParser.ParseException.class, parser::parse);
+    }
+
+    @Test
     void testPrecedenceParensHighest() {
         BashSyntaxParser parser = new BashSyntaxParser("(cmd1 && cmd2) | cmd3");
         CommandExpression expr = parser.parse();

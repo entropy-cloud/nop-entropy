@@ -2,6 +2,7 @@ package io.nop.ai.core.dialect;
 
 import io.nop.ai.api.chat.ChatOptions;
 import io.nop.ai.api.chat.ChatRequest;
+import io.nop.ai.api.chat.ChatResponse;
 import io.nop.ai.api.chat.messages.ChatMessage;
 import io.nop.ai.api.chat.messages.ChatSystemMessage;
 import io.nop.ai.api.chat.messages.ChatUserMessage;
@@ -18,8 +19,10 @@ import java.util.List;
 import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 /**
  * OpenAI 方言测试
@@ -147,5 +150,49 @@ public class TestOpenAiDialect extends JunitBaseTestCase {
         assertNull(dialect.parseStreamChunk(null));
         assertNull(dialect.parseStreamChunk(""));
         assertNull(dialect.parseStreamChunk("[DONE]"));
+    }
+
+    @Test
+    public void testParseResponseEmptyReturnsError() {
+        OpenAiDialect dialect = new OpenAiDialect();
+        LlmModel config = new LlmModel();
+        config.setApiStyle(ApiStyle.openai);
+
+        ChatResponse response = dialect.parseResponse("", config);
+
+        assertFalse(response.isSuccess());
+        assertEquals("NULL_RESPONSE", response.getErrorCode());
+        assertEquals("Empty response body", response.getError());
+    }
+
+    @Test
+    public void testParseResponseMalformedJsonFails() {
+        OpenAiDialect dialect = new OpenAiDialect();
+        LlmModel config = new LlmModel();
+        config.setApiStyle(ApiStyle.openai);
+
+        assertThrows(io.nop.api.core.exceptions.NopException.class,
+                () -> dialect.parseResponse("{bad json", config));
+    }
+
+    @Test
+    public void testParseStreamChunkMalformedJsonFails() {
+        OpenAiDialect dialect = new OpenAiDialect();
+
+        assertThrows(io.nop.api.core.exceptions.NopException.class,
+                () -> dialect.parseStreamChunk("{bad json"));
+    }
+
+    @Test
+    public void testParseResponseErrorBodyYieldsNoContent() {
+        OpenAiDialect dialect = new OpenAiDialect();
+        LlmModel config = new LlmModel();
+        config.setApiStyle(ApiStyle.openai);
+
+        String responseJson = "{\"error\":{\"message\":\"Invalid API key\",\"code\":\"invalid_api_key\"}}";
+        ChatResponse response = dialect.parseResponse(responseJson, config);
+
+        assertNotNull(response.getMessage());
+        assertNull(response.getMessage().getContent(), "error responses should not contain assistant content");
     }
 }

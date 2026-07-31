@@ -19,8 +19,14 @@ import org.junit.jupiter.api.Test;
 import java.io.File;
 import java.util.Set;
 
+/**
+ * Manual codegen runner for the AI coder task flow.
+ * <p>
+ * NOT an automated test: it drives the full ai-coder task flow which requires real LLM API keys
+ * (deepseek) and long-running generation. Intentionally not picked up by surefire.
+ */
 @Disabled
-public class AiGenCodeTask extends JunitBaseTestCase {
+public class AiGenCodeTaskManual extends JunitBaseTestCase {
     @Inject
     IPromptTemplateManager promptTemplateManager;
 

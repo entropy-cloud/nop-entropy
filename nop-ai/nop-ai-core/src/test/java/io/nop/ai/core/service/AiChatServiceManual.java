@@ -20,8 +20,14 @@ import java.util.Set;
 
 import static io.nop.ai.core.api.tool.DefaultAiChatToolSet.staticMethodsToolSet;
 
+/**
+ * Manual smoke test requiring real LLM API keys (deepseek/azure).
+ * <p>
+ * NOT an automated test: it needs live network access and paid API keys, so it is permanently
+ * {@link Disabled}. Automated chat round-trip coverage is provided by {@link TestMockAiChatService}.
+ */
 @Disabled
-public class TestAiChatService extends JunitBaseTestCase {
+public class AiChatServiceManual extends JunitBaseTestCase {
     @Inject
     IAiChatService chatService;
 

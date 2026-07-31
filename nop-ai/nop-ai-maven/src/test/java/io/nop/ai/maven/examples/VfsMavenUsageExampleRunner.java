@@ -10,11 +10,15 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 
 /**
- * VFS Maven 使用示例
+ * Manual usage example (main()-only) demonstrating {@link DeltaVirtualFileSystem} and {@link VfsMavenCli}.
+ * <p>
+ * NOT a JUnit test — it has no assertions and is intentionally not picked up by surefire.
+ * Automated coverage of these classes lives in {@code io.nop.ai.maven.vfs.DeltaVirtualFileSystemTest}
+ * and {@code io.nop.ai.maven.cli.TestVfsMavenCli}.
  *
  * @author Nop AI
  */
-public class VfsMavenUsageExample {
+public class VfsMavenUsageExampleRunner {
 
     public static void main(String[] args) throws Exception {
         // 示例1：基本使用

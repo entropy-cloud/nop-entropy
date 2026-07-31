@@ -11,8 +11,14 @@ import org.junit.jupiter.api.Test;
 import java.io.File;
 import java.util.Set;
 
+/**
+ * Manual runner for the AI coder / business-analyzer task flows.
+ * <p>
+ * NOT an automated test: most scenarios require real LLM API keys (deepseek/azure/ollama) and
+ * long-running generation. Intentionally not picked up by surefire.
+ */
 @Disabled
-public class TestAiTask extends JunitBaseTestCase {
+public class AiTaskManual extends JunitBaseTestCase {
     @Inject
     ITaskFlowManager taskFlowManager;
 

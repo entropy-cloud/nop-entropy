@@ -68,16 +68,30 @@ public class WriteFileExecutorTest {
 
     @Test
     void testAppendFile() {
-        mockFs.setContent("/test.txt", "Existing");
+        mockFs.setContent("/test.txt", "base");
         XNode node = XNode.make("write-file");
         node.setAttr("id", "1");
         node.setAttr("path", "/test.txt");
-        node.setAttr("append", "true");
-        node.makeChild("input").setContentValue(" Appended");
+        node.setAttr("append", true);
+        node.makeChild("input").setContentValue(" more");
         AiToolCall call = AiToolCall.fromNode(node);
         AiToolCallResult result = executor.executeAsync(call, new MockContext(mockFs)).toCompletableFuture().join();
         assertEquals("success", result.getStatus());
-        assertEquals("Existing Appended", mockFs.getContent("/test.txt"));
+        assertEquals("base more", mockFs.getContent("/test.txt"));
+    }
+
+    @Test
+    void testFileSystemExceptionReturnsErrorResult() {
+        mockFs.setThrowException(true);
+        XNode node = XNode.make("write-file");
+        node.setAttr("id", "1");
+        node.setAttr("path", "/test.txt");
+        node.makeChild("input").setContentValue("content");
+        AiToolCall call = AiToolCall.fromNode(node);
+        AiToolCallResult result = executor.executeAsync(call, new MockContext(mockFs)).toCompletableFuture().join();
+        assertEquals("failure", result.getStatus());
+        assertTrue(result.getError().getBody().contains("Write error"),
+                "error message should be propagated. Error: " + result.getError().getBody());
     }
 
     static class MockContext implements IToolExecuteContext {
@@ -93,9 +107,11 @@ public class WriteFileExecutorTest {
 
     static class MockFileSystem implements IToolFileSystem {
         private final Map<String, String> files = new HashMap<>();
+        private boolean throwException;
 
         void setContent(String path, String content) { files.put(path, content); }
         String getContent(String path) { return files.get(path); }
+        void setThrowException(boolean throwException) { this.throwException = throwException; }
 
         @Override public String normalizePath(String path) { return path; }
         @Override public boolean isPathAllowed(String path) { return true; }
@@ -106,6 +122,8 @@ public class WriteFileExecutorTest {
         @Override public LineResult readLines(String path, int fromLine, int toLine, int maxLineLength) { return null; }
         @Override public int countLines(String path, int maxLines) { return 0; }
         @Override public void writeText(String path, String content, boolean append) {
+            if (throwException)
+                throw new IllegalStateException("Write error");
             if (append && files.containsKey(path)) {
                 files.put(path, files.get(path) + content);
             } else {

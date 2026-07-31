@@ -243,4 +243,33 @@ public class TestAnthropicDialect extends JunitBaseTestCase {
         // Anthropic 使用 input_schema 而不是 parameters
         assertNotNull(toolMap.get("input_schema"));
     }
+
+    @Test
+    public void testParseResponseEmptyReturnsError() {
+        AnthropicDialect dialect = new AnthropicDialect();
+        LlmModel config = new LlmModel();
+        config.setApiStyle(ApiStyle.anthropic);
+
+        ChatResponse response = dialect.parseResponse("", config);
+
+        assertFalse(response.isSuccess());
+        assertEquals("NULL_RESPONSE", response.getErrorCode());
+        assertEquals("Empty response body", response.getError());
+    }
+
+    @Test
+    public void testParseResponseMalformedJsonFails() {
+        AnthropicDialect dialect = new AnthropicDialect();
+        LlmModel config = new LlmModel();
+        config.setApiStyle(ApiStyle.anthropic);
+
+        assertThrows(NopException.class, () -> dialect.parseResponse("{bad json", config));
+    }
+
+    @Test
+    public void testParseStreamChunkMalformedJsonFails() {
+        AnthropicDialect dialect = new AnthropicDialect();
+
+        assertThrows(NopException.class, () -> dialect.parseStreamChunk("{bad json"));
+    }
 }

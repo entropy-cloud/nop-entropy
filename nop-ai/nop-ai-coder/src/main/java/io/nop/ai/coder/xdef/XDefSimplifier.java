@@ -6,6 +6,9 @@ public class XDefSimplifier {
     public static XDefSimplifier INSTANCE = new XDefSimplifier();
 
     public XNode simplify(XNode node) {
+        if (node == null)
+            return null;
+
         String xdefValue = node.attrText("xdef:value");
         if (xdefValue != null) {
             node.removeAttr("xdef:value");
@@ -16,7 +19,7 @@ public class XDefSimplifier {
         node.getChildren().removeIf(child -> child.getTagName().startsWith("xdef:"));
 
         for (XNode child : node.getChildren()) {
-            simplify(node);
+            simplify(child);
         }
         return node;
     }

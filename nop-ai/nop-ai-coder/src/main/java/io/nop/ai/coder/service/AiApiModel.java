@@ -84,7 +84,7 @@ public class AiApiModel {
     }
 
     public XNode getApiNodeForAi() {
-        if (apiNodeForApi != null)
+        if (apiNodeForApi == null)
             apiNodeForApi = AiCoderHelper.extractDslNode(AiCoderConstants.SCHEMA_AI_API, apiNode);
         return apiNodeForApi;
     }

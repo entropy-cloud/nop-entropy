@@ -57,6 +57,16 @@ public class ListDirectoryExecutorTest {
         assertEquals("success", result.getStatus());
     }
 
+    @Test
+    void testFileSystemExceptionReturnsErrorResult() {
+        mockFs.setThrowException(true);
+        AiToolCall call = createCall("/dir");
+        AiToolCallResult result = executor.executeAsync(call, new MockContext(mockFs)).toCompletableFuture().join();
+        assertEquals("failure", result.getStatus());
+        assertTrue(result.getError().getBody().contains("List error"),
+                "error message should be propagated. Error: " + result.getError().getBody());
+    }
+
     private AiToolCall createCall(String path) {
         XNode node = XNode.make("list-dir");
         node.setAttr("id", "1");
@@ -77,8 +87,10 @@ public class ListDirectoryExecutorTest {
 
     static class MockFileSystem implements IToolFileSystem {
         private final List<FileInfo> files = new ArrayList<>();
+        private boolean throwException;
 
         void addFile(FileInfo file) { files.add(file); }
+        void setThrowException(boolean throwException) { this.throwException = throwException; }
 
         @Override public String normalizePath(String path) { return path; }
         @Override public boolean isPathAllowed(String path) { return true; }
@@ -89,7 +101,11 @@ public class ListDirectoryExecutorTest {
         @Override public LineResult readLines(String path, int fromLine, int toLine, int maxLineLength) { return null; }
         @Override public int countLines(String path, int maxLines) { return 0; }
         @Override public void writeText(String path, String content, boolean append) {}
-        @Override public List<FileInfo> listDirectory(String dirPath, int depth, int maxCount) { return files; }
+        @Override public List<FileInfo> listDirectory(String dirPath, int depth, int maxCount) {
+            if (throwException)
+                throw new IllegalStateException("List error");
+            return files;
+        }
         @Override public void mkdirs(String path) {}
         @Override public void delete(String path, boolean recursive, boolean force) {}
         @Override public void move(String fromPath, String toPath, boolean overwrite) {}

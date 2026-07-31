@@ -189,7 +189,7 @@ nop-ai-maven/
                     └── ai/
                         └── maven/
                             ├── examples/
-                            │   └── VfsMavenUsageExample.java
+                            │   └── VfsMavenUsageExampleRunner.java
                             └── vfs/
                                 ├── DeltaVirtualFileSystemTest.java
                                 └── DeltaWorkspaceReaderTest.java
@@ -270,7 +270,7 @@ mvn test
 cd nop-ai/nop-ai-maven
 mvn test-compile
 java -cp target/classes:target/test-classes:$(mvn dependency:build-classpath -Dmdep.outputFile=/dev/stdout -q) \
-  io.nop.ai.maven.examples.VfsMavenUsageExample
+  io.nop.ai.maven.examples.VfsMavenUsageExampleRunner
 ```
 
 ## 注意事项
