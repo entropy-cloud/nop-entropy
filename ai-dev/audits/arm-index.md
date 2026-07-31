@@ -377,3 +377,13 @@ MR4 Phase 2 对 P1 表全部 `fixed` 行做了 live repo 证据核验（提交/�
 | P2-MA1-035 | `fixed`（裁定保留+记录边界） | `AgentExecStatus`（agent 运行时 9 态，不落库）vs `NopAiSession.status` dict `ai/session-status`（ORM 6 态生命周期）：两层无语义交换/无转换代码，合并=跨模块契约变更；边界说明入 `AgentExecStatus` javadoc |
 | P2-MA1-036 | `fixed`（裁定保留+记录有意设计） | `NopAiChatResponse.ai_provider`/`ai_model` = 响应时快照列（区别于 `modelId` FK 指向 NopAiModel）；`ai_` 前缀为快照 vs FK 区分的有意设计；ORM 源模型补 comment（再生成 `_app.orm.xml` 同步） |
 | P2-MA1-037 | `fixed` | `AiCoreErrors` → `NopAiCoreErrors`（19 文件机械重命名，对齐 `NopAiErrors`/`NopAiException` 约定）；`error-handling.md` 示例同步 |
+
+## P2 修复追踪（结构类 P2 后续批次，2026-07-31）
+
+第六批 P2 批量修复（plan `ai-dev/plans/2026-07-31-2248-1-arm-p2-structural-successor.md`）已执行并收口。结构类 P2 finding 全部 `fixed` 或裁定落盘：
+
+| Finding ID | 修复状态 | 修复位置 / 测试 |
+|-----------|---------|----------------|
+| P2-MA1-007 | `fixed` | `SkillExecutor` 三处修复：① `discoverSkills()` 空 catch → SLF4J WARN（`nop.ai.skill.fail-discover-skills`）+ 返回空列表；② 删除硬编码幻影技能回退（log-analysis/translator/calculator/code-review/test-generator）；③ 删除 write-only 死代码 `loadedSkills` map + `getContextKey()`（grep 全仓 0 残留）。测试 = `SkillExecutorTest`（7 例，含 `testLoadFormerPhantomSkillFails` 回归）+ `SkillExecutorVfsTest`（3 例，CoreInitialization + `_vfs/nop/skills/sample-analysis/` 静态资源接线验证 list/load 数据来自真实 VFS）。连带：`skill.tool.xml` 示例幻影技能名替换为中性示例名 |
+| P2-MA1-009 | `fixed` | `nop-ai/nop-ai-tools/pom.xml` 显式声明 `nop-graphql-core` 直接依赖（nop-bom dependencyManagement 管理版本，`GraphQLToolProvider`/`GraphQLToolSetFactoryBean` 的 `io.nop.graphql.core.*` import 消除硬传递依赖）；pom diff 仅含新增依赖行；`dependency:tree` 确认 direct scope；`./mvnw compile -pl nop-ai/nop-ai-tools -am` PASS |
+| P2-MA1-012 | `fixed`（裁定+落盘） | 裁定 = **保持双抽象 + `IFileOperator` 标注 `@Deprecated(forRemoval=true)`**（两抽象方法面差异大、语义不同：base-dir 资源面 vs 沙箱权限面；忠实迁移需先收敛抽象，属 future major）。边界契约落盘 `ai-dev/design/nop-ai/01-file-operator-abstraction-contract.md`（新目录 + README + `ai-dev/design/README.md` 注册）；consumer 清单（FileToolBizModel/DslToolImpl/FileDiffApplier/LocalFileOperator/CliFileCommand）与迁移前置条件（方法面收敛 → 语义对齐 → 消费者迁移 → 删除接口）文档化 |

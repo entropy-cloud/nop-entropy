@@ -1,6 +1,6 @@
 # 审计-修复路线图：nop-ai 全模块组
 
-> 最后更新：2026-07-31（v4 — MA4 done + P2/P3 deferred successor 登记）
+> 最后更新：2026-07-31（v5 — 第六/七/八批 deferred successor 登记：结构类 P2 后续 + scan-hollow 基线清零 + P3 残余清理；第六批已 ✅ closed 2026-07-31）
 > 来源：`ai-dev/skills/audit-remediation-roadmap-authoring-prompt.md`
 > 目标模块组：nop-ai（18 子模块，~1275 main Java, ~426 test）
 > 模块排除：`nop-ai-mcp-server`、`nop-spring-mcp-server`、`nop-spring-mcp-server-support`（MCP 协议集成模块，独立发布周期，需单独审计）
@@ -252,6 +252,9 @@ MA5+MA6 产出的 P1 发现展开为具体修复工作项
 | 第三批（安全优先） | `ai-dev/plans/2026-07-31-1834-1-arm-p2-security-hardening.md` | 安全类 P2 批量修复：P2-MA3-023、MA6.2-AR-5/6/7 残余、MA6.5-AR-7/8/9、MA5.5-AR-6/7、MA6.1-AR-7、P2-MA3-026、MA5.4-P2-1/2/3/5 | ✅（closed 2026-07-31） |
 | 第四批（可靠性/可观测性） | `ai-dev/plans/2026-07-31-1834-2-arm-p2-reliability-observability.md` | 可靠性/可观测性类 P2 批量修复：MA6.3-AR-5（jitter）、MA6.3-AR-4（usage recorder 可观测性）、MA6.3-AR-6（限流 tryAcquire+配额）、MA6.3-AR-3 残余（估算误差文档化）、MA6.1-AR-6（LlmConfigHelper 静态状态）、MA5.6-AR-2/3（测试静态字段） | ✅（closed 2026-07-31） |
 | 第五批（契约/依赖清理） | `ai-dev/plans/2026-07-31-1834-3-arm-p2-contract-dependency-cleanup.md` | 结构/契约类 P2 批量修复：P2-MA3-001（nop-ai-core nop-dao 死依赖）、P2-MA1-021/022（pom 死依赖/重型依赖）、P2-MA3-03/04/05/06/08（废弃 API 使用面裁定）、P2-MA1-006/029（beans.xml 命名空间）、P2-MA1-008（SearchEngineExecutor 接线）、P2-MA1-011（AskOracleExecutor 快速失败）、P2-MA1-020（硬编码包名）、P2-MA3-2/3 复验/4（错误处理规范）、P2-D06-019/020（dict 单源 + zh-CN i18n）、P2-MA1-034/035/036/037（命名裁定）、P1-MA2-018 overclaim 纠正 | ✅（closed 2026-07-31） |
+| 第六批（结构类 P2 后续） | `ai-dev/plans/2026-07-31-2248-1-arm-p2-structural-successor.md` | P2-MA1-007（SkillExecutor 空 catch + 幻影技能回退 + loadedSkills 死代码）、P2-MA1-009（GraphQLToolProvider 传递依赖显式声明）、P2-MA1-012（IToolFileSystem/IFileOperator 抽象收敛裁定） | ✅（closed 2026-07-31） |
+| 第七批（scan-hollow 基线清零） | `ai-dev/plans/2026-07-31-2248-2-arm-hollow-baseline-clearance.md` | 25 处 UOE → NopException + ErrorCode（英文）、4 处 P6b placeholder 注释改写；目标 scan-hollow 工具 nop-ai 退出码 0 | 🔄（active 2026-07-31，待执行） |
+| 第八批（P3 残余清理） | `ai-dev/plans/2026-07-31-2248-3-arm-p3-residual-cleanup.md` | MA5.6-AR-4/7（temp dir deleteOnExit）、MA5.6-AR-5（PassThroughModelRouter 单例）、MA5.4-P3-1/3（IShellInput 契约 + readAllText 非文本丢弃）、P3-MA1-038（GptOrm* 命名裁定） | 🔄（active 2026-07-31，待执行） |
 
 其余 MA1-MA3/MA5-MA6 各里程碑的 P2/P3 findings 已由 MR1/MR2/MR3 计划逐批裁定为 `out-of-scope improvement`（MV 矩阵 open=0，无已确认 live defect 残留），登记为 **watch-only residual**：后续批次按严重度排序另行规划，本批不入 scope。
 
