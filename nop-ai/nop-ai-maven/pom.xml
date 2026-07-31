@@ -16,30 +16,12 @@
     <description>Nop AI Maven Extension with Virtual File System Support</description>
 
     <dependencies>
-        <!-- Maven Resolver (Maven 3.x/4.x) -->
-        <dependency>
-            <groupId>org.apache.maven.resolver</groupId>
-            <artifactId>maven-resolver-api</artifactId>
-            <version>1.9.18</version>
-            <scope>provided</scope>
-        </dependency>
-
-        <dependency>
-            <groupId>org.apache.maven.resolver</groupId>
-            <artifactId>maven-resolver-util</artifactId>
-            <version>1.9.18</version>
-            <scope>provided</scope>
-        </dependency>
-
         <!-- Nop Core Dependencies -->
+        <!-- nop-api-core: kept for NopException (io.nop.api.core.exceptions.NopException) in error paths
+             (P2-MA3-2 / plan-2026-07-31-1834-3 Phase 1 Decision: option (a)) -->
         <dependency>
             <groupId>io.github.entropy-cloud</groupId>
             <artifactId>nop-api-core</artifactId>
-        </dependency>
-
-        <dependency>
-            <groupId>io.github.entropy-cloud</groupId>
-            <artifactId>nop-core</artifactId>
         </dependency>
 
         <!-- SLF4J for logging -->

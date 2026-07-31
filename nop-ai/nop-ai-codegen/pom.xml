@@ -15,21 +15,22 @@
     <packaging>jar</packaging>
 
     <dependencies>
+        <!-- nop-codegen: XCodeGenerator + /nop/templates/orm + /nop/templates/orm-entity templates used by
+             postcompile/gen-orm.xgen and the test bootstrap (NopAiCodeGen). Previously only transitively
+             available via nop-graphql-core, now an explicit direct dependency (plan-2026-07-31-1834-3 Phase 1). -->
         <dependency>
             <groupId>io.github.entropy-cloud</groupId>
-            <artifactId>nop-ooxml-xlsx</artifactId>
+            <artifactId>nop-codegen</artifactId>
         </dependency>
+        <!-- nop-orm: required by the /nop/templates/orm template set at postcompile runtime
+             (io.nop.orm.ddl.DdlSqlCreator, io.nop.orm.biz.ICrudBiz, io.nop.orm.sql_lib.proxy.SqlLibProxyFactoryBean;
+             verified live: removing it fails postcompile with ClassNotFoundException).
+             Transitively provides nop-orm-model (OrmModelLoader + orm.register-model.xml).
+             NOTE: plan-2026-07-31-1834-3 Phase 1 originally proposed nop-orm-model replacement, but the live
+             build contradicts that claim: nop-orm is a real runtime dependency of the codegen templates. -->
         <dependency>
             <groupId>io.github.entropy-cloud</groupId>
             <artifactId>nop-orm</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>io.github.entropy-cloud</groupId>
-            <artifactId>nop-graphql-core</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>io.github.entropy-cloud</groupId>
-            <artifactId>nop-xlang-debugger</artifactId>
         </dependency>
     </dependencies>
 
