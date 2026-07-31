@@ -25,11 +25,11 @@
 | [`2026-07-31-0422-arm-MA3.3-nop-ai-async-txn.md`](./2026-07-31-0422-arm-MA3.3-nop-ai-async-txn.md) | MA3.3 | 异步/事务 | 全模块 | 0 | 0 | 2(P3:2) | `done` |
 | [`2026-07-31-0423-arm-MA3.4-nop-ai-error-handling.md`](./2026-07-31-0423-arm-MA3.4-nop-ai-error-handling.md) | MA3.4 | 错误处理 | 全模块 | 0 | 2 | 9+2(P2:4, P3:5+2downgraded) | `done` |
 | [`2026-07-31-0423-arm-MA3.5-nop-ai-cross-module-contract.md`](./2026-07-31-0423-arm-MA3.5-nop-ai-cross-module-contract.md) | MA3.5 | 跨模块契约 | 全模块 | 0 | 2 | 6(P2:4, P3:2) | `done` |
-| [`2026-07-31-XXXX-arm-MA4.1-nop-ai-typesafety.md`](./2026-07-31-XXXX-arm-MA4.1-nop-ai-typesafety.md) | MA4.1 | 类型安全 | 全模块 | 0 | 0 | 7(P2:5, P3:2) | `done` |
-| [`2026-07-31-0539-arm-MA4.2-nop-ai-style.md`](./2026-07-31-0539-arm-MA4.2-nop-ai-style.md) | MA4.2 | 代码风格 | 全模块 | 0 | 0 | 14(P2:7, P3:7) | `done` |
+| [`2026-07-31-XXXX-arm-MA4.1-nop-ai-typesafety.md`](./2026-07-31-XXXX-arm-MA4.1-nop-ai-typesafety.md) | MA4.1 | 类型安全 | 全模块 | 0 | 0 | 7(P2:5, P3:2) | `done`（P2 已修复，见 §P2 修复追踪） |
+| [`2026-07-31-0539-arm-MA4.2-nop-ai-style.md`](./2026-07-31-0539-arm-MA4.2-nop-ai-style.md) | MA4.2 | 代码风格 | 全模块 | 0 | 0 | 14(P2:7, P3:7) | `done`（P2 已修复/裁定，见 §P2 修复追踪） |
 | [`2026-07-31-XXXX-arm-MA4.3-nop-ai-test-coverage.md`](./2026-07-31-XXXX-arm-MA4.3-nop-ai-test-coverage.md) | MA4.3 | 测试覆盖 | 全模块 | 0 | 6 | P1:6, P2:4, P3:3, Positive:1 | `done` |
 | [`2026-07-31-arm-MA4.4-nop-ai-test-effectiveness.md`](./2026-07-31-arm-MA4.4-nop-ai-test-effectiveness.md) | MA4.4 | 测试有效性 | 全模块 | 0 | 0 | P2:4, P3:3, N/A:1 | `done` |
-| [`2026-07-31-XXXX-arm-MA4.5-nop-ai-doc-consistency.md`](./2026-07-31-XXXX-arm-MA4.5-nop-ai-doc-consistency.md) | MA4.5 | 文档一致性 | 全模块 | 0 | 0 | 9(P2:7, P3:2) | `done` |
+| [`2026-07-31-XXXX-arm-MA4.5-nop-ai-doc-consistency.md`](./2026-07-31-XXXX-arm-MA4.5-nop-ai-doc-consistency.md) | MA4.5 | 文档一致性 | 全模块 | 0 | 0 | 9(P2:7, P3:2) | `done`（P2 已修复/裁定，见 §P2 修复追踪） |
 | [`2026-07-30-2100-arm-MA5.1-nop-ai-hollow-scan.md`](./2026-07-30-2100-arm-MA5.1-nop-ai-hollow-scan.md) | MA5.1 | 空壳实现 | 全模块 | 0 | 2 | 7 | `done` |
 | [`2026-07-30-2100-arm-MA5.2-nop-ai-silent-noop.md`](./2026-07-30-2100-arm-MA5.2-nop-ai-silent-noop.md) | MA5.2 | 静默跳过 | 全模块 | 0 | 2 | 20 | `done` |
 | [`2026-07-30-2130-arm-MA5.3-nop-ai-wiring.md`](./2026-07-30-2130-arm-MA5.3-nop-ai-wiring.md) | MA5.3 | 接线完整性 | 全模块 | 0 | 2 | 7 | `done` |
@@ -255,4 +255,29 @@ MR4 Phase 2 对 P1 表全部 `fixed` 行做了 live repo 证据核验（提交/�
 | MA4.3-07 | MR4 | `TestNopAiBizModelEntityCrud.java`（4 方法覆盖 NopAiSession/NopAiTodo/NopAiSessionMessage） | `fixed` |
 
 **汇总**：P0 2 条 + P1 61 条，全部 `fixed` 且有证据（测试文件 / 代码路径 / 裁定记录）；`open` = 0。可追溯性证据闭环：MR1/MR2/MR3/MR4 plans（含 commit `1d79e0704`、`e858fadb0`、`1d97354e7`、`9e7f37750`、`249f89cf7`）+ 8 个回归测试文件 + `§MR4 裁定` / `§MR4 P1 表逐行核验` 记录。MV closure audit 纠正 1 行证据（P1-MA5-003 → SPI 裁定，见上方矩阵与 MR4 核验段）。
+
+## P2 修复追踪（MA4 P2 代码质量批次，2026-07-31）
+
+第一批 P2 批量修复（plan `ai-dev/plans/2026-07-31-1446-2-arm-ma4-p2-code-quality.md`）已执行并收口。in-scope finding 全部 `fixed` 或已裁定落盘；MA4.2-05 超大文件拆分与 MA4.2-14 全量 import 重排按 plan 裁定记入 Deferred（optimization candidate，不阻塞 closure）。
+
+| Finding ID | 修复状态 | 修复位置 / 测试 |
+|-----------|---------|----------------|
+| MA4.1-01 | `fixed` | `AnthropicDialect.parseResponse` blockMap cast 加局部 `@SuppressWarnings("unchecked")` + 契约注释 |
+| MA4.1-02 | `fixed` | `AnthropicDialect` 新增 `parseToolInput()`：Map 直用 / String→`JsonTool.parseMap` 降级 / null 与非 Map 非 String 抛 `ERR_AI_INVALID_RESPONSE`；测试 `TestAnthropicDialect`（+4：Map/字符串/null/invalid 形态） |
+| MA4.1-03 | `fixed` | `DefaultAiChatService.parseToolCalls` `instanceof List` 守卫，非 List 抛 `ERR_AI_INVALID_RESPONSE`；测试 `TestDefaultAiChatService`（5 例：正常/字符串 arguments/非 List 抛错/null/空） |
+| MA4.1-05/06 | `fixed` | `JavaCodeFileInfoGenerator` summary 顶层与 functions 字段非 List 抛 `ERR_AI_INVALID_RESPONSE` + `ARG_FILE_PATH`；测试 `TestJavaCodeFileInfoGenerator`（3 例：顶层非 List/functions 非 List/合法端到端） |
+| MA4.2-02 | `fixed` | 4 个测试文件 import 重排（TestLayer23SecureDefaults/TestLayer23SecureDefaultImpls/TestDispatchPathSecurityConsultation/TestDispatchPathApprovalGate），`check-import-order.mjs` 0 违规 |
+| MA4.2-04 | `fixed` | `ReActAgentExecutor` 重复 `import SecurityLevel` 删除 |
+| MA4.2-08 | `fixed` | `DefaultAiChatService` 类 javadoc 增加 `@deprecated` tag |
+| MA4.2-09 | `fixed` | `AiCommand.logCachedResponse`（含调用点）整体删除；`DefaultAiChatService` 两个空 if 块 + 未使用局部变量删除 |
+| MA4.2-11 | `fixed` | `VfsMavenCli.printCommand` → SLF4J；`JavaMethodReplacer` 无调用方 demo main 整体删除 |
+| MA4.2-14 | `fixed`（裁定） | AGENTS.md import 约定改为 `io.nop.* → 第三方 → java.*`（静态导入最后）；`check-import-order.mjs` 期望顺序同步 + 静态导入独立类别；checkstyle.xml 不加 import 顺序规则（设计原则为只查 BUG 不强制风格） |
+| MA4.5-001 | `fixed` | `IVectorStore.search()` Javadoc SearchWrapper → VectorQueryBean |
+| MA4.5-003 | `fixed` | `IAiChatProgressListener` `@Deprecated(forRemoval = true)` |
+| MA4.5-004 | `fixed` | `DefaultAgentEngine` field 默认 60s → 120s 与 Builder 统一；测试 `TestDefaultAgentEngine`（+2：两构造路径一致 + 非正数拒绝） |
+| MA4.5-005 | `fixed` | `docs-for-ai/03-modules/nop-ai.md` callAgentTimeoutMs 默认值 60000 → 120000 |
+| MA4.5-006/007 | `fixed` | `IToolExecutor`/`IToolManager` 类级 + 方法级 Javadoc 补全（基于 `ToolManagerImpl` 实际行为） |
+| MA4.5-002 | `fixed`（裁定） | IVectorStore 保持 abstract class + I 前缀（全仓 0 生产实现，纯 SPI）；类 Javadoc 记录裁定，watch-only residual |
+
+**验证**：`./mvnw test -pl nop-ai -am -T 1C` BUILD SUCCESS（2836 tests / 0 failures）；`node ai-dev/tools/check-doc-links.mjs --strict` exit 0。MA4.3/MA4.4 P2（测试质量批次）由 `2026-07-31-1446-3-arm-ma4-p2-test-quality.md` 承接。
 

@@ -226,7 +226,7 @@ setx JAVA_HOME "$jdk"
 - **Naming**: PascalCase (classes), camelCase (methods/variables), UPPER_SNAKE_CASE (constants)
 - **Formatting**: 4-space indentation, keep lines ~80–120 chars where reasonable
 - **Package names**: modules use `io.nop.<module-name>` (e.g., `io.nop.ai.core`, `io.nop.stream.core`)
-- **Imports**: grouped (java.* → jakarta.* → third-party → io.nop.*)
+- **Imports**: grouped (io.nop.* → jakarta.*/javax.* → third-party → java.*)，组间空行分隔；静态导入放最后（与代码库实际惯例一致，见 `ai-dev/audits/2026-07-31-0539-arm-MA4.2-nop-ai-style.md` MA4.2-14 裁定）
 - **Error handling**: Two-tier strategy (see `docs-for-ai/02-core-guides/error-handling.md`): (1) Framework core & public APIs: `NopException` + `ErrorCode` + `.param(...)`. (2) Module internals & AI-driven code: module-level exception class (e.g. `NopAiException`) with English string messages. Never use bare `RuntimeException`. Error messages must be in English.
 - Avoid noisy refactors; keep diffs minimal and focused
 - **Temporary files**: Use `_tmp/` under the project root (`<project-root>/_tmp/`) for ALL temporary files, scratch data, and intermediate outputs. NEVER use system-level `/tmp/` — it is outside the project sandbox and will trigger `external_directory` permission prompts that block non-interactive `opencode run` sessions.
@@ -259,7 +259,7 @@ After fixing any non-trivial bug, you MUST:
 Before finishing any task:
 
 - [ ] `./mvnw test -pl <affected-module> -am` passes (or full `./mvnw clean install` if touched multiple modules)
-- [ ] Check style: imports grouped (java.* → jakarta.* → third-party → io.nop.*)
+- [ ] Check style: imports grouped (io.nop.* → third-party → java.*)
 - [ ] Tests: add/extend JUnit 5 tests; use Nop AutoTest where the project already uses it
 - [ ] `docs-for-ai/` updated (if conventions or APIs changed)
 - [ ] `ai-dev/logs/` updated (for significant changes, see `ai-dev/logs/00-log-writing-guide.md`)
