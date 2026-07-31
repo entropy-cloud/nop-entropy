@@ -1,6 +1,6 @@
 # 322 nop-job 状态一致性与并发修复
 
-> Plan Status: draft
+> Plan Status: completed
 > Last Reviewed: 2026-07-31
 > Source: `ai-dev/analysis/2026-07/2026-07-31-nop-job-state-consistency-and-concurrency-analysis.md`（v3，经两轮独立审查共识通过）
 > Related: `ai-dev/plans/302-nop-job-completion-metrics-and-per-fire-transaction.md`（已完成，引入 per-fire 事务）
@@ -87,11 +87,11 @@ Targets: `nop-job/nop-job-dao/.../JobScheduleStoreImpl.java`, `nop-job/nop-job-d
 
 > **设计约束与价值定位**：本 Phase 不使用 `updateWithRetry`（@SingleSession 下 fieldSetter 模型不适用于 caller 侧字段修改，见 Current Baseline）。§4.3 是**实质计数修复**（activeFireCount 不再强制赋值）；§4.5/4.5b 是**可观测性改进**（schedule 失败从 impl 内静默 warn 提升为 caller 可感知——注意：caller 在 @SingleSession 下无法真正补偿/重试，schedule 计数偏差仍可能存在，但不再无声丢失，便于监控发现）。Phase 2 不依赖 Phase 1（CLAIMED 回收）或 Phase 3（状态判断统一）。
 
-- [ ] **§4.3 overlay/manual 计数修正**：`overlayFireAndAdvanceSchedule`（`:143`）和 `insertManualFire`（`:286`）的 overlay 分支，把 `setActiveFireCount(1)` 改为基于私有 `cancelFire`（`:421-442`）已返回的实际成功数：`activeFireCount = defaultInt(原值) - actualCancelledCount + 1`。`overlayFireAndAdvanceSchedule` 已在 `:122,126-128` 累加 actualCancelledCount，直接用于 `:143` 即可。`insertManualFire` 的 overlay 分支同理用实际统计值（已有 `:267-275` reload 统计模式可参考，但应优先用 cancelFire 返回值）。
-- [ ] **§4.5 completeFire schedule 失败显式化**：`JobFireStoreImpl.completeFireAndUpdateSchedule`（`:121-140`）改为返回复合结果（fire 是否更新成功 + schedule 是否更新成功），而非当前的单一 boolean。schedule 失败不再静默 warn return true，而是如实反映在复合结果中。
-- [ ] **§4.5b cancelFire schedule 失败显式化**：`JobFireStoreImpl.cancelFire`（`:201-203`）同上，返回复合结果。fire 成功但 schedule 失败时 caller 可感知。
-- [ ] **适配 caller，保持 Bug C fix 有效**：`JobTimeoutCheckerImpl.tryMarkDispatchTimeout`（`:333-340`）当前靠 `fire.orm_readonly()` 判断 fire 是否成功。适配复合结果后，**fire 的判断路径不变**（仍用 orm_readonly 或改用复合结果的 fireOk——二者等价，因为 orm_readonly 正是由 tryUpdateWithVersionCheck 设置），额外检查 scheduleOk：schedule 失败时显式告警（WARN 级别，带 scheduleId），记录为计数偏差待补偿。`NopJobFireBizModel.cancelFire`（`:78`）适配复合结果，schedule 失败时告警。
-- [ ] 新增并发测试：构造 schedule 被并发修改版本的场景，验证 completeFire/cancelFire 的 caller 能感知 schedule 失败（不再静默），fire 仍正确更新。
+- [x] **§4.3 overlay/manual 计数修正**：`overlayFireAndAdvanceSchedule`（`:143`）和 `insertManualFire`（`:286`）的 overlay 分支，把 `setActiveFireCount(1)` 改为基于私有 `cancelFire`（`:421-442`）已返回的实际成功数：`activeFireCount = defaultInt(原值) - actualCancelledCount + 1`。`overlayFireAndAdvanceSchedule` 已在 `:122,126-128` 累加 actualCancelledCount，直接用于 `:143` 即可。`insertManualFire` 的 overlay 分支同理用实际统计值（已有 `:267-275` reload 统计模式可参考，但应优先用 cancelFire 返回值）。
+- [x] **§4.5 completeFire schedule 失败显式化**：`JobFireStoreImpl.completeFireAndUpdateSchedule`（`:121-140`）改为返回复合结果（fire 是否更新成功 + schedule 是否更新成功），而非当前的单一 boolean。schedule 失败不再静默 warn return true，而是如实反映在复合结果中。
+- [x] **§4.5b cancelFire schedule 失败显式化**：`JobFireStoreImpl.cancelFire`（`:201-203`）同上，返回复合结果。fire 成功但 schedule 失败时 caller 可感知。
+- [x] **适配 caller，保持 Bug C fix 有效**：`JobTimeoutCheckerImpl.tryMarkDispatchTimeout`（`:333-340`）适配复合结果后用 `outcome.fireUpdated()` 判断（与原 orm_readonly 等价，因 tryUpdateWithVersionCheck 失败时设 readonly 且 completeFire 内部用同一机制），schedule 失败时显式 WARN。`NopJobFireBizModel.cancelFire`（`:78`）适配复合结果，schedule 失败时告警。
+- [x] 新增并发测试：构造 schedule 被并发修改版本的场景，验证 completeFire/cancelFire 的 caller 能感知 schedule 失败（不再静默），fire 仍正确更新。
 
 Exit Criteria:
 
@@ -140,8 +140,8 @@ Exit Criteria:
 - [x] P1 §3.1（收窄版）task 状态判断集中化，无行为变更（全部回归测试通过）
 - [x] 不存在被静默降级到 deferred 的 in-scope live defect
 - [x] 受影响的 owner docs 已同步或明确裁定无需更新
-- [ ] 独立子 agent closure-audit 已完成并记录证据
-- [ ] **Anti-Hollow Check**：closure audit 已验证 CLAIMED 回收路径在运行时确实被 tryMarkSuspiciousIfWorkerGone 调用；schedule 失败显式化在 caller 确实处理（不只返回值变了）
+- [x] 独立子 agent closure-audit 已完成并记录证据
+- [x] **Anti-Hollow Check**：closure audit 已验证 CLAIMED 回收路径在运行时确实被 tryMarkSuspiciousIfWorkerGone 调用（调用链 scanOnce→scanTaskTimeouts→fetchRunningTasks[SQL含CLAIMED]→tryMarkSuspiciousIfWorkerGone[条件含CLAIMED]→SUSPICIOUS→第二轮markSuspiciousAsTimeout→TIMEOUT 完整连通）；schedule 失败显式化在 caller 确实处理（FireScheduleOutcome 被 3 个 caller 实质使用，非空壳）
 - [x] `./mvnw clean install -pl nop-job/nop-job-dao,nop-job/nop-job-coordinator,nop-job/nop-job-worker,nop-job/nop-job-service -am -T 1C` 通过
 - [x] checkstyle / 代码规范检查通过
 
@@ -168,7 +168,7 @@ Exit Criteria:
 ### §4.7 Bug C fix 依赖 orm_readonly 隐式契约
 
 - Classification: `watch-only residual`
-- Why Not Blocking Closure: 依赖 nop-orm 内部行为，需 nop-orm 层提供接口契约后统一改造。本计划 Phase 2 保持 orm_readonly 判断路径不变，不减弱 Bug C 保护。
+- Why Not Blocking Closure: 依赖 nop-orm 内部行为，需 nop-orm 层提供接口契约后统一改造。本计划 Phase 2 已将 Bug C 保护显式化（`tryMarkDispatchTimeout` 现用 `outcome.fireUpdated()` 判断，原 `orm_readonly` 隐式路径已收敛为复合返回值），保护语义保持且更清晰。
 - Successor Required: yes（待 nop-orm 契约明确后开 successor）
 
 ### §4.8 / §4.9 / §3.3 / §4.10
@@ -189,3 +189,28 @@ Exit Criteria:
 - nop-orm 层为 tryUpdateWithVersionCheck 的 readonly 行为提供显式接口契约后，revisit Bug C fix（§4.7）
 - 评估 SUSPICIOUS cancel 语义统一是否真的需要（当前有意设计的矛盾 vs 真正的不一致）
 - 评估是否需要为 task 增加 claimTime 字段以支持基于时间的 CLAIMED 超时（当前方案依赖 worker 失联判断）
+
+## Closure
+
+Status Note: 三个 Phase 的实质工作已全部正确落地并通过独立 closure audit 核对。Phase 1 CLAIMED 回收调用链从入口点（scanOnce）到终态（TIMEOUT）完整连通（fetchRunningTasks SQL 含 CLAIMED + tryMarkSuspiciousIfWorkerGone 条件含 CLAIMED + 两轮 scanOnce 推进）；Phase 2 FireScheduleOutcome 非空壳，3 个 caller（JobTimeoutCheckerImpl / NopJobFireBizModel / TestJobFireStoreRace）实质使用返回值做分支/WARN/断言，overlay/manual 的 activeFireCount 基于实际 cancel 数，Bug C 保护保持；Phase 3 分类函数等价重构，SUSPICIOUS 语义未变，未替换项保持原样。Deferred 项分类诚实（§4.1 非 P0 活性缺陷，§4.4 诚实降级）。Anti-Hollow 检查两项均 PASS。
+Completed: 2026-07-31
+
+Closure Audit Evidence:
+
+- Reviewer / Agent: 独立 closure auditor（fresh session，未参与实现）
+- Audit Session: 独立 closure-audit pass（2026-07-31）
+- Evidence:
+  - Phase 1 Exit Criteria 全部 PASS：JobTimeoutCheckerImpl.java:244-245（CLAIMED 过滤）、JobTaskStoreImpl.java:95-96（fetchRunningTasks SQL 含 CLAIMED）、TestJobTimeoutChecker.java（testClaimedTask_reclaimedWhenWorkerGone 两轮链路 + testClaimedTask_notMarkedWhenWorkerAlive 不误处理）
+  - Phase 2 Exit Criteria 全部 PASS：JobFireStoreImpl.java:123-141,145-207（复合返回 FireScheduleOutcome）、JobScheduleStoreImpl.java:143,286-287（不再强赋值 1）、JobTimeoutCheckerImpl.java:336-346（outcome.fireUpdated() Bug C 保护 + schedule WARN）、NopJobFireBizModel.java:83-89（适配）、TestJobTimeoutChecker.java（testDispatchTimeout_skipsTaskCancelWhenFireUpdateFails + testDispatchTimeout_cancelsTasksWhenOnlyScheduleUpdateFails）、TestJobFireStoreRace.java（cancelFire 断言适配 .fireUpdated()）
+  - Phase 3 Exit Criteria 全部 PASS：JobStatusHelper.java:66,82（isRecoverableTask + isConcurrentlyFinalizedTask）、JobScheduleStoreImpl.java:415（isTaskFailed→isRecoverableTask）、JobWorkerScannerImpl.java:285,335,382（三处→isConcurrentlyFinalizedTask）、RESERVED_TASK_STATUSES/resolveFinalFireStatus/tryMarkTimeout 守卫未被替换、TestJobStatusHelper.java（16 tests 覆盖 8 状态）
+  - `node ai-dev/tools/check-plan-checklist.mjs <plan-file> --strict` 退出码为 0
+  - `./mvnw clean install -pl nop-job/nop-job-dao,nop-job/nop-job-coordinator,nop-job/nop-job-worker,nop-job/nop-job-service -am -T 1C` BUILD SUCCESS（含全部测试）
+  - Anti-Hollow 检查结果：CLAIMED 回收调用链完整连通（scanOnce→scanTaskTimeouts→fetchRunningTasks[SQL含CLAIMED]→tryMarkSuspiciousIfWorkerGone[条件含CLAIMED]→SUSPICIOUS→continue→第二轮 markSuspiciousAsTimeout→TIMEOUT）；FireScheduleOutcome 被 3 个 caller 实质使用（非空壳）
+  - Deferred 项分类检查：§4.1 诚实 defer（optimization candidate，非 P0）；§4.4 诚实降级（说明事实错误）；§4.7 watch-only（措辞已同步为 outcome.fireUpdated()）
+
+Follow-up:
+
+- 评估 §4.1 schedule 计数与 fire finalize 解耦方案（需 design 文档）
+- nop-orm 层为 tryUpdateWithVersionCheck 提供显式契约后 revisit Bug C fix（§4.7）
+- 评估 SUSPICIOUS cancel 语义统一是否真的需要
+- 评估是否需要 task.claimTime 字段以支持基于时间的 CLAIMED 超时
