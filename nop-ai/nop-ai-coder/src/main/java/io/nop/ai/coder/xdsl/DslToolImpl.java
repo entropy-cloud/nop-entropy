@@ -15,10 +15,13 @@ import java.io.File;
 /**
  * DSL schema tool backed by the legacy {@link IFileOperator}.
  * <p>
- * <b>P2-MA3-05 ruling — retained with documentation (no migration this batch):</b>
- * migration target is {@code io.nop.ai.toolkit.fs.IToolFileSystem}; a faithful
- * migration requires first reconciling the two file-system abstractions
- * (P2-MA1-012, later batch). Retained intentionally, do not "fix" by inlining.
+ * <b>P2-MA1-012 ruling (2026-07-31) — retained with documentation:</b>
+ * the two file-system abstractions are kept side by side
+ * (IFileOperator = base-dir scoped resource ops; IToolFileSystem =
+ * sandboxed executor FS). Migration preconditions and the boundary
+ * contract are documented in
+ * {@code ai-dev/design/nop-ai/01-file-operator-abstraction-contract.md}.
+ * Retained intentionally, do not "fix" by inlining.
  */
 public class DslToolImpl implements IDslTool {
     private final IFileOperator fileOperator;

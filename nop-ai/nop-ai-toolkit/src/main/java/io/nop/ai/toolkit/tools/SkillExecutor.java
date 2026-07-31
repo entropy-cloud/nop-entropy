@@ -6,19 +6,19 @@ import io.nop.ai.toolkit.model.AiToolCall;
 import io.nop.ai.toolkit.model.AiToolCallResult;
 import io.nop.ai.toolkit.model.AiToolOutput;
 import io.nop.commons.util.StringHelper;
-import io.nop.core.resource.VirtualFileSystem;
 import io.nop.core.resource.IResource;
+import io.nop.core.resource.VirtualFileSystem;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CompletionStage;
 
 public class SkillExecutor implements IToolExecutor {
-    public static final String TOOL_NAME = "skill";
+    private static final Logger LOG = LoggerFactory.getLogger(SkillExecutor.class);
 
-    private static final Map<String, List<String>> loadedSkills = new ConcurrentHashMap<>();
+    public static final String TOOL_NAME = "skill";
 
     @Override
     public String getToolName() {
@@ -91,9 +91,6 @@ public class SkillExecutor implements IToolExecutor {
             return AiToolCallResult.errorResult(call.getId(), "Skill not found: " + skillName);
         }
 
-        String contextKey = getContextKey(context);
-        loadedSkills.computeIfAbsent(contextKey, k -> new ArrayList<>()).add(skillName);
-
         AiToolCallResult result = new AiToolCallResult();
         result.setId(call.getId());
         result.setStatus("success");
@@ -101,10 +98,6 @@ public class SkillExecutor implements IToolExecutor {
         output.setBody("Skill '" + skillName + "' loaded successfully.");
         result.setOutput(output);
         return result;
-    }
-
-    private String getContextKey(IToolExecuteContext context) {
-        return "default";
     }
 
     private List<SkillInfo> discoverSkills(IToolExecuteContext context) {
@@ -122,14 +115,8 @@ public class SkillExecutor implements IToolExecutor {
                 }
             }
         } catch (Exception e) {
-        }
-
-        if (skills.isEmpty()) {
-            skills.add(new SkillInfo("log-analysis", "Analyze log files for errors and patterns"));
-            skills.add(new SkillInfo("translator", "Translate text between languages"));
-            skills.add(new SkillInfo("calculator", "Perform mathematical calculations"));
-            skills.add(new SkillInfo("code-review", "Review code for quality and best practices"));
-            skills.add(new SkillInfo("test-generator", "Generate unit tests for code"));
+            LOG.warn("nop.ai.skill.fail-discover-skills: failed to discover skills from VFS /nop/skills", e);
+            return skills;
         }
 
         return skills;

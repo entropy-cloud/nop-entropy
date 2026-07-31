@@ -10,9 +10,25 @@ import java.util.function.Predicate;
 import java.util.regex.Pattern;
 
 /**
+ * Legacy core file operator used by the {@code FileTool} BizModel and DSL
+ * tooling.
+ * <p>
+ * <b>Boundary contract (P2-MA1-012 ruling, 2026-07-31):</b> kept alongside
+ * {@code io.nop.ai.toolkit.fs.IToolFileSystem} — the two abstractions serve
+ * different contracts: IFileOperator = base-dir-scoped resource access
+ * ({@code IResource} results, FileContent offset/limit reads,
+ * AntPath/Regex/Glob finders, xdef-aware {@code mergeFile},
+ * {@code applyDiff}); IToolFileSystem = sandboxed executor file access
+ * (path permission checks, char-count limited DTO results, depth/max
+ * bounded glob/grep). Their method surfaces do not map 1:1, so migration
+ * must first reconcile the abstractions; scheduled as future major-version
+ * work. Boundary contract and migration preconditions:
+ * {@code ai-dev/design/nop-ai/01-file-operator-abstraction-contract.md}.
+ *
  * @deprecated 使用 io.nop.ai.toolkit.fs.IToolFileSystem 替代
+ * （forRemoval=true，移除属 future major 版本工作）
  */
-@Deprecated
+@Deprecated(forRemoval = true)
 public interface IFileOperator {
     IResource getResource(String path);
 

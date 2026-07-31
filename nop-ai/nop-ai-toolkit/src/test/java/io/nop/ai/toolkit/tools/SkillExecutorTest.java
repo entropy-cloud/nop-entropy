@@ -14,10 +14,21 @@ import org.junit.jupiter.api.Test;
 import java.io.File;
 import java.util.Map;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
+/**
+ * Plain unit tests for {@link SkillExecutor} that do not initialize the Nop VFS.
+ * Without VFS initialization, {@code discoverSkills} hits its explicit failure path:
+ * it logs a WARN and returns an empty skill list instead of fabricating phantom skills.
+ */
 public class SkillExecutorTest {
     private SkillExecutor executor;
+
+    private static final String[] PHANTOM_SKILL_NAMES = {
+            "log-analysis", "translator", "calculator", "code-review", "test-generator"
+    };
 
     @BeforeEach
     void setUp() {
@@ -51,7 +62,9 @@ public class SkillExecutorTest {
     }
 
     @Test
-    void testListSkills() {
+    void testListSkillsReturnsNoPhantomSkillsOnVfsUnavailable() {
+        // VFS is not initialized in this class, so discoverSkills must fail explicitly
+        // (WARN log + empty list) instead of fabricating hardcoded phantom skills.
         XNode node = XNode.make("skill");
         node.setAttr("id", "1");
         node.setAttr("action", "list");
@@ -59,6 +72,10 @@ public class SkillExecutorTest {
         AiToolCallResult result = executor.executeAsync(call, new MockContext()).toCompletableFuture().join();
         assertEquals("success", result.getStatus());
         assertTrue(result.getOutput().getBody().contains("<skills>"));
+        for (String phantom : PHANTOM_SKILL_NAMES) {
+            assertFalse(result.getOutput().getBody().contains(phantom),
+                    "phantom skill '" + phantom + "' must not appear in list output");
+        }
     }
 
     @Test
@@ -85,15 +102,17 @@ public class SkillExecutorTest {
     }
 
     @Test
-    void testLoadSkillSuccess() {
+    void testLoadFormerPhantomSkillFails() {
+        // Regression: previously load("log-analysis") succeeded via the hardcoded
+        // phantom-skill fallback. After the fix it must fail explicitly.
         XNode node = XNode.make("skill");
         node.setAttr("id", "1");
         node.setAttr("action", "load");
         node.setAttr("skillName", "log-analysis");
         AiToolCall call = AiToolCall.fromNode(node);
         AiToolCallResult result = executor.executeAsync(call, new MockContext()).toCompletableFuture().join();
-        assertEquals("success", result.getStatus());
-        assertTrue(result.getOutput().getBody().contains("loaded successfully"));
+        assertEquals("failure", result.getStatus());
+        assertTrue(result.getError().getBody().contains("Skill not found"));
     }
 
     static class MockContext implements IToolExecuteContext {

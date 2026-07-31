@@ -21,8 +21,8 @@
             <call-tools-response>
                 <tool-result id="1" status="success">
                     <output><![CDATA[<skills>
-      <skill name="log-analysis">Analyze log files for errors and patterns</skill>
-      <skill name="translator">Translate text between languages</skill>
+      <skill name="web-search">Skill: web-search</skill>
+      <skill name="data-analysis">Skill: data-analysis</skill>
     </skills>]]></output>
                 </tool-result>
             </call-tools-response>
