@@ -145,6 +145,89 @@ XDef 的目标不是再造一层与最终 DSL 完全不同的 schema，而是让
 
 注意：`!` 必须放在 `enum:` 前面，不能放在 `=` 后面。默认值不是必须的，Java 代码可以自行处理。
 
+### 8. `xdef:bean-*` 属性族：XDSL 节点到 Java Bean 的属性映射
+
+XDef 不仅定义 XML 结构约束，还控制 XDSL 文件解析为 Java 对象时的**属性映射**——即"节点的哪部分内容（标签名 / 属性 / 子节点 / 文本 / 注释）写入 bean 的哪个属性"。`xdef:bean-*` 属性族就是这套映射开关。
+
+核心实现链路：`XDefinitionParser`（解析 xdef 时读取这些属性）→ `DslBeanModelParser`（解析 XDSL 实例时按映射规则填充 bean）→ `XDefToObjMeta`（从 xdef 生成 ObjSchema 元数据）。
+
+#### 属性总览
+
+| 属性 | 作用 | 默认值 |
+|------|------|--------|
+| `xdef:bean-class` | 本节点解析生成的 Java Bean 类（全限定名） | 配合根节点 `xdef:bean-package` + `xdef:name` 自动拼接 |
+| `xdef:bean-body-type` | body 集合的泛型类型（如 `List<Foo>`） | 由 `body-type` 推断 |
+| `xdef:bean-prop` | 当前节点在**父 bean** 中的属性名 | tagName 经 camelCase 转换；声明了 `unique-attr` 时为 `tagName+"s"` |
+| `xdef:bean-body-prop` | **复杂 body**（子节点集合）写入的 bean 属性名 | `body`（仅当节点非 simple 时自动设此默认值） |
+| `xdef:bean-value-prop` | **简单值**（纯文本 body 或 `xdef:value`）写入的 bean 属性名 | 无，需显式指定 |
+| `xdef:bean-tag-prop` | 将节点**标签名**（tagName）写入的 bean 属性名 | 无 |
+| `xdef:bean-comment-prop` | 将节点**注释**解析为 `XDefComment` 后写入的 bean 属性名 | 无 |
+| `xdef:bean-child-name` | 列表 body 的元素子属性名 | 单一子节点类型时为该 tagName 转换 |
+| `xdef:bean-sub-type-prop` | union 结构的**判别字段**属性名 | 回退到子节点的 `bean-tag-prop` |
+| `xdef:bean-unknown-attrs-prop` | 未明确定义的属性集合（`Map`）写入的 bean 属性名 | 无 |
+| `xdef:bean-unknown-children-prop` | 未明确定义的子节点集合写入的 bean 属性名 | 无 |
+
+#### `bean-body-prop` vs `bean-value-prop`
+
+二者都控制"节点内容写入哪个属性"，区别在于内容的**形态**：
+
+- `bean-body-prop`：节点有子节点、声明了 `xdef:body-type`，body 解析为**复杂结构**（List/Map/Union）后写入此属性。
+- `bean-value-prop`：节点是叶子、声明了 `xdef:value`，解析为**简单标量值**后写入此属性。
+
+当一个节点**同时声明两者**时，解析器按实际内容形态路由：无子节点走 value 路径，有子节点走 body 路径，分别写入不同属性。这是 union 类型节点（同一节点既可以是字面量也可以是复杂结构）的标准模式。
+
+真实示例（`beans.xdef:15`，`BeanPropValue` 可为字面量或复杂结构）：
+
+```xml
+<xdef:define xdef:name="BeanPropValue" xdef:body-type="union"
+             xdef:bean-body-prop="body" xdef:bean-value-prop="value" ...>
+```
+
+只声明 `bean-body-prop`（不声明 `bean-value-prop`）时，简单值也会落到 `bean-body-prop` 指定的属性（见 `XDefToObjMeta.valueToProp` 的回退逻辑）。
+
+#### `bean-tag-prop` 与 `$type` / `$body` 约定
+
+`bean-tag-prop` 把 XML 标签名记录为 bean 的一个 String 属性，主要用于 union/多态结构中判别具体子类型。
+
+两种典型用法：
+
+**1. 专用 bean 类——用普通属性名**
+
+```xml
+<!-- 记录标签名到 bean 的 tagName 属性 -->
+<and xdef:bean-tag-prop="tagName" ...>
+```
+
+**2. 通用 `TreeBean`——用 `$type` / `$body` 特殊约定**
+
+当 `xdef:bean-class="io.nop.api.core.beans.TreeBean"` 时，XDSL 不映射到专用 bean，而是映射到通用树结构。此时固定使用 `$type` / `$body` 这两个特殊属性名（定义于 `ApiConstants.TREE_BEAN_PROP_TYPE / TREE_BEAN_PROP_BODY`）：
+
+```xml
+<!-- filter.xdef:7-8 -->
+<xdef:define xdef:name="FilterCondition" xdef:body-type="list"
+             xdef:bean-tag-prop="$type" xdef:bean-body-prop="$body">
+```
+
+`$` 前缀是合法 Java 标识符。`$type` 对应 XML 标签名，`$body` 对应节点内容。JSON↔XML 转换器（`DefaultJsonToXNodeAdapter`、`BuildXNodeJsonHandler`）会识别这两个键，将它们还原为 XML 的 tag 和 body，而不是普通数据字段。
+
+#### 常见组合：容器节点 `xdef:ref` + `bean-body-prop`
+
+复用已命名结构（`xdef:name` 定义、`xdef:ref` 引用）时，配合 `bean-body-prop` 指定子节点集合写入的目标属性。这是 `xview.xdef` 等容器型 DSL 的常见写法：
+
+```xml
+<!-- group 的子节点解析为列表后，写入 UiContainerModel bean 的 body 属性 -->
+<group name="!string" xdef:ref="UiContainerModel"
+       xdef:bean-body-prop="body" xdef:body-type="list"/>
+```
+
+#### 判别与默认逻辑要点
+
+- `bean-body-prop` 仅对**非 simple 节点**自动设默认值 `body`（simple 节点指无属性、仅有 body-type 或 value、且未声明任何 bean-* prop 的节点，见 `IXDefNode.isSimple()`）。
+- `bean-prop`（节点在父 bean 中的属性名）默认为 tagName 的 camelCase；声明了 `unique-attr` 时默认为 `tagName + "s"`。
+- union schema 必须有判别字段：优先用 `bean-sub-type-prop`，否则回退到子节点声明的 `bean-tag-prop`，都没有则报错。
+
+> 实现 anchor：`XDefinitionParser.java:333-389`（读取 bean-\* 属性与默认值推断 `:452-471`）、`DslBeanModelParser.java:130-152`（按映射填充 bean）、`XDefToObjMeta.java:230-243,694-737`（生成 ObjSchema 属性）。
+
 ## x-extends 合并算法：App = Delta x-extends Generator\<DSL\>
 
 这是可逆计算理论的核心公式。这里不展开整个平台的理论背景，只聚焦它在 XDef/XDSL 合并中的具体含义；平台级解释见 `../06-extensibility/platform-extensibility-mechanism.md`。
@@ -295,6 +378,7 @@ if (renderMode == 'flux') {
 4. 需要设计一个新 DSL 或修正旧 DSL 结构。
 5. 需要理解"为什么改了 Delta 文件但运行时没生效"（合并顺序不对）。
 6. 需要判断一个 XML DSL 文件为什么不符合仓库惯例。
+7. 需要理解 `xdef:bean-body-prop`、`xdef:bean-tag-prop`、`xdef:bean-value-prop` 等属性如何控制 XDSL→Java Bean 的属性映射。
 
 ## 相关文档
 
