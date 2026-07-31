@@ -6,8 +6,12 @@ import io.nop.ai.shell.io.ListShellOutput;
 import io.nop.ai.shell.io.ShellChunk;
 import io.nop.ai.toolkit.fs.IToolFileSystem;
 import io.nop.ai.toolkit.fs.LocalToolFileSystem;
+import io.nop.commons.util.FileHelper;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -17,13 +21,22 @@ import static org.junit.jupiter.api.Assertions.*;
 
 class CdCommandTest {
 
+    private static final Logger LOG = LoggerFactory.getLogger(CdCommandTest.class);
+
     private IToolFileSystem fileSystem;
+    private Path tempDir;
 
     @BeforeEach
     void setUp() throws IOException {
-        Path tempDir = Files.createTempDirectory("cd-test");
-        tempDir.toFile().deleteOnExit();
+        tempDir = Files.createTempDirectory("cd-test");
         fileSystem = new LocalToolFileSystem(tempDir.toFile());
+    }
+
+    @AfterEach
+    void tearDown() {
+        if (tempDir != null && Files.exists(tempDir) && !FileHelper.deleteAll(tempDir.toFile())) {
+            LOG.warn("nop.test.fail-delete-temp-dir:dir={}", tempDir);
+        }
     }
 
     @Test

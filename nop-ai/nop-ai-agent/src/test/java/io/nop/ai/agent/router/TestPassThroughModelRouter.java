@@ -13,6 +13,7 @@ import java.util.Collections;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotSame;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
 
@@ -91,14 +92,14 @@ public class TestPassThroughModelRouter {
     }
 
     @Test
-    void passThroughFactoryReturnsSingleton() {
+    void passThroughFactoryReturnsFreshInstances() {
         IModelRouter a = PassThroughModelRouter.passThrough();
         IModelRouter b = PassThroughModelRouter.passThrough();
-        assertSame(a, b);
+        assertNotSame(a, b);
     }
 
     @Test
     void implementsIModelRouter() {
-        assertSame(PassThroughModelRouter.passThrough(), PassThroughModelRouter.passThrough());
+        assertNotSame(PassThroughModelRouter.passThrough(), PassThroughModelRouter.passThrough());
     }
 }

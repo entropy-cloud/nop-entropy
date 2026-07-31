@@ -5,14 +5,21 @@ import io.nop.ai.core.api.messages.AiChatExchange;
 import io.nop.ai.core.api.messages.Prompt;
 import io.nop.api.core.util.FutureHelper;
 import io.nop.api.core.util.ICancelToken;
+import io.nop.commons.util.FileHelper;
 import io.nop.core.resource.IResource;
 import io.nop.core.resource.impl.FileResource;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.File;
+import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.CompletionStage;
@@ -30,17 +37,36 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
  */
 public class TestMockAiChatService {
 
+    private static final Logger LOG = LoggerFactory.getLogger(TestMockAiChatService.class);
+
     private static final String MARKER_EOF = "\nNOP_EOF";
+
+    private final List<File> tempFiles = new ArrayList<>();
+
+    private File newTempFile(String prefix, String suffix) throws IOException {
+        File file = File.createTempFile(prefix, suffix);
+        tempFiles.add(file);
+        return file;
+    }
+
+    @AfterEach
+    void cleanupTempFiles() {
+        for (File file : tempFiles) {
+            if (file.exists() && !FileHelper.deleteAll(file)) {
+                LOG.warn("nop.test.fail-delete-temp-file:file={}", file);
+            }
+        }
+        tempFiles.clear();
+    }
 
     private static class FileMockAiChatService extends MockAiChatService {
         private final Map<String, File> filesByPostfix = new HashMap<>();
         private final File responseFile;
 
-        FileMockAiChatService() throws Exception {
-            responseFile = File.createTempFile("mock-response", ".md");
-            responseFile.deleteOnExit();
-            filesByPostfix.put("-request.md", File.createTempFile("mock-request", ".md"));
-            filesByPostfix.put("-prompt.md", File.createTempFile("mock-prompt", ".md"));
+        FileMockAiChatService(TestMockAiChatService owner) throws Exception {
+            responseFile = owner.newTempFile("mock-response", ".md");
+            filesByPostfix.put("-request.md", owner.newTempFile("mock-request", ".md"));
+            filesByPostfix.put("-prompt.md", owner.newTempFile("mock-prompt", ".md"));
             filesByPostfix.put("-response.md", responseFile);
         }
 
@@ -71,7 +97,7 @@ public class TestMockAiChatService {
 
     @Test
     public void testRoundTrip() throws Exception {
-        FileMockAiChatService service = new FileMockAiChatService();
+        FileMockAiChatService service = new FileMockAiChatService(this);
 
         Prompt prompt = Prompt.userText("hello");
         AiChatExchange exchange = sendAndWriteResponse(service, "Hello from mock");
@@ -85,7 +111,7 @@ public class TestMockAiChatService {
 
     @Test
     public void testContentAfterEofMarkerTrimmed() throws Exception {
-        FileMockAiChatService service = new FileMockAiChatService();
+        FileMockAiChatService service = new FileMockAiChatService(this);
 
         AiChatExchange exchange = sendAndWriteResponse(service, "part1\nNOP_EOF\npart2-ignored");
 
@@ -94,7 +120,7 @@ public class TestMockAiChatService {
 
     @Test
     public void testCancelTokenCancels() throws Exception {
-        FileMockAiChatService service = new FileMockAiChatService();
+        FileMockAiChatService service = new FileMockAiChatService(this);
 
         AtomicBoolean cancelled = new AtomicBoolean(true);
         ICancelToken cancelToken = new ICancelToken() {

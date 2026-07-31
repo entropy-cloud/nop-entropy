@@ -8,7 +8,6 @@ import io.nop.ai.shell.commands.DefaultShellExecutionContext;
 import io.nop.ai.shell.commands.IShellCommand;
 import io.nop.ai.shell.commands.IShellCommandExecutionContext;
 import io.nop.ai.shell.commands.ShellCommandRegistry;
-import io.nop.ai.shell.io.AbstractShellInput;
 import io.nop.ai.shell.io.BlockingQueueShellOutput;
 import io.nop.ai.shell.io.DuplexShellOutput;
 import io.nop.ai.shell.io.FileShellInput;
@@ -583,19 +582,7 @@ public class ShellCommandExecutor implements Closeable {
 
     private String collectOutput(BlockingQueueShellOutput output) {
         try {
-            IShellInput input = output.asInput();
-            if (input instanceof AbstractShellInput) {
-                return ((AbstractShellInput) input).readAllText();
-            }
-            StringBuilder sb = new StringBuilder();
-            while (true) {
-                var chunk = input.read();
-                if (chunk == null || chunk.isEof()) break;
-                if (chunk.isText()) {
-                    sb.append(chunk.asText());
-                }
-            }
-            return sb.toString();
+            return output.asInput().readAllText();
         } catch (Exception e) {
             return "";
         }

@@ -8,13 +8,16 @@ import java.util.List;
 
 public final class PassThroughModelRouter implements IModelRouter {
 
-    private static final PassThroughModelRouter INSTANCE = new PassThroughModelRouter();
-
     private PassThroughModelRouter() {
     }
 
+    /**
+     * Returns a fresh pass-through router instance. The class is stateless, so a new
+     * instance per call is safe and avoids singleton identity coupling across tests
+     * (MA5.6-AR-5).
+     */
     public static IModelRouter passThrough() {
-        return INSTANCE;
+        return new PassThroughModelRouter();
     }
 
     @Override

@@ -11,9 +11,13 @@ import io.nop.ai.shell.io.IShellOutput;
 import io.nop.ai.toolkit.fs.IToolFileSystem;
 import io.nop.ai.toolkit.fs.LocalToolFileSystem;
 import io.nop.api.core.util.ICancelToken;
+import io.nop.commons.util.FileHelper;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -31,9 +35,12 @@ import static org.junit.jupiter.api.Assertions.*;
 @Timeout(10)
 class ShellConcurrencyEdgeCaseTest {
 
+    private static final Logger LOG = LoggerFactory.getLogger(ShellConcurrencyEdgeCaseTest.class);
+
     private ShellCommandRegistry registry;
     private ICancelToken cancelToken;
     private IToolFileSystem fileSystem;
+    private Path tempDir;
 
     @BeforeEach
     void setUp() throws IOException {
@@ -41,8 +48,7 @@ class ShellConcurrencyEdgeCaseTest {
         registry.registerCommand(new io.nop.ai.shell.commands.impl.EchoCommand());
         registry.registerCommand(new io.nop.ai.shell.commands.impl.LsCommand());
 
-        Path tempDir = Files.createTempDirectory("shell-test");
-        tempDir.toFile().deleteOnExit();
+        tempDir = Files.createTempDirectory("shell-test");
         fileSystem = new LocalToolFileSystem(tempDir.toFile());
 
         cancelToken = new ICancelToken() {
@@ -52,6 +58,13 @@ class ShellConcurrencyEdgeCaseTest {
             @Override public void appendOnCancelTask(Runnable task) {}
             @Override public void removeOnCancel(java.util.function.Consumer<String> task) {}
         };
+    }
+
+    @AfterEach
+    void tearDown() {
+        if (tempDir != null && Files.exists(tempDir) && !FileHelper.deleteAll(tempDir.toFile())) {
+            LOG.warn("nop.test.fail-delete-temp-dir:dir={}", tempDir);
+        }
     }
 
     private IShellCommandExecutionContext createContext(IShellInput stdin, IShellOutput stdout, IShellOutput stderr) {

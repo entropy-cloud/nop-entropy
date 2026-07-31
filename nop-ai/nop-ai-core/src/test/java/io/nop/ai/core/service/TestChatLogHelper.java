@@ -7,12 +7,19 @@ import io.nop.ai.api.chat.messages.ChatAssistantMessage;
 import io.nop.ai.core.api.chat.AiChatOptions;
 import io.nop.ai.core.api.messages.AiChatExchange;
 import io.nop.autotest.junit.JunitBaseTestCase;
+import io.nop.commons.util.FileHelper;
 import io.nop.core.resource.IResource;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.File;
+import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
+import java.util.ArrayList;
+import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -22,7 +29,29 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class TestChatLogHelper extends JunitBaseTestCase {
 
+    private static final Logger LOG = LoggerFactory.getLogger(TestChatLogHelper.class);
+
     private static final String SECRET = "sk-abcdefghijklmnopqrstuvwxyz123";
+
+    private final List<File> tempDirs = new ArrayList<>();
+
+    private File newTempDir() throws IOException {
+        File dir = File.createTempFile("ai-log", "");
+        dir.delete();
+        dir.mkdirs();
+        tempDirs.add(dir);
+        return dir;
+    }
+
+    @AfterEach
+    void cleanupTempDirs() {
+        for (File dir : tempDirs) {
+            if (dir.exists() && !FileHelper.deleteAll(dir)) {
+                LOG.warn("nop.test.fail-delete-temp-dir:dir={}", dir);
+            }
+        }
+        tempDirs.clear();
+    }
 
     @Test
     public void testSessionResourcePathForChatRequest() {
@@ -78,10 +107,7 @@ public class TestChatLogHelper extends JunitBaseTestCase {
 
     @Test
     public void testDefaultChatLoggerRedactsCredentials() throws Exception {
-        File logDir = File.createTempFile("ai-log", "");
-        logDir.delete();
-        logDir.mkdirs();
-        logDir.deleteOnExit();
+        File logDir = newTempDir();
 
         DefaultChatLogger logger = new DefaultChatLogger();
         logger.setLogDir(logDir.getPath());
@@ -103,10 +129,7 @@ public class TestChatLogHelper extends JunitBaseTestCase {
 
     @Test
     public void testDefaultChatLoggerRedactsResponse() throws Exception {
-        File logDir = File.createTempFile("ai-log", "");
-        logDir.delete();
-        logDir.mkdirs();
-        logDir.deleteOnExit();
+        File logDir = newTempDir();
 
         DefaultChatLogger logger = new DefaultChatLogger();
         logger.setLogDir(logDir.getPath());

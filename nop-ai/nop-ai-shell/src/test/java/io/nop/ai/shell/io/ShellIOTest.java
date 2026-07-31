@@ -3,11 +3,16 @@ package io.nop.ai.shell.io;
 import io.nop.ai.toolkit.fs.IToolFileSystem;
 import io.nop.ai.toolkit.fs.LocalToolFileSystem;
 import io.nop.api.core.exceptions.NopException;
+import io.nop.commons.util.FileHelper;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
@@ -15,6 +20,139 @@ import static org.junit.jupiter.api.Assertions.*;
 
 @Timeout(5)
 class ShellIOTest {
+
+    private static final Logger LOG = LoggerFactory.getLogger(ShellIOTest.class);
+
+    private final List<Path> tempDirs = new ArrayList<>();
+
+    private Path newTempDir() throws Exception {
+        Path dir = Files.createTempDirectory("shell-io-test");
+        tempDirs.add(dir);
+        return dir;
+    }
+
+    @AfterEach
+    void cleanupTempDirs() {
+        for (Path dir : tempDirs) {
+            if (Files.exists(dir) && !FileHelper.deleteAll(dir.toFile())) {
+                LOG.warn("nop.test.fail-delete-temp-dir:dir={}", dir);
+            }
+        }
+        tempDirs.clear();
+    }
+
+    /**
+     * A plain IShellInput implementation that does NOT extend AbstractShellInput,
+     * used to verify the interface's stateless default convenience methods.
+     */
+    private static class FakeShellInput implements IShellInput {
+        private final java.util.ArrayDeque<ShellChunk> queue = new java.util.ArrayDeque<>();
+        private boolean closed;
+
+        FakeShellInput(ShellChunk... chunks) {
+            for (ShellChunk chunk : chunks) {
+                queue.addLast(chunk);
+            }
+        }
+
+        @Override
+        public ShellChunk read() {
+            return queue.pollFirst();
+        }
+
+        @Override
+        public void pushBack(ShellChunk chunk) {
+            if (chunk != null) {
+                queue.addFirst(chunk);
+            }
+        }
+
+        @Override
+        public void close() {
+            closed = true;
+        }
+
+        @Override
+        public boolean isClosed() {
+            return closed;
+        }
+    }
+
+    @Test
+    void testInterfaceDefaultReadAllText() {
+        IShellInput input = new FakeShellInput(
+                ShellChunk.text("hello "),
+                ShellChunk.text("world"),
+                ShellChunk.eof()
+        );
+
+        assertEquals("hello world", input.readAllText());
+    }
+
+    @Test
+    void testInterfaceDefaultReadAllTextSkipsBinaryWithWarn() {
+        IShellInput input = new FakeShellInput(
+                ShellChunk.text("text-before"),
+                ShellChunk.binary(new byte[]{1, 2, 3}),
+                ShellChunk.text("text-after"),
+                ShellChunk.eof()
+        );
+
+        assertEquals("text-beforetext-after", input.readAllText());
+    }
+
+    @Test
+    void testInterfaceDefaultReadLine() {
+        IShellInput input = new FakeShellInput(
+                ShellChunk.text("hello\n"),
+                ShellChunk.text("world"),
+                ShellChunk.eof()
+        );
+
+        assertEquals("hello", input.readLine());
+        assertEquals("world", input.readLine());
+        assertNull(input.readLine());
+    }
+
+    @Test
+    void testInterfaceDefaultReadLinePreservesRemainderAfterNewline() {
+        IShellInput input = new FakeShellInput(ShellChunk.text("line1\nline2\n"));
+
+        assertEquals("line1", input.readLine());
+        assertEquals("line2", input.readLine());
+        assertNull(input.readLine());
+    }
+
+    @Test
+    void testInterfaceDefaultLines() {
+        IShellInput input = new FakeShellInput(
+                ShellChunk.text("a\nb\n"),
+                ShellChunk.eof()
+        );
+
+        var lines = input.lines();
+        assertTrue(lines.hasNext());
+        assertEquals("a", lines.next());
+        assertTrue(lines.hasNext());
+        assertEquals("b", lines.next());
+        assertFalse(lines.hasNext());
+    }
+
+    @Test
+    void testInterfaceDefaultChunks() {
+        IShellInput input = new FakeShellInput(
+                ShellChunk.text("chunk1"),
+                ShellChunk.text("chunk2"),
+                ShellChunk.eof()
+        );
+
+        var chunks = input.chunks();
+        assertTrue(chunks.hasNext());
+        assertEquals("chunk1", chunks.next().asText());
+        assertTrue(chunks.hasNext());
+        assertEquals("chunk2", chunks.next().asText());
+        assertFalse(chunks.hasNext());
+    }
 
     @Test
     void testShellChunkText() {
@@ -243,8 +381,7 @@ class ShellIOTest {
 
     @Test
     void testFileShellOutputOverwriteMode() throws Exception {
-        Path tempDir = Files.createTempDirectory("shell-io-test");
-        tempDir.toFile().deleteOnExit();
+        Path tempDir = newTempDir();
         IToolFileSystem fs = new LocalToolFileSystem(tempDir.toFile());
         String relPath = "test.txt";
 
@@ -263,8 +400,7 @@ class ShellIOTest {
 
     @Test
     void testFileShellOutputAppendMode() throws Exception {
-        Path tempDir = Files.createTempDirectory("shell-io-test");
-        tempDir.toFile().deleteOnExit();
+        Path tempDir = newTempDir();
         IToolFileSystem fs = new LocalToolFileSystem(tempDir.toFile());
         String relPath = "test.txt";
 

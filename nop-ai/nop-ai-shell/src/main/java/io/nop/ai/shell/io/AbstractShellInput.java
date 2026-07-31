@@ -1,14 +1,26 @@
 package io.nop.ai.shell.io;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.util.Iterator;
 import java.util.NoSuchElementException;
 
+/**
+ * Buffered {@link IShellInput} base class. Keeps an internal buffer so that text split across
+ * chunks is assembled correctly, and overrides the interface's stateless default convenience
+ * methods ({@link #readLine()}, {@link #readAllText()}, {@link #lines()}) with exact
+ * cross-call semantics. All built-in shell input implementations extend this class.
+ */
 public abstract class AbstractShellInput implements IShellInput {
+
+    private static final Logger LOG = LoggerFactory.getLogger(AbstractShellInput.class);
 
     private final StringBuilder buffer = new StringBuilder();
     private volatile boolean eofSeen = false;
     private volatile boolean closed = false;
 
+    @Override
     public String readLine() {
         if (eofSeen) return null;
 
@@ -43,10 +55,13 @@ public abstract class AbstractShellInput implements IShellInput {
 
             if (chunk.isText()) {
                 buffer.append(chunk.asText());
+            } else {
+                LOG.warn("skip non-text chunk while reading a line: type={}", chunk.isBinary() ? "binary" : "other");
             }
         }
     }
 
+    @Override
     public String readAllText() {
         StringBuilder sb = new StringBuilder();
         while (true) {
@@ -54,11 +69,14 @@ public abstract class AbstractShellInput implements IShellInput {
             if (chunk == null || chunk.isEof()) break;
             if (chunk.isText()) {
                 sb.append(chunk.asText());
+            } else {
+                LOG.warn("skip non-text chunk while reading text: type={}", chunk.isBinary() ? "binary" : "other");
             }
         }
         return sb.toString();
     }
 
+    @Override
     public Iterator<String> lines() {
         return new Iterator<String>() {
             private String nextLine = null;
@@ -81,6 +99,7 @@ public abstract class AbstractShellInput implements IShellInput {
         };
     }
 
+    @Override
     public Iterator<ShellChunk> chunks() {
         return new Iterator<ShellChunk>() {
             private ShellChunk nextChunk = null;
@@ -106,6 +125,13 @@ public abstract class AbstractShellInput implements IShellInput {
                 return chunk;
             }
         };
+    }
+
+    @Override
+    public void pushBack(ShellChunk chunk) {
+        if (chunk != null && chunk.isText()) {
+            buffer.insert(0, chunk.asText());
+        }
     }
 
     @Override

@@ -18,9 +18,13 @@ import io.nop.ai.shell.model.SimpleCommand;
 import io.nop.ai.toolkit.fs.IToolFileSystem;
 import io.nop.ai.toolkit.fs.LocalToolFileSystem;
 import io.nop.api.core.util.ICancelToken;
+import io.nop.commons.util.FileHelper;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -36,11 +40,14 @@ import static org.junit.jupiter.api.Assertions.*;
 @Timeout(10)
 class ShellCommandExecutorTest {
 
+    private static final Logger LOG = LoggerFactory.getLogger(ShellCommandExecutorTest.class);
+
     private ShellCommandExecutor executor;
     private ShellCommandRegistry registry;
     private ICancelToken cancelToken;
     private IToolFileSystem fileSystem;
     private String workDir;
+    private Path tempDir;
 
     @BeforeEach
     void setUp() throws IOException {
@@ -48,8 +55,7 @@ class ShellCommandExecutorTest {
         registry.registerCommand(new EchoCommand());
         registry.registerCommand(new LsCommand());
 
-        Path tempDir = Files.createTempDirectory("shell-test");
-        tempDir.toFile().deleteOnExit();
+        tempDir = Files.createTempDirectory("shell-test");
         fileSystem = new LocalToolFileSystem(tempDir.toFile());
         workDir = tempDir.toAbsolutePath().toString();
 
@@ -82,6 +88,13 @@ class ShellCommandExecutorTest {
             public void removeOnCancel(java.util.function.Consumer<String> task) {
             }
         };
+    }
+
+    @AfterEach
+    void tearDown() {
+        if (tempDir != null && Files.exists(tempDir) && !FileHelper.deleteAll(tempDir.toFile())) {
+            LOG.warn("nop.test.fail-delete-temp-dir:dir={}", tempDir);
+        }
     }
 
     private IShellCommandExecutionContext createContext(IShellInput stdin, IShellOutput stdout, IShellOutput stderr) {
