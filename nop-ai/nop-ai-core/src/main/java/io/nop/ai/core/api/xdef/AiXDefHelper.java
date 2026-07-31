@@ -1,4 +1,4 @@
-package io.nop.ai.core.xdef;
+package io.nop.ai.core.api.xdef;
 
 import io.nop.api.core.beans.DictBean;
 import io.nop.api.core.util.SourceLocation;
@@ -21,6 +21,12 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
+/**
+ * Utilities for converting XDef schema models into AI-friendly JSON / XNode forms
+ * (used by prompt output models, the MCP file tool and the coder's xdef document
+ * converter). Part of the public contract of nop-ai-core ({@code io.nop.ai.core.api}
+ * package), safe for cross-module usage.
+ */
 public class AiXDefHelper {
     public static Map<String, Object> loadXDefForAiAsJson(String path) {
         XNode node = loadXDefForAi(path, true);

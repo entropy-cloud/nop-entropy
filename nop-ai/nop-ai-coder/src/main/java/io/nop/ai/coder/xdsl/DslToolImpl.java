@@ -12,6 +12,14 @@ import io.nop.core.resource.VirtualFileSystem;
 
 import java.io.File;
 
+/**
+ * DSL schema tool backed by the legacy {@link IFileOperator}.
+ * <p>
+ * <b>P2-MA3-05 ruling — retained with documentation (no migration this batch):</b>
+ * migration target is {@code io.nop.ai.toolkit.fs.IToolFileSystem}; a faithful
+ * migration requires first reconciling the two file-system abstractions
+ * (P2-MA1-012, later batch). Retained intentionally, do not "fix" by inlining.
+ */
 public class DslToolImpl implements IDslTool {
     private final IFileOperator fileOperator;
 

@@ -1,6 +1,6 @@
 package io.nop.ai.coder.convert;
 
-import io.nop.ai.core.xdef.AiXDefHelper;
+import io.nop.ai.core.api.xdef.AiXDefHelper;
 import io.nop.commons.cache.MapCache;
 import io.nop.converter.DocumentConvertOptions;
 import io.nop.converter.IDocumentObject;

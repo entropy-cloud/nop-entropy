@@ -1,6 +1,6 @@
 package io.nop.ai.core.prompt.node;
 
-import io.nop.ai.core.xdef.AiXDefHelper;
+import io.nop.ai.core.api.xdef.AiXDefHelper;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.api.core.util.SourceLocation;
 import io.nop.commons.util.StringHelper;

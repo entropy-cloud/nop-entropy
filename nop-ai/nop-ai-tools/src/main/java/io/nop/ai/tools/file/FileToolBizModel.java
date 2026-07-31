@@ -24,7 +24,13 @@ import java.util.stream.Collectors;
 /**
  * File tool operations. Uses {@link io.nop.ai.core.file.IFileOperator} (deprecated).
  * Migration target: {@link io.nop.ai.toolkit.fs.IToolFileSystem} from nop-ai-toolkit.
- * Full migration deferred — IToolFileSystem API differs from IFileOperator.
+ * <p>
+ * <b>P2-MA3-05 ruling — retained with documentation (no migration this batch):</b>
+ * IToolFileSystem's method surface differs materially from IFileOperator
+ * (grep/globGrep/GrepResult, FileContent offset/limit semantics,
+ * findFilesByAntPath/findFilesByFilter have no counterpart); a faithful migration
+ * requires first reconciling the two file-system abstractions, which is tracked as
+ * P2-MA1-012 (duplicate abstraction) in a later batch.
  */
 @BizModel("FileTool")
 @SuppressWarnings("deprecation")

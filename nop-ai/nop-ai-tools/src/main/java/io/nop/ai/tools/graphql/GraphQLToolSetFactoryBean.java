@@ -10,6 +10,16 @@ import jakarta.inject.Inject;
 
 import java.util.Set;
 
+/**
+ * IoC factory bean producing the {@code nopGraphQLToolSet} bean
+ * ({@code IAiChatToolSet} over GraphQL operations).
+ * <p>
+ * <b>P2-MA3-03 ruling — retained with documentation (no migration this batch):</b>
+ * see {@link GraphQLToolProvider}; the bean output type is pinned to the legacy
+ * {@code IAiChatToolSet} because task XML ({@code ai:toolSet}) and
+ * {@code AiCommand} consume exactly that contract. Migrates together with the
+ * legacy chat pipeline in a future major version.
+ */
 public class GraphQLToolSetFactoryBean {
     private IGraphQLEngine graphQLEngine;
     private Set<String> toolNames;

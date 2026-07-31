@@ -1,7 +1,7 @@
 package io.nop.ai.core.model;
 
 import io.nop.ai.core.model._gen._PromptOutputModel;
-import io.nop.ai.core.xdef.AiXDefHelper;
+import io.nop.ai.core.api.xdef.AiXDefHelper;
 import io.nop.api.core.util.INeedInit;
 import io.nop.core.resource.component.ResourceComponentManager;
 import io.nop.markdown.MarkdownConstants;

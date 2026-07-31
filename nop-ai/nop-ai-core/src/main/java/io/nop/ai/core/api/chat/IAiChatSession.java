@@ -13,9 +13,15 @@ import java.util.Collection;
 import java.util.List;
 
 /**
- * AI chat session interface. Part of the legacy {@code IAiChat*} naming convention.
- * @deprecated This internal AI core interface is deprecated and will be removed in future versions.
- * Please use the new AI API instead.
+ * Legacy chat session interface of the {@code IAiChat*} pipeline.
+ * <p>
+ * <b>Deprecation semantics (P2-MA3-04 ruling):</b> still the active session
+ * contract of the legacy chat path in nop-ai-core (base for
+ * {@code AbstractAiChatSession} and all session implementations). Retained
+ * {@code @Deprecated(forRemoval = true)} because the new AI API
+ * ({@code IChatService} / {@code nopChatService} in nop-ai-api) supersedes it;
+ * full migration is future major-version work. Do not remove while legacy
+ * callers remain.
  */
 @Deprecated(forRemoval = true)
 public interface IAiChatSession extends AutoCloseable {

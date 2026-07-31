@@ -20,9 +20,19 @@ import java.util.Set;
 import java.util.function.Consumer;
 
 /**
- * AI chat options. Part of the legacy {@code AiChat*} naming convention.
- * @deprecated This internal AI core class is deprecated and will be removed in future versions.
- * Please use the new AI API instead.
+ * Legacy chat options of the {@code AiChat*} pipeline (used by
+ * {@code IAiChatService}/{@code AiCommand}).
+ * <p>
+ * <b>P2-MA3-06 ruling — historical residue documented, no merge this batch:</b>
+ * the new AI API keeps its own options type {@code io.nop.ai.api.chat.ChatOptions};
+ * the two classes overlap on a common field subset but each carries
+ * pipeline-specific fields (this class: {@code seed}/{@code contextLength}/
+ * {@code workMode}/{@code botId}/{@code conversationId}/{@code userId}/
+ * {@code streamListener}/{@code enabledTools} etc.; the new class:
+ * {@code tools}/{@code toolChoice}/{@code responseFormat}). Consolidation into a
+ * single options type is part of the legacy-pipeline migration (future major
+ * version). Retained {@code @Deprecated(forRemoval = true)} — do not remove while
+ * legacy callers remain; new code must use {@code ChatOptions}.
  */
 @DataBean
 @Deprecated(forRemoval = true)

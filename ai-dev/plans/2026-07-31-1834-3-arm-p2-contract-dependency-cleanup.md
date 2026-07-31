@@ -71,49 +71,53 @@
 
 ### Phase 1 — 依赖清理（P2-MA3-001 + P2-MA1-021/022）
 
-Status: planned
+Status: completed
 Targets: `nop-ai/nop-ai-core/pom.xml`、`nop-ai/nop-ai-coder/pom.xml`、`nop-ai/nop-ai-maven/pom.xml`、`nop-ai/nop-ai-codegen/pom.xml`
 
 - Item Types: `Fix | Decision | Proof`
 
-- [ ] （Proof）复核 `nop-ai-core` 零 `io.nop.dao` import（grep 确认后）→ 移除 `nop-dao` 依赖。
-- [ ] （Fix）**连带修复**：`nop-ai-coder/.../AiOrmModelNormalizer.java:7` 使用 `io.nop.dao.dialect.SQLDataType`——给 `nop-ai-coder/pom.xml` 补 `nop-dao` 直接依赖（或评估移除该 import 改用替代类型），保证移除 nop-ai-core 的传递依赖后编译不破。
-- [ ] （Decision）**预先裁定 nop-ai-maven 的 `nop-api-core`/`nop-core` 依赖去留**：Phase 4 需要 `NopException`（nop-api-core 提供）。两选项：(a) 保留 `nop-api-core`（注释说明供 Phase 4 异常类型使用，`nop-core` 仍移除）；(b) 全部移除，Phase 4 改用模块级异常类（extends RuntimeException，记录与 audit 建议的偏离）。裁定落盘后 Phase 4 按裁定执行。
-- [ ] （Proof）`nop-ai-codegen` pom 重型依赖逐项确认：**注意 postcompile 运行时需求**——`postcompile/gen-orm.xgen` 渲染 `nop-ai.orm.xml` 需 ORM 模板运行时；正确修法是 `nop-orm` → `nop-orm-model` 替换（OrmModelLoader + `orm.register-model.xml` 在 nop-orm-model，已实测）而非直接删除。**另注意传递链**：`nop-codegen`（`XCodeGenerator` 所在）当前经 `nop-graphql-core` 传递提供（nop-graphql-core/pom.xml:47），清理重型依赖后需**显式补 `nop-codegen` 直接依赖**。**退出判据不能只看"无 NoClassDefFoundError"**——`XCodeGenerator.renderModel` 在模型 loader 缺失时只 LOG.warn 并继续（`CODE_GEN_MODEL` 为 null），会静默空生成；必须以可观察产物验证：postcompile 重跑后 `nop-ai-dao/.../_app.orm.xml` 与 `_gen/*.java` 存在且非空（或 `git diff` 无意外变更）。
-- [ ] 全量 build + test 验证（**验证命令必须含 nop-ai-coder 与 nop-ai-codegen**，因为它们是连带面）。
+- [x] （Proof）复核 `nop-ai-core` 零 `io.nop.dao` import（grep 确认后）→ 移除 `nop-dao` 依赖。
+- [x] （Fix）**连带修复**：`nop-ai-coder/.../AiOrmModelNormalizer.java:7` 使用 `io.nop.dao.dialect.SQLDataType`——给 `nop-ai-coder/pom.xml` 补 `nop-dao` 直接依赖（或评估移除该 import 改用替代类型），保证移除 nop-ai-core 的传递依赖后编译不破。
+- [x] （Decision）**预先裁定 nop-ai-maven 的 `nop-api-core`/`nop-core` 依赖去留**：Phase 4 需要 `NopException`（nop-api-core 提供）。**裁定 = 选项 (a)：保留 `nop-api-core`**（pom 注释说明供 Phase 4 异常类型使用；与 MA3.4 audit 建议一致，nop-ai-api 太重且非必要），**移除 `nop-core`**（零 import）；同时移除 `maven-resolver-api`/`maven-resolver-util`（零 import，audit P2-MA1-021 一并覆盖）。Phase 4 按此裁定用 NopException。
+- [x] （Proof）`nop-ai-codegen` pom 重型依赖逐项确认：**实测修正 plan 假设**——`nop-orm-model` 替换方案被 live build 否定：`/nop/templates/orm` 模板集（nop-codegen 内）在 postcompile 运行时需要 `io.nop.orm.ddl.DdlSqlCreator`、`io.nop.orm.biz.ICrudBiz`、`io.nop.orm.sql_lib.proxy.SqlLibProxyFactoryBean`，三者均在 `nop-orm`；移除 nop-orm 后 postcompile 抛 `ClassNotFoundException: io.nop.orm.ddl.DdlSqlCreator`（非 warn-and-continue 吞掉，是硬失败）。**最终依赖集**：保留 `nop-orm`（真实运行时依赖，传递提供 nop-orm-model/OrmModelLoader），**显式补 `nop-codegen` 直接依赖**（XCodeGenerator + templates；此前经 nop-graphql-core:47 传递提供），移除 `nop-ooxml-xlsx`/`nop-graphql-core`/`nop-xlang-debugger`（零使用）。
+- [x] 全量 build + test 验证（**验证命令必须含 nop-ai-coder 与 nop-ai-codegen**，因为它们是连带面）。
 
 Exit Criteria:
 
-- [ ] `nop-ai-core/pom.xml` 无 `nop-dao`（grep pom 验证）
-- [ ] `nop-ai-coder` 编译通过（nop-dao 直接依赖已补或 import 已替换）
-- [ ] `nop-ai-maven` 依赖裁定落盘（保留 nop-api-core 或改模块异常，二选一有记录）
-- [ ] `nop-ai-codegen` 清理后 postcompile 实际执行成功且产物可观察（`nop-ai-dao/.../_app.orm.xml` 与 `_gen/*.java` 存在且非空，或 git diff 无意外变更——不依赖"NoClassDefFoundError"这类可能被 warn-and-continue 吞掉的判据）
-- [ ] `./mvnw test -pl nop-ai-core,nop-ai-coder,nop-ai-maven,nop-ai-codegen -am` 绿
-- [ ] `docs-for-ai/01-repo-map/module-groups.md` 依赖矩阵同步（如受影响）
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+> 每个 Phase 完成后，必须逐条勾选本节。所有 `[x]` 后才能将 Phase Status 改为 `completed`。
+
+- [x] `nop-ai-core/pom.xml` 无 `nop-dao`（grep pom 验证）
+- [x] `nop-ai-coder` 编译通过（nop-dao 直接依赖已补或 import 已替换）
+- [x] `nop-ai-maven` 依赖裁定落盘（保留 nop-api-core 或改模块异常，二选一有记录）
+- [x] `nop-ai-codegen` 清理后 postcompile 实际执行成功且产物可观察（`nop-ai-dao/.../_app.orm.xml` 与 `_gen/*.java` 存在且非空，或 git diff 无意外变更——不依赖"NoClassDefFoundError"这类可能被 warn-and-continue 吞掉的判据）
+- [x] `./mvnw test -pl nop-ai-core,nop-ai-coder,nop-ai-maven,nop-ai-codegen -am` 绿
+- [x] `docs-for-ai/01-repo-map/module-groups.md` 依赖矩阵同步（如受影响）— 复核：该文档无 per-module pom 依赖矩阵（仅 nop-ai-agent 的 nop-dao test-scope 说明，不受影响），无需修改
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 ### Phase 2 — 废弃 API 使用面裁定与迁移（P2-MA3-03/04/05/06/08）
 
-Status: planned
+Status: completed
 Targets: `nop-ai/nop-ai-tools/`、`nop-ai/nop-ai-coder/`、`nop-ai/nop-ai-api/src/main/java/io/nop/ai/api/chat/ChatOptions.java`、`nop-ai/nop-ai-core/src/main/java/io/nop/ai/core/api/chat/`
 
 - Item Types: `Fix | Decision | Proof`
 
-- [ ] （Decision）P2-MA3-04：裁定 `IAiChatService`/`IAiChatSession` deprecation 语义——保留 `@Deprecated(forRemoval=true)` 并明确迁移路径（MR4 已裁定 legacy 由废弃路径覆盖），或在 javadoc 记录"core 内部主干，deprecated 标注误导"的修正文案。
-- [ ] （Fix）P2-MA3-03：`GraphQLToolProvider`/`GraphQLToolSetFactoryBean` 迁移到 `nop-ai-api`/`nop-ai-toolkit` 新接口（`IToolDefinition`/`IToolExecutor`/`IToolManager`），或裁定保留 + 记录（需给出理由：如新接口无法表达 GraphQL tool 场景）。
-- [ ] （Decision）P2-MA3-05：裁定 `IFileOperator`/`LocalFileOperator` 归属——提升到 `nop-ai-api` 公开契约，或在 toolkit 定义接口并迁移 2 个使用方。
-- [ ] （Decision）P2-MA3-06：裁定 `ChatOptions` vs `AiChatOptions`——合并方向（api 为准，core 废弃面收敛）或记录字段差异为历史残留。
-- [ ] （Decision）P2-MA3-08：裁定 `AiXdefDocumentConverter` 的 `AiXDefHelper` 依赖——在 core 内公开该工具类（从内部包提升）或 coder 内自实现。
-- [ ] 按裁定落地最小变更 + 测试（迁移路径必须有编译/测试证据）。
+- [x] （Decision）P2-MA3-04：裁定 `IAiChatService`/`IAiChatSession` deprecation 语义——**保留 `@Deprecated(forRemoval=true)`**（MR4 裁定 legacy 由废弃路径覆盖）并修正 javadoc 文案：明确这些接口是 legacy chat 管线（`DefaultAiChatService`/`AbstractAiChatSession`/`AiCommand`/task 引擎 `ai:toolSet`）的活动主干，deprecation 语义 = "将被新 AI API（`IChatService`/`nopChatService`，nop-ai-api）替代，移除属未来 major 版本，勿误删"。4 个接口 javadoc 已改：`IAiChatService`/`IAiChatSession`/`IAiChatFunctionTool`/`IAiChatToolSet`。
+- [x] （Fix）P2-MA3-03：`GraphQLToolProvider`/`GraphQLToolSetFactoryBean` ——**裁定保留 + 记录**：bean `nopGraphQLToolSet` 的消费者契约是 legacy `IAiChatToolSet`（task XML `ai:toolSet="nopGraphQLToolSet"` → `AiCommand.toolSet()`，另有 `TestDeepWikiPrompts` `@Named` 注入）；新接口（`IToolDefinition`/`IToolExecutor`/`IToolManager`）在 agent 引擎路径，对 legacy task 管线无 drop-in 对应——单独迁移会产生 forbidden 的"半迁移"（bean 消费者孤儿化）。理由 + 迁移路径（`callTool` GraphQL RPC 体 1:1 迁移到 `AiToolModel`+`IToolExecutor`）已写入两个类 javadoc。
+- [x] （Decision）P2-MA3-05：裁定 `IFileOperator`/`LocalFileOperator` 归属——**保留 + 记录**：`IFileOperator` 已 `@Deprecated` 且指向 `IToolFileSystem`（toolkit，新 agent/shell/toolkit 执行器路径的事实抽象）；忠实迁移需先收敛两个文件抽象（grep/globGrep/GrepResult、FileContent offset/limit、findFilesByAntPath/Filter 在 IToolFileSystem 无对应面）= P2-MA1-012（已登记后续批次）。`FileToolBizModel`/`DslToolImpl` javadoc 记录裁定 + 禁止内联重写。
+- [x] （Decision）P2-MA3-06：裁定 `ChatOptions` vs `AiChatOptions`——**记录字段差异为历史残留**（legacy 管线迁移属 major 版本，本批不做合并）：两个类 javadoc 互相交叉引用、字段差异清单 + "新代码必须用 `ChatOptions`" 落盘。
+- [x] （Decision）P2-MA3-08：裁定 `AiXdefDocumentConverter` 的 `AiXDefHelper` 依赖——**从 core 内部包提升为公开契约**：`io.nop.ai.core.xdef.AiXDefHelper` → `io.nop.ai.core.api.xdef.AiXDefHelper`（5 处 import 同步：core 2 + mcp-server 1 + coder 2），类 javadoc 声明 public contract。
+- [x] 按裁定落地最小变更 + 测试（迁移路径必须有编译/测试证据）——AiXDefHelper 提升由 `TestAiCoderHelper`（loadXDefForAi 断言）+ `TestDslToolImpl` 覆盖；全量 `-pl nop-ai -am -T 1C` 绿（见下方验证）。
 
 Exit Criteria:
 
-- [ ] 5 个 P2-MA3 契约项逐项有裁定记录（`arm-index.md` 或 owner doc），live 状态与裁定一致
-- [ ] 凡裁定为"迁移"的项：编译通过 + 对应测试绿（**接线验证**：新接口被实际调用）
-- [ ] 凡裁定为"保留 + 记录"的项：javadoc/设计文档说明理由，无"已废弃却无说明"残留
-- [ ] **无静默跳过**：无"迁移了一半"的中间态（要么完成迁移，要么完整记录）
-- [ ] 相关 `docs-for-ai/`（如 nop-ai 模块文档）已同步
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+> 每个 Phase 完成后，必须逐条勾选本节。所有 `[x]` 后才能将 Phase Status 改为 `completed`。
+
+- [x] 5 个 P2-MA3 契约项逐项有裁定记录（`arm-index.md` 或 owner doc），live 状态与裁定一致
+- [x] 凡裁定为"迁移"的项：编译通过 + 对应测试绿（**接线验证**：新接口被实际调用）——本批裁定无"迁移"项；唯一代码变更（AiXDefHelper 提升）有既有测试接线（`TestAiCoderHelper:131` 调用 `loadXDefForAi`）且全量绿
+- [x] 凡裁定为"保留 + 记录"的项：javadoc/设计文档说明理由，无"已废弃却无说明"残留
+- [x] **无静默跳过**：无"迁移了一半"的中间态（要么完成迁移，要么完整记录）
+- [x] 相关 `docs-for-ai/`（如 nop-ai 模块文档）已同步——`docs-for-ai/02-core-guides/api-and-graphql.md`「废弃 AI Chat API」补 deprecation 语义段落
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 ### Phase 3 — IoC 与结构卫生（P2-MA1-006/029 + P2-MA1-008 + P2-MA1-011）
 

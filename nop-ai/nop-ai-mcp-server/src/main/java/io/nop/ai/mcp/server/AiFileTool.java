@@ -3,7 +3,7 @@ package io.nop.ai.mcp.server;
 import io.nop.ai.api.mcp.McpConstants;
 import io.nop.ai.coder.simplifier.JsonSimplifier;
 import io.nop.ai.coder.simplifier.XNodeSimplifier;
-import io.nop.ai.core.xdef.AiXDefHelper;
+import io.nop.ai.core.api.xdef.AiXDefHelper;
 import io.nop.api.core.annotations.biz.BizModel;
 import io.nop.api.core.annotations.biz.BizMutation;
 import io.nop.api.core.annotations.biz.BizQuery;

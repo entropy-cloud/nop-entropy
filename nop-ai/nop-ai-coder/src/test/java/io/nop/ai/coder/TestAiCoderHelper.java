@@ -2,7 +2,7 @@ package io.nop.ai.coder;
 
 import io.nop.ai.coder.utils.AiCoderHelper;
 import io.nop.ai.core.prompt.IPromptTemplateManager;
-import io.nop.ai.core.xdef.AiXDefHelper;
+import io.nop.ai.core.api.xdef.AiXDefHelper;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.autotest.junit.JunitBaseTestCase;
 import io.nop.commons.text.SourceCodeBlock;

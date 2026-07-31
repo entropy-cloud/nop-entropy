@@ -49,8 +49,10 @@
 
 ### 废弃 AI Chat API
 
-`IAiChatService` (nop-ai-core) 及相关类（`IAiChatSession`、`IAiChatFunctionTool`、`AiChatOptions` 等）已标记 `@Deprecated(forRemoval=true)`。
-迁移目标：`IChatService` (nop-ai-api) 及 `nop-ai-toolkit` 中的对应类型。
+`IAiChatService` (nop-ai-core) 及相关类（`IAiChatSession`、`IAiChatFunctionTool`、`IAiChatToolSet`、`AiChatOptions` 等）已标记 `@Deprecated(forRemoval=true)`。
+迁移目标：`IChatService` (nop-ai-api) 及 `nop-ai-toolkit` 中的对应类型（`IToolDefinition`/`IToolExecutor`/`IToolManager`）。
+
+**Deprecation 语义（P2-MA3-04 裁定，2026-07-31）**：这些接口仍是 core 内部 legacy chat 管线（`DefaultAiChatService`/`AbstractAiChatSession`/`AiCommand`、task 引擎 `ai:toolSet`）的活动主干——`@Deprecated(forRemoval=true)` 表示"将被新 AI API 替代"，**不是"可删除"**；全量迁移属未来 major 版本工作，在新代码中使用 `IChatService`/`ChatOptions` 与新 tool 接口。
 
 ### 各 HTTP 入口对比
 

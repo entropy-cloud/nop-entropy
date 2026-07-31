@@ -349,3 +349,18 @@ MR4 Phase 2 对 P1 表全部 `fixed` 行做了 live repo 证据核验（提交/�
 **scan-hollow 基线（本批次执行后）**：`scan-hollow-implementations.mjs --module nop-ai --severity high` 仍为 24 项既有基线（本批次触及文件 0 新增——`SimpleUsageRecorder` 有真实实现未被标记，`NoOpUsageRecorder.record()` 空体为既有 pass-through 设计），增量判定 PASS。
 
 **验证**：`./mvnw compile -pl nop-ai -am` + `./mvnw clean install -DskipTests -pl nop-ai -am -T 1C` BUILD SUCCESS；`./mvnw test -pl nop-ai -am -T 1C` BUILD SUCCESS（5564 tests 0 failures）；checkstyle 触及文件 0 新违规（nop-api-core 存量基线不变）；`check-doc-links.mjs --strict` exit 0（7 条警告为兄弟计划 1834-3 既有 broken link，非本批次引入）。
+
+## P2 修复追踪（契约/依赖清理批次，2026-07-31）
+
+第五批 P2 批量修复（plan `ai-dev/plans/2026-07-31-1834-3-arm-p2-contract-dependency-cleanup.md`）执行中，结构/契约类 P2 finding 逐项 `fixed` 或裁定落盘（Phase 2 已收口）：
+
+| Finding ID | 修复状态 | 修复位置 / 测试 |
+|-----------|---------|----------------|
+| P2-MA3-001 | `fixed` | `nop-ai-core/pom.xml` 移除 `nop-dao`（零 import 复核）；连带 `nop-ai-coder/pom.xml` 补 `nop-dao` 直接依赖（`AiOrmModelNormalizer` 真实使用 `SQLDataType`） |
+| P2-MA1-021 | `fixed`（裁定） | `nop-ai-maven/pom.xml` 移除 `nop-core`/`maven-resolver-api`/`maven-resolver-util`（零 import）；保留 `nop-api-core`（pom 注释：供 Phase 4 `NopException` 使用，裁定选项 (a)） |
+| P2-MA1-022 | `fixed`（实测修正） | `nop-ai-codegen/pom.xml` 移除 `nop-ooxml-xlsx`/`nop-graphql-core`/`nop-xlang-debugger`；显式补 `nop-codegen`；**保留 `nop-orm`**（plan 原拟 nop-orm-model 替换被 live build 否定：`/nop/templates/orm` 模板运行时需 `io.nop.orm.ddl.DdlSqlCreator` 等，移除即 postcompile 硬失败） |
+| P2-MA3-04 | `fixed`（裁定+文档） | 保留 `@Deprecated(forRemoval=true)`，修正 4 个接口 javadoc deprecation 语义（legacy 管线活动主干，勿误删；迁移目标 `IChatService`/`nopChatService`，移除属 future major）；`docs-for-ai/02-core-guides/api-and-graphql.md` 同步 |
+| P2-MA3-03 | `fixed`（裁定保留+记录） | `GraphQLToolProvider`/`GraphQLToolSetFactoryBean` 保留 legacy `IAiChatToolSet` 契约（task XML `ai:toolSet` + `AiCommand` 消费者；新接口在 agent 引擎路径无 drop-in 对应，单独迁移=半迁移）；理由+迁移路径入 javadoc |
+| P2-MA3-05 | `fixed`（裁定保留+记录） | `FileToolBizModel`/`DslToolImpl` 保留 `IFileOperator`（已 @Deprecated 指向 `IToolFileSystem`；抽象收敛 = P2-MA1-012 后续批次）；裁定入 javadoc |
+| P2-MA3-06 | `fixed`（裁定记录） | `ChatOptions` vs `AiChatOptions` 字段差异记录为历史残留（legacy 管线合并属 future major）；两 class javadoc 交叉引用 + 新代码必须用 `ChatOptions` |
+| P2-MA3-08 | `fixed` | `AiXDefHelper` 从 `io.nop.ai.core.xdef` 提升到 `io.nop.ai.core.api.xdef`（公开契约，5 处 import 同步；`TestAiCoderHelper`/`TestDslToolImpl` 接线验证） |

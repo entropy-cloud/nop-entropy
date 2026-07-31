@@ -21,6 +21,23 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
+/**
+ * Builds callable tools for GraphQL operations, exposed as a legacy
+ * {@code IAiChatToolSet} ({@code nopGraphQLToolSet} bean).
+ * <p>
+ * <b>P2-MA3-03 ruling — retained with documentation (no migration this batch):</b>
+ * this class deliberately produces the deprecated {@code IAiChatToolSet} contract
+ * because that is the consumer contract of the legacy chat pipeline: task XML
+ * ({@code ai:toolSet="nopGraphQLToolSet"}) resolves the bean through
+ * {@code AiCommand.toolSet()}. The new tool contracts ({@code IToolDefinition} /
+ * {@code IToolExecutor} / {@code IToolManager}) live in a different engine path
+ * (agent engine over VFS tool definitions) and have no drop-in counterpart for this
+ * wiring; migrating the provider alone would orphan the bean consumers (task XML,
+ * TestDeepWikiPrompts) and produce a half-migration. When the legacy API surface is
+ * removed (future major version), the GraphQL tool capability maps to
+ * {@code AiToolModel} + {@code IToolExecutor}; the {@link #callTool} body (GraphQL
+ * RPC invocation) carries over 1:1.
+ */
 public class GraphQLToolProvider {
     private final Map<String, IAiChatFunctionTool> cache = new ConcurrentHashMap<>();
 
