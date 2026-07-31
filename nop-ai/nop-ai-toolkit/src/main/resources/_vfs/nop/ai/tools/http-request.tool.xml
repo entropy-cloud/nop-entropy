@@ -92,7 +92,7 @@
       "userId": 1
     }]]></body>
                     <auth type="bearer">
-                        <token>eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...</token>
+                        <token>YOUR_BEARER_TOKEN_HERE</token>
                     </auth>
                 </http-request>
             </call-tools>
