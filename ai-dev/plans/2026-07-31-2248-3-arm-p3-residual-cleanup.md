@@ -1,6 +1,6 @@
 # 2026-07-31-2248-3 P3 残余清理批次（测试隔离 + shell IO + dsl-orm 命名）
 
-> Plan Status: active
+> Plan Status: completed
 > Last Reviewed: 2026-07-31
 > Source: `ai-dev/backlog/audit-remediation-roadmap.md` §P2/P3 Deferred Successors；`ai-dev/plans/2026-07-31-1834-1-arm-p2-security-hardening.md` / `1834-2` / `1834-3` Non-Blocking Follow-ups
 > Related: `2026-07-31-1834-1-arm-p2-security-hardening.md`、`2026-07-31-1834-2-arm-p2-reliability-observability.md`、`2026-07-31-1834-3-arm-p2-contract-dependency-cleanup.md`
@@ -56,109 +56,109 @@
 
 ### Phase 1 - 测试隔离：temp dir 清理（MA5.6-AR-4/AR-7）
 
-Status: planned
+Status: completed
 Targets: `nop-ai/nop-ai-core/src/test/java/io/nop/ai/core/service/TestChatLogHelper.java`、`TestMockAiChatService.java`、`nop-ai/nop-ai-shell/src/test/java/io/nop/ai/shell/io/ShellIOTest.java`、`.../executor/ShellConcurrencyEdgeCaseTest.java`、`ShellCommandExecutorTest.java`、`.../commands/impl/CdCommandTest.java`
 
 - Item Types: `Fix | Proof`
 
-- [ ] 核验 6 个测试类中 `deleteOnExit` 的具体用法（`Files.createTempDirectory` + `toFile().deleteOnExit()` 或等效），确认清理目标与测试生命周期
-- [ ] 为每个测试类添加 `@AfterEach` 显式递归删除临时目录（使用 `io.nop.commons.util.FileHelper` 或 `Files.walk` 逆序删除；删除失败记录 WARN 不掩盖测试结果）
-- [ ] 移除 `deleteOnExit` 调用（或保留为兜底但以显式清理为主——裁定：显式清理为准，deleteOnExit 移除避免双路径）
-- [ ] 核验测试在临时目录删除后无遗留断言依赖（无测试读取已删除目录）
+- [x] 核验 6 个测试类中 `deleteOnExit` 的具体用法（`Files.createTempDirectory` + `toFile().deleteOnExit()` 或等效），确认清理目标与测试生命周期
+- [x] 为每个测试类添加 `@AfterEach` 显式递归删除临时目录（使用 `io.nop.commons.util.FileHelper` 或 `Files.walk` 逆序删除；删除失败记录 WARN 不掩盖测试结果）
+- [x] 移除 `deleteOnExit` 调用（或保留为兜底但以显式清理为主——裁定：显式清理为准，deleteOnExit 移除避免双路径）
+- [x] 核验测试在临时目录删除后无遗留断言依赖（无测试读取已删除目录）
 
 Exit Criteria:
 
 > 每个 Phase 完成后，必须逐条勾选本节。所有 `[x]` 后才能将 Phase Status 改为 `completed`。
 
-- [ ] grep 确认 6 个目标测试类 `deleteOnExit` 0 残留（或核验记录说明保留理由）
-- [ ] 6 个测试类均含显式 `@AfterEach` 清理方法
-- [ ] `./mvnw test -pl nop-ai/nop-ai-core,nop-ai/nop-ai-shell` 相关测试类全绿（0 failures）
-- [ ] 测试后临时目录不残留（抽查：单测运行后 `<java.io.tmpdir>` 下无新增本计划创建的目录，或核验记录）
-- [ ] No owner-doc update required（测试内部改造）
-- [ ] `ai-dev/logs/2026/07-31.md` 对应条目已更新
+- [x] grep 确认 6 个目标测试类 `deleteOnExit` 0 残留（或核验记录说明保留理由）
+- [x] 6 个测试类均含显式 `@AfterEach` 清理方法
+- [x] `./mvnw test -pl nop-ai/nop-ai-core,nop-ai/nop-ai-shell` 相关测试类全绿（0 failures）
+- [x] 测试后临时目录不残留（抽查：单测运行后 `<java.io.tmpdir>` 下无新增本计划创建的目录，或核验记录）
+- [x] No owner-doc update required（测试内部改造）
+- [x] `ai-dev/logs/2026/07-31.md` 对应条目已更新
 
 ### Phase 2 - PassThroughModelRouter 单例解除（MA5.6-AR-5）
 
-Status: planned
+Status: completed
 Targets: `nop-ai/nop-ai-agent/src/main/java/io/nop/ai/agent/router/PassThroughModelRouter.java`、`TestPassThroughModelRouter.java`
 
 - Item Types: `Fix | Proof`
 
-- [ ] 裁定：`passThrough()` 改为每次返回新实例（无状态类，代价最低；main 代码调用点 5 处——DefaultAgentEngine×3、ReActAgentExecutor×2——均为 static factory 调用，签名不变**零改动**；`PassThroughPermissionMatrix:22`/`PassThroughPostDenialGuard:30` 的 `passThrough()` 是各自类的工厂定义，不调用 PassThroughModelRouter，不涉及），或保留单例 + 类 javadoc 防御性说明 + 测试去掉身份断言。默认倾向：改为新实例（彻底解除耦合）
-- [ ] 按裁定执行：更新 `PassThroughModelRouter`（如选新实例，仅改方法体返回 `new PassThroughModelRouter()`）；**main 代码 5 处调用点无需修改**（核验确认，不产生无谓 diff）
-- [ ] 同步测试断言：`TestPassThroughModelRouter.java:94-98` 与 `:102` 的 `assertSame(a, b)` 单例断言 → `assertNotSame` 或删除；**注意**：`TestPassThroughPostDenialGuard:58`、`TestPassThroughPermissionMatrix:58` 的 `assertSame` 断言的是另外两个类（PassThroughPostDenialGuard/PassThroughPermissionMatrix）的单例，**不在本 finding scope 内，不改**
-- [ ] 核验无测试/代码依赖 PassThroughModelRouter 单例身份（grep `assertSame` + `PassThroughModelRouter` 限定 scope）
+- [x] 裁定：`passThrough()` 改为每次返回新实例（无状态类，代价最低；main 代码调用点 5 处——DefaultAgentEngine×3、ReActAgentExecutor×2——均为 static factory 调用，签名不变**零改动**；`PassThroughPermissionMatrix:22`/`PassThroughPostDenialGuard:30` 的 `passThrough()` 是各自类的工厂定义，不调用 PassThroughModelRouter，不涉及），或保留单例 + 类 javadoc 防御性说明 + 测试去掉身份断言。默认倾向：改为新实例（彻底解除耦合）
+- [x] 按裁定执行：更新 `PassThroughModelRouter`（如选新实例，仅改方法体返回 `new PassThroughModelRouter()`）；**main 代码 5 处调用点无需修改**（核验确认，不产生无谓 diff）
+- [x] 同步测试断言：`TestPassThroughModelRouter.java:94-98` 与 `:102` 的 `assertSame(a, b)` 单例断言 → `assertNotSame` 或删除；**注意**：`TestPassThroughPostDenialGuard:58`、`TestPassThroughPermissionMatrix:58` 的 `assertSame` 断言的是另外两个类（PassThroughPostDenialGuard/PassThroughPermissionMatrix）的单例，**不在本 finding scope 内，不改**
+- [x] 核验无测试/代码依赖 PassThroughModelRouter 单例身份（grep `assertSame` + `PassThroughModelRouter` 限定 scope）
 
 Exit Criteria:
 
 > 每个 Phase 完成后，必须逐条勾选本节。所有 `[x]` 后才能将 Phase Status 改为 `completed`。
 
-- [ ] `PassThroughModelRouter.passThrough()` 调用点全部编译通过（main 代码 5 处，零改动）
-- [ ] `TestPassThroughModelRouter` 无 `assertSame(a, b)` 单例断言残留（:94-98 与 :102 已同步）；`TestPassThroughPostDenialGuard:58` / `TestPassThroughPermissionMatrix:58` 保持原样（非本 finding scope）
-- [ ] `./mvnw test -pl nop-ai/nop-ai-agent` 全绿（router 相关测试）
-- [ ] No owner-doc update required（内部实现，无契约变化；如 javadoc 措辞改动则核验 design doc `nop-ai-agent-reliability.md` 无矛盾）
-- [ ] `ai-dev/logs/2026/07-31.md` 对应条目已更新
+- [x] `PassThroughModelRouter.passThrough()` 调用点全部编译通过（main 代码 5 处，零改动）
+- [x] `TestPassThroughModelRouter` 无 `assertSame(a, b)` 单例断言残留（:94-98 与 :102 已同步）；`TestPassThroughPostDenialGuard:58` / `TestPassThroughPermissionMatrix:58` 保持原样（非本 finding scope）
+- [x] `./mvnw test -pl nop-ai/nop-ai-agent` 全绿（router 相关测试）
+- [x] No owner-doc update required（内部实现，无契约变化；如 javadoc 措辞改动则核验 design doc `nop-ai-agent-reliability.md` 无矛盾）
+- [x] `ai-dev/logs/2026/07-31.md` 对应条目已更新
 
 ### Phase 3 - shell IO 契约收敛（MA5.4-P3-1/P3-3）
 
-Status: planned
+Status: completed
 Targets: `nop-ai/nop-ai-shell/src/main/java/io/nop/ai/shell/io/IShellInput.java`、`AbstractShellInput.java`、`ai-dev/design/nop-ai-shell/02-io-and-pipeline.md`
 
 - Item Types: `Decision | Fix`
 
-- [ ] P3-1 裁定：`IShellInput` 增加 `default` 方法 `readLine()/readAllText()/lines()/chunks()`（基于 `read()` 的通用实现，供不继承 `AbstractShellInput` 的自定义实现使用；`AbstractShellInput` 保留其基于实例状态 buffer/eofSeen 的高效覆写——审计建议的"委托 AbstractShellInput 实现"不可行，因为其方法依赖实例私有状态，interface default 无法委托；通用 read()-based 实现与 AbstractShellInput 形成双份逻辑，需 javadoc 说明二者关系），或更新 design doc §3.3 使契约与代码一致（声明 4 方法为 `AbstractShellInput` 便利方法而非接口契约）。默认倾向：接口 default 方法（契约收敛，custom 实现自动获得能力）+ design doc 同步
-- [ ] 按裁定执行：接口 default 方法落地（含 javadoc 说明与 AbstractShellInput 覆写的关系），`AbstractShellInput` 覆写保持现有行为；或 design doc 修订
-- [ ] P3-3：`AbstractShellInput.readAllText()`（:50-59）与 `readLine()`（:44-46）遇非文本块时 `log.warn("...skipping non-text chunk...")`（不静默丢弃），并在 javadoc 明确"text-only 读取，非文本块被跳过并告警"
-- [ ] 更新 design doc §3.3 与代码一致（无论 P3-1 走接口 default 还是 doc 路径）
-- [ ] 补充/更新 `ShellIOTest` 覆盖：接口 default 方法对纯 `IShellInput` 实现（不继承 AbstractShellInput）可用；binary chunk 跳过产生 WARN 日志路径（用 `ShellChunk.binary(byte[])` factory 构造含 BinaryChunk 的输入）；**注意**：`ShellIOTest` 同时是计划 `2026-07-31-2248-2` 的 Phase 1 目标文件（:360 断言 PrintStreamShellOutput UOE 需先由计划 2 转换），本计划按文件名顺序在计划 2 之后执行，改动基于计划 2 后的新状态
+- [x] P3-1 裁定：`IShellInput` 增加 `default` 方法 `readLine()/readAllText()/lines()/chunks()`（基于 `read()` 的通用实现，供不继承 `AbstractShellInput` 的自定义实现使用；`AbstractShellInput` 保留其基于实例状态 buffer/eofSeen 的高效覆写——审计建议的"委托 AbstractShellInput 实现"不可行，因为其方法依赖实例私有状态，interface default 无法委托；通用 read()-based 实现与 AbstractShellInput 形成双份逻辑，需 javadoc 说明二者关系），或更新 design doc §3.3 使契约与代码一致（声明 4 方法为 `AbstractShellInput` 便利方法而非接口契约）。默认倾向：接口 default 方法（契约收敛，custom 实现自动获得能力）+ design doc 同步
+- [x] 按裁定执行：接口 default 方法落地（含 javadoc 说明与 AbstractShellInput 覆写的关系），`AbstractShellInput` 覆写保持现有行为；或 design doc 修订
+- [x] P3-3：`AbstractShellInput.readAllText()`（:50-59）与 `readLine()`（:44-46）遇非文本块时 `log.warn("...skipping non-text chunk...")`（不静默丢弃），并在 javadoc 明确"text-only 读取，非文本块被跳过并告警"
+- [x] 更新 design doc §3.3 与代码一致（无论 P3-1 走接口 default 还是 doc 路径）
+- [x] 补充/更新 `ShellIOTest` 覆盖：接口 default 方法对纯 `IShellInput` 实现（不继承 AbstractShellInput）可用；binary chunk 跳过产生 WARN 日志路径（用 `ShellChunk.binary(byte[])` factory 构造含 BinaryChunk 的输入）；**注意**：`ShellIOTest` 同时是计划 `2026-07-31-2248-2` 的 Phase 1 目标文件（:360 断言 PrintStreamShellOutput UOE 需先由计划 2 转换），本计划按文件名顺序在计划 2 之后执行，改动基于计划 2 后的新状态
 
 Exit Criteria:
 
 > 每个 Phase 完成后，必须逐条勾选本节。所有 `[x]` 后才能将 Phase Status 改为 `completed`。
 
-- [ ] `IShellInput` 与 design doc §3.3 一致（两者之一已收敛，非双轨 drift）
-- [ ] `readAllText()`/`readLine()` 非文本块不再静默丢弃（WARN 日志 + javadoc 明确）
-- [ ] `ShellIOTest` 新增用例通过（default 方法对纯 IShellInput 实现可用 + binary 跳过 WARN 路径）
-- [ ] **端到端验证**（如适用）：shell 命令（如 `cat`/`echo` 经 ShellCommandExecutor）走 IShellInput → readAllText 完整路径测试通过
-- [ ] owner docs 已同步：`ai-dev/design/nop-ai-shell/02-io-and-pipeline.md` §3.3 与代码一致
-- [ ] `ai-dev/logs/2026/07-31.md` 对应条目已更新
+- [x] `IShellInput` 与 design doc §3.3 一致（两者之一已收敛，非双轨 drift）
+- [x] `readAllText()`/`readLine()` 非文本块不再静默丢弃（WARN 日志 + javadoc 明确）
+- [x] `ShellIOTest` 新增用例通过（default 方法对纯 IShellInput 实现可用 + binary 跳过 WARN 路径）
+- [x] **端到端验证**（如适用）：shell 命令（如 `cat`/`echo` 经 ShellCommandExecutor）走 IShellInput → readAllText 完整路径测试通过
+- [x] owner docs 已同步：`ai-dev/design/nop-ai-shell/02-io-and-pipeline.md` §3.3 与代码一致
+- [x] `ai-dev/logs/2026/07-31.md` 对应条目已更新
 
 ### Phase 4 - GptOrm* 命名裁定（P3-MA1-038）
 
-Status: planned
+Status: completed
 Targets: `nop-ai/nop-ai-dsl-orm/src/main/java/io/nop/ai/dsl/orm/GptOrmErrors.java`、`GptOrmConstants.java`、`GptOrmModelParser.java`、`consts/GptOrmSqlType.java`、`arm-index.md`
 
 - Item Types: `Decision | Proof`
 
-- [ ] 裁定（Decision）：类名 `GptOrm*` 重命名（→ `AiDslOrm*`）属公开 API 破坏性变更（nop-ai-dsl-orm 是独立发布模块，GptOrmErrors 错误码常量/类名可能被外部引用）；默认倾向：保留类名，类级 javadoc 记录 gpt 历史命名缘由 + 错误码前缀已统一（P2-MA1-034 已做）。XDef 资源路径 `/nop/schema/gpt/orm.xdef`（被 GptOrmConstants:11 → GptOrmModelParser:35 引用）与类名同源，一并纳入裁定范围（保留或迁移二选一，迁移需同步 xdef 路径 + 常量 + parser 引用 + `_vfs` 资源，破坏面更大）；如裁定重命名则评估破坏面并执行迁移
-- [ ] 按裁定落盘：arm-index 新增 P3-MA1-038 行（当前 arm-index 无该行，为新增落盘；裁定结论 + 证据）；如需要，GptOrmErrors javadoc 补注
+- [x] 裁定（Decision）：类名 `GptOrm*` 重命名（→ `AiDslOrm*`）属公开 API 破坏性变更（nop-ai-dsl-orm 是独立发布模块，GptOrmErrors 错误码常量/类名可能被外部引用）；默认倾向：保留类名，类级 javadoc 记录 gpt 历史命名缘由 + 错误码前缀已统一（P2-MA1-034 已做）。XDef 资源路径 `/nop/schema/gpt/orm.xdef`（被 GptOrmConstants:11 → GptOrmModelParser:35 引用）与类名同源，一并纳入裁定范围（保留或迁移二选一，迁移需同步 xdef 路径 + 常量 + parser 引用 + `_vfs` 资源，破坏面更大）；如裁定重命名则评估破坏面并执行迁移
+- [x] 按裁定落盘：arm-index 新增 P3-MA1-038 行（当前 arm-index 无该行，为新增落盘；裁定结论 + 证据）；如需要，GptOrmErrors javadoc 补注
 
 Exit Criteria:
 
 > 每个 Phase 完成后，必须逐条勾选本节。所有 `[x]` 后才能将 Phase Status 改为 `completed`。
 
-- [ ] 裁定结论写入 arm-index（新增行：保留类名 + 理由，或重命名 + 迁移证据）
-- [ ] 如裁定保留：类 javadoc 含历史命名说明（GptOrmErrors/GptOrmConstants 至少一处），xdef 路径保留并在 javadoc 注明
-- [ ] 如裁定重命名：`./mvnw compile -pl nop-ai/nop-ai-dsl-orm -am` + 相关测试全绿，旧类名/xdef 路径引用 0 残留（含 GptOrmConstants:11 → GptOrmModelParser:35 链）
-- [ ] No owner-doc update required（或 design 文档同步核验记录）
-- [ ] `ai-dev/logs/2026/07-31.md` 对应条目已更新
+- [x] 裁定结论写入 arm-index（新增行：保留类名 + 理由，或重命名 + 迁移证据）
+- [x] 如裁定保留：类 javadoc 含历史命名说明（GptOrmErrors/GptOrmConstants 至少一处），xdef 路径保留并在 javadoc 注明
+- [x] 如裁定重命名：`./mvnw compile -pl nop-ai/nop-ai-dsl-orm -am` + 相关测试全绿，旧类名/xdef 路径引用 0 残留（含 GptOrmConstants:11 → GptOrmModelParser:35 链）
+- [x] No owner-doc update required（或 design 文档同步核验记录）
+- [x] `ai-dev/logs/2026/07-31.md` 对应条目已更新
 
 ## Closure Gates
 
 > **关闭条件**：只有本 section 所有条目以及每个 Phase 的 Exit Criteria 全部勾选为 `[x]` 后，才能将 `Plan Status` 改为 `completed`。关闭流程详见本 guide 的 `When Closing The Plan` 和 `Closure Audit Rule`。
 
-- [ ] MA5.6-AR-4/AR-7 已修复（显式清理 + 无 deleteOnExit 残留 + 测试绿）
-- [ ] MA5.6-AR-5 已修复（单例耦合解除或防御性裁定落地 + PassThroughModelRouter 断言同步，scope 限定 PassThroughModelRouter 不含其他单例类）
-- [ ] MA5.4-P3-1/P3-3 已收敛（接口契约与 doc 一致 + 非文本块不静默丢弃 + 测试）
-- [ ] P3-MA1-038 已裁定落盘（arm-index 可追溯）
-- [ ] 不存在被静默降级到 deferred / follow-up 的 in-scope live defect 或 contract drift
-- [ ] 受影响的 owner docs 已同步到 live baseline，或明确写明 No owner-doc update required
-- [ ] 独立子 agent / 独立审阅者 closure-audit 已完成并记录证据
-- [ ] **Anti-Hollow Check**：closure audit 已验证（a）IShellInput default 方法在 shell 命令路径运行时可达（如有接线），（b）无空方法体/静默跳过/no-op 作为正常实现（readAllText/readLine WARN 为显式行为）
-- [ ] `./mvnw compile -pl nop-ai -am`
-- [ ] `./mvnw test -pl nop-ai -am -T 1C`
-- [ ] `node ai-dev/tools/check-plan-checklist.mjs <本plan文件> --strict` 退出码 0
-- [ ] checkstyle / 代码规范检查通过
+- [x] MA5.6-AR-4/AR-7 已修复（显式清理 + 无 deleteOnExit 残留 + 测试绿）
+- [x] MA5.6-AR-5 已修复（单例耦合解除或防御性裁定落地 + PassThroughModelRouter 断言同步，scope 限定 PassThroughModelRouter 不含其他单例类）
+- [x] MA5.4-P3-1/P3-3 已收敛（接口契约与 doc 一致 + 非文本块不静默丢弃 + 测试）
+- [x] P3-MA1-038 已裁定落盘（arm-index 可追溯）
+- [x] 不存在被静默降级到 deferred / follow-up 的 in-scope live defect 或 contract drift
+- [x] 受影响的 owner docs 已同步到 live baseline，或明确写明 No owner-doc update required
+- [x] 独立子 agent / 独立审阅者 closure-audit 已完成并记录证据
+- [x] **Anti-Hollow Check**：closure audit 已验证（a）IShellInput default 方法在 shell 命令路径运行时可达（如有接线），（b）无空方法体/静默跳过/no-op 作为正常实现（readAllText/readLine WARN 为显式行为）
+- [x] `./mvnw compile -pl nop-ai -am`
+- [x] `./mvnw test -pl nop-ai -am -T 1C`
+- [x] `node ai-dev/tools/check-plan-checklist.mjs <本plan文件> --strict` 退出码 0
+- [x] checkstyle / 代码规范检查通过
 
 ## Deferred But Adjudicated
 
@@ -175,16 +175,25 @@ Exit Criteria:
 
 ## Closure
 
-Status Note: 待执行
-Completed: （待填）
+Status Note: 全部 4 个 Phase 完成（Status: completed 均已设置），Phase Exit Criteria 与 Closure Gates 全勾选。P3 残余治理项全部收口：MA5.6-AR-4/AR-7（6 测试类显式 @AfterEach 清理）、MA5.6-AR-5（PassThroughModelRouter 每次新实例）、MA5.4-P3-1（IShellInput 接口 default 契约 + design doc §3.3 同步）、MA5.4-P3-3（非文本块 WARN 不静默丢弃）、P3-MA1-038（GptOrm* 保留类名裁定落盘 arm-index）。独立 closure audit APPROVE。
+Completed: 2026-07-31
 
 Closure Audit Evidence:
 
-- Reviewer / Agent: （待填）
+- Reviewer / Agent: 独立子 agent（fresh session `ses_046d45943ffeI0HX49rE70srnw`，closure audit 专用）
+- Audit Session: `ses_046d45943ffeI0HX49rE70srnw`
+- Evidence:
+  - Phase 1 (MA5.6-AR-4/AR-7): 6 目标测试类 grep `deleteOnExit` 0 残留（命令记录于日志）；`@AfterEach` 清理方法各 1 处（TestChatLogHelper:46 / TestMockAiChatService:52 / ShellIOTest:34 / ShellConcurrencyEdgeCaseTest:63 / ShellCommandExecutorTest:93 / CdCommandTest:35）；`./mvnw test -pl nop-ai/nop-ai-core,nop-ai/nop-ai-shell` 122+275 例 0 failures
+  - Phase 2 (MA5.6-AR-5): `PassThroughModelRouter.java` 方法体返回 `new PassThroughModelRouter()`；main 调用点 5 处零改动编译通过；`TestPassThroughModelRouter` 两处单例断言 → `assertNotSame`（grep 限定 scope 验证）；`TestPassThroughPostDenialGuard:58`/`TestPassThroughPermissionMatrix:58` 保持原样；`./mvnw test -pl nop-ai/nop-ai-agent` 2867 例 0 failures
+  - Phase 3 (MA5.4-P3-1/P3-3): `IShellInput` default readLine/readAllText/lines/chunks + pushBack hook；`AbstractShellInput` 覆写 + WARN + pushBack 回灌；`ShellCommandExecutor.collectOutput` 单路径调用 `readAllText()`（端到端：echo 命令 → BlockingQueueShellOutput.asInput() → readAllText 由 ShellCommandExecutorTest testSimpleCommandExecution 等 22 例覆盖）；`ShellIOTest` 37 例（+6 新）全绿；design doc §3.3 重写一致
+  - Phase 4 (P3-MA1-038): 裁定保留类名 + `/nop/schema/gpt/orm.xdef`；javadoc 落 GptOrmErrors/GptOrmConstants；arm-index「P3 残余清理批次」段新增 P3-MA1-038 行；`./mvnw compile -pl nop-ai/nop-ai-dsl-orm -am` + test 2 例 PASS
+  - 构建门禁：4 次 `./mvnw test -pl nop-ai -am -T 1C` BUILD SUCCESS（每 Phase 后 1 次，0 failures）；`./mvnw compile -pl nop-ai -am` PASS；`node ai-dev/tools/check-plan-checklist.mjs` 退出码 0（本文件全勾选 + Evidence 已写入）；`node ai-dev/tools/scan-hollow-implementations.mjs --module nop-ai --severity high` 退出码 0；`node ai-dev/tools/check-doc-links.mjs --strict` exit 0
+  - Anti-Hollow 检查：IShellInput default 方法运行时可达（ShellCommandExecutor.collectOutput 实调 + ShellIOTest 纯接口实现用例）；pushBack 无状态 default 为文档化扩展 hook（AbstractShellInput 提供真实实现）；readAllText/readLine 非文本块 WARN 为显式行为非静默跳过；scan-hollow 退出码 0
+  - Deferred 项分类检查：无 in-scope live defect 被降级——GptOrm* 迁移按既有裁定列为 watch-only residual（错误码前缀已统一，javadoc 记录历史命名），MA5.4-P3-2 已由计划 2248-2 承接，AR-1/AR-2/AR-3/AR-6 按 Non-Goals 明确排除
 
 Follow-up:
 
-- （待填）
+- 无剩余 plan-owned work；watch-only residual：GptOrm* 类名/xdef 路径迁移执行（若未来 major 版本愿意承担破坏性变更，见 Deferred But Adjudicated）
 
 ## Optional Sections
 

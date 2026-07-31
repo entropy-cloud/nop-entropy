@@ -119,9 +119,11 @@ public interface IShellInput extends Closeable {
 
     default String readAllText();
 
-    Iterator<ShellChunk> chunks();
+    default Iterator<String> lines();
 
-    Iterator<String> lines();
+    default Iterator<ShellChunk> chunks();
+
+    default void pushBack(ShellChunk chunk);
 
     void close();
 
@@ -130,10 +132,13 @@ public interface IShellInput extends Closeable {
 ```
 
 **设计决策**：
-- 核心方法 `read()` 返回 `ShellChunk`，读到 `EofChunk` 时返回 null
+- 核心方法 `read()` 返回 `ShellChunk`，读到 EOF（`EofChunk`）时返回 null
 - `readLine()` 是便捷方法，内部收集 chunk 直到遇到 `\n` 或 EOF
-- `lines()` 是行模式迭代器，等价于当前实现的逐行读取
+- `lines()` 是行模式迭代器，等价于逐行读取
 - `chunks()` 是 chunk 模式迭代器，直接透传底层 chunk
+- 四个便捷方法以 **interface default** 形式声明：通用实现基于 `read()` 无状态循环，任何不继承 `AbstractShellInput` 的自定义实现自动获得能力；`AbstractShellInput` 以内部 buffer 覆写 `readLine()/readAllText()/lines()`，提供跨调用精确语义（含换行后剩余文本的保留），内置实现全部继承 `AbstractShellInput`
+- 无状态 default `readLine()` 依赖 `pushBack(ShellChunk)` 把 `\n` 之后的剩余文本交回流供下次消费；`pushBack` 也是 default（无状态实现丢弃），支持缓冲的实现应覆写
+- `readLine()/readAllText()` 是 **text-only 读取**：遇非文本块（binary）跳过并记录 WARN 日志，不静默丢弃
 
 ### 3.4 readLine() 的语义
 

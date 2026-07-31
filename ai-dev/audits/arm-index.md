@@ -401,3 +401,15 @@ plan `ai-dev/plans/2026-07-31-2248-2-arm-hollow-baseline-clearance.md`（第七�
 - **测试同步**：受影响断言改错误码/异常类型（TestIAiMemoryStoreDefaultMethods、TestISessionStoreDefaultMethods、TestNoOpHookRegistry、TestModeDispatch、ShellIOTest、TestRestoreSession、TestRestorePendingSessions、TestSessionStoreForkMessageFilter、TestDBSessionStore、TestFileBackedSessionStore、TestMiddlewareChain）；`./mvnw test -pl nop-ai -am -T 1C` BUILD SUCCESS（2867+ tests 0 failures）。
 - **接线验证**：`TestModeDispatch.testPlanModeThrowsNopAiAgentException`（引擎级 resolveExecutor plan-mode 路径）+ `TestRestorePendingSessions.iAgentEngineDefaultRestorePendingSessionsThrowsNopAiAgentException` 证明转换后异常运行时可达；可达性说明入 IAiMemoryStore javadoc。
 - **owner doc**：`docs-for-ai/02-core-guides/error-handling.md` 消息语言规则补记 nop-ai-agent/nop-ai-shell 英文 ErrorCode 例外（转换类错误码沿用英文，其他新增业务错误码仍中文）。
+
+## P3 残余清理批次（2026-07-31）
+
+第八批（plan `ai-dev/plans/2026-07-31-2248-3-arm-p3-residual-cleanup.md`）已执行并收口。各 closed 计划 Non-Blocking Follow-ups 登记的 P3 残余治理项全部 `fixed` 或裁定落盘：
+
+| Finding ID | 修复状态 | 修复位置 / 测试 |
+|-----------|---------|----------------|
+| MA5.6-AR-4 / AR-7 | `fixed` | 6 个测试类 temp dir 由 `deleteOnExit` 改为显式 `@AfterEach` 递归清理（`FileHelper.deleteAll`，失败 WARN 不掩盖测试结果）：`TestChatLogHelper`、`TestMockAiChatService`（nop-ai-core）、`ShellIOTest`、`ShellConcurrencyEdgeCaseTest`、`ShellCommandExecutorTest`、`CdCommandTest`（nop-ai-shell）；grep 6 类 `deleteOnExit` 0 残留；`./mvnw test -pl nop-ai/nop-ai-core,nop-ai/nop-ai-shell` 全绿 |
+| MA5.6-AR-5 | `fixed` | `PassThroughModelRouter.passThrough()` 单例 → 每次返回新实例（无状态类，main 调用点 5 处——DefaultAgentEngine×3/ReActAgentExecutor×2——签名不变零改动）；`TestPassThroughModelRouter` 单例断言（:94-98/:102）→ `assertNotSame`；`TestPassThroughPostDenialGuard:58`/`TestPassThroughPermissionMatrix:58` 为另两类单例断言，非本 finding scope 未改；`./mvnw test -pl nop-ai/nop-ai-agent` 2867 例全绿 |
+| MA5.4-P3-1 | `fixed`（裁定接口 default + doc 同步） | `IShellInput` 新增 default 方法 `readLine()/readAllText()/lines()/chunks()` + `pushBack(ShellChunk)` 无状态 hook（基于 `read()` 的通用实现；`AbstractShellInput` 覆写保持 buffer 语义并实现 `pushBack`）；`ShellCommandExecutor.collectOutput` 简化直接调用 `readAllText()`（消除手动循环双份逻辑）；design doc `nop-ai-shell/02-io-and-pipeline.md` §3.3 重写与代码一致；`ShellIOTest` +6 例（纯 IShellInput 实现 default 方法可用性 + 换行剩余文本 pushBack + binary 跳过路径） |
+| MA5.4-P3-3 | `fixed` | `AbstractShellInput.readAllText()`/`readLine()` 与接口 default 实现遇非文本块（binary）均记录 WARN（`skip non-text chunk while reading ...: type=...`）不再静默丢弃；javadoc 明确 text-only 读取语义；`ShellIOTest.testInterfaceDefaultReadAllTextSkipsBinaryWithWarn` 覆盖 |
+| P3-MA1-038 | `fixed`（裁定保留 + 落盘） | 裁定 = **保留 `GptOrm*` 类名与 `/nop/schema/gpt/orm.xdef` 路径**：nop-ai-dsl-orm 为独立发布模块，类名/常量属公开 API 表面，重命名 = 破坏性变更（low-value/high-risk）；错误码前缀已由 P2-MA1-034 统一为 `nop.err.ai.dsl-orm.*`；历史命名缘由入 `GptOrmErrors`/`GptOrmConstants` 类级 javadoc（xdef 路径保留并注明） |
