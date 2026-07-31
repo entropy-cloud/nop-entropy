@@ -21,12 +21,12 @@ import com.fasterxml.jackson.annotation.JsonAnyGetter;
 import com.fasterxml.jackson.annotation.JsonAnySetter;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import io.nop.commons.util.StringHelper;
-import org.keycloak.common.crypto.CryptoIntegration;
-import org.keycloak.common.util.Base64Url;
 
 import java.math.BigInteger;
+import java.security.AlgorithmParameters;
 import java.security.KeyFactory;
 import java.security.PublicKey;
+import java.security.spec.ECGenParameterSpec;
 import java.security.spec.ECParameterSpec;
 import java.security.spec.ECPoint;
 import java.security.spec.ECPublicKeySpec;
@@ -151,12 +151,14 @@ public class JWK {
         }
 
         try {
+            AlgorithmParameters params = AlgorithmParameters.getInstance("EC");
+            params.init(new ECGenParameterSpec(name));
+            ECParameterSpec ecSpec = params.getParameterSpec(ECParameterSpec.class);
 
             ECPoint point = new ECPoint(x, y);
-            ECParameterSpec params = CryptoIntegration.getProvider().createECParams(name);
-            ECPublicKeySpec pubKeySpec = new ECPublicKeySpec(point, params);
+            ECPublicKeySpec pubKeySpec = new ECPublicKeySpec(point, ecSpec);
 
-            KeyFactory kf = CryptoIntegration.getProvider().getKeyFactory("ECDSA");
+            KeyFactory kf = KeyFactory.getInstance("EC");
             return kf.generatePublic(pubKeySpec);
         } catch (Exception e) {
             throw new RuntimeException(e);
@@ -164,8 +166,8 @@ public class JWK {
     }
 
     private PublicKey createRSAPublicKey() {
-        BigInteger modulus = new BigInteger(1, Base64Url.decode(getOtherClaims().get(RSAPublicJWK.MODULUS).toString()));
-        BigInteger publicExponent = new BigInteger(1, Base64Url.decode(getOtherClaims().get(RSAPublicJWK.PUBLIC_EXPONENT).toString()));
+        BigInteger modulus = new BigInteger(1, StringHelper.decodeBase64Url((String) getOtherClaims().get(RSAPublicJWK.MODULUS)));
+        BigInteger publicExponent = new BigInteger(1, StringHelper.decodeBase64Url((String) getOtherClaims().get(RSAPublicJWK.PUBLIC_EXPONENT)));
 
         try {
             KeyFactory kf = KeyFactory.getInstance("RSA");

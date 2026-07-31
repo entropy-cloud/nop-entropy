@@ -18,9 +18,10 @@
 package io.nop.auth.sso.jwk;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
-import org.keycloak.common.util.PemUtils;
 
+import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.util.Base64;
 
 /**
  * @author <a href="mailto:sthorger@redhat.com">Stian Thorgersen</a>
@@ -70,12 +71,24 @@ public class RSAPublicJWK extends JWK {
         this.x509CertificateChain = x509CertificateChain;
         if (x509CertificateChain != null && x509CertificateChain.length > 0) {
             try {
-                sha1x509Thumbprint = PemUtils.generateThumbprint(x509CertificateChain, "SHA-1");
-                sha256x509Thumbprint = PemUtils.generateThumbprint(x509CertificateChain, "SHA-256");
+                sha1x509Thumbprint = generateThumbprint(x509CertificateChain, "SHA-1");
+                sha256x509Thumbprint = generateThumbprint(x509CertificateChain, "SHA-256");
             } catch (NoSuchAlgorithmException e) {
                 throw new RuntimeException(e);
             }
         }
+    }
+
+    public static String generateThumbprint(String[] chain, String algorithm) throws NoSuchAlgorithmException {
+        if (chain == null || chain.length == 0)
+            return null;
+        String pem = chain[0]
+                .replaceAll("-----BEGIN.*-----", "")
+                .replaceAll("-----END.*----", "")
+                .replaceAll("\\s+", "");
+        byte[] der = Base64.getDecoder().decode(pem);
+        MessageDigest md = MessageDigest.getInstance(algorithm);
+        return Base64.getUrlEncoder().withoutPadding().encodeToString(md.digest(der));
     }
 
     @JsonProperty("x5t")
