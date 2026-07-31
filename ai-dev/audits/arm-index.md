@@ -27,8 +27,8 @@
 | [`2026-07-31-0423-arm-MA3.5-nop-ai-cross-module-contract.md`](./2026-07-31-0423-arm-MA3.5-nop-ai-cross-module-contract.md) | MA3.5 | 跨模块契约 | 全模块 | 0 | 2 | 6(P2:4, P3:2) | `done` |
 | [`2026-07-31-XXXX-arm-MA4.1-nop-ai-typesafety.md`](./2026-07-31-XXXX-arm-MA4.1-nop-ai-typesafety.md) | MA4.1 | 类型安全 | 全模块 | 0 | 0 | 7(P2:5, P3:2) | `done`（P2 已修复，见 §P2 修复追踪） |
 | [`2026-07-31-0539-arm-MA4.2-nop-ai-style.md`](./2026-07-31-0539-arm-MA4.2-nop-ai-style.md) | MA4.2 | 代码风格 | 全模块 | 0 | 0 | 14(P2:7, P3:7) | `done`（P2 已修复/裁定，见 §P2 修复追踪） |
-| [`2026-07-31-XXXX-arm-MA4.3-nop-ai-test-coverage.md`](./2026-07-31-XXXX-arm-MA4.3-nop-ai-test-coverage.md) | MA4.3 | 测试覆盖 | 全模块 | 0 | 6 | P1:6, P2:4, P3:3, Positive:1 | `done` |
-| [`2026-07-31-arm-MA4.4-nop-ai-test-effectiveness.md`](./2026-07-31-arm-MA4.4-nop-ai-test-effectiveness.md) | MA4.4 | 测试有效性 | 全模块 | 0 | 0 | P2:4, P3:3, N/A:1 | `done` |
+| [`2026-07-31-XXXX-arm-MA4.3-nop-ai-test-coverage.md`](./2026-07-31-XXXX-arm-MA4.3-nop-ai-test-coverage.md) | MA4.3 | 测试覆盖 | 全模块 | 0 | 6 | P1:6, P2:4, P3:3, Positive:1 | `done`（P2 已修复，见 §P2 修复追踪·测试质量批次） |
+| [`2026-07-31-arm-MA4.4-nop-ai-test-effectiveness.md`](./2026-07-31-arm-MA4.4-nop-ai-test-effectiveness.md) | MA4.4 | 测试有效性 | 全模块 | 0 | 0 | P2:4, P3:3, N/A:1 | `done`（P2 已修复，见 §P2 修复追踪·测试质量批次） |
 | [`2026-07-31-XXXX-arm-MA4.5-nop-ai-doc-consistency.md`](./2026-07-31-XXXX-arm-MA4.5-nop-ai-doc-consistency.md) | MA4.5 | 文档一致性 | 全模块 | 0 | 0 | 9(P2:7, P3:2) | `done`（P2 已修复/裁定，见 §P2 修复追踪） |
 | [`2026-07-30-2100-arm-MA5.1-nop-ai-hollow-scan.md`](./2026-07-30-2100-arm-MA5.1-nop-ai-hollow-scan.md) | MA5.1 | 空壳实现 | 全模块 | 0 | 2 | 7 | `done` |
 | [`2026-07-30-2100-arm-MA5.2-nop-ai-silent-noop.md`](./2026-07-30-2100-arm-MA5.2-nop-ai-silent-noop.md) | MA5.2 | 静默跳过 | 全模块 | 0 | 2 | 20 | `done` |
@@ -280,4 +280,30 @@ MR4 Phase 2 对 P1 表全部 `fixed` 行做了 live repo 证据核验（提交/�
 | MA4.5-002 | `fixed`（裁定） | IVectorStore 保持 abstract class + I 前缀（全仓 0 生产实现，纯 SPI）；类 Javadoc 记录裁定，watch-only residual |
 
 **验证**：`./mvnw test -pl nop-ai -am -T 1C` BUILD SUCCESS（2836 tests / 0 failures）；`node ai-dev/tools/check-doc-links.mjs --strict` exit 0。MA4.3/MA4.4 P2（测试质量批次）由 `2026-07-31-1446-3-arm-ma4-p2-test-quality.md` 承接。
+
+## P2 修复追踪（MA4 P2 测试质量批次，2026-07-31）
+
+第二批 P2 批量修复（plan `ai-dev/plans/2026-07-31-1446-3-arm-ma4-p2-test-quality.md`）已执行并收口。MA4.3-06/08/12/14 与 MA4.4-04/05/06/08 全部 `fixed` 或已裁定落盘；例外：`NopAiCodeGen`/`NopAiWebCodeGen` 裁定为 generated bootstrap 豁免（共享模板每次构建再生，main()-only 非 JUnit）；`ExternalCommandAdapter` 正向路径裁定为设计性兜底 stub（真实执行在 nop-shell 模块）。测试暴露 live defect ×6 全部就地修复：llm.xdef supportToolCalls 缺失、XDefSimplifier 递归参数错误、AiApiModel.getApiNodeForAi 判空反写、XDefSimplifier null 守卫。
+
+| Finding ID | 修复状态 | 修复位置 / 测试 |
+|-----------|---------|----------------|
+| MA4.3-06 | `fixed` | `TestApiModelToJava`（7 例：输出结构/过滤/mutation/精确输出）、`TestAiApiModel`（6 例：postfix/service/method/Java 输出，demo 真实模型）、`TestXDefSimplifier`（5 例）、`TestDslToolImpl`（2 例：ai-orm→orm + 畸形 XML）、`AiConverterTest` 两个零断言用例补值级断言 |
+| MA4.3-08 | `fixed` | 接线验证引用既有 `ShellCommandExecutorTest`（拒绝→126/放行/命令覆盖）；新增 `TestCommandChecker`（4 例：DefaultCommandChecker 契约 + ICommandChecker 契约）、`TestExternalCommandAdapter`（3 例：消息契约 + 127 兜底一致性）；commands/impl 仅 Cd/Echo/Ls 全部已有测试 |
+| MA4.3-12 | `fixed` | 8 个零断言文件逐文件裁定：rename-manual ×3（AiChatServiceManual/AiGenCodeTaskManual/AiTaskManual）+ rename-runner ×1（VfsMavenUsageExampleRunner，README 同步）+ add-asserts ×2（TestGptOrmModelParser +10 断言、NopAiWebPagesTest 页面发现+加载断言）+ generated bootstrap 豁免 ×2（NopAiCodeGen/NopAiWebCodeGen，构建实测再生）；新增 `TestVfsMavenCli`（4 例） |
+| MA4.3-14 | `fixed` | service 包 8 类全覆盖：`TestAiChatSession`（3 例）、`TestLlmConfigHelper`（8 例）、`TestChatLogHelper`（8 例：日志路径+凭据脱敏）、`TestMockAiChatService`（3 例：round-trip/EOF/cancel）+ 既有 TestDefaultAiChatService/TestChatServiceImpl |
+| MA4.4-04 | `fixed` | `BashSyntaxParserTest` 错误用例 1→10（null/空串/空白/2000 段超长/畸形 redirect×2/前后管道/here-string；assertThrows 9 处） |
+| MA4.4-05 | `fixed` | toolkit error-result 语义断言（live 0 throw）：18/19 测试类含 "failure" 断言；补 `BashExecutorTest`（空/空白命令→Command blocked）、`ListDirectoryExecutorTest`/`WriteFileExecutorTest`（fs 异常→failure+消息透传） |
+| MA4.4-06 | `fixed` | dialect assertThrows 0→13：TestOpenAiDialect +4、TestAnthropicDialect +3、**新建 TestOllamaDialect（8 例）/TestGeminiDialect（7 例）**（空响应 NULL_RESPONSE 错误码 + 畸形 JSON + stream chunk） |
+| MA4.4-08 | `fixed` | 修正计数：BashSyntaxParser assertThrows 1→9；dialect 0→13；toolkit error-result 断言 48 处；三模块新增异常路径用例 25+ |
+
+**live defect 修复（测试暴露，本批次就地修复 + 回归测试）**：
+
+| Defect | 修复 |
+|--------|------|
+| `default.llm.xml`/`ollama.llm.xml` 缺 `supportToolCalls` → xdef 校验失败，所有非 gemini/claude provider `loadConfig` 必失败 | 两文件补 `supportToolCalls="true"`；回归 = `TestLlmConfigHelper` |
+| `XDefSimplifier.simplify` 递归参数错误 `simplify(node)` | → `simplify(child)`（有子节点输入必 StackOverflowError）；回归 = `TestXDefSimplifier.testSimplifyRecursesIntoChildren` |
+| `AiApiModel.getApiNodeForAi` 判空反写 `!= null` | → `== null`（getServiceNode/getServiceMethodNode 恒 null）；回归 = `TestAiApiModel.testGetServiceNode` |
+| `XDefSimplifier.simplify(null)` NPE | 补 null 守卫（与 XNodeSimplifier 一致）；回归 = `testSimplifyNullReturnsNull` |
+
+**验证**：`./mvnw test -pl nop-ai -am -T 1C` BUILD SUCCESS（含 shell/toolkit/core/coder/dsl-orm/maven/web 全部新测试）。
 
