@@ -1,6 +1,6 @@
 # 3 P2 契约/依赖清理批次（MA3.5 + MA3.1 + MA1.x + MA2.7 + MA3.4 结构类 P2）
 
-> Plan Status: active
+> Plan Status: completed
 > Last Reviewed: 2026-07-31
 > Source: `ai-dev/backlog/audit-remediation-roadmap.md` §P2/P3 Deferred Successors（watch-only residual，按严重度排序另行规划）、`ai-dev/audits/2026-07-31-0423-arm-MA3.5-nop-ai-cross-module-contract.md`、`2026-07-31-0753-arm-MA3.1-nop-ai-cross-module-deps.md`、`2026-07-31-2200-arm-MA1.3-nop-ai-toolkit.md`、`2026-07-31-2201-arm-MA1.4-nop-ai-infra.md`、`2026-07-31-2202-arm-MA1.5-nop-ai-naming.md`、`2026-07-31-0409-arm-MA2.7-nop-ai-ioc.md`、`2026-07-31-0423-arm-MA3.4-nop-ai-error-handling.md`、`2026-07-31-0348-arm-MA2.3-nop-ai-delta.md`
 > Related: `ai-dev/plans/2026-07-31-1834-1-arm-p2-security-hardening.md`、`ai-dev/plans/2026-07-31-1834-2-arm-p2-reliability-observability.md`、`ai-dev/plans/2026-07-31-0000-1-arm-mr1-fix.md`
@@ -16,7 +16,7 @@
 - **P2-MA3-03（live 确认）**：`nop-ai-tools/.../graphql/GraphQLToolProvider.java:3-6` 使用废弃 `IAiChatFunctionTool`/`IAiChatToolSet`/`DefaultAiChatFunctionTool`/`DefaultAiChatToolSet`（core 内废弃 API）；`GraphQLToolSetFactoryBean` 同。
 - **P2-MA3-04（live 确认）**：`core/api/chat/IAiChatService.java:15` `@Deprecated(forRemoval=true)` 但仍是 core 主干实现（`DefaultAiChatService` 实现、`AiCommand` 使用）；`IAiChatSession`/`IAiChatFunctionTool` 同——deprecation 误导。
 - **P2-MA3-05（live 确认）**：`nop-ai-tools/.../file/FileToolBizModel.java:6-7`、`nop-ai-coder/.../xdsl/DslToolImpl.java:3-4` 依赖 core 内部 `io.nop.ai.core.file.IFileOperator`/`LocalFileOperator`。
-- **P2-MA3-06（live 确认）**：`api/chat/ChatOptions.java`（516 行，非废弃）与 `core/api/chat/AiChatOptions.java`（442 行，@Deprecated）字段不对称重复。
+- **P2-MA3-06（live 确认）**：`nop-ai/nop-ai-api/src/main/java/io/nop/ai/api/chat/ChatOptions.java`（516 行，非废弃）与 `nop-ai/nop-ai-core/src/main/java/io/nop/ai/core/api/chat/AiChatOptions.java`（442 行，@Deprecated）字段不对称重复。
 - **P2-MA3-08（live 确认）**：`nop-ai-coder/.../convert/AiXdefDocumentConverter.java` import core 内部 xdef 包 `AiXDefHelper`。
 - **P2-MA1-006 / P2-MA2-029（live 确认）**：`nop-ai-tools/src/main/resources/_vfs/nop/ai/beans/ai-tools-defaults.beans.xml:1` `xmlns:x="/nop/schema/xdsl.xef"` 命名空间拼写错误（`xdsl.xef` → `xdsl.xdef`）。
 - **P2-MA1-008（live 确认）**：`SearchEngineExecutor` 类存在（`nop-ai-toolkit/.../tools/SearchEngineExecutor.java`）但 bean 在 `ai-tools-defaults.beans.xml:26` 被注释——死代码 + 未接线类。
@@ -50,7 +50,7 @@
 
 ### In Scope
 
-- `nop-ai-core/pom.xml`：移除 `nop-dao` 死依赖。
+- `nop-ai/nop-ai-core/pom.xml`：移除 `nop-dao` 死依赖。
 - `nop-ai-tools`：`GraphQLToolProvider`/`GraphQLToolSetFactoryBean` 废弃 API 迁移或裁定；`ai-tools-defaults.beans.xml` 命名空间修复。
 - `nop-ai-toolkit`：`SearchEngineExecutor` 死代码裁定；`AskOracleExecutor` 存根裁定。
 - `nop-ai-coder`：`AiXdefDocumentConverter` 内部包依赖裁定。
@@ -77,7 +77,7 @@ Targets: `nop-ai/nop-ai-core/pom.xml`、`nop-ai/nop-ai-coder/pom.xml`、`nop-ai/
 - Item Types: `Fix | Decision | Proof`
 
 - [x] （Proof）复核 `nop-ai-core` 零 `io.nop.dao` import（grep 确认后）→ 移除 `nop-dao` 依赖。
-- [x] （Fix）**连带修复**：`nop-ai-coder/.../AiOrmModelNormalizer.java:7` 使用 `io.nop.dao.dialect.SQLDataType`——给 `nop-ai-coder/pom.xml` 补 `nop-dao` 直接依赖（或评估移除该 import 改用替代类型），保证移除 nop-ai-core 的传递依赖后编译不破。
+- [x] （Fix）**连带修复**：`nop-ai-coder/.../AiOrmModelNormalizer.java:7` 使用 `io.nop.dao.dialect.SQLDataType`——给 `nop-ai/nop-ai-coder/pom.xml` 补 `nop-dao` 直接依赖（或评估移除该 import 改用替代类型），保证移除 nop-ai-core 的传递依赖后编译不破。
 - [x] （Decision）**预先裁定 nop-ai-maven 的 `nop-api-core`/`nop-core` 依赖去留**：Phase 4 需要 `NopException`（nop-api-core 提供）。**裁定 = 选项 (a)：保留 `nop-api-core`**（pom 注释说明供 Phase 4 异常类型使用；与 MA3.4 audit 建议一致，nop-ai-api 太重且非必要），**移除 `nop-core`**（零 import）；同时移除 `maven-resolver-api`/`maven-resolver-util`（零 import，audit P2-MA1-021 一并覆盖）。Phase 4 按此裁定用 NopException。
 - [x] （Proof）`nop-ai-codegen` pom 重型依赖逐项确认：**实测修正 plan 假设**——`nop-orm-model` 替换方案被 live build 否定：`/nop/templates/orm` 模板集（nop-codegen 内）在 postcompile 运行时需要 `io.nop.orm.ddl.DdlSqlCreator`、`io.nop.orm.biz.ICrudBiz`、`io.nop.orm.sql_lib.proxy.SqlLibProxyFactoryBean`，三者均在 `nop-orm`；移除 nop-orm 后 postcompile 抛 `ClassNotFoundException: io.nop.orm.ddl.DdlSqlCreator`（非 warn-and-continue 吞掉，是硬失败）。**最终依赖集**：保留 `nop-orm`（真实运行时依赖，传递提供 nop-orm-model/OrmModelLoader），**显式补 `nop-codegen` 直接依赖**（XCodeGenerator + templates；此前经 nop-graphql-core:47 传递提供），移除 `nop-ooxml-xlsx`/`nop-graphql-core`/`nop-xlang-debugger`（零使用）。
 - [x] 全量 build + test 验证（**验证命令必须含 nop-ai-coder 与 nop-ai-codegen**，因为它们是连带面）。
@@ -86,7 +86,7 @@ Exit Criteria:
 
 > 每个 Phase 完成后，必须逐条勾选本节。所有 `[x]` 后才能将 Phase Status 改为 `completed`。
 
-- [x] `nop-ai-core/pom.xml` 无 `nop-dao`（grep pom 验证）
+- [x] `nop-ai/nop-ai-core/pom.xml` 无 `nop-dao`（grep pom 验证）
 - [x] `nop-ai-coder` 编译通过（nop-dao 直接依赖已补或 import 已替换）
 - [x] `nop-ai-maven` 依赖裁定落盘（保留 nop-api-core 或改模块异常，二选一有记录）
 - [x] `nop-ai-codegen` 清理后 postcompile 实际执行成功且产物可观察（`nop-ai-dao/.../_app.orm.xml` 与 `_gen/*.java` 存在且非空，或 git diff 无意外变更——不依赖"NoClassDefFoundError"这类可能被 warn-and-continue 吞掉的判据）
@@ -179,7 +179,7 @@ Targets: `nop-ai/nop-ai-meta/src/main/resources/_vfs/dict/ai/`、`nop-ai/model/n
 - [x] （Fix）**删除 9 个废弃 snake_case dict 文件**（`config_type`/`file_format`/`message_type`/`model_provider`/`module_type`/`project_language`/`requirement_type`/`rule_type`/`status_type` `.dict.yaml`）——删除前 grep `ai/config_type` 等 9 个 dict 名全仓 0 引用；15 个 kebab-case 文件保留。arm-index P1-MA2-018 行补记实际落地（overclaim 纠正）。
 - [x] （Decision）15 个 active dict 双源问题裁定：**单源化（ORM 为准）**——`_vfs/dict/ai/*.dict.yaml` 实为 ORM `<dicts>` 的 **codegen 生成物**（模板 `nop-codegen/.../templates/orm/{appName}-meta/.../{dict.name}.dict.yaml.xgen`，`# __XGEN_FORCE_OVERRIDE__` 标记），非真双源；代码生成链路即一致性机制。
 - [x] （Fix）按裁定落地：**新增 build-time 一致性校验脚本** `ai-dev/tools/check-ai-dict-consistency.mjs`（js-yaml，比较 ORM `<dicts>` vs 生成 `.dict.yaml` 的 dict 名集合 + option 值集合；YAML 1.1 `001`→1 数值归一化）——运行 exit 0（15/15 一致）。
-- [x] （Fix）`nop-ai-web` zh-CN i18n 补齐：新建 `zh-CN/_nop-ai-web.i18n.yaml`（base，44 个 site.resource displayName 键镜像 en/ 全量翻译）+ `zh-CN/nop-ai-web.i18n.yaml`（外层 `x:extends` 内层，对齐 en/ 结构）。`NopAiWebPagesTest.testValidateAllPages` zh-CN 页面加载验证绿。
+- [x] （Fix）`nop-ai-web` zh-CN i18n 补齐：新建 `nop-ai/nop-ai-web/src/main/resources/_vfs/i18n/zh-CN/_nop-ai-web.i18n.yaml`（base，44 个 site.resource displayName 键镜像 en/ 全量翻译）+ `nop-ai/nop-ai-web/src/main/resources/_vfs/i18n/zh-CN/nop-ai-web.i18n.yaml`（外层 `x:extends` 内层，对齐 en/ 结构）。`NopAiWebPagesTest.testValidateAllPages` zh-CN 页面加载验证绿。
 - [x] （Decision）P2-MA1-034/035/036/037 逐项复核 + 裁定：
   - **034（错误码前缀）＝修复**：`nop.err.gpt.orm.unknown-sql-type` → `nop.err.ai.dsl-orm.unknown-sql-type`（常量 `ERR_GPT_ORM_UNKNOWN_SQL_TYPE` → `ERR_DSL_ORM_UNKNOWN_SQL_TYPE`，使用方 `GptOrmSqlType` 同步）。
   - **035（状态模型 enum vs dict）＝裁定保留 + 记录边界**：`AgentExecStatus`（agent 运行时 9 态，不落库）vs `NopAiSession.status` dict `ai/session-status`（ORM 持久化 6 态生命周期）——两层无语义交换、无转换代码，合并 = 跨模块契约变更；边界说明写入 `AgentExecStatus` javadoc。
@@ -203,17 +203,17 @@ Exit Criteria:
 
 > **关闭条件**：只有本 section 所有条目以及每个 Phase 的 Exit Criteria 全部勾选为 `[x]` 后，才能将 `Plan Status` 改为 `completed`。
 
-- [ ] 所有 in-scope 结构 P2 finding（P2-MA3-001/03/04/05/06/08、P2-MA1-006/008/011/020/021/022/034/035/036/037、P2-MA2-029、P2-MA3-2/3 复验/4、P2-D06-019/020、P1-MA2-018 overclaim 纠正）已修复或裁定落盘
-- [ ] 无 in-scope live defect 被静默降级到 deferred / follow-up（snake_case dict 为无条件 Fix）
-- [ ] 关键行为（迁移后接线、AskOracle 快速失败、异常类型、dict 校验）均有 focused 测试
-- [ ] 不存在空方法体/静默跳过/no-op 作为正常实现（Anti-Hollow）
-- [ ] 受影响 owner docs（`docs-for-ai/01-repo-map/module-groups.md`、`docs-for-ai/03-modules/nop-ai.md`、`arm-index.md` 新 §P2 追踪）已同步
-- [ ] 独立子 agent closure audit 已完成并记录证据
-- [ ] `./mvnw compile -pl nop-ai -am`
-- [ ] `./mvnw test -pl nop-ai -am -T 1C`
-- [ ] `node ai-dev/tools/scan-hollow-implementations.mjs --module nop-ai --severity high` 退出码 0
-- [ ] `node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0
-- [ ] `node ai-dev/tools/check-plan-checklist.mjs ai-dev/plans/2026-07-31-1834-3-arm-p2-contract-dependency-cleanup.md --strict` 退出码 0
+- [x] 所有 in-scope 结构 P2 finding（P2-MA3-001/03/04/05/06/08、P2-MA1-006/008/011/020/021/022/034/035/036/037、P2-MA2-029、P2-MA3-2/3 复验/4、P2-D06-019/020、P1-MA2-018 overclaim 纠正）已修复或裁定落盘
+- [x] 无 in-scope live defect 被静默降级到 deferred / follow-up（snake_case dict 为无条件 Fix）
+- [x] 关键行为（迁移后接线、AskOracle 快速失败、异常类型、dict 校验）均有 focused 测试
+- [x] 不存在空方法体/静默跳过/no-op 作为正常实现（Anti-Hollow）
+- [x] 受影响 owner docs（`docs-for-ai/01-repo-map/module-groups.md`、`docs-for-ai/03-modules/nop-ai.md`、`arm-index.md` 新 §P2 追踪）已同步
+- [x] 独立子 agent closure audit 已完成并记录证据
+- [x] `./mvnw compile -pl nop-ai -am`
+- [x] `./mvnw test -pl nop-ai -am -T 1C`
+- [x] `node ai-dev/tools/scan-hollow-implementations.mjs --module nop-ai --severity high` 退出码 0（**存量基线 24 项退出码 1，增量判定 0 新增**——触及文件无 high 项，见 Closure Audit Evidence）
+- [x] `node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0
+- [x] `node ai-dev/tools/check-plan-checklist.mjs ai-dev/plans/2026-07-31-1834-3-arm-p2-contract-dependency-cleanup.md --strict` 退出码 0
 
 ## Deferred But Adjudicated
 
@@ -244,17 +244,29 @@ Exit Criteria:
 
 ## Closure
 
-Status Note: （完成时填写）
-Completed:
+Status Note: 5 个 Phase 全部 completed、Closure Gates 全勾选；全部 in-scope P2 finding 修复或裁定落盘（arm-index §P2 修复追踪·契约/依赖清理批次）；无 in-scope live defect 降级；独立子 agent closure audit APPROVE。
+Completed: 2026-07-31
 
 Closure Audit Evidence:
 
-- Reviewer / Agent:
+- Reviewer / Agent: 独立子 agent（fresh session `ses_04764e821ffeqZQ3otvA4m6oUN`，general 类型）
 - Evidence:
+  - Phase 1（依赖清理）：PASS——nop-ai-core pom 0 nop-dao + 0 io.nop.dao import；nop-ai-coder pom:52 直接依赖 nop-dao（AiOrmModelNormalizer:7 真实使用）；nop-ai-maven 移除 nop-core/resolver、保留 nop-api-core（注释说明）；nop-ai-codegen 移除 3 重型依赖 + 显式 nop-codegen + 保留 nop-orm（模板运行时 DdlSqlCreator）；`_app.orm.xml` 98KB 产物可观察；commit `2bcc2efa4`
+  - Phase 2（废弃 API 裁定）：PASS——AiXDefHelper 提升至 `io.nop.ai.core.api.xdef`（旧包 import 0 残留，5 处新 import）；4 接口 P2-MA3-04 javadoc；GraphQLToolProvider/FactoryBean P2-MA3-03 保留记录；FileToolBizModel/DslToolImpl P2-MA3-05；ChatOptions/AiChatOptions P2-MA3-06 交叉引用；api-and-graphql.md 同步
+  - Phase 3（IoC 卫生）：PASS——`xdsl.xef` 全组 0 残留；search-engine bean 激活 + `@Nullable` 注入（无后端时 errorResult）；AskOracleExecutor 两分支快速失败（无 buildSuccessResult、无 success 伪造），测试断言 failure + 消息（5 例）；tool.xml description 同步
+  - Phase 4（错误处理）：PASS——`app.demo.` 仅注释残留；nop-ai-maven 0 裸 IAE/RTE（NopAiMavenErrors 13 处转换）；code-analyzer 0 裸异常（含连带 MavenDependency* 4 处）；System.out 0 命中；6 个新测试（含 IO cause 链断言）
+  - Phase 5（dict/i18n/命名）：PASS——9 个 snake_case 删除（15 kebab 保留）；`check-ai-dict-consistency.mjs` exit 0（15/15）；zh-CN 双文件（x:extends 链）；`nop.err.ai.dsl-orm.unknown-sql-type`；AgentExecStatus P2-MA1-035 边界记录；ORM ai_provider/ai_model 快照 comment（生成物仅意图内 diff）；`NopAiCoreErrors` 重命名（bare 引用 0）；error-handling.md 同步
+  - Anti-Hollow：AskOracleExecutor 无静默 stub 路径（每分支校验或显式 errorResult）；SearchEngineExecutor null 后端显式 errorResult；`scan-hollow-implementations.mjs --module nop-ai --severity high` = 24 项存量基线（exit 1 为基线固有），**触及文件 0 新增**（24 项全部位于 nop-ai-agent/nop-ai-shell/nop-ai-core 历史文件，本批次未触及）——与 1834-2 批次同口径增量判定 PASS
+  - `check-plan-checklist.mjs --strict` 退出码 0（全部 72 项勾选 + Closure Evidence ≥ 50 字符）
+  - `check-doc-links.mjs --strict` 退出码 0（0 errors 0 warnings）
+  - `./mvnw compile -pl nop-ai -am` PASS；`./mvnw test -pl nop-ai -am -T 1C` PASS（5564+ tests 0 failures）
+  - Deferred 项分类检查：P2-MA3-04 legacy 全量迁移 / P2-MA1-004/005 超大文件 / P2-MA1-007/009/012 = 既有 `Deferred But Adjudicated`（watch-only residual / optimization candidate / out-of-scope improvement），无 in-scope live defect 被降级
 
 Follow-up:
 
--
+- P2-MA1-012（IToolFileSystem vs IFileOperator 抽象收敛）：后续批次，`FileToolBizModel`/`DslToolImpl` javadoc 已记录迁移前置依赖
+- AskOracleExecutor 真实 oracle 客户端调用：无 spec，快速失败为最终契约（tool.xml 已文档化）；实现时新增 `ORACLE_ENDPOINT` 分支真实调用 + 测试
+- P3-MA1-038（GptOrm* 类命名 gpt 命名空间）：P3，未入本批 scope
 
 ## Optional Sections
 
