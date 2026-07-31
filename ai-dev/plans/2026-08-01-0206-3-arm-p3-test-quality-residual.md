@@ -1,6 +1,6 @@
 # 3 arm-p3-test-quality-residual — nop-ai-agent 测试质量 P3 残余（assertTrue-only 升级 + 低价值测试裁定 + 大测试文件拆分）
 
-> Plan Status: active
+> Plan Status: completed
 > Last Reviewed: 2026-08-01
 > Source: `ai-dev/audits/2026-07-31-XXXX-arm-MA4.3-nop-ai-test-coverage.md`（MA4.3-09/13）+ `ai-dev/audits/2026-07-31-arm-MA4.4-nop-ai-test-effectiveness.md`（MA4.4-01/02/03）+ `ai-dev/audits/2026-07-31-0539-arm-MA4.2-nop-ai-style.md`（MA4.2-06）
 > Mission: audit-remediation
@@ -60,79 +60,79 @@
 
 ### Phase 1 - assertTrue-only 文件升级（MA4.3-09/13 点名文件）
 
-Status: planned
+Status: completed
 Targets: `nop-ai-agent/src/test/java/io/nop/ai/agent/security/` + `runtime/lock/`
 
 - Item Types: `Fix | Proof`
 
-- [ ] `TestDefaultPermissionMatrix`：permission lookup 升级为值级断言——deny 路径断言 `MatrixDecision` 返回的具体 level/channel 值（deny(channel, level, reason) 携带结构化字段），allow 路径断言 `assertEquals(MatrixDecision.allow(), decision)`（equals 覆盖 allowed+null 字段）或 assertNull(channel/level)，否定路径断言 deny 结果而非仅 assertFalse
-- [ ] `TestDbSessionTakeoverLockDualInstanceE2E`：对状态结果断言具体值——经 `AiAgentSessionLockTable` 公开常量（TABLE_NAME/COL_LOCK_OWNER 等）直查共享 H2，断言锁归属/ownerId 字段值变迁，与现有两场景（干净交接 + 过期抢占）映射
-- [ ] 升级后 2 文件每文件至少 1 个 assertEquals/assertNotNull/assertThrows（grep 计数验证）
-- [ ] 其余 13 个 assertTrue-only 文件（12 NoOp + ContentTrustEvaluator）不触碰，裁定记录落盘
+- [x] `TestDefaultPermissionMatrix`：permission lookup 升级为值级断言——deny 路径断言 `MatrixDecision` 返回的具体 level/channel 值（deny(channel, level, reason) 携带结构化字段），allow 路径断言 `assertEquals(MatrixDecision.allow(), decision)`（equals 覆盖 allowed+null 字段）或 assertNull(channel/level)，否定路径断言 deny 结果而非仅 assertFalse
+- [x] `TestDbSessionTakeoverLockDualInstanceE2E`：对状态结果断言具体值——经 `AiAgentSessionLockTable` 公开常量（TABLE_NAME/COL_LOCK_OWNER 等）直查共享 H2，断言锁归属/ownerId 字段值变迁，与现有两场景（干净交接 + 过期抢占）映射
+- [x] 升级后 2 文件每文件至少 1 个 assertEquals/assertNotNull/assertThrows（grep 计数验证）
+- [x] 其余 13 个 assertTrue-only 文件（12 NoOp + ContentTrustEvaluator）不触碰，裁定记录落盘
 
 Exit Criteria:
 
-- [ ] 2 个文件均含值级断言（grep 计数验证）
-- [ ] 每个升级断言验证的是正确结果值而非"无异常"（code review）
-- [ ] **端到端验证**（E2E 文件）：TestDbSessionTakeoverLockDualInstanceE2E 断言锁状态变迁的具体结果（LOCK_OWNER 字段值变迁 / 锁归属转移），非仅布尔成功
-- [ ] `./mvnw test -pl nop-ai/nop-ai-agent -am` 通过（2867+ tests，E2E 测试可独立运行）
-- [ ] No owner-doc update required（纯测试断言升级，不改生产契约）
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] 2 个文件均含值级断言（grep 计数验证）
+- [x] 每个升级断言验证的是正确结果值而非"无异常"（code review）
+- [x] **端到端验证**（E2E 文件）：TestDbSessionTakeoverLockDualInstanceE2E 断言锁状态变迁的具体结果（LOCK_OWNER 字段值变迁 / 锁归属转移），非仅布尔成功
+- [x] `./mvnw test -pl nop-ai/nop-ai-agent -am` 通过（2867+ tests，E2E 测试可独立运行）
+- [x] No owner-doc update required（纯测试断言升级，不改生产契约）
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 ### Phase 2 - 低价值测试裁定（MA4.4-01/02/03）
 
-Status: planned
+Status: completed
 Targets: `nop-ai-agent/src/test/java/io/nop/ai/agent/compact/` + `session/` + `security/`
 
 - Item Types: `Fix | Decision | Proof`
 
-- [ ] MA4.4-01：删除 `compressibleToolsSetContainsExpectedTools` 冗余测试（行为已由 `nonCompressibleToolsPreserved` 覆盖：bash 被压缩 + ask-oracle 保留；删除后断言保留在该方法内）
-- [ ] MA4.4-02：`TestAgentSession` 三个 round-trip 测试合并为 `testAllFieldsRoundTrip()`（一次性设置全部字段 + 一次性断言），或裁定移除（纯 setter/getter，编译器保证类型）
-- [ ] MA4.4-03：`TestSecurityLevel` 枚举断言裁定：移除 + 注释说明（编译器保证）或合并为单一结构测试——二选一，裁定记录
-- [ ] 每个裁定/修改后运行受影响测试类
+- [x] MA4.4-01：删除 `compressibleToolsSetContainsExpectedTools` 冗余测试（行为已由 `nonCompressibleToolsPreserved` 覆盖：bash 被压缩 + ask-oracle 保留；删除后断言保留在该方法内）
+- [x] MA4.4-02：`TestAgentSession` 三个 round-trip 测试合并为 `testAllFieldsRoundTrip()`（一次性设置全部字段 + 一次性断言），或裁定移除（纯 setter/getter，编译器保证类型）
+- [x] MA4.4-03：`TestSecurityLevel` 枚举断言裁定：移除 + 注释说明（编译器保证）或合并为单一结构测试——二选一，裁定记录
+- [x] 每个裁定/修改后运行受影响测试类
 
 Exit Criteria:
 
-- [ ] MA4.4-01 冗余测试已删除，工具压缩行为断言（nonCompressibleToolsPreserved）保留在位
-- [ ] MA4.4-02/03 裁定落盘（合并/移除 + 理由），无 in-scope live defect 被静默降级
-- [ ] 修改后 `./mvnw test -pl nop-ai/nop-ai-agent -am` 通过
-- [ ] No owner-doc update required（纯测试整理）
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] MA4.4-01 冗余测试已删除，工具压缩行为断言（nonCompressibleToolsPreserved）保留在位
+- [x] MA4.4-02/03 裁定落盘（合并/移除 + 理由），无 in-scope live defect 被静默降级
+- [x] 修改后 `./mvnw test -pl nop-ai/nop-ai-agent -am` 通过
+- [x] No owner-doc update required（纯测试整理）
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 ### Phase 3 - 大测试文件拆分（MA4.2-06）
 
-Status: planned
+Status: completed
 Targets: `nop-ai-agent/src/test/java/io/nop/ai/agent/team/flow/` + `runtime/recovery/`
 
 - Item Types: `Fix | Proof | Decision`
 
-- [ ] `TestMultiMemberFanOut`（1139 行 / 18 @Test）：按场景拆分（基础 fan-out / 成员失败 / 并发 / 结果聚合）为多个测试类或 @Nested 分组，行数降至 <1000
-- [ ] `TestScheduledRecoveryManager`（1076 行 / 36 @Test）：按恢复场景拆分
-- [ ] 拆分引入共享 fixture 时：提取为 helper 类
-- [ ] 拆分后 @Test 计数不减少（拆分前基线：18 / 36，复核命令 `rg -c "@Test" <file>`）
+- [x] `TestMultiMemberFanOut`（1139 行 / 18 @Test）：按场景拆分（基础 fan-out / 成员失败 / 并发 / 结果聚合）为多个测试类或 @Nested 分组，行数降至 <1000
+- [x] `TestScheduledRecoveryManager`（1076 行 / 36 @Test）：按恢复场景拆分
+- [x] 拆分引入共享 fixture 时：提取为 helper 类
+- [x] 拆分后 @Test 计数不减少（拆分前基线：18 / 36，复核命令 `rg -c "@Test" <file>`）
 
 Exit Criteria:
 
-- [ ] 两个文件均 <1000 行（wc -l 验证），或裁定保留 + 文档化理由
-- [ ] 拆分后 @Test 计数 ≥ 拆分前（18 / 36，rg -c 验证）
-- [ ] `./mvnw test -pl nop-ai/nop-ai-agent -am` 通过
-- [ ] **接线验证**：拆分后各场景测试仍跑真实组件链（无 mock 替代导致覆盖下降）
-- [ ] No owner-doc update required（纯测试重组）
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] 两个文件均 <1000 行（wc -l 验证），或裁定保留 + 文档化理由
+- [x] 拆分后 @Test 计数 ≥ 拆分前（18 / 36，rg -c 验证）
+- [x] `./mvnw test -pl nop-ai/nop-ai-agent -am` 通过
+- [x] **接线验证**：拆分后各场景测试仍跑真实组件链（无 mock 替代导致覆盖下降）
+- [x] No owner-doc update required（纯测试重组）
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 ## Closure Gates
 
 > 关闭条件：本 section 所有条目以及每个 Phase 的 Exit Criteria 全部勾选后，才能将 Plan Status 改为 completed。
 
-- [ ] 2 个 audit 点名文件升级完成（值级断言验证行为）
-- [ ] MA4.4-01/02/03 全部裁定/处理落盘
-- [ ] 2 个大测试文件拆分或裁定落盘
-- [ ] Phase 3 拆分无测试被删除；Phase 2 低价值测试的移除均经裁定记录且行为已被其余断言覆盖（覆盖不下降）
-- [ ] 独立子 agent closure audit 已完成并记录证据
-- [ ] **Anti-Hollow Check**：closure audit 验证测试断言真实验证行为，无空断言/no-op 测试新增，无语法粉饰断言（assertEquals(true, ...) 类）
-- [ ] `./mvnw clean install -DskipTests -pl nop-ai -am -T 1C`
-- [ ] `./mvnw test -pl nop-ai -am -T 1C`
-- [ ] `node ai-dev/tools/check-plan-checklist.mjs <plan-file> --strict` exit 0
+- [x] 2 个 audit 点名文件升级完成（值级断言验证行为）
+- [x] MA4.4-01/02/03 全部裁定/处理落盘
+- [x] 2 个大测试文件拆分或裁定落盘
+- [x] Phase 3 拆分无测试被删除；Phase 2 低价值测试的移除均经裁定记录且行为已被其余断言覆盖（覆盖不下降）
+- [x] 独立子 agent closure audit 已完成并记录证据
+- [x] **Anti-Hollow Check**：closure audit 验证测试断言真实验证行为，无空断言/no-op 测试新增，无语法粉饰断言（assertEquals(true, ...) 类）
+- [x] `./mvnw clean install -DskipTests -pl nop-ai -am -T 1C`
+- [x] `./mvnw test -pl nop-ai -am -T 1C`
+- [x] `node ai-dev/tools/check-plan-checklist.mjs <plan-file> --strict` exit 0
 
 ## Deferred But Adjudicated
 
@@ -166,13 +166,22 @@ Exit Criteria:
 
 ## Closure
 
-Status Note: 执行完成时填写
-Completed: （未完成）
+Status Note: 三阶段全部落地——2 个 audit 点名文件（TestDefaultPermissionMatrix / TestDbSessionTakeoverLockDualInstanceE2E）升级为值级断言；MA4.4-01/02/03 裁定（删除冗余 / 合并 round-trip / 单一结构测试）全部落盘；2 个超 1000 行测试文件（TestMultiMemberFanOut 1139 行、TestScheduledRecoveryManager 1076 行）拆分为共享 fixture 基类 + 按场景子类，@Test 计数不减少。全量测试绿色（3519 tests 0 failures），独立 closure audit APPROVE（无 Blocker/Major）。
+Completed: 2026-08-01
 
 Closure Audit Evidence:
 
-- Reviewer / Agent: （未完成）
+- Reviewer / Agent: 独立子 agent（general，task id `ses_0462c2e24ffeajIDdDe7iuG5u9`）
+- Evidence:
+  - **Phase 1 Exit Criteria**（audit 逐条 PASS）：`TestDefaultPermissionMatrix.java` allow 路径 `assertEquals(MatrixDecision.allow(), ...)`（:28/:31/:38-42/:50/:68/:71）+ deny 路径 `assertDeniedFor`（:88-96 断言 getChannel/getLevel/getReason）；`TestDbSessionTakeoverLockDualInstanceE2E.java` `readLockOwner()`（:91-102）经 `AiAgentSessionLockTable` 常量直查共享 H2，两场景 LOCK_OWNER 字段值变迁（engine-A→null→engine-B→null；过期租约行抢占前保留）——非仅布尔成功；13 个其余 assertTrue-only 文件 git diff 验证 0 触碰
+  - **Phase 2 Exit Criteria**（audit 逐条 PASS）：`compressibleToolsSetContainsExpectedTools` 已删（git diff 单行 `-`），`nonCompressibleToolsPreserved`/`compressedPlaceholderContainsToolInfo` 保留在位；`TestAgentSession.testAllFieldsRoundTrip()`（:124-140）合并三字段；`TestSecurityLevel` 单一结构测试保留 length==3 设计契约断言（:20-25），编译器保证项移除理由入 javadoc
+  - **Phase 3 Exit Criteria**（audit 逐条 PASS）：fan-out 18 @Test（Success 5 + Failure 9 + Routing 4）/ recovery 36 @Test（ScanOnce 8 + Scheduling 9 + OrphanHandler 7 + Timeout 12），拆分文件 354/283/278/285/338/174/176/152/286 行均 <1000，原文件已删除；场景仍跑真实组件链（真实 `TeamTaskFlowOrchestrator.executeAsync` + 真实 InMemoryManager/Store；真实 `ScheduledRecoveryManager.scanOnce` + 真实 H2），无 mock 替代
+  - **Anti-Hollow Check**：audit grep `assertEquals(true,`/`assertTrue(true`/空测试体 0 命中；`scan-hollow-implementations.mjs --module nop-ai --severity high` exit 0；断言均为值级/状态级（concurrency overlap、task status、DB row 状态）
+  - **Deferred 项分类检查**：13 文件（12 NoOp + TestDefaultContentTrustEvaluator）与 AiConverterTest 均为 audit 认可/watch-only residual，无 in-scope live defect 被降级
+  - **构建验证**：`./mvnw clean install -DskipTests -pl nop-ai -am -T 1C` BUILD SUCCESS；`./mvnw test -pl nop-ai -am -T 1C` BUILD SUCCESS（3519 tests 0 failures 0 errors；audit 聚焦复跑 12 类 89 tests 全绿）
+  - `node ai-dev/tools/check-plan-checklist.mjs ai-dev/plans/2026-08-01-0206-3-arm-p3-test-quality-residual.md --strict` exit 0
+  - `node ai-dev/tools/check-doc-links.mjs --strict` exit 0
 
 Follow-up:
 
-- （未完成时留空）
+- no remaining plan-owned work（audit 2 个 Minor 非阻塞既有基线：`TestMicroCompressionCompactor:171` assertEquals 参数顺序颠倒——既有代码非本次改动；`TestMultiMemberFanOutEndToEnd` 466 行为既有文件非拆分产物）

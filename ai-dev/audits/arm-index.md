@@ -438,3 +438,18 @@ plan `ai-dev/plans/2026-07-31-2248-2-arm-hollow-baseline-clearance.md`（第七�
 | P3-MA3-003 | `fixed`（裁定保留 + 文档化） | 裁定 = 保留空模块 + 文档化为 SPI 预期实现落点（不补 InMemory 实现——零消费方投机代码违反 Anti-Hollow；不从父 pom 移除——结构声明价值）。与 P1-MA5-003 SPI 裁定兼容。落盘 `nop-ai-rag/README.md` + `ai-dev/design/nop-ai/04-rag-module-position.md`；`docs-for-ai/03-modules/nop-ai.md` 子模块表同步 |
 
 **验证**：`./mvnw clean install -DskipTests -pl nop-ai -am -T 1C` BUILD SUCCESS；`./mvnw test -pl nop-ai -am -T 1C` BUILD SUCCESS；`scan-hollow-implementations.mjs --module nop-ai --severity high` exit 0；`check-doc-links.mjs --strict` exit 0。
+
+## P3 追踪（第九批 — 测试质量 P3 残余，2026-08-01）
+
+第九批批量修复（plan `ai-dev/plans/2026-08-01-0206-3-arm-p3-test-quality-residual.md`）已执行并收口。MA4.3-09/13（assertTrue-only 升级）、MA4.4-01/02/03（低价值测试裁定）、MA4.2-06（大测试文件拆分）全部 `fixed` 或裁定落盘：
+
+| Finding ID | 修复状态 | 修复位置 / 测试 |
+|-----------|---------|----------------|
+| MA4.3-09 | `fixed` | `TestDefaultPermissionMatrix` 全部断言升级为值级：allow 路径 `assertEquals(MatrixDecision.allow(), ...)`（all-field equals 覆盖 allowed+null reason/channel/level），deny 路径 `assertDeniedFor` 断言 `MatrixDecision.getChannel()/getLevel()/getReason()` 结构化字段（GROUP+ELEVATED、API/DM/GROUP/null+RESTRICTED、OPERATOR bypass）；5 tests 0 failures。13 个其余 assertTrue-only 文件（12 NoOp + TestDefaultContentTrustEvaluator）裁定不触碰（boolean 契约断言恰当，audit 认可）——落盘 plan Deferred But Adjudicated 段 |
+| MA4.3-13 | `fixed` | `TestDbSessionTakeoverLockDualInstanceE2E` 新增 `readLockOwner()`——经 `AiAgentSessionLockTable` 公开常量（TABLE_NAME/COL_LOCK_OWNER）直查共享 H2，两场景（干净交接 + 过期抢占）逐步断言 LOCK_OWNER 字段值变迁（engine-A → null → engine-B → null）、失败 acquire/release 不转移归属、过期租约行在抢占前保留；2 tests 0 failures |
+| MA4.4-01 | `fixed`（裁定删除冗余） | `TestMicroCompressionCompactor` 删除 `compressibleToolsSetContainsExpectedTools`（断言内部常量 `COMPRESSIBLE_TOOLS.contains(...)`，非行为）；工具压缩行为断言保留在 `nonCompressibleToolsPreserved`（bash 压缩 + ask-oracle 保留）+ `compressedPlaceholderContainsToolInfo`（COMPRESSED/toolName/toolCallId/原长度） |
+| MA4.4-02 | `fixed`（裁定合并） | `TestAgentSession` 三个 round-trip 测试（parentSessionId/planId/compactedAt）合并为 `testAllFieldsRoundTrip()`（一次性设置 + 一次性断言；纯 setter/getter 由编译器保证类型，合并保留值级覆盖）；15 tests 0 failures |
+| MA4.4-03 | `fixed`（裁定合并为单一结构测试） | `TestSecurityLevel` 3 tests → 1：保留唯一非编译器保证的断言 `values().length == 3`（设计 §5.1 契约守卫——新增第 4 个枚举值编译期不报错），删除编译器保证的 valueOf/ordinal/compareTo 断言，理由入类 javadoc |
+| MA4.2-06 | `fixed`（拆分 + 共享 fixture 提取） | `TestMultiMemberFanOut` 1139 行 → `AbstractMultiMemberFanOutTest`（共享 fixture：FixedPlanRouter/ConcurrencyRecordingEngine/ConfigurableFanOutEngine/ConcurrencyRecordingSpawner/team-task builders）+ `TestMultiMemberFanOutSuccess`（5）/`TestMultiMemberFanOutFailure`（9）/`TestMultiMemberFanOutRouting`（4），18 @Test 不减少；`TestScheduledRecoveryManager` 1076 行 → `AbstractScheduledRecoveryManagerTest`（H2 fixtures + RecordingScheduler/Handler/TimeoutHandler/StubEngine）+ `ScanOnce`（8）/`Scheduling`（9）/`OrphanHandler`（7）/`Timeout`（12），36 @Test 不减少；全部文件 <500 行，场景仍跑真实组件链（真实 H2 + 真实 orchestrator/scanOnce，无 mock 替代） |
+
+**验证**：`./mvnw clean install -DskipTests -pl nop-ai -am -T 1C` BUILD SUCCESS；`./mvnw test -pl nop-ai -am -T 1C` BUILD SUCCESS（3519 tests 0 failures 0 errors）；`scan-hollow-implementations.mjs --module nop-ai --severity high` exit 0；`check-doc-links.mjs --strict` exit 0；`check-plan-checklist.mjs --strict` exit 0（closure audit 见 plan Closure 段）。
