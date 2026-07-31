@@ -126,7 +126,7 @@
         -->
         <simple name="!string" form="!string" title="string" panelClassName="string" useFormActions="boolean"
                 redirect="string" reload="string" resetAfterSubmit="boolean" noActions="boolean"
-                xdef:bean-tag-prop="type">
+                xdef:name="UiSimpleModel" xdef:bean-tag-prop="type">
             <remark>string</remark>
 
             <initApi xdef:ref="api.xdef"/>
@@ -151,7 +151,7 @@
         -->
         <tabs name="!string" xdef:ref="UiPageModel" tabsMode="string" tabsClassName="string"
               closeable="boolean" draggable="boolean" mountOnEnter="boolean" unmountOnExit="boolean"
-              xdef:bean-tag-prop="type">
+              xdef:name="UiTabsModel" xdef:bean-tag-prop="type">
             <!--
             @reload 设置以后内容每次都会重新渲染，对于 crud 的重新拉取很有用
             @unmountOnExit 每次退出都会销毁当前 tab 栏内容
@@ -179,7 +179,8 @@
                 actionClassName="string" initFetch="boolean"
                 actionPrevLabel="string" actionNextLabel="string" actionNextSaveLabel="string"
                 actionFinishLabel="string"
-                reload="string" redirect="string" target="string" startStep="string">
+                reload="string" redirect="string" target="string" startStep="string"
+                xdef:name="UiWizardModel">
             <api xdef:ref="api.xdef"/>
             <initApi xdef:ref="api.xdef"/>
 
@@ -203,23 +204,30 @@
         @alignItems 对应 CSS grid 容器 align-items，子项纵向对齐
         @justifyItems 对应 CSS grid 容器 justify-items，子项横向对齐
         -->
-        <group name="!string" xdef:ref="UiPageModel"
+        <group name="!string"
                columns="int-or-string" gap="int"
                autoFlow="enum:row|column|dense|row-dense|column-dense"
                alignItems="enum:normal|stretch|center|start|end|baseline"
                justifyItems="enum:normal|stretch|center|start|end|baseline"
                responsiveColumns="string"
+               xdef:name="UiGroupModel"
                xdef:bean-tag-prop="type"
                xdef:ref="UiContainerModel" xdef:bean-body-prop="body" xdef:body-type="list">
         </group>
     </xdef:define>
 
-    <pages xdef:key-attr="name" xdef:body-type="list" xdef:ref="UiContainerModel">
+    <pages xdef:key-attr="name" xdef:body-type="list">
+        <crud xdef:ref="UiCRUDModel"/>
+        <picker xdef:ref="UiCRUDModel" size="string"/>
+        <simple xdef:ref="UiSimpleModel"/>
+        <tabs xdef:ref="UiTabsModel"/>
+        <wizard xdef:ref="UiWizardModel"/>
+        <group xdef:ref="UiGroupModel"/>
         <complex name="!string" xdef:ref="UiContainerModel" xdef:body-type="list" xdef:bean-body-prop="body">
-            <left xdef:ref="UiContainerModel" xdef:body-type="list" />
-            <right xdef:ref="UiContainerModel" xdef:body-type="list" />
-            <top xdef:ref="UiContainerModel" xdef:body-type="list" />
-            <bottom xdef:ref="UiContainerModel" xdef:body-type="list" />
+            <left xdef:ref="UiContainerModel" xdef:body-type="list" xdef:bean-body-prop="body" />
+            <right xdef:ref="UiContainerModel" xdef:body-type="list" xdef:bean-body-prop="body" />
+            <top xdef:ref="UiContainerModel" xdef:body-type="list" xdef:bean-body-prop="body" />
+            <bottom xdef:ref="UiContainerModel" xdef:body-type="list" xdef:bean-body-prop="body" />
         </complex>
     </pages>
 </view>
