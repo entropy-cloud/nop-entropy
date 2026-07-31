@@ -5,6 +5,7 @@ import io.nop.api.core.annotations.txn.Transactional;
 import io.nop.api.core.beans.FilterBeans;
 import io.nop.api.core.beans.IntRangeSet;
 import io.nop.api.core.beans.query.QueryBean;
+import io.nop.api.core.exceptions.NopException;
 import io.nop.commons.util.DateHelper;
 import io.nop.dao.api.IDaoProvider;
 import io.nop.job.api.spec.TriggerSpec;
@@ -20,8 +21,6 @@ import io.nop.job.dao.helper.JobStatusHelper;
 import io.nop.job.dao.helper.TriggerSpecHelper;
 import io.nop.orm.dao.IOrmEntityDao;
 import jakarta.inject.Inject;
-
-import io.nop.api.core.exceptions.NopException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -33,10 +32,13 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import static io.nop.job.dao.entity._gen._NopJobFire.*;
-
 import static io.nop.job.core.JobCoreErrors.ERR_JOB_CANCELED;
 import static io.nop.job.core.JobCoreErrors.ERR_JOB_FIRE_STATUS_CONFLICT;
+import static io.nop.job.dao.entity._gen._NopJobFire.PROP_NAME_fireStatus;
+import static io.nop.job.dao.entity._gen._NopJobFire.PROP_NAME_jobFireId;
+import static io.nop.job.dao.entity._gen._NopJobFire.PROP_NAME_partitionIndex;
+import static io.nop.job.dao.entity._gen._NopJobFire.PROP_NAME_scheduledFireTime;
+import static io.nop.job.dao.entity._gen._NopJobFire.PROP_NAME_startTime;
 
 public class JobFireStoreImpl implements IJobFireStore {
     static final Logger LOG = LoggerFactory.getLogger(JobFireStoreImpl.class);
@@ -112,18 +114,18 @@ public class JobFireStoreImpl implements IJobFireStore {
         }
 
         for (NopJobTask task : tasks) {
-            taskDao().saveEntityDirectly(task);
+            taskDao().saveEntity(task);
         }
     }
 
     @Transactional(propagation = TransactionPropagation.REQUIRES_NEW)
     @Override
-    public void completeFireAndUpdateSchedule(NopJobFire fire, NopJobSchedule schedule) {
+    public boolean completeFireAndUpdateSchedule(NopJobFire fire, NopJobSchedule schedule) {
         // Bug A fix: removed requireEntityById + isTerminalFire short-circuit
         // (it returned the @SingleSession-cached entity already modified by caller)
 
         if (!fireDao().tryUpdateWithVersionCheck(fire)) {
-            return;
+            return false;
         }
 
         // Under @SingleSession, requireEntityById returns the same cached entity as the
@@ -134,6 +136,7 @@ public class JobFireStoreImpl implements IJobFireStore {
         if (!scheduleDao().tryUpdateWithVersionCheck(schedule)) {
             LOG.warn("nop.job.complete.schedule-update-conflict:fireId={}", fire.getJobFireId());
         }
+        return true;
     }
 
     @Transactional(propagation = TransactionPropagation.REQUIRES_NEW)
@@ -207,6 +210,11 @@ public class JobFireStoreImpl implements IJobFireStore {
     }
 
     @Override
+    public NopJobFire getFireById(String jobFireId) {
+        return fireDao().getEntityById(jobFireId);
+    }
+
+    @Override
     public Map<String, NopJobFire> batchLoadFires(Set<String> fireIds) {
         if (fireIds == null || fireIds.isEmpty()) {
             return Collections.emptyMap();
@@ -264,7 +272,7 @@ public class JobFireStoreImpl implements IJobFireStore {
         fire.setDurationMs(DateHelper.durationMs(fire.getStartTime(), fire.getEndTime()));
         fire.setErrorCode(errorCode);
         fire.setErrorMessage(errorMessage);
-        fireDao().updateEntityDirectly(fire);
+        fireDao().tryUpdateWithVersionCheck(fire);
     }
 
     private IOrmEntityDao<NopJobFire> fireDao() {

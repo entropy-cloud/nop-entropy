@@ -384,6 +384,37 @@ public class TestJobFireStoreRace extends JunitBaseTestCase {
         }
     }
 
+    @Test
+    public void testFailFireWithoutSchedule_noThrowOnVersionConflict() {
+        NopJobSchedule schedule = newSchedule("race-sched-ffws", "race-job-ffws");
+        daoProvider.daoFor(NopJobSchedule.class).saveEntityDirectly(schedule);
+
+        NopJobFire fire = newFire("race-fire-ffws", schedule);
+        scheduleStore.insertFireAndAdvanceSchedule(schedule, fire,
+                new Timestamp(System.currentTimeMillis() + 60000), FIRE_STATUS_WAITING);
+
+        List<NopJobFire> waitingFires = fireStore.fetchWaitingFires(10, IntRangeSet.parse("1"));
+        List<NopJobFire> lockedFires = fireStore.tryLockFiresForDispatch(waitingFires, "dispatcher-ffws", 1000);
+        assertEquals(1, lockedFires.size());
+
+        NopJobTask task = newTask("race-task-ffws", fire);
+        fireStore.insertTasksAndMarkFireDispatching(lockedFires.get(0), Collections.singletonList(task));
+
+        NopJobFire runningFire = fireStore.loadFire(fire.getJobFireId());
+        assertEquals(FIRE_STATUS_RUNNING, runningFire.getFireStatus());
+
+        IOrmEntityDao<NopJobFire> fireDao = (IOrmEntityDao<NopJobFire>) daoProvider.daoFor(NopJobFire.class);
+        NopJobFire concurrentModification = fireDao.requireEntityById(fire.getJobFireId());
+        concurrentModification.setFireStatus(FIRE_STATUS_TIMEOUT);
+        concurrentModification.setEndTime(new Timestamp(System.currentTimeMillis()));
+        fireDao.updateEntityDirectly(concurrentModification);
+
+        assertDoesNotThrow(() ->
+                fireStore.failFireWithoutSchedule(fire.getJobFireId(),
+                        "test-error-code", "test-error-message"),
+                "failFireWithoutSchedule should not throw on version conflict after switching to tryUpdateWithVersionCheck");
+    }
+
     @SuppressWarnings("unchecked")
     private IOrmEntityDao<NopJobTask> taskStore() {
         return (IOrmEntityDao<NopJobTask>) daoProvider.daoFor(NopJobTask.class);

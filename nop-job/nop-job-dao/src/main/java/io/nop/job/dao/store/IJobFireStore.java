@@ -19,11 +19,13 @@ public interface IJobFireStore {
 
     void insertTasksAndMarkFireDispatching(NopJobFire fire, List<NopJobTask> tasks);
 
-    void completeFireAndUpdateSchedule(NopJobFire fire, NopJobSchedule schedule);
+    boolean completeFireAndUpdateSchedule(NopJobFire fire, NopJobSchedule schedule);
 
     boolean cancelFire(String jobFireId);
 
     NopJobFire loadFire(String jobFireId);
+
+    NopJobFire getFireById(String jobFireId);
 
     Map<String, NopJobFire> batchLoadFires(Set<String> fireIds);
 
