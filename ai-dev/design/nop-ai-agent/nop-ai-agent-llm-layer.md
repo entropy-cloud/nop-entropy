@@ -149,8 +149,9 @@ Provider 适配已在 `nop-ai-core` 的 `ChatServiceImpl` + `ILlmDialect` 中实
 | OpenAI | function_call / tool_choice 格式 | nop-ai-core ILlmDialect |
 | Anthropic | tool_use content block + thinking block | nop-ai-core ILlmDialect |
 | Gemini | function_declarations + Part 格式 | nop-ai-core ILlmDialect |
-| DashScope (阿里) | OpenAI 兼容 + Qwen 特有参数 | nop-ai-core ILlmDialect |
 | Ollama | OpenAI 兼容 + 本地模型参数 | nop-ai-core ILlmDialect |
+
+> **DashScope (阿里)**：**未实现**（2026-07-31 裁定，MA5.4-P2-1）。此前本表列为"OpenAI 兼容 + Qwen 特有参数"的已实现项，实际代码中无 DashScope dialect。实现属完整功能（新 dialect 类 + SPI 注册，半天+工作量），未来添加时按 §4.4 扩展方式落地并移入本表。
 
 ### 4.4 扩展方式
 

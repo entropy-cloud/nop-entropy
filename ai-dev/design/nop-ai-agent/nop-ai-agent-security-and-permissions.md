@@ -403,12 +403,12 @@ IContentTrustEvaluator:
 
 **预构建 Guardrail**（Layer 2 默认提供，可选启用）：
 
-| Guardrail | 检测内容 | 来源 |
-|-----------|---------|------|
-| `PromptInjectionGuardrail` | prompt_override / role_hijack / exfiltration / invisible_char 四类威胁 | OpenSquilla `injection_guard.py` 4 类正则 |
-| `UntrustedEnvelopeGuardrail` | 将外部内容包裹在 `<untrusted>` 信封中 | OpenSquilla `wrap_untrusted()` |
-| `PIIDetectionGuardrail` | 个人信息检测 | VoltAgent 预构建 |
-| `ContentLengthGuardrail` | 输出长度限制 | VoltAgent 预构建 |
+| Guardrail | 检测内容 | 来源 | 实现状态 |
+|-----------|---------|------|---------|
+| `PromptInjectionGuardrail` | prompt_override / role_hijack / exfiltration / invisible_char 四类威胁 | OpenSquilla `injection_guard.py` 4 类正则 | **✅ 已实现**（`io.nop.ai.agent.guardrail.PromptInjectionGuardrail`，2026-07-31） |
+| `UntrustedEnvelopeGuardrail` | 将外部内容包裹在 `<untrusted>` 信封中 | OpenSquilla `wrap_untrusted()` | 未实现（未来，无既有代码承诺） |
+| `PIIDetectionGuardrail` | 个人信息检测 | VoltAgent 预构建 | 未实现（未来） |
+| `ContentLengthGuardrail` | 输出长度限制 | VoltAgent 预构建 | 未实现（未来） |
 
 **Prompt 注入检测**（基于 OpenSquilla 分类法，参考 Simon Willison 分类法、GARAK 基准、Anthropic 红队报告）：
 
@@ -419,7 +419,7 @@ IContentTrustEvaluator:
 | `exfiltration` | 试图泄露 secrets/API keys/env vars |
 | `invisible_char` | 零宽字符/BIDI 控制字符走私 |
 
-**执行模式**：`off` / `report`（仅记录）/ `enforce`（阻止）。
+**执行模式**：`off` / `report`（仅记录）/ `enforce`（阻止）。模式经 guardrail 构造器传入（`new PromptInjectionGuardrail(GuardrailMode.ENFORCE)`，默认 ENFORCE）；`IContentGuardrail.check(direction, content, ctx)` 接口签名不含 mode 参数，mode 语义由实现类承载。`GuardrailResult` 映射：OFF=始终 Pass；REPORT=命中时 WARN 记录 + 返回 Pass（记录但放行）；ENFORCE=命中返回 BlockResult(reason)。检测规则对 INPUT/OUTPUT 两个方向一致生效（纵深防御——LLM 回显注入指令同样被检测）。
 
 **Tool Call 注入守卫**：在 Tool Dispatch 管线中，如果 Tool Call 的 origin trace 位于 `<untrusted>` 块内，拒绝执行。这是双重防护——即使 LLM 被诱导生成 tool_call，只要 origin 在 untrusted 内容中就会被阻止。
 
@@ -484,9 +484,9 @@ IContentTrustEvaluator:
 - GraphQL Subscription
 - RPC 轮询
 
-> 通道抽象为可插拔接口（`IApprovalChannel`）为后续功能化审批流增强（审计发现 L3-G3），当前 `AutoApproveGate` 不需要外部通道。
+> **`IApprovalChannel` 状态：deferred（2026-07-31 裁定，MA5.4-P2-5）**——接口为未来功能化审批流设计，**当前无代码实现**（不创建空接口占位，避免 hollow implementation）；审批经 `IApprovalGate`（`DefaultApprovalGate`/`AutoApproveGate`）同步决策，不需要外部异步通道。
 
-**默认实现**：`AutoApproveGate`（所有请求自动通过——适用于无人值守自动化的 Layer 1 基线）。经 `DefaultAgentEngine.setApprovalGate` 程序化注入功能化实现。
+**默认实现**：`DefaultApprovalGate`（deny-list 审批门：默认放行，命中 deny 规则时拒绝并咨询/记录——取代早期 `AutoApproveGate` 基线）。经 `DefaultAgentEngine.setApprovalGate` 程序化注入功能化实现。
 
 **决策记录（plan 176）**：
 
@@ -622,7 +622,9 @@ DenialResult {
 
 **职责**：外部化敏感路径 denylist，支持 Delta 覆盖。
 
-**配置来源**：`security-sensitive-paths.xdef` schema → YAML/XML 外部配置。
+**实现状态（2026-07-31 裁定，MA5.4-P2-3）**：`ISensitivePathProvider` 接口与 `DefaultSensitivePathProvider` **未实现**（此前设计声称已存在——代码中敏感路径硬编码于 `DefaultPathAccessChecker.SENSITIVE_PREFIX_PATTERNS`/`SENSITIVE_FILENAMES`）。本批次落地**最小配置注入**：`DefaultPathAccessChecker` 新增构造器 `(List<String> extraSensitivePrefixes, Set<String> extraSensitiveFilenames)`，注入的 pattern 追加到内置默认集（不改默认硬编码集），进入实际检查路径（`sensitive_path_prefix` / `sensitive_path_filename`，含 symlink 复查路径）。测试：`TestPathAccessCheckerSensitivePaths`（5 例，含接线验证）。
+
+**完整 XDSL/Delta 外部配置化**（`security-sensitive-paths.xdef` schema → YAML/XML 配置装载）为未来增强，未实现。
 
 **特性**：
 
@@ -630,7 +632,9 @@ DenialResult {
 - Workspace 感知排除（workspace 内的 `/root` 前缀不阻止合法操作，只阻止凭证叶子文件）
 - 命令级扫描（`rm /tmp/ok /etc/bad` → 阻止整个命令）
 
-**默认实现**：`DefaultSensitivePathProvider`（内置 denylist + workspace 排除）。
+> 注：以上特性中，路径前缀匹配 + 文件名匹配已由 `DefaultPathAccessChecker` 落地（含 `.env` 规则）；Workspace 感知排除与命令级扫描属完整 XDSL 配置化的组成部分，随未来增强实现。
+
+**默认实现**：`DefaultPathAccessChecker`（内置 denylist，可经构造器注入扩展；workspace 感知排除未落地）。
 
 ### 7.3 IAuditLogger — 安全审计日志
 

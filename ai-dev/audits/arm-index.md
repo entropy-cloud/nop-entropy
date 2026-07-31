@@ -307,3 +307,28 @@ MR4 Phase 2 对 P1 表全部 `fixed` 行做了 live repo 证据核验（提交/�
 
 **验证**：`./mvnw test -pl nop-ai -am -T 1C` BUILD SUCCESS（含 shell/toolkit/core/coder/dsl-orm/maven/web 全部新测试）。
 
+
+## P2 修复追踪（安全加固批次，2026-07-31）
+
+第三批 P2 批量修复（plan `ai-dev/plans/2026-07-31-1834-1-arm-p2-security-hardening.md`）已执行并收口。安全类 P2 finding 全部 `fixed` 或裁定落盘（详见各 Phase 验证）：
+
+| Finding ID | 修复状态 | 修复位置 / 测试 |
+|-----------|---------|----------------|
+| P2-MA3-023 / MA6.2-AR-5 | `fixed` | `DefaultCommandChecker` deny-list（blocked commands / rm -rf 根目录三元判定 / 存储设备写入 / chmod-chown 根级 / sudo 包装 / 裸 shell 解释器）；`ShellCommandExecutor` 两参构造器默认装配 + null checker WARN。测试 = `TestCommandChecker`（重写 13 例）+ `ShellCommandExecutorTest` 接线 2 例 + `ShellConcurrencyEdgeCaseTest` 23 例兼容 |
+| MA6.2-AR-6 / MA5.4-P2-2 | `fixed` | 新建 `PromptInjectionGuardrail`（四类威胁正则 + GuardrailMode OFF/REPORT/ENFORCE 语义）；NoOp 默认 WARN 核验在位（`DefaultAgentEngine.java:787-792`）。测试 = `TestPromptInjectionGuardrail`（10 例）+ `TestContentGuardrailInReActLoop` 引擎级拦截 1 例（共 8 例）；设计文档 §5.2 逐项声明 4 guardrail 实现状态 |
+| MA6.5-AR-7 | `fixed` | `DefaultAiChatResponseCache` TTL——新配置键 `nop.ai.service.cache-ttl`（默认 0=不过期，读取时惰性过期基于 mtime）。测试 = `TestAiChatResponseCacheTtl`（3 例）；`docs-for-ai/03-modules/nop-ai.md` 配置节同步 |
+| MA6.5-AR-8 | `fixed` | forkSession 消息过滤 hook——`ISessionStore.forkSession(4 参)` overload（filter=null 全量兼容，非 null 不支持则 UOE fail-fast）+ 三 store 实现 + `DefaultAgentEngine.forkMessageFilter` 端到端传递。测试 = `TestSessionStoreForkMessageFilter`（7 例含引擎级端到端） |
+| MA6.5-AR-9 | `fixed` | `ChatLogHelper` 路径穿越校验（`^[A-Za-z0-9_-]+$` 白名单，与 `SessionIds.requireValidIdentifier` 同模式；MA6.5-AR-9 为 MV 矩阵缺口 P1 发现，本批次承接，见 `2026-07-31-arm-MA6.5-nop-ai-chat-prompt-security.md` AR-9）。测试 = `TestChatLogHelper` 新增 3 例（合法放行/../etc/passwd 拒绝/a/b 与 .. 拒绝） |
+| MA5.5-AR-6 | `fixed` | `http-request.tool.xml` JWT 示例 token → `YOUR_BEARER_TOKEN_HERE` 占位符（nop-ai 模块组内 grep `eyJhbGci` 0 命中；全仓仅 nop-auth SSO 测试夹具 `TestJwtHelper` 与 e2e 测试夹具 `debug.test.ts` 各有 1 处既有命中，非本模块组、未触及）；auth 结构说明保留 |
+| MA5.5-AR-7 | `fixed` | 3 个 `application.yaml` 注释 MySQL 凭据块整块删除（grep `jdbc:mysql` 0 命中：nop-ai-app / nop-ai-coder / nop-ai-translate） |
+| MA6.1-AR-7 | `fixed`（裁定+实现） | `AiCoreConfigs.CFG_AI_SERVICE_LOG_MESSAGE` 默认 `true` → `false`（全局关闭）；`ChatServiceImpl` 三处接线为 `全局 && per-model isLogMessage()`（per-model 显式关闭仍可覆盖；`llm.xdef`/`_LlmModel` 平台内核未动，git diff 验证 0 改动）；`docs-for-ai/03-modules/nop-ai.md` 声明 per-model 覆盖语义 |
+| P2-MA3-026 | `fixed`（裁定，路线 B 文档化） | 42 个 xbiz 全为 CRUD 继承、自定义 action 面为 0；裁定：nop-ai 为框架模块组，声明式 CRUD 权限归属调用方应用层（与 nop-code/nop-auth DataAuth 应用层配置一致）；MR2 已落的 `@Auth`（`NopAiChatResponse:query` 等，`<BizObjName>:<action>` 命名）为自定义方法面现状基线。42 文件 × ~9 action 声明式 `rights` 无应用层消费方，不入框架基线（路线 A 拒绝理由：~378 条无人消费的声明 + 42 文件生成面扰动）。裁定落盘于本段 + `docs-for-ai/03-modules/nop-ai.md` |
+| MA5.4-P2-1 | `fixed`（裁定，文档修正） | DashScope dialect：设计文档从 Known Provider 表移除并标注"未实现，未来添加"（`nop-ai-agent-llm-layer.md` §4.3）——实现属完整功能（半天+工作量），裁定为文档修正路线 |
+| MA5.4-P2-5 | `fixed`（裁定，文档标注 deferred） | `IApprovalChannel`：设计文档标注"接口为未来功能化审批流设计，当前无代码实现"（`security-and-permissions.md` §6.1）；不创建空接口占位（避免 hollow），`DefaultApprovalGate` 默认实现现状同步（原文档误写 `AutoApproveGate` 已修正） |
+| MA5.4-P2-3 | `fixed`（裁定+最小实现） | `DefaultPathAccessChecker` 构造器注入扩展（`(List<String> extraSensitivePrefixes, Set<String> extraSensitiveFilenames)` 追加 pattern 集，内置默认硬编码集不变；symlink 复查路径同步使用实例规则）；设计文档 §7.2 重写为真实实现状态。测试 = `TestPathAccessCheckerSensitivePaths`（5 例，接线验证：注入配置进入实际检查路径） |
+| MA6.2-AR-7 残余 | `fixed`（逐项确认） | `SearchContentExecutor`（pattern 必填+fs 判空）、`SearchFilesExecutor`（pattern/directory 缺省语义由 fs 兜底 workDir，无静默 stub）、`SkillExecutor`（action/skillName 校验+未知 skill 拒绝；`discoverSkills` 的 catch 兜底为历史 stub 语义，文档化为扩展点）、`AskOracleExecutor`（question/options 校验；ORACLE_ENDPOINT 缺失返回首个 option 为 P2-MA1-011 已裁定 stub 契约，保持）——无新增静默 stub 语义 |
+| MA5.4-P2-4 | `fixed`（核验记录） | pipeline 复杂命令已由 MR3 文档收敛（`04-tool-invocation.md` 已无 pipeline 段落，grep 0 命中），仅核验未重复处理 |
+
+**scan-hollow 基线（执行前落盘）**：`node ai-dev/tools/scan-hollow-implementations.mjs --module nop-ai --severity high` 基线退出码 1（24 项既有 high findings，全部为历史 pass-through/SPI 设计：IAiMemoryStore×4、ISessionStore UOE defaults、IAgentEngine×4、NoOpHookRegistry、NoOpFencingTokenService、AlwaysClosed/NoOpGoalTracker/NoOpSustainer、DefaultAiChatService:620、PrintStreamShellOutput/ShellChunk/TeeOutput、DefaultAgentEngine:3268 plan-mode UOE 等）。closure 判定为增量式：本计划触及文件不新增 high 项。
+
+**验证**：`./mvnw install -DskipTests -pl nop-ai -am -T 1C` BUILD SUCCESS + `./mvnw test -pl nop-ai` BUILD SUCCESS（nop-ai-agent 2856 / nop-ai-shell 269 等全绿）；上游模块全量顺序 run（19:15）已核绿，因并行会话对 `xview.xdef` 的 WIP 干扰（环境备注见 `ai-dev/logs/2026/07-31.md`）后续批次跳过上游测试。
