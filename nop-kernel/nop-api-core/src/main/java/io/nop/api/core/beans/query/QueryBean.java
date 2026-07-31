@@ -14,6 +14,8 @@ import io.nop.api.core.annotations.data.DataBean;
 import io.nop.api.core.annotations.graphql.GraphQLObject;
 import io.nop.api.core.beans.FilterBeans;
 import io.nop.api.core.beans.ITreeBean;
+import io.nop.api.core.beans.IntRangeBean;
+import io.nop.api.core.beans.IntRangeSet;
 import io.nop.api.core.beans.TreeBean;
 import io.nop.api.core.util.ApiStringHelper;
 import io.nop.api.core.util.Guard;
@@ -538,6 +540,25 @@ public class QueryBean implements Serializable, ICloneable {
             }
             join.setConditions(joins);
         }
+        return this;
+    }
+
+    public QueryBean addPartitionFilter(QueryBean query, IntRangeSet partitions, String partitionProp) {
+        if (partitions == null || partitions.isEmpty()) {
+            return this;
+        }
+
+        List<IntRangeBean> ranges = partitions.getRanges();
+        if (ranges.size() == 1) {
+            IntRangeBean range = ranges.get(0);
+            return query.addFilter(FilterBeans.between(partitionProp, range.getOffset(), range.getLast()));
+        }
+
+        List<TreeBean> rangeFilters = new ArrayList<>();
+        for (IntRangeBean range : partitions.getRanges()) {
+            rangeFilters.add(FilterBeans.between(partitionProp, range.getOffset(), range.getLast()));
+        }
+        query.addFilter(FilterBeans.or(rangeFilters));
         return this;
     }
 }
