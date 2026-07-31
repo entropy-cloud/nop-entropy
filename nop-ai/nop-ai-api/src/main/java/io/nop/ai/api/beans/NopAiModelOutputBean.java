@@ -1,6 +1,7 @@
 //__XGEN_FORCE_OVERRIDE__
     package io.nop.ai.api.beans;
 
+    import com.fasterxml.jackson.annotation.JsonIgnore;
     import com.fasterxml.jackson.annotation.JsonInclude;
     import io.nop.api.core.annotations.data.DataBean;
     import io.nop.api.core.annotations.meta.PropMeta;
@@ -84,6 +85,7 @@
         private String _apiKey;
 
     
+        @JsonIgnore
         @PropMeta(propId=5)
     
         public String getApiKey(){

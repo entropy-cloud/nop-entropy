@@ -48,7 +48,7 @@
 | Finding ID | 报告 | 描述 | 修复路径 | 修复状态 |
 |-----------|------|------|---------|---------|
 | P0-MA2-01 ✅ | MA2.1 | 双 ORM 源文件漂移（nop-ai.orm.xml vs ai-gen.orm.xml） | [异步修复 plan](ai-dev/plans/2026-07-30-2130-arm-fix-p0-ma2-01.md) | `fixed` |
-| P0-MA6-01 | MA6.1 | Gemini API key 在 URL query parameter 中以明文传输（GeminiDialect.buildUrl） | MR3 | open |
+| P0-MA6-01 ✅ | MA6.1 | Gemini API key 在 URL query parameter 中以明文传输（GeminiDialect.buildUrl） | MR3 | `fixed` |
 
 ## P1 发现汇总（待 MR 批量修复）
 
@@ -58,7 +58,7 @@
 | P1-MA1-002 (原 F02) | MA1.1-MA1.2 | 废弃并行 API 体系未清理（IAiChatService 等） | MR1 | fixed |
 | P1-MA5-001 (原 F03) | MA5.2/MA5.1 交叉 | `DefaultAiChatService.getSession()` 始终返回 null | — | `fixed`（审计中修改为 throw UnsupportedOperationException） |
 | P1-MA5-002 (原 F04) | MA5.2 | `BashExecutor` 子线程流读取空 catch | MR2 | fixed |
-| P1-MA5-003 (原 F05) | MA5.1 | IVectorStore / IEmbeddingModel / ITokenCountEstimator 接口无生产实现 | MR3 | open |
+| P1-MA5-003 (原 F05) | MA5.1 | IVectorStore / IEmbeddingModel / ITokenCountEstimator 接口无生产实现 | MR3 | `fixed` |
 | P1-MA2-002 | MA2.1 | NopAiProject 缺失审计传播属性 | MR1 | fixed |
 | P1-MA2-003 | MA2.1 | NopAiRequirement version 字段类型冲突（VARCHAR vs 乐观锁 int） | MR1 | fixed |
 | P1-MA2-004 | MA2.1 | NopAiSessionContext refPropName="context" 应为 "contexts" | MR1 | fixed |
@@ -84,28 +84,28 @@
 | P1-MA3-002 | MA3.4 | SequentialThinkingBizModel.processThought @BizMutation 使用 IllegalArgumentException 而非 ErrorCode | MR2 | fixed |
 | P1-MA3-01 | MA3.5 | nop-ai-agent 依赖 core 内部模型包（ChatOptionsModel） | MR2 | fixed |
 | P1-MA3-02 | MA3.5 | nop-ai-agent 依赖 core 内部 dialect 包（ILlmDialect/LlmDialectFactory） | MR2 | fixed |
-| P1-MA5.4-001 | MA5.4 | Gateway bidirectional dialect conversion only works for OpenAI; other 3 dialects throw UOE at runtime | MR3 | open |
-| P1-MA5.5-001 | MA5.5 | Hardcoded JWT enc-key in nop-ai-app/application.yaml | MR3 | open |
-| P1-MA5.5-002 | MA5.5 | Plaintext MySQL password in nop-ai-coder/tools/application.yaml | MR3 | open |
-| P1-MA5.5-003 | MA5.5 | Gemini URL apiKey leakage via GeminiDialect.buildUrl() | MR3 | open |
-| P1-MA5.5-004 | MA5.5 | apiKey serialized in NopAiModelOutputBean (GraphQL DTO exposed to API response) | MR3 | open |
-| P1-MA5.6-001 | MA5.6 | CoreInitialization lifecycle race across 40+ test classes (parallel test execution risk) | MR3 | open |
-| P1-MA5.7-001 | MA5.7 | MA5.2 F-016 (ReActAgentExecutor hook catch+LOG.warn) untracked in arm-index — P1 gap | MR3 | open |
-| P1-MA6.1-001 | MA6.1 | DefaultAiChatService.getApiVersion() reads wrong config key (reads API key instead of version) | MR3 | open |
-| P1-MA6.1-002 | MA6.1 | NopAiModelOutputBean exposes apiKey in API response (same as MA5.5-004, consolidated) | MR3 | open |
-| P1-MA6.1-003 | MA6.1 | DefaultChatLogger logs chat content without sanitization (potential credential leakage) | MR3 | open |
-| P1-MA6.1-004 | MA6.1 | NopAiModel DAO entity stores API key in plaintext VARCHAR in DB | MR3 | open |
-| P1-MA6.2-001 | MA6.2 | HttpRequestExecutor SSRF — no URL whitelist or internal-IP blocklist | MR3 | open |
-| P1-MA6.2-002 | MA6.2 | GraphqlQueryExecutor SSRF — endpoint URL accepted verbatim without validation | MR3 | open |
-| P1-MA6.2-003 | MA6.2 | LocalToolFileSystem.isPathAllowed() silently bypassed — not called from any file operation | MR3 | open |
-| P1-MA6.2-004 | MA6.2 | BashExecutor zero input validation — any shell command accepted | MR3 | open |
-| P1-MA6.3-001 | MA6.3 | ChatServiceImpl has no timeout — LLM calls can hang indefinitely | MR3 | open |
-| P1-MA6.3-002 | MA6.3 | Default retry policy and circuit breaker are both pass-through — zero resilience defaults | MR3 | open |
-| P1-MA6.4-001 | MA6.4 | VectorStoreOptions missing tenantId field — no tenant isolation at API contract level | MR3 | open |
-| P1-MA6.4-002 | MA6.4 | IEmbeddingModel has no auth/tenant context in its API | MR3 | open |
-| P1-MA6.4-003 | MA6.4 | memory adapters (IStorageAdapter/IVectorAdapter) not integrated with ITenantResolver | MR3 | open |
-| P1-MA6.5-001 | MA6.5 | User message content shipped to LLM without input sanitization (no-op guardrail by default) | MR3 | open |
-| P1-MA6.5-002 | MA6.5 | DefaultAiChatExchangePersister writes full conversation to plaintext files (no encryption) | MR3 | open |
-| P1-MA6.5-003 | MA6.5 | No session access authentication — AgentEngine.getSession() has no auth check | MR3 | open |
-| P1-MA6.5-004 | MA6.5 | User messages stored verbatim → loaded into system prompt on next turn (injection amplification) | MR3 | open |
-| P1-MA6.5-005 | MA6.5 | DefaultPathAccessChecker allows absolute path traversal in file operations | MR3 | open |
+| P1-MA5.4-001 | MA5.4 | Gateway bidirectional dialect conversion only works for OpenAI; other 3 dialects throw UOE at runtime | MR3 | `fixed` |
+| P1-MA5.5-001 | MA5.5 | Hardcoded JWT enc-key in nop-ai-app/application.yaml | MR3 | `fixed` |
+| P1-MA5.5-002 | MA5.5 | Plaintext MySQL password in nop-ai-coder/tools/application.yaml | MR3 | `fixed` |
+| P1-MA5.5-003 | MA5.5 | Gemini URL apiKey leakage via GeminiDialect.buildUrl() | MR3 | `fixed` |
+| P1-MA5.5-004 | MA5.5 | apiKey serialized in NopAiModelOutputBean (GraphQL DTO exposed to API response) | MR3 | `fixed` |
+| P1-MA5.6-001 | MA5.6 | CoreInitialization lifecycle race across 40+ test classes (parallel test execution risk) | MR3 | `fixed` |
+| P1-MA5.7-001 | MA5.7 | MA5.2 F-016 (ReActAgentExecutor hook catch+LOG.warn) untracked in arm-index — P1 gap | MR3 | `fixed` |
+| P1-MA6.1-001 | MA6.1 | DefaultAiChatService.getApiVersion() reads wrong config key (reads API key instead of version) | MR3 | `fixed` |
+| P1-MA6.1-002 | MA6.1 | NopAiModelOutputBean exposes apiKey in API response (same as MA5.5-004, consolidated) | MR3 | `fixed` |
+| P1-MA6.1-003 | MA6.1 | DefaultChatLogger logs chat content without sanitization (potential credential leakage) | MR3 | `fixed` |
+| P1-MA6.1-004 | MA6.1 | NopAiModel DAO entity stores API key in plaintext VARCHAR in DB | MR3 | `fixed` |
+| P1-MA6.2-001 | MA6.2 | HttpRequestExecutor SSRF — no URL whitelist or internal-IP blocklist | MR3 | `fixed` |
+| P1-MA6.2-002 | MA6.2 | GraphqlQueryExecutor SSRF — endpoint URL accepted verbatim without validation | MR3 | `fixed` |
+| P1-MA6.2-003 | MA6.2 | LocalToolFileSystem.isPathAllowed() silently bypassed — not called from any file operation | MR3 | `fixed` |
+| P1-MA6.2-004 | MA6.2 | BashExecutor zero input validation — any shell command accepted | MR3 | `fixed` |
+| P1-MA6.3-001 | MA6.3 | ChatServiceImpl has no timeout — LLM calls can hang indefinitely | MR3 | `fixed` |
+| P1-MA6.3-002 | MA6.3 | Default retry policy and circuit breaker are both pass-through — zero resilience defaults | MR3 | `fixed` |
+| P1-MA6.4-001 | MA6.4 | VectorStoreOptions missing tenantId field — no tenant isolation at API contract level | MR3 | `fixed` |
+| P1-MA6.4-002 | MA6.4 | IEmbeddingModel has no auth/tenant context in its API | MR3 | `fixed` |
+| P1-MA6.4-003 | MA6.4 | memory adapters (IStorageAdapter/IVectorAdapter) not integrated with ITenantResolver | MR3 | `fixed` |
+| P1-MA6.5-001 | MA6.5 | User message content shipped to LLM without input sanitization (no-op guardrail by default) | MR3 | `fixed` |
+| P1-MA6.5-002 | MA6.5 | DefaultAiChatExchangePersister writes full conversation to plaintext files (no encryption) | MR3 | `fixed` |
+| P1-MA6.5-003 | MA6.5 | No session access authentication — AgentEngine.getSession() has no auth check | MR3 | `fixed` |
+| P1-MA6.5-004 | MA6.5 | User messages stored verbatim → loaded into system prompt on next turn (injection amplification) | MR3 | `fixed` |
+| P1-MA6.5-005 | MA6.5 | DefaultPathAccessChecker allows absolute path traversal in file operations | MR3 | `fixed` |

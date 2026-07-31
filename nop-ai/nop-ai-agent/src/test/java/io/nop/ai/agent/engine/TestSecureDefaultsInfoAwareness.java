@@ -84,8 +84,21 @@ public class TestSecureDefaultsInfoAwareness {
                 .collect(Collectors.toList());
     }
 
+    private List<ILoggingEvent> warnEvents() {
+        return appender.list.stream()
+                .filter(e -> e.getLevel() == Level.WARN)
+                .collect(Collectors.toList());
+    }
+
     private long countInfosMentioning(String keyword) {
         return infoEvents().stream()
+                .filter(e -> e.getFormattedMessage() != null
+                        && e.getFormattedMessage().contains(keyword))
+                .count();
+    }
+
+    private long countWarnsMentioning(String keyword) {
+        return warnEvents().stream()
                 .filter(e -> e.getFormattedMessage() != null
                         && e.getFormattedMessage().contains(keyword))
                 .count();
@@ -136,15 +149,15 @@ public class TestSecureDefaultsInfoAwareness {
     }
 
     @Test
-    void defaultConstructionEmitsInfoForNoOpContentGuardrail() {
+    void defaultConstructionEmitsWarnForNoOpContentGuardrail() {
         IChatService chat = dummyChatService();
         IToolManager tools = dummyToolManager();
 
         DefaultAgentEngine engine = new DefaultAgentEngine(chat, tools);
 
-        assertTrue(countInfosMentioning("NoOpContentGuardrail") >= 1,
-                "Default construction must emit an INFO message about NoOpContentGuardrail. Messages: "
-                        + infoEvents().stream().map(ILoggingEvent::getFormattedMessage).collect(Collectors.toList()));
+        assertTrue(countWarnsMentioning("NoOpContentGuardrail") >= 1,
+                "Default construction must emit a WARN message about NoOpContentGuardrail. Messages: "
+                        + warnEvents().stream().map(ILoggingEvent::getFormattedMessage).collect(Collectors.toList()));
     }
 
     @Test
@@ -175,14 +188,14 @@ public class TestSecureDefaultsInfoAwareness {
     }
 
     @Test
-    void builderPathEmitsInfoForNoOpContentGuardrail() {
+    void builderPathEmitsWarnForNoOpContentGuardrail() {
         IChatService chat = dummyChatService();
         IToolManager tools = dummyToolManager();
 
         DefaultAgentEngine engine = DefaultAgentEngine.builder(chat, tools).build();
 
-        assertTrue(countInfosMentioning("NoOpContentGuardrail") >= 1,
-                "Builder path must emit an INFO message about NoOpContentGuardrail");
+        assertTrue(countWarnsMentioning("NoOpContentGuardrail") >= 1,
+                "Builder path must emit a WARN message about NoOpContentGuardrail");
     }
 
     @Test
@@ -206,8 +219,9 @@ public class TestSecureDefaultsInfoAwareness {
                 .contentGuardrail(custom)
                 .build();
 
-        assertEquals(0, countInfosMentioning("NoOpContentGuardrail"),
-                "Custom IContentGuardrail must NOT emit NoOpContentGuardrail INFO. Messages: "
+        assertEquals(0, countWarnsMentioning("NoOpContentGuardrail") + countInfosMentioning("NoOpContentGuardrail"),
+                "Custom IContentGuardrail must NOT emit NoOpContentGuardrail messages. Messages: "
+                        + warnEvents().stream().map(ILoggingEvent::getFormattedMessage).collect(Collectors.toList())
                         + infoEvents().stream().map(ILoggingEvent::getFormattedMessage).collect(Collectors.toList()));
     }
 }

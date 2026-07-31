@@ -198,9 +198,13 @@ public class TestBudgetedMemoryInjectionEndToEnd {
                 int n = firstCallCount.getAndIncrement();
                 if (n == 0) {
                     List<ChatMessage> msgs = request.getMessages();
-                    if (!msgs.isEmpty() && msgs.get(0) instanceof ChatSystemMessage) {
-                        firstExecSystemPrompt.set(msgs.get(0).getContent());
+                    StringBuilder sb = new StringBuilder();
+                    for (ChatMessage m : msgs) {
+                        if (m instanceof ChatSystemMessage && m.getContent() != null)
+                            sb.append(m.getContent()).append("\n");
                     }
+                    if (sb.length() > 0)
+                        firstExecSystemPrompt.set(sb.toString().trim());
                     Map<String, Object> args = new HashMap<>();
                     args.put("action", "add");
                     args.put("key", "user-pref");
@@ -259,9 +263,13 @@ public class TestBudgetedMemoryInjectionEndToEnd {
             private ChatResponse buildResponse(ChatRequest request) {
                 if (secondCallCount.getAndIncrement() == 0) {
                     List<ChatMessage> msgs = request.getMessages();
-                    if (!msgs.isEmpty() && msgs.get(0) instanceof ChatSystemMessage) {
-                        secondExecSystemPrompt.set(msgs.get(0).getContent());
+                    StringBuilder sb = new StringBuilder();
+                    for (ChatMessage m : msgs) {
+                        if (m instanceof ChatSystemMessage && m.getContent() != null)
+                            sb.append(m.getContent()).append("\n");
                     }
+                    if (sb.length() > 0)
+                        secondExecSystemPrompt.set(sb.toString().trim());
                 }
                 return finalAssistant("Acknowledged user preference.");
             }
@@ -328,9 +336,13 @@ public class TestBudgetedMemoryInjectionEndToEnd {
             @Override
             public ChatResponse call(ChatRequest request, ICancelToken cancelToken) {
                 List<ChatMessage> msgs = request.getMessages();
-                if (!msgs.isEmpty() && msgs.get(0) instanceof ChatSystemMessage) {
-                    resumeSystemPrompt.set(msgs.get(0).getContent());
+                StringBuilder sb = new StringBuilder();
+                for (ChatMessage m : msgs) {
+                    if (m instanceof ChatSystemMessage && m.getContent() != null)
+                        sb.append(m.getContent()).append("\n");
                 }
+                if (sb.length() > 0)
+                    resumeSystemPrompt.set(sb.toString().trim());
                 return finalAssistant("resumed done");
             }
 
@@ -444,9 +456,13 @@ public class TestBudgetedMemoryInjectionEndToEnd {
             public ChatResponse call(ChatRequest request, ICancelToken cancelToken) {
                 if (callCount.getAndIncrement() == 0) {
                     List<ChatMessage> msgs = request.getMessages();
-                    if (!msgs.isEmpty() && msgs.get(0) instanceof ChatSystemMessage) {
-                        systemPrompt.set(msgs.get(0).getContent());
+                    StringBuilder sb = new StringBuilder();
+                    for (ChatMessage m : msgs) {
+                        if (m instanceof ChatSystemMessage && m.getContent() != null)
+                            sb.append(m.getContent()).append("\n");
                     }
+                    if (sb.length() > 0)
+                        systemPrompt.set(sb.toString().trim());
                 }
                 return finalAssistant("ok");
             }

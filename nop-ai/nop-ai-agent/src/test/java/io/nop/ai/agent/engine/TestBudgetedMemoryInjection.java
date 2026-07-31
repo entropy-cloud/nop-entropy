@@ -33,6 +33,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.Flow;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.stream.Collectors;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -143,13 +144,12 @@ public class TestBudgetedMemoryInjection {
      * received (the system message, if any). The engine is built with the
      * given provider and an explicit budget.
      */
-    private ChatMessage runAndCaptureFirstMessage(InMemoryMemoryStoreProvider provider, int budget) {
+    private List<ChatMessage> captureAllMessages(InMemoryMemoryStoreProvider provider, int budget) {
         CapturingChatService chat = new CapturingChatService();
         DefaultAgentEngine engine = new DefaultAgentEngine(chat, noToolManager());
         engine.setMemoryStoreProvider(provider);
         engine.setMemoryInjectionBudgetTokens(budget);
 
-        // Use sessionId "s1" so the pre-populated store is the one injected.
         AgentMessageRequest request = new AgentMessageRequest(
                 "test-agent", "hello", "s1", Collections.emptyMap());
         engine.execute(request).join();
@@ -157,7 +157,18 @@ public class TestBudgetedMemoryInjection {
         List<ChatMessage> msgs = chat.captured.get();
         assertNotNull(msgs, "Chat service should have captured the request messages");
         assertFalse(msgs.isEmpty(), "Captured messages should not be empty");
-        return msgs.get(0);
+        return msgs;
+    }
+
+    private ChatMessage runAndCaptureFirstMessage(InMemoryMemoryStoreProvider provider, int budget) {
+        List<ChatMessage> msgs = captureAllMessages(provider, budget);
+        // Return the last system message that may contain memory content (memory
+        // is now a separate ChatSystemMessage instead of being concatenated
+        // into the base prompt).
+        List<ChatMessage> sysMsgs = msgs.stream()
+                .filter(m -> m instanceof ChatSystemMessage)
+                .collect(Collectors.toList());
+        return sysMsgs.isEmpty() ? msgs.get(0) : sysMsgs.get(sysMsgs.size() - 1);
     }
 
     // ------------------------------------------------------------------
@@ -187,7 +198,7 @@ public class TestBudgetedMemoryInjection {
     }
 
     // ------------------------------------------------------------------
-    // Injection correctness (base prompt + memory section in one system msg)
+    // Injection correctness (base prompt + memory as separate system msg)
     // ------------------------------------------------------------------
 
     @Test
@@ -196,20 +207,26 @@ public class TestBudgetedMemoryInjection {
         IAiMemoryStore store = provider.getOrCreate("s1");
         store.add(memoryItem("pref", "note", "User prefers concise answers", 5, true));
 
-        ChatMessage first = runAndCaptureFirstMessage(provider, 1024);
+        List<ChatMessage> msgs = captureAllMessages(provider, 1024);
+        assertFalse(msgs.isEmpty(), "Must have at least one message");
 
+        // The base prompt is the first ChatSystemMessage.
+        ChatMessage first = msgs.get(0);
         assertTrue(first instanceof ChatSystemMessage,
                 "First message must be a ChatSystemMessage when base prompt exists");
-        String text = first.getContent();
-        assertTrue(text.startsWith(BASE_PROMPT),
+        assertTrue(first.getContent().startsWith(BASE_PROMPT),
                 "Base prompt must remain the prefix (prefix-cache friendly)");
-        assertTrue(text.contains("## Working Memory"),
-                "Memory section must be appended after base prompt");
-        assertTrue(text.contains("User prefers concise answers"),
-                "Injected memory content must be present");
-        int baseIdx = text.indexOf(BASE_PROMPT);
-        int memIdx = text.indexOf("## Working Memory");
-        assertTrue(baseIdx < memIdx, "Base prompt must precede the memory section");
+
+        // Memory is now a separate ChatSystemMessage (not concatenated into
+        // the base prompt), preventing prompt injection amplification.
+        boolean foundMemory = msgs.stream()
+                .filter(m -> m instanceof ChatSystemMessage)
+                .anyMatch(m -> m.getContent() != null && m.getContent().contains("## Working Memory"));
+        assertTrue(foundMemory, "Memory section must be present as a separate system message");
+        boolean foundContent = msgs.stream()
+                .filter(m -> m instanceof ChatSystemMessage)
+                .anyMatch(m -> m.getContent() != null && m.getContent().contains("User prefers concise answers"));
+        assertTrue(foundContent, "Injected memory content must be present in a system message");
     }
 
     @Test

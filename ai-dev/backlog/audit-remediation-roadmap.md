@@ -107,8 +107,8 @@
 
 | # | Work Item | Status | Owner Doc | Deps | Skill |
 |---|-----------|--------|-----------|------|-------|
-| R3.0 | MA5+MA6 P1 发现汇总、排序并展开 | todo | `ai-dev/audits/arm-index.md` §P1 | MA5+MA6 done | none（展开器） |
-| R3.x | （R3.0 执行后自动展开） | todo | — | R3.0 | 按具体修复工作项确定 |
+| R3.0 | MA5+MA6 P1 发现汇总、排序并展开 | done | `ai-dev/audits/arm-index.md` §P1 | MA5+MA6 done | none（展开器） |
+| R3.x | MR3 P1 修复执行（含 P0-MA6-01） | done | `ai-dev/plans/2026-07-31-1300-5-arm-mr3-fix.md` | R3.0 | 按具体修复工作项确定 |
 
 ### MR4 — 跨维度裁决
 
@@ -145,7 +145,7 @@
 | MA6 | M0 | 审计报告（AI/LLM 特有风险） |
 | MR1 ✅ | MA1+MA2 | 修复代码 + 测试（closed 2026-07-31） |
 | MR2 | MA3+MA4 | 修复代码 + 测试 |
-| MR3 | MA5+MA6 | 修复代码 + 测试 |
+| MR3 ✅ | MA5+MA6 | 修复代码 + 测试（closed 2026-07-31） |
 | MR4 | MR1+MR2+MR3 | 裁决文档 |
 | MV | MR1+MR2+MR3+MR4 | 验证报告 + closure audit |
 | MG | MV | lessons + docs |

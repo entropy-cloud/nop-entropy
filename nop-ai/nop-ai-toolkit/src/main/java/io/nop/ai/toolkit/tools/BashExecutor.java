@@ -31,6 +31,12 @@ public class BashExecutor implements IToolExecutor {
             "PERL5LIB", "RUBYLIB", "DYLD_INSERT_LIBRARIES"
     );
 
+    private static final Pattern DESTRUCTIVE_COMMAND = Pattern.compile(
+            "(^|\\s)(rm\\s+-[a-z]*[rf].*(/|\\s)|dd\\s|mkfs|mkfs\\..*|shutdown|reboot|init\\s|halt|poweroff|"
+                    + "chmod\\s+-R\\s+777\\s+/|chown\\s+-R.*\\s+/|>\\s*/dev/(sda|sdb|nvme)|"
+                    + "sudo\\s+rm\\s+-rf\\s+/|\\|\\s*bash|/dev/sd[a-z]\\s*$)",
+            Pattern.CASE_INSENSITIVE);
+
     @Override
     public String getToolName() {
         return TOOL_NAME;
@@ -47,6 +53,12 @@ public class BashExecutor implements IToolExecutor {
             String workingDir = call.attrText("workingDir");
             Map<String, String> env = parseEnv(call);
             int timeoutMs = call.attrInt("timeoutMs", call.getTimeoutMs() != null ? call.getTimeoutMs() : 30000);
+
+            String validationError = validateCommand(command);
+            if (validationError != null) {
+                return AiToolCallResult.errorResult(call.getId(),
+                        "Command blocked: " + validationError);
+            }
 
             if (workingDir == null || workingDir.isEmpty()) {
                 workingDir = context.getWorkDir() != null ? context.getWorkDir().getAbsolutePath() : ".";
@@ -128,6 +140,16 @@ public class BashExecutor implements IToolExecutor {
 
     private boolean isWindows() {
         return System.getProperty("os.name").toLowerCase().contains("win");
+    }
+
+    private String validateCommand(String command) {
+        if (command == null || command.trim().isEmpty()) {
+            return "empty command";
+        }
+        if (DESTRUCTIVE_COMMAND.matcher(command).find()) {
+            return "destructive command pattern detected: " + command;
+        }
+        return null;
     }
 
     private Map<String, String> parseEnv(AiToolCall call) {

@@ -89,6 +89,31 @@ public class BashExecutorTest {
         assertTrue(result.getOutput().getBody().contains("test_value"));
     }
 
+    @Test
+    void testDestructiveCommandRejected() {
+        XNode node = XNode.make("bash");
+        node.makeChild("command").setContentValue("rm -rf /");
+        AiToolCall call = AiToolCall.fromNode(node);
+        AiToolCallResult result = executor.executeAsync(call, new MockContext()).toCompletableFuture().join();
+        assertEquals("failure", result.getStatus());
+        assertTrue(result.getError().getBody().contains("Command blocked"),
+                "Destructive command must be blocked. Error: " + result.getError().getBody());
+    }
+
+    @Test
+    void testDangerousEnvVarRejected() {
+        boolean isWin = System.getProperty("os.name").toLowerCase().contains("win");
+        XNode node = XNode.make("bash");
+        node.makeChild("command").setContentValue(isWin ? "echo %LD_PRELOAD%" : "echo $LD_PRELOAD");
+        XNode env = node.makeChild("env");
+        env.setAttr("name", "LD_PRELOAD");
+        env.setAttr("value", "/tmp/malicious.so");
+        AiToolCall call = AiToolCall.fromNode(node);
+        AiToolCallResult result = executor.executeAsync(call, new MockContext()).toCompletableFuture().join();
+        assertEquals("success", result.getStatus(),
+                "Command must still run with dangerous env var stripped");
+    }
+
     static class MockContext implements IToolExecuteContext {
         @Override public File getWorkDir() { return new File("."); }
         @Override public Map<String, String> getEnvs() { return Map.of(); }
