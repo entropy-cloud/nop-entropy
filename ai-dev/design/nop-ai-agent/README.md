@@ -71,6 +71,8 @@ Layer 1: Core Interfaces (核心接口层)
   - Session 的引擎层设计
 - `engine-lifecycle.md`
   - 引擎生命周期终止入口（`IAgentEngine.close`）与 checkpoint cache 有界化（`ICheckpointManager.remove` terminal-only 调用门）
+- `engine-class-split.md`
+  - **类结构治理**：`ReActAgentExecutor`（3728 行）/`DefaultAgentEngine`（3681 行）/`TeamTaskSchedulerDaemon`（1108 行）的 design-first 拆分决策——提取类清单与职责、成员级去向（映射表详见 daily log）、行数预算、嵌套类裁定、语义对比方法学（MA4.2-05）
 
 ## 语义映射层
 

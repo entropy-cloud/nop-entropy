@@ -1,0 +1,60 @@
+#!/bin/bash
+# Semantic comparison driver for MA4.2-05 engine-class-split.
+#
+# Baseline: ai-dev/audits/evidence/ma4-2-05/baseline/<file>.java
+#   (snapshots of the three pre-split files, committed as baseline commit
+#    <BASELINE_SHA>; see git log -- ai-dev/audits/evidence/ma4-2-05/baseline)
+#
+# Normalization whitelist (see design doc engine-class-split.md §8):
+#   1. access relaxation (private -> package-private/public)
+#   2. state-injection parameter appends
+#   3. member relocation across classes
+#   4. delegation-call rewriting (foo(x) -> helper.foo(x), field refs -> config.field)
+#   5. inline-block extraction (execute()/doExecute() blocks -> new methods,
+#      matched by >= 0.85 normalized-text overlap)
+#
+# Usage: ./compare.sh
+# Outputs: react-semantic-diff.txt / engine-semantic-diff.txt / daemon-semantic-diff.txt
+
+set -u
+DIR="$(cd "$(dirname "$0")" && pwd)"
+BASELINE="$DIR/baseline"
+SRC="../../../../nop-ai/nop-ai-agent/src/main/java/io/nop/ai/agent"
+ENGINE_SRC="$SRC/engine"
+TEAM_SRC="$SRC/team/scheduler"
+
+run() {
+    local name="$1"; shift
+    local baseline="$1"; shift
+    python3 "$DIR/compare.py" "$baseline" "$@" > "$DIR/$name" 2>&1
+    local rc=$?
+    echo "== $name: exit $rc"
+    tail -3 "$DIR/$name"
+}
+
+run react-semantic-diff.txt "$BASELINE/ReActAgentExecutor.java" \
+    "$ENGINE_SRC/ReActAgentExecutor.java" \
+    "$ENGINE_SRC/ReActAgentExecutorBuilder.java" \
+    "$ENGINE_SRC/LlmCallCoordinator.java" \
+    "$ENGINE_SRC/AgentHookInvoker.java" \
+    "$ENGINE_SRC/AgentSecurityConsultation.java" \
+    "$ENGINE_SRC/AgentCompactionCoordinator.java" \
+    "$ENGINE_SRC/AgentToolPlanResolver.java" \
+    "$ENGINE_SRC/AgentPromptAssembly.java" \
+    "$ENGINE_SRC/AgentToolDispatcher.java" \
+    "$ENGINE_SRC/AgentLoopGuard.java"
+
+run engine-semantic-diff.txt "$BASELINE/DefaultAgentEngine.java" \
+    "$ENGINE_SRC/DefaultAgentEngine.java" \
+    "$ENGINE_SRC/DefaultAgentEngineConfig.java" \
+    "$ENGINE_SRC/AgentSessionLifecycle.java" \
+    "$ENGINE_SRC/AgentCallDelegate.java" \
+    "$ENGINE_SRC/SessionLockRenewal.java" \
+    "$ENGINE_SRC/AgentExecutorResolver.java" \
+    "$ENGINE_SRC/AgentSessionSupport.java" \
+    "$ENGINE_SRC/AgentTeamBinder.java" \
+    "$ENGINE_SRC/AgentStartupWarnings.java"
+
+run daemon-semantic-diff.txt "$BASELINE/TeamTaskSchedulerDaemon.java" \
+    "$TEAM_SRC/TeamTaskSchedulerDaemon.java" \
+    "$TEAM_SRC/TaskDispatchCoordinator.java"
