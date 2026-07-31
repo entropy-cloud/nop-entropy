@@ -7,6 +7,7 @@
  */
 package io.nop.orm.dao;
 
+import io.nop.api.core.exceptions.NopException;
 import io.nop.dao.api.IEntityDao;
 import io.nop.orm.IOrmEntity;
 import io.nop.orm.IOrmTemplate;
@@ -16,6 +17,11 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
+
+import static io.nop.orm.OrmErrors.ARG_ENTITY;
+import static io.nop.orm.OrmErrors.ARG_ENTITY_ID;
+import static io.nop.orm.OrmErrors.ARG_ENTITY_NAME;
+import static io.nop.orm.OrmErrors.ERR_ORM_UPDATE_RETRY_ENTITY_NOT_ALLOW_DIRTY;
 
 public interface IOrmEntityDao<T extends IOrmEntity> extends IEntityDao<T> {
     IEntityModel getEntityModel();
@@ -41,5 +47,25 @@ public interface IOrmEntityDao<T extends IOrmEntity> extends IEntityDao<T> {
         entity.orm_disableVersionCheckError(true);
         updateEntityDirectly(entity);
         return !entity.orm_readonly();
+    }
+
+    default boolean updateWithRetry(T entity, int attempts, Runnable fieldSetter) {
+        if (entity.orm_dirty()) {
+            throw new NopException(ERR_ORM_UPDATE_RETRY_ENTITY_NOT_ALLOW_DIRTY)
+                    .param(ARG_ENTITY_NAME, entity.orm_entityName())
+                    .param(ARG_ENTITY_ID, entity.orm_id())
+                    .param(ARG_ENTITY, entity);
+        }
+
+        for (int attempt = 0; attempt < attempts; attempt++) {
+            fieldSetter.run();
+
+            if (tryUpdateWithVersionCheck(entity))
+                return true;
+
+            entity.orm_unload();
+        }
+
+        return false;
     }
 }

@@ -186,6 +186,9 @@ public interface OrmErrors {
     ErrorCode ERR_ORM_NOT_ALLOW_LOCK_DIRTY_ENTITY = define("nop.err.orm.lock-entity-must-not-be-dirty",
             "必须先锁定对象然后才能修改，不允许锁定已经被修改的对象", ARG_ENTITY_NAME, ARG_ENTITY_ID);
 
+    ErrorCode ERR_ORM_UPDATE_RETRY_ENTITY_NOT_ALLOW_DIRTY = define("nop.err.orm.update-retry-entity-not-allow-dirty",
+            "执行updateWithRetry更新时传入的实体必须为未修改状态，当前实体已经被修改", ARG_ENTITY_NAME, ARG_ENTITY_ID);
+
     ErrorCode ERR_ORM_LOCK_MUST_RUN_IN_TXN = define("nop.err.orm.lock-must-run-in-txn", "lock语句必须在事务中执行",
             ARG_ENTITY_NAME, ARG_ENTITY_ID);
 

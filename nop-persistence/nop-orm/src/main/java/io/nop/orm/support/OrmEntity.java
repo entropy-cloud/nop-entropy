@@ -207,6 +207,7 @@ public abstract class OrmEntity implements IOrmEntity {
                 if (initedProps != null)
                     initedProps.clear();
                 this._t = null;
+                this.readonly = false;
                 orm_clearDirty();
                 return;
             }

@@ -652,6 +652,7 @@ public class OrmEntitySet<T extends IOrmEntity> implements IOrmEntitySet<T> {
         this.proxy = true;
         this.entities.clear();
         this.orm_clearDirty();
+        this.readonly = false;
         this.initialEntities = null;
         this.keyToEntityMap = null;
     }
