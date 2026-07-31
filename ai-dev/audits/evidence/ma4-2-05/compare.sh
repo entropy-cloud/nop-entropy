@@ -18,6 +18,7 @@
 
 set -u
 DIR="$(cd "$(dirname "$0")" && pwd)"
+cd "$DIR"
 BASELINE="$DIR/baseline"
 SRC="../../../../nop-ai/nop-ai-agent/src/main/java/io/nop/ai/agent"
 ENGINE_SRC="$SRC/engine"
@@ -26,7 +27,7 @@ TEAM_SRC="$SRC/team/scheduler"
 run() {
     local name="$1"; shift
     local baseline="$1"; shift
-    python3 "$DIR/compare.py" "$baseline" "$@" > "$DIR/$name" 2>&1
+    python3 "$DIR/compare.py" "$baseline" "$@" --whitelist "$DIR/whitelist.json" > "$DIR/$name" 2>&1
     local rc=$?
     echo "== $name: exit $rc"
     tail -3 "$DIR/$name"

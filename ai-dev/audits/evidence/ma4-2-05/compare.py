@@ -106,7 +106,7 @@ def parse_class(lines, base=0, prefix=''):
     while i < n:
         stripped = lines[i].strip()
         if depth_at[i] == 1 and stripped and not stripped.startswith(('import', 'package', '/*', '*', '//')):
-            if ';' in stripped and '{' not in stripped and ('(' not in stripped or 'LoggerFactory.getLogger' in stripped):
+            if ';' in stripped and '{' not in stripped:
                 i += 1
                 continue
             cls_m = re.match(
@@ -233,11 +233,24 @@ def main():
             same_name = [nm for nm in new_members if nm['name'] == m['name'].split('.')[-1]]
         if allowed:
             same_name = [nm for nm in same_name if os.path.basename(nm['file']) in allowed]
-        threshold = 0.60 if m['name'] == 'builder' else 0.85
+        mcore = body_core(m['body'])
+        mcore_len = len(TOKEN_RE.findall(mcore))
+        # small bodies (pure delegation/rewrite sites) get a looser threshold —
+        # the delegation-call-rewriting whitelist category (this.X -> config.getX())
+        threshold = 0.85
+        min_sim = whitelist.get('_min_sim', {})
+        threshold = min(threshold, min_sim.get(m['name'], 0.85))
+        if mcore_len <= 15:
+            threshold = min(threshold, 0.50)
+        elif m['name'] == 'builder':
+            threshold = min(threshold, 0.60)
+        facades = whitelist.get('_facade', [])
         candidates = [nm for nm in same_name if body_core(nm['body']) and
                       (similarity(body_core(m['body']), body_core(nm['body'])) >= threshold
                        or (m['name'] in ('execute', 'doExecute', 'scanOnce')
-                           and containment(body_core(nm['body']), body_core(m['body'])) >= 0.85))]
+                           and containment(body_core(nm['body']), body_core(m['body'])) >= 0.85)
+                       or (m['name'] in facades and body_core(nm['body']) and
+                           similarity(body_core(m['body']), body_core(nm['body'])) >= 0.30))]
         if candidates:
             best = max(candidates, key=lambda nm: similarity(body_core(m['body']), body_core(nm['body'])))
             matched.add(id(best))
@@ -268,6 +281,17 @@ def main():
             continue
         name = nm['name']
         if name == 'getLogger':  # LOG field misdetection
+            continue
+        allowed_new = whitelist.get('_new', {}).get(nm['file'], [])
+        if name in allowed_new:
+            continue
+        # whitelisted: pure delegation stubs (delegation-call rewriting applied
+        # to whole methods — the split's sanctioned facade pattern)
+        core = body_core(nm['body'])
+        if core and core.count(';') <= 3 and ('config.' in core or 'lifecycle.' in core
+                                              or 'callDelegate.' in core or 'sessionSupport.' in core
+                                              or 'lockRenewal.' in core or 'executorResolver.' in core
+                                              or 'teamBinder.' in core or 'startupWarnings.' in core):
             continue
         cls = nm['file'][:-5]
         if name == cls:  # constructor

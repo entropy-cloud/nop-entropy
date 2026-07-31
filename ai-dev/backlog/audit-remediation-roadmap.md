@@ -1,6 +1,6 @@
 # 审计-修复路线图：nop-ai 全模块组
 
-> 最后更新：2026-08-01（v9 — 第九批 3 plans 全部 closed：skills 结构治理 + tools/rag 结构残余 + 测试质量 P3 残余）
+> 最后更新：2026-08-01（v10 — 第十批 1 plan active：MA4.2-05 引擎大文件拆分，design-first）
 > 来源：`ai-dev/skills/audit-remediation-roadmap-authoring-prompt.md`
 > 目标模块组：nop-ai（18 子模块，~1275 main Java, ~426 test）
 > 模块排除：`nop-ai-mcp-server`、`nop-spring-mcp-server`、`nop-spring-mcp-server-support`（MCP 协议集成模块，独立发布周期，需单独审计）
@@ -258,8 +258,9 @@ MA5+MA6 产出的 P1 发现展开为具体修复工作项
 | 第九批（结构治理 + 测试质量，2026-08-01 重开登记） | `ai-dev/plans/2026-08-01-0206-1-arm-p2-skills-code-analyzer-structure.md` | P2-MA1-004/005（CodeFileInfo/FileLanguageStats 拆分，1834-3 Deferred 重开）+ P3-MA1-014/015（code-analyzer 职责裁定 + deepwiki 依赖 scope） | ✅（closed 2026-08-01） |
 | 第九批（同批次 2） | `ai-dev/plans/2026-08-01-0206-2-arm-p2-tools-structure-residual.md` | P3-MA1-016（GraphQLToolSetFactoryBean on-bean 条件注册）+ P3-MA1-013（ThoughtStorage 持久化裁定）+ P3-MA3-003（nop-ai-rag 空模块裁定） | ✅（closed 2026-08-01） |
 | 第九批（同批次 3） | `ai-dev/plans/2026-08-01-0206-3-arm-p3-test-quality-residual.md` | MA4.3-09/13（assertTrue-only 升级，audit Suggestion 点名 2 文件）+ MA4.4-01/02/03（低价值测试裁定）+ MA4.2-06（大测试文件拆分） | ✅（closed 2026-08-01） |
+| 第十批（引擎大文件拆分，2026-08-01 重开登记） | `ai-dev/plans/2026-08-01-0441-1-arm-ma4-2-05-engine-split.md` | MA4.2-05（ReActAgentExecutor 3728 行 / DefaultAgentEngine 3681 行 / TeamTaskSchedulerDaemon 1108 行 → <1000 行，design-first 拆分，0206-3 follow-up"另行规划"重开） | 🟡 active（2026-08-01） |
 
-其余 MA1-MA3/MA5-MA6 各里程碑的 P2/P3 findings 已由 MR1/MR2/MR3 计划逐批裁定为 `out-of-scope improvement`（MV 矩阵 open=0，无已确认 live defect 残留），登记为 **watch-only residual**。第九批（2026-08-01）按严重度排序重开了其中结构性/测试质量类高价值项（P2-MA1-004/005、P3-MA1-013/014/015/016、P3-MA3-003、MA4.3-09/13、MA4.4-01/02/03、MA4.2-06），其余低价值 watch-only 项（如 P3-MA1-023~030、P3-MA1-039）仍不入 scope。
+其余 MA1-MA3/MA5-MA6 各里程碑的 P2/P3 findings 已由 MR1/MR2/MR3 计划逐批裁定为 `out-of-scope improvement`（MV 矩阵 open=0，无已确认 live defect 残留），登记为 **watch-only residual**。第九批（2026-08-01）按严重度排序重开了其中结构性/测试质量类高价值项（P2-MA1-004/005、P3-MA1-013/014/015/016、P3-MA3-003、MA4.3-09/13、MA4.4-01/02/03、MA4.2-06），其余低价值 watch-only 项（如 P3-MA1-023~030、P3-MA1-039）仍不入 scope。第十批（2026-08-01）承接 MA4.2-05（引擎大文件拆分）——nop-ai 唯一剩余的超 3000 行生产文件治理项，design-first。
 
 ## 框架/平台复用
 
