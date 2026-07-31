@@ -1,0 +1,23 @@
+{
+  "name": "nop-metadata-audit-remediation",
+  "description": "全面审计与 P0/P1 彻底修复 — nop-metadata 全模块组（8 子模块，39 实体，~283 main Java）。P0 即时通道 + P1 维度内批量修复。",
+  "roadmapPath": "ai-dev/backlog/nop-metadata-audit-remediation-roadmap.md",
+  "plansDir": "ai-dev/plans/nop-metadata-audit-remediation",
+  "planGuide": "ai-dev/plans/00-plan-authoring-and-execution-guide.md",
+  "auditsDir": "ai-dev/audits",
+  "moduleDir": "nop-metadata",
+  "contextDir": "docs-for-ai/00-start-here",
+  "model": "opencode-go/deepseek-v4-flash",
+  "variant": "max",
+  "commands": {
+    "test": "./mvnw test -pl nop-metadata -am -T 1C",
+    "build": "./mvnw clean install -DskipTests -pl nop-metadata -am -T 1C",
+    "lint": "./mvnw checkstyle:check -pl nop-metadata -am -q 2>/dev/null || echo 'lint not configured'",
+    "typecheck": "./mvnw compile -pl nop-metadata -am -q 2>/dev/null || echo 'typecheck not configured'"
+  },
+  "prompts": {
+    "multiAudit": "ai-dev/skills/deep-audit-prompts.md",
+    "openAudit": "ai-dev/skills/open-ended-adversarial-review-prompt.md"
+  },
+  "commitFormat": "fix: <description>"
+}
