@@ -38,7 +38,7 @@
         <validationQuery>select 1</validationQuery>
 
                 <tableExists>
-                        select 1 from information_schema.tables
+                        select * from information_schema.tables
                         where table_name = {tableName}
                             and ({schemaName} is null or table_schema = {schemaName})
                 </tableExists>

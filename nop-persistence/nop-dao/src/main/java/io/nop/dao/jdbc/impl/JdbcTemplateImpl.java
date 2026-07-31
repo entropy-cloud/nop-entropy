@@ -58,8 +58,8 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.sql.Timestamp;
 import java.util.ArrayList;
-import java.util.LinkedHashSet;
 import java.util.Iterator;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -427,15 +427,16 @@ public class JdbcTemplateImpl extends AbstractSqlExecutor implements IJdbcTempla
 
     @Override
     public boolean existsTable(String querySpace, String schemaName, String tableName) {
-        String template = getExistsTemplate(querySpace, ExistsKind.TABLE);
-        if (!StringHelper.isEmpty(template)) {
-            Boolean ret = tryExistsByTemplate(querySpace, template, schemaName, tableName, null, null);
-            if (ret != null) {
-                return ret;
-            }
-        }
-
+        // 如果没有指定schemaName，则有可能当前schema中没有，但是其他schema中有。导致判断为true，但一般实际情况是要判断在当前schema中是否有
         if (!StringHelper.isEmpty(schemaName)) {
+            String template = getExistsTemplate(querySpace, ExistsKind.TABLE);
+            if (!StringHelper.isEmpty(template)) {
+                Boolean ret = tryExistsByTemplate(querySpace, template, schemaName, tableName, null, null);
+                if (ret != null) {
+                    return ret;
+                }
+            }
+
             return runWithConnection("jdbc.existsTable", null, null,
                     conn -> existsObjectByMeta(conn, querySpace, schemaName, tableName, "TABLE"));
         }
@@ -581,6 +582,7 @@ public class JdbcTemplateImpl extends AbstractSqlExecutor implements IJdbcTempla
             });
 
             SQL sql = SQL.begin().querySpace(querySpace).sql(sqlText).end();
+            List<Object> list = findAll(sql);
             return exists(sql);
         } catch (RuntimeException e) {
             LOG.info("nop.jdbc.exists-template-fallback:querySpace={},error={}", querySpace, e.getMessage());
