@@ -5,10 +5,10 @@ import io.nop.api.core.annotations.txn.Transactional;
 import io.nop.api.core.beans.FilterBeans;
 import io.nop.api.core.beans.IntRangeSet;
 import io.nop.api.core.beans.query.QueryBean;
+import io.nop.api.core.exceptions.NopException;
 import io.nop.commons.util.DateHelper;
 import io.nop.dao.api.IDaoProvider;
 import io.nop.job.core._NopJobCoreConstants;
-import io.nop.orm.dao.IOrmEntityDao;
 import io.nop.job.dao.entity.NopJobFire;
 import io.nop.job.dao.entity.NopJobSchedule;
 import io.nop.job.dao.entity.NopJobTask;
@@ -16,6 +16,7 @@ import io.nop.job.dao.entity._gen._NopJobFire;
 import io.nop.job.dao.entity._gen._NopJobTask;
 import io.nop.job.dao.helper.JobQueryHelper;
 import io.nop.job.dao.helper.JobStatusHelper;
+import io.nop.orm.dao.IOrmEntityDao;
 import jakarta.inject.Inject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -28,12 +29,12 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import static io.nop.job.dao.entity._gen._NopJobSchedule.*;
-
 import static io.nop.job.core.JobCoreErrors.ERR_JOB_FIRE_STATUS_CONFLICT;
 import static io.nop.job.core.JobCoreErrors.ERR_JOB_OVERLAID;
-
-import io.nop.api.core.exceptions.NopException;
+import static io.nop.job.dao.entity._gen._NopJobSchedule.PROP_NAME_jobScheduleId;
+import static io.nop.job.dao.entity._gen._NopJobSchedule.PROP_NAME_nextFireTime;
+import static io.nop.job.dao.entity._gen._NopJobSchedule.PROP_NAME_partitionIndex;
+import static io.nop.job.dao.entity._gen._NopJobSchedule.PROP_NAME_scheduleStatus;
 
 public class JobScheduleStoreImpl implements IJobScheduleStore {
     static final Logger LOG = LoggerFactory.getLogger(JobScheduleStoreImpl.class);
@@ -81,29 +82,17 @@ public class JobScheduleStoreImpl implements IJobScheduleStore {
     @Transactional(propagation = TransactionPropagation.REQUIRES_NEW)
     @Override
     public void advanceScheduleAfterSkip(NopJobSchedule schedule, Timestamp nextFireTime) {
-        updateScheduleWithRetry(schedule,
-                () -> {
-                    schedule.setNextFireTime(nextFireTime);
-                },
-                () -> {
-                },
-                "skip");
+        updateScheduleWithRetry(schedule, () -> schedule.setNextFireTime(nextFireTime), "skip");
     }
 
     @Transactional(propagation = TransactionPropagation.REQUIRES_NEW)
     @Override
     public void insertFireAndAdvanceSchedule(NopJobSchedule schedule, NopJobFire fire, Timestamp nextFireTime,
-                                              Integer lastFireStatus) {
+                                             Integer lastFireStatus) {
         if (hasWaitingFire(schedule.getJobScheduleId(), fire.getScheduledFireTime(), fire.getTriggerSource())) {
             LOG.info("nop.job.schedule.skip-duplicate-fire:scheduleId={},scheduledFireTime={}",
                     schedule.getJobScheduleId(), fire.getScheduledFireTime());
-            updateScheduleWithRetry(schedule,
-                    () -> {
-                        schedule.setNextFireTime(nextFireTime);
-                    },
-                    () -> {
-                    },
-                    "skip-duplicate-fire");
+            updateScheduleWithRetry(schedule, () -> schedule.setNextFireTime(nextFireTime), "skip-duplicate-fire");
             return;
         }
 
@@ -118,12 +107,6 @@ public class JobScheduleStoreImpl implements IJobScheduleStore {
                     if (lastFireStatus != null) {
                         schedule.setLastFireStatus(lastFireStatus);
                     }
-                },
-                () -> {
-                    NopJobSchedule fresh = scheduleDao().requireEntityById(schedule.getJobScheduleId());
-                    schedule.setVersion(fresh.getVersion());
-                    schedule.setFireCount(fresh.getFireCount());
-                    schedule.setActiveFireCount(fresh.getActiveFireCount());
                 },
                 "insertFire");
     }
@@ -167,14 +150,6 @@ public class JobScheduleStoreImpl implements IJobScheduleStore {
                         schedule.setLastFireStatus(lastFireStatus);
                     }
                 },
-                () -> {
-                    NopJobSchedule fresh = scheduleDao().requireEntityById(schedule.getJobScheduleId());
-                    schedule.setVersion(fresh.getVersion());
-                    schedule.setTotalFireCount(fresh.getTotalFireCount());
-                    schedule.setFailFireCount(fresh.getFailFireCount());
-                    schedule.setFireCount(fresh.getFireCount());
-                    schedule.setActiveFireCount(fresh.getActiveFireCount());
-                },
                 "overlayFire");
     }
 
@@ -209,12 +184,6 @@ public class JobScheduleStoreImpl implements IJobScheduleStore {
                         schedule.setActiveFireCount(defaultInt(schedule.getActiveFireCount()) + 1);
                         schedule.setLastFireTime(fireTime);
                         schedule.setNextFireTime(nextFireTime);
-                    },
-                    () -> {
-                        NopJobSchedule fresh = scheduleDao().requireEntityById(schedule.getJobScheduleId());
-                        schedule.setVersion(fresh.getVersion());
-                        schedule.setFireCount(fresh.getFireCount());
-                        schedule.setActiveFireCount(fresh.getActiveFireCount());
                     },
                     "recovery-new-fire");
             return;
@@ -260,11 +229,6 @@ public class JobScheduleStoreImpl implements IJobScheduleStore {
                 () -> {
                     schedule.setActiveFireCount(defaultInt(schedule.getActiveFireCount()) + 1);
                     schedule.setNextFireTime(nextFireTime);
-                },
-                () -> {
-                    NopJobSchedule fresh = scheduleDao().requireEntityById(schedule.getJobScheduleId());
-                    schedule.setVersion(fresh.getVersion());
-                    schedule.setActiveFireCount(fresh.getActiveFireCount());
                 },
                 "recovery-reuse-failed");
     }
@@ -325,14 +289,6 @@ public class JobScheduleStoreImpl implements IJobScheduleStore {
                         schedule.setLastFireStatus(_NopJobCoreConstants.FIRE_STATUS_CANCELED);
                     }
                 },
-                () -> {
-                    NopJobSchedule fresh = scheduleDao().requireEntityById(schedule.getJobScheduleId());
-                    schedule.setVersion(fresh.getVersion());
-                    schedule.setTotalFireCount(fresh.getTotalFireCount());
-                    schedule.setFailFireCount(fresh.getFailFireCount());
-                    schedule.setFireCount(fresh.getFireCount());
-                    schedule.setActiveFireCount(fresh.getActiveFireCount());
-                },
                 "insertManualFire");
         return true;
     }
@@ -368,17 +324,11 @@ public class JobScheduleStoreImpl implements IJobScheduleStore {
         return scheduleDao().getDbEstimatedClock().getMaxCurrentTimeMillis();
     }
 
-    private void updateScheduleWithRetry(NopJobSchedule schedule, Runnable fieldSetter,
-                                          Runnable fieldRefresher, String retryContext) {
-        for (int attempt = 0; attempt < 5; attempt++) {
-            fieldSetter.run();
-
-            List<NopJobSchedule> updated = scheduleDao().tryUpdateManyWithVersionCheck(
-                    Collections.singletonList(schedule));
-            if (!updated.isEmpty()) return;
-
-            fieldRefresher.run();
+    private void updateScheduleWithRetry(NopJobSchedule schedule, Runnable fieldSetter, String retryContext) {
+        if (scheduleDao().updateWithRetry(schedule, 5, fieldSetter)) {
+            return;
         }
+
         throw new NopException(ERR_JOB_FIRE_STATUS_CONFLICT)
                 .param("scheduleId", schedule.getJobScheduleId())
                 .param("reason", "Failed to update schedule after " + retryContext + ", 5 retries exhausted");

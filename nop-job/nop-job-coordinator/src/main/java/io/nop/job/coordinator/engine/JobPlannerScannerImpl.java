@@ -6,15 +6,15 @@ import io.nop.api.core.beans.IntRangeSet;
 import io.nop.api.core.config.AppConfig;
 import io.nop.dao.api.IDaoProvider;
 import io.nop.job.api.spec.TriggerSpec;
+import io.nop.job.coordinator.metrics.IJobPlannerMetrics;
+import io.nop.job.coordinator.metrics.JobPlannerMetricsImpl;
 import io.nop.job.core.AbstractBatchScanner;
 import io.nop.job.core.ITriggerEvalContext;
 import io.nop.job.core._NopJobCoreConstants;
 import io.nop.job.core.trigger.JobTriggerCalculator;
-import io.nop.job.coordinator.metrics.EmptyJobPlannerMetrics;
-import io.nop.job.dao.helper.TriggerSpecHelper;
-import io.nop.job.coordinator.metrics.IJobPlannerMetrics;
 import io.nop.job.dao.entity.NopJobFire;
 import io.nop.job.dao.entity.NopJobSchedule;
+import io.nop.job.dao.helper.TriggerSpecHelper;
 import io.nop.job.dao.store.IJobScheduleStore;
 import jakarta.inject.Inject;
 import org.slf4j.Logger;
@@ -31,7 +31,7 @@ public class JobPlannerScannerImpl extends AbstractBatchScanner implements IJobP
     static final Logger LOG = LoggerFactory.getLogger(JobPlannerScannerImpl.class);
 
     private IJobScheduleStore scheduleStore;
-    private IJobPlannerMetrics plannerMetrics = new EmptyJobPlannerMetrics();
+    private IJobPlannerMetrics plannerMetrics = new JobPlannerMetricsImpl();
     private JobPartitionResolver partitionResolver;
     private IDaoProvider daoProvider;
     private long planningTimeoutMs = 60000;
@@ -109,84 +109,45 @@ public class JobPlannerScannerImpl extends AbstractBatchScanner implements IJobP
             return false;
         }
 
-            Map<String, Timestamp> dueFireTimes = new HashMap<>(schedules.size());
-            for (NopJobSchedule schedule : schedules) {
-                dueFireTimes.put(schedule.getJobScheduleId(), schedule.getNextFireTime());
+        Map<String, Timestamp> dueFireTimes = new HashMap<>(schedules.size());
+        for (NopJobSchedule schedule : schedules) {
+            dueFireTimes.put(schedule.getJobScheduleId(), schedule.getNextFireTime());
+        }
+
+        List<NopJobSchedule> locked = scheduleStore.tryLockSchedulesForPlan(
+                schedules,
+                AppConfig.hostId(),
+                planningTimeoutMs
+        );
+
+        int dueCount = schedules.size();
+        int lockedCount = locked.size();
+        int conflictCount = dueCount - lockedCount;
+
+        if (dueCount > 0) {
+            plannerMetrics.onDueSchedules(dueCount);
+        }
+
+        if (conflictCount > 0) {
+            plannerMetrics.onLockConflicts(conflictCount);
+        }
+
+        if (conflictCount > 0 && LOG.isDebugEnabled()) {
+            List<String> conflictIds = schedules.stream()
+                    .map(NopJobSchedule::getJobScheduleId)
+                    .filter(id -> locked.stream().noneMatch(l -> l.getJobScheduleId().equals(id)))
+                    .collect(Collectors.toList());
+            LOG.debug("nop.job.planner.lock-conflict:dueCount={},lockedCount={},conflictIds={}",
+                    dueCount, lockedCount, conflictIds);
+        }
+
+        for (NopJobSchedule schedule : locked) {
+            try {
+                planSchedule(schedule, dueFireTimes.get(schedule.getJobScheduleId()));
+            } catch (Exception e) {
+                LOG.error("nop.job.planner.plan-schedule-failed:scheduleId={}", schedule.getJobScheduleId(), e);
             }
-
-            List<NopJobSchedule> locked = scheduleStore.tryLockSchedulesForPlan(
-                    schedules,
-                    AppConfig.hostId(),
-                    planningTimeoutMs
-            );
-
-            int dueCount = schedules.size();
-            int lockedCount = locked.size();
-            int conflictCount = dueCount - lockedCount;
-
-            if (dueCount > 0) {
-                plannerMetrics.onDueSchedules(dueCount);
-            }
-
-            if (conflictCount > 0) {
-                plannerMetrics.onLockConflicts(conflictCount);
-            }
-
-            if (conflictCount > 0 && LOG.isDebugEnabled()) {
-                List<String> conflictIds = schedules.stream()
-                        .map(NopJobSchedule::getJobScheduleId)
-                        .filter(id -> locked.stream().noneMatch(l -> l.getJobScheduleId().equals(id)))
-                        .collect(Collectors.toList());
-                LOG.debug("nop.job.planner.lock-conflict:dueCount={},lockedCount={},conflictIds={}",
-                        dueCount, lockedCount, conflictIds);
-            }
-
-            for (NopJobSchedule schedule : locked) {
-                Timestamp dueFireTime = dueFireTimes.get(schedule.getJobScheduleId());
-                Timestamp nextFireTime = calculateNextFireTime(schedule);
-
-                if (schedule.getScheduleStatus() != null
-                        && schedule.getScheduleStatus() != _NopJobCoreConstants.SCHEDULE_STATUS_ENABLED) {
-                    LOG.debug("nop.job.planner.schedule-no-longer-enabled:scheduleId={},status={}",
-                            schedule.getJobScheduleId(), schedule.getScheduleStatus());
-                    continue;
-                }
-
-                if (shouldDiscard(schedule)) {
-                    scheduleStore.advanceScheduleAfterSkip(schedule, nextFireTime);
-                    continue;
-                }
-
-                if (shouldRecovery(schedule)) {
-                    scheduleStore.recoveryFireAndAdvanceSchedule(schedule, nextFireTime);
-                    continue;
-                }
-
-                NopJobFire fire = buildFire(schedule, dueFireTime);
-                if (shouldOverlay(schedule)) {
-                    scheduleStore.overlayFireAndAdvanceSchedule(schedule, fire, nextFireTime,
-                            _NopJobCoreConstants.FIRE_STATUS_WAITING);
-                    continue;
-                }
-
-                if (shouldParallel(schedule)) {
-                    scheduleStore.insertFireAndAdvanceSchedule(schedule, fire, nextFireTime,
-                            _NopJobCoreConstants.FIRE_STATUS_WAITING);
-                    continue;
-                }
-
-                if (defaultInt(schedule.getActiveFireCount()) > 0
-                        && schedule.getBlockStrategy() != null
-                        && !isKnownBlockStrategy(schedule.getBlockStrategy())) {
-                    LOG.warn("nop.job.planner.unknown-block-strategy:scheduleId={},blockStrategy={},defaulting to DISCARD",
-                            schedule.getJobScheduleId(), schedule.getBlockStrategy());
-                    scheduleStore.advanceScheduleAfterSkip(schedule, nextFireTime);
-                    continue;
-                }
-
-                scheduleStore.insertFireAndAdvanceSchedule(schedule, fire, nextFireTime,
-                        _NopJobCoreConstants.FIRE_STATUS_WAITING);
-            }
+        }
 
         return schedules.size() >= batchSize;
     }
@@ -207,6 +168,52 @@ public class JobPlannerScannerImpl extends AbstractBatchScanner implements IJobP
         fire.setExecutorKind(schedule.getExecutorKind());
         fire.setDispatchMode(schedule.getDispatchMode());
         return fire;
+    }
+
+    private void planSchedule(NopJobSchedule schedule, Timestamp dueFireTime) {
+        Timestamp nextFireTime = calculateNextFireTime(schedule);
+
+        if (schedule.getScheduleStatus() != null
+                && schedule.getScheduleStatus() != _NopJobCoreConstants.SCHEDULE_STATUS_ENABLED) {
+            LOG.debug("nop.job.planner.schedule-no-longer-enabled:scheduleId={},status={}",
+                    schedule.getJobScheduleId(), schedule.getScheduleStatus());
+            return;
+        }
+
+        if (shouldDiscard(schedule)) {
+            scheduleStore.advanceScheduleAfterSkip(schedule, nextFireTime);
+            return;
+        }
+
+        if (shouldRecovery(schedule)) {
+            scheduleStore.recoveryFireAndAdvanceSchedule(schedule, nextFireTime);
+            return;
+        }
+
+        NopJobFire fire = buildFire(schedule, dueFireTime);
+        if (shouldOverlay(schedule)) {
+            scheduleStore.overlayFireAndAdvanceSchedule(schedule, fire, nextFireTime,
+                    _NopJobCoreConstants.FIRE_STATUS_WAITING);
+            return;
+        }
+
+        if (shouldParallel(schedule)) {
+            scheduleStore.insertFireAndAdvanceSchedule(schedule, fire, nextFireTime,
+                    _NopJobCoreConstants.FIRE_STATUS_WAITING);
+            return;
+        }
+
+        if (defaultInt(schedule.getActiveFireCount()) > 0
+                && schedule.getBlockStrategy() != null
+                && !isKnownBlockStrategy(schedule.getBlockStrategy())) {
+            LOG.warn("nop.job.planner.unknown-block-strategy:scheduleId={},blockStrategy={},defaulting to DISCARD",
+                    schedule.getJobScheduleId(), schedule.getBlockStrategy());
+            scheduleStore.advanceScheduleAfterSkip(schedule, nextFireTime);
+            return;
+        }
+
+        scheduleStore.insertFireAndAdvanceSchedule(schedule, fire, nextFireTime,
+                _NopJobCoreConstants.FIRE_STATUS_WAITING);
     }
 
     private Timestamp calculateNextFireTime(NopJobSchedule schedule) {
