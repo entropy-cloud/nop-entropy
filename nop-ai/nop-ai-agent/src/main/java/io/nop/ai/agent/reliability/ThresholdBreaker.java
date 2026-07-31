@@ -9,7 +9,7 @@ import java.util.concurrent.ConcurrentMap;
  * {@code nop-ai-agent-reliability.md} §5.1 / plan 210 / L3-1).
  *
  * <p>Per model identity (the {@code provider:model} composite key built by
- * {@code ReActAgentExecutor.buildModelKey}) the breaker maintains an
+ * {@code LlmCallCoordinator.buildModelKey}) the breaker maintains an
  * independent state machine:
  * <ul>
  *   <li><b>CLOSED</b> (initial) — all calls allowed. Each recorded failure

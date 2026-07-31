@@ -12,7 +12,7 @@ package io.nop.ai.agent.session;
  * it simply does not persist the audit trail. A functional writer (e.g.
  * {@link DbModelSwitchedMessageWriter} writing
  * {@code nop_ai_session_message}, L2-21) is registered explicitly via
- * {@code ReActAgentExecutor.Builder.modelSwitchedMessageWriter}. This mirrors
+ * {@code ReActAgentExecutorBuilder.modelSwitchedMessageWriter}. This mirrors
  * the {@code NoOpUsageRecorder} sibling pass-through pattern.
  *
  * <p>This implementation is stateless and therefore inherently thread-safe.

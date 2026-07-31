@@ -47,7 +47,7 @@ import java.util.Objects;
  *
  * <p>{@link PassThroughModelRouter} remains the shipped default; this class is
  * opt-in (constructed explicitly by the integrator and injected via
- * {@code ReActAgentExecutor.Builder.modelRouter}).
+ * {@code ReActAgentExecutorBuilder.modelRouter}).
  */
 public final class SmartModelRouter implements IModelRouter {
 

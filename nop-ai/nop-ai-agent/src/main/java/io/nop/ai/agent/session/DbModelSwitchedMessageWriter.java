@@ -24,7 +24,7 @@ import java.util.Objects;
  * <p><b>Wiring</b>: this is an opt-in writer. The shipped default remains
  * {@link NoOpModelSwitchedMessageWriter} (pass-through). Integrators register
  * this writer explicitly via
- * {@code ReActAgentExecutor.Builder.modelSwitchedMessageWriter} — exactly like
+ * {@code ReActAgentExecutorBuilder.modelSwitchedMessageWriter} — exactly like
  * {@code DbUsageRecorder} / {@code DBSessionStore} / {@code DBMessageService}.
  *
  * <p><b>Module boundary</b>: the agent module does not depend on

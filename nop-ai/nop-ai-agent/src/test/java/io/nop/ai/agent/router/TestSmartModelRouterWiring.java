@@ -35,7 +35,7 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
  * Plan 209 Phase 1 wiring test (Minimum Rules #23): injects a
  * {@link SmartModelRouter} into the ReAct loop (the exact injection path
  * {@code DefaultAgentEngine} delegates to via
- * {@code ReActAgentExecutor.Builder.modelRouter(...)}) and asserts that
+ * {@code ReActAgentExecutorBuilder.modelRouter(...)}) and asserts that
  * {@code route()} is actually called at runtime and that the routed model
  * selection reaches the {@code chatService.call(...)} request.
  */

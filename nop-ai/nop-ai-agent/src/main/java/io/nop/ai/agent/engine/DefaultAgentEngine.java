@@ -1630,7 +1630,7 @@ public class DefaultAgentEngine implements IAgentEngine {
      * high-risk tool executors (shell-exec / code-exec IToolExecutor
      * successors) to consume; the engine itself does not call it on the
      * dispatch path. The wired backend is propagated to the
-     * {@link ReActAgentExecutor} via {@link ReActAgentExecutor.Builder#sandboxBackend}
+     * {@link ReActAgentExecutor} via {@link ReActAgentExecutorBuilder#sandboxBackend}
      * in {@code resolveExecutor} so a functional tool executor running
      * inside the ReAct loop can reach it.
      *

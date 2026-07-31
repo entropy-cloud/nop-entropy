@@ -5,7 +5,7 @@ import java.util.Set;
 /**
  * Shared set of tool-call argument keys whose string values are interpreted as
  * filesystem paths. Used by the tool-dispatch path-access check
- * ({@code ReActAgentExecutor.checkPathAccess}) and by the LevelHints producer
+ * ({@code AgentSecurityConsultation.checkPathAccess}) and by the LevelHints producer
  * ({@link DefaultLevelHintsProducer}, writesOutsideWorkspace evaluation).
  *
  * <p>Centralised here so both consumers evaluate exactly the same set of keys —

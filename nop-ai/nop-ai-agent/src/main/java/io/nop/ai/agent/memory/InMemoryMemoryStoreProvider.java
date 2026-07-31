@@ -8,7 +8,7 @@ import io.nop.ai.agent.engine.NopAiAgentException;
  * per-session {@link InMemoryAiMemoryStore} in a {@link ConcurrentHashMap};
  * {@link #getOrCreate(String)} is atomic via {@link ConcurrentHashMap#computeIfAbsent}.
  *
- * <p>This is the shipped default wired into {@link io.nop.ai.agent.engine.ReActAgentExecutor.Builder}
+ * <p>This is the shipped default wired into {@link io.nop.ai.agent.engine.ReActAgentExecutorBuilder}
  * — working-memory tools (read-memory / write-memory / search-memory) work
  * out-of-the-box without any provider configuration. The data lives in-process
  * and is <b>not</b> persisted (deferred to L4-3 IMemoryAdapter successor).

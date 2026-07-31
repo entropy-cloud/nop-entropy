@@ -1,149 +1,585 @@
 {
-  "_comment": "MA4.2-05 member-relocation whitelist. Key = baseline member name (from the pre-split file); value = allowed target class basenames where the member may appear. Members not listed must match exactly (verbatim relocation). See design doc engine-class-split.md §8 and daily log 2026-08-01 mapping table.",
-  "ReActAgentExecutor": {
-    "doLlmCallWithRetry": ["LlmCallCoordinator.java"],
-    "LlmCallResult": ["LlmCallCoordinator.java"],
-    "buildModelKey": ["LlmCallCoordinator.java"],
-    "callChatWithTimeout": ["LlmCallCoordinator.java"],
-    "parseToolCallId": ["LlmCallCoordinator.java"],
-    "resolveCircuitAware": ["LlmCallCoordinator.java"],
-    "sleepBackoff": ["LlmCallCoordinator.java"],
-    "executeWithMiddleware": ["AgentHookInvoker.java"],
-    "invokeHooks": ["AgentHookInvoker.java"],
-    "invokeOnError": ["AgentHookInvoker.java"],
-    "vetoReason": ["AgentHookInvoker.java"],
-    "publishEvent": ["AgentHookInvoker.java"],
-    "publishErrorEvent": ["AgentHookInvoker.java"],
-    "buildCheckpointChain": ["AgentSecurityConsultation.java"],
-    "handleDenialAndCheckThreshold": ["AgentSecurityConsultation.java"],
-    "extractArguments": ["AgentSecurityConsultation.java"],
-    "resolveWorkDirString": ["AgentSecurityConsultation.java"],
-    "checkPathAccess": ["AgentSecurityConsultation.java"],
-    "checkLayer2Consultation": ["AgentSecurityConsultation.java"],
-    "checkLayer3Approval": ["AgentSecurityConsultation.java"],
-    "checkWriteConflict": ["AgentSecurityConsultation.java"],
-    "resolveAbsolute": ["AgentSecurityConsultation.java"],
-    "shouldTriggerCompaction": ["AgentCompactionCoordinator.java"],
-    "resolveMaxContextTokens": ["AgentCompactionCoordinator.java"],
-    "performCompaction": ["AgentCompactionCoordinator.java"],
-    "buildToolDefinitions": ["AgentToolPlanResolver.java"],
-    "intersects": ["AgentToolPlanResolver.java"],
-    "computeEffectiveAllowedTools": ["AgentToolPlanResolver.java"],
-    "resolveWorkDir": ["AgentToolPlanResolver.java"],
-    "computeEffectivePathRoots": ["AgentToolPlanResolver.java"],
-    "computeOwnDeclaredPathRoots": ["AgentToolPlanResolver.java"],
-    "computeEffectivePathRules": ["AgentToolPlanResolver.java"],
-    "isUnderAnyRoot": ["AgentToolPlanResolver.java"],
-    "toToolDefinition": ["AgentToolPlanResolver.java"],
-    "checkInputGuardrail": ["AgentPromptAssembly.java"],
-    "extractLastUserContent": ["AgentPromptAssembly.java"],
-    "consultTalents": ["AgentPromptAssembly.java"],
-    "injectSystemInstruction": ["AgentPromptAssembly.java"],
-    "consultSkills": ["AgentPromptAssembly.java"],
-    "consultPromptContributions": ["AgentPromptAssembly.java"],
-    "buildChatOptions": ["AgentPromptAssembly.java"],
-    "handleSessionPaused": ["AgentLoopGuard.java"],
-    "handleGoalStuck": ["AgentLoopGuard.java"],
-    "shouldForceStop": ["AgentLoopGuard.java"],
-    "handleForcedStop": ["AgentLoopGuard.java"]
-  },
-  "DefaultAgentEngine": {
-    "setSkillProvider": ["DefaultAgentEngineConfig.java"],
-    "setSkillCurator": ["DefaultAgentEngineConfig.java"],
-    "setToolCallRepairer": ["DefaultAgentEngineConfig.java"],
-    "setMessenger": ["DefaultAgentEngineConfig.java"],
-    "setPermissionMatrix": ["DefaultAgentEngineConfig.java"],
-    "getPermissionMatrix": ["DefaultAgentEngineConfig.java"],
-    "setSecurityLevelResolver": ["DefaultAgentEngineConfig.java"],
-    "getSecurityLevelResolver": ["DefaultAgentEngineConfig.java"],
-    "setApprovalGate": ["DefaultAgentEngineConfig.java"],
-    "getApprovalGate": ["DefaultAgentEngineConfig.java"],
-    "setDenialLedger": ["DefaultAgentEngineConfig.java"],
-    "getDenialLedger": ["DefaultAgentEngineConfig.java"],
-    "getPostDenialGuard": ["DefaultAgentEngineConfig.java"],
-    "setAuditLogger": ["DefaultAgentEngineConfig.java"],
-    "getAuditLogger": ["DefaultAgentEngineConfig.java"],
-    "setCheckpointManager": ["DefaultAgentEngineConfig.java"],
-    "getCheckpointManager": ["DefaultAgentEngineConfig.java"],
-    "setMemoryStoreProvider": ["DefaultAgentEngineConfig.java"],
-    "getMemoryStoreProvider": ["DefaultAgentEngineConfig.java"],
-    "setUsageRecorder": ["DefaultAgentEngineConfig.java"],
-    "getUsageRecorder": ["DefaultAgentEngineConfig.java"],
-    "setModelSwitchedMessageWriter": ["DefaultAgentEngineConfig.java"],
-    "getModelSwitchedMessageWriter": ["DefaultAgentEngineConfig.java"],
-    "setBudgetProvider": ["DefaultAgentEngineConfig.java"],
-    "getBudgetProvider": ["DefaultAgentEngineConfig.java"],
-    "setRetryPolicy": ["DefaultAgentEngineConfig.java"],
-    "getRetryPolicy": ["DefaultAgentEngineConfig.java"],
-    "setCircuitBreaker": ["DefaultAgentEngineConfig.java"],
-    "getCircuitBreaker": ["DefaultAgentEngineConfig.java"],
-    "setGoalTracker": ["DefaultAgentEngineConfig.java"],
-    "getGoalTracker": ["DefaultAgentEngineConfig.java"],
-    "setSustainer": ["DefaultAgentEngineConfig.java"],
-    "getSustainer": ["DefaultAgentEngineConfig.java"],
-    "setConflictStrategy": ["DefaultAgentEngineConfig.java"],
-    "getConflictStrategy": ["DefaultAgentEngineConfig.java"],
-    "getWriteIntentRegistry": ["DefaultAgentEngineConfig.java"],
-    "getContributionRegistry": ["DefaultAgentEngineConfig.java"],
-    "getActorRuntime": ["DefaultAgentEngineConfig.java"],
-    "setTeamManager": ["DefaultAgentEngineConfig.java"],
-    "getTeamManager": ["DefaultAgentEngineConfig.java"],
-    "setTeamTaskStore": ["DefaultAgentEngineConfig.java"],
-    "getTeamTaskStore": ["DefaultAgentEngineConfig.java"],
-    "setTeamAclChecker": ["DefaultAgentEngineConfig.java"],
-    "getTeamAclChecker": ["DefaultAgentEngineConfig.java"],
-    "setSandboxBackend": ["DefaultAgentEngineConfig.java"],
-    "getSandboxBackend": ["DefaultAgentEngineConfig.java"],
-    "setSessionTakeoverLock": ["DefaultAgentEngineConfig.java"],
-    "getSessionTakeoverLock": ["DefaultAgentEngineConfig.java"],
-    "setLockLeaseMs": ["DefaultAgentEngineConfig.java"],
-    "getLockLeaseMs": ["DefaultAgentEngineConfig.java"],
-    "setLockRenewIntervalMs": ["DefaultAgentEngineConfig.java"],
-    "getLockRenewIntervalMs": ["DefaultAgentEngineConfig.java"],
-    "setRecoveryManager": ["DefaultAgentEngineConfig.java"],
-    "getRecoveryManager": ["DefaultAgentEngineConfig.java"],
-    "setTeamTaskSchedulerDaemon": ["DefaultAgentEngineConfig.java"],
-    "getTeamTaskSchedulerDaemon": ["DefaultAgentEngineConfig.java"],
-    "resumeSession": ["AgentSessionLifecycle.java"],
-    "restoreSession": ["AgentSessionLifecycle.java"],
-    "buildBaseExecutionContext": ["AgentSessionLifecycle.java"],
-    "buildBudgetedMemorySection": ["AgentSessionLifecycle.java"],
-    "formatMemorySection": ["AgentSessionLifecycle.java"],
-    "publishCancelRequested": ["AgentSessionLifecycle.java"],
-    "publishCancelled": ["AgentSessionLifecycle.java"],
-    "releaseLockQuietly": ["AgentSessionLifecycle.java"],
-    "isTerminalStatus": ["AgentSessionLifecycle.java"],
-    "registerCallAgentHandler": ["AgentCallDelegate.java"],
-    "handleCallAgentRequest": ["AgentCallDelegate.java"],
-    "extractFinalAssistantMessage": ["AgentCallDelegate.java"],
-    "getMessenger": ["AgentCallDelegate.java"],
-    "getLockRenewExecutor": ["SessionLockRenewal.java"],
-    "startLockRenewal": ["SessionLockRenewal.java"],
-    "renewOnceSafe": ["SessionLockRenewal.java"],
-    "handleLeaseLost": ["SessionLockRenewal.java"],
-    "cancelLockRenewalQuietly": ["SessionLockRenewal.java"],
-    "resolveEffectiveToolAccessChecker": ["AgentExecutorResolver.java"],
-    "resolvePerAgentPathChecker": ["AgentExecutorResolver.java"],
-    "resolveEffectivePathAccessChecker": ["AgentExecutorResolver.java"],
-    "resolveExecutor": ["AgentExecutorResolver.java"],
-    "resolveHookContributions": ["AgentExecutorResolver.java"],
-    "resolveMiddlewares": ["AgentExecutorResolver.java"],
-    "getMailboxFactory": ["AgentSessionSupport.java"],
-    "ensureSessionMailbox": ["AgentSessionSupport.java"],
-    "resolveSessionId": ["AgentSessionSupport.java"],
-    "loadAgentModel": ["AgentSessionSupport.java"],
-    "precheckTeamDeclarations": ["AgentTeamBinder.java"],
-    "autoBindTeam": ["AgentTeamBinder.java"],
-    "autoBindLead": ["AgentTeamBinder.java"],
-    "autoBindMember": ["AgentTeamBinder.java"],
-    "resolveActorId": ["AgentTeamBinder.java"],
-    "warnIfInsecureDefaults": ["AgentStartupWarnings.java"],
-    "warnIfNoOpUsageRecorder": ["AgentStartupWarnings.java"],
-    "defaultPipelineCompactor": ["AgentStartupWarnings.java"]
-  },
-  "TeamTaskSchedulerDaemon": {
-    "dispatchClaimedTask": ["TaskDispatchCoordinator.java"],
-    "resolveSpawnExecutor": ["TaskDispatchCoordinator.java"],
-    "awaitInFlightDispatches": ["TaskDispatchCoordinator.java"]
-  }
+ "_comment": "MA4.2-05 member-relocation whitelist. Key = baseline member name (from the pre-split file); value = allowed target class basenames where the member may appear. Members not listed must match exactly (verbatim relocation). See design doc engine-class-split.md §8 and daily log 2026-08-01 mapping table.",
+ "ReActAgentExecutor.java": {
+  "doLlmCallWithRetry": [
+   "LlmCallCoordinator.java"
+  ],
+  "LlmCallResult": [
+   "LlmCallCoordinator.java"
+  ],
+  "buildModelKey": [
+   "LlmCallCoordinator.java"
+  ],
+  "callChatWithTimeout": [
+   "LlmCallCoordinator.java"
+  ],
+  "parseToolCallId": [
+   "LlmCallCoordinator.java"
+  ],
+  "resolveCircuitAware": [
+   "LlmCallCoordinator.java"
+  ],
+  "sleepBackoff": [
+   "LlmCallCoordinator.java"
+  ],
+  "executeWithMiddleware": [
+   "AgentHookInvoker.java"
+  ],
+  "invokeHooks": [
+   "AgentHookInvoker.java"
+  ],
+  "invokeOnError": [
+   "AgentHookInvoker.java"
+  ],
+  "vetoReason": [
+   "AgentHookInvoker.java"
+  ],
+  "publishEvent": [
+   "AgentHookInvoker.java"
+  ],
+  "publishErrorEvent": [
+   "AgentHookInvoker.java"
+  ],
+  "buildCheckpointChain": [
+   "AgentSecurityConsultation.java"
+  ],
+  "handleDenialAndCheckThreshold": [
+   "AgentSecurityConsultation.java"
+  ],
+  "extractArguments": [
+   "AgentSecurityConsultation.java"
+  ],
+  "resolveWorkDirString": [
+   "AgentSecurityConsultation.java"
+  ],
+  "checkPathAccess": [
+   "AgentSecurityConsultation.java"
+  ],
+  "checkLayer2Consultation": [
+   "AgentSecurityConsultation.java"
+  ],
+  "checkLayer3Approval": [
+   "AgentSecurityConsultation.java"
+  ],
+  "checkWriteConflict": [
+   "AgentSecurityConsultation.java"
+  ],
+  "resolveAbsolute": [
+   "AgentSecurityConsultation.java"
+  ],
+  "shouldTriggerCompaction": [
+   "AgentCompactionCoordinator.java"
+  ],
+  "resolveMaxContextTokens": [
+   "AgentCompactionCoordinator.java"
+  ],
+  "performCompaction": [
+   "AgentCompactionCoordinator.java"
+  ],
+  "buildToolDefinitions": [
+   "AgentToolPlanResolver.java"
+  ],
+  "intersects": [
+   "AgentToolPlanResolver.java"
+  ],
+  "computeEffectiveAllowedTools": [
+   "AgentToolPlanResolver.java"
+  ],
+  "resolveWorkDir": [
+   "AgentToolPlanResolver.java"
+  ],
+  "computeEffectivePathRoots": [
+   "AgentToolPlanResolver.java"
+  ],
+  "computeOwnDeclaredPathRoots": [
+   "AgentToolPlanResolver.java"
+  ],
+  "computeEffectivePathRules": [
+   "AgentToolPlanResolver.java"
+  ],
+  "isUnderAnyRoot": [
+   "AgentToolPlanResolver.java"
+  ],
+  "toToolDefinition": [
+   "AgentToolPlanResolver.java"
+  ],
+  "checkInputGuardrail": [
+   "AgentPromptAssembly.java"
+  ],
+  "extractLastUserContent": [
+   "AgentPromptAssembly.java"
+  ],
+  "consultTalents": [
+   "AgentPromptAssembly.java"
+  ],
+  "injectSystemInstruction": [
+   "AgentPromptAssembly.java"
+  ],
+  "consultSkills": [
+   "AgentPromptAssembly.java"
+  ],
+  "consultPromptContributions": [
+   "AgentPromptAssembly.java"
+  ],
+  "buildChatOptions": [
+   "AgentPromptAssembly.java"
+  ],
+  "handleSessionPaused": [
+   "AgentLoopGuard.java"
+  ],
+  "handleGoalStuck": [
+   "AgentLoopGuard.java"
+  ],
+  "shouldForceStop": [
+   "AgentLoopGuard.java"
+  ],
+  "handleForcedStop": [
+   "AgentLoopGuard.java"
+  ],
+  "chatService": [
+   "ReActAgentExecutorBuilder.java"
+  ],
+  "toolManager": [
+   "ReActAgentExecutorBuilder.java"
+  ],
+  "eventPublisher": [
+   "ReActAgentExecutorBuilder.java"
+  ],
+  "permissionProvider": [
+   "ReActAgentExecutorBuilder.java"
+  ],
+  "toolAccessChecker": [
+   "ReActAgentExecutorBuilder.java"
+  ],
+  "pathAccessChecker": [
+   "ReActAgentExecutorBuilder.java"
+  ],
+  "auditLogger": [
+   "ReActAgentExecutorBuilder.java"
+  ],
+  "hookRegistry": [
+   "ReActAgentExecutorBuilder.java"
+  ],
+  "toolCallRepairer": [
+   "ReActAgentExecutorBuilder.java"
+  ],
+  "enableChainRepairer": [
+   "ReActAgentExecutorBuilder.java"
+  ],
+  "contextCompactor": [
+   "ReActAgentExecutorBuilder.java"
+  ],
+  "contentGuardrail": [
+   "ReActAgentExecutorBuilder.java"
+  ],
+  "modelRouter": [
+   "ReActAgentExecutorBuilder.java"
+  ],
+  "tokenEstimator": [
+   "ReActAgentExecutorBuilder.java"
+  ],
+  "completionJudge": [
+   "ReActAgentExecutorBuilder.java"
+  ],
+  "talents": [
+   "ReActAgentExecutorBuilder.java"
+  ],
+  "skillProvider": [
+   "ReActAgentExecutorBuilder.java"
+  ],
+  "engine": [
+   "ReActAgentExecutorBuilder.java"
+  ],
+  "messenger": [
+   "ReActAgentExecutorBuilder.java"
+  ],
+  "securityLevelResolver": [
+   "ReActAgentExecutorBuilder.java"
+  ],
+  "permissionMatrix": [
+   "ReActAgentExecutorBuilder.java"
+  ],
+  "approvalGate": [
+   "ReActAgentExecutorBuilder.java"
+  ],
+  "denialLedger": [
+   "ReActAgentExecutorBuilder.java"
+  ],
+  "postDenialGuard": [
+   "ReActAgentExecutorBuilder.java"
+  ],
+  "checkpointManager": [
+   "ReActAgentExecutorBuilder.java"
+  ],
+  "sessionStore": [
+   "ReActAgentExecutorBuilder.java"
+  ],
+  "memoryStoreProvider": [
+   "ReActAgentExecutorBuilder.java"
+  ],
+  "usageRecorder": [
+   "ReActAgentExecutorBuilder.java"
+  ],
+  "modelSwitchedMessageWriter": [
+   "ReActAgentExecutorBuilder.java"
+  ],
+  "budgetProvider": [
+   "ReActAgentExecutorBuilder.java"
+  ],
+  "retryPolicy": [
+   "ReActAgentExecutorBuilder.java"
+  ],
+  "circuitBreaker": [
+   "ReActAgentExecutorBuilder.java"
+  ],
+  "goalTracker": [
+   "ReActAgentExecutorBuilder.java"
+  ],
+  "sustainer": [
+   "ReActAgentExecutorBuilder.java"
+  ],
+  "conflictStrategy": [
+   "ReActAgentExecutorBuilder.java"
+  ],
+  "writeIntentRegistry": [
+   "ReActAgentExecutorBuilder.java"
+  ],
+  "contributionRegistry": [
+   "ReActAgentExecutorBuilder.java"
+  ],
+  "sandboxBackend": [
+   "ReActAgentExecutorBuilder.java"
+  ],
+  "teamManager": [
+   "ReActAgentExecutorBuilder.java"
+  ],
+  "teamTaskStore": [
+   "ReActAgentExecutorBuilder.java"
+  ],
+  "teamAclChecker": [
+   "ReActAgentExecutorBuilder.java"
+  ],
+  "llmTimeoutMs": [
+   "ReActAgentExecutorBuilder.java"
+  ],
+  "toolTimeoutMs": [
+   "ReActAgentExecutorBuilder.java"
+  ],
+  "timeoutExecutor": [
+   "ReActAgentExecutorBuilder.java"
+  ],
+  "build": [
+   "ReActAgentExecutorBuilder.java"
+  ],
+  "execute": [
+   "ReActAgentExecutor.java"
+  ],
+  "builder": [
+   "ReActAgentExecutor.java"
+  ],
+  "getSandboxBackend": [
+   "ReActAgentExecutor.java"
+  ],
+  "handleCancellation": [
+   "ReActAgentExecutor.java"
+  ],
+  "buildToolCallSignatures": [
+   "ReActAgentExecutor.java"
+  ],
+  "Builder": [
+   "ReActAgentExecutorBuilder.java"
+  ],
+  "ToolCallOutput": [
+   "AgentToolDispatcher.java"
+  ]
+ },
+ "DefaultAgentEngine.java": {
+  "setSkillProvider": [
+   "DefaultAgentEngineConfig.java"
+  ],
+  "setSkillCurator": [
+   "DefaultAgentEngineConfig.java"
+  ],
+  "setToolCallRepairer": [
+   "DefaultAgentEngineConfig.java"
+  ],
+  "setMessenger": [
+   "DefaultAgentEngineConfig.java"
+  ],
+  "setPermissionMatrix": [
+   "DefaultAgentEngineConfig.java"
+  ],
+  "getPermissionMatrix": [
+   "DefaultAgentEngineConfig.java"
+  ],
+  "setSecurityLevelResolver": [
+   "DefaultAgentEngineConfig.java"
+  ],
+  "getSecurityLevelResolver": [
+   "DefaultAgentEngineConfig.java"
+  ],
+  "setApprovalGate": [
+   "DefaultAgentEngineConfig.java"
+  ],
+  "getApprovalGate": [
+   "DefaultAgentEngineConfig.java"
+  ],
+  "setDenialLedger": [
+   "DefaultAgentEngineConfig.java"
+  ],
+  "getDenialLedger": [
+   "DefaultAgentEngineConfig.java"
+  ],
+  "getPostDenialGuard": [
+   "DefaultAgentEngineConfig.java"
+  ],
+  "setAuditLogger": [
+   "DefaultAgentEngineConfig.java"
+  ],
+  "getAuditLogger": [
+   "DefaultAgentEngineConfig.java"
+  ],
+  "setCheckpointManager": [
+   "DefaultAgentEngineConfig.java"
+  ],
+  "getCheckpointManager": [
+   "DefaultAgentEngineConfig.java"
+  ],
+  "setMemoryStoreProvider": [
+   "DefaultAgentEngineConfig.java"
+  ],
+  "getMemoryStoreProvider": [
+   "DefaultAgentEngineConfig.java"
+  ],
+  "setUsageRecorder": [
+   "DefaultAgentEngineConfig.java"
+  ],
+  "getUsageRecorder": [
+   "DefaultAgentEngineConfig.java"
+  ],
+  "setModelSwitchedMessageWriter": [
+   "DefaultAgentEngineConfig.java"
+  ],
+  "getModelSwitchedMessageWriter": [
+   "DefaultAgentEngineConfig.java"
+  ],
+  "setBudgetProvider": [
+   "DefaultAgentEngineConfig.java"
+  ],
+  "getBudgetProvider": [
+   "DefaultAgentEngineConfig.java"
+  ],
+  "setRetryPolicy": [
+   "DefaultAgentEngineConfig.java"
+  ],
+  "getRetryPolicy": [
+   "DefaultAgentEngineConfig.java"
+  ],
+  "setCircuitBreaker": [
+   "DefaultAgentEngineConfig.java"
+  ],
+  "getCircuitBreaker": [
+   "DefaultAgentEngineConfig.java"
+  ],
+  "setGoalTracker": [
+   "DefaultAgentEngineConfig.java"
+  ],
+  "getGoalTracker": [
+   "DefaultAgentEngineConfig.java"
+  ],
+  "setSustainer": [
+   "DefaultAgentEngineConfig.java"
+  ],
+  "getSustainer": [
+   "DefaultAgentEngineConfig.java"
+  ],
+  "setConflictStrategy": [
+   "DefaultAgentEngineConfig.java"
+  ],
+  "getConflictStrategy": [
+   "DefaultAgentEngineConfig.java"
+  ],
+  "getWriteIntentRegistry": [
+   "DefaultAgentEngineConfig.java"
+  ],
+  "getContributionRegistry": [
+   "DefaultAgentEngineConfig.java"
+  ],
+  "getActorRuntime": [
+   "DefaultAgentEngineConfig.java"
+  ],
+  "setTeamManager": [
+   "DefaultAgentEngineConfig.java"
+  ],
+  "getTeamManager": [
+   "DefaultAgentEngineConfig.java"
+  ],
+  "setTeamTaskStore": [
+   "DefaultAgentEngineConfig.java"
+  ],
+  "getTeamTaskStore": [
+   "DefaultAgentEngineConfig.java"
+  ],
+  "setTeamAclChecker": [
+   "DefaultAgentEngineConfig.java"
+  ],
+  "getTeamAclChecker": [
+   "DefaultAgentEngineConfig.java"
+  ],
+  "setSandboxBackend": [
+   "DefaultAgentEngineConfig.java"
+  ],
+  "getSandboxBackend": [
+   "DefaultAgentEngineConfig.java"
+  ],
+  "setSessionTakeoverLock": [
+   "DefaultAgentEngineConfig.java"
+  ],
+  "getSessionTakeoverLock": [
+   "DefaultAgentEngineConfig.java"
+  ],
+  "setLockLeaseMs": [
+   "DefaultAgentEngineConfig.java"
+  ],
+  "getLockLeaseMs": [
+   "DefaultAgentEngineConfig.java"
+  ],
+  "setLockRenewIntervalMs": [
+   "DefaultAgentEngineConfig.java"
+  ],
+  "getLockRenewIntervalMs": [
+   "DefaultAgentEngineConfig.java"
+  ],
+  "setRecoveryManager": [
+   "DefaultAgentEngineConfig.java"
+  ],
+  "getRecoveryManager": [
+   "DefaultAgentEngineConfig.java"
+  ],
+  "setTeamTaskSchedulerDaemon": [
+   "DefaultAgentEngineConfig.java"
+  ],
+  "getTeamTaskSchedulerDaemon": [
+   "DefaultAgentEngineConfig.java"
+  ],
+  "resumeSession": [
+   "AgentSessionLifecycle.java"
+  ],
+  "restoreSession": [
+   "AgentSessionLifecycle.java"
+  ],
+  "buildBaseExecutionContext": [
+   "AgentSessionLifecycle.java"
+  ],
+  "buildBudgetedMemorySection": [
+   "AgentSessionLifecycle.java"
+  ],
+  "formatMemorySection": [
+   "AgentSessionLifecycle.java"
+  ],
+  "publishCancelRequested": [
+   "AgentSessionLifecycle.java"
+  ],
+  "publishCancelled": [
+   "AgentSessionLifecycle.java"
+  ],
+  "releaseLockQuietly": [
+   "AgentSessionLifecycle.java"
+  ],
+  "isTerminalStatus": [
+   "AgentSessionLifecycle.java"
+  ],
+  "registerCallAgentHandler": [
+   "AgentCallDelegate.java"
+  ],
+  "handleCallAgentRequest": [
+   "AgentCallDelegate.java"
+  ],
+  "extractFinalAssistantMessage": [
+   "AgentCallDelegate.java"
+  ],
+  "getMessenger": [
+   "AgentCallDelegate.java"
+  ],
+  "getLockRenewExecutor": [
+   "SessionLockRenewal.java"
+  ],
+  "startLockRenewal": [
+   "SessionLockRenewal.java"
+  ],
+  "renewOnceSafe": [
+   "SessionLockRenewal.java"
+  ],
+  "handleLeaseLost": [
+   "SessionLockRenewal.java"
+  ],
+  "cancelLockRenewalQuietly": [
+   "SessionLockRenewal.java"
+  ],
+  "resolveEffectiveToolAccessChecker": [
+   "AgentExecutorResolver.java"
+  ],
+  "resolvePerAgentPathChecker": [
+   "AgentExecutorResolver.java"
+  ],
+  "resolveEffectivePathAccessChecker": [
+   "AgentExecutorResolver.java"
+  ],
+  "resolveExecutor": [
+   "AgentExecutorResolver.java"
+  ],
+  "resolveHookContributions": [
+   "AgentExecutorResolver.java"
+  ],
+  "resolveMiddlewares": [
+   "AgentExecutorResolver.java"
+  ],
+  "getMailboxFactory": [
+   "AgentSessionSupport.java"
+  ],
+  "ensureSessionMailbox": [
+   "AgentSessionSupport.java"
+  ],
+  "resolveSessionId": [
+   "AgentSessionSupport.java"
+  ],
+  "loadAgentModel": [
+   "AgentSessionSupport.java"
+  ],
+  "precheckTeamDeclarations": [
+   "AgentTeamBinder.java"
+  ],
+  "autoBindTeam": [
+   "AgentTeamBinder.java"
+  ],
+  "autoBindLead": [
+   "AgentTeamBinder.java"
+  ],
+  "autoBindMember": [
+   "AgentTeamBinder.java"
+  ],
+  "resolveActorId": [
+   "AgentTeamBinder.java"
+  ],
+  "warnIfInsecureDefaults": [
+   "AgentStartupWarnings.java"
+  ],
+  "warnIfNoOpUsageRecorder": [
+   "AgentStartupWarnings.java"
+  ],
+  "defaultPipelineCompactor": [
+   "AgentStartupWarnings.java"
+  ]
+ },
+ "TeamTaskSchedulerDaemon.java": {
+  "dispatchClaimedTask": [
+   "TaskDispatchCoordinator.java"
+  ],
+  "resolveSpawnExecutor": [
+   "TaskDispatchCoordinator.java"
+  ],
+  "awaitInFlightDispatches": [
+   "TaskDispatchCoordinator.java"
+  ]
+ }
 }

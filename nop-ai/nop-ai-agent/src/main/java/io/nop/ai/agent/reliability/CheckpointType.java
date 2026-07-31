@@ -41,7 +41,7 @@ public enum CheckpointType {
      * messages have replaced the context and token accounting has been
      * adjusted). Marks the post-compaction baseline so a crash after
      * compaction restores the compacted message history. Emitted by
-     * {@code performCompaction} only when real compaction occurs (plan 187).
+     * {@code AgentCompactionCoordinator.performCompaction} only when real compaction occurs (plan 187).
      */
     COMPACTION
 }

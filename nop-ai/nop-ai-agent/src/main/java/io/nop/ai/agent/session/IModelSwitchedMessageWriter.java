@@ -14,7 +14,7 @@ package io.nop.ai.agent.session;
  * pass-through — discards the event). A functional implementation
  * ({@link DbModelSwitchedMessageWriter}) persists via raw JDBC. Integrators
  * register the functional writer via
- * {@code ReActAgentExecutor.Builder.modelSwitchedMessageWriter}.
+ * {@code ReActAgentExecutorBuilder.modelSwitchedMessageWriter}.
  *
  * <p>This mirrors the {@code IUsageRecorder} / {@code NoOpUsageRecorder} /
  * {@code DbUsageRecorder} extension-point pattern.

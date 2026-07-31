@@ -410,7 +410,7 @@ public class TestSecureByDefault {
     }
 
     /**
-     * Bonus: {@code ReActAgentExecutor.Builder.build()} null-fallback
+     * Bonus: {@code ReActAgentExecutorBuilder.build()} null-fallback
      * consistency — when no checker is supplied to the builder, the resulting
      * executor uses {@code Default*} (not AllowAll*). Proves the builder
      * default is consistent with the engine default (plan 193 in-scope item).

@@ -28,7 +28,7 @@ package io.nop.ai.agent.reliability;
  *
  * <p>The breaker tracks state per <i>model identity</i> — the
  * {@code provider:model} composite key built by
- * {@code ReActAgentExecutor.buildModelKey(ChatOptions)}. A breaker tripping
+ * {@code LlmCallCoordinator.buildModelKey(ChatOptions)}. A breaker tripping
  * on model A does not prevent calls to a healthy model B (the fallback-chain
  * scenario), so the key parameter is mandatory on every method.
  *
