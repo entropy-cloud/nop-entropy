@@ -21,6 +21,15 @@ ai-dev/audits/
 - `{module}`: 被审计的模块名（如 `nop-stream`、`nop-job`）
 - `HHMM`: 24 小时制时分（如 `0930`、`1430`），用于区分同一天内的多次执行。历史记录可能只有 `YYYY-MM-DD`（无时分），新记录一律带 `HHMM`。
 
+## 证据产物目录（evidence/）
+
+`ai-dev/audits/evidence/{plan-id}/` 按 plan/milestone 归档修复证据产物（语义对比脚本与输出、baseline 快照、白名单等），与 audit 记录分离——audit 记录描述"发现了什么"，evidence 记录"修复如何被验证"。约定：
+
+- `baseline/`：拆分/重构前的原始文件快照（BASE_REF），首次变更提交前捕获并提交，commit SHA 写入各证据文件头部
+- `compare.sh` + `compare.py` + `whitelist.json`：可复现的语义对比工具链（compare.sh 从自身目录执行，`cd "$DIR"` 后以相对路径引用源码）
+- `*-semantic-diff.txt`：对比输出（RESULT: 0-diff = 语义等价），提交入库
+- 现有证据：`ma4-2-05/`（引擎三文件拆分，plan 2026-08-01-0441-1）
+
 ## 与 skills 的关系
 
 审计 prompt 模板定义在 `ai-dev/skills/`：

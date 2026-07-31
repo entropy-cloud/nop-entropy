@@ -1,9 +1,5 @@
-== TeamTaskSchedulerDaemon.java -> TeamTaskSchedulerDaemon.java
-   baseline members: 34, new members: 34
-   MISSING resolveSpawnExecutor (512-522)
-   MISSING awaitInFlightDispatches (556-572)
-   MISSING dispatchClaimedTask (923-1032)
-   NEW TeamTaskSchedulerDaemon.java:resolveSpawnExecutor (512-522) — UNEXPLAINED
-   NEW TeamTaskSchedulerDaemon.java:awaitInFlightDispatches (556-572) — UNEXPLAINED
-   NEW TeamTaskSchedulerDaemon.java:dispatchClaimedTask (923-1032) — UNEXPLAINED
-RESULT: 6 UNEXPLAINED MEMBERS
+== TeamTaskSchedulerDaemon.java -> TeamTaskSchedulerDaemon.java, TaskDispatchCoordinator.java
+   baseline members: 34, new members: 43
+   FUZZY setScanLeaseMs (660-666) -> TeamTaskSchedulerDaemon.java:setScanLeaseMs (0.82)
+   FUZZY stop (686-709) -> TeamTaskSchedulerDaemon.java:stop (0.69)
+RESULT: 0-diff (semantic equivalence per Phase 1 whitelist)

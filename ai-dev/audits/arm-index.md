@@ -260,6 +260,12 @@ MR4 Phase 2 对 P1 表全部 `fixed` 行做了 live repo 证据核验（提交/�
 
 第一批 P2 批量修复（plan `ai-dev/plans/2026-07-31-1446-2-arm-ma4-p2-code-quality.md`）已执行并收口。in-scope finding 全部 `fixed` 或已裁定落盘；MA4.2-05 超大文件拆分与 MA4.2-14 全量 import 重排按 plan 裁定记入 Deferred（optimization candidate，不阻塞 closure）。
 
+**MA4.2-05 修复（2026-08-01，plan `2026-08-01-0441-1-arm-ma4-2-05-engine-split.md`，第十批）**：
+
+| Finding ID | 修复状态 | 修复位置 / 测试 |
+|-----------|---------|----------------|
+| MA4.2-05 | `fixed` | 三文件全部 <1000 行：`ReActAgentExecutor` 3728→**954**（9 提取类：ReActAgentExecutorBuilder/LlmCallCoordinator/AgentHookInvoker/AgentSecurityConsultation/AgentCompactionCoordinator/AgentToolPlanResolver/AgentPromptAssembly/AgentToolDispatcher/AgentLoopGuard）；`DefaultAgentEngine` 3681→**986**（8 提取类：DefaultAgentEngineConfig/AgentSessionLifecycle/AgentCallDelegate/SessionLockRenewal/AgentExecutorResolver/AgentSessionSupport/AgentTeamBinder/AgentStartupWarnings；60+ setter/getter 一行委托，API 100% 兼容）；`TeamTaskSchedulerDaemon` 1108→**382**（TaskDispatchCoordinator）。设计 `ai-dev/design/nop-ai-agent/engine-class-split.md`；语义对比 `ai-dev/audits/evidence/ma4-2-05/`（compare.sh + baseline 快照 BASE_REF 662660ab0 + 三份 diff 全 0-diff）；focused 测试 45 例（TestEngineExtractedCoordinators 16 / TestEngineExtractedSecurityAndDispatch 9 / TestEngineConfigAndHelpers 14 / TestTaskDispatchCoordinator 6）；全量 `./mvnw test -pl nop-ai -am -T 1C` BUILD SUCCESS（2907 tests 0 failures） |
+
 | Finding ID | 修复状态 | 修复位置 / 测试 |
 |-----------|---------|----------------|
 | MA4.1-01 | `fixed` | `AnthropicDialect.parseResponse` blockMap cast 加局部 `@SuppressWarnings("unchecked")` + 契约注释 |

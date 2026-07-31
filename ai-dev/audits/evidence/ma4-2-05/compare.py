@@ -291,7 +291,8 @@ def main():
         if core and core.count(';') <= 3 and ('config.' in core or 'lifecycle.' in core
                                               or 'callDelegate.' in core or 'sessionSupport.' in core
                                               or 'lockRenewal.' in core or 'executorResolver.' in core
-                                              or 'teamBinder.' in core or 'startupWarnings.' in core):
+                                              or 'teamBinder.' in core or 'startupWarnings.' in core
+                                              or 'dispatchCoordinator.' in core or 'sessionSupport.' in core):
             continue
         cls = nm['file'][:-5]
         if name == cls:  # constructor

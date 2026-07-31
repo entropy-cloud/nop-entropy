@@ -739,6 +739,15 @@
   ],
   "awaitInFlightDispatches": [
    "TaskDispatchCoordinator.java"
-  ]
+  ],
+  "_min_sim": {
+   "setScanLeaseMs": 0.8,
+   "stop": 0.65
+  },
+  "_new": {
+   "TaskDispatchCoordinator.java": [
+    "shutdownOwnSpawnExecutor"
+   ]
+  }
  }
 }
