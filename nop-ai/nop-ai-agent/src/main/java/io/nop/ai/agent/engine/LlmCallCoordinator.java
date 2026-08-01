@@ -5,8 +5,12 @@ import io.nop.ai.agent.reliability.AccountChain;
 import io.nop.ai.agent.reliability.CircuitState;
 import io.nop.ai.agent.reliability.IAccountChainResolver;
 import io.nop.ai.agent.reliability.ICircuitBreaker;
+import io.nop.ai.agent.reliability.IProviderFailoverChainResolver;
+import io.nop.ai.agent.reliability.IProviderFailoverQueue;
 import io.nop.ai.agent.reliability.IRetryPolicy;
 import io.nop.ai.agent.reliability.LlmErrorClassifier;
+import io.nop.ai.agent.reliability.NoOpProviderFailoverQueue;
+import io.nop.ai.agent.reliability.ProviderFailoverChain;
 import io.nop.ai.agent.reliability.RetryContext;
 import io.nop.ai.agent.reliability.RetryOutcome;
 import io.nop.ai.agent.router.IModelRouter;
@@ -18,6 +22,7 @@ import io.nop.ai.api.chat.ErrorClassification;
 import io.nop.ai.api.chat.IChatService;
 import io.nop.ai.api.chat.messages.ChatToolCall;
 import io.nop.ai.core.model.LlmAccountModel;
+import io.nop.ai.core.model.LlmFailoverProviderModel;
 import io.nop.ai.core.service.LlmConfigHelper;
 import io.nop.ai.toolkit.model.AiToolCallResult;
 
@@ -52,6 +57,8 @@ public class LlmCallCoordinator {
     private final Executor timeoutExecutor;
     private final AgentHookInvoker hookInvoker;
     private final IAccountChainResolver accountChainResolver;
+    private final IProviderFailoverQueue providerFailoverQueue;
+    private final IProviderFailoverChainResolver providerFailoverChainResolver;
 
     /**
      * 生产默认账号链解析器：经 {@code LlmConfigHelper.resolveAccountChain(provider)} 从
@@ -59,6 +66,14 @@ public class LlmCallCoordinator {
      */
     private static final IAccountChainResolver DEFAULT_ACCOUNT_CHAIN_RESOLVER =
             provider -> new AccountChain(LlmConfigHelper.resolveAccountChain(provider));
+
+    /**
+     * 生产默认跨 provider failover 链解析器（plan 2026-08-01-1905-3，设计 §13.4 裁定 A）：经
+     * {@code LlmConfigHelper.resolveFailoverChain(primaryProvider)} 从 {@code _default.llm-failover.xml}
+     * 解析（纯配置文件）。配置文件缺省 / primary 不在表 / primary 是表尾 → 空 chain（无 failover）。
+     */
+    private static final IProviderFailoverChainResolver DEFAULT_PROVIDER_FAILOVER_CHAIN_RESOLVER =
+            primaryProvider -> new ProviderFailoverChain(LlmConfigHelper.resolveFailoverChain(primaryProvider));
 
     public LlmCallCoordinator(IChatService chatService, IRetryPolicy retryPolicy,
                                ICircuitBreaker circuitBreaker, IModelRouter modelRouter,
@@ -77,6 +92,26 @@ public class LlmCallCoordinator {
                                long llmTimeoutMs, Executor timeoutExecutor,
                                AgentHookInvoker hookInvoker,
                                IAccountChainResolver accountChainResolver) {
+        this(chatService, retryPolicy, circuitBreaker, modelRouter, llmTimeoutMs,
+                timeoutExecutor, hookInvoker, accountChainResolver, null, null);
+    }
+
+    /**
+     * 完整构造器（plan 2026-08-01-1905-3，跨 provider failover 第三通道）。
+     *
+     * @param accountChainResolver        账号链解析策略；null → 生产默认（config-based）
+     * @param providerFailoverQueue       跨调用共享 provider 健康状态（去重）；null → {@link NoOpProviderFailoverQueue}
+     *                                     （shipped 默认：不去重，单次调用内由向前游标保证不回退——零回归）
+     * @param providerFailoverChainResolver 跨 provider failover 链解析策略；null → 生产默认（config-based）。
+     *      测试可注入假实现以隔离 config 加载（Phase 2 端到端测试）。
+     */
+    public LlmCallCoordinator(IChatService chatService, IRetryPolicy retryPolicy,
+                               ICircuitBreaker circuitBreaker, IModelRouter modelRouter,
+                               long llmTimeoutMs, Executor timeoutExecutor,
+                               AgentHookInvoker hookInvoker,
+                               IAccountChainResolver accountChainResolver,
+                               IProviderFailoverQueue providerFailoverQueue,
+                               IProviderFailoverChainResolver providerFailoverChainResolver) {
         this.chatService = chatService;
         this.retryPolicy = retryPolicy;
         this.circuitBreaker = circuitBreaker;
@@ -87,6 +122,12 @@ public class LlmCallCoordinator {
         this.accountChainResolver = accountChainResolver != null
                 ? accountChainResolver
                 : DEFAULT_ACCOUNT_CHAIN_RESOLVER;
+        this.providerFailoverQueue = providerFailoverQueue != null
+                ? providerFailoverQueue
+                : NoOpProviderFailoverQueue.noOp();
+        this.providerFailoverChainResolver = providerFailoverChainResolver != null
+                ? providerFailoverChainResolver
+                : DEFAULT_PROVIDER_FAILOVER_CHAIN_RESOLVER;
     }
 
     // ---- moved verbatim from ReActAgentExecutor (MA4.2-05 split) ----
@@ -101,6 +142,12 @@ public class LlmCallCoordinator {
      * 按 {@code errorClassification} 分流到两个独立通道——{@code QUOTA_EXCEEDED}/{@code AUTH_INVALID}
      * → 账号链（同模型换 key/账号），{@code TRANSIENT} 等 → {@code IModelRouter.getFallback}（模型 tier）。
      * 任一通道耗尽都 fail-loud（设计 §6.9，不静默降级/跳过）。
+     *
+     * <p><b>第三通道：跨 provider 有序故障转移（plan 2026-08-01-1905-3，设计 §13.4 裁定 C）</b>：
+     * 当 QUOTA/AUTH 的账号链通道<b>耗尽</b>时（同 provider 所有账号不可用 = provider 级故障），
+     * 不立即 fail-loud，而是升级到跨 provider 通道——切到下一 provider 重试（重置 accountChain +
+     * 新 circuit key + 重置 attempt）。全部 provider 耗尽才 fail-loud。TRANSIENT 的模型 tier 通道耗尽
+     * 仍 fail-loud（两通道区分不变：QUOTA/AUTH=provider 账号问题→切 provider；TRANSIENT=瞬态→模型 tier）。
      */
     public LlmCallResult doLlmCallWithRetry(ChatRequest request,
                                              AgentExecutionContext ctx,
@@ -130,6 +177,8 @@ public class LlmCallCoordinator {
             ChatResponse attemptResponse = null;
             // 账号链游走器：惰性解析（首次 QUOTA/AUTH FALLBACK 时），跨迭代保留游标。
             AccountChain accountChain = null;
+            // 跨 provider failover 链游走器：惰性解析（首次账号链耗尽升级时），跨迭代保留游标（裁定 D 向前）。
+            ProviderFailoverChain failoverChain = null;
             while (true) {
                 try {
                     llmCallStart = System.currentTimeMillis();
@@ -175,9 +224,28 @@ public class LlmCallCoordinator {
                                     attempt, classification, accountChain,
                                     routedOptions.getProvider());
                             if (switched == null) {
-                                // 账号链耗尽 → fail-loud（break 退出循环，循环外抛出）。
+                                // 账号链耗尽 → 第三通道：升级到跨 provider failover（设计 §13.4 裁定 C）。
+                                // 记录 provider 级失败（去重，裁定 D）→ 试切下一 provider。
+                                String exhaustedProvider = routedOptions.getProvider();
+                                providerFailoverQueue.recordProviderFailure(exhaustedProvider);
+                                // 惰性解析跨 provider 链（首次账号链耗尽升级时），跨迭代重用游标（裁定 D 向前）。
+                                if (failoverChain == null) {
+                                    failoverChain = providerFailoverChainResolver.apply(exhaustedProvider);
+                                }
+                                ChatOptions nextProvider = doProviderFailover(routedOptions, request,
+                                        attempt, classification, exhaustedProvider, failoverChain);
+                                if (nextProvider != null) {
+                                    // 切到下一 provider：重置 accountChain（新 provider 有自己的 <accounts>）
+                                    // + routedOptions（改 provider/model，清 accountKey，裁定 E）+ 新 circuit key
+                                    // （buildModelKey 改变）+ 重置 attempt（嵌套循环内层重置，裁定 C）。
+                                    routedOptions = nextProvider;
+                                    accountChain = null;
+                                    attempt = 0;
+                                    continue;
+                                }
+                                // 跨 provider 链也耗尽 → fail-loud（break 退出循环，循环外抛出）。
                                 fallbackExhausted = buildFallbackExhaustedError(
-                                        classification, attempt, null, true, accountChain);
+                                        classification, attempt, null, true, true, accountChain);
                                 break;
                             }
                             routedOptions = switched;
@@ -189,7 +257,7 @@ public class LlmCallCoordinator {
                                 attempt, classification, null);
                         if (switched == null) {
                             fallbackExhausted = buildFallbackExhaustedError(
-                                    classification, attempt, null, false, null);
+                                    classification, attempt, null, false, false, null);
                             break;
                         }
                         routedOptions = switched;
@@ -229,7 +297,7 @@ public class LlmCallCoordinator {
                                 attempt, classification, ex);
                         if (switched == null) {
                             fallbackExhausted = buildFallbackExhaustedError(
-                                    classification, attempt, ex, false, null);
+                                    classification, attempt, ex, false, false, null);
                             break;
                         }
                         routedOptions = switched;
@@ -263,6 +331,9 @@ public class LlmCallCoordinator {
         }
 
         circuitBreaker.recordSuccess(buildModelKey(routedOptions));
+        // 跨 provider failover 成功（或 primary 直接成功）：记录 provider 级成功，重置其失败计数
+        // （去重维度，裁定 D——成功说明该 provider 恢复健康，后续调用不应跳过它）。
+        providerFailoverQueue.recordProviderSuccess(routedOptions.getProvider());
         return new LlmCallResult(response, routedOptions, llmCallStart, true);
     }
 
@@ -307,6 +378,47 @@ public class LlmCallCoordinator {
     }
 
     /**
+     * 跨 provider 有序故障转移切换（plan 2026-08-01-1905-3，设计 §13.4 裁定 C/E，第三通道）。
+     * 同 provider 账号链耗尽时调用：从 {@code failoverChain} 取下一个<b>可用</b> provider（跳过
+     * {@code providerFailoverQueue} 冷却中的），经 {@code ChatOptions.provider}/{@code model} 下沉到
+     * {@code ChatServiceImpl}（每次 call 按 provider 重载 config/dialect，裁定 E）。
+     *
+     * <p>清 {@code accountKey}/{@code accountBaseUrl}——新 provider 从主账号开始（非继承前 provider 的
+     * 备用账号）。链耗尽（无可用 provider，含全部冷却中）返回 null（调用方 fail-loud，设计 §6.9）。
+     *
+     * @param exhaustedProvider 刚耗尽账号链的 provider（诊断用）
+     * @param failoverChain     跨 provider 链游走器（向前 cursor，裁定 D）；非 null
+     * @return 切换后的 routedOptions（已设 provider/model，清 accountKey），或 null 当链耗尽
+     */
+    private ChatOptions doProviderFailover(ChatOptions routedOptions, ChatRequest request,
+                                            int attempt, ErrorClassification classification,
+                                            String exhaustedProvider,
+                                            ProviderFailoverChain failoverChain) {
+        LlmFailoverProviderModel next = failoverChain.nextAvailable(providerFailoverQueue);
+        if (next == null) {
+            LOG.error("LLM call FALLBACK (classification={}, provider-failover) at attempt={} "
+                            + "but cross-provider failover chain exhausted (from provider={}, "
+                            + "consumed={}). Failing loud.",
+                    classification, attempt, exhaustedProvider, failoverChain.consumed());
+            return null; // 调用方 fail-loud
+        }
+        ChatOptions switched = routedOptions.copy();
+        switched.setProvider(next.getProvider());
+        // model 覆盖：链声明 model 用之，否则清空让目标 provider 的 defaultModel 解析（裁定 E）。
+        switched.setModel(next.getModel());
+        // 新 provider 从主账号开始：清前 provider 的账号下沉（裁定 E）。
+        switched.setAccountKey(null);
+        switched.setAccountBaseUrl(null);
+        request.setOptions(switched);
+        LOG.warn("LLM call FALLBACK (classification={}, attempt={}): cross-provider failover "
+                        + "{} -> {} (model={}, attempt reset to 0)",
+                classification, attempt,
+                buildModelKey(routedOptions), buildModelKey(switched),
+                next.getModel() != null ? next.getModel() : "(target default)");
+        return switched;
+    }
+
+    /**
      * 执行模型 tier 回退切换（TRANSIENT FALLBACK 路径，行为不变）。从 {@code modelRouter.getFallback(current)}
      * 取下一个模型，更新 {@code request} 的 options，返回新的 routedOptions。无可用回退模型时
      * 返回 null（调用方 fail-loud，Minimum Rules #24）。{@code ex} 可空（响应级错误无异常）。
@@ -338,22 +450,29 @@ public class LlmCallCoordinator {
     /**
      * 构造 FALLBACK 通道耗尽的 fail-loud 异常（设计 §6.9）。
      *
-     * @param accountChainExhausted true=账号链耗尽；false=模型 tier 回退链耗尽
+     * @param accountChainExhausted  true=账号链耗尽；false=模型 tier 回退链耗尽
+     * @param providerChainExhausted true=账号链耗尽后升级到跨 provider 链也耗尽（全部 provider 不可用）；
+     *                               false=未涉及跨 provider（模型 tier 通道 / 无 provider 链配置）
      */
     private NopAiAgentException buildFallbackExhaustedError(ErrorClassification classification,
                                                              int attempt, Throwable ex,
                                                              boolean accountChainExhausted,
+                                                             boolean providerChainExhausted,
                                                              AccountChain accountChain) {
         String channel = accountChainExhausted ? "account chain" : "model-tier fallback";
         String detail = accountChainExhausted && accountChain != null
                 ? " (consumed=" + accountChain.consumed() + ")"
                 : "";
+        String providerNote = providerChainExhausted
+                ? " and cross-provider failover chain also exhausted (all providers unavailable)"
+                : "";
         return new NopAiAgentException(
                 "LLM call FALLBACK (" + channel + ") exhausted for classification="
-                        + classification + ", attempt=" + attempt + detail
+                        + classification + ", attempt=" + attempt + detail + providerNote
                         + ". No more " + channel + " available — failing loud "
                         + "(design §6.9). Configure additional backup accounts (<accounts> in "
-                        + "{provider}.llm.xml) or IModelRouter fallback models.", ex);
+                        + "{provider}.llm.xml), IModelRouter fallback models, or a cross-provider "
+                        + "failover chain (_default.llm-failover.xml).", ex);
     }
     /**
      * Holds the result of {@link #doLlmCallWithRetry}: the ChatResponse,

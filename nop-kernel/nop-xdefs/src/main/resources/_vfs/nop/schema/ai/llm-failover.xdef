@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!--
+[跨 provider 有序故障转移声明（plan 2026-08-01-1905-3，设计 §13.4 裁定 A）]
+
+单一全局有序 provider 优先级表（P1→P2→P3）。每条 provider 引用既有 {provider}.llm.xml 单 provider 配置文件。
+failover 恒向优先级更低的方向游走（只取 primary 之后），故环不可能由声明构造——状态模型最简。
+
+opt-in：配置文件 _vfs/nop/ai/llm/_default.llm-failover.xml。缺省（无文件）= 无 provider 链 = 零回归 fail-loud
+（账号链耗尽仍按今日行为 fail-loud，设计 §6.9）。
+
+@provider  provider 名称（引用 {provider}.llm.xml，必填，x:extends 合并键）
+@model     可选 model 覆盖；缺省用目标 provider 的 defaultModel（经 ChatServiceImpl.resolveModel）
+@tier      可选 provider tier/cost 声明（声明层留位，非阻塞 follow-up，本计划不做主动成本优化）
+-->
+<llmFailover x:schema="/nop/schema/xdef.xdef" xmlns:x="/nop/schema/xdsl.xdef"
+             xmlns:xdef="/nop/schema/xdef.xdef"
+             xdef:name="LlmFailoverConfig" xdef:bean-package="io.nop.ai.core.model"
+>
+
+    <providers xdef:body-type="list" xdef:key-attr="provider">
+        <provider provider="!string" xdef:name="LlmFailoverProviderModel"
+                  model="string"
+                  tier="string"
+        />
+    </providers>
+
+</llmFailover>
