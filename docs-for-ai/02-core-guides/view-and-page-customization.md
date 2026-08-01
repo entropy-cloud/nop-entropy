@@ -284,6 +284,8 @@ View 绑定了 `objMeta` 后，`<layout>` 中出现的每个字段 ID 默认要�
 
 如果需求本质上是列表列、表单字段、按钮结构或 CRUD 页面拼装，通常先改 `view.xml` 更对路。
 
+> **Flux 专属页面**：开启 Flux 模式后，可额外提供 `*.flux.yaml`（与 `*.page.yaml` 同目录同名，仅复合扩展名不同），加载时优先使用。详见 `./flux-rendering.md` 的「flux.yaml 页面文件」章节。
+
 ## 外部应用里的高价值复杂样例
 
 以下模式在外部应用中常见。完整代码片段见 `./external-app-examples.md`，对应章节编号如下。

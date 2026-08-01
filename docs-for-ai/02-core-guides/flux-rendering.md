@@ -52,6 +52,78 @@ x:gen-extends: |
 
 这样一来，`flux-web/impl_GenForm.xpl` 等实现中完全不需要写 `if (renderMode == 'flux')` 类条件判断——它们读取到的 `viewModel.controlLib` 已经在加载期被正确设置为 `flux-control.xlib`。
 
+## flux.yaml 页面文件：Flux 专属页面覆盖
+
+除了上面「自动切换机制」对**同一个 `page.yaml`** 做模型加载期变换之外，平台还支持一种**按文件覆盖**的机制：为某个页面额外提供一个 `flux.yaml`，作为该页面在 Flux 模式下的专属实现。
+
+### 命名约定
+
+`flux.yaml` 与 `page.yaml` 位于**同一目录**，文件名仅复合扩展名不同：
+
+```
+pages/NopAuthUser/
+  ├── main.page.yaml   ← 默认页面（AMIS），或 Flux 模式下自动切换的入口
+  └── main.flux.yaml   ← 可选：Flux 模式下优先使用
+```
+
+即把 `main.page.yaml` 的复合扩展名 `page.yaml` 整体替换为 `flux.yaml`，得到 `main.flux.yaml`（**不是** `main.page.flux.yaml`）。
+
+### 覆盖规则（fallback）
+
+当 `nop.web.render-mode=flux` 时，后端在任何位置加载一个 `*.page.yaml` 之前，都会先检查同目录是否存在对应的 `*.flux.yaml`：
+
+- **存在** `*.flux.yaml` → 加载 `flux.yaml`（**优先使用 Flux 页面**）。
+- **不存在** → 回退到加载 `page.yaml`，并由上文「自动切换机制」走 `flux-web:GenPage`。
+
+该规则在两个加载入口都生效：
+
+| 入口 | 说明 | 实现位置 |
+|------|------|---------|
+| **顶层页面加载** | 前端 `PageProvider__getPage` 请求 `/.../main.page.yaml` | `PageModelLoader.loadObjectFromPath` 在 Flux 模式下检测同名 `flux.yaml`，命中则改加载它 |
+| **子页面加载** | `tabs`/`wizard` 等页面通过 `LoadPage` 引用子 `page` | `flux-web.xlib:LoadPage` 在 Flux 模式下优先查找 `*.flux.yaml`，命中则 `x:extends` 它 |
+
+> 非 Flux 模式（`render-mode=amis`，默认）下，`flux.yaml` **不会被自动使用**，`page.yaml` 按原逻辑渲染为 AMIS JSON。
+
+### 如何启用
+
+仅需启用 Flux 模式（启用方式见本仓库已有文档）：通过 `-Dnop.web.render-mode=flux` 或 `application.yaml` 设置 `nop.web.render-mode: flux`。无需为 `flux.yaml` 做额外配置——`flux.yaml` 已注册为标准页面文件类型（`xpage` 模型），Flux 模式开启后覆盖规则自动生效。
+
+### 与自动切换机制的关系
+
+两种机制**互补、不冲突**：
+
+| 场景 | 行为 |
+|------|------|
+| 只有 `page.yaml`，开启 Flux 模式 | 走「自动切换机制」：同一个 `page.yaml` 在加载期把 `web:GenPage` 替换为 `flux-web:GenPage` |
+| 同时有 `page.yaml` 和 `flux.yaml`，开启 Flux 模式 | **优先加载 `flux.yaml`**（覆盖规则）；`flux.yaml` 可以是完全手写的 Flux 页面，也可以用 `flux-web:GenPage` 生成后再追加 Flux 专属定制 |
+| 同时有两者，但处于 AMIS 模式 | 用 `page.yaml`，忽略 `flux.yaml` |
+
+`flux.yaml` 的价值在于：当一个页面的 Flux 形态与 AMIS 形态差异较大、仅靠「自动切换」难以表达时（例如完全不同的容器结构、原生 `ActionSchema` 编排），可以用 `flux.yaml` 单独承载 Flux 实现，而保持 `page.yaml` 的 AMIS 实现不受影响。
+
+### 直接访问 flux.yaml
+
+`flux.yaml` 与 `page.yaml` 一样可通过 `PageProvider__getPage` 直接按路径请求（例如 `/nop/auth/pages/NopAuthUser/main.flux.yaml`），也可作为 `LoadPage` 的 `page` 参数显式传入以 `.flux.yaml` 结尾的路径。直接请求时**不**受 Flux 模式开关影响——只要文件存在即加载。
+
+### 示例
+
+最简 `flux.yaml`（用 Flux 管线生成后追加标题包装）：
+
+```yaml
+# main.flux.yaml
+title: 用户管理（Flux）
+x:gen-extends: |
+  <flux-web:GenPage view="NopAuthUser.view.xml" page="main"
+                    xpl:lib="/nop/web/xlib/flux-web.xlib" />
+```
+
+### 实现锚点
+
+- 页面文件类型注册（含 `flux.yaml`）：`nop-frontend-support/nop-web/src/main/resources/_vfs/nop/core/registry/page.register-model.xml`
+- 顶层 fallback：`nop-frontend-support/nop-web/src/main/java/io/nop/web/page/PageModelLoaderFactory.java`（`PageModelLoader.loadObjectFromPath`）
+- 子页面 fallback：`nop-frontend-support/nop-web/src/main/resources/_vfs/nop/web/xlib/flux-web.xlib`（`LoadPage` 标签）
+- Flux 模式开关：`nop-frontend-support/nop-web/src/main/java/io/nop/web/WebConfigs.java`（`CFG_WEB_RENDER_MODE` = `nop.web.render-mode`）
+- 复合扩展名工具：`StringHelper.fileType(...)`（`main.flux.yaml` → `flux.yaml`）
+
 ## ORM 模型级启用
 
 在 ORM 模型文件中通过扩展属性指定渲染器：

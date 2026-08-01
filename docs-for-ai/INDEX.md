@@ -106,6 +106,7 @@
 | **查 form layout DSL 完整语法（分组、折叠、Tab、跨列、查询运算符）** | **`02-core-guides/layout-syntax-reference.md`** |
 | AMIS 渲染细节（含 AMIS 变量引用规则） | `02-core-guides/amis-rendering.md` |
 | Flux 渲染细节 | `02-core-guides/flux-rendering.md` |
+| **flux.yaml 页面文件（Flux 模式下优先覆盖 page.yaml）** | **`02-core-guides/flux-rendering.md`**（「flux.yaml 页面文件」章节） |
 | **Xpl 表达式转义规则（所有上下文速查）** | **`02-core-guides/xpl-escaping-reference.md`** |
 | 查复杂页面 DSL 配置模式 | `02-core-guides/page-dsl-pattern-catalog.md` |
 | 查外部应用页面 DSL 示例代码片段 | `02-core-guides/external-app-examples.md` |

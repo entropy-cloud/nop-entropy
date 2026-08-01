@@ -119,6 +119,7 @@ main.page.yaml      (入口 wrapper)
 - **`page.yaml` 通常不动**：只有在需要 page 级 `x:gen-extends`、自定义 title/body 包装、`fixedProps` 子表关联时才改
 - **复杂页面**（设计器、编辑器）：用 `x:gen-extends` 混合生成 + 大块手写框架 JSON
 - **框架选择**：默认使用 AMIS 渲染管线。切换到 Flux 见 `flux-rendering.md`
+- **Flux 专属页面覆盖**：开启 Flux 模式后，可为某个 `*.page.yaml` 提供同目录的 `*.flux.yaml`，加载时会优先使用 `flux.yaml`（顶层与子页面均生效）。详见 `flux-rendering.md` 的「flux.yaml 页面文件」章节
 
 ## XView 的最小理解模型
 
