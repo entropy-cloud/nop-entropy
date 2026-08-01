@@ -3,6 +3,7 @@ package io.nop.ai.agent.engine;
 import io.nop.ai.agent.model.AgentExecStatus;
 import io.nop.ai.agent.model.AgentModel;
 import io.nop.ai.agent.reliability.Checkpoint;
+import io.nop.ai.agent.reliability.CheckpointType;
 import io.nop.ai.agent.runtime.AgentActor;
 import io.nop.ai.agent.security.IPathAccessChecker;
 import io.nop.ai.agent.security.IToolAccessChecker;
@@ -10,7 +11,10 @@ import io.nop.ai.agent.security.ThreadLocalTenantResolver;
 import io.nop.ai.agent.session.AgentSession;
 import io.nop.ai.agent.session.ISessionStore;
 import io.nop.ai.agent.session.InMemorySessionStore;
+import io.nop.ai.api.chat.messages.ChatAssistantMessage;
+import io.nop.ai.api.chat.messages.ChatMessage;
 import io.nop.ai.api.chat.messages.ChatSystemMessage;
+import io.nop.ai.api.chat.messages.ChatToolCall;
 import io.nop.api.core.exceptions.NopException;
 
 import org.slf4j.Logger;
@@ -445,6 +449,8 @@ public class AgentSessionLifecycle {
         // checkpoint is a verification supplement, not a message source.
         Checkpoint latestCheckpoint = config.getCheckpointManager().getLatestCheckpoint(sessionId);
         String latestCheckpointWatermark = null;
+        boolean divergenceDetected = false;
+        String rejectedCheckpointWatermark = null;
         if (latestCheckpoint != null) {
             latestCheckpointWatermark = latestCheckpoint.getWatermark();
             int checkpointMsgCount = latestCheckpoint.getMessageCount();
@@ -454,6 +460,32 @@ public class AgentSessionLifecycle {
                                 + "exceeds persisted session messageCount {} — persisted history may be incomplete. "
                                 + "Continuing with best-effort recovery (session is source of truth). session={}",
                         checkpointMsgCount, sessionMsgCount, sessionId);
+            }
+
+            // Design §13.2: idempotency_key divergence detection. A non-null
+            // key (TOOL_EXECUTION checkpoint) enables a stronger check than
+            // messageCount: recompute the key from the persisted session's
+            // tool-call message at the same callId and compare. A mismatch
+            // means the tool-call input has diverged (state corruption), so
+            // the checkpoint is rejected as a resume-point verification and
+            // restore degrades to session replay (persisted session remains
+            // the source of truth — recovery is NOT blocked). A null key
+            // (legacy data / non-TOOL_EXECUTION) falls back to the
+            // best-effort messageCount check above (zero regression).
+            String storedKey = latestCheckpoint.getIdempotencyKey();
+            if (storedKey != null) {
+                String liveKey = recomputeToolExecutionKey(session, latestCheckpoint.getCallId());
+                if (liveKey == null || !liveKey.equals(storedKey)) {
+                    divergenceDetected = true;
+                    rejectedCheckpointWatermark = latestCheckpointWatermark;
+                    LOG.warn("restoreSession checkpoint divergence detected: idempotency_key mismatch "
+                                    + "(stored={}, live={}) for callId={} watermark={} — tool-call input has "
+                                    + "diverged (state corruption). Rejecting checkpoint as resume-point "
+                                    + "verification and degrading to session replay (session is source of "
+                                    + "truth, recovery not blocked). session={}",
+                            storedKey, liveKey, latestCheckpoint.getCallId(),
+                            latestCheckpointWatermark, sessionId);
+                }
             }
         }
 
@@ -471,6 +503,13 @@ public class AgentSessionLifecycle {
         restorePayload.put("latestCheckpointWatermark",
                 latestCheckpointWatermark != null ? latestCheckpointWatermark : "");
         restorePayload.put("preRestoreStatus", currentStatus != null ? currentStatus.name() : "");
+        // Design §13.2 Decision B: the divergence flag + rejected watermark
+        // make checkpoint rejection observably distinct from the best-effort
+        // messageCount warning (divergenceDetected=false / empty here means
+        // "checkpoint accepted or best-effort fallback").
+        restorePayload.put("divergenceDetected", divergenceDetected);
+        restorePayload.put("rejectedCheckpointWatermark",
+                rejectedCheckpointWatermark != null ? rejectedCheckpointWatermark : "");
         eventPublisher.publish(AgentEvent.create(AgentEventType.SESSION_RESTORED,
                 sessionId, agentName, restorePayload));
 
@@ -668,6 +707,50 @@ public class AgentSessionLifecycle {
                 restored.size(), skipped.size(), failed.size(), approver, reason);
 
         return new SessionRestoreSummary(restored, skipped, failed);
+    }
+
+    /**
+     * Recompute the {@code TOOL_EXECUTION} idempotency key for the tool call
+     * identified by {@code callId} from the persisted session's message
+     * history (design §13.2 Decision A). The session is the source of truth
+     * for message history; this re-derivation is what lets restore detect
+     * whether the tool-call input has diverged from what the checkpoint
+     * recorded.
+     *
+     * <p>Iterates the session messages, finds the {@link ChatAssistantMessage}
+     * whose {@link ChatToolCall#getId()} equals {@code callId}, and recomputes
+     * {@code hash(toolName + callId + argumentsText)} via
+     * {@link Checkpoint#computeIdempotencyKey}.
+     *
+     * @param session the persisted session whose message history to scan
+     * @param callId  the tool-call id to locate; may be null (returns null)
+     * @return the recomputed 32-hex-char key, or {@code null} if the callId is
+     *         not found in the session's message history (the matching
+     *         tool-call message is missing/truncated — treated as divergence
+     *         by the caller)
+     */
+    private String recomputeToolExecutionKey(AgentSession session, String callId) {
+        if (callId == null || session == null) {
+            return null;
+        }
+        List<ChatMessage> messages = session.getMessages();
+        if (messages == null) {
+            return null;
+        }
+        for (ChatMessage msg : messages) {
+            if (msg instanceof ChatAssistantMessage) {
+                ChatAssistantMessage assistantMsg = (ChatAssistantMessage) msg;
+                if (assistantMsg.hasToolCalls()) {
+                    for (ChatToolCall tc : assistantMsg.getToolCalls()) {
+                        if (callId.equals(tc.getId())) {
+                            return Checkpoint.computeIdempotencyKey(CheckpointType.TOOL_EXECUTION,
+                                    tc.getName(), tc.getId(), tc.getArgumentsText());
+                        }
+                    }
+                }
+            }
+        }
+        return null;
     }
 
     /**

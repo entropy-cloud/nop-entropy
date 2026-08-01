@@ -134,6 +134,7 @@ public class DBCheckpointManager implements ICheckpointManager {
              Statement stmt = conn.createStatement()) {
             stmt.execute(AiAgentCheckpointTable.DDL_CREATE_TABLE);
             stmt.execute(AiAgentCheckpointTable.DDL_CREATE_INDEX);
+            stmt.execute(AiAgentCheckpointTable.DDL_CREATE_IDEMPOTENCY_INDEX);
         } catch (SQLException e) {
             throw new NopAiAgentException(
                     "DBCheckpointManager: failed to initialize schema: " + e.getMessage(), e);
@@ -158,11 +159,12 @@ public class DBCheckpointManager implements ICheckpointManager {
                 + ", " + AiAgentCheckpointTable.COL_INPUT_SUMMARY
                 + ", " + AiAgentCheckpointTable.COL_OUTPUT_SUMMARY
                 + ", " + AiAgentCheckpointTable.COL_MESSAGE_COUNT
-                + ", " + AiAgentCheckpointTable.COL_TOKEN_ESTIMATE;
+                + ", " + AiAgentCheckpointTable.COL_TOKEN_ESTIMATE
+                + ", " + AiAgentCheckpointTable.COL_IDEMPOTENCY_KEY;
         if (tenant != null) {
             insertSql += ", " + AiAgentCheckpointTable.COL_TENANT_ID;
         }
-        insertSql += ") VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?";
+        insertSql += ") VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?";
         if (tenant != null) {
             insertSql += ", ?";
         }
@@ -181,8 +183,9 @@ public class DBCheckpointManager implements ICheckpointManager {
             setClob(ps, 9, checkpoint.getOutputSummary());
             ps.setInt(10, checkpoint.getMessageCount());
             ps.setLong(11, checkpoint.getTokenEstimate());
+            ps.setString(12, checkpoint.getIdempotencyKey());
             if (tenant != null) {
-                ps.setString(12, tenant);
+                ps.setString(13, tenant);
             }
             ps.executeUpdate();
         } catch (SQLException e) {
@@ -414,6 +417,7 @@ public class DBCheckpointManager implements ICheckpointManager {
                 + ", " + AiAgentCheckpointTable.COL_OUTPUT_SUMMARY
                 + ", " + AiAgentCheckpointTable.COL_MESSAGE_COUNT
                 + ", " + AiAgentCheckpointTable.COL_TOKEN_ESTIMATE
+                + ", " + AiAgentCheckpointTable.COL_IDEMPOTENCY_KEY
                 + " FROM " + AiAgentCheckpointTable.TABLE_NAME;
     }
 
@@ -460,7 +464,8 @@ public class DBCheckpointManager implements ICheckpointManager {
                 readClob(rs, AiAgentCheckpointTable.COL_INPUT_SUMMARY),
                 readClob(rs, AiAgentCheckpointTable.COL_OUTPUT_SUMMARY),
                 rs.getInt(AiAgentCheckpointTable.COL_MESSAGE_COUNT),
-                rs.getLong(AiAgentCheckpointTable.COL_TOKEN_ESTIMATE)
+                rs.getLong(AiAgentCheckpointTable.COL_TOKEN_ESTIMATE),
+                rs.getString(AiAgentCheckpointTable.COL_IDEMPOTENCY_KEY)
         );
     }
 

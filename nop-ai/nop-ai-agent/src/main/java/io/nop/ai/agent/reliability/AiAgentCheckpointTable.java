@@ -51,7 +51,30 @@ public final class AiAgentCheckpointTable {
      */
     public static final String COL_TENANT_ID = "TENANT_ID";
 
+    /**
+     * Idempotency key column (design §13.2): the deterministic SHA-256
+     * fingerprint of a {@code TOOL_EXECUTION} checkpoint's tool-call input
+     * ({@code hash(toolName + callId + inputSummary)}). Nullable: {@code null}
+     * for non-{@code TOOL_EXECUTION} types (Decision F) and for legacy rows
+     * written before this column existed (backward compatibility — a null key
+     * makes restore fall back to the best-effort message-count check).
+     */
+    public static final String COL_IDEMPOTENCY_KEY = "IDEMPOTENCY_KEY";
+
     public static final String INDEX_SESSION_SEQ = "IDX_AI_AGENT_CHECKPOINT_SESSION_SEQ";
+
+    /**
+     * Unique index on {@link #COL_IDEMPOTENCY_KEY} (design §13.2 Decision G):
+     * enforces idempotency dedup so two distinct watermarks cannot record the
+     * same tool-call fingerprint. Nullable column + unique index: H2 (test DB)
+     * and PostgreSQL (target DB) allow multiple {@code NULL}s under a unique
+     * constraint (standard SQL), so legacy rows and non-{@code TOOL_EXECUTION}
+     * types (both null key) coexist without conflict. Production
+     * {@code TOOL_EXECUTION} keys are naturally unique ({@code callId} is
+     * globally unique per tool call). {@code WATERMARK} remains the primary
+     * key; {@code seq} is per-execution-local and is not a unique key.
+     */
+    public static final String INDEX_IDEMPOTENCY_KEY = "UQ_AI_AGENT_CHECKPOINT_IDEMPOTENCY";
 
     public static final String DDL_CREATE_TABLE = ""
             + "CREATE TABLE IF NOT EXISTS " + TABLE_NAME + " ("
@@ -67,12 +90,22 @@ public final class AiAgentCheckpointTable {
             + COL_MESSAGE_COUNT + " INTEGER NOT NULL, "
             + COL_TOKEN_ESTIMATE + " BIGINT NOT NULL, "
             + COL_TENANT_ID + " VARCHAR(100), "
+            + COL_IDEMPOTENCY_KEY + " VARCHAR(100), "
             + "PRIMARY KEY (" + COL_WATERMARK + ")"
             + ")";
 
     public static final String DDL_CREATE_INDEX = ""
             + "CREATE INDEX IF NOT EXISTS " + INDEX_SESSION_SEQ + " "
             + "ON " + TABLE_NAME + "(" + COL_SESSION_ID + ", " + COL_SEQ + ")";
+
+    /**
+     * Unique index on {@link #COL_IDEMPOTENCY_KEY} (design §13.2 Decision G).
+     * Executed separately from {@link #DDL_CREATE_INDEX} so a DB that already
+     * has the session-seq index can still pick up this new index.
+     */
+    public static final String DDL_CREATE_IDEMPOTENCY_INDEX = ""
+            + "CREATE UNIQUE INDEX IF NOT EXISTS " + INDEX_IDEMPOTENCY_KEY + " "
+            + "ON " + TABLE_NAME + "(" + COL_IDEMPOTENCY_KEY + ")";
 
     private AiAgentCheckpointTable() {
     }

@@ -214,9 +214,14 @@ public final class CheckpointJournalReader {
         String callId = decodeString(fields.get("callId"));
         String inputSummary = decodeString(fields.get("inputSummary"));
         String outputSummary = decodeString(fields.get("outputSummary"));
+        // idempotencyKey is optional: legacy journal sections written before
+        // design §13.2 do not contain this field. A missing field decodes to
+        // null (best-effort fallback at restore), preserving backward compat.
+        String idempotencyKey = decodeString(fields.get("idempotencyKey"));
 
         return Checkpoint.of(sessionId, watermark, seq, timestamp, type,
-                toolName, callId, inputSummary, outputSummary, messageCount, tokenEstimate);
+                toolName, callId, inputSummary, outputSummary, messageCount, tokenEstimate,
+                idempotencyKey);
     }
 
     private static String requireField(java.util.Map<String, String> fields, String key, String section) {

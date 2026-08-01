@@ -1,7 +1,10 @@
 package io.nop.ai.agent.reliability;
 
 import java.util.Objects;
+
 import io.nop.ai.agent.engine.NopAiAgentException;
+import io.nop.commons.crypto.HashHelper;
+import io.nop.commons.util.StringHelper;
 
 /**
  * The structured record of a single recovery-safe checkpoint, produced at a
@@ -25,6 +28,10 @@ import io.nop.ai.agent.engine.NopAiAgentException;
  *       {@code TOOL_EXECUTION} checkpoint (null for other types).</li>
  *   <li>{@code messageCount} / {@code tokenEstimate} snapshot the context
  *       size at the checkpoint point.</li>
+ *   <li>{@code idempotencyKey} is the deterministic SHA-256 fingerprint of the
+ *       tool-call input ({@code hash(toolName + callId + inputSummary)}) for a
+ *       {@code TOOL_EXECUTION} checkpoint, enabling restore-time divergence
+ *       detection (design §13.2). {@code null} for other types / old data.</li>
  * </ul>
  *
  * <p><b>Persistence non-mandate</b>: a {@code Checkpoint} is a pure data
@@ -37,6 +44,14 @@ import io.nop.ai.agent.engine.NopAiAgentException;
  */
 public final class Checkpoint {
 
+    /**
+     * The fixed length of the idempotency-key hex string (32 hex chars =
+     * 128 bits). Same truncation length as the security-layer
+     * {@code ActionFingerprint.FINGERPRINT_HEX_LENGTH} so both fingerprints
+     * share collision-probability characteristics.
+     */
+    static final int IDEMPOTENCY_KEY_HEX_LENGTH = 32;
+
     private final String sessionId;
     private final String watermark;
     private final int seq;
@@ -48,11 +63,12 @@ public final class Checkpoint {
     private final String outputSummary;
     private final int messageCount;
     private final long tokenEstimate;
+    private final String idempotencyKey;
 
     private Checkpoint(String sessionId, String watermark, int seq, long timestamp,
                        CheckpointType type, String toolName, String callId,
                        String inputSummary, String outputSummary,
-                       int messageCount, long tokenEstimate) {
+                       int messageCount, long tokenEstimate, String idempotencyKey) {
         this.sessionId = sessionId;
         this.watermark = watermark;
         this.seq = seq;
@@ -64,11 +80,25 @@ public final class Checkpoint {
         this.outputSummary = outputSummary;
         this.messageCount = messageCount;
         this.tokenEstimate = tokenEstimate;
+        this.idempotencyKey = idempotencyKey;
     }
 
     /**
      * Create a checkpoint capturing the structured context at a single
-     * dispatch-loop trigger point.
+     * dispatch-loop trigger point. The {@code idempotency_key} is computed
+     * internally from the raw materials via {@link #computeIdempotencyKey}
+     * (design §13.2 Decision C/F): for a {@code TOOL_EXECUTION} checkpoint the
+     * key is {@code sha256Hex(toolName + "|" + callId + "|" + inputSummary)};
+     * for other types the key is {@code null} (those checkpoints do not
+     * represent tool-call divergence points and explicitly do not participate
+     * in divergence detection).
+     *
+     * <p>This overload is the construction entry point used by the dispatch
+     * loop (100+ call sites unchanged). Deserialization paths that read a
+     * pre-computed/stored key must use {@link #of(String, String, int, long,
+     * CheckpointType, String, String, String, String, int, long, String)} to
+     * pass the stored key through verbatim (recomputing would silently "fix" a
+     * tampered key and defeat divergence detection — design §13.2 Decision D).
      *
      * @param sessionId     the session identifier; may be null (anonymous —
      *                      the NoOp default ignores it, the functional
@@ -93,6 +123,27 @@ public final class Checkpoint {
                                 CheckpointType type, String toolName, String callId,
                                 String inputSummary, String outputSummary,
                                 int messageCount, long tokenEstimate) {
+        return of(sessionId, watermark, seq, timestamp, type, toolName, callId,
+                inputSummary, outputSummary, messageCount, tokenEstimate,
+                computeIdempotencyKey(type, toolName, callId, inputSummary));
+    }
+
+    /**
+     * Create a checkpoint with an explicit, pre-computed {@code idempotency_key}.
+     * Used by the deserialization paths ({@code DBCheckpointManager.readCheckpoint},
+     * {@code CheckpointJournalReader.parseSection}) that read the key from
+     * persistent storage and must pass it through verbatim rather than
+     * recomputing it (design §13.2 Decision D).
+     *
+     * @param idempotencyKey the pre-computed/stored idempotency key; may be
+     *                       null (old data, non-{@code TOOL_EXECUTION} type per
+     *                       Decision F, or {@link NoOpCheckpoint} which never
+     *                       persists)
+     */
+    public static Checkpoint of(String sessionId, String watermark, int seq, long timestamp,
+                                CheckpointType type, String toolName, String callId,
+                                String inputSummary, String outputSummary,
+                                int messageCount, long tokenEstimate, String idempotencyKey) {
         if (watermark == null) {
             throw new NopAiAgentException("Checkpoint.watermark must not be null");
         }
@@ -108,7 +159,44 @@ public final class Checkpoint {
                     "Checkpoint.messageCount must not be negative, got: " + messageCount);
         }
         return new Checkpoint(sessionId, watermark, seq, timestamp, type, toolName, callId,
-                inputSummary, outputSummary, messageCount, tokenEstimate);
+                inputSummary, outputSummary, messageCount, tokenEstimate, idempotencyKey);
+    }
+
+    /**
+     * Compute the deterministic idempotency key for a checkpoint (design
+     * §13.2 Decision F). For {@link CheckpointType#TOOL_EXECUTION} the key is
+     * {@code sha256Hex(toolName + "|" + callId + "|" + inputSummary)} truncated
+     * to 32 hex chars (128 bits), reusing the platform SHA-256 helper and the
+     * same truncation length as the security-layer
+     * {@code ActionFingerprint.FINGERPRINT_HEX_LENGTH}. Null components are
+     * uniformly treated as empty strings so a missing component consistently
+     * maps to a stable key. For {@code LLM_TURN} / {@code COMPACTION} the key
+     * is {@code null} — those checkpoint types do not represent tool-call
+     * divergence points and explicitly do not participate in divergence
+     * detection (restore treats a null key as "no check", not a silent skip).
+     *
+     * @param type         the checkpoint type; never null
+     * @param toolName     the tool name; may be null
+     * @param callId       the tool-call id; may be null
+     * @param inputSummary the tool-call input fingerprint material; may be null
+     * @return the 32-hex-char idempotency key for {@code TOOL_EXECUTION}, or
+     *         {@code null} for non-{@code TOOL_EXECUTION} types
+     */
+    public static String computeIdempotencyKey(CheckpointType type, String toolName,
+                                               String callId, String inputSummary) {
+        if (type != CheckpointType.TOOL_EXECUTION) {
+            return null;
+        }
+        String kind = toolName != null ? toolName : "";
+        String call = callId != null ? callId : "";
+        String input = inputSummary != null ? inputSummary : "";
+        String material = kind + "|" + call + "|" + input;
+        byte[] digest = HashHelper.sha256(StringHelper.utf8Bytes(material), null);
+        String hex = StringHelper.bytesToHex(digest);
+        if (hex.length() > IDEMPOTENCY_KEY_HEX_LENGTH) {
+            hex = hex.substring(0, IDEMPOTENCY_KEY_HEX_LENGTH);
+        }
+        return hex;
     }
 
     public String getSessionId() {
@@ -155,6 +243,17 @@ public final class Checkpoint {
         return tokenEstimate;
     }
 
+    /**
+     * @return the deterministic idempotency key for a
+     *         {@code TOOL_EXECUTION} checkpoint (32 hex chars), or {@code null}
+     *         for other types / old data (design §13.2 Decision F). A non-null
+     *         key enables restore-time divergence detection; a null key makes
+     *         restore fall back to the best-effort message-count check.
+     */
+    public String getIdempotencyKey() {
+        return idempotencyKey;
+    }
+
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
@@ -170,13 +269,14 @@ public final class Checkpoint {
                 && Objects.equals(toolName, that.toolName)
                 && Objects.equals(callId, that.callId)
                 && Objects.equals(inputSummary, that.inputSummary)
-                && Objects.equals(outputSummary, that.outputSummary);
+                && Objects.equals(outputSummary, that.outputSummary)
+                && Objects.equals(idempotencyKey, that.idempotencyKey);
     }
 
     @Override
     public int hashCode() {
         return Objects.hash(sessionId, watermark, seq, timestamp, type, toolName, callId,
-                inputSummary, outputSummary, messageCount, tokenEstimate);
+                inputSummary, outputSummary, messageCount, tokenEstimate, idempotencyKey);
     }
 
     @Override
@@ -191,6 +291,7 @@ public final class Checkpoint {
                 ", callId='" + callId + '\'' +
                 ", messageCount=" + messageCount +
                 ", tokenEstimate=" + tokenEstimate +
+                ", idempotencyKey='" + idempotencyKey + '\'' +
                 '}';
     }
 }

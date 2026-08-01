@@ -23,6 +23,7 @@
         <domain name="checkpointType" precision="30" stdSqlType="VARCHAR"/>
         <domain name="seqNumber" stdSqlType="INTEGER"/>
         <domain name="tenantId" precision="100" stdSqlType="VARCHAR"/>
+        <domain name="idempotencyKey" precision="100" stdSqlType="VARCHAR"/>
     </domains>
 
     <entities>
@@ -155,6 +156,9 @@
                 <column name="tenantId" code="TENANT_ID" propId="12"
                         domain="tenantId" stdDataType="string" stdSqlType="VARCHAR"
                         displayName="Tenant ID"/>
+                <column name="idempotencyKey" code="IDEMPOTENCY_KEY" propId="13"
+                        domain="idempotencyKey" stdDataType="string" stdSqlType="VARCHAR"
+                        displayName="Idempotency Key"/>
             </columns>
         </entity>
     </entities>
