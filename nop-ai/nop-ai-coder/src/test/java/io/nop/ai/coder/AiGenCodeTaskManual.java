@@ -1,14 +1,7 @@
 package io.nop.ai.coder;
 
-import io.nop.ai.coder.orm.AiOrmConfig;
-import io.nop.ai.coder.orm.AiOrmModel;
 import io.nop.ai.core.prompt.IPromptTemplateManager;
 import io.nop.autotest.junit.JunitBaseTestCase;
-import io.nop.core.lang.xml.XNode;
-import io.nop.core.lang.xml.parse.XNodeParser;
-import io.nop.core.resource.impl.FileResource;
-import io.nop.orm.model.OrmModel;
-import io.nop.report.core.util.ExcelReportHelper;
 import io.nop.task.ITask;
 import io.nop.task.ITaskFlowManager;
 import io.nop.task.ITaskRuntime;
@@ -73,26 +66,5 @@ public class AiGenCodeTaskManual extends JunitBaseTestCase {
         taskRt.setInput("sessionId", "ai-r1-mock");
         taskRt.setTagSet(Set.of("req", "orm"));
         task.execute(taskRt).syncGetOutputs();
-    }
-
-    @Test
-    public void saveOrmModel() {
-        File file = new File(getModuleDir(), "../model/ai-gen.orm.xml");
-        File xlsxFile = new File(getModuleDir(), "../model/nop-ai.orm.xlsx");
-
-        XNode node = XNodeParser.instance().parseFromResource(new FileResource(file));
-        AiOrmConfig config = new AiOrmConfig();
-        config.setAppName("nop-ai");
-        config.setMavenGroupId("io.github.entropy-cloud");
-        config.setMavenArtifactId("nop-ai");
-        config.setBasePackageName("nop.ai");
-        config.setEntityPackageName("nop.ai.dao.entity");
-        AiOrmModel ormModel = AiOrmModel.buildFromAiResult(node, config);
-        ormModel.fixDictProp("ai/");
-        OrmModel ormModelBean = ormModel.getOrmModelBean();
-        ExcelReportHelper.saveXlsxObject("/nop/orm/imp/orm.imp.xml", new FileResource(xlsxFile), ormModelBean);
-
-        String code = ormModel.getDictsJava("nop-ai");
-        System.out.println(code);
     }
 }
