@@ -6,6 +6,7 @@ import io.nop.ai.agent.plan.model.AgentPlanError;
 import io.nop.ai.agent.plan.model.AgentPlanPhase;
 import io.nop.ai.agent.plan.model.AgentPlanTaskModel;
 
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.LinkedHashMap;
@@ -45,6 +46,17 @@ public class PlanExecutionState {
     private final Set<String> gateExhaustedPhases = new LinkedHashSet<>();
     private final Map<String, Integer> gateExhaustedAttempt = new LinkedHashMap<>();
     private final Map<String, Integer> phaseGateAttempts = new LinkedHashMap<>();
+
+    /**
+     * Runtime task-node overlay (design §14.4.3 SPLIT_TASK): sub-task nodes
+     * inserted by SPLIT live here, keyed by taskNo, with their owning phase.
+     * The frozen template's task list is never mutated; these nodes are
+     * visible to {@link PlanScheduler} (structural source) and to the
+     * executor's phase filter only through the overlay API.
+     */
+    private final Map<String, AgentPlanTaskModel> runtimeTasks = new LinkedHashMap<>();
+    private final Map<String, String> runtimeTaskPhase = new LinkedHashMap<>();
+    private final Set<String> splitParents = new LinkedHashSet<>();
 
     private String currentPhase;
     private AgentExecStatus planStatus;
@@ -186,6 +198,23 @@ public class PlanExecutionState {
         return n;
     }
 
+    /**
+     * Mark all unresolved runtime errors of the given task as resolved
+     * (design §14.4.3 — ROLLBACK enactment is the first business writer of
+     * {@code AgentPlanError.resolvedAt}). Returns the count of errors resolved.
+     */
+    public int resolveErrorsForTask(String taskNo) {
+        LocalDateTime now = LocalDateTime.now();
+        int n = 0;
+        for (AgentPlanError e : errors) {
+            if (taskNo.equals(e.getRelatedTaskNo()) && e.getResolvedAt() == null) {
+                e.setResolvedAt(now);
+                n++;
+            }
+        }
+        return n;
+    }
+
     public void markGateExhausted(String phaseName, int attempt) {
         gateExhaustedPhases.add(phaseName);
         gateExhaustedAttempt.put(phaseName, attempt);
@@ -197,6 +226,19 @@ public class PlanExecutionState {
 
     public int getGateExhaustedAttempt(String phaseName) {
         return gateExhaustedAttempt.getOrDefault(phaseName, 0);
+    }
+
+    /**
+     * Clear the gate-exhaustion marker for a phase (design §14.4.3 ROLLBACK
+     * enactment). Without this, a ROLLBACK would leave the marker in place and
+     * {@link StagnationDetector} would immediately re-emit
+     * {@link StagnationSignalType#GATE_EXHAUSTED} on the next detect cycle,
+     * re-triggering ROLLBACK and deadlocking (until the cycle-safety bound
+     * fires). Returns true if a marker was actually cleared.
+     */
+    public boolean clearGateExhausted(String phaseName) {
+        gateExhaustedAttempt.remove(phaseName);
+        return gateExhaustedPhases.remove(phaseName);
     }
 
     public Set<String> getGateExhaustedPhases() {
@@ -212,5 +254,155 @@ public class PlanExecutionState {
             AgentExecStatus s = taskStatus.get(taskNo);
             return s == null ? AgentExecStatus.pending : s;
         };
+    }
+
+    // -------------------- Runtime task-node overlay (SPLIT_TASK, design §14.4.3) --------------------
+
+    /**
+     * Register a runtime sub-task node under an owning phase. Used by SPLIT
+     * enactment. The node is appended to the mutable overlay (the frozen
+     * template is never mutated) and initialized to
+     * {@link AgentExecStatus#pending} with zeroed counters.
+     */
+    public void registerRuntimeTask(String phaseName, AgentPlanTaskModel task) {
+        if (phaseName == null) {
+            throw new IllegalArgumentException("phaseName must not be null");
+        }
+        if (task == null || task.getTaskNo() == null) {
+            throw new IllegalArgumentException("task with non-empty taskNo must not be null");
+        }
+        String taskNo = task.getTaskNo();
+        if (taskStatus.containsKey(taskNo) && !runtimeTasks.containsKey(taskNo)) {
+            throw new IllegalStateException(
+                    "runtime taskNo '" + taskNo + "' collides with a frozen/registered task");
+        }
+        runtimeTasks.put(taskNo, task);
+        runtimeTaskPhase.put(taskNo, phaseName);
+        if (!taskStatus.containsKey(taskNo)) {
+            taskStatus.put(taskNo, task.getStatus() == null ? AgentExecStatus.pending : task.getStatus());
+            taskConsecutiveFailures.put(taskNo, 0);
+            taskAttempts.put(taskNo, 0);
+        }
+    }
+
+    /** Whether the given task is a runtime overlay node (inserted by SPLIT). */
+    public boolean isRuntimeTask(String taskNo) {
+        return taskNo != null && runtimeTasks.containsKey(taskNo);
+    }
+
+    /** Whether the given (frozen-template) task was marked as a SPLIT parent. */
+    public boolean isSplitParent(String taskNo) {
+        return taskNo != null && splitParents.contains(taskNo);
+    }
+
+    /** Mark a frozen-template task as a SPLIT parent (placeholder). */
+    public void markSplitParent(String taskNo) {
+        if (taskNo != null) {
+            splitParents.add(taskNo);
+        }
+    }
+
+    /** The runtime overlay task nodes (for the scheduler's structural source). */
+    public java.util.Collection<AgentPlanTaskModel> runtimeTaskOverlay() {
+        return Collections.unmodifiableCollection(runtimeTasks.values());
+    }
+
+    /** Count of overlay task nodes currently in {@link AgentExecStatus#completed}. */
+    public int countCompletedRuntimeTasks() {
+        int n = 0;
+        for (String taskNo : runtimeTasks.keySet()) {
+            if (taskStatus.get(taskNo) == AgentExecStatus.completed) {
+                n++;
+            }
+        }
+        return n;
+    }
+
+    /** Whether a phase with the given name exists in the (frozen) plan. */
+    public boolean hasPhase(String phaseName) {
+        if (phaseName == null || plan.getPhases() == null) {
+            return false;
+        }
+        for (AgentPlanPhase phase : plan.getPhases()) {
+            if (phaseName.equals(phase.getName())) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
+     * The ordered list of phase names declared in the (frozen) plan template.
+     * Used by the executor for phase-index resolution and rollback re-entry.
+     */
+    public List<String> getPhaseNames() {
+        List<String> names = new ArrayList<>();
+        if (plan.getPhases() != null) {
+            for (AgentPlanPhase phase : plan.getPhases()) {
+                if (phase.getName() != null) {
+                    names.add(phase.getName());
+                }
+            }
+        }
+        return names;
+    }
+
+    /**
+     * The set of declared task numbers owned by a phase (recursive over
+     * subTasks), read from the frozen template, <b>plus</b> any runtime
+     * overlay nodes registered under that phase (SPLIT sub-tasks). Used by
+     * ROLLBACK/SPLIT enactment to scope task-status resets to a single phase
+     * and by the executor's phase filter to admit runtime sub-tasks.
+     */
+    public Set<String> phaseTaskNos(String phaseName) {
+        Set<String> nos = new LinkedHashSet<>();
+        if (plan.getPhases() != null && phaseName != null) {
+            for (AgentPlanPhase phase : plan.getPhases()) {
+                if (phaseName.equals(phase.getName())) {
+                    collectTaskNosRecursive(phase.getTasks(), nos);
+                    break;
+                }
+            }
+        }
+        if (phaseName != null) {
+            for (Map.Entry<String, String> e : runtimeTaskPhase.entrySet()) {
+                if (phaseName.equals(e.getValue())) {
+                    nos.add(e.getKey());
+                }
+            }
+        }
+        return nos;
+    }
+
+    /** The phase name that owns the given task (frozen or runtime overlay), or {@code null} if not found. */
+    public String phaseOwningTask(String taskNo) {
+        if (taskNo == null) {
+            return null;
+        }
+        String runtimePhase = runtimeTaskPhase.get(taskNo);
+        if (runtimePhase != null) {
+            return runtimePhase;
+        }
+        if (plan.getPhases() == null) {
+            return null;
+        }
+        for (AgentPlanPhase phase : plan.getPhases()) {
+            Set<String> nos = new LinkedHashSet<>();
+            collectTaskNosRecursive(phase.getTasks(), nos);
+            if (nos.contains(taskNo)) {
+                return phase.getName();
+            }
+        }
+        return null;
+    }
+
+    private void collectTaskNosRecursive(List<AgentPlanTaskModel> tasks, Set<String> out) {
+        if (tasks == null) return;
+        for (AgentPlanTaskModel task : tasks) {
+            if (task.getTaskNo() != null) {
+                out.add(task.getTaskNo());
+            }
+            collectTaskNosRecursive(task.getSubTasks(), out);
+        }
     }
 }

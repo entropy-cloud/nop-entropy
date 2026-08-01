@@ -10,22 +10,24 @@ import java.util.List;
  * outcome of driving a plan through the host state machine (design §14.5).
  *
  * <p>Exposes the final plan status, the stagnation events observed, the
- * replan decisions enacted, and basic counters — so end-to-end tests can
+ * replan decisions enacted (with their payloads — target phase/task,
+ * triggering signal, reason), and basic counters — so end-to-end tests can
  * assert that stagnation flowed from real state transitions through the
- * detector to an idempotent {@link ReplanDecision} (Anti-Hollow verification).
+ * detector to an idempotent {@link ReplanDecisionResult} (Anti-Hollow
+ * verification).
  */
 public final class PlanExecutionResult {
 
     private final AgentExecStatus finalStatus;
     private final List<StagnationEvent> eventsObserved;
-    private final List<ReplanDecision> decisionsEnacted;
+    private final List<ReplanDecisionResult> decisionsEnacted;
     private final int tasksCompleted;
     private final int errorsRecorded;
     private final String lastPhase;
 
     public PlanExecutionResult(AgentExecStatus finalStatus,
                                List<StagnationEvent> eventsObserved,
-                               List<ReplanDecision> decisionsEnacted,
+                               List<ReplanDecisionResult> decisionsEnacted,
                                int tasksCompleted, int errorsRecorded, String lastPhase) {
         this.finalStatus = finalStatus;
         this.eventsObserved = eventsObserved == null
@@ -45,7 +47,7 @@ public final class PlanExecutionResult {
         return eventsObserved;
     }
 
-    public List<ReplanDecision> getDecisionsEnacted() {
+    public List<ReplanDecisionResult> getDecisionsEnacted() {
         return decisionsEnacted;
     }
 

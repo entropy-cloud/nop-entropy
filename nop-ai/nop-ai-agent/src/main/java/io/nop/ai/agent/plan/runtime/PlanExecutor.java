@@ -28,15 +28,28 @@ import java.util.Set;
  * (cascade) by {@code ResourceComponentManager}, so the executor never
  * mutates it. All runtime state lives in a {@link PlanExecutionState}
  * overlay (design §14.4.3): task/phase status, {@code AgentPlanError}
- * records, gate-exhaustion markers.
+ * records, gate-exhaustion markers, and runtime-split task nodes.
  *
- * <p><b>Loop</b>: for each phase (from the declared {@code currentPhase}),
- * run ready tasks via the injected {@link TaskRunner}, apply outcomes
- * (status transitions + error recording on failure), then check the phase
- * gate. After every task batch the {@link StagnationDetector} is consulted;
- * any stagnation event is handed to the {@link PlanReplanner}, whose
- * decision is enacted immediately. The first observed {@link ReplanDecision#ESCALATE}
- * sets the plan status to {@link AgentExecStatus#escalated} and stops.
+ * <p><b>Loop + recoverable replanning</b>: for each phase (from the declared
+ * {@code currentPhase}), run ready tasks via the injected {@link TaskRunner},
+ * apply outcomes (status transitions + error recording on failure), then
+ * check the phase gate. After every task batch the {@link StagnationDetector}
+ * is consulted; any stagnation event is handed to the {@link PlanReplanner}.
+ * Terminal decisions ({@link ReplanDecision#ESCALATE} / gate BLOCKED /
+ * EXPLICIT_VERDICT_REQUIRED) stop and return the result.
+ * <b>Recoverable</b> decisions keep execution alive:
+ * <ul>
+ *   <li>{@link ReplanDecision#ROLLBACK_PHASE} — the replanner has moved
+ *       {@code currentPhase} back to a preceding phase; the loop re-enters
+ *       at that phase index instead of terminating.</li>
+ *   <li>{@link ReplanDecision#SPLIT_TASK} — the replanner has inserted
+ *       runtime sub-task nodes; the loop re-drives the current phase so the
+ *       scheduler picks them up.</li>
+ * </ul>
+ * A cycle-safety bound counts recoveries and throws
+ * {@link IllegalStateException} if a ROLLBACK↔advance loop fails to converge
+ * (reusing the {@link #computeSafetyBound} pattern), so a misconfigured
+ * rollback policy fails fast rather than spinning.
  *
  * <p>This executor produces <b>real</b> state transitions and <b>real</b>
  * error records — stagnation events are derived from the live state machine,
@@ -84,7 +97,7 @@ public class PlanExecutor {
         state.setPlanStatus(AgentExecStatus.running);
 
         List<StagnationEvent> eventsObserved = new ArrayList<>();
-        List<ReplanDecision> decisionsEnacted = new ArrayList<>();
+        List<ReplanDecisionResult> decisionsEnacted = new ArrayList<>();
 
         List<AgentPlanPhase> phases = plan.getPhases();
         if (phases == null || phases.isEmpty()) {
@@ -93,29 +106,57 @@ public class PlanExecutor {
                     0, 0, null);
         }
 
-        int startIdx = indexOfCurrentPhase(phases, state.getCurrentPhase());
         int safetyMaxCycles = computeSafetyBound(phases);
+        int maxRecoveries = safetyMaxCycles;
+        int recoveries = 0;
 
-        for (int phaseIdx = startIdx; phaseIdx < phases.size(); phaseIdx++) {
+        int phaseIdx = indexOfCurrentPhase(phases, state.getCurrentPhase());
+
+        while (phaseIdx < phases.size()) {
             AgentPlanPhase phase = phases.get(phaseIdx);
             String phaseName = phase.getName();
             state.setCurrentPhase(phaseName);
             state.setPhaseStatus(phaseName, AgentExecStatus.running);
 
-            Set<String> phaseTaskNos = collectTaskNos(phase);
+            Set<String> phaseTaskNos = collectTaskNos(phase, state);
 
-            StagnationResponse stop = drivePhaseTasks(state, phase, phaseTaskNos,
+            StopOutcome tasksOutcome = drivePhaseTasks(state, phase, phaseTaskNos,
                     eventsObserved, decisionsEnacted, safetyMaxCycles);
-            if (stop != null) {
-                return stop.result;
+            if (tasksOutcome.terminal != null) {
+                return tasksOutcome.terminal;
+            }
+            if (tasksOutcome.recoverable != null) {
+                if (++recoveries > maxRecoveries) {
+                    throw new IllegalStateException("PlanExecutor exceeded recovery cycle bound ("
+                            + maxRecoveries + ") — a ROLLBACK/SPLIT policy is not converging");
+                }
+                if (tasksOutcome.recoverable.getType() == ReplanDecision.ROLLBACK_PHASE) {
+                    phaseIdx = indexOfCurrentPhase(phases, state.getCurrentPhase());
+                }
+                // SPLIT_TASK: re-drive the same phase (sub-tasks inserted) — do not advance.
+                continue;
             }
 
-            stop = checkPhaseGate(state, phase, eventsObserved, decisionsEnacted, safetyMaxCycles);
-            if (stop != null) {
-                return stop.result;
+            StopOutcome gateOutcome = checkPhaseGate(state, phase, eventsObserved, decisionsEnacted,
+                    safetyMaxCycles);
+            if (gateOutcome.terminal != null) {
+                return gateOutcome.terminal;
+            }
+            if (gateOutcome.recoverable != null) {
+                if (++recoveries > maxRecoveries) {
+                    throw new IllegalStateException("PlanExecutor exceeded recovery cycle bound ("
+                            + maxRecoveries + ") — a ROLLBACK/SPLIT policy is not converging");
+                }
+                if (gateOutcome.recoverable.getType() == ReplanDecision.ROLLBACK_PHASE) {
+                    phaseIdx = indexOfCurrentPhase(phases, state.getCurrentPhase());
+                    continue;
+                }
+                // SPLIT at gate level: re-drive the same phase to execute inserted sub-tasks.
+                continue;
             }
 
             state.setPhaseStatus(phaseName, AgentExecStatus.completed);
+            phaseIdx++;
         }
 
         state.setPlanStatus(AgentExecStatus.completed);
@@ -123,11 +164,11 @@ public class PlanExecutor {
                 countCompleted(state), state.getErrors().size(), state.getCurrentPhase());
     }
 
-    private StagnationResponse drivePhaseTasks(PlanExecutionState state, AgentPlanPhase phase,
-                                               Set<String> phaseTaskNos,
-                                               List<StagnationEvent> eventsObserved,
-                                               List<ReplanDecision> decisionsEnacted,
-                                               int safetyMaxCycles) {
+    private StopOutcome drivePhaseTasks(PlanExecutionState state, AgentPlanPhase phase,
+                                        Set<String> phaseTaskNos,
+                                        List<StagnationEvent> eventsObserved,
+                                        List<ReplanDecisionResult> decisionsEnacted,
+                                        int safetyMaxCycles) {
         int cycles = 0;
         while (true) {
             if (++cycles > safetyMaxCycles) {
@@ -139,7 +180,7 @@ public class PlanExecutor {
 
             List<AgentPlanTaskModel> ready = readyTasksForPhase(state, phase, phaseTaskNos);
             if (ready.isEmpty()) {
-                return null;
+                return StopOutcome.proceed();
             }
 
             for (AgentPlanTaskModel task : ready) {
@@ -158,17 +199,17 @@ public class PlanExecutor {
                 }
             }
 
-            StagnationResponse stop = respondToStagnation(state, eventsObserved, decisionsEnacted);
-            if (stop != null) {
-                return stop;
+            StopOutcome outcome = respondToStagnation(state, eventsObserved, decisionsEnacted);
+            if (outcome.terminal != null || outcome.recoverable != null) {
+                return outcome;
             }
         }
     }
 
-    private StagnationResponse checkPhaseGate(PlanExecutionState state, AgentPlanPhase phase,
-                                              List<StagnationEvent> eventsObserved,
-                                              List<ReplanDecision> decisionsEnacted,
-                                              int safetyMaxCycles) {
+    private StopOutcome checkPhaseGate(PlanExecutionState state, AgentPlanPhase phase,
+                                       List<StagnationEvent> eventsObserved,
+                                       List<ReplanDecisionResult> decisionsEnacted,
+                                       int safetyMaxCycles) {
         String phaseName = phase.getName();
         int attempt = 1;
         int guard = 0;
@@ -181,7 +222,7 @@ public class PlanExecutor {
             GateCheckResult gateResult = gateRunner.checkGate(phase, attempt);
             switch (gateResult.getOutcome()) {
                 case PASSED:
-                    return null;
+                    return StopOutcome.proceed();
                 case RETRY:
                     attempt++;
                     break;
@@ -191,7 +232,7 @@ public class PlanExecutor {
                     return respondToStagnation(state, eventsObserved, decisionsEnacted);
                 case BLOCKED:
                 case EXPLICIT_VERDICT_REQUIRED:
-                    return new StagnationResponse(new PlanExecutionResult(
+                    return StopOutcome.terminal(new PlanExecutionResult(
                             state.getPlanStatus(), eventsObserved, decisionsEnacted,
                             countCompleted(state), state.getErrors().size(), phaseName));
                 default:
@@ -201,25 +242,30 @@ public class PlanExecutor {
         }
     }
 
-    private StagnationResponse respondToStagnation(PlanExecutionState state,
-                                                   List<StagnationEvent> eventsObserved,
-                                                   List<ReplanDecision> decisionsEnacted) {
+    private StopOutcome respondToStagnation(PlanExecutionState state,
+                                            List<StagnationEvent> eventsObserved,
+                                            List<ReplanDecisionResult> decisionsEnacted) {
         List<StagnationEvent> events = detector.detect(state);
         if (events.isEmpty()) {
-            return null;
+            return StopOutcome.proceed();
         }
         eventsObserved.addAll(events);
-        ReplanDecision decision = replanner.decide(events);
+        ReplanDecisionResult decision = replanner.decide(events);
         decisionsEnacted.add(decision);
         replanner.apply(decision, state);
-        return new StagnationResponse(new PlanExecutionResult(
+        if (decision.isRecoverable()) {
+            return StopOutcome.recoverable(decision);
+        }
+        // Terminal decision (ESCALATE enacted, or ABORT would have thrown inside apply()).
+        return StopOutcome.terminal(new PlanExecutionResult(
                 state.getPlanStatus(), eventsObserved, decisionsEnacted,
                 countCompleted(state), state.getErrors().size(), state.getCurrentPhase()));
     }
 
     private List<AgentPlanTaskModel> readyTasksForPhase(PlanExecutionState state, AgentPlanPhase phase,
                                                         Set<String> phaseTaskNos) {
-        List<AgentPlanTaskModel> ready = scheduler.getReadyTasks(state.getPlan(), state.statusProvider());
+        List<AgentPlanTaskModel> ready = scheduler.getReadyTasks(
+                state.getPlan(), state.statusProvider(), state.runtimeTaskOverlay());
         List<AgentPlanTaskModel> inPhase = new ArrayList<>();
         for (AgentPlanTaskModel task : ready) {
             if (phaseTaskNos.contains(task.getTaskNo())) {
@@ -229,8 +275,8 @@ public class PlanExecutor {
         return inPhase;
     }
 
-    private Set<String> collectTaskNos(AgentPlanPhase phase) {
-        Set<String> nos = new HashSet<>();
+    private Set<String> collectTaskNos(AgentPlanPhase phase, PlanExecutionState state) {
+        Set<String> nos = new HashSet<>(state.phaseTaskNos(phase.getName()));
         collectRecursive(phase.getTasks(), nos);
         return nos;
     }
@@ -252,6 +298,7 @@ public class PlanExecutor {
                 n += countCompletedRecursive(phase.getTasks(), state);
             }
         }
+        n += state.countCompletedRuntimeTasks();
         return n;
     }
 
@@ -298,11 +345,26 @@ public class PlanExecutor {
         return n;
     }
 
-    private static final class StagnationResponse {
-        final PlanExecutionResult result;
+    /** Either proceed, or hand back a recoverable decision, or a terminal result. */
+    private static final class StopOutcome {
+        final ReplanDecisionResult recoverable;
+        final PlanExecutionResult terminal;
 
-        StagnationResponse(PlanExecutionResult result) {
-            this.result = result;
+        private StopOutcome(ReplanDecisionResult recoverable, PlanExecutionResult terminal) {
+            this.recoverable = recoverable;
+            this.terminal = terminal;
+        }
+
+        static StopOutcome proceed() {
+            return new StopOutcome(null, null);
+        }
+
+        static StopOutcome recoverable(ReplanDecisionResult decision) {
+            return new StopOutcome(decision, null);
+        }
+
+        static StopOutcome terminal(PlanExecutionResult result) {
+            return new StopOutcome(null, result);
         }
     }
 }

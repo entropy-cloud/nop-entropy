@@ -77,14 +77,43 @@ public class PlanScheduler {
      */
     public List<AgentPlanTaskModel> getReadyTasks(AgentPlan plan,
                                                   Function<String, AgentExecStatus> statusProvider) {
+        return getReadyTasks(plan, statusProvider, java.util.Collections.emptyList());
+    }
+
+    /**
+     * Compute the list of tasks that are ready to execute, merging runtime
+     * overlay nodes (inserted by SPLIT_TASK, design §14.4.3) into the frozen
+     * template's task structure. Used by the {@link PlanExecutor} host so
+     * that runtime sub-tasks are visible to scheduling (structural source =
+     * frozen template ∪ overlay, not frozen-only).
+     *
+     * @param plan           the agent plan (non-null)
+     * @param statusProvider maps a {@code taskNo} to its runtime
+     *                       {@link AgentExecStatus}
+     * @param runtimeTasks   runtime overlay task nodes (may be empty; never
+     *                       null) — their {@code taskNo}s must be distinct
+     *                       from frozen tasks
+     * @return an unmodifiable list of ready tasks (never null; empty if none)
+     */
+    public List<AgentPlanTaskModel> getReadyTasks(AgentPlan plan,
+                                                  Function<String, AgentExecStatus> statusProvider,
+                                                  java.util.Collection<AgentPlanTaskModel> runtimeTasks) {
         if (plan == null) {
             throw new IllegalArgumentException("plan must not be null");
         }
         if (statusProvider == null) {
             throw new IllegalArgumentException("statusProvider must not be null");
         }
+        if (runtimeTasks == null) {
+            throw new IllegalArgumentException("runtimeTasks must not be null");
+        }
 
-        List<AgentPlanTaskModel> allTasks = new PlanDagBuilder().collectAllTasks(plan);
+        List<AgentPlanTaskModel> allTasks = new java.util.ArrayList<>(new PlanDagBuilder().collectAllTasks(plan));
+        for (AgentPlanTaskModel t : runtimeTasks) {
+            if (t != null && t.getTaskNo() != null) {
+                allTasks.add(t);
+            }
+        }
         if (allTasks.isEmpty()) {
             return Collections.emptyList();
         }

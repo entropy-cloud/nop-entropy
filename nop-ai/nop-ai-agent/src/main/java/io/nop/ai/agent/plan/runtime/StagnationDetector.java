@@ -63,6 +63,12 @@ public class StagnationDetector {
      * Scan the execution state and return all currently-active stagnation
      * events (one per active signal source). Empty list means "no
      * stagnation".
+     *
+     * <p>Task-level events ({@link StagnationSignalType#TASK_STALLED},
+     * {@link StagnationSignalType#REPEATED_ERRORS}) carry their owning phase
+     * name on {@link StagnationEvent#getTargetPhase()} so downstream
+     * {@link PlanReplanner} decisions can match rollback-eligible phases
+     * without re-resolving task→phase ownership.
      */
     public List<StagnationEvent> detect(PlanExecutionState state) {
         if (state == null) {
@@ -86,16 +92,18 @@ public class StagnationDetector {
             if (!PlanScheduler.isTerminal(status)) {
                 int failures = state.getConsecutiveFailures(taskNo);
                 if (failures >= staleTaskCycles) {
+                    String owner = state.phaseOwningTask(taskNo);
                     events.add(new StagnationEvent(
-                            StagnationSignalType.TASK_STALLED, null, taskNo, failures,
+                            StagnationSignalType.TASK_STALLED, owner, taskNo, failures,
                             "task " + taskNo + " stalled: " + failures + " consecutive failures"));
                 }
             }
 
             int unresolved = state.countUnresolvedErrors(taskNo);
             if (unresolved >= maxErrorsPerTask) {
+                String owner = state.phaseOwningTask(taskNo);
                 events.add(new StagnationEvent(
-                        StagnationSignalType.REPEATED_ERRORS, null, taskNo, unresolved,
+                        StagnationSignalType.REPEATED_ERRORS, owner, taskNo, unresolved,
                         "task " + taskNo + " accumulated " + unresolved + " unresolved errors"));
             }
         }
