@@ -25,8 +25,8 @@ import java.util.regex.Pattern;
  * work. Boundary contract and migration preconditions:
  * {@code ai-dev/design/nop-ai/01-file-operator-abstraction-contract.md}.
  *
- * @deprecated 使用 io.nop.ai.toolkit.fs.IToolFileSystem 替代
- * （forRemoval=true，移除属 future major 版本工作）
+ * @deprecated Use io.nop.ai.toolkit.fs.IToolFileSystem instead
+ * (forRemoval=true; removal is future major-version work)
  */
 @Deprecated(forRemoval = true)
 public interface IFileOperator {
