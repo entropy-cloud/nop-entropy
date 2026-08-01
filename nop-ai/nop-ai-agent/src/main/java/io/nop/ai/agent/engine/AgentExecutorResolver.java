@@ -21,14 +21,6 @@ import org.slf4j.LoggerFactory;
 
 import java.util.List;
 import java.util.concurrent.ExecutorService;
-import java.util.function.Supplier;
-
-import java.util.List;
-import java.util.concurrent.ExecutorService;
-import java.util.function.Supplier;
-
-import java.util.List;
-import java.util.concurrent.ExecutorService;
 
 /**
  * Agent-executor / access-checker resolution for the engine (extracted from
@@ -248,24 +240,50 @@ public class AgentExecutorResolver {
                 LOG.warn("DefaultAgentEngine: skipping middleware with empty impl class: point={}", pointName);
                 continue;
             }
-            io.nop.ai.agent.hook.AgentLifecyclePoint point =
-                    io.nop.ai.agent.hook.DefaultHookRegistry.resolveLifecyclePoint(pointName);
-            if (point == null) {
-                LOG.warn("DefaultAgentEngine: skipping middleware with unknown lifecycle point: impl={}, point={}",
-                        impl, pointName);
+            // W3-1 (dual-layer middleware): route by scope. Default is session
+            // (plan-296 behaviour, unchanged). scope=execution routes to the
+            // execution-level registry region keyed by ExecutionPoint.
+            String scope = mwModel.getScope();
+            boolean execution = scope != null
+                    && "execution".equalsIgnoreCase(scope);
+            io.nop.ai.agent.middleware.IAgentMiddleware instance = instantiateMiddleware(impl, pointName);
+            if (instance == null) {
                 continue;
             }
-            try {
-                Object instance = io.nop.commons.util.ClassHelper.safeNewInstance(impl);
-                if (!(instance instanceof io.nop.ai.agent.middleware.IAgentMiddleware)) {
-                    LOG.warn("DefaultAgentEngine: middleware impl does not implement IAgentMiddleware: impl={}, actualClass={}",
-                            impl, instance != null ? instance.getClass().getName() : "null");
+            if (execution) {
+                io.nop.ai.agent.middleware.ExecutionPoint execPoint =
+                        io.nop.ai.agent.hook.DefaultHookRegistry.resolveExecutionPoint(pointName);
+                if (execPoint == null) {
+                    LOG.warn("DefaultAgentEngine: skipping execution-scope middleware with unknown execution point: "
+                            + "impl={}, point={}", impl, pointName);
                     continue;
                 }
-                hookRegistry.registerMiddleware(point, (io.nop.ai.agent.middleware.IAgentMiddleware) instance);
-            } catch (Exception e) {
-                LOG.warn("DefaultAgentEngine: failed to instantiate middleware impl={}, point={}", impl, pointName, e);
+                hookRegistry.registerExecutionMiddleware(execPoint, instance);
+            } else {
+                io.nop.ai.agent.hook.AgentLifecyclePoint point =
+                        io.nop.ai.agent.hook.DefaultHookRegistry.resolveLifecyclePoint(pointName);
+                if (point == null) {
+                    LOG.warn("DefaultAgentEngine: skipping middleware with unknown lifecycle point: impl={}, point={}",
+                            impl, pointName);
+                    continue;
+                }
+                hookRegistry.registerMiddleware(point, instance);
             }
+        }
+    }
+
+    private io.nop.ai.agent.middleware.IAgentMiddleware instantiateMiddleware(String impl, String pointName) {
+        try {
+            Object instance = io.nop.commons.util.ClassHelper.safeNewInstance(impl);
+            if (!(instance instanceof io.nop.ai.agent.middleware.IAgentMiddleware)) {
+                LOG.warn("DefaultAgentEngine: middleware impl does not implement IAgentMiddleware: impl={}, actualClass={}",
+                        impl, instance != null ? instance.getClass().getName() : "null");
+                return null;
+            }
+            return (io.nop.ai.agent.middleware.IAgentMiddleware) instance;
+        } catch (Exception e) {
+            LOG.warn("DefaultAgentEngine: failed to instantiate middleware impl={}, point={}", impl, pointName, e);
+            return null;
         }
     }
 }

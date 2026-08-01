@@ -2,6 +2,7 @@ package io.nop.ai.agent.hook;
 
 import io.nop.ai.agent.NopAiAgentErrors;
 import io.nop.ai.agent.engine.NopAiAgentException;
+import io.nop.ai.agent.middleware.ExecutionPoint;
 import io.nop.ai.agent.middleware.IAgentMiddleware;
 
 import java.util.Collections;
@@ -31,6 +32,16 @@ public final class NoOpHookRegistry implements IHookRegistry {
 
     @Override
     public void registerMiddleware(AgentLifecyclePoint point, IAgentMiddleware middleware) {
+        throw new NopAiAgentException(NopAiAgentErrors.ERR_AGENT_HOOK_REGISTRY_MIDDLEWARE_NOT_SUPPORTED);
+    }
+
+    @Override
+    public List<IAgentMiddleware> getExecutionMiddlewares(ExecutionPoint point, String agentName) {
+        return Collections.emptyList();
+    }
+
+    @Override
+    public void registerExecutionMiddleware(ExecutionPoint point, IAgentMiddleware middleware) {
         throw new NopAiAgentException(NopAiAgentErrors.ERR_AGENT_HOOK_REGISTRY_MIDDLEWARE_NOT_SUPPORTED);
     }
 }

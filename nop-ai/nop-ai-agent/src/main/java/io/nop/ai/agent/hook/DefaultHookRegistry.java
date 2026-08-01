@@ -1,5 +1,6 @@
 package io.nop.ai.agent.hook;
 
+import io.nop.ai.agent.middleware.ExecutionPoint;
 import io.nop.ai.agent.middleware.IAgentMiddleware;
 import io.nop.ai.agent.middleware.MiddlewareChain;
 import io.nop.ai.agent.model.AgentHookModel;
@@ -20,12 +21,20 @@ public class DefaultHookRegistry implements IHookRegistry {
 
     private static final Map<String, AgentLifecyclePoint> EVENT_NAME_MAP = buildEventNameMap();
 
+    // W3-1: execution-level point name -> ExecutionPoint (case-insensitive).
+    private static final Map<String, ExecutionPoint> EXECUTION_POINT_NAME_MAP = buildExecutionPointNameMap();
+
     // The hooks map is retained for backward-compatible access but
     // register() now wraps the hook in a middleware delegate so the
     // unified middleware chain covers both hooks and middlewares.
     private final Map<AgentLifecyclePoint, List<IAgentLifecycleHook>> hooks = new EnumMap<>(AgentLifecyclePoint.class);
 
     private final Map<AgentLifecyclePoint, List<IAgentMiddleware>> middlewares = new EnumMap<>(AgentLifecyclePoint.class);
+
+    // W3-1 (dual-layer middleware): execution-level middlewares, stored
+    // separately from session-level middlewares. Keyed by ExecutionPoint
+    // (a distinct enum) so the two scopes never conflate.
+    private final Map<ExecutionPoint, List<IAgentMiddleware>> executionMiddlewares = new EnumMap<>(ExecutionPoint.class);
 
     public DefaultHookRegistry() {
     }
@@ -51,6 +60,17 @@ public class DefaultHookRegistry implements IHookRegistry {
     @Override
     public void registerMiddleware(AgentLifecyclePoint point, IAgentMiddleware middleware) {
         middlewares.computeIfAbsent(point, k -> new ArrayList<>()).add(middleware);
+    }
+
+    @Override
+    public List<IAgentMiddleware> getExecutionMiddlewares(ExecutionPoint point, String agentName) {
+        List<IAgentMiddleware> list = executionMiddlewares.get(point);
+        return list != null ? Collections.unmodifiableList(list) : Collections.emptyList();
+    }
+
+    @Override
+    public void registerExecutionMiddleware(ExecutionPoint point, IAgentMiddleware middleware) {
+        executionMiddlewares.computeIfAbsent(point, k -> new ArrayList<>()).add(middleware);
     }
 
     /**
@@ -122,6 +142,18 @@ public class DefaultHookRegistry implements IHookRegistry {
         return EVENT_NAME_MAP.get(event.toLowerCase(Locale.ROOT));
     }
 
+    /**
+     * W3-1: resolve an execution-level trigger point name (snake_case or
+     * enum name, case-insensitive) to an {@link ExecutionPoint}. Returns
+     * {@code null} when the name does not match any execution point.
+     */
+    public static ExecutionPoint resolveExecutionPoint(String name) {
+        if (name == null || name.isEmpty()) {
+            return null;
+        }
+        return EXECUTION_POINT_NAME_MAP.get(name.toLowerCase(Locale.ROOT));
+    }
+
     private static Map<String, AgentLifecyclePoint> buildEventNameMap() {
         Map<String, AgentLifecyclePoint> map = new java.util.HashMap<>();
 
@@ -138,6 +170,18 @@ public class DefaultHookRegistry implements IHookRegistry {
         addMapping(map, "before_tool_result_processed", AgentLifecyclePoint.BEFORE_TOOL_RESULT_PROCESSED);
         addMapping(map, "after_tool_result_processed", AgentLifecyclePoint.AFTER_TOOL_RESULT_PROCESSED);
 
+        return map;
+    }
+
+    /**
+     * W3-1: execution-level trigger point name map. Both snake_case
+     * (pre_llm_attempt) and the enum name (PRE_LLM_ATTEMPT) resolve.
+     */
+    private static Map<String, ExecutionPoint> buildExecutionPointNameMap() {
+        Map<String, ExecutionPoint> map = new java.util.HashMap<>();
+        for (ExecutionPoint p : ExecutionPoint.values()) {
+            map.put(p.name().toLowerCase(Locale.ROOT), p);
+        }
         return map;
     }
 

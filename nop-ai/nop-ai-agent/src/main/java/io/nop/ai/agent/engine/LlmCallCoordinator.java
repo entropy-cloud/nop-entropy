@@ -1,5 +1,8 @@
 package io.nop.ai.agent.engine;
 
+import io.nop.ai.agent.middleware.AttemptContext;
+import io.nop.ai.agent.middleware.ExecutionPoint;
+import io.nop.ai.agent.hook.HookResult;
 import io.nop.ai.agent.model.AgentExecStatus;
 import io.nop.ai.agent.reliability.AccountChain;
 import io.nop.ai.agent.reliability.CircuitState;
@@ -179,21 +182,79 @@ public class LlmCallCoordinator {
             AccountChain accountChain = null;
             // 跨 provider failover 链游走器：惰性解析（首次账号链耗尽升级时），跨迭代保留游标（裁定 D 向前）。
             ProviderFailoverChain failoverChain = null;
+            // W3-1 (D2): 上一次 attempt 的错误分类，跨迭代保留，作为下一次 AttemptContext 的输入。
+            // 首次 attempt 为 null。retry 时执行级中间件据此判断"上次发生了什么"。
+            ErrorClassification lastClassification = null;
+            // W3-1 (D3): 执行级中间件 veto 累计计数，跨迭代保留，超 MAX_EXECUTION_VETOES fail-loud。
+            int executionVetoCount = 0;
             while (true) {
-                try {
+                // ---- W3-1: PRE_LLM_ATTEMPT 执行级中间件（每次 attempt 前触发，retry 时重新评估）----
+                // 无执行级中间件注册时，executeExecutionMiddleware 零开销直通返回 Pass（不抛异常，
+                // 也不静默跳过——返回确定的 Pass 供本路径 forward）。
+                boolean skipCall = false; // 执行级 veto 时跳过实际 LLM 调用 + 跳过 circuit 记录
+                AttemptContext preAttemptCtx = new AttemptContext(attempt, lastClassification);
+                HookResult preResult = hookInvoker.executeExecutionMiddleware(
+                        ExecutionPoint.PRE_LLM_ATTEMPT, ctx, preAttemptCtx, agentName, null, null);
+                if (preResult.isVeto()) {
+                    // D3: veto → 该 attempt 视为失败（NON_TRANSIENT 合成响应），进入 retry 决策路径。
+                    // 不是无条件 retry（防无限循环：veto cap + retryPolicy STOP 则终止）。
+                    // veto ≠ 模型失败：不记录 circuit failure（不污染熔断器）。
+                    String vetoReason = hookInvoker.vetoReason(preResult);
+                    executionVetoCount++;
+                    if (executionVetoCount > MAX_EXECUTION_VETOES) {
+                        fallbackExhausted = buildExecutionVetoCapError(vetoReason, attempt);
+                        break;
+                    }
+                    skipCall = true;
+                    attemptResponse = ChatResponse.error(ErrorClassification.NON_TRANSIENT, null,
+                            "execution-veto", "vetoed by PRE_LLM_ATTEMPT execution middleware: " + vetoReason, null);
                     llmCallStart = System.currentTimeMillis();
-                    attemptResponse = callChatWithTimeout(request);
+                    LOG.warn("PRE_LLM_ATTEMPT execution middleware vetoed attempt={} (reason={}); "
+                            + "routing NON_TRANSIENT synthetic failure to retry decision", attempt, vetoReason);
+                }
+                try {
+                    if (!skipCall) {
+                        llmCallStart = System.currentTimeMillis();
+                        attemptResponse = callChatWithTimeout(request);
+                        // ---- W3-1: POST_LLM_ATTEMPT 执行级中间件（每次 attempt 调用返回后、
+                        // success/错误分类前触发）。对每次返回的响应（成功或错误响应）均触发——
+                        // 中间件可检查响应内容（如内容安全）并 veto。传输异常路径无响应对象，不触发。
+                        AttemptContext postAttemptCtx = new AttemptContext(attempt, lastClassification);
+                        HookResult postResult = hookInvoker.executeExecutionMiddleware(
+                                ExecutionPoint.POST_LLM_ATTEMPT, ctx, postAttemptCtx, agentName, null, null);
+                        if (postResult.isVeto()) {
+                            // D3: 拒绝该 attempt 的响应（成功或错误）→ 合成 NON_TRANSIENT 失败 → retry 决策。
+                            // veto ≠ 模型失败：不记录 circuit failure。
+                            String vetoReason = hookInvoker.vetoReason(postResult);
+                            executionVetoCount++;
+                            if (executionVetoCount > MAX_EXECUTION_VETOES) {
+                                fallbackExhausted = buildExecutionVetoCapError(vetoReason, attempt);
+                                break;
+                            }
+                            skipCall = true; // 标记跳过下方 circuit 记录（veto 路径）
+                            attemptResponse = ChatResponse.error(ErrorClassification.NON_TRANSIENT, null,
+                                    "execution-veto",
+                                    "vetoed by POST_LLM_ATTEMPT execution middleware: " + vetoReason, null);
+                            LOG.warn("POST_LLM_ATTEMPT execution middleware vetoed response "
+                                    + "at attempt={} (reason={}); routing NON_TRANSIENT synthetic failure "
+                                    + "to retry decision", attempt, vetoReason);
+                        }
+                    }
                     if (attemptResponse.isSuccess()) {
-                        break; // genuine success
+                        break; // genuine success（POST 未 veto 且响应成功；PRE veto 不可达此分支）
                     }
                     // 响应级错误（W2e-2/W2e-3）：ChatServiceImpl 已规范化为携带
                     // errorClassification 的错误 ChatResponse（非 2xx 不再抛异常）。
                     // 读分类进入重试决策——不再像旧实现那样一律终止。
-                    circuitBreaker.recordFailure(buildModelKey(routedOptions));
+                    // W3-1: veto 路径（skipCall=true）跳过 circuit 记录（veto ≠ 模型失败）。
+                    if (!skipCall) {
+                        circuitBreaker.recordFailure(buildModelKey(routedOptions));
+                    }
                     ErrorClassification classification = attemptResponse.getErrorClassification();
                     if (classification == null) {
                         classification = ErrorClassification.NON_TRANSIENT;
                     }
+                    lastClassification = classification; // W3-1: 供下次 attempt 的 AttemptContext
                     RetryContext retryCtx = new RetryContext(attempt, null, classification,
                             false, attemptResponse.getRetryAfterMs());
                     RetryOutcome outcome = retryPolicy.shouldRetry(retryCtx);
@@ -274,6 +335,7 @@ public class LlmCallCoordinator {
                     circuitBreaker.recordFailure(buildModelKey(routedOptions));
                     lastError = ex;
                     ErrorClassification classification = LlmErrorClassifier.classify(ex);
+                    lastClassification = classification; // W3-1: 供下次 attempt 的 AttemptContext
                     RetryContext retryCtx = new RetryContext(
                             attempt, ex, classification, false, null);
                     RetryOutcome outcome = retryPolicy.shouldRetry(retryCtx);
@@ -473,6 +535,22 @@ public class LlmCallCoordinator {
                         + "(design §6.9). Configure additional backup accounts (<accounts> in "
                         + "{provider}.llm.xml), IModelRouter fallback models, or a cross-provider "
                         + "failover chain (_default.llm-failover.xml).", ex);
+    }
+    /**
+     * W3-1 (decision D3): construct the fail-loud error for the execution-
+     * middleware veto cap being exceeded. The veto cap prevents an execution-
+     * middleware that always vetoes (combined with a retry policy that retries
+     * NON_TRANSIENT) from looping forever. Fail-loud per design §6.9.
+     */
+    private NopAiAgentException buildExecutionVetoCapError(String vetoReason, int attempt) {
+        return new NopAiAgentException(
+                "Execution-level middleware veto cap (" + MAX_EXECUTION_VETOES
+                        + ") exceeded at attempt=" + attempt
+                        + " (last veto reason: " + vetoReason + "). An execution middleware "
+                        + "is repeatedly vetoing LLM attempts and the retry policy keeps retrying "
+                        + "the resulting NON_TRANSIENT synthetic failure — aborting to avoid an "
+                        + "infinite loop (design §5.1 / §6.9). Fix the middleware so it stops "
+                        + "vetoing, or configure a retry policy that STOPs on NON_TRANSIENT.");
     }
     /**
      * Holds the result of {@link #doLlmCallWithRetry}: the ChatResponse,
@@ -683,6 +761,19 @@ public class LlmCallCoordinator {
      * typically ≤5).
      */
     static final int MAX_FALLBACK_SCAN = 64;
+
+    /**
+     * W3-1 (decision D3): cap on consecutive execution-middleware Veto-driven
+     * retries inside {@link #doLlmCallWithRetry}. An execution-level middleware
+     * that vetoes every attempt, combined with a retry policy that retries the
+     * resulting NON_TRANSIENT synthetic failure, would otherwise loop forever.
+     * This cap forces fail-loud once exceeded, mirroring
+     * {@code ReActAgentExecutor.DEFAULT_MAX_REENTRIES} (3) — the session-level
+     * re-entry guard. The counter accumulates across attempts (never reset
+     * mid-call); exceeding it builds a terminal {@link NopAiAgentException}
+     * (fail-loud, design §6.9 — no silent skip).
+     */
+    static final int MAX_EXECUTION_VETOES = 3;
 
 
     /**

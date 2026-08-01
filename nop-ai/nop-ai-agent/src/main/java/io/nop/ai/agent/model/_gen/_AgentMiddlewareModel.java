@@ -31,6 +31,13 @@ public abstract class _AgentMiddlewareModel extends io.nop.core.resource.compone
     private java.lang.String _point ;
     
     /**
+     *  
+     * xml name: scope
+     * 
+     */
+    private java.lang.String _scope ;
+    
+    /**
      * 
      * xml name: impl
      *  
@@ -68,6 +75,25 @@ public abstract class _AgentMiddlewareModel extends io.nop.core.resource.compone
     }
 
     
+    /**
+     * 
+     * xml name: scope
+     *  
+     */
+    
+    public java.lang.String getScope(){
+      return _scope;
+    }
+
+    
+    public void setScope(java.lang.String value){
+        checkAllowChange();
+        
+        this._scope = value;
+           
+    }
+
+    
 
     @Override
     public void freeze(boolean cascade){
@@ -85,6 +111,7 @@ public abstract class _AgentMiddlewareModel extends io.nop.core.resource.compone
         
         out.putNotNull("impl",this.getImpl());
         out.putNotNull("point",this.getPoint());
+        out.putNotNull("scope",this.getScope());
     }
 
     public AgentMiddlewareModel cloneInstance(){
@@ -98,6 +125,7 @@ public abstract class _AgentMiddlewareModel extends io.nop.core.resource.compone
         
         instance.setImpl(this.getImpl());
         instance.setPoint(this.getPoint());
+        instance.setScope(this.getScope());
     }
 
     protected AgentMiddlewareModel newInstance(){

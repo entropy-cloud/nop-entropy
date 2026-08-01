@@ -5,6 +5,8 @@ import io.nop.ai.agent.hook.AgentLifecyclePoint;
 import io.nop.ai.agent.hook.HookResult;
 import io.nop.ai.agent.memory.IAiMemoryStore;
 import io.nop.ai.agent.memory.IMemoryStoreProvider;
+import io.nop.ai.agent.middleware.AttemptContext;
+import io.nop.ai.agent.middleware.ExecutionPoint;
 import io.nop.ai.agent.message.IAgentMessenger;
 import io.nop.ai.agent.model.AgentModel;
 import io.nop.ai.agent.reliability.Checkpoint;
@@ -23,19 +25,6 @@ import io.nop.ai.api.chat.messages.ChatUserMessage;
 import io.nop.ai.toolkit.api.IToolManager;
 import io.nop.ai.toolkit.model.AiToolCall;
 import io.nop.ai.toolkit.model.AiToolCallResult;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.CompletionException;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -206,6 +195,25 @@ if (!allowedCalls.isEmpty()) {
             aiToolCall.setToolName(chatToolCall.getName());
             aiToolCall.setInput(chatToolCall.getArgumentsText());
 
+            // W3-1 (D4 方案 a): PRE_TOOL_ATTEMPT 执行级中间件——同步触发（在调用线程上，
+            // 提交 future 之前）。安全检查在工具执行前确定性完成，不受线程池调度影响。
+            // 工具无 retry 机制：AttemptContext 恒为 attempt=0、非 retry。
+            // 未注册执行级中间件时零开销直通（executeExecutionMiddleware 返回 Pass）。
+            AttemptContext preToolCtx = new AttemptContext(0, null);
+            HookResult preToolResult = hookInvoker.executeExecutionMiddleware(
+                    ExecutionPoint.PRE_TOOL_ATTEMPT, ctx, preToolCtx, agentName,
+                    chatToolCall.getName(), chatToolCall.getId());
+            if (preToolResult.isVeto()) {
+                // D3: veto → 该单工具调用产错误 result（不提交 future，不影响同 batch 其他工具调用）。
+                // Anti-Hollow：执行级中间件返回值被检查（非丢弃，与现有 PRE_ACTING:282 丢弃模式对比）。
+                int resultId = LlmCallCoordinator.parseToolCallId(chatToolCall.getId());
+                AiToolCallResult vetoResult = AiToolCallResult.errorResult(resultId,
+                        "vetoed by PRE_TOOL_ATTEMPT execution middleware: "
+                                + hookInvoker.vetoReason(preToolResult));
+                futures.add(CompletableFuture.completedFuture(new ToolCallOutput(chatToolCall, vetoResult)));
+                continue;
+            }
+
             // with a wall-clock timeout so a permanently hung
             // tool cannot block the agent session, worker
             // thread, and takeover lock indefinitely. On
@@ -278,6 +286,20 @@ if (!allowedCalls.isEmpty()) {
         ChatToolCall chatToolCall = output.chatToolCall;
         AiToolCallResult toolResult = output.result;
         String toolName = chatToolCall.getName();
+
+        // W3-1 (D4 方案 a): POST_TOOL_ATTEMPT 执行级中间件——工具完成后、提交结果前触发
+        // （在调用线程上，join 之后、commit 之前）。中间件可检查工具结果并 veto。
+        // Anti-Hollow：返回值被检查（非丢弃，与下面 PRE_ACTING 的丢弃模式对比）。
+        // veto → 该单工具调用产错误 result（不 retry 工具，不影响同 batch 其他工具调用）。
+        AttemptContext postToolCtx = new AttemptContext(0, null);
+        HookResult postToolResult = hookInvoker.executeExecutionMiddleware(
+                ExecutionPoint.POST_TOOL_ATTEMPT, ctx, postToolCtx, agentName, toolName, chatToolCall.getId());
+        if (postToolResult.isVeto()) {
+            int resultId = LlmCallCoordinator.parseToolCallId(chatToolCall.getId());
+            toolResult = AiToolCallResult.errorResult(resultId,
+                    "vetoed by POST_TOOL_ATTEMPT execution middleware: "
+                            + hookInvoker.vetoReason(postToolResult));
+        }
 
         hookInvoker.executeWithMiddleware(AgentLifecyclePoint.PRE_ACTING, ctx, agentName, toolName, chatToolCall.getId());
 

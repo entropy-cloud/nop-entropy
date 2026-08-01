@@ -90,6 +90,15 @@ public abstract class _AgentModel extends io.nop.core.resource.component.Abstrac
      * point = lifecycle point name (e.g. pre_call, pre_reasoning, ...).
      * Uses impl instead of class to avoid the Java reserved-word conflict
      * in generated getter (getClass).
+     * W3-1 (dual-layer middleware): scope selects the layer.
+     * - scope="session" (default): per-request session-level middleware,
+     * point resolves to an AgentLifecyclePoint (pre_call, ...). Plan-296
+     * behaviour, unchanged.
+     * - scope="execution": per-attempt execution-level middleware,
+     * point resolves to an ExecutionPoint (pre_llm_attempt,
+     * post_llm_attempt, pre_tool_attempt, post_tool_attempt). Fires
+     * inside the LLM retry loop and the tool dispatch loop, re-evaluated
+     * on every retry.
      */
     private java.util.List<io.nop.ai.agent.model.AgentMiddlewareModel> _middlewares = java.util.Collections.emptyList();
     
@@ -389,6 +398,15 @@ public abstract class _AgentModel extends io.nop.core.resource.component.Abstrac
      * point = lifecycle point name (e.g. pre_call, pre_reasoning, ...).
      * Uses impl instead of class to avoid the Java reserved-word conflict
      * in generated getter (getClass).
+     * W3-1 (dual-layer middleware): scope selects the layer.
+     * - scope="session" (default): per-request session-level middleware,
+     * point resolves to an AgentLifecyclePoint (pre_call, ...). Plan-296
+     * behaviour, unchanged.
+     * - scope="execution": per-attempt execution-level middleware,
+     * point resolves to an ExecutionPoint (pre_llm_attempt,
+     * post_llm_attempt, pre_tool_attempt, post_tool_attempt). Fires
+     * inside the LLM retry loop and the tool dispatch loop, re-evaluated
+     * on every retry.
      */
     
     public java.util.List<io.nop.ai.agent.model.AgentMiddlewareModel> getMiddlewares(){

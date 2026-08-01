@@ -5,20 +5,13 @@ import io.nop.ai.agent.hook.HookContext;
 import io.nop.ai.agent.hook.HookResult;
 import io.nop.ai.agent.hook.IAgentLifecycleHook;
 import io.nop.ai.agent.hook.IHookRegistry;
+import io.nop.ai.agent.middleware.AttemptContext;
+import io.nop.ai.agent.middleware.ExecutionPoint;
 import io.nop.ai.agent.middleware.IAgentMiddleware;
 import io.nop.ai.agent.middleware.MiddlewareChain;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import java.util.List;
-import java.util.Map;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import java.util.List;
-import java.util.Map;
 
 import java.util.List;
 import java.util.Map;
@@ -30,6 +23,11 @@ import java.util.Map;
  * ({@link #executeWithMiddleware}) for the 9 chain-enabled lifecycle points,
  * and publishes {@link AgentEvent}s (including error events) to the wired
  * {@link IAgentEventPublisher}.
+ *
+ * <p>W3-1 adds {@link #executeExecutionMiddleware} for execution-level
+ * (per-attempt) middleware, which fires at {@link ExecutionPoint}s inside the
+ * LLM retry loop and the tool dispatch loop. Session-level behaviour is
+ * unchanged.
  */
 public class AgentHookInvoker {
     private static final Logger LOG = LoggerFactory.getLogger(AgentHookInvoker.class);
@@ -58,7 +56,7 @@ public class AgentHookInvoker {
      * call {@link #invokeHooks} directly.
      */
     public HookResult executeWithMiddleware(AgentLifecyclePoint point, AgentExecutionContext ctx,
-                                             String agentName, String toolName, String toolCallId) {
+                                              String agentName, String toolName, String toolCallId) {
         List<IAgentMiddleware> mws = hookRegistry.getMiddlewares(point, agentName);
         if (mws.isEmpty()) {
             return invokeHooks(point, ctx, agentName, toolName, toolCallId);
@@ -69,6 +67,55 @@ public class AgentHookInvoker {
         java.util.function.Function<HookContext, HookResult> core = hookCtx ->
                 invokeHooks(point, hookCtx.getExecutionContext(), agentName,
                         hookCtx.getToolName(), hookCtx.getToolCallId());
+        MiddlewareChain chain = new MiddlewareChain(mws, 0, core);
+        return chain.proceed(mwCtx);
+    }
+
+    /**
+     * W3-1 (dual-layer middleware, decision D1): invoke execution-level
+     * (per-attempt) middleware at the given {@link ExecutionPoint}. Unlike
+     * session-level middleware (which wraps the hook observer loop),
+     * execution-level middleware has a pass-through core — PRE_* and POST_*
+     * are standalone trigger points invoked immediately before/after each LLM
+     * or tool attempt; they do not wrap the attempt itself (the attempt
+     * outcome is consumed by the caller, e.g. {@code LlmCallCoordinator} /
+     * {@code AgentToolDispatcher}, which map a Veto to the retry/tool-error
+     * control flow per design §5.1).
+     *
+     * <p>When no execution middlewares are registered at {@code point}, this
+     * returns {@link HookResult.PassResult} directly — zero overhead, no
+     * allocation beyond the fast {@code isEmpty()} check (no silent skip: the
+     * caller always receives a definitive Pass it can forward).
+     *
+     * @param point        the execution-level trigger point
+     * @param ctx          the agent execution context (shared with the retry/dispatch loop)
+     * @param attemptCtx   the per-attempt context (attempt number, retry flag,
+     *                     last attempt's error classification); may be
+     *                     {@code null} when the caller has no attempt info
+     *                     (e.g. first attempt with no prior classification)
+     * @param agentName    the agent name (for agent-scoped registry lookup)
+     * @param toolName     the tool name (non-null only for tool-side points)
+     * @param toolCallId   the tool call id (non-null only for tool-side points)
+     * @return the aggregated hook result (Pass/Veto); never Reenter for
+     *         execution-level points (Reenter is a session-level re-entrant
+     *         concept only)
+     */
+    public HookResult executeExecutionMiddleware(ExecutionPoint point, AgentExecutionContext ctx,
+                                                   AttemptContext attemptCtx, String agentName,
+                                                   String toolName, String toolCallId) {
+        List<IAgentMiddleware> mws = hookRegistry.getExecutionMiddlewares(point, agentName);
+        if (mws.isEmpty()) {
+            return HookResult.PassResult.instance();
+        }
+        HookContext mwCtx = new HookContext(AgentLifecyclePoint.PRE_REASONING, ctx);
+        mwCtx.setAttemptContext(attemptCtx);
+        mwCtx.setToolName(toolName);
+        mwCtx.setToolCallId(toolCallId);
+        // Execution middleware core is a pass-through: PRE_* and POST_* do not
+        // wrap the actual attempt (the attempt is driven by the caller). The
+        // onion chain here only composes multiple execution middlewares at the
+        // same point, so each can veto / observe around the (empty) core.
+        java.util.function.Function<HookContext, HookResult> core = hookCtx -> HookResult.PassResult.instance();
         MiddlewareChain chain = new MiddlewareChain(mws, 0, core);
         return chain.proceed(mwCtx);
     }

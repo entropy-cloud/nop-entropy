@@ -52,13 +52,24 @@
     </hooks>
 
     <!-- Plan 296 (WS1): onion-style middleware declarations. Each middleware
-         wraps the lifecycle point's core (which runs all registered hooks).
-         impl = fully-qualified IAgentMiddleware implementation class name;
-         point = lifecycle point name (e.g. pre_call, pre_reasoning, ...).
-         Uses impl instead of class to avoid the Java reserved-word conflict
-         in generated getter (getClass). -->
+          wraps the lifecycle point's core (which runs all registered hooks).
+          impl = fully-qualified IAgentMiddleware implementation class name;
+          point = lifecycle point name (e.g. pre_call, pre_reasoning, ...).
+          Uses impl instead of class to avoid the Java reserved-word conflict
+          in generated getter (getClass).
+
+          W3-1 (dual-layer middleware): scope selects the layer.
+          - scope="session" (default): per-request session-level middleware,
+            point resolves to an AgentLifecyclePoint (pre_call, ...). Plan-296
+            behaviour, unchanged.
+          - scope="execution": per-attempt execution-level middleware,
+            point resolves to an ExecutionPoint (pre_llm_attempt,
+            post_llm_attempt, pre_tool_attempt, post_tool_attempt). Fires
+            inside the LLM retry loop and the tool dispatch loop, re-evaluated
+            on every retry. -->
     <middlewares xdef:body-type="list">
-        <middleware xdef:name="AgentMiddlewareModel" impl="!class-name" point="!string"/>
+        <middleware xdef:name="AgentMiddlewareModel" impl="!class-name"
+                    point="!string" scope="enum:session,execution|session"/>
     </middlewares>
 
     <!-- Plan 231: declarative team declaration. A lead agent declares its
