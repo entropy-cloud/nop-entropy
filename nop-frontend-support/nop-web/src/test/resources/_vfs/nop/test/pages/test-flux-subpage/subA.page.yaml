@@ -1,0 +1,5 @@
+type: page
+title: subA-amis
+body:
+  type: tpl
+  tpl: __SUB_A_AMIS__

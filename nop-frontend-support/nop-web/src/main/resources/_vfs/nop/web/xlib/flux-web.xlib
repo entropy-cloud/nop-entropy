@@ -908,6 +908,9 @@
 
             <source><![CDATA[
                import io.nop.core.resource.ResourceHelper;
+               import io.nop.web.page.WebPageHelper;
+
+               const fluxMode = WebPageHelper.isFluxMode();
 
                const dlgProps = _.pickNotNull(dialog,["closeOnEsc","closeOnOutside","size","height",
                     "width","showCloseButton","actions","title"]) || {};
@@ -920,7 +923,14 @@
                    dlgProps.actions = []
 
                if(page.endsWith('.page.yaml')){
-                  const pageJson = { 'x:extends': viewModel.resourcePath().$absolutePath(page),...dlgProps};
+                  let absPath = viewModel.resourcePath().$absolutePath(page);
+                  // Flux 模式优先回退到同目录同名 flux.yaml
+                  if(fluxMode){
+                     let fluxPath = WebPageHelper.toFluxPagePath(absPath);
+                     if(fluxPath && ResourceHelper.resolve(fluxPath).exists())
+                        absPath = fluxPath;
+                  }
+                  const pageJson = { 'x:extends': absPath,...dlgProps};
                   if(dialog?.data){
                      pageJson.data = dialog.data
                   }
@@ -928,6 +938,12 @@
                }
 
                let path = viewModel.resourcePath().$filePath().$appendPath(page+'.page.yaml')
+               // Flux 模式优先回退到同目录同名 flux.yaml
+               if(fluxMode){
+                  let fluxPath = WebPageHelper.toFluxPagePath(path);
+                  if(fluxPath && ResourceHelper.resolve(fluxPath).exists())
+                     return { 'x:extends': fluxPath, ...dlgProps}
+               }
                const resource = ResourceHelper.resolve(path);
                if(resource.exists()){
                   return  { 'x:extends': path, ...dlgProps}

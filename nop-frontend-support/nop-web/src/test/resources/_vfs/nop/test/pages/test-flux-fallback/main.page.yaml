@@ -1,0 +1,4 @@
+title: amis-title
+body:
+  type: tpl
+  tpl: __RENDERED_BY_AMIS__

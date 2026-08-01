@@ -38,8 +38,10 @@ public interface WebConstants {
 
     String FILE_TYPE_PAGE_JSON = "page.json";
 
+    String FILE_TYPE_FLUX_YAML = "flux.yaml";
+
     Set<String> PAGE_FILE_TYPES = buildImmutableSet(FILE_TYPE_PAGE_XML, FILE_TYPE_PAGE_YAML, FILE_TYPE_PAGE_JSON,
-            FILE_TYPE_PAGE_JSON5);
+            FILE_TYPE_PAGE_JSON5, FILE_TYPE_FLUX_YAML);
 
     Set<String> JS_FILE_TYPES = buildImmutableSet(FILE_EXT_JS);
 

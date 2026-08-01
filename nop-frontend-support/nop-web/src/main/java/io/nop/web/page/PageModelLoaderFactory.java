@@ -7,6 +7,7 @@ import io.nop.core.resource.IResourceObjectLoader;
 import io.nop.core.resource.IResourceObjectLoaderFactory;
 import io.nop.core.resource.VirtualFileSystem;
 import io.nop.core.resource.component.ComponentModelConfig;
+import io.nop.web.WebConfigs;
 
 import java.util.Map;
 
@@ -32,6 +33,18 @@ public class PageModelLoaderFactory implements IResourceObjectLoaderFactory<Obje
             }
 
             IResource resource = VirtualFileSystem.instance().getResource(resPath);
+
+            // Flux 渲染模式：加载 page.yaml 时优先回退到同目录同名的 flux.yaml
+            if ("flux".equals(WebConfigs.CFG_WEB_RENDER_MODE.get())) {
+                String fluxPath = WebPageHelper.toFluxPagePath(resPath);
+                if (fluxPath != null) {
+                    IResource fluxResource = VirtualFileSystem.instance().getResource(fluxPath);
+                    if (fluxResource.exists()) {
+                        resource = fluxResource;
+                    }
+                }
+            }
+
             return getPageProvider().loadPage(resource, locale, resolveI18n);
         }
 

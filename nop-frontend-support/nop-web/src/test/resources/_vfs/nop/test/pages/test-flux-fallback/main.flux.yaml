@@ -1,0 +1,4 @@
+title: flux-title
+body:
+  type: text
+  text: __RENDERED_BY_FLUX__

@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<view bizObjName="TestFluxSubpage" x:schema="/nop/schema/xui/xview.xdef" xmlns:x="/nop/schema/xdsl.xdef">
+    <pages>
+        <tabs name="main">
+            <!-- pageId 分支：LoadPage("subA") 会查找 subA.page.yaml / subA.flux.yaml -->
+            <tab name="tabA" title="Tab A" page="subA"/>
+            <!-- 直接路径分支：page 以 .page.yaml 结尾 -->
+            <tab name="tabB" title="Tab B" page="subB.page.yaml"/>
+        </tabs>
+    </pages>
+</view>

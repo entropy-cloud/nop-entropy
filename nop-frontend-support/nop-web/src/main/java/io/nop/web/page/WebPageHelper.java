@@ -38,6 +38,20 @@ import static io.nop.web.WebErrors.ERR_WEB_INVALID_PAGE_FILE_TYPE;
 import static io.nop.web.WebErrors.ERR_WEB_UNSUPPORTED_FILE_TYPE;
 
 public class WebPageHelper {
+    /**
+     * 将 {@code *.page.yaml} 路径转换为同目录同名的 {@code *.flux.yaml} 路径（仅替换复合扩展名 {@code page.yaml} 为 {@code flux.yaml}）。
+     * 用于 Flux 渲染模式下的页面回退：开启 {@code nop.web.render-mode=flux} 时，优先加载同名的 flux.yaml。
+     * 输入不是 {@code page.yaml} 时返回 {@code null}。
+     */
+    public static String toFluxPagePath(String pagePath) {
+        if (pagePath == null)
+            return null;
+        if (!WebConstants.FILE_TYPE_PAGE_YAML.equals(StringHelper.fileType(pagePath)))
+            return null;
+        return pagePath.substring(0, pagePath.length() - WebConstants.FILE_TYPE_PAGE_YAML.length())
+                + WebConstants.FILE_TYPE_FLUX_YAML;
+    }
+
     public static Map<String, Object> internalLoadPage(String pagePath) {
         IResource resource = VirtualFileSystem.instance().getResource(pagePath);
         DeltaJsonOptions options = XJsonLoader.newOptions(null);
@@ -89,7 +103,7 @@ public class WebPageHelper {
         });
     }
 
-    private static boolean isFluxMode() {
+    public static boolean isFluxMode() {
         return "flux".equals(WebConfigs.CFG_WEB_RENDER_MODE.get());
     }
 
