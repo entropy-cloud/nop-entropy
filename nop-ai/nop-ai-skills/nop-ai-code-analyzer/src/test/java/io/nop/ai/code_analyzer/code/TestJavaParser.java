@@ -15,12 +15,15 @@ import com.github.javaparser.symbolsolver.JavaSymbolSolver;
 import com.github.javaparser.symbolsolver.resolution.typesolvers.CombinedTypeSolver;
 import com.github.javaparser.symbolsolver.resolution.typesolvers.ReflectionTypeSolver;
 import org.junit.jupiter.api.Test;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 
 public class TestJavaParser {
+    private static final Logger LOG = LoggerFactory.getLogger(TestJavaParser.class);
 
     @Test
     public void testSolve() {
@@ -48,13 +51,13 @@ public class TestJavaParser {
 
         // 2. 解析代码
         CompilationUnit cu = javaParser.parse(javaCode).getResult().orElseThrow(
-                () -> new RuntimeException("Failed to parse code")
+                () -> new IllegalStateException("Failed to parse code")
         );
 
         // 3. 找到目标方法
         Optional<MethodDeclaration> methodOpt = cu.findFirst(MethodDeclaration.class);
         if (!methodOpt.isPresent()) {
-            throw new RuntimeException("No method found");
+            throw new IllegalStateException("No method found");
         }
         MethodDeclaration method = methodOpt.get();
 
@@ -62,9 +65,9 @@ public class TestJavaParser {
         Map<String, String> fieldAccessInfo = analyzeFieldAccess(method);
 
         // 5. 打印结果
-        System.out.println("方法名: " + method.getNameAsString());
-        System.out.println("字段访问信息:");
-        fieldAccessInfo.forEach((name, type) -> System.out.println("  " + name + " : " + type));
+        LOG.info("方法名: " + method.getNameAsString());
+        LOG.info("字段访问信息:");
+        fieldAccessInfo.forEach((name, type) -> LOG.info("  " + name + " : " + type));
     }
 
     private static Map<String, String> analyzeFieldAccess(MethodDeclaration method) {

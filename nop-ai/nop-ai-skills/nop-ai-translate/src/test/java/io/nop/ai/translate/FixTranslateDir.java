@@ -45,7 +45,6 @@ public class FixTranslateDir {
 
         FileHelper.walk2(enDir, baseDir, (f1, f2) -> {
             if (!f2.exists()) {
-                System.out.println("delete:"+f1);
                 FileHelper.deleteAll(f1);
                 return FileVisitResult.SKIP_SUBTREE;
             }

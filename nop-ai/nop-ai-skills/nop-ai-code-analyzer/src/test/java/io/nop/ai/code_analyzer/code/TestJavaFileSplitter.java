@@ -4,6 +4,8 @@ import io.nop.ai.core.commons.splitter.IAiTextSplitter;
 import io.nop.commons.util.FileHelper;
 import io.nop.core.unittest.BaseTestCase;
 import org.junit.jupiter.api.Test;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.util.List;
@@ -11,6 +13,8 @@ import java.util.List;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class TestJavaFileSplitter extends BaseTestCase {
+    private static final Logger LOG = LoggerFactory.getLogger(TestJavaFileSplitter.class);
+
     @Test
     public void testSplit() {
         File file = new File(getModuleDir(), "../../../nop-kernel/nop-core/src/main/java/io/nop/core/lang/xml/XNode.java");
@@ -24,7 +28,7 @@ public class TestJavaFileSplitter extends BaseTestCase {
         List<IAiTextSplitter.SplitChunk> chunks = splitter.split(null, javaCode, options);
         assertTrue(chunks.size() > 1);
         chunks.forEach(chunk -> {
-            System.out.println(chunk.getContent());
+            LOG.info(chunk.getContent());
         });
     }
 }

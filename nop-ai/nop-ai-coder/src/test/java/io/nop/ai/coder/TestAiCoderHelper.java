@@ -26,6 +26,8 @@ import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.util.Collection;
@@ -37,6 +39,8 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 
 public class TestAiCoderHelper extends JunitBaseTestCase {
+    private static final Logger LOG = LoggerFactory.getLogger(TestAiCoderHelper.class);
+
     @Inject
     IPromptTemplateManager promptTemplateManager;
 
@@ -116,14 +120,14 @@ public class TestAiCoderHelper extends JunitBaseTestCase {
         //doc.getRootSection().matchTplForSection("/nop/ai/schema/coder/module-requirements.tpl.md", true);
 
         MarkdownDocument ormDoc = doc.selectSectionByTplTag("ORM", false);
-        System.out.println(ormDoc.toText());
+        LOG.info(ormDoc.toText());
     }
 
     @Test
     public void testParseJavaCode() {
         String text = attachmentText("test-java-code.md");
         SourceCodeBlock block = new MarkdownCodeBlockParser().parseCodeBlockForLang(null, text, "java");
-        System.out.println(block.getSource());
+        LOG.info(block.getSource());
     }
 
     @Test
@@ -137,14 +141,14 @@ public class TestAiCoderHelper extends JunitBaseTestCase {
     public void testDocxToMarkdown() {
         DocxToMarkdownConverter converter = new DocxToMarkdownConverter();
         MarkdownDocument doc = converter.convertFromResource(attachmentResource("requirements.docx"));
-        System.out.println(doc.toText());
+        LOG.info(doc.toText());
     }
 
     @Test
     public void testDocxToMarkdownTitle() {
         DocxToMarkdownConverter converter = new DocxToMarkdownConverter();
         MarkdownDocument doc = converter.convertFromResource(attachmentResource("test-markdown.docx"));
-        System.out.println(doc.toText());
+        LOG.info(doc.toText());
         assertEquals(normalizeCRLF(attachmentText("test-markdown.md")), doc.toText());
     }
 
@@ -159,6 +163,6 @@ public class TestAiCoderHelper extends JunitBaseTestCase {
     @Test
     public void testObjSchemaJava() {
         String code = AiCoderHelper.getObjMetaJava("/nop/schema/api.xdef");
-        System.out.println(code);
+        LOG.info(code);
     }
 }
