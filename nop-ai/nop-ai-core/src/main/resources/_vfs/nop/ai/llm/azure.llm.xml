@@ -10,4 +10,25 @@
         <model name="gpt-4o" maxTokensLimit="16384"/>
         <model name="gpt-4" maxTokensLimit="4096" />
     </models>
+
+    <!--
+    [错误规范化：Azure OpenAI 嵌套错误]
+    Azure 特有：error.inner_error.code 嵌套字段（inner_error 与 innererror 两种拼写
+    跨 API 版本）。双拼写需两条映射或 XPL 逃生舱（classifyError）。
+    注意：errorResponse/errorMappings 用 x:override="replace" 替换父配置 default.llm.xml
+    的 OpenAI 基准（父用 error.type/error.code，Azure 用嵌套 error.inner_error.code）。
+    参考：ai-dev/analysis/2026-08/2026-08-01-llm-error-mapping-feasibility-analysis.md §3.5
+    -->
+    <errorResponse errorTypePath="error.code" errorCodePath="error.inner_error.code"
+                   errorMessagePath="error.message"/>
+
+    <errorMappings>
+        <!-- Azure 嵌套配额错误（inner_error 拼写） -->
+        <errorMapping id="azure-quota-exceeded" classification="QUOTA_EXCEEDED" httpStatus="429"
+                      errorCodes="insufficient_quota,quota_exceeded"/>
+        <!-- Azure 嵌套限流 -->
+        <errorMapping id="azure-rate-limited" classification="RATE_LIMITED" httpStatus="429"
+                      errorCodes="rate_limit_exceeded,too_many_requests"/>
+    </errorMappings>
+
 </llm>

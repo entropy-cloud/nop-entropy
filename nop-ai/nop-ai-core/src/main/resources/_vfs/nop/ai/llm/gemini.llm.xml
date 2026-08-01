@@ -37,4 +37,33 @@
               statusPath="candidates.0.finishReason"
               errorPath="error.message"/>
 
+    <!--
+    [错误规范化：Gemini canonical 格式]
+    error.code=数值 HTTP 状态，error.status=canonical gRPC 状态串。
+    Gemini 429 RESOURCE_EXHAUSTED 限流与配额同型，只有消息文本能区分
+    （"quota" vs "rate"），故 messagePattern 是必需逃生舱。
+    参考：ai-dev/analysis/2026-08/2026-08-01-llm-error-mapping-feasibility-analysis.md §3.3/§4.4
+    -->
+    <errorResponse errorTypePath="error.status" errorCodePath="error.code"
+                   errorMessagePath="error.message"/>
+
+    <errorMappings>
+        <!-- 配额耗尽：消息含 quota/plan/billing（不可重试，切账号） -->
+        <errorMapping id="gemini-quota-exceeded" classification="QUOTA_EXCEEDED" httpStatus="429"
+                      errorTypes="RESOURCE_EXHAUSTED"
+                      messagePattern=".*quota.*plan.*billing.*"/>
+        <!-- 限流：同上状态但消息是 rate（可重试） -->
+        <errorMapping id="gemini-rate-limited" classification="RATE_LIMITED" httpStatus="429"
+                      errorTypes="RESOURCE_EXHAUSTED"/>
+        <!-- 认证：切账号 -->
+        <errorMapping id="gemini-auth-invalid" classification="AUTH_INVALID" httpStatus="400,403"
+                      errorTypes="UNAUTHENTICATED,PERMISSION_DENIED"/>
+        <!-- 暂时不可用：瞬时，重试 -->
+        <errorMapping id="gemini-unavailable" classification="TRANSIENT" httpStatus="503"
+                      errorTypes="UNAVAILABLE"/>
+        <!-- 请求错误：不重试 -->
+        <errorMapping id="gemini-invalid-argument" classification="NON_TRANSIENT" httpStatus="400"
+                      errorTypes="INVALID_ARGUMENT"/>
+    </errorMappings>
+
 </llm>

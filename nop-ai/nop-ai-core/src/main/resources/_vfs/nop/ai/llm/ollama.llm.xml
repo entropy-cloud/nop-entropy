@@ -27,4 +27,23 @@
               errorPath="error"
     />
 
+    <!--
+    [错误规范化：Ollama 本地格式]
+    Ollama 错误体简单（顶层 error 字符串，无 error.type/code 结构），
+    主要依赖 HTTP 状态码 + 消息正则。本地服务通常无需切账号，
+    AUTH/QUOTA 场景极少，保留默认启发式即可。
+    -->
+    <errorResponse errorMessagePath="error"/>
+
+    <errorMappings>
+        <!-- 模型不存在/加载失败：不重试 -->
+        <errorMapping id="ollama-model-not-found" classification="NON_TRANSIENT" httpStatus="404"
+                      messagePattern=".*model.*not.*found.*"/>
+        <!-- 上下文超长：不重试 -->
+        <errorMapping id="ollama-context-length" classification="NON_TRANSIENT" httpStatus="400"
+                      messagePattern=".*context.*length.*"/>
+        <!-- 服务端错误：瞬时，重试 -->
+        <errorMapping id="ollama-server-error" classification="TRANSIENT" httpStatus="500,502,503"/>
+    </errorMappings>
+
 </llm>

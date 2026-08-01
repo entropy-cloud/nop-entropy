@@ -23,4 +23,34 @@
               toolCallsPath="choices.0.message.tool_calls"
     />
 
+    <!--
+    [错误规范化：OpenAI 标准格式]
+    429 不是一种东西：error.code=rate_limit_exceeded（可重试限流）vs
+    insufficient_quota（计费问题，重试永远无效）。注意对 OpenAI 应主要匹配
+    errorCodes 而非 errorTypes（限流场景 error.type 是维度 requests/tokens）。
+    参考：ai-dev/analysis/2026-08/2026-08-01-llm-error-mapping-feasibility-analysis.md §3.1/§4.2
+    -->
+    <errorResponse errorTypePath="error.type" errorCodePath="error.code"
+                   errorMessagePath="error.message"/>
+
+    <errorMappings>
+        <!-- 配额耗尽：不可重试，切账号。注意放最前，优先于通用 429 -->
+        <errorMapping id="openai-quota-exceeded" classification="QUOTA_EXCEEDED" httpStatus="429"
+                      errorCodes="insufficient_quota,quota_exceeded,billing_hard_limit_reached,
+                                  insufficient_balance,credit_balance_too_low,billing_not_active,
+                                  payment_required"/>
+        <!-- 限流：可重试，按 Retry-After 等待 -->
+        <errorMapping id="openai-rate-limited" classification="RATE_LIMITED" httpStatus="429"
+                      errorCodes="rate_limit_exceeded,requests_limit_exceeded,too_many_requests"/>
+        <!-- 认证：切账号 -->
+        <errorMapping id="openai-auth-invalid" classification="AUTH_INVALID" httpStatus="401,403"
+                      errorCodes="invalid_api_key,authentication_error,permission_error"/>
+        <!-- 请求错误：不重试（prompt 过长等） -->
+        <errorMapping id="openai-non-transient" classification="NON_TRANSIENT" httpStatus="400"
+                      errorCodes="context_length_exceeded,content_filter,invalid_request_error"/>
+        <!-- 服务端错误：瞬时，重试 -->
+        <errorMapping id="openai-server-error" classification="TRANSIENT" httpStatus="500,502,503,504"
+                      errorTypes="server_error"/>
+    </errorMappings>
+
 </llm>

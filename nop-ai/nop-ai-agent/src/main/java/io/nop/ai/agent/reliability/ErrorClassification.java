@@ -1,31 +1,21 @@
 package io.nop.ai.agent.reliability;
 
 /**
- * LLM call error classification (design
- * {@code nop-ai-agent-llm-layer.md} §7.2 / plan 207 / L3-2). Drives the
- * retry decision in {@link IRetryPolicy}: only {@link #TRANSIENT} and
- * {@link #RATE_LIMITED} are eligible for programmatic retry;
- * {@link #NON_TRANSIENT} and {@link #QUOTA_EXCEEDED} fail fast.
+ * LLM 错误规范化分类。
  *
- * <ul>
- *   <li>{@link #TRANSIENT} — transient/server-side fault suitable for
- *       programmatic retry (5xx, network timeout, connection reset).</li>
- *   <li>{@link #NON_TRANSIENT} — client-side fault NOT suitable for
- *       programmatic retry (400/401/403/404 — parameter/auth/not-found
- *       errors; retrying the identical request will fail identically).</li>
- *   <li>{@link #RATE_LIMITED} — 429 provider rate limit; suitable for
- *       retry after a delay. In the current call path the HTTP exception
- *       does not carry the {@code Retry-After} header, so the retry uses
- *       exponential backoff rather than header-driven wait (Non-Goal).</li>
- *   <li>{@link #QUOTA_EXCEEDED} — account/billing quota exhausted (also
- *       surfaced as 429 by some providers, but semantically distinct from
- *       transient rate limiting); NOT retryable — retrying will not
- *       replenish quota.</li>
- * </ul>
+ * <p>已上移到 {@link io.nop.ai.core.model.ErrorClassification}（设计
+ * {@code nop-ai-llm-error-normalization-design.md} §3.8：规范化配置 llm.xdef
+ * 要引用它，故必须落在 nop-ai-core 的 bean-package 层）。本类保留为
+ * 兼容桥接，新代码请直接引用 core 定义。</p>
+ *
+ * @deprecated 请使用 {@link io.nop.ai.core.model.ErrorClassification}
  */
+@Deprecated
 public enum ErrorClassification {
     TRANSIENT,
     NON_TRANSIENT,
     RATE_LIMITED,
-    QUOTA_EXCEEDED
+    QUOTA_EXCEEDED,
+    AUTH_INVALID,
+    CACHE_STATE_LOST
 }

@@ -73,4 +73,65 @@
 
     <parseHttpResponse>xpl-fn:(httpResponse,chatResponse, chatOptions)=>void</parseHttpResponse>
 
+    <!--
+    [错误响应字段抽取]
+    告诉底层从错误响应体抽取哪些字段用于错误分类（对应 <response> 抽成功体字段）。
+    沿用 prop-path（支持点号嵌套，如 OpenAI "error.type"）。
+    -->
+    <errorResponse xdef:name="LlmErrorResponseModel"
+                   errorTypePath="prop-path"
+                   errorCodePath="prop-path"
+                   errorMessagePath="prop-path"
+                   retryAfterPath="prop-path"
+    />
+
+    <!--
+    [错误映射：多条件合取 → 固定分类]
+    把错误字段值 + HTTP 状态映射到固定 ErrorClassification。有序规则表，首条匹配胜出
+    （first-match-wins）。
+
+    ⚠️ xdef:key-attr="id"（与 dialect.xdef <errorCodes xdef:key-attr="name"> 同款）：
+    id 用于 x:extends 合并时区分集合条目——子配置（如 azure.llm.xml extends default.llm.xml）
+    可用相同 id 覆盖父配置的条目（replaceChild 在原位置替换），或新增 id 追加条目。
+    合并后顺序保持：被覆盖条目保留父位置，新增条目追加末尾，故 first-match-wins 仍成立。
+    每个 errorMapping 必须有唯一 id（如 openai-quota-exceeded / anthropic-billing）。
+
+    匹配优先级（对每条 errorMapping 按合并后顺序）：
+      1. httpStatus 未设 或 实际状态 ∈ httpStatus
+      2. errorTypes 未设 或 抽到的 error.type ∈ errorTypes
+      3. errorCodes 未设 或 抽到的 error.code ∈ errorCodes
+      4. messagePattern 未设 或 消息匹配正则
+      全部命中 → 取该条 classification；全部未命中 → 默认启发式（按 HTTP 状态码）
+
+    messagePattern 为必需（非可选）：Gemini 429 RESOURCE_EXHAUSTED 限流与配额同型，
+    只有消息文本能区分。复刻 dialect.xdef 消息正则规则：空白替下划线、"." 跨行、
+    大小写无关（参考 DialectSQLExceptionTranslator）。
+
+    @id 条目唯一标识（x:extends 合并键）
+    @classification 固定分类（io.nop.ai.core.model.ErrorClassification）
+    @httpStatus   可选限定，如 "429" 或 "401,403"
+    @errorTypes   体里 error.type 的值集合
+    @errorCodes   体里 error.code 的值集合
+    @messagePattern 消息正则（空白替下划线、. 跨行、大小写无关）
+    @retryAfterPath 该映射专用 retry-after 路径覆盖
+    -->
+    <errorMappings xdef:body-type="list" xdef:key-attr="id">
+        <errorMapping id="!string" xdef:name="LlmErrorMappingModel"
+                      classification="!enum:io.nop.ai.core.model.ErrorClassification"
+                      httpStatus="csv-set"
+                      errorTypes="csv-set"
+                      errorCodes="csv-set"
+                      messagePattern="string"
+                      retryAfterPath="prop-path"
+        />
+    </errorMappings>
+
+    <!--
+    [可选全局逃生舱]
+    覆盖配置表无法表达的 ~10% 硬场景（Azure 嵌套多拼写 inner_error.code vs innererror.code、
+    负向排除等）。配置 <errorMappings> 优先，命中即用；未命中再走本函数；都未命中走默认启发式。
+    风格与 <buildHttpRequest>/<parseHttpResponse> 的 xpl-fn 节点一致。
+    -->
+    <classifyError>xpl-fn:(httpStatus, bodyMap, headers) => io.nop.ai.core.model.ErrorClassification</classifyError>
+
 </llm>

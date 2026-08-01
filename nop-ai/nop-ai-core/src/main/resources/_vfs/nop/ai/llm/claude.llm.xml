@@ -33,4 +33,33 @@
               toolCallsPath="content.0.tool_use"
               errorPath="error.message"/>
 
+    <!--
+    [错误规范化：Anthropic 标准格式]
+    Anthropic 错误映射最干净，几乎 1:1（platform.claude.com/docs/en/api/errors）：
+    有专门的 402 billing_error 计费状态，无需 body 解析即可区分配额。
+    参考：ai-dev/analysis/2026-08/2026-08-01-llm-error-mapping-feasibility-analysis.md §3.2/§4.3
+    -->
+    <errorResponse errorTypePath="error.type" errorMessagePath="error.message"/>
+
+    <errorMappings>
+        <!-- Anthropic 专用 402 计费状态（QUOTA_EXCEEDED 最干净来源） -->
+        <errorMapping id="anthropic-billing" classification="QUOTA_EXCEEDED" httpStatus="402"
+                      errorTypes="billing_error"/>
+        <!-- 限流：可重试，按 Retry-After 等待 -->
+        <errorMapping id="anthropic-rate-limited" classification="RATE_LIMITED" httpStatus="429"
+                      errorTypes="rate_limit_error"/>
+        <!-- 认证：切账号 -->
+        <errorMapping id="anthropic-auth-invalid" classification="AUTH_INVALID" httpStatus="401,403"
+                      errorTypes="authentication_error,permission_error"/>
+        <!-- 请求错误：不重试 -->
+        <errorMapping id="anthropic-non-transient" classification="NON_TRANSIENT" httpStatus="400,404,413"
+                      errorTypes="invalid_request_error,not_found_error,request_too_large"/>
+        <!-- 服务端错误/超时/过载：瞬时，重试 -->
+        <errorMapping id="anthropic-transient" classification="TRANSIENT" httpStatus="500,504,529"
+                      errorTypes="api_error,timeout_error,overloaded_error"/>
+        <!-- 状态冲突：瞬时（重试可解决） -->
+        <errorMapping id="anthropic-conflict" classification="TRANSIENT" httpStatus="409"
+                      errorTypes="conflict_error"/>
+    </errorMappings>
+
 </llm>

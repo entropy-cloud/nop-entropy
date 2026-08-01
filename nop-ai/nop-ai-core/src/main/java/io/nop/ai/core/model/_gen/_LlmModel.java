@@ -59,6 +59,15 @@ public abstract class _LlmModel extends io.nop.core.resource.component.AbstractC
     private java.lang.String _chatUrl ;
     
     /**
+     *  可选全局逃生舱
+     * xml name: classifyError
+     * 覆盖配置表无法表达的 ~10% 硬场景（Azure 嵌套多拼写 inner_error.code vs innererror.code、
+     * 负向排除等）。配置 <errorMappings> 优先，命中即用；未命中再走本函数；都未命中走默认启发式。
+     * 风格与 <buildHttpRequest>/<parseHttpResponse> 的 xpl-fn 节点一致。
+     */
+    private io.nop.core.lang.eval.IEvalFunction _classifyError ;
+    
+    /**
      *  
      * xml name: defaultModel
      * 
@@ -78,6 +87,36 @@ public abstract class _LlmModel extends io.nop.core.resource.component.AbstractC
      * 
      */
     private java.lang.String _embedUrl ;
+    
+    /**
+     *  错误映射：多条件合取 → 固定分类
+     * xml name: errorMappings
+     * 把错误字段值 + HTTP 状态映射到固定 ErrorClassification。有序规则表，首条匹配胜出
+     * （first-match-wins）。
+     * ⚠️ xdef:key-attr="id"（与 dialect.xdef <errorCodes xdef:key-attr="name"> 同款）：
+     * id 用于 x:extends 合并时区分集合条目——子配置（如 azure.llm.xml extends default.llm.xml）
+     * 可用相同 id 覆盖父配置的条目（replaceChild 在原位置替换），或新增 id 追加条目。
+     * 合并后顺序保持：被覆盖条目保留父位置，新增条目追加末尾，故 first-match-wins 仍成立。
+     * 每个 errorMapping 必须有唯一 id（如 openai-quota-exceeded / anthropic-billing）。
+     * 匹配优先级（对每条 errorMapping 按合并后顺序）：
+     * 1. httpStatus 未设 或 实际状态 ∈ httpStatus
+     * 2. errorTypes 未设 或 抽到的 error.type ∈ errorTypes
+     * 3. errorCodes 未设 或 抽到的 error.code ∈ errorCodes
+     * 4. messagePattern 未设 或 消息匹配正则
+     * 全部命中 → 取该条 classification；全部未命中 → 默认启发式（按 HTTP 状态码）
+     * messagePattern 为必需（非可选）：Gemini 429 RESOURCE_EXHAUSTED 限流与配额同型，
+     * 只有消息文本能区分。复刻 dialect.xdef 消息正则规则：空白替下划线、"." 跨行、
+     * 大小写无关（参考 DialectSQLExceptionTranslator）。
+     */
+    private KeyedList<io.nop.ai.core.model.LlmErrorMappingModel> _errorMappings = KeyedList.emptyList();
+    
+    /**
+     *  错误响应字段抽取
+     * xml name: errorResponse
+     * 告诉底层从错误响应体抽取哪些字段用于错误分类（对应 <response> 抽成功体字段）。
+     * 沿用 prop-path（支持点号嵌套，如 OpenAI "error.type"）。
+     */
+    private io.nop.ai.core.model.LlmErrorResponseModel _errorResponse ;
     
     /**
      *  
@@ -261,6 +300,27 @@ public abstract class _LlmModel extends io.nop.core.resource.component.AbstractC
 
     
     /**
+     * 可选全局逃生舱
+     * xml name: classifyError
+     *  覆盖配置表无法表达的 ~10% 硬场景（Azure 嵌套多拼写 inner_error.code vs innererror.code、
+     * 负向排除等）。配置 <errorMappings> 优先，命中即用；未命中再走本函数；都未命中走默认启发式。
+     * 风格与 <buildHttpRequest>/<parseHttpResponse> 的 xpl-fn 节点一致。
+     */
+    
+    public io.nop.core.lang.eval.IEvalFunction getClassifyError(){
+      return _classifyError;
+    }
+
+    
+    public void setClassifyError(io.nop.core.lang.eval.IEvalFunction value){
+        checkAllowChange();
+        
+        this._classifyError = value;
+           
+    }
+
+    
+    /**
      * 
      * xml name: defaultModel
      *  
@@ -313,6 +373,86 @@ public abstract class _LlmModel extends io.nop.core.resource.component.AbstractC
         checkAllowChange();
         
         this._embedUrl = value;
+           
+    }
+
+    
+    /**
+     * 错误映射：多条件合取 → 固定分类
+     * xml name: errorMappings
+     *  把错误字段值 + HTTP 状态映射到固定 ErrorClassification。有序规则表，首条匹配胜出
+     * （first-match-wins）。
+     * ⚠️ xdef:key-attr="id"（与 dialect.xdef <errorCodes xdef:key-attr="name"> 同款）：
+     * id 用于 x:extends 合并时区分集合条目——子配置（如 azure.llm.xml extends default.llm.xml）
+     * 可用相同 id 覆盖父配置的条目（replaceChild 在原位置替换），或新增 id 追加条目。
+     * 合并后顺序保持：被覆盖条目保留父位置，新增条目追加末尾，故 first-match-wins 仍成立。
+     * 每个 errorMapping 必须有唯一 id（如 openai-quota-exceeded / anthropic-billing）。
+     * 匹配优先级（对每条 errorMapping 按合并后顺序）：
+     * 1. httpStatus 未设 或 实际状态 ∈ httpStatus
+     * 2. errorTypes 未设 或 抽到的 error.type ∈ errorTypes
+     * 3. errorCodes 未设 或 抽到的 error.code ∈ errorCodes
+     * 4. messagePattern 未设 或 消息匹配正则
+     * 全部命中 → 取该条 classification；全部未命中 → 默认启发式（按 HTTP 状态码）
+     * messagePattern 为必需（非可选）：Gemini 429 RESOURCE_EXHAUSTED 限流与配额同型，
+     * 只有消息文本能区分。复刻 dialect.xdef 消息正则规则：空白替下划线、"." 跨行、
+     * 大小写无关（参考 DialectSQLExceptionTranslator）。
+     */
+    
+    public java.util.List<io.nop.ai.core.model.LlmErrorMappingModel> getErrorMappings(){
+      return _errorMappings;
+    }
+
+    
+    public void setErrorMappings(java.util.List<io.nop.ai.core.model.LlmErrorMappingModel> value){
+        checkAllowChange();
+        
+        this._errorMappings = KeyedList.fromList(value, io.nop.ai.core.model.LlmErrorMappingModel::getId);
+           
+    }
+
+    
+    public io.nop.ai.core.model.LlmErrorMappingModel getErrorMapping(String name){
+        return this._errorMappings.getByKey(name);
+    }
+
+    public boolean hasErrorMapping(String name){
+        return this._errorMappings.containsKey(name);
+    }
+
+    public void addErrorMapping(io.nop.ai.core.model.LlmErrorMappingModel item) {
+        checkAllowChange();
+        java.util.List<io.nop.ai.core.model.LlmErrorMappingModel> list = this.getErrorMappings();
+        if (list == null || list.isEmpty()) {
+            list = new KeyedList<>(io.nop.ai.core.model.LlmErrorMappingModel::getId);
+            setErrorMappings(list);
+        }
+        list.add(item);
+    }
+    
+    public java.util.Set<String> keySet_errorMappings(){
+        return this._errorMappings.keySet();
+    }
+
+    public boolean hasErrorMappings(){
+        return !this._errorMappings.isEmpty();
+    }
+    
+    /**
+     * 错误响应字段抽取
+     * xml name: errorResponse
+     *  告诉底层从错误响应体抽取哪些字段用于错误分类（对应 <response> 抽成功体字段）。
+     * 沿用 prop-path（支持点号嵌套，如 OpenAI "error.type"）。
+     */
+    
+    public io.nop.ai.core.model.LlmErrorResponseModel getErrorResponse(){
+      return _errorResponse;
+    }
+
+    
+    public void setErrorResponse(io.nop.ai.core.model.LlmErrorResponseModel value){
+        checkAllowChange();
+        
+        this._errorResponse = value;
            
     }
 
@@ -522,6 +662,10 @@ public abstract class _LlmModel extends io.nop.core.resource.component.AbstractC
 
         if(cascade){ //NOPMD - suppressed EmptyControlStatement - Auto Gen Code
         
+           this._errorMappings = io.nop.api.core.util.FreezeHelper.deepFreeze(this._errorMappings);
+            
+           this._errorResponse = io.nop.api.core.util.FreezeHelper.deepFreeze(this._errorResponse);
+            
            this._models = io.nop.api.core.util.FreezeHelper.deepFreeze(this._models);
             
            this._request = io.nop.api.core.util.FreezeHelper.deepFreeze(this._request);
@@ -541,9 +685,12 @@ public abstract class _LlmModel extends io.nop.core.resource.component.AbstractC
         out.putNotNull("baseUrl",this.getBaseUrl());
         out.putNotNull("buildHttpRequest",this.getBuildHttpRequest());
         out.putNotNull("chatUrl",this.getChatUrl());
+        out.putNotNull("classifyError",this.getClassifyError());
         out.putNotNull("defaultModel",this.getDefaultModel());
         out.putNotNull("defaultRequestTimeout",this.getDefaultRequestTimeout());
         out.putNotNull("embedUrl",this.getEmbedUrl());
+        out.putNotNull("errorMappings",this.getErrorMappings());
+        out.putNotNull("errorResponse",this.getErrorResponse());
         out.putNotNull("generateUrl",this.getGenerateUrl());
         out.putNotNull("logMessage",this.isLogMessage());
         out.putNotNull("models",this.getModels());
@@ -570,9 +717,12 @@ public abstract class _LlmModel extends io.nop.core.resource.component.AbstractC
         instance.setBaseUrl(this.getBaseUrl());
         instance.setBuildHttpRequest(this.getBuildHttpRequest());
         instance.setChatUrl(this.getChatUrl());
+        instance.setClassifyError(this.getClassifyError());
         instance.setDefaultModel(this.getDefaultModel());
         instance.setDefaultRequestTimeout(this.getDefaultRequestTimeout());
         instance.setEmbedUrl(this.getEmbedUrl());
+        instance.setErrorMappings(this.getErrorMappings());
+        instance.setErrorResponse(this.getErrorResponse());
         instance.setGenerateUrl(this.getGenerateUrl());
         instance.setLogMessage(this.isLogMessage());
         instance.setModels(this.getModels());
