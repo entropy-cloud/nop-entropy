@@ -1,5 +1,6 @@
 package io.nop.ai.agent.reliability;
 
+import io.nop.ai.api.chat.ErrorClassification;
 import io.nop.ai.agent.engine.NopAiAgentException;
 import io.nop.api.core.exceptions.NopTimeoutException;
 import org.junit.jupiter.api.Test;

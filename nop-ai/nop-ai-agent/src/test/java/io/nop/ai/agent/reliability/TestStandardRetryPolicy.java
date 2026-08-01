@@ -1,5 +1,6 @@
 package io.nop.ai.agent.reliability;
 
+import io.nop.ai.api.chat.ErrorClassification;
 import io.nop.ai.agent.engine.NopAiAgentException;
 import io.nop.api.core.exceptions.NopTimeoutException;
 import org.junit.jupiter.api.Test;
@@ -198,5 +199,64 @@ public class TestStandardRetryPolicy {
 
     private static RetryContext ctx(int attempt, ErrorClassification classification) {
         return new RetryContext(attempt, new NopTimeoutException(), classification, false);
+    }
+
+    // ========================================================================
+    // RATE_LIMITED Retry-After floor (W2e-3 / design §3.7)
+    // ========================================================================
+
+    @Test
+    void rateLimitedDelayRespectsRetryAfterAsFloor() {
+        // RATE_LIMITED + retryAfterMs → delay = retryAfterMs + uniform(0, jitterCap),
+        // 永不低于 retryAfterMs。baseDelay=100, maxDelay=1000, attempt=0 → jitterCap=100.
+        StandardRetryPolicy p = new StandardRetryPolicy(5, 100L, 1000L);
+        for (int i = 0; i < 50; i++) {
+            long delay = p.shouldRetry(ctxRetryAfter(0, ErrorClassification.RATE_LIMITED, 2000L)).getDelayMs();
+            assertTrue(delay >= 2000L && delay <= 2100L,
+                    "RATE_LIMITED delay must be in [retryAfterMs, retryAfterMs+jitterCap]=[2000,2100]: " + delay);
+        }
+    }
+
+    @Test
+    void rateLimitedFloorGrowsWithAttemptJitterCap() {
+        // attempt=1 → jitterCap = min(100*2, 1000) = 200 → delay ∈ [2000, 2200].
+        StandardRetryPolicy p = new StandardRetryPolicy(5, 100L, 1000L);
+        for (int i = 0; i < 50; i++) {
+            long delay = p.shouldRetry(ctxRetryAfter(1, ErrorClassification.RATE_LIMITED, 2000L)).getDelayMs();
+            assertTrue(delay >= 2000L && delay <= 2200L,
+                    "RATE_LIMITED delay at attempt=1 must be in [2000, 2200]: " + delay);
+        }
+    }
+
+    @Test
+    void rateLimitedWithoutRetryAfterFallsBackToFullJitter() {
+        // 无 Retry-After 提示 → 纯 full-jitter（不崩），delay ∈ [0, cap]，可低于任意 floor。
+        StandardRetryPolicy p = new StandardRetryPolicy(5, 100L, 1000L);
+        RetryOutcome r = p.shouldRetry(ctx(0, ErrorClassification.RATE_LIMITED));
+        assertTrue(r.isRetry(), "RATE_LIMITED without retryAfterMs must still RETRY");
+        assertTrue(r.getDelayMs() >= 0L && r.getDelayMs() <= 100L,
+                "RATE_LIMITED without retryAfterMs → pure full-jitter in [0, baseDelay]: " + r.getDelayMs());
+    }
+
+    @Test
+    void transientIsNotAffectedByRetryAfter() {
+        // TRANSIENT 仍用纯 full-jitter，retryAfterMs 不影响它（delay 可远低于 retryAfterMs）。
+        StandardRetryPolicy p = new StandardRetryPolicy(5, 100L, 1000L);
+        long delay = p.shouldRetry(ctxRetryAfter(0, ErrorClassification.TRANSIENT, 10_000L)).getDelayMs();
+        assertTrue(delay >= 0L && delay <= 100L,
+                "TRANSIENT delay must stay in [0, baseDelay=100], ignoring retryAfterMs: " + delay);
+    }
+
+    @Test
+    void rateLimitedRetryAfterExceedingMaxDelayIsHonored() {
+        // retryAfterMs 超过 maxDelay 也要遵守（服务器明确要求的等待优先于 herd 抑制 cap）。
+        StandardRetryPolicy p = new StandardRetryPolicy(5, 100L, 1000L);
+        long delay = p.shouldRetry(ctxRetryAfter(0, ErrorClassification.RATE_LIMITED, 5000L)).getDelayMs();
+        assertTrue(delay >= 5000L,
+                "RATE_LIMITED delay must honor retryAfterMs even when it exceeds maxDelay: " + delay);
+    }
+
+    private static RetryContext ctxRetryAfter(int attempt, ErrorClassification classification, long retryAfterMs) {
+        return new RetryContext(attempt, new NopTimeoutException(), classification, false, retryAfterMs);
     }
 }

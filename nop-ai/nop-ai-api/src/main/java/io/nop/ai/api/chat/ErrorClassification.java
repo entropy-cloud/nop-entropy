@@ -1,4 +1,4 @@
-package io.nop.ai.core.model;
+package io.nop.ai.api.chat;
 
 /**
  * LLM 错误规范化分类（纯词汇枚举，不 import 任何上层类型）。
@@ -6,6 +6,14 @@ package io.nop.ai.core.model;
  * <p>对应 {@code ai-dev/design/nop-ai-agent/nop-ai-llm-error-normalization-design.md} §3.2：
  * 把 provider 的异构错误响应规范化为少数固定分类。分类是事实判断（这条响应是什么），
  * 恢复是策略判断（拿这个事实怎么办），两者解耦——本枚举只承载事实。</p>
+ *
+ * <p><b>类型归属（plan 2026-08-01-1440-1 裁定）</b>：本枚举从 {@code nop-ai-core}
+ * 迁移到 {@code nop-ai-api}（最低层，仅依赖 {@code nop-api-core}）。理由：
+ * {@link ChatResponse} 在 {@code nop-ai-api}，而 core 生产者、agent 消费者三方共同可见
+ * 的唯一层就是 {@code nop-ai-api}（依赖图：nop-ai-api → nop-api-core；nop-ai-core → nop-ai-api；
+ * nop-ai-agent → nop-ai-core）。把枚举留在 nop-ai-core 会让 ChatResponse 无法引用它
+ * （形成 nop-ai-core→nop-ai-api→nop-ai-core 循环依赖）。迁移后信号通路全程同一类型，
+ * 无任何按名/按类型转换。</p>
  *
  * <p>与恢复动作的对应（由上层 {@code IRetryPolicy} 消费）：</p>
  * <ul>

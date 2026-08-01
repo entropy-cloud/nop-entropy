@@ -66,6 +66,28 @@ public class ChatResponse {
      */
     private String errorCode;
 
+    /**
+     * 错误规范化分类（当响应为错误时由 dialect.parseErrorResponse 规范化产出）。
+     * 驱动上层可靠性层（IRetryPolicy）的 RETRY / STOP / FALLBACK 决策。
+     * 仅在 {@link #isSuccess()} == false 时有意义；成功响应为 null。
+     *
+     * <p>类型归属见 {@link ErrorClassification}：本枚举与 {@link ChatResponse} 同处
+     * nop-ai-api，故信号通路（core 产出 → ChatResponse 携带 → agent 消费）全程同一类型。</p>
+     */
+    private ErrorClassification errorClassification;
+
+    /**
+     * Retry-After 归一值（毫秒）。provider 经 HTTP 头或 body 字段告知的等待时长，
+     * 由 dialect.parseErrorResponse 归一后填入（见设计 §3.7 多源解析）。null 表示无
+     * 服务器提示（策略层退回纯 full-jitter 退避）。
+     */
+    private Long retryAfterMs;
+
+    /**
+     * 原始 HTTP 状态码（诊断用，非 200 错误响应时填充）。
+     */
+    private Integer httpStatus;
+
     public ChatResponse() {
     }
 
@@ -162,6 +184,33 @@ public class ChatResponse {
         this.errorCode = errorCode;
     }
 
+    @JsonInclude(JsonInclude.Include.NON_NULL)
+    public ErrorClassification getErrorClassification() {
+        return errorClassification;
+    }
+
+    public void setErrorClassification(ErrorClassification errorClassification) {
+        this.errorClassification = errorClassification;
+    }
+
+    @JsonInclude(JsonInclude.Include.NON_NULL)
+    public Long getRetryAfterMs() {
+        return retryAfterMs;
+    }
+
+    public void setRetryAfterMs(Long retryAfterMs) {
+        this.retryAfterMs = retryAfterMs;
+    }
+
+    @JsonInclude(JsonInclude.Include.NON_NULL)
+    public Integer getHttpStatus() {
+        return httpStatus;
+    }
+
+    public void setHttpStatus(Integer httpStatus) {
+        this.httpStatus = httpStatus;
+    }
+
     /**
      * 检查是否成功
      */
@@ -205,6 +254,28 @@ public class ChatResponse {
     }
 
     /**
+     * 创建带规范化分类的错误响应（供 dialect.parseErrorResponse 使用）。
+     *
+     * @param errorClassification 规范化分类（驱动重试/回退决策）
+     * @param httpStatus          原始 HTTP 状态码
+     * @param errorCode           provider 错误码（可空）
+     * @param errorMessage        provider 错误消息（可空）
+     * @param retryAfterMs        Retry-After 归一值（毫秒，可空）
+     */
+    public static ChatResponse error(ErrorClassification errorClassification,
+                                     Integer httpStatus,
+                                     String errorCode, String errorMessage,
+                                     Long retryAfterMs) {
+        ChatResponse response = new ChatResponse();
+        response.setErrorClassification(errorClassification);
+        response.setHttpStatus(httpStatus);
+        response.setErrorCode(errorCode);
+        response.setError(errorMessage);
+        response.setRetryAfterMs(retryAfterMs);
+        return response;
+    }
+
+    /**
      * 创建响应的深拷贝
      */
     public ChatResponse copy() {
@@ -225,6 +296,9 @@ public class ChatResponse {
         copy.requestId = this.requestId;
         copy.error = this.error;
         copy.errorCode = this.errorCode;
+        copy.errorClassification = this.errorClassification;
+        copy.retryAfterMs = this.retryAfterMs;
+        copy.httpStatus = this.httpStatus;
         return copy;
     }
 }

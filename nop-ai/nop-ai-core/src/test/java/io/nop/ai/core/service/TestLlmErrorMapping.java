@@ -1,6 +1,6 @@
 package io.nop.ai.core.service;
 
-import io.nop.ai.core.model.ErrorClassification;
+import io.nop.ai.api.chat.ErrorClassification;
 import io.nop.ai.core.model.LlmErrorMappingModel;
 import io.nop.ai.core.model.LlmErrorResponseModel;
 import io.nop.ai.core.model.LlmModel;

@@ -1,5 +1,6 @@
 package io.nop.ai.agent.reliability;
 
+import io.nop.ai.api.chat.ErrorClassification;
 import io.nop.ai.core.NopAiCoreErrors;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.api.core.exceptions.NopTimeoutException;

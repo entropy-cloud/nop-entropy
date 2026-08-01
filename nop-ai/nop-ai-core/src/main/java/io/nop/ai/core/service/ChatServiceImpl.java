@@ -49,8 +49,9 @@ import static io.nop.ai.core.AiCoreConfigs.CFG_AI_SERVICE_READ_TIMEOUT;
 import static io.nop.ai.core.NopAiCoreErrors.ARG_HTTP_STATUS;
 import static io.nop.ai.core.NopAiCoreErrors.ARG_LLM_NAME;
 import static io.nop.ai.core.NopAiCoreErrors.ERR_AI_RATE_LIMITED;
-import static io.nop.ai.core.NopAiCoreErrors.ERR_AI_SERVICE_HTTP_ERROR;
 import static io.nop.ai.core.NopAiCoreErrors.ERR_AI_SERVICE_NO_BASE_URL;
+import static io.nop.http.api.HttpApiErrors.ARG_BODY;
+import static io.nop.http.api.HttpApiErrors.ARG_RESPONSE_HEADERS;
 
 /**
  * 基于 llm.xml 配置的多模型 ChatService 实现。
@@ -121,9 +122,21 @@ public class ChatServiceImpl implements IChatService {
         return httpClient.fetchAsync(httpRequest, cancelToken)
                 .thenApply(response -> {
                     if (response.getHttpStatus() != 200) {
-                        throw new NopException(ERR_AI_SERVICE_HTTP_ERROR)
-                                .param(ARG_LLM_NAME, provider)
-                                .param(ARG_HTTP_STATUS, response.getHttpStatus());
+                        // 非 200 不再吞 body/头，也不抛异常——经 dialect 规范化为携带
+                        // errorClassification 的错误 ChatResponse（设计 §3.4 契约变更：
+                        // 响应级错误走 ChatResponse，传输级错误才抛异常）。
+                        ChatResponse errResponse = dialect.parseErrorResponse(
+                                response.getBodyAsString(),
+                                response.getHttpStatus(),
+                                response.getHeaders(),
+                                config);
+                        errResponse.setRequestId(request.getRequestId());
+                        errResponse.setResponseTime(CoreMetrics.currentTimeMillis());
+
+                        if (logMessage) {
+                            chatLogger.logResponse(request, errResponse);
+                        }
+                        return errResponse;
                     }
 
                     ChatResponse chatResponse = dialect.parseResponse(response.getBodyAsString(), config);
@@ -283,13 +296,22 @@ public class ChatServiceImpl implements IChatService {
 
     /**
      * 将流式响应汇聚为 ChatResponse
+     *
+     * <p>错误路径（设计 §3.4）：流式 {@code onError} 收到的异常携带 Phase 1 挂上的
+     * {@code ARG_BODY} + {@code ARG_HTTP_STATUS} + {@code ARG_RESPONSE_HEADERS}（含
+     * Retry-After）。本方法从异常取出这些信息，经 {@code dialect.parseErrorResponse(...)}
+     * 规范化为携带 {@code errorClassification} 的错误 ChatResponse，并 {@code complete}
+     * （不 exceptionally）——与 {@code callAsync} 非流式错误路径一致：响应级错误走 ChatResponse。
+     * 已流出内容后的错误仍走异常（流式保护不变，由上层 {@code hasStreamedContent} 守卫）。</p>
      */
     protected CompletionStage<ChatResponse> aggregateStreamToResponse(ChatRequest request, ICancelToken cancelToken) {
         StreamAggregator aggregator = new StreamAggregator();
         CompletableFuture<ChatResponse> future = new CompletableFuture<>();
 
-        boolean logMessage = shouldLogMessage(
-                LlmConfigHelper.loadConfig(LlmConfigHelper.getProvider(request.getOptions())));
+        String provider = LlmConfigHelper.getProvider(request.getOptions());
+        LlmModel config = LlmConfigHelper.loadConfig(provider);
+        ILlmDialect dialect = LlmDialectFactory.getDialect(config.getApiStyle());
+        boolean logMessage = shouldLogMessage(config);
 
         callStream(request, cancelToken).subscribe(new Flow.Subscriber<ChatStreamChunk>() {
             @Override
@@ -304,7 +326,17 @@ public class ChatServiceImpl implements IChatService {
 
             @Override
             public void onError(Throwable throwable) {
-                future.completeExceptionally(throwable);
+                ChatResponse errResponse = parseStreamError(throwable, dialect, config);
+                if (errResponse != null) {
+                    errResponse.setRequestId(request.getRequestId());
+                    errResponse.setResponseTime(CoreMetrics.currentTimeMillis());
+                    if (logMessage) {
+                        chatLogger.logResponse(request, errResponse);
+                    }
+                    future.complete(errResponse);
+                } else {
+                    future.completeExceptionally(throwable);
+                }
             }
 
             @Override
@@ -321,6 +353,34 @@ public class ChatServiceImpl implements IChatService {
         });
 
         return future;
+    }
+
+    /**
+     * 从流式 {@code onError} 的异常中解析错误 ChatResponse。仅当异常是携带 HTTP 状态码的
+     * {@link NopException}（即 {@code ServerEventPublisher} 非 2xx 抛出的响应级错误）时规范化；
+     * 否则返回 null（传输级错误——无 HTTP 响应，无法构造 ChatResponse，仍 exceptionally）。
+     */
+    @SuppressWarnings("unchecked")
+    private ChatResponse parseStreamError(Throwable throwable, ILlmDialect dialect, LlmModel config) {
+        Throwable t = throwable;
+        while (t != null) {
+            if (t instanceof NopException) {
+                NopException ex = (NopException) t;
+                Object statusObj = ex.getParam(ARG_HTTP_STATUS);
+                Integer httpStatus = statusObj instanceof Number ? ((Number) statusObj).intValue() : null;
+                if (httpStatus == null) {
+                    break;
+                }
+                Object bodyObj = ex.getParam(ARG_BODY);
+                String body = bodyObj != null ? bodyObj.toString() : "";
+                Object headersObj = ex.getParam(ARG_RESPONSE_HEADERS);
+                Map<String, String> headers = headersObj instanceof Map
+                        ? (Map<String, String>) headersObj : null;
+                return dialect.parseErrorResponse(body, httpStatus, headers, config);
+            }
+            t = t.getCause();
+        }
+        return null;
     }
 
     /**

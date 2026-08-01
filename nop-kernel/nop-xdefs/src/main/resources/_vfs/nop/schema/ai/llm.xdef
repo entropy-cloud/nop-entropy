@@ -108,7 +108,7 @@
     大小写无关（参考 DialectSQLExceptionTranslator）。
 
     @id 条目唯一标识（x:extends 合并键）
-    @classification 固定分类（io.nop.ai.core.model.ErrorClassification）
+    @classification 固定分类（io.nop.ai.api.chat.ErrorClassification）
     @httpStatus   可选限定，如 "429" 或 "401,403"
     @errorTypes   体里 error.type 的值集合
     @errorCodes   体里 error.code 的值集合
@@ -117,7 +117,7 @@
     -->
     <errorMappings xdef:body-type="list" xdef:key-attr="id">
         <errorMapping id="!string" xdef:name="LlmErrorMappingModel"
-                      classification="!enum:io.nop.ai.core.model.ErrorClassification"
+                      classification="!enum:io.nop.ai.api.chat.ErrorClassification"
                       httpStatus="csv-set"
                       errorTypes="csv-set"
                       errorCodes="csv-set"
@@ -132,6 +132,6 @@
     负向排除等）。配置 <errorMappings> 优先，命中即用；未命中再走本函数；都未命中走默认启发式。
     风格与 <buildHttpRequest>/<parseHttpResponse> 的 xpl-fn 节点一致。
     -->
-    <classifyError>xpl-fn:(httpStatus, bodyMap, headers) => io.nop.ai.core.model.ErrorClassification</classifyError>
+    <classifyError>xpl-fn:(httpStatus, bodyMap, headers) => io.nop.ai.api.chat.ErrorClassification</classifyError>
 
 </llm>

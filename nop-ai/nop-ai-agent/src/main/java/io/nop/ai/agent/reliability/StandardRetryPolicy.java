@@ -1,5 +1,6 @@
 package io.nop.ai.agent.reliability;
 
+import io.nop.ai.api.chat.ErrorClassification;
 import io.nop.ai.agent.NopAiAgentErrors;
 import io.nop.ai.agent.engine.NopAiAgentException;
 
@@ -36,12 +37,11 @@ import java.util.concurrent.ThreadLocalRandom;
  *       dormant — reserved for a streaming successor).</li>
  * </ul>
  *
- * <p><b>429 / Retry-After</b>: the current call path's exception does not
- * carry the {@code Retry-After} header (Non-Goal — the header is dropped by
- * {@code ChatServiceImpl}), so 429 RATE_LIMITED uses exponential backoff
- * rather than header-driven wait. A successor that extends
- * {@code ChatServiceImpl} to preserve headers can feed Retry-After into the
- * policy without changing this interface.
+ * <p><b>429 / Retry-After</b>（W2e-3 落地，设计 §3.7）：{@code RATE_LIMITED} 的 RETRY 延迟
+ * 以 {@link RetryContext#getRetryAfterMs()} 作 <b>下限（floor）</b>——{@code delay = retryAfterMs +
+ * uniform(0, jitterCap)}，永不低于 retryAfterMs。理由：服务器已告知精确等待，遵守它的重要性高于
+ * thundering-herd 抑制（配额/限流信号下不应抢跑）。{@code retryAfterMs == null}（无服务器提示）时
+ * 退回纯 full-jitter。{@code TRANSIENT} 仍用纯 full-jitter（无服务器提示）。两种策略不同须文档化。
  *
  * <p>This implementation is stateless (all state lives in the
  * {@link RetryContext} passed to {@link #shouldRetry}), so a single instance
@@ -127,9 +127,34 @@ public final class StandardRetryPolicy implements IRetryPolicy {
             return RetryOutcome.stop();
         }
 
-        // Retryable + attempts remaining → RETRY with exponential backoff.
-        long delay = computeBackoff(context.getAttempt());
+        // Retryable + attempts remaining → RETRY with backoff.
+        long delay;
+        Long retryAfterMs = context.getRetryAfterMs();
+        if (classification == ErrorClassification.RATE_LIMITED && retryAfterMs != null) {
+            // 设计 §3.7：RATE_LIMITED 用 Retry-After 作 floor（永不低于服务器要求）。
+            // delay = retryAfterMs + uniform(0, jitterCap)。retryAfterMs 可超过 maxDelay
+            // （服务器明确要求的等待优先于 cap）。jitterCap 仍受 maxDelay 约束。
+            delay = computeRateLimitedDelay(retryAfterMs, context.getAttempt());
+        } else {
+            // TRANSIENT / RATE_LIMITED 无 Retry-After 提示 → 纯 full-jitter 退避。
+            delay = computeBackoff(context.getAttempt());
+        }
         return RetryOutcome.retryAfter(delay);
+    }
+
+    /**
+     * RATE_LIMITED floor + jitter（设计 §3.7）：
+     * {@code delay = retryAfterMs + uniform(0, min(baseDelayMs * 2^attempt, maxDelayMs))}。
+     * 永不低于 {@code retryAfterMs}（遵守服务器明确要求的等待）。{@code retryAfterMs} 可超过
+     * {@code maxDelayMs}——服务器要求优先于 herd 抑制 cap。jitter 部分仍受 maxDelayMs 约束。
+     */
+    private long computeRateLimitedDelay(long retryAfterMs, int attempt) {
+        long jitterCap = backoffCap(attempt);
+        if (jitterCap <= 0) {
+            return retryAfterMs;
+        }
+        long jitter = ThreadLocalRandom.current().nextLong(0, jitterCap + 1);
+        return retryAfterMs + jitter;
     }
 
     /**
@@ -142,12 +167,23 @@ public final class StandardRetryPolicy implements IRetryPolicy {
      * applies. {@code baseDelayMs == 0} (or a zero cap) returns exactly 0.
      */
     private long computeBackoff(int attempt) {
+        long cap = backoffCap(attempt);
+        if (cap <= 0) {
+            return 0L;
+        }
+        // Full jitter: uniform in [0, cap] (inclusive upper bound).
+        return ThreadLocalRandom.current().nextLong(0, cap + 1);
+    }
+
+    /**
+     * Computes the deterministic exponential cap {@code min(baseDelayMs * 2^attempt, maxDelayMs)}
+     * (overflow-safe). Used both as the full-jitter upper bound (TRANSIENT) and as the
+     * jitter ceiling added on top of the Retry-After floor (RATE_LIMITED).
+     */
+    private long backoffCap(int attempt) {
         if (baseDelayMs == 0) {
             return 0L;
         }
-        // Shift carefully to avoid overflow: stop doubling once we reach the
-        // cap. attempt is the failed-attempt index; the wait before the next
-        // attempt is baseDelayMs * 2^attempt.
         long delay = baseDelayMs;
         for (int i = 0; i < attempt && delay < maxDelayMs; i++) {
             long next = delay << 1;
@@ -157,11 +193,6 @@ public final class StandardRetryPolicy implements IRetryPolicy {
             }
             delay = next;
         }
-        long cap = Math.min(delay, maxDelayMs);
-        if (cap <= 0) {
-            return 0L;
-        }
-        // Full jitter: uniform in [0, cap] (inclusive upper bound).
-        return ThreadLocalRandom.current().nextLong(0, cap + 1);
+        return Math.min(delay, maxDelayMs);
     }
 }

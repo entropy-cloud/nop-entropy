@@ -2,7 +2,6 @@ package io.nop.ai.agent.engine;
 
 import io.nop.ai.agent.model.AgentExecStatus;
 import io.nop.ai.agent.reliability.CircuitState;
-import io.nop.ai.agent.reliability.ErrorClassification;
 import io.nop.ai.agent.reliability.ICircuitBreaker;
 import io.nop.ai.agent.reliability.IRetryPolicy;
 import io.nop.ai.agent.reliability.LlmErrorClassifier;
@@ -14,6 +13,7 @@ import io.nop.ai.api.chat.ChatOptions;
 import io.nop.ai.api.chat.ChatOptions;
 import io.nop.ai.api.chat.ChatRequest;
 import io.nop.ai.api.chat.ChatResponse;
+import io.nop.ai.api.chat.ErrorClassification;
 import io.nop.ai.api.chat.IChatService;
 import io.nop.ai.api.chat.messages.ChatToolCall;
 import io.nop.ai.toolkit.model.AiToolCallResult;
@@ -118,13 +118,50 @@ public class LlmCallCoordinator {
                 try {
                     llmCallStart = System.currentTimeMillis();
                     attemptResponse = callChatWithTimeout(request);
+                    if (attemptResponse.isSuccess()) {
+                        break; // genuine success
+                    }
+                    // 响应级错误（W2e-2/W2e-3）：ChatServiceImpl 已规范化为携带
+                    // errorClassification 的错误 ChatResponse（非 2xx 不再抛异常）。
+                    // 读分类进入重试决策——不再像旧实现那样一律终止。
+                    circuitBreaker.recordFailure(buildModelKey(routedOptions));
+                    ErrorClassification classification = attemptResponse.getErrorClassification();
+                    if (classification == null) {
+                        classification = ErrorClassification.NON_TRANSIENT;
+                    }
+                    RetryContext retryCtx = new RetryContext(attempt, null, classification,
+                            false, attemptResponse.getRetryAfterMs());
+                    RetryOutcome outcome = retryPolicy.shouldRetry(retryCtx);
+                    if (outcome == null) {
+                        throw new NopAiAgentException(
+                                "retryPolicy.shouldRetry() returned null for classification="
+                                        + classification + ", attempt=" + attempt);
+                    }
+                    if (outcome.isRetry()) {
+                        LOG.warn("LLM call returned error response (classification={}, "
+                                        + "attempt={}, httpStatus={}), retrying after {} ms",
+                                classification, attempt, attemptResponse.getHttpStatus(),
+                                outcome.getDelayMs());
+                        attempt++;
+                        sleepBackoff(outcome.getDelayMs());
+                        continue;
+                    }
+                    if (outcome.isFallback()) {
+                        routedOptions = doFallbackSwitch(routedOptions, request, attempt,
+                                classification, null);
+                        attempt = 0;
+                        continue;
+                    }
+                    // STOP：错误响应不可重试（QUOTA/AUTH/NON_TRANSIENT 今日保持 STOP，
+                    // 账号链延期）。退出循环，由下方 !isSuccess() 终止分支处理。
                     break;
                 } catch (RuntimeException | Error ex) {
+                    // 传输级错误（无 HTTP 响应）：仍走 LlmErrorClassifier 启发式。
                     circuitBreaker.recordFailure(buildModelKey(routedOptions));
                     lastError = ex;
                     ErrorClassification classification = LlmErrorClassifier.classify(ex);
                     RetryContext retryCtx = new RetryContext(
-                            attempt, ex, classification, false);
+                            attempt, ex, classification, false, null);
                     RetryOutcome outcome = retryPolicy.shouldRetry(retryCtx);
                     if (outcome == null) {
                         throw new NopAiAgentException(
@@ -141,30 +178,10 @@ public class LlmCallCoordinator {
                         continue;
                     }
                     if (outcome.isFallback()) {
-                        ChatOptions fallbackOptions = modelRouter.getFallback(routedOptions);
-                        if (fallbackOptions == null) {
-                            LOG.error("LLM call retry policy returned FALLBACK at "
-                                    + "attempt={} (classification={}), but the model "
-                                    + "router provided no fallback model — stopping "
-                                    + "execution. Last error: {}",
-                                    attempt, classification, ex.toString());
-                            throw new NopAiAgentException(
-                                    "LLM call retry policy returned FALLBACK but no "
-                                            + "fallback model is available from the model "
-                                            + "router (classification=" + classification
-                                            + ", attempt=" + attempt + ")", ex);
-                        }
-                        int failedAttempt = attempt;
-                        String prevModelKey = buildModelKey(routedOptions);
-                        routedOptions = fallbackOptions;
-                        request.setOptions(routedOptions);
+                        routedOptions = doFallbackSwitch(routedOptions, request, attempt,
+                                classification, ex);
                         attempt = 0;
                         lastError = null;
-                        LOG.warn("LLM call FALLBACK after attempt={} "
-                                        + "(classification={}): switching model {} -> {} "
-                                        + "(attempt reset to 0) and retrying",
-                                failedAttempt, classification, prevModelKey,
-                                buildModelKey(routedOptions));
                         continue;
                     }
                     if (lastError instanceof RuntimeException) {
@@ -177,7 +194,8 @@ public class LlmCallCoordinator {
         }
 
         if (!response.isSuccess()) {
-            circuitBreaker.recordFailure(buildModelKey(routedOptions));
+            // 错误响应重试耗尽 / 不可重试分类（QUOTA/AUTH/NON_TRANSIENT）：终止。
+            // 失败已在循环内记录（circuitBreaker.recordFailure），此处仅终止 + 通知。
             ctx.setStatus(AgentExecStatus.failed);
             ctx.setLastError(response.getError());
             hookInvoker.invokeOnError(ctx, agentName);
@@ -188,6 +206,39 @@ public class LlmCallCoordinator {
 
         circuitBreaker.recordSuccess(buildModelKey(routedOptions));
         return new LlmCallResult(response, routedOptions, llmCallStart, true);
+    }
+
+    /**
+     * 执行模型 tier 回退切换（FALLBACK）。从 {@code modelRouter.getFallback(current)} 取
+     * 下一个模型，更新 {@code request} 的 options，返回新的 routedOptions。无可用回退模型时
+     * fail-loud（Minimum Rules #24，不静默跳过）。{@code ex} 可空（响应级错误无异常）。
+     */
+    private ChatOptions doFallbackSwitch(ChatOptions routedOptions, ChatRequest request,
+                                         int attempt, ErrorClassification classification,
+                                         Throwable ex) {
+        ChatOptions fallbackOptions = modelRouter.getFallback(routedOptions);
+        if (fallbackOptions == null) {
+            LOG.error("LLM call retry policy returned FALLBACK at "
+                    + "attempt={} (classification={}), but the model "
+                    + "router provided no fallback model — stopping "
+                    + "execution. Last error: {}",
+                    attempt, classification, ex != null ? ex.toString() : "(error response)");
+            throw new NopAiAgentException(
+                    "LLM call retry policy returned FALLBACK but no "
+                            + "fallback model is available from the model "
+                            + "router (classification=" + classification
+                            + ", attempt=" + attempt + ")", ex);
+        }
+        int failedAttempt = attempt;
+        String prevModelKey = buildModelKey(routedOptions);
+        ChatOptions next = fallbackOptions;
+        request.setOptions(next);
+        LOG.warn("LLM call FALLBACK after attempt={} "
+                        + "(classification={}): switching model {} -> {} "
+                        + "(attempt reset to 0) and retrying",
+                failedAttempt, classification, prevModelKey,
+                buildModelKey(next));
+        return next;
     }
     /**
      * Holds the result of {@link #doLlmCallWithRetry}: the ChatResponse,

@@ -1,5 +1,6 @@
 package io.nop.ai.agent.reliability;
 
+import io.nop.ai.api.chat.ErrorClassification;
 import io.nop.ai.agent.NopAiAgentErrors;
 import io.nop.ai.agent.engine.NopAiAgentException;
 
@@ -28,6 +29,11 @@ import io.nop.ai.agent.engine.NopAiAgentException;
  *       a successor). It is carried here so a future streaming path can
  *       pass {@code true} and a policy can downgrade FALLBACK to STOP
  *       without changing the interface.</li>
+ *   <li>{@code retryAfterMs} — the provider-advised wait (Retry-After 归一值),
+ *       sourced from {@code ChatResponse.getRetryAfterMs()} for response-level
+ *       errors (W2e-3). {@code null} means no server hint (policy falls back
+ *       to pure full-jitter backoff). The policy uses this as a floor for
+ *       {@code RATE_LIMITED} (design §3.7).</li>
  * </ul>
  *
  * <p>This is an immutable data carrier. The retry loop constructs a fresh
@@ -39,11 +45,25 @@ public final class RetryContext {
     private final Throwable lastError;
     private final ErrorClassification errorClassification;
     private final boolean hasStreamedContent;
+    private final Long retryAfterMs;
 
     public RetryContext(int attempt,
                         Throwable lastError,
                         ErrorClassification errorClassification,
                         boolean hasStreamedContent) {
+        this(attempt, lastError, errorClassification, hasStreamedContent, null);
+    }
+
+    /**
+     * @param retryAfterMs provider-advised wait in ms (Retry-After 归一值),
+     *                     from {@code ChatResponse.getRetryAfterMs()}; {@code null}
+     *                     when no server hint (policy falls back to full-jitter)
+     */
+    public RetryContext(int attempt,
+                        Throwable lastError,
+                        ErrorClassification errorClassification,
+                        boolean hasStreamedContent,
+                        Long retryAfterMs) {
         if (attempt < 0) {
             throw new NopAiAgentException(NopAiAgentErrors.ERR_AI_AGENT_INVALID_ARG)
                     .param(NopAiAgentErrors.ARG_MSG, "RetryContext attempt must not be negative: " + attempt);
@@ -56,6 +76,7 @@ public final class RetryContext {
         this.lastError = lastError;
         this.errorClassification = errorClassification;
         this.hasStreamedContent = hasStreamedContent;
+        this.retryAfterMs = retryAfterMs;
     }
 
     public int getAttempt() {
@@ -72,5 +93,12 @@ public final class RetryContext {
 
     public boolean isHasStreamedContent() {
         return hasStreamedContent;
+    }
+
+    /**
+     * @return provider-advised wait in ms, or {@code null} when no server hint.
+     */
+    public Long getRetryAfterMs() {
+        return retryAfterMs;
     }
 }

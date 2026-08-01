@@ -21,7 +21,7 @@ public abstract class _LlmErrorMappingModel extends io.nop.core.resource.compone
      * xml name: classification
      * 
      */
-    private io.nop.ai.core.model.ErrorClassification _classification ;
+    private io.nop.ai.api.chat.ErrorClassification _classification ;
     
     /**
      *  
@@ -71,12 +71,12 @@ public abstract class _LlmErrorMappingModel extends io.nop.core.resource.compone
      *  
      */
     
-    public io.nop.ai.core.model.ErrorClassification getClassification(){
+    public io.nop.ai.api.chat.ErrorClassification getClassification(){
       return _classification;
     }
 
     
-    public void setClassification(io.nop.ai.core.model.ErrorClassification value){
+    public void setClassification(io.nop.ai.api.chat.ErrorClassification value){
         checkAllowChange();
         
         this._classification = value;

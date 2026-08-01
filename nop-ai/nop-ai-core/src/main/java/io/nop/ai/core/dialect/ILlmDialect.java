@@ -81,6 +81,26 @@ public interface ILlmDialect {
     ChatResponse parseResponse(String responseBody, LlmModel config);
 
     /**
+     * 解析错误响应（非 2xx）。与 {@link #parseResponse} 对称：成功响应经 parseResponse
+     * 规范化，错误响应经本方法规范化。配置驱动（消费 {@link LlmModel#getErrorMappings()}
+     * 与 {@link LlmModel#getErrorResponse()}），有序规则表首条匹配胜出；未命中走默认启发式
+     * （等价今日 HTTP 状态码映射，零回归）。归一 Retry-After 多源（HTTP 头 retry-after-ms /
+     * retry-after + body 字段）为单个 retryAfterMs。
+     *
+     * <p>设计来源：{@code ai-dev/design/nop-ai-agent/nop-ai-llm-error-normalization-design.md}
+     * §3.3 / §3.4 / §3.7。本方法是纯输出规范化（不抛异常）——返回一个携带
+     * {@code errorClassification} 的错误 {@link ChatResponse}。</p>
+     *
+     * @param responseBody 错误响应体字符串（可能为空或非 JSON）
+     * @param httpStatus   HTTP 状态码
+     * @param headers      响应头 Map（含 Retry-After 等，键大小写因 client 而异）
+     * @param config       LLM 配置（提供 errorMappings / errorResponse）
+     * @return 携带 {@code errorClassification} 的错误 {@link ChatResponse}（永不返回 null）
+     */
+    ChatResponse parseErrorResponse(String responseBody, int httpStatus,
+                                    Map<String, String> headers, LlmModel config);
+
+    /**
      * 解析流式响应块
      *
      * @param data SSE 数据行内容
