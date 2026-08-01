@@ -117,7 +117,8 @@ String ARG_ORDER_ID = "orderId";
 
 **消息语言规则**：
 - `ErrorCode.define(...)` 中的描述消息使用**中文**，框架会通过 i18n 机制翻译。
-- **例外（nop-ai-agent / nop-ai-shell 模块）**：`NopAiAgentErrors` / `NopAiShellErrors` 的 fail-fast 转换类错误码（`ERR_*_NOT_SUPPORTED` 等）使用**英文**描述——它们由历史上的 `UnsupportedOperationException("...")` 消息转换而来（plan 2026-07-31-2248-2 scan-hollow 基线清零），英文描述保证 `getMessage()` / `getDescription()` 语义与转换前完全一致，且不再经 i18n 改写。新增此类转换错误码沿用英文；其他模块的新增业务错误码仍按默认规则使用中文。
+- **例外（转换类错误码，来源驱动分界）**：由历史裸异常转换而来、逐字保留历史消息的 fail-fast 错误码使用**英文**描述——英文描述保证 `getMessage()` / `getDescription()` 语义与转换前完全一致，且不再经 i18n 改写。适用范围为以下模块的转换类错误码：`NopAiAgentErrors`（nop-ai-agent）、`NopAiShellErrors`（nop-ai-shell）、`NopAiCoreErrors`（nop-ai-core，含 nop-ai-tools 的 `nop.err.ai.tools.*` 码）、`AiCoderErrors`（nop-ai-coder）、`NopAiMavenErrors`（nop-ai-maven）、`NopAiCodeAnalyzerErrors`（nop-ai-code-analyzer）。
+- **分界语义**：**来源驱动**而非语义类型驱动——从裸 `UnsupportedOperationException` / `IllegalArgumentException` / `RuntimeException` 转换、逐字保留历史消息的错误码 → 英文（起源：plan 2026-07-31-2248-2 scan-hollow 基线清零的 UOE 转换、2026-08-01-0936-1/2/3 与 2026-07-31-1834-3 的 IAE/RTE 转换）；既有业务错误码 → 中文（如 `NopAiCoreErrors` 的 `no-default-llms`、`ERR_AI_TOOLS_INVALID_THOUGHT`——后者与英文转换码同处 `nop.err.ai.tools.*` 命名空间仍为中文，证明语义类型分界不成立）。新增此类转换错误码沿用英文；其他模块的新增业务错误码仍按默认规则使用中文。
 - 不走 `ErrorCode` 的异常（如直接 `new NopException("...")` 或模块异常类的字符串构造器）必须使用**英文**，因为这类消息可能被 AI 直接阅读分析。
 
 ### 定义模块异常类
