@@ -1,0 +1,301 @@
+{
+  "type": "page",
+  "title": "搜索引擎服务测试平台",
+  "subTitle": "基于 Nop Search Engine API",
+  "body": [
+    {
+      "type": "tabs",
+      "items": [
+        {
+          "title": "目录索引",
+          "icon": "fa fa-folder-open",
+          "body": {
+            "type": "form",
+            "id": "indexDirForm",
+            "title": "从目录建立索引",
+            "submitAction": {
+              "action": "ajax",
+              "args": { "url": "/r/SearchEngine__indexDir", "method": "post" }
+            },
+            "onSubmitSuccess": {
+              "action": "setValue",
+              "args": { "apiData": "${result}" }
+            },
+            "body": [
+              {
+                "type": "flex",
+                "body": [
+                  {
+                    "type": "input-text",
+                    "name": "topic",
+                    "label": "索引Topic",
+                    "placeholder": "例如：my_documents",
+                    "required": true,
+                    "value": "test_topic",
+                    "description": "将文件索引到指定Topic下"
+                  },
+                  {
+                    "type": "input-text",
+                    "name": "path",
+                    "label": "目录路径",
+                    "placeholder": "/path/to/your/documents",
+                    "required": true,
+                    "description": "服务器上的绝对路径"
+                  }
+                ]
+              },
+              {
+                "type": "input-text",
+                "name": "pattern",
+                "label": "文件过滤模式",
+                "placeholder": "例如：.*\\.md$ 或 /path/to/specific/file\\.java$",
+                "description": "匹配完整路径的正则表达式模式"
+              },
+              {
+                "type": "button",
+                "label": "建立索引",
+                "variant": "primary",
+                "onClick": { "action": "component:submit", "componentId": "indexDirForm" }
+              }
+            ]
+          }
+        },
+        {
+          "title": "高级搜索",
+          "icon": "fa fa-search-plus",
+          "body": {
+            "type": "form",
+            "id": "searchForm",
+            "title": "高级搜索",
+            "submitAction": {
+              "action": "ajax",
+              "args": { "url": "/r/SearchEngine__search", "method": "post" }
+            },
+            "onSubmitSuccess": {
+              "action": "setValue",
+              "args": { "apiData": "${result}" }
+            },
+            "body": [
+              {
+                "type": "grid",
+                "columns": [
+                  {
+                    "body": [
+                      {
+                        "type": "input-text",
+                        "name": "request.topic",
+                        "label": "索引Topic",
+                        "required": true,
+                        "value": "test_topic"
+                      }
+                    ]
+                  },
+                  {
+                    "body": [
+                      {
+                        "type": "input-text",
+                        "name": "request.query",
+                        "label": "查询关键词",
+                        "required": true
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "type": "input-tag",
+                "name": "request.tags",
+                "label": "标签列表",
+                "placeholder": "添加标签，如：技术,Java"
+              },
+              {
+                "type": "switch",
+                "name": "request.matchAllTags",
+                "label": "匹配模式",
+                "onText": "满足所有标签 (AND)",
+                "offText": "满足任一标签 (OR)",
+                "value": false
+              },
+              {
+                "type": "input-number",
+                "name": "request.limit",
+                "label": "返回结果数量",
+                "value": 10,
+                "min": 1,
+                "max": 100
+              },
+              {
+                "type": "input-number",
+                "name": "request.similarityThreshold",
+                "label": "相似度阈值",
+                "value": 0,
+                "min": 0,
+                "max": 1,
+                "step": 0.05,
+                "precision": 2
+              },
+              {
+                "type": "json-editor",
+                "name": "request.filter",
+                "label": "高级过滤器 (TreeBean)",
+                "language": "json",
+                "options": { "modes": ["tree", "code"], "mode": "tree" },
+                "value": ""
+              },
+              {
+                "type": "button",
+                "label": "执行搜索",
+                "variant": "primary",
+                "onClick": { "action": "component:submit", "componentId": "searchForm" }
+              }
+            ]
+          }
+        },
+        {
+          "title": "获取文档",
+          "icon": "fa fa-file-download",
+          "body": {
+            "type": "form",
+            "id": "getDocForm",
+            "title": "获取文档",
+            "submitAction": {
+              "action": "ajax",
+              "args": { "url": "/r/SearchEngine__getDoc", "method": "get" }
+            },
+            "onSubmitSuccess": {
+              "action": "setValue",
+              "args": { "apiData": "${result}" }
+            },
+            "body": [
+              {
+                "type": "input-text",
+                "name": "topic",
+                "label": "索引Topic",
+                "required": true,
+                "value": "test_topic"
+              },
+              {
+                "type": "input-text",
+                "name": "docId",
+                "label": "文档ID",
+                "required": true
+              },
+              {
+                "type": "button",
+                "label": "获取文档",
+                "variant": "primary",
+                "onClick": { "action": "component:submit", "componentId": "getDocForm" }
+              }
+            ]
+          }
+        },
+        {
+          "title": "添加文档",
+          "icon": "fa fa-file-upload",
+          "body": {
+            "type": "form",
+            "id": "addDocForm",
+            "title": "添加文档",
+            "submitAction": {
+              "action": "ajax",
+              "args": { "url": "/r/SearchEngine__addDoc", "method": "post" }
+            },
+            "onSubmitSuccess": {
+              "action": "setValue",
+              "args": { "apiData": "${result}" }
+            },
+            "body": [
+              {
+                "type": "input-text",
+                "name": "topic",
+                "label": "索引Topic",
+                "required": true,
+                "value": "test_topic"
+              },
+              {
+                "type": "json-editor",
+                "name": "doc",
+                "label": "文档内容",
+                "language": "json",
+                "options": { "modes": ["tree", "code"], "mode": "tree" },
+                "value": {
+                  "id": "test_doc_001",
+                  "title": "测试文档",
+                  "content": "文档内容...",
+                  "tagSet": ["测试"],
+                  "publishTime": 1710000000000
+                },
+                "required": true,
+                "size": "lg"
+              },
+              {
+                "type": "button",
+                "label": "添加文档",
+                "variant": "primary",
+                "onClick": { "action": "component:submit", "componentId": "addDocForm" }
+              }
+            ]
+          }
+        },
+        {
+          "title": "删除文档",
+          "icon": "fa fa-trash-alt",
+          "body": {
+            "type": "form",
+            "id": "removeDocsForm",
+            "title": "删除文档",
+            "submitAction": {
+              "action": "ajax",
+              "args": { "url": "/r/SearchEngine__removeDocs", "method": "post" },
+              "confirmText": "确定删除这些文档吗？"
+            },
+            "onSubmitSuccess": {
+              "action": "setValue",
+              "args": { "apiData": "${result}" }
+            },
+            "body": [
+              {
+                "type": "alert",
+                "level": "warning",
+                "body": "警告：删除操作不可逆！",
+                "showCloseButton": true
+              },
+              {
+                "type": "input-text",
+                "name": "topic",
+                "label": "索引Topic",
+                "required": true,
+                "value": "test_topic"
+              },
+              {
+                "type": "textarea",
+                "name": "docIds",
+                "label": "文档ID列表",
+                "required": true,
+                "placeholder": "每行一个ID",
+                "rows": 3
+              },
+              {
+                "type": "button",
+                "label": "删除文档",
+                "variant": "danger",
+                "onClick": { "action": "component:submit", "componentId": "removeDocsForm" }
+              }
+            ],
+            "data": {
+              "docIdsArray": "${docIds.split('\\n')}"
+            }
+          }
+        }
+      ]
+    },
+    { "type": "separator" },
+    {
+      "type": "text",
+      "id": "api-result-panel",
+      "name": "api-result-panel",
+      "title": "API响应结果",
+      "text": "${JSON.stringify(apiData, null, 4)}"
+    }
+  ]
+}
