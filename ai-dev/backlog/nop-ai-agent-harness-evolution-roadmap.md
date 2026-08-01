@@ -59,7 +59,8 @@
 - 参考：`2026-08-01-promptfoo-redteam-eval-analysis.md`、`2026-08-01-parlant-conversation-control-analysis.md`
 
 ### W6. DSL 组合层（低优先）
-- [ ] W6-1 Recipe 配方组合层（recipe.xdef：prompt 模板 + 工具集 + 模型配置 + hooks 快照，可叠加）
+- [x] W6-1 Recipe 配方组合层（recipe.xdef：prompt 模板 + 工具集 + 模型配置 + hooks 快照，可叠加）
+  - **收口（2026-08-02，plan `2026-08-02-0656-1`）**：W6-1 全部落地。引入 `recipe.xdef`（`/nop/schema/ai/recipe.xdef`，bean-package `io.nop.ai.agent.model.recipe`）：四要素 `prompt-template`(string，源字符串层模板) + `tools`(csv-set) + `model-config`(ref chat-options.xdef) + `hooks`(xdef:bean-class 引用既有 AgentHookModel，不在 recipe 包重新生成)。`agent.xdef` 新增 `<recipes>` 有序引用列表（AgentRecipeRefModel + RecipeParamModel，KeyedList by name）。`recipe.register-model.xml`（xdsl-loader fileType="recipe.xml"）。`RecipeResolver` 静态工具类（与 FilterChainResolver 同构）：装配期 `loadAgentModel` 调用 → 加载 recipes → 渲染 `{{param}}` 模板参数（源字符串层）→ 按裁定 C–F 合并（C: R1→R2→agent 叠加；D: prompt 源串拼接后 PromptSyntaxParser 重解析 enableInclude=true；E: tools/hooks 并集 + hook id 重复 fail-loud；F: chatOptions 逐字段覆盖 later-wins null 保留；G: 缺参数 fail-loud；I: 缓存安全 cloneInstance + 新集合实例隔离）。接线 `AgentSessionSupport.loadAgentModel`（4 个执行路径单一汇聚点）。零回归 fast-path（无 recipes 返回原实例）。35 新测试（TestRecipeModelLoading 5 + TestRecipeResolver 17 含 7 条 fail-loud + TestRecipeEndToEnd 3 含 Anti-Hollow 端到端 loadAgentModel→base system message→hooks registry）。design §9 升级 final（裁定 A–I 落地，Open Questions 收口）。零回归（3376 测试 0 failures）。
 - 参考：`2026-08-01-goose-provider-hook-recipe-analysis.md`
 
 ## 完成定义

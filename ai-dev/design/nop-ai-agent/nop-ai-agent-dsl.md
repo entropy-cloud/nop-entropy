@@ -279,38 +279,62 @@ Agent 设计首先应该以 `agent.xdef` 为中心。
 
 ---
 
-## 9. 外部调研驱动的增量设计（2026-08-01：Recipe 配方组合层）
+## 9. Recipe 组合层
 
-> 来源：agent-survey goose 分析。nop AgentModel 是单体静态配置，缺"prompt + 工具集 + 配置快照"打包为可分享行为单元的组合层。
+> 已落地（plan `2026-08-02-0656-1`，roadmap W6-1）。把可分享的 agent 行为配方（prompt 模板 + 工具集 + 模型配置 + hooks）打包为独立 `*.recipe.xml`，AgentModel 在装配期有序叠加合并。
 
 ### 9.1 Recipe 定义（recipe.xdef）
 
+recipe 承载四要素（roadmap W6-1 scope，裁定 H）：`prompt-template` + `tools` + `model-config` + `hooks`。middlewares / filter-chain / constraints / team / permissions / path-rules 显式不在 recipe scope 内。
+
 ```xml
 <recipe name="debugger" version="1" description="调试专家配方">
-    <!-- prompt 模板（可参数化） -->
+    <!-- prompt 模板：源字符串层，{{paramName}} 占位符由引用处 <param> 替换（裁定 G）。
+         类型为 string（非 prompt-syntax）：参数替换与拼接在源字符串层完成后统一解析 -->
     <prompt-template><![CDATA[你是调试专家。专注 {{focus}}。]]></prompt-template>
-    <!-- 工具集引用（非逐个工具） -->
-    <tool-sets>
-        <tool-set ref="debug-tools"/>
-    </tool-sets>
-    <!-- 模型配置快照 -->
+    <!-- 工具集（扁平 csv-set，复用既有工具名模式，不引入 ToolSet 抽象） -->
+    <tools>debug-tool-a,debug-tool-b</tools>
+    <!-- 模型配置快照，复用 chat-options.xdef 的 ChatOptionsModel（裁定 F 逐字段覆盖） -->
     <model-config provider="deepseek" temperature="0.2"/>
-    <!-- hook 链引用 -->
-    <hooks ref="debug-hooks"/>
+    <!-- hook 链。每个 <on> 引用既有生成类 AgentHookModel（裁定 A：不在 recipe 包内重新生成） -->
+    <hooks>
+        <on id="debug-hook" event="pre_call"></on>
+    </hooks>
 </recipe>
+```
+
+agent 引用 recipe（`agent.xdef` 新增 `<recipes>`，裁定 B）：
+
+```xml
+<agent name="my-agent">
+    <prompt>You are the lead agent.</prompt>
+    <tools>my-tool</tools>
+    <recipes>
+        <recipe ref="debugger">
+            <params>
+                <param name="focus" value="memory leaks"/>
+            </params>
+        </recipe>
+    </recipes>
+</agent>
 ```
 
 ### 9.2 组合语义
 
-- AgentModel 增加 `recipes` 引用（1..n 叠加）
-- 叠加冲突解析：后写覆盖 vs 显式优先级（需设计决策）
-- 与 skill 的边界：skill = 能力注入（新增工具/知识）；recipe = 行为配置（整体形态）
+装配期（`loadAgentModel`）合并，下游零改动。裁定 A–I：
+
+- **裁定 A**：recipe 是独立 `recipe.xdef`，VFS 中 `*.recipe.xml`，经 `recipe.register-model.xml` 加载为 `RecipeModel`。hooks 经 `xdef:bean-class` 引用既有 `AgentHookModel`（不在 recipe 包内重新生成）。
+- **裁定 B**：`<recipes>` 是有序引用列表，`ref` = recipe 名（valid identifier）。每条带 0..n `<param>`。
+- **裁定 C**：recipe = base layer，agent 自身配置 = override layer。从空基线依次应用 R1 → R2 → ... → agent。
+- **裁定 D**：prompt 合并发生在源字符串层。各 recipe 的 `prompt-template` 经参数渲染后按序拼接，agent 自身 prompt 源串（`.getSource()`）拼在最后；结果经 `PromptSyntaxParser`（`enableInclude=true`，与 `<prompt>` 加载一致）重解析。
+- **裁定 E**：tools / hooks 取并集（additive）。hook id 重复 fail-loud。
+- **裁定 F**：model-config（chatOptions）逐字段覆盖，later-wins，null 字段保留下层值。
+- **裁定 G**：`{{paramName}}` 占位符由 `<param>` 纯字符串替换；缺参数 fail-loud。渲染在源字符串副本上完成，不修改缓存的 RecipeModel。
+- **裁定 I**：缓存安全——`ResourceComponentManager` 返回共享缓存实例，合并前 `cloneInstance()` 拷贝；浅拷贝的集合字段创建新实例隔离后修改，不修改缓存。
+
+recipe vs skill 边界（收口 §9 Open Question）：recipe = **装配期结构化组合**（合并进 AgentModel 本身，影响 prompt/tools/chatOptions/hooks）；skill = **运行时能力注入**（`AgentPromptAssembly.consultSkills()` 运行时注入工具名 + prompt 片段，additive，不改变 AgentModel 结构）。两者正交。
 
 ### 9.3 与外部实现的对比（nop 超越性）
 
-- goose Recipe：JSON 静态快照 → nop XDEF 模板化 + 参数化 + 叠加
+- goose Recipe：JSON 静态快照 → nop XDEF 模板化 + 参数化 + 有序叠加
 - 分享格式：XDEF 文件可版本化、可校验（超越 goose 的无 schema 分享）
-
-### 9.4 落地优先级
-
-低优先（可选增强）——AgentModel 单体配置已可工作，Recipe 是组合层便利性增强。与 plan-dsl 的 Gate/Trigger 相比非关键路径。
