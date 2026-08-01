@@ -174,3 +174,50 @@ Middleware 在**装配时**一次性注册到 `IHookRegistry`，之后不可变�
 - 现有 `IAgentLifecycleHook` + `HookResult`（保留语义）
 - `ai-dev/analysis/agent-survey/2026-07-16-agentscope-vs-nop-ai-agent-deep-comparison.md` §8.1
 - `ai-dev/plans/296-nop-ai-agent-middleware-and-tool-tag-system-implementation.md`
+
+---
+
+## 五、外部调研驱动的增量设计（2026-08-01：双层中间件 / 声明式 filter chain）
+
+> 来源：agent-survey（hive 双层中间件 / plano 声明式 filter chain）。nop middleware 洋葱链已超越外部实现，本节补两个结构性增量。
+
+### 5.1 双层中间件（retry 时重新评估）
+
+nop middleware 是"每请求一次"。增加执行级（对标 hive 的 PipelineStage + ExecutionMiddleware）：
+
+| 层级 | 触发 | 用途 |
+|------|------|------|
+| **会话级**（现有） | 每请求一次 | 认证/限流/路由 |
+| **执行级**（新增） | 每次工具/模型尝试 | 熔断检查、安全拦截——**retry/resurrection 时重新评估** |
+
+- 关键洞察：retry 时安全检查必须重跑（前一次尝试可能改变了状态）
+- 与 ThresholdBreaker（已有）正交：熔断是执行级决策，双层中间件是执行级结构
+
+### 5.2 声明式 filter chain（DSL 声明有序 ID 列表）
+
+nop middleware 是代码装配。增加声明式配置（对标 plano 的 AgentFilterChain）：
+
+```xml
+<agent>
+    <filter-chain>
+        <!-- input 链：请求侧 guardrail（对应 PRE_* hook） -->
+        <input-filters>
+            <filter ref="auth-filter"/>
+            <filter ref="rate-limit-filter"/>
+        </input-filters>
+        <!-- output 链：响应侧 guardrail（对应 POST_* hook） -->
+        <output-filters>
+            <filter ref="content-check"/>
+        </output-filters>
+    </filter-chain>
+</agent>
+```
+
+- 声明式 ID 列表 → 运行时解析为 middleware 对象（ResolvedFilterChain 模式）
+- 保持 filter_ids 与对象同步（可审计/序列化）
+- 与现有 middleware 洋葱链的关系：声明式是装配方式，洋葱链是执行模型——兼容
+
+### 5.3 与现有设计的边界
+
+- 现有 middleware-design：洋葱链执行模型 + 9 点链式拦截（已落地）
+- 本篇增量：执行级分层（5.1）+ 声明式装配（5.2）——不改变洋葱链执行模型

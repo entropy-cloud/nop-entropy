@@ -21,7 +21,7 @@
 
 ## 二、Context（调研背景）
 
-- **为什么需要这个分析**：7 月博客《Context-Mode 深度解析：agent 上下文窗口管理》介绍其引用式压缩；nop 的 compact 包（PipelineCompactor → LLMCompactor → CompactTools）已实现摘要式 3 层管线，缺"保真"路径。
+- **为什么需要这个分析**：7 月博客《Context-Mode 深度解析：agent 上下文窗口管理》介绍其引用式压缩；nop 的 compact 包（PipelineCompactor → MicroCompressionCompactor/Layer2TurnPruningStrategy/Layer3FullSummaryStrategy）已实现摘要式 3 层管线，缺"保真"路径。
 - **要回答的问题**：引用式压缩如何在 nop 的管线中作为第二条路径落地？
 - **约束**：nop 是 Java 服务端引擎，压缩是自动管线；context-mode 是 MCP 工具。
 
@@ -41,6 +41,12 @@
 ### 3.3 与 nop 的本质差异
 
 - 触发方式：context-mode 是**工具化（agent 主动）**；nop 是**管线化（引擎自动）**——nop 的优势是无需 agent 自律，劣势是策略无法由 agent 场景动态调整。
+
+## 三.5 Harness 可靠性（Retry/Replan/Resume）
+
+- **引用式压缩的读回重试**：压缩后内容以引用保存——需要时读回（**无损重试**，不丢失原文）。
+- **引用失效校验**：内容 hash 校验——文件变化后提示"内容已变更"（重新读而非用旧引用）。
+- **对 nop 的启示**：引用式压缩让"重试不丢信息"（vs 摘要式有损）；hash 失效校验是 nop compact 引用式路径的参考。
 
 ## 四、优缺点
 
@@ -85,7 +91,7 @@ PipelineCompactor 增加第二条路径（按内容类型分流）：
 
 - context-mode 补上了 nop 压缩管线缺失的"保真"维度——双轨（摘要 + 引用）按内容类型分流是正确方向。
 - nop 落地：PipelineCompactor 增加引用式路径 + readRef 工具 + 内容类型元数据；与 trustgraph 的来源元数据建议协同。
-- 后续工作：指向 `ai-dev/design/nop-ai-agent/nop-ai-agent-compaction.md` 的管线扩展。
+- 后续工作：指向 compact 包源码（PipelineCompactor/MicroCompressionCompactor/Layer2TurnPruningStrategy/Layer3FullSummaryStrategy）的管线扩展。
 
 ## Open Questions
 
@@ -93,9 +99,26 @@ PipelineCompactor 增加第二条路径（按内容类型分流）：
 - [ ] readRef 读回的内容是否再次进入上下文（还是仅返回摘要）？
 - [ ] 引用与 checkpoint 的关系（checkpoint 保存引用 vs 原文）？
 
+## 六.5 Harness 机制维度覆盖（对照参考框架 D1-D12）
+
+> 参考：`2026-08-01-harness-mechanism-reference-framework.md`（Agent Harness 十二大机制维度）
+
+覆盖维度：**D3**（引用式压缩+工具级注入+命令模式）、**D12**（引用失效 hash 校验）。缺失/薄弱：D1/D5（MCP 工具集，非引擎）。
+
+## 对比结论：nop-ai-agent 全面超越性分析
+
+**nop-ai-agent 已超越的部分**：
+- **压缩管线**：nop `PipelineCompactor`（MicroCompressionCompactor→Layer2TurnPruningStrategy→Layer3FullSummaryStrategy）+ `ToolResultTruncator`（工具输出截断=offloading）比 context-mode 的 MCP 工具集更完整、更自动（引擎触发 vs agent 主动调用）。
+- **触发机制**：nop 压缩是事件触发（token 超限/消息数），context-mode 依赖 agent 自律——nop 无需 agent 配合。
+
+**必要参考的增量（以超越方式吸收）**：
+- **引用式压缩双轨**：nop 只有摘要式（有损）；增加引用式路径（保真：代码/配置/文档原文以引用保存，需时读回）是真正增量——作为 PipelineCompactor 的第二条策略，按内容类型分流。
+
+**总评**：nop-ai-agent 在压缩管线/触发机制上**全面超越**；引用式压缩双轨（保真路径）一个增量值得吸收，以 nop 管线策略实现（超越 context-mode 的工具化方案）。
+
 ## References
 
 - `~/ai/context-mode/`（src/mcp-server、README）
-- `nop-ai-agent/src/main/java/io/nop/ai/agent/compact/`（PipelineCompactor、LLMCompactor、CompactTools）
-- `ai-dev/design/nop-ai-agent/nop-ai-agent-compaction.md`
+- `nop-ai-agent/src/main/java/io/nop/ai/agent/compact/`（PipelineCompactor、MicroCompressionCompactor、Layer2TurnPruningStrategy、Layer3FullSummaryStrategy、ToolResultTruncator）
+- `nop-ai-agent-react-engine.md`、compact 包源码（PipelineCompactor/MicroCompressionCompactor/Layer2TurnPruningStrategy/Layer3FullSummaryStrategy）
 - `ai-dev/analysis/agent-survey/2026-06-06-agent-memory-compaction-session-deep-dive.md`、`2026-08-01-trustgraph-context-graph-analysis.md`

@@ -1,0 +1,24 @@
+{
+  "name": "nop-ai-agent-harness-evolution",
+  "description": "nop-ai-agent Harness 进化：基于 46 份外部项目调研的 10 类增量，完善设计文档并落地实现。覆盖 — ①plan-dsl Gate门控/Trigger Rule/DAG依赖/replan 停滞重规划 ②reliability WAIT_FOR长等待原语/idempotency_key非确定性检测/三级失败升级/有序故障转移 ③middleware 双层中间件(retry重评估)/声明式filter chain ④context-model 引用式压缩双轨/snapshot可逆归档 ⑤guardrail 测试闭环(Plugin+Grader)/Guideline关系图/BAIL语义 ⑥dsl Recipe配方组合层。立场：nop-ai全面超越外部实现，增量全部以XDEF声明式+nop-task复用+nop原生方式吸收，不引入外部依赖。",
+  "roadmapPath": "ai-dev/backlog/nop-ai-agent-harness-evolution-roadmap.md",
+  "plansDir": "ai-dev/plans",
+  "planGuide": "ai-dev/plans/00-plan-authoring-and-execution-guide.md",
+  "auditsDir": "ai-dev/audits",
+  "sourceDir": "nop-ai",
+  "model": "opencode-go/deepseek-v4-flash",
+  "variant": "max",
+  "commands": {
+    "test": "./mvnw test -pl nop-ai -am -T 1C",
+    "build": "./mvnw clean install -DskipTests -pl nop-ai -am -T 1C",
+    "lint": "./mvnw checkstyle:check -pl nop-ai -am -q 2>/dev/null || echo 'lint not configured'",
+    "typecheck": "./mvnw compile -pl nop-ai -am -q 2>/dev/null || echo 'typecheck not configured'"
+  },
+  "prompts": {
+    "multiAuditPrompt": "ai-dev/skills/deep-audit-prompts.md",
+    "openAuditPrompt": "ai-dev/skills/open-ended-adversarial-review-prompt.md",
+    "harnessMechanismFramework": "ai-dev/analysis/agent-survey/2026-08-01-harness-mechanism-reference-framework.md",
+    "surveyConclusions": "ai-dev/analysis/agent-survey/2026-08-01-2026-07-blog-projects-survey-summary.md"
+  },
+  "commitFormat": "feat(nop-ai): <description>"
+}

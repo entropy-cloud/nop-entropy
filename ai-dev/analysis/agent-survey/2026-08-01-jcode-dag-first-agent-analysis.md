@@ -12,7 +12,7 @@
 | 维度 | JCode v0.64.2 | Nop AI Agent |
 |------|--------------|--------------|
 | 任务模型 | DAG（TaskNode{id,kind,status,owner,parent,depends_on,is_gate} + 4 个调度器文件） | AgentPlan 线性 phases/tasks 静态模型 |
-| 压缩 | jcode-compaction-core（纯算法，无 I/O） | PipelineCompactor 3 层管线（有 I/O 依赖） |
+| 压缩 | jcode-compaction-core（纯算法，无 I/O） | PipelineCompactor 3 层（MicroCompressionCompactor/Layer2TurnPruningStrategy/Layer3FullSummaryStrategy，有 I/O 依赖） |
 | 记忆 | jcode-embedding：本地 ONNX all-MiniLM-L6-v2 + memory graph | memory 包（存储/向量/嵌入适配器） |
 | 安全 | jcode-command-risk：bash 风险评估 | security 6 层 + PermissionMatrix |
 | 运行模式 | Deep（自主多轮）/ Light（单轮快速）双模式 | DefaultAgentEngine/ReActAgentExecutor 单模式 |
@@ -45,7 +45,7 @@
 
 - 定位：**纯算法 crate**，不依赖任何 I/O/网络——输入是 `CompactionRequest{ messages, ... }`，输出 `CompactionResult`，调用方（jcode 主程序）负责存取。
 - 压缩策略：按 token 预算目标，将早期消息压缩为结构化摘要（保留角色/工具调用边界/关键数据），与 nop 的"3 层压缩管线"目标一致但实现独立。
-- 与 nop 的差异：nop 是 `Compactor → LLMCompactor → CompactTools` 三层管线、可配置压缩点；jcode 是单一算法 + 无 I/O 的纯函数。
+- 与 nop 的差异：nop 是 `MicroCompressionCompactor → Layer2TurnPruningStrategy → Layer3FullSummaryStrategy` 三层管线、可配置压缩点；jcode 是单一算法 + 无 I/O 的纯函数。
 
 ### 3.3 本地嵌入记忆（jcode-embedding）
 
@@ -57,6 +57,14 @@
 
 - 设计动机：长时间 LLM 生成无法硬杀（丢失进度）；软中断让执行器在**安全点**（工具调用之间/生成循环边界）检查中断信号队列，优雅暂停，状态可恢复。
 - 与 nop 对照：nop 的取消是硬中断（Future cancel）；jcode 的软中断是可恢复暂停——这是 nop 可靠性体系可借鉴的（对应 Hatchet 的 eviction 语义）。
+
+## 三.5 Harness 可靠性（Retry/Replan/Resume）
+
+- **任务状态机重试**（`crates/jcode-plan/src/dag/schedule.rs`）：任务 `pending → in_progress → complete/failed`——failed 任务按依赖序重新调度。
+- **软中断 InterruptSignal**（`SoftInterruptQueue`）：长时间生成在安全点优雅暂停——**可恢复中断**（非强杀），重试从安全点继续。
+- **门节点（is_gate）重试语义**：门节点失败 → 后续任务阻塞——重试策略集中决策。
+- **DAG 环检测**：拓扑校验防环——重试不会死循环。
+- **对 nop 的启示**：软中断（安全点暂停）是 nop 长时 agent 的可恢复中断参考；is_gate 失败阻塞对应 nop plan 门控。
 
 ## 四、优缺点
 
@@ -95,7 +103,7 @@ PlanRun 升级：
 
 ### 5.2 压缩管线的对照评估（次优先）
 
-- jcode-compaction-core 无 I/O 纯算法 vs nop PipelineCompactor（压缩点注入 LLM 调用、需要 I/O）——**把压缩策略算法与 I/O 分离**是 nop 可改进点：压缩策略（保留哪些消息、如何摘要）应为纯函数，LLM 调用只是策略的一个参数化实例。
+- jcode-compaction-core 无 I/O 纯算法 vs nop PipelineCompactor（`MicroCompressionCompactor`→`Layer2TurnPruningStrategy`→`Layer3FullSummaryStrategy` 三层，压缩点注入 LLM 调用、需要 I/O）——**把压缩策略算法与 I/O 分离**是 nop 可改进点：压缩策略（保留哪些消息、如何摘要）应为纯函数，LLM 调用只是策略的一个参数化实例。
 - 建议新增 `CompactionPolicy` 接口，默认实现 `JCodeLikePolicy`（按 token 预算 + 角色保留）。
 
 ### 5.3 软中断（可选）
@@ -113,6 +121,26 @@ PlanRun 升级：
 - [ ] nop 的任务图是否需要跨 agent（team）的依赖感知（owner 匹配）？
 - [ ] 门节点的验收标准由谁判定（工具结果 / LLM 判定 / 测试命令）？
 - [ ] 重规划触发的阈值（任务失败率 / 依赖链长度 / LLM 建议）？
+
+## 六.5 Harness 机制维度覆盖（对照参考框架 D1-D12）
+
+> 参考：`2026-08-01-harness-mechanism-reference-framework.md`（Agent Harness 十二大机制维度）
+
+覆盖维度：**D5**（DAG 任务图+is_gate 门节点+调度器）、**D3**（会话压缩纯算法+本地 ONNX 记忆）、**D6**（command-risk 安全）、**D12**（软中断+任务状态机重试）。缺失/薄弱：D9。
+
+## 对比结论：nop-ai-agent 全面超越性分析
+
+**nop-ai-agent 已超越的部分**：
+- **压缩管线**：nop `PipelineCompactor`（MicroCompressionCompactor→Layer2TurnPruningStrategy→Layer3FullSummaryStrategy）是可配置多层管线；jcode 是单一纯算法——nop 更工程化。
+- **记忆**：nop memory 包（存储/向量/嵌入适配器 + team 级记忆）比 jcode 的固定 ONNX 嵌入更可插拔。
+- **安全**：nop security 6 层 + ContentOrigin + ICircuitBreaker，远优于 jcode 的 command-risk 单一检查。
+
+**必要参考的增量（以超越方式吸收）**：
+- **DAG 任务图 + is_gate 门节点**：nop plan 包静态模型是线性的——引入 DAG 依赖 + 门节点是真正的增量（但以 nop 的 `PlanScheduler` 结构化实现，而非照搬 Rust 代码）。
+- **压缩纯算法化**：把压缩策略与 I/O 解耦为纯函数——nop PipelineCompactor 可增加 `CompactionPolicy` 接口（策略纯函数化），作为架构改进。
+- **软中断（安全点暂停）**：nop 取消是硬中断——软中断可作为长时任务增强。
+
+**总评**：nop-ai-agent 在压缩/记忆/安全上**全面超越**；DAG 任务图 + 压缩纯算法化两个增量值得以 nop 风格吸收（结构化、DSL-first）。
 
 ## References
 

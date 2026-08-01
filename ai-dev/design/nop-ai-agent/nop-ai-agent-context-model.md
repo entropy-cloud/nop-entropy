@@ -169,3 +169,39 @@ Tool 执行时，引擎提供以下上下文信息：
 | §4 Tool 上下文 | tool-dsl.md | 本篇定义运行时可见性，tool-dsl.md 定义 DSL 形态 |
 | §5 Agent-as-Subprocess | call-agent-dsl.md | 本篇定义语义模型，call-agent-dsl.md 定义 DSL 字段 |
 | §6 内部 Agent 化 | hook-skill-engine.md | 本篇定义可 Agent 化的能力清单，hook-skill-engine.md 定义扩展机制 |
+
+---
+
+## 8. 外部调研驱动的增量设计（2026-08-01：引用式压缩双轨确认）
+
+> 来源：agent-survey（context-mode 引用式压缩 / beads snapshot 可逆归档）。确认 nop 压缩管线的增量。
+
+### 8.1 现状确认
+
+nop PipelineCompactor 三层（MicroCompressionCompactor → Layer2TurnPruningStrategy → Layer3FullSummaryStrategy）+ ToolResultTruncator（offloading）已实现**摘要式压缩**（有损）与**工具输出截断**（保头保尾）。缺"引用式"（无损指针）路径。
+
+### 8.2 引用式压缩双轨（增量）
+
+按内容类型分流（压缩策略的第二条路径）：
+
+| 内容类型 | 策略 | 说明 |
+|----------|------|------|
+| 对话轮次/中间推理 | 摘要式（现有） | 可概括，有损可接受 |
+| 文件内容/配置/长文档原文 | **引用式**（新增） | 无损指针 `shortRef{type, path, range, hash}` + readRef 工具 |
+
+- 引用失效防护：content hash 校验，不一致提示"内容已变更"（重新读）
+- 与 ContentOrigin（已有）组合：引用式依赖来源元数据定位内容
+
+### 8.3 snapshot 可逆归档（增强）
+
+压缩前 snapshot 归档 + 记录压缩比（对标 beads CompactTier1）：
+
+```
+压缩流程（增强）：
+  1. SnapshotArchive（压缩前归档原文）
+  2. Summarize（生成摘要）
+  3. 记录 originalSize / compactedSize（压缩比可度量）
+  4. 失败保留原文（不覆写）
+```
+
+- 与 checkpoint append-only 天然一致（归档即 checkpoint 的 compaction 类型）

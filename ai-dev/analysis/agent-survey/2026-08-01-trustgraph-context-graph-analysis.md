@@ -14,7 +14,7 @@
 | 上下文基元 | RDF 三元组（subject-predicate-object，可嵌套声明） | 消息（Message 对象）+ prompt 组装 |
 | 管线 | capture→interpret→compose→consume 四阶段 | compact 3 层管线（压缩为主，非摄取） |
 | 存储 | Cassandra（quads_by_entity/quads_by_collection，属性图视图） | AgentSession 存储（消息流） |
-| 溯源 | provenance 四元组（来源实体+时间+置信度） | 无（消息无来源元数据） |
+| 溯源 | provenance 四元组（来源实体+时间+置信度） | **已有** `ContentOrigin` 枚举 + `IContentTrustEvaluator`/`LevelHints.trustedSource` |
 | 记忆 | 上下文图即长期记忆（图查询） | memory 包（向量/存储适配器） |
 
 **核心结论先行**：TrustGraph 对 nop 的借鉴不在 RDF 本体（引入成本高），而在**两点方法论**：**①上下文即证据链**——每个上下文事实带 provenance（来源、时间、置信度），这让"上下文可信度"成为可计算属性（agent 区分事实/猜测/过期信息）；**②摄取与组装分离**——先统一捕获（capture），再按需组装（compose），而非 nop 当前的"消息流 + 提示词模板"单轨。nop 可以在保留消息模型的前提下，给消息增加来源元数据 + 引入上下文组装层。
@@ -52,6 +52,12 @@ consume（消费）：子图注入 agent 上下文（prompt）
 
 - Cassandra 属性图视图（quads_by_entity / quads_by_collection）+ 向量/全文索引；nop 可参考其"图视图 = 实体为中心的查询加速"思路。
 
+## 三.5 Harness 可靠性（Retry/Replan/Resume）
+
+- **provenance 溯源重试判定**：上下文事实带来源/时间/置信度——重试时评估事实是否过期（低置信事实需重新验证）。
+- **四阶段管线重试**：capture→interpret→compose→consume——compose 阶段失败可从 capture 重新摄取（**管线级 replan**）。
+- **对 nop 的启示**：provenance 让重试有判定依据（过期事实重新验证）；管线分段重试是 nop 上下文组装层的参考。
+
 ## 四、优缺点
 
 ### 优点
@@ -68,19 +74,12 @@ consume（消费）：子图注入 agent 上下文（prompt）
 
 ## 五、对 nop-ai-agent 的借鉴要点（核心价值）
 
-### 5.1 消息来源元数据（高优先，低成本）
+### 5.1 消息来源元数据（nop 已有基础，增量扩展）
 
-nop 现状：Message 有 role/content/meta，但**无"来源"概念**。建议：
+nop 现状：security 包**已实现**来源与可信度模型——`ContentOrigin` 枚举（CHANNEL_INPUT/WEB_FETCH/FILE_READ/AGENT_GENERATED）、`IContentTrustEvaluator`/`DefaultContentTrustEvaluator`、`LevelHints.trustedSource`（经 `DefaultLevelHintsProducer` 生产）。trustgraph 的增量价值：
 
-```
-Message 扩展（不影响现有模型，meta 已可承载）：
-  - sourceEntity（来源：工具名/文档ID/用户/LLM）
-  - timestamp（已有）
-  - confidence（置信度：事实/推断/猜测）
-  - validity（时效：过期时间）
-```
-
-- 收益：prompt 组装时可标注"来源 + 置信度"，让 LLM 区分事实与猜测；compaction 时按来源保留高置信事实。
+- **provenance 四元组扩展**：nop 当前 `ContentOrigin` 是离散枚举（来源类型）；trustgraph 的 provenance 模型更丰富（来源实体 + **时间戳** + **数值化置信度** + 有效期）。建议在 `ContentOrigin` 基础上扩展 `MessageProvenance{origin, timestamp, confidence(0..1), validity}`。
+- 收益：prompt 组装时可标注"来源 + 置信度 + 时效"，让 LLM 区分事实与猜测；compaction 时按来源保留高置信事实。
 
 ### 5.2 上下文组装层（中优先）
 
@@ -102,7 +101,7 @@ AgentContextAssembler（可选层，默认行为 = 现有组装）：
 
 - TrustGraph 的方法论（上下文即证据链、摄取/组装分离）比技术（RDF）更值得借鉴。
 - nop 落地：先加**消息来源元数据**（低成本高收益），再评估**上下文组装层**。
-- 后续工作：指向 `ai-dev/design/nop-ai-agent/nop-ai-agent-memory.md` 与 `-prompt-assembly.md` 的扩展。
+- 后续工作：指向 `ai-dev/design/nop-ai-agent/nop-ai-agent-context-model.md` 与 `-prompt-assembly.md` 的扩展。
 
 ## Open Questions
 
@@ -110,9 +109,28 @@ AgentContextAssembler（可选层，默认行为 = 现有组装）：
 - [ ] 置信度是人工标注还是 LLM 自动评估（成本考虑）？
 - [ ] 上下文组装层与现有 AgentPromptAssembly 的融合边界？
 
+## 六.5 Harness 机制维度覆盖（对照参考框架 D1-D12）
+
+> 参考：`2026-08-01-harness-mechanism-reference-framework.md`（Agent Harness 十二大机制维度）
+
+覆盖维度：**D3**（Holonic Context Graph+provenance 溯源+四阶段管线）、**D12**（provenance 重试判定）。缺失/薄弱：D1、D5。
+
+## 对比结论：nop-ai-agent 全面超越性分析
+
+**nop-ai-agent 已超越的部分**：
+- **来源元数据**：nop security 包已有 `ContentOrigin`（CHANNEL_INPUT/WEB_FETCH/FILE_READ/AGENT_GENERATED）+ `IContentTrustEvaluator`/`LevelHints.trustedSource`——trustgraph 的 provenance 思想 nop 已原生实现。
+- **存储**：nop memory 包（存储/向量/嵌入适配器）+ AgentSession 比 trustgraph 的 Cassandra 四元组更贴合 Java 生态。
+- **压缩**：nop PipelineCompactor 3 层管线比 trustgraph 的上下文管线更工程化。
+
+**必要参考的增量（以超越方式吸收）**：
+- **provenance 数值化扩展**：nop `ContentOrigin` 是离散枚举——增加 `MessageProvenance{origin, timestamp, confidence(0..1), validity}` 数值化置信度是增量（在已有 ContentOrigin 上扩展，非新发明）。
+- **上下文组装层**（摄取/组装分离）：nop 只有 prompt 组装，可增加 `AgentContextAssembler` 按任务选择相关子集——增强而非依赖。
+
+**总评**：nop-ai-agent 在来源元数据/存储/压缩上**全面超越**（ContentOrigin 已实现 trustgraph 的核心思想）；provenance 数值化 + 上下文组装层两个增量值得以 nop 风格吸收。
+
 ## References
 
 - `~/ai/trustgraph/`（context-engine/、store/、doc/）
 - `nop-ai-agent/src/main/java/io/nop/ai/agent/`（compact/PipelineCompactor、memory、prompt 组装）
-- `ai-dev/design/nop-ai-agent/nop-ai-agent-memory.md`
+- `ai-dev/design/nop-ai-agent/nop-ai-agent-context-model.md`
 - `ai-dev/analysis/agent-survey/2026-06-06-agent-memory-compaction-session-deep-dive.md`

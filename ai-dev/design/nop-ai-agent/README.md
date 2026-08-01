@@ -45,6 +45,8 @@ Layer 1: Core Interfaces (核心接口层)
   - 双循环模型（followUp + ReAct）、Steering 机制、Hook 生命周期、执行控制（循环控制 + 资源控制）、错误处理分类
 - `nop-ai-agent-llm-layer.md`
   - LLM 层接口设计：Layer 1 ChatMessage (nop-ai-api) + Layer 2 ILlmDialect (nop-ai-core 内部)/ITalent (动态准入)/IModelRouter (Smart Router) + Layer 3 IRetryPolicy (Provider 重试)、前缀缓存设计（原则层序列化确定性 + 运行时机制：reasoning 回放策略、缓存状态丢失恢复 409、缓存流量双侧记账）
+- `nop-ai-llm-error-normalization-design.md`
+  - LLM 错误规范化与配额感知恢复：配置驱动的错误映射（复刻 `dialect.xdef` `<errorCodes>` 模式）、底层 `ChatServiceImpl` 覆盖流式/非流式路径规范化、固定分类驱动"等待 vs 切换备用账号"恢复、账号回退链与模型 tier 回退通道区分。补齐 `nop-ai-agent-llm-layer.md` §6.5/§7/§7.6 的显式 Non-Goal
 - `nop-ai-agent-usage-and-billing.md`
   - 用量追踪与按模型计费：`IUsageRecorder` 扩展点、`NopAiChatResponse` 写入、`NopAiModel` 定价列、多模型 session 的 per-model 聚合、`model-switched` 消息产生
 - `04-tool-invocation.md`

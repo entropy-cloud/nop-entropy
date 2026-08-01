@@ -105,3 +105,54 @@ DefaultAgentEngine engine = DefaultAgentEngine.builder(chatService, toolManager)
 All defaults above are already the engine's shipped defaults (constructor /
 Builder), so the builder call without overrides satisfies the minimum
 production guard configuration.
+
+---
+
+## 外部调研驱动的增量设计（2026-08-01：Guardrail 测试闭环 / Guideline 关系图 / BAIL）
+
+> 来源：agent-survey（promptfoo Plugin+Grader / parlant Guideline 关系图+BAIL）。nop 已有运行时 guardrail 执行（security 6 层 + ContentOrigin），本节补"验收"与"关系建模"两个缺失维度。
+
+### 增量 1：Guardrail 测试闭环（Plugin + Grader 分离）
+
+nop 有 guardrail 执行但无系统化测试。增加 `GuardrailTestSuite`（对标 promptfoo 的 Plugin+Grader 分离）：
+
+```
+guardrail-test（测试时组件，非运行时）：
+  ├── AttackPlugin（生成攻击用例）
+  │   ├── SsrfPlugin / SqlInjectionPlugin / PromptExtractionPlugin
+  │   ├── HallucinationPlugin / 行业垂直集（financial/medical）
+  │   └── 策略层：base64/crescendo 二次变换（绕过简单防御）
+  ├── Grader（rubric 打分判定拦截是否正确）
+  │   └── Nunjucks 式 rubric 模板（Java: TemplateRenderer）
+  └── Report（可度量、可回归：拦截率/漏报率）
+```
+
+- 复用 promptfoo 60+ 攻击类型为测试语料库
+- 与运行时 guardrail 的关系：Plugin 造攻击 → nop guardrail 拦截 → Grader 判定拦截效果
+- 形成"建设 + 验收"闭环（执行已有，补验收）
+
+### 增量 2：Guideline 依赖/排除关系图（规则关系建模）
+
+nop guardrail 当前是线性检查链。增加规则间关系（对标 parlant RelationalResolver）：
+
+```
+GuardrailRule（规则定义增加关系）：
+  - dependsOn: 命中 A 自动拉入 B（上下文收敛）
+  - excludes:  命中 A 排除 C（上下文收窄）
+  - 关系图使规则靠结构收敛，而非 LLM 注意力
+```
+
+适用：企业合规复杂规则集（多规则冲突时靠结构决策）。
+
+### 增量 3：BAIL 中断语义（硬阻断）
+
+nop 拦截是"改写/拒绝"，增加 BAIL 语义（对标 parlant hooks.py + grok-build GateKind Stop）：
+
+- `BAIL`：中断并丢弃当前响应（agent 循环立即终止该轮）
+- 与 nop 现有 middleware 的关系：作为 middleware 链末端的硬阻断决策（`CALL_NEXT/RESOLVE/BAIL` 三态，nop 现有 middleware 返回拦截/放行，增加第三态）
+
+### 与 hook-skill-engine 的边界
+
+- guardrail-contract：规则定义 + 测试闭环 + 关系建模（本篇）
+- hook-skill-engine：12 生命周期点 + skill 加载（已存在）
+- 关系：BAIL 由 hook 生命周期点触发，规则评估在 security 层

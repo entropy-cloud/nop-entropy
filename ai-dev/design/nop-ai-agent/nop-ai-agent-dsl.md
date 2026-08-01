@@ -276,3 +276,41 @@ Agent 设计首先应该以 `agent.xdef` 为中心。
 - 默认行为和覆盖优先级
 - 合法组合和不推荐组合
 - 哪些能力属于 DSL，哪些能力只是运行时补充
+
+---
+
+## 9. 外部调研驱动的增量设计（2026-08-01：Recipe 配方组合层）
+
+> 来源：agent-survey goose 分析。nop AgentModel 是单体静态配置，缺"prompt + 工具集 + 配置快照"打包为可分享行为单元的组合层。
+
+### 9.1 Recipe 定义（recipe.xdef）
+
+```xml
+<recipe name="debugger" version="1" description="调试专家配方">
+    <!-- prompt 模板（可参数化） -->
+    <prompt-template><![CDATA[你是调试专家。专注 {{focus}}。]]></prompt-template>
+    <!-- 工具集引用（非逐个工具） -->
+    <tool-sets>
+        <tool-set ref="debug-tools"/>
+    </tool-sets>
+    <!-- 模型配置快照 -->
+    <model-config provider="deepseek" temperature="0.2"/>
+    <!-- hook 链引用 -->
+    <hooks ref="debug-hooks"/>
+</recipe>
+```
+
+### 9.2 组合语义
+
+- AgentModel 增加 `recipes` 引用（1..n 叠加）
+- 叠加冲突解析：后写覆盖 vs 显式优先级（需设计决策）
+- 与 skill 的边界：skill = 能力注入（新增工具/知识）；recipe = 行为配置（整体形态）
+
+### 9.3 与外部实现的对比（nop 超越性）
+
+- goose Recipe：JSON 静态快照 → nop XDEF 模板化 + 参数化 + 叠加
+- 分享格式：XDEF 文件可版本化、可校验（超越 goose 的无 schema 分享）
+
+### 9.4 落地优先级
+
+低优先（可选增强）——AgentModel 单体配置已可工作，Recipe 是组合层便利性增强。与 plan-dsl 的 Gate/Trigger 相比非关键路径。

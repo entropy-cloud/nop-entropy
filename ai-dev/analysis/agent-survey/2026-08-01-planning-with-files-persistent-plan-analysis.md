@@ -100,6 +100,14 @@ fi
 - 5-Question Reboot Test（SKILL.md:177-187）：Where am I? / Where am I going? / What's the goal? / What have I learned? / What have I done?——每个答案指向某个文件，构成"文件即状态"的完整可恢复性。
 - 2-Action Rule：每 2 次 view/browser/search 操作后必须落盘 findings/progress。
 
+## 四.5 Harness 可靠性（Retry/Replan/Resume）
+
+- **完成门强制循环**（`check-complete.sh`）：Stop hook 检查 `**Status:** complete` 计数，不完整则 exit 1 强制继续——**重试直到全部 Phase 完成**。
+- **3-Strike Error Protocol**：Errors 表 + 三次失败即放弃该路径（错误记忆防重复失败）。
+- **session-catchup.py 断点恢复**：从会话 jsonl 提取断点（最后计划更新行号）→ 恢复上下文继续。
+- **5-Question Reboot Test**：Where am I/goal/learned/done——重试前状态自检。
+- **对 nop 的启示**：完成门（grep 计数 → nop 的结构化 checkComplete）+ 3-Strike 协议是 nop plan 运行时重试语义的参考；catchup 对应 nop checkpoint 恢复。
+
 ## 五、优缺点
 
 ### 优点
@@ -157,6 +165,26 @@ nop 现状：`AgentPlan` 是静态配置 bean（goal/constraints/phases/tasks/sc
 - [ ] nop 的 PlanRun 状态机是否需要 BLOCKED/STUCK 枚举（面向无人值守场景）？
 - [ ] 计划文件用 JSON 还是 YAML frontmatter + markdown 正文？
 - [ ] updatePlan 工具与现有 ToolDispatcher 的集成方式（是否走 safety 链？）
+
+## 六.5 Harness 机制维度覆盖（对照参考框架 D1-D12）
+
+> 参考：`2026-08-01-harness-mechanism-reference-framework.md`（Agent Harness 十二大机制维度）
+
+覆盖维度：**D2**（3-File Pattern 文件系统即状态）、**D5**（task_plan/findings/progress+完成门）、**D9**（check-complete.sh 质量门）、**D12**（3-Strike 协议+session-catchup 恢复）。缺失/薄弱：D1（依赖宿主 IDE hooks）。
+
+## 对比结论：nop-ai-agent 全面超越性分析
+
+**nop-ai-agent 已超越的部分**：
+- **计划模型**：nop 有 `AgentPlan` + 21 个静态模型类（AgentPlanPhase/AgentPlanTaskModel/AgentPlanClosure/...）+ `AgentExecStatus` 9 态，远优于 planning-with-files 的"markdown 字符串 + grep 计数"状态机。
+- **持久化**：nop `DBCheckpointManager` append-only INSERT（按 watermark 检索）优于其文件覆盖写。
+- **hook 体系**：nop 12 个 AgentLifecyclePoint + middleware 洋葱链，优于其依赖宿主 IDE 的 PreToolUse hook。
+
+**必要参考的增量（以超越方式吸收）**：
+- **计划注入机制**：其"每次工具调用前把计划状态注入上下文"的注意力操纵思想值得吸收——nop 以 `AgentPromptAssembly.consultPlanRun()` 结构化注入实现（而非 `cat | head -30`）。
+- **完成门（checkComplete）**：nop 用结构化 PlanRun 状态遍历替代其 grep 计数，更强。
+- **3-Strike Error Protocol**：错误记忆防重复失败——nop plan 包可吸收为错误状态表。
+
+**总评**：nop-ai-agent 在计划模型、持久化、hook 体系上**全面超越**；仅"计划注入/完成门/错误协议"三个机制思想值得以结构化方式吸收，实现层面无需任何照搬。
 
 ## References
 

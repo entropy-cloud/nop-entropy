@@ -13,7 +13,7 @@
 |------|-------|--------------|
 | 供应商抽象 | Provider Registry（认证/模型能力） | ChatModelProvider 接口（nop 有类似抽象） |
 | 工具集成 | MCP Extension（protocol 标准） | MCPRegistry + ToolRegistry |
-| 生命周期 | Hook（事件点回调，~15 类） | Middleware + Hook（nop 有 15 生命周期点） |
+| 生命周期 | Hook（11 个 HookEvent 事件点回调） | Middleware + Hook（12 个 AgentLifecyclePoint） |
 | 行为配方 | Recipe（prompt + 工具集 + 配置快照） | 无（DSL 静态配置但无"配方"组合层） |
 | 语言 | Rust（CLI） + TS（SDK） | Java 21 |
 
@@ -40,8 +40,8 @@
 
 ### 3.3 Hook
 
-- 生命周期事件（~15 类）：PreExecute/PostExecute/PreToolUse/PostToolUse/…，通过配置文件声明式注册。
-- nop 的 middleware 洋葱链 + Hook 15 生命周期点（PreStart/PreModel/PreTool/PostTool/…）是更工程化的实现（有序、可配置、可组合）。
+- 生命周期事件（`HookEvent` 枚举 **11 个**）：PreToolUse/PostToolUse/PostToolUseFailure/SessionStart/SessionEnd/UserPromptSubmit/BeforeReadFile/AfterFileEdit/BeforeShellExecution/AfterShellExecution/Stop，通过配置文件声明式注册。
+- nop 的 middleware 洋葱链 + Hook 12 生命周期点（PRE_CALL/PRE_REASONING/POST_REASONING/PRE_ACTING/POST_ACTING/ON_ERROR/POST_CALL/REASONING_CHUNK/PRE_COMPACT/POST_COMPACT/BEFORE_TOOL_RESULT_PROCESSED/AFTER_TOOL_RESULT_PROCESSED）是更工程化的实现（有序、可配置、可组合）。
 - **nop 不落后，此层无新借鉴**。
 
 ### 3.4 Recipe（最大借鉴点）
@@ -49,6 +49,13 @@
 - Recipe = 一个可分享的"agent 行为配方"：包含 prompt（角色/规则）+ 推荐工具集 + 配置快照。
 - 用户一键启用：`goose recipe add <名称>` → 自动配置 session。
 - 本质：把 agent 的"性格 + 工具 + 配置"打包成可复用单元（类似 skill 但带工具集与配置）。
+
+## 三.5 Harness 可靠性（Retry/Replan/Resume）
+
+- **Hook 失败传播**：PreToolUse 等 hook 返回 deny 中断链——被拒工具调用可调整参数重试。
+- **Recipe 快照重试**：Recipe 含配置快照——**行为可复现**（重试时配置一致）。
+- **Provider Registry 容错**：多供应商注册——单供应商失败可切换重试。
+- **对 nop 的启示**：Recipe 配置快照让重试行为一致（可复现）；Provider 切换是 nop 模型路由的参考。
 
 ## 四、优缺点
 
@@ -103,6 +110,24 @@ nop Recipe 落地：
 - [ ] recipe 与 skill/agent-template 的边界如何定义（三者在 nop 中分别是什么）？
 - [ ] recipe 叠加冲突时的解析策略（后写覆盖 vs 显式优先级）？
 - [ ] recipe 是否可动态引用（运行时加载外部 recipe 文件）？
+
+## 六.5 Harness 机制维度覆盖（对照参考框架 D1-D12）
+
+> 参考：`2026-08-01-harness-mechanism-reference-framework.md`（Agent Harness 十二大机制维度）
+
+覆盖维度：**D8**（Recipe 配方组合层）、**D1**（11 HookEvent）、**D12**（Recipe 快照重试可复现）。缺失/薄弱：D5、D9。
+
+## 对比结论：nop-ai-agent 全面超越性分析
+
+**nop-ai-agent 已超越的部分**：
+- **Provider 抽象**：nop `ChatModelProvider` + 统一 ChatOptions/Embedding 抽象，优于 goose 的简单认证管理。
+- **Hook 体系**：nop 12 个 AgentLifecyclePoint + middleware 洋葱链（可拦截），goose 仅 11 个 HookEvent（声明式注册）——nop 更工程化、更细粒度。
+- **MCP 集成**：nop `MCPRegistry` + ToolRegistry 与 goose 的 MCP Extension 能力相当，但 nop 有 safety 链加持。
+
+**必要参考的增量（以超越方式吸收）**：
+- **Recipe 配方组合层**：nop AgentModel 是单体静态配置——"prompt + 工具集 + 配置快照"打包为可分享行为单元是真正增量（以 `recipe.xdef` 模板化 + 可叠加实现，超越 goose 的 JSON 快照）。
+
+**总评**：nop-ai-agent 在 Provider/Hook/MCP 上**全面超越**；仅 Recipe 组合层值得吸收（以 XDEF 模板 + 参数化超越 goose 的静态 Recipe）。
 
 ## References
 

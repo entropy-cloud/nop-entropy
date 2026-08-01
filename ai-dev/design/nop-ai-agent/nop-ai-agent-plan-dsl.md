@@ -416,3 +416,62 @@ Plan 设计的第一主角应该是 `agent-plan.xdef`。
 
 - `plan` 不是为了完整表达 repo 级计划文档
 - `plan` 是为了让 AI 能用英文写、让 Markdown/XML 可互转、让运行时能判、并在不满足强校验时明确阻止结束
+
+---
+
+## 14. 外部调研驱动的增量设计（2026-08-01：Gate 门控 / Trigger Rule / DAG / Replan）
+
+> 来源：agent-survey 46 份外部项目分析（jcode DAG / codewhale Gate / archon Trigger / spec-kit 阶段回退 / browser-use replan nudge）。nop 已超越各外部实现，本节按 nop 风格（XDEF 声明式 + 结构化运行时）吸收其**语义增量**。
+
+### 14.1 Gate 门控（阶段验收点）
+
+AgentPlanPhase 边界增加 Gate 定义（对标 codewhale gates.rs + spec-kit gate + jcode is_gate 三合一）：
+
+```xml
+<phase name="P1" title="重构接口">
+    <gate on-fail="retry|block|escalate" max-retries="3" require-explicit-verdict="true">
+        <!-- 验收标准：全通过才进入下一阶段 -->
+        <criterion>测试通过且接口变更已应用</criterion>
+    </gate>
+</phase>
+```
+
+- `on-fail`：retry（回到本阶段）/ block（阻塞后续）/ escalate（升级人工，对应 AgentExecStatus.escalated）
+- `require-explicit-verdict`：防"自动通过"（外部 codewhale 的教训）
+- 运行时：`PlanRunner.checkGate()` 遍历 criterion 判定（结构化，非 grep）
+
+### 14.2 Trigger Rule（节点依赖语义）
+
+任务/阶段依赖增加 trigger 类型（对标 archon 的 4 种）：
+
+| trigger | 语义 | 场景 |
+|---------|------|------|
+| `all_success` | 所有依赖成功才就绪 | 默认 |
+| `one_success` | 任一依赖成功即就绪 | 容错备选 |
+| `none_failed_min_one_success` | 至少一成功且无失败 | 部分成功继续 |
+| `all_done` | 所有依赖结束（无论成败） | 容错汇聚 |
+
+运行时：`PlanScheduler` 按 trigger 计算就绪条件（拓扑序 + 就绪检查）。
+
+### 14.3 DAG 任务依赖（跨 phase 图结构）
+
+AgentPlanTaskModel 增加 `dependsOn` 列表（集合内引用），由 nop-task GraphTaskStep 承载执行（复用，非自建）：
+
+- 环检测：nop-task `GraphStepAnalyzer.containsLoop()`（已落地 task-flow-integration）
+- 门节点（is_gate）：任务失败 → 后续阻塞
+- 就绪计算：所有 blocker 关闭才 ready（对标 beads ready_work + jcode schedule.rs）
+
+### 14.4 Replan（停滞检测 → 重规划）
+
+- **触发**：连续失败达阈值（对标 browser-use replan nudge / hive stall 检测）→ `PlanReplanner`
+- **策略**：
+  - 阶段级回退（对标 spec-kit：review 未过回 plan）
+  - 任务拆分/合并（DAG 动态增删节点）
+  - 失败升级（codewhale Retry/Block/Escalate）
+- **运行时不变量**：重规划必须幂等（同状态 → 同决策，对标 conductor Decider）
+
+### 14.5 与 nop-task 的边界
+
+- **声明层**（本 DSL）：AgentPlan + Gate + Trigger + dependsOn —— XDEF 静态定义
+- **执行层**（nop-task 复用）：GraphTaskStep 调度 DAG + ChooseTaskStep 路由 gate 结果 + RetryTaskStepWrapper 重试
+- 职责分离：DSL 描述"计划是什么"，nop-task 执行"计划怎么跑"（与 mission-driver 移植设计一致）

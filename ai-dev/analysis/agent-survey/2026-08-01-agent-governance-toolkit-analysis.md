@@ -44,6 +44,13 @@
 
 - 完整示例：agent 想转移资金 → 触发 ACS 策略评估 → 策略要求人工审批 → agent 生成审批请求 → 审批通过后继续 → 失败走 saga 补偿。
 
+## 三.5 Harness 可靠性（Retry/Replan/Resume）
+
+- **Circuit Breaker + Saga Handoff**（`agent-hypervisor/src/hypervisor/`）：熔断（连续失败阈值）→ 冷却 → 半开探活；Saga 逆序补偿多步失败——**重试前先熔断降级**。
+- **ACS 策略引擎的重试判定**：Rego/Cedar 策略决定 allow/deny/requireApproval——被拒任务按策略重试或升级。
+- **bank_agent 审批流重试**：transfer 需人工审批 → 被拒后 agent 调整方案重试。
+- **对 nop 的启示**：熔断+补偿组合是 nop reliability 的参考（nop 已有 ThresholdBreaker，补 Saga 补偿）；审批流被拒→调整重试是 nop 审批的 replan 路径。
+
 ## 四、优缺点
 
 ### 优点
@@ -74,11 +81,12 @@ nop 现有：CheckAgentTool（Java 检查链，硬编码规则）
 - 收益：治理规则从代码走向配置（`policy.xdef`），与 nop DSL-first 契合。
 - 不强行引入 Rego 生态；先留接口，默认用 nop 配置表达式。
 
-### 5.2 熔断器在工具链上的落位（中优先）
+### 5.2 熔断器在工具链上的落位（nop 已有，增强错误率维度）
 
-- nop `reliability` 包有重试/退避，但无**连续失败熔断**。借鉴 AGT：
-  - 每个工具 + Agent 维度维护失败计数与时间窗；超过阈值 → 返回"工具暂不可用"而非继续调用。
-  - 与 hatchet 借鉴的退避重试（`2026-08-01-hatchet-durable-execution-analysis.md`）组合：先熔断降级，冷却后重试。
+- nop `reliability` 包**已实现熔断器**（`ICircuitBreaker`/`ThresholdBreaker`/`CircuitState` CLOSED/OPEN/HALF_OPEN，连续失败计数阈值，默认 3 次）。借鉴 AGT 的增量：
+  - **错误率阈值**（vs nop 的计数阈值，更平滑）；
+  - **工具 + Agent 双维度**（nop 当前熔断粒度可扩展到 per-tool/per-agent）；
+  - 与 hatchet 借鉴的退避重试组合：先熔断降级，冷却后重试。
 - 接入点：AgentToolDispatcher 的工具调用拦截处（ToolExecutor 之前）。
 
 ### 5.3 审批流模式（中优先，场景价值大）
@@ -93,9 +101,9 @@ nop 现有：CheckAgentTool（Java 检查链，硬编码规则）
 
 ## 六、结论
 
-- AGT 的最大价值是把"治理策略"从建议升级为**结构性强制**——nop 的 Java 检查链已具备强制力，缺的是**策略外置接口**与**审批/熔断两个具体能力**。
-- 落地建议按序：AgentPolicyService 接口抽象 → 熔断器 → 审批流（人工审批中间层）→ 后续按需接外部策略引擎。
-- 后续工作：指向 `ai-dev/design/nop-ai-agent/nop-ai-agent-security.md` 与 `-guardrail.md` 的扩展。
+- AGT 的最大价值是把"治理策略"从建议升级为**结构性强制**——nop 的 Java 检查链已具备强制力，nop reliability 包也**已实现熔断器**（`ThresholdBreaker`/`CircuitState`）；真正缺的是**策略外置接口**与**审批流**（熔断的增量仅在错误率阈值/工具+Agent 双维度）。
+- 落地建议按序：AgentPolicyService 接口抽象 → 审批流（人工审批中间层）→ 熔断增强（错误率阈值/双维度）→ 后续按需接外部策略引擎。
+- 后续工作：指向 `ai-dev/design/nop-ai-agent/nop-ai-agent-security-and-permissions.md` 与 `guardrail-contract.md` 的扩展。
 
 ## Open Questions
 
@@ -103,9 +111,29 @@ nop 现有：CheckAgentTool（Java 检查链，硬编码规则）
 - [ ] 审批任务的超时与取消语义（审批挂起期间 agent 可做什么）？
 - [ ] 熔断的粒度（per-tool / per-agent / per-session）？
 
+## 六.5 Harness 机制维度覆盖（对照参考框架 D1-D12）
+
+> 参考：`2026-08-01-harness-mechanism-reference-framework.md`（Agent Harness 十二大机制维度）
+
+覆盖维度：**D6**（ACS 策略引擎+结构性不可绕过+审批流）、**D7**（失败恢复 Circuit Breaker+Saga）、**D9**（bank_agent 审批质量门）、**D12**（熔断+补偿）。缺失/薄弱：D2、D5（治理层，非引擎）。
+
+## 对比结论：nop-ai-agent 全面超越性分析
+
+**nop-ai-agent 已超越的部分**：
+- **熔断器**：nop `reliability` 包已有 `ICircuitBreaker`/`ThresholdBreaker`/`CircuitState`（CLOSED/OPEN/HALF_OPEN）——AGT 的熔断 nop 已具备。
+- **安全检查**：nop security 6 层（ContentOrigin/PermissionMatrix/ToolAccessChecker/AutoApproveGate/...）比 AGT 的单一 ACS 策略引擎更系统化、更贴合 Java DSL。
+- **审计**：nop `AuditEvent`/`AuditDecision` + checkpoint append-only 比 AGT 的 Saga 补偿更完整。
+
+**必要参考的增量（以超越方式吸收）**：
+- **策略外置接口**（`AgentPolicyService` 评估返回 allow/deny/requireApproval）：nop 检查链是代码级——策略判定与执行分离是真正增量（默认实现 = 现有链，可选接外部策略引擎）。
+- **审批流中间层**（工具调用挂起等审批）：nop `ApprovalGate` 已有雏形，可完善为"审批任务 + 挂起恢复"完整流程。
+- **Saga 补偿**：team 包多 agent 跨步骤事务可吸收（低优先）。
+
+**总评**：nop-ai-agent 在熔断/安全/审计上**全面超越**；策略外置接口 + 审批流两个增量值得吸收（以 nop DSL 声明式实现，超越 AGT 的 Rego/Cedar 引入成本）。
+
 ## References
 
 - `~/ai/agent-governance-toolkit/policy-engine/examples/bank_agent/`、`agent-hypervisor/src/hypervisor/{circuit_breaker,saga}/`、README.md
 - `nop-ai-agent/src/main/java/io/nop/ai/agent/security/`、`guardrail/`、`reliability/`
-- `ai-dev/design/nop-ai-agent/nop-ai-agent-security.md`、`nop-ai-agent-guardrail.md`
+- `ai-dev/design/nop-ai-agent/nop-ai-agent-security-and-permissions.md`、`guardrail-contract.md`
 - `ai-dev/analysis/agent-survey/2026-08-01-hatchet-durable-execution-analysis.md`

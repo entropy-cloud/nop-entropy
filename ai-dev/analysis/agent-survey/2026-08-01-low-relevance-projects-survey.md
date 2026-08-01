@@ -45,16 +45,31 @@
 
 ## 七、总结
 
-| 项目 | 相关性 | 核心一句话借鉴 |
-|------|--------|----------------|
-| VibeVoice | 低 | 语音能力来源（非架构借鉴） |
-| MLflow | 低 | experiments/runs 追踪模型启发执行追踪 |
-| Pathway | 低 | 增量计算思想用于 memory 索引维护 |
-| Ponytail | 低 | skill 组织轻度参考 |
-| Prompt-Engineering-Guide | 参考 | 上下文工程方法论知识源 |
-| ECC Harness | 待定 | 概念参考，需源码 |
+| 项目 | 相关性 | 核心一句话借鉴 | Harness 可靠性（Retry/Replan/Resume） |
+|------|--------|----------------|----------------------------------------|
+| VibeVoice | 低 | 语音能力来源（非架构借鉴） | 无 harness 机制（模型中心） |
+| MLflow | 低 | experiments/runs 追踪模型启发执行追踪 | run 重跑/恢复（实验级 retry） |
+| Pathway | 低 | 增量计算思想用于 memory 索引维护 | 增量重算（输入变更只重算受影响算子，天然 retry 友好） |
+| Ponytail | 低 | skill 组织轻度参考 | 无显式 harness 机制（skill 集合） |
+| Prompt-Engineering-Guide | 参考 | 上下文工程方法论知识源 | 无（纯知识库） |
+| ECC Harness | 待定 | 概念参考，需源码 | 待定 |
 
-**建议**：这些项目不单独写深度报告；其零星借鉴点已在对应主题报告（memory/compact/plan/skill）中以交叉引用形式收录。
+**建议**：这些项目不单独写深度报告；其零星借鉴点已在对应主题报告（memory/compact/plan/skill）中以交叉引用形式收录。各项目的 Retry/Replan/Resume 机制简述如上表——均为低相关项目，不展开分析（详见各主题报告的 §3.5/§4.5 Harness 可靠性小节）。
+
+## 六.5 Harness 机制维度覆盖（对照参考框架 D1-D12）
+
+> 参考：`2026-08-01-harness-mechanism-reference-framework.md`（Agent Harness 十二大机制维度）
+
+低相关项目群，机制覆盖有限：MLflow（D4 run 追踪）、Pathway（D12 增量重算）。
+
+## 对比结论：nop-ai-agent 全面超越性分析
+
+低相关项目群（VibeVoice/MLflow/Pathway/Ponytail/PEG/ECC）与 nop-ai-agent 架构关联弱：
+- **MLflow**：experiments/runs 追踪——nop checkpoint append-only + AuditEvent 已有等价且更贴近 agent 语义。
+- **Pathway**：增量计算——nop memory 索引增量维护可参考其思想（低优先）。
+- **其余**：语音模型/技能集合/知识库——非架构借鉴。
+
+**总评**：nop-ai-agent **全面超越** 这些低相关项目（相关维度 nop 均已有更强实现）；无必要参考，零星思想（增量计算）已在对应主题报告交叉引用。
 
 ## References
 - `~/ai/vibevoice/`、`~/ai/mlflow/`、`~/ai/pathway/`、`~/ai/ponytail/`、`~/ai/Prompt-Engineering-Guide/`

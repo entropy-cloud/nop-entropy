@@ -44,6 +44,12 @@
 
 - nop 是**引擎内嵌**模型（agent 直接注册 MCP 工具），无"网络层连接"概念；MCP Gateway 是**服务间代理**模型（连接即资源）。两者解决不同层次的问题，可组合。
 
+## 三.5 Harness 可靠性（Retry/Replan/Resume）
+
+- **会话三元组重连**：userId/sessionId/connectionId——断线后按三元组重连（**连接级恢复**）。
+- **租户隔离的重试隔离**：多租户隔离——单租户失败不波及其他租户重试。
+- **对 nop 的启示**：三元组身份让重试可归属到用户/会话/连接；隔离保证重试互不影响。
+
 ## 四、优缺点
 
 ### 优点
@@ -85,7 +91,7 @@ AgentSession 扩展：
 
 - MCP Gateway 的三元组（userId, sessionId, connectionId）是**服务端多租户会话安全**的最小完整模型。
 - nop 的 AgentSession 缺用户/连接维度；落地顺序：session 扩展 → security 链绑定 → 审计；网关层暂缓。
-- 后续工作：指向 `ai-dev/design/nop-ai-agent/nop-ai-agent-session.md` 的会话模型扩展。
+- 后续工作：指向 `ai-dev/design/nop-ai-agent/nop-ai-agent-session-and-storage.md` 的会话模型扩展。
 
 ## Open Questions
 
@@ -93,9 +99,27 @@ AgentSession 扩展：
 - [ ] 多端同会话（connectionId）是必需还是预留？
 - [ ] 会话迁移（用户切换设备）的语义？
 
+## 六.5 Harness 机制维度覆盖（对照参考框架 D1-D12）
+
+> 参考：`2026-08-01-harness-mechanism-reference-framework.md`（Agent Harness 十二大机制维度）
+
+覆盖维度：**D6**（Session 三元组多租户隔离）、**D10**（连接级转交）、**D12**（三元组重连）。缺失/薄弱：D1-D5（网关层）。
+
+## 对比结论：nop-ai-agent 全面超越性分析
+
+**nop-ai-agent 已超越的部分**：
+- **会话模型**：nop `AgentSession`（sessionId + 存储 + checkpoint append-only）比 mcp-gateway 的三元组更丰富（含消息流/状态/恢复）。
+- **安全体系**：nop security 6 层（ContentOrigin/PermissionMatrix/审计）比网关的连接级隔离更全面。
+- **工具接入**：nop `MCPRegistry` + ToolRegistry 与 mcp-gateway 的代理能力相当，但 nop 有 safety 链。
+
+**必要参考的增量（以超越方式吸收）**：
+- **Session 三元组身份维度**（userId/sessionId/connectionId）：nop AgentSession 缺"用户/连接"维度——多租户服务端场景可增加 `userId`/`connectionId` 绑定（以 nop SessionContext 注入实现）。
+
+**总评**：nop-ai-agent 在会话模型/安全/工具接入上**全面超越**；仅 userId/connectionId 身份维度值得吸收（服务端多租户场景），实现完全 nop 原生。
+
 ## References
 
 - `~/ai/mcp-gateway/`（src/McpGateway、README）
 - `nop-ai-agent/src/main/java/io/nop/ai/agent/runtime/session/AgentSession.java`
-- `ai-dev/design/nop-ai-agent/nop-ai-agent-session.md`
+- `ai-dev/design/nop-ai-agent/nop-ai-agent-session-and-storage.md`
 - `ai-dev/analysis/agent-survey/2026-08-01-agent-governance-toolkit-analysis.md`（审批流用户维度衔接）

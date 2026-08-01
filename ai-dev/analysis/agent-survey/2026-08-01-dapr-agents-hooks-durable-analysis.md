@@ -2,7 +2,7 @@
 
 > Status: open
 > Date: 2026-08-01
-> Scope: `~/ai/dapr-agents`（dapr/dapr-agents，Python Agent 运行时 + Dapr Workflow 集成）vs `nop-ai-agent`（hook 15 生命周期点 + reliability 包）
+> Scope: `~/ai/dapr-agents`（dapr/dapr-agents，Python Agent 运行时 + Dapr Workflow 集成）vs `nop-ai-agent`（hook 12 生命周期点 + reliability 包）
 > Conclusion:
 
 ## 一、总览
@@ -11,7 +11,7 @@
 
 | 维度 | Dapr Agents | Nop AI Agent |
 |------|-------------|--------------|
-| 钩子模型 | hooks.py（255 行）：AgentHooksBase 多个事件点 | Hook 15 生命周期点 + Middleware 洋葱链 |
+| 钩子模型 | hooks.py（255 行）：AgentHooksBase 多个事件点 | Hook 12 生命周期点 + Middleware 洋葱链 |
 | 决策拦截 | before_tool/after_tool/before_agent_act（"决策钩子"） | PreTool/PostTool/PreModel/PostModel |
 | 持久化 | Dapr Workflow 编排（工作流步骤持久化） | DBCheckpointManager 检查点 |
 | 语言 | Python | Java 21 |
@@ -48,6 +48,12 @@ AgentHooksBase 事件点：
 
 - dapr-agents 的钩子是**运行时事件**；AGT 的钩子是**策略强制点**（结构性不可绕过）——两者分层：钩子做编排/观测，策略引擎做强制。
 
+## 三.5 Harness 可靠性（Retry/Replan/Resume）
+
+- **Durable Workflow 步骤恢复**：agent act 作为 durable workflow 步骤——进程崩溃后从工作流步骤恢复（平台级重试）。
+- **决策钩子拦截重试**：before_tool/before_agent_act 可拦截——**重试前钩子重新决策**。
+- **对 nop 的启示**：工作流步骤级恢复（vs nop 消息级 checkpoint）是另一种恢复粒度；钩子重决策对应 nop 双层中间件（hive 借鉴）。
+
 ## 四、优缺点
 
 ### 优点
@@ -67,7 +73,7 @@ AgentHooksBase 事件点：
 ### 5.1 设计验证（最重要：不需要改动）
 
 - nop 的 middleware（可拦截）+ hook（仅通知）双轨与 dapr-agents 的 hooks.py 设计**同构**——独立第三方实现验证了 nop 设计方向正确。
-- nop 的钩子点数（15）多于 dapr（~8），粒度更细（有 PreModel 等）。
+- nop 的钩子点数（12）多于 dapr（~8），粒度更细（有 PRE_REASONING 等）。
 
 ### 5.2 决策拦截点补全（低优先）
 
@@ -88,9 +94,27 @@ AgentHooksBase 事件点：
 - [ ] nop 是否需要在 hook 之外引入"策略强制层"（区别于中间件，见 AGT 分析）？
 - [ ] nop 的未来编排能力应基于 checkpoint（现状）还是工作流引擎？
 
+## 六.5 Harness 机制维度覆盖（对照参考框架 D1-D12）
+
+> 参考：`2026-08-01-harness-mechanism-reference-framework.md`（Agent Harness 十二大机制维度）
+
+覆盖维度：**D1**（AgentRunner 决策钩子 before/after_act）、**D4**（Durable Workflow 持久化）、**D12**（工作流步骤级恢复）。缺失/薄弱：D2、D9。
+
+## 对比结论：nop-ai-agent 全面超越性分析
+
+**nop-ai-agent 已超越的部分**：
+- **Hook 体系**：nop 12 个 AgentLifecyclePoint（PRE_CALL→AFTER_TOOL_RESULT_PROCESSED）+ middleware 洋葱链（可拦截/仅通知双轨），dapr-agents 仅 ~8 个事件点——nop 更细粒度、更工程化。
+- **持久化**：nop `DBCheckpointManager` 消息级 checkpoint 比 dapr 的工作流步骤级更细粒度（恢复精度更高）。
+- **可靠性**：nop reliability 包（熔断/重试/checkpoint）比 dapr 的 Durable Workflow 集成更原生。
+
+**必要参考的增量**：
+- 无实质增量。dapr-agents 的价值主要是**设计同构验证**（可拦截/仅通知双轨与 nop middleware+hook 一致），确认 nop 方向正确。工作流编排 nop 已有 nop-task 复用。
+
+**总评**：nop-ai-agent **全面超越** dapr-agents（hook 更细粒度、checkpoint 更精确、可靠性更原生）；无必要参考内容，dapr-agents 作为外部同构验证。
+
 ## References
 
 - `~/ai/dapr-agents/src/dapr_agents/`（hooks.py、AgentRunner、DurableAgent）
 - `nop-ai-agent/src/main/java/io/nop/ai/agent/hook/`、`middleware/`
-- `ai-dev/design/nop-ai-agent/nop-ai-agent-hook.md`
+- `ai-dev/design/nop-ai-agent/nop-ai-agent-hook-skill-engine.md`
 - `ai-dev/analysis/agent-survey/2026-08-01-agent-governance-toolkit-analysis.md`

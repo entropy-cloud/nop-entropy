@@ -2,7 +2,7 @@
 
 > Status: open
 > Date: 2026-08-01
-> Scope: `~/ai/Trellis`（Trellis-org/Trellis，跨平台 agent harness 配置生成器）vs `nop-ai-agent`（hook 15 生命周期点 + AgentModel 静态配置）
+> Scope: `~/ai/Trellis`（Trellis-org/Trellis，跨平台 agent harness 配置生成器）vs `nop-ai-agent`（hook 12 生命周期点 + AgentModel 静态配置）
 > Conclusion:
 
 ## 一、总览
@@ -20,7 +20,7 @@
 
 ## 二、Context（调研背景）
 
-- **为什么需要这个分析**：7 月博客再次以 Trellis 为例展示"状态注入"类 harness 设计；nop 的 hook 体系（15 生命周期点）已实现，需要评估"通过 hook 注入外部状态文件"这一模式的适用性。
+- **为什么需要这个分析**：7 月博客再次以 Trellis 为例展示"状态注入"类 harness 设计；nop 的 hook 体系（12 生命周期点）已实现，需要评估"通过 hook 注入外部状态文件"这一模式的适用性。
 - **要回答的问题**：Trellis 的 shared-hooks 注入与 nop 的 PromptAssembly/hook 如何对照？模板生成模式值得借鉴吗？
 - **约束**：nop 是 Java 运行时；Trellis 是配置/脚本层（python + yaml）。
 
@@ -40,6 +40,12 @@
 
 - `shared-hooks/inject-workflow-state.py`：把当前 workflow 阶段/状态注入 agent 上下文（每次工具调用前执行，等价 planning-with-files 的 PreToolUse cat）。
 - 跨平台复用：hook 脚本一套，配置模板各自适配。
+
+## 三.5 Harness 可靠性（Retry/Replan/Resume）
+
+- **工作流状态注入**（`shared-hooks/inject-workflow-state.py`）：每次工具调用前注入当前阶段——**停滞时 agent 知道自己在哪**（防目标漂移）。
+- **4 阶段状态机 + 决策态**：PLAN→IMPLEMENT→VERIFY→REVIEW 可回退——阶段级 replan。
+- **对 nop 的启示**：状态注入 hook（PreTool 注入工作流阶段）是 nop 计划状态注入的参考（零成本：新增 FileStateInjector hook）。
 
 ## 四、优缺点
 
@@ -81,9 +87,27 @@
 - [ ] 状态注入 hook 的状态来源（文件/AgentSession/外部服务）？
 - [ ] 注入频率（每次工具调用 vs 每轮模型调用）对 token 成本的影响？
 
+## 六.5 Harness 机制维度覆盖（对照参考框架 D1-D12）
+
+> 参考：`2026-08-01-harness-mechanism-reference-framework.md`（Agent Harness 十二大机制维度）
+
+覆盖维度：**D1**（状态注入 hook）、**D8**（configurators 11 平台模板）、**D5**（4 阶段 workflow 状态机）、**D12**（阶段回退 replan）。缺失/薄弱：D2、D6（配置生成器）。
+
+## 对比结论：nop-ai-agent 全面超越性分析
+
+**nop-ai-agent 已超越的部分**：
+- **hook 体系**：nop 12 个 AgentLifecyclePoint（含 PRE_ACTING 等工具调用点）+ middleware 洋葱链——Trellis 的状态注入 hook（inject-workflow-state.py）与 nop PreTool 同构，nop 是 Java 结构化实现而非脚本。
+- **配置体系**：nop XDEF DSL + Delta 机制比 Trellis 的 yaml 模板生成更强大（类型化、可校验、可 delta）。
+- **工作流**：nop-task 复用比 Trellis 的 4 阶段 workflow.md 更工程化。
+
+**必要参考的增量（以超越方式吸收）**：
+- **状态注入 hook**（把工作流阶段状态注入上下文）：nop 可提供 `FileStateInjector` hook（PreTool 时注入计划状态文件）——但这是可选增强，nop 的 `AgentPromptAssembly` 已做结构化注入，更强。
+
+**总评**：nop-ai-agent **全面超越** Trellis（hook 结构化、配置 DSL、工作流 nop-task）；无必要参考，状态注入作为可选 hook 增强（且 nop 已有更优的结构化注入）。
+
 ## References
 
 - `~/ai/Trellis/`（configurators/、shared-hooks/、workflows/）
 - `nop-ai-agent/src/main/java/io/nop/ai/agent/hook/`、`middleware/`
 - `ai-dev/analysis/2026-06-07-trellis-vs-age-comparison.md`（已存在的 Trellis vs AGE 对比）
-- `ai-dev/design/nop-ai-agent/nop-ai-agent-hook.md`
+- `ai-dev/design/nop-ai-agent/nop-ai-agent-hook-skill-engine.md`

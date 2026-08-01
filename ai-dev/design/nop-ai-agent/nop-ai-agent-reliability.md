@@ -679,3 +679,62 @@ Delta 定制示例：
 
 - `nop-ai-agent-roadmap.md` — 分层架构（本篇覆盖 Layer 1-3 的可靠性部分）
 - `nop-ai-agent-llm-layer.md` — LLM 层设计（IRetryPolicy、ILlmDialect 的详细设计）
+
+---
+
+## 13. 外部调研驱动的增量设计（2026-08-01：WAIT_FOR / idempotency_key / 三级失败 / 有序故障转移）
+
+> 来源：agent-survey（hatchet durable execution / grok-build req_hash / mission-control 三级失败 / cc-switch 有序故障转移）。nop checkpoint append-only 已超越各外部实现，本节补三个真实缺口。
+
+### 13.1 WAIT_FOR 长等待原语（最高优先）
+
+nop checkpoint 无"等待条件满足后恢复"的显式原语（等待用户输入/事件/超时）：
+
+```
+checkpoint 扩展（对齐 hatchet v1_durable_event_log_entry）：
+  - wait_for 条件 JSONB（用户输入 / 超时 / 事件）
+  - 挂起语义：ReAct 循环注册条件 → 挂起（不占线程）→ 条件满足投递唤醒
+  - 恢复：从 checkpoint 恢复（append-only 已支持任意水位）
+```
+
+- 与 rivet sleep/wake + exo redeliver_pending_wakes 统一为 nop 唤醒原语
+- 挂起时保存 WAIT_FOR checkpoint，恢复无需重放全部历史
+
+### 13.2 idempotency_key 非确定性检测（高优先）
+
+nop checkpoint 只校验 messageCount。增加 hash 指纹：
+
+```
+checkpoint 增加 idempotency_key 列：
+  - hash(toolName + callId + 输入指纹)
+  - restore 时同水位 key 不一致 → 拒绝该 checkpoint，降级 session 重放
+  - 唯一约束（幂等去重落在此列，非 session_id+seq）
+```
+
+- 与 grok-build req_hash（Journal 发散检测）同源，nop 统一实现
+- 注意：seq 是 per-execution-local，不可作唯一键（保持 WATERMARK 主键）
+
+### 13.3 三级失败升级（中优先）
+
+nop reliability 重试不区分失败类型。增加（对标 mission-control 三级）：
+
+| 失败类型 | 处理 | nop 对应 |
+|----------|------|----------|
+| 质量失败（guardrail 拒绝） | max_aegis_rejections 上限 | security/guardrail |
+| 停滞失败（无进展） | stale_task_max_retries | hive stall 检测借鉴 |
+| 基础设施失败（provider/工具不可用） | max_dispatch_retries | ThresholdBreaker |
+
+### 13.4 有序故障转移队列（中优先）
+
+nop ThresholdBreaker 是单 provider 维度。增加跨 provider failover（对标 cc-switch）：
+
+```
+ProviderFailoverQueue：
+  - 有序回退 P1→P2→P3（每 provider 独立熔断状态）
+  - failover_switch 去重切换（防震荡）
+  - 与 LlmErrorClassifier（已有）组合：分类后再决定 fallback
+```
+
+### 13.5 推荐实施顺序
+
+WAIT_FOR（13.1）→ idempotency_key（13.2）→ 三级失败升级（13.3）→ 有序故障转移（13.4）

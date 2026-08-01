@@ -11,7 +11,7 @@
 
 | 维度 | Hatchet v1 | Nop AI Agent |
 |------|-----------|--------------|
-| 状态存储 | Postgres（v1_task_runtime 多版本行 + durable event log 表） | ai_agent_checkpoint 表（单行覆盖） |
+| 状态存储 | Postgres（v1_task_runtime 多版本行 + durable event log 表） | ai_agent_checkpoint 表（**append-only INSERT 多行**，按 watermark 检索） |
 | 恢复粒度 | invocation 级（活动结果缓存回放） | 检查点快照（LLM_TURN/TOOL_EXECUTION/COMPACTION） |
 | 非确定性处理 | idempotency_key + NonDeterminismError | 无（仅 messageCount 校验） |
 | 长时等待 | durable sleep + WaitForEvent + eviction | 无（LLM 循环无长等待原语） |
@@ -22,7 +22,7 @@
 
 ## 二、Context（调研背景）
 
-- **为什么需要这个分析**：nop-ai-agent 的 checkpoint 系统 save 侧已实现（ReActAgentExecutor.java:649 / AgentToolDispatcher.java:341 / AgentCompactionCoordinator.java:119），但 restore 侧延迟（AgentSessionLifecycle.java:446 仅作验证）；且 checkpoint 是单行覆盖、无版本化、无等待语义。7 月博客文章《Hatchet Harness：Postgres 上的 Durable Execution 引擎深度解析》详细拆解了其机制。
+- **为什么需要这个分析**：nop-ai-agent 的 checkpoint 系统 save/restore 侧均已落地（ReActAgentExecutor.java:649 / AgentToolDispatcher.java:341 / AgentCompactionCoordinator.java:119 保存；AgentSessionLifecycle restoreSession/restorePendingSessions 恢复），且采用 **append-only INSERT**（非 upsert/覆盖），按 watermark 支持任意水位检索。但当前 checkpoint 缺少**等待语义（WAIT_FOR）**与**非确定性检测（idempotency_key）**。7 月博客文章《Hatchet Harness：Postgres 上的 Durable Execution 引擎深度解析》详细拆解了其机制。
 - **要回答的问题**：Hatchet 的 durable execution 设计如何补强 nop 的检查点/恢复/长时任务？
 - **约束**：nop 是 Java 单进程 + JDBC，LLM 调用不可确定性重放（与 Hatchet 的纯函数 worker 不同）。
 
@@ -73,6 +73,14 @@ Worker 发请求（WaitFor/Memo/TriggerRuns）
 
 **核心洞察**：Hatchet 把「执行历史」仅作为 durable 等待/缓存的辅助，非确定性由 idempotency_key 检测 + eviction 从 invocation 边界恢复——这对 LLM agent（不可重放）是更务实的模型。
 
+## 三.5 Harness 可靠性（Retry/Replan/Resume）
+
+- **重试队列 + 指数退避**（`v1_retry_queue_item`）：retry_after 时间戳驱动重试队列——**定时重试**（非立即）。
+- **idempotency_key 幂等重试**：同一 key 的事件不重复执行——**重试安全**（非确定性检测）。
+- **乐观调度 + 租约**：`ON CONFLICT DO UPDATE WHERE evicted_at IS NOT NULL`——失败任务被重新认领（evict→重试）。
+- **eviction 释放槽位**：等待中的 durable run 被 evict，恢复时从 invocation 边界重放。
+- **对 nop 的启示**：retry_after 定时重试队列 + idempotency_key 幂等是 nop reliability 的参考（本报告核心借鉴）。
+
 ## 四、优缺点
 
 ### 优点
@@ -92,12 +100,12 @@ Worker 发请求（WaitFor/Memo/TriggerRuns）
 
 ## 五、对 nop-ai-agent 的借鉴要点（核心价值）
 
-nop 现状：`DBCheckpointManager`（ai_agent_checkpoint 表，混合列布局）、`Checkpoint{seq/watermark/type/toolName/callId/messageCount/tokenEstimate}`。
+nop 现状：`DBCheckpointManager`（ai_agent_checkpoint 表，**append-only INSERT 多行**，按 watermark 检索）、save/restore 均已落地、`Checkpoint{seq/watermark/type/toolName/callId/messageCount/tokenEstimate}`。
 
-### 5.1 可直接借鉴的设计
+### 5.1 可直接借鉴的设计（基于 nop 已有能力的增量）
 
-**① 多版本行 + 恢复语义**（对应 `v1_task_runtime` 复合主键）
-nop 现在 checkpoint 是单行覆盖；建议引入 `(sessionId, seq)` 版本化写入，让 restore 可以回退到任意水位，而不是只取最新。
+**① 多版本行 + 恢复语义**（nop 已具备 append-only 多行 + 任意水位检索）
+nop checkpoint 已是 append-only（DBCheckpointManager 注释明确 "Append-only, INSERT not upsert"）；hatchet 的增量价值在 `v1_task_runtime` 的 **retry_count 维度**（同任务多次重试的运行版本共存）——nop 可借鉴"重试维度"的显式建模。
 
 **② 事件日志作为「等待/缓存」而非完整重放**（对应 durable event log）
 - `RUN`（工具执行意图 + child_task_external_id）→ 对应 nop 的 TOOL_EXECUTION checkpoint。
@@ -108,7 +116,7 @@ nop 现在 checkpoint 是单行覆盖；建议引入 `(sessionId, seq)` 版本�
 nop 每次保存 checkpoint 时计算 hash（工具名+参数+上下文指纹），restore 时若同水位 key 不一致 → 拒绝该 checkpoint，降级为 session 重放。这比现在只比较 messageCount 强得多。
 
 **④ 乐观提交 + 事务内一致**（对应 `UpdateTasksToAssigned` 的 `ON CONFLICT DO UPDATE WHERE evicted_at IS NOT NULL`）
-checkpoint 保存改为 `INSERT ... ON CONFLICT (session_id, seq) DO UPDATE` 的幂等 upsert，天然支持并发重试。
+nop 的 append-only INSERT 已是幂等（重复 watermark INSERT 失败而非覆盖）；hatchet 的增量在 **evicted_at 租约条件更新**——多实例抢占场景的租约原子续期。
 
 **⑤ 队列+退避重试**（对应 `v1_retry_queue_item`）
 `StandardRetryPolicy` 借鉴「指数退避 + 上限 + retry_after 时间戳驱动的重试队列」。
@@ -126,25 +134,44 @@ checkpoint 保存改为 `INSERT ... ON CONFLICT (session_id, seq) DO UPDATE` 的
 
 ```
 ai_agent_checkpoint 扩展（对齐 Hatchet v1_durable_event_log_entry）：
-  - 增加 idempotency_key 列（hash(toolName + callId + 输入指纹)）
+  - 增加 idempotency_key 列（hash(toolName + callId + 输入指纹)）+ 唯一约束（幂等去重落在此列，非 session_id+seq）
   - 增加 parent_call_id（对应 child_task_external_id，支持嵌套工具/子会话）
   - 增加 is_failure / error_message 列（对应 child_task_is_failure）
-  - seq 作为 (session_id, seq) 复合主键的一部分，检查点按 seq 追加而非覆盖
+  - 保持 WATERMARK 为主键、append-only INSERT 不变（nop 现有架构）
   - 增加 wait_for 条件 JSONB（用户输入/超时/事件，对应 WAIT_FOR entry）
-  - 写入用幂等 upsert（ON CONFLICT (session_id, seq) DO NOTHING/UPDATE）
+  - 注意：seq 是 per-execution-local（每次 execute() 重置），不可作为跨接管唯一键
 ```
 
 ## 六、结论
 
 - **Hatchet 最大设计智慧**：持久化状态与运行状态分离、idempotency_key 容忍非确定性、等待不占资源。
-- nop 的 checkpoint 系统正处在从「快照备份」向「可恢复执行状态」演进的关键节点；先落地「多版本行 + idempotency_key + WAIT_FOR 语义」三点。
-- 后续工作：指向 `ai-dev/design/nop-ai-agent-reliability.md` 的检查点扩展设计。
+- nop 的 checkpoint 系统（append-only 多行 + restore 已落地）已具备版本化与恢复；真正缺口是 **WAIT_FOR 等待语义**与 **idempotency_key 非确定性检测**两点。
+- 后续工作：指向 `ai-dev/design/nop-ai-agent/nop-ai-agent-reliability.md` 的 WAIT_FOR + idempotency_key 扩展设计。
 
 ## Open Questions
 
 - [ ] nop 的 restore 语义是否支持回退到任意水位（多版本行），还是只恢复最新？
 - [ ] WAIT_FOR 条件（用户输入/事件）在 nop 的 ReAct 循环中如何注册与唤醒？
 - [ ] idempotency_key 的 hash 内容与冲突策略（拒绝 vs 跳过）？
+
+## 六.5 Harness 机制维度覆盖（对照参考框架 D1-D12）
+
+> 参考：`2026-08-01-harness-mechanism-reference-framework.md`（Agent Harness 十二大机制维度）
+
+覆盖维度：**D4**（Postgres durable execution+多版本行）、**D12**（retry_after 队列+idempotency_key+eviction）、**D10**（MEMO 缓存转交）。缺失/薄弱：D1（工作流引擎，无 LLM 循环）、D2。
+
+## 对比结论：nop-ai-agent 全面超越性分析
+
+**nop-ai-agent 已超越的部分**：
+- **checkpoint 持久化**：nop `DBCheckpointManager` append-only INSERT（多行 + watermark 检索 + `CheckpointJournalWriter` 日志双写）——hatchet 的 `v1_task_runtime` 多版本行 nop 已有等价能力，且 nop 的会话级 checkpoint（LLM_TURN/TOOL_EXECUTION/COMPACTION 三类）比 hatchet 的 invocation 级更细粒度。
+- **恢复语义**：nop `restoreSession`/`restorePendingSessions` 已完整落地；hatchet 的 eviction 恢复 nop 有对应（会话接管）。
+- **幂等性**：nop 已有 checkpoint append-only + watermark 语义，天然幂等。
+
+**必要参考的增量（以超越方式吸收）**：
+- **WAIT_FOR 长等待原语**：nop 缺"等待用户输入/事件/超时后恢复"的显式原语——这是真正值得吸收的增量（对应 rivet Actor 的 wake 语义）。
+- **idempotency_key 非确定性检测**：nop checkpoint 只校验 messageCount，可增加 hash 指纹列（restore 时检测发散），作为增强而非依赖。
+
+**总评**：nop-ai-agent 在 checkpoint 持久化/恢复/幂等上**全面超越**（hatchet 的 retry 队列/租约 nop reliability 包均有对应）；仅 WAIT_FOR 等待语义 + idempotency_key 发散检测两个增量值得吸收。
 
 ## References
 

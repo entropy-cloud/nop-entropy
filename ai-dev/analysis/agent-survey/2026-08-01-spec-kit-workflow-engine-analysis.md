@@ -51,6 +51,14 @@ specify（规格）→ plan（计划）→ execute（执行）→ review（评�
 - 项目级 rules 文件定义"铁律"（如"每步必须可回滚""变更必须带测试"），阶段 gate 强制执行。
 - 类比：nop 的 guardrail 与 AgentModel 约束是配置级，spec-kit 的 rules 是流程级（gate 强制）。
 
+## 三.5 Harness 可靠性（Retry/Replan/Resume）
+
+- **RunState 持久化恢复**：四阶段工作流状态写入 RunState JSON——**崩溃后读取恢复**（磁盘即断点）。
+- **Gate 未过 → 回到 earlier 阶段**（重规划）：specify→plan→execute→review 循环，review 未过回到 plan——**阶段级 replan**。
+- **gate 步骤双重校验**：人工批准/自动校验（编译/测试）——失败则重试该阶段。
+- **rules 宪法级约束**：铁律进流程（gate 强制）——重试时规则不可绕过。
+- **对 nop 的启示**：RunState 恢复 + 阶段回退是 nop plan 运行时 replan 的参考；与 jcode DAG + planning-with-files 注入三合一。
+
 ## 四、优缺点
 
 ### 优点
@@ -103,6 +111,24 @@ PlanRun 状态机（nop 运行时计划器骨架）：
 - [ ] 四阶段对所有任务都强制还是按任务复杂度跳过（轻量任务直接 execute）？
 - [ ] gate 的人工审批与 AGT 审批流（`2026-08-01-agent-governance-toolkit-analysis.md`）是同一机制还是两层？
 - [ ] PlanRun 持久化复用 checkpoint（消息级）还是独立状态表？
+
+## 六.5 Harness 机制维度覆盖（对照参考框架 D1-D12）
+
+> 参考：`2026-08-01-harness-mechanism-reference-framework.md`（Agent Harness 十二大机制维度）
+
+覆盖维度：**D5**（四阶段+gate+RunState）、**D9**（gate 双重校验+rules 宪法）、**D4**（RunState JSON 持久化）、**D12**（阶段级回退 replan）。缺失/薄弱：D2、D6。
+
+## 对比结论：nop-ai-agent 全面超越性分析
+
+**nop-ai-agent 已超越的部分**：
+- **流程引擎**：nop-task（ChooseTaskStep/GraphTaskStep/Retry/Timeout/saveState）比 spec-kit 的 RunState 状态机更成熟、更通用（非专用编码流程）。
+- **持久化**：nop `DBCheckpointManager` append-only 比 spec-kit 的 RunState JSON 整写更健壮。
+- **质量门**：nop `CompletionJudge` + 12 hook 点 + guardrail 比 spec-kit 的 gate 更系统化。
+
+**必要参考的增量（以超越方式吸收）**：
+- **四阶段状态机**（specify→plan→execute→review + 回退边）：nop plan 运行时骨架可参考其阶段划分——但以 nop-task 的 ChooseTaskStep/GraphTaskStep 实现（已在 mission-driver 移植设计中确认复用 nop-task）。
+
+**总评**：nop-ai-agent **全面超越** spec-kit（nop-task 复用使流程引擎能力远超其 RunState 状态机）；四阶段划分作为 plan 运行时的参考语义吸收，实现完全 nop 原生。
 
 ## References
 

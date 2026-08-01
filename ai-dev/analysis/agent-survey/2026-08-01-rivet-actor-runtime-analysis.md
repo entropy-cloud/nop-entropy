@@ -68,6 +68,13 @@ ActorTask 内部 4 条 mpsc：
 - `saveState()` 显式保存 Actor 状态快照；恢复时**重放未完成动作**（replay semantics）。
 - 与 nop checkpoint（快照 + 恢复验证）语义互补：Rivet 强调动作级重放，nop 强调消息序列 checkpoint。
 
+## 三.5 Harness 可靠性（Retry/Replan/Resume）
+
+- **sleep + keepAwake 可恢复挂起**（`task.rs`）：sleep 到期投递 wake 消息——**挂起而非终止**，醒来继续（Actor 级重试）。
+- **saveState 显式持久化**：Actor 状态快照 + 恢复时 replay 未完成动作——**动作级重放**。
+- **4 通道消息分离**：lifecycle/dispatch/wake/queue 分通道——失败消息重投不阻塞其他通道。
+- **对 nop 的启示**：saveState replay 是 nop checkpoint 的动作级恢复参考；wake 通道对应 nop 的 WAIT_FOR 语义（hatchet 借鉴）。
+
 ## 四、优缺点
 
 ### 优点
@@ -120,6 +127,25 @@ nop 现状：`AgentActor.java`（1:1 session 门面，操作 AgentSession 的 ru
 - [ ] nop 的 WAKE 唤醒由谁驱动（单机 Timer / 数据库轮询 / 事件总线）？
 - [ ] Actor 消息是否需要对用户开放（外部系统向 agent 发消息）？
 - [ ] 多 session Actor 与现有 AgentSession 1:1 绑定的兼容策略？
+
+## 六.5 Harness 机制维度覆盖（对照参考框架 D1-D12）
+
+> 参考：`2026-08-01-harness-mechanism-reference-framework.md`（Agent Harness 十二大机制维度）
+
+覆盖维度：**D10**（Actor 定义/执行层分离+4 通道）、**D4**（saveState+replay）、**D12**（sleep/keepAwake 可恢复挂起）。缺失/薄弱：D6、D9。
+
+## 对比结论：nop-ai-agent 全面超越性分析
+
+**nop-ai-agent 已超越的部分**：
+- **Actor 抽象**：nop `AgentActor` + `InMemoryActorRuntime` + `ActorChannel` 已有正确骨架（1:1 session 绑定）；rivet 是 TS 定义层 + Rust 执行层的双语言方案——nop 单 Java 栈更简洁。
+- **持久化**：nop `DBCheckpointManager` append-only + `AgentSession` 存储，优于 rivet 的 saveState 手动快照。
+- **会话生命周期**：nop `AgentSessionLifecycle`（12 hook 点）比 rivet 的 ActorTask 生命周期更细粒度。
+
+**必要参考的增量（以超越方式吸收）**：
+- **4 通道消息分离**（lifecycle/dispatch/wake/queue）：nop `ActorChannel` 目前单通道——按事件类型分派是真正增量（用户消息优先于后台任务）。
+- **sleep/keepAwake 原语**：nop 会话缺"挂起等待 + 定时唤醒"——以 `waitUntil(timeout, condition)` 结构化实现。
+
+**总评**：nop-ai-agent 在 Actor 抽象/持久化/生命周期上**全面超越**（vision 文档已对齐方向）；4 通道分派 + waitUntil 两个原语值得吸收，实现完全 nop 原生。
 
 ## References
 
