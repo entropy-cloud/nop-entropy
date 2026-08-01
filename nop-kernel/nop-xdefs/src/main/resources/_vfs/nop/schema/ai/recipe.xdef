@@ -1,0 +1,31 @@
+<!--
+@name recipe的唯一名称（与 agent name 同为 valid identifier，作为 VFS 主键）
+@version 可选版本标记（首版仅作记录，不参与合并语义）
+@description 配方描述
+-->
+<recipe xdef:name="RecipeModel" xdef:bean-package="io.nop.ai.agent.model.recipe"
+        x:schema="/nop/schema/xdef.xdef" xmlns:x="/nop/schema/xdsl.xdef"
+        xmlns:xdef="/nop/schema/xdef.xdef"
+        name="!string" version="string" description="string">
+
+    <description>string</description>
+
+    <!-- prompt 模板（源字符串层，{{paramName}} 占位符由引用处 <param> 替换）。
+         类型为 string（非 prompt-syntax）：模板参数替换与 prompt 拼接在源字符串层完成，
+         合并后统一经 PromptSyntaxParser 解析为 IPromptSyntaxNode（裁定 D/G）。 -->
+    <prompt-template>string</prompt-template>
+
+    <tools>csv-set</tools>
+
+    <!-- 模型配置快照，复用 chat-options.xdef 的 ChatOptionsModel（裁定 F 逐字段覆盖） -->
+    <model-config xdef:ref="chat-options.xdef"/>
+
+    <!-- hook 链。每个 <on> 引用既有生成类 AgentHookModel（裁定 A：不在 recipe 包内重新生成，
+         避免合并时类型不匹配），与 agent.xdef 的 <hooks> 共享同一类型。 -->
+    <hooks xdef:body-type="list" xdef:key-attr="id">
+        <on xdef:bean-class="io.nop.ai.agent.model.AgentHookModel" id="!string"
+            event="!event-pattern-string">xpl-fn:(event, agentRt)=>void
+        </on>
+    </hooks>
+
+</recipe>

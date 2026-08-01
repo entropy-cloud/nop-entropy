@@ -1,0 +1,25 @@
+<agent x:schema="/nop/schema/ai/agent.xdef" xmlns:x="/nop/schema/xdsl.xdef"
+       name="test-recipe-agent">
+
+    <description>Agent that references recipes R1 and R2</description>
+
+    <prompt>You are the lead agent.</prompt>
+
+    <tools>tool-d</tools>
+
+    <chatOptions provider="openai" temperature="0.7"/>
+
+    <recipes>
+        <recipe ref="test-recipe-r1">
+            <params>
+                <param name="focus" value="debugging"/>
+            </params>
+        </recipe>
+        <recipe ref="test-recipe-r2">
+            <params>
+                <param name="lang" value="English"/>
+            </params>
+        </recipe>
+    </recipes>
+
+</agent>

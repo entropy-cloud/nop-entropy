@@ -154,6 +154,19 @@ public abstract class _AgentModel extends io.nop.core.resource.component.Abstrac
     
     /**
      *  
+     * xml name: recipes
+     * W6-1 (recipe composition): ordered references to shareable behavior
+     * recipes (*.recipe.xml). At assembly time (loadAgentModel) the
+     * referenced recipes are merged into this AgentModel in declared order
+     * (recipe = base layer, agent's own config = override layer). Each
+     * <recipe> carries 0..n <param> children that render {{paramName}}
+     * placeholders in the recipe's prompt-template (source-string layer).
+     * Optional; absent => no recipe merge (zero regression fast-path).
+     */
+    private java.util.List<io.nop.ai.agent.model.AgentRecipeRefModel> _recipes = java.util.Collections.emptyList();
+    
+    /**
+     *  
      * xml name: requiredSkills
      * 
      */
@@ -587,6 +600,31 @@ public abstract class _AgentModel extends io.nop.core.resource.component.Abstrac
     
     /**
      * 
+     * xml name: recipes
+     *  W6-1 (recipe composition): ordered references to shareable behavior
+     * recipes (*.recipe.xml). At assembly time (loadAgentModel) the
+     * referenced recipes are merged into this AgentModel in declared order
+     * (recipe = base layer, agent's own config = override layer). Each
+     * <recipe> carries 0..n <param> children that render {{paramName}}
+     * placeholders in the recipe's prompt-template (source-string layer).
+     * Optional; absent => no recipe merge (zero regression fast-path).
+     */
+    
+    public java.util.List<io.nop.ai.agent.model.AgentRecipeRefModel> getRecipes(){
+      return _recipes;
+    }
+
+    
+    public void setRecipes(java.util.List<io.nop.ai.agent.model.AgentRecipeRefModel> value){
+        checkAllowChange();
+        
+        this._recipes = value;
+           
+    }
+
+    
+    /**
+     * 
      * xml name: requiredSkills
      *  
      */
@@ -728,6 +766,8 @@ public abstract class _AgentModel extends io.nop.core.resource.component.Abstrac
             
            this._permissions = io.nop.api.core.util.FreezeHelper.deepFreeze(this._permissions);
             
+           this._recipes = io.nop.api.core.util.FreezeHelper.deepFreeze(this._recipes);
+            
            this._team = io.nop.api.core.util.FreezeHelper.deepFreeze(this._team);
             
            this._teamMember = io.nop.api.core.util.FreezeHelper.deepFreeze(this._teamMember);
@@ -755,6 +795,7 @@ public abstract class _AgentModel extends io.nop.core.resource.component.Abstrac
         out.putNotNull("pathRules",this.getPathRules());
         out.putNotNull("permissions",this.getPermissions());
         out.putNotNull("prompt",this.getPrompt());
+        out.putNotNull("recipes",this.getRecipes());
         out.putNotNull("requiredSkills",this.getRequiredSkills());
         out.putNotNull("tagSet",this.getTagSet());
         out.putNotNull("team",this.getTeam());
@@ -788,6 +829,7 @@ public abstract class _AgentModel extends io.nop.core.resource.component.Abstrac
         instance.setPathRules(this.getPathRules());
         instance.setPermissions(this.getPermissions());
         instance.setPrompt(this.getPrompt());
+        instance.setRecipes(this.getRecipes());
         instance.setRequiredSkills(this.getRequiredSkills());
         instance.setTagSet(this.getTagSet());
         instance.setTeam(this.getTeam());

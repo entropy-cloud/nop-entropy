@@ -1,0 +1,10 @@
+<recipe x:schema="/nop/schema/ai/recipe.xdef" xmlns:x="/nop/schema/xdsl.xdef"
+        name="test-recipe-r2" version="1" description="Test recipe R2">
+
+    <prompt-template>Always respond in {{lang}}.</prompt-template>
+
+    <tools>tool-c</tools>
+
+    <model-config model="r2-model" topP="0.9"/>
+
+</recipe>

@@ -1,0 +1,14 @@
+<agent x:schema="/nop/schema/ai/agent.xdef" xmlns:x="/nop/schema/xdsl.xdef"
+       name="test-recipe-agent-no-ref">
+
+    <prompt>x</prompt>
+
+    <recipes>
+        <recipe>
+            <params>
+                <param name="p" value="v"/>
+            </params>
+        </recipe>
+    </recipes>
+
+</agent>

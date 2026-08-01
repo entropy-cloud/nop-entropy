@@ -1,0 +1,8 @@
+<model x:schema="/nop/schema/register-model.xdef" xmlns:x="/nop/schema/xdsl.xdef"
+       name="recipe">
+
+    <loaders>
+        <xdsl-loader fileType="recipe.xml" schemaPath="/nop/schema/ai/recipe.xdef"/>
+    </loaders>
+
+</model>

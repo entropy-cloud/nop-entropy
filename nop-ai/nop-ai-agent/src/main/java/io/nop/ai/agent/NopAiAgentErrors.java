@@ -22,6 +22,9 @@ public interface NopAiAgentErrors {
     String ARG_FILTER_ID = "filterId";
     String ARG_POINT = "point";
     String ARG_IMPL = "impl";
+    String ARG_RECIPE_REF = "recipeRef";
+    String ARG_PARAM_NAME = "paramName";
+    String ARG_HOOK_ID = "hookId";
 
     // ========================================================================
     // P3-MA3-1: bare IllegalArgumentException validation guards (plan
@@ -154,4 +157,32 @@ public interface NopAiAgentErrors {
             define("nop.err.ai.agent.filter-unknown-point",
                     "filter '{filterId}' references unknown lifecycle point '{point}'",
                     ARG_FILTER_ID, ARG_POINT);
+
+    // ========================================================================
+    // W6-1: recipe composition layer (fail-fast, no silent skip)
+    // ========================================================================
+
+    ErrorCode ERR_AGENT_RECIPE_NOT_FOUND =
+            define("nop.err.ai.agent.recipe-not-found",
+                    "recipe '{recipeRef}' referenced in <recipes> could not be loaded "
+                            + "(no *.recipe.xml with this name exists in VFS)",
+                    ARG_RECIPE_REF);
+
+    ErrorCode ERR_AGENT_RECIPE_INVALID_REF =
+            define("nop.err.ai.agent.recipe-invalid-ref",
+                    "recipe ref '{recipeRef}' is not a valid identifier "
+                            + "(only [A-Za-z0-9_-] are allowed)",
+                    ARG_RECIPE_REF);
+
+    ErrorCode ERR_AGENT_RECIPE_MISSING_PARAM =
+            define("nop.err.ai.agent.recipe-missing-param",
+                    "recipe '{recipeRef}' prompt-template references parameter '{paramName}' "
+                            + "but no <param> with this name was declared in the <recipe> ref",
+                    ARG_RECIPE_REF, ARG_PARAM_NAME);
+
+    ErrorCode ERR_AGENT_RECIPE_DUPLICATE_HOOK_ID =
+            define("nop.err.ai.agent.recipe-duplicate-hook-id",
+                    "hook id '{hookId}' is declared more than once across recipes and the agent "
+                            + "(recipe hooks are merged as a union; duplicate ids are rejected)",
+                    ARG_HOOK_ID);
 }

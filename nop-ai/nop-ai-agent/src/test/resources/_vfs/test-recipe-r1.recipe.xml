@@ -1,0 +1,14 @@
+<recipe x:schema="/nop/schema/ai/recipe.xdef" xmlns:x="/nop/schema/xdsl.xdef"
+        name="test-recipe-r1" version="1" description="Test recipe R1 for model loading">
+
+    <prompt-template>You are a {{focus}} expert.</prompt-template>
+
+    <tools>tool-a,tool-b</tools>
+
+    <model-config provider="deepseek" model="r1-model" temperature="0.2"/>
+
+    <hooks>
+        <on id="r1-hook" event="pre_call"></on>
+    </hooks>
+
+</recipe>

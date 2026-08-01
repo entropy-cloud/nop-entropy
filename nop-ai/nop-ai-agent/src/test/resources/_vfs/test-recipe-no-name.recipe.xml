@@ -1,0 +1,6 @@
+<recipe x:schema="/nop/schema/ai/recipe.xdef" xmlns:x="/nop/schema/xdsl.xdef"
+        version="1">
+
+    <prompt-template>missing name attribute</prompt-template>
+
+</recipe>

@@ -4,6 +4,7 @@ import io.nop.ai.agent.message.AgentMessageTopics;
 import io.nop.ai.agent.message.IMailbox;
 import io.nop.ai.agent.message.MailboxMessageHandler;
 import io.nop.ai.agent.model.AgentModel;
+import io.nop.ai.agent.recipe.RecipeResolver;
 import io.nop.api.core.message.IMessageSubscription;
 import io.nop.core.resource.component.ResourceComponentManager;
 
@@ -103,7 +104,14 @@ public class AgentSessionSupport {
                 throw new NopAiAgentException("Failed to load agent model from " + path
                         + ": unexpected type " + obj.getClass().getName());
             }
-            return (AgentModel) obj;
+            AgentModel model = (AgentModel) obj;
+            // W6-1: merge referenced recipes at assembly time. This is the
+            // single汇聚 point for all 4 execution paths (doExecute +
+            // resume/wake/restore lifecycle), so wiring here ensures every
+            // downstream consumer (resolveExecutor / AgentPromptAssembly /
+            // AgentToolPlanResolver) sees the merged model without change.
+            // No recipes => fast-path returns the original instance unchanged.
+            return RecipeResolver.resolve(model);
         } catch (NopAiAgentException e) {
             throw e;
         } catch (Exception e) {

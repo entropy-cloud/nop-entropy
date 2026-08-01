@@ -112,4 +112,19 @@
          agent does not join a team. -->
     <team-member xdef:name="TeamMemberRefModel" teamName="!string" memberName="!string"/>
 
+    <!-- W6-1 (recipe composition): ordered references to shareable behavior
+         recipes (*.recipe.xml). At assembly time (loadAgentModel) the
+         referenced recipes are merged into this AgentModel in declared order
+         (recipe = base layer, agent's own config = override layer). Each
+         <recipe> carries 0..n <param> children that render {{paramName}}
+         placeholders in the recipe's prompt-template (source-string layer).
+         Optional; absent => no recipe merge (zero regression fast-path). -->
+    <recipes xdef:body-type="list">
+        <recipe xdef:name="AgentRecipeRefModel" ref="!string">
+            <params xdef:body-type="list" xdef:key-attr="name">
+                <param xdef:name="RecipeParamModel" name="!string" value="!string"/>
+            </params>
+        </recipe>
+    </recipes>
+
 </agent>
