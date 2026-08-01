@@ -20,6 +20,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Collection;
 import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.atomic.AtomicLong;
@@ -406,6 +407,13 @@ public class NopException extends RuntimeException implements IException, ISourc
 
     Object normalizeValue(Object value) {
         if (value instanceof Boolean || value instanceof Number || value instanceof Character)
+            return value;
+        // Preserve structured values (Map / Collection) so callers can read them
+        // back via getParam(...) as their original type (e.g. response headers
+        // attached to an HTTP error exception for downstream Retry-After parsing).
+        // Message rendering ({getParamsString}, description interpolation) calls
+        // String.valueOf on values, so preserving these types is render-safe.
+        if (value instanceof Map || value instanceof Collection)
             return value;
         return String.valueOf(value);
     }

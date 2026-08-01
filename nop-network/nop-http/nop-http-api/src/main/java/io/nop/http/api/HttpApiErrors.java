@@ -18,6 +18,12 @@ public interface HttpApiErrors {
 
     String ARG_EXCEPTION = "exception";
 
+    /**
+     * 非成功响应的响应头 Map（含 Retry-After 等）。挂到非 2xx 抛出的异常上，
+     * 供上层（如 LLM 错误规范化）读取 Retry-After 做配额感知重试。
+     */
+    String ARG_RESPONSE_HEADERS = "responseHeaders";
+
     ErrorCode ERR_HTTP_INIT_SSL_FAIL = ErrorCode.define("nop.err.http.init-ssl-fail", "初始化SSL失败");
 
     ErrorCode ERR_HTTP_RESPONSE_TEXT_NOT_JSON = ErrorCode.define("nop.err.http.response-text-not-json",

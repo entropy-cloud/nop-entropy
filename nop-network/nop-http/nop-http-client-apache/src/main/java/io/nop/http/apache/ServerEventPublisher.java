@@ -24,6 +24,7 @@ import java.util.concurrent.Future;
 
 import static io.nop.http.api.HttpApiErrors.ARG_BODY;
 import static io.nop.http.api.HttpApiErrors.ARG_HTTP_STATUS;
+import static io.nop.http.api.HttpApiErrors.ARG_RESPONSE_HEADERS;
 import static io.nop.http.api.HttpApiErrors.ERR_HTTP_RESPONSE_ERROR;
 
 public class ServerEventPublisher implements Flow.Publisher<IServerEventResponse> {
@@ -117,7 +118,8 @@ public class ServerEventPublisher implements Flow.Publisher<IServerEventResponse
                 if (!success)
                     throw new NopException(ERR_HTTP_RESPONSE_ERROR)
                             .param(ARG_HTTP_STATUS, response.getCode())
-                            .param(ARG_BODY, getContentBody());
+                            .param(ARG_BODY, getContentBody())
+                            .param(ARG_RESPONSE_HEADERS, getHeaders());
                 onComplete();
             }
         }

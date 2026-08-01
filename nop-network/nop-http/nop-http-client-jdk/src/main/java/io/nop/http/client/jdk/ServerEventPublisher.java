@@ -28,6 +28,7 @@ import java.util.concurrent.Future;
 import static io.nop.http.api.HttpApiErrors.ARG_BODY;
 import static io.nop.http.api.HttpApiErrors.ARG_EXCEPTION;
 import static io.nop.http.api.HttpApiErrors.ARG_HTTP_STATUS;
+import static io.nop.http.api.HttpApiErrors.ARG_RESPONSE_HEADERS;
 import static io.nop.http.api.HttpApiErrors.ERR_HTTP_RESPONSE_ERROR;
 
 public class ServerEventPublisher implements Flow.Publisher<IServerEventResponse> {
@@ -75,7 +76,15 @@ public class ServerEventPublisher implements Flow.Publisher<IServerEventResponse
                     return;
                 }
 
-                processResponse(response);
+                try {
+                    processResponse(response);
+                } catch (Exception e) {
+                    // 非成功响应（如非 2xx）由 processResponse 抛出；同步路径的异常
+                    // 必须路由到 onError，否则异常会被 whenComplete 吞掉（订阅者
+                    // 既收不到 onError 也收不到 onComplete）。executor 块内的异常
+                    // 自带 try/catch→onError，不会走到这里。
+                    onError(wrapException(e));
+                }
             });
 
             FutureHelper.bindCancelToken(cancelToken, this::cleanup, promise);
@@ -94,6 +103,7 @@ public class ServerEventPublisher implements Flow.Publisher<IServerEventResponse
                 throw new NopException(ERR_HTTP_RESPONSE_ERROR)
                         .param(ARG_HTTP_STATUS, status)
                         .param(ARG_BODY, result.getResult())
+                        .param(ARG_RESPONSE_HEADERS, headers)
                         .param(ARG_EXCEPTION, result.getException());
             }
 
