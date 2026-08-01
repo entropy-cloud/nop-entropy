@@ -249,7 +249,20 @@ doLlmCallWithRetry:
 
 **为何不复用 `IModelRouter` 管账号**：router 是前置路由（按复杂度选模型，请求发出前），账号回退是后置恢复（按错误切 key，请求失败后）。两者输入时机与数据不同，合并会让 router 同时背"前置选模型"和"后置选账号"两个不相关职责。
 
-> 账号链的持久化形态（是否落库、额度元数据结构）属实现细节，留给 plan。
+**账号链持久化形态裁定（plan `2026-08-01-1505-1` 落地）**：
+
+- **纯配置文件**（`{provider}.llm.xml` 的 `<accounts>` 有序列表）。每个账号 = `apiKey`（直配值，生产经 Nop config 变量替换/secret 注入，与现有 `baseUrl` 字段同源模式）+ 可选 `baseUrl`（per-account 覆盖）+ 可选额度元数据（`quotaLimit`/`renewAt`，**仅声明/诊断用，不做主动熔断**——本计划 Non-Goal）。`<accounts>` 用 `xdef:key-attr="id"`（合并时按 id 区分条目，保序，与 `<errorMappings>` 同款）。
+- **拒绝 DB-backed**：`NopAiModel.apiKey` 列虽存在但**不被 live call path 使用**（仅 DB 存储模型配置，且从所有 xmeta 层 scrub）；ORM 结构变更属 protected area（plan-first）；账号链是 per-provider 运行时配置，无必要的外部 DB 依赖。跨实例共享账号清单的需求由部署层配置注入解决，不引入 DB 表。
+- **链语义**：`<accounts>` 是**备用账号链**（不含主账号）。主账号 = 现有单个 `LlmConfigHelper.resolveApiKey(provider)`（config 变量 `nop.ai.llm.{provider}.api-key` 或 secret 文件），与今日完全一致（零回归）。首次调用用主账号；QUOTA/AUTH 触发后从 `<accounts>[0]` 开始依次切换，链耗尽 fail-loud。
+
+**跨层访问契约裁定（plan `2026-08-01-1505-1` 落地，核心交付难点）**：
+
+依赖方向 `nop-ai-agent → nop-ai-core → nop-ai-api`；`IChatService.call(ChatRequest, ICancelToken)` 无 account 参数；`ChatOptions`（nop-ai-api）无 account 字段——agent 层（`LlmCallCoordinator`）驱动账号切换但无法直接把 apiKey 注入 nop-ai-core 的 `buildHttpRequest`。裁定如下（层间一致）：
+
+1. **nop-ai-api 载体 = `ChatOptions` 新字段** `accountKey`（所选账号的 apiKey 值）+ `accountBaseUrl`（可选 per-account baseUrl 覆盖）。两者均 `@JsonIgnore`——**永不序列化进请求体/日志**（apiKey 走 HTTP header，与今日 `resolveApiKey`→`dialect.setHeaders` 同一通道，无新增泄漏面；`@JsonIgnore` 防止经 `ChatOptions` 序列化额外泄漏）。`ChatOptions` 手写的 `copy()`/`merge()`/`Builder` 已同步（否则复制/合并静默丢账号，Rule #11 陷阱）。
+2. **链解析在 nop-ai-core**（`LlmConfigHelper.resolveAccountChain(provider)` 返回有序 `List<LlmAccount>`，无链时返回空列表，非 null）；**"下一个账号"语义 + 已失败账号游走在 agent 层**（`LlmCallCoordinator` 重试循环的局部可变状态，类比今日 `routedOptions` 在循环内重赋值）。
+3. **下沉路径**：agent 层重试循环在 QUOTA/AUTH FALLBACK 时取下一个账号 → 设 `accountKey`/`accountBaseUrl` 到 `routedOptions`（经 `request.setOptions(...)` 下沉）→ `ChatServiceImpl.buildHttpRequest` 读 `options.getAccountKey()`，非空则用它（+ accountBaseUrl 覆盖），为空则退回 `resolveApiKey(provider)`（今日行为，零回归）。
+4. **备选（chat-service 内部自管理推进）被拒绝**：会让 `ChatServiceImpl` 同时背"I/O 规范化"和"账号链游走状态机"两个不相关职责，且 agent 层重试循环无法控制 attempt 重置/usage 归属，违反 §3.1 正交原则。账号链游走属可靠性层（恢复策略），与 I/O 规范化解耦。
 
 ### 3.7 `Retry-After` 多源解析与 jitter 关系（R1 审查 G3）
 
@@ -318,6 +331,8 @@ Layer -1 (nop-http):    ServerEventPublisher 头传递（前置改动，见 §3.
 
 **拒绝理由**：见 §3.6。router 是前置路由（按复杂度选模型），账号回退是后置恢复（按错误切 key），输入时机与数据不同；且现有 `FALLBACK` 已被模型 tier 占用，复用会触发错误恢复（把好模型降级）。两通道必须区分。
 
+**两通道区分的运行时落地路径（plan `2026-08-01-1505-1` 落地）**：重试循环收到 `FALLBACK` 时，先看 `RetryContext`/`ChatResponse` 的 `errorClassification`——`QUOTA_EXCEEDED`/`AUTH_INVALID`→账号链（`ChatOptions.accountKey` 下沉，`ChatServiceImpl` 按 accountKey 构造请求）；`TRANSIENT`→`IModelRouter.getFallback`（模型 tier，行为不变）。即：**同一个 `FALLBACK` 决策，按分类分流到两个不同的恢复通道**，使 QUOTA/AUTH 不再错误降级模型。`StandardRetryPolicy` 必须先对 QUOTA/AUTH 产 `FALLBACK`（§6.8），此路由才可达。
+
 ---
 
 ## 五、与已有设计的关系
@@ -339,14 +354,14 @@ Layer -1 (nop-http):    ServerEventPublisher 头传递（前置改动，见 §3.
 
 3. **`<errorMappings>` 顺序与 first-match-wins**：实现采用 `xdef:key-attr="id"`（与 `dialect.xdef` `<errorCodes key-attr="name">` 同款），id 用于 `x:extends` 合并时按 id 区分条目（子配置 replaceChild 在原位置替换、新增 id 追加末尾），合并后顺序保持，故 first-match-wins 仍成立。须有测试断言两条同 `classification` 规则按合并后位置先后分别命中。
 
-4. **流式保护不被破坏**：已流出内容后的错误不触发 RETRY/FALLBACK（§7.4 不变）。装饰器只打分类，重试与否仍由策略层 + `hasStreamedContent` 决定。
+4. **流式保护不被破坏**：已流出内容后的错误不触发 RETRY/FALLBACK（§7.4 不变）。`ChatServiceImpl` 内置规范化只打分类，重试与否仍由策略层 + `hasStreamedContent` 决定。
 
-5. **流式路径 `Retry-After` 头缺口**：依赖 `nop-http` `ServerEventPublisher` 挂响应头到异常的前置改动。若该改动未完成，装饰器在流式路径仅支持 body 级 `Retry-After`，须文档化为已知缺口。
+5. **流式路径 `Retry-After` 头缺口**：依赖 `nop-http` `ServerEventPublisher` 挂响应头到异常的前置改动（W2e-0 ✅ 已落地）。`ChatServiceImpl` 内置规范化在流式/非流式路径均经 `dialect.parseErrorResponse` 归一 `retryAfterMs`。
 
-6. **装饰器可复用覆盖 `DefaultAiChatService`**：`ErrorNormalizingChatService` 包装任意 `IChatService` 实现，`ChatServiceImpl` 与 `DefaultAiChatService` 套同一装饰器即得规范化，无需重复逻辑（装饰器方案相对"改 `ChatServiceImpl` 内部"的额外收益）。
+6. **规范化归属 `ChatServiceImpl` 内置（非装饰器）**：§4.0 已拒绝装饰器/新异常方案。错误规范化经 `ILlmDialect.parseErrorResponse` 在 `ChatServiceImpl` 内完成（与成功响应 `parseResponse` 同构），结果放 `ChatResponse`。`DefaultAiChatService`（`@Deprecated` legacy `IAiChatService` 路径）不在账号链/规范化改造范围。
 
 7. **`<errorResponse>` / `<errorMappings>` 是可选配置节**，不破坏现有 `{provider}.llm.xml` 加载（已落地：default/claude/gemini/azure/ollama 均已配置）。
 
-8. **`StandardRetryPolicy` 行为变更（R2 审查 N3）**：今天 `StandardRetryPolicy.shouldRetry` 对 `QUOTA_EXCEEDED`/`AUTH_INVALID` 返回 STOP（`StandardRetryPolicy.java:119-122`，因这两类不在 `TRANSIENT`/`RATE_LIMITED` 白名单内），且标准策略从不产生 `FALLBACK`——故 §3.6 的"按分类路由账号链"今日**不可达**。落地时 `StandardRetryPolicy` 必须改为：`QUOTA_EXCEEDED`/`AUTH_INVALID` → 返回 FALLBACK（交由重试循环按 §3.6 方案 b 路由账号链），`TRANSIENT` 保持 RETRY。此策略变更是 §3.6 路由的前置条件，须有测试固化且验证不破坏零回归红线（依赖 §6.1 两个不变量）。
+8. **`StandardRetryPolicy` 行为变更（R2 审查 N3，plan `2026-08-01-1505-1` 落地）**：今天 `StandardRetryPolicy.shouldRetry` 对 `QUOTA_EXCEEDED`/`AUTH_INVALID` 返回 STOP（`StandardRetryPolicy.java:119-122`，因这两类不在 `TRANSIENT`/`RATE_LIMITED` 白名单内），且标准策略从不产生 `FALLBACK`——故 §3.6 的"按分类路由账号链"今日**不可达**。落地时 `StandardRetryPolicy` 必须改为：`QUOTA_EXCEEDED`/`AUTH_INVALID` → 返回 FALLBACK（交由重试循环按 §3.6 方案 b 路由账号链），`TRANSIENT` 保持 RETRY。此策略变更是 §3.6 路由的前置条件，须有测试固化且验证不破坏零回归红线（依赖 §6.1 两个不变量）。**此策略变更（QUOTA/AUTH→FALLBACK）与重试循环分类路由改造必须原子落地**（同一批提交），否则中间窗口 QUOTA/AUTH→FALLBACK→`getFallback` 会错误降级模型（§4.4 警告）。
 
 9. **账号链 fail-loud**（Minimum Rules #24）：链耗尽抛异常不静默，须有测试固化。

@@ -25,8 +25,8 @@
 - [x] W2e-1（nop-ai-api）`ChatResponse` 增加 `errorClassification`/`retryAfterMs`/`httpStatus` 字段（沿用既有 `error`/`errorCode`/`isSuccess()`）
 - [x] W2e-2（nop-ai-core）`ILlmDialect` 新增 `parseErrorResponse`（消费 `<errorMappings>` 规则表 first-match，与 `parseResponse` 对称）；`ChatServiceImpl` 非 200（非流式读 body+头）+ 流式 `aggregateStreamToResponse.onError`（读 `ARG_BODY`）都调它 → 返回带 `errorClassification` 的错误 `ChatResponse`（不抛）
 - [x] W2e-3（nop-ai-agent）`LlmCallCoordinator` 重试循环改造：`!response.isSuccess()` 从终止路径升级为读 `errorClassification` 进入重试决策（今天 `:179-187` 不重试）；`RetryContext` 增加 `retryAfterMs`
-- [ ] W2e-4（nop-ai-agent）`StandardRetryPolicy` 行为变更：`QUOTA_EXCEEDED`/`AUTH_INVALID` → FALLBACK（按设计 §3.6 方案 b 路由账号链）；~~`RATE_LIMITED` 用 Retry-After 作 floor（`delay=retryAfterMs+jitter`）~~ ✅ 已落地（plan `2026-08-01-1440-1` Phase 3）；传输异常仍走 `LlmErrorClassifier` 启发式
-- [ ] W2e-5（nop-ai-agent）账号回退链（provider 级配置）+ 重试循环按 `errorClassification` 区分账号链 vs `IModelRouter.getFallback` 模型 tier 链；链耗尽 fail-loud。**W2-4 ProviderFailoverQueue 消费本项的错误分类信号做跨 provider 故障转移**
+- [x] W2e-4（nop-ai-agent）`StandardRetryPolicy` 行为变更：`QUOTA_EXCEEDED`/`AUTH_INVALID` → FALLBACK（按设计 §3.6 方案 b 路由账号链）；~~`RATE_LIMITED` 用 Retry-After 作 floor（`delay=retryAfterMs+jitter`）~~ ✅ 已落地（plan `2026-08-01-1440-1` Phase 3）；传输异常仍走 `LlmErrorClassifier` 启发式（plan `2026-08-01-1505-1` 落地 QUOTA/AUTH→FALLBACK）
+- [x] W2e-5（nop-ai-agent）账号回退链（provider 级配置）+ 重试循环按 `errorClassification` 区分账号链 vs `IModelRouter.getFallback` 模型 tier 链；链耗尽 fail-loud（plan `2026-08-01-1505-1` 落地：`<accounts>` 配置 + `ChatOptions.accountKey` 跨层下沉 + `AccountChain` 游走 + 两通道分流）。**W2-4 ProviderFailoverQueue 消费本项的错误分类信号做跨 provider 故障转移**
 
 ### W2. Reliability 增量（高优先）
 - [ ] W2-1 checkpoint 增加 wait_for 条件 JSONB（WAIT_FOR 长等待原语：挂起不占线程 → 条件满足唤醒恢复）
