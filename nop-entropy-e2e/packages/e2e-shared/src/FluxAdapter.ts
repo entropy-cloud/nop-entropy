@@ -115,20 +115,24 @@ export class FluxAdapter implements EngineAdapter {
     const strValue = String(value);
 
     // 1. Boolean → Checkbox / Switch
+    // 真相来源：nop-chaos-flux field-controls-dom-contract.test.tsx
+    // checkbox/switch 的 interactive 元素是 <span>（Base UI Primitive），不是 button；
+    // 且没有 `${name}-control` id（id 在 wrapper <label> 上，形式 `${name}-control-label`）。
     if (typeof value === 'boolean') {
-      // Flux checkbox: button[data-slot="checkbox"] with id
-      const checkbox = dialog.locator(
-        `button[data-slot="checkbox"][id="${fieldName}-control"]`,
-      ).first();
+      // Flux checkbox: <label data-slot="checkbox-wrapper" id="${name}-control-label">
+      //   <span data-slot="checkbox" role="checkbox" aria-checked data-checked>
+      const checkbox = dialog
+        .locator(`#${fieldName}-control-label [data-slot="checkbox"][role="checkbox"]`)
+        .first();
       if (await checkbox.count().then((c) => c > 0)) {
         const ariaChecked = await checkbox.getAttribute('aria-checked');
         if ((ariaChecked === 'true') !== value) await checkbox.click();
         return;
       }
-      // Flux switch: Base UI renders <span role="switch"> + hidden <input type="checkbox" id="name-control">
-      // The span has aria-checked; click toggles via synthetic event on hidden input
+      // Flux switch: <label data-slot="switch-wrapper" id="${name}-control-label">
+      //   <span data-slot="switch" role="switch" aria-checked data-checked>
       const switchEl = dialog
-        .locator(`[data-slot="switch-wrapper"]:has(#${fieldName}-control) [role="switch"]`)
+        .locator(`#${fieldName}-control-label [data-slot="switch"][role="switch"]`)
         .first();
       if (await switchEl.count().then((c) => c > 0)) {
         const ariaChecked = await switchEl.getAttribute('aria-checked');
@@ -198,31 +202,27 @@ export class FluxAdapter implements EngineAdapter {
       // tagName === 'BUTTON' or input[type=checkbox/radio] or combobox → fall through to combobox
     }
 
-    // 3. Combobox (Flux Select) — 兼容两种结构：
-    //    a) input[role=combobox]（id=#fieldName-control）+ input-group-button 展开
-    //    b) [data-slot="select-wrapper"] + [data-slot="combobox-trigger"]
-    const comboInput = dialog.locator(`#${fieldName}-control`).first();
-    if (await comboInput.count().then((c) => c > 0)) {
-      await comboInput.click();
-      // popup 异步渲染：等待匹配 option 出现（而不是立即 count）
-      const matchingOption = page.locator(`[role="option"]:has-text("${strValue}")`).first();
-      try {
-        await matchingOption.waitFor({ state: 'visible', timeout: 3000 });
-        await matchingOption.click();
-        return;
-      } catch {
-        // option 未出现 → 尝试展开按钮后选择
-      }
-      const groupButton = dialog
-        .locator(`[data-slot="input-group"]:has(#${fieldName}-control) [data-slot="input-group-button"]`)
-        .first();
-      if (await groupButton.count().then((c) => c > 0)) {
-        await groupButton.click();
+    // 3. Combobox (Flux Select) — 真相来源：nop-chaos-flux field-controls-dom-contract.test.tsx
+    //    非搜索: <button id="${name}-control" data-slot="combobox-trigger" role="combobox">
+    //    搜索:   <input id="${name}-control" data-slot="input-group-control" role="combobox">
+    //    选项:   [data-slot="combobox-item"]，文本 = label（**非 value**），无 data-value。
+    //            弹出层 portaled 到 body，从 page 级查询。
+    //    ⚠ Playwright locator.click() 在 Base UI combobox-item 上会因 actionability
+    //    检查（stability/visibility）静默超时（与 alert-dialog 同类问题，见跨项目指南
+    //    §错误7）。改用 page.evaluate 原生 DOM click，已验证可靠。
+    const comboTrigger = dialog.locator(`#${fieldName}-control`).first();
+    if (await comboTrigger.count().then((c) => c > 0)) {
+      await comboTrigger.click();
+      await page.waitForTimeout(400); // 等 popup 渲染
+      if (await this.clickVisibleComboboxItem(page, strValue)) {
         await page.waitForTimeout(300);
+        return;
       }
-      const option = page.locator('[data-slot="combobox-item"], [role="option"]').filter({ hasText: strValue }).first();
-      if (await option.count().then((c) => c > 0)) {
-        await option.click();
+      // popup 可能未展开，重试一次点击触发器
+      await comboTrigger.click();
+      await page.waitForTimeout(400);
+      if (await this.clickVisibleComboboxItem(page, strValue)) {
+        await page.waitForTimeout(300);
         return;
       }
     }
@@ -232,6 +232,32 @@ export class FluxAdapter implements EngineAdapter {
     if (await labelField.count().then((c) => c > 0)) {
       await labelField.fill(strValue).catch(() => {});
     }
+  }
+
+  /**
+   * 在已展开的 combobox 弹出层中，按 value 匹配**可见**的选项并原生 click。
+   *
+   * 真相（契约）：combobox-item 文本 = option.label（非 value），无 data-value。
+   * dict 选项文本常为 `value-label` 格式（如 "1-男"）。必须只点击真正可见（有非零尺寸）
+   * 的选项，跳过隐藏的 selected-value tracker。
+   *
+   * 匹配优先级：文本完全等于 value > 以 `${value}-` 开头（value-label 字典格式）> 包含 value。
+   * 用原生 DOM click 绕过 Playwright 在 Base UI combobox-item 上的 actionability 超时。
+   */
+  async clickVisibleComboboxItem(page: Page, value: string): Promise<boolean> {
+    return page.evaluate((val: string) => {
+      const items = Array.from(document.querySelectorAll('[data-slot="combobox-item"]'));
+      for (const it of items) {
+        const r = it.getBoundingClientRect();
+        if (r.width <= 0 || r.height <= 0) continue;
+        const text = (it.textContent || '').trim();
+        if (text === val || text.startsWith(`${val}-`) || text.includes(val)) {
+          (it as HTMLElement).click();
+          return true;
+        }
+      }
+      return false;
+    }, value);
   }
 
   submitButton(dialog: Locator): Locator {

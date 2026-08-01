@@ -372,12 +372,6 @@ export async function dumpMenuConfig(page: Page): Promise<MenuDump> {
  */
 export async function dumpPageStructure(page: Page): Promise<PageStructureDump> {
   return page.evaluate(() => {
-    const pickAttrs = (el: Element, keys: string[]) => {
-      const out: Record<string, string | null> = {};
-      for (const k of keys) out[k] = el.getAttribute(k);
-      return out;
-    };
-
     // Forms
     const forms = Array.from(document.querySelectorAll('form')).map((form) => {
       const fields: PageFieldInfo[] = Array.from(
@@ -656,26 +650,6 @@ export interface FluxDebugDump {
   errors: FluxDebugEntryDump[];
   /** 与给定 URL 片段匹配的请求/响应条目 */
   requests: FluxDebugEntryDump[];
-}
-
-function toEntryDump(e: any): FluxDebugEntryDump {
-  return {
-    phase: e?.phase,
-    ts: e?.ts,
-    url: e?.url,
-    method: e?.method,
-    ok: e?.ok,
-    status: e?.status,
-    error: e?.error,
-    level: e?.level,
-    message: e?.message,
-    dataPreview:
-      typeof e?.data === 'string'
-        ? e.data.slice(0, 300)
-        : e?.data != null
-          ? JSON.stringify(e.data).slice(0, 300)
-          : e?.dataPreview,
-  };
 }
 
 /**
