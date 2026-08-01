@@ -53,58 +53,58 @@
 
 ### Phase 1 - 测试 System.out 清理（MA4.2-12）
 
-Status: planned
+Status: completed
 Targets: 13 个测试文件（nop-ai-core/nop-ai-maven/nop-ai-coder/nop-ai-skills 下）
 
 - Item Types: `Fix`
 
-- [ ] 逐文件裁定输出保留价值：有断言意义或回归诊断价值的转 SLF4J logger（测试类加 `static final Logger LOG`）；纯一次性调试/示例输出（如 VfsMavenUsageExampleRunner 的 35 处 System.out 中文演示、FixTranslateDir 工具类）删除或保留按示例用途裁定——示例/手册类文件可保留并注明（audit 原文 "acceptable for manual/exploratory tests" 裁定依据），但必须逐文件给出裁定
-- [ ] 产出 13 文件 × 处置（logger/删除/示例保留）对照表（入 plan 或 daily log）；清理后 `grep -rln "System.out" nop-ai --include="*.java"` 命中集合与对照表"保留"集合逐行一致
+- [x] 逐文件裁定输出保留价值：有断言意义或回归诊断价值的转 SLF4J logger（测试类加 `static final Logger LOG`）；纯一次性调试/示例输出（如 VfsMavenUsageExampleRunner 的 35 处 System.out 中文演示、FixTranslateDir 工具类）删除或保留按示例用途裁定——示例/手册类文件可保留并注明（audit 原文 "acceptable for manual/exploratory tests" 裁定依据），但必须逐文件给出裁定
+- [x] 产出 13 文件 × 处置（logger/删除/示例保留）对照表（入 plan 或 daily log）；清理后 `grep -rln "System.out" nop-ai --include="*.java"` 命中集合与对照表"保留"集合逐行一致
 
 Exit Criteria:
 
-- [ ] 每文件裁定记录（转 logger / 删除 / 示例保留）对照表落盘 plan 或 daily log，grep 命中集合与对照表"保留"集合一致
-- [ ] 处理文件 `./mvnw test -pl nop-ai/nop-ai-core,nop-ai/nop-ai-maven,nop-ai/nop-ai-coder,nop-ai/nop-ai-skills -am` 相关测试绿（不减少测试断言）
-- [ ] No owner-doc update required（测试代码内部变更）
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] 每文件裁定记录（转 logger / 删除 / 示例保留）对照表落盘 plan 或 daily log，grep 命中集合与对照表"保留"集合一致
+- [x] 处理文件 `./mvnw test -pl nop-ai/nop-ai-core,nop-ai/nop-ai-maven,nop-ai/nop-ai-coder,nop-ai/nop-ai-skills -am` 相关测试绿（不减少测试断言）
+- [x] No owner-doc update required（测试代码内部变更）
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 ### Phase 2 - 冗余 public（GrepResult）+ unchecked cast 清理（MA4.2-13 + MA4.1-04）
 
-Status: planned
+Status: completed
 Targets: `IFileOperator.java`、`DefaultAiChatService.java`
 
 - Item Types: `Fix`
 
-- [ ] `IFileOperator.GrepResult` 3 个 getter（getFilePath/getLineNumber/getLineContent）移除 `public`——已核验全库无跨包调用者，安全；`toString()` 保留 public（`FileToolBizModel:225` 跨包调用）
-- [ ] `IAiTextSplitter.SplitChunk`/`SplitOptions` getter **不处理**——跨包消费者（`JavaFileSplitter.java:36,92,97`、`TestJavaFileSplitter`、`TestTextSplitter:28` Jackson 序列化依赖 getter 反射可见性）移除 public 会编译失败且静默改变序列化输出；裁定记录入 Deferred But Adjudicated 段
-- [ ] `DefaultAiChatService.parseToolCalls:562` 的 `(Map<String, Object>) arguments` cast 前补局部 `@SuppressWarnings("unchecked")`（与 MA4.1-01 先例同款，局部变量级；:548 已有注解属另一 cast，不重复）
-- [ ] 编译复核：`./mvnw compile -pl nop-ai/nop-ai-core,nop-ai/nop-ai-tools -am` PASS（nop-ai-tools 为 `GrepResult::toString` 的真实跨包消费者 `FileToolBizModel:225`，`-pl nop-ai-core -am` 只含上游不含下游）；**下游消费者复核**：`./mvnw test -pl nop-ai/nop-ai-tools -am` 绿（验证 GrepResult 改动无回归）；`./mvnw test -pl nop-ai/nop-ai-skills/nop-ai-code-analyzer -am` 绿（SplitChunk 未改的回归佐证，不声称验证 GrepResult）
+- [x] `IFileOperator.GrepResult` 3 个 getter（getFilePath/getLineNumber/getLineContent）移除 `public`——已核验全库无跨包调用者，安全；`toString()` 保留 public（`FileToolBizModel:225` 跨包调用）
+- [x] `IAiTextSplitter.SplitChunk`/`SplitOptions` getter **不处理**——跨包消费者（`JavaFileSplitter.java:36,92,97`、`TestJavaFileSplitter`、`TestTextSplitter:28` Jackson 序列化依赖 getter 反射可见性）移除 public 会编译失败且静默改变序列化输出；裁定记录入 Deferred But Adjudicated 段
+- [x] `DefaultAiChatService.parseToolCalls:562` 的 `(Map<String, Object>) arguments` cast 前补局部 `@SuppressWarnings("unchecked")`（与 MA4.1-01 先例同款，局部变量级；:548 已有注解属另一 cast，不重复）
+- [x] 编译复核：`./mvnw compile -pl nop-ai/nop-ai-core,nop-ai/nop-ai-tools -am` PASS（nop-ai-tools 为 `GrepResult::toString` 的真实跨包消费者 `FileToolBizModel:225`，`-pl nop-ai-core -am` 只含上游不含下游）；**下游消费者复核**：`./mvnw test -pl nop-ai/nop-ai-tools -am` 绿（验证 GrepResult 改动无回归）；`./mvnw test -pl nop-ai/nop-ai-skills/nop-ai-code-analyzer -am` 绿（SplitChunk 未改的回归佐证，不声称验证 GrepResult）
 
 Exit Criteria:
 
-- [ ] `GrepResult` 3 个 getter 无显式 `public` 残留；`toString()` 仍 public；SplitChunk/SplitOptions 未改动且裁定记录在案；cast 处 @SuppressWarnings 在位
-- [ ] `./mvnw test -pl nop-ai/nop-ai-core,nop-ai/nop-ai-tools -am` BUILD SUCCESS；`./mvnw test -pl nop-ai/nop-ai-skills/nop-ai-code-analyzer -am` BUILD SUCCESS
-- [ ] No owner-doc update required
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] `GrepResult` 3 个 getter 无显式 `public` 残留；`toString()` 仍 public；SplitChunk/SplitOptions 未改动且裁定记录在案；cast 处 @SuppressWarnings 在位
+- [x] `./mvnw test -pl nop-ai/nop-ai-core,nop-ai/nop-ai-tools -am` BUILD SUCCESS；`./mvnw test -pl nop-ai/nop-ai-skills/nop-ai-code-analyzer -am` BUILD SUCCESS
+- [x] No owner-doc update required
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 ### Phase 3 - 全量验证 + 登记
 
-Status: planned
+Status: completed
 Targets: `nop-ai` 全模块 + `arm-index.md` + `ai-dev/backlog/audit-remediation-roadmap.md`
 
 - Item Types: `Proof`
 
-- [ ] `./mvnw test -pl nop-ai -am -T 1C` BUILD SUCCESS（全量回归）
-- [ ] `scan-hollow-implementations.mjs --module nop-ai --severity high` exit 0
-- [ ] `check-doc-links.mjs --strict` exit 0
-- [ ] arm-index 新增「P3 追踪（第十一批 — 代码卫生）」小节登记 3 行（MA4.2-12/-13、MA4.1-04 → fixed）；roadmap 登记第十一批
+- [x] `./mvnw test -pl nop-ai -am -T 1C` BUILD SUCCESS（全量回归）
+- [x] `scan-hollow-implementations.mjs --module nop-ai --severity high` exit 0
+- [x] `check-doc-links.mjs --strict` exit 0
+- [x] arm-index 新增「P3 追踪（第十一批 — 代码卫生）」小节登记 3 行（MA4.2-12/-13、MA4.1-04 → fixed）；roadmap 登记第十一批
 
 Exit Criteria:
 
-- [ ] 全量 build + 全量 test 绿
-- [ ] scan-hollow exit 0；check-doc-links exit 0
-- [ ] arm-index 与 roadmap 登记完成
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] 全量 build + 全量 test 绿
+- [x] scan-hollow exit 0；check-doc-links exit 0
+- [x] arm-index 与 roadmap 登记完成
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 ## Closure Gates
 

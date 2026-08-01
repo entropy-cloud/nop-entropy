@@ -472,3 +472,15 @@ plan `ai-dev/plans/2026-07-31-2248-2-arm-hollow-baseline-clearance.md`（第七�
 | MA4.5-008 | `fixed` | IFileOperator `@deprecated` 消息中文 → 英文（`Use io.nop.ai.toolkit.fs.IToolFileSystem instead (forRemoval=true; removal is future major-version work)`），替代对象与 forRemoval 语义保留，与全库 deprecated 消息语言一致 |
 
 **验证**：`./mvnw test -pl nop-ai -am -T 1C` BUILD SUCCESS（0 failures 0 errors）；`./mvnw compile -pl nop-ai/nop-ai-api,nop-ai/nop-ai-core,nop-ai/nop-ai-toolkit,nop-ai/nop-ai-coder -am` PASS；`scan-hollow-implementations.mjs --module nop-ai --severity high` exit 0；`check-doc-links.mjs --strict` exit 0（No errors found）；closure audit 见 plan Closure 段。
+
+## P3 追踪（第十一批 — 代码卫生，2026-08-01）
+
+第十一批批量修复（plan `ai-dev/plans/2026-08-01-0746-2-arm-p3-code-hygiene.md`，与 0746-1 同批次串行执行）已执行并收口。MA4.2-12/-13、MA4.1-04 全部 `fixed`（纯输出/修饰符/注解变更，零行为变更）：
+
+| Finding ID | 修复状态 | 修复位置 / 测试 |
+|-----------|---------|----------------|
+| MA4.2-12 | `fixed` | 13 个测试文件 System.out 逐文件裁定（对照表落盘 `ai-dev/logs/2026/08-01.md`）：5 文件转 SLF4J LOG（TestAiCoderHelper 5 处 / TestJavaFileSplitter 1 / TestJavaParser 3 / MavenModuleStructureTest 1 / TestTextSplitter 3，类加 `static final Logger LOG`）；1 文件删除死代码 println（FixTranslateDir `cleanup()` 永不调用）；7 文件保留（@Disabled 手动测试 6 个 + VfsMavenUsageExampleRunner main() 示例，audit "acceptable for manual/exploratory tests" 裁定依据）；清理后 `grep -rln "System.out" nop-ai --include="*.java"` = 7 文件，与"保留"集合逐行一致；测试数量零减少 |
+| MA4.2-13 | `fixed`（部分 + 裁定） | `IFileOperator.GrepResult` 3 个 getter（getFilePath/getLineNumber/getLineContent）移除冗余 `public`（全库跨包零调用者核验，toString() 保留 public 供 FileToolBizModel:225）；**SplitChunk/SplitOptions 裁定不处理**（接口内嵌类成员非隐式 public，移除即降 package-private，破坏 JavaFileSplitter.java:36,92,97 + TestTextSplitter:28 Jackson 反射序列化，编译失败 + 静默改序列化输出；理由入 plan Deferred But Adjudicated） |
+| MA4.1-04 | `fixed` | `DefaultAiChatService.parseToolCalls:562` `(Map<String, Object>) arguments` cast 补局部 `@SuppressWarnings("unchecked")`（AnthropicDialect 同款局部变量级；:548 List cast 既有注解未动） |
+
+**验证**：`./mvnw test -pl nop-ai -am -T 1C` BUILD SUCCESS（0 failures 0 errors）；`./mvnw test -pl nop-ai/nop-ai-tools,nop-ai/nop-ai-skills/nop-ai-code-analyzer -am` BUILD SUCCESS（GrepResult 下游 + SplitChunk 消费者回归）；`scan-hollow-implementations.mjs --module nop-ai --severity high` exit 0；`check-doc-links.mjs --strict` exit 0（No errors found）；closure audit 见 plan Closure 段。
