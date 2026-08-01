@@ -1,0 +1,32 @@
+# Flux 版本：form api → submitAction；amis actionType: submit / onEvent click page-action → button onClick（component:submit / namespace:method）。
+type: page
+xui:import: /nop/auth/pages/DemoPage/demo.lib.js
+body:
+  type: form
+  id: demoForm
+  submitAction:
+    action: ajax
+    args:
+      url: "@action:demo.testAction"
+      method: post
+      data:
+        a: 1
+  body:
+    - type: button
+      label: TestActionInLib
+      variant: primary
+      onClick:
+        action: component:submit
+        componentId: demoForm
+
+    - type: input-text
+      name: myVar
+      value: 3
+
+    - type: button
+      label: Action Flow
+      variant: success
+      onClick:
+        action: demo:handlePageAction
+        args:
+          a: "${myVar}"

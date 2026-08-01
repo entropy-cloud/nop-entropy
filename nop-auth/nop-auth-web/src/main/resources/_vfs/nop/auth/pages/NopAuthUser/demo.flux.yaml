@@ -1,0 +1,14 @@
+# Flux 版本：web:GenPage 改为 flux-web:GenPage；body/filter 的 x:virtual 覆盖为 delta 机制，与渲染框架无关。
+x:gen-extends: |
+  <flux-web:GenPage view="NopAuthUser.view.xml" page="main" xpl:lib="/nop/web/xlib/flux-web.xlib" />
+
+body:
+  name: crud-grid
+  filter:
+    id: crud-filter
+    actions:
+      - id: submit-button
+        icon: fa fa-snapchat
+        x:virtual: true
+    x:virtual: true
+  x:virtual: true

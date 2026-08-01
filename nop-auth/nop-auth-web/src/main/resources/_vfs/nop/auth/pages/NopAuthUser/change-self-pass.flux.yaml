@@ -1,0 +1,50 @@
+# Flux 版本的修改密码页面。
+# amis form api/messages/resetAfterSubmit → flux submitAction + onSubmitSuccess/onSubmitError；
+# amis actionType: submit → button onClick component:submit。
+type: page
+body:
+  type: form
+  id: changePassForm
+  title: "@i18n:common.changePassword"
+  submitAction:
+    action: ajax
+    args:
+      url: "@mutation:NopAuthUser__changeSelfPassword"
+      method: post
+      data:
+        oldPassword: "${oldPassword}"
+        newPassword: "${newPassword}"
+  onSubmitSuccess:
+    action: showToast
+    args:
+      level: success
+      message: "@i18n:common.executeSucceed"
+  onSubmitError:
+    action: showToast
+    args:
+      level: error
+      message: "@i18n:common.executeFailed"
+  body:
+    - type: input-password
+      name: oldPassword
+      required: true
+      label: "@i18n:common.oldPassword"
+
+    - type: input-password
+      name: newPassword
+      required: true
+      label: "@i18n:common.newPassword"
+
+    - type: input-password
+      name: __password2
+      required: true
+      label: "@i18n:common.repeatPassword"
+      validations:
+        equalsField: newPassword
+
+    - type: button
+      label: "@i18n:common.submit"
+      variant: primary
+      onClick:
+        action: component:submit
+        componentId: changePassForm

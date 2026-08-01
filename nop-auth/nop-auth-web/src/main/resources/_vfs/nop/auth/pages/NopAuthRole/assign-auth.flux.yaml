@@ -1,0 +1,57 @@
+# Flux 版本：form initApi → data-source + loadAction；tree 的 source.api → data-source + options 绑定；
+# amis button actionType:ajax → onClick ajax；wrapper 容器去除。
+type: page
+title: "@i18n:common.authorization"
+body:
+  - type: data-source
+    name: roleResources
+    action: ajax
+    args:
+      url: "@query:NopAuthRole__get/resourceIds"
+      method: get
+      data:
+        id: "${roleId}"
+
+  - type: data-source
+    name: resourceTree
+    action: ajax
+    args:
+      url: "@query:NopAuthResource__findList/value:id,label:displayName,children @TreeChildren(max:5)"
+      method: get
+      data:
+        filter_resourceType: TOPM
+        filter_siteId: "${siteId}"
+
+  - type: form
+    id: assignAuthForm
+    loadAction:
+      action: setValue
+      args: "${roleResources}"
+    body:
+      - label: '@i18n:prop.label.NopAuthResource.siteId|站点ID'
+        required: true
+        type: button-group-select
+        multiple: false
+        source: '@dict:obj/NopAuthSite'
+        value: main
+        name: siteId
+
+      - type: input-tree
+        name: resourceIds
+        multiple: true
+        cascade: true
+        label: false
+        options: "${resourceTree}"
+
+      - type: button
+        label: "@i18n:common.submit"
+        variant: primary
+        onClick:
+          action: ajax
+          args:
+            url: "@mutation:NopAuthRole__updateRoleResources"
+            method: post
+            data:
+              siteId: "${siteId}"
+              resourceIds: "${resourceIds}"
+              roleId: "${roleId}"
