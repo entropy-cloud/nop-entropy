@@ -1,5 +1,7 @@
 package io.nop.ai.agent.memory;
 
+import io.nop.ai.agent.NopAiAgentErrors;
+import io.nop.ai.agent.engine.NopAiAgentException;
 import io.nop.ai.agent.security.ITenantResolver;
 
 import java.util.ArrayList;
@@ -104,7 +106,7 @@ public class InMemoryVectorAdapter implements IVectorAdapter {
      */
     static double cosine(double[] a, double[] b) {
         if (a.length != b.length) {
-            throw new IllegalArgumentException(
+            throw new NopAiAgentException(NopAiAgentErrors.ERR_AI_AGENT_INVALID_ARG).param(NopAiAgentErrors.ARG_MSG,
                     "vector length mismatch: " + a.length + " vs " + b.length);
         }
         double dot = 0.0;

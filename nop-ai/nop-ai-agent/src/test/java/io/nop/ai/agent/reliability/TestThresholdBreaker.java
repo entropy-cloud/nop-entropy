@@ -1,5 +1,7 @@
 package io.nop.ai.agent.reliability;
 
+import io.nop.ai.agent.NopAiAgentErrors;
+import io.nop.ai.agent.engine.NopAiAgentException;
 import org.junit.jupiter.api.Test;
 
 import java.util.concurrent.CountDownLatch;
@@ -27,17 +29,33 @@ public class TestThresholdBreaker {
 
     @Test
     void constructorRejectsInvalidThreshold() {
-        assertThrows(IllegalArgumentException.class,
+        assertThrows(NopAiAgentException.class,
                 () -> new ThresholdBreaker(0, 1000L),
                 "failureThreshold must be >= 1");
-        assertThrows(IllegalArgumentException.class,
+        assertThrows(NopAiAgentException.class,
                 () -> new ThresholdBreaker(-1, 1000L),
                 "failureThreshold must be >= 1");
     }
 
+    /**
+     * P3-MA3-1 focused value-level assertion (plan 2026-08-01-0936-1): the
+     * converted validation guard must fail fast with the module ErrorCode and
+     * preserve the verbatim English message via the {@code msg} param.
+     */
+    @Test
+    void validationFailureCarriesErrorCodeAndVerbatimMessage() {
+        NopAiAgentException e = assertThrows(NopAiAgentException.class,
+                () -> new ThresholdBreaker(0, 1000L));
+        assertEquals(NopAiAgentErrors.ERR_AI_AGENT_INVALID_ARG.getErrorCode(),
+                e.getErrorCode());
+        assertEquals("ThresholdBreaker failureThreshold must be >= 1: 0",
+                e.getParams().get(NopAiAgentErrors.ARG_MSG));
+        assertTrue(e.getMessage().contains("ThresholdBreaker failureThreshold must be >= 1: 0"));
+    }
+
     @Test
     void constructorRejectsNegativeCooldown() {
-        assertThrows(IllegalArgumentException.class,
+        assertThrows(NopAiAgentException.class,
                 () -> new ThresholdBreaker(3, -1L),
                 "cooldownMs must be >= 0");
     }
@@ -52,10 +70,10 @@ public class TestThresholdBreaker {
     @Test
     void nullModelKeyRejected() {
         ThresholdBreaker b = new ThresholdBreaker();
-        assertThrows(IllegalArgumentException.class, () -> b.allowCall(null));
-        assertThrows(IllegalArgumentException.class, () -> b.getState(null));
-        assertThrows(IllegalArgumentException.class, () -> b.recordSuccess(null));
-        assertThrows(IllegalArgumentException.class, () -> b.recordFailure(null));
+        assertThrows(NopAiAgentException.class, () -> b.allowCall(null));
+        assertThrows(NopAiAgentException.class, () -> b.getState(null));
+        assertThrows(NopAiAgentException.class, () -> b.recordSuccess(null));
+        assertThrows(NopAiAgentException.class, () -> b.recordFailure(null));
     }
 
     // ========================================================================

@@ -196,7 +196,7 @@ public class TestInMemoryContributionRegistry {
     @Test
     void registerNullThrows() {
         InMemoryContributionRegistry reg = new InMemoryContributionRegistry();
-        assertThrows(IllegalArgumentException.class, () -> reg.register(null));
+        assertThrows(NopAiAgentException.class, () -> reg.register(null));
     }
 
     @Test

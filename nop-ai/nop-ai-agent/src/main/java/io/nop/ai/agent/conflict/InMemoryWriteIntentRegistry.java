@@ -1,5 +1,8 @@
 package io.nop.ai.agent.conflict;
 
+import io.nop.ai.agent.NopAiAgentErrors;
+import io.nop.ai.agent.engine.NopAiAgentException;
+
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
@@ -39,11 +42,12 @@ public final class InMemoryWriteIntentRegistry implements IWriteIntentRegistry {
     @Override
     public Set<WriteIntent> registerAndGetConflicting(WriteIntent intent) {
         if (intent == null) {
-            throw new IllegalArgumentException("intent must not be null");
+            throw new NopAiAgentException(NopAiAgentErrors.ERR_AI_AGENT_INVALID_ARG).param(NopAiAgentErrors.ARG_MSG, "intent must not be null");
         }
         String path = intent.getFilePath();
         if (path == null) {
-            throw new IllegalArgumentException("intent.filePath must not be null");
+            throw new NopAiAgentException(NopAiAgentErrors.ERR_AI_AGENT_INVALID_ARG)
+                    .param(NopAiAgentErrors.ARG_MSG, "intent.filePath must not be null");
         }
         // computeIfAbsent gives us a stable per-path list (our monitor).
         List<WriteIntent> bucket = intentsByPath.computeIfAbsent(path, k -> new ArrayList<>());

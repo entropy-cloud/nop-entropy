@@ -1,5 +1,6 @@
 package io.nop.ai.agent.team.flow;
 
+import io.nop.ai.agent.NopAiAgentErrors;
 import io.nop.ai.agent.engine.NopAiAgentException;
 import io.nop.ai.agent.team.IMemberSpawner;
 import io.nop.ai.agent.team.ITeamTaskStore;
@@ -9,6 +10,7 @@ import io.nop.ai.agent.team.TeamTaskStatus;
 import io.nop.task.ITaskStepRuntime;
 import io.nop.task.TaskStepReturn;
 import io.nop.task.step.AbstractTaskStep;
+
 import jakarta.annotation.Nonnull;
 
 import java.util.ArrayList;
@@ -127,12 +129,12 @@ public class SpawnMemberFanOutStep extends AbstractTaskStep {
         this.capturedTenant = capturedTenant;
         this.reductionStrategy = reductionStrategy;
         if (this.spawnTargets.isEmpty()) {
-            throw new IllegalArgumentException(
+            throw new NopAiAgentException(NopAiAgentErrors.ERR_AI_AGENT_INVALID_ARG).param(NopAiAgentErrors.ARG_MSG,
                     "SpawnMemberFanOutStep requires at least one spawn target — the orchestrator must pre-check the empty plan as an honest failure");
         }
         for (DispatchTarget t : this.spawnTargets) {
             if (!t.isSpawn()) {
-                throw new IllegalArgumentException(
+                throw new NopAiAgentException(NopAiAgentErrors.ERR_AI_AGENT_INVALID_ARG).param(NopAiAgentErrors.ARG_MSG,
                         "SpawnMemberFanOutStep accepts only SPAWN targets; got " + t.getKind()
                                 + " for memberName=" + t.getMemberName());
             }

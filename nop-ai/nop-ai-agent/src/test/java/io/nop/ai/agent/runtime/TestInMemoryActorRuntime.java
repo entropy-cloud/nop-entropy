@@ -1,5 +1,6 @@
 package io.nop.ai.agent.runtime;
 
+import io.nop.ai.agent.engine.NopAiAgentException;
 import io.nop.ai.agent.message.DeferredAckMailbox;
 import io.nop.ai.agent.message.IMailbox;
 import org.junit.jupiter.api.Test;
@@ -145,15 +146,15 @@ public class TestInMemoryActorRuntime {
     @Test
     void createActorNullSessionIdThrows() {
         InMemoryActorRuntime rt = newRuntime(new HashMap<>());
-        assertThrows(IllegalArgumentException.class, () -> rt.createActor(null, "g"));
-        assertThrows(IllegalArgumentException.class, () -> rt.createActor("", "g"));
+        assertThrows(NopAiAgentException.class, () -> rt.createActor(null, "g"));
+        assertThrows(NopAiAgentException.class, () -> rt.createActor("", "g"));
     }
 
     @Test
     void createActorNullAgentNameThrows() {
         InMemoryActorRuntime rt = newRuntime(new HashMap<>());
-        assertThrows(IllegalArgumentException.class, () -> rt.createActor("s", null));
-        assertThrows(IllegalArgumentException.class, () -> rt.createActor("s", ""));
+        assertThrows(NopAiAgentException.class, () -> rt.createActor("s", null));
+        assertThrows(NopAiAgentException.class, () -> rt.createActor("s", ""));
     }
 
     @Test

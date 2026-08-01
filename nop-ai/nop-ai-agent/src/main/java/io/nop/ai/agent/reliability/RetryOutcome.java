@@ -1,5 +1,8 @@
 package io.nop.ai.agent.reliability;
 
+import io.nop.ai.agent.NopAiAgentErrors;
+import io.nop.ai.agent.engine.NopAiAgentException;
+
 /**
  * Immutable outcome of {@link IRetryPolicy#shouldRetry(RetryContext)}
  * (design {@code nop-ai-agent-llm-layer.md} §7.2 / plan 207 / L3-2).
@@ -24,10 +27,12 @@ public final class RetryOutcome {
 
     public RetryOutcome(RetryDecision decision, long delayMs) {
         if (decision == null) {
-            throw new IllegalArgumentException("RetryOutcome decision must not be null");
+            throw new NopAiAgentException(NopAiAgentErrors.ERR_AI_AGENT_INVALID_ARG)
+                    .param(NopAiAgentErrors.ARG_MSG, "RetryOutcome decision must not be null");
         }
         if (delayMs < 0) {
-            throw new IllegalArgumentException("RetryOutcome delayMs must not be negative: " + delayMs);
+            throw new NopAiAgentException(NopAiAgentErrors.ERR_AI_AGENT_INVALID_ARG)
+                    .param(NopAiAgentErrors.ARG_MSG, "RetryOutcome delayMs must not be negative: " + delayMs);
         }
         this.decision = decision;
         this.delayMs = delayMs;

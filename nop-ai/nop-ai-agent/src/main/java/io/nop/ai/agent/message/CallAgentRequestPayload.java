@@ -1,5 +1,8 @@
 package io.nop.ai.agent.message;
 
+import io.nop.ai.agent.NopAiAgentErrors;
+import io.nop.ai.agent.engine.NopAiAgentException;
+
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
@@ -42,7 +45,7 @@ public final class CallAgentRequestPayload {
     public CallAgentRequestPayload(String targetAgentId, String input, String resolvedSessionId,
                                    Map<String, Object> parentConstraintMetadata, long timeoutMs) {
         if (targetAgentId == null || targetAgentId.isEmpty()) {
-            throw new IllegalArgumentException(
+            throw new NopAiAgentException(NopAiAgentErrors.ERR_AI_AGENT_INVALID_ARG).param(NopAiAgentErrors.ARG_MSG,
                     "CallAgentRequestPayload: targetAgentId must not be null or empty");
         }
         this.targetAgentId = targetAgentId;

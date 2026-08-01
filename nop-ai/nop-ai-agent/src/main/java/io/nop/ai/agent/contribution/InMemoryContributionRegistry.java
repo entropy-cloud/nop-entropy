@@ -1,5 +1,6 @@
 package io.nop.ai.agent.contribution;
 
+import io.nop.ai.agent.NopAiAgentErrors;
 import io.nop.ai.agent.engine.NopAiAgentException;
 
 import java.util.ArrayList;
@@ -78,7 +79,8 @@ public class InMemoryContributionRegistry implements IContributionRegistry {
     @Override
     public boolean register(Contribution contribution) {
         if (contribution == null) {
-            throw new IllegalArgumentException("register: contribution must not be null");
+            throw new NopAiAgentException(NopAiAgentErrors.ERR_AI_AGENT_INVALID_ARG)
+                    .param(NopAiAgentErrors.ARG_MSG, "register: contribution must not be null");
         }
         Map<String, Contribution> inner = byType.computeIfAbsent(contribution.getType(), k -> new LinkedHashMap<>());
 

@@ -1,5 +1,6 @@
 package io.nop.ai.agent.message;
 
+import io.nop.ai.agent.engine.NopAiAgentException;
 import org.junit.jupiter.api.Test;
 
 import java.util.ArrayList;
@@ -242,12 +243,12 @@ public class TestDeferredAckMailbox {
 
     @Test
     void constructorRejectsZeroMaxAttempts() {
-        assertThrows(IllegalArgumentException.class, () -> new DeferredAckMailbox(0, 0));
+        assertThrows(NopAiAgentException.class, () -> new DeferredAckMailbox(0, 0));
     }
 
     @Test
     void constructorRejectsNegativeMaxAttempts() {
-        assertThrows(IllegalArgumentException.class, () -> new DeferredAckMailbox(0, -1));
+        assertThrows(NopAiAgentException.class, () -> new DeferredAckMailbox(0, -1));
     }
 
     @Test

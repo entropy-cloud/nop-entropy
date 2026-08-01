@@ -6,6 +6,7 @@ import io.nop.ai.agent.engine.AgentMessageRequest;
 import io.nop.ai.agent.engine.AgentToolExecuteContext;
 import io.nop.ai.agent.engine.DefaultAgentEngine;
 import io.nop.ai.agent.engine.IAgentEngine;
+import io.nop.ai.agent.engine.NopAiAgentException;
 import io.nop.ai.agent.message.AgentMessageEnvelope;
 import io.nop.ai.agent.message.AgentMessageKind;
 import io.nop.ai.agent.message.AgentMessageTopics;
@@ -121,9 +122,9 @@ public class TestCallAgentAsyncMailbox {
 
     @Test
     void requestPayloadRejectsBlankTargetAgentId() {
-        assertThrows(IllegalArgumentException.class,
+        assertThrows(NopAiAgentException.class,
                 () -> new CallAgentRequestPayload(null, "x", null, null, 1L));
-        assertThrows(IllegalArgumentException.class,
+        assertThrows(NopAiAgentException.class,
                 () -> new CallAgentRequestPayload("", "x", null, null, 1L));
     }
 
@@ -145,9 +146,9 @@ public class TestCallAgentAsyncMailbox {
 
     @Test
     void responsePayloadRejectsBlankStatus() {
-        assertThrows(IllegalArgumentException.class,
+        assertThrows(NopAiAgentException.class,
                 () -> new CallAgentResponsePayload(null, null, null, null));
-        assertThrows(IllegalArgumentException.class,
+        assertThrows(NopAiAgentException.class,
                 () -> new CallAgentResponsePayload("", null, null, null));
     }
 

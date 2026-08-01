@@ -4,6 +4,7 @@ import io.nop.ai.agent.engine.AgentExecutionResult;
 import io.nop.ai.agent.engine.AgentMessageRequest;
 import io.nop.ai.agent.engine.DefaultAgentEngine;
 import io.nop.ai.agent.engine.AgentExecutionContext;
+import io.nop.ai.agent.engine.NopAiAgentException;
 import io.nop.ai.agent.message.AgentMessageEnvelope;
 import io.nop.ai.agent.message.AgentMessageKind;
 import io.nop.ai.agent.message.DeferredAckMailbox;
@@ -148,13 +149,13 @@ public class TestSteeringInjection {
     }
 
     /**
-     * enqueueSteering(null) throws IllegalArgumentException (null defence).
+     * enqueueSteering(null) throws NopAiAgentException (null defence).
      */
     @Test
     void enqueueSteeringNullThrows() {
         AgentExecutionContext ctx = new AgentExecutionContext(new AgentModel());
         org.junit.jupiter.api.Assertions.assertThrows(
-                IllegalArgumentException.class,
+                NopAiAgentException.class,
                 () -> ctx.enqueueSteering(null));
     }
 

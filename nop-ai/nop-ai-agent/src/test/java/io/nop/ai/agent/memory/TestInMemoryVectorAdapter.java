@@ -1,5 +1,6 @@
 package io.nop.ai.agent.memory;
 
+import io.nop.ai.agent.engine.NopAiAgentException;
 import org.junit.jupiter.api.Test;
 
 import java.util.Arrays;
@@ -131,7 +132,7 @@ public class TestInMemoryVectorAdapter {
         // Exercised through InMemoryVectorAdapter.cosine directly (the path the
         // adapter uses internally when search gets a query of a different length
         // than an indexed vector).
-        assertThrows(IllegalArgumentException.class,
+        assertThrows(NopAiAgentException.class,
                 () -> InMemoryVectorAdapter.cosine(new double[]{1.0, 0.0}, new double[]{1.0}));
         // sanity: same-length comparison works
         assertEquals(1.0, InMemoryVectorAdapter.cosine(unit(1.0, 0.0), unit(1.0, 0.0)), 1e-9);

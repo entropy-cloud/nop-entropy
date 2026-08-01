@@ -374,17 +374,17 @@ public class TestDefaultTeamTaskRecoveryHandler {
 
     @Test
     void failFastOnNonPositiveTimeout() {
-        assertThrows(IllegalArgumentException.class,
+        assertThrows(NopAiAgentException.class,
                 () -> new DefaultTeamTaskRecoveryHandler(dataSource, 0L, TeamTaskRecoveryAction.RECLAIM),
                 "taskTimeoutSeconds <= 0 must fail-fast");
-        assertThrows(IllegalArgumentException.class,
+        assertThrows(NopAiAgentException.class,
                 () -> new DefaultTeamTaskRecoveryHandler(dataSource, -1L, TeamTaskRecoveryAction.RECLAIM),
                 "taskTimeoutSeconds <= 0 must fail-fast");
     }
 
     @Test
     void failFastOnSkipAction() {
-        assertThrows(IllegalArgumentException.class,
+        assertThrows(NopAiAgentException.class,
                 () -> new DefaultTeamTaskRecoveryHandler(dataSource, 60L, TeamTaskRecoveryAction.SKIP),
                 "SKIP action must fail-fast (use NoOpTeamTaskRecoveryHandler directly)");
     }

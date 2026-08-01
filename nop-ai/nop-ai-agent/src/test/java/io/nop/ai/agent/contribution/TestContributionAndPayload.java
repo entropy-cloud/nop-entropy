@@ -1,5 +1,6 @@
 package io.nop.ai.agent.contribution;
 
+import io.nop.ai.agent.engine.NopAiAgentException;
 import io.nop.ai.agent.hook.AgentLifecyclePoint;
 import io.nop.ai.agent.hook.HookResult;
 import io.nop.ai.agent.hook.IAgentLifecycleHook;
@@ -14,23 +15,23 @@ public class TestContributionAndPayload {
 
     @Test
     void contributionRejectsNullType() {
-        assertThrows(IllegalArgumentException.class,
+        assertThrows(NopAiAgentException.class,
                 () -> new Contribution(null, "id", "src", 0, "payload"));
     }
 
     @Test
     void contributionRejectsNullOrEmptyId() {
-        assertThrows(IllegalArgumentException.class,
+        assertThrows(NopAiAgentException.class,
                 () -> new Contribution(ContributionType.PROMPT, null, "src", 0, "p"));
-        assertThrows(IllegalArgumentException.class,
+        assertThrows(NopAiAgentException.class,
                 () -> new Contribution(ContributionType.PROMPT, "", "src", 0, "p"));
     }
 
     @Test
     void contributionRejectsNullOrEmptySource() {
-        assertThrows(IllegalArgumentException.class,
+        assertThrows(NopAiAgentException.class,
                 () -> new Contribution(ContributionType.PROMPT, "id", null, 0, "p"));
-        assertThrows(IllegalArgumentException.class,
+        assertThrows(NopAiAgentException.class,
                 () -> new Contribution(ContributionType.PROMPT, "id", "", 0, "p"));
     }
 
@@ -62,13 +63,13 @@ public class TestContributionAndPayload {
 
     @Test
     void hookPayloadRejectsNullPoint() {
-        assertThrows(IllegalArgumentException.class,
+        assertThrows(NopAiAgentException.class,
                 () -> new HookPayload(null, ctx -> HookResult.PassResult.instance()));
     }
 
     @Test
     void hookPayloadRejectsNullHook() {
-        assertThrows(IllegalArgumentException.class,
+        assertThrows(NopAiAgentException.class,
                 () -> new HookPayload(AgentLifecyclePoint.PRE_CALL, null));
     }
 

@@ -1,5 +1,8 @@
 package io.nop.ai.agent.security;
 
+import io.nop.ai.agent.NopAiAgentErrors;
+import io.nop.ai.agent.engine.NopAiAgentException;
+
 import java.util.Objects;
 
 /**
@@ -68,16 +71,20 @@ public final class SandboxConfig {
         // `!(x > 0)` rejects 0, negatives, AND NaN (NaN comparisons are
         // always false) — a NaN core quota must not silently pass.
         if (!(this.cpuCores > 0)) {
-            throw new IllegalArgumentException("cpuCores must be > 0: " + this.cpuCores);
+            throw new NopAiAgentException(NopAiAgentErrors.ERR_AI_AGENT_INVALID_ARG)
+                    .param(NopAiAgentErrors.ARG_MSG, "cpuCores must be > 0: " + this.cpuCores);
         }
         if (this.memoryMb <= 0) {
-            throw new IllegalArgumentException("memoryMb must be > 0: " + this.memoryMb);
+            throw new NopAiAgentException(NopAiAgentErrors.ERR_AI_AGENT_INVALID_ARG)
+                    .param(NopAiAgentErrors.ARG_MSG, "memoryMb must be > 0: " + this.memoryMb);
         }
         if (this.wallSeconds <= 0) {
-            throw new IllegalArgumentException("wallSeconds must be > 0: " + this.wallSeconds);
+            throw new NopAiAgentException(NopAiAgentErrors.ERR_AI_AGENT_INVALID_ARG)
+                    .param(NopAiAgentErrors.ARG_MSG, "wallSeconds must be > 0: " + this.wallSeconds);
         }
         if (this.maxOutputBytes <= 0) {
-            throw new IllegalArgumentException("maxOutputBytes must be > 0: " + this.maxOutputBytes);
+            throw new NopAiAgentException(NopAiAgentErrors.ERR_AI_AGENT_INVALID_ARG)
+                    .param(NopAiAgentErrors.ARG_MSG, "maxOutputBytes must be > 0: " + this.maxOutputBytes);
         }
     }
 

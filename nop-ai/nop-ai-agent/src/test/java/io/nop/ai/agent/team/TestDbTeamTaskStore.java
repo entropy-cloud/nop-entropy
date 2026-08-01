@@ -500,7 +500,7 @@ public class TestDbTeamTaskStore {
                 () -> store.createTask(null, "s", null, Collections.emptyList(), "c"));
         org.junit.jupiter.api.Assertions.assertThrows(NullPointerException.class,
                 () -> store.createTask("t", null, null, Collections.emptyList(), "c"));
-        org.junit.jupiter.api.Assertions.assertThrows(IllegalArgumentException.class,
+        org.junit.jupiter.api.Assertions.assertThrows(NopAiAgentException.class,
                 () -> store.createTask("t", "", null, Collections.emptyList(), "c"));
     }
 

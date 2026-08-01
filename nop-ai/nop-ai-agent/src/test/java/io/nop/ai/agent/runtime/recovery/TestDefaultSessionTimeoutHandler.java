@@ -332,10 +332,10 @@ public class TestDefaultSessionTimeoutHandler {
     void constructorValidatesArguments() {
         RecordingAgentEngine engine = new RecordingAgentEngine(
                 sid -> CompletableFuture.completedFuture(null));
-        assertThrows(IllegalArgumentException.class,
+        assertThrows(NopAiAgentException.class,
                 () -> new DefaultSessionTimeoutHandler(0L, engine, dataSource, "id"),
                 "timeoutSeconds=0 must fail-fast");
-        assertThrows(IllegalArgumentException.class,
+        assertThrows(NopAiAgentException.class,
                 () -> new DefaultSessionTimeoutHandler(-1L, engine, dataSource, "id"),
                 "negative timeoutSeconds must fail-fast");
         assertThrows(NullPointerException.class,

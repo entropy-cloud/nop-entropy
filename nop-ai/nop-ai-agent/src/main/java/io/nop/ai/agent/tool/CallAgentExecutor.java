@@ -1,9 +1,11 @@
 package io.nop.ai.agent.tool;
 
+import io.nop.ai.agent.NopAiAgentErrors;
 import io.nop.ai.agent.engine.AgentExecutionResult;
 import io.nop.ai.agent.engine.AgentMessageRequest;
 import io.nop.ai.agent.engine.AgentToolExecuteContext;
 import io.nop.ai.agent.engine.IAgentEngine;
+import io.nop.ai.agent.engine.NopAiAgentException;
 import io.nop.ai.agent.message.AgentMessageEnvelope;
 import io.nop.ai.agent.message.AgentMessageKind;
 import io.nop.ai.agent.message.AgentMessageTopics;
@@ -23,6 +25,7 @@ import io.nop.ai.toolkit.model.AiToolCallResult;
 import io.nop.ai.toolkit.model.AiToolError;
 import io.nop.ai.toolkit.model.AiToolOutput;
 import io.nop.api.core.json.JSON;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -122,7 +125,8 @@ public class CallAgentExecutor implements IToolExecutor {
      */
     public void setMaxDelegationDepth(int maxDelegationDepth) {
         if (maxDelegationDepth < 1) {
-            throw new IllegalArgumentException("maxDelegationDepth must be >= 1, got: " + maxDelegationDepth);
+            throw new NopAiAgentException(NopAiAgentErrors.ERR_AI_AGENT_INVALID_ARG)
+                    .param(NopAiAgentErrors.ARG_MSG, "maxDelegationDepth must be >= 1, got: " + maxDelegationDepth);
         }
         this.maxDelegationDepth = maxDelegationDepth;
     }

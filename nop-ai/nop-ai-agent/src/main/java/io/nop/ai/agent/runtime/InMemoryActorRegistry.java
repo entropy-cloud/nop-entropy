@@ -1,5 +1,7 @@
 package io.nop.ai.agent.runtime;
 
+import io.nop.ai.agent.NopAiAgentErrors;
+import io.nop.ai.agent.engine.NopAiAgentException;
 import io.nop.ai.agent.security.ITenantResolver;
 import io.nop.ai.agent.security.NullTenantResolver;
 
@@ -66,7 +68,8 @@ public final class InMemoryActorRegistry implements ActorRegistry {
     @Override
     public void register(AgentActor actor) {
         if (actor == null) {
-            throw new IllegalArgumentException("register: actor must not be null");
+            throw new NopAiAgentException(NopAiAgentErrors.ERR_AI_AGENT_INVALID_ARG)
+                    .param(NopAiAgentErrors.ARG_MSG, "register: actor must not be null");
         }
         // If an actor with the same actorId already exists, clean up its
         // session index entry first (defensive — createActor generates fresh

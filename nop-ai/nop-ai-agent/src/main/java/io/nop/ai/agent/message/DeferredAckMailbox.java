@@ -1,5 +1,8 @@
 package io.nop.ai.agent.message;
 
+import io.nop.ai.agent.NopAiAgentErrors;
+import io.nop.ai.agent.engine.NopAiAgentException;
+
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Deque;
@@ -74,7 +77,7 @@ public final class DeferredAckMailbox implements IMailbox {
      */
     public DeferredAckMailbox(int capacity, int maxDeliveryAttempts) {
         if (maxDeliveryAttempts < 1) {
-            throw new IllegalArgumentException(
+            throw new NopAiAgentException(NopAiAgentErrors.ERR_AI_AGENT_INVALID_ARG).param(NopAiAgentErrors.ARG_MSG,
                     "DeferredAckMailbox: maxDeliveryAttempts must be >= 1, got " + maxDeliveryAttempts);
         }
         this.capacity = capacity;

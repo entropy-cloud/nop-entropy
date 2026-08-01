@@ -18,6 +18,17 @@ import static io.nop.api.core.exceptions.ErrorCode.define;
 public interface NopAiAgentErrors {
 
     String ARG_MODE = "mode";
+    String ARG_MSG = "msg";
+
+    // ========================================================================
+    // P3-MA3-1: bare IllegalArgumentException validation guards (plan
+    // 2026-08-01-0936-1). All 62 historical IAE throw sites converted to
+    // NopAiAgentException carrying this code; the verbatim English message is
+    // carried via {msg} so getMessage() semantics are unchanged.
+    // ========================================================================
+
+    ErrorCode ERR_AI_AGENT_INVALID_ARG =
+            define("nop.err.ai.agent.invalid-arg", "invalid argument: {msg}", ARG_MSG);
 
     // ========================================================================
     // IAgentEngine default methods (Phase 2 capabilities, fail-fast)

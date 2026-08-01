@@ -1,5 +1,6 @@
 package io.nop.ai.agent.team;
 
+import io.nop.ai.agent.engine.NopAiAgentException;
 import org.junit.jupiter.api.Test;
 
 import java.util.Arrays;
@@ -139,7 +140,7 @@ public class TestInMemoryTeamTaskStore {
     @Test
     void emptySubjectThrows() {
         InMemoryTeamTaskStore store = new InMemoryTeamTaskStore();
-        assertThrows(IllegalArgumentException.class,
+        assertThrows(NopAiAgentException.class,
                 () -> store.createTask("team-1", "", null, Collections.emptyList(), "caller"));
     }
 

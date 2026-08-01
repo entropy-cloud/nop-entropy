@@ -1,5 +1,8 @@
 package io.nop.ai.agent.reliability;
 
+import io.nop.ai.agent.NopAiAgentErrors;
+import io.nop.ai.agent.engine.NopAiAgentException;
+
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
@@ -83,11 +86,11 @@ public final class ThresholdBreaker implements ICircuitBreaker {
      */
     public ThresholdBreaker(int failureThreshold, long cooldownMs) {
         if (failureThreshold < 1) {
-            throw new IllegalArgumentException(
+            throw new NopAiAgentException(NopAiAgentErrors.ERR_AI_AGENT_INVALID_ARG).param(NopAiAgentErrors.ARG_MSG,
                     "ThresholdBreaker failureThreshold must be >= 1: " + failureThreshold);
         }
         if (cooldownMs < 0) {
-            throw new IllegalArgumentException(
+            throw new NopAiAgentException(NopAiAgentErrors.ERR_AI_AGENT_INVALID_ARG).param(NopAiAgentErrors.ARG_MSG,
                     "ThresholdBreaker cooldownMs must be >= 0: " + cooldownMs);
         }
         this.failureThreshold = failureThreshold;
@@ -105,7 +108,7 @@ public final class ThresholdBreaker implements ICircuitBreaker {
     @Override
     public boolean allowCall(String modelKey) {
         if (modelKey == null) {
-            throw new IllegalArgumentException("modelKey must not be null");
+            throw new NopAiAgentException(NopAiAgentErrors.ERR_AI_AGENT_INVALID_ARG).param(NopAiAgentErrors.ARG_MSG, "modelKey must not be null");
         }
         BreakerEntry entry = entries.computeIfAbsent(modelKey, k -> new BreakerEntry());
         synchronized (entry) {
@@ -139,7 +142,7 @@ public final class ThresholdBreaker implements ICircuitBreaker {
     @Override
     public CircuitState getState(String modelKey) {
         if (modelKey == null) {
-            throw new IllegalArgumentException("modelKey must not be null");
+            throw new NopAiAgentException(NopAiAgentErrors.ERR_AI_AGENT_INVALID_ARG).param(NopAiAgentErrors.ARG_MSG, "modelKey must not be null");
         }
         BreakerEntry entry = entries.get(modelKey);
         // An untracked model-key has never recorded any outcome → CLOSED.
@@ -149,7 +152,7 @@ public final class ThresholdBreaker implements ICircuitBreaker {
     @Override
     public void recordSuccess(String modelKey) {
         if (modelKey == null) {
-            throw new IllegalArgumentException("modelKey must not be null");
+            throw new NopAiAgentException(NopAiAgentErrors.ERR_AI_AGENT_INVALID_ARG).param(NopAiAgentErrors.ARG_MSG, "modelKey must not be null");
         }
         BreakerEntry entry = entries.get(modelKey);
         if (entry == null) {
@@ -184,7 +187,7 @@ public final class ThresholdBreaker implements ICircuitBreaker {
     @Override
     public void recordFailure(String modelKey) {
         if (modelKey == null) {
-            throw new IllegalArgumentException("modelKey must not be null");
+            throw new NopAiAgentException(NopAiAgentErrors.ERR_AI_AGENT_INVALID_ARG).param(NopAiAgentErrors.ARG_MSG, "modelKey must not be null");
         }
         BreakerEntry entry = entries.computeIfAbsent(modelKey, k -> new BreakerEntry());
         long now = System.currentTimeMillis();

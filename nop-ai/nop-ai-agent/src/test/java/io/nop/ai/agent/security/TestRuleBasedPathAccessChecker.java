@@ -270,7 +270,7 @@ public class TestRuleBasedPathAccessChecker {
                 "Empty rules → delegate's decision stands");
     }
 
-    // ---- (h) null constructor args → IllegalArgumentException ----
+    // ---- (h) null constructor args → NopAiAgentException ----
 
     @Test
     void constructorRejectsNullRules() {

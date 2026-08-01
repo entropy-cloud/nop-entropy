@@ -1,5 +1,8 @@
 package io.nop.ai.agent.reliability;
 
+import io.nop.ai.agent.NopAiAgentErrors;
+import io.nop.ai.agent.engine.NopAiAgentException;
+
 /**
  * Retry context passed to {@link IRetryPolicy#shouldRetry(RetryContext)}
  * (design {@code nop-ai-agent-llm-layer.md} §7.2 / plan 207 / L3-2).
@@ -42,10 +45,12 @@ public final class RetryContext {
                         ErrorClassification errorClassification,
                         boolean hasStreamedContent) {
         if (attempt < 0) {
-            throw new IllegalArgumentException("RetryContext attempt must not be negative: " + attempt);
+            throw new NopAiAgentException(NopAiAgentErrors.ERR_AI_AGENT_INVALID_ARG)
+                    .param(NopAiAgentErrors.ARG_MSG, "RetryContext attempt must not be negative: " + attempt);
         }
         if (errorClassification == null) {
-            throw new IllegalArgumentException("RetryContext errorClassification must not be null");
+            throw new NopAiAgentException(NopAiAgentErrors.ERR_AI_AGENT_INVALID_ARG)
+                    .param(NopAiAgentErrors.ARG_MSG, "RetryContext errorClassification must not be null");
         }
         this.attempt = attempt;
         this.lastError = lastError;

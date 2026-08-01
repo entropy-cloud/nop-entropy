@@ -1,5 +1,8 @@
 package io.nop.ai.agent.team;
 
+import io.nop.ai.agent.NopAiAgentErrors;
+import io.nop.ai.agent.engine.NopAiAgentException;
+
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -61,7 +64,7 @@ public final class InMemoryTeamTaskStore implements ITeamTaskStore {
         Objects.requireNonNull(blockedBy, "blockedBy");
         Objects.requireNonNull(createdBy, "createdBy");
         if (subject.isEmpty()) {
-            throw new IllegalArgumentException(
+            throw new NopAiAgentException(NopAiAgentErrors.ERR_AI_AGENT_INVALID_ARG).param(NopAiAgentErrors.ARG_MSG,
                     "InMemoryTeamTaskStore.createTask: subject must not be empty");
         }
 

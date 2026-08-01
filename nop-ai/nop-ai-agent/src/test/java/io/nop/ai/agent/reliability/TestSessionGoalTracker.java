@@ -1,5 +1,6 @@
 package io.nop.ai.agent.reliability;
 
+import io.nop.ai.agent.engine.NopAiAgentException;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
@@ -30,10 +31,10 @@ public class TestSessionGoalTracker {
 
     @Test
     void constructorRejectsInvalidArguments() {
-        assertThrows(IllegalArgumentException.class,
+        assertThrows(NopAiAgentException.class,
                 () -> new SessionGoalTracker(0, 3),
                 "windowSize must be >= 1");
-        assertThrows(IllegalArgumentException.class,
+        assertThrows(NopAiAgentException.class,
                 () -> new SessionGoalTracker(5, 0),
                 "stuckThreshold must be >= 1");
     }

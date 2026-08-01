@@ -29,7 +29,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  *     <li>PRESENT with empty roots → all paths denied (maximum restriction)</li>
  *     <li>Root-matching edge cases: path == root, relative path resolution, trailing slash, normalization</li>
  *     <li>Denial reason explicitly identifies "parent path permission constraint" and the parent agent</li>
- *     <li>Constructor null-args fail-fast with IllegalArgumentException</li>
+ *     <li>Constructor null-args fail-fast with NopAiAgentException</li>
  * </ul>
  */
 public class TestParentConstrainedPathAccessChecker {

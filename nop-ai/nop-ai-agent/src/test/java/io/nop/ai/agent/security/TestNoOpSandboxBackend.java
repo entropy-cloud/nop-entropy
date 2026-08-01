@@ -1,5 +1,6 @@
 package io.nop.ai.agent.security;
 
+import io.nop.ai.agent.engine.NopAiAgentException;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 import org.junit.jupiter.api.condition.EnabledOnOs;
@@ -213,7 +214,7 @@ public class TestNoOpSandboxBackend {
     void emptyCommandFailsFast() {
         // SandboxRequest itself rejects an empty command list at build time
         // (defence in depth at the data-object layer).
-        assertThrows(IllegalArgumentException.class, () ->
+        assertThrows(NopAiAgentException.class, () ->
                         SandboxRequest.builder()
                                 .command(List.of())
                                 .config(SandboxConfig.defaults())
@@ -245,22 +246,22 @@ public class TestNoOpSandboxBackend {
 
     @Test
     void sandboxConfigRejectsNonPositiveLimits() {
-        assertThrows(IllegalArgumentException.class,
+        assertThrows(NopAiAgentException.class,
                 () -> SandboxConfig.builder().wallSeconds(0).build(),
                 "wallSeconds=0 must be rejected");
-        assertThrows(IllegalArgumentException.class,
+        assertThrows(NopAiAgentException.class,
                 () -> SandboxConfig.builder().cpuCores(-1).build(),
                 "cpuCores<0 must be rejected");
-        assertThrows(IllegalArgumentException.class,
+        assertThrows(NopAiAgentException.class,
                 () -> SandboxConfig.builder().cpuCores(0).build(),
                 "cpuCores=0 must be rejected");
-        assertThrows(IllegalArgumentException.class,
+        assertThrows(NopAiAgentException.class,
                 () -> SandboxConfig.builder().cpuCores(Double.NaN).build(),
                 "cpuCores=NaN must be rejected");
-        assertThrows(IllegalArgumentException.class,
+        assertThrows(NopAiAgentException.class,
                 () -> SandboxConfig.builder().memoryMb(0).build(),
                 "memoryMb=0 must be rejected");
-        assertThrows(IllegalArgumentException.class,
+        assertThrows(NopAiAgentException.class,
                 () -> SandboxConfig.builder().maxOutputBytes(0).build(),
                 "maxOutputBytes=0 must be rejected");
     }

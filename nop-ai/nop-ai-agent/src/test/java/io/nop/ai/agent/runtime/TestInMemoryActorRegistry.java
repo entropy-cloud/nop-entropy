@@ -1,5 +1,6 @@
 package io.nop.ai.agent.runtime;
 
+import io.nop.ai.agent.engine.NopAiAgentException;
 import org.junit.jupiter.api.Test;
 
 import java.util.Collection;
@@ -143,6 +144,6 @@ public class TestInMemoryActorRegistry {
     @Test
     void registerNullThrows() {
         InMemoryActorRegistry reg = new InMemoryActorRegistry();
-        assertThrows(IllegalArgumentException.class, () -> reg.register(null));
+        assertThrows(NopAiAgentException.class, () -> reg.register(null));
     }
 }

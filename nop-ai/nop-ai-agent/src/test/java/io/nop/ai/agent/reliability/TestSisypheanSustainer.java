@@ -1,5 +1,6 @@
 package io.nop.ai.agent.reliability;
 
+import io.nop.ai.agent.engine.NopAiAgentException;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -31,7 +32,7 @@ public class TestSisypheanSustainer {
 
     @Test
     void negativeMaxSustainCountRejected() {
-        assertThrows(IllegalArgumentException.class, () -> new SisypheanSustainer(-1),
+        assertThrows(NopAiAgentException.class, () -> new SisypheanSustainer(-1),
                 "Negative maxSustainCount must be rejected");
     }
 
@@ -167,7 +168,7 @@ public class TestSisypheanSustainer {
     @Test
     void nullContextRejected() {
         SisypheanSustainer s = new SisypheanSustainer();
-        assertThrows(IllegalArgumentException.class, () -> s.onStop(null),
+        assertThrows(NopAiAgentException.class, () -> s.onStop(null),
                 "onStop(null) must be rejected");
     }
 }

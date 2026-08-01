@@ -1,5 +1,7 @@
 package io.nop.ai.agent.contribution;
 
+import io.nop.ai.agent.NopAiAgentErrors;
+import io.nop.ai.agent.engine.NopAiAgentException;
 import io.nop.ai.agent.hook.AgentLifecyclePoint;
 import io.nop.ai.agent.hook.IAgentLifecycleHook;
 
@@ -41,13 +43,16 @@ public final class Contribution {
 
     public Contribution(ContributionType type, String id, String source, int priority, Object payload) {
         if (type == null) {
-            throw new IllegalArgumentException("Contribution: type must not be null");
+            throw new NopAiAgentException(NopAiAgentErrors.ERR_AI_AGENT_INVALID_ARG)
+                    .param(NopAiAgentErrors.ARG_MSG, "Contribution: type must not be null");
         }
         if (id == null || id.isEmpty()) {
-            throw new IllegalArgumentException("Contribution: id must not be null or empty");
+            throw new NopAiAgentException(NopAiAgentErrors.ERR_AI_AGENT_INVALID_ARG)
+                    .param(NopAiAgentErrors.ARG_MSG, "Contribution: id must not be null or empty");
         }
         if (source == null || source.isEmpty()) {
-            throw new IllegalArgumentException("Contribution: source must not be null or empty");
+            throw new NopAiAgentException(NopAiAgentErrors.ERR_AI_AGENT_INVALID_ARG)
+                    .param(NopAiAgentErrors.ARG_MSG, "Contribution: source must not be null or empty");
         }
         this.type = type;
         this.id = id;

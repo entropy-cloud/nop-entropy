@@ -1,5 +1,6 @@
 package io.nop.ai.agent.team.flow;
 
+import io.nop.ai.agent.NopAiAgentErrors;
 import io.nop.ai.agent.engine.IAgentEngine;
 import io.nop.ai.agent.engine.NopAiAgentException;
 import io.nop.ai.agent.team.ITeamTaskStore;
@@ -8,6 +9,7 @@ import io.nop.ai.agent.team.TeamTaskStatus;
 import io.nop.task.ITaskStepRuntime;
 import io.nop.task.TaskStepReturn;
 import io.nop.task.step.AbstractTaskStep;
+
 import jakarta.annotation.Nonnull;
 
 import java.util.ArrayList;
@@ -113,12 +115,12 @@ public class BoundMemberFanOutStep extends AbstractTaskStep {
         this.capturedTenant = capturedTenant;
         this.reductionStrategy = reductionStrategy;
         if (this.boundTargets.isEmpty()) {
-            throw new IllegalArgumentException(
+            throw new NopAiAgentException(NopAiAgentErrors.ERR_AI_AGENT_INVALID_ARG).param(NopAiAgentErrors.ARG_MSG,
                     "BoundMemberFanOutStep requires at least one bound target — the orchestrator must pre-check the empty plan as an honest failure");
         }
         for (DispatchTarget t : this.boundTargets) {
             if (!t.isBound()) {
-                throw new IllegalArgumentException(
+                throw new NopAiAgentException(NopAiAgentErrors.ERR_AI_AGENT_INVALID_ARG).param(NopAiAgentErrors.ARG_MSG,
                         "BoundMemberFanOutStep accepts only BOUND targets; got " + t.getKind()
                                 + " for memberName=" + t.getMemberName());
             }

@@ -1,5 +1,8 @@
 package io.nop.ai.agent.message;
 
+import io.nop.ai.agent.NopAiAgentErrors;
+import io.nop.ai.agent.engine.NopAiAgentException;
+
 import java.util.Objects;
 
 /**
@@ -35,7 +38,7 @@ public final class CallAgentResponsePayload {
 
     public CallAgentResponsePayload(String status, String sessionId, String finalMessage, String error) {
         if (status == null || status.isEmpty()) {
-            throw new IllegalArgumentException(
+            throw new NopAiAgentException(NopAiAgentErrors.ERR_AI_AGENT_INVALID_ARG).param(NopAiAgentErrors.ARG_MSG,
                     "CallAgentResponsePayload: status must not be null or empty");
         }
         this.status = status;

@@ -1,5 +1,6 @@
 package io.nop.ai.agent.conflict;
 
+import io.nop.ai.agent.engine.NopAiAgentException;
 import org.junit.jupiter.api.Test;
 
 import java.util.ArrayList;
@@ -126,14 +127,14 @@ public class TestInMemoryWriteIntentRegistry {
     @Test
     void registerRejectsNullIntent() {
         InMemoryWriteIntentRegistry registry = new InMemoryWriteIntentRegistry();
-        assertThrows(IllegalArgumentException.class,
+        assertThrows(NopAiAgentException.class,
                 () -> registry.registerAndGetConflicting(null));
     }
 
     @Test
     void registerRejectsNullFilePath() {
         InMemoryWriteIntentRegistry registry = new InMemoryWriteIntentRegistry();
-        assertThrows(IllegalArgumentException.class,
+        assertThrows(NopAiAgentException.class,
                 () -> registry.registerAndGetConflicting(new WriteIntent("s1", "a", null, "op", 1L)));
     }
 

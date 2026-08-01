@@ -1,9 +1,11 @@
 package io.nop.ai.agent.team;
 
+import io.nop.ai.agent.NopAiAgentErrors;
 import io.nop.ai.agent.engine.NopAiAgentException;
 import io.nop.ai.agent.security.ITenantResolver;
 import io.nop.ai.agent.security.NullTenantResolver;
 import io.nop.ai.agent.security.TenantSql;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -201,7 +203,7 @@ public class DbTeamTaskStore implements ITeamTaskStore {
         Objects.requireNonNull(blockedBy, "blockedBy");
         Objects.requireNonNull(createdBy, "createdBy");
         if (subject.isEmpty()) {
-            throw new IllegalArgumentException(
+            throw new NopAiAgentException(NopAiAgentErrors.ERR_AI_AGENT_INVALID_ARG).param(NopAiAgentErrors.ARG_MSG,
                     "DbTeamTaskStore.createTask: subject must not be empty");
         }
 
