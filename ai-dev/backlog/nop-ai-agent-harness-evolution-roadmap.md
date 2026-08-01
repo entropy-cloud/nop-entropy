@@ -10,6 +10,7 @@
 - [x] W1-2 plan-dsl：任务依赖增加 Trigger Rule（all_success/one_success/none_failed_min_one_success/all_done）
 - [x] W1-3 plan-dsl：AgentPlanTaskModel 增加 dependsOn（DAG 依赖，nop-task GraphStepAnalyzer 环检测）
 - [ ] W1-4 plan 运行时：PlanReplanner（停滞检测 → 阶段回退/任务拆分/失败升级，幂等决策）
+  - **partial-landing（2026-08-01，plan `2026-08-01-1505-2`）**：停滞检测 + 幂等 replan 决策契约 + ESCALATE/CONTINUE 运行时已落地（`PlanExecutor` 宿主 + `StagnationDetector` + `PlanReplanner`）；design §14.4 补齐。**但 ROLLBACK_PHASE（阶段回退）/ SPLIT_TASK（任务拆分）运行时明确延后 successor plan**——故 W1-4 完整勾选须等 successor。本项保持 `[ ]`。
 - 参考：`2026-08-01-codewhale-workflow-ir-gate-analysis.md`、`2026-08-01-archon-yaml-dag-workflow-analysis.md`、`2026-08-01-jcode-dag-first-agent-analysis.md`、`2026-08-01-spec-kit-workflow-engine-analysis.md`
 
 ### W2e. LLM 错误规范化与配额感知恢复（W2 前置必须项）

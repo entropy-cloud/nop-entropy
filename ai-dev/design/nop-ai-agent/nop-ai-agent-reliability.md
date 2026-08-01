@@ -724,6 +724,8 @@ nop reliability 重试不区分失败类型。增加（对标 mission-control �
 | 停滞失败（无进展） | stale_task_max_retries | hive stall 检测借鉴 |
 | 基础设施失败（provider/工具不可用） | max_dispatch_retries | ThresholdBreaker |
 
+> **与 W1-4 PlanReplanner 的边界（2026-08-01 reconcile）**：本节三级失败升级作用**单次 task attempt 内**（dispatch 层质量/停滞/基础设施失败）。W1-4 PlanReplanner（`nop-ai-agent-plan-dsl.md` §14.4）作用**多次 attempt/cycle 累积后的 plan/phase/task 级停滞**（gate 耗尽、task 不推进）。两者互补不重叠：本节的失败信号是 W1-4 `REPEATED_ERRORS` 信号的聚合输入源；W1-4 不重实现单 attempt 重试（本节/L3 职责）。详见 `nop-ai-agent-plan-dsl.md` §14.4.5。
+
 ### 13.4 有序故障转移队列（中优先）
 
 nop ThresholdBreaker 是单 provider 维度。增加跨 provider failover（对标 cc-switch）：

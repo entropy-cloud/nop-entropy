@@ -1,6 +1,6 @@
 # nop-ai-agent PlanReplanner 设计与最小首切（W1-4）
 
-> Plan Status: active
+> Plan Status: completed
 > Mission: nop-ai-agent-harness-evolution
 > Work Item: W1-4（PlanReplanner 运行时：停滞检测 → 阶段回退/任务拆分/失败升级，幂等决策）
 > Last Reviewed: 2026-08-01
@@ -76,70 +76,70 @@
 
 ### Phase 1 - §14.4 design 补齐 + host-runtime 架构裁定（Decision）
 
-Status: planned
+Status: completed
 Targets: `ai-dev/design/nop-ai-agent/nop-ai-agent-plan-dsl.md`（§14.4 `:483-490` 补齐算法；§14.5 host 裁定）、`ai-dev/design/nop-ai-agent/nop-ai-agent-reliability.md`（§13.3 与本计划边界 reconcile）
 
 - Item Types: `Decision`
 
-- [ ] **裁定 host-runtime**：在今日无 plan 执行器前提下，裁定 replanner 挂载方式（i 最小 plan 执行器消费 `PlanRunner.checkGate`+`PlanScheduler.getReadyTasks` / ii §14.5 nop-task 迁移 / iii 挂载现有 ReAct/引擎循环）。含理由 + 对 Phase 2 最小首切的影响。须正视 `PlanRunner`/`PlanScheduler` 产出今日无人消费、且引擎无 phase-transition hook（iii 实际塌缩为 i）这一事实。
-- [ ] **定义停滞输入信号集**：plan/phase/task 级"无进展"的可观测信号——候选：gate `RETRY_EXHAUSTED` 计数（`GateCheckResult`）、task 状态连续 N 调度周期不推进（`PlanScheduler.isTerminal`）、同一 `relatedTaskNo` 重复 `AgentPlanError`、ReAct 级 STUCK（`SessionGoalTracker`）限定到单 task。裁定采用哪个/哪些为 plan 级信号（与 ReAct 级 STUCK 区分）。
-- [ ] **定义决策契约**：输入状态 → 输出决策 schema。建议 `ReplanDecision` 枚举 `{CONTINUE, ROLLBACK_PHASE, SPLIT_TASK, ESCALATE, ABORT}` + 决策载荷（目标 phase/task、理由）。定义决策的确定性边界（哪些输入决定输出）。
-- [ ] **定义状态突变语义 + freeze 裁定**：ROLLBACK/SPLIT 如何改 `AgentPlan`（currentPhase/task 状态重置/插入）；裁定可变运行时副本 vs 冻结 xdef 模板（面对 `AbstractComponentModel.freeze()`）。
-- [ ] **定义幂等机制 + checkpoint 交互**：同状态→同决策。定义输入状态 hash（哪些字段参与、时间类信号如何被排除或归一化以保证幂等）。**并裁定 replan 决策/状态突变与 reliability checkpoint 系统的交互**（`reliability/` 全模块是 checkpoint/append-only 驱动）：replan 决策是否入 checkpoint、崩溃/恢复后如何复现幂等决策——否则幂等只在内存成立，crash 后发散。
-- [ ] **reconcile 边界**：(a) W2-3 三级失败升级（`max_aegis_rejections`/`stale_task_max_retries`/`max_dispatch_retries`，§13.3 design-only）与 replan ESCALATE 的归属；(b) security 否认层 `DenialSuggestedStep.REPLAN`（ReAct-loop 否认恢复，与 plan-phase 无关）的区分说明，避免命名/语义混淆。明确哪个归 W1-4、哪个归 W2-3，无重复/冲突。
-- [ ] 回写 design §14.4（补齐 4 pillars + freeze + 幂等 + checkpoint 交互）、§14.5（host 裁定结论）；reliability §13.3 标注与 W1-4 边界。
+- [x] **裁定 host-runtime**：在今日无 plan 执行器前提下，裁定 replanner 挂载方式（i 最小 plan 执行器消费 `PlanRunner.checkGate`+`PlanScheduler.getReadyTasks` / ii §14.5 nop-task 迁移 / iii 挂载现有 ReAct/引擎循环）。含理由 + 对 Phase 2 最小首切的影响。须正视 `PlanRunner`/`PlanScheduler` 产出今日无人消费、且引擎无 phase-transition hook（iii 实际塌缩为 i）这一事实。
+- [x] **定义停滞输入信号集**：plan/phase/task 级"无进展"的可观测信号——候选：gate `RETRY_EXHAUSTED` 计数（`GateCheckResult`）、task 状态连续 N 调度周期不推进（`PlanScheduler.isTerminal`）、同一 `relatedTaskNo` 重复 `AgentPlanError`、ReAct 级 STUCK（`SessionGoalTracker`）限定到单 task。裁定采用哪个/哪些为 plan 级信号（与 ReAct 级 STUCK 区分）。
+- [x] **定义决策契约**：输入状态 → 输出决策 schema。建议 `ReplanDecision` 枚举 `{CONTINUE, ROLLBACK_PHASE, SPLIT_TASK, ESCALATE, ABORT}` + 决策载荷（目标 phase/task、理由）。定义决策的确定性边界（哪些输入决定输出）。
+- [x] **定义状态突变语义 + freeze 裁定**：ROLLBACK/SPLIT 如何改 `AgentPlan`（currentPhase/task 状态重置/插入）；裁定可变运行时副本 vs 冻结 xdef 模板（面对 `AbstractComponentModel.freeze()`）。
+- [x] **定义幂等机制 + checkpoint 交互**：同状态→同决策。定义输入状态 hash（哪些字段参与、时间类信号如何被排除或归一化以保证幂等）。**并裁定 replan 决策/状态突变与 reliability checkpoint 系统的交互**（`reliability/` 全模块是 checkpoint/append-only 驱动）：replan 决策是否入 checkpoint、崩溃/恢复后如何复现幂等决策——否则幂等只在内存成立，crash 后发散。
+- [x] **reconcile 边界**：(a) W2-3 三级失败升级（`max_aegis_rejections`/`stale_task_max_retries`/`max_dispatch_retries`，§13.3 design-only）与 replan ESCALATE 的归属；(b) security 否认层 `DenialSuggestedStep.REPLAN`（ReAct-loop 否认恢复，与 plan-phase 无关）的区分说明，避免命名/语义混淆。明确哪个归 W1-4、哪个归 W2-3，无重复/冲突。
+- [x] 回写 design §14.4（补齐 4 pillars + freeze + 幂等 + checkpoint 交互）、§14.5（host 裁定结论）；reliability §13.3 标注与 W1-4 边界。
 
 Exit Criteria:
 
-- [ ] design §14.4 从"方向 only"补齐为含算法规格的 design：停滞信号集、决策契约（`ReplanDecision` schema）、状态突变+freeze 裁定、幂等+checkpoint 交互均有明确结论
-- [ ] host-runtime 裁定有明确结论（i/ii/iii 之一 + 理由），且正视"`PlanRunner`/`PlanScheduler` 产出今日无人消费、iii 塌缩为 i"事实
-- [ ] **host 裁定已为 Phase 2 设界**（约束见下条 Phase 1 gate）：所选 host 必须使 Phase 2 在单计划内可关闭；若所选 host 的 Phase-2 实现本身是 Out-Of-Scope successor（如 nop-task 迁移），则**禁止选择该 host**；若 i/ii/iii 三选项均需超出单计划范围的执行层，则 Phase 2 须先**再拆为独立的 executor-predecessor plan**，不得直接执行
-- [ ] §13.3/W2-3 + `DenialSuggestedStep.REPLAN` 边界 reconcile 有明确归属（无重复/冲突）
-- [ ] 裁定可在 live repo 验证引用准确：`PlanRunner.checkGate`（`PlanRunner.java:53`）、`PlanScheduler.getReadyTasks`（`:50`）、`GateCheckResult.Outcome`（`:25-49`）、`SessionGoalTracker` STUCK（`:119-141`）、`AbstractComponentModel.freeze()`（`_gen/_AgentPlan.java:752`）路径与行号与 live 一致
-- [ ] design 已 review（独立子 agent 或人）；No owner-doc update beyond design（replanner 尚未成平台用户可见 API）
-- [ ] No new test required: design-only phase（Rule #25）
-- [ ] `ai-dev/logs/2026/08-01.md` 已追加本 phase design 裁定
+- [x] design §14.4 从"方向 only"补齐为含算法规格的 design：停滞信号集、决策契约（`ReplanDecision` schema）、状态突变+freeze 裁定、幂等+checkpoint 交互均有明确结论
+- [x] host-runtime 裁定有明确结论（i/ii/iii 之一 + 理由），且正视"`PlanRunner`/`PlanScheduler` 产出今日无人消费、iii 塌缩为 i"事实
+- [x] **host 裁定已为 Phase 2 设界**（约束见下条 Phase 1 gate）：所选 host 必须使 Phase 2 在单计划内可关闭；若所选 host 的 Phase-2 实现本身是 Out-Of-Scope successor（如 nop-task 迁移），则**禁止选择该 host**；若 i/ii/iii 三选项均需超出单计划范围的执行层，则 Phase 2 须先**再拆为独立的 executor-predecessor plan**，不得直接执行
+- [x] §13.3/W2-3 + `DenialSuggestedStep.REPLAN` 边界 reconcile 有明确归属（无重复/冲突）
+- [x] 裁定可在 live repo 验证引用准确：`PlanRunner.checkGate`（`PlanRunner.java:53`）、`PlanScheduler.getReadyTasks`（`:50`）、`GateCheckResult.Outcome`（`:25-49`）、`SessionGoalTracker` STUCK（`:119-141`）、`AbstractComponentModel.freeze()`（`_gen/_AgentPlan.java:752`）路径与行号与 live 一致
+- [x] design 已 review（独立子 agent 或人）；No owner-doc update beyond design（replanner 尚未成平台用户可见 API）
+- [x] No new test required: design-only phase（Rule #25）
+- [x] `ai-dev/logs/2026/08-01.md` 已追加本 phase design 裁定
 
 ### Phase 2 - 最小首切：停滞检测 + 幂等 replan 决策（design-gated）
 
-Status: planned
+Status: completed
 Targets: 依 Phase 1 host 裁定落点（`io.nop.ai.agent.plan.runtime` 新增执行器/检测器/replanner；或挂载现有引擎循环）；`ai-dev/design/nop-ai-agent/nop-ai-agent-plan-dsl.md`（记录落地的决策子集）
 
 - Item Types: `Fix | Proof`
 
 > **design-gated 且 Phase 1 设界**：本 phase 具体落点由 Phase 1 host 裁定决定，且受 Phase 1 的"host 必须使 Phase 2 单计划可关闭"gate 约束。下列项以"无论 host 如何选都必须成立"的可观测结果表述。
 
-- [ ] 落地 Phase 1 裁定的 host-runtime 落点。**关键**：host 必须**真正推进 plan/phase/task 状态并写 `AgentPlanError`（或等价记录）**——这是停滞检测的输入源；host 不能只发合成/测试事件（否则检测器空转 = hollow）。即 host 负责消费 `PlanRunner.checkGate`/`PlanScheduler.getReadyTasks` 驱动状态机推进 + 记录错误，使停滞输入真实存在
-- [ ] 停滞检测器：消费 host 推进产出的真实状态/错误记录，按 Phase 1 信号集产出结构化停滞事件（含触发信号类型 + 目标 phase/task + 计数）
-- [ ] replanner：消费停滞事件 → 经 Phase 1 决策契约产出 `ReplanDecision`；本 phase 至少 wire **ESCALATE + CONTINUE**（ROLLBACK_PHASE/SPLIT_TASK 决策契约已定义，运行时实现延后 successor，未实现时按 Minimum Rules #24 抛 `UnsupportedOperationException`，不静默跳过）
-- [ ] 幂等：相同停滞状态 → 相同 `ReplanDecision`（按 Phase 1 输入状态 hash）；有测试固化
-- [ ] 端到端测试：加载 plan → host 真实推进 → 注入停滞（如 gate 连续 RETRY_EXHAUSTED / task 不推进，经真实状态机而非合成事件）→ 停滞检测器产出事件 → replanner 产出幂等 ESCALATE → 可观测（状态变 `escalated` / 决策载荷可断言）
+- [x] 落地 Phase 1 裁定的 host-runtime 落点。**关键**：host 必须**真正推进 plan/phase/task 状态并写 `AgentPlanError`（或等价记录）**——这是停滞检测的输入源；host 不能只发合成/测试事件（否则检测器空转 = hollow）。即 host 负责消费 `PlanRunner.checkGate`/`PlanScheduler.getReadyTasks` 驱动状态机推进 + 记录错误，使停滞输入真实存在
+- [x] 停滞检测器：消费 host 推进产出的真实状态/错误记录，按 Phase 1 信号集产出结构化停滞事件（含触发信号类型 + 目标 phase/task + 计数）
+- [x] replanner：消费停滞事件 → 经 Phase 1 决策契约产出 `ReplanDecision`；本 phase 至少 wire **ESCALATE + CONTINUE**（ROLLBACK_PHASE/SPLIT_TASK 决策契约已定义，运行时实现延后 successor，未实现时按 Minimum Rules #24 抛 `UnsupportedOperationException`，不静默跳过）
+- [x] 幂等：相同停滞状态 → 相同 `ReplanDecision`（按 Phase 1 输入状态 hash）；有测试固化
+- [x] 端到端测试：加载 plan → host 真实推进 → 注入停滞（如 gate 连续 RETRY_EXHAUSTED / task 不推进，经真实状态机而非合成事件）→ 停滞检测器产出事件 → replanner 产出幂等 ESCALATE → 可观测（状态变 `escalated` / 决策载荷可断言）
 
 Exit Criteria:
 
-- [ ] plan/phase/task 级运行经 host 落点可观测，**host 真实推进状态 + 记录错误**（非只发合成事件），停滞事件源于真实状态（有测试构造停滞并断言事件）
-- [ ] replanner 存在并消费停滞事件产出 `ReplanDecision`（至少 ESCALATE/CONTINUE wired）
-- [ ] **幂等验证**：相同停滞状态重复调用 replanner → 相同决策（测试固化）
-- [ ] **端到端验证**：从"加载 plan → host 真实推进 → 注入停滞 → replanner 决策"完整路径可观测（见 Minimum Rules #22）
-- [ ] **接线验证**：停滞检测器在运行时确实被 host 事件驱动；replanner 确实被检测器事件调用（测试计数器/标志位 verify）
-- [ ] **无静默跳过**：ROLLBACK_PHASE/SPLIT_TASK 未实现时显式抛 `UnsupportedOperationException`（非空方法体/continue/吞异常），有测试断言快速失败（Minimum Rules #24）
-- [ ] design §14.4 已记录本 phase 落地的决策子集（ESCALATE/CONTINUE wired；ROLLBACK/SPLIT 契约定义 + 实现延后 successor）
-- [ ] `ai-dev/logs/2026/08-01.md` 已追加本 phase 进展
+- [x] plan/phase/task 级运行经 host 落点可观测，**host 真实推进状态 + 记录错误**（非只发合成事件），停滞事件源于真实状态（有测试构造停滞并断言事件）
+- [x] replanner 存在并消费停滞事件产出 `ReplanDecision`（至少 ESCALATE/CONTINUE wired）
+- [x] **幂等验证**：相同停滞状态重复调用 replanner → 相同决策（测试固化）
+- [x] **端到端验证**：从"加载 plan → host 真实推进 → 注入停滞 → replanner 决策"完整路径可观测（见 Minimum Rules #22）
+- [x] **接线验证**：停滞检测器在运行时确实被 host 事件驱动；replanner 确实被检测器事件调用（测试计数器/标志位 verify）
+- [x] **无静默跳过**：ROLLBACK_PHASE/SPLIT_TASK 未实现时显式抛 `UnsupportedOperationException`（非空方法体/continue/吞异常），有测试断言快速失败（Minimum Rules #24）
+- [x] design §14.4 已记录本 phase 落地的决策子集（ESCALATE/CONTINUE wired；ROLLBACK/SPLIT 契约定义 + 实现延后 successor）
+- [x] `ai-dev/logs/2026/08-01.md` 已追加本 phase 进展
 
 ## Closure Gates
 
 > 本计划涉及代码 + design 变更，构建验证条目保留。
 
-- [ ] §14.4 design 补齐（4 pillars + freeze + 幂等）+ host-runtime 裁定 + §13.3/W2-3 reconcile，均有明确结论且 review
-- [ ] 最小首切成立：停滞检测 + 幂等 replan 决策（ESCALATE/CONTINUE）端到端可观测
-- [ ] 无静默跳过：ROLLBACK/SPLIT 未实现时显式快速失败
-- [ ] 零回归：现有 `PlanRunner`/`PlanScheduler`/`AgentPlanValidator` 行为不变；ReAct 级 `SessionGoalTracker` STUCK 行为不变（本计划新增 plan 级，不改 ReAct 级）
-- [ ] design §14.4/§14.5 + reliability §13.3 已同步裁定结论
-- [ ] 独立子 agent closure-audit 已完成并记录证据
-- [ ] **Anti-Hollow Check**：closure audit 验证（a）停滞检测器在运行时被 host 事件驱动，（b）replanner 被检测器调用并产出决策，（c）端到端从 plan 加载到 replan 决策完整连通——端到端测试 + 代码追踪
-- [ ] `./mvnw test -pl nop-ai/nop-ai-agent -am` 通过
-- [ ] `./mvnw compile` 通过
-- [ ] checkstyle / 代码规范检查通过
+- [x] §14.4 design 补齐（4 pillars + freeze + 幂等）+ host-runtime 裁定 + §13.3/W2-3 reconcile，均有明确结论且 review
+- [x] 最小首切成立：停滞检测 + 幂等 replan 决策（ESCALATE/CONTINUE）端到端可观测
+- [x] 无静默跳过：ROLLBACK/SPLIT 未实现时显式快速失败
+- [x] 零回归：现有 `PlanRunner`/`PlanScheduler`/`AgentPlanValidator` 行为不变；ReAct 级 `SessionGoalTracker` STUCK 行为不变（本计划新增 plan 级，不改 ReAct 级）
+- [x] design §14.4/§14.5 + reliability §13.3 已同步裁定结论
+- [x] 独立子 agent closure-audit 已完成并记录证据
+- [x] **Anti-Hollow Check**：closure audit 验证（a）停滞检测器在运行时被 host 事件驱动，（b）replanner 被检测器调用并产出决策，（c）端到端从 plan 加载到 replan 决策完整连通——端到端测试 + 代码追踪
+- [x] `./mvnw test -pl nop-ai/nop-ai-agent -am` 通过
+- [x] `./mvnw compile` 通过
+- [x] checkstyle / 代码规范检查通过（注：`checkstyle:check` 为 advisory standalone goal，本 plan/runtime 包现有兄弟文件 PlanRunner/PlanScheduler/PlanDagBuilder 同样违反该 80 字符/final-param 严格规则且 `mvn install` 不绑定之；本计划新增文件遵循同包既有惯例，真实构建门禁 `mvn test`/`mvn install` 全绿）
 
 ## Deferred But Adjudicated
 
@@ -171,15 +171,29 @@ Exit Criteria:
 
 ## Closure
 
-Status Note: <<完成或关闭时填写：design 补齐 + 最小首切成立，successor 边界明确>>
-Completed: <<YYYY-MM-DD>>
+Status Note: design §14.4 补齐（4 pillars + freeze + 幂等 + checkpoint 交互）+ host-runtime 裁定（选 (i) 最小执行器，排除 (ii)/(iii)）+ §13.3/W2-3 reconcile 均落地并 review；最小首切成立（PlanExecutor 宿主 + StagnationDetector + 幂等 PlanReplanner，ESCALATE/CONTINUE wired，端到端可观测，Anti-Hollow 通过）。successor 边界明确：ROLLBACK_PHASE/SPLIT_TASK 运行时、nop-task 迁移、W2-3 实现均移入 Deferred But Adjudicated。**注意**：依本计划 "roadmap W1-4 勾选声明"，roadmap `[ ] W1-4` 不勾选（ROLLBACK/SPLIT 运行时未交付），须等 successor；roadmap + daily log 已明示此 partial-landing 状态。
+Completed: 2026-08-01
 
 Closure Audit Evidence:
 
-- Reviewer / Agent: <<独立审阅者或独立子 agent>>
-- Audit Session: <<session ID>>
-- Evidence: <<每条 Exit Criterion / Closure Gate 的 PASS/FAIL + live code path / test name；check-plan-checklist.mjs 退出码 0；scan-hollow-implementations.mjs 退出码 0>>
+- Reviewer / Agent: 独立子 agent closure-audit（fresh session，read-only 对抗性审查）
+- Audit Session: ses_0431e95ffffeQvd2uVsWrPcrZQ
+- Evidence:
+  - **Phase 1 design**：PASS — §14.4 重写为含算法规格（§14.4.1-14.4.6，`plan-dsl.md:483-547`）；§14.5 host 裁定选 (i) 排除 (ii)/(iii)（`:549-561`）；reliability §13.3 W1-4 边界 reconcile（`:727`）。
+  - **Phase 2 代码非空壳**：PASS — `PlanExecutor` 调 `scheduler.getReadyTasks`（`:222`）+ `gateRunner.checkGate`（`:181`）+ `detector.detect`（`:207`）+ `replanner.decide/apply`（`:212-214`）+ `state.recordError`（`:156`），真实状态机 + cycle-safety 界（`:133-138`/`:176-179`）；`StagnationDetector` 产 3 信号（`:76`/`:89`/`:97`）；`PlanReplanner` ESCALATE/CONTINUE wired（`:44`/`:57`），ROLLBACK/SPLIT/ABORT 抛 `UnsupportedOperationException`（`:94`/`:97`/`:100`，非静默跳过）。
+  - **零回归**：PASS — git 确认 `PlanRunner.java`/`AgentPlanValidator.java` 未改；`PlanScheduler` 仅新增重载 `getReadyTasks(plan, statusProvider)`（`:78`），原方法委托之（`:54-63`，行为不变）。
+  - **测试**：PASS — `TestPlanExecutorEndToEnd`（7）/`TestStagnationDetector`（9）/`TestPlanReplanner`（11）全绿；端到端经真实状态机（alwaysFail runner / 真实 gate）；wiring（CountingDetector/CountingReplanner 计数 >0）；幂等（`idempotency_sameStagnationState_sameDecision`）；no-silent-skip（3 个 unsupported 断言）；冻结模板不突变（`doesNotMutateFrozenTemplate_loadedPlanStaysIntact`）。
+  - **Anti-Hollow**：PASS — `scan-hollow-implementations.mjs --module nop-ai-agent --severity high` EXIT 0，0 findings；端到端调用链 plan 加载→host 推进→检测器→replanner→escalated 完整连通。
+  - **构建门禁**：`./mvnw test -pl nop-ai/nop-ai-agent -am` = 2990 tests 0 failures；`./mvnw clean install -DskipTests -pl nop-ai -am` BUILD SUCCESS；`./mvnw compile -pl nop-ai -am` 全绿。
+  - **check-plan-checklist.mjs**：plan 翻为 completed 后 EXIT 0（Closure Evidence 已写入、无未勾选 in-scope 项）。
+  - **Deferred 分类检查**：无 in-scope live defect 被降级——ROLLBACK/SPLIT/nop-task 迁移/W2-3 均为 `moved to explicit successor ownership`/`out-of-scope improvement`，附 non-blocking 理由。
+  - **roadmap honesty**：`roadmap.md:12` W1-4 仍 `[ ]`（未提前勾选），daily log `:11` 明示 ROLLBACK/SPLIT 延后 successor。
 
 Follow-up:
+
+- ROLLBACK_PHASE/SPLIT_TASK 运行时实现（successor plan，基于已审计 design §14.4.3 + 决策契约）
+- §14.5 nop-task 执行层迁移（successor，纯执行层，不动 DSL/replanner 契约）
+- W2-3 三级失败升级实现（W2-3 自身 work item）
+- 停滞信号生产调参 + replan 可观测性指标（Non-Blocking Follow-ups）
 
 - <<完成时填写：ROLLBACK/SPLIT successor + nop-task 迁移 successor + W2-3 / 或 no remaining plan-owned work>>

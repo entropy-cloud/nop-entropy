@@ -482,15 +482,80 @@ AgentPlanTaskModel 增加 `dependsOn` 列表（集合内引用），由 nop-task
 
 ### 14.4 Replan（停滞检测 → 重规划）
 
-- **触发**：连续失败达阈值（对标 browser-use replan nudge / hive stall 检测）→ `PlanReplanner`
-- **策略**：
-  - 阶段级回退（对标 spec-kit：review 未过回 plan）
-  - 任务拆分/合并（DAG 动态增删节点）
-  - 失败升级（codewhale Retry/Block/Escalate）
-- **运行时不变量**：重规划必须幂等（同状态 → 同决策，对标 conductor Decider）
+> **落地状态：部分实现（W1-4 首切）**。停滞信号集 + 决策契约 + 幂等机制 + ESCALATE/CONTINUE 运行时已落地（`io.nop.ai.agent.plan.runtime`：`PlanExecutor` 消费 `PlanRunner`/`PlanScheduler` 驱动状态机并记录 `AgentPlanError`；`StagnationDetector` 产出结构化停滞事件；`PlanReplanner` 产出幂等 `ReplanDecision`）。`ROLLBACK_PHASE`/`SPLIT_TASK` 决策契约已定义，运行时实现延后 successor（未实现时抛 `UnsupportedOperationException`，非静默跳过）。
 
-### 14.5 与 nop-task 的边界
+**前置架构事实**：截至 W1-4 首切，`PlanRunner.checkGate` 与 `PlanScheduler.getReadyTasks` 均为无状态查询，**无任何代码消费它们驱动 phase/task 状态推进**。Replanner 没有宿主可挂载。故 W1-4 首切必须先建立宿主（host 裁定见 §14.5），再在其上挂停滞检测与 replanner。
 
-- **声明层**（本 DSL）：AgentPlan + Gate + Trigger + dependsOn —— XDEF 静态定义
-- **执行层**（nop-task 复用）：GraphTaskStep 调度 DAG + ChooseTaskStep 路由 gate 结果 + RetryTaskStepWrapper 重试
-- 职责分离：DSL 描述"计划是什么"，nop-task 执行"计划怎么跑"（与 mission-driver 移植设计一致）
+#### 14.4.1 停滞输入信号集
+
+plan/phase/task 级"无进展"的可观测信号。与 ReAct 级 `SessionGoalTracker` STUCK 区分——后者作用单 session 的 tool-call 重复签名，整 session escalate-and-abort，**不作用于 plan phase/task**，不并入本信号集。
+
+| 信号 | 语义 | 触发条件 | 载荷 |
+|------|------|----------|------|
+| `GATE_EXHAUSTED` | 阶段门控重试预算耗尽 | `GateCheckResult.Outcome == RETRY_EXHAUSTED`（结构性判定，非计数推断） | 目标 phase + attempt |
+| `TASK_STALLED` | 任务连续 N 调度周期无状态推进 | 非终结态 task 连续 `staleTaskCycles` 周期 status 不变，或连续失败重试 | taskNo + 连续周期/失败计数 |
+| `REPEATED_ERRORS` | 同一 task 累积未解决错误达阈值 | 同一 `relatedTaskNo` 的未解决（`resolvedAt==null`）`AgentPlanError` 数 ≥ `maxErrorsPerTask` | taskNo + 未解决错误计数 |
+
+阈值（`staleTaskCycles`/`maxErrorsPerTask`）可配置，留生产调参空间，默认值定义于运行时。`GATE_EXHAUSTED` 无阈值——它复用 gate 自身的 `max-retries` 耗尽判定（§14.1），不重复配置。
+
+#### 14.4.2 决策契约
+
+停滞事件 → 重规划决策。决策空间（枚举契约）：
+
+| 决策 | 语义 | 首切落地状态 |
+|------|------|--------------|
+| `CONTINUE` | 无停滞信号，继续推进状态机 | ✅ wired |
+| `ESCALATE` | 停滞达阈值，升级（plan/phase status 置 `escalated`） | ✅ wired |
+| `ROLLBACK_PHASE` | 回退到前置阶段（task 状态重置） | 契约定义，运行时延后 successor |
+| `SPLIT_TASK` | 拆分/合并任务（DAG 动态增删节点） | 契约定义，运行时延后 successor |
+| `ABORT` | 终止 plan | 契约定义，保留决策槽位 |
+
+决策载荷：决策类型 + 目标 phase/task + 触发信号类型 + 理由文本。
+
+**确定性边界**：决策是输入停滞状态的纯函数——给定相同信号集 + 计数 + 目标 identity，产出相同决策。映射规则固定且无歧义：`GATE_EXHAUSTED`/`TASK_STALLED`/`REPEATED_ERRORS` → `ESCALATE`；无停滞信号 → `CONTINUE`。`ROLLBACK_PHASE`/`SPLIT_TASK` 的触发条件由 successor 定义（首切不产出；首切内调用即快速失败，非静默跳过）。
+
+#### 14.4.3 状态突变语义 + freeze 裁定
+
+`AgentPlan extends AbstractComponentModel`：所有 setter 经 `checkAllowChange()`，frozen 后抛异常；`freeze(cascade)` 深冻结集合。xdef 加载的模板是**冻结不可变声明**。
+
+**裁定**：host 运行在 **mutable runtime execution-state**（叠加在冻结模板之上）。`ResourceComponentManager` 加载时对模板执行 `freeze(true)`（级联深冻结），且 `cloneInstance()` 为浅拷贝（共享已冻结的子模型），故 host 不直接突变加载的模板对象。所有运行时状态突变——task status 推进、`AgentPlanError`（或等价运行时错误记录）写入、phase 推进、未来 ROLLBACK/SPLIT 的 DAG 增删——作用于 host 持有的 mutable execution state（`PlanExecutionState`），它以可变覆盖层（mutable overlay）镜像 task/phase 的运行时 status 与错误记录。**冻结 xdef 模板永不被突变**，只作为只读声明被读取（gate 定义、DAG 结构、trigger rule）。这使 `checkAllowChange()` 语义保持完整（模板常冻结），同时允许执行器驱动状态机。
+
+`ROLLBACK_PHASE` 语义（successor）：重置目标 phase 的 task status（completed→pending）+ phase status 回退。`SPLIT_TASK` 语义（successor）：向运行时副本 DAG 插入/移除 task 节点。两者首切不实现，但突变目标裁定为运行时副本（非模板），为 successor 锁定方向。
+
+#### 14.4.4 幂等 + checkpoint 交互
+
+**幂等机制**：相同输入停滞状态 → 相同 `ReplanDecision`。输入状态 hash 由结构性/序数字段组成（信号类型、目标 phase/task identity、计数）。**时间类信号（`encounteredAt`/`startedAt` 等 wall-clock）排除在 hash 之外**，仅序数计数参与——保证相同可观测停滞在不同时刻求值得相同决策。
+
+**checkpoint 交互裁定**：replan 决策**不入 reliability checkpoint 系统**。理由：
+
+1. reliability checkpoint（`reliability/` 全模块）捕获 ReAct-loop 级执行状态（tool call、message 序列），plan-level replan 是更高层关注，混入会越界。
+2. plan-level replan 作用于内存 `AgentPlan` 运行时副本，其持久化随 plan 模型自身持久化（plan-owned durability），而非 reliability checkpoint。
+3. 幂等性由结构保证（纯函数 + 确定性输入 hash），崩溃/恢复时从持久化 plan 状态重放相同停滞状态 → 重现相同决策，不依赖 checkpoint。
+
+故 reliability checkpoint 保持 ReAct-loop 级职责，不承载 plan-level 决策。replan 决策若需审计留痕，落 plan 模型自身的 `errors`/`closure`（plan-owned）。
+
+#### 14.4.5 与 §13.3 / W2-3 三级失败升级的边界
+
+replan `ESCALATE`（W1-4）与 §13.3 三级失败升级（W2-3）**互补不重叠**：
+
+- **W2-3**（`max_aegis_rejections`/`stale_task_max_retries`/`max_dispatch_retries`）：单次 task attempt 内的失败升级（质量/停滞/基础设施失败，dispatch 层）。作用**单次 attempt 执行**。
+- **W1-4 replan ESCALATE**：多次 attempt/cycle 累积后 plan/phase/task 级停滞（gate 耗尽、task 不推进）。作用**attempt 之上**。
+- **关系**：W2-3 的失败信号是 W1-4 `REPEATED_ERRORS` 信号的聚合输入源；W1-4 不重实现单 attempt 重试（那是 W2-3 / L3 职责）。
+
+#### 14.4.6 与 security 否认层 `DenialSuggestedStep.REPLAN` 的区分
+
+`DenialSuggestedStep.REPLAN`（security 否认层）是 ReAct-loop 级单步否认恢复建议（一次 tool-call step 建议），与 plan/phase/task 级 replanning **无关**。命名偶合，作用层不同（denial 步内恢复 vs plan 级停滞重规划），此处明示区分避免命名/语义混淆。
+
+### 14.5 与 nop-task 的边界 + host-runtime 裁定
+
+**host-runtime 裁定（W1-4）**：三候选——(i) 自建最小 plan 执行器消费 `PlanRunner.checkGate`+`PlanScheduler.getReadyTasks`；(ii) §14.5 nop-task 迁移；(iii) 挂载现有 ReAct/引擎循环。
+
+- **(iii) 塌缩为 (i)**：现有引擎无 phase-transition hook，ReAct 循环作用单 session tool-call，无法驱动 plan phase/task 状态机。"挂载 ReAct 循环"实际等于无法推进 phase，故 (iii) 不成立。
+- **(ii) 被排除**：nop-task 迁移本身是 Out-Of-Scope successor（见 plan Deferred But Adjudicated）。host 裁定 gate 要求所选 host 使 Phase 2 单计划可关闭；nop-task 迁移违反此约束，故禁止选 (ii) 作为首切 host。
+- **裁定 (i)**：自建最小自包含 plan 执行器（`PlanExecutor`）作为 replanner 宿主。它消费 `PlanScheduler.getReadyTasks` 驱动 task、`PlanRunner.checkGate` 驱动 phase、写入 `AgentPlanError`——这是停滞检测的真实输入源。执行器经外部 `TaskRunner` 回调推进单 task（不依赖完整 LLM/agent 引擎，无 phase hook 需求），在进程内驱动状态机，可独立测试，使今日"产出无人消费"的 `PlanRunner`/`PlanScheduler` 有了真实消费者。
+
+**DSL/nop-task 边界（方向，迁移为 successor）**：
+
+- 声明层（本 DSL）：AgentPlan + Gate + Trigger + dependsOn —— XDEF 静态定义
+- 执行层（未来 nop-task 复用）：GraphTaskStep 调度 DAG + ChooseTaskStep 路由 gate 结果 + RetryTaskStepWrapper 重试
+- 职责分离：DSL 描述"计划是什么"，nop-task 执行"计划怎么跑"（与 mission-driver 移植设计一致）。首切 (i) 的最小执行器是 nop-task 迁移前的过渡形态——成功落地 replanner 后，迁移到 nop-task 是纯执行层 successor（不动 DSL 声明层，不动 replanner 决策契约）。
