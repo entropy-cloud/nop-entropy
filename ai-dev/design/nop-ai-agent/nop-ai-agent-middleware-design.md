@@ -179,9 +179,9 @@ Middleware 在**装配时**一次性注册到 `IHookRegistry`，之后不可变�
 
 ---
 
-## 五、外部调研驱动的增量设计（2026-08-01：双层中间件 / 声明式 filter chain）
+## 五、双层中间件与声明式 filter chain（2026-08-01）
 
-> 来源：agent-survey（hive 双层中间件 / plano 声明式 filter chain）。nop middleware 洋葱链已超越外部实现，本节补两个结构性增量。
+> 来源：agent-survey（hive 双层中间件 / plano 声明式 filter chain）。nop middleware 洋葱链已超越外部实现；§5.1（双层中间件）与 §5.2（声明式 filter chain）是两个结构性增量，均已落地为 final。
 
 ### 5.1 双层中间件（retry 时重新评估）— final
 
@@ -237,31 +237,88 @@ nop middleware 原本是"每请求一次"（会话级）。本节新增**执行�
 
 retry loop 内每次 attempt 重新触发 PRE/POST_LLM_ATTEMPT，携带 `AttemptContext(attempt=N+1, retry=true, lastErrorClassification=<上次分类>)`。安全/熔断检查据此**重新评估**——attempt N 改变的状态（如工具调用消耗的配额、注入的 prompt）对 attempt N+1 可见。测试 `TestExecutionMiddlewareLlmRetry.retryReEvaluatesExecutionMiddlewareCarryingRetrySignalAndLastClassification` 验证此路径。
 
-### 5.2 声明式 filter chain（DSL 声明有序 ID 列表）— Proposed（后继 plan W3-2）
+### 5.2 声明式 filter chain（DSL 声明有序 ID 列表）— final
 
-nop middleware 是代码装配。增加声明式配置（对标 plano 的 AgentFilterChain）：
+> **Status: final**（W3-2 已落地，2026-08-01）。本节由方向性描述重写为最终架构决策，含 D1/D2/D3 裁定、filter-chain DSL 结构、input/output 映射表（含多次触发语义分析）、与 `<middlewares>` 共存合并规则、ResolvedFilterChain 模式。
+
+nop middleware 原本是**代码类装配**（`<middleware impl="class-name" point="..."/>`，类名硬编码在 agent 模型）。本节引入**声明式 filter chain**（对标 plano `AgentFilterChain` / `ResolvedFilterChain` / `FilterPipeline`）：DSL 声明有序 filter ID 列表，input（请求侧）/ output（响应侧）双链独立配置，ID 在装配时解析为 `IAgentMiddleware` 实例。这使 guardrail 管道**可审计、可序列化**（声明侧 filter IDs 与执行侧 resolved 对象保持同步），且**零代码编排**。
+
+#### DSL 结构（agent.xdef）
 
 ```xml
 <agent>
-    <filter-chain>
-        <!-- input 链：请求侧 guardrail（对应 PRE_* hook） -->
-        <input-filters>
-            <filter ref="auth-filter"/>
-            <filter ref="rate-limit-filter"/>
-        </input-filters>
-        <!-- output 链：响应侧 guardrail（对应 POST_* hook） -->
-        <output-filters>
-            <filter ref="content-check"/>
-        </output-filters>
-    </filter-chain>
+  <filter-chain>
+    <!-- D1：agent 内自包含 id->impl 映射 -->
+    <filter-definitions>
+      <filter-def id="auth" impl="com.example.AuthFilter"/>
+      <filter-def id="rate-limit" impl="com.example.RateLimitFilter"/>
+      <filter-def id="content-check" impl="com.example.ContentCheckFilter"/>
+    </filter-definitions>
+    <!-- input 链：请求侧 guardrail（默认 PRE_CALL） -->
+    <input-filters>
+      <filter ref="auth"/>
+      <filter ref="rate-limit"/>
+    </input-filters>
+    <!-- output 链：响应侧 guardrail（默认 POST_CALL） -->
+    <output-filters>
+      <filter ref="content-check"/>
+    </output-filters>
+  </filter-chain>
 </agent>
 ```
 
-- 声明式 ID 列表 → 运行时解析为 middleware 对象（ResolvedFilterChain 模式）
-- 保持 filter_ids 与对象同步（可审计/序列化）
-- 与现有 middleware 洋葱链的关系：声明式是装配方式，洋葱链是执行模型——兼容
+- `<filter-chain>` 含三段：`<filter-definitions>`（id→impl 映射，D1）、`<input-filters>`、`<output-filters>`（均为有序 `<filter ref points>` 引用列表）
+- codegen 生成 `AgentFilterChainModel` / `FilterDefModel` / `FilterRefModel`；`AgentModel.getFilterChain()`
+- `<output-filters>` 经 `xdef:ref="FilterRefModel"` 复用 input 已定义的 `FilterRefModel`（规避 `xdef:name` 全局唯一约束）
+
+#### D1：filter ID 解析来源（裁定：方案 B — agent 内 `<filter-definitions>` 自包含）
+
+- **采纳方案 B**：filter ID 在 agent 模型内局部解析（`<filter-def id="auth" impl="..."/>`），复用既有 `resolveMiddlewares` 的 `ClassHelper.safeNewInstance` 路径实例化。
+- **拒绝方案 A**（filter ID = IoC bean ID）：`AgentExecutorResolver` 经 Builder/构造注入，**不持有 `IBeanContainer`**；仓库 `*.beans.xml` 无任何已注册 `IAgentMiddleware` bean。方案 A 需先打通容器注入路径（架构变更面大）。
+- **方案 C**（混合：`<filter-definitions>` 优先、未命中查 IoC）留后续迭代——当跨 agent filter 共享成为需求时演进。首版跨 agent 复用为 Non-Goal。
+- **无静默跳过**：未知 ID / 缺 impl / impl 非 `IAgentMiddleware` / 实例化失败 / 未知 `points` 名 均抛 `NopAiAgentException`（含 ID 名/point 名，5 个 error code）。
+- **per-id 实例缓存**：同一 filter 被 input+output 双链引用时实例化一次、identity 共享，使 D3 重复检测无歧义。
+
+#### D2：input/output → 生命周期点映射（裁定：默认请求边界点 + `points` 覆盖）
+
+**多次触发语义分析**（核心问题）：nop 生命周期点是**多次触发**模型，而 plano 的 input/output 是请求/响应级**单次触发**：
+
+| 生命周期点 | 触发频率 | 用作 input 默认？ |
+|-----------|---------|------------------|
+| `PRE_CALL` | 每请求 **1 次**（请求开始） | ✅ input 默认 |
+| `PRE_REASONING` | 每请求 **N 次**（每次 LLM 调用） | ❌ 多触发 |
+| `PRE_ACTING` | 每请求 **M 次**（每次工具调用） | ❌ 多触发 |
+| `POST_CALL` | 每请求 **1 次**（请求结束） | ✅ output 默认 |
+
+"全装到所有 input 点"会让 auth-filter 一次请求触发 1+N+M+K 次（语义错误）。
+
+**裁定**：
+- **input-filters 默认 → `PRE_CALL`**（请求边界，单次触发），与 plano 请求侧单次触发语义一致
+- **output-filters 默认 → `POST_CALL`**（响应边界，单次触发）
+- **`points` 属性覆盖默认**：`<filter ref="prompt-check" points="pre_reasoning"/>` 精确装到指定点（csv-set 可多值），未指定走默认
+- 避免多次触发问题，同时保留灵活性
+
+#### D3：`<filter-chain>` 与 `<middlewares>` 共存合并（裁定：声明式在前 + 跨机制重复快速失败）
+
+- **合并规则**：同一生命周期点的中间件列表 = 声明式 filter（按 `<filter-chain>` 内声明顺序）+ 代码类中间件（按 `<middlewares>` 内声明顺序）。**声明式 filter 在前**（guardrail 性质的 filter 应先执行 = 洋葱链最外层，其 `before` 先运行）。实现：`AgentExecutorResolver` 先调 `resolveFilterChain` 注册声明式 filter、再调 `resolveMiddlewares` 注册代码类中间件，registry 的 append 顺序天然保证声明式在前。
+- **冲突检测**：同一 `AgentLifecyclePoint` 上，同一 impl class 同时出现在声明式 filter-chain 与代码类 `<middlewares>` 两处时，抛 `ERR_AGENT_FILTER_DUPLICATE_DECLARATION`（含 impl + point，非静默去重/保留两份）。检测按 **impl class**（两路径各自 `safeNewInstance` 产独立实例，identity 不适用）。intra-mechanism 重复（同机制内两处用同 impl）不触发——仅跨机制冲突算重复。
+- 两种装配方式**共存**：声明式不替代代码类，agent 可同时用两者。
+
+#### ResolvedFilterChain 模式
+
+`FilterChainResolver.resolve(chain)` 在装配时一次性解析，产出不可变 `ResolvedFilterChain`：
+- **声明侧**：`inputFilterRefs` / `outputFilterRefs`（`List<FilterRefModel>`，可序列化/可审计）
+- **执行侧**：`resolvedByPoint: Map<AgentLifecyclePoint, List<IAgentMiddleware>>`（按声明顺序）
+- 两者同步：每个 ref 已解析为恰好一个 `IAgentMiddleware` 实例（未知 ID 快速失败）
+- 不可变视图：声明后不可运行时修改（与 plan 296 "装配时一次性注册、运行时不重排" 决策一致）
+
+#### 执行模型
+
+**不变**：声明式是**装配方式**，执行仍走 `MiddlewareChain` 洋葱链（plan 296 模型，零新执行路径）。声明式 filter 经 `AgentHookInvoker.executeWithMiddleware(point, ...)` → `DefaultHookRegistry.buildChain` → `MiddlewareChain.proceed()` 执行，与代码类中间件、hook 观察者同链。`<filter-chain>` 仅影响**会话级**点（`AgentLifecyclePoint`）；执行级 scope（W3-1）仍是 `<middlewares scope="execution">` 的专属领域。
 
 ### 5.3 与现有设计的边界
 
-- 现有 middleware-design：洋葱链执行模型 + 9 点链式拦截（已落地）
-- 本篇增量：执行级分层（5.1）+ 声明式装配（5.2）——不改变洋葱链执行模型
+- 现有 middleware-design §一~四：洋葱链执行模型 + 9 点链式拦截（已落地，不变）
+- §5.1：执行级分层（双层中间件）——不改洋葱链执行模型
+- §5.2：声明式 filter chain（装配方式升级）——不改洋葱链执行模型
+- §5.1 与 §5.2 正交：§5.2 的声明式 filter chain 仅作用会话级点；执行级 scope 是 §5.1 的专属领域

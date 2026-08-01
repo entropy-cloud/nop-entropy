@@ -38,7 +38,8 @@
 
 ### W3. Middleware 增量（高优先）
 - [x] W3-1 双层中间件：执行级（每次工具/模型尝试，retry 时重新评估安全检查）
-- [ ] W3-2 声明式 filter chain：DSL 声明有序 filter ID 列表 + input/output 双链分离
+- [x] W3-2 声明式 filter chain：DSL 声明有序 filter ID 列表 + input/output 双链分离
+  - **收口（2026-08-01，plan `2026-08-01-1437-4`）**：W3-2 全部落地。`agent.xdef` 新增 `<filter-chain>`（`<filter-definitions>` + `<input-filters>` + `<output-filters>`，codegen 生成 `AgentFilterChainModel`/`FilterDefModel`/`FilterRefModel`）；D1 方案 B（agent 内 `<filter-definitions>` 自包含 id→impl，复用 `ClassHelper.safeNewInstance`，零 IoC 改动）；D2 默认 PRE_CALL/POST_CALL 单次触发 + `points` 覆盖（避免 PRE_REASONING/PRE_ACTING 的 N+M+K 多触发）；D3 声明式 filter 在前 + 跨机制同 impl class 同点快速失败（`ERR_AGENT_FILTER_DUPLICATE_DECLARATION`）；`FilterChainResolver` + `ResolvedFilterChain`（声明侧 refs 与执行侧 resolved 同步、不可变）；`AgentExecutorResolver` 装配集成（声明式先注册、代码类后注册，重复检测）；24 测试（`TestFilterChainResolver` 15 + `TestAgentFilterChainWiring` 10，含端到端 `resolveExecutor → execute → MiddlewareChain → filter 执行` + 单次触发证明 + 洋葱顺序证明 + DSL parse 验证）。design §5.2 final。零回归（3158 测试 0 failures）。
 - 参考：`2026-08-01-hive-dual-middleware-analysis.md`、`2026-08-01-plano-declarative-filter-chain-analysis.md`
 
 ### W4. 上下文工程增量（中优先）
