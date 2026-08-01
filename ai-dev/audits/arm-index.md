@@ -484,3 +484,14 @@ plan `ai-dev/plans/2026-07-31-2248-2-arm-hollow-baseline-clearance.md`（第七�
 | MA4.1-04 | `fixed` | `DefaultAiChatService.parseToolCalls:562` `(Map<String, Object>) arguments` cast 补局部 `@SuppressWarnings("unchecked")`（AnthropicDialect 同款局部变量级；:548 List cast 既有注解未动） |
 
 **验证**：`./mvnw test -pl nop-ai -am -T 1C` BUILD SUCCESS（0 failures 0 errors）；`./mvnw test -pl nop-ai/nop-ai-tools,nop-ai/nop-ai-skills/nop-ai-code-analyzer -am` BUILD SUCCESS（GrepResult 下游 + SplitChunk 消费者回归）；`scan-hollow-implementations.mjs --module nop-ai --severity high` exit 0；`check-doc-links.mjs --strict` exit 0（No errors found）；closure audit 见 plan Closure 段。
+
+## P3 追踪（第十二批 — 错误处理规范，2026-08-01）
+
+第十二批批量修复（plan `ai-dev/plans/2026-08-01-0936-1-arm-p3-error-handling-agent-shell.md`，MA3.4 审计点名的 deferred successor 重开，同批 0936-2/0936-3 兄弟计划并行）已执行并收口。P2-MA3-1、P3-MA3-1 全部 `fixed`（裸 IAE → NopException + 模块 ErrorCode，消息逐字零漂移，仅异常类型/错误码变化）：
+
+| Finding ID | 修复状态 | 修复位置 / 测试 |
+|-----------|---------|----------------|
+| P2-MA3-1 | `fixed` | nop-ai-shell **12 处**裸 IAE（5 文件）→ `NopException` + `NopAiShellErrors` 5 个新码（`ERR_AI_SHELL_INVALID_ARG`/`COMMAND_NOT_FOUND`/`EMPTY_COMMAND`/`INVALID_REDIRECT`/`UNKNOWN_SYMBOL`，`nop.err.ai.shell.*` 前缀，英文描述）；转换后 main grep 0 命中；测试 = RedirectTest/CommandModelTest/ShellCommandRegistryTest 断言同步 + 2 个 focused 值级测试（errorCode/param/getMessage，@Test 19/49/12 vs 18/48/12 零减少） |
+| P3-MA3-1 | `fixed` | nop-ai-agent **62 处**裸 IAE（33 文件）→ `NopAiAgentException` + `NopAiAgentErrors.ERR_AI_AGENT_INVALID_ARG`（`nop.err.ai.agent.invalid-arg`，`invalid argument: {msg}`，ARG_MSG，逐字消息经 `.param(ARG_MSG, ...)` 承载——1834-3 NopAiMavenErrors 同款先例）；转换后 main grep 0 命中；5 处 `catch (IllegalArgumentException`（LLMCurator:286、FileSystemSkillProvider:275/284、AgentMessageEnvelopeJson:108、CheckpointJournalReader:177）逐一核验均只捕获 JDK `Enum.valueOf` 产物，与 62 转换站点零交集、影响 0；测试 = 20 文件 51 处断言同步 + focused 值级测试（TestThresholdBreaker.validationFailureCarriesErrorCodeAndVerbatimMessage，@Test 295 vs 294 零减少） |
+
+**验证**：`./mvnw clean install -DskipTests -pl nop-ai -am -T 1C` BUILD SUCCESS；`./mvnw test -pl nop-ai -am -T 1C` BUILD SUCCESS（0 failures）；`scan-hollow-implementations.mjs --module nop-ai --severity high` exit 0；`check-doc-links.mjs --strict` exit 0（顺带修复 mission-driver-port-design.md 3 处预存 broken link）；closure audit 见 plan Closure 段。
