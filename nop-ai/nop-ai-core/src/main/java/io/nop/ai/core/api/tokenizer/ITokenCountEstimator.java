@@ -12,7 +12,19 @@ import io.nop.ai.core.api.messages.AiMessage;
  * wiring time when none is registered.
  */
 public interface ITokenCountEstimator {
+    /**
+     * Estimates the token count of the given plain text.
+     *
+     * @param text the text to estimate (may be empty)
+     * @return the estimated token count (>= 0)
+     */
     int estimate(String text);
 
+    /**
+     * Estimates the token count of a legacy AI message, including per-message overhead.
+     *
+     * @param message the legacy AI message to estimate
+     * @return the estimated token count (>= 0)
+     */
     int estimateForMessage(AiMessage message);
 }
