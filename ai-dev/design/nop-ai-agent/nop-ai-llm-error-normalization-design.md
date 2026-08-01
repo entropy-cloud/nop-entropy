@@ -12,7 +12,7 @@
 
 1. **把 provider 的异构错误响应规范化为少数固定分类**，规范化规则是**配置驱动**的，写在 `llm.xdef` 对应的 `{provider}.llm.xml` 里——直接复刻 `dialect.xdef` 的 `<errorCodes>` 模式（厂商码 → 标准码），而非每个 provider 写一段 Java。
 
-2. **规范化发生在底层 `ChatServiceImpl`，且必须覆盖默认（流式）路径**。经 R1 审查核实：`callAsync` 默认 `stream=true`（`ChatServiceImpl.java:91`），默认路径走 `aggregateStreamToResponse → callStream`。关键事实是——流式路径的 `ServerEventPublisher` 在非 2xx 时**已经把响应体放进异常**（`ARG_BODY`，`ServerEventPublisher.java:94-97`）。因此根因不是"体被丢弃"，而是"体已在异常里但无人规范化它，且 `Retry-After` 头三条错误发射点都丢了"。规范化点落在 `callStream.onError`（覆盖直接流式 + 聚合流式两条），非流式路径单独处理，详见 §3.4。
+2. **规范化在 `ChatServiceImpl` 内经 dialect 完成，结果放 `ChatResponse`**。ChatServiceImpl 的职责就是经 `ILlmDialect` 规范化输入输出——成功响应已这么做了（`parseResponse` 用 `contentPath`/`statusPath` 抽字段）。错误响应是另一种输出，同构处理：新增 dialect 错误解析（消费 `<errorMappings>`），把规范化分类填到 `ChatResponse` 新字段 `errorClassification`/`retryAfterMs`。**不用装饰器、不用新异常类型**——错误即输出，走同一通道。经审查核实：`callAsync` 默认 `stream=true`，流式路径 `ServerEventPublisher` 在非 2xx 已把响应体放进异常（`ARG_BODY`，`ServerEventPublisher.java:94-97`）；`ChatResponse` 已有 `error`/`errorCode`/`isSuccess()`/`ChatResponse.error()` 模式。详见 §3.4。
 
 3. **固定分类驱动两种恢复动作**：等待（`RATE_LIMITED` 按 `Retry-After` 重试同一账号）或切换账号（`QUOTA_EXCEEDED` / `AUTH_INVALID` 走账号回退链）。分类是事实判断，恢复是策略判断，两者解耦。
 
@@ -163,42 +163,66 @@ errorResponse:
 | 输出标准 `ErrorCode` | 输出固定 `ErrorClassification` |
 | 缺省 `UNCATEGORIZED` | 缺省走 HTTP 状态启发式 |
 
-### 3.4 底层 `ChatServiceImpl` 封装（覆盖两条路径）
+### 3.4 错误规范化在 `ChatServiceImpl` 内经 dialect 完成（与成功响应同构）
 
-底层职责：**在两条错误路径上都做"抽 body+status+头 → 按配置规范化 → 抛带分类的 `LlmProviderException`"**。规范化逻辑收敛为一个共享 helper（如 `LlmErrorNormalizer`），两个错误点都调它，避免分叉。
+**架构裁定（用户定调）**：`ChatServiceImpl` 的职责就是**规范化输入输出**——它已经用 `ILlmDialect` 把 provider 特定的成功响应 JSON 规范化成统一的 `ChatResponse`（`parseResponse` 用 `contentPath`/`statusPath`/`errorPath` 等配置抽取字段）。错误响应是**另一种输出**，理应同构处理：经 dialect + `<errorMappings>` 配置规范化后，结果放在 `ChatResponse` 上。**不引入装饰器、不引入新的异常类型**。
 
-**路径 A — 流式（默认，含两个错误发射点）**：
-- 今天 `ServerEventPublisher` 已把 `ARG_BODY` + `ARG_HTTP_STATUS` 放进异常（`ServerEventPublisher.java:94-97`）。
-- **规范化点必须落在 `callStream.onError`**（`ChatServiceImpl.java:185-187`），而非 `aggregateStreamToResponse.onError`。理由（R2 审查 N1）：流式实际有**两个**错误发射点——①直接 `callStream` 的订阅者（`onError` → `publisher.closeExceptionally(throwable)`，`:185-187`），②`callAsync(stream=true)` 经 `aggregateStreamToResponse` 订阅 `callStream` 的 publisher（`:294-323`）。若 normalizer 放在 `aggregateStreamToResponse`，直接调 `callStream` 的订阅者拿到的是未规范化的原始异常。把 normalizer 下沉到 `callStream.onError`（在 `closeExceptionally` **之前**规范化），则两条流式路径都被一处 hook 覆盖（DRY）——`aggregateStreamToResponse` 订阅的就是已规范化的 publisher。
-- **`Retry-After` 头的前提条件**：当前 `ServerEventPublisher` 把头读进局部变量（`:87`）但未挂异常。要让流式路径拿到 `Retry-After`，必须让 `ServerEventPublisher`（`nop-http`）把响应头也挂到抛出的异常上（新增如 `ARG_RESPONSE_HEADERS`）。这是**跨模块前置改动**，属 `nop-http` 范畴。若暂不改动 `nop-http`，则流式路径的 `Retry-After` 只能从 body 取（`<errorResponse retryAfterPath>`），头级 `Retry-After` 为已知缺口——必须文档化。
+```
+ChatServiceImpl（基础 IChatService 实现，职责 = 经 dialect 规范化 I/O）
+  ├─ 成功响应：dialect.parseResponse(body)  → ChatResponse(message, usage, ...)
+  └─ 错误响应：dialect.parseErrorResponse(body,status,headers,config)
+                                          → ChatResponse(error, errorCode, errorClassification, retryAfterMs, ...)
+```
 
-**路径 B — 非流式**：
-- 今天 `callAsync` 在 `httpStatus != 200` 时只读状态码（`ChatServiceImpl.java:121-127`），体和头全丢。
-- 规范化点：在 `thenApply` 里先读 `response.getBodyAsString()` + 响应头（`IHttpResponse extends IHttpHeaders`，`IHttpResponse.java:12`）→ 调 normalizer → 抛 `LlmProviderException`。此路径可拿到完整头，`Retry-After` 无缺口。
+**为何放在 ChatServiceImpl 而非装饰器**（推翻前一版装饰器方案）：
+1. **dialect 在 ChatServiceImpl 手里**——`parseResponse` 已持有 `LlmModel config`（含 `<errorMappings>`/`<errorResponse>`）。错误规范化需要的 provider 配置（`errorTypePath`/`errorMappings`）与成功解析同源，拆到装饰器反而要重新注入 dialect/config，凭空多一层。
+2. **职责内聚**——ChatServiceImpl 既是"provider 差异屏蔽层"（`nop-ai-agent-llm-layer.md` §二定位），错误差异屏蔽正是其本职，不是"塞入额外逻辑"。
+3. **复用既有模式**——`ChatResponse` 已有 `error`/`errorCode`/`isSuccess()`/`ChatResponse.error(...)` 工厂；`OpenAiDialect.parseResponse` 已对空 body 返回 `ChatResponse.error("NULL_RESPONSE",...)`；`<response errorPath>` 已能从 200 body 抽 error。错误即输出，沿用同一通道最自然。
 
-**`LlmProviderException` 契约**（`NopException` 子类）：
-- 携带 `ARG_HTTP_STATUS`（向后兼容现有 `LlmErrorClassifier`）。
-- 新增 `ARG_ERROR_CLASSIFICATION`、`ARG_RETRY_AFTER_MS`、`ARG_PROVIDER_ERROR_TYPE`、`ARG_PROVIDER_ERROR_CODE`、`ARG_PROVIDER_ERROR_MESSAGE`、`ARG_RESPONSE_BODY`。
+**`ChatResponse` 增加规范化错误字段**（沿用既有 `error`/`errorCode`，新增分类信号）：
+- `errorClassification: ErrorClassification`（核心——驱动恢复决策）
+- `retryAfterMs: Long`（Retry-After 归一值）
+- `httpStatus: Integer`（原始 HTTP 状态，诊断用）
+- 既有 `error`/`errorCode` 填 provider 错误消息/code（`<errorResponse errorMessagePath/errorCodePath>` 抽取）
+
+**改造点**（ChatServiceImpl，仍是基础调用的 I/O 规范化，不含重试/回退策略）：
+- **非流式路径**：今天 `httpStatus != 200` 直接抛 `ERR_AI_SERVICE_HTTP_ERROR` 丢体（`ChatServiceImpl.java:121-127`）。改为读 `response.getBodyAsString()` + 头 → `dialect.parseErrorResponse(...)` → **返回**带 `errorClassification` 的错误 `ChatResponse`（不抛）。
+- **流式路径**：`aggregateStreamToResponse` 的 `onError`（`ChatServiceImpl.java:306-308`）今天 `completeExceptionally`。改为解析 `ServerEventPublisher` 已放进异常的 `ARG_BODY`+`ARG_HTTP_STATUS`（`ServerEventPublisher.java:94-97`）→ `dialect.parseErrorResponse(...)` → **complete** 一个错误 `ChatResponse`（不 exceptionally）。
+- **dialect 新增 `parseErrorResponse`**（或共享 helper）：按 `config.getErrorMappings()` 规则表 first-match 规范化（§3.3），未命中走默认启发式。这是纯输出规范化，与 `parseResponse` 对称。
+
+**返回错误 ChatResponse 而非抛异常的收益**：统一了今天分裂的两条错误路径——`LlmCallCoordinator` 今天对"抛异常"走重试（`:122-174`）、对"`!isSuccess()`"走终止不重试（`:179-187`）。错误规范化进 ChatResponse 后，非 200 错误也成为带分类的 `ChatResponse`，重试循环可在 `!isSuccess()` 时读 `errorClassification` 做重试/回退决策（§3.5），不再因"是返回值"而放弃重试。
 
 **契约约束**：
-- 默认启发式与今日 `LlmErrorClassifier` 一致（429→RATE_LIMITED，5xx→TRANSIENT，4xx→NON_TRANSIENT），保证未配置 `<errorMappings>` 的 provider 零回归。
-- 流式保护不变（`nop-ai-agent-llm-layer.md` §7.4）：已流出内容后的错误不触发 RETRY/FALLBACK。规范化只负责给异常打分类，是否重试仍由策略层 + `hasStreamedContent` 决定。
-- **HTTP 200 带 error body 是已知缺口**（R2 审查 N2）：`llm.xdef` 的 `<response errorPath>`（`:67`）表明部分 provider 可能返回 HTTP 200 但 body 里是错误。本篇的 `<errorMappings>` 只在非 2xx 异常路径上咨询；200-with-error 会经 `dialect.parseResponse` 当成功流过、不被分类。多数 provider 用非 2xx 报错，影响有限，列为已知缺口/后续 successor（可扩展 `<errorMappings>` 在 `errorPath` 非空时也匹配成功 body）。
-- **`DefaultAiChatService` 范围说明**（R1 审查 A2）：`DefaultAiChatService.java:201-205` 有同样"抛 HTTP 错误、丢体/头"的缺陷。本篇首版仅规范化 `ChatServiceImpl`；`DefaultAiChatService` 列为已知未覆盖路径（§6 跟踪），建议后续提取共享 normalizer 复用。
+- 默认启发式与今日一致（429→RATE_LIMITED，5xx→TRANSIENT，4xx→NON_TRANSIENT），未配置 `<errorMappings>` 的 provider 零回归。
+- **传输层错误仍抛异常**（连不上、超时——无 HTTP 响应无法构造 ChatResponse），由 `LlmErrorClassifier` 启发式处理。即：响应级错误（拿到 HTTP 响应）→ ChatResponse；传输级错误（没拿到响应）→ 异常。两者泾渭分明。
+- 流式保护不变（§7.4）：已流出内容后的错误不重试。`parseErrorResponse` 只打分类，是否重试由策略层 + `hasStreamedContent` 决定。
+- **`Retry-After` 头的前提条件**：流式路径需 `ServerEventPublisher`（nop-http）把响应头挂到异常（当前只读进局部变量 `:87` 未挂）。跨模块前置改动；未完成则流式仅支持 body 级 Retry-After（`<errorResponse retryAfterPath>`），头级为已知缺口。
+- **HTTP 200 带 error body**（R2 审查 N2）：本方案天然更易覆盖——`<response errorPath>` 已抽 200-body 的 error，`parseResponse` 可在 `errorPath` 非空时也调规范化逻辑填充 `errorClassification`（比装饰器/异常方案更顺，因为 200 本就走 `parseResponse`）。列为 successor 增强。
 
-### 3.5 上层消费：分类驱动恢复决策
+### 3.5 上层消费：重试循环读 `ChatResponse.errorClassification`
 
-`LlmErrorClassifier` 优先信任底层已做的规范化：
+重试循环（`LlmCallCoordinator.doLlmCallWithRetry`）消费方式调整——错误分类现在在 `ChatResponse` 上而非异常里：
 
 ```
-classify(error):
-  若 error 是 LlmProviderException 且携带 classification
-     → 直接返回其 classification（底层已按配置规范化，信任之）
-  否则 → 走现有 HTTP 状态启发式
-         （向后兼容：底层未升级 / 非 provider 异常 / DefaultAiChatService 路径）
+doLlmCallWithRetry:
+  try {
+    response = callChatWithTimeout(request)
+    if (!response.isSuccess()):
+       classification = response.getErrorClassification()   // 底层已规范化
+       retryCtx = RetryContext(attempt, response, classification, hasStreamedContent, response.getRetryAfterMs())
+       outcome = retryPolicy.shouldRetry(retryCtx)
+       → RETRY / FALLBACK(账号链) / STOP  （按 §3.2 决策表）
+  } catch (transport ex) {                                   // 网络/超时，无响应
+     classification = LlmErrorClassifier.classify(ex)        // 启发式
+     → 同上重试决策
+  }
 ```
 
-`RetryContext` 增加 `retryAfterMs`（从 `LlmProviderException` 取；今天 `RetryContext` 无此字段，是真实接口变更）。
+- 今天 `!isSuccess()` 是终止路径（`:179-187` 不重试）。改造后 `!isSuccess()` 进入重试决策——读 `errorClassification` 决定 `QUOTA_EXCEEDED`/`AUTH_INVALID` 切账号、`RATE_LIMITED` 按 `retryAfterMs` 等待重试。
+- `RetryContext` 增加 `retryAfterMs`（从 `ChatResponse` 或异常取）；`StandardRetryPolicy` 的 `RATE_LIMITED` 用 Retry-After 作 floor（§3.7）。
+- 传输层异常仍走 `LlmErrorClassifier.classify(ex)` 启发式（向后兼容）。
+
+`RetryContext` 增加 `retryAfterMs`（从 `ChatResponse.getRetryAfterMs()` 取；今天 `RetryContext` 无此字段，是真实接口变更）。
 
 ### 3.6 备用账号链与 FALLBACK 通道区分（R1 审查 G2）
 
@@ -239,7 +263,7 @@ classify(error):
   4. 缺省退避：min(baseDelay * 2^attempt, maxDelay) + full jitter
 ```
 
-底层把 1~3 归一为 `retryAfterMs` 放进 `LlmProviderException`，策略层只消费这一个值。
+底层（`ChatServiceImpl` 经 dialect）把 1~3 归一为 `retryAfterMs` 放进 `ChatResponse`，策略层只消费这一个值。
 
 **`retryAfterMs` 与 full-jitter 的关系（必须显式裁定）**：`StandardRetryPolicy` 今天对**每个** RETRY 都加 full jitter（`computeBackoff`，`StandardRetryPolicy.java:144-166`）。若对 `RATE_LIMITED` 原样用 `retryAfterMs`，会丢掉 thundering-herd 抑制；若把 jitter 套在 `retryAfterMs` 上（如 `uniform(0, retryAfterMs)`），等待可能**低于服务器要求**，导致立即再被拒。
 
@@ -248,17 +272,26 @@ classify(error):
 ### 3.8 分层归属与依赖方向
 
 ```
-Layer 1 (nop-ai-core):  llm.xdef 配置 + ChatServiceImpl 规范化 + ErrorClassification 定义(纯词汇)
-                          ↓ 产出 LlmProviderException(已分类)
-Layer 3 (nop-ai-agent): LlmErrorClassifier(信任底层) + IRetryPolicy(恢复决策) + 账号链消费
-Layer 0 (nop-http):     ServerEventPublisher 头传递（前置改动，见 §3.4 路径 A）
+Layer 1 (nop-ai-core):  llm.xdef 配置 + ErrorClassification(纯词汇)
+                        ChatServiceImpl（I/O 规范化：成功经 parseResponse，错误经 parseErrorResponse，结果都在 ChatResponse）
+                        ILlmDialect（新增 parseErrorResponse，消费 <errorMappings>）
+                                ↓ 返回带 errorClassification 的 ChatResponse
+Layer 3 (nop-ai-agent): LlmCallCoordinator 重试循环读 ChatResponse.errorClassification（!isSuccess() 进入重试决策）
+                        + IRetryPolicy(恢复决策) + 账号链消费；传输异常仍走 LlmErrorClassifier 启发式
+Layer 0 (nop-http):     ServerEventPublisher 头传递（前置改动，见 §3.4）
 ```
 
-`ErrorClassification` 当前在 `nop-ai-agent.reliability`（Layer 3）。规范化配置（`llm.xdef`，`xdef:bean-package=io.nop.ai.core.model`）要引用它，故它**必须上移到 `io.nop.ai.core.model`**。约束：core 中的该枚举**不得 import 任何 Layer-3 类型**，是纯词汇枚举；agent 层原有引用改为引用 core 定义，依赖方向（agent → core）不变。涉及 `RetryContext`/`IRetryPolicy`/`StandardRetryPolicy`/`LlmErrorClassifier` 及其测试的全量回归。
+`ErrorClassification` 已在 `io.nop.ai.core.model`（纯词汇）；agent 侧 `reliability.ErrorClassification` 已 `@Deprecated` 桥接。错误规范化逻辑（dialect.parseErrorResponse）归属 `nop-ai-core`（与成功解析同模块同层），依赖方向（agent → core）不变。`ChatResponse` 在 `nop-ai-api`，新增字段对 agent 层透明可见。
 
 ---
 
 ## 四、拒绝了什么
+
+### 4.0 拒绝：装饰器 / 新异常类型承载错误规范化
+
+**方案**：`ErrorNormalizingChatService implements IChatService` 装饰器包装 `ChatServiceImpl`，捕获原始 HTTP 错误 → 规范化 → 抛 `LlmProviderException`。
+
+**拒绝理由**：① 错误规范化需要的 `ILlmDialect` + `LlmModel config`（含 `<errorMappings>`）已在 `ChatServiceImpl` 手里（`parseResponse` 已持有），拆到装饰器要重新注入 dialect/config，凭空多一层；② ChatServiceImpl 的职责本就是"经 dialect 规范化 I/O"（`nop-ai-agent-llm-layer.md` §二），错误差异屏蔽是其本职；③ `ChatResponse` 已有 `error`/`errorCode`/`isSuccess()` 模式，`parseResponse` 已对空 body 返回 `ChatResponse.error(...)`，错误即输出走同一通道最自然，无需新异常类型。错误规范化留在 ChatServiceImpl 经 dialect 完成、结果放 ChatResponse，比装饰器/异常方案更内聚。
 
 ### 4.1 拒绝：每个 provider 在 `ILlmDialect` 里写 Java 解析错误
 
@@ -301,17 +334,17 @@ Layer 0 (nop-http):     ServerEventPublisher 头传递（前置改动，见 §3.
 
 1. **零回归红线及其两个支撑不变量（R1 审查 G4）**：未配置 `<errorMappings>` 的 provider 行为须与今日完全一致。这依赖两个不变量——① `QUOTA_EXCEEDED`/`AUTH_INVALID`/`CACHE_STATE_LOST` 今日不可达（无人生产）；②默认启发式把 401/403 映射为 `NON_TRANSIENT`（**不是** `AUTH_INVALID`），故 `AUTH_INVALID` 只能经配置后的 `<errorMappings>` 到达。**任何对默认启发式的未来改动都必须对照审计这两个不变量。**
 
-2. **`ErrorClassification` 上移先于底层改造**：core 中的枚举是纯词汇（不 import Layer-3 类型）；agent 层原枚举改引用 core，全量回归 `reliability` 包测试。
+2. **`ErrorClassification` 已上移**（已完成）：core 中的枚举是纯词汇（`io.nop.ai.core.model.ErrorClassification`，不 import Layer-3 类型）；agent 层 `reliability.ErrorClassification` 已降级为 `@Deprecated` 桥接。后续接线全量回归 `reliability` 包测试。
 
-3. **`<errorMappings>` 不带 `xdef:key-attr`**（R1 审查 G1）：必须保序以支持 first-match-wins。有测试断言两条同 `classification` 规则按位置先后分别命中。
+3. **`<errorMappings>` 顺序与 first-match-wins**：实现采用 `xdef:key-attr="id"`（与 `dialect.xdef` `<errorCodes key-attr="name">` 同款），id 用于 `x:extends` 合并时按 id 区分条目（子配置 replaceChild 在原位置替换、新增 id 追加末尾），合并后顺序保持，故 first-match-wins 仍成立。须有测试断言两条同 `classification` 规则按合并后位置先后分别命中。
 
-4. **流式保护不被破坏**：已流出内容后的错误不触发 RETRY/FALLBACK（§7.4 不变）。规范化只打分类，重试与否仍由策略层 + `hasStreamedContent` 决定。
+4. **流式保护不被破坏**：已流出内容后的错误不触发 RETRY/FALLBACK（§7.4 不变）。装饰器只打分类，重试与否仍由策略层 + `hasStreamedContent` 决定。
 
-5. **流式路径 `Retry-After` 头缺口**：依赖 `nop-http` `ServerEventPublisher` 挂响应头到异常的前置改动。若该改动未完成，流式路径仅支持 body 级 `Retry-After`，须文档化为已知缺口。
+5. **流式路径 `Retry-After` 头缺口**：依赖 `nop-http` `ServerEventPublisher` 挂响应头到异常的前置改动。若该改动未完成，装饰器在流式路径仅支持 body 级 `Retry-After`，须文档化为已知缺口。
 
-6. **`DefaultAiChatService` 未覆盖**（R1 审查 A2）：首版仅规范化 `ChatServiceImpl`。`DefaultAiChatService` 列为已知未覆盖路径，后续提取共享 normalizer 复用。
+6. **装饰器可复用覆盖 `DefaultAiChatService`**：`ErrorNormalizingChatService` 包装任意 `IChatService` 实现，`ChatServiceImpl` 与 `DefaultAiChatService` 套同一装饰器即得规范化，无需重复逻辑（装饰器方案相对"改 `ChatServiceImpl` 内部"的额外收益）。
 
-7. **`<errorResponse>` / `<errorMappings>` 是可选配置节**，不破坏现有 `{provider}.llm.xml` 加载。
+7. **`<errorResponse>` / `<errorMappings>` 是可选配置节**，不破坏现有 `{provider}.llm.xml` 加载（已落地：default/claude/gemini/azure/ollama 均已配置）。
 
 8. **`StandardRetryPolicy` 行为变更（R2 审查 N3）**：今天 `StandardRetryPolicy.shouldRetry` 对 `QUOTA_EXCEEDED`/`AUTH_INVALID` 返回 STOP（`StandardRetryPolicy.java:119-122`，因这两类不在 `TRANSIENT`/`RATE_LIMITED` 白名单内），且标准策略从不产生 `FALLBACK`——故 §3.6 的"按分类路由账号链"今日**不可达**。落地时 `StandardRetryPolicy` 必须改为：`QUOTA_EXCEEDED`/`AUTH_INVALID` → 返回 FALLBACK（交由重试循环按 §3.6 方案 b 路由账号链），`TRANSIENT` 保持 RETRY。此策略变更是 §3.6 路由的前置条件，须有测试固化且验证不破坏零回归红线（依赖 §6.1 两个不变量）。
 

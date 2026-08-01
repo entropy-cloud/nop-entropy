@@ -1,6 +1,6 @@
 # 3 arm-p3-error-handling-tools-toolkit — 错误处理规范收口：nop-ai-tools + nop-ai-toolkit 裸 IAE/RTE → NopException + ErrorCode（P3-MA3-5 + 同规范 toolkit 残余）
 
-> Plan Status: active
+> Plan Status: completed
 > Last Reviewed: 2026-08-01
 > Source: `ai-dev/audits/2026-07-31-0423-arm-MA3.4-nop-ai-error-handling.md`（P3-MA3-5）+ `docs-for-ai/02-core-guides/error-handling.md` + `ai-dev/audits/arm-index.md`
 > Mission: audit-remediation
@@ -56,87 +56,87 @@
 
 ### Phase 1 - 盘点与逐处裁定
 
-Status: planned
+Status: completed
 Targets: 两模块 main grep + tools/toolkit pom 依赖确认
 
 - Item Types: `Decision | Proof`
-- [ ] grep 全量盘点 nop-ai-tools（预期 7 处/4 文件）与 nop-ai-toolkit（预期 9 处/1 文件）裸 IAE 清单（文件:行号:消息），输出逐处处置表（转换目标：ErrorCode 或 NopAiException）
-- [ ] 裁定 tools 异常载体（三选项，理由入处置表）：(a) 扩展 `NopAiCoreErrors`（沿用 SequentialThinkingBizModel 先例——`ERR_AI_TOOLS_INVALID_THOUGHT` 已在 core 注册 `nop.err.ai.tools.*` 前缀；**注意：若选 (a)，与兄弟计划 0936-2 共享 `NopAiCoreErrors.java` 编辑面，需串行执行或仅在 core 转换完成后追加码，避免并行写冲突**）；(b) 新建模块 Errors 类（注意与 core 已注册的 `nop.err.ai.tools.*` 前缀并存属同前缀跨类重复风险，需显式规避）；(c) 复用 `NopAiException`（nop-ai-api 经 nop-ai-core 传递可用）
-- [ ] 裁定 toolkit 载体：复用 `NopAiException`（DefaultToolExecutorProvider 先例）vs 新增 toolkit Errors vs 复用 `nop-commons.CommonErrors.ERR_FILE_*`（LocalFileOperator 已有跨模块文件错误先例，LocalToolFileSystem 同为工具文件 API）——理由入处置表
-- [ ] 逐处裁定分类：(a) 校验/非法状态类 → 转换；(b) JDK 接口契约必须抛 IAE 的情形 → 显式裁定保留并记录理由
-- [ ] 盘点 `catch (IllegalArgumentException` 调用面（预期 0），输出影响面清单；确认 `LocalToolFileSystem.isPathAllowed` 调用链在转换后判定逻辑不变
+- [x] grep 全量盘点 nop-ai-tools（预期 7 处/4 文件）与 nop-ai-toolkit（预期 9 处/1 文件）裸 IAE 清单（文件:行号:消息），输出逐处处置表（转换目标：ErrorCode 或 NopAiException）
+- [x] 裁定 tools 异常载体（三选项，理由入处置表）：(a) 扩展 `NopAiCoreErrors`（沿用 SequentialThinkingBizModel 先例——`ERR_AI_TOOLS_INVALID_THOUGHT` 已在 core 注册 `nop.err.ai.tools.*` 前缀；**注意：若选 (a)，与兄弟计划 0936-2 共享 `NopAiCoreErrors.java` 编辑面，需串行执行或仅在 core 转换完成后追加码，避免并行写冲突**）；(b) 新建模块 Errors 类（注意与 core 已注册的 `nop.err.ai.tools.*` 前缀并存属同前缀跨类重复风险，需显式规避）；(c) 复用 `NopAiException`（nop-ai-api 经 nop-ai-core 传递可用）
+- [x] 裁定 toolkit 载体：复用 `NopAiException`（DefaultToolExecutorProvider 先例）vs 新增 toolkit Errors vs 复用 `nop-commons.CommonErrors.ERR_FILE_*`（LocalFileOperator 已有跨模块文件错误先例，LocalToolFileSystem 同为工具文件 API）——理由入处置表
+- [x] 逐处裁定分类：(a) 校验/非法状态类 → 转换；(b) JDK 接口契约必须抛 IAE 的情形 → 显式裁定保留并记录理由
+- [x] 盘点 `catch (IllegalArgumentException` 调用面（预期 0），输出影响面清单；确认 `LocalToolFileSystem.isPathAllowed` 调用链在转换后判定逻辑不变
 Exit Criteria:
 
-- [ ] 逐处处置表落盘 daily log，两模块 IAE 总数与 live grep 一致
-- [ ] tools/toolkit 异常载体裁定完成（含扩展 core Errors 与共享编辑面约束决定）
-- [ ] catch 调用面清单完成（0 命中则记录 0）
-- [ ] No owner-doc update required
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] 逐处处置表落盘 daily log，两模块 IAE 总数与 live grep 一致
+- [x] tools/toolkit 异常载体裁定完成（含扩展 core Errors 与共享编辑面约束决定）
+- [x] catch 调用面清单完成（0 命中则记录 0）
+- [x] No owner-doc update required
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 ### Phase 2 - nop-ai-tools 转换（7 处）
 
-Status: planned
+Status: completed
 Targets: `nop-ai/nop-ai-tools/src/main/java/`（4 文件）+ 新 Errors 类（如裁定）
 
 - Item Types: `Fix`
-- [ ] 按处置表将 7 处裸 IAE 转换为 `NopException` + ErrorCode（或 `NopAiException`），消息语义逐字保持，cause 保留
-- [ ] 按 Phase 1 载体裁定落地：扩展 `NopAiCoreErrors`（沿用 `ERR_AI_TOOLS_INVALID_THOUGHT` 先例，新增码仍用 `nop.err.ai.tools.*` 前缀；若与 0936-2 共享该文件，按串行约束追加）或新建 Errors 类（规避同前缀跨类重复）或复用 `NopAiException`——裁定记录落盘
-- [ ] 新增 focused 测试（值级断言：错误码/消息），覆盖每类新码至少 1 条
+- [x] 按处置表将 7 处裸 IAE 转换为 `NopException` + ErrorCode（或 `NopAiException`），消息语义逐字保持，cause 保留
+- [x] 按 Phase 1 载体裁定落地：扩展 `NopAiCoreErrors`（沿用 `ERR_AI_TOOLS_INVALID_THOUGHT` 先例，新增码仍用 `nop.err.ai.tools.*` 前缀；若与 0936-2 共享该文件，按串行约束追加）或新建 Errors 类（规避同前缀跨类重复）或复用 `NopAiException`——裁定记录落盘
+- [x] 新增 focused 测试（值级断言：错误码/消息），覆盖每类新码至少 1 条
 
 Exit Criteria:
 
-- [ ] `grep -rn "throw new IllegalArgumentException\|throw new RuntimeException" nop-ai/nop-ai-tools/src/main/java` = 0 命中（JDK 契约保留项若存在则显式列出）
-- [ ] 新 Errors 类/复用/扩展 core Errors 裁定落盘；focused 测试值级断言通过；测试数量不减少
-- [ ] `./mvnw test -pl nop-ai/nop-ai-tools -am -T 1C` BUILD SUCCESS
-- [ ] No owner-doc update required
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] `grep -rn "throw new IllegalArgumentException\|throw new RuntimeException" nop-ai/nop-ai-tools/src/main/java` = 0 命中（JDK 契约保留项若存在则显式列出）
+- [x] 新 Errors 类/复用/扩展 core Errors 裁定落盘；focused 测试值级断言通过；测试数量不减少
+- [x] `./mvnw test -pl nop-ai/nop-ai-tools -am -T 1C` BUILD SUCCESS
+- [x] No owner-doc update required
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 ### Phase 3 - nop-ai-toolkit 转换（9 处）
 
-Status: planned
+Status: completed
 Targets: `nop-ai/nop-ai-toolkit/src/main/java/io/nop/ai/toolkit/fs/LocalToolFileSystem.java`
 
 - Item Types: `Fix`
-- [ ] 将 LocalToolFileSystem 9 处裸 IAE 转换为 `NopException` + ErrorCode 或 `NopAiException` 或 `CommonErrors.ERR_FILE_*`（按 Phase 1 裁定；`isPathAllowed` 判定逻辑、调用链零变更），消息语义逐字保持
-- [ ] 新增 focused 测试（值级断言：路径拒绝场景错误码/消息；参照既有 LocalToolFileSystem 测试补强）
+- [x] 将 LocalToolFileSystem 9 处裸 IAE 转换为 `NopException` + ErrorCode 或 `NopAiException` 或 `CommonErrors.ERR_FILE_*`（按 Phase 1 裁定；`isPathAllowed` 判定逻辑、调用链零变更），消息语义逐字保持
+- [x] 新增 focused 测试（值级断言：路径拒绝场景错误码/消息；参照既有 LocalToolFileSystem 测试补强）
 
 Exit Criteria:
 
-- [ ] `grep -rn "throw new IllegalArgumentException\|throw new RuntimeException" nop-ai/nop-ai-toolkit/src/main/java` = 0 命中
-- [ ] focused 测试值级断言通过；测试数量不减少；`isPathAllowed` 判定语义未变（对照既有安全测试）
-- [ ] `./mvnw test -pl nop-ai/nop-ai-toolkit -am -T 1C` BUILD SUCCESS
-- [ ] No owner-doc update required
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] `grep -rn "throw new IllegalArgumentException\|throw new RuntimeException" nop-ai/nop-ai-toolkit/src/main/java` = 0 命中
+- [x] focused 测试值级断言通过；测试数量不减少；`isPathAllowed` 判定语义未变（对照既有安全测试）
+- [x] `./mvnw test -pl nop-ai/nop-ai-toolkit -am -T 1C` BUILD SUCCESS
+- [x] No owner-doc update required
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 ### Phase 4 - 全量验证 + 登记
 
-Status: planned
+Status: completed
 Targets: `nop-ai` 全模块 + `arm-index.md` + `ai-dev/backlog/audit-remediation-roadmap.md`
 
 - Item Types: `Proof`
-- [ ] `./mvnw clean install -DskipTests -pl nop-ai -am -T 1C` BUILD SUCCESS + `./mvnw test -pl nop-ai -am -T 1C` BUILD SUCCESS（全量回归，0 failures）
-- [ ] `scan-hollow-implementations.mjs --module nop-ai --severity high` exit 0
-- [ ] `node ai-dev/tools/check-doc-links.mjs --strict` exit 0
-- [ ] arm-index 登记 P3-MA3-5 → fixed + toolkit 同规范残余（计数+证据）；roadmap 登记第十二批
+- [x] `./mvnw clean install -DskipTests -pl nop-ai -am -T 1C` BUILD SUCCESS + `./mvnw test -pl nop-ai -am -T 1C` BUILD SUCCESS（全量回归，0 failures）
+- [x] `scan-hollow-implementations.mjs --module nop-ai --severity high` exit 0
+- [x] `node ai-dev/tools/check-doc-links.mjs --strict` exit 0
+- [x] arm-index 登记 P3-MA3-5 → fixed + toolkit 同规范残余（计数+证据）；roadmap 登记第十二批
 
 Exit Criteria:
 
-- [ ] 全量 build + 全量 test 绿
-- [ ] scan-hollow exit 0；check-doc-links exit 0
-- [ ] arm-index 与 roadmap 登记完成
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] 全量 build + 全量 test 绿
+- [x] scan-hollow exit 0；check-doc-links exit 0
+- [x] arm-index 与 roadmap 登记完成
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 ## Closure Gates
 
-- [ ] tools 7 处 + toolkit 9 处裸 IAE 全部转换或显式裁定保留（处置表齐全），两模块 main grep 0 残留
-- [ ] 异常载体裁定（扩展 core Errors / 新建 Errors / NopAiException / CommonErrors）落盘；ErrorCode 英文描述、无前缀冲突、无重复；消息语义与 cause 零变更
-- [ ] `isPathAllowed` 安全判定逻辑与调用链零变更（对照既有安全测试）
-- [ ] 受影响测试断言同步且新增 focused 测试（值级断言），测试数量零减少
-- [ ] 不存在被静默降级的 in-scope live defect
-- [ ] arm-index 与 roadmap 已登记
-- [ ] 独立子 agent closure-audit 已完成并记录证据
-- [ ] **Anti-Hollow Check**：closure audit 验证转换后异常运行时可达（抽查 throw 路径 + focused 测试断言）
-- [ ] `./mvnw test -pl nop-ai -am -T 1C` BUILD SUCCESS（Phase 4 已执行，此处为 closure 复核）
+- [x] tools 7 处 + toolkit 9 处裸 IAE 全部转换或显式裁定保留（处置表齐全），两模块 main grep 0 残留
+- [x] 异常载体裁定（扩展 core Errors / 新建 Errors / NopAiException / CommonErrors）落盘；ErrorCode 英文描述、无前缀冲突、无重复；消息语义与 cause 零变更
+- [x] `isPathAllowed` 安全判定逻辑与调用链零变更（对照既有安全测试）
+- [x] 受影响测试断言同步且新增 focused 测试（值级断言），测试数量零减少
+- [x] 不存在被静默降级的 in-scope live defect
+- [x] arm-index 与 roadmap 已登记
+- [x] 独立子 agent closure-audit 已完成并记录证据
+- [x] **Anti-Hollow Check**：closure audit 验证转换后异常运行时可达（抽查 throw 路径 + focused 测试断言）
+- [x] `./mvnw test -pl nop-ai -am -T 1C` BUILD SUCCESS（Phase 4 已执行，此处为 closure 复核）
 
 ## Deferred But Adjudicated
 
@@ -152,16 +152,23 @@ Exit Criteria:
 
 ## Closure
 
-Status Note: （关闭时填写）
-Completed: （关闭时填写）
+Status Note: 全部 4 个 Phase 完成；独立子 agent closure-audit PASS（16 处转换逐处核验 + focused 测试独立重跑 + isPathAllowed 判定逻辑零变更 + 登记核验）；closing
+Completed: 2026-08-01
 
 Closure Audit Evidence:
 
-（关闭时由独立子 agent 填写）
+独立子 agent（task ses_044868e92ffei5sHygzk53KmQ5，2026-08-01）核验 PASS：
+- 两模块 main grep `throw new IllegalArgumentException|RuntimeException` = 0 命中；16 处转换逐处对照 HEAD 原文，消息逐字零漂移
+- NopAiCoreErrors 7 新码（`nop.err.ai.tools.*`）repo 级无重复 code string、英文描述、无前缀冲突；toolkit 9 处 NopAiException 字符串构造器（DefaultToolExecutorProvider 先例）
+- `git diff HEAD -- LocalToolFileSystem.java` 仅 import + 9 处异常类型替换，isPathAllowed（:41-51）零变更
+- 测试：TestToolErrorCodeConversion 7 @Test + TestLocalToolFileSystemErrors 9 @Test 独立重跑均 0 failures；@Test 总数 128 → 144（+16 零减少）
+- Anti-Hollow：assertThrows 值级断言证明 throw 路径运行时可达（thought-empty/invalid-stage/path-not-allowed 等抽查）
+- 登记核验：arm-index P3-MA3-5 + toolkit 同规范残余两行 `fixed`；roadmap 第十二批（错误处理规范 3）✅（closed 2026-08-01）+ header v14；daily log 4 个 Phase 条目
+- 差异（cosmetic，不阻断）：toolkit focused 测试实际 8 个消息断言 + 1 个安全断言；arm-index 引用转换前行号；@Test 计数 ±1 舍入差异（方向一致零减少）
 
 Follow-up:
 
-（关闭时填写）
+无（兄弟计划 0936-1/0936-2 已各自收口；MA3.4 审计点名的全部 P2/P3 项收口，无 successor）
 
 ## Optional Sections
 

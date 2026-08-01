@@ -37,7 +37,7 @@
 
 | 能力 | 提供方 | 说明 |
 |------|--------|------|
-| LLM 调用 + 多 Provider | `nop-ai-core` | `ChatServiceImpl` / `DefaultAiChatService`；`llm.xdef` + `{provider}.llm.xml`（ollama/deepseek/claude/gemini/azure/volcengine/bailian/lm-studio 等） |
+| LLM 调用 + 多 Provider | `nop-ai-core` | `ChatServiceImpl` / `DefaultAiChatService`；`llm.xdef` + `{provider}.llm.xml`（ollama/deepseek/claude/gemini/azure/volcengine/bailian/lm-studio 等）。错误规范化配置（`<errorMappings>`）已加入 llm.xdef，运行时消费属 backlog `nop-ai-agent-harness-evolution-roadmap.md` W2e |
 | 工具 DSL | `nop-ai-toolkit` | `tool.xdef`；只依赖 `nop-ai-api`，与 `nop-ai-core` 独立发展 |
 | 可逆计算 / codegen | Nop XLang | `agent.xdef` / `agent-plan.xdef` 经 xdsl-loader 加载；Delta 定制 |
 

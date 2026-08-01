@@ -12,6 +12,22 @@
 - [ ] W1-4 plan 运行时：PlanReplanner（停滞检测 → 阶段回退/任务拆分/失败升级，幂等决策）
 - 参考：`2026-08-01-codewhale-workflow-ir-gate-analysis.md`、`2026-08-01-archon-yaml-dag-workflow-analysis.md`、`2026-08-01-jcode-dag-first-agent-analysis.md`、`2026-08-01-spec-kit-workflow-engine-analysis.md`
 
+### W2e. LLM 错误规范化与配额感知恢复（W2 前置必须项）
+
+> 设计：`ai-dev/design/nop-ai-agent/nop-ai-llm-error-normalization-design.md`；可行性：`ai-dev/analysis/2026-08/2026-08-01-llm-error-mapping-feasibility-analysis.md`
+> **为何是 W2（尤其 W2-4 ProviderFailoverQueue）的前置**：L3 的 `IRetryPolicy`/`LlmErrorClassifier` 已落地但只能按 HTTP 状态粗分类，`QUOTA_EXCEEDED`/`AUTH_INVALID` 从未被生产——W2-4 的智能故障转移没有错误分类信号就无法决定"切 provider"还是"等待"。本节先把信号通路打通。
+>
+> **架构约定**：错误规范化在 `ChatServiceImpl` 内经 `ILlmDialect` 完成（与成功响应 `parseResponse` 同构），结果放 `ChatResponse` 新字段（`errorClassification`/`retryAfterMs`）。**不用装饰器、不用新异常类型**——ChatServiceImpl 职责即经 dialect 规范化 I/O，错误是另一种输出。响应级错误（拿到 HTTP 响应）→ ChatResponse；传输级错误（无响应）→ 仍抛异常。
+>
+> **已落地**（core 配置/模型层）：`llm.xdef` schema（`<errorResponse>`/`<errorMappings>`/`<classifyError>`）、`ErrorClassification` 枚举上移到 `io.nop.ai.core.model`（agent 侧 `@Deprecated` 桥接）、default/claude/gemini/azure/ollama 五个 provider 的 `<errorMappings>` 配置、codegen 模型 + `TestLlmErrorMapping` 配置加载测试。
+
+- [ ] W2e-0（nop-http 前置）`ServerEventPublisher` 把响应头挂到抛出的异常（流式路径取 `Retry-After` 头的前提；未完成则流式仅支持 body 级 Retry-After，已知缺口）
+- [ ] W2e-1（nop-ai-api）`ChatResponse` 增加 `errorClassification`/`retryAfterMs`/`httpStatus` 字段（沿用既有 `error`/`errorCode`/`isSuccess()`）
+- [ ] W2e-2（nop-ai-core）`ILlmDialect` 新增 `parseErrorResponse`（消费 `<errorMappings>` 规则表 first-match，与 `parseResponse` 对称）；`ChatServiceImpl` 非 200（非流式读 body+头）+ 流式 `aggregateStreamToResponse.onError`（读 `ARG_BODY`）都调它 → 返回带 `errorClassification` 的错误 `ChatResponse`（不抛）
+- [ ] W2e-3（nop-ai-agent）`LlmCallCoordinator` 重试循环改造：`!response.isSuccess()` 从终止路径升级为读 `errorClassification` 进入重试决策（今天 `:179-187` 不重试）；`RetryContext` 增加 `retryAfterMs`
+- [ ] W2e-4（nop-ai-agent）`StandardRetryPolicy` 行为变更：`QUOTA_EXCEEDED`/`AUTH_INVALID` → FALLBACK（按设计 §3.6 方案 b 路由账号链）；`RATE_LIMITED` 用 Retry-After 作 floor（`delay=retryAfterMs+jitter`）；传输异常仍走 `LlmErrorClassifier` 启发式
+- [ ] W2e-5（nop-ai-agent）账号回退链（provider 级配置）+ 重试循环按 `errorClassification` 区分账号链 vs `IModelRouter.getFallback` 模型 tier 链；链耗尽 fail-loud。**W2-4 ProviderFailoverQueue 消费本项的错误分类信号做跨 provider 故障转移**
+
 ### W2. Reliability 增量（高优先）
 - [ ] W2-1 checkpoint 增加 wait_for 条件 JSONB（WAIT_FOR 长等待原语：挂起不占线程 → 条件满足唤醒恢复）
 - [ ] W2-2 checkpoint 增加 idempotency_key 列 + 唯一约束（hash(toolName+callId+输入指纹)，restore 时发散检测）

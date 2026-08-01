@@ -40,6 +40,8 @@
 | Run tests | `./mvnw test` |
 | Single module tests | `./mvnw test -pl <module> -am` |
 
+> **xdef 修改提示**：若修改了 `nop-kernel/nop-xdefs/src/main/resources/_vfs/nop/schema/` 下的 schema（如 `llm.xdef`），必须**先 `./mvnw install -pl nop-kernel/nop-xdefs -am -DskipTests` 重新打包**，下游模块的 xdef 代码生成器才使用新 schema（它从本地仓库 jar 加载，不是源码）。否则 `_gen` 模型类不会包含新增属性。详见 `06-extensibility/platform-extensibility-mechanism.md` 元模型层章节。
+
 ## Active ai-dev/ Layers
 
 - [x] ai-dev/logs/ — 每日开发日志

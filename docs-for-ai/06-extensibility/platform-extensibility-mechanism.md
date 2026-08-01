@@ -142,6 +142,28 @@ XDef 提供：
 - `nop-kernel/nop-xdefs/src/main/resources/_vfs/nop/schema/`
 - `nop-kernel/nop-xdefs/.../xdsl.xdef`
 
+### ⚠️ 修改 xdef 后必须重新打包 nop-xdefs
+
+**关键操作**：`llm.xdef`、`orm.xdef` 等 schema 文件位于 **`nop-kernel/nop-xdefs`** 模块的 `src/main/resources/_vfs/nop/schema/` 下。下游模块（如 `nop-ai-core`）的**编译期 xdef 代码生成器**（exec-maven-plugin 的 `precompile`，见根 `pom.xml`）从 **Maven 本地仓库中的 `nop-xdefs` jar** 加载 schema——**不是从源码目录**。
+
+因此修改 xdef 后，必须：
+
+```
+1. 重新打包并安装 nop-xdefs：
+   ./mvnw install -pl nop-kernel/nop-xdefs -am -DskipTests
+
+2. 确认本地仓库 jar 已更新（时间戳/内容）：
+   ~/.m2/repository/io/github/entropy-cloud/nop-xdefs/2.0.0-SNAPSHOT/nop-xdefs-*.jar
+   unzip -p <jar> _vfs/nop/schema/ai/llm.xdef | grep <新属性>   # 验证新 schema 已进 jar
+
+3. 再编译/测试下游模块（生成器此时才用新 schema 生成 _gen 模型类）：
+   ./mvnw clean compile -pl nop-ai/nop-ai-core -am
+```
+
+**不这样做的后果**：下游模块的 xdef 代码生成器继续从旧 jar 加载旧 schema——新增的属性/节点**不会**生成到 `_gen` 模型类（如 `getId()` 找不到、新节点模型类不生成），且运行时 xdef 校验也用旧 schema。症状表现为"改了 xdef 但模型类没有新字段"，排查时**先检查本地仓库 jar 是否已更新**。
+
+> 注意：此规则只适用于**平台内修改 `nop-kernel/nop-xdefs` 的 schema**。业务应用项目（非平台开发）不修改平台 xdef，不受影响；业务应用自己的 DSL 扩展走 Delta 机制，不在此列。
+
 ## 2. 模型层：所有子系统都先落到 XDSL
 
 ORM、workflow、page、beans、xbiz、task、rule 这些看似不同的东西，在平台内部首先都是 XDSL 模型。
