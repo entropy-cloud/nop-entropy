@@ -559,7 +559,9 @@ public class DefaultAiChatService implements IAiChatService {
             Object arguments = BeanTool.getComplexProperty(map, "function.arguments");
             Map<String, Object> argsMap = null;
             if (arguments instanceof Map) {
-                argsMap = (Map<String, Object>) arguments;
+                @SuppressWarnings("unchecked")
+                Map<String, Object> argumentsMap = (Map<String, Object>) arguments;
+                argsMap = argumentsMap;
             } else if (arguments instanceof String) {
                 argsMap = JsonTool.parseMap(arguments.toString());
             }

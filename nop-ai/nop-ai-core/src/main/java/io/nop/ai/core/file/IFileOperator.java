@@ -327,15 +327,15 @@ public interface IFileOperator {
         }
 
         // getter方法
-        public String getFilePath() {
+        String getFilePath() {
             return filePath;
         }
 
-        public int getLineNumber() {
+        int getLineNumber() {
             return lineNumber;
         }
 
-        public String getLineContent() {
+        String getLineContent() {
             return lineContent;
         }
 
