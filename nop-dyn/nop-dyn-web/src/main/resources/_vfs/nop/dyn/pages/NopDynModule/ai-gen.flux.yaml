@@ -1,0 +1,16 @@
+# Flux 版本的 AI 智能生成弹窗。原 ami​s form api 改为 flux submitAction。
+type: dialog
+title: AI智能生成
+size: md
+body:
+  type: form
+  submitAction:
+    action: ajax
+    args:
+      url: "@mutation:NopDynModule__generateByAI"
+      method: post
+  mode: vertical
+  body:
+    - type: textarea
+      name: response
+      label: 文心一言的响应消息
