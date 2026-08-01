@@ -7,6 +7,7 @@ import io.nop.ai.agent.plan.model.TriggerRule;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -34,13 +35,16 @@ import java.util.stream.Collectors;
  *       state (completed, failed, cancelled, etc.).</li>
  * </ul>
  *
- * <p>This scheduler is a stateless query: it reads the current task statuses
- * from the plan model and computes the ready set without mutating anything.
+ * <p>This scheduler is a stateless query: it reads task statuses (either from
+ * the plan model, or from a runtime status provider overlay — see
+ * {@link #getReadyTasks(AgentPlan, Function)}) and computes the ready set
+ * without mutating anything.
  */
 public class PlanScheduler {
 
     /**
-     * Compute the list of tasks that are ready to execute.
+     * Compute the list of tasks that are ready to execute, reading statuses
+     * from the plan model itself.
      *
      * @param plan the agent plan (non-null; should have passed
      *             {@link AgentPlanValidator} validation so the DAG is
@@ -50,6 +54,34 @@ public class PlanScheduler {
     public List<AgentPlanTaskModel> getReadyTasks(AgentPlan plan) {
         if (plan == null) {
             throw new IllegalArgumentException("plan must not be null");
+        }
+
+        Map<String, AgentExecStatus> declaredStatus = new HashMap<>();
+        for (AgentPlanTaskModel t : new PlanDagBuilder().collectAllTasks(plan)) {
+            declaredStatus.put(t.getTaskNo(), t.getStatus());
+        }
+        return getReadyTasks(plan, declaredStatus::get);
+    }
+
+    /**
+     * Compute the list of tasks that are ready to execute, reading runtime
+     * statuses from a provider overlay. Used by the {@link PlanExecutor} host
+     * which tracks task statuses in a mutable execution state rather than in
+     * the (frozen) plan model.
+     *
+     * @param plan           the agent plan (non-null)
+     * @param statusProvider maps a {@code taskNo} to its runtime
+     *                       {@link AgentExecStatus}; may return {@code null}
+     *                       (treated as {@link AgentExecStatus#pending})
+     * @return an unmodifiable list of ready tasks (never null; empty if none)
+     */
+    public List<AgentPlanTaskModel> getReadyTasks(AgentPlan plan,
+                                                  Function<String, AgentExecStatus> statusProvider) {
+        if (plan == null) {
+            throw new IllegalArgumentException("plan must not be null");
+        }
+        if (statusProvider == null) {
+            throw new IllegalArgumentException("statusProvider must not be null");
         }
 
         List<AgentPlanTaskModel> allTasks = new PlanDagBuilder().collectAllTasks(plan);
@@ -63,11 +95,11 @@ public class PlanScheduler {
         List<AgentPlanTaskModel> ready = new ArrayList<>();
 
         for (AgentPlanTaskModel task : allTasks) {
-            if (isTerminal(task.getStatus())) {
+            if (isTerminal(statusOf(task.getTaskNo(), statusProvider))) {
                 continue;
             }
 
-            if (isTriggerSatisfied(task, taskByNo)) {
+            if (isTriggerSatisfied(task, taskByNo, statusProvider)) {
                 ready.add(task);
             }
         }
@@ -75,8 +107,14 @@ public class PlanScheduler {
         return Collections.unmodifiableList(ready);
     }
 
+    private static AgentExecStatus statusOf(String taskNo, Function<String, AgentExecStatus> statusProvider) {
+        AgentExecStatus s = statusProvider.apply(taskNo);
+        return s == null ? AgentExecStatus.pending : s;
+    }
+
     private boolean isTriggerSatisfied(AgentPlanTaskModel task,
-                                       Map<String, AgentPlanTaskModel> taskByNo) {
+                                       Map<String, AgentPlanTaskModel> taskByNo,
+                                       Function<String, AgentExecStatus> statusProvider) {
         Set<String> deps = task.getDependsOn();
 
         if (deps == null || deps.isEmpty()) {
@@ -96,7 +134,7 @@ public class PlanScheduler {
             AgentPlanTaskModel dep = taskByNo.get(depNo);
             if (dep == null) continue;
 
-            AgentExecStatus depStatus = dep.getStatus();
+            AgentExecStatus depStatus = statusOf(dep.getTaskNo(), statusProvider);
             if (depStatus == AgentExecStatus.completed) {
                 anyCompleted = true;
             }
@@ -112,7 +150,7 @@ public class PlanScheduler {
             case all_success:
                 return deps.stream()
                         .allMatch(depNo -> taskByNo.get(depNo) != null
-                                && taskByNo.get(depNo).getStatus() == AgentExecStatus.completed);
+                                && statusOf(depNo, statusProvider) == AgentExecStatus.completed);
             case one_success:
                 return anyCompleted;
             case none_failed_min_one_success:
