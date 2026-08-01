@@ -55,8 +55,7 @@ import static io.nop.ai.core.api.messages.AiMessage.indexOfMark;
 
 /**
  * AI chat exchange (response/request). Part of the legacy {@code AiChat*} naming convention.
- * @deprecated This internal AI core class is deprecated and will be removed in future versions.
- * Please use the new AI API instead.
+ * @deprecated Use {@link io.nop.ai.api.chat.ChatRequest} and {@link io.nop.ai.api.chat.ChatResponse} (new AI API {@code IChatService.callAsync}) instead.
  */
 @DataBean
 @Deprecated(forRemoval = true)

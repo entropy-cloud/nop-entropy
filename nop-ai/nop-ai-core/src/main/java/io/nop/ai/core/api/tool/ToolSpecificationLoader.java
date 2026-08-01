@@ -5,8 +5,7 @@ import io.nop.core.resource.IResource;
 import io.nop.core.resource.VirtualFileSystem;
 
 /**
- * @deprecated This internal AI core class is deprecated and will be removed in future versions.
- * Please use the new AI API instead.
+ * @deprecated Use {@link io.nop.ai.toolkit.api.IToolManager#loadTool(String)} instead (loads {@link io.nop.ai.toolkit.model.AiToolModel} from {@code /nop/ai/tools/{name}.tool.xml}).
  */
 @Deprecated
 public class ToolSpecificationLoader {

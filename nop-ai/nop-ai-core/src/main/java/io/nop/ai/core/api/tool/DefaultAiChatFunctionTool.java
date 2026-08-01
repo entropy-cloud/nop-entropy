@@ -14,8 +14,7 @@ import static io.nop.core.type.utils.GenericTypeToJsonSchema.buildInputSchema;
 import static io.nop.core.type.utils.GenericTypeToJsonSchema.buildOutputSchema;
 
 /**
- * @deprecated This internal AI core class is deprecated and will be removed in future versions.
- * Please use the new AI API instead.
+ * @deprecated Use the new tool contracts instead: {@link io.nop.ai.api.tool.IToolDefinition} (nop-ai-api) with {@link io.nop.ai.toolkit.api.IToolExecutor} and {@link io.nop.ai.toolkit.api.IToolManager} (nop-ai-toolkit); declarative tools are defined as {@link io.nop.ai.toolkit.model.AiToolModel} from {@code *.tool.xml}.
  */
 @Deprecated
 public class DefaultAiChatFunctionTool implements IAiChatFunctionTool {

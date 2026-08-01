@@ -5,8 +5,7 @@ import com.fasterxml.jackson.annotation.JsonInclude;
 import java.util.List;
 
 /**
- * @deprecated This internal AI core class is deprecated and will be removed in future versions.
- * Please use the new AI API instead.
+ * @deprecated Use {@link io.nop.ai.api.chat.messages.ChatMessage} (the new AI API text-message base) instead.
  */
 @Deprecated
 public abstract class AbstractTextMessage extends AiMessage {

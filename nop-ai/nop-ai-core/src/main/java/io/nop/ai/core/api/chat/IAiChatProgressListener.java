@@ -10,8 +10,7 @@ package io.nop.ai.core.api.chat;
 import io.nop.ai.core.api.messages.AiChatExchange;
 
 /**
- * @deprecated This internal AI core interface is deprecated and will be removed in future versions.
- * Please use the new AI API instead.
+ * @deprecated Use {@link io.nop.ai.api.chat.IChatService#callStream(io.nop.ai.api.chat.ChatRequest, io.nop.api.core.util.ICancelToken)} instead (reactive streaming of {@link io.nop.ai.api.chat.stream.ChatStreamChunk}).
  */
 @Deprecated(forRemoval = true)
 public interface IAiChatProgressListener {

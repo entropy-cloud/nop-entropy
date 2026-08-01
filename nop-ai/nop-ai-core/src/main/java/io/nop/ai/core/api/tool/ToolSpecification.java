@@ -5,8 +5,7 @@ import io.nop.api.core.annotations.data.DataBean;
 import io.nop.api.core.json.JsonSchema;
 
 /**
- * @deprecated This internal AI core class is deprecated and will be removed in future versions.
- * Please use the new AI API instead.
+ * @deprecated Use {@link io.nop.ai.api.tool.IToolDefinition} (implemented by {@link io.nop.ai.api.chat.messages.ChatToolDefinition}) instead.
  */
 @DataBean
 @Deprecated

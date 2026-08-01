@@ -28,8 +28,7 @@ import java.util.List;
 
 /**
  * Base AI message. Part of the legacy {@code AiMessage*} naming convention.
- * @deprecated This internal AI core class is deprecated and will be removed in future versions.
- * Please use the new AI API instead.
+ * @deprecated Use {@link io.nop.ai.api.chat.messages.ChatMessage} (the new AI API message base) instead.
  */
 @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, property = "role")
 @JsonSubTypes({@JsonSubTypes.Type(value = AiUserMessage.class, name = "user"),

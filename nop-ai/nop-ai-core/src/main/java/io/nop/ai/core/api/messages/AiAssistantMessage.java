@@ -7,8 +7,7 @@ import io.nop.api.core.annotations.data.DataBean;
 import java.util.List;
 
 /**
- * @deprecated This internal AI core class is deprecated and will be removed in future versions.
- * Please use the new AI API instead.
+ * @deprecated Use {@link io.nop.ai.api.chat.messages.ChatAssistantMessage} instead.
  */
 @DataBean
 @Deprecated

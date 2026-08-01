@@ -6,8 +6,7 @@ import java.util.Map;
 
 /**
  * Tool call data. Part of the legacy {@code ToolCall} naming convention.
- * @deprecated This internal AI core class is deprecated and will be removed in future versions.
- * Please use the new AI API instead.
+ * @deprecated Use {@link io.nop.ai.api.chat.messages.ChatToolCall} instead.
  */
 @DataBean
 @Deprecated(forRemoval = true)

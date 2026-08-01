@@ -21,8 +21,7 @@ import io.nop.api.core.annotations.data.DataBean;
 import java.util.Map;
 
 /**
- * @deprecated This internal AI core class is deprecated and will be removed in future versions.
- * Please use the new AI API instead.
+ * @deprecated Use {@link io.nop.ai.api.chat.messages.ChatToolResponseMessage} (tool-role result message; the tool invocation itself is {@link io.nop.ai.api.chat.messages.ChatToolCall}) instead.
  */
 @DataBean
 @Deprecated

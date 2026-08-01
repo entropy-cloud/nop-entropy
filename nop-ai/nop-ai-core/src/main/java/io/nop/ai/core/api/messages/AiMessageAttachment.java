@@ -13,8 +13,7 @@ import static io.nop.ai.core.AiCoreConstants.RESOURCE_TYPE_AUDIO;
 import static io.nop.ai.core.AiCoreConstants.RESOURCE_TYPE_IMAGE;
 
 /**
- * @deprecated This internal AI core class is deprecated and will be removed in future versions.
- * Please use the new AI API instead.
+ * @deprecated Use {@link io.nop.ai.api.chat.messages.ChatAttachment} instead.
  */
 @DataBean
 @Deprecated
