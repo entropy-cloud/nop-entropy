@@ -57,6 +57,15 @@ export class CrudListPage extends BasePage {
   async waitForList(timeoutMs = 30_000): Promise<void> {
     await this.engine.crudContainer(this.page).waitFor({ state: 'visible', timeout: timeoutMs });
     await this.engine.table(this.page).waitFor({ state: 'visible', timeout: timeoutMs });
+    // 表格容器可见时数据行可能尚未加载（CRUD 在 mount 后才发起查询，期间表格显示
+    // 空/加载占位行）。等待数据查询完成的 networkidle，并尽力等待第一条数据行 attach。
+    // 合法空表无数据行时，3s 超时后放行（不影响后续 search/assert 的空判断）。
+    await this.page.waitForLoadState('networkidle').catch(() => {});
+    await this.engine
+      .rows(this.page)
+      .first()
+      .waitFor({ state: 'attached', timeout: 3_000 })
+      .catch(() => {});
   }
 
   async getAddButton(): Promise<Locator> {
