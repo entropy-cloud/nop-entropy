@@ -1,5 +1,7 @@
 package io.nop.ai.shell.model;
 
+import io.nop.ai.shell.NopAiShellErrors;
+import io.nop.api.core.exceptions.NopException;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
@@ -80,7 +82,7 @@ class CommandModelTest {
     void testPipelineExprRequiresTwoCommands() {
         SimpleCommand cmd1 = SimpleCommand.builder("cmd1").build();
 
-        assertThrows(IllegalArgumentException.class, () ->
+        assertThrows(NopException.class, () ->
             PipelineExpr.builder().command(cmd1).build()
         );
     }
@@ -178,7 +180,7 @@ class CommandModelTest {
 
     @Test
     void testGroupExprRequiresCommands() {
-        assertThrows(IllegalArgumentException.class, () -> new GroupExpr(List.of(), List.of()));
+        assertThrows(NopException.class, () -> new GroupExpr(List.of(), List.of()));
     }
 
     @Test
@@ -513,7 +515,7 @@ class CommandModelTest {
         assertEquals(LogicalExpr.Operator.OR, LogicalExpr.Operator.fromSymbol("||"));
         assertEquals(LogicalExpr.Operator.SEMICOLON, LogicalExpr.Operator.fromSymbol(";"));
 
-        assertThrows(IllegalArgumentException.class, () -> LogicalExpr.Operator.fromSymbol("&"));
+        assertThrows(NopException.class, () -> LogicalExpr.Operator.fromSymbol("&"));
     }
 
     @Test
@@ -528,6 +530,34 @@ class CommandModelTest {
         assertEquals(Redirect.Type.HERE_DOC, Redirect.Type.fromSymbol("<<"));
         assertEquals(Redirect.Type.HERE_STRING, Redirect.Type.fromSymbol("<<<"));
 
-        assertThrows(IllegalArgumentException.class, () -> Redirect.Type.fromSymbol("unknown"));
+        assertThrows(NopException.class, () -> Redirect.Type.fromSymbol("unknown"));
+    }
+
+    /**
+     * P3-MA3-1 focused value-level assertions (plan 2026-08-01-0936-1): the
+     * converted model-expression validation guards must fail fast with the
+     * module ErrorCodes and preserve the verbatim English messages.
+     */
+    @Test
+    void expressionValidationFailuresCarryErrorCodeAndVerbatimMessage() {
+        NopException e1 = assertThrows(NopException.class, () -> new GroupExpr(List.of(), List.of()));
+        assertEquals(NopAiShellErrors.ERR_AI_SHELL_EMPTY_COMMAND.getErrorCode(), e1.getErrorCode());
+        assertEquals("Group must have at least one command", e1.getParams().get(NopAiShellErrors.ARG_MSG));
+
+        SimpleCommand cmd1 = SimpleCommand.builder("cmd1").build();
+        NopException e2 = assertThrows(NopException.class,
+                () -> PipelineExpr.builder().command(cmd1).build());
+        assertEquals(NopAiShellErrors.ERR_AI_SHELL_EMPTY_COMMAND.getErrorCode(), e2.getErrorCode());
+        assertEquals("Pipeline must have at least 2 commands", e2.getParams().get(NopAiShellErrors.ARG_MSG));
+
+        NopException e3 = assertThrows(NopException.class,
+                () -> LogicalExpr.Operator.fromSymbol("&"));
+        assertEquals(NopAiShellErrors.ERR_AI_SHELL_UNKNOWN_SYMBOL.getErrorCode(), e3.getErrorCode());
+        assertEquals("Unknown operator: &", e3.getParams().get(NopAiShellErrors.ARG_MSG));
+
+        NopException e4 = assertThrows(NopException.class, () -> Redirect.parse("abc"));
+        assertEquals(NopAiShellErrors.ERR_AI_SHELL_INVALID_REDIRECT.getErrorCode(), e4.getErrorCode());
+        assertEquals("Invalid redirect format: abc", e4.getParams().get(NopAiShellErrors.ARG_MSG));
+        assertTrue(e4.getMessage().contains("Invalid redirect format: abc"));
     }
 }

@@ -1,5 +1,8 @@
 package io.nop.ai.shell.commands;
 
+import io.nop.ai.shell.NopAiShellErrors;
+import io.nop.api.core.exceptions.NopException;
+
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
@@ -32,12 +35,12 @@ public class ShellCommandRegistry {
      */
     public void registerCommand(IShellCommand command) {
         if (command == null) {
-            throw new IllegalArgumentException("Command cannot be null");
+            throw new NopException(NopAiShellErrors.ERR_AI_SHELL_INVALID_ARG).param(NopAiShellErrors.ARG_MSG, "Command cannot be null");
         }
 
         String name = command.name();
         if (name == null || name.trim().isEmpty()) {
-            throw new IllegalArgumentException("Command name cannot be null or empty");
+            throw new NopException(NopAiShellErrors.ERR_AI_SHELL_INVALID_ARG).param(NopAiShellErrors.ARG_MSG, "Command name cannot be null or empty");
         }
 
         commands.put(name.trim(), command);
@@ -51,15 +54,15 @@ public class ShellCommandRegistry {
      */
     public void registerAlias(String alias, String commandName) {
         if (alias == null || alias.trim().isEmpty()) {
-            throw new IllegalArgumentException("Alias cannot be null or empty");
+            throw new NopException(NopAiShellErrors.ERR_AI_SHELL_INVALID_ARG).param(NopAiShellErrors.ARG_MSG, "Alias cannot be null or empty");
         }
 
         if (commandName == null || commandName.trim().isEmpty()) {
-            throw new IllegalArgumentException("Command name cannot be null or empty");
+            throw new NopException(NopAiShellErrors.ERR_AI_SHELL_INVALID_ARG).param(NopAiShellErrors.ARG_MSG, "Command name cannot be null or empty");
         }
 
         if (!commands.containsKey(commandName.trim())) {
-            throw new IllegalArgumentException("Command not found: " + commandName);
+            throw new NopException(NopAiShellErrors.ERR_AI_SHELL_COMMAND_NOT_FOUND).param(NopAiShellErrors.ARG_COMMAND_NAME, commandName);
         }
 
         aliases.put(alias.trim(), commandName.trim());

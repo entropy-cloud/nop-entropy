@@ -1,6 +1,8 @@
 package io.nop.ai.shell.commands;
 
+import io.nop.ai.shell.NopAiShellErrors;
 import io.nop.ai.shell.commands.impl.EchoCommand;
+import io.nop.api.core.exceptions.NopException;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -35,7 +37,7 @@ class ShellCommandRegistryTest {
     void testRegisterNullCommand() {
         ShellCommandRegistry registry = new ShellCommandRegistry();
 
-        assertThrows(IllegalArgumentException.class, () -> registry.registerCommand(null));
+        assertThrows(NopException.class, () -> registry.registerCommand(null));
     }
 
     @Test
@@ -68,7 +70,7 @@ class ShellCommandRegistryTest {
             }
         };
 
-        assertThrows(IllegalArgumentException.class, () -> registry.registerCommand(command));
+        assertThrows(NopException.class, () -> registry.registerCommand(command));
     }
 
     @Test
@@ -87,7 +89,7 @@ class ShellCommandRegistryTest {
     void testRegisterAliasForNonexistentCommand() {
         ShellCommandRegistry registry = new ShellCommandRegistry();
 
-        assertThrows(IllegalArgumentException.class, () -> registry.registerAlias("alias", "nonexistent"));
+        assertThrows(NopException.class, () -> registry.registerAlias("alias", "nonexistent"));
     }
 
     @Test
@@ -97,7 +99,7 @@ class ShellCommandRegistryTest {
 
         registry.registerCommand(echo);
 
-        assertThrows(IllegalArgumentException.class, () -> registry.registerAlias(null, "echo"));
+        assertThrows(NopException.class, () -> registry.registerAlias(null, "echo"));
     }
 
     @Test
@@ -107,7 +109,7 @@ class ShellCommandRegistryTest {
 
         registry.registerCommand(echo);
 
-        assertThrows(IllegalArgumentException.class, () -> registry.registerAlias("alias", null));
+        assertThrows(NopException.class, () -> registry.registerAlias("alias", null));
     }
 
     @Test
@@ -229,5 +231,25 @@ class ShellCommandRegistryTest {
         String[] names = registry.listCommandNames();
 
         assertEquals(0, names.length);
+    }
+
+    /**
+     * P3-MA3-1 focused value-level assertions (plan 2026-08-01-0936-1): the
+     * converted validation guards must fail fast with the module ErrorCodes
+     * and preserve the verbatim English messages via params.
+     */
+    @Test
+    void validationFailuresCarryErrorCodeAndVerbatimMessage() {
+        ShellCommandRegistry registry = new ShellCommandRegistry();
+
+        NopException e1 = assertThrows(NopException.class, () -> registry.registerCommand(null));
+        assertEquals(NopAiShellErrors.ERR_AI_SHELL_INVALID_ARG.getErrorCode(), e1.getErrorCode());
+        assertEquals("Command cannot be null", e1.getParams().get(NopAiShellErrors.ARG_MSG));
+
+        NopException e2 = assertThrows(NopException.class,
+                () -> registry.registerAlias("alias", "nonexistent"));
+        assertEquals(NopAiShellErrors.ERR_AI_SHELL_COMMAND_NOT_FOUND.getErrorCode(), e2.getErrorCode());
+        assertEquals("nonexistent", e2.getParams().get(NopAiShellErrors.ARG_COMMAND_NAME));
+        assertTrue(e2.getMessage().contains("Command not found: nonexistent"));
     }
 }

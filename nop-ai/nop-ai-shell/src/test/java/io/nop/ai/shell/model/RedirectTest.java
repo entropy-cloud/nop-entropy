@@ -1,5 +1,6 @@
 package io.nop.ai.shell.model;
 
+import io.nop.api.core.exceptions.NopException;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -80,16 +81,16 @@ class RedirectTest {
 
     @Test
     void testParseNullThrows() {
-        assertThrows(IllegalArgumentException.class, () -> Redirect.parse(null));
+        assertThrows(NopException.class, () -> Redirect.parse(null));
     }
 
     @Test
     void testParseEmptyThrows() {
-        assertThrows(IllegalArgumentException.class, () -> Redirect.parse(""));
+        assertThrows(NopException.class, () -> Redirect.parse(""));
     }
 
     @Test
     void testParseInvalidThrows() {
-        assertThrows(IllegalArgumentException.class, () -> Redirect.parse("abc"));
+        assertThrows(NopException.class, () -> Redirect.parse("abc"));
     }
 }

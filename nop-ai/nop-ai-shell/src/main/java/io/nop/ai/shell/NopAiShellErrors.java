@@ -17,6 +17,9 @@ import static io.nop.api.core.exceptions.ErrorCode.define;
  */
 public interface NopAiShellErrors {
 
+    String ARG_MSG = "msg";
+    String ARG_COMMAND_NAME = "commandName";
+
     ErrorCode ERR_AI_SHELL_OUTPUT_NOT_INPUT =
             define("nop.err.ai.shell.output-not-input", "PrintStreamOutputAdapter cannot be used as input");
 
@@ -25,4 +28,26 @@ public interface NopAiShellErrors {
 
     ErrorCode ERR_AI_SHELL_TEE_NO_OUTPUT =
             define("nop.err.ai.shell.tee-no-output", "No output available to convert to input");
+
+    // ========================================================================
+    // P3-MA3-1: bare IllegalArgumentException validation guards (plan
+    // 2026-08-01-0936-1). All 12 historical IAE throw sites converted to
+    // NopException carrying these codes; verbatim English messages are carried
+    // via {msg}/{commandName} so getMessage() semantics are unchanged.
+    // ========================================================================
+
+    ErrorCode ERR_AI_SHELL_INVALID_ARG =
+            define("nop.err.ai.shell.invalid-arg", "invalid argument: {msg}", ARG_MSG);
+
+    ErrorCode ERR_AI_SHELL_COMMAND_NOT_FOUND =
+            define("nop.err.ai.shell.command-not-found", "Command not found: {commandName}", ARG_COMMAND_NAME);
+
+    ErrorCode ERR_AI_SHELL_EMPTY_COMMAND =
+            define("nop.err.ai.shell.empty-command", "empty command: {msg}", ARG_MSG);
+
+    ErrorCode ERR_AI_SHELL_INVALID_REDIRECT =
+            define("nop.err.ai.shell.invalid-redirect", "invalid redirect: {msg}", ARG_MSG);
+
+    ErrorCode ERR_AI_SHELL_UNKNOWN_SYMBOL =
+            define("nop.err.ai.shell.unknown-symbol", "unknown symbol: {msg}", ARG_MSG);
 }

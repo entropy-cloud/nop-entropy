@@ -1,5 +1,8 @@
 package io.nop.ai.shell.model;
 
+import io.nop.ai.shell.NopAiShellErrors;
+import io.nop.api.core.exceptions.NopException;
+
 import java.util.ArrayList;
 import java.util.List;
 
@@ -13,7 +16,8 @@ public final class GroupExpr implements CommandExpression {
 
     public GroupExpr(List<CommandExpression> commands, List<Redirect> redirects) {
         if (commands.isEmpty()) {
-            throw new IllegalArgumentException("Group must have at least one command");
+            throw new NopException(NopAiShellErrors.ERR_AI_SHELL_EMPTY_COMMAND)
+                    .param(NopAiShellErrors.ARG_MSG, "Group must have at least one command");
         }
         this.commands = List.copyOf(commands);
         this.redirects = List.copyOf(redirects);

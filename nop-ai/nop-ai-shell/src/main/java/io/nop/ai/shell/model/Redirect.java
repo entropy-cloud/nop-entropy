@@ -1,5 +1,8 @@
 package io.nop.ai.shell.model;
 
+import io.nop.ai.shell.NopAiShellErrors;
+import io.nop.api.core.exceptions.NopException;
+
 import java.util.Objects;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -45,7 +48,8 @@ public final class Redirect {
                 case "&>>": return MERGE_APPEND;
                 case "<<": return HERE_DOC;
                 case "<<<": return HERE_STRING;
-                default: throw new IllegalArgumentException("Unknown redirect symbol: " + symbol);
+                default: throw new NopException(NopAiShellErrors.ERR_AI_SHELL_UNKNOWN_SYMBOL)
+                        .param(NopAiShellErrors.ARG_MSG, "Unknown redirect symbol: " + symbol);
             }
         }
     }
@@ -169,12 +173,13 @@ public final class Redirect {
 
     public static Redirect parse(String input) {
         if (input == null || input.isEmpty()) {
-            throw new IllegalArgumentException("Invalid redirect: null or empty");
+            throw new NopException(NopAiShellErrors.ERR_AI_SHELL_INVALID_REDIRECT).param(NopAiShellErrors.ARG_MSG, "Invalid redirect: null or empty");
         }
 
         Matcher m = PARSE_PATTERN.matcher(input);
         if (!m.matches()) {
-            throw new IllegalArgumentException("Invalid redirect format: " + input);
+            throw new NopException(NopAiShellErrors.ERR_AI_SHELL_INVALID_REDIRECT)
+                    .param(NopAiShellErrors.ARG_MSG, "Invalid redirect format: " + input);
         }
 
         Integer sourceFd = null;
@@ -194,7 +199,8 @@ public final class Redirect {
         }
 
         if (type == null) {
-            throw new IllegalArgumentException("Invalid redirect format: " + input);
+            throw new NopException(NopAiShellErrors.ERR_AI_SHELL_INVALID_REDIRECT)
+                    .param(NopAiShellErrors.ARG_MSG, "Invalid redirect format: " + input);
         }
 
         return new Redirect(sourceFd, type, target);

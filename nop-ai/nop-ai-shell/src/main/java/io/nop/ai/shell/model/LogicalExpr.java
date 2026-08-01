@@ -1,5 +1,8 @@
 package io.nop.ai.shell.model;
 
+import io.nop.ai.shell.NopAiShellErrors;
+import io.nop.api.core.exceptions.NopException;
+
 import java.util.Objects;
 
 /**
@@ -33,7 +36,8 @@ public final class LogicalExpr implements CommandExpression {
                 case "&&": return AND;
                 case "||": return OR;
                 case ";": return SEMICOLON;
-                default: throw new IllegalArgumentException("Unknown operator: " + symbol);
+                default: throw new NopException(NopAiShellErrors.ERR_AI_SHELL_UNKNOWN_SYMBOL)
+                        .param(NopAiShellErrors.ARG_MSG, "Unknown operator: " + symbol);
             }
         }
 

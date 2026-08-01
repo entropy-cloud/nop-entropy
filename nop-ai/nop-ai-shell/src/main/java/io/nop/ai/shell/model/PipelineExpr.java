@@ -1,5 +1,8 @@
 package io.nop.ai.shell.model;
 
+import io.nop.ai.shell.NopAiShellErrors;
+import io.nop.api.core.exceptions.NopException;
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -13,7 +16,8 @@ public final class PipelineExpr implements CommandExpression {
 
     private PipelineExpr(List<CommandExpression> commands) {
         if (commands.size() < 2) {
-            throw new IllegalArgumentException("Pipeline must have at least 2 commands");
+            throw new NopException(NopAiShellErrors.ERR_AI_SHELL_EMPTY_COMMAND)
+                    .param(NopAiShellErrors.ARG_MSG, "Pipeline must have at least 2 commands");
         }
         this.commands = List.copyOf(commands);
     }
