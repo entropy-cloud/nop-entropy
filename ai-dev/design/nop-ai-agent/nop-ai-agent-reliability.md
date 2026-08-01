@@ -688,17 +688,113 @@ Delta 定制示例：
 
 ### 13.1 WAIT_FOR 长等待原语（最高优先）
 
-nop checkpoint 无"等待条件满足后恢复"的显式原语（等待用户输入/事件/超时）：
+nop checkpoint 无"等待条件满足后恢复"的显式原语（等待用户输入/事件/超时）。
 
-```
-checkpoint 扩展（对齐 hatchet v1_durable_event_log_entry）：
-  - wait_for 条件 JSONB（用户输入 / 超时 / 事件）
-  - 挂起语义：ReAct 循环注册条件 → 挂起（不占线程）→ 条件满足投递唤醒
-  - 恢复：从 checkpoint 恢复（append-only 已支持任意水位）
-```
+**实现规格（plan 2026-08-01-1437-1 裁定 A-H，从 12 行草图升级为可执行规格）**：
 
-- 与 rivet sleep/wake + exo redeliver_pending_wakes 统一为 nop 唤醒原语
-- 挂起时保存 WAIT_FOR checkpoint，恢复无需重放全部历史
+今日 ReAct 执行模型是同步阻塞的——`executor.execute()` 每次退出都在 `:920` 完成返回的 future，线程释放，无"挂起会话不占线程、条件满足后唤醒恢复"的能力。唯一的近似机制是 denial-ledger 的 `paused`（`:425-428` break reactLoop → 完成 future → 会话驻留 → 经显式 `resumeSession` 在新线程重入），但它是**安全治理触发**（拒绝累计），非**条件等待触发**，且恢复靠显式 API + `IDenialLedger.reset` 耦合。本节增加 `wait_for` 条件 JSONB + `WAIT_FOR` checkpoint 类型 + 挂起语义 + 唤醒机制。
+
+#### 裁定 A — wait_for 条件数据模型 + of() 接入策略
+
+裁定：`Checkpoint` 增 `wait_for` 字段（`String`，JSON 文本，可空）+ `CheckpointType.WAIT_FOR` 枚举值。
+
+- **of() 接入策略**：新增 14 参 `of(...)` 重载（在现有 12 参基础上末尾追加 `waitFor` 参数，供 WAIT_FOR 构造 + 反序列化路径使用）。现有 11 参（派生 key）与 12 参（显式 key）`of()` 内部委托 14 参签名传 `waitFor=null`——100+ 调用点零改动（与 W2-2 idempotencyKey 裁定 D 同模式）。
+- **WAIT_FOR 的 idempotencyKey**：null（与 LLM_TURN/COMPACTION 同）。`computeIdempotencyKey` 单点 guard（`:187-189`：`type != TOOL_EXECUTION → return null`）已覆盖 WAIT_FOR，无需改动。WAIT_FOR 是 caller 供应的条件（非派生 hash），不表示 tool 调用发散点。
+- **理由**：WAIT_FOR 的条件是 caller 供应的 JSON（非派生 hash），与 `idempotencyKey`（派生自 tool-call 输入）正交。nullable String 而非结构化对象——条件 schema 由 `WaitCondition` 值对象解析，`Checkpoint` 只存 JSON 文本（持久化无关条件语义）。
+
+#### 裁定 B — 挂起执行语义 + 状态形态（核心 design gap）
+
+裁定：候选 (i) 新 `AgentExecStatus.waiting`——隔离于 `paused` 的 denial-ledger 耦合。拒绝 (ii) 复用 `paused`（正视 `IDenialLedger.reset`/`postDenialGuard.reset` 耦合——WAIT_FOR 恢复不应触发 denial reset）。
+
+- **挂起执行模型**：ReAct 循环迭代顶部（denialLedger `isPaused` 检查之后、`shouldForceStop` 之前）增加 WAIT_FOR 注册点（第 4 个 checkpoint producer）：`waitCoordinator.checkWait(sessionId)` 返回 `SUSPEND` → 产 WAIT_FOR checkpoint（含 `wait_for` 条件 JSON）→ `saveCheckpoint` → `ctx.setStatus(AgentExecStatus.waiting)` → `break reactLoop` → `:920` 完成 future → 线程释放、会话驻留（保留 checkpoint，不占线程）。
+- **与 paused 的可观测区别**：`waiting` 是条件等待触发（恢复经 `wakeSession`，**不触发** denial reset）；`paused` 是安全治理触发（恢复经 `resumeSession`，**触发** denial reset + post-denial-guard reset）。状态名区分使监控/审计可区分两种挂起来源。
+- **恢复不卡死保证**：挂起只是 break reactLoop + 完成 future（线程释放），会话仍驻留 sessionStore。唤醒经 `wakeSession` 在新线程重入 `execute()`，从持久化消息 replay（裁定 E）。不依赖任何线程 park/unpark。
+- **理由**：复用 `paused` 会让 WAIT_FOR 恢复路径无条件调 `denialLedger.reset`——这在无 denial 的场景是错误副作用，且 `resumeSession` 的 `:248-252` paused-only 门禁会被混淆。新状态隔离两种正交的挂起来源（条件等待 vs 治理暂停），恢复路径互不干扰。
+
+#### 裁定 C — 唤醒机制 + 触发来源 + 重入 API + 不漏唤醒保证（核心 design gap）
+
+裁定：条件求值器 = `IWaitCoordinator.checkWait(sessionId)`（在注册点重评条件是否满足）；唤醒触发来源 = **外部事件投递**（caller 调 `engine.wakeSession(sessionId)`）+ **超时调度**（TIMEOUT 条件经 `IScheduledExecutor` 在 deadline 投递 wake）；重入 API = 新 `wakeSession`（不触发 denial reset）。
+
+- **重入 API（正视 `resumeSession:248-252` paused-only 门禁 + `:273/282` denial reset 耦合）**：选 (a) 新 `wakeSession` API。拒绝 (b) 扩展 `resumeSession` 放宽门禁至 waiting——`resumeSession` 的 denial reset 是治理语义的核心（§6.2 sticky-pause），让它在 waiting 路径跳过 reset 会混淆 `resumeSession` 的单一职责。`wakeSession` 是独立 API：gate 是 `status == waiting`（非 paused），恢复**不调用** `denialLedger.reset` / `postDenialGuard.reset`。
+- **`wakeSession` 语义**：(1) gate `status == waiting`（非 waiting 抛异常，保证单一职责）；(2) `waitCoordinator.deliverWake(sessionId, payload)`（标记条件已满足，供注册点重评跳过挂起——裁定 H）；(3) `session.setStatus(running)`；(4) 发布 `SESSION_WOKE` 事件；(5) 经 `buildBaseExecutionContext` + `executor.execute()` 重入（与 resumeSession/restoreSession 同 replay 模式）。
+- **不漏唤醒保证**：外部事件投递是同步的——caller 在条件满足时显式调 `wakeSession`，不存在"条件满足但唤醒丢失"。TIMEOUT 条件经 `IScheduledExecutor.schedule(wakeSession, delayMs)` 在 deadline 投递——调度器保证延迟任务必执行（best-effort，进程崩溃时经 restore 路径恢复——裁定 E）。
+- **与 nop-job 边界**：本计划唤醒用 `IScheduledExecutor`（复用 `ScheduledRecoveryManager` 的 `IScheduledExecutor` 模式）+ 外部事件投递，**不引入 nop-job**（独立 successor）。
+
+#### 裁定 D — wait 条件表达式 DSL（条件类型集 + 求值语义）
+
+裁定首版条件类型集（3 类）+ 内联 JSON schema 形态：
+
+| 条件类型 | JSON schema | 求值语义（何时算"满足"） |
+|----------|-------------|--------------------------|
+| `timeout` | `{"type":"timeout","deadlineMs":<epoch-millis>}` | `now >= deadlineMs`（注入时钟可测） |
+| `event` | `{"type":"event","key":"<string>"}` | 外部 `wakeSession` 投递后满足 |
+| `user_input` | `{"type":"user_input","key":"<string>"}` | 外部 `wakeSession` 投递后满足（语义为用户输入） |
+
+- **schema 形态**：内联 JSON 结构，存储在 `Checkpoint.wait_for` 字段（CLOB）。`WaitCondition` 值对象解析 JSON、封装求值语义。
+- **首版设界**：基础条件类型集（timeout/event/user_input）使 WAIT_FOR 原语可用。丰富 DSL（条件组合/嵌套/引用/xdef）留 successor（Non-Goal）。
+
+#### 裁定 E — restore resume-vs-replay 分支 + 与 Decision H 的正确性耦合（design gap）
+
+裁定：首版选 (ii) **replay**（降复杂度，resume 优化留 successor）。
+
+- **正确性耦合（round-1 审查）**：选 replay 则裁定 H 的条件重评机制是**避免重复挂起的前置**（非可选优化）。重入从 reactLoop 顶部走，注册点会在同状态再触发——若无 H，注册点会再次 `SUSPEND` → 会话永不推进。裁定 H 选 approach (ii) 条件重评（`checkWait` 在注册点重评条件已满足 → 返回 PROCEED → 跳过挂起），使 replay 可行。
+- **`restoreSession` 对 waiting 状态的处理**：`waiting` 非终态（不在 `isTerminalStatus`），`restoreSession` 接受 waiting 为有效恢复候选（与 running/pending 同）——恢复后注册点 `checkWait` 重评条件：若已满足（如 timeout 已过期）→ PROCEED → 推进；若未满足 → SUSPEND → 再次挂起（正确行为，等待外部 wake）。
+- **`restorePendingSessions` 对 waiting 的处理**：**跳过** waiting 会话（类比 paused 被 skip），原因：sticky-wait 语义——waiting 会话需显式 `wakeSession` 唤醒，auto-restore 不应绕过等待条件。skip reason = `"waiting: sticky-wait requires an explicit wakeSession"`。
+- **恢复不卡死保证**：replay 从持久化消息重建上下文（source of truth），无外部依赖。注册点 `checkWait` 每次迭代必执行——条件满足后即 PROCEED 推进，不会卡在挂起。
+- **理由**：resume-from-wait-point 需捕获 continuation（从 wait 点恢复而非重放），是较大的执行模型改造。首版 replay 利用既有 `buildBaseExecutionContext` + `execute()` 路径（零新基础设施），配合裁定 H 的条件重评保证正确性。"恢复无需重放全部历史"的极致优化留 successor（诚实裁定，非静默跳过）。
+
+#### 裁定 F — 序列化范围枚举 + DB 兼容
+
+全部须同步的序列化接触点：
+- `CheckpointJournalWriter.serializeSection`：写 `waitFor:` 行（`encodeString`，null → 字面 `null`）。
+- `CheckpointJournalReader.parseSection`：读 `waitFor` 字段（`decodeString`，可选——legacy journal 无此行 → null 向后兼容），透传 14 参 `of()`。
+- `DBCheckpointManager`：INSERT 加 `WAIT_FOR` 列；`checkpointColumnsSelect()` SELECT 加列；`readCheckpoint` 读 ResultSet 列透传 14 参 `of()`。
+- `Checkpoint.equals/hashCode/toString`：含 `wait_for` 字段。
+- `CheckpointSnapshot`：**不含** wait_for（与 idempotency_key 同——snapshot 是 recovery-critical 聚合缓存，非 per-checkpoint 字段）——无需改动。
+- **DB 类型**：CLOB（条件 JSON 可超 VARCHAR 限制，类比 `INPUT_SUMMARY`/`OUTPUT_SUMMARY`）。
+- **旧 checkpoint 兼容**：旧 checkpoint（无 `WAIT_FOR` 列/无 `waitFor:` 行）退回 null（零回归，类比 W2-2 裁定 G）。H2/PostgreSQL/Oracle 可空列无兼容问题。
+
+#### 裁定 G — 与 nop-job / ScheduledRecoveryManager / 多会话的边界
+
+裁定：唤醒用 `IScheduledExecutor`（TIMEOUT 条件调度）+ 外部事件投递（event/user_input 条件），**不引入 nop-job**（独立 successor）。
+
+- **唤醒器形态**：`IWaitCoordinator` 注入式单例（类比 `ThresholdBreaker` 经 config 装配），默认 `NoOpWaitCoordinator`（`checkWait` 恒返 NONE，零回归）。`DefaultWaitCoordinator` 是 functional 实现（in-memory `ConcurrentHashMap<sessionId, WaitState>`，per-session 条件状态 + satisfied 标志 + 注入时钟）。
+- **多会话唤醒编排范围**：首版单会话唤醒成立即可。多会话调度策略（优先级/批量 wake/集群协调）留 successor（Non-Goal）。
+- **`docs-for-ai/` 同步**：WAIT_FOR 尚未成平台用户可见 API（触发机制是注入式 `IWaitCoordinator`，非公开 tool/hook）。新 `AgentExecStatus.waiting` 在本 design 文档记录。`docs-for-ai/` 状态说明在 WAIT_FOR 成为用户可见 API 时同步（本计划 Non-Goal 范围内）。
+
+#### 裁定 H — 唤醒重入防重复挂起（正确性，round-1 审查 Blocker）
+
+裁定：选 approach (ii) **条件求值器在注册点重评**——注册前问"条件是否已满足"，满足则跳过挂起直接推进。
+
+- **机制**：`IWaitCoordinator.checkWait(sessionId)` 在 ReAct 循环注册点被调用，返回三值之一：
+  - `NONE`：无 wait 请求 → 正常推进（零回归路径）。
+  - `SUSPEND`：wait 请求存在且**条件未满足** → 产 WAIT_FOR checkpoint + 设 waiting 状态 + break reactLoop。
+  - `PROCEED`：wait 请求存在且**条件已满足**（经 `deliverWake` 标记或 timeout 过期）→ 消费 wait 请求 + 正常推进（**跳过挂起**）。
+- **唤醒重入流程**（防重复挂起）：`wakeSession` → `deliverWake`（标记 satisfied=true）→ 重入 `execute()` → 注册点 `checkWait` → 条件已满足 → `PROCEED` → 跳过挂起 → 推进至完成。**不产第二个 WAIT_FOR checkpoint**。
+- **与 Decision E 的依赖关系**：E 选 replay（重入从 reactLoop 顶部走）→ H 选 approach (ii) 条件重评（注册点重评条件已满足 → 跳过挂起）→ 两者配合使 replay 不导致重复挂起。若 E 选 resume（从 wait 点恢复），天然避免重复（但需 continuation 捕获，首版不选）。
+- **可测试设计**：单测断言 `deliverWake` 后 `checkWait` 返回 PROCEED（非 SUSPEND）。端到端断言唤醒重入后不产第二个 WAIT_FOR checkpoint、推进至 completed。
+
+#### 端到端语义（执行规格摘要）
+
+1. agent 执行中，外部调 `waitCoordinator.requestWait(sessionId, condition)`（或 TIMEOUT 条件内置）。
+2. ReAct 迭代顶部：`checkWait(sessionId)` → `SUSPEND` → 产 WAIT_FOR checkpoint（`wait_for` 条件 JSON）→ `saveCheckpoint` → `status=waiting` → break reactLoop → `:920` 完成 future → **线程释放、会话驻留**。
+3. 后循环事件 guard（`:893-897`）排除 `waiting` → **不发** `EXECUTION_COMPLETED`/POST_CALL。
+4. 条件满足（外部 `wakeSession` 或 TIMEOUT 调度）→ `deliverWake`（标记 satisfied）→ `wakeSession` 重入 `execute()`。
+5. 重入 replay：`buildBaseExecutionContext`（从 `session.getMessages()` 重建）→ `executor.execute(ctx)` → 迭代顶部 `checkWait` → 条件已满足 → `PROCEED` → **跳过挂起** → 推进至完成。
+6. 完成后正常发 `EXECUTION_COMPLETED`（status=completed，不在排除列表）。
+
+#### 与 rivet/exo 的统一
+
+- 与 rivet sleep/wake + exo redeliver_pending_wakes 统一为 nop 唤醒原语：`IWaitCoordinator` 是 nop 的统一条件等待 + 唤醒抽象。
+- 挂起时保存 WAIT_FOR checkpoint（append-only 已支持任意水位），恢复经 replay（裁定 E）。
+
+**实现状态（plan 2026-08-01-1437-1 ✅ 已落地）**：
+
+- **数据模型**：`Checkpoint` 增 `waitFor` 字段（条件 JSON，可空）+ 14 参 `of()` 重载（旧 11/12 参委托传 null）+ `CheckpointType.WAIT_FOR`；`app.orm.xml` + `AiAgentCheckpointTable` DDL 加 `WAIT_FOR` CLOB 列；`DBCheckpointManager`（INSERT/SELECT/readCheckpoint）+ `CheckpointJournalWriter/Reader`（写/读 `waitFor:` 行，legacy 无此行 → null 向后兼容）全接触点同步。
+- **挂起执行语义**：`AgentExecStatus.waiting`（隔离于 `paused` 的 denial-ledger 耦合）。ReAct 循环迭代顶部（denialLedger 检查后）增加第 4 个 checkpoint producer：`IWaitCoordinator.checkWait` 返回 `SUSPEND` → 产 WAIT_FOR checkpoint + 设 waiting + break reactLoop + 完成 future（线程释放、会话驻留）。后循环事件 guard 排除 `waiting`（不发 `EXECUTION_COMPLETED`/POST_CALL）。
+- **条件模型**：`WaitCondition`（TIMEOUT/EVENT/USER_INPUT，内联 JSON schema）+ `WaitDecision`（NONE/SUSPEND/PROCEED）。
+- **唤醒机制**：`DefaultWaitCoordinator`（注入式，in-memory，可注入时钟 `LongSupplier`）实现 `IWaitCoordinator`——`deliverWake` 标记条件满足 → `checkWait` 重评返回 `PROCEED`（防重复挂起，Decision H）。`AgentSessionLifecycle.wakeSession`（gate status==waiting，deliverWake → 设 running → replay 重入，**不触发** denial reset）。`DefaultAgentEngine.wakeSession` 委托 lifecycle。TIMEOUT 条件可选经 `IScheduledExecutor` 在 deadline 投递 wake。
+- **restore**：`restorePendingSessions` 跳过 `waiting` 会话（sticky-wait 需显式 `wakeSession`，类比 paused 需显式 `resumeSession`）。`isTerminalStatus` 不含 `waiting`（保留 checkpoint）。
 
 ### 13.2 idempotency_key 非确定性检测（高优先）
 
@@ -855,6 +951,8 @@ nop reliability 重试不区分失败类型。增加（对标 mission-control �
 
 ### 13.5 推荐实施顺序
 
-WAIT_FOR（13.1）→ idempotency_key（13.2）→ 三级失败升级（13.3）→ 有序故障转移（13.4）
+WAIT_FOR（13.1，裁定 A-H ✅，实施中）→ idempotency_key（13.2，✅ 已落地）→ 三级失败升级（13.3）→ 有序故障转移（13.4，✅ 已落地）
 
 > **跳序执行 reconcile（plan `2026-08-01-1905-3`）**：13.4（W2-4）实际在 13.3（W2-3）之前落地。理由：W2-4 的**硬前置**是 W2e 错误分类 + 账号链（W2e-0..5，均已 ✅ 落地）——第三通道消费账号链耗尽信号 + QUOTA/AUTH 分类，与 W2-1（WAIT_FOR checkpoint）/ W2-2（idempotency_key，已 ✅）/ W2-3（三级失败升级）**无硬依赖**。W2-3 三级失败升级中的"基础设施失败 max_dispatch_retries"虽概念上关联 ThresholdBreaker，但那是单 attempt 内的失败聚合（§13.3 与 W1-4 边界注），与 W2-4 跨 provider failover 正交。故 W2-4 可独立先行。
+>
+> **WAIT_FOR skip reconcile（plan `2026-08-01-1437-1）**：13.1（W2-1）在 13.2/13.4 之后落地。理由：W2-1 与 W2-2（idempotency_key，已 ✅）/ W2-4（failover，已 ✅）**无硬依赖**——WAIT_FOR 是全新的执行模型能力（挂起/唤醒），不依赖 idempotency_key 发散检测或跨 provider failover。13.1 裁定 A-H 已将 12 行草图升级为含挂起执行模型/唤醒机制/条件 DSL/restore 分支/防重复挂起/序列化范围的可执行规格（§13.1 elaboration）。
