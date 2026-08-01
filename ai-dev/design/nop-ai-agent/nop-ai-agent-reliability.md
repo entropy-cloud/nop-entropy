@@ -702,7 +702,7 @@ checkpoint 扩展（对齐 hatchet v1_durable_event_log_entry）：
 
 ### 13.2 idempotency_key 非确定性检测（高优先）
 
-nop checkpoint 只校验 messageCount。增加 hash 指纹：
+nop checkpoint 只校验 messageCount。增加 hash 指纹以检测"同水位 checkpoint 对应的 tool 调用输入已发散"（崩溃/恢复后输入指纹不一致 = 状态损坏）。
 
 ```
 checkpoint 增加 idempotency_key 列：
@@ -713,6 +713,50 @@ checkpoint 增加 idempotency_key 列：
 
 - 与 grok-build req_hash（Journal 发散检测）同源，nop 统一实现
 - 注意：seq 是 per-execution-local，不可作唯一键（保持 WATERMARK 主键）
+
+**实现规格（plan 2026-08-01-1905-2 裁定 A-G，从 13 行草图升级为可执行规格）**：
+
+**裁定 A — 比较机制（与 live session 的 tool-call 消息重算比较）**。restore 时比较的对象是 **从持久化 session 消息历史重算的 key**，非 checkpoint 间比较（WATERMARK 是 PK，无重复 checkpoint，此路不通），非 tool 执行点对照（restore 从持久化消息重建、**不重新执行 tool**）。
+
+派生路径（可实现且与 live 事实一致）：
+1. checkpoint 携带 `callId`（TOOL_EXECUTION 类型）。
+2. restore 遍历持久化 session 的消息历史（`AgentSession.getMessages()`），对每个 `ChatAssistantMessage` 遍历其 `getToolCalls()`，找到 `getId().equals(checkpoint.callId)` 的 `ChatToolCall`。
+3. 从匹配的 `ChatToolCall` 提取 `getName()`（toolName）+ `getArgumentsText()`（= save 时写入 checkpoint 的 inputSummary 原料），用同一 hash 公式重算 `hash(toolName + callId + inputSummary)`。
+4. 与 checkpoint 存储的 `idempotency_key` 比较：不一致 → 输入已发散（状态损坏）。
+5. 若 session 中找不到匹配 callId 的 tool_call（消息被截断/丢失）→ 已发散（key 校验的前提丢失），按裁定 B 拒绝。
+
+**裁定 B — 拒绝 + 降级的可观测行为（与今日 warn+continue 的区别 + 不卡死）**。今日 restore **从不拒绝 checkpoint**，仅在 `checkpointMsgCount > sessionMsgCount` 时 `LOG.warn` 后 best-effort 继续。裁定 B 的可观测区别：
+- distinct 日志：`LOG.warn("restoreSession checkpoint divergence detected ...")`，明示"input fingerprint mismatch"（非今日的 "consistency warning: messageCount exceeds"）。
+- `SESSION_RESTORED` 事件 payload 新增 `divergenceDetected=true` + `rejectedCheckpointWatermark`（今日为 false/空），使审计/监控可观测。
+- **降级路径不卡死**：拒绝 checkpoint **不阻断恢复**——session 重放本就是唯一恢复路径（persisted session 是 source of truth，`buildBaseExecutionContext` 从消息历史重建 + `executor.execute` 续跑），checkpoint 是 verification supplement（§5.4 / restore 协议 `:443-445`）。拒绝 = "不信任该 checkpoint 作为 resume-point 校验"，恢复照常经消息历史 replay 继续。"降级"语义成立是因为今日本就不从 checkpoint 取消息——拒绝一个 verification supplement 不会让恢复失去数据源。
+
+**裁定 C — 不可变性策略（工厂内算 key）**。`Checkpoint` 严格不可变（final 字段、私有构造、无 setter/builder）。key 在 **`Checkpoint.of()` 工厂内计算**（调用方传原料 toolName/callId/inputSummary/type，工厂算 key 后构造不可变对象）。不引入 `withIdempotencyKey()` 重建器（会破坏"构造即终态"语义），不在 saveCheckpoint 重建（会让 key 计算分散到三实现）。key 计算收敛为工厂私有静态方法，单一事实源。
+
+**裁定 D — `Checkpoint.of()` 参数策略（重载，旧签名委托新签名传算好的 key）**。新增 12 参重载 `of(..., idempotencyKey)`（显式传入已算好/已存储的 key，供反序列化路径使用：`DBCheckpointManager.readCheckpoint` 读 ResultSet 的 key、`CheckpointJournalReader.parseSection` 读 journal 的 key）。保留现有 11 参 `of(...)`（100+ 调用点零改动），内部算 key 后委托 12 参签名。反序列化路径必须用 12 参签名把存储中的 key 透传（不可重算——重算会让"存储中已被篡改的 key"被静默修正，失去检测能力）。
+
+**裁定 E — 序列化范围（全部接触点同步）**：
+- `CheckpointJournalWriter.serializeSection`：写 `idempotencyKey:` 行（`encodeString`，null → 字面 `null`）。
+- `CheckpointJournalReader.parseSection`：读 `idempotencyKey` 字段（`decodeString`），透传 12 参 `of()`。
+- `DBCheckpointManager`：INSERT 加 `IDEMPOTENCY_KEY` 列；`checkpointColumnsSelect()` SELECT 加列；`readCheckpoint` 读 ResultSet 列透传 12 参 `of()`。
+- `Checkpoint.equals/hashCode/toString`：含 `idempotency_key` 字段。
+- `CheckpointSnapshot`：**不含** idempotency_key（snapshot 是 recovery-critical 聚合缓存，只存 snapshotId/sessionId/lastWatermark/messageCount/tokenEstimate/createdAt，非 per-checkpoint 字段）——无需改动。
+
+**裁定 F — hash 公式 per CheckpointType（非 TOOL_EXECUTION → null，明示不做发散检测）**：
+- `TOOL_EXECUTION`：`idempotency_key = sha256Hex(toolName + "|" + callId + "|" + inputSummary)[:32]`（SHA-256 hex 截断 32 字符 = 128 bit，与 security `ActionFingerprint` 同公式同工具 `HashHelper.sha256`/`StringHelper`；null toolName/callId/inputSummary 统一作空串）。
+- `LLM_TURN` / `COMPACTION`：`idempotency_key = null`（这些类型 toolName/callId/inputSummary 均为 null，不表示 tool 调用发散点）。null 明示"该 checkpoint 不参与发散检测"（非吞掉——restore 显式判定：非 null key 才比较）。
+- 正确性影响：发散检测仅对 TOOL_EXECUTION 生效。这是正确的——发散语义是"同一 tool 调用输入已改变"，只有 TOOL_EXECUTION 表示 tool 调用。
+
+**裁定 G — 唯一约束 DB 兼容（可空唯一索引，H2/PostgreSQL 多 NULL 兼容）**：
+- 在 `idempotency_key` 上建 **unique index**（`CREATE UNIQUE INDEX IF NOT EXISTS IDX_AI_AGENT_CHECKPOINT_IDEMPOTENCY ON ai_agent_checkpoint(IDEMPOTENCY_KEY)`）。
+- 可空列 + unique：H2（测试 DB）/ PostgreSQL（目标 DB）/ Oracle 允许多 NULL（标准 SQL 语义），故旧数据（null key）、非 TOOL_EXECUTION（null key）共存不冲突。
+- 生产 TOOL_EXECUTION 的 key 天然唯一（`callId` 全局唯一 per tool call）。
+- MySQL <8.0.16 仅允许一 NULL（已知限制）→ 回填迁移脚本是 Non-Blocking Follow-up（本计划只加约束，依赖既有 ORM/DDL 加载；目标 DB 为 H2/PostgreSQL）。
+- WATERMARK 保持 PK；`seq` 不作唯一键（per-execution-local，§13.2 原注）。
+
+**实现状态（plan 2026-08-01-1905-2 ✅ 已落地）**：
+
+- **数据模型 + hash + 序列化**：`Checkpoint` 增 `idempotencyKey` 字段 + 12 参 `of()` 重载（反序列化透传存储 key）+ 11 参 `of()`（100+ 调用点零改动）内部算 key；`computeIdempotencyKey(type, toolName, callId, inputSummary)`（TOOL_EXECUTION → `sha256Hex(toolName+"|"+callId+"|"+inputSummary)[:32]`，非 TOOL_EXECUTION → null）。`app.orm.xml` + `AiAgentCheckpointTable` DDL 加 `IDEMPOTENCY_KEY` 列 + unique index（H2/PostgreSQL 多 NULL 兼容）。`DBCheckpointManager`（INSERT/SELECT/readCheckpoint 透传）+ `CheckpointJournalWriter/Reader`（写/读 key 行，legacy 无 key 行→null 向后兼容）全接触点同步。
+- **restore 发散检测 + 拒绝降级**：`AgentSessionLifecycle.restoreSession` 新增 `recomputeToolExecutionKey(session, callId)`——从持久化 session 的 `ChatAssistantMessage.getToolCalls()` 找匹配 callId 重算 key（裁定 A）。latestCheckpoint.idempotencyKey 非 null 时比较，不一致/callId 未找到 → 拒绝 checkpoint（distinct warn + `SESSION_RESTORED` 事件 payload `divergenceDetected=true`/`rejectedCheckpointWatermark`，裁定 B）+ 降级 session 重放（恢复不卡死）。null key（旧数据/非 TOOL_EXECUTION/NoOp）→ 跳过检测退回 best-effort messageCount 软校验（零回归）。
 
 ### 13.3 三级失败升级（中优先）
 
