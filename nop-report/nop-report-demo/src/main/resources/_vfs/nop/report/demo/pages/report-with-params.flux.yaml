@@ -1,0 +1,37 @@
+# Flux 版本：amis service → data-source（结果以 data-source name 发布，兄弟节点消费）；
+# form target 机制 → 按钮 onClick refreshSource；tpl → text。
+type: page
+body:
+  - type: data-source
+    name: reportService
+    action: ajax
+    args:
+      url: "@query:ReportDemo__renderHtml?reportName=${reportName}"
+      method: get
+      data:
+        data:
+          title: "${title}"
+    when: "${title}"
+
+  - type: form
+    id: queryForm
+    title: 查询条件
+    mode: horizontal
+    body:
+      - type: hidden
+        name: reportName
+        value: /ext/report-with-params.xpt.xlsx
+      - type: input-text
+        name: title
+        required: true
+        label: 标题
+      - type: button
+        label: 查询
+        variant: primary
+        onClick:
+          action: refreshSource
+          targetId: reportService
+
+  - type: text
+    name: html
+    text: "${reportService|raw}"
