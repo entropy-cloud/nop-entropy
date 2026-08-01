@@ -360,6 +360,63 @@ public class TestFluxWebGen extends JunitBaseTestCase {
                 "grid item body must contain the simple form container JSON");
     }
 
+    @Test
+    @SuppressWarnings("unchecked")
+    public void testComplexPageEmitsFourSlots() {
+        String path = "/nop/test/pages/test-flux-complex.page.yaml";
+        Map<String, Object> page = pageProvider.getPage(path, "");
+        String json = JSON.serialize(page, true);
+        System.out.println("Flux complex JSON:\n" + json);
+
+        // complex 页面直接输出 Flux PageSchema：type='page' + header/footer/aside/body 四槽位
+        assertEquals("page", page.get("type"), "complex page must emit a page shell (Flux PageSchema)");
+        assertEquals("main", page.get("name"));
+
+        // header 槽位：simple 容器 → form（form name 来自 formModel.id）
+        Object header = page.get("header");
+        assertNotNull(header, "header slot must be emitted");
+        assertTrue(header instanceof List, "header must be a JSON array");
+        List<Map<String, Object>> headerList = (List<Map<String, Object>>) header;
+        assertEquals(1, headerList.size());
+        assertEquals("form", headerList.get(0).get("type"),
+                "header slot must contain inner simple container JSON (form) via GenContainerModel");
+        assertEquals("header-form", headerList.get(0).get("name"),
+                "header form name must come from the referenced form id");
+
+        // aside 槽位：crud 容器 → crud（crud name 来自 table.name）
+        Object aside = page.get("aside");
+        assertNotNull(aside, "aside slot must be emitted");
+        assertTrue(aside instanceof List, "aside must be a JSON array");
+        List<Map<String, Object>> asideList = (List<Map<String, Object>>) aside;
+        assertEquals(1, asideList.size());
+        assertEquals("crud", asideList.get(0).get("type"),
+                "aside slot must contain inner crud container JSON via GenContainerModel");
+        assertEquals("aside-table", asideList.get(0).get("name"),
+                "aside crud name must come from table.name");
+
+        // body 槽位：simple 容器 → form
+        Object body = page.get("body");
+        assertNotNull(body, "body slot must be emitted");
+        assertTrue(body instanceof List, "body must be a JSON array");
+        List<Map<String, Object>> bodyList = (List<Map<String, Object>>) body;
+        assertEquals(1, bodyList.size());
+        assertEquals("form", bodyList.get(0).get("type"),
+                "body slot must contain inner simple container JSON (form)");
+        assertEquals("body-form", bodyList.get(0).get("name"),
+                "body form name must come from the referenced form id");
+
+        // footer 槽位：simple 容器 → form
+        Object footer = page.get("footer");
+        assertNotNull(footer, "footer slot must be emitted");
+        assertTrue(footer instanceof List, "footer must be a JSON array");
+        List<Map<String, Object>> footerList = (List<Map<String, Object>>) footer;
+        assertEquals(1, footerList.size());
+        assertEquals("form", footerList.get(0).get("type"),
+                "footer slot must contain inner simple container JSON (form)");
+        assertEquals("footer-form", footerList.get(0).get("name"),
+                "footer form name must come from the referenced form id");
+    }
+
     /**
      * 深度优先查找指定 type 的节点（不依赖 body 是 List 还是折叠对象）。
      */

@@ -34,6 +34,9 @@
         <when test="${pageModel.type == 'group'}">
             <c:include src="page_group.xpl"/>
         </when>
+        <when test="${pageModel.type == 'complex'}">
+            <c:include src="page_complex.xpl"/>
+        </when>
         <otherwise>
             <thisLib:GenPageDefault />
         </otherwise>

@@ -145,21 +145,35 @@ export class CrudListPage extends BasePage {
     await dialog.waitFor({ state: 'visible' });
 
     // 等待编辑表单的 loadAction 填充字段后再填写：
-    // loadAction 触发 __get 并用 form.setValues() 填充响应数据，
-    // 若在 setValues() 完成前填写字段，加载的数据会覆盖填写值。
-    // 轮询第一个输入框直到有非空值，表示 loadAction 已完成。
+    // loadAction 触发 __get (ajax) 并用 form.setValues() 填充响应数据。
+    // 若在 setValues() 完成前填写字段，加载的数据会覆盖填写值（编辑用户
+    // 提交旧值的真实根因——jsdom 单测复现不了，仅真实浏览器暴露此时序）。
+    // 1) 等 loadAction ajax 完成（networkidle）；
+    await this.page.waitForLoadState('networkidle').catch(() => {});
+    // 2) 轮询直到表单出现带值的输入框，且值稳定（连续两次读取一致），
+    //    确认 setValues() 已完成、不再覆盖。
     await this.page
       .waitForFunction(
         () => {
-          const input = document.querySelector(
+          const inputs = document.querySelectorAll(
             '[data-slot="dialog-surface"] input, [data-slot="dialog-content"] input',
           );
-          return !!input && (input as HTMLInputElement).value.trim() !== '';
+          let anyFilled = false;
+          for (const el of inputs) {
+            const v = (el as HTMLInputElement).value;
+            if (v && v.trim() !== '') {
+              anyFilled = true;
+              break;
+            }
+          }
+          return anyFilled;
         },
         undefined,
         { timeout: 15_000 },
       )
       .catch(() => {});
+    // 3) 额外等 setValues 写入稳定（避免 fill 与异步 setValues 竞态）。
+    await this.page.waitForTimeout(300);
   }
 
   async clickDelete(rowIdentifier: string): Promise<void> {

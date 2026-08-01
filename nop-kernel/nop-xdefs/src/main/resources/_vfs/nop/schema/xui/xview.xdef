@@ -223,11 +223,11 @@
         <tabs xdef:ref="UiTabsModel"/>
         <wizard xdef:ref="UiWizardModel"/>
         <group xdef:ref="UiGroupModel"/>
-        <complex name="!string" xdef:ref="UiContainerModel" xdef:body-type="list" xdef:bean-body-prop="body">
-            <left xdef:ref="UiContainerModel" xdef:body-type="list" xdef:bean-body-prop="body" />
-            <right xdef:ref="UiContainerModel" xdef:body-type="list" xdef:bean-body-prop="body" />
-            <top xdef:ref="UiContainerModel" xdef:body-type="list" xdef:bean-body-prop="body" />
-            <bottom xdef:ref="UiContainerModel" xdef:body-type="list" xdef:bean-body-prop="body" />
+        <complex name="!string" xdef:name="UiComplexPageModel" xdef:ref="UiPageModel" xdef:bean-tag-prop="type">
+            <header xdef:ref="UiContainerModel" xdef:body-type="list" xdef:bean-body-prop="body" />
+            <footer xdef:ref="UiContainerModel" xdef:body-type="list" xdef:bean-body-prop="body" />
+            <aside xdef:ref="UiContainerModel" xdef:body-type="list" xdef:bean-body-prop="body" />
+            <body xdef:ref="UiContainerModel" xdef:body-type="list" xdef:bean-body-prop="body" />
         </complex>
     </pages>
 </view>

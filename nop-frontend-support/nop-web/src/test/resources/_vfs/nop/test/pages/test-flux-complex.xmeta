@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<meta x:schema="/nop/schema/xmeta.xdef" xmlns:x="/nop/schema/xdsl.xdef">
+    <props>
+        <prop name="id" displayName="Id" type="Long"/>
+        <prop name="name" displayName="Name" type="String"/>
+        <prop name="status" displayName="Status" type="Integer">
+            <schema dict="active-status"/>
+        </prop>
+        <prop name="remark" displayName="Remark" type="String">
+            <schema precision="200"/>
+        </prop>
+    </props>
+</meta>

@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<view bizObjName="TestFluxComplex" x:schema="/nop/schema/xui/xview.xdef" xmlns:x="/nop/schema/xdsl.xdef">
+    <objMeta>test-flux-complex.xmeta</objMeta>
+    <controlLib>/nop/web/xlib/flux-control.xlib</controlLib>
+
+    <grids>
+        <grid id="list">
+            <cols>
+                <col id="id" sortable="true"/>
+                <col id="name" sortable="true"/>
+            </cols>
+        </grid>
+    </grids>
+
+    <forms>
+        <form id="header-form" editMode="edit">
+            <layout>
+                name
+            </layout>
+        </form>
+        <form id="body-form" editMode="edit">
+            <layout>
+                status
+            </layout>
+        </form>
+        <form id="footer-form" editMode="edit">
+            <layout>
+                remark
+            </layout>
+        </form>
+    </forms>
+
+    <pages>
+        <complex name="main">
+            <header>
+                <simple name="hdr" form="header-form"/>
+            </header>
+            <aside>
+                <crud name="aside-crud" grid="list">
+                    <table name="aside-table">
+                        <api url="@query:TestFluxComplex__findPage" gql:selection="{@pageSelection}"/>
+                    </table>
+                </crud>
+            </aside>
+            <body>
+                <simple name="bdy" form="body-form"/>
+            </body>
+            <footer>
+                <simple name="ftr" form="footer-form"/>
+            </footer>
+        </complex>
+    </pages>
+</view>

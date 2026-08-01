@@ -19,10 +19,35 @@ export class FluxAdapter implements EngineAdapter {
   }
 
   async cellValue(row: Locator, fieldName: string, columnHeaders: string[]): Promise<string> {
-    const index = columnHeaders.indexOf(fieldName);
+    // columnHeaders 首项可能是占位 ''（PO 为 AMIS 选择列预留）。flux 表格默认无选择列，
+    // 此时占位会导致列索引整体偏移一位（读错单元格）。与 CrudListPage.captureRowData
+    // 一致：若首列为占位且本行无 table-select-cell / table-expand-cell，去掉占位。
+    let headers = columnHeaders;
+    if (
+      headers.length > 0 &&
+      headers[0] === '' &&
+      !(await this.rowHasLeadingSpecialCell(row))
+    ) {
+      headers = headers.slice(1);
+    }
+    const index = headers.indexOf(fieldName);
     if (index === -1) return '';
     const cell = row.locator(`td:nth-child(${index + 1})`);
     return ((await cell.textContent()) ?? '').trim();
+  }
+
+  private async rowHasLeadingSpecialCell(row: Locator): Promise<boolean> {
+    return row
+      .locator('td:first-child')
+      .first()
+      .evaluate((el) => {
+        const slot =
+          el.getAttribute('data-slot') ??
+          el.querySelector('[data-slot]')?.getAttribute('data-slot') ??
+          '';
+        return slot === 'table-select-cell' || slot === 'table-expand-cell';
+      })
+      .catch(() => false);
   }
 
   addButton(page: Page): Locator {
@@ -165,28 +190,12 @@ export class FluxAdapter implements EngineAdapter {
             )
             .catch(() => false);
           if (!disabled) {
-            // 用原生事件方式设置值（与单测 fireEvent.input 对齐）：
-            // Playwright fill/type 可能被 React 受控组件的 value tracker 拦截，
-            // 导致 onChange 不触发、表单 store 不更新（e2e 编辑失败的根因）。
-            // 通过 prototype setter 设置 value + dispatch input/change 事件，
-            // React 正常捕获并更新 store。
-            await nativeField.first().evaluate(
-              (el, value) => {
-                const inputEl = el as HTMLInputElement;
-                const setter = Object.getOwnPropertyDescriptor(
-                  window.HTMLInputElement.prototype,
-                  'value',
-                )?.set;
-                if (setter) {
-                  setter.call(inputEl, value);
-                } else {
-                  inputEl.value = value;
-                }
-                inputEl.dispatchEvent(new Event('input', { bubbles: true }));
-                inputEl.dispatchEvent(new Event('change', { bubbles: true }));
-              },
-              strValue,
-            );
+            // 用 Playwright fill()（CDP 真实键盘事件）设置值，可靠触发 React onChange →
+            // form store 更新。此前用 prototype setter + dispatch 合成事件：DOM 的 .value
+            // 会更新，但在编辑场景（loadAction 预填后）合成 input 事件不总能触发 flux
+            // input-renderer 的 onChange，导致 store 停在旧值、提交旧值（编辑用户失败根因）。
+            // flux 真实浏览器 e2e（component-lab dialog-edit-submit）用 fill() 验证通过。
+            await nativeField.first().fill(strValue);
             return;
           }
         }
