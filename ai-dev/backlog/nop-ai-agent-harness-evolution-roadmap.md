@@ -32,7 +32,7 @@
 ### W2. Reliability 增量（高优先）
 - [x] W2-1 checkpoint 增加 wait_for 条件 JSONB（WAIT_FOR 长等待原语：挂起不占线程 → 条件满足唤醒恢复）
 - [x] W2-2 checkpoint 增加 idempotency_key 列 + 唯一约束（hash(toolName+callId+输入指纹)，restore 时发散检测）（plan `2026-08-01-1905-2` 落地：Checkpoint 字段 + ORM 列 + unique index + sha256 hash + 全序列化同步 + restore 发散检测拒绝+降级 session 重放，零回归）
-- [ ] W2-3 三级失败升级（质量失败 max_aegis_rejections / 停滞失败 stale_task_max_retries / 基础设施失败 max_dispatch_retries）
+- [x] W2-3 三级失败升级（质量失败 max_aegis_rejections / 停滞失败 stale_task_max_retries / 基础设施失败 max_dispatch_retries）（plan `2026-08-01-1437-2` 落地：plan 层层归属裁定 A + `FailureType` 枚举 + `TaskOutcome` 携带 typed failure + `FailureEscalationPolicy` 构造期阈值（disabled 默认零回归）+ `PlanExecutionState` per-task typed 计数器 + `PlanExecutor` 三级升级动作（task failed）+ Contribute 聚合模型（既有 recordError→REPEATED_ERRORS 管道，无双计）+ 30 测试）
 - [x] W2-4 ProviderFailoverQueue（跨 provider 有序故障转移 P1→P2→P3 + failover_switch 去重）（plan `2026-08-01-1905-3` 落地：新 manifest xdef `llm-failover.xdef` + codegen `LlmFailoverConfig`/`LlmFailoverProviderModel` + `ProviderFailoverQueue`（per-provider 冷却去重 + 可注入 `LongSupplier` 时钟）+ `ProviderFailoverChain`（向前游走）+ `LlmCallCoordinator` 第三通道集成（账号链耗尽升级→切下一 provider，重置 accountChain/circuit key/attempt，全部耗尽 fail-loud）+ 16 测试。零回归：无 provider 链配置时账号链耗尽仍 fail-loud；shipped NoOp queue 去重维度 opt-in，切换维度 config-driven）
 - 参考：`2026-08-01-hatchet-durable-execution-analysis.md`、`2026-08-01-grok-build-deterministic-replay-analysis.md`、`2026-08-01-mission-control-control-plane-analysis.md`、`2026-08-01-cc-switch-provider-circuit-breaker-analysis.md`
 

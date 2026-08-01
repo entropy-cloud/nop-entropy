@@ -856,15 +856,91 @@ checkpoint 增加 idempotency_key 列：
 
 ### 13.3 三级失败升级（中优先）
 
-nop reliability 重试不区分失败类型。增加（对标 mission-control 三级）：
+> 原始状态（方向 only）：本节原为 4 行表（质量/停滞/基础设施 + max 阈值 + "nop 对应"映射提示）。下文（plan `2026-08-01-1437-2` Phase 1 裁定 A-G）把它从方向升级为含层归属/失败分类/计数器/阈值/升级动作/集成点/状态模型/聚合规则的可执行规格。
 
-| 失败类型 | 处理 | nop 对应 |
-|----------|------|----------|
-| 质量失败（guardrail 拒绝） | max_aegis_rejections 上限 | security/guardrail |
-| 停滞失败（无进展） | stale_task_max_retries | hive stall 检测借鉴 |
-| 基础设施失败（provider/工具不可用） | max_dispatch_retries | ThresholdBreaker |
+**实现状态（plan `2026-08-01-1437-2` ✅ 已落地）**：
 
-> **与 W1-4 PlanReplanner 的边界（2026-08-01 reconcile）**：本节三级失败升级作用**单次 task attempt 内**（dispatch 层质量/停滞/基础设施失败）。W1-4 PlanReplanner（`nop-ai-agent-plan-dsl.md` §14.4）作用**多次 attempt/cycle 累积后的 plan/phase/task 级停滞**（gate 耗尽、task 不推进）。两者互补不重叠：本节的失败信号是 W1-4 `REPEATED_ERRORS` 信号的聚合输入源；W1-4 不重实现单 attempt 重试（本节/L3 职责）。详见 `nop-ai-agent-plan-dsl.md` §14.4.5。
+#### 裁定 A — W2-3 层归属：plan 层（同 W1-4 host），正视两层断连
+
+裁定：W2-3 宿主层 = **plan 层**（`PlanExecutionState`/`TaskRunner`/`PlanExecutor`/`StagnationDetector` 同层，与 W1-4 `PlanReplanner` host 一致）。生产 dispatch 层（`ReActAgentExecutor`/`AgentToolDispatcher`）是**断连的独立层**——经 round-1 审查 + live 核实确认 `engine/` 包零引用 plan-runtime 类，唯一桥梁是 §14.5 nop-task 迁移（deferred successor）。
+
+- **plan 层聚合可行性 = 同层可行**：W2-3 typed failure 与 W1-4 `REPEATED_ERRORS` 同处 `PlanExecutionState`——typed failure 经 `recordError` 记录为 `AgentPlanError`，`countUnresolvedErrors` 直接消费，无需跨层桥。这是选 plan 层的决定性理由。
+- **与 §14.4.5 "task attempt" 措辞 reconcile**：§14.4.5 称 W2-3 作用"单次 task attempt 内"。在 plan 层，"task attempt" = 一次 `TaskRunner.run(task)` 调用（host 驱动 task 推进的最小单元）。"单次 task attempt 内的失败升级" = 在 host 的 task-驱动循环内，对 `TaskRunner` 返回的失败按类型计数 + 阈值升级。这与 §14.4.5 边界声明一致（W2-3 = 单 attempt 内，W1-4 = attempt 之上）。
+- **生产 wiring 边界（诚实裁定）**：生产 dispatch 层失败（guardrail 拒绝、tool 超时）到达 W2-3 的运行时通道今日**不存在**——`TaskRunner` 今日无生产实现（仅测试 lambda）。W2-3 在 plan 层内提供**机制**（计数器+阈值+升级），typed failure 的**信号**由 `TaskRunner` 实现者提供（§14.5 nop-task 迁移 deferred successor 时，真实 TaskRunner 委托 ReAct 引擎并按失败原因分类）。W2-3 机制对任何 TaskRunner 实现中立。
+- **拒绝 dispatch 层**：生产 ReAct/guardrail/dispatch 是断连层，"task attempt"措辞不贴合 ReAct 迭代，聚合到 plan 层须 §14.5 桥。选 dispatch 层使 Phase 3 端到端不可行（违反"单计划可关闭"约束）。
+
+#### 裁定 B — 失败类型分类：TaskRunner 经 TaskOutcome 携带 FailureType（分类边界 = TaskRunner）
+
+裁定：失败类型分类经 `TaskOutcome` 携带可空 `FailureType`（`QUALITY`/`STALL`/`INFRASTRUCTURE`）。`TaskRunner`（plan 层执行边界）是分类主体——它运行 task attempt，是唯一知道失败原因的组件。
+
+- **分类策略**：`TaskOutcome` 增 `failureType` 字段（nullable）。新工厂 `failure(errorText, FailureType)` 携带类型；既有 `failure(errorText)` 退化为 `failureType = null`（untyped，零回归——既有 TaskRunner 实现无需改动）。
+- **三类语义**：`QUALITY`（guardrail/aegis 拒绝——attempt 产出被内容/安全 guardrail 阻止）；`STALL`（无进展——attempt 未推进目标，如底层 agent 循环卡 loop）；`INFRASTRUCTURE`（provider/tool 不可用——超时、连接、IO 等瞬态基础设施错误）。
+- **为何不扩 AgentPlanError 加 FailureType 字段**：`AgentPlanError` 是 generated model（`_AgentPlanError` base），加字段须改 xdef + codegen（Protected Area codegen 级联）。typed 计数独立维护在 `PlanExecutionState`（裁定 E 聚合规则），不侵入 generated model。`AgentPlanError.errorText` 可含类型前缀供人类可读，但分类权威来源是 typed 计数器。
+- **控制点**：`PlanExecutor.drivePhaseTasks` 的 task 失败分支读 `outcome.getFailureType()`，据类型更新对应 typed 计数器。
+
+#### 裁定 C — 停滞失败计数器（stale_task_max_retries）+ 信号源 = TaskRunner 分类（保留三级，非 defer）
+
+裁定：stall 级**保留**（非 defer）。信号源 = `TaskRunner` 报告 `FailureType.STALL`（同裁定 B 分类边界）。plan 层提供机制（计数器+阈值+升级），stall 信号由 TaskRunner 实现者提供。
+
+- **为何不 defer stall**：round-1 审查列出的 stall 信号候选（重复 tool 调用、无 goal 推进、重复 guardrail block）都是 dispatch 层信号——但那是**检测算法**，不是**信号源边界**。plan 层的信号源边界是 `TaskRunner`（它运行 attempt，能判定"无进展"并报告 `STALL`）。TaskRunner 是 plan 层内组件，是轻量、可测试的信号源。defer stall 会使 W2-3 降为两级，丢失停滞类型的独立阈值能力。
+- **与 W1-4 `TASK_STALLED` 的区分（关键正交性）**：
+  - **W2-3 STALL（per-attempt typed）**：单次 attempt 的**失败类型** = STALL。计数器是 per-task typed 累积，阈值 = `staleTaskMaxRetries`，超 → 升级（task `failed`）。衡量的是"多少次 attempt 报告了停滞"。
+  - **W1-4 `TASK_STALLED`（plan-level，跨 attempt 不分类）**：`consecutiveFailures ≥ staleTaskCycles`，不区分失败类型。衡量的是"连续失败多少次"。
+  - 一个 `STALL` 类型失败同时递增 stall typed 计数器 AND `consecutiveFailures`——两者是不同维度（类型 vs 总数），互补非重复。
+- **未来 wiring**：§14.5 真实 TaskRunner 委托 ReAct 引擎时，stall 判定可委托 `SessionGoalTracker` STUCK 或重复 tool-call 签名检测。今日测试 TaskRunner 直接报告 `STALL` 驱动机制验证。
+
+#### 裁定 D — 基础设施失败计数器（max_dispatch_retries）+ 重试策略 + 错误分类
+
+裁定：infra 失败经 `FailureType.INFRASTRUCTURE` 计数，per-task 累积，阈值 = `maxDispatchRetries`，超 → 升级（task `failed`，不再 plan 级重试）。
+
+- **重试语义（plan 层）**：plan 层"重试" = task 失败后置 `pending`，下一 cycle 由 scheduler 重新 pick up（plan 级重试，非 immediate retry）。所有 typed 失败在阈值内都 plan 级重试（pending）；超阈值升级为 `failed`（terminal，不再重试）。
+- **"infra 错误重试、业务错误不重试"的 plan 层实现**：INFRASTRUCTURE 失败是瞬态的，plan 级重试有意义（下轮可能成功）——在 `maxDispatchRetries` 内保持 `pending`（重试）。QUALITY/STALL 失败同理在各自阈值内重试。"业务错误不重试"指 dispatch 层 immediate-retry 概念（§14.5 scope，类比 LLM-call `IRetryPolicy` 仅重试 TRANSIENT 不重试 NON_TRANSIENT）；plan 层不实现 immediate-retry（host 每 cycle 调 TaskRunner 一次）。无配置时所有失败 plan 级重试（零回归——今日行为）。
+- **infra 错误分类**：`INFRASTRUCTURE` = 超时/IO/连接/provider 不可用（瞬态，重试有意义）。`QUALITY`/`STALL` = 非 infra。untyped（null）= 既有未分类失败（零回归路径）。
+- **行为等价零回归**：`FailureEscalationPolicy.disabled()`（所有阈值 = `Integer.MAX_VALUE`）→ `shouldEscalate` 恒 false → 所有失败 plan 级重试（pending），行为等价今日无差别处理（同错误消息、同上层可见结果——`recordError` 记录原 errorText，status → pending）。
+
+#### 裁定 E — 质量失败计数器（max_aegis_rejections）+ 聚合抑制规则（Contribute 模型，无双计）
+
+裁定：per-attempt 质量拒绝经 `FailureType.QUALITY` 计数，阈值 = `maxAegisRejections`。聚合抑制规则 = **Contribute 模型**（非 Suppress）。
+
+- **与 denial-ledger per-session 安全拒绝的正交性**：`DefaultDenialLedger`（`DEFAULT_DENIAL_THRESHOLD=3`）是 **per-session 安全**拒绝计数（security 层，跨 attempt 累积，超 → `SESSION_PAUSED`）。W2-3 quality 计数是 **per-attempt 质量**拒绝（plan 层，per-task typed 累积，超 → task `failed`）。两者不同层、不同作用域、不同升级动作，**不重复计数**——denial-ledger 计 session 级安全 deny，W2-3 quality 计 task 级内容 guardrail block。单测断言两者独立（quality 计数不触发 denial-ledger，反之亦然）。
+- **聚合抑制规则（Contribute 模型）**：每个 typed failure 记录**一条** `AgentPlanError`（经 `recordError`）**同时**递增**一个** typed 计数器。两者是同一失败的两种视图（类型维度 vs 总数维度），非双计。
+  - **非双计保证**：N 个 quality 失败 → quality typed 计数器 = N，unresolved error count += N（每失败记一条 error）。`REPEATED_ERRORS` 基于 unresolved error count（不分类的聚合），W2-3 typed 计数器基于类型分类。一个失败在两个计数器各 +1，但它们衡量不同维度，不构成"同一失败被罚两次"。
+  - **为何不 Suppress**：Suppress（触发 per-attempt 升级的失败不喂 REPEATED_ERRORS）会丢失 plan 级可见性——一个 quality 失败既触发了 per-attempt 升级又应让 plan 知道"这个 task 有问题"。Contribute 保留两层可见性，per-attempt 升级是即时的（task failed），REPEATED_ERRORS 是聚合的（跨 attempt 累积）。
+  - **可测试**：单测断言 N typed 失败 → N error records，typed 计数器 = N（非 2N）；typed 升级触发后 task failed + errors 保留 unresolved → REPEATED_ERRORS 可后续触发。
+
+#### 裁定 F — 升级动作统一模型 + 构造期可配置阈值
+
+裁定：三级升级动作统一形态 = **task 标记 `failed`（terminal，不再 plan 级重试）**。阈值经构造期 `FailureEscalationPolicy`（类比 `ReplanPolicy`/`StagnationDetector(stale,maxErrors)` 既有模式），避免 codegen 级联。
+
+- **升级动作语义**：typed 计数器达阈值 → task 置 `AgentExecStatus.failed`（terminal）。`PlanScheduler.isTerminal` 排除 failed task 出 ready 集（不再重试）。task 的 errors 保留 unresolved → 喂 `REPEATED_ERRORS`（裁定 E Contribute）→ plan 级决策（ESCALATE/ROLLBACK/SPLIT per W1-4 policy）。即 per-attempt 升级 = "停止重试这个 task，让 plan 决策"。
+- **统一模型**：三级升级动作相同（task failed），差异仅在阈值与计数类型。这使升级动作可观测、可测试（断言 task status 变化 + 后续 REPEATED_ERRORS 触发）。
+- **构造期配置**：`FailureEscalationPolicy(maxAegisRejections, staleTaskMaxRetries, maxDispatchRetries)`，构造器参数（非 xdef 元素，非 codegen）。`disabled()` 工厂 = 全 `Integer.MAX_VALUE`（零回归）。`PlanExecutor` 新构造器接受 `FailureEscalationPolicy`（default `disabled()`），既有构造器委托。
+- **阈值参数校验**：`> 0`（`IllegalArgumentException` fail-fast），同 `StagnationDetector` 既有模式。
+
+#### 裁定 G — §14.4.5 边界落地形态 + 零回归边界
+
+裁定：同层聚合管道 = 既有 `recordError → countUnresolvedErrors → StagnationDetector.REPEATED_ERRORS`（**无需新管道**）。W2-3 typed failure 经 `recordError` 自然喂入 W1-4 `REPEATED_ERRORS`——typed 计数是叠加在既有 error 记录之上的**分类视图**，非独立管道。
+
+- **同层聚合（plan 层）**：W2-3 不建独立聚合管道。typed failure 经 `recordError`（既有方法）记录为 `AgentPlanError`，`StagnationDetector.detect` 的 `REPEATED_ERRORS` 分支基于 `countUnresolvedErrors`（既有方法）消费。W2-3 的增值 = typed 计数器 + 阈值升级（裁定 F），在 error 记录**之外**叠加分类升级。聚合到 W1-4 的通道是既有的、未修改的。
+- **跨层 wiring（§14.5 deferred）**：生产 dispatch 层（ReAct guardrail/dispatch）到 plan 层 TaskRunner 的 typed-failure 桥是 §14.5 nop-task 迁移范畴（独立 successor）。W2-3 在 plan 层内成立（机制完整 + 端到端验证）；生产 wiring 是纯执行层 successor。
+- **零回归边界**：`FailureEscalationPolicy.disabled()`（shipped 默认）→ 所有 typed 计数器永不升级 → 所有失败（typed/untyped）plan 级重试（pending）→ 行为等价今日无差别处理。`TaskOutcome.failure(errorText)`（既有工厂）→ `failureType = null` → 既有 TaskRunner 实现零改动。
+- **去重关系（不变量）**：
+  - vs denial-ledger（per-session 安全）：正交，不同层不同作用域（裁定 E）。
+  - vs `StagnationDetector`（plan 级）：互补，W2-3 是 typed per-attempt 升级，StagnationDetector 是 untyped plan 级信号（裁定 C）。
+  - vs LLM-call 重试（W2e `IRetryPolicy`）：正交，W2e 是 LLM call 层重试，W2-3 是 task attempt 层升级。
+  - vs `SessionGoalTracker` STUCK（per-session 行为故障）：正交，STUCK 是 session 级 abort，W2-3 STALL 是 task 级 typed 计数。
+
+#### 端到端语义（执行规格摘要）
+
+1. `TaskRunner.run(task)` 返回 `TaskOutcome.failure(errorText, FailureType.QUALITY)`。
+2. `PlanExecutor.drivePhaseTasks` 失败分支：`incrementConsecutiveFailures` + `recordError`（记一条 error）+ `recordTypedFailure(taskNo, QUALITY)`。
+3. `FailureEscalationPolicy.shouldEscalate(QUALITY, count)` → 若 count ≥ `maxAegisRejections` → task 置 `failed`（terminal）；否则 → `pending`（plan 级重试）。
+4. task `failed` 后 errors 保留 unresolved → `StagnationDetector.detect` 的 `REPEATED_ERRORS`（unresolved ≥ `maxErrorsPerTask`）触发 → `PlanReplanner.decide` → ESCALATE/ROLLBACK/SPLIT（per W1-4 policy）。
+5. W1-4 决策契约不变（CONTINUE/ESCALATE/ROLLBACK_PHASE/SPLIT_TASK/ABORT 行为不变）。
+
+#### 与 W1-4 PlanReplanner 的边界（2026-08-01 reconcile，§14.4.5 spec）
+
+本节三级失败升级作用**单次 task attempt 内**（plan 层 host 的 task-驱动循环内，typed 失败计数+阈值升级）。W1-4 PlanReplanner（`nop-ai-agent-plan-dsl.md` §14.4）作用**多次 attempt/cycle 累积后的 plan/phase/task 级停滞**（gate 耗尽、task 不推进）。两者互补不重叠：本节的 typed failure 经 `recordError` 是 W1-4 `REPEATED_ERRORS` 信号的聚合输入源（Contribute 模型，裁定 E）；W1-4 不重实现单 attempt 重试（本节/L3 职责）。详见 `nop-ai-agent-plan-dsl.md` §14.4.5。
 
 ### 13.4 有序故障转移队列（中优先）
 
@@ -951,7 +1027,7 @@ nop reliability 重试不区分失败类型。增加（对标 mission-control �
 
 ### 13.5 推荐实施顺序
 
-WAIT_FOR（13.1，裁定 A-H ✅，实施中）→ idempotency_key（13.2，✅ 已落地）→ 三级失败升级（13.3）→ 有序故障转移（13.4，✅ 已落地）
+WAIT_FOR（13.1，裁定 A-H ✅，✅ 已落地）→ idempotency_key（13.2，✅ 已落地）→ 三级失败升级（13.3，✅ 已落地）→ 有序故障转移（13.4，✅ 已落地）
 
 > **跳序执行 reconcile（plan `2026-08-01-1905-3`）**：13.4（W2-4）实际在 13.3（W2-3）之前落地。理由：W2-4 的**硬前置**是 W2e 错误分类 + 账号链（W2e-0..5，均已 ✅ 落地）——第三通道消费账号链耗尽信号 + QUOTA/AUTH 分类，与 W2-1（WAIT_FOR checkpoint）/ W2-2（idempotency_key，已 ✅）/ W2-3（三级失败升级）**无硬依赖**。W2-3 三级失败升级中的"基础设施失败 max_dispatch_retries"虽概念上关联 ThresholdBreaker，但那是单 attempt 内的失败聚合（§13.3 与 W1-4 边界注），与 W2-4 跨 provider failover 正交。故 W2-4 可独立先行。
 >

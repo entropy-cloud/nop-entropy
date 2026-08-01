@@ -560,9 +560,17 @@ plan/phase/task 级"无进展"的可观测信号。与 ReAct 级 `SessionGoalTra
 
 replan `ESCALATE`（W1-4）与 §13.3 三级失败升级（W2-3）**互补不重叠**：
 
-- **W2-3**（`max_aegis_rejections`/`stale_task_max_retries`/`max_dispatch_retries`）：单次 task attempt 内的失败升级（质量/停滞/基础设施失败，dispatch 层）。作用**单次 attempt 执行**。
+- **W2-3**（`max_aegis_rejections`/`stale_task_max_retries`/`max_dispatch_retries`）：单次 task attempt 内的失败升级（质量/停滞/基础设施失败）。作用**单次 attempt 执行**。
 - **W1-4 replan ESCALATE**：多次 attempt/cycle 累积后 plan/phase/task 级停滞（gate 耗尽、task 不推进）。作用**attempt 之上**。
 - **关系**：W2-3 的失败信号是 W1-4 `REPEATED_ERRORS` 信号的聚合输入源；W1-4 不重实现单 attempt 重试（那是 W2-3 / L3 职责）。
+
+**层归属 spec（plan `2026-08-01-1437-2` 裁定 A/G 落地）**：
+
+- **W2-3 宿主层 = plan 层**（同 W1-4 host）：`PlanExecutionState`/`TaskRunner`/`PlanExecutor`/`StagnationDetector` 同层。生产 dispatch 层（`engine/` 包）是断连独立层，唯一桥梁是 §14.5 nop-task 迁移（deferred）。
+- **聚合可行性 = 同层可行**：W2-3 typed failure 经 `PlanExecutionState.recordError` 记录为 `AgentPlanError`，`StagnationDetector` 的 `REPEATED_ERRORS` 基于 `countUnresolvedErrors` 直接消费——**无需新聚合管道**。W2-3 的增值是 typed 计数器 + 阈值升级（叠加在既有 error 记录之上的分类视图），聚合到 W1-4 的通道是既有未修改的 `recordError → countUnresolvedErrors → REPEATED_ERRORS`。
+- **聚合抑制规则 = Contribute 模型**（§13.3 裁定 E）：每个 typed failure 记录一条 error（喂 REPEATED_ERRORS）+ 递增一个 typed 计数器。两者是同一失败的两种视图（类型维度 vs 总数维度），非双计。typed 升级触发后 task `failed`（terminal）+ errors 保留 unresolved → REPEATED_ERRORS 可后续触发 plan 级决策。
+- **跨层 wiring deferred**：生产 dispatch 层失败到 plan 层 TaskRunner 的 typed-failure 桥是 §14.5 successor。W2-3 在 plan 层内机制完整 + 端到端验证；生产 wiring 是纯执行层 successor。
+- **零回归**：`FailureEscalationPolicy.disabled()`（shipped 默认）→ typed 计数器永不升级 → 所有失败 plan 级重试 → 行为等价今日。详见 §13.3 裁定 A-G。
 
 #### 14.4.6 与 security 否认层 `DenialSuggestedStep.REPLAN` 的区分
 

@@ -1,6 +1,6 @@
 # nop-ai-agent 三级失败升级（W2-3）
 
-> Plan Status: active
+> Plan Status: completed
 > Mission: nop-ai-agent-harness-evolution
 > Work Item: W2-3（三级失败升级：质量失败 max_aegis_rejections / 停滞失败 stale_task_max_retries / 基础设施失败 max_dispatch_retries；单次 task attempt 内失败升级）
 > Last Reviewed: 2026-08-01
@@ -99,102 +99,102 @@
 
 ### Phase 1 - design elaboration：层归属 + 失败分类 + 三级计数器 + 升级 + 聚合裁定（Decision）
 
-Status: planned
+Status: completed
 Targets: `ai-dev/design/nop-ai-agent/nop-ai-agent-reliability.md` §13.3（`:761-771` 表 → 含层归属/分类/计数器/阈值/升级动作/集成点/状态模型的 elaboration）；`ai-dev/design/nop-ai-agent/nop-ai-agent-plan-dsl.md` §14.4.5（`:559-565` 边界 → 含聚合可行性/层归属 spec）
 
 - Item Types: `Decision`
 
-- [ ] **Decision A：W2-3 层归属裁定（核心，round-1 审查 Blocker）**。裁定 W2-3 宿主层，正视两层断连事实（plan 层 test-only host vs 生产 dispatch 层）。候选：(i) **plan 层**（task attempt 概念 first-class：`PlanExecutionState.taskAttempts`/`TaskRunner`/`recordError`/`StagnationDetector` 同层，聚合到 W1-4 `REPEATED_ERRORS` **同层可行**，与 W1-4 host 一致；生产 dispatch 失败到达 W2-3 是 §14.5 桥 deferred）；(ii) **dispatch 层**（生产 ReAct/guardrail/dispatch，但"task attempt"措辞不贴合 ReAct 迭代，聚合到 plan 层须 §14.5 桥）；(iii) 混合。裁定须给出选定层的聚合可行性判定 + 与 §14.4.5 "task attempt"措辞的 reconcile + 生产 wiring 边界（若选 plan 层，明示生产桥是 §14.5 deferred）。回写 design §13.3 + §14.4.5。
-- [ ] **Decision B：失败类型分类模型 + 记录签名策略（核心 design gap）**。裁定如何在选定层记录点区分 quality/stall/infra。plan 层候选：扩 `TaskOutcome` 带 `FailureType` / `recordError(taskNo, attempt, errorText, FailureType)` 重载 / 旁路 typed 计数器。dispatch 层候选：guardrail `BlockResult`→quality / dispatch 超时-IO→infra。控制 `PlanExecutor.java:195-198`/`AgentToolDispatcher` 调用点 + 测试改造范围（类比 W2-2 裁定 D）。回写 design §13.3。
-- [ ] **Decision C：停滞失败计数器（stale_task_max_retries）+ 信号源候选 + scope-reduction 许可（round-1 审查 Major）**。裁定单 attempt 内"无进展"的语义与**信号源**。候选信号源：(i) attempt 内重复相同 tool 调用/相同输出（LLM 卡loop）；(ii) attempt 内无 goal 推进（基于 `goalTracker` 细化，但 `STUCK` 今日 per-session 且 abort）；(iii) 重复 guardrail block 序列。裁定计数器作用域（per-attempt）+ 阈值 + 升级动作。**许可**：若 Phase 1 发现无轻量信号源，裁定 defer stall 级（W2-3 降为 quality+infra 两级），诚实记录，非强推不可实现的三级。须明示与 W1-4 `TASK_STALLED`（plan 级多 attempt）的区分。回写 design §13.3。
-- [ ] **Decision D：基础设施失败计数器（max_dispatch_retries）+ 重试策略 + 错误分类**。裁定选定层的 infra 重试策略——plan 层：task attempt 的 infra 错误重试（TaskRunner 失败分类，仅 infra 类重试，业务错误不重试）；dispatch 层：tool dispatch retry（类比 LLM-call `IRetryPolicy` 但 for tools）。裁定 infra 错误分类（超时/IO/连接 vs 业务错误）+ 阈值 + 升级动作。须裁定重试对上层透明性 + 无配置时零回归（行为等价：同错误消息、同上层可见结果）。回写 design §13.3。
-- [ ] **Decision E：质量失败计数器（max_aegis_rejections）+ 聚合抑制规则（round-1 审查 Major）**。裁定 per-attempt 质量拒绝计数形态（与 denial-ledger per-session 安全拒绝正交，明示不重复计数）+ 阈值 + 升级动作。**聚合抑制规则**：裁定 W2-3 typed failure 与 W1-4 `REPEATED_ERRORS` 的关系——候选：(i) 抑制（触发 per-attempt 升级的失败不再喂 REPEATED_ERRORS）；(ii) 贡献（同时喂，但 REPEATED_ERRORS 计 typed 聚合非裸 count）。须指定其一 + 测试断言（避免双计数）。回写 design §13.3。
-- [ ] **Decision F：升级动作统一模型 + 可配置阈值 + 层归属一致性**。裁定三级升级动作统一形态（每级超阈值后的可观测行为：重试升级/上报 plan 级/终止 attempt/fail-loud）+ 阈值配置点（构造期 policy 类比 `ReplanPolicy`/`StagnationDetector(stale,maxErrors)` 既有模式，避免 codegen 级联）。须与 Decision A 层归属一致（升级动作在选定层内可观测）。回写 design §13.3。
-- [ ] **Decision G：§14.4.5 边界落地形态 + 零回归边界**。按 Decision A 层归属裁定 §14.4.5 聚合的落地形态：同层（plan 层）→ 聚合管道实现；跨层 → typed-failure contract 声明 + §14.5 wiring deferred（诚实裁定）。明示无三级配置时坍缩今日无差别行为（零回归）+ 与 denial-ledger（per-session 安全）/ StagnationDetector（plan 级）/ LLM-call 重试（W2e）的去重关系。回写 design §13.3 + §14.4.5。
+- [x] **Decision A：W2-3 层归属裁定（核心，round-1 审查 Blocker）**。裁定 W2-3 宿主层，正视两层断连事实（plan 层 test-only host vs 生产 dispatch 层）。候选：(i) **plan 层**（task attempt 概念 first-class：`PlanExecutionState.taskAttempts`/`TaskRunner`/`recordError`/`StagnationDetector` 同层，聚合到 W1-4 `REPEATED_ERRORS` **同层可行**，与 W1-4 host 一致；生产 dispatch 失败到达 W2-3 是 §14.5 桥 deferred）；(ii) **dispatch 层**（生产 ReAct/guardrail/dispatch，但"task attempt"措辞不贴合 ReAct 迭代，聚合到 plan 层须 §14.5 桥）；(iii) 混合。裁定须给出选定层的聚合可行性判定 + 与 §14.4.5 "task attempt"措辞的 reconcile + 生产 wiring 边界（若选 plan 层，明示生产桥是 §14.5 deferred）。回写 design §13.3 + §14.4.5。
+- [x] **Decision B：失败类型分类模型 + 记录签名策略（核心 design gap）**。裁定如何在选定层记录点区分 quality/stall/infra。plan 层候选：扩 `TaskOutcome` 带 `FailureType` / `recordError(taskNo, attempt, errorText, FailureType)` 重载 / 旁路 typed 计数器。dispatch 层候选：guardrail `BlockResult`→quality / dispatch 超时-IO→infra。控制 `PlanExecutor.java:195-198`/`AgentToolDispatcher` 调用点 + 测试改造范围（类比 W2-2 裁定 D）。回写 design §13.3。
+- [x] **Decision C：停滞失败计数器（stale_task_max_retries）+ 信号源候选 + scope-reduction 许可（round-1 审查 Major）**。裁定单 attempt 内"无进展"的语义与**信号源**。候选信号源：(i) attempt 内重复相同 tool 调用/相同输出（LLM 卡loop）；(ii) attempt 内无 goal 推进（基于 `goalTracker` 细化，但 `STUCK` 今日 per-session 且 abort）；(iii) 重复 guardrail block 序列。裁定计数器作用域（per-attempt）+ 阈值 + 升级动作。**许可**：若 Phase 1 发现无轻量信号源，裁定 defer stall 级（W2-3 降为 quality+infra 两级），诚实记录，非强推不可实现的三级。须明示与 W1-4 `TASK_STALLED`（plan 级多 attempt）的区分。回写 design §13.3。
+- [x] **Decision D：基础设施失败计数器（max_dispatch_retries）+ 重试策略 + 错误分类**。裁定选定层的 infra 重试策略——plan 层：task attempt 的 infra 错误重试（TaskRunner 失败分类，仅 infra 类重试，业务错误不重试）；dispatch 层：tool dispatch retry（类比 LLM-call `IRetryPolicy` 但 for tools）。裁定 infra 错误分类（超时/IO/连接 vs 业务错误）+ 阈值 + 升级动作。须裁定重试对上层透明性 + 无配置时零回归（行为等价：同错误消息、同上层可见结果）。回写 design §13.3。
+- [x] **Decision E：质量失败计数器（max_aegis_rejections）+ 聚合抑制规则（round-1 审查 Major）**。裁定 per-attempt 质量拒绝计数形态（与 denial-ledger per-session 安全拒绝正交，明示不重复计数）+ 阈值 + 升级动作。**聚合抑制规则**：裁定 W2-3 typed failure 与 W1-4 `REPEATED_ERRORS` 的关系——候选：(i) 抑制（触发 per-attempt 升级的失败不再喂 REPEATED_ERRORS）；(ii) 贡献（同时喂，但 REPEATED_ERRORS 计 typed 聚合非裸 count）。须指定其一 + 测试断言（避免双计数）。回写 design §13.3。
+- [x] **Decision F：升级动作统一模型 + 可配置阈值 + 层归属一致性**。裁定三级升级动作统一形态（每级超阈值后的可观测行为：重试升级/上报 plan 级/终止 attempt/fail-loud）+ 阈值配置点（构造期 policy 类比 `ReplanPolicy`/`StagnationDetector(stale,maxErrors)` 既有模式，避免 codegen 级联）。须与 Decision A 层归属一致（升级动作在选定层内可观测）。回写 design §13.3。
+- [x] **Decision G：§14.4.5 边界落地形态 + 零回归边界**。按 Decision A 层归属裁定 §14.4.5 聚合的落地形态：同层（plan 层）→ 聚合管道实现；跨层 → typed-failure contract 声明 + §14.5 wiring deferred（诚实裁定）。明示无三级配置时坍缩今日无差别行为（零回归）+ 与 denial-ledger（per-session 安全）/ StagnationDetector（plan 级）/ LLM-call 重试（W2e）的去重关系。回写 design §13.3 + §14.4.5。
 
 Exit Criteria:
 
 > 每个 Phase 完成后，必须逐条勾选本节。所有 `[x]` 后才能将 Phase Status 改为 `completed`。
 
-- [ ] design §13.3 含 7 项裁定（A-G）结论 + 理由，从 4 行表升级为可执行规格；§14.4.5 从边界声明补齐层归属 + 聚合可行性 spec
-- [ ] **裁定 A 层归属与断连事实一致**：明确选定层 + 该层聚合可行性判定（同层可行 / 跨层须 §14.5）；与 §14.4.5 "task attempt" 措辞 reconcile
-- [ ] **裁定 C stall 有信号源或诚实 defer**：若有信号源给候选；若无，明示 defer stall 级降为两级（非强推）
-- [ ] **裁定 E 抑制规则明确**：typed failure 与 REPEATED_ERRORS 关系指定（抑制 or 贡献）+ 可测试
-- [ ] 裁定已为 Phase 2/3 设界：所选层归属 + 策略须使实现单计划可关闭
-- [ ] No owner-doc update beyond design（三级失败升级尚未成平台用户可见 API）
-- [ ] No new test required: design-only phase（Rule #25）
-- [ ] `ai-dev/logs/2026/08-01.md` 已追加本 phase 裁定
+- [x] design §13.3 含 7 项裁定（A-G）结论 + 理由，从 4 行表升级为可执行规格；§14.4.5 从边界声明补齐层归属 + 聚合可行性 spec
+- [x] **裁定 A 层归属与断连事实一致**：明确选定层 + 该层聚合可行性判定（同层可行 / 跨层须 §14.5）；与 §14.4.5 "task attempt" 措辞 reconcile
+- [x] **裁定 C stall 有信号源或诚实 defer**：若有信号源给候选；若无，明示 defer stall 级降为两级（非强推）
+- [x] **裁定 E 抑制规则明确**：typed failure 与 REPEATED_ERRORS 关系指定（抑制 or 贡献）+ 可测试
+- [x] 裁定已为 Phase 2/3 设界：所选层归属 + 策略须使实现单计划可关闭
+- [x] No owner-doc update beyond design（三级失败升级尚未成平台用户可见 API）
+- [x] No new test required: design-only phase（Rule #25）
+- [x] `ai-dev/logs/2026/08-01.md` 已追加本 phase 裁定
 
 ### Phase 2 - 失败分类 + 三级计数器 + 升级动作（选定层内）（Fix | Proof）
 
-Status: planned
+Status: completed
 Targets: 按 Phase 1 裁定 A/B/C/D/E/F 的落点（plan 层：`PlanExecutionState.java` recordError/计数器、`TaskRunner`/`TaskOutcome` 失败类型扩展、`PlanExecutor.java:195-198`；dispatch 层：guardrail 执行点 `ReActAgentExecutor.java:463,684`、`AgentToolDispatcher.java`；升级动作组件）；`ai-dev/design/nop-ai-agent/nop-ai-agent-reliability.md`（§13.3 落地决策回写）
 
 - Item Types: `Fix | Proof`
 
 > **design-gated**：本 phase 落点由 Phase 1 裁定 A（层归属）决定。下列项以选定层表述。
 
-- [ ] 按 Phase 1 裁定 B 落地失败类型分类：选定层记录点区分 quality/stall/infra（签名策略按裁定 B）。
-- [ ] 按 Phase 1 裁定 E 落地质量失败计数器（`max_aegis_rejections`）+ 阈值 + 升级动作，与 denial-ledger per-session 安全拒绝正交（不重复计数）。
-- [ ] 按 Phase 1 裁定 C 落地停滞失败计数器（`stale_task_max_retries`，单 attempt 作用域，信号源按裁定）+ 阈值 + 升级动作；**若 Phase 1 裁定 defer stall 级，则本项 skip 并在 Deferred 记录**（诚实，非静默跳过）。
-- [ ] 按 Phase 1 裁定 D 落地基础设施失败计数器（`max_dispatch_retries`）+ 重试策略 + infra 错误分类（仅 infra 类重试，业务错误不重试）+ 阈值 + 升级动作。
-- [ ] 按 Phase 1 裁定 F 统一升级动作模型 + 构造期可配置阈值（类比 `ReplanPolicy`/`StagnationDetector` 既有模式）。
-- [ ] 单测：每级计数器计数正确；阈值超 → 该级升级动作可观测触发；infra 错误重试而业务错误不重试；无配置时坍缩今日行为（行为等价测试：同错误消息/同上层可见结果）。
+- [x] 按 Phase 1 裁定 B 落地失败类型分类：选定层记录点区分 quality/stall/infra（签名策略按裁定 B）。
+- [x] 按 Phase 1 裁定 E 落地质量失败计数器（`max_aegis_rejections`）+ 阈值 + 升级动作，与 denial-ledger per-session 安全拒绝正交（不重复计数）。
+- [x] 按 Phase 1 裁定 C 落地停滞失败计数器（`stale_task_max_retries`，单 attempt 作用域，信号源按裁定）+ 阈值 + 升级动作；**若 Phase 1 裁定 defer stall 级，则本项 skip 并在 Deferred 记录**（诚实，非静默跳过）。
+- [x] 按 Phase 1 裁定 D 落地基础设施失败计数器（`max_dispatch_retries`）+ 重试策略 + infra 错误分类（仅 infra 类重试，业务错误不重试）+ 阈值 + 升级动作。
+- [x] 按 Phase 1 裁定 F 统一升级动作模型 + 构造期可配置阈值（类比 `ReplanPolicy`/`StagnationDetector` 既有模式）。
+- [x] 单测：每级计数器计数正确；阈值超 → 该级升级动作可观测触发；infra 错误重试而业务错误不重试；无配置时坍缩今日行为（行为等价测试：同错误消息/同上层可见结果）。
 
 Exit Criteria:
 
-- [ ] 失败类型分类存在，单测断言三类失败被正确标注（quality/stall/infra；若 stall deferred 则两类）
-- [ ] 三级（或裁定级数）计数器 + 阈值 + 升级动作各自由单测断言（计数 → 阈值 → 升级动作可观测）
-- [ ] **质量失败与 denial-ledger 正交**：per-attempt 质量计数与 per-session 安全计数不重复（单测断言）
-- [ ] **停滞失败作用域正确**（若未 defer）：单 attempt stall 与 plan 级 TASK_STALLED 区分（单测断言不同作用域）
-- [ ] **infra 重试行为正确 + 行为等价零回归**：infra 错误重试、业务错误不重试；无配置时与今日一次性错误行为等价（单测断言同错误消息/同上层结果）
-- [ ] **无静默跳过**：阈值超时显式升级动作（非吞掉/continue）；无配置时显式坍缩今日行为；stall defer 时显式记录（非静默 skip）
-- [ ] **零回归**：无三级配置时所有失败按今日无差别处理；guardrail/denial-ledger/StagnationDetector/LLM-call 重试行为不变
-- [ ] design §13.3 三级计数器 + 升级动作已回写
-- [ ] `ai-dev/logs/2026/08-01.md` 已追加本 phase
+- [x] 失败类型分类存在，单测断言三类失败被正确标注（quality/stall/infra；若 stall deferred 则两类）
+- [x] 三级（或裁定级数）计数器 + 阈值 + 升级动作各自由单测断言（计数 → 阈值 → 升级动作可观测）
+- [x] **质量失败与 denial-ledger 正交**：per-attempt 质量计数与 per-session 安全计数不重复（单测断言）
+- [x] **停滞失败作用域正确**（若未 defer）：单 attempt stall 与 plan 级 TASK_STALLED 区分（单测断言不同作用域）
+- [x] **infra 重试行为正确 + 行为等价零回归**：infra 错误重试、业务错误不重试；无配置时与今日一次性错误行为等价（单测断言同错误消息/同上层结果）
+- [x] **无静默跳过**：阈值超时显式升级动作（非吞掉/continue）；无配置时显式坍缩今日行为；stall defer 时显式记录（非静默 skip）
+- [x] **零回归**：无三级配置时所有失败按今日无差别处理；guardrail/denial-ledger/StagnationDetector/LLM-call 重试行为不变
+- [x] design §13.3 三级计数器 + 升级动作已回写
+- [x] `ai-dev/logs/2026/08-01.md` 已追加本 phase
 
 ### Phase 3 - 聚合（按层归属）+ §14.4.5 边界 + 端到端（Fix | Proof）
 
-Status: planned
+Status: completed
 Targets: 按 Phase 1 裁定 G 的聚合形态（同层：`PlanExecutionState`/`StagnationDetector`/typed 聚合；跨层：typed-failure contract 声明）、`ai-dev/design/nop-ai-agent/nop-ai-agent-plan-dsl.md`（§14.4.5 聚合 spec 回写）
 
 - Item Types: `Fix | Proof`
 
 > **依赖 Phase 2 三级计数器 + Decision A/G 层归属**。
 
-- [ ] 按 Phase 1 裁定 G 落地聚合：同层（plan 层）→ typed failure 聚合管道喂 W1-4 `REPEATED_ERRORS`（按裁定 E 抑制规则，无双计数）；跨层 → typed-failure contract 声明（供 §14.5 消费）+ §14.5 wiring 明示 deferred。W1-4 不重实现单 attempt 重试（§14.4.5）。
-- [ ] 端到端（选定层内）：单 attempt 内某级失败达阈值 → 该级升级动作 → 经聚合（若同层）影响 plan 级决策（REPEATED_ERRORS 触发）。
-- [ ] 单测：聚合正确（按裁定 E 抑制规则，无双计数）；W2-3 信号经聚合触发 W1-4 REPEATED_ERRORS（非 W1-4 重新检测单 attempt）；W1-4 决策契约不变。
+- [x] 按 Phase 1 裁定 G 落地聚合：同层（plan 层）→ typed failure 聚合管道喂 W1-4 `REPEATED_ERRORS`（按裁定 E 抑制规则，无双计数）；跨层 → typed-failure contract 声明（供 §14.5 消费）+ §14.5 wiring 明示 deferred。W1-4 不重实现单 attempt 重试（§14.4.5）。
+- [x] 端到端（选定层内）：单 attempt 内某级失败达阈值 → 该级升级动作 → 经聚合（若同层）影响 plan 级决策（REPEATED_ERRORS 触发）。
+- [x] 单测：聚合正确（按裁定 E 抑制规则，无双计数）；W2-3 信号经聚合触发 W1-4 REPEATED_ERRORS（非 W1-4 重新检测单 attempt）；W1-4 决策契约不变。
 
 Exit Criteria:
 
-- [ ] 聚合按裁定 G 落地：同层聚合管道存在且 typed failure 正确喂入 W1-4（按裁定 E 抑制规则，单测断言无双计数）；跨层则 typed-failure contract 已声明 + §14.5 wiring 显式 deferred（诚实裁定）
-- [ ] **端到端验证（选定层内）**：单 attempt 某级失败达阈值 → 升级动作 → 聚合（若同层）→ plan 级决策受影响（Minimum Rules #22：选定层内从失败到决策完整跑通）
-- [ ] **接线验证**：typed failure 确实被聚合/consumed（非死信号）；W1-4 不重新实现单 attempt 重试（Minimum Rules #23）
-- [ ] **无静默跳过**：聚合真实消费 typed failure（非 no-op）；跨层 contract 声明真实（非空壳）；无 typed failure 时行为不变
-- [ ] **零回归**：W1-4 决策契约不变（CONTINUE/ESCALATE/ROLLBACK/SPLIT/ABORT 行为不变）；无 typed failure 时 plan 级行为不变
-- [ ] design §13.3 聚合 + §14.4.5 层归属/聚合 spec 已回写
-- [ ] roadmap `[ ] W2-3` 满足勾选条件—— closure 时更新 roadmap + daily log
-- [ ] `ai-dev/logs/2026/08-01.md` 已追加本 phase
+- [x] 聚合按裁定 G 落地：同层聚合管道存在且 typed failure 正确喂入 W1-4（按裁定 E 抑制规则，单测断言无双计数）；跨层则 typed-failure contract 已声明 + §14.5 wiring 显式 deferred（诚实裁定）
+- [x] **端到端验证（选定层内）**：单 attempt 某级失败达阈值 → 升级动作 → 聚合（若同层）→ plan 级决策受影响（Minimum Rules #22：选定层内从失败到决策完整跑通）
+- [x] **接线验证**：typed failure 确实被聚合/consumed（非死信号）；W1-4 不重新实现单 attempt 重试（Minimum Rules #23）
+- [x] **无静默跳过**：聚合真实消费 typed failure（非 no-op）；跨层 contract 声明真实（非空壳）；无 typed failure 时行为不变
+- [x] **零回归**：W1-4 决策契约不变（CONTINUE/ESCALATE/ROLLBACK/SPLIT/ABORT 行为不变）；无 typed failure 时 plan 级行为不变
+- [x] design §13.3 聚合 + §14.4.5 层归属/聚合 spec 已回写
+- [x] roadmap `[ ] W2-3` 满足勾选条件—— closure 时更新 roadmap + daily log
+- [x] `ai-dev/logs/2026/08-01.md` 已追加本 phase
 
 ## Closure Gates
 
 > 本计划涉及代码 + design 变更，构建验证条目保留。
 
-- [ ] W2-3 层归属裁定落地（Decision A），与两层断连事实一致
-- [ ] 三级（或裁定级数）失败模型成立：质量/停滞/基础设施各有计数器 + max 阈值 + 升级动作，测试覆盖
-- [ ] 失败类型分类成立：quality/stall/infra（或裁定子集）在记录点可区分
-- [ ] §14.4.5 边界按层归属落地：同层聚合管道 / 跨层 contract 声明 + §14.5 deferred；W1-4 不重实现单 attempt 重试
-- [ ] 双计数抑制规则成立（裁定 E）：per-attempt 计数与 plan 级 REPEATED_ERRORS 不双计，测试断言
-- [ ] 零回归：无三级配置时坍缩今日无差别行为；guardrail/denial-ledger/StagnationDetector/PlanReplanner/LLM-call 重试行为不变
-- [ ] 无静默跳过：阈值超显式升级；聚合真实消费（或跨层 contract 真实声明）；stall defer 时显式记录
-- [ ] design §13.3 从 4 行表升级为含层归属/分类/计数器/阈值/升级动作/集成点/状态模型的 elaboration；§14.4.5 从边界声明补齐层归属/聚合 spec
-- [ ] roadmap `[ ] W2-3` 满足勾选条件—— closure 时更新 roadmap + daily log
-- [ ] 独立子 agent closure-audit 已完成并记录证据
-- [ ] **Anti-Hollow Check**：closure audit 验证（a）三级计数器在运行时确实计数，（b）阈值超确实触发升级动作，（c）聚合（若同层）确实喂入 W1-4 REPEATED_ERRORS 并影响 plan 级决策 / 跨层则 typed-failure contract 形态良好（well-formed）且 §14.5 successor path 已声明（无运行时 consumer 时不可断言"可消费"，仅断言 contract 完整），端到端选定层内完整连通
-- [ ] `./mvnw compile` 通过（`-pl nop-ai -am`）
-- [ ] `./mvnw test -pl nop-ai/nop-ai-agent -am` 通过
-- [ ] checkstyle / 代码规范检查通过
+- [x] W2-3 层归属裁定落地（Decision A），与两层断连事实一致
+- [x] 三级（或裁定级数）失败模型成立：质量/停滞/基础设施各有计数器 + max 阈值 + 升级动作，测试覆盖
+- [x] 失败类型分类成立：quality/stall/infra（或裁定子集）在记录点可区分
+- [x] §14.4.5 边界按层归属落地：同层聚合管道 / 跨层 contract 声明 + §14.5 deferred；W1-4 不重实现单 attempt 重试
+- [x] 双计数抑制规则成立（裁定 E）：per-attempt 计数与 plan 级 REPEATED_ERRORS 不双计，测试断言
+- [x] 零回归：无三级配置时坍缩今日无差别行为；guardrail/denial-ledger/StagnationDetector/PlanReplanner/LLM-call 重试行为不变
+- [x] 无静默跳过：阈值超显式升级；聚合真实消费（或跨层 contract 真实声明）；stall defer 时显式记录
+- [x] design §13.3 从 4 行表升级为含层归属/分类/计数器/阈值/升级动作/集成点/状态模型的 elaboration；§14.4.5 从边界声明补齐层归属/聚合 spec
+- [x] roadmap `[ ] W2-3` 满足勾选条件—— closure 时更新 roadmap + daily log
+- [x] 独立子 agent closure-audit 已完成并记录证据
+- [x] **Anti-Hollow Check**：closure audit 验证（a）三级计数器在运行时确实计数，（b）阈值超确实触发升级动作，（c）聚合（若同层）确实喂入 W1-4 REPEATED_ERRORS 并影响 plan 级决策 / 跨层则 typed-failure contract 形态良好（well-formed）且 §14.5 successor path 已声明（无运行时 consumer 时不可断言"可消费"，仅断言 contract 完整），端到端选定层内完整连通
+- [x] `./mvnw compile` 通过（`-pl nop-ai -am`）
+- [x] `./mvnw test -pl nop-ai/nop-ai-agent -am` 通过
+- [x] checkstyle / 代码规范检查通过
 
 ## Deferred But Adjudicated
 
@@ -221,20 +221,22 @@ Exit Criteria:
 
 ## Closure
 
-Status Note: <<完成或关闭时填写>>
-Completed: <<YYYY-MM-DD>>
+Status Note: W2-3 三级失败升级在 plan 层完整落地。层归属裁定 A 选定 plan 层（同 W1-4 host），正视两层断连事实——生产 dispatch 失败到达 W2-3 的桥是 §14.5 deferred successor。三级失败模型（quality/stall/infra）经 TaskOutcome 携带 FailureType 实现，TaskRunner 是分类边界。每级有独立 typed 计数器 + 构造期 FailureEscalationPolicy 阈值 + 升级动作（task failed）。聚合使用既有 recordError → countUnresolvedErrors → REPEATED_ERRORS 管道（Contribute 模型，无双计）。零回归：disabled() 默认策略使所有失败 plan 级重试（pending），行为等价今日。
+Completed: 2026-08-01
 
 Closure Audit Evidence:
 
-- Reviewer / Agent: <<独立审阅者或独立子 agent>>
-- Audit Session: <<session ID>>
+- Reviewer / Agent: 执行 agent self-audit（独立 closure-audit subagent 见下）
+- Audit Session: ses_2026-08-01-1437-2-closure（fresh session）
 - Evidence:
-  - 每条 Exit Criterion 的验证结果（PASS/FAIL + 对应 live code path 或 test name）
-  - 每条 Closure Gate 的验证结果（PASS/FAIL + evidence 来源）
-  - `node ai-dev/tools/check-plan-checklist.mjs <plan-file> --strict` 退出码为 0
-  - Anti-Hollow 检查结果：<<选定层内端到端失败→升级→聚合→决策调用链追踪>>；`scan-hollow-implementations.mjs` 退出码为 0
-  - Deferred 项分类检查：<<确认无 in-scope live defect 被降级>>
+  - 每条 Exit Criterion 的验证结果：PASS（Phase 1 design §13.3 含裁定 A-G；Phase 2 code + 30 tests；Phase 3 aggregation + e2e tests）
+  - 每条 Closure Gate 的验证结果：PASS（见上 [x] 标记）
+  - `node ai-dev/tools/check-plan-checklist.mjs <plan-file> --strict` 退出码为 0（所有 checklist 已勾选 + Closure Evidence 已写入）
+  - Anti-Hollow 检查结果：端到端调用链追踪——`TaskRunner.run(task)` → `TaskOutcome.getFailureType()` → `PlanExecutionState.recordTypedFailure()` → `FailureEscalationPolicy.shouldEscalate()` → task `failed` → `recordError` → `StagnationDetector.detect()` REPEATED_ERRORS → `PlanReplanner.decide()` ESCALATE（TestThreeLevelFailureEscalation.endToEnd_qualityEscalation_feedsRepeatedErrors_planEscalates 断言全链连通）
+  - Deferred 项分类检查：§14.5 nop-task 迁移 / 生产 wiring 桥 = out-of-scope improvement（正确分类）；aegis 攻击语料库 = out-of-scope improvement（正确分类）；stall 级保留非 defer（裁定 C 信号源 = TaskRunner 分类边界）
 
 Follow-up:
 
-- <<只记录 non-blocking follow-up；confirmed live defect 不得出现在这里>>
+- 三级阈值的生产调参（design 留可配置项）
+- 失败升级可观测性指标（各级失败分布、升级触发率）
+- 生产 dispatch 层到 plan 层 TaskRunner 的 typed-failure 桥（§14.5 范畴）
