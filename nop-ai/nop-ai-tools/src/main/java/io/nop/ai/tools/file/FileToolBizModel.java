@@ -14,12 +14,16 @@ import io.nop.api.core.annotations.core.Name;
 import io.nop.api.core.annotations.core.Optional;
 import io.nop.api.core.annotations.directive.Auth;
 import io.nop.api.core.annotations.ioc.InjectValue;
+import io.nop.api.core.exceptions.NopException;
 import io.nop.commons.util.StringHelper;
 import io.nop.core.lang.xml.XNode;
 
 import java.io.File;
 import java.util.List;
 import java.util.stream.Collectors;
+
+import static io.nop.ai.core.NopAiCoreErrors.ARG_VALUE;
+import static io.nop.ai.core.NopAiCoreErrors.ERR_AI_TOOLS_INVALID_PROJECT_NAME;
 
 /**
  * File tool operations. Uses {@link io.nop.ai.core.file.IFileOperator} (deprecated, forRemoval).
@@ -234,7 +238,8 @@ public class FileToolBizModel {
     protected File getProjectDir(String projectName) {
         String dirName = StringHelper.fileName(projectName);
         if (!StringHelper.isValidFileName(dirName))
-            throw new IllegalArgumentException("projectName must be valid file directory name:" + projectName);
+            throw new NopException(ERR_AI_TOOLS_INVALID_PROJECT_NAME)
+                    .param(ARG_VALUE, projectName);
         return new File(baseDir, dirName);
     }
 }

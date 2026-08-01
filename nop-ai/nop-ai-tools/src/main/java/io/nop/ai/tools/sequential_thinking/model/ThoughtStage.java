@@ -1,6 +1,10 @@
 package io.nop.ai.tools.sequential_thinking.model;
 
 import io.nop.api.core.annotations.data.DataBean;
+import io.nop.api.core.exceptions.NopException;
+
+import static io.nop.ai.core.NopAiCoreErrors.ARG_VALUE;
+import static io.nop.ai.core.NopAiCoreErrors.ERR_AI_TOOLS_INVALID_STAGE;
 
 @DataBean
 public enum ThoughtStage {
@@ -26,6 +30,7 @@ public enum ThoughtStage {
                 return stage;
             }
         }
-        throw new IllegalArgumentException("Invalid ThoughtStage: " + value);
+        throw new NopException(ERR_AI_TOOLS_INVALID_STAGE)
+                .param(ARG_VALUE, value);
     }
 }

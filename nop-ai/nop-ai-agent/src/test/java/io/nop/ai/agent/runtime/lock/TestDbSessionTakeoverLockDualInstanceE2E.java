@@ -167,16 +167,19 @@ public class TestDbSessionTakeoverLockDualInstanceE2E {
         DbSessionTakeoverLock instanceA = new DbSessionTakeoverLock(dataSource);
         DbSessionTakeoverLock instanceB = new DbSessionTakeoverLock(dataSource);
 
-        // A acquires with a short lease.
-        assertTrue(instanceA.tryAcquire("s1", "engine-A", 100L));
+        // A acquires with a short lease. The lease must be long enough to
+        // survive the assertions below even under parallel reactor load
+        // (a 100ms lease can expire between tryAcquire and isHeld when the
+        // machine is busy, making the pre-TTL held-state assertion flaky).
+        assertTrue(instanceA.tryAcquire("s1", "engine-A", 2_000L));
         assertEquals("engine-A", readLockOwner("s1"),
                 "DB row ownership must be engine-A before TTL");
 
         // A "crashes" — no release call. The lease remains in the DB.
         assertTrue(instanceA.isHeld("s1"));
 
-        // Wait past the lease TTL.
-        Thread.sleep(200L);
+        // Wait past the lease TTL (sleep must exceed the lease duration).
+        Thread.sleep(2_100L);
 
         // B can now preempt the stale (expired) lease.
         assertFalse(instanceB.isHeld("s1"),

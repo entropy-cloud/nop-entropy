@@ -90,6 +90,35 @@ public interface NopAiCoreErrors {
     ErrorCode ERR_AI_TOOLS_INVALID_THOUGHT =
             define("nop.err.ai.tools.invalid-thought", "思维处理请求无效: {value}", ARG_VALUE);
 
+    /**
+     * Converted from bare {@code IllegalArgumentException} throws (plan
+     * 2026-08-01-0936-3): English descriptions preserve the historical
+     * message semantics verbatim (AGENTS.md English error-message
+     * convention for newly added codes).
+     */
+    ErrorCode ERR_AI_TOOLS_INVALID_PROJECT_NAME =
+            define("nop.err.ai.tools.invalid-project-name",
+                    "projectName must be valid file directory name:{value}", ARG_VALUE);
+
+    ErrorCode ERR_AI_TOOLS_THOUGHT_EMPTY =
+            define("nop.err.ai.tools.thought-empty", "Thought cannot be empty");
+
+    ErrorCode ERR_AI_TOOLS_INVALID_THOUGHT_NUMBER =
+            define("nop.err.ai.tools.invalid-thought-number", "Thought number must be positive");
+
+    ErrorCode ERR_AI_TOOLS_INVALID_TOTAL_THOUGHTS =
+            define("nop.err.ai.tools.invalid-total-thoughts", "Total thoughts must be positive");
+
+    ErrorCode ERR_AI_TOOLS_TOTAL_THOUGHTS_LESS_THAN_NUMBER =
+            define("nop.err.ai.tools.total-thoughts-less-than-number",
+                    "Total thoughts must be >= thought number");
+
+    ErrorCode ERR_AI_TOOLS_INVALID_STAGE =
+            define("nop.err.ai.tools.invalid-stage", "Invalid ThoughtStage: {value}", ARG_VALUE);
+
+    ErrorCode ERR_AI_TOOLS_INVALID_MAX_RESULTS =
+            define("nop.err.ai.tools.invalid-max-results", "maxResults must be positive");
+
     ErrorCode ERR_AI_INVALID_RESPONSE =
             define("nop.err.ai.service.invalid-response", "大语言模型返回的结果不正确");
 

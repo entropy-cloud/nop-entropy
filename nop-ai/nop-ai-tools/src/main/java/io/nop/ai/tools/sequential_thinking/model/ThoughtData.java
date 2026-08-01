@@ -1,10 +1,16 @@
 package io.nop.ai.tools.sequential_thinking.model;
 
 import io.nop.api.core.annotations.data.DataBean;
+import io.nop.api.core.exceptions.NopException;
 
 import java.util.List;
 import java.util.Objects;
 import java.util.UUID;
+
+import static io.nop.ai.core.NopAiCoreErrors.ERR_AI_TOOLS_INVALID_THOUGHT_NUMBER;
+import static io.nop.ai.core.NopAiCoreErrors.ERR_AI_TOOLS_INVALID_TOTAL_THOUGHTS;
+import static io.nop.ai.core.NopAiCoreErrors.ERR_AI_TOOLS_THOUGHT_EMPTY;
+import static io.nop.ai.core.NopAiCoreErrors.ERR_AI_TOOLS_TOTAL_THOUGHTS_LESS_THAN_NUMBER;
 
 @DataBean
 public class ThoughtData {
@@ -48,7 +54,7 @@ public class ThoughtData {
     public void setThought(String thought) {
         this.thought = Objects.requireNonNull(thought, "Thought cannot be null");
         if (thought.trim().isEmpty()) {
-            throw new IllegalArgumentException("Thought cannot be empty");
+            throw new NopException(ERR_AI_TOOLS_THOUGHT_EMPTY);
         }
     }
 
@@ -58,7 +64,7 @@ public class ThoughtData {
 
     public void setThoughtNumber(int thoughtNumber) {
         if (thoughtNumber < 1) {
-            throw new IllegalArgumentException("Thought number must be positive");
+            throw new NopException(ERR_AI_TOOLS_INVALID_THOUGHT_NUMBER);
         }
         this.thoughtNumber = thoughtNumber;
     }
@@ -69,10 +75,10 @@ public class ThoughtData {
 
     public void setTotalThoughts(int totalThoughts) {
         if (totalThoughts < 1) {
-            throw new IllegalArgumentException("Total thoughts must be positive");
+            throw new NopException(ERR_AI_TOOLS_INVALID_TOTAL_THOUGHTS);
         }
         if (totalThoughts < thoughtNumber) {
-            throw new IllegalArgumentException("Total thoughts must be >= thought number");
+            throw new NopException(ERR_AI_TOOLS_TOTAL_THOUGHTS_LESS_THAN_NUMBER);
         }
         this.totalThoughts = totalThoughts;
     }

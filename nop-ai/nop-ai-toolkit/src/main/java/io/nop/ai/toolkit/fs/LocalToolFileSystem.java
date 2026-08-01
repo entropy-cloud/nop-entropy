@@ -1,5 +1,6 @@
 package io.nop.ai.toolkit.fs;
 
+import io.nop.ai.api.exceptions.NopAiException;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.commons.io.stream.SafeLineReader;
 import io.nop.commons.path.AntPathMatcher;
@@ -51,7 +52,7 @@ public class LocalToolFileSystem implements IToolFileSystem {
 
     private File resolveFile(String path) {
         if (!isPathAllowed(path)) {
-            throw new IllegalArgumentException("Path not allowed: " + path);
+            throw new NopAiException("Path not allowed: " + path);
         }
         return resolveFileInternal(path);
     }
@@ -89,7 +90,7 @@ public class LocalToolFileSystem implements IToolFileSystem {
     public TextResult readText(String path, int maxChars) {
         File file = resolveFile(path);
         if (!file.exists() || !file.isFile()) {
-            throw new IllegalArgumentException("File not found: " + path);
+            throw new NopAiException("File not found: " + path);
         }
 
         Reader reader = null;
@@ -109,7 +110,7 @@ public class LocalToolFileSystem implements IToolFileSystem {
     public LineResult readLines(String path, int fromLine, int toLine, int maxLineLength) {
         File file = resolveFile(path);
         if (!file.exists() || !file.isFile()) {
-            throw new IllegalArgumentException("File not found: " + path);
+            throw new NopAiException("File not found: " + path);
         }
 
         int maxLen = maxLineLength > 0 ? maxLineLength : Integer.MAX_VALUE;
@@ -138,7 +139,7 @@ public class LocalToolFileSystem implements IToolFileSystem {
     public int countLines(String path, int maxLines) {
         File file = resolveFile(path);
         if (!file.exists() || !file.isFile()) {
-            throw new IllegalArgumentException("File not found: " + path);
+            throw new NopAiException("File not found: " + path);
         }
 
         Reader reader = null;
@@ -165,7 +166,7 @@ public class LocalToolFileSystem implements IToolFileSystem {
     public List<FileInfo> listDirectory(String dirPath, int depth, int maxCount) {
         File dir = resolveFile(dirPath);
         if (!dir.exists() || !dir.isDirectory()) {
-            throw new IllegalArgumentException("Directory not found: " + dirPath);
+            throw new NopAiException("Directory not found: " + dirPath);
         }
 
         List<FileInfo> result = new ArrayList<>();
@@ -222,11 +223,11 @@ public class LocalToolFileSystem implements IToolFileSystem {
         File fromFile = resolveFile(fromPath);
         File toFile = resolveFile(toPath);
         if (!fromFile.exists()) {
-            throw new IllegalArgumentException("File not found: " + fromPath);
+            throw new NopAiException("File not found: " + fromPath);
         }
 
         if (toFile.exists() && !overwrite) {
-            throw new IllegalArgumentException("Target file already exists: " + toPath);
+            throw new NopAiException("Target file already exists: " + toPath);
         }
 
         FileHelper.assureParent(toFile);
@@ -241,11 +242,11 @@ public class LocalToolFileSystem implements IToolFileSystem {
         File fromFile = resolveFile(fromPath);
         File toFile = resolveFile(toPath);
         if (!fromFile.exists()) {
-            throw new IllegalArgumentException("File not found: " + fromPath);
+            throw new NopAiException("File not found: " + fromPath);
         }
 
         if (toFile.exists() && !overwrite) {
-            throw new IllegalArgumentException("Target file already exists: " + toPath);
+            throw new NopAiException("Target file already exists: " + toPath);
         }
 
         FileHelper.assureParent(toFile);

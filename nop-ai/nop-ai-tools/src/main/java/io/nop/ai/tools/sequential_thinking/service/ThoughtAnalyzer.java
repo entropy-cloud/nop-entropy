@@ -10,6 +10,7 @@ import io.nop.ai.tools.sequential_thinking.model.ThoughtData;
 import io.nop.ai.tools.sequential_thinking.model.ThoughtStage;
 import io.nop.ai.tools.sequential_thinking.model.ThoughtSummary;
 import io.nop.ai.tools.sequential_thinking.model.TimelineEntry;
+import io.nop.api.core.exceptions.NopException;
 
 import java.time.Instant;
 import java.util.ArrayList;
@@ -23,6 +24,8 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import static io.nop.ai.core.NopAiCoreErrors.ERR_AI_TOOLS_INVALID_MAX_RESULTS;
+
 public class ThoughtAnalyzer {
 
     public List<ThoughtData> findRelatedThoughts(
@@ -33,7 +36,7 @@ public class ThoughtAnalyzer {
         Objects.requireNonNull(currentThought, "currentThought cannot be null");
         Objects.requireNonNull(allThoughts, "allThoughts cannot be null");
         if (maxResults <= 0) {
-            throw new IllegalArgumentException("maxResults must be positive");
+            throw new NopException(ERR_AI_TOOLS_INVALID_MAX_RESULTS);
         }
 
         // 1. 同阶段的思考
