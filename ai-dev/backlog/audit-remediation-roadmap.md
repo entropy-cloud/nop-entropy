@@ -1,6 +1,6 @@
 # 审计-修复路线图：nop-ai 全模块组
 
-> 最后更新：2026-08-01（v10 — 第十批 1 plan closed：MA4.2-05 引擎大文件拆分完成，三个文件全部 <1000 行）
+> 最后更新：2026-08-01（v11 — 第十一批 1 plan closed：API 文档债务收口，MA4.2-07/-10、MA4.5-008/-009 全部 fixed）
 > 来源：`ai-dev/skills/audit-remediation-roadmap-authoring-prompt.md`
 > 目标模块组：nop-ai（18 子模块，~1275 main Java, ~426 test）
 > 模块排除：`nop-ai-mcp-server`、`nop-spring-mcp-server`、`nop-spring-mcp-server-support`（MCP 协议集成模块，独立发布周期，需单独审计）
@@ -259,8 +259,9 @@ MA5+MA6 产出的 P1 发现展开为具体修复工作项
 | 第九批（同批次 2） | `ai-dev/plans/2026-08-01-0206-2-arm-p2-tools-structure-residual.md` | P3-MA1-016（GraphQLToolSetFactoryBean on-bean 条件注册）+ P3-MA1-013（ThoughtStorage 持久化裁定）+ P3-MA3-003（nop-ai-rag 空模块裁定） | ✅（closed 2026-08-01） |
 | 第九批（同批次 3） | `ai-dev/plans/2026-08-01-0206-3-arm-p3-test-quality-residual.md` | MA4.3-09/13（assertTrue-only 升级，audit Suggestion 点名 2 文件）+ MA4.4-01/02/03（低价值测试裁定）+ MA4.2-06（大测试文件拆分） | ✅（closed 2026-08-01） |
 | 第十批（引擎大文件拆分，2026-08-01 重开登记） | `ai-dev/plans/2026-08-01-0441-1-arm-ma4-2-05-engine-split.md` | MA4.2-05（ReActAgentExecutor 3728→954 行 / DefaultAgentEngine 3681→986 行 / TeamTaskSchedulerDaemon 1108→382 行，全部 <1000；18 个提取类 + 语义对比 3 份 0-diff + 45 focused 测试，design-first 拆分） | ✅（closed 2026-08-01） |
+| 第十一批（API 文档债务，2026-08-01） | `ai-dev/plans/2026-08-01-0746-1-arm-p3-api-doc-debt.md` | MA4.2-07（18 个 deprecated 类具体迁移指引，替代类名全 grep 验证存在）+ MA4.2-10（45 个公开接口方法 javadoc 补全，IRequestStore 核验为 audit 误列标 N/A）+ MA4.5-009（7 个小型公开接口类级 javadoc）+ MA4.5-008（IFileOperator @deprecated 消息英文化）。纯 javadoc 变更零行为变更 | ✅（closed 2026-08-01） |
 
-其余 MA1-MA3/MA5-MA6 各里程碑的 P2/P3 findings 已由 MR1/MR2/MR3 计划逐批裁定为 `out-of-scope improvement`（MV 矩阵 open=0，无已确认 live defect 残留），登记为 **watch-only residual**。第九批（2026-08-01）按严重度排序重开了其中结构性/测试质量类高价值项（P2-MA1-004/005、P3-MA1-013/014/015/016、P3-MA3-003、MA4.3-09/13、MA4.4-01/02/03、MA4.2-06），其余低价值 watch-only 项（如 P3-MA1-023~030、P3-MA1-039）仍不入 scope。第十批（2026-08-01）承接 MA4.2-05（引擎大文件拆分）——nop-ai 唯一剩余的超 3000 行生产文件治理项，design-first。
+其余 MA1-MA3/MA5-MA6 各里程碑的 P2/P3 findings 已由 MR1/MR2/MR3 计划逐批裁定为 `out-of-scope improvement`（MV 矩阵 open=0，无已确认 live defect 残留），登记为 **watch-only residual**。第九批（2026-08-01）按严重度排序重开了其中结构性/测试质量类高价值项（P2-MA1-004/005、P3-MA1-013/014/015/016、P3-MA3-003、MA4.3-09/13、MA4.4-01/02/03、MA4.2-06），其余低价值 watch-only 项（如 P3-MA1-023~030、P3-MA1-039）仍不入 scope。第十批（2026-08-01）承接 MA4.2-05（引擎大文件拆分）——nop-ai 唯一剩余的超 3000 行生产文件治理项，design-first。第十一批（2026-08-01）承接公开 API 文档债务收口（MA4.2-07/-10、MA4.5-008/-009）——18 个 deprecated 类迁移指引 + 45 个接口方法 javadoc + 7 个接口类级 javadoc + IFileOperator deprecated 消息英文化，纯 javadoc 零行为变更。
 
 ## 框架/平台复用
 
