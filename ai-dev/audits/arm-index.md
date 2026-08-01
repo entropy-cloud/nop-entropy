@@ -49,7 +49,7 @@
 
 | Finding ID | 报告 | 描述 | 修复路径 | 修复状态 |
 |-----------|------|------|---------|---------|
-| P0-MA2-01 ✅ | MA2.1 | 双 ORM 源文件漂移（nop-ai.orm.xml vs ai-gen.orm.xml） | [异步修复 plan](ai-dev/plans/2026-07-30-2130-arm-fix-p0-ma2-01.md) | `fixed` |
+| P0-MA2-01 ✅ | MA2.1 | 双 ORM 源文件漂移（nop-ai.orm.xml vs ai-gen.orm.xml） | [异步修复 plan](ai-dev/plans/2026-07-30-2130-arm-fix-p0-ma2-01.md) | `fixed`；successor `2026-08-01-1306-1-arm-p2-coder-ai-gen-model-refs.md` 已收口（6 个 coder 引用裁定不改 + 归档文件移除） |
 | P0-MA6-01 ✅ | MA6.1 | Gemini API key 在 URL query parameter 中以明文传输（GeminiDialect.buildUrl） | MR3 | `fixed` |
 
 ## P1 发现汇总（待 MR 批量修复）
@@ -185,7 +185,7 @@ MR4 Phase 2 对 P1 表全部 `fixed` 行做了 live repo 证据核验（提交/�
 
 | Finding ID | 修复路径 | 证据 | 状态 |
 |-----------|---------|------|------|
-| P0-MA2-01（双 ORM 源文件漂移） | plan `2026-07-30-2130-arm-fix-p0-ma2-01.md`；commit `ed3a8957c` | `ai-gen.orm.xml` 标记为 archive/golden snapshot，`nop-ai.orm.xml` 为唯一 live 源模型；MR4 §1 apiKey 裁定再次确认单源（生成物 `_NopAiModel.xmeta` 与源一致） | `fixed` |
+| P0-MA2-01（双 ORM 源文件漂移） | plan `2026-07-30-2130-arm-fix-p0-ma2-01.md`；commit `ed3a8957c` | `ai-gen.orm.xml` 标记为 archive/golden snapshot，`nop-ai.orm.xml` 为唯一 live 源模型；MR4 §1 apiKey 裁定再次确认单源（生成物 `_NopAiModel.xmeta` 与源一致）；successor plan `2026-08-01-1306-1-arm-p2-coder-ai-gen-model-refs.md`（2026-08-01）裁定 6 个 nop-ai-coder 引用不改（管线生成物语义自洽）并**移除归档文件** `ai-gen.orm.xml` + 0 字节 `ai-gen.orm.xlsx`、删除 @Disabled `AiGenCodeTaskManual.saveOrmModel()`（唯一消费方）——归档层名字冲突与误导保留理由已消除，`nop-ai/model/` 仅存 canonical `nop-ai.orm.xml`/`nop-ai.orm.xlsx` | `fixed` |
 | P0-MA6-01（Gemini apiKey URL 明文） | MR3 plan `2026-07-31-1300-5-arm-mr3-fix.md`；commit `1d97354e7` | `GeminiDialect.buildUrl()` 移除 query 参数明文 apiKey → `x-api-key` header（MR4 §3 裁定确认）；全量 build+test 通过 | `fixed` |
 
 ### P1 可追溯性（61 行，open = 0）

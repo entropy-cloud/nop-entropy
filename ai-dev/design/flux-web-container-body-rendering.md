@@ -8,6 +8,7 @@
 
 - R1（2026-07-31）：首轮独立审查 9 项裁决——step 有可选 `page` 属性（优先级 page > body > name）；GenLayoutTabs 真缺陷为 tab 项内容未入 `body` 且缺 `key`（`items` 字段名本已正确）；body 分派 Phase 1 先 crud/simple/tabs、wizard/group 后扩展；responsiveColumns 暂不输出；`normal`/`baseline` 均过滤；WizardSchema 无 startStep；hollow-scan 模块路径；`rg '"tabs"'` 校验不可用；throw 分支防御性。
 - R2（2026-07-31）：第二轮审查 4 项裁决——startStep→value 语义错位（Flux 0-based 实现）移入 Follow-ups；xview.xdef 仅注释级补充；grid item key 属运行时契约；colSpan/rowSpan 限 crud/tabs。另修订结论 1 措辞（`page` 与 `body` 为优先级关系而非互斥）。
+- R3（2026-08-01）：**complex 页面类型已实现**（取代 §3.5/§4.4 的"不实现"裁定）。实现路径与 §4.4 当初假设（拼装 left/right/top/bottom）不同：xview.xdef 的 complex schema 被重设计为 `header`/`footer`/`aside`/`body` 四槽位（`xdef:ref="UiPageModel"`），正好一一对应 Flux `PageSchema` 的四区域，无需拼装、无需 Flux 侧新增容器。消费侧由 `flux-web/page_complex.xpl` + `impl_GenPage.xpl` 的 complex 分派实现；`GenContainerModel` 不变（complex 仅页面级，不作为 body 子容器）。
 **灵感来源**：nop-chaos-flux 仓库（`~/app/nop-chaos-flux-wt/nop-chaos-flux-master`）的 `TabsSchema` / `WizardSchema` / `GridSchema` 及 `deepFields.nestedRegions` 编译机制
 
 ---
@@ -18,7 +19,7 @@
 2. **body 渲染 = 按容器类型分派的递归渲染**：`tab/step` 的 `body` 解析为 `List<UiContainerModel>`，渲染时逐元素按 `type` 分派到与页面级相同的渲染逻辑，输出 Flux JSON 片段。body 容器类型为五种：`crud`/`simple`/`tabs`/`wizard`/`group`；`picker` 不属 body 容器类型（Flux 无页面级 picker schema），body 内配置 `picker` 落入 `otherwise` 抛 `nop.err.web.unknown-page-type`。
 3. **Flux JSON 字段名契约（nop-chaos-flux 权威）**：tabs 用 `items` 数组（非 AMIS 的 `tabs` 字段）、wizard 用 `steps` 数组、group 用 `items` 数组（`GridSchema`）；`items[].body` / `steps[].body` 直接写 JSON 数组，由 Flux 编译期 `deepFields.nestedRegions` 提取为 region 渲染。
 4. **`impl_GenPage.xpl` 的分派逻辑抽取为共享容器渲染标签**：新增按 `UiContainerModel.type` 分派的内部标签（`GenContainerModel`），页面级与 body 级共用同一渲染实现，避免两份实现漂移。注意 body 级与页面级的分派范围不同：body 级分派五种容器类型；页面级还含 picker（保持现状）。
-5. **group 页面类型映射到 Flux `GridSchema`**：xview 的 `group`（columns/gap/autoFlow/alignItems/justifyItems/responsiveColumns）与 `GridSchema` 字段对应，body 子容器包为 `GridItemSchema`（body + colSpan/rowSpan）。**complex 页面类型在 flux-web 中不实现**（Flux 无对应容器），维持抛 `nop.err.web.unknown-page-type`。
+5. **group 页面类型映射到 Flux `GridSchema`**：xview 的 `group`（columns/gap/autoFlow/alignItems/justifyItems/responsiveColumns）与 `GridSchema` 字段对应，body 子容器包为 `GridItemSchema`（body + colSpan/rowSpan）。**complex 页面类型映射到 Flux `PageSchema` 四槽位**（R3 后实现，详见修订记录 R3）：complex 的 `header`/`footer`/`aside`/`body` 四个子元素直接对应 `PageSchema` 的四区域，由 `flux-web/page_complex.xpl` 实现。
 
 ## 二、背景与动机
 
@@ -162,7 +163,7 @@ xview `group` → Flux `GridSchema` 字段映射：
 
 ### 3.5 边界
 
-- **complex 不实现**：Flux 无 left/right/top/bottom 槽位容器（已验证 `flux-renderers-*` 无对应 schema），维持 `impl_GenPage.xpl` 现有行为（抛 `unknown-page-type`）；允许对 xview.xdef 做**注释级**补充（complex 未实现说明，与 group 既有注释对齐，不改任何 schema 语义）
+- **complex 已实现**（R3，取代原"不实现"裁定）：xview.xdef 的 complex schema 被重设计为 `header`/`footer`/`aside`/`body` 四槽位（对齐 Flux `PageSchema` 四区域），由 `flux-web/page_complex.xpl` 渲染。原 left/right/top/bottom 方案（§4.4）因 Flux 无四槽位容器被拒绝，新方案绕过该限制。complex 仅页面级（`pages` 下），不作为 `GenContainerModel` 的 body 子容器（`UiContainerModel` 的子元素不含 complex）
 - **picker 保持现状**：Flux 无页面级 picker schema（`PickerSchema` 是表单字段类型），现有 `page_picker.xpl` 输出 `<picker>` 为 AMIS 遗留，本次不处理，后续单独评估。**body 容器类型不含 picker**（见结论 2），body 内配置 `picker` 抛 `unknown-page-type`
 - **仅 flux-web 侧**：不修改 AMIS `web.xlib` / `web/` 模板；AMIS 侧 schema（xview.xdef）已同步支持 body，AMIS 消费另行评估
 - **递归深度**：body 容器可嵌套（tab 内嵌 tab），无深度限制，由模型树深度的现实约束决定

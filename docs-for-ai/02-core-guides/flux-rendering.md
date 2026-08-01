@@ -280,9 +280,9 @@ Flux `PageSchema` **完全支持** aside 相关属性（与 AMIS 命名差异：
 
 > `FluxPageDefaultAttrs` 已 pick 上述 6 个可配置属性（含 `asideResizor → asideResizable` 命名映射）。`asidePosition` 因 `xview.xdef` UiPageModel 未定义，view.xml 模型层暂无配置入口。
 
-## 页面级容器：tabs / wizard / group 的 Flux JSON 映射
+## 页面级容器：tabs / wizard / group / complex 的 Flux JSON 映射
 
-`flux-web.xlib` 支持 xview.xdef 的三种容器化页面类型（`tabs`/`wizard`/`group`），输出直接对齐 nop-chaos-flux 的权威 schema。**字段名是硬契约**：Flux 编译期按定义表过滤未知字段，字段名错误表现为静默空白而非报错。
+`flux-web.xlib` 支持 xview.xdef 的四种容器化页面类型（`tabs`/`wizard`/`group`/`complex`），输出直接对齐 nop-chaos-flux 的权威 schema。**字段名是硬契约**：Flux 编译期按定义表过滤未知字段，字段名错误表现为静默空白而非报错。
 
 ### 容器 body 渲染与分派
 
@@ -351,9 +351,29 @@ Flux `PageSchema` **完全支持** aside 相关属性（与 AMIS 命名差异：
 - `alignItems`/`justifyItems` **过滤 `normal` 与 `baseline`**（不在 Flux 枚举）；`responsiveColumns` 暂不输出（xview string 与 Flux `{sm,md,lg}` 类型不匹配）。
 - `items[].body` 为子容器分派 JSON 数组；`items[].colSpan/rowSpan` 来自子容器（仅 crud/tabs 容器支持，simple/wizard/group 无此字段）；`items[].key` ← 子容器 `name`（Flux 运行时 React key 契约）。
 
+### complex 页面（Flux `PageSchema` 四槽位）
+
+`complex` 与其他页面类型不同：它**不**在 `page.body` 内嵌一个容器节点，而是直接把 `page` 的四个槽位暴露给 view.xml 配置，正好对齐 Flux `PageSchema` 的四区域结构。
+
+```json
+{
+  "type": "page",
+  "name": "main",
+  "header": [ { "type": "form", "name": "header-form" } ],
+  "aside":  [ { "type": "crud", "name": "aside-table" } ],
+  "body":   [ { "type": "form", "name": "body-form" } ],
+  "footer": [ { "type": "form", "name": "footer-form" } ]
+}
+```
+
+- view.xml 的 `<complex>` 下 `<header>`/`<footer>`/`<aside>`/`<body>` 四个子元素，每个是 `UiContainerModel`（容器列表），分别映射到 Flux `PageSchema` 的 `header`/`footer`/`aside`/`body` 数组。
+- 每个槽位的容器列表经 `GenContainerModel` 分派渲染（`crud`/`simple`/`tabs`/`wizard`/`group` 五类，与 body 渲染共用同一分派）；空槽位不输出（Flux `PageSchema` 四槽位均可选）。
+- `aside` 默认在左侧（Flux `PageSchema` 默认 `asidePosition='left'`；当前 complex schema 未暴露 `asidePosition`，无法配置为右侧）。
+- 页面级属性（`title`/`className`/`asideMinWidth` 等）经 `FluxPageDefaultAttrs` 透传，与 crud/simple/tabs 页面一致。
+- 实现于 `flux-web/page_complex.xpl`。
+
 ### 不支持的类型
 
-- `complex`（四槽位）页面类型：Flux 无对应容器，维持抛 `nop.err.web.unknown-page-type`。
 - 页面级 `picker`：Flux 无页面级 picker schema（`PickerSchema` 仅为表单字段类型），`page_picker.xpl` 为 AMIS 遗留，暂不处理。
 
 ## 相关文件
