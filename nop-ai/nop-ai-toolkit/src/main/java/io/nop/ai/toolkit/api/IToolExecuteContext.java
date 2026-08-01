@@ -44,4 +44,35 @@ public interface IToolExecuteContext {
      * @return the executor used for asynchronous work within the tool call
      */
     IThreadPoolExecutor getExecutor();
+
+    /**
+     * Read-only view of the per-session compaction archive, exposed so the
+     * {@code read-ref} tool can read back original content that was replaced
+     * by a {@code shortRef} pointer during reference-style compaction (design
+     * {@code nop-ai-agent-context-model.md} §8.2 Decision C).
+     * <p>
+     * <b>Default UOE bridge</b>: only the agent engine's
+     * {@code AgentToolExecuteContext} overrides this to return the
+     * {@code AgentSession}'s archive. The other {@code IToolExecuteContext}
+     * implementations (toolkit {@code ToolExecuteContext}, test mocks) inherit
+     * this default — when {@code read-ref} is invoked outside an agent engine
+     * (no archive available) it fails fast with a descriptive error rather
+     * than silently returning empty content (Minimum Rules #24). This mirrors
+     * the {@code ISessionStore.save}/{@code listAllSessions} default-UOE
+     * precedent; toolkit uses the JDK {@link UnsupportedOperationException}
+     * because it cannot import the agent module's
+     * {@code NopAiAgentException}.
+     *
+     * @return the archive read-only view; never null when overridden by the
+     *         agent engine
+     * @throws UnsupportedOperationException when no archive is available
+     *         (default implementation — callers surface this as "read-ref
+     *         not available outside an agent session")
+     */
+    default ICompactionArchiveReader getCompactionArchiveReader() {
+        throw new UnsupportedOperationException(
+                "getCompactionArchiveReader is not available on this IToolExecuteContext implementation "
+                        + "(read-ref requires the agent engine's AgentToolExecuteContext). "
+                        + "Class: " + getClass().getName());
+    }
 }

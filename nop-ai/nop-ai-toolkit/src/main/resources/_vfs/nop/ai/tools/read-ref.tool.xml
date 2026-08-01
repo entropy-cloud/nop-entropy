@@ -1,0 +1,69 @@
+<tool x:schema="/nop/schema/ai/tool/tool.xdef" xmlns:x="/nop/schema/xdsl.xdef"
+      name="read-ref">
+
+    <schema>
+        <read-ref id="!int" explanation="!string"
+                  hash="!string" type="string" path="string" range="string"/>
+    </schema>
+
+    <description><![CDATA[Read back original content that was replaced by a `[SHORT_REF ...]` pointer
+during context compaction. The LLM encounters a SHORT_REF marker in the
+(compacted) message history of the form:
+
+    [SHORT_REF type=file path=/path/to/file range=1-100 hash=sha256:<hex>]
+
+and calls this tool to retrieve the original content. Read-back is
+content-addressed: the tool verifies that the archived content's SHA-256
+matches the `hash` argument before returning it.
+
+Arguments:
+- hash (required): the `sha256:<hex>` read-back key from the SHORT_REF marker
+- type (optional): content source category hint (file | search | grep | glob)
+- path (optional): locating hint (file path / search dir)
+- range (optional): range hint (e.g. line range `1-100`)
+
+Result:
+- On hash match: the original archived content is returned verbatim.
+- On hash mismatch, missing reference, or no archive available: an explicit
+  error is returned ("content changed / reference invalid, please re-read").
+  read-ref never returns empty or stale content when the reference is invalid.]]></description>
+
+    <examples>
+        <example index="1">
+            <!-- 示例1：读回被引用式压缩归档的文件原文 -->
+            <call-tools>
+                <read-ref id="1" explanation="读回归档的文件原文"
+                          hash="sha256:abcdef0123456789" type="file"
+                          path="/etc/app/config.yaml" range="1-100"/>
+            </call-tools>
+            <call-tools-response>
+                <tool-result id="1" status="success">
+                    <output><![CDATA[
+    1: server:
+    2:   port: 8080
+    3: database:
+    4:   url: jdbc:mysql://localhost/db
+    ]]></output>
+                </tool-result>
+            </call-tools-response>
+        </example>
+
+        <example index="2">
+            <!-- 示例2：引用失效（内容已变更/会话重启）返回显式错误 -->
+            <call-tools>
+                <read-ref id="2" explanation="读回一个已失效的引用"
+                          hash="sha256:0000000000000000"/>
+            </call-tools>
+            <call-tools-response>
+                <tool-result id="2" status="failure">
+                    <error><![CDATA[
+    read-ref: reference invalid — no archived content for hash sha256:0000000000000000.
+    The content may have been evicted, the session restarted, or the hash is incorrect.
+    Please re-read the original source.
+    ]]></error>
+                </tool-result>
+            </call-tools-response>
+        </example>
+    </examples>
+
+</tool>

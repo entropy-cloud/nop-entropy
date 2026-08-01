@@ -271,7 +271,9 @@ public class TestSteeringInjection {
             drained = ctx.drainSteering();
         }
 
-        // The mailbox was acked
+        // The mailbox was acked (wait for async poll→ack to drain under parallel contention)
+        waitForCondition(() -> mailbox.pendingCount() == 0
+                && mailbox.inFlightCount() == 0, 3000);
         assertEquals(0, mailbox.pendingCount());
         assertEquals(0, mailbox.inFlightCount());
 
@@ -317,6 +319,9 @@ public class TestSteeringInjection {
 
         // Actually, we can't drain twice. Let's just verify the Actor
         // consumed all 3 (receivedMessages) and the mailbox is empty.
+        // Wait for async poll→ack to drain under parallel contention.
+        waitForCondition(() -> mailbox.pendingCount() == 0
+                && mailbox.inFlightCount() == 0, 3000);
         assertEquals(0, mailbox.pendingCount());
         assertEquals(0, mailbox.inFlightCount());
 
@@ -355,7 +360,9 @@ public class TestSteeringInjection {
         assertEquals("unbound-message",
                 actor.getReceivedMessages().get(0).getEnvelope().getPayload());
 
-        // Mailbox acked
+        // Mailbox acked (wait for async poll→ack to drain under parallel contention)
+        waitForCondition(() -> mailbox.pendingCount() == 0
+                && mailbox.inFlightCount() == 0, 3000);
         assertEquals(0, mailbox.pendingCount());
         assertEquals(0, mailbox.inFlightCount());
 

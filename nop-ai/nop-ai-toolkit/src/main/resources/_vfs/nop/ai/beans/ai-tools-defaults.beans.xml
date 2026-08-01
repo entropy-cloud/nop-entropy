@@ -4,6 +4,7 @@
 
     <!-- File system tools -->
     <bean id="ai-tools:read-file" class="io.nop.ai.toolkit.tools.ReadFileExecutor"/>
+    <bean id="ai-tools:read-ref" class="io.nop.ai.toolkit.tools.ReadRefExecutor"/>
     <bean id="ai-tools:write-file" class="io.nop.ai.toolkit.tools.WriteFileExecutor"/>
     <bean id="ai-tools:list-dir" class="io.nop.ai.toolkit.tools.ListDirectoryExecutor"/>
     <bean id="ai-tools:glob" class="io.nop.ai.toolkit.tools.SearchFilesExecutor"/>

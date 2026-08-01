@@ -13,17 +13,10 @@ import io.nop.ai.agent.session.CompactConfig;
 import io.nop.ai.agent.session.CompactionResult;
 import io.nop.ai.agent.session.ISessionStore;
 import io.nop.ai.api.chat.ChatOptions;
-import io.nop.ai.api.chat.ChatOptions;
+import io.nop.ai.toolkit.api.ICompactionArchive;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import java.util.ArrayList;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import java.util.ArrayList;
 
 import java.util.ArrayList;
 
@@ -76,13 +69,23 @@ public class AgentCompactionCoordinator {
     public void performCompaction(AgentExecutionContext ctx, String agentName, int[] checkpointSeq) {
         CompactConfig config = CompactConfig.defaults();
 
+        // Resolve the per-session compaction archive (design §8.2 Decision G,
+        // write side). The coordinator already holds the ISessionStore and
+        // uses the same sessionStore.get(sessionId)->AgentSession pattern that
+        // the post-compaction re-sync below uses. The archive is lazily
+        // materialised on the session; when no session is resolvable the
+        // archive stays null and the reference-style strategy returns an
+        // explicit unchanged result (no archive -> no PUT -> no shortRef).
+        ICompactionArchive archive = resolveArchive(ctx.getSessionId());
+
         CompactionContext compactCtx = new CompactionContext(
                 new ArrayList<>(ctx.getMessages()),
                 config,
                 ctx.getSessionId(),
                 agentName,
                 ctx,
-                tokenEstimator
+                tokenEstimator,
+                archive
         );
 
         hookInvoker.executeWithMiddleware(AgentLifecyclePoint.PRE_COMPACT, ctx, agentName, null, null);
@@ -145,6 +148,30 @@ public class AgentCompactionCoordinator {
                 }
             }
         }
+    }
+
+    /**
+     * Resolve the per-session compaction archive for the write side
+     * (reference-style compaction strategy PUT). Uses the same
+     * {@code sessionStore.get(sessionId)->AgentSession} pattern as the
+     * post-compaction re-sync. Lazily materialises the archive on the session
+     * via {@link AgentSession#getOrCreateCompactionArchive()} so the very
+     * first reference-style compaction creates it and subsequent read-back
+     * ({@code read-ref}) finds the same instance.
+     * <p>
+     * Returns {@code null} when no sessionStore is wired or the session
+     * cannot be resolved — the reference-style strategy treats null as
+     * "no archive, return explicit unchanged" (no PUT, no shortRef produced).
+     */
+    private ICompactionArchive resolveArchive(String sessionId) {
+        if (sessionStore == null || sessionId == null) {
+            return null;
+        }
+        AgentSession session = sessionStore.get(sessionId);
+        if (session == null) {
+            return null;
+        }
+        return session.getOrCreateCompactionArchive();
     }
 }
 

@@ -4,6 +4,7 @@ import io.nop.ai.agent.engine.AgentExecutionContext;
 import io.nop.ai.agent.engine.ITokenEstimator;
 import io.nop.ai.agent.session.CompactConfig;
 import io.nop.ai.api.chat.messages.ChatMessage;
+import io.nop.ai.toolkit.api.ICompactionArchive;
 
 import java.util.Collections;
 import java.util.List;
@@ -17,6 +18,15 @@ public class CompactionContext {
     private final String agentName;
     private final AgentExecutionContext executionContext;
     private final ITokenEstimator tokenEstimator;
+    /**
+     * Per-session compaction archive. When non-null, the reference-style
+     * compaction strategy ({@link ReferenceCompactionStrategy}) PUTs original
+     * content here before replacing it with a {@code shortRef} pointer.
+     * {@code null} when no archive is available (e.g. the context was built
+     * outside the agent engine) — the strategy treats null as "no archive,
+     * return explicit unchanged" and never NPEs.
+     */
+    private final ICompactionArchive compactionArchive;
 
     public CompactionContext(List<ChatMessage> messages, CompactConfig compactConfig,
                              String sessionId, String agentName,
@@ -28,12 +38,32 @@ public class CompactionContext {
                              String sessionId, String agentName,
                              AgentExecutionContext executionContext,
                              ITokenEstimator tokenEstimator) {
+        this(messages, compactConfig, sessionId, agentName, executionContext, tokenEstimator, null);
+    }
+
+    /**
+     * Full constructor additionally carrying the per-session
+     * {@link ICompactionArchive} (design §8.2 Decision G). The
+     * {@code AgentCompactionCoordinator} resolves the archive from the
+     * {@code AgentSession} and injects it here so the reference-style
+     * strategy can PUT original content.
+     *
+     * @param compactionArchive the per-session archive; {@code null} is a
+     *                          legitimate value (reference-style strategy
+     *                          returns explicit unchanged when null)
+     */
+    public CompactionContext(List<ChatMessage> messages, CompactConfig compactConfig,
+                             String sessionId, String agentName,
+                             AgentExecutionContext executionContext,
+                             ITokenEstimator tokenEstimator,
+                             ICompactionArchive compactionArchive) {
         this.messages = List.copyOf(Objects.requireNonNull(messages, "messages must not be null"));
         this.compactConfig = compactConfig;
         this.sessionId = sessionId;
         this.agentName = agentName;
         this.executionContext = executionContext;
         this.tokenEstimator = tokenEstimator;
+        this.compactionArchive = compactionArchive;
     }
 
     public List<ChatMessage> getMessages() {
@@ -58,5 +88,14 @@ public class CompactionContext {
 
     public ITokenEstimator getTokenEstimator() {
         return tokenEstimator;
+    }
+
+    /**
+     * @return the per-session compaction archive, or {@code null} when no
+     *         archive is wired (reference-style strategy treats null as
+     *         "no archive, return explicit unchanged")
+     */
+    public ICompactionArchive getCompactionArchive() {
+        return compactionArchive;
     }
 }

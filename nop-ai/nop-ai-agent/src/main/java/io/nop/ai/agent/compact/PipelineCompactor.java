@@ -137,13 +137,17 @@ public class PipelineCompactor implements IContextCompactor {
     }
 
     private CompactionContext rebuildContext(CompactionContext ctx, List<ChatMessage> currentMessages, CompactConfig config) {
+        // Carry over the compaction archive so the reference-style strategy
+        // can PUT original content on each escalation pass (design §8.2
+        // Decision G write-side wiring).
         return new CompactionContext(
                 currentMessages,
                 config,
                 ctx.getSessionId(),
                 ctx.getAgentName(),
                 ctx.getExecutionContext(),
-                ctx.getTokenEstimator()
+                ctx.getTokenEstimator(),
+                ctx.getCompactionArchive()
         );
     }
 

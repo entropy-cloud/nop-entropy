@@ -8,6 +8,7 @@ import io.nop.ai.agent.team.ITeamAclChecker;
 import io.nop.ai.agent.team.ITeamManager;
 import io.nop.ai.agent.team.ITeamTaskStore;
 import io.nop.ai.agent.team.NoOpTeamAclChecker;
+import io.nop.ai.toolkit.api.ICompactionArchiveReader;
 import io.nop.ai.toolkit.api.IToolExecuteContext;
 import io.nop.ai.toolkit.fs.IToolFileSystem;
 import io.nop.api.core.util.ICancelToken;
@@ -473,5 +474,29 @@ public class AgentToolExecuteContext implements IToolExecuteContext {
 
     public void setSession(AgentSession session) {
         this.session = session;
+    }
+
+    /**
+     * Read side of the per-session compaction archive (design §8.2
+     * Decision C + G). Overrides the {@code IToolExecuteContext} default UOE
+     * bridge to return the {@code AgentSession}'s archive read-only view,
+     * so the {@code read-ref} tool can read back original content that was
+     * replaced by a {@code shortRef} pointer during reference-style
+     * compaction.
+     * <p>
+     * Returns {@code null} when no session is available or no archive has
+     * been materialised (no reference-style compaction has run). The
+     * {@code read-ref} tool treats null as "reference invalid / not
+     * available" and surfaces an explicit error rather than silently
+     * returning empty content (Minimum Rules #24). This is NOT a UOE: a null
+     * return is a legitimate "nothing to read back yet" state that the tool
+     * handles explicitly.
+     */
+    @Override
+    public ICompactionArchiveReader getCompactionArchiveReader() {
+        if (session == null) {
+            return null;
+        }
+        return session.getCompactionArchive();
     }
 }

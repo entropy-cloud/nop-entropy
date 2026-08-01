@@ -1,8 +1,10 @@
 package io.nop.ai.agent.session;
 
+import io.nop.ai.agent.compact.InSessionCompactionArchive;
 import io.nop.ai.agent.model.AgentExecStatus;
 import io.nop.ai.agent.model.AgentModel;
 import io.nop.ai.api.chat.messages.ChatMessage;
+import io.nop.ai.toolkit.api.ICompactionArchive;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -47,6 +49,18 @@ public class AgentSession {
      * across restarts.
      */
     private Set<String> activeTags;
+
+    /**
+     * Per-session compaction archive (design §8.2 Decision G). Lazily
+     * initialised on first access — the write side (reference-style compaction
+     * strategy via {@code AgentCompactionCoordinator}) and the read side
+     * ({@code read-ref} tool via {@code AgentToolExecuteContext}) both reach
+     * this same instance through the session, so the full compact→archive→
+     * read-back wiring shares one host. {@code null} until the first
+     * reference-style compaction runs; the session holds the only reference
+     * so the archive is reclaimed when the session ends.
+     */
+    private ICompactionArchive compactionArchive;
 
     private AgentSession(String sessionId, String agentName, long createdAt) {
         this.sessionId = sessionId;
@@ -273,5 +287,47 @@ public class AgentSession {
             return model.getActiveTags();
         }
         return Collections.emptySet();
+    }
+
+    /**
+     * Return the per-session compaction archive, lazily initialising it on
+     * first access. Both the reference-style compaction strategy (write side)
+     * and the {@code read-ref} tool (read side) reach the same instance
+     * through this host (design §8.2 Decision G). The laziness means sessions
+     * that never use reference-style compaction pay no allocation cost and
+     * no archive leaks into persistence (the field is transient by nature —
+     * it is an in-memory cache of content already present in the message
+     * history).
+     *
+     * @return the per-session archive; never null after this call
+     */
+    public ICompactionArchive getOrCreateCompactionArchive() {
+        if (compactionArchive == null) {
+            compactionArchive = new InSessionCompactionArchive();
+        }
+        return compactionArchive;
+    }
+
+    /**
+     * Return the existing per-session compaction archive, or {@code null} when
+     * no reference-style compaction has run yet (no archive materialised).
+     * Used by the read side ({@code AgentToolExecuteContext}) to expose the
+     * read-only view to {@code read-ref} without forcing materialisation —
+     * when null, {@code read-ref} fails fast with "reference invalid" since
+     * there is nothing to read back.
+     *
+     * @return the per-session archive, or {@code null} if none materialised
+     */
+    public ICompactionArchive getCompactionArchive() {
+        return compactionArchive;
+    }
+
+    /**
+     * Test/diagnostics hook for directly inspecting the archive. Production
+     * code should prefer {@link #getOrCreateCompactionArchive()} (write side)
+     * or {@link #getCompactionArchive()} (read side).
+     */
+    public void setCompactionArchive(ICompactionArchive compactionArchive) {
+        this.compactionArchive = compactionArchive;
     }
 }
