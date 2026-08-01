@@ -43,7 +43,8 @@
 - 参考：`2026-08-01-hive-dual-middleware-analysis.md`、`2026-08-01-plano-declarative-filter-chain-analysis.md`
 
 ### W4. 上下文工程增量（中优先）
-- [ ] W4-1 引用式压缩双轨（shortRef{type,path,range,hash} + readRef 工具，按内容类型分流）
+- [x] W4-1 引用式压缩双轨（shortRef{type,path,range,hash} + readRef 工具，按内容类型分流）
+  - **收口（2026-08-02，plan `2026-08-02-0900-1`）**：W4-1 全部落地。新增引用式（无损指针）压缩路径，与既有摘要式（有损）按内容类型分流共存。toolkit 新增 `ICompactionArchive`/`ICompactionArchiveReader`（归档接口归属 toolkit，裁定 B）+ `ShortRef`/`ShortRefHasher`（`[SHORT_REF type=.. path=.. range=.. hash=sha256:<hex>]` 严格可解析格式 + SHA-256）+ `ReadRefExecutor`（`read-ref` 工具：按 hash 读回 + 重算校验 + 不一致/缺失 fail-loud 显式错误）+ `read-ref.tool.xml`/bean 注册。agent 新增 `InSessionCompactionArchive`（per-session hash 寻址、`putIfAbsent` 去重、null/空 fail-fast）+ `ReferenceCompactionStrategy`（按裁定 A 三信号识别可保真 tool-response：role + 来源工具 `typeForTool` 映射 + 长度阈值；近期 tool result 保留原文）。接线（裁定 G）：`AgentSession` 持 archive 实例（lazy init）→ `AgentCompactionCoordinator.performCompaction` 注入 CompactionContext（写侧）→ `AgentToolExecuteContext.getCompactionArchiveReader()` 覆写（读侧，default UOE 桥处理 22 处实现爆炸半径，裁定 C）。`CompactionResult` 不扩展（裁定 D）。design §8.2 F 修正 escalation 顺序为 Reference→Layer1 micro→Layer2→Layer3（micro 有损会摧毁长内容原文，引用式必须在其前）。29 新测试（`TestInSessionCompactionArchive` 8 + `TestReferenceCompactionStrategy` 10 + `ReadRefExecutorTest` 8 + `TestReferenceCompactionEndToEnd` 3，含端到端 `performCompaction→shortRef→read-ref 读回` Anti-Hollow）。零回归（3179 测试 0 failures）。独立 closure audit PASS（CAN CLOSE）。
 - [ ] W4-2 压缩前 snapshot 归档 + 压缩比记录（originalSize/compactedSize，失败保留原文）
 - 参考：`2026-08-01-context-mode-compaction-analysis.md`、`2026-08-01-beads-versioned-graph-memory-analysis.md`
 

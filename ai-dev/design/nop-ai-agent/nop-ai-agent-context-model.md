@@ -180,17 +180,68 @@ Tool 执行时，引擎提供以下上下文信息：
 
 nop PipelineCompactor 三层（MicroCompressionCompactor → Layer2TurnPruningStrategy → Layer3FullSummaryStrategy）+ ToolResultTruncator（offloading）已实现**摘要式压缩**（有损）与**工具输出截断**（保头保尾）。缺"引用式"（无损指针）路径。
 
-### 8.2 引用式压缩双轨（增量）
+### 8.2 引用式压缩双轨
 
-按内容类型分流（压缩策略的第二条路径）：
+按内容类型分流的压缩策略第二条路径。摘要式压缩（Layer 1-3）处理可概括内容（对话轮次/中间推理），引用式压缩处理保真内容（文件内容/配置/长文档原文）——后者把可定位的长内容替换为 `shortRef{type, path, range, hash}` 指针，原文入 per-session 归档，需要时通过 `read-ref` 工具按 hash 校验后读回。引用失效防护：content hash 校验，不一致 fail-loud 提示"内容已变更/引用失效"（不静默返回空或旧文）。
 
-| 内容类型 | 策略 | 说明 |
-|----------|------|------|
-| 对话轮次/中间推理 | 摘要式（现有） | 可概括，有损可接受 |
-| 文件内容/配置/长文档原文 | **引用式**（新增） | 无损指针 `shortRef{type, path, range, hash}` + readRef 工具 |
+#### A. 内容类型路由信号源（不改 ChatMessage / nop-ai-api）
 
-- 引用失效防护：content hash 校验，不一致提示"内容已变更"（重新读）
-- 与 ContentOrigin（已有）组合：引用式依赖来源元数据定位内容
+引用式策略在**策略侧推断**可保真内容，**不**给 `ChatMessage` 加 origin/content-type 字段。判定信号：
+
+1. 角色：仅 tool-response 类消息进入引用候选；对话/推理消息仍走摘要。
+2. 来源工具：tool-response 携带的工具名（`ChatToolResponseMessage.getName()`）落在"可引用工具集"（文件类工具 `read-file` / `search-*` / `grep` / `glob` 等）内才算可引用保真内容。
+3. 内容长度：超过可配置阈值的长 tool result 才值得引用化（短结果直接保留）。
+
+**拒绝了**：给 `ChatMessage` / `nop-ai-api` 加 origin/content-type 字段。理由：跨模块公共 API 扩展（Protected Area plan-first），且 tool name + 长度阈值已足够识别可保真内容，无需扩展公共契约。
+
+#### B. 引用归档接口的模块归属
+
+归档接口定义在 **nop-ai-toolkit**（接口消费方 = `read-ref` 工具所在模块）：read-only 视图（按 hash 读回）+ 完整视图（put 原文 + get）。实现在 nop-ai-agent/compact（agent 依赖 toolkit，可 import 接口并实现）。
+
+**拒绝了**：接口放 nop-ai-agent（toolkit→agent 反向依赖，循环依赖）；接口放 nop-ai-api（归档非 chat API 核心概念，公共 API plan-first scope 超本计划）。
+
+#### C. read-ref 如何到达归档（爆炸半径处理）
+
+经 `IToolExecuteContext`（toolkit api）新增 default 方法暴露归档只读视图，**default 抛 `UnsupportedOperationException`**（参照 `ISessionStore.save`/`listAllSessions` 的 default UOE 先例；toolkit 不能 import agent 的 `NopAiAgentException`，故用 JDK 的 `UnsupportedOperationException`）。仅 `AgentToolExecuteContext`（nop-ai-agent）覆写为非空实现——从 `AgentSession` 取归档实例。其余 22 处 `IToolExecuteContext` 实现（生产 + 测试 mock）继承 default，无需逐处更新。
+
+**拒绝了**：全量给 22 处实现加方法。理由：爆炸半径大、维护成本高，且 read-ref 只在 agent 引擎装配路径下可用，非 toolkit 通用能力。
+
+#### D. CompactionResult 不扩展
+
+引用归档句柄**不进** `CompactionResult`。`shortRef` 自带 hash（即读回键），`read-ref` 按 hash 直读归档，不需要结果对象转交归档句柄。`CompactionResult` 形态保持不变（与 W4-2 snapshot-archive successor 的扩展正交、无冲突）。
+
+#### E. shortRef 结构、序列化格式、read-ref 输入契约
+
+`shortRef` 字段（数据契约，非实现签名）：
+
+- `type`：内容来源类型（`file` | `search` | `grep` | `glob`，对应可引用工具的归类）
+- `path`：定位信息（文件路径、搜索目录等，可为空）
+- `range`：范围信息（行号区间如 `1-100`，可为空）
+- `hash`：内容 hash（`sha256:<hex>`），**唯一读回键**
+
+消息内容中的序列化格式（LLM 据此调用 read-ref）：
+
+```
+[SHORT_REF type=file path=/path/to/file range=1-100 hash=sha256:<hex>]
+```
+
+单行、空格分隔、字段顺序固定。该格式可被严格解析（非 `startsWith` 模糊检测，与 Layer 3 `SUMMARY_MARKER` 用途不同——后者仅系统侧标记，前者供 LLM 生成 read-ref 工具调用）。
+
+`read-ref` 工具 input schema 与 `shortRef` 字段一一映射：`hash`（必填，读回键）+ `type` / `path` / `range`（可选，提示性）。读回按 hash 寻址；hash 校验失败或引用不存在返回显式错误结果（"内容已变更/引用失效，请重新读取"），fail-loud，不静默返回空或旧文。
+
+#### F. 共存与 escalation 顺序
+
+引用式策略插入位置：**摘要式之前**（先剥离可保真内容→再摘要剩余）。`PipelineCompactor` 的 escalation 顺序：**Reference compaction（新增）→ Layer 1 micro → Layer 2 turn pruning → Layer 3 full summary**。引用式必须在 micro 之前运行——micro（`MicroCompressionCompactor`）是有损的（把旧 tool result 替换为 `[COMPRESSED ...]` 占位符，丢弃原文），若 micro 先运行会把长内容原文摧毁，引用式将无原文可归档。引用剥离后若仍超阈值，继续 escalate 到 micro / Layer 2 / Layer 3。引用式策略对"无可保真内容"返回显式 unchanged 结果（`tokensAfter==tokensBefore` + `compactedMessages` 为 null，与 PipelineCompactor 既有 skip-layer 路径兼容），不抛异常、不静默丢消息。`PipelineCompactor` 接受任意策略顺序（装配时决定），上述为推荐顺序。
+
+#### G. 归档实例宿主与双侧 wiring
+
+per-session 归档**实例**（非接口）宿主：`AgentSession`（per-session 生命周期天然匹配，会话结束释放；`AgentSession` 已有非 final 可变字段 + setter 先例，加 archive 字段不破坏既有约束）。
+
+**写侧**（引用式策略 PUT 原文）：`AgentCompactionCoordinator.performCompaction` 经已持有的 `ISessionStore.get(sessionId)→AgentSession`（现成模式）取 session → 取/初始化 session 上的归档实例 → 经 `CompactionContext` 传递给策略 → 引用式策略从 context 拿到实例 PUT 原文。
+
+**读侧**（read-ref GET 原文）：`read-ref` 工具经 `IToolExecuteContext` 的归档访问器（裁定 C）拿到归档只读视图；`AgentToolExecuteContext` 覆写该访问器，从已持有的 `AgentSession` 取归档实例。
+
+双侧经同一 `AgentSession` 宿主共享同一实例——compact 写入 → 归档 → read-ref 读回的完整 wiring。
 
 ### 8.3 snapshot 可逆归档（增强）
 
