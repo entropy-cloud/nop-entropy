@@ -391,7 +391,7 @@ watermark: cp_002
 
 **触发时机**：
 - ✅ 每个 LLM turn 完成后自动写入 journal entry（plan 187，`LLM_TURN` checkpoint 发射——dispatch loop 在 token 计账完成后、completion judge 之前发射）
-- ✅ 压缩时生成完整 snapshot（plan 187，`COMPACTION` checkpoint 发射——`performCompaction` 在实际压缩成功后发射；snapshot.json 文件生成仍 deferred）
+- ✅ 压缩时生成完整 snapshot（plan 187，`COMPACTION` checkpoint 发射——`performCompaction` 在实际压缩成功后发射；snapshot.json 文件生成仍 deferred）。**边界声明（与 context-model §8.3 压缩前 snapshot 归档区分）**：本条 checkpoint snapshot.json 是 resume-point 持久化缓存（crash/restart restore 用）；context-model §8.3 的压缩前 snapshot 归档（W4-2）是压缩管线内部的原文副本（per-compaction-event、`snapshotId` 寻址、in-session 内存，供可回溯/失败安全）。**两者是独立关注点**——§8.3 归档 ≠ checkpoint snapshot.json，归档不产生本子系统 snapshot.json 文件（该文件生成仍是本条 deferred successor）。
 - ✅ 工具执行前后（仅 long-running tool）写入 tool-level checkpoint（plan 181，`TOOL_EXECUTION` checkpoint 发射）
 
 **与 Nop Event Log 的关系**：

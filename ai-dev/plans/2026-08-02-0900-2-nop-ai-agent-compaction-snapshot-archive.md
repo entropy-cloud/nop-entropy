@@ -1,6 +1,6 @@
 # 2 压缩前 snapshot 归档与压缩比度量（Compaction Snapshot Archive & Ratio）
 
-> Plan Status: active
+> Plan Status: completed
 > Last Reviewed: 2026-08-02
 > Draft Consensus: 2 轮独立子 agent 对抗性审查通过（r1 修 3 Major+5 Minor；r2 CONSENSUS yes，4 项非阻断 condition 已并入）
 > Source: `ai-dev/backlog/nop-ai-agent-harness-evolution-roadmap.md` W4-2；`ai-dev/analysis/agent-survey/2026-08-01-beads-versioned-graph-memory-analysis.md`；`ai-dev/design/nop-ai-agent/nop-ai-agent-context-model.md` §8.3
@@ -71,93 +71,93 @@
 
 ### Phase 1 - 设计裁定与边界划分
 
-Status: planned
+Status: completed
 Targets: `ai-dev/design/nop-ai-agent/nop-ai-agent-context-model.md` §8.3（含修正 :207 自相矛盾）；与 `nop-ai-agent-reliability.md` §5.4 的边界
 
 - Item Types: `Decision`
 
-- [ ] **裁定 A — snapshotId 数据流**（解决"CompactionResult 字段 final + PipelineCompactor 不持归档 + CompactionContext 不携 snapshotId"）：**采纳** coordinator 在 `compact()` **前** archive 原文 → 产出 snapshotId → 经 **`CompactionContext` 新增 snapshotId 字段**（`PipelineCompactor.rebuildContext` 须传播该字段）传入 → `PipelineCompactor` 在最终结果唯一构造点（`:121-126`）把 `ctx.getSnapshotId()` + `originalSize`/`compactedSize` 填入 CompactionResult。**不动 strategy 内部的 CompactionResult 构造**（strategy 产中间结果，PipelineCompactor 在 `:121-126` 重新构造最终结果为唯一权威）。**拒绝**让 strategy 各自读归档（爆炸半径大）、拒绝 coordinator 在 compact() 后改 final 字段（不可变）
-- [ ] **裁定 B — 归档存储边界**：归档键（`snapshotId` 寻址）、首版 in-session 内存实现、生命周期（会话级释放）、**与 checkpoint `snapshot.json` 的明确边界**（归档=压缩管线内部原文副本供可回溯/失败安全；checkpoint snapshot.json=resume-point 持久化缓存，§5.4 独立 successor）
-- [ ] **裁定 C — 显式修正 design §8.3:207 自相矛盾**：现文「归档即 checkpoint 的 compaction 类型」与本计划核心边界冲突，**必须改正**为"归档 ≠ checkpoint snapshot.json（§5.4 successor），二者是两个关注点"
-- [ ] **裁定 D — 度量维度与字段去重**：`originalSize`（压缩前消息条数）/`compactedSize`（压缩后消息条数）作为新维度；与既有 `retainedMessageCount`（成功路径=压缩后条数、失败路径=原始条数，语义含混）**裁定关系**——是否废弃 `retainedMessageCount` 改用 `compactedSize`，或并存（须明确权威性，避免冗余）。压缩比定义两维度各一（消息条数 + token）。**新增字段须同步更新 `CompactionResult.equals/hashCode`**（现不含新字段，`CompactionResult.java:57-73`），避免语义不一致
-- [ ] **裁定 E — 归档时机**：在 `PRE_COMPACT` 之后、`contextCompactor.compact()` 之前 archive 原文（保证压缩失败时原文副本已存在）。**构造顺序**：coordinator 须在 archive **之后** new `CompactionContext`（把 snapshotId 传入），即移动现有 `AgentCompactionCoordinator:79-86` 的 CompactionContext 构造到 archive 之后（CompactionContext 字段 final，不可后置 setter）
-- [ ] **裁定 F — 失败记录层级**（厘清两层）：**coordinator 层**补两处静默：(1) `:94` false 分支（compactedMessages==null）+ (2) `:98 else` 分支（compactedMessages 非 null 但 `tokensAfter >= tokensBefore`，即"压缩尝试但未减 token"）——两处均补 `LOG.warn`（含 snapshotId + 原因）；区分"未触发压缩"（不 archive、不记录失败）与"archive 后压缩未产出/未减"（archive 保留 + 显式失败记录）。策略层 `:96-100` 已有 LOG 不动。coordinator 对 `compact()` 加 try-catch（捕获→保留 archive+LOG.warn 含 snapshotId，不冒泡中断 agent）
-- [ ] **裁定 G — 向后兼容**：`snapshotId`/`originalSize`/`compactedSize` 新字段对既有 `CompactionResult` 消费方（`AgentCompactionCoordinator`、测试）保持兼容；既有 5 参/6 参构造器不破坏；`NoOpContextCompactor` 仍返回 snapshotId=null（`TestNoOpContextCompactor` 断言 null 不破）
+- [x] **裁定 A — snapshotId 数据流**（解决"CompactionResult 字段 final + PipelineCompactor 不持归档 + CompactionContext 不携 snapshotId"）：**采纳** coordinator 在 `compact()` **前** archive 原文 → 产出 snapshotId → 经 **`CompactionContext` 新增 snapshotId 字段**（`PipelineCompactor.rebuildContext` 须传播该字段）传入 → `PipelineCompactor` 在最终结果唯一构造点（`:121-126`）把 `ctx.getSnapshotId()` + `originalSize`/`compactedSize` 填入 CompactionResult。**不动 strategy 内部的 CompactionResult 构造**（strategy 产中间结果，PipelineCompactor 在 `:121-126` 重新构造最终结果为唯一权威）。**拒绝**让 strategy 各自读归档（爆炸半径大）、拒绝 coordinator 在 compact() 后改 final 字段（不可变）
+- [x] **裁定 B — 归档存储边界**：归档键（`snapshotId` 寻址）、首版 in-session 内存实现、生命周期（会话级释放）、**与 checkpoint `snapshot.json` 的明确边界**（归档=压缩管线内部原文副本供可回溯/失败安全；checkpoint snapshot.json=resume-point 持久化缓存，§5.4 独立 successor）
+- [x] **裁定 C — 显式修正 design §8.3:207 自相矛盾**：现文「归档即 checkpoint 的 compaction 类型」与本计划核心边界冲突，**必须改正**为"归档 ≠ checkpoint snapshot.json（§5.4 successor），二者是两个关注点"
+- [x] **裁定 D — 度量维度与字段去重**：`originalSize`（压缩前消息条数）/`compactedSize`（压缩后消息条数）作为新维度；与既有 `retainedMessageCount`（成功路径=压缩后条数、失败路径=原始条数，语义含混）**裁定关系**——是否废弃 `retainedMessageCount` 改用 `compactedSize`，或并存（须明确权威性，避免冗余）。压缩比定义两维度各一（消息条数 + token）。**新增字段须同步更新 `CompactionResult.equals/hashCode`**（现不含新字段，`CompactionResult.java:57-73`），避免语义不一致
+- [x] **裁定 E — 归档时机**：在 `PRE_COMPACT` 之后、`contextCompactor.compact()` 之前 archive 原文（保证压缩失败时原文副本已存在）。**构造顺序**：coordinator 须在 archive **之后** new `CompactionContext`（把 snapshotId 传入），即移动现有 `AgentCompactionCoordinator:79-86` 的 CompactionContext 构造到 archive 之后（CompactionContext 字段 final，不可后置 setter）
+- [x] **裁定 F — 失败记录层级**（厘清两层）：**coordinator 层**补两处静默：(1) `:94` false 分支（compactedMessages==null）+ (2) `:98 else` 分支（compactedMessages 非 null 但 `tokensAfter >= tokensBefore`，即"压缩尝试但未减 token"）——两处均补 `LOG.warn`（含 snapshotId + 原因）；区分"未触发压缩"（不 archive、不记录失败）与"archive 后压缩未产出/未减"（archive 保留 + 显式失败记录）。策略层 `:96-100` 已有 LOG 不动。coordinator 对 `compact()` 加 try-catch（捕获→保留 archive+LOG.warn 含 snapshotId，不冒泡中断 agent）
+- [x] **裁定 G — 向后兼容**：`snapshotId`/`originalSize`/`compactedSize` 新字段对既有 `CompactionResult` 消费方（`AgentCompactionCoordinator`、测试）保持兼容；既有 5 参/6 参构造器不破坏；`NoOpContextCompactor` 仍返回 snapshotId=null（`TestNoOpContextCompactor` 断言 null 不破）
 
 Exit Criteria:
 
-- [ ] design §8.3 重写为最终架构决策（含 A–G 七条裁定结论 + 拒绝的替代方案），**并显式改正 :207 "归档即 checkpoint" 为边界声明**
-- [ ] design 在 reliability §5.4 交叉引用处明确"归档 ≠ checkpoint snapshot.json"边界
-- [ ] design 描述的 snapshotId 数据流（coordinator→CompactionContext→PipelineCompactor:121-126）、归档键、度量维度、失败层级可在 Phase 2/3 直接落地（无臆想空间，无 item 间矛盾）
-- [ ] **无静默跳过**：design 明确 coordinator 层压缩失败须显式 LOG.warn（含 snapshotId），不静默吞（见 Minimum Rules #24）
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] design §8.3 重写为最终架构决策（含 A–G 七条裁定结论 + 拒绝的替代方案），**并显式改正 :207 "归档即 checkpoint" 为边界声明**
+- [x] design 在 reliability §5.4 交叉引用处明确"归档 ≠ checkpoint snapshot.json"边界
+- [x] design 描述的 snapshotId 数据流（coordinator→CompactionContext→PipelineCompactor:121-126）、归档键、度量维度、失败层级可在 Phase 2/3 直接落地（无臆想空间，无 item 间矛盾）
+- [x] **无静默跳过**：design 明确 coordinator 层压缩失败须显式 LOG.warn（含 snapshotId），不静默吞（见 Minimum Rules #24）
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 ### Phase 2 - snapshot 归档与结果扩展
 
-Status: planned
+Status: completed
 Targets: `nop-ai/nop-ai-agent/src/main/java/io/nop/ai/agent/compact/`（含 `CompactionResult` 在 session 包、归档抽象在 session 包）；`nop-ai/nop-ai-agent/src/main/java/io/nop/ai/agent/engine/AgentCompactionCoordinator.java`
 
 - Item Types: `Proof`
 
-- [ ] 新增压缩前 snapshot 归档抽象（`put(messages)→snapshotId` + `get(snapshotId)→messages`）+ 首版 in-session 内存实现
-- [ ] `CompactionResult` 扩展 `originalSize`/`compactedSize`（消息条数维度，按裁定 D 处理与 `retainedMessageCount` 的关系）+ 既有 `snapshotId` 非 null 化；保留既有 5 参/6 参构造器向后兼容（新字段为可选/默认）
-- [ ] `CompactionContext` 新增 `snapshotId` 字段（裁定 A），`PipelineCompactor.rebuildContext` 传播该字段
-- [ ] `PipelineCompactor` 最终结果构造点（`:121-126`）不再硬编码 `snapshotId=null`：从 `ctx.getSnapshotId()` 取 + 填 `originalSize`(messages.size())/`compactedSize`(current.size())（裁定 A；不动 strategy 内部构造）
-- [ ] `AgentCompactionCoordinator.performCompaction`：`PRE_COMPACT` 后、`compact()` **前** archive 原文 → 把 snapshotId 经 CompactionContext 传入管线（裁定 A + E）
-- [ ] **失败记录补 coordinator 层**（裁定 F）：`compact()` 加 try-catch（捕获→保留 archive+LOG.warn 含 snapshotId，不冒泡）；`:94` false 分支（compactedMessages==null）补 LOG.warn（含 snapshotId + 原因），区分"未触发压缩"（不 archive）与"archive 后未产出"（archive 保留+记录）。策略层 `:96-100` 已有 LOG 不动
+- [x] 新增压缩前 snapshot 归档抽象（`put(messages)→snapshotId` + `get(snapshotId)→messages`）+ 首版 in-session 内存实现
+- [x] `CompactionResult` 扩展 `originalSize`/`compactedSize`（消息条数维度，按裁定 D 处理与 `retainedMessageCount` 的关系）+ 既有 `snapshotId` 非 null 化；保留既有 5 参/6 参构造器向后兼容（新字段为可选/默认）
+- [x] `CompactionContext` 新增 `snapshotId` 字段（裁定 A），`PipelineCompactor.rebuildContext` 传播该字段
+- [x] `PipelineCompactor` 最终结果构造点（`:121-126`）不再硬编码 `snapshotId=null`：从 `ctx.getSnapshotId()` 取 + 填 `originalSize`(messages.size())/`compactedSize`(current.size())（裁定 A；不动 strategy 内部构造）
+- [x] `AgentCompactionCoordinator.performCompaction`：`PRE_COMPACT` 后、`compact()` **前** archive 原文 → 把 snapshotId 经 CompactionContext 传入管线（裁定 A + E）
+- [x] **失败记录补 coordinator 层**（裁定 F）：`compact()` 加 try-catch（捕获→保留 archive+LOG.warn 含 snapshotId，不冒泡）；`:94` false 分支（compactedMessages==null）补 LOG.warn（含 snapshotId + 原因），区分"未触发压缩"（不 archive）与"archive 后未产出"（archive 保留+记录）。策略层 `:96-100` 已有 LOG 不动
 
 Exit Criteria:
 
-- [ ] 真实压缩发生后 `CompactionResult.snapshotId` 非 null，且 `get(snapshotId)` 取回的消息列表与压缩前原文一致
-- [ ] `originalSize`/`compactedSize` 正确反映压缩前后消息条数；与 `retainedMessageCount` 关系按裁定 D 落地（无冗余/权威性明确）；token 维度 `tokensBefore`/`tokensAfter` 行为不变
-- [ ] **数据流接通验证**：snapshotId 从 coordinator 的 archive → CompactionContext → PipelineCompactor `:121-126` → CompactionResult 全链路可追溯（单测断言每一跳，见 Anti-Hollow）
-- [ ] 压缩失败时：原文 archive 已保留（`snapshotId` 可取回原文）+ coordinator 层有显式 LOG.warn 记录（含 snapshotId）
-- [ ] **向后兼容**：既有 compact 测试全过（`TestNoOpContextCompactor` 断言 snapshotId==null 不破；新字段不破坏既有构造器/null 语义）
-- [ ] **接线验证**：`AgentCompactionCoordinator` 确在 `compact()` 前调用归档 + snapshotId 经 CompactionContext 流入 PipelineCompactor 最终结果（单测断言，见 Minimum Rules #23）
-- [ ] **无静默跳过**：coordinator `:94` false 分支不再静默；归档/取回失败显式异常或显式失败记录，不空体/吞异常（见 Minimum Rules #24）
-- [ ] 新增归档/失败路径有单测：真实压缩（archive 产出 + 可取回）/ 压缩失败（archive 保留 + coordinator 显式 LOG）/ 未触发压缩（不 archive）三条（见 Minimum Rules #25）
-- [ ] design §8.3 与落地一致（含 :207 已修正）
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] 真实压缩发生后 `CompactionResult.snapshotId` 非 null，且 `get(snapshotId)` 取回的消息列表与压缩前原文一致
+- [x] `originalSize`/`compactedSize` 正确反映压缩前后消息条数；与 `retainedMessageCount` 关系按裁定 D 落地（无冗余/权威性明确）；token 维度 `tokensBefore`/`tokensAfter` 行为不变
+- [x] **数据流接通验证**：snapshotId 从 coordinator 的 archive → CompactionContext → PipelineCompactor `:121-126` → CompactionResult 全链路可追溯（单测断言每一跳，见 Anti-Hollow）
+- [x] 压缩失败时：原文 archive 已保留（`snapshotId` 可取回原文）+ coordinator 层有显式 LOG.warn 记录（含 snapshotId）
+- [x] **向后兼容**：既有 compact 测试全过（`TestNoOpContextCompactor` 断言 snapshotId==null 不破；新字段不破坏既有构造器/null 语义）
+- [x] **接线验证**：`AgentCompactionCoordinator` 确在 `compact()` 前调用归档 + snapshotId 经 CompactionContext 流入 PipelineCompactor 最终结果（单测断言，见 Minimum Rules #23）
+- [x] **无静默跳过**：coordinator `:94` false 分支不再静默；归档/取回失败显式异常或显式失败记录，不空体/吞异常（见 Minimum Rules #24）
+- [x] 新增归档/失败路径有单测：真实压缩（archive 产出 + 可取回）/ 压缩失败（archive 保留 + coordinator 显式 LOG）/ 未触发压缩（不 archive）三条（见 Minimum Rules #25）
+- [x] design §8.3 与落地一致（含 :207 已修正）
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 ### Phase 3 - 压缩比度量与端到端验证
 
-Status: planned
+Status: completed
 Targets: `nop-ai/nop-ai-agent/src/main/java/io/nop/ai/agent/engine/AgentCompactionCoordinator.java`（度量记录）；端到端压缩→归档→度量
 
 - Item Types: `Proof`
 
-- [ ] `AgentCompactionCoordinator` 在真实压缩成功后记录压缩比（消息条数维度 `compactedSize/originalSize` + token 维度 `tokensAfter/tokensBefore`），写入 COMPACTION checkpoint 的 `compactSummary`（coordinator `:114-116`，扩展现有格式）或等价可观测位置
-- [ ] COMPACTION checkpoint 的 `compactSummary` 含 snapshotId（可回溯关联），与既有 token/retainedMessageCount 合并为完整两维度度量
-- [ ] 失败可观测：压缩失败的 LOG.warn 与成功压缩的压缩比记录在统一可检索位置（审计可区分成功/失败）
+- [x] `AgentCompactionCoordinator` 在真实压缩成功后记录压缩比（消息条数维度 `compactedSize/originalSize` + token 维度 `tokensAfter/tokensBefore`），写入 COMPACTION checkpoint 的 `compactSummary`（coordinator `:114-116`，扩展现有格式）或等价可观测位置
+- [x] COMPACTION checkpoint 的 `compactSummary` 含 snapshotId（可回溯关联），与既有 token/retainedMessageCount 合并为完整两维度度量
+- [x] 失败可观测：压缩失败的 LOG.warn 与成功压缩的压缩比记录在统一可检索位置（审计可区分成功/失败）
 
 Exit Criteria:
 
-- [ ] **端到端验证**（见 Minimum Rules #22）：从 `performCompaction` 触发 → 压缩前 archive 原文 → 管线压缩 → 结果携带非 null `snapshotId` + `originalSize`/`compactedSize` → COMPACTION checkpoint `outputSummary` 含 snapshotId + 两维度压缩比 → `get(snapshotId)` 取回原文一致，完整路径有一条集成测试
-- [ ] **接线验证**：压缩比度量确被 `performCompaction` 在真实压缩成功路径记录（断言成功路径写入度量 / 失败路径写入失败记录，见 Minimum Rules #23）
-- [ ] **无静默跳过**：成功/失败两路径都有显式可观测记录，无空方法体/吞异常（见 Minimum Rules #24）
-- [ ] 新增度量/端到端有单测（见 Minimum Rules #25）
-- [ ] `./mvnw test -pl nop-ai/nop-ai-agent -am` 通过
-- [ ] design §8.3 / reliability §5.4 边界与落地一致
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] **端到端验证**（见 Minimum Rules #22）：从 `performCompaction` 触发 → 压缩前 archive 原文 → 管线压缩 → 结果携带非 null `snapshotId` + `originalSize`/`compactedSize` → COMPACTION checkpoint `outputSummary` 含 snapshotId + 两维度压缩比 → `get(snapshotId)` 取回原文一致，完整路径有一条集成测试
+- [x] **接线验证**：压缩比度量确被 `performCompaction` 在真实压缩成功路径记录（断言成功路径写入度量 / 失败路径写入失败记录，见 Minimum Rules #23）
+- [x] **无静默跳过**：成功/失败两路径都有显式可观测记录，无空方法体/吞异常（见 Minimum Rules #24）
+- [x] 新增度量/端到端有单测（见 Minimum Rules #25）
+- [x] `./mvnw test -pl nop-ai/nop-ai-agent -am` 通过
+- [x] design §8.3 / reliability §5.4 边界与落地一致
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 ## Closure Gates
 
 > 本计划涉及代码变更，构建验证条目必填。
 
-- [ ] 压缩前 snapshot 归档已落地：`snapshotId` 非 null + 原文可取回
-- [ ] 压缩比两维度度量（消息条数 + token）已落地并记录
-- [ ] 失败路径显式保留原文 + 显式可观测记录（fail-loud，非静默）
-- [ ] 端到端"压缩→归档→度量→取回"已验证（Anti-Hollow：运行时连通）
-- [ ] 与 checkpoint `snapshot.json`（§5.4）边界明确，无 scope 越界
-- [ ] 零回归：既有 compact/compaction 测试全过；`snapshotId` null 历史值向后兼容
-- [ ] design §8.3 已回写为最终架构决策；reliability §5.4 边界已标注
-- [ ] 受影响 owner docs 已同步
-- [ ] 不存在被静默降级到 deferred / follow-up 的 in-scope live defect 或 contract drift
-- [ ] 独立子 agent / 独立审阅者 closure-audit 已完成并记录证据
-- [ ] **Anti-Hollow Check**：归档确被 `performCompaction` 压缩前调用 + snapshotId 流入结果 + 取回连通
-- [ ] `./mvnw compile -pl nop-ai/nop-ai-agent -am`
-- [ ] `./mvnw test -pl nop-ai/nop-ai-agent -am`
-- [ ] checkstyle / 代码规范检查通过
+- [x] 压缩前 snapshot 归档已落地：`snapshotId` 非 null + 原文可取回
+- [x] 压缩比两维度度量（消息条数 + token）已落地并记录
+- [x] 失败路径显式保留原文 + 显式可观测记录（fail-loud，非静默）
+- [x] 端到端"压缩→归档→度量→取回"已验证（Anti-Hollow：运行时连通）
+- [x] 与 checkpoint `snapshot.json`（§5.4）边界明确，无 scope 越界
+- [x] 零回归：既有 compact/compaction 测试全过；`snapshotId` null 历史值向后兼容
+- [x] design §8.3 已回写为最终架构决策；reliability §5.4 边界已标注
+- [x] 受影响 owner docs 已同步
+- [x] 不存在被静默降级到 deferred / follow-up 的 in-scope live defect 或 contract drift
+- [x] 独立子 agent / 独立审阅者 closure-audit 已完成并记录证据
+- [x] **Anti-Hollow Check**：归档确被 `performCompaction` 压缩前调用 + snapshotId 流入结果 + 取回连通
+- [x] `./mvnw compile -pl nop-ai/nop-ai-agent -am`
+- [x] `./mvnw test -pl nop-ai/nop-ai-agent -am`
+- [x] checkstyle / 代码规范检查通过
 
 ## Deferred But Adjudicated
 
@@ -188,14 +188,25 @@ Exit Criteria:
 
 ## Closure
 
-Status Note: <<完成时填写>>
-Completed: YYYY-MM-DD
+Status Note: W4-2 全部落地。压缩管线补上"可逆性 + 可度量性 + 失败安全"：压缩前对整段消息历史做 snapshot 归档（per-event snapshotId 寻址、in-session 内存、会话级释放），记录两维度压缩比（消息条数 originalSize/compactedSize + token tokensBefore/tokensAfter），压缩失败时显式保留原文 archive + LOG.warn（fail-loud，非静默）。覆盖摘要式与引用式（W4-1）两类压缩。独立子 agent closure-audit PASS（VERDICT: PASS，无 blocking issue，无 hollow/silent-no-op，deferred 项诚实）。
+Completed: 2026-08-02
 
 Closure Audit Evidence:
 
-- Reviewer / Agent: <<独立审阅者或独立子 agent>>
-- Evidence: <<task id / daily log link / findings 摘要>>
+- Reviewer / Agent: 独立子 agent（fresh session, task id `ses_041601142ffeSXJw9ZdSHiW3t1`，general 类型 closure audit）
+- Audit Session: ses_041601142ffeSXJw9ZdSHiW3t1
+- Evidence:
+  - **每条 Exit Criterion 验证结果**：Phase 1（6/6 PASS）、Phase 2（12/12 PASS）、Phase 3（6/6 PASS）——逐条对照 live code 给出 file:line / test name 证据（详见 audit 报告）。关键：裁定 A 数据流 put(`AgentCompactionCoordinator:92`)→context(:105)→rebuildContext(`PipelineCompactor:164`)→success/no-reduction 两分支(:128/:135)；裁定 C §8.3 自相矛盾已删除（`context-model.md:250` 边界声明 + reliability §5.4 :394 镜像）；裁定 D `CompactionResult:121-122/131` equals/hashCode 含新字段；裁定 F 四处 LOG.warn 含 snapshotId（:116/:126/:191/:198）+ try-catch(:113-120)。
+  - **每条 Closure Gate 验证结果**：13/13 PASS（snapshotId 非 null + 原文可取回、两维度度量、失败 fail-loud、端到端 Anti-Hollow、checkpoint 边界明确、零回归 3199 测试、design 回写、owner docs 同步、deferred 项诚实、Anti-Hollow check、compile/test BUILD SUCCESS、checkstyle advisory 与既有模块一致）。
+  - **Anti-Hollow (a)-(h) 全 PASS**：(a) archive-before-compact 顺序（put:92 → compact:114，wiring 测试证明）；(b) snapshotId 流通两分支均写 ctx.getSnapshotId()；(c) `coordinatorArchivedOriginalMatchesPreCompactionHistory` 端到端从 compactSummary 提取 snapshotId → archive.get 取回 → 等于压缩前历史；(d) 既有静默分支均补 LOG.warn + try-catch；(e) equals/hashCode 含新字段（测试断言 diff 破等价）；(f) 自相矛盾句已删；(g) compactSummary 含 snapshotId + 两维度比；(h) NoOp 返 null + legacy 构造器在。
+  - **Silent-no-op / hollow scan**：none。归档 get() 返 null（unknown id）为合法非缺陷；put() null/空 fail-fast；defensive copy 保可回溯；无 TODO/FIXME/UnsupportedOperationException in new code。
+  - **Deferred 项诚实**：持久化后端 / checkpoint snapshot.json 文件生成 / 自动回滚 均为真 out-of-scope（reliability §5.4 successor / Non-Goals 明示），无 in-scope live defect 被降级。
+  - **构建/测试**：`./mvnw test -pl nop-ai/nop-ai-agent -am -T 1C` BUILD SUCCESS（3199 测试 0 failures）；目标测试 51/51 PASS；`./mvnw clean install -DskipTests` BUILD SUCCESS。
+  - **Doc links**：`node ai-dev/tools/check-doc-links.mjs --strict` exit 0（18421 refs, 0 errors）。
+  - **Non-blocking observation**：plan Current Baseline 中 `:207` / design `:258` 行号引用在重写后漂移（audit 标注为 cosmetic nit，非 closure blocker；属历史 baseline 描述，按 rule #20 不回写）。
 
 Follow-up:
 
-- <<只记录 non-blocking follow-up；confirmed live defect 不得出现在这里>>
+- 无 plan-owned 剩余工作。
+- Non-blocking follow-ups 已登记在 `## Non-Blocking Follow-ups`（压缩比指标上报/面板/告警；snapshot 归档过期清理策略）。
+- Successor（deferred）：snapshot 归档持久化后端（DB/文件/跨进程）；reliability §5.4 compaction-triggered snapshot.json 文件生成。

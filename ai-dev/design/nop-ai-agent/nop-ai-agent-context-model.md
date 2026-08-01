@@ -243,16 +243,66 @@ per-session 归档**实例**（非接口）宿主：`AgentSession`（per-session
 
 双侧经同一 `AgentSession` 宿主共享同一实例——compact 写入 → 归档 → read-ref 读回的完整 wiring。
 
-### 8.3 snapshot 可逆归档（增强）
+### 8.3 压缩前 snapshot 归档与压缩比度量（W4-2 已落地）
 
-压缩前 snapshot 归档 + 记录压缩比（对标 beads CompactTier1）：
+压缩管线补上"可逆性 + 可度量性 + 失败安全"：压缩前对整段消息历史做 snapshot 归档（按 `snapshotId` 寻址取回原文），记录两维度压缩比（消息条数维度 `originalSize`/`compactedSize` + 复用既有 token 维度 `tokensBefore`/`tokensAfter`），并在压缩失败时显式保留原文 archive + 显式记录失败（fail-loud，非静默）。覆盖摘要式与引用式（§8.2）两类压缩——管线级横切增强，不绑定具体策略。
+
+**边界声明（修正本节旧文 :258 自相矛盾）**：归档 **≠** checkpoint `snapshot.json`。旧文「归档即 checkpoint 的 compaction 类型」与本计划核心边界直接冲突，现改正为：压缩前 snapshot 归档是**压缩管线内部**的原文副本（供可回溯 / 失败安全，per-compaction-event、`snapshotId` 寻址、in-session 内存、会话级释放）；checkpoint `snapshot.json`（reliability §5.4 / §5.4a）是 **resume-point 持久化缓存**（crash/restart restore 用，journal.md + snapshot.json 双文件、跨进程持久化）。两者是**两个独立关注点**——归档服务于"压缩可回溯 + 失败安全"，checkpoint snapshot.json 服务于"崩溃恢复"。compaction-triggered snapshot.json 文件生成仍是 reliability §5.4 独立 successor，本节归档不产生 checkpoint 子系统的 snapshot.json 文件。
 
 ```
-压缩流程（增强）：
-  1. SnapshotArchive（压缩前归档原文）
-  2. Summarize（生成摘要）
-  3. 记录 originalSize / compactedSize（压缩比可度量）
-  4. 失败保留原文（不覆写）
+压缩流程（增强后）：
+  1. PRE_COMPACT hook
+  2. SnapshotArchive.put(整段 messages) → snapshotId        ← 压缩前归档原文
+  3. new CompactionContext(messages, ..., snapshotId)        ← snapshotId 经 context 流入管线
+  4. contextCompactor.compact(ctx) → CompactionResult        ← try-catch 包裹（失败保留 archive）
+  5. CompactionResult 携带 snapshotId + originalSize/compactedSize  ← PipelineCompactor 唯一构造点填写
+  6. 成功：替换 messages + COMPACTION checkpoint（compactSummary 含 snapshotId + 两维度压缩比）
+     失败：保留 archive + LOG.warn（含 snapshotId），不静默吞
 ```
 
-- 与 checkpoint append-only 天然一致（归档即 checkpoint 的 compaction 类型）
+#### 裁定 A — snapshotId 数据流
+
+`snapshotId` 单向数据流：coordinator 在 `compact()` **前** archive 原文 → 产出 `snapshotId` → 经 **`CompactionContext` 新增 `snapshotId` 字段**（`PipelineCompactor.rebuildContext` 透传该字段）传入 → `PipelineCompactor` 在最终结果唯一构造点（success / no-reduction 两分支）把 `ctx.getSnapshotId()` + `originalSize`/`compactedSize` 填入 `CompactionResult`。**不动 strategy 内部的 `CompactionResult` 构造**——strategy 产中间结果，`PipelineCompactor` 在唯一构造点重新构造最终结果为权威。
+
+**拒绝了**：(1) 让 strategy 各自读归档（爆炸半径大、策略须感知归档）；(2) coordinator 在 `compact()` 后改 `CompactionResult` 的 final 字段（不可变，无法后置 setter）。
+
+#### 裁定 B — 归档存储边界与命名空间
+
+归档接口与首版实现均在 **nop-ai-agent 的 session 包**（归档对象 = `List<ChatMessage>`，session 级；无 toolkit 消费方，不进 toolkit）。归档键 = `snapshotId`（per-compaction-event 寻址，**非** content hash）。首版 in-session 内存实现 + 会话级释放（`AgentSession` 持实例，lazy init，与 §8.2 引用归档平行）。生命周期 = 会话级（session 结束归档 GC）。
+
+**与 checkpoint `snapshot.json` 的明确边界**：归档 = 压缩管线内部原文副本（可回溯 / 失败安全）；checkpoint snapshot.json = resume-point 持久化缓存（reliability §5.4 独立 successor）。
+
+**三套 snapshotId 命名空间（须区分，不复用）**：(1) `CheckpointSnapshot.snapshotId`（reliability，crash/restart restore 用）；(2) `SessionSnapshot.snapshotId`（session-and-storage，session 快照重建用）；(3) 本节引入的 compaction-archive `snapshotId`（压缩管线内部、per-compaction-event 整段历史归档的读回键，形如 `snap:<sessionId>:<ts>:<n>`）。三者独立，design 文档化以避免混淆。
+
+**拒绝了**：复用 §8.2 的 `ICompactionArchive`（hash 寻址 per-content）——本节归档是 per-compaction-event 整段历史，寻址模型不同，独立接口。
+
+#### 裁定 C — 修正旧文自相矛盾（强制）
+
+旧文 §8.3 末行「归档即 checkpoint 的 compaction 类型（与 append-only 天然一致）」与本节核心边界冲突，**已改正**为本节开头的"边界声明"：归档 ≠ checkpoint snapshot.json。这是本节最先落地的裁定。
+
+#### 裁定 D — 度量维度与字段关系
+
+新增 `originalSize`（压缩前消息条数）/ `compactedSize`（压缩后消息条数）作为**消息条数维度的权威度量**；既有 `retainedMessageCount`（语义含混：成功路径 = 压缩后条数、no-op 路径 = 原始条数）**保留为向后兼容的 legacy 字段**，权威性让位于 `originalSize`/`compactedSize`。压缩比两维度各一：消息条数维度 = `compactedSize/originalSize`，token 维度 = `tokensAfter/tokensBefore`（既有，行为不变）。
+
+`CompactionResult` 新增 `originalSize`/`compactedSize` 字段（`final`），既有 5 参/6 参构造器保留并向后兼容（新字段 default = `retainedMessageCount`，作为 caller 未区分时的 best-effort proxy）；新增 8 参构造器供 `PipelineCompactor` 唯一构造点填入正确区分值。`equals`/`hashCode`/`toString` 已同步包含新字段。
+
+**拒绝了**：废弃 `retainedMessageCount`（coordinator `compactSummary` + 多个测试消费，破坏面大）；并存但不声明权威性（冗余且含混）。裁定 = 新字段权威、旧字段 legacy alias、关系显式文档化。
+
+#### 裁定 E — 归档时机与构造顺序
+
+archive 时机：`PRE_COMPACT` hook **之后**、`contextCompactor.compact()` **之前** archive 原文（保证压缩失败时原文副本已存在）。构造顺序：coordinator 在 archive **之后** new `CompactionContext`（snapshotId 是 final 字段，不可后置 setter，必须在构造时传入），即把 CompactionContext 构造从 archive 前移到 archive 后。
+
+#### 裁定 F — 失败记录层级（厘清两层）
+
+**coordinator 层**补三处（既有均为静默）：
+1. `compact()` 调用加 **try-catch**（非 PipelineCompactor 的自定义 compactor 抛异常 → 捕获 → 保留 archive + `LOG.warn` 含 `snapshotId`，不冒泡中断 agent）。
+2. `compactedMessages == null` 分支（全 strategy 未产出）补 `LOG.warn`（含 `snapshotId` + 原因）。
+3. `compactedMessages` 非 null 但 `tokensAfter >= tokensBefore`（压缩尝试但未减 token）补 `LOG.warn`（含 `snapshotId`）。
+
+区分两类："archive 不可用 / 未触发压缩"（snapshotId=null，不 archive、不记录失败——非异常）与"archive 后压缩未产出 / 未减"（archive 保留 + 显式失败记录）。**策略层**（`PipelineCompactor:96-100`）对单 strategy 异常已有 `LOG.warn` + `continue`，不动。
+
+**拒绝了**：吞异常不记录（违反 Minimum Rules #24 静默跳过禁令）。
+
+#### 裁定 G — 向后兼容
+
+`snapshotId`/`originalSize`/`compactedSize` 新字段对既有消费方（`AgentCompactionCoordinator`、测试）保持兼容；既有 5 参/6 参构造器不破坏；`NoOpContextCompactor` 仍返回 `snapshotId=null`（NoOp = 无压缩 = 无归档，`TestNoOpContextCompactor` 断言 null 不破）。`PipelineCompactor` 的 edge 路径（messages 空 `:62-64` / strategies 空走 NoOp `:66-70`）按 NoOp 语义返回 `snapshotId=null`——archive 的 `snapshotId` 不进这些 edge 结果对象（coordinator LOG 仍可观测），只有管线完整跑完的唯一构造点（success/no-reduction）携带非 null `snapshotId`。
