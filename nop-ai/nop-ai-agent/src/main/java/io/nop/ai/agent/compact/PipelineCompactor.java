@@ -119,11 +119,21 @@ public class PipelineCompactor implements IContextCompactor {
         }
 
         if (currentTokens < tokensBefore) {
+            // Single final construction point (design §8.3 Decision A):
+            // the authoritative result carries ctx.getSnapshotId() (non-null
+            // when the coordinator archived the pre-compaction history) and
+            // the distinct message-count dimensions (originalSize = the
+            // history before compaction, compactedSize = the reduced list).
             return new CompactionResult(ctx.getSessionId(), tokensBefore, currentTokens,
-                    current.size(), null, current);
+                    current.size(), ctx.getSnapshotId(), current,
+                    messages.size(), current.size());
         }
+        // No reduction: both message-count dimensions equal the original size
+        // (compaction attempted but nothing was relieved). snapshotId is still
+        // carried so the archived original is traceable from this result.
         return new CompactionResult(ctx.getSessionId(), tokensBefore, tokensBefore,
-                messages.size(), null, null);
+                messages.size(), ctx.getSnapshotId(), null,
+                messages.size(), messages.size());
     }
 
     /**
@@ -139,7 +149,10 @@ public class PipelineCompactor implements IContextCompactor {
     private CompactionContext rebuildContext(CompactionContext ctx, List<ChatMessage> currentMessages, CompactConfig config) {
         // Carry over the compaction archive so the reference-style strategy
         // can PUT original content on each escalation pass (design §8.2
-        // Decision G write-side wiring).
+        // Decision G write-side wiring), and the per-compaction-event
+        // snapshotId so the single final construction point can write it into
+        // the result (design §8.3 Decision A — snapshotId must survive
+        // escalation passes unchanged).
         return new CompactionContext(
                 currentMessages,
                 config,
@@ -147,7 +160,8 @@ public class PipelineCompactor implements IContextCompactor {
                 ctx.getAgentName(),
                 ctx.getExecutionContext(),
                 ctx.getTokenEstimator(),
-                ctx.getCompactionArchive()
+                ctx.getCompactionArchive(),
+                ctx.getSnapshotId()
         );
     }
 

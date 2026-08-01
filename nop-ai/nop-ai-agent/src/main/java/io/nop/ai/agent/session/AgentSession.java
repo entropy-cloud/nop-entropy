@@ -62,6 +62,20 @@ public class AgentSession {
      */
     private ICompactionArchive compactionArchive;
 
+    /**
+     * Per-session compaction snapshot archive (design §8.3 Decision B).
+     * Lazily initialised on first access by the
+     * {@code AgentCompactionCoordinator} write side — before each compaction
+     * the complete pre-compaction message list is archived here under a fresh
+     * {@code snapshotId} so the original history is retrievable for audit /
+     * debugging and a failed compaction leaves the original verifiably intact.
+     * {@code null} until the first real compaction runs; the session holds the
+     * only reference so the archive is reclaimed (session-scoped lifecycle)
+     * when the session ends. Independent from the §8.2 content-addressed
+     * {@link #compactionArchive} (per-event addressing vs per-content hash).
+     */
+    private ICompactionSnapshotArchive compactionSnapshotArchive;
+
     private AgentSession(String sessionId, String agentName, long createdAt) {
         this.sessionId = sessionId;
         this.agentName = agentName;
@@ -329,5 +343,35 @@ public class AgentSession {
      */
     public void setCompactionArchive(ICompactionArchive compactionArchive) {
         this.compactionArchive = compactionArchive;
+    }
+
+    /**
+     * Return the per-session compaction snapshot archive, lazily initialising
+     * it on first access (design §8.3 Decision B). The
+     * {@code AgentCompactionCoordinator} write side reaches this instance to
+     * archive the pre-compaction message list before handing it to the
+     * compaction pipeline; the snapshot is then retrievable via
+     * {@link ICompactionSnapshotArchive#get(String)} for audit / debugging.
+     * The laziness means sessions that never compact pay no allocation cost.
+     *
+     * @return the per-session snapshot archive; never null after this call
+     */
+    public ICompactionSnapshotArchive getOrCreateCompactionSnapshotArchive() {
+        if (compactionSnapshotArchive == null) {
+            compactionSnapshotArchive = new InSessionCompactionSnapshotArchive(sessionId);
+        }
+        return compactionSnapshotArchive;
+    }
+
+    /**
+     * Return the existing per-session compaction snapshot archive, or
+     * {@code null} when no compaction has run yet (no archive materialised).
+     * Used by read-back / audit paths that must not force materialisation —
+     * when null there is no archived snapshot to retrieve.
+     *
+     * @return the per-session snapshot archive, or {@code null} if none materialised
+     */
+    public ICompactionSnapshotArchive getCompactionSnapshotArchive() {
+        return compactionSnapshotArchive;
     }
 }

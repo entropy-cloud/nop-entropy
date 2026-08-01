@@ -21,13 +21,19 @@ public class NoOpContextCompactor implements IContextCompactor {
     public CompactionResult compact(CompactionContext ctx) {
         List<ChatMessage> messages = ctx.getMessages();
         long estimatedTokens = resolveEstimator(ctx).estimateTokens(messages);
+        int messageCount = messages.size();
+        // NoOp = no compaction: snapshotId stays null (no archive consulted)
+        // and both message-count dimensions equal the original size (design
+        // §8.3 Decision G — NoOp keeps null snapshotId for backward compat).
         return new CompactionResult(
                 ctx.getSessionId(),
                 estimatedTokens,
                 estimatedTokens,
-                messages.size(),
+                messageCount,
                 null,
-                null
+                null,
+                messageCount,
+                messageCount
         );
     }
 
