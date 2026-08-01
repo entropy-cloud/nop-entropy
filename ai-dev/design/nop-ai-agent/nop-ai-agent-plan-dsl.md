@@ -482,7 +482,7 @@ AgentPlanTaskModel 增加 `dependsOn` 列表（集合内引用），由 nop-task
 
 ### 14.4 Replan（停滞检测 → 重规划）
 
-> **落地状态：部分实现（W1-4 首切）**。停滞信号集 + 决策契约 + 幂等机制 + ESCALATE/CONTINUE 运行时已落地（`io.nop.ai.agent.plan.runtime`：`PlanExecutor` 消费 `PlanRunner`/`PlanScheduler` 驱动状态机并记录 `AgentPlanError`；`StagnationDetector` 产出结构化停滞事件；`PlanReplanner` 产出幂等 `ReplanDecision`）。`ROLLBACK_PHASE`/`SPLIT_TASK` 决策契约已定义，运行时实现延后 successor（未实现时抛 `UnsupportedOperationException`，非静默跳过）。
+> **落地状态：已实现（W1-4 收口）**。停滞信号集 + 决策契约 + 幂等机制 + ESCALATE/CONTINUE/ROLLBACK_PHASE/SPLIT_TASK 运行时全部落地（`io.nop.ai.agent.plan.runtime`：`PlanExecutor` 消费 `PlanRunner`/`PlanScheduler` 驱动状态机并记录 `AgentPlanError`，支持可恢复重规划（ROLLBACK 不终止 + phase 重入 + cycle-safety bound；SPLIT 不终止 + 子任务重驱动）；`StagnationDetector` 产出结构化停滞事件（task 级事件携带 owning phase）；`PlanReplanner` 产出幂等 `ReplanDecisionResult`（决策类型 + 目标 phase/task + 触发信号 + 理由）并 enact）。决策载荷形态 = 结果对象（`ReplanDecisionResult`），使 `PlanExecutionResult.getDecisionsEnacted()` 记录含载荷（可观测）。`ABORT` 保留决策槽位，enactment 抛 `UnsupportedOperationException`（非静默跳过）。触发条件裁定为构造期 `ReplanPolicy`（rollback targets + split specs；非 xdef 模型变更、非 `GateOnFail` 枚举扩展——见 §14.4.2）。SPLIT 集成面：`PlanScheduler` 结构来源 = 冻结模板 ∪ 运行时 overlay（新增 3-arg `getReadyTasks` 重载）；executor phase 过滤层 `phaseTaskNos` 含运行时子节点（子任务非死节点）。
 
 **前置架构事实**：截至 W1-4 首切，`PlanRunner.checkGate` 与 `PlanScheduler.getReadyTasks` 均为无状态查询，**无任何代码消费它们驱动 phase/task 状态推进**。Replanner 没有宿主可挂载。故 W1-4 首切必须先建立宿主（host 裁定见 §14.5），再在其上挂停滞检测与 replanner。
 
@@ -493,26 +493,34 @@ plan/phase/task 级"无进展"的可观测信号。与 ReAct 级 `SessionGoalTra
 | 信号 | 语义 | 触发条件 | 载荷 |
 |------|------|----------|------|
 | `GATE_EXHAUSTED` | 阶段门控重试预算耗尽 | `GateCheckResult.Outcome == RETRY_EXHAUSTED`（结构性判定，非计数推断） | 目标 phase + attempt |
-| `TASK_STALLED` | 任务连续 N 调度周期无状态推进 | 非终结态 task 连续 `staleTaskCycles` 周期 status 不变，或连续失败重试 | taskNo + 连续周期/失败计数 |
-| `REPEATED_ERRORS` | 同一 task 累积未解决错误达阈值 | 同一 `relatedTaskNo` 的未解决（`resolvedAt==null`）`AgentPlanError` 数 ≥ `maxErrorsPerTask` | taskNo + 未解决错误计数 |
+| `TASK_STALLED` | 任务连续 N 调度周期无状态推进 | 非终结态 task 连续 `staleTaskCycles` 周期 status 不变，或连续失败重试 | 目标 phase（owning phase）+ taskNo + 连续周期/失败计数 |
+| `REPEATED_ERRORS` | 同一 task 累积未解决错误达阈值 | 同一 `relatedTaskNo` 的未解决（`resolvedAt==null`）`AgentPlanError` 数 ≥ `maxErrorsPerTask` | 目标 phase（owning phase）+ taskNo + 未解决错误计数 |
 
-阈值（`staleTaskCycles`/`maxErrorsPerTask`）可配置，留生产调参空间，默认值定义于运行时。`GATE_EXHAUSTED` 无阈值——它复用 gate 自身的 `max-retries` 耗尽判定（§14.1），不重复配置。
+阈值（`staleTaskCycles`/`maxErrorsPerTask`）可配置，留生产调参空间，默认值定义于运行时。`GATE_EXHAUSTED` 无阈值——它复用 gate 自身的 `max-retries` 耗尽判定（§14.1），不重复配置。task 级信号（`TASK_STALLED`/`REPEATED_ERRORS`）由 `StagnationDetector` 在事件上携带 owning phase 名（`StagnationEvent.targetPhase`），使下游决策无需重新解析 task→phase 归属（replanner 是事件 + 策略的纯函数）。
 
 #### 14.4.2 决策契约
 
 停滞事件 → 重规划决策。决策空间（枚举契约）：
 
-| 决策 | 语义 | 首切落地状态 |
-|------|------|--------------|
+| 决策 | 语义 | 落地状态 |
+|------|------|----------|
 | `CONTINUE` | 无停滞信号，继续推进状态机 | ✅ wired |
-| `ESCALATE` | 停滞达阈值，升级（plan/phase status 置 `escalated`） | ✅ wired |
-| `ROLLBACK_PHASE` | 回退到前置阶段（task 状态重置） | 契约定义，运行时延后 successor |
-| `SPLIT_TASK` | 拆分/合并任务（DAG 动态增删节点） | 契约定义，运行时延后 successor |
-| `ABORT` | 终止 plan | 契约定义，保留决策槽位 |
+| `ESCALATE` | 停滞达阈值且无可恢复策略，升级（plan/phase status 置 `escalated`），终止 | ✅ wired（terminal） |
+| `ROLLBACK_PHASE` | 回退到前置阶段（task 状态重置 + 停滞状态清理 + currentPhase 移回），可恢复不终止 | ✅ wired（recoverable，构造期 `ReplanPolicy` 触发） |
+| `SPLIT_TASK` | 拆分停滞 task 为运行时子任务节点（DAG 动态增节点），可恢复不终止 | ✅ wired（recoverable，构造期 `ReplanPolicy.splitSpecs` 触发） |
+| `ABORT` | 终止 plan | 契约定义，保留决策槽位，enactment 抛 `UnsupportedOperationException` |
 
-决策载荷：决策类型 + 目标 phase/task + 触发信号类型 + 理由文本。
+**决策载荷形态（裁定）**：结果对象 `ReplanDecisionResult(type, targetPhase, targetTaskNo, triggerSignal, reason)`。`decide()` 返回 `ReplanDecisionResult`（非裸枚举）；`apply(ReplanDecisionResult, state)` 据载荷 enact。拒绝"apply 传事件"备选——`PlanExecutionResult.getDecisionsEnacted()` 须记录决策，结果对象使记录含载荷（可观测），传事件则记录丢失目标信息。`ReplanDecisionResult` 不可变 + 含 `idempotencyKey()`（结构字段 only：type + targetPhase + targetTaskNo + triggerSignal，排除 reason）。
 
-**确定性边界**：决策是输入停滞状态的纯函数——给定相同信号集 + 计数 + 目标 identity，产出相同决策。映射规则固定且无歧义：`GATE_EXHAUSTED`/`TASK_STALLED`/`REPEATED_ERRORS` → `ESCALATE`；无停滞信号 → `CONTINUE`。`ROLLBACK_PHASE`/`SPLIT_TASK` 的触发条件由 successor 定义（首切不产出；首切内调用即快速失败，非静默跳过）。
+**触发条件裁定（避免 Protected Area 模型变更）**：ROLLBACK/SPLIT 触发声明形态 = **构造期 `ReplanPolicy`**（`new PlanReplanner(policy)`），**非** `GateOnFail` 枚举扩展（`{retry,block,escalate}` 不变），**非** 新 xdef `<replanPolicy>` 元素。理由：(1) `GateOnFail` 扩展是 Protected Area codegen 级联（`_AgentPlanGate` 重生成 + xdef + `GateCheckResult` 改造）；(2) replanner 是运行时组件，其策略自然是构造参数（同 `StagnationDetector(staleTaskCycles, maxErrorsPerTask)` 既有模式）；(3) 触发阈值是生产调参（Non-Blocking Follow-up），声明式 xdef 元素可作为未来非破坏性 successor 叠加，不改变今日 enactment。`ReplanPolicy.escalateOnly()`（默认空策略）保证零回归——无策略时所有信号 → ESCALATE（与首切一致）。
+
+**信号 → 决策映射**（policy 驱动；纯函数）：
+- `GATE_EXHAUSTED` on rollback-eligible phase → `ROLLBACK_PHASE`（target = 注册的前置 phase）；否则 → `ESCALATE`。
+- `TASK_STALLED` on split-eligible task → `SPLIT_TASK`（successor）；on rollback-eligible phase 拥有的 task → `ROLLBACK_PHASE`；否则 → `ESCALATE`。
+- `REPEATED_ERRORS` on rollback-eligible phase 拥有的 task → `ROLLBACK_PHASE`；否则 → `ESCALATE`。
+- 批 `decide(events)` 按优先级取最严重：`ESCALATE`/`ABORT` > `ROLLBACK_PHASE` > `SPLIT_TASK` > `CONTINUE`（默认空策略下"任一非空 batch → ESCALATE"，零回归）。
+
+**确定性边界**：决策是输入停滞状态 + 策略的纯函数——给定相同信号集 + 计数 + 目标 identity + 策略，产出相同 `ReplanDecisionResult`。`ROLLBACK_PHASE`/`SPLIT_TASK` 由 `ReplanPolicy` 触发（构造期配置）；`ABORT` 由 `decide()` 永不产出（enactment 仅经 `ReplanDecisionResult.abort()` 手工构造路径，apply 快速失败）。
 
 #### 14.4.3 状态突变语义 + freeze 裁定
 
@@ -520,7 +528,21 @@ plan/phase/task 级"无进展"的可观测信号。与 ReAct 级 `SessionGoalTra
 
 **裁定**：host 运行在 **mutable runtime execution-state**（叠加在冻结模板之上）。`ResourceComponentManager` 加载时对模板执行 `freeze(true)`（级联深冻结），且 `cloneInstance()` 为浅拷贝（共享已冻结的子模型），故 host 不直接突变加载的模板对象。所有运行时状态突变——task status 推进、`AgentPlanError`（或等价运行时错误记录）写入、phase 推进、未来 ROLLBACK/SPLIT 的 DAG 增删——作用于 host 持有的 mutable execution state（`PlanExecutionState`），它以可变覆盖层（mutable overlay）镜像 task/phase 的运行时 status 与错误记录。**冻结 xdef 模板永不被突变**，只作为只读声明被读取（gate 定义、DAG 结构、trigger rule）。这使 `checkAllowChange()` 语义保持完整（模板常冻结），同时允许执行器驱动状态机。
 
-`ROLLBACK_PHASE` 语义（successor）：重置目标 phase 的 task status（completed→pending）+ phase status 回退。`SPLIT_TASK` 语义（successor）：向运行时副本 DAG 插入/移除 task 节点。两者首切不实现，但突变目标裁定为运行时副本（非模板），为 successor 锁定方向。
+`ROLLBACK_PHASE` 语义（已落地）：作用于运行时副本（`PlanExecutionState`），冻结模板不突变——
+1. **目标 phase**（结果对象 `targetPhase` = 回退目的地前置 phase）：该 phase 内 task `completed→pending`（仅该 phase）+ phase status 回退（escalated/failed/completed→pending）。
+2. **源 phase**（rollback 时的 `currentPhase`，即停滞起源 phase）：清理其停滞状态——其 task 累积 `AgentPlanError` 写 `resolvedAt`（首个业务 writer）+ consecutive-failure 计数清零 + gate-exhaustion marker 清除 + phase status 回退。这打破 detect→rollback 循环（否则 marker/计数残留 → detector 立即重产同信号 → 再 rollback 死循环）。target==source（回退到自身）时单次 pass 覆盖两者。
+3. `currentPhase` 移回目标 phase。
+
+**executor 控制流改造**（ROLLBACK/SPLIT 端到端前提）：ROLLBACK/SPLIT 均是**可恢复重规划**（不终止），区别于 ESCALATE/ABORT（终止）。`PlanExecutor.execute()` phase 循环改为可重入——ROLLBACK 后按 `state.getCurrentPhase()` 重设 phaseIdx 回跳（非单向递增）；SPLIT 后重驱动当前 phase（scheduler 经 overlay 重算子任务就绪集）；recoverable 决策计数入 cycle-safety bound（复用 `computeSafetyBound` 模式），超阈值抛 `IllegalStateException`（防 ROLLBACK↔推进 / SPLIT 循环死循环）；ESCALATE/ABORT/gate-BLOCKED 仍终止。引入 `StopOutcome`（proceed/recoverable/terminal）区分可恢复 vs 终止。
+
+**SPLIT_TASK 语义**（已落地，§14.4.3 状态突变 + 集成面）：子任务规格来源 = 构造期 `SplitSpec`（`ReplanPolicy.splitSpecs: Map<parentTaskNo, SplitSpec>`，避免 `agent-plan.xdef` 新增 `<splitTemplate>` 元素的 Protected Area codegen 级联；声明式 xdef 元素可作为未来非破坏性 successor 填充同一 `ReplanPolicy`）。enactment（`PlanReplanner.apply` → `enactSplit`，作用于运行时副本，冻结模板不突变）：
+1. parent 标记为 split 占位（`markSplitParent`）+ status 置 `completed`（占位不再 re-stall）+ resolve 其累积错误 + 清零连续失败计数（打破 detect→split 循环）。
+2. `SplitSpec.childTemplates` 每个经 `PlanExecutionState.registerRuntimeTask(phase, child)` 注册为运行时 overlay 节点（初始 `pending`，归属 parent 的 owning phase）。
+
+**SPLIT 集成面（anti-hollow 关键）**：子任务节点不能是死节点——
+- **scheduler 结构来源改造**：`PlanScheduler.getReadyTasks(plan, statusProvider, runtimeTasks)` 新增 3-arg 重载，结构来源 = `PlanDagBuilder.collectAllTasks(plan)`（冻结）∪ `runtimeTasks`（overlay）；原 2-arg 委托 3-arg 空 overlay（零回归）。
+- **executor phase 过滤层改造**：`PlanExecutionState.phaseTaskNos(phase)` 含运行时子节点（子任务归属 parent phase），`readyTasksForPhase` 据此放行子任务（否则子任务被过滤掉成死节点）。
+- **scheduler 真实返回子任务** + **executor 真实调度执行子任务**（端到端验证：`splitTask_endToEnd_subtasksScheduledAndRun` 断言子任务被 TaskRunner 执行）。
 
 #### 14.4.4 幂等 + checkpoint 交互
 

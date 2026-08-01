@@ -9,8 +9,8 @@
 - [x] W1-1 plan-dsl：AgentPlanPhase 增加 Gate 门控（on-fail retry/block/escalate + max-retries + require-explicit-verdict）
 - [x] W1-2 plan-dsl：任务依赖增加 Trigger Rule（all_success/one_success/none_failed_min_one_success/all_done）
 - [x] W1-3 plan-dsl：AgentPlanTaskModel 增加 dependsOn（DAG 依赖，nop-task GraphStepAnalyzer 环检测）
-- [ ] W1-4 plan 运行时：PlanReplanner（停滞检测 → 阶段回退/任务拆分/失败升级，幂等决策）
-  - **partial-landing（2026-08-01，plan `2026-08-01-1505-2`）**：停滞检测 + 幂等 replan 决策契约 + ESCALATE/CONTINUE 运行时已落地（`PlanExecutor` 宿主 + `StagnationDetector` + `PlanReplanner`）；design §14.4 补齐。**但 ROLLBACK_PHASE（阶段回退）/ SPLIT_TASK（任务拆分）运行时明确延后 successor plan**——故 W1-4 完整勾选须等 successor。本项保持 `[ ]`。
+- [x] W1-4 plan 运行时：PlanReplanner（停滞检测 → 阶段回退/任务拆分/失败升级，幂等决策）
+  - **收口（2026-08-01，plan `2026-08-01-1905-1`）**：W1-4 全部落地。决策空间（CONTINUE/ESCALATE/ROLLBACK_PHASE/SPLIT_TASK）全部可达 + 全部有真实 enactment；决策载荷结果对象 `ReplanDecisionResult`；构造期 `ReplanPolicy`（避免 Protected Area 模型变更）；executor 可恢复重入（ROLLBACK 不终止 + phase 回跳 + cycle-safety bound）；SPLIT 集成面（scheduler 3-arg 结构来源 = 冻结 ∪ overlay + executor phase 过滤含运行时子节点，子任务非死节点）；冻结模板永不突变；零回归。ABORT 留 successor（enactment 抛 UOE）。design §14.4.2/§14.4.3 已回写。前置 partial-landing（plan `2026-08-01-1505-2`：停滞检测 + ESCALATE/CONTINUE）已被本 plan 收口。
 - 参考：`2026-08-01-codewhale-workflow-ir-gate-analysis.md`、`2026-08-01-archon-yaml-dag-workflow-analysis.md`、`2026-08-01-jcode-dag-first-agent-analysis.md`、`2026-08-01-spec-kit-workflow-engine-analysis.md`
 
 ### W2e. LLM 错误规范化与配额感知恢复（W2 前置必须项）
