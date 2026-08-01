@@ -9,6 +9,7 @@ import io.nop.ai.agent.plan.model.AgentPlanTaskModel;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.EnumMap;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -46,6 +47,15 @@ public class PlanExecutionState {
     private final Set<String> gateExhaustedPhases = new LinkedHashSet<>();
     private final Map<String, Integer> gateExhaustedAttempt = new LinkedHashMap<>();
     private final Map<String, Integer> phaseGateAttempts = new LinkedHashMap<>();
+
+    /**
+     * Per-task typed-failure counters (design §13.3 W2-3 three-level failure
+     * escalation). Each task maps to a {@code FailureType → count} enum-map.
+     * An entry is created lazily on the first typed failure and reset on task
+     * success / ROLLBACK phase reset (analogous to
+     * {@link #taskConsecutiveFailures}).
+     */
+    private final Map<String, EnumMap<FailureType, Integer>> taskTypedFailures = new LinkedHashMap<>();
 
     /**
      * Runtime task-node overlay (design §14.4.3 SPLIT_TASK): sub-task nodes
@@ -150,6 +160,52 @@ public class PlanExecutionState {
 
     public void resetConsecutiveFailures(String taskNo) {
         taskConsecutiveFailures.put(taskNo, 0);
+    }
+
+    // -------------------- Typed-failure counters (W2-3, design §13.3) --------------------
+
+    /**
+     * Increment the per-task cumulative counter for the given failure type
+     * (design §13.3 W2-3). The host calls this for every typed failure
+     * returned by {@link TaskRunner}; the {@link FailureEscalationPolicy}
+     * then decides whether to escalate.
+     *
+     * @param taskNo the task number (non-null)
+     * @param type   the failure type (non-null)
+     */
+    public void recordTypedFailure(String taskNo, FailureType type) {
+        if (taskNo == null) {
+            throw new IllegalArgumentException("taskNo must not be null");
+        }
+        if (type == null) {
+            throw new IllegalArgumentException("type must not be null");
+        }
+        taskTypedFailures
+                .computeIfAbsent(taskNo, k -> new EnumMap<>(FailureType.class))
+                .merge(type, 1, Integer::sum);
+    }
+
+    /**
+     * The per-task cumulative count for the given failure type (0 if none).
+     */
+    public int getTypedFailureCount(String taskNo, FailureType type) {
+        EnumMap<FailureType, Integer> counts = taskTypedFailures.get(taskNo);
+        if (counts == null) {
+            return 0;
+        }
+        return counts.getOrDefault(type, 0);
+    }
+
+    /**
+     * Reset all typed-failure counters for a task to zero. Called on task
+     * success (analogous to {@link #resetConsecutiveFailures}) and during
+     * ROLLBACK phase reset (analogous to
+     * {@link PlanReplanner#resetStagnationForPhase}).
+     */
+    public void resetTypedFailures(String taskNo) {
+        if (taskNo != null) {
+            taskTypedFailures.remove(taskNo);
+        }
     }
 
     public AgentExecStatus getPhaseStatus(String phaseName) {

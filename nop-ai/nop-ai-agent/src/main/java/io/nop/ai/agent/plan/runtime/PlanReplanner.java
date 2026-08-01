@@ -231,6 +231,7 @@ public class PlanReplanner {
         for (String taskNo : state.phaseTaskNos(phaseName)) {
             state.resolveErrorsForTask(taskNo);
             state.resetConsecutiveFailures(taskNo);
+            state.resetTypedFailures(taskNo);
         }
         state.clearGateExhausted(phaseName);
         AgentExecStatus ps = state.getPhaseStatus(phaseName);
@@ -273,6 +274,7 @@ public class PlanReplanner {
         state.setTaskStatus(parent, AgentExecStatus.completed);
         state.resolveErrorsForTask(parent);
         state.resetConsecutiveFailures(parent);
+        state.resetTypedFailures(parent);
 
         // Insert the child templates into the runtime overlay under the parent's phase.
         for (io.nop.ai.agent.plan.model.AgentPlanTaskModel child : spec.getChildTemplates()) {

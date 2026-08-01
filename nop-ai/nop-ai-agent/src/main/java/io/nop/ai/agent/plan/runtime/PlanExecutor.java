@@ -62,26 +62,43 @@ public class PlanExecutor {
     private final PlanReplanner replanner;
     private final PlanScheduler scheduler;
     private final PlanRunner gateRunner;
+    private final FailureEscalationPolicy failureEscalationPolicy;
 
     /**
-     * Construct a host with the given collaborators.
+     * Construct a host with the given collaborators and the default
+     * (disabled) failure-escalation policy — zero regression.
      */
     public PlanExecutor(TaskRunner taskRunner, StagnationDetector detector, PlanReplanner replanner) {
-        this(taskRunner, detector, replanner, new PlanScheduler(), new PlanRunner());
+        this(taskRunner, detector, replanner, new PlanScheduler(), new PlanRunner(),
+                FailureEscalationPolicy.disabled());
+    }
+
+    /**
+     * Construct a host with an explicit failure-escalation policy (design
+     * §13.3 W2-3). Pass {@link FailureEscalationPolicy#disabled()} for the
+     * pre-W2-3 undifferentiated behaviour.
+     */
+    public PlanExecutor(TaskRunner taskRunner, StagnationDetector detector, PlanReplanner replanner,
+                        FailureEscalationPolicy failureEscalationPolicy) {
+        this(taskRunner, detector, replanner, new PlanScheduler(), new PlanRunner(), failureEscalationPolicy);
     }
 
     PlanExecutor(TaskRunner taskRunner, StagnationDetector detector, PlanReplanner replanner,
-                 PlanScheduler scheduler, PlanRunner gateRunner) {
+                 PlanScheduler scheduler, PlanRunner gateRunner,
+                 FailureEscalationPolicy failureEscalationPolicy) {
         if (taskRunner == null) throw new IllegalArgumentException("taskRunner must not be null");
         if (detector == null) throw new IllegalArgumentException("detector must not be null");
         if (replanner == null) throw new IllegalArgumentException("replanner must not be null");
         if (scheduler == null) throw new IllegalArgumentException("scheduler must not be null");
         if (gateRunner == null) throw new IllegalArgumentException("gateRunner must not be null");
+        if (failureEscalationPolicy == null)
+            throw new IllegalArgumentException("failureEscalationPolicy must not be null");
         this.taskRunner = taskRunner;
         this.detector = detector;
         this.replanner = replanner;
         this.scheduler = scheduler;
         this.gateRunner = gateRunner;
+        this.failureEscalationPolicy = failureEscalationPolicy;
     }
 
     /**
@@ -192,10 +209,30 @@ public class PlanExecutor {
                 if (outcome.isSuccess()) {
                     state.setTaskStatus(taskNo, AgentExecStatus.completed);
                     state.resetConsecutiveFailures(taskNo);
+                    state.resetTypedFailures(taskNo);
                 } else {
                     state.incrementConsecutiveFailures(taskNo);
                     state.recordError(taskNo, state.getTaskAttempts(taskNo), outcome.getErrorText());
-                    state.setTaskStatus(taskNo, AgentExecStatus.pending);
+
+                    // W2-3 three-level failure escalation (design §13.3).
+                    // Typed failures are counted per-type and escalated when
+                    // their threshold is hit. Untyped failures (null type)
+                    // always retry (pending) — zero regression.
+                    FailureType failureType = outcome.getFailureType();
+                    if (failureType != null) {
+                        state.recordTypedFailure(taskNo, failureType);
+                        int typedCount = state.getTypedFailureCount(taskNo, failureType);
+                        if (failureEscalationPolicy.shouldEscalate(failureType, typedCount)) {
+                            // Escalation action: mark the task failed (terminal).
+                            // Errors remain unresolved → feed REPEATED_ERRORS
+                            // (Contribute model, design §13.3 裁定 E).
+                            state.setTaskStatus(taskNo, AgentExecStatus.failed);
+                        } else {
+                            state.setTaskStatus(taskNo, AgentExecStatus.pending);
+                        }
+                    } else {
+                        state.setTaskStatus(taskNo, AgentExecStatus.pending);
+                    }
                 }
             }
 
