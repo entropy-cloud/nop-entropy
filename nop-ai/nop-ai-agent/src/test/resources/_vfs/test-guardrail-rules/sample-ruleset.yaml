@@ -1,0 +1,32 @@
+id: test-ruleset
+rules:
+  - id: fin-transaction
+    direction: INPUT
+    pattern: "(?i)transfer\\s+funds"
+    action: BLOCK
+    threatClass: FIN_COMPLIANCE
+    description: "Block fund-transfer attempts; narrow to compliance ruleset"
+    excludes:
+      - general-chat
+    dependsOn:
+      - audit-trail
+
+  - id: general-chat
+    pattern: "(?i)hello|hi|weather"
+    action: BLOCK
+    threatClass: CHAT
+    description: "General conversation (excluded when compliance rule active)"
+
+  - id: audit-trail
+    pattern: "(?i)audit"
+    action: BLOCK
+    threatClass: AUDIT
+    description: "Pulled in by fin-transaction to extend detection surface"
+
+  - id: redact-token
+    direction: OUTPUT
+    pattern: "secret-token-\\d+"
+    action: MODIFY
+    modifyReplacement: "[REDACTED]"
+    threatClass: PII_REDACTION
+    description: "Redact secret tokens in model output"

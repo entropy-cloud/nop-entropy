@@ -1,0 +1,50 @@
+# Enterprise-compliance guardrail rule set (design guardrail-contract.md §增量 2,
+# Decision D/F). Demonstrates structural convergence: dependsOn extends the
+# detection surface; excludes narrows it (structural decision, not LLM attention).
+#
+# Scenario: a financial-services compliance context where a fund-transfer
+# instruction must (a) block, (b) pull in the stricter audit rule (extends
+# detection), and (c) exclude the general-conversation rule (narrowing — the
+# compliance rule wins over the general rule when both patterns match).
+#
+# This ships as a sample, opt-in via:
+#   RuleGraphGuardrail guardrail = new RuleGraphGuardrail(
+#       new RuleSetLoader().load(VirtualFileSystem.instance()
+#           .getResource("/nop/ai/agent/guardrail-rules/enterprise-compliance.yaml")));
+# It does NOT replace PromptInjectionGuardrail or the shipped NoOp default.
+
+id: enterprise-compliance
+
+rules:
+  - id: fin-transaction
+    direction: INPUT
+    pattern: "(?i)(transfer|wire|move)\\s+(funds|money|assets?)"
+    action: BLOCK
+    threatClass: FIN_COMPLIANCE
+    description: "Fund-transfer instruction — compliance block; narrows to compliance ruleset"
+    excludes:
+      - general-chat
+    dependsOn:
+      - audit-trail
+
+  - id: audit-trail
+    direction: INPUT
+    pattern: "(?i)(audit|ledger|compliance)"
+    action: BLOCK
+    threatClass: AUDIT
+    description: "Pulled in by fin-transaction to extend detection surface (dependsOn convergence)"
+
+  - id: general-chat
+    direction: INPUT
+    pattern: "(?i)(hello|hi\\s+there|how\\s+are\\s+you|weather)"
+    action: BLOCK
+    threatClass: CHAT
+    description: "General conversation (excluded when fin-transaction is active)"
+
+  - id: redact-secret-token
+    direction: OUTPUT
+    pattern: "secret-token-[0-9a-f]+"
+    action: MODIFY
+    modifyReplacement: "[REDACTED]"
+    threatClass: PII_REDACTION
+    description: "Redact secret tokens leaked in model output (Modify remediation)"
