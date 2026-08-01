@@ -1,0 +1,8 @@
+# Flux 版本的校验器测试页。核心为 std:GenValidator（元数据驱动，与渲染框架无关），保留原 x:gen-extends。
+type: page
+body:
+  type: form
+  debug: true
+  body:
+    "x:gen-extends": |
+      <std:GenValidator metaPath="DemoValidator.xmeta" xpl:lib="/nop/web/xlib/std.xlib" />

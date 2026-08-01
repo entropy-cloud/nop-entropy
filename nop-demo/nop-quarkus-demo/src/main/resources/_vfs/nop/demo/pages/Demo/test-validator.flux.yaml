@@ -1,0 +1,60 @@
+{
+  "type": "page",
+  "body": {
+    "type": "button-toolbar",
+    "buttons": [
+      {
+        "type": "button",
+        "label": "testValidate?valid",
+        "onClick": {
+          "action": "ajax",
+          "args": { "url": "/r/Demo__testValidate?orderId=1&materialId=2", "method": "post" },
+          "messages": { "success": "成功了！欧耶", "failed": "失败了呢。。" }
+        }
+      },
+      {
+        "type": "button",
+        "variant": "primary",
+        "label": "testValidate?invalid",
+        "onClick": {
+          "action": "ajax",
+          "args": { "url": "/r/Demo__testValidate?orderId=1&materialId=3", "method": "post" }
+        }
+      },
+      {
+        "type": "button",
+        "label": "testValidate2?valid",
+        "onClick": {
+          "action": "ajax",
+          "args": { "url": "/r/Demo__testValidate2?orderId=1&materialId=2", "method": "post" },
+          "messages": { "success": "成功了！欧耶", "failed": "失败了呢。。" }
+        }
+      },
+      {
+        "type": "button",
+        "label": "testValidate?invalid",
+        "onClick": {
+          "action": "ajax",
+          "args": { "url": "/r/Demo__testValidate2?orderId=1&materialId=3", "method": "post" }
+        }
+      },
+      {
+        "type": "button",
+        "label": "testValidate3?valid",
+        "onClick": {
+          "action": "ajax",
+          "args": { "url": "/r/Demo__testValidate?orderId=1&materialId=2", "method": "post" },
+          "messages": { "success": "成功了！欧耶", "failed": "失败了呢。。" }
+        }
+      },
+      {
+        "type": "button",
+        "label": "testValidate3?valid",
+        "onClick": {
+          "action": "ajax",
+          "args": { "url": "/r/Demo__testValidate?orderId=1&materialId=3", "method": "post" }
+        }
+      }
+    ]
+  }
+}
