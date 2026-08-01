@@ -1,6 +1,6 @@
 # 2 arm-p3-code-hygiene — 代码卫生 P3 残余收口（测试 System.out + 冗余 public + unchecked cast）
 
-> Plan Status: active
+> Plan Status: completed
 > Last Reviewed: 2026-08-01
 > Source: `ai-dev/audits/2026-07-31-0539-arm-MA4.2-nop-ai-style.md`（MA4.2-12/-13）+ `ai-dev/audits/2026-07-31-XXXX-arm-MA4.1-nop-ai-typesafety.md`（MA4.1-04）+ `ai-dev/audits/arm-index.md`
 > Mission: audit-remediation
@@ -108,14 +108,14 @@ Exit Criteria:
 
 ## Closure Gates
 
-- [ ] 13 个测试文件 System.out 清理完成且 13 文件 × 处置对照表落盘；grep 命中集合 = 对照表"保留"集合
-- [ ] GrepResult 3 个 getter 冗余 public 移除 + SplitChunk/SplitOptions 不处理裁定记录 + unchecked cast 清理完成
-- [ ] 零行为变更（测试数量与断言不减少，全量测试绿为证）
-- [ ] 不存在被静默降级的 in-scope live defect
-- [ ] arm-index 与 roadmap 已登记
-- [ ] 独立子 agent closure-audit 已完成并记录证据
-- [ ] **Anti-Hollow Check**：closure audit 验证清理未删除有效断言/输出（抽查测试文件 diff 不减少测试方法）
-- [ ] `./mvnw test -pl nop-ai -am -T 1C`（Phase 3 已执行，此处为 closure 复核）
+- [x] 13 个测试文件 System.out 清理完成且 13 文件 × 处置对照表落盘；grep 命中集合 = 对照表"保留"集合
+- [x] GrepResult 3 个 getter 冗余 public 移除 + SplitChunk/SplitOptions 不处理裁定记录 + unchecked cast 清理完成
+- [x] 零行为变更（测试数量与断言不减少，全量测试绿为证）
+- [x] 不存在被静默降级的 in-scope live defect
+- [x] arm-index 与 roadmap 已登记
+- [x] 独立子 agent closure-audit 已完成并记录证据
+- [x] **Anti-Hollow Check**：closure audit 验证清理未删除有效断言/输出（抽查测试文件 diff 不减少测试方法）
+- [x] `./mvnw test -pl nop-ai -am -T 1C`（Phase 3 已执行，此处为 closure 复核）
 
 ## Deferred But Adjudicated
 
@@ -143,13 +143,20 @@ Exit Criteria:
 
 ## Closure
 
-Status Note: 待执行
-Completed: （待填）
+Status Note: 三个 Phase 全部 completed + 独立子 agent closure audit APPROVE（13/13 检查项 PASS），plan 收口
+Completed: 2026-08-01
 
 Closure Audit Evidence:
 
-- Reviewer / Agent: （待独立子 agent 填写）
-- Evidence: （待填）
+- Reviewer / Agent: 独立子 agent（fresh session `ses_045293c86ffeEgfGRSC44XcU8n`，非实现 session）
+- Evidence:
+  - **Phase 1（MA4.2-12）PASS**：`grep -rln "System.out" nop-ai --include="*.java"` = 恰 7 文件保留集合（AiGenCodeTaskManual/TestAiCoder/AiChatServiceManual/TestChatServiceImpl/VfsMavenUsageExampleRunner/TestJavaCodeFileInfoParser/TestDeepWikiPrompts），50 行与对照表一致；5 文件转 LOG 逐文件 live 验证（LOG 字段在、System.out 0 命中）；FixTranslateDir 死代码 println 已删；audit 对照表落盘 `ai-dev/logs/2026/08-01.md` Phase 1 条目
+  - **Phase 2（MA4.2-13 + MA4.1-04）PASS**：IFileOperator.java:330/334/338 getter 无 public、:345 toString 仍 public、构造器 public；`git show f8a3c8bb6` 仅含 IFileOperator + DefaultAiChatService（IAiTextSplitter 未动，SplitChunk/SplitOptions getter live 仍 public）；DefaultAiChatService.java:562 局部 @SuppressWarnings 在位、:548 既有注解未动
+  - **Phase 3（登记）PASS**：arm-index.md:476-484「P3 追踪（第十一批 — 代码卫生）」3 行全 `fixed`；roadmap:263 第十一批（代码卫生）✅（closed 2026-08-01）+ v12 头部；daily log 顶部 Phase 1/2/3 条目倒序齐全
+  - **Closure Gate 逐条**：13 文件对照表 + grep 命中=保留集合 PASS；GrepResult 清理 + SplitChunk/SplitOptions 裁定 + cast 注解 PASS；零行为变更（commit 92dcb583b @Test 计数 12/1/1/1/1 → 12/1/1/1/1 零减少、断言零改动）PASS；无静默降级（deferred 项均为 watch-only/optimization，JLS 理由成立）PASS；arm-index + roadmap 登记 PASS；独立 audit 完成 PASS；Anti-Hollow（抽查 5 文件 diff 纯 System.out→LOG + 2 处 RuntimeException→IllegalStateException 同语义，测试方法数不减少）PASS；全量 `./mvnw test -pl nop-ai -am -T 1C` BUILD SUCCESS（0 failures 0 errors）PASS
+  - `node ai-dev/tools/check-plan-checklist.mjs 2026-08-01-0746-2-arm-p3-code-hygiene.md --strict` 退出码 0（closure 前运行）
+  - Anti-Hollow 自动扫描：`scan-hollow-implementations.mjs --module nop-ai --severity high` exit 0（0 findings）；`check-doc-links.mjs --strict` exit 0（1842 文件 0 issues）
+  - Deferred 项分类检查：SplitChunk/SplitOptions（watch-only residual——移除 public 即降 package-private 破坏跨包 Jackson 序列化）、MA4.1-07（observation only）、MA4.2-01/-14（optimization candidate）均非 in-scope live defect 降级
 
 Follow-up:
 
