@@ -68,7 +68,14 @@ public class AgentHookInvoker {
                 invokeHooks(point, hookCtx.getExecutionContext(), agentName,
                         hookCtx.getToolName(), hookCtx.getToolCallId());
         MiddlewareChain chain = new MiddlewareChain(mws, 0, core);
-        return chain.proceed(mwCtx);
+        HookResult result = chain.proceed(mwCtx);
+        // W5-3 (BAIL): BailResult is only valid at POST_REASONING / POST_CALL.
+        // A middleware short-circuiting the chain at a non-POST point (not
+        // calling next.proceed) bypasses invokeHooks' validation, so this is
+        // the choke point for middleware-returned BAIL. Fail-loud, no silent
+        // ignore (Minimum Rules #24).
+        validateBailPoint(result, point);
+        return result;
     }
 
     /**
@@ -117,7 +124,18 @@ public class AgentHookInvoker {
         // same point, so each can veto / observe around the (empty) core.
         java.util.function.Function<HookContext, HookResult> core = hookCtx -> HookResult.PassResult.instance();
         MiddlewareChain chain = new MiddlewareChain(mws, 0, core);
-        return chain.proceed(mwCtx);
+        HookResult result = chain.proceed(mwCtx);
+        // W5-3 (BAIL): BailResult is session-level only (POST_REASONING /
+        // POST_CALL). Execution-level scope returning BailResult is a
+        // misconfiguration — fail-loud rather than silently treating it as
+        // Pass (the caller only checks isVeto, so a Bail would be a silent
+        // skip). Minimum Rules #24.
+        if (result.isBail()) {
+            throw new NopAiAgentException(
+                    "BailResult is not valid at execution-level points (ExecutionPoint=" + point
+                            + "); BAIL is session-level (POST_REASONING/POST_CALL) only");
+        }
+        return result;
     }
     public HookResult invokeHooks(AgentLifecyclePoint point, AgentExecutionContext ctx,
                                    String agentName, String toolName, String toolCallId) {
@@ -139,6 +157,18 @@ public class AgentHookInvoker {
                         throw new NopAiAgentException(
                                 "ReenterResult is only valid at re-entrant hook points (BEFORE_TOOL_RESULT_PROCESSED, AFTER_TOOL_RESULT_PROCESSED), got: " + point);
                     }
+                    return result;
+                }
+
+                // W5-3 (BAIL): validate BailResult is only returned at POST
+                // points. This covers hooks (including the 3 non-chain points
+                // ON_ERROR/REASONING_CHUNK/POST_COMPACT that call invokeHooks
+                // directly). Middlewares returning BailResult are validated at
+                // executeWithMiddleware's choke point. Fail-loud (Minimum
+                // Rules #24).
+                validateBailPoint(result, point);
+
+                if (result.isBail()) {
                     return result;
                 }
 
@@ -171,6 +201,21 @@ public class AgentHookInvoker {
             return ((HookResult.VetoResult) result).getReason();
         }
         return "vetoed";
+    }
+
+    /**
+     * W5-3 (BAIL): validate that BailResult is only returned at POST_REASONING
+     * or POST_CALL. BailResult at any other lifecycle point indicates a
+     * misconfigured middleware/hook — fail-loud rather than silently ignoring
+     * the result (Minimum Rules #24). No-op for non-Bail results.
+     */
+    private static void validateBailPoint(HookResult result, AgentLifecyclePoint point) {
+        if (result.isBail()
+                && point != AgentLifecyclePoint.POST_REASONING
+                && point != AgentLifecyclePoint.POST_CALL) {
+            throw new NopAiAgentException(
+                    "BailResult is only valid at POST lifecycle points (POST_REASONING, POST_CALL), got: " + point);
+        }
     }
     public void publishEvent(AgentEventType type, String sessionId, String agentName,
                               Map<String, Object> payload) {

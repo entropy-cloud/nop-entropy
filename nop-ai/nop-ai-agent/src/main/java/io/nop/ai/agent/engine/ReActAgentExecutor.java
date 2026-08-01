@@ -132,6 +132,20 @@ public class ReActAgentExecutor implements IAgentExecutor {
     public static final int DEFAULT_TRIGGER_MAX_MESSAGES = 30;
     public static final int DEFAULT_MAX_CONTEXT_TOKENS = 128000;
 
+    /**
+     * W5-3 (BAIL): per-request cap on consecutive POST_REASONING middleware
+     * bails. POST_REASONING re-prompt (whether triggered by BAIL or by
+     * {@code checkOutputGuardrail}) is already bounded by {@code maxIterations}
+     * (each {@code continue} consumes an iteration). This cap is the BAIL-
+     * specific early-fail: after this many BAILs in one {@code execute()} call,
+     * a {@code NopAiAgentException} is thrown (fail-loud, no silent continue,
+     * no infinite loop). Modeled after
+     * {@link LlmCallCoordinator#MAX_EXECUTION_VETOES}. Not shared with
+     * {@code checkOutputGuardrail} counts (independent mechanisms — design
+     * §5.4 裁定 D).
+     */
+    public static final int MAX_POST_REASONING_BAILS = 3;
+
     private final ITokenEstimator tokenEstimator;
     private final ICompletionJudge completionJudge;
     private final IGoalTracker goalTracker;
@@ -397,6 +411,13 @@ public class ReActAgentExecutor implements IAgentExecutor {
             // stateless sustainer can enforce its maxSustainCount ceiling.
             int originalMaxIterations = ctx.getMaxIterations();
             int sustainCount = 0;
+
+            // W5-3 (BAIL): per-request POST_REASONING bail counter. Persists
+            // across reactLoop iterations AND sustain rounds (the cap is
+            // per-execute() call, not per-iteration). Exceeding
+            // MAX_POST_REASONING_BAILS fails loud. Not reset on sustain — a
+            // session that bailed 3 times then sustained should not get 3 more.
+            int bailCount = 0;
 
             // reactLoop exits naturally (status still running = MAX_ITERATIONS
             // truncation), the engine consults the sustainer. CONTINUE extends
@@ -726,7 +747,28 @@ public class ReActAgentExecutor implements IAgentExecutor {
                 llmPayload.put("hasToolCalls", assistantMsg.hasToolCalls());
                 hookInvoker.publishEvent(AgentEventType.LLM_RESPONSE_RECEIVED, sessionId, agentName, llmPayload);
 
-                hookInvoker.executeWithMiddleware(AgentLifecyclePoint.POST_REASONING, ctx, agentName, null, null);
+                HookResult postReasoningResult = hookInvoker.executeWithMiddleware(AgentLifecyclePoint.POST_REASONING, ctx, agentName, null, null);
+
+        // W5-3 (BAIL): POST_REASONING middleware returned BailResult →
+        // discard this round's response (skip checkOutputGuardrail, skip
+        // tool_calls execution, not treated as final answer) + re-prompt.
+        // BailResult is only valid at POST points; AgentHookInvoker enforces
+        // fail-loud for non-POST points. Per-request bail cap fails loud
+        // before maxIterations is exhausted (design §5.4 裁定 A/B/D).
+        if (postReasoningResult.isBail()) {
+            String bailReason = ((HookResult.BailResult) postReasoningResult).getReason();
+            bailCount++;
+            if (bailCount > MAX_POST_REASONING_BAILS) {
+                throw new NopAiAgentException(
+                        "POST_REASONING middleware bail cap (" + MAX_POST_REASONING_BAILS
+                                + ") exceeded; last bail reason: " + bailReason);
+            }
+            LOG.warn("POST_REASONING middleware bailed (count={}/{}, reason={}); "
+                            + "discarding response and re-prompting. session={}",
+                    bailCount, MAX_POST_REASONING_BAILS, bailReason, sessionId);
+            ctx.setCurrentIteration(ctx.getCurrentIteration() + 1);
+            continue;
+        }
 
         if (promptAssembly.checkOutputGuardrail(ctx, assistantMsg)) {
             ctx.setCurrentIteration(ctx.getCurrentIteration() + 1);
@@ -943,12 +985,35 @@ public class ReActAgentExecutor implements IAgentExecutor {
                     && ctx.getStatus() != AgentExecStatus.paused
                     && ctx.getStatus() != AgentExecStatus.truncated
                     && ctx.getStatus() != AgentExecStatus.waiting) {
-                hookInvoker.executeWithMiddleware(AgentLifecyclePoint.POST_CALL, ctx, agentName, null, null);
+                HookResult postCallResult = hookInvoker.executeWithMiddleware(AgentLifecyclePoint.POST_CALL, ctx, agentName, null, null);
+
+                // W5-3 (BAIL): POST_CALL middleware returned BailResult →
+                // mark the final result as guardrail-blocked. The response
+                // may already have been streamed out via REASONING_CHUNK
+                // (cannot be revoked); BAIL here only marks the structured
+                // result for audit/caller decision. ctx.bailReason flows to
+                // AgentExecutionResult via fromContext (design §5.4 裁定 E).
+                boolean guardrailBlocked = postCallResult.isBail();
+                if (guardrailBlocked) {
+                    String bailReason = ((HookResult.BailResult) postCallResult).getReason();
+                    ctx.setBailReason(bailReason);
+                    LOG.warn("POST_CALL middleware bailed (reason={}); "
+                                    + "marking final result as guardrail-blocked. session={}",
+                            bailReason, sessionId);
+                }
 
                 Map<String, Object> completedPayload = new HashMap<>();
                 completedPayload.put("totalIterations", ctx.getCurrentIteration());
                 completedPayload.put("totalTokensUsed", ctx.getTokensUsed());
                 completedPayload.put("durationMs", System.currentTimeMillis() - ctx.getStartTimeMs());
+                // W5-3: additive guardrailBlocked marker so downstream
+                // consumers can distinguish "completed" from "completed but
+                // final response guardrail-blocked" (design §5.4 裁定 E).
+                completedPayload.put("guardrailBlocked", guardrailBlocked);
+                if (guardrailBlocked) {
+                    completedPayload.put("bailReason",
+                            ((HookResult.BailResult) postCallResult).getReason());
+                }
                 hookInvoker.publishEvent(AgentEventType.EXECUTION_COMPLETED, sessionId, agentName, completedPayload);
             }
 

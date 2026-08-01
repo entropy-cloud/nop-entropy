@@ -52,10 +52,43 @@ public class TestHookResult {
         assertTrue(result.isReenter());
     }
 
+    // ---- W5-3 BailResult (fourth state) ----
+
+    @Test
+    void bailResultCarriesReason() {
+        HookResult.BailResult result = new HookResult.BailResult("guardrail blocked");
+        assertEquals("guardrail blocked", result.getReason());
+        assertTrue(result.isBail());
+    }
+
+    @Test
+    void bailResultNullReason() {
+        HookResult.BailResult result = new HookResult.BailResult(null);
+        assertEquals(null, result.getReason());
+        assertTrue(result.isBail());
+    }
+
+    @Test
+    void bailResultIsNotPassVetoOrReenter() {
+        HookResult result = new HookResult.BailResult("blocked");
+        assertTrue(result.isBail());
+        assertEquals(false, result.isPass());
+        assertEquals(false, result.isVeto());
+        assertEquals(false, result.isReenter());
+    }
+
+    @Test
+    void passVetoAndReenterAreNotBail() {
+        assertEquals(false, HookResult.PassResult.instance().isBail());
+        assertEquals(false, new HookResult.VetoResult("r").isBail());
+        assertEquals(false, new HookResult.ReenterResult("m").isBail());
+    }
+
     @Test
     void concreteTypesExtendHookResult() {
         assertNotNull((HookResult) HookResult.PassResult.instance());
         assertNotNull((HookResult) new HookResult.VetoResult("r"));
         assertNotNull((HookResult) new HookResult.ReenterResult("m"));
+        assertNotNull((HookResult) new HookResult.BailResult("b"));
     }
 }

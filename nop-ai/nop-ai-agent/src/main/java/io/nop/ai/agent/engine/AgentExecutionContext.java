@@ -60,6 +60,16 @@ public class AgentExecutionContext {
     // metadata key, even when no ParentPermissionConstraint is present.
     private int delegationDepth;
 
+    /**
+     * W5-3 (BAIL): POST_CALL bail reason. When a POST_CALL middleware returns
+     * {@code BailResult}, the executor sets this field to the bail reason;
+     * {@link AgentExecutionResult#fromContext} reads it to expose the
+     * guardrail-blocked status to the caller. {@code null} when POST_CALL did
+     * not bail (the normal path). POST_REASONING bails do NOT set this field
+     * (they re-prompt and the final result reflects the post-re-prompt state).
+     */
+    private String bailReason;
+
     // messages (injected via the Actor mailbox consumption loop) are enqueued
     // here by the Actor's consumption thread and drained by the ReAct loop at
     // the round boundary (after all tools in a round complete, before the next
@@ -324,5 +334,17 @@ public class AgentExecutionContext {
 
     public void setDelegationDepth(int delegationDepth) {
         this.delegationDepth = delegationDepth;
+    }
+
+    /**
+     * W5-3 (BAIL): the POST_CALL bail reason, or {@code null} when POST_CALL
+     * did not bail. See {@link #bailReason}.
+     */
+    public String getBailReason() {
+        return bailReason;
+    }
+
+    public void setBailReason(String bailReason) {
+        this.bailReason = bailReason;
     }
 }
