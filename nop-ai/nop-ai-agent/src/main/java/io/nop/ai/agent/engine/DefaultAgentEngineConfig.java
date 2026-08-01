@@ -19,9 +19,11 @@ import io.nop.ai.agent.reliability.ICircuitBreaker;
 import io.nop.ai.agent.reliability.IGoalTracker;
 import io.nop.ai.agent.reliability.IRetryPolicy;
 import io.nop.ai.agent.reliability.ISustainer;
+import io.nop.ai.agent.reliability.IWaitCoordinator;
 import io.nop.ai.agent.reliability.NoOpCheckpoint;
 import io.nop.ai.agent.reliability.NoOpGoalTracker;
 import io.nop.ai.agent.reliability.NoOpSustainer;
+import io.nop.ai.agent.reliability.NoOpWaitCoordinator;
 import io.nop.ai.agent.reliability.NoRetryPolicy;
 import io.nop.ai.agent.reliability.StandardRetryPolicy;
 import io.nop.ai.agent.reliability.ThresholdBreaker;
@@ -143,6 +145,7 @@ public class DefaultAgentEngineConfig {
     private long callAgentTimeoutMs = 120_000L;
     private long llmTimeoutMs = 120_000L;
     private long toolTimeoutMs = 300_000L;
+    private IWaitCoordinator waitCoordinator = NoOpWaitCoordinator.noOp();
 
     public void setSkillProvider(ISkillProvider skillProvider) {
         this.skillProvider = skillProvider != null ? skillProvider : NoOpSkillProvider.noOp();
@@ -935,5 +938,10 @@ public class DefaultAgentEngineConfig {
     public void setLlmTimeoutMs(long llmTimeoutMs) { this.llmTimeoutMs = llmTimeoutMs; }
     public long getToolTimeoutMs() { return toolTimeoutMs; }
     public void setToolTimeoutMs(long toolTimeoutMs) { this.toolTimeoutMs = toolTimeoutMs; }
+
+    public IWaitCoordinator getWaitCoordinator() { return waitCoordinator; }
+    public void setWaitCoordinator(IWaitCoordinator waitCoordinator) {
+        this.waitCoordinator = waitCoordinator != null ? waitCoordinator : NoOpWaitCoordinator.noOp();
+    }
 
 }

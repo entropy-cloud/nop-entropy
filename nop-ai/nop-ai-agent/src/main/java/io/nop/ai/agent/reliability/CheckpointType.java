@@ -43,5 +43,17 @@ public enum CheckpointType {
      * compaction restores the compacted message history. Emitted by
      * {@code AgentCompactionCoordinator.performCompaction} only when real compaction occurs (plan 187).
      */
-    COMPACTION
+    COMPACTION,
+
+    /**
+     * A checkpoint recorded when the ReAct loop registers a wait condition
+     * and suspends (design §13.1): the session enters {@code waiting} status,
+     * the thread is released, and the session stays resident until the
+     * condition is satisfied and a wake re-enters execution. The
+     * {@code wait_for} field carries the condition JSON (timeout / event /
+     * user_input). The {@code idempotencyKey} for this type is {@code null}
+     * (WAIT_FOR is a caller-supplied condition, not a tool-call divergence
+     * point — Decision A/F).
+     */
+    WAIT_FOR
 }

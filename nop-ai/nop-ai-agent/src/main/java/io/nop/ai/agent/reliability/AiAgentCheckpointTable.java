@@ -61,6 +61,16 @@ public final class AiAgentCheckpointTable {
      */
     public static final String COL_IDEMPOTENCY_KEY = "IDEMPOTENCY_KEY";
 
+    /**
+     * Wait condition JSON column (design §13.1 Decision A/F): the condition
+     * payload for a {@code WAIT_FOR} checkpoint (timeout / event /
+     * user_input). Nullable: {@code null} for non-{@code WAIT_FOR} types and
+     * for legacy rows written before this column existed (backward
+     * compatibility). Stored as CLOB because the condition JSON can exceed
+     * VARCHAR limits, mirroring {@code INPUT_SUMMARY}/{@code OUTPUT_SUMMARY}.
+     */
+    public static final String COL_WAIT_FOR = "WAIT_FOR";
+
     public static final String INDEX_SESSION_SEQ = "IDX_AI_AGENT_CHECKPOINT_SESSION_SEQ";
 
     /**
@@ -91,6 +101,7 @@ public final class AiAgentCheckpointTable {
             + COL_TOKEN_ESTIMATE + " BIGINT NOT NULL, "
             + COL_TENANT_ID + " VARCHAR(100), "
             + COL_IDEMPOTENCY_KEY + " VARCHAR(100), "
+            + COL_WAIT_FOR + " CLOB, "
             + "PRIMARY KEY (" + COL_WATERMARK + ")"
             + ")";
 

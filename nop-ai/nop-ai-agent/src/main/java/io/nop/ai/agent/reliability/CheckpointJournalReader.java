@@ -218,10 +218,14 @@ public final class CheckpointJournalReader {
         // design §13.2 do not contain this field. A missing field decodes to
         // null (best-effort fallback at restore), preserving backward compat.
         String idempotencyKey = decodeString(fields.get("idempotencyKey"));
+        // waitFor is optional: legacy journal sections written before
+        // design §13.1 do not contain this field. A missing field decodes to
+        // null (non-WAIT_FOR type / old data), preserving backward compat.
+        String waitFor = decodeString(fields.get("waitFor"));
 
         return Checkpoint.of(sessionId, watermark, seq, timestamp, type,
                 toolName, callId, inputSummary, outputSummary, messageCount, tokenEstimate,
-                idempotencyKey);
+                idempotencyKey, waitFor);
     }
 
     private static String requireField(java.util.Map<String, String> fields, String key, String section) {

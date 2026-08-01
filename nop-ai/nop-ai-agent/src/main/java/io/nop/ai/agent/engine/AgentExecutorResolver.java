@@ -203,6 +203,7 @@ public class AgentExecutorResolver {
                     .llmTimeoutMs(config.getLlmTimeoutMs())
                     .toolTimeoutMs(config.getToolTimeoutMs())
                     .timeoutExecutor(agentExecutorSupplier.get())
+                    .waitCoordinator(config.getWaitCoordinator())
                     .build();
         }
         if ("single-turn".equals(mode)) {

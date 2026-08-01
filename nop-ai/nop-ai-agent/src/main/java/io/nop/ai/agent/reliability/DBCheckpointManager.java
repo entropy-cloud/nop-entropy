@@ -160,11 +160,12 @@ public class DBCheckpointManager implements ICheckpointManager {
                 + ", " + AiAgentCheckpointTable.COL_OUTPUT_SUMMARY
                 + ", " + AiAgentCheckpointTable.COL_MESSAGE_COUNT
                 + ", " + AiAgentCheckpointTable.COL_TOKEN_ESTIMATE
-                + ", " + AiAgentCheckpointTable.COL_IDEMPOTENCY_KEY;
+                + ", " + AiAgentCheckpointTable.COL_IDEMPOTENCY_KEY
+                + ", " + AiAgentCheckpointTable.COL_WAIT_FOR;
         if (tenant != null) {
             insertSql += ", " + AiAgentCheckpointTable.COL_TENANT_ID;
         }
-        insertSql += ") VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?";
+        insertSql += ") VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?";
         if (tenant != null) {
             insertSql += ", ?";
         }
@@ -184,8 +185,9 @@ public class DBCheckpointManager implements ICheckpointManager {
             ps.setInt(10, checkpoint.getMessageCount());
             ps.setLong(11, checkpoint.getTokenEstimate());
             ps.setString(12, checkpoint.getIdempotencyKey());
+            setClob(ps, 13, checkpoint.getWaitFor());
             if (tenant != null) {
-                ps.setString(13, tenant);
+                ps.setString(14, tenant);
             }
             ps.executeUpdate();
         } catch (SQLException e) {
@@ -418,6 +420,7 @@ public class DBCheckpointManager implements ICheckpointManager {
                 + ", " + AiAgentCheckpointTable.COL_MESSAGE_COUNT
                 + ", " + AiAgentCheckpointTable.COL_TOKEN_ESTIMATE
                 + ", " + AiAgentCheckpointTable.COL_IDEMPOTENCY_KEY
+                + ", " + AiAgentCheckpointTable.COL_WAIT_FOR
                 + " FROM " + AiAgentCheckpointTable.TABLE_NAME;
     }
 
@@ -465,7 +468,8 @@ public class DBCheckpointManager implements ICheckpointManager {
                 readClob(rs, AiAgentCheckpointTable.COL_OUTPUT_SUMMARY),
                 rs.getInt(AiAgentCheckpointTable.COL_MESSAGE_COUNT),
                 rs.getLong(AiAgentCheckpointTable.COL_TOKEN_ESTIMATE),
-                rs.getString(AiAgentCheckpointTable.COL_IDEMPOTENCY_KEY)
+                rs.getString(AiAgentCheckpointTable.COL_IDEMPOTENCY_KEY),
+                readClob(rs, AiAgentCheckpointTable.COL_WAIT_FOR)
         );
     }
 

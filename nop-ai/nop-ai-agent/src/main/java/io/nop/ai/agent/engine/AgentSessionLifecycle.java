@@ -407,6 +407,106 @@ public class AgentSessionLifecycle {
             throw e;
         }
     }
+    public CompletableFuture<AgentExecutionResult> wakeSession(String sessionId) {
+        AgentSession session = sessionStore.get(sessionId);
+        if (session == null) {
+            throw new NopAiAgentException(
+                    "wakeSession failed: session not found: sessionId=" + sessionId);
+        }
+        if (session.getStatus() != AgentExecStatus.waiting) {
+            throw new NopAiAgentException(
+                    "wakeSession failed: session is not waiting (status=" + session.getStatus()
+                            + "), only waiting sessions can be woken: sessionId=" + sessionId);
+        }
+
+        String agentName = session.getAgentName();
+
+        // Mark the condition satisfied via the coordinator (design §13.1
+        // Decision C/H): deliverWake sets the satisfied flag so the next
+        // checkWait at the registration point returns PROCEED (skip suspend),
+        // preventing re-suspend on replay re-entry.
+        config.getWaitCoordinator().deliverWake(sessionId, null);
+
+        // Transition the session back to running before re-execution.
+        session.setStatus(AgentExecStatus.running);
+
+        Map<String, Object> wakePayload = new HashMap<>();
+        wakePayload.put("reason", "condition satisfied");
+        eventPublisher.publish(AgentEvent.create(AgentEventType.SESSION_WOKE,
+                sessionId, agentName, wakePayload));
+
+        // Re-execute the session as a transparent continuation: rebuild the
+        // context from the agent model + the existing conversation history.
+        AgentModel agentModel = sessionSupport.loadAgentModel(agentName);
+        teamBinder.precheckTeamDeclarations(agentModel);
+        AgentExecutionContext ctx = buildBaseExecutionContext(agentModel, session);
+
+        IToolAccessChecker effectiveToolAccessChecker = config.getToolAccessChecker();
+        IPathAccessChecker effectivePathAccessChecker = executorResolver.resolvePerAgentPathChecker(agentModel);
+        sessionSupport.ensureSessionMailbox(sessionId);
+        IAgentExecutor executor = executorResolver.resolveExecutor(agentModel, effectiveToolAccessChecker, effectivePathAccessChecker);
+
+        CancelHandle handle = new CancelHandle(ctx, null);
+        try {
+            if (!config.getSessionTakeoverLock().tryAcquire(sessionId, instanceId, config.getLockLeaseMs())) {
+                throw new NopAiAgentException(
+                        "wakeSession failed: session is locked by another instance: sessionId="
+                                + sessionId);
+            }
+            CancelHandle existing = runningExecutions.putIfAbsent(sessionId, handle);
+            if (existing != null) {
+                throw new NopAiAgentException(
+                        "wakeSession failed: session already executing: sessionId=" + sessionId);
+            }
+            handle.renewHandle = lockRenewal.startLockRenewal(handle, sessionId, instanceId);
+        } catch (RuntimeException e) {
+            releaseLockQuietly(sessionId, instanceId);
+            SessionLockRenewal.cancelLockRenewalQuietly(handle.renewHandle);
+            throw e;
+        }
+
+        try {
+            return CompletableFuture.supplyAsync(() -> {
+                handle.thread = Thread.currentThread();
+                AgentExecutionResult result;
+                try {
+                    if (config.getActorRuntime().isEnabled()) {
+                        AgentActor actor = config.getActorRuntime().createActor(sessionId, agentName);
+                        actor.setSteeringQueue(ctx.getSteeringQueue());
+                    }
+                    teamBinder.autoBindTeam(agentModel, sessionId, agentName);
+
+                    result = executor.execute(ctx).toCompletableFuture().join();
+                } finally {
+                    runningExecutions.remove(sessionId, handle);
+                    session.setStatus(ctx.isLeaseLost() ? AgentExecStatus.failed : ctx.getStatus());
+                    config.getWriteIntentRegistry().releaseSession(sessionId);
+                    if (isTerminalStatus(session.getStatus())) {
+                        config.getCheckpointManager().remove(sessionId);
+                    }
+                    if (config.getActorRuntime().isEnabled()) {
+                        config.getActorRuntime().getActorBySession(sessionId)
+                                .ifPresent(a -> config.getActorRuntime().destroyActor(a.getActorId()));
+                    }
+                    releaseLockQuietly(sessionId, instanceId);
+                    SessionLockRenewal.cancelLockRenewalQuietly(handle.renewHandle);
+                }
+
+                session.replaceMessages(ctx.getMessages());
+                session.addTokensUsed(ctx.getTokensUsed());
+                session.addIterations(ctx.getCurrentIteration());
+                session.touch();
+                sessionStore.save(session);
+
+                return result;
+            }, agentExecutorSupplier.get());
+        } catch (RuntimeException e) {
+            runningExecutions.remove(sessionId, handle);
+            releaseLockQuietly(sessionId, instanceId);
+            SessionLockRenewal.cancelLockRenewalQuietly(handle.renewHandle);
+            throw e;
+        }
+    }
     public CompletableFuture<AgentExecutionResult> restoreSession(String sessionId, String approver, String reason) {
         if (sessionId == null || sessionId.isEmpty()) {
             throw new NopAiAgentException(
@@ -692,6 +792,14 @@ public class AgentSessionLifecycle {
                 skipped.add(new SessionRestoreSummary.SkipEntry(
                         sessionId, status,
                         "paused: sticky-pause requires an explicit resumeSession (plan 180)"));
+            } else if (status == AgentExecStatus.waiting) {
+                // WAIT_FOR sticky-wait (design §13.1 Decision E): a waiting
+                // session is suspended on a condition and must be woken by an
+                // explicit wakeSession — auto-restore would bypass the wait
+                // condition.
+                skipped.add(new SessionRestoreSummary.SkipEntry(
+                        sessionId, status,
+                        "waiting: sticky-wait requires an explicit wakeSession (design §13.1)"));
             } else if (isTerminalStatus(status)) {
                 skipped.add(new SessionRestoreSummary.SkipEntry(
                         sessionId, status,

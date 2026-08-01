@@ -27,9 +27,11 @@ import io.nop.ai.agent.reliability.ICircuitBreaker;
 import io.nop.ai.agent.reliability.IGoalTracker;
 import io.nop.ai.agent.reliability.IRetryPolicy;
 import io.nop.ai.agent.reliability.ISustainer;
+import io.nop.ai.agent.reliability.IWaitCoordinator;
 import io.nop.ai.agent.reliability.NoOpCheckpoint;
 import io.nop.ai.agent.reliability.NoOpGoalTracker;
 import io.nop.ai.agent.reliability.NoOpSustainer;
+import io.nop.ai.agent.reliability.NoOpWaitCoordinator;
 import io.nop.ai.agent.reliability.RetryContext;
 import io.nop.ai.agent.reliability.StandardRetryPolicy;
 import io.nop.ai.agent.reliability.ThresholdBreaker;
@@ -125,6 +127,7 @@ import java.util.concurrent.Executor;
         private long llmTimeoutMs;
         private long toolTimeoutMs;
         private Executor timeoutExecutor;
+        private IWaitCoordinator waitCoordinator;
 
         public ReActAgentExecutorBuilder chatService(IChatService chatService) {
             this.chatService = chatService;
@@ -596,6 +599,20 @@ import java.util.concurrent.Executor;
             return this;
         }
 
+        /**
+         * Wire the {@link IWaitCoordinator} consulted at the ReAct loop's
+         * iteration top (design §13.1 WAIT_FOR primitive). When a wait
+         * condition is registered and not yet satisfied, the loop produces a
+         * WAIT_FOR checkpoint, sets status=waiting, and breaks — releasing the
+         * thread while the session stays resident. Optional: when null,
+         * defaults to {@link NoOpWaitCoordinator} (checkWait always returns
+         * NONE — no wait ever registered, backward compatible, zero-regression).
+         */
+        public ReActAgentExecutorBuilder waitCoordinator(IWaitCoordinator waitCoordinator) {
+            this.waitCoordinator = waitCoordinator;
+            return this;
+        }
+
         public ReActAgentExecutor build() {
             if (chatService == null) {
                 throw new NopAiAgentException("chatService must not be null");
@@ -650,7 +667,8 @@ import java.util.concurrent.Executor;
                     teamAclChecker,
                     llmTimeoutMs,
                     toolTimeoutMs,
-                    timeoutExecutor
+                    timeoutExecutor,
+                    waitCoordinator != null ? waitCoordinator : NoOpWaitCoordinator.noOp()
             );
         }
     }

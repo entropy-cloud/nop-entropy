@@ -34,16 +34,20 @@ import io.nop.ai.agent.reliability.ICircuitBreaker;
 import io.nop.ai.agent.reliability.IGoalTracker;
 import io.nop.ai.agent.reliability.IRetryPolicy;
 import io.nop.ai.agent.reliability.ISustainer;
+import io.nop.ai.agent.reliability.IWaitCoordinator;
 import io.nop.ai.agent.reliability.IterationSnapshot;
 import io.nop.ai.agent.reliability.NoOpCheckpoint;
 import io.nop.ai.agent.reliability.NoOpGoalTracker;
 import io.nop.ai.agent.reliability.NoOpSustainer;
+import io.nop.ai.agent.reliability.NoOpWaitCoordinator;
 import io.nop.ai.agent.reliability.RetryContext;
 import io.nop.ai.agent.reliability.StandardRetryPolicy;
 import io.nop.ai.agent.reliability.SustainContext;
 import io.nop.ai.agent.reliability.SustainDecision;
 import io.nop.ai.agent.reliability.SustainStopReason;
 import io.nop.ai.agent.reliability.ThresholdBreaker;
+import io.nop.ai.agent.reliability.WaitCondition;
+import io.nop.ai.agent.reliability.WaitDecision;
 import io.nop.ai.agent.repair.IToolCallRepairer;
 import io.nop.ai.agent.repair.NoOpToolCallRepairer;
 import io.nop.ai.agent.router.IModelRouter;
@@ -151,6 +155,7 @@ public class ReActAgentExecutor implements IAgentExecutor {
     private final AgentPromptAssembly promptAssembly;
     private final AgentToolDispatcher toolDispatcher;
     private final AgentLoopGuard loopGuard;
+    private final IWaitCoordinator waitCoordinator;
 
 
     // package-private so the extracted ReActAgentExecutorBuilder can invoke it
@@ -195,9 +200,10 @@ public class ReActAgentExecutor implements IAgentExecutor {
                                            ITeamManager teamManager,
                                            ITeamTaskStore teamTaskStore,
                                            ITeamAclChecker teamAclChecker,
-                                           long llmTimeoutMs,
-                                           long toolTimeoutMs,
-                                           Executor timeoutExecutor) {
+                                            long llmTimeoutMs,
+                                            long toolTimeoutMs,
+                                            Executor timeoutExecutor,
+                                            IWaitCoordinator waitCoordinator) {
         this.tokenEstimator = tokenEstimator != null ? tokenEstimator : TokenEstimators.defaultEstimator();
         this.completionJudge = completionJudge != null ? completionJudge : NoOpCompletionJudge.noOp();
         this.goalTracker = goalTracker != null ? goalTracker : NoOpGoalTracker.noOp();
@@ -274,6 +280,7 @@ public class ReActAgentExecutor implements IAgentExecutor {
                 this.tokenEstimator,
                 this.hookInvoker,
                 this.compactionCoordinator);
+        this.waitCoordinator = waitCoordinator != null ? waitCoordinator : NoOpWaitCoordinator.noOp();
         this.toolDispatcher = new AgentToolDispatcher(
                 toolManager,
                 engine,
@@ -424,6 +431,46 @@ public class ReActAgentExecutor implements IAgentExecutor {
                 // surfaces here on the next iteration start.
                 if (denialLedger.isPaused(sessionId)) {
                     loopGuard.handleSessionPaused(ctx, sessionId, agentName);
+                    break reactLoop;
+                }
+
+                // WAIT_FOR condition check (design §13.1 Decision B/H): the
+                // 4th checkpoint producer. checkWait returns NONE (no wait
+                // request — zero-regression path for NoOpWaitCoordinator),
+                // SUSPEND (condition not yet satisfied — produce WAIT_FOR
+                // checkpoint + set waiting status + break), or PROCEED
+                // (condition already satisfied via deliverWake or timeout —
+                // skip suspend and continue, anti-re-suspend on wake re-entry).
+                WaitDecision waitDecision = waitCoordinator.checkWait(sessionId);
+                if (waitDecision.getAction() == WaitDecision.Action.SUSPEND) {
+                    WaitCondition wc = waitDecision.getCondition();
+                    checkpointManager.saveCheckpoint(Checkpoint.of(
+                            sessionId,
+                            sessionId != null
+                                    ? sessionId + ":wait:" + execStartTime + ":" + checkpointSeq[0]
+                                    : "anon:wait:" + execStartTime + ":" + checkpointSeq[0],
+                            checkpointSeq[0],
+                            System.currentTimeMillis(),
+                            CheckpointType.WAIT_FOR,
+                            null,
+                            null,
+                            null,
+                            null,
+                            ctx.getMessages().size(),
+                            ctx.getTokensUsed(),
+                            null,
+                            wc.toJsonString()));
+                    checkpointSeq[0]++;
+                    if (sessionStore != null && sessionId != null) {
+                        AgentSession waitSession = sessionStore.get(sessionId);
+                        if (waitSession != null) {
+                            waitSession.replaceMessages(ctx.getMessages());
+                            sessionStore.save(waitSession);
+                        }
+                    }
+                    ctx.setStatus(AgentExecStatus.waiting);
+                    LOG.info("ReAct loop suspended (WAIT_FOR): session={} condition={}",
+                            sessionId, wc.getType());
                     break reactLoop;
                 }
 
@@ -894,7 +941,8 @@ public class ReActAgentExecutor implements IAgentExecutor {
                     && ctx.getStatus() != AgentExecStatus.forced_stopped
                     && ctx.getStatus() != AgentExecStatus.escalated
                     && ctx.getStatus() != AgentExecStatus.paused
-                    && ctx.getStatus() != AgentExecStatus.truncated) {
+                    && ctx.getStatus() != AgentExecStatus.truncated
+                    && ctx.getStatus() != AgentExecStatus.waiting) {
                 hookInvoker.executeWithMiddleware(AgentLifecyclePoint.POST_CALL, ctx, agentName, null, null);
 
                 Map<String, Object> completedPayload = new HashMap<>();

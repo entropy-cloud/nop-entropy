@@ -159,6 +159,9 @@
                 <column name="idempotencyKey" code="IDEMPOTENCY_KEY" propId="13"
                         domain="idempotencyKey" stdDataType="string" stdSqlType="VARCHAR"
                         displayName="Idempotency Key"/>
+                <column name="waitFor" code="WAIT_FOR" propId="14"
+                        stdDataType="string" stdSqlType="CLOB"
+                        displayName="Wait For"/>
             </columns>
         </entity>
     </entities>

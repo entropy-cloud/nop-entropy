@@ -24,6 +24,7 @@ import io.nop.ai.agent.reliability.ICircuitBreaker;
 import io.nop.ai.agent.reliability.IGoalTracker;
 import io.nop.ai.agent.reliability.IRetryPolicy;
 import io.nop.ai.agent.reliability.ISustainer;
+import io.nop.ai.agent.reliability.IWaitCoordinator;
 import io.nop.ai.agent.reliability.NoOpCheckpoint;
 import io.nop.ai.agent.reliability.NoOpGoalTracker;
 import io.nop.ai.agent.reliability.NoOpSustainer;
@@ -179,6 +180,7 @@ public class DefaultAgentEngine implements IAgentEngine {
         private long callAgentTimeoutMs = 120_000L;
         private long llmTimeoutMs = 120_000L;
         private long toolTimeoutMs = 300_000L;
+        private IWaitCoordinator waitCoordinator;
 
         public Builder(IChatService chatService, IToolManager toolManager) {
             this.chatService = chatService;
@@ -227,6 +229,7 @@ public class DefaultAgentEngine implements IAgentEngine {
         public Builder callAgentTimeoutMs(long val) { this.callAgentTimeoutMs = val; return this; }
         public Builder llmTimeoutMs(long val) { this.llmTimeoutMs = val; return this; }
         public Builder toolTimeoutMs(long val) { this.toolTimeoutMs = val; return this; }
+        public Builder waitCoordinator(IWaitCoordinator val) { this.waitCoordinator = val; return this; }
 
         public DefaultAgentEngine build() {
             DefaultAgentEngine engine = new DefaultAgentEngine(
@@ -273,6 +276,7 @@ public class DefaultAgentEngine implements IAgentEngine {
             engine.setCallAgentTimeoutMs(callAgentTimeoutMs);
             engine.setLlmTimeoutMs(llmTimeoutMs);
             engine.setToolTimeoutMs(toolTimeoutMs);
+            if (waitCoordinator != null) engine.setWaitCoordinator(waitCoordinator);
         }
     }
 
@@ -429,6 +433,10 @@ public class DefaultAgentEngine implements IAgentEngine {
     public void setSustainer(ISustainer sustainer) { config.setSustainer(sustainer); }
 
     public ISustainer getSustainer() { return config.getSustainer(); }
+
+    public void setWaitCoordinator(IWaitCoordinator waitCoordinator) { config.setWaitCoordinator(waitCoordinator); }
+
+    public IWaitCoordinator getWaitCoordinator() { return config.getWaitCoordinator(); }
 
     public void setConflictStrategy(IConflictStrategy conflictStrategy) { config.setConflictStrategy(conflictStrategy); }
 
@@ -903,6 +911,11 @@ public class DefaultAgentEngine implements IAgentEngine {
 
     public CompletableFuture<AgentExecutionResult> restoreSession(String sessionId, String approver, String reason) {
         return lifecycle.restoreSession(sessionId, approver, reason);
+    }
+
+    @Override
+    public CompletableFuture<AgentExecutionResult> wakeSession(String sessionId) {
+        return lifecycle.wakeSession(sessionId);
     }
 
     /** @see AgentSessionLifecycle#restorePendingSessions */

@@ -117,6 +117,33 @@ public interface IAgentEngine extends AutoCloseable {
     }
 
     /**
+     * Wake a waiting session whose condition has been satisfied (design §13.1
+     * WAIT_FOR primitive). This is the <b>condition-wait recovery</b> entry
+     * point — distinct from {@link #resumeSession} (which is the
+     * <b>denial-ledger sticky-pause</b> recovery entry point) and
+     * {@link #restoreSession} (which is the <b>crash-restart</b> recovery
+     * entry point). The three are mutually exclusive:
+     * <ul>
+     *   <li>{@code wakeSession}: the session status is
+     *       {@link AgentExecStatus#waiting} (suspended on a wait condition).
+     *       The implementation marks the condition satisfied via
+     *       {@code IWaitCoordinator.deliverWake} (so the re-entry registration
+     *       point skips re-suspend — Decision H), transitions status to
+     *       {@code running}, and re-executes as a transparent continuation.
+     *       <b>No denial-ledger reset</b> (unlike resumeSession).</li>
+     *   <li>{@code resumeSession}: the session status is
+     *       {@link AgentExecStatus#paused} (denial-ledger governance). Resets
+     *       the denial ledger + post-denial guard before re-execution.</li>
+     * </ul>
+     *
+     * @param sessionId the waiting session to wake; must exist and be waiting
+     * @return a future that completes with the result of the re-execution
+     */
+    default CompletableFuture<AgentExecutionResult> wakeSession(String sessionId) {
+        throw new NopAiAgentException("wakeSession not supported by this engine");
+    }
+
+    /**
      * Auto restore-on-startup batch orchestrator (plan 184, design §1.1
      * recovery model). This is the <b>"unattended automation"</b> entry point
      * that turns plan 183's single-session {@link #restoreSession} primitive

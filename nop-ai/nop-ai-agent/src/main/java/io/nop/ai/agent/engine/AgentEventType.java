@@ -90,5 +90,19 @@ public enum AgentEventType {
      * {@code latestCheckpointWatermark} (null when no checkpoint exists) for
      * audit trail.
      */
-    SESSION_RESTORED
+    SESSION_RESTORED,
+
+    /**
+     * A waiting session was woken (design §13.1 WAIT_FOR primitive). The
+     * session's wait condition was satisfied (via external wake or timeout),
+     * the coordinator marked the condition satisfied via
+     * {@code IWaitCoordinator.deliverWake}, and the session transitioned back
+     * to {@code running} for re-execution.
+     * <p>
+     * Semantically distinct from {@link #SESSION_RESUMED}: resume clears a
+     * denial-ledger sticky-pause (denial reset); wake clears a condition-wait
+     * (no denial reset). The event payload carries {@code sessionId} and
+     * {@code agentName} for audit trail.
+     */
+    SESSION_WOKE
 }

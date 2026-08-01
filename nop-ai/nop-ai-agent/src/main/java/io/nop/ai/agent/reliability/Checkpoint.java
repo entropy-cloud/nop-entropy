@@ -64,11 +64,13 @@ public final class Checkpoint {
     private final int messageCount;
     private final long tokenEstimate;
     private final String idempotencyKey;
+    private final String waitFor;
 
     private Checkpoint(String sessionId, String watermark, int seq, long timestamp,
                        CheckpointType type, String toolName, String callId,
                        String inputSummary, String outputSummary,
-                       int messageCount, long tokenEstimate, String idempotencyKey) {
+                       int messageCount, long tokenEstimate, String idempotencyKey,
+                       String waitFor) {
         this.sessionId = sessionId;
         this.watermark = watermark;
         this.seq = seq;
@@ -81,6 +83,7 @@ public final class Checkpoint {
         this.messageCount = messageCount;
         this.tokenEstimate = tokenEstimate;
         this.idempotencyKey = idempotencyKey;
+        this.waitFor = waitFor;
     }
 
     /**
@@ -125,7 +128,7 @@ public final class Checkpoint {
                                 int messageCount, long tokenEstimate) {
         return of(sessionId, watermark, seq, timestamp, type, toolName, callId,
                 inputSummary, outputSummary, messageCount, tokenEstimate,
-                computeIdempotencyKey(type, toolName, callId, inputSummary));
+                computeIdempotencyKey(type, toolName, callId, inputSummary), null);
     }
 
     /**
@@ -144,6 +147,27 @@ public final class Checkpoint {
                                 CheckpointType type, String toolName, String callId,
                                 String inputSummary, String outputSummary,
                                 int messageCount, long tokenEstimate, String idempotencyKey) {
+        return of(sessionId, watermark, seq, timestamp, type, toolName, callId,
+                inputSummary, outputSummary, messageCount, tokenEstimate, idempotencyKey, null);
+    }
+
+    /**
+     * Create a checkpoint with an explicit {@code wait_for} condition JSON
+     * (design §13.1 Decision A). Used by the WAIT_FOR checkpoint producer
+     * (ReAct loop condition registration point) and by deserialization paths
+     * that read the condition from persistent storage. For non-
+     * {@code WAIT_FOR} types the {@code waitFor} parameter should be
+     * {@code null}.
+     *
+     * @param idempotencyKey the pre-computed/stored idempotency key; may be null
+     * @param waitFor        the wait condition JSON string; may be null
+     *                       (non-{@code WAIT_FOR} types / old data)
+     */
+    public static Checkpoint of(String sessionId, String watermark, int seq, long timestamp,
+                                CheckpointType type, String toolName, String callId,
+                                String inputSummary, String outputSummary,
+                                int messageCount, long tokenEstimate, String idempotencyKey,
+                                String waitFor) {
         if (watermark == null) {
             throw new NopAiAgentException("Checkpoint.watermark must not be null");
         }
@@ -159,7 +183,8 @@ public final class Checkpoint {
                     "Checkpoint.messageCount must not be negative, got: " + messageCount);
         }
         return new Checkpoint(sessionId, watermark, seq, timestamp, type, toolName, callId,
-                inputSummary, outputSummary, messageCount, tokenEstimate, idempotencyKey);
+                inputSummary, outputSummary, messageCount, tokenEstimate, idempotencyKey,
+                waitFor);
     }
 
     /**
@@ -254,6 +279,15 @@ public final class Checkpoint {
         return idempotencyKey;
     }
 
+    /**
+     * @return the wait condition JSON for a {@code WAIT_FOR} checkpoint
+     *         (design §13.1 Decision A), or {@code null} for other types /
+     *         old data.
+     */
+    public String getWaitFor() {
+        return waitFor;
+    }
+
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
@@ -270,13 +304,14 @@ public final class Checkpoint {
                 && Objects.equals(callId, that.callId)
                 && Objects.equals(inputSummary, that.inputSummary)
                 && Objects.equals(outputSummary, that.outputSummary)
-                && Objects.equals(idempotencyKey, that.idempotencyKey);
+                && Objects.equals(idempotencyKey, that.idempotencyKey)
+                && Objects.equals(waitFor, that.waitFor);
     }
 
     @Override
     public int hashCode() {
         return Objects.hash(sessionId, watermark, seq, timestamp, type, toolName, callId,
-                inputSummary, outputSummary, messageCount, tokenEstimate, idempotencyKey);
+                inputSummary, outputSummary, messageCount, tokenEstimate, idempotencyKey, waitFor);
     }
 
     @Override
@@ -292,6 +327,7 @@ public final class Checkpoint {
                 ", messageCount=" + messageCount +
                 ", tokenEstimate=" + tokenEstimate +
                 ", idempotencyKey='" + idempotencyKey + '\'' +
+                ", waitFor='" + waitFor + '\'' +
                 '}';
     }
 }

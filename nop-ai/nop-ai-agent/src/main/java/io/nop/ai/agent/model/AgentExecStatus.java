@@ -40,6 +40,19 @@ public enum AgentExecStatus {
     paused,
 
     /**
+     * Session waiting for a condition to be satisfied (design §13.1 WAIT_FOR
+     * primitive). The ReAct loop registered a wait condition (timeout / event /
+     * user input), broke the loop, and completed the future — the thread is
+     * released while the session stays resident (checkpoint retained). Recovery
+     * is via {@code wakeSession} (not {@code resumeSession}, which is
+     * denial-ledger-specific) — wake re-enters execution without resetting the
+     * denial ledger. Distinct from {@link #paused} (governance trigger +
+     * denial-ledger reset on recovery): waiting is a condition-wait trigger
+     * with no denial-ledger coupling.
+     */
+    waiting,
+
+    /**
      * AR-14 (plan 277): the ReAct loop reached the configured max-iterations
      * budget without the completion judge declaring completion. Before plan
      * 277, this was silently reported as {@link #completed}, which misled

@@ -98,6 +98,7 @@ public final class CheckpointJournalWriter {
         sb.append("messageCount: ").append(cp.getMessageCount()).append('\n');
         sb.append("tokenEstimate: ").append(cp.getTokenEstimate()).append('\n');
         sb.append("idempotencyKey: ").append(encodeString(cp.getIdempotencyKey())).append('\n');
+        sb.append("waitFor: ").append(encodeString(cp.getWaitFor())).append('\n');
         sb.append('\n');
         return sb.toString();
     }
