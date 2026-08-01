@@ -37,7 +37,7 @@
 - 参考：`2026-08-01-hatchet-durable-execution-analysis.md`、`2026-08-01-grok-build-deterministic-replay-analysis.md`、`2026-08-01-mission-control-control-plane-analysis.md`、`2026-08-01-cc-switch-provider-circuit-breaker-analysis.md`
 
 ### W3. Middleware 增量（高优先）
-- [ ] W3-1 双层中间件：执行级（每次工具/模型尝试，retry 时重新评估安全检查）
+- [x] W3-1 双层中间件：执行级（每次工具/模型尝试，retry 时重新评估安全检查）
 - [ ] W3-2 声明式 filter chain：DSL 声明有序 filter ID 列表 + input/output 双链分离
 - 参考：`2026-08-01-hive-dual-middleware-analysis.md`、`2026-08-01-plano-declarative-filter-chain-analysis.md`
 

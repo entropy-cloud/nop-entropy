@@ -153,7 +153,9 @@ Middleware 在**装配时**一次性注册到 `IHookRegistry`，之后不可变�
 | `AgentModel` 新增 `<middlewares>` xdef 声明 | `nop-xdefs` | ✅ 新增可选字段 |
 | `DefaultAgentEngine.resolveExecutor` 新增 `resolveMiddlewares` | `nop-ai-agent/engine/` | ✅ 无声明时 no-op |
 
-**不删除** `IAgentLifecycleHook`，**不修改** `HookResult` 密封层级，**不修改** `AgentLifecyclePoint` 枚举值。
+**不删除** `IAgentLifecycleHook`，**不修改** `HookResult` 密封层级。
+
+**会话级 `AgentLifecyclePoint` 枚举（12 个值）的值与语义完全不变。** plan 296 §三的"不修改 `AgentLifecyclePoint` 枚举值"约束，其 scope 是 plan 296 的会话级洋葱链实现——在**已有**点上启用链式拦截，不在枚举里加新点。W3-1（§5.1）新增的执行级触发点由**独立的 `ExecutionPoint` 枚举**承载（`PRE_LLM_ATTEMPT`/`POST_LLM_ATTEMPT`/`PRE_TOOL_ATTEMPT`/`POST_TOOL_ATTEMPT`），不污染会话级枚举。两个枚举、两层 scope、两套 registry 存储（`Map<AgentLifecyclePoint,List>` + `Map<ExecutionPoint,List>`）永不交叉。
 
 ---
 
@@ -181,19 +183,61 @@ Middleware 在**装配时**一次性注册到 `IHookRegistry`，之后不可变�
 
 > 来源：agent-survey（hive 双层中间件 / plano 声明式 filter chain）。nop middleware 洋葱链已超越外部实现，本节补两个结构性增量。
 
-### 5.1 双层中间件（retry 时重新评估）
+### 5.1 双层中间件（retry 时重新评估）— final
 
-nop middleware 是"每请求一次"。增加执行级（对标 hive 的 PipelineStage + ExecutionMiddleware）：
+> **Status: final**（W3-1 已落地，2026-08-01）。本节由方向性描述重写为最终架构决策，含 D1/D2/D3/D4 裁定、双层表、触发点清单、retry 重评估语义、Veto 控制流映射、线程模型。
 
-| 层级 | 触发 | 用途 |
-|------|------|------|
-| **会话级**（现有） | 每请求一次 | 认证/限流/路由 |
-| **执行级**（新增） | 每次工具/模型尝试 | 熔断检查、安全拦截——**retry/resurrection 时重新评估** |
+nop middleware 原本是"每请求一次"（会话级）。本节新增**执行级**层（对标 hive 的 PipelineStage + ExecutionMiddleware），使每次 LLM/工具调用尝试都经过中间件拦截，**retry/resurrection 时安全检查重新评估**（核心价值：attempt N 改变的状态对 attempt N+1 的安全检查必须可见）。
 
-- 关键洞察：retry 时安全检查必须重跑（前一次尝试可能改变了状态）
-- 与 ThresholdBreaker（已有）正交：熔断是执行级决策，双层中间件是执行级结构
+#### 双层表
 
-### 5.2 声明式 filter chain（DSL 声明有序 ID 列表）
+| 层级 | scope | 触发 | 触发点枚举 | 用途 |
+|------|-------|------|-----------|------|
+| **会话级**（现有，plan 296） | `session`（默认） | 每请求一次 | `AgentLifecyclePoint`（9 个链式点：PRE_CALL/PRE_REASONING/...） | 认证/限流/路由 |
+| **执行级**（新增，W3-1） | `execution` | 每次 LLM/工具尝试 | `ExecutionPoint`（4 个：PRE/POST_LLM_ATTEMPT、PRE/POST_TOOL_ATTEMPT） | 熔断检查、安全拦截——**retry 时重新评估** |
+
+两层**复用同一** `IAgentMiddleware` 接口 + `MiddlewareChain`（洋葱链执行模型不变），仅在声明层（`<middleware scope="..."/>`）和 registry 存储层区分 scope。
+
+#### D1：scope 建模（裁定：方案 B 强化为独立 ExecutionPoint 枚举）
+
+- **采纳**：`<middleware>` 增 `scope` 属性（默认 `session`，零回归）。会话级走 `AgentLifecyclePoint`（不变），执行级走**新建独立 `ExecutionPoint` 枚举**。
+- **拒绝方案 A**（向 `AgentLifecyclePoint` 加执行级值）：两种 scope 概念混入同一枚举，违反"会话级 12 值语义不变"且语义混乱。
+- **拒绝方案 C**（平行新接口 `IExecutionMiddleware`）：nop 风格倾向复用，执行级与会话级执行模型（洋葱链）完全相同，无需新接口。
+- registry 用 scope 维度分离存储：会话级 `Map<AgentLifecyclePoint,List>`（不变）+ 执行级 `Map<ExecutionPoint,List>`（新增 `getExecutionMiddlewares`/`registerExecutionMiddleware`）。两 scope 永不交叉。
+
+#### D2：attempt 级上下文（裁定：强类型 `AttemptContext` 挂在 `HookContext`）
+
+- **采纳**：新建强类型 `AttemptContext`（`attempt`(int,0-based) / `retry`(boolean) / `lastErrorClassification`(`ErrorClassification`)），经 `HookContext.getAttemptContext()` 暴露，仅执行级触发时填充（会话级为 null）。
+- **拒绝方案 a**（`HookContext.data` Map 弱类型）：违反 nop 强类型风格。
+- **拒绝方案 b 原版**（挂 `AgentExecutionContext`）：`AgentExecutionContext` 是 per-request，attempt 是 retry loop 内瞬态值，挂在 per-request 对象上语义错误。挂在 `HookContext`（per-invocation）才是 attempt 级信息的正确归属。
+
+#### 执行级触发点清单
+
+| 触发点 | 位置 | 触发频率 | veto 语义 |
+|--------|------|---------|----------|
+| `PRE_LLM_ATTEMPT` | `LlmCallCoordinator.doLlmCallWithRetry` retry loop 内，`callChatWithTimeout` **前**（try 块前） | 每次 attempt（含 retry） | 跳过本次调用 → 合成 NON_TRANSIENT 失败 → retry 决策 |
+| `POST_LLM_ATTEMPT` | 同上，`callChatWithTimeout` 返回**后**、success/错误分类**前** | 每次返回响应的 attempt（传输异常无响应，不触发） | 拒绝响应 → 合成 NON_TRANSIENT → retry 决策 |
+| `PRE_TOOL_ATTEMPT` | `AgentToolDispatcher.executeAllowedCalls` fan-out 循环内，提交 future **前**（同步，D4） | 每个工具调用 | 该工具产错误 result，不提交 future，不影响同 batch 其他工具 |
+| `POST_TOOL_ATTEMPT` | 同上，结果处理循环内，join **后**、commit **前** | 每个工具调用 | 该工具 result 替换为错误 result，不影响同 batch 其他工具 |
+
+#### D3：Veto → retry loop 控制流映射（裁定：synthetic NON_TRANSIENT + retryPolicy 决策 + veto cap）
+
+- **PRE/POST_LLM_ATTEMPT Veto** → 构造 synthetic 失败 attempt（`ChatResponse.error(NON_TRANSIENT,...)`，error="vetoed by ... middleware: <reason>"），喂入现有 `retryPolicy.shouldRetry()` 决策路径（由 retryPolicy 决 RETRY/STOP/FALLBACK，**非无条件 retry**）。
+- **veto ≠ 模型失败**：veto 路径**不记录** `circuitBreaker.recordFailure`（不污染熔断器——熔断器追踪的是模型连续失败，veto 是安全否决）。
+- **防无限循环**：`LlmCallCoordinator.MAX_EXECUTION_VETOES = 3`（与 `DEFAULT_MAX_REENTRIES` 一致），跨 attempt 累计 veto 次数，超限强制 fail-loud（抛 `NopAiAgentException`，不静默 continue）。防止"中间件每次 veto + retryPolicy 每次 RETRY → 无限循环"。
+- **工具侧 Veto** → 该单工具调用产 `AiToolCallResult.errorResult`（不 retry 工具，工具无 retry 机制），不影响同 batch 其他工具调用。
+
+#### D4：工具 dispatch 线程模型（裁定：方案 a — 同步 before + 异步执行 + 同步 after）
+
+- **采纳方案 a**：PRE_TOOL_ATTEMPT 在 fan-out 循环内、提交 future **前**同步触发（调用线程上）；POST_TOOL_ATTEMPT 在结果处理循环内、join **后**、commit **前**同步触发（调用线程上）。
+- **拒绝方案 b**（在 `CompletableFuture.supplyAsync` 内、池线程上触发）：安全检查应在工具执行前**确定性**完成，不应受线程池调度影响；且 `HookContext` 线程安全需额外保证。
+- **Anti-Hollow 红线**：执行级中间件调用的返回值**必须检查**（veto 生效）。现有 `AgentToolDispatcher:282` 的 PRE_ACTING `executeWithMiddleware` 返回值被**丢弃**——执行级中间件**绝不**复用此模式（已在 PRE/POST_TOOL_ATTEMPT 实现中显式检查 `isVeto()`，并有测试 `TestExecutionMiddlewareToolDispatch` 对比验证）。
+
+#### retry 重评估语义（核心价值）
+
+retry loop 内每次 attempt 重新触发 PRE/POST_LLM_ATTEMPT，携带 `AttemptContext(attempt=N+1, retry=true, lastErrorClassification=<上次分类>)`。安全/熔断检查据此**重新评估**——attempt N 改变的状态（如工具调用消耗的配额、注入的 prompt）对 attempt N+1 可见。测试 `TestExecutionMiddlewareLlmRetry.retryReEvaluatesExecutionMiddlewareCarryingRetrySignalAndLastClassification` 验证此路径。
+
+### 5.2 声明式 filter chain（DSL 声明有序 ID 列表）— Proposed（后继 plan W3-2）
 
 nop middleware 是代码装配。增加声明式配置（对标 plano 的 AgentFilterChain）：
 
