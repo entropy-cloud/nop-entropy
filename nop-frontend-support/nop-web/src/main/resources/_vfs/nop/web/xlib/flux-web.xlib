@@ -28,7 +28,8 @@
         <!--
         @containerModel 页面级与 body 级共用的容器分派标签：按 UiContainerModel.type 分派到
         crud/simple/tabs/wizard/group 五类容器渲染，均不包 page 外壳。
-        body 容器类型不含 picker（Flux 无页面级 picker schema），配置 picker 落入 otherwise 抛错。
+        UiContainerModel 的子元素共六类（crud/picker/simple/tabs/wizard/group，见 xview.xdef），
+        其中 picker 不在分派之列（Flux 无页面级 picker schema），配置 picker 落入 otherwise 抛 nop.err.web.unknown-page-type。
         -->
         <GenContainerModel outputMode="xjson">
             <attr name="containerModel" mandatory="true"/>
