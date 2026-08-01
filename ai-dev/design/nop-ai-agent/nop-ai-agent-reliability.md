@@ -772,15 +772,89 @@ nop reliability 重试不区分失败类型。增加（对标 mission-control �
 
 ### 13.4 有序故障转移队列（中优先）
 
-nop ThresholdBreaker 是单 provider 维度。增加跨 provider failover（对标 cc-switch）：
+> 原始状态（方向 only）：本节曾只列"有序回退 P1→P2→P3（每 provider 独立熔断）+ failover_switch 去重 + 与 LlmErrorClassifier 组合"三性质。下文（plan `2026-08-01-1905-3` Phase 1 裁定 A-E）把它从方向升级为含 schema/算法/集成点/状态模型/嵌套循环结构的可执行规格。
 
-```
-ProviderFailoverQueue：
-  - 有序回退 P1→P2→P3（每 provider 独立熔断状态）
-  - failover_switch 去重切换（防震荡）
-  - 与 LlmErrorClassifier（已有）组合：分类后再决定 fallback
-```
+**Reconcile："单 provider 维度"措辞 vs live per-model 事实**。本节原文字面称 ThresholdBreaker 是"单 provider 维度"，但 live `ThresholdBreaker` 实际是 **per `provider:model` 复合键**（`buildModelKey` 在 `LlmCallCoordinator.java:386-390`，`ConcurrentHashMap<String, BreakerEntry>` 在 `ThresholdBreaker.java:71`）——比 provider 级**更细**。provider 级健康状态今日**无直接来源**。本计划（裁定 B）不把 ThresholdBreaker 的 per-model 状态 roll-up 为 provider 级，而是在 `ProviderFailoverQueue` 的跨调用共享状态里**独立维护** per-provider 熔断（冷却）。两层并存：model 级熔断（`ThresholdBreaker`，门控单模型调用）+ provider 级熔断（`ProviderFailoverQueue` 共享状态，门控跨 provider failover/去重）。两者不同抽象层、服务不同决策。
+
+本计划补齐跨 provider 有序故障转移为 `LlmCallCoordinator` FALLBACK 的**第三通道**。今日两通道：**同 provider 账号链**（QUOTA/AUTH→`AccountChain`，W2e-5）+ **模型 tier 链**（TRANSIENT→`IModelRouter.getFallback`）。第三通道：**跨 provider 有序故障转移**（同 provider 账号链耗尽时升级，切到下一 provider 重试而非 fail-loud）。无第三通道时，provider 整体不可用（所有账号耗尽）只能 fail-loud。
+
+#### 裁定 A — provider 优先级声明落点：新 manifest xdef（单全局有序 provider 优先级表）
+
+裁定：候选 (i) 新 manifest xdef（`{name}.llm-failover.xml` 列 provider + priority）。拒绝 (ii) llm.xdef 扩展（加 `<failoverProviders>` 元素）与 (iii) SmartModelRouter 扩展。
+
+- **Schema**：新 xdef `/nop/schema/ai/llm-failover.xdef`，根 `<llmFailover xdef:name="LlmFailoverConfig" xdef:bean-package="io.nop.ai.core.model">`，body = `<providers xdef:body-type="list" xdef:key-attr="provider">`，每条 `<provider provider="!string" xdef:name="LlmFailoverProviderModel" model="string" tier="string"/>`。`provider` 是 provider 名（引用既有 `{provider}.llm.xml`）；可选 `model` 覆盖（缺省用目标 provider 的 `defaultModel`）；可选 `tier`（声明层留位，非阻塞 follow-up）。codegen 生成 `LlmFailoverConfig` + `LlmFailoverProviderModel`（与 `LlmModel` 同 `io.nop.ai.core.model` 包）。
+- **配置文件**：VFS 路径 `/nop/ai/llm/_default.llm-failover.xml`（即 `nop-ai/nop-ai-core/src/main/resources/_vfs/nop/ai/llm/` 下的 `_default.llm-failover.xml`；opt-in——**生产缺省不发布该文件** = 无 provider 链 = 零回归 fail-loud）。文件内一条**单一全局有序表**声明 P1→P2→P3 优先级。`LlmConfigHelper.resolveFailoverChain(primaryProvider)` 经 `VirtualFileSystem.getResource(...).exists()` 安全检测 opt-in 缺省（文件不存在→空表，非异常），加载该表，找到 `primaryProvider` 的位置，返回其**之后**的有序子表（failover 目标）。primary 不在表中或文件缺省 → 空表（无 failover）。
+- **理由**：
+  1. **llm.xdef 是单 provider 作用域**（根 `<llm>` 一个 per `{provider}.llm.xml`）——扩展它把跨 provider 元素塞进单 provider 文件， muddy 作用域且 reintroduces 环风险（P1 的文件声明 failover→P2，P2 的文件声明 failover→P1）。
+  2. **单全局有序表 → failover 恒向前**（只向优先级更低的方向游走）——**环不可能由声明构造**，状态模型最简。
+  3. 直接补 baseline 识别的"无 manifest 聚合"缺口。
+  4. provider 级健康（裁定 B）天然全局，与单全局表对齐。
+- **拒绝 (ii) llm.xdef 扩展**：per-primary 声明（`openai.llm.xml` 声明 `[azure, ollama]`）虽镜像 `<accounts>`（W2e-5）模式，但环风险 + 单 provider 文件作用域被打破。环靠裁定 D 去重缓解而非消除——不选。
+- **拒绝 (iii) SmartModelRouter 扩展**：SmartModelRouter 是**模型 tier** 回退（同/跨 provider 模型），把 provider 维度叠进去 conflates 两个正交维度，且 W2-4 第三通道须与模型 tier 通道（TRANSIENT）明确区分。
+
+#### 裁定 B — provider 维度健康来源：`ProviderFailoverQueue` 共享状态内独立 per-provider 冷却（非 ThresholdBreaker roll-up）
+
+裁定：per-provider 熔断状态独立维护在 `ProviderFailoverQueue` 的**跨调用共享状态**里（`Map<String, ProviderHealth>`，`ProviderHealth = { lastFailureAt, consecutiveFailures }`），**非** ThresholdBreaker per-model roll-up。`ProviderFailoverQueue` 经 `DefaultAgentEngine` field+setter 装配（默认 `NoOpProviderFailoverQueue`，零回归），类比注入式 `ThresholdBreaker` 单例（`LlmCallCoordinator.java:49`）。
+
+- **Reconcile §13.4 "每 provider 独立熔断状态" vs live per-model 事实**：provider 级熔断（冷却）是**独立**于 ThresholdBreaker per-model 熔断的第二层。两者并存不 roll-up：model 级（`ThresholdBreaker`）门控单模型调用是否放行；provider 级（`ProviderFailoverQueue` 共享状态）门控跨 provider failover 的去重（不切回刚失败、仍在冷却期的 provider）。不同抽象层、不同决策、不耦合。
+- **理由**：
+  1. **ThresholdBreaker 无 provider 聚合 API**（`ICircuitBreaker` 只按 modelKey 查询），roll-up 须前缀扫描 `provider:*` 条目——耦合 ThresholdBreaker 内部布局，且语义模糊（该 provider 10 个模型中 1 个 OPEN → provider "健康"？还是"不健康"？无清晰裁定）。
+  2. **ProviderFailoverQueue 本就需要跨调用共享状态**（裁定 D 去重），per-provider 冷却放同一处自包含，不引入新依赖方向。
+  3. provider 级熔断信号更直接：账号链耗尽 = provider 级（所有账号）不可用，直接记入 provider 冷却；不须经 model 级间接推断。
+- **状态 in-memory only（per queue instance）**，持久化/跨进程共享是 Non-Goal successor（同 ThresholdBreaker）。
+
+#### 裁定 C — 第三通道触发条件 + 集成点 + 嵌套循环结构：被动触发（账号链耗尽），单计划可关闭
+
+裁定：候选 (i) **被动触发**——同 provider 账号链耗尽时升级到跨 provider（单一集成点 `LlmCallCoordinator.java:177-182`，账号链 FALLBACK 耗尽分支）。主动触发 (ii)（provider 健康降级 roll-up OPEN 时预切）**deferred 到 successor**。
+
+- **触发条件**：仅当 QUOTA_EXCEEDED/AUTH_INVALID 的 FALLBACK 走到账号链分支且**账号链耗尽**（`doAccountSwitch` 返回 null，今日 `:177-182` break→fail-loud）时，升级到第三通道——切下一 provider。TRANSIENT 的模型 tier 回退耗尽（`:190-194`）**仍 fail-loud 不变**（两通道区分：QUOTA/AUTH = provider 账号问题→切 provider 有意义；TRANSIENT = 瞬态网络/5xx→模型 tier 回退有意义，非切 provider）。
+- **理由**：
+  1. **被动 = 具体、确定信号**（账号链耗尽是已发生的事实），单一集成点，范围有限。
+  2. 主动 (ii) 须在调用前（`:136` `callChatWithTimeout` 前）新增 provider 健康预检集成点，扩大改动面 → 违反"单计划可关闭"约束（选 (iii) 须拆 2a/2b）。本裁定选 (i) 使 Phase 2 单计划收口。
+  3. provider 健康降级信号今日无直接来源（裁定 B 已述），主动触发依赖它 → 须先建独立 tracker → 范围膨胀。被动触发不依赖。
+- **嵌套循环结构**（执行规格）：今日单 `while(true)` 重试循环（`:133-247`）含单 `accountChain` 变量（`:132`）。第三通道使该循环成为**逻辑内层**（provider 内账号链循环）；跨 provider 是**逻辑外层**（provider 游走）。实现为**单 `while(true)` + provider 切换时重置内层状态**（语义等价于嵌套，比字面双层循环更简）：
+  - 账号链耗尽 → `doProviderFailover(...)` 取下一 provider → 若有：**重置** `accountChain = null`（新 provider 有自己的 `<accounts>`）+ `routedOptions = nextProviderOptions`（改 `ChatOptions.provider`/`model`，清 `accountKey`/`accountBaseUrl`）+ **新 circuit-breaker 键**（`buildModelKey` 改变，`circuitBreaker.allowCall` 评估新条目）+ `attempt = 0` → `continue`。
+  - 全部 provider 耗尽（`doProviderFailover` 返回 null）→ fail-loud（`buildFallbackExhaustedError`，design §6.9，不静默降级）。
+  - 游标的向前性（裁定 D 的 `ProviderFailoverChain` per-execution walker）保证无无限循环：每 provider 只被游走一次。
+
+#### 裁定 D — failover_switch 去重算法 + 状态模型 + 可测试性：混合模式 + per-provider 冷却 + 可注入时间源
+
+裁定状态模型（**混合模式**，对齐 plan baseline 阻断项裁定）：**per-execution 有序游标** + **跨调用共享 provider 健康状态**。
+
+- **per-execution 游标 = `ProviderFailoverChain`**（类比 `AccountChain`）：每次 `doLlmCallWithRetry` 新建的有状态游走器，持裁定 A 的 failover 子表 + 向前 cursor。单次调用内 P1→P2→P3 **线性向前**（cursor 只增不减，不回退）——单次调用内**无震荡可能**（线性不回退）。
+- **跨调用共享状态 = `ProviderFailoverQueue`**（注入式单例，类比 `ThresholdBreaker`）：承载 per-provider 健康与去重。`Map<String, ProviderHealth>`，`ProviderHealth = { lastFailureAt(long), consecutiveFailures(int) }`。
+- **去重/防震荡算法（per-provider 冷却）**：provider P 的账号链耗尽 → `recordProviderFailure(P)`（`lastFailureAt = now, consecutiveFailures++`）。游走器 offer 下一 provider Q 时先查 `isProviderAvailable(Q)`：`now - Q.lastFailureAt < cooldownMs` → **跳过** Q（仍在冷却期，防跨调用震荡：P1 在调用 1 失败，调用 2 不立即把 P1 当 primary 或切回 P1）。`cooldownMs` 构造器可配（默认 60s，同 `ThresholdBreaker.DEFAULT_COOLDOWN_MS`）。冷却期内 per-execution cursor 继续向后游走到下一个可用 provider；全部冷却中或链尾 → 返回 null（fail-loud）。
+- **可测试性约束（不复制 ThresholdBreaker 反模式）**：`ProviderFailoverQueue` 不直接调 `System.currentTimeMillis()`（对比 `ThresholdBreaker.java:122` 直接调——已知反模式）。时间源经**可注入 `LongSupplier nowMs`**（构造器参数，默认 `System::currentTimeMillis`）。测试注入可控时间源（如 `AtomicLong`）精确推进时间，零窗口确定性测试去重边界。`ProviderFailoverChain` 不持时间源（它只向前游走 + 查询共享 queue 的健康）。
+- **理由**：去重/防震荡只在**跨调用**有意义（单次调用内线性向前无震荡）；per-execution cursor 只管单次线性游走。两层职责正交：cursor = 单次向前，共享 queue = 跨调用去重 + provider 健康记忆。
+
+#### 裁定 E — 跨 provider 切换的选项下沉：复用 `ChatOptions` 现有 provider/model 字段（无需新字段）
+
+裁定（已由代码预定）：跨 provider 切换经 `ChatOptions` 现有 `provider`/`model` 字段下沉，**无需新字段**。
+
+- **依据**：`ChatServiceImpl.java:101` 每次 `call()` 从 `request.getOptions().getProvider()` 读 provider 并按 provider 重载 `config`/`dialect`（`loadConfig(provider)` `:102`、`getDialect` `:103`、`resolveModel` `:119`、`buildHttpRequest` `:120`）。改 `ChatOptions.provider` → `ChatServiceImpl` 自动按新 provider 重载全部 config/dialect/model。与 W2e-5 账号链经 `ChatOptions.accountKey`/`accountBaseUrl` 下沉**同模式**（`buildHttpRequest:222-229` 优先用 `accountKey`）。
+- **切换动作**（`doProviderFailover` 内）：`switched = routedOptions.copy()`；`switched.setProvider(nextProvider)`；`switched.setModel(nextModel)`（来自裁定 A 的 `<provider model=...>`，缺省 null → `ChatServiceImpl.resolveModel` 用目标 provider `defaultModel`）；**清账号下沉** `switched.setAccountKey(null)` + `switched.setAccountBaseUrl(null)`（新 provider 从主账号开始，非继承前 provider 的备用账号）；`request.setOptions(switched)`。
+- **理由**：零新字段、零 ChatOptions/ChatServiceImpl 改动；与既有账号链下沉一致；`copy()` 语义保留 tools/settings 等无关字段。
+
+#### 端到端语义（执行规格摘要）
+
+1. provider P1 主账号调用 → QUOTA_EXCEEDED/AUTH_INVALID 错误响应。
+2. `StandardRetryPolicy` 返回 FALLBACK（W2e-4/5 已落地）→ 账号链通道（QUOTA/AUTH）。
+3. 走 P1 的 `<accounts>` 备用账号链，逐个 QUOTA → 链耗尽（`doAccountSwitch` 返回 null）。
+4. **第三通道**（本计划）：不 fail-loud，调 `doProviderFailover` → `ProviderFailoverChain`（per-execution 游标）offer P2 → 查 `ProviderFailoverQueue.isProviderAvailable(P2)`（P2 未在冷却期）→ 返回 P2 options。
+5. 重置 `accountChain=null` + `routedOptions=P2 options` + 新 circuit key + `attempt=0` → continue 内层循环。
+6. P2 主账号调用 → 成功（或 P2 也耗尽 → 游标 offer P3 → ... → 全部耗尽 fail-loud）。
+7. P1 失败已记入 `ProviderFailoverQueue`（`recordProviderFailure(P1)`）→ 后续调用冷却期内不切回 P1（防震荡）。
+
+#### 三通道区分（不变量）
+
+| 通道 | 触发分类 | 游走对象 | 耗尽行为 |
+|------|---------|---------|---------|
+| 同 provider 账号链（W2e-5） | QUOTA/AUTH | `AccountChain`（`<accounts>`） | 升级到第三通道（本计划） |
+| 模型 tier（既有） | TRANSIENT 等 | `IModelRouter.getFallback` | fail-loud（不变） |
+| 跨 provider（本计划 W2-4） | 账号链耗尽升级 | `ProviderFailoverChain`（`_default.llm-failover.xml`） | fail-loud |
 
 ### 13.5 推荐实施顺序
 
 WAIT_FOR（13.1）→ idempotency_key（13.2）→ 三级失败升级（13.3）→ 有序故障转移（13.4）
+
+> **跳序执行 reconcile（plan `2026-08-01-1905-3`）**：13.4（W2-4）实际在 13.3（W2-3）之前落地。理由：W2-4 的**硬前置**是 W2e 错误分类 + 账号链（W2e-0..5，均已 ✅ 落地）——第三通道消费账号链耗尽信号 + QUOTA/AUTH 分类，与 W2-1（WAIT_FOR checkpoint）/ W2-2（idempotency_key，已 ✅）/ W2-3（三级失败升级）**无硬依赖**。W2-3 三级失败升级中的"基础设施失败 max_dispatch_retries"虽概念上关联 ThresholdBreaker，但那是单 attempt 内的失败聚合（§13.3 与 W1-4 边界注），与 W2-4 跨 provider failover 正交。故 W2-4 可独立先行。

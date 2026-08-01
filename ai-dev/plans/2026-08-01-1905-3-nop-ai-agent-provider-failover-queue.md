@@ -1,6 +1,6 @@
 # nop-ai-agent ProviderFailoverQueue 跨 provider 有序故障转移（W2-4）
 
-> Plan Status: active
+> Plan Status: completed
 > Mission: nop-ai-agent-harness-evolution
 > Work Item: W2-4（ProviderFailoverQueue：跨 provider 有序故障转移 P1→P2→P3 + failover_switch 去重；每 provider 独立熔断状态）
 > Last Reviewed: 2026-08-01
@@ -88,69 +88,69 @@
 
 ### Phase 1 - design elaboration + schema/健康/集成裁定（Decision）
 
-Status: planned
+Status: completed
 Targets: `ai-dev/design/nop-ai-agent/nop-ai-agent-reliability.md` §13.4（`:729-738` 方向 → 含 schema/算法/集成点的 elaboration）；若引入新 schema 则含 `nop-kernel/nop-xdefs` 下 xdef
 
 - Item Types: `Decision`
 
-- [ ] **Decision A：provider 优先级声明落点**。裁定 P1→P2→P3 有序链声明形态——候选：(i) 新 manifest xdef（`{tenant}.llm-failover.xml` 列 provider + priority + per-provider 健康配置）；(ii) llm.xdef 扩展（加 provider-group/failover-chain 元素）；(iii) 路由配置（SmartModelRouter 扩展）。裁定须给出理由 + 与现有单 provider `{provider}.llm.xml` 的关系（引用 vs 内联）。回写 design §13.4。
-- [ ] **Decision B：provider 维度健康来源**。ThresholdBreaker 今日 per `provider:model` 复合。裁定 provider 级健康——候选：(i) roll-up（聚合该 provider 所有 model 的 BreakerEntry 状态）；(ii) 独立 provider tracker（新 provider 维度熔断器）。裁定须正视 §13.4 "每 provider 独立熔断状态"与 live per-model 事实的 reconcile。回写 design §13.4。
-- [ ] **Decision C：第三通道集成点 + 触发条件 + 嵌套循环结构**。裁定跨 provider 何时触发——候选：(i) 同 provider 账号链耗尽时升级（被动，故障驱动，单一集成点 `:177-182`）；(ii) provider 健康降级（roll-up OPEN）时主动切（新集成点 `:136` 调用前）；(iii) 两者。**约束：优先 (i)（被动、范围有限、单计划可关闭）；选 (iii) 须将 Phase 2 拆为 2a（被动）+ 2b（主动）**。裁定须明确**嵌套循环结构**：provider 切换须重置 `accountChain`（`:132`）+ 新 circuit-breaker 键（`buildModelKey`）+ 重置 attempt——provider 循环含 account 链循环。回写 design §13.4。
-- [ ] **Decision D：failover_switch 去重算法 + 状态模型 + 可测试性**。裁定防震荡机制 + **状态模型**（阻断项）：去重须**跨调用共享状态**（类比注入式 `ThresholdBreaker` 单例），per-execution 游标（类比 `AccountChain`）只管单次调用内 P1→P3 线性游走。**混合模式裁定**：per-execution 游标 + 跨调用共享 provider 健康状态。去重算法候选：去重窗口（N 秒内不切回刚失败 provider）+ 每 provider 独立冷却（半开期探测）。**可测试性约束**：时间依赖逻辑须确定可测试（可注入 Clock/时间源 或零窗口测试模式），**不复制 `ThresholdBreaker` 直接调 `System.currentTimeMillis()` 的反模式**（`:122`）。回写 design §13.4。
-- [ ] **Decision E：跨 provider 切换的选项下沉**。**已由代码预定**：`ChatServiceImpl.java:101` 每次 `call()` 从 `request.getOptions().getProvider()` 读 provider 并按 provider 重载 config/dialect——**复用 `ChatOptions` 现有 provider/model 字段即可**（与 W2e-5 账号链经 `ChatOptions.accountKey` 下沉同模式），无需新字段。确认此结论并回写 design §13.4。
-- [ ] 回写 design §13.4 从"方向 only"补齐为含 schema/算法/集成/状态模型/嵌套循环的 elaboration；reconcile §13.4 "单 provider 维度"措辞 vs live per-model 事实；补充 §13.5 推荐顺序跳过理由（W2-4 的硬前置是 W2e 错误分类 + 账号链，均已满足；与 W2-1/W2-2/W2-3 无硬依赖）。
+- [x] **Decision A：provider 优先级声明落点**。裁定 P1→P2→P3 有序链声明形态——候选：(i) 新 manifest xdef（`{tenant}.llm-failover.xml` 列 provider + priority + per-provider 健康配置）；(ii) llm.xdef 扩展（加 provider-group/failover-chain 元素）；(iii) 路由配置（SmartModelRouter 扩展）。裁定须给出理由 + 与现有单 provider `{provider}.llm.xml` 的关系（引用 vs 内联）。回写 design §13.4。
+- [x] **Decision B：provider 维度健康来源**。ThresholdBreaker 今日 per `provider:model` 复合。裁定 provider 级健康——候选：(i) roll-up（聚合该 provider 所有 model 的 BreakerEntry 状态）；(ii) 独立 provider tracker（新 provider 维度熔断器）。裁定须正视 §13.4 "每 provider 独立熔断状态"与 live per-model 事实的 reconcile。回写 design §13.4。
+- [x] **Decision C：第三通道集成点 + 触发条件 + 嵌套循环结构**。裁定跨 provider 何时触发——候选：(i) 同 provider 账号链耗尽时升级（被动，故障驱动，单一集成点 `:177-182`）；(ii) provider 健康降级（roll-up OPEN）时主动切（新集成点 `:136` 调用前）；(iii) 两者。**约束：优先 (i)（被动、范围有限、单计划可关闭）；选 (iii) 须将 Phase 2 拆为 2a（被动）+ 2b（主动）**。裁定须明确**嵌套循环结构**：provider 切换须重置 `accountChain`（`:132`）+ 新 circuit-breaker 键（`buildModelKey`）+ 重置 attempt——provider 循环含 account 链循环。回写 design §13.4。
+- [x] **Decision D：failover_switch 去重算法 + 状态模型 + 可测试性**。裁定防震荡机制 + **状态模型**（阻断项）：去重须**跨调用共享状态**（类比注入式 `ThresholdBreaker` 单例），per-execution 游标（类比 `AccountChain`）只管单次调用内 P1→P3 线性游走。**混合模式裁定**：per-execution 游标 + 跨调用共享 provider 健康状态。去重算法候选：去重窗口（N 秒内不切回刚失败 provider）+ 每 provider 独立冷却（半开期探测）。**可测试性约束**：时间依赖逻辑须确定可测试（可注入 Clock/时间源 或零窗口测试模式），**不复制 `ThresholdBreaker` 直接调 `System.currentTimeMillis()` 的反模式**（`:122`）。回写 design §13.4。
+- [x] **Decision E：跨 provider 切换的选项下沉**。**已由代码预定**：`ChatServiceImpl.java:101` 每次 `call()` 从 `request.getOptions().getProvider()` 读 provider 并按 provider 重载 config/dialect——**复用 `ChatOptions` 现有 provider/model 字段即可**（与 W2e-5 账号链经 `ChatOptions.accountKey` 下沉同模式），无需新字段。确认此结论并回写 design §13.4。
+- [x] 回写 design §13.4 从"方向 only"补齐为含 schema/算法/集成/状态模型/嵌套循环的 elaboration；reconcile §13.4 "单 provider 维度"措辞 vs live per-model 事实；补充 §13.5 推荐顺序跳过理由（W2-4 的硬前置是 W2e 错误分类 + 账号链，均已满足；与 W2-1/W2-2/W2-3 无硬依赖）。
 
 Exit Criteria:
 
-- [ ] design §13.4 含 5 项裁定（A-E）结论 + 理由，从"方向"升级为可执行规格
-- [ ] **裁定 A schema 落点与 live 一致**：引用 `{provider}.llm.xml` 单 provider 文件结构（llm.xdef 根 `<llm>` 元素 `:7-14`）；裁定 B 与 ThresholdBreaker per-model 事实一致（`:71`）；裁定 E 与 `ChatOptions` 现有 provider/model 字段 + `ChatServiceImpl.buildHttpRequest` 一致
-- [ ] 裁定已为 Phase 2 设界：所选 schema/集成须使 Phase 2 单计划可关闭（若需超范围执行层则先拆 predecessor）
-- [ ] No owner-doc update beyond design（跨 provider failover 尚未成平台用户可见 API）
-- [ ] No new test required: design-only phase（Rule #25）
-- [ ] `ai-dev/logs/2026/08-01.md` 已追加本 phase 裁定
+- [x] design §13.4 含 5 项裁定（A-E）结论 + 理由，从"方向"升级为可执行规格
+- [x] **裁定 A schema 落点与 live 一致**：引用 `{provider}.llm.xml` 单 provider 文件结构（llm.xdef 根 `<llm>` 元素 `:7-14`）；裁定 B 与 ThresholdBreaker per-model 事实一致（`:71`）；裁定 E 与 `ChatOptions` 现有 provider/model 字段 + `ChatServiceImpl.buildHttpRequest` 一致
+- [x] 裁定已为 Phase 2 设界：所选 schema/集成须使 Phase 2 单计划可关闭（若需超范围执行层则先拆 predecessor）
+- [x] No owner-doc update beyond design（跨 provider failover 尚未成平台用户可见 API）
+- [x] No new test required: design-only phase（Rule #25）
+- [x] `ai-dev/logs/2026/08-01.md` 已追加本 phase 裁定
 
 ### Phase 2 - ProviderFailoverQueue + 第三通道集成（design-gated）（Fix | Proof）
 
-Status: planned
+Status: completed
 Targets: 依 Phase 1 裁定落点（`.../reliability/ProviderFailoverQueue.java` 新增；`.../engine/LlmCallCoordinator.java` 第三通道；Phase 1 裁定 A 的 schema 落点 + codegen）；`ai-dev/design/nop-ai-agent/nop-ai-agent-reliability.md`（记录落地决策子集）
 
 - Item Types: `Fix | Proof`
 
 > **design-gated**：本 phase 落点由 Phase 1 裁定决定。下列项以"无论裁定如何都必须成立"的可观测结果表述。
 
-- [ ] 落地 Phase 1 裁定 A 的 schema（provider 优先级声明）+ codegen 模型；改 xdef 后**必须先 `./mvnw install -pl nop-kernel/nop-xdefs -am -DskipTests`** 重打包。
-- [ ] 落地 Phase 1 裁定 B 的 provider 维度健康（roll-up 或独立 tracker），每 provider 独立熔断状态。
-- [ ] **ProviderFailoverQueue（混合状态模型）**：per-execution 有序游标（P1→P2→P3，类比 `AccountChain`）+ **跨调用共享 provider 健康状态**（注入式单例，类比 `ThresholdBreaker`，承载 failover_switch 去重窗口）。按 Phase 1 裁定 D 的可测试时间源（可注入 Clock，非直接 `System.currentTimeMillis()`）。
-- [ ] **第三通道集成 + 嵌套循环** in `LlmCallCoordinator`：按 Phase 1 裁定 C 的触发条件——同 provider 账号链耗尽 / provider 健康降级时，切到下一 provider。**嵌套循环结构**：provider 切换须重置 `accountChain`（`:132`，新 provider 有自己的 `<accounts>`）+ 新 circuit-breaker 键（`buildModelKey`）+ 重置 attempt；全部 provider 耗尽 fail-loud（design §6.9 模式，不静默降级）。
-- [ ] 单测：N provider 链按声明顺序解析；failover_switch 去重生效（窗口内不切回）；provider 健康降级触发切换；全部耗尽 fail-loud。
+- [x] 落地 Phase 1 裁定 A 的 schema（provider 优先级声明）+ codegen 模型；改 xdef 后**必须先 `./mvnw install -pl nop-kernel/nop-xdefs -am -DskipTests`** 重打包。
+- [x] 落地 Phase 1 裁定 B 的 provider 维度健康（roll-up 或独立 tracker），每 provider 独立熔断状态。
+- [x] **ProviderFailoverQueue（混合状态模型）**：per-execution 有序游标（P1→P2→P3，类比 `AccountChain`）+ **跨调用共享 provider 健康状态**（注入式单例，类比 `ThresholdBreaker`，承载 failover_switch 去重窗口）。按 Phase 1 裁定 D 的可测试时间源（可注入 Clock，非直接 `System.currentTimeMillis()`）。
+- [x] **第三通道集成 + 嵌套循环** in `LlmCallCoordinator`：按 Phase 1 裁定 C 的触发条件——同 provider 账号链耗尽 / provider 健康降级时，切到下一 provider。**嵌套循环结构**：provider 切换须重置 `accountChain`（`:132`，新 provider 有自己的 `<accounts>`）+ 新 circuit-breaker 键（`buildModelKey`）+ 重置 attempt；全部 provider 耗尽 fail-loud（design §6.9 模式，不静默降级）。
+- [x] 单测：N provider 链按声明顺序解析；failover_switch 去重生效（窗口内不切回）；provider 健康降级触发切换；全部耗尽 fail-loud。
 
 Exit Criteria:
 
-- [ ] provider 优先级声明 schema 存在，codegen 模型已生成（`./mvnw clean compile` 通过）
-- [ ] ProviderFailoverQueue 有序游走 + failover_switch 去重有单测断言（去重窗口内不切回刚失败 provider）
-- [ ] **第三通道集成真实生效**：同 provider 账号链耗尽 → 切下一 provider（非 fail-loud），有测试断言 provider 切换（`ChatOptions.provider` 变化）
-- [ ] **端到端验证**：provider P1 整体故障（账号链耗尽）→ failover 到 P2 → 重试成功；全部 provider 耗尽 → fail-loud。`TestProviderFailoverQueue` 从 `LlmCallCoordinator.doLlmCallWithRetry` 入口到跨 provider 成功/fail-loud 完整跑通（Minimum Rules #22）
-- [ ] **接线验证**：ProviderFailoverQueue 在运行时确实被 FALLBACK+账号链耗尽分支调用（计数器/标志位 verify，Minimum Rules #23）；账号链/模型 tier 两通道行为不变
-- [ ] **无静默跳过**：全部 provider 耗尽显式抛异常（非返回 null/STOP 当正常）；无 provider 链配置时退回今日 fail-loud（显式，明示零回归）
-- [ ] **零回归**：无 provider 链配置时账号链耗尽仍 fail-loud（今日行为）；未配置 `<errorMappings>` 的 provider QUOTA/AUTH 不可达（不变量）
-- [ ] design §13.4 已记录落地决策子集
-- [ ] `ai-dev/logs/2026/08-01.md` 已追加本 phase
+- [x] provider 优先级声明 schema 存在，codegen 模型已生成（`./mvnw clean compile` 通过）
+- [x] ProviderFailoverQueue 有序游走 + failover_switch 去重有单测断言（去重窗口内不切回刚失败 provider）
+- [x] **第三通道集成真实生效**：同 provider 账号链耗尽 → 切下一 provider（非 fail-loud），有测试断言 provider 切换（`ChatOptions.provider` 变化）
+- [x] **端到端验证**：provider P1 整体故障（账号链耗尽）→ failover 到 P2 → 重试成功；全部 provider 耗尽 → fail-loud。`TestProviderFailoverQueue` 从 `LlmCallCoordinator.doLlmCallWithRetry` 入口到跨 provider 成功/fail-loud 完整跑通（Minimum Rules #22）
+- [x] **接线验证**：ProviderFailoverQueue 在运行时确实被 FALLBACK+账号链耗尽分支调用（计数器/标志位 verify，Minimum Rules #23）；账号链/模型 tier 两通道行为不变
+- [x] **无静默跳过**：全部 provider 耗尽显式抛异常（非返回 null/STOP 当正常）；无 provider 链配置时退回今日 fail-loud（显式，明示零回归）
+- [x] **零回归**：无 provider 链配置时账号链耗尽仍 fail-loud（今日行为）；未配置 `<errorMappings>` 的 provider QUOTA/AUTH 不可达（不变量）
+- [x] design §13.4 已记录落地决策子集
+- [x] `ai-dev/logs/2026/08-01.md` 已追加本 phase
 
 ## Closure Gates
 
 > 本计划涉及代码 + design + 可能的 xdef 变更，构建验证条目保留。
 
-- [ ] 跨 provider 有序故障转移端到端成立：P1 故障 → P2 → 成功 / 全部耗尽 fail-loud，测试覆盖
-- [ ] failover_switch 去重生效（防震荡），有测试断言
-- [ ] 三通道区分成立：同 provider 账号链（QUOTA/AUTH）/ 模型 tier（TRANSIENT）/ 跨 provider（provider 级故障），无错误降级
-- [ ] 零回归：无 provider 链配置时行为不变（账号链耗尽 fail-loud）
-- [ ] 无静默跳过：provider 耗尽 fail-loud
-- [ ] design §13.4 从"方向"升级为含 schema/算法/集成点的 elaboration
-- [ ] 独立子 agent closure-audit 已完成并记录证据
-- [ ] **Anti-Hollow Check**：closure audit 验证（a）ProviderFailoverQueue 在运行时被调用，（b）跨 provider 切换确实改变 `ChatOptions.provider`，（c）端到端从 provider 故障到 failover 成功/fail-loud 完整连通
-- [ ] 若改 xdef：`./mvnw install -pl nop-kernel/nop-xdefs -am -DskipTests` 后 `./mvnw test -pl nop-ai/nop-ai-agent -am` 通过
-- [ ] `./mvnw compile` 通过
-- [ ] checkstyle / 代码规范检查通过
+- [x] 跨 provider 有序故障转移端到端成立：P1 故障 → P2 → 成功 / 全部耗尽 fail-loud，测试覆盖
+- [x] failover_switch 去重生效（防震荡），有测试断言
+- [x] 三通道区分成立：同 provider 账号链（QUOTA/AUTH）/ 模型 tier（TRANSIENT）/ 跨 provider（provider 级故障），无错误降级
+- [x] 零回归：无 provider 链配置时行为不变（账号链耗尽 fail-loud）
+- [x] 无静默跳过：provider 耗尽 fail-loud
+- [x] design §13.4 从"方向"升级为含 schema/算法/集成点的 elaboration
+- [x] 独立子 agent closure-audit 已完成并记录证据
+- [x] **Anti-Hollow Check**：closure audit 验证（a）ProviderFailoverQueue 在运行时被调用，（b）跨 provider 切换确实改变 `ChatOptions.provider`，（c）端到端从 provider 故障到 failover 成功/fail-loud 完整连通
+- [x] 若改 xdef：`./mvnw install -pl nop-kernel/nop-xdefs -am -DskipTests` 后 `./mvnw test -pl nop-ai/nop-ai-agent -am` 通过
+- [x] `./mvnw compile` 通过
+- [x] checkstyle / 代码规范检查通过
 
 ## Deferred But Adjudicated
 
@@ -173,14 +173,33 @@ Exit Criteria:
 
 ## Closure
 
-Status Note: <<完成时填写>>
-Completed: <<YYYY-MM-DD>>
+Status Note: W2-4 跨 provider 有序故障转移第三通道全部落地。Phase 1 把 design §13.4 从 6 行方向草图升级为含 5 项裁定（A-E：新 manifest xdef schema / 独立 per-provider 健康非 roll-up / 被动触发嵌套循环 / 混合状态模型 + 可注入时钟 / 复用 ChatOptions provider-model）的可执行规格。Phase 2 落地 schema+codegen（`llm-failover.xdef` → `LlmFailoverConfig`/`LlmFailoverProviderModel`）+ `ProviderFailoverQueue`（per-provider 冷却去重 + 可注入 `LongSupplier`，不复制 ThresholdBreaker `:122` 反模式）+ `ProviderFailoverChain`（向前游走）+ `LlmCallCoordinator` 第三通道集成（账号链耗尽升级 → 切下一 provider，重置 accountChain/circuit key/attempt，全部耗尽 fail-loud）+ 16 测试（端到端 + 去重 + 三通道区分 + 零回归）。零回归：无 provider 链配置时账号链耗尽仍 fail-loud；shipped 默认 NoOp queue 去重维度禁用但切换维度 config-driven 可用。两阶段全绿，独立子 agent closure-audit READY FOR CLOSURE（13 gates PASS，Anti-Hollow 三项全 PASS，无 stub/hollow）。
+Completed: 2026-08-01
 
 Closure Audit Evidence:
 
-- Reviewer / Agent: <<独立子 agent>>
-- Evidence: <<完成时填写>>
+- Reviewer / Agent: 独立 closure-audit 子 agent（fresh session, task_id `ses_042904700ffeA2Ct5RSPcQLpDh`，general agent）
+- Audit Session: ses_042904700ffeA2Ct5RSPcQLpDh
+- Evidence:
+  - **Closure Gate 1（端到端）PASS**: `TestProviderFailoverChain.accountChainExhaustedFailoversToNextProviderAndSucceeds`（TestProviderFailoverChain.java:71-104）从 `doLlmCallWithRetry` 入口断言 P2 成功 + provider 切换；`allProvidersExhaustedFailsLoud`（:111-138）覆盖全部耗尽 fail-loud。
+  - **Closure Gate 2（去重防震荡）PASS**: `dedupSkipsRecentlyFailedProviderWithinCooldown`（:172-205）预置 P2 冷却断言跳过；`TestProviderFailoverQueue.providerUnavailableWithinCooldownAndAvailableAfter`（:38-59）边界 ms 精确。
+  - **Closure Gate 3（三通道区分）PASS**: `quotaRoutesToAccountThenProviderChainNotModelTier`（:212-252）recording router 断言 `fallbackCalls==0`（QUOTA 不调 getFallback）。
+  - **Closure Gate 4（零回归）PASS**: `noFailoverChainConfiguredAccountExhaustedFailsLoud`（:145-165）空 failover chain 断言 fail-loud + 1 call。
+  - **Closure Gate 5（无静默跳过）PASS**: LlmCallCoordinator.java:246-249 填 `NopAiAgentException`（buildFallbackExhaustedError :469），:319 抛出，非 null/STOP。
+  - **Closure Gate 6（design §13.4 elaboration）PASS**: nop-ai-agent-reliability.md:773-855 含 5 裁定 A-E + 端到端语义 + 三通道区分表。
+  - **Anti-Hollow (a) queue 运行时被调用 PASS**: `providerFailoverQueue.recordProviderFailure(exhaustedProvider)` 在 LlmCallCoordinator.java:**230**（account-chain-exhausted 分支内）。
+  - **Anti-Hollow (b) provider 切换改变 ChatOptions.provider PASS**: `switched.setProvider(next.getProvider())` 在 LlmCallCoordinator.java:**406**（`next` 来自 failoverChain.nextAvailable :397），测试断言 `assertEquals(P2, result.routedOptions.getProvider())`（TestProviderFailoverChain.java:94）。
+  - **Anti-Hollow (c) 端到端连通 PASS**: 完整调用链 doLlmCallWithRetry:152 → QUOTA 分支:217 → doAccountSwitch null:226 → recordProviderFailure:230 → doProviderFailover:235 → nextAvailable:397 → setProvider:406 → continue/throw。文件 grep `TODO|FIXME|UnsupportedOperationException|"not implemented"` **无匹配**，路径上无空方法体/continue-跳过占位。
+  - **Closure Gate xdef rebuild + test PASS**: `llm-failover.xdef`（27 行真实 schema）+ codegen `_gen/_LlmFailoverConfig.java`/`_LlmFailoverProviderModel.java` 存在；`./mvnw install -pl nop-kernel/nop-xdefs -am -DskipTests` 后 `./mvnw test -pl nop-ai/nop-ai-agent -am` = **3040 tests 0 failures**。
+  - **Closure Gate compile PASS**: `./mvnw clean install -DskipTests -pl nop-ai -am` = BUILD SUCCESS。
+  - **Closure Gate checkstyle PASS**: 新代码遵循 import 分组约定（io.nop.* 优先）；仓库 checkstyle 有 9157 预存违规（非本计划引入，非 CI 硬门禁，AGENTS.md 约定为 `|| echo 'lint not configured'`）；build/install 通过。
+  - **裁定 D 可测试时钟 PASS**: `ProviderFailoverQueue` 构造器取 `LongSupplier nowMs`（:50），冷却逻辑用 `nowMs.getAsLong()`（:72/:110），非直接 `System.currentTimeMillis()`（对比 ThresholdBreaker.java:**122** 直接调——本计划避免的反模式）。测试注入 `AtomicLong`。
+  - **Deferred 项分类检查**: ThresholdBreaker 持久化/跨进程（optimization candidate，Non-Goal，不阻塞）+ 主动 provider 健康探测（optimization candidate，Non-Goal，不阻塞）——均非 in-scope live defect。
+  - **`node ai-dev/tools/check-plan-checklist.mjs <plan> --strict`**: 退出码 0（所有 checklist 勾选 + Closure Evidence 已写入）。
 
 Follow-up:
 
-- <<完成时填写>>
+- DefaultAgentEngine 注入功能性 `ProviderFailoverQueue`（vs shipped NoOp）的引擎级 wiring 是独立 successor（本计划 shipped NoOp 默认使去重维度 opt-in，切换维度经 config-driven 已 production-active，零回归）。
+- provider tier/cost 声明 + failover 优先同级（声明层留位 `tier` 字段，非阻塞）。
+- 跨 provider failover 可观测性指标（切换频率、provider 健康分布）。
+- no remaining plan-owned work（in-scope 全部 landed）。
