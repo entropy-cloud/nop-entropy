@@ -1,11 +1,17 @@
 package io.nop.ai.coder.code;
 
+import io.nop.api.core.exceptions.NopException;
+
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+
+import static io.nop.ai.coder.AiCoderErrors.ARG_SIGNATURE;
+import static io.nop.ai.coder.AiCoderErrors.ERR_AI_CODER_METHOD_SIGNATURE_NOT_FOUND;
+import static io.nop.ai.coder.AiCoderErrors.ERR_AI_CODER_UNBALANCED_BRACES;
 
 public class JavaMethodReplacer {
 
@@ -21,7 +27,8 @@ public class JavaMethodReplacer {
 
         // 查找方法签名
         if (!matcher.find()) {
-            throw new IllegalArgumentException("Method signature not found: " + methodSignature);
+            throw new NopException(ERR_AI_CODER_METHOD_SIGNATURE_NOT_FOUND)
+                    .param(ARG_SIGNATURE, methodSignature);
         }
 
         int start = matcher.start();
@@ -30,7 +37,7 @@ public class JavaMethodReplacer {
         // 查找方法体结束位置（匹配的右大括号）
         int braceEnd = findMatchingBrace(content, braceStart);
         if (braceEnd == -1) {
-            throw new IllegalArgumentException("Unbalanced braces in method body");
+            throw new NopException(ERR_AI_CODER_UNBALANCED_BRACES);
         }
 
         // 替换方法体（保留签名，只替换大括号内的内容）

@@ -1,9 +1,14 @@
 package io.nop.ai.coder.convert;
 
 import io.nop.ai.coder.orm.AiOrmModel;
+import io.nop.api.core.exceptions.NopException;
 import io.nop.converter.DocumentConvertOptions;
 import io.nop.converter.IDocumentObject;
 import io.nop.converter.impl.ITextDocumentConverter;
+
+import static io.nop.ai.coder.AiCoderErrors.ARG_FROM;
+import static io.nop.ai.coder.AiCoderErrors.ARG_TO;
+import static io.nop.ai.coder.AiCoderErrors.ERR_AI_CODER_UNSUPPORTED_CONVERSION;
 
 public class AiOrmDocumentConverter implements ITextDocumentConverter {
 
@@ -25,6 +30,8 @@ public class AiOrmDocumentConverter implements ITextDocumentConverter {
         } else if ("ai-orm.xml".equals(fromFileType) && "ai-orm.xml".equals(toFileType)) {
             return doc.getNode(options).xml();
         }
-        throw new IllegalArgumentException("Unsupported conversion:" + fromFileType + "->" + toFileType);
+        throw new NopException(ERR_AI_CODER_UNSUPPORTED_CONVERSION)
+                .param(ARG_FROM, fromFileType)
+                .param(ARG_TO, toFileType);
     }
 }
