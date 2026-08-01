@@ -1,0 +1,24 @@
+<plan x:schema="/nop/schema/ai/agent-plan.xdef" xmlns:x="/nop/schema/xdsl.xdef"
+      title="Gate Test Plan" status="pending">
+
+    <purpose>Test plan with phase gate for W1-1</purpose>
+
+    <goal>Verify gate model loads from XML and PlanRunner can evaluate it</goal>
+
+    <phases>
+        <phase name="build" status="running">
+            <gate on-fail="retry" max-retries="2" require-explicit-verdict="true" verdict="true">
+                <criteria>
+                    <criterion id="tests-pass" completed="true" required="true" blocking="false">All tests pass</criterion>
+                    <criterion id="no-regression" completed="true" required="true" blocking="true">No regressions introduced</criterion>
+                </criteria>
+            </gate>
+            <tasks>
+                <task taskNo="T001" title="Implement feature" status="completed">
+                    <instructions>Build the feature</instructions>
+                </task>
+            </tasks>
+        </phase>
+    </phases>
+
+</plan>

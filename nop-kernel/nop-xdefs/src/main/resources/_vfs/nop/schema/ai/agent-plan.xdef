@@ -78,12 +78,23 @@ Agent Plan Metamodel Definition
                            xdef:name="AgentPlanCriterion">string</criterion>
             </exitCriteria>
 
+            <!-- 阶段验收门控（design §14.1）：不满足时按 on-fail 动作处理 -->
+            <gate on-fail="enum:io.nop.ai.agent.plan.model.GateOnFail" max-retries="int"
+                  require-explicit-verdict="boolean" verdict="boolean"
+                  xdef:name="AgentPlanGate">
+                <criteria xdef:body-type="list" xdef:key-attr="id">
+                    <criterion id="!string" completed="boolean" required="boolean" blocking="boolean"
+                               xdef:ref="AgentPlanCriterion">string</criterion>
+                </criteria>
+            </gate>
+
             <!-- 阶段任务列表：支持递归子任务 -->
             <tasks xdef:body-type="list" xdef:key-attr="taskNo">
                 <!--
                 @dependsOn 指定依赖的任务编号，使用逗号分隔
                 -->
                 <task taskNo="!string" title="!string" dependsOn="csv-set"
+                      triggerRule="enum:io.nop.ai.agent.plan.model.TriggerRule"
                       status="enum:io.nop.ai.agent.model.AgentExecStatus"
                       startedAt="datetime" completedAt="datetime"
                       xdef:name="AgentPlanTaskModel">

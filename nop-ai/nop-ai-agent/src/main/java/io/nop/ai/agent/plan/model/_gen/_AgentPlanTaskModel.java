@@ -87,6 +87,13 @@ public abstract class _AgentPlanTaskModel extends io.nop.core.resource.component
     private java.lang.String _title ;
     
     /**
+     *  
+     * xml name: triggerRule
+     * 
+     */
+    private io.nop.ai.agent.plan.model.TriggerRule _triggerRule ;
+    
+    /**
      * 
      * xml name: checks
      *  
@@ -328,6 +335,25 @@ public abstract class _AgentPlanTaskModel extends io.nop.core.resource.component
     }
 
     
+    /**
+     * 
+     * xml name: triggerRule
+     *  
+     */
+    
+    public io.nop.ai.agent.plan.model.TriggerRule getTriggerRule(){
+      return _triggerRule;
+    }
+
+    
+    public void setTriggerRule(io.nop.ai.agent.plan.model.TriggerRule value){
+        checkAllowChange();
+        
+        this._triggerRule = value;
+           
+    }
+
+    
 
     @Override
     public void freeze(boolean cascade){
@@ -357,6 +383,7 @@ public abstract class _AgentPlanTaskModel extends io.nop.core.resource.component
         out.putNotNull("subTasks",this.getSubTasks());
         out.putNotNull("taskNo",this.getTaskNo());
         out.putNotNull("title",this.getTitle());
+        out.putNotNull("triggerRule",this.getTriggerRule());
     }
 
     public AgentPlanTaskModel cloneInstance(){
@@ -378,6 +405,7 @@ public abstract class _AgentPlanTaskModel extends io.nop.core.resource.component
         instance.setSubTasks(this.getSubTasks());
         instance.setTaskNo(this.getTaskNo());
         instance.setTitle(this.getTitle());
+        instance.setTriggerRule(this.getTriggerRule());
     }
 
     protected AgentPlanTaskModel newInstance(){

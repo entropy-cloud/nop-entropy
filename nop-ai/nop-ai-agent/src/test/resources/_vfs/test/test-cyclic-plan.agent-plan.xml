@@ -1,0 +1,21 @@
+<plan x:schema="/nop/schema/ai/agent-plan.xdef" xmlns:x="/nop/schema/xdsl.xdef"
+      title="Cyclic Plan" status="pending">
+
+    <purpose>Plan with a cyclic dependency for load-time validation test</purpose>
+
+    <goal>Should be rejected at load time by AgentPlanValidator</goal>
+
+    <phases>
+        <phase name="P1" status="pending">
+            <tasks>
+                <task taskNo="A" title="Task A" dependsOn="B" status="pending">
+                    <instructions>A depends on B</instructions>
+                </task>
+                <task taskNo="B" title="Task B" dependsOn="A" status="pending">
+                    <instructions>B depends on A</instructions>
+                </task>
+            </tasks>
+        </phase>
+    </phases>
+
+</plan>

@@ -39,6 +39,13 @@ public abstract class _AgentPlanPhase extends io.nop.core.resource.component.Abs
     
     /**
      *  
+     * xml name: gate
+     * 阶段验收门控（design §14.1）：不满足时按 on-fail 动作处理
+     */
+    private io.nop.ai.agent.plan.model.AgentPlanGate _gate ;
+    
+    /**
+     *  
      * xml name: kind
      * 
      */
@@ -161,6 +168,25 @@ public abstract class _AgentPlanPhase extends io.nop.core.resource.component.Abs
     public boolean hasExitCriteria(){
         return !this._exitCriteria.isEmpty();
     }
+    
+    /**
+     * 
+     * xml name: gate
+     *  阶段验收门控（design §14.1）：不满足时按 on-fail 动作处理
+     */
+    
+    public io.nop.ai.agent.plan.model.AgentPlanGate getGate(){
+      return _gate;
+    }
+
+    
+    public void setGate(io.nop.ai.agent.plan.model.AgentPlanGate value){
+        checkAllowChange();
+        
+        this._gate = value;
+           
+    }
+
     
     /**
      * 
@@ -338,6 +364,8 @@ public abstract class _AgentPlanPhase extends io.nop.core.resource.component.Abs
         
            this._exitCriteria = io.nop.api.core.util.FreezeHelper.deepFreeze(this._exitCriteria);
             
+           this._gate = io.nop.api.core.util.FreezeHelper.deepFreeze(this._gate);
+            
            this._targets = io.nop.api.core.util.FreezeHelper.deepFreeze(this._targets);
             
            this._tasks = io.nop.api.core.util.FreezeHelper.deepFreeze(this._tasks);
@@ -352,6 +380,7 @@ public abstract class _AgentPlanPhase extends io.nop.core.resource.component.Abs
         out.putNotNull("completedAt",this.getCompletedAt());
         out.putNotNull("description",this.getDescription());
         out.putNotNull("exitCriteria",this.getExitCriteria());
+        out.putNotNull("gate",this.getGate());
         out.putNotNull("kind",this.getKind());
         out.putNotNull("name",this.getName());
         out.putNotNull("startedAt",this.getStartedAt());
@@ -372,6 +401,7 @@ public abstract class _AgentPlanPhase extends io.nop.core.resource.component.Abs
         instance.setCompletedAt(this.getCompletedAt());
         instance.setDescription(this.getDescription());
         instance.setExitCriteria(this.getExitCriteria());
+        instance.setGate(this.getGate());
         instance.setKind(this.getKind());
         instance.setName(this.getName());
         instance.setStartedAt(this.getStartedAt());

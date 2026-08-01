@@ -1,0 +1,28 @@
+<plan x:schema="/nop/schema/ai/agent-plan.xdef" xmlns:x="/nop/schema/xdsl.xdef"
+      title="Cross-Phase DAG Plan" status="pending">
+
+    <purpose>Plan with cross-phase dependencies for DAG validation</purpose>
+
+    <goal>Should load successfully: cross-phase dependsOn is valid in the global DAG</goal>
+
+    <phases>
+        <phase name="P1" status="completed">
+            <tasks>
+                <task taskNo="T001" title="Phase 1 task" status="completed">
+                    <instructions>First task in phase 1</instructions>
+                </task>
+            </tasks>
+        </phase>
+        <phase name="P2" status="running">
+            <tasks>
+                <task taskNo="T002" title="Phase 2 task" dependsOn="T001" triggerRule="all_success" status="running">
+                    <instructions>Depends on T001 across phase boundary</instructions>
+                </task>
+                <task taskNo="T003" title="Phase 2 parallel" status="pending">
+                    <instructions>No dependencies</instructions>
+                </task>
+            </tasks>
+        </phase>
+    </phases>
+
+</plan>
