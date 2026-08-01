@@ -230,18 +230,160 @@ Grader 对 `GuardrailResult`（Pass/Block/Modify 三态）+ `AttackCase.expected
 - 与运行时 guardrail 的关系：Plugin 造攻击 → nop guardrail 拦截 → Grader 判定拦截效果
 - 形成"建设（运行时，已有）+ 验收（本套件）"闭环（执行已有，补验收）
 
-### 增量 2：Guideline 依赖/排除关系图（规则关系建模）
+### 增量 2：Guideline 依赖/排除关系图（规则关系建模）— final
 
-nop guardrail 当前是线性检查链。增加规则间关系（对标 parlant RelationalResolver）：
+> **Status: final**（W5-2，2026-08-02）。六条裁定 A–F 已固化，I/O 契约可直接编码。
+
+nop guardrail 当前是线性检查链（规则无差别全量评估，规则间无显式关系）。增加规则间关系（对标 parlant `RelationalResolver`），使规则靠**结构**收敛而非靠 LLM 注意力或隐式 prompt 约束：
 
 ```
-GuardrailRule（规则定义增加关系）：
-  - dependsOn: 命中 A 自动拉入 B（上下文收敛）
-  - excludes:  命中 A 排除 C（上下文收窄）
-  - 关系图使规则靠结构收敛，而非 LLM 注意力
+GuardrailRule（声明式规则定义，含关系）：
+  - dependsOn: 命中 A 自动拉入 B（依赖收敛：扩展评估面）
+  - excludes:  命中 A 排除 C（排除收窄：结构决策）
 ```
 
-适用：企业合规复杂规则集（多规则冲突时靠结构决策）。
+适用：企业合规复杂规则集（多规则冲突时靠 excludes/dependsOn 结构决策，而非全量评估）。
+
+> **共存不替换**（Non-Goals）：关系图 guardrail 是新增 `IContentGuardrail` 组合实现
+> （`RuleGraphGuardrail`），与既有线性链 `PromptInjectionGuardrail` 共存。既有 SPI、
+> 既有 guardrail、shipped engine default（`NoOpContentGuardrail`）均不变（零回归）。
+
+#### 裁定 A — GuardrailRule 声明式模型形态
+
+**载体裁定**：Java 不可变配置模型 `GuardrailRule`（`io.nop.ai.agent.guardrail.rule` 包）
++ 声明式 YAML 规则集文件（经 `RuleSetLoader` 加载，`ResourceHelper` + `JsonTool.parseYaml`，
+与 `CorpusLoader`/`FileSystemSkillProvider` 同构）。**首版不引入新 xdef**——纯配置模型 +
+YAML 加载是 nop 常规扩展，不触及 `nop-xdefs` schema 或 codegen 模板（autonomy 约束：
+非 Protected Area）。未来若需 IDE 校验可升级为 `guardrail-rules.xdef`（升级时属
+`nop-xdefs` 常规扩展，仍非 Protected Area——新增 schema 不修改既有生成管线）。
+
+**`GuardrailRule` 字段契约**（不可变值对象）：
+
+| 字段 | 类型 | 语义 |
+|------|------|------|
+| `id` | `String` | 稳定规则标识（规则集内唯一），用于 dependsOn/excludes 引用与断言 |
+| `direction` | `GuardrailDirection` | 规则作用方向（`INPUT`/`OUTPUT`）；`null` 表示双向均适用 |
+| `pattern` | `String`（正则） | 确定性匹配条件（正则，与既有 `PromptInjectionGuardrail` 同形态）。LLM 匹配留 successor |
+| `action` | `RuleAction` | 命中后结果动作：`BLOCK`（返回 `BlockResult`）/ `MODIFY`（返回 `ModifyResult`） |
+| `modifyReplacement` | `String` | `action=MODIFY` 时的替换文本；`action=BLOCK` 时为 `null` |
+| `dependsOn` | `List<String>` | 命中此规则时自动拉入的规则 id 列表（依赖收敛） |
+| `excludes` | `List<String>` | 命中此规则时排除的规则 id 列表（排除收窄） |
+| `threatClass` | `String` | 威胁分类标签（如 `LLM01_prompt_injection`），用于 Block reason 与可观测 |
+| `description` | `String` | 可选人类可读说明 |
+
+**与既有 `PromptInjectionGuardrail` 的关系**：**新增并存，不迁移**。既有 4 条硬编码正则规则
+保持原样（其执行路径零改动）。将既有规则迁移为声明式 rule 是治理优化（见 Non-Blocking
+Follow-ups），不阻断"关系图建模成立"。首版声明式规则集独立于既有 guardrail 存在。
+
+#### 裁定 B — 关系语义求值模型（resolver 核心契约）
+
+逐条裁定（消除 resolver 编码歧义）：
+
+1. **dependsOn 是传递闭包**：A→B→C，命中 A 拉入 B **和** C。
+2. **dependsOn 拉入的规则参与其自身的内容判定**（核心语义）：nop guardrail rule 是
+   "匹配-判定"模型。被 dependsOn 拉入的规则 B **会**对当前 content 做自身的 pattern 匹配；
+   若 B 也命中则执行 B 的 action（Block/Modify）——**扩展检测面**（如"检测到 prompt_override
+   → 同时也检查更严格的 exfiltration 规则，因为 override 常伴随 exfil"）。若 B 不命中则贡献
+   Pass（无效果）。resolver 输出的活跃集元素是"规则 id"——活跃集内**所有**规则都参与评估。
+3. **excludes 对初始命中集成员生效**：excludes 可移除靠内容匹配命中的规则（结构收窄覆盖内容
+   匹配——这是"靠结构收敛"的核心价值，如"金融交易规则 excludes 一般对话规则"，即使一般对话
+   pattern 命中也被移除）。
+4. **excludes 不传递**：A excludes B、B excludes C，**不**推出 A 间接 excludes C。excludes 是
+   直接连边声明，仅移除直接声明的目标。
+5. **被拉入的规则自身带 excludes 时级联生效**：dependsOn 拉入 B 后，B 自身的 excludes 也生效
+   （因为 B 进入活跃集，B 的 excludes 被计入排除集）。
+6. **dependsOn 与 excludes 冲突时 excludes 优先**（收窄胜过扩展，安全优先）。
+
+**确定性求解算法**（保证相同命中集 → 相同活跃集，可断言）：
+
+```
+active = 初始终命中集（pattern 命中且 direction 适用的规则）
+expanded = dependsOn 传递闭包（对 active 沿 dependsOn 边 BFS/DFS 单调扩展，纯加法）
+excluded = ∪ { r.excludes | r ∈ expanded }   // 来自整个 expanded 集的 excludes 并集
+active = expanded − excluded                   // excludes 统一在后减去 → excludes 必胜
+```
+
+三阶段（闭包 → 排除并集 → 减）保证无 fixpoint 振荡、确定终止、excludes 必胜（被 expanded
+集中任一规则 excludes 的规则一律移除，不论是否被 dependsOn 拉入）。
+
+#### 裁定 C — 环检测与 fail-loud 策略
+
+- **dependsOn 图成环 → fail-loud**：在规则集加载/校验阶段抛异常（`NopAiAgentException`），
+  拒绝加载该规则集。环检测复用底层 `io.nop.core.model.graph.dag.Dag.containsLoop()` 能力
+  （经 `DagAnalyzer.analyze()` 填充 `loopEdges` 后判定）：构造 `Dag`（合成根 → 所有规则节点，
+  保证 `checkStartReachable` 不抛；dependsOn 边为 `addNextNode(rule, dep)`），异常消息含
+  `dag.getLoopEdges()` 给出的环边路径。**非** nop-task `GraphStepAnalyzer`（后者强绑 task 域
+  `IGraphTaskStepModel`，不可直接复用于 guardrail rule 图）。
+- **excludes 图不检测环**：excludes 非传递（裁定 B-4），excludes "环"（A excludes B、B excludes
+  A）语义良性（仅当两者都在 expanded 集时互相移除，无死循环、无歧义），故**不**做 fail-loud。
+  自环（A excludes A）也良性（A 在 expanded 时移除自身），不检测。
+
+#### 裁定 D — 组合式 guardrail 集成形态
+
+新增 `RuleGraphGuardrail implements IContentGuardrail`（`io.nop.ai.agent.guardrail.rule` 包），
+持 `GuardrailRuleSet`（规则集合）+ `RuleGraphResolver`（关系求解）+ `RuleResultAggregator`
+（结果聚合）。
+
+`check(direction, content, ctx)` 流程：
+1. 初始终命中集 = 规则集中 `direction` 适用 且 `pattern` 匹配 content 的规则。
+2. `resolver.resolve(matched)` → 活跃规则集（裁定 B 算法）。
+3. 对活跃集**每条**规则做 pattern 匹配：命中 → 产 Block/Modify（按 `action`）；未命中 → Pass。
+4. `aggregator.aggregate(...)` → 单一 `GuardrailResult`（裁定 E）。
+
+**零回归策略**：`RuleGraphGuardrail` 是 opt-in（经 `Builder.contentGuardrail(new
+RuleGraphGuardrail(...))` 显式装配）。shipped engine default 仍 `NoOpContentGuardrail`；
+`PromptInjectionGuardrail` 执行路径不变。**不装配时行为等价今日**。
+
+#### 裁定 E — 规则评估结果聚合
+
+多活跃规则各自产 Pass/Block/Modify 时，聚合为单一 `GuardrailResult`：
+
+| 场景 | 聚合结果 |
+|------|---------|
+| 任一活跃规则命中且 action=BLOCK | `BlockResult`（reason = 所有命中-block 规则的 threatClass/reason 拼接） |
+| 无 BLOCK，有命中且 action=MODIFY | `ModifyResult`（按规则集声明顺序链式应用替换：每条 Modify 作用于上一条输出） |
+| 无 BLOCK、无 MODIFY（全部 Pass） | `PassResult` |
+
+**冲突裁定**：同一 content 上既有 BLOCK 又有 MODIFY → **BLOCK 优先**（安全优先，Block 是更严
+动作）。
+
+**与既有 `GuardrailMode`（OFF/REPORT/ENFORCE）的关系**：`RuleGraphGuardrail` **复用**
+`GuardrailMode` 语义（与 `PromptInjectionGuardrail` 同构），构造器接收 `GuardrailMode`
+（default `ENFORCE`）：
+
+- `OFF` → 直接返回 `PassResult`（跳过所有规则评估）。
+- `REPORT` → 规则照常评估；任一命中 BLOCK 时：LOG.warn + 返回 `PassResult`（不拦截）；命中
+  MODIFY 时：返回 `ModifyResult`（替换仍生效——Modify 是修复而非拦截）。
+- `ENFORCE`（default）→ 按上表聚合（Block→Block，Modify→Modify）。
+
+#### 裁定 F — 规则集配置组装与 Delta 定制
+
+- **组装形态**：首版一个 `GuardrailRuleSet` = 一个命名规则集（`id` + `List<GuardrailRule>`），
+  从单个 YAML 文件加载（`RuleSetLoader`）。多文件合并是 successor。
+- **Delta 定制**：规则集 YAML 置于 `_vfs/` 下，Delta 定制经 nop 标准 VFS 分层（高优先级 VFS
+  root 覆盖同路径文件）——首版为**整文件替换**。`dependsOn`/`excludes` 的字段级 Delta 合并
+  （合并 vs 覆盖）是 successor。
+- **autonomy 约束声明**：首版采用纯配置模型 + YAML 加载（裁定 A），不新增 xdef、不改 codegen
+  模板——非 Protected Area，`implement` autonomy。若未来升级为 `guardrail-rules.xdef`，新增
+  schema 仍属 `nop-xdefs` 常规扩展（非"修改既有生成管线"），保持 `implement`；仅当需修改既有
+  xdef 或 codegen 模板时才升级为 plan-first Protected Area。
+
+#### SPI 契约汇总（可直接编码）
+
+| 组件 | 入口 | 输入 → 输出 |
+|------|------|-------------|
+| `GuardrailRule` | （不可变值对象） | 字段见裁定 A |
+| `GuardrailRuleSet` | （不可变值对象） | `id` + `List<GuardrailRule>` + 校验（id 唯一 + dependsOn/excludes 引用合法 + dependsOn 无环） |
+| `RuleGraphResolver` | `resolve(matchedRuleIds)` | `Set<String>`（初始终命中集）→ `Set<String>`（活跃集，裁定 B 算法，确定性） |
+| `RuleResultAggregator` | `aggregate(...)` | 活跃规则 + content → 单一 `GuardrailResult`（裁定 E，Block 优先 + Modify 链式） |
+| `RuleSetLoader` | `load(resource)` | YAML resource → `GuardrailRuleSet`（`ResourceHelper` + `JsonTool.parseYaml`） |
+| `RuleGraphGuardrail` | `check(direction, content, ctx)` | `IContentGuardrail` 实现，经 resolver + aggregator 驱动（裁定 D） |
+
+**端到端数据流**：规则集 YAML → `RuleSetLoader` → `GuardrailRuleSet`（加载期校验：id 唯一 +
+dependsOn/excludes 引用合法 + dependsOn 无环 fail-loud）→ `RuleGraphGuardrail.check()` →
+初始终命中集 → `RuleGraphResolver.resolve()` → 活跃集 → 逐规则评估 → `RuleResultAggregator`
+→ 单一 `GuardrailResult`。**无静默跳过**（Minimum Rules #24）：dependsOn 成环抛异常非返回空集；
+resolver 冲突按裁定 B-6 显式 excludes-wins 处理。
 
 ### 增量 3：BAIL 中断语义（硬阻断）— final
 
