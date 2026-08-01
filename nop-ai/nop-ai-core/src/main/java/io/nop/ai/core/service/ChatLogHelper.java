@@ -2,6 +2,7 @@ package io.nop.ai.core.service;
 
 import io.nop.ai.api.chat.ChatRequest;
 import io.nop.ai.core.api.messages.AiChatExchange;
+import io.nop.api.core.exceptions.NopException;
 import io.nop.api.core.time.CoreMetrics;
 import io.nop.commons.util.StringHelper;
 import io.nop.core.resource.IResource;
@@ -11,6 +12,10 @@ import java.io.File;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.regex.Pattern;
+
+import static io.nop.ai.core.NopAiCoreErrors.ARG_SESSION_ID;
+import static io.nop.ai.core.NopAiCoreErrors.ERR_AI_SESSION_ID_INVALID;
+import static io.nop.ai.core.NopAiCoreErrors.ERR_AI_SESSION_ID_IS_EMPTY;
 
 public class ChatLogHelper {
 
@@ -62,13 +67,11 @@ public class ChatLogHelper {
 
     static void requireValidSessionId(String sessionId) {
         if (sessionId == null || sessionId.isEmpty()) {
-            throw new IllegalArgumentException(
-                    "sessionId must not be null or empty (path-traversal guard)");
+            throw new NopException(ERR_AI_SESSION_ID_IS_EMPTY);
         }
         if (!SAFE_SESSION_ID.matcher(sessionId).matches()) {
-            throw new IllegalArgumentException(
-                    "sessionId contains invalid characters; only [A-Za-z0-9_-] are allowed "
-                            + "(path-traversal guard): sessionId=" + sessionId);
+            throw new NopException(ERR_AI_SESSION_ID_INVALID)
+                    .param(ARG_SESSION_ID, sessionId);
         }
     }
 }

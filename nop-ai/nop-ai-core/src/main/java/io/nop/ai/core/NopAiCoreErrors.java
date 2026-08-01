@@ -42,6 +42,12 @@ public interface NopAiCoreErrors {
     String ARG_NODE_NAME = "nodeName";
     String ARG_FILE_PATH = "filePath";
 
+    String ARG_PARSE_MODEL = "parseModel";
+
+    String ARG_ROLE = "role";
+
+    String ARG_SESSION_ID = "sessionId";
+
     ErrorCode ERR_AI_SERVICE_NO_DEFAULT_LLMS =
             define("nop.err.ai.service.no-default-llms", "没有指定调用的大语言模型，也没有配置nop.ai.service.default-llm来指定缺省的大语言模型");
 
@@ -133,4 +139,33 @@ public interface NopAiCoreErrors {
      */
     ErrorCode ERR_AI_CHAT_GET_SESSION_DEPRECATED =
             define("nop.err.ai.service.get-session-deprecated", "Deprecated: use IChatService instead");
+
+    /**
+     * Converted from bare {@code IllegalArgumentException} throws (plan
+     * 2026-08-01-0936-2): English descriptions preserve the historical
+     * message semantics verbatim (AGENTS.md English error-message
+     * convention for newly added codes).
+     */
+    ErrorCode ERR_AI_FILE_INVALID_EDIT_TYPE =
+            define("nop.err.ai.file.invalid-edit-type", "Invalid edit type");
+
+    ErrorCode ERR_AI_PROMPT_TEMPLATE_NULL =
+            define("nop.err.ai.prompt-template-null", "prompt template is null");
+
+    ErrorCode ERR_AI_UNSUPPORTED_PARSE_FROM_RESPONSE =
+            define("nop.err.ai.prompt-unsupported-parse-from-response", "unsupported parseFromResponse: {parseModel}", ARG_PARSE_MODEL);
+
+    ErrorCode ERR_AI_UNKNOWN_ROLE =
+            define("nop.err.ai.unknown-role", "unknown role:{role}", ARG_ROLE);
+
+    ErrorCode ERR_AI_VECTOR_LENGTH_MISMATCH =
+            define("nop.err.ai.vector-length-mismatch", "Length of vector a  must be equal to the length of vector b");
+
+    ErrorCode ERR_AI_SESSION_ID_IS_EMPTY =
+            define("nop.err.ai.session-id-empty", "sessionId must not be null or empty (path-traversal guard)");
+
+    ErrorCode ERR_AI_SESSION_ID_INVALID =
+            define("nop.err.ai.session-id-invalid",
+                    "sessionId contains invalid characters; only [A-Za-z0-9_-] are allowed (path-traversal guard): sessionId={sessionId}",
+                    ARG_SESSION_ID);
 }

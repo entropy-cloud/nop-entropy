@@ -2,7 +2,10 @@ package io.nop.ai.core.api.embedding;
 
 
 import io.nop.ai.core.api.support.VectorData;
+import io.nop.api.core.exceptions.NopException;
 import io.nop.api.core.util.Guard;
+
+import static io.nop.ai.core.NopAiCoreErrors.ERR_AI_VECTOR_LENGTH_MISMATCH;
 
 /**
  * Utility class for calculating cosine similarity between two vectors.
@@ -45,7 +48,7 @@ public class CosineSimilarity {
         double[] vectorB = embeddingB.getVector();
 
         if (vectorA.length != vectorB.length) {
-            throw new IllegalArgumentException("Length of vector a  must be equal to the length of vector b");
+            throw new NopException(ERR_AI_VECTOR_LENGTH_MISMATCH);
         }
 
         double dotProduct = 0.0;

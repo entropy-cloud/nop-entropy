@@ -1,8 +1,10 @@
 package io.nop.ai.core.api.embedding;
 
-import org.junit.jupiter.api.Test;
 import io.nop.ai.core.api.support.VectorData;
+import io.nop.api.core.exceptions.NopException;
+import org.junit.jupiter.api.Test;
 
+import static io.nop.ai.core.NopAiCoreErrors.ERR_AI_VECTOR_LENGTH_MISMATCH;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -45,8 +47,10 @@ public class TestCosineSimilarityAndRelevanceScore {
 
     @Test
     public void testDimensionMismatchRejected() {
-        IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
+        NopException ex = assertThrows(NopException.class,
                 () -> CosineSimilarity.between(vector(1, 2), vector(1, 2, 3)));
+        assertEquals(ERR_AI_VECTOR_LENGTH_MISMATCH.getErrorCode(), ex.getErrorCode(),
+                "dimension mismatch must carry the vector length error code");
         assertTrue(ex.getMessage().contains("Length"), "mismatch error must explain the length requirement");
     }
 

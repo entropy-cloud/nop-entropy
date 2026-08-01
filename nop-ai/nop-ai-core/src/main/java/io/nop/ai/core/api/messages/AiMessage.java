@@ -22,9 +22,13 @@ import com.fasterxml.jackson.annotation.JsonTypeInfo;
 import io.nop.ai.core.AiCoreConstants;
 import io.nop.ai.core.api.support.Media;
 import io.nop.ai.core.api.support.Metadata;
+import io.nop.api.core.exceptions.NopException;
 import io.nop.commons.util.StringHelper;
 
 import java.util.List;
+
+import static io.nop.ai.core.NopAiCoreErrors.ARG_ROLE;
+import static io.nop.ai.core.NopAiCoreErrors.ERR_AI_UNKNOWN_ROLE;
 
 /**
  * Base AI message. Part of the legacy {@code AiMessage*} naming convention.
@@ -48,7 +52,7 @@ public abstract class AiMessage extends Metadata {
             return new AiAssistantMessage();
         if(AiCoreConstants.ROLE_SYSTEM.equals(role))
             return new AiSystemMessage();
-        throw new IllegalArgumentException("unknown role:" + role);
+        throw new NopException(ERR_AI_UNKNOWN_ROLE).param(ARG_ROLE, role);
     }
 
     @JsonIgnore

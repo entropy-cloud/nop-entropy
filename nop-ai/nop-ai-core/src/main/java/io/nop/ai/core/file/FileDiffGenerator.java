@@ -1,9 +1,13 @@
 package io.nop.ai.core.file;
 
+import io.nop.api.core.exceptions.NopException;
+
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
+
+import static io.nop.ai.core.NopAiCoreErrors.ERR_AI_FILE_INVALID_EDIT_TYPE;
 
 public class FileDiffGenerator {
     private static final int CONTEXT_SIZE = 3;
@@ -210,7 +214,7 @@ public class FileDiffGenerator {
             case DELETE:
                 return FileDiff.DiffType.DELETE;
             default:
-                throw new IllegalArgumentException("Invalid edit type");
+                throw new NopException(ERR_AI_FILE_INVALID_EDIT_TYPE);
         }
     }
 }

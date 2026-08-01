@@ -15,6 +15,7 @@ import io.nop.core.resource.ResourceHelper;
 import static io.nop.ai.core.NopAiCoreErrors.ARG_DEFINED_VARS;
 import static io.nop.ai.core.NopAiCoreErrors.ARG_PROMPT_NAME;
 import static io.nop.ai.core.NopAiCoreErrors.ARG_VAR_NAME;
+import static io.nop.ai.core.NopAiCoreErrors.ERR_AI_PROMPT_TEMPLATE_NULL;
 import static io.nop.ai.core.NopAiCoreErrors.ERR_AI_PROMPT_USE_UNDEFINED_VAR;
 
 public class PromptModel extends _PromptModel implements INeedInit, IComponentModel {
@@ -85,7 +86,7 @@ public class PromptModel extends _PromptModel implements INeedInit, IComponentMo
 
     private void validateTemplate(IPromptSyntaxNode template) {
         if (template == null)
-            throw new IllegalArgumentException("prompt template is null");
+            throw new NopException(ERR_AI_PROMPT_TEMPLATE_NULL);
 
         template.accept(new IPromptSyntaxNode.IPromptSyntaxNodeVisitor() {
             @Override

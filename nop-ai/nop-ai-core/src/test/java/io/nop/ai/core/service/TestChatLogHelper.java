@@ -6,6 +6,7 @@ import io.nop.ai.api.chat.ChatResponse;
 import io.nop.ai.api.chat.messages.ChatAssistantMessage;
 import io.nop.ai.core.api.chat.AiChatOptions;
 import io.nop.ai.core.api.messages.AiChatExchange;
+import io.nop.api.core.exceptions.NopException;
 import io.nop.autotest.junit.JunitBaseTestCase;
 import io.nop.commons.util.FileHelper;
 import io.nop.core.resource.IResource;
@@ -21,6 +22,8 @@ import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.List;
 
+import static io.nop.ai.core.NopAiCoreErrors.ERR_AI_SESSION_ID_INVALID;
+import static io.nop.ai.core.NopAiCoreErrors.ERR_AI_SESSION_ID_IS_EMPTY;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -209,25 +212,41 @@ public class TestChatLogHelper extends JunitBaseTestCase {
         options.setSessionId("../etc/passwd");
         request.setOptions(options);
 
-        assertThrows(IllegalArgumentException.class, () -> ChatLogHelper.makeSessionId(request),
+        NopException ex = assertThrows(NopException.class, () -> ChatLogHelper.makeSessionId(request),
                 "path-traversal sessionId must be rejected (MA6.5-AR-9)");
+        assertEquals(ERR_AI_SESSION_ID_INVALID.getErrorCode(), ex.getErrorCode(),
+                "path-traversal sessionId must carry the invalid-session-id error code");
     }
 
     @Test
     public void testMakeSessionIdRejectsSlashesAndDots() {
-        assertThrows(IllegalArgumentException.class, () -> {
+        NopException ex1 = assertThrows(NopException.class, () -> {
             ChatRequest request = ChatRequest.userPrompt("hello");
             ChatOptions options = new ChatOptions();
             options.setSessionId("a/b");
             request.setOptions(options);
             ChatLogHelper.makeSessionId(request);
         });
-        assertThrows(IllegalArgumentException.class, () -> {
+        assertEquals(ERR_AI_SESSION_ID_INVALID.getErrorCode(), ex1.getErrorCode(),
+                "slash sessionId must carry the invalid-session-id error code");
+
+        NopException ex2 = assertThrows(NopException.class, () -> {
             ChatRequest request = ChatRequest.userPrompt("hello");
             ChatOptions options = new ChatOptions();
             options.setSessionId("..");
             request.setOptions(options);
             ChatLogHelper.makeSessionId(request);
         });
+        assertEquals(ERR_AI_SESSION_ID_INVALID.getErrorCode(), ex2.getErrorCode(),
+                "dot sessionId must carry the invalid-session-id error code");
+    }
+
+    @Test
+    public void testRequireValidSessionIdEmptyRejected() {
+        NopException ex = assertThrows(NopException.class, () -> ChatLogHelper.requireValidSessionId(""));
+        assertEquals(ERR_AI_SESSION_ID_IS_EMPTY.getErrorCode(), ex.getErrorCode(),
+                "empty sessionId must carry the empty-session-id error code");
+        assertTrue(ex.getMessage().contains("must not be null or empty"),
+                "empty sessionId message must explain the guard (MA6.5-AR-9)");
     }
 }

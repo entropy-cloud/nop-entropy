@@ -35,8 +35,10 @@ import java.util.Map;
 
 import static io.nop.ai.core.NopAiCoreErrors.ARG_INPUT_NAME;
 import static io.nop.ai.core.NopAiCoreErrors.ARG_OUTPUT_NAME;
+import static io.nop.ai.core.NopAiCoreErrors.ARG_PARSE_MODEL;
 import static io.nop.ai.core.NopAiCoreErrors.ERR_AI_MANDATORY_INPUT_IS_EMPTY;
 import static io.nop.ai.core.NopAiCoreErrors.ERR_AI_MANDATORY_OUTPUT_IS_EMPTY;
+import static io.nop.ai.core.NopAiCoreErrors.ERR_AI_UNSUPPORTED_PARSE_FROM_RESPONSE;
 
 public class ModelBasedPromptTemplate implements IPromptTemplate {
     static final Logger LOG = LoggerFactory.getLogger(ModelBasedPromptTemplate.class);
@@ -241,7 +243,8 @@ public class ModelBasedPromptTemplate implements IPromptTemplate {
             } else if (parseModel.getContainsText() != null) {
                 value = chatResponse.contentContains(parseModel.getContainsText());
             } else {
-                throw new IllegalArgumentException("unsupported parseFromResponse: " + parseModel);
+                throw new NopException(ERR_AI_UNSUPPORTED_PARSE_FROM_RESPONSE)
+                        .param(ARG_PARSE_MODEL, parseModel);
             }
         } else {
             value = chatResponse.getContent();
