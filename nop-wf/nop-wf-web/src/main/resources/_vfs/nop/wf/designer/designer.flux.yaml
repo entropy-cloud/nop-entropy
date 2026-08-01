@@ -1,0 +1,121 @@
+# Flux 版本的工作流设计器页。
+# - dingflow-gen:GenFlowEditorPage 与 nop-flow-editor 为平台自定义生成器/组件，结构保留；
+# - amis 工具栏 actionType:toast/dialog → flux onClick showToast/openDialog；
+# - editForms 中 amis actionType:"action:cancel"/validate/"action:invoke" → flux closeSurface / component:submit + 自定义提交。
+type: page
+title: "@i18n:common.flowDesigner"
+bodyClassName: flex overflow-auto
+toolbar:
+  - type: button
+    label: 点击我
+    onClick:
+      action: showToast
+      args:
+        level: info
+        title: 提示
+        message: 按钮被点击了
+  - type: button
+    label: 点击2
+    onClick:
+      action: openDialog
+      args:
+        title: 提示
+        body:
+          type: text
+          text: 按钮被点击了
+x:gen-extends: >
+   <dingflow-gen:GenFlowEditorPage modelPath="dingflow.graph-designer.xml" xpl:lib="/nop/wf/xlib/dingflow-gen.xlib" />
+body:
+  - type: nop-flow-editor
+    name: dingflow-editor
+    initApi:
+      url: /r/PageProvider__getPage?path=/nop/wf/designer/demo-data.page.json
+    flowEditorSchema:
+      editForms:
+        starter:
+          type: form
+          name: editForm-starter
+          body:
+            - type: button
+              label: Cancel
+              onClick:
+                action: closeSurface
+            - type: button
+              label: Submit
+              variant: primary
+              onClick:
+                action: component:submit
+                componentId: editForm-starter
+      nodeMetas:
+        start:
+          label: 发起人
+          color: rgb(87, 106, 149)
+          info: allMember
+          nodeType: start
+          nodeKind: start
+        approver:
+          nodeType: approver
+          nodeKind: normal
+          color: '#ff943e'
+          label: approver
+          icon: seal
+          info: pleaseChooseApprover
+          deletable: true
+          addable: true
+          defaultConfig: {}
+        notifier:
+          nodeType: notifier
+          nodeKind: normal
+          color: '#4ca3fb'
+          label: notifier
+          icon: notifier
+          info: pleaseChooseNotifier
+          deletable: true
+          addable: true
+          defaultConfig: {}
+        audit:
+          nodeType: audit
+          nodeKind: normal
+          color: '#fb602d'
+          label: dealer
+          icon: deal
+          info: pleaseChooseDealer
+          deletable: true
+          addable: true
+          defaultConfig: {}
+        route:
+          nodeType: route
+          nodeKind: route
+          color: '#15bc83'
+          label: routeNode
+          icon: route
+          deletable: true
+          addable: true
+          defaultConfig:
+            conditionNodeList:
+              - id: '@uuid'
+                nodeType: condition
+                nodeKind: condition
+                name: Condition1
+              - id: '@uuid'
+                nodeType: condition
+                nodeKind: condition
+                name: Condition2
+        condition:
+          nodeType: condition
+          nodeKind: condition
+          label: condition
+          color: ''
+          info: pleaseSetCondition
+          deletable: true
+          addable: true
+          defaultConfig: {}
+      edgeMetas:
+        default:
+          allowTargets:
+            - approver
+            - notifier
+            - audit
+            - route
+    body:
+      type: nop-flow-editor-canvas
