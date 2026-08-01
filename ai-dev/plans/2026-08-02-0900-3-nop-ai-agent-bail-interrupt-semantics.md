@@ -1,6 +1,6 @@
 # 3 BAIL 中断语义（Middleware 第三态：中断并丢弃响应）
 
-> Plan Status: active
+> Plan Status: completed
 > Last Reviewed: 2026-08-02
 > Draft Consensus: 2 轮独立子 agent 对抗性审查通过（r1 修 5 Major+3 Minor；r2 CONSENSUS yes，4 项非阻断 Minor 已并入）
 > Source: `ai-dev/backlog/nop-ai-agent-harness-evolution-roadmap.md` W5-3；`ai-dev/analysis/agent-survey/2026-08-01-parlant-conversation-control-analysis.md` §2.3/§三.5；`ai-dev/design/nop-ai-agent/nop-ai-agent-middleware-design.md` §2.5
@@ -77,97 +77,97 @@
 
 ### Phase 1 - 设计裁定：BAIL 语义、与 checkOutputGuardrail 关系、防循环
 
-Status: planned
+Status: completed
 Targets: `ai-dev/design/nop-ai-agent/nop-ai-agent-middleware-design.md` §2.5 + §三:156（supersede）；`guardrail-contract.md`
 
 - Item Types: `Decision`
 
-- [ ] **裁定 A — BAIL 与 `checkOutputGuardrail`（:731-734）关系**（核心价值论证）：BAIL 的增量价值 = 把"丢弃输出+重新提示"从执行器硬编码（仅 promptAssembly 可触发）**泛化为中间件可返回的标准态**（任意 guardrail 中间件可触发）。裁定二者关系二选一：(a) checkOutputGuardrail **迁移为返回 BailResult 的中间件**（BAIL 是唯一机制，消除硬编码）；(b) **共存**（BAIL 是通用机制，checkOutputGuardrail 保留为快速路径/内置实现，但语义对齐）。明确顺序：POST_REASONING 中间件返回 BailResult 时，是否仍需/跳过 checkOutputGuardrail（裁定执行顺序 + 优先级）
-- [ ] **裁定 B — POST_REASONING BAIL 语义**（承认执行顺序现实）：消息/checkpoint/session-store 在 POST_REASONING 前已落账——BAIL 语义 = **不作用于该轮响应**（跳过该响应的 tool_calls 执行 + 不视为最终答案）+ 重新提示（与 checkOutputGuardrail 的 `continue` 同边界）。**不承诺"不进入历史"**。裁定：BAIL 触发的 `continue` 是否也 `setCurrentIteration(+1)`（与 checkOutputGuardrail 对齐——**此选择影响裁定 D 的 maxIterations 兜底是否对 BAIL 生效**，须与裁定 D 联动对齐）。裁定 `BailResult.reason` 的去向：仅日志（与 checkOutputGuardrail 同边界）还是注入 LLM 反馈消息（如 `ctx.addMessage(guardrail feedback)`）——选定首版
-- [ ] **裁定 C — supersede design §三:156**：把「不修改 HookResult 密封层级」更新为「允许 BailResult 作为显式文档化的第四态扩展（W5-3 引入）」。确认 BailResult 作为 `HookResult.java` 内静态嵌套子类（受 package-private 构造可见性约束）。回写 design §2.5 含 BAIL 最终语义
-- [ ] **裁定 D — bail cap 范围（厘清循环边界）**：POST_REASONING re-prompt **本就受 `maxIterations` 上界约束**（checkOutputGuardrail/BAIL 的 continue 都消耗 iteration）——无真无限循环。bail cap = BAIL 专属的"早 fail"（连续 N 次 BAIL 提前抛 `NopAiAgentException`，参照 `MAX_EXECUTION_VETOES=3`）。裁定 cap 值、per-request 作用域、是否与 checkOutputGuardrail 触发的 re-prompt 共享计数（若共享，裁定如何混合计数；若不共享，显式声明 checkOutputGuardrail 路径仅受 maxIterations 兜底——后者须 Deferred 裁定为可接受的 residual）
-- [ ] **裁定 E — POST_CALL BAIL 机制（处理流式已发 + EXECUTION_COMPLETED 事件）**：POST_CALL 时执行已结束、响应可能已 REASONING_CHUNK 流式发出（不可撤回）。裁定"调用方得到显式阻断状态"的具体机制：(a) `AgentExecutionResult`（`fromContext`）新增 blocked/阻断 状态字段 + reason（须同时给 `AgentExecutionContext` 加字段供 POST_CALL 写入、`fromContext` 读取）；(b) 对流式场景，BAIL 仅能"标记结果状态供审计/调用方决策"，不能撤回已发 chunk——显式接受此限制。**另裁定 `:948` `publishEvent(EXECUTION_COMPLETED)`**：POST_CALL BAIL 标记阻断后，EXECUTION_COMPLETED 事件是否仍发/改发阻断事件——避免下游消费者收到"completed 事件 + blocked 结果"的矛盾信号
-- [ ] **裁定 F — 零回归确认（Veto/Reenter 在 POST 点）**：核对 POST_REASONING/POST_CALL 既有 hook/中间件均返回 PassResult（无返 Veto/Reenter 的用例）——确认"POST 侧返回值现在被检查 isBail()"对 Veto/Reenter 维度零回归（本计划只消费 isBail，不消费 isVeto/isReenter）
+- [x] **裁定 A — BAIL 与 `checkOutputGuardrail`（:731-734）关系**（共存：BAIL 在前，BAIL 命中则跳过 checkOutputGuardrail）——裁定结论见 design §5.4 裁定 A
+- [x] **裁定 B — POST_REASONING BAIL 语义**（不作用 + 重新提示，`setCurrentIteration(+1)` 对齐 checkOutputGuardrail，`reason` 仅日志）——裁定结论见 design §5.4 裁定 B
+- [x] **裁定 C — supersede design §三:156**（允许 BailResult 作为第四态扩展）——design §三:156 已更新，§2.5/§5.4 回写
+- [x] **裁定 D — bail cap 范围**（cap=3，per-request，不与 checkOutputGuardrail 共享计数）——裁定结论见 design §5.4 裁定 D
+- [x] **裁定 E — POST_CALL BAIL 机制**（`AgentExecutionContext`/`AgentExecutionResult` 新增 `bailReason`；EXECUTION_COMPLETED payload 加 `guardrailBlocked` 标记；流式已发限制显式接受）——裁定结论见 design §5.4 裁定 E
+- [x] **裁定 F — 零回归确认（Veto/Reenter 在 POST 点）**（POST 侧既有 hook 均返 Pass，零回归成立）——裁定结论见 design §5.4 裁定 F
 
 Exit Criteria:
 
-- [ ] middleware-design §2.5 回写 BAIL 最终语义（含 A–F 六条裁定结论 + 拒绝的替代方案，如"为什么不复用 Veto 做 POST 侧丢弃"）
-- [ ] middleware-design §三:156 已按裁定 C 更新（supersede "不修改 HookResult 密封层级"），与 Supersession Note 一致
-- [ ] guardrail-contract.md 记录 BAIL 作为硬阻断手段，与 Veto/改写/checkOutputGuardrail 并列分类
-- [ ] design 描述的 BAIL 语义、与 checkOutputGuardrail 关系、bail cap 范围、POST_CALL 流式限制可在 Phase 2/3 直接落地（无臆想空间）
-- [ ] **无静默跳过**：design 明确 BAIL 超限 fail-loud、BAIL 在非 POST 点 fail-loud，不静默忽略（见 Minimum Rules #24）
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] middleware-design §2.5 回写 BAIL 最终语义（含 A–F 六条裁定结论 + 拒绝的替代方案，如"为什么不复用 Veto 做 POST 侧丢弃"）
+- [x] middleware-design §三:156 已按裁定 C 更新（supersede "不修改 HookResult 密封层级"），与 Supersession Note 一致
+- [x] guardrail-contract.md 记录 BAIL 作为硬阻断手段，与 Veto/改写/checkOutputGuardrail 并列分类
+- [x] design 描述的 BAIL 语义、与 checkOutputGuardrail 关系、bail cap 范围、POST_CALL 流式限制可在 Phase 2/3 直接落地（无臆想空间）
+- [x] **无静默跳过**：design 明确 BAIL 超限 fail-loud、BAIL 在非 POST 点 fail-loud，不静默忽略（见 Minimum Rules #24）
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 ### Phase 2 - BailResult 与 POST 侧消费接线
 
-Status: planned
+Status: completed
 Targets: `nop-ai/nop-ai-agent/src/main/java/io/nop/ai/agent/hook/HookResult.java`（新增 BailResult 静态嵌套子类）；`nop-ai/nop-ai-agent/src/main/java/io/nop/ai/agent/engine/ReActAgentExecutor.java`（POST_REASONING:729 / POST_CALL:946 / checkOutputGuardrail:731-734 / EXECUTION_COMPLETED:948）；`AgentExecutionResult` + `AgentExecutionContext`（按裁定 E 加阻断字段）；`nop-ai/nop-ai-agent/src/main/java/io/nop/ai/agent/engine/AgentHookInvoker.java`
 
 - Item Types: `Fix | Proof`
 
 > Item Types 含 `Fix`：POST 侧返回值丢弃是已确认的 Anti-Hollow 缺陷（middleware §5.1 D4 红线），本 Phase 修复其 BAIL 维度。
 
-- [ ] 新增 `HookResult.BailResult(reason)` 第四态（`HookResult.java` 内静态嵌套子类，受 package-private 构造约束）+ `isBail()`；既有 `isPass()`/`isVeto()`/`isReenter()` 语义不变（向后兼容）
-- [ ] `POST_REASONING`（`:729`）：捕获 `executeWithMiddleware` 返回值 + 检查 `isBail()`，按裁定 A/B 处理与 `checkOutputGuardrail`（:731）的顺序/关系；BAIL → 不作用于该轮响应 + 重新提示（按裁定 B 对齐 iteration 计数）
-- [ ] `POST_CALL`（`:946`）：捕获返回值 + 检查 `isBail()`，按裁定 E 在 `AgentExecutionResult.fromContext` 反映阻断状态（处理流式已发限制）
-- [ ] BAIL 在非 POST_REASONING/POST_CALL 点返回时：fail-loud（显式错误"BAIL 仅在 POST 点有效"，不静默忽略）
-- [ ] POST_REASONING bail cap 实现（per-request 计数 + 超限 fail-loud，按裁定 D 范围）
+- [x] 新增 `HookResult.BailResult(reason)` 第四态（`HookResult.java` 内静态嵌套子类，受 package-private 构造约束）+ `isBail()`；既有 `isPass()`/`isVeto()`/`isReenter()` 语义不变（向后兼容）
+- [x] `POST_REASONING`（`:729`）：捕获 `executeWithMiddleware` 返回值 + 检查 `isBail()`，按裁定 A/B 处理与 `checkOutputGuardrail`（:731）的顺序/关系；BAIL → 不作用于该轮响应 + 重新提示（按裁定 B 对齐 iteration 计数）
+- [x] `POST_CALL`（`:946`）：捕获返回值 + 检查 `isBail()`，按裁定 E 在 `AgentExecutionResult.fromContext` 反映阻断状态（处理流式已发限制）
+- [x] BAIL 在非 POST_REASONING/POST_CALL 点返回时：fail-loud（显式错误"BAIL 仅在 POST 点有效"，不静默忽略）—— `AgentHookInvoker.validateBailPoint` + 执行级中间件 fail-loud
+- [x] POST_REASONING bail cap 实现（per-request 计数 + 超限 fail-loud，按裁定 D 范围）
 
 Exit Criteria:
 
-- [ ] BailResult 是 HookResult 的第四子类；`isBail()` 对 BailResult 返回 true、对其余三态返回 false
-- [ ] POST_REASONING/POST_CALL 的返回值不再被丢弃（单测断言：返回 BailResult 时两点的行为按语义改变）
-- [ ] POST_REASONING BAIL：该轮响应按裁定被丢弃 + 产出阻断结果；连续 BAIL 触达 cap 时 fail-loud（不静默 continue、不无限循环）
-- [ ] POST_CALL BAIL：`AgentExecutionResult` 反映阻断状态（按裁定 E；流式已发限制已显式处理/接受）
-- [ ] BAIL 与 `checkOutputGuardrail`（:731）关系按裁定 A 落地（顺序/优先级/是否迁移），二者不冲突
-- [ ] BAIL 在非 POST 点 fail-loud（单测覆盖）
-- [ ] **接线验证**：POST_REASONING/POST_CALL 确消费 BailResult（断言返回 BailResult 时两点行为改变，而非仅类型存在，见 Minimum Rules #23）——这是修复"返回值丢弃"Anti-Hollow 红线（BAIL 维度）的关键验证
-- [ ] **无静默跳过**：超 cap / 非 POST 点 BAIL 均 fail-loud，无空体/吞异常/静默 continue（见 Minimum Rules #24）
-- [ ] 向后兼容：既有 HookResult 测试 + POST 侧中间件/hook 测试全过（无 BailResult 时两点行为与今日一致；裁定 F 的零回归确认成立）
-- [ ] 新增 BailResult/POST 接线有单测：POST_REASONING BAIL（不作用+重新提示）/ POST_CALL BAIL（结果阻断状态）/ 非 POST 点 BAIL fail-loud / cap 超限 fail-loud / 无 BAIL 向后兼容 五条（见 Minimum Rules #25）
-- [ ] design §2.5 与落地一致；§三:156 supersede 已落地
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] BailResult 是 HookResult 的第四子类；`isBail()` 对 BailResult 返回 true、对其余三态返回 false
+- [x] POST_REASONING/POST_CALL 的返回值不再被丢弃（单测断言：返回 BailResult 时两点的行为按语义改变）
+- [x] POST_REASONING BAIL：该轮响应按裁定被丢弃 + 产出阻断结果；连续 BAIL 触达 cap 时 fail-loud（不静默 continue、不无限循环）
+- [x] POST_CALL BAIL：`AgentExecutionResult` 反映阻断状态（按裁定 E；流式已发限制已显式处理/接受）
+- [x] BAIL 与 `checkOutputGuardrail`（:731）关系按裁定 A 落地（顺序/优先级/是否迁移），二者不冲突
+- [x] BAIL 在非 POST 点 fail-loud（单测覆盖）
+- [x] **接线验证**：POST_REASONING/POST_CALL 确消费 BailResult（断言返回 BailResult 时两点行为改变，而非仅类型存在，见 Minimum Rules #23）——这是修复"返回值丢弃"Anti-Hollow 红线（BAIL 维度）的关键验证
+- [x] **无静默跳过**：超 cap / 非 POST 点 BAIL 均 fail-loud，无空体/吞异常/静默 continue（见 Minimum Rules #24）
+- [x] 向后兼容：既有 HookResult 测试 + POST 侧中间件/hook 测试全过（无 BailResult 时两点行为与今日一致；裁定 F 的零回归确认成立）
+- [x] 新增 BailResult/POST 接线有单测：POST_REASONING BAIL（不作用+重新提示）/ POST_CALL BAIL（结果阻断状态）/ 非 POST 点 BAIL fail-loud / cap 超限 fail-loud / 无 BAIL 向后兼容 五条（见 Minimum Rules #25）
+- [x] design §2.5 与落地一致；§三:156 supersede 已落地
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 ### Phase 3 - 端到端 guardrail 阻断验证
 
-Status: planned
+Status: completed
 Targets: 端到端 guardrail→BAIL→阻断结果路径；`nop-ai-agent-middleware-design.md`、`guardrail-contract.md`
 
 - Item Types: `Proof`
 
-- [ ] 端到端集成：一个 POST_REASONING 中间件检测到违规内容 → 返回 BailResult → 该轮响应不被作用（不执行 tool_calls）+ 重新提示 + cap 保护（与 `checkOutputGuardrail` 关系按裁定 A 验证）
-- [ ] 端到端集成：一个 POST_CALL 中间件检测到最终响应违规 → 返回 BailResult → `AgentExecutionResult` 反映阻断状态（按裁定 E）
-- [ ] guardrail 场景验证：BAIL（POST 不作用+重新提示/结果阻断）与 Veto（PRE 拒绝）、改写（修改）、`checkOutputGuardrail`（硬编码丢弃）四者在同一测试中语义可区分
+- [x] 端到端集成：一个 POST_REASONING 中间件检测到违规内容 → 返回 BailResult → 该轮响应不被作用（不执行 tool_calls）+ 重新提示 + cap 保护（与 `checkOutputGuardrail` 关系按裁定 A 验证）
+- [x] 端到端集成：一个 POST_CALL 中间件检测到最终响应违规 → 返回 BailResult → `AgentExecutionResult` 反映阻断状态（按裁定 E）
+- [x] guardrail 场景验证：BAIL（POST 不作用+重新提示/结果阻断）与 Veto（PRE 拒绝）、改写（修改）、`checkOutputGuardrail`（硬编码丢弃）四者在同一测试中语义可区分
 
 Exit Criteria:
 
-- [ ] **端到端验证**（见 Minimum Rules #22）：从中间件 `execute(ctx, next)` 返回 BailResult → `POST_REASONING`/`POST_CALL` 消费 → 响应不被作用/结果阻断，完整路径有集成测试
-- [ ] **接线验证**：BailResult 确经 `MiddlewareChain.proceed()` 返回到 `ReActAgentExecutor` 并被 `isBail()` 消费（断言中间件返回 BailResult 时执行器行为改变，见 Minimum Rules #23）
-- [ ] **无静默跳过**：端到端路径中阻断状态显式可见（LOG + 结构化结果），无静默丢弃/空返回（见 Minimum Rules #24）
-- [ ] 新增端到端测试覆盖 POST_REASONING 与 POST_CALL 两条 BAIL 路径（见 Minimum Rules #25）
-- [ ] `./mvnw test -pl nop-ai/nop-ai-agent -am` 通过
-- [ ] design §2.5（含 §三:156 supersede）/ guardrail-contract.md 与落地一致
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] **端到端验证**（见 Minimum Rules #22）：从中间件 `execute(ctx, next)` 返回 BailResult → `POST_REASONING`/`POST_CALL` 消费 → 响应不被作用/结果阻断，完整路径有集成测试
+- [x] **接线验证**：BailResult 确经 `MiddlewareChain.proceed()` 返回到 `ReActAgentExecutor` 并被 `isBail()` 消费（断言中间件返回 BailResult 时执行器行为改变，见 Minimum Rules #23）
+- [x] **无静默跳过**：端到端路径中阻断状态显式可见（LOG + 结构化结果），无静默丢弃/空返回（见 Minimum Rules #24）
+- [x] 新增端到端测试覆盖 POST_REASONING 与 POST_CALL 两条 BAIL 路径（见 Minimum Rules #25）
+- [x] `./mvnw test -pl nop-ai/nop-ai-agent -am` 通过
+- [x] design §2.5（含 §三:156 supersede）/ guardrail-contract.md 与落地一致
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 ## Closure Gates
 
 > 本计划涉及代码变更，构建验证条目必填。
 
-- [ ] BailResult（第四态，HookResult 静态嵌套子类）已落地 + 向后兼容（既有三态语义不变）
-- [ ] POST_REASONING/POST_CALL 返回值丢弃缺陷已在 BAIL 维度修复（返回值被捕获检查 `isBail()`）
-- [ ] BAIL 与 `checkOutputGuardrail`（:731）关系已按裁定 A 落地（无冲突、语义对齐）
-- [ ] BAIL 语义在两点生效：POST_REASONING（不作用+重新提示）、POST_CALL（结果阻断状态）
-- [ ] bail cap（BAIL 专属早-fail）+ maxIterations 兜底已落地 + 超限 fail-loud（裁定 D 范围明确）
-- [ ] 端到端 guardrail→BAIL→阻断已验证（Anti-Hollow：中间件返回 BailResult 确被执行器消费，运行时连通）
-- [ ] 零回归：既有 HookResult/middleware/POST 侧测试全过；无 BailResult 时行为不变（裁定 F）
-- [ ] design §2.5 已回写 BAIL 最终语义；§三:156 supersede 已落地；guardrail-contract.md 记录 BAIL
-- [ ] 受影响 owner docs 已同步
-- [ ] 不存在被静默降级到 deferred / follow-up 的 in-scope live defect 或 contract drift
-- [ ] 独立子 agent / 独立审阅者 closure-audit 已完成并记录证据
-- [ ] **Anti-Hollow Check**：closure audit 已验证 BailResult 被 POST_REASONING/POST_CALL 运行时消费（非仅类型存在），且 POST 侧返回值丢弃缺陷确在 BAIL 维度修复
-- [ ] `./mvnw compile -pl nop-ai/nop-ai-agent -am`
-- [ ] `./mvnw test -pl nop-ai/nop-ai-agent -am`
-- [ ] checkstyle / 代码规范检查通过
+- [x] BailResult（第四态，HookResult 静态嵌套子类）已落地 + 向后兼容（既有三态语义不变）
+- [x] POST_REASONING/POST_CALL 返回值丢弃缺陷已在 BAIL 维度修复（返回值被捕获检查 `isBail()`）
+- [x] BAIL 与 `checkOutputGuardrail`（:731）关系已按裁定 A 落地（无冲突、语义对齐）
+- [x] BAIL 语义在两点生效：POST_REASONING（不作用+重新提示）、POST_CALL（结果阻断状态）
+- [x] bail cap（BAIL 专属早-fail）+ maxIterations 兜底已落地 + 超限 fail-loud（裁定 D 范围明确）
+- [x] 端到端 guardrail→BAIL→阻断已验证（Anti-Hollow：中间件返回 BailResult 确被执行器消费，运行时连通）
+- [x] 零回归：既有 HookResult/middleware/POST 侧测试全过；无 BailResult 时行为不变（裁定 F）
+- [x] design §2.5 已回写 BAIL 最终语义；§三:156 supersede 已落地；guardrail-contract.md 记录 BAIL
+- [x] 受影响 owner docs 已同步
+- [x] 不存在被静默降级到 deferred / follow-up 的 in-scope live defect 或 contract drift
+- [x] 独立子 agent / 独立审阅者 closure-audit 已完成并记录证据
+- [x] **Anti-Hollow Check**：closure audit 已验证 BailResult 被 POST_REASONING/POST_CALL 运行时消费（非仅类型存在），且 POST 侧返回值丢弃缺陷确在 BAIL 维度修复
+- [x] `./mvnw compile -pl nop-ai/nop-ai-agent -am`
+- [x] `./mvnw test -pl nop-ai/nop-ai-agent -am`
+- [x] checkstyle / 代码规范检查通过
 
 ## Deferred But Adjudicated
 
@@ -191,14 +191,26 @@ Exit Criteria:
 
 ## Closure
 
-Status Note: <<完成时填写>>
-Completed: YYYY-MM-DD
+Status Note: W5-3 BAIL 中断语义全部落地。新增 `HookResult.BailResult`（第四态）+ `isBail()`，把"丢弃输出+重新提示"从执行器硬编码（`checkOutputGuardrail`）泛化为中间件可返回的标准态。POST 侧返回值丢弃缺陷（Anti-Hollow 红线）在 BAIL 维度修复：POST_REASONING/POST_CALL 返回值现被捕获检查 `isBail()`。六条裁定 A–F 全部落地。无 BailResult 时行为与今日一致（裁定 F 零回归）。所有 in-scope 项已 landed，无 deferred live defect。
+Completed: 2026-08-02
 
 Closure Audit Evidence:
 
-- Reviewer / Agent: <<独立审阅者或独立子 agent>>
-- Evidence: <<task id / daily log link / findings 摘要>>
+- Reviewer / Agent: 独立 closure-audit subagent（fresh session，task ses_0414bd3e5ffeu6Rx98uyimPUjC，read-only）
+- Audit Session: ses_0414bd3e5ffeu6Rx98uyimPUjC
+- Evidence:
+  - 每条 Exit Criterion 的验证结果（PASS/FAIL + 对应的 live code path 或 test name）：
+    - Phase 1：design §2.5 回写 BAIL 语义、§5.4 A–F 裁定、§三:156 supersede、guardrail-contract 增量 3 标 final——全 PASS（live 文档核对）
+    - Phase 2：`HookResult.BailResult`（`HookResult.java:80-90`）+ `isBail()`（`:25-27`）；POST_REASONING 捕获检查（`ReActAgentExecutor.java:750,758`）+ bail cap（`:761`）+ checkOutputGuardrail 跳过（BAIL 分支在 `:773` 前 continue）；POST_CALL 捕获检查（`:988,996`）+ `ctx.setBailReason`（`:999`）+ payload `guardrailBlocked`（`:1012`）；`validateBailPoint`（`AgentHookInvoker.java:212-219`）覆盖 middleware+hook 两路径 + 执行级 fail-loud（`:133-137`）；bail 字段（`AgentExecutionResult.java:20,71,115` + `AgentExecutionContext.java:71,343,347`）——全 PASS
+    - Phase 3：端到端测试（`TestBailEndToEnd.java` 4 测试，含 `wiringProofBailResultIsConsumedByExecutor` 断言 `toolCallCount==0` 证明返回值确被消费）——PASS
+  - 每条 Closure Gate 的验证结果：全 PASS（见 Closure Gates checklist 全 `[x]`）
+  - `node ai-dev/tools/check-plan-checklist.mjs <plan-file> --strict` 退出码为 0
+  - Anti-Hollow 检查结果：BailResult 运行时确被 POST_REASONING/POST_CALL 消费（`wiringProofBailResultIsConsumedByExecutor` 断言 tool_calls 跳过；POST_CALL bailReason 流入 result）；无静默跳过（非 POST 点 fail-loud、cap 超 fail-loud，测试断言 `AgentExecStatus.failed` + error 含 "bail cap"）；`scan-hollow-implementations.mjs --module nop-ai/nop-ai-agent --severity high` 退出码为 0（W5-3 文件无 high 发现）
+  - 构建验证：`./mvnw compile -pl nop-ai/nop-ai-agent -am -q` exit 0；`./mvnw test -pl nop-ai/nop-ai-agent -am` → 3216 tests, 0 failures, 0 errors；`./mvnw clean install -DskipTests -pl nop-ai/nop-ai-agent -am -T 1C` BUILD SUCCESS
+  - Deferred 项分类检查：两项 Deferred（执行级 BAIL = out-of-scope improvement；自动降级/重试编排 = optimization candidate）均带 non-blocking 理由，无 in-scope live defect 被降级
 
 Follow-up:
 
-- <<只记录 non-blocking follow-up；confirmed live defect 不得出现在这里>>
+- 执行级 `ExecutionPoint` 的 BAIL（successor，依赖 middleware §5.1 执行级 scope）
+- BAIL 可观测性指标（observability 增强，non-blocking）
+- W5-1 GuardrailTestSuite 对 BAIL 路径的攻击语料验收（独立 work item，non-blocking）

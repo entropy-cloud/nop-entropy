@@ -133,10 +133,74 @@ Middleware 在**装配时**一次性注册到 `IHookRegistry`，之后不可变�
 
 **设计决定**：运行时不对 Middleware 链做动态重排（不同于 AgentScope 的 `addMiddleware` 运行时修改）。理由：Nop 的 IoC 提供了声明式装配，动态重排带来的复杂度 > 收益。
 
-### 2.5 Veto/Reenter 在链中的语义
+### 2.5 Veto/Reenter/Bail 在链中的语义
 
 - **Middleware 返回 `VetoResult`**：该 Middleware 不调 `next.proceed()`，外层 Middleware 的 `next.proceed()` 返回该 Veto 结果，外层 after 逻辑仍执行。该生命周期点整体拒绝（core 不执行）。
 - **Middleware 返回 `ReenterResult`**：链中断，返回给调用方，由 `executeWithMiddleware` 的调用者（ReActAgentExecutor）处理重入逻辑（带重入计数器防死循环）。仅在 `BEFORE_TOOL_RESULT_PROCESSED` / `AFTER_TOOL_RESULT_PROCESSED` 有效。
+- **Middleware 返回 `BailResult`**（W5-3 引入的第四态）：硬阻断——丢弃当前响应、不作用于此响应。仅在 `POST_REASONING` / `POST_CALL` 两个 POST 点有效；在其它点返回时 fail-loud（抛 `NopAiAgentException`，不静默忽略）。语义详见 §5.4。
+
+---
+
+### 5.4 BAIL 中断语义（中间件第四态：中断并丢弃响应）— final
+
+> **Status: final**（W5-3 已落地，2026-08-02）。本节由方向性描述（guardrail-contract §增量 3）重写为最终架构决策，含 A–F 六条裁定、与 `checkOutputGuardrail` 关系、bail cap 范围、POST_CALL 流式限制。
+
+`BailResult` 是 `HookResult` 的第四个子类（`HookResult.java` 内静态嵌套子类，受 package-private 构造可见性约束）。它把今日**硬编码**在执行器里的"丢弃输出 + 重新提示"（`ReActAgentExecutor` 内 `promptAssembly.checkOutputGuardrail`）**泛化为中间件/Hook 可返回的标准态**，使任意 guardrail 中间件（而非仅 promptAssembly）能触发硬阻断，并补 `POST_CALL` 的最终响应阻断。
+
+**三态对比（POST 侧阻断 vs PRE 侧拒绝 vs 改写）**：
+
+| 语义 | 返回态 | 触发侧 | 作用 |
+|------|--------|--------|------|
+| PRE 拒绝（core 不执行） | `VetoResult` | PRE_CALL / PRE_REASONING | 该生命周期点拒绝，core 不执行 |
+| 改写式拦截（修改响应内容） | `GuardrailResult.ModifyResult`（guardrail 内部）/ 中间件直接改 ctx | POST | 修改响应内容后放行 |
+| **POST 硬阻断（不作用于此响应）** | **`BailResult`** | **POST_REASONING / POST_CALL** | **丢弃该轮响应 + 重新提示（POST_REASONING）/ 结果阻断状态（POST_CALL）** |
+
+为什么不复用 Veto 做 POST 侧丢弃：Veto 的语义是"该生命周期点拒绝、core 不执行"（PRE 侧概念），而 POST 点的 core（推理/调用）**已经执行完毕**——POST 侧的"拒绝"无法撤回已发生的执行，只能"不作用于此响应"。复用 Veto 会混淆"未执行"与"已执行但不作用"。故新增独立第四态 `BailResult`。
+
+#### 裁定 A — BAIL 与 `checkOutputGuardrail` 关系（共存，BAIL 在前）
+
+- **采纳方案 (b) 共存**：`BailResult` 是通用机制（任意 guardrail 中间件可返回），`checkOutputGuardrail`（`AgentPromptAssembly`）保留为快速路径/内置实现。
+- **执行顺序**：`POST_REASONING` 中间件链先执行（`executeWithMiddleware`）；若返回 `BailResult`，**跳过** `checkOutputGuardrail`（响应已被 BAIL，无需再检查）；若返回 Pass，`checkOutputGuardrail` 仍照常运行（内置防御层）。
+- **拒绝方案 (a) 迁移**：`checkOutputGuardrail` 精心维护了 tool_call_id 配对不变式（AR-11，plan 277），迁移为中间件会引入回归风险且无增量价值（两种机制已通过顺序规则对齐）。
+
+#### 裁定 B — POST_REASONING BAIL 语义（不作用 + 重新提示，承认消息已落账）
+
+- **执行顺序现实**：`POST_REASONING` 触发前已完成——assistant 消息已加入 `ctx.getMessages()`、LLM_TURN checkpoint 已保存、session store 已持久化、token 计账已完成。故 **BAIL 不能承诺"不进入历史"**——与 `checkOutputGuardrail` 同边界。
+- **BAIL 语义**：**不作用于该轮响应**（跳过该响应的 tool_calls 执行 + 不视为最终答案）+ **重新提示**（`continue` 下一轮迭代）。即：该轮 assistant 消息已落账，但 agent 不执行其 tool_calls、completion judge 不评估其为最终答案。
+- **iteration 计数**：BAIL 触发的 `continue` **也 `setCurrentIteration(+1)`**——与 `checkOutputGuardrail` 对齐，使 `maxIterations` 兜底上界对 BAIL 生效（裁定 D 联动）。
+- **`BailResult.reason` 去向**：仅日志（`LOG.warn`）+ 结构化结果（`AgentExecutionResult`，POST_CALL 时）。首版**不**自动注入 LLM 反馈消息——中间件若需提供反馈，应在返回 `BailResult` 前自行 `ctx.addMessage(...)`。此选择与 `checkOutputGuardrail`（改写 assistant 内容/注入 error tool 响应）保持边界一致：反馈机制由触发方负责，BAIL 本身只承载"丢弃+重新提示"语义。
+
+#### 裁定 C — supersede §三「不修改 HookResult 密封层级」
+
+- 原 §三:156 约束（「不修改 `HookResult` 密封层级」）的 scope 是 plan 296 的会话级洋葱链实现（在**已有**返回态上启用链式拦截），**非永久禁令**。
+- W5-3 **显式 supersede 该约束**：`HookResult` 实为**非 sealed 抽象类 + package-private 构造**（无 `sealed`/`permits`），新增 `BailResult` 作为 `HookResult.java` 内的静态嵌套子类（受 package-private 构造可见性约束）。`isBail()` 是新增的第四个判定方法，既有 `isPass()`/`isVeto()`/`isReenter()` 语义不变（向后兼容）。
+
+#### 裁定 D — bail cap 范围（BAIL 专属早-fail，不与 checkOutputGuardrail 共享计数）
+
+- **循环边界厘清**：POST_REASONING re-prompt（含 `checkOutputGuardrail` 与 BAIL 触发的）**本就受 `maxIterations` 上界约束**（两者的 `continue` 都消耗 iteration）——无真无限循环。
+- **bail cap**：BAIL 专属的"早 fail"——per-request 累计 BAIL 次数，超限强制 fail-loud（抛 `NopAiAgentException`，不静默 continue）。参照 `LlmCallCoordinator.MAX_EXECUTION_VETOES = 3`，cap 值 = **3**。作用域：**per-request**（整个 `execute()` 调用内累计，跨迭代保留）。
+- **不与 `checkOutputGuardrail` 共享计数**：BAIL 与 `checkOutputGuardrail` 是两个独立机制（一个中间件返回，一个内置 guardrail），混合计数会耦合无关机制。`checkOutputGuardrail` 路径仅受 `maxIterations` 兜底——这是显式裁定的可接受 residual（兜底上界已足够，无真无限循环）。
+
+#### 裁定 E — POST_CALL BAIL 机制（结果阻断状态 + 流式已发限制显式接受）
+
+- **执行时序现实**：`POST_CALL`（`ReActAgentExecutor:946`）在循环退出后触发，此时执行已结束、响应可能已 `REASONING_CHUNK` 流式发出（不可撤回）。故 POST_CALL BAIL **不能撤回已发 chunk**。
+- **结果阻断状态机制**：
+  - `AgentExecutionContext` 新增 `bailReason`（String，nullable）字段 + setter/getter。
+  - `AgentExecutionResult` 新增 `bailReason` 字段 + getter；`fromContext(ctx)` 读取 `ctx.getBailReason()`。
+  - POST_CALL 中间件返回 `BailResult` 时：执行器把 `reason` 写入 `ctx.setBailReason(...)`，`fromContext` 透传到 `AgentExecutionResult`。调用方通过 `result.getBailReason() != null` 判定是否被阻断。
+  - **流式已发限制**：BAIL 仅能"标记结果状态供审计/调用方决策"，不能撤回已发 chunk——**显式接受此限制**（流式场景的 chunk 已被消费，BAIL 是"事后标记"非"事前阻止"）。
+- **`EXECUTION_COMPLETED` 事件裁定**：POST_CALL BAIL 标记阻断后，`EXECUTION_COMPLETED` 事件**仍发布**，但在 payload 中新增 `guardrailBlocked: true` + `bailReason: <reason>` 标记——additive（非矛盾），使下游消费者可区分"正常完成"与"完成但最终响应被阻断"。不新增独立事件类型（最小变更、不破坏现有订阅者）。
+
+#### 裁定 F — 零回归确认（Veto/Reenter 在 POST 点）
+
+- 核对 `POST_REASONING` / `POST_CALL` 既有 hook/中间件均返回 `PassResult`（仓库内无返 Veto/Reenter 的用例：`TestHookInReActLoop` 注册的 POST 点 hook 均返 Pass；`TestAgentFilterChainWiring` 等中间件测试亦然）。
+- 本计划的 Anti-Hollow 修复**仅 BAIL 维度**（POST 侧返回值被捕获检查 `isBail()`）；`isVeto()`/`isReenter()` 在 POST 点**不被消费**（今日丢弃，本计划不修复——Veto/Reenter 在 POST 点的消费是独立问题）。
+- **零回归成立**：无 `BailResult` / 无 BAIL 中间件时，POST_REASONING/POST_CALL 行为与今日一致（返回 PassResult，`isBail()` 返 false，不触发任何新分支）。
+
+#### Fail-loud 约束（无静默跳过）
+
+- BAIL 在非 POST_REASONING/POST_CALL 点返回：fail-loud（抛 `NopAiAgentException("BailResult is only valid at POST lifecycle points, got: " + point)`）。
+- POST_REASONING bail cap 超限：fail-loud（抛 `NopAiAgentException`，不静默 continue、不无限循环）。
 
 ---
 
@@ -153,7 +217,7 @@ Middleware 在**装配时**一次性注册到 `IHookRegistry`，之后不可变�
 | `AgentModel` 新增 `<middlewares>` xdef 声明 | `nop-xdefs` | ✅ 新增可选字段 |
 | `DefaultAgentEngine.resolveExecutor` 新增 `resolveMiddlewares` | `nop-ai-agent/engine/` | ✅ 无声明时 no-op |
 
-**不删除** `IAgentLifecycleHook`，**不修改** `HookResult` 密封层级。
+**不删除** `IAgentLifecycleHook`。`HookResult` 的密封层级由 W5-3（§5.4 裁定 C）**显式 supersede**：新增 `BailResult` 作为 `HookResult.java` 内的静态嵌套子类（第四态），受 package-private 构造可见性约束。原"不修改 HookResult 密封层级"约束的 scope 是 plan 296 的会话级洋葱链实现，非永久禁令。
 
 **会话级 `AgentLifecyclePoint` 枚举（12 个值）的值与语义完全不变。** plan 296 §三的"不修改 `AgentLifecyclePoint` 枚举值"约束，其 scope 是 plan 296 的会话级洋葱链实现——在**已有**点上启用链式拦截，不在枚举里加新点。W3-1（§5.1）新增的执行级触发点由**独立的 `ExecutionPoint` 枚举**承载（`PRE_LLM_ATTEMPT`/`POST_LLM_ATTEMPT`/`PRE_TOOL_ATTEMPT`/`POST_TOOL_ATTEMPT`），不污染会话级枚举。两个枚举、两层 scope、两套 registry 存储（`Map<AgentLifecyclePoint,List>` + `Map<ExecutionPoint,List>`）永不交叉。
 
