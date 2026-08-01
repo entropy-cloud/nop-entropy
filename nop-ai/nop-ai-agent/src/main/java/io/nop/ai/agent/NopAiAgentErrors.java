@@ -19,6 +19,9 @@ public interface NopAiAgentErrors {
 
     String ARG_MODE = "mode";
     String ARG_MSG = "msg";
+    String ARG_FILTER_ID = "filterId";
+    String ARG_POINT = "point";
+    String ARG_IMPL = "impl";
 
     // ========================================================================
     // P3-MA3-1: bare IllegalArgumentException validation guards (plan
@@ -121,4 +124,34 @@ public interface NopAiAgentErrors {
     ErrorCode ERR_AGENT_PLAN_MODE_NOT_IMPLEMENTED =
             define("nop.err.ai.agent.plan-mode-not-implemented",
                     "Plan execution mode is not yet implemented: mode={mode}", ARG_MODE);
+
+    // ========================================================================
+    // W3-2: declarative filter chain assembly (fail-fast, no silent skip)
+    // ========================================================================
+
+    ErrorCode ERR_AGENT_FILTER_UNKNOWN_REF =
+            define("nop.err.ai.agent.filter-unknown-ref",
+                    "filter-chain references unknown filter id '{filterId}': "
+                            + "no <filter-def> with this id exists in <filter-definitions>",
+                    ARG_FILTER_ID);
+
+    ErrorCode ERR_AGENT_FILTER_DEF_MISSING_IMPL =
+            define("nop.err.ai.agent.filter-def-missing-impl",
+                    "filter-def '{filterId}' has no impl class declared", ARG_FILTER_ID);
+
+    ErrorCode ERR_AGENT_FILTER_DEF_NOT_MIDDLEWARE =
+            define("nop.err.ai.agent.filter-def-not-middleware",
+                    "filter-def '{filterId}' impl '{impl}' does not implement IAgentMiddleware",
+                    ARG_FILTER_ID, ARG_IMPL);
+
+    ErrorCode ERR_AGENT_FILTER_DUPLICATE_DECLARATION =
+            define("nop.err.ai.agent.filter-duplicate-declaration",
+                    "filter '{filterId}' is declared both in <filter-chain> and in <middlewares> "
+                            + "for lifecycle point '{point}': remove one declaration",
+                    ARG_FILTER_ID, ARG_POINT);
+
+    ErrorCode ERR_AGENT_FILTER_UNKNOWN_POINT =
+            define("nop.err.ai.agent.filter-unknown-point",
+                    "filter '{filterId}' references unknown lifecycle point '{point}'",
+                    ARG_FILTER_ID, ARG_POINT);
 }

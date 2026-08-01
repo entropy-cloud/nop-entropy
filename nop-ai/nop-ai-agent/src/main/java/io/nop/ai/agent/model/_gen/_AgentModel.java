@@ -69,6 +69,21 @@ public abstract class _AgentModel extends io.nop.core.resource.component.Abstrac
     
     /**
      *  
+     * xml name: filter-chain
+     * W3-2 (declarative filter chain): ordered filter ID lists that
+     * resolve to IAgentMiddleware at assembly time (ResolvedFilterChain
+     * pattern). input-filters = request-side guardrails (default PRE_CALL,
+     * fires once per request — single-trigger semantics, avoids the
+     * N+M+K multi-trigger of PRE_REASONING/PRE_ACTING). output-filters =
+     * response-side guardrails (default POST_CALL). Optional points
+     * attribute overrides the default lifecycle mapping (D2).
+     * filter-definitions provides the agent-internal id->impl mapping
+     * (D1 option B — self-contained, no IoC container injection).
+     */
+    private io.nop.ai.agent.model.AgentFilterChainModel _filterChain ;
+    
+    /**
+     *  
      * xml name: hooks
      * 
      */
@@ -317,6 +332,33 @@ public abstract class _AgentModel extends io.nop.core.resource.component.Abstrac
         checkAllowChange();
         
         this._description = value;
+           
+    }
+
+    
+    /**
+     * 
+     * xml name: filter-chain
+     *  W3-2 (declarative filter chain): ordered filter ID lists that
+     * resolve to IAgentMiddleware at assembly time (ResolvedFilterChain
+     * pattern). input-filters = request-side guardrails (default PRE_CALL,
+     * fires once per request — single-trigger semantics, avoids the
+     * N+M+K multi-trigger of PRE_REASONING/PRE_ACTING). output-filters =
+     * response-side guardrails (default POST_CALL). Optional points
+     * attribute overrides the default lifecycle mapping (D2).
+     * filter-definitions provides the agent-internal id->impl mapping
+     * (D1 option B — self-contained, no IoC container injection).
+     */
+    
+    public io.nop.ai.agent.model.AgentFilterChainModel getFilterChain(){
+      return _filterChain;
+    }
+
+    
+    public void setFilterChain(io.nop.ai.agent.model.AgentFilterChainModel value){
+        checkAllowChange();
+        
+        this._filterChain = value;
            
     }
 
@@ -676,6 +718,8 @@ public abstract class _AgentModel extends io.nop.core.resource.component.Abstrac
             
            this._constraints = io.nop.api.core.util.FreezeHelper.deepFreeze(this._constraints);
             
+           this._filterChain = io.nop.api.core.util.FreezeHelper.deepFreeze(this._filterChain);
+            
            this._hooks = io.nop.api.core.util.FreezeHelper.deepFreeze(this._hooks);
             
            this._middlewares = io.nop.api.core.util.FreezeHelper.deepFreeze(this._middlewares);
@@ -702,6 +746,7 @@ public abstract class _AgentModel extends io.nop.core.resource.component.Abstrac
         out.putNotNull("denyTags",this.getDenyTags());
         out.putNotNull("denyTools",this.getDenyTools());
         out.putNotNull("description",this.getDescription());
+        out.putNotNull("filterChain",this.getFilterChain());
         out.putNotNull("hooks",this.getHooks());
         out.putNotNull("meta",this.getMeta());
         out.putNotNull("middlewares",this.getMiddlewares());
@@ -734,6 +779,7 @@ public abstract class _AgentModel extends io.nop.core.resource.component.Abstrac
         instance.setDenyTags(this.getDenyTags());
         instance.setDenyTools(this.getDenyTools());
         instance.setDescription(this.getDescription());
+        instance.setFilterChain(this.getFilterChain());
         instance.setHooks(this.getHooks());
         instance.setMeta(this.getMeta());
         instance.setMiddlewares(this.getMiddlewares());

@@ -72,6 +72,27 @@
                     point="!string" scope="enum:session,execution|session"/>
     </middlewares>
 
+    <!-- W3-2 (declarative filter chain): ordered filter ID lists that
+         resolve to IAgentMiddleware at assembly time (ResolvedFilterChain
+         pattern). input-filters = request-side guardrails (default PRE_CALL,
+         fires once per request — single-trigger semantics, avoids the
+         N+M+K multi-trigger of PRE_REASONING/PRE_ACTING). output-filters =
+         response-side guardrails (default POST_CALL). Optional points
+         attribute overrides the default lifecycle mapping (D2).
+         filter-definitions provides the agent-internal id->impl mapping
+         (D1 option B — self-contained, no IoC container injection). -->
+    <filter-chain xdef:name="AgentFilterChainModel">
+        <filter-definitions xdef:body-type="list" xdef:key-attr="id">
+            <filter-def xdef:name="FilterDefModel" id="!string" impl="!class-name"/>
+        </filter-definitions>
+        <input-filters xdef:body-type="list">
+            <filter xdef:name="FilterRefModel" ref="!string" points="csv-set"/>
+        </input-filters>
+        <output-filters xdef:body-type="list">
+            <filter xdef:ref="FilterRefModel"/>
+        </output-filters>
+    </filter-chain>
+
     <!-- Plan 231: declarative team declaration. A lead agent declares its
          team structure here; the engine auto-binds the lead session at the
          three execution entry points (doExecute/resumeSession/restoreSession)

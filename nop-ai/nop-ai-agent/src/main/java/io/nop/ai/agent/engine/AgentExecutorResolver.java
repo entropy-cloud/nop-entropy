@@ -148,7 +148,12 @@ public class AgentExecutorResolver {
         if (mode == null || mode.isEmpty() || "react".equals(mode)) {
             DefaultHookRegistry hookRegistry = DefaultHookRegistry.fromAgentModel(model);
             resolveHookContributions(hookRegistry);
-            resolveMiddlewares(model, hookRegistry);
+            // W3-2: declarative <filter-chain> is resolved and registered FIRST so
+            // guardrail filters sit at the front (outermost layer) of each point's
+            // onion chain; code-class <middlewares> are appended after (D3 merge).
+            java.util.Map<io.nop.ai.agent.hook.AgentLifecyclePoint, java.util.Set<String>> declarativeImplByPoint =
+                    resolveFilterChain(model, hookRegistry);
+            resolveMiddlewares(model, hookRegistry, declarativeImplByPoint);
             return ReActAgentExecutor.builder()
                     .chatService(chatService)
                     .toolManager(toolManager)
@@ -225,7 +230,8 @@ public class AgentExecutorResolver {
             hookRegistry.register(hp.getPoint(), hp.getHook());
         }
     }
-    private void resolveMiddlewares(AgentModel model, io.nop.ai.agent.hook.IHookRegistry hookRegistry) {
+    private void resolveMiddlewares(AgentModel model, io.nop.ai.agent.hook.IHookRegistry hookRegistry,
+                                    java.util.Map<io.nop.ai.agent.hook.AgentLifecyclePoint, java.util.Set<String>> declarativeImplByPoint) {
         if (model == null) {
             return;
         }
@@ -267,9 +273,57 @@ public class AgentExecutorResolver {
                             impl, pointName);
                     continue;
                 }
+                // W3-2 (D3 coexistence): the same impl class declared via BOTH
+                // <filter-chain> and <middlewares> at the same lifecycle point is
+                // an ambiguous duplicate — fail-loud (no silent dedupe, no silent
+                // double-keep). Declarative filters were registered first, so by
+                // this point the registry already holds them at the front.
+                java.util.Set<String> declarativeAtPoint = declarativeImplByPoint.get(point);
+                if (declarativeAtPoint != null && declarativeAtPoint.contains(impl)) {
+                    throw new NopAiAgentException(NopAiAgentErrors.ERR_AGENT_FILTER_DUPLICATE_DECLARATION)
+                            .param(NopAiAgentErrors.ARG_FILTER_ID, impl)
+                            .param(NopAiAgentErrors.ARG_POINT, pointName);
+                }
                 hookRegistry.registerMiddleware(point, instance);
             }
         }
+    }
+
+    /**
+     * W3-2: resolve the declarative {@code <filter-chain>} and register its
+     * filters into the registry (declarative-first, per D3). Returns the set of
+     * impl-class names registered per lifecycle point, used by
+     * {@link #resolveMiddlewares} for D3 duplicate detection against
+     * {@code <middlewares>}.
+     *
+     * <p>Declarative filters are session-level only (they map to
+     * {@link io.nop.ai.agent.hook.AgentLifecyclePoint}); execution-level scope
+     * is the exclusive domain of {@code <middlewares scope="execution">}.
+     */
+    private java.util.Map<io.nop.ai.agent.hook.AgentLifecyclePoint, java.util.Set<String>> resolveFilterChain(
+            AgentModel model, io.nop.ai.agent.hook.IHookRegistry hookRegistry) {
+        if (model == null) {
+            return java.util.Collections.emptyMap();
+        }
+        io.nop.ai.agent.model.AgentFilterChainModel chain = model.getFilterChain();
+        if (chain == null || !chain.hasAnyFilters()) {
+            return java.util.Collections.emptyMap();
+        }
+        io.nop.ai.agent.middleware.ResolvedFilterChain resolved =
+                io.nop.ai.agent.middleware.FilterChainResolver.resolve(chain);
+        java.util.Map<io.nop.ai.agent.hook.AgentLifecyclePoint, java.util.Set<String>> implByPoint =
+                new java.util.HashMap<>();
+        for (java.util.Map.Entry<io.nop.ai.agent.hook.AgentLifecyclePoint,
+                java.util.List<io.nop.ai.agent.middleware.IAgentMiddleware>> e :
+                resolved.getResolvedByPoint().entrySet()) {
+            io.nop.ai.agent.hook.AgentLifecyclePoint point = e.getKey();
+            for (io.nop.ai.agent.middleware.IAgentMiddleware mw : e.getValue()) {
+                hookRegistry.registerMiddleware(point, mw);
+                implByPoint.computeIfAbsent(point, k -> new java.util.LinkedHashSet<>())
+                        .add(mw.getClass().getName());
+            }
+        }
+        return implByPoint;
     }
 
     private io.nop.ai.agent.middleware.IAgentMiddleware instantiateMiddleware(String impl, String pointName) {

@@ -1,0 +1,21 @@
+<agent x:schema="/nop/schema/ai/agent.xdef" xmlns:x="/nop/schema/xdsl.xdef"
+       name="test-filter-chain-agent">
+
+    <description>Fixture for W3-2 declarative filter-chain parsing</description>
+
+    <prompt>You are a filtered agent.</prompt>
+
+    <filter-chain>
+        <filter-definitions>
+            <filter-def id="auth" impl="io.nop.ai.agent.engine.TestAgentFilterChainWiring$InputGuardFilter"/>
+            <filter-def id="content" impl="io.nop.ai.agent.engine.TestAgentFilterChainWiring$OutputGuardFilter"/>
+        </filter-definitions>
+        <input-filters>
+            <filter ref="auth"/>
+        </input-filters>
+        <output-filters>
+            <filter ref="content"/>
+        </output-filters>
+    </filter-chain>
+
+</agent>
