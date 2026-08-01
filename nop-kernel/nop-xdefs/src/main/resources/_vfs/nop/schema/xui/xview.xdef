@@ -217,12 +217,12 @@
     </xdef:define>
 
     <pages xdef:key-attr="name" xdef:body-type="list">
-        <crud xdef:ref="UiCRUDModel"/>
-        <picker xdef:ref="UiCRUDModel" size="string"/>
-        <simple xdef:ref="UiSimpleModel"/>
-        <tabs xdef:ref="UiTabsModel"/>
-        <wizard xdef:ref="UiWizardModel"/>
-        <group xdef:ref="UiGroupModel"/>
+        <crud name="!string" xdef:ref="UiCRUDModel"/>
+        <picker name="!string" xdef:ref="UiCRUDModel" size="string"/>
+        <simple name="!string" xdef:ref="UiSimpleModel"/>
+        <tabs name="!string" xdef:ref="UiTabsModel"/>
+        <wizard name="!string" xdef:ref="UiWizardModel"/>
+        <group name="!string" xdef:ref="UiGroupModel"/>
         <complex name="!string" xdef:name="UiComplexPageModel" xdef:ref="UiPageModel" xdef:bean-tag-prop="type">
             <header xdef:ref="UiContainerModel" xdef:body-type="list" xdef:bean-body-prop="body" />
             <footer xdef:ref="UiContainerModel" xdef:body-type="list" xdef:bean-body-prop="body" />
