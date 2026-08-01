@@ -1,7 +1,9 @@
 package io.nop.ai.agent.engine;
 
 import io.nop.ai.agent.model.AgentExecStatus;
+import io.nop.ai.agent.reliability.AccountChain;
 import io.nop.ai.agent.reliability.CircuitState;
+import io.nop.ai.agent.reliability.IAccountChainResolver;
 import io.nop.ai.agent.reliability.ICircuitBreaker;
 import io.nop.ai.agent.reliability.IRetryPolicy;
 import io.nop.ai.agent.reliability.LlmErrorClassifier;
@@ -10,37 +12,17 @@ import io.nop.ai.agent.reliability.RetryOutcome;
 import io.nop.ai.agent.router.IModelRouter;
 import io.nop.ai.agent.router.RoutingResult;
 import io.nop.ai.api.chat.ChatOptions;
-import io.nop.ai.api.chat.ChatOptions;
 import io.nop.ai.api.chat.ChatRequest;
 import io.nop.ai.api.chat.ChatResponse;
 import io.nop.ai.api.chat.ErrorClassification;
 import io.nop.ai.api.chat.IChatService;
 import io.nop.ai.api.chat.messages.ChatToolCall;
+import io.nop.ai.core.model.LlmAccountModel;
+import io.nop.ai.core.service.LlmConfigHelper;
 import io.nop.ai.toolkit.model.AiToolCallResult;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import java.util.ArrayList;
-import java.util.List;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.CompletionException;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.Executor;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import java.util.ArrayList;
-import java.util.List;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.CompletionException;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.Executor;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -69,11 +51,32 @@ public class LlmCallCoordinator {
     private final long llmTimeoutMs;
     private final Executor timeoutExecutor;
     private final AgentHookInvoker hookInvoker;
+    private final IAccountChainResolver accountChainResolver;
+
+    /**
+     * 生产默认账号链解析器：经 {@code LlmConfigHelper.resolveAccountChain(provider)} 从
+     * {@code {provider}.llm.xml} 的 {@code <accounts>} 解析（裁定 A：纯配置文件）。
+     */
+    private static final IAccountChainResolver DEFAULT_ACCOUNT_CHAIN_RESOLVER =
+            provider -> new AccountChain(LlmConfigHelper.resolveAccountChain(provider));
 
     public LlmCallCoordinator(IChatService chatService, IRetryPolicy retryPolicy,
-                              ICircuitBreaker circuitBreaker, IModelRouter modelRouter,
-                              long llmTimeoutMs, Executor timeoutExecutor,
-                              AgentHookInvoker hookInvoker) {
+                               ICircuitBreaker circuitBreaker, IModelRouter modelRouter,
+                               long llmTimeoutMs, Executor timeoutExecutor,
+                               AgentHookInvoker hookInvoker) {
+        this(chatService, retryPolicy, circuitBreaker, modelRouter, llmTimeoutMs,
+                timeoutExecutor, hookInvoker, null);
+    }
+
+    /**
+     * @param accountChainResolver 账号链解析策略；null 时退回生产默认（config-based）。
+     *      测试可注入假实现以隔离 config 加载（plan 2026-08-01-1505-1 Phase 2/3）。
+     */
+    public LlmCallCoordinator(IChatService chatService, IRetryPolicy retryPolicy,
+                               ICircuitBreaker circuitBreaker, IModelRouter modelRouter,
+                               long llmTimeoutMs, Executor timeoutExecutor,
+                               AgentHookInvoker hookInvoker,
+                               IAccountChainResolver accountChainResolver) {
         this.chatService = chatService;
         this.retryPolicy = retryPolicy;
         this.circuitBreaker = circuitBreaker;
@@ -81,6 +84,9 @@ public class LlmCallCoordinator {
         this.llmTimeoutMs = llmTimeoutMs;
         this.timeoutExecutor = timeoutExecutor;
         this.hookInvoker = hookInvoker;
+        this.accountChainResolver = accountChainResolver != null
+                ? accountChainResolver
+                : DEFAULT_ACCOUNT_CHAIN_RESOLVER;
     }
 
     // ---- moved verbatim from ReActAgentExecutor (MA4.2-05 split) ----
@@ -90,6 +96,11 @@ public class LlmCallCoordinator {
      * step. Returns an LlmCallResult holding the response, the final
      * routedOptions (which may have been reassigned by a FALLBACK switch),
      * the llmCallStart timestamp, and a success flag.
+     *
+     * <p><b>FALLBACK 路由（plan 2026-08-01-1505-1，设计 §3.6/§4.4）</b>：收到 FALLBACK 决策时
+     * 按 {@code errorClassification} 分流到两个独立通道——{@code QUOTA_EXCEEDED}/{@code AUTH_INVALID}
+     * → 账号链（同模型换 key/账号），{@code TRANSIENT} 等 → {@code IModelRouter.getFallback}（模型 tier）。
+     * 任一通道耗尽都 fail-loud（设计 §6.9，不静默降级/跳过）。
      */
     public LlmCallResult doLlmCallWithRetry(ChatRequest request,
                                              AgentExecutionContext ctx,
@@ -110,10 +121,15 @@ public class LlmCallCoordinator {
         }
         long llmCallStart = System.currentTimeMillis();
         ChatResponse response;
+        // fail-loud 错误：FALLBACK 通道耗尽时填充，循环退出后抛出（不在 try 块内抛，避免被
+        // catch 误当作传输异常重试——设计 §6.9 fail-loud）。
+        NopAiAgentException fallbackExhausted = null;
         {
             int attempt = 0;
             Throwable lastError = null;
             ChatResponse attemptResponse = null;
+            // 账号链游走器：惰性解析（首次 QUOTA/AUTH FALLBACK 时），跨迭代保留游标。
+            AccountChain accountChain = null;
             while (true) {
                 try {
                     llmCallStart = System.currentTimeMillis();
@@ -147,16 +163,46 @@ public class LlmCallCoordinator {
                         continue;
                     }
                     if (outcome.isFallback()) {
-                        routedOptions = doFallbackSwitch(routedOptions, request, attempt,
-                                classification, null);
+                        // 按 errorClassification 分流（设计 §4.4 两通道区分）：
+                        // QUOTA/AUTH → 账号链（同模型换 key）；TRANSIENT 等 → 模型 tier 回退。
+                        if (classification == ErrorClassification.QUOTA_EXCEEDED
+                                || classification == ErrorClassification.AUTH_INVALID) {
+                            // 惰性解析账号链（首次 QUOTA/AUTH FALLBACK），跨迭代重用游标。
+                            if (accountChain == null) {
+                                accountChain = resolveAccountChain(routedOptions.getProvider());
+                            }
+                            ChatOptions switched = doAccountSwitch(routedOptions, request,
+                                    attempt, classification, accountChain,
+                                    routedOptions.getProvider());
+                            if (switched == null) {
+                                // 账号链耗尽 → fail-loud（break 退出循环，循环外抛出）。
+                                fallbackExhausted = buildFallbackExhaustedError(
+                                        classification, attempt, null, true, accountChain);
+                                break;
+                            }
+                            routedOptions = switched;
+                            attempt = 0;
+                            continue;
+                        }
+                        // TRANSIENT 等 → 模型 tier 回退（行为不变）。
+                        ChatOptions switched = doModelTierFallback(routedOptions, request,
+                                attempt, classification, null);
+                        if (switched == null) {
+                            fallbackExhausted = buildFallbackExhaustedError(
+                                    classification, attempt, null, false, null);
+                            break;
+                        }
+                        routedOptions = switched;
                         attempt = 0;
                         continue;
                     }
-                    // STOP：错误响应不可重试（QUOTA/AUTH/NON_TRANSIENT 今日保持 STOP，
-                    // 账号链延期）。退出循环，由下方 !isSuccess() 终止分支处理。
+                    // STOP：错误响应不可重试（NON_TRANSIENT 等）。退出循环，由下方
+                    // !isSuccess() 终止分支处理。
                     break;
                 } catch (RuntimeException | Error ex) {
                     // 传输级错误（无 HTTP 响应）：仍走 LlmErrorClassifier 启发式。
+                    // 注意分类来源不对称（设计 §6.1）：启发式从不产 QUOTA/AUTH，故传输级
+                    // FALLBACK 恒走模型 tier（账号链路由只在响应级路径可达）。
                     circuitBreaker.recordFailure(buildModelKey(routedOptions));
                     lastError = ex;
                     ErrorClassification classification = LlmErrorClassifier.classify(ex);
@@ -178,8 +224,15 @@ public class LlmCallCoordinator {
                         continue;
                     }
                     if (outcome.isFallback()) {
-                        routedOptions = doFallbackSwitch(routedOptions, request, attempt,
-                                classification, ex);
+                        // 传输级 FALLBACK：恒模型 tier（QUOTA/AUTH 不可达，见上）。
+                        ChatOptions switched = doModelTierFallback(routedOptions, request,
+                                attempt, classification, ex);
+                        if (switched == null) {
+                            fallbackExhausted = buildFallbackExhaustedError(
+                                    classification, attempt, ex, false, null);
+                            break;
+                        }
+                        routedOptions = switched;
                         attempt = 0;
                         lastError = null;
                         continue;
@@ -193,8 +246,13 @@ public class LlmCallCoordinator {
             response = attemptResponse;
         }
 
+        if (fallbackExhausted != null) {
+            // FALLBACK 通道耗尽 → fail-loud（设计 §6.9，Minimum Rules #24：不静默降级/跳过）。
+            throw fallbackExhausted;
+        }
+
         if (!response.isSuccess()) {
-            // 错误响应重试耗尽 / 不可重试分类（QUOTA/AUTH/NON_TRANSIENT）：终止。
+            // 错误响应重试耗尽 / 不可重试分类（NON_TRANSIENT 等）：终止。
             // 失败已在循环内记录（circuitBreaker.recordFailure），此处仅终止 + 通知。
             ctx.setStatus(AgentExecStatus.failed);
             ctx.setLastError(response.getError());
@@ -209,13 +267,53 @@ public class LlmCallCoordinator {
     }
 
     /**
-     * 执行模型 tier 回退切换（FALLBACK）。从 {@code modelRouter.getFallback(current)} 取
-     * 下一个模型，更新 {@code request} 的 options，返回新的 routedOptions。无可用回退模型时
-     * fail-loud（Minimum Rules #24，不静默跳过）。{@code ex} 可空（响应级错误无异常）。
+     * 惰性解析 provider 的账号链（裁定 B：经 nop-ai-api 载体下沉，链解析在 nop-ai-core）。
      */
-    private ChatOptions doFallbackSwitch(ChatOptions routedOptions, ChatRequest request,
+    private AccountChain resolveAccountChain(String provider) {
+        return accountChainResolver.apply(provider);
+    }
+
+    /**
+     * 账号链切换（设计 §3.6/§4.4，QUOTA/AUTH FALLBACK 路径）。取下一个备用账号，经
+     * {@code ChatOptions.accountKey}/{@code accountBaseUrl} 下沉到 {@code ChatServiceImpl}。
+     *
+     * @param accountChain 当前重试循环的账号链游走器；为 null 时惰性解析（首次切换）
+     * @return 切换后的 routedOptions（已设 accountKey），或 null 当链耗尽（调用方 fail-loud）
+     */
+    private ChatOptions doAccountSwitch(ChatOptions routedOptions, ChatRequest request,
                                          int attempt, ErrorClassification classification,
-                                         Throwable ex) {
+                                         AccountChain accountChain, String provider) {
+        AccountChain chain = accountChain;
+        if (chain == null) {
+            chain = resolveAccountChain(provider);
+        }
+        LlmAccountModel nextAccount = chain.next();
+        if (nextAccount == null) {
+            LOG.error("LLM call FALLBACK (classification={}, account-chain) at attempt={} "
+                    + "but account chain exhausted (provider={}, consumed={}). Failing loud.",
+                    classification, attempt, provider, chain.consumed());
+            return null; // 调用方 fail-loud
+        }
+        ChatOptions switched = routedOptions.copy();
+        switched.setAccountKey(nextAccount.getApiKey());
+        switched.setAccountBaseUrl(nextAccount.getBaseUrl());
+        request.setOptions(switched);
+        LOG.warn("LLM call FALLBACK (classification={}, attempt={}): switching to backup "
+                        + "account (provider={}, account id={}, baseUrl override={}), "
+                        + "attempt reset to 0",
+                classification, attempt, provider, nextAccount.getId(),
+                nextAccount.getBaseUrl() != null ? "yes" : "no");
+        return switched;
+    }
+
+    /**
+     * 执行模型 tier 回退切换（TRANSIENT FALLBACK 路径，行为不变）。从 {@code modelRouter.getFallback(current)}
+     * 取下一个模型，更新 {@code request} 的 options，返回新的 routedOptions。无可用回退模型时
+     * 返回 null（调用方 fail-loud，Minimum Rules #24）。{@code ex} 可空（响应级错误无异常）。
+     */
+    private ChatOptions doModelTierFallback(ChatOptions routedOptions, ChatRequest request,
+                                             int attempt, ErrorClassification classification,
+                                             Throwable ex) {
         ChatOptions fallbackOptions = modelRouter.getFallback(routedOptions);
         if (fallbackOptions == null) {
             LOG.error("LLM call retry policy returned FALLBACK at "
@@ -223,11 +321,7 @@ public class LlmCallCoordinator {
                     + "router provided no fallback model — stopping "
                     + "execution. Last error: {}",
                     attempt, classification, ex != null ? ex.toString() : "(error response)");
-            throw new NopAiAgentException(
-                    "LLM call retry policy returned FALLBACK but no "
-                            + "fallback model is available from the model "
-                            + "router (classification=" + classification
-                            + ", attempt=" + attempt + ")", ex);
+            return null; // 调用方 fail-loud
         }
         int failedAttempt = attempt;
         String prevModelKey = buildModelKey(routedOptions);
@@ -239,6 +333,27 @@ public class LlmCallCoordinator {
                 failedAttempt, classification, prevModelKey,
                 buildModelKey(next));
         return next;
+    }
+
+    /**
+     * 构造 FALLBACK 通道耗尽的 fail-loud 异常（设计 §6.9）。
+     *
+     * @param accountChainExhausted true=账号链耗尽；false=模型 tier 回退链耗尽
+     */
+    private NopAiAgentException buildFallbackExhaustedError(ErrorClassification classification,
+                                                             int attempt, Throwable ex,
+                                                             boolean accountChainExhausted,
+                                                             AccountChain accountChain) {
+        String channel = accountChainExhausted ? "account chain" : "model-tier fallback";
+        String detail = accountChainExhausted && accountChain != null
+                ? " (consumed=" + accountChain.consumed() + ")"
+                : "";
+        return new NopAiAgentException(
+                "LLM call FALLBACK (" + channel + ") exhausted for classification="
+                        + classification + ", attempt=" + attempt + detail
+                        + ". No more " + channel + " available — failing loud "
+                        + "(design §6.9). Configure additional backup accounts (<accounts> in "
+                        + "{provider}.llm.xml) or IModelRouter fallback models.", ex);
     }
     /**
      * Holds the result of {@link #doLlmCallWithRetry}: the ChatResponse,

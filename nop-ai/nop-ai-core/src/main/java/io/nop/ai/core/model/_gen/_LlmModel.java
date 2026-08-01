@@ -17,6 +17,18 @@ import io.nop.commons.util.ClassHelper;
 public abstract class _LlmModel extends io.nop.core.resource.component.AbstractComponentModel {
     
     /**
+     *  备用账号链（plan 2026-08-01-1505-1，设计 §3.6）
+     * xml name: accounts
+     * provider 级有序备用账号清单。每个账号 = apiKey（直配值，生产经 Nop config 变量替换/secret 注入）
+     * + 可选 baseUrl（per-account 覆盖）+ 可选额度元数据（quotaLimit/renewAt，仅声明/诊断用，不做主动熔断）。
+     * 链语义：<accounts> 是备用账号链（不含主账号）。主账号 = 现有单个 resolveApiKey(provider)
+     * （config 变量 nop.ai.llm.{provider}.api-key 或 secret 文件），与未配置 <accounts> 时完全一致（零回归）。
+     * 首次调用用主账号；QUOTA_EXCEEDED/AUTH_INVALID 触发后从 accounts[0] 开始依次切换，链耗尽 fail-loud。
+     * xdef:key-attr="id"（与 <errorMappings> 同款）：id 用于 x:extends 合并时区分条目，合并后顺序保持。
+     */
+    private KeyedList<io.nop.ai.core.model.LlmAccountModel> _accounts = KeyedList.emptyList();
+    
+    /**
      *  
      * xml name: aliasMap
      * 
@@ -180,6 +192,56 @@ public abstract class _LlmModel extends io.nop.core.resource.component.AbstractC
      * 
      */
     private boolean _supportToolCalls ;
+    
+    /**
+     * 备用账号链（plan 2026-08-01-1505-1，设计 §3.6）
+     * xml name: accounts
+     *  provider 级有序备用账号清单。每个账号 = apiKey（直配值，生产经 Nop config 变量替换/secret 注入）
+     * + 可选 baseUrl（per-account 覆盖）+ 可选额度元数据（quotaLimit/renewAt，仅声明/诊断用，不做主动熔断）。
+     * 链语义：<accounts> 是备用账号链（不含主账号）。主账号 = 现有单个 resolveApiKey(provider)
+     * （config 变量 nop.ai.llm.{provider}.api-key 或 secret 文件），与未配置 <accounts> 时完全一致（零回归）。
+     * 首次调用用主账号；QUOTA_EXCEEDED/AUTH_INVALID 触发后从 accounts[0] 开始依次切换，链耗尽 fail-loud。
+     * xdef:key-attr="id"（与 <errorMappings> 同款）：id 用于 x:extends 合并时区分条目，合并后顺序保持。
+     */
+    
+    public java.util.List<io.nop.ai.core.model.LlmAccountModel> getAccounts(){
+      return _accounts;
+    }
+
+    
+    public void setAccounts(java.util.List<io.nop.ai.core.model.LlmAccountModel> value){
+        checkAllowChange();
+        
+        this._accounts = KeyedList.fromList(value, io.nop.ai.core.model.LlmAccountModel::getId);
+           
+    }
+
+    
+    public io.nop.ai.core.model.LlmAccountModel getAccount(String name){
+        return this._accounts.getByKey(name);
+    }
+
+    public boolean hasAccount(String name){
+        return this._accounts.containsKey(name);
+    }
+
+    public void addAccount(io.nop.ai.core.model.LlmAccountModel item) {
+        checkAllowChange();
+        java.util.List<io.nop.ai.core.model.LlmAccountModel> list = this.getAccounts();
+        if (list == null || list.isEmpty()) {
+            list = new KeyedList<>(io.nop.ai.core.model.LlmAccountModel::getId);
+            setAccounts(list);
+        }
+        list.add(item);
+    }
+    
+    public java.util.Set<String> keySet_accounts(){
+        return this._accounts.keySet();
+    }
+
+    public boolean hasAccounts(){
+        return !this._accounts.isEmpty();
+    }
     
     /**
      * 
@@ -662,6 +724,8 @@ public abstract class _LlmModel extends io.nop.core.resource.component.AbstractC
 
         if(cascade){ //NOPMD - suppressed EmptyControlStatement - Auto Gen Code
         
+           this._accounts = io.nop.api.core.util.FreezeHelper.deepFreeze(this._accounts);
+            
            this._errorMappings = io.nop.api.core.util.FreezeHelper.deepFreeze(this._errorMappings);
             
            this._errorResponse = io.nop.api.core.util.FreezeHelper.deepFreeze(this._errorResponse);
@@ -679,6 +743,7 @@ public abstract class _LlmModel extends io.nop.core.resource.component.AbstractC
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         
+        out.putNotNull("accounts",this.getAccounts());
         out.putNotNull("aliasMap",this.getAliasMap());
         out.putNotNull("apiKeyHeader",this.getApiKeyHeader());
         out.putNotNull("apiStyle",this.getApiStyle());
@@ -711,6 +776,7 @@ public abstract class _LlmModel extends io.nop.core.resource.component.AbstractC
     protected void copyTo(LlmModel instance){
         super.copyTo(instance);
         
+        instance.setAccounts(this.getAccounts());
         instance.setAliasMap(this.getAliasMap());
         instance.setApiKeyHeader(this.getApiKeyHeader());
         instance.setApiStyle(this.getApiStyle());

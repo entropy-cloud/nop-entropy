@@ -13,9 +13,9 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 /**
  * Plan 207 (L3-2) Phase 2 focused test for {@link StandardRetryPolicy}
  * (Minimum Rules #25). Verifies every decision path: TRANSIENT/RATE_LIMITED
- * retry up to maxAttempts with exponential backoff; NON_TRANSIENT /
- * QUOTA_EXCEEDED fail fast; maxAttempts exhaustion → STOP; backoff formula
- * and cap.
+ * retry up to maxAttempts with exponential backoff; NON_TRANSIENT fail fast;
+ * QUOTA_EXCEEDED/AUTH_INVALID → FALLBACK（plan 2026-08-01-1505-1，账号链路由）;
+ * maxAttempts exhaustion → STOP; backoff formula and cap.
  */
 public class TestStandardRetryPolicy {
 
@@ -106,11 +106,27 @@ public class TestStandardRetryPolicy {
     }
 
     @Test
-    void quotaExceededFailsFastImmediately() {
+    void quotaExceededReturnsFallback() {
+        // Plan 2026-08-01-1505-1（设计 §6.8）：QUOTA_EXCEEDED 从 STOP 改为 FALLBACK——
+        // 交由重试循环按 errorClassification 路由到账号链（同模型换 key/账号）。
         StandardRetryPolicy p = new StandardRetryPolicy(5, 10L, 1000L);
         RetryOutcome r = p.shouldRetry(ctx(0, ErrorClassification.QUOTA_EXCEEDED));
-        assertTrue(r.isStop(), "QUOTA_EXCEEDED must STOP immediately (quota not replenished by retrying)");
+        assertTrue(r.isFallback(),
+                "QUOTA_EXCEEDED must return FALLBACK (account-chain routing), not STOP");
         assertFalse(r.isRetry());
+        assertFalse(r.isStop());
+        assertEquals(0L, r.getDelayMs(), "FALLBACK has zero delay (immediate account switch)");
+    }
+
+    @Test
+    void authInvalidReturnsFallback() {
+        // AUTH_INVALID 同样走账号链（key 失效就换备用账号，设计 §3.2/§3.6）。
+        // 本文件此前无 AUTH 用例——新增覆盖。
+        StandardRetryPolicy p = new StandardRetryPolicy(5, 10L, 1000L);
+        RetryOutcome r = p.shouldRetry(ctx(0, ErrorClassification.AUTH_INVALID));
+        assertTrue(r.isFallback(),
+                "AUTH_INVALID must return FALLBACK (account-chain routing), not STOP");
+        assertFalse(r.isStop());
     }
 
     // ========================================================================

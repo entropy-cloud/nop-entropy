@@ -210,11 +210,23 @@ public class ChatServiceImpl implements IChatService {
 
     /**
      * 构建 HTTP 请求
+     * <p>
+     * [账号回退链 plan 2026-08-01-1505-1，设计 §3.6]：当 {@code request.getOptions().getAccountKey()}
+     * 非空时（agent 层重试循环在 QUOTA/AUTH FALLBACK 时从备用账号链取下一个账号后经 ChatOptions
+     * 下沉），用该账号身份（apiKey + 可选 accountBaseUrl 覆盖）构造请求——而非按 provider 解析单 key。
+     * 为空时退回 {@code LlmConfigHelper.resolveApiKey(provider)}（今日行为，零回归）。
      */
     private HttpRequest buildHttpRequest(LlmModel config, String provider, String model,
                                            ChatRequest request, boolean stream, ILlmDialect dialect) {
-        String baseUrl = resolveBaseUrl(config, provider);
-        String apiKey = LlmConfigHelper.resolveApiKey(provider);
+        io.nop.ai.api.chat.ChatOptions opts = request.getOptions();
+        String accountKey = opts != null ? opts.getAccountKey() : null;
+        String accountBaseUrl = opts != null ? opts.getAccountBaseUrl() : null;
+
+        String baseUrl = resolveBaseUrl(config, provider, accountBaseUrl);
+        // 账号链下沉：优先用 ChatOptions.accountKey（重试循环切换的账号），为空退回主账号单 key。
+        String apiKey = StringHelper.isEmpty(accountKey)
+                ? LlmConfigHelper.resolveApiKey(provider)
+                : accountKey;
         LlmModelModel modelConfig = LlmConfigHelper.getModelConfig(config, model);
 
         HttpRequest httpRequest = new HttpRequest();
@@ -232,8 +244,16 @@ public class ChatServiceImpl implements IChatService {
 
     /**
      * 解析 Base URL
+     * <p>
+     * [账号回退链] 支持可选 per-account baseUrl 覆盖（{@code accountBaseUrl}）。非空时优先于
+     * config 变量 / {@code config.getBaseUrl()}（不同账号可对应不同代理/区域 endpoint）。
      */
-    private String resolveBaseUrl(LlmModel config, String provider) {
+    private String resolveBaseUrl(LlmModel config, String provider, String accountBaseUrl) {
+        // 账号链下沉：优先用 per-account baseUrl 覆盖。
+        if (!StringHelper.isEmpty(accountBaseUrl)) {
+            return accountBaseUrl;
+        }
+
         String baseUrlKey = StringHelper.replace(
             io.nop.ai.core.AiCoreConstants.CONFIG_VAR_LLM_BASE_URL,
             io.nop.ai.core.AiCoreConstants.PLACE_HOLDER_LLM_NAME,

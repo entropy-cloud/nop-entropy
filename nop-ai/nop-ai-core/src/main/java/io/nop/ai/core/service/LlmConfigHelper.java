@@ -1,6 +1,7 @@
 package io.nop.ai.core.service;
 
 import io.nop.ai.api.chat.ChatOptions;
+import io.nop.ai.core.model.LlmAccountModel;
 import io.nop.ai.core.model.LlmModel;
 import io.nop.ai.core.model.LlmModelModel;
 import io.nop.api.core.config.AppConfig;
@@ -12,6 +13,9 @@ import io.nop.commons.util.StringHelper;
 import io.nop.core.resource.component.ResourceComponentManager;
 
 import java.io.File;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 
 import static io.nop.ai.core.AiCoreConfigs.CFG_AI_SERVICE_DEFAULT_LLM;
 import static io.nop.ai.core.AiCoreConstants.CONFIG_VAR_LLM_API_KEY;
@@ -137,5 +141,29 @@ public class LlmConfigHelper {
         }
 
         return apiKey;
+    }
+
+    /**
+     * 解析 provider 的有序备用账号链（plan 2026-08-01-1505-1，设计 §3.6）。
+     * <p>
+     * 返回 {@code <accounts>} 声明的有序备用账号清单（不含主账号）。每个 {@link LlmAccountModel}
+     * 携带 {@code apiKey}（直配值；生产经 Nop config 变量替换/secret 注入）+ 可选 {@code baseUrl}
+     * （per-account 覆盖）+ 可选额度元数据（诊断用，不做主动熔断）。
+     * <p>
+     * 链语义：{@code <accounts>} 是备用账号链，主账号 = {@link #resolveApiKey(String)}（与未配置时完全一致，
+     * 零回归）。未配置 {@code <accounts>} 时返回<b>空列表</b>（非 null）——调用方据此判"无链"。
+     * <p>
+     * 返回的是不可变视图（基于 {@code config.getAccounts()} 的防御性拷贝），调用方可安全持有。
+     */
+    public static List<LlmAccountModel> resolveAccountChain(String provider) {
+        LlmModel config = loadConfig(provider);
+        List<LlmAccountModel> accounts = config.getAccounts();
+        if (accounts == null || accounts.isEmpty()) {
+            return Collections.emptyList();
+        }
+        // Defensive copy preserving declaration order. The config list is a KeyedList
+        // (by id) that retains insertion order; copy to a plain ArrayList so the caller
+        // gets an ordered, snapshot view independent of later config mutation.
+        return Collections.unmodifiableList(new ArrayList<>(accounts));
     }
 }

@@ -1,0 +1,24 @@
+<llm x:schema="/nop/schema/ai/llm.xdef" xmlns:x="/nop/schema/xdsl.xdef"
+     apiStyle="openai" supportToolCalls="true">
+
+    <!--
+    测试用 provider：声明 3 个有序备用账号（含 baseUrl 覆盖 + 额度元数据）。
+    主账号 = config 变量 nop.ai.llm.test-accounts.api-key（未在 <accounts> 内）。
+    -->
+    <chatUrl>/v1/chat/completions</chatUrl>
+
+    <response contentPath="choices.0.message.content"
+              rolePath="choices.0.message.role"
+              errorPath="error"
+    />
+
+    <accounts>
+        <account id="backup-1" apiKey="key-backup-1"
+                 baseUrl="https://backup1.example.com"/>
+        <account id="backup-2" apiKey="key-backup-2"/>
+        <account id="backup-3" apiKey="key-backup-3"
+                 baseUrl="https://backup3.example.com"
+                 quotaLimit="1000000" renewAt="2026-09-01"/>
+    </accounts>
+
+</llm>

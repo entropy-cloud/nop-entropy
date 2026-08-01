@@ -27,6 +27,32 @@
     </models>
 
     <!--
+    [备用账号链（plan 2026-08-01-1505-1，设计 §3.6）]
+    provider 级有序备用账号清单。每个账号 = apiKey（直配值，生产经 Nop config 变量替换/secret 注入）
+    + 可选 baseUrl（per-account 覆盖）+ 可选额度元数据（quotaLimit/renewAt，仅声明/诊断用，不做主动熔断）。
+
+    链语义：<accounts> 是备用账号链（不含主账号）。主账号 = 现有单个 resolveApiKey(provider)
+    （config 变量 nop.ai.llm.{provider}.api-key 或 secret 文件），与未配置 <accounts> 时完全一致（零回归）。
+    首次调用用主账号；QUOTA_EXCEEDED/AUTH_INVALID 触发后从 accounts[0] 开始依次切换，链耗尽 fail-loud。
+
+    xdef:key-attr="id"（与 <errorMappings> 同款）：id 用于 x:extends 合并时区分条目，合并后顺序保持。
+
+    @id          条目唯一标识（x:extends 合并键 + 诊断用）
+    @apiKey      该账号的 API key 值（直配；留空则经 resolveApiKey 退回主账号模式）
+    @baseUrl     可选 per-account baseUrl 覆盖（如不同账号对应不同代理/区域 endpoint）
+    @quotaLimit  可选额度上限（诊断/声明用，不做主动熔断）
+    @renewAt     可选额度续费时间（诊断/声明用）
+    -->
+    <accounts xdef:body-type="list" xdef:key-attr="id">
+        <account id="!string" xdef:name="LlmAccountModel"
+                 apiKey="string"
+                 baseUrl="string"
+                 quotaLimit="long"
+                 renewAt="string"
+        />
+    </accounts>
+
+    <!--
     服务的基础url，比如http://localhost:11342
     -->
     <baseUrl>string</baseUrl>

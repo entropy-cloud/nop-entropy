@@ -27,10 +27,15 @@ import java.util.concurrent.ThreadLocalRandom;
  *       attempt); STOP when {@code attempt >= maxAttempts - 1} (max attempts
  *       exhausted). The RETRY delay is uniformly random in
  *       {@code [0, min(baseDelay * 2^attempt, maxDelay)]} (full jitter).</li>
+ *   <li>{@link ErrorClassification#QUOTA_EXCEEDED} /
+ *       {@link ErrorClassification#AUTH_INVALID} → FALLBACK（plan
+ *       2026-08-01-1505-1，设计 §6.8）：交由重试循环按 {@code errorClassification} 路由到
+ *       <b>账号链</b>（同模型换 key/账号，设计 §3.6/§4.4）。这与模型 tier 回退（TRANSIENT）
+ *       是两个独立通道，重试循环按分类分流。</li>
  *   <li>{@link ErrorClassification#NON_TRANSIENT} /
- *       {@link ErrorClassification#QUOTA_EXCEEDED} → immediate STOP
- *       (retrying the identical request fails identically; quota is not
- *       replenished by retrying).</li>
+ *       {@link ErrorClassification#CACHE_STATE_LOST} → immediate STOP
+ *       (NON_TRANSIENT: retrying the identical request fails identically;
+ *       CACHE_STATE_LOST 的特殊重放语义属独立 successor).</li>
  *   <li>{@code hasStreamedContent == true} → STOP (streaming guard, design
  *       §7.4: once content has streamed, FALLBACK/RETRY would duplicate
  *       output; the current call path is non-streaming so this branch is
@@ -115,7 +120,13 @@ public final class StandardRetryPolicy implements IRetryPolicy {
             return RetryOutcome.stop();
         }
 
-        // Non-transient / quota-exceeded → fail fast.
+        // Non-transient / cache-state-lost → fail fast (immediate STOP).
+        // QUOTA_EXCEEDED / AUTH_INVALID → FALLBACK（设计 §6.8）：交由重试循环路由到账号链
+        // （同模型换 key/账号）。与 TRANSIENT 模型 tier 回退是两个独立通道（§4.4）。
+        if (classification == ErrorClassification.QUOTA_EXCEEDED
+                || classification == ErrorClassification.AUTH_INVALID) {
+            return RetryOutcome.fallback();
+        }
         if (classification != ErrorClassification.TRANSIENT
                 && classification != ErrorClassification.RATE_LIMITED) {
             return RetryOutcome.stop();

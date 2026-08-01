@@ -7,6 +7,7 @@
  */
 package io.nop.ai.api.chat;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import io.nop.ai.api.chat.messages.ChatToolDefinition;
 import io.nop.api.core.annotations.data.DataBean;
@@ -113,6 +114,29 @@ public class ChatOptions {
      * - {"type": "function", "function": {"name": "xxx"}}: 强制使用指定工具
      */
     private String toolChoice;
+
+    /**
+     * [账号回退链 plan 2026-08-01-1505-1，设计 §3.6] 当前调用所用的账号 apiKey 值。
+     * 由 agent 层重试循环在 QUOTA_EXCEEDED/AUTH_INVALID FALLBACK 时从备用账号链取下一个账号后设置，
+     * 经本字段跨层下沉到 {@code ChatServiceImpl.buildHttpRequest}（nop-ai-core）——后者读它而非按
+     * provider 解析单 key。为空（默认）时退回 {@code resolveApiKey(provider)}（今日行为，零回归）。
+     * <p>
+     * <b>序列化排除</b>：apiKey 是机密，{@code @JsonIgnore} 确保它永不序列化进请求体/日志/审计。
+     * apiKey 走 HTTP header（与今日 {@code resolveApiKey}→{@code dialect.setHeaders} 同一通道，
+     * 无新增泄漏面），{@code @JsonIgnore} 仅防止经 {@code ChatOptions} 序列化额外泄漏。
+     * <p>
+     * <b>copy()/merge() 已同步</b>（Rule #11：否则复制/合并静默丢账号）。
+     */
+    @JsonIgnore
+    private String accountKey;
+
+    /**
+     * [账号回退链] 可选 per-account baseUrl 覆盖（不同账号可对应不同代理/区域 endpoint）。
+     * 由 agent 层与 {@link #accountKey} 一起设置，下沉到 {@code ChatServiceImpl}。
+     * 为空时退回 provider 级 baseUrl（今日行为）。{@code @JsonIgnore} 同 {@link #accountKey}。
+     */
+    @JsonIgnore
+    private String accountBaseUrl;
 
     public ChatOptions() {
     }
@@ -276,6 +300,28 @@ public class ChatOptions {
     }
 
     /**
+     * 当前调用所用的账号 apiKey（设计 §3.6，跨层下沉载体）。{@code @JsonIgnore} 不参与序列化。
+     */
+    public String getAccountKey() {
+        return accountKey;
+    }
+
+    public void setAccountKey(String accountKey) {
+        this.accountKey = accountKey;
+    }
+
+    /**
+     * 可选 per-account baseUrl 覆盖（设计 §3.6）。{@code @JsonIgnore} 不参与序列化。
+     */
+    public String getAccountBaseUrl() {
+        return accountBaseUrl;
+    }
+
+    public void setAccountBaseUrl(String accountBaseUrl) {
+        this.accountBaseUrl = accountBaseUrl;
+    }
+
+    /**
      * 禁用工具（强制模型不使用工具）
      * OpenAI: tool_choice = "none"
      */
@@ -347,6 +393,11 @@ public class ChatOptions {
 
         copy.toolChoice = this.toolChoice;
 
+        // 账号回退链字段（设计 §3.6）：必须随 copy() 携带，否则重试循环的 routedOptions
+        // 重赋值会静默丢账号（Rule #11 陷阱）。
+        copy.accountKey = this.accountKey;
+        copy.accountBaseUrl = this.accountBaseUrl;
+
         return copy;
     }
 
@@ -392,6 +443,11 @@ public class ChatOptions {
             }
         }
         if (other.toolChoice != null) merged.toolChoice = other.toolChoice;
+
+        // 账号回退链字段（设计 §3.6）：merge 时 other 的账号身份覆盖 this（重试循环切换账号时
+        // 用新 ChatOptions merge 到 routedOptions，账号身份须随之切换）。
+        if (other.accountKey != null) merged.accountKey = other.accountKey;
+        if (other.accountBaseUrl != null) merged.accountBaseUrl = other.accountBaseUrl;
 
         return merged;
     }
@@ -502,6 +558,16 @@ public class ChatOptions {
 
         public Builder toolChoice(String toolChoice) {
             options.setToolChoice(toolChoice);
+            return this;
+        }
+
+        public Builder accountKey(String accountKey) {
+            options.setAccountKey(accountKey);
+            return this;
+        }
+
+        public Builder accountBaseUrl(String accountBaseUrl) {
+            options.setAccountBaseUrl(accountBaseUrl);
             return this;
         }
 

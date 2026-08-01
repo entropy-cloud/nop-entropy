@@ -1,0 +1,16 @@
+<llm x:schema="/nop/schema/ai/llm.xdef" xmlns:x="/nop/schema/xdsl.xdef"
+     apiStyle="openai" supportToolCalls="true">
+
+    <!--
+    测试用 provider 配置（无 <accounts>）。
+    用于 DefaultAgentEngine 端到端测试：QUOTA/AUTH FALLBACK → 空账号链 → fail-loud。
+    真实账号链切换测试用 LlmCallCoordinator 直接构造 + 假 resolver（单元测试隔离）。
+    -->
+    <chatUrl>/v1/chat/completions</chatUrl>
+
+    <response contentPath="choices.0.message.content"
+              rolePath="choices.0.message.role"
+              errorPath="error"
+    />
+
+</llm>
