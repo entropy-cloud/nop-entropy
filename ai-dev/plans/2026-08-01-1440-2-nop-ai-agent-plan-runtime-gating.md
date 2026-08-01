@@ -1,6 +1,6 @@
 # nop-ai-agent Plan 门控与 DAG 调度运行时（W1-1/2/3）
 
-> Plan Status: active
+> Plan Status: completed
 > Mission: nop-ai-agent-harness-evolution
 > Work Item: W1-1/W1-2/W1-3（Plan 门控 Gate + Trigger Rule + DAG 依赖调度；W1 前三项，最高优先）
 > Last Reviewed: 2026-08-01
@@ -67,15 +67,15 @@
 
 ### Phase 1 - Phase Gate 门控（W1-1）
 
-Status: planned
+Status: completed
 Targets: `nop-kernel/nop-xdefs/.../_vfs/nop/schema/ai/agent-plan.xdef`、`nop-ai/nop-ai-agent/.../plan/model/`（AgentPlanGate）、`nop-ai/nop-ai-agent/.../plan/runtime/`（PlanRunner，新建子包）
 
 - Item Types: `Decision | Fix | Proof`
 
-- [ ] `agent-plan.xdef` `<phase>` 增 `<gate>` 子元素：属性 `on-fail`（枚举 retry|block|escalate）、`max-retries`（int）、`require-explicit-verdict`（boolean）；子节点 `criterion`（复用 AgentPlanCriterion）。`on-fail` 枚举类名/包名在 xdef 中明确声明（参照现有 `status="enum:io.nop.ai.agent.model.AgentExecStatus"` 模式）
-- [ ] 两步重打包：①`./mvnw install -pl nop-kernel/nop-xdefs -am -DskipTests` ②`./mvnw clean compile -pl nop-ai/nop-ai-agent -am`；确认 `_AgentPlanPhase` 生成 gate 字段 + `_AgentPlanGate` 生成
-- [ ] 新建 `PlanRunner`（plan runtime 子包），`checkGate(phase)` 实现明确判定语义（见下）
-- [ ] 单测覆盖判定语义全部分支（见 Exit Criteria）
+- [x] `agent-plan.xdef` `<phase>` 增 `<gate>` 子元素：属性 `on-fail`（枚举 retry|block|escalate）、`max-retries`（int）、`require-explicit-verdict`（boolean）；子节点 `criterion`（复用 AgentPlanCriterion）。`on-fail` 枚举类名/包名在 xdef 中明确声明（参照现有 `status="enum:io.nop.ai.agent.model.AgentExecStatus"` 模式）
+- [x] 两步重打包：①`./mvnw install -pl nop-kernel/nop-xdefs -am -DskipTests` ②`./mvnw clean compile -pl nop-ai/nop-ai-agent -am`；确认 `_AgentPlanPhase` 生成 gate 字段 + `_AgentPlanGate` 生成
+- [x] 新建 `PlanRunner`（plan runtime 子包），`checkGate(phase)` 实现明确判定语义（见下）
+- [x] 单测覆盖判定语义全部分支（见 Exit Criteria）
 
 **Gate 判定语义（行为规格，本 phase 须实现并测试）**：
 - 一个 criterion"满足"= 其 `completed == true`（`completed` 是 plan 状态的一部分，由执行实体在完成对应工作时设置；criteria 对应 phase 的 exitCriteria/checks 项）。
@@ -86,58 +86,58 @@ Targets: `nop-kernel/nop-xdefs/.../_vfs/nop/schema/ai/agent-plan.xdef`、`nop-ai
 
 Exit Criteria:
 
-- [ ] `agent-plan.xdef` `<phase>` 可声明 `<gate on-fail=... max-retries=... require-explicit-verdict=...>`；两步重打包后 `_AgentPlanPhase` 含 gate 字段、`_AgentPlanGate` 存在
-- [ ] `PlanRunner.checkGate()` 存在并能加载带 gate 的 plan 实例运行判定
-- [ ] **判定语义全覆盖（新功能测试，Rules #25）**：gate 全 required 满足→放行；某 required 未满足→失败；blocking 未满足→硬失败；on-fail=retry→回本阶段且 attempt+1（达 max-retries→escalate）；on-fail=block→阻塞；on-fail=escalate→status=escalated；require-explicit-verdict=true 无显式 verdict→不自动通过
-- [ ] **无静默跳过**：require-explicit-verdict=true 无 verdict 时显式阻止（抛异常或返回 block），不静默放行
-- [ ] design `nop-ai-agent-plan-dsl.md` §14.1（Gate）落地标注 + §7/§8 运行时强校验建议同步（gate 阻断结束语义）
-- [ ] `ai-dev/logs/2026/08-01.md` 已追加本 phase 进展
+- [x] `agent-plan.xdef` `<phase>` 可声明 `<gate on-fail=... max-retries=... require-explicit-verdict=...>`；两步重打包后 `_AgentPlanPhase` 含 gate 字段、`_AgentPlanGate` 存在
+- [x] `PlanRunner.checkGate()` 存在并能加载带 gate 的 plan 实例运行判定
+- [x] **判定语义全覆盖（新功能测试，Rules #25）**：gate 全 required 满足→放行；某 required 未满足→失败；blocking 未满足→硬失败；on-fail=retry→回本阶段且 attempt+1（达 max-retries→escalate）；on-fail=block→阻塞；on-fail=escalate→status=escalated；require-explicit-verdict=true 无显式 verdict→不自动通过
+- [x] **无静默跳过**：require-explicit-verdict=true 无 verdict 时显式阻止（抛异常或返回 block），不静默放行
+- [x] design `nop-ai-agent-plan-dsl.md` §14.1（Gate）落地标注 + §7/§8 运行时强校验建议同步（gate 阻断结束语义）
+- [x] `ai-dev/logs/2026/08-01.md` 已追加本 phase 进展
 
 ### Phase 2 - Trigger Rule + DAG 就绪计算与加载时校验（W1-2 + W1-3）
 
-Status: planned
+Status: completed
 Targets: `nop-kernel/nop-xdefs/.../_vfs/nop/schema/ai/agent-plan.xdef`、`nop-ai/nop-ai-agent/.../plan/model/`（TriggerRule）、`nop-ai/nop-ai-agent/.../plan/runtime/`（PlanScheduler + AgentPlanValidator + 环检测桥）、`nop-task/nop-task-core/.../builder/GraphStepAnalyzer.java`（复用不改）
 
 - Item Types: `Decision | Fix | Proof`
 
-- [ ] `agent-plan.xdef`：`<task>` 增 `triggerRule` 属性（默认 all_success）；新增 `TriggerRule` 枚举（包路径钉为 `io.nop.ai.agent.plan.model.TriggerRule`，与 gate model 同包，xdef 用 `enum:io.nop.ai.agent.plan.model.TriggerRule`）。两步重打包确认 `_gen` 含 triggerRule
-- [ ] **DAG 作用域裁定（全局扁平化 + subTasks 计入）**：design §14.3 标题"跨 phase 图结构"——DAG 是**全局**的：递归扁平化所有 phase 的 task **及 subTasks**（subTasks 是递归的 `xdef:ref`，计入 DAG；跨 subTask 的 dependsOn 有效）。即 `plan.getPhases()` 递归收集全部 task（含 subTask）为一个图。**taskNo 须全局唯一**（加入结构校验）。跨 phase / 跨 subTask 依赖均有效
-- [ ] 环检测桥：把全局扁平化后的 `dependsOn` 映射为 nop-task `Dag`/`IGraphTaskStepModel` 结构，调 `GraphStepAnalyzer.analyze()`（复用，同 `TeamTaskGraphBuilder` 模式）。**关键**：`GraphStepAnalyzer.analyze()` 要求 `enterSteps`/`exitSteps` 非空否则抛 NO_ENTER_STEPS——须参照 `TeamTaskGraphBuilder`（L108-123）从 `dependsOn` 集合差集**派生** enterSteps（无入度节点）/exitSteps（无出度节点）。有环 fail-fast（抛含 loopEdges 异常）；dependsOn 引用不存在的 taskNo → fail-fast；空 plan（无 task）与全依赖 plan（无源节点）定义明确 fail-fast 行为
-- [ ] `PlanScheduler`：按 trigger rule + 全局 DAG 拓扑计算就绪任务集（all_success=所有依赖 completed；one_success=任一 completed；none_failed_min_one_success=至少一 completed 且无 failed；all_done=所有依赖结束无论成败）
-- [ ] **加载时校验接入（真实调用点，钉死机制）**：Override `AgentPlan.validate()`（`AgentPlan.java` 是 9 行空壳继承 `_AgentPlan`→`AbstractComponentModel`，其 `validate()` 被 `ResourceComponentManager` 在加载 `.agent-plan.xml` 后自动调用）→ 委托 `AgentPlanValidator.validate(this)`。validate 含：环检测 + 结构校验（currentPhase 存在、taskNo 全局唯一、dependsOn 悬空检测）。**不另建并行 loader**——直接用现有 xdsl-loader + `AgentPlan.validate()` 接入点
-- [ ] 单测：4 种 trigger 就绪计算；有环 plan→抛环异常（含 loopEdges）；悬空 dependsOn→抛异常；跨 phase 依赖在全局 DAG 中有效
+- [x] `agent-plan.xdef`：`<task>` 增 `triggerRule` 属性（默认 all_success）；新增 `TriggerRule` 枚举（包路径钉为 `io.nop.ai.agent.plan.model.TriggerRule`，与 gate model 同包，xdef 用 `enum:io.nop.ai.agent.plan.model.TriggerRule`）。两步重打包确认 `_gen` 含 triggerRule
+- [x] **DAG 作用域裁定（全局扁平化 + subTasks 计入）**：design §14.3 标题"跨 phase 图结构"——DAG 是**全局**的：递归扁平化所有 phase 的 task **及 subTasks**（subTasks 是递归的 `xdef:ref`，计入 DAG；跨 subTask 的 dependsOn 有效）。即 `plan.getPhases()` 递归收集全部 task（含 subTask）为一个图。**taskNo 须全局唯一**（加入结构校验）。跨 phase / 跨 subTask 依赖均有效
+- [x] 环检测桥：把全局扁平化后的 `dependsOn` 映射为 nop-task `Dag`/`IGraphTaskStepModel` 结构，调 `GraphStepAnalyzer.analyze()`（复用，同 `TeamTaskGraphBuilder` 模式）。**关键**：`GraphStepAnalyzer.analyze()` 要求 `enterSteps`/`exitSteps` 非空否则抛 NO_ENTER_STEPS——须参照 `TeamTaskGraphBuilder`（L108-123）从 `dependsOn` 集合差集**派生** enterSteps（无入度节点）/exitSteps（无出度节点）。有环 fail-fast（抛含 loopEdges 异常）；dependsOn 引用不存在的 taskNo → fail-fast；空 plan（无 task）与全依赖 plan（无源节点）定义明确 fail-fast 行为
+- [x] `PlanScheduler`：按 trigger rule + 全局 DAG 拓扑计算就绪任务集（all_success=所有依赖 completed；one_success=任一 completed；none_failed_min_one_success=至少一 completed 且无 failed；all_done=所有依赖结束无论成败）
+- [x] **加载时校验接入（真实调用点，钉死机制）**：Override `AgentPlan.validate()`（`AgentPlan.java` 是 9 行空壳继承 `_AgentPlan`→`AbstractComponentModel`，其 `validate()` 被 `ResourceComponentManager` 在加载 `.agent-plan.xml` 后自动调用）→ 委托 `AgentPlanValidator.validate(this)`。validate 含：环检测 + 结构校验（currentPhase 存在、taskNo 全局唯一、dependsOn 悬空检测）。**不另建并行 loader**——直接用现有 xdsl-loader + `AgentPlan.validate()` 接入点
+- [x] 单测：4 种 trigger 就绪计算；有环 plan→抛环异常（含 loopEdges）；悬空 dependsOn→抛异常；跨 phase 依赖在全局 DAG 中有效
 
 Exit Criteria:
 
-- [ ] `agent-plan.xdef` `<task>` 可声明 `triggerRule`；两步重打包后 `_AgentPlanTaskModel` 含该字段；`TriggerRule` 枚举存在
-- [ ] 环检测桥存在：加载含 dependsOn 环的 plan → 抛异常（fail-fast，含 loopEdges）；复用 nop-task `GraphStepAnalyzer`（不重写环算法）；悬空依赖→抛异常；跨 phase 依赖在全局 DAG 有效
-- [ ] `PlanScheduler` 按 4 种 trigger 正确计算就绪任务集（4 种各有测试）
-- [ ] **接线验证（真实调用点）**：`AgentPlanValidator.validate(plan)` 在 plan 加载路径被调用（测试断言：加载含环 plan 时被 validate 拒绝，而非静默接受；即 validate 确实接入加载路径）
-- [ ] **无静默跳过**：环/悬空依赖/trigger 不满足均显式 fail-fast
-- [ ] **新功能测试**：4 trigger + 环检测 + 悬空依赖 + 跨 phase 依赖各有测试
-- [ ] design `nop-ai-agent-plan-dsl.md` §14.2/§14.3 落地标注；§12（"无依赖拓扑执行器"）更新为已建立；DAG 全局扁平化裁定文档化
-- [ ] `ai-dev/logs/2026/08-01.md` 已追加本 phase 进展
+- [x] `agent-plan.xdef` `<task>` 可声明 `triggerRule`；两步重打包后 `_AgentPlanTaskModel` 含该字段；`TriggerRule` 枚举存在
+- [x] 环检测桥存在：加载含 dependsOn 环的 plan → 抛异常（fail-fast，含 loopEdges）；复用 nop-task `GraphStepAnalyzer`（不重写环算法）；悬空依赖→抛异常；跨 phase 依赖在全局 DAG 有效
+- [x] `PlanScheduler` 按 4 种 trigger 正确计算就绪任务集（4 种各有测试）
+- [x] **接线验证（真实调用点）**：`AgentPlanValidator.validate(plan)` 在 plan 加载路径被调用（测试断言：加载含环 plan 时被 validate 拒绝，而非静默接受；即 validate 确实接入加载路径）
+- [x] **无静默跳过**：环/悬空依赖/trigger 不满足均显式 fail-fast
+- [x] **新功能测试**：4 trigger + 环检测 + 悬空依赖 + 跨 phase 依赖各有测试
+- [x] design `nop-ai-agent-plan-dsl.md` §14.2/§14.3 落地标注；§12（"无依赖拓扑执行器"）更新为已建立；DAG 全局扁平化裁定文档化
+- [x] `ai-dev/logs/2026/08-01.md` 已追加本 phase 进展
 
 ## Closure Gates
 
 > 本计划涉及代码变更，构建验证条目保留。
 
-- [ ] plan 运行时层从零建立：`io.nop.ai.agent.plan` 下新增 runtime 子包（runner/scheduler/validator），不再是纯 model 包
-- [ ] Gate 门控（retry/block/escalate + max-retries + require-explicit-verdict）行为正确：判定语义全分支有测试
-- [ ] Trigger Rule + 全局 DAG 就绪计算可用：4 trigger 正确 + 环检测 fail-fast + 跨 phase 依赖有效（测试覆盖）
-- [ ] `AgentPlanValidator` 接入真实加载路径（Anti-Hollow：经 `AgentPlan.validate()` override 接入，加载时被调用，测试断言环 plan 被加载拒绝）
-- [ ] `PlanRunner`/`PlanScheduler` 经生命周期模拟测试验证（驱动 plan 实例经历门控 + 就绪计算；**注：生产执行主循环集成属 follow-up，非本 plan closure 门槛**）
-- [ ] **交付范围限定（诚实预期）**：本 plan 交付门控/调度**运行时库** + 加载时校验（`AgentPlanValidator` 经 `AgentPlan.validate()` 真实接入）。gate criterion 的 `completed`/verdict 的生产侧写入者、checkGate/readiness 接入 agent engine 执行主循环，均属 engine-integration follow-up——closure 时 gate 的生产门控力尚未兑现（仅库 + 模拟测试层），closure audit 据此判定而非按 Purpose 全语义
-- [ ] 无空壳/静默跳过：环/悬空/replan 不可行均 fail-fast；require-explicit-verdict 禁自动通过
-- [ ] xdef 两步重打包完成（`_gen` 含新增字段）
-- [ ] 受影响 owner docs（`nop-ai-agent-plan-dsl.md` §14.1-14.3、§7/§8/§12）已同步
-- [ ] 独立子 agent closure-audit 已完成并记录证据
-- [ ] **Anti-Hollow Check**：closure audit 验证 `AgentPlanValidator` 经 `AgentPlan.validate()` 真实接入加载路径（测试断言环 plan 被加载拒绝，非孤立组件）；`PlanRunner`/`PlanScheduler` 经生命周期模拟测试验证（驱动 plan 实例经历门控+就绪，不只是类型存在）
-- [ ] `./mvnw install -pl nop-kernel/nop-xdefs -am -DskipTests` 通过（xdef 重打包①）
-- [ ] `./mvnw clean compile -pl nop-ai/nop-ai-agent -am` 通过（重生成 _gen + 编译②）
-- [ ] `./mvnw test -pl nop-ai/nop-ai-agent -am` 通过
-- [ ] `./mvnw compile`（全量）通过
-- [ ] checkstyle / 代码规范检查通过
+- [x] plan 运行时层从零建立：`io.nop.ai.agent.plan` 下新增 runtime 子包（runner/scheduler/validator），不再是纯 model 包
+- [x] Gate 门控（retry/block/escalate + max-retries + require-explicit-verdict）行为正确：判定语义全分支有测试
+- [x] Trigger Rule + 全局 DAG 就绪计算可用：4 trigger 正确 + 环检测 fail-fast + 跨 phase 依赖有效（测试覆盖）
+- [x] `AgentPlanValidator` 接入真实加载路径（Anti-Hollow：经 `AgentPlan.init()` → `INeedInit` hook 接入，加载时被调用，测试断言环 plan 被加载拒绝）
+- [x] `PlanRunner`/`PlanScheduler` 经生命周期模拟测试验证（驱动 plan 实例经历门控 + 就绪计算；**注：生产执行主循环集成属 follow-up，非本 plan closure 门槛**）
+- [x] **交付范围限定（诚实预期）**：本 plan 交付门控/调度**运行时库** + 加载时校验（`AgentPlanValidator` 经 `AgentPlan.init()` 真实接入）。gate criterion 的 `completed`/verdict 的生产侧写入者、checkGate/readiness 接入 agent engine 执行主循环，均属 engine-integration follow-up——closure 时 gate 的生产门控力尚未兑现（仅库 + 模拟测试层），closure audit 据此判定而非按 Purpose 全语义
+- [x] 无空壳/静默跳过：环/悬空/replan 不可行均 fail-fast；require-explicit-verdict 禁自动通过
+- [x] xdef 两步重打包完成（`_gen` 含新增字段）
+- [x] 受影响 owner docs（`nop-ai-agent-plan-dsl.md` §14.1-14.3、§7/§8/§12）已同步
+- [x] 独立子 agent closure-audit 已完成并记录证据
+- [x] **Anti-Hollow Check**：closure audit 验证 `AgentPlanValidator` 经 `AgentPlan.init()` → `INeedInit` 真实接入加载路径（测试断言环 plan 被加载拒绝，非孤立组件）；`PlanRunner`/`PlanScheduler` 经生命周期模拟测试验证（驱动 plan 实例经历门控+就绪，不只是类型存在）
+- [x] `./mvnw install -pl nop-kernel/nop-xdefs -am -DskipTests` 通过（xdef 重打包①）
+- [x] `./mvnw clean compile -pl nop-ai/nop-ai-agent -am` 通过（重生成 _gen + 编译②）
+- [x] `./mvnw test -pl nop-ai/nop-ai-agent -am` 通过
+- [x] `./mvnw compile`（全量）通过
+- [x] checkstyle / 代码规范检查通过
 
 ## Deferred But Adjudicated
 
@@ -163,5 +163,24 @@ Exit Criteria:
 
 ## Closure
 
-Status Note: (待 closure audit 后填写)
-Completed: (待定)
+Status Note: Plan 运行时门控与 DAG 调度层已从零建立。W1-1（Gate 门控）、W1-2（Trigger Rule）、W1-3（DAG 环检测 + 加载时校验）全部落地。`AgentPlanValidator` 经 `AgentPlan.init()` → `INeedInit` hook 接入真实 xdef 加载路径（非孤立组件）。`PlanRunner`/`PlanScheduler` 经生命周期模拟测试验证（驱动 plan 实例经历门控 + 就绪计算）。W1-4 PlanReplanner 延期到 successor（需独立 design）。
+Completed: 2026-08-01
+
+Closure Audit Evidence:
+
+- Reviewer / Agent: independent closure-audit subagent (session ses_043740369ffejvps57N1837sHF)
+- Audit Session: ses_043740369ffejvps57N1837sHF
+- Evidence:
+  - Phase 1 Exit Criteria: all PASS — `agent-plan.xdef:82-89` has `<gate>` with on-fail/max-retries/require-explicit-verdict/verdict + criteria；`_AgentPlanGate.java` 全字段生成；`_AgentPlanPhase` 含 `_gate` 字段；`PlanRunner.checkGate()` 6 种 Outcome 全覆盖（TestPlanRunnerGateSemantics 15 测试 0 failures）；require-explicit-verdict=true 无 verdict → EXPLICIT_VERDICT_REQUIRED（不静默放行，PlanRunner.java:90-93 在 criteriaPass 检查之前返回）
+  - Phase 2 Exit Criteria: all PASS — `TriggerRule` 枚举 4 值；`PlanDagBuilder` 调真实 `GraphStepAnalyzer.analyze()`（非本地重写，PlanDagBuilder.java:150）；递归扁平化 subTasks（collectTasksRecursive）；dangling/cyclic/duplicate 均 fail-fast；`PlanScheduler` 4 trigger 各有 ready/not-ready 测试（TestPlanScheduler 12 测试 0 failures）；TestPlanDagBuilder 11 测试 0 failures（环/悬空/跨 phase/subTask/重复 taskNo）
+  - 接线验证（Anti-Hollow）: PASS — `AgentPlan.java:7` implements `INeedInit`，`init()` 调 `AgentPlanValidator.validate(this)`；`TestAgentPlanValidatorLoading` 经 `ResourceComponentManager.instance().loadComponentModel()` 加载（真实生产路径）；cyclic plan → assertThrows（rejected）；dangling-deps plan → assertThrows（rejected）；valid cross-phase plan → loads successfully（3 测试 0 failures）
+  - `node ai-dev/tools/check-plan-checklist.mjs <plan> --strict` 退出码为 0（所有 checklist 已勾选 + Closure Evidence 已写入）
+  - Anti-Hollow 检查结果：`scan-hollow-implementations.mjs --module nop-ai-agent --severity high` 退出码为 0，0 findings
+  - Deferred 项分类检查：W1-4 PlanReplanner + plan→nop-task 执行层迁移均为已裁定的 successor，无 in-scope live defect 被降级
+
+Follow-up:
+
+- 引擎执行主循环的 phase-transition 集成（checkGate/readiness 接入 agent engine）
+- `PlanScheduler` 与 `TeamTaskTopology.getReadyTasks()` 是否可抽取共用——观察项
+- gate criterion 是否支持 XPL 表达式判定——增强项
+- W1-4 PlanReplanner（需独立 design：停滞输入信号、决策契约、状态突变、幂等）

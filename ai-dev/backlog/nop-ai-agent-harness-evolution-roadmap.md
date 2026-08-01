@@ -6,9 +6,9 @@
 ## Work Items
 
 ### W1. Plan 运行时门控（最高优先）
-- [ ] W1-1 plan-dsl：AgentPlanPhase 增加 Gate 门控（on-fail retry/block/escalate + max-retries + require-explicit-verdict）
-- [ ] W1-2 plan-dsl：任务依赖增加 Trigger Rule（all_success/one_success/none_failed_min_one_success/all_done）
-- [ ] W1-3 plan-dsl：AgentPlanTaskModel 增加 dependsOn（DAG 依赖，nop-task GraphStepAnalyzer 环检测）
+- [x] W1-1 plan-dsl：AgentPlanPhase 增加 Gate 门控（on-fail retry/block/escalate + max-retries + require-explicit-verdict）
+- [x] W1-2 plan-dsl：任务依赖增加 Trigger Rule（all_success/one_success/none_failed_min_one_success/all_done）
+- [x] W1-3 plan-dsl：AgentPlanTaskModel 增加 dependsOn（DAG 依赖，nop-task GraphStepAnalyzer 环检测）
 - [ ] W1-4 plan 运行时：PlanReplanner（停滞检测 → 阶段回退/任务拆分/失败升级，幂等决策）
 - 参考：`2026-08-01-codewhale-workflow-ir-gate-analysis.md`、`2026-08-01-archon-yaml-dag-workflow-analysis.md`、`2026-08-01-jcode-dag-first-agent-analysis.md`、`2026-08-01-spec-kit-workflow-engine-analysis.md`
 

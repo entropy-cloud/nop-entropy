@@ -284,6 +284,8 @@ Markdown 中的 `Questions`、`Decisions`、`Additional Notes` 仍然建议保�
 
 ## 7. 运行时强校验建议
 
+> **落地状态（W1-1/W1-2/W1-3）**：项 1/4 已通过 `AgentPlanValidator`（加载时 `AgentPlan.init()` → `INeedInit` hook）接入真实加载路径；gate 门控（项 5 的变体）已由 `PlanRunner.checkGate()` 实现。项 2/3（phase.name 唯一、task.taskNo 唯一）已纳入 `AgentPlanValidator` 结构校验。
+
 运行时不需要理解 plan 的全部叙述内容，但应对 hard contract 做强校验。
 
 建议至少校验：
@@ -291,7 +293,7 @@ Markdown 中的 `Questions`、`Decisions`、`Additional Notes` 仍然建议保�
 1. `currentPhase` 必须存在于 `phases`
 2. `phase.name` 必须唯一
 3. 同一 `phase` 下 `task.taskNo` 必须唯一
-4. `dependsOn` 指向的任务必须存在
+4. `dependsOn` 指向的任务必须存在（悬空依赖 fail-fast）；全局 `dependsOn` DAG 不含环（复用 nop-task `GraphStepAnalyzer`）
 5. 未完成依赖的 task 不能被标记为 `completed`
 6. `completedAt` 不能早于 `startedAt`
 7. phase 标记为 `completed` 时，其下 task 不能还有未完成项
@@ -302,6 +304,8 @@ Markdown 中的 `Questions`、`Decisions`、`Additional Notes` 仍然建议保�
 这些校验都是运行时能明确判断的内容，因此应作为强约束。
 
 ## 8. Completion Blocking 规则
+
+> **落地状态（W1-1）**：gate 门控的阻断结束语义已由 `PlanRunner.checkGate()` 实现——gate `on-fail=block` 时后续阶段被阻断；`on-fail=escalate` 时 status 置 escalated（对应下文"不满足强校验就不能结束 plan"）。
 
 建议明确一条核心规则：
 
@@ -319,6 +323,7 @@ Markdown 中的 `Questions`、`Decisions`、`Additional Notes` 仍然建议保�
 - 还有未完成 task
 - 还有未解决 blocking error
 - 还有未通过的 required checks
+- phase gate 未放行（`on-fail=block` / `require-explicit-verdict=true` 但无 verdict 时阻断结束）
 
 ## 9. 建议补强但不必过度扩展的字段
 
@@ -388,10 +393,12 @@ Markdown 中的 `Questions`、`Decisions`、`Additional Notes` 仍然建议保�
 
 ## 12. 运行时解释边界
 
+> **落地状态（W1-1/W1-2/W1-3）**：下面四项中，前两项已建立运行时——加载时校验（`AgentPlanValidator` 经 `INeedInit` 接入）+ DAG 依赖拓扑调度/就绪计算（`PlanScheduler` + `PlanDagBuilder`）。Gate 门控（`PlanRunner`）已建立运行时库。自动恢复引擎（Replan）仍为后续。
+
 Plan DSL 本身只表达结构化协作协议，不自动等于：
 
 - 已有完整任务调度器
-- 已有依赖拓扑执行器
+- ~~已有依赖拓扑执行器~~ → **已建立**（W1-3：`PlanDagBuilder` 环检测 + `PlanScheduler` 就绪计算 + `AgentPlanValidator` 加载时校验）
 - 已有自动恢复引擎
 - 已有完整人类计划文档模板
 
@@ -425,22 +432,31 @@ Plan 设计的第一主角应该是 `agent-plan.xdef`。
 
 ### 14.1 Gate 门控（阶段验收点）
 
+> **落地状态：已实现（W1-1）**。`agent-plan.xdef` `<phase>` 已含 `<gate>` 子元素（属性 `on-fail`/`max-retries`/`require-explicit-verdict`/`verdict` + `criteria` 子节点复用 `AgentPlanCriterion`）；运行时 `PlanRunner.checkGate()` 实现完整判定语义（`io.nop.ai.agent.plan.runtime.PlanRunner`），判定分支全覆盖测试（`TestPlanRunnerGateSemantics`）。
+
 AgentPlanPhase 边界增加 Gate 定义（对标 codewhale gates.rs + spec-kit gate + jcode is_gate 三合一）：
 
 ```xml
 <phase name="P1" title="重构接口">
-    <gate on-fail="retry|block|escalate" max-retries="3" require-explicit-verdict="true">
+    <gate on-fail="retry|block|escalate" max-retries="3" require-explicit-verdict="true" verdict="true">
         <!-- 验收标准：全通过才进入下一阶段 -->
-        <criterion>测试通过且接口变更已应用</criterion>
+        <criteria>
+            <criterion id="..." completed="true" required="true" blocking="true">测试通过且接口变更已应用</criterion>
+        </criteria>
     </gate>
 </phase>
 ```
 
-- `on-fail`：retry（回到本阶段）/ block（阻塞后续）/ escalate（升级人工，对应 AgentExecStatus.escalated）
-- `require-explicit-verdict`：防"自动通过"（外部 codewhale 的教训）
-- 运行时：`PlanRunner.checkGate()` 遍历 criterion 判定（结构化，非 grep）
+- `on-fail`（枚举 `GateOnFail`）：retry（回到本阶段）/ block（阻塞后续）/ escalate（升级人工，对应 AgentExecStatus.escalated）；默认 block
+- `max-retries`：retry 模式下的最大重试次数（首次尝试不计入，即 max-retries=2 允许首次 + 2 次重试 = 3 次尝试）；耗尽后按 escalate 处理
+- `require-explicit-verdict`：防"自动通过"（外部 codewhale 的教训）；为 true 时须有 `verdict=true` 记录，否则 gate 显式阻止（非静默放行）
+- `verdict`：gate 级显式裁决字段（由非执行者来源设置），配合 `require-explicit-verdict` 使用
+- 运行时：`PlanRunner.checkGate(phase, attempt)` 遍历 criterion 判定（结构化，非 grep），返回 `GateCheckResult`（PASSED/RETRY/RETRY_EXHAUSTED/BLOCKED/ESCALATED/EXPLICIT_VERDICT_REQUIRED）
+- 判定语义：criterion satisfied = `completed==true`；gate pass = 所有 `required=true` criterion satisfied；unsatisfied `blocking=true` → 硬失败（不论 required）
 
 ### 14.2 Trigger Rule（节点依赖语义）
+
+> **落地状态：已实现（W1-2）**。`agent-plan.xdef` `<task>` 已含 `triggerRule` 属性（枚举 `io.nop.ai.agent.plan.model.TriggerRule`）；运行时 `PlanScheduler.getReadyTasks(plan)` 按 trigger + 全局 DAG 拓扑计算就绪任务集（`io.nop.ai.agent.plan.runtime.PlanScheduler`），4 种 trigger 各有测试（`TestPlanScheduler`）。
 
 任务/阶段依赖增加 trigger 类型（对标 archon 的 4 种）：
 
@@ -451,15 +467,18 @@ AgentPlanPhase 边界增加 Gate 定义（对标 codewhale gates.rs + spec-kit g
 | `none_failed_min_one_success` | 至少一成功且无失败 | 部分成功继续 |
 | `all_done` | 所有依赖结束（无论成败） | 容错汇聚 |
 
-运行时：`PlanScheduler` 按 trigger 计算就绪条件（拓扑序 + 就绪检查）。
+运行时：`PlanScheduler.getReadyTasks(plan)` 按 trigger 计算就绪条件（拓扑序 + 就绪检查），返回当前可执行任务列表。
 
 ### 14.3 DAG 任务依赖（跨 phase 图结构）
 
+> **落地状态：已实现（W1-3）**。`dependsOn` → nop-task `Dag`/`GraphStepAnalyzer` 环检测桥已建立（`io.nop.ai.agent.plan.runtime.PlanDagBuilder`，复用 nop-task 真实 `GraphStepAnalyzer.analyze()`，同 `TeamTaskGraphBuilder` 模式）；加载时校验已接入（`AgentPlanValidator` 经 `AgentPlan.init()` → `INeedInit` hook 自动调用，含环检测 + 悬空依赖 + taskNo 全局唯一 + currentPhase 存在 + phase.name 唯一）；DAG 全局扁平化裁定（跨 phase + subTasks 递归计入）已文档化并实现。
+
 AgentPlanTaskModel 增加 `dependsOn` 列表（集合内引用），由 nop-task GraphTaskStep 承载执行（复用，非自建）：
 
-- 环检测：nop-task `GraphStepAnalyzer.containsLoop()`（已落地 task-flow-integration）
-- 门节点（is_gate）：任务失败 → 后续阻塞
-- 就绪计算：所有 blocker 关闭才 ready（对标 beads ready_work + jcode schedule.rs）
+- 环检测：nop-task `GraphStepAnalyzer.analyze()`（复用真实实现，含 `containsLoop()`）；桥接：`PlanDagBuilder.buildDag(plan)` 递归扁平化所有 phase 的 task 及 subTasks → `GraphTaskStepModel` → `GraphStepAnalyzer.analyze()`
+- **DAG 作用域裁定**：全局扁平化——所有 phase 的 task（含递归 subTasks）为一个图；跨 phase / 跨 subTask 依赖有效；taskNo 全局唯一
+- 加载时校验：`AgentPlanValidator.validate(plan)` 经 `AgentPlan.init()`（`INeedInit`）在 xdef 加载路径自动调用——环/悬空/重复 taskNo 均 fail-fast（非静默接受）
+- 就绪计算：`PlanScheduler` 按 trigger rule + 依赖状态计算 ready 集合
 
 ### 14.4 Replan（停滞检测 → 重规划）
 
