@@ -6,8 +6,6 @@
   "planGuide": "ai-dev/plans/00-plan-authoring-and-execution-guide.md",
   "auditsDir": "ai-dev/audits",
   "sourceDir": "nop-ai",
-  "model": "opencode-go/deepseek-v4-flash",
-  "variant": "max",
   "commands": {
     "test": "./mvnw test -pl nop-ai -am -T 1C",
     "build": "./mvnw clean install -DskipTests -pl nop-ai -am -T 1C",

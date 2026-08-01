@@ -19,13 +19,13 @@
 >
 > **架构约定**：错误规范化在 `ChatServiceImpl` 内经 `ILlmDialect` 完成（与成功响应 `parseResponse` 同构），结果放 `ChatResponse` 新字段（`errorClassification`/`retryAfterMs`）。**不用装饰器、不用新异常类型**——ChatServiceImpl 职责即经 dialect 规范化 I/O，错误是另一种输出。响应级错误（拿到 HTTP 响应）→ ChatResponse；传输级错误（无响应）→ 仍抛异常。
 >
-> **已落地**（core 配置/模型层）：`llm.xdef` schema（`<errorResponse>`/`<errorMappings>`/`<classifyError>`）、`ErrorClassification` 枚举上移到 `io.nop.ai.core.model`（agent 侧 `@Deprecated` 桥接）、default/claude/gemini/azure/ollama 五个 provider 的 `<errorMappings>` 配置、codegen 模型 + `TestLlmErrorMapping` 配置加载测试。
+> **已落地**（core 配置/模型层）：`llm.xdef` schema（`<errorResponse>`/`<errorMappings>`/`<classifyError>`）、default/claude/gemini/azure/ollama 五个 provider 的 `<errorMappings>` 配置、codegen 模型 + `TestLlmErrorMapping` 配置加载测试。**W2e-0..3 信号通路前半段 + RATE_LIMITED floor 已落地**（plan `2026-08-01-1440-1`）：`ErrorClassification` 迁到 `io.nop.ai.api.chat`（nop-ai-api 最低层，使 `ChatResponse` 可引用、信号通路全程同一类型）、`ServerEventPublisher` 挂响应头、`ChatResponse` 三字段、`parseErrorResponse`、`ChatServiceImpl` 错误路径返回错误 ChatResponse、`LlmCallCoordinator` `!isSuccess()` 读分类进入 RETRY、`StandardRetryPolicy` RATE_LIMITED floor。
 
-- [ ] W2e-0（nop-http 前置）`ServerEventPublisher` 把响应头挂到抛出的异常（流式路径取 `Retry-After` 头的前提；未完成则流式仅支持 body 级 Retry-After，已知缺口）
-- [ ] W2e-1（nop-ai-api）`ChatResponse` 增加 `errorClassification`/`retryAfterMs`/`httpStatus` 字段（沿用既有 `error`/`errorCode`/`isSuccess()`）
-- [ ] W2e-2（nop-ai-core）`ILlmDialect` 新增 `parseErrorResponse`（消费 `<errorMappings>` 规则表 first-match，与 `parseResponse` 对称）；`ChatServiceImpl` 非 200（非流式读 body+头）+ 流式 `aggregateStreamToResponse.onError`（读 `ARG_BODY`）都调它 → 返回带 `errorClassification` 的错误 `ChatResponse`（不抛）
-- [ ] W2e-3（nop-ai-agent）`LlmCallCoordinator` 重试循环改造：`!response.isSuccess()` 从终止路径升级为读 `errorClassification` 进入重试决策（今天 `:179-187` 不重试）；`RetryContext` 增加 `retryAfterMs`
-- [ ] W2e-4（nop-ai-agent）`StandardRetryPolicy` 行为变更：`QUOTA_EXCEEDED`/`AUTH_INVALID` → FALLBACK（按设计 §3.6 方案 b 路由账号链）；`RATE_LIMITED` 用 Retry-After 作 floor（`delay=retryAfterMs+jitter`）；传输异常仍走 `LlmErrorClassifier` 启发式
+- [x] W2e-0（nop-http 前置）`ServerEventPublisher` 把响应头挂到抛出的异常（流式路径取 `Retry-After` 头的前提；未完成则流式仅支持 body 级 Retry-After，已知缺口）
+- [x] W2e-1（nop-ai-api）`ChatResponse` 增加 `errorClassification`/`retryAfterMs`/`httpStatus` 字段（沿用既有 `error`/`errorCode`/`isSuccess()`）
+- [x] W2e-2（nop-ai-core）`ILlmDialect` 新增 `parseErrorResponse`（消费 `<errorMappings>` 规则表 first-match，与 `parseResponse` 对称）；`ChatServiceImpl` 非 200（非流式读 body+头）+ 流式 `aggregateStreamToResponse.onError`（读 `ARG_BODY`）都调它 → 返回带 `errorClassification` 的错误 `ChatResponse`（不抛）
+- [x] W2e-3（nop-ai-agent）`LlmCallCoordinator` 重试循环改造：`!response.isSuccess()` 从终止路径升级为读 `errorClassification` 进入重试决策（今天 `:179-187` 不重试）；`RetryContext` 增加 `retryAfterMs`
+- [ ] W2e-4（nop-ai-agent）`StandardRetryPolicy` 行为变更：`QUOTA_EXCEEDED`/`AUTH_INVALID` → FALLBACK（按设计 §3.6 方案 b 路由账号链）；~~`RATE_LIMITED` 用 Retry-After 作 floor（`delay=retryAfterMs+jitter`）~~ ✅ 已落地（plan `2026-08-01-1440-1` Phase 3）；传输异常仍走 `LlmErrorClassifier` 启发式
 - [ ] W2e-5（nop-ai-agent）账号回退链（provider 级配置）+ 重试循环按 `errorClassification` 区分账号链 vs `IModelRouter.getFallback` 模型 tier 链；链耗尽 fail-loud。**W2-4 ProviderFailoverQueue 消费本项的错误分类信号做跨 provider 故障转移**
 
 ### W2. Reliability 增量（高优先）

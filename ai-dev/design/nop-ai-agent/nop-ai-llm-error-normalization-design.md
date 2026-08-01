@@ -18,7 +18,7 @@
 
 4. **账号回退链 ≠ 模型 tier 回退链**，且二者必须由不同的 `RetryDecision` 通道区分**。现有 `FALLBACK` 已被 `IModelRouter.getFallback`（模型 tier）占用；`QUOTA_EXCEEDED`/`AUTH_INVALID` 切账号若复用 `FALLBACK`，会触发错误的恢复（把好模型降级）。详见 §3.6 的通道区分。
 
-5. **`ErrorClassification` 上移到 `nop-ai-core`**：规范化配置引用它，底层产出它，故它必须落在 `llm.xdef` 的 bean-package 所在层（Layer 1）。该枚举必须是**纯词汇**（不 import 任何 Layer-3 类型），以保持依赖方向（L3 → L1）。
+5. **`ErrorClassification` 落在 `nop-ai-api`**（plan 2026-08-01-1440-1 类型归属裁定修订）：规范化配置（`llm.xdef`）引用它，`ChatResponse`（在 `nop-ai-api`）携带它，底层（nop-ai-core）产出它，上层（nop-ai-agent）消费它。依赖图核实：`nop-ai-api` 仅依赖 `nop-api-core`；`nop-ai-core` → `nop-ai-api`；`nop-ai-agent` → `nop-ai-core` → `nop-ai-api`——**nop-ai-api 是 ChatResponse、core 生产者、agent 消费者三方共同可见的唯一最低层**。把枚举留在 nop-ai-core 会让 `ChatResponse`(nop-ai-api) 无法引用它（形成 nop-ai-core→nop-ai-api→nop-ai-core 循环依赖），故迁到 `io.nop.ai.api.chat.ErrorClassification`。该枚举必须是**纯词汇**（不 import 任何上层类型），以保持依赖方向。信号通路全程同一类型（core 产出 → ChatResponse 携带 → agent 消费），无任何按名/按类型转换。
 
 ---
 
@@ -267,21 +267,22 @@ doLlmCallWithRetry:
 
 **`retryAfterMs` 与 full-jitter 的关系（必须显式裁定）**：`StandardRetryPolicy` 今天对**每个** RETRY 都加 full jitter（`computeBackoff`，`StandardRetryPolicy.java:144-166`）。若对 `RATE_LIMITED` 原样用 `retryAfterMs`，会丢掉 thundering-herd 抑制；若把 jitter 套在 `retryAfterMs` 上（如 `uniform(0, retryAfterMs)`），等待可能**低于服务器要求**，导致立即再被拒。
 
-**裁定：`Retry-After` 作为下限（floor）**：`RATE_LIMITED` 的 `delay = retryAfterMs + uniform(0, jitterCap)`，**永不低于** `retryAfterMs`。这刻意让 `RATE_LIMITED` 偏离纯 full-jitter 公式——理由：遵守服务器明确要求的等待，重要性高于 herd 抑制（配额/限流信号下，服务器已告知精确等待，不应抢跑）。`TRANSIENT` 的退避仍用纯 full-jitter（无服务器提示）。两者策略不同须文档化。
+**裁定：`Retry-After` 作为下限（floor）**（W2e-3 已落地）：`RATE_LIMITED` 的 `delay = retryAfterMs + uniform(0, jitterCap)`，**永不低于** `retryAfterMs`。这刻意让 `RATE_LIMITED` 偏离纯 full-jitter 公式——理由：遵守服务器明确要求的等待，重要性高于 herd 抑制（配额/限流信号下，服务器已告知精确等待，不应抢跑）。`TRANSIENT` 的退避仍用纯 full-jitter（无服务器提示）。两者策略不同须文档化。
 
 ### 3.8 分层归属与依赖方向
 
 ```
-Layer 1 (nop-ai-core):  llm.xdef 配置 + ErrorClassification(纯词汇)
-                        ChatServiceImpl（I/O 规范化：成功经 parseResponse，错误经 parseErrorResponse，结果都在 ChatResponse）
+Layer 0 (nop-ai-api):   ErrorClassification(纯词汇，io.nop.ai.api.chat.ErrorClassification)
+                        ChatResponse（携带 errorClassification / retryAfterMs / httpStatus）
+Layer 1 (nop-ai-core):  llm.xdef 配置 + ChatServiceImpl（I/O 规范化：成功经 parseResponse，错误经 parseErrorResponse，结果都在 ChatResponse）
                         ILlmDialect（新增 parseErrorResponse，消费 <errorMappings>）
                                 ↓ 返回带 errorClassification 的 ChatResponse
 Layer 3 (nop-ai-agent): LlmCallCoordinator 重试循环读 ChatResponse.errorClassification（!isSuccess() 进入重试决策）
                         + IRetryPolicy(恢复决策) + 账号链消费；传输异常仍走 LlmErrorClassifier 启发式
-Layer 0 (nop-http):     ServerEventPublisher 头传递（前置改动，见 §3.4）
+Layer -1 (nop-http):    ServerEventPublisher 头传递（前置改动，见 §3.4）
 ```
 
-`ErrorClassification` 已在 `io.nop.ai.core.model`（纯词汇）；agent 侧 `reliability.ErrorClassification` 已 `@Deprecated` 桥接。错误规范化逻辑（dialect.parseErrorResponse）归属 `nop-ai-core`（与成功解析同模块同层），依赖方向（agent → core）不变。`ChatResponse` 在 `nop-ai-api`，新增字段对 agent 层透明可见。
+**类型归属裁定（plan 2026-08-01-1440-1）**：`ErrorClassification` 已从 `nop-ai-core` 迁到 `nop-ai-api`（`io.nop.ai.api.chat.ErrorClassification`）。依赖图核实：`nop-ai-api` 仅依赖 `nop-api-core`（最低层）；`nop-ai-core` → `nop-ai-api`；`nop-ai-agent` → `nop-ai-core` → `nop-ai-api`——nop-ai-api 是 `ChatResponse`(api)、core 生产者、agent 消费者三方共同可见的唯一层。留在 nop-ai-core 会让 `ChatResponse` 无法引用它（循环依赖），故迁移是依赖图唯一正确解。迁移后信号通路全程同一类型（core 规范化产出 → ChatResponse 携带 → agent 消费），无任何按名/按类型转换；agent 侧旧 `reliability.ErrorClassification` 桥接已删除（双类型收口）。错误规范化逻辑（`AbstractLlmDialect.parseErrorResponse`）归属 `nop-ai-core`（与成功解析同模块同层），依赖方向不变。
 
 ---
 
@@ -334,7 +335,7 @@ Layer 0 (nop-http):     ServerEventPublisher 头传递（前置改动，见 §3.
 
 1. **零回归红线及其两个支撑不变量（R1 审查 G4）**：未配置 `<errorMappings>` 的 provider 行为须与今日完全一致。这依赖两个不变量——① `QUOTA_EXCEEDED`/`AUTH_INVALID`/`CACHE_STATE_LOST` 今日不可达（无人生产）；②默认启发式把 401/403 映射为 `NON_TRANSIENT`（**不是** `AUTH_INVALID`），故 `AUTH_INVALID` 只能经配置后的 `<errorMappings>` 到达。**任何对默认启发式的未来改动都必须对照审计这两个不变量。**
 
-2. **`ErrorClassification` 已上移**（已完成）：core 中的枚举是纯词汇（`io.nop.ai.core.model.ErrorClassification`，不 import Layer-3 类型）；agent 层 `reliability.ErrorClassification` 已降级为 `@Deprecated` 桥接。后续接线全量回归 `reliability` 包测试。
+2. **`ErrorClassification` 已迁到 nop-ai-api**（plan 2026-08-01-1440-1 落地）：枚举是纯词汇（`io.nop.ai.api.chat.ErrorClassification`，不 import 上层类型），位于 nop-ai-api 最低层使 `ChatResponse` 可引用它；agent 层旧 `reliability.ErrorClassification` 桥接已删除（双类型收口），可靠性层全程使用统一类型。后续接线全量回归 `reliability` 包测试。
 
 3. **`<errorMappings>` 顺序与 first-match-wins**：实现采用 `xdef:key-attr="id"`（与 `dialect.xdef` `<errorCodes key-attr="name">` 同款），id 用于 `x:extends` 合并时按 id 区分条目（子配置 replaceChild 在原位置替换、新增 id 追加末尾），合并后顺序保持，故 first-match-wins 仍成立。须有测试断言两条同 `classification` 规则按合并后位置先后分别命中。
 
