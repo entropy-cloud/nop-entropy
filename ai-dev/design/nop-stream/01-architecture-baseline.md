@@ -251,8 +251,8 @@ CheckpointCoordinator (manifest durable → sink commit)
 **为什么如此设计**：
 
 - **平台基建复用优先**：`IMessageService` 在 Nop 平台已有成熟实现（DB-backed `SysDaoMessageService`、`PulsarMessageService`），跨 JVM 传输是其本职能力。流处理引擎重复造网络栈违反"分布式能力一律 WIRE 平台，不自建"的路线图原则（见 `nop-stream-production-roadmap.md` Cross-cutting concerns）。
-- **背压与持久化由后端承担**：`SysDaoMessageService`（DB）天然持久化、天然有界；`PulsarMessageService` 天然 pub/sub 背压。flow control 不需要在 nop-stream 内重造（Stage 26 的 `IBufferPool` 仅承担**进程内** backpressure，跨 JVM 由后端提供）。
-- **与 Stage 40 接线对齐**：`RemoteResultPartition`/`RemoteInputChannel` 已预留 `IMessageService` 注入点，Stage 40 只需 WIRE `SysDaoMessageService`/`PulsarMessageService`，无需重写数据面。
+- **背压与持久化由后端承担**：`SysDaoMessageService`（DB）天然持久化、天然有界（**注**：DB「有界」= 磁盘容量上限，写入超限抛异常而非 flow control；polling 仅决定 consumer 消费速率、不回压 producer）；`PulsarMessageService` 天然 pub/sub 背压（producer pending-message 队列饱和时回压 producer）。flow control 不需要在 nop-stream 内重造（Stage 26 的 `IBufferPool` 仅承担**进程内** backpressure，跨 JVM 由后端提供）。
+- **与 Stage 40 接线对齐**：`RemoteResultPartition`/`RemoteInputChannel` 已预留 `IMessageService` 注入点，Stage 40 WIRE `SysDaoMessageService`/`PulsarMessageService` 作为真实后端。两种后端的序列化契约与裸 `StreamMessageEnvelope` 不兼容（`SysDaoMessageService` 仅忠实持久化 `ApiRequest.data`；`PulsarMessageService` 默认 `Schema.STRING` 需 String 值），故 Stage 40 引入 `IDataPlaneWireCodec` SPI（`SysDaoWireCodec` / `PulsarStringWireCodec` / `IdentityWireCodec`）+ `DataPlaneMessageServiceAdapter` 装饰器：数据面视图在 send 侧把 envelope 适配为后端忠实承载的 wire 形态、在 subscribe 侧还原。`Remote*` 类保持后端无关；codec 由部署选择，`nop-stream-runtime` 不引入后端硬依赖（vision §三 约束 8）。控制面与数据面共享同一 `IMessageService` 实例但 topic 不相交（`nop-stream.rpc.*` vs `nop-stream.{jobId}.*`），仅数据面视图经 adapter 包装，两面互不干扰。
 - **拒绝的方案**：移植 Flink Netty 栈（引入 Netty 依赖、NetworkBufferPool 抽象、credit-based flow control 协议）—— vision 约束 7 明确排除。
 
 ### `ClusterRegistry` JDBC durability — 有意简化（D73）
@@ -308,7 +308,7 @@ CheckpointCoordinator (manifest durable → sink commit)
 
 **裁定**：in-process backpressure = Stage 26 `IBufferPool`（两级）：(1) per-partition `ResultPartition` 队列阻塞（`queue.put()` 满时阻塞生产者）；(2) per-job `IBufferPool.acquire()` 全局阻塞（跨多 partition 全局聚合内存上限，防 fan-out OOM）。两级均在**进程内**生效。
 
-**跨 JVM backpressure** 由 `IMessageService` 后端提供（Stage 40）：`SysDaoMessageService`（DB）天然有界，`PulsarMessageService` 天然 pub/sub 背压。nop-stream **不重建 Flink Netty 网络栈**（vision 约束 7）。
+**跨 JVM backpressure** 由 `IMessageService` 后端提供（Stage 40 已 WIRE）：`SysDaoMessageService`（DB）天然持久化，**不提供 producer 回压**（DB 写入无界——磁盘满才失败且抛异常，非 flow control；polling 仅决定 consumer 消费速率）；`PulsarMessageService` 经 Pulsar producer pending-message 队列饱和提供 producer 回压。nop-stream **不重建 Flink Netty 网络栈**（vision 约束 7）。两种后端的 wire-format 适配由 `IDataPlaneWireCodec` 承担（`SysDaoWireCodec` / `PulsarStringWireCodec`），使裸 `StreamMessageEnvelope` 能被后端忠实承载（见上 D72）。
 
 **CREDIT_BASED / ACK_WINDOW 永久排除**：这两个 `FlowControlPolicy` 枚举值是 Flink Netty credit-based flow control 的产物，在 nop-stream 的设计下**永远不需要**（进程内走 BLOCKING_QUEUE + IBufferPool，跨 JVM 走 IMessageService 后端）。Stage 28 将其从枚举中移除并清理所有引用（测试 / javadoc / 注释），闭合 Hollow gap。
 
@@ -378,7 +378,7 @@ fencing_epoch = leaderEpochValue * EPOCH_SCALE + recoveryGen        // EPOCH_SCA
 | 面 | 选举 / 协调后端 | Stage |
 |---|---|---|
 | 控制面（coordinator） | 平台 `ILeaderElector`（生产 `SysDaoLeaderElector` JDBC lease） | Stage 38 已 WIRE |
-| 数据面（task 间消息） | 平台 `IMessageService`（`SysDaoMessageService` DB / `PulsarMessageService`） | Stage 40 待 WIRE |
+| 数据面（task 间消息） | 平台 `IMessageService`（`SysDaoMessageService` DB / `PulsarMessageService`） | Stage 40 已 WIRE（DB + Pulsar 两种后端，经 `IDataPlaneWireCodec` 适配真实后端） |
 | 跨 JVM 控制面 RPC | `IStreamTaskRpcService`（task 侧）+ `IStreamCoordinatorRpcService`（coordinator 侧）经 `MessageRpcServer` 远程暴露 | Stage 39 Phase 2 已 WIRE |
 
 ### 跨 JVM 控制面 RPC 接线拓扑（Stage 39 Phase 2 已落地）
@@ -412,6 +412,29 @@ fencing_epoch = leaderEpochValue * EPOCH_SCALE + recoveryGen        // EPOCH_SCA
 - **F1 restartElection 粒度**：`restartElection` 把 epoch `++1` 并立即过期 lease，下一轮 `changeLeader` 再 `++1`，实际净增 2——epoch 单调（契约满足），但跳变粒度为 2。
 - **F2 生产 lease 时长**：默认 `leaseMs` 偏小，生产部署需在 beans.xml 显式放大（建议 15-30s 容忍 JDBC 抖动）；nop-stream 不内嵌生产默认值。
 - **F3 回调线程模型**：`SysDaoLeaderElector` 在自身 polling 线程回调 listener——`JobCoordinator` 已将 `active`/`currentLeadership` 标为 `volatile`、`recoveryGen` 为 `AtomicLong` 保证可见性。
+
+### 跨 JVM 数据面接线拓扑（Stage 40 已落地）
+
+数据面 record/barrier/watermark 经平台 `IMessageService` 真实后端（`SysDaoMessageService` DB / `PulsarMessageService`）跨 JVM 传输，而非 `LocalMessageService` 内存直通。
+
+**接线拓扑（Phase 1 Decision）**：
+
+- **后端选择是部署决策**：`nop-stream-runtime` 对 `nop-sys-dao` / `nop-message-pulsar` **无硬依赖**（vision §三 约束 8）。应用层装配具体 `IMessageService` 后端 bean 并选定匹配的 `IDataPlaneWireCodec`，经 `EmbeddedDistributedExecutor.setDataPlaneWireCodec(...)` / `RpcDistributedExecutor.setDataPlaneWireCodec(...)` 注入。`stream-data-plane.beans.xml`（`_vfs/nop/stream/beans/`，与 Stage 39 `stream-control-rpc.beans.xml` 并列）为 Stage 42 多 JVM 部署脚手架。
+- **wire-format 适配（`IDataPlaneWireCodec` SPI）**：裸 `StreamMessageEnvelope` 与两种后端的序列化契约不兼容——`SysDaoMessageService` 仅忠实持久化 `ApiRequest.data`（裸 envelope 丢失 body，只留类名）；`PulsarMessageService` 默认 `Schema.STRING` 需 String 值。故：`SysDaoWireCodec` 在 send 侧把 envelope 适配为 `ApiRequest{data: envelopeMap}`（barrier/watermark payload 经 `DataPlaneWireSupport` 摊平为可序列化 Map，receive 侧 `StreamElementCodec.decode` 还原）；`PulsarStringWireCodec` 把 envelope 序列化为 JSON String；`IdentityWireCodec` 用于 `LocalMessageService`（对象引用直通）。codec 仅引用 `ApiRequest`/`JsonTool`，不 import 后端类，故不引入后端依赖。
+- **`DataPlaneMessageServiceAdapter` 装饰器**：仅包装数据面视图（`RemoteGraphExecutionPlanBuilder` / `Remote*` 持有的 `IMessageService`），send 侧 `codec.toWire`、subscribe 侧 `codec.fromWire`；控制面 RPC 保持裸 `IMessageService`。两面共享同一后端实例但 topic 不相交，互不干扰。envelope fencing（单一 long epoch 过滤）在 `RemoteInputChannel` 不变，跨后端均生效。
+- **与 Stage 39 beans.xml 的关系**：并列文件，共存。数据面与控制面可共享同一 `IMessageService` transport bean（topic 寻址，无冲突）。
+- **与程序化构造的关系**：`EmbeddedDistributedExecutor` / `RpcDistributedExecutor` 接受 `IMessageService` + 可选 codec（默认 identity）= 同 JVM 测试 fast-path；IoC beans = 生产部署路径。二者共存（同 Stage 39 裁定）。
+
+**Backpressure 契约（按后端拆分，Phase 2）**：
+
+- **Pulsar**：cross-JVM producer 回压由 Pulsar producer pending-message 队列饱和承担（producer 感知并阻塞/降速）。
+- **SysDaoMessageService（DB）**：**不提供 producer 回压**——DB 写入无界（磁盘满才失败且抛异常，非 flow control），polling 仅决定 consumer 消费速率。改为验证「record 经 `NopSysEvent` 表持久化中转」（Phase 1 Proof）。设计措辞「SysDao 天然有界」已修正为「= 磁盘容量上限，非 flow control」。
+- 两后端均**无自建 credit-based / ACK_WINDOW**（vision §三 约束 7 永久排除；Stage 28 已从 `FlowControlPolicy` 枚举移除）。
+
+**测试基建**：
+
+- DB（Phase 1）：`TestDataPlaneSysDaoBackendE2E`（`nop-sys-dao` test scope，遵循 Stage 38 elector smoke check 模式，避免循环 test 依赖）用 H2 + AutoTest 把生产 `SysDaoMessageService` 经 `DataPlaneMessageServiceAdapter` + `SysDaoWireCodec` 注入 `Remote*`，断言 record 经 `NopSysEvent` 表中转（查表断言）+ fencing 过滤 + exactly-once + barrier/watermark/EOS 传播。
+- Pulsar（Phase 2）：`TestDataPlanePulsarBackendE2E`（`nop-stream-runtime` test scope）经 `@EnabledIfSystemProperty("nop.stream.test.pulsar.enabled")` 门禁 + CI 提供的 broker 实例（`nop.stream.test.pulsar.serviceUrl`）跑真实 Pulsar 跨 JVM E2E。codec 逻辑由 `TestSysDaoWireCodec` / `TestPulsarStringWireCodec` round-trip 单测钉住（无需后端，始终跑）。模块不内嵌 testcontainers / pulsar-broker（依赖重，Pulsar 2.8.0），broker 由 CI 提供。
 
 ### JobStatus + Restart Strategy（G56）
 
