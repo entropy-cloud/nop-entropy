@@ -42,6 +42,9 @@ import io.nop.stream.runtime.cluster.TaskAssignment;
 import io.nop.stream.runtime.coordinator.JobCoordinator;
 import io.nop.stream.runtime.rpc.IStreamTaskRpcService;
 import io.nop.stream.runtime.taskmanager.TaskManager;
+import io.nop.stream.runtime.transport.DataPlaneMessageServiceAdapter;
+import io.nop.stream.runtime.transport.IDataPlaneWireCodec;
+import io.nop.stream.runtime.transport.IdentityWireCodec;
 import io.nop.stream.runtime.transport.RemoteGraphExecutionPlanBuilder;
 
 public class EmbeddedDistributedExecutor implements IStreamExecutionDispatcher {
@@ -52,6 +55,14 @@ public class EmbeddedDistributedExecutor implements IStreamExecutionDispatcher {
     private final int defaultNodeCount;
     private final long completionTimeoutSeconds;
     private final INamingService namingService;
+
+    /**
+     * Stage 40: wire-format codec applied to the data-plane view of {@link #messageService}.
+     * Default identity (in-process {@code LocalMessageService}); deployments injecting a
+     * cross-JVM backend (DB / Pulsar) set the matching codec so envelopes traverse the real
+     * backend rather than being lost to its serialization contract.
+     */
+    private IDataPlaneWireCodec dataPlaneWireCodec = IdentityWireCodec.INSTANCE;
 
     public EmbeddedDistributedExecutor(IMessageService messageService) {
         this(messageService, 2);
@@ -78,6 +89,16 @@ public class EmbeddedDistributedExecutor implements IStreamExecutionDispatcher {
         this.defaultNodeCount = defaultNodeCount;
         this.completionTimeoutSeconds = completionTimeoutSeconds;
         this.namingService = namingService;
+    }
+
+    /**
+     * Stage 40: selects the wire-format codec for the data-plane backend. Use
+     * {@code SysDaoWireCodec.INSTANCE} for the DB backend, {@code PulsarStringWireCodec.INSTANCE}
+     * for Pulsar; the default {@code IdentityWireCodec} suits {@code LocalMessageService}.
+     */
+    public void setDataPlaneWireCodec(IDataPlaneWireCodec dataPlaneWireCodec) {
+        this.dataPlaneWireCodec = dataPlaneWireCodec == null
+                ? IdentityWireCodec.INSTANCE : dataPlaneWireCodec;
     }
 
     @Override
@@ -166,8 +187,13 @@ public class EmbeddedDistributedExecutor implements IStreamExecutionDispatcher {
         }
 
         try {
+            // Stage 40: the data-plane builder gets the backend-adapted view of the
+            // shared transport (envelopes are converted to the backend's wire format).
+            // TaskManager / control topics above keep the raw service — only the data
+            // plane is adapted, so the two planes never mangle each other.
             RemoteGraphExecutionPlanBuilder planBuilder = new RemoteGraphExecutionPlanBuilder(
-                    messageService, new TypeRegistry(), fencingEpoch);
+                    new DataPlaneMessageServiceAdapter(messageService, dataPlaneWireCodec),
+                    new TypeRegistry(), fencingEpoch);
             GraphExecutionPlan plan = planBuilder.buildRemoteOnly(jobGraph, deploymentPlan, true);
 
             // Start coordinator before assigning tasks

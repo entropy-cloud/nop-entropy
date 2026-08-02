@@ -538,8 +538,16 @@ class TestAsyncSnapshotPipeline {
             PendingCheckpoint pending = triggerAndAckBoth(coord);
             CompletedCheckpoint completed = pending.getCompletableFuture().get(10, TimeUnit.SECONDS);
 
+            // finishCommit and notifyCheckpointComplete both fire on the async persist
+            // executor inside the coordinator monitor, but they are distinct side effects
+            // observed via separate AtomicLongs. Poll for both before asserting (mirrors
+            // testAllSideEffectsPreservedOnAsyncSuccess), since notifyCheckpointComplete
+            // runs strictly after finishCommit in onCompletePersistSuccess.
             long deadline = System.currentTimeMillis() + 5_000;
-            while (committedEpoch.get() < 0 && System.currentTimeMillis() < deadline) Thread.sleep(20);
+            while ((committedEpoch.get() < 0 || completedNotifiedEpoch.get() < 0)
+                    && System.currentTimeMillis() < deadline) {
+                Thread.sleep(20);
+            }
 
             assertEquals(pending.getCheckpointId(), completed.getCheckpointId());
             assertEquals(pending.getCheckpointId(), committedEpoch.get(),

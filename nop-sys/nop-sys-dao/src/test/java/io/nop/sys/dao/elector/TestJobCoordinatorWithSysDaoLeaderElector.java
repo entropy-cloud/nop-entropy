@@ -205,18 +205,13 @@ public class TestJobCoordinatorWithSysDaoLeaderElector extends JunitBaseTestCase
         assertTrue(coordinator.isFailureDetectorAlive(),
                 "ACTIVE coordinator must keep its failure detector alive");
 
-        // Composite fencing token derived from the granted LeaderEpoch:
-        // {leaderId}@{epoch}#{recoveryGen}. NOT a random UUID.
-        String token = coordinator.getFencingToken();
-        assertNotNull(token);
-        assertTrue(token.startsWith(HOST_ID + "@"),
-                "HA fencing token must be derived from LeaderEpoch (got: " + token + ")");
-        assertTrue(token.contains("#"),
-                "composite token must include the recoveryGen suffix (got: " + token + ")");
-        // Assert the exact composite encoding {leaderId}@{epoch}#0 rather
-        // than a UUID-shaped heuristic (the hostId itself may contain hyphens).
-        assertEquals(HOST_ID + "@" + granted.getEpoch() + "#0", token,
-                "HA token must match the composite encoding leaderId@epoch#recoveryGen");
+        // Stage 39: the coordinator now carries a single monotonic long fencing epoch
+        // (leaderEpochValue * EPOCH_SCALE + recoveryGen), derived from the granted
+        // LeaderEpoch. NOT a random UUID, and no longer a composite String.
+        long epoch = coordinator.getFencingEpoch();
+        assertTrue(epoch > 0L, "HA fencing epoch must be initialized after activation");
+        assertEquals(JobCoordinator.deriveHaFencingEpoch(granted.getEpoch(), 0L), epoch,
+                "HA fencing epoch must be derived from the granted LeaderEpoch");
 
         // The granted leadership epoch matches what the elector reports.
         LeaderEpoch coordLeadership = coordinator.getCurrentLeadership();
@@ -224,12 +219,12 @@ public class TestJobCoordinatorWithSysDaoLeaderElector extends JunitBaseTestCase
         assertEquals(granted.getLeaderId(), coordLeadership.getLeaderId());
         assertEquals(granted.getEpoch(), coordLeadership.getEpoch());
 
-        // Control plane bootstrapped on activation (assignments issued with
-        // the leadership-derived token).
+        // Control plane bootstrapped on activation (assignments issued with the
+        // leadership-derived fencing epoch).
         assertFalse(rpcService.assignments.isEmpty(),
                 "ACTIVE coordinator must bootstrap by issuing task assignments");
-        assertEquals(token, rpcService.assignments.get(0).getFencingToken(),
-                "issued assignments must carry the leadership-derived token");
+        assertEquals(epoch, rpcService.assignments.get(0).getFencingEpoch(),
+                "issued assignments must carry the leadership-derived fencing epoch");
 
         // The lease row in the JDBC-backed table reflects the leader.
         IEntityDao<NopSysClusterLeader> dao = daoProvider.daoFor(NopSysClusterLeader.class);
@@ -271,13 +266,12 @@ public class TestJobCoordinatorWithSysDaoLeaderElector extends JunitBaseTestCase
         assertEquals(granted.getLeaderId(), coordLeadership.getLeaderId());
         assertEquals(granted.getEpoch(), coordLeadership.getEpoch());
 
-        // Composite token derived from the existing leadership epoch.
-        String token = coordinator.getFencingToken();
-        assertNotNull(token);
-        assertTrue(token.startsWith(HOST_ID + "@"),
-                "HA fencing token must be derived from LeaderEpoch (got: " + token + ")");
-        assertEquals(HOST_ID + "@" + granted.getEpoch() + "#0", token,
-                "HA token must match the composite encoding leaderId@epoch#recoveryGen");
+        // Stage 39: single monotonic long fencing epoch derived from the existing
+        // leadership epoch (recoveryGen 0 on first activation).
+        long epoch = coordinator.getFencingEpoch();
+        assertTrue(epoch > 0L, "HA fencing epoch must be initialized after self-activation");
+        assertEquals(JobCoordinator.deriveHaFencingEpoch(granted.getEpoch(), 0L), epoch,
+                "HA fencing epoch must be derived from the granted LeaderEpoch");
         assertFalse(rpcService.assignments.isEmpty(),
                 "self-activated coordinator must bootstrap task assignments");
     }
@@ -326,7 +320,7 @@ public class TestJobCoordinatorWithSysDaoLeaderElector extends JunitBaseTestCase
         }
 
         @Override
-        public void triggerCheckpoint(io.nop.stream.core.checkpoint.CheckpointBarrier barrier, String fencingToken) {
+        public void triggerCheckpoint(io.nop.stream.core.checkpoint.CheckpointBarrier barrier, long fencingEpoch) {
         }
 
         @Override
@@ -334,7 +328,7 @@ public class TestJobCoordinatorWithSysDaoLeaderElector extends JunitBaseTestCase
         }
 
         @Override
-        public void updateFencingToken(String newToken) {
+        public void updateFencingToken(long fencingEpoch) {
         }
     }
 }

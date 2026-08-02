@@ -88,6 +88,18 @@
             <artifactId>h2</artifactId>
             <scope>test</scope>
         </dependency>
+
+        <!-- Stage 40: Pulsar data-plane backend integration test. Test scope only —
+             production deps remain clean; backend selection is a deployment choice
+             (see stream-data-plane.beans.xml). The SysDao (DB) E2E lives in
+             nop-sys-dao/src/test (mirrors the Stage 38 elector smoke check pattern),
+             avoiding a cyclic test-scope reactor dependency. -->
+        <dependency>
+            <groupId>io.github.entropy-cloud</groupId>
+            <artifactId>nop-message-pulsar</artifactId>
+            <version>${project.version}</version>
+            <scope>test</scope>
+        </dependency>
     </dependencies>
 
     <build>

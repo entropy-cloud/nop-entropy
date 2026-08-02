@@ -41,6 +41,9 @@ import io.nop.stream.runtime.rpc.StreamControlRpcProxyFactory;
 import io.nop.stream.runtime.rpc.StreamControlRpcServer;
 import io.nop.stream.runtime.rpc.StreamControlRpcTopics;
 import io.nop.stream.runtime.taskmanager.TaskManager;
+import io.nop.stream.runtime.transport.DataPlaneMessageServiceAdapter;
+import io.nop.stream.runtime.transport.IDataPlaneWireCodec;
+import io.nop.stream.runtime.transport.IdentityWireCodec;
 import io.nop.stream.runtime.transport.RemoteGraphExecutionPlanBuilder;
 
 import static io.nop.stream.core.exceptions.NopStreamErrors.ARG_DETAIL;
@@ -82,6 +85,13 @@ public class RpcDistributedExecutor implements IStreamExecutionDispatcher {
     private final int defaultNodeCount;
     private final long completionTimeoutSeconds;
 
+    /**
+     * Stage 40: wire-format codec applied to the data-plane view of {@link #messageService}.
+     * Default identity ({@code LocalMessageService}); deployments injecting a cross-JVM
+     * backend (DB / Pulsar) set the matching codec so envelopes traverse the real backend.
+     */
+    private IDataPlaneWireCodec dataPlaneWireCodec = IdentityWireCodec.INSTANCE;
+
     public RpcDistributedExecutor(IMessageService messageService) {
         this(messageService, 2, 60);
     }
@@ -90,6 +100,16 @@ public class RpcDistributedExecutor implements IStreamExecutionDispatcher {
         this.messageService = messageService;
         this.defaultNodeCount = defaultNodeCount;
         this.completionTimeoutSeconds = completionTimeoutSeconds;
+    }
+
+    /**
+     * Stage 40: selects the wire-format codec for the data-plane backend. Use
+     * {@code SysDaoWireCodec.INSTANCE} for the DB backend, {@code PulsarStringWireCodec.INSTANCE}
+     * for Pulsar; the default {@code IdentityWireCodec} suits {@code LocalMessageService}.
+     */
+    public void setDataPlaneWireCodec(IDataPlaneWireCodec dataPlaneWireCodec) {
+        this.dataPlaneWireCodec = dataPlaneWireCodec == null
+                ? IdentityWireCodec.INSTANCE : dataPlaneWireCodec;
     }
 
     @Override
@@ -208,9 +228,13 @@ public class RpcDistributedExecutor implements IStreamExecutionDispatcher {
             tm.setCoordinatorRpcService(coordinatorProxyIf);
         }
 
-        // Build the (in-JVM) data-plane plan keyed on the fencing epoch.
+        // Build the (in-JVM) data-plane plan keyed on the fencing epoch. Stage 40: the
+        // builder gets the backend-adapted view so envelopes traverse the real backend
+        // (DB / Pulsar) rather than being lost to its serialization contract. The RPC
+        // control plane above keeps the raw service — only the data plane is adapted.
         RemoteGraphExecutionPlanBuilder planBuilder = new RemoteGraphExecutionPlanBuilder(
-                messageService, new TypeRegistry(), fencingEpoch);
+                new DataPlaneMessageServiceAdapter(messageService, dataPlaneWireCodec),
+                new TypeRegistry(), fencingEpoch);
         GraphExecutionPlan plan = planBuilder.buildRemoteOnly(jobGraph, deploymentPlan, true);
 
         // Start servers + coordinator (non-HA: derives epoch, goes ACTIVE).

@@ -1,0 +1,75 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<!--
+  Stage 40: data-plane cross-JVM backend wiring scaffold. Documents how a deployment
+  injects SysDaoMessageService (DB) or PulsarMessageService as the data-plane transport,
+  and how the matching IDataPlaneWireCodec is selected so StreamMessageEnvelope traffic
+  genuinely traverses the real backend (not LocalMessageService in-memory direct).
+
+  Wiring architecture (Phase 1 Decision):
+
+    * Backend selection is a DEPLOYMENT choice. nop-stream-runtime deliberately has NO
+      hard dependency on nop-sys-dao / nop-message-pulsar (vision §三 constraint 8:
+      platform integration priority, no self-built infra). The application layer wires
+      the concrete IMessageService backend + selects the matching codec.
+
+    * The data plane and the Stage 39 control-plane RPC SHARE one IMessageService
+      instance (topic-addressed, disjoint topics: nop-stream.rpc.* for control,
+      nop-stream.{jobId}.{edge}.{s}.{t} for data). Only the data-plane view is wrapped
+      by DataPlaneMessageServiceAdapter (applied inside the dispatchers); the control
+      plane keeps the raw service, so the two planes never mangle each other.
+
+    * Codec selection (why a codec is needed):
+        - LocalMessageService carries the envelope object by reference -> IdentityWireCodec.
+        - SysDaoMessageService persists only an ApiRequest's data field; a bare envelope
+          loses its body -> SysDaoWireCodec wraps envelope as ApiRequest{data: envelopeMap}.
+        - PulsarMessageService (Schema.STRING) needs a String value -> PulsarStringWireCodec
+          serializes the envelope to a JSON String.
+      The codecs live in nop-stream-runtime (main) and reference only ApiRequest/ApiMessage/
+      JsonTool — they do NOT import the backend classes, so no backend dependency is introduced.
+
+  This file is the Stage 42 multi-JVM deployment scaffold. TestDataPlaneSysDaoBackendE2E /
+  TestDataPlanePulsarBackendE2E exercise the documented wiring programmatically (real
+  H2-backed SysDaoMessageService / real PulsarMessageService), proving the scaffold is
+  non-hollow (plan guide #11/#24).
+
+  Deployment template (illustrative — concrete bean ids depend on the app assembly):
+
+    <bean id="streamMessageService"
+          class="io.nop.sys.dao.message.SysDaoMessageService">
+        <property name="daoProvider" ref="nopDaoProvider"/>
+    </bean>
+
+    <bean id="streamDistributedExecutor"
+          class="io.nop.stream.runtime.execution.RpcDistributedExecutor">
+        <property name="messageService" ref="streamMessageService"/>
+        <property name="dataPlaneWireCodec"
+                  class="io.nop.stream.runtime.transport.SysDaoWireCodec"
+                  ioc:bean="true"/>
+    </bean>
+
+  Pulsar variant: wire io.nop.message.pulsar.PulsarMessageService as streamMessageService
+  (with its PulsarClientConfig + init/destroy lifecycle) and set dataPlaneWireCodec to
+  io.nop.stream.runtime.transport.PulsarStringWireCodec.
+-->
+<beans x:schema="/nop/schema/beans.xdef" xmlns:x="/nop/schema/xdsl.xdef"
+       xmlns:ioc="ioc" xmlns:feature="feature">
+
+    <!--
+      Default in-process transport. ioc:default yields to an explicitly-wired
+      IMessageService of the same id (the app wires SysDaoMessageService /
+      PulsarMessageService for cross-JVM). Mirrors stream-control-rpc.beans.xml so the
+      control and data planes share one transport bean when deployed together.
+    -->
+    <bean id="streamMessageService" ioc:default="true"
+          class="io.nop.message.core.local.LocalMessageService"/>
+
+    <!--
+      Default data-plane codec: identity (matches the default LocalMessageService above).
+      A deployment overrides this with SysDaoWireCodec / PulsarStringWireCodec to match
+      its chosen backend.
+    -->
+    <bean id="streamDataPlaneWireCodec" ioc:default="true"
+          class="io.nop.stream.runtime.transport.IdentityWireCodec"/>
+
+</beans>
