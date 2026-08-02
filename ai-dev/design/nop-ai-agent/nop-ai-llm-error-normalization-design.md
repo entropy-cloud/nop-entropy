@@ -101,8 +101,8 @@ errorResponse:
 **`<errorMappings>` — 把字段值 + HTTP 状态映射到固定分类**。**有序规则表，首条匹配胜出**：
 
 ```
-<errorMappings xdef:body-type="list">     <!-- ⚠️ 故意不带 xdef:key-attr -->
-  <errorMapping
+<errorMappings xdef:body-type="list" xdef:key-attr="id">   <!-- key-attr=id：保序合并 + first-match-wins（见 §6.3 与 live llm.xdef:144） -->
+  <errorMapping id="!string"
       classification="!enum:io.nop.ai.core.model.ErrorClassification"
       httpStatus="csv-set"        # 可选限定，如 "429" 或 "401,403"
       errorTypes="csv-set"        # 体里 error.type 的值集合
@@ -120,7 +120,7 @@ errorResponse:
 
 **`<classifyError>` XPL 逃生舱**（覆盖配置表无法表达的 ~10% 硬场景）：配置 `<errorMappings>` 优先，命中即用；未命中再走 `<classifyError>`；都未命中走默认启发式。用于 Azure 嵌套多拼写（`error.inner_error.code` vs `error.innererror.code` 跨版本）、负向排除（匹配 X 但排除 Y 同时出现）等。风格与 `llm.xdef` 现有 `<buildHttpRequest>`/`<parseHttpResponse>` 的 `xpl-fn` 节点一致。
 
-**⚠️ 关键 xdef 约束（R1 审查 G1）**：`<errorMappings>` 必须**省略 `xdef:key-attr`**。被模仿的 `<errorCodes xdef:key-attr="name">`（`dialect.xdef:137`）带 key-attr，会把 body 变成按 name 去重的 map（后写覆盖、不保序），与"首条匹配胜出"直接冲突——两条同 `classification` 不同优先级的规则会被合并、顺序丢失。省略 key-attr 才能让 list 保序、first-match-wins 成立。这是与 dialect 模式的**刻意偏离点**，必须文档化并有测试固化（断言两条同 classification 规则按位置先后分别命中）。
+**⚠️ 关键 xdef 约束（R1 审查 G1，已按 live 修正）**：`<errorMappings>` 采用 **`xdef:key-attr="id"`**（与被模仿的 `<errorCodes xdef:key-attr="name">`（`dialect.xdef:137`）同款），`id` 用于 `x:extends` 合并时按 id 区分条目——子配置（如 `azure.llm.xml extends default.llm.xml`）可用相同 id 覆盖父配置条目（`replaceChild` 在原位置替换），或新增 id 追加末尾。**合并后顺序保持**（被覆盖条目保留父位置、新增条目追加末尾），故 **first-match-wins 仍成立**。每个 `<errorMapping>` 必须携带唯一 `id`（如 `openai-quota-exceeded` / `anthropic-billing`）。此约束与 dialect 模式一致（dialect 按 name 合并、LLM 按 id 合并），须有测试固化（`TestLlmErrorMapping` 断言两条同 `classification` 规则按合并后位置先后分别命中）。live 现状见 `llm.xdef:144-145`（`<errorMappings xdef:body-type="list" xdef:key-attr="id">` + `<errorMapping id="!string" ...>`）。
 
 **匹配优先级**（规则之间的解析顺序，首条命中即定分类）：
 
@@ -142,13 +142,13 @@ errorResponse:
 <errorResponse errorTypePath="error.type" errorCodePath="error.code"
                errorMessagePath="error.message"/>
 
-<errorMappings>
-  <errorMapping classification="QUOTA_EXCEEDED" httpStatus="429"
+<errorMappings xdef:body-type="list" xdef:key-attr="id">
+  <errorMapping id="openai-quota-exceeded" classification="QUOTA_EXCEEDED" httpStatus="429"
                 errorTypes="insufficient_quota,billing_limit_reached"/>
-  <errorMapping classification="RATE_LIMITED"  httpStatus="429"
+  <errorMapping id="openai-rate-limited" classification="RATE_LIMITED"  httpStatus="429"
                 errorTypes="rate_limit_exceeded"/>
-  <errorMapping classification="AUTH_INVALID"  httpStatus="401,403"/>
-  <errorMapping classification="NON_TRANSIENT" httpStatus="400"
+  <errorMapping id="openai-auth-invalid" classification="AUTH_INVALID"  httpStatus="401,403"/>
+  <errorMapping id="openai-non-transient" classification="NON_TRANSIENT" httpStatus="400"
                 errorTypes="context_length_exceeded,content_filter"/>
 </errorMappings>
 ```
@@ -157,7 +157,7 @@ errorResponse:
 
 | dialect `<errorCodes>` | LLM `<errorMappings>` |
 |---|---|
-| `<errorCode name="std-code" xdef:key-attr="name">1062</errorCode>` 单值、带 key | `<errorMapping classification="...">` 多条件合取、**不带 key** |
+| `<errorCode name="std-code" xdef:key-attr="name">1062</errorCode>` 单值、按 name 带 key | `<errorMapping id="..." classification="...">` 多条件合取、**按 id 带 key**（`xdef:key-attr="id"`） |
 | 按 vendor code / SQLState 精确查表 | 按规则顺序首匹配 |
 | 消息正则兜底（HashMap 上 first-match） | 同款 `messagePattern` 兜底 |
 | 输出标准 `ErrorCode` | 输出固定 `ErrorClassification` |

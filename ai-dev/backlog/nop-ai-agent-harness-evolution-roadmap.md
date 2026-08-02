@@ -1,7 +1,8 @@
 # nop-ai-agent Harness Evolution Roadmap
 
-> Status: active
+> Status: done
 > 来源：46 份外部项目调研（`ai-dev/analysis/agent-survey/2026-08-01-*`）的 10 类增量共识。nop-ai 全面超越外部实现，增量全部以 nop 原生方式吸收（XDEF 声明式 + nop-task 复用 + Java 结构化），不引入外部依赖。
+> **收口（2026-08-02，plan `2026-08-02-0650-1`）**：完成定义四项全部满足——W1–W6 全部 done（17 份落地计划均通过独立 closure audit）/ 全部以 nop 原生方式实现 / 不引入外部依赖 / `nop-ai-agent-roadmap.md` Phase Status 已追加 `L6. Harness Evolution: done`（本计划补齐第四项）。本 backlog 转为历史记录，后续 successor 增量另开新 backlog/mission。
 
 ## Work Items
 
