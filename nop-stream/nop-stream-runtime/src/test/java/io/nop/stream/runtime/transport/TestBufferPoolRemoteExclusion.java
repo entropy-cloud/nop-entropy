@@ -27,7 +27,6 @@ class TestBufferPoolRemoteExclusion {
 
     private static final String TOPIC = "remote-exclusion-topic";
     private static final String EDGE_ID = "edge-1";
-    private static final String FENCING_TOKEN = "token-1";
     private static final long EPOCH_ID = 1L;
 
     @Test
@@ -36,7 +35,7 @@ class TestBufferPoolRemoteExclusion {
         IMessageService messageService = new MockMessageService(sent);
 
         RemoteResultPartition remote = new RemoteResultPartition(
-                messageService, TOPIC, null, EDGE_ID, FENCING_TOKEN, EPOCH_ID);
+                messageService, TOPIC, null, EDGE_ID, EPOCH_ID);
 
         // (a) Remote partition carries NO pool reference (intentional exclusion)
         assertNull(remote.getBufferPool(),

@@ -38,8 +38,8 @@ public class TaskStatusReport implements Serializable {
     private String errorCause;
     private long lastProgressTime;
     private long reportedAt;
-    /** Fencing token of the reporting task; coordinator rejects stale-token reports. */
-    private String fencingToken;
+    /** Monotonic fencing epoch of the reporting task; coordinator rejects stale-epoch reports. */
+    private long fencingEpoch;
 
     public TaskStatusReport() {
     }
@@ -47,7 +47,7 @@ public class TaskStatusReport implements Serializable {
     public TaskStatusReport(String jobId, String vertexId, int subtaskIndex,
                             int attemptNumber, TerminalState terminalState,
                             String errorCause, long lastProgressTime,
-                            String fencingToken, long reportedAt) {
+                            long fencingEpoch, long reportedAt) {
         this.jobId = jobId;
         this.vertexId = vertexId;
         this.subtaskIndex = subtaskIndex;
@@ -55,7 +55,7 @@ public class TaskStatusReport implements Serializable {
         this.terminalState = terminalState;
         this.errorCause = errorCause;
         this.lastProgressTime = lastProgressTime;
-        this.fencingToken = fencingToken;
+        this.fencingEpoch = fencingEpoch;
         this.reportedAt = reportedAt;
     }
 
@@ -115,12 +115,12 @@ public class TaskStatusReport implements Serializable {
         this.lastProgressTime = lastProgressTime;
     }
 
-    public String getFencingToken() {
-        return fencingToken;
+    public long getFencingEpoch() {
+        return fencingEpoch;
     }
 
-    public void setFencingToken(String fencingToken) {
-        this.fencingToken = fencingToken;
+    public void setFencingEpoch(long fencingEpoch) {
+        this.fencingEpoch = fencingEpoch;
     }
 
     public long getReportedAt() {

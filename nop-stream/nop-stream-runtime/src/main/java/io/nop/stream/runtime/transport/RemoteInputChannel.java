@@ -36,8 +36,13 @@ import static io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_STATE_ERR
  * Decoded elements are placed into a local {@link LinkedBlockingQueue} for
  * consumption by the task thread.
  *
- * <p><strong>Fencing:</strong> Only envelopes whose fencing token and epoch id
- * match the expected values are accepted. Stale messages are silently discarded.
+ * <p><strong>Fencing:</strong> Only envelopes whose monotonic fencing epoch
+ * ({@code epochId}) matches the expected value are accepted. Stale messages are
+ * discarded with a debug log (explicit, observable — not silently swallowed).
+ * Stage 39 collapsed the legacy dual-key filter (String fencingToken equality +
+ * long epochId equality) into a single long epoch comparison; the single key
+ * encodes both leadership switch and same-leader recovery (see
+ * {@code JobCoordinator.deriveHaFencingEpoch}), so both fencing invariants hold.
  *
  * <p><strong>Buffer pool exclusion (intentional, G53)</strong>: this class constructs
  * a dummy {@code super(new ResultPartition(1))} and uses its own local
@@ -64,7 +69,6 @@ public class RemoteInputChannel extends InputChannel {
     private static final StreamElement END_OF_STREAM = new StreamElement() {};
 
     private final LinkedBlockingQueue<StreamElement> queue;
-    private final String expectedFencingToken;
     private final long expectedEpochId;
     private final IMessageSubscription subscription;
     private volatile boolean finished;
@@ -73,44 +77,38 @@ public class RemoteInputChannel extends InputChannel {
     /**
      * Creates a RemoteInputChannel that subscribes to the given topic.
      *
-     * @param messageService      the message service to subscribe to
-     * @param topic               the topic to subscribe to
-     * @param expectedFencingToken expected fencing token for message filtering
-     * @param expectedEpochId      expected epoch id for message filtering
+     * @param messageService  the message service to subscribe to
+     * @param topic           the topic to subscribe to
+     * @param expectedEpochId expected monotonic fencing epoch for message filtering
+     *                        (Stage 39: the single long fencing key)
      */
     public RemoteInputChannel(IMessageService messageService,
                               String topic,
-                              String expectedFencingToken,
                               long expectedEpochId) {
-        this(messageService, topic, expectedFencingToken, expectedEpochId,
-                DEFAULT_QUEUE_CAPACITY);
+        this(messageService, topic, expectedEpochId, DEFAULT_QUEUE_CAPACITY);
     }
 
     /**
      * Creates a RemoteInputChannel with a custom queue capacity.
      *
-     * @param messageService       the message service to subscribe to
-     * @param topic                the topic to subscribe to
-     * @param expectedFencingToken expected fencing token for message filtering
-     * @param expectedEpochId      expected epoch id for message filtering
-     * @param queueCapacity        capacity of the local element queue
+     * @param messageService  the message service to subscribe to
+     * @param topic           the topic to subscribe to
+     * @param expectedEpochId expected monotonic fencing epoch for message filtering
+     * @param queueCapacity   capacity of the local element queue
      */
     public RemoteInputChannel(IMessageService messageService,
                               String topic,
-                              String expectedFencingToken,
                               long expectedEpochId,
                               int queueCapacity) {
         // Pass a dummy partition to the parent; we override all read methods
         super(new ResultPartition(1));
         this.queue = new LinkedBlockingQueue<>(queueCapacity);
-        this.expectedFencingToken = expectedFencingToken;
         this.expectedEpochId = expectedEpochId;
         this.finished = false;
 
         // Subscribe to the topic
         this.subscription = messageService.subscribe(topic, new EnvelopeConsumer());
-        LOG.info("RemoteInputChannel subscribed to topic={}, fencingToken={}, epochId={}",
-                topic, expectedFencingToken, expectedEpochId);
+        LOG.info("RemoteInputChannel subscribed to topic={}, epochId={}", topic, expectedEpochId);
     }
 
     /**
@@ -207,15 +205,10 @@ public class RemoteInputChannel extends InputChannel {
 
             StreamMessageEnvelope envelope = (StreamMessageEnvelope) message;
 
-            // Fencing token verification
-            if (expectedFencingToken != null
-                    && !expectedFencingToken.equals(envelope.getFencingToken())) {
-                LOG.debug("Discarding stale message: expected fencingToken={}, got={}",
-                        expectedFencingToken, envelope.getFencingToken());
-                return null;
-            }
-
-            // Epoch id verification
+            // Stage 39: single monotonic long epoch fencing comparison. The legacy
+            // dual-key filter (String fencingToken equality + long epochId equality)
+            // is collapsed into one long key. The single epoch encodes both
+            // leadership switch and same-leader recovery, so both invariants hold.
             if (envelope.getEpochId() != expectedEpochId) {
                 LOG.debug("Discarding stale message: expected epochId={}, got={}",
                         expectedEpochId, envelope.getEpochId());

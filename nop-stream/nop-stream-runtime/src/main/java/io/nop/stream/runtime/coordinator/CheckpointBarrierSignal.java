@@ -16,7 +16,7 @@ import io.nop.stream.core.checkpoint.CheckpointBarrier;
 /**
  * Control message sent from JobCoordinator to TaskManagers to trigger a checkpoint.
  *
- * <p>Carries the fencing token so that TaskManagers can reject stale signals.
+ * <p>Carries the monotonic fencing epoch so that TaskManagers can reject stale signals.
  */
 @DataBean
 public class CheckpointBarrierSignal implements Serializable {
@@ -24,15 +24,15 @@ public class CheckpointBarrierSignal implements Serializable {
     private static final long serialVersionUID = 1L;
 
     private CheckpointBarrier barrier;
-    private String fencingToken;
+    private long fencingEpoch;
     private String jobId;
 
     public CheckpointBarrierSignal() {
     }
 
-    public CheckpointBarrierSignal(CheckpointBarrier barrier, String fencingToken, String jobId) {
+    public CheckpointBarrierSignal(CheckpointBarrier barrier, long fencingEpoch, String jobId) {
         this.barrier = barrier;
-        this.fencingToken = fencingToken;
+        this.fencingEpoch = fencingEpoch;
         this.jobId = jobId;
     }
 
@@ -44,12 +44,12 @@ public class CheckpointBarrierSignal implements Serializable {
         this.barrier = barrier;
     }
 
-    public String getFencingToken() {
-        return fencingToken;
+    public long getFencingEpoch() {
+        return fencingEpoch;
     }
 
-    public void setFencingToken(String fencingToken) {
-        this.fencingToken = fencingToken;
+    public void setFencingEpoch(long fencingEpoch) {
+        this.fencingEpoch = fencingEpoch;
     }
 
     public String getJobId() {

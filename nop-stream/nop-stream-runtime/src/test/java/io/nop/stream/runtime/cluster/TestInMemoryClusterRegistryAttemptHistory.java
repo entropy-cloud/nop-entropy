@@ -34,7 +34,7 @@ class TestInMemoryClusterRegistryAttemptHistory {
 
     @Test
     void firstAttemptIsRetrievable() {
-        registry.assignTask("job-1", "v-1", 0, "node-1", "att-1", "token-1", 1);
+        registry.assignTask("job-1", "v-1", 0, "node-1", "att-1", 1L, 1);
 
         TaskAssignment latest = registry.getTaskAssignment("job-1", "v-1", 0);
         assertNotNull(latest);
@@ -49,9 +49,9 @@ class TestInMemoryClusterRegistryAttemptHistory {
 
     @Test
     void multipleAttemptsAreAppendedNotOverwritten() {
-        registry.assignTask("job-1", "v-1", 0, "node-1", "att-1", "token-1", 1);
-        registry.assignTask("job-1", "v-1", 0, "node-2", "att-2", "token-2", 2);
-        registry.assignTask("job-1", "v-1", 0, "node-1", "att-3", "token-3", 3);
+        registry.assignTask("job-1", "v-1", 0, "node-1", "att-1", 1L, 1);
+        registry.assignTask("job-1", "v-1", 0, "node-2", "att-2", 2L, 2);
+        registry.assignTask("job-1", "v-1", 0, "node-1", "att-3", 3L, 3);
 
         // Latest = attempt 3
         TaskAssignment latest = registry.getTaskAssignment("job-1", "v-1", 0);
@@ -69,9 +69,9 @@ class TestInMemoryClusterRegistryAttemptHistory {
 
     @Test
     void differentSubtasksHaveIndependentHistory() {
-        registry.assignTask("job-1", "v-1", 0, "node-1", "att-a", "t-1", 1);
-        registry.assignTask("job-1", "v-1", 1, "node-2", "att-b", "t-1", 1);
-        registry.assignTask("job-1", "v-1", 0, "node-1", "att-c", "t-2", 2);
+        registry.assignTask("job-1", "v-1", 0, "node-1", "att-a", 1L, 1);
+        registry.assignTask("job-1", "v-1", 1, "node-2", "att-b", 1L, 1);
+        registry.assignTask("job-1", "v-1", 0, "node-1", "att-c", 2L, 2);
 
         assertEquals(2, registry.getAttemptHistory("job-1", "v-1", 0).size());
         assertEquals(1, registry.getAttemptHistory("job-1", "v-1", 1).size());
@@ -88,8 +88,8 @@ class TestInMemoryClusterRegistryAttemptHistory {
 
     @Test
     void removeTaskAssignmentClearsHistory() {
-        registry.assignTask("job-1", "v-1", 0, "node-1", "att-1", "t-1", 1);
-        registry.assignTask("job-1", "v-1", 0, "node-1", "att-2", "t-2", 2);
+        registry.assignTask("job-1", "v-1", 0, "node-1", "att-1", 1L, 1);
+        registry.assignTask("job-1", "v-1", 0, "node-1", "att-2", 2L, 2);
         assertEquals(2, registry.getAttemptHistory("job-1", "v-1", 0).size());
 
         registry.removeTaskAssignment("job-1", "v-1", 0);
@@ -99,7 +99,7 @@ class TestInMemoryClusterRegistryAttemptHistory {
 
     @Test
     void historyIsUnmodifiable() {
-        registry.assignTask("job-1", "v-1", 0, "node-1", "att-1", "t-1", 1);
+        registry.assignTask("job-1", "v-1", 0, "node-1", "att-1", 1L, 1);
         List<TaskAssignment> history = registry.getAttemptHistory("job-1", "v-1", 0);
         assertEquals(1, history.size());
 

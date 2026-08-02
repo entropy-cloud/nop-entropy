@@ -17,9 +17,17 @@ public interface IStreamTaskRpcService {
 
     void receiveAssignment(TaskAssignment assignment);
 
-    void triggerCheckpoint(CheckpointBarrier barrier, String fencingToken);
+    /**
+     * @param fencingEpoch monotonic fencing epoch (Stage 39: long, replaces composite String)
+     */
+    void triggerCheckpoint(CheckpointBarrier barrier, long fencingEpoch);
 
     void cancelTask(String jobId, String vertexId, int subtaskIndex);
 
-    void updateFencingToken(String newToken);
+    /**
+     * Stage 39: pushes the rotated monotonic fencing epoch to the task side.
+     *
+     * @param fencingEpoch the new monotonic fencing epoch
+     */
+    void updateFencingToken(long fencingEpoch);
 }

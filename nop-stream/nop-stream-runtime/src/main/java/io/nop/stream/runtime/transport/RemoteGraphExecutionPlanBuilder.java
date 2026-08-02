@@ -59,16 +59,13 @@ public class RemoteGraphExecutionPlanBuilder {
 
     private final IMessageService messageService;
     private final TypeRegistry typeRegistry;
-    private final String fencingToken;
     private final long epochId;
 
     public RemoteGraphExecutionPlanBuilder(IMessageService messageService,
                                            TypeRegistry typeRegistry,
-                                           String fencingToken,
                                            long epochId) {
         this.messageService = messageService;
         this.typeRegistry = typeRegistry;
-        this.fencingToken = fencingToken;
         this.epochId = epochId;
     }
 
@@ -119,11 +116,11 @@ public class RemoteGraphExecutionPlanBuilder {
                     // Producer side: RemoteResultPartition
                     matrix[s][t] = new RemoteResultPartition(
                             messageService, topic, typeRegistry, edgeId,
-                            fencingToken, epochId);
+                            epochId);
 
                     // Consumer side: RemoteInputChannel (created per target subtask per source)
                     RemoteInputChannel remoteChannel = new RemoteInputChannel(
-                            messageService, topic, fencingToken, epochId);
+                            messageService, topic, epochId);
                     channels.add(remoteChannel);
                 }
             }

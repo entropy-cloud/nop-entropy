@@ -18,16 +18,21 @@ public class CoordinatorInfo implements Serializable {
 
     private String jobId;
     private String coordinatorId;
-    private String fencingToken;
+    /**
+     * 单调 fencing epoch（Stage 39：取代原复合 String fencingToken）。
+     * {@code JdbcClusterRegistry} 在持久化边界以 {@code String.valueOf(long)} 单值写入
+     * 既有 {@code fencing_token VARCHAR(255)} 列（Decision 2 Option B：不迁移 DDL）。
+     */
+    private long fencingEpoch;
     private long registeredAt;
 
     public CoordinatorInfo() {
     }
 
-    public CoordinatorInfo(String jobId, String coordinatorId, String fencingToken, long registeredAt) {
+    public CoordinatorInfo(String jobId, String coordinatorId, long fencingEpoch, long registeredAt) {
         this.jobId = jobId;
         this.coordinatorId = coordinatorId;
-        this.fencingToken = fencingToken;
+        this.fencingEpoch = fencingEpoch;
         this.registeredAt = registeredAt;
     }
 
@@ -47,12 +52,12 @@ public class CoordinatorInfo implements Serializable {
         this.coordinatorId = coordinatorId;
     }
 
-    public String getFencingToken() {
-        return fencingToken;
+    public long getFencingEpoch() {
+        return fencingEpoch;
     }
 
-    public void setFencingToken(String fencingToken) {
-        this.fencingToken = fencingToken;
+    public void setFencingEpoch(long fencingEpoch) {
+        this.fencingEpoch = fencingEpoch;
     }
 
     public long getRegisteredAt() {

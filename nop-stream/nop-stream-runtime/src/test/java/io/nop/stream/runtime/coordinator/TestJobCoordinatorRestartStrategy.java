@@ -188,7 +188,7 @@ class TestJobCoordinatorRestartStrategy {
         coordinator.start();
         coordinator.assignTasks();
 
-        String token = coordinator.getFencingToken();
+        long token = coordinator.getFencingEpoch();
 
         // First FAILED report triggers recovery #1 (count=1, still RUNNING)
         coordinator.reportTaskStatus(new TaskStatusReport(
@@ -196,7 +196,7 @@ class TestJobCoordinatorRestartStrategy {
                 TaskStatusReport.TerminalState.FAILED, "fail-1",
                 System.currentTimeMillis(), token, System.currentTimeMillis()));
         assertEquals(JobStatus.RUNNING, coordinator.getJobStatus().getJobStatus());
-        token = coordinator.getFencingToken(); // token changed by recovery
+        token = coordinator.getFencingEpoch(); // token changed by recovery
 
         // Second FAILED → recovery #2 (count=2, still RUNNING)
         coordinator.reportTaskStatus(new TaskStatusReport(
@@ -204,7 +204,7 @@ class TestJobCoordinatorRestartStrategy {
                 TaskStatusReport.TerminalState.FAILED, "fail-2",
                 System.currentTimeMillis(), token, System.currentTimeMillis()));
         assertEquals(JobStatus.RUNNING, coordinator.getJobStatus().getJobStatus());
-        token = coordinator.getFencingToken();
+        token = coordinator.getFencingEpoch();
 
         // Third FAILED → recovery #3 attempt → cap exceeded → failJob
         coordinator.reportTaskStatus(new TaskStatusReport(
@@ -216,12 +216,12 @@ class TestJobCoordinatorRestartStrategy {
     }
 
     static class NoopTaskRpc implements io.nop.stream.runtime.rpc.IStreamTaskRpcService {
-        final AtomicReference<String> lastToken = new AtomicReference<>();
+        final java.util.concurrent.atomic.AtomicLong lastEpoch = new java.util.concurrent.atomic.AtomicLong();
         final CopyOnWriteArrayList<TaskAssignment> assignments = new CopyOnWriteArrayList<>();
 
         @Override public void receiveAssignment(TaskAssignment a) { assignments.add(a); }
-        @Override public void triggerCheckpoint(io.nop.stream.core.checkpoint.CheckpointBarrier b, String t) {}
+        @Override public void triggerCheckpoint(io.nop.stream.core.checkpoint.CheckpointBarrier b, long fencingEpoch) {}
         @Override public void cancelTask(String j, String v, int s) {}
-        @Override public void updateFencingToken(String n) { lastToken.set(n); }
+        @Override public void updateFencingToken(long fencingEpoch) { lastEpoch.set(fencingEpoch); }
     }
 }

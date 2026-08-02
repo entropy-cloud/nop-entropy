@@ -23,7 +23,6 @@ class TestRemoteResultPartition {
 
     private static final String TOPIC = "test-topic";
     private static final String EDGE_ID = "edge-1";
-    private static final String FENCING_TOKEN = "token-1";
     private static final long EPOCH_ID = 1L;
 
     @Test
@@ -32,7 +31,7 @@ class TestRemoteResultPartition {
         IMessageService messageService = new MockMessageService(sent);
 
         RemoteResultPartition partition = new RemoteResultPartition(
-                messageService, TOPIC, null, EDGE_ID, FENCING_TOKEN, EPOCH_ID);
+                messageService, TOPIC, null, EDGE_ID, EPOCH_ID);
 
         partition.write(new StreamRecord<>("hello", 100L));
         assertEquals(1, sent.size());
@@ -47,7 +46,7 @@ class TestRemoteResultPartition {
         IMessageService messageService = new ConcurrentMockMessageService(sent);
 
         RemoteResultPartition partition = new RemoteResultPartition(
-                messageService, TOPIC, null, EDGE_ID, FENCING_TOKEN, EPOCH_ID);
+                messageService, TOPIC, null, EDGE_ID, EPOCH_ID);
 
         int writerCount = 4;
         int writesPerWriter = 100;

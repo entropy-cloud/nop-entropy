@@ -18,11 +18,11 @@ public class TestInMemoryClusterRegistry {
 
     @Test
     void testRegisterAndGetCoordinator() {
-        registry.registerCoordinator("job-1", "coord-1", "token-abc");
+        registry.registerCoordinator("job-1", "coord-1", 1L);
         CoordinatorInfo info = registry.getActiveCoordinator("job-1");
         assertNotNull(info);
         assertEquals("coord-1", info.getCoordinatorId());
-        assertEquals("token-abc", info.getFencingToken());
+        assertEquals(1L, info.getFencingEpoch());
     }
 
     @Test
@@ -43,7 +43,7 @@ public class TestInMemoryClusterRegistry {
 
     @Test
     void testAssignAndGetTask() {
-        registry.assignTask("job-1", "vertex-1", 0, "node-1", "attempt-1", "token-1");
+        registry.assignTask("job-1", "vertex-1", 0, "node-1", "attempt-1", 1L);
         TaskAssignment assignment = registry.getTaskAssignment("job-1", "vertex-1", 0);
         assertNotNull(assignment);
         assertEquals("node-1", assignment.getNodeId());
@@ -53,7 +53,7 @@ public class TestInMemoryClusterRegistry {
 
     @Test
     void testRemoveTaskAssignment() {
-        registry.assignTask("job-1", "vertex-1", 0, "node-1", "attempt-1", "token-1");
+        registry.assignTask("job-1", "vertex-1", 0, "node-1", "attempt-1", 1L);
         registry.removeTaskAssignment("job-1", "vertex-1", 0);
         assertNull(registry.getTaskAssignment("job-1", "vertex-1", 0));
     }

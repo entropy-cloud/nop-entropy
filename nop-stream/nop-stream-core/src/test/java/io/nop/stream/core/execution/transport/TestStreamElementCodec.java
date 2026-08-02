@@ -23,7 +23,6 @@ import io.nop.stream.core.exceptions.StreamException;
  */
 class TestStreamElementCodec {
 
-    private static final String FENCING_TOKEN = "test-fence-001";
     private static final long EPOCH_ID = 42L;
 
     // ===== StreamRecord tests =====
@@ -31,11 +30,11 @@ class TestStreamElementCodec {
     @Test
     void streamRecordWithStringPayload_roundTrips() {
         StreamRecord<String> original = new StreamRecord<>("hello-world");
-        StreamMessageEnvelope envelope = StreamElementCodec.encode(original, String.class.getName(), FENCING_TOKEN, EPOCH_ID);
+        StreamMessageEnvelope envelope = StreamElementCodec.encode(original, String.class.getName(), EPOCH_ID);
 
         assertEquals(StreamMessageEnvelope.TYPE_STREAM_RECORD, envelope.getType());
         assertEquals(String.class.getName(), envelope.getValueType());
-        assertEquals(FENCING_TOKEN, envelope.getFencingToken());
+        assertEquals(EPOCH_ID, envelope.getEpochId());
         assertEquals(EPOCH_ID, envelope.getEpochId());
 
         StreamElement decoded = StreamElementCodec.decode(envelope);
@@ -46,7 +45,7 @@ class TestStreamElementCodec {
     @Test
     void streamRecordWithNumericPayload_roundTrips() {
         StreamRecord<Integer> original = new StreamRecord<>(12345, System.currentTimeMillis());
-        StreamMessageEnvelope envelope = StreamElementCodec.encode(original, Integer.class.getName(), FENCING_TOKEN, EPOCH_ID);
+        StreamMessageEnvelope envelope = StreamElementCodec.encode(original, Integer.class.getName(), EPOCH_ID);
 
         assertEquals(StreamMessageEnvelope.TYPE_STREAM_RECORD, envelope.getType());
         assertEquals(Integer.class.getName(), envelope.getValueType());
@@ -59,7 +58,7 @@ class TestStreamElementCodec {
     @Test
     void streamRecordWithNullPayload_roundTrips() {
         StreamRecord<String> original = new StreamRecord<>(null);
-        StreamMessageEnvelope envelope = StreamElementCodec.encode(original, String.class.getName(), FENCING_TOKEN, EPOCH_ID);
+        StreamMessageEnvelope envelope = StreamElementCodec.encode(original, String.class.getName(), EPOCH_ID);
 
         StreamElement decoded = StreamElementCodec.decode(envelope);
         assertTrue(decoded.isRecord());
@@ -70,7 +69,7 @@ class TestStreamElementCodec {
     void streamRecord_autoDetectsValueType() {
         StreamRecord<Double> original = new StreamRecord<>(3.14);
         // Pass null valueType to trigger auto-detection
-        StreamMessageEnvelope envelope = StreamElementCodec.encode(original, null, FENCING_TOKEN, EPOCH_ID);
+        StreamMessageEnvelope envelope = StreamElementCodec.encode(original, null, EPOCH_ID);
 
         assertEquals(Double.class.getName(), envelope.getValueType());
 
@@ -84,7 +83,7 @@ class TestStreamElementCodec {
     @Test
     void checkpointBarrier_roundTrips() {
         CheckpointBarrier original = new CheckpointBarrier(100L, 200L, CheckpointType.CHECKPOINT);
-        StreamMessageEnvelope envelope = StreamElementCodec.encode(original, null, FENCING_TOKEN, EPOCH_ID);
+        StreamMessageEnvelope envelope = StreamElementCodec.encode(original, null, EPOCH_ID);
 
         assertEquals(StreamMessageEnvelope.TYPE_CHECKPOINT_BARRIER, envelope.getType());
         assertNull(envelope.getValueType());
@@ -101,7 +100,7 @@ class TestStreamElementCodec {
     @Test
     void checkpointBarrier_savepoint_roundTrips() {
         CheckpointBarrier original = new CheckpointBarrier(999L, 888L, CheckpointType.SAVEPOINT);
-        StreamMessageEnvelope envelope = StreamElementCodec.encode(original, null, FENCING_TOKEN, EPOCH_ID);
+        StreamMessageEnvelope envelope = StreamElementCodec.encode(original, null, EPOCH_ID);
 
         StreamElement decoded = StreamElementCodec.decode(envelope);
         assertTrue(decoded.isCheckpointBarrier());
@@ -115,7 +114,7 @@ class TestStreamElementCodec {
     @Test
     void watermark_roundTrips() {
         Watermark original = new Watermark(12345L);
-        StreamMessageEnvelope envelope = StreamElementCodec.encode(original, null, FENCING_TOKEN, EPOCH_ID);
+        StreamMessageEnvelope envelope = StreamElementCodec.encode(original, null, EPOCH_ID);
 
         assertEquals(StreamMessageEnvelope.TYPE_WATERMARK, envelope.getType());
         assertNull(envelope.getValueType());
@@ -129,7 +128,7 @@ class TestStreamElementCodec {
     @Test
     void watermark_maxWatermark_roundTrips() {
         Watermark original = Watermark.MAX_WATERMARK;
-        StreamMessageEnvelope envelope = StreamElementCodec.encode(original, null, FENCING_TOKEN, EPOCH_ID);
+        StreamMessageEnvelope envelope = StreamElementCodec.encode(original, null, EPOCH_ID);
 
         StreamElement decoded = StreamElementCodec.decode(envelope);
         assertTrue(decoded.isWatermark());
@@ -141,7 +140,7 @@ class TestStreamElementCodec {
     @Test
     void watermarkStatus_idle_roundTrips() {
         WatermarkStatus original = WatermarkStatus.IDLE;
-        StreamMessageEnvelope envelope = StreamElementCodec.encode(original, null, FENCING_TOKEN, EPOCH_ID);
+        StreamMessageEnvelope envelope = StreamElementCodec.encode(original, null, EPOCH_ID);
 
         assertEquals(StreamMessageEnvelope.TYPE_WATERMARK_STATUS, envelope.getType());
         assertNull(envelope.getValueType());
@@ -155,7 +154,7 @@ class TestStreamElementCodec {
     @Test
     void watermarkStatus_active_roundTrips() {
         WatermarkStatus original = WatermarkStatus.ACTIVE;
-        StreamMessageEnvelope envelope = StreamElementCodec.encode(original, null, FENCING_TOKEN, EPOCH_ID);
+        StreamMessageEnvelope envelope = StreamElementCodec.encode(original, null, EPOCH_ID);
 
         StreamElement decoded = StreamElementCodec.decode(envelope);
         assertTrue(decoded.isWatermarkStatus());
@@ -167,7 +166,7 @@ class TestStreamElementCodec {
     @Test
     void encode_nullElement_throws() {
         assertThrows(StreamException.class,
-                () -> StreamElementCodec.encode(null, null, FENCING_TOKEN, EPOCH_ID));
+                () -> StreamElementCodec.encode(null, null, EPOCH_ID));
     }
 
     @Test

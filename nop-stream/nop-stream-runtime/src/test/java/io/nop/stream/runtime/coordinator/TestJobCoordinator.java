@@ -109,7 +109,7 @@ class TestJobCoordinator {
     void testStartRegistersCoordinator() {
         coordinator.start();
         assertTrue(coordinator.isRunning());
-        assertNotNull(coordinator.getFencingToken());
+        assertTrue(coordinator.getFencingEpoch() > 0L);
     }
 
     @Test
@@ -199,7 +199,7 @@ class TestJobCoordinator {
 
         CheckpointAckMessage ack = new CheckpointAckMessage(
                 sourceLoc, pending.getCheckpointId(), snapshot,
-                coordinator.getFencingToken());
+                coordinator.getFencingEpoch());
 
         boolean accepted = coordinator.collectAck(ack);
         assertTrue(accepted);
@@ -221,7 +221,7 @@ class TestJobCoordinator {
 
         CheckpointAckMessage ack = new CheckpointAckMessage(
                 sourceLoc, pending.getCheckpointId(), snapshot,
-                "stale-token");
+                999L);
 
         boolean accepted = coordinator.collectAck(ack);
         assertFalse(accepted);
@@ -236,7 +236,7 @@ class TestJobCoordinator {
         PendingCheckpoint pending = coordinator.triggerCheckpoint();
         assertNotNull(pending);
 
-        String token = coordinator.getFencingToken();
+        long token = coordinator.getFencingEpoch();
 
         // ACK from source
         TaskLocation sourceLoc = new TaskLocation(JOB_ID, "pipeline-0", "source", 0);
@@ -280,10 +280,10 @@ class TestJobCoordinator {
         coordinator.start();
         coordinator.assignTasks();
 
-        String oldToken = coordinator.getFencingToken();
+        long oldToken = coordinator.getFencingEpoch();
         coordinator.globalRecovery();
 
-        String newToken = coordinator.getFencingToken();
+        long newToken = coordinator.getFencingEpoch();
         assertNotEquals(oldToken, newToken);
         assertTrue(coordinator.isRunning());
     }
@@ -306,11 +306,11 @@ class TestJobCoordinator {
 
         assertNotNull(mockRpcService.lastBarrier.get());
         assertEquals(pending.getCheckpointId(), mockRpcService.lastBarrier.get().getId());
-        assertEquals(coordinator.getFencingToken(), mockRpcService.lastFencingToken.get());
+        assertEquals(coordinator.getFencingEpoch(), mockRpcService.lastFencingEpoch.get());
 
         TaskLocation loc = new TaskLocation(JOB_ID, "pipeline-0", "source", 0);
         CheckpointAckMessage ack = new CheckpointAckMessage(
-                loc, pending.getCheckpointId(), null, coordinator.getFencingToken());
+                loc, pending.getCheckpointId(), null, coordinator.getFencingEpoch());
         boolean accepted = coordinator.collectAck(ack);
         assertTrue(accepted);
     }
@@ -363,8 +363,8 @@ class TestJobCoordinator {
         coordinator.start();
         coordinator.assignTasks();
 
-        String tokenBeforeFailure = coordinator.getFencingToken();
-        assertNotNull(tokenBeforeFailure);
+        long tokenBeforeFailure = coordinator.getFencingEpoch();
+        assertTrue(tokenBeforeFailure > 0L);
 
         // Simulate node loss by removing node from the registry
         clusterRegistry.nodes.remove("node-1");
@@ -373,7 +373,7 @@ class TestJobCoordinator {
         coordinator.detectFailures();
 
         // A new fencing token should have been generated
-        String tokenAfterFailure = coordinator.getFencingToken();
+        long tokenAfterFailure = coordinator.getFencingEpoch();
         assertNotEquals(tokenBeforeFailure, tokenAfterFailure,
                 "Fencing token should change after failure detection triggers recovery");
     }
@@ -384,12 +384,12 @@ class TestJobCoordinator {
         coordinator.start();
         coordinator.assignTasks();
 
-        String tokenBefore = coordinator.getFencingToken();
+        long tokenBefore = coordinator.getFencingEpoch();
 
         // All nodes are healthy, detectFailures should not trigger recovery
         coordinator.detectFailures();
 
-        String tokenAfter = coordinator.getFencingToken();
+        long tokenAfter = coordinator.getFencingEpoch();
         assertEquals(tokenBefore, tokenAfter,
                 "Fencing token should NOT change when all nodes are healthy");
     }
@@ -450,9 +450,9 @@ class TestJobCoordinator {
         final Map<String, io.nop.stream.runtime.cluster.CoordinatorInfo> coordinators = new ConcurrentHashMap<>();
 
         @Override
-        public void registerCoordinator(String jobId, String coordinatorId, String fencingToken) {
+        public void registerCoordinator(String jobId, String coordinatorId, long fencingEpoch) {
             coordinators.put(jobId, new io.nop.stream.runtime.cluster.CoordinatorInfo(
-                    jobId, coordinatorId, fencingToken, System.currentTimeMillis()));
+                    jobId, coordinatorId, fencingEpoch, System.currentTimeMillis()));
         }
 
         @Override
@@ -483,7 +483,7 @@ class TestJobCoordinator {
 
         @Override
         public void assignTask(String jobId, String vertexId, int subtaskIndex,
-                               String nodeId, String attemptId, String fencingToken,
+                               String nodeId, String attemptId, long fencingEpoch,
                                int attemptNumber) {
             // no-op in mock
         }
@@ -507,7 +507,7 @@ class TestJobCoordinator {
     static class MockTaskRpcService implements IStreamTaskRpcService {
         final List<TaskAssignment> assignments = new CopyOnWriteArrayList<>();
         final AtomicReference<CheckpointBarrier> lastBarrier = new AtomicReference<>();
-        final AtomicReference<String> lastFencingToken = new AtomicReference<>();
+        final AtomicLong lastFencingEpoch = new AtomicLong();
 
         @Override
         public void receiveAssignment(TaskAssignment assignment) {
@@ -515,9 +515,9 @@ class TestJobCoordinator {
         }
 
         @Override
-        public void triggerCheckpoint(CheckpointBarrier barrier, String fencingToken) {
+        public void triggerCheckpoint(CheckpointBarrier barrier, long fencingEpoch) {
             lastBarrier.set(barrier);
-            lastFencingToken.set(fencingToken);
+            lastFencingEpoch.set(fencingEpoch);
         }
 
         @Override
@@ -525,8 +525,8 @@ class TestJobCoordinator {
         }
 
         @Override
-        public void updateFencingToken(String newToken) {
-            lastFencingToken.set(newToken);
+        public void updateFencingToken(long fencingEpoch) {
+            lastFencingEpoch.set(fencingEpoch);
         }
     }
 }

@@ -20,9 +20,9 @@ public interface ClusterRegistry {
      *
      * @param jobId        the job identifier
      * @param coordinatorId unique coordinator identifier
-     * @param fencingToken fencing token for leader election
+     * @param fencingEpoch monotonic fencing epoch (Stage 39: long, replaces composite String)
      */
-    void registerCoordinator(String jobId, String coordinatorId, String fencingToken);
+    void registerCoordinator(String jobId, String coordinatorId, long fencingEpoch);
 
     /**
      * Get the active coordinator info for a job.
@@ -79,11 +79,11 @@ public interface ClusterRegistry {
      * @param subtaskIndex the subtask index
      * @param nodeId       the node to assign to
      * @param attemptId    execution attempt identifier (UUID)
-     * @param fencingToken fencing token for this assignment
+     * @param fencingEpoch monotonic fencing epoch for this assignment (Stage 39: long)
      * @param attemptNumber monotonic attempt number per (job, vertex, subtask); starts at 1
      */
     void assignTask(String jobId, String vertexId, int subtaskIndex,
-                    String nodeId, String attemptId, String fencingToken, int attemptNumber);
+                    String nodeId, String attemptId, long fencingEpoch, int attemptNumber);
 
     /**
      * Backward-compatible overload defaulting {@code attemptNumber = 1}. Existing
@@ -91,8 +91,8 @@ public interface ClusterRegistry {
      * callers (JobCoordinator) must pass an explicit attempt number.
      */
     default void assignTask(String jobId, String vertexId, int subtaskIndex,
-                            String nodeId, String attemptId, String fencingToken) {
-        assignTask(jobId, vertexId, subtaskIndex, nodeId, attemptId, fencingToken, 1);
+                            String nodeId, String attemptId, long fencingEpoch) {
+        assignTask(jobId, vertexId, subtaskIndex, nodeId, attemptId, fencingEpoch, 1);
     }
 
     /**

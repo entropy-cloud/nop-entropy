@@ -118,9 +118,9 @@ class TestJobCoordinatorLeaderElection {
 
         assertTrue(coordinator.isRunning(), "coordinator machinery should be running");
         assertFalse(coordinator.isActive(), "HA coordinator must start in STANDBY (not active)");
-        // No fencing token yet — coordinator has not won leadership.
-        assertNull(coordinator.getFencingToken(),
-                "standby coordinator must not have a fencing token before becoming leader");
+        // No fencing epoch yet — coordinator has not won leadership (0 == uninitialized).
+        assertEquals(0L, coordinator.getFencingEpoch(),
+                "standby coordinator must not have a fencing epoch before becoming leader");
         // No assignments issued while standby.
         assertTrue(coordinator.getTaskAssignments().isEmpty());
         assertTrue(mockRpcService.assignments.isEmpty(),
@@ -137,11 +137,11 @@ class TestJobCoordinatorLeaderElection {
         elector.grantLeadership(7L);
 
         assertTrue(coordinator.isActive(), "becomeLeader must transition to ACTIVE");
-        assertNotNull(coordinator.getFencingToken(), "leader must have a fencing token");
+        assertTrue(coordinator.getFencingEpoch() > 0L, "leader must have a fencing epoch");
 
-        // Composite token encoding: leaderId@epoch#recoveryGen
-        assertEquals("host-A@7#0", coordinator.getFencingToken(),
-                "HA fencing token must be derived from LeaderEpoch (leaderId@epoch#recoveryGen), not a random UUID");
+        // Stage 39: HA fencing epoch = leaderEpoch * EPOCH_SCALE + recoveryGen
+        assertEquals(JobCoordinator.deriveHaFencingEpoch(7L, 0L), coordinator.getFencingEpoch(),
+                "HA fencing epoch must be derived from LeaderEpoch (leaderEpoch * EPOCH_SCALE + recoveryGen), not a random value");
         assertEquals(0L, coordinator.getRecoveryGen(),
                 "recoveryGen must reset to 0 on leadership grant");
 
@@ -154,8 +154,8 @@ class TestJobCoordinatorLeaderElection {
         // leadership-derived token).
         assertFalse(coordinator.getTaskAssignments().isEmpty());
         assertFalse(mockRpcService.assignments.isEmpty());
-        assertEquals("host-A@7#0", mockRpcService.assignments.get(0).getFencingToken(),
-                "assignments issued on activation must carry the leadership-derived token");
+        assertEquals(JobCoordinator.deriveHaFencingEpoch(7L, 0L), mockRpcService.assignments.get(0).getFencingEpoch(),
+                "assignments issued on activation must carry the leadership-derived epoch");
     }
 
     @Test
@@ -178,8 +178,8 @@ class TestJobCoordinatorLeaderElection {
         // ...so the coordinator must remain in STANDBY.
         assertFalse(coordinator.isActive(),
                 "coordinator must NOT activate when the election was won by another node");
-        assertNull(coordinator.getFencingToken(),
-                "lost-election coordinator must not derive a fencing token");
+        assertEquals(0L, coordinator.getFencingEpoch(),
+                "lost-election coordinator must not derive a fencing epoch");
     }
 
     @Test
@@ -198,8 +198,8 @@ class TestJobCoordinatorLeaderElection {
         // Re-election re-activates with a fresh epoch.
         elector.grantLeadership(2L);
         assertTrue(coordinator.isActive());
-        assertEquals("host-A@2#0", coordinator.getFencingToken(),
-                "re-election must derive a fresh token from the new epoch");
+        assertEquals(JobCoordinator.deriveHaFencingEpoch(2L, 0L), coordinator.getFencingEpoch(),
+                "re-election must derive a fresh epoch from the new leader epoch");
     }
 
     @Test
@@ -240,7 +240,7 @@ class TestJobCoordinatorLeaderElection {
         io.nop.stream.runtime.taskmanager.CheckpointAckMessage ack =
                 new io.nop.stream.runtime.taskmanager.CheckpointAckMessage(
                         new io.nop.stream.core.checkpoint.TaskLocation(JOB_ID, "pipeline-0", "source", 0),
-                        1L, null, "host-A@1#0");
+                        1L, null, JobCoordinator.deriveHaFencingEpoch(1L, 0L));
         boolean accepted = coordinator.collectAck(ack);
         assertFalse(accepted, "standby collectAck must be rejected");
     }
@@ -253,7 +253,7 @@ class TestJobCoordinatorLeaderElection {
         TaskStatusReport report = new TaskStatusReport(
                 JOB_ID, "source", 0, 1,
                 TaskStatusReport.TerminalState.FAILED, "boom",
-                System.currentTimeMillis(), "host-A@1#0", System.currentTimeMillis());
+                System.currentTimeMillis(), JobCoordinator.deriveHaFencingEpoch(1L, 0L), System.currentTimeMillis());
         // Should not throw and should not trigger recovery (standby doesn't own it).
         coordinator.reportTaskStatus(report);
         assertEquals(0, coordinator.getRestartCount(),
@@ -316,11 +316,10 @@ class TestJobCoordinatorLeaderElection {
             assertTrue(nonHa.isRunning());
             assertTrue(nonHa.isActive(), "non-HA coordinator must be active immediately on start");
             assertNull(nonHa.getCurrentLeadership(), "non-HA coordinator has no leadership epoch");
-            assertNotNull(nonHa.getFencingToken());
-            // Non-HA token is a random UUID (contains hyphens, not the composite '@'/'#' shape).
-            assertTrue(nonHa.getFencingToken().contains("-"),
-                    "non-HA fencing token must remain a random UUID");
-            assertFalse(nonHa.getFencingToken().contains("@"));
+            assertTrue(nonHa.getFencingEpoch() > 0L, "non-HA coordinator must derive a fencing epoch on start");
+            // Non-HA epoch uses leaderEpoch component 0, recoveryGen seeded to 1 on start.
+            assertEquals(1L, nonHa.getFencingEpoch(),
+                    "non-HA fencing epoch uses leaderEpoch=0, recoveryGen=1 (zero regression single-instance behaviour)");
 
             // assignTasks / triggerCheckpoint work without any election.
             nonHa.assignTasks();
@@ -337,9 +336,9 @@ class TestJobCoordinatorLeaderElection {
         final Map<String, io.nop.stream.runtime.cluster.CoordinatorInfo> coordinators = new ConcurrentHashMap<>();
 
         @Override
-        public void registerCoordinator(String jobId, String coordinatorId, String fencingToken) {
+        public void registerCoordinator(String jobId, String coordinatorId, long fencingEpoch) {
             coordinators.put(jobId, new io.nop.stream.runtime.cluster.CoordinatorInfo(
-                    jobId, coordinatorId, fencingToken, System.currentTimeMillis()));
+                    jobId, coordinatorId, fencingEpoch, System.currentTimeMillis()));
         }
 
         @Override
@@ -370,7 +369,7 @@ class TestJobCoordinatorLeaderElection {
 
         @Override
         public void assignTask(String jobId, String vertexId, int subtaskIndex,
-                               String nodeId, String attemptId, String fencingToken,
+                               String nodeId, String attemptId, long fencingEpoch,
                                int attemptNumber) {
         }
 
@@ -392,7 +391,7 @@ class TestJobCoordinatorLeaderElection {
     static class MockTaskRpcService implements IStreamTaskRpcService {
         final List<TaskAssignment> assignments = new CopyOnWriteArrayList<>();
         final AtomicReference<io.nop.stream.core.checkpoint.CheckpointBarrier> lastBarrier = new AtomicReference<>();
-        final AtomicReference<String> lastFencingToken = new AtomicReference<>();
+        final java.util.concurrent.atomic.AtomicLong lastFencingEpoch = new java.util.concurrent.atomic.AtomicLong();
 
         @Override
         public void receiveAssignment(TaskAssignment assignment) {
@@ -400,9 +399,9 @@ class TestJobCoordinatorLeaderElection {
         }
 
         @Override
-        public void triggerCheckpoint(io.nop.stream.core.checkpoint.CheckpointBarrier barrier, String fencingToken) {
+        public void triggerCheckpoint(io.nop.stream.core.checkpoint.CheckpointBarrier barrier, long fencingEpoch) {
             lastBarrier.set(barrier);
-            lastFencingToken.set(fencingToken);
+            lastFencingEpoch.set(fencingEpoch);
         }
 
         @Override
@@ -410,8 +409,8 @@ class TestJobCoordinatorLeaderElection {
         }
 
         @Override
-        public void updateFencingToken(String newToken) {
-            lastFencingToken.set(newToken);
+        public void updateFencingToken(long fencingEpoch) {
+            lastFencingEpoch.set(fencingEpoch);
         }
     }
 }

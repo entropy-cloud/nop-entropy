@@ -44,11 +44,10 @@ public class StreamElementCodec {
      *
      * @param element       待编码的流元素
      * @param valueType     StreamRecord 载荷的 Java 类名（仅对 StreamRecord 有意义，可传 null）
-     * @param fencingToken  fencing token
-     * @param epochId       epoch id
+     * @param epochId       单调 fencing epoch（Stage 39：取代原 String fencingToken，统一为 long）
      * @return 编码后的信封
      */
-    public static StreamMessageEnvelope encode(StreamElement element, String valueType, String fencingToken, long epochId) {
+    public static StreamMessageEnvelope encode(StreamElement element, String valueType, long epochId) {
         if (element == null) {
             throw new StreamException(ERR_STREAM_NULL_ARG).param(ARG_ARG_NAME, "element");
         }
@@ -58,24 +57,24 @@ public class StreamElementCodec {
             Object serializedPayload = record.getValue() != null ? JsonTool.stringify(record.getValue()) : null;
             String effectiveType = valueType != null ? valueType
                     : (record.getValue() != null ? record.getValue().getClass().getName() : null);
-            return new StreamMessageEnvelope(fencingToken, epochId,
+            return new StreamMessageEnvelope(epochId,
                     StreamMessageEnvelope.TYPE_STREAM_RECORD, effectiveType, serializedPayload,
                     record.getTimestamp(), record.hasTimestamp());
         }
 
         if (element.isCheckpointBarrier()) {
             CheckpointBarrier barrier = element.asCheckpointBarrier();
-            return new StreamMessageEnvelope(fencingToken, epochId,
+            return new StreamMessageEnvelope(epochId,
                     StreamMessageEnvelope.TYPE_CHECKPOINT_BARRIER, null, barrier);
         }
 
         if (element.isWatermark()) {
-            return new StreamMessageEnvelope(fencingToken, epochId,
+            return new StreamMessageEnvelope(epochId,
                     StreamMessageEnvelope.TYPE_WATERMARK, null, element.asWatermark());
         }
 
         if (element.isWatermarkStatus()) {
-            return new StreamMessageEnvelope(fencingToken, epochId,
+            return new StreamMessageEnvelope(epochId,
                     StreamMessageEnvelope.TYPE_WATERMARK_STATUS, null, element.asWatermarkStatus());
         }
 

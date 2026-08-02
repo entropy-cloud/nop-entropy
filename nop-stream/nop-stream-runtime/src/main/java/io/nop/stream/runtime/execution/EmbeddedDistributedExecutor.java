@@ -11,7 +11,6 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
 import org.slf4j.Logger;
@@ -101,9 +100,12 @@ public class EmbeddedDistributedExecutor implements IStreamExecutionDispatcher {
                                          DeploymentPlan deploymentPlan) throws Exception {
         long startTime = System.currentTimeMillis();
         String jobId = partitionedPlan.getJobId();
-        String fencingToken = UUID.randomUUID().toString();
+        // Stage 39: non-HA embedded execution uses a monotonic long fencing epoch
+        // (leaderEpoch component 0, recoveryGen seeded to 1) — consistent with the
+        // JobCoordinator non-HA start path. The legacy random-UUID String is gone.
+        long fencingEpoch = JobCoordinator.deriveHaFencingEpoch(0L, 1L);
 
-        LOG.info("Starting embedded distributed execution for job {} with fencing token {}", jobId, fencingToken);
+        LOG.info("Starting embedded distributed execution for job {} with fencing epoch {}", jobId, fencingEpoch);
 
         int nodeCount = determineNodeCount(partitionedPlan);
 
@@ -119,7 +121,7 @@ public class EmbeddedDistributedExecutor implements IStreamExecutionDispatcher {
             String controlTopic = "nop-stream.control." + jobId;
             TaskManager tm = new TaskManager(nodeId, endpoint, 16,
                     messageService, clusterRegistry, controlTopic);
-            tm.updateFencingToken(fencingToken);
+            tm.updateFencingToken(fencingEpoch);
             taskManagers.add(tm);
             taskRpcServices.put(nodeId, tm);
         }
@@ -152,7 +154,7 @@ public class EmbeddedDistributedExecutor implements IStreamExecutionDispatcher {
                 clusterRegistry, checkpointCoordinator,
                 taskRpcServices);
 
-        coordinator.setFencingToken(fencingToken);
+        coordinator.setFencingEpoch(fencingEpoch);
         // G52: embedded path uses synchronous failure propagation via
         // checkTaskResults; auto-recovery on FAILED would reassign tasks without
         // reinstalling invokables (which the embedded loop does only once),
@@ -165,7 +167,7 @@ public class EmbeddedDistributedExecutor implements IStreamExecutionDispatcher {
 
         try {
             RemoteGraphExecutionPlanBuilder planBuilder = new RemoteGraphExecutionPlanBuilder(
-                    messageService, new TypeRegistry(), fencingToken, 0);
+                    messageService, new TypeRegistry(), fencingEpoch);
             GraphExecutionPlan plan = planBuilder.buildRemoteOnly(jobGraph, deploymentPlan, true);
 
             // Start coordinator before assigning tasks

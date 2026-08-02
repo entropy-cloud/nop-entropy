@@ -174,7 +174,7 @@ class TestJobCoordinatorAttemptTracking {
         }
 
         @Override
-        public void triggerCheckpoint(io.nop.stream.core.checkpoint.CheckpointBarrier barrier, String fencingToken) {
+        public void triggerCheckpoint(io.nop.stream.core.checkpoint.CheckpointBarrier barrier, long fencingEpoch) {
         }
 
         @Override
@@ -182,7 +182,7 @@ class TestJobCoordinatorAttemptTracking {
         }
 
         @Override
-        public void updateFencingToken(String newToken) {
+        public void updateFencingToken(long fencingEpoch) {
         }
     }
 }

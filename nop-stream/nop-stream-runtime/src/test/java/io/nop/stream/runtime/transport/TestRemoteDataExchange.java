@@ -55,7 +55,7 @@ class TestRemoteDataExchange {
 
         String topic = StreamTopicNaming.buildTopic("job-1", "edge-1", 0, 0);
         RemoteResultPartition partition = new RemoteResultPartition(
-                messageService, topic, typeRegistry, "edge-1", "token-1", 1L);
+                messageService, topic, typeRegistry, "edge-1", 1L);
 
         // Subscribe a listener to capture messages
         List<Object> received = new ArrayList<>();
@@ -71,7 +71,6 @@ class TestRemoteDataExchange {
         assertInstanceOf(StreamMessageEnvelope.class, received.get(0));
         StreamMessageEnvelope env = (StreamMessageEnvelope) received.get(0);
         assertEquals(StreamMessageEnvelope.TYPE_STREAM_RECORD, env.getType());
-        assertEquals("token-1", env.getFencingToken());
         assertEquals(1L, env.getEpochId());
     }
 
@@ -79,7 +78,7 @@ class TestRemoteDataExchange {
     void testRemoteResultPartitionClose() throws Exception {
         String topic = StreamTopicNaming.buildTopic("job-1", "edge-1", 0, 0);
         RemoteResultPartition partition = new RemoteResultPartition(
-                messageService, topic, null, "edge-1", "token-1", 1L);
+                messageService, topic, null, "edge-1", 1L);
 
         List<Object> received = new ArrayList<>();
         messageService.subscribe(topic, (t, msg, ctx) -> {
@@ -101,7 +100,7 @@ class TestRemoteDataExchange {
     void testRemoteResultPartitionRejectsWriteAfterClose() {
         String topic = StreamTopicNaming.buildTopic("job-1", "edge-1", 0, 0);
         RemoteResultPartition partition = new RemoteResultPartition(
-                messageService, topic, null, "edge-1", "token-1", 1L);
+                messageService, topic, null, "edge-1", 1L);
         partition.close();
 
         assertThrows(StreamException.class, () ->
@@ -116,9 +115,9 @@ class TestRemoteDataExchange {
 
         // Create producer and consumer
         RemoteResultPartition producer = new RemoteResultPartition(
-                messageService, topic, typeRegistry, "edge-1", "token-1", 1L);
+                messageService, topic, typeRegistry, "edge-1", 1L);
         RemoteInputChannel consumer = new RemoteInputChannel(
-                messageService, topic, "token-1", 1L);
+                messageService, topic, 1L);
 
         try {
             // Send records
@@ -145,9 +144,9 @@ class TestRemoteDataExchange {
         String topic = StreamTopicNaming.buildTopic("job-1", "edge-1", 0, 0);
 
         RemoteResultPartition producer = new RemoteResultPartition(
-                messageService, topic, null, "edge-1", "token-1", 1L);
+                messageService, topic, null, "edge-1", 1L);
         RemoteInputChannel consumer = new RemoteInputChannel(
-                messageService, topic, "token-1", 1L);
+                messageService, topic, 1L);
 
         try {
             producer.write(new StreamRecord<>("last"));
@@ -173,13 +172,13 @@ class TestRemoteDataExchange {
 
         // Consumer expects token-2, epoch 2
         RemoteInputChannel consumer = new RemoteInputChannel(
-                messageService, topic, "token-2", 2L);
+                messageService, topic, 2L);
 
         // Producer sends with wrong fencing token
         TypeRegistry typeRegistry = new TypeRegistry();
         typeRegistry.register("edge-1", String.class.getName());
         RemoteResultPartition staleProducer = new RemoteResultPartition(
-                messageService, topic, typeRegistry, "edge-1", "token-1", 1L);
+                messageService, topic, typeRegistry, "edge-1", 1L);
 
         try {
             staleProducer.write(new StreamRecord<>("stale"));
@@ -201,9 +200,9 @@ class TestRemoteDataExchange {
         String topic = StreamTopicNaming.buildTopic("job-1", "edge-1", 0, 0);
 
         RemoteResultPartition producer = new RemoteResultPartition(
-                messageService, topic, null, "edge-1", "token-1", 1L);
+                messageService, topic, null, "edge-1", 1L);
         RemoteInputChannel consumer = new RemoteInputChannel(
-                messageService, topic, "token-1", 1L);
+                messageService, topic, 1L);
 
         try {
             // Send a checkpoint barrier
@@ -225,9 +224,9 @@ class TestRemoteDataExchange {
         String topic = StreamTopicNaming.buildTopic("job-1", "edge-1", 0, 0);
 
         RemoteResultPartition producer = new RemoteResultPartition(
-                messageService, topic, null, "edge-1", "token-1", 1L);
+                messageService, topic, null, "edge-1", 1L);
         RemoteInputChannel consumer = new RemoteInputChannel(
-                messageService, topic, "token-1", 1L);
+                messageService, topic, 1L);
 
         try {
             producer.write(new Watermark(42L));
@@ -251,14 +250,14 @@ class TestRemoteDataExchange {
         String topic1 = StreamTopicNaming.buildTopic("job-1", "edge-1", 0, 1);
 
         RemoteResultPartition p0 = new RemoteResultPartition(
-                messageService, topic0, typeRegistry, "edge-1", "token-1", 1L);
+                messageService, topic0, typeRegistry, "edge-1", 1L);
         RemoteResultPartition p1 = new RemoteResultPartition(
-                messageService, topic1, typeRegistry, "edge-1", "token-1", 1L);
+                messageService, topic1, typeRegistry, "edge-1", 1L);
 
         RemoteInputChannel c0 = new RemoteInputChannel(
-                messageService, topic0, "token-1", 1L);
+                messageService, topic0, 1L);
         RemoteInputChannel c1 = new RemoteInputChannel(
-                messageService, topic1, "token-1", 1L);
+                messageService, topic1, 1L);
 
         try {
             // RecordWriter with 2 remote partitions, using forward partitioner
@@ -301,7 +300,7 @@ class TestRemoteDataExchange {
         // Verify RemoteInputChannel works as InputChannel
         String topic = StreamTopicNaming.buildTopic("job-1", "edge-1", 0, 0);
         RemoteInputChannel remote = new RemoteInputChannel(
-                messageService, topic, "t1", 1L);
+                messageService, topic, 1L);
 
         // Can use as InputChannel (polymorphism)
         InputChannel channel = remote;

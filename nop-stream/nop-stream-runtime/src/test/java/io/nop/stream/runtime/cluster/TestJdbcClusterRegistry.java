@@ -70,25 +70,25 @@ class TestJdbcClusterRegistry {
 
     @Test
     void testRegisterAndGetCoordinator() {
-        registry.registerCoordinator("job-1", "coord-1", "fence-1");
+        registry.registerCoordinator("job-1", "coord-1", 1L);
 
         CoordinatorInfo info = registry.getActiveCoordinator("job-1");
         assertNotNull(info);
         assertEquals("job-1", info.getJobId());
         assertEquals("coord-1", info.getCoordinatorId());
-        assertEquals("fence-1", info.getFencingToken());
+        assertEquals(1L, info.getFencingEpoch());
         assertTrue(info.getRegisteredAt() > 0);
     }
 
     @Test
     void testRegisterCoordinatorOverwrite() {
-        registry.registerCoordinator("job-1", "coord-1", "fence-1");
-        registry.registerCoordinator("job-1", "coord-2", "fence-2");
+        registry.registerCoordinator("job-1", "coord-1", 1L);
+        registry.registerCoordinator("job-1", "coord-2", 2L);
 
         CoordinatorInfo info = registry.getActiveCoordinator("job-1");
         assertNotNull(info);
         assertEquals("coord-2", info.getCoordinatorId());
-        assertEquals("fence-2", info.getFencingToken());
+        assertEquals(2L, info.getFencingEpoch());
     }
 
     @Test
@@ -99,8 +99,8 @@ class TestJdbcClusterRegistry {
 
     @Test
     void testMultipleJobsHaveSeparateCoordinators() {
-        registry.registerCoordinator("job-1", "coord-1", "fence-1");
-        registry.registerCoordinator("job-2", "coord-2", "fence-2");
+        registry.registerCoordinator("job-1", "coord-1", 1L);
+        registry.registerCoordinator("job-2", "coord-2", 2L);
 
         CoordinatorInfo info1 = registry.getActiveCoordinator("job-1");
         assertNotNull(info1);
@@ -194,8 +194,8 @@ class TestJdbcClusterRegistry {
 
     @Test
     void testAssignAndGetTask() {
-        registry.registerCoordinator("job-1", "coord-1", "fence-1");
-        registry.assignTask("job-1", "vertex-1", 0, "node-1", "attempt-1", "fence-1");
+        registry.registerCoordinator("job-1", "coord-1", 1L);
+        registry.assignTask("job-1", "vertex-1", 0, "node-1", "attempt-1", 1L);
 
         TaskAssignment assignment = registry.getTaskAssignment("job-1", "vertex-1", 0);
         assertNotNull(assignment);
@@ -204,22 +204,22 @@ class TestJdbcClusterRegistry {
         assertEquals(0, assignment.getSubtaskIndex());
         assertEquals("node-1", assignment.getNodeId());
         assertEquals("attempt-1", assignment.getAttemptId());
-        assertEquals("fence-1", assignment.getFencingToken());
+        assertEquals(1L, assignment.getFencingEpoch());
         assertTrue(assignment.getAssignedAt() > 0);
     }
 
     @Test
     void testAssignTaskPreservesAttemptHistory() {
         // G56: assignTask no longer overwrites; it appends to attempt history.
-        registry.assignTask("job-1", "vertex-1", 0, "node-1", "attempt-1", "fence-1", 1);
-        registry.assignTask("job-1", "vertex-1", 0, "node-2", "attempt-2", "fence-2", 2);
+        registry.assignTask("job-1", "vertex-1", 0, "node-1", "attempt-1", 1L, 1);
+        registry.assignTask("job-1", "vertex-1", 0, "node-2", "attempt-2", 2L, 2);
 
         // Latest = attempt 2
         TaskAssignment latest = registry.getTaskAssignment("job-1", "vertex-1", 0);
         assertNotNull(latest);
         assertEquals("node-2", latest.getNodeId());
         assertEquals("attempt-2", latest.getAttemptId());
-        assertEquals("fence-2", latest.getFencingToken());
+        assertEquals(2L, latest.getFencingEpoch());
         assertEquals(2, latest.getAttemptNumber());
 
         // Full history preserved
@@ -244,7 +244,7 @@ class TestJdbcClusterRegistry {
 
     @Test
     void testRemoveTaskAssignment() {
-        registry.assignTask("job-1", "vertex-1", 0, "node-1", "attempt-1", "fence-1");
+        registry.assignTask("job-1", "vertex-1", 0, "node-1", "attempt-1", 1L);
         assertNotNull(registry.getTaskAssignment("job-1", "vertex-1", 0));
 
         registry.removeTaskAssignment("job-1", "vertex-1", 0);
@@ -258,9 +258,9 @@ class TestJdbcClusterRegistry {
 
     @Test
     void testMultipleSubtaskAssignments() {
-        registry.assignTask("job-1", "vertex-1", 0, "node-1", "attempt-1", "fence-1");
-        registry.assignTask("job-1", "vertex-1", 1, "node-2", "attempt-1", "fence-1");
-        registry.assignTask("job-1", "vertex-1", 2, "node-1", "attempt-1", "fence-1");
+        registry.assignTask("job-1", "vertex-1", 0, "node-1", "attempt-1", 1L);
+        registry.assignTask("job-1", "vertex-1", 1, "node-2", "attempt-1", 1L);
+        registry.assignTask("job-1", "vertex-1", 2, "node-1", "attempt-1", 1L);
 
         TaskAssignment a0 = registry.getTaskAssignment("job-1", "vertex-1", 0);
         assertNotNull(a0);
@@ -277,8 +277,8 @@ class TestJdbcClusterRegistry {
 
     @Test
     void testRemoveOnlyOneSubtaskAssignment() {
-        registry.assignTask("job-1", "vertex-1", 0, "node-1", "attempt-1", "fence-1");
-        registry.assignTask("job-1", "vertex-1", 1, "node-2", "attempt-1", "fence-1");
+        registry.assignTask("job-1", "vertex-1", 0, "node-1", "attempt-1", 1L);
+        registry.assignTask("job-1", "vertex-1", 1, "node-2", "attempt-1", 1L);
 
         registry.removeTaskAssignment("job-1", "vertex-1", 0);
 
@@ -291,7 +291,7 @@ class TestJdbcClusterRegistry {
     @Test
     void testFullClusterLifecycle() {
         // 1. Register coordinator
-        registry.registerCoordinator("job-e2e", "coord-e2e", "token-e2e");
+        registry.registerCoordinator("job-e2e", "coord-e2e", 1L);
         CoordinatorInfo coord = registry.getActiveCoordinator("job-e2e");
         assertNotNull(coord);
         assertEquals("coord-e2e", coord.getCoordinatorId());
@@ -309,9 +309,9 @@ class TestJdbcClusterRegistry {
         assertEquals(2, activeNodes.size());
 
         // 5. Assign tasks (G56: explicit attempt numbers)
-        registry.assignTask("job-e2e", "source", 0, "node-a", "att-1", "token-e2e", 1);
-        registry.assignTask("job-e2e", "source", 1, "node-b", "att-1", "token-e2e", 1);
-        registry.assignTask("job-e2e", "sink", 0, "node-a", "att-1", "token-e2e", 1);
+        registry.assignTask("job-e2e", "source", 0, "node-a", "att-1", 1L, 1);
+        registry.assignTask("job-e2e", "source", 1, "node-b", "att-1", 1L, 1);
+        registry.assignTask("job-e2e", "sink", 0, "node-a", "att-1", 1L, 1);
 
         // 6. Verify assignments
         assertNotNull(registry.getTaskAssignment("job-e2e", "source", 0));
@@ -319,12 +319,12 @@ class TestJdbcClusterRegistry {
         assertNotNull(registry.getTaskAssignment("job-e2e", "sink", 0));
 
         // 7. Reassign a task (failover scenario) — append new attempt
-        registry.assignTask("job-e2e", "source", 1, "node-a", "att-2", "token-e2e-v2", 2);
+        registry.assignTask("job-e2e", "source", 1, "node-a", "att-2", 2L, 2);
         TaskAssignment reassigned = registry.getTaskAssignment("job-e2e", "source", 1);
         assertNotNull(reassigned);
         assertEquals("node-a", reassigned.getNodeId());
         assertEquals("att-2", reassigned.getAttemptId());
-        assertEquals("token-e2e-v2", reassigned.getFencingToken());
+        assertEquals(2L, reassigned.getFencingEpoch());
         assertEquals(2, reassigned.getAttemptNumber());
 
         // Attempt history preserves both attempts
@@ -336,7 +336,7 @@ class TestJdbcClusterRegistry {
         assertNull(registry.getTaskAssignment("job-e2e", "sink", 0));
 
         // 9. Coordinator takeover
-        registry.registerCoordinator("job-e2e", "coord-e2e-new", "token-e2e-v3");
+        registry.registerCoordinator("job-e2e", "coord-e2e-new", 3L);
         CoordinatorInfo newCoord = registry.getActiveCoordinator("job-e2e");
         assertNotNull(newCoord);
         assertEquals("coord-e2e-new", newCoord.getCoordinatorId());

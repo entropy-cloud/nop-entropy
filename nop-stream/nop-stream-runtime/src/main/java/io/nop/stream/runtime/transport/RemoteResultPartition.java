@@ -31,8 +31,11 @@ import io.nop.stream.core.streamrecord.StreamElement;
  * message service. Stream elements are encoded into {@link StreamMessageEnvelope}
  * via {@link StreamElementCodec} before sending.
  *
- * <p>Fencing token / epoch id are carried in every envelope so that the receiver
- * can discard stale messages from a previous job execution.
+ * <p>The monotonic fencing epoch ({@code epochId}) is carried in every envelope so
+ * that the receiver can discard stale messages from a previous job execution /
+ * leader / recovery. Stage 39 unified the data plane to a single long epoch
+ * comparison (the legacy composite String fencingToken + long epochId dual-key
+ * filter is collapsed into one long key).
  *
  * <p>Unlike the base {@link ResultPartition}, this implementation does not use
  * an internal queue. All writes are immediately sent via the message service.
@@ -55,7 +58,6 @@ public class RemoteResultPartition extends ResultPartition {
     private final String topic;
     private final TypeRegistry typeRegistry;
     private final String edgeId;
-    private final String fencingToken;
     private final long epochId;
 
     /**
@@ -65,14 +67,13 @@ public class RemoteResultPartition extends ResultPartition {
      * @param topic          the topic to send to
      * @param typeRegistry   registry for looking up output types per edge
      * @param edgeId         the edge identifier for type lookup
-     * @param fencingToken   fencing token for the current job execution
-     * @param epochId        epoch id for the current job execution
+     * @param epochId        monotonic fencing epoch for the current job execution
+     *                       (Stage 39: the single long fencing key)
      */
     public RemoteResultPartition(IMessageService messageService,
                                  String topic,
                                  TypeRegistry typeRegistry,
                                  String edgeId,
-                                 String fencingToken,
                                  long epochId) {
         // Pass capacity 1 to parent; the queue is never actually used
         super(1);
@@ -80,7 +81,6 @@ public class RemoteResultPartition extends ResultPartition {
         this.topic = topic;
         this.typeRegistry = typeRegistry;
         this.edgeId = edgeId;
-        this.fencingToken = fencingToken;
         this.epochId = epochId;
     }
 
@@ -103,7 +103,7 @@ public class RemoteResultPartition extends ResultPartition {
 
         String valueType = typeRegistry != null ? typeRegistry.getOutputTypeClassName(edgeId) : null;
         StreamMessageEnvelope envelope = StreamElementCodec.encode(
-                element, valueType, fencingToken, epochId);
+                element, valueType, epochId);
         messageService.send(topic, envelope);
     }
 
@@ -116,7 +116,7 @@ public class RemoteResultPartition extends ResultPartition {
 
         // Send end-of-stream control message
         StreamMessageEnvelope eos = new StreamMessageEnvelope(
-                fencingToken, epochId,
+                epochId,
                 StreamMessageEnvelope.TYPE_CONTROL, null,
                 "END_OF_STREAM");
         try {
@@ -135,10 +135,6 @@ public class RemoteResultPartition extends ResultPartition {
 
     public IMessageService getMessageService() {
         return messageService;
-    }
-
-    public String getFencingToken() {
-        return fencingToken;
     }
 
     public long getEpochId() {

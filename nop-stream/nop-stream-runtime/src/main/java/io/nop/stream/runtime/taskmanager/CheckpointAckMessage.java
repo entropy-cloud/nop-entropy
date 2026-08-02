@@ -17,7 +17,7 @@ import io.nop.stream.core.checkpoint.TaskStateSnapshot;
 /**
  * Message sent from TaskManager to JobCoordinator to acknowledge a checkpoint.
  *
- * <p>Carries the fencing token so the coordinator can reject stale ACKs.
+ * <p>Carries the monotonic fencing epoch so the coordinator can reject stale ACKs.
  */
 @DataBean
 public class CheckpointAckMessage implements Serializable {
@@ -27,17 +27,17 @@ public class CheckpointAckMessage implements Serializable {
     private TaskLocation taskLocation;
     private long checkpointId;
     private TaskStateSnapshot stateSnapshot;
-    private String fencingToken;
+    private long fencingEpoch;
 
     public CheckpointAckMessage() {
     }
 
     public CheckpointAckMessage(TaskLocation taskLocation, long checkpointId,
-                                TaskStateSnapshot stateSnapshot, String fencingToken) {
+                                TaskStateSnapshot stateSnapshot, long fencingEpoch) {
         this.taskLocation = taskLocation;
         this.checkpointId = checkpointId;
         this.stateSnapshot = stateSnapshot;
-        this.fencingToken = fencingToken;
+        this.fencingEpoch = fencingEpoch;
     }
 
     public TaskLocation getTaskLocation() {
@@ -64,11 +64,11 @@ public class CheckpointAckMessage implements Serializable {
         this.stateSnapshot = stateSnapshot;
     }
 
-    public String getFencingToken() {
-        return fencingToken;
+    public long getFencingEpoch() {
+        return fencingEpoch;
     }
 
-    public void setFencingToken(String fencingToken) {
-        this.fencingToken = fencingToken;
+    public void setFencingEpoch(long fencingEpoch) {
+        this.fencingEpoch = fencingEpoch;
     }
 }

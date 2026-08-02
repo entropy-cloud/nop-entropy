@@ -14,8 +14,14 @@ import io.nop.api.core.annotations.data.DataBean;
 /**
  * 统一消息信封格式，用于跨 TaskManager 通信。
  *
- * <p>携带 fencing token 和 epoch id 以支持 fencing 机制，
+ * <p>携带单调递增的 fencing epoch（{@code epochId}）以支持 fencing 机制，
  * 通过 type 字段标识载荷类型，valueType 字段记录 StreamRecord 载荷的具体 Java 类型名。
+ *
+ * <p><strong>Stage 39 fencing 统一</strong>：原复合表示（{@code String fencingToken} +
+ * {@code long epochId} 双键过滤）已收敛为单一 {@code long epochId} 单调 fencing epoch 比较。
+ * 该 epoch 同时编码 leadership 切换与同 leader 内 recovery（见
+ * {@code JobCoordinator.deriveHaFencingEpoch}），数据面仅按该 long 值等值/比较过滤，
+ * 同时满足「stale leader 旧 epoch 被拒」与「同 leader 上一轮 recovery task 被拒」两个不变量。
  */
 @DataBean
 public class StreamMessageEnvelope implements Serializable {
@@ -29,10 +35,10 @@ public class StreamMessageEnvelope implements Serializable {
     public static final String TYPE_WATERMARK_STATUS = "WATERMARK_STATUS";
     public static final String TYPE_CONTROL = "CONTROL";
 
-    /** fencing token，用于标识当前活跃的 job/master */
-    private String fencingToken;
-
-    /** epoch id，单调递增，配合 fencing token 实现双 epoch fencing */
+    /**
+     * 单调 fencing epoch。leadership 切换与同 leader 内 recovery 均推进该值
+     * （见 {@code JobCoordinator}）。数据面按该 long 值过滤 stale envelope。
+     */
     private long epochId;
 
     /** 信封类型：STREAM_RECORD, CHECKPOINT_BARRIER, WATERMARK, WATERMARK_STATUS, CONTROL */
@@ -53,27 +59,18 @@ public class StreamMessageEnvelope implements Serializable {
     public StreamMessageEnvelope() {
     }
 
-    public StreamMessageEnvelope(String fencingToken, long epochId, String type, String valueType, Object payload) {
-        this(fencingToken, epochId, type, valueType, payload, 0, false);
+    public StreamMessageEnvelope(long epochId, String type, String valueType, Object payload) {
+        this(epochId, type, valueType, payload, 0, false);
     }
 
-    public StreamMessageEnvelope(String fencingToken, long epochId, String type, String valueType,
+    public StreamMessageEnvelope(long epochId, String type, String valueType,
                                   Object payload, long timestamp, boolean hasTimestamp) {
-        this.fencingToken = fencingToken;
         this.epochId = epochId;
         this.type = type;
         this.valueType = valueType;
         this.payload = payload;
         this.timestamp = timestamp;
         this.hasTimestamp = hasTimestamp;
-    }
-
-    public String getFencingToken() {
-        return fencingToken;
-    }
-
-    public void setFencingToken(String fencingToken) {
-        this.fencingToken = fencingToken;
     }
 
     public long getEpochId() {
@@ -127,8 +124,7 @@ public class StreamMessageEnvelope implements Serializable {
     @Override
     public String toString() {
         return "StreamMessageEnvelope{" +
-                "fencingToken='" + fencingToken + '\'' +
-                ", epochId=" + epochId +
+                "epochId=" + epochId +
                 ", type='" + type + '\'' +
                 ", valueType='" + valueType + '\'' +
                 ", payload=" + payload +

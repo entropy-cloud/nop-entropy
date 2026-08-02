@@ -45,9 +45,9 @@ public class InMemoryClusterRegistry implements ClusterRegistry {
     }
 
     @Override
-    public void registerCoordinator(String jobId, String coordinatorId, String fencingToken) {
-        coordinators.put(jobId, new CoordinatorInfo(jobId, coordinatorId, fencingToken, System.currentTimeMillis()));
-        LOG.debug("Registered coordinator {} for job {} with fencing token {}", coordinatorId, jobId, fencingToken);
+    public void registerCoordinator(String jobId, String coordinatorId, long fencingEpoch) {
+        coordinators.put(jobId, new CoordinatorInfo(jobId, coordinatorId, fencingEpoch, System.currentTimeMillis()));
+        LOG.debug("Registered coordinator {} for job {} with fencing epoch {}", coordinatorId, jobId, fencingEpoch);
     }
 
     @Override
@@ -120,11 +120,11 @@ public class InMemoryClusterRegistry implements ClusterRegistry {
 
     @Override
     public void assignTask(String jobId, String vertexId, int subtaskIndex,
-                           String nodeId, String attemptId, String fencingToken,
+                           String nodeId, String attemptId, long fencingEpoch,
                            int attemptNumber) {
         String key = assignmentKey(jobId, vertexId, subtaskIndex);
         TaskAssignment assignment = new TaskAssignment(jobId, vertexId, subtaskIndex, nodeId,
-                attemptId, fencingToken, System.currentTimeMillis(), attemptNumber);
+                attemptId, fencingEpoch, System.currentTimeMillis(), attemptNumber);
         // G56: append, do not overwrite. Synchronized block guards the read-modify-write
         // so concurrent attempt-n writers cannot interleave (single atomic append per call).
         synchronized (taskAssignmentHistory) {

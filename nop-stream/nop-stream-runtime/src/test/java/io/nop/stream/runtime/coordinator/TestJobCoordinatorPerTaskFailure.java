@@ -99,7 +99,7 @@ class TestJobCoordinatorPerTaskFailure {
         coordinator.start();
         coordinator.assignTasks();
 
-        String tokenBefore = coordinator.getFencingToken();
+        long tokenBefore = coordinator.getFencingEpoch();
         int historyBefore = clusterRegistry.getAttemptHistory(JOB_ID, "source", 0).size();
 
         // Simulate a per-task FAILED report from the RunningTask on node-1
@@ -109,7 +109,7 @@ class TestJobCoordinatorPerTaskFailure {
                 "simulated task exception", System.currentTimeMillis(),
                 tokenBefore, System.currentTimeMillis()));
 
-        String tokenAfter = coordinator.getFencingToken();
+        long tokenAfter = coordinator.getFencingEpoch();
         assertNotEquals(tokenBefore, tokenAfter,
                 "FAILED report must trigger global recovery (new fencing token)");
 
@@ -122,16 +122,16 @@ class TestJobCoordinatorPerTaskFailure {
     void reportFailedTaskStatusRejectsStaleFencingToken() {
         coordinator.start();
         coordinator.assignTasks();
-        String currentToken = coordinator.getFencingToken();
+        long currentToken = coordinator.getFencingEpoch();
 
         // Send FAILED with stale token — should be ignored (no recovery)
         coordinator.reportTaskStatus(new TaskStatusReport(
                 JOB_ID, "source", 0, 1,
                 TaskStatusReport.TerminalState.FAILED,
                 "stale-token report", System.currentTimeMillis(),
-                "stale-token", System.currentTimeMillis()));
+                999L, System.currentTimeMillis()));
 
-        assertEquals(currentToken, coordinator.getFencingToken(),
+        assertEquals(currentToken, coordinator.getFencingEpoch(),
                 "Stale-token FAILED report must NOT trigger recovery");
     }
 
@@ -139,7 +139,7 @@ class TestJobCoordinatorPerTaskFailure {
     void reportCompletedTaskStatusDoesNotTriggerRecovery() {
         coordinator.start();
         coordinator.assignTasks();
-        String tokenBefore = coordinator.getFencingToken();
+        long tokenBefore = coordinator.getFencingEpoch();
 
         coordinator.reportTaskStatus(new TaskStatusReport(
                 JOB_ID, "source", 0, 1,
@@ -147,7 +147,7 @@ class TestJobCoordinatorPerTaskFailure {
                 null, System.currentTimeMillis(),
                 tokenBefore, System.currentTimeMillis()));
 
-        assertEquals(tokenBefore, coordinator.getFencingToken(),
+        assertEquals(tokenBefore, coordinator.getFencingEpoch(),
                 "COMPLETED report must NOT trigger recovery");
     }
 
@@ -163,9 +163,9 @@ class TestJobCoordinatorPerTaskFailure {
                 new TaskProgress("source", 0, 1, fresh)));
 
         // detectFailures should NOT trigger recovery (liveness is fresh)
-        String tokenBefore = coordinator.getFencingToken();
+        long tokenBefore = coordinator.getFencingEpoch();
         coordinator.detectFailures();
-        assertEquals(tokenBefore, coordinator.getFencingToken(),
+        assertEquals(tokenBefore, coordinator.getFencingEpoch(),
                 "Fresh liveness must NOT trigger recovery");
     }
 
@@ -180,9 +180,9 @@ class TestJobCoordinatorPerTaskFailure {
         coordinator.reportNodeTaskLiveness("node-1", Collections.singletonList(
                 new TaskProgress("source", 0, 1, staleTimestamp)));
 
-        String tokenBefore = coordinator.getFencingToken();
+        long tokenBefore = coordinator.getFencingEpoch();
         coordinator.detectFailures();
-        assertNotEquals(tokenBefore, coordinator.getFencingToken(),
+        assertNotEquals(tokenBefore, coordinator.getFencingEpoch(),
                 "Stale liveness (older than taskTimeoutMs) must trigger recovery");
     }
 
@@ -190,13 +190,13 @@ class TestJobCoordinatorPerTaskFailure {
     void nullProgressBatchIsIgnored() {
         coordinator.start();
         coordinator.assignTasks();
-        String tokenBefore = coordinator.getFencingToken();
+        long tokenBefore = coordinator.getFencingEpoch();
 
         // Should not throw, should not trigger recovery
         coordinator.reportNodeTaskLiveness("node-1", null);
         coordinator.reportNodeTaskLiveness("node-1", Collections.emptyList());
 
-        assertEquals(tokenBefore, coordinator.getFencingToken());
+        assertEquals(tokenBefore, coordinator.getFencingEpoch());
     }
 
     /**
@@ -205,7 +205,7 @@ class TestJobCoordinatorPerTaskFailure {
      * in TestTaskManager.
      */
     static class NoopTaskRpc implements io.nop.stream.runtime.rpc.IStreamTaskRpcService {
-        final AtomicReference<String> lastToken = new AtomicReference<>();
+        final java.util.concurrent.atomic.AtomicLong lastEpoch = new java.util.concurrent.atomic.AtomicLong();
         final CopyOnWriteArrayList<TaskAssignment> assignments = new CopyOnWriteArrayList<>();
 
         @Override
@@ -214,7 +214,7 @@ class TestJobCoordinatorPerTaskFailure {
         }
 
         @Override
-        public void triggerCheckpoint(io.nop.stream.core.checkpoint.CheckpointBarrier barrier, String fencingToken) {
+        public void triggerCheckpoint(io.nop.stream.core.checkpoint.CheckpointBarrier barrier, long fencingEpoch) {
         }
 
         @Override
@@ -222,8 +222,8 @@ class TestJobCoordinatorPerTaskFailure {
         }
 
         @Override
-        public void updateFencingToken(String newToken) {
-            lastToken.set(newToken);
+        public void updateFencingToken(long fencingEpoch) {
+            lastEpoch.set(fencingEpoch);
         }
     }
 

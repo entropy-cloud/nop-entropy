@@ -47,10 +47,17 @@ public class JdbcClusterRegistry implements ClusterRegistry {
     }
 
     @Override
-    public void registerCoordinator(String jobId, String coordinatorId, String fencingToken) {
+    public void registerCoordinator(String jobId, String coordinatorId, long fencingEpoch) {
         ensureTables();
 
         long now = System.currentTimeMillis();
+
+        // Stage 39 (Decision 2, Option B): the runtime fencing representation is a
+        // monotonic long, but the persistence column stays VARCHAR(255) (no DDL
+        // migration). The boundary conversion is internal to this JDBC impl: the
+        // persisted value is String.valueOf(long) — a single numeric value, never
+        // the historical composite "leaderId@epoch#recoveryGen".
+        String fencingTokenValue = String.valueOf(fencingEpoch);
 
         // Delete existing coordinator for this job first (upsert pattern)
         SQL deleteSql = SQL.begin().name("deleteCoordinator").querySpace(querySpace)
@@ -60,7 +67,7 @@ public class JdbcClusterRegistry implements ClusterRegistry {
         SQL insertSql = SQL.begin().name("insertCoordinator").querySpace(querySpace)
                 .sql("INSERT INTO " + COORDINATOR_TABLE +
                                 " (job_id, coordinator_id, fencing_token, registered_at) VALUES (?,?,?,?)",
-                        jobId, coordinatorId, fencingToken, now)
+                        jobId, coordinatorId, fencingTokenValue, now)
                 .end();
 
         jdbcTemplate.txn().runInTransaction(querySpace, TransactionPropagation.REQUIRED, txn -> {
@@ -69,7 +76,7 @@ public class JdbcClusterRegistry implements ClusterRegistry {
             return null;
         });
 
-        LOG.debug("Registered coordinator {} for job {} with fencing token {}", coordinatorId, jobId, fencingToken);
+        LOG.debug("Registered coordinator {} for job {} with fencing epoch {}", coordinatorId, jobId, fencingEpoch);
     }
 
     @Override
@@ -179,11 +186,15 @@ public class JdbcClusterRegistry implements ClusterRegistry {
 
     @Override
     public void assignTask(String jobId, String vertexId, int subtaskIndex,
-                           String nodeId, String attemptId, String fencingToken,
+                           String nodeId, String attemptId, long fencingEpoch,
                            int attemptNumber) {
         ensureTables();
 
         long now = System.currentTimeMillis();
+
+        // Stage 39 (Decision 2, Option B): persist the long fencing epoch as a
+        // single numeric VARCHAR value (no composite String, no DDL migration).
+        String fencingTokenValue = String.valueOf(fencingEpoch);
 
         // G56: preserve attempt history. Do NOT delete prior rows for the same
         // (jobId, vertexId, subtaskIndex) — INSERT a new row with an incremented
@@ -194,7 +205,7 @@ public class JdbcClusterRegistry implements ClusterRegistry {
                 .sql("INSERT INTO " + TASK_ASSIGNMENT_TABLE +
                                 " (job_id, vertex_id, subtask_index, node_id, attempt_id, fencing_token, assigned_at, attempt_number)" +
                                 " VALUES (?,?,?,?,?,?,?,?)",
-                        jobId, vertexId, subtaskIndex, nodeId, attemptId, fencingToken, now, attemptNumber)
+                        jobId, vertexId, subtaskIndex, nodeId, attemptId, fencingTokenValue, now, attemptNumber)
                 .end();
 
         jdbcTemplate.executeUpdate(insertSql);
@@ -402,7 +413,7 @@ public class JdbcClusterRegistry implements ClusterRegistry {
             return new CoordinatorInfo(
                     row.getString(0),
                     row.getString(1),
-                    row.getString(2),
+                    parseFencingEpoch(row.getString(2)),
                     getLong(row, 3)
             );
         }
@@ -448,10 +459,31 @@ public class JdbcClusterRegistry implements ClusterRegistry {
                 row.getInt(2),
                 row.getString(3),
                 row.getString(4),
-                row.getString(5),
+                parseFencingEpoch(row.getString(5)),
                 getLong(row, 6),
                 getInt(row, 7)
         );
+    }
+
+    /**
+     * Stage 39 (Decision 2, Option B): parse the persisted VARCHAR fencing value
+     * back into a long. The value is always {@code String.valueOf(long)} (a single
+     * numeric value) for rows written after Stage 39. Legacy rows written by the
+     * pre-Stage-39 composite-String representation cannot be meaningfully parsed
+     * to a monotonic long and are reported as epoch 0 with a warning (#24 —
+     * observable, not silently swallowed).
+     */
+    private long parseFencingEpoch(String stored) {
+        if (stored == null || stored.isEmpty()) {
+            return 0L;
+        }
+        try {
+            return Long.parseLong(stored.trim());
+        } catch (NumberFormatException e) {
+            LOG.warn("Unparseable legacy fencing_token value '{}' (pre-Stage-39 composite String); "
+                    + "treating as epoch 0", stored);
+            return 0L;
+        }
     }
 
     private int getInt(IDataRow row, int index) {

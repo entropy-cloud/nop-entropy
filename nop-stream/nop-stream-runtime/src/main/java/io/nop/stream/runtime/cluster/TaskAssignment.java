@@ -21,7 +21,11 @@ public class TaskAssignment implements Serializable {
     private int subtaskIndex;
     private String nodeId;
     private String attemptId;
-    private String fencingToken;
+    /**
+     * 单调 fencing epoch（Stage 39：取代原复合 String fencingToken，统一为 long）。
+     * 同时编码 leadership 切换与同 leader 内 recovery，由 {@code JobCoordinator} 派生。
+     */
+    private long fencingEpoch;
     private long assignedAt;
 
     /**
@@ -36,19 +40,19 @@ public class TaskAssignment implements Serializable {
     }
 
     public TaskAssignment(String jobId, String vertexId, int subtaskIndex, String nodeId,
-                          String attemptId, String fencingToken, long assignedAt) {
-        this(jobId, vertexId, subtaskIndex, nodeId, attemptId, fencingToken, assignedAt, 1);
+                          String attemptId, long fencingEpoch, long assignedAt) {
+        this(jobId, vertexId, subtaskIndex, nodeId, attemptId, fencingEpoch, assignedAt, 1);
     }
 
     public TaskAssignment(String jobId, String vertexId, int subtaskIndex, String nodeId,
-                          String attemptId, String fencingToken, long assignedAt,
+                          String attemptId, long fencingEpoch, long assignedAt,
                           int attemptNumber) {
         this.jobId = jobId;
         this.vertexId = vertexId;
         this.subtaskIndex = subtaskIndex;
         this.nodeId = nodeId;
         this.attemptId = attemptId;
-        this.fencingToken = fencingToken;
+        this.fencingEpoch = fencingEpoch;
         this.assignedAt = assignedAt;
         this.attemptNumber = attemptNumber;
     }
@@ -93,12 +97,12 @@ public class TaskAssignment implements Serializable {
         this.attemptId = attemptId;
     }
 
-    public String getFencingToken() {
-        return fencingToken;
+    public long getFencingEpoch() {
+        return fencingEpoch;
     }
 
-    public void setFencingToken(String fencingToken) {
-        this.fencingToken = fencingToken;
+    public void setFencingEpoch(long fencingEpoch) {
+        this.fencingEpoch = fencingEpoch;
     }
 
     public long getAssignedAt() {

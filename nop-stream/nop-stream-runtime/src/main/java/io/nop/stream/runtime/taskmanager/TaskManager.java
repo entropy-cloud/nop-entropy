@@ -22,7 +22,7 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicReference;
+import java.util.concurrent.atomic.AtomicLong;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -88,15 +88,15 @@ public class TaskManager implements IStreamTaskRpcService {
     private final ExecutorService taskExecutor;
     private final ScheduledExecutorService heartbeatExecutor;
 
-    /** fencingToken → RunningTask */
+    /** taskKey (jobId/vertexId/subtaskIndex) → RunningTask */
     private final ConcurrentHashMap<String, RunningTask> runningTasks;
 
     /** taskKey → TaskResult for completed tasks (bounded to MAX_COMPLETED_TASKS) */
     private static final int MAX_COMPLETED_TASKS = 1000;
     private final ConcurrentHashMap<String, TaskResult> completedTasks;
 
-    /** The currently active fencing token for this node (updated on global recovery) */
-    private final AtomicReference<String> currentFencingToken;
+    /** The currently active fencing epoch for this node (updated on global recovery). */
+    private final AtomicLong currentFencingEpoch;
 
     /** Control topic for sending ACKs via message service (fallback when no RPC service) */
     private final String controlTopic;
@@ -131,7 +131,7 @@ public class TaskManager implements IStreamTaskRpcService {
         });
         this.runningTasks = new ConcurrentHashMap<>();
         this.completedTasks = new ConcurrentHashMap<>();
-        this.currentFencingToken = new AtomicReference<>();
+        this.currentFencingEpoch = new AtomicLong(0L);
         this.running = false;
     }
 
@@ -260,17 +260,17 @@ public class TaskManager implements IStreamTaskRpcService {
             return;
         }
 
-        // Fencing token check
-        // P0-6: harden stale-token handling to throw StreamException. The prior
+        // Fencing epoch check
+        // P0-6: harden stale-epoch handling to throw StreamException. The prior
         // implementation only LOG.warn'd and returned, silently swallowing the
         // operation despite the documented contract (TaskManager Javadoc: "rejects
         // any operation carrying an old fencing token"). Cross-JVM fencing is
-        // still owned by Stage 39 — this hardens the in-process check.
-        String activeToken = currentFencingToken.get();
-        if (activeToken != null && !activeToken.equals(assignment.getFencingToken())) {
+        // owned by Stage 39 — this hardens the in-process check.
+        long activeEpoch = currentFencingEpoch.get();
+        if (activeEpoch != assignment.getFencingEpoch()) {
             throw new StreamException(ERR_STREAM_FENCING_TOKEN_MISMATCH)
-                    .param(ARG_EXPECTED_TOKEN, activeToken)
-                    .param(ARG_ACTUAL_TOKEN, assignment.getFencingToken());
+                    .param(ARG_EXPECTED_TOKEN, activeEpoch)
+                    .param(ARG_ACTUAL_TOKEN, assignment.getFencingEpoch());
         }
 
         // AR-9: Use semaphore for capacity control instead of race-prone size check
@@ -288,15 +288,16 @@ public class TaskManager implements IStreamTaskRpcService {
             return;
         }
 
-        // Build the invokable — for now we create a placeholder that will be
-        // populated by the coordinator via a separate deployment message.
-        // In a full implementation, the coordinator sends the OperatorChain
-        // serialized alongside the assignment.
+        // Two-phase assignment: receiveAssignment creates the RunningTask slot (its
+        // invokable is not yet installed); the coordinator then populates the
+        // invokable via a separate installInvokable() call (see EmbeddedDistributedExecutor
+        // / RpcDistributedExecutor). RunningTask.run() blocks on invokableLatch until
+        // the invokable arrives (or times out).
         RunningTask runningTask = new RunningTask(
                 assignment.getJobId(),
                 assignment.getVertexId(),
                 assignment.getSubtaskIndex(),
-                assignment.getFencingToken(),
+                assignment.getFencingEpoch(),
                 assignment.getAttemptId(),
                 assignment.getAttemptNumber());
 
@@ -343,20 +344,20 @@ public class TaskManager implements IStreamTaskRpcService {
      * @param fencingToken  the fencing token of the current epoch
      */
     @Override
-    public void triggerCheckpoint(CheckpointBarrier barrier, String fencingToken) {
-        // P0-6: harden stale-token handling to throw StreamException. The prior
+    public void triggerCheckpoint(CheckpointBarrier barrier, long fencingEpoch) {
+        // P0-6: harden stale-epoch handling to throw StreamException. The prior
         // implementation only LOG.warn'd and returned, silently dropping the
         // barrier — which let a stale coordinator's checkpoint succeed against
         // the active epoch's state, breaking fencing semantics.
-        String activeToken = currentFencingToken.get();
-        if (activeToken != null && !activeToken.equals(fencingToken)) {
+        long activeEpoch = currentFencingEpoch.get();
+        if (activeEpoch != fencingEpoch) {
             throw new StreamException(ERR_STREAM_FENCING_TOKEN_MISMATCH)
-                    .param(ARG_EXPECTED_TOKEN, activeToken)
-                    .param(ARG_ACTUAL_TOKEN, fencingToken);
+                    .param(ARG_EXPECTED_TOKEN, activeEpoch)
+                    .param(ARG_ACTUAL_TOKEN, fencingEpoch);
         }
 
         for (RunningTask task : runningTasks.values()) {
-            if (task.getFencingToken().equals(fencingToken)) {
+            if (task.getFencingEpoch() == fencingEpoch) {
                 task.triggerCheckpoint(barrier);
             }
         }
@@ -388,7 +389,7 @@ public class TaskManager implements IStreamTaskRpcService {
                 snapshot.getTaskLocation(),
                 checkpointId,
                 snapshot,
-                currentFencingToken.get());
+                currentFencingEpoch.get());
 
         try {
             if (coordinatorRpcService != null) {
@@ -408,16 +409,16 @@ public class TaskManager implements IStreamTaskRpcService {
     // ==================== Fencing ====================
 
     /**
-     * Updates the fencing token. Tasks with the old token are canceled.
+     * Updates the fencing epoch. Tasks with the old epoch are canceled.
      *
-     * @param newToken the new fencing token
+     * @param fencingEpoch the new monotonic fencing epoch
      */
-    public void updateFencingToken(String newToken) {
-        String oldToken = currentFencingToken.getAndSet(newToken);
-        if (oldToken != null && !oldToken.equals(newToken)) {
-            LOG.info("Fencing token updated from {} to {}. Canceling old tasks.", oldToken, newToken);
+    public void updateFencingToken(long fencingEpoch) {
+        long oldEpoch = currentFencingEpoch.getAndSet(fencingEpoch);
+        if (oldEpoch != fencingEpoch) {
+            LOG.info("Fencing epoch updated from {} to {}. Canceling old tasks.", oldEpoch, fencingEpoch);
             runningTasks.entrySet().removeIf(entry -> {
-                if (entry.getValue().getFencingToken().equals(oldToken)) {
+                if (entry.getValue().getFencingEpoch() == oldEpoch) {
                     entry.getValue().cancel();
                     if (entry.getValue().semaphoreReleased.compareAndSet(false, true)) {
                         capacitySemaphore.release();
@@ -474,7 +475,7 @@ public class TaskManager implements IStreamTaskRpcService {
         private final String jobId;
         private final String vertexId;
         private final int subtaskIndex;
-        private final String fencingToken;
+        private final long fencingEpoch;
         private final String attemptId;
         /**
          * G56: per-subtask attempt number (mirrors {@link TaskAssignment#getAttemptNumber()}).
@@ -492,16 +493,16 @@ public class TaskManager implements IStreamTaskRpcService {
         private final AtomicBoolean semaphoreReleased = new AtomicBoolean(false);
 
         public RunningTask(String jobId, String vertexId, int subtaskIndex,
-                           String fencingToken, String attemptId) {
-            this(jobId, vertexId, subtaskIndex, fencingToken, attemptId, 1);
+                           long fencingEpoch, String attemptId) {
+            this(jobId, vertexId, subtaskIndex, fencingEpoch, attemptId, 1);
         }
 
         public RunningTask(String jobId, String vertexId, int subtaskIndex,
-                           String fencingToken, String attemptId, int attemptNumber) {
+                           long fencingEpoch, String attemptId, int attemptNumber) {
             this.jobId = jobId;
             this.vertexId = vertexId;
             this.subtaskIndex = subtaskIndex;
-            this.fencingToken = fencingToken;
+            this.fencingEpoch = fencingEpoch;
             this.attemptId = attemptId;
             this.attemptNumber = attemptNumber;
             this.taskLocation = new TaskLocation(jobId, "pipeline-0", vertexId, subtaskIndex);
@@ -584,7 +585,7 @@ public class TaskManager implements IStreamTaskRpcService {
             String cause = error != null ? error.toString() : null;
             TaskStatusReport report = new TaskStatusReport(
                     jobId, vertexId, subtaskIndex, attemptNumber,
-                    state, cause, lastProgress, fencingToken,
+                    state, cause, lastProgress, fencingEpoch,
                     System.currentTimeMillis());
             try {
                 rpc.reportTaskStatus(report);
@@ -659,8 +660,8 @@ public class TaskManager implements IStreamTaskRpcService {
             }
         }
 
-        public String getFencingToken() {
-            return fencingToken;
+        public long getFencingEpoch() {
+            return fencingEpoch;
         }
 
         public String getJobId() { return jobId; }

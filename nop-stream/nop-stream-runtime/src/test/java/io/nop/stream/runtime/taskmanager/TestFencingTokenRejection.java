@@ -2,7 +2,7 @@
  * Copyright (c) 2017-2024 Nop Platform. All rights reserved.
  * Author: canonical_entropy@163.com
  * Blog:   https://www.zhihu.com/people/canonical-entropy
- * Gitee:  https://github.com/entropy-cloud/nop-entropy
+ * Gitee:  https://gitee.com/canonical-entropy/nop-entropy
  * Github: https://github.com/entropy-cloud/nop-entropy
  */
 package io.nop.stream.runtime.taskmanager;
@@ -21,7 +21,6 @@ import org.junit.jupiter.api.Test;
 
 import java.util.List;
 import java.util.Map;
-import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
 
@@ -63,12 +62,12 @@ public class TestFencingTokenRejection {
 
     @Test
     void staleTokenAssignmentThrowsFencingMismatch() {
-        String activeToken = "active-" + UUID.randomUUID();
-        taskManager.updateFencingToken(activeToken);
+        long activeEpoch = 5L;
+        taskManager.updateFencingToken(activeEpoch);
 
         TaskAssignment assignment = new TaskAssignment(
                 "job-1", "vertex-1", 0,
-                NODE_ID, "attempt-1", "stale-" + UUID.randomUUID(),
+                NODE_ID, "attempt-1", 999L,
                 System.currentTimeMillis());
 
         StreamException thrown = assertThrows(StreamException.class,
@@ -80,25 +79,25 @@ public class TestFencingTokenRejection {
 
     @Test
     void staleTokenCheckpointTriggerThrowsFencingMismatch() {
-        String activeToken = "active-" + UUID.randomUUID();
-        taskManager.updateFencingToken(activeToken);
+        long activeEpoch = 5L;
+        taskManager.updateFencingToken(activeEpoch);
 
         CheckpointBarrier barrier = new CheckpointBarrier(
                 17L, System.currentTimeMillis(), CheckpointType.CHECKPOINT);
 
         StreamException thrown = assertThrows(StreamException.class,
-                () -> taskManager.triggerCheckpoint(barrier, "stale-" + UUID.randomUUID()));
+                () -> taskManager.triggerCheckpoint(barrier, 999L));
         assertEquals(NopStreamErrors.ERR_STREAM_FENCING_TOKEN_MISMATCH.getErrorCode(), thrown.getErrorCode());
     }
 
     @Test
     void activeTokenAssignmentStillSucceeds() {
-        String activeToken = "active-" + UUID.randomUUID();
-        taskManager.updateFencingToken(activeToken);
+        long activeEpoch = 5L;
+        taskManager.updateFencingToken(activeEpoch);
 
         TaskAssignment assignment = new TaskAssignment(
                 "job-1", "vertex-1", 0,
-                NODE_ID, "attempt-1", activeToken,
+                NODE_ID, "attempt-1", activeEpoch,
                 System.currentTimeMillis());
 
         assertDoesNotThrow(() -> taskManager.receiveAssignment(assignment));
@@ -106,19 +105,19 @@ public class TestFencingTokenRejection {
 
     @Test
     void activeTokenCheckpointTriggerDoesNotThrow() {
-        String activeToken = "active-" + UUID.randomUUID();
-        taskManager.updateFencingToken(activeToken);
+        long activeEpoch = 5L;
+        taskManager.updateFencingToken(activeEpoch);
 
         CheckpointBarrier barrier = new CheckpointBarrier(
                 19L, System.currentTimeMillis(), CheckpointType.CHECKPOINT);
 
-        assertDoesNotThrow(() -> taskManager.triggerCheckpoint(barrier, activeToken));
+        assertDoesNotThrow(() -> taskManager.triggerCheckpoint(barrier, activeEpoch));
     }
 
     private static final class RecordingClusterRegistry implements ClusterRegistry {
         final Map<String, Object> registeredNodes = new ConcurrentHashMap<>();
 
-        @Override public void registerCoordinator(String jobId, String coordinatorId, String fencingToken) {}
+        @Override public void registerCoordinator(String jobId, String coordinatorId, long fencingEpoch) {}
         @Override public io.nop.stream.runtime.cluster.CoordinatorInfo getActiveCoordinator(String jobId) { return null; }
         @Override public void registerNode(String nodeId, String endpoint, int capacity) {
             registeredNodes.put(nodeId, new Object());
@@ -130,7 +129,7 @@ public class TestFencingTokenRejection {
                     NODE_ID, ENDPOINT, 4, System.currentTimeMillis(), System.currentTimeMillis()));
         }
         @Override public void assignTask(String jobId, String vertexId, int subtaskIndex,
-                                          String nodeId, String attemptId, String fencingToken,
+                                          String nodeId, String attemptId, long fencingEpoch,
                                           int attemptNumber) {}
         @Override public TaskAssignment getTaskAssignment(String jobId, String vertexId, int subtaskIndex) { return null; }
         @Override public List<TaskAssignment> getAttemptHistory(String jobId, String vertexId, int subtaskIndex) {
@@ -142,8 +141,8 @@ public class TestFencingTokenRejection {
     private static final class RecordingMessageService implements IMessageService {
         final List<Object> sent = new CopyOnWriteArrayList<>();
         @Override public io.nop.api.core.message.IMessageSubscription subscribe(String topic,
-                                                                                  io.nop.api.core.message.IMessageConsumer consumer,
-                                                                                  io.nop.api.core.message.MessageSubscribeOptions options) {
+                                                                                   io.nop.api.core.message.IMessageConsumer consumer,
+                                                                                   io.nop.api.core.message.MessageSubscribeOptions options) {
             return new io.nop.api.core.message.IMessageSubscription() {
                 @Override public void cancel() {}
                 @Override public boolean isSuspended() { return false; }
@@ -153,7 +152,7 @@ public class TestFencingTokenRejection {
             };
         }
         @Override public java.util.concurrent.CompletionStage<Void> sendAsync(String topic, Object message,
-                                                                                io.nop.api.core.message.MessageSendOptions options) {
+                                                                                 io.nop.api.core.message.MessageSendOptions options) {
             sent.add(message);
             return java.util.concurrent.CompletableFuture.completedFuture(null);
         }

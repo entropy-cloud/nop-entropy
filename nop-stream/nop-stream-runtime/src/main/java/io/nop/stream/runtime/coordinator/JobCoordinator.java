@@ -20,7 +20,6 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
-import java.util.concurrent.atomic.AtomicReference;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -63,9 +62,11 @@ import io.nop.stream.runtime.taskmanager.TaskManager;
  *   <li>Implements four {@link JobTerminationMode}s: CANCEL, DRAIN, SUSPEND, EXPORT_SAVEPOINT</li>
  * </ul>
  *
- * <p><strong>Fencing:</strong> A UUID fencing token is generated on start and on each
- * global recovery. All control messages carry this token; TaskManagers reject messages
- * with stale tokens.
+ * <p><strong>Fencing (Stage 39):</strong> A monotonic long fencing epoch is derived
+ * on start and on each global recovery / leadership grant. All control messages
+ * carry this epoch; TaskManagers reject messages with a stale epoch. The epoch
+ * encodes both leadership switch and same-leader recovery into a single long
+ * ({@code leaderEpochValue * EPOCH_SCALE + recoveryGen}).
  *
  * <p><strong>Checkpoint Flow:</strong>
  * <ol>
@@ -86,6 +87,25 @@ public class JobCoordinator implements IStreamCoordinatorRpcService {
     /** G52: default per-task liveness timeout (a task whose lastProgressTime is older than this is considered stalled). */
     static final long DEFAULT_TASK_TIMEOUT_MS = 60_000L;
 
+    /**
+     * Stage 39 fencing unification. The monotonic fencing epoch is encoded as
+     * {@code leaderEpochValue * EPOCH_SCALE + recoveryGen}. The scale reserves the
+     * low-order digits for the same-leader recovery counter so that:
+     * <ul>
+     *   <li>leadership switch (leaderEpochValue strictly increases cluster-wide)
+     *       always produces a strictly larger fencing epoch than any prior leader's
+     *       recoveries — rejects stale-leader control (invariant: stale leader rejected)</li>
+     *   <li>same-leader recovery increments recoveryGen, producing a strictly larger
+     *       fencing epoch than the prior round — rejects stale same-leader tasks
+     *       (invariant: prior-recovery task rejected)</li>
+     * </ul>
+     * Both invariants hold under a single {@code long} comparison (the data-plane
+     * dual-key filter collapses to one long key). Non-HA mode uses leaderEpochValue=0,
+     * so fencing epoch == recoveryGen (starts at 0, increments on recovery) — fencing
+     * remains effective (Decision 3, zero regression).
+     */
+    static final long EPOCH_SCALE = 1_000_000L;
+
     private final String jobId;
     private final String coordinatorId;
     private final DeploymentPlan deploymentPlan;
@@ -93,13 +113,20 @@ public class JobCoordinator implements IStreamCoordinatorRpcService {
     private final CheckpointCoordinator checkpointCoordinator;
     private final Map<String, IStreamTaskRpcService> taskRpcServices;
 
-    /** The current fencing token for this job execution epoch */
-    private final AtomicReference<String> fencingToken;
+    /**
+     * The current monotonic fencing epoch for this job execution. Stage 39 unified
+     * the legacy composite String fencing token into a single long epoch
+     * ({@code leaderEpochValue * EPOCH_SCALE + recoveryGen}). Both fencing
+     * invariants (stale-leader rejection + same-leader prior-recovery rejection)
+     * hold under a single long comparison.
+     */
+    private final AtomicLong fencingEpoch;
 
     /**
      * G24/G25: optional platform leader elector. When non-null the coordinator
      * runs in HA mode (leader-gated lifecycle). When null the coordinator keeps
-     * the legacy single-instance behaviour (random-UUID fencing, always active).
+     * the single-instance behaviour (Stage 39: monotonic long fencing epoch derived
+     * with leaderEpoch component 0, always active).
      */
     private ILeaderElector leaderElector;
 
@@ -114,11 +141,12 @@ public class JobCoordinator implements IStreamCoordinatorRpcService {
     private volatile LeaderEpoch currentLeadership;
 
     /**
-     * G24/G25: recovery generation counter. Incremented on every
-     * {@link #globalRecovery()} within the same leadership. Forms the
-     * {@code #recoveryGen} suffix of the composite fencing token so that a
-     * same-leader recovery still rotates the full token (data-plane stale-envelope
-     * filtering is String-equality based).
+     * G24/G25 / Stage 39: recovery generation counter. Incremented on every
+     * {@link #globalRecovery()} within the same leadership. Stage 39 folds it into
+     * the low-order digits of the single monotonic long fencing epoch
+     * ({@code leaderEpochValue * EPOCH_SCALE + recoveryGen}); the data-plane filter
+     * is now a single long comparison rather than the legacy composite-String
+     * equality check.
      */
     private final AtomicLong recoveryGen = new AtomicLong(0);
 
@@ -211,7 +239,7 @@ public class JobCoordinator implements IStreamCoordinatorRpcService {
         this.clusterRegistry = clusterRegistry;
         this.checkpointCoordinator = checkpointCoordinator;
         this.taskRpcServices = taskRpcServices != null ? taskRpcServices : Collections.emptyMap();
-        this.fencingToken = new AtomicReference<>();
+        this.fencingEpoch = new AtomicLong(0L);
         this.taskAssignmentMap = new ConcurrentHashMap<>();
         this.allTaskLocations = ConcurrentHashMap.newKeySet();
         this.failureDetector = Executors.newSingleThreadScheduledExecutor(r -> {
@@ -225,19 +253,19 @@ public class JobCoordinator implements IStreamCoordinatorRpcService {
     // ==================== Lifecycle ====================
 
     /**
-     * Registers this coordinator in the ClusterRegistry, generates a fencing token,
+     * Registers this coordinator in the ClusterRegistry, derives a fencing epoch,
      * and starts the failure detection loop.
      *
      * <p>G24/G25 HA lifecycle:
      * <ul>
-     *   <li>Non-HA mode (no {@link ILeaderElector} injected): keeps the legacy
-     *       behaviour — generate a random-UUID fencing token, register, mark
-     *       active immediately. Zero regression for the embedded/local path.</li>
+     *   <li>Non-HA mode (no {@link ILeaderElector} injected): derives a monotonic
+     *       long fencing epoch (leaderEpoch component 0, recoveryGen 0), registers,
+     *       marks active immediately. Zero regression for the embedded/local path.</li>
      *   <li>HA mode ({@link ILeaderElector} injected): registers an
      *       {@link ILeaderElectionListener} and returns immediately in STANDBY
      *       (active=false). Activation happens only on the
      *       {@link ILeaderElectionListener#becomeLeader(LeaderEpoch)} callback,
-     *       which derives the fencing token from the granted {@link LeaderEpoch}.
+     *       which derives the fencing epoch from the granted {@link LeaderEpoch}.
      *       <strong>{@code whenElectionCompleted()} must NOT be used as an
      *       activation trigger</strong> — it only signals "a result exists",
      *       which may be that another node won (otherwise a follower would
@@ -251,19 +279,26 @@ public class JobCoordinator implements IStreamCoordinatorRpcService {
         }
 
         if (leaderElector == null) {
-            // Non-HA / embedded-local mode: legacy single-instance behaviour.
-            String token = fencingToken.get();
-            if (token == null) {
-                token = UUID.randomUUID().toString();
-                fencingToken.set(token);
+            // Non-HA / embedded-local mode: single-instance behaviour.
+            // Stage 39 (Decision 3): non-HA fencing epoch uses leaderEpoch component
+            // 0, so epoch == recoveryGen. recoveryGen is seeded to 1 on start so the
+            // initial epoch (1) is non-zero and distinct from the 0 "uninitialized"
+            // sentinel checked in {@link #collectAck}. globalRecovery() increments
+            // recoveryGen so fencing stays effective (stale prior-recovery tasks
+            // rejected). Zero regression vs. the legacy random-UUID behaviour for
+            // embedded mode (always a fresh in-process coordinator + fresh tasks).
+            if (fencingEpoch.get() == 0L) {
+                recoveryGen.set(1L);
+                fencingEpoch.set(deriveHaFencingEpoch(0L, recoveryGen.get()));
             }
-            clusterRegistry.registerCoordinator(jobId, coordinatorId, token);
+            long epoch = fencingEpoch.get();
+            clusterRegistry.registerCoordinator(jobId, coordinatorId, epoch);
             startFailureDetector();
             running = true;
             active = true;
             jobStatus = JobStatus.RUNNING;
-            LOG.info("JobCoordinator {} started for job {} with fencing token {}",
-                    coordinatorId, jobId, token);
+            LOG.info("JobCoordinator {} started for job {} with fencing epoch {}",
+                    coordinatorId, jobId, epoch);
             return;
         }
 
@@ -403,7 +438,7 @@ public class JobCoordinator implements IStreamCoordinatorRpcService {
             return;
         }
 
-        String token = fencingToken.get();
+        long epoch = fencingEpoch.get();
 
         DeploymentAssignment assignment = deploymentPlan != null ? deploymentPlan.getAssignment() : null;
         boolean useMaterialized = assignment != null && !assignment.isEmpty();
@@ -451,12 +486,12 @@ public class JobCoordinator implements IStreamCoordinatorRpcService {
 
                     TaskAssignment taskAssignment = new TaskAssignment(
                             jobId, vertexId, subtaskIndex,
-                            targetNodeId, attemptId, token,
+                            targetNodeId, attemptId, epoch,
                             System.currentTimeMillis(), attemptNumber);
 
                     clusterRegistry.assignTask(
                             jobId, vertexId, subtaskIndex,
-                            targetNodeId, attemptId, token, attemptNumber);
+                            targetNodeId, attemptId, epoch, attemptNumber);
 
                     IStreamTaskRpcService rpc = taskRpcServices.get(targetNodeId);
                     if (rpc != null) {
@@ -521,7 +556,7 @@ public class JobCoordinator implements IStreamCoordinatorRpcService {
                 pending.getTriggerTimestamp(),
                 pending.getCheckpointType());
 
-        String token = fencingToken.get();
+        long epoch = fencingEpoch.get();
 
         Set<String> sourceNodeIds = computeSourceNodeIds();
 
@@ -530,7 +565,7 @@ public class JobCoordinator implements IStreamCoordinatorRpcService {
                 IStreamTaskRpcService rpc = taskRpcServices.get(nodeId);
                 if (rpc != null) {
                     try {
-                        rpc.triggerCheckpoint(barrier, token);
+                        rpc.triggerCheckpoint(barrier, epoch);
                     } catch (Exception e) {
                         LOG.error("Failed to send checkpoint signal to source node {}", nodeId, e);
                     }
@@ -565,17 +600,19 @@ public class JobCoordinator implements IStreamCoordinatorRpcService {
             return false;
         }
 
-        // AR-7: Reject all ACKs when fencingToken == null (coordinator not initialized)
-        String token = fencingToken.get();
-        if (token == null) {
-            LOG.warn("Rejecting checkpoint ACK: coordinator fencing token not initialized");
+        // AR-7: fencingEpoch == 0 means coordinator not initialized (the start()
+        // path sets a non-zero epoch; 0 is the pre-init sentinel). Reject all ACKs
+        // in that state.
+        long epoch = fencingEpoch.get();
+        if (epoch == 0L) {
+            LOG.warn("Rejecting checkpoint ACK: coordinator fencing epoch not initialized");
             return false;
         }
 
-        // Fencing token verification
-        if (!token.equals(ack.getFencingToken())) {
-            LOG.warn("Rejecting checkpoint ACK with stale fencing token from {}",
-                    ack.getTaskLocation());
+        // Fencing epoch verification (Stage 39: single long comparison)
+        if (epoch != ack.getFencingEpoch()) {
+            LOG.warn("Rejecting checkpoint ACK with stale fencing epoch {} (expected {}) from {}",
+                    ack.getFencingEpoch(), epoch, ack.getTaskLocation());
             return false;
         }
 
@@ -622,12 +659,12 @@ public class JobCoordinator implements IStreamCoordinatorRpcService {
                     report.getAttemptNumber(), report.getTerminalState());
             return;
         }
-        // Fencing token verification
-        String token = fencingToken.get();
-        if (token == null || !token.equals(report.getFencingToken())) {
-            LOG.warn("Rejecting task status report with stale fencing token: {}/{}/{} state={} (expected token={})",
+        // Fencing epoch verification (Stage 39: single long comparison)
+        long epoch = fencingEpoch.get();
+        if (epoch == 0L || epoch != report.getFencingEpoch()) {
+            LOG.warn("Rejecting task status report with stale fencing epoch: {}/{}/{} state={} (expected epoch={})",
                     report.getVertexId(), report.getSubtaskIndex(), report.getAttemptNumber(),
-                    report.getTerminalState(), token);
+                    report.getTerminalState(), epoch);
             return;
         }
 
@@ -807,47 +844,46 @@ public class JobCoordinator implements IStreamCoordinatorRpcService {
         }
         LOG.info("Starting global recovery #{} for job {} (cap={})", newCount, jobId, maxRestarts);
 
-        // G24/G25 composite-token fencing (Decision):
-        //  - HA mode: rotate the recoveryGen suffix, keep the leadership epoch
-        //    component unchanged (same leader). The full composite token still
-        //    rotates and is pushed to all TaskManagers so stale same-leader tasks
-        //    are fenced. epoch component only rotates on leadership switch.
-        //  - Non-HA mode: legacy random-UUID rotation (zero regression).
-        String newToken;
+        // G24/G25 / Stage 39 fencing (Decision 1): a single monotonic long epoch
+        // encodes both leadership switch and same-leader recovery.
+        //  - HA mode: rotate the recoveryGen low-order component, keep the leaderEpoch
+        //    component unchanged (same leader). The full long epoch still rotates and
+        //    is pushed to all TaskManagers so stale same-leader tasks are fenced. The
+        //    leaderEpoch component only rotates on leadership switch.
+        //  - Non-HA mode: leaderEpoch component is 0, so fencing epoch == recoveryGen
+        //    (Decision 3, zero regression).
+        long newEpoch;
         LeaderEpoch leadership = this.currentLeadership;
-        if (leaderElector != null && leadership != null) {
-            long newGen = recoveryGen.incrementAndGet();
-            newToken = deriveHaFencingToken(leadership, newGen);
-        } else {
-            newToken = UUID.randomUUID().toString();
-        }
+        long leaderEpochValue = leadership != null ? leadership.getEpoch() : 0L;
+        long newGen = recoveryGen.incrementAndGet();
+        newEpoch = deriveHaFencingEpoch(leaderEpochValue, newGen);
 
-        rotateFencingTokenAndRestore(newToken);
+        rotateFencingEpochAndRestore(newEpoch);
     }
 
     /**
-     * G24/G25: shared fencing-token rotation + control-plane rebuild used by both
-     * {@link #globalRecovery()} (same-leader recovery) and
-     * {@link #activateAsLeader(LeaderEpoch)} (leadership grant). Rotates the
-     * fencing token, re-registers the coordinator, pushes the new token to all
-     * TaskManagers, best-effort restores from the latest checkpoint, and
-     * reassigns tasks with the new token.
+     * G24/G25 / Stage 39: shared fencing-epoch rotation + control-plane rebuild used
+     * by both {@link #globalRecovery()} (same-leader recovery) and
+     * {@link #activateAsLeader(LeaderEpoch)} (leadership grant). Rotates the fencing
+     * epoch, re-registers the coordinator, pushes the new epoch to all TaskManagers,
+     * best-effort restores from the latest checkpoint, and reassigns tasks with the
+     * new epoch.
      */
-    private void rotateFencingTokenAndRestore(String newToken) {
-        fencingToken.set(newToken);
+    private void rotateFencingEpochAndRestore(long newEpoch) {
+        fencingEpoch.set(newEpoch);
 
-        clusterRegistry.registerCoordinator(jobId, coordinatorId, newToken);
+        clusterRegistry.registerCoordinator(jobId, coordinatorId, newEpoch);
 
         // Clear the in-memory working set only. Do NOT wipe the ClusterRegistry
         // attempt history — G56 requires it to be preserved across recoveries.
         taskAssignmentMap.clear();
         allTaskLocations.clear();
 
-        // Push the rotated fencing token to all registered TaskManagers so stale
-        // envelopes are rejected at the data plane (RemoteInputChannel /
-        // RemoteResultPartition filter on String fencingToken equality).
+        // Push the rotated fencing epoch to all registered TaskManagers so stale
+        // envelopes are rejected at the data plane (Stage 39: RemoteInputChannel /
+        // RemoteResultPartition filter on a single long epoch comparison).
         for (IStreamTaskRpcService rpc : taskRpcServices.values()) {
-            rpc.updateFencingToken(newToken);
+            rpc.updateFencingToken(newEpoch);
         }
 
         // Restore from latest checkpoint/manifest if available (best-effort).
@@ -860,23 +896,28 @@ public class JobCoordinator implements IStreamCoordinatorRpcService {
             LOG.warn("Failed to restore from checkpoint during recovery", e);
         }
 
-        // Reassign tasks with the new fencing token (assignTasks bumps
+        // Reassign tasks with the new fencing epoch (assignTasks bumps
         // attemptNumber per subtask so the ClusterRegistry history appends a new
         // entry).
         assignTasks();
 
-        LOG.info("Fencing token rotated for job {} (token={})", jobId, newToken);
+        LOG.info("Fencing epoch rotated for job {} (epoch={})", jobId, newEpoch);
     }
 
     /**
-     * G24/G25: derives the composite HA fencing token
-     * {@code leaderId@epoch#recoveryGen}. The epoch component changes only on
-     * leadership switch; recoveryGen changes on each same-leader recovery.
+     * Stage 39 (Decision 1): derives the single monotonic long fencing epoch from a
+     * leadership epoch value and a recovery generation. The leaderEpoch component
+     * changes only on leadership switch; recoveryGen changes on each same-leader
+     * recovery. Combined via {@code leaderEpochValue * EPOCH_SCALE + recoveryGen}
+     * so both fencing invariants hold under a single long comparison.
+     *
+     * @param leaderEpochValue the platform leader epoch (0 in non-HA mode)
+     * @param recoveryGen      the same-leader recovery generation
+     * @return the monotonic long fencing epoch
      */
-    private static String deriveHaFencingToken(LeaderEpoch epoch, long recoveryGen) {
-        return epoch.getLeaderId() + "@" + epoch.getEpoch() + "#" + recoveryGen;
+    public static long deriveHaFencingEpoch(long leaderEpochValue, long recoveryGen) {
+        return leaderEpochValue * EPOCH_SCALE + recoveryGen;
     }
-
     /**
      * G24/G25: election-listener callback handler. Activation/deactivation is
      * driven EXCLUSIVELY by {@link #becomeLeader} / {@link #becomeFollower}; the
@@ -933,8 +974,8 @@ public class JobCoordinator implements IStreamCoordinatorRpcService {
         // the active gate.
         this.active = true;
 
-        String token = deriveHaFencingToken(epoch, 0);
-        rotateFencingTokenAndRestore(token);
+        long token = deriveHaFencingEpoch(epoch.getEpoch(), 0);
+        rotateFencingEpochAndRestore(token);
     }
 
     /**
@@ -1111,6 +1152,62 @@ public class JobCoordinator implements IStreamCoordinatorRpcService {
         checkpointCoordinator.abortPendingCheckpoint(pending, "Coordinator RPC abortCheckpoint(" + epochId + ")");
     }
 
+    /**
+     * Stage 39 Phase 3: registers the <b>distributed</b> checkpoint-abort handler on
+     * the {@link CheckpointCoordinator}. When a checkpoint is aborted (timeout or
+     * explicit abort), the handler fires {@code cancelTask} RPC at every currently
+     * assigned remote task via {@link IStreamTaskRpcService#cancelTask} — the abort
+     * signal's independent control channel (checkpoint-design §13.2 line 1116: "abort
+     * 信号必须有独立于数据流的控制通道").
+     *
+     * <p>The remote {@code TaskManager.cancelTask} runs {@code RunningTask.cancel()}
+     * (mailbox {@code signalCancel} + {@code future.cancel(true)} interrupt), which
+     * unblocks a stalled barrier-alignment read (checkpoint-design §13.2 line 1113:
+     * "coordinator abort must terminate blocked alignment reads").
+     *
+     * <p>Relationship to the LOCAL abort path
+     * ({@code GraphModelCheckpointExecutor.registerLocalAbortHandler}, Phase 3
+     * Decision): the two coexist. The LOCAL path cancels coordinator-JVM-internal
+     * tasks (embedded fast-path); this DISTRIBUTED path cancels remote tasks over
+     * RPC. A deployment uses one or the other depending on the execution form
+     * (embedded vs RPC-distributed). {@code RpcDistributedExecutor} registers this
+     * distributed handler; {@code GraphModelCheckpointExecutor} registers its local
+     * handler. RPC failure during abort is logged and propagated per-node (not
+     * silently swallowed — plan guide #24); the next failure-detection /
+     * global-recovery cycle still fences the un-canceled tasks via the rotated epoch.
+     */
+    public void registerDistributedAbortHandler() {
+        checkpointCoordinator.setAbortHandler(checkpointId -> {
+            if (!active) {
+                // A standby coordinator must not issue cancelTask RPCs.
+                LOG.warn("Ignoring distributed abort({}) for job {}: coordinator not active", checkpointId, jobId);
+                return;
+            }
+            LOG.warn("Distributed checkpoint abort {} for job {}: firing cancelTask RPC at all assigned remote tasks",
+                    checkpointId, jobId);
+            for (Map.Entry<String, List<TaskAssignment>> entry : taskAssignmentMap.entrySet()) {
+                for (TaskAssignment ta : entry.getValue()) {
+                    IStreamTaskRpcService rpc = taskRpcServices.get(ta.getNodeId());
+                    if (rpc == null) {
+                        LOG.warn("No task RPC service for node {} during abort of {}/{}/{} — "
+                                + "relying on epoch-rotation fencing for the un-canceled task",
+                                ta.getNodeId(), ta.getVertexId(), ta.getSubtaskIndex());
+                        continue;
+                    }
+                    try {
+                        rpc.cancelTask(ta.getJobId(), ta.getVertexId(), ta.getSubtaskIndex());
+                    } catch (Exception e) {
+                        // #24: explicit propagation — log per-node failure; the next
+                        // recovery cycle fences via the rotated epoch.
+                        LOG.error("cancelTask RPC failed for {}/{}/{} (node {}) during abort {}",
+                                ta.getJobId(), ta.getVertexId(), ta.getSubtaskIndex(),
+                                ta.getNodeId(), checkpointId, e);
+                    }
+                }
+            }
+        });
+    }
+
     public String getJobId() {
         return jobId;
     }
@@ -1119,12 +1216,12 @@ public class JobCoordinator implements IStreamCoordinatorRpcService {
         return coordinatorId;
     }
 
-    public String getFencingToken() {
-        return fencingToken.get();
+    public long getFencingEpoch() {
+        return fencingEpoch.get();
     }
 
-    public void setFencingToken(String token) {
-        fencingToken.set(token);
+    public void setFencingEpoch(long epoch) {
+        fencingEpoch.set(epoch);
     }
 
     /**
@@ -1260,10 +1357,10 @@ public class JobCoordinator implements IStreamCoordinatorRpcService {
     }
 
     private void sendBarrierToAllTaskManagers(CheckpointBarrier barrier) {
-        String token = fencingToken.get();
+        long epoch = fencingEpoch.get();
         for (Map.Entry<String, IStreamTaskRpcService> entry : taskRpcServices.entrySet()) {
             try {
-                entry.getValue().triggerCheckpoint(barrier, token);
+                entry.getValue().triggerCheckpoint(barrier, epoch);
             } catch (Exception e) {
                 LOG.error("Failed to send barrier signal to node {}", entry.getKey(), e);
             }

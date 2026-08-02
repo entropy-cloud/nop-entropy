@@ -25,10 +25,28 @@
             <artifactId>nop-cluster-core</artifactId>
         </dependency>
 
-        <!-- nop-message-core: only used in tests (LocalMessageService for TestRemoteDataExchange) -->
+        <!-- Stage 39 Phase 2: control-plane cross-JVM RPC over IMessageService
+             (MessageRpcServer / MessageRpcClient / ReflectiveRpcService / RpcServiceProxyFactoryBean) -->
+        <dependency>
+            <groupId>io.github.entropy-cloud</groupId>
+            <artifactId>nop-rpc-core</artifactId>
+        </dependency>
+
+        <!-- nop-message-core: LocalMessageService transport. Compile-scope because the
+             control-plane RPC wiring (Stage 39 Phase 2) and RemoteResultPartition/RemoteInputChannel
+             rely on an IMessageService backend at runtime; production deployments inject
+             SysDaoMessageService/PulsarMessageService. -->
         <dependency>
             <groupId>io.github.entropy-cloud</groupId>
             <artifactId>nop-message-core</artifactId>
+        </dependency>
+
+        <!-- nop-ioc: NopIoC container, used by the Stage 39 Phase 2 RPC beans.xml bootstrap
+             test (production deployment wiring). Test-scope so the IocCoreInitializer does
+             not alter other module tests' CoreInitialization behaviour. -->
+        <dependency>
+            <groupId>io.github.entropy-cloud</groupId>
+            <artifactId>nop-ioc</artifactId>
             <scope>test</scope>
         </dependency>
 
@@ -71,4 +89,24 @@
             <scope>test</scope>
         </dependency>
     </dependencies>
+
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-surefire-plugin</artifactId>
+                <configuration>
+                    <!-- Stage 39 Phase 2: nop-ioc is now a test-scope dependency (for the RPC
+                         beans.xml bootstrap test). Its IocCoreInitializer would otherwise load
+                         nop-dao's dao-defaults beans during CoreInitialization in the JDBC tests
+                         (which use their own manual HikariDataSource and don't need the global
+                         IoC container). Cap initialization below IOC to preserve prior behaviour;
+                         TestStreamControlRpcBootstrap builds its own standalone container. -->
+                    <systemPropertyVariables>
+                        <nop.core.initialize.max-initialize-level>4500</nop.core.initialize.max-initialize-level>
+                    </systemPropertyVariables>
+                </configuration>
+            </plugin>
+        </plugins>
+    </build>
 </project>

@@ -19,7 +19,6 @@ import org.junit.jupiter.api.Test;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.UUID;
 import java.util.concurrent.CopyOnWriteArrayList;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -66,7 +65,7 @@ class TestTaskManagerLivenessAndReporting {
     void heartbeatSkipsLivenessForTasksWithoutInvokable() {
         // Assign a task but do NOT install an invokable. heartbeat must skip it
         // (null-check defense, not NPE).
-        String token = UUID.randomUUID().toString();
+        long token = 1L;
         taskManager.updateFencingToken(token);
         TaskAssignment a = new TaskAssignment(
                 "job-1", "v-1", 0, "node-1", "att-1", token, System.currentTimeMillis(), 1);
@@ -84,7 +83,7 @@ class TestTaskManagerLivenessAndReporting {
 
     @Test
     void heartbeatReportsLivenessWhenInvokableInstalled() throws Exception {
-        String token = UUID.randomUUID().toString();
+        long token = 1L;
         taskManager.updateFencingToken(token);
         TaskAssignment a = new TaskAssignment(
                 "job-1", "v-1", 0, "node-1", "att-1", token, System.currentTimeMillis(), 1);
@@ -112,7 +111,7 @@ class TestTaskManagerLivenessAndReporting {
 
     @Test
     void runningTaskFinallyReportsCompletedStatus() throws Exception {
-        String token = UUID.randomUUID().toString();
+        long token = 1L;
         taskManager.updateFencingToken(token);
         TaskAssignment a = new TaskAssignment(
                 "job-1", "v-1", 0, "node-1", "att-1", token, System.currentTimeMillis(), 1);
@@ -143,7 +142,7 @@ class TestTaskManagerLivenessAndReporting {
 
     @Test
     void runningTaskFinallyReportsFailedStatusOnException() throws Exception {
-        String token = UUID.randomUUID().toString();
+        long token = 1L;
         taskManager.updateFencingToken(token);
         TaskAssignment a = new TaskAssignment(
                 "job-1", "v-fail", 0, "node-1", "att-1", token, System.currentTimeMillis(), 1);
@@ -171,7 +170,7 @@ class TestTaskManagerLivenessAndReporting {
     void cancelBeforeInvokableSkipsMailboxButStillCancels() throws Exception {
         // G58 null-check defense: cancel arrives before invokable is installed.
         // Must not throw NPE; must still cancel the task slot.
-        String token = UUID.randomUUID().toString();
+        long token = 1L;
         taskManager.updateFencingToken(token);
         TaskAssignment a = new TaskAssignment(
                 "job-1", "v-cancel", 0, "node-1", "att-1", token, System.currentTimeMillis(), 1);
@@ -194,7 +193,7 @@ class TestTaskManagerLivenessAndReporting {
         // full TaskManager.receiveAssignment lifecycle (which would have the task
         // thread finish too quickly for a blocking-source-based test).
         TaskManager.RunningTask rt = taskManager.new RunningTask(
-                "job-1", "v-mbx", 0, "tok-1", "att-1", 1);
+                "job-1", "v-mbx", 0, 1L, "att-1", 1);
         StreamTaskInvokable inv = new StreamTaskInvokable(buildEmptyOperatorChain());
 
         // Install invokable on the RunningTask directly
@@ -217,7 +216,7 @@ class TestTaskManagerLivenessAndReporting {
         // G58 null-check defense: cancel arrives before invokable is installed.
         // RunningTask.cancel() must not throw NPE.
         TaskManager.RunningTask rt = taskManager.new RunningTask(
-                "job-1", "v-noop", 0, "tok-1", "att-1", 1);
+                "job-1", "v-noop", 0, 1L, "att-1", 1);
         // invokable field is still null
         assertDoesNotThrow(() -> rt.cancel());
     }
@@ -272,7 +271,7 @@ class TestTaskManagerLivenessAndReporting {
     }
 
     static class NoopClusterRegistry implements ClusterRegistry {
-        @Override public void registerCoordinator(String jobId, String coordinatorId, String fencingToken) {}
+        @Override public void registerCoordinator(String jobId, String coordinatorId, long fencingEpoch) {}
         @Override public io.nop.stream.runtime.cluster.CoordinatorInfo getActiveCoordinator(String jobId) { return null; }
         @Override public void registerNode(String nodeId, String endpoint, int capacity) {}
         @Override public boolean renewLease(String nodeId, long leaseTimeoutMs) { return true; }
@@ -281,7 +280,7 @@ class TestTaskManagerLivenessAndReporting {
 
         @Override
         public void assignTask(String jobId, String vertexId, int subtaskIndex,
-                               String nodeId, String attemptId, String fencingToken,
+                               String nodeId, String attemptId, long fencingEpoch,
                                int attemptNumber) {}
 
         @Override

@@ -235,7 +235,7 @@ class TestJobCoordinatorAssignmentFromPlan {
         }
 
         @Override
-        public void triggerCheckpoint(CheckpointBarrier barrier, String fencingToken) {
+        public void triggerCheckpoint(CheckpointBarrier barrier, long fencingEpoch) {
             lastBarrier.set(barrier);
         }
 
@@ -244,7 +244,7 @@ class TestJobCoordinatorAssignmentFromPlan {
         }
 
         @Override
-        public void updateFencingToken(String newToken) {
+        public void updateFencingToken(long fencingEpoch) {
         }
     }
 }

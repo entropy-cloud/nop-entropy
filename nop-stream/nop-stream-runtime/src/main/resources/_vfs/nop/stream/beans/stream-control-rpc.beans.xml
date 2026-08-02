@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<!--
+  Stage 39 Phase 2: nop-stream's first beans.xml. Wires the control-plane RPC
+  infrastructure (Stage 42 multi-JVM deployment scaffold).
+
+  Wiring topology (Phase 2 Decision 1):
+    * Task side:   each TaskManager node exposes IStreamTaskRpcService
+                   on topic  nop-stream.rpc.task.{nodeId}
+    * Coordinator: the coordinator exposes IStreamCoordinatorRpcService
+                   on topic  nop-stream.rpc.coordinator.{jobId}
+
+  The transport is IMessageService (MessageRpcServer / MessageRpcClient), consistent
+  with the Stage 40 data-plane backend. Server selection rationale (Decision 3):
+  MessageRpcServer over SimpleRpcServer — topic-addressed (no per-node port allocation),
+  unified with the data-plane transport, no Flink Netty stack (vision constraint 7).
+
+  The service implementations (TaskManager / JobCoordinator) and the per-node topic are
+  runtime/deployment-specific, so they are NOT statically wired here. This file provides:
+    1. a configurable IMessageService bean (the shared transport), and
+    2. a feature-gated template documenting how a deployment node instantiates the
+       StreamControlRpcServer / StreamControlRpcProxyFactory beans.
+  TestStreamControlRpcBootstrap loads this file via NopIoC and verifies the beans
+  materialize and that the RPC server/proxy classes (wired with the container's
+  IMessageService bean) genuinely carry control calls — proving the scaffold is
+  non-hollow (plan guide #11/#24).
+-->
+<beans x:schema="/nop/schema/beans.xdef" xmlns:x="/nop/schema/xdsl.xdef"
+       xmlns:ioc="ioc" xmlns:feature="feature">
+
+    <!-- The shared control-plane transport. Default LocalMessageService (single-JVM);
+         production overrides to SysDaoMessageService / PulsarMessageService (ioc:default
+         yields to an explicitly-wired IMessageService of the same name). -->
+    <bean id="streamMessageService" ioc:default="true"
+          class="io.nop.message.core.local.LocalMessageService"/>
+
+    <!--
+      Deployment scaffold (Stage 42 will materialize these per node). The wiring pattern:
+
+      <bean id="streamTaskRpcServer_node0"
+            class="io.nop.stream.runtime.rpc.StreamControlRpcServer"
+            ioc:configMethod="...">
+          <property name="serviceName" value="streamTaskRpc@node-0"/>
+          <property name="serviceInterface" value="io.nop.stream.runtime.rpc.IStreamTaskRpcService"/>
+          <property name="serviceImpl" ref="taskManager_node0"/>
+          <property name="messageService" ref="streamMessageService"/>
+          <property name="topic" value="nop-stream.rpc.task.node-0"/>
+      </bean>
+
+      <bean id="streamTaskRpcProxy_node0"
+            class="io.nop.stream.runtime.rpc.StreamControlRpcProxyFactory"
+            ioc:configMethod="...">
+          <property name="serviceName" value="streamTaskRpc@node-0"/>
+          <property name="serviceInterface" value="io.nop.stream.runtime.rpc.IStreamTaskRpcService"/>
+          <property name="messageService" ref="streamMessageService"/>
+          <property name="topic" value="nop-stream.rpc.task.node-0"/>
+      </bean>
+    -->
+
+</beans>

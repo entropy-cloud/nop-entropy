@@ -71,7 +71,7 @@ class TestTaskManager {
     @Test
     void testReceiveAssignmentCreatesTaskSlot() {
         taskManager.start();
-        String fencingToken = UUID.randomUUID().toString();
+        long fencingToken = 1L;
         taskManager.updateFencingToken(fencingToken);
 
         TaskAssignment assignment = new TaskAssignment(
@@ -89,11 +89,11 @@ class TestTaskManager {
         // P0-6: stale-token handling hardened from LOG.warn + return to throw
         // StreamException. Previously the assignment was silently swallowed.
         taskManager.start();
-        taskManager.updateFencingToken("current-token");
+        taskManager.updateFencingToken(1L);
 
         TaskAssignment assignment = new TaskAssignment(
                 "job-1", "vertex-1", 0,
-                NODE_ID, "attempt-1", "old-token",
+                NODE_ID, "attempt-1", 2L,
                 System.currentTimeMillis());
 
         assertThrows(StreamException.class, () -> taskManager.receiveAssignment(assignment),
@@ -106,7 +106,7 @@ class TestTaskManager {
         // Don't start the task manager
         TaskAssignment assignment = new TaskAssignment(
                 "job-1", "vertex-1", 0,
-                NODE_ID, "attempt-1", "token",
+                NODE_ID, "attempt-1", 0L,
                 System.currentTimeMillis());
 
         taskManager.receiveAssignment(assignment);
@@ -126,7 +126,7 @@ class TestTaskManager {
     @Test
     void testUpdateFencingTokenCancelsOldTasks() {
         taskManager.start();
-        String oldToken = UUID.randomUUID().toString();
+        long oldToken = 1L;
         taskManager.updateFencingToken(oldToken);
 
         TaskAssignment assignment = new TaskAssignment(
@@ -138,7 +138,7 @@ class TestTaskManager {
         assertEquals(1, taskManager.getRunningTaskCount());
 
         // Update fencing token — old tasks should be canceled
-        String newToken = UUID.randomUUID().toString();
+        long newToken = 2L;
         taskManager.updateFencingToken(newToken);
 
         // Give time for cancellation to propagate
@@ -148,7 +148,7 @@ class TestTaskManager {
     @Test
     void testCapacityEnforcement() {
         taskManager.start();
-        String token = UUID.randomUUID().toString();
+        long token = 1L;
         taskManager.updateFencingToken(token);
 
         // Submit more tasks than capacity
@@ -167,7 +167,7 @@ class TestTaskManager {
     @Test
     void testDuplicateAssignmentIgnored() {
         taskManager.start();
-        String token = UUID.randomUUID().toString();
+        long token = 1L;
         taskManager.updateFencingToken(token);
 
         TaskAssignment assignment = new TaskAssignment(
@@ -186,7 +186,7 @@ class TestTaskManager {
         TaskManager smallTm = new TaskManager("node", "ep", 2,
                 messageService, clusterRegistry, CONTROL_TOPIC);
         smallTm.start();
-        String token = UUID.randomUUID().toString();
+        long token = 1L;
         smallTm.updateFencingToken(token);
 
         TaskAssignment assignment = new TaskAssignment(
@@ -215,7 +215,7 @@ class TestTaskManager {
         TaskManager smallTm = new TaskManager("node", "ep", 2,
                 messageService, clusterRegistry, CONTROL_TOPIC);
         smallTm.start();
-        String oldToken = UUID.randomUUID().toString();
+        long oldToken = 1L;
         smallTm.updateFencingToken(oldToken);
 
         TaskAssignment assignment = new TaskAssignment(
@@ -228,7 +228,7 @@ class TestTaskManager {
 
         int permitsBefore = smallTm.availablePermits();
 
-        String newToken = UUID.randomUUID().toString();
+        long newToken = 2L;
         smallTm.updateFencingToken(newToken);
 
         Thread.sleep(200);
@@ -248,7 +248,7 @@ class TestTaskManager {
         TaskManager smallTm = new TaskManager("node", "ep", 2,
                 messageService, clusterRegistry, CONTROL_TOPIC);
         smallTm.start();
-        String token = UUID.randomUUID().toString();
+        long token = 1L;
         smallTm.updateFencingToken(token);
 
         for (int i = 0; i < 2; i++) {
@@ -278,7 +278,7 @@ class TestTaskManager {
         TaskManager smallTm = new TaskManager("node", "ep", 2,
                 messageService, clusterRegistry, CONTROL_TOPIC);
         smallTm.start();
-        String token = UUID.randomUUID().toString();
+        long token = 1L;
         smallTm.updateFencingToken(token);
 
         TaskAssignment assignment = new TaskAssignment(
@@ -324,7 +324,7 @@ class TestTaskManager {
         MockCoordinatorRpcService mockRpc = new MockCoordinatorRpcService();
         taskManager.setCoordinatorRpcService(mockRpc);
 
-        String token = UUID.randomUUID().toString();
+        long token = 1L;
         taskManager.updateFencingToken(token);
 
         TaskLocation loc = new TaskLocation("job-1", "pipeline-0", "vertex-1", 0);
@@ -338,7 +338,7 @@ class TestTaskManager {
         assertNotNull(mockRpc.lastAck);
         assertEquals(1L, mockRpc.lastAck.getCheckpointId());
         assertEquals(loc, mockRpc.lastAck.getTaskLocation());
-        assertEquals(token, mockRpc.lastAck.getFencingToken());
+        assertEquals(token, mockRpc.lastAck.getFencingEpoch());
     }
 
     @Test
@@ -353,7 +353,7 @@ class TestTaskManager {
     @Test
     void testInstallInvokableOnRunningTask() throws Exception {
         taskManager.start();
-        String token = UUID.randomUUID().toString();
+        long token = 1L;
         taskManager.updateFencingToken(token);
 
         TaskAssignment assignment = new TaskAssignment(
@@ -378,7 +378,7 @@ class TestTaskManager {
     @Test
     void testTriggerCheckpointWithNoRunningTasksDoesNotCrash() {
         taskManager.start();
-        String token = UUID.randomUUID().toString();
+        long token = 1L;
         taskManager.updateFencingToken(token);
 
         // No tasks assigned - triggerCheckpoint should not crash
@@ -393,12 +393,12 @@ class TestTaskManager {
         // any operation carrying an old fencing token" — silently dropping
         // the barrier was a No-Silent-No-Op violation.
         taskManager.start();
-        String token = UUID.randomUUID().toString();
+        long token = 1L;
         taskManager.updateFencingToken(token);
 
         CheckpointBarrier barrier = new CheckpointBarrier(1L, System.currentTimeMillis(), CheckpointType.CHECKPOINT);
         assertThrows(StreamException.class,
-                () -> taskManager.triggerCheckpoint(barrier, "stale-token"),
+                () -> taskManager.triggerCheckpoint(barrier, 2L),
                 "stale fencing token must throw, not be silently swallowed");
     }
 
@@ -409,7 +409,7 @@ class TestTaskManager {
         volatile boolean leaseRenewed = false;
 
         @Override
-        public void registerCoordinator(String jobId, String coordinatorId, String fencingToken) {}
+        public void registerCoordinator(String jobId, String coordinatorId, long fencingEpoch) {}
 
         @Override
         public io.nop.stream.runtime.cluster.CoordinatorInfo getActiveCoordinator(String jobId) {
@@ -444,7 +444,7 @@ class TestTaskManager {
 
         @Override
         public void assignTask(String jobId, String vertexId, int subtaskIndex,
-                               String nodeId, String attemptId, String fencingToken,
+                               String nodeId, String attemptId, long fencingEpoch,
                                int attemptNumber) {}
 
         @Override

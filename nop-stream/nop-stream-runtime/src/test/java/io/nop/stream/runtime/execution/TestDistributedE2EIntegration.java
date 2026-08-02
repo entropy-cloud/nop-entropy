@@ -2,6 +2,7 @@ package io.nop.stream.runtime.execution;
 
 import io.nop.api.core.message.*;
 import io.nop.stream.core.environment.StreamExecutionEnvironment;
+import io.nop.stream.core.exceptions.StreamException;
 import io.nop.stream.core.execution.DeploymentMode;
 import io.nop.stream.core.execution.transport.StreamElementCodec;
 import io.nop.stream.core.execution.transport.StreamMessageEnvelope;
@@ -74,7 +75,7 @@ class TestDistributedE2EIntegration {
 
         env.fromElements("a", "b", "c", "d")
                 .map(s -> {
-                    if ("c".equals(s)) throw new RuntimeException("intentional test failure");
+                    if ("c".equals(s)) throw new StreamException("intentional test failure");
                     return s.toUpperCase();
                 })
                 .sink(v -> {});
@@ -88,7 +89,7 @@ class TestDistributedE2EIntegration {
         long expectedTimestamp = 123456789L;
         StreamRecord<String> original = new StreamRecord<>("test-value", expectedTimestamp);
 
-        StreamMessageEnvelope envelope = StreamElementCodec.encode(original, "java.lang.String", "fence-token", 100L);
+        StreamMessageEnvelope envelope = StreamElementCodec.encode(original, "java.lang.String", 100L);
         Object decoded = StreamElementCodec.decode(envelope);
 
         assertInstanceOf(StreamRecord.class, decoded, "Decoded should be StreamRecord");
@@ -103,7 +104,7 @@ class TestDistributedE2EIntegration {
     void testNoTimestampPreservedThroughCodec() throws Exception {
         StreamRecord<String> original = new StreamRecord<>("no-ts-value");
 
-        StreamMessageEnvelope envelope = StreamElementCodec.encode(original, "java.lang.String", "fence-token", 100L);
+        StreamMessageEnvelope envelope = StreamElementCodec.encode(original, "java.lang.String", 100L);
         Object decoded = StreamElementCodec.decode(envelope);
 
         assertInstanceOf(StreamRecord.class, decoded, "Decoded should be StreamRecord");

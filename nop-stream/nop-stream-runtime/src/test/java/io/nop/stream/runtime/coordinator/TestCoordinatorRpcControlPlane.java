@@ -267,9 +267,9 @@ class TestCoordinatorRpcControlPlane {
         final Map<String, io.nop.stream.runtime.cluster.CoordinatorInfo> coordinators = new ConcurrentHashMap<>();
 
         @Override
-        public void registerCoordinator(String jobId, String coordinatorId, String fencingToken) {
+        public void registerCoordinator(String jobId, String coordinatorId, long fencingEpoch) {
             coordinators.put(jobId, new io.nop.stream.runtime.cluster.CoordinatorInfo(
-                    jobId, coordinatorId, fencingToken, System.currentTimeMillis()));
+                    jobId, coordinatorId, fencingEpoch, System.currentTimeMillis()));
         }
 
         @Override
@@ -300,7 +300,7 @@ class TestCoordinatorRpcControlPlane {
 
         @Override
         public void assignTask(String jobId, String vertexId, int subtaskIndex,
-                               String nodeId, String attemptId, String fencingToken,
+                               String nodeId, String attemptId, long fencingEpoch,
                                int attemptNumber) {
         }
 
@@ -321,16 +321,16 @@ class TestCoordinatorRpcControlPlane {
 
     static class MockTaskRpcService implements IStreamTaskRpcService {
         final AtomicReference<CheckpointBarrier> lastBarrier = new AtomicReference<>();
-        final AtomicReference<String> lastFencingToken = new AtomicReference<>();
+        final AtomicLong lastFencingEpoch = new AtomicLong();
 
         @Override
         public void receiveAssignment(TaskAssignment assignment) {
         }
 
         @Override
-        public void triggerCheckpoint(CheckpointBarrier barrier, String fencingToken) {
+        public void triggerCheckpoint(CheckpointBarrier barrier, long fencingEpoch) {
             lastBarrier.set(barrier);
-            lastFencingToken.set(fencingToken);
+            lastFencingEpoch.set(fencingEpoch);
         }
 
         @Override
@@ -338,8 +338,8 @@ class TestCoordinatorRpcControlPlane {
         }
 
         @Override
-        public void updateFencingToken(String newToken) {
-            lastFencingToken.set(newToken);
+        public void updateFencingToken(long fencingEpoch) {
+            lastFencingEpoch.set(fencingEpoch);
         }
     }
 }
