@@ -71,9 +71,9 @@ State (clear)
 
 **Successor 路径**：未来 window/state 重构 plan 应同时完成（a）定义 `MergingState` 接口 + state backend 支持，与（b）迁移 `WindowOperator.mergeWindowContents()` 三个调用点为该接口的消费者，二者一并交付以避免空壳。
 
-## 3. StateShard
+## 3. StateShard 与 Key-Group 路由
 
-分布式状态下，keyed state 需要稳定的逻辑分片以支持跨节点定位和恢复。nop-stream 引入 `StateShard`：
+分布式状态下，keyed state 需要稳定的逻辑分片以支持跨节点定位和恢复。nop-stream 以 `StateShard` 为路由模型的入口，自 Stage 34 起其 key→shard 路由等价于 Key-Group 模型：
 
 | 属性 | 说明 |
 |---|---|
@@ -81,12 +81,19 @@ State (clear)
 | `stateShardId` | `0 <= id < stateShardCount` 的逻辑分片编号 |
 | `ownerSubtask` | 当前 plan 中拥有该 shard 的 subtask |
 | `hashPolicy` | key 到 shard 的确定性 hash 规则 |
+| `maxParallelism` | **Stage 34 新增**：job-global 的 key-group 上界（默认 128），作为 keyed 作业的稳定上界。与 `stateShardCount` 同为后端实例属性，作业生命周期内不变 |
 
-**路由规则**：`stateShardId = stableHash(normalizedKey) mod stateShardCount`
+**路由规则（Stage 34 演进）**：
 
-`StateShard` 不是 Flink key-group 的照搬，只承担稳定状态路由职责，不引入 Flink 的序列化器或 ExecutionGraph 结构。
+- **稳定哈希**（G38）：`KeyGroupAssignment.stableHash(key)` 不再直接调用 `Object.hashCode()`。对内置值类型（String / 基本类型包装类 / BigDecimal / BigInteger / UUID / Date / Enum）委托其 spec-stable 的 `hashCode()`；对其余类型（用户 POJO / Window / Tuple）使用 Murmur3 over canonical JSON 字节。同一 key 在不同 JVM、不同进程重启后映射一致。
+- **key→group 映射**（G37）：`keyGroupId = (stableHash(key) & 0x7FFFFFFF) % maxParallelism`。`maxParallelism` 是 job-global 上界，存在 `IStateBackend` 实例上（替代旧的 `shardCount` 概念），默认 128。
+- **路由等价性**：当 `maxParallelism == stateShardCount` 时，对内置值类型，新映射把每个 key 路由到与旧 `(key.hashCode() & 0x7FFFFFFF) % stateShardCount` **相同的桶**（向后兼容）。用户 POJO 的映射变化是预期行为（从 identity/POJO-hashCode 迁移到 JSON hash）。
 
-`stateShardCount` 默认不可改变。改变等价于 keyed state 重分片，必须提供显式 migration action 和校验报告。
+`KeyGroupRange`（G39，半开区间 `[start, end)`）提供 `contains` / `intersect` / `overlaps` / `isAdjacent` 等集合操作，供 Stage 35 做 range 交集局部恢复。group→subtask 映射函数（连续区间分配）亦在 Stage 34 交付，生产 rescale 接线在 Stage 35。
+
+**架构决策（Stage 34）**：`maxParallelism` = job-global 后端属性，**不**做 per-vertex DSL 透传。理由：(a) 与现有 `shardCount` 架构一致，最小侵入；(b) vision §十排除了 Flink ExecutionGraph 三层调度，per-operator maxParallelism 属被排除复杂度；(c) rescale（Stage 35）只改变 per-vertex `VertexPlan.parallelism`，`maxParallelism` 固定即可满足 key→group 映射不变性。拒绝了另起 KeyGroup 抽象、拒绝保留 `Object.hashCode()`、拒绝 per-vertex maxParallelism 三种替代方案。
+
+`StateShard` 不是 Flink key-group 的照搬，只承担稳定状态路由职责，不引入 Flink 的序列化器或 ExecutionGraph 结构。`maxParallelism` 默认不可改变；改变等价于 keyed state 重分片，必须提供显式 migration action 和校验报告。
 
 ## 4. StatePath
 
@@ -150,16 +157,17 @@ IInternalStateBackend.getInternalAppendingState 有两个重载：
 
 ### 5.3 RocksDBStateBackend
 
-第二个状态后端实现（Stage 30 交付）。所有 keyed state 存储在 off-heap 的 RocksDB 列族中，突破 JVM 堆内存上限。
+第二个状态后端实现（Stage 30 交付，Stage 34 演进键布局）。所有 keyed state 存储在 off-heap 的 RocksDB 列族中，突破 JVM 堆内存上限。
 
 - 独立模块 `nop-stream-rocksdb`（`rocksdbjni` ~58MB native jar 隔离在此模块，不污染 `nop-stream-core`）
 - 每个注册的 state 对应一个 RocksDB column family
-- Key 编码：`[nsLen][nsJsonBytes][shardId][keyLen][keyJsonBytes]`，namespace 序列化与 `MemoryStateSerDe` 一致
+- **Key 编码（Stage 34，layout version 2）**：`[keyGroupId:int32 BE][nsLen:int32 BE][nsJsonBytes][keyLen:int32 BE][keyJsonBytes]`。`keyGroupId` 作为**首部 big-endian 可排序前缀**（字典序=数值序），使同一 group 的 key 在 SST 中连续存储，Stage 35 可做 range 交集局部恢复。MapState 在 base 复合键后追加 `[mapKeyLen][mapKeyJsonBytes]` 后缀。namespace 序列化与 `MemoryStateSerDe` 一致
+- **键布局版本（fail-fast）**：快照 data map 携带 `keyLayoutVersion=2`。旧 layout（version 1，`shardId` 嵌在 namespace 之后非可排序前缀）的增量 SST 无法被新 encoder decode；增量 restore 路径对 absent/version!=2 的 SST 必须 fail-fast（`ERR_STREAM_STATE_ERROR`），不静默产出错位数据。全量快照存储 raw key（layout 无关），故 absent version（跨后端 Memory 快照）在 full restore 路径被容忍
 - Value 编码：JSON via `JsonTool`（与 memory backend 序列化体系一致）
 - `RocksDBKeyedStateBackend<K>` 实现 `IInternalStateBackend<K>`，所有 keyed state 类型（Value/Map/List/Reducing/Aggregating + Internal 变体）由列族承载
 - 快照格式与 `MemoryStateSerDe` byte-compatible（8 种 stateType、per-type info keys、entry discriminators、raw-key 不变量），实现 checkpoint 跨后端互换
 - Operator state 复用 `MemoryOperatorStateBackend`（operator state 量小，非 off-heap 目标）
-- 配置：`RocksDBStateBackend(dbPath, shardCount, RocksDBOptionConfig)`，最小配置项为 db path、write buffer size、max background threads
+- 配置：`RocksDBStateBackend(dbPath, shardCount, RocksDBOptionConfig)`（Stage 34：`shardCount` 语义已迁移为 job-global `maxParallelism`，Stage 34 Phase 3 将字段/参数显式重命名），最小配置项为 db path、write buffer size、max background threads
 
 **使用方式**：
 ```java

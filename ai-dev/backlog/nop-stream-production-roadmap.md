@@ -44,12 +44,12 @@ Does not contain implementation details. Each `planned` stage is owned by its ex
 - 30. RocksDB 状态后端核心: `done`（plan `ai-dev/plans/nop-stream-production/2026-08-02-0955-1-rocksdb-state-backend.md`，completed — 独立 `nop-stream-rocksdb` 模块 + `RocksDBKeyedStateBackend` 实现 `IInternalStateBackend` + 全 8 stateType 列族 + snapshot 互换兼容 + Stage 29 schema fingerprint 复用；578 tests pass）
 - 31. 增量 checkpoint（SST 共享）: `done`（plan `ai-dev/plans/nop-stream-production/2026-08-02-0955-2-incremental-checkpoint-sst-sharing.md`，completed — Stage 30 已 landing 解除 blocker；`SharedStateRegistry` 引用计数（`ConcurrentHashMap.compute` per-key 原子）+ `SharedStateHandle`/`IncrementalSnapshotResult`（@DataBean）+ `RocksDBIncrementalSnapshotStrategy`（`Checkpoint.createCheckpoint` 单参 API + SST SHA-256 内容寻址 + 非 SST per-checkpoint 复制 + `sst-name-map.txt`）+ `ISegmentStore`/`LocalFileSegmentStore` side-channel + `EpochManifest.segments` 激活（`codec=identity` fail-fast）+ coordinator 段2 构建 segments（registry register + storeSegment 物化）+ subsumption GC（零引用物理删除）+ `restoreSharedStateRegistry` restart 恢复 + orphan cleanup；增量/全量基准 ratio≈0.35（≈2.9× 加速）；G33 收口）
 - 32. State TTL（G42, G43，P2）: `done`（plan `ai-dev/plans/nop-stream-production/2026-08-02-0955-3-state-ttl.md`，completed — `StateTtlConfig`/`StateTtlUpdateType`/`TtlCleanupStrategy` + intrusive `TtlContext` per-state sidecar（存储/值分离）+ Memory/RocksDB lazy eviction（双重清理）+ snapshot 过期排除 + restore 后 TTL 存活 + Memory sweep / RocksDB `cleanupExpiredEntries()` 后台清理；TTL 不影响 schemaChecksum；native RocksDB compaction filter 裁定延后——rocksdbjni 无纯 Java 回调，纯 Java sweep 语义等价；G42/G43 ✅ Closed）
-- 33. 状态迁移接线: `todo`
+- 33. 状态迁移接线: `planned`（plan `ai-dev/plans/nop-stream-production/2026-08-02-0955-6-state-migration-wiring.md`，active — StateMigrationFunction 接口/注册（StreamComponents）/checksum 不匹配→迁移主路径/Integer→Long demo；schemaVersion 四分支因 schemaVersion≡1 无触发源延后；Stage 29 deferred 收口）
 
 ### Phase 3 — 弹性与重分布
 
-- 34. Key-Group 模型（G37—G39，P2）: `todo`
-- 35. KeyGroupRange 恢复 + RocksDB key-group 感知 restore: `todo`
+- 34. Key-Group 模型（G37—G39，P2）: `done`（plan `ai-dev/plans/nop-stream-production/2026-08-02-0955-4-key-group-model.md`，completed — KeyGroup/KeyGroupRange/KeyGroupAssignment（分层稳定哈希：内置类型 hashCode + POJO Murmur3-over-JSON，G38）+ key→group 映射（G37）+ KeyGroupRange 集合操作（G39）+ job-global maxParallelism（默认 128，shardCount 语义迁移 + getShardCount @Deprecated 别名）+ group→subtask 连续区间映射函数；RocksDB 可排序 key-group 二进制前缀 layout v2（**Stage 30 deferred「Binary composite key encoding」收口**，增量旧 SST fail-fast）；memory+rocksdb keyed 聚合 E2E 一致；生产 rescale 接线属 Stage 35）
+- 35. KeyGroupRange 恢复 + RocksDB key-group 感知 restore: `planned`（plan `ai-dev/plans/nop-stream-production/2026-08-02-0955-5-keygroup-range-recovery.md`，active — executor dispatch（`GraphModelCheckpointExecutor.restoreTaskStatesFromSource` 承重重构为区间路由）+ TaskEpochSnapshot KeyGroupRange 归属物化 + 全量 JSON in-memory 过滤/增量 SST range scan 双路径 + scale-down 多源合并 + parallelism 4↔16 E2E；Stage 31 deferred「Key-group range SST reading」收口；依赖 Stage 34 先完成）
 - 36. ~~BroadcastState 类型（G36，P2）~~ → 推迟，需先更新 vision §七: `todo`
 - 37. StateShard→KeyGroup 迁移 + vision Non-Goal 更新: `todo`
 

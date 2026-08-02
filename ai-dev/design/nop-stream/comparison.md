@@ -336,23 +336,23 @@ nop-stream 规划的 XDSL 声明式入口应类似：
 
 ### 6.3 Key-Group vs StateShard 对比
 
-Flink 的 Key-Group 模型是 nop-stream StateShard 的重要参考：
+Flink 的 Key-Group 模型是 nop-stream StateShard 的重要参考。Stage 34 起，nop-stream 的 key→shard 路由等价于 Key-Group 模型（`KeyGroupAssignment` 稳定哈希 + `maxParallelism`），但保留了更轻量的 `StateShard`/`maxParallelism` 命名与 job-global 后端属性形态，不引入 Flink 的 ExecutionGraph 三层调度：
 
-| 维度 | Flink Key-Group | nop-stream StateShard |
+| 维度 | Flink Key-Group | nop-stream StateShard（Stage 34 现状） |
 |------|-----------------|----------------------|
-| 数学定义 | `groupId = hash(key) % maxParallelism` | `shardId = stableHash(key) % stateShardCount` |
-| 上界 | `maxParallelism`（默认 128，建议 ≤ 32768） | `stateShardCount`（固定） |
-| SubTask 映射 | 静态：`KeyGroupRangeAssignment.assignToKeyGroupRange()` | 固定：`shardId → ownerSubtask` 在 `PartitionedPlan` 中记录 |
-| 并行度变化 | Key→Group 映射不变，Group→SubTask 范围重算，状态局部恢复 | `stateShardCount` 不变时 `ownerSubtask` 可以重算，但 count 变化需要显式迁移 |
-| 运行时状态查找 | `currentKey` → `KeyGroupRange` → 本地或远程 | `currentKey` → `stateShardId` → 本地或远程 |
-| 恢复效率 | 增量恢复（SST 文件按 Key-Group 读取） | 全量恢复（按 stateShard 读取） |
-| 与序列化耦合 | 深度耦合（TypeSerializerSnapshot + KeyGroup 前缀） | 轻量（JSON 序列化，Key 只是字符串 hash） |
+| 数学定义 | `groupId = hash(key) % maxParallelism` | `keyGroupId = (stableHash(key) & 0x7FFFFFFF) % maxParallelism`，`stableHash` 对内置类型委托 hashCode、对 POJO 走 Murmur3(JSON) |
+| 上界 | `maxParallelism`（默认 128，建议 ≤ 32768） | `maxParallelism`（默认 128，job-global 后端属性） |
+| SubTask 映射 | 静态：`KeyGroupRangeAssignment.assignToKeyGroupRange()` | `KeyGroupAssignment.computeKeyGroupRangeForSubtaskIndex()`（Stage 34 交付函数 + 单测，生产 rescale 接线在 Stage 35） |
+| 并行度变化 | Key→Group 映射不变，Group→SubTask 范围重算，状态局部恢复 | Key→Group 映射不变（依赖固定 `maxParallelism`），Group→SubTask 范围重算（Stage 35 接线） |
+| 运行时状态查找 | `currentKey` → `KeyGroupRange` → 本地或远程 | `currentKey` → `keyGroupId`（RocksDB 二进制键可排序前缀，Stage 34） → 本地或远程 |
+| 恢复效率 | 增量恢复（SST 文件按 Key-Group 读取） | 全量恢复（Stage 30）+ Stage 35 range 交集局部恢复（消费本 Stage 编码） |
+| 与序列化耦合 | 深度耦合（TypeSerializerSnapshot + KeyGroup 前缀） | 轻量（JSON 序列化，KeyGroup id 作为 RocksDB 二进制可排序前缀） |
 
-**nop-stream 采用 StateShard 而非 Key-Group 的原因**：
-- 不需要 Flink 的动态并行度调整
+**nop-stream 保留独立命名而不直接照搬 Flink KeyGroup 的原因**：
+- 不需要 Flink 的动态并行度调整 ExecutionGraph
 - 不需要 Flink 的序列化器体系来编码 key
-- 当前状态大小（几十 GB）可以用 JSON + Memory 后端承载
-- Key-Group 的优势在大状态（100GB+）+ RocksDB + 增量 checkpoint 时才充分体现
+- `maxParallelism` 作为 job-global 后端属性，避免 per-vertex DSL 透传的复杂度（vision §十排除）
+- Key-Group 的优势在大状态（100GB+）+ RocksDB + 增量 checkpoint 时才充分体现，Stage 34 已为此铺垫可排序前缀编码，Stage 35 消费
 
 ### 6.4 InternalAppendingState 设计要点
 
