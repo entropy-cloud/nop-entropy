@@ -382,7 +382,7 @@ interface OperatorStateStore {
 
 ## 11. 已知限制
 
-1. **无内存控制（Memory 后端）** — MemoryStateBackend 的状态只增长不收缩（除窗口触发清理），无 TTL/驱逐/spill。大状态场景可能 OOM。**RocksDBStateBackend（Stage 30）通过 off-heap 列族存储突破此限制**
+1. **无内存控制（Memory 后端）** — MemoryStateBackend 的状态只增长不收缩（除窗口触发清理），无驱逐/spill。大状态场景可能 OOM。**RocksDBStateBackend（Stage 30）通过 off-heap 列族存储突破此限制；Stage 32 为 keyed state 引入了可选 TTL（见 §12），TTL 启用的 state 会按配置过期并被清理，但默认（无 TTL）状态仍只增长不收缩**
 2. **JSON 序列化性能** — Checkpoint 持久化使用 JSON，体积和速度均不如二进制格式
 3. **状态对象是引用** — MemoryValueState 直接存储用户对象引用，没有深拷贝。用户代码意外修改对象会影响状态一致性
 4. **MemoryInternalAppendingState accumulator 复用** — 单个 accumulator 实例在 add() 时先重置再加入，多线程不安全
@@ -391,3 +391,51 @@ interface OperatorStateStore {
 7. **无状态重分布** — 不支持并行度变更后重新分配状态
 8. ~~**仅 Memory 后端**~~ — `IStateBackend` 接口已有两个实现：`MemoryStateBackend`（堆内存）和 `RocksDBStateBackend`（off-heap，Stage 30）
 9. **无 Operator State 实现** — `OperatorStateStore` 接口未实现，source offset checkpoint 缺口。见 `ai-dev/backlog/completion-roadmap.md` Phase 0.3
+
+## 12. State TTL（Stage 32）
+
+为 keyed state 引入可选的生存时间（TTL）与过期清理。状态条目在指定 TTL 后自动失效。
+
+### 12.1 配置
+
+- `StateTtlConfig`：`ttl`（`Duration`）、`updateType`（`StateTtlUpdateType`：`Disabled`/`OnCreateAndWrite`/`OnReadAndWrite`）、`cleanupStrategy`（`TtlCleanupStrategy`：lazy eviction 默认启用；background cleanup 默认启用）。`StateTtlConfig.DISABLED` 是哨兵默认值。
+- `StateDescriptor.setTtlConfig(StateTtlConfig)` 可选附加配置。TTL 是 **运行时行为，非 schema 契约**：`StateSchemaResolver` 不读取 TTL，故 `schemaChecksum` 不受 TTL 配置影响——在已有 state 上增删 TTL 不破坏 checkpoint 兼容性。`StateTtlConfig` 不进入 checkpoint 持久化；restore 后由 live descriptor（用户代码）在 `getState()` 时重新提供并重新绑定 TTL 上下文。
+
+### 12.2 时间戳追踪：per-state sidecar（存储/值分离）
+
+TTL 时间戳由每个 state 持有的 sidecar `TtlContext` 维护，**与存储 value 分离**：
+
+- Memory 后端：`TtlContext<TypedNamespaceAndKey>`，sidecar 为 `Map<TypedNamespaceAndKey, Long>`
+- RocksDB 后端：`TtlContext<ByteBuffer>`，sidecar key 为 base 复合存储键字节（namespace+shard+rawKey，不含 map-key 后缀）
+
+存储的始终是 raw user value（JSON / 对象引用），不包装成 `TtlValue<T>`。这是必须的：accumulator-based state（Reducing/Aggregating/Appending）存储 `SimpleAccumulator` 或 raw ACC 值，包装会破坏 `(ACC) current` 类型转换与 fusion 逻辑。
+
+### 12.3 TTL 粒度
+
+per-key+namespace（一个复合键一个时间戳）。`MapState` 的整 map 作为一个 TTL 单元过期（per-UK-entry 为后续优化，见 plan Deferred）。
+
+### 12.4 拦截机制：intrusive modification
+
+每个 state 类增加可选 `TtlContext` 字段，read 方法先检查过期（过期则返回默认值/空并**同时删除存储 entry**，双重清理），write 方法刷新时间戳。不使用 wrapper/decorator——`MemoryStateSerDe.snapshotState()` 与 `RocksDBSnapshotSerDe.snapshotState()` 使用 `instanceof` 分发，wrapper 会破坏分发逻辑。`OnCreateAndWrite`：仅写刷新；`OnReadAndWrite`：读也刷新。
+
+### 12.5 清理策略
+
+- **Lazy eviction**（所有后端，默认启用）：访问时检查过期并删除。
+- **Snapshot 过期排除**：snapshot 遍历 entries 时跳过已过期项（非可选）。restore 后被排除的项不恢复。
+- **Background cleanup**：
+  - Memory 后端：`TtlContext.sweepExpired` 主动遍历删除。
+  - RocksDB 后端：`RocksDBKeyedStateBackend.cleanupExpiredEntries()` 扫描 sidecar、按 base key 删除过期 entry（scalar/list/accumulator 单键删除；MapState 前缀删除）。该 sweep 在 `snapshotState()` 起始处执行，使每次 checkpoint 同时回收空间。
+
+### 12.6 Restore 后 TTL 存活
+
+`StateTtlConfig` 不持久化。restore 后 sidecar 为空；restored entry 在首次访问时被赋予 "now" 时间戳（按 `OnCreateAndWrite` 语义给予新 TTL 窗口），不会仅因 sidecar 未持久化而立即过期。`getState(liveDescriptorWithTtl)` 在 restored state 上重新绑定 `TtlContext`，TTL 保持活跃。
+
+### 12.7 Processing-time only
+
+首版仅实现 processing-time TTL（`TtlTimeProvider`，默认 `SystemTtlTimeProvider`）。Event-time/watermark-based TTL 需 watermark 集成与乱序处理，为后续增强（见 plan Non-Goals）。
+
+### 12.8 RocksDB 后端：不实现 native compaction filter（设计裁定）
+
+plan 原计划用 RocksDB `AbstractCompactionFilter`（JNI）做后台批量清理。**裁定不实现**：`rocksdbjni` Java 绑定（9.11.2，亦见于 7.9.2）未暴露纯 Java 的 compaction-filter 回调——`AbstractCompactionFilter` 仅有 protected native 构造器，纯 Java 子类无法覆盖 `filter()` 决策逻辑（仅 `RemoveEmptyValueCompactionFilter`/`CassandraCompactionFilter` 等原生实现可用）。实现自定义 compaction filter 需 C++/JNI native 扩展，超出 `nop-stream-rocksdb` 纯 Java 模块范围。
+
+**替代方案**：采用纯 Java 的 `cleanupExpiredEntries()` 后台 sweep（§12.5）作为后台批量清理机制——语义等价（过期 entry 被批量删除），且可观测、可测试、确定性。compaction filter 作为 `optimization candidate` 延后至引入 native 扩展时（见 plan Deferred But Adjudicated）。TTL 正确性不依赖 compaction filter：lazy eviction + snapshot 排除 + sweep 已保证过期语义。
