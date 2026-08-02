@@ -321,6 +321,71 @@ CheckpointCoordinator (manifest durable → sink commit)
 | `SUSPEND` | 停止新输入，导出可恢复 savepoint，不要求 sink final commit | 暂停作业、状态迁移 |
 | `EXPORT_SAVEPOINT` | 生成 protected checkpointNamespace 的 savepoint，不停止作业 | 定期备份、状态快照 |
 
+### Coordinator Leader Election / HA（G24, G25, Stage 38）
+
+`JobCoordinator` 是逻辑单点。Stage 38 起，控制面经平台 `ILeaderElector`（生产部署用 `SysDaoLeaderElector`，JDBC lease 后端，零 ZooKeeper 依赖）实现 leader-gated HA 生命周期。**本节为 Stage 38 落地状态**（接口编程 + 部署期 bean 注入；跨 JVM RPC 远程化 + fencing token String→long epoch 统一属 Stage 39）。
+
+**HA 生命周期状态机**：
+
+| 状态 | 进入条件 | 控制面行为 |
+|---|---|---|
+| **STANDBY**（初态，HA 模式） | `start()` 注册 `ILeaderElectionListener` 后立即返回 | `assignTasks`/`triggerCheckpoint`/`collectAck`/`reportTaskStatus`/`reportNodeTaskLiveness` 全部显式拒绝（warn 日志，**不静默 no-op**，闭合 #24） |
+| **ACTIVE**（HA 模式） | `becomeLeader(LeaderEpoch)` 回调 | 控制面就绪，派生 fencing token，重建工作集 |
+| **ACTIVE**（非 HA 模式） | `start()`（elector == null） | 等价于既有单实例行为（随机 UUID + 立即 active），零回归 |
+
+**关键不变量**：
+
+- `whenElectionCompleted()` **禁止用作 ACTIVE 触发条件**——它仅表示「本轮选举有结果」，结果可能是别的节点当选。`AbstractLeaderElector.onElectionCompleted` 在 follower 路径也 complete，若用它作为 ACTIVE 条件，follower 会误入 ACTIVE 破坏不变量 #8。ACTIVE 转换**只**由 `becomeLeader` 回调驱动。
+- **deactivate ≠ stop**：leadership-loss (`becomeFollower`) 翻转 `active = false`，但**不**调用 `stop()`——`stop()` 内的 `failureDetector.shutdownNow()` + `checkpointCoordinator.shutdown()` 不可逆。standby 保留 detector / listener 以便重新当选。只有作业真正终止（CANCEL/FAIL/DRAIN/SUSPEND）才调 `stop()`。
+- **null epoch 安全降级**：`SysDaoLeaderElector` 异常/续期失败路径会传 `becomeFollower(null)`，`onStop` 默认也调 `becomeFollower(null)`——null epoch 按 STANDBY 安全降级，不改变动作。
+- **接线验证**：`addElectionListener` 必须在运行时确实被调用并驱动状态转换（测试 elector grant/revoke → coordinator 收到回调 → 状态翻转），非 stub。
+
+**Composite fencing token（解耦 leadership fencing 与 recovery fencing，闭合 M6）**：
+
+```
+fencing_token = "{leaderId}@{epoch}#{recoveryGen}"
+```
+
+| 分量 | 何时变化 | 用途 |
+|---|---|---|
+| `leaderId@epoch`（leadership epoch 组件） | 仅 leadership 切换时（elector grant 新 `LeaderEpoch`） | fencing 旧 leader 的 stale control（不变量 #8） |
+| `#recoveryGen`（recovery generation 组件） | 每次 `globalRecovery()` 递增（同一 leader 内的作业重启） | fencing 同一 leader 内上一轮 recovery 的 stale task（数据面按 String 等值过滤，recoveryGen 不同则被拒） |
+
+- 非 HA 模式（elector == null）fencing token 保持既有随机 UUID 行为，零回归。
+- `globalRecovery()` 在 HA 模式仍轮转**完整** composite token 并经 `updateFencingToken` 推送给所有 TaskManager（保留原 `:674-676` 行为），只是 epoch 部分不变、recoveryGen 部分递增——同时满足「stale leader 旧 token（epoch 不同）被拒」与「同一 leader 内上一轮 recovery task（recoveryGen 不同）被拒」。
+- 全链路 String→long epoch 统一（让数据面过滤改按 long epoch 比较）属 **Stage 39**，本节 fencing 表示仍为 String。
+
+**控制面 / 数据面 fencing 调用点**：
+
+| 调用点 | 携带 token 的字段 | 校验点 |
+|---|---|---|
+| `assignTasks()` | `TaskAssignment.fencingToken` | TaskManager `receiveAssignment` |
+| `triggerCheckpoint()` | `CheckpointBarrierSignal.fencingToken` | TaskManager `triggerCheckpoint` |
+| `collectAck()` | `CheckpointAckMessage.fencingToken` | JobCoordinator（token 等值校验） |
+| `reportTaskStatus()` | `TaskStatusReport.fencingToken` | JobCoordinator |
+| 数据面 envelope | `StreamMessageEnvelope.fencingToken` | `RemoteInputChannel` / `RemoteResultPartition`（String 等值过滤，加 `epochId` 双键） |
+
+**部署形态**：
+
+| 面 | 选举 / 协调后端 | Stage |
+|---|---|---|
+| 控制面（coordinator） | 平台 `ILeaderElector`（生产 `SysDaoLeaderElector` JDBC lease） | Stage 38 已 WIRE |
+| 数据面（task 间消息） | 平台 `IMessageService`（`SysDaoMessageService` DB / `PulsarMessageService`） | Stage 40 待 WIRE |
+| 跨 JVM 控制面 RPC | `IStreamCoordinatorRpcService` 经 `MessageRpcServer` 远程暴露 | Stage 39 |
+
+**测试基建**：
+
+- 测试用 `TestLeaderElector`（`nop-stream-runtime` test scope，**非生产组件**）：实现 `ILeaderElector` 全部方法，提供确定性 `grantLeadership(epoch)` / `loseElectionTo(otherHost, epoch)` / `revokeLeadership()` 同步触发 listener，覆盖单进程 leader-switch E2E（两 coordinator + 测试 elector）。
+- `SysDaoLeaderElector` 真实 JDBC smoke check（Stage 38 Phase 3，`nop-sys-dao` test scope）：`TestJobCoordinatorWithSysDaoLeaderElector` 用 H2 + AutoTest 把生产 `SysDaoLeaderElector` bean 经 `JobCoordinator.setLeaderElector` 注入，验证「首个生产用户集成」真实可启动、可竞选、lease 续期正常、fencing token 来自 `LeaderEpoch`（断言精确编码 `hostId@epoch#recoveryGen`）。`nop-stream-runtime` 经 test-scope 依赖反向接入 `nop-sys-dao`（生产 deps 不污染；部署期接线方向 = sys-dao bean → coordinator setter）。
+
+**平台集成契约（Phase 3 发现并记录）**：
+
+- **F0a 当前 leadership 不重放给新 listener**：`SysDaoLeaderElector.refreshLeader` 仅更新 lease 时间戳，不重调 `onBecomeLeader`。coordinator 端 workaround：`start()` 注册 listener 后查 `elector.isLeader()`，若已是 leader 则用当前 `LeaderEpoch` 自激活（best-effort，异常不阻塞 start）。平台层修复（`AbstractLeaderElector.registerListener` 重放当前 leadership）作为单独 follow-up。
+- **F0b 启动期 `leader-epoch-mismatch` 日志噪声**：currentEpoch=-1（合法「未参与过选举」初态）与 db leaderEpoch 不匹配时打 ERROR 日志。生产运营需识别该日志为启动期良性事件。
+- **F1 restartElection 粒度**：`restartElection` 把 epoch `++1` 并立即过期 lease，下一轮 `changeLeader` 再 `++1`，实际净增 2——epoch 单调（契约满足），但跳变粒度为 2。
+- **F2 生产 lease 时长**：默认 `leaseMs` 偏小，生产部署需在 beans.xml 显式放大（建议 15-30s 容忍 JDBC 抖动）；nop-stream 不内嵌生产默认值。
+- **F3 回调线程模型**：`SysDaoLeaderElector` 在自身 polling 线程回调 listener——`JobCoordinator` 已将 `active`/`currentLeadership` 标为 `volatile`、`recoveryGen` 为 `AtomicLong` 保证可见性。
+
 ### JobStatus + Restart Strategy（G56）
 
 | 状态 | 含义 | 触发 |
@@ -468,7 +533,7 @@ StreamSource → ChainingOutput → StreamMap → ChainingOutput → WindowOpera
 | **Task 执行** | 每个 Task 独立线程 + Mailbox 事件循环 | 多个 Task 共享 TaskGroup 线程（协程式） | 每个 Task 独立线程 |
 | **RPC** | Akka/RPC 抽象 | Hazelcast Operations | IStreamTaskRpcService 强类型接口 |
 | **数据交换** | Netty + MemorySegments + NetworkBufferPool | Hazelcast IntermediateQueue | LOCAL: BlockingQueue；DISTRIBUTED: IMessageService |
-| **分布式 HA** | ZooKeeper + Standalone HA / K8s | Hazelcast IMap 自动恢复 | 规划中：Nop ILeaderElector + SysDaoLeaderElector |
+| **分布式 HA** | ZooKeeper + Standalone HA / K8s | Hazelcast IMap 自动恢复 | 已落地（Stage 38）：`ILeaderElector` WIRE 进 `JobCoordinator` + 平台 `SysDaoLeaderElector`（JDBC lease，零 ZooKeeper 依赖）+ composite fencing token |
 
 ### 8.2 Flink Translator 模式参考
 
