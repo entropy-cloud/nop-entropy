@@ -431,6 +431,26 @@ fencing_epoch = leaderEpochValue * EPOCH_SCALE + recoveryGen        // EPOCH_SCA
 - **SysDaoMessageService（DB）**：**不提供 producer 回压**——DB 写入无界（磁盘满才失败且抛异常，非 flow control），polling 仅决定 consumer 消费速率。改为验证「record 经 `NopSysEvent` 表持久化中转」（Phase 1 Proof）。设计措辞「SysDao 天然有界」已修正为「= 磁盘容量上限，非 flow control」。
 - 两后端均**无自建 credit-based / ACK_WINDOW**（vision §三 约束 7 永久排除；Stage 28 已从 `FlowControlPolicy` 枚举移除）。
 
+### 跨 JVM 任务部署（Stage 42 Phase 0 已落地）
+
+Stage 42 Phase 0 解决了多 JVM 部署的核心阻塞：原 `RpcDistributedExecutor.installInvokablesAndRun()` 把在 coordinator JVM 内通过 `RemoteGraphExecutionPlanBuilder` 构造的 `StreamTaskInvokable`（非序列化、含 `OperatorChain`/`RecordWriter`/`InputGate`）通过直接 Java 方法调用塞给 TaskManager —— 这只在同 JVM 成立。Phase 0 引入 **remote-deploy 模式**：TaskManager 在本地从可序列化的模型元数据重建自己的 invokable，与「图模型为核」（vision §三 约束 1）一致。
+
+**Remote-deploy 模式（additive，零回归）**：
+
+- **可序列化部署描述符**：`TaskDeploymentDescriptor` 携带 `{jobId, vertexId, subtaskIndex, nodeId, attemptId, attemptNumber, fencingEpoch, JobGraph, DeploymentPlan, checkpointRestorePath}` —— **仅模型元数据，无 live operator 对象**。所有 TaskManager JVM 共享同一 classpath（同 JARs），各自从 `JobGraph`（`Serializable`，携带 per-vertex `OperatorChain` 模板）+ `DeploymentPlan` 本地重建。`StreamComponents` 注册表（`Serializable`，`StreamComponents.java:41`）确保算子可重建。
+- **新 RPC 方法 `deployTask`**：`IStreamTaskRpcService.deployTask(descriptor, fencingEpoch)` 声明为 **`default` 方法**，默认抛 `UnsupportedOperationException`。约 12 个 in-process 测试 double 无需任何改动即可编译。生产实现位于 `TaskManager.deployTask`。
+- **本地重建路径**：`SubtaskPlanBuilder.buildSubtaskInvokable(descriptor)` 在 TaskManager JVM 内调 `RemoteGraphExecutionPlanBuilder.buildRemoteOnly(jobGraph, deploymentPlan, true)`，用本 TaskManager 自己的 `IMessageService` 实例接同一后端 → 派生出 **与 coordinator 视图相同**的数据面 topic 名（确定性 topic 命名 `StreamTopicNaming.buildTopic`），再抽出分配给本节点的 subtask，本地安装 invokable。避免了 (a) 复制复杂 edge-wiring/InputGate/RecordWriter 构造逻辑，(b) 序列化 live runtime 对象。
+- **`deployTask` vs `receiveAssignment` 语义**：descriptor 自包含 `TaskAssignment` 元数据，**remote-deploy 模式下 `receiveAssignment` 不再单独调用**。`JobCoordinator.assignTasks()` 在 `remoteDeployMode=true` 时调 `rpc.deployTask(descriptor, epoch)`；in-process 模式继续 `rpc.receiveAssignment(taskAssignment)` + 直接 `installInvokable`。两路径互斥，由 `JobCoordinator.remoteDeployMode` 与 `RpcDistributedExecutor.remoteDeployMode` 标志切换。
+- **Recovery 继承同一模式**：`globalRecovery()` → `rotateFencingEpochAndRestore()` → `assignTasks()` 自动按当前模式重新部署。recovery descriptor 携带 rotated fencing epoch + checkpoint restore path + 递增的 attemptNumber，使 replacement TaskManager 能从共享 `LocalFileCheckpointStorage` 路径恢复状态。原 `coordinator.setAutoRecoverOnFailedReport(false)` 之所以禁用，正是因为 in-process 路径无法在 recovery 后 redeploy task logic —— remote-deploy 模式闭合了这个 gap。
+- **无静默跳过（plan guide #24）**：`TaskManager.deployTask` 在 fencing mismatch / target-node mismatch / 容量耗尽 / JobGraph 缺失 / invokable 构造失败 时抛 `StreamException` **并** 向 coordinator 上报 FAILED `TaskStatusReport`（`deployTask` RPC 为 one-way，throw 不传播回 coordinator，必须显式上报才能触发 recovery）。
+- **`JobCoordinator.remoteDeployMode` 注入**：`setRemoteDeployMode(true)` + `setJobGraph(jobGraph)` + `setCheckpointStoragePath(path)`。`assignTasks()` 在 `remoteDeployMode=true` 但 `jobGraph==null` 时 fail-fast（plan guide #24）。
+
+**接线验证（plan guide #23，anti-hollow）**：
+
+- `TestRpcDistributedExecutorRemoteDeployE2E` —— 通过 `RpcDistributedExecutor(remoteDeployMode=true)` 跑 source→map→sink 全链路：coordinator 的 `assignTasks()` 真实构造 descriptor 并经 RPC `deployTask` 发给（in-process RPC-reached）task 节点；每个 TaskManager 真实在本地重建 invokable 并跑 —— sink 收齐预期 record 仅在 deployTask 真实生效时成立。
+- `TestJobCoordinatorRemoteDeploy` —— 接线断言：remote-deploy 模式下 `assignTasks()` 调 `deployTask`（不调 `receiveAssignment`），recovery 路径重发 `deployTask` 并携带 rotated epoch + checkpoint path，in-process 模式保持 `receiveAssignment` 路径不变，`remoteDeployMode=true` 但缺 `jobGraph` fail-fast。
+- `TestTaskDeploymentDescriptor` —— Java 序列化 round-trip 验证（模型元数据保真，非 live operator）。
+
 **测试基建**：
 
 - DB（Phase 1）：`TestDataPlaneSysDaoBackendE2E`（`nop-sys-dao` test scope，遵循 Stage 38 elector smoke check 模式，避免循环 test 依赖）用 H2 + AutoTest 把生产 `SysDaoMessageService` 经 `DataPlaneMessageServiceAdapter` + `SysDaoWireCodec` 注入 `Remote*`，断言 record 经 `NopSysEvent` 表中转（查表断言）+ fencing 过滤 + exactly-once + barrier/watermark/EOS 传播。
