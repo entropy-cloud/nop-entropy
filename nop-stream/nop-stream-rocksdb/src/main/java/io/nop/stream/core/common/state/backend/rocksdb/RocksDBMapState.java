@@ -2,14 +2,13 @@
  * Copyright (c) 2017-2024 Nop Platform. All rights reserved.
  * Author: canonical_entropy@163.com
  * Blog:   https://www.zhihu.com/people/canonical-entropy
- * Gitee:  https://gitee.com/canonical-entropy/nop-entropy
+ * Gitee:  https://github.com/entropy-cloud/nop-entropy
  * Github: https://github.com/entropy-cloud/nop-entropy
  */
 package io.nop.stream.core.common.state.backend.rocksdb;
 
-import java.io.Serializable;
+import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
-import java.util.Collections;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -18,23 +17,53 @@ import io.nop.core.lang.json.JsonTool;
 
 import io.nop.stream.core.common.state.MapState;
 import io.nop.stream.core.common.state.MapStateDescriptor;
+import io.nop.stream.core.common.state.TtlContext;
 
 import io.nop.stream.core.exceptions.StreamException;
 
 import org.rocksdb.ColumnFamilyHandle;
 import org.rocksdb.RocksIterator;
 
-class RocksDBMapState<UK, UV> implements MapState<UK, UV> {
+class RocksDBMapState<UK, UV> implements MapState<UK, UV>, RocksDbTtlAware {
 
     private final RocksDBKeyedStateBackend<?> backend;
     final ColumnFamilyHandle cfHandle;
     final MapStateDescriptor<UK, UV> descriptor;
+    private TtlContext<ByteBuffer> ttl;
 
     RocksDBMapState(RocksDBKeyedStateBackend<?> backend, ColumnFamilyHandle cfHandle,
                     MapStateDescriptor<UK, UV> descriptor) {
         this.backend = backend;
         this.cfHandle = cfHandle;
         this.descriptor = descriptor;
+    }
+
+    @Override
+    public void bindTtl(TtlContext<ByteBuffer> ctx) {
+        this.ttl = ctx;
+    }
+
+    @Override
+    public TtlContext<ByteBuffer> ttlContext() {
+        return ttl;
+    }
+
+    @Override
+    public ColumnFamilyHandle cfHandle() {
+        return cfHandle;
+    }
+
+    /**
+     * Evict the whole map (all entries sharing the base composite key) if the TTL unit has
+     * expired. Returns the base key bytes.
+     */
+    private byte[] evictMapIfExpired() {
+        byte[] baseKey = backend.buildStorageKeyForCurrent();
+        if (ttl != null && ttl.isExpired(ByteBuffer.wrap(baseKey))) {
+            backend.deleteByPrefix(cfHandle, baseKey);
+            ttl.removeTimestamp(ByteBuffer.wrap(baseKey));
+        }
+        return baseKey;
     }
 
     private byte[] buildFullKey(UK mapKey) {
@@ -75,7 +104,21 @@ class RocksDBMapState<UK, UV> implements MapState<UK, UV> {
     @Override
     public UV get(UK key) {
         try {
+            byte[] baseKey = backend.buildStorageKeyForCurrent();
+            ByteBuffer baseBuf = ByteBuffer.wrap(baseKey);
+            if (ttl != null && ttl.isExpired(baseBuf)) {
+                backend.deleteByPrefix(cfHandle, baseKey);
+                ttl.removeTimestamp(baseBuf);
+                return null;
+            }
             byte[] bytes = backend.getDb().get(cfHandle, buildFullKey(key));
+            if (ttl != null && bytes != null) {
+                if (!ttl.hasTimestamp(baseBuf)) {
+                    ttl.grantFreshWindow(baseBuf);
+                } else {
+                    ttl.recordRead(baseBuf);
+                }
+            }
             return RocksDBValueSerDe.deserialize(bytes, descriptor.getValueType());
         } catch (Exception e) {
             throw new StreamException("Failed to read MapState", e);
@@ -85,7 +128,11 @@ class RocksDBMapState<UK, UV> implements MapState<UK, UV> {
     @Override
     public void put(UK key, UV value) {
         try {
+            byte[] baseKey = evictMapIfExpired();
             backend.getDb().put(cfHandle, buildFullKey(key), RocksDBValueSerDe.serialize(value));
+            if (ttl != null) {
+                ttl.recordWrite(ByteBuffer.wrap(baseKey));
+            }
         } catch (Exception e) {
             throw new StreamException("Failed to write MapState", e);
         }
@@ -93,14 +140,24 @@ class RocksDBMapState<UK, UV> implements MapState<UK, UV> {
 
     @Override
     public void putAll(Map<UK, UV> map) {
-        for (Map.Entry<UK, UV> entry : map.entrySet()) {
-            put(entry.getKey(), entry.getValue());
+        try {
+            byte[] baseKey = evictMapIfExpired();
+            for (Map.Entry<UK, UV> entry : map.entrySet()) {
+                backend.getDb().put(cfHandle, buildFullKey(entry.getKey()),
+                        RocksDBValueSerDe.serialize(entry.getValue()));
+            }
+            if (ttl != null) {
+                ttl.recordWrite(ByteBuffer.wrap(baseKey));
+            }
+        } catch (Exception e) {
+            throw new StreamException("Failed to write MapState", e);
         }
     }
 
     @Override
     public void remove(UK key) {
         try {
+            evictMapIfExpired();
             backend.getDb().delete(cfHandle, buildFullKey(key));
         } catch (Exception e) {
             throw new StreamException("Failed to remove from MapState", e);
@@ -110,6 +167,10 @@ class RocksDBMapState<UK, UV> implements MapState<UK, UV> {
     @Override
     public boolean contains(UK key) {
         try {
+            byte[] baseKey = backend.buildStorageKeyForCurrent();
+            if (ttl != null && ttl.isExpired(ByteBuffer.wrap(baseKey))) {
+                return false;
+            }
             return backend.getDb().get(cfHandle, buildFullKey(key)) != null;
         } catch (Exception e) {
             throw new StreamException("Failed to check MapState", e);
@@ -118,6 +179,12 @@ class RocksDBMapState<UK, UV> implements MapState<UK, UV> {
 
     private Map<UK, UV> collectMap() {
         byte[] baseKey = backend.buildStorageKeyForCurrent();
+        ByteBuffer baseBuf = ByteBuffer.wrap(baseKey);
+        if (ttl != null && ttl.isExpired(baseBuf)) {
+            backend.deleteByPrefix(cfHandle, baseKey);
+            ttl.removeTimestamp(baseBuf);
+            return new LinkedHashMap<>();
+        }
         Map<UK, UV> result = new LinkedHashMap<>();
         try (RocksIterator it = backend.getDb().newIterator(cfHandle)) {
             it.seek(baseKey);
@@ -130,6 +197,13 @@ class RocksDBMapState<UK, UV> implements MapState<UK, UV> {
                 UV value = RocksDBValueSerDe.deserialize(it.value(), descriptor.getValueType());
                 result.put(mapKey, value);
                 it.next();
+            }
+        }
+        if (ttl != null && !result.isEmpty()) {
+            if (!ttl.hasTimestamp(baseBuf)) {
+                ttl.grantFreshWindow(baseBuf);
+            } else {
+                ttl.recordRead(baseBuf);
             }
         }
         return result;
@@ -158,6 +232,9 @@ class RocksDBMapState<UK, UV> implements MapState<UK, UV> {
     @Override
     public boolean isEmpty() {
         byte[] baseKey = backend.buildStorageKeyForCurrent();
+        if (ttl != null && ttl.isExpired(ByteBuffer.wrap(baseKey))) {
+            return true;
+        }
         try (RocksIterator it = backend.getDb().newIterator(cfHandle)) {
             it.seek(baseKey);
             return !it.isValid() || !startsWith(it.key(), baseKey);
@@ -167,24 +244,9 @@ class RocksDBMapState<UK, UV> implements MapState<UK, UV> {
     @Override
     public void clear() {
         byte[] baseKey = backend.buildStorageKeyForCurrent();
-        java.util.List<byte[]> toDelete = new java.util.ArrayList<>();
-        try (RocksIterator it = backend.getDb().newIterator(cfHandle)) {
-            it.seek(baseKey);
-            while (it.isValid()) {
-                byte[] fullKey = it.key();
-                if (!startsWith(fullKey, baseKey)) {
-                    break;
-                }
-                toDelete.add(fullKey);
-                it.next();
-            }
-        }
-        try {
-            for (byte[] key : toDelete) {
-                backend.getDb().delete(cfHandle, key);
-            }
-        } catch (Exception e) {
-            throw new StreamException("Failed to clear MapState", e);
+        backend.deleteByPrefix(cfHandle, baseKey);
+        if (ttl != null) {
+            ttl.removeTimestamp(ByteBuffer.wrap(baseKey));
         }
     }
 

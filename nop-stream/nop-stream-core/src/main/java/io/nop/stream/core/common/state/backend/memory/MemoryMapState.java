@@ -15,13 +15,16 @@ import java.util.Map;
 
 import io.nop.stream.core.common.state.MapState;
 import io.nop.stream.core.common.state.MapStateDescriptor;
+import io.nop.stream.core.common.state.TtlContext;
 
-class MemoryMapState<UK, UV> implements MapState<UK, UV>, Serializable {
+class MemoryMapState<UK, UV> implements MapState<UK, UV>, Serializable, TtlAware {
     private static final long serialVersionUID = 1L;
 
     MemoryKeyedStateBackend<?> backend;
     final MapStateDescriptor<UK, UV> descriptor;
     final Map<TypedNamespaceAndKey, Map<UK, UV>> storage = new HashMap<>();
+
+    TtlContext<TypedNamespaceAndKey> ttl;
 
     MemoryMapState(MemoryKeyedStateBackend<?> backend, MapStateDescriptor<UK, UV> descriptor) {
         this.backend = backend;
@@ -32,12 +35,33 @@ class MemoryMapState<UK, UV> implements MapState<UK, UV>, Serializable {
         this.backend = newBackend;
     }
 
+    @Override
+    public void bindTtl(TtlContext<TypedNamespaceAndKey> ctx) {
+        this.ttl = ctx;
+    }
+
+    private TypedNamespaceAndKey currentKey() {
+        return backend.getTypedNamespaceAndKey();
+    }
+
     private Map<UK, UV> getOrCreateMap() {
-        return storage.computeIfAbsent(backend.getTypedNamespaceAndKey(), k -> new HashMap<>());
+        TypedNamespaceAndKey k = currentKey();
+        if (ttl != null) {
+            ttl.writeEviction(k, storage);
+        }
+        return storage.computeIfAbsent(k, key -> new HashMap<>());
     }
 
     private Map<UK, UV> getMap() {
-        return storage.get(backend.getTypedNamespaceAndKey());
+        TypedNamespaceAndKey k = currentKey();
+        Map<UK, UV> map = storage.get(k);
+        if (map != null && ttl != null && ttl.readEviction(k, storage)) {
+            return null;
+        }
+        if (map != null && ttl != null) {
+            ttl.recordRead(k);
+        }
+        return map;
     }
 
     @Override
@@ -48,12 +72,26 @@ class MemoryMapState<UK, UV> implements MapState<UK, UV>, Serializable {
 
     @Override
     public void put(UK key, UV value) {
-        getOrCreateMap().put(key, value);
+        TypedNamespaceAndKey k = currentKey();
+        if (ttl != null) {
+            ttl.writeEviction(k, storage);
+        }
+        storage.computeIfAbsent(k, kk -> new HashMap<>()).put(key, value);
+        if (ttl != null) {
+            ttl.recordWrite(k);
+        }
     }
 
     @Override
     public void putAll(Map<UK, UV> map) {
-        getOrCreateMap().putAll(map);
+        TypedNamespaceAndKey k = currentKey();
+        if (ttl != null) {
+            ttl.writeEviction(k, storage);
+        }
+        storage.computeIfAbsent(k, kk -> new HashMap<>()).putAll(map);
+        if (ttl != null) {
+            ttl.recordWrite(k);
+        }
     }
 
     @Override
@@ -102,6 +140,10 @@ class MemoryMapState<UK, UV> implements MapState<UK, UV>, Serializable {
 
     @Override
     public void clear() {
-        storage.remove(backend.getTypedNamespaceAndKey());
+        TypedNamespaceAndKey k = currentKey();
+        storage.remove(k);
+        if (ttl != null) {
+            ttl.onClear(k);
+        }
     }
 }

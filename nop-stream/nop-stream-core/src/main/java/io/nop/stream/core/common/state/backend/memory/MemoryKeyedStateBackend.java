@@ -25,6 +25,10 @@ import io.nop.stream.core.common.state.ReducingState;
 import io.nop.stream.core.common.state.ReducingStateDescriptor;
 import io.nop.stream.core.common.state.StateDescriptor;
 import io.nop.stream.core.common.state.StateSchemaResolver;
+import io.nop.stream.core.common.state.StateTtlConfig;
+import io.nop.stream.core.common.state.SystemTtlTimeProvider;
+import io.nop.stream.core.common.state.TtlContext;
+import io.nop.stream.core.common.state.TtlTimeProvider;
 import io.nop.stream.core.common.state.ValueState;
 import io.nop.stream.core.common.state.ValueStateDescriptor;
 import io.nop.stream.core.checkpoint.SerializerFingerprint;
@@ -75,6 +79,13 @@ public class MemoryKeyedStateBackend<K> implements IInternalStateBackend<K>, Ser
     private final Map<String, Object> states = new HashMap<>();
 
     private final Map<String, Class<?>> stateTypes = new HashMap<>();
+
+    /**
+     * Processing-time source used by all {@link TtlContext}s created in {@link #applyTtl}.
+     * Tests inject a controllable clock here before calling {@code getState(...)} so TTL
+     * expiry can be exercised deterministically without sleeping.
+     */
+    private TtlTimeProvider ttlClock = SystemTtlTimeProvider.INSTANCE;
 
     public MemoryKeyedStateBackend(Class<K> keyType) {
         this(keyType, 1);
@@ -140,6 +151,7 @@ public class MemoryKeyedStateBackend<K> implements IInternalStateBackend<K>, Ser
                     StateSchemaResolver.STATE_TYPE_VALUE,
                     stateProperties, ((MemoryValueState<?>) state).descriptor);
         }
+        applyTtl(state, stateProperties);
         return state;
     }
 
@@ -156,6 +168,7 @@ public class MemoryKeyedStateBackend<K> implements IInternalStateBackend<K>, Ser
                     StateSchemaResolver.STATE_TYPE_MAP,
                     stateProperties, ((MemoryMapState<?, ?>) state).descriptor);
         }
+        applyTtl(state, stateProperties);
         return state;
     }
 
@@ -172,6 +185,7 @@ public class MemoryKeyedStateBackend<K> implements IInternalStateBackend<K>, Ser
                     StateSchemaResolver.STATE_TYPE_LIST,
                     stateProperties, ((MemoryListState<?>) state).descriptor);
         }
+        applyTtl(state, stateProperties);
         return state;
     }
 
@@ -188,6 +202,7 @@ public class MemoryKeyedStateBackend<K> implements IInternalStateBackend<K>, Ser
                     StateSchemaResolver.STATE_TYPE_REDUCING,
                     stateProperties, ((MemoryReducingState<?>) state).descriptor);
         }
+        applyTtl(state, stateProperties);
         return state;
     }
 
@@ -205,6 +220,7 @@ public class MemoryKeyedStateBackend<K> implements IInternalStateBackend<K>, Ser
                     StateSchemaResolver.STATE_TYPE_AGGREGATING,
                     stateProperties, ((MemoryAggregatingState<?, ?, ?>) state).descriptor);
         }
+        applyTtl(state, stateProperties);
         return state;
     }
 
@@ -223,6 +239,7 @@ public class MemoryKeyedStateBackend<K> implements IInternalStateBackend<K>, Ser
                     StateSchemaResolver.STATE_TYPE_APPENDING,
                     descriptor, ((MemoryInternalAppendingState<?, ?, ?, ?>) state).descriptor);
         }
+        applyTtl(state, descriptor);
         return state;
     }
 
@@ -241,6 +258,7 @@ public class MemoryKeyedStateBackend<K> implements IInternalStateBackend<K>, Ser
                     StateSchemaResolver.STATE_TYPE_INTERNAL_AGGREGATING,
                     descriptor, ((MemoryInternalAggregatingState<?, ?, ?, ?, ?>) state).descriptor);
         }
+        applyTtl(state, descriptor);
         return state;
     }
 
@@ -258,6 +276,7 @@ public class MemoryKeyedStateBackend<K> implements IInternalStateBackend<K>, Ser
                     StateSchemaResolver.STATE_TYPE_INTERNAL_LIST,
                     descriptor, ((MemoryInternalListState<?, ?, ?>) state).descriptor);
         }
+        applyTtl(state, descriptor);
         return state;
     }
 
@@ -279,6 +298,30 @@ public class MemoryKeyedStateBackend<K> implements IInternalStateBackend<K>, Ser
                     .param(ARG_EXPECTED_CHECKSUM, currentFp.getSchemaChecksum())
                     .param(ARG_ACTUAL_CHECKSUM, restoredFp.getSchemaChecksum());
         }
+    }
+
+    /**
+     * Centralized TTL binding. Called from every {@code getState(...)} overload after the
+     * lazy-create-or-verify step. When the live descriptor carries an enabled
+     * {@link StateTtlConfig}, a fresh {@link TtlContext} is bound to the state object. This
+     * covers both the freshly-created path and the restored path (rebinding TTL after
+     * restore — see plan Phase 2 "TTL rebind on restore"): restored entries have a storage
+     * value but no sidecar timestamp, and are granted a fresh TTL window on first access by
+     * {@link TtlContext#readEviction}.
+     */
+    private void applyTtl(Object stateObj, StateDescriptor<?> descriptor) {
+        if (!(stateObj instanceof TtlAware)) {
+            return;
+        }
+        StateTtlConfig cfg = descriptor.getTtlConfig();
+        if (!cfg.isEnabled()) {
+            return;
+        }
+        ((TtlAware) stateObj).bindTtl(new TtlContext<>(cfg, ttlClock));
+    }
+
+    public void setTtlTimeProvider(TtlTimeProvider ttlClock) {
+        this.ttlClock = ttlClock != null ? ttlClock : SystemTtlTimeProvider.INSTANCE;
     }
 
     @Override

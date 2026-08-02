@@ -7,6 +7,7 @@
  */
 package io.nop.stream.core.common.state.backend.rocksdb;
 
+import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -26,6 +27,7 @@ import io.nop.stream.core.common.state.ReducingState;
 import io.nop.stream.core.common.state.ReducingStateDescriptor;
 import io.nop.stream.core.common.state.StateDescriptor;
 import io.nop.stream.core.common.state.StateSchemaResolver;
+import io.nop.stream.core.common.state.TtlContext;
 import io.nop.stream.core.common.state.ValueState;
 import io.nop.stream.core.common.state.ValueStateDescriptor;
 import io.nop.stream.core.checkpoint.SerializerFingerprint;
@@ -51,6 +53,20 @@ import static io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_STATE_ERR
 final class RocksDBSnapshotSerDe {
 
     private RocksDBSnapshotSerDe() {
+    }
+
+    /**
+     * Returns {@code true} if the base composite key of {@code fullKey} is marked expired
+     * by {@code ttl}. For non-map states the base key is the full key; for map state the
+     * base key is the prefix shared by all entries of one map, so the whole map is skipped.
+     * When {@code ttl} is {@code null} (TTL disabled) nothing is skipped.
+     */
+    private static boolean expiredForSnapshot(TtlContext<ByteBuffer> ttl, byte[] fullKey) {
+        if (ttl == null) {
+            return false;
+        }
+        int baseLen = RocksDBKeyEncoder.baseKeyLength(fullKey);
+        return ttl.isExpiredForSnapshot(ByteBuffer.wrap(fullKey, 0, baseLen));
     }
 
     // ------------------------------------------------------------------------
@@ -121,8 +137,12 @@ final class RocksDBSnapshotSerDe {
         embedSchemaFingerprint(info, StateSchemaResolver.STATE_TYPE_VALUE, state.descriptor, backend.getShardCount());
 
         List<Map<String, Object>> entries = new ArrayList<>();
+        TtlContext<ByteBuffer> ttl = state.ttlContext();
         try (RocksIterator it = backend.getDb().newIterator(state.cfHandle)) {
             for (it.seekToFirst(); it.isValid(); it.next()) {
+                if (expiredForSnapshot(ttl, it.key())) {
+                    continue;
+                }
                 RocksDBKeyEncoder.DecodedKey dk = RocksDBKeyEncoder.decode(it.key(), backend.getKeyType());
                 Map<String, Object> entry = new LinkedHashMap<>();
                 entry.put("namespace", RocksDBKeyEncoder.serializeNamespace(dk.namespace));
@@ -148,9 +168,13 @@ final class RocksDBSnapshotSerDe {
         Map<String, Map<String, Object>> grouped = new LinkedHashMap<>();
         Map<String, List<List<Object>>> groupedMapValues = new LinkedHashMap<>();
 
+        TtlContext<ByteBuffer> ttl = state.ttlContext();
         try (RocksIterator it = backend.getDb().newIterator(state.cfHandle)) {
             for (it.seekToFirst(); it.isValid(); it.next()) {
                 byte[] fullKey = it.key();
+                if (expiredForSnapshot(ttl, fullKey)) {
+                    continue;
+                }
                 int baseLen = RocksDBKeyEncoder.baseKeyLength(fullKey);
                 RocksDBKeyEncoder.DecodedKey dk = RocksDBKeyEncoder.decode(fullKey, backend.getKeyType());
                 String groupKey = dk.namespace + "|" + dk.rawKey;
@@ -206,8 +230,12 @@ final class RocksDBSnapshotSerDe {
         embedSchemaFingerprint(info, schemaStateType, descriptor, backend.getShardCount());
 
         List<Map<String, Object>> entries = new ArrayList<>();
+        TtlContext<ByteBuffer> ttl = state.ttlContext();
         try (RocksIterator it = backend.getDb().newIterator(state.cfHandle)) {
             for (it.seekToFirst(); it.isValid(); it.next()) {
+                if (expiredForSnapshot(ttl, it.key())) {
+                    continue;
+                }
                 RocksDBKeyEncoder.DecodedKey dk = RocksDBKeyEncoder.decode(it.key(), backend.getKeyType());
                 Map<String, Object> entry = new LinkedHashMap<>();
                 entry.put("namespace", RocksDBKeyEncoder.serializeNamespace(dk.namespace));
@@ -230,8 +258,12 @@ final class RocksDBSnapshotSerDe {
         embedSchemaFingerprint(info, StateSchemaResolver.STATE_TYPE_INTERNAL_LIST, descriptor, backend.getShardCount());
 
         List<Map<String, Object>> entries = new ArrayList<>();
+        TtlContext<ByteBuffer> ttl = state.ttlContext();
         try (RocksIterator it = backend.getDb().newIterator(state.cfHandle)) {
             for (it.seekToFirst(); it.isValid(); it.next()) {
+                if (expiredForSnapshot(ttl, it.key())) {
+                    continue;
+                }
                 RocksDBKeyEncoder.DecodedKey dk = RocksDBKeyEncoder.decode(it.key(), backend.getKeyType());
                 Map<String, Object> entry = new LinkedHashMap<>();
                 entry.put("namespace", RocksDBKeyEncoder.serializeNamespace(dk.namespace));
@@ -254,8 +286,12 @@ final class RocksDBSnapshotSerDe {
         embedSchemaFingerprint(info, StateSchemaResolver.STATE_TYPE_APPENDING, state.descriptor, backend.getShardCount());
 
         List<Map<String, Object>> entries = new ArrayList<>();
+        TtlContext<ByteBuffer> ttl = state.ttlContext();
         try (RocksIterator it = backend.getDb().newIterator(state.cfHandle)) {
             for (it.seekToFirst(); it.isValid(); it.next()) {
+                if (expiredForSnapshot(ttl, it.key())) {
+                    continue;
+                }
                 RocksDBKeyEncoder.DecodedKey dk = RocksDBKeyEncoder.decode(it.key(), backend.getKeyType());
                 Map<String, Object> entry = new LinkedHashMap<>();
                 entry.put("namespace", RocksDBKeyEncoder.serializeNamespace(dk.namespace));
@@ -282,8 +318,12 @@ final class RocksDBSnapshotSerDe {
         embedSchemaFingerprint(info, StateSchemaResolver.STATE_TYPE_REDUCING, state.descriptor, backend.getShardCount());
 
         List<Map<String, Object>> entries = new ArrayList<>();
+        TtlContext<ByteBuffer> ttl = state.ttlContext();
         try (RocksIterator it = backend.getDb().newIterator(state.cfHandle)) {
             for (it.seekToFirst(); it.isValid(); it.next()) {
+                if (expiredForSnapshot(ttl, it.key())) {
+                    continue;
+                }
                 RocksDBKeyEncoder.DecodedKey dk = RocksDBKeyEncoder.decode(it.key(), backend.getKeyType());
                 Map<String, Object> entry = new LinkedHashMap<>();
                 entry.put("namespace", RocksDBKeyEncoder.serializeNamespace(dk.namespace));
@@ -306,8 +346,12 @@ final class RocksDBSnapshotSerDe {
         embedSchemaFingerprint(info, StateSchemaResolver.STATE_TYPE_AGGREGATING, state.descriptor, backend.getShardCount());
 
         List<Map<String, Object>> entries = new ArrayList<>();
+        TtlContext<ByteBuffer> ttl = state.ttlContext();
         try (RocksIterator it = backend.getDb().newIterator(state.cfHandle)) {
             for (it.seekToFirst(); it.isValid(); it.next()) {
+                if (expiredForSnapshot(ttl, it.key())) {
+                    continue;
+                }
                 RocksDBKeyEncoder.DecodedKey dk = RocksDBKeyEncoder.decode(it.key(), backend.getKeyType());
                 Map<String, Object> entry = new LinkedHashMap<>();
                 entry.put("namespace", RocksDBKeyEncoder.serializeNamespace(dk.namespace));
@@ -330,8 +374,12 @@ final class RocksDBSnapshotSerDe {
         embedSchemaFingerprint(info, StateSchemaResolver.STATE_TYPE_INTERNAL_AGGREGATING, state.descriptor, backend.getShardCount());
 
         List<Map<String, Object>> entries = new ArrayList<>();
+        TtlContext<ByteBuffer> ttl = state.ttlContext();
         try (RocksIterator it = backend.getDb().newIterator(state.cfHandle)) {
             for (it.seekToFirst(); it.isValid(); it.next()) {
+                if (expiredForSnapshot(ttl, it.key())) {
+                    continue;
+                }
                 RocksDBKeyEncoder.DecodedKey dk = RocksDBKeyEncoder.decode(it.key(), backend.getKeyType());
                 Map<String, Object> entry = new LinkedHashMap<>();
                 entry.put("namespace", RocksDBKeyEncoder.serializeNamespace(dk.namespace));

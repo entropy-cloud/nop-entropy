@@ -8,19 +8,19 @@
 package io.nop.stream.core.common.state.backend.rocksdb;
 
 import java.io.IOException;
+import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.List;
 
 import io.nop.stream.core.common.accumulators.SimpleAccumulator;
 import io.nop.stream.core.common.state.InternalAppendingState;
 import io.nop.stream.core.common.state.ReducingStateDescriptor;
+import io.nop.stream.core.common.state.TtlContext;
 
 import io.nop.stream.core.exceptions.StreamException;
 
 import org.rocksdb.ColumnFamilyHandle;
 import org.rocksdb.RocksDBException;
-
-import io.nop.stream.core.exceptions.StreamException;
 
 import static io.nop.stream.core.exceptions.NopStreamErrors.ARG_ACTUAL_TYPE;
 import static io.nop.stream.core.exceptions.NopStreamErrors.ARG_DETAIL;
@@ -30,12 +30,13 @@ import static io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_STATE_ERR
 import static io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_TYPE_MISMATCH;
 
 class RocksDBInternalAppendingState<K, N, IN>
-        implements InternalAppendingState<K, N, IN, IN, IN> {
+        implements InternalAppendingState<K, N, IN, IN, IN>, RocksDbTtlAware {
 
     private final RocksDBKeyedStateBackend<K> backend;
     final ColumnFamilyHandle cfHandle;
     final ReducingStateDescriptor<IN> descriptor;
     private transient SimpleAccumulator<IN> accumulator;
+    private TtlContext<ByteBuffer> ttl;
 
     private transient N currentNamespace;
 
@@ -54,6 +55,21 @@ class RocksDBInternalAppendingState<K, N, IN>
         } catch (Exception e) {
             throw new StreamException(ERR_STREAM_ACCUMULATOR_CREATE_FAILED, e);
         }
+    }
+
+    @Override
+    public void bindTtl(TtlContext<ByteBuffer> ctx) {
+        this.ttl = ctx;
+    }
+
+    @Override
+    public TtlContext<ByteBuffer> ttlContext() {
+        return ttl;
+    }
+
+    @Override
+    public ColumnFamilyHandle cfHandle() {
+        return cfHandle;
     }
 
     @Override
@@ -77,13 +93,31 @@ class RocksDBInternalAppendingState<K, N, IN>
     @Override
     @SuppressWarnings("unchecked")
     public IN getAccumulator() throws Exception {
-        byte[] bytes = backend.getDb().get(cfHandle, getStorageKey());
+        byte[] key = getStorageKey();
+        ByteBuffer keyBuf = ByteBuffer.wrap(key);
+        if (ttl != null && ttl.isExpired(keyBuf)) {
+            backend.getDb().delete(cfHandle, key);
+            ttl.removeTimestamp(keyBuf);
+            return null;
+        }
+        byte[] bytes = backend.getDb().get(cfHandle, key);
+        if (ttl != null && bytes != null) {
+            if (!ttl.hasTimestamp(keyBuf)) {
+                ttl.grantFreshWindow(keyBuf);
+            } else {
+                ttl.recordRead(keyBuf);
+            }
+        }
         return RocksDBValueSerDe.deserialize(bytes, descriptor.getValueType());
     }
 
     @Override
     public void setAccumulator(IN accumulator) throws Exception {
-        backend.getDb().put(cfHandle, getStorageKey(), RocksDBValueSerDe.serialize(accumulator));
+        byte[] key = getStorageKey();
+        backend.getDb().put(cfHandle, key, RocksDBValueSerDe.serialize(accumulator));
+        if (ttl != null) {
+            ttl.recordWrite(ByteBuffer.wrap(key));
+        }
     }
 
     @Override
@@ -100,6 +134,11 @@ class RocksDBInternalAppendingState<K, N, IN>
     public void add(IN value) throws IOException {
         try {
             byte[] key = getStorageKey();
+            ByteBuffer keyBuf = ByteBuffer.wrap(key);
+            if (ttl != null && ttl.isExpired(keyBuf)) {
+                backend.getDb().delete(cfHandle, key);
+                ttl.removeTimestamp(keyBuf);
+            }
             byte[] existing = backend.getDb().get(cfHandle, key);
             IN current = existing != null
                     ? RocksDBValueSerDe.deserialize(existing, descriptor.getValueType()) : null;
@@ -118,6 +157,9 @@ class RocksDBInternalAppendingState<K, N, IN>
                 localValue = new ArrayList<>((List<?>) localValue);
             }
             backend.getDb().put(cfHandle, key, RocksDBValueSerDe.serialize(localValue));
+            if (ttl != null) {
+                ttl.recordWrite(keyBuf);
+            }
         } catch (RocksDBException e) {
             throw new IOException("Failed to add to InternalAppendingState", e);
         }
@@ -126,7 +168,11 @@ class RocksDBInternalAppendingState<K, N, IN>
     @Override
     public void clear() {
         try {
-            backend.getDb().delete(cfHandle, getStorageKey());
+            byte[] key = getStorageKey();
+            backend.getDb().delete(cfHandle, key);
+            if (ttl != null) {
+                ttl.removeTimestamp(ByteBuffer.wrap(key));
+            }
         } catch (RocksDBException e) {
             throw new StreamException("Failed to clear InternalAppendingState", e);
         }

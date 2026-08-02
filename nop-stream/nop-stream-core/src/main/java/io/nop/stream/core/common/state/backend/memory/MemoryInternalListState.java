@@ -17,6 +17,7 @@ import java.util.Map;
 
 import io.nop.stream.core.common.state.InternalListState;
 import io.nop.stream.core.common.state.ListStateDescriptor;
+import io.nop.stream.core.common.state.TtlContext;
 
 import io.nop.stream.core.exceptions.StreamException;
 
@@ -24,12 +25,14 @@ import static io.nop.stream.core.exceptions.NopStreamErrors.ARG_DETAIL;
 import static io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_STATE_ERROR;
 
 class MemoryInternalListState<K, N, T>
-        implements InternalListState<K, N, T>, Serializable {
+        implements InternalListState<K, N, T>, Serializable, TtlAware {
     private static final long serialVersionUID = 1L;
 
     MemoryKeyedStateBackend<?> backend;
     final ListStateDescriptor<T> descriptor;
     final Map<TypedNamespaceAndKey, List<T>> storage = new HashMap<>();
+
+    TtlContext<TypedNamespaceAndKey> ttl;
 
     private transient N currentNamespace;
 
@@ -40,6 +43,11 @@ class MemoryInternalListState<K, N, T>
 
     void rebind(MemoryKeyedStateBackend<?> newBackend) {
         this.backend = newBackend;
+    }
+
+    @Override
+    public void bindTtl(TtlContext<TypedNamespaceAndKey> ctx) {
+        this.ttl = ctx;
     }
 
     @Override
@@ -54,35 +62,64 @@ class MemoryInternalListState<K, N, T>
 
     @Override
     public Iterable<T> get() throws IOException {
-        List<T> list = storage.get(getStorageKey());
+        TypedNamespaceAndKey key = getStorageKey();
+        if (ttl != null && ttl.readEviction(key, storage)) {
+            return Collections.emptyList();
+        }
+        List<T> list = storage.get(key);
+        if (ttl != null && list != null) {
+            ttl.recordRead(key);
+        }
         return list != null ? list : Collections.emptyList();
     }
 
     @Override
     public void add(T value) throws IOException {
-        storage.computeIfAbsent(getStorageKey(), k -> new ArrayList<>()).add(value);
+        TypedNamespaceAndKey key = getStorageKey();
+        if (ttl != null) {
+            ttl.writeEviction(key, storage);
+        }
+        storage.computeIfAbsent(key, k -> new ArrayList<>()).add(value);
+        if (ttl != null) {
+            ttl.recordWrite(key);
+        }
     }
 
     @Override
     public void addAll(Iterable<T> values) throws IOException {
-        List<T> list = storage.computeIfAbsent(getStorageKey(), k -> new ArrayList<>());
+        TypedNamespaceAndKey key = getStorageKey();
+        if (ttl != null) {
+            ttl.writeEviction(key, storage);
+        }
+        List<T> list = storage.computeIfAbsent(key, k -> new ArrayList<>());
         for (T value : values) {
             list.add(value);
+        }
+        if (ttl != null) {
+            ttl.recordWrite(key);
         }
     }
 
     @Override
     public void update(Iterable<T> values) throws IOException {
+        TypedNamespaceAndKey key = getStorageKey();
         List<T> newList = new ArrayList<>();
         for (T value : values) {
             newList.add(value);
         }
-        storage.put(getStorageKey(), newList);
+        storage.put(key, newList);
+        if (ttl != null) {
+            ttl.recordWrite(key);
+        }
     }
 
     @Override
     public void clear() {
-        storage.remove(getStorageKey());
+        TypedNamespaceAndKey key = getStorageKey();
+        storage.remove(key);
+        if (ttl != null) {
+            ttl.onClear(key);
+        }
     }
 
     private TypedNamespaceAndKey getStorageKey() {

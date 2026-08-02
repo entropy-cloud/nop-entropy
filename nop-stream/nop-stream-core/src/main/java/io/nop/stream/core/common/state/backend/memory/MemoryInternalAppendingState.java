@@ -17,6 +17,7 @@ import java.util.Map;
 import io.nop.stream.core.common.accumulators.SimpleAccumulator;
 import io.nop.stream.core.common.state.InternalAppendingState;
 import io.nop.stream.core.common.state.ReducingStateDescriptor;
+import io.nop.stream.core.common.state.TtlContext;
 import io.nop.stream.core.exceptions.StreamException;
 
 import static io.nop.stream.core.exceptions.NopStreamErrors.ARG_ACTUAL_TYPE;
@@ -27,13 +28,15 @@ import static io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_STATE_ERR
 import static io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_TYPE_MISMATCH;
 
 class MemoryInternalAppendingState<K, N, IN, ACC>
-        implements InternalAppendingState<K, N, IN, ACC, ACC>, Serializable {
+        implements InternalAppendingState<K, N, IN, ACC, ACC>, Serializable, TtlAware {
     private static final long serialVersionUID = 1L;
 
     MemoryKeyedStateBackend<?> backend;
     final ReducingStateDescriptor<IN> descriptor;
     private transient SimpleAccumulator<IN> accumulator;
     final Map<TypedNamespaceAndKey, ACC> storage = new HashMap<>();
+
+    TtlContext<TypedNamespaceAndKey> ttl;
 
     private transient N currentNamespace;
 
@@ -61,6 +64,11 @@ class MemoryInternalAppendingState<K, N, IN, ACC>
     }
 
     @Override
+    public void bindTtl(TtlContext<TypedNamespaceAndKey> ctx) {
+        this.ttl = ctx;
+    }
+
+    @Override
     public void setCurrentNamespace(N namespace) {
         this.currentNamespace = namespace;
     }
@@ -73,13 +81,23 @@ class MemoryInternalAppendingState<K, N, IN, ACC>
     @Override
     public ACC getAccumulator() throws Exception {
         TypedNamespaceAndKey key = getStorageKey();
-        return storage.get(key);
+        if (ttl != null && ttl.readEviction(key, storage)) {
+            return null;
+        }
+        ACC acc = storage.get(key);
+        if (ttl != null && acc != null) {
+            ttl.recordRead(key);
+        }
+        return acc;
     }
 
     @Override
     public void setAccumulator(ACC accumulator) throws Exception {
         TypedNamespaceAndKey key = getStorageKey();
         storage.put(key, accumulator);
+        if (ttl != null) {
+            ttl.recordWrite(key);
+        }
     }
 
     @Override
@@ -95,7 +113,13 @@ class MemoryInternalAppendingState<K, N, IN, ACC>
     public void add(IN value) throws IOException {
         TypedNamespaceAndKey key = getStorageKey();
         @SuppressWarnings("unchecked")
-        ACC current = storage.get(key);
+        ACC current;
+        if (ttl != null) {
+            ttl.writeEviction(key, storage);
+            current = storage.get(key);
+        } else {
+            current = storage.get(key);
+        }
         if (current != null && !descriptor.getValueType().isInstance(current)) {
             throw new StreamException(ERR_STREAM_TYPE_MISMATCH)
                     .param(ARG_EXPECTED_TYPE, descriptor.getValueType().getName())
@@ -111,11 +135,18 @@ class MemoryInternalAppendingState<K, N, IN, ACC>
             localValue = new ArrayList<>((List<?>) localValue);
         }
         storage.put(key, (ACC) localValue);
+        if (ttl != null) {
+            ttl.recordWrite(key);
+        }
     }
 
     @Override
     public void clear() {
-        storage.remove(getStorageKey());
+        TypedNamespaceAndKey key = getStorageKey();
+        storage.remove(key);
+        if (ttl != null) {
+            ttl.onClear(key);
+        }
     }
 
     private TypedNamespaceAndKey getStorageKey() {

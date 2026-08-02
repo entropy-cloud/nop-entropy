@@ -8,28 +8,29 @@
 package io.nop.stream.core.common.state.backend.rocksdb;
 
 import java.io.IOException;
+import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
 import io.nop.stream.core.common.state.InternalListState;
 import io.nop.stream.core.common.state.ListStateDescriptor;
+import io.nop.stream.core.common.state.TtlContext;
 
 import io.nop.stream.core.exceptions.StreamException;
 
 import org.rocksdb.ColumnFamilyHandle;
 import org.rocksdb.RocksDBException;
 
-import io.nop.stream.core.exceptions.StreamException;
-
 import static io.nop.stream.core.exceptions.NopStreamErrors.ARG_DETAIL;
 import static io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_STATE_ERROR;
 
-class RocksDBInternalListState<K, N, T> implements InternalListState<K, N, T> {
+class RocksDBInternalListState<K, N, T> implements InternalListState<K, N, T>, RocksDbTtlAware {
 
     private final RocksDBKeyedStateBackend<K> backend;
     final ColumnFamilyHandle cfHandle;
     final ListStateDescriptor<T> descriptor;
+    private TtlContext<ByteBuffer> ttl;
 
     private transient N currentNamespace;
 
@@ -38,6 +39,21 @@ class RocksDBInternalListState<K, N, T> implements InternalListState<K, N, T> {
         this.backend = backend;
         this.cfHandle = cfHandle;
         this.descriptor = descriptor;
+    }
+
+    @Override
+    public void bindTtl(TtlContext<ByteBuffer> ctx) {
+        this.ttl = ctx;
+    }
+
+    @Override
+    public TtlContext<ByteBuffer> ttlContext() {
+        return ttl;
+    }
+
+    @Override
+    public ColumnFamilyHandle cfHandle() {
+        return cfHandle;
     }
 
     @Override
@@ -62,7 +78,21 @@ class RocksDBInternalListState<K, N, T> implements InternalListState<K, N, T> {
     @Override
     public Iterable<T> get() throws IOException {
         try {
-            byte[] bytes = backend.getDb().get(cfHandle, getStorageKey());
+            byte[] key = getStorageKey();
+            ByteBuffer keyBuf = ByteBuffer.wrap(key);
+            if (ttl != null && ttl.isExpired(keyBuf)) {
+                backend.getDb().delete(cfHandle, key);
+                ttl.removeTimestamp(keyBuf);
+                return Collections.emptyList();
+            }
+            byte[] bytes = backend.getDb().get(cfHandle, key);
+            if (ttl != null && bytes != null) {
+                if (!ttl.hasTimestamp(keyBuf)) {
+                    ttl.grantFreshWindow(keyBuf);
+                } else {
+                    ttl.recordRead(keyBuf);
+                }
+            }
             if (bytes == null) {
                 return Collections.emptyList();
             }
@@ -76,9 +106,11 @@ class RocksDBInternalListState<K, N, T> implements InternalListState<K, N, T> {
     public void add(T value) throws IOException {
         try {
             byte[] key = getStorageKey();
+            evictIfExpired(key);
             List<T> list = readList(key);
             list.add(value);
             backend.getDb().put(cfHandle, key, RocksDBValueSerDe.serialize(list));
+            recordWrite(key);
         } catch (RocksDBException e) {
             throw new IOException("Failed to add to InternalListState", e);
         }
@@ -88,11 +120,13 @@ class RocksDBInternalListState<K, N, T> implements InternalListState<K, N, T> {
     public void addAll(Iterable<T> values) throws IOException {
         try {
             byte[] key = getStorageKey();
+            evictIfExpired(key);
             List<T> list = readList(key);
             for (T value : values) {
                 list.add(value);
             }
             backend.getDb().put(cfHandle, key, RocksDBValueSerDe.serialize(list));
+            recordWrite(key);
         } catch (RocksDBException e) {
             throw new IOException("Failed to addAll to InternalListState", e);
         }
@@ -105,7 +139,9 @@ class RocksDBInternalListState<K, N, T> implements InternalListState<K, N, T> {
             newList.add(value);
         }
         try {
-            backend.getDb().put(cfHandle, getStorageKey(), RocksDBValueSerDe.serialize(newList));
+            byte[] key = getStorageKey();
+            backend.getDb().put(cfHandle, key, RocksDBValueSerDe.serialize(newList));
+            recordWrite(key);
         } catch (RocksDBException e) {
             throw new IOException("Failed to update InternalListState", e);
         }
@@ -114,9 +150,26 @@ class RocksDBInternalListState<K, N, T> implements InternalListState<K, N, T> {
     @Override
     public void clear() {
         try {
-            backend.getDb().delete(cfHandle, getStorageKey());
+            byte[] key = getStorageKey();
+            backend.getDb().delete(cfHandle, key);
+            if (ttl != null) {
+                ttl.removeTimestamp(ByteBuffer.wrap(key));
+            }
         } catch (RocksDBException e) {
             throw new StreamException("Failed to clear InternalListState", e);
+        }
+    }
+
+    private void evictIfExpired(byte[] key) throws RocksDBException {
+        if (ttl != null && ttl.isExpired(ByteBuffer.wrap(key))) {
+            backend.getDb().delete(cfHandle, key);
+            ttl.removeTimestamp(ByteBuffer.wrap(key));
+        }
+    }
+
+    private void recordWrite(byte[] key) {
+        if (ttl != null) {
+            ttl.recordWrite(ByteBuffer.wrap(key));
         }
     }
 

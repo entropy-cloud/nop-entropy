@@ -22,6 +22,7 @@ import io.nop.stream.core.common.state.MapStateDescriptor;
 import io.nop.stream.core.common.state.ReducingStateDescriptor;
 import io.nop.stream.core.common.state.StateDescriptor;
 import io.nop.stream.core.common.state.StateSchemaResolver;
+import io.nop.stream.core.common.state.TtlContext;
 import io.nop.stream.core.common.state.ValueStateDescriptor;
 import io.nop.stream.core.checkpoint.SerializerFingerprint;
 import io.nop.stream.core.common.state.backend.IKeyedStateBackend;
@@ -449,7 +450,11 @@ class MemoryStateSerDe {
 
         List<Map<String, Object>> entries = new ArrayList<>();
         IStreamSerializer<Object> valueSer = getSerializerIfAvailable(state.descriptor);
+        TtlContext<TypedNamespaceAndKey> ttl = state.ttl;
         for (Map.Entry<TypedNamespaceAndKey, ?> e : state.storage.entrySet()) {
+            if (ttl != null && ttl.isExpiredForSnapshot(e.getKey())) {
+                continue;
+            }
             Map<String, Object> entry = new LinkedHashMap<>();
             entry.put("namespace", serializeNamespace(e.getKey().namespace));
             entry.put("key", serializeKey(unwrapStorageKey(e.getKey().key)));
@@ -472,7 +477,11 @@ class MemoryStateSerDe {
 
         List<Map<String, Object>> entries = new ArrayList<>();
         IStreamSerializer<Object> valueSer = getSerializerIfAvailable(state.descriptor);
+        TtlContext<TypedNamespaceAndKey> ttl = state.ttl;
         for (Map.Entry<TypedNamespaceAndKey, ? extends Map<?, ?>> e : state.storage.entrySet()) {
+            if (ttl != null && ttl.isExpiredForSnapshot(e.getKey())) {
+                continue;
+            }
             Map<String, Object> entry = new LinkedHashMap<>();
             entry.put("namespace", serializeNamespace(e.getKey().namespace));
             entry.put("key", serializeKey(unwrapStorageKey(e.getKey().key)));
@@ -501,7 +510,11 @@ class MemoryStateSerDe {
         }
 
         List<Map<String, Object>> entries = new ArrayList<>();
+        TtlContext<TypedNamespaceAndKey> ttl = state.ttl;
         for (Map.Entry<TypedNamespaceAndKey, ?> e : state.storage.entrySet()) {
+            if (ttl != null && ttl.isExpiredForSnapshot(e.getKey())) {
+                continue;
+            }
             Map<String, Object> entry = new LinkedHashMap<>();
             entry.put("namespace", serializeNamespace(e.getKey().namespace));
             entry.put("key", serializeKey(unwrapStorageKey(e.getKey().key)));
@@ -528,7 +541,11 @@ class MemoryStateSerDe {
 
         List<Map<String, Object>> entries = new ArrayList<>();
         IStreamSerializer<Object> valueSer = getSerializerIfAvailable(state.descriptor);
+        TtlContext<TypedNamespaceAndKey> ttl = state.ttl;
         for (Map.Entry<TypedNamespaceAndKey, ? extends List<?>> e : state.storage.entrySet()) {
+            if (ttl != null && ttl.isExpiredForSnapshot(e.getKey())) {
+                continue;
+            }
             Map<String, Object> entry = new LinkedHashMap<>();
             entry.put("namespace", serializeNamespace(e.getKey().namespace));
             entry.put("key", serializeKey(unwrapStorageKey(e.getKey().key)));
@@ -554,7 +571,11 @@ class MemoryStateSerDe {
 
         List<Map<String, Object>> entries = new ArrayList<>();
         IStreamSerializer<Object> valueSer = getSerializerIfAvailable(state.descriptor);
+        TtlContext<TypedNamespaceAndKey> ttl = state.ttl;
         for (Map.Entry<TypedNamespaceAndKey, ? extends List<?>> e : state.storage.entrySet()) {
+            if (ttl != null && ttl.isExpiredForSnapshot(e.getKey())) {
+                continue;
+            }
             Map<String, Object> entry = new LinkedHashMap<>();
             entry.put("namespace", serializeNamespace(e.getKey().namespace));
             entry.put("key", serializeKey(unwrapStorageKey(e.getKey().key)));
@@ -581,7 +602,11 @@ class MemoryStateSerDe {
 
         List<Map<String, Object>> entries = new ArrayList<>();
         IStreamSerializer<Object> valueSer = getSerializerIfAvailable(state.descriptor);
+        TtlContext<TypedNamespaceAndKey> ttl = state.ttl;
         for (Map.Entry<TypedNamespaceAndKey, ? extends SimpleAccumulator<?>> e : state.storage.entrySet()) {
+            if (ttl != null && ttl.isExpiredForSnapshot(e.getKey())) {
+                continue;
+            }
             Map<String, Object> entry = new LinkedHashMap<>();
             entry.put("namespace", serializeNamespace(e.getKey().namespace));
             entry.put("key", serializeKey(unwrapStorageKey(e.getKey().key)));
@@ -604,7 +629,11 @@ class MemoryStateSerDe {
 
         List<Map<String, Object>> entries = new ArrayList<>();
         IStreamSerializer<Object> valueSer = getSerializerIfAvailable(state.descriptor);
+        TtlContext<TypedNamespaceAndKey> ttl = state.ttl;
         for (Map.Entry<TypedNamespaceAndKey, ?> e : state.storage.entrySet()) {
+            if (ttl != null && ttl.isExpiredForSnapshot(e.getKey())) {
+                continue;
+            }
             Map<String, Object> entry = new LinkedHashMap<>();
             entry.put("namespace", serializeNamespace(e.getKey().namespace));
             entry.put("key", serializeKey(unwrapStorageKey(e.getKey().key)));
@@ -627,7 +656,11 @@ class MemoryStateSerDe {
 
         List<Map<String, Object>> entries = new ArrayList<>();
         IStreamSerializer<Object> valueSer = getSerializerIfAvailable(state.descriptor);
+        TtlContext<TypedNamespaceAndKey> ttl = state.ttl;
         for (Map.Entry<TypedNamespaceAndKey, ?> e : state.storage.entrySet()) {
+            if (ttl != null && ttl.isExpiredForSnapshot(e.getKey())) {
+                continue;
+            }
             Map<String, Object> entry = new LinkedHashMap<>();
             entry.put("namespace", serializeNamespace(e.getKey().namespace));
             entry.put("key", serializeKey(unwrapStorageKey(e.getKey().key)));

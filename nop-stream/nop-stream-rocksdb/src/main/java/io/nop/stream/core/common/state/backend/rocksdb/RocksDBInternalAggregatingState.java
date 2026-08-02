@@ -8,10 +8,12 @@
 package io.nop.stream.core.common.state.backend.rocksdb;
 
 import java.io.IOException;
+import java.nio.ByteBuffer;
 
 import io.nop.stream.core.common.functions.AggregateFunction;
 import io.nop.stream.core.common.state.AggregatingStateDescriptor;
 import io.nop.stream.core.common.state.InternalAppendingState;
+import io.nop.stream.core.common.state.TtlContext;
 
 import org.rocksdb.ColumnFamilyHandle;
 import org.rocksdb.RocksDBException;
@@ -22,11 +24,12 @@ import static io.nop.stream.core.exceptions.NopStreamErrors.ARG_DETAIL;
 import static io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_STATE_ERROR;
 
 class RocksDBInternalAggregatingState<K, N, IN, ACC, OUT>
-        implements InternalAppendingState<K, N, IN, ACC, OUT> {
+        implements InternalAppendingState<K, N, IN, ACC, OUT>, RocksDbTtlAware {
 
     private final RocksDBKeyedStateBackend<K> backend;
     final ColumnFamilyHandle cfHandle;
     final AggregatingStateDescriptor<IN, ACC, OUT> descriptor;
+    private TtlContext<ByteBuffer> ttl;
 
     private transient N currentNamespace;
 
@@ -35,6 +38,21 @@ class RocksDBInternalAggregatingState<K, N, IN, ACC, OUT>
         this.backend = backend;
         this.cfHandle = cfHandle;
         this.descriptor = descriptor;
+    }
+
+    @Override
+    public void bindTtl(TtlContext<ByteBuffer> ctx) {
+        this.ttl = ctx;
+    }
+
+    @Override
+    public TtlContext<ByteBuffer> ttlContext() {
+        return ttl;
+    }
+
+    @Override
+    public ColumnFamilyHandle cfHandle() {
+        return cfHandle;
     }
 
     @Override
@@ -58,20 +76,52 @@ class RocksDBInternalAggregatingState<K, N, IN, ACC, OUT>
     @Override
     @SuppressWarnings("unchecked")
     public ACC getAccumulator() throws Exception {
-        byte[] bytes = backend.getDb().get(cfHandle, getStorageKey());
+        byte[] key = getStorageKey();
+        ByteBuffer keyBuf = ByteBuffer.wrap(key);
+        if (ttl != null && ttl.isExpired(keyBuf)) {
+            backend.getDb().delete(cfHandle, key);
+            ttl.removeTimestamp(keyBuf);
+            return null;
+        }
+        byte[] bytes = backend.getDb().get(cfHandle, key);
+        if (ttl != null && bytes != null) {
+            if (!ttl.hasTimestamp(keyBuf)) {
+                ttl.grantFreshWindow(keyBuf);
+            } else {
+                ttl.recordRead(keyBuf);
+            }
+        }
         return RocksDBValueSerDe.deserialize(bytes, descriptor.getValueType());
     }
 
     @Override
     public void setAccumulator(ACC accumulator) throws Exception {
-        backend.getDb().put(cfHandle, getStorageKey(), RocksDBValueSerDe.serialize(accumulator));
+        byte[] key = getStorageKey();
+        backend.getDb().put(cfHandle, key, RocksDBValueSerDe.serialize(accumulator));
+        if (ttl != null) {
+            ttl.recordWrite(ByteBuffer.wrap(key));
+        }
     }
 
     @Override
     @SuppressWarnings("unchecked")
     public OUT get() throws IOException {
         try {
-            byte[] bytes = backend.getDb().get(cfHandle, getStorageKey());
+            byte[] key = getStorageKey();
+            ByteBuffer keyBuf = ByteBuffer.wrap(key);
+            if (ttl != null && ttl.isExpired(keyBuf)) {
+                backend.getDb().delete(cfHandle, key);
+                ttl.removeTimestamp(keyBuf);
+                return null;
+            }
+            byte[] bytes = backend.getDb().get(cfHandle, key);
+            if (ttl != null && bytes != null) {
+                if (!ttl.hasTimestamp(keyBuf)) {
+                    ttl.grantFreshWindow(keyBuf);
+                } else {
+                    ttl.recordRead(keyBuf);
+                }
+            }
             if (bytes == null) {
                 return null;
             }
@@ -87,7 +137,12 @@ class RocksDBInternalAggregatingState<K, N, IN, ACC, OUT>
     public void add(IN value) throws IOException {
         try {
             byte[] key = getStorageKey();
+            ByteBuffer keyBuf = ByteBuffer.wrap(key);
             AggregateFunction<IN, ACC, OUT> aggFn = descriptor.getAggregateFunction();
+            if (ttl != null && ttl.isExpired(keyBuf)) {
+                backend.getDb().delete(cfHandle, key);
+                ttl.removeTimestamp(keyBuf);
+            }
             ACC accumulator;
             byte[] existing = backend.getDb().get(cfHandle, key);
             if (existing != null) {
@@ -97,6 +152,9 @@ class RocksDBInternalAggregatingState<K, N, IN, ACC, OUT>
             }
             accumulator = aggFn.add(value, accumulator);
             backend.getDb().put(cfHandle, key, RocksDBValueSerDe.serialize(accumulator));
+            if (ttl != null) {
+                ttl.recordWrite(keyBuf);
+            }
         } catch (RocksDBException e) {
             throw new IOException("Failed to add to InternalAggregatingState", e);
         }
@@ -105,7 +163,11 @@ class RocksDBInternalAggregatingState<K, N, IN, ACC, OUT>
     @Override
     public void clear() {
         try {
-            backend.getDb().delete(cfHandle, getStorageKey());
+            byte[] key = getStorageKey();
+            backend.getDb().delete(cfHandle, key);
+            if (ttl != null) {
+                ttl.removeTimestamp(ByteBuffer.wrap(key));
+            }
         } catch (RocksDBException e) {
             throw new StreamException("Failed to clear InternalAggregatingState", e);
         }

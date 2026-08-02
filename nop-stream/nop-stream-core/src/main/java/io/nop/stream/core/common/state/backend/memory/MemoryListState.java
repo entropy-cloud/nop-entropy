@@ -17,13 +17,16 @@ import java.util.Map;
 
 import io.nop.stream.core.common.state.ListState;
 import io.nop.stream.core.common.state.ListStateDescriptor;
+import io.nop.stream.core.common.state.TtlContext;
 
-class MemoryListState<T> implements ListState<T>, Serializable {
+class MemoryListState<T> implements ListState<T>, Serializable, TtlAware {
     private static final long serialVersionUID = 1L;
 
     MemoryKeyedStateBackend<?> backend;
     final ListStateDescriptor<T> descriptor;
     final Map<TypedNamespaceAndKey, List<T>> storage = new HashMap<>();
+
+    TtlContext<TypedNamespaceAndKey> ttl;
 
     MemoryListState(MemoryKeyedStateBackend<?> backend, ListStateDescriptor<T> descriptor) {
         this.backend = backend;
@@ -35,35 +38,69 @@ class MemoryListState<T> implements ListState<T>, Serializable {
     }
 
     @Override
+    public void bindTtl(TtlContext<TypedNamespaceAndKey> ctx) {
+        this.ttl = ctx;
+    }
+
+    @Override
     public Iterable<T> get() throws IOException {
-        List<T> list = storage.get(backend.getTypedNamespaceAndKey());
+        TypedNamespaceAndKey k = backend.getTypedNamespaceAndKey();
+        if (ttl != null && ttl.readEviction(k, storage)) {
+            return Collections.emptyList();
+        }
+        List<T> list = storage.get(k);
+        if (ttl != null && list != null) {
+            ttl.recordRead(k);
+        }
         return list != null ? list : Collections.emptyList();
     }
 
     @Override
     public void add(T value) throws IOException {
-        storage.computeIfAbsent(backend.getTypedNamespaceAndKey(), k -> new ArrayList<>()).add(value);
+        TypedNamespaceAndKey k = backend.getTypedNamespaceAndKey();
+        if (ttl != null) {
+            ttl.writeEviction(k, storage);
+        }
+        storage.computeIfAbsent(k, kk -> new ArrayList<>()).add(value);
+        if (ttl != null) {
+            ttl.recordWrite(k);
+        }
     }
 
     @Override
     public void addAll(Iterable<T> values) throws IOException {
-        List<T> list = storage.computeIfAbsent(backend.getTypedNamespaceAndKey(), k -> new ArrayList<>());
+        TypedNamespaceAndKey k = backend.getTypedNamespaceAndKey();
+        if (ttl != null) {
+            ttl.writeEviction(k, storage);
+        }
+        List<T> list = storage.computeIfAbsent(k, kk -> new ArrayList<>());
         for (T value : values) {
             list.add(value);
+        }
+        if (ttl != null) {
+            ttl.recordWrite(k);
         }
     }
 
     @Override
     public void update(Iterable<T> values) throws IOException {
+        TypedNamespaceAndKey k = backend.getTypedNamespaceAndKey();
         List<T> newList = new ArrayList<>();
         for (T value : values) {
             newList.add(value);
         }
-        storage.put(backend.getTypedNamespaceAndKey(), newList);
+        storage.put(k, newList);
+        if (ttl != null) {
+            ttl.recordWrite(k);
+        }
     }
 
     @Override
     public void clear() {
-        storage.remove(backend.getTypedNamespaceAndKey());
+        TypedNamespaceAndKey k = backend.getTypedNamespaceAndKey();
+        storage.remove(k);
+        if (ttl != null) {
+            ttl.onClear(k);
+        }
     }
 }

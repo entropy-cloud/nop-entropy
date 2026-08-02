@@ -8,6 +8,7 @@
 package io.nop.stream.core.common.state.backend.rocksdb;
 
 import java.io.File;
+import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -35,6 +36,10 @@ import io.nop.stream.core.common.state.ReducingState;
 import io.nop.stream.core.common.state.ReducingStateDescriptor;
 import io.nop.stream.core.common.state.StateDescriptor;
 import io.nop.stream.core.common.state.StateSchemaResolver;
+import io.nop.stream.core.common.state.StateTtlConfig;
+import io.nop.stream.core.common.state.SystemTtlTimeProvider;
+import io.nop.stream.core.common.state.TtlContext;
+import io.nop.stream.core.common.state.TtlTimeProvider;
 import io.nop.stream.core.common.state.ValueState;
 import io.nop.stream.core.common.state.ValueStateDescriptor;
 import io.nop.stream.core.checkpoint.SerializerFingerprint;
@@ -50,6 +55,7 @@ import org.rocksdb.DBOptions;
 import org.rocksdb.Options;
 import org.rocksdb.RocksDB;
 import org.rocksdb.RocksDBException;
+import org.rocksdb.RocksIterator;
 
 import static io.nop.stream.core.exceptions.NopStreamErrors.ARG_ACTUAL_TYPE;
 import static io.nop.stream.core.exceptions.NopStreamErrors.ARG_DETAIL;
@@ -117,6 +123,13 @@ public class RocksDBKeyedStateBackend<K> implements IInternalStateBackend<K> {
 
     @SuppressWarnings("unchecked")
     private final Map<String, StateDescriptor<?>> restoredDescriptors = new LinkedHashMap<>();
+
+    /**
+     * Processing-time source used by all {@link TtlContext}s created in {@link #applyTtl}.
+     * Tests inject a controllable clock here before calling {@code getState(...)} so TTL
+     * expiry can be exercised deterministically without sleeping.
+     */
+    private TtlTimeProvider ttlClock = SystemTtlTimeProvider.INSTANCE;
 
     public RocksDBKeyedStateBackend(String dbPath, Class<K> keyType, int shardCount,
                                     RocksDBOptionConfig optionConfig) {
@@ -299,6 +312,7 @@ public class RocksDBKeyedStateBackend<K> implements IInternalStateBackend<K> {
                     StateSchemaResolver.STATE_TYPE_VALUE,
                     stateProperties, ((RocksDBValueState<?>) state).descriptor);
         }
+        applyTtl(state, stateProperties);
         return state;
     }
 
@@ -316,6 +330,7 @@ public class RocksDBKeyedStateBackend<K> implements IInternalStateBackend<K> {
                     StateSchemaResolver.STATE_TYPE_MAP,
                     stateProperties, ((RocksDBMapState<?, ?>) state).descriptor);
         }
+        applyTtl(state, stateProperties);
         return state;
     }
 
@@ -333,6 +348,7 @@ public class RocksDBKeyedStateBackend<K> implements IInternalStateBackend<K> {
                     StateSchemaResolver.STATE_TYPE_LIST,
                     stateProperties, ((RocksDBListState<?>) state).descriptor);
         }
+        applyTtl(state, stateProperties);
         return state;
     }
 
@@ -350,6 +366,7 @@ public class RocksDBKeyedStateBackend<K> implements IInternalStateBackend<K> {
                     StateSchemaResolver.STATE_TYPE_REDUCING,
                     stateProperties, ((RocksDBReducingState<?>) state).descriptor);
         }
+        applyTtl(state, stateProperties);
         return state;
     }
 
@@ -369,6 +386,7 @@ public class RocksDBKeyedStateBackend<K> implements IInternalStateBackend<K> {
                     StateSchemaResolver.STATE_TYPE_AGGREGATING,
                     stateProperties, ((RocksDBAggregatingState<?, ?, ?>) state).descriptor);
         }
+        applyTtl(state, stateProperties);
         return state;
     }
 
@@ -388,6 +406,7 @@ public class RocksDBKeyedStateBackend<K> implements IInternalStateBackend<K> {
                     StateSchemaResolver.STATE_TYPE_APPENDING,
                     descriptor, ((RocksDBInternalAppendingState<?, ?, ?>) state).descriptor);
         }
+        applyTtl(state, descriptor);
         return state;
     }
 
@@ -407,6 +426,7 @@ public class RocksDBKeyedStateBackend<K> implements IInternalStateBackend<K> {
                     StateSchemaResolver.STATE_TYPE_INTERNAL_AGGREGATING,
                     descriptor, ((RocksDBInternalAggregatingState<?, ?, ?, ?, ?>) state).descriptor);
         }
+        applyTtl(state, descriptor);
         return state;
     }
 
@@ -425,6 +445,7 @@ public class RocksDBKeyedStateBackend<K> implements IInternalStateBackend<K> {
                     StateSchemaResolver.STATE_TYPE_INTERNAL_LIST,
                     descriptor, ((RocksDBInternalListState<?, ?, ?>) state).descriptor);
         }
+        applyTtl(state, descriptor);
         return state;
     }
 
@@ -444,11 +465,118 @@ public class RocksDBKeyedStateBackend<K> implements IInternalStateBackend<K> {
         restoredDescriptors.put(name, descriptor);
     }
 
+    public void setTtlTimeProvider(TtlTimeProvider ttlClock) {
+        this.ttlClock = ttlClock != null ? ttlClock : SystemTtlTimeProvider.INSTANCE;
+    }
+
+    /**
+     * Centralized TTL binding. Called from every {@code getState(...)} overload after the
+     * lazy-create-or-verify step. When the live descriptor carries an enabled
+     * {@link StateTtlConfig}, a fresh {@link TtlContext} is bound to the state object. This
+     * covers both the freshly-created path and the restored path (rebinding TTL after
+     * restore): restored entries have a storage value but no sidecar timestamp, and are
+     * granted a fresh TTL window on first access by {@link TtlContext#grantFreshWindow}.
+     */
+    private void applyTtl(Object stateObj, StateDescriptor<?> descriptor) {
+        if (!(stateObj instanceof RocksDbTtlAware)) {
+            return;
+        }
+        StateTtlConfig cfg = descriptor.getTtlConfig();
+        if (!cfg.isEnabled()) {
+            return;
+        }
+        ((RocksDbTtlAware) stateObj).bindTtl(new TtlContext<>(cfg, ttlClock));
+    }
+
+    /**
+     * Delete every key in {@code cf} that starts with {@code prefixBytes}. Used by TTL
+     * eviction for {@code MapState} (whose TTL unit is the whole map keyed by the base
+     * composite key, while individual map entries append a map-key suffix).
+     */
+    void deleteByPrefix(ColumnFamilyHandle cf, byte[] prefixBytes) {
+        List<byte[]> toDelete = new ArrayList<>();
+        try (RocksIterator it = db.newIterator(cf)) {
+            it.seek(prefixBytes);
+            while (it.isValid()) {
+                byte[] fullKey = it.key();
+                if (!startsWith(fullKey, prefixBytes)) {
+                    break;
+                }
+                toDelete.add(fullKey);
+                it.next();
+            }
+        }
+        try {
+            for (byte[] k : toDelete) {
+                db.delete(cf, k);
+            }
+        } catch (RocksDBException e) {
+            throw new StreamException(ERR_STREAM_STATE_ERROR, e)
+                    .param(ARG_DETAIL, "Failed to delete by prefix for TTL eviction");
+        }
+    }
+
+    private static boolean startsWith(byte[] data, byte[] prefix) {
+        if (data.length < prefix.length) {
+            return false;
+        }
+        for (int i = 0; i < prefix.length; i++) {
+            if (data[i] != prefix[i]) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    /**
+     * Background cleanup: for every TTL-enabled state, scan the sidecar for expired
+     * timestamps and delete the corresponding RocksDB entries (single-key delete for
+     * scalar/list/accumulator states; prefix delete for {@code MapState}). Returns the
+     * total number of expired base keys reclaimed. This is the pure-Java substitute for a
+     * RocksDB compaction filter — the {@code rocksdbjni} binding does not expose a
+     * pure-Java compaction-filter callback (see
+     * {@code ai-dev/design/nop-stream/state-management-design.md} TTL section).
+     */
+    public int cleanupExpiredEntries() {
+        int total = 0;
+        for (Object stateObj : states.values()) {
+            if (!(stateObj instanceof RocksDbTtlAware)) {
+                continue;
+            }
+            TtlContext<ByteBuffer> ctx = ((RocksDbTtlAware) stateObj).ttlContext();
+            if (ctx == null || !ctx.isEnabled()) {
+                continue;
+            }
+            ColumnFamilyHandle cf = ((RocksDbTtlAware) stateObj).cfHandle();
+            for (ByteBuffer baseKeyBuf : ctx.expiredKeys()) {
+                byte[] baseBytes = new byte[baseKeyBuf.remaining()];
+                baseKeyBuf.duplicate().get(baseBytes);
+                if (stateObj instanceof RocksDBMapState) {
+                    deleteByPrefix(cf, baseBytes);
+                } else {
+                    try {
+                        db.delete(cf, baseBytes);
+                    } catch (RocksDBException e) {
+                        throw new StreamException(ERR_STREAM_STATE_ERROR, e)
+                                .param(ARG_DETAIL, "Failed to delete expired entry during sweep");
+                    }
+                }
+                ctx.removeTimestamp(baseKeyBuf);
+                total++;
+            }
+        }
+        return total;
+    }
+
     @Override
     public StateSnapshot snapshotState() throws Exception {
         if (incrementalCheckpointEnabled) {
+            // Reclaim expired entries before producing any checkpoint so neither the full
+            // scan nor the incremental SST path persists state that should already be gone.
+            cleanupExpiredEntries();
             return snapshotIncremental();
         }
+        cleanupExpiredEntries();
         return RocksDBSnapshotSerDe.snapshotState(this);
     }
 

@@ -12,15 +12,18 @@ import java.io.Serializable;
 import java.util.HashMap;
 import java.util.Map;
 
+import io.nop.stream.core.common.state.TtlContext;
 import io.nop.stream.core.common.state.ValueState;
 import io.nop.stream.core.common.state.ValueStateDescriptor;
 
-class MemoryValueState<T> implements ValueState<T>, Serializable {
+class MemoryValueState<T> implements ValueState<T>, Serializable, TtlAware {
     private static final long serialVersionUID = 1L;
 
     MemoryKeyedStateBackend<?> backend;
     final ValueStateDescriptor<T> descriptor;
     final Map<TypedNamespaceAndKey, T> storage = new HashMap<>();
+
+    TtlContext<TypedNamespaceAndKey> ttl;
 
     MemoryValueState(MemoryKeyedStateBackend<?> backend, ValueStateDescriptor<T> descriptor) {
         this.backend = backend;
@@ -32,22 +35,45 @@ class MemoryValueState<T> implements ValueState<T>, Serializable {
     }
 
     @Override
+    public void bindTtl(TtlContext<TypedNamespaceAndKey> ctx) {
+        this.ttl = ctx;
+    }
+
+    @Override
     public T value() throws IOException {
-        T result = storage.get(backend.getTypedNamespaceAndKey());
+        TypedNamespaceAndKey k = backend.getTypedNamespaceAndKey();
+        if (ttl != null && ttl.readEviction(k, storage)) {
+            return descriptor.getDefaultValue();
+        }
+        T result = storage.get(k);
+        if (ttl != null && result != null) {
+            ttl.recordRead(k);
+        }
         return result != null ? result : descriptor.getDefaultValue();
     }
 
     @Override
     public void update(T value) throws IOException {
+        TypedNamespaceAndKey k = backend.getTypedNamespaceAndKey();
         if (value == null) {
             clear();
         } else {
-            storage.put(backend.getTypedNamespaceAndKey(), value);
+            if (ttl != null) {
+                ttl.writeEviction(k, storage);
+            }
+            storage.put(k, value);
+            if (ttl != null) {
+                ttl.recordWrite(k);
+            }
         }
     }
 
     @Override
     public void clear() {
-        storage.remove(backend.getTypedNamespaceAndKey());
+        TypedNamespaceAndKey k = backend.getTypedNamespaceAndKey();
+        storage.remove(k);
+        if (ttl != null) {
+            ttl.onClear(k);
+        }
     }
 }
