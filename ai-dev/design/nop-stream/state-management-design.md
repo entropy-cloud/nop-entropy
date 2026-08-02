@@ -123,12 +123,14 @@ checkpoint/{checkpointNamespace}/{epochId}/{operatorId}/{subtaskIndex}/sink/{tra
 ### 5.1 接口层次
 
 ```
-IStateBackend (getName, createKeyedStateBackend)
-└── MemoryStateBackend           → new MemoryKeyedStateBackend<K>
+IStateBackend (getName, createKeyedStateBackend, createOperatorStateBackend)
+├── MemoryStateBackend           → new MemoryKeyedStateBackend<K>
+└── RocksDBStateBackend          → new RocksDBKeyedStateBackend<K>
 
 IKeyedStateBackend<K> (setCurrentKey, getState, getMapState)
 └── IInternalStateBackend<K>     (+ getInternalAppendingState×2, getInternalListState)
-    └── MemoryKeyedStateBackend<K>
+    ├── MemoryKeyedStateBackend<K>
+    └── RocksDBKeyedStateBackend<K>
 
 IInternalStateBackend.getInternalAppendingState 有两个重载：
   • getInternalAppendingState(ReducingStateDescriptor<IN>)
@@ -146,7 +148,27 @@ IInternalStateBackend.getInternalAppendingState 有两个重载：
 - 实现 `Serializable`（但重启后状态丢失）
 - 无大小限制、无 TTL、无驱逐策略
 
-### 5.3 MemoryKeyedStateBackend 存储结构
+### 5.3 RocksDBStateBackend
+
+第二个状态后端实现（Stage 30 交付）。所有 keyed state 存储在 off-heap 的 RocksDB 列族中，突破 JVM 堆内存上限。
+
+- 独立模块 `nop-stream-rocksdb`（`rocksdbjni` ~58MB native jar 隔离在此模块，不污染 `nop-stream-core`）
+- 每个注册的 state 对应一个 RocksDB column family
+- Key 编码：`[nsLen][nsJsonBytes][shardId][keyLen][keyJsonBytes]`，namespace 序列化与 `MemoryStateSerDe` 一致
+- Value 编码：JSON via `JsonTool`（与 memory backend 序列化体系一致）
+- `RocksDBKeyedStateBackend<K>` 实现 `IInternalStateBackend<K>`，所有 keyed state 类型（Value/Map/List/Reducing/Aggregating + Internal 变体）由列族承载
+- 快照格式与 `MemoryStateSerDe` byte-compatible（8 种 stateType、per-type info keys、entry discriminators、raw-key 不变量），实现 checkpoint 跨后端互换
+- Operator state 复用 `MemoryOperatorStateBackend`（operator state 量小，非 off-heap 目标）
+- 配置：`RocksDBStateBackend(dbPath, shardCount, RocksDBOptionConfig)`，最小配置项为 db path、write buffer size、max background threads
+
+**使用方式**：
+```java
+env.setStateBackend(new RocksDBStateBackend("/data/rocksdb", 1, new RocksDBOptionConfig()));
+```
+
+**限制**：Stage 30 使用全量扫描快照（非增量 checkpoint），单线程访问模型（mailbox 保证）。
+
+### 5.4 MemoryKeyedStateBackend 存储结构
 
 ```
 MemoryKeyedStateBackend<K>
@@ -160,7 +182,7 @@ MemoryKeyedStateBackend<K>
 
 组合键：`TypedNamespaceAndKey = (Object namespace, Object key)`。
 
-### 5.4 SimpleKeyedStateStore
+### 5.5 SimpleKeyedStateStore
 
 非键控的全局状态存储。`ValueState` 用单个字段，`MapState` 用单个 HashMap。不感知 key，所有 key 共享同一状态。用于 CepOperator 等不需要 key 隔离的场景。
 
@@ -360,12 +382,12 @@ interface OperatorStateStore {
 
 ## 11. 已知限制
 
-1. **无内存控制** — 状态只增长不收缩（除窗口触发清理），无 TTL/驱逐/spill。大状态场景可能 OOM
+1. **无内存控制（Memory 后端）** — MemoryStateBackend 的状态只增长不收缩（除窗口触发清理），无 TTL/驱逐/spill。大状态场景可能 OOM。**RocksDBStateBackend（Stage 30）通过 off-heap 列族存储突破此限制**
 2. **JSON 序列化性能** — Checkpoint 持久化使用 JSON，体积和速度均不如二进制格式
 3. **状态对象是引用** — MemoryValueState 直接存储用户对象引用，没有深拷贝。用户代码意外修改对象会影响状态一致性
 4. **MemoryInternalAppendingState accumulator 复用** — 单个 accumulator 实例在 add() 时先重置再加入，多线程不安全
 5. **SimpleKeyedStateStore 无 key 隔离** — 所有 key 共享状态，不可用于分布式 exactly-once 作业
-6. **无状态恢复路径** — `AbstractUdfStreamOperator.snapshotState()` 被注释掉，当前运行时不实际执行状态快照
+6. ~~**无状态恢复路径**~~ — `AbstractStreamOperator.snapshotState()` 是活跃路径，在 `processBarrier` 触发时调用 `keyedStateBackend.snapshotState()` 产出 `StateSnapshot`（参见 `AbstractStreamOperator.java:261-295`）。此路径对 Memory 和 RocksDB 后端均生效
 7. **无状态重分布** — 不支持并行度变更后重新分配状态
-8. **仅 Memory 后端** — `IStateBackend` 接口注释中提到 `RedisStateBackend`，未实现
+8. ~~**仅 Memory 后端**~~ — `IStateBackend` 接口已有两个实现：`MemoryStateBackend`（堆内存）和 `RocksDBStateBackend`（off-heap，Stage 30）
 9. **无 Operator State 实现** — `OperatorStateStore` 接口未实现，source offset checkpoint 缺口。见 `ai-dev/backlog/completion-roadmap.md` Phase 0.3

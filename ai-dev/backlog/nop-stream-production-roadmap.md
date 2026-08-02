@@ -41,9 +41,9 @@ Does not contain implementation details. Each `planned` stage is owned by its ex
 ### Phase 2 — 状态后端生产化
 
 - 29. SerializerFingerprint schema 兼容性体系（G12, G40, G41, G59，P1/P2/P3）: `done`（plan `ai-dev/plans/nop-stream-production/2026-07-26-1000-1-serializer-fingerprint-schema-compat.md`，completed — `SerializerFingerprint` + `StateSchemaResolver` + `getState()`-time fail-fast + per-state JSON `schemaChecksum` 嵌入 + `CheckpointSerDe` `formatVersion` envelope；G12/G40/G41/G59 ✅ Closed）
-- 30. RocksDB 状态后端核心: `todo`
-- 31. 增量 checkpoint（SST 共享）: `todo`
-- 32. State TTL（G42, G43，P2）: `todo`
+- 30. RocksDB 状态后端核心: `done`（plan `ai-dev/plans/nop-stream-production/2026-08-02-0955-1-rocksdb-state-backend.md`，completed — 独立 `nop-stream-rocksdb` 模块 + `RocksDBKeyedStateBackend` 实现 `IInternalStateBackend` + 全 8 stateType 列族 + snapshot 互换兼容 + Stage 29 schema fingerprint 复用；578 tests pass）
+- 31. 增量 checkpoint（SST 共享）: `planned`（plan `ai-dev/plans/nop-stream-production/2026-08-02-0955-2-incremental-checkpoint-sst-sharing.md`，active — blocked on Stage 30；Phase 1 SharedStateRegistry 可独立先行；`Checkpoint` JNI API + SST 内容寻址 + `ISegmentStore` side-channel + `EpochManifest.segments` 激活 + registry restart 恢复）
+- 32. State TTL（G42, G43，P2）: `planned`（plan `ai-dev/plans/nop-stream-production/2026-08-02-0955-3-state-ttl.md`，active — Phase 1-2 Memory TTL 可独立先行；Phase 3 RocksDB compaction filter blocked on Stage 30；per-state sidecar 时间戳 + intrusive TTL 拦截 + lazy eviction 双重清理）
 - 33. 状态迁移接线: `todo`
 
 ### Phase 3 — 弹性与重分布
