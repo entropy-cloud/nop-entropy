@@ -1,6 +1,6 @@
 # 6 状态迁移接线（StateMigrationFunction + checksum 不匹配→迁移主路径）
 
-> Plan Status: active
+> Plan Status: completed
 > Last Reviewed: 2026-08-02
 > Source: `ai-dev/backlog/nop-stream-production-roadmap.md` Stage 33；`ai-dev/design/nop-stream/checkpoint-design.md:766-801`（迁移四分支 + StateMigrationFunction 规约）
 > Mission: nop-stream-production
@@ -71,82 +71,82 @@
 
 ### Phase 1 - StateMigrationFunction 接口 + 注册机制
 
-Status: planned
+Status: completed
 Targets: `nop-stream-core/.../common/state/`（新建 `StateMigrationFunction.java`）；`StreamComponents` 注册点；`StateSchemaResolver`
 
 - Item Types: `Decision | Fix | Proof`
 
-- [ ] 定义 `StateMigrationFunction<Old, New>` 接口（按 `checkpoint-design.md:794-798`）：`New migrate(Old oldValue)`、`SerializerFingerprint sourceFingerprint()`、`SerializerFingerprint targetFingerprint()`。`@Internal`，包 `io.nop.stream.core.common.state`
-- [ ] 注册点：按 `(stateName, sourceSchemaChecksum)`（或 source fingerprint）索引迁移函数。注册载体 = `StreamComponents`（**遵循 `checkpoint-design.md:801` 已指定选择，不重新评估**）
-- [ ] `StateSchemaResolver` 增加迁移函数查询辅助：给定 `(stateName, currentFp, restoredFp)`，返回已注册的匹配迁移函数或 null。匹配规则：source = restoredFp、target = currentFp
+- [x] 定义 `StateMigrationFunction<Old, New>` 接口（按 `checkpoint-design.md:794-798`）：`New migrate(Old oldValue)`、`SerializerFingerprint sourceFingerprint()`、`SerializerFingerprint targetFingerprint()`。`@Internal`，包 `io.nop.stream.core.common.state`
+- [x] 注册点：按 `(stateName, sourceSchemaChecksum)`（或 source fingerprint）索引迁移函数。注册载体 = `StreamComponents`（**遵循 `checkpoint-design.md:801` 已指定选择，不重新评估**）
+- [x] `StateSchemaResolver` 增加迁移函数查询辅助：给定 `(stateName, currentFp, restoredFp)`，返回已注册的匹配迁移函数或 null。匹配规则：source = restoredFp、target = currentFp
 
 Exit Criteria:
 
-- [ ] `StateMigrationFunction` 接口存在，签名与 `checkpoint-design.md:794-798` 一致；`@Internal`
-- [ ] 注册载体 = `StreamComponents`（与设计文档一致），决策记录于 plan + Phase 1 doc 更新；注册 → 查询链路单测：注册一个 demo 迁移函数后能按 (stateName, source/target checksum) 查回
-- [ ] **无静默跳过**：查询无结果返回 null（供调用方 fail-fast），不抛裸异常也不静默返回默认迁移
-- [ ] `ai-dev/design/nop-stream/checkpoint-design.md:791-801` 迁移段从"规约"更新为"已落地"（记录最终注册载体 `StreamComponents`、匹配规则、**执行点 = state-backend getState 而非 Coordinator** 的最终位置）
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] `StateMigrationFunction` 接口存在，签名与 `checkpoint-design.md:794-798` 一致；`@Internal`
+- [x] 注册载体 = `StreamComponents`（与设计文档一致），决策记录于 plan + Phase 1 doc 更新；注册 → 查询链路单测：注册一个 demo 迁移函数后能按 (stateName, source/target checksum) 查回
+- [x] **无静默跳过**：查询无结果返回 null（供调用方 fail-fast），不抛裸异常也不静默返回默认迁移
+- [x] `ai-dev/design/nop-stream/checkpoint-design.md:791-801` 迁移段从"规约"更新为"已落地"（记录最终注册载体 `StreamComponents`、匹配规则、**执行点 = state-backend getState 而非 Coordinator** 的最终位置）
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 ### Phase 2 - 迁移触发接线（verifySchemaCompatibility 扩展）
 
-Status: planned
+Status: completed
 Targets: `MemoryKeyedStateBackend.verifySchemaCompatibility`（`:283-301`）；`RocksDBKeyedStateBackend` 等价路径（`:281-295`）；两后端的迁移执行
 
 - Item Types: `Fix | Proof`
 
-- [ ] `MemoryKeyedStateBackend.verifySchemaCompatibility`（`:283-301`）：checksum 不匹配时，调用 Phase 1 的迁移查询；命中迁移函数则执行全量读-写迁移（遍历该 state 所有 `TypedNamespaceAndKey` entry，读旧值→`migrate`→写回新类型值），并在迁移后更新该 state 持有的 descriptor 为新 schema；未命中则维持现有 `ERR_STREAM_STATE_SCHEMA_MISMATCH` fail-fast
-- [ ] `RocksDBKeyedStateBackend` 等价路径（`:281-295`）同样扩展：命中迁移函数则全量扫描该 CF 的 entry，读旧值→`migrate`→写回（用新键编码）；未命中 fail-fast
-- [ ] 迁移执行的事务/原子性：单后端单线程（mailbox 保证）下，迁移为同步全量扫描，迁移中途异常应使 backend 进入不可用态（不留下半旧半新数据）
+- [x] `MemoryKeyedStateBackend.verifySchemaCompatibility`（`:283-301`）：checksum 不匹配时，调用 Phase 1 的迁移查询；命中迁移函数则执行全量读-写迁移（遍历该 state 所有 `TypedNamespaceAndKey` entry，读旧值→`migrate`→写回新类型值），并在迁移后更新该 state 持有的 descriptor 为新 schema；未命中则维持现有 `ERR_STREAM_STATE_SCHEMA_MISMATCH` fail-fast
+- [x] `RocksDBKeyedStateBackend` 等价路径（`:281-295`）同样扩展：命中迁移函数则全量扫描该 CF 的 entry，读旧值→`migrate`→写回（用新键编码）；未命中 fail-fast
+- [x] 迁移执行的事务/原子性：单后端单线程（mailbox 保证）下，迁移为同步全量扫描，迁移中途异常应使 backend 进入不可用态（不留下半旧半新数据）
 
 Exit Criteria:
 
-- [ ] **接线验证**：checksum 不匹配 + 已注册迁移函数 → 迁移执行（端到端测试断言 `migrate` 被调用、entry 被转换）；checksum 不匹配 + 未注册 → 仍抛 `ERR_STREAM_STATE_SCHEMA_MISMATCH`
-- [ ] checksum 匹配 → 不触发迁移（既有兼容路径不回归，`TestStateSchemaCompatibility.java` 通过）
-- [ ] memory + rocksdb 两后端迁移路径均有单测
-- [ ] **accumulator-state 迁移风险 surface 测试**：对至少 1 个 accumulator 类型（Reducing 或 Aggregating）的迁移路径补单测，显式记录"迁移操作 opaque ACC、正确性由用户负责"的风险（仅 surface，不要求完整 E2E 保证——见 Non-Goals）
-- [ ] **无静默跳过**：迁移函数存在但 `migrate` 抛异常时，异常向上传播（不被吞）；迁移后 descriptor 已更新（再次 getState 不重复迁移——幂等性不变量）
-- [ ] **迁移时机文档化**：`state-management-design.md` §6.3 明确迁移在 initializeState 首次 getState 同步执行、不支持 processing 中途懒触发
-- [ ] 更新 `TestStreamModelFingerprintRecoveryCompat.java:45` 注释：`StateMigrationFunction` 归属从 "Stage 29 deferred" 改为 "Stage 33 已落地"
-- [ ] `TestStateSchemaFingerprintEndToEnd.java`、`TestStreamModelFingerprintRecoveryCompat.java` 既有断言不回归
-- [ ] `ai-dev/design/nop-stream/state-management-design.md` §6.3 更新：迁移机制已落地（注册点、触发时机、全量扫描语义、Coordinator→backend 执行点偏差）
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] **接线验证**：checksum 不匹配 + 已注册迁移函数 → 迁移执行（端到端测试断言 `migrate` 被调用、entry 被转换）；checksum 不匹配 + 未注册 → 仍抛 `ERR_STREAM_STATE_SCHEMA_MISMATCH`
+- [x] checksum 匹配 → 不触发迁移（既有兼容路径不回归，`TestStateSchemaCompatibility.java` 通过）
+- [x] memory + rocksdb 两后端迁移路径均有单测
+- [x] **accumulator-state 迁移风险 surface 测试**：对至少 1 个 accumulator 类型（Reducing 或 Aggregating）的迁移路径补单测，显式记录"迁移操作 opaque ACC、正确性由用户负责"的风险（仅 surface，不要求完整 E2E 保证——见 Non-Goals）
+- [x] **无静默跳过**：迁移函数存在但 `migrate` 抛异常时，异常向上传播（不被吞）；迁移后 descriptor 已更新（再次 getState 不重复迁移——幂等性不变量）
+- [x] **迁移时机文档化**：`state-management-design.md` §6.3 明确迁移在 initializeState 首次 getState 同步执行、不支持 processing 中途懒触发
+- [x] 更新 `TestStreamModelFingerprintRecoveryCompat.java:45` 注释：`StateMigrationFunction` 归属从 "Stage 29 deferred" 改为 "Stage 33 已落地"
+- [x] `TestStateSchemaFingerprintEndToEnd.java`、`TestStreamModelFingerprintRecoveryCompat.java` 既有断言不回归
+- [x] `ai-dev/design/nop-stream/state-management-design.md` §6.3 更新：迁移机制已落地（注册点、触发时机、全量扫描语义、Coordinator→backend 执行点偏差）
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 ### Phase 3 - Integer→Long 迁移 E2E 验证
 
-Status: planned
+Status: completed
 Targets: `nop-stream-runtime` E2E 测试目录；demo migration function
 
 - Item Types: `Proof`
 
-- [ ] E2E 测试：作业用 `ValueState<Integer>` 跑一段，产 checkpoint/savepoint（schema checksum = Integer FQN）。改作业代码为 `ValueState<Long>`，注册 `Integer→Long` 迁移函数，restore → 断言所有 key 的值被正确转换为 Long（数值相等、类型为 Long）
-- [ ] 对照测试：同上但不注册迁移函数，restore → 断言抛 `ERR_STREAM_STATE_SCHEMA_MISMATCH`（证明迁移是显式触发，非静默）
-- [ ] memory + rocksdb 两后端各跑一次
+- [x] E2E 测试：作业用 `ValueState<Integer>` 跑一段，产 checkpoint/savepoint（schema checksum = Integer FQN）。改作业代码为 `ValueState<Long>`，注册 `Integer→Long` 迁移函数，restore → 断言所有 key 的值被正确转换为 Long（数值相等、类型为 Long）
+- [x] 对照测试：同上但不注册迁移函数，restore → 断言抛 `ERR_STREAM_STATE_SCHEMA_MISMATCH`（证明迁移是显式触发，非静默）
+- [x] memory + rocksdb 两后端各跑一次
 
 Exit Criteria:
 
-- [ ] Integer→Long 迁移 E2E 通过（memory + rocksdb）：迁移后值正确、类型正确
-- [ ] **端到端验证**：从 `getState(ValueStateDescriptor<Integer>)` 产 checkpoint → 改 `ValueStateDescriptor<Long>` + 注册迁移 → restore → `getState` 返回正确 Long 值，完整链路
-- [ ] 对照测试：未注册迁移时 fail-fast（证明非静默降级）
-- [ ] **Anti-Hollow**：迁移函数在 restore 运行时被真实调用并转换数据（断言迁移前后 entry 类型变化），非空壳
-- [ ] `./mvnw test -pl nop-stream/nop-stream-core,nop-stream/nop-stream-rocksdb,nop-stream/nop-stream-runtime -am` 通过
-- [ ] `ai-dev/design/nop-stream/checkpoint-design.md` 迁移段最终状态记录（含 Integer→Long demo 引用）
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] Integer→Long 迁移 E2E 通过（memory + rocksdb）：迁移后值正确、类型正确
+- [x] **端到端验证**：从 `getState(ValueStateDescriptor<Integer>)` 产 checkpoint → 改 `ValueStateDescriptor<Long>` + 注册迁移 → restore → `getState` 返回正确 Long 值，完整链路
+- [x] 对照测试：未注册迁移时 fail-fast（证明非静默降级）
+- [x] **Anti-Hollow**：迁移函数在 restore 运行时被真实调用并转换数据（断言迁移前后 entry 类型变化），非空壳
+- [x] `./mvnw test -pl nop-stream/nop-stream-core,nop-stream/nop-stream-rocksdb,nop-stream/nop-stream-runtime -am` 通过
+- [x] `ai-dev/design/nop-stream/checkpoint-design.md` 迁移段最终状态记录（含 Integer→Long demo 引用）
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 ## Closure Gates
 
-- [ ] `StateMigrationFunction` 接口 + 注册 + 触发接线全部落地（memory + rocksdb）
-- [ ] checksum 不匹配 → 查迁移函数 → 命中则迁移、未命中则 fail-fast 的主路径成立
-- [ ] Integer→Long 迁移 E2E 通过；未注册时 fail-fast 对照通过
-- [ ] 既有 Stage 29 fingerprint 测试不回归
-- [ ] Owner docs（`state-management-design.md` §6.3、`checkpoint-design.md` 迁移段）从规约/前向引用更新为已落地最终状态
-- [ ] 独立子 agent closure-audit 已完成并记录证据
-- [ ] **Anti-Hollow Check**：迁移函数运行时被真实调用并转换数据；无空方法体/静默跳过/吞异常
-- [ ] `./mvnw compile -pl nop-stream/nop-stream-core,nop-stream/nop-stream-rocksdb,nop-stream/nop-stream-runtime -am`
-- [ ] `./mvnw test -pl nop-stream/nop-stream-core,nop-stream/nop-stream-rocksdb,nop-stream/nop-stream-runtime -am`
-- [ ] `node ai-dev/tools/check-plan-checklist.mjs <本 plan> --strict` 退出码 0
-- [ ] `node ai-dev/tools/scan-hollow-implementations.mjs --module nop-stream --severity high` 退出码 0
-- [ ] checkstyle / 代码规范检查通过
+- [x] `StateMigrationFunction` 接口 + 注册 + 触发接线全部落地（memory + rocksdb）
+- [x] checksum 不匹配 → 查迁移函数 → 命中则迁移、未命中则 fail-fast 的主路径成立
+- [x] Integer→Long 迁移 E2E 通过；未注册时 fail-fast 对照通过
+- [x] 既有 Stage 29 fingerprint 测试不回归
+- [x] Owner docs（`state-management-design.md` §6.3、`checkpoint-design.md` 迁移段）从规约/前向引用更新为已落地最终状态
+- [x] 独立子 agent closure-audit 已完成并记录证据
+- [x] **Anti-Hollow Check**：迁移函数运行时被真实调用并转换数据；无空方法体/静默跳过/吞异常
+- [x] `./mvnw compile -pl nop-stream/nop-stream-core,nop-stream/nop-stream-rocksdb,nop-stream/nop-stream-runtime -am`
+- [x] `./mvnw test -pl nop-stream/nop-stream-core,nop-stream/nop-stream-rocksdb,nop-stream/nop-stream-runtime -am`
+- [x] `node ai-dev/tools/check-plan-checklist.mjs <本 plan> --strict` 退出码 0
+- [x] `node ai-dev/tools/scan-hollow-implementations.mjs --module nop-stream --severity high` 退出码 0
+- [x] checkstyle / 代码规范检查通过
 
 ## Deferred But Adjudicated
 
@@ -172,8 +172,27 @@ Exit Criteria:
 
 ## Closure
 
-Status Note: (待 closure 时填写)
-Completed: (待填写)
+Status Note: Stage 33 状态迁移接线全部落地。`StateMigrationFunction` 接口 + `StateMigrationRegistry`（由 `StreamComponents` 实现）+ memory/rocksdb 双后端 `verifySchemaCompatibility` 触发接线 + 8 种 keyed state 类型的 `MigratableKeyedState` 实现 + Integer→Long demo E2E 全链路验证。checksum 不匹配→查迁移函数→命中则全量读-写迁移、未命中 fail-fast 主路径成立。既有 Stage 29 fingerprint 测试零回归。
+Completed: 2026-08-02
 
 Closure Audit Evidence:
-(待独立 closure-audit 后填写)
+
+- Reviewer / Agent: independent closure-audit subagent (session `ses_03e2e616fffe2w8tjMBgqMsSHH`)
+- Evidence:
+  - Phase 2 Exit Criteria — all PASS: Memory wiring (`MemoryKeyedStateBackend.java:321-340`: accepts `MigratableKeyedState`, queries `findMigration`, `applyMigration`+`replaceDescriptor` on hit, `ERR_STREAM_STATE_SCHEMA_MISMATCH` on miss, 8 call sites wired); RocksDB wiring (`RocksDBKeyedStateBackend.java:408-430`: identical structure, 8 call sites); all 8 RocksDB state classes implement `MigratableKeyedState` with CF-scan `applyMigration`; `MemoryInternalAggregatingState` implements `MigratableKeyedState`
+  - Phase 2 tests — `TestStateMigration` (6 tests: registered migration, no-registry fail-fast, empty-registry fail-fast, idempotency, matching-checksum-no-migration, accumulator surface), `TestRocksDBStateMigration` (3 tests: registered migration, fail-fast, idempotency)
+  - Phase 3 E2E — `TestStateMigrationEndToEnd` (4 tests: memory full CheckpointSerDe+LocalFileCheckpointStorage roundtrip, memory control fail-fast, rocksdb full roundtrip, rocksdb control fail-fast); Anti-Hollow type assertion `assertEquals(Long.class, ...)`
+  - Closure Gates 10-12 PASS: full interface+registration+wiring landed; main path (mismatch→query→hit=migrate/miss=fail-fast) verified; Stage 29 tests no regression (assertions unchanged)
+  - Anti-Hollow — call chain traced: `getState` → `verifySchemaCompatibility` → `findMigration` → `applyMigration`(`fn.migrate` per entry) → `replaceDescriptor`; no empty bodies, no swallowed exceptions (`RocksDBException` rethrown as `StreamException`; `fn.migrate` exceptions propagate unwrapped), no `return null` as normal migration path
+  - `node ai-dev/tools/check-plan-checklist.mjs <本 plan> --strict` 退出码 0
+  - `node ai-dev/tools/scan-hollow-implementations.mjs --module nop-stream --severity high` 退出码 0（high findings 均为 pre-existing 文件：DemoKeyedStateStore/RocksDBIncrementalRestore/TaskManager，本 plan 未触碰）
+  - `node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0
+  - `./mvnw clean install -pl nop-stream -am -T 1C -DskipTests` BUILD SUCCESS
+  - `./mvnw test -pl nop-stream/nop-stream-core,nop-stream/nop-stream-rocksdb,nop-stream/nop-stream-runtime -am -T 1C` core 1275 + rocksdb 78 + runtime 603 tests, 0 failures（仅既有 flaky `TestRocksDBIncrementalRestoreAndBenchmark` timing benchmark 偶发，隔离通过，与本 plan 无关）
+  - Deferred 项分类检查：schemaVersion 四分支 = `out-of-scope improvement`（schemaVersion≡1 无递增来源）；增量 checkpoint per-state checksum = `optimization candidate`（迁移不依赖持久化 checksum 字段）—— 均为已裁定的 non-blocking residual
+
+Follow-up:
+
+- Map/List/Reducing/Aggregating 多类型迁移的逐一 E2E 验证（本 plan demo 用 ValueState，其余类型走同迁移路径，单测覆盖即可）
+- 跨 JVM 迁移编排（迁移仍为本地全量扫描）
+- 当 schemaVersion 获得递增来源时激活四分支 version-based migration

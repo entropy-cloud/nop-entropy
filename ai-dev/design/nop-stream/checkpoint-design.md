@@ -788,17 +788,28 @@ OperatorSnapshot {
 | 复杂度 | `CompositeTypeSerializerSnapshot` 递归检查嵌套序列化器 | 单层指纹比对，不递归 |
 | 适用场景 | 长期运行的生产作业需要零停机升级 | 中小规模，允许停机迁移 |
 
-**StateMigrationFunction**（当需要迁移时）：
+**StateMigrationFunction**（Stage 33 已落地，最终接口契约）：
 
 ```java
+@Internal
 interface StateMigrationFunction<Old, New> {
     New migrate(Old oldValue);
-    SerializerFingerprint sourceFingerprint();  // 源指纹
-    SerializerFingerprint targetFingerprint();  // 目标指纹
+    SerializerFingerprint sourceFingerprint();  // 源指纹（restored）
+    SerializerFingerprint targetFingerprint();  // 目标指纹（current descriptor）
 }
 ```
 
-Migration function 通过 `StreamComponents` 注册，恢复时 Coordinator 查找匹配的 migration function 并执行。迁移是全量扫描（读所有旧值、转换、写回），仅在显式声明时触发。
+**Stage 33 落地的最终状态**：
+
+- **注册载体**：`StreamComponents`（`io.nop.stream.core.model.StreamComponents` 实现 `StateMigrationRegistry`）。`StreamComponents.registerStateMigrationFunction(stateName, fn)` 按 stateName 注册，同一 state 允许多个迁移函数（不同 source→target pair）。
+- **匹配规则**：恢复时 state backend 调用 `StateSchemaResolver.findMigration(registry, stateName, restoredFp, currentFp)`，匹配 = `fn.sourceFingerprint().schemaChecksum == restoredFp.schemaChecksum && fn.targetFingerprint().schemaChecksum == currentFp.schemaChecksum`。匹配命中即执行迁移，未命中返回 `null` 让调用方 fail-fast（**无静默默认**）。
+- **执行点**：state backend 的 `getState()`（`MemoryKeyedStateBackend.verifySchemaCompatibility` / `RocksDBKeyedStateBackend.verifySchemaCompatibility`），**不是设计原文描述的 Coordinator**。该偏差与 Stage 29「比对时机下沉到 getState()」一致——Stage 29 把 fail-fast 比对从 storage 层移到 backend `getState()`，Stage 33 在同一执行点先查迁移函数再 fail-fast，使首次 getState() 即触发迁移并更新该 state 持有的 descriptor。
+- **全量扫描语义**：命中迁移函数后，遍历该 state 的所有 entry（memory: `Map<TypedNamespaceAndKey, value>`；rocksdb: column-family iterator），读旧值→`migrate`→写回新值；迁移完成后更新该 state 对象的 descriptor 为新 schema（使下次 getState() 校验时 checksum 已匹配，幂等）。
+- **迁移时机**：算子 `initializeState` 阶段首次 `getState()` 同步执行（处理任何 element 之前）。**不支持** element 处理中途懒触发 getState() 的迁移——会与 element 处理交错，违反 all-or-nothing 语义。
+- **崩溃恢复**：迁移中途崩溃 → checkpoint 不可用，从上一个成功 checkpoint 重跑（迁移全量扫描前不持久化"迁移中"标记；nop-stream 无迁移事务日志）。
+- **schemaVersion 四分支**：`schemaVersion` 当前恒为 1（`SerializerFingerprint.DEFAULT_SCHEMA_VERSION`），故 §8.4.1 伪代码中 version<current→migrate / version>current→reject 分支无真实触发条件；version-based branching 作为框架预留，待 schemaVersion 获得递增来源时激活。
+- **accumulator 迁移风险**：`verifySchemaCompatibility` 对 Reducing/Aggregating/InternalAppending 等类型的迁移路径同样接线，但存储值是 opaque ACC（`SimpleAccumulator`/用户 ACC 类型），迁移正确性由用户 `StateMigrationFunction` + `AggregateFunction`/`ReduceFunction` 契约决定——错误迁移产出**静默 corrupt**（非 no-op）。本平台不验证 accumulator 迁移语义，仅 surface 该风险。
+- **验证 demo**：Integer→Long ValueState 迁移（`TestStateMigration` core 单测 + `TestRocksDBStateMigration` rocksdb 单测 + `TestStateMigrationEndToEnd` 经 `CheckpointSerDe` + `LocalFileCheckpointStorage` 全链路 E2E，memory + rocksdb 两后端各跑一次）覆盖完整链路：`getState(Integer)` 产 checkpoint → 改 `Long` + 注册迁移 → restore → `getState` 返回正确 Long 值；对照测试（未注册迁移）确认 fail-fast（非静默降级）。
 
 **Stage 29 实现分歧**（与上方 pseudo-code 的差异）：
 

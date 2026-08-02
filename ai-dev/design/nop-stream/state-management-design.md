@@ -267,7 +267,14 @@ schema 演进兼容性检查是 **checkpoint storage 的内部实现细节**，�
 - **checksum 算法**：type-signature 级别 SHA-256 hex digest，不采用 deep POJO field-level introspection。canonical 字符串由 `stateType` + `valueType` class FQN + 可选的 `mapKeyType` / `accumulatorType` / `aggregateFunctionType` class FQN 按固定顺序拼接，字段缺失时省略（而非输出空值），保证同一逻辑类型签名跨 JVM 重启稳定。
 - **checksum 嵌入位置**：checksum 嵌入 `MemoryStateSerDe` 写出的 per-state JSON info map（`schemaChecksum` + `schemaVersion=1` 两个 key），随 `StateSnapshot.stateData` → `TaskStateSnapshot.keyedStates` → `CheckpointSerDe` → JSON 自动传播。**不引入** `OperatorSnapshot` 外层 wrapper。
 - **比对时机**：在 `MemoryKeyedStateBackend.getState()` 时比对 —— 拿当前算子传入的 descriptor 算出的 checksum 与恢复出来的 state 对象上保存的 descriptor 算出的 checksum 比较。两次比较来自两个独立来源（live code vs checkpoint），不是 tautology。design 原文描述的"恢复时由 storage 层比对"在实现上向下游移到 state backend 层 —— 因为恢复出的 descriptor 在 `MemoryStateSerDe.restoreState` 时才重建，而 `getState()` 是算子真正消费恢复 state 的入口点，在那里 fail-fast 最自然。
-- **不兼容即 fail-fast**：checksum 不匹配时抛 `ERR_STREAM_STATE_SCHEMA_MISMATCH`。Stage 33 会在此路径之前查询已注册的 `StateMigrationFunction`，注册了则迁移、未注册才 fail-fast。
+- **不兼容即 fail-fast**：checksum 不匹配时抛 `ERR_STREAM_STATE_SCHEMA_MISMATCH`。Stage 33 已在此路径之前查询已注册的 `StateMigrationFunction`，注册了则迁移、未注册才 fail-fast。
+- **Stage 33 迁移机制已落地**（`StateMigrationFunction` 接口 + `StateMigrationRegistry`（由 `StreamComponents` 实现）+ 两个 backend 的 `verifySchemaCompatibility` 接线）：
+  - **注册点**：`StreamComponents.registerStateMigrationFunction(stateName, fn)`（按 stateName 索引，同一 state 允许多个 source→target 迁移函数）。backend 通过 `setMigrationRegistry(StreamComponents)` 在 `initializeState` 前注入。
+  - **触发时机**：算子 `initializeState` 阶段首次 `getState()` 同步执行（处理任何 element 之前）。**不支持** element 处理中途懒触发 `getState()` 的迁移——会与 element 处理交错，违反 all-or-nothing 语义。
+  - **全量扫描语义**：命中迁移函数后，遍历该 state 的所有 entry（memory: `Map<TypedNamespaceAndKey, value>`；rocksdb: column-family iterator），读旧值→`migrate`→写回新值；迁移完成后更新该 state 对象的 descriptor 为新 schema（使下次 `getState()` 校验时 checksum 已匹配，幂等）。
+  - **执行点 = state backend `getState()`**（`MemoryKeyedStateBackend.verifySchemaCompatibility` / `RocksDBKeyedStateBackend.verifySchemaCompatibility`），**非**设计原文描述的 Coordinator——与 Stage 29「比对时机下沉到 getState()」一致。
+  - **崩溃恢复**：迁移中途崩溃 → checkpoint 不可用，从上一个成功 checkpoint 重跑（迁移全量扫描前不持久化"迁移中"标记；nop-stream 无迁移事务日志）。
+  - **accumulator 迁移风险**：Reducing/Aggregating/InternalAppending 等类型的迁移路径同样接线，但存储值是 opaque ACC，迁移正确性由用户 `StateMigrationFunction` 决定——错误迁移产出**静默 corrupt**（非 no-op）。平台仅 surface 该风险，不验证 accumulator 迁移语义。
 - **schemaVersion 当前恒为 1**：Stage 29 不激活 version-based branching（design `checkpoint-design.md` 中 lower→migrate / higher→reject 的逻辑）。`schemaVersion=1` 仅作为前向兼容元数据持久化。version-based 分支需要 Stage 33 的迁移基础设施才有意义。
 - **向后兼容**：旧 checkpoint 不含 `schemaChecksum`/`schemaVersion` 字段也能恢复 —— 因为 `getState()` 检查比较的是恢复出的 descriptor 与当前 descriptor，两者都从代码侧的 type 信息重建，不会引用持久化的 checksum 字段。持久化字段仅用于人工 inspect 和 Stage 33 未来用途。
 
