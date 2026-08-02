@@ -323,7 +323,7 @@ CheckpointCoordinator (manifest durable → sink commit)
 
 ### Coordinator Leader Election / HA（G24, G25, Stage 38）
 
-`JobCoordinator` 是逻辑单点。Stage 38 起，控制面经平台 `ILeaderElector`（生产部署用 `SysDaoLeaderElector`，JDBC lease 后端，零 ZooKeeper 依赖）实现 leader-gated HA 生命周期。**本节为 Stage 38 落地状态**（接口编程 + 部署期 bean 注入；跨 JVM RPC 远程化 + fencing token String→long epoch 统一属 Stage 39）。
+`JobCoordinator` 是逻辑单点。Stage 38 起，控制面经平台 `ILeaderElector`（生产部署用 `SysDaoLeaderElector`，JDBC lease 后端，零 ZooKeeper 依赖）实现 leader-gated HA 生命周期。**本节为 Stage 38 + Stage 39 fencing 统一落地状态**（接口编程 + 部署期 bean 注入 + fencing token String→long epoch 统一已落地；跨 JVM 控制面 RPC 远程化属 Stage 39 Phase 2）。
 
 **HA 生命周期状态机**：
 
@@ -340,30 +340,38 @@ CheckpointCoordinator (manifest durable → sink commit)
 - **null epoch 安全降级**：`SysDaoLeaderElector` 异常/续期失败路径会传 `becomeFollower(null)`，`onStop` 默认也调 `becomeFollower(null)`——null epoch 按 STANDBY 安全降级，不改变动作。
 - **接线验证**：`addElectionListener` 必须在运行时确实被调用并驱动状态转换（测试 elector grant/revoke → coordinator 收到回调 → 状态翻转），非 stub。
 
-**Composite fencing token（解耦 leadership fencing 与 recovery fencing，闭合 M6）**：
+**单调 long fencing epoch（Stage 39 已落地，闭合 M6）**：
+
+Stage 39 把原复合 String fencing token（`leaderId@epoch#recoveryGen`）统一为单一单调 `long` epoch。编码方案（`JobCoordinator.deriveHaFencingEpoch`）：
 
 ```
-fencing_token = "{leaderId}@{epoch}#{recoveryGen}"
+fencing_epoch = leaderEpochValue * EPOCH_SCALE + recoveryGen        // EPOCH_SCALE = 1_000_000
 ```
 
 | 分量 | 何时变化 | 用途 |
 |---|---|---|
-| `leaderId@epoch`（leadership epoch 组件） | 仅 leadership 切换时（elector grant 新 `LeaderEpoch`） | fencing 旧 leader 的 stale control（不变量 #8） |
-| `#recoveryGen`（recovery generation 组件） | 每次 `globalRecovery()` 递增（同一 leader 内的作业重启） | fencing 同一 leader 内上一轮 recovery 的 stale task（数据面按 String 等值过滤，recoveryGen 不同则被拒） |
+| `leaderEpochValue`（leadership epoch 组件） | 仅 leadership 切换时（elector grant 新 `LeaderEpoch`） | fencing 旧 leader 的 stale control（不变量 #8） |
+| `recoveryGen`（recovery generation 组件） | 每次 `globalRecovery()` 递增（同一 leader 内的作业重启） | fencing 同一 leader 内上一轮 recovery 的 stale task |
 
-- 非 HA 模式（elector == null）fencing token 保持既有随机 UUID 行为，零回归。
-- `globalRecovery()` 在 HA 模式仍轮转**完整** composite token 并经 `updateFencingToken` 推送给所有 TaskManager（保留原 `:674-676` 行为），只是 epoch 部分不变、recoveryGen 部分递增——同时满足「stale leader 旧 token（epoch 不同）被拒」与「同一 leader 内上一轮 recovery task（recoveryGen 不同）被拒」。
-- 全链路 String→long epoch 统一（让数据面过滤改按 long epoch 比较）属 **Stage 39**，本节 fencing 表示仍为 String。
+**两不变量证明（单一 long 比较同时成立）**：
+
+- **stale-leader 拒绝**：leadership 切换使 `leaderEpochValue` 单调递增（平台 `ILeaderElector` 保证 cluster-wide 单调）。新 leader 的 epoch = `newLeaderEpoch * EPOCH_SCALE` 严格大于旧 leader 经任意次 recovery 后的最大 epoch（`oldLeaderEpoch * EPOCH_SCALE + (EPOCH_SCALE-1)`），因 `newLeaderEpoch > oldLeaderEpoch`。故旧 leader 的 stale control 被单一 long 比较拒绝。
+- **同 leader 上一轮 recovery 拒绝**：同 leader 内 `globalRecovery()` 仅递增 `recoveryGen`（`< EPOCH_SCALE`），epoch 严格单调递增，故上一轮 recovery 的 stale task 被拒绝。
+
+- 非 HA 模式（elector == null）`leaderEpochValue = 0`，`recoveryGen` 在 `start()` 时 seed 为 1（初始 epoch = 1，区别于 0「未初始化」哨兵），`globalRecovery()` 递增。fencing 有效（零回归）。
+- `globalRecovery()` 在 HA/非 HA 模式均轮转完整 long epoch 并经 `updateFencingToken(long)` 推送给所有 TaskManager（数据面 `RemoteInputChannel`/`RemoteResultPartition` 改为单一 long epoch 比较）。
+
+**Decision 2（持久化边界）**：`ClusterRegistry` 接口签名改为 `long fencingEpoch`；`JdbcClusterRegistry` 在 SQL 边界以 `String.valueOf(long)` 单值写入既有 `fencing_token VARCHAR(255)` 列（**不迁移 DDL**，Option B），读回经 `Long.parseLong`。持久化边界 String 是 `String.valueOf(long)` 单值，非历史复合 `leaderId@epoch#recoveryGen`。
 
 **控制面 / 数据面 fencing 调用点**：
 
-| 调用点 | 携带 token 的字段 | 校验点 |
+| 调用点 | 携带 epoch 的字段 | 校验点 |
 |---|---|---|
-| `assignTasks()` | `TaskAssignment.fencingToken` | TaskManager `receiveAssignment` |
-| `triggerCheckpoint()` | `CheckpointBarrierSignal.fencingToken` | TaskManager `triggerCheckpoint` |
-| `collectAck()` | `CheckpointAckMessage.fencingToken` | JobCoordinator（token 等值校验） |
-| `reportTaskStatus()` | `TaskStatusReport.fencingToken` | JobCoordinator |
-| 数据面 envelope | `StreamMessageEnvelope.fencingToken` | `RemoteInputChannel` / `RemoteResultPartition`（String 等值过滤，加 `epochId` 双键） |
+| `assignTasks()` | `TaskAssignment.fencingEpoch` | TaskManager `receiveAssignment` |
+| `triggerCheckpoint()` | `CheckpointBarrierSignal.fencingEpoch` | TaskManager `triggerCheckpoint` |
+| `collectAck()` | `CheckpointAckMessage.fencingEpoch` | JobCoordinator（epoch 等值校验） |
+| `reportTaskStatus()` | `TaskStatusReport.fencingEpoch` | JobCoordinator |
+| 数据面 envelope | `StreamMessageEnvelope.epochId`（单一 long，Stage 39 收敛双键） | `RemoteInputChannel` / `RemoteResultPartition`（单一 long epoch 比较） |
 
 **部署形态**：
 
@@ -371,7 +379,26 @@ fencing_token = "{leaderId}@{epoch}#{recoveryGen}"
 |---|---|---|
 | 控制面（coordinator） | 平台 `ILeaderElector`（生产 `SysDaoLeaderElector` JDBC lease） | Stage 38 已 WIRE |
 | 数据面（task 间消息） | 平台 `IMessageService`（`SysDaoMessageService` DB / `PulsarMessageService`） | Stage 40 待 WIRE |
-| 跨 JVM 控制面 RPC | `IStreamCoordinatorRpcService` 经 `MessageRpcServer` 远程暴露 | Stage 39 |
+| 跨 JVM 控制面 RPC | `IStreamTaskRpcService`（task 侧）+ `IStreamCoordinatorRpcService`（coordinator 侧）经 `MessageRpcServer` 远程暴露 | Stage 39 Phase 2 已 WIRE |
+
+### 跨 JVM 控制面 RPC 接线拓扑（Stage 39 Phase 2 已落地）
+
+控制面控制调用经平台 RPC 框架（`MessageRpcServer` over `IMessageService` + `RpcServiceProxyFactoryBean`/`MessageRpcClient`）跨 JVM 传输，而非直接 Java 引用。
+
+**接线拓扑（Phase 2 Decision 1）**：
+
+- **task 侧**：每个 TaskManager 节点在 topic `nop-stream.rpc.task.{nodeId}` 上经 `StreamControlRpcServer`（= `MessageRpcServer` + `ReflectiveRpcService`）暴露 `IStreamTaskRpcService`。
+- **coordinator 侧**：coordinator 在 topic `nop-stream.rpc.coordinator.{jobId}` 上暴露 `IStreamCoordinatorRpcService`（task→coordinator 上行）。
+- **per-nodeId 远程 proxy map**：coordinator 持有 `Map<String, IStreamTaskRpcService>`，每个值为 `StreamControlRpcProxyFactory`（= `RpcServiceProxyFactoryBean` + `MessageRpcClient` + `RpcChannelState`）构建的 RPC 代理，替代 `EmbeddedDistributedExecutor` 直接 `taskRpcServices` map 注入（`EmbeddedDistributedExecutor.java:150-153`）。task 侧同理持有一个 coordinator 的 RPC 代理（`tm.setCoordinatorRpcService(proxy)`）。
+- **RPC server 生命周期**：task 进程持有 task 侧 server（与 TaskManager 同生命周期）；coordinator 进程持有 coordinator 侧 server。
+- **coordinator 长生命周期**：`RpcDistributedExecutor.startJob()` 返回 `DistributedJobHandle`（持有 coordinator + servers + proxies），`execute()` 返回不再立即 `stop()`（兑现 `IStreamExecutionDispatcher.java:34` deferred 契约「异步 submit + poll dispatcher」）。
+- **与 `EmbeddedDistributedExecutor` 关系**：`EmbeddedDistributedExecutor` 保留为直接引用 fast-path（同 JVM、无 RPC 开销）；`RpcDistributedExecutor` 为分布式形态（RPC-wired 控制面）。两者都实现 `IStreamExecutionDispatcher`。
+
+**server 选型（Phase 2 Decision 3）**：选 `MessageRpcServer`（over `IMessageService`），拒 `SimpleRpcServer`（socket）。理由：(1) 与 Stage 40 数据面 `IMessageService` 后端统一；(2) topic 寻址，免 per-node 端口分配；(3) 不引入 Flink Netty 栈（vision §三 约束 7）。
+
+**RPC 消息适配（Phase 2）**：默认反射分发（`ReflectiveRpcService` + `DefaultRpcMessageTransformer` 按参数名映射）已足够，无需自造 `IRpcMessageAdapter`。仅有的定制是 `StreamControlRpcTransformer`（继承 `DefaultRpcMessageTransformer`）：void 控制调用标记 oneWay（fire-and-forget，coordinator 不阻塞等待 per-task 响应；接线验证经可观测副作用——计数器/状态——断言，非返回值）；request-response 调用（`getJobStatus`）补默认 timeout 与 request-id（`MessageRpcClient` 不像 `SimpleRpcClient` 自动生成）。`StreamControlRpcServer` 用 `CorrelatingRpcService` 包装器为响应补 `relId`（`MessageRpcServer` 不像 `SimpleRpcServer` 调用 `enrichResponse`）。
+
+**IoC 接线（Phase 2 Decision 2 Option B）**：nop-stream 首个 `beans.xml`（`stream-control-rpc.beans.xml`，位于 `nop-stream-runtime` 的 `_vfs/nop/stream/beans/`）作为 Stage 42 多 JVM 部署脚手架，装配可配置 `IMessageService` bean + RPC server/proxy 接线模板。`TestStreamControlRpcBootstrap` 经 NopIoC 加载该 beans.xml，断言 transport bean 实例化 + RPC server/proxy 类（以 IoC 提供的 transport）真实承载控制调用，确保结构非空壳。E2E 程序化构造（`RpcDistributedExecutor`）与 IoC 装配共存：前者用于同 JVM RPC 验证，后者用于生产部署脚手架。
 
 **测试基建**：
 

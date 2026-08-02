@@ -56,7 +56,7 @@ Does not contain implementation details. Each `planned` stage is owned by its ex
 ### Phase 4 — 分布式接入平台基础设施
 
 - 38. Leader election / HA（G24, G25，P1）: `done`（plan `ai-dev/plans/nop-stream-production/2026-08-02-0955-8-leader-election-ha.md`，completed — WIRE 平台 `ILeaderElector`/`SysDaoLeaderElector` 进 `JobCoordinator`（HA lifecycle 状态机：start()→STANDBY + self-activation reconciliation when elector already leader，becomeLeader→ACTIVE/becomeFollower→STANDBY，禁用 whenElectionCompleted 作 ACTIVE 条件）+ standby coordinator（控制面方法 active gate 显式 warn-log 拒绝，含 reportTaskStatus/reportNodeTaskLiveness 闭合 #24 静默跳过）+ composite fencing token `leaderId@epoch#recoveryGen`（解耦 leadership/recovery fencing：epoch 仅 leadership 切换轮转，recoveryGen 每次 globalRecovery 递增，完整 token 经 updateFencingToken 推送）+ deactivate≠stop（failureDetector.shutdownNow 仅 stop/failJob 调用，leadership-loss 保留 detector 以便重新当选）+ Phase 3 真实 JDBC smoke check（`TestJobCoordinatorWithSysDaoLeaderElector` H2 + AutoTest，作为 `SysDaoLeaderElector` 首个生产用户的集成回传）+ 平台 finding F0a（`SysDaoLeaderElector` 不重放 leadership 给新 listener — coordinator-side self-activation workaround）记录回传 nop-sys-dao 团队；focused test 11 Phase 1 + 9 Phase 2 + 3 Phase 3 JDBC，全 anti-hollow；unblock Phase 4 Stage 39/40/42）
-- 39. 控制面 RPC 跨 JVM + fencing token 统一（G23 续）: `todo`
+- 39. 控制面 RPC 跨 JVM + fencing token 统一（G23 续）: `done`（plan `ai-dev/plans/nop-stream-production/2026-08-02-2141-1-cross-jvm-control-rpc-fencing.md`，completed — Phase 1 fencing token String→long epoch 统一（`fencing_epoch = leaderEpochValue * EPOCH_SCALE + recoveryGen` 单一 long，数据面双键收敛为单 long 比较，两不变量证明；ClusterRegistry Option B 边界转换不迁移 DDL；非 HA recoveryGen seed=1 零回归）+ Phase 2 控制面跨 JVM RPC（`StreamControlRpcServer`=`MessageRpcServer`+`ReflectiveRpcService`+`CorrelatingRpcService`、`StreamControlRpcProxyFactory`=`RpcServiceProxyFactoryBean`+`MessageRpcClient`、`StreamControlRpcTransformer` void→oneWay、`RpcDistributedExecutor` 分布式 dispatcher + 长生命周期 `DistributedJobHandle`、首个 beans.xml `stream-control-rpc.beans.xml`）+ Phase 3 distributed abort（`JobCoordinator.registerDistributedAbortHandler`→`cancelTask` RPC 独立控制通道；G5/G34 Decision-only 不引入空壳 `CancelCheckpointMarker`）；focused test 5 Phase 1 + 2+1 Phase 2 + 1 Phase 3 + bean-bootstrap，全 anti-hollow；unblock Stage 40/42）
 - 40. 数据面 IMessageService 跨 JVM: `todo`
 - 41. ClusterRegistry 收敛到平台 discovery: `todo`
 - 42. 多 JVM 集成测试基建: `todo`
@@ -223,9 +223,9 @@ Does not contain implementation details. Each `planned` stage is owned by its ex
 
 **Deliverables:**
 - G4: 多输入 barrier 对齐运行时（InputGate 状态机）✅ verified — `InputGate.java:347`，`GraphExecutionPlan.java:285` 接线，`TestInputGateBarrierAlignment` 覆盖
-- G5: `CancelCheckpointMarker` 事件类型 — deferred to Stage 39（跨 JVM RPC prerequisite，见 `checkpoint-design.md:911`：abort 信号须有独立于数据流的控制通道）
+- G5: `CancelCheckpointMarker` 事件类型 — Stage 39 Phase 3 裁定 **Decision-only**（不引入；主 abort 机制为 `cancelTask` RPC 控制通道，已满足 checkpoint-design §13.2 line 1133 独立控制通道契约；无 in-data-flow marker 消费方，引入空壳违反 plan guide #24。Successor：Stage 43/45 若出现真实消费方再裁定。见 `checkpoint-design.md` §13.2.1）
 - G7: `Input.blockConsumption()`/`resumeConsumption()` channel blocking ✅ verified — `InputGate.java:220/234/245`，`TestInputGateBlockingApi` 覆盖
-- G34: abort 信号通过数据 channel 传播 — deferred to Stage 39（同 G5；当前 local 执行由控制路径 `registerLocalAbortHandler` → `inputGate.resumeConsumptionAll()` + `task.cancel()` 承担）
+- G34: abort 信号通过数据 channel 传播 — Stage 39 Phase 3 裁定 **Decision-only**（同 G5；distributed abort 经 `JobCoordinator.registerDistributedAbortHandler`→`cancelTask` RPC 独立控制通道落地，local 执行仍由 `registerLocalAbortHandler`→`inputGate.resumeConsumptionAll()`+`task.cancel()` 承担。见 `checkpoint-design.md` §8.7/§13.2/§13.2.1）
 
 **Out of scope:** unaligned checkpoint（Stage 43）。
 

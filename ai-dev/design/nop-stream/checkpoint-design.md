@@ -37,9 +37,26 @@ nop-stream 的 checkpoint 子系统为流处理管线提供**容错和状态一�
 | sink transaction | 每个 sink subtask 的 pending transaction |
 | plan fingerprint | 生成该 epoch 时的 PartitionedPlan 指纹 |
 | participant states | 所有 CheckpointParticipant 的快照和 transaction handle |
-| fencing token | 允许提交该 epoch 的 coordinator token |
+| fencing token | 允许提交该 epoch 的 coordinator token（Stage 39 起为单调 long fencing epoch，见 §2.1.2） |
 
 Exactly-once 的含义是：系统恢复到 epoch N 后，对外可见副作用等价于所有 epoch ≤ N 已提交，所有 epoch > N 未提交。
+
+#### 2.1.2 Fencing token String→long epoch 统一（Stage 39，Decision 1/2/3）
+
+**选了什么**：Stage 39 把原复合 String fencing token（`leaderId@epoch#recoveryGen`）统一为单一单调 `long` epoch，编码方案 `fencing_epoch = leaderEpochValue * EPOCH_SCALE + recoveryGen`（`EPOCH_SCALE = 1_000_000`，见 `JobCoordinator.deriveHaFencingEpoch`）。数据面 `StreamMessageEnvelope` 过滤从「String 等值 + long epochId 等值」双键收敛为**单一 long epoch 比较**。
+
+**为什么（两不变量在单一 long 比较下同时成立）**：
+
+- **stale-leader 拒绝**：leadership 切换使 `leaderEpochValue` cluster-wide 单调递增。新 leader epoch = `newLeaderEpoch * EPOCH_SCALE` 严格大于旧 leader 经任意次 recovery 的最大 epoch（`oldLeaderEpoch * EPOCH_SCALE + (EPOCH_SCALE-1)`），故单一 long 比较即拒绝 stale leader。
+- **同 leader 上一轮 recovery 拒绝**：同 leader 内 `globalRecovery()` 仅递增 `recoveryGen`（`< EPOCH_SCALE`），epoch 严格单调递增，故上一轮 recovery 的 stale task 被拒。
+
+**Decision 2（持久化边界）**：`ClusterRegistry` 接口签名为 `long fencingEpoch`；`JdbcClusterRegistry` 在 SQL 边界以 `String.valueOf(long)` 单值写入既有 `fencing_token VARCHAR(255)` 列（**不迁移 DDL**），读回经 `Long.parseLong`。持久化边界 String 是单值，非历史复合串。
+
+**Decision 3（非 HA 模式 epoch 派生）**：非 HA 模式 `leaderEpochValue = 0`，`recoveryGen` 在 `start()` 时 seed 为 1（初始 epoch = 1，区别于 0「未初始化」哨兵），`globalRecovery()` 递增。fencing 有效（零回归）。
+
+**拒绝了什么**：(a) 双 long 复合（`leaderEpoch` + `recoveryGen` 分两字段）——需要数据面维护双键过滤，复杂度高且 Stage 38 已验证单一 String 可承载两不变量，long 化后单一 long 更简单；(b) 迁移 `fencing_token VARCHAR(255)→BIGINT` DDL——影响已部署库，且持久化层仅为记录快照，运行时比较在内存 long 上进行，Option B 边界转换足够。
+
+**验证**：`TestFencingEpochUnification` 显式断言 (a) 数据面 stale long-epoch envelope 被弃、current 被收；(b) leadership 切换推进 epoch 后旧 epoch 控制被拒；(c) 同 leader `globalRecovery()` 推进 epoch 后 prior-recovery task 被拒；(d) 非 HA 模式零回归。
 
 #### 2.1.1 Epoch-centered vs Flink checkpoint-centered — vs Flink 的有意设计差异（D70）
 
@@ -934,7 +951,7 @@ reshard migration 与 schema migration（§8.4.1 `StateMigrationFunction`）**�
 - (b) 不走 `cancel()` 直接 `interrupt()`——绕过 `SubtaskTask` 状态机，破坏正常取消流程。
 - (c) 靠 `CheckpointListener.notifyCheckpointAborted` 抛异常传播——`notifyCheckpointAborted` 的调用方 catch-and-log，异常无法传播。
 
-**distributed 路径**：abort 接线的 distributed 部分（`IStreamTaskRpcService` 新增 `cancelTask` RPC + `JobCoordinator` 注册 abort listener）作为 Deferred（见 §13.2 abort 接线契约的 distributed 部分）。distributed 已有 lease failover 兜底。
+**distributed 路径（Stage 39 Phase 3 已落地）**：`JobCoordinator.registerDistributedAbortHandler()` 在 `CheckpointCoordinator.setAbortHandler` 上注册一个 handler，checkpoint 超时/abort 时对所有已分配的远程 task 经 `IStreamTaskRpcService.cancelTask` RPC 触发取消（`cancelTask` 已由 Stage 28 加入接口与 `TaskManager` 实现，Phase 3 只接通 coordinator 调用点）。`cancelTask` 是 abort 信号独立于数据流的控制通道（§13.2 line 1116 硬契约），远程 `TaskManager.cancelTask` → `RunningTask.cancel()`（mailbox `signalCancel` + `future.cancel(true)` 中断）解除阻塞的对齐读（§13.2 line 1113）。与 local 路径（`GraphModelCheckpointExecutor.registerLocalAbortHandler`，embedded fast-path）共存：RPC-distributed 形态（`RpcDistributedExecutor`）注册 distributed handler，embedded 形态注册 local handler。RPC 失败经 per-node 日志显式传播（非静默吞），下一轮 `globalRecovery` 的 epoch 轮转仍 fence 未取消的 task。
 
 ## 9. 存储与 Manifest 发布
 
@@ -1110,14 +1127,22 @@ nop-stream 有两条执行路径，容错能力分层不同：
 | 契约 | 要求 |
 |---|---|
 | **对齐超时** | multi-input barrier 对齐必须有累计超时上限。stuck channel（不 finish、不 close、不发 barrier）不得导致对齐永久阻塞 |
-| **abort 接线** | Coordinator 的 checkpoint abort 必须能终止已阻塞的对齐读，不得依赖外部被动干预。task cancel + 线程中断机制是接线基础，abort 路径必须使用它 |
+| **abort 接线** | Coordinator 的 checkpoint abort 必须能终止已阻塞的对齐读，不得依赖外部被动干预。task cancel + 线程中断机制是接线基础，abort 路径必须使用它。**distributed 部分 Stage 39 Phase 3 已落地**：`JobCoordinator.registerDistributedAbortHandler` → `cancelTask` RPC → 远程 `RunningTask.cancel()` |
 | **触发线程安全** | checkpoint 触发路径的复合操作（并发数检查 + 计数自增）必须原子，不得有 check-then-act 竞态 |
 | **失败可观测** | 连续 checkpoint 失败必须计数，超阈值触发恢复或显式告警，不得静默降级（minPause 节流 / numPending 拒绝属正常背压，**不**计入 `consecutiveTriggerFailures`；仅「真失败」——无 task 可 ACK / 触发异常——才计数） |
-| **abort 传播通道** | abort 信号必须有独立于数据流的控制通道传播到所有 task。不得仅靠数据队列内的 marker——对齐等待时数据队列读不到 marker |
+| **abort 传播通道** | abort 信号必须有独立于数据流的控制通道传播到所有 task。不得仅靠数据队列内的 marker——对齐等待时数据队列读不到 marker。**distributed 部分 Stage 39 Phase 3 已落地**：`cancelTask` RPC 是独立控制通道（local 形态用 mailbox + interrupt） |
 | **多输入对齐统一** | 多输入 barrier 对齐应使用统一、线程安全、带超时的对齐器实现，不得在不同执行路径存在双轨制 |
 | **并发能力一致**（forward-looking，跨层契约） | 配置的 `maxConcurrentCheckpoints` 必须 Coordinator/task/对齐器各层一致，不得配置允许但实现拒绝。**各层当前状态**：Coordinator 层 ✅ 已满足（Stage 19 完整尊重配置值）；task 层 / 对齐器层 ❌ 仍单 barrier（`CheckpointBarrierTracker` / `InputGate` 一次只追踪一个 in-flight checkpoint），属 Stage 45 |
-| **channel 心跳（distributed）** | 分布式 `RemoteInputChannel` 应有 channel 级心跳/超时检测，不得仅靠粗粒度 lease 兜底 |
+| **channel 心跳（distributed）** | 分布式 `RemoteInputChannel` 应有 channel 级心跳/超时检测，不得仅靠粗粒度 lease 兜底。**保留 Deferred，属 Stage 43**（out-of-scope of Stage 39） |
 | **背压逃生（unaligned）** | 持续背压场景需 barrier 抢占式传播通道（unaligned checkpoint），不得仅靠 aligned 对齐（背压下对齐时延无上限） |
+
+### 13.2.1 G5 `CancelCheckpointMarker` / G34 abort 数据 channel 传播 — Stage 39 Phase 3 裁定（Decision-only）
+
+**裁定**：**Decision-only**，不引入 `CancelCheckpointMarker` 类，不为 abort 跨 JVM 数据 channel 传播新增独立机制。
+
+**为什么**：主 abort 机制为控制通道 `cancelTask` RPC（§13.2 line 1133/§8.7 distributed 已落地）。`cancelTask` 已满足「abort 信号独立于数据流的控制通道」硬契约。`CancelCheckpointMarker` 的潜在价值是「已恢复 channel 的补充通知」（in-data-flow marker），但其价值依赖 future stage（如 Stage 43 unaligned / Stage 45 多并发）是否需要 in-data-flow marker。当前**无消费方**，引入空壳类违反 plan guide #24（禁止空壳实现）。
+
+**Successor**：若 Stage 43（unaligned checkpoint）/ Stage 45（多并发 checkpoint）出现真实 in-data-flow cancel marker 消费方，则在该 stage plan 重新裁定并实现 `CancelCheckpointMarker` 事件类型。在此之前，abort 经 `cancelTask` RPC 控制通道 + local mailbox `signalCancel` 完整覆盖。
 
 ### 13.3 缓解选项
 
