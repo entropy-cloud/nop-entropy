@@ -45,6 +45,18 @@
             <version>2.0.0-SNAPSHOT</version>
             <scope>test</scope>
         </dependency>
+
+        <!-- Stage 38 Phase 3: real JDBC integration smoke check wiring
+             SysDaoLeaderElector (this module) into JobCoordinator
+             (nop-stream-runtime). Test scope only — production deps remain
+             clean; the wiring direction at deploy time is
+             SysDaoLeaderElector bean -> JobCoordinator.setLeaderElector(). -->
+        <dependency>
+            <groupId>io.github.entropy-cloud</groupId>
+            <artifactId>nop-stream-runtime</artifactId>
+            <version>2.0.0-SNAPSHOT</version>
+            <scope>test</scope>
+        </dependency>
     </dependencies>
 
     <build>

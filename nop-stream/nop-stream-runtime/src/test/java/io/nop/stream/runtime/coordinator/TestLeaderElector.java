@@ -12,6 +12,7 @@ import io.nop.cluster.elector.ILeaderElectionListener;
 import io.nop.cluster.elector.LeaderEpoch;
 
 import java.sql.Timestamp;
+import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.CopyOnWriteArrayList;
@@ -52,6 +53,16 @@ public class TestLeaderElector implements ILeaderElector {
     public AutoCloseable addElectionListener(ILeaderElectionListener listener) {
         listeners.add(listener);
         return () -> listeners.remove(listener);
+    }
+
+    /**
+     * Returns the registered listeners. Test-only accessor used to fire
+     * {@link ILeaderElectionListener#onException(Throwable)} directly when a
+     * test needs to simulate an elector error (the deterministic control API
+     * does not normally fire onException).
+     */
+    public List<ILeaderElectionListener> getListeners() {
+        return listeners;
     }
 
     @Override

@@ -266,8 +266,12 @@ class TestJobCoordinatorLeaderElection {
         java.util.List<TaskProgress> progress = new ArrayList<>();
         progress.add(new TaskProgress("source", 0, 1, System.currentTimeMillis()));
         // Standby: must reject (observable), not silently update liveness.
+        int before = coordinator.getSubtaskLivenessCount();
         coordinator.reportNodeTaskLiveness("node-1", progress);
-        // No crash, no recovery ownership. Active gate held.
+        // The liveness map must NOT have been mutated — the standby rejection
+        // is observable, not a silent swallow.
+        assertEquals(before, coordinator.getSubtaskLivenessCount(),
+                "standby reportNodeTaskLiveness must NOT mutate the liveness map (explicit reject)");
         assertFalse(coordinator.isActive());
     }
 

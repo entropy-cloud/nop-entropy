@@ -275,6 +275,33 @@ public class JobCoordinator implements IStreamCoordinatorRpcService {
         jobStatus = JobStatus.RUNNING;
         LOG.info("JobCoordinator {} started in HA STANDBY mode for job {} (hostId={})",
                 coordinatorId, jobId, leaderElector.getHostId());
+
+        // Stage 38 Phase 3 integration contract: some platform elector
+        // implementations (notably SysDaoLeaderElector) do NOT replay the
+        // current leadership state to newly-registered listeners — a listener
+        // registered AFTER the elector already granted leadership to this
+        // host would otherwise sit in STANDBY forever, waiting for a
+        // becomeLeader callback that has already fired. To be robust against
+        // this platform quirk, query the current elector state on start: if
+        // this host already holds leadership, self-activate synchronously.
+        // Future leadership changes still flow through the listener.
+        try {
+            if (leaderElector.isLeader()) {
+                LeaderEpoch currentEpoch = leaderElector.getLeaderEpoch();
+                if (currentEpoch != null) {
+                    LOG.info("JobCoordinator {} found existing leadership for job {} on start; "
+                            + "self-activating (leaderId={}, epoch={})",
+                            coordinatorId, jobId, currentEpoch.getLeaderId(), currentEpoch.getEpoch());
+                    activateAsLeader(currentEpoch);
+                }
+            }
+        } catch (Exception e) {
+            // Best-effort reconciliation — a transient elector read failure
+            // must not block coordinator start. The next listener callback
+            // (grant/loss) will converge the state.
+            LOG.warn("Failed to reconcile initial leadership state for job {}; "
+                    + "remaining in STANDBY until the next election callback", jobId, e);
+        }
     }
 
     private void startFailureDetector() {
@@ -1143,6 +1170,28 @@ public class JobCoordinator implements IStreamCoordinatorRpcService {
 
     public boolean isRunning() {
         return running;
+    }
+
+    /**
+     * G24/G25: whether the internal failure-detector scheduler is still alive
+     * (i.e. not shut down). Used by HA tests to verify the
+     * {@code deactivate != stop} contract — leadership-loss must flip
+     * {@link #isActive()} to false but must NOT terminate the detector (so the
+     * node can be re-elected). Only {@link #stop()} / {@link #failJob(Throwable)}
+     * shut down the detector.
+     */
+    public boolean isFailureDetectorAlive() {
+        return !failureDetector.isShutdown();
+    }
+
+    /**
+     * G24/G25 / G52: number of tracked per-subtask liveness entries. Exposed
+     * for diagnostics and for HA tests to verify that a STANDBY coordinator
+     * rejects (rather than silently accepts) {@code reportNodeTaskLiveness}
+     * calls — the map must stay empty while in STANDBY.
+     */
+    public int getSubtaskLivenessCount() {
+        return subtaskLiveness.size();
     }
 
     public void setTerminationCheckpointTimeoutMs(long timeoutMs) {

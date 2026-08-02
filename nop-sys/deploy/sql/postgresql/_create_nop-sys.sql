@@ -104,7 +104,7 @@ CREATE TABLE nop_sys_notice_template(
 );
 
 CREATE TABLE nop_sys_user_variable(
-  user_id VARCHAR(32) NOT NULL ,
+  user_id VARCHAR(50) NOT NULL ,
   var_name VARCHAR(32) NOT NULL ,
   var_value VARCHAR(4000)  ,
   std_domain VARCHAR(100)  ,
