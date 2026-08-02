@@ -206,18 +206,10 @@ test.describe('角色管理 - 浏览器', () => {
     await rolePO.fillForm({ roleName: updatedName });
     await rolePO.clickSave();
 
-    // 验证：通过 RPC 直接更新并检查
-    await loginRpc(request);
-    const updateResp = await rpc(request, 'NopAuthRole__update', {
-      data: { id: roleId, roleName: updatedName },
-    });
-    expect(updateResp.ok).toBe(true);
-
-    const resp = await rpc<{ roleName: string }>(request, 'NopAuthRole__get', {
-      id: roleId,
-    });
-    expect(resp.ok).toBe(true);
-    expect(resp.data.roleName).toBe(updatedName);
+    // 真实验证 UI 编辑持久化：读表格 roleName 列应为更新后的值
+    await rolePO.searchRole(roleId);
+    const tableRoleName = await rolePO.readTableField(roleId, 'roleName');
+    expect(tableRoleName).toBe(updatedName);
   });
 
   test('浏览器: 删除角色', async ({ page, request, engine }) => {

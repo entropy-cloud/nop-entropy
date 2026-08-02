@@ -218,6 +218,23 @@ export class CrudListPage extends BasePage {
     expect(row).toBeNull();
   }
 
+  /**
+   * 读取指定行的某列单元格文本（按列名，走 engine.cellValue 的 td[data-field] 契约）。
+   * 通用方法：user/role 等所有 Crud PO 均可直接使用。
+   */
+  async readTableField(rowIdentifier: string, columnName: string): Promise<string> {
+    const allRows = this.engine.rows(this.page);
+    const count = await allRows.count();
+    for (let i = 0; i < count; i++) {
+      const r = allRows.nth(i);
+      const text = (await r.textContent()) ?? '';
+      if (text.includes(rowIdentifier)) {
+        return this.engine.cellValue(r, columnName, this.config.columnHeaders ?? []);
+      }
+    }
+    return '';
+  }
+
   async deleteEntityViaApi(entityName: string, id: string | number): Promise<void> {
     await this._graphQL.delete(entityName, id);
   }
