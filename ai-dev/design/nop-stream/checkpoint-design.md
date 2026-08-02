@@ -76,6 +76,8 @@ CREATED → INJECTING → ALIGNING → SNAPSHOTTING → PRECOMMITTED → DURABLE
 > **Async persist（SNAPSHOTTING → DURABLE 间的异步阶段）**：当 `CheckpointConfig.asyncSnapshotEnabled=true`（默认）时，coordinator 的 `completePendingCheckpoint` 在 ACK 到齐后分三段执行。**段 1**（ACK 线程，持有 coordinator monitor）：CAS(RUNNING→COMPLETED)，构建不可变 `CompletedCheckpoint` + `EpochManifest` 快照，提交 persist task 到专用 `checkpoint-persist-<jobId>-<n>` executor，释放 monitor，ACK 线程立即返回。**段 2**（persist executor 线程，不持锁）：`storeCheckPoint` + `storeEpochManifest`（I/O 卸载）。**段 3a/3b**（persist executor 线程，重新获取 monitor）：成功则 `forceComplete`（DURABLE）→ `decrementPendingCheckpointCount` → `notifyParticipantsFinishCommit(true)`（commit，在 DURABLE 之后，§12 不变量 5）；失败则 status=FAILED + `notifyParticipantsFinishCommit(false)`。
 >
 > **线程上下文变更（observable）**：`forceComplete`/`notifyCheckpointCompleted`/`notifyParticipantsFinishCommit` 在 async 模式下由 `checkpoint-persist-*` 线程执行（原本在 ACK 线程）。消费方语义不变：savepoint `.get()` 仍阻塞至 DURABLE；`CheckpointListener` 回调仍按 §12 不变量 5 顺序触发。`asyncSnapshotEnabled=false` 时保留改造前同步行为（段 1+2+3a 全在 ACK 线程的 synchronized 方法内），用于回退。详细并发模型与不变量见 Plan `2026-07-25-2200-1`。
+>
+> **Stage 31 增量 timing 变更**：当 `incrementalCheckpointEnabled=true`（要求 `asyncSnapshotEnabled=true`，互斥校验在 `CheckpointCoordinator.validateIncrementalConfig`）时，`EpochManifest` 的构建从段 1 移到段 2——因为 segments 计算涉及 `SharedStateRegistry.register`（内存去重）+ `ISegmentStore.storeSegment`（SST 文件内容寻址拷贝，I/O）+ 非内容寻址文件复制，不能在段 1 的 monitor 下执行。**段 1**（ACK 线程，持 monitor）仅捕获 `currentFingerprint` 到局部变量（保持 fingerprint-observation ordering），CAS COMPLETED，提交 `executeIncrementalPersistAsync`。**段 2**（persist executor）：从 ACK 携带的 `IncrementalSnapshotResult` 提取 SST handles → `registry.register` 去重 → `segmentStore.storeSegment` 物化 → 构建 `EpochManifest.segments` → `storeCheckPoint` + `storeEpochManifest`。**段 3a**（持 monitor）：更新 GC map（`checkpointSegments.put(epochId, segments)`）→ 标准成功副作用 + `cleanupOldCheckpoints`（含 subsumption segment GC）。非增量路径（memory backend 或 `incrementalCheckpointEnabled=false`）保持段 1 构建 manifest 的原 timing（向后兼容）。
 
 ### 2.3 Barrier 注入规则
 
@@ -162,8 +164,18 @@ Coordinator 收齐所有 task snapshot 后生成 epoch manifest。manifest 是�
 | `stateFormatVersion` | 状态格式版本 |
 | `createdTime` / `durableTime` | 时间戳 |
 | `checksum` | manifest 完整性校验 |
+| `segments` | 增量 checkpoint 引用的内容寻址 SST 片段列表（`List<StateSegmentDescriptor>`）。非增量 checkpoint / memory backend 时为空列表；激活于 Stage 31 |
 
 Manifest 必须先于 `notifyCheckpointComplete` 持久化完成。Sink commit 只能发生在 manifest durable 之后。
+
+**`segments` 与 `codec` 值集（Stage 31）**：增量 checkpoint 激活 `EpochManifest.segments`。每个 `StateSegmentDescriptor` 携带 `segmentType` / `path` / `codec` / `checksum` / `schemaVersion`：
+
+- `segmentType`：`rocksdb-sst`（内容寻址的 RocksDB SST 文件）。
+- `codec` 取值集为 **`json`**（默认；内容是 JSON 可序列化的状态 blob，restore 端用 `JsonTool` 反序列化）或 **`identity`**（内容是不透明原始字节，即 SST 文件；`path` 即其 SHA-256 content hash，restore 端按 hash 从 `ISegmentStore` 取回原始文件，不做反序列化）。
+- **restore 端按 `codec` 分支处理；未知 `codec` 值 fail-fast**（`StateSegmentDescriptor.validateCodec()` 抛 `IllegalStateException`），不静默猜测。
+- 对增量 checkpoint，每个 segment 的 `codec=identity`、`path=contentHash`、`checksum=contentHash (SHA-256)`、`schemaVersion=1`、`segmentType=rocksdb-sst`。
+
+`CheckpointSerDe` 的 segments 序列化路径（`segments` 非空时序列化为 `segments` 数组，反序列化回 `List<StateSegmentDescriptor>`）保证增量 manifest 持久化后完整 round-trip。
 
 ### 2.7 Commit 与 Subsuming
 
@@ -910,6 +922,39 @@ Retention 必须以解析后的 `checkpointNamespace` 为范围，不能跨 name
 | `asyncSnapshotEnabled` | true | 是否将 coordinator 侧持久化（storeCheckPoint + storeEpochManifest）卸载到专用 persist executor。true 时 ACK 线程提交后即返回，存储 I/O 不阻塞 abort/timeout/trigger bookkeeping；false 保留同步行为（段 1+2+3a 全在 ACK 线程 synchronized 方法内） |
 | `asyncSnapshotThreadPoolSize` | 1 | persist executor 线程池大小。Stage 19 解禁并发时需重新评估 |
 | `storageType` | "local" | 存储类型（"local" / "jdbc"） |
+
+### 9.5 增量 Checkpoint 与 Segment 共享（Stage 31）
+
+基于 RocksDB native checkpoint（`org.rocksdb.Checkpoint.createCheckpoint`）实现 SST 文件内容寻址与跨 checkpoint 共享，使增量 checkpoint 只物化新增/变更的 SST 文件。**仅 RocksDB backend 支持**；memory backend 无 SST 概念，走全量路径。
+
+**组件契约（接口分离）**：
+
+| 组件 | 职责 | 所在 |
+|---|---|---|
+| `SharedStateRegistry` | content-hash → 引用计数（in-memory）。`register` 去重返回 canonical handle + 计数+1；`unregister` 计数-1，计数归零时返回 handle 供调用方 discard | `nop-stream-core/checkpoint.incremental` |
+| `SharedStateHandle` | 内容寻址 SST 句柄（`contentHash`=SHA-256 = `stateObjectId` / `filePath` / `size`） | `nop-stream-core/checkpoint.incremental` |
+| `IncrementalSnapshotResult` | task 侧增量快照结果（SST handles + 非 SST companion 文件路径 + `sst-name-map`）。`@DataBean`，经 ACK 携带到 coordinator | `nop-stream-core/checkpoint.incremental` |
+| `ISegmentStore` | content-addressed 文件存储 side-channel（`storeSegment`/`discardSegment`/`segmentExists`/`getSegmentPath`）。**不做引用计数**——由 registry 驱动 `discardSegment` | `nop-stream-core/checkpoint.storage` |
+| `LocalFileSegmentStore` | 本地文件实现：`{baseDir}/shared-state/{hash前2字符}/{hash}.sst`，按 hash 前缀分片 | `nop-stream-core/checkpoint.storage` |
+| `RocksDBIncrementalSnapshotStrategy` | task 侧：`Checkpoint.create(db)` → 物理快照 → 枚举 `.sst`/`.ldb` 算 SHA-256 → 复制非 SST 文件到 `{baseDir}/cp-{id}/non-sst/`（含 `sst-name-map.txt`） | `nop-stream-rocksdb` |
+| `RocksDBIncrementalRestore` | restore 侧：按 `sst-name-map.txt` 将 segment store 的 `{hash}.sst` 重命名回原始 SST 文件名 + 复制非 SST 文件，重组可被 RocksDB 直接打开的目录 | `nop-stream-rocksdb` |
+
+**数据流（单 JVM 嵌入式模型；跨 JVM 传输属 Stage 40）**：
+
+1. Task：`RocksDBKeyedStateBackend.snapshotState()`（`incrementalCheckpointEnabled=true`）→ 策略产出 `IncrementalSnapshotResult`（SST handles 指向 task 本地 native checkpoint 目录），嵌入 `StateSnapshot` 的 `__incremental_checkpoint__` 标记 key。
+2. ACK：经现有 ACK 机制将带标记的 `StateSnapshot` 携带到 coordinator。
+3. Coordinator（段 2）：从 ACK 提取 handles → `registry.register` 去重 → `segmentStore.storeSegment`（内容寻址，已存在则复用）→ 构建 `EpochManifest.segments`（`segmentType=rocksdb-sst`/`codec=identity`/`path=checksum=contentHash`/`schemaVersion=1`）→ 持久化。
+4. **Coordinator 从不直接操作 RocksDB 实例**——只消费 ACK 携带的 raw handles。
+
+**引用计数与 subsumption GC**：`SharedStateRegistry` 是引用计数唯一 source of truth（job 级生命周期，coordinator 持有）。`cleanupOldCheckpoints` subsumption 时，从 GC map（`checkpointId → segments`，段 2 持久化成功后于段 3a under monitor 写入）取旧 checkpoint 的 segments → `registry.unregister` → 零引用 handles off-load 到 persist executor 调用 `segmentStore.discardSegment`（物理删除，不在 monitor 下）。`ISegmentStore` 无独立引用计数，避免双重计数。
+
+**Restart 恢复**：coordinator 启动/恢复时 `restoreSharedStateRegistry` 从 `ICheckpointStorage.loadRetainedEpochManifests` 加载 retained manifests → 逐 segment `registry.register` 重建 ref-count + GC map → 一次性 orphan 扫描（`LocalFileSegmentStore` 的 `shared-state/` 目录，删除 registry 中不存在的文件）。
+
+**配置互斥（fail-fast）**：`incrementalCheckpointEnabled=true` 要求 `segmentStore != null`（否则抛 `UnsupportedOperationException`）且 `asyncSnapshotEnabled=true`（否则抛 `IllegalStateException`）——segments 计算涉及 RocksDB I/O + SHA-256，不能在 sync 路径的 monitor 下执行。校验在 `startCheckpointScheduler` 时执行。
+
+**性能（基准）**：增量 checkpoint 在大状态/小 delta 下显著快于全量扫描。全量路径（Stage 30）逐 key 解码 + 逐值 JSON 反序列化；增量路径为 createCheckpoint 硬链接 + 单次顺序 SHA-256 + 小量非 SST 复制。基准测试（20000 keys × ~250B）实测增量/全量 ≈ 0.35（≈2.9× 加速），满足 ≥2× 目标。
+
+**Out of scope（后续 Stage）**：Key-Group 级 SST range 读取（Stage 35）；跨 JVM SST 文件传输（Stage 40）；JDBC segment 存储（`JdbcSegmentStore` 优化项）。
 
 ## 10. 可观测性契约
 
