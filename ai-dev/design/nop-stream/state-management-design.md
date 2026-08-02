@@ -93,7 +93,7 @@ State (clear)
 
 **架构决策（Stage 34）**：`maxParallelism` = job-global 后端属性，**不**做 per-vertex DSL 透传。理由：(a) 与现有 `shardCount` 架构一致，最小侵入；(b) vision §十排除了 Flink ExecutionGraph 三层调度，per-operator maxParallelism 属被排除复杂度；(c) rescale（Stage 35）只改变 per-vertex `VertexPlan.parallelism`，`maxParallelism` 固定即可满足 key→group 映射不变性。拒绝了另起 KeyGroup 抽象、拒绝保留 `Object.hashCode()`、拒绝 per-vertex maxParallelism 三种替代方案。
 
-`StateShard` 不是 Flink key-group 的照搬，只承担稳定状态路由职责，不引入 Flink 的序列化器或 ExecutionGraph 结构。`maxParallelism` 默认不可改变；改变等价于 keyed state 重分片，必须提供显式 migration action 和校验报告。
+`StateShard` 不是 Flink key-group 的照搬，只承担稳定状态路由职责，不引入 Flink 的序列化器或 ExecutionGraph 结构。`maxParallelism` 默认不可改变；改变等价于 keyed state 重分片，必须提供显式 migration action 和校验报告。**Stage 37 已交付**该 migration action：离线 reshard 工具 `MaxParallelismReshardMigration`（nop-stream-runtime）读旧 savepoint、按新 `maxParallelism` 重映射 key→group 并写出新 savepoint + 校验报告，使用契约见 `checkpoint-design.md` §8.5.1。
 
 ### 3.1 Range Restore（Stage 35）
 

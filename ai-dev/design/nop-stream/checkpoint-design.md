@@ -825,7 +825,7 @@ Parallelism 变化必须通过显式 rescale manifest 或 migration action 描�
 
 | 状态类型 | Rescale 规则 |
 |---|---|
-| keyed state | `maxParallelism` 不变、`parallelism` 变化时，按 `KeyGroupRange` 交集局部恢复：新 subtask `i` 只恢复落在 `KeyGroupRangeAssignment.computeKeyGroupRangeForSubtaskIndex(maxParallelism, parallelism, i)` 区间内的 group 的 key |
+| keyed state | `maxParallelism` 不变、`parallelism` 变化时，按 `KeyGroupRange` 交集局部恢复：新 subtask `i` 只恢复落在 `KeyGroupAssignment.computeKeyGroupRangeForSubtaskIndex(maxParallelism, parallelism, i)` 区间内的 group 的 key |
 | non-keyed operator state | operator 必须声明 redistribution policy，否则拒绝自动 rescale；未声明时 scale-up 新 subtask 从空状态启动 |
 | union/list operator state | 可声明 union redistribution，所有新 subtask 读取同一集合后自行过滤 |
 | broadcast state | 所有 subtask 获取完整副本，必须校验版本一致 |
@@ -843,6 +843,58 @@ Parallelism 变化必须通过显式 rescale manifest 或 migration action 描�
 **为什么**：局部恢复避免 rescale 时全量状态加载；区间路由使 scale-up/scale-down 对称且可验证（每个新 subtask backend 持有的 key 数 = 其 `KeyGroupRange` 内的 key 数）。
 
 `maxParallelism` 默认不可改变。改变 `maxParallelism` 等价于 keyed state 重分片（key→group 映射变化），必须提供显式 migration action 和校验报告。`parallelism` 变化在 `maxParallelism` 上界内是合法 rescale。
+
+#### 8.5.1 `maxParallelism` Reshard Migration Action（Stage 37 已交付）
+
+改变 `maxParallelism` 的唯一 supported 路径是**离线 reshard migration 工具**——独立工具读旧 savepoint 文件、按新 `maxParallelism` 重映射所有 keyed state 的 key→group、**写出新 savepoint** + 校验报告。**不**采用「restore 路径触发 descriptor 运行时重算」范式（运行时重算不落新文件，与「可复核的离线迁移」目标冲突；`maxParallelism` 变化是低频重操作，离线落盘更安全且可复核）。范式裁定见 `2026-08-02-0955-7-shard-to-keygroup-migration-and-vision-update.md` Phase 2。
+
+**工具入参**：
+
+| 入参 | 含义 |
+|------|------|
+| 旧 savepoint 路径 | 本地可达的 savepoint 目录或 `.checkpoint` 文件（由 `CheckpointSerDe` 反序列化为 `CompletedCheckpoint`） |
+| old `maxParallelism` | 旧 savepoint 写入时的 job-global 上界（用于一致性校验） |
+| new `maxParallelism` | 迁移目标上界（`!= old`，否则 fail-fast） |
+| newParallelism（可选） | 新并行度，默认 = 旧 savepoint 每 vertex 的并行度（pure reshard：subtask 数不变，仅 key→group→subtask 归属重算） |
+| 输出路径 | 新 savepoint 落盘目录 |
+
+**物理重写流程（算法规格）**：
+
+1. 反序列化旧 savepoint → `CompletedCheckpoint`。按 `vertexId` 分组所有 subtask。
+2. 对每个 vertex 的每个 keyed state name（跨所有旧 subtask），把全部 entry 汇聚成**全局池**（旧 savepoint 是按 subtask 分片的，reshard 需要全局 key 视图）。
+3. 对全局池中**每个 entry**，用**新** `maxParallelism` 经 `KeyGroupAssignment.assignToKeyGroup(key, newMaxParallelism)` 重算该 key 的 group（这是与 §8.5 `parallelism`-only rescale 的本质区别——后者 key→group 不变，只 group→subtask 变；reshard 两者都变）。
+4. 按新 group 经 `KeyGroupAssignment.assignKeyGroupToSubtask(groupId, newMaxParallelism, newParallelism)` 把 entry 归入新 subtask；每个新 subtask 的 `KeyGroupRange = computeKeyGroupRangeForSubtaskIndex(newMaxParallelism, newParallelism, i)`。
+5. 构建新 `TaskStateSnapshot`（每新 subtask 一个），物化新 `KeyGroupRange` 归属（`TaskEpochSnapshot.setKeyGroupOwnership(newParallelism, newMaxParallelism, range)`，由 `CheckpointSerDe` 持久化）。
+6. **operator state（非 keyed）原样搬运**，不受 reshard 影响（operator state rescale 由 §8.5 `SPLIT_DISTRIBUTE/UNION/BROADCAST` 独立策略承载，与本 keyed reshard 正交）。
+7. 写出新 `CompletedCheckpoint` → 新 savepoint 目录（原子写 `.tmp` 后 rename，与 `LocalFileCheckpointStorage.storeSavepoint` 一致）。
+
+**校验报告字段**（`ReshardMigrationResult`）：
+
+| 字段 | 含义 |
+|------|------|
+| old/new `maxParallelism` | 迁移上下界 |
+| 每 state key 总数（迁移前/后） | **守恒校验**：per-state 迁移前后 key 总数必须相等（无丢失/重复/静默丢弃），不一致则 fail-fast |
+| 每新 subtask 的 key 数分布 | `vertexId + subtaskIndex → keyCount`，可人工核对 |
+| keyed/operator state 计数 | 与 `SavepointMetadata` 口径一致 |
+| warnings | 例如「无 keyed state 作业（pure operator state）→ no-op 已记录」 |
+
+**失败语义**：
+
+- 迁移中途失败 → 新 savepoint 不完整即丢弃（原子 rename 保证只暴露完整文件），从原 savepoint 重跑（无「迁移中」持久标记，与 schema migration 崩溃语义一致 `checkpoint-design.md:809`）。
+- **原 savepoint 只读不被破坏**（迁移工具不写输入路径）。
+- 迁移产出的新 savepoint 在 restore 前用 Stage 29 schema fingerprint 一并校验（reshard 不改 value schema，fingerprint 守恒）。
+
+**边界与 fail-fast**：
+
+- 空 keyed state：迁移不报错、不静默丢数据（per-state 计数守恒于 0）。
+- 无 keyed state 作业（纯 operator state）：迁移为 no-op 且在校验报告 warnings 中显式记录。
+- `old == new maxParallelism`：**fail-fast**（无意义迁移拒绝），不静默写出与输入相同的 savepoint。
+- 未知 state 类型 / 无 `entries` 结构 / entry 缺 `key` 字段：**抛异常**（非静默丢弃）。
+- savepoint 格式不可识别（反序列化失败）：fail-fast。
+
+**与 schema migration 的边界（orthogonal）**：
+
+reshard migration 与 schema migration（§8.4.1 `StateMigrationFunction`）**正交**，不混用：schema migration 处理「同一 key、value schema 变化」（per-state、在 backend `getState()` 内触发）；reshard migration 处理「同一 key、group 归属变化（`maxParallelism` 变）」（job-global、savepoint 级跨 subtask）。两者**复用的是 read-rewrite 模式，非具体代码**——作用域不同，需独立实现。reshard 工具不触碰 value schema/codec；如同时需 schema 迁移，先 reshard 再在 restore 时由 schema migration 处理。
 
 ### 8.6 模型演化边界
 
@@ -1021,7 +1073,7 @@ Retention 必须以解析后的 `checkpointNamespace` 为范围，不能跨 name
 ## 12. 设计不变量
 
 1. 所有持久状态必须有稳定 `operatorId`
-2. 所有 keyed state 必须有确定性 `StateShard` 路由
+2. 所有 keyed state 必须有确定性 `KeyGroup` 路由（`key → keyGroupId` 仅依赖 job-global `maxParallelism`）
 3. `PartitionedPlan` 是 parallelism、edge partition、state route、checkpoint route 的唯一语义来源
 4. Barrier 只能由 source 读取线程注入，并随数据 channel 传播
 5. Epoch manifest durable 之前，sink transaction 不得 commit

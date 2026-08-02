@@ -48,7 +48,7 @@ nop-stream 是 Nop 平台的流处理引擎，定位为**声明式图模型驱�
 | SQL API | Nop 平台已有 GraphQL，流式 SQL 需求不迫切 |
 | 大规模并行（PB 级吞吐） | 分布式解决高可用和资源隔离。几十 GB 状态级别由远程 Redis/状态后端承载 |
 | 复制 Flink Runtime 结构 | 不引入 SlotSharingGroup、Netty 网络栈、二进制序列化体系。学习 Flink 语义边界，但实现结构自主 |
-| 动态并行度调整和状态重分布 | 当前阶段不需要。`stateShardCount` 改变需要显式 migration action |
+| 在线/自动 reshard（运行时自动重分片） | `parallelism` 变化在 `maxParallelism` 上界内是 supported rescale（Stage 35，restore 时按 KeyGroupRange 区间路由）；`maxParallelism` 变化需显式离线 reshard migration action（Stage 37 已交付）。仅运行时自动重分片不在范围内 |
 | 异步算子 | 增加算子线程模型复杂度，当前阶段聚焦同步算子链 |
 
 ## 五、设计收敛路径
@@ -72,13 +72,13 @@ nop-stream 是 Nop 平台的流处理引擎，定位为**声明式图模型驱�
 3. 状态后端的变更（Memory → Redis → RocksDB）
 4. Checkpoint 协议的变更（如从单 in-flight 扩展为多 in-flight）
 5. 分布式模式的通信模型变更（IMessageService → 其他传输）
-6. `stateShardCount` 默认值的变更
+6. `maxParallelism` 的变更（需显式 reshard migration action）
 
 ## 七、核心取舍
 
-- **保留**：Barrier 快照、算子链化、多 Task 并行执行、窗口/CEP 语义
+- **保留**：Barrier 快照、算子链化、多 Task 并行执行、窗口/CEP 语义、key-group 重分布（Stage 34 KeyGroup 模型 + Stage 35 `parallelism` rescale + Stage 37 `maxParallelism` 离线 reshard migration）
 - **保留（非核心路径）**：DataStream API——作为 StreamModel 的编程构造器，但不是最终用户的主入口
-- **去除**：复杂 Join、广播流、异步算子、完整 key-group 重分布
+- **去除**：复杂 Join、广播流、异步算子
 - **聚焦**：单流窗口聚合 + CEP 模式匹配 + Checkpoint 容错
 
 ## 八、设计不变量
@@ -86,7 +86,7 @@ nop-stream 是 Nop 平台的流处理引擎，定位为**声明式图模型驱�
 以下不变量不可违反：
 
 1. 所有持久状态必须有稳定 `operatorId`
-2. 所有 keyed state 必须有确定性 `StateShard` 路由
+2. 所有 keyed state 必须有确定性 `KeyGroup` 路由（`key → keyGroupId` 仅依赖 job-global `maxParallelism`）
 3. `PartitionedPlan` 是 parallelism、edge partition、state route、checkpoint route 的唯一语义来源
 4. Barrier 只能由 source 读取线程注入，并随数据 channel 传播
 5. Epoch manifest durable 之前，sink transaction 不得 commit

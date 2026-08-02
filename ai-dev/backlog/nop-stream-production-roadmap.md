@@ -1,6 +1,6 @@
 # nop-stream 生产级完善路线图
 
-> Last updated: 2026-07-26
+> Last updated: 2026-08-02
 > Sources: `ai-dev/analysis/nop-stream/08-gap-analysis.md`（73 条显式缺口 ID [G1-G68, D69-D73] + 6 条已解决附录 [R1-R6]，primary）, `ai-dev/backlog/completion-roadmap.md`（Phase 0—5 战略框架）, `ai-dev/backlog/nop-stream-flink-comparison-roadmap.md`（前序路线图，Items 9—13 已完成）
 
 ## Purpose
@@ -51,11 +51,11 @@ Does not contain implementation details. Each `planned` stage is owned by its ex
 - 34. Key-Group 模型（G37—G39，P2）: `done`（plan `ai-dev/plans/nop-stream-production/2026-08-02-0955-4-key-group-model.md`，completed — KeyGroup/KeyGroupRange/KeyGroupAssignment（分层稳定哈希：内置类型 hashCode + POJO Murmur3-over-JSON，G38）+ key→group 映射（G37）+ KeyGroupRange 集合操作（G39）+ job-global maxParallelism（默认 128，shardCount 语义迁移 + getShardCount @Deprecated 别名）+ group→subtask 连续区间映射函数；RocksDB 可排序 key-group 二进制前缀 layout v2（**Stage 30 deferred「Binary composite key encoding」收口**，增量旧 SST fail-fast）；memory+rocksdb keyed 聚合 E2E 一致；生产 rescale 接线属 Stage 35）
 - 35. KeyGroupRange 恢复 + RocksDB key-group 感知 restore: `done`（plan `ai-dev/plans/nop-stream-production/2026-08-02-0955-5-keygroup-range-recovery.md`，completed — executor dispatch（`GraphModelCheckpointExecutor.restoreTaskStatesFromSource` 承重重构为区间路由）+ TaskEpochSnapshot KeyGroupRange 归属物化（CheckpointSerDe 持久化）+ 全量 JSON in-memory 过滤/增量 SST range scan 双路径 + scale-down 多源合并 + parallelism 4↔16 E2E dispatch；Stage 31 deferred「Key-group range SST reading」收口；`KeyGroupRangeRestoreFilter` + Memory/RocksDB `targetKeyGroupRange` + `RocksDBIncrementalRestore.restoreRangeInto` 真实 SST range scan）
 - 36. ~~BroadcastState 类型（G36，P2）~~ → 推迟，需先更新 vision §七: `todo`
-- 37. StateShard→KeyGroup 迁移 + vision Non-Goal 更新: `todo`
+- 37. StateShard→KeyGroup 迁移 + vision Non-Goal 更新: `done`（plan `ai-dev/plans/nop-stream-production/2026-08-02-0955-7-shard-to-keygroup-migration-and-vision-update.md`，completed — 不变量 #2 三处跨文档 drift 收口（`00-vision.md:89`/`checkpoint-design.md:1024`/`core-design.md:338` StateShard→KeyGroup）+ vision §四 Non-Goal 改写为 supported-with-migration + §七 key-group 重分布移入「保留」+ §六 决策点 #6 stateShardCount→maxParallelism + §8.5 类名笔误修正（KeyGroupRangeAssignment→KeyGroupAssignment）+ `checkpoint-design.md` §8.5.1 reshard migration 使用契约 + `state-management-design.md:96` 同步；Stage 35 deferred「maxParallelism 显式迁移」收口：离线 reshard 工具 `KeyGroupReshard`（core 纯逻辑）+ `MaxParallelismReshardMigration`（runtime I/O，原子写新 savepoint + reshard-report.json + `ReshardMigrationResult` 守恒校验）；focused test 11 + E2E 8，memory+rocksdb restore 聚合一致，anti-hollow（moved 断言）+ 全 fail-fast 边界）
 
 ### Phase 4 — 分布式接入平台基础设施
 
-- 38. Leader election / HA（G24, G25，P1）: `todo`
+- 38. Leader election / HA（G24, G25，P1）: `planned`（plan `ai-dev/plans/nop-stream-production/2026-08-02-0955-8-leader-election-ha.md`，active——2 轮 draft review 通过；WIRE 平台 `ILeaderElector`/`SysDaoLeaderElector` 进 `JobCoordinator`（HA lifecycle 状态机：start()→STANDBY，becomeLeader→ACTIVE/becomeFollower→STANDBY，禁用 whenElectionCompleted 作 ACTIVE 条件）+ standby coordinator + composite fencing token `leaderId@epoch#recoveryGen`（解耦 leadership/recovery fencing）+ deactivate≠stop；unblock Phase 4 Stage 39/40/42）
 - 39. 控制面 RPC 跨 JVM + fencing token 统一（G23 续）: `todo`
 - 40. 数据面 IMessageService 跨 JVM: `todo`
 - 41. ClusterRegistry 收敛到平台 discovery: `todo`

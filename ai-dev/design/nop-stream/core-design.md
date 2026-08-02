@@ -335,7 +335,7 @@ class TaskLocation {
 
 ### 4.4 状态路由
 
-状态恢复必须按 `operatorId + subtaskIndex + stateShard + stateName` 路由。所有 keyed state 必须有确定性 `StateShard` 路由，保证恢复时状态与算子实例的正确映射。
+状态恢复必须按 `operatorId + subtaskIndex + keyGroupId + stateName` 路由。所有 keyed state 必须有确定性 `KeyGroup` 路由（`key → keyGroupId` 仅依赖 job-global `maxParallelism`），保证恢复时状态与算子实例的正确映射。
 
 ## 5. 函数接口
 
