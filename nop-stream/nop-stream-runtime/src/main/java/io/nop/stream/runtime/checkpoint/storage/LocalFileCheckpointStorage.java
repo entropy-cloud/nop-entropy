@@ -65,6 +65,16 @@ public class LocalFileCheckpointStorage implements ICheckpointStorage {
         ensureDirectoryExists(baseDir);
     }
 
+    /**
+     * Stage 42 Phase 0: returns the base directory path. Exposed so a
+     * {@link io.nop.stream.runtime.coordinator.JobCoordinator} in remote-deploy
+     * mode can pass it to each {@link io.nop.stream.runtime.rpc.TaskDeploymentDescriptor}
+     * for cross-JVM state restore on the same machine.
+     */
+    public String getBaseDir() {
+        return baseDir;
+    }
+
     @Override
     public String getName() {
         return "LocalFileCheckpointStorage";

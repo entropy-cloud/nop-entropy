@@ -28,6 +28,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import io.nop.api.core.annotations.core.Internal;
+import io.nop.api.core.exceptions.NopException;
 import io.nop.api.core.message.IMessageService;
 import io.nop.stream.core.checkpoint.CheckpointBarrier;
 import io.nop.stream.core.checkpoint.TaskLocation;
@@ -39,18 +40,22 @@ import io.nop.stream.core.execution.plan.DeploymentPlan;
 import io.nop.stream.core.jobgraph.OperatorChain;
 
 import static io.nop.stream.core.exceptions.NopStreamErrors.ARG_ACTUAL_TOKEN;
+import static io.nop.stream.core.exceptions.NopStreamErrors.ARG_ARG_NAME;
 import static io.nop.stream.core.exceptions.NopStreamErrors.ARG_DETAIL;
 import static io.nop.stream.core.exceptions.NopStreamErrors.ARG_EXPECTED_TOKEN;
 import static io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_FENCING_TOKEN_MISMATCH;
 import static io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_INVALID_STATE;
+import static io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_NULL_ARG;
 import io.nop.stream.runtime.cluster.ClusterRegistry;
 import io.nop.stream.runtime.cluster.TaskAssignment;
 import io.nop.stream.runtime.coordinator.TaskProgress;
 import io.nop.stream.runtime.coordinator.TaskStatusReport;
 import io.nop.stream.runtime.rpc.IStreamCoordinatorRpcService;
 import io.nop.stream.runtime.rpc.IStreamTaskRpcService;
+import io.nop.stream.runtime.rpc.TaskDeploymentDescriptor;
 import io.nop.stream.runtime.transport.RemoteInputChannel;
 import io.nop.stream.runtime.transport.RemoteResultPartition;
+import io.nop.stream.runtime.transport.SubtaskPlanBuilder;
 
 /**
  * TaskManager is the distributed runtime component on each worker node.
@@ -330,6 +335,162 @@ public class TaskManager implements IStreamTaskRpcService {
             return;
         }
         runningTask.setInvokable(invokable);
+    }
+
+    // ==================== Remote Deploy (Stage 42 Phase 0) ====================
+
+    /**
+     * Stage 42 Phase 0: deploys task logic to this TaskManager as a serializable
+     * {@link TaskDeploymentDescriptor}. The TaskManager reconstructs its own
+     * {@link StreamTaskInvokable} locally from the descriptor's
+     * {@link io.nop.stream.core.jobgraph.JobGraph} + edge config (via
+     * {@link SubtaskPlanBuilder}), installs it, and starts running the task.
+     *
+     * <p>This is the cross-JVM replacement for the in-process direct-Java
+     * {@link #installInvokable} call. In remote-deploy mode the coordinator calls
+     * this instead of {@link #receiveAssignment} + a separate direct install — the
+     * descriptor is self-contained (carries {@link TaskAssignment} metadata).
+     *
+     * <p><strong>No silent skip</strong> (#24): if deployment fails (build error,
+     * fencing mismatch, target-node mismatch, capacity exhausted), this method
+     * throws a {@link StreamException} AND reports a FAILED
+     * {@link io.nop.stream.runtime.coordinator.TaskStatusReport} to the coordinator
+     * so the failure is observable and triggers recovery. Throwing alone is
+     * insufficient because the {@code deployTask} RPC is one-way (fire-and-forget,
+     * see {@code StreamControlRpcTransformer}) — the exception does not propagate
+     * back to the coordinator over RPC.
+     *
+     * @param descriptor   the serializable deployment descriptor
+     * @param fencingEpoch the monotonic fencing epoch the deployment is valid under
+     */
+    @Override
+    public void deployTask(TaskDeploymentDescriptor descriptor, long fencingEpoch) {
+        if (!running) {
+            NopException ex = new StreamException(ERR_STREAM_INVALID_STATE).param(ARG_DETAIL,
+                    "TaskManager " + nodeId + " not running, rejecting deployTask");
+            reportDeployFailure(descriptor, fencingEpoch, ex);
+            throw ex;
+        }
+        if (descriptor == null) {
+            NopException ex = new StreamException(ERR_STREAM_NULL_ARG).param(ARG_ARG_NAME, "descriptor");
+            reportDeployFailure(null, fencingEpoch, ex);
+            throw ex;
+        }
+        if (descriptor.getJobGraph() == null) {
+            NopException ex = new StreamException(ERR_STREAM_INVALID_STATE).param(ARG_DETAIL,
+                    "TaskDeploymentDescriptor carries no JobGraph; cannot deployTask for "
+                            + descriptor.getVertexId() + "/" + descriptor.getSubtaskIndex());
+            reportDeployFailure(descriptor, fencingEpoch, ex);
+            throw ex;
+        }
+
+        long activeEpoch = currentFencingEpoch.get();
+        if (activeEpoch != fencingEpoch) {
+            NopException ex = new StreamException(ERR_STREAM_FENCING_TOKEN_MISMATCH)
+                    .param(ARG_EXPECTED_TOKEN, activeEpoch)
+                    .param(ARG_ACTUAL_TOKEN, fencingEpoch);
+            reportDeployFailure(descriptor, fencingEpoch, ex);
+            throw ex;
+        }
+
+        if (descriptor.getNodeId() != null && !descriptor.getNodeId().equals(nodeId)) {
+            NopException ex = new StreamException(ERR_STREAM_INVALID_STATE).param(ARG_DETAIL,
+                    "deployTask target mismatch: descriptor nodeId=" + descriptor.getNodeId()
+                            + " but this TaskManager is " + nodeId);
+            reportDeployFailure(descriptor, fencingEpoch, ex);
+            throw ex;
+        }
+
+        if (!capacitySemaphore.tryAcquire()) {
+            NopException ex = new StreamException(ERR_STREAM_INVALID_STATE).param(ARG_DETAIL,
+                    "Node " + nodeId + " at capacity (" + (capacity - capacitySemaphore.availablePermits())
+                            + "/" + capacity + "), rejecting deployTask for "
+                            + descriptor.getVertexId() + "/" + descriptor.getSubtaskIndex());
+            reportDeployFailure(descriptor, fencingEpoch, ex);
+            throw ex;
+        }
+
+        String taskKey = taskKey(descriptor.getJobId(), descriptor.getVertexId(), descriptor.getSubtaskIndex());
+
+        // Recovery may redeploy to the same slot before the old task is GC'd.
+        // Fence the old slot out and reclaim its permit into this deployment.
+        RunningTask existing = runningTasks.get(taskKey);
+        if (existing != null) {
+            LOG.warn("Slot {} already occupied (attempt={}); fencing old before redeploy",
+                    taskKey, existing.attemptId);
+            runningTasks.remove(taskKey);
+            existing.cancel();
+            if (existing.semaphoreReleased.compareAndSet(false, true)) {
+                capacitySemaphore.release();
+            }
+            // Re-acquire for the new deployment (we already acquired above; the
+            // release just balanced the old slot's permit).
+            capacitySemaphore.acquireUninterruptibly();
+        }
+
+        RunningTask runningTask = new RunningTask(
+                descriptor.getJobId(),
+                descriptor.getVertexId(),
+                descriptor.getSubtaskIndex(),
+                descriptor.getFencingEpoch(),
+                descriptor.getAttemptId(),
+                descriptor.getAttemptNumber());
+        runningTasks.put(taskKey, runningTask);
+        Future<?> future = taskExecutor.submit(runningTask);
+        runningTask.setFuture(future);
+
+        // Build the invokable locally from the descriptor. SubtaskPlanBuilder
+        // rebuilds the subtask using this TaskManager's IMessageService, which
+        // connects to the same deterministic data-plane topics the coordinator
+        // would have wired — so cross-JVM data exchange works.
+        StreamTaskInvokable invokable;
+        try {
+            SubtaskPlanBuilder builder = new SubtaskPlanBuilder(messageService, null);
+            invokable = builder.buildSubtaskInvokable(descriptor);
+        } catch (Throwable t) {
+            LOG.error("Failed to build invokable from deployTask descriptor for {} on {}", taskKey, nodeId, t);
+            runningTasks.remove(taskKey);
+            runningTask.cancel();
+            if (runningTask.semaphoreReleased.compareAndSet(false, true)) {
+                capacitySemaphore.release();
+            }
+            NopException ex = new StreamException(ERR_STREAM_INVALID_STATE, t).param(ARG_DETAIL,
+                    "Failed to build invokable from deployTask descriptor for " + taskKey
+                            + " on TaskManager " + nodeId + ": " + t);
+            reportDeployFailure(descriptor, fencingEpoch, ex);
+            throw ex;
+        }
+
+        runningTask.setInvokable(invokable);
+        LOG.info("TaskManager {} deployed task {} via deployTask RPC (attempt={}, checkpointRestorePath={})",
+                nodeId, taskKey, descriptor.getAttemptId(), descriptor.getCheckpointRestorePath());
+    }
+
+    /**
+     * Stage 42 Phase 0: reports a deployTask failure to the coordinator as a
+     * FAILED {@link TaskStatusReport} so the failure is observable and triggers
+     * recovery. Best-effort — failure to report is logged (not swallowed).
+     */
+    private void reportDeployFailure(TaskDeploymentDescriptor descriptor, long fencingEpoch, Throwable cause) {
+        IStreamCoordinatorRpcService rpc = this.coordinatorRpcService;
+        if (rpc == null) {
+            return;
+        }
+        String dJobId = descriptor != null ? descriptor.getJobId() : null;
+        String dVertexId = descriptor != null ? descriptor.getVertexId() : null;
+        int dSubtaskIndex = descriptor != null ? descriptor.getSubtaskIndex() : -1;
+        int dAttemptNumber = descriptor != null ? descriptor.getAttemptNumber() : 0;
+        TaskStatusReport report = new TaskStatusReport(
+                dJobId, dVertexId, dSubtaskIndex, dAttemptNumber,
+                TaskStatusReport.TerminalState.FAILED,
+                cause == null ? "deployTask failure" : cause.toString(),
+                -1L, fencingEpoch, System.currentTimeMillis());
+        try {
+            rpc.reportTaskStatus(report);
+        } catch (Exception e) {
+            LOG.warn("Failed to report deployTask failure to coordinator for {}/{}/{}",
+                    dJobId, dVertexId, dSubtaskIndex, e);
+        }
     }
 
     // ==================== Checkpoint ====================

@@ -92,6 +92,16 @@ public class RpcDistributedExecutor implements IStreamExecutionDispatcher {
      */
     private IDataPlaneWireCodec dataPlaneWireCodec = IdentityWireCodec.INSTANCE;
 
+    /**
+     * Stage 42 Phase 0: when {@code true}, the coordinator deploys task logic via
+     * the {@code deployTask} RPC (each TaskManager rebuilds its own invokable locally
+     * from a {@link io.nop.stream.runtime.rpc.TaskDeploymentDescriptor}) instead of
+     * the executor's direct {@code TaskManager.installInvokable} Java call. Default
+     * {@code false} preserves the in-process fast-path; the Stage 42 multi-JVM test
+     * harness and the in-process remote-deploy E2E test flip this to {@code true}.
+     */
+    private boolean remoteDeployMode = false;
+
     public RpcDistributedExecutor(IMessageService messageService) {
         this(messageService, 2, 60);
     }
@@ -110,6 +120,22 @@ public class RpcDistributedExecutor implements IStreamExecutionDispatcher {
     public void setDataPlaneWireCodec(IDataPlaneWireCodec dataPlaneWireCodec) {
         this.dataPlaneWireCodec = dataPlaneWireCodec == null
                 ? IdentityWireCodec.INSTANCE : dataPlaneWireCodec;
+    }
+
+    /**
+     * Stage 42 Phase 0: toggles remote-deploy mode. When {@code true}, the
+     * coordinator's {@code assignTasks()} calls {@code deployTask} RPC instead of
+     * {@code receiveAssignment} + direct {@code installInvokable}, and
+     * {@link DistributedJobHandle#installInvokablesAndRun(long)} becomes a no-op
+     * for the install step (the coordinator already deployed via RPC). Used by
+     * the Stage 42 in-process remote-deploy E2E test as the cross-JVM analog.
+     */
+    public void setRemoteDeployMode(boolean remoteDeployMode) {
+        this.remoteDeployMode = remoteDeployMode;
+    }
+
+    public boolean isRemoteDeployMode() {
+        return remoteDeployMode;
     }
 
     @Override
@@ -208,6 +234,15 @@ public class RpcDistributedExecutor implements IStreamExecutionDispatcher {
                 clusterRegistry, checkpointCoordinator, taskRpcProxies);
         coordinator.setFencingEpoch(fencingEpoch);
         coordinator.setAutoRecoverOnFailedReport(false);
+        // Stage 42 Phase 0: when remoteDeployMode is active, inject the JobGraph
+        // and checkpoint storage path so assignTasks() can build
+        // TaskDeploymentDescriptors and the TaskManagers rebuild their own
+        // invokables locally via deployTask RPC.
+        if (remoteDeployMode) {
+            coordinator.setRemoteDeployMode(true);
+            coordinator.setJobGraph(jobGraph);
+            coordinator.setCheckpointStoragePath(checkpointStorage.getBaseDir());
+        }
         // Stage 39 Phase 3: the RPC-distributed form uses the DISTRIBUTED abort
         // path (coordinator abort handler → cancelTask RPC → remote task). The
         // embedded GraphModelCheckpointExecutor uses its LOCAL abort handler; the
@@ -247,7 +282,7 @@ public class RpcDistributedExecutor implements IStreamExecutionDispatcher {
                 jobId, fencingEpoch, System.currentTimeMillis() - startTime);
 
         return new DistributedJobHandle(jobId, coordinator, taskManagers, taskServers,
-                coordinatorServer, coordinatorProxies, coordinatorProxy, plan, startTime);
+                coordinatorServer, coordinatorProxies, coordinatorProxy, plan, startTime, remoteDeployMode);
     }
 
     private int determineNodeCount(PartitionedPlan partitionedPlan) {
@@ -273,11 +308,13 @@ public class RpcDistributedExecutor implements IStreamExecutionDispatcher {
         private final StreamControlRpcProxyFactory coordinatorProxy;
         private final GraphExecutionPlan plan;
         private final long startTime;
+        private final boolean remoteDeployMode;
 
         DistributedJobHandle(String jobId, JobCoordinator coordinator, List<TaskManager> taskManagers,
                              List<StreamControlRpcServer> taskServers, StreamControlRpcServer coordinatorServer,
                              List<StreamControlRpcProxyFactory> taskProxies,
-                             StreamControlRpcProxyFactory coordinatorProxy, GraphExecutionPlan plan, long startTime) {
+                             StreamControlRpcProxyFactory coordinatorProxy, GraphExecutionPlan plan,
+                             long startTime, boolean remoteDeployMode) {
             this.jobId = jobId;
             this.coordinator = coordinator;
             this.taskManagers = taskManagers;
@@ -287,6 +324,7 @@ public class RpcDistributedExecutor implements IStreamExecutionDispatcher {
             this.coordinatorProxy = coordinatorProxy;
             this.plan = plan;
             this.startTime = startTime;
+            this.remoteDeployMode = remoteDeployMode;
         }
 
         public String getJobId() {
@@ -308,27 +346,39 @@ public class RpcDistributedExecutor implements IStreamExecutionDispatcher {
         /**
          * Installs the data-plane invokables on the (RPC-reached) task nodes based on
          * the coordinator's assignments, then waits for the pipeline to drain.
+         *
+         * <p>Stage 42 Phase 0: when remote-deploy mode is active, the coordinator's
+         * {@code assignTasks()} has already deployed task logic via {@code deployTask}
+         * RPC — each TaskManager built its own invokable locally. This method skips
+         * the direct {@code TaskManager.installInvokable} loop in that case and only
+         * waits for completion. When remote-deploy mode is off (the in-process
+         * fast-path), the legacy direct-install loop runs unchanged.
          */
         public void installInvokablesAndRun(long timeoutSeconds) throws Exception {
-            Map<String, List<TaskAssignment>> assignments = coordinator.getTaskAssignments();
-            for (String vertexId : plan.getSortedVertexIds()) {
-                List<Subtask> subtasks = plan.getSubtasks(vertexId);
-                List<TaskAssignment> vertexAssignments = assignments.get(vertexId);
-                for (Subtask subtask : subtasks) {
-                    TaskAssignment ta = findAssignment(vertexAssignments, subtask.getTaskIndex());
-                    if (ta == null) {
-                        throw new StreamException(ERR_STREAM_INVALID_STATE).param(ARG_DETAIL,
-                                "No assignment found for vertex=" + vertexId
-                                        + " subtaskIndex=" + subtask.getTaskIndex()
-                                        + " after coordinator.assignTasks()");
+            if (!remoteDeployMode) {
+                Map<String, List<TaskAssignment>> assignments = coordinator.getTaskAssignments();
+                for (String vertexId : plan.getSortedVertexIds()) {
+                    List<Subtask> subtasks = plan.getSubtasks(vertexId);
+                    List<TaskAssignment> vertexAssignments = assignments.get(vertexId);
+                    for (Subtask subtask : subtasks) {
+                        TaskAssignment ta = findAssignment(vertexAssignments, subtask.getTaskIndex());
+                        if (ta == null) {
+                            throw new StreamException(ERR_STREAM_INVALID_STATE).param(ARG_DETAIL,
+                                    "No assignment found for vertex=" + vertexId
+                                            + " subtaskIndex=" + subtask.getTaskIndex()
+                                            + " after coordinator.assignTasks()");
+                        }
+                        TaskManager targetTm = findTaskManager(taskManagers, ta.getNodeId());
+                        if (targetTm == null) {
+                            throw new StreamException(ERR_STREAM_INVALID_STATE).param(ARG_DETAIL,
+                                    "No TaskManager for nodeId=" + ta.getNodeId());
+                        }
+                        targetTm.installInvokable(jobId, vertexId, subtask.getTaskIndex(), subtask.getInvokable());
                     }
-                    TaskManager targetTm = findTaskManager(taskManagers, ta.getNodeId());
-                    if (targetTm == null) {
-                        throw new StreamException(ERR_STREAM_INVALID_STATE).param(ARG_DETAIL,
-                                "No TaskManager for nodeId=" + ta.getNodeId());
-                    }
-                    targetTm.installInvokable(jobId, vertexId, subtask.getTaskIndex(), subtask.getInvokable());
                 }
+            } else {
+                LOG.info("remoteDeployMode active for job {} — coordinator.assignTasks() already deployed "
+                        + "task logic via deployTask RPC; skipping direct installInvokable loop", jobId);
             }
             waitForCompletion(taskManagers, timeoutSeconds);
         }

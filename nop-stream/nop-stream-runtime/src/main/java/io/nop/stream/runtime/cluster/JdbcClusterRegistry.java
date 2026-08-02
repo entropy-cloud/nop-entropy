@@ -325,7 +325,10 @@ public class JdbcClusterRegistry implements ClusterRegistry {
             return;
         }
 
-        String ddl = "CREATE TABLE " + COORDINATOR_TABLE + " (" +
+        // Stage 42: use CREATE TABLE IF NOT EXISTS so multiple JVMs sharing one
+        // H2 AUTO_SERVER DB do not race the check-then-create window. The
+        // pre-existing JVM creates the table; concurrent peers no-op.
+        String ddl = "CREATE TABLE IF NOT EXISTS " + COORDINATOR_TABLE + " (" +
                 "job_id VARCHAR(255) NOT NULL, " +
                 "coordinator_id VARCHAR(255) NOT NULL, " +
                 "fencing_token VARCHAR(255) NOT NULL, " +
@@ -344,7 +347,8 @@ public class JdbcClusterRegistry implements ClusterRegistry {
             return;
         }
 
-        String ddl = "CREATE TABLE " + NODE_TABLE + " (" +
+        // Stage 42: IF NOT EXISTS so concurrent JVMs do not race.
+        String ddl = "CREATE TABLE IF NOT EXISTS " + NODE_TABLE + " (" +
                 "node_id VARCHAR(255) NOT NULL, " +
                 "endpoint VARCHAR(512) NOT NULL, " +
                 "capacity INT NOT NULL DEFAULT 1, " +
@@ -360,7 +364,7 @@ public class JdbcClusterRegistry implements ClusterRegistry {
 
         try {
             SQL idxSql = SQL.begin().name("createNodeLeaseIdx").querySpace(querySpace)
-                    .sql("CREATE INDEX idx_node_lease_expire ON " + NODE_TABLE + " (lease_expire_at)")
+                    .sql("CREATE INDEX IF NOT EXISTS idx_node_lease_expire ON " + NODE_TABLE + " (lease_expire_at)")
                     .end();
             jdbcTemplate.executeUpdate(idxSql);
         } catch (Exception e) {
@@ -378,7 +382,8 @@ public class JdbcClusterRegistry implements ClusterRegistry {
         // G56: PRIMARY KEY now includes attempt_number so the table preserves
         // full attempt history (each (job, vertex, subtask) row is unique per
         // attempt rather than per task).
-        String ddl = "CREATE TABLE " + TASK_ASSIGNMENT_TABLE + " (" +
+        // Stage 42: IF NOT EXISTS so concurrent JVMs do not race.
+        String ddl = "CREATE TABLE IF NOT EXISTS " + TASK_ASSIGNMENT_TABLE + " (" +
                 "job_id VARCHAR(255) NOT NULL, " +
                 "vertex_id VARCHAR(255) NOT NULL, " +
                 "subtask_index INT NOT NULL, " +
@@ -396,7 +401,7 @@ public class JdbcClusterRegistry implements ClusterRegistry {
 
         try {
             SQL idxSql = SQL.begin().name("createTaskNodeIdx").querySpace(querySpace)
-                    .sql("CREATE INDEX idx_task_node ON " + TASK_ASSIGNMENT_TABLE + " (node_id)")
+                    .sql("CREATE INDEX IF NOT EXISTS idx_task_node ON " + TASK_ASSIGNMENT_TABLE + " (node_id)")
                     .end();
             jdbcTemplate.executeUpdate(idxSql);
         } catch (Exception e) {

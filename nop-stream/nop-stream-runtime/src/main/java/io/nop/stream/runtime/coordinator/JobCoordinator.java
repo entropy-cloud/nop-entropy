@@ -39,6 +39,7 @@ import static io.nop.stream.core.exceptions.NopStreamErrors.ARG_DETAIL;
 import static io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_INVALID_STATE;
 import io.nop.stream.core.execution.plan.DeploymentAssignment;
 import io.nop.stream.core.execution.plan.DeploymentPlan;
+import io.nop.stream.core.jobgraph.JobGraph;
 import io.nop.stream.runtime.checkpoint.CheckpointCoordinator;
 import io.nop.stream.runtime.checkpoint.PendingCheckpoint;
 import io.nop.stream.runtime.cluster.ClusterRegistry;
@@ -46,6 +47,7 @@ import io.nop.stream.runtime.cluster.NodeInfo;
 import io.nop.stream.runtime.cluster.TaskAssignment;
 import io.nop.stream.runtime.rpc.IStreamCoordinatorRpcService;
 import io.nop.stream.runtime.rpc.IStreamTaskRpcService;
+import io.nop.stream.runtime.rpc.TaskDeploymentDescriptor;
 import io.nop.stream.runtime.taskmanager.CheckpointAckMessage;
 import io.nop.stream.runtime.taskmanager.TaskManager;
 
@@ -226,6 +228,34 @@ public class JobCoordinator implements IStreamCoordinatorRpcService {
 
     /** G56: cause captured by {@link #failJob(Throwable)}; null until FAILED. */
     private volatile Throwable jobFailureCause;
+
+    /**
+     * Stage 42 Phase 0: remote-deploy mode toggle. When {@code true},
+     * {@link #assignTasks()} builds a {@link TaskDeploymentDescriptor} for each
+     * subtask and calls {@link IStreamTaskRpcService#deployTask} over RPC (the
+     * TaskManager rebuilds its own invokable locally). When {@code false} (default,
+     * in-process path), {@link #assignTasks()} calls
+     * {@link IStreamTaskRpcService#receiveAssignment} and the embedding executor
+     * installs the invokable via a direct {@code TaskManager.installInvokable}
+     * Java call. The recovery path inherits the same mode —
+     * {@link #rotateFencingEpochAndRestore} → {@link #assignTasks()}.
+     */
+    private volatile boolean remoteDeployMode = false;
+
+    /**
+     * Stage 42 Phase 0: the {@link JobGraph} used to build
+     * {@link TaskDeploymentDescriptor}s in remote-deploy mode. Required when
+     * {@link #remoteDeployMode} is {@code true}; ignored otherwise.
+     */
+    private volatile JobGraph jobGraph;
+
+    /**
+     * Stage 42 Phase 0: shared filesystem path of the
+     * {@code LocalFileCheckpointStorage} directory. Passed in every
+     * {@link TaskDeploymentDescriptor} so a recovery-deployed TaskManager can
+     * restore operator state from the same path. Null for a fresh job.
+     */
+    private volatile String checkpointStoragePath;
 
     public JobCoordinator(String jobId,
                           String coordinatorId,
@@ -418,7 +448,12 @@ public class JobCoordinator implements IStreamCoordinatorRpcService {
      * <p>For each assignment:
      * <ol>
      *   <li>Records the assignment in the ClusterRegistry (runtime consistency view)</li>
-     *   <li>Sends a {@link TaskAssignment} via the task RPC service</li>
+     *   <li>Sends a {@link TaskAssignment} via the task RPC service
+     *       ({@link IStreamTaskRpcService#receiveAssignment}) — <em>in-process mode</em>;
+     *       OR sends a {@link TaskDeploymentDescriptor} via
+     *       {@link IStreamTaskRpcService#deployTask} — <em>Stage 42 remote-deploy mode</em>.
+     *       In remote-deploy mode {@code receiveAssignment} is NOT called — the descriptor
+     *       is self-contained.</li>
      * </ol>
      */
     public void assignTasks() {
@@ -436,6 +471,15 @@ public class JobCoordinator implements IStreamCoordinatorRpcService {
             LOG.warn("Job {} is FAILED (cause={}); rejecting assignTasks",
                     jobId, jobFailureCause == null ? "unknown" : jobFailureCause.toString());
             return;
+        }
+
+        // Stage 42 Phase 0: remote-deploy mode requires the JobGraph to build
+        // per-subtask deployment descriptors. Fail-fast (no silent skip) when
+        // the mode is active but the JobGraph was not injected.
+        if (remoteDeployMode && jobGraph == null) {
+            throw new StreamException(ERR_STREAM_INVALID_STATE).param(ARG_DETAIL,
+                    "remoteDeployMode is active but no JobGraph was injected on JobCoordinator "
+                            + coordinatorId + ". Call setJobGraph(...) before assignTasks().");
         }
 
         long epoch = fencingEpoch.get();
@@ -494,12 +538,23 @@ public class JobCoordinator implements IStreamCoordinatorRpcService {
                             targetNodeId, attemptId, epoch, attemptNumber);
 
                     IStreamTaskRpcService rpc = taskRpcServices.get(targetNodeId);
-                    if (rpc != null) {
-                        rpc.receiveAssignment(taskAssignment);
-                    } else {
+                    if (rpc == null) {
                         throw new StreamException(ERR_STREAM_INVALID_STATE).param(ARG_DETAIL,
                                 "No RPC service for node " + targetNodeId
                                         + ". All control plane operations require IStreamTaskRpcService.");
+                    }
+
+                    if (remoteDeployMode) {
+                        // Stage 42 Phase 0: send a self-contained deployment
+                        // descriptor; the TaskManager rebuilds its own invokable
+                        // locally. receiveAssignment is NOT called separately.
+                        TaskDeploymentDescriptor descriptor = new TaskDeploymentDescriptor(
+                                jobId, vertexId, subtaskIndex, targetNodeId,
+                                attemptId, attemptNumber, epoch,
+                                jobGraph, deploymentPlan, checkpointStoragePath);
+                        rpc.deployTask(descriptor, epoch);
+                    } else {
+                        rpc.receiveAssignment(taskAssignment);
                     }
 
                     vertexAssignments.add(taskAssignment);
@@ -513,9 +568,10 @@ public class JobCoordinator implements IStreamCoordinatorRpcService {
         allTaskLocations.addAll(locations);
         checkpointCoordinator.setTasksToAcknowledge(locations);
 
-        LOG.info("Assigned {} tasks for job {} (mode={}, source={})",
+        LOG.info("Assigned {} tasks for job {} (mode={}, deploy={}, source={})",
                 locations.size(), jobId,
                 useMaterialized ? "materialized" : "runtime-round-robin",
+                remoteDeployMode ? "remote" : "in-process",
                 useMaterialized ? "DeploymentPlan.assignment" : "ClusterRegistry");
     }
 
@@ -1336,6 +1392,53 @@ public class JobCoordinator implements IStreamCoordinatorRpcService {
 
     public int getRestartCount() {
         return restartCount.get();
+    }
+
+    /**
+     * Stage 42 Phase 0: toggles remote-deploy mode. When {@code true},
+     * {@link #assignTasks()} sends a {@link TaskDeploymentDescriptor} via
+     * {@link IStreamTaskRpcService#deployTask} (cross-JVM path; the TaskManager
+     * rebuilds its own invokable locally). When {@code false} (default, in-process
+     * path), {@link #assignTasks()} calls {@link IStreamTaskRpcService#receiveAssignment}
+     * and the embedding executor installs the invokable via a direct Java call.
+     *
+     * <p>Recovery inherits the same mode: {@link #globalRecovery()} →
+     * {@link #rotateFencingEpochAndRestore} → {@link #assignTasks()}.
+     */
+    public void setRemoteDeployMode(boolean remoteDeployMode) {
+        this.remoteDeployMode = remoteDeployMode;
+    }
+
+    public boolean isRemoteDeployMode() {
+        return remoteDeployMode;
+    }
+
+    /**
+     * Stage 42 Phase 0: injects the {@link JobGraph} used to build
+     * {@link TaskDeploymentDescriptor}s in remote-deploy mode. Required when
+     * {@link #setRemoteDeployMode(boolean)} is set to {@code true}; ignored
+     * otherwise.
+     */
+    public void setJobGraph(JobGraph jobGraph) {
+        this.jobGraph = jobGraph;
+    }
+
+    public JobGraph getJobGraph() {
+        return jobGraph;
+    }
+
+    /**
+     * Stage 42 Phase 0: shared filesystem path of the
+     * {@code LocalFileCheckpointStorage} directory. Passed in every
+     * {@link TaskDeploymentDescriptor} so a recovery-deployed TaskManager can
+     * restore operator state from the same path.
+     */
+    public void setCheckpointStoragePath(String checkpointStoragePath) {
+        this.checkpointStoragePath = checkpointStoragePath;
+    }
+
+    public String getCheckpointStoragePath() {
+        return checkpointStoragePath;
     }
 
     /**
