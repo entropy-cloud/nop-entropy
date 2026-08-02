@@ -814,14 +814,24 @@ Parallelism 变化必须通过显式 rescale manifest 或 migration action 描�
 
 | 状态类型 | Rescale 规则 |
 |---|---|
-| keyed state | `stateShardCount` 不变时，按 `StateShard.ownerSubtask` 重新归属 |
-| non-keyed operator state | operator 必须声明 redistribution policy，否则拒绝自动 rescale |
+| keyed state | `maxParallelism` 不变、`parallelism` 变化时，按 `KeyGroupRange` 交集局部恢复：新 subtask `i` 只恢复落在 `KeyGroupRangeAssignment.computeKeyGroupRangeForSubtaskIndex(maxParallelism, parallelism, i)` 区间内的 group 的 key |
+| non-keyed operator state | operator 必须声明 redistribution policy，否则拒绝自动 rescale；未声明时 scale-up 新 subtask 从空状态启动 |
 | union/list operator state | 可声明 union redistribution，所有新 subtask 读取同一集合后自行过滤 |
 | broadcast state | 所有 subtask 获取完整副本，必须校验版本一致 |
 | source split state | 按 split registry 重新分配 owner，split cursor 不随 subtask 下标绑定 |
 | sink pending transaction | 不允许跨 subtask 静默迁移；必须先完成、abort，或由 connector 声明显式 takeover 协议 |
 
-`stateShardCount` 默认不可改变。改变 `stateShardCount` 等价于 keyed state 重分片，必须提供显式 migration action 和校验报告。
+**选了什么（Stage 35）**：keyed rescale 采用 KeyGroupRange 区间路由，而非全量加载后丢弃。
+
+- **executor dispatch（承重）**：`GraphModelCheckpointExecutor.restoreTaskStatesFromSource` 不再严格 1:1 `TaskLocation` 查找。当检出 `oldParallelism != newParallelism` 且 vertex 持有 keyed state 时，按区间路由：新 subtask `i` 的 `KeyGroupRange` 与旧 plan 各 subtask 的 `KeyGroupRange` 求交，从所有相交旧 `TaskStateSnapshot` 合并 keyed entries 并按新区间过滤。
+- **scale-up（4→16）**：新 subtask `i` 从旧 4 subtask 的 keyed snapshot 收集其新区间内的 group。
+- **scale-down（16→4）**：新 subtask `i` 从多个旧 snapshot 合并其新区间（跨多个旧 subtask 区间）的 group，非单 snapshot 内过滤。
+- **区间归属物化**：`TaskEpochSnapshot` 记录每个 keyed subtask 的 `KeyGroupRange`（`keyGroupRangeStart/End` + `parallelism` + `maxParallelism`），`CheckpointSerDe` 持久化，restore 可消费（缺失时 executor 从 parallelism 计数派生，不静默跳过）。
+- **不变量**：key→group 映射仅依赖 `maxParallelism`（job-global 常量），`parallelism` 变化只改 group→subtask 归属，不改 key→group。
+
+**为什么**：局部恢复避免 rescale 时全量状态加载；区间路由使 scale-up/scale-down 对称且可验证（每个新 subtask backend 持有的 key 数 = 其 `KeyGroupRange` 内的 key 数）。
+
+`maxParallelism` 默认不可改变。改变 `maxParallelism` 等价于 keyed state 重分片（key→group 映射变化），必须提供显式 migration action 和校验报告。`parallelism` 变化在 `maxParallelism` 上界内是合法 rescale。
 
 ### 8.6 模型演化边界
 
@@ -834,7 +844,7 @@ Parallelism 变化必须通过显式 rescale manifest 或 migration action 描�
 | 修改 operatorId | 默认拒绝，除非提供 old→new 映射 |
 | 修改 key selector/hash policy | 默认拒绝 |
 | 修改 state schema/codec | 默认拒绝，除非提供 schema migration |
-| 修改 stateShardCount | 默认拒绝，除非提供 reshard migration |
+| 修改 maxParallelism | 默认拒绝，除非提供 reshard migration（key→group 映射变化） |
 | 修改 sink protocol | 默认拒绝 strict exactly-once 恢复 |
 
 ### 8.7 Checkpoint 超时 Abort 与 Job 失败

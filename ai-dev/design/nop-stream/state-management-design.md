@@ -95,6 +95,17 @@ State (clear)
 
 `StateShard` 不是 Flink key-group 的照搬，只承担稳定状态路由职责，不引入 Flink 的序列化器或 ExecutionGraph 结构。`maxParallelism` 默认不可改变；改变等价于 keyed state 重分片，必须提供显式 migration action 和校验报告。
 
+### 3.1 Range Restore（Stage 35）
+
+**选了什么**：rescale（`parallelism` 变化、`maxParallelism` 不变）时，keyed state 按每个新 subtask 的 `KeyGroupRange` 局部恢复，而非全量加载后丢弃。两条 restore 路径各自正确，不混淆：
+
+- **全量 JSON 快照路径**（Memory 与 RocksDB 的 `restoreState`）：快照已物化在内存，按目标 `KeyGroupRange` 做 in-memory entry 过滤（`KeyGroupRangeRestoreFilter`），只写回区间内 key。后端持有一个可设的 `targetKeyGroupRange`，null 时全量恢复（向后兼容）。
+- **增量 checkpoint SST 路径**（`IncrementalSnapshotResult.MARKER_KEY`）：基于 Stage 34 的可排序 `keyGroupId` 二进制前缀做真正的 RocksDB range scan（`RocksDBIncrementalRestore.restoreRangeInto`）：重建 DB 目录后以 `[startGroup, endGroup)` 字节区间扫描，只复制区间内 entry 到 live backend。这是 Stage 31 deferred「Key-group range SST reading」的收口。
+
+**为什么**：局部恢复使 rescale 状态开销与切片大小成正比，而非全量。两条路径用同一可观测契约收敛：restore 后 backend 持有的 key 恰为其 `KeyGroupRange` 内的 key。
+
+**fail-fast**：增量 checkpoint restore 若未配置 `ISegmentStore` 则抛 `ERR_STREAM_STATE_ERROR`，不静默退化为全量 JSON（空）恢复。归属信息缺失（旧 checkpoint 无 `KeyGroupRange` 记录）时 executor 从 `parallelism` 计数派生区间，不静默丢弃或静默全量。
+
 ## 4. StatePath
 
 状态持久化路径由模型确定，不含运行时临时身份。
