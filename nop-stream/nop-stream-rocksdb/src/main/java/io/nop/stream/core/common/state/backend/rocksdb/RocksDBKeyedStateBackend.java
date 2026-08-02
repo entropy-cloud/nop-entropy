@@ -9,6 +9,8 @@ package io.nop.stream.core.common.state.backend.rocksdb;
 
 import java.io.File;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -16,7 +18,11 @@ import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicLong;
 
+import io.nop.stream.core.checkpoint.incremental.IncrementalSnapshotResult;
+import io.nop.stream.core.checkpoint.incremental.SharedStateHandle;
+import io.nop.stream.core.common.state.backend.rocksdb.incremental.RocksDBIncrementalSnapshotStrategy;
 import io.nop.stream.core.common.state.AggregatingState;
 import io.nop.stream.core.common.state.AggregatingStateDescriptor;
 import io.nop.stream.core.common.state.InternalAppendingState;
@@ -78,6 +84,22 @@ public class RocksDBKeyedStateBackend<K> implements IInternalStateBackend<K> {
     private final int shardCount;
     private final String dbPath;
     private final RocksDBOptionConfig optionConfig;
+
+    /**
+     * Stage 31: when {@code true}, {@link #snapshotState()} takes the incremental
+     * path — a native RocksDB checkpoint is created and SST files are content-addressed
+     * (see {@link RocksDBIncrementalSnapshotStrategy}). Defaults to {@code false} so
+     * the Stage 30 full-scan path remains the default (backward compatible).
+     */
+    private boolean incrementalCheckpointEnabled = false;
+
+    /**
+     * Base directory under which per-checkpoint directories ({@code cp-{id}}) are
+     * created by the incremental strategy. Defaults to {@code dbPath + "-checkpoints"}.
+     */
+    private String checkpointBaseDir;
+
+    private final transient AtomicLong incrementalSnapshotIdCounter = new AtomicLong(0);
 
     private transient RocksDB db;
     private transient ColumnFamilyHandle defaultCF;
@@ -424,7 +446,51 @@ public class RocksDBKeyedStateBackend<K> implements IInternalStateBackend<K> {
 
     @Override
     public StateSnapshot snapshotState() throws Exception {
+        if (incrementalCheckpointEnabled) {
+            return snapshotIncremental();
+        }
         return RocksDBSnapshotSerDe.snapshotState(this);
+    }
+
+    /**
+     * Stage 31 incremental snapshot: create a native RocksDB checkpoint, content-address
+     * the SST files, and embed the {@link IncrementalSnapshotResult} into a
+     * {@link StateSnapshot} under {@link IncrementalSnapshotResult#MARKER_KEY}. The
+     * registry registration and EpochManifest segments building happen at the
+     * coordinator (Phase 4); the task side only produces raw handles.
+     */
+    private StateSnapshot snapshotIncremental() throws Exception {
+        if (db == null) {
+            throw new StreamException(ERR_STREAM_STATE_ERROR)
+                    .param(ARG_DETAIL, "RocksDB instance is null; incremental snapshot unavailable");
+        }
+        RocksDBIncrementalSnapshotStrategy strategy = new RocksDBIncrementalSnapshotStrategy();
+        Path baseDir = Paths.get(checkpointBaseDir != null ? checkpointBaseDir : (dbPath + "-checkpoints"));
+        long cpId = incrementalSnapshotIdCounter.incrementAndGet();
+        IncrementalSnapshotResult result = strategy.doSnapshot(db, baseDir, cpId);
+
+        Map<String, Object> data = new LinkedHashMap<>();
+        data.put(IncrementalSnapshotResult.MARKER_KEY, result);
+        if (keyType != null) {
+            data.put("keyType", keyType.getName());
+        }
+        return new StateSnapshot(data);
+    }
+
+    public boolean isIncrementalCheckpointEnabled() {
+        return incrementalCheckpointEnabled;
+    }
+
+    public void setIncrementalCheckpointEnabled(boolean incrementalCheckpointEnabled) {
+        this.incrementalCheckpointEnabled = incrementalCheckpointEnabled;
+    }
+
+    public String getCheckpointBaseDir() {
+        return checkpointBaseDir;
+    }
+
+    public void setCheckpointBaseDir(String checkpointBaseDir) {
+        this.checkpointBaseDir = checkpointBaseDir;
     }
 
     @Override

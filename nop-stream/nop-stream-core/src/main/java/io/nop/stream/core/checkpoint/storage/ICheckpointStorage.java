@@ -51,4 +51,20 @@ public interface ICheckpointStorage {
     void storeEpochManifest(String jobId, String pipelineId, EpochManifest manifest) throws CheckpointStorageException;
 
     EpochManifest loadLatestEpochManifest(String jobId, String pipelineId) throws CheckpointStorageException;
+
+    /**
+     * Stage 31: load up to {@code count} most-recent retained EpochManifests for restart
+     * recovery (rebuilding {@code SharedStateRegistry} reference counts). The default
+     * implementation returns at most the latest manifest; storages that keep per-epoch
+     * manifest files (e.g. {@code LocalFileCheckpointStorage}) override to return the
+     * full retained set.
+     */
+    default java.util.List<EpochManifest> loadRetainedEpochManifests(String jobId, String pipelineId, int count)
+            throws CheckpointStorageException {
+        EpochManifest latest = loadLatestEpochManifest(jobId, pipelineId);
+        if (latest == null) {
+            return java.util.Collections.emptyList();
+        }
+        return java.util.Collections.singletonList(latest);
+    }
 }

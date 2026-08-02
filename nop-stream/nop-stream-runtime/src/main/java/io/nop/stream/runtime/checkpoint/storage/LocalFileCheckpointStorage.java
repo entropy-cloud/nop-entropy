@@ -540,6 +540,46 @@ public class LocalFileCheckpointStorage implements ICheckpointStorage {
         return validatePath(Paths.get(baseDir, jobId, pipelineId, epochId + EPOCH_MANIFEST_SUFFIX));
     }
 
+    /**
+     * Stage 31 restart recovery: load up to {@code count} most-recent retained epoch
+     * manifests (newest first) by listing the {@code .epoch} files for the job/pipeline.
+     */
+    @Override
+    public java.util.List<EpochManifest> loadRetainedEpochManifests(String jobId, String pipelineId, int count)
+            throws CheckpointStorageException {
+        if (count <= 0) {
+            return java.util.Collections.emptyList();
+        }
+        try {
+            Path jobDir = getJobDir(jobId, pipelineId);
+            lock.readLock().lock();
+            try {
+                if (!Files.exists(jobDir)) {
+                    return java.util.Collections.emptyList();
+                }
+                java.util.List<Path> files = new java.util.ArrayList<>();
+                try (Stream<Path> stream = Files.list(jobDir)) {
+                    stream.filter(p -> p.toString().endsWith(EPOCH_MANIFEST_SUFFIX)).forEach(files::add);
+                }
+                files.sort((a, b) -> Long.compare(
+                        extractIdFromFileName(b.getFileName().toString(), EPOCH_MANIFEST_SUFFIX),
+                        extractIdFromFileName(a.getFileName().toString(), EPOCH_MANIFEST_SUFFIX)));
+                java.util.List<EpochManifest> result = new java.util.ArrayList<>();
+                for (int i = 0; i < Math.min(count, files.size()); i++) {
+                    result.add(deserializeEpochManifest(files.get(i)));
+                }
+                return result;
+            } finally {
+                lock.readLock().unlock();
+            }
+        } catch (NopException e) {
+            throw e;
+        } catch (Exception e) {
+            throw new CheckpointStorageException(ERR_STREAM_CHECKPOINT_ERROR, e)
+                    .param(ARG_DETAIL, "loadRetainedEpochManifests failed");
+        }
+    }
+
     private byte[] serializeEpochManifest(EpochManifest manifest) {
         return CheckpointSerDe.serializeEpochManifest(manifest);
     }

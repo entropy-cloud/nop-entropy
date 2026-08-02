@@ -34,10 +34,16 @@ import io.nop.stream.core.checkpoint.CheckpointType;
 import io.nop.stream.core.checkpoint.CompletedCheckpoint;
 import io.nop.stream.core.checkpoint.EpochManifest;
 import io.nop.stream.core.checkpoint.EpochState;
+import io.nop.stream.core.checkpoint.StateSegmentDescriptor;
 import io.nop.stream.core.checkpoint.TaskLocation;
 import io.nop.stream.core.checkpoint.TaskStateSnapshot;
+import io.nop.stream.core.checkpoint.incremental.IncrementalSnapshotResult;
+import io.nop.stream.core.checkpoint.incremental.SharedStateHandle;
+import io.nop.stream.core.checkpoint.incremental.SharedStateRegistry;
+import io.nop.stream.core.checkpoint.incremental.SharedStateRegistryImpl;
 import io.nop.stream.core.checkpoint.participant.CheckpointParticipant;
 import io.nop.stream.core.checkpoint.storage.ICheckpointStorage;
+import io.nop.stream.core.checkpoint.storage.ISegmentStore;
 import io.nop.stream.core.common.state.CheckpointListener;
 import io.nop.stream.core.exceptions.StreamException;
 import io.nop.stream.core.model.StreamModelFingerprint;
@@ -117,6 +123,33 @@ public class CheckpointCoordinator {
     private final CheckpointIDCounter checkpointIdCounter;
     private final ICheckpointStorage checkpointStorage;
     private final CheckpointConfig config;
+
+    /**
+     * Stage 31: content-addressed side-channel store for shared SST segments. May be
+     * {@code null} for non-incremental jobs. When {@link #incrementalCheckpointEnabled}
+     * is {@code true}, this MUST be non-null (enforced by {@link #validateIncrementalConfig()}).
+     */
+    private ISegmentStore segmentStore;
+
+    /**
+     * Stage 31: enables incremental (segment-based) checkpoint processing on the
+     * coordinator side. Requires {@link #segmentStore} to be set and
+     * {@code asyncSnapshotEnabled=true} (see {@link #validateIncrementalConfig()}).
+     */
+    private boolean incrementalCheckpointEnabled;
+
+    /**
+     * Stage 31: reference-counting registry for shared SST segments. Job-scoped lifetime.
+     * Lazily initialized on first use; null when incremental is disabled.
+     */
+    private SharedStateRegistry sharedStateRegistry;
+
+    /**
+     * Stage 31: in-memory GC map (checkpointId → segments materialized for that checkpoint).
+     * Used by {@link #cleanupOldCheckpoints()} to drive {@code sharedStateRegistry.unregister}
+     * + {@code segmentStore.discardSegment} on subsumption. Guarded by the coordinator monitor.
+     */
+    private final Map<Long, List<StateSegmentDescriptor>> checkpointSegments = new ConcurrentHashMap<>();
 
     private final ConcurrentHashMap<Long, PendingCheckpoint> pendingCheckpoints;
     private final AtomicInteger numPendingCheckpoints;
@@ -240,6 +273,10 @@ public class CheckpointCoordinator {
             LOG.info("Checkpoint is disabled for job {}", jobId);
             return;
         }
+
+        // Stage 31: fail fast on inconsistent incremental-checkpoint config before the
+        // scheduler loop ever tries to complete a checkpoint (No-Silent-No-Op rule).
+        validateIncrementalConfig();
 
         scheduler = Executors.newSingleThreadScheduledExecutor(r -> {
             Thread t = new Thread(r, "checkpoint-coordinator-" + jobId);
@@ -432,6 +469,24 @@ public class CheckpointCoordinator {
         // fingerprint-observation ordering as the pre-async implementation. The manifest and
         // the completed checkpoint are immutable, so they can be safely handed to the persist
         // executor without holding the monitor during I/O.
+        //
+        // Stage 31 incremental: segments computation involves RocksDB file I/O + registry
+        // register + segment store copy and MUST NOT run under the monitor. For incremental
+        // mode we capture the fingerprint here (段1, under monitor) and defer manifest
+        // construction (with segments) to the persist executor (段2). See checkpoint-design.md
+        // §2.2 async persist timing.
+        if (incrementalCheckpointEnabled && sharedStateRegistry != null && segmentStore != null) {
+            final StreamModelFingerprint capturedFingerprint = currentFingerprint;
+            ExecutorService executor = getOrCreatePersistExecutor();
+            try {
+                executor.submit(() -> executeIncrementalPersistAsync(completed, pending, capturedFingerprint));
+            } catch (RejectedExecutionException ree) {
+                LOG.warn("Persist executor rejected incremental checkpoint {}, failing inline", checkpointId, ree);
+                onCompletePersistFailure(completed, pending, "submit incremental persist task", ree);
+            }
+            return;
+        }
+
         final EpochManifest manifest = buildEpochManifest(completed);
 
         if (!config.isAsyncSnapshotEnabled()) {
@@ -516,6 +571,156 @@ public class CheckpointCoordinator {
         synchronized (this) {
             onCompletePersistSuccess(completed, pending);
         }
+    }
+
+    /**
+     * Stage 31 incremental async persist path (段2 for incremental). Builds the content-
+     * addressed segments (registry register + segment store materialization — I/O, no
+     * monitor), constructs the EpochManifest with those segments, persists, then 段3a
+     * records the GC-map entry under monitor and runs success side effects.
+     */
+    private void executeIncrementalPersistAsync(
+            CompletedCheckpoint completed, PendingCheckpoint pending, StreamModelFingerprint fingerprint) {
+        long checkpointId = completed.getCheckpointId();
+
+        final List<StateSegmentDescriptor> segments;
+        try {
+            segments = buildAndMaterializeSegments(completed);
+        } catch (Exception e) {
+            LOG.error("Failed to build incremental segments for checkpoint {}", checkpointId, e);
+            synchronized (this) {
+                onCompletePersistFailure(completed, pending, "incremental segment build", e);
+            }
+            return;
+        }
+
+        final EpochManifest manifest = buildEpochManifest(completed, fingerprint, segments);
+
+        try {
+            checkpointStorage.storeCheckPoint(completed);
+        } catch (Exception e) {
+            synchronized (this) {
+                onCompletePersistFailure(completed, pending, "Failed to store checkpoint", e);
+            }
+            return;
+        }
+
+        try {
+            checkpointStorage.storeEpochManifest(jobId, pipelineId, manifest);
+            LOG.debug("Stored incremental EpochManifest for epoch {} ({} segments)",
+                    checkpointId, segments.size());
+        } catch (Exception e) {
+            synchronized (this) {
+                onCompletePersistFailure(completed, pending,
+                        "Failed to store EpochManifest for checkpoint " + checkpointId, e);
+            }
+            return;
+        }
+
+        synchronized (this) {
+            // GC map update happens under monitor after 段2 persist success (§ design).
+            checkpointSegments.put(checkpointId, segments);
+            onCompletePersistSuccess(completed, pending);
+        }
+    }
+
+    /**
+     * Stage 31: walk all task snapshots in the completed checkpoint, extract every
+     * {@link IncrementalSnapshotResult} marker, register each shared SST handle against
+     * {@link #sharedStateRegistry} (de-duplication), materialize new handles into
+     * {@link #segmentStore} (content-addressed copy), and build the
+     * {@link StateSegmentDescriptor} list for the EpochManifest. Per the design decision
+     * "Coordinator 从不直接操作 RocksDB 实例" — the coordinator only consumes the raw
+     * handles carried in the ACK; the task produced them.
+     *
+     * <p>Single-JVM model: the handle's {@code filePath} points at the task-local native
+     * checkpoint dir, which the coordinator (same JVM) reads and copies into the shared
+     * store. Cross-JVM transfer is Stage 40 (out of scope).
+     */
+    private List<StateSegmentDescriptor> buildAndMaterializeSegments(CompletedCheckpoint completed) throws java.io.IOException {
+        List<StateSegmentDescriptor> segments = new java.util.ArrayList<>();
+        if (completed.getTaskStates() == null) {
+            return segments;
+        }
+        for (TaskStateSnapshot taskSnap : completed.getTaskStates().values()) {
+            if (taskSnap == null || taskSnap.getKeyedStates() == null) {
+                continue;
+            }
+            for (Object value : taskSnap.getKeyedStates().values()) {
+                IncrementalSnapshotResult result = extractIncrementalResult(value);
+                if (result == null) {
+                    continue;
+                }
+                for (SharedStateHandle handle : result.getSstHandles()) {
+                    SharedStateHandle canonical = sharedStateRegistry.register(handle);
+                    String hash = canonical.getStateObjectId();
+                    // Materialize into the shared store only when not already present
+                    // (content-addressed reuse — avoids redundant copies of shared SSTs).
+                    if (!segmentStore.segmentExists(hash)) {
+                        segmentStore.storeSegment(java.nio.file.Path.of(handle.getFilePath()), hash);
+                    }
+                    segments.add(new StateSegmentDescriptor(
+                            StateSegmentDescriptor.SEGMENT_TYPE_ROCKSDB_SST,
+                            hash,
+                            StateSegmentDescriptor.CODEC_IDENTITY,
+                            hash,
+                            StateSegmentDescriptor.SCHEMA_VERSION_ROCKSDB_SST));
+                }
+            }
+        }
+        return segments;
+    }
+
+    /**
+     * Extract an {@link IncrementalSnapshotResult} from a keyed-state value, accepting both
+     * the live typed object (embedded execution, single JVM) and a plain {@code StateSnapshot}
+     * wrapping it. Returns {@code null} when the value is not an incremental snapshot.
+     */
+    @SuppressWarnings("unchecked")
+    private IncrementalSnapshotResult extractIncrementalResult(Object value) {
+        if (value instanceof IncrementalSnapshotResult) {
+            return (IncrementalSnapshotResult) value;
+        }
+        if (value instanceof io.nop.stream.core.common.state.backend.StateSnapshot) {
+            io.nop.stream.core.common.state.backend.StateSnapshot ss =
+                    (io.nop.stream.core.common.state.backend.StateSnapshot) value;
+            Object marker = ss.getStateData().get(IncrementalSnapshotResult.MARKER_KEY);
+            if (marker instanceof IncrementalSnapshotResult) {
+                return (IncrementalSnapshotResult) marker;
+            }
+            if (marker instanceof Map) {
+                return reconstructFromMap((Map<String, Object>) marker);
+            }
+        }
+        return null;
+    }
+
+    @SuppressWarnings("unchecked")
+    private IncrementalSnapshotResult reconstructFromMap(Map<String, Object> map) {
+        // Best-effort reconstruction of a JSON-deserialized marker (cross-JVM / restored path).
+        Object cpId = map.get("checkpointId");
+        long checkpointId = cpId instanceof Number ? ((Number) cpId).longValue() : -1;
+        Object total = map.get("totalSize");
+        long totalSize = total instanceof Number ? ((Number) total).longValue() : 0L;
+        String nonSstDir = (String) map.get("nonSstDir");
+        List<String> nonSstNames = (List<String>) map.get("nonSstFileNames");
+        List<SharedStateHandle> handles = new java.util.ArrayList<>();
+        Object handlesRaw = map.get("sstHandles");
+        if (handlesRaw instanceof List) {
+            for (Object h : (List<Object>) handlesRaw) {
+                if (h instanceof Map) {
+                    Map<String, Object> hm = (Map<String, Object>) h;
+                    String hash = (String) hm.get("contentHash");
+                    String path = (String) hm.get("filePath");
+                    Object sz = hm.get("size");
+                    long size = sz instanceof Number ? ((Number) sz).longValue() : 0L;
+                    if (hash != null) {
+                        handles.add(new SharedStateHandle(hash, path, size));
+                    }
+                }
+            }
+        }
+        return new IncrementalSnapshotResult(checkpointId, handles, nonSstDir, nonSstNames, totalSize);
     }
 
     /**
@@ -760,10 +965,58 @@ public class CheckpointCoordinator {
                     CompletedCheckpoint old = allCheckpoints.get(i);
                     checkpointStorage.deleteCheckpoint(jobId, old.getPipelineId(), old.getCheckpointId());
                     LOG.debug("Deleted old checkpoint {}", old.getCheckpointId());
+                    // Stage 31: subsumption GC — release this checkpoint's segments from the
+                    // shared-state registry and physically discard any that drop to zero refs.
+                    gcSegmentsForCheckpoint(old.getCheckpointId());
                 }
             }
         } catch (Exception e) {
             LOG.warn("Failed to cleanup old checkpoints", e);
+        }
+    }
+
+    /**
+     * Stage 31 subsumption GC for one checkpoint: unregister each of its segments from
+     * {@link #sharedStateRegistry} (in-memory, fast) and off-load the discard of any
+     * zero-reference handles to the persist executor so monitor throughput is not impacted
+     * by segment-store file deletion. Per Design Decision: registry owns ref-count,
+     * {@code ISegmentStore} owns file deletion.
+     */
+    private void gcSegmentsForCheckpoint(long checkpointId) {
+        if (sharedStateRegistry == null || segmentStore == null) {
+            return;
+        }
+        List<StateSegmentDescriptor> segs = checkpointSegments.remove(checkpointId);
+        if (segs == null || segs.isEmpty()) {
+            return;
+        }
+        List<SharedStateHandle> toDiscard = new java.util.ArrayList<>();
+        for (StateSegmentDescriptor seg : segs) {
+            toDiscard.addAll(sharedStateRegistry.unregister(seg.getPath()));
+        }
+        if (toDiscard.isEmpty()) {
+            return;
+        }
+        ExecutorService exec = getOrCreatePersistExecutor();
+        for (SharedStateHandle handle : toDiscard) {
+            final String hash = handle.getStateObjectId();
+            try {
+                exec.submit(() -> {
+                    try {
+                        segmentStore.discardSegment(hash);
+                    } catch (Exception dex) {
+                        LOG.warn("Failed to discard segment {} for job {}", hash, jobId, dex);
+                    }
+                    return null;
+                });
+            } catch (RejectedExecutionException ree) {
+                // Shutdown race: discard inline best-effort rather than leaking the file.
+                try {
+                    segmentStore.discardSegment(hash);
+                } catch (Exception dex) {
+                    LOG.warn("Inline discard of segment {} failed for job {}", hash, jobId, dex);
+                }
+            }
         }
     }
 
@@ -882,9 +1135,19 @@ public class CheckpointCoordinator {
     }
 
     /**
-     * Build an EpochManifest from a CompletedCheckpoint.
+     * Build an EpochManifest from a CompletedCheckpoint (non-incremental: segments empty).
      */
     private EpochManifest buildEpochManifest(CompletedCheckpoint completed) {
+        return buildEpochManifest(completed, currentFingerprint, null);
+    }
+
+    /**
+     * Build an EpochManifest, optionally carrying Stage 31 incremental segments and an
+     * explicitly-captured fingerprint (段1→段2 handoff for incremental mode).
+     */
+    private EpochManifest buildEpochManifest(CompletedCheckpoint completed,
+                                             StreamModelFingerprint fingerprint,
+                                             List<StateSegmentDescriptor> segments) {
         return new EpochManifest(
                 completed.getCheckpointId(),
                 completed.getJobId(),
@@ -893,8 +1156,8 @@ public class CheckpointCoordinator {
                 completed.getCheckpointType(),
                 EpochState.COMMITTED,
                 completed.getTaskStates(),
-                currentFingerprint,
-                null  // segments - will be populated when segment-based storage is integrated
+                fingerprint,
+                segments  // null → empty list inside EpochManifest constructor
         );
     }
 
@@ -915,5 +1178,144 @@ public class CheckpointCoordinator {
 
     public StreamModelFingerprint getCurrentFingerprint() {
         return currentFingerprint;
+    }
+
+    // --- Stage 31: incremental checkpoint (segment store) wiring ---
+
+    public ISegmentStore getSegmentStore() {
+        return segmentStore;
+    }
+
+    public void setSegmentStore(ISegmentStore segmentStore) {
+        this.segmentStore = segmentStore;
+    }
+
+    public boolean isIncrementalCheckpointEnabled() {
+        return incrementalCheckpointEnabled;
+    }
+
+    public void setIncrementalCheckpointEnabled(boolean incrementalCheckpointEnabled) {
+        this.incrementalCheckpointEnabled = incrementalCheckpointEnabled;
+        if (incrementalCheckpointEnabled && sharedStateRegistry == null) {
+            this.sharedStateRegistry = new SharedStateRegistryImpl();
+        }
+    }
+
+    /**
+     * Stage 31 diagnostic accessor (exposed for tests / anti-hollow verification). Returns
+     * the job-scoped shared-state registry, or {@code null} when incremental is disabled.
+     */
+    public SharedStateRegistry getSharedStateRegistry() {
+        return sharedStateRegistry;
+    }
+
+    /**
+     * Stage 31 diagnostic accessor: the segments recorded for a checkpoint (for GC), or
+     * empty if none.
+     */
+    public List<StateSegmentDescriptor> getCheckpointSegments(long checkpointId) {
+        return checkpointSegments.getOrDefault(checkpointId, Collections.emptyList());
+    }
+
+    /**
+     * Validate the incremental-checkpoint configuration. Called at scheduler start so a
+     * misconfigured job fails fast instead of silently degrading. Per the No-Silent-No-Op
+     * rule (Plan #24): {@code incrementalCheckpointEnabled=true} with no {@code segmentStore}
+     * throws {@link UnsupportedOperationException} rather than silently falling back to the
+     * non-incremental path. The sync/incremental mutex (incremental requires async snapshot)
+     * is also enforced here (Design Decision: sync/incremental 互斥).
+     */
+    public void validateIncrementalConfig() {
+        if (incrementalCheckpointEnabled) {
+            if (segmentStore == null) {
+                throw new UnsupportedOperationException(
+                        "incrementalCheckpointEnabled=true but segmentStore is null for job " + jobId
+                                + " — incremental checkpoints require an ISegmentStore (no silent fallback)");
+            }
+            if (!config.isAsyncSnapshotEnabled()) {
+                throw new IllegalStateException(
+                        "incrementalCheckpointEnabled=true but asyncSnapshotEnabled=false for job " + jobId
+                                + " — incremental checkpoints require async snapshot (segments computation "
+                                + "involves RocksDB I/O + SHA-256 and cannot run under the sync monitor path)");
+            }
+        }
+    }
+
+    /**
+     * Stage 31 restart recovery: rebuild the {@link SharedStateRegistry} reference counts
+     * and the {@link #checkpointSegments} GC map from the retained EpochManifests, then
+     * run a one-time orphan-segment cleanup so files left dangling by a crash are removed.
+     * Idempotent: safe to call on every coordinator (re)start. No-op when incremental is
+     * disabled. Errors are logged and swallowed so a recovery failure does not prevent the
+     * coordinator from starting (segments can be re-materialized on the next checkpoint).
+     */
+    public synchronized void restoreSharedStateRegistry() {
+        if (!incrementalCheckpointEnabled || sharedStateRegistry == null || segmentStore == null) {
+            return;
+        }
+        checkpointSegments.clear();
+        try {
+            List<EpochManifest> retained = checkpointStorage.loadRetainedEpochManifests(
+                    jobId, pipelineId, config.getMaxRetainedCheckpoints());
+            Set<String> referenced = new HashSet<>();
+            for (EpochManifest manifest : retained) {
+                List<StateSegmentDescriptor> segs = manifest.getSegments();
+                if (segs == null || segs.isEmpty()) {
+                    continue;
+                }
+                List<StateSegmentDescriptor> registered = new java.util.ArrayList<>();
+                for (StateSegmentDescriptor seg : segs) {
+                    seg.validateCodec();
+                    String hash = seg.getPath();
+                    sharedStateRegistry.register(new SharedStateHandle(hash, null, 0L));
+                    referenced.add(hash);
+                    registered.add(seg);
+                }
+                checkpointSegments.put(manifest.getEpochId(), registered);
+            }
+            LOG.info("Restored shared-state registry for job {}: {} retained manifests, {} distinct segments",
+                    jobId, retained.size(), referenced.size());
+            cleanupOrphanSegments(referenced);
+        } catch (Exception e) {
+            LOG.warn("Failed to restore shared-state registry for job {} — segments may be re-materialized on next checkpoint",
+                    jobId, e);
+        }
+    }
+
+    /**
+     * Stage 31 one-time orphan cleanup: scan the {@link ISegmentStore}'s shared-state area
+     * and discard any segment file not currently referenced by the registry. Called after
+     * {@link #restoreSharedStateRegistry()} rebuilds the reference set.
+     */
+    private void cleanupOrphanSegments(Set<String> referencedHashes) {
+        if (!(segmentStore instanceof io.nop.stream.core.checkpoint.storage.LocalFileSegmentStore)) {
+            // Only the local-file store exposes a scanable base directory; remote/JDBC stores
+            // would need their own enumeration. LocalFile is the Stage 31 supported store.
+            return;
+        }
+        io.nop.stream.core.checkpoint.storage.LocalFileSegmentStore localStore =
+                (io.nop.stream.core.checkpoint.storage.LocalFileSegmentStore) segmentStore;
+        java.nio.file.Path sharedDir = localStore.getBaseDir().resolve("shared-state");
+        if (!java.nio.file.Files.exists(sharedDir)) {
+            return;
+        }
+        try (java.util.stream.Stream<java.nio.file.Path> walk = java.nio.file.Files.walk(sharedDir)) {
+            walk.filter(java.nio.file.Files::isRegularFile)
+                    .filter(p -> p.getFileName().toString().endsWith(".sst"))
+                    .forEach(p -> {
+                        String name = p.getFileName().toString();
+                        String hash = name.substring(0, name.length() - ".sst".length());
+                        if (!referencedHashes.contains(hash)) {
+                            try {
+                                java.nio.file.Files.deleteIfExists(p);
+                                LOG.debug("Deleted orphan segment {} during restart cleanup", hash);
+                            } catch (Exception dex) {
+                                LOG.warn("Failed to delete orphan segment {} for job {}", hash, jobId, dex);
+                            }
+                        }
+                    });
+        } catch (Exception e) {
+            LOG.warn("Orphan segment cleanup scan failed for job {}", jobId, e);
+        }
     }
 }
