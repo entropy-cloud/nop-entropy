@@ -10,9 +10,14 @@ package io.nop.stream.core.common.state.shard;
 import java.util.Objects;
 
 /**
- * A key wrapper that prefixes the original key with a shard ID.
+ * A key wrapper that prefixes the original key with a key-group id.
  * Used internally by {@link io.nop.stream.core.common.state.backend.memory.MemoryKeyedStateBackend}
- * for shard-aware key routing.
+ * for group-aware key routing.
+ *
+ * <p>Stage 34: the {@code shardId} field now holds the key-group id (computed
+ * via {@link KeyGroupAssignment#assignToKeyGroup(Object, int)}). The field name
+ * is retained for binary/source compatibility; {@link #getKeyGroupId()} is the
+ * preferred accessor.
  */
 public class ShardPrefixedKey {
 
@@ -25,6 +30,14 @@ public class ShardPrefixedKey {
     }
 
     public int getShardId() {
+        return shardId;
+    }
+
+    /**
+     * Stage 34: the key-group id this key is routed to. Identical to
+     * {@link #getShardId()} (the underlying field).
+     */
+    public int getKeyGroupId() {
         return shardId;
     }
 
@@ -47,6 +60,6 @@ public class ShardPrefixedKey {
 
     @Override
     public String toString() {
-        return "ShardPrefixedKey{shardId=" + shardId + ", key=" + key + '}';
+        return "ShardPrefixedKey{keyGroupId=" + shardId + ", key=" + key + '}';
     }
 }

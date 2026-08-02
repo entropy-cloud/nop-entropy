@@ -62,7 +62,7 @@ class TestRocksDBBackendSkeleton {
         RocksDBKeyEncoder.DecodedKey dk = encodeAndDecode(IKeyedStateBackend.DEFAULT_NAMESPACE, "user123", 0, String.class);
         assertEquals(IKeyedStateBackend.DEFAULT_NAMESPACE, dk.namespace);
         assertEquals("user123", dk.rawKey);
-        assertEquals(0, dk.shardId);
+        assertEquals(0, dk.keyGroupId);
     }
 
     @Test
@@ -72,7 +72,7 @@ class TestRocksDBBackendSkeleton {
         RocksDBKeyEncoder.DecodedKey dk = RocksDBKeyEncoder.decode(encoded, Long.class);
         assertEquals(IKeyedStateBackend.DEFAULT_NAMESPACE, dk.namespace);
         assertEquals(42L, dk.rawKey);
-        assertEquals(3, dk.shardId);
+        assertEquals(3, dk.keyGroupId);
     }
 
     @Test
@@ -144,8 +144,8 @@ class TestRocksDBBackendSkeleton {
         assertEquals(baseKey.length, computedBaseLen);
     }
 
-    private RocksDBKeyEncoder.DecodedKey encodeAndDecode(Object namespace, Object key, int shardId, Class<?> keyType) {
-        byte[] encoded = RocksDBKeyEncoder.encode(namespace, key, shardId);
+    private RocksDBKeyEncoder.DecodedKey encodeAndDecode(Object namespace, Object key, int keyGroupId, Class<?> keyType) {
+        byte[] encoded = RocksDBKeyEncoder.encode(namespace, key, keyGroupId);
         return RocksDBKeyEncoder.decode(encoded, keyType);
     }
 

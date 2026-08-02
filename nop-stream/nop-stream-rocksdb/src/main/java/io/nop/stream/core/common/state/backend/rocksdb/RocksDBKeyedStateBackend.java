@@ -45,7 +45,8 @@ import io.nop.stream.core.common.state.ValueStateDescriptor;
 import io.nop.stream.core.checkpoint.SerializerFingerprint;
 import io.nop.stream.core.common.state.backend.IInternalStateBackend;
 import io.nop.stream.core.common.state.backend.StateSnapshot;
-import io.nop.stream.core.common.state.shard.StateShard;
+import io.nop.stream.core.common.state.shard.KeyGroup;
+import io.nop.stream.core.common.state.shard.KeyGroupAssignment;
 import io.nop.stream.core.exceptions.StreamException;
 
 import org.rocksdb.ColumnFamilyDescriptor;
@@ -87,7 +88,11 @@ public class RocksDBKeyedStateBackend<K> implements IInternalStateBackend<K> {
     }
 
     private final Class<K> keyType;
-    private final int shardCount;
+    /**
+     * Stage 34: job-global key-group upper bound. Replaces the legacy
+     * {@code shardCount} field; semantics are identical (key&#8594;group modulus).
+     */
+    private final int maxParallelism;
     private final String dbPath;
     private final RocksDBOptionConfig optionConfig;
 
@@ -131,11 +136,11 @@ public class RocksDBKeyedStateBackend<K> implements IInternalStateBackend<K> {
      */
     private TtlTimeProvider ttlClock = SystemTtlTimeProvider.INSTANCE;
 
-    public RocksDBKeyedStateBackend(String dbPath, Class<K> keyType, int shardCount,
+    public RocksDBKeyedStateBackend(String dbPath, Class<K> keyType, int maxParallelism,
                                     RocksDBOptionConfig optionConfig) {
         this.dbPath = dbPath;
         this.keyType = keyType;
-        this.shardCount = shardCount;
+        this.maxParallelism = maxParallelism;
         this.optionConfig = optionConfig != null ? optionConfig : new RocksDBOptionConfig();
         openDB();
     }
@@ -242,21 +247,33 @@ public class RocksDBKeyedStateBackend<K> implements IInternalStateBackend<K> {
     }
 
     int getShardCount() {
-        return shardCount;
+        return maxParallelism;
     }
 
-    int computeShardId(Object key) {
-        if (shardCount <= 1) {
+    /**
+     * Stage 34: job-global key-group upper bound for this backend.
+     */
+    int getMaxParallelism() {
+        return maxParallelism;
+    }
+
+    /**
+     * Stage 34: compute the key-group id for {@code key} under this backend's
+     * job-global {@code maxParallelism}. The result drives the sortable binary
+     * prefix written by {@link RocksDBKeyEncoder#encode}.
+     */
+    int computeKeyGroupId(Object key) {
+        if (maxParallelism <= 1) {
             return 0;
         }
-        return (StateShard.stableHash(key) & 0x7FFFFFFF) % shardCount;
+        return KeyGroupAssignment.assignToKeyGroup(key, maxParallelism);
     }
 
     /**
      * Build the composite storage key for the current key/namespace.
      */
     byte[] buildStorageKey(Object namespace, Object rawKey) {
-        return RocksDBKeyEncoder.encode(namespace, rawKey, computeShardId(rawKey));
+        return RocksDBKeyEncoder.encode(namespace, rawKey, computeKeyGroupId(rawKey));
     }
 
     byte[] buildStorageKeyForCurrent() {
@@ -599,6 +616,10 @@ public class RocksDBKeyedStateBackend<K> implements IInternalStateBackend<K> {
 
         Map<String, Object> data = new LinkedHashMap<>();
         data.put(IncrementalSnapshotResult.MARKER_KEY, result);
+        // Stage 34: stamp the binary key-layout version so the incremental
+        // restore path can fail-fast on SST files produced by the legacy
+        // encoder (whose shard-id was not a sortable key-group prefix).
+        data.put(RocksDBKeyEncoder.KEY_LAYOUT_VERSION_FIELD, RocksDBKeyEncoder.KEY_LAYOUT_VERSION);
         if (keyType != null) {
             data.put("keyType", keyType.getName());
         }

@@ -32,7 +32,7 @@ import io.nop.stream.core.common.state.TtlTimeProvider;
 import io.nop.stream.core.common.state.ValueState;
 import io.nop.stream.core.common.state.ValueStateDescriptor;
 import io.nop.stream.core.checkpoint.SerializerFingerprint;
-import io.nop.stream.core.common.state.shard.StateShard;
+import io.nop.stream.core.common.state.shard.KeyGroupAssignment;
 import io.nop.stream.core.exceptions.StreamException;
 
 import static io.nop.stream.core.exceptions.NopStreamErrors.ARG_ACTUAL_CHECKSUM;
@@ -70,7 +70,11 @@ public class MemoryKeyedStateBackend<K> implements IInternalStateBackend<K>, Ser
 
     private final Class<K> keyType;
 
-    private final int shardCount;
+    /**
+     * Stage 34: job-global key-group upper bound. Replaces the legacy
+     * {@code shardCount} field; semantics are identical (key&#8594;group modulus).
+     */
+    private final int maxParallelism;
 
     private transient K currentKey;
 
@@ -91,12 +95,12 @@ public class MemoryKeyedStateBackend<K> implements IInternalStateBackend<K>, Ser
         this(keyType, 1);
     }
 
-    public MemoryKeyedStateBackend(Class<K> keyType, int shardCount) {
-        if (shardCount < 1) {
-            throw new StreamException(ERR_STREAM_INVALID_ARG).param(ARG_ARG_NAME, "shardCount").param(ARG_DETAIL, "must be at least 1");
+    public MemoryKeyedStateBackend(Class<K> keyType, int maxParallelism) {
+        if (maxParallelism < 1) {
+            throw new StreamException(ERR_STREAM_INVALID_ARG).param(ARG_ARG_NAME, "maxParallelism").param(ARG_DETAIL, "must be at least 1");
         }
         this.keyType = keyType;
-        this.shardCount = shardCount;
+        this.maxParallelism = maxParallelism;
     }
 
     @Override
@@ -334,7 +338,14 @@ public class MemoryKeyedStateBackend<K> implements IInternalStateBackend<K>, Ser
     }
 
     int getShardCount() {
-        return shardCount;
+        return maxParallelism;
+    }
+
+    /**
+     * Stage 34: job-global key-group upper bound for this backend.
+     */
+    int getMaxParallelism() {
+        return maxParallelism;
     }
 
     protected TypedNamespaceAndKey getTypedNamespaceAndKey() {
@@ -342,11 +353,15 @@ public class MemoryKeyedStateBackend<K> implements IInternalStateBackend<K>, Ser
     }
 
     Object routeKey(Object key) {
-        if (shardCount <= 1) {
+        if (maxParallelism <= 1) {
             return key;
         }
-        int shardId = (StateShard.stableHash(key) & 0x7FFFFFFF) % shardCount;
-        return new ShardPrefixedKey(shardId, key);
+        // Stage 34: route via the stable key-group mapping. maxParallelism is
+        // the job-global upper bound; the resulting id is wrapped as
+        // ShardPrefixedKey.keyGroupId so the memory HashMap isolates keys by
+        // group, mirroring the RocksDB binary key-group prefix.
+        int keyGroupId = KeyGroupAssignment.assignToKeyGroup(key, maxParallelism);
+        return new ShardPrefixedKey(keyGroupId, key);
     }
 
     @Override

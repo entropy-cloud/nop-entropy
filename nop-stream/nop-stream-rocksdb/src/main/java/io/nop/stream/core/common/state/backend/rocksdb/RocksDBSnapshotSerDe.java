@@ -82,6 +82,11 @@ final class RocksDBSnapshotSerDe {
 
         Map<String, Object> stateData = new LinkedHashMap<>();
         stateData.put("keyType", backend.getKeyType().getName());
+        // Stage 34: stamp the binary key-layout version for observability and
+        // so the restore path can detect (and reject) incompatible legacy
+        // RocksDB snapshots. The full snapshot stores raw user keys, so an
+        // absent version (cross-backend Memory snapshot) remains restorable.
+        stateData.put(RocksDBKeyEncoder.KEY_LAYOUT_VERSION_FIELD, RocksDBKeyEncoder.KEY_LAYOUT_VERSION);
 
         Map<String, Object> statesMap = new LinkedHashMap<>();
         for (Map.Entry<String, Object> entry : states.entrySet()) {
@@ -403,6 +408,11 @@ final class RocksDBSnapshotSerDe {
             return;
         }
 
+        // Stage 34: reject snapshots that carry an incompatible RocksDB binary
+        // key layout. An absent version field is tolerated on the full path
+        // (raw user keys are layout-agnostic, e.g. cross-backend Memory snapshots).
+        RocksDBKeyEncoder.verifyKeyLayoutVersion(snapshot.getStateData(), false);
+
         Map<String, Object> stateData = snapshot.getStateData();
         Map<String, Object> statesMap = (Map<String, Object>) stateData.get("states");
         if (statesMap == null || statesMap.isEmpty()) {
@@ -465,9 +475,9 @@ final class RocksDBSnapshotSerDe {
 
     private static void putEntry(RocksDBKeyedStateBackend<?> backend, ColumnFamilyHandle cf,
                                  Object namespace, Object rawKey, byte[] valueBytes) {
-        int shardId = backend.computeShardId(rawKey);
+        int keyGroupId = backend.computeKeyGroupId(rawKey);
         byte[] key = RocksDBKeyEncoder.encode(
-                RocksDBKeyEncoder.deserializeNamespace(namespace), rawKey, shardId);
+                RocksDBKeyEncoder.deserializeNamespace(namespace), rawKey, keyGroupId);
         try {
             backend.getDb().put(cf, key, valueBytes);
         } catch (Exception e) {
@@ -523,8 +533,8 @@ final class RocksDBSnapshotSerDe {
             for (Map<String, Object> e : entries) {
                 Object namespace = RocksDBKeyEncoder.deserializeNamespace(e.get("namespace"));
                 Object rawKey = e.get("key");
-                int shardId = backend.computeShardId(rawKey);
-                byte[] baseKey = RocksDBKeyEncoder.encode(namespace, rawKey, shardId);
+                int keyGroupId = backend.computeKeyGroupId(rawKey);
+                byte[] baseKey = RocksDBKeyEncoder.encode(namespace, rawKey, keyGroupId);
                 List<List<Object>> mapEntries = (List<List<Object>>) e.get("mapValue");
                 if (mapEntries != null) {
                     for (List<Object> me : mapEntries) {
