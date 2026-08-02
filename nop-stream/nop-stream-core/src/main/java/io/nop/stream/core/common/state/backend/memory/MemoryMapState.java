@@ -11,17 +11,21 @@ import java.io.Serializable;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Iterator;
+import java.util.LinkedHashMap;
 import java.util.Map;
 
 import io.nop.stream.core.common.state.MapState;
 import io.nop.stream.core.common.state.MapStateDescriptor;
+import io.nop.stream.core.common.state.StateDescriptor;
+import io.nop.stream.core.common.state.StateMigrationFunction;
 import io.nop.stream.core.common.state.TtlContext;
+import io.nop.stream.core.common.state.backend.MigratableKeyedState;
 
-class MemoryMapState<UK, UV> implements MapState<UK, UV>, Serializable, TtlAware {
+class MemoryMapState<UK, UV> implements MapState<UK, UV>, Serializable, TtlAware, MigratableKeyedState {
     private static final long serialVersionUID = 1L;
 
     MemoryKeyedStateBackend<?> backend;
-    final MapStateDescriptor<UK, UV> descriptor;
+    MapStateDescriptor<UK, UV> descriptor;
     final Map<TypedNamespaceAndKey, Map<UK, UV>> storage = new HashMap<>();
 
     TtlContext<TypedNamespaceAndKey> ttl;
@@ -33,6 +37,36 @@ class MemoryMapState<UK, UV> implements MapState<UK, UV>, Serializable, TtlAware
 
     void rebind(MemoryKeyedStateBackend<?> newBackend) {
         this.backend = newBackend;
+    }
+
+    @Override
+    public StateDescriptor<?> getMigrationDescriptor() {
+        return descriptor;
+    }
+
+    @Override
+    @SuppressWarnings("unchecked")
+    public void applyMigration(StateMigrationFunction<?, ?> migration) {
+        StateMigrationFunction<Object, Object> fn = (StateMigrationFunction<Object, Object>) migration;
+        for (Map<UK, UV> inner : storage.values()) {
+            Map<UK, UV> migrated = new LinkedHashMap<>();
+            for (Map.Entry<UK, UV> e : inner.entrySet()) {
+                UV old = e.getValue();
+                if (old == null) {
+                    migrated.put(e.getKey(), null);
+                } else {
+                    migrated.put(e.getKey(), (UV) fn.migrate(old));
+                }
+            }
+            inner.clear();
+            inner.putAll(migrated);
+        }
+    }
+
+    @Override
+    @SuppressWarnings("unchecked")
+    public void replaceDescriptor(StateDescriptor<?> newDescriptor) {
+        this.descriptor = (MapStateDescriptor<UK, UV>) newDescriptor;
     }
 
     @Override

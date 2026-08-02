@@ -41,10 +41,11 @@ import static org.junit.jupiter.api.Assertions.*;
  *
  * <p>The plan calls for a focused, anti-hollow test file that exercises the
  * exact production validator: same fingerprint succeeds, different fingerprint
- * throws. Per-state schema fingerprint (SerializerFingerprint /
- * stateFormatVersion / StateMigrationFunction) is intentionally zero-implemented
- * in the live repo and is owned by Stage 29 (see Deferred But Adjudicated in
- * the plan) — those scenarios are NOT simulated with @Disabled here.
+ * throws. Per-state schema fingerprint migration ({@code StateMigrationFunction},
+ * Stage 33) has landed in the state backend's {@code verifySchemaCompatibility}
+ * path and is covered by {@code TestStateMigration} / {@code TestRocksDBStateMigration};
+ * those per-state migration scenarios are NOT duplicated here (this test stays
+ * focused on the DAG-level fingerprint validator).
  */
 public class TestStreamModelFingerprintRecoveryCompat {
 

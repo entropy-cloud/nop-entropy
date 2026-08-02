@@ -178,4 +178,36 @@ public final class StateSchemaResolver {
         }
         return Objects.equals(a.getSchemaChecksum(), b.getSchemaChecksum());
     }
+
+    /**
+     * Stage 33: consult the (possibly absent) migration registry for a function
+     * bridging {@code source} → {@code target} on the named state.
+     *
+     * <p>Matching rule (per {@code checkpoint-design.md} §8.4.1 and
+     * {@link StateMigrationFunction}): the registered function is selected when
+     * its {@link StateMigrationFunction#sourceFingerprint} equals {@code source}
+     * and its {@link StateMigrationFunction#targetFingerprint} equals
+     * {@code target}. Equality is on the {@code schemaChecksum} field, since
+     * {@code schemaVersion} is currently fixed at 1 (see
+     * {@link SerializerFingerprint#DEFAULT_SCHEMA_VERSION}).
+     *
+     * @param registry  migration registry (e.g. {@code StreamComponents}); may be
+     *                  {@code null} — returns {@code null} without throwing so
+     *                  the caller fails fast with
+     *                  {@code ERR_STREAM_STATE_SCHEMA_MISMATCH}
+     * @param stateName keyed state name
+     * @param source    restored-state fingerprint (old schema)
+     * @param target    current-descriptor fingerprint (new schema)
+     * @return the matching migration function, or {@code null} if no registry or
+     *         no match (no silent default)
+     */
+    public static StateMigrationFunction<?, ?> findMigration(StateMigrationRegistry registry,
+                                                             String stateName,
+                                                             SerializerFingerprint source,
+                                                             SerializerFingerprint target) {
+        if (registry == null) {
+            return null;
+        }
+        return registry.findMigration(stateName, source, target);
+    }
 }

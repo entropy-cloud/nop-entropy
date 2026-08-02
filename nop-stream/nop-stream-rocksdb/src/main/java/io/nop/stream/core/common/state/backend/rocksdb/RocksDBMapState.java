@@ -9,26 +9,32 @@ package io.nop.stream.core.common.state.backend.rocksdb;
 
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 
 import io.nop.core.lang.json.JsonTool;
 
 import io.nop.stream.core.common.state.MapState;
 import io.nop.stream.core.common.state.MapStateDescriptor;
+import io.nop.stream.core.common.state.StateDescriptor;
+import io.nop.stream.core.common.state.StateMigrationFunction;
 import io.nop.stream.core.common.state.TtlContext;
+import io.nop.stream.core.common.state.backend.MigratableKeyedState;
 
 import io.nop.stream.core.exceptions.StreamException;
 
 import org.rocksdb.ColumnFamilyHandle;
+import org.rocksdb.RocksDBException;
 import org.rocksdb.RocksIterator;
 
-class RocksDBMapState<UK, UV> implements MapState<UK, UV>, RocksDbTtlAware {
+class RocksDBMapState<UK, UV> implements MapState<UK, UV>, RocksDbTtlAware, MigratableKeyedState {
 
     private final RocksDBKeyedStateBackend<?> backend;
     final ColumnFamilyHandle cfHandle;
-    final MapStateDescriptor<UK, UV> descriptor;
+    MapStateDescriptor<UK, UV> descriptor;
     private TtlContext<ByteBuffer> ttl;
 
     RocksDBMapState(RocksDBKeyedStateBackend<?> backend, ColumnFamilyHandle cfHandle,
@@ -51,6 +57,49 @@ class RocksDBMapState<UK, UV> implements MapState<UK, UV>, RocksDbTtlAware {
     @Override
     public ColumnFamilyHandle cfHandle() {
         return cfHandle;
+    }
+
+    @Override
+    public StateDescriptor<?> getMigrationDescriptor() {
+        return descriptor;
+    }
+
+    /**
+     * Stage 33: full-scan migration. Each column-family entry is one map value
+     * (storage key = base composite key + map-key suffix). Iterate every entry,
+     * deserialize the value as the old value type, pass through {@code migrate},
+     * and write back under the same full key. Map keys are not migrated.
+     */
+    @Override
+    @SuppressWarnings("unchecked")
+    public void applyMigration(StateMigrationFunction<?, ?> migration) {
+        StateMigrationFunction<Object, Object> fn = (StateMigrationFunction<Object, Object>) migration;
+        List<byte[]> keys = new ArrayList<>();
+        List<byte[]> values = new ArrayList<>();
+        try (RocksIterator it = backend.getDb().newIterator(cfHandle)) {
+            for (it.seekToFirst(); it.isValid(); it.next()) {
+                keys.add(it.key());
+                values.add(it.value());
+            }
+        }
+        try {
+            for (int i = 0; i < keys.size(); i++) {
+                Object old = RocksDBValueSerDe.deserialize(values.get(i), descriptor.getValueType());
+                if (old == null) {
+                    continue;
+                }
+                Object migrated = fn.migrate(old);
+                backend.getDb().put(cfHandle, keys.get(i), RocksDBValueSerDe.serialize(migrated));
+            }
+        } catch (RocksDBException e) {
+            throw new StreamException("Failed to migrate RocksDB MapState", e);
+        }
+    }
+
+    @Override
+    @SuppressWarnings("unchecked")
+    public void replaceDescriptor(StateDescriptor<?> newDescriptor) {
+        this.descriptor = (MapStateDescriptor<UK, UV>) newDescriptor;
     }
 
     /**

@@ -15,18 +15,22 @@ import java.util.List;
 
 import io.nop.stream.core.common.state.ListState;
 import io.nop.stream.core.common.state.ListStateDescriptor;
+import io.nop.stream.core.common.state.StateDescriptor;
+import io.nop.stream.core.common.state.StateMigrationFunction;
 import io.nop.stream.core.common.state.TtlContext;
+import io.nop.stream.core.common.state.backend.MigratableKeyedState;
 
 import io.nop.stream.core.exceptions.StreamException;
 
 import org.rocksdb.ColumnFamilyHandle;
 import org.rocksdb.RocksDBException;
+import org.rocksdb.RocksIterator;
 
-class RocksDBListState<T> implements ListState<T>, RocksDbTtlAware {
+class RocksDBListState<T> implements ListState<T>, RocksDbTtlAware, MigratableKeyedState {
 
     private final RocksDBKeyedStateBackend<?> backend;
     final ColumnFamilyHandle cfHandle;
-    final ListStateDescriptor<T> descriptor;
+    ListStateDescriptor<T> descriptor;
     private TtlContext<ByteBuffer> ttl;
 
     RocksDBListState(RocksDBKeyedStateBackend<?> backend, ColumnFamilyHandle cfHandle,
@@ -49,6 +53,48 @@ class RocksDBListState<T> implements ListState<T>, RocksDbTtlAware {
     @Override
     public ColumnFamilyHandle cfHandle() {
         return cfHandle;
+    }
+
+    @Override
+    public StateDescriptor<?> getMigrationDescriptor() {
+        return descriptor;
+    }
+
+    /**
+     * Stage 33: full-scan migration. Each column-family entry holds a serialized
+     * list. Iterate every entry, deserialize the list, migrate each element, and
+     * write the migrated list back under the same key.
+     */
+    @Override
+    @SuppressWarnings("unchecked")
+    public void applyMigration(StateMigrationFunction<?, ?> migration) {
+        StateMigrationFunction<Object, Object> fn = (StateMigrationFunction<Object, Object>) migration;
+        List<byte[]> keys = new ArrayList<>();
+        List<List<Object>> lists = new ArrayList<>();
+        try (RocksIterator it = backend.getDb().newIterator(cfHandle)) {
+            for (it.seekToFirst(); it.isValid(); it.next()) {
+                keys.add(it.key());
+                lists.add(RocksDBValueSerDe.deserializeList(it.value(), descriptor.getValueType()));
+            }
+        }
+        try {
+            for (int i = 0; i < keys.size(); i++) {
+                List<Object> list = lists.get(i);
+                List<Object> migrated = new ArrayList<>();
+                for (Object old : list) {
+                    migrated.add(old != null ? fn.migrate(old) : null);
+                }
+                backend.getDb().put(cfHandle, keys.get(i), RocksDBValueSerDe.serialize(migrated));
+            }
+        } catch (RocksDBException e) {
+            throw new StreamException("Failed to migrate RocksDB ListState", e);
+        }
+    }
+
+    @Override
+    @SuppressWarnings("unchecked")
+    public void replaceDescriptor(StateDescriptor<?> newDescriptor) {
+        this.descriptor = (ListStateDescriptor<T>) newDescriptor;
     }
 
     @SuppressWarnings("unchecked")

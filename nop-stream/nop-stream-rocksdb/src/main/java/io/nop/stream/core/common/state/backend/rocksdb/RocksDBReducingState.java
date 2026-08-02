@@ -8,24 +8,30 @@
 package io.nop.stream.core.common.state.backend.rocksdb;
 
 import java.nio.ByteBuffer;
+import java.util.ArrayList;
+import java.util.List;
 
 import io.nop.stream.core.common.accumulators.SimpleAccumulator;
 import io.nop.stream.core.common.state.ReducingState;
 import io.nop.stream.core.common.state.ReducingStateDescriptor;
+import io.nop.stream.core.common.state.StateDescriptor;
+import io.nop.stream.core.common.state.StateMigrationFunction;
 import io.nop.stream.core.common.state.TtlContext;
+import io.nop.stream.core.common.state.backend.MigratableKeyedState;
 
 import org.rocksdb.ColumnFamilyHandle;
 import org.rocksdb.RocksDBException;
+import org.rocksdb.RocksIterator;
 
 import static io.nop.stream.core.exceptions.NopStreamErrors.ARG_DETAIL;
 import static io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_ACCUMULATOR_CREATE_FAILED;
 import io.nop.stream.core.exceptions.StreamException;
 
-class RocksDBReducingState<T> implements ReducingState<T>, RocksDbTtlAware {
+class RocksDBReducingState<T> implements ReducingState<T>, RocksDbTtlAware, MigratableKeyedState {
 
     private final RocksDBKeyedStateBackend<?> backend;
     final ColumnFamilyHandle cfHandle;
-    final ReducingStateDescriptor<T> descriptor;
+    ReducingStateDescriptor<T> descriptor;
     private TtlContext<ByteBuffer> ttl;
 
     RocksDBReducingState(RocksDBKeyedStateBackend<?> backend, ColumnFamilyHandle cfHandle,
@@ -48,6 +54,51 @@ class RocksDBReducingState<T> implements ReducingState<T>, RocksDbTtlAware {
     @Override
     public ColumnFamilyHandle cfHandle() {
         return cfHandle;
+    }
+
+    @Override
+    public StateDescriptor<?> getMigrationDescriptor() {
+        return descriptor;
+    }
+
+    /**
+     * Stage 33 accumulator-state migration surface. The RocksDB reducing state
+     * stores the reduced value (accumulator's local value), so each entry holds
+     * a single value of type T. This method iterates every entry, deserializes
+     * the value, passes it through {@code migrate}, and writes it back.
+     * Correctness of the migrated value is the user's responsibility; the
+     * platform does not validate accumulator-migration semantics.
+     */
+    @Override
+    @SuppressWarnings("unchecked")
+    public void applyMigration(StateMigrationFunction<?, ?> migration) {
+        StateMigrationFunction<Object, Object> fn = (StateMigrationFunction<Object, Object>) migration;
+        List<byte[]> keys = new ArrayList<>();
+        List<byte[]> values = new ArrayList<>();
+        try (RocksIterator it = backend.getDb().newIterator(cfHandle)) {
+            for (it.seekToFirst(); it.isValid(); it.next()) {
+                keys.add(it.key());
+                values.add(it.value());
+            }
+        }
+        try {
+            for (int i = 0; i < keys.size(); i++) {
+                Object old = RocksDBValueSerDe.deserialize(values.get(i), descriptor.getValueType());
+                if (old == null) {
+                    continue;
+                }
+                Object migrated = fn.migrate(old);
+                backend.getDb().put(cfHandle, keys.get(i), RocksDBValueSerDe.serialize(migrated));
+            }
+        } catch (RocksDBException e) {
+            throw new StreamException("Failed to migrate RocksDB ReducingState", e);
+        }
+    }
+
+    @Override
+    @SuppressWarnings("unchecked")
+    public void replaceDescriptor(StateDescriptor<?> newDescriptor) {
+        this.descriptor = (ReducingStateDescriptor<T>) newDescriptor;
     }
 
     @Override

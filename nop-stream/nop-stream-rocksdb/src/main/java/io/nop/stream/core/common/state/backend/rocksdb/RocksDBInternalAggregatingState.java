@@ -9,14 +9,20 @@ package io.nop.stream.core.common.state.backend.rocksdb;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
+import java.util.ArrayList;
+import java.util.List;
 
 import io.nop.stream.core.common.functions.AggregateFunction;
 import io.nop.stream.core.common.state.AggregatingStateDescriptor;
 import io.nop.stream.core.common.state.InternalAppendingState;
+import io.nop.stream.core.common.state.StateDescriptor;
+import io.nop.stream.core.common.state.StateMigrationFunction;
 import io.nop.stream.core.common.state.TtlContext;
+import io.nop.stream.core.common.state.backend.MigratableKeyedState;
 
 import org.rocksdb.ColumnFamilyHandle;
 import org.rocksdb.RocksDBException;
+import org.rocksdb.RocksIterator;
 
 import io.nop.stream.core.exceptions.StreamException;
 
@@ -24,11 +30,11 @@ import static io.nop.stream.core.exceptions.NopStreamErrors.ARG_DETAIL;
 import static io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_STATE_ERROR;
 
 class RocksDBInternalAggregatingState<K, N, IN, ACC, OUT>
-        implements InternalAppendingState<K, N, IN, ACC, OUT>, RocksDbTtlAware {
+        implements InternalAppendingState<K, N, IN, ACC, OUT>, RocksDbTtlAware, MigratableKeyedState {
 
     private final RocksDBKeyedStateBackend<K> backend;
     final ColumnFamilyHandle cfHandle;
-    final AggregatingStateDescriptor<IN, ACC, OUT> descriptor;
+    AggregatingStateDescriptor<IN, ACC, OUT> descriptor;
     private TtlContext<ByteBuffer> ttl;
 
     private transient N currentNamespace;
@@ -53,6 +59,48 @@ class RocksDBInternalAggregatingState<K, N, IN, ACC, OUT>
     @Override
     public ColumnFamilyHandle cfHandle() {
         return cfHandle;
+    }
+
+    @Override
+    public StateDescriptor<?> getMigrationDescriptor() {
+        return descriptor;
+    }
+
+    /**
+     * Stage 33 accumulator-state migration surface. Iterate every entry,
+     * deserialize the opaque ACC, pass through {@code migrate}, write back.
+     * Correctness is the user's responsibility.
+     */
+    @Override
+    @SuppressWarnings("unchecked")
+    public void applyMigration(StateMigrationFunction<?, ?> migration) {
+        StateMigrationFunction<Object, Object> fn = (StateMigrationFunction<Object, Object>) migration;
+        List<byte[]> keys = new ArrayList<>();
+        List<byte[]> values = new ArrayList<>();
+        try (RocksIterator it = backend.getDb().newIterator(cfHandle)) {
+            for (it.seekToFirst(); it.isValid(); it.next()) {
+                keys.add(it.key());
+                values.add(it.value());
+            }
+        }
+        try {
+            for (int i = 0; i < keys.size(); i++) {
+                Object old = RocksDBValueSerDe.deserialize(values.get(i), descriptor.getValueType());
+                if (old == null) {
+                    continue;
+                }
+                Object migrated = fn.migrate(old);
+                backend.getDb().put(cfHandle, keys.get(i), RocksDBValueSerDe.serialize(migrated));
+            }
+        } catch (RocksDBException e) {
+            throw new StreamException("Failed to migrate RocksDB InternalAggregatingState", e);
+        }
+    }
+
+    @Override
+    @SuppressWarnings("unchecked")
+    public void replaceDescriptor(StateDescriptor<?> newDescriptor) {
+        this.descriptor = (AggregatingStateDescriptor<IN, ACC, OUT>) newDescriptor;
     }
 
     @Override

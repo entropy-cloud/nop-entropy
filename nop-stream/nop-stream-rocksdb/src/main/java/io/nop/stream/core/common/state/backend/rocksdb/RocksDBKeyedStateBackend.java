@@ -38,6 +38,8 @@ import io.nop.stream.core.common.state.MapStateDescriptor;
 import io.nop.stream.core.common.state.ReducingState;
 import io.nop.stream.core.common.state.ReducingStateDescriptor;
 import io.nop.stream.core.common.state.StateDescriptor;
+import io.nop.stream.core.common.state.StateMigrationFunction;
+import io.nop.stream.core.common.state.StateMigrationRegistry;
 import io.nop.stream.core.common.state.StateSchemaResolver;
 import io.nop.stream.core.common.state.StateTtlConfig;
 import io.nop.stream.core.common.state.SystemTtlTimeProvider;
@@ -47,6 +49,7 @@ import io.nop.stream.core.common.state.ValueState;
 import io.nop.stream.core.common.state.ValueStateDescriptor;
 import io.nop.stream.core.checkpoint.SerializerFingerprint;
 import io.nop.stream.core.common.state.backend.IInternalStateBackend;
+import io.nop.stream.core.common.state.backend.MigratableKeyedState;
 import io.nop.stream.core.common.state.backend.StateSnapshot;
 import io.nop.stream.core.common.state.shard.KeyGroup;
 import io.nop.stream.core.common.state.shard.KeyGroupAssignment;
@@ -152,6 +155,14 @@ public class RocksDBKeyedStateBackend<K> implements IInternalStateBackend<K> {
      * {@code null} restores the whole snapshot (backward compatible).
      */
     private KeyGroupRange targetKeyGroupRange;
+
+    /**
+     * Stage 33: migration registry (typically {@code StreamComponents}) consulted
+     * by {@link #verifySchemaCompatibility} when a restored state's checksum differs
+     * from the current descriptor's checksum. When {@code null}, checksum mismatch
+     * always fails fast (Stage 29 behaviour).
+     */
+    private transient StateMigrationRegistry migrationRegistry;
 
     public RocksDBKeyedStateBackend(String dbPath, Class<K> keyType, int maxParallelism,
                                     RocksDBOptionConfig optionConfig) {
@@ -396,18 +407,34 @@ public class RocksDBKeyedStateBackend<K> implements IInternalStateBackend<K> {
 
     private void verifySchemaCompatibility(String stateName, String stateType,
                                            StateDescriptor<?> currentDescriptor,
-                                           StateDescriptor<?> restoredDescriptor) {
-        if (restoredDescriptor == null) {
+                                           MigratableKeyedState restoredState) {
+        if (restoredState == null) {
             return;
         }
+        StateDescriptor<?> restoredDescriptor = restoredState.getMigrationDescriptor();
         SerializerFingerprint currentFp = StateSchemaResolver.fromDescriptor(stateType, currentDescriptor);
         SerializerFingerprint restoredFp = StateSchemaResolver.fromDescriptor(stateType, restoredDescriptor);
         if (!StateSchemaResolver.fingerprintsCompatible(currentFp, restoredFp)) {
+            StateMigrationFunction<?, ?> migration = StateSchemaResolver.findMigration(
+                    migrationRegistry, stateName, restoredFp, currentFp);
+            if (migration != null) {
+                restoredState.applyMigration(migration);
+                restoredState.replaceDescriptor(currentDescriptor);
+                return;
+            }
             throw new StreamException(ERR_STREAM_STATE_SCHEMA_MISMATCH)
                     .param(ARG_STATE_NAME, stateName)
                     .param(ARG_EXPECTED_CHECKSUM, currentFp.getSchemaChecksum())
                     .param(ARG_ACTUAL_CHECKSUM, restoredFp.getSchemaChecksum());
         }
+    }
+
+    /**
+     * Stage 33: inject the migration registry so that {@link #verifySchemaCompatibility}
+     * can resolve registered {@link StateMigrationFunction}s on checksum mismatch.
+     */
+    public void setMigrationRegistry(StateMigrationRegistry migrationRegistry) {
+        this.migrationRegistry = migrationRegistry;
     }
 
     // ------------------------------------------------------------------------
@@ -426,7 +453,7 @@ public class RocksDBKeyedStateBackend<K> implements IInternalStateBackend<K> {
         } else {
             verifySchemaCompatibility(stateProperties.getName(),
                     StateSchemaResolver.STATE_TYPE_VALUE,
-                    stateProperties, ((RocksDBValueState<?>) state).descriptor);
+                    stateProperties, (MigratableKeyedState) state);
         }
         applyTtl(state, stateProperties);
         return state;
@@ -444,7 +471,7 @@ public class RocksDBKeyedStateBackend<K> implements IInternalStateBackend<K> {
         } else {
             verifySchemaCompatibility(stateProperties.getName(),
                     StateSchemaResolver.STATE_TYPE_MAP,
-                    stateProperties, ((RocksDBMapState<?, ?>) state).descriptor);
+                    stateProperties, (MigratableKeyedState) state);
         }
         applyTtl(state, stateProperties);
         return state;
@@ -462,7 +489,7 @@ public class RocksDBKeyedStateBackend<K> implements IInternalStateBackend<K> {
         } else {
             verifySchemaCompatibility(stateProperties.getName(),
                     StateSchemaResolver.STATE_TYPE_LIST,
-                    stateProperties, ((RocksDBListState<?>) state).descriptor);
+                    stateProperties, (MigratableKeyedState) state);
         }
         applyTtl(state, stateProperties);
         return state;
@@ -480,7 +507,7 @@ public class RocksDBKeyedStateBackend<K> implements IInternalStateBackend<K> {
         } else {
             verifySchemaCompatibility(stateProperties.getName(),
                     StateSchemaResolver.STATE_TYPE_REDUCING,
-                    stateProperties, ((RocksDBReducingState<?>) state).descriptor);
+                    stateProperties, (MigratableKeyedState) state);
         }
         applyTtl(state, stateProperties);
         return state;
@@ -500,7 +527,7 @@ public class RocksDBKeyedStateBackend<K> implements IInternalStateBackend<K> {
         } else {
             verifySchemaCompatibility(stateProperties.getName(),
                     StateSchemaResolver.STATE_TYPE_AGGREGATING,
-                    stateProperties, ((RocksDBAggregatingState<?, ?, ?>) state).descriptor);
+                    stateProperties, (MigratableKeyedState) state);
         }
         applyTtl(state, stateProperties);
         return state;
@@ -520,7 +547,7 @@ public class RocksDBKeyedStateBackend<K> implements IInternalStateBackend<K> {
         } else {
             verifySchemaCompatibility(descriptor.getName(),
                     StateSchemaResolver.STATE_TYPE_APPENDING,
-                    descriptor, ((RocksDBInternalAppendingState<?, ?, ?>) state).descriptor);
+                    descriptor, (MigratableKeyedState) state);
         }
         applyTtl(state, descriptor);
         return state;
@@ -540,7 +567,7 @@ public class RocksDBKeyedStateBackend<K> implements IInternalStateBackend<K> {
         } else {
             verifySchemaCompatibility(descriptor.getName(),
                     StateSchemaResolver.STATE_TYPE_INTERNAL_AGGREGATING,
-                    descriptor, ((RocksDBInternalAggregatingState<?, ?, ?, ?, ?>) state).descriptor);
+                    descriptor, (MigratableKeyedState) state);
         }
         applyTtl(state, descriptor);
         return state;
@@ -559,7 +586,7 @@ public class RocksDBKeyedStateBackend<K> implements IInternalStateBackend<K> {
         } else {
             verifySchemaCompatibility(descriptor.getName(),
                     StateSchemaResolver.STATE_TYPE_INTERNAL_LIST,
-                    descriptor, ((RocksDBInternalListState<?, ?, ?>) state).descriptor);
+                    descriptor, (MigratableKeyedState) state);
         }
         applyTtl(state, descriptor);
         return state;

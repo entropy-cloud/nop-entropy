@@ -15,12 +15,15 @@ import java.util.Map;
 import io.nop.stream.core.common.state.TtlContext;
 import io.nop.stream.core.common.state.ValueState;
 import io.nop.stream.core.common.state.ValueStateDescriptor;
+import io.nop.stream.core.common.state.backend.MigratableKeyedState;
+import io.nop.stream.core.common.state.StateDescriptor;
+import io.nop.stream.core.common.state.StateMigrationFunction;
 
-class MemoryValueState<T> implements ValueState<T>, Serializable, TtlAware {
+class MemoryValueState<T> implements ValueState<T>, Serializable, TtlAware, MigratableKeyedState {
     private static final long serialVersionUID = 1L;
 
     MemoryKeyedStateBackend<?> backend;
-    final ValueStateDescriptor<T> descriptor;
+    ValueStateDescriptor<T> descriptor;
     final Map<TypedNamespaceAndKey, T> storage = new HashMap<>();
 
     TtlContext<TypedNamespaceAndKey> ttl;
@@ -32,6 +35,30 @@ class MemoryValueState<T> implements ValueState<T>, Serializable, TtlAware {
 
     void rebind(MemoryKeyedStateBackend<?> newBackend) {
         this.backend = newBackend;
+    }
+
+    @Override
+    public StateDescriptor<?> getMigrationDescriptor() {
+        return descriptor;
+    }
+
+    @Override
+    @SuppressWarnings("unchecked")
+    public void applyMigration(StateMigrationFunction<?, ?> migration) {
+        StateMigrationFunction<Object, Object> fn = (StateMigrationFunction<Object, Object>) migration;
+        for (Map.Entry<TypedNamespaceAndKey, T> e : storage.entrySet()) {
+            T old = e.getValue();
+            if (old == null) {
+                continue;
+            }
+            e.setValue((T) fn.migrate(old));
+        }
+    }
+
+    @Override
+    @SuppressWarnings("unchecked")
+    public void replaceDescriptor(StateDescriptor<?> newDescriptor) {
+        this.descriptor = (ValueStateDescriptor<T>) newDescriptor;
     }
 
     @Override

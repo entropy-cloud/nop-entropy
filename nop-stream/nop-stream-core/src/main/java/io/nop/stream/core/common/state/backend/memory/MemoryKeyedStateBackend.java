@@ -24,8 +24,11 @@ import io.nop.stream.core.common.state.MapStateDescriptor;
 import io.nop.stream.core.common.state.ReducingState;
 import io.nop.stream.core.common.state.ReducingStateDescriptor;
 import io.nop.stream.core.common.state.StateDescriptor;
+import io.nop.stream.core.common.state.StateMigrationFunction;
+import io.nop.stream.core.common.state.StateMigrationRegistry;
 import io.nop.stream.core.common.state.StateSchemaResolver;
 import io.nop.stream.core.common.state.StateTtlConfig;
+import io.nop.stream.core.common.state.backend.MigratableKeyedState;
 import io.nop.stream.core.common.state.SystemTtlTimeProvider;
 import io.nop.stream.core.common.state.TtlContext;
 import io.nop.stream.core.common.state.TtlTimeProvider;
@@ -100,6 +103,15 @@ public class MemoryKeyedStateBackend<K> implements IInternalStateBackend<K>, Ser
      */
     private KeyGroupRange targetKeyGroupRange;
 
+    /**
+     * Stage 33: migration registry (typically {@code StreamComponents}) consulted
+     * by {@link #verifySchemaCompatibility} when a restored state's checksum differs
+     * from the current descriptor's checksum. When {@code null}, checksum mismatch
+     * always fails fast (Stage 29 behaviour). Set before {@code initializeState}
+     * via {@link #setMigrationRegistry}.
+     */
+    private transient StateMigrationRegistry migrationRegistry;
+
     public MemoryKeyedStateBackend(Class<K> keyType) {
         this(keyType, 1);
     }
@@ -162,7 +174,7 @@ public class MemoryKeyedStateBackend<K> implements IInternalStateBackend<K>, Ser
         } else {
             verifySchemaCompatibility(stateProperties.getName(),
                     StateSchemaResolver.STATE_TYPE_VALUE,
-                    stateProperties, ((MemoryValueState<?>) state).descriptor);
+                    stateProperties, (MigratableKeyedState) state);
         }
         applyTtl(state, stateProperties);
         return state;
@@ -179,7 +191,7 @@ public class MemoryKeyedStateBackend<K> implements IInternalStateBackend<K>, Ser
         } else {
             verifySchemaCompatibility(stateProperties.getName(),
                     StateSchemaResolver.STATE_TYPE_MAP,
-                    stateProperties, ((MemoryMapState<?, ?>) state).descriptor);
+                    stateProperties, (MigratableKeyedState) state);
         }
         applyTtl(state, stateProperties);
         return state;
@@ -196,7 +208,7 @@ public class MemoryKeyedStateBackend<K> implements IInternalStateBackend<K>, Ser
         } else {
             verifySchemaCompatibility(stateProperties.getName(),
                     StateSchemaResolver.STATE_TYPE_LIST,
-                    stateProperties, ((MemoryListState<?>) state).descriptor);
+                    stateProperties, (MigratableKeyedState) state);
         }
         applyTtl(state, stateProperties);
         return state;
@@ -213,7 +225,7 @@ public class MemoryKeyedStateBackend<K> implements IInternalStateBackend<K>, Ser
         } else {
             verifySchemaCompatibility(stateProperties.getName(),
                     StateSchemaResolver.STATE_TYPE_REDUCING,
-                    stateProperties, ((MemoryReducingState<?>) state).descriptor);
+                    stateProperties, (MigratableKeyedState) state);
         }
         applyTtl(state, stateProperties);
         return state;
@@ -231,7 +243,7 @@ public class MemoryKeyedStateBackend<K> implements IInternalStateBackend<K>, Ser
         } else {
             verifySchemaCompatibility(stateProperties.getName(),
                     StateSchemaResolver.STATE_TYPE_AGGREGATING,
-                    stateProperties, ((MemoryAggregatingState<?, ?, ?>) state).descriptor);
+                    stateProperties, (MigratableKeyedState) state);
         }
         applyTtl(state, stateProperties);
         return state;
@@ -250,7 +262,7 @@ public class MemoryKeyedStateBackend<K> implements IInternalStateBackend<K>, Ser
         } else {
             verifySchemaCompatibility(descriptor.getName(),
                     StateSchemaResolver.STATE_TYPE_APPENDING,
-                    descriptor, ((MemoryInternalAppendingState<?, ?, ?, ?>) state).descriptor);
+                    descriptor, (MigratableKeyedState) state);
         }
         applyTtl(state, descriptor);
         return state;
@@ -269,7 +281,7 @@ public class MemoryKeyedStateBackend<K> implements IInternalStateBackend<K>, Ser
         } else {
             verifySchemaCompatibility(descriptor.getName(),
                     StateSchemaResolver.STATE_TYPE_INTERNAL_AGGREGATING,
-                    descriptor, ((MemoryInternalAggregatingState<?, ?, ?, ?, ?>) state).descriptor);
+                    descriptor, (MigratableKeyedState) state);
         }
         applyTtl(state, descriptor);
         return state;
@@ -287,30 +299,54 @@ public class MemoryKeyedStateBackend<K> implements IInternalStateBackend<K>, Ser
         } else {
             verifySchemaCompatibility(descriptor.getName(),
                     StateSchemaResolver.STATE_TYPE_INTERNAL_LIST,
-                    descriptor, ((MemoryInternalListState<?, ?, ?>) state).descriptor);
+                    descriptor, (MigratableKeyedState) state);
         }
         applyTtl(state, descriptor);
         return state;
     }
 
     /**
-     * Stage 29: when {@code getState()} is called on an already-restored state, verify the current
+     * Stage 29/33: when {@code getState()} is called on an already-restored state, verify the current
      * descriptor's schema checksum matches the restored descriptor's schema checksum. Both
      * descriptors come from independent sources (current code vs checkpoint), so the comparison
-     * is NOT tautological. If they differ, fail fast with {@code ERR_STREAM_STATE_SCHEMA_MISMATCH}.
-     * Stage 33 will extend this path to consult registered {@code StateMigrationFunction}s.
+     * is NOT tautological.
+     *
+     * <p>Stage 33: on checksum mismatch, first consult the registered {@link StateMigrationFunction}s
+     * (via {@link #migrationRegistry}). If a matching function is found, perform a full-scan
+     * migration (read every stored old-schema value, pass through {@code migrate}, write back as
+     * new schema) and swap the state object's descriptor to the current one (idempotency: the next
+     * {@code getState()} checksum comparison matches). If no matching function is registered, fail
+     * fast with {@code ERR_STREAM_STATE_SCHEMA_MISMATCH} (no silent degradation).
      */
     private void verifySchemaCompatibility(String stateName, String stateType,
                                            StateDescriptor<?> currentDescriptor,
-                                           StateDescriptor<?> restoredDescriptor) {
+                                           MigratableKeyedState restoredState) {
+        StateDescriptor<?> restoredDescriptor = restoredState.getMigrationDescriptor();
         SerializerFingerprint currentFp = StateSchemaResolver.fromDescriptor(stateType, currentDescriptor);
         SerializerFingerprint restoredFp = StateSchemaResolver.fromDescriptor(stateType, restoredDescriptor);
         if (!StateSchemaResolver.fingerprintsCompatible(currentFp, restoredFp)) {
+            StateMigrationFunction<?, ?> migration = StateSchemaResolver.findMigration(
+                    migrationRegistry, stateName, restoredFp, currentFp);
+            if (migration != null) {
+                restoredState.applyMigration(migration);
+                restoredState.replaceDescriptor(currentDescriptor);
+                return;
+            }
             throw new StreamException(ERR_STREAM_STATE_SCHEMA_MISMATCH)
                     .param(ARG_STATE_NAME, stateName)
                     .param(ARG_EXPECTED_CHECKSUM, currentFp.getSchemaChecksum())
                     .param(ARG_ACTUAL_CHECKSUM, restoredFp.getSchemaChecksum());
         }
+    }
+
+    /**
+     * Stage 33: inject the migration registry (e.g. {@code StreamComponents}) so that
+     * {@link #verifySchemaCompatibility} can resolve registered {@link StateMigrationFunction}s
+     * on checksum mismatch. Must be called before {@code initializeState} (before the first
+     * {@code getState()}).
+     */
+    public void setMigrationRegistry(StateMigrationRegistry migrationRegistry) {
+        this.migrationRegistry = migrationRegistry;
     }
 
     /**
