@@ -20,6 +20,7 @@
         <module>nop-stream-connector-batch</module>
         <module>nop-stream-connector-debezium</module>
         <module>nop-stream-runtime</module>
+        <module>nop-stream-rocksdb</module>
         <module>nop-stream-flow</module>
         <module>nop-stream-fraud-example</module>
     </modules>
