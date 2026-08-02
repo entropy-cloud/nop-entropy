@@ -63,7 +63,7 @@ Does not contain implementation details. Each `planned` stage is owned by its ex
 
 ### Phase 5 — 容错强化
 
-- 43. Channel 心跳 + unaligned checkpoint（G6，P1）: `planned`（plan `ai-dev/plans/nop-stream-production/2026-08-03-0001-2-channel-heartbeat-unaligned-checkpoint.md`）
+- 43. Channel 心跳 + unaligned checkpoint（G6，P1）: `done`（plan `ai-dev/plans/nop-stream-production/2026-08-03-0001-2-channel-heartbeat-unaligned-checkpoint.md`，completed；channel 心跳 producer-sends-idle + consumer timeout 检测、aligned→unaligned 回退、ChannelState capture/persist/replay 端到端）
 - 44. Region-based failover（G28 续，P2）: `todo`
 - 45. 多并发 checkpoint 完整支持（G31 续，P2）: `todo`
 - 46. Coordinator HA 端到端 + HA checkpoint store（G32, G35，P2）: `todo`
@@ -133,7 +133,7 @@ Does not contain implementation details. Each `planned` stage is owned by its ex
 - ~~G60, G61, G63: bulk cleanup / Jdbc dup-key / Timer O(n)~~ ✅ Closed (item 9)
 - RocksDB 状态后端缺失 → Stages 30-31
 - Key-Group / rescale 缺失 → Stages 34-35
-- Unaligned checkpoint 缺失（G6）→ Stage 43
+- Unaligned checkpoint 缺失（G6）→ Stage 43 ✅ Closed (item 43)
 - 文档与实现多处不一致（D69—D73）→ Stage 22 ✅ Closed (item 22)
 
 ## Stages

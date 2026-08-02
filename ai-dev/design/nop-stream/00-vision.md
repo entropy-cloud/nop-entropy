@@ -74,6 +74,12 @@ nop-stream 是 Nop 平台的流处理引擎，定位为**声明式图模型驱�
 5. 分布式模式的通信模型变更（IMessageService → 其他传输）
 6. `maxParallelism` 的变更（需显式 reshard migration action）
 
+### 六裁决记录
+
+**#4 — Unaligned checkpoint 是否构成"Checkpoint 协议变更"（Stage 43，2026-08-03）**
+
+裁定：**不构成需要单独人审批的协议变更，可推进。** 理由：决策点 #4 的判据是并发模型变更——示例即"从单 in-flight 扩展为多 in-flight"。Unaligned checkpoint（Stage 43）**保持 single-in-flight 约束不变**（一次仍只追踪一个 in-flight epoch，multi-concurrent 是 Stage 45 职责）。它只变更两件事：(a) barrier 处理模式（aligned 阻塞对齐 → 可选 unaligned 快照在途数据并立即完成），(b) snapshot 内容（`TaskEpochSnapshot` 新增 `ChannelState`）。这两者不改变 checkpoint 并发协议，而是在既有 single-in-flight 协议内的运行时优化与快照扩展。协议不变量（§八 4–6：barrier 由 source 线程注入并随数据 channel 传播；manifest durable 前不 commit；恢复从最新 durable epoch）全部保持。详细行为语义见 `checkpoint-design.md` §2.11。
+
 ## 七、核心取舍
 
 - **保留**：Barrier 快照、算子链化、多 Task 并行执行、窗口/CEP 语义、key-group 重分布（Stage 34 KeyGroup 模型 + Stage 35 `parallelism` rescale + Stage 37 `maxParallelism` 离线 reshard migration）

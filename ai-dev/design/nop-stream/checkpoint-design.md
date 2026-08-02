@@ -2,7 +2,7 @@
 
 > Status: active
 > Created: 2026-05-19
-> Updated: 2026-07-25（timer state checkpoint/restore 已实现，G2）
+> Updated: 2026-07-25（timer state checkpoint/restore 已实现，G2）；2026-08-03（§2.11 unaligned checkpoint 背压逃生，Stage 43）
 > Parent: `01-architecture-baseline.md` §4（执行模型）、`state-management-design.md`（状态管理）
 > See also: `component-roadmap.md` §3 C5（Checkpoint 生产化计划）
 
@@ -147,6 +147,8 @@ AT_LEAST_ONCE 模式的差异：已收到 barrier 的 channel **不阻塞** barr
 
 Aligned checkpoint 是基线能力。Unaligned checkpoint 是性能优化，不是 exactly-once 正确性的前置条件。Aligned 对齐**必须有累计超时上限**（`barrierAlignmentTimeout`，默认 30s，可通过 `CheckpointConfig` 配置），超时后 InputGate 抛出 `ERR_STREAM_BARRIER_ALIGNMENT_TIMEOUT` 使 task FAILED → 触发恢复。Coordinator abort（`checkpointTimeout`，默认 10min）作为兜底（见 §8.7 abort 接线）。
 
+**Aligned→Unaligned 回退（背压逃生，详见 §2.11）**：当 `unalignedCheckpointEnabled=true`（默认）时，对齐等待超过 `unalignedThreshold`（默认 1000ms，必须 < `barrierAlignmentTimeout`）后 checkpoint 切换为 unaligned 模式——捕获在途数据（§2.11.2）、立即完成 barrier、取消对齐超时计时。`unalignedCheckpointEnabled=false` 时保留纯对齐超时→FAILED 行为。
+
 ### 2.5 Snapshot 内容
 
 每个 task 对 epoch N 上报 `TaskEpochSnapshot`。
@@ -161,6 +163,7 @@ Aligned checkpoint 是基线能力。Unaligned checkpoint 是性能优化，不�
 | source split state | source offset 或 split cursor |
 | sink transaction state | pending transaction handle |
 | participant states | CheckpointParticipant 快照 |
+| channel state（unaligned） | per-channel 在途记录（`ChannelState`，nullable；仅 unaligned checkpoint 携带，见 §2.11）。aligned checkpoint 缺省为空 |
 | metrics | snapshot size、duration、alignment duration |
 
 ### 2.6 Epoch Manifest
@@ -275,6 +278,69 @@ OperatorStateMapping {
 - 恢复时检查兼容性：算子数量、`operatorStateKey`、`keyedStateStorageKey` 是否匹配
 - 恢复模式：`STRICT`（默认，不匹配则拒绝）和 `LENIENT`（忽略不匹配，记录警告）
 - 不支持自动 schema 迁移
+
+### 2.11 Unaligned Checkpoint（背压逃生）
+
+Aligned checkpoint（§2.4）是 exactly-once 基线。但当某条 input channel 持续背压时，barrier 无法在对齐窗口内通过，`barrierAlignmentTimeout`（默认 30s）耗尽后 task FAILED → 触发整作业恢复。健康的慢管线（只是慢、不是坏）因此被反复重启。**Unaligned checkpoint 是背压逃生通道**：对齐超时阈值（`unalignedThreshold`）到达后，checkpoint 切换为 unaligned 模式——不再阻塞等待对齐，而是把在途数据（in-flight data）快照进 checkpoint 并立即完成 barrier，使 checkpoint 在背压下也能完成。
+
+本节定义 unaligned 的行为语义（"应该发生什么"），不定义代码层签名（源码是唯一事实）。
+
+#### 2.11.1 不改变 single-in-flight 约束
+
+Unaligned checkpoint **不改变** §2.8 的 single-in-flight checkpoint 约束（一次只追踪一个 in-flight epoch）。它只改变两件事：
+
+1. **barrier 处理模式**：aligned（阻塞等待对齐）→ unaligned（快照在途数据 + 立即完成，不阻塞任何 channel）
+2. **snapshot 内容**：在 `TaskEpochSnapshot` 上增加 `ChannelState`（per-channel 在途记录）
+
+multi-concurrent checkpoint（解开 `maxConcurrentCheckpoints=1`）是 Stage 45 的职责，与 unaligned 独立组合。vision §六 决策点 #4（"Checkpoint 协议的变更（如从单 in-flight 扩展为多 in-flight）"）针对的是并发模型变更；unaligned 保持 single-in-flight，其决策记录见 `00-vision.md` §六裁决。
+
+#### 2.11.2 在途数据语义（per-channel）
+
+这是 unaligned 的正确性核心。一个 channel 在 unaligned 切换时刻的状态只有两类：
+
+| channel 状态 | 在途数据 = | 为什么 |
+|---|---|---|
+| **已交付 barrier**（aligned channel） | barrier **之后**已缓冲的记录 | 这些是新 epoch 的记录，在对齐等待期间先于 barrier 完成而到达；恢复时必须在处理新数据前重放 |
+| **未交付 barrier**（non-aligned channel） | 该 channel **全部**当前缓冲记录 | 这些是 pre-barrier 记录，属于上一个 epoch 的尾部，必须保留以保证 exactly-once（恢复后重放，避免丢数据） |
+
+判据：`barrierReceived[channelIndex]`（`InputGate` 已有状态）。**capture 错集合会破坏 exactly-once**：把 aligned channel 的 pre-barrier 记录也 capture 会重复；漏掉 non-aligned channel 的记录会丢数据。
+
+capture 语义是 **drain**（记录从 channel 缓冲移入 `ChannelState`，不是 copy）——因为 barrier 已从这些 channel 读出，缓冲里的记录是"barrier 之后的"，必须从正常数据流移除并以恢复重放的方式重新进入。
+
+#### 2.11.3 触发与捕获路径
+
+- **WHO**：`InputGate`（它持有 `barrierReceived[]` 与 channel 列表）。
+- **WHEN**：
+  - 对齐模式下，`unalignedThreshold`（默认 1000ms）耗尽且仍未完成对齐 → 切换 unaligned 模式：对所有 **non-aligned** channel 调 `captureInFlightData(barrierReceived=false)`，对已 aligned channel 调 `captureInFlightData(barrierReceived=true)`。
+  - 切换后立即取消该 checkpoint 的 `barrierAlignmentTimeout` 计时（不再抛对齐超时）。
+- **HOW 到达 snapshot**：channel state 不能走 `triggerCheckpoint()`（它在 checkpoint 发起时运行，早于 barrier 流经数据面）。`InputGate` 在 emit unaligned barrier 时把 `ChannelState` 暂存于自身；task 线程从 `read()` 收到该 barrier 后，从 `InputGate` 取出 `ChannelState`，经 `CheckpointBarrierTracker.setChannelState(...)` 附加到当前 `TaskStateSnapshot`（与 operator state 并列）。channel state 走 **barrier ACK 路径**，不走 trigger 路径。
+
+#### 2.11.4 恢复重放
+
+- **WHERE**：task 生命周期中，operator state restore **之后**、task 开始从 `InputGate` 读取**之前**。新增生命周期步骤 `restoreChannelState(ChannelState)`。
+- **WHAT ORDER**：replay 的在途记录**先于**任何新 upstream 记录 / barrier 处理。实现方式：把 `ChannelState` 记录按 channelIndex 预注入对应 `InputChannel` 的缓冲（local channel 注入 `ResultPartition` 队列；`RemoteInputChannel` 注入其 `LinkedBlockingQueue`），再启动订阅/读取。
+- **顺序保证**：恢复后的 task 先消费完所有 replay 的在途记录，再处理新数据。pre-barrier 记录（来自 non-aligned channel）与新 epoch 记录（来自 aligned channel 的 post-barrier）都因此被正确重放，state 与 checkpoint 一致。
+
+#### 2.11.5 输出侧安全性（output channel state 不持久化的理由）
+
+`RemoteResultPartition.write()` 立即委托 `IMessageService.send()`，**无内部缓冲**（见源码）。因此 output 侧的在途数据不在 nop-stream 进程内，而存在于传输后端：
+
+- 持久后端（`SysDaoMessageService` / DB / Pulsar）：output 在途数据由后端持久化，task 恢复后订阅同一 topic 继续消费，自然安全。
+- 非持久后端：output 在途数据在 producer 崩溃后会丢——这是**已知限制**，不在 Stage 43 解决范围（output channel state 持久化是 follow-up）。本设计仅持久化 **input** channel state。
+
+#### 2.11.6 超时关系
+
+| 配置 | 含义 | 默认 |
+|---|---|---|
+| `unalignedThreshold` | aligned→unaligned 模式切换阈值（触发条件，不是失败） | 1000ms |
+| `barrierAlignmentTimeout` | 绝对对齐失败上限（unaligned 关闭时仍生效） | 30000ms |
+
+不变量：`unalignedCheckpointEnabled=true` 时 **`unalignedThreshold` 必须 < `barrierAlignmentTimeout`**。配置加载时 fail-fast（`CheckpointConfig` 校验）。当 unaligned 模式激活，该 checkpoint 的 `barrierAlignmentTimeout` 计时被取消（切换即完成，不再计时）。`unalignedCheckpointEnabled=false` 时保留原行为（对齐超时 → task FAILED）。
+
+#### 2.11.7 单输入与多输入
+
+- **单输入 task**：无跨 channel 对齐，`ChannelState` 为空（trivially correct）。
+- **多输入 task**：`ChannelState` 含 non-aligned channel 的在途记录（§2.11.2）。这是 unaligned 的价值场景。
 
 ## 3. CheckpointParticipant：泛化事务参与
 
@@ -1133,8 +1199,8 @@ nop-stream 有两条执行路径，容错能力分层不同：
 | **abort 传播通道** | abort 信号必须有独立于数据流的控制通道传播到所有 task。不得仅靠数据队列内的 marker——对齐等待时数据队列读不到 marker。**distributed 部分 Stage 39 Phase 3 已落地**：`cancelTask` RPC 是独立控制通道（local 形态用 mailbox + interrupt） |
 | **多输入对齐统一** | 多输入 barrier 对齐应使用统一、线程安全、带超时的对齐器实现，不得在不同执行路径存在双轨制 |
 | **并发能力一致**（forward-looking，跨层契约） | 配置的 `maxConcurrentCheckpoints` 必须 Coordinator/task/对齐器各层一致，不得配置允许但实现拒绝。**各层当前状态**：Coordinator 层 ✅ 已满足（Stage 19 完整尊重配置值）；task 层 / 对齐器层 ❌ 仍单 barrier（`CheckpointBarrierTracker` / `InputGate` 一次只追踪一个 in-flight checkpoint），属 Stage 45 |
-| **channel 心跳（distributed）** | 分布式 `RemoteInputChannel` 应有 channel 级心跳/超时检测，不得仅靠粗粒度 lease 兜底。**保留 Deferred，属 Stage 43**（out-of-scope of Stage 39） |
-| **背压逃生（unaligned）** | 持续背压场景需 barrier 抢占式传播通道（unaligned checkpoint），不得仅靠 aligned 对齐（背压下对齐时延无上限） |
+| **channel 心跳（distributed）** | 分布式 `RemoteInputChannel` 应有 channel 级心跳/超时检测，不得仅靠粗粒度 lease 兜底。**✅ Stage 43 Phase 1 已落地**：`RemoteResultPartition.sendHeartbeatIfIdle()`/`startHeartbeat(sharedScheduler)`（producer-sends-idle 模型）+ `RemoteInputChannel` `channelTimeoutMs` + `read()` 路径 piggyback 超时检查 → `ERR_STREAM_CHANNEL_TIMEOUT`；fencing 错误 epoch 的 heartbeat 不刷新 liveness |
+| **背压逃生（unaligned）** | 持续背压场景需 barrier 抢占式传播通道（unaligned checkpoint），不得仅靠 aligned 对齐（背压下对齐时延无上限）。**✅ Stage 43 已落地**：`CheckpointConfig.unalignedCheckpointEnabled`（默认 true）+ `unalignedThreshold`（默认 1000ms，必须 < `barrierAlignmentTimeout`，`validateUnalignedConfig()` fail-fast）；`InputGate` 在对齐等待超 `unalignedThreshold` 后切换 unaligned 模式（`switchToUnalignedAndEmit`：per-channel `captureInFlightData` 捕获在途数据、emit barrier、resume 所有 channel）；`ChannelState` 走 barrier ACK 路径（`InputGate.consumePendingChannelState` → `CheckpointBarrierTracker.setChannelState` → `TaskEpochSnapshot`）。详见 §2.11 |
 
 ### 13.2.1 G5 `CancelCheckpointMarker` / G34 abort 数据 channel 传播 — Stage 39 Phase 3 裁定（Decision-only）
 

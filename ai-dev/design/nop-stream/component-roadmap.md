@@ -189,8 +189,8 @@ nop-stream 按职责划分为 **6 个核心组件** 和 **4 个规划组件**。
 | abort 传播通道 | 无 `CancelCheckpointMarker`；barrier/控制信息混在 `ResultPartition` 数据队列，对齐等待时读不到。前置依赖：独立控制通道（local 直接方法调用，distributed 需 RPC 通道） | P1 |
 | 多输入对齐统一 | 原 `BarrierAligner`（`pollAlignedBarrier(timeout)` / `TreeMap` 多 checkpoint / `ReentrantLock` / `abortAll`）已于 Stage 23 删除（零生产调用者的 `@Deprecated` reference code）；实际对齐用 `InputGate` 内联逻辑。未来若需多输入算子对齐增强（超时/并发多 checkpoint），需在 `InputGate` 上扩展或重建独立对齐器 | P1 |
 | 并发能力一致 | ✅ **已修复**：Coordinator 在 `tryTriggerPendingCheckpoint` 中通过 `effectiveMaxConcurrent = Math.min(1, config)` 强制 max=1，配置 >1 不崩溃（降级 + 警告）。task 层多 checkpoint 支持作为 Deferred | P1 ✅ |
-| channel 心跳（distributed） | `RemoteInputChannel` 无心跳，网络分区只靠 lease ~15-20s 兜底（`TaskManager` lease 15s + `JobCoordinator` 轮询 5s；`DEFAULT_LEASE_EXPIRE_THRESHOLD_MS=30000` 是未使用死常量） | P2 |
-| 背压逃生（unaligned） | 未实现。前置依赖：channel state 持久化、priority event、`EpochManifest` segments 落地（`buildEpochManifest` 当前传 null） | P3 |
+| channel 心跳（distributed） | ✅ **已修复（Stage 43 Phase 1）**：`RemoteResultPartition` 实现生产侧 idle-heartbeat 发射（`sendHeartbeatIfIdle()` + `startHeartbeat(sharedScheduler)`，`heartbeatIntervalMs` 可配，默认禁用）；`RemoteInputChannel` 实现消费侧超时检测（`channelTimeoutMs`，`lastReceivedTime` 在通过 fencing 过滤后刷新，`read()` 路径 piggyback 检查 → `ERR_STREAM_CHANNEL_TIMEOUT`）。fencing：错误 epoch 的 heartbeat 不刷新 liveness。EOS 与 timeout 区分（`finished` 抑制 timeout）。生产默认启用待 task runtime 共享 scheduler 接线（能力已验证，见 `TestRemoteInputChannelHeartbeat` 端到端接线） | P2 ✅ |
+| 背压逃生（unaligned） | ✅ **已修复（Stage 43 Phase 2–3）**：`CheckpointConfig.unalignedCheckpointEnabled`/`unalignedThreshold`（`validateUnalignedConfig()` fail-fast）；`InputGate` aligned→unaligned 回退（`switchToUnalignedAndEmit` per-channel `captureInFlightData`）；`ChannelState` 持久化于 `TaskEpochSnapshot`（`CheckpointSerDe` round-trip）。端到端背压验证见 Phase 4 | P3 ✅ |
 
 **已实现的容错能力**：checkpoint 级超时 abort（默认 10min）、两阶段提交重试（`retryFailedCommits` 逆拓扑序）、`StreamModelFingerprint` 恢复校验（算子链变更拒绝恢复）、distributed fencing（`fencingToken`+`epochId`）、distributed lease failover（`globalRecovery`）、finished channel 隐式对齐。
 
@@ -305,7 +305,7 @@ nop-stream 按职责划分为 **6 个核心组件** 和 **4 个规划组件**。
 | Keyed state 碰撞 | ✅ 已修复（(namespace, key) 复合键） | — |
 | 对齐超时缺失 + abort 未接线（生产 hang，stuck channel） | ✅ 已修复（Plan 172：abort 接线 + 对齐超时） | — |
 | 触发竞态 / 失败无计数 / abort 无控制通道 / BarrierAligner 未启用 / 并发能力不一致 | ✅ 触发竞态 + 失败计数 + 并发能力一致 已修复（Plan 172）；abort 控制通道 local 路径已完成（distributed 仍 Deferred）；BarrierAligner 已于 Stage 23 删除（reference code，对齐走 `InputGate`） | P1 |
-| RemoteInputChannel 无心跳 / unaligned checkpoint 未实现 | 未修复（见 §3 C5 容错缺口） | P2/P3 |
+| RemoteInputChannel 无心跳 / unaligned checkpoint 未实现 | ✅ 心跳已修复（Stage 43 Phase 1，见 §3 C5）；unaligned checkpoint 未实现（Stage 43 Phase 2–4 进行中） | P2 ✅ / P3 |
 
 ---
 
