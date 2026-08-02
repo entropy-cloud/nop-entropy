@@ -518,6 +518,18 @@ public class StreamTaskInvokable implements Invokable<Void> {
             } else if (element.isWatermark()) {
                 headInput.processWatermark(element.asWatermark());
             } else if (element.isCheckpointBarrier()) {
+                // Stage 43 (unaligned checkpoint): if InputGate just switched to
+                // unaligned mode, it stashed captured in-flight channel state.
+                // Forward it to the tracker BEFORE processBarrier triggers operator
+                // snapshots, so the channel state rides the barrier ACK path onto
+                // the current TaskStateSnapshot alongside operator state.
+                if (inputGate != null && barrierTracker != null) {
+                    io.nop.stream.core.checkpoint.ChannelState channelState =
+                            inputGate.consumePendingChannelState();
+                    if (channelState != null) {
+                        barrierTracker.setChannelState(channelState);
+                    }
+                }
                 headInput.processBarrier(element.asCheckpointBarrier());
             } else if (element.isWatermarkStatus()) {
                 headInput.processWatermarkStatus(element.asWatermarkStatus());

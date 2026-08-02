@@ -56,6 +56,15 @@ public class TaskEpochSnapshot extends TaskStateSnapshot {
      */
     private int keyGroupRangeEnd = -1;
 
+    /**
+     * Stage 43 (unaligned checkpoint): per-channel in-flight records captured at
+     * the moment the checkpoint switched to unaligned mode. {@code null} for
+     * aligned checkpoints without channel state (backward compatible). Replayed
+     * on recovery before the task resumes reading new upstream data
+     * (see {@code checkpoint-design.md} §2.11.4).
+     */
+    private ChannelState channelState;
+
     public TaskEpochSnapshot(TaskLocation taskLocation, long checkpointId) {
         super(taskLocation, checkpointId);
         this.shards = new ArrayList<>();
@@ -122,6 +131,22 @@ public class TaskEpochSnapshot extends TaskStateSnapshot {
 
     public void setKeyGroupRangeEnd(int keyGroupRangeEnd) {
         this.keyGroupRangeEnd = keyGroupRangeEnd;
+    }
+
+    /**
+     * Stage 43: returns the channel state captured for an unaligned checkpoint,
+     * or {@code null} when this snapshot has no channel state (aligned checkpoint).
+     */
+    public ChannelState getChannelState() {
+        return channelState;
+    }
+
+    /**
+     * Stage 43: attaches channel state captured at unaligned-checkpoint time.
+     * Nullable — aligned checkpoints carry no channel state.
+     */
+    public void setChannelState(ChannelState channelState) {
+        this.channelState = channelState;
     }
 
     /**

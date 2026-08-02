@@ -17,6 +17,7 @@ import org.slf4j.LoggerFactory;
 
 import io.nop.api.core.annotations.core.Internal;
 import io.nop.core.lang.json.JsonTool;
+import io.nop.stream.core.checkpoint.ChannelState;
 import io.nop.stream.core.checkpoint.CheckpointType;
 import io.nop.stream.core.checkpoint.CompletedCheckpoint;
 import io.nop.stream.core.checkpoint.EpochManifest;
@@ -61,14 +62,7 @@ public class CheckpointSerDe {
         Map<String, Object> taskStatesMap = new LinkedHashMap<>();
         for (Map.Entry<TaskLocation, TaskStateSnapshot> entry : checkpoint.getTaskStates().entrySet()) {
             String key = taskLocationToString(entry.getKey());
-            Map<String, Object> snapshotMap = new LinkedHashMap<>();
-            if (entry.getValue().getOperatorStates() != null && !entry.getValue().getOperatorStates().isEmpty()) {
-                snapshotMap.put("operatorStates", entry.getValue().getOperatorStates());
-            }
-            if (entry.getValue().getKeyedStates() != null && !entry.getValue().getKeyedStates().isEmpty()) {
-                snapshotMap.put("keyedStates", entry.getValue().getKeyedStates());
-            }
-            taskStatesMap.put(key, snapshotMap);
+            taskStatesMap.put(key, serializeTaskStateSnapshot(entry.getValue()));
         }
         serializable.put("taskStates", taskStatesMap);
 
@@ -161,14 +155,7 @@ public class CheckpointSerDe {
         Map<String, Object> taskSnapshotsMap = new LinkedHashMap<>();
         for (Map.Entry<TaskLocation, TaskStateSnapshot> entry : manifest.getTaskSnapshots().entrySet()) {
             String key = taskLocationToString(entry.getKey());
-            Map<String, Object> snapshotMap = new LinkedHashMap<>();
-            if (entry.getValue().getOperatorStates() != null && !entry.getValue().getOperatorStates().isEmpty()) {
-                snapshotMap.put("operatorStates", entry.getValue().getOperatorStates());
-            }
-            if (entry.getValue().getKeyedStates() != null && !entry.getValue().getKeyedStates().isEmpty()) {
-                snapshotMap.put("keyedStates", entry.getValue().getKeyedStates());
-            }
-            taskSnapshotsMap.put(key, snapshotMap);
+            taskSnapshotsMap.put(key, serializeTaskStateSnapshot(entry.getValue()));
         }
         serializable.put("taskSnapshots", taskSnapshotsMap);
 
@@ -317,6 +304,15 @@ public class CheckpointSerDe {
                 map.put("keyGroupRangeStart", epoch.getKeyGroupRangeStart());
                 map.put("keyGroupRangeEnd", epoch.getKeyGroupRangeEnd());
             }
+            // Stage 43: persist unaligned-checkpoint channel state when present.
+            // Absent on aligned checkpoints / legacy snapshots (backward compatible).
+            ChannelState channelState = epoch.getChannelState();
+            if (channelState != null) {
+                Map<String, Object> csForm = channelState.toSerializableForm();
+                if (csForm != null && !csForm.isEmpty()) {
+                    map.put("channelState", csForm);
+                }
+            }
         }
         return map;
     }
@@ -345,15 +341,24 @@ public class CheckpointSerDe {
 
         // Stage 35: reload key-group ownership metadata when present.
         Object kgrs = map.get("keyGroupRangeStart");
-        if (kgrs instanceof Number) {
+        Object csObj = map.get("channelState");
+        if (kgrs instanceof Number || csObj instanceof Map) {
             TaskEpochSnapshot epoch = TaskEpochSnapshot.fromTaskStateSnapshot(snapshot);
-            epoch.setParallelism(intField(map, "parallelism", 1));
-            epoch.setMaxParallelism(intField(map, "maxParallelism",
-                    io.nop.stream.core.common.state.shard.KeyGroup.DEFAULT_MAX_PARALLELISM));
-            epoch.setKeyGroupRangeStart(((Number) kgrs).intValue());
-            Object kgre = map.get("keyGroupRangeEnd");
-            if (kgre instanceof Number) {
-                epoch.setKeyGroupRangeEnd(((Number) kgre).intValue());
+            if (kgrs instanceof Number) {
+                epoch.setParallelism(intField(map, "parallelism", 1));
+                epoch.setMaxParallelism(intField(map, "maxParallelism",
+                        io.nop.stream.core.common.state.shard.KeyGroup.DEFAULT_MAX_PARALLELISM));
+                epoch.setKeyGroupRangeStart(((Number) kgrs).intValue());
+                Object kgre = map.get("keyGroupRangeEnd");
+                if (kgre instanceof Number) {
+                    epoch.setKeyGroupRangeEnd(((Number) kgre).intValue());
+                }
+            }
+            // Stage 43: reload unaligned-checkpoint channel state when present.
+            if (csObj instanceof Map) {
+                @SuppressWarnings("unchecked")
+                Map<String, Object> csMap = (Map<String, Object>) csObj;
+                epoch.setChannelState(ChannelState.fromSerializableForm(csMap));
             }
             return epoch;
         }

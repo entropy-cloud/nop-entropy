@@ -19,10 +19,12 @@ import org.slf4j.LoggerFactory;
 import io.nop.api.core.annotations.core.Internal;
 import io.nop.stream.core.checkpoint.CheckpointBarrier;
 import io.nop.stream.core.checkpoint.CheckpointType;
+import io.nop.stream.core.checkpoint.ChannelState;
 import io.nop.stream.core.checkpoint.OperatorSnapshotResult;
 import io.nop.stream.core.checkpoint.OperatorStateMapping;
 import io.nop.stream.core.checkpoint.TaskLocation;
 import io.nop.stream.core.checkpoint.TaskStateSnapshot;
+import io.nop.stream.core.checkpoint.TaskEpochSnapshot;
 import io.nop.stream.core.operators.AbstractStreamOperator;
 import io.nop.stream.core.operators.StreamOperator;
 import io.nop.stream.core.operators.StreamSourceOperator;
@@ -247,6 +249,30 @@ public class CheckpointBarrierTracker {
             this.currentCheckpointId = -1;
             this.currentSnapshot = null;
             this.operatorsToAck.set(0);
+        }
+    }
+
+    /**
+     * Stage 43 (unaligned checkpoint): attaches channel state to the current
+     * in-flight snapshot. Channel state flows on the <em>barrier ACK path</em>
+     * (not {@code triggerCheckpoint()}, which runs at initiation before channel
+     * state exists): the task thread receives the unaligned barrier from
+     * {@code InputGate.read()}, pulls the captured {@link ChannelState} off the
+     * gate, and hands it here so it is persisted within the {@link TaskEpochSnapshot}.
+     *
+     * <p>No-op when there is no active checkpoint or when the channel state is
+     * null/empty. Promotes the snapshot to a {@link TaskEpochSnapshot} if needed
+     * so the channel-state field is available.
+     */
+    public synchronized void setChannelState(ChannelState channelState) {
+        TaskStateSnapshot snap = this.currentSnapshot;
+        if (snap == null || channelState == null || channelState.isEmpty()) {
+            return;
+        }
+        TaskEpochSnapshot epoch = TaskEpochSnapshot.fromTaskStateSnapshot(snap);
+        epoch.setChannelState(channelState);
+        if (snap != epoch) {
+            this.currentSnapshot = epoch;
         }
     }
 }

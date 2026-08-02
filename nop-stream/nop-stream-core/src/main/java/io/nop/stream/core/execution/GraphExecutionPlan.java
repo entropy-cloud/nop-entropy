@@ -201,7 +201,36 @@ public class GraphExecutionPlan {
     public static GraphExecutionPlan build(JobGraph jobGraph, DeploymentPlan deploymentPlan,
                                            boolean barrierAlignment, long barrierAlignmentTimeout) {
         return build(jobGraph, deploymentPlan, barrierAlignment, barrierAlignmentTimeout,
-                new BufferPool(DEFAULT_GLOBAL_BUFFER_CAPACITY));
+                false, InputGate.DEFAULT_ALIGNMENT_TIMEOUT_MS);
+    }
+
+    /**
+     * Stage 43 (unaligned checkpoint): builds an execution plan with full
+     * barrier-alignment AND aligned→unaligned fallback configuration. The
+     * unaligned flags are threaded into every multi-input {@link InputGate} so
+     * that, under sustained backpressure, a checkpoint switches to unaligned mode
+     * after {@code unalignedThreshold} ms instead of waiting until
+     * {@code barrierAlignmentTimeout} and failing the task.
+     *
+     * <p>Callers MUST have validated (e.g. via
+     * {@code CheckpointConfig.validateUnalignedConfig()}) that when
+     * {@code unalignedCheckpointEnabled=true},
+     * {@code unalignedThreshold < barrierAlignmentTimeout}.
+     *
+     * @param jobGraph                 the job graph to plan execution for
+     * @param deploymentPlan           optional deployment plan (null uses default behavior)
+     * @param barrierAlignment         if true, InputGates use barrier alignment
+     * @param barrierAlignmentTimeout  maximum ms for barrier alignment before timeout
+     * @param unalignedCheckpointEnabled whether aligned→unaligned fallback is enabled
+     * @param unalignedThreshold       aligned→unaligned mode-switch threshold in ms
+     * @return the execution plan
+     */
+    public static GraphExecutionPlan build(JobGraph jobGraph, DeploymentPlan deploymentPlan,
+                                           boolean barrierAlignment, long barrierAlignmentTimeout,
+                                           boolean unalignedCheckpointEnabled, long unalignedThreshold) {
+        return build(jobGraph, deploymentPlan, barrierAlignment, barrierAlignmentTimeout,
+                new BufferPool(DEFAULT_GLOBAL_BUFFER_CAPACITY),
+                unalignedCheckpointEnabled, unalignedThreshold);
     }
 
     /**
@@ -229,6 +258,19 @@ public class GraphExecutionPlan {
     public static GraphExecutionPlan build(JobGraph jobGraph, DeploymentPlan deploymentPlan,
                                            boolean barrierAlignment, long barrierAlignmentTimeout,
                                            IBufferPool bufferPool) {
+        return build(jobGraph, deploymentPlan, barrierAlignment, barrierAlignmentTimeout, bufferPool,
+                false, InputGate.DEFAULT_ALIGNMENT_TIMEOUT_MS);
+    }
+
+    /**
+     * Stage 43: full build with explicit per-job {@link IBufferPool} AND aligned→
+     * unaligned fallback configuration. This is the production entry point threaded
+     * from {@code GraphModelCheckpointExecutor} via {@code CheckpointConfig}.
+     */
+    public static GraphExecutionPlan build(JobGraph jobGraph, DeploymentPlan deploymentPlan,
+                                           boolean barrierAlignment, long barrierAlignmentTimeout,
+                                           IBufferPool bufferPool,
+                                           boolean unalignedCheckpointEnabled, long unalignedThreshold) {
         if (bufferPool == null) {
             throw new StreamException(ERR_STREAM_NULL_ARG).param(ARG_ARG_NAME, "bufferPool");
         }
@@ -353,7 +395,10 @@ public class GraphExecutionPlan {
 
                     if (!channels.isEmpty()) {
                         EdgeConfig gateConfig = resolveEdgeConfig(inEdges.get(0), deploymentPlan);
-                        inputGate = new InputGate(channels, gateConfig, barrierAlignment, barrierAlignmentTimeout);
+                        // Stage 43: thread aligned→unaligned fallback config into every
+                        // multi-input InputGate so backpressure triggers unaligned mode.
+                        inputGate = new InputGate(channels, gateConfig, barrierAlignment,
+                                barrierAlignmentTimeout, unalignedCheckpointEnabled, unalignedThreshold);
                     }
                 }
 

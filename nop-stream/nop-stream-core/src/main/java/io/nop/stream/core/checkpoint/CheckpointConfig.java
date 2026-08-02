@@ -23,12 +23,14 @@ public class CheckpointConfig implements Serializable {
     public static final long DEFAULT_CHECKPOINT_INTERVAL = 60000L;
     public static final long DEFAULT_CHECKPOINT_TIMEOUT = 600000L;
     public static final long DEFAULT_BARRIER_ALIGNMENT_TIMEOUT = 30000L;
+    public static final long DEFAULT_UNALIGNED_THRESHOLD = 1000L;
     public static final long DEFAULT_MIN_PAUSE = 500L;
     public static final int DEFAULT_MAX_CONCURRENT_CHECKPOINTS = 1;
     public static final int DEFAULT_MAX_RETAINED_CHECKPOINTS = 5;
     public static final int DEFAULT_MAX_CONSECUTIVE_CHECKPOINT_FAILURES = 3;
     public static final boolean DEFAULT_ASYNC_SNAPSHOT_ENABLED = true;
     public static final int DEFAULT_ASYNC_SNAPSHOT_THREAD_POOL_SIZE = 1;
+    public static final boolean DEFAULT_UNALIGNED_CHECKPOINT_ENABLED = true;
 
     private boolean checkpointEnabled = true;
     private long checkpointInterval = DEFAULT_CHECKPOINT_INTERVAL;
@@ -46,6 +48,24 @@ public class CheckpointConfig implements Serializable {
     private String jobId = java.util.UUID.randomUUID().toString();
     private String pipelineId = "1";
     private JobTerminationMode jobTerminationMode = JobTerminationMode.CANCEL;
+
+    /**
+     * Stage 43 (unaligned checkpoint): when {@code true} (default), a checkpoint
+     * whose barrier alignment does not complete within {@link #unalignedThreshold}
+     * switches to unaligned mode (captures in-flight channel data and completes
+     * immediately) instead of waiting until {@link #barrierAlignmentTimeout} and
+     * failing the task. When {@code false}, the legacy behavior is preserved
+     * (alignment timeout → task FAILED → recovery).
+     */
+    private boolean unalignedCheckpointEnabled = DEFAULT_UNALIGNED_CHECKPOINT_ENABLED;
+
+    /**
+     * Stage 43 (unaligned checkpoint): aligned→unaligned mode-switch threshold in
+     * ms. Must be strictly less than {@link #barrierAlignmentTimeout} when
+     * {@link #unalignedCheckpointEnabled} is {@code true} (validated by
+     * {@link #validateUnalignedConfig()}, fail-fast on misconfiguration).
+     */
+    private long unalignedThreshold = DEFAULT_UNALIGNED_THRESHOLD;
 
     private IStateBackend stateBackend;
 
@@ -82,6 +102,50 @@ public class CheckpointConfig implements Serializable {
 
     public void setBarrierAlignmentTimeout(long barrierAlignmentTimeout) {
         this.barrierAlignmentTimeout = barrierAlignmentTimeout;
+    }
+
+    /**
+     * Stage 43: whether aligned→unaligned fallback is enabled (see class javadoc
+     * on {@link #unalignedCheckpointEnabled}).
+     */
+    public boolean isUnalignedCheckpointEnabled() {
+        return unalignedCheckpointEnabled;
+    }
+
+    public void setUnalignedCheckpointEnabled(boolean unalignedCheckpointEnabled) {
+        this.unalignedCheckpointEnabled = unalignedCheckpointEnabled;
+    }
+
+    /**
+     * Stage 43: aligned→unaligned mode-switch threshold in ms (see class javadoc
+     * on {@link #unalignedThreshold}).
+     */
+    public long getUnalignedThreshold() {
+        return unalignedThreshold;
+    }
+
+    public void setUnalignedThreshold(long unalignedThreshold) {
+        this.unalignedThreshold = unalignedThreshold;
+    }
+
+    /**
+     * Stage 43: validates the unaligned-checkpoint configuration invariant:
+     * when {@link #unalignedCheckpointEnabled} is {@code true},
+     * {@link #unalignedThreshold} must be strictly less than
+     * {@link #barrierAlignmentTimeout}. Fail-fast on misconfiguration so a
+     * nonsensical threshold (e.g. greater than the absolute alignment failure
+     * bound) is rejected at config load rather than causing confusing runtime
+     * behavior.
+     *
+     * @throws IllegalArgumentException if the invariant is violated
+     */
+    public void validateUnalignedConfig() {
+        if (unalignedCheckpointEnabled && unalignedThreshold >= barrierAlignmentTimeout) {
+            throw new IllegalArgumentException(
+                    "Invalid checkpoint config: unalignedThreshold (" + unalignedThreshold
+                            + "ms) must be < barrierAlignmentTimeout (" + barrierAlignmentTimeout
+                            + "ms) when unalignedCheckpointEnabled=true");
+        }
     }
 
     public long getMinPause() {
@@ -233,6 +297,16 @@ public class CheckpointConfig implements Serializable {
 
         public Builder barrierAlignmentTimeout(long timeout) {
             config.setBarrierAlignmentTimeout(timeout);
+            return this;
+        }
+
+        public Builder unalignedCheckpointEnabled(boolean enabled) {
+            config.setUnalignedCheckpointEnabled(enabled);
+            return this;
+        }
+
+        public Builder unalignedThreshold(long threshold) {
+            config.setUnalignedThreshold(threshold);
             return this;
         }
 

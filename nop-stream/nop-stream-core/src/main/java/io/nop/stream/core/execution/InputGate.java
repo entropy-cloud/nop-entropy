@@ -9,16 +9,18 @@ package io.nop.stream.core.execution;
 
 import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.LockSupport;
-import java.util.List;
 import java.util.Optional;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import io.nop.stream.core.checkpoint.CheckpointBarrier;
+import io.nop.stream.core.checkpoint.ChannelState;
 import io.nop.stream.core.execution.flow.EdgeConfig;
 import io.nop.stream.core.streamrecord.StreamElement;
 import io.nop.stream.core.streamrecord.watermark.Watermark;
@@ -60,6 +62,14 @@ public class InputGate {
 
     static final long DEFAULT_ALIGNMENT_TIMEOUT_MS = 30000L;
 
+    /**
+     * Stage 43 default for aligned→unaligned mode-switch threshold. Must be <
+     * {@link #DEFAULT_ALIGNMENT_TIMEOUT_MS}. Used only by the legacy constructors
+     * that do not opt into unaligned mode — the production path threads the value
+     * from {@link io.nop.stream.core.checkpoint.CheckpointConfig}.
+     */
+    static final long DEFAULT_UNALIGNED_THRESHOLD_MS = 1000L;
+
     private final List<InputChannel> channels;
     private final long[] currentWatermarks;
     private final EdgeConfig edgeConfig;
@@ -73,6 +83,31 @@ public class InputGate {
     private boolean barrierEmitted;
     private long alignmentStartTime;
     private final long barrierAlignmentTimeout;
+
+    /**
+     * Stage 43 (unaligned checkpoint): whether aligned→unaligned fallback is
+     * active for this gate. The legacy constructors default this to {@code false}
+     * so existing behavior (alignment timeout → throw) is preserved; the
+     * production constructor threads it from {@link
+     * io.nop.stream.core.checkpoint.CheckpointConfig}.
+     */
+    private final boolean unalignedCheckpointEnabled;
+
+    /**
+     * Stage 43: aligned→unaligned mode-switch threshold in ms. Only consulted when
+     * {@link #unalignedCheckpointEnabled} is {@code true}.
+     */
+    private final long unalignedThreshold;
+
+    /**
+     * Stage 43: channel state captured at the moment of an aligned→unaligned
+     * mode switch. Stored here so the task thread can retrieve it (via
+     * {@link #consumePendingChannelState()}) after {@link #read()} returns the
+     * unaligned barrier, and forward it to {@link CheckpointBarrierTracker}.
+     * Non-null only between the mode switch and the next {@code read()} that
+     * returns the barrier.
+     */
+    private ChannelState pendingChannelState;
 
     private int currentChannelIndex;
     private int emptyRounds;
@@ -118,6 +153,38 @@ public class InputGate {
      */
     public InputGate(List<InputChannel> channels, EdgeConfig edgeConfig,
                      boolean barrierAlignment, long barrierAlignmentTimeout) {
+        this(channels, edgeConfig, barrierAlignment, barrierAlignmentTimeout, false, DEFAULT_UNALIGNED_THRESHOLD_MS);
+    }
+
+    /**
+     * Stage 43 (unaligned checkpoint): full constructor with aligned→unaligned
+     * fallback configuration. Threaded from {@link
+     * io.nop.stream.core.checkpoint.CheckpointConfig} via
+     * {@code GraphExecutionPlan.build(...)}.
+     *
+     * <p>When {@code unalignedCheckpointEnabled} is {@code true} and alignment does
+     * not complete within {@code unalignedThreshold} ms, the gate captures in-flight
+     * channel data, emits the barrier immediately (unaligned mode), and resumes all
+     * blocked channels — instead of waiting until {@code barrierAlignmentTimeout}
+     * and throwing. The captured {@link ChannelState} is retrievable via
+     * {@link #consumePendingChannelState()} right after the barrier is read.
+     *
+     * <p>Precondition: {@code unalignedCheckpointEnabled=true} requires
+     * {@code unalignedThreshold < barrierAlignmentTimeout}; validated upstream by
+     * {@code CheckpointConfig.validateUnalignedConfig()}.
+     *
+     * @param channels                 the input channels (must not be null or empty)
+     * @param edgeConfig               optional edge configuration for flow control (nullable)
+     * @param barrierAlignment         if true, block channels after receiving barrier
+     * @param barrierAlignmentTimeout  maximum ms to wait for full alignment before
+     *                                 throwing (absolute fail bound; only reached when
+     *                                 unaligned is disabled)
+     * @param unalignedCheckpointEnabled whether aligned→unaligned fallback is enabled
+     * @param unalignedThreshold       aligned→unaligned mode-switch threshold in ms
+     */
+    public InputGate(List<InputChannel> channels, EdgeConfig edgeConfig,
+                     boolean barrierAlignment, long barrierAlignmentTimeout,
+                     boolean unalignedCheckpointEnabled, long unalignedThreshold) {
         if (channels == null || channels.isEmpty()) {
             throw new StreamException(ERR_STREAM_NULL_ARG).param(ARG_ARG_NAME, "channels");
         }
@@ -125,6 +192,8 @@ public class InputGate {
         this.edgeConfig = edgeConfig;
         this.barrierAlignment = barrierAlignment;
         this.barrierAlignmentTimeout = barrierAlignmentTimeout;
+        this.unalignedCheckpointEnabled = unalignedCheckpointEnabled;
+        this.unalignedThreshold = unalignedThreshold;
         this.currentWatermarks = new long[channels.size()];
         for (int i = 0; i < currentWatermarks.length; i++) {
             currentWatermarks[i] = Long.MIN_VALUE;
@@ -136,6 +205,7 @@ public class InputGate {
         this.barrierEmitted = false;
         this.currentChannelIndex = 0;
         this.alignmentStartTime = 0;
+        this.pendingChannelState = null;
     }
 
     /**
@@ -160,6 +230,8 @@ public class InputGate {
         this.edgeConfig = edgeConfig;
         this.barrierAlignment = true;
         this.barrierAlignmentTimeout = DEFAULT_ALIGNMENT_TIMEOUT_MS;
+        this.unalignedCheckpointEnabled = false;
+        this.unalignedThreshold = DEFAULT_UNALIGNED_THRESHOLD_MS;
         this.currentWatermarks = new long[]{Long.MIN_VALUE};
         this.barrierReceived = new boolean[1];
         this.blockedChannels = new HashSet<>();
@@ -167,6 +239,7 @@ public class InputGate {
         this.pendingBarrier = null;
         this.currentChannelIndex = 0;
         this.alignmentStartTime = 0;
+        this.pendingChannelState = null;
     }
 
     /**
@@ -339,6 +412,14 @@ public class InputGate {
 
             if (pendingBarrier != null && barriersRemaining > 0 && barrierAlignment) {
                 long elapsed = System.currentTimeMillis() - alignmentStartTime;
+
+                // Stage 43: aligned→unaligned fallback. When enabled and alignment
+                // has not completed within unalignedThreshold, capture in-flight
+                // channel data and complete the barrier immediately (no throw).
+                if (unalignedCheckpointEnabled && elapsed > unalignedThreshold) {
+                    return Optional.of(switchToUnalignedAndEmit());
+                }
+
                 if (elapsed > barrierAlignmentTimeout) {
                     throw new StreamException(ERR_STREAM_BARRIER_ALIGNMENT_TIMEOUT)
                             .param(ARG_TIMEOUT_MS, elapsed);
@@ -346,6 +427,102 @@ public class InputGate {
             }
 
             LockSupport.parkNanos(10_000_000L);
+        }
+    }
+
+    /**
+     * Stage 43 (unaligned checkpoint): switches the in-flight checkpoint from
+     * aligned to unaligned mode. Captures in-flight data from every channel
+     * (per §2.11.2 semantics: aligned channels → post-barrier records; non-aligned
+     * channels → all buffered records), resumes all blocked channels, resets
+     * alignment state, and stashes the {@link ChannelState} for the task thread
+     * to retrieve via {@link #consumePendingChannelState()}.
+     *
+     * @return the aligned/unaligned barrier to emit downstream
+     */
+    private CheckpointBarrier switchToUnalignedAndEmit() {
+        long elapsed = System.currentTimeMillis() - alignmentStartTime;
+        ChannelState channelState = new ChannelState();
+        for (int i = 0; i < channels.size(); i++) {
+            // barrierReceived[i] reflects whether channel i has delivered its barrier:
+            //   true  → aligned channel, drain post-barrier records
+            //   false → non-aligned channel, drain all buffered (pre-barrier) records
+            java.util.List<StreamElement> captured = channels.get(i).captureInFlightData(barrierReceived[i]);
+            if (captured != null && !captured.isEmpty()) {
+                channelState.putRecords(i, captured);
+            }
+        }
+        this.pendingChannelState = channelState;
+
+        CheckpointBarrier barrier = pendingBarrier;
+        long checkpointId = barrier != null ? barrier.getId() : -1L;
+        // Resume all channels — unaligned mode never blocks on alignment.
+        resumeConsumptionAll();
+        resetBarrierState();
+
+        LOG.info("Checkpoint {} switched to unaligned mode after {}ms (threshold={}ms); "
+                        + "captured {} in-flight record(s) across {} channel(s)",
+                checkpointId, elapsed, unalignedThreshold,
+                channelState.getTotalRecordCount(), channels.size());
+        return barrier;
+    }
+
+    /**
+     * Stage 43: returns and clears the channel state captured during the most
+     * recent aligned→unaligned mode switch. Intended to be called by the task
+     * thread immediately after {@link #read()} returns the unaligned barrier, so
+     * the state can be forwarded to {@link CheckpointBarrierTracker#setChannelState}.
+     *
+     * @return the captured channel state, or {@code null} if the last barrier was
+     *         completed in aligned mode (no channel state)
+     */
+    public ChannelState consumePendingChannelState() {
+        ChannelState cs = this.pendingChannelState;
+        this.pendingChannelState = null;
+        return cs;
+    }
+
+    /**
+     * Stage 43: whether aligned→unaligned fallback is enabled for this gate.
+     */
+    public boolean isUnalignedCheckpointEnabled() {
+        return unalignedCheckpointEnabled;
+    }
+
+    /**
+     * Stage 43: the aligned→unaligned mode-switch threshold in ms.
+     */
+    public long getUnalignedThreshold() {
+        return unalignedThreshold;
+    }
+
+    /**
+     * Stage 43 (unaligned checkpoint recovery): injects previously captured
+     * in-flight records back into the corresponding channel buffers, so they are
+     * processed BEFORE any new upstream records when the recovered task resumes
+     * reading. Called by the recovery path after operator state restore and before
+     * the task thread starts processing (see {@code checkpoint-design.md} §2.11.4).
+     *
+     * <p>Records for a channel index are pre-pended to that channel's buffer via
+     * {@link InputChannel#injectElements(List)}. Channel indices absent from
+     * {@code channelState} are left untouched. Safe to call on a freshly-built gate
+     * before any read has occurred.
+     *
+     * @param channelState the captured in-flight state (null/empty = no-op)
+     */
+    public void restoreChannelState(ChannelState channelState) {
+        if (channelState == null || channelState.isEmpty()) {
+            return;
+        }
+        for (Map.Entry<Integer, List<StreamElement>> e : channelState.getAllRecords().entrySet()) {
+            int idx = e.getKey();
+            if (idx >= 0 && idx < channels.size()) {
+                channels.get(idx).injectElements(e.getValue());
+            }
+        }
+        if (LOG.isInfoEnabled()) {
+            LOG.info("Restored channel state: {} record(s) across {} channel(s)",
+                    channelState.getTotalRecordCount(), channelState.getAllRecords().size());
         }
     }
 

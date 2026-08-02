@@ -102,6 +102,7 @@ public class GraphModelCheckpointExecutor {
 
         long startTime = System.currentTimeMillis();
 
+        checkpointConfig.validateUnalignedConfig();
         boolean barrierAlignment = resolveBarrierAlignment(checkpointConfig);
         GraphExecutionPlan execPlan = buildExecutionPlan(jobGraph, barrierAlignment, checkpointConfig.getBarrierAlignmentTimeout());
         String jobId = resolveJobId(checkpointConfig);
@@ -166,7 +167,8 @@ public class GraphModelCheckpointExecutor {
         checkpointConfig.setPipelineId(pipelineId);
 
         boolean barrierAlignment = resolveBarrierAlignment(checkpointConfig);
-        GraphExecutionPlan execPlan = buildExecutionPlan(jobGraph, deploymentPlan, barrierAlignment, checkpointConfig.getBarrierAlignmentTimeout());
+        checkpointConfig.validateUnalignedConfig();
+        GraphExecutionPlan execPlan = buildExecutionPlan(jobGraph, deploymentPlan, barrierAlignment, checkpointConfig);
 
         CheckpointIDCounter idCounter = new CheckpointIDCounter();
         ICheckpointStorage storage = createStorage(checkpointConfig);
@@ -240,7 +242,8 @@ public class GraphModelCheckpointExecutor {
         }
 
         boolean barrierAlignment = resolveBarrierAlignment(checkpointConfig);
-        GraphExecutionPlan execPlan = buildExecutionPlan(jobGraph, deploymentPlan, barrierAlignment, checkpointConfig.getBarrierAlignmentTimeout());
+        checkpointConfig.validateUnalignedConfig();
+        GraphExecutionPlan execPlan = buildExecutionPlan(jobGraph, deploymentPlan, barrierAlignment, checkpointConfig);
 
         CheckpointIDCounter idCounter = new CheckpointIDCounter();
         ICheckpointStorage storage = createStorage(checkpointConfig);
@@ -303,6 +306,7 @@ public class GraphModelCheckpointExecutor {
             CheckpointConfig checkpointConfig,
              String targetPath) throws Exception {
 
+        checkpointConfig.validateUnalignedConfig();
         boolean barrierAlignment = resolveBarrierAlignment(checkpointConfig);
         GraphExecutionPlan execPlan = buildExecutionPlan(jobGraph, barrierAlignment, checkpointConfig.getBarrierAlignmentTimeout());
         String jobId = resolveJobId(checkpointConfig);
@@ -364,6 +368,7 @@ public class GraphModelCheckpointExecutor {
 
         long startTime = System.currentTimeMillis();
 
+        checkpointConfig.validateUnalignedConfig();
         boolean barrierAlignment = resolveBarrierAlignment(checkpointConfig);
         GraphExecutionPlan execPlan = buildExecutionPlan(jobGraph, barrierAlignment, checkpointConfig.getBarrierAlignmentTimeout());
         String jobId = resolveJobId(checkpointConfig);
@@ -501,17 +506,26 @@ public class GraphModelCheckpointExecutor {
     }
 
     private static GraphExecutionPlan buildExecutionPlan(JobGraph jobGraph, boolean barrierAlignment,
-                                                         long barrierAlignmentTimeout) {
+                                                          long barrierAlignmentTimeout) {
         return GraphExecutionPlan.build(jobGraph, null, barrierAlignment, barrierAlignmentTimeout);
     }
 
+    /**
+     * Stage 43 (unaligned checkpoint): build with aligned→unaligned fallback
+     * config threaded from {@link CheckpointConfig}. The caller MUST have invoked
+     * {@code CheckpointConfig.validateUnalignedConfig()} first.
+     */
     private static GraphExecutionPlan buildExecutionPlan(JobGraph jobGraph, DeploymentPlan deploymentPlan,
-                                                         boolean barrierAlignment) {
-        return GraphExecutionPlan.build(jobGraph, deploymentPlan, barrierAlignment);
+                                                          boolean barrierAlignment,
+                                                          CheckpointConfig checkpointConfig) {
+        return GraphExecutionPlan.build(jobGraph, deploymentPlan, barrierAlignment,
+                checkpointConfig.getBarrierAlignmentTimeout(),
+                checkpointConfig.isUnalignedCheckpointEnabled(),
+                checkpointConfig.getUnalignedThreshold());
     }
 
     private static GraphExecutionPlan buildExecutionPlan(JobGraph jobGraph, DeploymentPlan deploymentPlan,
-                                                         boolean barrierAlignment, long barrierAlignmentTimeout) {
+                                                          boolean barrierAlignment, long barrierAlignmentTimeout) {
         return GraphExecutionPlan.build(jobGraph, deploymentPlan, barrierAlignment, barrierAlignmentTimeout);
     }
 
@@ -967,6 +981,32 @@ public class GraphModelCheckpointExecutor {
 
                 List<OperatorStateMapping> mappings = checkpointPlan.getStateMappings(taskLocation);
                 restoreOperatorsFromState(invokable.getOperatorChain(), epochId, taskState, mappings);
+
+                // Stage 43 (unaligned checkpoint recovery): AFTER operator state
+                // restore and BEFORE the task starts reading, inject the captured
+                // in-flight channel records into the invokable's InputGate so they
+                // are replayed ahead of any new upstream records. Aligned-checkpoint
+                // snapshots have no channel state (null) → no-op.
+                restoreChannelStateIfPresent(invokable, taskState);
+            }
+        }
+    }
+
+    /**
+     * Stage 43: injects unaligned-checkpoint channel state into a recovered
+     * task's {@link InputGate}. No-op when the snapshot has no channel state
+     * (aligned checkpoints) or the task has no InputGate (source/self-contained).
+     */
+    private static void restoreChannelStateIfPresent(StreamTaskInvokable invokable,
+                                                      TaskStateSnapshot taskState) {
+        if (taskState instanceof TaskEpochSnapshot) {
+            io.nop.stream.core.checkpoint.ChannelState cs =
+                    ((TaskEpochSnapshot) taskState).getChannelState();
+            if (cs != null && !cs.isEmpty()) {
+                InputGate inputGate = invokable.getInputGate();
+                if (inputGate != null) {
+                    inputGate.restoreChannelState(cs);
+                }
             }
         }
     }

@@ -8,6 +8,7 @@
 package io.nop.stream.core.execution;
 
 import java.util.ArrayList;
+import java.util.List;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
 
@@ -252,5 +253,89 @@ public class ResultPartition implements IWriteStatus {
      */
     public IBufferPool getBufferPool() {
         return bufferPool;
+    }
+
+    /**
+     * Stage 43 (unaligned checkpoint): drains and returns all currently buffered
+     * elements WITHOUT blocking, excluding the end-of-stream sentinel. Used by
+     * {@link InputChannel#captureInFlightData(boolean)} to snapshot in-flight data
+     * at unaligned-checkpoint time. Elements are <em>moved</em> (removed from the
+     * queue), not copied — each removed element releases one buffer-pool permit
+     * when a pool is attached, so global backpressure accounting stays consistent.
+     *
+     * <p>This method does NOT mark the partition finished and does NOT inject the
+     * EOS sentinel; the producer may continue writing after capture.
+     *
+     * @return a list of the buffered elements (possibly empty); never null
+     */
+    public List<StreamElement> drainBufferedElements() {
+        List<StreamElement> drained = new ArrayList<>();
+        StreamElement e;
+        while ((e = queue.poll()) != null) {
+            if (e == END_OF_STREAM) {
+                // Do not hand out the sentinel; it is a terminal signal, not data.
+                // Stop draining once the sentinel is observed.
+                break;
+            }
+            if (bufferPool != null) {
+                bufferPool.release();
+            }
+            drained.add(e);
+        }
+        return drained;
+    }
+
+    /**
+     * Stage 43 (unaligned checkpoint recovery): inserts the given elements at the
+     * <em>front</em> of the buffer so they are consumed before any currently
+     * buffered content — i.e. replayed in-flight records are processed first. Used
+     * by {@link InputChannel#injectElements(List)} on the recovery path.
+     *
+     * <p>Implementation: drain the current queue into a temp list, enqueue the
+     * replayed elements, then re-enqueue the previously drained content. When a
+     * buffer pool is attached, each injected/re-added element acquires a permit
+     * (mirroring {@link #write(StreamElement)}); if the pool is exhausted this
+     * blocks until permits are available, preserving the global bound.
+     *
+     * @param elements the elements to prepend (may be null/empty = no-op)
+     */
+    public void injectFront(List<StreamElement> elements) {
+        if (elements == null || elements.isEmpty()) {
+            return;
+        }
+        // Snapshot current buffered content (preserve the EOS sentinel if present).
+        List<StreamElement> existing = new ArrayList<>();
+        boolean sawEos = false;
+        StreamElement e;
+        while ((e = queue.poll()) != null) {
+            if (e == END_OF_STREAM) {
+                sawEos = true;
+                if (bufferPool != null) {
+                    bufferPool.release();
+                }
+                break;
+            }
+            existing.add(e);
+        }
+        try {
+            // Replayed elements first.
+            for (StreamElement injected : elements) {
+                if (bufferPool != null) {
+                    bufferPool.acquire();
+                }
+                queue.put(injected);
+            }
+            // Then the previously buffered content.
+            for (StreamElement old : existing) {
+                queue.put(old);
+            }
+            if (sawEos) {
+                queue.put(END_OF_STREAM);
+            }
+        } catch (InterruptedException ie) {
+            Thread.currentThread().interrupt();
+            throw new StreamException(NopStreamErrors.ERR_STREAM_INTERRUPTED_WRITE, ie)
+                    .param(NopStreamErrors.ARG_DETAIL, "injectFront interrupted");
+        }
     }
 }

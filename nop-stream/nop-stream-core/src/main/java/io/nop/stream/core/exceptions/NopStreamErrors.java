@@ -172,6 +172,17 @@ public interface NopStreamErrors {
                     "Barrier alignment timed out after {timeoutMs}ms: not all input channels delivered barriers within the configured timeout",
                     ARG_TIMEOUT_MS);
 
+    /**
+     * Stage 43: a {@code RemoteInputChannel} detected producer failure via the
+     * channel heartbeat protocol — neither data, nor heartbeat, nor EOS arrived
+     * within {@code channelTimeout}. This is faster than waiting for the coarse
+     * lease timeout (~15-20s) and indicates producer death or network partition.
+     */
+    ErrorCode ERR_STREAM_CHANNEL_TIMEOUT =
+            define("nop.err.stream.channel-timeout",
+                    "RemoteInputChannel timed out after {timeoutMs}ms with no data, heartbeat, or end-of-stream: producer is presumed dead or partitioned",
+                    ARG_TIMEOUT_MS);
+
     String ARG_EXPECTED_TYPE = "expectedType";
     String ARG_ACTUAL_TYPE = "actualType";
 
