@@ -10,6 +10,7 @@ package io.nop.stream.core.common.state.backend.rocksdb;
 import java.io.File;
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
@@ -23,6 +24,8 @@ import java.util.concurrent.atomic.AtomicLong;
 
 import io.nop.stream.core.checkpoint.incremental.IncrementalSnapshotResult;
 import io.nop.stream.core.checkpoint.incremental.SharedStateHandle;
+import io.nop.stream.core.checkpoint.storage.ISegmentStore;
+import io.nop.stream.core.common.state.backend.rocksdb.incremental.RocksDBIncrementalRestore;
 import io.nop.stream.core.common.state.backend.rocksdb.incremental.RocksDBIncrementalSnapshotStrategy;
 import io.nop.stream.core.common.state.AggregatingState;
 import io.nop.stream.core.common.state.AggregatingStateDescriptor;
@@ -47,6 +50,7 @@ import io.nop.stream.core.common.state.backend.IInternalStateBackend;
 import io.nop.stream.core.common.state.backend.StateSnapshot;
 import io.nop.stream.core.common.state.shard.KeyGroup;
 import io.nop.stream.core.common.state.shard.KeyGroupAssignment;
+import io.nop.stream.core.common.state.shard.KeyGroupRange;
 import io.nop.stream.core.exceptions.StreamException;
 
 import org.rocksdb.ColumnFamilyDescriptor;
@@ -57,6 +61,8 @@ import org.rocksdb.Options;
 import org.rocksdb.RocksDB;
 import org.rocksdb.RocksDBException;
 import org.rocksdb.RocksIterator;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import static io.nop.stream.core.exceptions.NopStreamErrors.ARG_ACTUAL_TYPE;
 import static io.nop.stream.core.exceptions.NopStreamErrors.ARG_DETAIL;
@@ -82,6 +88,8 @@ import static io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_TYPE_MISM
 public class RocksDBKeyedStateBackend<K> implements IInternalStateBackend<K> {
 
     private static final long serialVersionUID = 1L;
+
+    private static final Logger LOG = LoggerFactory.getLogger(RocksDBKeyedStateBackend.class);
 
     static {
         RocksDB.loadLibrary();
@@ -135,6 +143,15 @@ public class RocksDBKeyedStateBackend<K> implements IInternalStateBackend<K> {
      * expiry can be exercised deterministically without sleeping.
      */
     private TtlTimeProvider ttlClock = SystemTtlTimeProvider.INSTANCE;
+
+    /**
+     * Stage 35: target key-group range for partial (per-subtask) restore on the
+     * full-JSON snapshot path. When non-null, {@link RocksDBSnapshotSerDe#restoreState}
+     * only writes entries whose key-group id falls inside this range — the
+     * in-memory entry-filter counterpart of the incremental SST range scan.
+     * {@code null} restores the whole snapshot (backward compatible).
+     */
+    private KeyGroupRange targetKeyGroupRange;
 
     public RocksDBKeyedStateBackend(String dbPath, Class<K> keyType, int maxParallelism,
                                     RocksDBOptionConfig optionConfig) {
@@ -218,6 +235,75 @@ public class RocksDBKeyedStateBackend<K> implements IInternalStateBackend<K> {
         return cfHandles;
     }
 
+    /**
+     * Stage 35: copy entries whose key-group prefix falls inside {@code range}
+     * from a read-only source RocksDB column family into this backend's
+     * corresponding column family. Consumes the Stage 34 sortable binary prefix
+     * (key-group id is the big-endian first 4 bytes of every key). Used by
+     * {@link RocksDBIncrementalRestore#restoreRangeInto} to perform the real
+     * SST range scan during incremental checkpoint restore.
+     *
+     * @param src    the read-only reconstructed source DB
+     * @param srcCf  the source column family handle
+     * @param cfName the column-family (state) name to write into on this backend
+     * @param range  target key-group range, or {@code null} to copy the whole CF
+     * @return the number of entries copied
+     */
+    public int copyColumnFamilyRange(RocksDB src, ColumnFamilyHandle srcCf, String cfName,
+                                     KeyGroupRange range) throws RocksDBException {
+        ColumnFamilyHandle dstCf = getOrCreateColumnFamily(cfName);
+        int copied = 0;
+        try (RocksIterator it = src.newIterator(srcCf)) {
+            if (range != null) {
+                byte[] startPrefix = int32BigEndian(range.getStartKeyGroup());
+                byte[] endPrefix = int32BigEndian(range.getEndKeyGroup());
+                for (it.seek(startPrefix); it.isValid(); it.next()) {
+                    byte[] key = it.key();
+                    if (compareBytes(key, endPrefix) >= 0) {
+                        break;
+                    }
+                    int keyGroupId = readInt32BE(key, 0);
+                    if (!range.contains(keyGroupId)) {
+                        continue;
+                    }
+                    db.put(dstCf, key, it.value());
+                    copied++;
+                }
+            } else {
+                for (it.seekToFirst(); it.isValid(); it.next()) {
+                    db.put(dstCf, it.key(), it.value());
+                    copied++;
+                }
+            }
+        }
+        return copied;
+    }
+
+    private static byte[] int32BigEndian(int value) {
+        return new byte[]{
+                (byte) ((value >>> 24) & 0xFF),
+                (byte) ((value >>> 16) & 0xFF),
+                (byte) ((value >>> 8) & 0xFF),
+                (byte) (value & 0xFF)
+        };
+    }
+
+    private static int readInt32BE(byte[] buf, int off) {
+        return ((buf[off] & 0xFF) << 24)
+                | ((buf[off + 1] & 0xFF) << 16)
+                | ((buf[off + 2] & 0xFF) << 8)
+                | (buf[off + 3] & 0xFF);
+    }
+
+    private static int compareBytes(byte[] a, byte[] b) {
+        int n = Math.min(a.length, b.length);
+        for (int i = 0; i < n; i++) {
+            int cmp = Integer.compare(a[i] & 0xFF, b[i] & 0xFF);
+            if (cmp != 0) return cmp;
+        }
+        return Integer.compare(a.length, b.length);
+    }
+
     // ------------------------------------------------------------------------
     //  key / namespace management
     // ------------------------------------------------------------------------
@@ -253,8 +339,21 @@ public class RocksDBKeyedStateBackend<K> implements IInternalStateBackend<K> {
     /**
      * Stage 34: job-global key-group upper bound for this backend.
      */
-    int getMaxParallelism() {
+    @Override
+    public int getMaxParallelism() {
         return maxParallelism;
+    }
+
+    /**
+     * Stage 35: target key-group range used by the next {@link #restoreState}
+     * call to perform partial (per-subtask) restore on the full-JSON path.
+     */
+    public void setTargetKeyGroupRange(KeyGroupRange targetKeyGroupRange) {
+        this.targetKeyGroupRange = targetKeyGroupRange;
+    }
+
+    KeyGroupRange getTargetKeyGroupRange() {
+        return targetKeyGroupRange;
     }
 
     /**
@@ -644,7 +743,63 @@ public class RocksDBKeyedStateBackend<K> implements IInternalStateBackend<K> {
 
     @Override
     public void restoreState(StateSnapshot snapshot) throws Exception {
+        if (snapshot != null && !snapshot.isEmpty()) {
+            Object marker = snapshot.getStateData().get(IncrementalSnapshotResult.MARKER_KEY);
+            if (marker instanceof IncrementalSnapshotResult) {
+                restoreIncremental((IncrementalSnapshotResult) marker);
+                return;
+            }
+            if (marker instanceof Map) {
+                // JSON-deserialized form: reconstruct an IncrementalSnapshotResult.
+                @SuppressWarnings("unchecked")
+                IncrementalSnapshotResult result = io.nop.core.reflect.bean.BeanTool
+                        .buildBean(marker, IncrementalSnapshotResult.class);
+                if (result != null) {
+                    restoreIncremental(result);
+                    return;
+                }
+            }
+        }
         RocksDBSnapshotSerDe.restoreState(this, snapshot);
+    }
+
+    /**
+     * Stage 35: real key-group range restore from an incremental checkpoint (Stage 31
+     * deferred item). Reconstructs the content-addressed SST set into a temp RocksDB
+     * directory and copies only the entries whose key-group prefix falls inside the
+     * backend's {@link #targetKeyGroupRange} (or the whole DB when the range is null).
+     *
+     * <p>Fail-fast: if no {@link ISegmentStore} is configured the restore cannot locate
+     * the shared SST files, so it throws rather than silently degrading to a full-JSON
+     * restore (which would both ignore the range and produce an empty state).
+     */
+    private void restoreIncremental(IncrementalSnapshotResult result) throws Exception {
+        if (segmentStore == null) {
+            throw new StreamException(ERR_STREAM_STATE_ERROR)
+                    .param(ARG_DETAIL, "Incremental checkpoint restore requires an ISegmentStore to resolve "
+                            + "content-addressed SST files, but none is configured on the RocksDB backend. "
+                            + "Configure setSegmentStore(...) before restore, or use the full-snapshot path.");
+        }
+        Path baseDir = Paths.get(checkpointBaseDir != null ? checkpointBaseDir : (dbPath + "-restore"));
+        Files.createDirectories(baseDir);
+        int copied = RocksDBIncrementalRestore.restoreRangeInto(
+                this, result, segmentStore, targetKeyGroupRange, baseDir);
+        LOG.debug("Incremental range restore copied {} entries into RocksDB at {}", copied, dbPath);
+    }
+
+    /**
+     * Stage 35: content-addressed segment store used by {@link #restoreState} to resolve
+     * shared SST files when restoring an incremental checkpoint. Optional: when unset,
+     * an incremental checkpoint restore fails fast (no silent full-JSON fallback).
+     */
+    private ISegmentStore segmentStore;
+
+    public void setSegmentStore(ISegmentStore segmentStore) {
+        this.segmentStore = segmentStore;
+    }
+
+    public ISegmentStore getSegmentStore() {
+        return segmentStore;
     }
 
     // ------------------------------------------------------------------------

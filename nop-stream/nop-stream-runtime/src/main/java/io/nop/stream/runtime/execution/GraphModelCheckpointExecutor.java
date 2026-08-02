@@ -9,6 +9,7 @@ package io.nop.stream.runtime.execution;
 
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -34,6 +35,7 @@ import io.nop.stream.core.checkpoint.OperatorSnapshotResult;
 import io.nop.stream.core.checkpoint.OperatorStateMapping;
 import io.nop.stream.core.checkpoint.TaskLocation;
 import io.nop.stream.core.checkpoint.TaskStateSnapshot;
+import io.nop.stream.core.checkpoint.TaskEpochSnapshot;
 import io.nop.stream.core.checkpoint.participant.CheckpointParticipant;
 import io.nop.stream.core.checkpoint.storage.ICheckpointStorage;
 import io.nop.stream.core.common.state.CheckpointListener;
@@ -74,6 +76,11 @@ import io.nop.stream.core.jobgraph.JobVertex;
 import io.nop.stream.core.jobgraph.OperatorChain;
 import io.nop.stream.core.model.StreamModel;
 import io.nop.stream.core.model.StreamModelFingerprint;
+import io.nop.stream.core.common.state.backend.StateSnapshot;
+import io.nop.stream.core.common.state.shard.KeyGroup;
+import io.nop.stream.core.common.state.shard.KeyGroupAssignment;
+import io.nop.stream.core.common.state.shard.KeyGroupRange;
+import io.nop.stream.core.common.state.shard.KeyGroupRangeRestoreFilter;
 import io.nop.stream.core.operators.AbstractStreamOperator;
 import io.nop.stream.core.operators.AbstractUdfStreamOperator;
 import io.nop.stream.core.operators.StreamOperator;
@@ -329,6 +336,10 @@ public class GraphModelCheckpointExecutor {
                 CompletedCheckpoint completed = (CompletedCheckpoint) savepointPending.getCompletableFuture()
                         .get(checkpointConfig.getCheckpointTimeout(), TimeUnit.MILLISECONDS);
                 if (completed != null) {
+                    // Stage 35: materialize per-subtask KeyGroupRange ownership so the
+                    // savepoint records which subtask owned which range (the restore path
+                    // can then route keyed state on a parallelism change).
+                    materializeKeyGroupOwnership(completed, execPlan);
                     savepointPath = storage.storeCheckPoint(completed);
                 }
             }
@@ -917,17 +928,243 @@ public class GraphModelCheckpointExecutor {
         // reject such a restore (it indicates a stateful vertex was deleted).
         validateReverseVertexDifferential(execPlan, checkpointPlan, checkpointLocations);
 
+        // Stage 35: group the checkpoint's old subtasks by vertex so a rescale
+        // (parallelism change) can route keyed state by KeyGroupRange
+        // intersection instead of a strict 1:1 TaskLocation lookup.
+        Map<String, List<TaskLocation>> oldSubtasksByVertex = groupCheckpointSubtasksByVertex(checkpointLocations);
+        int maxParallelism = resolveMaxParallelism(execPlan, checkpointPlan);
+
         for (String vertexId : execPlan.getSortedVertexIds()) {
-            for (Subtask subtask : execPlan.getSubtasks(vertexId)) {
+            List<Subtask> newSubtasks = execPlan.getSubtasks(vertexId);
+            int newParallelism = newSubtasks.size();
+            List<TaskLocation> oldSubtasks = oldSubtasksByVertex.getOrDefault(vertexId, java.util.Collections.emptyList());
+            int oldParallelism = oldSubtasks.size();
+            boolean vertexKeyed = isVertexKeyed(checkpointPlan, vertexId, oldSubtasks);
+            boolean rescale = vertexKeyed && oldParallelism > 0 && oldParallelism != newParallelism;
+
+            if (rescale) {
+                LOG.info("Stage 35 rescale detected for vertex {}: oldParallelism={} -> newParallelism={} "
+                                + "(maxParallelism={}); routing keyed state by KeyGroupRange intersection",
+                        vertexId, oldParallelism, newParallelism, maxParallelism);
+            }
+
+            for (Subtask subtask : newSubtasks) {
                 StreamTaskInvokable invokable = subtask.getInvokable();
                 if (invokable == null) continue;
 
-                TaskLocation taskLocation = findTaskLocationInPlan(checkpointPlan, vertexId, subtask.getTaskIndex());
-                TaskStateSnapshot taskState = stateLookup.lookup(taskLocation);
+                int taskIndex = subtask.getTaskIndex();
+                TaskLocation taskLocation = findTaskLocationInPlan(checkpointPlan, vertexId, taskIndex);
+
+                TaskStateSnapshot taskState;
+                if (rescale) {
+                    KeyGroupRange newRange = KeyGroupAssignment.computeKeyGroupRangeForSubtaskIndex(
+                            maxParallelism, newParallelism, taskIndex);
+                    taskState = buildRescaledTaskState(vertexId, taskIndex, newRange, oldSubtasks,
+                            newParallelism, oldParallelism, maxParallelism, stateLookup, checkpointPlan);
+                } else {
+                    taskState = stateLookup.lookup(taskLocation);
+                }
 
                 List<OperatorStateMapping> mappings = checkpointPlan.getStateMappings(taskLocation);
                 restoreOperatorsFromState(invokable.getOperatorChain(), epochId, taskState, mappings);
             }
+        }
+    }
+
+    /**
+     * Group the checkpoint's old TaskLocations by vertexId, each list sorted by
+     * taskIndex ascending. Used to enumerate the old subtask set per vertex and
+     * derive the old parallelism on a rescale.
+     */
+    private static Map<String, List<TaskLocation>> groupCheckpointSubtasksByVertex(Set<TaskLocation> locations) {
+        Map<String, List<TaskLocation>> byVertex = new LinkedHashMap<>();
+        if (locations == null) return byVertex;
+        for (TaskLocation loc : locations) {
+            if (loc == null || loc.getVertexId() == null) continue;
+            byVertex.computeIfAbsent(loc.getVertexId(), k -> new ArrayList<>()).add(loc);
+        }
+        for (List<TaskLocation> list : byVertex.values()) {
+            list.sort(java.util.Comparator.comparingInt(TaskLocation::getTaskIndex));
+        }
+        return byVertex;
+    }
+
+    /**
+     * Resolve the job-global maxParallelism. It is constant for the job lifetime
+     * (only parallelism changes on rescale), so any keyed backend's value is
+     * authoritative. Falls back to {@link KeyGroup#DEFAULT_MAX_PARALLELISM} when
+     * no keyed backend is reachable from the execution plan.
+     */
+    private static int resolveMaxParallelism(GraphExecutionPlan execPlan, CheckpointPlan checkpointPlan) {
+        for (String vertexId : execPlan.getSortedVertexIds()) {
+            for (Subtask subtask : execPlan.getSubtasks(vertexId)) {
+                StreamTaskInvokable invokable = subtask.getInvokable();
+                if (invokable == null) continue;
+                OperatorChain chain = invokable.getOperatorChain();
+                if (chain == null) continue;
+                for (StreamOperator<?> op : chain.getOperators()) {
+                    if (op instanceof AbstractStreamOperator) {
+                        io.nop.stream.core.common.state.backend.IKeyedStateBackend<?> keyed =
+                                ((AbstractStreamOperator<?>) op).getKeyedStateBackend();
+                        if (keyed != null) {
+                            return keyed.getMaxParallelism();
+                        }
+                    }
+                }
+            }
+        }
+        return KeyGroup.DEFAULT_MAX_PARALLELISM;
+    }
+
+    /**
+     * @return {@code true} if any operator mapping of this vertex carries keyed
+     * state (i.e. the vertex needs KeyGroupRange routing on a rescale).
+     */
+    private static boolean isVertexKeyed(CheckpointPlan plan, String vertexId, List<TaskLocation> sampleSubtasks) {
+        for (TaskLocation loc : sampleSubtasks) {
+            for (OperatorStateMapping m : plan.getStateMappings(loc)) {
+                if (m.hasKeyedState()) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
+    /**
+     * Stage 35: build the rescaled TaskStateSnapshot for a new subtask by
+     * merging keyed state from <em>all</em> old subtasks of the vertex (the new
+     * subtask's KeyGroupRange may intersect several old subtask ranges) and
+     * filtering the merged entries to those owned by {@code newRange}. Operator
+     * (non-keyed) state is taken 1:1 from the old subtask at the same index
+     * when it exists, and left empty for subtasks added by a scale-up (operator
+     * state rescale redistribution is out of scope per the plan Non-Goals).
+     */
+    @SuppressWarnings("unchecked")
+    private static TaskStateSnapshot buildRescaledTaskState(
+            String vertexId, int taskIndex, KeyGroupRange newRange,
+            List<TaskLocation> oldSubtasks, int newParallelism, int oldParallelism,
+            int maxParallelism, TaskStateLookup stateLookup, CheckpointPlan checkpointPlan) throws Exception {
+
+        TaskLocation newLoc = new TaskLocation(checkpointPlan.getJobId(), checkpointPlan.getPipelineId(), vertexId, taskIndex);
+        TaskStateSnapshot merged = new TaskStateSnapshot(newLoc, -1);
+
+        // Operator (non-keyed) state: 1:1 by index where an old subtask exists.
+        if (taskIndex < oldParallelism) {
+            TaskLocation oldLoc = oldSubtasks.get(taskIndex);
+            TaskStateSnapshot oldState = stateLookup.lookup(oldLoc);
+            if (oldState != null && oldState.getOperatorStates() != null) {
+                for (Map.Entry<String, Object> e : oldState.getOperatorStates().entrySet()) {
+                    merged.putOperatorState(e.getKey(), e.getValue());
+                }
+            }
+        }
+
+        // Keyed state: union of all old subtasks' keyed snapshots, filtered by newRange.
+        // Collect each keyed storage key (e.g. "operator-3-keyed") and merge its entries.
+        Map<String, List<Map<String, Object>>> mergedKeyedByName = new LinkedHashMap<>();
+        for (TaskLocation oldLoc : oldSubtasks) {
+            TaskStateSnapshot oldState = stateLookup.lookup(oldLoc);
+            if (oldState == null || oldState.getKeyedStates() == null) continue;
+            for (Map.Entry<String, Object> ke : oldState.getKeyedStates().entrySet()) {
+                Map<String, Object> dataMap = toStateDataMap(ke.getValue());
+                if (dataMap == null) continue;
+                Object statesObj = dataMap.get("states");
+                if (!(statesObj instanceof Map)) continue;
+                Map<String, Object> statesMap = (Map<String, Object>) statesObj;
+                List<Map<String, Object>> bucket = mergedKeyedByName
+                        .computeIfAbsent(ke.getKey(), k -> new ArrayList<>());
+                bucket.add(statesMap);
+            }
+        }
+
+        for (Map.Entry<String, List<Map<String, Object>>> entry : mergedKeyedByName.entrySet()) {
+            Map<String, Object> mergedStates = mergeAndFilterKeyedStates(entry.getValue(), newRange, maxParallelism);
+            if (mergedStates.isEmpty()) continue;
+            Map<String, Object> data = new LinkedHashMap<>();
+            data.put("states", mergedStates);
+            merged.putKeyedState(entry.getKey(), new StateSnapshot(data));
+        }
+
+        return merged;
+    }
+
+    /**
+     * Merge multiple old subtasks' {@code states} sub-maps (per keyed state name)
+     * and keep only the entries whose raw key is owned by {@code range}. Entries
+     * are appended in old-subtask order; the result preserves each state's info
+     * metadata (stateType/valueType/schema...) taken from the first contributor.
+     */
+    @SuppressWarnings("unchecked")
+    private static Map<String, Object> mergeAndFilterKeyedStates(List<Map<String, Object>> sources,
+                                                                 KeyGroupRange range, int maxParallelism) {
+        Map<String, Object> result = new LinkedHashMap<>();
+        // stateName -> merged info map (entries list grows across contributors)
+        Map<String, Map<String, Object>> byName = new LinkedHashMap<>();
+        for (Map<String, Object> src : sources) {
+            Map<String, Object> filtered = KeyGroupRangeRestoreFilter.filterKeyedStates(src, range, maxParallelism);
+            for (Map.Entry<String, Object> e : filtered.entrySet()) {
+                Map<String, Object> info = (Map<String, Object>) e.getValue();
+                Map<String, Object> acc = byName.get(e.getKey());
+                if (acc == null) {
+                    byName.put(e.getKey(), new LinkedHashMap<>(info));
+                } else {
+                    Object entries = info.get("entries");
+                    if (entries instanceof List) {
+                        Object accEntries = acc.computeIfAbsent("entries", k -> new ArrayList<>());
+                        if (accEntries instanceof List) {
+                            ((List<Object>) accEntries).addAll((List<?>) entries);
+                        }
+                    }
+                }
+            }
+        }
+        result.putAll(byName);
+        return result;
+    }
+
+    @SuppressWarnings("unchecked")
+    private static Map<String, Object> toStateDataMap(Object keyedValue) {
+        if (keyedValue instanceof StateSnapshot) {
+            return ((StateSnapshot) keyedValue).getStateData();
+        }
+        if (keyedValue instanceof Map) {
+            return (Map<String, Object>) keyedValue;
+        }
+        return null;
+    }
+
+    /**
+     * Stage 35: materialize the key-group ownership of every keyed subtask into
+     * a {@link TaskEpochSnapshot} so the production checkpoint path records the
+     * KeyGroupRange each subtask owned (the {@code shards} list was never
+     * populated in production). The stamped ownership is persisted by
+     * {@code CheckpointSerDe} and re-read on restore. Mutates the checkpoint's
+     * task-state map in place (it is a mutable {@code HashMap}).
+     *
+     * <p>Per-vertex {@code parallelism} is derived from the number of subtask
+     * locations recorded for that vertex; {@code maxParallelism} is resolved
+     * from the execution plan's keyed backends (job-global constant).
+     */
+    static void materializeKeyGroupOwnership(CompletedCheckpoint checkpoint, GraphExecutionPlan execPlan) {
+        if (checkpoint == null || checkpoint.getTaskStates() == null || checkpoint.getTaskStates().isEmpty()) {
+            return;
+        }
+        int maxParallelism = resolveMaxParallelism(execPlan, null);
+        // Count subtasks per vertex to derive each vertex's parallelism.
+        Map<String, Integer> parallelismByVertex = new HashMap<>();
+        for (TaskLocation loc : checkpoint.getTaskStates().keySet()) {
+            parallelismByVertex.merge(loc.getVertexId(), 1, Integer::sum);
+        }
+        Map<TaskLocation, TaskStateSnapshot> taskStates = checkpoint.getTaskStates();
+        for (Map.Entry<TaskLocation, TaskStateSnapshot> entry : taskStates.entrySet()) {
+            TaskLocation loc = entry.getKey();
+            int parallelism = parallelismByVertex.getOrDefault(loc.getVertexId(), 1);
+            KeyGroupRange range = KeyGroupAssignment.computeKeyGroupRangeForSubtaskIndex(
+                    maxParallelism, parallelism, loc.getTaskIndex());
+            TaskEpochSnapshot epoch = TaskEpochSnapshot.fromTaskStateSnapshot(entry.getValue());
+            epoch.setKeyGroupOwnership(parallelism, maxParallelism, range);
+            entry.setValue(epoch);
         }
     }
 

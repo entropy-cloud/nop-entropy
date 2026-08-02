@@ -8,6 +8,7 @@
 package io.nop.stream.core.common.state.backend;
 
 import io.nop.stream.core.common.state.KeyedStateStore;
+import io.nop.stream.core.common.state.shard.KeyGroup;
 
 /**
  * Keyed 状态后端接口，管理按 key 分区的状态。
@@ -91,4 +92,15 @@ public interface IKeyedStateBackend<K> extends KeyedStateStore, AutoCloseable {
      * @param snapshot the state snapshot
      */
     void restoreState(StateSnapshot snapshot) throws Exception;
+
+    /**
+     * Stage 35: job-global key-group upper bound used by this backend. Constant
+     * for the job lifetime, which keeps the key&#8594;group mapping stable across
+     * parallelism-only rescales. Defaults to
+     * {@link KeyGroup#DEFAULT_MAX_PARALLELISM} for backends that do not model
+     * key groups.
+     */
+    default int getMaxParallelism() {
+        return KeyGroup.DEFAULT_MAX_PARALLELISM;
+    }
 }

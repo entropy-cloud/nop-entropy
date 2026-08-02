@@ -9,6 +9,8 @@ package io.nop.stream.core.common.state.backend;
 
 import java.io.Serializable;
 
+import io.nop.stream.core.common.state.shard.KeyGroup;
+
 /**
  * 状态后端接口，用于创建 IKeyedStateBackend。
  * 
@@ -40,4 +42,14 @@ public interface IStateBackend extends Serializable {
     <K> IKeyedStateBackend<K> createKeyedStateBackend(Class<K> keyType);
 
     IOperatorStateBackend createOperatorStateBackend();
+
+    /**
+     * Stage 35: job-global key-group upper bound used by this backend. The value
+     * is constant for the job lifetime, which is what keeps the key&#8594;group
+     * mapping stable across {@code parallelism}-only rescales. Implementations
+     * that do not model key groups return {@link KeyGroup#DEFAULT_MAX_PARALLELISM}.
+     */
+    default int getMaxParallelism() {
+        return KeyGroup.DEFAULT_MAX_PARALLELISM;
+    }
 }

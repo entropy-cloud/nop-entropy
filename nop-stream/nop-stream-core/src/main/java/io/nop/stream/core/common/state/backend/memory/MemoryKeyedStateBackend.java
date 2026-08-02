@@ -33,6 +33,7 @@ import io.nop.stream.core.common.state.ValueState;
 import io.nop.stream.core.common.state.ValueStateDescriptor;
 import io.nop.stream.core.checkpoint.SerializerFingerprint;
 import io.nop.stream.core.common.state.shard.KeyGroupAssignment;
+import io.nop.stream.core.common.state.shard.KeyGroupRange;
 import io.nop.stream.core.exceptions.StreamException;
 
 import static io.nop.stream.core.exceptions.NopStreamErrors.ARG_ACTUAL_CHECKSUM;
@@ -90,6 +91,14 @@ public class MemoryKeyedStateBackend<K> implements IInternalStateBackend<K>, Ser
      * expiry can be exercised deterministically without sleeping.
      */
     private TtlTimeProvider ttlClock = SystemTtlTimeProvider.INSTANCE;
+
+    /**
+     * Stage 35: target key-group range for partial (per-subtask) restore. When
+     * non-null, {@link #restoreState} only materializes entries whose key-group
+     * id falls inside this range — the in-memory equivalent of the RocksDB SST
+     * range scan. {@code null} restores the whole snapshot (backward compatible).
+     */
+    private KeyGroupRange targetKeyGroupRange;
 
     public MemoryKeyedStateBackend(Class<K> keyType) {
         this(keyType, 1);
@@ -344,8 +353,21 @@ public class MemoryKeyedStateBackend<K> implements IInternalStateBackend<K>, Ser
     /**
      * Stage 34: job-global key-group upper bound for this backend.
      */
-    int getMaxParallelism() {
+    @Override
+    public int getMaxParallelism() {
         return maxParallelism;
+    }
+
+    /**
+     * Stage 35: target key-group range used by the next {@link #restoreState}
+     * call to perform partial (per-subtask) restore.
+     */
+    public void setTargetKeyGroupRange(KeyGroupRange targetKeyGroupRange) {
+        this.targetKeyGroupRange = targetKeyGroupRange;
+    }
+
+    KeyGroupRange getTargetKeyGroupRange() {
+        return targetKeyGroupRange;
     }
 
     protected TypedNamespaceAndKey getTypedNamespaceAndKey() {

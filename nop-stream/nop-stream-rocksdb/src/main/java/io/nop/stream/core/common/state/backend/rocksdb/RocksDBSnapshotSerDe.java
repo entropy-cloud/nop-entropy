@@ -32,6 +32,8 @@ import io.nop.stream.core.common.state.ValueState;
 import io.nop.stream.core.common.state.ValueStateDescriptor;
 import io.nop.stream.core.checkpoint.SerializerFingerprint;
 import io.nop.stream.core.common.state.backend.StateSnapshot;
+import io.nop.stream.core.common.state.shard.KeyGroupRange;
+import io.nop.stream.core.common.state.shard.KeyGroupRangeRestoreFilter;
 import io.nop.stream.core.util.ClassNameValidator;
 
 import org.rocksdb.ColumnFamilyHandle;
@@ -422,7 +424,18 @@ final class RocksDBSnapshotSerDe {
         clearAllStates(backend);
         backend.getStates().clear();
 
-        for (Map.Entry<String, Object> entry : statesMap.entrySet()) {
+        // Stage 35: per-subtask partial restore. When the backend carries a
+        // target KeyGroupRange, reduce each state's entries to those whose key
+        // is owned by the range before writing them to RocksDB. This is the
+        // in-memory entry-filter counterpart of the incremental SST range scan.
+        KeyGroupRange range = backend.getTargetKeyGroupRange();
+        Map<String, Object> effectiveStatesMap = statesMap;
+        if (range != null) {
+            effectiveStatesMap = KeyGroupRangeRestoreFilter.filterKeyedStates(
+                    statesMap, range, backend.getMaxParallelism());
+        }
+
+        for (Map.Entry<String, Object> entry : effectiveStatesMap.entrySet()) {
             String stateName = entry.getKey();
             Map<String, Object> stateInfo = (Map<String, Object>) entry.getValue();
             String stateType = (String) stateInfo.get("stateType");

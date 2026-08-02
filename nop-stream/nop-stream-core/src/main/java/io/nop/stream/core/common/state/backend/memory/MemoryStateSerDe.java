@@ -27,6 +27,8 @@ import io.nop.stream.core.common.state.ValueStateDescriptor;
 import io.nop.stream.core.checkpoint.SerializerFingerprint;
 import io.nop.stream.core.common.state.backend.IKeyedStateBackend;
 import io.nop.stream.core.common.state.backend.StateSnapshot;
+import io.nop.stream.core.common.state.shard.KeyGroupRange;
+import io.nop.stream.core.common.state.shard.KeyGroupRangeRestoreFilter;
 import io.nop.stream.core.common.typeutils.IStreamSerializer;
 import io.nop.stream.core.common.typeutils.JsonToolSerializer;
 import io.nop.stream.core.common.typeutils.TypeSerializer;
@@ -111,6 +113,18 @@ class MemoryStateSerDe {
         Map<String, Object> statesMap = (Map<String, Object>) stateData.get("states");
         if (statesMap == null || statesMap.isEmpty()) {
             return;
+        }
+
+        // Stage 35: per-subtask partial restore. When the backend carries a
+        // target KeyGroupRange, reduce each state's entries to those whose key
+        // is owned by the range before re-routing. This is the in-memory
+        // equivalent of the RocksDB SST range scan (Stage 31 deferred item).
+        KeyGroupRange range = backend.getTargetKeyGroupRange();
+        if (range != null) {
+            statesMap = KeyGroupRangeRestoreFilter.filterKeyedStates(statesMap, range, backend.getMaxParallelism());
+            if (statesMap.isEmpty()) {
+                return;
+            }
         }
 
         states.clear();

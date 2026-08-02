@@ -24,6 +24,7 @@ import io.nop.stream.core.checkpoint.EpochState;
 import io.nop.stream.core.checkpoint.StateSegmentDescriptor;
 import io.nop.stream.core.checkpoint.TaskLocation;
 import io.nop.stream.core.checkpoint.TaskStateSnapshot;
+import io.nop.stream.core.checkpoint.TaskEpochSnapshot;
 import io.nop.stream.core.exceptions.StreamException;
 import io.nop.stream.core.model.StreamModelFingerprint;
 
@@ -305,6 +306,18 @@ public class CheckpointSerDe {
         if (snapshot.getKeyedStates() != null && !snapshot.getKeyedStates().isEmpty()) {
             map.put("keyedStates", snapshot.getKeyedStates());
         }
+        // Stage 35: persist key-group ownership metadata so a rescale restore
+        // can read the recorded range instead of re-deriving it. Backward
+        // compatible: absent on legacy checkpoints.
+        if (snapshot instanceof TaskEpochSnapshot) {
+            TaskEpochSnapshot epoch = (TaskEpochSnapshot) snapshot;
+            if (epoch.isKeyGroupOwnershipMaterialized()) {
+                map.put("parallelism", epoch.getParallelism());
+                map.put("maxParallelism", epoch.getMaxParallelism());
+                map.put("keyGroupRangeStart", epoch.getKeyGroupRangeStart());
+                map.put("keyGroupRangeEnd", epoch.getKeyGroupRangeEnd());
+            }
+        }
         return map;
     }
 
@@ -330,7 +343,27 @@ public class CheckpointSerDe {
             }
         }
 
+        // Stage 35: reload key-group ownership metadata when present.
+        Object kgrs = map.get("keyGroupRangeStart");
+        if (kgrs instanceof Number) {
+            TaskEpochSnapshot epoch = TaskEpochSnapshot.fromTaskStateSnapshot(snapshot);
+            epoch.setParallelism(intField(map, "parallelism", 1));
+            epoch.setMaxParallelism(intField(map, "maxParallelism",
+                    io.nop.stream.core.common.state.shard.KeyGroup.DEFAULT_MAX_PARALLELISM));
+            epoch.setKeyGroupRangeStart(((Number) kgrs).intValue());
+            Object kgre = map.get("keyGroupRangeEnd");
+            if (kgre instanceof Number) {
+                epoch.setKeyGroupRangeEnd(((Number) kgre).intValue());
+            }
+            return epoch;
+        }
+
         return snapshot;
+    }
+
+    private static int intField(Map<String, Object> map, String key, int defaultValue) {
+        Object v = map.get(key);
+        return (v instanceof Number) ? ((Number) v).intValue() : defaultValue;
     }
 
     /**
