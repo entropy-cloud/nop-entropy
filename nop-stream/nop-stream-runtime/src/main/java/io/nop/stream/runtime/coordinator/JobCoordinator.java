@@ -19,12 +19,16 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import io.nop.api.core.annotations.core.Internal;
+import io.nop.cluster.elector.ILeaderElector;
+import io.nop.cluster.elector.ILeaderElectionListener;
+import io.nop.cluster.elector.LeaderEpoch;
 import io.nop.stream.core.checkpoint.CheckpointBarrier;
 import io.nop.stream.core.checkpoint.CheckpointType;
 import io.nop.stream.core.checkpoint.CompletedCheckpoint;
@@ -91,6 +95,41 @@ public class JobCoordinator implements IStreamCoordinatorRpcService {
 
     /** The current fencing token for this job execution epoch */
     private final AtomicReference<String> fencingToken;
+
+    /**
+     * G24/G25: optional platform leader elector. When non-null the coordinator
+     * runs in HA mode (leader-gated lifecycle). When null the coordinator keeps
+     * the legacy single-instance behaviour (random-UUID fencing, always active).
+     */
+    private ILeaderElector leaderElector;
+
+    /** Handle to the registered election listener, closed on {@link #stop()}. */
+    private AutoCloseable electionListenerHandle;
+
+    /**
+     * G24/G25: the leadership epoch currently held by this coordinator, or null
+     * when in non-HA mode / not yet elected / lost leadership. Drives the
+     * leadership component of the composite fencing token.
+     */
+    private volatile LeaderEpoch currentLeadership;
+
+    /**
+     * G24/G25: recovery generation counter. Incremented on every
+     * {@link #globalRecovery()} within the same leadership. Forms the
+     * {@code #recoveryGen} suffix of the composite fencing token so that a
+     * same-leader recovery still rotates the full token (data-plane stale-envelope
+     * filtering is String-equality based).
+     */
+    private final AtomicLong recoveryGen = new AtomicLong(0);
+
+    /**
+     * G24/G25: whether the control plane is currently permitted on this
+     * coordinator. In non-HA mode always true once started. In HA mode true only
+     * while this node is the elected leader; flipped to false on leadership loss
+     * (standby). Control-plane methods gate on this so a standby coordinator
+     * explicitly rejects (never silently executes) control actions.
+     */
+    private volatile boolean active;
 
     /** Ordered list of subtask assignments (vertexId → subtaskIndex → assignment) */
     private final Map<String, List<TaskAssignment>> taskAssignmentMap;
@@ -188,6 +227,22 @@ public class JobCoordinator implements IStreamCoordinatorRpcService {
     /**
      * Registers this coordinator in the ClusterRegistry, generates a fencing token,
      * and starts the failure detection loop.
+     *
+     * <p>G24/G25 HA lifecycle:
+     * <ul>
+     *   <li>Non-HA mode (no {@link ILeaderElector} injected): keeps the legacy
+     *       behaviour — generate a random-UUID fencing token, register, mark
+     *       active immediately. Zero regression for the embedded/local path.</li>
+     *   <li>HA mode ({@link ILeaderElector} injected): registers an
+     *       {@link ILeaderElectionListener} and returns immediately in STANDBY
+     *       (active=false). Activation happens only on the
+     *       {@link ILeaderElectionListener#becomeLeader(LeaderEpoch)} callback,
+     *       which derives the fencing token from the granted {@link LeaderEpoch}.
+     *       <strong>{@code whenElectionCompleted()} must NOT be used as an
+     *       activation trigger</strong> — it only signals "a result exists",
+     *       which may be that another node won (otherwise a follower would
+     *       erroneously enter ACTIVE and break invariant #8).</li>
+     * </ul>
      */
     public void start() {
         if (!initialized.compareAndSet(false, true)) {
@@ -195,28 +250,39 @@ public class JobCoordinator implements IStreamCoordinatorRpcService {
             return;
         }
 
-        // Use existing fencing token if already set via setFencingToken(), otherwise generate new one
-        String token = fencingToken.get();
-        if (token == null) {
-            token = UUID.randomUUID().toString();
-            fencingToken.set(token);
+        if (leaderElector == null) {
+            // Non-HA / embedded-local mode: legacy single-instance behaviour.
+            String token = fencingToken.get();
+            if (token == null) {
+                token = UUID.randomUUID().toString();
+                fencingToken.set(token);
+            }
+            clusterRegistry.registerCoordinator(jobId, coordinatorId, token);
+            startFailureDetector();
+            running = true;
+            active = true;
+            jobStatus = JobStatus.RUNNING;
+            LOG.info("JobCoordinator {} started for job {} with fencing token {}",
+                    coordinatorId, jobId, token);
+            return;
         }
 
-        // Register coordinator in the registry
-        clusterRegistry.registerCoordinator(jobId, coordinatorId, token);
+        // HA mode: register the election listener and enter STANDBY.
+        this.electionListenerHandle = leaderElector.addElectionListener(new CoordinatorElectionListener());
+        startFailureDetector();
+        running = true;
+        active = false;
+        jobStatus = JobStatus.RUNNING;
+        LOG.info("JobCoordinator {} started in HA STANDBY mode for job {} (hostId={})",
+                coordinatorId, jobId, leaderElector.getHostId());
+    }
 
-        // Start failure detection
+    private void startFailureDetector() {
         failureDetector.scheduleAtFixedRate(
                 this::detectFailures,
                 DEFAULT_LEASE_CHECK_INTERVAL_MS,
                 DEFAULT_LEASE_CHECK_INTERVAL_MS,
                 TimeUnit.MILLISECONDS);
-
-        running = true;
-        // G56: lifecycle job status CREATED → RUNNING
-        jobStatus = JobStatus.RUNNING;
-        LOG.info("JobCoordinator {} started for job {} with fencing token {}",
-                coordinatorId, jobId, token);
     }
 
     /**
@@ -227,6 +293,19 @@ public class JobCoordinator implements IStreamCoordinatorRpcService {
             return;
         }
         running = false;
+        active = false;
+
+        // G24/G25: stop listening to the elector so callbacks cannot fire into a
+        // stopped coordinator. The elector bean itself is IoC-managed and is not
+        // shut down here.
+        if (electionListenerHandle != null) {
+            try {
+                electionListenerHandle.close();
+            } catch (Exception e) {
+                LOG.warn("Failed to unregister election listener for job {}", jobId, e);
+            }
+            electionListenerHandle = null;
+        }
 
         failureDetector.shutdownNow();
 
@@ -254,6 +333,7 @@ public class JobCoordinator implements IStreamCoordinatorRpcService {
         }
         this.jobFailureCause = cause;
         this.jobStatus = JobStatus.FAILED;
+        this.active = false;
         LOG.error("Job {} FAILED (cause={})", jobId, cause == null ? "unknown" : cause.toString(), cause);
         try {
             failureDetector.shutdownNow();
@@ -282,6 +362,11 @@ public class JobCoordinator implements IStreamCoordinatorRpcService {
     public void assignTasks() {
         if (!running) {
             LOG.warn("JobCoordinator not running, cannot assign tasks");
+            return;
+        }
+        // G24/G25: a standby coordinator must never issue assignments.
+        if (!active) {
+            LOG.warn("JobCoordinator in STANDBY (not leader), cannot assign tasks for job {}", jobId);
             return;
         }
         // G56: once the job is FAILED, no new assignments are permitted
@@ -392,6 +477,11 @@ public class JobCoordinator implements IStreamCoordinatorRpcService {
             LOG.warn("JobCoordinator not running, cannot trigger checkpoint");
             return null;
         }
+        // G24/G25: a standby coordinator must never trigger checkpoints.
+        if (!active) {
+            LOG.warn("JobCoordinator in STANDBY (not leader), cannot trigger checkpoint for job {}", jobId);
+            return null;
+        }
 
         PendingCheckpoint pending = checkpointCoordinator.tryTriggerPendingCheckpoint(CheckpointType.CHECKPOINT);
         if (pending == null) {
@@ -441,6 +531,12 @@ public class JobCoordinator implements IStreamCoordinatorRpcService {
         if (!running) {
             return false;
         }
+        // G24/G25: a standby coordinator must never accept checkpoint ACKs.
+        if (!active) {
+            LOG.warn("Rejecting checkpoint ACK from {}: coordinator in STANDBY (not leader) for job {}",
+                    ack.getTaskLocation(), jobId);
+            return false;
+        }
 
         // AR-7: Reject all ACKs when fencingToken == null (coordinator not initialized)
         String token = fencingToken.get();
@@ -485,9 +581,18 @@ public class JobCoordinator implements IStreamCoordinatorRpcService {
     @Override
     public void reportTaskStatus(TaskStatusReport report) {
         if (!running) {
-            LOG.debug("Ignoring task status report (coordinator not running): {}/{}/{} state={}",
-                    report.getVertexId(), report.getSubtaskIndex(), report.getAttemptNumber(),
-                    report.getTerminalState());
+            // G24/G25 (#24): explicit, observable rejection — not a silent debug-log+return.
+            LOG.warn("Rejecting task status report: coordinator not running for job {}: {}/{}/{} state={}",
+                    jobId, report.getVertexId(), report.getSubtaskIndex(),
+                    report.getAttemptNumber(), report.getTerminalState());
+            return;
+        }
+        // G24/G25: a standby coordinator must never process task status (it does
+        // not own recovery decisions for this job). Explicit rejection, not silent.
+        if (!active) {
+            LOG.warn("Rejecting task status report: coordinator in STANDBY (not leader) for job {}: {}/{}/{} state={}",
+                    jobId, report.getVertexId(), report.getSubtaskIndex(),
+                    report.getAttemptNumber(), report.getTerminalState());
             return;
         }
         // Fencing token verification
@@ -544,7 +649,19 @@ public class JobCoordinator implements IStreamCoordinatorRpcService {
      */
     @Override
     public void reportNodeTaskLiveness(String nodeId, List<TaskProgress> progress) {
-        if (!running || progress == null || progress.isEmpty()) {
+        if (progress == null || progress.isEmpty()) {
+            return;
+        }
+        if (!running) {
+            // G24/G25 (#24): observable rejection, not a silent swallow.
+            LOG.warn("Rejecting node task liveness from node {}: coordinator not running for job {}",
+                    nodeId, jobId);
+            return;
+        }
+        // G24/G25: a standby coordinator does not own liveness-driven recovery.
+        if (!active) {
+            LOG.warn("Rejecting node task liveness from node {}: coordinator in STANDBY (not leader) for job {}",
+                    nodeId, jobId);
             return;
         }
         for (TaskProgress p : progress) {
@@ -573,6 +690,11 @@ public class JobCoordinator implements IStreamCoordinatorRpcService {
      */
     public void detectFailures() {
         if (!running) {
+            return;
+        }
+        // G24/G25: a standby coordinator does not lead recovery. The detector
+        // thread stays alive (for re-election) but performs no work while standby.
+        if (!active) {
             return;
         }
 
@@ -658,27 +780,52 @@ public class JobCoordinator implements IStreamCoordinatorRpcService {
         }
         LOG.info("Starting global recovery #{} for job {} (cap={})", newCount, jobId, maxRestarts);
 
-        // 1. Generate new fencing token
-        String newToken = UUID.randomUUID().toString();
-        String oldToken = fencingToken.getAndSet(newToken);
+        // G24/G25 composite-token fencing (Decision):
+        //  - HA mode: rotate the recoveryGen suffix, keep the leadership epoch
+        //    component unchanged (same leader). The full composite token still
+        //    rotates and is pushed to all TaskManagers so stale same-leader tasks
+        //    are fenced. epoch component only rotates on leadership switch.
+        //  - Non-HA mode: legacy random-UUID rotation (zero regression).
+        String newToken;
+        LeaderEpoch leadership = this.currentLeadership;
+        if (leaderElector != null && leadership != null) {
+            long newGen = recoveryGen.incrementAndGet();
+            newToken = deriveHaFencingToken(leadership, newGen);
+        } else {
+            newToken = UUID.randomUUID().toString();
+        }
 
-        // 2. Update coordinator registration with new token
+        rotateFencingTokenAndRestore(newToken);
+    }
+
+    /**
+     * G24/G25: shared fencing-token rotation + control-plane rebuild used by both
+     * {@link #globalRecovery()} (same-leader recovery) and
+     * {@link #activateAsLeader(LeaderEpoch)} (leadership grant). Rotates the
+     * fencing token, re-registers the coordinator, pushes the new token to all
+     * TaskManagers, best-effort restores from the latest checkpoint, and
+     * reassigns tasks with the new token.
+     */
+    private void rotateFencingTokenAndRestore(String newToken) {
+        fencingToken.set(newToken);
+
         clusterRegistry.registerCoordinator(jobId, coordinatorId, newToken);
 
-        // 3. Clear the in-memory working set only. Do NOT wipe the ClusterRegistry
-        //    attempt history — G56 requires it to be preserved across recoveries.
+        // Clear the in-memory working set only. Do NOT wipe the ClusterRegistry
+        // attempt history — G56 requires it to be preserved across recoveries.
         taskAssignmentMap.clear();
         allTaskLocations.clear();
 
-        // Update fencing token on all registered TaskManagers
+        // Push the rotated fencing token to all registered TaskManagers so stale
+        // envelopes are rejected at the data plane (RemoteInputChannel /
+        // RemoteResultPartition filter on String fencingToken equality).
         for (IStreamTaskRpcService rpc : taskRpcServices.values()) {
             rpc.updateFencingToken(newToken);
         }
 
-        // 4. Restore from latest checkpoint/manifest if available
-        CompletedCheckpoint latest = null;
+        // Restore from latest checkpoint/manifest if available (best-effort).
         try {
-            latest = checkpointCoordinator.getLatestCheckpoint();
+            CompletedCheckpoint latest = checkpointCoordinator.getLatestCheckpoint();
             if (latest != null) {
                 LOG.info("Recovering from checkpoint {} for job {}", latest.getCheckpointId(), jobId);
             }
@@ -686,16 +833,103 @@ public class JobCoordinator implements IStreamCoordinatorRpcService {
             LOG.warn("Failed to restore from checkpoint during recovery", e);
         }
 
-        // AR-27: Checkpoint data (latest) is available in checkpointCoordinator for
-        // invokables to restore from. Tasks must be assigned AFTER checkpoint state is
-        // confirmed available so that invokables can call checkpointCoordinator.restoreFromCheckpoint()
-        // during initialization.
-
-        // 5. Reassign tasks with new fencing token (assignTasks bumps attemptNumber
-        //    per subtask so the ClusterRegistry history appends a new entry)
+        // Reassign tasks with the new fencing token (assignTasks bumps
+        // attemptNumber per subtask so the ClusterRegistry history appends a new
+        // entry).
         assignTasks();
 
-        LOG.info("Global recovery completed for job {} with new fencing token {}", jobId, newToken);
+        LOG.info("Fencing token rotated for job {} (token={})", jobId, newToken);
+    }
+
+    /**
+     * G24/G25: derives the composite HA fencing token
+     * {@code leaderId@epoch#recoveryGen}. The epoch component changes only on
+     * leadership switch; recoveryGen changes on each same-leader recovery.
+     */
+    private static String deriveHaFencingToken(LeaderEpoch epoch, long recoveryGen) {
+        return epoch.getLeaderId() + "@" + epoch.getEpoch() + "#" + recoveryGen;
+    }
+
+    /**
+     * G24/G25: election-listener callback handler. Activation/deactivation is
+     * driven EXCLUSIVELY by {@link #becomeLeader} / {@link #becomeFollower}; the
+     * {@link #onException} and {@link #onStop} defaults route to a safe standby
+     * degradation.
+     */
+    private final class CoordinatorElectionListener implements ILeaderElectionListener {
+        @Override
+        public void becomeLeader(LeaderEpoch leaderEpoch) {
+            activateAsLeader(leaderEpoch);
+        }
+
+        @Override
+        public void becomeFollower(LeaderEpoch leaderEpoch) {
+            deactivateToStandby(leaderEpoch);
+        }
+
+        @Override
+        public void onException(Throwable e) {
+            // Safe degradation: an elector error must never leave us acting as
+            // leader with a possibly-stale epoch. Drop to standby (explicit, not
+            // silent) and let the next election round re-establish leadership.
+            LOG.error("Leader elector reported exception for job {}; deactivating to STANDBY", jobId, e);
+            deactivateToStandby(null);
+        }
+    }
+
+    /**
+     * G24/G25: leadership-grant activation. Derives a fresh composite fencing
+     * token from the granted {@link LeaderEpoch} (recoveryGen reset to 0), marks
+     * the coordinator active, and rebuilds the control-plane working set from
+     * the latest checkpoint. Idempotent re-entry while already active for the
+     * same epoch is a no-op (guards against duplicate callbacks).
+     */
+    private void activateAsLeader(LeaderEpoch epoch) {
+        if (!running) {
+            LOG.warn("Ignoring becomeLeader for job {}: coordinator not running", jobId);
+            return;
+        }
+        // Guard against duplicate activation for the same epoch.
+        LeaderEpoch current = this.currentLeadership;
+        if (active && current != null && current.getLeaderId().equals(epoch.getLeaderId())
+                && current.getEpoch() == epoch.getEpoch()) {
+            LOG.info("Already active leader for job {} (epoch={}); ignoring duplicate becomeLeader", jobId, epoch.getEpoch());
+            return;
+        }
+
+        LOG.info("JobCoordinator {} became LEADER for job {} (leaderId={}, epoch={})",
+                coordinatorId, jobId, epoch.getLeaderId(), epoch.getEpoch());
+
+        this.currentLeadership = epoch;
+        this.recoveryGen.set(0);
+        // Mark active BEFORE rebuilding so the internal assignTasks() call passes
+        // the active gate.
+        this.active = true;
+
+        String token = deriveHaFencingToken(epoch, 0);
+        rotateFencingTokenAndRestore(token);
+    }
+
+    /**
+     * G24/G25: leadership-loss / follower deactivation. Flips the active flag to
+     * false so all control-plane methods explicitly reject (never silently
+     * execute). Does NOT call {@link #stop()} — the failure detector and election
+     * listener remain alive so this node can be re-elected (deactivate is
+     * reversible; stop is terminal). A null epoch (elector error / onStop) is
+     * treated as a safe standby degradation.
+     */
+    private void deactivateToStandby(LeaderEpoch epoch) {
+        if (!running) {
+            return;
+        }
+        LOG.info("JobCoordinator {} became FOLLOWER/STANDBY for job {} (leaderEpoch={})",
+                coordinatorId, jobId, epoch == null ? "null" : (epoch.getLeaderId() + "@" + epoch.getEpoch()));
+        this.active = false;
+        this.currentLeadership = epoch;
+        // In-flight checkpoints will not commit: collectAck is gated on active,
+        // so further ACKs are rejected and the pending checkpoint times out /
+        // is aborted by the new leader. We intentionally do NOT touch the
+        // failure detector here (M2: deactivate != stop).
     }
 
     // ==================== Termination ====================
@@ -864,6 +1098,47 @@ public class JobCoordinator implements IStreamCoordinatorRpcService {
 
     public void setFencingToken(String token) {
         fencingToken.set(token);
+    }
+
+    /**
+     * G24/G25: injects the platform {@link ILeaderElector}. When non-null the
+     * coordinator runs in HA (leader-gated) mode; when null it keeps the legacy
+     * single-instance behaviour. Must be set BEFORE {@link #start()}. The elector
+     * bean is IoC-managed (e.g. {@code SysDaoLeaderElector}); this coordinator
+     * only consumes the {@link ILeaderElector} contract.
+     */
+    public void setLeaderElector(ILeaderElector leaderElector) {
+        this.leaderElector = leaderElector;
+    }
+
+    public ILeaderElector getLeaderElector() {
+        return leaderElector;
+    }
+
+    /**
+     * G24/G25: whether the control plane is currently active on this coordinator.
+     * In non-HA mode always true once started. In HA mode true only while this
+     * node is the elected leader.
+     */
+    public boolean isActive() {
+        return active;
+    }
+
+    /**
+     * G24/G25: the leadership epoch currently held (HA mode), or null when
+     * non-HA / not yet elected / lost leadership.
+     */
+    public LeaderEpoch getCurrentLeadership() {
+        return currentLeadership;
+    }
+
+    /**
+     * G24/G25: current recovery generation (composite-token suffix). Resets to 0
+     * on each leadership grant and increments on each same-leader
+     * {@link #globalRecovery()}.
+     */
+    public long getRecoveryGen() {
+        return recoveryGen.get();
     }
 
     public boolean isRunning() {
