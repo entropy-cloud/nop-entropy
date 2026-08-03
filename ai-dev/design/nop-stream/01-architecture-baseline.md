@@ -21,7 +21,7 @@ nop-stream/
 ├── nop-stream-runtime      [实现] RuntimeTopology、task 执行、transport backend、fencing、node lifecycle、Checkpoint 协调器与存储
 ├── nop-stream-connector    [实现] 连接器适配层：replayable source、transactional sink、SourceWorkUnit
 ├── nop-stream-cep          [实现] Pattern/NFA/SharedBuffer、CEP operator（接入统一状态后端）
-├── nop-stream-flow         [规划] XDSL StreamModel 编排，支持 Delta 定制
+├── nop-stream-flow         [实现] XDSL StreamModel 编排（DslModelParser + StreamModelDslBuilder），支持 Delta 定制
 └── nop-stream-fraud-example[实现] 端到端欺诈检测示例
 ```
 
@@ -178,9 +178,11 @@ CheckpointCoordinator (manifest durable → sink commit)
 
 ```
                         ┌─────────────────────────────┐
-  XDSL 声明式定义 ──────┤  XDSL Parser               │
-                        │  (加载 .graph.xml 直接构造)  │
-                        └─────────────┬───────────────┘
+   XDSL 声明式定义 ──────┤  DslModelParser             │
+   (.stream.xml)         │  → flow.model.StreamModel   │
+                         │  → StreamModelDslBuilder    │
+                         │  → DataStream API 调用链     │
+                         └─────────────┬───────────────┘
                                       │
                         ┌─────────────▼───────────────┐
   Java DataStream API ──┤  StreamModel Builder        │

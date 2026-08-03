@@ -111,20 +111,35 @@ stream.xdef (根)
 
 ## 5. 与 Java API 的映射
 
-| XDSL | Java DataStream API |
-|------|---------------------|
-| `<source>` | `env.addSource(fn)` |
-| `<map>` | `.map(fn)` |
-| `<flatMap>` | `.flatMap(fn)` |
-| `<filter>` | `.filter(fn)` |
-| `<keyBy>` | `.keyBy(ks)` |
-| `<window>` | `.window(wa)` |
-| `<aggregate>` | `.aggregate(af)` |
-| `<reduce>` | `.reduce(rf)` |
-| `<sink>` | `.addSink(fn)` / `.print()` |
-| `<union>` | `.union(stream1, stream2)` |
-| `<edge partition="HASH">` | `.keyBy()` 隐式创建 |
-| `<checkpoint>` | `env.enableCheckpointing(interval)` |
+`StreamModelDslBuilder`（`nop-stream-flow`）按拓扑顺序遍历 `transforms`/`edges`，逐节点将声明式 transform 翻译为 DataStream API 调用。下表给出每个 xdef 节点对应的 API：
+
+| XDSL | Java DataStream API | 函数指定方式 | 备注 |
+|------|---------------------|--------------|------|
+| `<source bean="..."/>` | `env.addSource(fn, name)` | `bean` 属性 → `BeanFunctionResolver.resolve(bean, SourceFunction.class)` | 经 NopIoC `BeanContainer` 查找 |
+| `<source><source>xpl</source></source>` | `env.addSource(fn, name)` | 内联 xpl → `XplSourceFunction` 包装 `IEvalFunction` | xpl 体接收 `SourceContext` |
+| `<map bean="..."/>` | `.map(fn)` | `bean` 属性 → `MapFunction` | — |
+| `<map><source>xpl</source></map>` | `.map(fn)` | 内联 xpl → `XplMapFunction` | xpl 体形如 `(event)=>any` |
+| `<flatMap>` | `.flatMap(fn)` | `bean` 或内联 xpl (`XplFlatMapFunction`) | xpl 体形如 `(event,out)=>void`，`out` 绑定 `Collector` |
+| `<filter>` | `.filter(fn)` | `bean` 或内联 xpl (`XplFilterFunction`) | 返回值按 truthy 转 `boolean` |
+| `<keyBy keyExpr="!expr"/>` | `.keyBy(selector)` | `keyExpr`（`IEvalAction`）包装为 `EvalActionKeySelector` | 产出 `KeyedStream`，**不是** `DataStream` |
+| `<window strategyRef="..."/>` | `keyedStream.window(assigner)` | 从 `<windowingStrategies>` 解析 strategy → `WindowAssigner` | 输入必须是 `KeyedStream`，产出 `WindowedStream` |
+| `<aggregate bean="..."/>` | `windowedStream.aggregate(fn)` | **仅** `bean` 属性（AggregateFunction）；xdef 未声明内联 xpl | 输入必须是 `WindowedStream` |
+| `<reduce bean="..."/>` / `<reduce><source>xpl</source></reduce>` | `keyedStream.reduce(fn)` 或 `windowedStream.reduce(fn)` | `bean` 或内联 xpl (`XplReduceFunction`) | 按上游流类型分发到 `KeyedStream` / `WindowedStream` |
+| `<process bean="..."/>` | `dataStream.process(fn)` 或 `keyedStream.process(fn)` | `bean` 属性（`ProcessFunction` / `KeyedProcessFunction`） | 按上游流类型分发 |
+| `<cep patternRef="..."/>` | `CEP.pattern(stream, pattern)` + `patternStream.process(fn)` | 从 `<patterns>` 或外部 `.cep.xml` 加载 `CepPatternModel` → `CepPatternBuilder` | 上游必须是 `KeyedStream` |
+| `<union>` | `dataStream.union(other1, other2)` | edges 多入边识别 | **runtime-API-gap**：`DataStream.union()` 尚未在 `nop-stream-core` 实现（多输入算子），builder fail-fast 抛 `UnsupportedOperationException`（见 plan Deferred 节） |
+| `<sideOutput tag="..."/>` | `SingleOutputStreamOperator.getSideOutput(OutputTag)` | — | **runtime-API-gap**：`getSideOutput` 尚未在 `nop-stream-core` 实现（仅 `ProcessFunction.Context.output` 可发射，无检索 API），builder fail-fast（见 plan Deferred 节） |
+| `<timestampsAndWatermarks>` | `dataStream.assignTimestampsAndWatermarks(strategy)` | 内联 xpl 编译为 `TimestampAssigner` + `WatermarkGenerator` | — |
+| `<custom customType="..."/>` | `dataStream.transform(...)` 自定义算子 | 从 bean 注册表查找算子工厂 | — |
+| `<sink bean="..."/>` | `.sink(fn)` | `bean` 属性 → `SinkFunction` | — |
+| `<sink><source>xpl</source></sink>` | `.sink(fn)` | 内联 xpl → `XplSinkFunction` | xpl 体形如 `(event)=>void` |
+| `<edge partition="HASH">` | `.keyBy()` 隐式或显式 `PartitionTransformation` | — | FORWARD = 默认链式 |
+| `<checkpoint interval="..."/>` | `env.enableCheckpointing(interval)` + `env.getCheckpointConfig().setXxx(...)` | — | `<checkpoint>` 子元素逐项翻译 |
+
+**关键约束**：
+- `reduce` / `window` / `aggregate` 出现在 `KeyedStream` 或 `WindowedStream` 上，**不是** `DataStream`：`reduce(fn)` 同时存在于 `KeyedStream` 和 `WindowedStream`；`window(assigner)` 在 `KeyedStream` 上；`aggregate(fn)` 在 `WindowedStream` 上。builder 跟踪当前流的类型状态以正确分发。
+- 两种函数指定方式（`bean` 属性 + 内联 `<source>xpl</source>`）在所有支持内联函数的节点上等价；`aggregate` 是例外——xdef 第 156 行 `xdef:ref="StreamTransformModel"` 继承 `bean` 属性但未声明 `<source>` 子元素，因此 AggregateFunction **只能经 `bean` 属性**提供。
+- 解析的 `transforms` 子类型按 `xdef:bean-sub-type-prop="type"` 判别：builder 用 Java `instanceof` 在 `StreamSourceModel`/`StreamMapModel`/... 之间分发，对未知或未实现类型 fail-fast 抛 `UnsupportedOperationException`。
 
 ## 6. 与 StreamModel Java 类的对应
 
@@ -165,7 +180,7 @@ stream.xdef (根)
 ```
 _nop/schema/stream/
 ├── stream.xdef          # 主元模型
-├── cep.xdef             # CEP 模式元模型
+├── pattern.xdef         # CEP 模式元模型（由 `<patterns>` 内联引用，或外部 .cep.xml 引用）
 └── resource-spec.xdef   # 资源规格元模型
 
 application/

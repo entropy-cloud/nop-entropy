@@ -11,7 +11,7 @@
 nop-stream 是 Nop 平台的流处理引擎，定位为**声明式图模型驱动的可分布式执行引擎**。
 
 核心模型是 **StreamModel**——可序列化的算子图及其组件注册表。它可由三种入口构造：
-- **XDSL 声明式定义**（未来主路径）：直接描述 StreamGraph 拓扑、算子配置、分区策略
+- **XDSL 声明式定义**（已落地）：直接描述 StreamGraph 拓扑、算子配置、分区策略，经 `DslModelParser(.stream.xml) → flow.model.StreamModel → StreamModelDslBuilder → DataStream API` 构建可执行管线（见 `nop-stream-flow`）
 - **Java DataStream API**（当前 Builder）：编程方式构造 Transformation DAG，编译为 StreamModel
 - **Delta 定制**：Nop 平台的可逆计算机制，在模型层叠加差量修改
 
@@ -59,7 +59,7 @@ nop-stream 是 Nop 平台的流处理引擎，定位为**声明式图模型驱�
 2. **再定义编译管线**（StreamGraph → JobGraph → PartitionedPlan → DeploymentPlan）
 3. **再定义执行引擎**（算子链、数据交换、分布式控制面）
 4. **再补 Checkpoint、状态管理、窗口、时间模型等支撑子系统**
-5. **最后实现连接器、CEP、XDSL 编排等上层能力**
+5. **最后实现连接器、CEP、XDSL 编排等上层能力**（XDSL 编排已由 `StreamModelDslBuilder` 落地，Stage 50）
 
 只要这条顺序不乱，设计就不会滑入"先写 runtime 再补模型"的陷阱。
 

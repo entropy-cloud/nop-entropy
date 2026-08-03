@@ -73,7 +73,7 @@ Does not contain implementation details. Each `planned` stage is owned by its ex
 
 - 48. Kafka IMessageService: `todo`
 - 49. Source split 体系（FLIP-27 风格）: `todo`
-- 50. nop-stream-flow XDSL 声明式编排: `todo`
+- 50. nop-stream-flow XDSL 声明式编排: `done`
 - 51. Delta 定制 StreamModel: `todo`
 - 52. 事务型 JDBC sink（2PC）: `todo`
 - 53. CDC 深化 + 文件 sink: `todo`
