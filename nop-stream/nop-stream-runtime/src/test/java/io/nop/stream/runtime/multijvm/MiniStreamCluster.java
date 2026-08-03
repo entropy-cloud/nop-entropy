@@ -102,7 +102,14 @@ public class MiniStreamCluster implements AutoCloseable {
     private final long killGraceMs;
 
     private final Map<String, ProcessHandle> taskProcesses = new ConcurrentHashMap<>();
-    private volatile Process coordinatorProcess;
+
+    /**
+     * Stage 46: coordinator processes keyed by index ("coordinator-0", "coordinator-1", ...).
+     * Index 0 is the primary coordinator (spawned by {@link #start()}); additional
+     * coordinators are spawned via {@link #spawnJobCoordinator(int)} for HA failover
+     * tests. All coordinators share the same JDBC lease table when HA mode is enabled.
+     */
+    private final Map<String, Process> coordinatorProcesses = new ConcurrentHashMap<>();
     private HikariDataSource harnessDataSource;
     private IJdbcTemplate harnessJdbcTemplate;
     private JdbcClusterRegistry harnessRegistry;
@@ -134,9 +141,21 @@ public class MiniStreamCluster implements AutoCloseable {
 
     /**
      * Provisions shared state, spawns N TaskManager JVMs, then spawns the
-     * JobCoordinator JVM. Waits for every process to register before returning.
+     * JobCoordinator JVM (non-HA, single-instance). Waits for every process to
+     * register before returning. Backwards-compatible with Stage 42 tests.
      */
     public synchronized void start() throws IOException, InterruptedException {
+        start(false);
+    }
+
+    /**
+     * Stage 46: provisions shared state, spawns N TaskManager JVMs, then spawns the
+     * primary JobCoordinator JVM. When {@code haMode} is true the coordinator runs in
+     * leader-gated mode (STANDBY until granted leadership via the shared JDBC lease
+     * table); additional coordinators can be spawned via {@link #spawnJobCoordinator(int)}
+     * to form an HA cluster.
+     */
+    public synchronized void start(boolean haMode) throws IOException, InterruptedException {
         Files.createDirectories(runDir);
         Files.createDirectories(checkpointDir);
         Files.createDirectories(runDir.resolve("logs"));
@@ -159,8 +178,8 @@ public class MiniStreamCluster implements AutoCloseable {
         List<String> expected = expectedNodeIds();
         waitForNodeRegistration(expected, healthTimeoutMs);
 
-        // Spawn the JobCoordinator.
-        spawnJobCoordinator();
+        // Spawn the primary JobCoordinator.
+        spawnJobCoordinator(0, haMode);
     }
 
     public synchronized void restartTaskManager(String nodeId) throws IOException, InterruptedException {
@@ -181,13 +200,32 @@ public class MiniStreamCluster implements AutoCloseable {
     }
 
     public synchronized boolean killCoordinator() {
-        if (coordinatorProcess == null) {
+        return killCoordinator(0);
+    }
+
+    /**
+     * Stage 46: kills the coordinator at the given index. Returns false if no such
+     * coordinator process exists.
+     */
+    public synchronized boolean killCoordinator(int index) {
+        Process p = coordinatorProcesses.remove(coordinatorKey(index));
+        if (p == null) {
             return false;
         }
-        ProcessHandle handle = coordinatorProcess.toHandle();
-        boolean ok = terminateProcess(handle, killGraceMs);
-        coordinatorProcess = null;
-        return ok;
+        return terminateProcess(p.toHandle(), killGraceMs);
+    }
+
+    /**
+     * Stage 46: spawns an additional coordinator JVM at the given index. Used by HA
+     * failover tests to form a multi-coordinator cluster sharing one JDBC lease table.
+     * The coordinator runs in HA mode (leader-gated).
+     */
+    public synchronized Process spawnJobCoordinator(int index) throws IOException {
+        return spawnJobCoordinator(index, true);
+    }
+
+    private static String coordinatorKey(int index) {
+        return "coordinator-" + index;
     }
 
     @Override
@@ -197,11 +235,11 @@ public class MiniStreamCluster implements AutoCloseable {
 
     public synchronized void shutdown() {
         LOG.info("MiniStreamCluster({}) shutting down", runId);
-        // Kill coordinator first so it does not retry recovery against dying TMs.
-        if (coordinatorProcess != null) {
-            terminateProcess(coordinatorProcess.toHandle(), killGraceMs);
-            coordinatorProcess = null;
+        // Kill coordinators first so they do not retry recovery against dying TMs.
+        for (Map.Entry<String, Process> e : new ArrayList<>(coordinatorProcesses.entrySet())) {
+            terminateProcess(e.getValue().toHandle(), killGraceMs);
         }
+        coordinatorProcesses.clear();
         for (Map.Entry<String, ProcessHandle> e : new ArrayList<>(taskProcesses.entrySet())) {
             terminateProcess(e.getValue(), killGraceMs);
         }
@@ -235,8 +273,23 @@ public class MiniStreamCluster implements AutoCloseable {
     }
 
     public boolean coordinatorAlive() {
-        Process p = coordinatorProcess;
+        return coordinatorAlive(0);
+    }
+
+    /**
+     * Stage 46: returns whether the coordinator at the given index is alive.
+     */
+    public boolean coordinatorAlive(int index) {
+        Process p = coordinatorProcesses.get(coordinatorKey(index));
         return p != null && p.toHandle().isAlive();
+    }
+
+    /**
+     * Stage 46: returns the number of coordinator processes currently tracked
+     * (alive or recently killed but not yet removed).
+     */
+    public int coordinatorCount() {
+        return coordinatorProcesses.size();
     }
 
     public boolean taskManagerAlive(String nodeId) {
@@ -321,7 +374,7 @@ public class MiniStreamCluster implements AutoCloseable {
         taskProcesses.put(nodeId, p.toHandle());
     }
 
-    private void spawnJobCoordinator() throws IOException {
+    private Process spawnJobCoordinator(int index, boolean haMode) throws IOException {
         List<String> cmd = buildJavaCommand(JobCoordinatorMain.class.getName(),
                 "jobId=job-" + runId,
                 "jdbcUrl=" + jdbcUrl,
@@ -329,9 +382,17 @@ public class MiniStreamCluster implements AutoCloseable {
                 "checkpointBaseDir=" + checkpointDir,
                 "expectedNodeIds=" + String.join(",", expectedNodeIds()),
                 "nodeRegistrationTimeoutMs=" + healthTimeoutMs,
-                "pollIntervalMs=" + pollIntervalMs);
-        Process p = startProcess("coordinator", cmd);
-        coordinatorProcess = p;
+                "pollIntervalMs=" + pollIntervalMs,
+                "coordinatorId=coordinator-" + index,
+                "leaderElectorEnabled=" + haMode,
+                "leaderClusterId=job-" + runId,
+                "leaderHostId=coordinator-" + index,
+                "leaderLeaseMs=3000",
+                "leaderCheckIntervalMs=300");
+        String label = "coordinator-" + index;
+        Process p = startProcess(label, cmd);
+        coordinatorProcesses.put(label, p);
+        return p;
     }
 
     private List<String> buildJavaCommand(String mainClass, String... args) {

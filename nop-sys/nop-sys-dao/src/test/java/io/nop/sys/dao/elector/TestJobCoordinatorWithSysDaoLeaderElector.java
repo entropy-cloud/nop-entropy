@@ -309,6 +309,55 @@ public class TestJobCoordinatorWithSysDaoLeaderElector extends JunitBaseTestCase
                 "lease expireAt must be later than refreshTime (leaseMs window)");
     }
 
+    /**
+     * Stage 46 cross-module smoke: verifies the G32 failover-safe rebuild path with
+     * the real {@link SysDaoLeaderElector}. A pre-seeded durable checkpoint (simulating
+     * a prior coordinator's durable work) must be rebuilt into the coordinator's
+     * in-memory view when {@code restoreFromCheckpoint} is invoked — proving that a
+     * fresh coordinator JVM backed by {@code SysDaoLeaderElector} can resume from the
+     * latest durable epoch. The real HA activation path (which calls restore
+     * automatically) is verified in nop-stream-runtime; here we verify the storage
+     * round-trip with the real AutoTest JDBC + SysDao harness alive.
+     */
+    @Test
+    public void testFailoverRestoreRebuildsCheckpointFromStorage() throws Exception {
+        // Pre-seed durable storage with a completed checkpoint at epoch 7.
+        io.nop.stream.core.checkpoint.TaskLocation loc =
+                new io.nop.stream.core.checkpoint.TaskLocation(JOB_ID, "pipeline-0", "source", 0);
+        io.nop.stream.core.checkpoint.CompletedCheckpoint seeded =
+                io.nop.stream.core.checkpoint.CompletedCheckpoint.builder()
+                        .jobId(JOB_ID)
+                        .pipelineId("pipeline-0")
+                        .checkpointId(7L)
+                        .triggerTimestamp(System.currentTimeMillis() - 1000)
+                        .completedTimestamp(System.currentTimeMillis())
+                        .checkpointType(io.nop.stream.core.checkpoint.CheckpointType.CHECKPOINT)
+                        .addTaskState(loc, io.nop.stream.core.checkpoint.TaskStateSnapshot.empty(loc))
+                        .build();
+        io.nop.stream.runtime.checkpoint.storage.LocalFileCheckpointStorage storage =
+                new io.nop.stream.runtime.checkpoint.storage.LocalFileCheckpointStorage(tempDir.toString());
+        storage.storeCheckPoint(seeded);
+
+        // restoreFromCheckpoint reloads the latest durable epoch from storage into the
+        // coordinator's in-memory view (the G32 Phase 1 fix).
+        assertNotNull(coordinator.getCheckpointCoordinator().restoreFromCheckpoint(),
+                "restoreFromCheckpoint must return the seeded durable checkpoint");
+        assertEquals(7L, coordinator.getCheckpointCoordinator().getLatestCheckpoint().getCheckpointId(),
+                "restored view must be the durable epoch 7");
+
+        // Grant leadership via the real SysDaoLeaderElector; the coordinator activates
+        // and the in-memory view survives the activation (activateAsLeader does not
+        // wipe it — restore is idempotent).
+        leaderElector.start();
+        FutureHelper.syncGet(leaderElector.whenElectionCompleted());
+        coordinator.start();
+        ThreadHelper.sleep(500);
+        assertTrue(coordinator.isActive(),
+                "coordinator must activate via real SysDaoLeaderElector grant");
+        assertEquals(7L, coordinator.getCheckpointCoordinator().getLatestCheckpoint().getCheckpointId(),
+                "checkpoint view must survive activation");
+    }
+
     // ==================== Mocks ====================
 
     static final class CapturingTaskRpcService implements IStreamTaskRpcService {

@@ -35,6 +35,16 @@ public final class ClusterLaunchConfig {
     public static final String KEY_COORDINATOR_ID = "coordinatorId";
     public static final String KEY_POLL_INTERVAL_MS = "pollIntervalMs";
 
+    // Stage 46: leader elector (HA mode) keys. When leaderElectorEnabled=true the
+    // coordinator starts in STANDBY and activates only on leadership grant via the
+    // shared JDBC lease table. When false (default) the legacy single-instance
+    // behaviour is preserved (backwards compatible with Stage 42 tests).
+    public static final String KEY_LEADER_ELECTOR_ENABLED = "leaderElectorEnabled";
+    public static final String KEY_LEADER_CLUSTER_ID = "leaderClusterId";
+    public static final String KEY_LEADER_HOST_ID = "leaderHostId";
+    public static final String KEY_LEADER_LEASE_MS = "leaderLeaseMs";
+    public static final String KEY_LEADER_CHECK_INTERVAL_MS = "leaderCheckIntervalMs";
+
     private final Map<String, String> raw;
 
     private ClusterLaunchConfig(Map<String, String> raw) {
@@ -92,6 +102,14 @@ public final class ClusterLaunchConfig {
         } catch (NumberFormatException e) {
             throw new IllegalArgumentException("Config " + key + " must be a long, got: " + v);
         }
+    }
+
+    public boolean getBoolean(String key, boolean defaultValue) {
+        String v = raw.get(key);
+        if (v == null || v.isEmpty()) {
+            return defaultValue;
+        }
+        return Boolean.parseBoolean(v.trim());
     }
 
     public Map<String, String> raw() {

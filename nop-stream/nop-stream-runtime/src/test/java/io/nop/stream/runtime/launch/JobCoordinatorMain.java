@@ -30,6 +30,7 @@ import io.nop.stream.runtime.checkpoint.CheckpointCoordinator;
 import io.nop.stream.runtime.checkpoint.storage.LocalFileCheckpointStorage;
 import io.nop.stream.runtime.cluster.ClusterRegistry;
 import io.nop.stream.runtime.cluster.JdbcClusterRegistry;
+import io.nop.stream.runtime.cluster.JdbcLeaderElector;
 import io.nop.stream.runtime.cluster.NodeInfo;
 import io.nop.stream.runtime.coordinator.JobCoordinator;
 import io.nop.stream.runtime.rpc.IStreamTaskRpcService;
@@ -77,6 +78,7 @@ public final class JobCoordinatorMain {
     private LocalFileCheckpointStorage checkpointStorage;
     private CheckpointCoordinator checkpointCoordinator;
     private JobCoordinator coordinator;
+    private io.nop.stream.runtime.cluster.JdbcLeaderElector leaderElector;
     private StreamControlRpcServer coordinatorServer;
     private final Map<String, StreamControlRpcProxyFactory> taskProxies = new LinkedHashMap<>();
 
@@ -98,6 +100,12 @@ public final class JobCoordinatorMain {
                 JobCoordinator.deriveHaFencingEpoch(0L, 1L));
         long pollIntervalMs = config.getLong(ClusterLaunchConfig.KEY_POLL_INTERVAL_MS, 50L);
         long nodeRegistrationTimeoutMs = config.getLong("nodeRegistrationTimeoutMs", 30_000L);
+
+        // Stage 46: HA mode. When enabled, the coordinator runs in leader-gated mode
+        // (STANDBY until granted leadership via the shared JDBC lease table). When
+        // disabled (default), the legacy single-instance behaviour is preserved so
+        // existing Stage 42 tests are unaffected.
+        boolean haEnabled = config.getBoolean(ClusterLaunchConfig.KEY_LEADER_ELECTOR_ENABLED, false);
 
         List<String> expectedNodeIds = Arrays.stream(expectedNodeIdsRaw.split(","))
                 .map(String::trim)
@@ -157,7 +165,35 @@ public final class JobCoordinatorMain {
         coordinator = new JobCoordinator(
                 jobId, "coordinator-" + jobId, deploymentPlan,
                 clusterRegistry, checkpointCoordinator, taskRpcProxies);
-        coordinator.setFencingEpoch(fencingEpoch);
+
+        // Stage 46: HA wiring. In HA mode the coordinator gets a JdbcLeaderElector
+        // (shared JDBC lease table) and does NOT hardcode a fencing epoch or call
+        // assignTasks() directly — activation + assignment happen only on the
+        // becomeLeader callback (activateAsLeader -> rotateFencingEpochAndRestore
+        // -> assignTasks). In non-HA mode the legacy path is preserved.
+        JdbcLeaderElector leaderElector = null;
+        if (haEnabled) {
+            String leaderClusterId = config.get(ClusterLaunchConfig.KEY_LEADER_CLUSTER_ID, jobId);
+            String leaderHostId = config.get(ClusterLaunchConfig.KEY_LEADER_HOST_ID, "coordinator-" + jobId);
+            int leaderLeaseMs = config.getInt(ClusterLaunchConfig.KEY_LEADER_LEASE_MS, 5000);
+            int leaderCheckIntervalMs = config.getInt(ClusterLaunchConfig.KEY_LEADER_CHECK_INTERVAL_MS, 500);
+
+            leaderElector = new JdbcLeaderElector(jdbc.getJdbcTemplate());
+            leaderElector.setClusterId(leaderClusterId);
+            leaderElector.setHostId(leaderHostId);
+            leaderElector.setLeaseMs(leaderLeaseMs);
+            leaderElector.setCheckIntervalMs(leaderCheckIntervalMs);
+            leaderElector.setLeaseSafeGap(Math.min(1000, leaderLeaseMs / 4));
+            leaderElector.setAddr("localhost");
+            leaderElector.setPort(0);
+            coordinator.setLeaderElector(leaderElector);
+            this.leaderElector = leaderElector;
+            LOG.info("JobCoordinatorMain HA mode enabled (clusterId={}, hostId={}, leaseMs={}, checkIntervalMs={})",
+                    leaderClusterId, leaderHostId, leaderLeaseMs, leaderCheckIntervalMs);
+        } else {
+            coordinator.setFencingEpoch(fencingEpoch);
+        }
+
         // Stage 42 Phase 0: remote-deploy mode — assignTasks() builds
         // TaskDeploymentDescriptors and calls deployTask RPC (each TaskManager
         // rebuilds its own invokable locally).
@@ -175,10 +211,19 @@ public final class JobCoordinatorMain {
         coordinatorServer.start();
 
         coordinator.start();
-        coordinator.assignTasks();
+        // Stage 46: in HA mode, assignTasks() must NOT be called directly here —
+        // it is driven by activateAsLeader on the becomeLeader callback. In non-HA
+        // mode the coordinator is already active, so assignTasks runs directly.
+        if (!haEnabled) {
+            coordinator.assignTasks();
+        } else if (leaderElector != null) {
+            // Start the elector AFTER coordinator.start() registered its listener,
+            // so the becomeLeader callback is not missed.
+            leaderElector.start();
+        }
 
-        LOG.info("JobCoordinatorMain started (jobId={}, rpcTopic={}, deployed subtasks via remote-deploy)",
-                jobId, StreamControlRpcTopics.coordinatorTopic(topicNamespace));
+        LOG.info("JobCoordinatorMain started (jobId={}, rpcTopic={}, ha={}, deployed subtasks via remote-deploy)",
+                jobId, StreamControlRpcTopics.coordinatorTopic(topicNamespace), haEnabled);
         return coordinator;
     }
 
@@ -217,6 +262,13 @@ public final class JobCoordinatorMain {
 
     public synchronized void shutdown() {
         LOG.info("JobCoordinatorMain shutting down");
+        try {
+            if (leaderElector != null) {
+                leaderElector.stop();
+            }
+        } catch (Exception e) {
+            LOG.warn("Failed to stop leader elector", e);
+        }
         try {
             if (coordinator != null) {
                 coordinator.stop();

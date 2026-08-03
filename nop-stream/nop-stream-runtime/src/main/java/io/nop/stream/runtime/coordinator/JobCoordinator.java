@@ -914,7 +914,10 @@ public class JobCoordinator implements IStreamCoordinatorRpcService {
         long newGen = recoveryGen.incrementAndGet();
         newEpoch = deriveHaFencingEpoch(leaderEpochValue, newGen);
 
-        rotateFencingEpochAndRestore(newEpoch);
+        // G32: same-leader recovery does NOT rebuild from storage — the in-memory
+        // latestCompletedCheckpoint survives within the same JVM. Only the
+        // leadership-grant path (activateAsLeader) rebuilds from storage.
+        rotateFencingEpochAndRestore(newEpoch, false);
     }
 
     /**
@@ -922,10 +925,37 @@ public class JobCoordinator implements IStreamCoordinatorRpcService {
      * by both {@link #globalRecovery()} (same-leader recovery) and
      * {@link #activateAsLeader(LeaderEpoch)} (leadership grant). Rotates the fencing
      * epoch, re-registers the coordinator, pushes the new epoch to all TaskManagers,
-     * best-effort restores from the latest checkpoint, and reassigns tasks with the
-     * new epoch.
+     * optionally rebuilds the latest-completed-checkpoint view from durable storage,
+     * and reassigns tasks with the new epoch.
+     *
+     * <p><strong>G32 (Stage 46) failover-safe rebuild</strong>: when {@code restoreFromStorage}
+     * is {@code true} (the {@link #activateAsLeader} path) AND the in-memory
+     * {@code latestCompletedCheckpoint} is {@code null} (the fresh-coordinator-JVM case),
+     * this method calls {@link CheckpointCoordinator#restoreFromCheckpoint()} to reload
+     * the latest durable epoch from {@link ICheckpointStorage}. A storage failure during
+     * this rebuild is a correctness risk (the new leader cannot safely resume), so it
+     * <strong>fails loud</strong> (throws {@link StreamException}) rather than silently
+     * continuing (plan guide #24 — no silent no-op).
+     *
+     * <p>When {@code restoreFromStorage} is {@code false} (the {@link #globalRecovery()}
+     * same-leader path), the rebuild is skipped: the in-memory view is already alive and
+     * an extra DB round-trip per recovery is unnecessary (the field survives same-leader
+     * restarts within one JVM).
+     *
+     * <p><strong>restore vs assignTasks boundary</strong>: the restored
+     * {@code latestCompletedCheckpoint} only fills the {@link CheckpointCoordinator}
+     * in-memory field so the next checkpoint trigger resumes at the correct epoch id
+     * (via {@link CheckpointCoordinator#restoreFromCheckpoint()} advancing the id counter).
+     * {@link #assignTasks()} does NOT consume {@code latestCompletedCheckpoint}; per-task
+     * operator state is restored independently by the barrier mechanism (each task reads
+     * its own {@code TaskEpochSnapshot} from storage at deploy time).
+     *
+     * @param newEpoch           the rotated fencing epoch
+     * @param restoreFromStorage {@code true} on leadership grant (rebuild from storage
+     *                           when in-memory view is empty); {@code false} on
+     *                           same-leader recovery
      */
-    private void rotateFencingEpochAndRestore(long newEpoch) {
+    private void rotateFencingEpochAndRestore(long newEpoch, boolean restoreFromStorage) {
         fencingEpoch.set(newEpoch);
 
         clusterRegistry.registerCoordinator(jobId, coordinatorId, newEpoch);
@@ -942,14 +972,46 @@ public class JobCoordinator implements IStreamCoordinatorRpcService {
             rpc.updateFencingToken(newEpoch);
         }
 
-        // Restore from latest checkpoint/manifest if available (best-effort).
-        try {
-            CompletedCheckpoint latest = checkpointCoordinator.getLatestCheckpoint();
-            if (latest != null) {
-                LOG.info("Recovering from checkpoint {} for job {}", latest.getCheckpointId(), jobId);
+        if (restoreFromStorage) {
+            // G32: failover-safe rebuild. On a fresh coordinator JVM (leadership
+            // grant), the in-memory latestCompletedCheckpoint is null. Reload it
+            // from durable storage so the coordinator can resume from the latest
+            // durable epoch + 1. Same-leader recovery (globalRecovery) skips this:
+            // the field is already alive in the same JVM.
+            CompletedCheckpoint inMemory = checkpointCoordinator.getLatestCheckpoint();
+            if (inMemory == null) {
+                try {
+                    CompletedCheckpoint restored = checkpointCoordinator.restoreFromCheckpoint();
+                    if (restored != null) {
+                        LOG.info("Rebuilt latestCompletedCheckpoint from storage for job {} "
+                                        + "(restored epoch={}, next epoch will be >= {})",
+                                jobId, restored.getCheckpointId(), restored.getCheckpointId() + 1);
+                    } else {
+                        LOG.info("No durable checkpoint found in storage for job {}; "
+                                + "starting fresh (no restore needed)", jobId);
+                    }
+                } catch (Exception e) {
+                    // Fail-loud (guide #24): storage unreachable during failover rebuild
+                    // is a correctness risk — the new leader cannot safely decide whether
+                    // to resume or start fresh. Surface it as a hard failure rather than a
+                    // silent warn-and-continue that would mask a split-brain or data loss.
+                    throw new StreamException(ERR_STREAM_INVALID_STATE, e).param(ARG_DETAIL,
+                            "Failed to rebuild latestCompletedCheckpoint from storage during "
+                                    + "leadership activation for job " + jobId
+                                    + ". The new leader cannot safely resume. Cause: "
+                                    + (e.getMessage() == null ? e.toString() : e.getMessage()));
+                }
+            } else {
+                LOG.info("Recovering from in-memory checkpoint {} for job {} (same-JVM leader switch)",
+                        inMemory.getCheckpointId(), jobId);
             }
-        } catch (Exception e) {
-            LOG.warn("Failed to restore from checkpoint during recovery", e);
+        } else {
+            // Same-leader global recovery: the in-memory view is alive; only log it.
+            CompletedCheckpoint inMemory = checkpointCoordinator.getLatestCheckpoint();
+            if (inMemory != null) {
+                LOG.info("Recovering from in-memory checkpoint {} for job {} (same-leader recovery)",
+                        inMemory.getCheckpointId(), jobId);
+            }
         }
 
         // Reassign tasks with the new fencing epoch (assignTasks bumps
@@ -957,7 +1019,8 @@ public class JobCoordinator implements IStreamCoordinatorRpcService {
         // entry).
         assignTasks();
 
-        LOG.info("Fencing epoch rotated for job {} (epoch={})", jobId, newEpoch);
+        LOG.info("Fencing epoch rotated for job {} (epoch={}, restoreFromStorage={})",
+                jobId, newEpoch, restoreFromStorage);
     }
 
     /**
@@ -1031,7 +1094,10 @@ public class JobCoordinator implements IStreamCoordinatorRpcService {
         this.active = true;
 
         long token = deriveHaFencingEpoch(epoch.getEpoch(), 0);
-        rotateFencingEpochAndRestore(token);
+        // G32: on leadership grant, rebuild the latestCompletedCheckpoint view
+        // from durable storage (failover-safe). A new coordinator JVM has a null
+        // in-memory view; restoreFromCheckpoint() reloads the latest durable epoch.
+        rotateFencingEpochAndRestore(token, true);
     }
 
     /**
