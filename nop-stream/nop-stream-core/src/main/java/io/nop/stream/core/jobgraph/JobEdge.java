@@ -49,6 +49,26 @@ public class JobEdge implements Serializable {
     private final IPartitioner<?> partitioner;
     private EdgeConfig edgeConfig;
 
+    /**
+     * Stage 44 successor 1 (materialization point mechanism, option B): when
+     * {@code true}, this edge is a region-boundary materialization edge — the
+     * producer side dual-writes every stream element into the main in-flight
+     * queue <em>and</em> into an attached {@code IMaterializationPoint} bypass
+     * (epoch-tagged), and the consumer side can replay the materialized content
+     * on recovery. Default {@code false} (opt-in; zero regression for existing
+     * jobs).
+     *
+     * <p>This marker is the carrier for successor plan 2's region decomposition:
+     * materialization-enabled edges are region cut points; non-enabled edges
+     * connect vertices inside the same pipelined region.
+     *
+     * <p>This marker does <em>not</em> change {@link ResultPartitionType}: the
+     * default {@code determinePartitionType} path still returns
+     * {@code PIPELINED}/{@code PIPELINED_BOUNDED}. Materialization is an opt-in
+     * <em>additional</em> bypass, not a partition-type enum change.
+     */
+    private boolean materializationEnabled = false;
+
     public JobEdge(String sourceVertex, String targetVertex, ResultPartitionType partitionType) {
         this(sourceVertex, targetVertex, partitionType, null);
     }
@@ -92,6 +112,34 @@ public class JobEdge implements Serializable {
      */
     public void setEdgeConfig(EdgeConfig edgeConfig) {
         this.edgeConfig = edgeConfig;
+    }
+
+    /**
+     * Stage 44 successor 1: returns whether this edge is a materialization point
+     * edge (region-boundary bypass enabled). Default {@code false} (opt-in).
+     *
+     * @return {@code true} if the producer dual-writes into a materialization
+     *         bypass point and the consumer can replay from it
+     */
+    public boolean isMaterializationEnabled() {
+        return materializationEnabled;
+    }
+
+    /**
+     * Stage 44 successor 1: explicitly marks this edge as a materialization point
+     * edge (region-boundary bypass). When {@code true},
+     * {@code GraphExecutionPlan.build(...)} attaches an
+     * {@code IMaterializationPoint} to every {@code ResultPartition} in this
+     * edge's partition matrix.
+     *
+     * <p>This marker does not depend on automatic region identification
+     * (successor plan 2): manual opt-in is sufficient to enable materialization.
+     *
+     * @param materializationEnabled {@code true} to enable dual-write bypass +
+     *                               consumer replay; {@code false} to disable
+     */
+    public void setMaterializationEnabled(boolean materializationEnabled) {
+        this.materializationEnabled = materializationEnabled;
     }
 
     /**
@@ -152,6 +200,7 @@ public class JobEdge implements Serializable {
                 ", partitionType=" + partitionType +
                 ", partitioner=" + partitioner +
                 ", edgeConfig=" + edgeConfig +
+                ", materializationEnabled=" + materializationEnabled +
                 '}';
     }
 }

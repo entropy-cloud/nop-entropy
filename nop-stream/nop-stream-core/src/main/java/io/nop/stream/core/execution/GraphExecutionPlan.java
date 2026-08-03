@@ -28,6 +28,7 @@ import io.nop.stream.core.checkpoint.TaskLocation;
 import io.nop.stream.core.execution.buffer.BufferPool;
 import io.nop.stream.core.execution.buffer.IBufferPool;
 import io.nop.stream.core.execution.flow.EdgeConfig;
+import io.nop.stream.core.execution.materialization.InMemoryMaterializationPoint;
 import io.nop.stream.core.execution.plan.DeploymentPlan;
 import io.nop.stream.core.execution.plan.PartitionedPlan;
 import io.nop.stream.core.execution.plan.PartitionPolicy;
@@ -290,16 +291,30 @@ public class GraphExecutionPlan {
         // Each partition is bound to the per-job pool so the cross-partition global
         // aggregate in-flight element count is bounded. Per-partition capacity comes
         // from EdgeConfig.queueCapacity (wired here), defaulting to DEFAULT_CAPACITY.
+        //
+        // Stage 44 successor 1 (materialization point mechanism, option B): when an
+        // edge is explicitly marked materializationEnabled, an independently
+        // addressable IMaterializationPoint is attached to every ResultPartition in
+        // the matrix so the producer dual-writes (main queue + bypass store) and the
+        // consumer can replay. Default-off → zero regression for existing jobs.
         Map<JobEdge, ResultPartition[][]> edgePartitionMatrix = new LinkedHashMap<>();
         for (JobEdge edge : jobGraph.getEdges()) {
             int srcP = parallelismMap.getOrDefault(edge.getSourceVertex(), 1);
             int tgtP = parallelismMap.getOrDefault(edge.getTargetVertex(), 1);
             EdgeConfig edgeConfig = resolveEdgeConfig(edge, deploymentPlan);
             int partitionCapacity = resolvePartitionCapacity(edgeConfig);
+            boolean materialize = edge.isMaterializationEnabled();
             ResultPartition[][] matrix = new ResultPartition[srcP][tgtP];
             for (int s = 0; s < srcP; s++) {
                 for (int t = 0; t < tgtP; t++) {
-                    matrix[s][t] = new ResultPartition(partitionCapacity, bufferPool);
+                    ResultPartition partition = new ResultPartition(partitionCapacity, bufferPool);
+                    if (materialize) {
+                        String pointId = edge.getSourceVertex() + "->" + edge.getTargetVertex()
+                                + "[s=" + s + "][t=" + t + "]";
+                        partition.setMaterializationPoint(
+                                new InMemoryMaterializationPoint(pointId));
+                    }
+                    matrix[s][t] = partition;
                 }
             }
             edgePartitionMatrix.put(edge, matrix);

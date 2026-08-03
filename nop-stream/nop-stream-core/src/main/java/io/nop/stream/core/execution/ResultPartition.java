@@ -16,6 +16,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import io.nop.stream.core.execution.buffer.IBufferPool;
+import io.nop.stream.core.execution.materialization.IMaterializationPoint;
 import io.nop.stream.core.streamrecord.StreamElement;
 import io.nop.stream.core.exceptions.StreamException;
 
@@ -24,6 +25,7 @@ import static io.nop.stream.core.exceptions.NopStreamErrors.ARG_ARG_NAME;
 import static io.nop.stream.core.exceptions.NopStreamErrors.ARG_DETAIL;
 import static io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_INVALID_ARG;
 import static io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_INVALID_STATE;
+import static io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_MATERIALIZE_WRITE_FAILED;
 import static io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_NULL_ARG;
 
 /**
@@ -50,6 +52,29 @@ public class ResultPartition implements IWriteStatus {
     private final LinkedBlockingQueue<StreamElement> queue;
     private final IBufferPool bufferPool;
     private volatile boolean finished;
+
+    /**
+     * Stage 44 successor 1 (materialization point mechanism, option B): optional
+     * materialization bypass point. When non-null, {@link #write(StreamElement)}
+     * dual-writes every element into the main queue <em>and</em> into this point
+     * (tagged with {@link #currentMaterializationEpoch}). When {@code null}, the
+     * partition follows the original by-reference path (default; zero regression
+     * for existing jobs).
+     *
+     * <p>This field is attached by {@code GraphExecutionPlan.build(...)} when the
+     * owning {@code JobEdge} is explicitly marked materialization-enabled. It is
+     * the producer-side handle; the consumer side reads it via
+     * {@link #getMaterializationPoint()} to perform recovery replay.
+     */
+    private volatile IMaterializationPoint materializationPoint;
+
+    /**
+     * The producer epoch used to tag materialized elements on the dual-write
+     * bypass. Advanced by the producer (typically aligned with checkpoint id).
+     * Meaning/advancement policy is owned by the producer; this partition simply
+     * stamps the current value onto each bypass-written element.
+     */
+    private volatile long currentMaterializationEpoch = 0L;
 
     /**
      * Creates a ResultPartition with the default capacity (1024) and no global pool.
@@ -102,6 +127,19 @@ public class ResultPartition implements IWriteStatus {
     /**
      * Writes a stream element into the partition, blocking if the queue is full.
      *
+     * <p>Stage 44 successor 1 (materialization point mechanism): when a
+     * {@link IMaterializationPoint materialization point} is attached, this
+     * method <em>dual-writes</em> — the element is written to the main queue
+     * (by-reference in-flight path, unchanged) <em>and</em> to the bypass
+     * materialization store, tagged with the current
+     * {@link #setCurrentMaterializationEpoch(long) producer epoch}. When no point
+     * is attached, the original by-reference path is followed (default behavior;
+     * zero regression for existing jobs).
+     *
+     * <p>The bypass write fails fast (throws) if the materialization store
+     * rejects the element; the producer does not silently continue with a
+     * divergent main-queue/materialization-store pair (No-Silent-No-Op).
+     *
      * @param element the element to write (must not be null)
      * @throws InterruptedException if the thread is interrupted while waiting
      * @throws IllegalStateException if the partition is already finished
@@ -113,6 +151,22 @@ public class ResultPartition implements IWriteStatus {
         if (finished) {
             throw new StreamException(ERR_STREAM_INVALID_STATE)
                     .param(ARG_DETAIL, "Cannot write to a finished ResultPartition");
+        }
+        // Stage 44 successor 1: dual-write bypass. Snapshot the point locally so a
+        // concurrent detach does not split the dual-write into a partial state.
+        IMaterializationPoint point = this.materializationPoint;
+        if (point != null) {
+            // Tag with the producer's current epoch. Bypass failures abort the
+            // write (fail-fast) rather than silently diverging the two stores.
+            try {
+                point.write(element, currentMaterializationEpoch);
+            } catch (InterruptedException ie) {
+                throw ie;
+            } catch (RuntimeException rex) {
+                throw new StreamException(ERR_STREAM_MATERIALIZE_WRITE_FAILED, rex)
+                        .param(NopStreamErrors.ARG_POINT_ID, point.getPointId())
+                        .param(ARG_DETAIL, rex.getMessage());
+            }
         }
         if (bufferPool != null) {
             bufferPool.acquire();
@@ -337,5 +391,63 @@ public class ResultPartition implements IWriteStatus {
             throw new StreamException(NopStreamErrors.ERR_STREAM_INTERRUPTED_WRITE, ie)
                     .param(NopStreamErrors.ARG_DETAIL, "injectFront interrupted");
         }
+    }
+
+    // ----------------------------------------------------------------------
+    // Stage 44 successor 1 — materialization point mechanism (option B)
+    // ----------------------------------------------------------------------
+
+    /**
+     * Attaches a materialization bypass point to this partition. Once attached,
+     * {@link #write(StreamElement)} dual-writes every element into the main queue
+     * <em>and</em> into the bypass point (tagged with
+     * {@link #setCurrentMaterializationEpoch(long) the current producer epoch}).
+     *
+     * <p>This is the producer-side handle. The consumer side reads it via
+     * {@link #getMaterializationPoint()} to perform recovery replay.
+     *
+     * <p>Passing {@code null} detaches the point (disables dual-write); this is
+     * the default state for existing jobs (zero regression).
+     *
+     * @param point the materialization point, or {@code null} to disable bypass
+     */
+    public void setMaterializationPoint(IMaterializationPoint point) {
+        this.materializationPoint = point;
+    }
+
+    /**
+     * @return the attached materialization bypass point, or {@code null} if this
+     *         partition operates in legacy (by-reference-only) mode
+     */
+    public IMaterializationPoint getMaterializationPoint() {
+        return materializationPoint;
+    }
+
+    /**
+     * @return {@code true} if a materialization bypass point is attached (i.e.
+     *         the owning {@code JobEdge} is materialization-enabled and the
+     *         producer dual-writes)
+     */
+    public boolean isMaterializationEnabled() {
+        return materializationPoint != null;
+    }
+
+    /**
+     * Sets the producer epoch used to tag elements on the dual-write bypass.
+     * Advanced by the producer (typically aligned with checkpoint id). All
+     * subsequent {@link #write(StreamElement)} calls tag the bypass-written
+     * element with this epoch.
+     *
+     * @param epoch the new producer epoch
+     */
+    public void setCurrentMaterializationEpoch(long epoch) {
+        this.currentMaterializationEpoch = epoch;
+    }
+
+    /**
+     * @return the producer epoch used to tag the next bypass-written element
+     */
+    public long getCurrentMaterializationEpoch() {
+        return currentMaterializationEpoch;
     }
 }

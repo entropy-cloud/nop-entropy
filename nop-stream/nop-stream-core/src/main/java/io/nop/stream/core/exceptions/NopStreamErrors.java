@@ -34,6 +34,8 @@ public interface NopStreamErrors {
     String ARG_ATTEMPT_NUMBER = "attemptNumber";
     String ARG_CAUSE = "cause";
     String ARG_NODE_ID = "nodeId";
+    String ARG_POINT_ID = "pointId";
+    String ARG_FROM_EPOCH = "fromEpoch";
 
     ErrorCode ERR_STREAM_NULL_ARG =
             define("nop.err.stream.null-arg", "Argument {argName} must not be null", ARG_ARG_NAME);
@@ -312,4 +314,38 @@ public interface NopStreamErrors {
                     "Discovery/registry drift detected: instances only in discovery={discoveryOnly}, "
                             + "nodes only in registry={registryOnly}",
                     ARG_DISCOVERY_ONLY, ARG_REGISTRY_ONLY);
+
+    /**
+     * Stage 44 successor 1 (materialization point mechanism, option B): a write
+     * was attempted on a sealed {@code IMaterializationPoint}. Sealed points are
+     * immutable; the producer must not continue dual-writing after seal. Fails
+     * fast rather than silently dropping the element (No-Silent-No-Op).
+     */
+    ErrorCode ERR_STREAM_MATERIALIZE_POINT_SEALED =
+            define("nop.err.stream.materialize-point-sealed",
+                    "Materialization point {pointId} is sealed: {detail}", ARG_POINT_ID, ARG_DETAIL);
+
+    /**
+     * Stage 44 successor 1 (materialization point mechanism, option B): the
+     * consumer-side replay path was invoked on a channel whose underlying
+     * {@code ResultPartition} has no materialization point attached (i.e. the
+     * {@code JobEdge} materialization marker is off). Fails fast rather than
+     * silently returning an empty replay (No-Silent-No-Op): a replay request on
+     * a non-materialized edge is a programming error in the recovery path.
+     */
+    ErrorCode ERR_STREAM_MATERIALIZE_POINT_NOT_ATTACHED =
+            define("nop.err.stream.materialize-point-not-attached",
+                    "No materialization point attached to this channel/partition: cannot replay. {detail}",
+                    ARG_DETAIL);
+
+    /**
+     * Stage 44 successor 1: dual-write bypass was enabled (a materialization
+     * point is attached) but the bypass write to the materialization store
+     * failed. The producer fails fast rather than continuing with a divergent
+     * main-queue/materialization-store pair (which would break recovery).
+     */
+    ErrorCode ERR_STREAM_MATERIALIZE_WRITE_FAILED =
+            define("nop.err.stream.materialize-write-failed",
+                    "Materialization bypass write failed for point {pointId}: {detail}",
+                    ARG_POINT_ID, ARG_DETAIL);
 }
