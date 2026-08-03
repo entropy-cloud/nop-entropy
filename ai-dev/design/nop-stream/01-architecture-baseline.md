@@ -414,7 +414,7 @@ fencing_epoch = leaderEpochValue * EPOCH_SCALE + recoveryGen        // EPOCH_SCA
 | 面 | 选举 / 协调后端 | Stage |
 |---|---|---|
 | 控制面（coordinator） | 平台 `ILeaderElector`（生产 `SysDaoLeaderElector` JDBC lease） | Stage 38 已 WIRE |
-| 数据面（task 间消息） | 平台 `IMessageService`（`SysDaoMessageService` DB / `PulsarMessageService`） | Stage 40 已 WIRE（DB + Pulsar 两种后端，经 `IDataPlaneWireCodec` 适配真实后端） |
+| 数据面（task 间消息） | 平台 `IMessageService`（`SysDaoMessageService` DB / `PulsarMessageService` / `KafkaMessageService`） | Stage 40 已 WIRE（DB + Pulsar 两种后端，经 `IDataPlaneWireCodec` 适配真实后端）；Stage 48 增 Kafka 后端（`nop-message-kafka` + `KafkaStringWireCodec`） |
 | 跨 JVM 控制面 RPC | `IStreamTaskRpcService`（task 侧）+ `IStreamCoordinatorRpcService`（coordinator 侧）经 `MessageRpcServer` 远程暴露 | Stage 39 Phase 2 已 WIRE |
 
 ### 跨 JVM 控制面 RPC 接线拓扑（Stage 39 Phase 2 已落地）

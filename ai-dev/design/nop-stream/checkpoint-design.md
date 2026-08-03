@@ -370,7 +370,7 @@ capture 语义是 **drain**（记录从 channel 缓冲移入 `ChannelState`，�
 
 `RemoteResultPartition.write()` 立即委托 `IMessageService.send()`，**无内部缓冲**（见源码）。因此 output 侧的在途数据不在 nop-stream 进程内，而存在于传输后端：
 
-- 持久后端（`SysDaoMessageService` / DB / Pulsar）：output 在途数据由后端持久化，task 恢复后订阅同一 topic 继续消费，自然安全。
+- 持久后端（`SysDaoMessageService` / DB / Pulsar / Kafka）：output 在途数据由后端持久化，task 恢复后订阅同一 topic 继续消费，自然安全。
 - 非持久后端：output 在途数据在 producer 崩溃后会丢——这是**已知限制**，不在 Stage 43 解决范围（output channel state 持久化是 follow-up）。本设计仅持久化 **input** channel state。
 
 #### 2.11.6 超时关系

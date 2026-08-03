@@ -71,7 +71,7 @@ Does not contain implementation details. Each `planned` stage is owned by its ex
 
 ### Phase 6 — 生态与上层
 
-- 48. Kafka IMessageService: `todo`
+- 48. Kafka IMessageService: `done`（plan `ai-dev/plans/nop-stream-production/2026-08-03-2124-2-kafka-message-service.md`，completed — `nop-message-kafka` 从空壳到完整 `KafkaMessageService implements IMessageService`：`sendAsync`（`KafkaProducer<String,String>` + callback→`CompletableFuture`）+ `subscribe`（`KafkaConsumeTask` poll 循环处理 5 种 `IMessageConsumer.onMessage` 返回值语义：null→commitSync / CompletionStage→await / ConsumeLater→seek 不 commit / Acknowledge→ack-topic reply / 其他→reply+commit）+ `KafkaMessageSubscription` 5 方法（suspend/resume 映射 `KafkaConsumer.pause/resume`）+ `init()`/`destroy()` 生命周期 + `seekToPosition` 真实实现（非 stub，`seekToMessage` fail-loud）+ kafka-clients 3.5.0 经 `nop-dependencies` 管理 + `KafkaStringWireCodec`（nop-stream-runtime/transport，JSON String wire format 与 PulsarStringWireCodec 同构）+ E2E gated 测试（`@EnabledIfSystemProperty`）+ 组件级测试 30 tests pass + nop-stream-runtime 745 tests pass）
 - 49. Source split 体系（FLIP-27 风格）: `todo`
 - 50. nop-stream-flow XDSL 声明式编排: `done`
 - 51. Delta 定制 StreamModel: `todo`
