@@ -185,4 +185,58 @@ class TestCheckpointConfig {
         assertEquals(750L, built.getUnalignedThreshold());
         assertDoesNotThrow(built::validateUnalignedConfig);
     }
+
+    /**
+     * Stage 44 successor 5: default per-region restart budget is 3 (consistent
+     * with {@code SupervisionLoop.DEFAULT_MAX_RESTARTS_PER_REGION}).
+     */
+    @Test
+    void testMaxRestartsPerRegionDefault() {
+        assertEquals(CheckpointConfig.DEFAULT_MAX_RESTARTS_PER_REGION, config.getMaxRestartsPerRegion());
+        assertEquals(3, config.getMaxRestartsPerRegion());
+    }
+
+    /**
+     * Stage 44 successor 5: setter stores custom values (1, 5, and 0 — 0 means
+     * "disable scoped restart, surface first failure immediately").
+     */
+    @Test
+    void testMaxRestartsPerRegionSetter() {
+        config.setMaxRestartsPerRegion(1);
+        assertEquals(1, config.getMaxRestartsPerRegion());
+
+        config.setMaxRestartsPerRegion(5);
+        assertEquals(5, config.getMaxRestartsPerRegion());
+
+        // 0 is a valid configuration (disable scoped restart entirely).
+        config.setMaxRestartsPerRegion(0);
+        assertEquals(0, config.getMaxRestartsPerRegion());
+    }
+
+    /**
+     * Stage 44 successor 5 (No-Silent-No-Op #24): negative values are rejected
+     * at config load time (fail-fast), never silently treated as 0 or default.
+     */
+    @Test
+    void testMaxRestartsPerRegionRejectsNegative() {
+        IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
+                () -> config.setMaxRestartsPerRegion(-1));
+        assertTrue(ex.getMessage().contains("maxRestartsPerRegion"),
+                "Error must name the offending field: " + ex.getMessage());
+    }
+
+    /**
+     * Stage 44 successor 5: builder wires the per-region restart budget.
+     */
+    @Test
+    void testBuilderMaxRestartsPerRegion() {
+        CheckpointConfig built = CheckpointConfig.builder()
+                .maxRestartsPerRegion(7)
+                .build();
+        assertEquals(7, built.getMaxRestartsPerRegion());
+
+        // Builder must also fail-fast on negative values.
+        assertThrows(IllegalArgumentException.class,
+                () -> CheckpointConfig.builder().maxRestartsPerRegion(-2));
+    }
 }

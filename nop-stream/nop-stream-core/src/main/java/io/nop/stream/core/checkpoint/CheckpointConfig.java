@@ -28,6 +28,7 @@ public class CheckpointConfig implements Serializable {
     public static final int DEFAULT_MAX_CONCURRENT_CHECKPOINTS = 1;
     public static final int DEFAULT_MAX_RETAINED_CHECKPOINTS = 5;
     public static final int DEFAULT_MAX_CONSECUTIVE_CHECKPOINT_FAILURES = 3;
+    public static final int DEFAULT_MAX_RESTARTS_PER_REGION = 3;
     public static final boolean DEFAULT_ASYNC_SNAPSHOT_ENABLED = true;
     public static final int DEFAULT_ASYNC_SNAPSHOT_THREAD_POOL_SIZE = 1;
     public static final boolean DEFAULT_UNALIGNED_CHECKPOINT_ENABLED = true;
@@ -66,6 +67,34 @@ public class CheckpointConfig implements Serializable {
      * {@link #validateUnalignedConfig()}, fail-fast on misconfiguration).
      */
     private long unalignedThreshold = DEFAULT_UNALIGNED_THRESHOLD;
+
+    /**
+     * Stage 44 successor 5 (per-region restart limit configurability): per-region
+     * restart budget for the LOCAL supervision loop path
+     * ({@code SupervisionLoop.run}). When a region-scoped restart is attempted
+     * (consumer-only or drainable producer-region downstream of a materialization
+     * boundary), the supervision loop allows at most this many restarts per region
+     * within one {@code SupervisionLoop.run()} invocation. When the budget is
+     * exhausted the loop throws {@code ERR_STREAM_SUPERVISION_RESTART_EXHAUSTED}
+     * which surfaces to the caller for global recovery.
+     *
+     * <p>Default is {@value #DEFAULT_MAX_RESTARTS_PER_REGION}. Set to {@code 0} to
+     * disable scoped restart entirely (first region failure surfaces immediately
+     * for global recovery). Negative values are rejected at config time
+     * (fail-fast, see {@link #setMaxRestartsPerRegion(int)}).
+     *
+     * <p><b>Counter lifecycle</b>: this budget is enforced by an in-memory counter
+     * scoped to a single {@code SupervisionLoop.run()} invocation (LOCAL execution
+     * path). It is independent of the DISTRIBUTED path's
+     * {@code JobCoordinator.restartCount} (the two paths are fully separated —
+     * LOCAL: {@code StreamExecutionEnvironment.execute()} →
+     * {@code GraphModelCheckpointExecutor.executeWithCheckpoint()} →
+     * {@code SupervisionLoop.run()}; DISTRIBUTED: {@code EmbeddedDistributedExecutor}
+     * → {@code JobCoordinator.globalRecovery()}). There is no "cycle reset" hazard
+     * because the LOCAL path does not re-invoke {@code run()} across
+     * {@code globalRecovery()} cycles.
+     */
+    private int maxRestartsPerRegion = DEFAULT_MAX_RESTARTS_PER_REGION;
 
     private IStateBackend stateBackend;
 
@@ -126,6 +155,31 @@ public class CheckpointConfig implements Serializable {
 
     public void setUnalignedThreshold(long unalignedThreshold) {
         this.unalignedThreshold = unalignedThreshold;
+    }
+
+    /**
+     * Stage 44 successor 5: per-region restart budget for the LOCAL supervision
+     * loop path (see class javadoc on {@link #maxRestartsPerRegion}).
+     */
+    public int getMaxRestartsPerRegion() {
+        return maxRestartsPerRegion;
+    }
+
+    /**
+     * Stage 44 successor 5: sets the per-region restart budget. Fail-fast on
+     * negative values (No-Silent-No-Op #24 — a nonsensical budget must be
+     * rejected at config load rather than silently treated as 0 or default).
+     *
+     * @param maxRestartsPerRegion the per-region restart upper bound; must be {@code >= 0}
+     * @throws IllegalArgumentException if {@code maxRestartsPerRegion < 0}
+     */
+    public void setMaxRestartsPerRegion(int maxRestartsPerRegion) {
+        if (maxRestartsPerRegion < 0) {
+            throw new IllegalArgumentException(
+                    "Invalid checkpoint config: maxRestartsPerRegion (" + maxRestartsPerRegion
+                            + ") must be >= 0");
+        }
+        this.maxRestartsPerRegion = maxRestartsPerRegion;
     }
 
     /**
@@ -308,6 +362,15 @@ public class CheckpointConfig implements Serializable {
 
         public Builder unalignedThreshold(long threshold) {
             config.setUnalignedThreshold(threshold);
+            return this;
+        }
+
+        /**
+         * Stage 44 successor 5: per-region restart budget (see
+         * {@link #setMaxRestartsPerRegion(int)}).
+         */
+        public Builder maxRestartsPerRegion(int max) {
+            config.setMaxRestartsPerRegion(max);
             return this;
         }
 

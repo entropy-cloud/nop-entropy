@@ -128,7 +128,8 @@ public class GraphModelCheckpointExecutor {
         AtomicBoolean abortMarked = registerLocalAbortHandler(coordinator, tasks);
 
         try {
-            submitAndRun(execPlan, tasks, executor, jobGraph, coordinator, checkpointPlan);
+            submitAndRun(execPlan, tasks, executor, jobGraph, coordinator, checkpointPlan,
+                    checkpointConfig.getMaxRestartsPerRegion());
             checkAbortMarker(abortMarked);
             handleJobTermination(allInvokables, coordinator, checkpointConfig);
             checkTaskFailures(tasks);
@@ -195,7 +196,8 @@ public class GraphModelCheckpointExecutor {
         AtomicBoolean abortMarked = registerLocalAbortHandler(coordinator, tasks);
 
         try {
-            submitAndRun(execPlan, tasks, executor, jobGraph, coordinator, checkpointPlan);
+            submitAndRun(execPlan, tasks, executor, jobGraph, coordinator, checkpointPlan,
+                    checkpointConfig.getMaxRestartsPerRegion());
             checkAbortMarker(abortMarked);
             handleJobTermination(allInvokables, coordinator, checkpointConfig);
             checkTaskFailures(tasks);
@@ -269,7 +271,8 @@ public class GraphModelCheckpointExecutor {
         AtomicBoolean abortMarked = registerLocalAbortHandler(coordinator, tasks);
 
         try {
-            submitAndRun(execPlan, tasks, executor, jobGraph, coordinator, checkpointPlan);
+            submitAndRun(execPlan, tasks, executor, jobGraph, coordinator, checkpointPlan,
+                    checkpointConfig.getMaxRestartsPerRegion());
             checkAbortMarker(abortMarked);
             handleJobTermination(allInvokables, coordinator, checkpointConfig);
             checkTaskFailures(tasks);
@@ -333,7 +336,8 @@ public class GraphModelCheckpointExecutor {
         AtomicBoolean abortMarked = registerLocalAbortHandler(coordinator, tasks);
 
         try {
-            submitAndRun(execPlan, tasks, executor, jobGraph, coordinator, checkpointPlan);
+            submitAndRun(execPlan, tasks, executor, jobGraph, coordinator, checkpointPlan,
+                    checkpointConfig.getMaxRestartsPerRegion());
             checkAbortMarker(abortMarked);
 
             PendingCheckpoint savepointPending = coordinator.tryTriggerPendingCheckpoint(CheckpointType.SAVEPOINT);
@@ -396,7 +400,8 @@ public class GraphModelCheckpointExecutor {
         AtomicBoolean abortMarked = registerLocalAbortHandler(coordinator, tasks);
 
         try {
-            submitAndRun(execPlan, tasks, executor, jobGraph, coordinator, checkpointPlan);
+            submitAndRun(execPlan, tasks, executor, jobGraph, coordinator, checkpointPlan,
+                    checkpointConfig.getMaxRestartsPerRegion());
             checkAbortMarker(abortMarked);
             triggerFinalCheckpoint(allInvokables, coordinator);
             checkTaskFailures(tasks);
@@ -732,12 +737,21 @@ public class GraphModelCheckpointExecutor {
      * task that the loop's in-flight restart path may have surfaced. The two
      * mechanisms coexist — supervision loop owns mid-execution detection;
      * checkTaskFailures owns terminal-state consistency.
+     *
+     * <p>Stage 44 successor 5: {@code maxRestartsPerRegion} is threaded from
+     * {@link CheckpointConfig#getMaxRestartsPerRegion()} at each call-site so
+     * the per-region restart budget is production-configurable (default
+     * {@code CheckpointConfig.DEFAULT_MAX_RESTARTS_PER_REGION = 3}). Wiring:
+     * config → executeWithCheckpoint → submitAndRun → SupervisionLoop.run
+     * (package-private full-parameter signature).
      */
     private static void submitAndRun(GraphExecutionPlan execPlan, Map<String, SubtaskTask> tasks,
                                      TaskExecutor executor, JobGraph jobGraph,
                                      CheckpointCoordinator coordinator,
-                                     CheckpointPlan checkpointPlan) throws InterruptedException {
-        SupervisionLoop.run(execPlan, tasks, executor, jobGraph, coordinator, checkpointPlan);
+                                     CheckpointPlan checkpointPlan,
+                                     int maxRestartsPerRegion) throws InterruptedException {
+        SupervisionLoop.run(execPlan, tasks, executor, jobGraph, coordinator, checkpointPlan,
+                maxRestartsPerRegion, SupervisionLoop.DEFAULT_POLL_INTERVAL_MS);
     }
 
     private static void checkTaskFailures(Map<String, SubtaskTask> tasks) {
