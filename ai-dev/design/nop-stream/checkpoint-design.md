@@ -438,6 +438,16 @@ Unaligned checkpoint 与 rescale（并行度变化）的叠加。本节裁定交
 
 **与 keyed state rescale 的差异（重申）**：keyed state 重映射的稳定性来自 key→group→subtask 的两级映射，其中 key→group 不变（仅依赖 `maxParallelism`）。channel state 缺少这一稳定锚点，是首版 fail-fast 的根本原因。
 
+#### 2.11.9 Materialization epoch ↔ barrier 协调（Stage 44 successor 4 drain/reconnect）
+
+Region-based failover 的 drain/reconnect 机制需要物化点（materialization point）与 checkpoint barrier 协调，使 consumer 侧重放可选择 checkpoint-aligned 起点（consistent cut）。本节记录裁定（"应该发生什么"），详细实现见 `failover-design.md` §五.4。
+
+**协调关系**：region 边界的 `ResultPartition` 在 `materializationPoint` 非空时 dual-write（主 queue + 物化 store）。物化 store 中每条 record 携带 epoch tag。`ResultPartition.write()` 在 `CheckpointBarrier` 经过时 `set currentMaterializationEpoch = barrier.getId()`（checkpoint ID 对齐），使 barrier 之后的 data records 的 epoch tag = 该 barrier 的 checkpoint id。Consumer 侧 `replay(epoch >= ckpId)` 返回精确的 post-checkpoint records，与 operator state restore（from checkpoint at `ckpId`）配合形成 consistent cut。
+
+**控制事件过滤裁定**：`ResultPartition.write()` 对控制事件（`CheckpointBarrier`/`Watermark`/`WatermarkStatus`/`LatencyMarker`）**不** dual-write 到物化 store——仅 data records（`StreamRecord`）被 dual-write。理由：控制事件不是数据，persisting them 会在 replay 时注入虚假 barrier/watermark，触发 spurious checkpoint 或错误的对齐。Barrier 仍用于 epoch 分段标记（set epoch），但 barrier element 本身不入 store。这与 §2.11.2 的 channel-state capture 语义一致（channel state 只 capture data records，不 capture barriers）。
+
+**Overflow-bypass（解除死锁 1）**：物化启用时，主 queue 写入从阻塞 `queue.put()` 改为非阻塞 `queue.offer()`。queue 满时 data 已在 bypass-write 阶段写入物化 store，故 offer 失败时 producer 不阻塞（解除"下游死→上游 queue.put() 永久阻塞"死锁）。物化未启用时保持原阻塞行为（零回归）。这与 checkpoint 的 backpressure 语义独立：overflow-bypass 只在 materialization-enabled edge 生效，不影响 checkpoint barrier 流经。
+
 ## 3. CheckpointParticipant：泛化事务参与
 
 ### 3.1 设计动机
