@@ -25,20 +25,22 @@ import io.nop.stream.core.streamrecord.watermark.Watermark;
 import io.nop.stream.core.streamrecord.watermark.WatermarkStatus;
 
 /**
- * {@link Input} interface used in {@link MultipleInputStreamOperator}. Most likely you don't want
- * to implement this interface on your own. Instead you can use {@link AbstractInput} and {@link
- * AbstractStreamOperatorV2} to implement {@link MultipleInputStreamOperator}, or just {@link
- * AbstractStreamOperatorV2} to implement {@link OneInputStreamOperator}.
+ * Input interface for a single logical input of a stream operator. Each
+ * {@link OneInputStreamOperator} owns exactly one {@code Input} that processes
+ * the element/watermark/status/latency-marker stream.
+ *
+ * <p>Methods on this interface are guaranteed not to be called concurrently
+ * with other methods of the owning operator.
  */
 public interface Input<IN> {
     /**
-     * Processes one element that arrived on this input of the {@link MultipleInputStreamOperator}.
+     * Processes one element that arrived on this input of the operator.
      * This method is guaranteed to not be called concurrently with other methods of the operator.
      */
     void processElement(StreamRecord<IN> element) throws Exception;
 
     /**
-     * Processes a {@link Watermark} that arrived on the first input of this two-input operator.
+     * Processes a {@link Watermark} that arrived on this input of the operator.
      * This method is guaranteed to not be called concurrently with other methods of the operator.
      *
      * @see io.nop.stream.core.streamrecord.watermark.Watermark
@@ -46,16 +48,15 @@ public interface Input<IN> {
     void processWatermark(Watermark mark) throws Exception;
 
     /**
-     * Processes a {@link WatermarkStatus} that arrived on this input of the {@link
-     * MultipleInputStreamOperator}. This method is guaranteed to not be called concurrently with
-     * other methods of the operator.
+     * Processes a {@link WatermarkStatus} that arrived on this input of the operator.
+     * This method is guaranteed to not be called concurrently with other methods of the operator.
      *
      * @see WatermarkStatus
      */
     void processWatermarkStatus(WatermarkStatus watermarkStatus) throws Exception;
 
     /**
-     * Processes a {@link LatencyMarker} that arrived on the first input of this two-input operator.
+     * Processes a {@link LatencyMarker} that arrived on this input of the operator.
      * This method is guaranteed to not be called concurrently with other methods of the operator.
      *
      * @see io.nop.stream.core.streamrecord.LatencyMarker

@@ -18,6 +18,8 @@
 
 package io.nop.stream.cep.nfa.sharedbuffer;
 
+import io.nop.stream.core.exceptions.StreamRuntimeException;
+
 import java.util.Objects;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -57,7 +59,7 @@ public final class Lockable<T> {
             old = refCounter.get();
             if (old <= 0) {
                 refCounter.set(0);
-                throw new IllegalStateException("Lockable over-release: refCounter went negative");
+                throw new StreamRuntimeException("Lockable over-release: refCounter went negative");
             }
         } while (!refCounter.compareAndSet(old, old - 1));
         return old == 1;
@@ -69,7 +71,7 @@ public final class Lockable<T> {
             old = refCounter.get();
             if (old < 0) {
                 refCounter.set(0);
-                throw new IllegalStateException("Lockable over-release: refCounter went negative");
+                throw new StreamRuntimeException("Lockable over-release: refCounter went negative");
             }
             if (old == 0) {
                 return true;

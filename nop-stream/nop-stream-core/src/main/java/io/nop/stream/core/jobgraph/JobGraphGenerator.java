@@ -518,18 +518,15 @@ public class JobGraphGenerator implements Serializable {
     }
 
     /**
-     * Determines the ResultPartitionType based on the StreamEdge's partitioner.
+     * Checks whether the given operator chain contains at least one operator
+     * that is actually backed by a non-virtual factory (i.e. a concrete
+     * {@code StreamOperator} can be created from the node). Returns {@code false}
+     * when every node in the chain resolves to {@code null} via
+     * {@link #createOperatorFromFactory(StreamNode)}.
      *
-     * <p>The partition type affects how intermediate results are produced and consumed:
-     * <ul>
-     *   <li><strong>PIPELINED</strong>: For forward partitioning (null partitioner), enables
-     *       streaming execution with low latency</li>
-     *   <li><strong>PIPELINED_BOUNDED</strong>: For non-forward partitioning, enables
-     *       pipelined execution with backpressure support</li>
-     * </ul>
-     *
-     * @param streamEdge the StreamEdge to analyze
-     * @return the appropriate ResultPartitionType
+     * @param chain the candidate operator chain to inspect
+     * @return {@code true} if at least one node in the chain produces a
+     *         non-virtual operator
      */
     private boolean hasNonVirtualOperator(List<StreamNode> chain) {
         for (StreamNode node : chain) {
@@ -554,6 +551,20 @@ public class JobGraphGenerator implements Serializable {
         return null;
     }
 
+    /**
+     * Determines the ResultPartitionType based on the StreamEdge's partitioner.
+     *
+     * <p>The partition type affects how intermediate results are produced and consumed:
+     * <ul>
+     *   <li><strong>PIPELINED</strong>: For forward partitioning (null partitioner), enables
+     *       streaming execution with low latency</li>
+     *   <li><strong>PIPELINED_BOUNDED</strong>: For non-forward partitioning, enables
+     *       pipelined execution with backpressure support</li>
+     * </ul>
+     *
+     * @param streamEdge the StreamEdge to analyze
+     * @return the appropriate ResultPartitionType
+     */
     private ResultPartitionType determinePartitionType(StreamEdge streamEdge) {
         if (streamEdge.getPartitioner() == null) {
             // Forward partitioning - use PIPELINED for low latency

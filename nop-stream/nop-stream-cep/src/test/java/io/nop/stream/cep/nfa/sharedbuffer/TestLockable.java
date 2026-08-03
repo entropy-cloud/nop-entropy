@@ -1,5 +1,6 @@
 package io.nop.stream.cep.nfa.sharedbuffer;
 
+import io.nop.stream.core.exceptions.StreamRuntimeException;
 import org.junit.jupiter.api.Test;
 
 import java.util.ArrayList;
@@ -24,7 +25,7 @@ class TestLockable {
     @Test
     void testReleaseThrowsWhenCounterAlreadyZero() {
         Lockable<String> lockable = new Lockable<>("test", 0);
-        assertThrows(IllegalStateException.class, lockable::release);
+        assertThrows(StreamRuntimeException.class, lockable::release);
         assertEquals(0, lockable.getRefCounter());
     }
 

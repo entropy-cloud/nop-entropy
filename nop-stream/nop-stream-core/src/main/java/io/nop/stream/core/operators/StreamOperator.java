@@ -25,9 +25,8 @@ import io.nop.stream.core.common.state.CheckpointListener;
 import io.nop.stream.core.streamrecord.StreamRecord;
 
 /**
- * Basic interface for stream operators. Implementers would implement one of {@link
- * OneInputStreamOperator} or {@link io.nop.stream.core.operators.TwoInputStreamOperator} to create operators that process
- * elements.
+ * Basic interface for stream operators. Implementers would implement {@link
+ * OneInputStreamOperator} to create operators that process elements.
  *
  * <p>The class {@link io.nop.stream.core.operators.StreamingRuntimeContext} offers
  * default implementation for the lifecycle and properties methods.

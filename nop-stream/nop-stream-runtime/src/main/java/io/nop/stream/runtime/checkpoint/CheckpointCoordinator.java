@@ -790,7 +790,6 @@ public class CheckpointCoordinator {
         decrementPendingCheckpointCount();
         notifyParticipantsFinishCommit(checkpointId, false);
         notifyCheckpointAborted(checkpointId);
-        LOG.warn("Failed checkpoint {} for job {}: {}", checkpointId, jobId, failMessage, cause);
     }
 
     private ExecutorService getOrCreatePersistExecutor() {

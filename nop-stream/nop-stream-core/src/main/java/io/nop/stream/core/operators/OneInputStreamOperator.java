@@ -21,8 +21,7 @@ package io.nop.stream.core.operators;
 import io.nop.stream.core.streamrecord.StreamRecord;
 
 /**
- * Interface for stream operators with one input. Use a base class such as
- * {@link AbstractStreamOperatorV2} if you want to implement a custom operator.
+ * Interface for stream operators with one input.
  *
  * @param <IN> The input type of the operator
  * @param <OUT> The output type of the operator
