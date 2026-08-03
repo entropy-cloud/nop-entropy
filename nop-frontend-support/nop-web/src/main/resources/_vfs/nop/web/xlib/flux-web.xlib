@@ -374,7 +374,7 @@
 
                     if(!rd and fixedProps?.contains(formCell.id)){
                        rd = true;
-                       $out.appendChild(location(),"_hidden",{name:formCell.id})
+                       $out.appendChild(location(),"hidden",{name:formCell.id})
                     }
 
                     let mode = cellModel?.editMode || (rd? 'view' : formModel.editMode) || 'view'
@@ -432,6 +432,8 @@
                     }
                     if(control != null){
                         cell.putAll(control);
+                    }else{
+                        cell.type = 'hidden';
                     }
                     return cell;
                 ]]></c:script>
