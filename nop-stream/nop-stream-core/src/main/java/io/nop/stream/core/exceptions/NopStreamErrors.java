@@ -348,4 +348,44 @@ public interface NopStreamErrors {
             define("nop.err.stream.materialize-write-failed",
                     "Materialization bypass write failed for point {pointId}: {detail}",
                     ARG_POINT_ID, ARG_DETAIL);
+
+    String ARG_REGION_ID = "regionId";
+    String ARG_MAX_RESTARTS = "maxRestarts";
+
+    /**
+     * Stage 44 successor 3 (supervision loop): a task failed mid-execution and
+     * the supervision loop detected it. This error surfaces the failure for the
+     * single-region case (where scoped restart is not applicable — there is no
+     * materialization boundary to contain the blast radius) and for the
+     * global-recovery fallback path.
+     */
+    ErrorCode ERR_STREAM_SUPERVISION_TASK_FAILED =
+            define("nop.err.stream.supervision-task-failed",
+                    "Supervision loop detected task failure for vertex={vertexId} taskIndex={taskIndex} region={regionId}: {detail}",
+                    ARG_VERTEX_ID, ARG_TASK_INDEX, ARG_REGION_ID, ARG_DETAIL);
+
+    /**
+     * Stage 44 successor 3 (supervision loop): the per-region restart budget
+     * was exhausted. The supervision loop attempted to restart the failing
+     * region {regionId} but it exceeded the configured maxRestarts={maxRestarts}.
+     * Falls back to global recovery (whole-job) — the caller (typically
+     * GraphModelCheckpointExecutor) surfaces this as a hard failure so the
+     * existing recovery path can take over.
+     */
+    ErrorCode ERR_STREAM_SUPERVISION_RESTART_EXHAUSTED =
+            define("nop.err.stream.supervision-restart-exhausted",
+                    "Region restart budget exhausted for region={regionId}: attempts exceeded maxRestarts={maxRestarts}. Falling back to global recovery.",
+                    ARG_REGION_ID, ARG_MAX_RESTARTS);
+
+    /**
+     * Stage 44 successor 3 (supervision loop): a region-scoped restart was
+     * attempted but the region contains producer vertices that cannot be safely
+     * restarted without the drain/reconnect protocol (successor plan 4). The
+     * supervision loop falls back to global recovery rather than silently
+     * producing an inconsistent state (No-Silent-No-Op).
+     */
+    ErrorCode ERR_STREAM_REGION_RESTART_UNSUPPORTED =
+            define("nop.err.stream.region-restart-unsupported",
+                    "Region {regionId} cannot be safely restarted: it contains producer vertices requiring drain/reconnect (successor plan 4). Falling back to global recovery.",
+                    ARG_REGION_ID);
 }

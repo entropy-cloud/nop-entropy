@@ -128,7 +128,7 @@ public class GraphModelCheckpointExecutor {
         AtomicBoolean abortMarked = registerLocalAbortHandler(coordinator, tasks);
 
         try {
-            submitAndRun(execPlan, tasks, executor);
+            submitAndRun(execPlan, tasks, executor, jobGraph);
             checkAbortMarker(abortMarked);
             handleJobTermination(allInvokables, coordinator, checkpointConfig);
             checkTaskFailures(tasks);
@@ -195,7 +195,7 @@ public class GraphModelCheckpointExecutor {
         AtomicBoolean abortMarked = registerLocalAbortHandler(coordinator, tasks);
 
         try {
-            submitAndRun(execPlan, tasks, executor);
+            submitAndRun(execPlan, tasks, executor, jobGraph);
             checkAbortMarker(abortMarked);
             handleJobTermination(allInvokables, coordinator, checkpointConfig);
             checkTaskFailures(tasks);
@@ -269,7 +269,7 @@ public class GraphModelCheckpointExecutor {
         AtomicBoolean abortMarked = registerLocalAbortHandler(coordinator, tasks);
 
         try {
-            submitAndRun(execPlan, tasks, executor);
+            submitAndRun(execPlan, tasks, executor, jobGraph);
             checkAbortMarker(abortMarked);
             handleJobTermination(allInvokables, coordinator, checkpointConfig);
             checkTaskFailures(tasks);
@@ -333,7 +333,7 @@ public class GraphModelCheckpointExecutor {
         AtomicBoolean abortMarked = registerLocalAbortHandler(coordinator, tasks);
 
         try {
-            submitAndRun(execPlan, tasks, executor);
+            submitAndRun(execPlan, tasks, executor, jobGraph);
             checkAbortMarker(abortMarked);
 
             PendingCheckpoint savepointPending = coordinator.tryTriggerPendingCheckpoint(CheckpointType.SAVEPOINT);
@@ -396,7 +396,7 @@ public class GraphModelCheckpointExecutor {
         AtomicBoolean abortMarked = registerLocalAbortHandler(coordinator, tasks);
 
         try {
-            submitAndRun(execPlan, tasks, executor);
+            submitAndRun(execPlan, tasks, executor, jobGraph);
             checkAbortMarker(abortMarked);
             triggerFinalCheckpoint(allInvokables, coordinator);
             checkTaskFailures(tasks);
@@ -714,11 +714,28 @@ public class GraphModelCheckpointExecutor {
         return tasks;
     }
 
-    private static void submitAndRun(GraphExecutionPlan execPlan, Map<String, SubtaskTask> tasks, TaskExecutor executor) throws InterruptedException {
-        for (SubtaskTask task : tasks.values()) {
-            executor.submitTask(task);
-        }
-        executor.awaitCompletion();
+    /**
+     * Stage 44 successor 3: submits all tasks and runs the supervision loop
+     * (mid-execution failure detection + region-scoped restart). Replaces the
+     * legacy {@code awaitCompletion} block-wait.
+     *
+     * <p>The supervision loop submits all tasks, polls for FAILED tasks at a
+     * fixed interval, and on detecting a failure attempts a region-scoped
+     * restart (consumer-only regions with materialization replay). For
+     * single-region jobs (no materialization), the loop surfaces the first
+     * failure immediately — equivalent to the legacy
+     * {@code awaitCompletion} + {@code checkTaskFailures} path (zero regression).
+     *
+     * <p>The retained {@link #checkTaskFailures} call-sites (5 in total) serve
+     * as <strong>post-completion terminal verification</strong>: after the
+     * supervision loop exits (all tasks terminal), they re-scan for any FAILED
+     * task that the loop's in-flight restart path may have surfaced. The two
+     * mechanisms coexist — supervision loop owns mid-execution detection;
+     * checkTaskFailures owns terminal-state consistency.
+     */
+    private static void submitAndRun(GraphExecutionPlan execPlan, Map<String, SubtaskTask> tasks,
+                                     TaskExecutor executor, JobGraph jobGraph) throws InterruptedException {
+        SupervisionLoop.run(execPlan, tasks, executor, jobGraph);
     }
 
     private static void checkTaskFailures(Map<String, SubtaskTask> tasks) {

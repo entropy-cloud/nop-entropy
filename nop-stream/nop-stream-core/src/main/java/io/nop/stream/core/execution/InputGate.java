@@ -8,6 +8,7 @@
 package io.nop.stream.core.execution;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -293,6 +294,19 @@ public class InputGate {
      */
     public int getNumberOfChannels() {
         return channels.size();
+    }
+
+    /**
+     * Stage 44 successor 3 (supervision loop): returns an unmodifiable view of
+     * the input channels. Used by the region-restart path to extract the
+     * underlying {@link ResultPartition} references (and their attached
+     * materialization points) so that restarted consumer tasks can be wired to
+     * fresh partitions sharing the same materialization store.
+     *
+     * @return unmodifiable list of input channels (never null, possibly a single channel)
+     */
+    public List<InputChannel> getChannels() {
+        return Collections.unmodifiableList(channels);
     }
 
     /**
