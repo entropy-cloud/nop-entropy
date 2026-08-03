@@ -274,4 +274,21 @@ public interface NopStreamErrors {
                     "Checkpoint contains stateful vertices absent from the current graph (likely deleted): "
                             + "missing={missingVertexIds}; checkpoint-vertices={checkpointVertexIds}; current-vertices={currentVertexIds}",
                     ARG_MISSING_VERTEX_IDS, ARG_CHECKPOINT_VERTEX_IDS, ARG_CURRENT_VERTEX_IDS);
+
+    String ARG_DISCOVERY_ONLY = "discoveryOnly";
+    String ARG_REGISTRY_ONLY = "registryOnly";
+
+    /**
+     * Stage 41 D7 (Option B coexistence): the optional discovery-read cross-check
+     * detected divergence between the platform discovery view and the
+     * {@code ClusterRegistry} runtime source of truth. The two views are
+     * eventually consistent (same DB, different tables, non-transactional), but
+     * persistent divergence indicates a missed registration or a stale lease. The
+     * checker fails loud rather than silently swallowing the drift (No-Silent-No-Op).
+     */
+    ErrorCode ERR_STREAM_DISCOVERY_DRIFT =
+            define("nop.err.stream.discovery-drift",
+                    "Discovery/registry drift detected: instances only in discovery={discoveryOnly}, "
+                            + "nodes only in registry={registryOnly}",
+                    ARG_DISCOVERY_ONLY, ARG_REGISTRY_ONLY);
 }

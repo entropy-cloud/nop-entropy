@@ -37,6 +37,7 @@ import io.nop.stream.runtime.checkpoint.CheckpointCoordinator;
 import io.nop.stream.runtime.checkpoint.storage.LocalFileCheckpointStorage;
 import io.nop.stream.runtime.cluster.ClusterRegistry;
 import io.nop.stream.runtime.cluster.InMemoryClusterRegistry;
+import io.nop.stream.runtime.cluster.NodeDiscoveryConsistencyChecker;
 import io.nop.stream.runtime.cluster.StreamNodeAutoRegistration;
 import io.nop.stream.runtime.cluster.TaskAssignment;
 import io.nop.stream.runtime.coordinator.JobCoordinator;
@@ -152,8 +153,10 @@ public class EmbeddedDistributedExecutor implements IStreamExecutionDispatcher {
         }
 
         // Register each node with platform discovery (G51) when a naming service is available.
-        // This coexists with ClusterRegistry lease registration — discovery is single-direction
-        // (nop-stream → platform), ClusterRegistry remains the runtime source of truth.
+        // This coexists with ClusterRegistry lease registration — discovery provides cross-system
+        // discoverability (write direction), ClusterRegistry remains the runtime source of truth
+        // (D7 Option B, confirmed). The read direction is consumed by the post-registration
+        // consistency check below (proving the write propagated; fail-loud on drift).
         if (namingService != null) {
             for (TaskManager tm : taskManagers) {
                 StreamNodeAutoRegistration reg = new StreamNodeAutoRegistration(
@@ -161,6 +164,13 @@ public class EmbeddedDistributedExecutor implements IStreamExecutionDispatcher {
                 reg.start();
                 discoveryRegistrations.add(reg);
             }
+
+            // D7 Option B: consume the discovery READ direction to verify the write propagated.
+            // This is the genuine runtime consumer of IDiscoveryClient.getInstances — without it
+            // the read surface would be a dead contract. Fail-loud on drift (guide #24): a
+            // node we just registered must be discoverable, otherwise downstream consumers
+            // relying on discovery would silently miss it.
+            new NodeDiscoveryConsistencyChecker(namingService, clusterRegistry).assertConsistent();
         }
 
         CheckpointIDCounter idCounter = new CheckpointIDCounter();

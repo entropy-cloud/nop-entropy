@@ -67,7 +67,7 @@ class TestMiniStreamClusterProcessSpawn {
                     "tm-0 log file must exist: " + cluster.logFileFor("tm-0"));
             assertTrue(Files.exists(cluster.logFileFor("tm-1")),
                     "tm-1 log file must exist");
-            assertTrue(Files.exists(cluster.logFileFor("coordinator")),
+            assertTrue(Files.exists(cluster.logFileFor("coordinator-0")),
                     "coordinator log file must exist");
 
             // Kill one TM and verify it stops.

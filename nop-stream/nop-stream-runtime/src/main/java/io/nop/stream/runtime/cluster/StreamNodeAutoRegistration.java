@@ -45,12 +45,22 @@ import io.nop.cluster.naming.INamingService;
  * (read-only). Registration failure is propagated as an exception, never silently
  * swallowed — the node must be discoverable or the system fails fast.
  *
- * <p>This is a <strong>single-direction registration</strong> (nop-stream → platform
- * discovery). nop-stream does not consume discovery reads for assignment or failure
- * detection; {@link ClusterRegistry} remains the sole runtime source of truth for
- * those concerns. The two views should be consistent during the node's lifetime
- * (registered node = lease-active node). Full convergence (ClusterRegistry vs
- * platform discovery) is deferred to Stage 41 decision point D7.
+ * <p><strong>D7 final relationship — coexistence (Option B, confirmed 2026-08-03)</strong>:
+ * this bean performs the <strong>write direction</strong> (nop-stream → platform
+ * discovery). {@link ClusterRegistry} remains the sole <strong>runtime source of
+ * truth</strong> for task assignment, fencing-epoch registration, node lease
+ * (capacity-as-lease), and task-attempt history (G56) — none of which the platform
+ * discovery SPI natively models. Platform discovery provides <strong>cross-system
+ * discoverability</strong> (other modules, ops dashboards, load balancers locating
+ * nop-stream nodes). The two views share the same JDBC backing store but live in
+ * different tables ({@code nop_sys_service_instance} vs {@code nop_stream_node})
+ * and are updated by independent code paths, so they are <strong>eventually
+ * consistent, non-transactional</strong>. The consistency contract is: a node
+ * registered with discovery ⟺ lease-active in {@link ClusterRegistry}. The
+ * optional <strong>read direction</strong> is consumed by
+ * {@link NodeDiscoveryConsistencyChecker} for drift detection. This is the final
+ * converged relationship (no longer 「单向注册 + deferred」); see
+ * {@code ai-dev/design/nop-stream/01-architecture-baseline.md} §「平台 discovery 注册」.
  */
 @Internal
 public class StreamNodeAutoRegistration {

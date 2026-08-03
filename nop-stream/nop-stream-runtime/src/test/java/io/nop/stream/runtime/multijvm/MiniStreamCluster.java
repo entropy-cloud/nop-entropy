@@ -35,6 +35,7 @@ import io.nop.core.initialize.CoreInitialization;
 import io.nop.core.lang.sql.SQL;
 import io.nop.dao.jdbc.IJdbcTemplate;
 import io.nop.dao.jdbc.impl.JdbcFactory;
+import io.nop.stream.runtime.cluster.ClusterRegistry;
 import io.nop.stream.runtime.cluster.JdbcClusterRegistry;
 import io.nop.stream.runtime.launch.ClusterLaunchConfig;
 import io.nop.stream.runtime.launch.JobCoordinatorMain;
@@ -330,7 +331,18 @@ public class MiniStreamCluster implements AutoCloseable {
         return harnessJdbcTemplate;
     }
 
-    public JdbcClusterRegistry getHarnessRegistry() {
+    /**
+     * Returns the harness-side view of the shared cluster registry.
+     *
+     * <p>Stage 41 D7 (Option B): the return type is the {@link ClusterRegistry}
+     * interface (program-to-interface), not the concrete {@link JdbcClusterRegistry}.
+     * Under Option B coexistence the harness keeps using {@code JdbcClusterRegistry}
+     * as the runtime source of truth — discovery is not wired into the zero-ORM-dep
+     * test infra (the real discovery integration is proven by the nop-sys-dao
+     * cross-module smoke). Downstream code only needs the interface contract
+     * ({@code getActiveNodes} for health checks).
+     */
+    public ClusterRegistry getHarnessRegistry() {
         return harnessRegistry;
     }
 
