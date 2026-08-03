@@ -50,7 +50,7 @@ Does not contain implementation details. Each `planned` stage is owned by its ex
 
 - 34. Key-Group 模型（G37—G39，P2）: `done`（plan `ai-dev/plans/nop-stream-production/2026-08-02-0955-4-key-group-model.md`，completed — KeyGroup/KeyGroupRange/KeyGroupAssignment（分层稳定哈希：内置类型 hashCode + POJO Murmur3-over-JSON，G38）+ key→group 映射（G37）+ KeyGroupRange 集合操作（G39）+ job-global maxParallelism（默认 128，shardCount 语义迁移 + getShardCount @Deprecated 别名）+ group→subtask 连续区间映射函数；RocksDB 可排序 key-group 二进制前缀 layout v2（**Stage 30 deferred「Binary composite key encoding」收口**，增量旧 SST fail-fast）；memory+rocksdb keyed 聚合 E2E 一致；生产 rescale 接线属 Stage 35）
 - 35. KeyGroupRange 恢复 + RocksDB key-group 感知 restore: `done`（plan `ai-dev/plans/nop-stream-production/2026-08-02-0955-5-keygroup-range-recovery.md`，completed — executor dispatch（`GraphModelCheckpointExecutor.restoreTaskStatesFromSource` 承重重构为区间路由）+ TaskEpochSnapshot KeyGroupRange 归属物化（CheckpointSerDe 持久化）+ 全量 JSON in-memory 过滤/增量 SST range scan 双路径 + scale-down 多源合并 + parallelism 4↔16 E2E dispatch；Stage 31 deferred「Key-group range SST reading」收口；`KeyGroupRangeRestoreFilter` + Memory/RocksDB `targetKeyGroupRange` + `RocksDBIncrementalRestore.restoreRangeInto` 真实 SST range scan）
-- 36. ~~BroadcastState 类型（G36，P2）~~ → 推迟，需先更新 vision §七: `planned`（plan `ai-dev/plans/nop-stream-production/2026-08-04-2200-2-final-gap-adjudication-g36-g66-g67.md`，active — G36 vision 裁定 + G66/G67 永久 deferred）
+- 36. BroadcastState（G36，P2）— 裁定永久排除: `done`（plan `ai-dev/plans/nop-stream-production/2026-08-04-2200-2-final-gap-adjudication-g36-g66-g67.md`，completed — G36 vision 裁定 **permanently excluded**：vision §七「去除：广播流」排除理由成立（复杂度极高、用例有限、CEP/lookup 替代）+ 无 demonstrated user need + operator state `BROADCAST` 重分布已部分覆盖配置流分发用例；不改变 vision 边界（§四/§七 保持不变），仅正式记录排除理由，故无需 §六人审批；vision §七裁决记录 #G36 + gap-analysis G36 行 ✅ Closed + 04-state-comparison 标注）
 - 37. StateShard→KeyGroup 迁移 + vision Non-Goal 更新: `done`（plan `ai-dev/plans/nop-stream-production/2026-08-02-0955-7-shard-to-keygroup-migration-and-vision-update.md`，completed — 不变量 #2 三处跨文档 drift 收口（`00-vision.md:89`/`checkpoint-design.md:1024`/`core-design.md:338` StateShard→KeyGroup）+ vision §四 Non-Goal 改写为 supported-with-migration + §七 key-group 重分布移入「保留」+ §六 决策点 #6 stateShardCount→maxParallelism + §8.5 类名笔误修正（KeyGroupRangeAssignment→KeyGroupAssignment）+ `checkpoint-design.md` §8.5.1 reshard migration 使用契约 + `state-management-design.md:96` 同步；Stage 35 deferred「maxParallelism 显式迁移」收口：离线 reshard 工具 `KeyGroupReshard`（core 纯逻辑）+ `MaxParallelismReshardMigration`（runtime I/O，原子写新 savepoint + reshard-report.json + `ReshardMigrationResult` 守恒校验）；focused test 11 + E2E 8，memory+rocksdb restore 聚合一致，anti-hollow（moved 断言）+ 全 fail-fast 边界）
 
 ### Phase 4 — 分布式接入平台基础设施
@@ -78,7 +78,7 @@ Does not contain implementation details. Each `planned` stage is owned by its ex
 - 52. 事务型 JDBC sink（2PC）: `done`
 - 53. CDC 深化 + 文件 sink: `done`（plan `ai-dev/plans/nop-stream-production/2026-08-04-2107-1-cdc-deepening-file-sink.md`，completed — Phase 1 CDC checkpoint offset 集成[`NopStreamOffsetBackingStore` implements Kafka Connect `OffsetBackingStore`（Debezium 2.4.0 约束适配：`offset.storage` FQCN 反射实例化 + connector-name registry 桥接实例）+ `DebeziumConfig implements Serializable` + `DebeziumCdcSourceFunction implements CheckpointedSourceFunction`（config 非 transient，`snapshotState`/`initializeState` 经 `"cdc-offsets"` key round-trip offset map）+ `DebeziumMessageSource`/`DebeziumEngineWrapper` 构造器 overload + `DebeziumEngineConfig.buildProperties(config, useCustomOffsetStore)` + `CheckpointedSourceFunction` Javadoc drift 修复] + Phase 2 exactly-once 文件 sink[`FileTwoPhaseCommitSink` extends `TwoPhaseCommitSinkFunction`（temp file + `Files.move(ATOMIC_MOVE)` + manifest 原子更新 + 幂等 commit 守卫 + final-exists/manifest-missing 边缘修复）+ `FilePendingCommit implements Serializable`]；27 新 tests 全绿；connector-design.md §5.4/§5.5 + §7 已知限制 #9-#11 + source-anchors STRM-034~036 同步）
 - 54. CEP SharedBuffer 缓存改进（G65，P3）: `done`（plan `ai-dev/plans/nop-stream-production/2026-08-04-2107-2-cep-sharedbuffer-guava-cache.md`，completed — Phase 1 删除自定义 `LruCache`，`eventsBufferCache`/`entryCache` 改用 Guava `Cache`（`maximumSize` + `recordStats` + `RemovalListener` 仅 SIZE 驱逐 debug 日志）消除双结构竞态 + flushCache clear-on-success/rollback 行为保留；Phase 2 新增 `SharedBuffer.logCacheStatistics()`（hit/miss/eviction/size）+ `CepOperator` 周期性 timer 接线（`getProcessingTimeService().registerTimer(ts, this::onCacheStatisticsTimer)` 独立回调，非 `onProcessingTime` CEP 事件处理路径；re-arm anchored 到 fire time；`close()` cancel future）；7 new tests，288 全绿；G65 ✅ Closed）
-- 55. 推迟项跟踪：spill-to-disk（G66）/ adaptive scheduling（G67）: `planned`（plan `ai-dev/plans/nop-stream-production/2026-08-04-2200-2-final-gap-adjudication-g36-g66-g67.md`，active — G66/G67 永久 deferred 裁定）
+- 55. 推迟项跟踪：spill-to-disk（G66）/ adaptive scheduling（G67）— 裁定永久 deferred: `done`（plan `ai-dev/plans/nop-stream-production/2026-08-04-2200-2-final-gap-adjudication-g36-g66-g67.md`，completed — G66/G67 **permanently deferred**（optimization candidate, no demonstrated need）：G66 spill-to-disk（内存/RocksDB 已覆盖生产量级 + `IMessageService` 提供跨 JVM 缓冲）/ G67 adaptive scheduling（`DeploymentPlan` 静态分配 + region-based failover Stage 44 已满足生产调度）；gap-analysis G66/G67 行 ✅ Closed）
 - 56. Follow-up Backlog quality sweep: `done`（plan `ai-dev/plans/nop-stream-production/2026-08-04-2200-1-follow-up-backlog-quality-sweep.md`，completed — Phase 1 live defect fixes（P2-2 删除 60 个重复源码文件 / P2-7 CheckpointCoordinator 重复日志去重 + 回归测试 / P2-8 Lockable 裸异常收敛到 StreamRuntimeException + 测试更新 / P2-3 StreamOperator/OneInputStreamOperator/Input Javadoc Flink 类型引用清理 / AR-6 JobGraphGenerator 错位 javadoc 重新定位）；Phase 2 文档 drift 修正（P2-1+P2-21 flow → core,cep,xdefs / P2-20 cep → nop-core / gap-analysis P2 count 43→31）；Phase 3 verify-and-close 8 条（AR-5/AR-7/P2-4/source-anchors/CheckpointMetricsSnapshot/OperatorChain/WindowOperator/P2-19）；`./mvnw test -pl nop-stream -am` 全绿 + `check-doc-links --strict` exit 0 + `check-plan-checklist --strict` exit 0）
 
 ## Status values
@@ -509,17 +509,24 @@ Does not contain implementation details. Each `planned` stage is owned by its ex
 
 **Module / area:** nop-stream/nop-stream-core/state/, nop-stream/nop-stream-core/state/rocksdb/
 
-#### 36. BroadcastState（推迟 — 需 vision 决策）
+#### 36. BroadcastState（裁定：永久排除）
 
 > Status: see Work Items above
 
-**Goal:** ~~实现 BroadcastState 类型支持配置流/规则流。~~ **推迟**：vision §七 核心取舍明确将"广播流"列入"去除"。实现前必须先通过 vision 决策流程（如 Stage 37 的先例）更新 §七，否则不做。
+**Goal:** ~~实现 BroadcastState 类型支持配置流/规则流。~~ **裁定（2026-08-04）：permanently excluded（永久排除）。** 经 vision 决策流程裁定不引入专用 BroadcastState 类型。
 
-**Deliverables:**
-- G36:（推迟）`BroadcastStateDescriptor` + `IBroadcastState` + Memory 后端
-- 前置：vision §七 更新决策
+**裁定结论与依据:**
+- vision §七「去除：广播流」+ §四 Non-Goal「broadcast join」的排除理由（复杂度极高、用例有限、CEP/外部 lookup 替代）经核对仍然成立
+- 无 demonstrated production user need（路线图立项以来零需求）
+- operator state `BROADCAST` 重分布（`RedistributionMode.BROADCAST` + `MemoryOperatorStateBackend` + `TestE2EOperatorStateRedistribution`，restore 时每个 subtask 收全量副本）已部分覆盖「配置流/规则流分发到所有并行实例」的典型用例，专用类型非必需
+- 本裁定不改变 vision 边界（§四/§七 保持不变），仅正式记录排除理由并关闭 G36，故无需 §六「必须由人决策」审批
 
-**Out of scope:** 在 vision 未更新前实现。
+**Deliverables (Decision-only):**
+- G36: vision §七裁决记录 #G36 + gap-analysis G36 行 ✅ Closed + `04-state-comparison.md` 标注 permanently excluded
+
+**替代路径:** 配置/规则分发 → operator state `BROADCAST` 重分布 + `ICheckpointedFunction`；复杂模式匹配 → CEP；外部维表 → `IBatchLoader` lookup
+
+**Out of scope:** 实现 BroadcastState（永久排除）。如未来出现 demonstrated user need，可重启 vision 决策流程（Stage 37 先例）
 
 #### 37. StateShard→KeyGroup 迁移 + vision 更新
 
@@ -747,13 +754,15 @@ Does not contain implementation details. Each `planned` stage is owned by its ex
 
 > Status: see Work Items above
 
-**Goal:** 记录当前路线图不做的 P3 项，保持 gap 计数完整。
+**Goal:** 记录当前路线图不做的 P3 项，保持 gap 计数完整。**裁定（2026-08-04）：G66/G67 permanently deferred。**
 
-**Deliverables:**
-- G66: spill-to-disk for large buffers（推迟）
-- G67: adaptive scheduling（推迟）
+**Deliverables (Decision-only):**
+- G66: spill-to-disk for large buffers — **permanently deferred**（optimization candidate, no demonstrated need）：内存/RocksDB 后端已覆盖生产状态量级；vision 未纳入目标；`IMessageService` 后端已提供跨 JVM 数据缓冲，进程内 spill 非关键路径
+- G67: adaptive scheduling — **permanently deferred**（optimization candidate, no demonstrated need）：`DeploymentPlan` 静态分配 + region-based failover（Stage 44）已满足生产调度需求；无 demonstrated production need（注：adaptive scheduling 不在 vision §七 排除列表中，延期基于 P3 + 无需求 + 已有调度满足生产）
 
-**Out of scope:** 本路线图范围内实现。
+**Out of scope:** 本路线图范围内实现。如生产需求出现可重启评估。
+
+**Data-quality debt（不在本 Stage scope）：** gap-analysis 中另存在 8 条 stale deferred 条目（G6/G9/G24/G25/G32/G45/G62/G64），其所属 stage 已 done 但 gap-analysis 行未同步关闭，属 pre-existing data-quality debt，可在未来 gap-analysis 同步计划中统一清理。
 
 ## Dependency graph
 

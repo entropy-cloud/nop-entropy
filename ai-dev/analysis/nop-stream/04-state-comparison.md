@@ -29,7 +29,7 @@
 | 差异 | 分类 | 详情 |
 |------|------|------|
 | 缺少 `MergingState` 中间接口 | Gap | Flink 的 ListState/ReducingState/AggregatingState 共享 MergingState 基类; nop-stream 各自直接 extends State。不影响运行时行为但减少了类型层次的可扩展性 |
-| 缺少 `BroadcastState` / `ReadOnlyBroadcastState` | Gap | Flink 为 broadcast pattern 提供专用状态类型; nop-stream 完全没有 broadcast state 概念 |
+| 缺少 `BroadcastState` / `ReadOnlyBroadcastState` | Gap | Flink 为 broadcast pattern 提供专用状态类型; nop-stream 完全没有 broadcast state 概念。**裁定（2026-08-04，G36）：permanently excluded**——专用 BroadcastState 类型永久不引入，理由见 `00-vision.md` §七裁决记录 #G36（operator state `BROADCAST` 重分布已覆盖配置流分发用例） |
 | MapState 方法签名 | Match | Flink 和 nop-stream 的 MapState 均包含 `get/put/putAll/remove/contains/entries/keys/values/iterator/isEmpty/clear` 共 11 个方法 |
 | nop-stream 有 Internal 变体 | Improvement | `InternalAppendingState<K,N,IN,ACC,OUT>`, `InternalListState<K,N,T>` — 为 Window operator 提供 namespace 感知的底层 API。Flink 也有 internal 包但隐藏在 `o.a.f.runtime.state.internal` |
 | Flink v2 异步 API | Out of scope | Flink 1.20 引入了 `state.v2` 异步 API (StateFuture, StateIterator)。nop-stream 目前只有同步 API |
@@ -279,7 +279,7 @@ nop-stream 的序列化方案严重不足：
 
 | # | 维度 | 发现 | 分类 | 严重性 | 说明 |
 |---|------|------|------|--------|------|
-| 1 | Keyed State | 缺少 BroadcastState 类型 | Gap | P2 | Broadcast state 完全缺失 |
+| 1 | Keyed State | 缺少 BroadcastState 类型 | Gap | P2 | Broadcast state 完全缺失。**裁定（2026-08-04，G36）：permanently excluded** — 见 `00-vision.md` §七裁决记录 #G36 |
 | 2 | Keyed State | 缺少 MergingState 中间接口 | Gap | P3 | 类型层次简化 |
 | 3 | Keyed State | 五核心状态类型(Value/List/Map/Reducing/Aggregating)覆盖完整 | OK | — | 接口签名基本一致 |
 | 4 | Operator State | 缺少 OperatorStateStore 接口 | Gap | P1 | 用户函数无法通过标准 API 注册 operator state |

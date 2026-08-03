@@ -84,8 +84,24 @@ nop-stream 是 Nop 平台的流处理引擎，定位为**声明式图模型驱�
 
 - **保留**：Barrier 快照、算子链化、多 Task 并行执行、窗口/CEP 语义、key-group 重分布（Stage 34 KeyGroup 模型 + Stage 35 `parallelism` rescale + Stage 37 `maxParallelism` 离线 reshard migration）
 - **保留（非核心路径）**：DataStream API——作为 StreamModel 的编程构造器，但不是最终用户的主入口
-- **去除**：复杂 Join、广播流、异步算子
+- **去除**：复杂 Join、广播流、异步算子（广播流 / BroadcastState 的永久排除裁定见 `### 七裁决记录` #G36）
 - **聚焦**：单流窗口聚合 + CEP 模式匹配 + Checkpoint 容错
+
+### 七裁决记录
+
+**#G36 — BroadcastState 是否纳入范围（Stage 36，2026-08-04）**
+
+裁定：**永久排除（no-go），不引入专用 BroadcastState 类型。** 本裁定不改变 vision 边界（§四 Non-Goal「broadcast join」与 §七「去除：广播流」保持不变），仅正式记录排除理由并关闭 G36，故无需 §六「必须由人决策」审批。
+
+依据：
+1. §七/§四 既有的排除理由（复杂度极高、用例有限、可通过 CEP 或外部 lookup 替代）经核对仍然成立。
+2. 无 demonstrated production user need——路线图自立项以来无任何用户/场景要求广播状态。
+3. nop-stream 已落地 operator state 重分布（`RedistributionMode.UNION`/`BROADCAST`/`SPLIT_DISTRIBUTE`，见 `RedistributionMode.java` + `MemoryOperatorStateBackend` + `TestE2EOperatorStateRedistribution`）。其中 `BROADCAST` 模式（restore 时每个 subtask 收全量副本）已部分覆盖「配置流/规则流分发到所有并行实例」这一 broadcast state 的典型用例，专用 BroadcastState 类型非必需。
+4. 复杂双流 broadcast join 语义属 §四 Non-Goal「双流 Join」，与本裁定一致排除。
+
+替代路径：配置/规则分发 → operator state `BROADCAST` 重分布 + `ICheckpointedFunction`；复杂模式匹配 → CEP 引擎；外部维表 → `IBatchLoader` lookup。
+
+如未来出现 demonstrated production user need（broadcast state 特有能力无法被上述替代覆盖），可重启 vision 决策流程（Stage 37 先例）。裁定证据见 plan `ai-dev/plans/nop-stream-production/2026-08-04-2200-2-final-gap-adjudication-g36-g66-g67.md`。
 
 ## 八、设计不变量
 
