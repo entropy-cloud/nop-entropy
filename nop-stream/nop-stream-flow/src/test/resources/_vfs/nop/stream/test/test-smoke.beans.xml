@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!--
+  Test beans for the StreamModelDslBuilder end-to-end pipeline.
+  Provides:
+    * testSourceFunction — emits the fixed sequence ["a", "b", "c"]
+    * collectingSinkFunction — collects every consumed element into a shared List<String>
+  These beans are looked up by the builder via the NopIoC BeanContainer.
+-->
+<beans x:schema="/nop/schema/beans.xdef" xmlns:x="/nop/schema/xdsl.xdef">
+
+    <bean id="testSourceFunction"
+          class="io.nop.stream.flow.testing.TestSourceFunction"/>
+
+    <bean id="collectingSinkFunction"
+          class="io.nop.stream.flow.testing.CollectingSinkFunction"/>
+
+</beans>

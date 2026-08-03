@@ -1,0 +1,24 @@
+<stream x:schema="/nop/schema/stream/stream.xdef"
+        name="test-reduce-pipeline" version="1" parallelism="1">
+
+    <transforms>
+        <source id="intSrc" name="IntSource"
+                bean="intSourceFunction"
+                parallelism="1"/>
+
+        <keyBy id="key" name="ByKey" keyExpr="event"/>
+
+        <reduce id="sum" name="SumReducer"
+                bean="sumReduceFunction"/>
+
+        <sink id="out" name="CollectingSink"
+              bean="advancedCollectingSink"
+              parallelism="1"/>
+    </transforms>
+
+    <edges>
+        <edge id="e0" from="intSrc" to="key" partition="HASH"/>
+        <edge id="e1" from="key" to="sum" partition="FORWARD"/>
+        <edge id="e2" from="sum" to="out" partition="FORWARD"/>
+    </edges>
+</stream>

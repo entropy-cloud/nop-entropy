@@ -1,0 +1,22 @@
+<stream x:schema="/nop/schema/stream/stream.xdef"
+        name="test-smoke-collecting" version="1" parallelism="1">
+
+    <transforms>
+        <source id="src" name="TestSource"
+                bean="testSourceFunction"
+                parallelism="1"/>
+
+        <map id="upper" name="ToUpperCase">
+            <source>return event.toString().toUpperCase();</source>
+        </map>
+
+        <sink id="out" name="CollectingSink"
+              bean="collectingSinkFunction"
+              parallelism="1"/>
+    </transforms>
+
+    <edges>
+        <edge id="e0" from="src" to="upper" partition="FORWARD"/>
+        <edge id="e1" from="upper" to="out" partition="FORWARD"/>
+    </edges>
+</stream>

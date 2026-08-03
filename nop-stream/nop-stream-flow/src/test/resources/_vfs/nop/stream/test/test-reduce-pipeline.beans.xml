@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!--
+  Test beans for the advanced (reduce) pipeline end-to-end test.
+  Provides:
+    * intSourceFunction — emits the fixed sequence [1, 2, 3]
+    * sumReduceFunction — sums two Integer values (ReduceFunction)
+    * advancedCollectingSink — collects every consumed element into a List<Integer>
+  These beans are looked up by the builder via the NopIoC BeanContainer.
+-->
+<beans x:schema="/nop/schema/beans.xdef" xmlns:x="/nop/schema/xdsl.xdef">
+
+    <bean id="intSourceFunction"
+          class="io.nop.stream.flow.testing.IntegerSourceFunction"/>
+
+    <bean id="sumReduceFunction"
+          class="io.nop.stream.flow.testing.SumReduceFunction"/>
+
+    <bean id="advancedCollectingSink"
+          class="io.nop.stream.flow.testing.CollectingSinkFunction"/>
+
+</beans>
