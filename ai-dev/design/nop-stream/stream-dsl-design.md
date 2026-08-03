@@ -159,15 +159,75 @@ stream.xdef (根)
 通过 `<custom>` 节点扩展新的算子类型，只需指定 bean 名称和参数。
 
 ### 7.2 Delta 定制
-利用 x:extends 机制，可以在基础管线模型上叠加差量修改：
+
+`.stream.xml` 支持 Nop 平台的可逆计算 Delta 定制机制。Delta 在**模型层**叠加差量修改，合并后的 `flow.model.StreamModel` 经既有 `StreamModelDslBuilder` 构建+执行，与手写的等价管线行为一致。加载机制由标准 `DslModelParser` 提供（`stream.xdef` 声明 `xdef:support-extends="true"`），无需专用解析器。
+
+**不变量**：Delta 只能修改模型（transforms/edges/config），不能 patch runtime object 来改变语义（vision 不变量 #10）。合并后的模型受 Stage 50 已有的全部 fail-fast 约束——delta 不绕过任何检查。
+
+#### 两种 Delta 入口
+
+| 入口 | 用法 | 激活条件 | 典型场景 |
+|------|------|----------|----------|
+| `x:extends` (显式 base path) | `x:extends="/nop/stream/test/base.stream.xml"` | 始终生效（解析时合并） | 在特定基础管线上叠加差量，产出独立文件 |
+| `_delta/<layer>/` (目录分层) | `_delta/default/nop/stream/test/xxx.stream.xml` + `x:extends="super"` | `default` 层自动激活；自定义层需 `nop.core.vfs.delta-layer-ids=<layer>` | 覆盖基础产品管线（不改原文件、保留升级路径） |
+
+**`x:extends="super"`** 在 `_delta/<layer>/` 上下文中引用同 VFS 路径的 base 模型（pre-delta）。**`x:extends="/path"`** 引用任意 base 模型。
+
+#### 覆盖语义
+
+`transforms` / `edges` 是 keyed list（`xdef:key-attr="id"`）。XDSL 合并规则：
+- **同 id 的 transform/edge**：delta 覆盖 base 的属性（delta 属性优先，未指定的继承 base）。
+- **delta 新增 id**：追加到合并结果。
+- **删除**：`x:override="remove"`。
+- **整体替换**：`x:override="replace"`。
+
+顶层非 keyed 元素（如 `<checkpoint>`）：delta 的属性覆盖 base 的对应属性。
+
+#### Fingerprint 与 Delta
+
+`core.model.StreamModel.computeFingerprint()` 哈希 DAG 拓扑身份（transform id 集合 → `dagTopologyHash`、requirements、checkpointParticipants），**不哈希** checkpoint interval / parallelism 等运行时配置。因此：
+
+- **transform 级 delta**（增/删 transform 或改 transform id）：transform id 集合变化 → fingerprint 变化。**敏感。**
+- **config-only delta**（仅改 checkpoint interval / parallelism，transforms/edges 不变）：transform id 集合不变 → fingerprint 不变。**by-design 不敏感**（fingerprint = DAG 拓扑身份，非运行时配置）。
+
+精确 fingerprint **相等**（XDSL-built vs Java-API-built 产生相同指纹）结构上不可能（`Transformation.id` 静态自增 + `toString` 未重写），属 Stage 50 独立 successor，不在 Delta 关注范围。
+
+#### 示例
+
+`x:extends` 显式 base path（transform 级 delta）：
 ```xml
-<stream x:extends="base-pipeline.stream.xml">
-    <checkpoint interval="10000"/>  <!-- 覆盖 checkpoint 间隔 -->
+<stream x:schema="/nop/schema/stream/stream.xdef"
+        xmlns:x="/nop/schema/xdsl.xdef"
+        x:extends="/nop/stream/test/base.stream.xml">
     <transforms>
-        <source id="tx-source" parallelism="4"/>  <!-- 调整并行度 -->
+        <filter id="newFilter">
+            <source>return event.size() > 0;</source>
+        </filter>
     </transforms>
+    <edges>
+        <edge id="e1" from="map" to="newFilter" partition="FORWARD"/>
+        <edge id="e2" from="newFilter" to="out" partition="FORWARD"/>
+    </edges>
 </stream>
 ```
+
+`_delta/default/` config-only delta（仅改 checkpoint）：
+```xml
+<stream x:schema="/nop/schema/stream/stream.xdef"
+        xmlns:x="/nop/schema/xdsl.xdef"
+        x:extends="super">
+    <checkpoint interval="10000"/>
+</stream>
+```
+
+**自定义 layer** 需显式激活（非 default 层不自动生效）：
+```java
+@NopTestProperty(name = "nop.core.vfs.delta-layer-ids", value = "prod")
+```
+
+#### 验证（Stage 51）
+
+测试覆盖见 `nop-stream-flow` 测试类：`TestStreamModelDeltaExtends`（x:extends + _delta/default/ 执行正确性 + delta-unique 断言）、`TestStreamModelDeltaFingerprint`（transform 级敏感 + config-only by-design）、`TestStreamModelDeltaFailFast`（delta 不绕过 fail-fast）。每个 delta 用例用 delta-unique 属性断言（delta 引入的 transform id / 仅 delta 能产生的输出）证明 delta 确被应用，而非误加载 base。
 
 ### 7.3 多后端适配
 同一 StreamModel 可以通过不同的 DeploymentPlanProvider 在不同后端执行：
