@@ -339,6 +339,9 @@
 
             <source>
                 <c:choose>
+                    <when test="${formCell.proxyCell}">
+                        <!-- do nothing-->
+                    </when>
                     <when test="${formCell.type == 'group'}">
                         <thisLib:GenFormTable formTable="${formCell.table}"/>
                     </when>
@@ -821,7 +824,7 @@
                     then.push({ action: 'openDrawer', args });
                 } else if(actionType == 'reload'){
                     then.push({ action: 'refreshNearest' });
-                } else if(actionType == 'close'){
+                } else if(actionType == 'close' || actionType == 'cancel'){
                     then.push({ action: 'closeSurface' });
                 } else if(actionType == 'copy'){
                     then.push({ action: 'setValue', args: _.filterNull({ path: action.copyFormat, value: action.content }) });

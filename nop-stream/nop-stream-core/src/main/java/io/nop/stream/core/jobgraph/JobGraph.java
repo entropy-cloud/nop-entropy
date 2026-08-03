@@ -15,6 +15,8 @@ import java.util.List;
 import java.util.Map;
 
 import io.nop.stream.core.exceptions.StreamException;
+import io.nop.stream.core.jobgraph.region.RegionDecomposition;
+import io.nop.stream.core.jobgraph.region.RegionDecomposer;
 import io.nop.stream.core.model.StreamModel;
 
 import io.nop.stream.core.exceptions.NopStreamErrors;
@@ -218,6 +220,27 @@ public class JobGraph implements Serializable {
 
     public void setStreamModel(StreamModel streamModel) {
         this.streamModel = streamModel;
+    }
+
+    /**
+     * Decomposes this job graph into pipelined regions (Stage 44 successor
+     * plan 2).
+     *
+     * <p>This is a convenience method that delegates to
+     * {@link RegionDecomposer#decompose(JobGraph)}. Materialization-enabled
+     * edges (set via
+     * {@link JobEdge#setMaterializationEnabled(boolean)}) are region cut
+     * points; all other edges connect vertices within the same region.
+     *
+     * <p>A graph with no materialization-enabled edges decomposes into exactly
+     * one region containing every vertex (zero regression for existing jobs).
+     *
+     * @return the region decomposition (never null)
+     * @see RegionDecomposer
+     * @see io.nop.stream.core.jobgraph.region.RegionDecomposition
+     */
+    public RegionDecomposition decomposeRegions() {
+        return RegionDecomposer.decompose(this);
     }
 
     @Override

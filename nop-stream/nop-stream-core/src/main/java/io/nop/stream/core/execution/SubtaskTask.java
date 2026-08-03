@@ -16,6 +16,7 @@ import org.slf4j.LoggerFactory;
 
 import io.nop.stream.core.jobgraph.JobVertex;
 import io.nop.stream.core.jobgraph.OperatorChain;
+import io.nop.stream.core.jobgraph.region.RegionId;
 import io.nop.stream.core.exceptions.StreamException;
 
 import io.nop.stream.core.exceptions.NopStreamErrors;
@@ -180,6 +181,23 @@ public class SubtaskTask implements Runnable {
 
     public Subtask getSubtask() {
         return subtask;
+    }
+
+    /**
+     * Returns the region this task belongs to (Stage 44 successor plan 2:
+     * region identification). Delegates to the underlying {@link Subtask}.
+     *
+     * <p>This is the successor-3-facing contract: the supervision loop queries
+     * a failing task's region ID to determine which other tasks must be
+     * restarted together with it (region-scoped restart). For tasks built via
+     * the {@link GraphExecutionPlan#build} path the region ID is always
+     * populated; for tasks assembled manually (e.g. via
+     * {@link GraphExecutionPlan#create}) it may be {@code null}.
+     *
+     * @return the region ID, or {@code null} if the task has no region information
+     */
+    public RegionId getRegionId() {
+        return subtask.getRegionId();
     }
 
     public boolean isFinished() {

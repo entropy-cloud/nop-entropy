@@ -37,6 +37,8 @@ import io.nop.stream.core.jobgraph.JobEdge;
 import io.nop.stream.core.jobgraph.JobGraph;
 import io.nop.stream.core.jobgraph.JobVertex;
 import io.nop.stream.core.jobgraph.OperatorChain;
+import io.nop.stream.core.jobgraph.region.RegionDecomposition;
+import io.nop.stream.core.jobgraph.region.RegionId;
 
 import io.nop.stream.core.exceptions.StreamException;
 
@@ -103,16 +105,34 @@ public class GraphExecutionPlan {
      */
     private final IBufferPool bufferPool;
 
+    /**
+     * The region decomposition of the source {@link JobGraph} (Stage 44
+     * successor plan 2). Populated by {@link #build}; {@code null} for plans
+     * built via {@link #create} (runtime builders that do not have a JobGraph
+     * to decompose).
+     */
+    private final RegionDecomposition regionDecomposition;
+
     private GraphExecutionPlan(List<String> sortedVertexIds,
                                 Map<String, JobVertex> executionVertices,
                                 Map<String, StreamTaskInvokable> invokables,
                                 Map<String, List<Subtask>> subtasks,
                                 IBufferPool bufferPool) {
+        this(sortedVertexIds, executionVertices, invokables, subtasks, bufferPool, null);
+    }
+
+    private GraphExecutionPlan(List<String> sortedVertexIds,
+                                Map<String, JobVertex> executionVertices,
+                                Map<String, StreamTaskInvokable> invokables,
+                                Map<String, List<Subtask>> subtasks,
+                                IBufferPool bufferPool,
+                                RegionDecomposition regionDecomposition) {
         this.sortedVertexIds = sortedVertexIds;
         this.executionVertices = executionVertices;
         this.invokables = invokables;
         this.subtasks = subtasks;
         this.bufferPool = bufferPool;
+        this.regionDecomposition = regionDecomposition;
     }
 
     /**
@@ -275,6 +295,19 @@ public class GraphExecutionPlan {
         if (bufferPool == null) {
             throw new StreamException(ERR_STREAM_NULL_ARG).param(ARG_ARG_NAME, "bufferPool");
         }
+
+        // --- 0. Decompose the JobGraph into regions (Stage 44 successor 2) ---
+        // Materialization-enabled edges are region cut points; non-materialization
+        // edges connect vertices inside the same region. The resulting vertex→regionId
+        // map is propagated into every Subtask so successor 3 (supervision loop) can
+        // query a failing task's region. A graph with no materialization markers
+        // decomposes into a single region (zero regression). An empty graph (zero
+        // vertices, a valid edge case for GraphExecutionPlan.build) produces a null
+        // decomposition — there is nothing to assign regions to.
+        RegionDecomposition regionDecomposition = jobGraph.getNumberOfVertices() > 0
+                ? jobGraph.decomposeRegions()
+                : null;
+
         // --- 1. Build adjacency maps ---
         Map<String, List<JobEdge>> outgoingEdges = new HashMap<>();
         Map<String, List<JobEdge>> incomingEdges = new HashMap<>();
@@ -433,7 +466,11 @@ public class GraphExecutionPlan {
                 TaskLocation taskLocation = new TaskLocation(
                         jobGraph.getJobName(), "pipeline-0", vertexId, taskIndex);
 
-                Subtask subtask = new Subtask(vertexId, taskIndex, taskLocation, invokable);
+                // Stage 44 successor 2: propagate the vertex's region ID into the
+                // subtask so the full chain JobGraph → GraphExecutionPlan → Subtask
+                // → SubtaskTask is observable end-to-end.
+                RegionId regionId = regionDecomposition.getRegionId(vertexId);
+                Subtask subtask = new Subtask(vertexId, taskIndex, taskLocation, invokable, regionId);
                 vertexSubtasks.add(subtask);
 
                 // For backward compat: store the first subtask's invokable in the legacy map
@@ -452,7 +489,8 @@ public class GraphExecutionPlan {
 
         List<String> sorted = topologicalSort(jobGraph);
 
-        return new GraphExecutionPlan(sorted, executionVertices, invokables, subtasksMap, bufferPool);
+        return new GraphExecutionPlan(sorted, executionVertices, invokables, subtasksMap,
+                bufferPool, regionDecomposition);
     }
 
     /**
@@ -675,5 +713,37 @@ public class GraphExecutionPlan {
         if (bufferPool != null) {
             bufferPool.close();
         }
+    }
+
+    /**
+     * Returns the region decomposition of the source {@link JobGraph} (Stage 44
+     * successor plan 2: region identification).
+     *
+     * <p>For plans built via {@link #build}, this is the full decomposition
+     * (every vertex is mapped to a region; materialization-enabled edges are
+     * region cut points). For plans built via {@link #create} (runtime builders
+     * without a JobGraph), this returns {@code null}.
+     *
+     * @return the region decomposition, or {@code null} if the plan was not
+     *         built from a JobGraph
+     * @see io.nop.stream.core.jobgraph.region.RegionDecomposition
+     */
+    public RegionDecomposition getRegionDecomposition() {
+        return regionDecomposition;
+    }
+
+    /**
+     * Returns the region ID of the specified vertex (Stage 44 successor plan 2).
+     *
+     * <p>This is a convenience accessor equivalent to
+     * {@code getRegionDecomposition().getRegionId(vertexId)} when the
+     * decomposition is non-null.
+     *
+     * @param vertexId the vertex ID to look up
+     * @return the region ID, or {@code null} if the plan has no decomposition
+     *         or the vertex is unknown
+     */
+    public RegionId getRegionId(String vertexId) {
+        return regionDecomposition != null ? regionDecomposition.getRegionId(vertexId) : null;
     }
 }

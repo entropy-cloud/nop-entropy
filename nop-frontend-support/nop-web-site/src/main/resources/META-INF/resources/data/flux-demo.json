@@ -1,245 +1,376 @@
 {
-  "type": "page",
-  "body": [
+ "type": "page",
+ "body": [
+  {
+   "type": "text",
+   "text": "Flux JSON CRUD Demo"
+  },
+  {
+   "type": "text",
+   "text": "Current Flux schemaPath: /data/flux-demo.json"
+  },
+  {
+   "type": "crud",
+   "id": "flux-demo-crud",
+   "name": "fluxDemoCrud",
+   "rowKey": "id",
+   "selection": {},
+   "autoClearSelectionOnRefresh": true,
+   "source": [
     {
-      "type": "text",
-      "text": "Flux JSON CRUD Demo"
+     "id": "1",
+     "name": "Alice",
+     "owner": "Iris Chen",
+     "status": "active",
+     "channel": "portal",
+     "summary": "Customer onboarding workflow"
     },
     {
-      "type": "text",
-      "text": "Current Flux schemaPath: /data/flux-demo.json"
+     "id": "2",
+     "name": "Bob",
+     "owner": "Noah Kim",
+     "status": "draft",
+     "channel": "api",
+     "summary": "Contract approval workflow"
     },
     {
-      "type": "crud",
-      "id": "flux-demo-crud",
-      "name": "fluxDemoCrud",
-      "rowKey": "id",
-      "selection": {},
-      "autoClearSelectionOnRefresh": true,
-      "source": [
+     "id": "3",
+     "name": "Carol",
+     "owner": "Mila Rao",
+     "status": "review",
+     "channel": "ops",
+     "summary": "Compliance remediation workflow"
+    }
+   ],
+   "queryForm": {
+    "body": [
+     {
+      "type": "input-text",
+      "name": "keyword",
+      "label": "Keyword"
+     }
+    ]
+   },
+   "toolbar": [
+    {
+     "type": "button",
+     "label": "Open create form",
+     "onClick": {
+      "action": "openDialog",
+      "args": {
+       "title": "Create Flux pipeline",
+       "body": [
         {
-          "id": "1",
-          "name": "Alice",
-          "owner": "Iris Chen",
-          "status": "active",
-          "channel": "portal",
-          "summary": "Customer onboarding workflow"
-        },
-        {
-          "id": "2",
-          "name": "Bob",
-          "owner": "Noah Kim",
+         "type": "form",
+         "data": {
+          "name": "",
           "status": "draft",
-          "channel": "api",
-          "summary": "Contract approval workflow"
-        },
-        {
-          "id": "3",
-          "name": "Carol",
-          "owner": "Mila Rao",
-          "status": "review",
-          "channel": "ops",
-          "summary": "Compliance remediation workflow"
-        }
-      ],
-      "queryForm": {
-        "body": [
+          "channel": "portal",
+          "featured": false,
+          "notes": ""
+         },
+         "submitAction": {
+          "action": "ajax",
+          "args": {
+           "url": "/api/flux-demo",
+           "method": "post"
+          }
+         },
+         "body": [
           {
-            "type": "input-text",
-            "name": "keyword",
-            "label": "Keyword"
-          }
-        ]
-      },
-      "toolbar": [
-        {
-          "type": "button",
-          "label": "Open create form",
-          "onClick": {
-            "action": "openDialog",
-            "args": {
-              "title": "Create Flux pipeline",
-              "body": [
-                {
-                  "type": "form",
-                  "data": {
-                    "name": "",
-                    "status": "draft",
-                    "channel": "portal",
-                    "featured": false,
-                    "notes": ""
-                  },
-                  "submitAction": {
-                    "action": "ajax",
-                    "args": {
-                      "url": "/api/flux-demo",
-                      "method": "post"
-                    }
-                  },
-                  "body": [
-                    {
-                      "type": "input-text",
-                      "name": "name",
-                      "label": "Pipeline Name"
-                    },
-                    {
-                      "type": "select",
-                      "name": "status",
-                      "label": "Status",
-                      "options": [
-                        { "label": "Draft", "value": "draft" },
-                        { "label": "Review", "value": "review" },
-                        { "label": "Active", "value": "active" }
-                      ]
-                    },
-                    {
-                      "type": "radio-group",
-                      "name": "channel",
-                      "label": "Channel",
-                      "options": [
-                        { "label": "Portal", "value": "portal" },
-                        { "label": "API", "value": "api" },
-                        { "label": "Ops", "value": "ops" }
-                      ]
-                    },
-                    {
-                      "type": "switch",
-                      "name": "featured",
-                      "label": "Featured",
-                      "option": {
-                        "onLabel": "Enabled",
-                        "offLabel": "Disabled"
-                      }
-                    },
-                    {
-                      "type": "textarea",
-                      "name": "notes",
-                      "label": "Notes",
-                      "rows": 4
-                    }
-                  ],
-                  "actions": [
-                    {
-                      "type": "button",
-                      "label": "Submit pipeline",
-                      "onClick": {
-                        "action": "submitForm"
-                      }
-                    }
-                  ]
-                }
-              ]
-            }
-          }
-        }
-      ],
-      "listActions": [
-        {
-          "type": "text",
-          "text": "Selected rows: ${$crud.selectionCount}"
-        }
-      ],
-      "footerToolbar": [
-        {
-          "type": "text",
-          "text": "Query: ${$crud.query.keyword || \"none\"}"
-        }
-      ],
-      "columns": [
-        { "name": "name", "label": "Name" },
-        { "name": "owner", "label": "Owner" },
-        { "name": "status", "label": "Status" },
-        { "name": "channel", "label": "Channel" },
-        {
-          "type": "operation",
-          "label": "Actions",
-          "buttons": [
+           "type": "input-text",
+           "name": "name",
+           "label": "Pipeline Name"
+          },
+          {
+           "type": "select",
+           "name": "status",
+           "label": "Status",
+           "options": [
             {
-              "type": "button",
-              "label": "Inspect",
-              "onClick": {
-                "action": "openDialog",
-                "args": {
-                  "title": "Record details",
-                  "body": [
-                    {
-                      "type": "text",
-                      "text": "User: ${$slot.record.name}"
-                    },
-                    {
-                      "type": "text",
-                      "text": "Owner: ${$slot.record.owner}"
-                    },
-                    {
-                      "type": "text",
-                      "text": "Summary: ${$slot.record.summary}"
-                    }
-                  ]
-                }
-              }
+             "label": "Draft",
+             "value": "draft"
             },
             {
-              "type": "button",
-              "label": "Edit Form",
-              "onClick": {
-                "action": "openDialog",
-                "args": {
-                  "title": "Edit Flux pipeline",
-                  "body": [
-                    {
-                      "type": "form",
-                      "data": {
-                        "name": "${$slot.record.name}",
-                        "status": "${$slot.record.status}",
-                        "notes": "${$slot.record.summary}"
-                      },
-                      "submitAction": {
-                        "action": "ajax",
-                        "args": {
-                          "url": "/api/flux-demo/${$slot.record.id}",
-                          "method": "put"
-                        }
-                      },
-                      "body": [
-                        {
-                          "type": "input-text",
-                          "name": "name",
-                          "label": "Pipeline Name"
-                        },
-                        {
-                          "type": "select",
-                          "name": "status",
-                          "label": "Status",
-                          "options": [
-                            { "label": "Draft", "value": "draft" },
-                            { "label": "Review", "value": "review" },
-                            { "label": "Active", "value": "active" }
-                          ]
-                        },
-                        {
-                          "type": "textarea",
-                          "name": "notes",
-                          "label": "Notes",
-                          "rows": 4
-                        }
-                      ],
-                      "actions": [
-                        {
-                          "type": "button",
-                          "label": "Save Changes",
-                          "onClick": {
-                            "action": "submitForm"
-                          }
-                        }
-                      ]
-                    }
-                  ]
-                }
-              }
+             "label": "Review",
+             "value": "review"
+            },
+            {
+             "label": "Active",
+             "value": "active"
             }
-          ]
+           ]
+          },
+          {
+           "type": "radio-group",
+           "name": "channel",
+           "label": "Channel",
+           "options": [
+            {
+             "label": "Portal",
+             "value": "portal"
+            },
+            {
+             "label": "API",
+             "value": "api"
+            },
+            {
+             "label": "Ops",
+             "value": "ops"
+            }
+           ]
+          },
+          {
+           "type": "switch",
+           "name": "featured",
+           "label": "Featured",
+           "option": {
+            "onLabel": "Enabled",
+            "offLabel": "Disabled"
+           }
+          },
+          {
+           "type": "textarea",
+           "name": "notes",
+           "label": "Notes",
+           "rows": 4
+          }
+         ],
+         "actions": [
+          {
+           "type": "button",
+           "label": "Submit pipeline",
+           "onClick": {
+            "action": "submitForm"
+           }
+          }
+         ]
         }
-      ]
+       ]
+      }
+     }
     }
-  ]
+   ],
+   "listActions": [
+    {
+     "type": "text",
+     "text": "Selected rows: ${$crud.selectionCount}"
+    }
+   ],
+   "footerToolbar": [
+    {
+     "type": "text",
+     "text": "Query: ${$crud.query.keyword || \"none\"}"
+    }
+   ],
+   "columns": [
+    {
+     "name": "name",
+     "label": "Name"
+    },
+    {
+     "name": "owner",
+     "label": "Owner"
+    },
+    {
+     "name": "status",
+     "label": "Status"
+    },
+    {
+     "name": "channel",
+     "label": "Channel"
+    },
+    {
+     "type": "operation",
+     "label": "Actions",
+     "buttons": [
+      {
+       "type": "button",
+       "label": "Inspect",
+       "onClick": {
+        "action": "openDialog",
+        "args": {
+         "title": "Record details",
+         "body": [
+          {
+           "type": "text",
+           "text": "User: ${$slot.record.name}"
+          },
+          {
+           "type": "text",
+           "text": "Owner: ${$slot.record.owner}"
+          },
+          {
+           "type": "text",
+           "text": "Summary: ${$slot.record.summary}"
+          }
+         ]
+        }
+       }
+      },
+      {
+       "type": "button",
+       "label": "Edit Form",
+       "onClick": {
+        "action": "openDialog",
+        "args": {
+         "title": "Edit Flux pipeline",
+         "body": [
+          {
+           "type": "form",
+           "data": {
+            "name": "${$slot.record.name}",
+            "status": "${$slot.record.status}",
+            "notes": "${$slot.record.summary}"
+           },
+           "submitAction": {
+            "action": "ajax",
+            "args": {
+             "url": "/api/flux-demo/${$slot.record.id}",
+             "method": "put"
+            }
+           },
+           "body": [
+            {
+             "type": "input-text",
+             "name": "name",
+             "label": "Pipeline Name"
+            },
+            {
+             "type": "select",
+             "name": "status",
+             "label": "Status",
+             "options": [
+              {
+               "label": "Draft",
+               "value": "draft"
+              },
+              {
+               "label": "Review",
+               "value": "review"
+              },
+              {
+               "label": "Active",
+               "value": "active"
+              }
+             ]
+            },
+            {
+             "type": "textarea",
+             "name": "notes",
+             "label": "Notes",
+             "rows": 4
+            }
+           ],
+           "actions": [
+            {
+             "type": "button",
+             "label": "Save Changes",
+             "onClick": {
+              "action": "submitForm"
+             }
+            }
+           ]
+          }
+         ]
+        }
+       }
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "type": "button",
+   "id": "open-real-resp",
+   "label": "Edit (real resp)",
+   "level": "primary",
+   "onClick": {
+    "action": "openDialog",
+    "args": {
+     "title": "Edit (real resp)",
+     "body": {
+      "type": "form",
+      "id": "real-resp-form",
+      "name": "edit",
+      "mode": "horizontal",
+      "submitScope": "surface",
+      "loadAction": {
+       "action": "ajax",
+       "args": {
+        "url": "@query:NopAuthRole__get?id=${id}",
+        "method": "post",
+        "includeScope": "*",
+        "selection": "id,roleId,roleName,isPrimary,remark"
+       }
+      },
+      "submitAction": {
+       "action": "ajax",
+       "args": {
+        "url": "@mutation:NopAuthRole__update/id?id=${id}",
+        "method": "post",
+        "data": {
+         "roleName": "${roleName}",
+         "isPrimary": "${isPrimary}"
+        }
+       }
+      },
+      "onSubmitSuccess": [
+       {
+        "action": "closeSurface"
+       }
+      ],
+      "body": [
+       {
+        "type": "input-text",
+        "name": "roleId",
+        "label": "Role Id"
+       },
+       {
+        "type": "input-text",
+        "name": "roleName",
+        "label": "Role Name"
+       },
+       {
+        "type": "input-text",
+        "name": "isPrimary",
+        "label": "Is Primary"
+       },
+       {
+        "type": "textarea",
+        "name": "remark",
+        "label": "Remark"
+       }
+      ],
+      "actions": [
+       {
+        "type": "button",
+        "label": "OK",
+        "level": "primary",
+        "onClick": {
+         "action": "submitForm",
+         "then": {
+          "action": "closeSurface"
+         }
+        }
+       }
+      ],
+      "api": {
+       "data": {
+        "roleId": "${roleId}",
+        "roleName": "${roleName}",
+        "isPrimary": "${isPrimary}",
+        "remark": "${remark}"
+       },
+       "url": "@mutation:NopAuthRole__update/id?id=${id}",
+       "withFormData": true
+      }
+     }
+    }
+   }
+  }
+ ],
+ "data": {
+  "id": "pe_1785625805622"
+ }
 }
