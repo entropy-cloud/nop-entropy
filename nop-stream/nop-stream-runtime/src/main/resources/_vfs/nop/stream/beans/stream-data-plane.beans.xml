@@ -51,6 +51,10 @@
   Pulsar variant: wire io.nop.message.pulsar.PulsarMessageService as streamMessageService
   (with its PulsarClientConfig + init/destroy lifecycle) and set dataPlaneWireCodec to
   io.nop.stream.runtime.transport.PulsarStringWireCodec.
+
+  Kafka variant (Stage 48): wire io.nop.message.kafka.KafkaMessageService as streamMessageService
+  (with its KafkaClientConfig + init/destroy lifecycle) and set dataPlaneWireCodec to
+  io.nop.stream.runtime.transport.KafkaStringWireCodec.
 -->
 <beans x:schema="/nop/schema/beans.xdef" xmlns:x="/nop/schema/xdsl.xdef"
        xmlns:ioc="ioc" xmlns:feature="feature">

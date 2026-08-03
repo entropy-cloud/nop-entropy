@@ -100,6 +100,17 @@
             <version>${project.version}</version>
             <scope>test</scope>
         </dependency>
+
+        <!-- Stage 48: Kafka data-plane backend integration test. Test scope only —
+             production deps remain clean; backend selection is a deployment choice
+             (see stream-data-plane.beans.xml). Mirrors the nop-message-pulsar test-scope
+             pattern. -->
+        <dependency>
+            <groupId>io.github.entropy-cloud</groupId>
+            <artifactId>nop-message-kafka</artifactId>
+            <version>${project.version}</version>
+            <scope>test</scope>
+        </dependency>
     </dependencies>
 
     <build>
