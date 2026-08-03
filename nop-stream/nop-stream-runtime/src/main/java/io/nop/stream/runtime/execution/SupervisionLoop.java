@@ -21,7 +21,11 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import io.nop.api.core.annotations.core.Internal;
+import io.nop.stream.core.checkpoint.CheckpointPlan;
+import io.nop.stream.core.checkpoint.CompletedCheckpoint;
+import io.nop.stream.core.checkpoint.OperatorStateMapping;
 import io.nop.stream.core.checkpoint.TaskLocation;
+import io.nop.stream.core.checkpoint.TaskStateSnapshot;
 import io.nop.stream.core.execution.GraphExecutionPlan;
 import io.nop.stream.core.execution.InputChannel;
 import io.nop.stream.core.execution.InputGate;
@@ -33,6 +37,7 @@ import io.nop.stream.core.execution.SubtaskTask;
 import io.nop.stream.core.execution.TaskExecutor;
 import io.nop.stream.core.execution.materialization.IMaterializationPoint;
 import io.nop.stream.core.exceptions.StreamException;
+import io.nop.stream.runtime.checkpoint.CheckpointCoordinator;
 
 import static io.nop.stream.core.exceptions.NopStreamErrors.ARG_DETAIL;
 import static io.nop.stream.core.exceptions.NopStreamErrors.ARG_MAX_RESTARTS;
@@ -100,19 +105,22 @@ import io.nop.stream.core.jobgraph.region.RegionId;
  * drain/reconnect (successor plan 4); here we discard + rebuild.
  *
  * <h3>Exactly-once safety argument</h3>
- * Region-scoped restart triggers materialization replay: the restarted
- * consumer reads from a <em>fresh</em> {@link ResultPartition} that shares the
- * materialization point with the (surviving) producer partition. The fresh
- * partition starts empty; {@code activateMaterializationReplay(0L)} injects
- * all materialized data at the front. Because the partition is fresh, there
- * is no duplicate data from the old queue. The replayed data is the complete
- * dataset (finite input for E2E; the consistent-cut epoch selection is
- * successor plan 4's responsibility — here we replay from epoch 0). No data
- * is lost (all materialized data is replayed) and no data is duplicated
- * (fresh partition, no stale queue content). Exactly-once holds within the
- * replay scope.
+ * Region-scoped restart triggers consistent-cut replay: the restarted
+ * consumer has its operator state restored from the latest completed
+ * checkpoint (at epoch {@code N}), then reads from a <em>fresh</em>
+ * {@link ResultPartition} that shares the materialization point with the
+ * (surviving) producer partition. {@code activateMaterializationReplay(N)}
+ * injects precisely the post-checkpoint records (epoch {@code >= N}) at the
+ * front. Because the partition is fresh, there is no duplicate data from the
+ * old queue. No data is lost (all post-checkpoint records are replayed) and
+ * no data is duplicated (fresh partition + checkpoint-aligned epoch cut).
+ * When no checkpoint exists (startup edge case), the replay falls back to
+ * epoch 0 + full replay with empty operator state — correct because
+ * operators start from empty state and full replay rebuilds state from
+ * scratch. Exactly-once holds within the replay scope.
  *
- * <p>See {@code ai-dev/design/nop-stream/failover-design.md} §3.5 and §五.3.
+ * <p>See {@code ai-dev/design/nop-stream/failover-design.md} §3.5, §五.3, §五.4
+ * and §9.4.
  */
 @Internal
 public class SupervisionLoop {
@@ -142,11 +150,24 @@ public class SupervisionLoop {
      * <p>This method blocks until all tasks reach a terminal state
      * (COMPLETED/CANCELED) or a non-restartable failure is surfaced (throws).
      *
-     * @param execPlan    the execution plan (provides region decomposition + vertices)
-     * @param tasks       the live task map (keyed "{vertexId}-{taskIndex}"); this method
-     *                    mutates the map when restarting tasks (replaces entries)
-     * @param executor    the task executor (must accept new submissions during the loop)
-     * @param jobGraph    the job graph (for edge inspection to classify restartable regions)
+     * <p>Stage 44 successor 4: the {@code coordinator} and {@code checkpointPlan}
+     * enable consistent-cut epoch alignment and operator state restore on
+     * region-scoped restart. When both are non-null, restarted tasks have their
+     * operator state restored from the latest completed checkpoint and
+     * materialization replay starts from the checkpoint-aligned epoch (not epoch
+     * 0). When either is null (e.g. checkpoints disabled), restart falls back to
+     * epoch 0 + full replay (the successor-3 behavior — correct for finite
+     * inputs where operators start from empty state).
+     *
+     * @param execPlan        the execution plan (provides region decomposition + vertices)
+     * @param tasks           the live task map (keyed "{vertexId}-{taskIndex}"); this method
+     *                        mutates the map when restarting tasks (replaces entries)
+     * @param executor        the task executor (must accept new submissions during the loop)
+     * @param jobGraph        the job graph (for edge inspection to classify restartable regions)
+     * @param coordinator     the checkpoint coordinator (nullable; provides latest checkpoint
+     *                        for state restore + consistent-cut epoch selection)
+     * @param checkpointPlan  the checkpoint plan (nullable; provides operator-state mappings
+     *                        for restore)
      * @throws InterruptedException if the supervision thread is interrupted
      * @throws StreamException      if a non-restartable failure occurs or the restart
      *                              budget is exhausted (surfaces for global recovery)
@@ -154,8 +175,23 @@ public class SupervisionLoop {
     public static void run(GraphExecutionPlan execPlan,
                            Map<String, SubtaskTask> tasks,
                            TaskExecutor executor,
+                           JobGraph jobGraph,
+                           CheckpointCoordinator coordinator,
+                           CheckpointPlan checkpointPlan) throws InterruptedException {
+        run(execPlan, tasks, executor, jobGraph, coordinator, checkpointPlan,
+                DEFAULT_MAX_RESTARTS_PER_REGION, DEFAULT_POLL_INTERVAL_MS);
+    }
+
+    /**
+     * Convenience overload without checkpoint context (legacy / non-checkpoint
+     * paths). Restarts use epoch 0 + full replay; no operator state restore.
+     * Equivalent to passing {@code null} coordinator and checkpointPlan.
+     */
+    public static void run(GraphExecutionPlan execPlan,
+                           Map<String, SubtaskTask> tasks,
+                           TaskExecutor executor,
                            JobGraph jobGraph) throws InterruptedException {
-        run(execPlan, tasks, executor, jobGraph,
+        run(execPlan, tasks, executor, jobGraph, null, null,
                 DEFAULT_MAX_RESTARTS_PER_REGION, DEFAULT_POLL_INTERVAL_MS);
     }
 
@@ -166,6 +202,8 @@ public class SupervisionLoop {
                     Map<String, SubtaskTask> tasks,
                     TaskExecutor executor,
                     JobGraph jobGraph,
+                    CheckpointCoordinator coordinator,
+                    CheckpointPlan checkpointPlan,
                     int maxRestartsPerRegion,
                     long pollIntervalMs) throws InterruptedException {
 
@@ -222,7 +260,7 @@ public class SupervisionLoop {
                 LOG.info("Supervision loop restarting region {} (attempt {}/{})",
                         failedRegionId, count, maxRestartsPerRegion);
                 boolean restarted = restartRegion(execPlan, tasks, executor, jobGraph,
-                        decomposition, failedRegionId);
+                        decomposition, failedRegionId, coordinator, checkpointPlan);
                 if (!restarted) {
                     // Region contains producers needing drain/reconnect (successor plan 4).
                     throw new StreamException(ERR_STREAM_REGION_RESTART_UNSUPPORTED, failedTask.getError())
@@ -299,23 +337,35 @@ public class SupervisionLoop {
      * restart succeeded, false if the region is not restartable (contains
      * producer vertices needing drain/reconnect — successor plan 4 scope).
      *
-     * <p>Restartable regions are <strong>consumer-only</strong> regions (all
-     * vertices are pure sinks: no outgoing edges to other regions). When a
-     * region has an outgoing edge to another region, its tasks are producers
-     * whose output partitions must be drained/reconnected safely — this
-     * belongs to successor plan 4 (drain/reconnect). For such regions, this
-     * method returns false so the caller falls back to global recovery.
+     * <p>Stage 44 successor 4 Phase 2: drainable producer-regions are also
+     * restartable. A region with outgoing cross-region edges has producer
+     * vertices whose output feeds downstream consumer regions via materialized
+     * edges. Such producers can be safely restarted because:
+     * <ul>
+     *   <li>The materialization point holds all pre-failure data (overflow-bypass
+     *       ensures the producer does not block before death).</li>
+     *   <li>The rebuilt producer reuses the old output writer (same
+     *       {@link ResultPartition}s + materialization points), so the surviving
+     *       consumer continues reading seamlessly.</li>
+     *   <li>Operator state is restored from the latest checkpoint (Phase 1),
+     *       so the producer resumes from the consistent-cut rather than
+     *       re-emitting from scratch.</li>
+     * </ul>
+     * The {@code ERR_STREAM_REGION_RESTART_UNSUPPORTED} hard rejection is
+     * therefore lifted for drainable producer-regions.
      *
-     * <p>For restartable (consumer-only) regions, this method:
+     * <p>For all restartable regions, this method:
      * <ol>
      *   <li>Cancels all non-terminal tasks in the region (cooperative cancel
      *       via {@link SubtaskTask#cancel()}, which interrupts the live thread).</li>
      *   <li>Waits for canceled tasks to reach a terminal state.</li>
      *   <li>For each task: builds a fresh {@link OperatorChain} (deep copy),
-     *       a fresh {@link ResultPartition} sharing the materialization point,
-     *       a fresh {@link InputGate}/{@link InputChannel}, activates
-     *       materialization replay, builds a new {@link StreamTaskInvokable}
-     *       + {@link Subtask} + {@link SubtaskTask}, and resubmits.</li>
+     *       restores operator state from the latest checkpoint (Phase 1),
+     *       wires the consumer to a fresh {@link ResultPartition} sharing the
+     *       materialization point (with checkpoint-aligned replay) OR wires the
+     *       producer to the reused output writer, builds a new
+     *       {@link StreamTaskInvokable} + {@link Subtask} + {@link SubtaskTask},
+     *       and resubmits.</li>
      * </ol>
      */
     private static boolean restartRegion(GraphExecutionPlan execPlan,
@@ -323,7 +373,9 @@ public class SupervisionLoop {
                                          TaskExecutor executor,
                                          JobGraph jobGraph,
                                          RegionDecomposition decomposition,
-                                         RegionId regionId) {
+                                         RegionId regionId,
+                                         CheckpointCoordinator coordinator,
+                                         CheckpointPlan checkpointPlan) {
         // Find the region and its vertices.
         Region targetRegion = null;
         for (Region r : decomposition.getRegions()) {
@@ -339,19 +391,19 @@ public class SupervisionLoop {
 
         Set<String> verticesInRegion = targetRegion.getVertexIds();
 
-        // Classify restartability: the region is restartable only if NONE of its
-        // vertices has an outgoing edge crossing into a different region (i.e.
-        // every vertex is a pure consumer/sink relative to the materialization
-        // boundary). An outgoing cross-region edge means the vertex is a producer
-        // whose output must be drained/reconnected (successor plan 4 scope).
-        if (hasOutgoingCrossRegionEdge(jobGraph, decomposition, verticesInRegion)) {
-            LOG.warn("Region {} has outgoing cross-region edges (producer role); "
-                    + "restart requires drain/reconnect (successor plan 4). Falling back.",
+        // Stage 44 successor 4 Phase 2: drainable producer-regions are now
+        // restartable (the hard rejection is lifted). The classification is
+        // still logged for observability — a producer-region restart exercises
+        // the drain/reconnect path (overflow-bypass + reused output writer).
+        boolean hasProducerRole = hasOutgoingCrossRegionEdge(jobGraph, decomposition, verticesInRegion);
+        if (hasProducerRole) {
+            LOG.info("Region {} has outgoing cross-region edges (producer role); "
+                    + "proceeding with drainable producer-region restart (Stage 44 successor 4).",
                     regionId);
-            return false;
         }
 
-        LOG.info("Restarting region {} with {} vertices: {}", regionId, verticesInRegion.size(), verticesInRegion);
+        LOG.info("Restarting region {} with {} vertices: {} (producerRole={})",
+                regionId, verticesInRegion.size(), verticesInRegion, hasProducerRole);
 
         // Phase 1: cancel all non-terminal tasks in the region.
         List<String> taskKeysToRestart = new ArrayList<>();
@@ -381,7 +433,7 @@ public class SupervisionLoop {
             if (oldTask == null) {
                 continue;
             }
-            SubtaskTask newTask = rebuildTask(execPlan, oldTask, regionId);
+            SubtaskTask newTask = rebuildTask(execPlan, oldTask, regionId, coordinator, checkpointPlan);
             tasks.put(taskKey, newTask);
             executor.submitTask(newTask);
             LOG.info("Restarted task {} in region {}", taskKey, regionId);
@@ -429,18 +481,32 @@ public class SupervisionLoop {
      * <ul>
      *   <li>A fresh {@link OperatorChain} (deep-copied from the JobVertex's chain
      *       template, so operator state is reset).</li>
+     *   <li>Stage 44 successor 4: operator state restored from the latest completed
+     *       checkpoint (when {@code coordinator} + {@code checkpointPlan} are
+     *       provided), so stateful operators (window/CEP/aggregate) retain their
+     *       pre-checkpoint accumulated state. Falls back to empty initial state
+     *       when no checkpoint exists (startup edge case — operator from empty
+     *       state + full replay = correct).</li>
      *   <li>For consumer tasks (with an InputGate): a fresh {@link ResultPartition}
      *       sharing the materialization point of the old partition, with
-     *       materialization replay activated (injects all materialized data at
-     *       epoch {@code >= 0} into the fresh partition's queue).</li>
+     *       materialization replay activated at the checkpoint-aligned epoch
+     *       (post-checkpoint records only). When the producer partition is
+     *       finished, the fresh partition is sealed (EOS); otherwise it stays
+     *       open for reconnect-to-live-queue (Phase 3).</li>
+     *   <li>For producer tasks (with an output writer, no InputGate): reuses the
+     *       old output writer (points to the same {@link ResultPartition}s with
+     *       their attached materialization points), so the surviving consumer
+     *       continues reading seamlessly.</li>
      *   <li>A fresh {@link InputGate}/{@link InputChannel} pointing to the fresh
-     *       partition.</li>
-     *   <li>A fresh {@link StreamTaskInvokable} with the new chain + gate.</li>
+     *       partition (consumer) or a fresh {@link StreamTaskInvokable} wired to
+     *       the reused writer (producer).</li>
      * </ul>
      */
     private static SubtaskTask rebuildTask(GraphExecutionPlan execPlan,
                                            SubtaskTask oldTask,
-                                           RegionId regionId) {
+                                           RegionId regionId,
+                                           CheckpointCoordinator coordinator,
+                                           CheckpointPlan checkpointPlan) {
         Subtask oldSubtask = oldTask.getSubtask();
         String vertexId = oldSubtask.getVertexId();
         int taskIndex = oldSubtask.getTaskIndex();
@@ -457,64 +523,143 @@ public class SupervisionLoop {
         // Deep-copy the operator chain (fresh operator state).
         OperatorChain newChain = jobVertex.getOperatorChains().get(0).deepCopy();
 
+        // Stage 44 successor 4: consistent-cut epoch selection + operator state
+        // restore. When a checkpoint coordinator + plan are available, restore
+        // operator state from the latest completed checkpoint and use its id as
+        // the consistent-cut epoch for materialization replay. Without a
+        // checkpoint (startup edge case), fall back to epoch 0 + full replay +
+        // empty operator state (successor-3 behavior — correct for finite input
+        // or first-run scenarios where operators start from empty state).
+        CompletedCheckpoint latestCheckpoint = coordinator != null ? coordinator.getLatestCheckpoint() : null;
+        long consistentCutEpoch = 0L;
+        if (latestCheckpoint != null) {
+            consistentCutEpoch = latestCheckpoint.getCheckpointId();
+            // Restore operator state from the checkpoint. fail-fast if the
+            // checkpoint exists but this task's state is missing — that
+            // indicates a topology/identity mismatch, not a fresh start
+            // (No-Silent-No-Op #24).
+            if (checkpointPlan != null) {
+                TaskStateSnapshot taskState = latestCheckpoint.getTaskState(taskLocation);
+                if (taskState == null) {
+                    throw new StreamException(ERR_STREAM_REGION_RESTART_UNSUPPORTED)
+                            .param(ARG_REGION_ID, regionId.getId())
+                            .param(ARG_VERTEX_ID, vertexId)
+                            .param(ARG_TASK_INDEX, taskIndex)
+                            .param(ARG_DETAIL, "Checkpoint " + consistentCutEpoch
+                                    + " exists but has no state for task " + taskLocation
+                                    + " (topology/identity mismatch); refusing to silently"
+                                    + " restart from empty state");
+                }
+                List<OperatorStateMapping> mappings = checkpointPlan.getStateMappings(taskLocation);
+                try {
+                    GraphModelCheckpointExecutor.restoreOperatorsFromState(
+                            newChain, consistentCutEpoch, taskState, mappings);
+                    LOG.info("Restored operator state for vertex={} taskIndex={} from checkpoint epoch {}",
+                            vertexId, taskIndex, consistentCutEpoch);
+                } catch (Exception e) {
+                    throw new StreamException(ERR_STREAM_REGION_RESTART_UNSUPPORTED, e)
+                            .param(ARG_REGION_ID, regionId.getId())
+                            .param(ARG_VERTEX_ID, vertexId)
+                            .param(ARG_TASK_INDEX, taskIndex)
+                            .param(ARG_DETAIL, "Operator state restore failed from checkpoint epoch "
+                                    + consistentCutEpoch + ": " + e.getMessage());
+                }
+            }
+        } else {
+            LOG.info("No completed checkpoint available for region restart; using epoch 0 + full"
+                    + " replay with empty operator state (startup edge case) for vertex={} taskIndex={}",
+                    vertexId, taskIndex);
+        }
+
         // Determine the role: if the old task had an InputGate, it's a consumer.
         StreamTaskInvokable oldInvokable = oldSubtask.getInvokable();
         InputGate oldInputGate = oldInvokable.getInputGate();
+        RecordWriter<Object> oldOutputWriter = oldInvokable.getOutputWriter();
 
         StreamTaskInvokable newInvokable;
         if (oldInputGate != null) {
-            // Consumer role (SINK or MIDDLE): build a fresh partition + gate with
-            // materialization replay. For each old InputChannel, create a fresh
-            // ResultPartition sharing the materialization point, then activate
-            // replay so the materialized data is injected at the front.
+            // Consumer role (SINK or MIDDLE): build a fresh InputGate with
+            // materialization replay activated at the checkpoint-aligned epoch.
+            //
+            // Stage 44 successor 4 Phase 3 (reconnect-to-live-queue): when the
+            // producer partition is NOT finished (infinite source / producer
+            // still running), the consumer must reconnect to the LIVE partition
+            // after replay. This is implemented by REUSING the old partition:
+            //   1. Drain stale queue data (already captured in the materialization
+            //      store → no loss; removes duplicates that would otherwise
+            //      overlap with the replay injection).
+            //   2. injectFront the post-checkpoint replay data.
+            //   3. The consumer reads replay data first, then live data from the
+            //      surviving producer (which continues writing to the same queue).
+            // InputChannel.partition is final, so reconnect creates a NEW
+            // InputChannel wrapping the reused (old) partition and feeds it into
+            // the fresh InputGate.
+            //
+            // When the producer partition IS finished (finite source), a fresh
+            // partition is used (no live producer to reconnect to) and sealed
+            // after replay so the consumer sees EOS.
             List<InputChannel> newChannels = new ArrayList<>();
             for (InputChannel oldChannel : oldInputGate.getChannels()) {
                 ResultPartition oldPartition = oldChannel.getPartition();
                 IMaterializationPoint matPoint = oldPartition.getMaterializationPoint();
 
-                ResultPartition freshPartition = new ResultPartition();
-                if (matPoint != null) {
-                    freshPartition.setMaterializationPoint(matPoint);
-                    // Activate replay: injects all materialized elements (epoch >= 0)
-                    // into the fresh partition's queue. The consistent-cut epoch
-                    // selection is successor plan 4's scope; here we replay from
-                    // epoch 0 (complete replay for finite-input E2E).
-                    InputChannel tempChannel = new InputChannel(freshPartition);
-                    int injected = tempChannel.activateMaterializationReplay(0L);
-                    LOG.info("Replayed {} materialized elements into fresh partition for vertex={} taskIndex={}",
-                            injected, vertexId, taskIndex);
-                    // If the producer partition is finished (closed), the replayed
-                    // data represents the complete dataset (finite input). Close
-                    // the fresh partition to signal EOS so the consumer exits
-                    // after processing the replay — it does not block indefinitely
-                    // waiting for more data that will never arrive.
-                    // (Reconnect-to-live-queue for the infinite-source case is
-                    // successor plan 4's scope.)
-                    if (oldPartition.isFinished()) {
-                        try {
-                            freshPartition.close();
-                        } catch (InterruptedException ie) {
-                            Thread.currentThread().interrupt();
-                            throw new StreamException(ERR_STREAM_REGION_RESTART_UNSUPPORTED, ie)
-                                    .param(ARG_REGION_ID, regionId.getId())
-                                    .param(ARG_DETAIL, "Interrupted while sealing fresh partition during region restart");
+                ResultPartition consumerPartition;
+                if (matPoint != null && !oldPartition.isFinished()) {
+                    // Phase 3 reconnect-to-live-queue: reuse the live partition.
+                    // Drain stale data (it's in the materialization store), then
+                    // injectFront the post-checkpoint replay data.
+                    java.util.List<io.nop.stream.core.streamrecord.StreamElement> drained =
+                            oldPartition.drainBufferedElements();
+                    consumerPartition = oldPartition;
+                    consumerPartition.setMaterializationPoint(matPoint);
+                    InputChannel tempChannel = new InputChannel(consumerPartition);
+                    int injected = tempChannel.activateMaterializationReplay(consistentCutEpoch);
+                    LOG.info("Reconnect-to-live-queue: drained {} stale element(s), replayed {} post-checkpoint"
+                            + " element(s) (epoch >= {}) into live partition for vertex={} taskIndex={}"
+                            + " (producer still running — consumer will continue reading live data after replay)",
+                            drained.size(), injected, consistentCutEpoch, vertexId, taskIndex);
+                } else {
+                    // Finite source (producer finished) OR no materialization:
+                    // fresh partition + replay + seal (EOS).
+                    consumerPartition = new ResultPartition();
+                    if (matPoint != null) {
+                        consumerPartition.setMaterializationPoint(matPoint);
+                        InputChannel tempChannel = new InputChannel(consumerPartition);
+                        int injected = tempChannel.activateMaterializationReplay(consistentCutEpoch);
+                        LOG.info("Replayed {} materialized elements (epoch >= {}) into fresh partition"
+                                + " for vertex={} taskIndex={} (producer finished — fresh partition sealed)",
+                                injected, consistentCutEpoch, vertexId, taskIndex);
+                        if (oldPartition.isFinished()) {
+                            try {
+                                consumerPartition.close();
+                            } catch (InterruptedException ie) {
+                                Thread.currentThread().interrupt();
+                                throw new StreamException(ERR_STREAM_REGION_RESTART_UNSUPPORTED, ie)
+                                        .param(ARG_REGION_ID, regionId.getId())
+                                        .param(ARG_DETAIL, "Interrupted while sealing fresh partition during region restart");
+                            }
                         }
                     }
                 }
-                // If no materialization point (shouldn't happen for a consumer in a
-                // restartable region — it would have been classified as non-restartable),
-                // the fresh partition is empty. The consumer will read EOS immediately.
-                newChannels.add(new InputChannel(freshPartition));
+                newChannels.add(new InputChannel(consumerPartition));
             }
 
             InputGate newInputGate = new InputGate(newChannels, (EdgeConfig) null, false);
             // Consumer role: chain + null writer + inputGate → SINK invokable.
             newInvokable = new StreamTaskInvokable(newChain, (RecordWriter<?>) null, newInputGate);
+        } else if (oldOutputWriter != null) {
+            // Stage 44 successor 4 Phase 2: producer role (SOURCE or MIDDLE with
+            // no InputGate). Reuse the old output writer so the new producer
+            // writes to the SAME ResultPartition(s) the surviving consumer is
+            // reading from (with the same attached materialization points). The
+            // consumer continues reading seamlessly; no explicit cross-region
+            // reconnect is needed when the consumer is healthy. Operator state
+            // was restored above (if a checkpoint exists) or starts fresh.
+            newInvokable = new StreamTaskInvokable(newChain, oldOutputWriter, null);
+            LOG.info("Rebuilt producer task vertex={} taskIndex={} reusing existing output writer"
+                    + " (state restored from epoch {})", vertexId, taskIndex, consistentCutEpoch);
         } else {
-            // No InputGate → source or self-contained. In a restartable region
-            // (consumer-only), this branch should not be reached. If it is, build
-            // a self-contained invokable (the caller has already verified the region
-            // is consumer-only, so this is a defensive fallback).
+            // No InputGate and no output writer → self-contained.
             newInvokable = new StreamTaskInvokable(newChain);
         }
 

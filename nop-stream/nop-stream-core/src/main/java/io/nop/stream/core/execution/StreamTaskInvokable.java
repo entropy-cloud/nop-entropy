@@ -385,17 +385,27 @@ public class StreamTaskInvokable implements Invokable<Void> {
                 operatorChain.finish();
             }
         } finally {
-            try {
-                List<StreamOperator<?>> operators = operatorChain.getOperators();
-                StreamOperator<?> head = operators.get(0);
-                if (head instanceof StreamSourceOperator) {
-                    ((StreamSourceOperator<?>) head).processWatermark(Watermark.MAX_WATERMARK);
+            // Stage 44 successor 4 Phase 2 (producer-region restart): only close
+            // the output on SUCCESSFUL completion (signal EOS). On failure, keep
+            // the output partition open so a restarted producer can continue
+            // writing to the same partition (with the same materialization point).
+            // Closing on failure would force EOS and make producer-region restart
+            // impossible — the restarted producer could not emit any data. When
+            // the job goes to global recovery instead, fresh partitions are built
+            // anyway, so an open partition here is harmless.
+            if (sourceError == null) {
+                try {
+                    List<StreamOperator<?>> operators = operatorChain.getOperators();
+                    StreamOperator<?> head = operators.get(0);
+                    if (head instanceof StreamSourceOperator) {
+                        ((StreamSourceOperator<?>) head).processWatermark(Watermark.MAX_WATERMARK);
+                    }
+                } catch (Exception e) {
+                    LOG.warn("Failed to emit MAX_WATERMARK during source shutdown", e);
                 }
-            } catch (Exception e) {
-                LOG.warn("Failed to emit MAX_WATERMARK during source shutdown", e);
-            }
-            if (outputWriter != null) {
-                outputWriter.close();
+                if (outputWriter != null) {
+                    outputWriter.close();
+                }
             }
             operatorChain.close();
         }

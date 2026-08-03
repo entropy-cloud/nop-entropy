@@ -128,7 +128,7 @@ public class GraphModelCheckpointExecutor {
         AtomicBoolean abortMarked = registerLocalAbortHandler(coordinator, tasks);
 
         try {
-            submitAndRun(execPlan, tasks, executor, jobGraph);
+            submitAndRun(execPlan, tasks, executor, jobGraph, coordinator, checkpointPlan);
             checkAbortMarker(abortMarked);
             handleJobTermination(allInvokables, coordinator, checkpointConfig);
             checkTaskFailures(tasks);
@@ -195,7 +195,7 @@ public class GraphModelCheckpointExecutor {
         AtomicBoolean abortMarked = registerLocalAbortHandler(coordinator, tasks);
 
         try {
-            submitAndRun(execPlan, tasks, executor, jobGraph);
+            submitAndRun(execPlan, tasks, executor, jobGraph, coordinator, checkpointPlan);
             checkAbortMarker(abortMarked);
             handleJobTermination(allInvokables, coordinator, checkpointConfig);
             checkTaskFailures(tasks);
@@ -269,7 +269,7 @@ public class GraphModelCheckpointExecutor {
         AtomicBoolean abortMarked = registerLocalAbortHandler(coordinator, tasks);
 
         try {
-            submitAndRun(execPlan, tasks, executor, jobGraph);
+            submitAndRun(execPlan, tasks, executor, jobGraph, coordinator, checkpointPlan);
             checkAbortMarker(abortMarked);
             handleJobTermination(allInvokables, coordinator, checkpointConfig);
             checkTaskFailures(tasks);
@@ -333,7 +333,7 @@ public class GraphModelCheckpointExecutor {
         AtomicBoolean abortMarked = registerLocalAbortHandler(coordinator, tasks);
 
         try {
-            submitAndRun(execPlan, tasks, executor, jobGraph);
+            submitAndRun(execPlan, tasks, executor, jobGraph, coordinator, checkpointPlan);
             checkAbortMarker(abortMarked);
 
             PendingCheckpoint savepointPending = coordinator.tryTriggerPendingCheckpoint(CheckpointType.SAVEPOINT);
@@ -396,7 +396,7 @@ public class GraphModelCheckpointExecutor {
         AtomicBoolean abortMarked = registerLocalAbortHandler(coordinator, tasks);
 
         try {
-            submitAndRun(execPlan, tasks, executor, jobGraph);
+            submitAndRun(execPlan, tasks, executor, jobGraph, coordinator, checkpointPlan);
             checkAbortMarker(abortMarked);
             triggerFinalCheckpoint(allInvokables, coordinator);
             checkTaskFailures(tasks);
@@ -734,8 +734,10 @@ public class GraphModelCheckpointExecutor {
      * checkTaskFailures owns terminal-state consistency.
      */
     private static void submitAndRun(GraphExecutionPlan execPlan, Map<String, SubtaskTask> tasks,
-                                     TaskExecutor executor, JobGraph jobGraph) throws InterruptedException {
-        SupervisionLoop.run(execPlan, tasks, executor, jobGraph);
+                                     TaskExecutor executor, JobGraph jobGraph,
+                                     CheckpointCoordinator coordinator,
+                                     CheckpointPlan checkpointPlan) throws InterruptedException {
+        SupervisionLoop.run(execPlan, tasks, executor, jobGraph, coordinator, checkpointPlan);
     }
 
     private static void checkTaskFailures(Map<String, SubtaskTask> tasks) {
@@ -1387,7 +1389,27 @@ public class GraphModelCheckpointExecutor {
                 });
     }
 
-    private static void restoreOperatorsFromState(
+    /**
+     * Restores operator state for a single {@link OperatorChain} from a
+     * {@link TaskStateSnapshot} captured at the given epoch.
+     *
+     * <p>Stage 44 successor 4 (drain/reconnect): exposed package-private so
+     * {@link SupervisionLoop#rebuildTask} can reuse the exact same restore path
+     * as the initial {@link #restoreFromCheckpoint} on region-scoped restart.
+     * Before this exposure, {@code rebuildTask} deep-copied the JobVertex
+     * template (empty initial state) and replayed from epoch 0 — correct only
+     * for full replay. With consistent-cut epoch alignment (replay from
+     * epoch N &gt; 0), operator state must be restored from the checkpoint at
+     * epoch N, otherwise stateful operators (window/CEP/aggregate) lose their
+     * pre-checkpoint accumulated state and silently produce wrong results.
+     *
+     * @param chain     the operator chain to restore into (must not be null)
+     * @param epochId   the checkpoint id (consistent-cut epoch) of the snapshot
+     * @param taskState the per-task state snapshot (must not be null)
+     * @param mappings  operator-state mappings for this task (may be empty)
+     * @throws Exception if any operator's restore fails (fail-fast)
+     */
+    static void restoreOperatorsFromState(
             OperatorChain chain,
             long epochId,
             TaskStateSnapshot taskState,

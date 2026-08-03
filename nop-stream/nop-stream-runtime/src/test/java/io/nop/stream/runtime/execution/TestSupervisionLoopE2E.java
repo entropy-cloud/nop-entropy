@@ -175,7 +175,7 @@ class TestSupervisionLoopE2E {
         // Run the supervision loop.
         TaskExecutor executor = new TaskExecutor();
         try {
-            SupervisionLoop.run(execPlan, tasks, executor, jobGraph,
+            SupervisionLoop.run(execPlan, tasks, executor, jobGraph, null, null,
                     SupervisionLoop.DEFAULT_MAX_RESTARTS_PER_REGION,
                     SupervisionLoop.DEFAULT_POLL_INTERVAL_MS);
         } finally {
@@ -283,7 +283,7 @@ class TestSupervisionLoopE2E {
         try {
             io.nop.stream.core.exceptions.StreamException ex = assertThrows(
                     io.nop.stream.core.exceptions.StreamException.class,
-                    () -> SupervisionLoop.run(execPlan, tasks, executor, jobGraph,
+                    () -> SupervisionLoop.run(execPlan, tasks, executor, jobGraph, null, null,
                             SupervisionLoop.DEFAULT_MAX_RESTARTS_PER_REGION, 50L));
             assertNotNull(ex.getErrorCode());
             assertTrue(ex.getErrorCode().contains("supervision"),
@@ -359,7 +359,7 @@ class TestSupervisionLoopE2E {
 
         TaskExecutor executor = new TaskExecutor();
         try {
-            SupervisionLoop.run(execPlan, tasks, executor, jobGraph,
+            SupervisionLoop.run(execPlan, tasks, executor, jobGraph, null, null,
                     SupervisionLoop.DEFAULT_MAX_RESTARTS_PER_REGION, 50L);
         } finally {
             executor.shutdownNow();

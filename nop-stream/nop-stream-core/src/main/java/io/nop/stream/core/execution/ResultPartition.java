@@ -15,6 +15,7 @@ import java.util.concurrent.TimeUnit;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import io.nop.stream.core.checkpoint.CheckpointBarrier;
 import io.nop.stream.core.execution.buffer.IBufferPool;
 import io.nop.stream.core.execution.materialization.IMaterializationPoint;
 import io.nop.stream.core.streamrecord.StreamElement;
@@ -70,9 +71,13 @@ public class ResultPartition implements IWriteStatus {
 
     /**
      * The producer epoch used to tag materialized elements on the dual-write
-     * bypass. Advanced by the producer (typically aligned with checkpoint id).
-     * Meaning/advancement policy is owned by the producer; this partition simply
-     * stamps the current value onto each bypass-written element.
+     * bypass. Stage 44 successor 4 (consistent-cut epoch alignment): advanced to
+     * {@code barrier.getId()} whenever a {@link CheckpointBarrier} flows through
+     * {@link #write(StreamElement)}, so each materialized record's epoch equals
+     * the checkpoint id of the most recent barrier that preceded it. This lets
+     * the consumer-side replay select a checkpoint-aligned replay start point.
+     * Explicit {@link #setCurrentMaterializationEpoch(long)} is still available
+     * for tests and producers that manage their own epoch policy.
      */
     private volatile long currentMaterializationEpoch = 0L;
 
@@ -136,9 +141,33 @@ public class ResultPartition implements IWriteStatus {
      * is attached, the original by-reference path is followed (default behavior;
      * zero regression for existing jobs).
      *
+     * <p>Stage 44 successor 4 (consistent-cut epoch alignment + control-event
+     * filtering):
+     * <ul>
+     *   <li>When the element is a {@link CheckpointBarrier}, the producer epoch is
+     *       advanced to {@code barrier.getId()} (checkpoint-id alignment) so that
+     *       subsequent data records are tagged with the checkpoint id. This lets
+     *       the consumer-side replay select a checkpoint-aligned replay start
+     *       ({@code replay(epoch >= ckpId)} returns precisely post-checkpoint
+     *       records).</li>
+     *   <li>Control events (barrier, watermark, watermark-status, latency marker)
+     *       are <strong>not</strong> dual-written to the materialization store —
+     *       only data records are. Persisting control events would pollute the
+     *       store and inject spurious barriers/watermarks on replay.</li>
+     * </ul>
+     *
      * <p>The bypass write fails fast (throws) if the materialization store
      * rejects the element; the producer does not silently continue with a
      * divergent main-queue/materialization-store pair (No-Silent-No-Op).
+     *
+     * <p>Stage 44 successor 4 Phase 2 (overflow-bypass, 解除死锁 1): when a
+     * materialization point is attached, the main-queue write is
+     * <strong>non-blocking</strong> ({@code queue.offer}). If the queue is full,
+     * the element is not enqueued — but it has already been dual-written to the
+     * materialization store, so no data is lost and the producer does not block
+     * indefinitely on a dead/slow consumer. When no point is attached, the
+     * original blocking {@code queue.put} path is preserved (zero regression for
+     * existing jobs and non-materialization edges).
      *
      * @param element the element to write (must not be null)
      * @throws InterruptedException if the thread is interrupted while waiting
@@ -152,10 +181,28 @@ public class ResultPartition implements IWriteStatus {
             throw new StreamException(ERR_STREAM_INVALID_STATE)
                     .param(ARG_DETAIL, "Cannot write to a finished ResultPartition");
         }
+        // Stage 44 successor 4 (consistent-cut epoch alignment): when a checkpoint
+        // barrier flows through write(), advance the materialization epoch to the
+        // barrier's checkpoint id. All subsequent data elements are tagged with
+        // this epoch on the dual-write bypass, so the consumer-side replay can
+        // select a checkpoint-aligned replay start point (replay(epoch >= ckpId)
+        // returns precisely the post-checkpoint records). The barrier itself is
+        // NOT a data element and is filtered from the materialization store.
+        if (element.isCheckpointBarrier()) {
+            long barrierId = ((CheckpointBarrier) element).getId();
+            this.currentMaterializationEpoch = barrierId;
+        }
         // Stage 44 successor 1: dual-write bypass. Snapshot the point locally so a
         // concurrent detach does not split the dual-write into a partial state.
         IMaterializationPoint point = this.materializationPoint;
-        if (point != null) {
+        if (point != null && element.isRecord()) {
+            // Stage 44 successor 4 (barrier/control-event filtering): only data
+            // records are dual-written to the materialization store. Control
+            // events (CheckpointBarrier, Watermark, WatermarkStatus, LatencyMarker)
+            // are filtered — they are not data and would pollute the store,
+            // causing spurious barriers/watermarks to be injected on replay.
+            // The epoch bump above still happens for barriers (epoch alignment),
+            // but the barrier element itself is not persisted.
             // Tag with the producer's current epoch. Bypass failures abort the
             // write (fail-fast) rather than silently diverging the two stores.
             try {
@@ -169,16 +216,43 @@ public class ResultPartition implements IWriteStatus {
             }
         }
         if (bufferPool != null) {
-            bufferPool.acquire();
-            try {
-                queue.put(element);
-            } catch (InterruptedException e) {
-                // Acquired a permit but never enqueued; return it to avoid a leak.
-                bufferPool.release();
-                throw e;
+            if (point != null) {
+                // Stage 44 successor 4 Phase 2 (overflow-bypass, 解除死锁 1):
+                // When materialization is enabled, the main-queue write is
+                // non-blocking (queue.offer). The data has already been
+                // dual-written to the materialization store above, so an offer
+                // failure (queue full) does NOT lose data — the complete record
+                // is in the materialization store and will be replayed on
+                // recovery. The producer therefore never blocks indefinitely on
+                // a dead/slow consumer (死锁 1, failover-design.md §9.4).
+                // The pool permit is acquired optimistically and released
+                // immediately on offer failure so global accounting stays
+                // consistent.
+                bufferPool.acquire();
+                if (!queue.offer(element)) {
+                    // Queue full — overflow to the materialization store only
+                    // (already written above). Release the permit and continue.
+                    bufferPool.release();
+                }
+            } else {
+                bufferPool.acquire();
+                try {
+                    queue.put(element);
+                } catch (InterruptedException e) {
+                    // Acquired a permit but never enqueued; return it to avoid a leak.
+                    bufferPool.release();
+                    throw e;
+                }
             }
         } else {
-            queue.put(element);
+            if (point != null) {
+                // Overflow-bypass without a pool: non-blocking offer, no permit
+                // accounting. Data already in the materialization store.
+                queue.offer(element);
+            } else {
+                // Legacy blocking path (no materialization → zero regression).
+                queue.put(element);
+            }
         }
     }
 
