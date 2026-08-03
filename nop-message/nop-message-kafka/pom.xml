@@ -11,5 +11,34 @@
 
     <artifactId>nop-message-kafka</artifactId>
 
+    <dependencies>
+        <!-- ApiMessage/ApiRequest/ApiHeaders live in nop-core (NOT nop-api-core),
+             matching the PulsarMessageService wiring. -->
+        <dependency>
+            <groupId>io.github.entropy-cloud</groupId>
+            <artifactId>nop-core</artifactId>
+        </dependency>
 
+        <dependency>
+            <groupId>org.apache.kafka</groupId>
+            <artifactId>kafka-clients</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>org.slf4j</groupId>
+            <artifactId>slf4j-api</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>io.github.entropy-cloud</groupId>
+            <artifactId>nop-autotest-junit</artifactId>
+            <scope>test</scope>
+        </dependency>
+
+        <dependency>
+            <groupId>org.mockito</groupId>
+            <artifactId>mockito-core</artifactId>
+            <scope>test</scope>
+        </dependency>
+    </dependencies>
 </project>

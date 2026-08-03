@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<beans x:schema="/nop/schema/beans.xdef" xmlns:x="/nop/schema/xdsl.xdef" xmlns:ioc="ioc">
+    <bean id="nopKafkaClientConfig" class="io.nop.message.kafka.KafkaClientConfig" ioc:default="true"/>
+
+    <bean id="nopKafkaProducerConfig" class="io.nop.message.kafka.KafkaProducerConfig" ioc:default="true"/>
+
+    <bean id="nopKafkaConsumerConfig" class="io.nop.message.kafka.KafkaConsumerConfig" ioc:default="true"/>
+
+    <bean id="nopKafkaMessageService"
+          class="io.nop.message.kafka.KafkaMessageService"
+          ioc:default="true"
+          init-method="init"
+          destroy-method="destroy">
+        <property name="config" ref="nopKafkaClientConfig"/>
+        <property name="defaultProducerConfig" ref="nopKafkaProducerConfig"/>
+        <property name="defaultConsumerConfig" ref="nopKafkaConsumerConfig"/>
+    </bean>
+</beans>

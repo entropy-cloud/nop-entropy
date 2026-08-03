@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<beans x:schema="/nop/schema/beans.xdef" xmlns:x="/nop/schema/xdsl.xdef">
+    <bean id="nopKafkaClientConfig" class="io.nop.message.kafka.KafkaClientConfig">
+        <property name="bootstrapServers" value="localhost:9092"/>
+    </bean>
+</beans>

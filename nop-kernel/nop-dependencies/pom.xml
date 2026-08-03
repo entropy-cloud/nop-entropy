@@ -45,6 +45,10 @@
 
         <pulsar.version>2.8.0</pulsar.version>
 
+        <!-- kafka-clients: production stream data-plane backend (nop-message-kafka).
+             3.5.0 requires JDK 11+ (nop-entropy baseline is JDK 21). -->
+        <kafka.version>3.5.0</kafka.version>
+
         <!--        <lettuce.version>6.1.4.RELEASE</lettuce.version>-->
 
         <!--        <h2.version>2.1.210</h2.version>-->
@@ -262,6 +266,12 @@
                 <groupId>org.apache.pulsar</groupId>
                 <artifactId>pulsar-client-original</artifactId>
                 <version>${pulsar.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>org.apache.kafka</groupId>
+                <artifactId>kafka-clients</artifactId>
+                <version>${kafka.version}</version>
             </dependency>
 
             <dependency>
