@@ -278,6 +278,27 @@ public interface NopStreamErrors {
     String ARG_DISCOVERY_ONLY = "discoveryOnly";
     String ARG_REGISTRY_ONLY = "registryOnly";
 
+    String ARG_OLD_PARALLELISM = "oldParallelism";
+    String ARG_NEW_PARALLELISM = "newParallelism";
+
+    /**
+     * Stage 47 (unaligned checkpoint + rescale interaction): a rescale restore
+     * (parallelism change) detected that the source checkpoint carries non-empty
+     * channel state (in-flight data captured during an unaligned checkpoint).
+     * Channel state cannot be redistributed across a new parallelism in the first
+     * version (no {@code InflightDataRescalingDescriptor}); silently dropping it
+     * would break exactly-once. The restore path therefore fails fast and asks
+     * the user to recover from an aligned checkpoint instead. See
+     * {@code checkpoint-design.md} §2.11.8.
+     */
+    ErrorCode ERR_STREAM_CHANNEL_STATE_RESCALE_UNSUPPORTED =
+            define("nop.err.stream.channel-state-rescale-unsupported",
+                    "Cannot rescale (parallelism change) from a checkpoint that carries unaligned channel state: "
+                            + "in-flight data cannot be redistributed across the new parallelism. "
+                            + "vertex={vertexId}, oldParallelism={oldParallelism}, newParallelism={newParallelism}. "
+                            + "Recover from an aligned checkpoint instead.",
+                    ARG_VERTEX_ID, ARG_OLD_PARALLELISM, ARG_NEW_PARALLELISM);
+
     /**
      * Stage 41 D7 (Option B coexistence): the optional discovery-read cross-check
      * detected divergence between the platform discovery view and the

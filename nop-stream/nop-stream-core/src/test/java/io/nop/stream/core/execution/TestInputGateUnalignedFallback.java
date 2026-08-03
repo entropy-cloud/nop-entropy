@@ -234,4 +234,51 @@ class TestInputGateUnalignedFallback {
         assertTrue(foundBarrier, "Single-channel barrier should complete aligned (no switch)");
         assertEquals(1, delivered.size(), "Data record should be delivered");
     }
+
+    /**
+     * Stage 45 D4 / Stage 47 focused test: the unaligned + multi-in-flight
+     * guard at {@code InputGate.switchToUnalignedAndEmit} fails fast with
+     * {@code ERR_STREAM_INVALID_STATE} when the unaligned threshold fires while
+     * more than one barrier is in-flight. This is the direct assertion test for
+     * the guard Stage 45 left as a successor placeholder (Stage 47 closes the
+     * follow-up).
+     *
+     * <p>Setup: two channels, unaligned enabled. Channel 0 delivers barrier 1
+     * (aligns on channel 0, blocks it). Channel 1 delivers barrier 2 — a
+     * different epoch — which creates a second in-flight alignment. With both
+     * channels blocked and two alignments pending, the unaligned threshold
+     * fires the D4 guard on the oldest alignment.
+     */
+    @Test
+    void testUnalignedMultiInFlightFailsFastD4Guard() throws Exception {
+        ResultPartition p0 = new ResultPartition();
+        ResultPartition p1 = new ResultPartition();
+        List<InputChannel> channels = Arrays.asList(new InputChannel(p0), new InputChannel(p1));
+
+        long unalignedThreshold = 100L;
+        long alignmentTimeout = 5000L;
+        InputGate gate = new InputGate(channels, null, true, alignmentTimeout,
+                true, unalignedThreshold);
+
+        // Channel 0 delivers barrier 1; channel 1 delivers barrier 2 (a
+        // different epoch). Aligned serialization lets both become in-flight:
+        // barrier 1 is received on channel 0 (blocks ch0, waits for ch1);
+        // barrier 2 is then read on channel 1 (blocks ch1, waits for ch0).
+        // Result: two in-flight alignments, both channels blocked.
+        p0.write(new CheckpointBarrier(1, 0, CheckpointType.CHECKPOINT));
+        p1.write(new CheckpointBarrier(2, 0, CheckpointType.CHECKPOINT));
+
+        StreamException thrown = assertThrows(StreamException.class, () -> {
+            long start = System.currentTimeMillis();
+            while (System.currentTimeMillis() - start < alignmentTimeout) {
+                gate.read();
+            }
+        });
+        assertEquals("nop.err.stream.invalid-state", thrown.getErrorCode().toString(),
+                "D4 guard: unaligned + multi-in-flight must fail-fast with ERR_STREAM_INVALID_STATE "
+                        + "(not silently capture state for the wrong epoch)");
+        // No channel state was captured — the guard fires BEFORE capture.
+        assertNull(gate.consumePendingChannelState(),
+                "D4 guard must fire before any channel state is captured");
+    }
 }

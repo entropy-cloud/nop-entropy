@@ -28,6 +28,7 @@ import io.nop.stream.core.checkpoint.CheckpointConfig;
 import io.nop.stream.core.checkpoint.CheckpointIDCounter;
 import io.nop.stream.core.checkpoint.CheckpointPlan;
 import io.nop.stream.core.checkpoint.CheckpointType;
+import io.nop.stream.core.checkpoint.ChannelState;
 import io.nop.stream.core.checkpoint.CompletedCheckpoint;
 import io.nop.stream.core.checkpoint.EpochManifest;
 import io.nop.stream.core.checkpoint.JobTerminationMode;
@@ -50,10 +51,13 @@ import static io.nop.stream.core.exceptions.NopStreamErrors.ARG_CURRENT_VERTEX_I
 import static io.nop.stream.core.exceptions.NopStreamErrors.ARG_DETAIL;
 import static io.nop.stream.core.exceptions.NopStreamErrors.ARG_EPOCH_ID;
 import static io.nop.stream.core.exceptions.NopStreamErrors.ARG_MISSING_VERTEX_IDS;
+import static io.nop.stream.core.exceptions.NopStreamErrors.ARG_NEW_PARALLELISM;
+import static io.nop.stream.core.exceptions.NopStreamErrors.ARG_OLD_PARALLELISM;
 import static io.nop.stream.core.exceptions.NopStreamErrors.ARG_REASON;
 import static io.nop.stream.core.exceptions.NopStreamErrors.ARG_TASK_INDEX;
 import static io.nop.stream.core.exceptions.NopStreamErrors.ARG_TASK_LOCATION;
 import static io.nop.stream.core.exceptions.NopStreamErrors.ARG_VERTEX_ID;
+import static io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_CHANNEL_STATE_RESCALE_UNSUPPORTED;
 import static io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_CHECKPOINT_ABORTED;
 import static io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_CHECKPOINT_EXECUTOR_EXECUTE_FAILED;
 import static io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_CHECKPOINT_EXECUTOR_FAILED;
@@ -940,7 +944,7 @@ public class GraphModelCheckpointExecutor {
     }
 
     @FunctionalInterface
-    private interface TaskStateLookup {
+    interface TaskStateLookup {
         TaskStateSnapshot lookup(TaskLocation taskLocation) throws Exception;
     }
 
@@ -975,6 +979,14 @@ public class GraphModelCheckpointExecutor {
             boolean rescale = vertexKeyed && oldParallelism > 0 && oldParallelism != newParallelism;
 
             if (rescale) {
+                // Stage 47: channel state (unaligned checkpoint in-flight data)
+                // cannot be redistributed across a parallelism change in the first
+                // version. Fail-fast here — at the rescale detection point, before
+                // any per-subtask merge — rather than relying on the downstream
+                // instanceof TaskEpochSnapshot guard in restoreChannelStateIfPresent,
+                // which silently drops channel state when buildRescaledTaskState
+                // produces a plain TaskStateSnapshot (No-Silent-No-Op violation).
+                assertNoChannelStateOnRescale(vertexId, oldSubtasks, newParallelism, oldParallelism, stateLookup);
                 LOG.info("Stage 35 rescale detected for vertex {}: oldParallelism={} -> newParallelism={} "
                                 + "(maxParallelism={}); routing keyed state by KeyGroupRange intersection",
                         vertexId, oldParallelism, newParallelism, maxParallelism);
@@ -1087,6 +1099,46 @@ public class GraphModelCheckpointExecutor {
             }
         }
         return false;
+    }
+
+    /**
+     * Stage 47 (unaligned checkpoint + rescale interaction): fails fast when a
+     * rescale restore would have to redistribute channel state (unaligned
+     * checkpoint in-flight data) across a new parallelism. Channel state carries
+     * per-channel records with no cross-parallelism redistribution metadata
+     * (no {@code InflightDataRescalingDescriptor} in the first version), so
+     * silently dropping it — which the prior {@code instanceof TaskEpochSnapshot}
+     * guard in {@code restoreChannelStateIfPresent} did, because
+     * {@code buildRescaledTaskState} produces a plain {@code TaskStateSnapshot} —
+     * breaks exactly-once. See {@code checkpoint-design.md} §2.11.8 D1/D2.
+     *
+     * <p>Package-private so the focused unit test can exercise the check directly
+     * (same pattern as {@link #validateReverseVertexDifferential}).
+     *
+     * @param vertexId        the rescaling vertex
+     * @param oldSubtasks      the checkpoint's old subtask locations for this vertex
+     * @param newParallelism   the new parallelism
+     * @param oldParallelism   the old parallelism
+     * @param stateLookup      lookup over the checkpoint's task states
+     * @throws StreamException ({@code ERR_STREAM_CHANNEL_STATE_RESCALE_UNSUPPORTED})
+     *         if any old subtask snapshot carries a non-empty {@link ChannelState}
+     */
+    static void assertNoChannelStateOnRescale(
+            String vertexId, List<TaskLocation> oldSubtasks,
+            int newParallelism, int oldParallelism, TaskStateLookup stateLookup) throws Exception {
+        for (TaskLocation oldLoc : oldSubtasks) {
+            TaskStateSnapshot oldState = stateLookup.lookup(oldLoc);
+            if (!(oldState instanceof TaskEpochSnapshot)) {
+                continue;
+            }
+            ChannelState cs = ((TaskEpochSnapshot) oldState).getChannelState();
+            if (cs != null && !cs.isEmpty()) {
+                throw new StreamException(ERR_STREAM_CHANNEL_STATE_RESCALE_UNSUPPORTED)
+                        .param(ARG_VERTEX_ID, vertexId)
+                        .param(ARG_OLD_PARALLELISM, oldParallelism)
+                        .param(ARG_NEW_PARALLELISM, newParallelism);
+            }
+        }
     }
 
     /**
