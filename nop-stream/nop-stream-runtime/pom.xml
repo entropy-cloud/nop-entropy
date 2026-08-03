@@ -121,6 +121,16 @@
             <version>${project.version}</version>
             <scope>test</scope>
         </dependency>
+
+        <!-- Stage 52: Transactional JDBC sink (two-phase commit) E2E test.
+             Test scope only — production code that uses the JDBC 2PC sink
+             only needs nop-stream-core + nop-dao. -->
+        <dependency>
+            <groupId>io.github.entropy-cloud</groupId>
+            <artifactId>nop-stream-connector-jdbc</artifactId>
+            <version>${project.version}</version>
+            <scope>test</scope>
+        </dependency>
     </dependencies>
 
     <build>

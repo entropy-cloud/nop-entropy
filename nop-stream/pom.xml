@@ -18,6 +18,7 @@
         <module>nop-stream-cep</module>
         <module>nop-stream-connector</module>
         <module>nop-stream-connector-batch</module>
+        <module>nop-stream-connector-jdbc</module>
         <module>nop-stream-connector-debezium</module>
         <module>nop-stream-runtime</module>
         <module>nop-stream-rocksdb</module>
