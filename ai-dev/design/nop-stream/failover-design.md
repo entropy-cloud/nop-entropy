@@ -127,10 +127,19 @@ mid-execution 重启要求一个 supervision loop 能够：(a) 在 task 运行�
 
 ## 五、架构前置（解除 no-go 所需）
 
+> **术语更新（2026-08-03，§9.8 go 裁定后）**：本节写于 Stage 27 NO-GO 分析时，使用"blocking edge"措辞。§九 go 裁定采用**选项 B 流式 + 物化点**语义，**不引入 `BLOCKING` partition type 枚举产生路径**，改为 edge 级物化 metadata 旁路。因此本节的"blocking edge / 物化点"在下文中统一理解为"**物化点 marker（选项 B）**"——`ResultPartitionType` 枚举不变，物化是附加在 region 边界 edge 上的 opt-in 能力。下文措辞保留历史原貌，含义以本注为准。
+
 targeted failover 变为可行，需以下前置全部满足。这些构成 Stage 44（或新 vision 决策 plan）的入口条件：
 
-1. **Blocking edge / 物化点支持**：在 JobGraph 中引入 `BLOCKING` partition type 的实际产生路径（当前 `determinePartitionType` 从不返回它），使 region 边界成立、producer/consumer 生命周期解耦。需 vision 决策确认流式引擎是否支持批式物化边界。
-2. **Region 概念与识别**：在 runtime 引入 region 抽象（当前生产代码零 region 概念，`JobCoordinator.java:151,649` 仅为 forward-looking 注释），能从 JobGraph 的 blocking edge 切分出多个 pipelined connected component。
+1. **物化点支持（选项 B）**：在 region 边界 edge 上附加物化 metadata（opt-in 旁路），使 producer 写主 queue **同时**写物化存储、consumer 可从物化点重放，producer/consumer 生命周期解耦。**不引入 `BLOCKING` partition type 的实际产生路径**（`determinePartitionType` 默认值不变）——物化是 edge 级附加能力，非 `ResultPartitionType` 枚举变更。需 vision 决策确认流式引擎是否支持物化边界（§九已裁定 go）。
+
+   > **Implementation status（2026-08-03，successor plan 1 已落地）**：物化点机制已交付。落地点：
+   > - **SPI + in-memory 实现**：`io.nop.stream.core.execution.materialization.IMaterializationPoint`（write/replay/按 epoch 查询/seal）+ `InMemoryMaterializationPoint` + `MaterializedElement`（epoch-tagged 数据载体）。
+   > - **Producer 旁路**：`ResultPartition.write()` 在 `materializationPoint` 非空时 dual-write（主 queue + 物化 store，按 `currentMaterializationEpoch` 打 tag）；为空时走原 by-reference 路径（默认，零回归）。
+   > - **Consumer 重放**：`InputChannel.replayMaterialized(fromEpoch)` / `activateMaterializationReplay(fromEpoch)`（后者把物化数据 injectFront 到 in-flight buffer，使后续 `read()` 自然重放）。
+   > - **Edge marker**：`JobEdge.materializationEnabled`（opt-in，默认 false）；`GraphExecutionPlan.build()` 在 marker 开启时为该 edge 的每个 `ResultPartition` 挂一个 `InMemoryMaterializationPoint`。
+   > - **不交付**（属后续 successor plans）：consistent-cut 对齐协议（重放起点选择，successor 4）、region 自动识别（successor 2）、supervision loop 重启触发（successor 3）、producer 非阻塞溢出（successor 4）。
+2. **Region 概念与识别**：在 runtime 引入 region 抽象（当前生产代码零 region 概念，`JobCoordinator.java:220,891` 仅为 forward-looking 注释），能从 JobGraph 的**物化 marker edge** 切分出多个 pipelined connected component。
 3. **Supervision loop 执行模型**：将 `submitAndRun` → `awaitCompletion` 全量阻塞模型改为可 mid-execution 检测单 task 失败并重启的 supervision 模型。
 4. **Drain/reconnect 机制**：基于物化点实现 scoped 重启时 producer/consumer 的安全 drain（排空在途数据）与 reconnect（重新接线到新 partition），不破坏 exactly-once。
 5. **Per-region restart 计数器**：scoped 重启不走 `globalRecovery()`，需独立的 per-region 计数器与上限（Stage 25 deferred 项）。
@@ -294,3 +303,4 @@ Stage 27（§3.3）裁定的三个结构死锁，在引入 blocking edge（选�
 - Decision owner: 人类（经 mission-driver proxy 确认，同 Stage 41 D7 渠道）
 - Confirmation evidence: mission-driver EXECUTE invocation on plan `2026-08-03-1403-1-region-based-failover.md`（"Complete the entire plan"）= 接受 §9.6 推荐项
 - 后续动作：roadmap Stage 44 保持 `planned`（附注 "go confirmed — 5 successor plans TBD"）；G57/G28（续）/per-region counter 归属 successor plans（优先级排序见 §9.5）；本 plan 转 `completed`（裁定交付，实施属 successor plans）
+- Successor progress：successor plan 1（物化点机制，`2026-08-03-1600-1-blocking-edge-materialization-point.md`）已 `completed`——SPI + in-memory 实现、`ResultPartition` dual-write 旁路、`InputChannel` 重放、`JobEdge` marker、`GraphExecutionPlan.build` 接线均已落地（§五.1 implementation status）。successor 2/3/4/5 TBD。
