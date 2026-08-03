@@ -33,7 +33,7 @@ nop-stream/
 | **nop-stream-runtime** | RuntimeTopology、本地/分布式 task 执行、transport backend、fencing、node lifecycle、EdgeConfig flow control、Checkpoint 协调器与存储实现（`runtime.checkpoint` 包） | → core |
 | **nop-stream-connector** | Replayable source（SourceWorkUnit + RestrictionTracker）、transactional/idempotent sink（CheckpointParticipant）、split/offset 协议适配 | → core |
 | **nop-stream-cep** | Pattern DSL、NFA 编译、SharedBuffer、CepOperator（通过标准 state/timer 接口接入统一后端）、声明式模型（pattern.xdef） | → core |
-| **nop-stream-flow** | XDSL StreamModel 编排、Delta 定制支持 | → core |
+| **nop-stream-flow** | XDSL StreamModel 编排、Delta 定制支持 | → core, cep, xdefs |
 
 ### 依赖方向
 
@@ -616,7 +616,7 @@ StreamSource → ChainingOutput → StreamMap → ChainingOutput → WindowOpera
 | 批量数据源 | `IBatchLoader` / `IBatchConsumer` 桥接 | connector |
 | 消息队列 | `IMessageService` 桥接 | connector |
 | CDC 数据源 | `DebeziumCdcSourceFunction` 桥接 | connector |
-| CEP 条件表达式 | `IEvalFunction` (nop-xlang) | cep |
+| CEP 条件表达式 | `IEvalFunction` (nop-core, `io.nop.core.lang.eval`) | cep |
 | 序列化 | `JsonTool`（状态快照 metadata） | core/runtime |
 | 错误处理 | `NopException` + `ErrorCode` | 所有模块 |
 | 声明式编排 | XDSL + Delta 定制 StreamModel | flow |

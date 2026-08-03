@@ -12,10 +12,10 @@ Nop 平台的流处理引擎，定位为**声明式图模型驱动的可分布�
 |------|------|------|
 | `nop-stream-core` | 活跃 | StreamModel、StreamGraph/JobGraph、执行引擎、算子、状态管理、Checkpoint 类型定义 |
 | `nop-stream-runtime` | 活跃 | 窗口算子、Checkpoint 协调器与存储实现、分布式执行框架 |
-| `nop-stream-cep` | 活跃 | CEP 引擎（NFA + Pattern API + 声明式模型） |
+| `nop-stream-cep` | 活跃 | CEP 引擎（NFA + Pattern API + 声明式模型），依赖 core（`IEvalFunction` 经 `nop-core` 传递） |
 | `nop-stream-connector` | 活跃 | Source/Sink 连接器（nop-batch 桥接、CDC、消息队列） |
 | `nop-stream-fraud-example` | 活跃 | 欺诈检测示例 |
-| `nop-stream-flow` | 规划中 | XDSL 声明式流编排 |
+| `nop-stream-flow` | 活跃 | XDSL 声明式流编排，依赖 core + cep（`CepPatternModel`）+ `nop-xdefs` |
 
 ## 设计文档
 

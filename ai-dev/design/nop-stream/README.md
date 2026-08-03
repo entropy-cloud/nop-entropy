@@ -92,8 +92,8 @@
 | **nop-stream-connector** | — | `MessageSourceFunction`, `MessageSinkFunction` | 消息源/汇连接器（无 optional 依赖，仅依赖 `IMessageService`） | → core | Source/Sink JVM |
 | **nop-stream-connector-batch** | — | `BatchLoaderSourceFunction`, `BatchConsumerSinkFunction`, `StreamConnectors` | nop-batch 桥接连接器 | → core, nop-batch-core | Source/Sink JVM |
 | **nop-stream-connector-debezium** | — | `DebeziumCdcSourceFunction` | Debezium CDC 连接器 | → core, nop-message-debezium | Source JVM |
-| **nop-stream-cep** | — | `NFA`, `NFACompiler`, `SharedBuffer`, `Pattern`, `CepOperator`, `CepPatternModel` | CEP 引擎 | → core, nop-xlang | Task JVM |
-| **nop-stream-flow** | — | (规划) XDSL StreamModel 编排 | 声明式定义 + Delta 定制 | → core | Client JVM |
+| **nop-stream-cep** | — | `NFA`, `NFACompiler`, `SharedBuffer`, `Pattern`, `CepOperator`, `CepPatternModel` | CEP 引擎 | → core（`IEvalFunction` 经 `nop-core`） | Task JVM |
+| **nop-stream-flow** | — | (规划) XDSL StreamModel 编排 | 声明式定义 + Delta 定制 | → core, cep, xdefs | Client JVM |
 
 ### 1.3 Checkpoint 为何不独立成模块
 
@@ -128,8 +128,8 @@ Checkpoint 是流处理引擎的**横切关注点**，与算子、执行层、�
   nop-stream-connector          → nop-stream-core (仅 IMessageService)
   nop-stream-connector-batch    → nop-stream-core + nop-batch-core
   nop-stream-connector-debezium → nop-stream-core + nop-message-debezium
-  nop-stream-cep                → nop-stream-core + nop-xlang
-  nop-stream-flow (规划)         → nop-stream-core
+  nop-stream-cep                → nop-stream-core（`IEvalFunction` 经 nop-stream-core → nop-core 传递）
+  nop-stream-flow               → nop-stream-core + nop-stream-cep + nop-xdefs
 ```
 
 ---

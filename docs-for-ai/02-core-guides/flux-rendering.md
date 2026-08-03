@@ -143,7 +143,7 @@ Flux 渲染模式下的**页面数据访问不使用 GraphQL**，全部经 REST 
 
 ### URL 前缀约定
 
-view.xml / page.yaml 中的 `api`、`url` 支持以下前缀，由浏览器壳层统一转换（实现见 `nop-chaos-next/apps/main/src/services/nopRpcResolver.ts`，请求层见 `apps/main/src/services/http.ts`）：
+view.xml / page.yaml 中的 `api`、`url` 支持以下前缀，由浏览器壳层统一转换（实现见 nop-chaos-next 仓库的 `nopRpcResolver.ts`，请求层见同仓库的 `http.ts`）：
 
 | 前缀 | 含义 | 转换结果 |
 |------|------|---------|

@@ -29,7 +29,7 @@ nop-stream 按职责划分为 **6 个核心组件** 和 **4 个规划组件**。
 | C3 | **算子运行时** | nop-stream-core (operators 包) + nop-stream-runtime | 算子基类、内置算子（map/filter/sink/source）、WindowOperator、定时器服务 | 依赖 C4 |
 | C4 | **状态管理** | nop-stream-core (common/state 包) | IStateBackend / IKeyedStateBackend 接口 + Memory 实现 | 无外部依赖 |
 | C5 | **Checkpoint** | nop-stream-core (checkpoint 包) + nop-stream-runtime (checkpoint 包) | Barrier 传播、协调器、持久化存储（基于 IJdbcTemplate 多数据库） | 依赖 C3, C4 |
-| C6 | **CEP 引擎** | nop-stream-cep | NFA 编译、SharedBuffer、Pattern API、声明式模型 | 依赖 C1, nop-xlang |
+| C6 | **CEP 引擎** | nop-stream-cep | NFA 编译、SharedBuffer、Pattern API、声明式模型 | 依赖 C1, nop-core（`IEvalFunction` 经 `io.nop.core.lang.eval`） |
 
 ### 2.2 分布式运行时组件
 

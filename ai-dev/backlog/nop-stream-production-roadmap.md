@@ -1,6 +1,6 @@
 # nop-stream 生产级完善路线图
 
-> Last updated: 2026-08-04
+> Last updated: 2026-08-04 (Items 36/55 → planned, Item 56 added)
 > Sources: `ai-dev/analysis/nop-stream/08-gap-analysis.md`（73 条显式缺口 ID [G1-G68, D69-D73] + 6 条已解决附录 [R1-R6]，primary）, `ai-dev/backlog/completion-roadmap.md`（Phase 0—5 战略框架）, `ai-dev/backlog/nop-stream-flink-comparison-roadmap.md`（前序路线图，Items 9—13 已完成）
 
 ## Purpose
@@ -50,7 +50,7 @@ Does not contain implementation details. Each `planned` stage is owned by its ex
 
 - 34. Key-Group 模型（G37—G39，P2）: `done`（plan `ai-dev/plans/nop-stream-production/2026-08-02-0955-4-key-group-model.md`，completed — KeyGroup/KeyGroupRange/KeyGroupAssignment（分层稳定哈希：内置类型 hashCode + POJO Murmur3-over-JSON，G38）+ key→group 映射（G37）+ KeyGroupRange 集合操作（G39）+ job-global maxParallelism（默认 128，shardCount 语义迁移 + getShardCount @Deprecated 别名）+ group→subtask 连续区间映射函数；RocksDB 可排序 key-group 二进制前缀 layout v2（**Stage 30 deferred「Binary composite key encoding」收口**，增量旧 SST fail-fast）；memory+rocksdb keyed 聚合 E2E 一致；生产 rescale 接线属 Stage 35）
 - 35. KeyGroupRange 恢复 + RocksDB key-group 感知 restore: `done`（plan `ai-dev/plans/nop-stream-production/2026-08-02-0955-5-keygroup-range-recovery.md`，completed — executor dispatch（`GraphModelCheckpointExecutor.restoreTaskStatesFromSource` 承重重构为区间路由）+ TaskEpochSnapshot KeyGroupRange 归属物化（CheckpointSerDe 持久化）+ 全量 JSON in-memory 过滤/增量 SST range scan 双路径 + scale-down 多源合并 + parallelism 4↔16 E2E dispatch；Stage 31 deferred「Key-group range SST reading」收口；`KeyGroupRangeRestoreFilter` + Memory/RocksDB `targetKeyGroupRange` + `RocksDBIncrementalRestore.restoreRangeInto` 真实 SST range scan）
-- 36. ~~BroadcastState 类型（G36，P2）~~ → 推迟，需先更新 vision §七: `todo`
+- 36. ~~BroadcastState 类型（G36，P2）~~ → 推迟，需先更新 vision §七: `planned`（plan `ai-dev/plans/nop-stream-production/2026-08-04-2200-2-final-gap-adjudication-g36-g66-g67.md`，active — G36 vision 裁定 + G66/G67 永久 deferred）
 - 37. StateShard→KeyGroup 迁移 + vision Non-Goal 更新: `done`（plan `ai-dev/plans/nop-stream-production/2026-08-02-0955-7-shard-to-keygroup-migration-and-vision-update.md`，completed — 不变量 #2 三处跨文档 drift 收口（`00-vision.md:89`/`checkpoint-design.md:1024`/`core-design.md:338` StateShard→KeyGroup）+ vision §四 Non-Goal 改写为 supported-with-migration + §七 key-group 重分布移入「保留」+ §六 决策点 #6 stateShardCount→maxParallelism + §8.5 类名笔误修正（KeyGroupRangeAssignment→KeyGroupAssignment）+ `checkpoint-design.md` §8.5.1 reshard migration 使用契约 + `state-management-design.md:96` 同步；Stage 35 deferred「maxParallelism 显式迁移」收口：离线 reshard 工具 `KeyGroupReshard`（core 纯逻辑）+ `MaxParallelismReshardMigration`（runtime I/O，原子写新 savepoint + reshard-report.json + `ReshardMigrationResult` 守恒校验）；focused test 11 + E2E 8，memory+rocksdb restore 聚合一致，anti-hollow（moved 断言）+ 全 fail-fast 边界）
 
 ### Phase 4 — 分布式接入平台基础设施
@@ -78,7 +78,8 @@ Does not contain implementation details. Each `planned` stage is owned by its ex
 - 52. 事务型 JDBC sink（2PC）: `done`
 - 53. CDC 深化 + 文件 sink: `done`（plan `ai-dev/plans/nop-stream-production/2026-08-04-2107-1-cdc-deepening-file-sink.md`，completed — Phase 1 CDC checkpoint offset 集成[`NopStreamOffsetBackingStore` implements Kafka Connect `OffsetBackingStore`（Debezium 2.4.0 约束适配：`offset.storage` FQCN 反射实例化 + connector-name registry 桥接实例）+ `DebeziumConfig implements Serializable` + `DebeziumCdcSourceFunction implements CheckpointedSourceFunction`（config 非 transient，`snapshotState`/`initializeState` 经 `"cdc-offsets"` key round-trip offset map）+ `DebeziumMessageSource`/`DebeziumEngineWrapper` 构造器 overload + `DebeziumEngineConfig.buildProperties(config, useCustomOffsetStore)` + `CheckpointedSourceFunction` Javadoc drift 修复] + Phase 2 exactly-once 文件 sink[`FileTwoPhaseCommitSink` extends `TwoPhaseCommitSinkFunction`（temp file + `Files.move(ATOMIC_MOVE)` + manifest 原子更新 + 幂等 commit 守卫 + final-exists/manifest-missing 边缘修复）+ `FilePendingCommit implements Serializable`]；27 新 tests 全绿；connector-design.md §5.4/§5.5 + §7 已知限制 #9-#11 + source-anchors STRM-034~036 同步）
 - 54. CEP SharedBuffer 缓存改进（G65，P3）: `done`（plan `ai-dev/plans/nop-stream-production/2026-08-04-2107-2-cep-sharedbuffer-guava-cache.md`，completed — Phase 1 删除自定义 `LruCache`，`eventsBufferCache`/`entryCache` 改用 Guava `Cache`（`maximumSize` + `recordStats` + `RemovalListener` 仅 SIZE 驱逐 debug 日志）消除双结构竞态 + flushCache clear-on-success/rollback 行为保留；Phase 2 新增 `SharedBuffer.logCacheStatistics()`（hit/miss/eviction/size）+ `CepOperator` 周期性 timer 接线（`getProcessingTimeService().registerTimer(ts, this::onCacheStatisticsTimer)` 独立回调，非 `onProcessingTime` CEP 事件处理路径；re-arm anchored 到 fire time；`close()` cancel future）；7 new tests，288 全绿；G65 ✅ Closed）
-- 55. 推迟项跟踪：spill-to-disk（G66）/ adaptive scheduling（G67）: `todo`
+- 55. 推迟项跟踪：spill-to-disk（G66）/ adaptive scheduling（G67）: `planned`（plan `ai-dev/plans/nop-stream-production/2026-08-04-2200-2-final-gap-adjudication-g36-g66-g67.md`，active — G66/G67 永久 deferred 裁定）
+- 56. Follow-up Backlog quality sweep: `done`（plan `ai-dev/plans/nop-stream-production/2026-08-04-2200-1-follow-up-backlog-quality-sweep.md`，completed — Phase 1 live defect fixes（P2-2 删除 60 个重复源码文件 / P2-7 CheckpointCoordinator 重复日志去重 + 回归测试 / P2-8 Lockable 裸异常收敛到 StreamRuntimeException + 测试更新 / P2-3 StreamOperator/OneInputStreamOperator/Input Javadoc Flink 类型引用清理 / AR-6 JobGraphGenerator 错位 javadoc 重新定位）；Phase 2 文档 drift 修正（P2-1+P2-21 flow → core,cep,xdefs / P2-20 cep → nop-core / gap-analysis P2 count 43→31）；Phase 3 verify-and-close 8 条（AR-5/AR-7/P2-4/source-anchors/CheckpointMetricsSnapshot/OperatorChain/WindowOperator/P2-19）；`./mvnw test -pl nop-stream -am` 全绿 + `check-doc-links --strict` exit 0 + `check-plan-checklist --strict` exit 0）
 
 ## Status values
 
@@ -863,32 +864,38 @@ graph TD
 - **Source**: `ai-dev/audits/nop-stream-flink-comparison/2026-07-24-2227-multi-audit-nop-stream-flink-comparison.md` (P2)
 - **Description**: `source-anchors.md` (193 lines) has zero matches for "nop-stream" or any major nop-stream class.
 - **Recommendation**: Add anchor entries in Stage 22.
+- **Status**: ✅ Closed (Stage 22) — verify-and-close by plan `2026-08-04-2200-1-follow-up-backlog-quality-sweep.md` Phase 3: 38 nop-stream/STRM- matches now present in `docs-for-ai/04-reference/source-anchors.md`.
 
 ### `CheckpointMetricsSnapshot.toString()` omits `failureCause`
 
 - **Source**: 同上 (P2)
 - **Recommendation**: Stage 23 附带修复。
+- **Status**: ✅ Closed (Stage 23) — verify-and-close by plan `2026-08-04-2200-1-follow-up-backlog-quality-sweep.md` Phase 3: `CheckpointMetricsSnapshot.java:89` includes `failureCause`.
 
 ### `WindowOperator` has empty else blocks
 
 - **Source**: `2026-07-24-2227-open-audit-nop-stream-flink-comparison.md` (P2)
 - **Recommendation**: Stage 23 附带清理。
+- **Status**: ✅ Closed (Stage 23) — verify-and-close by plan `2026-08-04-2200-1-follow-up-backlog-quality-sweep.md` Phase 3: live grep for empty else blocks in WindowOperator returns no matches.
 
 ### `OperatorChain.open()` javadoc contradicts implementation
 
 - **Source**: 同上 (P2)
 - **Recommendation**: Stage 23 附带修复。
+- **Status**: ✅ Closed (Stage 23) — verify-and-close by plan `2026-08-04-2200-1-follow-up-backlog-quality-sweep.md` Phase 3: `OperatorChain.java:92-99` documents "reverse order (tail to head)".
 
 ### `PartitionPolicy` enum values `UNION` and `SINGLETON` are dead code
 
 - **Source**: 同上 (P2)
 - **Recommendation**: Stage 23 附带处理。
+- **Status**: ✅ Closed (Stage 23) — verify-and-close by plan `2026-08-04-2200-1-follow-up-backlog-quality-sweep.md` Phase 3: `PartitionPolicy` contains only FORWARD/HASH/REBALANCE/BROADCAST; UNION/SINGLETON removed.
 
 ### 08-gap-analysis P2 计数不匹配
 
 - **Source**: `08-gap-analysis.md` Priority Summary
 - **Description**: 声称 P2=43，显式列出仅 31 条（G28-G58）。
 - **Recommendation**: 修复 08 分类计数；不影响本路线图执行。
+- **Status**: ✅ Fixed (plan `2026-08-04-2200-1-follow-up-backlog-quality-sweep.md` Phase 2) — count updated to "31 total (16 closed, 15 open)" in both Executive Summary priority table and section header.
 
 ---
 
@@ -899,24 +906,28 @@ graph TD
 - **Source**: `ai-dev/audits/nop-stream-production/2026-07-25-1948-multi-audit-nop-stream-production.md` [P2-1]
 - **Description**: `nop-stream-flow/pom.xml:20-23` 依赖 `nop-stream-cep`（被生成 `_StreamModel.java:104` 的 `CepPatternModel` 使用）。文档说 `flow → core`。
 - **Recommendation**: 更新文档或解耦。
+- **Status**: ✅ Fixed (plan `2026-08-04-2200-1-follow-up-backlog-quality-sweep.md` Phase 2) — `01-architecture-baseline.md` §2 now lists `→ core, cep, xdefs` for flow; `ai-dev/design/nop-stream/README.md` and `nop-stream/README.md` updated to include cep + xdefs deps.
 
 ### nop-stream/src/ 重复源码树（60 文件，pom-parent 下不编译）
 
 - **Source**: 同上 [P2-2]
-- **Description**: `nop-stream/src/main/java/io/nop/stream/flow/model/` 是重复源码树（git-tracked），30 个 `_gen` 文件已偏离规范副本。
-- **Recommendation**: `git rm -r nop-stream/src/`。
+- **Description**: 父模块 `nop-stream/` 下原有一棵重复源码树（`.../src/main/java/io/nop/stream/flow/model/`，git-tracked，60 文件），其中 30 个 `_gen` 文件已偏离规范副本。
+- **Recommendation**: `git rm -r` 父模块 src 目录。
+- **Status**: ✅ Fixed (plan `2026-08-04-2200-1-follow-up-backlog-quality-sweep.md` Phase 1) — `git rm -r` removed all 60 duplicate files; `git ls-files` on the deleted tree = 0; canonical copy at `nop-stream-flow/src/` (60 files) unaffected.
 
 ### 公共算子接口 Javadoc 引用不存在的类型
 
 - **Source**: 同上 [P2-3]
 - **Description**: `StreamOperator.java:28-31`、`OneInputStreamOperator.java:24-26`、`Input.java:28-35` Javadoc 引用 `TwoInputStreamOperator`/`MultipleInputStreamOperator`/`AbstractStreamOperatorV2`/`AbstractInput`（vision §4 Non-Goals）。
 - **Recommendation**: 修正 Javadoc。
+- **Status**: ✅ Fixed (plan `2026-08-04-2200-1-follow-up-backlog-quality-sweep.md` Phase 1) — Javadoc rewritten to describe nop-stream's single-input model; grep for the four Flink types in the three files returns no matches.
 
 ### CheckpointedSourceFunction Javadoc 说「未使用」但生产实际调用
 
 - **Source**: 同上 [P2-4]
 - **Description**: `CheckpointedSourceFunction.java:14-19` 说「API 预留，当前未被使用」，但 `StreamSourceOperator.java:296-302,321-332` 调用其 `snapshotState`/`initializeState`。
 - **Recommendation**: 修正 Javadoc。
+- **Status**: ✅ Closed (Stage 53) — verify-and-close by plan `2026-08-04-2200-1-follow-up-backlog-quality-sweep.md` Phase 3: Javadoc updated.
 
 ### DataStream API 强转 UnknownTypeInformation 为 Class<R>
 
@@ -935,12 +946,14 @@ graph TD
 - **Source**: 同上 [P2-7]
 - **Description**: `:579-590` 同一失败信息 ERROR（582）+ WARN（589）记两次。
 - **Recommendation**: 去重，影响 failure-rate 指标。
+- **Status**: ✅ Fixed (plan `2026-08-04-2200-1-follow-up-backlog-quality-sweep.md` Phase 1) — duplicate `LOG.warn` removed; only `LOG.error` remains. Regression test `TestCheckpointCoordinatorPersistFailureLog` verifies exactly one log event per failure.
 
 ### Lockable.release 抛裸 IllegalStateException
 
 - **Source**: 同上 [P2-8]
 - **Description**: cep sharedbuffer `Lockable.release:54-79` 引用计数下溢抛裸 `IllegalStateException`，绕过平台异常体系。
 - **Recommendation**: 改 `StreamException`/`NopException`。
+- **Status**: ✅ Fixed (plan `2026-08-04-2200-1-follow-up-backlog-quality-sweep.md` Phase 1) — both `release()` and `releaseOrDetach()` now throw `StreamRuntimeException` (extends `NopException`). Regression tests `TestLockableOverRelease` / `TestLockable` updated to assert platform exception type.
 
 ### TestCountTrigger 仅测 canMerge() 返回 false
 
@@ -1000,35 +1013,41 @@ graph TD
 
 - **Source**: 同上 [P2-19]
 - **Recommendation**: 更新 README §1.2。
+- **Status**: ✅ Closed (plan `2026-08-04-2200-1-follow-up-backlog-quality-sweep.md` Phase 3) — design docs no longer classify `StreamExecutionEnvironment` under "datastream"; the class lives in `nop-stream-core/.../environment/`.
 
 ### cep 文档说依赖 nop-xlang，实际依赖 nop-core
 
 - **Source**: 同上 [P2-20]
 - **Description**: `IEvalFunction` 来自 `nop-core`（`io.nop.core.lang.eval`）；component-roadmap §2.1 与 §2.5 内部矛盾。
 - **Recommendation**: 更新文档。
+- **Status**: ✅ Fixed (plan `2026-08-04-2200-1-follow-up-backlog-quality-sweep.md` Phase 2) — `component-roadmap.md` C6 row now says `依赖 C1, nop-core（IEvalFunction 经 io.nop.core.lang.eval）`. `01-architecture-baseline.md` line 619 corrected to `(nop-core, io.nop.core.lang.eval)`. `ai-dev/design/nop-stream/README.md` line 95 + 131 updated.
 
 ### flow 文档说只依赖 core，实际依赖 cep + xdefs
 
 - **Source**: 同上 [P2-21]
 - **Recommendation**: 更新 README §1.2/§1.4。
+- **Status**: ✅ Fixed (plan `2026-08-04-2200-1-follow-up-backlog-quality-sweep.md` Phase 2) — same fix as P2-1: design docs and README now list flow's deps as `→ core, cep, xdefs`.
 
 ### ResultPartition.close() bufferPool permit double-release race
 
 - **Source**: `ai-dev/audits/nop-stream-production/2026-07-25-1948-open-audit-nop-stream-production.md` [AR-5]
 - **Description**: `close()` 的 `queue.size()` 与 `queue.clear()` 之间消费端并发 release 导致 permit 过释放（区别于 multi-audit P1-10 的数据丢失角度）。
 - **Recommendation**: 逐元素 drain+release，或让 `close()` 不 release permit 改由 `BufferPool.close()` 兜底。
+- **Status**: ✅ Closed (Stage 26/43 refactor) — verify-and-close by plan `2026-08-04-2200-1-follow-up-backlog-quality-sweep.md` Phase 3: `ResultPartition.close()` (lines 316-329) only does `queue.put(END_OF_STREAM)`; no `queue.size()`/`queue.clear()`/`bufferPool.release()` race pattern remains.
 
 ### JobGraphGenerator determinePartitionType javadoc 错位
 
 - **Source**: 同上 [AR-6]
 - **Description**: `:509-518` javadoc 描述 `determinePartitionType` 却挂在 `hasNonVirtualOperator`（`:523`）上；`determinePartitionType`（`:546`）无 javadoc。
 - **Recommendation**: 移动 javadoc 块。
+- **Status**: ✅ Fixed (plan `2026-08-04-2200-1-follow-up-backlog-quality-sweep.md` Phase 1) — Javadoc block relocated above `determinePartitionType`; new Javadoc written for `hasNonVirtualOperator` describing its non-virtual factory check semantics.
 
 ### PartitionPolicy.UNION / SINGLETON 死枚举值
 
 - **Source**: 同上 [AR-7]
 - **Description**: 生产代码从不产生这两个值（0 引用）。
 - **Recommendation**: 删除或加 `@ReservedForFutureUse`。
+- **Status**: ✅ Closed (Stage 23) — verify-and-close by plan `2026-08-04-2200-1-follow-up-backlog-quality-sweep.md` Phase 3: dead enum values removed; `PartitionPolicy` contains only FORWARD/HASH/REBALANCE/BROADCAST.
 
 ## References
 

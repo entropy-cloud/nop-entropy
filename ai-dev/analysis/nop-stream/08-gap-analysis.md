@@ -17,7 +17,7 @@
 |----------|-------|-------------|
 | P0 | 3 | Correctness blocking |
 | P1 | 24 | Design contract violation |
-| P2 | 43 | Missing capability |
+| P2 | 31 (16 closed, 15 open) | Missing capability |
 | P3 | 10 | Optimization/minor |
 | Doc | 5 | Documentation / contract drift |
 | Improvement | 2 | Intentional design differences |
@@ -89,7 +89,7 @@
 | ~~G26~~ | distributed | IStreamExecutionDispatcher 接口空壳（2 methods） | ~~Hollow/P1~~ Decision | 07-dist: D8 | `SchedulerNG` (15+ methods) with state tracking | `IStreamExecutionDispatcher` (3 methods: supportsDeploymentMode/getExpectedNodeIds/execute) — **Stage 28 裁定为有意设计**（部署入口，非生命周期管理器；coordinator 是 execute() 局部变量，生命周期管理在 coordinator RPC 侧；异步 submit+poll 属 Stage 39） | ~~Item 12a~~ ✅ Closed (Stage 28) — Decision: dispatcher 最小化有意。Plan `2026-07-26-0433-1-rpc-dispatcher-backpressure` |
 | ~~G27~~ | distributed | ~~Credit-based 和 ACK_WINDOW flow control 为 no-op~~ | ~~Hollow/P1~~ Closed | 07-dist: D11 | `CreditBasedSequenceNumbering`, `PartitionRequestClient.notifyCreditAvailable()` | `FlowControlPolicy` 仅含 `BLOCKING_QUEUE`（Stage 28 永久移除 Flink Netty policies）；in-process backpressure = `IBufferPool` 两级（Stage 26）；跨 JVM 由 `IMessageService` 后端提供（Stage 40，vision 约束 7） | ~~Item 12a~~ ✅ Closed (Stage 28) — 永久排除裁定 + 枚举清理 + IBufferPool 契约定位。Plan `2026-07-26-0433-1-rpc-dispatcher-backpressure` |
 
-### P2 — Missing Capability（43）
+### P2 — Missing Capability（31 total: 16 closed, 15 open）
 
 | # | 维度 | 发现 | 分类 | 来源 | 修复 Plan |
 |---|------|------|------|------|-----------|

@@ -154,7 +154,7 @@ view.xml 到 JSON 的翻译由 `nop-web` 模块的 xpl 模板完成：
 | --- | --- | --- |
 | 1. 配置层 | `*.view.xml` / `*.orm.xml`（应用仓库） | 读 XML 对照业务意图 |
 | 2. 生成层 | nop-entropy `nop-web` 的 `flux-web.xlib` 模板 | `POST /r/PageProvider__getPage {path}` 抓最终 JSON 对照 view.xml |
-| 3. 渲染层 | nop-chaos-flux 渲染器 + nop-chaos-next 宿主 | `window.__FLUX_DEBUG__` / monitor / Playwright 探针（详见 nop-chaos-flux `flux-guide/17-debugging.md`） |
+| 3. 渲染层 | nop-chaos-flux 渲染器 + nop-chaos-next 宿主 | `window.__FLUX_DEBUG__` / monitor / Playwright 探针（详见 nop-chaos-flux 仓库的 flux-guide 第 17 节 debugging） |
 
 - JSON 缺东西 → 问题在配置层或生成层（上面「页面生成链路与单元测试」）
 - JSON 有但 DOM 无 → 问题在渲染层，去 nop-chaos-flux 侧调试（其仓库自带 debug 文档与测试规范）
