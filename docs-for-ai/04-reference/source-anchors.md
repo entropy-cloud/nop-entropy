@@ -215,6 +215,9 @@
 | `STRM-031` | `nop-stream/nop-stream-core/src/main/java/io/nop/stream/core/operators/TimestampsAndWatermarksOperator.java` | 自动插入的 watermark 注入算子（core/operators）；按 `watermarkInterval`（默认 200ms）周期发射，`WatermarkStrategy` + `TimestampAssigner` + idle 标记 |
 | `STRM-032` | `nop-stream/nop-stream-cep/src/main/java/io/nop/stream/cep/operator/CepOperator.java` | CEP 算子（cep/operator）；`open()` 从 `stateBackend` 创建 `IKeyedStateBackend`（无配置时 fallback `MemoryKeyedStateBackend` + WARN），NFA state / element queue / SharedBuffer 全部落到 keyed state store |
 | `STRM-033` | `nop-stream/nop-stream-connector-jdbc/src/main/java/io/nop/stream/connector/jdbc/JdbcTwoPhaseCommitSink.java` | 事务型 JDBC sink（Stage 52）；extends `TwoPhaseCommitSinkFunction<IN>`，内存缓冲模型 + epoch ledger 幂等 commit，对 JDBC 目标实现 exactly-once 输出 |
+| `STRM-034` | `nop-message/nop-message-debezium/src/main/java/io/nop/message/debezium/engine/NopStreamOffsetBackingStore.java` | CDC offset 存储（Stage 53）；implements Kafka Connect `OffsetBackingStore`，in-memory `ConcurrentHashMap<ByteBuffer,ByteBuffer>` + 静态 connector-name registry 桥接 source function 实例与 engine 反射实例；`toSerializable/fromSerializable` base64 序列化供 checkpoint |
+| `STRM-035` | `nop-stream/nop-stream-connector-debezium/src/main/java/io/nop/stream/connector/debezium/DebeziumCdcSourceFunction.java` | CDC source（Stage 53）；implements `CheckpointedSourceFunction<ChangeEvent>` + `DrainableSource`，`snapshotState`/`initializeState` 经 `"cdc-offsets"` key round-trip offset map，`config` 非 transient（`DebeziumConfig implements Serializable`） |
+| `STRM-036` | `nop-stream/nop-stream-connector/src/main/java/io/nop/stream/connector/file/FileTwoPhaseCommitSink.java` | exactly-once 文件 sink（Stage 53）；extends `TwoPhaseCommitSinkFunction<IN>`，temp file + `Files.move(ATOMIC_MOVE)` + manifest 原子更新，幂等 commit 守卫，final-exists/manifest-missing 修复 |
 
 ## 当 `docs-for-ai` 仍有歧义时
 

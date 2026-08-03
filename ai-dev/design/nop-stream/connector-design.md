@@ -360,21 +360,48 @@ Pulsar 支持事务，可实现 `TwoPhaseCommitSinkFunction` 提供 exactly-once
 - 已有模块边界先例：`nop-stream-connector-debezium` 独立于 `nop-stream-connector-batch`，各自只引入所需依赖。
 - 新模块不违反 AR-2：AR-2 只约束基模块 `nop-stream-connector`（不依赖 `nop-dao`/`nop-batch-jdbc`），不约束新模块。
 
-### 5.3 DebeziumCdcSourceFunction
+### 5.4 DebeziumCdcSourceFunction + CDC checkpoint offset 集成（Stage 53）
 
-```java
-class DebeziumCdcSourceFunction implements SourceFunction<ChangeEvent> {
-    final DebeziumConfig config;
+#### 5.4.1 定位
 
-    public void run(SourceContext<ChangeEvent> ctx) throws Exception {
-        source = new DebeziumMessageSource(config);
-        ICancellable subscription = source.subscribe(event -> ctx.collect(event));
-        while (running) Thread.sleep(1000);
-    }
-}
-```
+`DebeziumCdcSourceFunction` 实现 `CheckpointedSourceFunction<ChangeEvent>`，使 CDC 消费位点参与 nop-stream checkpoint 协议：checkpoint 时把 Debezium offset map 持久化进 operator state，恢复时重建 offset store 让引擎从 checkpoint 位点继续消费（无重复、无丢失）。同时修复 `config` 字段的 `transient` 问题（跨 JVM 恢复丢失连接信息）。
 
-CDC `ChangeEvent` 的 `timestamp` 可作为事件时间戳，`key` 可用于 keyBy，`after` 是实际数据。
+#### 5.4.2 D1 裁定：自定义 NopStreamOffsetBackingStore + connector-name registry
+
+**选了什么**：自定义 `NopStreamOffsetBackingStore`（implements Kafka Connect `OffsetBackingStore` SPI），由 in-memory `ConcurrentHashMap<ByteBuffer,ByteBuffer>` 支撑。
+
+**拒绝的替代方案**：
+- `FileOffsetBackingStore`：格式是 Kafka Connect 内部序列化（schema envelope + ByteBuffer），手工写文件易出错且格式随版本变化。
+- 扩展 `ChangeEventMetadata` 携带 raw Debezium source partition/offset map：`io.debezium.engine.ChangeEvent<byte[],byte[]>` 只暴露 `key()`/`value()`，获取 raw offset 需迁移到 `ChangeEventWithMetadata` + `ChangeConsumer` API（非 trivial）。offset 持久化**完全由 `NopStreamOffsetBackingStore` 承担**（Debezium engine 内部 commit offset → store），不从事件元数据提取。`ChangeEventMetadata` 扩展为 successor。
+
+**接线裁定（Debezium 2.4.0 约束）**：Debezium 2.4.0 的 `DebeziumEngine.Builder` **不暴露** `using(OffsetBackingStore)` 方法，无法直接把 store 实例交给 engine builder。实际机制：engine 从 `offset.storage` 属性读取 store 类 FQCN，经反射实例化（public no-arg constructor + `configure(WorkerConfig)`）。为桥接 source function 创建的实例（持有恢复的 offsets）与 engine 经反射创建的实例，`NopStreamOffsetBackingStore` 维护**静态 registry（connector name → 共享 data map）**：source function 经 `forConnector(name)` 创建实例并 pre-populate，engine 实例在 `configure(WorkerConfig)` 时按 connector name 绑定到同一份 data map。
+
+**类型不对称 API 使用说明**：`CheckpointedSourceFunction.snapshotState` 写入 `OperatorSnapshotResult`（经 `putOperatorState`），`initializeState` 从 `TaskStateSnapshot`（经 `getOperatorState`）读取。operator state key = `"cdc-offsets"`。offset map 序列化为 `TreeMap<String,String>`（base64 编码 key/value——`ByteBuffer` 不可序列化）。`StreamSourceOperator.snapshotState/restoreState` 负责两个类型之间的转换。
+
+### 5.5 FileTwoPhaseCommitSink（exactly-once 文件 sink，Stage 53）
+
+#### 5.5.1 D2 裁定：模块放置
+
+**选了什么**：放入 `nop-stream-connector/file/`（基模块 `nop-stream-connector`，仅依赖 `nop-stream-core`，已有 `FileSource` 在此子包）。v1 仅 text-line + NIO，无额外依赖。
+
+**拒绝的替代方案**：新建独立模块 `nop-stream-connector-file`。理由：v1 无额外依赖，过早拆分违反 plan guide #24；当 format SPI（CSV/JSON/Parquet）引入时再考虑拆分。
+
+#### 5.5.2 行为模型
+
+每个 checkpoint epoch 映射一个输出文件 + 一条 manifest 记录：
+
+| 方法 | 行为 |
+|------|------|
+| `invoke(value)` | 追加到当前 epoch 的内存缓冲（`List<String>`）。 |
+| `saveState(epochId)` | **覆盖基类**：先把内存缓冲写入 temp file（`{outputDir}/.{epochId}.tmp`），记录 `pendingCommits[epochId] = FilePendingCommit(tempPath, recordCount)`，清空内存缓冲，**再**调 `super.saveState`（saveState-first 模式，与 JDBC sink §5.3.2 一致）。 |
+| `preCommit(epochId)` | no-op（temp file 已在 saveState 写入）。 |
+| `commit(epochId)` | 从 `pendingCommits[epochId]` 读 `FilePendingCommit`。幂等守卫：先查 manifest，若该 epoch 已记录则跳过。否则 `Files.move(tempPath, finalPath, ATOMIC_MOVE)` + manifest 原子更新（写 `manifest.json.tmp` → `Files.move(ATOMIC_MOVE)`）。 |
+| `abort(epochId)` | delete `.{epochId}.tmp`（temp 不存在时 no-op）。 |
+| `rollback()` | 丢弃当前内存缓冲。 |
+
+#### 5.5.3 边缘处理：final-exists 但 manifest-missing
+
+若 `Files.exists(finalPath)` 但 manifest 无记录——说明上次 crash 在 rename 后/manifest 写入前。裁定：**修复 manifest**（补写 entry，跳过 rename），而非报错。理由：rename 已成功，数据已 durable，只需同步 manifest。
 
 ## 6. 连接器汇总
 
@@ -385,7 +412,8 @@ CDC `ChangeEvent` 的 `timestamp` 可作为事件时间戳，`key` 可用于 key
 | `MessageSourceFunction` | nop-message-core | ~40 行 | Pulsar、LocalMessage | CheckpointParticipant |
 | `MessageSinkFunction` | nop-message-core | ~15 行 | Pulsar、LocalMessage | 2PC（Pulsar） |
 | `JdbcTwoPhaseCommitSink` | nop-dao | ~200 行 | JDBC（多 DB 经 `IDialect`） | 2PC（epoch ledger 幂等 commit） |
-| `DebeziumCdcSourceFunction` | nop-message-debezium | ~30 行 | MySQL、PostgreSQL CDC | DrainableSource（设计） |
+| `DebeziumCdcSourceFunction` | nop-message-debezium | ~200 行 | MySQL、PostgreSQL CDC | DrainableSource + CheckpointedSourceFunction（CDC offset checkpoint/restore） |
+| `FileTwoPhaseCommitSink` | nop-stream-core | ~200 行 | text-line 文件 | 2PC（temp file + atomic rename + manifest） |
 
 **Split-based Source（FLIP-27 风格，Stage 49 起）**：
 
@@ -403,3 +431,6 @@ CDC `ChangeEvent` 的 `timestamp` 可作为事件时间戳，`key` 可用于 key
 6. **OperatorCoordinator 通用抽象 v1 bypass** — enumerator 硬接到 `JobCoordinator`/`CheckpointCoordinator`，未引入通用 `OperatorCoordinator` 抽象（§4.7 D7）；successor 由 sink global committer 等用例驱动
 7. **持续后台轮询发现 unbounded split（push 模型）deferred** — v1 仅支持 deploy/restore-time discovery + reader-driven pull（§4.4 D4）；successor 由 unbounded source 连接器 plan 驱动
 8. **`SourceWorkUnit` superseded** — 旧占位类标 `@Deprecated`，新代码用 `Source`/`SourceSplit` 接口（§4.0 D1）
+9. **Debezium 2.4.0 无 `DebeziumEngine.using(OffsetBackingStore)`** — CDC offset store 经 `offset.storage` FQCN 反射实例化 + connector-name registry 桥接实例（§5.4.2 D1）。successor：当 Debezium 版本升级暴露直接注入 API 时简化桥接
+10. **`ChangeEventMetadata` 不携带 raw Debezium source partition/offset map** — v1 offset 持久化完全由 `NopStreamOffsetBackingStore` 承担。successor：迁移 `DebeziumEngineWrapper` 到 `ChangeEventWithMetadata` + `ChangeConsumer` API 以支持 per-event offset 可观测性
+11. **文件 sink v1 为 per-checkpoint-epoch 单文件 + text-line** — 滚动策略（按大小/时间切分）与 format SPI（CSV/JSON/Parquet）为 successor
