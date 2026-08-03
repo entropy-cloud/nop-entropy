@@ -318,6 +318,48 @@ class MessageSinkFunction<T> implements SinkFunction<T> {
 
 Pulsar 支持事务，可实现 `TwoPhaseCommitSinkFunction` 提供 exactly-once 输出。
 
+### 5.3 JdbcTwoPhaseCommitSink（事务型 JDBC sink，Stage 52）
+
+#### 5.3.1 定位
+
+复用 `TwoPhaseCommitSinkFunction<IN>` 基础设施（已落地并充分测试），对 JDBC 目标实现 exactly-once 输出。每个 checkpoint epoch 映射一条 JDBC 事务：begin → 内存缓冲 → saveState 转入 pendingCommits → preCommit（仅校验）→ commit（新事务写数据+ledger）→ abort/rollback（丢弃内存）。
+
+#### 5.3.2 D1 裁定：内存缓冲模型（标准 JDBC 无 XA）
+
+**选了什么**：内存缓冲模型（buffer-in-memory），而非「preCommit flush 到 JDBC 连接」模型。
+
+**关键约束**：标准 JDBC `Connection` **不跨 JVM/task 死亡存活**——未提交写入在连接断开时被 DB 回滚。若在 preCommit 时把数据 flush 到一条 JDBC 连接，则该连接在 task 死亡时丢失，数据也被回滚——违反 exactly-once。
+
+**行为语义**：
+
+| 方法 | 行为 |
+|------|------|
+| `invoke(value)` | 追加到当前 epoch 的**内存**批次缓冲（不触 JDBC）。 |
+| `saveState(epochId)` | **覆盖基类**：先把当前内存批次经 `getPendingCommits().put(epochId, batch)` 转入 `pendingCommits[epochId]`（可序列化 `List<Map<String,Object>>`），清空内存缓冲，**再**调 `super.saveState(epochId)`——使该 epoch 批次在**本次** checkpoint 即被持久化（而非落后一个 epoch）。 |
+| `preCommit(epochId)` | 因 `saveState` 已完成转入，`preCommit` 仅做 no-op（不触 JDBC）。 |
+| `commit(epochId)` | 从 `getPendingCommits().get(epochId)` 读批次，**开一条新 JDBC 事务**（独立 `openConnection`，`autoCommit=false`），在同一 `connection.commit()` 内**原子**写数据 + 插入 ledger 行（`epoch_id` 主键），成功后从 `pendingCommits` 移除。 |
+| `rollback()` | 丢弃当前内存批次。 |
+| `abort(epochId)` | 丢弃 `pendingCommits[epochId]`（commit 前未触 JDBC，无需 DB 清理）。 |
+
+**saveState 先于 preCommit 的 live-code 顺序**：`StreamSinkOperator.processBarrier` 中 `saveState(epochId)`（`:78`）运行在 `prepareCommit(epochId)`→`preCommit`（`:88`）**之前**。若在 `preCommit` 才把批次转入 `pendingCommits`，则 `saveState(N)` 抓不到 epoch N 的批次（落后一个 epoch，restore 时该 epoch 数据永久丢失）。解决：覆盖 `saveState`。
+
+**subsuming 约束**：基类 `finishCommit(M,true)` 对每个 `eid<=M` 调 `commit(eid)`——每次 `commit(eid)` 是**独立** JDBC 事务（各自的 `openConnection`），**不共享 connection**，保证 per-epoch 原子性与 ledger 一致性。
+
+**幂等 commit 守卫**：`commit` 前在同一事务内查 ledger 表，若该 epoch 已记录则跳过写数据（recover-safe 重提交不产生重复数据）。ledger 表 `epoch_id` 为主键，DB 层面保证幂等。
+
+**拒绝的替代方案**：「preCommit flush 到 JDBC 连接」模型——标准 JDBC 连接不跨死亡存活，task 死亡时丢数据，违反 exactly-once。仅 XA 事务才支持跨死亡存活的事务恢复，但 XA 不在本 plan scope 内。
+
+#### 5.3.3 D2 裁定：模块放置
+
+**选了什么**：新建独立模块 `nop-stream-connector-jdbc`（compile 依赖 `nop-stream-core` + `nop-dao`）。
+
+**拒绝的替代方案**：放入 `nop-stream-connector-batch` 并新增 `nop-dao` compile 依赖。
+
+**理由**：
+- `nop-stream-connector-batch` 的 compile 依赖是 `nop-stream-core` + `nop-batch-core`（不含 `nop-dao`）。事务型 JDBC sink 不使用 `nop-batch-core` 的任何类型（`IBatchConsumer` / `IBatchLoader`），放入 batch 模块会引入不必要的传递依赖。
+- 已有模块边界先例：`nop-stream-connector-debezium` 独立于 `nop-stream-connector-batch`，各自只引入所需依赖。
+- 新模块不违反 AR-2：AR-2 只约束基模块 `nop-stream-connector`（不依赖 `nop-dao`/`nop-batch-jdbc`），不约束新模块。
+
 ### 5.3 DebeziumCdcSourceFunction
 
 ```java
@@ -342,6 +384,7 @@ CDC `ChangeEvent` 的 `timestamp` 可作为事件时间戳，`key` 可用于 key
 | `BatchConsumerSinkFunction` | nop-batch-core | ~60 行 | CSV、JSONL、ORM、JDBC | — |
 | `MessageSourceFunction` | nop-message-core | ~40 行 | Pulsar、LocalMessage | CheckpointParticipant |
 | `MessageSinkFunction` | nop-message-core | ~15 行 | Pulsar、LocalMessage | 2PC（Pulsar） |
+| `JdbcTwoPhaseCommitSink` | nop-dao | ~200 行 | JDBC（多 DB 经 `IDialect`） | 2PC（epoch ledger 幂等 commit） |
 | `DebeziumCdcSourceFunction` | nop-message-debezium | ~30 行 | MySQL、PostgreSQL CDC | DrainableSource（设计） |
 
 **Split-based Source（FLIP-27 风格，Stage 49 起）**：

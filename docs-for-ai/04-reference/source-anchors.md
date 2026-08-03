@@ -214,6 +214,7 @@
 | `STRM-030` | `nop-stream/nop-stream-core/src/main/java/io/nop/stream/core/jobgraph/OperatorChain.java` | 算子链融合容器（core/jobgraph）；`open()`/`close()` 生命周期，链内通过 `ChainingOutput` 直接调用，跨链走 `RecordWriter`/`InputGate` |
 | `STRM-031` | `nop-stream/nop-stream-core/src/main/java/io/nop/stream/core/operators/TimestampsAndWatermarksOperator.java` | 自动插入的 watermark 注入算子（core/operators）；按 `watermarkInterval`（默认 200ms）周期发射，`WatermarkStrategy` + `TimestampAssigner` + idle 标记 |
 | `STRM-032` | `nop-stream/nop-stream-cep/src/main/java/io/nop/stream/cep/operator/CepOperator.java` | CEP 算子（cep/operator）；`open()` 从 `stateBackend` 创建 `IKeyedStateBackend`（无配置时 fallback `MemoryKeyedStateBackend` + WARN），NFA state / element queue / SharedBuffer 全部落到 keyed state store |
+| `STRM-033` | `nop-stream/nop-stream-connector-jdbc/src/main/java/io/nop/stream/connector/jdbc/JdbcTwoPhaseCommitSink.java` | 事务型 JDBC sink（Stage 52）；extends `TwoPhaseCommitSinkFunction<IN>`，内存缓冲模型 + epoch ledger 幂等 commit，对 JDBC 目标实现 exactly-once 输出 |
 
 ## 当 `docs-for-ai` 仍有歧义时
 

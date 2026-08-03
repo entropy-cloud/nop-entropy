@@ -1,7 +1,9 @@
 # Stage 52 — 事务型 JDBC sink（两阶段提交）
 
-> Plan Status: active
+> Plan Status: completed
 > Last Reviewed: 2026-08-04
+> Phase 1 Status: completed
+> Phase 2 Status: completed
 > Source: `ai-dev/backlog/nop-stream-production-roadmap.md` Stage 52；`ai-dev/design/nop-stream/checkpoint-design.md` §6.4（restore 不变量）、§12（commit 不变量）、`:204,:755,:894`（幂等 commit）；`ai-dev/design/nop-stream/connector-design.md §2`
 > Related: Stage 48（Kafka IMessageService）、2PC 基础设施（`TwoPhaseCommitSinkFunction` + `CheckpointParticipant`，已落地并测试）
 
@@ -57,8 +59,8 @@
 
 ### Phase 1 - 行为语义裁定 + 模块放置 + Sink 骨架
 
-Status: planned
-Targets: `nop-stream/nop-stream-connector-batch/`（或新 `-jdbc`，按 D2）、`ai-dev/design/nop-stream/connector-design.md`
+Status: completed
+Targets: `nop-stream/nop-stream-connector-jdbc/`（新建模块，按 D2）、`ai-dev/design/nop-stream/connector-design.md`
 
 - Item Types: `Decision`、`Fix`
 
@@ -66,7 +68,7 @@ Targets: `nop-stream/nop-stream-connector-batch/`（或新 `-jdbc`，按 D2）�
 >
 > **执行顺序约束（live code 实测）**：`StreamSinkOperator.processBarrier` 中 `saveState(epochId)`（`:78`）运行在 `prepareCommit(epochId)`→`preCommit`（`:88`）**之前**。故若在 `preCommit` 才把批次转入 `pendingCommits`，则 `saveState(N)` 抓不到 epoch N 的批次（落后一个 epoch，restore 时该 epoch 数据永久丢失）。解决：**覆盖 `saveState(epochId)`**——先把当前内存批次转入 `pendingCommits[epochId]` 再调 `super.saveState`（经 public `getPendingCommits()`，字段为 private）。
 
-- [ ] **D1（行为语义 + 幂等 commit 策略）**：裁定内存缓冲模型（**注意 live 顺序：saveState 先于 preCommit**）：
+- [x] **D1（行为语义 + 幂等 commit 策略）**：裁定内存缓冲模型（**注意 live 顺序：saveState 先于 preCommit**）：
   - `invoke(value)`：追加到当前 epoch 的**内存**批次缓冲（不触 JDBC）。
   - **覆盖 `saveState(epochId)`**：先把当前内存批次经 `getPendingCommits().put(epochId, batch)`（字段 private，走 public getter）转入 `pendingCommits[epochId]`（可序列化记录批次），清空内存缓冲，**再**调 `super.saveState(epochId)`——使该 epoch 批次在**本次** checkpoint 即被持久化（而非落后一个 epoch）。这是避免 restore 丢数据的关键。
   - `preCommit(epochId)`：因 `saveState` 已完成转入，`preCommit` 仅做 flush 校验/惰性准备（若内存缓冲已空则 no-op）；**不写 JDBC**。（base 类 `prepareCommit`→`preCommit`；`saveState` 序列化 `pendingCommits`。）
@@ -74,52 +76,52 @@ Targets: `nop-stream/nop-stream-connector-batch/`（或新 `-jdbc`，按 D2）�
   - `rollback()`：丢弃当前内存批次。`abort(epochId)`：丢弃 `pendingCommits[epochId]`（commit 前未触 JDBC，无需 DB 清理）。
   - 幂等守卫：`commit` 前查 ledger，若该 epoch 已记录则跳过写数据（recover-safe 重提交不产生重复）。
   - **subsuming 约束**：base 类 `finishCommit(M,true)` 对每个 `eid<=M` 调 `commit(eid)`——每次 `commit(eid)` 是**独立** JDBC 事务，**不共享 connection**，保证 per-epoch 原子性与 ledger 一致性。
-  裁定写入 `connector-design.md`。
-- [ ] **D2（模块放置裁定）**：裁定放 `nop-stream-connector-batch`（新增 `nop-dao` compile 依赖）**或**新 `nop-stream-connector-jdbc` 模块。`nop-stream-connector-batch` 加 `nop-dao` 不违反 AR-2（AR-2 只约束基模块 `nop-stream-connector`），但需评估是否引入不必要的 batch 传递依赖；若评估为「sink 不应强依赖 batch」，则建新 `-jdbc` 模块。结论写入 plan + `connector-design.md`。
-- [ ] 实现 `JdbcTwoPhaseCommitSink` 骨架（按 D1）：extends `TwoPhaseCommitSinkFunction<IN>`，`beginTransaction`（预留/惰性开 connection）、`invoke`（内存缓冲）、**覆盖 `saveState`**（先 `getPendingCommits().put(epochId,batch)` 清缓冲，再 `super.saveState`）、`preCommit`（校验/惰性准备，不触 JDBC）、`commit(epochId)`（新事务写数据+ledger）、`rollback`/`abort`（丢弃内存/pending）。覆盖 `getSinkConsistency()` 返回 `TWO_PHASE_COMMIT`。
-- [ ] epoch ledger DDL（可移植，经 `IDialect`）：含 `epoch_id`（主键）、`committed_at` 等列；提供初始化 SQL。
+  裁定写入 `connector-design.md` §5.3.2。
+- [x] **D2（模块放置裁定）**：裁定建新 `nop-stream-connector-jdbc` 模块（compile 依赖 `nop-stream-core` + `nop-dao`）。理由：sink 不使用 `nop-batch-core`，放入 `nop-stream-connector-batch` 会引入不必要的 batch 传递依赖；已有先例（`nop-stream-connector-debezium` 独立模块）。不违反 AR-2（AR-2 只约束基模块 `nop-stream-connector`）。结论写入 `connector-design.md` §5.3.3。
+- [x] 实现 `JdbcTwoPhaseCommitSink` 骨架（按 D1）：extends `TwoPhaseCommitSinkFunction<IN>`，`beginTransaction`（惰性初始化 SQL/dialect）、`invoke`（内存缓冲）、**覆盖 `saveState`**（先 `getPendingCommits().put(epochId,batch)` 清缓冲，再 `super.saveState`）、`preCommit`（no-op，不触 JDBC）、`commit(epochId)`（新事务写数据+ledger）、`rollback`/`abort`（丢弃内存/pending）。覆盖 `getSinkConsistency()` 返回 `TWO_PHASE_COMMIT`。
+- [x] epoch ledger DDL（可移植，经 `IDialect`）：含 `epoch_id`（主键）、`committed_at` 等列；提供 `getLedgerTableDDL()` + `initializeLedgerTable()` 方法。
 
 Exit Criteria:
 
-- [ ] sink 骨架编译通过，`getSinkConsistency()` 返回 `TWO_PHASE_COMMIT`，被 `CheckpointPlanBuilder` 自动识别为 participant（有测试验证识别）。
-- [ ] `connector-design.md` 已记录 D1（内存缓冲模型 + subsuming 约束）与 D2（模块放置）裁定（最终设计状态）。
-- [ ] **无静默跳过**：未实现分支抛异常而非空方法体/吞异常。
-- [ ] 新增功能均有对应测试（骨架各路径、participant 识别各一条，Rule #25）。
-- [ ] `ai-dev/logs/` 对应日期条目已更新。
+- [x] sink 骨架编译通过，`getSinkConsistency()` 返回 `TWO_PHASE_COMMIT`，被 `CheckpointPlanBuilder` 自动识别为 participant（有测试验证识别——`testSinkIsCheckpointParticipant` + `testSinkRecognizedByStreamSinkOperatorAsParticipant` + instanceof `CheckpointParticipant`）。
+- [x] `connector-design.md` 已记录 D1（内存缓冲模型 + subsuming 约束，§5.3.2）与 D2（模块放置，§5.3.3）裁定（最终设计状态）。
+- [x] **无静默跳过**：未实现分支抛异常而非空方法体/吞异常（`invoke` null guard、constructor null guards；`commit` 中 pendingCommits 值类型不匹配抛异常）。
+- [x] 新增功能均有对应测试（骨架各路径 19 条测试，Rule #25）：`testGetSinkConsistencyReturnsTwoPhaseCommit`、`testSinkIsCheckpointParticipant`、`testBeginTransactionSucceeds`、`testInvokeBuffersInMemory`、`testPreCommitIsNoOp`、`testRollbackDiscardsBuffer`、`testAbortRemovesPendingEntry`、`testSaveStateMovesBufferToPendingCommits`、`testSaveStateClearsInMemoryBuffer`、`testCommitWithNoPendingBatchIsNoOp`、`testFullCycleCommitWritesDataAndLedger`、`testInitializeLedgerTableCreatesTable`、`testGetLedgerTableDDLProducesValidSQL`、constructor null-arg guards（5 条）。
+- [x] `ai-dev/logs/` 对应日期条目已更新。
 
 ### Phase 2 - 集成验证 + E2E exactly-once
 
-Status: planned
-Targets: `nop-stream/nop-stream-connector-batch/src/test/`、`nop-stream/nop-stream-runtime/src/test/`
+Status: completed
+Targets: `nop-stream/nop-stream-connector-jdbc/src/test/`、`nop-stream/nop-stream-runtime/src/test/`
 
 - Item Types: `Proof`、`Fix`
 
-- [ ] 单元测试：begin/invoke/preCommit/commit/rollback/abort 各路径；**`saveState` 顺序验证**（saveState 先于 preCommit：覆盖后的 `saveState(N)` 确把 epoch N 批次落入 `pendingCommits`，而非落后一个 epoch）；幂等 commit（重复 commit 同 epoch 不产生重复，验证 ledger 跳过）；abort 清理；`pendingCommits` 经 `saveState` 可序列化。
-- [ ] restore 路径测试：`restoreFromEpoch` 对 durable-but-uncommitted epoch 安全重提交（从 `pendingCommits` 重放、ledger 跳过已记录）、对 non-durable epoch abort（复用设计 §6.4 不变量）。
-- [ ] E2E（参考 `TestE2ETwoPhaseCommitSink` 模式）：source → `JdbcTwoPhaseCommitSink`，H2 内存库，多 checkpoint。**kill 时机须覆盖 preCommit 之后、finishCommit/commit 之前**（durable-but-uncommitted 窗口），恢复后断言目标表行数 = 源记录数，**无重复无丢失**（exactly-once 输出）。源须 replayable 以产生潜在重复供 ledger 去重。
-- [ ] 接线验证：sink 确经 `CheckpointCoordinator.notifyParticipantsFinishCommit` 逆拓扑序 finishCommit（经日志/断言）。
+- [x] 单元测试：begin/invoke/preCommit/commit/rollback/abort 各路径；**`saveState` 顺序验证**（saveState 先于 preCommit：覆盖后的 `saveState(N)` 确把 epoch N 批次落入 `pendingCommits`，而非落后一个 epoch——`testSaveStateCapturesEpochNInThisCheckpoint` + `testSaveStateLagByOneEpochIsAvoided`）；幂等 commit（重复 commit 同 epoch 不产生重复，验证 ledger 跳过——`testIdempotentCommitNoDuplicates` + `testIdempotentCommitGuardAcrossMultipleEpochs`）；abort 清理（`testAbortClearsPendingEntry` + `testAbortOnNonExistentEpochIsSafe`）；`pendingCommits` 经 `saveState` 可序列化（`testPendingCommitsSurviveSerializationRoundTrip`）。
+- [x] restore 路径测试：`restoreFromEpoch` 对 durable-but-uncommitted epoch 安全重提交（从 `pendingCommits` 重放、ledger 跳过已记录——`testRestoreFromEpochDurableReCommit` + `testRestoreFromEpochIdempotentForAlreadyCommittedEpoch`）、对 non-durable epoch abort（`testRestoreFromEpochNonDurableAbort`）、混合场景（`testRestoreFromEpochMixedDurableAndNonDurable`）。
+- [x] E2E（参考 `TestE2ETwoPhaseCommitSink` 模式）：source → `JdbcTwoPhaseCommitSink`，H2 内存库，多 checkpoint。**kill 时机覆盖 preCommit 之后、finishCommit/commit 之前**（durable-but-uncommitted 窗口——`testKillBeforeCommitRecoverExactlyOnce`），恢复后断言目标表行数 = 源记录数（5 rows），**无重复无丢失**（exactly-once 输出）。源 replay 产生潜在重复供 ledger 去重（`testSourceReplayLedgerEliminatesDuplicates`）。
+- [x] 接线验证：sink 确经 `CheckpointCoordinator.notifyParticipantsFinishCommit` 逆拓扑序 finishCommit（`testCoordinatorFinishCommitDrivesJdbcCommit`——coordinator acknowledgeTask → onCompletePersistSuccess → notifyParticipantsFinishCommit → sink.finishCommit → commit → JDBC write）。
 
 Exit Criteria:
 
-- [ ] **端到端验证**（Anti-Hollow 强制项）：source → JDBC sink 全路径，**kill 在 preCommit 后/commit 前**，recover 后 exactly-once（无重复/无丢失）断言通过——验证 §6.4 重提交路径被真实触发。
-- [ ] **接线验证**：sink 在运行时确被 coordinator finishCommit 调用（非仅类型存在）。
-- [ ] **无静默跳过**：所有 commit/abort 分支显式行为，未实现路径抛异常。
-- [ ] 新增功能均有对应测试（幂等 commit、pendingCommits 序列化、restore 重提交、E2E exactly-once 各一条）。
-- [ ] `connector-design.md` 已更新；`ai-dev/logs/` 收口记录已更新。
-- [ ] `./mvnw test -pl nop-stream/nop-stream-connector-batch -am` 与 `-pl nop-stream/nop-stream-runtime -am` 通过。
+- [x] **端到端验证**（Anti-Hollow 强制项）：source → JDBC sink 全路径，**kill 在 preCommit 后/commit 前**，recover 后 exactly-once（无重复/无丢失）断言通过——验证 §6.4 重提交路径被真实触发（`testKillBeforeCommitRecoverExactlyOnce`：5 records → saveState → kill → restore → restoreFromEpoch → 5 rows in JDBC, 0 duplicates）。
+- [x] **接线验证**：sink 在运行时确被 coordinator finishCommit 调用（非仅类型存在）（`testCoordinatorFinishCommitDrivesJdbcCommit`：coordinator → finishCommit → 5 rows in JDBC）。
+- [x] **无静默跳过**：所有 commit/abort 分支显式行为，未实现路径抛异常（constructor null guards、invoke null guard、commit type-mismatch guard）。
+- [x] 新增功能均有对应测试（幂等 commit `testIdempotentCommitNoDuplicates`、pendingCommits 序列化 `testPendingCommitsSurviveSerializationRoundTrip`、restore 重提交 `testRestoreFromEpochDurableReCommit`、E2E exactly-once `testKillBeforeCommitRecoverExactlyOnce` 各一条）。
+- [x] `connector-design.md` 已更新（§5.3 D1+D2）；`ai-dev/logs/` 收口记录已更新。
+- [x] `./mvnw test -pl nop-stream/nop-stream-connector-jdbc -am`（32 tests, 0 failures）与 `-pl nop-stream/nop-stream-runtime -am`（全量通过，含 4 E2E tests）通过。
 
 ## Closure Gates
 
-- [ ] `JdbcTwoPhaseCommitSink` 已落地，exactly-once JDBC 输出经 E2E 验证（recover 无重复/无丢失）。
-- [ ] 幂等 commit 守卫（epoch ledger）经测试验证 recover-safe 重提交。
-- [ ] 模块放置符合 AR-2（`nop-stream-connector` 不被污染）。
-- [ ] 受影响 owner docs（`connector-design.md`、`source-anchors.md`）已同步到 live baseline。
-- [ ] 不存在被静默降级到 deferred 的 in-scope live defect。
-- [ ] 独立子 agent / 独立审阅者 closure-audit 已完成并记录证据。
-- [ ] **Anti-Hollow Check**：sink 确在运行时被 coordinator 调用 finishCommit；commit/abort 无空方法体。
-- [ ] `./mvnw compile`
-- [ ] `./mvnw test -pl nop-stream -am -T 1C`
-- [ ] checkstyle / 代码规范检查通过
+- [x] `JdbcTwoPhaseCommitSink` 已落地，exactly-once JDBC 输出经 E2E 验证（recover 无重复/无丢失）。
+- [x] 幂等 commit 守卫（epoch ledger）经测试验证 recover-safe 重提交。
+- [x] 模块放置符合 AR-2（`nop-stream-connector` 不被污染）。
+- [x] 受影响 owner docs（`connector-design.md`、`source-anchors.md`）已同步到 live baseline。
+- [x] 不存在被静默降级到 deferred 的 in-scope live defect。
+- [x] 独立子 agent / 独立审阅者 closure-audit 已完成并记录证据。
+- [x] **Anti-Hollow Check**：sink 确在运行时被 coordinator 调用 finishCommit；commit/abort 无空方法体。
+- [x] `./mvnw compile`
+- [x] `./mvnw test -pl nop-stream -am -T 1C`
+- [x] checkstyle / 代码规范检查通过
 
 ## Deferred But Adjudicated
 
@@ -133,9 +135,36 @@ Exit Criteria:
 
 ## Closure
 
-Status Note: （收口时填写）
-Completed:（收口时填写）
+Status Note: `JdbcTwoPhaseCommitSink` 已落地（新 `nop-stream-connector-jdbc` 模块），对 JDBC 目标实现 exactly-once 输出。内存缓冲模型（覆盖 saveState 先于 preCommit 把批次入 pendingCommits）+ epoch ledger 幂等 commit + subsuming 独立事务确保 kill/recover 后无重复无丢失。独立子 agent closure audit 验证所有 Exit Criteria 和 Closure Gates 通过，Anti-Hollow 调用链（coordinator → finishCommit → commit → JDBC write）在运行时连通。
+Completed: 2026-08-04
 
-Closure Audit Evidence:（收口时填写，见 guide Closure Audit Rule）
+Closure Audit Evidence:
 
-Follow-up:（收口时填写）
+- Reviewer / Agent: 独立子 agent（explore type），task ID `ses_036d9c715ffeyB3X6vcGx2FZzU`
+- Audit Session: fresh session，不复用实现阶段 session
+- Evidence:
+  - Phase 1 Exit Criteria: 全部 PASS
+    - EC-P1.1: `JdbcTwoPhaseCommitSink.java:70` extends `TwoPhaseCommitSinkFunction<IN>` → `implements CheckpointParticipant`；`getSinkConsistency()` returns `TWO_PHASE_COMMIT`（`:283-285`）；`CheckpointPlanBuilder.java:135,182,218` auto-detects
+    - EC-P1.2: `testSinkIsCheckpointParticipant` + `testSinkRecognizedByStreamSinkOperatorAsParticipant` 验证 participant 识别
+    - EC-P1.3: `connector-design.md` §5.3.2 (D1) + §5.3.3 (D2) 已记录
+    - EC-P1.4: constructor null guards（`jdbcTemplate`/`tableName`/`columnNames`/`recordMapper`）+ `invoke` null guard + `commit` type-mismatch guard
+    - EC-P1.5: `ai-dev/logs/2026/08-04.md` Stage 52 条目已更新
+  - Phase 2 Exit Criteria: 全部 PASS
+    - EC-P2.1: `testSaveStateCapturesEpochNInThisCheckpoint` + `testSaveStateLagByOneEpochIsAvoided`（saveState 顺序验证）
+    - EC-P2.2: `testIdempotentCommitNoDuplicates` + `testIdempotentCommitGuardAcrossMultipleEpochs`（ledger 幂等）
+    - EC-P2.3: `testRestoreFromEpochDurableReCommit` + `testRestoreFromEpochNonDurableAbort` + `testRestoreFromEpochMixedDurableAndNonDurable`（§6.4 不变量）
+    - EC-P2.4: `testKillBeforeCommitRecoverExactlyOnce`（kill preCommit→commit 窗口，recover → 5 rows exact）
+    - EC-P2.5: `testCoordinatorFinishCommitDrivesJdbcCommit`（coordinator → finishCommit → 5 JDBC rows）
+    - EC-P2.6: `preCommit` 设计性 no-op（work moved to saveState override）；`commit`/`abort`/`rollback` 均有实际逻辑
+  - Closure Gates: 全部 PASS
+    - G3 AR-2: `nop-stream-connector/pom.xml` 不依赖 `nop-dao`；`nop-stream-connector-jdbc/pom.xml` 依赖 `nop-dao`
+    - G7 Anti-Hollow: `CheckpointCoordinator.java:1054-1059` → `TwoPhaseCommitSinkFunction.java:95-115` → `JdbcTwoPhaseCommitSink.java:191-266`（real JDBC writes）
+  - 测试统计: 36 tests（Skeleton 19 + Deep 13 + E2E 4），0 failures, 0 errors
+  - `./mvnw test -pl nop-stream -am -T 1C` → BUILD SUCCESS（全模块绿）
+
+Follow-up:
+
+- 通用 WAL sink（用于非事务型 JDBC 目标）— successor plan
+- Pulsar txn sink（非 JDBC 事务型）— successor plan
+- ledger 方案升级为可配置策略（stored-proc / outbox pattern）— optimization candidate
+- no remaining plan-owned live defect
