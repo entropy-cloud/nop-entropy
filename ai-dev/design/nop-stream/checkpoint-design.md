@@ -178,7 +178,7 @@ Coordinator 收齐所有 task snapshot 后生成 epoch manifest。manifest 是�
 | `requirements` | 恢复时校验 backend 能力 |
 | `taskSnapshots` | task 到 state segment 的映射 |
 | `sourceOffsets` | source split offset 汇总 |
-| `sourceEnumeratorSnapshots` | source split registry、assignment、finished split、discovery cursor |
+| `sourceEnumeratorSnapshots` | source split registry、assignment、finished split、discovery cursor（§5.3 6-state 分解）。Stage 49 起落地为代码：`EpochManifest.sourceEnumeratorSnapshots` section，keyed by source vertex id，序列化经 `Source.getEnumeratorStateSerializer()` |
 | `sinkTransactions` | sink pending transaction 汇总 |
 | `participantStates` | operatorId → CheckpointParticipantState |
 | `stateFormatVersion` | 状态格式版本 |
@@ -187,6 +187,8 @@ Coordinator 收齐所有 task snapshot 后生成 epoch manifest。manifest 是�
 | `segments` | 增量 checkpoint 引用的内容寻址 SST 片段列表（`List<StateSegmentDescriptor>`）。非增量 checkpoint / memory backend 时为空列表；激活于 Stage 31 |
 
 Manifest 必须先于 `notifyCheckpointComplete` 持久化完成。Sink commit 只能发生在 manifest durable 之后。
+
+**`sourceEnumeratorSnapshots` 字段（Stage 49 落地）**：本字段承载 FLIP-27 source enumerator 的 coordinator-side state（§5.3 权威分解）。Stage 49 前，本字段在 manifest 设计中存在但代码层未消费（coordinator-state checkpoint 槽位为空）；Stage 49 起，`CheckpointCoordinator` 在 `buildEpochManifest` 时调用各 source 的 `enumerator.snapshotState(epochId)` 写入本 section，restore 时按 §5.3 规则重建。字段名统一为 `sourceEnumeratorSnapshots`（设计层非新发明，落地 §5.3 已有设计为代码）。
 
 **`segments` 与 `codec` 值集（Stage 31）**：增量 checkpoint 激活 `EpochManifest.segments`。每个 `StateSegmentDescriptor` 携带 `segmentType` / `path` / `codec` / `checksum` / `schemaVersion`：
 
@@ -666,14 +668,20 @@ Split assignment 必须进入 `PartitionedPlan` 或其运行时可持久化扩�
 - 当前 task 级 ACK 对当前 task 级算子模型已充分：每个 `TaskLocation` 独立 ACK，coordinator 汇齐所有 task ACK 后完成 epoch。不存在需要 job-level 状态（如 split 分配、global commit）的 operator。
 - Sink 的 commit 当前由 per-task `CheckpointParticipant.finishCommit` 承担（§6.3/§12），尚未需要独立的 global committer。
 
-**Successor 范围（Stage 49 Source split 或独立 successor）**：
+**Stage 49 落地范围与 bypass 裁定（D7）**：
 
-1. 引入 `OperatorCoordinator` 抽象（非并行、job-level、checkpoint 状态独立于 task 状态，coordinator 侧持有并单独 ACK）。
-2. Source enumerator state checkpointing（本 §5.3 的 discovered/unassigned/assigned/finished splits + discovery cursor）。
+Stage 49 落地了 §5.3.1 successor scope 的**第 (2) 项**：source enumerator state checkpointing（本 §5.3 的 discovered/unassigned/assigned/finished splits + discovery cursor + pending acknowledgements），代码层表现为 `EpochManifest.sourceEnumeratorSnapshots` section（§2.6 manifest 字段已落地）。
+
+**v1 不引入通用 `OperatorCoordinator` 抽象（successor scope 第 (1) 项）**。Stage 49 的 enumerator 硬接到 `JobCoordinator`/`CheckpointCoordinator`（非经通用 `OperatorCoordinator` 中间层）。裁定理由：单 source 用例不足以驱动通用抽象（避免空壳抽象违反 plan guide #24「不引入无第二消费者的空壳抽象」）；successor（如下述第 (3) 项 sink global committer）再引入 `OperatorCoordinator` 并把硬接路径重构到抽象下。
+
+**Successor 范围（Stage 49 已落地第 (2) 项，余项仍 open）**：
+
+1. ~~引入 `OperatorCoordinator` 抽象~~（**deferred**：v1 bypass，见上 D7 裁定；successor 由下一项驱动）
+2. ~~Source enumerator state checkpointing（本 §5.3 的 6-state 分解）~~（**Stage 49 已落地**：`EpochManifest.sourceEnumeratorSnapshots` section + `CheckpointCoordinator` coordinator-state checkpoint 段 + §5.3 6-state restore 规则）
 3. Sink global committer（§6 的 `TWO_PHASE_COMMIT` global commit coordinator，跨 subtask 聚合）。
 4. coordinator 侧 operator 级 ACK 追踪：`OperatorCoordinator` 持有独立 checkpoint 状态，与 task 级 ACK 并行汇齐。
 
-**对 baseline 的影响**：无。当前 task 级 ACK 语义完整且已充分测试；`OperatorCoordinator` 从始至终是 source split / sink global commit 的前置依赖，不是 exactly-once 正确性的独立前置条件。
+**对 baseline 的影响**：无回归。当前 task 级 ACK 语义完整且已充分测试；`OperatorCoordinator` 从始至终是 source split / sink global commit 的前置依赖，不是 exactly-once 正确性的独立前置条件。Stage 49 v1 bypass 为 intentional，successor path 明确。
 
 ### 5.4 Source Offset Cut
 

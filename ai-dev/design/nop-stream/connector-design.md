@@ -122,124 +122,154 @@ class BatchConsumerSinkFunction<R> implements SinkFunction<R>, AutoCloseable {
     └───────────┴───────────┴───────────┴────────────┘
 ```
 
-## 4. SourceWorkUnit 协议
+## 4. Split-based Source 协议（FLIP-27 风格）
 
-分布式场景下，Source Split 升级为 `SourceWorkUnit`，支持动态拆分、进度追踪、watermark 状态恢复和 drain 截断。
+分布式场景下，source 采用 **FLIP-27 风格的 split-based 架构**：`Source` / `SplitEnumerator` / `SourceReader` / `SourceSplit` 四个核心契约，配合 whole-split assignment（整数 split 分配给 reader，不做 fraction 拆分）。
 
-### 4.1 SourceWorkUnit 结构
+### 4.0 范式裁定（Stage 49 D1）
 
-```java
-class SourceWorkUnit {
-    String sourceId;
-    String splitId;
-    Restriction restriction;
-    Coder<Restriction> restrictionCoder;
-    TaskLocation owner;
-    long sizeEstimate;
-    Object progress;
-    Object watermarkEstimatorState;
-}
+**选了什么**：FLIP-27 风格（whole-split assignment）。`Source<OUT,SplitT,EnumStateT>` 工厂创建 `SplitEnumerator<SplitT,StateT>`（coordinator 侧，单点）和 `SourceReader<OUT,SplitT>`（task 侧，每并行实例一个）。Split 是不可分割的整体，由 enumerator 整数分配给 reader，reader 持有整个 split 的 cursor（offset/position）。
+
+**拒绝的范式（Beam-SDF）及逐项裁定**：
+
+| Beam-SDF 元素 | 裁定 | 理由 |
+|---------------|------|------|
+| `RestrictionTracker<R>` + `tryClaim(restriction, position)` | **reject** | FLIP-27 无 fraction-splitting，whole-split assignment 不需要 restriction 内的位置声明；reader 直接消费整个 split 的 cursor |
+| `DynamicSplitRequest{fraction}` + `DynamicSplitResponse{primary,residual}` | **reject** | fraction-splitting 引入跨 reader 的 split stealing 复杂度，与 v1 Non-Goal「跨运行 reader 的弹性 split 再分配」冲突；whole-split assignment 已满足 v1 scope |
+| `WatermarkEstimator` | **defer（v1 Non-Goal successor）** | source 侧 watermark estimation 是独立的 watermark 推进模型，与现有 `TimestampsAndWatermarksOperator` 路径不重叠；v1 不引入以避免两套 watermark 路径并存 |
+| `SourceEvent` 自定义 coordinator↔reader 事件 | **defer（v1 Non-Goal successor）** | FLIP-27 自定义事件通道用于高级协调（如动态 partition 发现通知）；v1 走 pull 模型（`handleSplitRequests`）已满足动态 split 发现的最小语义 |
+| `DrainableSource` marker | **保留** | 与 §5.3 既有 drain 语义对齐；unbounded source 实现 `DrainableSource` 可在 `JobTerminationMode.DRAIN` 时截断为有限，未实现则拒绝 DRAIN（要求 CANCEL） |
+| `SourceWorkUnit` 占位类（`io.nop.stream.core.connector.SourceWorkUnit`） | **superseded** | 标 `@Deprecated`。新 `Source` 契约（§4.1）取代其语义；保留类是为了向后兼容已序列化的旧 savepoint（如有），新代码一律用新接口 |
+
+**为什么选 FLIP-27 而非 Beam-SDF**：
+- roadmap Stage 49 明确要求「FLIP-27 风格」
+- Flink FLIP-27 的 whole-split assignment 与 nop-stream 现有 `SourceEnumerator`（concrete，6-state）+ `SourceEnumeratorState` 数据结构同构（`SourceEnumeratorState.java:22` 的 discovered/unassigned/assigned/finished/pending-ack/discovery-cursor 6 字段即 §5.3 6-state 分解），改造为接口体系代价最小
+- Beam-SDF 的 restriction tracker 在没有 split stealing/fraction 需求时引入无收益的复杂度（违反 plan guide #24「不引入无第二消费者的空壳抽象」）
+
+### 4.1 核心契约（接口定义见源码）
+
+```
+Source<OUT, SplitT extends SourceSplit, EnumStateT>
+  +createEnumerator(ctx): SplitEnumerator<SplitT, EnumStateT>     // coordinator 侧，无并行
+  +restoreEnumerator(ctx, state): SplitEnumerator<SplitT, EnumStateT>
+  +createReader(ctx): SourceReader<OUT, SplitT>                    // task 侧，每并行一个
+  +getEnumeratorStateSerializer(): SimpleVersionedSerializer<EnumStateT>
+  +getSplitSerializer(): SimpleVersionedSerializer<SplitT>
+  +getBoundedness(): Boundedness
+
+SplitEnumerator<SplitT, StateT>
+  +start()                                                          // 部署后启动
+  +handleSplitRequest(int subtaskIndex, Optional<Throwable> reason) // reader pull 模型
+  +addReader(int subtaskIndex)                                       // reader 注册
+  +snapshotState(long checkpointId): StateT                          // coordinator checkpoint
+  +close()
+
+SourceReader<OUT, SplitT>
+  +start()                                                          // task 线程启动
+  +addSplits(List<SplitT> splits)                                    // 接收 enumerator 分配
+  +handleNoRecordAvailable()                                         // idle 回调
+  +pollNext(): Optional<OUT>                                         // 主循环拉取
+  +notifyCheckpointComplete(long checkpointId)
+  +snapshotState(long checkpointId): List<SplitT>                    // per-split cursor（task operator state）
+  +restoreState(List<SplitT> splits)                                 // 恢复 split cursor
+  +close()
+
+SourceSplit                                                        // 接口（非 concrete）
+  +splitId(): String
 ```
 
-### 4.2 RestrictionTracker
+**新增 `addSource(Source,...)` 入口**与既有 `addSource(SourceFunction,...)` 并列（D5 Transformation 路由裁定见 §4.3）。
 
-`RestrictionTracker` 封装 work-unit 的处理进度和游标管理：
+### 4.2 Split 下发机制（D3）
 
-```java
-interface RestrictionTracker<R> {
-    boolean tryClaim(R restriction, long position);
-    R getRestriction();
-    Object getProgress();
-    Object snapshotWatermarkEstimatorState();
-}
+**裁定**：初始 split **deploy 后经控制 RPC 下发**，**不嵌入** `TaskDeploymentDescriptor`。
+
+**理由**：`TaskDeploymentDescriptor`（Stage 42）按设计**不携带 live runtime 对象**——它只携带算子模板与配置，split 是动态发现的运行时数据。把 split 塞进 descriptor 会破坏 descriptor 的「静态模板」语义，并要求 split 在 deploy 时就完全已知（违反「动态发现」目标）。
+
+**下发流程**（控制面，基于 Stage 39 RPC）：
+
+```
+1. deployTask 部署 SourceReaderOperator 到各 subtask（不带 split）
+2. coordinator 调 Source.createEnumerator() 创建 enumerator（coordinator 侧，单点）
+3. enumerator.start() 执行初始 split 发现
+4. coordinator 经控制 RPC（Stage 39 IStreamTaskRpcService）调各 subtask 的 SourceReader.addSplits(initialSplits)
+5. reader 启动后经控制 RPC 调 enumerator.handleSplitRequest(subtaskIndex) 拉取更多 split（pull 模型）
+6. reader 完成 split 后上报 finished split（经控制 RPC），enumerator 更新 finished 集合
 ```
 
-每个 connector 定义自己的 `Restriction` 类型（如 `FileSourceRestriction` 包含 filePath + startOffset + endOffset），并提供对应的 `RestrictionTracker` 实现。
+**LOCAL 模式**（单进程）：coordinator 与 task 在同进程，控制 RPC 退化为直接方法调用（经 `MailboxExecutor` 投递 mail 到 task 线程，保证线程安全）。
 
-### 4.3 DynamicSplit
+**DISTRIBUTED 模式**：经 Stage 39 跨 JVM 控制面 RPC（`StreamControlRpcServer`/`StreamControlRpcProxyFactory`），fencing token 校验同 §2.1.2。
 
-**协议**：
+### 4.3 Transformation 路由裁定（D5）
 
-```java
-class DynamicSplitRequest {
-    double fraction;  // 0.0 - 1.0
-}
+**裁定**：新增独立 `SourceApiTransformation`（与既有 `SourceTransformation` 并列），`StreamGraphGenerator` 新增 `instanceof` 分支构建 `SourceReaderOperatorFactory`。
 
-class DynamicSplitResponse<R> {
-    R primary;    // 当前 task 继续
-    R residual;   // 移交给新 task
-    // 不变式：primary ∩ residual = ∅, primary ∪ residual = original
-}
-```
+**理由**：
+- 既有 `SourceTransformation` 持 `private final SourceFunction<OUT>`，类型已固定为 SourceFunction 路径；混入 `Source` 路径会污染既有 SourceFunction 编译期类型契约
+- `StreamSourceOperator`（既有）专为 `SourceFunction.run(SourceContext)` 的 push 模型设计（mailbox 经 `SourceContext.collect()` emission 点 drain），与新 `SourceReader.pollNext()` 的 pull 模型执行循环不兼容
+- 新增独立 transformation + operator 允许两套路径并存且互不污染（既有 SourceFunction 连接器零回归）
 
-**触发时机**：
+### 4.4 动态 split 发现分配裁定（D4）
 
-| 触发方 | 条件 | fraction |
-|--------|------|----------|
-| JobCoordinator | 负载均衡：某 source task 进度落后超阈值 | 0.5 |
-| JobCoordinator | 扩缩容：用户请求增加并行度 | 当前行度 / 目标行度 |
-| JobCoordinator | Drain：作业进入 DRAIN 模式 | 当前进度 / 总量估算 |
+**roadmap deliverable**「动态 split 发现分配」的最小实现 = **deploy + restore-time discovery** + **reader-driven `handleSplitRequest` pull 模型**。
 
-Connector 必须提供 `Restriction.split(double fraction)` 方法，拆分后的 primary 和 residual 必须 disjoint 且 complete。
+- **deploy/restore-time discovery**：enumerator 在 `start()` / `restoreState()` 时执行一次性 split 发现（如目录扫描、partition enumeration）
+- **reader-driven pull**：reader 完成当前 split 后经 `handleSplitRequest(subtaskIndex)` 向 enumerator 拉取更多 split
 
-### 4.4 DrainTruncate
+**Deferred（optimization candidate）**：持续后台轮询发现 unbounded split（push 模型完整调度）。理由：v1 参考 source 为 bounded（`FileSource`），无 unbounded 触发源；引入无触发源的空调度违反 plan guide #24。successor 由 unbounded source 连接器 plan 驱动（如真实 Kafka partition-as-split）。
 
-Drain 时将无限 source 截断为有限 primary + residual：
+### 4.5 旧 concrete 收敛策略（D6）
 
-```java
-interface DrainableSource<R> {
-    DynamicSplitResponse<R> truncateForDrain(R restriction);
-}
-```
+| 旧 concrete | 处置 | 新归属 |
+|------------|------|--------|
+| `SourceSplit`（concrete，`runtime/.../source/SourceSplit.java`） | 提升为接口 | 旧字段保留为默认实现 `SimpleSourceSplit`（splitId/description/cursor 三字段） |
+| `SourceEnumerator`（concrete，326 行） | 删除 | 语义由新 `SplitEnumerator` 接口 + coordinator 实现（RoundRobinSplitEnumerator）承担 |
+| `TestSourceEnumerator` / `TestDistributedExactlyOnce` 相关断言 | 迁移到新体系 | 改测 `SimpleSourceSplit` + 新 coordinator 路径 |
 
-**触发时机**：JobCoordinator 收到 `JobTerminationMode.DRAIN` 信号时调用。
+**不保留两套竞争系统**：旧 concrete 删除后，`SourceSplit`（接口）+ `SimpleSourceSplit`（默认实现）是唯一的 split 类型；`SplitEnumerator`（接口）+ 各 source 的具体 enumerator 实现是唯一的 enumerator 类型。
 
-**不支持 drain 的处理**：
+### 4.6 Coordinator-state Checkpoint 落地（D2，复用 §2.6/§5.3 设计）
 
-| Source 类型 | DRAIN 行为 |
-|------------|-----------|
-| 实现 `DrainableSource` | 调用 `truncateForDrain()`，处理 primary 后结束 |
-| `BoundedSource` | 等待自然结束 |
-| Unbounded 且不实现 `DrainableSource` | **拒绝 DRAIN**，要求使用 CANCEL 模式 |
+**确认 `checkpoint-design.md §2.6`（manifest 字段 `sourceEnumeratorSnapshots`）+ §5.3（6-state 分解：discovered/unassigned/assigned/finished/pending-ack/discovery-cursor + restore 规则）为权威分解**。
 
-### 4.5 WatermarkEstimator
+**代码层落地**（设计层非新发明）：
+- `EpochManifest` 新增 `sourceEnumeratorSnapshots` section（keyed by source vertex id），字段名与 §2.6 统一
+- `CheckpointCoordinator` checkpoint 时调用各 source 的 `enumerator.snapshotState(epochId)` 写入该 section
+- restore 时按 §5.3 规则重建 enumerator（先恢复 enumerator state，再恢复 reader split cursor）
+- 序列化形式：经 `Source.getEnumeratorStateSerializer()`（`SimpleVersionedSerializer<EnumStateT>`），与 split serializer 同构
 
-Source 的 watermark 估计器状态必须进入 checkpoint 以支持恢复后正确推进 watermark：
+**这是落地已有设计为代码（代码层新机制，设计层非新发明）**。
 
-```java
-interface WatermarkEstimator {
-    void observe(Object record, long timestamp);
-    long getCurrentWatermark();
-    Object snapshotState();
-    void restoreState(Object state) throws IncompatibleStateVersionException;
-}
-```
+### 4.7 OperatorCoordinator 抽象 bypass 裁定（D7）
 
-**版本兼容性**：状态通过 `majorVersion.minorVersion` 标识。主版本不一致时恢复失败并抛出 `IncompatibleStateVersionException`。Connector 升级后 state 格式不兼容必须增加 major version。
+`checkpoint-design.md §5.3.1` G35 把 Stage 49 successor scope 列为「(1) 引入 `OperatorCoordinator` 抽象 + (2) source enumerator state checkpointing」两项。**v1 只做 (2)**：enumerator 硬接到 `JobCoordinator`/`CheckpointCoordinator`，**不引入通用 `OperatorCoordinator` 抽象**。
 
-**集成到 Checkpoint**：`TaskEpochSnapshot` 增加 `Map<String, Object> watermarkEstimatorStates`（sourceId → state）。
+**裁定**：v1 bypass 为 intentional。理由：单 source 用例不足以驱动通用抽象（避免空壳抽象违反 plan guide #24）；successor（如 sink global committer §5.3.1 item #3）再引入 `OperatorCoordinator` 并把硬接路径重构到抽象下。
 
-### 4.6 Split Assignment Recovery 协议
+**Successor path**：引入 `OperatorCoordinator` 的后续 plan（可能由 transactional JDBC sink Stage 52 或其它 global-committer 用例驱动）。
+
+### 4.8 Split Assignment Recovery 协议
 
 分布式 source checkpoint 涉及三方状态，恢复时必须正确协调：
 
 | 状态 | 持有者 | 内容 | Checkpoint 时机 |
 |------|--------|------|----------------|
-| **Enumerator State** | SourceEnumerator（JobCoordinator 侧） | 已发现 split、未分配 split、发现游标、内部簿记 | `snapshotState(epochId)` → 写入 Epoch Manifest |
-| **Reader Split Cursor** | SourceReader（TaskManager 侧） | 当前持有 split 的读取位置 | reader 的 `snapshotState(epochId)` → 写入 TaskEpochSnapshot |
-| **Assignment Tracker** | SourceEnumerator（JobCoordinator 侧） | `[epochId → [subtaskId → Set<Split>]]` 已下发但 reader 尚未 checkpoint 确认的 split | 与 Enumerator State 同步快照 |
+| **Enumerator State** | SplitEnumerator（JobCoordinator 侧） | 6-state 分解（§5.3）：discovered/unassigned/assigned/finished/pending-ack/discovery-cursor | `snapshotState(epochId)` → 写入 `EpochManifest.sourceEnumeratorSnapshots` section |
+| **Reader Split Cursor** | SourceReader（TaskManager 侧） | 当前持有 split 的读取位置（per-split cursor） | reader 的 `snapshotState(epochId)` → 写入 `TaskEpochSnapshot`（task operator state） |
+| **Assignment Tracker** | SplitEnumerator（JobCoordinator 侧） | 已下发但 reader 尚未 checkpoint 确认的 split（即 §5.3 的 `pending acknowledgements`） | 与 Enumerator State 同步快照（同一 `snapshotState` 调用） |
 
 **核心问题**：split 在 epoch N 之后、epoch N+1 之前下发给 reader，reader 在 epoch N+1 之前失败。此时：
 - Enumerator 已将该 split 从"未分配"移到"已分配"
 - Reader 恢复到 epoch N 的状态，**不持有**这个 split
 - 如果不做特殊处理，该 split 会丢失
 
-**恢复流程**：
+**恢复流程**（§5.3 restore 规则）：
 
 ```
-1. Coordinator 从 Epoch Manifest 恢复 Enumerator State
+1. Coordinator 从 EpochManifest.sourceEnumeratorSnapshots 恢复 Enumerator State
 2. Coordinator 从 TaskEpochSnapshot 恢复各 reader 的 split cursor
-3. Coordinator 从 Assignment Tracker 中取出 epoch > N 的下发记录
+3. Coordinator 从 pending acknowledgements 中取出 epoch > N 的下发记录
    └── 这些 split 已下发但 reader 未在恢复点确认
 4. 对每个"孤儿 split"：
    a. 如果 reader 恢复后报告了该 split（cursor 已包含）→ 正常，无需操作
@@ -248,32 +278,9 @@ interface WatermarkEstimator {
 6. Coordinator 根据注册信息和归还的 split 重新分配
 ```
 
-**Assignment Tracker 数据结构**：
-
-```java
-class SplitAssignmentTracker {
-    // epochId → (subtaskId → 已下发但未确认的 split 集合)
-    Map<Long, Map<Integer, Set<SourceSplit>>> pendingAssignments;
-
-    void recordAssignment(long epochId, int subtaskId, SourceSplit split);
-    void confirmAssignment(long epochId, int subtaskId, SourceSplit split);
-    Set<SourceSplit> getUnconfirmedSplits(long upToEpochId, int subtaskId);
-}
-```
-
 **与 checkpoint-design.md §5.3 的对应关系**：
 
-checkpoint-design.md §5.3 定义的 enumerator state（discovered / unassigned / assigned / finished / pending acknowledgements / discovery cursor）中，`pending acknowledgements` 就是本节的 `SplitAssignmentTracker.pendingAssignments`。恢复时 `getUnconfirmedSplits()` 的返回值回填到 `unassigned` 集合。
-
-**SplitOwnershipModel**：
-
-| 模式 | 行为 | 适用场景 |
-|------|------|---------|
-| `STICKY`（默认） | 恢复后 split 优先归还给原 owner subtask | Kafka partition 消费，本地缓存预热 |
-| `REASSIGN` | 恢复后 split 全部归还 Enumerator 重新分配 | 文件 source，需要负载均衡 |
-| `FIXED` | 恢复后 split 必须归还原 owner，owner 不在则等待 | 有序消费场景 |
-
-Connector 通过 `SourceWorkUnit.ownershipModel` 声明。`STICKY` 和 `REASSIGN` 的区别仅在于 Coordinator 是否优先将归还 split 分配给原 owner。
+§5.3 定义的 enumerator state 6 字段中，`pending acknowledgements` 即本节的 assignment tracker。恢复时孤儿 split 回填到 `unassigned` 集合。**§5.3 是权威分解**，本节是其恢复流程的操作化描述。
 
 ## 5. 消息队列与 CDC 适配
 
@@ -335,12 +342,21 @@ CDC `ChangeEvent` 的 `timestamp` 可作为事件时间戳，`key` 可用于 key
 | `BatchConsumerSinkFunction` | nop-batch-core | ~60 行 | CSV、JSONL、ORM、JDBC | — |
 | `MessageSourceFunction` | nop-message-core | ~40 行 | Pulsar、LocalMessage | CheckpointParticipant |
 | `MessageSinkFunction` | nop-message-core | ~15 行 | Pulsar、LocalMessage | 2PC（Pulsar） |
-| `DebeziumCdcSourceFunction` | nop-message-debezium | ~30 行 | MySQL、PostgreSQL CDC | DrainableSource |
+| `DebeziumCdcSourceFunction` | nop-message-debezium | ~30 行 | MySQL、PostgreSQL CDC | DrainableSource（设计） |
+
+**Split-based Source（FLIP-27 风格，Stage 49 起）**：
+
+| Source | 模块 | 范围 | 分布式能力 |
+|---|---|---|---|
+| `FileSource`（bounded 参考 source） | `nop-stream-connector` | 目录→文件 split 枚举、按字节 offset cursor | split-based 并行读，coordinator-state checkpoint（§4.6） |
 
 ## 7. 已知限制
 
-1. **Kafka IMessageService 适配器未实现** — `nop-message-kafka` 模块为空
+1. **Kafka IMessageService 适配器未实现** — `nop-message-kafka` 模块为空（Stage 48 已实现 `KafkaMessageService`，partition-as-split Source 是后续连接器 plan）
 2. **消息 Source 的背压** — 当前无背压机制，依赖消息系统 ACK 隐式背压
 3. **IBatchChunkContext 传 null** — `BatchConsumerSinkFunction` 的 consume 调用传 null，丢失 chunk 级统计
 4. **ORM Source 全表扫描** — 增量读取需配置时间戳过滤或自增 ID 范围
-5. **BatchLoaderSourceFunction 不支持 DynamicSplit** — 批数据源是有限的，不需要动态拆分
+5. **BatchLoaderSourceFunction 不支持 split 拆分** — 批数据源是有限的，whole-split assignment 已足够；fraction-splitting 经 §4.0 D1 裁定 reject
+6. **OperatorCoordinator 通用抽象 v1 bypass** — enumerator 硬接到 `JobCoordinator`/`CheckpointCoordinator`，未引入通用 `OperatorCoordinator` 抽象（§4.7 D7）；successor 由 sink global committer 等用例驱动
+7. **持续后台轮询发现 unbounded split（push 模型）deferred** — v1 仅支持 deploy/restore-time discovery + reader-driven pull（§4.4 D4）；successor 由 unbounded source 连接器 plan 驱动
+8. **`SourceWorkUnit` superseded** — 旧占位类标 `@Deprecated`，新代码用 `Source`/`SourceSplit` 接口（§4.0 D1）

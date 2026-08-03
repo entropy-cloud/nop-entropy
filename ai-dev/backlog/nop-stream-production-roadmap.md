@@ -1,6 +1,6 @@
 # nop-stream 生产级完善路线图
 
-> Last updated: 2026-08-03
+> Last updated: 2026-08-04
 > Sources: `ai-dev/analysis/nop-stream/08-gap-analysis.md`（73 条显式缺口 ID [G1-G68, D69-D73] + 6 条已解决附录 [R1-R6]，primary）, `ai-dev/backlog/completion-roadmap.md`（Phase 0—5 战略框架）, `ai-dev/backlog/nop-stream-flink-comparison-roadmap.md`（前序路线图，Items 9—13 已完成）
 
 ## Purpose
@@ -72,10 +72,10 @@ Does not contain implementation details. Each `planned` stage is owned by its ex
 ### Phase 6 — 生态与上层
 
 - 48. Kafka IMessageService: `done`（plan `ai-dev/plans/nop-stream-production/2026-08-03-2124-2-kafka-message-service.md`，completed — `nop-message-kafka` 从空壳到完整 `KafkaMessageService implements IMessageService`：`sendAsync`（`KafkaProducer<String,String>` + callback→`CompletableFuture`）+ `subscribe`（`KafkaConsumeTask` poll 循环处理 5 种 `IMessageConsumer.onMessage` 返回值语义：null→commitSync / CompletionStage→await / ConsumeLater→seek 不 commit / Acknowledge→ack-topic reply / 其他→reply+commit）+ `KafkaMessageSubscription` 5 方法（suspend/resume 映射 `KafkaConsumer.pause/resume`）+ `init()`/`destroy()` 生命周期 + `seekToPosition` 真实实现（非 stub，`seekToMessage` fail-loud）+ kafka-clients 3.5.0 经 `nop-dependencies` 管理 + `KafkaStringWireCodec`（nop-stream-runtime/transport，JSON String wire format 与 PulsarStringWireCodec 同构）+ E2E gated 测试（`@EnabledIfSystemProperty`）+ 组件级测试 30 tests pass + nop-stream-runtime 745 tests pass）
-- 49. Source split 体系（FLIP-27 风格）: `todo`
+- 49. Source split 体系（FLIP-27 风格）: `done`（plan `ai-dev/plans/nop-stream-production/2026-08-04-0900-1-source-split-flip27.md`，completed — Phase 0 七项设计裁定 D1-D7[FLIP-27 范式/§4 Beam-SDF reject、coordinator-state checkpoint 落地 §2.6/§5.3 `sourceEnumeratorSnapshots`、split 经控制 RPC 下发、动态发现裁定、SourceApiTransformation 路由、旧 concrete 收敛、OperatorCoordinator bypass] + Phase 1 接口[`Source`/`SplitEnumerator`/`SourceReader`/`SourceSplit`/`SimpleVersionedSerializer`/`Boundedness` + `EpochManifest.sourceEnumeratorSnapshots` + `SourceEnumeratorSnapshot` @DataBean] + Phase 2 接线[`addSource(Source)` + `SourceApiTransformation` + `SourceReaderOperator` + `LocalSourceCoordinator` + `SourceCoordinatorRegistry` + `StreamGraphGenerator` 分支 + `CheckpointCoordinator` coordinator-state 段 + `CheckpointSerDe` Base64 序列化] + Phase 3 参考 `FileSource` E2E[`FileSplit`/`FileSplitEnumerator`/`FileSourceReader`/`FileSplitEnumeratorState` + 4 E2E tests + 3 checkpoint/restore tests]；45 new tests，全模块绿；D6 旧 concrete `SourceEnumerator`/`SourceSplit` 删除 + 测试迁移）
 - 50. nop-stream-flow XDSL 声明式编排: `done`
-- 51. Delta 定制 StreamModel: `todo`
-- 52. 事务型 JDBC sink（2PC）: `todo`
+- 51. Delta 定制 StreamModel: `planned`（plan `ai-dev/plans/nop-stream-production/2026-08-04-0900-3-delta-customization-stream-model.md`，active — 验证并固化 `.stream.xml` Delta（`x:extends` + `_delta/<layer>/`，layer 策略 + delta-unique 断言防 silent no-op）+ transform 级 fingerprint 敏感性 + config-only by-design 裁定 + 设计契约固化；加载机制（DslModelParser）已有，主要是验证+测试+文档；独立子 agent 两轮审查 zero Blockers）
+- 52. 事务型 JDBC sink（2PC）: `planned`（plan `ai-dev/plans/nop-stream-production/2026-08-04-0900-2-jdbc-two-phase-commit-sink.md`，active — 具体 `JdbcTwoPhaseCommitSink` 复用已落地 2PC 基础设施[TwoPhaseCommitSinkFunction/CheckpointParticipant/CheckpointCoordinator]；内存缓冲模型[覆盖 saveState 先于 preCommit 把批次入 pendingCommits，避免 restore 丢数据] + epoch ledger 幂等 commit + subsuming 独立事务 + 模块放置裁定[AR-2] + E2E kill preCommit→commit 窗口 exactly-once；独立子 agent 三轮审查 Blocker 已 resolved）
 - 53. CDC 深化 + 文件 sink: `todo`
 - 54. CEP SharedBuffer 缓存改进（G65，P3）: `todo`
 - 55. 推迟项跟踪：spill-to-disk（G66）/ adaptive scheduling（G67）: `todo`

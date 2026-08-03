@@ -500,8 +500,8 @@ nop-stream 的窗口实现与 Flink 的架构高度一致，主要差异：
 |------|-----------------|-----------|------------|
 | Source 接口 | `Source<T, SplitT, StateT>` | `SeaTunnelSource<T, SplitT, StateT>` | `SourceFunction<T>`（旧） |
 | Source Reader | `SourceReader<T, SplitT>` + `ReaderOutput<T>` | `SourceReader<T, SplitT>` + `Collector<T>` | `SourceContext<T>`（内联） |
-| Split Enumerator | `SplitEnumerator<SplitT, StateT>` | `SourceSplitEnumerator<SplitT, StateT>` | ❌ 不实现（拆分片在 connector-design.md §4 设计未实现） |
-| Split | `SourceSplit` | `SourceSplit`（`splitId()`） | `SourceWorkUnit`（设计） |
+| Source Split Enumerator | `SplitEnumerator<SplitT, StateT>` | `SourceSplitEnumerator<SplitT, StateT>` | ✅ FLIP-27 风格（`io.nop.stream.core.source.SplitEnumerator`，Stage 49 起） |
+| Split | `SourceSplit` | `SourceSplit`（`splitId()`） | ✅ FLIP-27 风格（`io.nop.stream.core.source.SourceSplit` 接口 + `SimpleSourceSplit` 默认实现 + `FileSplit` 参考实现，Stage 49 起） |
 | 可重放性 | `Boundedness` + checkpoint offset | `Boundedness` + `snapshotState()` | `SourceFunction` 实现负责 |
 | 工厂发现 | SPI + `DynamicTableSourceFactory` | `@AutoService(TableSourceFactory.class)` | 手动构造（`env.addSource()`） |
 | 并行度 | `SourceReader` 实例数 = 并行度 | `SupportParallelism` marker | 当前固定 1 |
@@ -681,7 +681,7 @@ nop-stream 的分布式模式采用**三面分离**架构，与 Flink 和 SeaTun
 | State TTL | ✅ | ❌ | ⚠️ 规划 Phase 1 |
 | RocksDB 状态后端 | ✅ | ❌ | ⚠️ 规划 Phase 1 |
 | Key-Group 重分布 | ✅ | ❌ | ⚠️ 规划 Phase 2 |
-| Source Split 体系 | ✅ (FLIP-27) | ✅ | ⚠️ 规划 Phase 5 |
+| Source Split 体系 | ✅ (FLIP-27) | ✅ | ✅ Stage 49 已实现（FLIP-27 风格 `Source`/`SplitEnumerator`/`SourceReader`/`SourceSplit` + 参考 `FileSource` E2E） |
 | 声明式编排 | ❌（SQL 除外） | ✅ HOCON | ⚠️ 规划 Phase 5 |
 | Flink 后端适配 | — | ✅ translation layer | ⚠️ 规划 Phase 5 |
 
