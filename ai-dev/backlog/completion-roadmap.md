@@ -236,7 +236,7 @@ Phase 5  生态与上层
 | 3.1 | WIRE | `JobCoordinator` 用 `ILeaderElector` 做 coordinator HA：`becomeLeader` 启动协调器，`becomeFollower` 转待命，`LeaderEpoch.epoch` 作为 fencing token 上界。**nop-stream 是首个生产集成者** | `nop-cluster` `ILeaderElector`、`nop-sys-dao` `SysDaoLeaderElector` |
 | 3.2 | WIRE | 控制面 RPC 跨 JVM：`TaskManager` 通过 `MessageRpcServer`/`SimpleRpcServer` 暴露 `IStreamTaskRpcService`；`JobCoordinator` 通过 `RpcServiceProxyFactoryBean` + `ClusterRpcClient` 获取远程 `IStreamTaskRpcService` 代理。替换 `EmbeddedDistributedExecutor` 的直接引用 map | `nop-rpc` 全套 |
 | 3.3 | WIRE | 数据面 `IMessageService` 跨 JVM：`RemoteResultPartition`/`RemoteInputChannel` 注入 `SysDaoMessageService`（DB-backed，零基建）或 `PulsarMessageService`（吞吐）。当前抽象已正确，每条消息带 fencing token + epochId | `nop-message` `SysDaoMessageService`/`PulsarMessageService` |
-| 3.4 | WIRE | `ClusterRegistry` 收敛到平台：用 `IDiscoveryClient` + `INamingService` + `AutoRegistration` 替代当前自建的 `JdbcClusterRegistry`，或保留 JdbcClusterRegistry 但与 platform discovery 对接。决策点：是否完全替换 | `nop-cluster` discovery |
+| 3.4 | WIRE | `ClusterRegistry` 收敛到平台：用 `IDiscoveryClient` + `INamingService` + `AutoRegistration` 替代当前自建的 `JdbcClusterRegistry`，或保留 JdbcClusterRegistry 但与 platform discovery 对接。决策点：是否完全替换 — **已裁定（Stage 41，D7=Option B 对接共存）**：ClusterRegistry 留作 runtime source of truth，平台 discovery 提供跨系统可发现性 | `nop-cluster` discovery |
 | 3.5 | FIX | fencing token 与 `LeaderEpoch.epoch` 统一：当前 stream 用 UUID fencing token，平台用单调递增 epoch。统一为单调 epoch（保留 UUID 仅作诊断），使 coordinator 切换与 task fencing 共用同一单调序 | — |
 | 3.6 | **BUILD** | 多 JVM 集成测试基建：进程编排（启动 N 个 TaskManager JVM + 1 个 JobCoordinator JVM）、端口/消息主题分配、日志聚合、进程级 kill 与重启。这是验证真实分布式的必备基建，Flink 同等物是 `flink-dist` + `flink-runtime-web` | 新建测试基建 |
 | 3.7 | FIX | abort 控制通道 distributed 部分：`IStreamTaskRpcService.cancelTask` RPC 接线（Phase 0.6 的 local 部分已完成），`JobCoordinator` 注册 abort listener 调用 cancelTask | Phase 0.6 |
@@ -362,7 +362,7 @@ Phase 5  生态与上层
 2. **Phase 0.2 的方向**：StreamModel 做实 vs 降级文档表述——影响「模型中心论」是否仍是核心卖点
 3. **Phase 1 RocksDB 原生库的打包与分发策略**：随 nop-stream 发布 vs 依赖系统安装
 4. **Phase 2 Key-Group 默认 maxParallelism**：128（Flink 默认下界）vs 其他值；以及 StateShard→KeyGroup 是否提供自动迁移
-5. **Phase 3.4 ClusterRegistry 取舍**：完全替换为平台 discovery vs 保留 JdbcClusterRegistry 与平台对接
+5. **Phase 3.4 ClusterRegistry 取舍**：完全替换为平台 discovery vs 保留 JdbcClusterRegistry 与平台对接 — **已裁定（Stage 41，D7=Option B 对接共存）**
 6. **Phase 3 leader elector 后端选择**：JDBC（零基建，已有 `SysDaoLeaderElector`）vs Nacos/Zookeeper（若平台后续提供对应 elector）
 7. **Phase 3.3 数据面 IMessageService 默认后端**：SysDaoMessageService（DB，零基建）vs Pulsar（需 MQ 基建）
 8. **Phase 4.4 region failover 是否首版必交付**：还是 Phase 4 首版只做 unaligned + HA，region 延后

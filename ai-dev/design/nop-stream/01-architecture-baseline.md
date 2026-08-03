@@ -264,13 +264,13 @@ CheckpointCoordinator (manifest durable → sink commit)
 **为什么如此设计**：
 
 - **零基建部署**：JDBC 后端复用业务库（与 `JdbcCheckpointStorage` 同库），生产部署无需额外 ZooKeeper/Kubernetes 集群，降低 nop-stream 的部署门槛（中小规模生产场景）。
-- **与 Stage 41 决策点 D7 关联**：`ClusterRegistry` 收敛到平台 discovery（`IDiscoveryClient`/`INamingService`）是 Stage 41 的决策点——JDBC 实现作为**当前阶段的简化**，等 Stage 41 平台 discovery 接入后由平台基建承担，而非在 nop-stream 内自建 HA 栈。
+- **与 Stage 41 决策点 D7 关联（D7 = Option B confirmed）**：`ClusterRegistry` 与平台 discovery（`IDiscoveryClient`/`INamingService`）的关系经 D7 裁定为**对接共存**——JDBC 实现**保留为 runtime source of truth**（coordinator 注册 / fencing epoch / node lease / task assignment），平台 discovery 提供跨系统可发现性（`StreamNodeAutoRegistration` 写方向 + `NodeDiscoveryConsistencyChecker` 读方向漂移检测）。JDBC 实现是 nop-stream HA 的最小基建路径，不因 discovery 接入而被替换。
 - **拒绝的方案**：(a) 引入 ZooKeeper 强依赖（违反"零基建部署"目标）；(b) 完全自建 leader election 与 HA 协议（与 Stage 38 `SysDaoLeaderElector` 接入路径矛盾）。JDBC + leader elector（Stage 38）的组合是 nop-stream HA 的最小基建路径。
 - **已知取舍**：JDBC 写 lease 与 ZooKeeper 比较，lease TTL 粒度更粗（默认 15s）、跨节点时钟漂移敏感——这是为"零基建部署"付出的代价，由 `ClusterRegistry` 实现负责 lease TTL 校验的容错（详见 `07-distributed-comparison.md` §6 "JdbcClusterRegistry provides durable alternative"）。
 
-### 平台 discovery 单向注册 — 有意共存（G51, D7 deferred）
+### 平台 discovery 注册 — 对接共存（G51, D7 = Option B confirmed）
 
-**选了什么**：nop-stream 节点通过声明平台 `AutoRegistration` 范式的 bean（`StreamNodeAutoRegistration`，消费 `INamingService`），在启动时注册到平台 discovery，注销时从 discovery 移除。注册为**单向**（nop-stream → 平台 discovery），不在 nop-stream 内消费 discovery 读取做分配或故障检测——ClusterRegistry 仍是 nop-stream 运行时分配/故障检测的唯一消费源。二者在节点存活期保持一致（注册的节点 = lease 活跃的节点）。
+**选了什么**：nop-stream 节点通过声明平台 `AutoRegistration` 范式的 bean（`StreamNodeAutoRegistration`，消费 `INamingService`），在启动时注册到平台 discovery，注销时从 discovery 移除。**写方向**（nop-stream → 平台 discovery）由 `StreamNodeAutoRegistration` 承担；**读方向**（平台 discovery → 校验）由 `NodeDiscoveryConsistencyChecker` 消费 `IDiscoveryClient.getInstances` 做漂移检测（drift detection）。`ClusterRegistry` 仍是 nop-stream 运行时分配/故障检测的唯一消费源——平台 discovery 提供跨系统可发现性（其它模块发现 nop-stream 节点、运维面板、负载均衡器），不承担 task 分配 / fencing / lease 语义。
 
 **ServiceInstance 字段映射**（`ServiceInstance` 无 `capacity` 字段）：
 
@@ -284,7 +284,41 @@ CheckpointCoordinator (manifest durable → sink commit)
 
 **注册用 `INamingService.registerInstance`（非只读的 `IDiscoveryClient`）**。遵循平台 bean 生命周期范式（`@PostConstruct` 注册 / `@PreDestroy` 注销），而非在 `TaskManager.start()` 内嵌注册逻辑。
 
-**与 Stage 41 决策点 D7 关联**：ClusterRegistry 完全替换为平台 discovery vs 对接共存，是 Stage 41 决策点。本阶段让二者共存且 discovery 单向注册已满足 G51「节点注册/发现 WIRE 平台」目标，不预判 D7。
+**双向一致性契约（D7 Option B 落地，2026-08-03 confirmed）**：D7 裁定为**对接共存（Option B）**——本节描述的共存状态即最终关系（不再是「单向注册 + deferred」）。一致性契约：**注册于 discovery ⟺ lease 活跃于 ClusterRegistry**。二者同库不同表（`nop_sys_service_instance` vs `nop_stream_node`），由独立代码路径更新，故为**最终一致、非事务**。漂移（discovery 有而 registry 无 = 漏注销/僵尸注册；registry 有而 discovery 无 = 漏注册）由 `NodeDiscoveryConsistencyChecker`（读方向消费者）检测，作为诊断/可观测工具（可选，仅当部署同时接线 discovery client + registry 时构造），不进入控制面路径。drift 检测 fail-loud（`ERR_STREAM_DISCOVERY_DRIFT`，不静默跳过）。`EmbeddedDistributedExecutor` 在节点注册后立即运行一次 consistency check，证明写方向已传播（接线验证，read 路径运行时被消费）。完整审计证据与拒绝的「完全替换」方案见下「D7 决策审计」。
+
+### D7 决策审计 — ClusterRegistry 与平台 discovery 的最终关系（Stage 41，D7 = Option B confirmed）
+
+**审计范围**：逐方法比对 `ClusterRegistry`（`nop-stream-runtime/.../cluster/ClusterRegistry.java`）与平台 discovery SPI（`IDiscoveryClient` 只读 / `INamingService` 读+写，`nop-cluster-core`；JDBC 生产实现 `SysDaoNamingService`，`nop-sys-dao`）。
+
+**`ClusterRegistry` 方法的平台 discovery 等价物**：
+
+| `ClusterRegistry` 方法 | 平台 discovery 等价 | 缺口 |
+|---|---|---|
+| `registerCoordinator(jobId, coordinatorId, fencingEpoch)` | **无** | discovery 是 serviceName→instances，无「per-job active coordinator + fencing epoch」概念 |
+| `getActiveCoordinator(jobId)` | **无** | 同上 |
+| `registerNode(nodeId, endpoint, capacity)` | `INamingService.registerInstance`（`weight`=capacity + `metadata["capacity"]` 变通） | `ServiceInstance` 无 `capacity` 字段 |
+| `renewLease(nodeId, leaseTimeoutMs)` | **无** lease-renew API；`SysDaoNamingService` 靠 re-`registerInstance`/`updateInstance` 刷新 `updateTime` | lease TTL 语义需另行实现 |
+| `getNodeLease(nodeId)` | **无** | 同上 |
+| `getActiveNodes()` | `IDiscoveryClient.getInstances("nop-stream")`（带 staleness 过滤） | staleness 窗口粗于 lease（默认 ~60s vs 15s） |
+| `assignTask(...)` + attempt history（G56） | **无** | discovery 无 task-assignment 概念，需全新持久化路径 |
+| `getTaskAssignment(...)` / `getAttemptHistory(...)`（G56） | **无** | 同上 |
+| `removeTaskAssignment(...)` | **无** | 同上 |
+
+**三类平台 discovery 不原生建模的状态**（「完全替换」需迁移的承载）：
+
+1. **per-task `TaskAssignment` + attempt history（G56）** — discovery 是服务实例注册表，非 task 分配存储。完全替换需引入全新 `ITaskAssignmentStore` SPI（append-only attempt 历史）。
+2. **coordinator fencing epoch 注册** — discovery 无「per-job active coordinator + 单调 fencing epoch」。Stage 38 `ILeaderElector` 提供领导权，但 coordinator 注册 + fencing epoch 持久化是独立关注点，需折叠进 leader elector 或新增存储。
+3. **node capacity-as-lease** — `ServiceInstance` 无 capacity 字段（weight+metadata 变通）；`INamingService` 无 lease-renew API（staleness 模型）。粗于 `ClusterRegistry` 的 lease TTL。
+
+**消费者 blast radius（完全替换需迁移）**：`JobCoordinator`（`:325, 961` registerCoordinator；`:490, 822` getActiveNodes；`:536` assignTask）、`TaskManager`（`:154, 215` registerNode；`:212` renewLease）、`EmbeddedDistributedExecutor`（`:133`）、`RpcDistributedExecutor`（`:191`）、Stage 42 多 JVM 基建（`TaskManagerMain:89`、`JobCoordinatorMain:118`、`MiniStreamCluster:266,333,351`）、18+ 测试文件。
+
+**F0a 类比检查（`SysDaoNamingService` listener/缓存 quirk）**：`SysDaoNamingService` **无 listener/callback 机制**（无 `addListener`/`subscribe`/push 事件），**无 in-memory 缓存**（每次 `getInstances` 直接查 DB）。它是 polling-based + staleness 过滤（ephemeral 实例靠刷新 `updateTime` 保活；读过滤 `updateTime > now - maxUpdateInterval`；定时 `cleanup()` 清理过期行）。故 Stage 38 `SysDaoLeaderElector` 的 F0a（不向新 listener 重放当前领导权）**不适用**于 `SysDaoNamingService`——没有 listener 需要重放。唯一行为注意：读为轮询最终一致（staleness 窗口默认 ~60s），粗于 `ClusterRegistry` lease（默认 15s）；共存下可接受，因 ClusterRegistry 仍是 runtime source of truth，discovery 读（若消费）仅作粗粒度交叉校验，非 fencing 级信号。
+
+**裁定：对接共存（Option B），2026-08-03 confirmed**（人类经 mission-driver 确认推荐项）。即本节上文描述的共存状态成为最终关系：`ClusterRegistry`（JDBC/InMemory）保留为 coordinator 注册 / fencing epoch / node lease（capacity-as-lease）/ task assignment + attempt history（G56）的 **runtime source of truth**；平台 discovery（`INamingService`/`IDiscoveryClient`）提供**跨系统服务可发现性**（其它模块发现 nop-stream 节点、运维面板、负载均衡器）；`StreamNodeAutoRegistration` 落地节点→discovery 写方向，`NodeDiscoveryConsistencyChecker` 消费 discovery 读方向做漂移检测。收敛的契约：注册于 discovery ⟺ lease 活跃于 ClusterRegistry（二者同库不同表：`nop_sys_service_instance` vs `nop_stream_node`，最终一致非事务）。Stage 41 Phase 2 已落地（consistency checker + 写传播接线验证 + 收敛措辞）。
+
+**拒绝的替代方案：完全替换（Option A）**。blast radius 远超单 plan 收口能力——需 (a) 新增 task-assignment store 抽象（G56 attempt 历史），(b) 重路由 coordinator+fencing 注册，(c) 在 discovery staleness 模型之上重实现 lease 语义，(d) 迁移全部消费者 + 18+ 测试。本质是重新设计 cluster-state 层，违反「最小基建路径」与单 plan 可收口性。若人类裁定为「完全替换」，本 plan 在 Phase 1 后 close（`superseded by successor`），spawn 新 plan 处理三类不原生建模语义的迁移。
+
+**推荐项理由**：(1) ClusterRegistry 建模了 discovery 不原生支持的三类 runtime 正确性状态；(2) Stage 38 已确立共存先例（`SysDaoLeaderElector` + ClusterRegistry）；(3) 共存 + 文档化 consistency 契约收口 G51「最终关系」而不冒 runtime 语义回归风险；(4) 契合平台「跨系统可发现性 WIRE，runtime 正确性状态留自有已验证存储」原则。
 
 ### 控制面角色
 
