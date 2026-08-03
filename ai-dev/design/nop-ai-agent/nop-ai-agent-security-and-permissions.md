@@ -1,6 +1,6 @@
 # Nop AI Agent 安全与权限设计
 
-**日期**：2026-06-08（v2 — 四层接口组织 + agent-survey 调研融合）
+**日期**：2026-06-08（v2 — 四层接口组织 + agent-survey 调研融合；2026-08-03 增补 §12 ArbiterOS 来源 + §14 刻意 Non-Goals）
 **范围**：`nop-ai-agent` 安全子系统
 **状态**：active
 
@@ -766,6 +766,7 @@ file-access:
 | **opencode** | 3-source 权限合并；子 Agent 权限派生（deny 传播） | Layer 1 |
 | **PilotDeck** | 5 permission modes；PreToolUse hook → permission → audit → execute 流程 | Layer 2-3 |
 | **Hermes Agent** | Terminal 6 sandbox backends (Docker/SSH/Modal/...) | Layer 4 |
+| **ArbiterOS**（2026-08-03 评估） | **刻意 Non-Goal**：数据流污点传播、16-type 指令化、12 flow kinds、完整 predicate-DSL Policy IR——详见 §14。**部分已有**：`GuardrailMode{OFF,REPORT,ENFORCE}`（§5.2，Layer 2 enforce/observe）；`GuardrailRule`（Layer 2 声明式规则，~40% of ArbiterOS IR）。**可吸收资产**：redteam case 格式 + 威胁分类法（§14.5） | （交叉参考，非新 Layer） |
 
 详见 `ai-dev/analysis/agent-survey/` 目录下的各调研报告。
 
@@ -776,3 +777,61 @@ file-access:
 - `nop-ai-agent-context-model.md` — 上下文模型（权限继承、fork）
 - `nop-ai-agent-roadmap.md` — 分层接口（IPermissionProvider 在 Layer 1，IContentGuardrail 在 Layer 2）
 - `02-execution-model.md` — Hook 生命周期（Tool dispatch 中的安全检查点）
+- `guardrail-contract.md` — Guardrail 契约（含 `GuardrailMode`、`GuardrailRule` 关系图、测试闭环、BAIL）
+- `ai-dev/analysis/agent-survey/2026-08-03-arbiteros-governance-kernel-deep-analysis.md` — ArbiterOS 深度分析（§14 刻意 Non-Goals 的依据来源）
+
+## 14. 刻意 Non-Goals：ArbiterOS 交叉引用（2026-08-03 评估）
+
+> 依据：`ai-dev/analysis/agent-survey/2026-08-03-arbiteros-governance-kernel-deep-analysis.md`（经 3 轮独立 review 收敛）。
+
+ArbiterOS（cure-lab/ArbiterOS）是 LiteLLM 代理形态的 Agent 治理内核，在安全语义**设计宽度**上居 agent-survey 调研项目之首（15 策略、12 flow kinds、声明式策略 IR、skill 信任、数据流污点图）。本节记录对其六项机制的评估结论——**多数为刻意 Non-Goal**，以避免未来重复评估。
+
+### 14.1 设计哲学对照（为何多数机制是 Non-Goal）
+
+nop 安全设计遵循"**程序校验优先于 prompt 约束**"+"**可测试、可审计、可复现**"（§2 原则 2）。这要求安全决策是**确定性的、粗粒度的、可解释的**。ArbiterOS 的部分机制（尤其数据流污点传播）引入 **worst-case 级联**（一个 LOW-trust 源污染整条下游链）——级联本身给定依赖图是确定性的（`compute_prop_taint_for_instruction` 是纯函数 trust=min/conf=max），但**依赖图形状依赖 LLM 行为**，且级联拒绝理由（"3 次调用前传播来的污点"）对企业合规审计员的**解释成本高**。ArbiterOS 作为研究型代理能接受这种解释负担；nop 作为企业引擎对可解释性要求更严。这是本节多数 Non-Goal 决定的根本依据。
+
+> **注**：本节将 ArbiterOS 源分析（`ai-dev/analysis/agent-survey/2026-08-03-arbiteros-governance-kernel-deep-analysis.md` §5/§5.6）中"吸收为待验证假设"的开放问题，**收敛为"当前阶段 Non-Goal"**——见 §14.4 重新评估触发条件。
+
+> **生产成熟度不对称**：nop 安全包当前为 design-complete + unit-tested，**尚未在生产规模 adversarial 输入下压力测试**。此状态意味着吸收外部**经验证的测试资产/分类法**的价值较高（见 §14.5）——但本节的 Non-Goal 判定针对**引擎机制**（污点/指令化/流分类），不排除吸收 ArbiterOS 的测试结构与威胁分类法。
+
+### 14.2 逐项评估
+
+| # | ArbiterOS 机制 | nop 现状 | 裁定 | 理由 |
+|---|---|---|---|---|
+| ① | 数据流污点传播（`reference_tool_id → prop_*`，worst-case wins） | `ContentOrigin`（4 值枚举）+ `IContentTrustEvaluator`（per-call 单点判定） | **刻意 Non-Goal（当前阶段）** | nop 的 trustedSource 是**刻意的粗粒度选择**：per-call 判定可审计、可重放。数据流图引入跨调用 worst-case 级联，拒绝理由解释成本高——与原则 2 的"可解释"维度冲突。**已知盲区**：`web_fetch` 恶意内容 → `write_file` 洗白为 AGENT_GENERATED trust → 后续 `read_file` 只看到 FILE_READ，洗白链不可见的场景，当前模型无法捕获。**未来若企业场景验证需要**或该盲区被实战利用，应作为独立 design 研究（含可解释性方案），而非直接移植。 |
+| ② | 指令类型化（16 types: REASON/PLAN/READ/WRITE/EXEC/...）+ 自动污点 registry | `action_kind`（即 tool name 字符串，经 `_`→`.` 规范化；`fs.read`/`shell.exec`/`network.fetch` 等是设计规则表的示例值，非固定枚举） | **刻意 Non-Goal** | nop 是**嵌入式引擎**（非代理），tool call 直接进 dispatch，认知步骤（REASON/PLAN）不经 security checkpoint——16-type 指令化在 nop 内会降级为"tool 分类"，与现有 action_kind 重复。auto-taint registry（写文件自动记污点）与 nop 的无状态 checker 哲学冲突。 |
+| ③ | enforce/observe 双模（策略 enabled:true/false 控制 enforce vs dry-run） | **Layer 2 已有**：`GuardrailMode{OFF, REPORT, ENFORCE}`（§5.2，已实现于 `PromptInjectionGuardrail`/`RuleGraphGuardrail`）；**Layer 1 checkpoint 层为已知低优先缺口** | **Layer 2 已有；Layer 1 为低优先增强（非 Non-Goal）** | guardrail 的 REPORT 模式 = ArbiterOS 的 observe。Layer 1 checkpoint（`SecurityCheckpointChain` 短路判定，无 dry-run）目前是 binary enforce——**新路径规则的灰度上线（先 report 看会误拦什么）有实际价值**（ArbiterOS `PathBudgetPolicy` observe 模式即此用途）。但因 nop 的 checkpoint 是 XDSL `<path-rules>` 配置驱动（非硬编码），灰度需求可经"先加规则→观察审计日志→调整"流程部分满足，故归为低优先增强而非缺口。 |
+| ④ | 关系型流分类（12 flow kinds：read_external/read_sensitive/write_local/write_shared/delegate_sink/comm_sink/...） | `ChannelKind`（WEBUI/API/DM/GROUP）× `action_kind` 覆盖粗粒度流方向 | **刻意 Non-Goal** | 12 flow kinds 对嵌入式引擎过细。nop 的 ChannelKind（ingress 维度）+ action_kind（操作维度）的组合已足够。未来若需区分 sink 可达性（local/shared/outbound），作为 action_kind 的精化扩展，不引入独立 flow-kind 体系。 |
+| ⑤ | 声明式策略 IR（`policy_rule_ir.py`，schema 校验、可编译、谓词 DSL、unary/relational 双形状） | **Layer 2 部分已有**：`GuardrailRule` 声明式模型（YAML-loaded，regex pattern + dependsOn/excludes 关系图，已实现）；**不等价** ArbiterOS 完整 IR（缺 predicate DSL `eq/gt/intersects`、缺 unary/relational 双形状、仅覆盖 Layer 2 content guardrail，Layer 1 access 仍为手写 Java） | **部分已有（~40% 子集）；完整 IR 为 Non-Goal** | nop 的 GuardrailRule 是 ArbiterOS IR 的 regex + 关系图子集（约 40% 覆盖）。完整 predicate-DSL IR（含 Layer 1 声明式策略）为 Non-Goal——nop 的 Layer 1 access 规则已 XDSL `<path-rules>` 配置化，无强烈 predicate-DSL 需求。**诚实验证**：`security-policy.xdef`（设计 §5.1 提及）目前**不存在**于仓库（`GuardrailRule` 经 `RuleSetLoader` YAML 加载，非 xdef）；未来若创建该 xdef 是常规扩展。 |
+| ⑥ | Skill 包信任扫描（`cisco-ai-skill-scanner` 集成，severity → trustworthiness） | `.opencode/skills/` + `ISkillProvider`/`ISkillCurator`（无威胁分析集成） | **未来小增强（非架构级）** | skill 包扫描是工具链/集成层能力，不触及 security 架构。可作为 `ISkillProvider` 的增强（加载期扫描 skill 包 → 标记信任级别），独立小步交付。 |
+
+### 14.3 ArbiterOS 已吸收的设计启示（间接）
+
+虽未直接移植机制，ArbiterOS 的以下设计理念与 nop 既有选择**相互印证**（强化 nop 当前方向的信心）：
+
+- **enforce/observe 分离的价值**：ArbiterOS shipped 默认仅 4/15 策略 enforce、11 observe——证明"先 observe 收集误拦数据再切 enforce"是策略灰度上线的工业实践。nop 的 `GuardrailMode.REPORT` 已具备此能力。
+- **声明式策略的必要性**：ArbiterOS 把策略抽象成 schema 校验的 IR——印证 nop 的 XDSL + GuardrailRule 方向正确。
+- **shipped 默认安全的趋势**：ArbiterOS 的 4 个 enforce 策略（RateLimit/Relational/UnaryGate/AlignmentSentinel）与 nop 的 `Default*` secure 默认（§4.6-4.9）理念一致——deny-by-default 是行业共识。
+
+### 14.4 重新评估触发条件
+
+以下任一条件出现时，应重新评估对应 Non-Goal：
+
+- **①污点传播**：(a) 企业场景出现"跨调用数据流攻击"案例（如 agent 读外部恶意内容 → 落盘 → 后续读触发危险操作），且当前 trustedSource 无法覆盖；**注意**——因 nop 无污点追踪，无法自动观测此类攻击，故此触发依赖**外部信号**（行业 incident 报告、客户 forensic 发现、竞品安全分析），建议建立每半年扫描 agent-security 行业 incident 的节奏；(b) ArbiterOS 或同类项目将污点验证到 production-enforce（从 observe 转 enforce 策略数显著增加），成为市场安全差异化。
+- **②指令类型化**：nop 引入"代理形态"部署（观察完整 LLM 响应含认知步骤），使指令类型化有完整观察面。
+- **④flow kinds**：企业合规要求区分"本地写 vs 外发"且 action_kind 粒度不足。
+- **跨引擎联邦**（影响 ①②）：nop 多 Agent 团队编排（L4）演化为跨引擎联邦（多独立 nop 引擎协调），single-engine dispatch 可见性假设失效，跨引擎数据流追踪成为需求。
+
+当前（2026-08-03）这些条件均未满足。
+
+### 14.5 可独立吸收的成熟度资产（不触及 Non-Goal 引擎决策）
+
+下列 ArbiterOS 资产是**测试/分类成熟度**，与引擎机制 Non-Goal（①②④）正交，可独立吸收以增强 nop 的对抗验证能力：
+
+| 资产 | 形态 | 价值 | 落地路径 |
+|------|------|------|---------|
+| **Redteam case 格式** | JSON `prior` + `current` 结构（§3.9） | 结构化的"历史上下文 + 待判定动作"测试输入格式，跨场景通用 | 作为 `GuardrailTestSuite`（`guardrail-contract.md` 增量 1）的语料 fixture 扩展——独立于引擎，纯测试时资产 |
+| **威胁分类法** | 20 场景目录（file_handling/code_management/mail/browser/...） | 比 nop 当前 ad-hoc 测试更系统的威胁场景覆盖参考 | 作为 `AttackPlugin`（`guardrail-contract.md` 增量 1）语料库的场景组织参考 |
+| **Skill 包扫描** | `cisco-ai-skill-scanner` 集成（§3.10） | 加载期扫描 `.opencode/skills/` → severity → trust | `ISkillProvider` 增强（见 §14.2 ⑥），独立小步。**注**：计划 `2250-skill-package-trust-scanning.md` 对抗性审查发现 nop Java 运行时加载的是结构化 `.skill.yaml`（低威胁面）而非自由文本 `SKILL.md`（高威胁面），计划已 `deferred`，待 SKILL.md→.skill.yaml 转换工具落地后重新评估 |
+
+**关键区分**：这些资产吸收的是 ArbiterOS 的**测试方法论与分类经验**，不是其**引擎实现**。一个未在生产规模 adversarial 输入下压力测试的系统（nop 当前状态），吸收经验证的测试结构是高 ROI 的——它不改变安全语义，只增强发现盲区的能力。

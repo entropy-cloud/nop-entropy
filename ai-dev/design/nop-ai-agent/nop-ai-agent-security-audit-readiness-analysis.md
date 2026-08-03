@@ -1,9 +1,11 @@
 # 渐进式设计审计就绪度分析：Nop AI Agent 安全模型
 
+> **⚠️ 状态注记（2026-08-03 更新）**：本分析写于 2026-06-11，当时全部接口标记为"设计阶段未实现"。此后大量 R-items 已通过 plan 169-176、193-194、219、270、274 等落地解决。本文件**保留为历史审计记录**（不改写结论），但下方 §5 Recommendations 的解决状态见文末新增的 **§6 R-items 解决状态追溯（2026-08-03）**。新设计决策应参考 `nop-ai-agent-security-and-permissions.md`（v2，已含四层接口组织 + secure-by-default + 已落地实现）而非本文件的过时状态判定。
+
 **分析日期**：2026-06-11
 **分析范围**：`nop-ai-agent` 安全子系统（`nop-ai-agent-security-and-permissions.md`）
 **审计标准**：`00-vision.md` 约束 #4（渐进式增强）
-**实现状态**：全部接口处于设计阶段（roadmap.md 标记 ❌ 未实现）
+**实现状态（原始）**：全部接口处于设计阶段（roadmap.md 标记 ❌ 未实现）— **此判定已过时，见 §6**
 
 ---
 
@@ -356,6 +358,54 @@ reason: "denied"
 2. **安全与执行模型的集成未定义**（No Hook integration）：两个子系统独立设计，谁负责在什么时候调用安全检查未定义。这个缺口在实现阶段会造成"安全检查在引擎主循环中硬编码"的风险，进而破坏渐进式设计。
 
 整体审计就绪度评估：**5/10 — 设计概念清晰但存在结构性缺口**。实施前至少需要修复 R1（审计层归属）和 R2（Hook 集成点），否则实现时必然出现非渐进式的硬编码安全检查。
+
+> **注**：上述 5/10 评分反映 2026-06-11 的设计状态。大量缺口此后已解决（见 §6），当前实际审计就绪度显著高于此分数。
+
+---
+
+## 6. R-items 解决状态追溯（2026-08-03）
+
+> 本节为 2026-08-03 补录，追溯 §5 各 R-item 的当前实现状态。判定依据：`nop-ai-agent-security-and-permissions.md` v2 + `nop-ai/nop-ai-agent/src/main/java/io/nop/ai/agent/security/` 实际代码（74 个 .java 文件）。
+
+### P0（原 Must Fix Before Implementation）
+
+| # | 原问题 | 当前状态 | 解决证据 |
+|---|--------|---------|---------|
+| R1 | IAuditLogger 归属层错误（在 Layer 4） | **✅ 已解决** | `IAuditLogger` 现在位于 `io.nop.ai.agent.security`（Layer 1），`Slf4jAuditLogger` 为 shipped 默认。security-and-permissions.md §3 + §4.5 + §4.7 明确"IAuditLogger 位于 Layer 1 的理由"。`AuditEvent` 结构化值类型已落地。 |
+| R2 | 安全接口与 Hook 集成点未定义 | **✅ 已解决** | dispatch-path 集成已接通（plan 175/176）。`ReActAgentExecutor` dispatch loop 在 Layer 1 检查后调用 `ISecurityLevelResolver` → `IPermissionMatrix` → `IApprovalGate`，deny 路径统一记录 `AuditEvent` + 发布 `TOOL_CALL_DENIED` 事件。 |
+| R3 | Hardcoded Deny 违反渐进式（不可 XDSL 覆盖） | **⚠️ 部分解决** | `DefaultToolAccessChecker` 仍有内置 deny-list（bash/write-file 等），但通过 `ISensitivePathProvider` 构造器注入（§7.2，plan MA5.4-P2-3）+ XDSL `<path-rules>`（plan 174）提供了覆盖能力。完整的 hardcoded-deny 外部化仍为未来增强。 |
+
+### P1（原 Must Fix Before Production）
+
+| # | 原问题 | 当前状态 | 解决证据 |
+|---|--------|---------|---------|
+| R4 | trustedSource 评估无接口 | **✅ 已解决** | `IContentTrustEvaluator` 接口已落地（`DefaultContentTrustEvaluator`：CHANNEL_INPUT/AGENT_GENERATED 为 trusted，WEB_FETCH/FILE_READ 为 untrusted）。`LevelHints` 由 `DefaultLevelHintsProducer` 运行时生产。 |
+| R5 | 审批通道不可插拔 | **⏸️ 刻意 deferred** | `IApprovalChannel` 经 2026-07-31 裁定（MA5.4-P2-5）deferred——当前无代码实现，审批经 `IApprovalGate` 同步决策。这是**设计性决定**（非缺口）：当前同步 gate（`DefaultApprovalGate`/`AutoApproveGate`）满足需求，异步通道为后续增强。 |
+| R6 | DenialResult.reason 枚举不完整 | **✅ 已解决** | `ApprovalDenialKind` 枚举（HUMAN_REJECTED / TIMEOUT / OTHER）已落地（plan 176 决策记录 4），超时与人类拒绝可区分。 |
+| R7 | 审计日志标准字段 schema | **✅ 已解决** | `AuditEvent` 结构化值类型已落地，含 sessionId/agentName/decision/layer 等字段。`Slf4jAuditLogger` 为默认，DB 持久化经替换实现。 |
+
+### P2（原 Should Fix Before Feature Complete）
+
+| # | 原问题 | 当前状态 | 解决证据 |
+|---|--------|---------|---------|
+| R8 | ISensitivePathProvider 与 IPathAccessChecker 重叠 | **⚠️ 部分解决** | `DefaultPathAccessChecker` 新增构造器接受注入的 pattern（plan MA5.4-P2-3），但内置默认集仍存在（共存模式）。完整外部化仍为未来增强。 |
+| R9 | 子 Agent 权限实施机制未定义 | **✅ 已解决** | Plan 169（工具权限继承）+ Plan 170（路径权限继承）+ Plan 174（per-agent glob 规则）完整落地。`ParentConstrainedToolAccessChecker` / `ParentConstrainedPathAccessChecker` / `RuleBasedPathAccessChecker` 已实现，约束经 `AgentMessageRequest.metadata` 传播。 |
+| R10 | 审批配置验证缺失 | **✅ 已解决** | `warnIfInsecureDefaults` 机制（plan 193/194）覆盖 Layer 2/3 全部 5 个组件——`AutoApproveGate` 等 insecure 默认经 setter 注入时触发 WARN（§4.8 决策 3）。 |
+| R11 | LevelHints.highImpact 定义 | **✅ 已解决** | `DefaultLevelHintsProducer` 按 tool-name 分类生产 `highImpact`（shell.exec 等 → true）。`DefaultSecurityLevelResolver`（§4.9 决策 1）按 trusted-by-default 规则表消费。 |
+
+### P3（原 Nice to Have）
+
+| # | 原问题 | 当前状态 | 解决证据 |
+|---|--------|---------|---------|
+| R12 | "opencode 模式"术语 | **ℹ️ 文档可澄清** | 非关键。security-and-permissions.md §4.1 已描述 3-source merge 语义，"opencode 模式"指 opencode 的权限合并范式。 |
+| R13 | 纵深防御管线顺序 | **✅ 已解决** | security-and-permissions.md §8 + dispatch loop（plan 175）明确定义检查顺序：Layer 1（tool/path access）→ Layer 2（security level → permission matrix）→ Layer 3（approval gate）。deny 路径短路。 |
+| R14 | 审计查询接口 | **⏸️ 未实现（非阻塞）** | `IAuditQueryService` 仍为未来增强。当前 `IAuditLogger`（写入端）已足够；查询端可经 DB 直接查询（`DBDenialLedger` 已用列存储支持 per-session 查询）。 |
+
+### 总结
+
+原 14 个 R-items：**9 个已解决**（R1/R2/R4/R6/R7/R9/R10/R11/R13）、**2 个部分解决**（R3/R8）、**2 个刻意 deferred**（R5/R14，设计性决定非缺口）、**1 个文档可澄清**（R12）。**整体审计就绪度从 5/10 提升至约 8/10**。剩余的 R3/R8（完整 XDSL 外部化）和 R5/R14（异步审批通道/审计查询）是渐进式增强路径上的未来工作，非结构性缺陷。
+
+> ArbiterOS（2026-08-03 评估）的机制多数为 nop 刻意 Non-Goal——详见 `nop-ai-agent-security-and-permissions.md` §14。
 
 ---
 
