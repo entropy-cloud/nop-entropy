@@ -17,6 +17,17 @@
             <artifactId>nop-stream-core</artifactId>
         </dependency>
 
+        <!--
+            Guava is transitively available via nop-commons, but SharedBuffer uses
+            com.google.common.cache.Cache directly as the cache primitive for the
+            events/entry caches. Declaring it explicitly documents the dependency
+            surface of this module.
+        -->
+        <dependency>
+            <groupId>com.google.guava</groupId>
+            <artifactId>guava</artifactId>
+        </dependency>
+
         <dependency>
             <groupId>io.github.entropy-cloud</groupId>
             <artifactId>nop-stream-core</artifactId>

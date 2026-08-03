@@ -18,9 +18,16 @@
 
 package io.nop.stream.cep.nfa.sharedbuffer;
 
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Objects;
+
+import com.google.common.cache.Cache;
+import com.google.common.cache.CacheBuilder;
+import com.google.common.cache.RemovalCause;
+import com.google.common.cache.RemovalListener;
+import com.google.common.cache.RemovalNotification;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -74,14 +81,21 @@ public class SharedBuffer<V> {
     private final MapState<NodeId, Lockable<SharedBufferNode>> entries;
 
     /**
-     * The cache of eventsBuffer State, with LRU eviction.
+     * The cache of eventsBuffer State, with LRU eviction backed by Guava {@link Cache}.
+     *
+     * <p>Guava {@code Cache} provides built-in atomic LRU eviction ({@code maximumSize}),
+     * {@code recordStats()} for hit/miss/eviction accounting, and a {@link RemovalListener}
+     * that only logs entries evicted by size pressure (manual {@code invalidate}/{@code clear}
+     * do not trigger the debug log). This replaces the prior hand-rolled {@code LruCache} that
+     * maintained a {@code ConcurrentHashMap} and an access-ordered {@code LinkedHashMap} as two
+     * independent structures with a non-atomic put/evict window.
      */
-    private final LruCache<EventId, Lockable<V>> eventsBufferCache;
+    private final Cache<EventId, Lockable<V>> eventsBufferCache;
 
     /**
-     * The cache of sharedBufferNode, with LRU eviction.
+     * The cache of sharedBufferNode, with LRU eviction backed by Guava {@link Cache}.
      */
-    private final LruCache<NodeId, Lockable<SharedBufferNode>> entryCache;
+    private final Cache<NodeId, Lockable<SharedBufferNode>> entryCache;
 
     @SuppressWarnings({"unchecked", "rawtypes"})
     public SharedBuffer(
@@ -110,10 +124,49 @@ public class SharedBuffer<V> {
                                 Long.class,
                                 Integer.class));
 
-        // set the events buffer cache with LRU eviction strategy
-        this.eventsBufferCache = new LruCache<>(cacheConfig.getEventsBufferCacheSlots());
-        // set the entry cache with LRU eviction strategy
-        this.entryCache = new LruCache<>(cacheConfig.getEntryCacheSlots());
+        // set the events buffer cache with atomic LRU eviction (Guava Cache, maximumSize + recordStats).
+        // RemovalListener logs only SIZE-evicted entries; manual invalidate/clear is silent.
+        this.eventsBufferCache =
+                CacheBuilder.newBuilder()
+                        .maximumSize(cacheConfig.getEventsBufferCacheSlots())
+                        .recordStats()
+                        .removalListener(this::onCacheRemoval)
+                        .build();
+
+        // set the entry cache with atomic LRU eviction (Guava Cache, maximumSize + recordStats).
+        this.entryCache =
+                CacheBuilder.newBuilder()
+                        .maximumSize(cacheConfig.getEntryCacheSlots())
+                        .recordStats()
+                        .removalListener(this::onCacheRemoval)
+                        .build();
+    }
+
+    /**
+     * Guava {@link RemovalListener} shared by both caches. Logs at debug level only when the
+     * removal cause indicates an eviction (SIZE / COLLECTED / EXPIRED — i.e. equivalent to
+     * {@code RemovalCause.wasEvicted()}, which is package-private in this Guava version).
+     * Manual {@code invalidate} / {@code invalidateAll} / {@code clear}-equivalent calls
+     * produce {@link RemovalCause#EXPLICIT} or {@link RemovalCause#REPLACED} and are
+     * intentionally silent — these are part of normal write-through / flushCache clear-on-success
+     * semantics and would be noisy if logged.
+     */
+    private <K, V> void onCacheRemoval(RemovalNotification<K, V> notification) {
+        RemovalCause cause = notification.getCause();
+        // Equivalent to RemovalCause.wasEvicted() (which is package-private in this Guava
+        // version): evictions are SIZE/COLLECTED/EXPIRED. EXPLICIT (invalidate) and REPLACED
+        // (put overwriting existing key) are normal write-through / clear-on-success operations
+        // and must remain silent.
+        boolean evicted = cause != RemovalCause.EXPLICIT && cause != RemovalCause.REPLACED;
+        if (evicted) {
+            if (LOG.isDebugEnabled()) {
+                LOG.debug(
+                        "SharedBuffer cache evicted entry: cause={}, key={}, value={}",
+                        cause,
+                        notification.getKey(),
+                        notification.getValue());
+            }
+        }
     }
 
     private void copyEntries(MapState<NodeId, Lockable<SharedBufferNode>> state) throws Exception {
@@ -176,7 +229,7 @@ public class SharedBuffer<V> {
                 iterator.remove();
             }
         }
-        eventsBufferCache.removeIf(eventId ->
+        eventsBufferCache.asMap().keySet().removeIf(eventId ->
                 eventId != null && eventId.getTimestamp() < timestamp);
     }
 
@@ -186,7 +239,7 @@ public class SharedBuffer<V> {
             id = 0;
         }
         EventId eventId = new EventId(id, timestamp);
-        while (eventsBufferCache.containsKey(eventId) || hasEventInBuffer(eventId)) {
+        while (eventsBufferCache.asMap().containsKey(eventId) || hasEventInBuffer(eventId)) {
             id++;
             if (id == Integer.MAX_VALUE) {
                 throw new StreamException(ERR_CEP_NFA_SHARED_BUFFER_ACCESS_FAILED)
@@ -200,7 +253,7 @@ public class SharedBuffer<V> {
         try {
             eventsBuffer.put(eventId, lockableValue);
         } catch (Exception e) {
-            eventsBufferCache.remove(eventId);
+            eventsBufferCache.invalidate(eventId);
             throw new StreamException(ERR_CEP_NFA_SHARED_BUFFER_ACCESS_FAILED, e).param(ARG_DETAIL, "registerEvent");
         }
         return eventId;
@@ -223,11 +276,30 @@ public class SharedBuffer<V> {
      * @throws Exception Thrown if the system cannot access the state.
      */
     public boolean isEmpty() throws Exception {
-        return eventsBufferCache.isEmpty()
+        return eventsBufferCache.asMap().isEmpty()
                 && !eventsBuffer.keys().iterator().hasNext();
     }
 
-    public void releaseCacheStatisticsTimer() {
+    /**
+     * Logs the current cache statistics for both {@code eventsBufferCache} and
+     * {@code entryCache} at INFO level.
+     *
+     * <p>Reads {@link Cache#stats()} (populated because {@code recordStats()} is enabled on
+     * both caches) and emits one log line per cache with {@code hitCount}/{@code missCount}/
+     * {@code evictionCount}/{@code size}. Called periodically by {@code CepOperator}'s
+     * dedicated cache-statistics timer (see {@code CepOperator.onCacheStatisticsTimer}),
+     * not by the CEP event-processing timer.
+     */
+    public void logCacheStatistics() {
+        com.google.common.cache.CacheStats eventStats = eventsBufferCache.stats();
+        com.google.common.cache.CacheStats entryStats = entryCache.stats();
+        LOG.info(
+                "SharedBuffer cache statistics: eventsBufferCache{hitCount={}, missCount={}, evictionCount={}, size={}},"
+                        + " entryCache{hitCount={}, missCount={}, evictionCount={}, size={}}",
+                eventStats.hitCount(), eventStats.missCount(), eventStats.evictionCount(),
+                eventsBufferCache.size(),
+                entryStats.hitCount(), entryStats.missCount(), entryStats.evictionCount(),
+                entryCache.size());
     }
 
     /**
@@ -241,7 +313,7 @@ public class SharedBuffer<V> {
         try {
             this.eventsBuffer.put(eventId, event);
         } catch (Exception e) {
-            this.eventsBufferCache.remove(eventId);
+            this.eventsBufferCache.invalidate(eventId);
             throw new StreamException(ERR_CEP_NFA_SHARED_BUFFER_ACCESS_FAILED, e).param(ARG_DETAIL, "upsertEvent");
         }
     }
@@ -257,7 +329,7 @@ public class SharedBuffer<V> {
         try {
             this.entries.put(nodeId, entry);
         } catch (Exception e) {
-            this.entryCache.remove(nodeId);
+            this.entryCache.invalidate(nodeId);
             throw new StreamException(ERR_CEP_NFA_SHARED_BUFFER_ACCESS_FAILED, e).param(ARG_DETAIL, "upsertEntry");
         }
     }
@@ -268,7 +340,7 @@ public class SharedBuffer<V> {
      * @param eventId id of the event
      */
     void removeEvent(EventId eventId) {
-        this.eventsBufferCache.remove(eventId);
+        this.eventsBufferCache.invalidate(eventId);
         this.eventsBuffer.remove(eventId);
     }
 
@@ -278,7 +350,7 @@ public class SharedBuffer<V> {
      * @param nodeId id of the event
      */
     void removeEntry(NodeId nodeId) {
-        this.entryCache.remove(nodeId);
+        this.entryCache.invalidate(nodeId);
         this.entries.remove(nodeId);
     }
 
@@ -290,7 +362,7 @@ public class SharedBuffer<V> {
      */
     Lockable<SharedBufferNode> getEntry(NodeId nodeId) {
         try {
-            Lockable<SharedBufferNode> lockableFromCache = entryCache.get(nodeId);
+            Lockable<SharedBufferNode> lockableFromCache = entryCache.getIfPresent(nodeId);
             if (Objects.nonNull(lockableFromCache)) {
                 return lockableFromCache;
             } else {
@@ -313,7 +385,7 @@ public class SharedBuffer<V> {
      */
     Lockable<V> getEvent(EventId eventId) {
         try {
-            Lockable<V> lockableFromCache = eventsBufferCache.get(eventId);
+            Lockable<V> lockableFromCache = eventsBufferCache.getIfPresent(eventId);
             if (Objects.nonNull(lockableFromCache)) {
                 return lockableFromCache;
             } else {
@@ -329,30 +401,42 @@ public class SharedBuffer<V> {
     }
 
     /**
-     * Flush the event and node from cache to state.
+     * Flush the event and node from cache to state (write-back flush + clear-on-success).
+     *
+     * <p>Semantics preserved from the LruCache implementation:
+     * <ol>
+     *   <li>Snapshot the live cache view into a local {@link HashMap}.</li>
+     *   <li>{@code putAll} the snapshot into the backing {@code MapState}.</li>
+     *   <li><b>Clear-on-success</b>: on successful {@code putAll}, remove the flushed keys
+     *       from the cache (via {@code asMap().keySet().removeAll}).</li>
+     *   <li>On failure: re-populate the cache from the snapshot
+     *       ({@code asMap().putAll(snapshot)}) before rethrowing.</li>
+     * </ol>
+     * The Guava {@code Cache.asMap()} view is a live concurrent map; mutations performed on
+     * the snapshot happen on a local copy and do not race with subsequent cache reads.
      *
      * @throws Exception Thrown if the system cannot access the state.
      */
     void flushCache() {
-        if (!entryCache.isEmpty()) {
-            java.util.HashMap<NodeId, Lockable<SharedBufferNode>> snapshot1 = new java.util.HashMap<>();
-            entryCache.forEach(snapshot1::put);
+        if (!entryCache.asMap().isEmpty()) {
+            HashMap<NodeId, Lockable<SharedBufferNode>> snapshot1 = new HashMap<>();
+            entryCache.asMap().forEach(snapshot1::put);
             try {
                 entries.putAll(snapshot1);
-                entryCache.keySetRemoveAll(snapshot1.keySet());
+                entryCache.asMap().keySet().removeAll(snapshot1.keySet());
             } catch (Exception e) {
-                entryCache.putAll(snapshot1);
+                entryCache.asMap().putAll(snapshot1);
                 throw new StreamException(ERR_CEP_NFA_SHARED_BUFFER_ACCESS_FAILED, e).param(ARG_DETAIL, "flushCache-entries");
             }
         }
-        if (!eventsBufferCache.isEmpty()) {
-            java.util.HashMap<EventId, Lockable<V>> snapshot2 = new java.util.HashMap<>();
-            eventsBufferCache.forEach(snapshot2::put);
+        if (!eventsBufferCache.asMap().isEmpty()) {
+            HashMap<EventId, Lockable<V>> snapshot2 = new HashMap<>();
+            eventsBufferCache.asMap().forEach(snapshot2::put);
             try {
                 eventsBuffer.putAll(snapshot2);
-                eventsBufferCache.keySetRemoveAll(snapshot2.keySet());
+                eventsBufferCache.asMap().keySet().removeAll(snapshot2.keySet());
             } catch (Exception e) {
-                eventsBufferCache.putAll(snapshot2);
+                eventsBufferCache.asMap().putAll(snapshot2);
                 throw new StreamException(ERR_CEP_NFA_SHARED_BUFFER_ACCESS_FAILED, e).param(ARG_DETAIL, "flushCache-events");
             }
         }
@@ -364,6 +448,57 @@ public class SharedBuffer<V> {
 
     public int getEventsBufferCacheSize() {
         return (int) eventsBufferCache.size();
+    }
+
+    /**
+     * Returns the number of entries evicted from {@code eventsBufferCache} due to size pressure
+     * or other cache-internal reasons (i.e. removals whose cause is SIZE / COLLECTED / EXPIRED,
+     * equivalent to {@code RemovalCause.wasEvicted()} which is package-private here).
+     *
+     * <p>Manual {@code invalidate}/{@code clear}-like removals (e.g. {@code removeEvent},
+     * {@code flushCache} clear-on-success) are <b>not</b> counted. Backed by
+     * {@code Cache.stats().evictionCount()} (enabled via {@code recordStats()}).
+     */
+    public long getEventsBufferEvictionCount() {
+        return eventsBufferCache.stats().evictionCount();
+    }
+
+    /**
+     * Returns the hit count of {@code eventsBufferCache} (cache reads that found the key).
+     * Backed by {@code Cache.stats().hitCount()}.
+     */
+    public long getEventsBufferHitCount() {
+        return eventsBufferCache.stats().hitCount();
+    }
+
+    /**
+     * Returns the miss count of {@code eventsBufferCache} (cache reads that did not find the
+     * key and fell through to backing state). Backed by {@code Cache.stats().missCount()}.
+     */
+    public long getEventsBufferMissCount() {
+        return eventsBufferCache.stats().missCount();
+    }
+
+    /**
+     * Returns the hit count of {@code entryCache}. Backed by {@code Cache.stats().hitCount()}.
+     */
+    public long getEntryCacheHitCount() {
+        return entryCache.stats().hitCount();
+    }
+
+    /**
+     * Returns the miss count of {@code entryCache}. Backed by {@code Cache.stats().missCount()}.
+     */
+    public long getEntryCacheMissCount() {
+        return entryCache.stats().missCount();
+    }
+
+    /**
+     * Returns the number of entries evicted from {@code entryCache} due to size pressure
+     * or other cache-internal reasons (i.e. removals whose cause is SIZE / COLLECTED / EXPIRED).
+     */
+    public long getEntryCacheEvictionCount() {
+        return entryCache.stats().evictionCount();
     }
 
     public int getEventsBufferSize() throws Exception {

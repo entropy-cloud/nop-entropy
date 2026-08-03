@@ -27,6 +27,7 @@ import java.util.Map;
 import java.util.PriorityQueue;
 import java.util.Set;
 import java.util.TreeSet;
+import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.atomic.LongAdder;
 import java.util.function.BiConsumer;
 import java.util.stream.Stream;
@@ -39,6 +40,7 @@ import org.slf4j.LoggerFactory;
 import io.nop.api.core.util.Guard;
 import io.nop.commons.tuple.Tuple2;
 import io.nop.stream.cep.EventComparator;
+import io.nop.stream.cep.NopCepConfigs;
 import io.nop.stream.cep.configuration.SharedBufferCacheConfig;
 import io.nop.stream.cep.functions.PatternProcessFunction;
 import io.nop.stream.cep.functions.TimedOutPartialMatchHandler;
@@ -172,6 +174,28 @@ public class CepOperator<IN, KEY, OUT>
     private transient long currentWatermark = Long.MIN_VALUE;
 
     private transient boolean watermarkRestored = false;
+
+    /**
+     * Handle of the periodic cache-statistics timer registered via
+     * {@link ProcessingTimeService#registerTimer(long, ProcessingTimeCallback)}. Held so that
+     * {@link #close()} can cancel it via {@link #releaseCacheStatisticsTimer()}.
+     *
+     * <p>This timer is intentionally <b>separate</b> from {@link #timerService}
+     * ({@code InternalTimerService<VoidNamespace>}) and {@link #cepTimerService}: those route
+     * to {@link #onProcessingTime(long)} which performs CEP event processing
+     * (drain elementQueue / advanceTime / processEvent / updateNFA). The cache-statistics
+     * timer uses a dedicated {@code ProcessingTimeCallback} ({@link #onCacheStatisticsTimer})
+     * so periodic logging never triggers CEP event processing.
+     */
+    private transient ScheduledFuture<?> cacheStatsTimerFuture;
+
+    /**
+     * Cache-statistics logging interval in milliseconds, captured from
+     * {@link NopCepConfigs#CEP_CACHE_STATISTICS_INTERVAL} at {@link #open()} time and reused
+     * by {@link #onCacheStatisticsTimer} when re-arming the timer (anchored to fire time, not
+     * current time, to avoid drift).
+     */
+    private transient long cacheStatsIntervalMs;
 
     public CepOperator(
             @Nullable final TypeSerializer<IN> inputSerializer,
@@ -315,16 +339,76 @@ public class CepOperator<IN, KEY, OUT>
         cepTimerService = new TimerServiceImpl();
 
         this.numLateRecordsDropped = new LongAdder();
+
+        // Register the periodic cache-statistics timer on a dedicated ProcessingTimeCallback
+        // (NOT via timerService/cepTimerService — those route to onProcessingTime which drives
+        // CEP event processing). See SharedBuffer.logCacheStatistics() and
+        // onCacheStatisticsTimer for the consumer side.
+        registerCacheStatisticsTimer();
+    }
+
+    /**
+     * Registers the first fire of the cache-statistics timer via
+     * {@link ProcessingTimeService#registerTimer(long, ProcessingTimeCallback)} and stores the
+     * returned {@link ScheduledFuture} so {@link #releaseCacheStatisticsTimer()} can cancel it
+     * on {@link #close()}.
+     */
+    private void registerCacheStatisticsTimer() {
+        java.time.Duration interval = NopCepConfigs.CEP_CACHE_STATISTICS_INTERVAL.get();
+        this.cacheStatsIntervalMs = interval.toMillis();
+        if (cacheStatsIntervalMs <= 0) {
+            // Non-positive interval disables periodic statistics; do not register a timer that
+            // would never fire or fire in a tight loop. Explicit rather than silently skipping.
+            LOG.warn("CEP cache statistics timer disabled: interval={}ms (non-positive)",
+                    cacheStatsIntervalMs);
+            return;
+        }
+        long firstFire = getProcessingTimeService().getCurrentProcessingTime() + cacheStatsIntervalMs;
+        this.cacheStatsTimerFuture = getProcessingTimeService().registerTimer(
+                firstFire, this::onCacheStatisticsTimer);
+    }
+
+    /**
+     * Dedicated {@link ProcessingTimeService.ProcessingTimeCallback} for periodic cache
+     * statistics logging. Logs current stats via {@link SharedBuffer#logCacheStatistics()} and
+     * re-arms the timer anchored to the fire timestamp (not current time) to avoid drift.
+     *
+     * <p><b>Must remain separate from {@link #onProcessingTime(long)}</b>: that callback
+     * performs CEP event processing (drain elementQueue / advanceTime / processEvent /
+     * updateNFA) and must not be triggered by the cache-statistics timer.
+     */
+    void onCacheStatisticsTimer(long timestamp) {
+        if (partialMatches != null) {
+            partialMatches.logCacheStatistics();
+        }
+        if (cacheStatsIntervalMs > 0) {
+            // Re-arm anchored to the fire time (not current time) to avoid drift.
+            cacheStatsTimerFuture = getProcessingTimeService().registerTimer(
+                    timestamp + cacheStatsIntervalMs, this::onCacheStatisticsTimer);
+        }
+    }
+
+    /**
+     * Cancels the periodic cache-statistics timer (if registered). Called from {@link #close()}.
+     *
+     * <p>Idempotent: a {@code null} future (timer never registered, or close called twice)
+     * is a no-op — there is genuinely nothing to release.
+     */
+    void releaseCacheStatisticsTimer() {
+        if (cacheStatsTimerFuture != null) {
+            cacheStatsTimerFuture.cancel(false);
+            cacheStatsTimerFuture = null;
+        }
     }
 
     @Override
     public void close() throws Exception {
         super.close();
+        // Cancel the periodic cache-statistics timer (close-time cleanup). Done before
+        // releasing partialMatches so the timer does not fire during teardown.
+        releaseCacheStatisticsTimer();
         if (nfa != null) {
             nfa.close();
-        }
-        if (partialMatches != null) {
-            partialMatches.releaseCacheStatisticsTimer();
         }
     }
 
