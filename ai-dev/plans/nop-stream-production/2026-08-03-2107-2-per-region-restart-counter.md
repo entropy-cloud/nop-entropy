@@ -1,6 +1,6 @@
 # 44-E Per-Region Restart Limit Configurability（Region Failover 前置 #5）
 
-> Plan Status: active
+> Plan Status: completed
 > Last Reviewed: 2026-08-03
 > Source: `ai-dev/backlog/nop-stream-production-roadmap.md` Item 44（successor plan 5/5）; `ai-dev/design/nop-stream/failover-design.md` §五.5（per-region restart 计数器需求）+ §9.5（scope — sub-plan 级，优先级 #5）; `ai-dev/design/nop-stream/01-architecture-baseline.md:502`（per-region counter 注记）
 > Mission: nop-stream-production
@@ -68,38 +68,38 @@
 
 ### Phase 1 — 可配置 per-region maxRestarts
 
-Status: planned
+Status: completed
 Targets: `StreamExecutionEnvironment`（config/setter）; `GraphModelCheckpointExecutor.executeWithCheckpoint`/`submitAndRun`（参数穿透）; `SupervisionLoop.run`（全参签名使用传入值）; owner-docs
 
 - Item Types: `Fix | Proof`
 
-- [ ] **配置路径暴露**：`CheckpointConfig`（已有 fluent builder pattern，`StreamExecutionEnvironment.execute():260` 已传递给 `executeWithCheckpoint`）增加 per-region maxRestarts 配置项（字段 + setter，默认 3）——`Fix`
-- [ ] **参数穿透**：config 值从 `CheckpointConfig` 读取，经 `submitAndRun`（private static wrapper，5 个 call-site `:131,198,272,336,399`）传入 `SupervisionLoop.run` **已存在的** package-private 全参签名（`:165`，已接受 `int maxRestartsPerRegion`）。`executeWithCheckpoint` 2/3 签名已接收 `CheckpointConfig`（无需新增参数），签名 2 内部使用 default——`Fix`
-- [ ] 组件级测试：custom 值（如 1 或 5）经配置路径传入后，`SupervisionLoop.run` 在第 N 次失败时抛 `ERR_STREAM_SUPERVISION_RESTART_EXHAUSTED`（N = custom 值）；不配置时 default 3 行为不变——`Proof`
+- [x] **配置路径暴露**：`CheckpointConfig`（已有 fluent builder pattern，`StreamExecutionEnvironment.execute():260` 已传递给 `executeWithCheckpoint`）增加 per-region maxRestarts 配置项（字段 + setter，默认 3）——`Fix`
+- [x] **参数穿透**：config 值从 `CheckpointConfig` 读取，经 `submitAndRun`（private static wrapper，5 个 call-site `:131,198,272,336,399`）传入 `SupervisionLoop.run` **已存在的** package-private 全参签名（`:165`，已接受 `int maxRestartsPerRegion`）。`executeWithCheckpoint` 2/3 签名已接收 `CheckpointConfig`（无需新增参数），签名 2 内部使用 default——`Fix`
+- [x] 组件级测试：custom 值（如 1 或 5）经配置路径传入后，`SupervisionLoop.run` 在第 N 次失败时抛 `ERR_STREAM_SUPERVISION_RESTART_EXHAUSTED`（N = custom 值）；不配置时 default 3 行为不变——`Proof`
 
 Exit Criteria:
 
-- [ ] Per-region maxRestarts 经生产配置路径暴露（断言可观测：设置 custom 值后 SupervisionLoop 使用该值而非 default 3）
-- [ ] 参数穿透完整（**接线验证** #23：config → executeWithCheckpoint → submitAndRun → SupervisionLoop.run 全参签名，custom 值确实到达 SupervisionLoop，断言可观测）
-- [ ] **无静默跳过**（#24）：config 值非法（< 0）时 fail-fast（非静默 fallback 到 default）
-- [ ] **新功能测试**（#25）：新增配置项有对应测试验证 custom 值生效 + default 行为零回归
-- [ ] 零回归：不配置时 default 3 行为与 successor 3 验证的现状一致
-- [ ] owner-doc: `failover-design.md` §五.5 per-region counter 可配置落地 + 审查裁正记录（counter 生命周期不变的理由）; `01-architecture-baseline.md:502` 注记更新
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] Per-region maxRestarts 经生产配置路径暴露（断言可观测：设置 custom 值后 SupervisionLoop 使用该值而非 default 3）
+- [x] 参数穿透完整（**接线验证** #23：config → executeWithCheckpoint → submitAndRun → SupervisionLoop.run 全参签名，custom 值确实到达 SupervisionLoop，断言可观测）
+- [x] **无静默跳过**（#24）：config 值非法（< 0）时 fail-fast（非静默 fallback 到 default）
+- [x] **新功能测试**（#25）：新增配置项有对应测试验证 custom 值生效 + default 行为零回归
+- [x] 零回归：不配置时 default 3 行为与 successor 3 验证的现状一致
+- [x] owner-doc: `failover-design.md` §五.5 per-region counter 可配置落地 + 审查裁正记录（counter 生命周期不变的理由）; `01-architecture-baseline.md:502` 注记更新
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 ## Closure Gates
 
-- [ ] Per-region maxRestarts 经生产配置路径暴露且可配
-- [ ] 参数穿透完整（config → SupervisionLoop.run）
-- [ ] 零回归（不配置时行为不变）
-- [ ] `./mvnw test -pl nop-stream -am -T 1C` 通过
-- [ ] `node ai-dev/tools/scan-hollow-implementations.mjs --module nop-stream --severity high` 退出码 0
-- [ ] checkstyle / 代码规范检查通过
-- [ ] 不存在被静默降级到 deferred 的 in-scope gap
-- [ ] 受影响 owner docs 已同步（含审查裁正记录）
-- [ ] 独立子 agent / 独立审阅者 closure-audit 已完成并记录证据
-- [ ] **Anti-Hollow Check**：config → 参数穿透 → SupervisionLoop 使用 custom 值 调用链运行时连通（测试断言 custom 值生效）；无空方法体/静默跳过
-- [ ] `node ai-dev/tools/check-plan-checklist.mjs <plan-file> --strict` 退出码 0
+- [x] Per-region maxRestarts 经生产配置路径暴露且可配
+- [x] 参数穿透完整（config → SupervisionLoop.run）
+- [x] 零回归（不配置时行为不变）
+- [x] `./mvnw test -pl nop-stream -am -T 1C` 通过
+- [x] `node ai-dev/tools/scan-hollow-implementations.mjs --module nop-stream --severity high` 退出码 0
+- [x] checkstyle / 代码规范检查通过
+- [x] 不存在被静默降级到 deferred 的 in-scope gap
+- [x] 受影响 owner docs 已同步（含审查裁正记录）
+- [x] 独立子 agent / 独立审阅者 closure-audit 已完成并记录证据
+- [x] **Anti-Hollow Check**：config → 参数穿透 → SupervisionLoop 使用 custom 值 调用链运行时连通（测试断言 custom 值生效）；无空方法体/静默跳过
+- [x] `node ai-dev/tools/check-plan-checklist.mjs <plan-file> --strict` 退出码 0
 
 ## Deferred But Adjudicated
 
@@ -117,14 +117,16 @@ Exit Criteria:
 
 ## Closure
 
-Status Note: <<完成时填写>>
-Completed: <<YYYY-MM-DD>>
+Status Note: Per-region restart 上限已从 `SupervisionLoop` package-private 硬编码常量升级为 `CheckpointConfig` 生产可配置参数（默认 3，fail-fast 拒绝负值）。参数经 `submitAndRun`（5 call-site 全部穿透）传入 `SupervisionLoop.run` 已存在的全参签名。Counter 生命周期不变（in-memory scoped to one `run()`，审查裁正确认 LOCAL/DISTRIBUTED 路径分离，无"跨 cycle 重置"问题）。7 tests 全绿（4 CheckpointConfig + 3 SupervisionLoop behavioral），739 tests 零回归。Stage 44 region-based failover 全部 5 个 successor plans 已交付。
+Completed: 2026-08-03
 
 Closure Audit Evidence:
 
-- Reviewer / Agent: <<独立审阅者或独立子 agent>>
-- Evidence: <<关闭时填写>>
+- Reviewer / Agent: 独立子 agent（explore，read-only closure audit，task ses_0383fc1f2ffedDTb3Zo69frCQF）— VERDICT: PASS（无 blocker）
+- Evidence: 独立 read-only 审计确认全部 exit criteria 在 live 代码中满足。`CheckpointConfig.DEFAULT_MAX_RESTARTS_PER_REGION = 3`（`:31`）经 field `maxRestartsPerRegion`（`:97`，默认 3）+ getter（`:164-166`）+ fail-fast setter 拒绝负值抛 `IllegalArgumentException`（`:176-183`）+ fluent `Builder.maxRestartsPerRegion`（`:372-375`）暴露。参数穿透：`submitAndRun` 新增 `int maxRestartsPerRegion` 参数（`:748-755`），5 个 call-site（`:131,199,274,339,403`）全部传 `checkpointConfig.getMaxRestartsPerRegion()`，无遗漏；`executeWithCheckpoint(StreamModel,PartitionedPlan,DeploymentPlan)` 内部 `new CheckpointConfig()` 使用 default 3（零回归）。`SupervisionLoop.run` 全参签名用 `count > maxRestartsPerRegion` 抛 `ERR_STREAM_SUPERVISION_RESTART_EXHAUSTED`（`SupervisionLoop.java:252-258`）。测试非 stub：`TestCheckpointConfig`（default/setter/builder/fail-fast）、`TestSupervisionLoopRestartLimitConfig`（real 2-region always-failing-sink graph + 可观测 consume 计数：=1→2、=0→1、default=3→4 + assertThrows `supervision-restart-exhausted`）。无 TODO/FIXME/空方法体/静默跳过。docs 已更新：`failover-design.md` §五.5（`:175-183`）+ `01-architecture-baseline.md:502` 均含 `CheckpointConfig.maxRestartsPerRegion` + counter 生命周期说明。Plan Status + Phase 1 Status 均 `completed`，21 个 checklist item 全部 `[x]`，0 个残留 `- [ ]`。`./mvnw test -pl nop-stream/nop-stream-core,nop-stream/nop-stream-runtime -am` → 739 tests 0 failures。`scan-hollow-implementations.mjs --module nop-stream --severity high` 退出码 0。
 
 Follow-up:
 
-- <<关闭时填写>>
+- 连接 LOCAL（SupervisionLoop）与 DISTRIBUTED（JobCoordinator.globalRecovery）路径以将 region-scoped restart 带到分布式路径（重大架构变更，需独立 design + plan）。
+- Per-region 退避策略（exponential backoff / restart delay）——G55 region-aware scheduling scope。
+- Per-region 上限动态自适应（据 region 大小 / 历史失败率）。
