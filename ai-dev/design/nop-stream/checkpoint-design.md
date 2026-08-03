@@ -594,6 +594,26 @@ Split assignment 必须进入 `PartitionedPlan` 或其运行时可持久化扩�
 
 恢复规则：先从 epoch manifest 恢复 enumerator state，再恢复 reader split cursor。ownerSubtask 可以重新计算，但 split 不能因为 owner 改变而重复分配或漏分配。
 
+#### 5.3.1 G35 OperatorCoordinator 范围裁定（Stage 46）
+
+**裁定**：G35（operator 级 ACK 追踪 / `OperatorCoordinator` 抽象）经核对为 **design-gated**，移出 Stage 46 范围，移交 successor（建议绑定 Stage 49 Source split）。
+
+**裁定依据**：
+
+- nop-stream 当前**只有 task 级并行算子**（per-`TaskLocation` 的 `CheckpointAckMessage`，`JobCoordinator.collectAck` → `CheckpointCoordinator.acknowledgeTask`），**不存在** Flink 式非并行 job-level operator 抽象（source enumerator / sink global committer）。全仓 `OperatorCoordinator` 0 命中。
+- 完整 `OperatorCoordinator` 抽象依赖本 §5.3（Source Enumerator State）与 §6（Sink Exactly-Once）模型——两者都是更大的设计项，超出 Stage 46 范围。
+- 当前 task 级 ACK 对当前 task 级算子模型已充分：每个 `TaskLocation` 独立 ACK，coordinator 汇齐所有 task ACK 后完成 epoch。不存在需要 job-level 状态（如 split 分配、global commit）的 operator。
+- Sink 的 commit 当前由 per-task `CheckpointParticipant.finishCommit` 承担（§6.3/§12），尚未需要独立的 global committer。
+
+**Successor 范围（Stage 49 Source split 或独立 successor）**：
+
+1. 引入 `OperatorCoordinator` 抽象（非并行、job-level、checkpoint 状态独立于 task 状态，coordinator 侧持有并单独 ACK）。
+2. Source enumerator state checkpointing（本 §5.3 的 discovered/unassigned/assigned/finished splits + discovery cursor）。
+3. Sink global committer（§6 的 `TWO_PHASE_COMMIT` global commit coordinator，跨 subtask 聚合）。
+4. coordinator 侧 operator 级 ACK 追踪：`OperatorCoordinator` 持有独立 checkpoint 状态，与 task 级 ACK 并行汇齐。
+
+**对 baseline 的影响**：无。当前 task 级 ACK 语义完整且已充分测试；`OperatorCoordinator` 从始至终是 source split / sink global commit 的前置依赖，不是 exactly-once 正确性的独立前置条件。
+
 ### 5.4 Source Offset Cut
 
 Source 在 barrier 注入前必须定义 offset cut。
@@ -817,14 +837,41 @@ detect failure
 
 Coordinator 是逻辑单点，但不能成为 exactly-once 的单点故障。
 
-| 能力 | 说明 |
-|---|---|
-| durable epoch log | CREATED、DURABLE、COMMITTED 等关键状态必须持久化 |
-| cluster lease | 同一 pipeline 同时只能有一个 active coordinator |
-| fencing token | coordinator 切换后旧 token 全部失效 |
-| idempotent recovery | 新 coordinator 可重复 commit durable epoch，重复 abort non-durable epoch |
+| 能力 | 说明 | 落地状态 |
+|---|---|---|
+| durable epoch log | CREATED、DURABLE、COMMITTED 等关键状态必须持久化 | ✅ `ICheckpointStorage.storeCheckPoint` + `storeEpochManifest`（Stage 31 JDBC 后端生产就绪） |
+| cluster lease | 同一 pipeline 同时只能有一个 active coordinator | ✅ `ILeaderElector`（Stage 38 WIRE，`SysDaoLeaderElector` 为生产后端；nop-stream HA 模式选用 JDBC lease 表，零外部基建） |
+| fencing token | coordinator 切换后旧 token 全部失效 | ✅ Stage 39 单调 long fencing epoch（`leaderEpochValue * EPOCH_SCALE + recoveryGen`），leader 切换轮转 epoch 组件 |
+| idempotent recovery | 新 coordinator 可重复 commit durable epoch，重复 abort non-durable epoch | ✅ Stage 46 failover-safe 重建路径（见下）+ commit uncertainty 由 §6.4/§6.5 sink 事务 id 幂等保证 |
 
-Nop 平台可以通过已有集群锁、数据库锁或外部协调服务提供 lease。具体实现是 runtime backend 决策，语义必须一致。
+Nop 平台可以通过已有集群锁、数据库锁或外部协调服务提供 lease。nop-stream 的 HA 模式已裁定选用 **JDBC lease 表**（`SysDaoLeaderElector` 或等价 JDBC 实现），零外部基建。
+
+#### 8.3.1 Failover-safe 重建路径（Stage 46，已落地）
+
+新当选的 coordinator 从持久存储**确定性重建**已完成 checkpoint 视图，关闭「`activateAsLeader` 只读内存字段、新 JVM 上为 null」的正确性缺口。
+
+**重建契约**：
+
+- `JobCoordinator.activateAsLeader(LeaderEpoch)` → `rotateFencingEpochAndRestore(newEpoch, restoreFromStorage=true)`。
+- 当且仅当 in-memory `latestCompletedCheckpoint` 为 `null`（新 coordinator JVM 场景）时，调用 `CheckpointCoordinator.restoreFromCheckpoint()` 从 `ICheckpointStorage.getLatestCheckpoint(jobId, pipelineId)` reload。
+- `restoreFromCheckpoint()` 同步推进 `CheckpointIDCounter` 至 `restoredEpochId + 1`，保证下一个 trigger 产生 `durableEpoch + 1`（resume 语义）。
+- restore 本身天然幂等：只覆写内存字段、单调推进计数器，重复调用不产生状态损坏。
+- **同 leader 的 `globalRecovery()` 不重新 reload**：`restoreFromStorage=false`，in-memory 视图在同 JVM 内存活，避免每次恢复多一次 DB 查询。
+
+**restore vs assignTasks 边界**：
+
+- restored `latestCompletedCheckpoint` **仅填充 `CheckpointCoordinator` 的内存字段**，供后续 checkpoint trigger 确定下一个 epoch id（经 `restoreFromCheckpoint` 推进的 counter）。
+- `assignTasks()` **不消费** `latestCompletedCheckpoint`。task 自身的 operator 状态恢复通过 barrier 机制独立完成：task deploy 时各自从 storage 读取对应 `TaskEpochSnapshot`。coordinator 不在 assignTasks 路径上分发 per-task 状态。
+
+**失败语义（fail-loud，guide #24）**：
+
+- storage 不可达时，failover 重建**抛 `StreamException`**，不静默 warn-and-continue。新 leader 无法安全判断是 resume 还是 fresh start，必须显式失败而非掩盖脑裂/数据丢失风险。
+- commit uncertainty（领导切换瞬间在途 checkpoint 的 commit/abort 决定性）由 sink 事务 id 幂等解决（§6.4「commit uncertainty」+ §6.2 transaction identity 以 epoch 为中心），不依赖 restore 路径。
+
+**commit 幂等 vs restore 幂等（区分）**：
+
+- restore 幂等（本路径提供）：只保证重建视图正确。
+- commit 幂等（§8.3 能力行「idempotent recovery」）：新 leader 对老 leader 已 commit 的 durable epoch 不重复应用、对 non-durable epoch 不漏 abort——属 commit 决策路径属性，由 sink `notifyCheckpointComplete`/`notifyCheckpointAborted` 的 epoch 编号幂等性 + transaction id 幂等查询保证。
 
 ### 8.4 恢复兼容性
 
@@ -1107,6 +1154,19 @@ Retention 必须以解析后的 `checkpointNamespace` 为范围，不能跨 name
 |---|---|
 | `LocalFileCheckpointStorage` | JSON 文件，单机开发测试 |
 | `JdbcCheckpointStorage` | JDBC 数据库（通过 `IJdbcTemplate` + `IDialect` 多数据库适配），生产环境 |
+
+#### 9.3.1 CompletedCheckpointStore 抽象裁定（Stage 46 — 不引入）
+
+**裁定**：nop-stream **不**在 `ICheckpointStorage` 之上引入 Flink 式 `CompletedCheckpointStore` 抽象。Phase 1 failover-safe 重建路径（§8.3.1）+ 现有 `ICheckpointStorage` 接口 + `CheckpointCoordinator.cleanupOldCheckpoints()` 已完整满足 §8.3「durable epoch log」能力要求。
+
+**为什么不需要**：
+
+- nop-stream 的设计意图（§8.1.1）是「单一 durable epoch manifest 含全部一致性上下文」，`EpochManifest` + `CompletedCheckpoint` 已替代 Flink `CompletedCheckpointStore` 的职责。Flink 引入 `CompletedCheckpointStore` 是因为它将 checkpoint 元数据存储（store）与 state 后端存储分离；nop-stream 的 `ICheckpointStorage` 已统一两者（manifest + checkpoint 元数据 + segment 引用）。
+- retained-list 管理已由 `CheckpointCoordinator.cleanupOldCheckpoints()`（保留 `maxRetainedCheckpoints`，删除更旧的）+ `ICheckpointStorage.getAllCheckpoints`/`getLatestCheckpoints`/`deleteCheckpoint` 覆盖。
+- failover 重建已由 §8.3.1 `restoreFromCheckpoint()` 覆盖。
+- 一个薄封装（retained-list + rebuild API）将退化为对 `ICheckpointStorage` 的纯委托空壳（guide #24 禁止空壳抽象）。
+
+**拒绝了什么**：引入 `CompletedCheckpointStore` 接口 + `JdbcCompletedCheckpointStore`/`HeapCompletedCheckpointStore` 实现。这些只是把 `ICheckpointStorage` 的已有方法重新包一层，不增加语义，徒增间接层与维护面。
 
 ### 9.4 CheckpointConfig
 

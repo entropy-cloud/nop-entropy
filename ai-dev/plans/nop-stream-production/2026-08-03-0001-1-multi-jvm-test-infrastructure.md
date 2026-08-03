@@ -22,7 +22,7 @@ Currently every "distributed" test runs in a single JVM with threads simulating 
 - No `ProcessBuilder`-based process orchestration exists anywhere in `nop-stream`.
 - Both `EmbeddedDistributedExecutor` and `RpcDistributedExecutor` set `coordinator.setAutoRecoverOnFailedReport(false)` — no automatic recovery on task failure. `JobCoordinator.assignTasks()` (`:424-519`) calls `rpc.receiveAssignment()` (`:498`) but **never deploys task logic** — invokable installation is done by the executor's `installInvokablesAndRun()` as a direct Java call. The recovery path (`globalRecovery()` → `rotateFencingEpochAndRestore()` → `assignTasks()`) inherits this gap: reassigned tasks get empty `RunningTask` slots that never receive invokables. This is why auto-recovery is disabled — enabling it would cause task timeouts. Phase 0 resolves this by modifying `assignTasks()` to call `deployTask()` when remote-deploy mode is active.
 - `ClusterRegistry` (`JdbcClusterRegistry` / `InMemoryClusterRegistry`) provides node registration and discovery. `InMemoryClusterRegistry` is JVM-local; `JdbcClusterRegistry` is shared via DB.
-- `LocalFileCheckpointStorage` writes to local filesystem (`java.io.tmpdir/nop-stream-checkpoint/{jobId}`). For multi-JVM recovery on the same machine, this is accessible if all JVMs use the same path. JDBC checkpoint storage (Phase 5 Stage 46) would be the cross-machine solution.
+- `LocalFileCheckpointStorage` writes to local filesystem (`java.io.tmpdir/nop-stream-checkpoint/{jobId}`). For multi-JVM recovery on the same machine, this is accessible if all JVMs use the same path. JDBC checkpoint storage (`JdbcCheckpointStorage`, production-ready since Stage 19/31 — see `checkpoint-design.md` §9.3) is the cross-machine solution.
 - Stage 38 leader election, Stage 39/40 cross-JVM RPC/data-plane contracts are landed and unit-tested in-process, but have never been validated across real JVM boundaries.
 
 ## Goals
@@ -40,7 +40,7 @@ Currently every "distributed" test runs in a single JVM with threads simulating 
 - Replacing `EmbeddedDistributedExecutor` or `RpcDistributedExecutor` for in-process tests — they remain the fast-path.
 - ClusterRegistry convergence to platform discovery (Stage 41 — separate plan, has decision-point dependency).
 - Unaligned checkpoint (Stage 43 — separate plan).
-- JDBC checkpoint storage for cross-machine recovery (Stage 46). This plan assumes same-machine multi-JVM (shared filesystem).
+- JDBC checkpoint storage for cross-machine recovery (`JdbcCheckpointStorage`, already production-ready). This plan assumes same-machine multi-JVM (shared filesystem).
 
 ## Scope
 
@@ -193,7 +193,7 @@ Exit Criteria:
 ### Cross-Machine Deployment / JDBC Checkpoint Storage
 
 - Classification: `out-of-scope improvement`
-- Why Not Blocking Closure: This plan validates same-machine multi-JVM (shared filesystem for `LocalFileCheckpointStorage`). Cross-machine requires JDBC checkpoint storage (Stage 46) and networked DB — separate concern.
+- Why Not Blocking Closure: This plan validates same-machine multi-JVM (shared filesystem for `LocalFileCheckpointStorage`). Cross-machine requires `JdbcCheckpointStorage` (already production-ready) and networked DB — separate concern.
 - Successor Required: `yes` — Stage 46 (`46-coordinator-ha`)
 
 ### Performance / Scale Testing

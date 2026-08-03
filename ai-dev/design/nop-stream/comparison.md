@@ -393,7 +393,7 @@ nop-stream 的 `InternalAppendingState<K,N,IN,ACC,OUT>` 是窗口聚合状态的
 | Complete 条件 | 所有 Task ACK | 所有 Task ACK per pipeline | 所有 Task ACK |
 | 存储 | `CompletedCheckpointStore`（FS/JobManager）| `CheckpointStorage`（LocalFile/HDFS） | `ICheckpointStorage`（LocalFile/JDBC） |
 | 恢复 | 从最新 CompletedCheckpoint 全局恢复 | 从最新 CompletedCheckpoint per pipeline 恢复 | 从最新 durable epoch manifest 恢复 |
-| Coordinator HA | `StandaloneCheckpointIDCounter` + `ZooKeeperCompletedCheckpointStore` | Hazelcast IMap HA | 规划（Phase 3：`ILeaderElector` + `SysDaoLeaderElector`） |
+| Coordinator HA | `StandaloneCheckpointIDCounter` + `ZooKeeperCompletedCheckpointStore` | Hazelcast IMap HA | 已 WIRE（Stage 38 `ILeaderElector` + `SysDaoLeaderElector`）+ failover-safe 重建（Stage 46 `activateAsLeader` → `restoreFromCheckpoint` reload from `ICheckpointStorage`）+ `JdbcLeaderElector`（nop-stream-runtime JDBC lease，零基建） |
 
 ### 7.3 Two-Phase Commit 对比
 

@@ -66,7 +66,7 @@ Does not contain implementation details. Each `planned` stage is owned by its ex
 - 43. Channel 心跳 + unaligned checkpoint（G6，P1）: `done`（plan `ai-dev/plans/nop-stream-production/2026-08-03-0001-2-channel-heartbeat-unaligned-checkpoint.md`，completed；channel 心跳 producer-sends-idle + consumer timeout 检测、aligned→unaligned 回退、ChannelState capture/persist/replay 端到端）
 - 44. Region-based failover（G28 续，P2）: `todo`
 - 45. 多并发 checkpoint 完整支持（G31 续，P2）: `done`（plan `ai-dev/plans/nop-stream-production/2026-08-03-0900-1-concurrent-checkpoint-multi-epoch.md`，completed — task 级多 epoch 端到端：`CheckpointBarrierTracker` per-epoch ACK 追踪（D2 option b：`OperatorSnapshotResult` 携带 checkpointId 路由，42 处 call-site 零签名变更）+ `InputGate` per-barrier 对齐状态机（D1：aligned 序列化 + aborted straggler 丢弃，不再抛 overlapping）+ epoch 精准 abort（D3 option C：local handler epoch 感知，仅当无在途 epoch 才 cancel task，distributed epoch-RPC 留 successor）+ unaligned 保持 single-in-flight（D4，successor Stage 47）+ maxConcurrent=3 E2E + abort 中间 epoch 精准性测试；Coordinator 层 Stage 19 零回归；697 tests pass）
-- 46. Coordinator HA 端到端 + HA checkpoint store（G32, G35，P2）: `planned`（plan `ai-dev/plans/nop-stream-production/2026-08-03-0900-2-coordinator-ha-checkpoint-store.md`，active — G32 failover-safe 重建路径 + CompletedCheckpointStore 裁定 + G35 范围裁定 + HA 测试矩阵）
+- 46. Coordinator HA 端到端 + HA checkpoint store（G32, G35，P2）: `done`（plan `ai-dev/plans/nop-stream-production/2026-08-03-0900-2-coordinator-ha-checkpoint-store.md`，completed — G32 failover-safe 重建路径（`activateAsLeader` → `rotateFencingEpochAndRestore(true)` → `restoreFromCheckpoint()` reload from `ICheckpointStorage` + counter advance + fail-loud）+ CompletedCheckpointStore 裁定「不引入」（§9.3.1）+ G35 design-gated 移 successor Stage 49（§5.3.1）+ `JdbcLeaderElector`（nop-stream-runtime 生产 JDBC lease 选举器，架构裁定不能用 SysDaoLeaderElector）+ `JobCoordinatorMain` HA 接线 + `MiniStreamCluster` ≥2 coordinator + 4 层测试矩阵（单进程/in-process JDBC HA/多 JVM failover/跨模块 SysDao smoke）；709 tests pass + 独立 closure audit 15/15 PASS）
 - 47. Unaligned + rescale 交互: `todo`
 
 ### Phase 6 — 生态与上层
@@ -92,7 +92,7 @@ Does not contain implementation details. Each `planned` stage is owned by its ex
 
 | Capability | Provider | Notes |
 | --- | --- | --- |
-| 状态持久化 | `ICheckpointStorage` (LocalFile/JDBC) | LocalFile 已实现，Jdbc 待接线（Phase 5） |
+| 状态持久化 | `ICheckpointStorage` (LocalFile/JDBC) | DONE — LocalFile + `JdbcCheckpointStorage` 均已实现（生产就绪，Stage 19/31）；Stage 46 failover-safe 重建路径已接线 |
 | 数据序列化 | `JsonTool`（保留）+ `SerializerFingerprint` schema 解析层（Phase 2） | 不引入二进制序列化体系（vision Non-Goal） |
 | CEP 条件表达式 | `IEvalFunction` (nop-xlang) | 已使用 |
 | 数据库访问 | `IJdbcTemplate` + `IDialect` | checkpoint storage 使用 |

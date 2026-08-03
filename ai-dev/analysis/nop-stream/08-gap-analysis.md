@@ -100,7 +100,7 @@
 | G32 | checkpoint | 无 HA checkpoint store | Gap/P2 | 03-checkpoint: #11 | deferred (Phase 3) |
 | ~~G33~~ | checkpoint | 无 shared state registry | Gap/P2 | 03-checkpoint: #12 | ✅ Closed (Stage 31) — `SharedStateRegistry`（`ConcurrentHashMap.compute` per-key 原子引用计数）+ `SharedStateHandle`/`IncrementalSnapshotResult` + `ISegmentStore`/`LocalFileSegmentStore` + `RocksDBIncrementalSnapshotStrategy`（`Checkpoint.createCheckpoint` + SST SHA-256 内容寻址）+ coordinator 段2 构建 `EpochManifest.segments` + subsumption GC + restart 恢复已落地。Plan `2026-08-02-0955-2-incremental-checkpoint-sst-sharing`（Stage 19 Item 9 原裁定的唯一 load-bearing 消费者） |
 | G34 | checkpoint | 无 abort propagation via data channel | Gap/P2 | 03-checkpoint: #13 | deferred → Stage 39（跨 JVM RPC prerequisite；当前 local 执行用控制路径 abort：`registerLocalAbortHandler` → `inputGate.resumeConsumptionAll()` + `task.cancel()`，见 `checkpoint-design.md:911`） |
-| G35 | checkpoint | 无 operator coordinator ACK tracking | Gap/P2 | 03-checkpoint: #14, 07-dist: D14 | deferred (Phase 3) |
+| G35 | checkpoint | 无 operator coordinator ACK tracking | Gap/P2 | 03-checkpoint: #14, 07-dist: D14 | ✅ Adjudicated (Stage 46) — design-gated: 完整 `OperatorCoordinator` 抽象依赖 §5.3 Source Enumerator State + §6 Sink Exactly-Once 模型，移 successor（Stage 49 Source split）。当前 task 级 ACK 对 task 级算子模型已充分（per-`TaskLocation` ACK + `CheckpointParticipant.finishCommit`），不存在 job-level operator。裁定见 `checkpoint-design.md` §5.3.1 |
 | G36 | state | 缺少 BroadcastState 类型 | Gap/P2 | 04-state: #1 | Item 12b |
 | G37 | state | 缺少 maxParallelism 概念 | Gap/P2 | 04-state: #11 | 独立 plan 或 state backend 重构 |
 | G38 | state | StateShard 使用 Object.hashCode() 非稳定哈希 | Gap(Hollow)/P2 | 04-state: #12 | 独立 plan |
