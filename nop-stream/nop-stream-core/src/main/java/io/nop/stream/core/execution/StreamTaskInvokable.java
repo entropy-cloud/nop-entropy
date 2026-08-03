@@ -29,6 +29,7 @@ import io.nop.stream.core.operators.KeyExtractingOutput;
 import io.nop.stream.core.operators.Output;
 import io.nop.stream.core.operators.StreamOperator;
 import io.nop.stream.core.operators.StreamSourceOperator;
+import io.nop.stream.core.operators.SourceReaderOperator;
 import io.nop.stream.core.streamrecord.StreamElement;
 import io.nop.stream.core.streamrecord.StreamRecord;
 import io.nop.stream.core.streamrecord.watermark.Watermark;
@@ -264,6 +265,12 @@ public class StreamTaskInvokable implements Invokable<Void> {
                 StreamSourceOperator<?> sourceOp = (StreamSourceOperator<?>) head;
                 sourceOp.setMailboxExecutor(mailboxExecutor);
                 sourceOp.setProgressMarker(this::markProgress);
+            } else if (head instanceof SourceReaderOperator) {
+                // Stage 49 D5: new FLIP-27 style source path — wire the mailbox so
+                // barrier / cancel mails are delivered to the SourceReaderOperator's
+                // task thread.
+                SourceReaderOperator<?> readerOp = (SourceReaderOperator<?>) head;
+                readerOp.setMailboxExecutor(mailboxExecutor);
             }
         }
     }
@@ -375,6 +382,16 @@ public class StreamTaskInvokable implements Invokable<Void> {
                     // that emits in batches and might otherwise look idle mid-run).
                     markProgress();
                 }
+            } else if (head instanceof SourceReaderOperator) {
+                // Stage 49 D5: FLIP-27 style source path. Drive SourceReaderOperator.run()
+                // which polls SourceReader.pollNext() until the reader signals isFinished().
+                SourceReaderOperator<?> readerOp = (SourceReaderOperator<?>) head;
+                try {
+                    readerOp.run();
+                } catch (Exception e) {
+                    sourceError = e;
+                }
+                markProgress();
             }
 
             // P1-5: finish() must run after the source returns and BEFORE the
@@ -491,6 +508,19 @@ public class StreamTaskInvokable implements Invokable<Void> {
                         operatorChain.finish();
                         sourceOp.processWatermark(Watermark.MAX_WATERMARK);
                     }
+                }
+            } else if (head instanceof SourceReaderOperator) {
+                // Stage 49 D5: FLIP-27 style source path in SELF_CONTAINED role
+                // (single-subtask in-process execution).
+                SourceReaderOperator<?> readerOp = (SourceReaderOperator<?>) head;
+                try {
+                    readerOp.run();
+                } catch (Exception e) {
+                    sourceError = e;
+                }
+                markProgress();
+                if (sourceError == null) {
+                    operatorChain.finish();
                 }
             }
         } finally {

@@ -25,14 +25,17 @@ import io.nop.stream.core.model.StreamComponents;
 import io.nop.stream.core.model.StreamModel;
 import io.nop.stream.core.model.StreamRequirement;
 import io.nop.stream.core.operators.SimpleStreamOperatorFactory;
+import io.nop.stream.core.operators.SourceReaderOperator;
 import io.nop.stream.core.operators.StreamOperator;
 import io.nop.stream.core.operators.StreamOperatorFactory;
 import io.nop.stream.core.operators.StreamSinkOperator;
 import io.nop.stream.core.operators.StreamSourceOperator;
 import io.nop.stream.core.operators.TimestampsAndWatermarksOperator;
+import io.nop.stream.core.source.Source;
 import io.nop.stream.core.transformation.OneInputTransformation;
 import io.nop.stream.core.transformation.PartitionTransformation;
 import io.nop.stream.core.transformation.SinkTransformation;
+import io.nop.stream.core.transformation.SourceApiTransformation;
 import io.nop.stream.core.transformation.SourceTransformation;
 import io.nop.stream.core.transformation.TimestampsAndWatermarksTransformation;
 import io.nop.stream.core.transformation.Transformation;
@@ -213,6 +216,8 @@ public class StreamGraphGenerator {
         // Dispatch to appropriate handler based on transformation type
         if (transformation instanceof SourceTransformation) {
             transformSource((SourceTransformation<?>) transformation);
+        } else if (transformation instanceof SourceApiTransformation) {
+            transformSourceApi((SourceApiTransformation<?>) transformation);
         } else if (transformation instanceof OneInputTransformation) {
             transformOneInput((OneInputTransformation<?, ?>) transformation);
         } else if (transformation instanceof SinkTransformation) {
@@ -253,6 +258,32 @@ public class StreamGraphGenerator {
         node.setChainingStrategy(operatorFactory.getChainingStrategy());
         
         // Add node to graph and mark as source
+        streamGraph.addStreamNode(node);
+        streamGraph.addSourceID(node.getId());
+    }
+
+    /**
+     * Stage 49 D5: transforms a {@link SourceApiTransformation} into a StreamNode driven by
+     * a {@link SourceReaderOperatorFactory}. Sources are leaf nodes (no inputs) and use
+     * the FLIP-27 style pull-based {@code SourceReader.pollNext()} execution model.
+     *
+     * @param transformation the source-api transformation
+     * @param <OUT> the output type of the source
+     */
+    private <OUT> void transformSourceApi(SourceApiTransformation<OUT> transformation) {
+        StreamOperatorFactory<OUT> operatorFactory =
+                new SourceReaderOperatorFactory<>(transformation.getSource(), transformation.getId());
+
+        StreamNode node = new StreamNode(
+                transformation.getId(),
+                transformation.getName(),
+                operatorFactory,
+                transformation.getOutputType(),
+                resolveParallelism(transformation)
+        );
+        applyParallelismLock(node, transformation);
+        node.setChainingStrategy(operatorFactory.getChainingStrategy());
+
         streamGraph.addStreamNode(node);
         streamGraph.addSourceID(node.getId());
     }
@@ -511,6 +542,53 @@ public class StreamGraphGenerator {
         @Override
         public String getName() {
             return "Source";
+        }
+    }
+
+    /**
+     * Stage 49 D5: factory for {@link SourceReaderOperator} (FLIP-27 style source).
+     *
+     * <p>The factory carries the {@link io.nop.stream.core.source.Source} descriptor. The
+     * live reader + coordinator channel (assignment proxy) are wired by the runtime that
+     * owns the target subtask — for LOCAL mode this is the in-process
+     * {@code LocalSourceCoordinator} registered by {@code StreamExecutionEnvironment}.
+     */
+    private static class SourceReaderOperatorFactory<OUT> implements StreamOperatorFactory<OUT>, Serializable {
+
+        private static final long serialVersionUID = 1L;
+
+        private final Source<OUT, ? extends io.nop.stream.core.source.SourceSplit, ?> source;
+        private final int vertexId;
+
+        public SourceReaderOperatorFactory(Source<OUT, ? extends io.nop.stream.core.source.SourceSplit, ?> source,
+                                           int vertexId) {
+            this.source = source;
+            this.vertexId = vertexId;
+        }
+
+        public Source<OUT, ? extends io.nop.stream.core.source.SourceSplit, ?> getSource() {
+            return source;
+        }
+
+        public int getVertexId() {
+            return vertexId;
+        }
+
+        @Override
+        public StreamOperator<OUT> createStreamOperator(TypeInformation<OUT> outputType) {
+            // The LOCAL execution path overrides per-subtask identity
+            // (subtaskIndex, totalParallelism) before run() via setSubtaskIdentity().
+            return new SourceReaderOperator<>(source, vertexId);
+        }
+
+        @Override
+        public int getParallelism() {
+            return 1;
+        }
+
+        @Override
+        public String getName() {
+            return "SourceReader";
         }
     }
     

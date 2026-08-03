@@ -134,6 +134,16 @@ public class CheckpointBarrierTracker {
                     LOG.warn("Checkpoint {} rejected: source operator rejected barrier", checkpointId);
                     return false;
                 }
+            } else if (head instanceof io.nop.stream.core.operators.SourceReaderOperator) {
+                // Stage 49 D5: FLIP-27 style source path — deliver the barrier via the
+                // SourceReaderOperator's mailbox-driven handoff.
+                boolean accepted = ((io.nop.stream.core.operators.SourceReaderOperator<?>) head)
+                        .offerBarrier(barrier);
+                if (!accepted) {
+                    inFlight.remove(checkpointId);
+                    LOG.warn("Checkpoint {} rejected: source reader operator rejected barrier", checkpointId);
+                    return false;
+                }
             }
         }
 

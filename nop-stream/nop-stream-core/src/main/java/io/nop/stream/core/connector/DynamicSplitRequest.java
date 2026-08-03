@@ -12,11 +12,15 @@ import java.io.Serializable;
 import io.nop.api.core.annotations.core.Internal;
 
 /**
- * Reserved for future FLIP-27 style connector framework.
+ * Stage 49 D1 (FLIP-27 范式裁定) Beam-SDF DynamicSplit{fraction} reject.
  *
- * @apiNote Reserved for future FLIP-27 style connector framework. Not yet used.
+ * @apiNote FLIP-27 无 fraction-splitting；whole-split assignment 已满足 v1 scope
+ *           （参见 {@code connector-design.md} §4.0 D1）。本接口保留仅为向后兼容，
+ *           新代码用 {@link io.nop.stream.core.source.SplitEnumerator}。
+ * @deprecated Stage 49 D1 reject — superseded by FLIP-27 whole-split assignment.
  */
 @Internal
+@Deprecated
 public interface DynamicSplitRequest extends Serializable {
     double getFraction();
 }

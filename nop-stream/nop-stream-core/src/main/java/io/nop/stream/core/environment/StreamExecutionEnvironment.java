@@ -42,7 +42,10 @@ import io.nop.stream.core.model.StreamComponents;
 import io.nop.stream.core.model.StreamModel;
 import io.nop.stream.core.model.StreamModelFingerprint;
 import io.nop.stream.core.model.StreamRequirementValidator;
+import io.nop.stream.core.source.Source;
+import io.nop.stream.core.source.SourceSplit;
 import io.nop.stream.core.transformation.SinkTransformation;
+import io.nop.stream.core.transformation.SourceApiTransformation;
 import io.nop.stream.core.transformation.SourceTransformation;
 import io.nop.stream.core.transformation.Transformation;
 import io.nop.stream.core.exceptions.StreamException;
@@ -207,9 +210,43 @@ public class StreamExecutionEnvironment {
     }
 
     public <T> DataStreamSource<T> addSource(SourceFunction<T> function, String sourceName,
-                                              TypeInformation<T> typeInfo) {
+                                               TypeInformation<T> typeInfo) {
         SourceTransformation<T> sourceTransform = new SourceTransformation<>(
                 sourceName, function, typeInfo, parallelism);
+        transformations.add(sourceTransform);
+        return new SourceDataStream<>(this, sourceTransform);
+    }
+
+    /**
+     * Stage 49 D5: adds a FLIP-27 style split-based {@link Source} to the streaming DAG.
+     * Routes through a separate {@link SourceApiTransformation} so that the legacy
+     * {@code SourceFunction} path and the new {@code Source} path do not share runtime
+     * operator classes.
+     *
+     * @param source     the FLIP-27 style source descriptor; non-null
+     * @param sourceName the name of the source transformation; non-null
+     * @param <T>        the element type produced by the source
+     */
+    public <T> DataStreamSource<T> addSource(Source<T, ? extends SourceSplit, ?> source, String sourceName) {
+        if (source == null) {
+            throw new StreamException(ERR_STREAM_NULL_ARG).param(ARG_ARG_NAME, "source");
+        }
+        SourceApiTransformation<T> sourceTransform = new SourceApiTransformation<>(
+                sourceName, source, null, parallelism);
+        transformations.add(sourceTransform);
+        return new SourceDataStream<>(this, sourceTransform);
+    }
+
+    /**
+     * Stage 49 D5: adds a FLIP-27 style split-based {@link Source} with explicit output type.
+     */
+    public <T> DataStreamSource<T> addSource(Source<T, ? extends SourceSplit, ?> source, String sourceName,
+                                             TypeInformation<T> typeInfo) {
+        if (source == null) {
+            throw new StreamException(ERR_STREAM_NULL_ARG).param(ARG_ARG_NAME, "source");
+        }
+        SourceApiTransformation<T> sourceTransform = new SourceApiTransformation<>(
+                sourceName, source, typeInfo, parallelism);
         transformations.add(sourceTransform);
         return new SourceDataStream<>(this, sourceTransform);
     }
@@ -282,12 +319,30 @@ public class StreamExecutionEnvironment {
             TaskExecutor executor = new TaskExecutor();
             try {
                 List<SubtaskTask> subtaskTasks = new ArrayList<>();
+                java.util.Set<Integer> sourceApiVertexIds = new java.util.LinkedHashSet<>();
+                for (Transformation<?> t : transformations) {
+                    if (t instanceof SourceApiTransformation) {
+                        sourceApiVertexIds.add(t.getId());
+                    }
+                }
 
                 for (String vertexId : plan.getSortedVertexIds()) {
                     List<Subtask> vertexSubtasks = plan.getSubtasks(vertexId);
+                    int totalParallelism = vertexSubtasks.size();
+                    int parsedVertexId = parseVertexId(vertexId);
+                    boolean isSourceApiVertex = sourceApiVertexIds.contains(parsedVertexId);
+
                     for (Subtask subtask : vertexSubtasks) {
                         SubtaskTask subtaskTask = new SubtaskTask(subtask, plan.getExecutionVertices().get(vertexId));
                         subtaskTasks.add(subtaskTask);
+
+                        // Stage 49 D3: wire per-subtask identity on SourceReaderOperator
+                        // before submission so its open() can locate the right coordinator
+                        // channel and know its position among parallel source subtasks.
+                        if (isSourceApiVertex) {
+                            wireSourceReaderSubtaskIdentity(subtask, subtask.getTaskIndex(), totalParallelism);
+                        }
+
                         executor.submitTask(subtaskTask);
                     }
                 }
@@ -308,6 +363,13 @@ public class StreamExecutionEnvironment {
                 // Release the per-job buffer pool so any producer blocked on global
                 // exhaustion is woken, and permits do not leak across executions.
                 plan.closeBufferPool();
+                // Stage 49 D3: unregister any source-api coordinators we registered for this
+                // job so subsequent executions of the same vertex id start fresh.
+                for (Transformation<?> t : transformations) {
+                    if (t instanceof SourceApiTransformation) {
+                        io.nop.stream.core.source.coordinator.SourceCoordinatorRegistry.unregister(t.getId());
+                    }
+                }
             }
         } catch (Exception e) {
             throw new StreamException(ERR_STREAM_JOB_EXECUTE_FAILED, e).param(ARG_JOB_NAME, jobName);
@@ -374,6 +436,47 @@ public class StreamExecutionEnvironment {
 
     List<Transformation<?>> getTransformations() {
         return transformations;
+    }
+
+    /**
+     * Stage 49 D3: parse the integer vertex id from the (possibly compound) string used by
+     * the execution plan. {@code JobGraphGenerator} formats vertex ids as {@code "vertex-<id>"}
+     * where {@code <id>} is the originating {@code Transformation.getId()} integer. Returns
+     * -1 if parsing fails (the caller will skip source-api wiring for that vertex).
+     */
+    private static int parseVertexId(String vertexId) {
+        if (vertexId == null || vertexId.isEmpty()) {
+            return -1;
+        }
+        // Strip optional "vertex-" prefix used by JobGraphGenerator.
+        String numPart = vertexId;
+        if (numPart.startsWith("vertex-")) {
+            numPart = numPart.substring("vertex-".length());
+        }
+        try {
+            return Integer.parseInt(numPart);
+        } catch (NumberFormatException e) {
+            return -1;
+        }
+    }
+
+    /**
+     * Stage 49 D3: walks the subtask's operator chain and sets per-subtask identity
+     * (subtaskIndex, totalParallelism) on every {@link io.nop.stream.core.operators.SourceReaderOperator}
+     * found, so that the operator's {@code open()} can locate its coordinator channel.
+     */
+    private static void wireSourceReaderSubtaskIdentity(Subtask subtask, int subtaskIndex, int totalParallelism) {
+        if (subtask.getInvokable() == null) {
+            return;
+        }
+        for (io.nop.stream.core.operators.StreamOperator<?> op :
+                subtask.getInvokable().getOperatorChain().getOperators()) {
+            if (op instanceof io.nop.stream.core.operators.SourceReaderOperator) {
+                io.nop.stream.core.operators.SourceReaderOperator<?> sro =
+                        (io.nop.stream.core.operators.SourceReaderOperator<?>) op;
+                sro.setSubtaskIdentity(subtaskIndex, totalParallelism);
+            }
+        }
     }
 
     private List<SinkTransformation<?>> findSinkTransformations() {

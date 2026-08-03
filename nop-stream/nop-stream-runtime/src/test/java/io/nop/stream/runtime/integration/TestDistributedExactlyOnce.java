@@ -25,8 +25,6 @@ import io.nop.stream.core.streamrecord.StreamRecord;
 import io.nop.stream.runtime.checkpoint.CheckpointCoordinator;
 import io.nop.stream.runtime.checkpoint.PendingCheckpoint;
 import io.nop.stream.runtime.checkpoint.storage.LocalFileCheckpointStorage;
-import io.nop.stream.runtime.source.SourceEnumerator;
-import io.nop.stream.runtime.source.SourceSplit;
 import org.junit.jupiter.api.*;
 import org.junit.jupiter.api.io.TempDir;
 
@@ -776,60 +774,13 @@ class TestDistributedExactlyOnce {
     }
 
     // ==================== 7. SourceEnumerator in distributed context ====================
-
-    /**
-     * Tests SourceEnumerator split assignment with parallelism=2, verifying that
-     * splits are evenly distributed and can be recovered after checkpoint.
-     */
-    @Test
-    void testSourceEnumeratorDistributedAssignment() throws Exception {
-        SourceEnumerator enumerator = new SourceEnumerator(2);
-
-        // Discover 6 splits
-        List<SourceSplit> splits = new ArrayList<>();
-        for (int i = 0; i < 6; i++) {
-            splits.add(new SourceSplit("partition-" + i, "Kafka partition " + i, i));
-        }
-        enumerator.discoverSplits(splits);
-
-        // Assign all splits round-robin across 2 subtasks
-        Map<Integer, List<String>> assignment = enumerator.assignAllSplits();
-        assertEquals(3, assignment.get(0).size());
-        assertEquals(3, assignment.get(1).size());
-
-        // Verify round-robin: subtask 0 gets even indices, subtask 1 gets odd
-        assertTrue(assignment.get(0).contains("partition-0"));
-        assertTrue(assignment.get(0).contains("partition-2"));
-        assertTrue(assignment.get(0).contains("partition-4"));
-        assertTrue(assignment.get(1).contains("partition-1"));
-        assertTrue(assignment.get(1).contains("partition-3"));
-        assertTrue(assignment.get(1).contains("partition-5"));
-
-        // Snapshot state
-        SourceEnumeratorState state = enumerator.snapshotState();
-
-        // Mark some splits as finished
-        enumerator.acknowledgeSplit("partition-0");
-        enumerator.markSplitFinished("partition-0");
-        enumerator.acknowledgeSplit("partition-1");
-        enumerator.markSplitFinished("partition-1");
-
-        // After finish, splits are still in assignedSplits for tracking, but also in finishedSplits
-        assertEquals(2, enumerator.getFinishedSplitCount());
-        assertEquals(0, enumerator.getAssignedSubtask("partition-0")); // still tracked
-        assertEquals(1, enumerator.getAssignedSubtask("partition-1")); // still tracked
-
-        // Restore into a new enumerator (simulating recovery)
-        SourceEnumerator restored = new SourceEnumerator(2);
-        restored.restoreState(state);
-
-        // After restore, all 6 splits should be discovered
-        assertEquals(6, restored.getDiscoveredSplits().size());
-
-        // The restored state has the pre-finish assignment (3+3)
-        assertEquals(6, restored.getAssignedSplitCount());
-        assertEquals(0, restored.getUnassignedSplitCount());
-    }
+    //
+    // Stage 49 D6: the standalone concrete SourceEnumerator / SourceSplit prototypes were
+    // removed and replaced by the FLIP-27 style Source / SplitEnumerator / SourceReader /
+    // SourceSplit contract (see io.nop.stream.core.source.*). Round-robin assignment and
+    // 6-state checkpoint/restore for split-based sources is now exercised end-to-end via
+    // TestFileSourceE2E (Stage 49 Phase 3) and at the contract level via
+    // TestSourceSplitContract / TestSourceEnumeratorSnapshotSerialization in nop-stream-core.
 
     // ==================== 8. E2E pipeline with all invariants ====================
 

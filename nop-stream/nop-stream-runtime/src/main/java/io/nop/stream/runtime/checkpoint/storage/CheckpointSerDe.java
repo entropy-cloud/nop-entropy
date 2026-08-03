@@ -22,6 +22,7 @@ import io.nop.stream.core.checkpoint.CheckpointType;
 import io.nop.stream.core.checkpoint.CompletedCheckpoint;
 import io.nop.stream.core.checkpoint.EpochManifest;
 import io.nop.stream.core.checkpoint.EpochState;
+import io.nop.stream.core.checkpoint.SourceEnumeratorSnapshot;
 import io.nop.stream.core.checkpoint.StateSegmentDescriptor;
 import io.nop.stream.core.checkpoint.TaskLocation;
 import io.nop.stream.core.checkpoint.TaskStateSnapshot;
@@ -184,6 +185,20 @@ public class CheckpointSerDe {
             serializable.put("segments", segmentsList);
         }
 
+        // Stage 49 D2: serialize per-source-vertex enumerator snapshots when present.
+        // Backward compatible: absent on jobs without split-based sources / legacy checkpoints.
+        if (manifest.getSourceEnumeratorSnapshots() != null && !manifest.getSourceEnumeratorSnapshots().isEmpty()) {
+            Map<String, Object> enumeratorMap = new LinkedHashMap<>();
+            for (Map.Entry<String, SourceEnumeratorSnapshot> entry : manifest.getSourceEnumeratorSnapshots().entrySet()) {
+                SourceEnumeratorSnapshot snap = entry.getValue();
+                Map<String, Object> entryMap = new LinkedHashMap<>();
+                entryMap.put("version", snap.getVersion());
+                entryMap.put("stateBytes", java.util.Base64.getEncoder().encodeToString(snap.getStateBytes() != null ? snap.getStateBytes() : new byte[0]));
+                enumeratorMap.put(entry.getKey(), entryMap);
+            }
+            serializable.put("sourceEnumeratorSnapshots", enumeratorMap);
+        }
+
         return JsonTool.serialize(serializable, false).getBytes(StandardCharsets.UTF_8);
     }
 
@@ -267,8 +282,29 @@ public class CheckpointSerDe {
             }
         }
 
+        // Stage 49 D2: deserialize per-source-vertex enumerator snapshots when present.
+        // Backward compatible: absent on legacy checkpoints → empty map.
+        Map<String, SourceEnumeratorSnapshot> enumeratorSnapshots = new LinkedHashMap<>();
+        Map<String, Object> enumeratorMap = map.get("sourceEnumeratorSnapshots") instanceof Map
+                ? (Map<String, Object>) map.get("sourceEnumeratorSnapshots") : null;
+        if (enumeratorMap != null) {
+            for (Map.Entry<String, Object> entry : enumeratorMap.entrySet()) {
+                if (!(entry.getValue() instanceof Map)) {
+                    LOG.warn("Skipping non-map source enumerator snapshot for key '{}'", entry.getKey());
+                    continue;
+                }
+                Map<String, Object> snapMap = (Map<String, Object>) entry.getValue();
+                int version = snapMap.get("version") instanceof Number ? ((Number) snapMap.get("version")).intValue() : 0;
+                String b64 = (String) snapMap.get("stateBytes");
+                byte[] stateBytes = (b64 != null)
+                        ? java.util.Base64.getDecoder().decode(b64)
+                        : new byte[0];
+                enumeratorSnapshots.put(entry.getKey(), new SourceEnumeratorSnapshot(version, stateBytes));
+            }
+        }
+
         return new EpochManifest(epochId, jobId, pipelineId, timestamp, checkpointType, epochState,
-                taskSnapshots, fingerprint, segments);
+                taskSnapshots, fingerprint, segments, enumeratorSnapshots);
     }
 
     public static String taskLocationToString(TaskLocation loc) {

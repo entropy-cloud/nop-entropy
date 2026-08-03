@@ -1159,6 +1159,12 @@ public class CheckpointCoordinator {
     private EpochManifest buildEpochManifest(CompletedCheckpoint completed,
                                              StreamModelFingerprint fingerprint,
                                              List<StateSegmentDescriptor> segments) {
+        // Stage 49 D2: snapshot all registered source enumerator states into the manifest's
+        // sourceEnumeratorSnapshots section. Empty map if no source-api coordinators
+        // registered (non-source-api jobs / legacy checkpoints remain unaffected).
+        Map<String, io.nop.stream.core.checkpoint.SourceEnumeratorSnapshot> enumeratorSnapshots =
+                snapshotSourceEnumerators(completed.getCheckpointId());
+
         return new EpochManifest(
                 completed.getCheckpointId(),
                 completed.getJobId(),
@@ -1168,9 +1174,57 @@ public class CheckpointCoordinator {
                 EpochState.COMMITTED,
                 completed.getTaskStates(),
                 fingerprint,
-                segments  // null → empty list inside EpochManifest constructor
+                segments,  // null → empty list inside EpochManifest constructor
+                enumeratorSnapshots
         );
     }
+
+    /**
+     * Stage 49 D2: snapshots every registered {@code LocalSourceCoordinator} into a manifest
+     * entry keyed by source vertex id. Returns an empty map when no source-api coordinators
+     * are registered (the common case for non-split-source jobs).
+     *
+     * <p>Coordinators register themselves into {@code SourceCoordinatorRegistry} lazily on
+     * first subtask open; here we look them up by vertex id and ask each for its serialized
+     * enumerator state. Failures are logged and skipped (a missing enumerator entry on
+     * restore is recoverable — the source will rediscover splits from scratch).
+     */
+    private Map<String, io.nop.stream.core.checkpoint.SourceEnumeratorSnapshot> snapshotSourceEnumerators(
+            long checkpointId) {
+        Map<String, io.nop.stream.core.checkpoint.SourceEnumeratorSnapshot> result = new java.util.LinkedHashMap<>();
+        for (Integer vertexId : registeredSourceVertexIds) {
+            io.nop.stream.core.source.coordinator.LocalSourceCoordinator<? extends io.nop.stream.core.source.SourceSplit, ?> coord =
+                    io.nop.stream.core.source.coordinator.SourceCoordinatorRegistry.get(vertexId);
+            if (coord == null) {
+                continue;
+            }
+            try {
+                io.nop.stream.core.source.coordinator.SourceEnumeratorSerializedState snap =
+                        coord.snapshotState(checkpointId);
+                if (snap != null) {
+                    result.put(String.valueOf(vertexId),
+                            new io.nop.stream.core.checkpoint.SourceEnumeratorSnapshot(
+                                    snap.getVersion(), snap.getStateBytes()));
+                }
+            } catch (Exception e) {
+                LOG.warn("Failed to snapshot source enumerator state for vertex {} (skipped)",
+                        vertexId, e);
+            }
+        }
+        return result;
+    }
+
+    /**
+     * Stage 49 D2: registers a source vertex id whose coordinator's enumerator state should
+     * be snapshotted into the manifest on each checkpoint. Called by the execution layer
+     * when a source-api vertex is deployed.
+     */
+    public void registerSourceEnumeratorVertex(int vertexId) {
+        registeredSourceVertexIds.add(vertexId);
+    }
+
+    private final java.util.Set<Integer> registeredSourceVertexIds =
+            java.util.Collections.newSetFromMap(new java.util.concurrent.ConcurrentHashMap<>());
 
     /**
      * Try to restore from EpochManifest first, fall back to CompletedCheckpoint.

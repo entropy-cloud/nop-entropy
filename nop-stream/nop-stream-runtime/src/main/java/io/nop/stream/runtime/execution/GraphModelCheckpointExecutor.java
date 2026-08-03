@@ -116,7 +116,7 @@ public class GraphModelCheckpointExecutor {
         ICheckpointStorage storage = createStorage(checkpointConfig);
         CheckpointPlan checkpointPlan = CheckpointPlanBuilder.build(execPlan, jobId, pipelineId, null, checkpointConfig);
 
-        CheckpointCoordinator coordinator = createCoordinator(jobId, pipelineId, idCounter, storage, checkpointConfig);
+        CheckpointCoordinator coordinator = createCoordinator(jobId, pipelineId, idCounter, storage, checkpointConfig, jobGraph);
         List<StreamTaskInvokable> allInvokables = registerTasksAndTrackers(execPlan, checkpointPlan, coordinator, checkpointConfig);
 
         ScheduledExecutorService barrierScheduler = startBarrierScheduler(allInvokables, coordinator, checkpointConfig, jobId);
@@ -179,7 +179,7 @@ public class GraphModelCheckpointExecutor {
         ICheckpointStorage storage = createStorage(checkpointConfig);
         CheckpointPlan checkpointPlan = CheckpointPlanBuilder.build(execPlan, jobId, pipelineId, null, checkpointConfig);
 
-        CheckpointCoordinator coordinator = createCoordinator(jobId, pipelineId, idCounter, storage, checkpointConfig);
+        CheckpointCoordinator coordinator = createCoordinator(jobId, pipelineId, idCounter, storage, checkpointConfig, jobGraph);
 
         // Compute and set fingerprint for EpochManifest persistence
         StreamModelFingerprint fingerprint = streamModel.computeFingerprint();
@@ -255,7 +255,7 @@ public class GraphModelCheckpointExecutor {
         ICheckpointStorage storage = createStorage(checkpointConfig);
         CheckpointPlan checkpointPlan = CheckpointPlanBuilder.build(execPlan, jobId, pipelineId, null, checkpointConfig);
 
-        CheckpointCoordinator coordinator = createCoordinator(jobId, pipelineId, idCounter, storage, checkpointConfig);
+        CheckpointCoordinator coordinator = createCoordinator(jobId, pipelineId, idCounter, storage, checkpointConfig, jobGraph);
 
         StreamModelFingerprint fingerprint = streamModel.computeFingerprint();
         coordinator.setCurrentFingerprint(fingerprint);
@@ -326,7 +326,7 @@ public class GraphModelCheckpointExecutor {
         }
         CheckpointPlan checkpointPlan = CheckpointPlanBuilder.build(execPlan, jobId, pipelineId, null, checkpointConfig);
 
-        CheckpointCoordinator coordinator = createCoordinator(jobId, pipelineId, idCounter, storage, checkpointConfig);
+        CheckpointCoordinator coordinator = createCoordinator(jobId, pipelineId, idCounter, storage, checkpointConfig, jobGraph);
         List<StreamTaskInvokable> allInvokables = registerTasksAndTrackers(execPlan, checkpointPlan, coordinator, checkpointConfig);
 
         ScheduledExecutorService barrierScheduler = startBarrierScheduler(allInvokables, coordinator, checkpointConfig, jobId);
@@ -386,7 +386,7 @@ public class GraphModelCheckpointExecutor {
         ICheckpointStorage storage = createStorage(checkpointConfig);
         CheckpointPlan checkpointPlan = CheckpointPlanBuilder.build(execPlan, jobId, pipelineId, null, checkpointConfig);
 
-        CheckpointCoordinator coordinator = createCoordinator(jobId, pipelineId, idCounter, storage, checkpointConfig);
+        CheckpointCoordinator coordinator = createCoordinator(jobId, pipelineId, idCounter, storage, checkpointConfig, jobGraph);
         List<StreamTaskInvokable> allInvokables = registerTasksAndTrackers(execPlan, checkpointPlan, coordinator, checkpointConfig);
 
         ScheduledExecutorService barrierScheduler = startBarrierScheduler(allInvokables, coordinator, checkpointConfig, jobId);
@@ -554,7 +554,72 @@ public class GraphModelCheckpointExecutor {
             String jobId, String pipelineId,
             CheckpointIDCounter idCounter, ICheckpointStorage storage,
             CheckpointConfig config) {
-        return new CheckpointCoordinator(jobId, pipelineId, idCounter, storage, config);
+        return createCoordinator(jobId, pipelineId, idCounter, storage, config, null);
+    }
+
+    /**
+     * Stage 49 D2: creates the coordinator AND, when {@code jobGraph} is supplied, scans
+     * its vertices for {@code SourceReaderOperator} heads and registers each source-api
+     * vertex id via {@link CheckpointCoordinator#registerSourceEnumeratorVertex(int)} so
+     * that {@code buildEpochManifest} snapshots enumerator state into the
+     * {@code sourceEnumeratorSnapshots} manifest section on every checkpoint.
+     *
+     * <p>Without this registration, the manifest section is always empty — enumerator state
+     * (discovered/assigned/finished splits) is lost on restore, and the source would
+     * re-read already-finished splits. Anti-Hollow fix.
+     */
+    private static CheckpointCoordinator createCoordinator(
+            String jobId, String pipelineId,
+            CheckpointIDCounter idCounter, ICheckpointStorage storage,
+            CheckpointConfig config, JobGraph jobGraph) {
+        CheckpointCoordinator coordinator = new CheckpointCoordinator(jobId, pipelineId, idCounter, storage, config);
+        if (jobGraph != null) {
+            registerSourceApiVertices(coordinator, jobGraph);
+        }
+        return coordinator;
+    }
+
+    /**
+     * Stage 49 D2: walks the JobGraph's operator chains and registers any vertex whose
+     * head operator is a {@code SourceReaderOperator} (FLIP-27 source-api path). The
+     * vertex id is parsed from the {@code "vertex-<id>"} format used by
+     * {@code JobGraphGenerator}.
+     */
+    private static void registerSourceApiVertices(CheckpointCoordinator coordinator, JobGraph jobGraph) {
+        for (JobVertex vertex : jobGraph.getVertices().values()) {
+            int vertexId = parseVertexIdForSourceEnumerator(vertex.getId());
+            if (vertexId < 0) {
+                continue;
+            }
+            boolean hasSourceReaderHead = false;
+            if (vertex.getOperatorChains() != null) {
+                outer:
+                for (io.nop.stream.core.jobgraph.OperatorChain chain : vertex.getOperatorChains()) {
+                    if (chain.getOperators() == null || chain.getOperators().isEmpty()) {
+                        continue;
+                    }
+                    io.nop.stream.core.operators.StreamOperator<?> head = chain.getOperators().get(0);
+                    if (head instanceof io.nop.stream.core.operators.SourceReaderOperator) {
+                        hasSourceReaderHead = true;
+                        break outer;
+                    }
+                }
+            }
+            if (hasSourceReaderHead) {
+                coordinator.registerSourceEnumeratorVertex(vertexId);
+            }
+        }
+    }
+
+    /** Parses {@code "vertex-<id>"} back to int; returns -1 on failure. */
+    private static int parseVertexIdForSourceEnumerator(String vertexId) {
+        if (vertexId == null) return -1;
+        String numPart = vertexId.startsWith("vertex-") ? vertexId.substring("vertex-".length()) : vertexId;
+        try {
+            return Integer.parseInt(numPart);
+        } catch (NumberFormatException e) {
+            return -1;
+        }
     }
 
     private static List<StreamTaskInvokable> registerTasksAndTrackers(

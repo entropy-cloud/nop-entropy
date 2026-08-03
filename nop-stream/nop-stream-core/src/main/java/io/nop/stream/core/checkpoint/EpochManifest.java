@@ -33,12 +33,33 @@ public class EpochManifest implements Serializable {
     private final StreamModelFingerprint streamModelFingerprint;
     private final List<StateSegmentDescriptor> segments;
 
+    /**
+     * Stage 49 D2: per-source-vertex enumerator state snapshots. Keyed by source vertex id,
+     * valued by the serialized enumerator state blob (version + bytes) for that source.
+     * Empty map for jobs without split-based sources or before Stage 49.
+     *
+     * <p>This is the code-level landing of {@code checkpoint-design.md} §2.6 manifest field
+     * {@code sourceEnumeratorSnapshots} and §5.3 6-state decomposition.
+     */
+    private final Map<String, SourceEnumeratorSnapshot> sourceEnumeratorSnapshots;
+
     public EpochManifest(long epochId, String jobId, String pipelineId,
                          long timestamp, CheckpointType checkpointType,
                          EpochState state,
                          Map<TaskLocation, TaskStateSnapshot> taskSnapshots,
                          StreamModelFingerprint streamModelFingerprint,
                          List<StateSegmentDescriptor> segments) {
+        this(epochId, jobId, pipelineId, timestamp, checkpointType, state,
+                taskSnapshots, streamModelFingerprint, segments, null);
+    }
+
+    public EpochManifest(long epochId, String jobId, String pipelineId,
+                         long timestamp, CheckpointType checkpointType,
+                         EpochState state,
+                         Map<TaskLocation, TaskStateSnapshot> taskSnapshots,
+                         StreamModelFingerprint streamModelFingerprint,
+                         List<StateSegmentDescriptor> segments,
+                         Map<String, SourceEnumeratorSnapshot> sourceEnumeratorSnapshots) {
         this.epochId = epochId;
         this.jobId = jobId;
         this.pipelineId = pipelineId;
@@ -52,10 +73,13 @@ public class EpochManifest implements Serializable {
         this.segments = segments != null
                 ? Collections.unmodifiableList(new ArrayList<>(segments))
                 : Collections.emptyList();
+        this.sourceEnumeratorSnapshots = sourceEnumeratorSnapshots != null
+                ? Collections.unmodifiableMap(new LinkedHashMap<>(sourceEnumeratorSnapshots))
+                : Collections.emptyMap();
     }
 
     public EpochManifest() {
-        this(-1, null, null, 0, null, null, null, null, null);
+        this(-1, null, null, 0, null, null, null, null, null, null);
     }
 
     public long getEpochId() { return epochId; }
@@ -67,4 +91,9 @@ public class EpochManifest implements Serializable {
     public Map<TaskLocation, TaskStateSnapshot> getTaskSnapshots() { return taskSnapshots; }
     public StreamModelFingerprint getStreamModelFingerprint() { return streamModelFingerprint; }
     public List<StateSegmentDescriptor> getSegments() { return segments; }
+
+    /** Stage 49 D2: per-source-vertex enumerator state snapshots. */
+    public Map<String, SourceEnumeratorSnapshot> getSourceEnumeratorSnapshots() {
+        return sourceEnumeratorSnapshots;
+    }
 }
