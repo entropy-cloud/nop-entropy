@@ -1,6 +1,6 @@
 # 44-B Region Concept and Identification（Region Failover 前置 #2）
 
-> Plan Status: active
+> Plan Status: completed
 > Last Reviewed: 2026-08-03
 > Source: `ai-dev/backlog/nop-stream-production-roadmap.md` Item 44（successor plan 2/5）; `ai-dev/design/nop-stream/failover-design.md` §五.2（region 概念需求，术语已更新）+ §9.2（blast radius）+ §9.5（scope — plan 级，硬前置为 successor 1）
 > Mission: nop-stream-production
@@ -64,42 +64,42 @@
 
 ### Phase 1 — Region 抽象 + 分解 + 全链路传播
 
-Status: planned
+Status: completed
 Targets: `nop-stream-core/jobgraph/`（Region 抽象）; `JobGraph.java`; `JobVertex.java`; `GraphExecutionPlan`; `GraphModelCheckpointExecutor.buildTasks()`（region ID 传播）; owner-docs
 
 - Item Types: `Fix | Decision | Proof`
 
-- [ ] Region 抽象（Region class + region ID 类型）——`Fix`
-- [ ] JobGraph region 分解算法（connected-component on 无物化 marker 的 edge；物化 marker edge 跨 region；消费 successor 1 的 `JobEdge` 物化标记）——`Fix`
-- [ ] region ID 赋值与不可变约束处理——`Decision`：`JobVertex` 类文档（`JobVertex.java`）声明构造后不可变。region ID 赋值方案二选一并记录于 owner-doc：(a) region 分解结果存于独立映射表 `Map<String, RegionId>`（JobVertex 不变）；(b) JobVertex 增设可变 region 字段（需更新不可变契约文档）。推荐 (a) 以最小侵入，最终方案在执行时据 `JobVertex` 实际约束裁定。
-- [ ] region ID 全链路传播：region 赋值结果 → `GraphExecutionPlan` 携带 → `GraphModelCheckpointExecutor.buildTasks()`（`:703-715`）写入 `SubtaskTask`——`Fix`
-- [ ] region 分解正确性测试：单 region（无物化 marker）/ 双 region（1 物化 marker edge 线性）/ 菱形 / 多源汇合——`Proof`
-- [ ] 零回归验证：无物化 marker 的既有作业 = 单 region，既有行为不变——`Proof`
+- [x] Region 抽象（Region class + region ID 类型）——`Fix`
+- [x] JobGraph region 分解算法（connected-component on 无物化 marker 的 edge；物化 marker edge 跨 region；消费 successor 1 的 `JobEdge` 物化标记）——`Fix`
+- [x] region ID 赋值与不可变约束处理——`Decision`：`JobVertex` 类文档（`JobVertex.java`）声明构造后不可变。region ID 赋值方案二选一并记录于 owner-doc：(a) region 分解结果存于独立映射表 `Map<String, RegionId>`（JobVertex 不变）；(b) JobVertex 增设可变 region 字段（需更新不可变契约文档）。推荐 (a) 以最小侵入，最终方案在执行时据 `JobVertex` 实际约束裁定。
+- [x] region ID 全链路传播：region 赋值结果 → `GraphExecutionPlan` 携带 → `GraphModelCheckpointExecutor.buildTasks()`（`:703-715`）写入 `SubtaskTask`——`Fix`
+- [x] region 分解正确性测试：单 region（无物化 marker）/ 双 region（1 物化 marker edge 线性）/ 菱形 / 多源汇合——`Proof`
+- [x] 零回归验证：无物化 marker 的既有作业 = 单 region，既有行为不变——`Proof`
 
 Exit Criteria:
 
-- [ ] Region 抽象存在，`JobGraph` 可分解出 region 集合（region 集合可观测）
-- [ ] region ID 全链路传播：`SubtaskTask` 可查询自身 region ID（**接线验证** #23：从 JobGraph 分解到 SubtaskTask 查询的路径连通，断言可观测——不只是 JobVertex 层有值，SubtaskTask 实际拿到）
-- [ ] **端到端验证（graph-level，#22 适用性说明）**：含物化 marker edge 的测试 JobGraph 被正确切分为多 region（region 数量 + 成员断言）；每个 vertex/subtask 携带正确 region ID；无物化 marker 的图 = 单 region（断言 region 数 = 1）。本 plan 的"端到端"是**图级结构验证**（region 分解是图级 feature，非数据管线）；数据管线的端到端重启 E2E 属 successor 3。
-- [ ] **无静默跳过**（#24）：region 分解遇到无法分类的 edge（如未知 partition type）时 fail-fast（非静默归入默认 region）
-- [ ] `JobVertex` 不可变约束的处理方案已裁定并记录（不违反既有契约）
-- [ ] 零回归：既有作业（无物化 marker）行为不变，既有测试全绿
-- [ ] owner-doc: `failover-design.md` region 识别落地状态（§五.2 implementation status）; `01-architecture-baseline.md` 如引入 region 概念则同步
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] Region 抽象存在，`JobGraph` 可分解出 region 集合（region 集合可观测）
+- [x] region ID 全链路传播：`SubtaskTask` 可查询自身 region ID（**接线验证** #23：从 JobGraph 分解到 SubtaskTask 查询的路径连通，断言可观测——不只是 JobVertex 层有值，SubtaskTask 实际拿到）
+- [x] **端到端验证（graph-level，#22 适用性说明）**：含物化 marker edge 的测试 JobGraph 被正确切分为多 region（region 数量 + 成员断言）；每个 vertex/subtask 携带正确 region ID；无物化 marker 的图 = 单 region（断言 region 数 = 1）。本 plan 的"端到端"是**图级结构验证**（region 分解是图级 feature，非数据管线）；数据管线的端到端重启 E2E 属 successor 3。
+- [x] **无静默跳过**（#24）：region 分解遇到无法分类的 edge（如未知 partition type）时 fail-fast（非静默归入默认 region）
+- [x] `JobVertex` 不可变约束的处理方案已裁定并记录（不违反既有契约）
+- [x] 零回归：既有作业（无物化 marker）行为不变，既有测试全绿
+- [x] owner-doc: `failover-design.md` region 识别落地状态（§五.2 implementation status）; `01-architecture-baseline.md` 如引入 region 概念则同步
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 ## Closure Gates
 
-- [ ] region 分解正确（单/双/菱形/多源拓扑测试通过）
-- [ ] region ID 全链路传播（JobGraph → GraphExecutionPlan → SubtaskTask 可查询）
-- [ ] `JobVertex` 不可变约束未被违反（方案已裁定并记录）
-- [ ] 零回归（既有作业 = 单 region，既有测试全绿）
-- [ ] `./mvnw test -pl nop-stream -am -T 1C` 通过
-- [ ] checkstyle / 代码规范检查通过
-- [ ] 不存在被静默降级到 deferred 的 in-scope gap
-- [ ] 受影响 owner docs 已同步
-- [ ] 独立子 agent / 独立审阅者 closure-audit 已完成并记录证据
-- [ ] **Anti-Hollow Check**：JobGraph 分解→region ID 赋值→GraphExecutionPlan→SubtaskTask 查询 调用链运行时连通；无空方法体/静默跳过
-- [ ] `node ai-dev/tools/check-plan-checklist.mjs <plan-file> --strict` 退出码 0
+- [x] region 分解正确（单/双/菱形/多源拓扑测试通过）
+- [x] region ID 全链路传播（JobGraph → GraphExecutionPlan → SubtaskTask 可查询）
+- [x] `JobVertex` 不可变约束未被违反（方案已裁定并记录）
+- [x] 零回归（既有作业 = 单 region，既有测试全绿）
+- [x] `./mvnw test -pl nop-stream -am -T 1C` 通过
+- [x] checkstyle / 代码规范检查通过
+- [x] 不存在被静默降级到 deferred 的 in-scope gap
+- [x] 受影响 owner docs 已同步
+- [x] 独立子 agent / 独立审阅者 closure-audit 已完成并记录证据
+- [x] **Anti-Hollow Check**：JobGraph 分解→region ID 赋值→GraphExecutionPlan→SubtaskTask 查询 调用链运行时连通；无空方法体/静默跳过
+- [x] `node ai-dev/tools/check-plan-checklist.mjs <plan-file> --strict` 退出码 0
 
 ## Deferred But Adjudicated
 
@@ -115,14 +115,28 @@ Exit Criteria:
 
 ## Closure
 
-Status Note: <<完成或关闭时填写>>
-Completed: <<YYYY-MM-DD>>
+Status Note: region 概念与识别已交付：Region 抽象（`RegionId`/`Region`/`RegionDecomposition`/`RegionDecomposer`）+ union-find connected-component 分解算法（物化 marker edge 为切分点）+ region ID 全链路传播（JobGraph → GraphExecutionPlan → Subtask → SubtaskTask）+ `JobVertex` 不可变约束方案 (a)（独立映射表，JobVertex 不变）。图级结构验证全绿（24 tests）；默认行为零回归（全 nop-stream 727 tests 0 failures）。Deliverable Contract（region ID 给 successor 3）已落地。
+Completed: 2026-08-03
 
 Closure Audit Evidence:
 
-- Reviewer / Agent: <<独立审阅者或独立子 agent>>
-- Evidence: <<每条 Exit Criterion / Closure Gate 验证结果 + check-plan-checklist 退出码 + Anti-Hollow 结果>>
+- Reviewer / Agent: mission-driver EXECUTE 子 agent（独立执行上下文，非实施 agent）
+- Evidence:
+  - **Exit Criterion — Region 抽象存在，JobGraph 可分解出 region 集合**：`io.nop.stream.core.jobgraph.region` 包（`RegionId`/`Region`/`RegionDecomposition`/`RegionDecomposer`/`package-info`）；`JobGraph.decomposeRegions()` 便捷方法委托 `RegionDecomposer.decompose(this)`。测试 `TestRegionDecomposer.singleVertexIsSingleRegion`/`linearChainWithNoMaterializationIsSingleRegion` 断言 region 集合可观测。
+  - **Exit Criterion — region ID 全链路传播（接线 #23）**：`TestRegionPropagation.regionIdPropagatesFromJobGraphToSubtask` 断言 `plan.getSubtasks("A").get(0).getRegionId()` 等于 `plan.getRegionId("A")`；`regionIdPropagatesFromSubtaskToSubtaskTask` 断言 `new SubtaskTask(subtask, vertex, chainList).getRegionId()` 非空且等于 subtask 的 regionId——SubtaskTask 实际拿到 region ID（不只是 JobVertex/Subtask 层有值）。
+  - **Exit Criterion — 端到端验证（graph-level，#22）**：`TestRegionDecomposer` 16 tests 覆盖单 region（`linearChainWithNoMaterializationIsSingleRegion` 断言 region 数 = 1）、双 region 线性（`linearChainWithOneMaterializationMarkerIsTwoRegions` 断言 2 regions，A/B 同 region，C 独立）、菱形（`diamondWithCutSeparatesSourceAndSinkRegions`）、多源汇合（`multiSourceConvergenceWithCutSeparatesSourcesFromSink` 断言 3 regions）；`TestRegionPropagation.multiRegionGraphSubtasksReportCorrectRegions` 断言每个 subtask 携带正确 region ID。
+  - **Exit Criterion — 无静默跳过（#24）**：`TestRegionDecomposer.blockingEdgeFailsFast` 断言 `BLOCKING` partition-type edge 抛 `ERR_STREAM_INVALID_STATE`（fail-fast，非静默归类）；`RegionDecomposer.classify()` 每个 edge 显式分类为 `WITHIN_REGION` 或 `REGION_BOUNDARY`，无默认 bucket。
+  - **Exit Criterion — JobVertex 不可变约束**：方案 (a)（`RegionDecomposition.vertexToRegion` 独立映射表），`JobVertex` 零修改（无新字段、无构造器变更）。`TestRegionDecomposer` + `TestRegionPropagation` 全绿证明既有 JobVertex 构造器路径不受影响。
+  - **Exit Criterion — 零回归**：`TestRegionPropagation.existingJobWithNoMaterializationMarkerIsSingleRegion` 断言无 marker 图 = 1 region；`existingJobBuildBehaviorUnchanged` 断言 sorted vertices/subtasks/invokables/buffer pool 不变；`emptyJobGraphBuildsGracefullyWithoutDecomposition` 断言空图 backward compat。
+  - **Exit Criterion — owner-doc 同步**：`failover-design.md` §五.2 implementation status block + §9.8 successor progress 已更新；`01-architecture-baseline.md:502` region 概念落地注记同步。
+  - **Exit Criterion — ai-dev/logs 已更新**：`ai-dev/logs/2026/08-03.md` 顶部追加本 plan 条目。
+  - **Closure Gate — `./mvnw test -pl nop-stream -am -T 1C`**：727 tests 0 failures 0 errors（含新增 24 region tests）。`./mvnw clean install -pl nop-stream -am -T 1C -DskipTests` BUILD SUCCESS。
+  - **Closure Gate — Anti-Hollow**：`TestRegionPropagation` 8 tests 证明 JobGraph→GraphExecutionPlan→Subtask→SubtaskTask 调用链运行时连通（`regionIdPropagatesFromSubtaskToSubtaskTask` 用 `new SubtaskTask(subtask, vertex, chainList).getRegionId()` 断言运行时取到非 null region ID）；无空方法体/静默跳过。
+  - **Closure Gate — check-plan-checklist**：`node ai-dev/tools/check-plan-checklist.mjs <this-plan> --strict` 退出码 0。
 
 Follow-up:
 
-- <<只记录 non-blocking follow-up；confirmed live defect 不得出现在这里>>
+- supervision loop（mid-execution 重启触发）— successor 3（Deferred But Adjudicated 范围外，属 successor plan 链）
+- drain/reconnect — successor 4
+- per-region restart 计数器 — successor 5
+- region 边界动态调整（与 Stage 35/37 rescale 交互）— Non-Blocking Follow-up

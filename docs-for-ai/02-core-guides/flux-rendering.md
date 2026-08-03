@@ -136,6 +136,39 @@ x:gen-extends: |
 
 也可以在 `<orm>` 根级别设置 `ext:web-renderer="flux"` 以启用模块全局的 Flux 渲染。
 
+## 数据访问约定（强制）：REST `/r/`，不使用 GraphQL
+
+Flux 渲染模式下的**页面数据访问不使用 GraphQL**，全部经 REST `/r/` 端点调用（`POST /r/OperationName`）。
+这与 AMIS 时代的 GraphQL 直调约定不同：服务端仍由同一 RPC 端点承载，只是前端调用侧统一走 REST。
+
+### URL 前缀约定
+
+view.xml / page.yaml 中的 `api`、`url` 支持以下前缀，由浏览器壳层统一转换（实现见 `nop-chaos-next/apps/main/src/services/nopRpcResolver.ts`，请求层见 `apps/main/src/services/http.ts`）：
+
+| 前缀 | 含义 | 转换结果 |
+|------|------|---------|
+| `@query:OperationName` | 查询操作 | `POST /r/OperationName` |
+| `@mutation:OperationName` | 变更操作 | `POST /r/OperationName` |
+| `@rpc:OperationName` | RPC 操作 | `POST /r/OperationName` |
+| `/r/OperationName` | 显式 REST 路径 | 原样 `POST /r/OperationName` |
+
+示例：
+
+```text
+@query:NopAuthUser__findPage?page=1&perPage=10   →  POST /r/NopAuthUser__findPage
+@mutation:ErpMdMaterial__batchUpdate             →  POST /r/ErpMdMaterial__batchUpdate
+```
+
+### 参数与请求体变换
+
+1. **`@selection` 字段裁剪**：可用 `@selection` 参数指定返回字段子集（`?@selection=field1,field2` 或请求体 `@selection` 键）。显式参数 > URL path > URL `?@selection=` 的优先级裁决，见 `nopRpcResolver.ts`。返回完整 Bean 的服务（如 `DictProvider__getDict`）**无需** `@selection`。
+2. **请求体清洗**：递归过滤 `__`、`@`、`v_` 前缀键（运行时元数据）；顶层 `$` 前缀键（如 `$form`）为运行时系统参数一并过滤；**内嵌** `$` 键（如 TreeBean 结构中的 `$body`/`$type`）属于业务数据结构，保留。
+3. **作用域注入**：Flux 不隐式携带表单数据，需显式 `includeScope` 或 `data: {...}` 模板映射（见下文「作用域（scope）传递规则」）。
+
+### 对测试的影响
+
+浏览器层 E2E 对页面数据访问应断言 **REST `/r/` 调用**（`nop-chaos-next/packages/e2e-shared` 提供 `RpcClient` / `rpc()`），GraphQL 仅用于服务端集成测试或非页面路径。禁止在 flux 页面上断言 GraphQL 请求。
+
 ## NormalizeAction 的 onClick 优先规则
 
 `flux-web.xlib:NormalizeAction` 实现了 AMIS actionType 到 Flux ActionSchema 的转换，且遵循 **onClick 优先规则**。

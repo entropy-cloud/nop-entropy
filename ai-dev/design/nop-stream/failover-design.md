@@ -140,6 +140,14 @@ targeted failover 变为可行，需以下前置全部满足。这些构成 Stag
    > - **Edge marker**：`JobEdge.materializationEnabled`（opt-in，默认 false）；`GraphExecutionPlan.build()` 在 marker 开启时为该 edge 的每个 `ResultPartition` 挂一个 `InMemoryMaterializationPoint`。
    > - **不交付**（属后续 successor plans）：consistent-cut 对齐协议（重放起点选择，successor 4）、region 自动识别（successor 2）、supervision loop 重启触发（successor 3）、producer 非阻塞溢出（successor 4）。
 2. **Region 概念与识别**：在 runtime 引入 region 抽象（当前生产代码零 region 概念，`JobCoordinator.java:220,891` 仅为 forward-looking 注释），能从 JobGraph 的**物化 marker edge** 切分出多个 pipelined connected component。
+
+   > **Implementation status（2026-08-03，successor plan 2 已落地）**：region 概念与识别已交付。落地点：
+   > - **Region 抽象**：`io.nop.stream.core.jobgraph.region.RegionId`（typed immutable 标识）+ `Region`（单个 pipelined connected component，region ID + 成员 vertex 集合）+ `RegionDecomposition`（完整分解结果，region 列表 + vertex→regionId 映射）+ `RegionDecomposer`（connected-component 分解算法）。
+   > - **分解算法**：`RegionDecomposer.decompose(JobGraph)` 使用 union-find connected-component 算法——物化启用 edge（`JobEdge.isMaterializationEnabled()==true`）为 region 切分点，不 union；非物化 edge 连通同一 region，union 端点。无物化 marker 的图 = 单 region（零回归）。
+   > - **region ID 全链路传播**：`JobGraph.decomposeRegions()` → `GraphExecutionPlan.build()` 在构建时分解并将 region ID 写入每个 `Subtask` → `SubtaskTask.getRegionId()` 暴露给 successor 3 的 supervision loop。`GraphExecutionPlan.getRegionDecomposition()`/`getRegionId(vertexId)` 也可查询。
+   > - **`JobVertex` 不可变约束处理（Decision）**：采用方案 (a)——region 分解结果存于独立映射表（`RegionDecomposition.vertexToRegion`），`JobVertex` 不变（构造后不可变契约未被违反）。
+   > - **No-Silent-No-Op（#24）**：`RegionDecomposer` 对 `BLOCKING` partition-type edge fail-fast（`determinePartitionType` 从不产生 BLOCKING；遇到即说明上游编程错误）；每个 edge 显式分类为 `WITHIN_REGION` 或 `REGION_BOUNDARY`，无静默默认归入。
+   > - **不交付**（属后续 successor plans）：supervision loop 重启触发（successor 3）、drain/reconnect（successor 4）、per-region restart 计数器（successor 5）、region-aware scheduling（G55）。
 3. **Supervision loop 执行模型**：将 `submitAndRun` → `awaitCompletion` 全量阻塞模型改为可 mid-execution 检测单 task 失败并重启的 supervision 模型。
 4. **Drain/reconnect 机制**：基于物化点实现 scoped 重启时 producer/consumer 的安全 drain（排空在途数据）与 reconnect（重新接线到新 partition），不破坏 exactly-once。
 5. **Per-region restart 计数器**：scoped 重启不走 `globalRecovery()`，需独立的 per-region 计数器与上限（Stage 25 deferred 项）。
@@ -303,4 +311,4 @@ Stage 27（§3.3）裁定的三个结构死锁，在引入 blocking edge（选�
 - Decision owner: 人类（经 mission-driver proxy 确认，同 Stage 41 D7 渠道）
 - Confirmation evidence: mission-driver EXECUTE invocation on plan `2026-08-03-1403-1-region-based-failover.md`（"Complete the entire plan"）= 接受 §9.6 推荐项
 - 后续动作：roadmap Stage 44 保持 `planned`（附注 "go confirmed — 5 successor plans TBD"）；G57/G28（续）/per-region counter 归属 successor plans（优先级排序见 §9.5）；本 plan 转 `completed`（裁定交付，实施属 successor plans）
-- Successor progress：successor plan 1（物化点机制，`2026-08-03-1600-1-blocking-edge-materialization-point.md`）已 `completed`——SPI + in-memory 实现、`ResultPartition` dual-write 旁路、`InputChannel` 重放、`JobEdge` marker、`GraphExecutionPlan.build` 接线均已落地（§五.1 implementation status）。successor 2/3/4/5 TBD。
+- Successor progress：successor plan 1（物化点机制，`2026-08-03-1600-1-blocking-edge-materialization-point.md`）已 `completed`——SPI + in-memory 实现、`ResultPartition` dual-write 旁路、`InputChannel` 重放、`JobEdge` marker、`GraphExecutionPlan.build` 接线均已落地（§五.1 implementation status）。successor plan 2（region 识别，`2026-08-03-1600-2-region-identification.md`）已 `completed`——Region 抽象（`RegionId`/`Region`/`RegionDecomposition`/`RegionDecomposer`）、union-find connected-component 分解算法、region ID 全链路传播（JobGraph → GraphExecutionPlan → Subtask → SubtaskTask）、零回归均已落地（§五.2 implementation status）。successor 3/4/5 TBD。
