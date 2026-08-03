@@ -387,6 +387,57 @@ capture 语义是 **drain**（记录从 channel 缓冲移入 `ChannelState`，�
 - **单输入 task**：无跨 channel 对齐，`ChannelState` 为空（trivially correct）。
 - **多输入 task**：`ChannelState` 含 non-aligned channel 的在途记录（§2.11.2）。这是 unaligned 的价值场景。
 
+#### 2.11.8 Rescale 交互（parallelism 变化，Stage 47）
+
+Unaligned checkpoint 与 rescale（并行度变化）的叠加。本节裁定交互语义（"应该发生什么"），不定义代码层签名。
+
+**语义事实**：restore 时 checkpoint 快照已经存在且已包含（若 unaligned mode 拍摄）`ChannelState`。无法在 restore 时"降级为 aligned"——快照里已经有 in-flight data 了。`ChannelState` 当前只有 `Map<channelIndex, records>`，**无**任何跨并行度重映射元数据（无 subtask 映射、无 parallelism 标注、records 可能无 key）。
+
+##### D1 — rescale + channel state 首版策略：fail-fast 拒绝
+
+**裁定**：rescale 恢复路径检测到源 checkpoint 含非空 `ChannelState` 时，**fail-fast 抛出 `ERR_STREAM_CHANNEL_STATE_RESCALE_UNSUPPORTED`**，拒绝恢复并提示用户使用 aligned checkpoint 做 rescale 恢复。
+
+**为什么选 fail-fast**：最简、正确性有保证。rescale 跨并行度重映射 in-flight data 需要 `InflightDataRescalingDescriptor`（D3 future-work），首版不实现；若不 fail-fast，唯一替代是静默丢弃 channel state——这会破坏 exactly-once（in-flight data 丢失）且无告警，违反"禁止静默跳过"不变量。
+
+**拒绝的替代方案**：
+
+| 方案 | 裁定 | 理由 |
+|------|------|------|
+| (A) fail-fast 拒绝 | **采纳（首版）** | 正确性保证，最小实现 |
+| (B) `ChannelState` 按 key-group 重映射 | 拒绝（successor） | 需 `InflightDataRescalingDescriptor`，且 records 可能无 key（D3 open question），属后续增强 |
+| (C) 静默丢弃 + warn 日志 | **禁止** | 违反"禁止静默跳过"不变量，破坏 exactly-once 且无 fail-fast 告警 |
+
+**与 keyed state rescale 的关系**（§8.5）：keyed state rescale 已由 Stage 35 的 `KeyGroupRange` 区间路由支持（key→group 映射仅依赖 `maxParallelism`）。channel state 无类比物——records 按 channelIndex 归属，channelIndex 在新并行度下无定义。因此 channel state rescale 与 keyed state rescale 是**正交**问题，首版前者 fail-fast、后者已支持。
+
+##### D2 — live defect 修复位置：rescale 检测点（option c）
+
+**已确认 live defect（Stage 47 修复前）**：rescale 恢复路径 `buildRescaledTaskState` 创建的是 plain `TaskStateSnapshot`（非 `TaskEpochSnapshot`），而 channel state 恢复钩子 `restoreChannelStateIfPresent` 的守卫是 `instanceof TaskEpochSnapshot`——rescale 时守卫失败，channel state **被静默丢弃**（No-Silent-No-Op 违反）。
+
+**裁定修复位置**：在 rescale 检测点（`boolean rescale` 为 true 时），于 per-subtask 循环**之前**显式检查源 checkpoint 是否含非空 `ChannelState`，若有则 fail-fast。**不依赖 `instanceof TaskEpochSnapshot` 静默跳过**。
+
+**为什么选检测点而非下游守卫**：
+
+| 修复位置 | 裁定 | 理由 |
+|----------|------|------|
+| (a) `buildRescaledTaskState` 内部 | 可选 | 但 plain `TaskStateSnapshot` 本身不携带 channel state，需从源 `TaskEpochSnapshot` 检查，逻辑分散 |
+| (b) 修正 `restoreChannelStateIfPresent` 守卫为字段检查 | 拒绝 | rescale 路径的 plain `TaskStateSnapshot` 无 channel state 字段可查；改守卫只是把"静默跳过"换了个位置，仍是静默 |
+| (c) rescale 检测点 fail-fast | **采纳** | 在最早能判定"rescale + channel state"的点显式失败，符合"禁止静默跳过"；与 §2.11.1 单 in-flight 约束的 fail-fast 风格一致 |
+
+##### D3 — `InflightDataRescalingDescriptor` future-work 设计探索（非可消费契约）
+
+**本节仅记录设计方向供未来 successor plan 参考，首版不实现，不产出可消费契约。**
+
+**核心 open question**：channel state 的 in-flight records 如何按新并行度重新分配？与 keyed state 不同（key→group 映射稳定），channel state 的 records 可能**没有 key**——如何决定分配到哪个新 subtask？
+
+**候选方向（列出但不裁定）**：
+
+1. **round-robin / 按 channelIndex 取模**：简单但破坏 key 亲和性（若 records 有 key，本应路由到持有该 key 的 subtask）。
+2. **附带 key-group 元数据**：capture 时记录每条 record 的 key-group，restore 时按新区间路由。要求 records 必须有 key——对 non-keyed 算子的 channel state 不适用。
+3. **拒绝无 key records**：只重映射有 key 的 records，无 key 的 records 触发 fail-fast（可能过严）。
+4. **混合策略**：keyed 算子用方案 2，non-keyed 算子用方案 1，由算子声明。
+
+**与 keyed state rescale 的差异（重申）**：keyed state 重映射的稳定性来自 key→group→subtask 的两级映射，其中 key→group 不变（仅依赖 `maxParallelism`）。channel state 缺少这一稳定锚点，是首版 fail-fast 的根本原因。
+
 ## 3. CheckpointParticipant：泛化事务参与
 
 ### 3.1 设计动机
