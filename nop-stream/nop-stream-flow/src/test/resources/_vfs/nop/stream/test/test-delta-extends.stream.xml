@@ -1,0 +1,26 @@
+<!--
+  Delta (transform-level) extending the base pipeline by explicit path.
+  Adds a <filter> transform (deltaFilter) between <map> and <sink>, and
+  rewires the edges so the DAG becomes:
+      src -> upper(map) -> deltaFilter(filter) -> out(sink)
+  The filter drops the element "B", producing a sink output that is
+  observably different from the base pipeline (delta-unique behavior).
+-->
+<stream x:schema="/nop/schema/stream/stream.xdef"
+        xmlns:x="/nop/schema/xdsl.xdef"
+        x:extends="/nop/stream/test/test-delta-base.stream.xml"
+        name="test-delta-extends" version="1">
+
+    <transforms>
+        <filter id="deltaFilter" name="DropB">
+            <source>return !"B".equals(event);</source>
+        </filter>
+    </transforms>
+
+    <edges>
+        <!-- override e1: redirect upper -> deltaFilter -->
+        <edge id="e1" from="upper" to="deltaFilter" partition="FORWARD"/>
+        <!-- new edge: deltaFilter -> out -->
+        <edge id="e2" from="deltaFilter" to="out" partition="FORWARD"/>
+    </edges>
+</stream>

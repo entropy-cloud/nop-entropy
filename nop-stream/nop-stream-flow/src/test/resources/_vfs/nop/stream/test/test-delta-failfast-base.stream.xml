@@ -1,0 +1,20 @@
+<!--
+  Base pipeline for the fail-fast delta test. A minimal valid pipeline.
+-->
+<stream x:schema="/nop/schema/stream/stream.xdef"
+        name="test-delta-failfast-base" version="1" parallelism="1">
+
+    <transforms>
+        <source id="src" name="TestSource"
+                bean="testSourceFunction"
+                parallelism="1"/>
+
+        <sink id="out" name="CollectingSink"
+              bean="collectingSinkFunction"
+              parallelism="1"/>
+    </transforms>
+
+    <edges>
+        <edge id="e0" from="src" to="out" partition="FORWARD"/>
+    </edges>
+</stream>

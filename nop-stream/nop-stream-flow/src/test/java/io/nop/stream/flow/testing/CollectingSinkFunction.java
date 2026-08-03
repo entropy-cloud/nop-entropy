@@ -36,4 +36,10 @@ public final class CollectingSinkFunction<T> implements SinkFunction<T> {
             return new ArrayList<>(collected);
         }
     }
+
+    public void clear() {
+        synchronized (collected) {
+            collected.clear();
+        }
+    }
 }

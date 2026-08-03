@@ -1,0 +1,27 @@
+<!--
+  Layered delta (auto-activated via _delta/default/) for test-delta-layered.
+  Uses x:extends="super" to extend the base at the same VFS path, and inserts
+  a <map> transform (deltaLayerMap, toUpperCase) between source and sink by
+  overriding edge e0 and adding edge e1.
+
+  Merged DAG: src -> deltaLayerMap(toUpperCase) -> out
+  Without delta: src -> out (no map, lowercase passthrough)
+  The uppercase output proves the delta was applied.
+-->
+<stream x:schema="/nop/schema/stream/stream.xdef"
+        xmlns:x="/nop/schema/xdsl.xdef"
+        x:extends="super">
+
+    <transforms>
+        <map id="deltaLayerMap" name="ToUpperCase">
+            <source>return event.toString().toUpperCase();</source>
+        </map>
+    </transforms>
+
+    <edges>
+        <!-- override e0: redirect src -> deltaLayerMap -->
+        <edge id="e0" from="src" to="deltaLayerMap" partition="FORWARD"/>
+        <!-- new edge: deltaLayerMap -> out -->
+        <edge id="e1" from="deltaLayerMap" to="out" partition="FORWARD"/>
+    </edges>
+</stream>

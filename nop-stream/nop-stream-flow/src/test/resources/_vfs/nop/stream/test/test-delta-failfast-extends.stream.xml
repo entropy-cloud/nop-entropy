@@ -1,0 +1,16 @@
+<!--
+  Delta that introduces an unsupported top-level registry (<streams>). The
+  Stage 50 fail-fast contract in StreamModelDslBuilder must still fire after
+  the delta is merged — the delta must NOT silently bypass fail-fast. When
+  built, this merged model must throw UnsupportedOperationException for the
+  <streams> registry, exactly as a non-delta model would.
+-->
+<stream x:schema="/nop/schema/stream/stream.xdef"
+        xmlns:x="/nop/schema/xdsl.xdef"
+        x:extends="/nop/stream/test/test-delta-failfast-base.stream.xml"
+        name="test-delta-failfast-extends" version="1">
+
+    <streams>
+        <stream id="extraStream" valueType="string"/>
+    </streams>
+</stream>

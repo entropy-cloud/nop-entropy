@@ -1,0 +1,19 @@
+<!--
+  Config-only delta: extends the config base and changes ONLY the checkpoint
+  interval (60000 -> 30000) and parallelism (2 -> 1). The transform set and
+  edge set are deliberately left identical to the base.
+
+  Because computeFingerprint() hashes the transformation DAG topology
+  (transform ids + dagTopologyHash + requirements + checkpointParticipants)
+  and NOT runtime config (checkpoint interval / parallelism), this delta
+  is expected to produce an IDENTICAL fingerprint to the base. This is the
+  by-design adjudication captured in this plan: fingerprint = DAG topology
+  identity, not runtime configuration.
+-->
+<stream x:schema="/nop/schema/stream/stream.xdef"
+        xmlns:x="/nop/schema/xdsl.xdef"
+        x:extends="/nop/stream/test/test-delta-config-base.stream.xml"
+        name="test-delta-config-extends" version="1" parallelism="1">
+
+    <checkpoint enabled="true" interval="30000"/>
+</stream>
