@@ -229,7 +229,24 @@ SharedBuffer 内部维护：
 - **事件页面**：按时间戳分页存储事件（物理存储唯一副本）
 - **Dewey 编号**：为每个部分匹配维护唯一的版本号（如 `1.2.0`），编码匹配路径的分支历史
 - **引用计数**：跟踪每个事件被多少个活跃的部分匹配引用
-- **缓存配置**：通过 `SharedBufferCacheConfig` 控制缓存大小和驱逐策略
+- **缓存**：`eventsBufferCache`（事件）与 `entryCache`（节点）使用 Guava `Cache` 作为 LRU 缓存原语，容量由 `SharedBufferCacheConfig` 控制
+
+### 5.2.1 缓存选型决策
+
+**选了什么**：Guava `com.google.common.cache.Cache`，经 `CacheBuilder.newBuilder().maximumSize(slots).recordStats().removalListener(...).build()` 构造。
+
+**为什么**：
+1. **Guava 已是仓库管理的直接依赖**：`nop-commons` 显式声明 `com.google.guava:guava`，`nop-stream-cep` 经 `nop-stream-core → nop-commons` 传递获得 compile classpath；`nop-stream-cep` 模块的 `pom.xml` 同时显式声明 guava 以表意清晰。
+2. **内建原子 LRU + 统计**：`maximumSize` 提供原子级 LRU 驱逐（无竞态窗口），`recordStats()` 提供 hit/miss/eviction 统计（被 `CEP_CACHE_STATISTICS_INTERVAL` 周期日志消费），`removalListener` 仅在 SIZE 驱逐时输出 debug 日志。
+3. **API 契约清晰**：`getIfPresent`（nullable 返回，无 checked exception）、`invalidate`（手动移除）、`asMap()`（提供 `forEach`/`putAll`/`keySet().removeAll`/`keySet().removeIf` 等批操作）。
+
+**拒绝了什么**：
+- 自定义 `LruCache`（已删除）：`ConcurrentHashMap` + 访问序 `LinkedHashMap` 双结构，`put()` 与 `evictOverflow()` 之间存在非原子窗口，多线程下可能 over-eviction。虽 `SharedBuffer` 单线程访问（per-key `SharedBufferAccessor`），代码结构仍脆弱。
+- Caffeine 迁移：`nop-commons` 已声明 Caffeine 依赖，技术上可用，但不拒绝；当前 roadmap 与 Flink CEP 一致选择 Guava。Async cache refresh 等高级能力不在当前 scope。
+
+**RemovalListener 契约**：仅当 removal cause 为 `SIZE`/`COLLECTED`/`EXPIRED`（即 `wasEvicted()` 语义）时输出 debug 日志；`EXPLICIT`（`invalidate`/`invalidateAll`）/`REPLACED`（同 key 覆盖）静默，因为它们属于 write-through / `flushCache` clear-on-success 的正常语义。
+
+**flushCache 语义**：write-back flush + clear-on-success（与 LruCache 时代相同）：snapshot cache → `putAll` 到 state → 成功时 `keySet().removeAll` 清空 cache（EXPLICIT，不触发 eviction 统计）→ 异常时 `putAll` 回填 cache。
 
 ### 5.3 状态依赖
 

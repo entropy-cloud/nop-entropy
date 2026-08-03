@@ -135,7 +135,7 @@
 | G62 | state | 缺少 MergingState 中间接口 | Gap/P3 | 04-state: #2 | 可选项 |
 | G63 | window | Timer 注册中 O(n) contains() 检查 | Improvement/P3 | 05-window: G10 | Item 9 |
 | G64 | window | 反射工厂加载开销 | Improvement/P3 | 05-window: G11 | — |
-| G65 | cep | SharedBuffer 缓存使用 ConcurrentHashMap 替代 Guava Cache，无 LRU 驱逐 | ExtractionDegradation/P3 | 06-cep: #3 | Item 11 |
+| G65 | cep | SharedBuffer 缓存使用 ConcurrentHashMap 替代 Guava Cache，无 LRU 驱逐 | ExtractionDegradation/P3 | 06-cep: #3 | ✅ Closed — Stage 54（plan `2026-08-04-2107-2-cep-sharedbuffer-guava-cache`）：`LruCache` 删除，`eventsBufferCache`/`entryCache` 改用 Guava `Cache`（`maximumSize` + `recordStats` + `RemovalListener` 仅 SIZE 驱逐 debug 日志），`SharedBuffer.logCacheStatistics` + `CepOperator` 周期性 timer 接线（`getProcessingTimeService().registerTimer` 独立回调，非 CEP 事件处理路径） |
 | G66 | distributed | 无 spill-to-disk for large buffers | Gap/P3 | 07-dist: (line 459) | deferred |
 | G67 | distributed | 无 adaptive scheduling | Gap/P3 | 07-dist: (line 285) | deferred |
 | G68 | distributed | OperatorChain javadoc 说 forward 顺序但代码 reverse | Doc/P3 | 07-dist: D20(partial) | Item 9 |
