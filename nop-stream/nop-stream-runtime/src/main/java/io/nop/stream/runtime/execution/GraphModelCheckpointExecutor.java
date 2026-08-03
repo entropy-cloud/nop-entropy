@@ -730,28 +730,46 @@ public class GraphModelCheckpointExecutor {
             Map<String, SubtaskTask> tasks) {
         AtomicBoolean abortMarked = new AtomicBoolean(false);
         coordinator.setAbortHandler(abortedCheckpointId -> {
-            abortMarked.set(true);
-            LOG.warn("Checkpoint {} aborted, cancelling all local tasks", abortedCheckpointId);
+            LOG.warn("Checkpoint {} aborted, applying epoch-precise abort to local tasks", abortedCheckpointId);
+            boolean anyTaskStillHasInFlight = false;
             for (SubtaskTask task : tasks.values()) {
-                // Notify barrier tracker to release ACK wait
+                // Notify barrier tracker to release ACK wait for THIS epoch only
+                // (Stage 45 per-epoch tracking: other in-flight epochs are undisturbed).
                 StreamTaskInvokable invokable = task.getSubtask().getInvokable();
                 CheckpointBarrierTracker tracker = invokable.getBarrierTracker();
                 if (tracker != null) {
                     tracker.notifyCheckpointAborted(abortedCheckpointId);
                 }
-                // Cooperative cancel via mailbox: raise the cancel flag and deliver a
-                // control mail so a task blocked in a drain point wakes up and observes
-                // the cancellation at the top of its main loop. The interrupt below
-                // remains the mechanism that unblocks a blocking InputGate.read() /
-                // source I/O (there is no non-blocking read API yet).
-                invokable.getMailboxExecutor().signalCancel();
-                // Resume consumption on InputGate (unblock channels)
+                // Stage 45: release THIS epoch's InputGate alignment only (not
+                // resumeConsumptionAll), so channels blocked by the aborted barrier
+                // are freed while other epochs' alignment state is preserved.
                 InputGate inputGate = invokable.getInputGate();
+                if (inputGate != null) {
+                    inputGate.abortBarrierAlignment(abortedCheckpointId);
+                }
+                // Stage 45 (design §2.8.1 D3): only cancel the task thread when no
+                // other epoch is in-flight for it. If other epochs remain, the task
+                // keeps running so they can still ACK/complete (epoch-precise abort).
+                if (tracker != null && tracker.hasInFlightCheckpoints()) {
+                    anyTaskStillHasInFlight = true;
+                    LOG.debug("Task {} still has in-flight epoch(s) after abort of {}; not cancelling",
+                            task, abortedCheckpointId);
+                    continue;
+                }
+                // No other epochs in-flight → cooperative cancel + interrupt (legacy
+                // sweep behavior for the single-in-flight case).
+                invokable.getMailboxExecutor().signalCancel();
                 if (inputGate != null) {
                     inputGate.resumeConsumptionAll();
                 }
-                // Cancel the task thread (CAS RUNNING->CANCELING + Thread.interrupt())
                 task.cancel();
+            }
+            // Stage 45: only mark the job-wide abort flag when no task has remaining
+            // in-flight epochs (i.e. this abort actually empties the pipeline). When
+            // other epochs survive, the job is still healthy and the final-checkpoint
+            // skip must not fire.
+            if (!anyTaskStillHasInFlight) {
+                abortMarked.set(true);
             }
         });
         return abortMarked;

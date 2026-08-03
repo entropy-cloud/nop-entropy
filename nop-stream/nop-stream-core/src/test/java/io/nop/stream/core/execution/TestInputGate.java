@@ -1,6 +1,5 @@
 package io.nop.stream.core.execution;
 
-import io.nop.stream.core.exceptions.StreamException;
 import io.nop.stream.core.streamrecord.StreamElement;
 import io.nop.stream.core.streamrecord.StreamRecord;
 import io.nop.stream.core.streamrecord.watermark.Watermark;
@@ -186,7 +185,11 @@ public class TestInputGate {
     }
 
     @Test
-    public void testBarrierOverlapRejectedInNonAlignedMode() throws Exception {
+    public void testOverlappingBarriersHandledIndependentlyInNonAlignedMode() throws Exception {
+        // Stage 45: overlapping barrier ids are no longer rejected. In AT_LEAST_ONCE
+        // (non-aligned) mode each barrier is emitted on first receipt and the two
+        // epochs' alignment state is tracked independently. This replaces the legacy
+        // single-in-flight rejection that threw on a different-id barrier.
         ResultPartition p0 = new ResultPartition();
         ResultPartition p1 = new ResultPartition();
         List<InputChannel> channels = Arrays.asList(new InputChannel(p0), new InputChannel(p1));
@@ -199,14 +202,16 @@ public class TestInputGate {
         p1.close();
         p0.close();
 
-        StreamException ex = assertThrows(StreamException.class, () -> {
-            while (true) {
-                Optional<StreamElement> e = gate.read();
-                if (!e.isPresent()) break;
+        List<Long> emittedBarrierIds = new ArrayList<>();
+        while (true) {
+            Optional<StreamElement> e = gate.read();
+            if (!e.isPresent()) break;
+            if (e.get().isCheckpointBarrier()) {
+                emittedBarrierIds.add(e.get().asCheckpointBarrier().getId());
             }
-        });
-        String msg = ex.getMessage();
-        assertTrue(msg.contains("1") && msg.contains("2"),
-                "Exception message should mention both checkpoint IDs. Got: " + msg);
+        }
+
+        assertTrue(emittedBarrierIds.contains(1L), "Barrier 1 should be emitted (first receipt)");
+        assertTrue(emittedBarrierIds.contains(2L), "Barrier 2 should be emitted independently (multi-epoch)");
     }
 }

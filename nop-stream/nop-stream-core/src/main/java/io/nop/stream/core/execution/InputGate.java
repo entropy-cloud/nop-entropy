@@ -9,6 +9,7 @@ package io.nop.stream.core.execution;
 
 import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -75,13 +76,35 @@ public class InputGate {
     private final EdgeConfig edgeConfig;
     private final boolean barrierAlignment;
 
-    // Barrier alignment state
-    private final boolean[] barrierReceived;
-    private final Set<Integer> blockedChannels;
-    private CheckpointBarrier pendingBarrier;
-    private int barriersRemaining;
-    private boolean barrierEmitted;
-    private long alignmentStartTime;
+    /**
+     * Stage 45 (multi-epoch): per-barrier alignment state, keyed by checkpoint id.
+     * Insertion order is barrier-arrival order (barriers on a single channel are
+     * strictly ordered, so the oldest in-flight barrier is the one currently
+     * aligning). Replaces the legacy single {@code pendingBarrier} /
+     * {@code barrierReceived[]} / {@code barriersRemaining} fields so that
+     * overlapping barrier ids no longer throw and an aborted epoch's straggling
+     * barrier is discarded instead of corrupting the next epoch's alignment
+     * (design §2.8.1 D1).
+     */
+    private final LinkedHashMap<Long, BarrierAlignment> inFlightAlignments = new LinkedHashMap<>();
+
+    /**
+     * Stage 45: checkpoint ids whose alignment has been aborted. A barrier element
+     * carrying one of these ids is silently discarded (the abort was already
+     * signaled via the control channel; a late in-data-flow barrier must not
+     * corrupt subsequent epochs). Bounded growth: cleared opportunistically when
+     * an alignment completes at or above the aborted id.
+     */
+    private final Set<Long> abortedBarriers = new HashSet<>();
+
+    /**
+     * Channels currently blocked during aligned barrier alignment (union across all
+     * in-flight alignments). Maintained in lockstep with each
+     * {@link BarrierAlignment#blockedChannels} so {@link #resumeConsumptionAll()}
+     * and {@link #blockConsumption(int)} keep working for external callers.
+     */
+    private final Set<Integer> blockedChannels = new HashSet<>();
+
     private final long barrierAlignmentTimeout;
 
     /**
@@ -198,13 +221,7 @@ public class InputGate {
         for (int i = 0; i < currentWatermarks.length; i++) {
             currentWatermarks[i] = Long.MIN_VALUE;
         }
-        this.barrierReceived = new boolean[channels.size()];
-        this.blockedChannels = new HashSet<>();
-        this.barriersRemaining = 0;
-        this.pendingBarrier = null;
-        this.barrierEmitted = false;
         this.currentChannelIndex = 0;
-        this.alignmentStartTime = 0;
         this.pendingChannelState = null;
     }
 
@@ -233,12 +250,7 @@ public class InputGate {
         this.unalignedCheckpointEnabled = false;
         this.unalignedThreshold = DEFAULT_UNALIGNED_THRESHOLD_MS;
         this.currentWatermarks = new long[]{Long.MIN_VALUE};
-        this.barrierReceived = new boolean[1];
-        this.blockedChannels = new HashSet<>();
-        this.barriersRemaining = 0;
-        this.pendingBarrier = null;
         this.currentChannelIndex = 0;
-        this.alignmentStartTime = 0;
         this.pendingChannelState = null;
     }
 
@@ -375,14 +387,12 @@ public class InputGate {
                     StreamElement element = channel.read(50, TimeUnit.MILLISECONDS);
                     if (element == null) {
                         if (channel.isFinished()) {
-                            if (pendingBarrier != null) {
-                                if (!barrierReceived[channelIndex]) {
-                                    barrierReceived[channelIndex] = true;
-                                    barriersRemaining--;
-                                    Optional<StreamElement> result = checkBarrierAlignmentComplete();
-                                    if (result.isPresent()) return result;
-                                }
-                            }
+                            // Stage 45: a finished channel will never deliver more
+                            // barriers, so mark it as received for every in-flight
+                            // alignment and complete any alignment that becomes
+                            // satisfied (replaces the legacy single-pending check).
+                            Optional<StreamElement> result = markFinishedChannel(channelIndex);
+                            if (result.isPresent()) return result;
                         }
                         continue;
                     }
@@ -410,14 +420,17 @@ public class InputGate {
                 return Optional.empty();
             }
 
-            if (pendingBarrier != null && barriersRemaining > 0 && barrierAlignment) {
-                long elapsed = System.currentTimeMillis() - alignmentStartTime;
+            // Stage 43/45: timeout / aligned→unaligned fallback applies to the
+            // oldest in-flight alignment (the one currently aligning). Aligned
+            // barriers serialize via channel blocking, so there is at most one
+            // actively-aligning barrier at a time.
+            BarrierAlignment oldest = oldestAligning();
+            if (oldest != null && barrierAlignment
+                    && oldest.receivedChannels.size() < channels.size()) {
+                long elapsed = System.currentTimeMillis() - oldest.startTime;
 
-                // Stage 43: aligned→unaligned fallback. When enabled and alignment
-                // has not completed within unalignedThreshold, capture in-flight
-                // channel data and complete the barrier immediately (no throw).
                 if (unalignedCheckpointEnabled && elapsed > unalignedThreshold) {
-                    return Optional.of(switchToUnalignedAndEmit());
+                    return Optional.of(switchToUnalignedAndEmit(oldest));
                 }
 
                 if (elapsed > barrierAlignmentTimeout) {
@@ -431,34 +444,53 @@ public class InputGate {
     }
 
     /**
-     * Stage 43 (unaligned checkpoint): switches the in-flight checkpoint from
-     * aligned to unaligned mode. Captures in-flight data from every channel
+     * Stage 43/45 (unaligned checkpoint): switches the oldest in-flight checkpoint
+     * from aligned to unaligned mode. Captures in-flight data from every channel
      * (per §2.11.2 semantics: aligned channels → post-barrier records; non-aligned
-     * channels → all buffered records), resumes all blocked channels, resets
-     * alignment state, and stashes the {@link ChannelState} for the task thread
-     * to retrieve via {@link #consumePendingChannelState()}.
+     * channels → all buffered records), resumes the channels this barrier blocked,
+     * removes the alignment state, and stashes the {@link ChannelState} for the task
+     * thread to retrieve via {@link #consumePendingChannelState()}.
      *
+     * <p>Stage 45 (design §2.8.1 D4): unaligned stays single-in-flight. Aligned
+     * barriers serialize via channel blocking so there is at most one
+     * actively-aligning barrier; if more than one is somehow in-flight at the
+     * switch instant (unsupported unaligned+multi config), fail-fast rather than
+     * silently capturing state for the wrong epoch.
+     *
+     * @param align the oldest in-flight alignment to switch
      * @return the aligned/unaligned barrier to emit downstream
      */
-    private CheckpointBarrier switchToUnalignedAndEmit() {
-        long elapsed = System.currentTimeMillis() - alignmentStartTime;
+    private CheckpointBarrier switchToUnalignedAndEmit(BarrierAlignment align) {
+        if (unalignedCheckpointEnabled && inFlightAlignments.size() > 1) {
+            // D4: unaligned multi-in-flight is a Stage 47 successor; fail-fast here
+            // so an unsupported config never silently captures state for the wrong epoch.
+            throw new StreamException(ERR_STREAM_INVALID_STATE).param(ARG_REASON,
+                    "Unaligned checkpoint is enabled and multiple barriers are in-flight (ids="
+                            + new ArrayList<>(inFlightAlignments.keySet())
+                            + "); unaligned multi-in-flight is not supported (Stage 47 successor)");
+        }
+        long elapsed = System.currentTimeMillis() - align.startTime;
         ChannelState channelState = new ChannelState();
         for (int i = 0; i < channels.size(); i++) {
-            // barrierReceived[i] reflects whether channel i has delivered its barrier:
-            //   true  → aligned channel, drain post-barrier records
-            //   false → non-aligned channel, drain all buffered (pre-barrier) records
-            java.util.List<StreamElement> captured = channels.get(i).captureInFlightData(barrierReceived[i]);
+            // align.receivedChannels reflects whether channel i has delivered this
+            // barrier: true → aligned channel, drain post-barrier records; false →
+            // non-aligned channel, drain all buffered (pre-barrier) records.
+            boolean received = align.receivedChannels.contains(i);
+            java.util.List<StreamElement> captured = channels.get(i).captureInFlightData(received);
             if (captured != null && !captured.isEmpty()) {
                 channelState.putRecords(i, captured);
             }
         }
         this.pendingChannelState = channelState;
 
-        CheckpointBarrier barrier = pendingBarrier;
+        CheckpointBarrier barrier = align.firstBarrier;
         long checkpointId = barrier != null ? barrier.getId() : -1L;
-        // Resume all channels — unaligned mode never blocks on alignment.
-        resumeConsumptionAll();
-        resetBarrierState();
+        // Resume the channels this barrier had blocked.
+        for (int c : align.blockedChannels) {
+            blockedChannels.remove(c);
+        }
+        inFlightAlignments.remove(align.checkpointId);
+        cleanupAbortedBarriersUpTo(checkpointId);
 
         LOG.info("Checkpoint {} switched to unaligned mode after {}ms (threshold={}ms); "
                         + "captured {} in-flight record(s) across {} channel(s)",
@@ -527,47 +559,139 @@ public class InputGate {
     }
 
     private Optional<StreamElement> handleBarrierNonRecursive(int channelIndex, CheckpointBarrier barrier) {
-        if (!barrierReceived[channelIndex]) {
-            barrierReceived[channelIndex] = true;
-            if (barrierAlignment) {
-                blockConsumption(channelIndex);
-            }
-            if (pendingBarrier == null) {
-                pendingBarrier = barrier;
-                barriersRemaining = channels.size();
-                alignmentStartTime = System.currentTimeMillis();
-            }
-            barriersRemaining--;
+        long id = barrier.getId();
 
-            if (!barrierAlignment) {
-                if (!barrierEmitted) {
-                    barrierEmitted = true;
-                    if (barriersRemaining <= 0) {
-                        resetBarrierState();
-                    }
-                    return Optional.of(barrier);
-                }
-                if (barriersRemaining <= 0) {
-                    resetBarrierState();
-                }
-                return Optional.empty();
+        if (abortedBarriers.contains(id)) {
+            // Stage 45: late arrival of an aborted checkpoint's barrier. The abort
+            // was already signaled via the control channel; discard the straggler
+            // so it does not start a spurious alignment or corrupt the next epoch.
+            if (LOG.isDebugEnabled()) {
+                LOG.debug("Discarding barrier {} on channel {} (epoch aborted)", id, channelIndex);
             }
+            return Optional.empty();
+        }
 
-            if (barriersRemaining <= 0) {
-                CheckpointBarrier aligned = pendingBarrier;
-                resumeConsumptionAll();
-                resetBarrierState();
-                return Optional.of(aligned);
+        BarrierAlignment align = inFlightAlignments.get(id);
+        if (align == null) {
+            align = new BarrierAlignment(id, barrier, System.currentTimeMillis());
+            inFlightAlignments.put(id, align);
+        }
+
+        if (align.receivedChannels.contains(channelIndex)) {
+            // Duplicate barrier for the same id on the same channel: ignore.
+            return Optional.empty();
+        }
+        align.receivedChannels.add(channelIndex);
+
+        if (barrierAlignment) {
+            align.blockedChannels.add(channelIndex);
+            blockedChannels.add(channelIndex);
+        }
+
+        boolean fullyReceived = align.receivedChannels.size() >= channels.size();
+
+        if (!barrierAlignment) {
+            // AT_LEAST_ONCE: emit on first receipt, coalesce the rest.
+            if (!align.emitted) {
+                align.emitted = true;
+                if (fullyReceived) {
+                    inFlightAlignments.remove(id);
+                }
+                return Optional.of(barrier);
             }
-        } else {
-            if (pendingBarrier != null && barrier.getId() != pendingBarrier.getId()) {
-                throw new StreamException(ERR_STREAM_CHECKPOINT_ABORTED).param(ARG_REASON,
-                        "Overlapping checkpoint barrier: expected " + pendingBarrier.getId()
-                                + " but got " + barrier.getId() + " on channel " + channelIndex);
+            if (fullyReceived) {
+                inFlightAlignments.remove(id);
             }
+            return Optional.empty();
+        }
+
+        // Aligned: emit only when fully received, then unblock this barrier's channels.
+        if (fullyReceived) {
+            inFlightAlignments.remove(id);
+            for (int c : align.blockedChannels) {
+                blockedChannels.remove(c);
+            }
+            cleanupAbortedBarriersUpTo(id);
+            return Optional.of(align.firstBarrier);
         }
 
         return Optional.empty();
+    }
+
+    /**
+     * Stage 45: marks a finished channel as having delivered every in-flight
+     * barrier (it will never send more data), then completes any alignment that
+     * becomes satisfied. Replaces the legacy single-pending finished-channel check.
+     */
+    private Optional<StreamElement> markFinishedChannel(int channelIndex) {
+        CheckpointBarrier completed = null;
+        for (BarrierAlignment align : new ArrayList<>(inFlightAlignments.values())) {
+            if (!align.receivedChannels.contains(channelIndex)) {
+                align.receivedChannels.add(channelIndex);
+                boolean fullyReceived = align.receivedChannels.size() >= channels.size();
+                if (barrierAlignment && fullyReceived && completed == null) {
+                    // Barriers complete in id order; emit the lowest completed one.
+                    inFlightAlignments.remove(align.checkpointId);
+                    for (int c : align.blockedChannels) {
+                        blockedChannels.remove(c);
+                    }
+                    cleanupAbortedBarriersUpTo(align.checkpointId);
+                    completed = align.firstBarrier;
+                } else if (!barrierAlignment && fullyReceived) {
+                    inFlightAlignments.remove(align.checkpointId);
+                }
+            }
+        }
+        return completed != null ? Optional.of(completed) : Optional.empty();
+    }
+
+    /**
+     * Stage 45: returns the oldest in-flight alignment (insertion order), or null.
+     * This is the barrier currently aligning (aligned serialization guarantees only
+     * one is actively aligning at a time).
+     */
+    private BarrierAlignment oldestAligning() {
+        for (BarrierAlignment a : inFlightAlignments.values()) {
+            return a;
+        }
+        return null;
+    }
+
+    /**
+     * Stage 45: drops aborted-barrier markers that can no longer be observed
+     * (any aborted id &le; the just-completed id is unreachable because barriers
+     * are strictly ordered per channel). Keeps {@link #abortedBarriers} bounded.
+     */
+    private void cleanupAbortedBarriersUpTo(long completedId) {
+        if (abortedBarriers.isEmpty()) {
+            return;
+        }
+        abortedBarriers.removeIf(id -> id <= completedId);
+    }
+
+    /**
+     * Stage 45: aborts alignment for a specific checkpoint id (epoch-precise).
+     * Resumes channels this barrier had blocked and records the id so a straggling
+     * in-data-flow barrier for the same epoch is discarded instead of starting a
+     * new alignment. Other in-flight epochs are undisturbed.
+     */
+    public void abortBarrierAlignment(long checkpointId) {
+        BarrierAlignment removed = inFlightAlignments.remove(checkpointId);
+        if (removed != null) {
+            for (int c : removed.blockedChannels) {
+                blockedChannels.remove(c);
+            }
+            LOG.debug("Aborted alignment for checkpoint {} (resumed {} blocked channel(s))",
+                    checkpointId, removed.blockedChannels.size());
+        }
+        abortedBarriers.add(checkpointId);
+    }
+
+    /**
+     * Stage 45: snapshot of in-flight barrier ids (for tests / observability).
+     */
+    public List<Long> getInFlightBarrierIds() {
+        return new ArrayList<>(inFlightAlignments.keySet());
     }
 
     private Optional<StreamElement> handleWatermarkNonRecursive(int channelIndex, Watermark watermark) {
@@ -598,26 +722,23 @@ public class InputGate {
         return min == Long.MAX_VALUE ? Long.MIN_VALUE : min;
     }
 
-    private void resetBarrierState() {
-        for (int i = 0; i < barrierReceived.length; i++) {
-            barrierReceived[i] = false;
-        }
-        pendingBarrier = null;
-        barriersRemaining = 0;
-        barrierEmitted = false;
-        alignmentStartTime = 0;
-    }
+    /**
+     * Stage 45: per-barrier alignment state. Each in-flight checkpoint owns an
+     * independent record of which channels have delivered its barrier, which
+     * channels it has blocked, and when alignment started (for timeout/unaligned).
+     */
+    private static final class BarrierAlignment {
+        final long checkpointId;
+        final CheckpointBarrier firstBarrier;
+        final Set<Integer> receivedChannels = new HashSet<>();
+        final Set<Integer> blockedChannels = new HashSet<>();
+        final long startTime;
+        boolean emitted; // AT_LEAST_ONCE: first-emit tracking
 
-    private Optional<StreamElement> checkBarrierAlignmentComplete() {
-        if (barrierAlignment && barriersRemaining <= 0 && pendingBarrier != null) {
-            CheckpointBarrier aligned = pendingBarrier;
-            resumeConsumptionAll();
-            resetBarrierState();
-            return Optional.of(aligned);
+        BarrierAlignment(long checkpointId, CheckpointBarrier firstBarrier, long startTime) {
+            this.checkpointId = checkpointId;
+            this.firstBarrier = firstBarrier;
+            this.startTime = startTime;
         }
-        if (!barrierAlignment && barriersRemaining <= 0 && pendingBarrier != null) {
-            resetBarrierState();
-        }
-        return Optional.empty();
     }
 }

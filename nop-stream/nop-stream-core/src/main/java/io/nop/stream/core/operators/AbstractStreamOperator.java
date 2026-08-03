@@ -260,6 +260,12 @@ public abstract class AbstractStreamOperator<OUT> implements StreamOperator<OUT>
 
     public OperatorSnapshotResult snapshotState(StateSnapshotContext context) throws Exception {
         OperatorSnapshotResult result = new OperatorSnapshotResult();
+        // Stage 45 (multi-epoch): tag the result with its checkpoint id so the
+        // tracker can route the ACK to the correct in-flight epoch (design §2.8.1 D2).
+        // Null-safe: some legacy callers/tests invoke snapshotState(null).
+        if (context != null) {
+            result.setCheckpointId(context.getCheckpointId());
+        }
 
         // If this operator directly implements CheckpointParticipant,
         // save its state first and merge into the operator snapshot.
@@ -396,6 +402,9 @@ public abstract class AbstractStreamOperator<OUT> implements StreamOperator<OUT>
                 snapshotCallback.accept(snapshotResult);
             } else if (snapshotError != null) {
                 OperatorSnapshotResult failureResult = new OperatorSnapshotResult();
+                // Stage 45: tag the failure result so the tracker routes the abort
+                // to the correct epoch (design §2.8.1 D2).
+                failureResult.setCheckpointId(barrier.getId());
                 failureResult.setError(snapshotError);
                 snapshotCallback.accept(failureResult);
             }

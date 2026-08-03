@@ -99,6 +99,9 @@ public class StreamSinkOperator<IN> extends AbstractUdfStreamOperator<Void, Sink
                 snapshotCallback.accept(snapshotResult);
             } else if (snapshotError != null) {
                 OperatorSnapshotResult failureResult = new OperatorSnapshotResult();
+                // Stage 45: tag the failure result so the tracker routes the abort
+                // to the correct epoch (design §2.8.1 D2).
+                failureResult.setCheckpointId(barrier.getId());
                 failureResult.setError(snapshotError);
                 snapshotCallback.accept(failureResult);
             }

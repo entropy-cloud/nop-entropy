@@ -198,8 +198,9 @@ public class CheckpointConfig implements Serializable {
 
     /**
      * Size of the dedicated persist thread pool used when {@link #isAsyncSnapshotEnabled()}
-     * is {@code true}. Defaults to {@code 1}; the pool is re-evaluated when Stage 19 lifts
-     * the {@code maxConcurrentCheckpoints=1} task-side alignment restriction.
+     * is {@code true}. Defaults to {@code 1}. Stage 45 lifted the task-side
+     * single-in-flight restriction, so {@code maxConcurrentCheckpoints > 1} is now
+     * honored end-to-end (see {@code checkpoint-design.md} §2.8.1).
      */
     public int getAsyncSnapshotThreadPoolSize() {
         return asyncSnapshotThreadPoolSize;

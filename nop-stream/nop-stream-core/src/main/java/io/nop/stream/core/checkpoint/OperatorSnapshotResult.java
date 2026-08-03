@@ -25,6 +25,16 @@ public class OperatorSnapshotResult implements Serializable {
 
     private int checkpointParallelism = -1;
 
+    /**
+     * Stage 45 (multi-epoch): the checkpoint id this snapshot belongs to. Set at
+     * snapshot-production time (from the barrier id / {@code StateSnapshotContext})
+     * so {@code CheckpointBarrierTracker.acknowledgeOperator} can route the ACK to
+     * the correct in-flight epoch without changing its signature (design §2.8.1 D2,
+     * option b). Default {@code -1} = unset; the tracker falls back to the
+     * most-recent in-flight epoch for back-compat with legacy callers/tests.
+     */
+    private long checkpointId = -1L;
+
     private Exception error;
 
     public OperatorSnapshotResult() {
@@ -66,6 +76,19 @@ public class OperatorSnapshotResult implements Serializable {
 
     public void setCheckpointParallelism(int checkpointParallelism) {
         this.checkpointParallelism = checkpointParallelism;
+    }
+
+    /**
+     * Stage 45: the checkpoint id this snapshot belongs to (design §2.8.1 D2).
+     * {@code -1} means unset (legacy); the tracker then falls back to the
+     * most-recent in-flight epoch.
+     */
+    public long getCheckpointId() {
+        return checkpointId;
+    }
+
+    public void setCheckpointId(long checkpointId) {
+        this.checkpointId = checkpointId;
     }
 
     public boolean isParallelismChanged(int currentParallelism) {

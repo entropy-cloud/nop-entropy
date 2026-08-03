@@ -222,15 +222,14 @@ public class CheckpointCoordinator {
         this.tasksToAcknowledge = ConcurrentHashMap.newKeySet();
         // G31 (Plan 2026-07-25-2300-1): the Coordinator layer honors the configured
         // maxConcurrentCheckpoints value directly (see tryTriggerPendingCheckpoint gating).
-        // Task-side multi-epoch barrier tracking (CheckpointBarrierTracker / InputGate
-        // simultaneously tracking multiple in-flight checkpoints) is still single-barrier
-        // and belongs to Stage 45 — see checkpoint-design.md §2.8 and §13.2 forward-looking
-        // invariant. This constructor therefore no longer emits a stale "downgrade to 1"
-        // warning that would mislead operators about Coordinator behavior.
+        // Stage 45 lifted the task-side single-in-flight restriction: the
+        // Coordinator, CheckpointBarrierTracker, and InputGate now each honor
+        // maxConcurrentCheckpoints consistently (see checkpoint-design.md §2.8.1).
+        // This log line confirms the configured concurrency is honored end-to-end.
         if (config.getMaxConcurrentCheckpoints() > 1) {
-            LOG.info("maxConcurrentCheckpoints={} configured for job {}: Coordinator layer honors "
-                    + "the configured value; task-side multi-epoch barrier tracking is single-barrier "
-                    + "until Stage 45 (see checkpoint-design.md §2.8).",
+            LOG.info("maxConcurrentCheckpoints={} configured for job {}: honored end-to-end "
+                            + "(Coordinator + CheckpointBarrierTracker + InputGate multi-epoch; "
+                            + "see checkpoint-design.md §2.8.1).",
                     config.getMaxConcurrentCheckpoints(), jobId);
         }
         this.timeoutScheduler = Executors.newSingleThreadScheduledExecutor(r -> {
