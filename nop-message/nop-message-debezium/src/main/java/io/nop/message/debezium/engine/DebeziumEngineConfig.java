@@ -26,6 +26,22 @@ public class DebeziumEngineConfig {
      * 构建嵌入式引擎配置属性
      */
     public static Properties buildProperties(DebeziumConfig config) {
+        return buildProperties(config, false);
+    }
+
+    /**
+     * 构建嵌入式引擎配置属性。
+     *
+     * <p>当 {@code useCustomOffsetStore} 为 true 时，{@code offset.storage} 指向
+     * {@link NopStreamOffsetBackingStore} 的 FQCN（且不设 {@code offset.storage.file.filename}），
+     * 由嵌入式引擎经反射实例化。此时不读取 {@link DebeziumConfig#getOffsetStoragePath()}，
+     * 避免与自定义 store 冲突。
+     *
+     * @param config               Debezium 配置
+     * @param useCustomOffsetStore 是否使用自定义 {@code NopStreamOffsetBackingStore}
+     * @return 构建好的 Properties
+     */
+    public static Properties buildProperties(DebeziumConfig config, boolean useCustomOffsetStore) {
         Properties props = new Properties();
 
         // 引擎名称
@@ -69,7 +85,12 @@ public class DebeziumEngineConfig {
         }
 
         // 偏移量存储配置
-        if (config.getOffsetStoragePath() != null) {
+        if (useCustomOffsetStore) {
+            // 自定义 NopStreamOffsetBackingStore：由嵌入式引擎经反射实例化，connector-name
+            // registry 桥接 source function 实例与 engine 实例共享同一份 offset 数据。
+            props.setProperty("offset.storage", NopStreamOffsetBackingStore.class.getName());
+            props.setProperty("offset.flush.interval.ms", String.valueOf(config.getOffsetFlushInterval().toMillis()));
+        } else if (config.getOffsetStoragePath() != null) {
             props.setProperty("offset.storage", "org.apache.kafka.connect.storage.FileOffsetBackingStore");
             props.setProperty("offset.storage.file.filename", config.getOffsetStoragePath());
             props.setProperty("offset.flush.interval.ms", String.valueOf(config.getOffsetFlushInterval().toMillis()));

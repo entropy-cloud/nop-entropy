@@ -7,6 +7,7 @@
  */
 package io.nop.message.debezium;
 
+import java.io.Serializable;
 import java.time.Duration;
 import java.util.HashMap;
 import java.util.Map;
@@ -15,8 +16,14 @@ import java.util.Map;
  * Debezium 嵌入式引擎配置
  * <p>
  * 支持配置数据库连接器、偏移量存储、Schema历史等
+ * <p>
+ * Implements {@link Serializable} so that {@code DebeziumCdcSourceFunction} can persist its
+ * {@code config} field across checkpoint recovery (the field is no longer {@code transient}).
+ * All fields are serializable POJO types.
  */
-public class DebeziumConfig {
+public class DebeziumConfig implements Serializable {
+
+    private static final long serialVersionUID = 1L;
     /**
      * 连接器名称
      */

@@ -15,7 +15,16 @@ import io.nop.stream.core.checkpoint.TaskStateSnapshot;
 /**
  * Source function with checkpoint support.
  *
- * <p>API 预留，当前未被使用
+ * <p>Implementations participate in the nop-stream checkpoint protocol: {@code snapshotState} is
+ * invoked by {@code StreamSourceOperator.snapshotState} (during barrier processing) to persist
+ * source-specific state into the {@link OperatorSnapshotResult}, and {@code initializeState} is
+ * invoked by {@code StreamSourceOperator.restoreState} on recovery to rebuild that state from a
+ * {@link TaskStateSnapshot}. Note the type asymmetry: snapshots write into
+ * {@link OperatorSnapshotResult} (via {@code putOperatorState}), while restore reads from a
+ * {@link TaskStateSnapshot} (via {@code getOperatorState}) — the operator rebuilds the
+ * {@code TaskStateSnapshot} from the snapshot result before calling {@code initializeState}.
+ *
+ * <p>Example connector: {@code DebeziumCdcSourceFunction} uses this to persist CDC offsets.
  */
 @Internal
 public interface CheckpointedSourceFunction<T> extends SourceFunction<T> {

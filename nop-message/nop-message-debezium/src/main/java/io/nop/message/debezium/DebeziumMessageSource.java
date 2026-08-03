@@ -10,6 +10,8 @@ package io.nop.message.debezium;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.api.core.util.ICancellable;
 import io.nop.message.debezium.engine.DebeziumEngineWrapper;
+import io.nop.message.debezium.engine.NopStreamOffsetBackingStore;
+import org.apache.kafka.connect.storage.OffsetBackingStore;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -26,12 +28,39 @@ public class DebeziumMessageSource {
     private static final Logger LOG = LoggerFactory.getLogger(DebeziumMessageSource.class);
 
     private final DebeziumConfig config;
+    private final OffsetBackingStore offsetStore;
     private final Map<Consumer<ChangeEvent>, Subscription> subscriptions = new ConcurrentHashMap<>();
     private DebeziumEngineWrapper engineWrapper;
     private volatile boolean started = false;
 
     public DebeziumMessageSource(DebeziumConfig config) {
+        this(config, null);
+    }
+
+    /**
+     * Constructor overload accepting a custom {@link OffsetBackingStore} (typically a
+     * {@link NopStreamOffsetBackingStore}) so that CDC offsets participate in the nop-stream
+     * checkpoint protocol. When {@code offsetStore} is non-null it is forwarded to
+     * {@link DebeziumEngineWrapper}, which registers the store via the {@code offset.storage}
+     * property so the embedded engine instantiates and binds it.
+     *
+     * @param config      the Debezium configuration
+     * @param offsetStore custom offset backing store, or null to use Debezium defaults
+     */
+    public DebeziumMessageSource(DebeziumConfig config, OffsetBackingStore offsetStore) {
+        if (config == null) {
+            throw new NopException(DebeziumErrors.ERR_DEBEZIUM_CONFIG_INVALID)
+                    .param("detail", "config must not be null");
+        }
         this.config = config;
+        this.offsetStore = offsetStore;
+    }
+
+    /**
+     * Returns the offset backing store passed at construction (may be null).
+     */
+    public OffsetBackingStore getOffsetStore() {
+        return offsetStore;
     }
 
     /**
@@ -111,7 +140,7 @@ public class DebeziumMessageSource {
         }
 
         try {
-            engineWrapper = new DebeziumEngineWrapper(config, this::dispatchEvent);
+            engineWrapper = new DebeziumEngineWrapper(config, this::dispatchEvent, offsetStore);
             engineWrapper.start();
             started = true;
             LOG.info("Debezium message source started: {}", config.getName());

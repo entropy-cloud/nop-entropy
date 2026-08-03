@@ -336,7 +336,9 @@ public class TestDebeziumCdcSourceFunction {
     }
 
     @Test
-    void testSerializationWithTransientConfig() throws Exception {
+    void testSerializationWithConfigSurvivesRoundTrip() throws Exception {
+        // Stage 53: config is no longer transient (DebeziumConfig implements Serializable),
+        // so connection info survives cross-JVM recovery.
         DebeziumConfig config = new DebeziumConfig();
         config.setName("test-serial");
         config.setConnectorType("mysql");

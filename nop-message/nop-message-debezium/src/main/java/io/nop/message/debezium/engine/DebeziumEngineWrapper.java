@@ -14,6 +14,7 @@ import io.nop.commons.concurrent.executor.GlobalExecutors;
 import io.nop.message.debezium.ChangeEvent;
 import io.nop.message.debezium.DebeziumConfig;
 import io.nop.message.debezium.DebeziumErrors;
+import org.apache.kafka.connect.storage.OffsetBackingStore;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -29,14 +30,39 @@ public class DebeziumEngineWrapper {
 
     private final DebeziumConfig config;
     private final Consumer<ChangeEvent> changeEventConsumer;
+    private final OffsetBackingStore offsetStore;
 
     private DebeziumEngine<io.debezium.engine.ChangeEvent<byte[], byte[]>> engine;
     private final AtomicBoolean running = new AtomicBoolean(false);
     private final AtomicBoolean stopped = new AtomicBoolean(false);
 
     public DebeziumEngineWrapper(DebeziumConfig config, Consumer<ChangeEvent> changeEventConsumer) {
+        this(config, changeEventConsumer, null);
+    }
+
+    /**
+     * Constructor overload accepting a custom {@link OffsetBackingStore} (typically a
+     * {@link NopStreamOffsetBackingStore}). When {@code offsetStore} is non-null,
+     * {@link DebeziumEngineConfig#buildProperties(DebeziumConfig, boolean)} is called with
+     * {@code useCustomOffsetStore=true} so the {@code offset.storage} property points at the
+     * store's class name. The embedded engine then instantiates the store via reflection and
+     * binds it to the same connector-name registry entry as the source function's instance.
+     *
+     * <p>This bridges the gap created by Debezium 2.4.0 not exposing
+     * {@code DebeziumEngine.Builder.using(OffsetBackingStore)}.
+     */
+    public DebeziumEngineWrapper(DebeziumConfig config, Consumer<ChangeEvent> changeEventConsumer,
+                                 OffsetBackingStore offsetStore) {
         this.config = config;
         this.changeEventConsumer = changeEventConsumer;
+        this.offsetStore = offsetStore;
+    }
+
+    /**
+     * Returns the offset store passed at construction (may be null).
+     */
+    public OffsetBackingStore getOffsetStore() {
+        return offsetStore;
     }
 
     /**
@@ -50,7 +76,8 @@ public class DebeziumEngineWrapper {
 
         try {
             // 构建配置
-            Properties props = DebeziumEngineConfig.buildProperties(config);
+            boolean useCustomOffsetStore = offsetStore != null;
+            Properties props = DebeziumEngineConfig.buildProperties(config, useCustomOffsetStore);
 
             // 创建引擎
             engine = DebeziumEngine.create(JsonByteArray.class)
