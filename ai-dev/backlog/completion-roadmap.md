@@ -265,7 +265,7 @@ Phase 5  生态与上层
 | 4.2 | **BUILD** | Unaligned checkpoint：channel state 持久化（in-flight input buffer + unflushed output buffer）、priority event（barrier 抢占式传播）、aligned→unaligned 超时回退。解决背压下 aligned checkpoint hang 问题 | `checkpoint-design.md` §13.2「背压逃生」、FLIP-76 |
 | 4.3 | FIX | Coordinator HA 端到端：Phase 3 已接入 leader elector，本项补完整的 HA 测试矩阵（leader 切换、双 leader 脑裂、旧 leader fencing 验证、commit uncertainty 处理） | `checkpoint-design.md` §8.2、§8.3 |
 | 4.4 | **BUILD** | Region-based failover：替代当前全局恢复，缩小故障爆炸半径。pipelined region 识别 + 区域级 task 重启。对大作业（>dozens vertex 或 GB+ 状态）必需 | `checkpoint-design.md` §8.1 |
-| 4.5 | **BUILD** | 多并发 checkpoint：解开 `maxConcurrentCheckpoints=1` 硬上限。`CheckpointBarrierTracker` + `InputGate`（或 Phase 0.5 启用的 `BarrierAligner`）支持多 epoch 同时追踪。提升 checkpoint 吞吐 | `checkpoint-design.md` §2.8 |
+| 4.5 | **BUILD** | 多并发 checkpoint：解开 `maxConcurrentCheckpoints=1` 硬上限。`CheckpointBarrierTracker` + `InputGate` 支持多 epoch 同时追踪（`BarrierAligner` 已删除，对齐由 `InputGate` 内联承担）。提升 checkpoint 吞吐 | `checkpoint-design.md` §2.8 |
 | 4.6 | **BUILD** | Unaligned + rescale 交互：in-flight data 跨新并行度重映射（`InflightDataRescalingDescriptor` 等价物）。unaligned checkpoint 与 Phase 2 rescale 的复杂叠加 | Phase 2 + 4.2 |
 
 **前置依赖**：Phase 3 完成（跨 JVM 通道、HA 接入就位）。

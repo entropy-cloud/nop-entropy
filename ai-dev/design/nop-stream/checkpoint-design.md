@@ -213,7 +213,7 @@ Coordinator 层并发模型：`CheckpointCoordinator` 完整尊重 `CheckpointCo
 
 **minPause（last-completed）**：上一个 checkpoint **完成**（`onCompletePersistSuccess` 写入 storage 后）后须经过 ≥ `config.getMinPause()` 才允许触发下一个。首次触发（无前序完成）不受限。minPause == 0 关闭节流。节流仅作用于周期性 `CheckpointType.CHECKPOINT`；savepoint 与 terminal 类型（`SAVEPOINT` / `COMPLETED_POINT_TYPE` / `TERMINAL_SAVEPOINT` / `EXPORTED_SAVEPOINT`）是显式动作，**绕过** minPause，仍受 `maxConcurrentCheckpoints` 串行化约束。minPause 节流命中时返回 `TriggerOutcome.reason == THROTTLED_MIN_PAUSE` 并打 DEBUG 日志（非静默跳过），与 `REJECTED_MAX_CONCURRENT` 在 reason / 日志层面可区分。节流与拒绝都不计入 `consecutiveTriggerFailures`——只有「真失败」（如无 task 可 ACK、触发异常）才计数。
 
-**Task 层未满足的硬约束**（forward-looking，由 Stage 45 满足）：`CheckpointBarrierTracker` 和 `InputGate` 当前只支持单 checkpoint 对齐（一次只追踪一个 in-flight barrier）。Coordinator 端多 pending 共存可成立，但 task 端 ACK 追踪无法正确处理多并发 epoch——这意味着配置 `maxConcurrentCheckpoints > 1` 时，Coordinator 会发出第 N+1 个 barrier，但 task 侧的 InputGate 会按单 barrier 顺序处理，多 pending 共存的实际数据正确性依赖 Stage 45 的 task 级多 epoch 重构（含 unaligned checkpoint，Stage 43）。
+**Task 层多 epoch 约束（Stage 45 已满足）**：`CheckpointBarrierTracker` 与 `InputGate` 现已支持多 in-flight epoch 同时追踪（一次可追踪 ≥ `maxConcurrentCheckpoints` 个 barrier），ACK 路由、对齐、abort 按 epoch 独立。Stage 45 的设计裁定见 §2.8.1。配置 `maxConcurrentCheckpoints > 1` 时，Coordinator 与 task 各层一致：Coordinator 发出 N+1 barrier 时，task 侧按 epoch 独立 ACK/对齐/abort，互不污染。
 
 | 原因 | 说明 |
 |---|---|
@@ -221,6 +221,51 @@ Coordinator 层并发模型：`CheckpointCoordinator` 完整尊重 `CheckpointCo
 | 简化 barrier 对齐 | 不需要同时维护多个 epoch 的 channel 阻塞状态 |
 | 简化恢复 | 最新 durable epoch 之后的状态全部 abort 或重试 commit |
 | 满足首版语义 | exactly-once 正确性优先于 checkpoint 吞吐 |
+
+### 2.8.1 Task 层多 epoch 设计裁定（Stage 45）
+
+Stage 45 把 task 层从「单 in-flight」推进到「多 in-flight」。下列四个设计问题在编码前裁定，记录最终决策与拒绝的替代方案。
+
+#### D1 多 barrier 对齐状态机模型
+
+**决策**：aligned checkpoint 采用「per-channel 有序投递 + 序列化对齐」模型。
+
+- pipelined streaming 中，同一 channel 上的 barrier 严格有序（N 先于 N+1 到达）。Coordinator 可在 N 未完成 ACK 时注入 N+1。
+- aligned 模式下 channel blocking 天然序列化对齐：channel C 交付 barrier N 后即阻塞（消费暂停），直到 N 在全 channel 对齐完成（emit + resume）。因此 N+1 的 barrier 无法在被 N 阻塞的 channel 上被读出——aligned barrier 在 InputGate 层逐个对齐，不存在同一时刻两个 barrier 并行对齐。
+- 多 in-flight 的并发收益来自「Coordinator 在 N 的 snapshot/ACK 窗口内注入 N+1」（ACK/snapshot 流水线化），而非 barrier 并行对齐。
+- InputGate 按 in-flight barrier id 维护对齐状态（小的有序集合），使某个迟到/被 abort 的 barrier N 不污染 N+1 的对齐状态。收到更高 id 的 barrier 时按 channel 有序性处理，不再抛 `ERR_STREAM_CHECKPOINT_ABORTED`。
+- channel blocking/resume 按 barrier 边界管理：交付 N 时 block，N 对齐完成时 resume。
+
+**拒绝的替代**：per-channel per-barrier-id 真正并行对齐状态机（允许同一时刻多 barrier 在不同 channel 集合上并行对齐）。拒绝原因：aligned 语义下 channel blocking 已序列化对齐，真正并行对齐不产生收益却显著增加状态机复杂度；真正的并发收益在 unaligned 多 in-flight（见 D4 successor）。
+
+#### D2 ACK 路由 checkpointId 传播
+
+**决策**：在 `OperatorSnapshotResult` 上携带 `checkpointId`（snapshot 时刻由 barrier id / `StateSnapshotContext.getCheckpointId()` 写入），`CheckpointBarrierTracker.acknowledgeOperator` 按 `snapshot.getCheckpointId()` 路由到对应 epoch 的 ACK 条目。**不改变 `acknowledgeOperator(int, OperatorSnapshotResult)` 签名**——42 处 call-site 零签名变更。
+
+- 生产 snapshot 产出点（`AbstractStreamOperator.processBarrier`、`StreamSourceOperator.injectBarrier`、`StreamSinkOperator` snapshot 路径）在 snapshot 时写入 checkpointId。
+- 向后兼容：当 result 上 checkpointId 未设置（≤0，遗留测试/直接构造），tracker 回退路由到最近一个 in-flight epoch（保留单 in-flight 行为）。
+
+**拒绝的替代**：给 `acknowledgeOperator` 加 `long checkpointId` 参数（option a）。拒绝原因：会改 `Consumer<OperatorSnapshotResult>` 回调类型与 42 处 call-site 签名，回归面大；checkpointId 已天然存在于 snapshot 产出上下文（barrier / StateSnapshotContext），由 result 携带更内聚。
+
+#### D3 abort 精准化路径
+
+**决策**：option (C) — task 侧 epoch→abort-state 过滤，不改跨模块公共 RPC 契约。
+
+- `CheckpointBarrierTracker` 维护 per-epoch ACK 状态；`notifyCheckpointAborted(N)` **只**移除 epoch N 的追踪条目（非全局 reset），不影响其它在途 epoch。
+- local abort handler（`GraphModelCheckpointExecutor.registerLocalAbortHandler`）改为 epoch 感知：对每个 task 调 `tracker.notifyCheckpointAborted(N)` 并释放 N 的对齐；**仅当该 task 无其它在途 epoch 时**才 cancel task 线程；否则只释放该 epoch 的对齐，让其它 epoch 继续 ACK 完成。
+- abort N 不误杀在途的 N±1。
+
+**拒绝的替代**：
+- option (A) 扩展 `cancelTask` RPC 携带 epoch 参数。拒绝原因：`IStreamTaskRpcService` 是跨模块公共 API（AGENTS.md Protected Area `plan-first`），且 distributed abort 当前驱动 full recovery，RPC 边界 sweep-all 在 recovery 语义下可接受；精准化的核心收益在 task/tracker 层，option (C) 已覆盖。distributed epoch-precise RPC 留作 successor（需独立 plan-first 升级）。
+- option (B) 复活 `CancelCheckpointMarker` 作为 in-data-flow 精准 abort 信号。拒绝原因：§13.2.1 裁定为 Decision-only；当前无 in-data-flow cancel marker 消费方，引入空壳违反 plan guide #24。
+
+#### D4 aligned vs unaligned 多 epoch 首版方向
+
+**决策**：首版支持 aligned 多 in-flight；unaligned 保持 single-in-flight 限制（Stage 43 假设保留）。
+
+- aligned 多 in-flight：并发收益来自 Coordinator 在 N 的 snapshot/ACK 窗口注入 N+1（ACK 流水线化），已由 D1/D2/D3 支持。
+- unaligned 多 in-flight：释放真正并发，但要求 `ChannelState` 按 epoch 独立追踪（Stage 43 `switchToUnalignedAndEmit` 假设单 in-flight），属更大改动。记录为 successor（邻近 Stage 47 unaligned+rescale）。
+- 当 unaligned 模式启用且有第二个 checkpoint 试图对齐时，fail-fast 抛明确异常（不静默跳过）。
 
 ### 2.9 Bounded Source 与 Final Epoch
 
@@ -285,14 +330,14 @@ Aligned checkpoint（§2.4）是 exactly-once 基线。但当某条 input channe
 
 本节定义 unaligned 的行为语义（"应该发生什么"），不定义代码层签名（源码是唯一事实）。
 
-#### 2.11.1 不改变 single-in-flight 约束
+#### 2.11.1 不改变 single-in-flight 约束（unaligned 视角）
 
-Unaligned checkpoint **不改变** §2.8 的 single-in-flight checkpoint 约束（一次只追踪一个 in-flight epoch）。它只改变两件事：
+Unaligned checkpoint **保持** single-in-flight 限制（一次只追踪一个 in-flight unaligned epoch）。它只改变两件事：
 
 1. **barrier 处理模式**：aligned（阻塞等待对齐）→ unaligned（快照在途数据 + 立即完成，不阻塞任何 channel）
 2. **snapshot 内容**：在 `TaskEpochSnapshot` 上增加 `ChannelState`（per-channel 在途记录）
 
-multi-concurrent checkpoint（解开 `maxConcurrentCheckpoints=1`）是 Stage 45 的职责，与 unaligned 独立组合。vision §六 决策点 #4（"Checkpoint 协议的变更（如从单 in-flight 扩展为多 in-flight）"）针对的是并发模型变更；unaligned 保持 single-in-flight，其决策记录见 `00-vision.md` §六裁决。
+aligned 多 in-flight（解开 aligned 路径的 `maxConcurrentCheckpoints=1`）已由 Stage 45 满足（见 §2.8.1 D1/D4）。unaligned 多 in-flight 仍是 successor（Stage 47），要求 `ChannelState` 按 epoch 独立追踪。当 unaligned 模式启用且有第二个 checkpoint 试图对齐时，fail-fast（不静默跳过）。vision §六 决策点 #4（"Checkpoint 协议的变更（如从单 in-flight 扩展为多 in-flight）"）针对的是并发模型变更；aligned 多 in-flight 决策记录于 §2.8.1，unaligned 保持 single-in-flight，其决策记录见 `00-vision.md` §六裁决。
 
 #### 2.11.2 在途数据语义（per-channel）
 
@@ -1198,7 +1243,7 @@ nop-stream 有两条执行路径，容错能力分层不同：
 | **失败可观测** | 连续 checkpoint 失败必须计数，超阈值触发恢复或显式告警，不得静默降级（minPause 节流 / numPending 拒绝属正常背压，**不**计入 `consecutiveTriggerFailures`；仅「真失败」——无 task 可 ACK / 触发异常——才计数） |
 | **abort 传播通道** | abort 信号必须有独立于数据流的控制通道传播到所有 task。不得仅靠数据队列内的 marker——对齐等待时数据队列读不到 marker。**distributed 部分 Stage 39 Phase 3 已落地**：`cancelTask` RPC 是独立控制通道（local 形态用 mailbox + interrupt） |
 | **多输入对齐统一** | 多输入 barrier 对齐应使用统一、线程安全、带超时的对齐器实现，不得在不同执行路径存在双轨制 |
-| **并发能力一致**（forward-looking，跨层契约） | 配置的 `maxConcurrentCheckpoints` 必须 Coordinator/task/对齐器各层一致，不得配置允许但实现拒绝。**各层当前状态**：Coordinator 层 ✅ 已满足（Stage 19 完整尊重配置值）；task 层 / 对齐器层 ❌ 仍单 barrier（`CheckpointBarrierTracker` / `InputGate` 一次只追踪一个 in-flight checkpoint），属 Stage 45 |
+| **并发能力一致**（跨层契约，Stage 45 已满足） | 配置的 `maxConcurrentCheckpoints` 必须 Coordinator/task/对齐器各层一致，不得配置允许但实现拒绝。**各层当前状态**：Coordinator 层 ✅ 已满足（Stage 19 完整尊重配置值）；task 层 / 对齐器层 ✅ 已满足（Stage 45：`CheckpointBarrierTracker` per-epoch ACK 追踪 + `InputGate` 多 in-flight barrier 对齐 + epoch 精准 abort）。aligned 多 in-flight 端到端成立；unaligned 保持 single-in-flight（§2.8.1 D4，successor Stage 47） |
 | **channel 心跳（distributed）** | 分布式 `RemoteInputChannel` 应有 channel 级心跳/超时检测，不得仅靠粗粒度 lease 兜底。**✅ Stage 43 Phase 1 已落地**：`RemoteResultPartition.sendHeartbeatIfIdle()`/`startHeartbeat(sharedScheduler)`（producer-sends-idle 模型）+ `RemoteInputChannel` `channelTimeoutMs` + `read()` 路径 piggyback 超时检查 → `ERR_STREAM_CHANNEL_TIMEOUT`；fencing 错误 epoch 的 heartbeat 不刷新 liveness |
 | **背压逃生（unaligned）** | 持续背压场景需 barrier 抢占式传播通道（unaligned checkpoint），不得仅靠 aligned 对齐（背压下对齐时延无上限）。**✅ Stage 43 已落地**：`CheckpointConfig.unalignedCheckpointEnabled`（默认 true）+ `unalignedThreshold`（默认 1000ms，必须 < `barrierAlignmentTimeout`，`validateUnalignedConfig()` fail-fast）；`InputGate` 在对齐等待超 `unalignedThreshold` 后切换 unaligned 模式（`switchToUnalignedAndEmit`：per-channel `captureInFlightData` 捕获在途数据、emit barrier、resume 所有 channel）；`ChannelState` 走 barrier ACK 路径（`InputGate.consumePendingChannelState` → `CheckpointBarrierTracker.setChannelState` → `TaskEpochSnapshot`）。详见 §2.11 |
 
@@ -1208,7 +1253,7 @@ nop-stream 有两条执行路径，容错能力分层不同：
 
 **为什么**：主 abort 机制为控制通道 `cancelTask` RPC（§13.2 line 1133/§8.7 distributed 已落地）。`cancelTask` 已满足「abort 信号独立于数据流的控制通道」硬契约。`CancelCheckpointMarker` 的潜在价值是「已恢复 channel 的补充通知」（in-data-flow marker），但其价值依赖 future stage（如 Stage 43 unaligned / Stage 45 多并发）是否需要 in-data-flow marker。当前**无消费方**，引入空壳类违反 plan guide #24（禁止空壳实现）。
 
-**Successor**：若 Stage 43（unaligned checkpoint）/ Stage 45（多并发 checkpoint）出现真实 in-data-flow cancel marker 消费方，则在该 stage plan 重新裁定并实现 `CancelCheckpointMarker` 事件类型。在此之前，abort 经 `cancelTask` RPC 控制通道 + local mailbox `signalCancel` 完整覆盖。
+**Successor**：若 Stage 43（unaligned checkpoint）/ Stage 45（多并发 checkpoint）出现真实 in-data-flow cancel marker 消费方，则在该 stage plan 重新裁定并实现 `CancelCheckpointMarker` 事件类型。Stage 45 已裁定（§2.8.1 D3）：采用 option (C) task 侧 epoch→abort-state 过滤，**不**引入 `CancelCheckpointMarker`（仍无 in-data-flow cancel marker 消费方）。abort 经 `cancelTask` RPC 控制通道 + local mailbox `signalCancel` + task 侧 per-epoch `notifyCheckpointAborted` 精准清理。distributed 路径的 epoch 精准 RPC（option A）留作 successor（需独立 plan-first 升级 Protected Area）。
 
 ### 13.3 缓解选项
 

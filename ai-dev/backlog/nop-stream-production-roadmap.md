@@ -1,6 +1,6 @@
 # nop-stream 生产级完善路线图
 
-> Last updated: 2026-08-02
+> Last updated: 2026-08-03
 > Sources: `ai-dev/analysis/nop-stream/08-gap-analysis.md`（73 条显式缺口 ID [G1-G68, D69-D73] + 6 条已解决附录 [R1-R6]，primary）, `ai-dev/backlog/completion-roadmap.md`（Phase 0—5 战略框架）, `ai-dev/backlog/nop-stream-flink-comparison-roadmap.md`（前序路线图，Items 9—13 已完成）
 
 ## Purpose
@@ -58,15 +58,15 @@ Does not contain implementation details. Each `planned` stage is owned by its ex
 - 38. Leader election / HA（G24, G25，P1）: `done`（plan `ai-dev/plans/nop-stream-production/2026-08-02-0955-8-leader-election-ha.md`，completed — WIRE 平台 `ILeaderElector`/`SysDaoLeaderElector` 进 `JobCoordinator`（HA lifecycle 状态机：start()→STANDBY + self-activation reconciliation when elector already leader，becomeLeader→ACTIVE/becomeFollower→STANDBY，禁用 whenElectionCompleted 作 ACTIVE 条件）+ standby coordinator（控制面方法 active gate 显式 warn-log 拒绝，含 reportTaskStatus/reportNodeTaskLiveness 闭合 #24 静默跳过）+ composite fencing token `leaderId@epoch#recoveryGen`（解耦 leadership/recovery fencing：epoch 仅 leadership 切换轮转，recoveryGen 每次 globalRecovery 递增，完整 token 经 updateFencingToken 推送）+ deactivate≠stop（failureDetector.shutdownNow 仅 stop/failJob 调用，leadership-loss 保留 detector 以便重新当选）+ Phase 3 真实 JDBC smoke check（`TestJobCoordinatorWithSysDaoLeaderElector` H2 + AutoTest，作为 `SysDaoLeaderElector` 首个生产用户的集成回传）+ 平台 finding F0a（`SysDaoLeaderElector` 不重放 leadership 给新 listener — coordinator-side self-activation workaround）记录回传 nop-sys-dao 团队；focused test 11 Phase 1 + 9 Phase 2 + 3 Phase 3 JDBC，全 anti-hollow；unblock Phase 4 Stage 39/40/42）
 - 39. 控制面 RPC 跨 JVM + fencing token 统一（G23 续）: `done`（plan `ai-dev/plans/nop-stream-production/2026-08-02-2141-1-cross-jvm-control-rpc-fencing.md`，completed — Phase 1 fencing token String→long epoch 统一（`fencing_epoch = leaderEpochValue * EPOCH_SCALE + recoveryGen` 单一 long，数据面双键收敛为单 long 比较，两不变量证明；ClusterRegistry Option B 边界转换不迁移 DDL；非 HA recoveryGen seed=1 零回归）+ Phase 2 控制面跨 JVM RPC（`StreamControlRpcServer`=`MessageRpcServer`+`ReflectiveRpcService`+`CorrelatingRpcService`、`StreamControlRpcProxyFactory`=`RpcServiceProxyFactoryBean`+`MessageRpcClient`、`StreamControlRpcTransformer` void→oneWay、`RpcDistributedExecutor` 分布式 dispatcher + 长生命周期 `DistributedJobHandle`、首个 beans.xml `stream-control-rpc.beans.xml`）+ Phase 3 distributed abort（`JobCoordinator.registerDistributedAbortHandler`→`cancelTask` RPC 独立控制通道；G5/G34 Decision-only 不引入空壳 `CancelCheckpointMarker`）；focused test 5 Phase 1 + 2+1 Phase 2 + 1 Phase 3 + bean-bootstrap，全 anti-hollow；unblock Stage 40/42）
 - 40. 数据面 IMessageService 跨 JVM: `done`（plan `ai-dev/plans/nop-stream-production/2026-08-02-2141-2-cross-jvm-data-plane-message-service.md`，completed — `IDataPlaneWireCodec` SPI（`SysDaoWireCodec`/`PulsarStringWireCodec`/`IdentityWireCodec`）+ `DataPlaneMessageServiceAdapter` 装饰器解决裸 envelope 与两后端的序列化阻抗（SysDao 仅持久化 ApiRequest.data / Pulsar Schema.STRING / barrier-watermark payload 非 DataBean，经 `DataPlaneWireSupport` 摊平），仅包装数据面视图使控制面 RPC 不受影响；dispatchers `setDataPlaneWireCodec` 注入，`stream-data-plane.beans.xml` 部署脚手架；`nop-stream-runtime` 无后端硬依赖。DB 后端 E2E 断言 record 经 `NopSysEvent` 表中转（anti-hollow）+ fencing + exactly-once；Pulsar 后端 codec round-trip 单测 + `@EnabledIfSystemProperty` 门禁 CI-broker E2E；backpressure 契约按后端拆分（Pulsar 队列饱和回压 / SysDao 不提供 producer 回压）。附带修复 Stage 39 遗留 nop-sys-dao stale fencing 测试。runtime 654/rocksdb 80/sys-dao 26 全绿；unblock Stage 42/43）
-- 41. ClusterRegistry 收敛到平台 discovery: `todo`
+- 41. ClusterRegistry 收敛到平台 discovery: `planned`（plan `ai-dev/plans/nop-stream-production/2026-08-03-0900-3-cluster-registry-discovery-convergence.md`，active — D7 决策 ask-first，Phase 1 blast radius 审计可执行，Phase 2+ blocked on 人类确认）
 - 42. 多 JVM 集成测试基建: `done`（plan `ai-dev/plans/nop-stream-production/2026-08-03-0001-1-multi-jvm-test-infrastructure.md`，completed — Phase 0 remote task deployment descriptor（`TaskDeploymentDescriptor` + `IStreamTaskRpcService.deployTask` default method + `SubtaskPlanBuilder` 本地重建 invokable + `JobCoordinator.remoteDeployMode`/`TaskManager.deployTask` 接线 + recovery 路径 redeploy）；Phase 1 standalone JVM entry points（`TaskManagerMain`/`JobCoordinatorMain` 真实 `public static void main` + `PollingJdbcMessageService` 跨 JVM H2 AUTO_SERVER 共享消息后端 + `SharedJdbcInfrastructure` + `ClusterLaunchConfig` key=value 解析 + SIGTERM 优雅退出 + fail-fast）；Phase 2 `MiniStreamCluster`（`ProcessBuilder` 真实进程编排 + H2 AUTO_SERVER=TRUE 共享 backing + 唯一 runId topic namespace + 日志聚合 + killTaskManager/restartTaskManager + health-check 轮询）；Phase 3 `TestMultiJvmExactlyOnceRecovery`（gated by `@EnabledIfSystemProperty`，真实多 JVM deploy/kill/recover/fencing 跨 JVM 验证，coordinator log 显示真实 `globalRecovery` + `Fencing epoch rotated` 由跨 JVM `deployTask` FAILED report 触发）；附带修复 `JdbcClusterRegistry.ensureTables()` 多 JVM 并发创建竞态（`CREATE TABLE IF NOT EXISTS`）；default `./mvnw test` 681/0/5 skipped（4 多 JVM gated + 1 历史），多 JVM 手动启用时 5/0/0 全绿）
 
 ### Phase 5 — 容错强化
 
 - 43. Channel 心跳 + unaligned checkpoint（G6，P1）: `done`（plan `ai-dev/plans/nop-stream-production/2026-08-03-0001-2-channel-heartbeat-unaligned-checkpoint.md`，completed；channel 心跳 producer-sends-idle + consumer timeout 检测、aligned→unaligned 回退、ChannelState capture/persist/replay 端到端）
 - 44. Region-based failover（G28 续，P2）: `todo`
-- 45. 多并发 checkpoint 完整支持（G31 续，P2）: `todo`
-- 46. Coordinator HA 端到端 + HA checkpoint store（G32, G35，P2）: `todo`
+- 45. 多并发 checkpoint 完整支持（G31 续，P2）: `done`（plan `ai-dev/plans/nop-stream-production/2026-08-03-0900-1-concurrent-checkpoint-multi-epoch.md`，completed — task 级多 epoch 端到端：`CheckpointBarrierTracker` per-epoch ACK 追踪（D2 option b：`OperatorSnapshotResult` 携带 checkpointId 路由，42 处 call-site 零签名变更）+ `InputGate` per-barrier 对齐状态机（D1：aligned 序列化 + aborted straggler 丢弃，不再抛 overlapping）+ epoch 精准 abort（D3 option C：local handler epoch 感知，仅当无在途 epoch 才 cancel task，distributed epoch-RPC 留 successor）+ unaligned 保持 single-in-flight（D4，successor Stage 47）+ maxConcurrent=3 E2E + abort 中间 epoch 精准性测试；Coordinator 层 Stage 19 零回归；697 tests pass）
+- 46. Coordinator HA 端到端 + HA checkpoint store（G32, G35，P2）: `planned`（plan `ai-dev/plans/nop-stream-production/2026-08-03-0900-2-coordinator-ha-checkpoint-store.md`，active — G32 failover-safe 重建路径 + CompletedCheckpointStore 裁定 + G35 范围裁定 + HA 测试矩阵）
 - 47. Unaligned + rescale 交互: `todo`
 
 ### Phase 6 — 生态与上层
@@ -631,7 +631,7 @@ Does not contain implementation details. Each `planned` stage is owned by its ex
 **Goal:** 解开 `maxConcurrentCheckpoints=1`，支持多 epoch 同时追踪。
 
 **Deliverables:**
-- G31（续）: `CheckpointBarrierTracker` + `BarrierAligner` 多 epoch 追踪
+- G31（续）: `CheckpointBarrierTracker` + `InputGate` 多 epoch 追踪（`BarrierAligner` 已删除，对齐由 `InputGate` 内联承担）
 - maxConcurrent=3 互不干扰测试
 
 **Module / area:** nop-stream/nop-stream-runtime/checkpoint/
