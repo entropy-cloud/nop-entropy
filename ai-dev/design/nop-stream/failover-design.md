@@ -149,6 +149,15 @@ targeted failover 变为可行，需以下前置全部满足。这些构成 Stag
    > - **No-Silent-No-Op（#24）**：`RegionDecomposer` 对 `BLOCKING` partition-type edge fail-fast（`determinePartitionType` 从不产生 BLOCKING；遇到即说明上游编程错误）；每个 edge 显式分类为 `WITHIN_REGION` 或 `REGION_BOUNDARY`，无静默默认归入。
    > - **不交付**（属后续 successor plans）：supervision loop 重启触发（successor 3）、drain/reconnect（successor 4）、per-region restart 计数器（successor 5）、region-aware scheduling（G55）。
 3. **Supervision loop 执行模型**：将 `submitAndRun` → `awaitCompletion` 全量阻塞模型改为可 mid-execution 检测单 task 失败并重启的 supervision 模型。
+
+   > **Implementation status（2026-08-03，successor plan 3 已落地）**：supervision loop 执行模型已交付。落地点：
+   > - **Supervision loop**：`io.nop.stream.runtime.execution.SupervisionLoop`（提交全部 task → 轮询 task state → mid-execution 检测 FAILED task → region-scoped 重启或 globalRecovery 兜底）。替代 `GraphModelCheckpointExecutor.submitAndRun` 的 `executor.awaitCompletion()` 全量阻塞语义；`submitAndRun` 5 个 call-site 全部委托 `SupervisionLoop.run`。
+   > - **5 个 `checkTaskFailures` call-site 收敛**：既有 `checkTaskFailures`（`:134,201,275,355,402`）保留为 **post-completion 终态校验**（`awaitCompletion` → supervision loop 返回后，重新扫描是否有残留 FAILED task）。Supervision loop 负责 mid-execution 检测，checkTaskFailures 负责终态一致性兜底，两者并存而非互斥。
+   > - **单 task/region 重启入口**：`SupervisionLoop.restartRegion` 消费 successor 2 的 region ID（`SubtaskTask.getRegionId()`）决定重启范围；重启的 consumer 经 successor 1 物化重放（`InputChannel.activateMaterializationReplay(0L)`）获取数据。fresh `ResultPartition` 共享 materialization point，避免重放 + 旧队列数据重复。
+   > - **Mailbox 交互契约**：终止 task 时 `signalCancel()`（cooperative cancel flag + wake mail）+ `task.cancel()`（thread interrupt）。被终止 task 的 pending timer/checkpoint mail 丢弃（restart task 重建 fresh `MailboxExecutor`）；完整 drain 在途 mail 的协议属 successor 4。
+   > - **GlobalRecovery 兜底**：region 重启失败时（restart budget 耗尽或 region 含 producer 需 drain/reconnect）抛 `StreamException`（`ERR_STREAM_SUPERVISION_RESTART_EXHAUSTED` / `ERR_STREAM_REGION_RESTART_UNSUPPORTED`），surfacing 给既有恢复路径（`globalRecovery`）。不删除 `globalRecovery`。
+   > - **零回归**：无物化 marker 的既有作业 = 单 region → supervision loop 检测到 FAILED task 立即抛出（等价 `awaitCompletion` + `checkTaskFailures`）。
+   > - **不交付**（属后续 successor plans）：reconnect-to-live-queue 切换（successor 4）、完整 drain/reconnect 协议（successor 4）、per-region restart 计数器持久化（successor 5）。
 4. **Drain/reconnect 机制**：基于物化点实现 scoped 重启时 producer/consumer 的安全 drain（排空在途数据）与 reconnect（重新接线到新 partition），不破坏 exactly-once。
 5. **Per-region restart 计数器**：scoped 重启不走 `globalRecovery()`，需独立的 per-region 计数器与上限（Stage 25 deferred 项）。
 

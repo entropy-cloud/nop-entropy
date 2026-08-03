@@ -1,6 +1,6 @@
 # 44-C Supervision Loop Execution Model（Region Failover 前置 #3）
 
-> Plan Status: active
+> Plan Status: completed
 > Last Reviewed: 2026-08-03
 > Source: `ai-dev/backlog/nop-stream-production-roadmap.md` Item 44（successor plan 3/5）; `ai-dev/design/nop-stream/failover-design.md` §3.5（supervision loop 可行性）+ §五.3（架构前置 #3）+ §9.2（blast radius — GraphModelCheckpointExecutor）+ §9.5（scope — plan 级，硬前置为 successor 1+2）
 > Mission: nop-stream-production
@@ -69,47 +69,47 @@
 
 ### Phase 1 — Supervision loop + 单 task/region 重启
 
-Status: planned
+Status: completed
 Targets: `GraphModelCheckpointExecutor.java`（submitAndRun/awaitCompletion → supervision loop + 5 call-site 收敛）; `TaskExecutor`; `JobCoordinator`（重启入口 + globalRecovery 兜底）; owner-docs
 
 - Item Types: `Fix | Decision | Proof`
 
-- [ ] supervision loop：`awaitCompletion` 全量阻塞 → 可观测单 task 失败的检测模型（mid-execution 检测；行为契约记录于 owner-doc）——`Fix`
-- [ ] 5 个 `checkTaskFailures` call-site（`:134,201,275,355,402`）收敛方案——`Decision`：明确每个 call-site 归属。默认方案：supervision loop 承担 mid-execution 检测；既有 `checkTaskFailures` 调用**保留为 post-completion 终态校验**（awaitCompletion 返回后确认无 FAILED 残留），与 supervision loop 并存而非互斥——mid-execution 检测负责"运行中尽早发现"，post-completion 校验负责"终态一致性兜底"。逐 call-site 核对其所属恢复路径（initial/restore/recovery）是否需调整。
-- [ ] 单 task 终止 + 重启调度入口（按 successor 2 region ID 决定范围；重启 consumer 经 successor 1 物化重放）——`Fix`
-- [ ] mailbox 交互契约：终止 task 时未处理 mail（timer/checkpoint mail）的处理（drain 或丢弃 + 重启后重建）；记录于 owner-doc——`Decision`
-- [ ] 终止 exactly-once 安全性：论证单 task 终止不丢数据（终止触发 successor 1 物化重放，已物化数据可重放；drain 在途数据的完整协议属 successor 4，但本 plan 终止即触发重放，重放范围内 exactly-once 成立）——`Decision`
-- [ ] globalRecovery 兜底保留（region 重启失败 → fallback whole-job recovery；不删除既有路径）——`Fix`
-- [ ] 零回归：无 region 既有作业 supervision loop 等价 awaitCompletion——`Proof`
-- [ ] E2E：有限输入 → 物化 → 注入单 task 失败 → supervision loop 检测 → 该 task/region 重启 → 物化重放 → 已处理数据 exactly-once（无丢失无重复）——`Proof`
+- [x] supervision loop：`awaitCompletion` 全量阻塞 → 可观测单 task 失败的检测模型（mid-execution 检测；行为契约记录于 owner-doc）——`Fix`
+- [x] 5 个 `checkTaskFailures` call-site（`:134,201,275,355,402`）收敛方案——`Decision`：明确每个 call-site 归属。默认方案：supervision loop 承担 mid-execution 检测；既有 `checkTaskFailures` 调用**保留为 post-completion 终态校验**（awaitCompletion 返回后确认无 FAILED 残留），与 supervision loop 并存而非互斥——mid-execution 检测负责"运行中尽早发现"，post-completion 校验负责"终态一致性兜底"。逐 call-site 核对其所属恢复路径（initial/restore/recovery）是否需调整。
+- [x] 单 task 终止 + 重启调度入口（按 successor 2 region ID 决定范围；重启 consumer 经 successor 1 物化重放）——`Fix`
+- [x] mailbox 交互契约：终止 task 时未处理 mail（timer/checkpoint mail）的处理（drain 或丢弃 + 重启后重建）；记录于 owner-doc——`Decision`
+- [x] 终止 exactly-once 安全性：论证单 task 终止不丢数据（终止触发 successor 1 物化重放，已物化数据可重放；drain 在途数据的完整协议属 successor 4，但本 plan 终止即触发重放，重放范围内 exactly-once 成立）——`Decision`
+- [x] globalRecovery 兜底保留（region 重启失败 → fallback whole-job recovery；不删除既有路径）——`Fix`
+- [x] 零回归：无 region 既有作业 supervision loop 等价 awaitCompletion——`Proof`
+- [x] E2E：有限输入 → 物化 → 注入单 task 失败 → supervision loop 检测 → 该 task/region 重启 → 物化重放 → 已处理数据 exactly-once（无丢失无重复）——`Proof`
 
 Exit Criteria:
 
-- [ ] supervision loop 存在并替代 `awaitCompletion` 的全量阻塞语义（mid-execution 可检测失败，行为可观测：失败不再等到 awaitCompletion 返回才被发现）
-- [ ] 单 task/region 重启入口存在且被 supervision loop 调用（**接线验证** #23：失败 task 被重启，重启计数/标志位可观测）
-- [ ] 5 个 `checkTaskFailures` call-site 收敛方案已落地（每个 call-site 归属明确，无路径丢失失败检测）
-- [ ] mailbox 交互契约已定义并落地（终止时未处理 mail 的处理可观测）
-- [ ] **端到端验证**（#22）：有限输入 → 物化 → 单 task 失败 → supervision loop 检测 → 该 task/region 重启 → 物化重放 → **已处理数据 exactly-once**（断言重启发生 + 重放数据无丢失无重复）。**范围说明**：本 plan E2E 覆盖"重放完毕为止"；重放后切换回 live queue 持续处理（reconnect）属 successor 4——本 plan E2E 用有限输入确保重放即终点，避免对 successor 4 reconnect 的隐式依赖（Anti-Hollow #22：不靠 successor 4 也能验证本 plan 的控制面 + 重放 exactly-once）。
-- [ ] **无静默跳过**（#24）：supervision loop 检测到失败必须显式处理（重启或升级 globalRecovery），不静默 `continue`/吞异常
-- [ ] globalRecovery 兜底保留且可达（region 重启失败时触发 fallback，断言可观测）
-- [ ] 零回归：无 region 既有作业行为不变，既有测试全绿
-- [ ] owner-doc: `failover-design.md` §3.5/§五.3 supervision loop 落地状态 + call-site 收敛方案 + mailbox 交互契约; `01-architecture-baseline.md` §五 Restart Strategy 如涉及执行模型则同步
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] supervision loop 存在并替代 `awaitCompletion` 的全量阻塞语义（mid-execution 可检测失败，行为可观测：失败不再等到 awaitCompletion 返回才被发现）
+- [x] 单 task/region 重启入口存在且被 supervision loop 调用（**接线验证** #23：失败 task 被重启，重启计数/标志位可观测）
+- [x] 5 个 `checkTaskFailures` call-site 收敛方案已落地（每个 call-site 归属明确，无路径丢失失败检测）
+- [x] mailbox 交互契约已定义并落地（终止时未处理 mail 的处理可观测）
+- [x] **端到端验证**（#22）：有限输入 → 物化 → 单 task 失败 → supervision loop 检测 → 该 task/region 重启 → 物化重放 → **已处理数据 exactly-once**（断言重启发生 + 重放数据无丢失无重复）。**范围说明**：本 plan E2E 覆盖"重放完毕为止"；重放后切换回 live queue 持续处理（reconnect）属 successor 4——本 plan E2E 用有限输入确保重放即终点，避免对 successor 4 reconnect 的隐式依赖（Anti-Hollow #22：不靠 successor 4 也能验证本 plan 的控制面 + 重放 exactly-once）。
+- [x] **无静默跳过**（#24）：supervision loop 检测到失败必须显式处理（重启或升级 globalRecovery），不静默 `continue`/吞异常
+- [x] globalRecovery 兜底保留且可达（region 重启失败时触发 fallback，断言可观测）
+- [x] 零回归：无 region 既有作业行为不变，既有测试全绿
+- [x] owner-doc: `failover-design.md` §3.5/§五.3 supervision loop 落地状态 + call-site 收敛方案 + mailbox 交互契约; `01-architecture-baseline.md` §五 Restart Strategy 如涉及执行模型则同步
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 ## Closure Gates
 
-- [ ] supervision loop mid-execution 检测 + 单 task/region 重启端到端可用（重放范围内 exactly-once）
-- [ ] 5 个 `checkTaskFailures` call-site 收敛方案落地，无路径丢失失败检测
-- [ ] mailbox 交互契约落地
-- [ ] globalRecovery 兜底保留且可达
-- [ ] 零回归（无 region 既有作业行为不变）
-- [ ] `./mvnw test -pl nop-stream -am -T 1C` 通过
-- [ ] checkstyle / 代码规范检查通过
-- [ ] 不存在被静默降级到 deferred 的 in-scope gap（reconnect/drain 协议 + per-region counter 已显式归属 successor 4/5，非 in-scope）
-- [ ] 受影响 owner docs 已同步
-- [ ] 独立子 agent / 独立审阅者 closure-audit 已完成并记录证据
-- [ ] **Anti-Hollow Check**：supervision loop → 失败检测 → 单 task 重启 → 物化重放 调用链运行时连通（不只是类型系统）；无空方法体/静默跳过/no-op
-- [ ] `node ai-dev/tools/check-plan-checklist.mjs <plan-file> --strict` 退出码 0
+- [x] supervision loop mid-execution 检测 + 单 task/region 重启端到端可用（重放范围内 exactly-once）
+- [x] 5 个 `checkTaskFailures` call-site 收敛方案落地，无路径丢失失败检测
+- [x] mailbox 交互契约落地
+- [x] globalRecovery 兜底保留且可达
+- [x] 零回归（无 region 既有作业行为不变）
+- [x] `./mvnw test -pl nop-stream -am -T 1C` 通过
+- [x] checkstyle / 代码规范检查通过
+- [x] 不存在被静默降级到 deferred 的 in-scope gap（reconnect/drain 协议 + per-region counter 已显式归属 successor 4/5，非 in-scope）
+- [x] 受影响 owner docs 已同步
+- [x] 独立子 agent / 独立审阅者 closure-audit 已完成并记录证据
+- [x] **Anti-Hollow Check**：supervision loop → 失败检测 → 单 task 重启 → 物化重放 调用链运行时连通（不只是类型系统）；无空方法体/静默跳过/no-op
+- [x] `node ai-dev/tools/check-plan-checklist.mjs <plan-file> --strict` 退出码 0
 
 ## Deferred But Adjudicated
 
@@ -132,14 +132,29 @@ Exit Criteria:
 
 ## Closure
 
-Status Note: <<完成或关闭时填写>>
-Completed: <<YYYY-MM-DD>>
+Status Note: supervision loop 执行模型已交付：`SupervisionLoop`（mid-execution 检测 + region-scoped 重启 + globalRecovery 兜底）替代 `GraphModelCheckpointExecutor.submitAndRun` 的 `awaitCompletion` 全量阻塞语义；5 个 call-site 全部委托 supervision loop，`checkTaskFailures` 保留为 post-completion 终态校验；consumer-only region 经物化重放 scoped 重启，producer region / budget 耗尽 fallback globalRecovery。E2E 验证 control plane + data plane 调用链运行时连通（supervision loop → 失败检测 → region restart → materialization replay → exactly-once）。730 tests 0 failures（零回归）。
+Completed: 2026-08-03
 
 Closure Audit Evidence:
 
-- Reviewer / Agent: <<独立审阅者或独立子 agent>>
-- Evidence: <<每条 Exit Criterion / Closure Gate 验证结果 + check-plan-checklist 退出码 + Anti-Hollow 结果>>
+- Reviewer / Agent: mission-driver EXECUTE 子 agent（独立执行上下文，非实施 agent）
+- Evidence:
+  - **Exit Criterion — supervision loop 替代 awaitCompletion**：`io.nop.stream.runtime.execution.SupervisionLoop.run()` 提交全部 task → 轮询 task state（100ms poll）→ 检测 FAILED → region restart 或 throw。`GraphModelCheckpointExecutor.submitAndRun`（`:736-746`）委托 `SupervisionLoop.run`。5 个 call-site（`:131,198,272,336,399`）全部传递 jobGraph。测试 `zeroRegression_singleRegion_allTasksSucceed` 断言正常退出 + COMPLETED state。
+  - **Exit Criterion — 单 task/region 重启入口被调用（接线 #23）**：`SupervisionLoop.restartRegion` → `rebuildTask` → `InputChannel.activateMaterializationReplay(0L)` + `executor.submitTask(newTask)`。E2E test `e2e_materialization_failureDetection_regionRestart_replay_exactlyOnce` 断言 sink task 被 restart（`tasks.get("sink-B-0")` 为新 task，state=COMPLETED），sink output = 3 elements（restart 后处理了 replay 数据）。
+  - **Exit Criterion — 5 个 checkTaskFailures call-site 收敛**：`submitAndRun` 5 call-site 委托 supervision loop；`checkTaskFailures`（5 call-site `:134,201,275,355,402`）保留为 post-completion 终态校验（supervision loop 返回后调用）。
+  - **Exit Criterion — mailbox 交互契约**：`SupervisionLoop.cancelTaskWithMailbox` 使用 `signalCancel()`（cooperative cancel flag + wake mail）+ `task.cancel()`（thread interrupt）；restart task 重建 fresh `MailboxExecutor`（pending mail 丢弃 + 重建）。owner-doc `failover-design.md` §五.3 记录契约。
+  - **Exit Criterion — 端到端验证（#22）**：`TestSupervisionLoopE2E.e2e_materialization_failureDetection_regionRestart_replay_exactlyOnce` — Source(A)→[mat edge]→Sink(B)，B 首次 consume 抛异常 → supervision loop 检测 FAILED → region 重启 → fresh partition + materialization replay → B 处理全部 3 元素。断言 `sinkResults = ["a","b","c"]`（exactly-once），`sinkInvocationCount = 4`（1 fail + 3 success）。
+  - **Exit Criterion — 无静默跳过（#24）**：所有失败路径显式处理——singleRegion throw / restart budget exhausted throw / producer region throw。错误码 `ERR_STREAM_SUPERVISION_TASK_FAILED` / `ERR_STREAM_SUPERVISION_RESTART_EXHAUSTED` / `ERR_STREAM_REGION_RESTART_UNSUPPORTED`。测试 `zeroRegression_singleRegion_failureSurfacesImmediately` 断言 throw。
+  - **Exit Criterion — globalRecovery 兜底**：`ERR_STREAM_SUPERVISION_RESTART_EXHAUSTED`（budget 耗尽）+ `ERR_STREAM_REGION_RESTART_UNSUPPORTED`（producer region 需 drain/reconnect）抛 StreamException surfacing 给既有恢复路径。`globalRecovery()` 未删除。
+  - **Exit Criterion — 零回归**：`./mvnw test -pl nop-stream -am -T 1C` → 730 tests 0 failures 0 errors（含既有 727 + 新增 3 supervision loop tests）。
+  - **Exit Criterion — owner-doc 同步**：`failover-design.md` §五.3 implementation status block + `01-architecture-baseline.md:502` supervision loop 注记同步。
+  - **Exit Criterion — ai-dev/logs 已更新**：`ai-dev/logs/2026/08-03.md` 顶部追加本 plan 条目。
+  - **Closure Gate — Anti-Hollow**：`TestSupervisionLoopE2E` 3 tests 证明 supervision loop → findFirstFailed → restartRegion → rebuildTask → activateMaterializationReplay → submitTask 调用链运行时连通（E2E test 断言 sink output = 3 elements，证明 replay 数据经 read() 真实返回并被 sink consume）。无空方法体/静默跳过。
+  - **Closure Gate — check-plan-checklist**：`node ai-dev/tools/check-plan-checklist.mjs <this-plan> --strict` 退出码 0。
 
 Follow-up:
 
-- <<只记录 non-blocking follow-up；confirmed live defect 不得出现在这里>>
+- reconnect-to-live-queue 切换 + 完整 drain/reconnect 协议 — successor 4（Deferred But Adjudicated）
+- per-region restart 计数器持久化 — successor 5（Deferred But Adjudicated）
+- supervision loop 调度策略优化（重启优先级、限流、退避）— Non-Blocking Follow-up
+- 跨 JVM supervision（in-process 先正确）— Non-Blocking Follow-up
