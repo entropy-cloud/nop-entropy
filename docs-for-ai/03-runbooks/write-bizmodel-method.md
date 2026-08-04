@@ -19,8 +19,9 @@
 1. **定义 ErrorCode**（如需要）— 在模块 `Errors` 接口中定义错误码。
 2. **声明 `I*Biz` 接口方法** — 在 `*-dao/.../biz/IXxxBiz.java` 中添加方法声明，含 `@BizQuery`/`@BizMutation` 和 `@Name` 注解。
 3. **实现 BizModel 方法** — 在 `*-service/.../entity/XxxBizModel.java` 中实现，`@Override` 标注。
-4. **逐条执行写后自检清单**（见下方）。
-5. **编写测试** — 通过 `IGraphQLEngine` 验证。
+4. **注册自定义 BizModel 到 `app-service.beans.xml`**（仅自定义 BizModel 需要）— 详见下方「自定义 BizModel 的 IoC 注册」。
+5. **逐条执行写后自检清单**（见下方）。
+6. **编写测试** — 通过 `IGraphQLEngine` 验证。
 
 > **为什么接口必须在实现之前：** 动态代理（`BizProxyFactoryBean`）只识别 `I*Biz` 接口上的方法。如果先写实现后补接口，容易出现"实现写完、接口忘补、代理调用报 unsupported-method"的问题。接口先行确保每个方法从定义到实现到测试的路径完整。
 
@@ -109,6 +110,26 @@ doFindList(query, (q, ctx) -> {
 ## 多参数场景
 
 默认使用 `@RequestBean` + `@DataBean` DTO，不要用复杂 `Map<String, Object>` 充当正式接口契约。
+
+## 自定义 BizModel 的 IoC 注册
+
+**Nop IoC 不扫描注解（与 Spring 不同）。** 每个自定义 bean 必须显式 `<bean>` 注册，否则容器启动报 bean not found。区分两类：
+
+| BizModel 类型 | 注册方式 |
+|--------------|---------|
+| **生成型 CRUD BizModel**（对应每个实体，继承 `CrudBizModel<T>`） | 自动注册在 `_service.beans.xml`（下划线开头，codegen 产出，勿手改）。**不要重复声明。** |
+| **自定义 BizModel**（非生成，带 `@BizModel`/`@BizQuery`/`@BizMutation` 的手写类，如 dashboard、report、跨实体聚合查询） | **必须手动注册**到 `{domain}-service/src/main/resources/_vfs/{app}/{domain}/beans/app-service.beans.xml` |
+
+注册写法（id = 类全限定名，`ioc:type="@bean:id"` 是省略 class 属性的语法糖）：
+
+```xml
+<bean id="app.demo.md.service.dashboard.AppDemoMdDashboardBizModel"
+      ioc:type="@bean:id"/>
+```
+
+完整范例见 `../05-examples/beans-registration.beans.xml`。
+
+> **常见症状**：写完自定义 BizModel 后启动应用，GraphQL 调用报 `bean not found: app.xxx.YyyBizModel` —— 就是漏了这一步。
 
 ## 事务后回调
 

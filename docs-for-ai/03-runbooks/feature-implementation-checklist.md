@@ -83,7 +83,8 @@
 
 1. 添加需要的 `@Inject` 依赖（非 `private`）
 2. 逐方法实现（每个方法加 `@Override`）
-3. 每个方法写完后立即执行写后自检
+3. **自定义（非生成 CRUD）BizModel 必须在 `app-service.beans.xml` 注册**，否则容器启动报 bean not found。注册位置：`{domain}-service/src/main/resources/_vfs/{app}/{domain}/beans/app-service.beans.xml`，写法 `<bean id="full.qualified.ClassName" ioc:type="@bean:id"/>`。范例见 `../05-examples/beans-registration.beans.xml`。生成的 CRUD BizModel 已在 `_service.beans.xml` 自动注册，不要重复声明。
+4. 每个方法写完后立即执行写后自检
 
 ### 写后自检（每个方法写完立即执行）
 
