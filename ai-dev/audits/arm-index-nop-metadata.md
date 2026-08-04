@@ -21,8 +21,12 @@
 | `ai-dev/audits/arm-audit-dimension-matrix-nop-metadata.md` | M0.1 | 维度矩阵 | nop-metadata | — | — | — | done（2026-08-04） |
 | `ai-dev/audits/arm-unclosed-findings-nop-metadata.md` | M0.3 | 未闭包清单 | nop-metadata | 0 未闭包 | 3 | 已归集 | done（2026-08-04） |
 | `ai-dev/audits/arm-index-nop-metadata.md` | M0.2 | 索引 | nop-metadata | — | — | — | done（2026-08-04） |
+| `ai-dev/audits/2026-08-04-0900-arm-MA1.1-nop-metadata-dependency-graph.md` | MA1.1 | 01 依赖图与模块边界 | nop-metadata | 0 | 0 新增 | 3 P3 残留确认 | done（2026-08-04） |
+| `ai-dev/audits/2026-08-04-0900-arm-MA1.2-nop-metadata-module-boundary.md` | MA1.2 | 02 模块职责与文件边界 | nop-metadata | 0 | 0 新增 | 1 P2 残留 + 3 P3 | done（2026-08-04） |
+| `ai-dev/audits/2026-08-04-0900-arm-MA1.3-nop-metadata-api-contract.md` | MA1.3 | 03 API 表面积与契约一致性 | nop-metadata | 0 | 1 新增（P1-MA1-001，归 MR1） | 2 P2 确认 | done（2026-08-04） |
+| `ai-dev/audits/2026-08-04-0900-arm-MA1.4-nop-metadata-delta.md` | MA1.4 | 06 Delta 定制合规性 | nop-metadata | 0 | 0 | 0 | done（2026-08-04） |
 
-> 后续 MA1-MA7 审计报告按 `YYYY-MM-DD-HHmm-arm-<milestone>-nop-metadata-<dimension>.md` 命名登记于此（roadmap 规则 2：产出即更新索引）。
+> 后续 MA2-MA7 审计报告按 `YYYY-MM-DD-HHmm-arm-<milestone>-nop-metadata-<dimension>.md` 命名登记于此（roadmap 规则 2：产出即更新索引）。
 
 ## P0 发现追踪（即时通道）
 
@@ -43,8 +47,9 @@
 | `2026-07-19-1118#维度20-01` | 07-19 multi | `System.currentTimeMillis()` DDD-006 违规残余 2 处（`OrmModelImporter.java:58,68`） | MR2（机械修复，随 MA4.2/4.5 审计后） | open（live 核实） |
 | `2026-07-20-1554#MISSING-AUTH` | 07-20 deep | 自定义 @BizMutation 缺细粒度 @Auth 注解 | watch-only（300 plan 裁定：action-auth 默认关闭 + 粗粒度兜底）；MA3.3 审计复核 | watch-only（已裁定） |
 | `2026-07-21-2039#维度16-01` | 07-21 multi | 19/40 BizModel 零测试（07 plan 已覆盖 5 个高风险，剩余 14 个） | watch-only（07/10 plan 裁定 out-of-scope）；MA4.4/4.7 审计复核 | watch-only（已裁定） |
+| `P1-MA1-001` | MA1.3（2026-08-04） | NopMetaSearch.xmeta:7 schema type 引用不存在的 `io.nop.metadata.core.dto.SearchHitDTO`（DTO 已于 c3162d4da 迁至 api，xmeta 未同步；GraphQL `items` 字段类型解析失效） | **MR1**（一行 xmeta 修复 + GraphQL 字段选择回归测试） | open（live 核实） |
 
-> P1 未闭包数：**3**（其中 2 项为已裁定 watch-only residual，1 项 live 确认 open 待 MR 修复）。
+> P1 未闭包数：**4**（其中 2 项为已裁定 watch-only residual，1 项 open 待 MR2 机械修复，1 项 open 待 MR1 修复）。
 
 ## P2 发现汇总（待 MA 审计复核 / MR 批量修复）
 
@@ -62,3 +67,5 @@
 | `2026-07-23-0714#维度16-03/05/07/09` | 测试质量项（重复 CRUD/并发测试/sleep/data-auth 测试） | MA4.6/4.7 审计 + MR2 |
 | `2026-07-21-2039#维度07-03` | queryAggregation 11 参数未用 @RequestBean | MR2（MA1.3 审计后） |
 | `2026-07-23-0714#维度05-08` | CRUD codegen 有意禁用 | watch-only（有意设计）；MA2.2 复核 |
+| `2026-07-19-1118#维度02-01`（残余） | `*Service` 命名违规残留 2 处（NopMetaSearchService / QualityAlertWorkflowService；另 2 处已改 Processor） | MR2（命名批量修复，随 MA4.5/MA5.3 审计后；MA1.2 复核确认） |
+| `2026-07-21-2039#维度07-03` | queryAggregation 11 参数未用 @RequestBean | MR2（MA1.3 审计后——本审计已复核确认仍 open） |

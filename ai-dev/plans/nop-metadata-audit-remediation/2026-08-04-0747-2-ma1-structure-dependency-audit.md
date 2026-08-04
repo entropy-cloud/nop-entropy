@@ -1,6 +1,6 @@
 # MA1 结构与依赖审计（api + core + codegen）
 
-> Plan Status: active
+> Plan Status: completed
 > Last Reviewed: 2026-08-04
 > Draft Review: 3 轮独立子 agent 对抗性审查通过（1 Blocker 级 + 3 Major + 6 Minor 全部修复；final round 无 Blocker/Major）。Session: ses_035f80253ffeMLSPnj7L3ksNPN / ses_035f026cdffeCN1ireWwRbLRDo / ses_035e90415ffePF1hTXAhQbyYkg。
 > Mission: nop-metadata-audit-remediation
@@ -58,94 +58,94 @@
 
 ### Phase 1 - MA1.1 依赖图与模块边界审计
 
-Status: planned
+Status: completed
 Targets: `nop-metadata/nop-metadata-api/`、`nop-metadata/nop-metadata-core/`、`nop-metadata/nop-metadata-codegen/` + `pom.xml` 文件
 
 - Item Types: `Proof`
 
-- [ ] **启动门禁核查**：确认 M0 已 done（roadmap M0 四行 done、`arm-unclosed-findings-nop-metadata.md` 已填充非骨架、M0.4 基线数字已记录）；未满足则不启动并上报
-- [ ] 执行维度 01 审计（依赖图与模块边界）：dao→core 历史违规回归验证（`git log -S "nop-metadata-core" -- nop-metadata/nop-metadata-dao/pom.xml` 定位修复提交 + live pom 核实）、-api 依赖缺失、零引用依赖（`mvn dependency:analyze` + import 抽样）
-- [ ] 运行 `./mvnw dependency:tree -pl nop-metadata/nop-metadata-api,nop-metadata/nop-metadata-core` 获取依赖树基线（注意：多个 `-pl` 需逗号分隔，重复 `-pl` 会互相覆盖）
-- [ ] 历史对照：以 M0.3 未闭包清单中维度 01 相关条目（轮次限定 ID）逐一核对，含 07-23 summary 的 P1 dao→core 与维度文件的矛盾（见 Current Baseline），07-21 维度 01 的 api parent 指向问题（live 已修复则记 fixed）
-- [ ] 产出审计报告 `ai-dev/audits/{YYYY-MM-DD-HHMM}-arm-MA1.1-nop-metadata-dependency-graph.md`
+- [x] **启动门禁核查**：确认 M0 已 done（roadmap M0 四行 done、`arm-unclosed-findings-nop-metadata.md` 已填充非骨架、M0.4 基线数字已记录）；未满足则不启动并上报
+- [x] 执行维度 01 审计（依赖图与模块边界）：dao→core 历史违规回归验证（`git log -S "nop-metadata-core" -- nop-metadata/nop-metadata-dao/pom.xml` 定位修复提交 + live pom 核实）、-api 依赖缺失、零引用依赖（`mvn dependency:analyze` + import 抽样）
+- [x] 运行 `./mvnw dependency:tree -pl nop-metadata/nop-metadata-api,nop-metadata/nop-metadata-core` 获取依赖树基线（注意：多个 `-pl` 需逗号分隔，重复 `-pl` 会互相覆盖）
+- [x] 历史对照：以 M0.3 未闭包清单中维度 01 相关条目（轮次限定 ID）逐一核对，含 07-23 summary 的 P1 dao→core 与维度文件的矛盾（见 Current Baseline），07-21 维度 01 的 api parent 指向问题（live 已修复则记 fixed）
+- [x] 产出审计报告 `ai-dev/audits/{YYYY-MM-DD-HHMM}-arm-MA1.1-nop-metadata-dependency-graph.md`
 
 Exit Criteria:
 
-- [ ] 报告包含：dao→core 回归验证结论（含修复提交证据）、-api 依赖缺失清单、零引用依赖清单（附判定方法说明）
-- [ ] 每个发现标注轮次限定 ID 或新 ID + P 级 + 修复归属 + 关联文件
-- [ ] 07-23 维度 01 的 summary/维度文件矛盾已记录在报告"对照说明"段（不仲裁，以 M0.3 清单为准）
-- [ ] 文档变化：`No owner-doc update required`（审计报告为证据层）
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] 报告包含：dao→core 回归验证结论（含修复提交证据）、-api 依赖缺失清单、零引用依赖清单（附判定方法说明）
+- [x] 每个发现标注轮次限定 ID 或新 ID + P 级 + 修复归属 + 关联文件
+- [x] 07-23 维度 01 的 summary/维度文件矛盾已记录在报告"对照说明"段（不仲裁，以 M0.3 清单为准）
+- [x] 文档变化：`No owner-doc update required`（审计报告为证据层）
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 ### Phase 2 - MA1.2 模块职责与文件边界审计
 
-Status: planned
+Status: completed
 Targets: 8 子模块 `src/` 目录 + `nop-metadata/*/pom.xml`
 
 - Item Types: `Proof`
 
-- [ ] 执行维度 02 审计（模块职责与文件边界）：8 子模块职责划分、core 过轻问题、codegen/meta/web 边界
-- [ ] 运行 `find nop-metadata -name "*.java" -not -path "*/target/*" -exec wc -l {} + | sort -rn | head -30` 获取文件行数基线（排除 `target/` 构建产物污染）
-- [ ] 产出审计报告 `ai-dev/audits/{YYYY-MM-DD-HHMM}-arm-MA1.2-nop-metadata-module-boundary.md`
+- [x] 执行维度 02 审计（模块职责与文件边界）：8 子模块职责划分、core 过轻问题、codegen/meta/web 边界
+- [x] 运行 `find nop-metadata -name "*.java" -not -path "*/target/*" -exec wc -l {} + | sort -rn | head -30` 获取文件行数基线（排除 `target/` 构建产物污染）
+- [x] 产出审计报告 `ai-dev/audits/{YYYY-MM-DD-HHMM}-arm-MA1.2-nop-metadata-module-boundary.md`
 
 Exit Criteria:
 
-- [ ] 报告包含：8 子模块职责表、core 过轻问题结论（存在/不存在）、codegen/meta/web 边界结论
-- [ ] 每个发现标注轮次限定 ID 或新 ID + P 级 + 修复归属
-- [ ] 文档变化：`No owner-doc update required`
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] 报告包含：8 子模块职责表、core 过轻问题结论（存在/不存在）、codegen/meta/web 边界结论
+- [x] 每个发现标注轮次限定 ID 或新 ID + P 级 + 修复归属
+- [x] 文档变化：`No owner-doc update required`
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 ### Phase 3 - MA1.3 API 表面积与契约一致性审计
 
-Status: planned
+Status: completed
 Targets: `nop-metadata/nop-metadata-api/` + `nop-metadata/nop-metadata-dao/src/main/java/io/nop/metadata/biz/`
 
 - Item Types: `Proof`
 
-- [ ] 执行维度 03 审计（API 表面积与契约一致性）：DTO/接口与 I*Biz 接口契约收敛性、@BizMutation 声明、Map 返回类型、IServiceContext 参数
-- [ ] Map 返回型 API 对照 07-20-1554 与 07-20-1816 双报告（1554 记 P2 / 1816 记 P1，见 Current Baseline）；**定级以 M0.3 清单为准**：P1 则归 MR1，P2 则默认归 deferred；报告记录双裁定与选择依据
-- [ ] 产出审计报告 `ai-dev/audits/{YYYY-MM-DD-HHMM}-arm-MA1.3-nop-metadata-api-contract.md`
+- [x] 执行维度 03 审计（API 表面积与契约一致性）：DTO/接口与 I*Biz 接口契约收敛性、@BizMutation 声明、Map 返回类型、IServiceContext 参数
+- [x] Map 返回型 API 对照 07-20-1554 与 07-20-1816 双报告（1554 记 P2 / 1816 记 P1，见 Current Baseline）；**定级以 M0.3 清单为准**：P1 则归 MR1，P2 则默认归 deferred；报告记录双裁定与选择依据
+- [x] 产出审计报告 `ai-dev/audits/{YYYY-MM-DD-HHMM}-arm-MA1.3-nop-metadata-api-contract.md`
 
 Exit Criteria:
 
-- [ ] 报告包含：I*Biz 接口与实现契约对照、Map 返回类型 API 清单（含 21 方法/8 BizModel 对照与 P2 裁定记录）、@BizMutation 声明清单
-- [ ] 每个发现标注轮次限定 ID 或新 ID + P 级 + 修复归属
-- [ ] 文档变化：`No owner-doc update required`
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] 报告包含：I*Biz 接口与实现契约对照、Map 返回类型 API 清单（含 21 方法/8 BizModel 对照与 P2 裁定记录）、@BizMutation 声明清单
+- [x] 每个发现标注轮次限定 ID 或新 ID + P 级 + 修复归属
+- [x] 文档变化：`No owner-doc update required`
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 ### Phase 4 - MA1.4 Delta 定制合规性审计
 
-Status: planned
+Status: completed
 Targets: `nop-metadata/*/src/main/resources/_vfs/`
 
 - Item Types: `Proof`
 
-- [ ] 执行维度 06 审计（Delta 定制合规性）：`_delta/` 目录存在性回归（07-20"无 Delta"结论确认）+ x:extends 扫描（范围 `_vfs/**` 下全部 XML，含生成 `app.orm.xml` 与手写 `view.xml`/`action-auth.xml`；判定标准：合规模式 = `x:extends` 目标存在且指向合法源，含 `x:extends="_gen/_NopMeta*.view.xml"` 保留层引用生成物的仓库惯例；`_delta/` 不存在时 `x:extends="super"` 不适用）
-- [ ] 产出审计报告 `ai-dev/audits/{YYYY-MM-DD-HHMM}-arm-MA1.4-nop-metadata-delta.md`
+- [x] 执行维度 06 审计（Delta 定制合规性）：`_delta/` 目录存在性回归（07-20"无 Delta"结论确认）+ x:extends 扫描（范围 `_vfs/**` 下全部 XML，含生成 `app.orm.xml` 与手写 `view.xml`/`action-auth.xml`；判定标准：合规模式 = `x:extends` 目标存在且指向合法源，含 `x:extends="_gen/_NopMeta*.view.xml"` 保留层引用生成物的仓库惯例；`_delta/` 不存在时 `x:extends="super"` 不适用）
+- [x] 产出审计报告 `ai-dev/audits/{YYYY-MM-DD-HHMM}-arm-MA1.4-nop-metadata-delta.md`
 
 Exit Criteria:
 
-- [ ] 报告包含：`_delta/` 目录扫描结果与"无 Delta"回归结论、x:extends 使用扫描结果（含扫描范围与判定标准）、合规/违规清单
-- [ ] 每个发现标注轮次限定 ID 或新 ID + P 级 + 修复归属
-- [ ] 文档变化：`No owner-doc update required`
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] 报告包含：`_delta/` 目录扫描结果与"无 Delta"回归结论、x:extends 使用扫描结果（含扫描范围与判定标准）、合规/违规清单
+- [x] 每个发现标注轮次限定 ID 或新 ID + P 级 + 修复归属
+- [x] 文档变化：`No owner-doc update required`
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 ## Closure Gates
 
 > 纯审计计划（不改代码），构建验证以绿色基线保持为准。
 
-- [ ] 4 份 MA1 审计报告全部产出且含 P 级标注 + 修复归属
-- [ ] 以 M0.3 未闭包清单为对照源，维度 01/02/03/06 相关条目逐一核对（覆盖 5 个时间戳轮次：07-19-1118、07-20-1554、07-20-1816、07-21-2039、07-23-0714，含 07-19 的 dao→core 原始发现与 Map 原始发现），无遗漏；历史文件内部矛盾已在报告中记录
-- [ ] arm-index-nop-metadata.md 报告清单 + P0/P1 追踪已更新
-- [ ] P0 发现已走即时通道（若存在）；P1 发现已归入 MR1 修复清单
-- [ ] 不存在被静默降级到 deferred / follow-up 的 in-scope live defect 或 contract drift
-- [ ] 受影响的 owner docs 已同步，或明确写明 `No owner-doc update required`
-- [ ] 独立子 agent / 独立审阅者 closure-audit 已完成并记录证据
-- [ ] **Anti-Hollow Check**：closure audit 已验证报告非空壳（有实际发现清单与可追溯引用，非模板占位）
-- [ ] `./mvnw compile -pl nop-metadata -am`（绿色基线保持验证）
-- [ ] `./mvnw test -pl nop-metadata -am`（绿色基线保持验证）
-- [ ] checkstyle / 代码规范检查通过（无代码变更，以 mvn 默认检查为准）
-- [ ] `node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0（修改 `ai-dev/` 下文件后执行）
+- [x] 4 份 MA1 审计报告全部产出且含 P 级标注 + 修复归属
+- [x] 以 M0.3 未闭包清单为对照源，维度 01/02/03/06 相关条目逐一核对（覆盖 5 个时间戳轮次：07-19-1118、07-20-1554、07-20-1816、07-21-2039、07-23-0714，含 07-19 的 dao→core 原始发现与 Map 原始发现），无遗漏；历史文件内部矛盾已在报告中记录
+- [x] arm-index-nop-metadata.md 报告清单 + P0/P1 追踪已更新
+- [x] P0 发现已走即时通道（若存在）；P1 发现已归入 MR1 修复清单
+- [x] 不存在被静默降级到 deferred / follow-up 的 in-scope live defect 或 contract drift
+- [x] 受影响的 owner docs 已同步，或明确写明 `No owner-doc update required`
+- [x] 独立子 agent / 独立审阅者 closure-audit 已完成并记录证据
+- [x] **Anti-Hollow Check**：closure audit 已验证报告非空壳（有实际发现清单与可追溯引用，非模板占位）
+- [x] `./mvnw compile -pl nop-metadata -am`（绿色基线保持验证）
+- [x] `./mvnw test -pl nop-metadata -am`（绿色基线保持验证）
+- [x] checkstyle / 代码规范检查通过（无代码变更，以 mvn 默认检查为准）
+- [x] `node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0（修改 `ai-dev/` 下文件后执行）
 
 ## Deferred But Adjudicated
 
@@ -162,13 +162,25 @@ Exit Criteria:
 
 ## Closure
 
-Status Note: 未关闭
-Completed: 
+Status Note: 4 Phase 全部完成；4 份 MA1 审计报告产出并登记 arm-index；1 项新增 P1（P1-MA1-001 NopMetaSearch.xmeta 陈旧类引用）归 MR1，2 项 P2 残余归 MR2，P3 残余 deferred（均为非 live defect 维护项）；Map 双裁定按 M0.3 清单定级 P2 → deferred（记录双裁定与选择依据）；绿色基线保持（813 tests / 0 failures）；独立子 agent closure audit PASS。
+Completed: 2026-08-04
 
 Closure Audit Evidence:
 
-- Reviewer / Agent: 待独立子 agent 执行
+- Reviewer / Agent: 独立子 agent（general，fresh session）task_id: ses_035acf136ffei6O0CbPq09dj3w
+- Audit Session: ses_035acf136ffei6O0CbPq09dj3w
+- Evidence:
+  - Phase 1-4 Exit Criteria 逐条验证 PASS（live 证据：dao pom 无 core + c3162d4da diff、api parent relativePath、BOM 1150-1192、service pom:17、MetaAggregationExecutor=264 行、SqlTableReference 改名、I*Biz 接口 IServiceContext/方法声明、NopMetaSearch.xmeta:7 陈旧引用 + core.dto 包不存在、`_delta/` 0 结果 + 39/39 view extends 目标存在）
+  - Closure Gates 12/12 验证 PASS（本审计记录后由 executor 勾选；audit 独立核实全部产物非空壳）
+  - `node ai-dev/tools/check-plan-checklist.mjs <plan> --strict` 退出码 0（本 closure 写入后确认）
+  - `node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0（0 errors）
+  - Anti-Hollow 检查：4 份报告含轮次限定 ID + 提交哈希 + live 计数 + 实际发现清单；P1-MA1-001 为 live 可复现 contract drift（全仓唯一陈旧 `io.nop.metadata.core.dto` 引用）→ 非空壳 PASS；scan-hollow N/A（纯文档计划零代码变更）
+  - Deferred 项分类检查：Map 返回 P2 裁定有 M0.3 依据 + 双裁定记录；P1-MA1-001 归 MR1 未降级；无 in-scope live defect 被静默 defer PASS
+- 绿色基线：`./mvnw test -pl nop-metadata -am -T 1C` → BUILD SUCCESS（2026-08-04 09:10，813/0）
 
 Follow-up:
 
-- 待 closure audit 后填写
+- P1-MA1-001（NopMetaSearch.xmeta 陈旧类引用）→ MR1 修复（roadmap R1.x 展开时纳入）
+- 2 项 P2 残余（`2026-07-23-0714#维度07-004` DTO 动态行 Map、`2026-07-21-2039#维度07-03` queryAggregation 11 参数；`2026-07-19-1118#维度02-01` 残余 *Service 命名 2 处）→ MR2
+- P3 维护项（codegen 零引用依赖、dao test-scope 冗余、core 过轻、OrmModelImporter 位置、MetaJoinExecutor 743 行）→ deferred / 后续 design 裁定（roadmap Non-Blocking Follow-ups）
+- no remaining plan-owned work

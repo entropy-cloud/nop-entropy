@@ -1,6 +1,6 @@
 # 审计-修复路线图：nop-metadata 全模块组
 
-> 最后更新：2026-08-04（v3 — M0 四行 done：维度矩阵/arm-index/未闭包清单/绿色基线已验证）
+> 最后更新：2026-08-04（v4 — MA1 四行 done：4 份审计报告产出，1 项 P1 归 MR1，2 项 P2 归 MR2）
 > 来源：`ai-dev/skills/audit-remediation-roadmap-authoring-prompt.md`
 > 目标模块组：nop-metadata（8 子模块，~283 main Java / ~97 test Java）
 > 模块组成：`nop-metadata-api`（32 main）、`nop-metadata-core`（2）、`nop-metadata-codegen`（0）、`nop-metadata-dao`（120）、`nop-metadata-meta`（0）、`nop-metadata-service`（128 main + 94 test）、`nop-metadata-web`（0）、`nop-metadata-app`（1）
@@ -33,10 +33,10 @@
 
 | # | Work Item | Status | Owner Doc | Deps | Skill |
 |---|-----------|--------|-----------|------|-------|
-| 1.1 | api/core 依赖图与模块边界 | todo | `ai-dev/design/nop-metadata/01-architecture-baseline.md` | 0.4 | `deep-audit-prompts.md`（维度 01） |
-| 1.2 | 模块职责与文件边界（8 子模块） | todo | —（以 `nop-metadata/*/pom.xml` + 源码为基线） | 0.4 | `deep-audit-prompts.md`（维度 02） |
-| 1.3 | API 表面积与契约一致性 | todo | `nop-metadata/nop-metadata-api/` + `nop-metadata/nop-metadata-dao/src/main/java/io/nop/metadata/biz/` | 0.4 | `deep-audit-prompts.md`（维度 03） |
-| 1.4 | Delta 定制合规性 | todo | `nop-metadata/*/src/main/resources/_vfs/` | 0.4 | `deep-audit-prompts.md`（维度 06） |
+| 1.1 | api/core 依赖图与模块边界 | done | `ai-dev/design/nop-metadata/01-architecture-baseline.md`（报告：`ai-dev/audits/2026-08-04-0900-arm-MA1.1-nop-metadata-dependency-graph.md`） | 0.4 | `deep-audit-prompts.md`（维度 01） |
+| 1.2 | 模块职责与文件边界（8 子模块） | done | —（报告：`ai-dev/audits/2026-08-04-0900-arm-MA1.2-nop-metadata-module-boundary.md`） | 0.4 | `deep-audit-prompts.md`（维度 02） |
+| 1.3 | API 表面积与契约一致性 | done | `nop-metadata/nop-metadata-api/` + `nop-metadata/nop-metadata-dao/src/main/java/io/nop/metadata/biz/`（报告：`ai-dev/audits/2026-08-04-0900-arm-MA1.3-nop-metadata-api-contract.md`） | 0.4 | `deep-audit-prompts.md`（维度 03） |
+| 1.4 | Delta 定制合规性 | done | `nop-metadata/*/src/main/resources/_vfs/`（报告：`ai-dev/audits/2026-08-04-0900-arm-MA1.4-nop-metadata-delta.md`） | 0.4 | `deep-audit-prompts.md`（维度 06） |
 
 ### MA2 — ORM/BizModel/服务层审计（dao + meta + service）
 
