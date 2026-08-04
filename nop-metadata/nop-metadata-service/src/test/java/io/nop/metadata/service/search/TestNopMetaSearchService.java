@@ -39,14 +39,14 @@ class TestNopMetaSearchService {
 
         service.addToIndex("TestEntity", "test-id", doc);
 
-        verify(searchEngine).addDoc(eq("nop-meta-metadata"), eq(doc));
+        verify(searchEngine).addDoc(eq(NopMetaSearchService.TOPIC), eq(doc));
     }
 
     @Test
     void testRemoveFromIndex() {
         service.removeFromIndex("TestEntity", "test-id");
 
-        verify(searchEngine).removeDocs(eq("nop-meta-metadata"), eq(List.of("test-id")));
+        verify(searchEngine).removeDocs(eq(NopMetaSearchService.TOPIC), eq(List.of("test-id")));
     }
 
     @Test

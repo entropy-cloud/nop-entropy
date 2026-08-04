@@ -72,8 +72,8 @@ class TestNopMetadataSearchIntegration {
         assertNotNull(results);
         assertEquals(6, results.size());
 
-        verify(searchEngine, times(6)).addDocs(eq("nop-meta-metadata"), anyList());
-        verify(searchEngine, times(6)).refreshBlocking(eq("nop-meta-metadata"));
+        verify(searchEngine, times(6)).addDocs(eq(NopMetaSearchService.TOPIC), anyList());
+        verify(searchEngine, times(6)).refreshBlocking(eq(NopMetaSearchService.TOPIC));
     }
 
     @Test
@@ -104,7 +104,7 @@ class TestNopMetadataSearchIntegration {
 
         verify(searchEngine).search(requestCaptor.capture());
         SearchRequest req = requestCaptor.getValue();
-        assertEquals("nop-meta-metadata", req.getTopic());
+        assertEquals(NopMetaSearchService.TOPIC, req.getTopic());
         assertEquals(Set.of("MetaTable"), req.getTags());
         assertEquals(10, req.getLimit());
     }
@@ -126,7 +126,7 @@ class TestNopMetadataSearchIntegration {
 
         verify(searchEngine).search(requestCaptor.capture());
         SearchRequest req = requestCaptor.getValue();
-        assertEquals("nop-meta-metadata", req.getTopic());
+        assertEquals(NopMetaSearchService.TOPIC, req.getTopic());
         assertNull(req.getTags());
         assertEquals(20, req.getLimit());
     }
@@ -155,14 +155,14 @@ class TestNopMetadataSearchIntegration {
 
         searchService.addToIndex("MetaEntity", "entity-1", doc);
 
-        verify(searchEngine).addDoc(eq("nop-meta-metadata"), eq(doc));
+        verify(searchEngine).addDoc(eq(NopMetaSearchService.TOPIC), eq(doc));
     }
 
     @Test
     void testRemoveFromIndexAndVerify() {
         searchService.removeFromIndex("MetaEntity", "entity-1");
 
-        verify(searchEngine).removeDocs(eq("nop-meta-metadata"), eq(List.of("entity-1")));
+        verify(searchEngine).removeDocs(eq(NopMetaSearchService.TOPIC), eq(List.of("entity-1")));
     }
 
     // ===== Phase 2: error-path coverage — fail-close (default) =====
@@ -208,7 +208,7 @@ class TestNopMetadataSearchIntegration {
         assertDoesNotThrow(() ->
                 searchService.addToIndex("MetaEntity", "e-err", doc));
 
-        verify(searchEngine).addDoc(eq("nop-meta-metadata"), eq(doc));
+        verify(searchEngine).addDoc(eq(NopMetaSearchService.TOPIC), eq(doc));
     }
 
     @Test
@@ -220,7 +220,7 @@ class TestNopMetadataSearchIntegration {
         assertDoesNotThrow(() ->
                 searchService.removeFromIndex("MetaEntity", "e-err"));
 
-        verify(searchEngine).removeDocs(eq("nop-meta-metadata"), eq(List.of("e-err")));
+        verify(searchEngine).removeDocs(eq(NopMetaSearchService.TOPIC), eq(List.of("e-err")));
     }
 
     @Test

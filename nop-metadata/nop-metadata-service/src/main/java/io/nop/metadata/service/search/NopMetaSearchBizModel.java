@@ -70,7 +70,7 @@ public class NopMetaSearchBizModel {
         }
 
         SearchRequest request = new SearchRequest();
-        request.setTopic("nop-meta-metadata");
+        request.setTopic(NopMetaSearchService.TOPIC);
         request.setTags(entityType != null ? Collections.singleton(entityType) : null);
         request.setQuery(query);
         request.setLimit(limit);

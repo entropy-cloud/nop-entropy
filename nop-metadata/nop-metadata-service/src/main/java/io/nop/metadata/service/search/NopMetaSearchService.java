@@ -17,7 +17,12 @@ public class NopMetaSearchService {
 
     private static final Logger LOG = LoggerFactory.getLogger(NopMetaSearchService.class);
 
-    public static final String TOPIC = "nop-meta-metadata";
+    /**
+     * Search index topic（Lucene 主题必须为合法简单变量名，`isValidSimpleVarName` 校验；
+     * 历史 `nop-meta-metadata` 含连字符导致真实引擎（LuceneSearchEngine）下所有搜索请求抛
+     * "invalid topic"——mock 测试未暴露，由 plan-2026-08-04-1004-3 Phase 2 e2e 接线验证发现）。
+     */
+    public static final String TOPIC = "nop_meta_metadata";
 
     /**
      * If true, search engine exceptions are logged at ERROR and swallowed.

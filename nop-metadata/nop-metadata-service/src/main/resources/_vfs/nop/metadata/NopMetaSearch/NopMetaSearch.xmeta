@@ -4,7 +4,7 @@
 
     <props>
         <prop name="items" displayName="搜索结果列表" i18n-en:displayName="Search Result Items">
-            <schema type="List&lt;io.nop.metadata.core.dto.SearchHitDTO&gt;"/>
+            <schema type="List&lt;io.nop.metadata.api.dto.SearchHitDTO&gt;"/>
         </prop>
         <prop name="total" displayName="总记录数" i18n-en:displayName="Total Count">
             <schema type="Long"/>
