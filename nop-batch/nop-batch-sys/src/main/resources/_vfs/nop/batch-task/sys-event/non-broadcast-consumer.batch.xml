@@ -6,7 +6,7 @@
        xmlns:c="c">
 
     <loader>
-        <orm-reader entityName="io.nop.sys.dao.entity.NopSysEvent">
+        <orm-reader entityName="io.nop.sys.dao.entity.NopSysEvent" partitionIndexField="partitionIndex">
             <query>
                 <filter>
                     <c:script>

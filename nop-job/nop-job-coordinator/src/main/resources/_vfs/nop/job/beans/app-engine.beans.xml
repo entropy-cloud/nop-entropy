@@ -6,8 +6,6 @@
 
     <import resource="_engine.beans.xml"/>
 
-    <bean id="jobPartitionResolver" class="io.nop.job.coordinator.engine.JobPartitionResolver"/>
-
     <bean id="io.nop.job.api.retry.IJobRetryBridge"
           class="io.nop.job.coordinator.retry.NoOpJobRetryBridge"/>
 

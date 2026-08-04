@@ -1,4 +1,4 @@
-package io.nop.job.coordinator.engine;
+package io.nop.job.core.partition;
 
 import io.nop.api.core.beans.IntRangeBean;
 import io.nop.api.core.beans.IntRangeSet;

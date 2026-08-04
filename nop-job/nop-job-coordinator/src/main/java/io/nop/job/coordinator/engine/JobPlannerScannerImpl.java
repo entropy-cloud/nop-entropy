@@ -11,6 +11,7 @@ import io.nop.job.coordinator.metrics.JobPlannerMetricsImpl;
 import io.nop.job.core.AbstractBatchScanner;
 import io.nop.job.core.ITriggerEvalContext;
 import io.nop.job.core._NopJobCoreConstants;
+import io.nop.job.core.partition.JobPartitionResolver;
 import io.nop.job.core.trigger.JobTriggerCalculator;
 import io.nop.job.dao.entity.NopJobFire;
 import io.nop.job.dao.entity.NopJobSchedule;

@@ -9,6 +9,7 @@ import io.nop.api.core.ioc.BeanContainer;
 import io.nop.job.coordinator.metrics.IJobDispatcherMetrics;
 import io.nop.job.coordinator.metrics.JobDispatcherMetricsImpl;
 import io.nop.job.core.AbstractBatchScanner;
+import io.nop.job.core.partition.JobPartitionResolver;
 import io.nop.job.dao.entity.NopJobFire;
 import io.nop.job.dao.entity.NopJobSchedule;
 import io.nop.job.dao.entity.NopJobTask;

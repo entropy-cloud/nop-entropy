@@ -84,6 +84,7 @@ lockService.unlock("order_lock", "lock_group", holderId);
 - 广播事件：`nop_sys_broadcast_event`，通过 `findNext` keyset pagination + 内存游标 + 时间窗口消费，不持久化消费进度，重启后从时间窗口起点重新消费（at-least-once），消费失败不阻塞后续事件
 - 普通事件与广播事件都只保证 at-least-once；listener 必须自行幂等
 - `partitionIndex` 默认来自 `bizObjName + '|' + bizKey` 的 stable short hash；没有顺序键时退化为 topic hash，不保证同键顺序
+- batch mode 的分区过滤由 `nopBatchTaskRunner` 注入的 `PartitionResolver`（job 侧 resolve）驱动：`BatchTaskRunner.executeAsync` 调 `resolvePartitions()` 写入 `IBatchTaskContext.partitionRange`，`non-broadcast-consumer.batch.xml` 的 `<orm-reader partitionIndexField="partitionIndex">` 据此通过 `QueryBean.addPartitionFilter` 自动追加 `partition_index` 过滤（单区间 between / 多区间 OR）。集群未启用或未配置时不过滤（扫全表）。程序式 simple mode 仍由 `SysDaoMessageService.assignedPartitions` 驱动，过滤构建复用 `FilterBeans.inRanges`
 - batch trigger 只是普通事件的一种触发执行机制，不改变 event row 状态机；成功/失败仍回写到 `nop_sys_event` 行本身（如 `PROCESSED`、`WAITING + scheduleTime + retryTimes`）
 - batch DSL 是 `nop-batch-sys` 的支持基线，不再使用编程式 `BatchTaskBuilder`；`SysEventBatchTrigger` 通过 `IBatchTaskManager` 加载 `.batch.xml`，DSL 中的 loader/processor/consumer 通过 `<source>` XPL 委托 `SysDaoMessageService` 方法
 

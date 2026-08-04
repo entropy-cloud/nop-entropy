@@ -63,10 +63,12 @@ public class PartitionResolver {
 
     /**
      * 显式指定本实例负责的分区集合（{@link IntRangeSet#parse(String)} 格式，如 "0,100|200,50"）。
-     * 非空时优先级高于集群动态分配。
+     * 非空时优先级高于集群动态分配。传 null 或空串时清空（恢复为集群动态分配模式）。
      */
     public void setAssignedPartitions(String partitions) {
-        if (partitions != null && !partitions.isEmpty()) {
+        if (partitions == null || partitions.isEmpty()) {
+            this.assignedPartitions = null;
+        } else {
             this.assignedPartitions = IntRangeSet.parse(partitions);
         }
     }

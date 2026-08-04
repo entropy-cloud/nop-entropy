@@ -1,7 +1,6 @@
 package io.nop.sys.dao.message;
 
 import io.nop.api.core.beans.FilterBeans;
-import io.nop.api.core.beans.IntRangeBean;
 import io.nop.api.core.beans.IntRangeSet;
 import io.nop.api.core.beans.TreeBean;
 import io.nop.api.core.message.ConsumeLater;
@@ -198,12 +197,7 @@ public class NonBroadcastEventProcessor {
         if (assignedPartitions == null || assignedPartitions.isEmpty()) {
             return null;
         }
-        List<TreeBean> rangeFilters = new ArrayList<>();
-        for (IntRangeBean range : assignedPartitions.getRanges()) {
-            rangeFilters.add(FilterBeans.between(NopSysEvent.PROP_NAME_partitionIndex,
-                    range.getOffset(), range.getLast()));
-        }
-        return FilterBeans.or(rangeFilters);
+        return FilterBeans.inRanges(NopSysEvent.PROP_NAME_partitionIndex, assignedPartitions);
     }
 
     @SuppressWarnings("unchecked")

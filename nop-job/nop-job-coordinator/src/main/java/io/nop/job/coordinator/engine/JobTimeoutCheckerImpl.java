@@ -11,6 +11,7 @@ import io.nop.job.api.alarm.IJobAlarmHandler;
 import io.nop.job.api.alarm.JobAlarmEvent;
 import io.nop.job.core.AbstractBatchScanner;
 import io.nop.job.core._NopJobCoreConstants;
+import io.nop.job.core.partition.JobPartitionResolver;
 
 import static io.nop.job.core.JobCoreErrors.ERR_JOB_SCHEDULE_DELETED;
 import static io.nop.job.core.JobCoreErrors.ERR_JOB_TIMEOUT;
