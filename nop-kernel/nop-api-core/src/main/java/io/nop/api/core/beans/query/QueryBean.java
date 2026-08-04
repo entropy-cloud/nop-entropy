@@ -14,7 +14,6 @@ import io.nop.api.core.annotations.data.DataBean;
 import io.nop.api.core.annotations.graphql.GraphQLObject;
 import io.nop.api.core.beans.FilterBeans;
 import io.nop.api.core.beans.ITreeBean;
-import io.nop.api.core.beans.IntRangeBean;
 import io.nop.api.core.beans.IntRangeSet;
 import io.nop.api.core.beans.TreeBean;
 import io.nop.api.core.util.ApiStringHelper;
@@ -543,22 +542,14 @@ public class QueryBean implements Serializable, ICloneable {
         return this;
     }
 
-    public QueryBean addPartitionFilter(QueryBean query, IntRangeSet partitions, String partitionProp) {
+    /**
+     * 为分区索引属性追加过滤条件。{@code partitions} 为 null 或空时不添加任何过滤。
+     * 单个区间转换为 between 条件；多个区间转换为 OR 组合的 between 条件。
+     */
+    public QueryBean addPartitionFilter(IntRangeSet partitions, String partitionProp) {
         if (partitions == null || partitions.isEmpty()) {
             return this;
         }
-
-        List<IntRangeBean> ranges = partitions.getRanges();
-        if (ranges.size() == 1) {
-            IntRangeBean range = ranges.get(0);
-            return query.addFilter(FilterBeans.between(partitionProp, range.getOffset(), range.getLast()));
-        }
-
-        List<TreeBean> rangeFilters = new ArrayList<>();
-        for (IntRangeBean range : partitions.getRanges()) {
-            rangeFilters.add(FilterBeans.between(partitionProp, range.getOffset(), range.getLast()));
-        }
-        query.addFilter(FilterBeans.or(rangeFilters));
-        return this;
+        return addFilter(FilterBeans.inRanges(partitionProp, partitions));
     }
 }

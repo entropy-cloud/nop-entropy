@@ -120,7 +120,7 @@
         </excel-reader>
 
         <!--
-        @partitionIndexField 实体上的分区标识。如果设置了这个字段，且IBatchTaskContext传入了partitionRange参数，则会自动追加分区过滤条件
+        @partitionIndexField 实体上的分区标识。如果设置了这个字段，且IBatchTaskContext传入了partitionRange参数(IntRangeSet，可能包含多个不连续区间)，则会自动追加分区过滤条件（单区间为 between，多区间为 OR 组合的 between）
         -->
         <orm-reader xdef:name="BatchOrmReaderModel" batchLoadProps="csv-list" partitionIndexField="prop-path"
                     entityName="class-name">

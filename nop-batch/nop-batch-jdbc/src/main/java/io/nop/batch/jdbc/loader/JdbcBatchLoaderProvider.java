@@ -7,8 +7,7 @@
  */
 package io.nop.batch.jdbc.loader;
 
-import io.nop.api.core.beans.FilterBeans;
-import io.nop.api.core.beans.IntRangeBean;
+import io.nop.api.core.beans.IntRangeSet;
 import io.nop.api.core.beans.query.QueryBean;
 import io.nop.api.core.util.Guard;
 import io.nop.batch.core.IBatchChunkContext;
@@ -196,11 +195,11 @@ public class JdbcBatchLoaderProvider<T> implements IBatchLoaderProvider<T> {
             if (query == null)
                 query = new QueryBean();
 
-            IntRangeBean range = context.getPartitionRange();
+            IntRangeSet partitions = context.getPartitionRange();
 
             // 自动增加分区条件
-            if (partitionIndexField != null && range != null) {
-                query.addFilter(FilterBeans.between(partitionIndexField, range.getOffset(), range.getLast()));
+            if (partitionIndexField != null && partitions != null) {
+                query.addPartitionFilter(partitions, partitionIndexField);
             }
 
             QueryBean fixedQuery = query;

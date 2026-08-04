@@ -293,7 +293,7 @@ for each owned partition P in parallel:
 2. `StringHelper.shortHash` 对业务键稳定映射到 short-range
 3. `IntRangeBean` / `IntRangeSet` 的表达与序列化
 4. `WeightedPartitionAssigner` 的按权重切分
-5. ORM/JDBC loader 根据 `partitionRange` 自动加 `BETWEEN` 过滤的约定
+5. ORM/JDBC loader 根据 `partitionRange`（`IntRangeSet`，可含多个不连续区间）通过 `QueryBean.addPartitionFilter` 自动追加过滤（单区间为 `between`，多区间为 `OR` 组合）的约定
 6. `PartitionDispatchLoaderProvider` / `AsyncFetchPartitionDispatchLoaderProvider` 这类“partition 先派发、队列内顺序执行”的执行模式
 7. 通过 `nop-job` 或 `IScheduledExecutor` 把一次扫描周期包装成可重复触发执行的外层调度方式
 

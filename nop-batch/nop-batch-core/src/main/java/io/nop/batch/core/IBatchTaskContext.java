@@ -7,7 +7,7 @@
  */
 package io.nop.batch.core;
 
-import io.nop.api.core.beans.IntRangeBean;
+import io.nop.api.core.beans.IntRangeSet;
 import io.nop.commons.cache.ICache;
 import io.nop.core.context.IExecutionContext;
 import io.nop.core.context.IServiceContext;
@@ -92,11 +92,11 @@ public interface IBatchTaskContext extends IExecutionContext {
     }
 
     /**
-     * 本次任务处理所涉及到的数据分区
+     * 本次任务处理所涉及到的数据分区，可能包含多个不连续区间
      */
-    IntRangeBean getPartitionRange();
+    IntRangeSet getPartitionRange();
 
-    void setPartitionRange(IntRangeBean partitionRange);
+    void setPartitionRange(IntRangeSet partitionRange);
 
     boolean isRecoverMode();
 

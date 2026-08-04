@@ -22,6 +22,6 @@ public final class JobQueryHelper {
      * @param partitionProp the property name for the partition index column
      */
     public static void addPartitionFilter(QueryBean query, IntRangeSet partitions, String partitionProp) {
-        query.addPartitionFilter(query, partitions, partitionProp);
+        query.addPartitionFilter(partitions, partitionProp);
     }
 }

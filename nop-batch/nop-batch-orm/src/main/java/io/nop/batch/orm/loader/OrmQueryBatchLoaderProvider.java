@@ -7,8 +7,7 @@
  */
 package io.nop.batch.orm.loader;
 
-import io.nop.api.core.beans.FilterBeans;
-import io.nop.api.core.beans.IntRangeBean;
+import io.nop.api.core.beans.IntRangeSet;
 import io.nop.api.core.beans.query.QueryBean;
 import io.nop.api.core.util.Guard;
 import io.nop.batch.core.IBatchLoaderProvider;
@@ -106,11 +105,11 @@ public class OrmQueryBatchLoaderProvider<S extends IDaoEntity> implements IBatch
     LoaderState<S> newLoaderState(IBatchTaskContext context) {
         LoaderState<S> state = new LoaderState<>();
         state.query = queryBuilder == null ? new QueryBean() : queryBuilder.buildQuery(context);
-        IntRangeBean range = context.getPartitionRange();
+        IntRangeSet partitions = context.getPartitionRange();
 
         // 自动增加分区条件
-        if (partitionIndexField != null && range != null) {
-            state.query.addFilter(FilterBeans.between(partitionIndexField, range.getOffset(), range.getLast()));
+        if (partitionIndexField != null && partitions != null) {
+            state.query.addPartitionFilter(partitions, partitionIndexField);
         }
 
         state.lastEntity = null;

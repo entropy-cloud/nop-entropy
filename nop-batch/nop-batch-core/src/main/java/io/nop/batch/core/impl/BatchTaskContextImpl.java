@@ -7,7 +7,7 @@
  */
 package io.nop.batch.core.impl;
 
-import io.nop.api.core.beans.IntRangeBean;
+import io.nop.api.core.beans.IntRangeSet;
 import io.nop.batch.core.BatchConstants;
 import io.nop.batch.core.IBatchChunkContext;
 import io.nop.batch.core.IBatchTaskContext;
@@ -44,7 +44,7 @@ public class BatchTaskContextImpl extends ExecutionContextImpl implements IBatch
     private String taskKey;
     private Map<String, Object> params;
     private IVarSet persistVars = new MapVarSet();
-    private IntRangeBean partitionRange;
+    private IntRangeSet partitionRange;
     private boolean recoverMode;
     private IBatchTaskMetrics metrics;
     private Boolean allowStartIfComplete;
@@ -189,12 +189,12 @@ public class BatchTaskContextImpl extends ExecutionContextImpl implements IBatch
     }
 
     @Override
-    public IntRangeBean getPartitionRange() {
+    public IntRangeSet getPartitionRange() {
         return partitionRange;
     }
 
     @Override
-    public void setPartitionRange(IntRangeBean partitionRange) {
+    public void setPartitionRange(IntRangeSet partitionRange) {
         this.partitionRange = partitionRange;
     }
 

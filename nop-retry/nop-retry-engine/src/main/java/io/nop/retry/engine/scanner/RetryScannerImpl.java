@@ -9,12 +9,9 @@ package io.nop.retry.engine.scanner;
 
 import io.nop.api.core.annotations.ioc.InjectValue;
 import io.nop.api.core.annotations.orm.SingleSession;
-import io.nop.api.core.beans.IntRangeBean;
 import io.nop.api.core.beans.IntRangeSet;
-import io.nop.api.core.config.AppConfig;
-import io.nop.cluster.discovery.ServiceInstance;
 import io.nop.cluster.naming.INamingService;
-import io.nop.cluster.naming.PartitionAssignHelper;
+import io.nop.cluster.naming.PartitionResolver;
 import io.nop.commons.concurrent.executor.GlobalExecutors;
 import io.nop.commons.concurrent.executor.IScheduledExecutor;
 import io.nop.retry.dao.entity.NopRetryRecord;
@@ -24,7 +21,6 @@ import jakarta.inject.Inject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.Comparator;
 import java.util.List;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
@@ -35,12 +31,9 @@ public class RetryScannerImpl implements IRetryScanner {
     static final Logger LOG = LoggerFactory.getLogger(RetryScannerImpl.class);
 
     private IRetryRecordStore recordStore;
-    private INamingService namingService;
-    private String serviceName;
+    private final PartitionResolver partitionResolver = new PartitionResolver();
     private int scanIntervalMs = 5000;
     private int batchSize = 100;
-    private boolean enableCluster = false;
-    private IntRangeSet assignedPartitions;
     private long retryingTimeoutMs = NopRetryConstants.DEFAULT_RETRYING_TIMEOUT_MS;
 
     private volatile boolean running;
@@ -52,12 +45,12 @@ public class RetryScannerImpl implements IRetryScanner {
     }
 
     public void setNamingService(INamingService namingService) {
-        this.namingService = namingService;
+        this.partitionResolver.setNamingService(namingService);
     }
 
     @InjectValue("@cfg:nop.retry.scanner.service-name|")
     public void setServiceName(String serviceName) {
-        this.serviceName = serviceName;
+        this.partitionResolver.setServiceName(serviceName);
     }
 
     @InjectValue("@cfg:nop.retry.scanner.scan-interval-ms|5000")
@@ -72,7 +65,7 @@ public class RetryScannerImpl implements IRetryScanner {
 
     @InjectValue("@cfg:nop.retry.scanner.enable-cluster|false")
     public void setEnableCluster(boolean enableCluster) {
-        this.enableCluster = enableCluster;
+        this.partitionResolver.setEnableCluster(enableCluster);
     }
 
     @InjectValue("@cfg:nop.retry.scanner.retrying-timeout-ms|600000")
@@ -82,9 +75,7 @@ public class RetryScannerImpl implements IRetryScanner {
 
     @InjectValue("@cfg:nop.retry.scanner.assigned-partitions|")
     public void setAssignedPartitions(String partitions) {
-        if (partitions != null && !partitions.isEmpty()) {
-            this.assignedPartitions = IntRangeSet.parse(partitions);
-        }
+        this.partitionResolver.setAssignedPartitions(partitions);
     }
 
     public int getScanIntervalMs() {
@@ -93,10 +84,6 @@ public class RetryScannerImpl implements IRetryScanner {
 
     public int getBatchSize() {
         return batchSize;
-    }
-
-    public boolean isEnableCluster() {
-        return enableCluster;
     }
 
     @Override
@@ -168,37 +155,11 @@ public class RetryScannerImpl implements IRetryScanner {
     }
 
     /**
-     * 解析分区范围：优先使用配置的 assignedPartitions，否则从 NamingService 动态获取
+     * 解析分区范围：优先使用配置的 assignedPartitions，否则从 NamingService 动态获取。
+     * 委托给通用的 {@link PartitionResolver}，避免与 nop-job 等模块重复实现。
      */
     private IntRangeSet resolvePartitions() {
-        if (assignedPartitions != null && !assignedPartitions.isEmpty()) {
-            return assignedPartitions;
-        }
-
-        if (!enableCluster || namingService == null) {
-            return null;
-        }
-
-        // 从 NamingService 获取服务器列表并计算分区范围
-        String svcName = serviceName != null ? serviceName : AppConfig.appName();
-        List<ServiceInstance> servers = namingService.getInstances(svcName);
-        if (servers == null || servers.isEmpty()) {
-            return null;
-        }
-
-        // 按 instanceId 排序
-        servers.sort(Comparator.comparing(ServiceInstance::getInstanceId));
-
-        // 计算当前服务负责的分区范围
-        String myInstanceId = AppConfig.hostId();
-        IntRangeBean myRange = PartitionAssignHelper.getMyRange(servers, myInstanceId);
-        if (myRange.isEmpty()) {
-            LOG.warn("nop.retry.scanner.my-instance-not-found:instanceId={}", myInstanceId);
-            return null;
-        }
-
-        LOG.debug("nop.retry.scanner.resolved-partitions:range={}", myRange);
-        return myRange.toRangeSet();
+        return partitionResolver.resolvePartitions();
     }
 
     protected IScheduledExecutor getExecutor() {
