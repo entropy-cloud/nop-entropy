@@ -744,7 +744,7 @@
                         stdSqlType="INTEGER" i18n-en:displayName="Scale"/>
                 <column code="MANDATORY" displayName="必填" domain="boolFlag" name="mandatory" propId="11"
                         stdDataType="byte" stdSqlType="TINYINT" i18n-en:displayName="Mandatory"/>
-                <column code="PRIMARY" displayName="主键" domain="boolFlag" name="primaryField" propId="12"
+                <column code="IS_PRIMARY" displayName="主键" domain="boolFlag" name="primaryField" propId="12"
                         stdDataType="byte" stdSqlType="TINYINT" i18n-en:displayName="Primary"/>
                 <column code="LAZY" displayName="懒加载" domain="boolFlag" name="lazy" propId="13"
                         stdDataType="byte" stdSqlType="TINYINT" i18n-en:displayName="Lazy"/>
@@ -917,7 +917,7 @@
                         stdDataType="string" stdSqlType="VARCHAR" tagSet="disp" i18n-en:displayName="Display Name"/>
                 <column code="COLUMNS" displayName="字段列表" mandatory="true" name="columns" precision="1000" propId="6"
                         stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Columns"/>
-                <column code="CONSTRAINT" displayName="约束名" name="constraintName" precision="100" propId="7"
+                <column code="CONSTRAINT_NAME" displayName="约束名" name="constraintName" precision="100" propId="7"
                         stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Constraint Name"/>
                 <column code="TAG_SET" displayName="标签集" name="tagSet" precision="500" propId="8"
                         stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Tag Set"/>
@@ -3066,6 +3066,17 @@
                         <on leftProp="glossaryTermId" rightProp="parentTermId"/>
                     </join>
                 </to-many>
+                <!-- P2-MA2-01 裁决修复（plan-2026-08-04-1004-3，MA2.1 裁决例外）：显式声明 tagLabels 反向集合。
+                     codegen 此前已自动派生同名集合（refPropName 反向推导），本声明补齐显式控制语义：
+                     cascadeDelete=true（TagLabel 为纯链接行，术语删除后其标注失去语义；生成 DDL 无 DB 级
+                     FOREIGN KEY，不级联则孤儿行永久残留）、displayName/i18n、tagSet="pub,ref-pub"。 -->
+                <to-many displayName="术语标注集" name="tagLabels"
+                         refEntityName="io.nop.metadata.dao.entity.NopMetaTagLabel" refPropName="glossaryTerm"
+                         tagSet="pub,ref-pub" cascadeDelete="true" i18n-en:displayName="Term Labels">
+                    <join>
+                        <on leftProp="glossaryTermId" rightProp="glossaryTermId"/>
+                    </join>
+                </to-many>
             </relations>
             <indexes>
                 <index name="IX_NOP_META_GLOSSARY_TERM_PARENT" unique="false">
@@ -3219,6 +3230,16 @@
                          tagSet="pub,ref-pub" i18n-en:displayName="Children">
                     <join>
                         <on leftProp="tagId" rightProp="parentTagId"/>
+                    </join>
+                </to-many>
+                <!-- P2-MA2-01 裁决修复（plan-2026-08-04-1004-3，MA2.1 裁决例外）：显式声明 tagLabels 反向集合。
+                     同 GlossaryTerm.tagLabels：cascadeDelete=true（标签删除后标注链接行失去语义，无 DB 级
+                     FOREIGN KEY，不级联则孤儿行残留）。 -->
+                <to-many displayName="标签标注集" name="tagLabels"
+                         refEntityName="io.nop.metadata.dao.entity.NopMetaTagLabel" refPropName="tag"
+                         tagSet="pub,ref-pub" cascadeDelete="true" i18n-en:displayName="Tag Labels">
+                    <join>
+                        <on leftProp="tagId" rightProp="tagId"/>
                     </join>
                 </to-many>
             </relations>
@@ -3413,6 +3434,18 @@
                          refPropName="parentDomain" tagSet="pub,ref-pub" i18n-en:displayName="Child Domains">
                     <join>
                         <on leftProp="businessDomainId" rightProp="parentDomainId"/>
+                    </join>
+                </to-many>
+                <!-- P2-MA2-02 裁决修复（plan-2026-08-04-1004-3，MA2.1 裁决例外）：显式声明 dataProducts 反向集合。
+                     cascadeDelete=true 裁决依据：DataProduct 为 BusinessDomain 头行（UK businessDomainId+name、
+                     BUSINESS_DOMAIN_ID mandatory），删除域后残留产品行违反模型自身不变量；生成 DDL 无 DB 级
+                     FOREIGN KEY，ORM cascade 为唯一孤儿防护机制；与模型头-行 cascadeDelete 全覆盖标准一致
+                     （MA2.1：无级联例外仅自引用树/双所有权）。 -->
+                <to-many displayName="数据产品集" name="dataProducts"
+                         refEntityName="io.nop.metadata.dao.entity.NopMetaDataProduct" refPropName="businessDomain"
+                         tagSet="pub,ref-pub" cascadeDelete="true" i18n-en:displayName="Data Products">
+                    <join>
+                        <on leftProp="businessDomainId" rightProp="businessDomainId"/>
                     </join>
                 </to-many>
             </relations>

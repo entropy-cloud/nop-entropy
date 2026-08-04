@@ -665,7 +665,7 @@ CREATE TABLE nop_meta_entity_field(
   PRECISION INTEGER  ,
   SCALE INTEGER  ,
   MANDATORY SMALLINT default 0   ,
-  PRIMARY SMALLINT default 0   ,
+  IS_PRIMARY SMALLINT default 0   ,
   LAZY SMALLINT default 0   ,
   INSERTABLE SMALLINT default 0   ,
   UPDATABLE SMALLINT default 0   ,
@@ -720,7 +720,7 @@ CREATE TABLE nop_meta_entity_unique_key(
   UK_NAME VARCHAR2(100) NOT NULL ,
   DISPLAY_NAME VARCHAR2(200)  ,
   COLUMNS VARCHAR2(1000) NOT NULL ,
-  CONSTRAINT VARCHAR2(100)  ,
+  CONSTRAINT_NAME VARCHAR2(100)  ,
   TAG_SET VARCHAR2(500)  ,
   VERSION NUMBER(20) NOT NULL ,
   CREATED_BY VARCHAR2(50) NOT NULL ,
@@ -1970,7 +1970,7 @@ CREATE TABLE nop_meta_reconciliation_result(
                     
       COMMENT ON COLUMN nop_meta_entity_field.MANDATORY IS '必填';
                     
-      COMMENT ON COLUMN nop_meta_entity_field.PRIMARY IS '主键';
+      COMMENT ON COLUMN nop_meta_entity_field.IS_PRIMARY IS '主键';
                     
       COMMENT ON COLUMN nop_meta_entity_field.LAZY IS '懒加载';
                     
@@ -2068,7 +2068,7 @@ CREATE TABLE nop_meta_reconciliation_result(
                     
       COMMENT ON COLUMN nop_meta_entity_unique_key.COLUMNS IS '字段列表';
                     
-      COMMENT ON COLUMN nop_meta_entity_unique_key.CONSTRAINT IS '约束名';
+      COMMENT ON COLUMN nop_meta_entity_unique_key.CONSTRAINT_NAME IS '约束名';
                     
       COMMENT ON COLUMN nop_meta_entity_unique_key.TAG_SET IS '标签集';
                     

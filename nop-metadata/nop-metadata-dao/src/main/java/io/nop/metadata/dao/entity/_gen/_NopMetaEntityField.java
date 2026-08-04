@@ -65,7 +65,7 @@ public class _NopMetaEntityField extends DynamicOrmEntity{
     public static final String PROP_NAME_mandatory = "mandatory";
     public static final int PROP_ID_mandatory = 11;
     
-    /* 主键: PRIMARY TINYINT */
+    /* 主键: IS_PRIMARY TINYINT */
     public static final String PROP_NAME_primaryField = "primaryField";
     public static final int PROP_ID_primaryField = 12;
     
@@ -299,7 +299,7 @@ public class _NopMetaEntityField extends DynamicOrmEntity{
     /* 必填: MANDATORY */
     private java.lang.Byte _mandatory;
     
-    /* 主键: PRIMARY */
+    /* 主键: IS_PRIMARY */
     private java.lang.Byte _primaryField;
     
     /* 懒加载: LAZY */
@@ -1312,7 +1312,7 @@ public class _NopMetaEntityField extends DynamicOrmEntity{
     }
     
     /**
-     * 主键: PRIMARY
+     * 主键: IS_PRIMARY
      */
     public final java.lang.Byte getPrimaryField(){
          onPropGet(PROP_ID_primaryField);
@@ -1320,7 +1320,7 @@ public class _NopMetaEntityField extends DynamicOrmEntity{
     }
 
     /**
-     * 主键: PRIMARY
+     * 主键: IS_PRIMARY
      */
     public final void setPrimaryField(java.lang.Byte value){
         if(onPropSet(PROP_ID_primaryField,value)){

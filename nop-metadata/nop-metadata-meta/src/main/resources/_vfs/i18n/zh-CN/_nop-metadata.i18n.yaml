@@ -46,7 +46,7 @@ prop:
       childDomains: 子域集
       createTime: 创建时间
       createdBy: 创建人
-      dataProducts: null
+      dataProducts: 数据产品集
       description: 描述
       displayName: 显示名
       domainType: 业务域类型
@@ -440,7 +440,7 @@ prop:
       remark: 备注
       synonyms: 同义词
       synonymsComponent: null
-      tagLabels: null
+      tagLabels: 术语标注集
       tags: 标签
       tagsComponent: null
       updateTime: 修改时间
@@ -943,7 +943,7 @@ prop:
       parentTagId: 父标签ID
       remark: 备注
       tagId: 标签ID
-      tagLabels: null
+      tagLabels: 标签标注集
       updateTime: 修改时间
       updatedBy: 修改人
       version: 数据版本

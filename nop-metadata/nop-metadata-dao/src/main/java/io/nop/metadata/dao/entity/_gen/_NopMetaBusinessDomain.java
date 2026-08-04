@@ -91,7 +91,7 @@ public class _NopMetaBusinessDomain extends DynamicOrmEntity{
     /* relation: 子域集 */
     public static final String PROP_NAME_childDomains = "childDomains";
     
-    /* relation:  */
+    /* relation: 数据产品集 */
     public static final String PROP_NAME_dataProducts = "dataProducts";
     
     /* component:  */
@@ -926,7 +926,7 @@ public class _NopMetaBusinessDomain extends DynamicOrmEntity{
         io.nop.metadata.dao.entity.NopMetaDataProduct.PROP_NAME_businessDomain, null,io.nop.metadata.dao.entity.NopMetaDataProduct.class);
 
     /**
-     * 。 refPropName: businessDomain, keyProp: {rel.keyProp}
+     * 数据产品集。 refPropName: businessDomain, keyProp: {rel.keyProp}
      */
     public final IOrmEntitySet<io.nop.metadata.dao.entity.NopMetaDataProduct> getDataProducts(){
        return _dataProducts;

@@ -687,7 +687,7 @@
                         i18n-en:displayName="Scale"/>
                 <column code="MANDATORY" defaultValue="0" displayName="必填" domain="boolFlag" name="mandatory"
                         propId="11" stdDataType="byte" stdSqlType="TINYINT" i18n-en:displayName="Mandatory"/>
-                <column code="PRIMARY" defaultValue="0" displayName="主键" domain="boolFlag" name="primaryField"
+                <column code="IS_PRIMARY" defaultValue="0" displayName="主键" domain="boolFlag" name="primaryField"
                         propId="12" stdDataType="byte" stdSqlType="TINYINT" i18n-en:displayName="Primary"/>
                 <column code="LAZY" defaultValue="0" displayName="懒加载" domain="boolFlag" name="lazy" propId="13"
                         stdDataType="byte" stdSqlType="TINYINT" i18n-en:displayName="Lazy"/>
@@ -844,7 +844,7 @@
                         stdDataType="string" stdSqlType="VARCHAR" tagSet="disp" i18n-en:displayName="Display Name"/>
                 <column code="COLUMNS" displayName="字段列表" mandatory="true" name="columns" precision="1000" propId="6"
                         stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Columns"/>
-                <column code="CONSTRAINT" displayName="约束名" name="constraintName" precision="100" propId="7"
+                <column code="CONSTRAINT_NAME" displayName="约束名" name="constraintName" precision="100" propId="7"
                         stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Constraint Name"/>
                 <column code="TAG_SET" displayName="标签集" name="tagSet" precision="500" propId="8" stdDataType="string"
                         stdSqlType="VARCHAR" i18n-en:displayName="Tag Set"/>
@@ -2716,8 +2716,9 @@
                         <on leftProp="glossaryTermId" rightProp="parentTermId"/>
                     </join>
                 </to-many>
-                <to-many name="tagLabels" refEntityName="io.nop.metadata.dao.entity.NopMetaTagLabel"
-                         refPropName="glossaryTerm" tagSet="pub">
+                <to-many cascadeDelete="true" displayName="术语标注集" name="tagLabels"
+                         refEntityName="io.nop.metadata.dao.entity.NopMetaTagLabel" refPropName="glossaryTerm"
+                         tagSet="pub,ref-pub" i18n-en:displayName="Term Labels">
                     <join>
                         <on leftProp="glossaryTermId" rightProp="glossaryTermId"/>
                     </join>
@@ -2860,8 +2861,9 @@
                         <on leftProp="tagId" rightProp="parentTagId"/>
                     </join>
                 </to-many>
-                <to-many name="tagLabels" refEntityName="io.nop.metadata.dao.entity.NopMetaTagLabel" refPropName="tag"
-                         tagSet="pub">
+                <to-many cascadeDelete="true" displayName="标签标注集" name="tagLabels"
+                         refEntityName="io.nop.metadata.dao.entity.NopMetaTagLabel" refPropName="tag"
+                         tagSet="pub,ref-pub" i18n-en:displayName="Tag Labels">
                     <join>
                         <on leftProp="tagId" rightProp="tagId"/>
                     </join>
@@ -3034,8 +3036,9 @@
                         <on leftProp="businessDomainId" rightProp="parentDomainId"/>
                     </join>
                 </to-many>
-                <to-many name="dataProducts" refEntityName="io.nop.metadata.dao.entity.NopMetaDataProduct"
-                         refPropName="businessDomain" tagSet="pub">
+                <to-many cascadeDelete="true" displayName="数据产品集" name="dataProducts"
+                         refEntityName="io.nop.metadata.dao.entity.NopMetaDataProduct" refPropName="businessDomain"
+                         tagSet="pub,ref-pub" i18n-en:displayName="Data Products">
                     <join>
                         <on leftProp="businessDomainId" rightProp="businessDomainId"/>
                     </join>

@@ -100,7 +100,8 @@
                 <item bizObjName="NopMetaBusinessDomain"/>
             </schema>
         </prop>
-        <prop name="dataProducts" tagSet="pub" ext:kind="to-many" internal="true" ext:joinLeftProp="businessDomainId"
+        <prop name="dataProducts" displayName="数据产品集" i18n-en:displayName="Data Products" tagSet="pub,ref-pub"
+              ext:kind="to-many" internal="true" ext:joinLeftProp="businessDomainId"
               ext:joinRightProp="businessDomainId" ext:joinRightDisplayProp="displayName" insertable="false"
               updatable="false" lazy="true">
             <schema>

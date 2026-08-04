@@ -135,8 +135,9 @@
                 <item bizObjName="NopMetaGlossaryTerm"/>
             </schema>
         </prop>
-        <prop name="tagLabels" tagSet="pub" ext:kind="to-many" internal="true" ext:joinLeftProp="glossaryTermId"
-              ext:joinRightProp="glossaryTermId" insertable="false" updatable="false" lazy="true">
+        <prop name="tagLabels" displayName="术语标注集" i18n-en:displayName="Term Labels" tagSet="pub,ref-pub"
+              ext:kind="to-many" internal="true" ext:joinLeftProp="glossaryTermId" ext:joinRightProp="glossaryTermId"
+              insertable="false" updatable="false" lazy="true">
             <schema>
                 <item bizObjName="NopMetaTagLabel"/>
             </schema>

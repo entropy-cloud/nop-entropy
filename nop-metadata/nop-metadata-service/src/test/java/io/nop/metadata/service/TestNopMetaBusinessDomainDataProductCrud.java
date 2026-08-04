@@ -214,6 +214,123 @@ public class TestNopMetaBusinessDomainDataProductCrud extends JunitBaseTestCase 
     }
 
     @Test
+    public void testDataProductsReverseNavigationDbBacked() {
+        IEntityDao<NopMetaBusinessDomain> domainDao = daoProvider.daoFor(NopMetaBusinessDomain.class);
+        IEntityDao<NopMetaDataProduct> productDao = daoProvider.daoFor(NopMetaDataProduct.class);
+
+        Timestamp now = new Timestamp(System.currentTimeMillis());
+
+        NopMetaBusinessDomain domain = domainDao.newEntity();
+        domain.setBusinessDomainId("bd-nav-001");
+        domain.setName("NavDomain");
+        domain.setDisplayName("导航域");
+        domain.setVersion(1L);
+        domain.setCreatedBy("autotest");
+        domain.setUpdatedBy("autotest");
+        domain.setCreateTime(now);
+        domain.setUpdateTime(now);
+        domainDao.saveEntity(domain);
+
+        NopMetaDataProduct product = productDao.newEntity();
+        product.setDataProductId("dp-nav-001");
+        product.setBusinessDomainId("bd-nav-001");
+        product.setName("NavProduct");
+        product.setDisplayName("导航产品");
+        product.setVersion(1L);
+        product.setCreatedBy("autotest");
+        product.setUpdatedBy("autotest");
+        product.setCreateTime(now);
+        product.setUpdateTime(now);
+        productDao.saveEntity(product);
+        productDao.flushSession();
+
+        // DB-backed 重载（新会话）：set to-one → save → flush → reload → 断言反向集合内容
+        orm.runInNewSession(session -> {
+            NopMetaBusinessDomain reloaded = domainDao.getEntityById("bd-nav-001");
+            assertNotNull(reloaded, "domain must be reloaded");
+            assertFalse(reloaded.getDataProducts().isEmpty(),
+                    "domain.dataProducts must contain the saved product after DB reload");
+            assertEquals(1, reloaded.getDataProducts().size());
+            assertEquals("dp-nav-001", reloaded.getDataProducts().iterator().next().getDataProductId());
+            return null;
+        });
+    }
+
+    @Test
+    public void testBusinessDomainDeleteCascadesDataProducts() {
+        IEntityDao<NopMetaBusinessDomain> domainDao = daoProvider.daoFor(NopMetaBusinessDomain.class);
+        IEntityDao<NopMetaDataProduct> productDao = daoProvider.daoFor(NopMetaDataProduct.class);
+
+        Timestamp now = new Timestamp(System.currentTimeMillis());
+
+        NopMetaBusinessDomain domain = domainDao.newEntity();
+        domain.setBusinessDomainId("bd-cas-001");
+        domain.setName("CasDomain");
+        domain.setVersion(1L);
+        domain.setCreatedBy("autotest");
+        domain.setUpdatedBy("autotest");
+        domain.setCreateTime(now);
+        domain.setUpdateTime(now);
+        domainDao.saveEntity(domain);
+
+        NopMetaDataProduct p1 = productDao.newEntity();
+        p1.setDataProductId("dp-cas-001");
+        p1.setBusinessDomainId("bd-cas-001");
+        p1.setName("P1");
+        p1.setVersion(1L);
+        p1.setCreatedBy("autotest");
+        p1.setUpdatedBy("autotest");
+        p1.setCreateTime(now);
+        p1.setUpdateTime(now);
+        productDao.saveEntity(p1);
+
+        NopMetaDataProduct p2 = productDao.newEntity();
+        p2.setDataProductId("dp-cas-002");
+        p2.setBusinessDomainId("bd-cas-001");
+        p2.setName("P2");
+        p2.setVersion(1L);
+        p2.setCreatedBy("autotest");
+        p2.setUpdatedBy("autotest");
+        p2.setCreateTime(now);
+        p2.setUpdateTime(now);
+        productDao.saveEntity(p2);
+        productDao.flushSession();
+
+        // 只删域，不手工删产品——断言 ORM cascadeDelete 清理孤儿产品行（修复前派生关系无 cascade，
+        // 生成 DDL 亦无 DB 级 FOREIGN KEY，删除域会残留孤儿产品）
+        orm.runInSession(session -> {
+            NopMetaBusinessDomain domainToDelete = domainDao.getEntityById("bd-cas-001");
+            assertNotNull(domainToDelete, "domain must exist before delete");
+            domainDao.deleteEntity(domainToDelete);
+            session.flush();
+            return null;
+        });
+
+        orm.runInNewSession(session -> {
+            assertNull(productDao.getEntityById("dp-cas-001"),
+                    "cascadeDelete must remove data products when the domain is deleted");
+            assertNull(productDao.getEntityById("dp-cas-002"),
+                    "cascadeDelete must remove all data products");
+            assertNull(domainDao.getEntityById("bd-cas-001"));
+            return null;
+        });
+    }
+
+    @Test
+    public void testDataProductsRelationDeclaredWithCascadeAndDisplayName() {
+        OrmEntityModel model = (OrmEntityModel) orm.getOrmModel()
+                .getEntityModel("io.nop.metadata.dao.entity.NopMetaBusinessDomain");
+        assertNotNull(model, "NopMetaBusinessDomain model must be loaded");
+        io.nop.orm.model.IEntityRelationModel rel = model.getRelation("dataProducts");
+        assertNotNull(rel, "NopMetaBusinessDomain must declare to-many dataProducts");
+        assertTrue(rel.isToManyRelation(), "dataProducts must be a to-many relation");
+        assertEquals("io.nop.metadata.dao.entity.NopMetaDataProduct", rel.getRefEntityName());
+        assertEquals("businessDomain", rel.getRefPropName());
+        assertTrue(rel.isCascadeDelete(), "dataProducts must declare cascadeDelete (orphan prevention)");
+        assertEquals("数据产品集", rel.getDisplayName(), "dataProducts must declare displayName (i18n sync)");
+    }
+
+    @Test
     public void testBusinessDomainUKDeclaredInOrmModel() {
         OrmEntityModel model = (OrmEntityModel) orm.getOrmModel().getEntityModel("io.nop.metadata.dao.entity.NopMetaBusinessDomain");
         assertNotNull(model, "NopMetaBusinessDomain model must be loaded");

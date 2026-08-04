@@ -115,8 +115,9 @@
                 <item bizObjName="NopMetaTag"/>
             </schema>
         </prop>
-        <prop name="tagLabels" tagSet="pub" ext:kind="to-many" internal="true" ext:joinLeftProp="tagId"
-              ext:joinRightProp="tagId" insertable="false" updatable="false" lazy="true">
+        <prop name="tagLabels" displayName="标签标注集" i18n-en:displayName="Tag Labels" tagSet="pub,ref-pub"
+              ext:kind="to-many" internal="true" ext:joinLeftProp="tagId" ext:joinRightProp="tagId" insertable="false"
+              updatable="false" lazy="true">
             <schema>
                 <item bizObjName="NopMetaTagLabel"/>
             </schema>

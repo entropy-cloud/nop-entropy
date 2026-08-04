@@ -98,7 +98,7 @@ public class _NopMetaTag extends DynamicOrmEntity{
     /* relation: 子标签集 */
     public static final String PROP_NAME_children = "children";
     
-    /* relation:  */
+    /* relation: 标签标注集 */
     public static final String PROP_NAME_tagLabels = "tagLabels";
     
     /* component:  */
@@ -995,7 +995,7 @@ public class _NopMetaTag extends DynamicOrmEntity{
         io.nop.metadata.dao.entity.NopMetaTagLabel.PROP_NAME_tag, null,io.nop.metadata.dao.entity.NopMetaTagLabel.class);
 
     /**
-     * 。 refPropName: tag, keyProp: {rel.keyProp}
+     * 标签标注集。 refPropName: tag, keyProp: {rel.keyProp}
      */
     public final IOrmEntitySet<io.nop.metadata.dao.entity.NopMetaTagLabel> getTagLabels(){
        return _tagLabels;

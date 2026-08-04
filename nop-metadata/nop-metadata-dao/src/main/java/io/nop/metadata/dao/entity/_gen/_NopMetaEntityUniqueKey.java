@@ -45,7 +45,7 @@ public class _NopMetaEntityUniqueKey extends DynamicOrmEntity{
     public static final String PROP_NAME_columns = "columns";
     public static final int PROP_ID_columns = 6;
     
-    /* 约束名: CONSTRAINT VARCHAR */
+    /* 约束名: CONSTRAINT_NAME VARCHAR */
     public static final String PROP_NAME_constraintName = "constraintName";
     public static final int PROP_ID_constraintName = 7;
     
@@ -155,7 +155,7 @@ public class _NopMetaEntityUniqueKey extends DynamicOrmEntity{
     /* 字段列表: COLUMNS */
     private java.lang.String _columns;
     
-    /* 约束名: CONSTRAINT */
+    /* 约束名: CONSTRAINT_NAME */
     private java.lang.String _constraintName;
     
     /* 标签集: TAG_SET */
@@ -674,7 +674,7 @@ public class _NopMetaEntityUniqueKey extends DynamicOrmEntity{
     }
     
     /**
-     * 约束名: CONSTRAINT
+     * 约束名: CONSTRAINT_NAME
      */
     public final java.lang.String getConstraintName(){
          onPropGet(PROP_ID_constraintName);
@@ -682,7 +682,7 @@ public class _NopMetaEntityUniqueKey extends DynamicOrmEntity{
     }
 
     /**
-     * 约束名: CONSTRAINT
+     * 约束名: CONSTRAINT_NAME
      */
     public final void setConstraintName(java.lang.String value){
         if(onPropSet(PROP_ID_constraintName,value)){

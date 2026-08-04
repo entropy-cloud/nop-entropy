@@ -61,7 +61,7 @@ prop:
       parentDomain: Parent Domain
       parentDomain.displayName: Parent Domain
       childDomains: Child Domains
-      dataProducts: null
+      dataProducts: Data Products
       expertsComponent: null
       ownersComponent: null
       extConfigComponent: null
@@ -439,7 +439,7 @@ prop:
       parentTerm: Parent Term
       parentTerm.displayName: Parent Term
       childTerms: Child Terms
-      tagLabels: null
+      tagLabels: Term Labels
       synonymsComponent: null
       relatedTermsComponent: null
       referencesComponent: null
@@ -945,7 +945,7 @@ prop:
       parentTag: Parent Tag
       parentTag.displayName: Parent Tag
       children: Children
-      tagLabels: null
+      tagLabels: Tag Labels
       extConfigComponent: null
     NopMetaTagLabel:
       tagLabelId: Tag Label Id

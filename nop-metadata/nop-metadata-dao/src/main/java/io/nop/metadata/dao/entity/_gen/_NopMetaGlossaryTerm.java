@@ -118,7 +118,7 @@ public class _NopMetaGlossaryTerm extends DynamicOrmEntity{
     /* relation: 子术语集 */
     public static final String PROP_NAME_childTerms = "childTerms";
     
-    /* relation:  */
+    /* relation: 术语标注集 */
     public static final String PROP_NAME_tagLabels = "tagLabels";
     
     /* component:  */
@@ -1255,7 +1255,7 @@ public class _NopMetaGlossaryTerm extends DynamicOrmEntity{
         io.nop.metadata.dao.entity.NopMetaTagLabel.PROP_NAME_glossaryTerm, null,io.nop.metadata.dao.entity.NopMetaTagLabel.class);
 
     /**
-     * 。 refPropName: glossaryTerm, keyProp: {rel.keyProp}
+     * 术语标注集。 refPropName: glossaryTerm, keyProp: {rel.keyProp}
      */
     public final IOrmEntitySet<io.nop.metadata.dao.entity.NopMetaTagLabel> getTagLabels(){
        return _tagLabels;
