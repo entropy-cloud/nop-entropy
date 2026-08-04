@@ -63,6 +63,7 @@
 | **E2E 测试排障** | **`02-core-guides/e2e-testing-troubleshooting.md`**（常见失败模式与根因） |
 | 获取项目当前状态快照 | `00-start-here/project-context.md` |
 | 在外部 Nop 应用项目中工作 | `00-start-here/application-project-defaults.md` |
+| **从零创建外部应用项目（冷启动：nop-cli 获取/使用、项目骨架、最小配置、启动验证）** | **`03-runbooks/bootstrap-new-application.md`** |
 | 理解业务应用的完整开发闭环 | `02-core-guides/application-development-workflow.md` |
 | 理解文档冲突优先级和 stale 处理 | `00-start-here/truth-and-precedence.md` |
 | 理解整体仓库结构 | `01-repo-map/module-groups.md` |
@@ -188,7 +189,7 @@
 | 理解 nop-metadata（联邦式元数据 / BI 语义层 / 血缘 / 质量 / 对账） | `03-modules/nop-metadata.md`（含 I*Biz 接口契约 + 5 大功能场景 + 失败路径显式化原则） |
 | 理解 nop-code 模块（代码索引与分析） | `03-modules/nop-code.md` |
 | 查实现锚点 / 符号定义 | `04-reference/source-anchors.md` |
-| 查看代码示例（Entity/BizModel/IBiz/beans/Delta） | **`05-examples/README.md`** |
+| 查看代码示例（ORM 源模型/Entity/BizModel/IBiz/beans 注册/应用配置/Delta） | **`05-examples/README.md`** |
 | 维护 AI 文档 | `90-maintenance/maintenance-rules.md` |
 
 ## 目录角色
@@ -211,7 +212,7 @@
 - 业务模块普遍遵循 `model -> codegen -> dao -> meta -> service -> web -> app -> api` 的骨架。
 - `nop-auth`、`nop-job`、`nop-task`、`nop-wf`、`nop-ai` 是最适合用来理解这套骨架的代表模块。
 - `nop-kernel`、`nop-core-framework`、`nop-persistence`、`nop-service-framework` 是框架主干。
-- `nop-runner/` 和 `scripts/nop-cli.cmd` 是 CLI / runner 入口；`nop-demo/` 和 `demo/` 是示例入口。
+- `nop-runner/` 是 CLI / runner 入口（`nop-cli` uber-jar 在 `nop-runner/nop-cli/target/`，提供 `gen`/`convert` 子命令，获取与用法见 `03-runbooks/bootstrap-new-application.md`）；`nop-demo/` 和 `demo/` 是示例入口。
 - `docs/theory/` 下的论文与技术报告属于研究/论证材料，不是开发 AI 的默认规范入口；出现解释歧义时，不要把其中术语直接当作 `docs-for-ai/` 级别的开发规则。
 - `nop-stream/` 是流处理引擎子模块组，包含 `nop-stream-core`（核心 API、状态、算子）、`nop-stream-cep`（CEP 复杂事件处理）、`nop-stream-runtime`（运行时、检查点、协调器）、`nop-stream-connector`（消息源/汇连接器）、`nop-stream-connector-batch`（nop-batch 桥接连接器）、`nop-stream-connector-debezium`（Debezium CDC 连接器）、`nop-stream-flow`（流控）、`nop-stream-fraud-example`（欺诈检测示例）。
 

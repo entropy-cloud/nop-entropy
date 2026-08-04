@@ -43,7 +43,7 @@
 | 生成物不可直改 | `_gen/`、`_*.xml`、`_*.java`、`_*.xmeta`、`_app.orm.xml`、`_service.beans.xml` 默认都不手改 |
 | `_dump/` 是调试输出 | `_dump/{appName}/...` 仅用于查看最终合并结果，不手改、不作为质量修复目标 |
 | 服务入口是 BizModel | 普通服务代码默认写在 BizModel，复杂流程再拆 Processor |
-| BizModel 返回值 | 默认返回 Entity，由 xmeta 控制字段可见性。不要为了限制字段而改返回 DTO。仅计算结果（无对应实体）才用 DTO |
+| BizModel 返回值 | 默认返回 Entity，由 xmeta 控制字段可见性。不要为了限制字段而改返回 DTO。仅汇总/简化/组合数据（无对应实体）才用 `@DataBean` DTO（与 `INDEX.md` 默认规则口径一致） |
 | 普通实体服务默认基类 | `CrudBizModel<T>`，已内置 `dao()`、`daoProvider()`、`daoFor(clazz)` 等方法，使用前先阅读 `CrudBizModel` 和 `ICrudBiz` |
 | 普通查询/取数默认路径 | `requireEntity()`、`doFindList()`、`doFindPage()` |
 | 普通写操作默认事务 | `@BizMutation` 已自动包事务 |
@@ -79,7 +79,7 @@
 | Spring `@Value` | `@InjectValue` |
 | `Map<String, Object>` 作为复杂返回 DTO | 定义 `@DataBean` DTO |
 | DTO 日期时间字段使用 `String` 类型 | 使用 `java.time` 标准类型（`LocalDateTime`、`LocalDate`、`LocalTime`），框架自动处理序列化 |
-| 自定义 BizModel 查询返回 DTO 而不是 Entity | 直接返回 Entity，字段可见性在 xmeta 中配置。仅无对应实体的计算结果（图分析、层级树等）才用 DTO |
+| 自定义 BizModel 查询返回 DTO 而不是 Entity | 直接返回 Entity，字段可见性在 xmeta 中配置。仅汇总/简化/组合数据（无对应实体）才用 `@DataBean` DTO |
 | 将 XDSL→运行时 桥接器标 `@Deprecated` 并推荐绕过 DSL 直接用 Java API | Nop 平台 DSL 优先：桥接器有 bug 应修复，不应绕过。任何 Model→Runtime 桥接都是 DSL 体系的核心，不是可废弃的附属品 |
 | 直接注入另一个 BizModel 实现类 | 注入 `I*Biz` 接口 |
 | 转型被注入的接口到实现类或基类（如 `(XxxBizModel) xxxBiz`、`(CrudBizModel) xxxBiz`） | 禁止转型。需要的方法不在接口上 → 先在接口补声明；已在父接口链上 → 直接通过接口调用。转型被注入的接口是禁止操作，没有例外 |

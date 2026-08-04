@@ -60,6 +60,7 @@
 ## 相关文档
 
 - `../INDEX.md`
+- `../03-runbooks/bootstrap-new-application.md` — 从零创建外部应用项目（冷启动全流程）
 - `../02-core-guides/external-app-development.md`
 - `../02-core-guides/application-project-docs-and-domain-design.md`
 - `../02-core-guides/domain-logic-and-ddd.md`
