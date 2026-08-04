@@ -1,6 +1,6 @@
 # nop-stream 生产级完善路线图
 
-> Last updated: 2026-08-04 (Items 36/55 → planned, Item 56 added)
+> Last updated: 2026-08-04 (Items 36/55 → planned, Item 56 added; 2026-08-02 audit round P0+P1 → plans 2026-08-04-2300-{1,2,3}, P2 → Follow-up Backlog)
 > Sources: `ai-dev/analysis/nop-stream/08-gap-analysis.md`（73 条显式缺口 ID [G1-G68, D69-D73] + 6 条已解决附录 [R1-R6]，primary）, `ai-dev/backlog/completion-roadmap.md`（Phase 0—5 战略框架）, `ai-dev/backlog/nop-stream-flink-comparison-roadmap.md`（前序路线图，Items 9—13 已完成）
 
 ## Purpose
@@ -1057,6 +1057,166 @@ graph TD
 - **Description**: 生产代码从不产生这两个值（0 引用）。
 - **Recommendation**: 删除或加 `@ReservedForFutureUse`。
 - **Status**: ✅ Closed (Stage 23) — verify-and-close by plan `2026-08-04-2200-1-follow-up-backlog-quality-sweep.md` Phase 3: dead enum values removed; `PartitionPolicy` contains only FORWARD/HASH/REBALANCE/BROADCAST.
+
+---
+
+> 以下 P2 findings 来自 2026-08-02/04 nop-stream-production 审计轮（multi-audit + open-audit round 2），不单独建 plan（无 P0/P1 之外的降级），按 mission-driver 规则归入 backlog。每条保留 source audit 路径以保可追溯。
+
+### [P2] Options native handle leaked in RocksDBKeyedStateBackend.openDB()
+
+- **Source**: `ai-dev/audits/nop-stream-production/2026-08-02-2107-multi-audit-nop-stream-production.md` [P2]
+- **Description**: `RocksDBKeyedStateBackend.java:196-201` 创建 `new Options(...)` 后 `RocksDB.listColumnFamilies`，options 从不 `.close()`（`RocksDBIncrementalRestore.java:150` 正确用了 try-with-resources）。
+- **Recommendation**: try-with-resources 包裹 Options。
+
+### [P2] RocksDBKeyedStateBackend.close() 非健壮：单个 close() 抛错跳过其余
+
+- **Source**: 同上 [P2]
+- **Description**: `RocksDBKeyedStateBackend.java:836-859` 逐个 `handle.close()` 无 try/finally，早期抛错泄漏其余 native handle。
+- **Recommendation**: 每个 close() 独立 try/finally（或 suppressed-exception 模式）。
+
+### [P2] MemoryStateSerDe.serializeWithSerializer 静默吞序列化错误回退原值
+
+- **Source**: 同上 [P2]
+- **Description**: `MemoryStateSerDe.java:763-772` 自定义 serializer 抛错时 `return value;`（无日志无重抛），违反 checkpoint-design §13.2 "禁止静默跳过"。
+- **Recommendation**: 至少 LOG + 重抛 `StreamException(ERR_STREAM_STATE_ERROR)`。
+
+### [P2] Checkpoint retention 忽略 pipelineId 全局跨 pipeline 应用 maxRetained
+
+- **Source**: 同上 [P2]
+- **Description**: `CheckpointCoordinator.java:969-986` `getAllCheckpoints(jobId)` 跨 pipeline 计数截止，违反 design §9.2 per-namespace 规则。
+- **Recommendation**: 按 pipelineId 过滤后再截止；加多 pipeline 测试。
+
+### [P2] 增量 snapshot 永久泄漏 per-checkpoint native RocksDB checkpoint 目录
+
+- **Source**: 同上 [P2]
+- **Description**: `RocksDBIncrementalSnapshotStrategy.java:60-112` 每次增量快照建 `cp-{cpId}/native/`（数 GB），物化后无代码删除。
+- **Recommendation**: 成功物化后删除 `cp-{cpId}/`；加磁盘用量测试。
+
+### [P2] RocksDBIncrementalRestore 不校验段内容 hash
+
+- **Source**: 同上 [P2]
+- **Description**: `RocksDBIncrementalRestore.java:86-115` 复制 SST 段后不重算 SHA-256 与 hash 比对，损坏段静默进入 RocksDB。
+- **Recommendation**: `Files.copy` 后重算 `SstFileChecksum.sha256Hex` 不匹配则抛 `ERR_STREAM_STATE_ERROR`；加 "corrupt segment" 测试。
+
+### [P2] JdbcCheckpointStorage 未 override loadRetainedEpochManifests
+
+- **Source**: 同上 [P2]
+- **Description**: JDBC 存 per-epoch 行但用默认实现仅返回 latest，`cleanupOrphanSegments` 删掉 retained-but-non-latest checkpoint 引用的段；`LocalFileCheckpointStorage` 已 override。
+- **Recommendation**: override 查 `stream_epoch_manifest ORDER BY epoch_id DESC LIMIT ?`；加 JDBC restart-with-multiple-retained 测试。
+
+### [P2] RocksDBMapState.contains() TTL 过期项返回 false 但不删除
+
+- **Source**: 同上 [P2]
+- **Description**: `RocksDBMapState.java:216-227` 唯一不在过期时执行 `deleteByPrefix`+`removeTimestamp` 的读路径，与 documented "double cleanup" §12.4 不一致。
+- **Recommendation**: 镜像 `get()`/`collectMap()` 的驱逐，或抽取 lazy-evict helper。
+
+### [P2] CheckpointCoordinator.setTasksToAcknowledge 非同步与 registerTask/unregisterTask 竞态
+
+- **Source**: 同上 [P2]
+- **Description**: `CheckpointCoordinator.java:933-951` volatile 引用重赋值未持监控，`registerTask`（synchronized）的 RMW 可丢失更新，导致 `isFullyAcknowledged()` 提前为 true。
+- **Recommendation**: 标 `synchronized`。
+
+### [P2] JobCoordinator.assignTasks mid-iteration RPC 抛错致 registry/内存 map 不一致
+
+- **Source**: 同上 [P2]
+- **Description**: `JobCoordinator.java:536-565` `clusterRegistry.assignTask` 在 RPC 前，抛错跳过 `taskAssignmentMap.put`；下个 `detectFailures` 对这些 subtask 失明。
+- **Recommendation**: per-subtask try/catch-and-continue 或 all-or-nothing 回滚 registry 分配。
+
+### [P2] CheckpointCoordinator.validateIncrementalConfig 抛裸 JDK 异常 + 非英文消息
+
+- **Source**: 同上 [P2]
+- **Description**: `CheckpointCoordinator.java:1292-1306` 用 `UnsupportedOperationException`/`IllegalStateException` + 中文 "—"，未用 `StreamException`+`ErrorCode`+`.param`。
+- **Recommendation**: 改 `StreamException(ERR_STREAM_CONFIG_ERROR).param(...)`，纯英文。
+
+### [P2] LocalSourceCoordinator 4 处抛裸 IllegalStateException + 调用方静默吞快照失败
+
+- **Source**: 同上 [P2]
+- **Description**: `LocalSourceCoordinator.java:127,150,267,274` 裸异常；`CheckpointCoordinator.java:1208-1211` WARN 后跳过，manifest 缺 `sourceEnumeratorSnapshots` → restore 时 at-least-once。
+- **Recommendation**: 4 处包 `StreamException(ERR_STREAM_CHECKPOINT_ERROR, e).param`；快照失败改 fail-loud 或显式 partial 标记。
+
+### [P2] InputGate.blockConsumption/resumeConsumption 抛裸 IllegalArgumentException
+
+- **Source**: 同上 [P2]
+- **Description**: `InputGate.java:319-323,333-338` 裸 JDK 异常，`ERR_STREAM_INVALID_ARG` 已存在未用。
+- **Recommendation**: 改 `StreamException(ERR_STREAM_INVALID_ARG).param(...)`。
+
+### [P2] StreamControlRpcServer.CorrelatingRpcService 用裸 RuntimeException 包非 Exception Throwable
+
+- **Source**: 同上 [P2]
+- **Description**: `StreamControlRpcServer.java:120-124` JVM `Error` 被包进 faceless `RuntimeException`，丢失原始类型。
+- **Recommendation**: 直接重抛 Error 或包 `StreamRuntimeException`。
+
+### [P2] JobCoordinator.failJob/stop 不取消 TaskManagers 上 in-flight task
+
+- **Source**: 同上 [P2]
+- **Description**: `JobCoordinator.java:422-435/383-407` 标 FAILED 但不传播 cancel，task 继续 emit 污染数据面。
+- **Recommendation**: `failJob` 遍历 `taskAssignmentMap` 调 `rpc.cancelTask`（best-effort）。
+
+### [P2] IStateBackend Javadoc 引用不存在的 RedisStateBackend
+
+- **Source**: 同上 [P2]
+- **Description**: `IStateBackend.java:23` `{@link RedisStateBackend}` 无此类；实际生产后端是 `RocksDBStateBackend`（`nop-stream-rocksdb`）。
+- **Recommendation**: 替换为 `MemoryStateBackend`/`RocksDBStateBackend`，移除 Redis 引用。
+
+### [P2] README "五层执行管线" vs architecture-baseline "六阶段" + 均列不存在的 RuntimeTopology
+
+- **Source**: 同上 [P2]
+- **Description**: `README.md:5,7` 数 5；`01-architecture-baseline.md:13,100` 数 6；`RuntimeTopology` 类不存在（仅 README 提及）。
+- **Recommendation**: 统一计数（建议 6）；RuntimeTopology 一致标注"规划中"或移除。
+
+### [P2] AbstractUdfStreamOperator.initializeState 传 null operatorStateStore 致静默 NPE
+
+- **Source**: 同上 [P2]
+- **Description**: `AbstractUdfStreamOperator.java:111-134` 未配 stateBackend 时 `getOperatorStateStore()` 返回 null，标准 `context.getOperatorStateStore().getListState(...)` 深处 NPE。
+- **Recommendation**: stateBackend==null 且 UDF 是 `ICheckpointedFunction` 时 fail-fast `ERR_STREAM_INVALID_STATE`。
+
+### [P2] TaskManager.updateFencingToken 缺 @Override
+
+- **Source**: 同上 [P2]
+- **Description**: `TaskManager.java:577` 四个兄弟 override 均有 `@Override`，此方法缺失，接口签名漂移不会编译期暴露。
+- **Recommendation**: 加 `@Override`。
+
+### [P2] TestWatermarkStateRobustness 类名与测试内容不符
+
+- **Source**: 同上 [P2]
+- **Description**: `TestWatermarkStateRobustness.java:10-42` 类名暗示 watermark robustness，实际测 Quantifier.Times hashConsistency + DeweyNumber 不等式。
+- **Recommendation**: 重命名为 `TestQuantifierTimesAndDeweyNumberEquivalence`，或删除（若 `TestDeweyNumber` 已覆盖）。
+
+### [P2] TestProcessingGuarantee + TestLocalExecutionBarrierAlignment 重复 enum-metadata 断言
+
+- **Source**: 同上 [P2]
+- **Description**: 两文件重复断言 `STRICT_EXACTLY_ONCE.isBarrierAlignment()`，8 方法零价值。
+- **Recommendation**: 保留一处嵌入真实行为测试；删重复。
+
+### [P2] TestFlowControl 断言硬编码生产默认常量
+
+- **Source**: 同上 [P2]
+- **Description**: `TestFlowControl.java:9-25` 断言 50/30/20 magic 分配，与生产默认锁步耦合，改默认须同步改测试无独立验证。
+- **Recommendation**: 删除或断言不变量（`sum==total`、`each>0`）。
+
+### [P2] TestCountTrigger / TestMapStateDescriptor / TestE2EStorageTypeRouting 低价值断言
+
+- **Source**: 同上 [P2]
+- **Description**: `TestCountTrigger`（单 `assertFalse(canMerge())`）、`TestMapStateDescriptor`（构造往返）、`TestE2EStorageTypeRouting`（仅 assertNotNull）。
+- **Recommendation**: 删除或加强（`assertInstanceOf` + 路径验证；测真实 fire 逻辑；测后端产出的 MapState）。
+
+### [P2] CepOperator dangling-partial-match 安全网仅在 partialMatches.size()==1 时生效 (AR-2)
+
+- **Source**: `ai-dev/audits/nop-stream-production/2026-08-02-2107-open-audit-nop-stream-production.md` [AR-2]
+- **Description**: `CepOperator.java:540,600` 清理被 `size()==1 && completedMatches.isEmpty()` 门控，branching 模式（>1 partial match）下安全网失效；放大 AR-1 泄漏。onEventTime/onProcessingTime 两处重复。
+- **Recommendation**: 泛化为"所有 partial match 均超时"即清理（去掉 `size()==1`），去重两副本为共享 helper。
+
+### [P2] CEP 状态值类丢弃 implements Serializable (AR-3)
+
+- **Source**: 同上 [AR-3]
+- **Description**: `NFAState`/`ComputationState`/`EventId`/`NodeId`/`SharedBufferNode`/`SharedBufferEdge`/`Lockable`（7 类）丢 `Serializable`，偏离 Flink 原版；当前 JSON SerDe 路径不触发，潜在风险。
+- **Recommendation**: 恢复 `implements Serializable`（`Lockable.refCounter` 标 transient 重建），或加 Javadoc 不变量声明仅经 JSON/IStreamSerializer 持久化。
+
+### [P2] TestGeographicAnomalyPatternFix 内联重实现 city2 IterativeCondition (AR-4)
+
+- **Source**: 同上 [AR-4]
+- **Description**: `TestGeographicAnomalyPatternFix.java:19-60` 内联重声明 `city2` filter 并断言本地副本，`GeographicAnomalyPattern.createPattern()` 从未被引用，零 bug-catching power。
+- **Recommendation**: 从 `createPattern()` 提取真实条件断言；或删除依赖 `TestGeographicAnomalyPattern`。
 
 ## References
 
