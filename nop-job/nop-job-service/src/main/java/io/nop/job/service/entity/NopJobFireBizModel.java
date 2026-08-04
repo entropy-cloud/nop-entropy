@@ -13,7 +13,8 @@ import io.nop.job.biz.INopJobFireBiz;
 import io.nop.job.core._NopJobCoreConstants;
 import io.nop.job.dao.entity.NopJobFire;
 import io.nop.job.dao.entity.NopJobSchedule;
-import io.nop.job.dao.helper.JobStatusHelper;
+import io.nop.job.dao.helper.JobFireStateMachine;
+import io.nop.job.dao.helper.JobScheduleStateMachine;
 import io.nop.job.dao.store.FireScheduleOutcome;
 import io.nop.job.dao.store.IJobFireStore;
 import io.nop.job.dao.store.IJobScheduleStore;
@@ -76,7 +77,7 @@ public class NopJobFireBizModel extends CrudBizModel<NopJobFire> implements INop
     @BizMutation
     public void cancelFire(@Name("id") String id, IServiceContext context) {
         NopJobFire fire = requireEntity(id, "cancelFire", context);
-        if (!JobStatusHelper.isActiveFire(fire.getFireStatus())) {
+        if (!JobFireStateMachine.isActive(fire.getFireStatus())) {
             throwCancelNotAllowed(fire, "cancelFire");
         }
 
@@ -95,7 +96,7 @@ public class NopJobFireBizModel extends CrudBizModel<NopJobFire> implements INop
     @BizMutation
     public void rerunFire(@Name("id") String id, IServiceContext context) {
         NopJobFire sourceFire = requireEntity(id, "rerunFire", context);
-        if (!JobStatusHelper.isTerminalFire(sourceFire.getFireStatus())) {
+        if (!JobFireStateMachine.isTerminal(sourceFire.getFireStatus())) {
             throwRerunNotAllowed(sourceFire, "rerunFire");
         }
 
@@ -113,18 +114,15 @@ public class NopJobFireBizModel extends CrudBizModel<NopJobFire> implements INop
     }
 
     private void validateRerunSchedule(NopJobSchedule schedule, String action) {
-        if (schedule.getScheduleStatus() == null) {
+        if (JobScheduleStateMachine.canTriggerNow(schedule.getScheduleStatus())) {
             return;
         }
 
-        if (schedule.getScheduleStatus() == _NopJobCoreConstants.SCHEDULE_STATUS_ARCHIVED
-                || schedule.getScheduleStatus() == _NopJobCoreConstants.SCHEDULE_STATUS_COMPLETED) {
-            throw new NopException(ERR_JOB_SCHEDULE_MANUAL_TRIGGER_NOT_ALLOWED)
-                    .param("jobScheduleId", schedule.getJobScheduleId())
-                    .param("jobName", schedule.getJobName())
-                    .param("scheduleStatus", schedule.getScheduleStatus())
-                    .param("action", action);
-        }
+        throw new NopException(ERR_JOB_SCHEDULE_MANUAL_TRIGGER_NOT_ALLOWED)
+                .param("jobScheduleId", schedule.getJobScheduleId())
+                .param("jobName", schedule.getJobName())
+                .param("scheduleStatus", schedule.getScheduleStatus())
+                .param("action", action);
     }
 
     private NopJobFire buildRecoveryFire(NopJobFire sourceFire, NopJobSchedule schedule, IServiceContext context) {

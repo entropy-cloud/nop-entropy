@@ -3,52 +3,46 @@ package io.nop.job.dao.helper;
 import io.nop.job.core._NopJobCoreConstants;
 
 /**
- * Centralized fire/task status judgment utilities.
+ * State machine for {@code NopJobTask.taskStatus}: predicates describing which statuses
+ * are pending, finished, recoverable, or concurrently finalized.
  *
- * <p>Fire statuses are ordered integers (see {@link _NopJobCoreConstants}):
+ * <p>Task statuses are ordered integers (see {@link _NopJobCoreConstants}):
  * <ul>
- *   <li>Active (cancelable): WAITING(0), DISPATCHING(10), RUNNING(20) — all &lt; FIRE_STATUS_SUCCESS(30)
- *   <li>Terminal (rerunnable): SUCCESS(30), FAILED(40), TIMEOUT(50), CANCELED(60) — all &gt;= FIRE_STATUS_SUCCESS(30)
+ *   <li>Pending (non-terminal): WAITING(0), CLAIMED(10), SUSPICIOUS(15), RUNNING(20)
+ *   <li>Terminal: SUCCESS(30), FAILED(40), TIMEOUT(50), CANCELED(60)
  * </ul>
  *
- * <p>Task statuses follow the same ordering but include SUSPICIOUS(15) between CLAIMED and RUNNING.
- * The {@link #isFinishedTask} method preserves the exact semantics of the original inline checks
- * (NOT WAITING/CLAIMED/RUNNING), which intentionally treats SUSPICIOUS as finished for cancel-flow
- * purposes — this is different from the resource-reservation set
- * {@code RESERVED_TASK_STATUSES} which includes SUSPICIOUS.
+ * <p>SUSPICIOUS is intentionally treated as "finished" by {@link #isFinished} but
+ * independently by the fire-aggregation logic (it is neither pending nor terminal until
+ * the timeout checker resolves it — see {@link JobFireStateMachine#resolveFinalStatus}).
+ * The subtle differences between these predicates are the source of most duplicated
+ * inline checks across the coordinator / worker / store layers; keep them all here.
  */
-public final class JobStatusHelper {
+public final class JobTaskStateMachine {
 
-    private JobStatusHelper() {
-    }
-
-    // ---- Fire status checks ----
-
-    /**
-     * Whether a fire is in an active (cancelable) status: WAITING, DISPATCHING, or RUNNING.
-     * Uses range check: {@code fireStatus < FIRE_STATUS_SUCCESS}.
-     */
-    public static boolean isActiveFire(Integer fireStatus) {
-        return fireStatus != null && fireStatus < _NopJobCoreConstants.FIRE_STATUS_SUCCESS;
+    private JobTaskStateMachine() {
     }
 
     /**
-     * Whether a fire is in a terminal (rerunnable) status: SUCCESS, FAILED, TIMEOUT, or CANCELED.
-     * Uses range check: {@code fireStatus >= FIRE_STATUS_SUCCESS}.
+     * Whether a task is in a pre-execution or execution status: WAITING, CLAIMED, or RUNNING.
+     * This is the strict complement of {@link #isFinished} for non-null values (SUSPICIOUS
+     * falls on neither side — it is resolved separately by the timeout checker).
      */
-    public static boolean isTerminalFire(Integer fireStatus) {
-        return fireStatus != null && fireStatus >= _NopJobCoreConstants.FIRE_STATUS_SUCCESS;
+    public static boolean isPending(Integer taskStatus) {
+        return taskStatus != null
+                && (taskStatus == _NopJobCoreConstants.TASK_STATUS_WAITING
+                        || taskStatus == _NopJobCoreConstants.TASK_STATUS_CLAIMED
+                        || taskStatus == _NopJobCoreConstants.TASK_STATUS_RUNNING);
     }
-
-    // ---- Task status checks ----
 
     /**
      * Whether a task is considered "finished" for cancel-flow purposes.
      * A task is finished if its status is NOT WAITING, NOT CLAIMED, and NOT RUNNING.
      * Note: SUSPICIOUS(15) is treated as finished here — this is intentional and
-     * differs from {@code RESERVED_TASK_STATUSES}.
+     * differs from the resource-reservation set {@code RESERVED_TASK_STATUSES} and from
+     * {@link #isPending}.
      */
-    public static boolean isFinishedTask(Integer taskStatus) {
+    public static boolean isFinished(Integer taskStatus) {
         if (taskStatus == null)
             return false;
         return taskStatus != _NopJobCoreConstants.TASK_STATUS_WAITING
@@ -59,11 +53,11 @@ public final class JobStatusHelper {
     /**
      * Whether a task is in a state that the recovery flow can reset back to WAITING.
      * Covers CANCELED, FAILED, TIMEOUT, and SUSPICIOUS. This is the recovery counterpart
-     * to {@link #isFinishedTask}: cancel-flow treats SUSPICIOUS as finished (skips it),
+     * to {@link #isFinished}: cancel-flow treats SUSPICIOUS as finished (skips it),
      * while recovery treats SUSPICIOUS as resettable (a SUSPICIOUS task whose fire is
      * FAILED/TIMEOUT should get a fresh execution opportunity).
      */
-    public static boolean isRecoverableTask(Integer taskStatus) {
+    public static boolean isRecoverable(Integer taskStatus) {
         if (taskStatus == null)
             return false;
         return taskStatus == _NopJobCoreConstants.TASK_STATUS_CANCELED
@@ -79,7 +73,7 @@ public final class JobStatusHelper {
      * flipped to one of these (e.g. worker lost → SUSPICIOUS, dispatch timeout → CANCELED)
      * should not be overwritten by a late-arriving execution result.
      */
-    public static boolean isConcurrentlyFinalizedTask(Integer taskStatus) {
+    public static boolean isConcurrentlyFinalized(Integer taskStatus) {
         if (taskStatus == null)
             return false;
         return taskStatus == _NopJobCoreConstants.TASK_STATUS_TIMEOUT

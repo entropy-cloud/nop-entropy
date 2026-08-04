@@ -9,6 +9,7 @@ import io.nop.job.core._NopJobCoreConstants;
 import io.nop.job.dao.entity.NopJobFire;
 import io.nop.job.dao.entity.NopJobSchedule;
 import io.nop.job.dao.entity.NopJobTask;
+import io.nop.job.dao.helper.JobScheduleStateMachine;
 
 import java.util.Collections;
 import java.util.HashMap;
@@ -95,12 +96,10 @@ public class DefaultJobExecutionContextBuilder implements IJobExecutionContextBu
             this.minScheduleTime = toTime(schedule.getMinScheduleTime());
             this.maxScheduleTime = toTime(schedule.getMaxScheduleTime());
             this.maxExecutionCount = defaultLong(schedule.getMaxExecutionCount());
-            this.jobFinished = schedule.getScheduleStatus() != null
-                    && schedule.getScheduleStatus() == _NopJobCoreConstants.SCHEDULE_STATUS_COMPLETED;
+            this.jobFinished = JobScheduleStateMachine.isCompleted(schedule.getScheduleStatus());
             this.instanceRunning = task.getTaskStatus() != null
                     && task.getTaskStatus() == _NopJobCoreConstants.TASK_STATUS_RUNNING;
-            this.scheduleEnabled = schedule.getScheduleStatus() != null
-                    && schedule.getScheduleStatus() == _NopJobCoreConstants.SCHEDULE_STATUS_ENABLED;
+            this.scheduleEnabled = JobScheduleStateMachine.isEnabled(schedule.getScheduleStatus());
         }
 
         @Override

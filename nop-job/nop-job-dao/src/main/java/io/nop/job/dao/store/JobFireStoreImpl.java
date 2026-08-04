@@ -16,8 +16,9 @@ import io.nop.job.dao.entity.NopJobFire;
 import io.nop.job.dao.entity.NopJobSchedule;
 import io.nop.job.dao.entity.NopJobTask;
 import io.nop.job.dao.entity._gen._NopJobTask;
+import io.nop.job.dao.helper.JobFireStateMachine;
 import io.nop.job.dao.helper.JobQueryHelper;
-import io.nop.job.dao.helper.JobStatusHelper;
+import io.nop.job.dao.helper.JobTaskStateMachine;
 import io.nop.job.dao.helper.TriggerSpecHelper;
 import io.nop.orm.dao.IOrmEntityDao;
 import jakarta.inject.Inject;
@@ -162,7 +163,7 @@ public class JobFireStoreImpl implements IJobFireStore {
         }
 
         for (NopJobTask task : tasks) {
-            if (JobStatusHelper.isFinishedTask(task.getTaskStatus())) {
+            if (JobTaskStateMachine.isFinished(task.getTaskStatus())) {
                 continue;
             }
 
@@ -174,7 +175,7 @@ public class JobFireStoreImpl implements IJobFireStore {
 
             if (!taskDao().tryUpdateWithVersionCheck(task)) {
                 NopJobTask freshTask = taskDao().requireEntityById(task.getJobTaskId());
-                if (JobStatusHelper.isFinishedTask(freshTask.getTaskStatus())) {
+                if (JobTaskStateMachine.isFinished(freshTask.getTaskStatus())) {
                     LOG.debug("nop.job.cancel.task-already-terminal:taskId={},status={}",
                             task.getJobTaskId(), freshTask.getTaskStatus());
                     continue;
@@ -298,22 +299,9 @@ public class JobFireStoreImpl implements IJobFireStore {
     }
 
     private boolean isCancelableFire(NopJobFire fire, List<NopJobTask> tasks) {
-        Integer fireStatus = fire.getFireStatus();
-        if (!JobStatusHelper.isActiveFire(fireStatus)) {
-            return false;
-        }
-        if (fireStatus != _NopJobCoreConstants.FIRE_STATUS_RUNNING) {
-            return true;
-        }
-        if (tasks.isEmpty()) {
-            return true;
-        }
-        for (NopJobTask task : tasks) {
-            if (!JobStatusHelper.isFinishedTask(task.getTaskStatus())) {
-                return true;
-            }
-        }
-        return false;
+        boolean hasUnfinishedTask = tasks.isEmpty()
+                || tasks.stream().anyMatch(t -> !JobTaskStateMachine.isFinished(t.getTaskStatus()));
+        return JobFireStateMachine.canCancel(fire.getFireStatus(), hasUnfinishedTask);
     }
 
     private boolean shouldAdvanceFixedDelaySchedule(NopJobSchedule schedule, NopJobFire fire) {

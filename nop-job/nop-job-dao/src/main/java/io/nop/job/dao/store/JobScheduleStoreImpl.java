@@ -14,8 +14,9 @@ import io.nop.job.dao.entity.NopJobSchedule;
 import io.nop.job.dao.entity.NopJobTask;
 import io.nop.job.dao.entity._gen._NopJobFire;
 import io.nop.job.dao.entity._gen._NopJobTask;
+import io.nop.job.dao.helper.JobFireStateMachine;
 import io.nop.job.dao.helper.JobQueryHelper;
-import io.nop.job.dao.helper.JobStatusHelper;
+import io.nop.job.dao.helper.JobTaskStateMachine;
 import io.nop.orm.dao.IOrmEntityDao;
 import jakarta.inject.Inject;
 import org.slf4j.Logger;
@@ -362,8 +363,7 @@ public class JobScheduleStoreImpl implements IJobScheduleStore {
     private List<NopJobFire> findActiveFires(String jobScheduleId) {
         QueryBean query = new QueryBean();
         query.addFilter(FilterBeans.eq(_NopJobFire.PROP_NAME_jobScheduleId, jobScheduleId));
-        query.addFilter(FilterBeans.in(_NopJobFire.PROP_NAME_fireStatus,
-                List.of(_NopJobCoreConstants.FIRE_STATUS_WAITING, _NopJobCoreConstants.FIRE_STATUS_DISPATCHING, _NopJobCoreConstants.FIRE_STATUS_RUNNING)));
+        query.addFilter(FilterBeans.in(_NopJobFire.PROP_NAME_fireStatus, JobFireStateMachine.ACTIVE_STATUSES));
         query.addOrderField(_NopJobFire.PROP_NAME_scheduledFireTime, false);
         query.addOrderField(_NopJobFire.PROP_NAME_jobFireId, false);
         return fireDao().findAllByQuery(query);
@@ -382,8 +382,7 @@ public class JobScheduleStoreImpl implements IJobScheduleStore {
     private List<NopJobFire> findFailedFires(String jobScheduleId) {
         QueryBean query = new QueryBean();
         query.addFilter(FilterBeans.eq(_NopJobFire.PROP_NAME_jobScheduleId, jobScheduleId));
-        query.addFilter(FilterBeans.in(_NopJobFire.PROP_NAME_fireStatus,
-                List.of(_NopJobCoreConstants.FIRE_STATUS_FAILED, _NopJobCoreConstants.FIRE_STATUS_TIMEOUT)));
+        query.addFilter(FilterBeans.in(_NopJobFire.PROP_NAME_fireStatus, JobFireStateMachine.RECOVERABLE_STATUSES));
         query.addOrderField(_NopJobFire.PROP_NAME_scheduledFireTime, false);
         query.addOrderField(_NopJobFire.PROP_NAME_jobFireId, false);
         query.setLimit(1);
@@ -412,7 +411,7 @@ public class JobScheduleStoreImpl implements IJobScheduleStore {
     }
 
     private boolean isTaskFailed(Integer taskStatus) {
-        return JobStatusHelper.isRecoverableTask(taskStatus);
+        return JobTaskStateMachine.isRecoverable(taskStatus);
     }
 
     private boolean cancelFire(NopJobFire fire, Timestamp cancelTime) {
@@ -443,7 +442,7 @@ public class JobScheduleStoreImpl implements IJobScheduleStore {
         query.addFilter(FilterBeans.eq(_NopJobTask.PROP_NAME_jobFireId, jobFireId));
         List<NopJobTask> tasks = taskDao().findAllByQuery(query);
         for (NopJobTask task : tasks) {
-            if (JobStatusHelper.isFinishedTask(task.getTaskStatus())) {
+            if (JobTaskStateMachine.isFinished(task.getTaskStatus())) {
                 continue;
             }
 

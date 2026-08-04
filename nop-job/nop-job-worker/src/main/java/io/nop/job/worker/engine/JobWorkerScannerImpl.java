@@ -13,6 +13,8 @@ import io.nop.job.core.AbstractBatchScanner;
 import io.nop.job.dao.entity.NopJobFire;
 import io.nop.job.dao.entity.NopJobSchedule;
 import io.nop.job.dao.entity.NopJobTask;
+import io.nop.job.dao.helper.JobFireStateMachine;
+import io.nop.job.dao.helper.JobTaskStateMachine;
 import io.nop.job.dao.store.IJobFireStore;
 import io.nop.job.dao.store.IJobScheduleStore;
 import io.nop.job.dao.store.IJobTaskStore;
@@ -282,7 +284,7 @@ public class JobWorkerScannerImpl extends AbstractBatchScanner implements IJobWo
         try {
             NopJobTask task = taskStore.loadTask(jobTaskId);
             Integer taskStatus = task.getTaskStatus();
-            if (io.nop.job.dao.helper.JobStatusHelper.isConcurrentlyFinalizedTask(taskStatus)) {
+            if (JobTaskStateMachine.isConcurrentlyFinalized(taskStatus)) {
                 return;
             }
             if (taskStatus == null) {
@@ -290,16 +292,10 @@ public class JobWorkerScannerImpl extends AbstractBatchScanner implements IJobWo
             }
 
             NopJobFire fire = fireStore.loadFire(task.getJobFireId());
-            if (fire != null && fire.getFireStatus() != null) {
-                int fs = fire.getFireStatus();
-                if (fs == io.nop.job.core._NopJobCoreConstants.FIRE_STATUS_CANCELED
-                        || fs == io.nop.job.core._NopJobCoreConstants.FIRE_STATUS_TIMEOUT
-                        || fs == io.nop.job.core._NopJobCoreConstants.FIRE_STATUS_FAILED
-                        || fs == io.nop.job.core._NopJobCoreConstants.FIRE_STATUS_SUCCESS) {
-                    LOG.warn("nop.job.worker.fire-already-terminal:taskId={},fireId={},fireStatus={}",
-                            jobTaskId, task.getJobFireId(), fs);
-                    return;
-                }
+            if (fire != null && JobFireStateMachine.isTerminal(fire.getFireStatus())) {
+                LOG.warn("nop.job.worker.fire-already-terminal:taskId={},fireId={},fireStatus={}",
+                        jobTaskId, task.getJobFireId(), fire.getFireStatus());
+                return;
             }
 
             JobTaskExecutionUpdate update = executionContextBuilder.buildResultUpdate(task, result, err);
@@ -332,7 +328,7 @@ public class JobWorkerScannerImpl extends AbstractBatchScanner implements IJobWo
                 NopJobTask freshTask = taskStore.loadTask(jobTaskId);
                 Integer freshStatus = freshTask.getTaskStatus();
                 if (freshStatus == null
-                        || io.nop.job.dao.helper.JobStatusHelper.isConcurrentlyFinalizedTask(freshStatus)) {
+                        || JobTaskStateMachine.isConcurrentlyFinalized(freshStatus)) {
                     return;
                 }
 
@@ -379,7 +375,7 @@ public class JobWorkerScannerImpl extends AbstractBatchScanner implements IJobWo
 
     private void completeTaskWithFailure(NopJobTask task, String errorCode, String errorMessage) {
         NopJobTask freshTask = taskStore.loadTask(task.getJobTaskId());
-        if (io.nop.job.dao.helper.JobStatusHelper.isConcurrentlyFinalizedTask(freshTask.getTaskStatus())) {
+        if (JobTaskStateMachine.isConcurrentlyFinalized(freshTask.getTaskStatus())) {
             return;
         }
 

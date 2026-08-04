@@ -18,6 +18,7 @@ import static io.nop.job.core.JobCoreErrors.ERR_JOB_TIMEOUT;
 import io.nop.job.dao.entity.NopJobFire;
 import io.nop.job.dao.entity.NopJobSchedule;
 import io.nop.job.dao.entity.NopJobTask;
+import io.nop.job.dao.helper.JobTaskStateMachine;
 import io.nop.job.dao.store.FireScheduleOutcome;
 import io.nop.job.dao.store.IJobFireStore;
 import io.nop.job.dao.store.IJobScheduleStore;
@@ -303,10 +304,7 @@ public class JobTimeoutCheckerImpl extends AbstractBatchScanner implements IJobT
             List<NopJobTask> tasks = taskStore.findTasksByFireId(fire.getJobFireId());
             Timestamp endTime = new Timestamp(now);
             for (NopJobTask task : tasks) {
-                if (task.getTaskStatus() != null
-                        && task.getTaskStatus() != _NopJobCoreConstants.TASK_STATUS_WAITING
-                        && task.getTaskStatus() != _NopJobCoreConstants.TASK_STATUS_CLAIMED
-                        && task.getTaskStatus() != _NopJobCoreConstants.TASK_STATUS_RUNNING) {
+                if (JobTaskStateMachine.isFinished(task.getTaskStatus())) {
                     continue;
                 }
                 task.setTaskStatus(_NopJobCoreConstants.TASK_STATUS_CANCELED);
@@ -348,10 +346,7 @@ public class JobTimeoutCheckerImpl extends AbstractBatchScanner implements IJobT
 
         List<NopJobTask> tasks = taskStore.findTasksByFireId(fire.getJobFireId());
         for (NopJobTask task : tasks) {
-            if (task.getTaskStatus() != null
-                    && task.getTaskStatus() != _NopJobCoreConstants.TASK_STATUS_WAITING
-                    && task.getTaskStatus() != _NopJobCoreConstants.TASK_STATUS_CLAIMED
-                    && task.getTaskStatus() != _NopJobCoreConstants.TASK_STATUS_RUNNING) {
+            if (JobTaskStateMachine.isFinished(task.getTaskStatus())) {
                 continue;
             }
 

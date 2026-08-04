@@ -24,6 +24,8 @@ import io.nop.job.core.trigger.JobTriggerCalculator;
 import io.nop.job.dao.entity.NopJobFire;
 import io.nop.job.dao.entity.NopJobSchedule;
 import io.nop.job.dao.entity.NopJobTask;
+import io.nop.job.dao.helper.JobFireStateMachine;
+import io.nop.job.dao.helper.JobScheduleStateMachine;
 import io.nop.job.dao.helper.TriggerSpecHelper;
 import io.nop.job.dao.store.IJobFireStore;
 import io.nop.job.dao.store.IJobScheduleStore;
@@ -35,6 +37,7 @@ import org.slf4j.LoggerFactory;
 import java.sql.Timestamp;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 public class JobCompletionProcessorImpl extends AbstractBatchScanner implements IJobCompletionProcessor {
     static final Logger LOG = LoggerFactory.getLogger(JobCompletionProcessorImpl.class);
@@ -153,7 +156,10 @@ public class JobCompletionProcessorImpl extends AbstractBatchScanner implements 
         if (tasks.isEmpty())
             return null;
 
-        Integer finalFireStatus = resolveFinalFireStatus(tasks);
+        List<Integer> taskStatuses = tasks.stream()
+                .map(NopJobTask::getTaskStatus)
+                .collect(Collectors.toList());
+        Integer finalFireStatus = JobFireStateMachine.resolveFinalStatus(taskStatuses);
         if (finalFireStatus == null)
             return null;
 
@@ -172,7 +178,7 @@ public class JobCompletionProcessorImpl extends AbstractBatchScanner implements 
         }
 
         boolean scheduleEnabled = schedule.getScheduleStatus() == null
-                || schedule.getScheduleStatus() == _NopJobCoreConstants.SCHEDULE_STATUS_ENABLED;
+                || JobScheduleStateMachine.isEnabled(schedule.getScheduleStatus());
         if (!scheduleEnabled) {
             LOG.debug("nop.job.completion.schedule-not-enabled:fireId={},status={}",
                     fireId, schedule.getScheduleStatus());
@@ -296,65 +302,6 @@ public class JobCompletionProcessorImpl extends AbstractBatchScanner implements 
             }
         }
         return new FireCompletionDecision(false, nextScheduleTime);
-    }
-
-    /**
-     * Resolves the aggregate fire status from individual task statuses.
-     * <p>
-     * Priority chain: TIMEOUT &gt; FAILED &gt; CANCELED &gt; SUCCESS.
-     * For broadcast fires, a single CANCELED/FAILED/TIMEOUT shard determines
-     * the fire's aggregate status. Operators should inspect individual task
-     * statuses for partial success details.
-     * SUSPICIOUS tasks are treated as pending only while active tasks remain.
-     * Once no WAITING/CLAIMED/RUNNING tasks exist, SUSPICIOUS is treated as
-     * TIMEOUT (worker unreachable).
-     */
-    private Integer resolveFinalFireStatus(List<NopJobTask> tasks) {
-        boolean hasPendingTask = false;
-        boolean hasTimeoutTask = false;
-        boolean hasFailedTask = false;
-        boolean hasCanceledTask = false;
-        boolean hasSuspiciousTask = false;
-
-        for (NopJobTask task : tasks) {
-            Integer taskStatus = task.getTaskStatus();
-            if (taskStatus == null || taskStatus == _NopJobCoreConstants.TASK_STATUS_WAITING
-                    || taskStatus == _NopJobCoreConstants.TASK_STATUS_CLAIMED
-                    || taskStatus == _NopJobCoreConstants.TASK_STATUS_RUNNING) {
-                hasPendingTask = true;
-                continue;
-            }
-            if (taskStatus == _NopJobCoreConstants.TASK_STATUS_SUSPICIOUS) {
-                hasSuspiciousTask = true;
-                continue;
-            }
-            if (taskStatus == _NopJobCoreConstants.TASK_STATUS_TIMEOUT) {
-                hasTimeoutTask = true;
-            } else if (taskStatus == _NopJobCoreConstants.TASK_STATUS_FAILED) {
-                hasFailedTask = true;
-            } else if (taskStatus == _NopJobCoreConstants.TASK_STATUS_CANCELED) {
-                hasCanceledTask = true;
-            }
-        }
-
-        if (hasPendingTask) {
-            return null;
-        }
-
-        if (hasSuspiciousTask) {
-            hasTimeoutTask = true;
-        }
-
-        if (hasTimeoutTask) {
-            return _NopJobCoreConstants.FIRE_STATUS_TIMEOUT;
-        }
-        if (hasFailedTask) {
-            return _NopJobCoreConstants.FIRE_STATUS_FAILED;
-        }
-        if (hasCanceledTask) {
-            return _NopJobCoreConstants.FIRE_STATUS_CANCELED;
-        }
-        return _NopJobCoreConstants.FIRE_STATUS_SUCCESS;
     }
 
     private NopJobTask findMatchingErrorTask(List<NopJobTask> tasks, Integer finalFireStatus) {

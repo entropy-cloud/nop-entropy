@@ -16,6 +16,7 @@ import io.nop.job.core._NopJobCoreConstants;
 import io.nop.job.core.trigger.JobTriggerCalculator;
 import io.nop.job.dao.entity.NopJobFire;
 import io.nop.job.dao.entity.NopJobSchedule;
+import io.nop.job.dao.helper.JobScheduleStateMachine;
 import io.nop.job.dao.helper.TriggerSpecHelper;
 import io.nop.job.dao.store.IJobScheduleStore;
 import io.nop.job.service.JobContextHelper;
@@ -26,9 +27,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.sql.Timestamp;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.Map;
+import java.util.function.IntPredicate;
 
 import static io.nop.job.service.NopJobErrors.ERR_JOB_SCHEDULE_ALREADY_ARCHIVED;
 import static io.nop.job.service.NopJobErrors.ERR_JOB_SCHEDULE_DELETE_NOT_ALLOWED;
@@ -61,7 +62,7 @@ public class NopJobScheduleBizModel extends CrudBizModel<NopJobSchedule> impleme
     @BizMutation
     public void enableSchedule(@Name("id") String id, IServiceContext context) {
         NopJobSchedule schedule = requireEntity(id, "enableSchedule", context);
-        validateScheduleStatus(schedule, "enableSchedule", _NopJobCoreConstants.SCHEDULE_STATUS_DISABLED);
+        validateScheduleStatus(schedule, "enableSchedule", JobScheduleStateMachine::canEnable);
         persistSchedule(schedule, () -> {
             schedule.setScheduleStatus(_NopJobCoreConstants.SCHEDULE_STATUS_ENABLED);
             schedule.setNextFireTime(recalculateNextFireTime(schedule));
@@ -72,13 +73,11 @@ public class NopJobScheduleBizModel extends CrudBizModel<NopJobSchedule> impleme
     @BizMutation
     public void disableSchedule(@Name("id") String id, IServiceContext context) {
         NopJobSchedule schedule = requireEntity(id, "disableSchedule", context);
-        if (isScheduleStatus(schedule, _NopJobCoreConstants.SCHEDULE_STATUS_DISABLED)) {
+        if (JobScheduleStateMachine.isDisabled(schedule.getScheduleStatus())) {
             return;
         }
 
-        validateScheduleStatus(schedule, "disableSchedule",
-                _NopJobCoreConstants.SCHEDULE_STATUS_ENABLED,
-                _NopJobCoreConstants.SCHEDULE_STATUS_PAUSED);
+        validateScheduleStatus(schedule, "disableSchedule", JobScheduleStateMachine::canDisable);
         persistSchedule(schedule,
                 () -> schedule.setScheduleStatus(_NopJobCoreConstants.SCHEDULE_STATUS_DISABLED),
                 "disableSchedule", context);
@@ -88,11 +87,11 @@ public class NopJobScheduleBizModel extends CrudBizModel<NopJobSchedule> impleme
     @BizMutation
     public void pauseSchedule(@Name("id") String id, IServiceContext context) {
         NopJobSchedule schedule = requireEntity(id, "pauseSchedule", context);
-        if (isScheduleStatus(schedule, _NopJobCoreConstants.SCHEDULE_STATUS_PAUSED)) {
+        if (JobScheduleStateMachine.isPaused(schedule.getScheduleStatus())) {
             return;
         }
 
-        validateScheduleStatus(schedule, "pauseSchedule", _NopJobCoreConstants.SCHEDULE_STATUS_ENABLED);
+        validateScheduleStatus(schedule, "pauseSchedule", JobScheduleStateMachine::canPause);
         persistSchedule(schedule,
                 () -> schedule.setScheduleStatus(_NopJobCoreConstants.SCHEDULE_STATUS_PAUSED),
                 "pauseSchedule", context);
@@ -102,7 +101,7 @@ public class NopJobScheduleBizModel extends CrudBizModel<NopJobSchedule> impleme
     @BizMutation
     public void resumeSchedule(@Name("id") String id, IServiceContext context) {
         NopJobSchedule schedule = requireEntity(id, "resumeSchedule", context);
-        validateScheduleStatus(schedule, "resumeSchedule", _NopJobCoreConstants.SCHEDULE_STATUS_PAUSED);
+        validateScheduleStatus(schedule, "resumeSchedule", JobScheduleStateMachine::canResume);
         persistSchedule(schedule, () -> {
             schedule.setScheduleStatus(_NopJobCoreConstants.SCHEDULE_STATUS_ENABLED);
             schedule.setNextFireTime(recalculateNextFireTime(schedule));
@@ -130,15 +129,11 @@ public class NopJobScheduleBizModel extends CrudBizModel<NopJobSchedule> impleme
     @BizMutation
     public void archiveSchedule(@Name("id") String id, IServiceContext context) {
         NopJobSchedule schedule = requireEntity(id, "archiveSchedule", context);
-        if (isScheduleStatus(schedule, _NopJobCoreConstants.SCHEDULE_STATUS_ARCHIVED)) {
+        if (JobScheduleStateMachine.isArchived(schedule.getScheduleStatus())) {
             return;
         }
 
-        validateScheduleStatus(schedule, "archiveSchedule",
-                _NopJobCoreConstants.SCHEDULE_STATUS_ENABLED,
-                _NopJobCoreConstants.SCHEDULE_STATUS_DISABLED,
-                _NopJobCoreConstants.SCHEDULE_STATUS_PAUSED,
-                _NopJobCoreConstants.SCHEDULE_STATUS_COMPLETED);
+        validateScheduleStatus(schedule, "archiveSchedule", JobScheduleStateMachine::canArchive);
         persistSchedule(schedule, () -> {
             schedule.setScheduleStatus(_NopJobCoreConstants.SCHEDULE_STATUS_ARCHIVED);
             schedule.setNextFireTime(null);
@@ -161,44 +156,34 @@ public class NopJobScheduleBizModel extends CrudBizModel<NopJobSchedule> impleme
     }
 
     private void validateManualTriggerSchedule(NopJobSchedule schedule, String action) {
-        if (schedule.getScheduleStatus() == null) {
+        if (JobScheduleStateMachine.canTriggerNow(schedule.getScheduleStatus())) {
             return;
         }
 
-        if (schedule.getScheduleStatus() == _NopJobCoreConstants.SCHEDULE_STATUS_ARCHIVED
-                || schedule.getScheduleStatus() == _NopJobCoreConstants.SCHEDULE_STATUS_COMPLETED) {
-            throw new NopException(ERR_JOB_SCHEDULE_MANUAL_TRIGGER_NOT_ALLOWED)
-                    .param("jobScheduleId", schedule.getJobScheduleId())
-                    .param("jobName", schedule.getJobName())
-                    .param("scheduleStatus", schedule.getScheduleStatus())
-                    .param("action", action);
-        }
+        throw new NopException(ERR_JOB_SCHEDULE_MANUAL_TRIGGER_NOT_ALLOWED)
+                .param("jobScheduleId", schedule.getJobScheduleId())
+                .param("jobName", schedule.getJobName())
+                .param("scheduleStatus", schedule.getScheduleStatus())
+                .param("action", action);
     }
 
-    private boolean isScheduleStatus(NopJobSchedule schedule, int status) {
-        return schedule.getScheduleStatus() != null && schedule.getScheduleStatus() == status;
-    }
-
-    private void validateScheduleStatus(NopJobSchedule schedule, String action, int... allowedStatuses) {
-        if (schedule.getScheduleStatus() != null
-                && schedule.getScheduleStatus() == _NopJobCoreConstants.SCHEDULE_STATUS_ARCHIVED) {
+    private void validateScheduleStatus(NopJobSchedule schedule, String action, IntPredicate canTransition) {
+        Integer scheduleStatus = schedule.getScheduleStatus();
+        if (JobScheduleStateMachine.isArchived(scheduleStatus)) {
             throw new NopException(ERR_JOB_SCHEDULE_ALREADY_ARCHIVED)
                     .param("jobScheduleId", schedule.getJobScheduleId())
                     .param("jobName", schedule.getJobName())
                     .param("action", action);
         }
 
-        for (int allowedStatus : allowedStatuses) {
-            if (schedule.getScheduleStatus() != null && schedule.getScheduleStatus() == allowedStatus) {
-                return;
-            }
+        if (scheduleStatus != null && canTransition.test(scheduleStatus)) {
+            return;
         }
 
         throw new NopException(ERR_JOB_SCHEDULE_INVALID_STATUS_TRANSITION)
                 .param("jobScheduleId", schedule.getJobScheduleId())
                 .param("jobName", schedule.getJobName())
                 .param("scheduleStatus", schedule.getScheduleStatus())
-                .param("allowedStatuses", Arrays.toString(allowedStatuses))
                 .param("action", action);
     }
 
