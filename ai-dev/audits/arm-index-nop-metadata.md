@@ -40,6 +40,10 @@
 | `ai-dev/audits/2026-08-04-1405-arm-MA4.5-nop-metadata-style.md` | MA4.5 | 17 代码风格与规范 | nop-metadata | 0 | 0 | 1 P2（*Service 命名复发）+ 9 P3 + 02-01 复核 | done（2026-08-04） |
 | `ai-dev/audits/2026-08-04-1415-arm-MA4.6-nop-metadata-test-effectiveness-core.md` | MA4.6 | 21 单元测试有效性-核心域 | nop-metadata | 0 | 1（P1-MA4-601 18 个空壳测试） | 2 P2 + 4 P3 + 16-03 核心域部分关闭 | done（2026-08-04） |
 | `ai-dev/audits/2026-08-04-1415-arm-MA4.7-nop-metadata-test-effectiveness-rest.md` | MA4.7 | 21 单元测试有效性-其余域 | nop-metadata | 0 | 1（P1-MA4-701 同 401） | 2 P2 + 3 P3 + 16-09 修复确认/16-04 质量维持 open | done（2026-08-04） |
+| `ai-dev/audits/2026-08-04-1600-arm-MA5.1-nop-metadata-design-drift.md` | MA5.1 | 设计文档-代码 drift（17 篇） | nop-metadata | 0 | 0 | 19 P2 + 35 P3 + 3 watch-only（全部归 MR3） | done（2026-08-04） |
+| `ai-dev/audits/2026-08-04-1605-arm-MA5.2-nop-metadata-doc-consistency.md` | MA5.2 | 18 docs-for-ai 一致性 | nop-metadata | 0 | 0 | 5 P2 + 1 P3（归 MR3） | done（2026-08-04） |
+| `ai-dev/audits/2026-08-04-1610-arm-MA5.3-nop-metadata-naming.md` | MA5.3 | 19 命名与术语一致性 | nop-metadata | 0 | 0 | 1 P2（P2-MA5-301 dataSource 双拼写，MR2 plan-first）+ 6 P3 | done（2026-08-04） |
+| `ai-dev/audits/2026-08-04-1615-arm-MA5.4-nop-metadata-cross-module.md` | MA5.4 | 跨模块契约一致性 | nop-metadata | 0 | 0 新增（P1-MA3-001/002 交叉核对确认归 MR2） | 1 P2 新增（P2-MA5-401）+ 2 P3 | done（2026-08-04） |
 
 > 后续 MA2-MA7 审计报告按 `YYYY-MM-DD-HHmm-arm-<milestone>-nop-metadata-<dimension>.md` 命名登记于此（roadmap 规则 2：产出即更新索引）。
 
@@ -69,6 +73,8 @@
 | `P1-MA4-601` | MA4.6（2026-08-04） | 6 个 AggregationProcessor 测试类 18 个空壳测试（instanceof/canInstantiate/NPE-on-null），execute() 改错后全部仍通过——JOIN 分派/执行逻辑单元层零保护 | **MR2**（最小行为测试改造） | open（live 核实） |
 
 > P1 未闭包数：**9**（其中 2 项为已裁定 watch-only residual（MISSING-AUTH/16-01），6 项 open 待 MR（20-01/MA3-001/MA3-002/MA1-001/MA4-401/MA4-601）；MA4 复核完成 4 项历史登记：16-01 收敛 19→8 维持 watch-only、16-04 存在性闭包（质量转 P1-MA4-401）、16-09 已修复（无 sleep）、02-01 残余 2 处确认 MR2）。
+>
+> MA5 复核（2026-08-04）：0 新 P1（4 份报告 0 P1）；P1-MA3-001/002（xwf 不可达 + approve/reject 遮蔽）经 MA5.4 机制级交叉核对确认仍 open（归 MR2 不变）；MR1 Follow-up 两项 core.dto 陈旧引用确认归 MR3。
 
 ## P2 发现汇总（待 MA 审计复核 / MR 批量修复）
 
@@ -102,4 +108,5 @@
 | `P2-MA4-303`（MA4.3 新增） | 分页测试只验行数不验行集——offset 被忽略的 AR-04 类 bug 无法被捕获 | MR2（断言首行内容） |
 | `P2-MA4-501`（MA4.5 新增） | `*Service` 命名违规 2 处存活（NopMetaSearchService 审计后复发 + QualityAlertWorkflowService 漏网；02-01 残余确认） | MR2（命名批量修复，随 02-01） |
 | `P2-MA4-602`（MA4.6 新增） | helper 镜像测试跨 4 文件重复 30+ 方法（safeAlias/aggSqlOf 逐字复制） | MR2（收敛单一 helper 测试文件） |
+| MA5 新增（2026-08-04，4 份报告） | **P2-MA5-101..186（设计文档 drift 19 项 + 2 项 MR1 Follow-up 确认）**：metaSchema 列名（baseline:189 等 + 05:212）、ConnectionProcessor 改名（baseline 7 处）、SysDaoMessageService 依赖链 2 处、错误码字符串 3 处、CrossDbJoinMerger 迁移、core.dto 陈旧引用 2 处（02-dto:73/api-dto-spec:213 确认归 MR3）、DTO 字段规格 3 项（QualityRuleExecuteResultDTO/QualityScoreResultDTO/ContractCheckResultDTO）、activateContract 族已删（12:269）、JdbcModelDiscoverer 不存在（09:37）、nop-batch 否决残留（09:56）、collectCatalog 返回 DTO、MetaDict 字段清单、事件实体已建模（03:179）、Errors 集中化（03:209）等——全部文档 drift 归 MR3（R3.0 展开器输入）；**P2-MA5-201..206（docs-for-ai）**：core/dto 29 DTO 陈旧 2 处、meta 无 xbeans、xbiz 在 service 非 web、META-001 锚点 plan 状态、syncExternalTables 示例字段——归 MR3；**P2-MA5-301（命名）**：dataSourceId/datasourceType 双拼写（orm.xml:383/:392，需 ORM 变更 plan-first）——MR2 裁决；**P2-MA5-401（跨模块）**：NopMetaTagLabelBizModel.getWfNameFromMeta getProp 恒 null 致自动提审静默失效（与 P2-MA4-001 不同根因）——MR2 | 见各报告（MR3 为主，301/401 归 MR2） |
 | MA4 复核结论（P2 登记区更新） | 09-07 hyphen watch-only 维持（MA4.1）；16-01 AutoTest 5/97 维持 open 且发现 F16-302 名不副实（MA4.3）；16-04 存在性闭包、judgeByRuleId 质量 open（MA4.4/7）；16-09 已修复（MA4.7）；16-03 核心域部分关闭、其余域部分 TagLabelApproval 双文件重复 P3-MA4-704（MA4.6/7）；07-004 维持 MR2 且发现 AggregationRowDTO 零引用（MA4.2）；15-03 基线更新 157/98 裁定维持（MA4.2）；02-01 残余 2 处确认（MA4.5） | 见各报告 |

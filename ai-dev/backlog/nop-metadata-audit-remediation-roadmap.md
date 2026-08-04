@@ -1,6 +1,6 @@
 # 审计-修复路线图：nop-metadata 全模块组
 
-> 最后更新：2026-08-04（v6 — MA3 四行 done：4 份审计报告产出，0 P0 / 4 P1 新增（MA3.1，归 MR2）+ 1 项复核确认（P1-MA1-001 归 MR1）/ 8 P2 / 17 P3，5 项历史登记复核结论回填）
+> 最后更新：2026-08-04（v7 — MA5 四行 done：4 份审计报告产出，0 P0 / 0 P1 新增 / 26 P2（文档 drift 归 MR3、命名/契约 2 项归 MR2）+ 44 P3；MR1 Follow-up 2 处 core.dto 陈旧引用确认归 MR3；P1-MA3-001/002 交叉核对确认仍 open）
 > 来源：`ai-dev/skills/audit-remediation-roadmap-authoring-prompt.md`
 > 目标模块组：nop-metadata（8 子模块，~283 main Java / ~97 test Java）
 > 模块组成：`nop-metadata-api`（32 main）、`nop-metadata-core`（2）、`nop-metadata-codegen`（0）、`nop-metadata-dao`（120）、`nop-metadata-meta`（0）、`nop-metadata-service`（128 main + 94 test）、`nop-metadata-web`（0）、`nop-metadata-app`（1）
@@ -72,10 +72,10 @@
 
 | # | Work Item | Status | Owner Doc | Deps | Skill |
 |---|-----------|--------|-----------|------|-------|
-| 5.1 | 设计文档-代码 drift（ai-dev/design/nop-metadata/ 17 篇） | todo | `ai-dev/design/nop-metadata/` | 0.4 | `design-doc-audit-prompt.md` |
-| 5.2 | docs-for-ai 文档-代码一致性 | todo | `docs-for-ai/03-modules/nop-metadata.md` + `docs-for-ai/01-repo-map/module-groups.md` | 0.4 | `deep-audit-prompts.md`（维度 18） |
-| 5.3 | 命名与术语一致性 | todo | — | 0.4 | `deep-audit-prompts.md`（维度 19） |
-| 5.4 | 跨模块契约一致性（nop-sys/nop-auth/nop-wf/nop-code 依赖面） | todo | `docs-for-ai/01-repo-map/module-groups.md` | 0.4 | `cross-module-dependency-audit-prompt.md` |
+| 5.1 | 设计文档-代码 drift（ai-dev/design/nop-metadata/ 17 篇） | done | `ai-dev/design/nop-metadata/` | 0.4 | `design-doc-audit-prompt.md` |
+| 5.2 | docs-for-ai 文档-代码一致性 | done | `docs-for-ai/03-modules/nop-metadata.md` + `docs-for-ai/01-repo-map/module-groups.md` | 0.4 | `deep-audit-prompts.md`（维度 18） |
+| 5.3 | 命名与术语一致性 | done | — | 0.4 | `deep-audit-prompts.md`（维度 19） |
+| 5.4 | 跨模块契约一致性（nop-sys/nop-auth/nop-wf/nop-code 依赖面） | done | `docs-for-ai/01-repo-map/module-groups.md` | 0.4 | `cross-module-dependency-audit-prompt.md` |
 
 ### MA6 — 残留风险审计专项（全模块）
 
