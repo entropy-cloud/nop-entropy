@@ -16,6 +16,7 @@ import io.nop.metadata.dao.entity.NopMetaModule;
 import io.nop.metadata.dao.entity.NopMetaQualityResult;
 import io.nop.metadata.dao.entity.NopMetaQualityRule;
 import io.nop.metadata.dao.entity.NopMetaTable;
+import io.nop.orm.IOrmTemplate;
 import jakarta.inject.Inject;
 import org.junit.jupiter.api.Test;
 
@@ -37,6 +38,9 @@ public class TestNopMetaDataContractBizModel extends JunitBaseTestCase {
     @Inject
     IDaoProvider daoProvider;
 
+    @Inject
+    IOrmTemplate orm;
+
     // ===== 审批流 - 守卫测试（approve/reject 在非 SUBMITTED 状态应失败） =====
 
     /** approve 在非 SUBMITTED 状态应失败 */
@@ -55,6 +59,63 @@ public class TestNopMetaDataContractBizModel extends JunitBaseTestCase {
         GraphQLResponseBean resp = graphQLEngine.executeGraphQL(graphQLEngine.newGraphQLContext(req(
                 "mutation { NopMetaDataContract__reject(id: \"" + id + "\") { status } }")));
         assertTrue(resp.hasError(), "reject on non-SUBMITTED must fail: " + resp);
+    }
+
+    // ===== R2.2 单一事实源（保留层 XPL）正路径断言：approve/reject 经 GraphQL 驱动状态生命周期 =====
+
+    /** approve 正路径：SUBMITTED+DRAFT → APPROVED+ACTIVE（状态生命周期经 XPL 推进） */
+    @Test
+    public void testApprovePositivePathDraftToActive() {
+        String id = saveContract("c-approve-1", "DRAFT", null, null, null);
+        setApproveStatus(id, "SUBMITTED");
+        GraphQLResponseBean resp = graphQLEngine.executeGraphQL(graphQLEngine.newGraphQLContext(req(
+                "mutation { NopMetaDataContract__approve(id: \"" + id + "\") "
+                        + "{ contractId status approveStatus approvedBy } }")));
+        assertFalse(resp.hasError(), "approve must not error: " + resp);
+        NopMetaDataContract saved = daoProvider.daoFor(NopMetaDataContract.class).getEntityById(id);
+        assertEquals("ACTIVE", saved.getStatus(), "DRAFT must advance to ACTIVE on approve");
+        assertEquals("APPROVED", saved.getApproveStatus());
+        assertNotNull(saved.getApprovedAt(), "approvedAt must be set");
+    }
+
+    /** approve 正路径：ACTIVE → DEPRECATED（生命周期链推进） */
+    @Test
+    public void testApprovePositivePathActiveToDeprecated() {
+        String id = saveContract("c-approve-2", "ACTIVE", null, null, null);
+        setApproveStatus(id, "SUBMITTED");
+        GraphQLResponseBean resp = graphQLEngine.executeGraphQL(graphQLEngine.newGraphQLContext(req(
+                "mutation { NopMetaDataContract__approve(id: \"" + id + "\") { status } }")));
+        assertFalse(resp.hasError(), "approve must not error: " + resp);
+        NopMetaDataContract saved = daoProvider.daoFor(NopMetaDataContract.class).getEntityById(id);
+        assertEquals("DEPRECATED", saved.getStatus(), "ACTIVE must advance to DEPRECATED on approve");
+    }
+
+    /** approve 正路径：DEPRECATED → RETIRED（生命周期链终点） */
+    @Test
+    public void testApprovePositivePathDeprecatedToRetired() {
+        String id = saveContract("c-approve-3", "DEPRECATED", null, null, null);
+        setApproveStatus(id, "SUBMITTED");
+        GraphQLResponseBean resp = graphQLEngine.executeGraphQL(graphQLEngine.newGraphQLContext(req(
+                "mutation { NopMetaDataContract__approve(id: \"" + id + "\") { status } }")));
+        assertFalse(resp.hasError(), "approve must not error: " + resp);
+        NopMetaDataContract saved = daoProvider.daoFor(NopMetaDataContract.class).getEntityById(id);
+        assertEquals("RETIRED", saved.getStatus(), "DEPRECATED must advance to RETIRED on approve");
+    }
+
+    /** reject 正路径：SUBMITTED+ACTIVE → REJECTED + 回 DRAFT + remark 前缀 */
+    @Test
+    public void testRejectPositivePathBackToDraftWithRemark() {
+        String id = saveContract("c-reject-1", "ACTIVE", null, null, "Some reason");
+        setApproveStatus(id, "SUBMITTED");
+        GraphQLResponseBean resp = graphQLEngine.executeGraphQL(graphQLEngine.newGraphQLContext(req(
+                "mutation { NopMetaDataContract__reject(id: \"" + id + "\") "
+                        + "{ status approveStatus remark } }")));
+        assertFalse(resp.hasError(), "reject must not error: " + resp);
+        NopMetaDataContract saved = daoProvider.daoFor(NopMetaDataContract.class).getEntityById(id);
+        assertEquals("DRAFT", saved.getStatus(), "reject must revert status to DRAFT");
+        assertEquals("REJECTED", saved.getApproveStatus());
+        assertNotNull(saved.getRemark());
+        assertTrue(saved.getRemark().startsWith("Rejected:"), "reject must prefix remark: " + saved.getRemark());
     }
 
     // ===== checkContract：质量路径 =====
@@ -179,6 +240,18 @@ public class TestNopMetaDataContractBizModel extends JunitBaseTestCase {
     }
 
     // ===== helpers =====
+
+    private void setApproveStatus(String contractId, String approveStatus) {
+        IEntityDao<NopMetaDataContract> dao = daoProvider.daoFor(NopMetaDataContract.class);
+        orm.runInSession(session -> {
+            NopMetaDataContract c = dao.getEntityById(contractId);
+            assertNotNull(c, "contract must exist for status update");
+            c.setApproveStatus(approveStatus);
+            dao.updateEntity(c);
+            session.flush();
+            return null;
+        });
+    }
 
     private GraphQLResponseBean check(String id) {
         return graphQLEngine.executeGraphQL(graphQLEngine.newGraphQLContext(req(

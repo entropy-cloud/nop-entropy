@@ -1,15 +1,27 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 <workflow x:extends="/nop/wf/base/oa.xwf"
           x:schema="/nop/schema/wf/wf.xdef" xmlns:x="/nop/schema/xdsl.xdef"
-          xmlns:wf-approval="wf-approval"
+          xmlns:c="c"
           wfName="tagLabelConfirmApproval" wfVersion="1" displayName="语义标注审批流程">
     <description>语义标注审批流程：提交审批 → 数据管家审核 → 结束</description>
+
 
     <listeners>
         <listener id="onEndNotify" eventPattern="*end">
             <source>
-                <wf-approval:notifyResult bizObj="NopMetaTagLabel"
-                                           approved="${wfRt.status == 'APPROVED'}"/>
+                <c:script><![CDATA[
+                    // 幂等：仅在 approveStatus=SUBMITTED 时调用 approve（避免 before-end/after-end 重复触发，
+                    // 参照平台 approval-form 测试流模式）。wf 正常结束即视为审批通过。
+                    const bizObjManager = inject('nopBizObjectManager');
+                    const entityBizObj = bizObjManager.getBizObject('NopMetaTagLabel');
+                    const entityId = wfRt.wf.bizEntityId;
+                    if (entityId != null) {
+                        const entity = entityBizObj.invoke('requireEntity', {id: entityId}, null, wfRt.svcCtx);
+                        if (entity.approveStatus === 'SUBMITTED') {
+                            entityBizObj.invoke('approve', {id: entityId}, null, wfRt.svcCtx);
+                        }
+                    }
+                ]]></c:script>
             </source>
         </listener>
     </listeners>

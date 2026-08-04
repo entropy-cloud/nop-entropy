@@ -1,29 +1,33 @@
 package io.nop.metadata.service.query;
 
+import io.nop.api.core.exceptions.NopException;
+import io.nop.metadata.dao.entity.NopMetaEntity;
+import io.nop.metadata.dao.entity.NopMetaTable;
+import io.nop.metadata.service.NopMetadataErrors;
 import org.junit.jupiter.api.Test;
 
-import java.util.List;
-import java.util.Map;
-
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 public class TestMixedSameDbJoinAggregationProcessor {
 
-    @Test
-    public void testImplementsAggregationProcessor() {
-        assertTrue(new MixedSameDbJoinAggregationProcessor() instanceof AggregationProcessor);
-    }
+    // ===== execute() 分派行为（P1-MA4-601：空洞测试 → 行为断言） =====
 
+    /** execute() 对 entity 端点物理表名为空的混合 JOIN 显式失败（ERR_AGGR_JOIN_MIXED_ENTITY_TABLE_EMPTY）。 */
     @Test
-    public void testExecuteWithNullContextThrowsNpe() {
-        MixedSameDbJoinAggregationProcessor processor = new MixedSameDbJoinAggregationProcessor();
-        assertThrows(NullPointerException.class, () -> processor.execute(null));
-    }
+    public void testExecuteWithEmptyEntityTableThrows() {
+        AggregationContext context = mock(AggregationContext.class);
+        NopMetaTable table = new NopMetaTable();
+        table.setMetaTableId("t1");
+        NopMetaEntity entity = new NopMetaEntity();
+        when(context.getLeftEndpoint()).thenReturn(MetaJoinExecutor.Endpoint.table(table));
+        when(context.getRightEndpoint()).thenReturn(MetaJoinExecutor.Endpoint.entity(entity));
 
-    @Test
-    public void testCanInstantiate() {
         MixedSameDbJoinAggregationProcessor processor = new MixedSameDbJoinAggregationProcessor();
-        assertNotNull(processor);
+        NopException ex = assertThrows(NopException.class, () -> processor.execute(context));
+        assertEquals(NopMetadataErrors.ERR_AGGR_JOIN_MIXED_ENTITY_TABLE_EMPTY.getErrorCode(), ex.getErrorCode());
     }
 
     @Test

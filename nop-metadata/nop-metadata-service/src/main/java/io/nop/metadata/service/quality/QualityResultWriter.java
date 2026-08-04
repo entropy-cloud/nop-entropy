@@ -13,8 +13,11 @@ import io.nop.api.core.time.CoreMetrics;
 import io.nop.core.lang.json.JsonTool;
 import io.nop.dao.api.IEntityDao;
 import io.nop.metadata.dao.entity.NopMetaQualityResult;
+import io.nop.metadata.service.NopMetadataErrors;
+import io.nop.metadata.service.NopMetadataException;
 
 import java.sql.Timestamp;
+import java.util.Set;
 
 /**
  * 质量结果写入共享 helper（架构基线 §2.7.3 D3）。把单规则判定结果（{@link QualityRuleJudgment}）追加为一行
@@ -29,6 +32,13 @@ import java.sql.Timestamp;
 public class QualityResultWriter {
 
     /**
+     * 质量结果 status 合法值（对应 orm 模型 dict meta/quality-result-status）。
+     * 落盘前显式校验（service 层共享 helper 不持有 xmeta 上下文，故为显式字段校验而非走 xmeta 管线，
+     * plan 2026-08-04-1543-3 R2.8 / 11-04）。
+     */
+    private static final Set<String> ALLOWED_STATUSES = Set.of("PASS", "FAIL", "ERROR", "SKIP");
+
+    /**
      * 将单规则判定结果追加为一行 NopMetaQualityResult 并保存。
      *
      * @param resultDao     结果实体 DAO（由调用方按其上下文获取，BizModel 用 {@code daoFor(...)}，
@@ -39,10 +49,16 @@ public class QualityResultWriter {
      */
     public NopMetaQualityResult append(IEntityDao<NopMetaQualityResult> resultDao,
                                        String qualityRuleId, QualityRuleJudgment judgment) {
+        String status = judgment.getStatus();
+        if (status == null || !ALLOWED_STATUSES.contains(status)) {
+            // 落盘前 fail-fast：非法 status 不静默写入（参照 xmeta dict 校验语义）
+            throw new NopMetadataException(NopMetadataErrors.ERR_QUALITY_RESULT_STATUS_INVALID)
+                    .param("status", String.valueOf(status));
+        }
         NopMetaQualityResult row = resultDao.newEntity();
         row.setQualityRuleId(qualityRuleId);
         row.setExecuteTime(CoreMetrics.currentTimestamp());
-        row.setStatus(judgment.getStatus());
+        row.setStatus(status);
         row.setActualValue(judgment.getActualValue());
         row.setExpectedValue(judgment.getExpectedValue());
         row.setMessage(judgment.getMessage());

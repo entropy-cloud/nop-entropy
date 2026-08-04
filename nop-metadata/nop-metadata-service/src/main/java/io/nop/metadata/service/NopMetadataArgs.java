@@ -20,6 +20,7 @@ public interface NopMetadataArgs {
     String ARG_CHECKPOINT_ID = "checkpointId";
     String ARG_QUALITY_RULE_ID = "qualityRuleId";
     String ARG_QUALITY_RESULT_ID = "qualityResultId";
+    String ARG_QUALITY_RESULT_STATUS = "status";
     String ARG_ENTITY_NAME = "entityName";
     String ARG_ENTITY_ID = "entityId";
     String ARG_BASE_ENTITY_ID = "baseEntityId";

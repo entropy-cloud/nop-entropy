@@ -82,8 +82,6 @@ public class TestNopMetaBizInterfaceCompleteness {
 
         assertDeclaresMethod(INopMetaDataContractBiz.class, "checkContract", 2);
         assertDeclaresMethod(INopMetaDataContractBiz.class, "checkContractReadOnly", 2);
-        assertDeclaresMethod(INopMetaDataContractBiz.class, "approve", 2);
-        assertDeclaresMethod(INopMetaDataContractBiz.class, "reject", 2);
 
         assertDeclaresMethod(INopMetaDataProductBiz.class, "linkAsset", 4);
         assertDeclaresMethod(INopMetaDataProductBiz.class, "unlinkAsset", 4);
@@ -120,6 +118,27 @@ public class TestNopMetaBizInterfaceCompleteness {
             }
         }
         assertTrue(foundInterfaceInjection, "tableBizModel field must exist on NopMetaReconciliationConfigBizModel");
+    }
+
+    /**
+     * R2.2 单一事实源裁定 = 保留层 XPL：NopMetaDataContract 的 approve/reject 不再声明在
+     * Java 接口（已删除），改由保留层 NopMetaDataContract.xbiz 的 XPL mutation 承载。
+     * 本测试程序化钉死 XPL 事实源存在（替换被删除的接口断言，非顺手删除）。
+     */
+    @Test
+    public void testDataContractApproveRejectDeclaredInRetentionXbiz() throws Exception {
+        java.io.File f = new java.io.File("src/main/resources/_vfs/nop/metadata/model/NopMetaDataContract/NopMetaDataContract.xbiz");
+        if (!f.exists()) {
+            f = new java.io.File("nop-metadata/nop-metadata-service/" + f.getPath());
+        }
+        assertTrue(f.exists(), "retention xbiz file must exist: " + f);
+        String content = new String(java.nio.file.Files.readAllBytes(f.toPath()), java.nio.charset.StandardCharsets.UTF_8);
+        assertTrue(content.contains("<mutation name=\"approve\""),
+                "retention NopMetaDataContract.xbiz must declare approve mutation");
+        assertTrue(content.contains("<mutation name=\"reject\""),
+                "retention NopMetaDataContract.xbiz must declare reject mutation");
+        assertTrue(content.contains("/nop/wf/base/approval-support.xbiz"),
+                "retention NopMetaDataContract.xbiz must keep approval-support in extends chain");
     }
 
     private void assertDeclaresMethod(Class<?> iface, String methodName, int paramCount) {

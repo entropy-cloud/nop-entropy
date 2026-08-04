@@ -292,13 +292,36 @@ public class TestNopMetaQualityRuleBizModel extends JunitBaseTestCase {
         assertEquals(2, countResults("r-ts"), "time-series: 2 result rows after second exec (appended, not overwritten)");
     }
 
-    // ===== judgeByRuleId =====
+    // ===== judgeByRuleId（P1-MA4-401/701：空洞断言 → 行为断言） =====
 
+    /** 正路径：真实规则 + 真实 H2 表 → judgeByRuleId 返回真实判定（status + actualValue）。 */
     @Test
-    public void testJudgeByRuleId() {
+    public void testJudgeByRuleIdPositivePath() throws Exception {
+        String dbUrl = "jdbc:h2:mem:meta_q_jbr;DB_CLOSE_DELAY=-1";
+        seedTable(dbUrl, "CREATE TABLE ext_jbr (id INT NOT NULL)",
+                "INSERT INTO ext_jbr VALUES (1)", "INSERT INTO ext_jbr VALUES (2)", "INSERT INTO ext_jbr VALUES (3)");
+        PreparedEnv env = prepare(dbUrl, "qs_q_jbr");
+        String tableId = env.tableId("EXT_JBR");
+        saveRule(env, "r-jbr", "volume", "table", tableId, null, 2.0, "{\"minRows\":2}");
+
+        GraphQLResponseBean resp = graphQLEngine.executeGraphQL(graphQLEngine.newGraphQLContext(req(
+                "query { NopMetaQualityRule__judgeByRuleId(ruleId: \"r-jbr\") "
+                        + "{ status actualValue expectedValue } }")));
+        assertFalse(resp.hasError(), "judgeByRuleId positive path must not error: " + resp);
+        // 行为断言：3 行 > minRows=2 → PASS，actualValue=3（改错核心逻辑必然使此断言失败）
+        assertStatus(resp, "PASS");
+        assertActualValue(resp, 3.0);
+    }
+
+    /** 负路径：不存在的 ruleId → 错误码（requireEntity 快速失败，不 NPE、不静默返回 null）。 */
+    @Test
+    public void testJudgeByRuleIdNonExistentRuleReturnsError() {
         GraphQLResponseBean resp = graphQLEngine.executeGraphQL(graphQLEngine.newGraphQLContext(req(
                 "query { NopMetaQualityRule__judgeByRuleId(ruleId: \"__not_exist__\") { status } }")));
-        assertNotNull(resp);
+        assertTrue(resp.hasError(), "non-existent ruleId must return error: " + resp);
+        String msg = resp.getErrors().get(0).getMessage();
+        assertNotNull(msg, "error must carry a message");
+        assertTrue(msg.contains("__not_exist__"), "error must reference the ruleId: " + msg);
     }
 
     // ===== 不可执行路径显式失败 / SKIP =====

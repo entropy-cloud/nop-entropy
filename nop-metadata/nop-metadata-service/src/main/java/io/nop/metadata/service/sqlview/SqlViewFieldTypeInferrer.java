@@ -31,6 +31,9 @@ import java.util.List;
 import java.util.Set;
 import java.util.function.BiConsumer;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 /**
  * SQL 视图字段类型推断器（架构基线 §4.2.1 方案 B，plan 0900-1）：经 {@code LIMIT 0} + {@link ResultSetMetaData#getColumnTypeName}
  * 推断 tableType=sql 逻辑表的 sourceSql 输出列字段类型，补全 {@link SqlViewField#getType()}（方案 A 下恒为 null）。
@@ -76,6 +79,8 @@ import java.util.function.BiConsumer;
  * <p>本组件无状态（依赖外部传入 DAO/resolver/connectionService），可在多 BizModel 间共享实例。
  */
 public class SqlViewFieldTypeInferrer {
+
+    private static final Logger LOG = LoggerFactory.getLogger(SqlViewFieldTypeInferrer.class);
 
     /** inline ErrorCode：方言不支持（首版仅 H2/MySQL/PostgreSQL）。 */
     /** inline ErrorCode：列数不匹配（extractor 输出列数 != ResultSetMetaData 列数）。 */
@@ -199,6 +204,8 @@ public class SqlViewFieldTypeInferrer {
         try {
             return metaData.getDatabaseProductName();
         } catch (SQLException e) {
+            // R2.11（P2-MA4-002）：不静默吞异常——记录完整异常（含堆栈）后走既有显式失败路径（方言不支持）
+            LOG.warn("nop.metadata.sqlview.product-name-read-failed", e);
             return null;
         }
     }

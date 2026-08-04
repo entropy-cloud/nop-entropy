@@ -4,9 +4,17 @@ import io.nop.api.core.beans.TreeBean;
 import io.nop.api.core.beans.query.OrderFieldBean;
 import io.nop.api.core.exceptions.ErrorCode;
 import io.nop.api.core.exceptions.NopException;
+import io.nop.dao.api.IDaoProvider;
+import io.nop.dao.api.IEntityDao;
 import io.nop.metadata.core._NopMetadataCoreConstants;
+import io.nop.metadata.dao.entity.NopMetaEntity;
 import io.nop.metadata.dao.entity.NopMetaTable;
 import io.nop.metadata.service.NopMetadataErrors;
+import io.nop.metadata.service.connection.IMetaDataSourceConnectionProcessor;
+import io.nop.metadata.service.datasource.MetaDataSourceResolver;
+import io.nop.metadata.service.field.MetaTableFieldResolver;
+import io.nop.metadata.service.tableref.TableReferenceExecutor;
+import io.nop.orm.IOrmTemplate;
 import org.junit.jupiter.api.Test;
 
 import java.util.ArrayList;
@@ -19,28 +27,40 @@ import java.util.Map;
 import static io.nop.metadata.service.query.AggregationContext.*;
 import static io.nop.metadata.service.query.AggregationHelper.*;
 import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 public class TestEntityAggregationProcessor {
 
-    // ===== 基础构造 =====
+    // ===== execute() 分派行为（P1-MA4-601：空洞测试 → 行为断言） =====
 
+    /** execute() 对未注册实体显式失败（ERR_AGGR_ENTITY_NOT_REGISTERED），非静默返回。 */
     @Test
-    public void testImplementsAggregationProcessor() {
-        assertTrue(new EntityAggregationProcessor() instanceof AggregationProcessor);
+    public void testExecuteWithUnregisteredEntityThrows() {
+        AggregationContext context = mock(AggregationContext.class);
+        NopMetaTable table = new NopMetaTable();
+        table.setMetaTableId("test-table");
+        table.setTableType("entity");
+        when(context.getTable()).thenReturn(table);
+
+        IDaoProvider daoProvider = mock(IDaoProvider.class);
+        IEntityDao<NopMetaEntity> entityDao = mock(IEntityDao.class);
+        when(daoProvider.daoFor(NopMetaEntity.class)).thenReturn(entityDao);
+        when(entityDao.getEntityById(any())).thenReturn(null);
+        MetaQueryContext ctx = newMetaQueryContext(daoProvider);
+        when(context.ctx()).thenReturn(ctx);
+
+        EntityAggregationProcessor processor = new EntityAggregationProcessor();
+        NopException ex = assertThrows(NopException.class, () -> processor.execute(context));
+        assertEquals(NopMetadataErrors.ERR_AGGR_ENTITY_NOT_REGISTERED.getErrorCode(), ex.getErrorCode());
     }
 
-    @Test
-    public void testExecuteWithNullContextThrowsNpe() {
-        EntityAggregationProcessor processor = new EntityAggregationProcessor();
-        assertThrows(NullPointerException.class, () -> processor.execute(null));
-    }
-
-    @Test
-    public void testCanInstantiate() {
-        EntityAggregationProcessor processor = new EntityAggregationProcessor();
-        assertNotNull(processor);
+    private static MetaQueryContext newMetaQueryContext(IDaoProvider daoProvider) {
+        return new MetaQueryContext(daoProvider, mock(IOrmTemplate.class),
+                mock(IMetaDataSourceConnectionProcessor.class),
+                new TableReferenceExecutor(mock(IMetaDataSourceConnectionProcessor.class), mock(IOrmTemplate.class)),
+                new MetaDataSourceResolver(), new MetaTableFieldResolver(), new FilterToSqlTranslator());
     }
 
     // ===== safeAlias 边缘用例 =====

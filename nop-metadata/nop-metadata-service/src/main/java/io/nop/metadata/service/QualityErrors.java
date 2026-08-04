@@ -97,6 +97,10 @@ interface QualityErrors extends NopMetadataArgs {
     ErrorCode ERR_QUALITY_RESULT_NOT_FOUND =
             ErrorCode.define("nop.err.metadata.quality-result-not-found",
                     "Quality result not found: {qualityResultId}", ARG_QUALITY_RESULT_ID);
+    ErrorCode ERR_QUALITY_RESULT_STATUS_INVALID =
+            ErrorCode.define("nop.err.metadata.quality-result-status-invalid",
+                    "Quality result status must be one of PASS/FAIL/ERROR/SKIP: status={status}",
+                    ARG_QUALITY_RESULT_STATUS);
     ErrorCode ERR_QUALITY_TABLE_NOT_FOUND =
             ErrorCode.define("nop.err.metadata.quality-table-not-found",
                     "Quality rule target table not found (entityId does not refer to an existing NopMetaTable): "

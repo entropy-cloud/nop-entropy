@@ -29,8 +29,8 @@ import java.util.List;
  * Pseudo-BizModel for cross-cutting search operations across multiple entity types.
  * This BizModel has no single corresponding entity because search indexes span
  * NopMetaTable, NopMetaEntity, NopMetaEntityField, NopMetaGlossaryTerm, etc.
- * The xmeta at {@code _vfs/nop/metadata/NopMetaSearch/NopMetaSearch.xmeta} provides
- * GraphQL schema definition.
+ * The xmeta at {@code _vfs/nop/metadata/model/NopMetaSearch/NopMetaSearch.xmeta} provides
+ * GraphQL schema definition（R2.10：已移至 model/ 扫描根可达路径，MA3.1-10）。
  */
 @BizModel("NopMetaSearch")
 public class NopMetaSearchBizModel {

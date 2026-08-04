@@ -152,7 +152,7 @@ public class TestNopMetaTableQueryBizModel extends JunitBaseTestCase {
         assertEquals(3, items.size(), "filter amount>15 must return 3 rows (20,30,40)");
     }
 
-    /** external 表 + limit/offset 分页（无 filter）。 */
+    /** external 表 + limit/offset 分页（无 filter）。R2.13（P2-MA4-303）：断言首行内容验证 offset 生效。 */
     @Test
     @SuppressWarnings("unchecked")
     public void testQueryExternalTablePagination() throws Exception {
@@ -166,6 +166,11 @@ public class TestNopMetaTableQueryBizModel extends JunitBaseTestCase {
         @SuppressWarnings("unchecked")
         List<Map<String, Object>> items = (List<Map<String, Object>>) result.get("items");
         assertEquals(2, items.size(), "limit=2 offset=1 must return 2 rows");
+        // 行为断言：offset=1 必须跳过首行——首行必须是 id=2（实现忽略 offset 返回 {1,2} 时此断言失败）
+        Map<String, Object> first = items.get(0);
+        assertNotNull(first, "first row must exist");
+        assertEquals(2, toInt(first.get("ID")), "offset=1 must start from id=2, got: " + items);
+        assertEquals(3, toInt(items.get(1).get("ID")), "second row must be id=3, got: " + items);
     }
 
     // ===== sql 分派：withConnection 执行 sourceSql 子查询（架构基线 §4.4 D1 + D2）=====

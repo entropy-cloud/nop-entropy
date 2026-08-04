@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 <biz x:schema="/nop/schema/biz/xbiz.xdef" xmlns:x="/nop/schema/xdsl.xdef" xmlns:c="c"
-     x:extends="_NopMetaTagLabel.xbiz">
+     x:extends="_NopMetaTagLabel.xbiz, /nop/wf/base/approval-support.xbiz">
 
     <actions>
         <mutation name="approve" displayName="通过">

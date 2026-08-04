@@ -1,0 +1,80 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<workflow x:extends="/nop/wf/base/oa.xwf"
+          x:schema="/nop/schema/wf/wf.xdef" xmlns:x="/nop/schema/xdsl.xdef"
+          xmlns:c="c"
+          wfName="qualityBreachApproval" wfVersion="1" displayName="质量告警审批流程">
+    <description>质量告警审批流程：规则 FAIL+ERROR → Owner 调查处理（已修复/误报）→ 自动验证或关闭</description>
+
+
+    <auths>
+        <auth id="auth1" actorType="all" actorId="all" allowStart="true"/>
+    </auths>
+
+    <start startStepName="owner-investigate"/>
+    <end/>
+
+    <steps>
+        <step name="owner-investigate" displayName="Owner 调查处理" allowReject="true">
+            <assignment>
+                <actors>
+                    <actor actorModelId="owner" actorType="role" actorId="metadata-admin" selectUser="true"/>
+                </actors>
+            </assignment>
+            <transition onAppStates="agree" splitType="and">
+                <to-step stepName="verify"/>
+            </transition>
+        </step>
+
+        <step name="verify" displayName="自动验证">
+            <assignment>
+                <actors>
+                    <actor actorModelId="system" actorType="wf-actor:CurrentCaller" selectUser="false"/>
+                </actors>
+            </assignment>
+            <source>
+                <c:script><![CDATA[
+                    const svc = inject('io.nop.metadata.service.quality.QualityAlertWorkflowService');
+                    const resultId = wfRt.wf.bizEntityId;
+                    const ruleId = wfVars.ruleId;
+                    if (resultId != null && ruleId != null) {
+                        const passed = svc.reJudge(ruleId, resultId);
+                        wfRt.currentStep.record.appState = passed ? 'agree' : 'reject';
+                    } else {
+                        wfRt.currentStep.record.appState = 'agree';
+                    }
+                ]]></c:script>
+            </source>
+            <transition onAppStates="agree,reject" splitType="and">
+                <to-end>
+                    <when>wfRt.currentStep.record.appState == 'agree'</when>
+                </to-end>
+                <to-step stepName="owner-investigate" backLink="true">
+                    <when>wfRt.currentStep.record.appState == 'reject'</when>
+                </to-step>
+            </transition>
+        </step>
+    </steps>
+
+    <listeners>
+        <listener id="onDisagree" eventPattern="*end">
+            <source>
+                <c:script><![CDATA[
+                    // 工作流以 disagree 结束（驳回/误报路径）→ 标记误报（幂等：仅当未标记时执行，避免 before-end/after-end 重复触发）
+                    const wfAppState = wfRt.wf.record.appState;
+                    if (wfAppState === 'disagree') {
+                        const bizObjManager = inject('nopBizObjectManager');
+                        const entityBizObj = bizObjManager.getBizObject('NopMetaQualityResult');
+                        const entityId = wfRt.wf.bizEntityId;
+                        if (entityId != null) {
+                            const entity = entityBizObj.invoke('requireEntity', {id: entityId}, null, wfRt.svcCtx);
+                            if (entity.isFalsePositive == null || entity.isFalsePositive == 0) {
+                                entity.isFalsePositive = 1;
+                                entityBizObj.invoke('updateEntity', {entity: entity}, null, wfRt.svcCtx);
+                            }
+                        }
+                    }
+                ]]></c:script>
+            </source>
+        </listener>
+    </listeners>
+</workflow>

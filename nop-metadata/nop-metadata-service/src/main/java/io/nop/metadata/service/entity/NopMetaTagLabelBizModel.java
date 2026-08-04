@@ -109,6 +109,8 @@ public class NopMetaTagLabelBizModel extends CrudBizModel<NopMetaTagLabel> imple
                     .getObjMeta().getProp("wf:wfName");
             return val instanceof String ? (String) val : null;
         } catch (Exception e) {
+            // R2.11（P2-MA4-001）：不静默吞异常——记录完整异常（含堆栈），调用方按 wfName==null 降级（不自动提审）
+            LOG.warn("nop.metadata.taglabel.wf-name-read-failed", e);
             return null;
         }
     }

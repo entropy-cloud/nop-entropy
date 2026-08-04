@@ -22,24 +22,7 @@ import static org.mockito.Mockito.when;
 
 public class TestSqlAggregationProcessor {
 
-    // ===== 基础构造 =====
-
-    @Test
-    public void testImplementsAggregationProcessor() {
-        assertTrue(new SqlAggregationProcessor() instanceof AggregationProcessor);
-    }
-
-    @Test
-    public void testExecuteWithNullContextThrowsNpe() {
-        SqlAggregationProcessor processor = new SqlAggregationProcessor();
-        assertThrows(NullPointerException.class, () -> processor.execute(null));
-    }
-
-    @Test
-    public void testCanInstantiate() {
-        SqlAggregationProcessor processor = new SqlAggregationProcessor();
-        assertNotNull(processor);
-    }
+    // ===== execute() 分派行为（P1-MA4-601：空洞测试 → 行为断言） =====
 
     @Test
     public void testExecuteWithUnsupportedTableTypeThrowsNopException() {

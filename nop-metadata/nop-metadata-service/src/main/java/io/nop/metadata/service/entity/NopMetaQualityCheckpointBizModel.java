@@ -25,6 +25,7 @@ import io.nop.dao.txn.ITransactionTemplate;
 import io.nop.http.api.client.IHttpClient;
 import io.nop.metadata.biz.INopMetaQualityCheckpointBiz;
 import io.nop.metadata.api.dto.CheckpointExecutionResultDTO;
+import io.nop.metadata.api.dto.CheckpointExtConfig;
 import io.nop.metadata.dao.entity.NopMetaQualityCheckpoint;
 import io.nop.metadata.service.connection.IMetaDataSourceConnectionProcessor;
 import io.nop.metadata.service.datasource.MetaDataSourceResolver;
@@ -322,21 +323,18 @@ public class NopMetaQualityCheckpointBizModel extends CrudBizModel<NopMetaQualit
     /**
      * 读取 {@code extConfig.autoScore}（默认开启；仅显式 {@code false} 关闭）。extConfig 缺失 / 非 JSON Map /
      * 无 autoScore 键 / 值非布尔 → 默认开启（不静默伪造关闭）。
+     *
+     * <p>R2.12（P2-MA4-101）：消费方改用强类型 {@link CheckpointExtConfig}（parseBeanFromText），消除死 DTO。
      */
-    @SuppressWarnings("unchecked")
     private boolean readAutoScoreConfig(NopMetaQualityCheckpoint cp) {
         String json = cp.getExtConfig();
         if (json == null || json.trim().isEmpty()) {
             return true;
         }
         try {
-            Object parsed = JsonTool.parse(json);
-            if (!(parsed instanceof Map)) {
-                return true;
-            }
-            Object val = ((Map<String, Object>) parsed).get("autoScore");
-            // 仅显式 false 关闭；null / 非布尔 / 缺失 → 默认开启
-            return !Boolean.FALSE.equals(val);
+            CheckpointExtConfig config = JsonTool.parseBeanFromText(json, CheckpointExtConfig.class);
+            // 仅显式 false 关闭；null / 缺失 → 默认开启
+            return config == null || config.isAutoScoreEffective();
         } catch (Exception e) {
             // extConfig 不可解析 → 默认开启（不静默伪造关闭）
             return true;

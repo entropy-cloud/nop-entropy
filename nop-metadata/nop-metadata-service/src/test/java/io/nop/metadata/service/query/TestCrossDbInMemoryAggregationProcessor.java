@@ -1,7 +1,9 @@
 package io.nop.metadata.service.query;
 
 import io.nop.api.core.exceptions.NopException;
+import io.nop.metadata.dao.entity.NopMetaEntity;
 import io.nop.metadata.dao.entity.NopMetaTableJoin;
+import io.nop.metadata.service.NopMetadataErrors;
 import org.junit.jupiter.api.Test;
 
 import java.util.ArrayList;
@@ -10,24 +12,26 @@ import java.util.List;
 import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 public class TestCrossDbInMemoryAggregationProcessor {
 
-    @Test
-    public void testImplementsAggregationProcessor() {
-        assertTrue(new CrossDbInMemoryAggregationProcessor() instanceof AggregationProcessor);
-    }
+    // ===== execute() 分派行为（P1-MA4-601：空洞测试 → 行为断言） =====
 
+    /** execute() 对 self-join（双 entity 端点同一实体）显式失败（ERR_AGGR_JOIN_SELF_JOIN）。 */
     @Test
-    public void testExecuteWithNullContextThrowsNpe() {
-        CrossDbInMemoryAggregationProcessor processor = new CrossDbInMemoryAggregationProcessor();
-        assertThrows(NullPointerException.class, () -> processor.execute(null));
-    }
+    public void testExecuteWithSelfJoinThrows() {
+        AggregationContext context = mock(AggregationContext.class);
+        NopMetaEntity entity = new NopMetaEntity();
+        entity.setMetaEntityId("e1");
+        MetaJoinExecutor.Endpoint ep = MetaJoinExecutor.Endpoint.entity(entity);
+        when(context.getLeftEndpoint()).thenReturn(ep);
+        when(context.getRightEndpoint()).thenReturn(ep);
 
-    @Test
-    public void testCanInstantiate() {
         CrossDbInMemoryAggregationProcessor processor = new CrossDbInMemoryAggregationProcessor();
-        assertNotNull(processor);
+        NopException ex = assertThrows(NopException.class, () -> processor.execute(context));
+        assertEquals(NopMetadataErrors.ERR_AGGR_JOIN_SELF_JOIN.getErrorCode(), ex.getErrorCode());
     }
 
     @Test

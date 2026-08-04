@@ -20,6 +20,7 @@ import io.nop.job.api.spec.JobSpec;
 import io.nop.job.api.spec.TriggerSpec;
 import io.nop.metadata.core._NopMetadataCoreConstants;
 import io.nop.metadata.api.dto.CheckpointExecutionResultDTO;
+import io.nop.metadata.api.dto.CheckpointExtConfig;
 import io.nop.metadata.dao.entity.NopMetaQualityCheckpoint;
 import io.nop.metadata.service.entity.NopMetaQualityCheckpointBizModel;
 import io.nop.metadata.service.NopMetadataErrors;
@@ -246,20 +247,17 @@ public class MetaQualityCheckpointScheduler {
 
     /**
      * 解析 {@code extConfig.schedule}（cron 表达式）。extConfig 缺失 / 非 JSON Map / 无 schedule 键 / 非字符串 → null。
+     *
+     * <p>R2.12（P2-MA4-101）：消费方改用强类型 {@link CheckpointExtConfig}（parseBeanFromText），消除死 DTO。
      */
-    @SuppressWarnings("unchecked")
     private static String readScheduleCron(NopMetaQualityCheckpoint cp) {
         String json = cp.getExtConfig();
         if (json == null || json.trim().isEmpty()) {
             return null;
         }
         try {
-            Object parsed = JsonTool.parse(json);
-            if (!(parsed instanceof Map)) {
-                return null;
-            }
-            Object val = ((Map<String, Object>) parsed).get(EXT_CONFIG_SCHEDULE_KEY);
-            return val == null ? null : String.valueOf(val);
+            CheckpointExtConfig config = JsonTool.parseBeanFromText(json, CheckpointExtConfig.class);
+            return config == null ? null : config.getSchedule();
         } catch (Exception e) {
             // extConfig 不可解析 → 视为无 schedule（不静默伪造）
             LOG.warn("nop.meta.checkpoint-scheduler.ext-config-unparseable: checkpointId={}", cp.getCheckpointId(), e);

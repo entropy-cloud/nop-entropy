@@ -9,6 +9,7 @@ package io.nop.metadata.dao.model;
 
 import io.nop.api.core.beans.DictBean;
 import io.nop.api.core.beans.DictOptionBean;
+import io.nop.api.core.time.CoreMetrics;
 import io.nop.commons.type.StdDataType;
 import io.nop.commons.type.StdSqlType;
 import io.nop.commons.util.StringHelper;
@@ -55,7 +56,7 @@ public class OrmModelImporter {
         module.setMavenGroupId(str(ormModel.prop_get(OrmModelConstants.EXT_MAVEN_GROUP_ID)));
         module.setMavenArtifactId(str(ormModel.prop_get(OrmModelConstants.EXT_MAVEN_ARTIFACT_ID)));
         module.setMavenVersion(str(ormModel.prop_get("ext:mavenVersion")));
-        module.setImportedAt(new java.sql.Timestamp(System.currentTimeMillis()));
+        module.setImportedAt(new java.sql.Timestamp(CoreMetrics.currentTimeMillis()));
         return module;
     }
 
@@ -65,7 +66,7 @@ public class OrmModelImporter {
         model.setModelName(appName != null ? appName : "unknown");
         model.setIsDelta(b(isDelta));
         model.setSourceContent(sourceContent);
-        model.setImportedAt(new java.sql.Timestamp(System.currentTimeMillis()));
+        model.setImportedAt(new java.sql.Timestamp(CoreMetrics.currentTimeMillis()));
         return model;
     }
 
