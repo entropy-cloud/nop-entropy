@@ -1467,7 +1467,7 @@ nop-metadata-web           — nop-metadata-service
 ┌─────────────────────▼─────────────────────────────────────────┐
 │                    ISearchEngine (nopSearchEngine)              │
 │  LuceneSearchEngine: addDocs/removeDocs/refreshBlocking/search │
-│  topic="nop-meta-metadata", tagSet=entityType 区分实体类型     │
+│  topic="nop_meta_metadata", tagSet=entityType 区分实体类型     │
 └───────────────────────────────────────────────────────────────┘
 ```
 
@@ -1484,7 +1484,7 @@ nop-metadata-web           — nop-metadata-service
 
 ### 7.3 索引策略
 
-- **topic**: 统一为 `"nop-meta-metadata"`（因 `SearchRequest.topic` 为单一 String，不支持多 topic 查询）
+- **topic**: 统一为 `"nop_meta_metadata"`（`NopMetaSearchService.TOPIC`；2026-08-04 plan-2026-08-04-1004-3 Phase 2 e2e 接线验证发现原 `"nop-meta-metadata"` 含连字符不满足 LuceneSearchEngine `isValidSimpleVarName` 校验，真实引擎下所有搜索请求失败——mock 测试未暴露；改为下划线分隔。旧 topic 索引孤儿数据经 `rebuildSearchIndex` 全量重建迁移）
 - **tagSet**: 存放 entityType 标识（如 `"Classification"`、`"MetaTable"`），过滤时通过 `SearchRequest.tags` 匹配
 - **权重**: name/title 高权重(2.0)，content 标准权重(1.0)，summary 低权重(0.5)
 - **全量索引**: GraphQL mutation `rebuildSearchIndex(entityTypes?)` 触发 `NopMetaIndexBuilder.buildFullIndex()`，遍历 DAO 查询 + `ISearchEngine.addDocs` 批量写入（幂等：按 doc.id 删除+添加），最终调用 `refreshBlocking()` 使索引可查询
