@@ -1,0 +1,200 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!--
+  完整最小 ORM 源模型示例（代码生成的源头）
+  ==========================================
+  这是 AI 编写首个 *.orm.xml 时应模仿的模板。基于 nop-app-erp 真实模型大幅精简，
+  覆盖以下关键模式：
+    - <orm> 根元素的完整属性集（x:schema / xmlns:x / ext:appName / ext:basePackageName / ext:entityPackageName / ext:mavenGroupId 等）
+    - <domains> 公共字段域复用（delVersion / version / createTime / createdBy 等）
+    - <dicts> 字典定义（含 i18n-en 多语言）
+    - <entity> 实体：主键策略（BIGINT + tagSet="seq-default"）、stdSqlType + stdDataType 分离、
+      useLogicalDelete、versionProp/createTimeProp 等审计字段配置、tagSet="gid" 全局可见
+    - <relations>：to-one（tagSet="pub"）、to-many（tagSet="pub,cascade-delete,insertable,updatable"）
+    - <indexes> 与 <unique-keys>
+
+  设计规范详见：docs-for-ai/02-core-guides/orm-model-design.md
+  命名规范详见：docs-for-ai/02-core-guides/code-style.md
+-->
+<orm ext:registerShortName="true" ext:appName="app-demo-md" ext:entityPackageName="app.demo.md.dao.entity"
+     ext:basePackageName="app.demo.md" ext:mavenGroupId="io.nop.app" ext:mavenArtifactId="app-demo-master-data"
+     ext:mavenVersion="1.0-SNAPSHOT" ext:platformVersion="2.0.0-SNAPSHOT" ext:dialect="mysql,oracle,postgresql"
+     ext:allowIdAsColName="true" ext:icon="database" x:schema="/nop/schema/orm/orm.xdef"
+     xmlns:x="/nop/schema/xdsl.xdef" xmlns:i18n-en="i18n-en">
+
+    <!--
+      <domains> 公共字段域：被多个实体通过 domain="xxx" 复用。
+      必须定义的公共域：delVersion / version / createTime / createdBy / updateTime / updatedBy / remark。
+      这样所有实体共享统一精度与类型，避免逐字段重复声明。
+    -->
+    <domains>
+        <domain name="boolFlag" stdSqlType="BOOLEAN" stdDataType="boolean"/>
+        <domain name="delVersion" stdSqlType="BIGINT"/>
+        <domain name="version" stdSqlType="INTEGER"/>
+        <domain name="createTime" stdSqlType="TIMESTAMP"/>
+        <domain name="createdBy" precision="50" stdSqlType="VARCHAR"/>
+        <domain name="updateTime" stdSqlType="TIMESTAMP"/>
+        <domain name="updatedBy" precision="50" stdSqlType="VARCHAR"/>
+        <domain name="remark" precision="1000" stdSqlType="VARCHAR"/>
+        <!-- 业务通用域 -->
+        <domain name="code" precision="50" stdSqlType="VARCHAR"/>
+        <domain name="name" precision="200" stdSqlType="VARCHAR"/>
+        <domain name="amount" stdSqlType="DECIMAL" precision="18" scale="2"/>
+        <domain name="idRef" stdSqlType="BIGINT"/>
+    </domains>
+
+    <!--
+      <dicts> 字典：前端下拉框的数据源。
+      命名规范：{appName}/{dict-name}，避免跨模块冲突。
+      valueType 通常为 string（语义编码），option 的 code 与 value 合一（如 ACTIVE/INACTIVE）。
+      i18n-en:label 提供英文翻译，框架自动生成 i18n 资源。
+    -->
+    <dicts>
+        <dict label="启用状态" name="app-demo-md/active-status" valueType="string" i18n-en:label='Enabled Status'>
+            <option code="ACTIVE" label="启用" value="ACTIVE" i18n-en:label='Enabled'/>
+            <option code="INACTIVE" label="停用" value="INACTIVE" i18n-en:label='Disabled'/>
+        </dict>
+        <dict label="伙伴类型" name="app-demo-md/partner-type" valueType="string" i18n-en:label='Partner Type'>
+            <option code="CUSTOMER" label="客户" value="CUSTOMER" i18n-en:label='Customer'/>
+            <option code="SUPPLIER" label="供应商" value="SUPPLIER" i18n-en:label='Supplier'/>
+        </dict>
+    </dicts>
+
+    <entities>
+        <!--
+          实体：往来单位（主表）。展示主数据实体的完整约定。
+          className 必须是完整全限定名；tableName 遵循 {shortDomain}_{entity} 蛇形命名。
+          tagSet="gid" 表示全局可见（跨模块可引用）。
+          useLogicalDelete + deleteFlagProp/deleteVersionProp 指向同一 delVersion 字段实现逻辑删除。
+          versionProp/createTimeProp/createrProp/updateTimeProp/updaterProp 绑定审计字段。
+        -->
+        <entity className="app.demo.md.dao.entity.AppDemoMdPartner"
+                displayName="往来单位" ext:icon="users" i18n-en:displayName="Business Partner"
+                name="app.demo.md.dao.entity.AppDemoMdPartner"
+                tableName="app_demo_md_partner" tagSet="gid" registerShortName="true"
+                useLogicalDelete="true" deleteFlagProp="delVersion" deleteVersionProp="delVersion"
+                versionProp="version" createTimeProp="createTime" createrProp="createdBy"
+                updateTimeProp="updateTime" updaterProp="updatedBy">
+            <columns>
+                <!-- 主键：BIGINT + tagSet="seq-default"（平台 Sequence 生成，分布式安全） -->
+                <column name="id" code="ID" displayName="ID" propId="1" stdSqlType="BIGINT" stdDataType="long"
+                        primary="true" mandatory="true" tagSet="seq-default" i18n-en:displayName='ID'/>
+                <!-- tagSet="var" 标记业务可变编码字段，会进入前端列表的搜索条件 -->
+                <column name="code" code="CODE" displayName="编码" propId="2" domain="code" mandatory="true"
+                        i18n-en:displayName='Code' tagSet="var"/>
+                <!-- tagSet="disp" 标记主显示字段（前端列表默认显示） -->
+                <column name="name" code="NAME" displayName="名称" propId="3" domain="name" mandatory="true"
+                        i18n-en:displayName='Name' tagSet="disp"/>
+                <!-- ext:dict 关联字典，前端自动渲染下拉框 -->
+                <column name="partnerType" code="PARTNER_TYPE" displayName="类型" propId="4" stdSqlType="VARCHAR"
+                        precision="20" stdDataType="string" mandatory="true" ext:dict="app-demo-md/partner-type"
+                        i18n-en:displayName='Partner Type'/>
+                <column name="status" code="STATUS" displayName="状态" propId="5" stdSqlType="VARCHAR"
+                        precision="20" stdDataType="string" mandatory="true" ext:dict="app-demo-md/active-status"
+                        i18n-en:displayName='Status'/>
+                <column name="phone" code="PHONE" displayName="电话" propId="6" stdSqlType="VARCHAR"
+                        precision="50" i18n-en:displayName='Phone'/>
+                <column name="email" code="EMAIL" displayName="邮箱" propId="7" stdSqlType="VARCHAR"
+                        precision="200" i18n-en:displayName='Email'/>
+                <column name="creditLimit" code="CREDIT_LIMIT" displayName="信用额度" propId="8" stdSqlType="DECIMAL"
+                        precision="20" scale="4" i18n-en:displayName='Credit Limit'/>
+                <!-- 逻辑删除字段：ui:show="R" 表示只在只读/详情显示，不在表单出现 -->
+                <column name="delVersion" code="DEL_VERSION" displayName="逻辑删除版本" propId="9" domain="delVersion"
+                        stdSqlType="BIGINT" stdDataType="long" mandatory="true" defaultValue="0"
+                        i18n-en:displayName='Del Flag' ui:show="R"/>
+                <column name="version" code="VERSION" displayName="数据版本" propId="10" domain="version"
+                        stdSqlType="INTEGER" stdDataType="int" mandatory="true" defaultValue="0"
+                        i18n-en:displayName='Version'/>
+                <column name="createdBy" code="CREATED_BY" displayName="创建人" propId="11" domain="createdBy"
+                        stdSqlType="VARCHAR" precision="50" mandatory="true" i18n-en:displayName='Created By'/>
+                <column name="createTime" code="CREATE_TIME" displayName="创建时间" propId="12" domain="createTime"
+                        stdSqlType="TIMESTAMP" stdDataType="timestamp" mandatory="true"
+                        i18n-en:displayName='Create Time'/>
+                <column name="updatedBy" code="UPDATED_BY" displayName="修改人" propId="13" domain="updatedBy"
+                        stdSqlType="VARCHAR" precision="50" mandatory="true" i18n-en:displayName='Updated By'/>
+                <column name="updateTime" code="UPDATE_TIME" displayName="修改时间" propId="14" domain="updateTime"
+                        stdSqlType="TIMESTAMP" stdDataType="timestamp" mandatory="true"
+                        i18n-en:displayName='Update Time'/>
+                <column name="remark" code="REMARK" displayName="备注" propId="15" domain="remark"
+                        i18n-en:displayName='Remark'/>
+            </columns>
+            <relations>
+                <!--
+                  to-many 子表关系：tagSet="pub,cascade-delete,insertable,updatable"
+                  pub=跨模块可见；cascade-delete=主表删除时级联；insertable+updatable=允许子表写入
+                  ext:estRows 提示前端子表预期行数，影响默认控件选择
+                -->
+                <to-many name="addresses" refEntityName="app.demo.md.dao.entity.AppDemoMdPartnerAddress"
+                         tagSet="pub,cascade-delete,insertable,updatable"
+                         i18n-en:displayName='Addresses' ext:estRows="5">
+                    <join><on leftProp="id" rightProp="partnerId"/></join>
+                </to-many>
+            </relations>
+            <!-- 业务唯一键（不是主键）：用于「编码不能重复」这类约束 -->
+            <unique-keys>
+                <unique-key name="UK_DEMO_MD_PARTNER_CODE" columns="code"/>
+            </unique-keys>
+        </entity>
+
+        <!--
+          实体：往来单位地址（子表）。展示 to-one 关系与外键字段。
+          没有 tagSet="gid"（仅本模块内部使用，不需要全局可见）。
+        -->
+        <entity className="app.demo.md.dao.entity.AppDemoMdPartnerAddress"
+                displayName="往来单位地址" ext:icon="map-pin" i18n-en:displayName="Partner Address"
+                name="app.demo.md.dao.entity.AppDemoMdPartnerAddress"
+                tableName="app_demo_md_partner_address" registerShortName="true"
+                useLogicalDelete="true" deleteFlagProp="delVersion" deleteVersionProp="delVersion"
+                versionProp="version" createTimeProp="createTime" createrProp="createdBy"
+                updateTimeProp="updateTime" updaterProp="updatedBy">
+            <columns>
+                <column name="id" code="ID" displayName="ID" propId="1" stdSqlType="BIGINT" stdDataType="long"
+                        primary="true" mandatory="true" tagSet="seq-default" i18n-en:displayName='ID'/>
+                <!-- 外键字段：BIGINT + stdDataType="long"，命名 {refPropName}Id -->
+                <column name="partnerId" code="PARTNER_ID" displayName="往来单位" propId="2" stdSqlType="BIGINT"
+                        stdDataType="long" mandatory="true" i18n-en:displayName='Partner'/>
+                <column name="addressType" code="ADDRESS_TYPE" displayName="地址类型" propId="3" stdSqlType="VARCHAR"
+                        precision="20" stdDataType="string" mandatory="true"
+                        i18n-en:displayName='Address Type'/>
+                <column name="address" code="ADDRESS" displayName="详细地址" propId="4" stdSqlType="VARCHAR"
+                        precision="500" mandatory="true" i18n-en:displayName='Address'/>
+                <column name="isDefault" code="IS_DEFAULT" displayName="是否默认" propId="5" stdSqlType="BOOLEAN"
+                        stdDataType="boolean" defaultValue="false" i18n-en:displayName='Is Default'/>
+                <column name="delVersion" code="DEL_VERSION" displayName="逻辑删除版本" propId="6" domain="delVersion"
+                        stdSqlType="BIGINT" stdDataType="long" mandatory="true" defaultValue="0"
+                        i18n-en:displayName='Del Flag' ui:show="R"/>
+                <column name="version" code="VERSION" displayName="数据版本" propId="7" domain="version"
+                        stdSqlType="INTEGER" stdDataType="int" mandatory="true" defaultValue="0"
+                        i18n-en:displayName='Version'/>
+                <column name="createdBy" code="CREATED_BY" displayName="创建人" propId="8" domain="createdBy"
+                        stdSqlType="VARCHAR" precision="50" mandatory="true" i18n-en:displayName='Created By'/>
+                <column name="createTime" code="CREATE_TIME" displayName="创建时间" propId="9" domain="createTime"
+                        stdSqlType="TIMESTAMP" stdDataType="timestamp" mandatory="true"
+                        i18n-en:displayName='Create Time'/>
+                <column name="updatedBy" code="UPDATED_BY" displayName="修改人" propId="10" domain="updatedBy"
+                        stdSqlType="VARCHAR" precision="50" mandatory="true" i18n-en:displayName='Updated By'/>
+                <column name="updateTime" code="UPDATE_TIME" displayName="修改时间" propId="11" domain="updateTime"
+                        stdSqlType="TIMESTAMP" stdDataType="timestamp" mandatory="true"
+                        i18n-en:displayName='Update Time'/>
+            </columns>
+            <relations>
+                <!-- to-one 反向关联主表：tagSet="pub" 即可（不需要 cascade-delete，子表删不回影响主表） -->
+                <to-one name="partner" refEntityName="app.demo.md.dao.entity.AppDemoMdPartner"
+                        tagSet="pub" i18n-en:displayName='Partner'>
+                    <join><on leftProp="partnerId" rightProp="id"/></join>
+                </to-one>
+            </relations>
+            <!-- 普通索引（非唯一）：加速按外键查询 -->
+            <indexes>
+                <index name="IDX_DEMO_MD_PARTNER_ADDRESS_PARTNER_ID" unique="false">
+                    <column name="partnerId"/>
+                </index>
+            </indexes>
+        </entity>
+    </entities>
+</orm>
+<!--
+  下一步：把本文件放到 module-{domain}/model/ 下，然后
+    1. 首次生成骨架：java -jar nop-cli.jar gen -t=/nop/templates/orm model/app-demo-master-data.orm.xml -o=.
+    2. 日常迭代：./mvnw clean install -T 1C （Maven 自动跑 postcompile/gen-orm.xgen）
+  详见 docs-for-ai/03-runbooks/bootstrap-new-application.md
+-->

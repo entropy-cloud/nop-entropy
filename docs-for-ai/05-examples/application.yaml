@@ -1,0 +1,103 @@
+# 最小可运行 application.yaml（Nop 外部应用，Quarkus 启动）
+# ========================================================
+# 放在 app-xxx-all/src/main/resources/application.yaml。
+# 基于 nop-app-erp/app-erp-all/src/main/resources/application.yaml 简化。
+# 这是开发期最小配置，生产环境需补 JWT 密钥、生产数据库、日志级别等。
+
+nop:
+  # 开发期开启 debug：生成 _dump 调试输出、site-map 预加载、放宽校验
+  debug: true
+
+  auth:
+    jwt:
+      # 生产必须用环境变量注入随机 32 位 hex；dev 可用默认值
+      enc-key: ${JWT_ENC_KEY:3b0ff92c103f4e2faf4d1e7d3efa3ea9}
+    login:
+      # 生产关闭；dev profile 开启自动创建 default user 便于调试
+      allow-create-default-user: false
+    site-map:
+      # 菜单聚合文件路径（各 app 在 application.yaml 改写为 /{moduleId}/auth/app.action-auth.xml）
+      # 改了菜单没生效，头号排查点：确认改的是这个配置指向的文件
+      static-config-path: /nop/main/auth/app.action-auth.xml
+      # 开发期调小，便于频繁看到菜单变更（生产用默认 10m）
+      cache-timeout: 1s
+      support-debug: true
+
+  web:
+    # 校验页面模型（开发期推荐开启，捕获 view.xml DSL 错误）
+    validate-page-model: true
+
+  orm:
+    # 启动时按 ORM 模型自动建表（开发期 H2 用；生产用 flyway/liquibase 或关闭此项手动管理）
+    init-database-schema: true
+
+  datasource:
+    # 开发期用文件型 H2，重启不丢数据
+    # 生产换：driver-class-name: com.mysql.cj.jdbc.Driver
+    #         jdbc-url: jdbc:mysql://host:3306/erp?useUnicode=true&characterEncoding=utf8
+    driver-class-name: org.h2.Driver
+    jdbc-url: jdbc:h2:./db/erp
+    username: sa
+    password:
+
+  graphql:
+    schema-introspection:
+      # 生产关闭 GraphQL introspection（避免暴露 schema）
+      enabled: false
+
+# Quarkus 配置（Nop 跑在 Quarkus 之上）
+quarkus:
+  devservices:
+    enabled: false      # 不用 Quarkus DevServices（避免自动起测试容器）
+  datasource:
+    devservices:
+      enabled: false
+  http:
+    host: 0.0.0.0       # 监听所有网卡（容器/VM 友好）
+    cors: true          # 开发期允许跨域
+    port: 8011          # HTTP 端口
+  log:
+    level: INFO
+    category:
+      "io.nop":
+        level: INFO     # Nop 包日志级别（排障时改 DEBUG）
+  dev:
+    watch:
+      enabled: false    # Nop 用自己的 VFS 热更新，关闭 Quarkus 文件 watch
+  live-reload:
+    enabled: false
+
+# Profile 覆盖：dev profile 下放开默认用户创建
+"%dev":
+   nop:
+     auth:
+       login:
+         allow-create-default-user: true
+
+# ========================================================
+# 常见配置项速查（按需追加到 nop: 节点下）
+# ========================================================
+#
+# 多租户：
+#   nop.tenant.enabled: true                          # 启用多租户（默认 false）
+#
+# 国际化：
+#   nop.application.locale: zh-CN                     # 应用默认语言
+#   nop.default-locale: zh-CN                         # 配置文件默认语言
+#   nop.core.i18n.enabled-locales: zh-CN,en           # 启用的语言列表
+#
+# ORM：
+#   nop.orm.init-database-schema: true                # 启动建表
+#   nop.orm.audit.enabled: true                       # 字段级变更审计（见 audit-field-changes.md）
+#
+# 工作流：
+#   nop.wf.enabled: true                              # 启用工作流引擎
+#
+# 定时任务（本地模式）：
+#   nop.job.{jobName}.enabled: true                   # 按需启用 job（默认 false）
+#
+# Flux 渲染（前端，替代 AMIS）：
+#   nop.web.render-mode: flux                         # 或 amis（默认）
+#
+# 更多配置项：grep -rn "nop\." nop-entropy/nop-*/src/main/resources/ 查找默认值
+# 配置加载机制：docs-for-ai/02-core-guides/ioc-and-config.md

@@ -1,0 +1,101 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!--
+  自定义 BizModel / Bean 注册示例（app-service.beans.xml）
+  ========================================================
+  Nop IoC 不扫描注解（与 Spring 不同）。每个 bean 必须显式 <bean> 注册。
+  本文件放在 {domain}-service 模块的 _vfs/{app}/{domain}/beans/app-service.beans.xml，
+  是「非生成 bean」的注册入口。
+
+  生成型 CRUD bean 自动注册在 _service.beans.xml（下划线开头，codegen 产出，勿手改），
+  通过 <import resource="_service.beans.xml"/> 引入即可，无需手动声明。
+
+  本示例基于 nop-app-erp 真实文件简化。
+-->
+<beans x:schema="/nop/schema/beans.xdef" xmlns:x="/nop/schema/xdsl.xdef"
+       xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans
+        http://www.springframework.org/schema/beans/spring-beans-2.5.xsd">
+
+    <!--
+      1. 导入生成物。
+      _dao.beans.xml   —— DAO bean（entity/session factory 等，codegen 生成）
+      _service.beans.xml —— 标准 CRUD BizModel bean（对应每个实体，codegen 生成）
+      这两个文件都是 _ 前缀，mvn install 会重新生成，绝对不要手改。
+    -->
+    <import resource="_dao.beans.xml"/>
+    <import resource="_service.beans.xml"/>
+
+    <!--
+      2. 注册自定义 BizModel（最常见场景）。
+
+      写法 A：ioc:type="@bean:id" —— bean id 就是实现类全限定名，省略 class 属性。
+      这是 NopIoC 的语法糖，等价于 <bean id="..." class="..."/>。
+      id 必须等于 BizModel 类的全限定名，否则 GraphQL 无法按 objName 路由到它。
+
+      适用：自定义 BizModel（非生成的、带 @BizQuery/@BizMutation/@BizAction 的类）。
+      注意：@Inject 字段不能是 private（用 protected/package-private/setter）。
+    -->
+    <bean id="app.demo.md.service.dashboard.AppDemoMdDashboardBizModel"
+          ioc:type="@bean:id"/>
+
+    <!--
+      3. 注册普通 bean（Processor / SPI 实现 / 工厂 / 工具类）。
+
+      写法 B：显式 class 属性。bean id 可任意命名（建议用全限定名或语义化短名）。
+      适用：非 BizModel 的服务类、策略实现、拦截器等。
+    -->
+    <bean id="app.demo.md.service.spi.AppDemoOrganizationReferenceChecker"
+          class="app.demo.md.service.spi.AppDemoOrganizationReferenceChecker"/>
+
+    <!--
+      4. 带构造注入的 bean（少用，优先 @Inject 字段注入）。
+      NopIoC 支持 <constructor-arg>，但 Nop 项目惯例优先用 @Inject 字段（protected 可见）。
+    -->
+    <!--
+    <bean id="app.demo.md.service.ExchangeRateApiClientFactory"
+          class="app.demo.md.service.ExchangeRateApiClientFactory">
+        <property name="endpoint" value="@cfg:nop.demo.exchange.endpoint"/>
+    </bean>
+    -->
+
+    <!--
+      5. 条件注册（feature:on）。
+      当配置项为 true/空 时才注册。常用于可选功能开关。
+      audit-field-changes.md 的 nop.orm.audit.enabled 就是这种模式。
+    -->
+    <!--
+    <bean id="app.demo.md.interceptor.AuditInterceptor"
+          class="app.demo.md.interceptor.AuditInterceptor"
+          ioc:feature:on="nop.demo.audit.enabled"/>
+    -->
+</beans>
+
+<!--
+  对应的 Java 类示意（与 05-examples/ibiz-and-bizmodel.java 配套阅读）：
+
+  package app.demo.md.service.dashboard;
+
+  @BizModel("AppDemoMdDashboard")   // objName，GraphQL 路由名
+  public class AppDemoMdDashboardBizModel {
+      @Inject protected IDaoProvider daoProvider;   // 不能 private
+
+      @BizQuery
+      public Map<String,Object> getKpi(IServiceContext context) {
+          // 通过 daoProvider().daoFor(Xxx.class) 访问实体（dashboard 等非业务场景可用）
+          ...
+      }
+  }
+
+  关键规则：
+  1. 自定义 BizModel 必须在 app-service.beans.xml 注册，否则容器启动报 bean not found。
+  2. 生成的 CRUD BizModel 不需要在这里注册（已在 _service.beans.xml 自动注册）。
+  3. Delta 覆盖已有 bean：用同名 id 在 _delta/default/{app}/{domain}/beans/app-service.beans.xml
+     里重新注册，会替换基线 bean（见 implement-complex-business-flow.md「派生类覆盖」）。
+
+  详见：
+  - docs-for-ai/02-core-guides/ioc-and-config.md
+  - docs-for-ai/02-core-guides/service-layer.md
+  - docs-for-ai/03-runbooks/implement-complex-business-flow.md
+  - docs-for-ai/05-examples/ibiz-and-bizmodel.java
+-->
