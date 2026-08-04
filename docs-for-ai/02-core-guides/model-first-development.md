@@ -6,26 +6,52 @@
 
 ## 默认流程
 
-1. 修改 `model/*.orm.xml`。
-2. 首次建模块时使用 `nop-cli gen` 生成骨架。
-3. 后续变更优先用 `./mvnw` 触发再生成与构建。
+1. 修改 `model/*.orm.xml`（**orm.xml 是代码生成的唯一源头**）。
+2. 首次建模块时使用 `nop-cli gen` 生成骨架（一次性）。
+3. 后续变更优先用 `./mvnw` 触发再生成与构建（日常主路径）。
 4. 只在非生成文件中写定制逻辑。
 
-## 首次生成骨架
+> **从零创建外部应用项目**（不是已有项目内加实体）：完整步骤见 `../03-runbooks/bootstrap-new-application.md`，包含 nop-cli 获取、项目骨架、最小配置、启动验证。
+
+## 两种 codegen 路径（不要混淆）
+
+| 场景 | 命令/机制 | 触发频率 |
+|------|----------|---------|
+| 首次生成项目骨架（多模块结构） | `nop-cli gen` | **一次性** |
+| 已有项目内改字段/加实体/改关系 | `./mvnw install`（自动跑 `postcompile/gen-orm.xgen`） | 日常每次 |
+| 想在 Excel 里改模型 | `nop-cli convert` orm.xml→xlsx → 编辑 → convert 回 orm.xml → 再 `./mvnw install` | 按需 |
+| IDE 里单步调试生成模板 | 跑 `*-codegen` 模块的 `XxxCodeGen.main()` | 调试 |
+
+### 首次生成骨架（一次性）
 
 ```bash
-nop-cli gen model/{appName}.orm.xml -t=/nop/templates/orm -o=.
+java -jar nop-cli.jar gen -t=/nop/templates/orm model/{appName}.orm.xml -o=.
 ```
 
-这个命令的用途是生成标准业务骨架，而不是日常每次改模型都重跑一遍。
-
-## 后续模型变更
-
-默认优先在项目根目录执行：
+`nop-cli` 是一个 uber-jar，来自 `nop-entropy/nop-runner/nop-cli/`。获取方式：
 
 ```bash
-./mvnw clean install -T 1C
+cd /path/to/nop-entropy
+./mvnw install -pl nop-runner/nop-cli -am -DskipTests
+# 产出 nop-runner/nop-cli/target/nop-cli-2.0.0-BETA.1.jar
 ```
+
+这个命令用于生成标准业务骨架（codegen/api/dao/meta/service/web/app 七个子模块 + `postcompile/gen-orm.xgen` + `XxxCodeGen.java` 调试入口），**不是日常每次改模型都重跑一遍**。
+
+### 后续模型迭代（日常主路径，不需要 nop-cli）
+
+模型已经存在后，只需 `./mvnw clean install -T 1C`。Maven 的 `exec-maven-plugin`（parent pom 已配置）会自动执行每个 `*-codegen` 模块下的 `postcompile/gen-orm.xgen`，从 `model/*.orm.xml` 重新生成 entity/dao/xbiz 等到各子模块。
+
+典型 `postcompile/gen-orm.xgen`：
+
+```xml
+<c:script>
+codeGenerator.withTargetDir("../").renderModel('../../model/app-xxx.orm.xml','/nop/templates/orm', '/',$scope);
+codeGenerator.withTargetDir("../xxx-dao/src/main/java").renderModel('../xxx-dao/src/main/resources/_vfs/.../app.orm.xml','/nop/templates/orm-entity','/',$scope);
+</c:script>
+```
+
+完整两条路径对比、`nop-cli convert` 用法、`XxxCodeGen.main()` 调试入口见 `../03-runbooks/bootstrap-new-application.md` 的「两种 codegen 路径」章节。
 
 ## 模型加载后的 Java 初始化
 

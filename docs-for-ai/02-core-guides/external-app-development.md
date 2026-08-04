@@ -33,9 +33,11 @@
 
 ### 1. 先改源模型
 
-外部应用的源模型通常位于 `model/` 目录下，如 `app-xxx.orm.xlsx`、`app-xxx.orm.xml`、`app-xxx.api.xml`。
+外部应用的源模型通常位于每个业务域模块的 `model/` 目录下，命名 `app-{app}-{domain}.orm.xml`（如 master-data 域对应 `app-erp-master-data.orm.xml`）。
 
-说明：外部应用的 API 模型默认优先维护为 `.api.xml`，便于文本化审阅和 AI 编辑；如需保留 Excel 展示或导出，可同时保留 `.api.xlsx`，但 live codegen 输入应以 `api.xml` 为准。ORM 模型仍可按场景使用 XML 或 Excel。
+**`orm.xml` 是代码生成的唯一源头。** 如果偏好 Excel 编辑体验，可用 `nop-cli convert` 双向互转（orm.xml → xlsx 编辑 → 转回 orm.xml 再生成），但最终生成入口必须以 orm.xml 为准，不要让两份模型并存导致真相分裂。完整 codegen 流程见 `../03-runbooks/bootstrap-new-application.md`。
+
+API 模型默认优先维护为 `.api.xml`，便于文本化审阅和 AI 编辑。
 
 ### 2. 再走 codegen / meta / web 生成链
 
@@ -99,7 +101,7 @@ codegen 入口通常在 `*-codegen` 和 `*-web` 的测试目录中：
 | 所在位置 | `nop-entropy` 主仓库 reactor 内 | 独立工程，但 parent 指向 `nop-entropy` |
 | 目标 | 平台能力 / 标准模块 | 业务应用落地 |
 | 常见附加模块 | 一般按平台模块职责拆分 | 常见 `*-delta`、第三方集成模块 |
-| 模型形式 | `*.orm.xml` 常见 | Excel 模型也很常见 |
+| 模型形式 | `*.orm.xml`（唯一源头，xlsx 仅作人工编辑中间态经 `nop-cli convert` 互转） | 同左 |
 
 ## 默认不要做的事
 
@@ -110,6 +112,7 @@ codegen 入口通常在 `*-codegen` 和 `*-web` 的测试目录中：
 
 ## 相关文档
 
+- `../03-runbooks/bootstrap-new-application.md` — 从零创建外部应用项目（冷启动全流程）
 - `./model-first-development.md`
 - `./delta-customization.md`
 - `./service-layer.md`

@@ -22,7 +22,7 @@
 
 1. 先确认应用项目本地 requirement / design / architecture。
 2. 先改源 ORM 模型，必要时补 `model/*.api.xml`。
-3. 首次建骨架时用 `nop-cli gen`；后续迭代优先用 `./mvnw` 触发增量生成。
+3. 首次建骨架时用 `nop-cli gen`（一次性）；后续迭代优先用 `./mvnw` 触发增量生成。详见 `../03-runbooks/bootstrap-new-application.md` 的「两种 codegen 路径」。
 4. 只在非生成保留层文件中补定制。
 5. 标准 CRUD 优先复用生成结果和 `CrudBizModel<T>`。
 6. CRUD 之外的业务动作默认落在 BizModel；复杂编排再拆 Processor。
@@ -52,7 +52,7 @@
 
 默认先看源 ORM 模型，因为它是结构、字典、关系和大量派生产物的源头。
 
-对外部应用来说，源 ORM 模型既可以是 `model/*.orm.xml`，也可以是 Excel 形式的 ORM 模型；具体以当前应用项目采用的源模型形式为准。
+对外部应用来说，源 ORM 模型是 `model/*.orm.xml`（**orm.xml 是代码生成的唯一源头**）；如果偏好 Excel 编辑体验，可用 `nop-cli convert` 把 orm.xml 转 xlsx 编辑后再转回，详见 `../03-runbooks/bootstrap-new-application.md`。
 
 适合先改 ORM 模型的场景：
 
@@ -85,10 +85,14 @@
 首次创建业务模块时，使用：
 
 ```bash
-nop-cli gen model/{appName}.orm.xml -t=/nop/templates/orm -o=.
+java -jar nop-cli.jar gen -t=/nop/templates/orm model/{appName}.orm.xml -o=.
 ```
 
-这个命令用于生成标准模块骨架，不是每次改模型都重跑的日常入口。
+`nop-cli` 是一个 uber-jar（来自 `nop-entropy/nop-runner/nop-cli/`，获取方式见 `../03-runbooks/bootstrap-new-application.md`）。
+
+这个命令用于生成标准模块骨架（七个子模块 + `postcompile/gen-orm.xgen` + `XxxCodeGen.java` 调试入口），**不是每次改模型都重跑的日常入口**。
+
+从零创建完整外部应用项目（含 app 聚合模块、application.yaml、启动类）的端到端步骤，见 `../03-runbooks/bootstrap-new-application.md`。
 
 ### 后续模型迭代
 

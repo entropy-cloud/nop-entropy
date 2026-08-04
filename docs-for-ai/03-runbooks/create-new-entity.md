@@ -19,8 +19,19 @@
 
 ### 2. 生成或再生成项目产物
 
-- 首次建模块：`nop-cli gen model/{app}.orm.xml -t=/nop/templates/orm -o=.`
-- 后续迭代：`./mvnw clean install -T 1C`
+- 首次建模块（一次性生成完整骨架）：
+
+  ```bash
+  java -jar nop-cli.jar gen -t=/nop/templates/orm model/{app}.orm.xml -o=.
+  ```
+  `nop-cli` 是 uber-jar，获取方式见 `bootstrap-new-application.md`。从零创建外部应用项目时读本 runbook；本文件假设项目骨架已存在。
+
+- 后续迭代（日常主路径，改完模型后）：
+
+  ```bash
+  ./mvnw clean install -T 1C
+  ```
+  Maven 会自动跑 `postcompile/gen-orm.xgen` 重新生成 entity/dao/xbiz，不需要再调 nop-cli。
 
 ### 3. 判断是否真的需要手写 BizModel
 
