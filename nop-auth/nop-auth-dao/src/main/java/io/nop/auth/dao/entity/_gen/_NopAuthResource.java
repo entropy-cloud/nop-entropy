@@ -97,7 +97,7 @@ public class _NopAuthResource extends DynamicOrmEntity{
     public static final String PROP_NAME_authCascadeUp = "authCascadeUp";
     public static final int PROP_ID_authCascadeUp = 19;
     
-    /* 扩展配置: Meta_CONFIG VARCHAR */
+    /* 扩展配置: META_CONFIG VARCHAR */
     public static final String PROP_NAME_metaConfig = "metaConfig";
     public static final int PROP_ID_metaConfig = 20;
     
@@ -307,7 +307,7 @@ public class _NopAuthResource extends DynamicOrmEntity{
     /* 自动更新父节点的权限: AUTH_CASCADE_UP */
     private java.lang.Byte _authCascadeUp;
     
-    /* 扩展配置: Meta_CONFIG */
+    /* 扩展配置: META_CONFIG */
     private java.lang.String _metaConfig;
     
     /* 组件属性: PROPS_CONFIG */
@@ -1356,7 +1356,7 @@ public class _NopAuthResource extends DynamicOrmEntity{
     }
     
     /**
-     * 扩展配置: Meta_CONFIG
+     * 扩展配置: META_CONFIG
      */
     public final java.lang.String getMetaConfig(){
          onPropGet(PROP_ID_metaConfig);
@@ -1364,7 +1364,7 @@ public class _NopAuthResource extends DynamicOrmEntity{
     }
 
     /**
-     * 扩展配置: Meta_CONFIG
+     * 扩展配置: META_CONFIG
      */
     public final void setMetaConfig(java.lang.String value){
         if(onPropSet(PROP_ID_metaConfig,value)){

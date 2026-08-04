@@ -25,12 +25,12 @@
         </prop>
         <prop name="userId" displayName="用户ID" propId="2" i18n-en:displayName="User ID" mandatory="true"
               queryable="true" sortable="true" insertable="true" updatable="true" ext:relation="user">
-            <schema domain="userId" type="java.lang.String" precision="32"/>
+            <schema domain="userId" type="java.lang.String" precision="50"/>
         </prop>
         <prop name="substitutedUserId" displayName="被代理的用户ID" propId="3" i18n-en:displayName="Substituted User"
               mandatory="true" queryable="true" sortable="true" insertable="true" updatable="true"
               ext:relation="substitutedUser">
-            <schema domain="userId" type="java.lang.String" precision="32"/>
+            <schema domain="userId" type="java.lang.String" precision="50"/>
         </prop>
         <prop name="workScope" displayName="工作范围" propId="4" i18n-en:displayName="Work Scope" mandatory="true"
               queryable="true" sortable="true" insertable="true" updatable="true">

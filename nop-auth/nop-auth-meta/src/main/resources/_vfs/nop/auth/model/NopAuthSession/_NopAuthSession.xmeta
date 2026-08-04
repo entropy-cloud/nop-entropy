@@ -25,7 +25,7 @@
         </prop>
         <prop name="userId" displayName="用户ID" propId="2" i18n-en:displayName="User ID" mandatory="true"
               queryable="true" sortable="true" insertable="true" updatable="false" ext:relation="user">
-            <schema domain="userId" type="java.lang.String" precision="32"/>
+            <schema domain="userId" type="java.lang.String" precision="50"/>
         </prop>
         <prop name="userName" displayName="用户名" propId="3" i18n-en:displayName="User Name" mandatory="true"
               queryable="true" sortable="true" insertable="true" updatable="false">

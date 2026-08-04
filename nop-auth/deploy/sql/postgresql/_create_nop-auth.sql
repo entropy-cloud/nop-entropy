@@ -193,7 +193,7 @@ CREATE TABLE nop_auth_ext_login(
 );
 
 CREATE TABLE nop_auth_user_role(
-  user_id VARCHAR(32) NOT NULL ,
+  user_id VARCHAR(50) NOT NULL ,
   role_id VARCHAR(50) NOT NULL ,
   version INT4 NOT NULL ,
   created_by VARCHAR(50) NOT NULL ,
@@ -206,8 +206,8 @@ CREATE TABLE nop_auth_user_role(
 
 CREATE TABLE nop_auth_user_substitution(
   sid VARCHAR(32) NOT NULL ,
-  user_id VARCHAR(32) NOT NULL ,
-  substituted_user_id VARCHAR(32) NOT NULL ,
+  user_id VARCHAR(50) NOT NULL ,
+  substituted_user_id VARCHAR(50) NOT NULL ,
   work_scope VARCHAR(50) NOT NULL ,
   start_time TIMESTAMP  ,
   end_time TIMESTAMP  ,
@@ -222,7 +222,7 @@ CREATE TABLE nop_auth_user_substitution(
 
 CREATE TABLE nop_auth_session(
   session_id VARCHAR(100) NOT NULL ,
-  user_id VARCHAR(32) NOT NULL ,
+  user_id VARCHAR(50) NOT NULL ,
   user_name VARCHAR(100) NOT NULL ,
   tenant_id VARCHAR(32) NOT NULL ,
   login_addr VARCHAR(100)  ,
