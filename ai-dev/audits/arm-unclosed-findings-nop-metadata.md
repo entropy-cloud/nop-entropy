@@ -2,7 +2,7 @@
 
 > **M0.3 交付物** — mission `nop-metadata-audit-remediation` 的 M0.3 工作项（按 `ai-dev/skills/audit-remediation-roadmap-authoring-prompt.md` 步骤 2）。
 > 状态：done
-> 最后更新：2026-08-04
+> 最后更新：2026-08-04（v2 — MA3 复核回填：11-04 证据指针更新、MISSING-AUTH/post-commit-SEMANTIC 复核结论、RACE 初步复核结论）
 > 遍历范围：9 个历史审计来源（07-19 / 07-20×2 / 07-21×2 / 07-23×2，multi+open 双轨 + 07-20 deep 目录）+ 全部 nop-metadata 相关已 completed 修复 plan（`ls ai-dev/plans/ | grep -i "nop-metadata"` 全量 86 份，逐份核对 `Deferred But Adjudicated` / `Closure` 段）。
 > **Finding ID 轮次限定约定**（本清单强制）：`<YYYY-MM-DD-HHmm>#<来源内编号>`（如 `2026-07-19-1118#维度01-01`），杜绝跨轮裸编号冲突；roadmap 后续新发现使用 `P<级别>-<里程碑>-<序号>`。
 
@@ -22,7 +22,7 @@
 | 轮次限定 ID | 标题 | 严重性 | 状态（2026-08-04） | 归属 |
 |------------|------|--------|-------------------|------|
 | `2026-07-19-1118#维度20-01` | `System.currentTimeMillis()` 违反 DDD-006 锚点，残余 2 处（`nop-metadata-dao/.../OrmModelImporter.java:58,68`） | P1 | **open**（live 核实，主代码 10 处已修 8 处） | MR2 机械修复（随 MA4.2/4.5 审计后）；MA6.6 复核 |
-| `2026-07-20-1554#MISSING-AUTH` | 自定义 @BizMutation 缺少细粒度 @Auth 注解 | P1 | watch-only（plan 300 裁定：action-auth 默认关闭 + 粗粒度 mutation 权限兜底；产品策略待定） | MA3.3 审计复核；产品策略决策后起 successor |
+| `2026-07-20-1554#MISSING-AUTH` | 自定义 @BizMutation 缺少细粒度 @Auth 注解 | P1 | watch-only（plan 300 裁定：action-auth 默认关闭 + 粗粒度 mutation 权限兜底；产品策略待定）——**MA3.3 复核（2026-08-04）：维持 watch-only**，全链路实证（ReflectionBizModelBuilder:330-336 兜底 + ApiConfigs 双开关默认 false + app 未配置 + 4 个 action-auth 文件无增量 + GraphQLActionAuthChecker checker==null 跳过）；补充建议归 MR2 | MA3.3 审计复核（已复核）；产品策略决策后起 successor |
 | `2026-07-21-2039#维度16-01` | 19/40 BizModel 零测试（07 plan 已补 5 个高风险；剩余 14 个 CRUD-only BizModel） | P1 | watch-only（plan 07/10 裁定 out-of-scope improvement，CRUD-only 风险由 DAO 层测试 + 框架继承覆盖兜底） | MA4.4/MA4.7 审计复核 |
 
 > 说明：roadmap 规则 1 只处理 P0/P1。P1 中 2 项为已裁定 watch-only residual（有明确 `Why Not Blocking` 记录），1 项 live 确认 open 且为机械修复（MR2 归属）。
@@ -46,7 +46,7 @@
 | `2026-07-23-0714#维度07-004` | DTO 内 `List<Map<String,Object>>` 未类型化（QueryJoinDataResultDTO/AggregationResultDTO.items） | open | MR2（MA1.3 审计后） |
 | `2026-07-23-0714#维度09-02/09-03/09-06`（= `2026-07-21-2039#维度09-01/02/03` + `2026-07-19-1118#维度09-09`） | 静默吞异常（MetaTableProfiler:485、MetaQualityRuleExecutor:599,606、MetaDataSourceConnectionProcessor:285、CheckpointActionDispatcher:323、AggregationContext.safeProductName、TagLabelBizModel.getWfNameFromMeta） | open | MR2（MA4.1 审计后统一补 LOG.warn） |
 | `2026-07-23-0714#维度09-07` | ErrorCode 子域分隔符 hyphen（`nop.err.metadata.aggr-no-measure`）非点号 | watch-only（NopMetadataErrors.java:22 显式文档化有意选择） | MA4.1 复核；跨模块工具需要时再迁移 |
-| `2026-07-23-0714#维度11-04` | computeQualityScore 经 `dao().saveEntity()` 绕过 xmeta insertable 验证 | open（未复核） | MR2（MA3.2 审计后） |
+| `2026-07-23-0714#维度11-04` | computeQualityScore 经 `dao().saveEntity()` 绕过 xmeta insertable 验证 | open（未复核）——**MA3.2 复核（2026-08-04）：OPEN，证据指针更新**——computeQualityScore 本身已修复（`NopMetaQualityScoreBizModel.java:33-62` 改经 doSave 管线，git 802cf2361），绕过本质存活于 `QualityResultWriter.java:40-52` 的 `resultDao.saveEntity(row)`（结果表路径，规则路径 NopMetaQualityRuleBizModel:351-353 + 检查点路径 MetaQualityCheckpointExecutor:122-137 双入口；xmeta 侧 mandatory/dict/fail-fast 校验被跳过） | MR2（MA3.2 审计后） |
 | `2026-07-23-0714#维度16-01`（= `维度16-F2`） | AutoTest 快照覆盖偏低：5/97 测试文件（live 核实 `_cases/` 现有 5 个 AutoTest 类） | open（已从 1 增至 5） | MA4.3 审计 + MR2 增量 |
 | `2026-07-23-0714#维度16-03` | 多实体重复 CRUD 测试反模式 | open | MA4.6/4.7 审计 + MR2 |
 | `2026-07-23-0714#维度16-04` | 4 个接口方法无测试（judgeByRuleId/activateContract/deprecateContract/retireContract） | open | MA4.6 审计 + MR2 |
@@ -55,8 +55,8 @@
 | `2026-07-23-0714#维度16-09` | TestNopMetaQualityRuleBizModel Thread.sleep(1100ms) | open | MA4.6 审计 + MR2 |
 | `2026-07-21-2039#维度07-03`（= `2026-07-20-1816-multi#维度07-03`） | queryAggregation 11 参数未用 @RequestBean（live 核实签名仍 11 参数） | open | MR2（MA1.3 审计后） |
 | `2026-07-23-0714#维度05-08` | CRUD API 代码生成有意禁用（gen-crud-api.xgen 注释） | watch-only（有意设计；所有 BizModel 手写） | MA2.2 复核 |
-| `2026-07-20-1554#post-commit-SEMANTIC` | dispatchActions "post-commit" 语义 = runWithoutTransaction 同步执行 | watch-only（javadoc 已显式文档化隔离语义，设计有意） | MA3.4 审计复核 |
-| `2026-07-20-1554#RACE` | upsertExternalTable 读-写竞态 | 待复核（相关唯一键已补：UK 体系 35+ 键） | MA6.6 复核后定论 |
+| `2026-07-20-1554#post-commit-SEMANTIC` | dispatchActions "post-commit" 语义 = runWithoutTransaction 同步执行 | watch-only（javadoc 已显式文档化隔离语义，设计有意）——**MA3.4 复核（2026-08-04）：维持 watch-only**（BizModel javadoc:354-364 准确且与实现 :365-377 一致）；残留 P3 MA3.4-02（dispatcher javadoc 仍写 onAfterCommit，归 MR1 纯注释） | MA3.4 审计复核（已复核） |
+| `2026-07-20-1554#RACE` | upsertExternalTable 读-写竞态 | 待复核（相关唯一键已补：UK 体系 35+ 键）——**MA3.4 初步复核（2026-08-04）**：UK_NOP_META_TABLE_MODULE_NAME (metaModuleId,tableName) 已阻止并发重复（07-19 a8eefeecb）；无 catch-duplicate+re-read 并发败者非幂等；**新增 P2-MA3-03：schema 维度未进 UK，多 schema 同名表功能与模型冲突**（归 MR2，需 ORM 模型变更） | MA6.6 复核后定论（初步结论已登记） |
 
 ## 未闭包 P3 汇总（deferred successor，不处理）
 

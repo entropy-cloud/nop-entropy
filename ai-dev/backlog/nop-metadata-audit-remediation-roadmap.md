@@ -1,6 +1,6 @@
 # 审计-修复路线图：nop-metadata 全模块组
 
-> 最后更新：2026-08-04（v5 — MA2 四行 done：4 份审计报告产出，2 项 P2 新增归 MR1/MR2 裁决，7 项 P3 新增归 MR2/deferred）
+> 最后更新：2026-08-04（v6 — MA3 四行 done：4 份审计报告产出，0 P0 / 4 P1 新增（MA3.1，归 MR2）+ 1 项复核确认（P1-MA1-001 归 MR1）/ 8 P2 / 17 P3，5 项历史登记复核结论回填）
 > 来源：`ai-dev/skills/audit-remediation-roadmap-authoring-prompt.md`
 > 目标模块组：nop-metadata（8 子模块，~283 main Java / ~97 test Java）
 > 模块组成：`nop-metadata-api`（32 main）、`nop-metadata-core`（2）、`nop-metadata-codegen`（0）、`nop-metadata-dao`（120）、`nop-metadata-meta`（0）、`nop-metadata-service`（128 main + 94 test）、`nop-metadata-web`（0）、`nop-metadata-app`（1）
@@ -51,10 +51,10 @@
 
 | # | Work Item | Status | Owner Doc | Deps | Skill |
 |---|-----------|--------|-----------|------|-------|
-| 3.1 | XDSL 与 XLang 正确性（含 xbiz/xwf） | todo | `nop-metadata/nop-metadata-service/src/main/resources/_vfs/` | 0.4 | `deep-audit-prompts.md`（维度 10） |
-| 3.2 | GraphQL 与 API 层审计 | todo | `nop-metadata/nop-metadata-service/` + `nop-metadata/nop-metadata-api/` | 0.4 | `deep-audit-prompts.md`（维度 12） |
-| 3.3 | 安全与权限模型审计（@Auth/数据鉴权/withConnection 旁路面） | todo | `nop-metadata/nop-metadata-service/src/main/java/io/nop/metadata/service/` | 0.4 | `deep-audit-prompts.md`（维度 13） |
-| 3.4 | 异步与事务模式审计（质量检查点 cron、事件 dispatch） | todo | — | 0.4 | `deep-audit-prompts.md`（维度 14） |
+| 3.1 | XDSL 与 XLang 正确性（含 xbiz/xwf） | done | `nop-metadata/nop-metadata-service/src/main/resources/_vfs/`（报告：`ai-dev/audits/2026-08-04-1136-arm-MA3.1-nop-metadata-xdsl.md`） | 0.4 | `deep-audit-prompts.md`（维度 10） |
+| 3.2 | GraphQL 与 API 层审计 | done | `nop-metadata/nop-metadata-service/` + `nop-metadata/nop-metadata-api/`（报告：`ai-dev/audits/2026-08-04-1156-arm-MA3.2-nop-metadata-graphql.md`） | 0.4 | `deep-audit-prompts.md`（维度 12） |
+| 3.3 | 安全与权限模型审计（@Auth/数据鉴权/withConnection 旁路面） | done | `nop-metadata/nop-metadata-service/src/main/java/io/nop/metadata/service/`（报告：`ai-dev/audits/2026-08-04-1204-arm-MA3.3-nop-metadata-security.md`） | 0.4 | `deep-audit-prompts.md`（维度 13） |
+| 3.4 | 异步与事务模式审计（质量检查点 cron、事件 dispatch） | done | —（报告：`ai-dev/audits/2026-08-04-1212-arm-MA3.4-nop-metadata-async-txn.md`） | 0.4 | `deep-audit-prompts.md`（维度 14） |
 
 ### MA4 — 工程质量审计（全模块）
 
