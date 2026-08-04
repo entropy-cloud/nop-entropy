@@ -62,6 +62,7 @@
 | **E2E 测试** | **`00-required-reading-e2e-testing.md`**（E2E 测试必读总入口） |
 | **E2E 测试排障** | **`02-core-guides/e2e-testing-troubleshooting.md`**（常见失败模式与根因） |
 | 获取项目当前状态快照 | `00-start-here/project-context.md` |
+| **获取平台全局心智模型（是什么/分层/请求流/Delta）** | **`00-start-here/platform-overview.md`** |
 | 在外部 Nop 应用项目中工作 | `00-start-here/application-project-defaults.md` |
 | **从零创建外部应用项目（冷启动：nop-cli 获取/使用、项目骨架、最小配置、启动验证）** | **`03-runbooks/bootstrap-new-application.md`** |
 | 理解业务应用的完整开发闭环 | `02-core-guides/application-development-workflow.md` |
@@ -189,6 +190,7 @@
 | 理解 nop-metadata（联邦式元数据 / BI 语义层 / 血缘 / 质量 / 对账） | `03-modules/nop-metadata.md`（含 I*Biz 接口契约 + 5 大功能场景 + 失败路径显式化原则） |
 | 理解 nop-code 模块（代码索引与分析） | `03-modules/nop-code.md` |
 | 查实现锚点 / 符号定义 | `04-reference/source-anchors.md` |
+| **查术语定义（BizModel/XBiz/Delta/x:extends/路径前缀等单句释义）** | **`04-reference/glossary.md`** |
 | 查看代码示例（ORM 源模型/Entity/BizModel/IBiz/beans 注册/应用配置/Delta） | **`05-examples/README.md`** |
 | 维护 AI 文档 | `90-maintenance/maintenance-rules.md` |
 
@@ -196,12 +198,12 @@
 
 | 目录 | 作用 |
 |------|------|
-| `00-start-here/` | AI 默认规则与全局反模式 |
+| `00-start-here/` | AI 默认规则、全局反模式与平台总览 |
 | `01-repo-map/` | 当前仓库结构、模块分组、文件位置 |
 | `02-core-guides/` | 规范主干，回答“默认应该怎么做” |
 | `03-modules/` | 可复用业务模块文档，回答"这个模块能做什么、怎么用" |
 | `03-runbooks/` | 任务型手册，回答“这件事具体怎么做” |
-| `04-reference/` | 速查与实现锚点，回答“需要看哪个类/方法定义” |
+| `04-reference/` | 速查、实现锚点与术语表，回答“需要看哪个类/方法定义、某术语什么意思” |
 | `06-extensibility/` | 平台级可扩展设计，回答“为什么很多能力可以外置到 DSL / Delta / 元编程” |
 | `90-maintenance/` | 文档治理规则，不是日常开发入口 |
 | `05-examples/` | 精简代码示例，回答"各类文件实际长什么样" |

@@ -40,9 +40,7 @@ Nop Platform 2.0是基于可逆计算原理从零开始构建的采用面向语�
 - nop-entropy在开发期可以作为**支持增量式开发的低代码平台**，自动生成各类代码以及相关文档，在运行期可以作为*
   *面向最终用户的无代码平台的支撑技术**，允许客户在线调整业务模块功能，以所见即所得的方式进行产品迭代。**Nop平台可以作为一个非常精巧的通用SAAS平台底座**，基于它只需要做少量包装即可实现一个完善的针对特定领域的SAAS平台。
 
-目前Nop平台开源的部分主要包含XLang语言的实现，以及ORM、依赖注入容器(IoC)、分布式配置（Config）、GraphQLEngine、报表引擎（Report
-Engine）、任务调度引擎(Job Scheduler)、批处理引擎（Batch Processing Engine）、规则引擎（Rule Engine）等基础框架，
-后续规划包括工作流引擎（Workflow Engine）、商业智能（BI）、流处理引擎等业务开发常用部分。
+目前Nop平台开源的部分主要包含XLang语言的实现，以及ORM、依赖注入容器(IoC)、分布式配置（Config）、GraphQLEngine、报表引擎（Report Engine）、任务调度引擎(Job Scheduler)、批处理引擎（Batch Processing Engine）、规则引擎（Rule Engine）、工作流引擎（Workflow Engine）、流处理引擎（Stream Engine）以及AI大模型集成（Gateway/Agent/RAG/MCP）等基础框架，后续规划主要为商业智能（BI）等业务开发常用部分。
 
 > Nop Platform 2.0的代码是由Entropy Platform 1.0重构而来
 > 最近增加了对国产框架solon的集成，参见[nop-solon](https://gitee.com/canonical-entropy/nop-extensions/tree/master/nop-solon),打包后的jar包大小相比与Spring和Quarkus要降低10多M。
@@ -73,20 +71,21 @@ Engine）、任务调度引擎(Job Scheduler)、批处理引擎（Batch Processi
 | nop-dyn         | 在线设计表单和数据模型、服务函数              | 75%  |
 | nop-workflow    | 下一代工作流引擎                      | 65%  |
 | nop-task        | 下一代逻辑流编排                      | 基本可用 |
-| nop-job         | 分布式任务调度                       | 40%  |
+| nop-job         | 分布式任务调度                       | 50%  |
 | nop-batch       | 下一代批处理引擎                      | 基本可用 |
-| nop-message     | Kafka/Pulsar消息队列封装            | 10%  |
+| nop-message     | Kafka/Pulsar消息队列封装            | 20%  |
 | nop-dbtool      | 数据库导入导出、数据结构比较、同步工具           | 初步实现 |
+| nop-metadata    | 元数据管理、数据治理、数据质量              | 40%  |
 | nop-nosql       | Redis封装                       | 已完成 |
-| nop-stream      | 简化的流处理，可以集成Flink              | 0%   |
-| nop-netty       | TCP/IP服务处理框架                  | 10%  |
+| nop-stream      | 声明式图模型驱动的流处理引擎，可集成Flink        | 50%  |
+| nop-search      | 基于Lucene的全文检索引擎               | 25%  |
+| nop-network     | TCP/IP服务处理框架、RPC通信               | 40%  |
 | nop-datav       | BI数据分析                        | 0%   |
-| nop-ai          | 与AI大模型集成，实现AIGC               | 2%   |
+| nop-ai          | AI大模型集成：MCP、Gateway、Agent、RAG  | 45%  |
 | nop-js          | GraalVM Js引擎封装，在Java中运行JS     | 50%  |
 | nop-integration | 邮件、短信、文件服务等外部服务封装             | 30%  |
 | nop-auth        | 用户权限管理                        | 已完成  |
 | nop-sys         | 系统配置管理                        | 已完成  |
-| nop-ofbiz       | 将Ofbiz的模型文件转换为Nop平台的模型定义      | 0%   |
 
 ## 源码地址
 

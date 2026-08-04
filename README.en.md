@@ -34,9 +34,7 @@ The underlying architecture of the Nop platform does not utilize third-party fra
 
 * Support technology for end-user codeless platform **, allowing customers to adjust business module functions online and iterate products in a WYSIWYG manner.
 
-At present, the open source part mainly includes the implementation of XLang language, as well as ORM, dependency injection container (IoC), distributed configuration (Config), GraphQLEngine, report engine (Report.
-Engine), task scheduling engine (Job Scheduler), batch Prcessing engine (Batch Engine), rule engine (Rule Engine) and other basic frameworks,
-Follow-up planning includes workflow engine (Workflow Engine), business intelligence (BI), flow processing engine and other common parts of business development.
+At present, the open source part mainly includes the implementation of XLang language, as well as ORM, dependency injection container (IoC), distributed configuration (Config), GraphQLEngine, report engine (Report Engine), task scheduling engine (Job Scheduler), batch Processing engine (Batch Engine), rule engine (Rule Engine), workflow engine (Workflow Engine), stream processing engine (Stream Engine), and AI large model integration (Gateway/Agent/RAG/MCP) and other basic frameworks. Follow-up planning is mainly for business intelligence (BI) and other common parts of business development.
 
 > The code of Nop Platform 2.0 is refactored by Entropy Platform 1.0
 > recently, the integration of the domestic framework solon has been increased. see [nop-solon](https://gitee.com/canonical-entropy/nop-extensions/tree/master/nop-solon). the size of the packaged jar package is more than 10 m lower than that of Spring and Quarkus.
@@ -64,18 +62,20 @@ Development Progress:
 | nop-cli         | Encapsulates code generators, file listening, and more as command-line tools        | Basically available |
 | nop-cluster     | Distributed cluster support                                                         | 50%                 |
 | nop-tcc         | Distributed Transactions                                                            | Completed           |
-| nop-dyn         | Design forms, data models, and service functions online                             | Basically available |
+| nop-dyn         | Design forms, data models, and service functions online                             | 75%                 |
 | nop-workflow    | Workflow Engine                                                                     | 65%                 |
 | nop-task        | Logical Flow Orchestration                                                          | Basically available |
-| nop-job         | Distributed Task Scheduling                                                         | 40%                 |
+| nop-job         | Distributed Task Scheduling                                                         | 50%                 |
 | nop-batch       | Batch Engine                                                                        | Basically available |
-| nop-message     | Kafka/Pulsar Message Queue Encapsulation                                            | 10%                 |
+| nop-message     | Kafka/Pulsar Message Queue Encapsulation                                            | 20%                 |
 | nop-dbtool      | Database Import and Export, Data Structure Comparison, Synchronization Tool         | 30%                 |
+| nop-metadata    | Metadata management, data governance, data quality                                  | 40%                 |
 | nop-nosql       | Redis Package                                                                       | Completed           |
-| nop-stream      | Simplified stream processing, which can be integrated with Flink                    | 0%                  |
-| nop-netty       | TCP/IP Service Processing Framework                                                 | 10%                 |
+| nop-stream      | Declarative graph-model-driven stream processing engine, integrable with Flink      | 50%                 |
+| nop-search      | Lucene-based full-text search engine                                                | 25%                 |
+| nop-network     | TCP/IP Service Processing Framework, RPC communication                              | 40%                 |
 | nop-datav       | BI Data Analysis                                                                    | 0%                  |
-| nop-gpt         | Integration with AI Big Model for AIGC                                              | 2%                  |
+| nop-ai          | AI large model integration: MCP, Gateway, Agent, RAG                                | 45%                 |
 | nop-js          | GraalVM Js engine encapsulation to run JS in Java                                   | 50%                 |
 | nop-integration | External service packages such as mail, SMS, and file services                      | 30%                 |
 | nop-auth        | User Rights Management                                                              | Completed           |

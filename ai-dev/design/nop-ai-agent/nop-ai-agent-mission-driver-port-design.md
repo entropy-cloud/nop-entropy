@@ -661,7 +661,7 @@ nop-ai-agent 的 call-agent 三种会话模式（new/continue/fork）+ nop-task 
 - plan 目录：`nop-entropy-master/ai-dev/plans/`
 - plan guide：`ai-dev/plans/00-plan-authoring-and-execution-guide.md`
 - **nop-task 引擎（复用）**：`nop-task/nop-task-core/src/main/java/io/nop/task/`（ITaskFlowManager.java、ITask.java、step/ChooseTaskStep.java、step/GraphTaskStep.java、step/RetryTaskStepWrapper.java、step/TimeoutTaskStepWrapper.java、step/CallTaskStep.java、builder/GraphStepAnalyzer.java）
-- **nop-task DSL schema**：`nop-task/nop-task-ext/_dump/nop-app/nop/schema/task/task.xdef`
+- **nop-task DSL schema**：`nop-kernel/nop-xdefs/src/main/resources/_vfs/nop/schema/task/task.xdef`
 - **task-flow-integration（已落地）**：`ai-dev/design/nop-ai-agent/nop-ai-agent-task-flow-integration.md`
 - call-agent DSL：`nop-ai/nop-ai-toolkit/src/main/resources/_vfs/nop/ai/tools/call-agent.tool.xml`
 - call-agent 执行器：`nop-ai/nop-ai-agent/src/main/java/io/nop/ai/agent/tool/CallAgentExecutor.java`
