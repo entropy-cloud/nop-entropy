@@ -1,6 +1,6 @@
 # 审计-修复路线图：nop-metadata 全模块组
 
-> 最后更新：2026-08-04（v4 — MA1 四行 done：4 份审计报告产出，1 项 P1 归 MR1，2 项 P2 归 MR2）
+> 最后更新：2026-08-04（v5 — MA2 四行 done：4 份审计报告产出，2 项 P2 新增归 MR1/MR2 裁决，7 项 P3 新增归 MR2/deferred）
 > 来源：`ai-dev/skills/audit-remediation-roadmap-authoring-prompt.md`
 > 目标模块组：nop-metadata（8 子模块，~283 main Java / ~97 test Java）
 > 模块组成：`nop-metadata-api`（32 main）、`nop-metadata-core`（2）、`nop-metadata-codegen`（0）、`nop-metadata-dao`（120）、`nop-metadata-meta`（0）、`nop-metadata-service`（128 main + 94 test）、`nop-metadata-web`（0）、`nop-metadata-app`（1）
@@ -42,10 +42,10 @@
 
 | # | Work Item | Status | Owner Doc | Deps | Skill |
 |---|-----------|--------|-----------|------|-------|
-| 2.1 | ORM 模型与实体设计审计（39 实体） | todo | `nop-metadata/model/nop-metadata.orm.xml` | 0.4 | `orm-model-audit-prompt.md` |
-| 2.2 | 生成管线完整性审计 | todo | `nop-metadata/model/` | 0.4 | `deep-audit-prompts.md`（维度 05） |
-| 2.3 | BizModel 规范遵循审计（42 个） | todo | `nop-metadata/nop-metadata-service/src/main/java/io/nop/metadata/service/entity/` | 0.4 | `deep-audit-prompts.md`（维度 07） |
-| 2.4 | IoC 与 Bean 配置审计 | todo | `nop-metadata/*/src/main/resources/_vfs/**/*.beans.xml` | 0.4 | `deep-audit-prompts.md`（维度 08） |
+| 2.1 | ORM 模型与实体设计审计（39 实体） | done | `nop-metadata/model/nop-metadata.orm.xml`（报告：`ai-dev/audits/2026-08-04-0935-arm-MA2.1-nop-metadata-orm-model.md`） | 0.4 | `orm-model-audit-prompt.md` |
+| 2.2 | 生成管线完整性审计 | done | `nop-metadata/model/`（报告：`ai-dev/audits/2026-08-04-0935-arm-MA2.2-nop-metadata-pipeline.md`） | 0.4 | `deep-audit-prompts.md`（维度 05） |
+| 2.3 | BizModel 规范遵循审计（42 个） | done | `nop-metadata/nop-metadata-service/src/main/java/io/nop/metadata/service/entity/`（报告：`ai-dev/audits/2026-08-04-0935-arm-MA2.3-nop-metadata-bizmodel.md`） | 0.4 | `deep-audit-prompts.md`（维度 07） |
+| 2.4 | IoC 与 Bean 配置审计 | done | `nop-metadata/*/src/main/resources/_vfs/**/*.beans.xml`（报告：`ai-dev/audits/2026-08-04-0935-arm-MA2.4-nop-metadata-ioc.md`） | 0.4 | `deep-audit-prompts.md`（维度 08） |
 
 ### MA3 — 运行时与安全审计（service + web）
 

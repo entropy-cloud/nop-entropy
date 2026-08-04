@@ -25,6 +25,10 @@
 | `ai-dev/audits/2026-08-04-0900-arm-MA1.2-nop-metadata-module-boundary.md` | MA1.2 | 02 模块职责与文件边界 | nop-metadata | 0 | 0 新增 | 1 P2 残留 + 3 P3 | done（2026-08-04） |
 | `ai-dev/audits/2026-08-04-0900-arm-MA1.3-nop-metadata-api-contract.md` | MA1.3 | 03 API 表面积与契约一致性 | nop-metadata | 0 | 1 新增（P1-MA1-001，归 MR1） | 2 P2 确认 | done（2026-08-04） |
 | `ai-dev/audits/2026-08-04-0900-arm-MA1.4-nop-metadata-delta.md` | MA1.4 | 06 Delta 定制合规性 | nop-metadata | 0 | 0 | 0 | done（2026-08-04） |
+| `ai-dev/audits/2026-08-04-0935-arm-MA2.1-nop-metadata-orm-model.md` | MA2.1 | 04 ORM 模型与实体设计 | nop-metadata | 0 | 0 新增 | 2 P2 新增 + 12 P3（含 6 历史复核 open） | done（2026-08-04） |
+| `ai-dev/audits/2026-08-04-0935-arm-MA2.2-nop-metadata-pipeline.md` | MA2.2 | 05 生成管线完整性 | nop-metadata | 0 | 0 | 2 P3 新增 + 1 P3 落实证据 | done（2026-08-04） |
+| `ai-dev/audits/2026-08-04-0935-arm-MA2.3-nop-metadata-bizmodel.md` | MA2.3 | 07 BizModel 规范遵循 | nop-metadata | 0 | 0 新增 | 7 P3 新增 + 1 记录项 | done（2026-08-04） |
+| `ai-dev/audits/2026-08-04-0935-arm-MA2.4-nop-metadata-ioc.md` | MA2.4 | 08 IoC 与 Bean 配置 | nop-metadata | 0 | 0 | 3 P3（1 stale javadoc + 2 INFO 记档） | done（2026-08-04） |
 
 > 后续 MA2-MA7 审计报告按 `YYYY-MM-DD-HHmm-arm-<milestone>-nop-metadata-<dimension>.md` 命名登记于此（roadmap 规则 2：产出即更新索引）。
 
@@ -58,7 +62,7 @@
 | Finding ID | 描述 | 归属 |
 |-----------|------|------|
 | `2026-07-21-2039-open#AR-25` | 血缘抽取 N+1 upsert | 已裁定 optimization candidate；MA7.4 复核后按需 MR3 |
-| `2026-07-23-0714#维度07-003` | getEntityById 替代 requireEntity 残余（~10 处，DataSource/DataContract 已修复） | MR2（MA2.3 审计后） |
+| `2026-07-23-0714#维度07-003` | getEntityById 替代 requireEntity 残余（~10 处，DataSource/DataContract 已修复） | MR2（MA2.3 审计后）——MA2.3 复核：16 处/11 文件（B 类跨实体 6 处 + C 类 save 校验 10 处），含 MA2.3 P3-MA2-01 collectCatalogForTable:328 残留 |
 | `2026-07-23-0714#维度07-004` | DTO 内 `List<Map<String,Object>>` 未类型化 | MR2（MA1.3 审计后） |
 | `2026-07-23-0714#维度09-02/03/06` | 静默吞异常（MetaTableProfiler/MetaQualityRuleExecutor/TagLabelBizModel 等 5 处） | MR2（MA4.1 审计后） |
 | `2026-07-23-0714#维度09-07` | ErrorCode hyphen 分隔符约定 | watch-only（NopMetadataErrors.java:22 有意裁定）；MA4.1 复核 |
@@ -66,6 +70,9 @@
 | `2026-07-23-0714#维度16-01` | AutoTest 快照覆盖偏低（5/97 文件） | MA4.3 审计 + MR2 |
 | `2026-07-23-0714#维度16-03/05/07/09` | 测试质量项（重复 CRUD/并发测试/sleep/data-auth 测试） | MA4.6/4.7 审计 + MR2 |
 | `2026-07-21-2039#维度07-03` | queryAggregation 11 参数未用 @RequestBean | MR2（MA1.3 审计后） |
-| `2026-07-23-0714#维度05-08` | CRUD codegen 有意禁用 | watch-only（有意设计）；MA2.2 复核 |
+| `2026-07-23-0714#维度05-08` | CRUD codegen 有意禁用 | watch-only（有意设计）；MA2.2 复核 | MA2.2 复核完成：维持 watch-only（有意设计），CRUD 契约由手工 INopMeta*Biz 接口承担 |
 | `2026-07-19-1118#维度02-01`（残余） | `*Service` 命名违规残留 2 处（NopMetaSearchService / QualityAlertWorkflowService；另 2 处已改 Processor） | MR2（命名批量修复，随 MA4.5/MA5.3 审计后；MA1.2 复核确认） |
 | `2026-07-21-2039#维度07-03` | queryAggregation 11 参数未用 @RequestBean | MR2（MA1.3 审计后——本审计已复核确认仍 open） |
+| `P2-MA2-01`（MA2.1 新增） | NopMetaTagLabel.tag/glossaryTerm 的 refPropName="tagLabels" 反向集合缺失（NopMetaTag/NopMetaGlossaryTerm 无 tagLabels to-many） | MR1/MR2 裁决（model-first：改 orm.xml + codegen） |
+| `P2-MA2-02`（MA2.1 新增） | NopMetaDataProduct.businessDomain 的 refPropName="dataProducts" 反向集合缺失（NopMetaBusinessDomain 无 dataProducts to-many） | MR1/MR2 裁决（model-first） |
+| `P2-MA2-03`（MA2.1 复核历史 07-20-1554#维度04-02 仍 open） | SQL 保留字 PRIMARY/CONSTRAINT 用作列 code（NopMetaEntityUniqueKey:747 / NopMetaEntityRelation:920） | MR1/MR2 裁决（model-first） |
