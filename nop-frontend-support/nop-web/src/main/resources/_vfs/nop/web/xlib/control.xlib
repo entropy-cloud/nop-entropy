@@ -643,7 +643,7 @@
                         "type": "action",
                         "visibleOn": "${" + name+" != null}",
                         "actionType": "download",
-                        "label": "${"+name+"ComponentFileStatus.name}(${"+name+"ComponentFileStatus.fileSize})",
+                        "label": "${"+name+"ComponentFileStatus?.name}(${"+name+"ComponentFileStatus?.fileSize})",
                         "leve": "link",
                         "api": {
                             method: "get",
@@ -673,7 +673,7 @@
                           "title": "文件列表",
                           "body": {
                             "type": "table",
-                            "source": "${"+name+"ComponentFileStatusList}",
+                            "source": "${"+name+"ComponentFileStatusList || []}",
 
                             "columns": [
                               {

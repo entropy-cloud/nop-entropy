@@ -608,7 +608,7 @@ Flux 控件映射库。控件名格式为 {mode}-{type}，与 control.xlib 保�
                     "body" : {
                         "type": "button",
                         "visible": "${" + name+" != null}",
-                        "label": "${"+name+"ComponentFileStatus.name}(${"+name+"ComponentFileStatus.fileSize})",
+                        "label": "${"+name+"ComponentFileStatus?.name}(${"+name+"ComponentFileStatus?.fileSize})",
                         "level": "link",
                         "onClick": {
                             "type": "api",
@@ -638,7 +638,7 @@ Flux 控件映射库。控件名格式为 {mode}-{type}，与 control.xlib 保�
                             "title": "文件列表",
                             "body": {
                                 "type": "table",
-                                "source": "${"+name+"ComponentFileStatusList}",
+                                "source": "${"+name+"ComponentFileStatusList || []}",
                                 "columns": [
                                   {
                                     "name": "name",
