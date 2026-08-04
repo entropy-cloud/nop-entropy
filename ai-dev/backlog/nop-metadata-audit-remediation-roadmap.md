@@ -1,6 +1,6 @@
 # 审计-修复路线图：nop-metadata 全模块组
 
-> 最后更新：2026-08-04（v7 — MA5 四行 done：4 份审计报告产出，0 P0 / 0 P1 新增 / 26 P2（文档 drift 归 MR3、命名/契约 2 项归 MR2）+ 44 P3；MR1 Follow-up 2 处 core.dto 陈旧引用确认归 MR3；P1-MA3-001/002 交叉核对确认仍 open）
+> 最后更新：2026-08-04（v8 — MA6 六行 done：6 份审计报告产出（0 P0 / 1 P1 新增（MA6.1-002，601 家族登记外实例）/ 6 P2 新增 / 16 P3 新增 + 2 informational；RACE 终局定论维持 watch-only + 新增 P2-MA6.6-001 DDL 快照零 UK 发射；16-07 维持 watch-only；20-01 维持 open 归 MR2；P1-MA4-601 登记修正 6 类 18 → 7 类 21、P2-MA4-301 登记修正 3 → 4 个 JOIN processor）；MR2 未启动（执行顺序约束满足）；v7 的 MA5 四行 done 记录保持不变）
 > 来源：`ai-dev/skills/audit-remediation-roadmap-authoring-prompt.md`
 > 目标模块组：nop-metadata（8 子模块，~283 main Java / ~97 test Java）
 > 模块组成：`nop-metadata-api`（32 main）、`nop-metadata-core`（2）、`nop-metadata-codegen`（0）、`nop-metadata-dao`（120）、`nop-metadata-meta`（0）、`nop-metadata-service`（128 main + 94 test）、`nop-metadata-web`（0）、`nop-metadata-app`（1）
@@ -81,12 +81,12 @@
 
 | # | Work Item | Status | Owner Doc | Deps | Skill |
 |---|-----------|--------|-----------|------|-------|
-| 6.1 | 空壳实现扫描（H01） | todo | — | 0.4 | `open-ended-adversarial-review-prompt.md` |
-| 6.2 | 静默跳过检测（H02） | todo | — | 0.4 | `open-ended-adversarial-review-prompt.md` |
-| 6.3 | 接线完整性验证（H03） | todo | — | 0.4 | `open-ended-adversarial-review-prompt.md` |
-| 6.4 | 敏感信息泄露扫描（H05，含 JDBC 凭据/连接串） | todo | — | 0.4 | `open-ended-adversarial-review-prompt.md` |
-| 6.5 | 测试隔离性审查（H06） | todo | — | 0.4 | `open-ended-adversarial-review-prompt.md` |
-| 6.6 | 既有修复验证（H07，07-19~07-23 已修复项） | todo | `ai-dev/audits/arm-unclosed-findings-nop-metadata.md` | 0.3 | `closure-audit-prompt.md` |
+| 6.1 | 空壳实现扫描（H01） | done | —（报告：`ai-dev/audits/2026-08-04-1748-arm-MA6.1-nop-metadata-hollow-scan.md`） | 0.4 | `open-ended-adversarial-review-prompt.md` |
+| 6.2 | 静默跳过检测（H02） | done | —（报告：`ai-dev/audits/2026-08-04-1748-arm-MA6.2-nop-metadata-silent-noop.md`） | 0.4 | `open-ended-adversarial-review-prompt.md` |
+| 6.3 | 接线完整性验证（H03） | done | —（报告：`ai-dev/audits/2026-08-04-1530-arm-MA6.3-nop-metadata-wiring.md`） | 0.4 | `open-ended-adversarial-review-prompt.md` |
+| 6.4 | 敏感信息泄露扫描（H05，含 JDBC 凭据/连接串） | done | —（报告：`ai-dev/audits/2026-08-04-1748-arm-MA6.4-nop-metadata-sensitive-leak.md`） | 0.4 | `open-ended-adversarial-review-prompt.md` |
+| 6.5 | 测试隔离性审查（H06） | done | —（报告：`ai-dev/audits/2026-08-04-1748-arm-MA6.5-nop-metadata-test-isolation.md`） | 0.4 | `open-ended-adversarial-review-prompt.md` |
+| 6.6 | 既有修复验证（H07，07-19~07-23 已修复项） | done | `ai-dev/audits/arm-unclosed-findings-nop-metadata.md`（报告：`ai-dev/audits/2026-08-04-1748-arm-MA6.6-nop-metadata-fix-verification.md`） | 0.3 | `closure-audit-prompt.md` |
 
 ### MA7 — 元数据域特有风险审计（全模块）
 

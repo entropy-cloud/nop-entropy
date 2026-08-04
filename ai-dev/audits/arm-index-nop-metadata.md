@@ -44,6 +44,12 @@
 | `ai-dev/audits/2026-08-04-1605-arm-MA5.2-nop-metadata-doc-consistency.md` | MA5.2 | 18 docs-for-ai 一致性 | nop-metadata | 0 | 0 | 5 P2 + 1 P3（归 MR3） | done（2026-08-04） |
 | `ai-dev/audits/2026-08-04-1610-arm-MA5.3-nop-metadata-naming.md` | MA5.3 | 19 命名与术语一致性 | nop-metadata | 0 | 0 | 1 P2（P2-MA5-301 dataSource 双拼写，MR2 plan-first）+ 6 P3 | done（2026-08-04） |
 | `ai-dev/audits/2026-08-04-1615-arm-MA5.4-nop-metadata-cross-module.md` | MA5.4 | 跨模块契约一致性 | nop-metadata | 0 | 0 新增（P1-MA3-001/002 交叉核对确认归 MR2） | 1 P2 新增（P2-MA5-401）+ 2 P3 | done（2026-08-04） |
+| `ai-dev/audits/2026-08-04-1748-arm-MA6.1-nop-metadata-hollow-scan.md` | MA6.1 | H01 空壳实现扫描 | nop-metadata | 0 | 1 新增（MA6.1-002 = P1-MA4-601 家族登记外实例；登记修正 6 类 18 → 7 类 21 个） | 2 P2（MA6.1-001 死 DTO / MA6.1-003 = P2-MA4-301 家族第 4 个）+ 1 P3（MA6.1-004） | done（2026-08-04） |
+| `ai-dev/audits/2026-08-04-1748-arm-MA6.2-nop-metadata-silent-noop.md` | MA6.2 | H02 静默跳过检测 | nop-metadata | 0 | 0 新增 | 1 P2（MA6.2-002 MetaTableProfiler 空串统计失真）+ 6 P3（MA6.2-001/003..007）；已登记 7 项全部确认仍 open | done（2026-08-04） |
+| `ai-dev/audits/2026-08-04-1530-arm-MA6.3-nop-metadata-wiring.md` | MA6.3 | H03 接线完整性验证 | nop-metadata | 0 | 0 新增 | 0 新增（5 调用链全 PASS；3 watch-only 均为已知项复核） | done（2026-08-04） |
+| `ai-dev/audits/2026-08-04-1748-arm-MA6.4-nop-metadata-sensitive-leak.md` | MA6.4 | H05 敏感信息泄露扫描 | nop-metadata | 0 | 0 新增 | 0 P2（4 P3 + 2 informational；脱敏链无回归、硬编码凭据 0 命中） | done（2026-08-04） |
+| `ai-dev/audits/2026-08-04-1748-arm-MA6.5-nop-metadata-test-isolation.md` | MA6.5 | H06 测试隔离性审查 | nop-metadata | 0 | 0 新增 | 2 P2（MA6.5-001 跨类共享 H2 库 / MA6.5-004 时钟 finally 缺失）+ 5 P3；16-05 复核真测试但浅（P3） | done（2026-08-04） |
+| `ai-dev/audits/2026-08-04-1748-arm-MA6.6-nop-metadata-fix-verification.md` | MA6.6 | H07 既有修复验证 | nop-metadata | 0 | 0 新增（抽样 11 项 10 PASS + 20-01 open 按计划） | 1 P2 新增（MA6.6-001 deploy/sql DDL 零 UK 发射）+ RACE 终局维持 watch-only + 16-07 维持 watch-only | done（2026-08-04） |
 
 > 后续 MA2-MA7 审计报告按 `YYYY-MM-DD-HHmm-arm-<milestone>-nop-metadata-<dimension>.md` 命名登记于此（roadmap 规则 2：产出即更新索引）。
 
@@ -70,11 +76,13 @@
 | `P1-MA3-001` | MA3.1（2026-08-04） | 3 个 xwf 部署在 `/nop/metadata/wf/`（解析器 resolveInDir=`/nop/wf` 不可达）+ `wf-approval:notifyResult` 未 import xlib + quality 流 appState 非法属性——3 条审批流全部不可用（合并 MA3.1-01/02/03） | **MR2**（文件迁移 + x:config import + 属性删除） | open（live 核实，源码级验证） |
 | `P1-MA3-002` | MA3.1（2026-08-04） | NopMetaDataContract Java `approve`/`reject` 被 approval-support XPL 遮蔽（BizObjectBuildHelper merge 优先级），状态生命周期 DRAFT→ACTIVE→DEPRECATED→RETIRED 经 GraphQL 不可达（MA3.1-07） | **MR2**（单一事实源裁定 + 正路径测试） | open（live 核实） |
 | `P1-MA4-401`（= `P1-MA4-701`） | MA4.4/MA4.7（2026-08-04） | judgeByRuleId 测试为空洞断言（`assertNotNull(resp)`，ruleId 用不存在的 `__not_exist__`）：核心逻辑改成抛异常或恒返回 FAIL 测试仍通过；16-04 质量部分维持 open（存在性已闭包——activateContract/deprecateContract/retireContract live 零命中已移除） | **MR2**（重写为行为断言：status 语义 + 错误码） | open（live 核实） |
-| `P1-MA4-601` | MA4.6（2026-08-04） | 6 个 AggregationProcessor 测试类 18 个空壳测试（instanceof/canInstantiate/NPE-on-null），execute() 改错后全部仍通过——JOIN 分派/执行逻辑单元层零保护 | **MR2**（最小行为测试改造） | open（live 核实） |
+| `P1-MA4-601` | MA4.6（2026-08-04） | 6 个 AggregationProcessor 测试类 18 个空壳测试（instanceof/canInstantiate/NPE-on-null），execute() 改错后全部仍通过——JOIN 分派/执行逻辑单元层零保护 | **MR2**（最小行为测试改造）——**MA6.1 复核（2026-08-04）：登记修正——实际 7 个测试类 21 个空壳测试**（第 7 类 TestCrossDbInMemoryAggregationProcessor.java:16-31 的 3 个未登记，MA6.1-002 并入家族） | open（live 核实） |
 
 > P1 未闭包数：**9**（其中 2 项为已裁定 watch-only residual（MISSING-AUTH/16-01），6 项 open 待 MR（20-01/MA3-001/MA3-002/MA1-001/MA4-401/MA4-601）；MA4 复核完成 4 项历史登记：16-01 收敛 19→8 维持 watch-only、16-04 存在性闭包（质量转 P1-MA4-401）、16-09 已修复（无 sleep）、02-01 残余 2 处确认 MR2）。
 >
 > MA5 复核（2026-08-04）：0 新 P1（4 份报告 0 P1）；P1-MA3-001/002（xwf 不可达 + approve/reject 遮蔽）经 MA5.4 机制级交叉核对确认仍 open（归 MR2 不变）；MR1 Follow-up 两项 core.dto 陈旧引用确认归 MR3。
+>
+> MA6 复核（2026-08-04）：P1-MA4-601 登记修正 6 类/18 → 7 类/21 个（MA6.1-002，第 7 类 3 个空壳并入家族，归 MR2 不变）；0 新独立 P1 家族。
 
 ## P2 发现汇总（待 MA 审计复核 / MR 批量修复）
 
@@ -100,13 +108,14 @@
 | `P2-MA3-01`（MA3.1 新增） | NopMetaSearch.xmeta 位于 model/ 扫描根之外实际不可达（P1-MA1-001 修复前置条件 + 假 javadoc） | MR2（放置/javadoc；类型修复本身归 MR1/MA1-001） |
 | `P2-MA3-02`（MA3.2 新增） | entity 路径数据查询绕过 data-auth 过滤合并（queryTableData/queryJoinData/queryAggregation 裸 DAO/EQL，对比 CrudBizModel.java:381） | MR2 |
 | `P2-MA3-03`（MA3.4 新增） | upsertExternalTable schema 维度未进 DB UK——多 schema 同名表功能与模型冲突（RACE 复核新增，非并发也必然 UK 冲突） | MR2（需 ORM 模型变更，plan-first） |
-| `2026-07-20-1554#RACE` | upsertExternalTable 读-写竞态 | **MA3.4 初步复核（2026-08-04）：UK_NOP_META_TABLE_MODULE_NAME 已阻止重复（07-19 a8eefeecb），并发败者无 catch-duplicate+re-read 非幂等；新增 P2-MA3-03；终局定论归 MA6.6** |
+| `2026-07-20-1554#RACE` | upsertExternalTable 读-写竞态 | **MA3.4 初步复核（2026-08-04）：UK_NOP_META_TABLE_MODULE_NAME 已阻止重复（07-19 a8eefeecb），并发败者无 catch-duplicate+re-read 非幂等；新增 P2-MA3-03；终局定论归 MA6.6**。**MA6.6 终局定论（2026-08-04）：维持 watch-only（并发面）**——标准供给路径（initDatabaseSchema=TRUE 模型生成）下 UK 有效阻止并发重复，败者非幂等不产生错误数据（完整性保住），仅浮出虚假错误；**新增 P2-MA6.6-001：deploy/sql 三方言 DDL 快照零 UK 发射**（模型 ~35 unique-key 全部缺失，静态 DDL 供给的部署失去全部 UK 保护）→ 归 MR3/DDL 管线；P2-MA3-03（schema ∉ UK）确认维持归 MR2 | 见上（watch-only + MR2/MR3） |
 | `2026-07-20-1554#post-commit-SEMANTIC` | dispatchActions "post-commit" 语义 = runWithoutTransaction 同步执行 | watch-only（javadoc 已显式文档化隔离语义，设计有意）；**MA3.4 复核（2026-08-04）：维持 watch-only**——BizModel javadoc:354-364 准确且与实现一致；残留 P3 MA3.4-02（dispatcher javadoc 仍写 onAfterCommit，归 MR1 纯注释） |
 | `P2-MA4-001/002`（MA4.1 新增/复核） | 静默吞异常 2 处：NopMetaTagLabelBizModel.getWfNameFromMeta catch-all 无日志、SqlViewFieldTypeInferrer.safeProductName 7 实现中唯一无日志（09-02/03/06 家族） | MR2（补 LOG.warn）；P3 3 处（MetaQualityRuleExecutor fallback 无日志 → trace） |
 | `P2-MA4-101`（MA4.2 新增） | CheckpointExtConfig 强类型 DTO 生产死代码——15-03 迁移只做一半：main 零引用，2 个消费方仍手写 JsonTool.parse+Map 强转 | MR2（消费方改 parseBeanFromText 或撤 DTO javadoc 声明） |
-| `P2-MA4-301`（MA4.3 新增） | 3 个 JOIN AggregationProcessor 单元层空壳（execute() 零保护，与 P1-MA4-601 同源） | MR2 |
+| `P2-MA4-301`（MA4.3 新增） | 3 个 JOIN AggregationProcessor 单元层空壳（execute() 零保护，与 P1-MA4-601 同源）——**MA6.1 复核（2026-08-04）：登记修正——第 4 个 CrossDbInMemoryAggregationProcessor.java:36 同模式（JOIN 跨库 fallback）+ SqlAggregationProcessor.java:26 委托门面同模式（非 JOIN）** | MR2 |
 | `P2-MA4-303`（MA4.3 新增） | 分页测试只验行数不验行集——offset 被忽略的 AR-04 类 bug 无法被捕获 | MR2（断言首行内容） |
 | `P2-MA4-501`（MA4.5 新增） | `*Service` 命名违规 2 处存活（NopMetaSearchService 审计后复发 + QualityAlertWorkflowService 漏网；02-01 残余确认） | MR2（命名批量修复，随 02-01） |
 | `P2-MA4-602`（MA4.6 新增） | helper 镜像测试跨 4 文件重复 30+ 方法（safeAlias/aggSqlOf 逐字复制） | MR2（收敛单一 helper 测试文件） |
 | MA5 新增（2026-08-04，4 份报告） | **P2-MA5-101..186（设计文档 drift 19 项 + 2 项 MR1 Follow-up 确认）**：metaSchema 列名（baseline:189 等 + 05:212）、ConnectionProcessor 改名（baseline 7 处）、SysDaoMessageService 依赖链 2 处、错误码字符串 3 处、CrossDbJoinMerger 迁移、core.dto 陈旧引用 2 处（02-dto:73/api-dto-spec:213 确认归 MR3）、DTO 字段规格 3 项（QualityRuleExecuteResultDTO/QualityScoreResultDTO/ContractCheckResultDTO）、activateContract 族已删（12:269）、JdbcModelDiscoverer 不存在（09:37）、nop-batch 否决残留（09:56）、collectCatalog 返回 DTO、MetaDict 字段清单、事件实体已建模（03:179）、Errors 集中化（03:209）等——全部文档 drift 归 MR3（R3.0 展开器输入）；**P2-MA5-201..206（docs-for-ai）**：core/dto 29 DTO 陈旧 2 处、meta 无 xbeans、xbiz 在 service 非 web、META-001 锚点 plan 状态、syncExternalTables 示例字段——归 MR3；**P2-MA5-301（命名）**：dataSourceId/datasourceType 双拼写（orm.xml:383/:392，需 ORM 变更 plan-first）——MR2 裁决；**P2-MA5-401（跨模块）**：NopMetaTagLabelBizModel.getWfNameFromMeta getProp 恒 null 致自动提审静默失效（与 P2-MA4-001 不同根因）——MR2 | 见各报告（MR3 为主，301/401 归 MR2） |
 | MA4 复核结论（P2 登记区更新） | 09-07 hyphen watch-only 维持（MA4.1）；16-01 AutoTest 5/97 维持 open 且发现 F16-302 名不副实（MA4.3）；16-04 存在性闭包、judgeByRuleId 质量 open（MA4.4/7）；16-09 已修复（MA4.7）；16-03 核心域部分关闭、其余域部分 TagLabelApproval 双文件重复 P3-MA4-704（MA4.6/7）；07-004 维持 MR2 且发现 AggregationRowDTO 零引用（MA4.2）；15-03 基线更新 157/98 裁定维持（MA4.2）；02-01 残余 2 处确认（MA4.5） | 见各报告 |
+| MA6 新增（2026-08-04，6 份报告） | **P1 家族登记修正**：MA4-601 6类/18 → 7类/21 空壳测试（MA6.1-002）；**P2 新增 6 项**：MA6.1-001 AggregationRowDTO 死 DTO（P2-MA4-101 家族）、MA6.1-003 CrossDbInMemory processor 第 4 个零保护 execute、MA6.2-002 MetaTableProfiler 空串统计失真、MA6.5-001 跨类共享 H2 库 meta_q_sql（顺序相关）、MA6.5-004 假时钟缺 finally、MA6.6-001 deploy/sql DDL 零 UK 发射（RACE 终局伴随发现）；**P3 新增 16 项**：MA6.1-004、MA6.2-001/003..007、MA6.5-002/003/005/006/007、MA6.4-01/02/03/04（+2 informational：MA6.4-05/06）；**Decision**：RACE 终局维持 watch-only（并发面）+ P2-MA6.6-001（快照面）、16-07 data-auth 测试维持 watch-only（有意限制声明成立）；20-01 维持 open 归 MR2（OrmModelImporter:58,68）；16-05 复核真测试但浅（P3）；P3-MA4-705 MockMessageService static 原样存续 | 见各报告（MR2/MR3 为主） |
