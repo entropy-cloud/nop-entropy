@@ -195,6 +195,11 @@ Mission Driver 的 closed loop 按**文档顺序**取第一个 `todo` 工作项�
 - **P1 批量通道**：R*.0 展开后，DRAFT_PLANS 按具体 R*.1, R*.2... 修复工作项逐个起草 plan
 - **跨维度裁决通道**：MR4 处理跨维度冲突（无冲突时直接 done）
 
+**P2 裁决通道记录（nop-metadata MA2.1/MR2/MR3 教训沉淀）**：
+- P2 默认**不在 roadmap 范围**；但审计报告显式开辟裁决例外通道（如 MA2.1 报告）时，R*.0 展开器须逐项裁决：**修（in-scope）/ deferred（须带 Why Not Blocking Closure + Successor）**，并把裁决结果写回 roadmap 行 + arm-index §P2——禁止"默认修 P2"把裁决例外当成惯例，也禁止无理由 deferred。
+- 已确认 live defect（如 P2-MA5-401 属 must-fix）不得降级 deferred（Minimum Rule #16）。
+- 裁决先例链可复用：R2.6/R2.9/R2.14/R3.20 破坏性契约变更与条件激活面裁决（沿 07-003 先例）→ MR4 终局归类（watch-only residual / out-of-scope improvement）。
+
 ### 建议里程碑结构（以 nop-ai-agent 为例）
 
 **M0 — 审计编排基线**（前置，所有后续里程碑的依赖）

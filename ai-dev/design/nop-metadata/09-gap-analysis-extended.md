@@ -71,7 +71,7 @@
 ### 4.1 事件模型
 
 ```
-MetaModelChangedEvent            — 元数据变更事件
+NopMetaModelChangedEvent         — 元数据变更事件（已落地为实体）
   ├── eventType                  — "ENTITY_CREATED" | "ENTITY_UPDATED" | "ENTITY_DELETED"
   ├── entityType                 — "MetaEntity" | "MetaTable" | "MetaOrmModel"
   ├── entityId                   — 变更实体 ID
@@ -83,12 +83,12 @@ MetaModelChangedEvent            — 元数据变更事件
   └── extConfig
 ```
 
-实现路径：利用 Nop 的 EventBus 机制，在 MetaEntityRepository 写入后发布事件。
+实现路径：利用 Nop 的 EventBus 机制，在实体写入后经 `MetaModelChangedEventPublisher` 发布 `NopMetaModelChangedEvent`（service/event/ 包）。
 
 ### 4.2 语义类型系统
 
 ```
-MetaSemanticType                 — 语义类型定义（全局）
+NopMetaSemanticType              — 语义类型定义（全局）
   ├── typeName                   — "type/PK" | "type/FK" | "type/Name" | "type/Date" | ...
   ├── displayName                — "主键" | "外键" | "名称" | "日期" | ...
   ├── description                — 类型描述
@@ -110,13 +110,13 @@ Manifest 是在导入 ORM 模型时生成的元数据快照，包含：
 
 ```
 MetaManifest                     — 元数据快照
-  ├── moduleId                   → MetaModule
+  ├── metaModuleId               → MetaModule
   ├── manifestVersion            — 快照版本号
   ├── generatedAt                — 生成时间
   ├── nodes[]                    — 所有节点（MetaEntity, MetaTable, MetaMeasure 等）
   ├── parentMap                  — 父节点映射（依赖关系）
   ├── childMap                   — 子节点映射
-  └── statistics                 — 统计信息
+  └── content                    — 单 JSON CLOB 快照（实体自带列，非 statistics 字段）
 ```
 
 实现路径：手动 action `NopMetaModule__generateManifest(metaModuleId)`（`NopMetaModuleBizModel.generateManifest`）；`importOrmModel` 不自动触发，导入时自动生成为 Non-Blocking Follow-up（05-metadata-import.md §2.3）。

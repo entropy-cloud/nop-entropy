@@ -38,9 +38,9 @@
 - S3. Semantic Layer Phase 3 — BusinessDomain + DataProduct: `done`
 - G1. Governance Phase 1 — DataContract 接入审批流: `done`
 - G2. Governance Phase 2 — TagLabel 治理: `done`
-- G3. Governance Phase 3 — 质量告警工作流: `done`（plan 2026-07-20-2000-3；`NopMetaQualityResult` 新增 `isFalsePositive` 列；`QualityAlertWorkflowService` 实现；`qualityBreachApproval/v1.xwf` 工作流定义；`NopMetaQualityResultBizModel` approve/reject override；`judgeByRuleId` 方法；集成到 `NopMetaQualityRuleBizModel.executeQualityRule` FAIL+ERROR 路径；661 tests；收口所有 Phase 1 + Phase 2 项）
+- G3. Governance Phase 3 — 质量告警工作流: `done`（plan 2026-07-20-2000-3；`NopMetaQualityResult` 新增 `isFalsePositive` 列；`QualityAlertWorkflowProcessor` 实现；`qualityBreachApproval/v1.xwf` 工作流定义；`NopMetaQualityResultBizModel` approve/reject override；`judgeByRuleId` 方法；集成到 `NopMetaQualityRuleBizModel.executeQualityRule` FAIL+ERROR 路径；661 tests；收口所有 Phase 1 + Phase 2 项）
 - S4. Semantic Layer Phase 4 — 传播引擎实现（Lineage-driven TagLabel 传播 + AutoClassification 规则引擎）: `done`（plan 2026-07-22-1500-1；`LineageTagPropagationService` + `AutoClassificationService` 实现；`propagateTags` + `suggestTags` mutations 注册在 `NopMetaTagLabelBizModel`；dict `meta/tag-label-source` 新增 `lineage-propagation`/`auto-classify` 选项；`NopMetadataErrors.java` 新增 4 个 ErrorCode；809 tests）
-- SR. Search — 元数据搜索索引: `done`（plan 312；利用 Nop 平台 ISearchEngine + LuceneSearchEngine 基础设施实现搜索索引构建与查询；覆盖 6 个核心实体（Classification/Tag/GlossaryTerm/MetaTable/MetaEntity/MetaEntityField）；全量索引 NopMetaIndexBuilder + 增量索引 NopMetaSearchService + 搜索 API NopMetaSearchBizModel；`searchMetadata` GraphQL query + `rebuildSearchIndex` mutation；705 tests）
+- SR. Search — 元数据搜索索引: `done`（plan 312；利用 Nop 平台 ISearchEngine + LuceneSearchEngine 基础设施实现搜索索引构建与查询；覆盖 6 个核心实体（Classification/Tag/GlossaryTerm/MetaTable/MetaEntity/MetaEntityField）；全量索引 NopMetaIndexBuilder + 增量索引 NopMetaSearchProcessor + 搜索 API NopMetaSearchBizModel；`searchMetadata` GraphQL query + `rebuildSearchIndex` mutation；705 tests）
 
 ## Status Values
 
@@ -129,7 +129,7 @@
 | 工作项 | 描述 | 状态 |
 |--------|------|------|
 | P3-1 | **SQL 视图创建**：用户输入 SQL，创建 MetaTable(tableType=sql)，运行时解析 SELECT 子句获取字段列表 | done |
-| P3-2 | **MetaTableMeasure 管理**：指标定义（aggFunc: sum/count/avg/min/max/countDistinct），format + currencyUnit | done |
+| P3-2 | **MetaTableMeasure 管理**：指标定义（aggFunc: sum/count/avg/min/max/count_distinct），format + currencyUnit | done |
 | P3-3 | **MetaTableDimension 管理**：维度定义，关联 MetaEntityField | done |
 | P3-4 | **MetaTableFilter 管理**：过滤条件定义 | done |
 | P3-5 | **MetaTableJoin 管理**：跨表关联（inner/left/right），leftField/rightField 关联条件 | done |
@@ -218,8 +218,8 @@
 
 | 工作项 | 描述 | 状态 |
 |--------|------|------|
-| G3-1 | `NopMetaQualityRuleBizModel.executeQualityRule` 在 FAIL + severity=ERROR 时调用 `QualityAlertWorkflowService.createAlertWorkflow` | done |
-| G3-2 | `QualityAlertWorkflowService` 使用 `IWorkflowManager.newWorkflow()` 创建 `qualityBreachApproval` 工作流实例 | done |
+| G3-1 | `NopMetaQualityRuleBizModel.executeQualityRule` 在 FAIL + severity=ERROR 时调用 `QualityAlertWorkflowProcessor.createAlertWorkflow` | done |
+| G3-2 | `QualityAlertWorkflowProcessor` 使用 `IWorkflowManager.newWorkflow()` 创建 `qualityBreachApproval` 工作流实例 | done |
 | G3-3 | 定义 `qualityBreachApproval/v1.xwf`（owner-investigate → 自动验证） | done |
 
 ### SR. Search — 元数据搜索索引（计划 312）
@@ -230,7 +230,7 @@
 |--------|------|------|
 | SR-1 | 搜索策略设计（审计 ISearchEngine API、字段映射、权重、索引策略、API 签名） | done |
 | SR-2 | 基础设施 + 全量索引构建（pom.xml 依赖、NopMetaIndexBuilder、rebuildSearchIndex mutation） | done |
-| SR-3 | 增量索引（NopMetaSearchService、6 个 BizModel save/delete hook、OrmModelImporter 导入路径） | done |
+| SR-3 | 增量索引（NopMetaSearchProcessor、6 个 BizModel save/delete hook、OrmModelImporter 导入路径） | done |
 | SR-4 | 搜索 API + 集成测试（searchMetadata query、SearchResultDTO/SearchHitDTO、17 新增单元测试） | done |
 
 ---

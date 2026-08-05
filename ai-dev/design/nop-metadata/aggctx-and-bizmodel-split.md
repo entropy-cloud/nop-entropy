@@ -5,7 +5,7 @@
 
 ## Decision 1: AggregationContext → AggregationHelper + extracted resolvers
 
-**AggregationContext.java (1854 lines → ~464 lines)**
+**AggregationContext.java (1854 行 → 当前 382 行)**
 
 Keep in `AggregationContext`:
 - Per-request state fields + constructor + getters/setters
@@ -14,7 +14,7 @@ Keep in `AggregationContext`:
 - `JoinFieldResolverFn` functional interface
 
 Extract to `AggregationHelper.java` (same package, package-level utility class):
-- All public static helper methods (34 methods): `safeAlias`, `buildResult`, `aggSqlOf`, `executeJdbcQuery`, `collectRows`, `requireName`, `resolveTableColumnNames`, `resolveExternalFieldOrThrow`, `resolveSharedDataSourceOrThrow`, `resolveEntityColumns`, `rewriteFilterToColumns`, `resolveEntityFieldColumn`, `buildNameToExprTable`, `buildJoinNameToExprTable`, `nameResolverFor`, `buildOrderByClause`, `loadMeasures`, `loadDimensions`, `endpointTypeOf`, `newArrayHolder`, `containsIgnoreCase`, `equalsStr`, `crossDbAliasOf`, `getCaseInsensitiveObj`, `findKeyIgnoreCase`, `safeProductName`, `messageOf`, `externalTableFromForJoin`, `buildEntityFromClause`, `isEntityTableVisible`, `checkTableExists`, `toBigDecimal`, `buildFromClause`, `buildExternalAggregationSql`, `collectBindParams`, `buildExternalExternalJoinSql`, `buildMixedSameDbJoinSql`, `buildCrossDbNameToAliasTable`, `resolveAndValidateLookupKeys`, `memoryGroupBy`, `truncateCrossDb`, `loadJoinMeasuresWithResolver`, `loadJoinDimensionsWithResolver`
+- All public static helper methods (43 个，计数以 live 为准): `safeAlias`, `buildResult`, `aggSqlOf`, `executeJdbcQuery`, `collectRows`, `requireName`, `resolveTableColumnNames`, `resolveExternalFieldOrThrow`, `resolveSharedDataSourceOrThrow`, `resolveEntityColumns`, `rewriteFilterToColumns`, `resolveEntityFieldColumn`, `buildNameToExprTable`, `buildJoinNameToExprTable`, `nameResolverFor`, `buildOrderByClause`, `loadMeasures`, `loadDimensions`, `endpointTypeOf`, `newArrayHolder`, `containsIgnoreCase`, `equalsStr`, `crossDbAliasOf`, `getCaseInsensitiveObj`, `findKeyIgnoreCase`, `safeProductName`, `messageOf`, `externalTableFromForJoin`, `buildEntityFromClause`, `isEntityTableVisible`, `checkTableExists`, `toBigDecimal`, `buildFromClause`, `buildExternalAggregationSql`, `collectBindParams`, `buildExternalExternalJoinSql`, `buildMixedSameDbJoinSql`, `buildCrossDbNameToAliasTable`, `resolveAndValidateLookupKeys`, `memoryGroupBy`, `truncateCrossDb`, `loadJoinMeasuresWithResolver`, `loadJoinDimensionsWithResolver`
 
 Extract resolvers to separate top-level classes (same package):
 - `CrossDbFieldResolver` → separate file (was inner class, 206 lines)
@@ -26,7 +26,7 @@ Rationale: resolvers are service classes with database access, not data types. E
 
 ## Decision 2: NopMetaTableBizModel → NopMetaTableQueryAction (Helper)
 
-**NopMetaTableBizModel.java (902 lines → 389 lines)**
+**NopMetaTableBizModel.java (902 lines → 当前 357 lines)**
 
 Keep in `NopMetaTableBizModel`:
 - CRUD overrides (save/delete)
@@ -43,7 +43,7 @@ Note: Two `@BizModel` approach was attempted but Nop framework does not support 
 
 ## Decision 3: NopMetaLineageEdgeBizModel → NopMetaLineageEdgeQueryAction (Helper)
 
-**NopMetaLineageEdgeBizModel.java (885 lines → 168 lines)**
+**NopMetaLineageEdgeBizModel.java (885 lines → 当前 169 lines)**
 
 Keep in `NopMetaLineageEdgeBizModel`:
 - CRUD + `recordLineage` mutation

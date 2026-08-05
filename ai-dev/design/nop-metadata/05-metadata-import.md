@@ -77,7 +77,7 @@ orm.xml
 | **A. 单行 JSON CLOB** | **选定** | 与 dbt manifest.json 对齐，自包含、易导出/喂给 AI，查询频率低 |
 | B. 规范化多实体（ManifestNode/ManifestEdge） | 拒绝 | 增加表数量与 JOIN 成本，Manifest 整体消费为主 |
 
-`content` 列定义：`domain="mediumtext"` + `stdDomain="json"`（VARCHAR 16777216，可装下整模块快照）。**不得用 `json-4000`**——4000 字符对整模块 Manifest 远不够。
+`content` 列定义：`domain="mediumtext"` + `stdDomain="json"`（VARCHAR 16777215，可装下整模块快照）。**不得用 `json-4000`**——4000 字符对整模块 Manifest 远不够。
 
 ### 3.2 快照粒度
 
@@ -143,7 +143,7 @@ NopMetaManifest                  — 模块元数据快照（每模块版本一�
 - `metadata.moduleId` 取 NopMetaModule.moduleId（业务标识，含 `/`，如 `nop/auth`，**不做归一化**——这是模块的业务标识）。
 - `nodes` 的 **key** 与节点 `uniqueId` 使用归一化 moduleId（见 §五 D4），如 `entity.nop.auth.NopMetaUser`。
 - 首版 `nodes` 仅含 **entity** 节点（`resourceType: "entity"`）。table/measure/exposure 节点为后续 Phase。
-- `sources` 首版来自模块内实体引用到的 querySpace（及全局 NopMetaDataSource）；当前为 querySpace 维度。
+- `sources` 首版仅来自模块内实体引用到的 querySpace（`MetaManifestBuilder.buildSources` 仅收集实体 querySpace，无 NopMetaDataSource 来源条目）；当前为 querySpace 维度。
 - `parentMap` / `childMap` 首版仅来自 MetaEntityRelation（见 §五）。
 
 ### 3.5 Manifest 用途
@@ -191,7 +191,7 @@ NopMetaCatalog                    — 物理运行时统计快照（每表每收
 
 **决策**：首版仅 `tableType=external` 类型表。外部表有明确注册数据源（P2-1/P2-2），`collectCatalog(dataSourceId)` 连接该数据源 → 找到该 querySpace 下的 external NopMetaTable → 按其 `tableName` 收集统计。
 
-entity/sql 类型表收集（需 `querySpace → 数据源` 解析，entity 的 querySpace 由引用实体决定）为显式 Non-Blocking Follow-up，不阻塞 external Catalog 结果面成立。
+entity/sql 类型表收集（需 `querySpace → 数据源` 解析，entity 的 querySpace 由引用实体决定）**已落地**：任意 tableType 经 `collectCatalogForTable(metaTableId, ...)` 支持（`NopMetaDataSourceBizModel`），非 follow-up。
 
 ### 4.4 统计获取与降级策略（D1）
 

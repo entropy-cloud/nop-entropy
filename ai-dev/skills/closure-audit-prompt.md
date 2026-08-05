@@ -22,6 +22,7 @@
 - 任务路由和记录的技能使用是否仍然与交付的工作匹配
 - 是否在没有持久证据的情况下放宽了任何自主权或待办事项状态
 - 是否隐藏了验证失败或未运行的命令
+- **Anti-Hollow 调用链追踪（nop-metadata 教训 08/12/13 沉淀）**：对每个声称"已修复/已接线"的 finding，追踪一条从入口到出口的运行时调用链（如 xwf 审批流 → *end 守卫 → approve XPL → 状态迁移；BeanMethodJobInvoker → executeScheduledCheckpoint → raw impl），确认修复所在组件在活路径上被实际调用——"校验函数存在"≠"被调用"、"测试存在"≠"能捕获回归"（空洞断言测试必须用真实输入验证行为语义）；重写/迁移类修复（xlib→c:script 等）须核对语义保持（结束原因判定、fail-closed）而非仅语法可解析
 - **Owner-doc → 代码一致性抽样核查**：对本计划涉及的每个 owner doc 随机抽 2 个关键断言（状态名/字段名/角色名/迁移路径/ErrorCode），对照 `*.orm.xml` / BizModel / `*Errors.java` / `*Constants.java` 核验是否漂移。**发现 ≥2 处漂移**则升级为 `needs revision`；1 处漂移记 Minor 但仍 passes；0 处漂移正常 passes。
 
 **强制验证范围检查（历史教训：声明"full-green"时实际只跑了局部模块测试）：**

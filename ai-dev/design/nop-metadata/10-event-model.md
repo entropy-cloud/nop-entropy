@@ -124,7 +124,7 @@ NopMetaModelChangedEvent            — 元数据变更事件（时序追加行�
 
 ### 3.1 发布 helper（service 层 IoC bean）
 
-落点：`io.nop.metadata.service.event.MetaModelChangedEventPublisher`（IoC bean，`@Inject IEntityDao<NopMetaModelChangedEvent>`）。
+落点：`io.nop.metadata.service.event.MetaModelChangedEventPublisher`（IoC bean，`@Inject IDaoProvider`）。
 
 契约：
 

@@ -18,7 +18,7 @@
 | 对齐维度 | Maven 行为 | nop-metadata 应对 |
 |---------|-----------|------------------|
 | 打包 | `mvn package` 按模块执行 | 一个模块版本 = 一次发布 |
-| 发布 | Maven 仓库按 `groupId:artifactId:version` 索引 | MetaModule.version 对应 Maven version |
+| 发布 | Maven 仓库按 `groupId:artifactId:version` 索引 | MetaModule.moduleVersion 对应 Maven version |
 | 依赖 | 模块间依赖声明在 pom.xml | MetaModule 的 baseModuleId 表达继承 |
 | 不变性 | 已发布的 artifact 不可变 | 模块版本 released 后不可变 |
 
@@ -58,14 +58,14 @@ MetaModule                        — 模块（版本管理基本粒度）
   ├── moduleId                    — "nop/auth"（唯一标识）
   ├── moduleName                  — "nop-auth"
   ├── displayName                 — "Nop 认证模块"
-  ├── version                     — long，模块版本号（发布后不可变）
+  ├── moduleVersion             — long，模块版本号（发布后不可变）
   ├── baseModuleId                → MetaModule（Delta 继承的 base 模块版本，null 表示无继承）
   ├── status                      — "DRAFTING" | "RELEASED" | "DEPRECATED"（dict `meta/module-status`，大写值）
   ├── importedAt                  — 导入时间
   │
   ├── mavenGroupId                — Maven groupId（如 "io.nop"）
   ├── mavenArtifactId             — Maven artifactId（如 "nop-auth"）
-  ├── mavenVersion                — Maven 版本号（如 "1.2.3"，与内部 version 对应）
+  ├── mavenVersion                — Maven 版本号（如 "1.2.3"，与内部 moduleVersion 对应）
   │
   ├── gitRepoPath                 — Git 仓库路径（如 "/Users/abc/sources/nop-entropy"）
   ├── gitBranch                   — Git 分支（如 "main", "feature/xxx"）
@@ -101,10 +101,10 @@ nop-app-mall v2 (drafting)         baseModuleId = nop-auth v2
 
 | 视图 | 查询条件 | 用途 |
 |------|---------|------|
-| 模块当前版本 | `moduleId=? AND status='released'` | 获取最新已发布版本 |
-| Delta 定义 | `moduleId=? AND version=? AND isDelta=true` | 本模块自己声明了什么 |
-| Full 定义 | `moduleId=? AND version=? AND isDelta=false` | 合并后完整模型 |
-| 版本历史 | `moduleId=? ORDER BY version DESC` | 版本演进时间线 |
+| 模块当前版本 | `moduleId=? AND status='RELEASED'` | 获取最新已发布版本 |
+| Delta 定义 | `moduleId=? AND moduleVersion=? AND isDelta=true` | 本模块自己声明了什么 |
+| Full 定义 | `moduleId=? AND moduleVersion=? AND isDelta=false` | 合并后完整模型 |
+| 版本历史 | `moduleId=? ORDER BY moduleVersion DESC` | 版本演进时间线 |
 | 版本对比 | 两个版本的 full 定义 diff | 变更影响分析 |
 
 ---
@@ -126,8 +126,8 @@ MetaModule (version)
 
 ```
 MetaOrmModel                    — ORM 模型（属于某个模块版本）
-  ├── modelId                   — PK
-  ├── moduleId                  → MetaModule
+  ├── ormModelId                — PK
+  ├── metaModuleId              → MetaModule
   ├── modelName                 — "nop-auth"（同一模块内分组 key）
   ├── isDelta                   — true: 本模块声明的 delta, false: 合并后的 full
   ├── sourceContent             — CLOB，orm.xml 原文
@@ -175,7 +175,7 @@ orm.xml → buildModule(moduleVersion = max(same moduleId)+1, status=DRAFTING)
 1. 用户在 UI 上选择模块版本
 2. 检查 MetaModule.status = DRAFTING（只有 DRAFTING 可发布）
 3. 设置 MetaModule.status = released
-4. version 字段在 import 时已分配，发布后不可变
+4. moduleVersion 字段在 import 时已分配，发布后不可变
 5. 发布 `NopMetaModelChangedEvent` 事件（实体已建模：`nop-metadata.orm.xml` NopMetaModelChangedEvent + dict `meta/change-source`；`releaseModule` 经 `MetaModelChangedEventPublisher` 发布 UI 事件，见 10-event-model.md）
 ```
 
@@ -195,7 +195,7 @@ orm.xml → buildModule(moduleVersion = max(same moduleId)+1, status=DRAFTING)
 
 **行为**:
 
-1. 按 `metaModuleId` 加载 NopMetaModule；不存在则抛 `NopException`（ErrorCode `metadata.module-not-found`，`.param("metaModuleId", id)`）
+1. 按 `metaModuleId` 加载 NopMetaModule；不存在则经 `requireEntity`（CrudBizModel doGetEntity）抛 `UnknownEntityException`（`ERR_MODULE_NOT_FOUND` 仅 generateManifest 路径使用）
 2. 校验 `status == "DRAFTING"`；非 drafting 抛 `NopException`（ErrorCode `metadata.module-not-drafting`，`.param("status", currentStatus)`）
 3. 设 `status = "RELEASED"`，保存（`dao().updateEntity(module)`）
 4. 返回更新后的 NopMetaModule
@@ -221,7 +221,7 @@ orm.xml → buildModule(moduleVersion = max(same moduleId)+1, status=DRAFTING)
 |-----------|-------------------|
 | groupId | MetaModule 的组织前缀（如 `io.nop`） |
 | artifactId | MetaModule.moduleId 的最后一段（如 `auth`） |
-| version | MetaModule.version |
+| moduleVersion | MetaModule.moduleVersion |
 | packaging | 由模型类型决定（ORM = Java POJO） |
 | dependencies | MetaModule 的 baseModuleId + 额外依赖 |
 

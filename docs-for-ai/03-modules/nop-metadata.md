@@ -129,8 +129,8 @@ mutation {
 
 | 子模块 | 用途 |
 |--------|------|
-| `nop-metadata-api` | DTO 类（`io.nop.metadata.api.dto.*`，32 个 `@DataBean`），供 Biz 接口和跨模块调用契约引用 |
-| `nop-metadata-core` | 共享常量（`_NopMetadataCoreConstants`，70+ 表/数据源/血缘/质量等枚举常量）——**无 dto 包** |
+| `nop-metadata-api` | DTO 类（`io.nop.metadata.api.dto.*`，31 个 `@DataBean`），供 Biz 接口和跨模块调用契约引用 |
+| `nop-metadata-core` | 共享常量（`_NopMetadataCoreConstants`，125 个表/数据源/血缘/质量等枚举常量）——**无 dto 包** |
 | `nop-metadata-dao` | ORM 实体 + BizModel 接口（`INopMeta*Biz`）—— Biz 接口因引用 dao.entity.* 类型而驻留在此，不迁至 api |
 | `nop-metadata-codegen` | Codegen 生成入口（`nop-metadata/nop-metadata-codegen/src/test/java/io/nop/metadata/codegen/NopMetadataCodeGen.java`）；实际模板在 `nop-metadata-meta/_templates/` |
 | `nop-metadata-meta` | xmeta（`_vfs/nop/metadata/model/*/`，78 个）+ dict（`dict/meta/*.dict.yaml`）+ i18n + codegen xgen 脚本（precompile/postcompile）+ `_templates/` |
@@ -164,7 +164,7 @@ nop-metadata 严格遵循"无静默跳过"原则（plan 2026-07-19-1250-3 Phase 
 
 - 平台主文档：`docs-for-ai/03-modules/nop-metadata.md`（本文档）
 - I*Biz 接口契约（`nop-metadata-dao/.../biz/INopMeta*Biz.java`）：每个 BizModel 都有对应接口声明全部自定义方法签名
-- DTO 规格（`nop-metadata-api/.../dto/`）：32 个 `@DataBean` DTO 类承载 API 返回值强类型契约
+- DTO 规格（`nop-metadata-api/.../dto/`）：31 个 `@DataBean` DTO 类承载 API 返回值强类型契约
 - ErrorCode 集中化（`nop-metadata-service/.../NopMetadataErrors.java`）：跨文件去重 + ARG_* 参数常量
 - 模块级异常（`NopMetadataException`）：替代 `IllegalArgumentException` / `UnsupportedOperationException` / 裸 `RuntimeException`
 

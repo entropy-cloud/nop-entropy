@@ -52,9 +52,19 @@
    - tableName 与域前缀一致。
    - 列 name camelCase、code UPPER_SNAKE_CASE。
 
+8. 唯一约束 DDL 物化（nop-metadata MA7.3-01 / P2-MA6.6-001 教训 09）
+   - 每个 `<unique-key>` 必须带 `constraint` 属性（`ddl.xlib` 的 DDL 发射门）；`grep -c '<unique-key name='` 与 `grep -c 'constraint='` 计数必须相等——无 constraint 的 UK 在 `deploy/sql/**` 三方言 DDL 中静默缺失，数据完整性保护在部署层丢失且构建不报错。
+   - 核对 `deploy/sql/{mysql,oracle,postgresql}/**` 每张表的 UNIQUE 约束数 == 模型 UK 数；有 DdlSqlCreator 断言测试则核对测试是否覆盖三方言计数与列集。
+   - 模型结构变更后必须 codegen 再生成 `deploy/sql`（不手改 DDL）。
+
+9. model-first 落地核对（教训 05/06）
+   - `_gen/` 与源模型一致性：模型变更后重新生成，diff 应为空；生成产物时间戳不旧于源模型。
+   - 生成产物（`_*.xml`、`_gen/*.java`、`_service.beans.xml` 等）无手写修改痕迹——修复必须上移到源模型/模板/Delta 层，不在生成物上做。
+   - 源模型限制（如凭证字段 tagSet、UK constraint）在下游生成物（xmeta/DDL/实体类）可复现，不只在 Delta 层兜底。
+
 严重性指南：
-- `blocker`：类型非法、关系断裂（无声明）、标准字段缺失影响业财一体、DAG 循环。
-- `major`：字典规范违规、跨域命名冲突。
+- `blocker`：类型非法、关系断裂（无声明）、标准字段缺失影响业财一体、DAG 循环、UK 零 constraint 导致 DDL 零发射（数据完整性丢失）。
+- `major`：字典规范违规、跨域命名冲突、deploy/sql 与模型 UK 不一致无断言保护、生成产物手写修改。
 - `minor`：冗余声明、列顺序优化、注释缺失。
 
 按严重性返回发现，附：受影响文件与行、问题、修复建议。最后给：

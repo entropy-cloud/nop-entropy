@@ -82,7 +82,7 @@ public class MetaModelChangedEvent {
 }
 ```
 
-实现路径: 利用 Nop 的 EventBus 机制，在 MetaEntityRepository 写入后发布事件。
+实现路径: 利用 Nop 的 EventBus 机制，在实体写入后经 `MetaModelChangedEventPublisher` 发布 `NopMetaModelChangedEvent`。
 
 ---
 

@@ -348,7 +348,7 @@ sequenceDiagram
 - ✅ retention `NopMetaTagLabel.xbiz` 覆盖 `approve`/`reject` action（设置 state=Confirmed/Suggested + approveStatus + approvedBy/approvedAt + 驳回理由）
 - ✅ `NopMetaTagLabelBizModel` Java save hook 自动触发审批（Manual→Confirmed，Derived/Propagated/Automated→submitForApproval）
 - ✅ 传播引擎路径：`syncTagLabels` 和 `propagateFromGlossaryTerm` 使用 BizModel invoke 创建 TagLabel（确保审批触发）
-- ✅ 新增 `NopMetadataErrors` ErrorCode：`ERR_TAG_LABEL_NOT_FOUND`、`ERR_TAG_LABEL_INVALID_LABEL_TYPE`
+- ✅ 新增 ErrorCode：`ERR_TAG_LABEL_NOT_FOUND`、`ERR_TAG_LABEL_INVALID_LABEL_TYPE`（定义于 `MiscErrors.java` + `NopMetadataArgs.java` 参数常量，经 `NopMetadataErrors extends MiscErrors` 聚合可达）
 - ✅ 新增 ErrorCode 参数常量：`ARG_TAG_LABEL_ID`、`ARG_LABEL_TYPE`
 - ✅ 单元测试 6 个 + 集成测试 4 个（Manual/Derived 状态转换 + approve/reject GraphQL 路径 + 幂等性）
 - **依赖**：Phase 1 of 11-enterprise-semantic-layer（Classification/Tag/TagLabel 实体到位）
@@ -357,9 +357,9 @@ sequenceDiagram
 
 - ✅ `NopMetaQualityResult` 新增 `isFalsePositive` 列（boolFlag, nullable）
 - ✅ 定义 `qualityBreachApproval/v1.xwf`（owner-investigate → verify → end）
-- ✅ 新建 `QualityAlertWorkflowService`（`createAlertWorkflow` + `reJudge`）
-- ✅ `NopMetaQualityRuleBizModel.executeQualityRule` 在 FAIL + severity=ERROR 时调用 `QualityAlertWorkflowService.createAlertWorkflow`
-- ✅ `QualityAlertWorkflowService` 通过 `IWorkflowManager.newWorkflow("qualityBreachApproval", ...)` 创建 nop-wf 工作流实例
+- ✅ 新建 `QualityAlertWorkflowProcessor`（`createAlertWorkflow` + `reJudge`）
+- ✅ `NopMetaQualityRuleBizModel.executeQualityRule` 在 FAIL + severity=ERROR 时调用 `QualityAlertWorkflowProcessor.createAlertWorkflow`
+- ✅ `QualityAlertWorkflowProcessor` 通过 `IWorkflowManager.newWorkflow("qualityBreachApproval", ...)` 创建 nop-wf 工作流实例
 - ✅ `NopMetaQualityResultBizModel` override `approve` / `reject`（agree→re-judge, disagree→isFalsePositive）
 - ✅ `NopMetaQualityRuleBizModel.judgeByRuleId` 公有方法：从 DB 加载 rule 全参并执行 judge
 - ✅ 集成测试覆盖 FAIL+ERROR→workflow→agree→re-judge 和 disagree→falsePositive 两条路径

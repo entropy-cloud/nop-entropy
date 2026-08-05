@@ -54,7 +54,7 @@
 
 ```
 MetaDomain                        — 域定义
-  ├── modelId                     → MetaOrmModel（所属模型，即所属模块版本）
+  ├── ormModelId                  → MetaOrmModel（所属模型，即所属模块版本）
   ├── isDelta                     — true: 本模块声明, false: 合并后
   ├── domainName                  — "amount"（唯一标识）
   ├── displayName                 — "金额"
@@ -103,11 +103,11 @@ MetaDict                          — 字典定义
   （无 isGlobal/sourceModuleId/extConfig——这些字段属 NopMetaDomain 而非 NopMetaDict）
 
 MetaDictItem                      — 字典项
-  ├── dictId                      → MetaDict
+  ├── metaDictId                  → MetaDict
   ├── itemValue                   — "DRAFT"
   ├── itemLabel                   — "草稿"
   ├── itemCode                    — "01"（可选编码）
-  ├── group                       — 分组（可选）
+  ├── itemGroup                   — 分组（可选）
   ├── description                 — 描述
   ├── sortOrder                   — 排序
   ├── deprecated                  — 是否已废弃
@@ -137,9 +137,9 @@ MetaDictItem                      — 字典项
 MetaDataContract                  — 数据契约
   ├── contractName                — "用户数据契约"
   ├── displayName                 — "User Data Contract"
-  ├── entityTableId               → MetaTable.metaTableId（关联的数据资产，plain string 列 + to-one relation）
+  ├── metaTableId                → MetaTable.metaTableId（关联的数据资产，plain string 列 + to-one relation）
   ├── status                      — "DRAFT" | "ACTIVE" | "DEPRECATED" | "RETIRED"（dict meta/contract-status，大写）
-  ├── ownerUserId                 — 契约所有者（domain="userId"，precision=50）
+  ├── ownerUserId                 — 契约所有者（precision=50，无 domain 声明）
   ├── schema                      — JSON Schema 文档（mediumtext + stdDomain json，首版仅存储不执行逐行校验）
   ├── sla                         — 结构化 JSON（json-4000 + stdDomain json），约定键 refreshFrequency/maxLatency/retention
   ├── qualityExpectations         — 结构化 JSON（json-4000），形状钉死见 §5.2 D2：{"qualityRuleIds":["<ruleId>",...]}
@@ -164,7 +164,7 @@ MetaLineageEdge
   ├── sourceTableId / targetTableId → MetaTable
   ├── sourceColumn / targetColumn   — 列级血缘（可选）
   ├── transformType                 — "direct" | "derived" | "aggregated"
-  ├── transformExpression           — 转换表达式
+  ├── transformExpr               — 转换表达式
   ├── lineageSource                 — "manual" | "sql_parse" | "open_lineage" | "hook"
   ├── pipelineId                    → MetaPipeline
   ├── confidence                    — 置信度 0.0~1.0
@@ -183,7 +183,7 @@ MetaLineageEdge
 ```
 MetaQualityRule
   ├── ruleName / ruleType / entityType / entityId
-  ├── severity                     — "error" | "warning" | "info"
+  ├── severity                     — "INFO" | "WARNING" | "ERROR"
   ├── sqlExpression / threshold / params
   └── extConfig
 ```
@@ -268,8 +268,8 @@ nop-erp-fin: amount (precision=12, scale=4)  ← 本地覆盖精度
 
 ```graphql
 # 查询模块的 Domain 定义
-query Domains($moduleId: String!) {
-  metaDomains(moduleId: $moduleId) {
+query Domains($metaModuleId: String!) {
+  metaDomains(metaModuleId: $metaModuleId) {
     domainName
     displayName
     stdDataType

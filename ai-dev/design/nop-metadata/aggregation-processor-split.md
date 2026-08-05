@@ -40,7 +40,7 @@
 |------|------|------|------|
 | `ctx` | `MetaQueryContext` | BizModel.buildQueryContext() | daoProvider / orm / connectionService / tableRefExecutor / dataSourceResolver / fieldResolver / filterTranslator |
 | `joinExecutor` | `MetaJoinExecutor` | BizModel 注入 | join 加载 + 端点解析 + 实体注册校验 + executeJoin (跨库) |
-| `SUPPORTED_DIALECTS` | `Set<String>` | 常量 | H2/MySQL/PostgreSQL |
+| `SUPPORTED_DIALECTS` | `Set<String>` | MetaAggregationExecutor 包内静态（:59-65） | H2/MySQL/PostgreSQL |
 
 ### Per-request State（由分派器在 executeAggregation 中构造）
 
@@ -112,16 +112,16 @@
 | `CrossDbFieldResolver` | `AggregationContext.CrossDbFieldResolver` | 跨库字段解析 |
 | `JoinFieldResolverFn` | `AggregationContext.JoinFieldResolverFn` | JOIN field 解析函数式接口 |
 
-### ErrorCode Constants（留在 MetaAggregationExecutor，外部已有引用）
+### ErrorCode Constants（已迁至 AggregationErrors）
 
-所有 `ERR_AGGR_*` 和 `HAVING_EXPR_ATTR` 等公共常量保持原位（`MetaAggregationExecutor` 类），确保 `MemoryFilterEvaluator`、`MemoryOrderByComparator`、`ExpressionMeasureValidator` 及测试类的import 引用不受影响。
+所有 `ERR_AGGR_*` 已迁至 `nop-metadata/nop-metadata-service/src/main/java/io/nop/metadata/service/AggregationErrors.java`（经 `NopMetadataErrors` 聚合可达）；仅 `HAVING_EXPR_ATTR` 留在 `MetaAggregationExecutor.java:182`，确保 `MemoryFilterEvaluator`、`MemoryOrderByComparator`、`ExpressionMeasureValidator` 及测试类的import 引用不受影响。
 
-### Public Static Methods（留在 MetaAggregationExecutor）
+### Public Static Methods（留在 MetaAggregationExecutor，包内可见）
 
-- `preprocessHavingArithmetic(TreeBean, Map, NopMetaTable, List, List)` — 外部测试和 MemoryFilterEvaluator 引用
-- `substituteAndValidateHavingExpr(String, Map, NopMetaTable, List, List)` — 外部测试引用
-- `containsHavingArithmeticLeaf(TreeBean)` — 外部测试引用
-- `HAVING_EXPR_ATTR` — 外部测试和 MemoryFilterEvaluator 引用
+- `preprocessHavingArithmetic(TreeBean, Map, NopMetaTable, List, List)` — 外部测试和 MemoryFilterEvaluator 引用（包内 static）
+- `substituteAndValidateHavingExpr(String, Map, NopMetaTable, List, List)` — 外部测试引用（包内 static）
+- `containsHavingArithmeticLeaf(TreeBean)` — 外部测试引用（包内 static）
+- `HAVING_EXPR_ATTR` — 外部测试和 MemoryFilterEvaluator 引用（public static final）
 
 ## Call Graph
 

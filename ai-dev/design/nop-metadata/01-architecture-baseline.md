@@ -10,7 +10,7 @@
 1. **nop-metadata 是 nop-entropy 的新模块**，所有应用共享一个元数据目录。
 2. **元数据来源**：Nop 平台模块的 `model/*.orm.xml`（导入），以及外部系统的表（扫描注册）。
 3. **按模型类型分表**：MetaOrmModel / MetaApiModel（预留）/ MetaWfModel（预留），不共用一张表。
-4. **版本管理的基本粒度是模块**：每个 MetaModule 就是一个版本（long PK），发布后版本号不可变。`status`（drafting | released | deprecated）管理生命周期，无 Release 表。版本对齐 Maven 打包/发布粒度。MetaModule 包含 Maven 坐标和 Git 信息，支持源码追溯。
+4. **版本管理的基本粒度是模块**：每个 MetaModule 就是一个版本（String PK metaModuleId），发布后版本号不可变。`status`（DRAFTING | RELEASED | DEPRECATED）管理生命周期，无 Release 表。版本对齐 Maven 打包/发布粒度。MetaModule 包含 Maven 坐标和 Git 信息，支持源码追溯。
 5. **模型通过 `x:extends` 继承 base 模块**，自身只写 delta。每次导入同时存储 **delta 定义**（本模块声明的内容）和 **full 定义**（base + delta 合并后）。
 6. **ORM 模型内容拆解为结构化实体**（MetaEntity/MetaEntityField/MetaEntityRelation/MetaDomain/MetaDict），字段级搜索和引用追踪。拆解时 `isDelta` 区分 delta 和 full。
 7. **MetaOrmModel 保留 `sourceContent`**（原始 XML），用于重新解析或逐字比对。
@@ -32,9 +32,9 @@ MetaModule                      — 模块（版本管理基本粒度）
   ├── moduleId                  — "nop/auth"（唯一标识）
   ├── moduleName                — "nop-auth"
   ├── displayName               — "Nop 认证模块"
-  ├── version                   — long，模块版本号（发布后不可变）
+  ├── moduleVersion             — long，模块版本号（发布后不可变）
   ├── baseModuleId              → MetaModule（Delta 继承的 base 模块版本，null 表示无继承）
-  ├── status                    — "drafting" | "released" | "deprecated"
+  ├── status                    — "DRAFTING" | "RELEASED" | "DEPRECATED"
   ├── importedAt                — 导入时间
   │
   ├── mavenGroupId              — Maven groupId（如 "io.nop"）
@@ -65,7 +65,7 @@ MetaModule                      — 模块（版本管理基本粒度）
 
 状态流转：
 ```
-drafting → released → deprecated
+DRAFTING → RELEASED → DEPRECATED
 ```
 
 ### 2.2 数据源
@@ -291,7 +291,7 @@ MetaTableMeasure                — 表指标
   ├── tableId                   → MetaTable
   ├── measureName / displayName
   ├── entityFieldId             → 字段引用（语义按 tableType 重载，见 §2.5.2 D2）
-  ├── aggFunc                   — "sum" | "count" | "avg" | "min" | "max" | "countDistinct"
+  ├── aggFunc                   — "sum" | "count" | "avg" | "min" | "max" | "count_distinct"
   ├── expression                — 表达式指标（entityFieldId 为 null 时使用，首版不校验内容）
   ├── format                    — "#,##0.00"
   └── currencyUnit              — "CNY" | "USD"
@@ -504,7 +504,7 @@ MetaPipeline                     — 数据处理管道
   - **(a) 自环边（sourceTableId == targetTableId == T.metaTableId）—— 选定**。复用既有 ORM 列（无结构变更，遵守 Non-Goal「不修改 MetaLineageEdge ORM 结构」）；与 sql_parse 列级边同一 `MetaLineageEdge` 实体，无新表/新实体（避免 Protected Area）。
   - **(b) 非自环边（引入虚拟 target 节点，如语义层虚拟表）—— 拒绝**。要求新增虚拟 NopMetaTable 行或新 ORM 实体承载虚拟 target，二者均触发 Protected Area ORM 结构变更或污染目录（虚拟表对用户可见却不可查询），违反 Non-Goal。
   - **(c) 不产 MetaLineageEdge，改用独立 measure-level impact 表 —— 拒绝**。要求新 ORM 实体（measure→column 映射表），触发 Protected Area 结构变更，违反 Non-Goal。
-  - **BFS 不可达的显式声明（非 bug，是语义隔离）**：既有 `bfsForward`（`NopMetaLineageEdgeBizModel.java:423-443`）起点 `start` 入 `visited` 后，对每条边 `if (visited.add(tgt))` 才入队；自环边 `tgt == start == T`，`visited.add(T)` 恒返回 false → **自环边在 `getDownstream(T)` / `getImpactAnalysis(T, C)` 永远不可达**。这是 BFS 语义的固有约束，也是本裁定**刻意保留的语义隔离**：BFS = 跨表数据流向（inter-table flow），自环边 = 表内 measure 列依赖（intra-table measure dependency），二者语义层次不同。自环边**不进 BFS**、**仅经边直接查询召回**（见 §2.6.2 D2 裁定）。这一隔离使 expression measure 血缘**既不污染既有 BFS 表级下游语义**（用户调 `getDownstream(T)` 不会看到 T 自身）、又可通过直接边查询精确召回（用户调 `NopMetaLineage__findPage(where sourceTableId=T AND sourceColumn=C)` 可看到该 measure 边）。
+  - **BFS 不可达的显式声明（非 bug，是语义隔离）**：既有 `bfsForward`（`NopMetaLineageEdgeBizModel.java:423-443`）起点 `start` 入 `visited` 后，对每条边 `if (visited.add(tgt))` 才入队；自环边 `tgt == start == T`，`visited.add(T)` 恒返回 false → **自环边在 `getDownstream(T)` / `getImpactAnalysis(T, C)` 永远不可达**。这是 BFS 语义的固有约束，也是本裁定**刻意保留的语义隔离**：BFS = 跨表数据流向（inter-table flow），自环边 = 表内 measure 列依赖（intra-table measure dependency），二者语义层次不同。自环边**不进 BFS**、**仅经边直接查询召回**（见 §2.6.2 D2 裁定）。这一隔离使 expression measure 血缘**既不污染既有 BFS 表级下游语义**（用户调 `getDownstream(T)` 不会看到 T 自身）、又可通过直接边查询精确召回（用户调 `NopMetaLineageEdge__findPage(where sourceTableId=T AND sourceColumn=C)` 可看到该 measure 边）。
   - **用户观测 expression measure 血缘的完整路径**：(1) `NopMetaLineageEdge` GraphQL CRUD `__findPage` 按 `(sourceTableId=T, lineageSource=measure_parse)` 过滤，列出该表所有 expression measure 边；(2) 按 `(sourceTableId=T, sourceColumn=C, lineageSource=measure_parse)` 精确查"列 C 影响哪些 measure"；(3) 边的 `targetColumn` 即 `NopMetaTableMeasure.measureName`，可关联到 measure 实体。BFS 路径（`getDownstream`/`getImpactAnalysis`）**不返回** expression measure 边——这是设计而非限制。
 
 - **D3 — flat-collect vs placeholder 裁定（flat-collect 多边，偏离 §八 建议需显式声明）**：经裁定选 **flat-collect 多边**——expression 内**每个识别列产一条边**，`sourceColumn=识别列名`、`targetColumn=measureName`。**偏离 §八 follow-up 建议**（建议占位符单边 `sourceColumn=unresolved:derived-expression`），偏离理由：
@@ -716,7 +716,7 @@ MetaQualityResult                — 质量执行结果（时序数据）
 - **R1（BizModel bean 名解析）live 核实**：检查点 BizModel 注册为两层 bean——`biz_NopMetaQualityCheckpoint`（`BizProxyFactoryBean`，lazy-init，`_service.beans.xml:89-92`）+ raw impl bean `io.nop.metadata.service.entity.NopMetaQualityCheckpointBizModel`（`:87`，`ioc:type="@bean:id" ioc:default="true"`，**非 lazy**）。`BizProxyFactoryBean` 在非 GraphQL 入口下的行为依赖 proxy 内部 context 装配，**不确定**是否可用。raw impl bean 经 `BeanContainer.tryGetBean("io.nop.metadata.service.entity.NopMetaQualityCheckpointBizModel")` 或 IoC `@Inject`（按类型）**可靠可用**。
 - **R2（未命名 IServiceContext 形参绑定）live 核实**：`executeCheckpoint(checkpointId, schemaPattern, IServiceContext)` 第三形参为 `IServiceContext`（`NopMetaQualityCheckpointBizModel.java:128-130`）。`BeanMethodJobInvoker.invokeMethod` → `IFunctionModel.buildArgValues` 按形参名在 jobParams 查找，缺失键传 null。需 `-parameters` 编译标志反射形参名 `context`；即便可反射，传 null context 的安全性依赖下游：`executeCheckpoint` → `triggerAutoScoring(cp, summary, context)` → `computeQualityScore(metaTableId, context)`，后者内部**从不解引用 context**（`NopMetaQualityScoreBizModel.java:53-75` 仅用 metaTableId，context 形参未被读取）。故 null context 对核心路径 + autoScore 路径**安全**。但经 BizModel proxy 路径（R1）仍不确定。
 
-- **选定 path (b)：暴露 `IServiceContext`-free 包装方法**（默认安全路径）。新增普通 IoC bean `MetaQualityCheckpointScheduler`（`.../service/quality/`，非 `@BizModel`），暴露 `executeScheduledCheckpoint(String checkpointId)` no-arg-style 方法（实际形参仅 `checkpointId`，无 `IServiceContext`）。内部调注入的 raw impl `NopMetaQualityCheckpointBizModel.executeCheckpoint(checkpointId, null, null)`（null context 安全，见 R2 核实），复用既有编排链（executor + autoScore + action dispatch），**零编排逻辑复制**。规避 R1（不经 BizProxy，直接注入 raw impl）+ R2（无 `IServiceContext` 形参，BeanMethodJobInvoker 反射无歧义）。与本仓库既有 `wfTaskScanner`/`nopBatchTaskRunner` 普通 bean 经 beanMethod 调用先例一致（`app-scheduler.beans.xml`）。
+- **选定 path (b)：暴露 `IServiceContext`-free 包装方法**（默认安全路径）。新增普通 IoC bean `MetaQualityCheckpointScheduler`（`.../service/quality/`，非 `@BizModel`），暴露 `executeScheduledCheckpoint(Map<String,Object> params)` 方法（jobParams 内含 checkpointId，无 `IServiceContext`）。内部调注入的 raw impl `NopMetaQualityCheckpointBizModel.executeCheckpoint(checkpointId, null, null)`（null context 安全，见 R2 核实），复用既有编排链（executor + autoScore + action dispatch），**零编排逻辑复制**。规避 R1（不经 BizProxy，直接注入 raw impl）+ R2（无 `IServiceContext` 形参，BeanMethodJobInvoker 反射无歧义）。与本仓库既有 `wfTaskScanner`/`nopBatchTaskRunner` 普通 bean 经 beanMethod 调用先例一致（`app-scheduler.beans.xml`）。
 - **拒绝 path (a)：beanMethod 直调 `executeCheckpoint`**：R1 风险（BizProxy 在非 GraphQL 入口行为不确定）+ R2 依赖 `-parameters` 反射形参名（不可靠）。path (b) 默认安全且无额外风险，path (a) 仅当 R1/R2 经 live 核实确定通过且证明优于 (b) 才可选——本裁定核实未达此门槛。
 
 **D4 — 生命周期裁定（启动 scanner 全量注册 + 运行时增量 hook）**：
@@ -821,7 +821,7 @@ MetaQualityResult                — 质量执行结果（时序数据）
 
 **失败路径（显式，不静默）**：快照序列化失败等异常显式抛 inline ErrorCode（不静默吞掉、不静默跳过事件发布）。不伪造缺失快照：ENTITY_CREATED 有 afterSnapshot、ENTITY_UPDATED 有 before+after、ENTITY_DELETED 有 before。
 
-**Out-of-Scope（follow-up）**：UI 实时推送（WebSocket/SSE）/ GraphQL Subscription（依赖推送基建）/ 搜索索引自动更新（需搜索引擎）/ 全量 32 实体 CRUD 事件覆盖（首版关键路径 + 核心实体）/ 分布式事件总线 + 可靠投递 + 跨进程（首版事件与业务写同事务或紧邻写后）/ 事件清理/归档策略 / `changeSource` dict 化。
+**Out-of-Scope（follow-up）**：UI 实时推送（WebSocket/SSE）/ GraphQL Subscription（依赖推送基建）/ 搜索索引自动更新（需搜索引擎）/ 全量 39 实体 CRUD 事件覆盖（首版关键路径 + 核心实体）/ 分布式事件总线 + 可靠投递 + 跨进程（首版事件与业务写同事务或紧邻写后）/ 事件清理/归档策略 / `changeSource` dict 化。
 
 **与 §七（拒绝额外抽象层）的关系**：事件模型复用既有 ORM 持久化 + GraphQL CRUD 自动暴露，不引入独立 EventBus 类（平台无独立 EventBus，首版直接 DB 写为主路径，IMessageService 为可选 overlay）、不引入事件总线/可靠投递/跨进程抽象层（follow-up）、不引入推送基建抽象层（follow-up）。事件发布 helper 为无状态 service 层 IoC bean（`@Inject IEntityDao`），不自造连接、不复制持久化逻辑。
 
@@ -1187,7 +1187,7 @@ querySpace 解析规则（plan 0700-2 D1.1 扩展）：entity 端点 querySpace 
 | `external`/`sql` | `withConnection` 跑原生聚合 SQL（`SELECT <维度>, <agg>(<指标列>) FROM ... GROUP BY <维度>`） | 列名取 `MetaTableFieldResolver` 解析的 field name |
 | `entity` | 默认 `orm().executeQuery(SQL, range, callback)` 跑原生聚合 SQL（**物理表 + 物理列**，`allowUnderscoreName(true)`）；任一 temporal dimension 有非空 granularity 时**改走 bypass EQL**：`TableReferenceExecutor` 平台 JDBC Connection 直查物理 SQL（与 external/sql 路径同 helper，详见 §4.4.2 D7.1） | `entityFieldId`（主键）解析回**物理列 `NopMetaEntityField.columnCode`**；物理表取自 `MetaEntity.tableName` |
 
-`aggFunc` 翻译：`sum`→`SUM(col)`、`count`→`COUNT(col)`、`avg`→`AVG(col)`、`min`→`MIN(col)`、`max`→`MAX(col)`、`countDistinct`→`COUNT(DISTINCT col)`。标识符经 §2.7.1 D3 白名单 + 值参数绑定。
+`aggFunc` 翻译：`sum`→`SUM(col)`、`count`→`COUNT(col)`、`avg`→`AVG(col)`、`min`→`MIN(col)`、`max`→`MAX(col)`、`count_distinct`→`COUNT(DISTINCT col)`。标识符经 §2.7.1 D3 白名单 + 值参数绑定。
 
 **ORM 隐式过滤旁路裁定**：原生聚合 SQL 不应用 ORM 隐式过滤（租户/逻辑删除/版本）。entity 路径经 `orm().executeQuery` 时，聚合 SQL 是物理表直查，**绕过 ORM 实体隐式过滤**。首版策略——对启用了 `useTenant`/`useLogicalDelete` 的 entity，聚合 action 在 ErrorCode/文档中显式提示"原生 SQL 聚合不应用隐式过滤"；首版**不限制**（允许执行），由调用方知晓此语义。该裁定写入本节，不静默忽略。
 
@@ -1236,7 +1236,7 @@ granularity→分桶表达式表（三条路径一致复用，含 entity）：
 - **join 校验复用裁定**：显式选定**抽取共享**——`MetaJoinExecutor.loadValidatedJoin`（join 加载/归属/joinType 校验）+ `resolveEndpoint`（端点解析，package-private）+ `requireRegistered`（实体注册校验）+ `resolveFieldToColumn`（join 字段→物理列）。`MetaAggregationExecutor` 经构造注入 `MetaJoinExecutor` 复用同一套语义（避免去重 debt）。
 - **端点归属判定（无歧义）**：每个 Measure/Dimension 的 `entityFieldId` 是 `NopMetaEntityField` 主键 → 加载 `NopMetaEntityField.metaEntityId` 判定属于左/右 entity，解析物理列 `columnCode` 后在 SQL 中以 `l.<col>` / `r.<col>` 限定。**entity 字段归属无歧义**（每字段绑定唯一 `metaEntityId`）。
 - **执行载体**：同库 entity↔entity → `orm().executeQuery` 跑原生 `SELECT <group l./r. cols>, <agg(l./r. col)> FROM <leftPhysical> l INNER|LEFT JOIN <rightPhysical> r ON l.<lf>=r.<rf> [WHERE] GROUP BY ...`（`allowUnderscoreName(true)`，与 D6 entity 聚合一致）。
-- **聚合语义**：与单表路径一致（aggFunc sum/count/avg/min/max/countDistinct、默认过滤器自动应用、`expression` 型 Measure 显式不支持）。
+- **聚合语义**：与单表路径一致（aggFunc sum/count/avg/min/max/count_distinct、默认过滤器自动应用、`expression` 型 Measure 显式不支持）。
 - **失败路径显式化（无静默跳过/无静默降级单表/无空 items）**：join 不存在/不归属/joinType=right/未知 joinType（由 `loadValidatedJoin` 抛）；任一端点非 entity（external/sql table 端点 → `ERR_AGGR_JOIN_ENDPOINT_NOT_ENTITY`，指向 external/sql JOIN 聚合 deferred）；self-join（`leftEntityId == rightEntityId`，字段归属两侧均命中、无法表达右别名 → `ERR_AGGR_JOIN_SELF_JOIN`）；跨 querySpace（跨库 → `ERR_AGGR_JOIN_CROSS_QUERY_SPACE`，指向跨库 deferred）；字段 `metaEntityId` 既不等于左也不等于右 entity（→ `ERR_AGGR_JOIN_FIELD_SIDE_UNRESOLVED`，带 measureName/dimensionName + joinId）；EQL 编译失败（保留字物理列名如 PRECISION/SCALE/NUMBER，或歧义列 → `ERR_AGGR_JOIN_COMPILE_FAILED`，含迁移指引）。
 - **EQL 保留字风险裁定**：`MetaJoinExecutor.executeSameDbJoin`（行级 JOIN）为规避 EQL 保留字仅投影 join-key 列；本 JOIN 聚合路径须投影两侧任意 measure/dimension 物理列，遇 EQL 编译失败经 `orm().executeQuery` 的 try/catch 收口为 `ERR_AGGR_JOIN_COMPILE_FAILED`（显式失败 + 迁移指引，不静默退化）。这与单表 entity 聚合路径的 EQL 风险一致（单表路径同样投影任意物理列，EQL 失败由通用 exec 错误承载）。
 - **Deferred（已裁定）**：external/sql 端点的 JOIN 聚合（`NopMetaTableMeasure/Dimension` 对 external/sql 表的 `entityFieldId` 为裸列名字符串，无 `metaEntityId`/side/endpointTableId，同名列无法判定左右侧 → 需 ORM 结构变更，Protected Area plan-first；**plan 1200-1 D9 已落地 side 列后此部分收口**）；跨 querySpace（跨库）entity-entity JOIN 聚合（**plan 1500-2 D10 已落地**：复用 `executeJoin` + 内存 GROUP BY，精确-当-容纳 / 超限-失败）；混合端点（entity ↔ external/sql）JOIN 聚合（**同库部分已由 plan 1500-1 D1.5 落地；跨库部分 plan 1500-2 D10 已落地**）。不可同库部分经内存 GROUP BY 执行（限内精确），超限显式失败，不静默跳过。
@@ -1264,7 +1264,7 @@ granularity→分桶表达式表（三条路径一致复用，含 entity）：
     - `count`：非空值计数。
     - `avg`：累加 sum + count，结果 = sum/count（count=0 → null，非伪造 0）。
     - `min`/`max`：比较取极值（null 跳过；全 null → null）。
-    - `countDistinct`：内存去重（`LinkedHashSet`），结果 = 去重后基数。
+    - `count_distinct`：内存去重（`LinkedHashSet`），结果 = 去重后基数。
     - 不在上列的 aggFunc（含 `expression` 型 Measure）→ 显式失败抛 inline `ErrorCode`（与同库路径一致，不静默跳过、不当 0 返回）。
 - **规模上限语义（精确-当-容纳 / 超限-失败，Anti-Hollow 核心）**：复用 `executeJoin` 时，其内部委派 `CrossDbJoinMerger.checkSizeLimit`（`CrossDbJoinMerger.java:100`）在任一侧行数 > `CrossDbConfigHolder.maxCrossDbRows`（默认 10000）时**直接抛异常**（不截断、不返回部分集）。故经 `executeJoin` 复用路径，跨库聚合语义为「**两侧均在上限内 → 内存全量精确聚合**；任一侧超限 → 显式失败」。**不存在「截断后近似」中间态**。结果可标 `crossDb:true` 表示数据经应用层拼接（聚合值本身精确），**不得**在「超限即失败」路径上声明一个永远无法为 true 的 `truncated:true` 标志（死结果标志）。
 - **合并行 measure/dimension 值提取的命名空间（Anti-Hollow 核心，与同库 SQL 路径严格区分）**：`executeJoin` 返回的合并行 `Map` 的 key **按端点来源保留各自命名空间**（D1.4 不归一到单一命名空间）：
@@ -1285,7 +1285,7 @@ granularity→分桶表达式表（三条路径一致复用，含 entity）：
     - **joinType=right**（由 `loadValidatedJoin` 抛，沿用 D5）。
     - **self-join**（entity↔entity leftEntityId==rightEntityId / external↔external leftTableId==rightTableId，双侧别名机制不足，沿用 D8/D9）。
     - **空端点**（entity/table 端点解析失败，由 `resolveEndpoint` 抛）。
-- **范围裁定（收口 deferred）**：本 D10 收口 D8 Deferred「跨 querySpace entity-entity JOIN 聚合」+ D9 Deferred「跨 querySpace external↔external JOIN 聚合」+ D1.5 Deferred「不可同库混合端点聚合」（三者均 deferred → plan 1500-2）。**大基数 countDistinct 精确去重**（接近/超 `CrossDbConfigHolder.maxCrossDbRows` 的去重）为 optimization candidate（超限即失败已满足当前结果面，非静默近似）。
+- **范围裁定（收口 deferred）**：本 D10 收口 D8 Deferred「跨 querySpace entity-entity JOIN 聚合」+ D9 Deferred「跨 querySpace external↔external JOIN 聚合」+ D1.5 Deferred「不可同库混合端点聚合」（三者均 deferred → plan 1500-2）。**大基数 count_distinct 精确去重**（接近/超 `CrossDbConfigHolder.maxCrossDbRows` 的去重）为 optimization candidate（超限即失败已满足当前结果面，非静默近似）。
 - **Anti-Hollow**：`executeCrossDbJoinAggregation` 在运行时被 `executeJoinAggregation` 跨库分支真实调用（非空方法体、非静默跳过）；复用的 `MetaJoinExecutor.executeJoin`(`:101`) 被真实调用并产出合并行（非仅类型存在）；内存 GROUP BY 产出真实聚合值（按端点命名空间取值，entity 端点组合聚合值正确非静默 0）。
 
 **D11 — 聚合查询 having/orderBy 增强（plan 2026-07-18-0900-2 落地）**：
@@ -1311,13 +1311,13 @@ granularity→分桶表达式表（三条路径一致复用，含 entity）：
     - **JOIN 聚合 3 条同库路径**（entity↔entity / external↔external / 混合）：SQL 追加 HAVING + ORDER BY；having/orderBy 的 name → `JoinMeasureSpec.qualifiedAggCol`（已含 `l.`/`r.` 前缀）/ `JoinDimensionSpec.qualifiedCol`。
     - **跨库内存 GROUP BY 路径**：
         - **having**：内存 GROUP BY 产出 `List<Map<String,Object>>`（key 为大写化 alias）→ 新增**内存 TreeBean 求值器** `MemoryFilterEvaluator`，递归 and/or/not，叶子条件按 name（case-insensitive 匹配大写化 alias）取聚合值做比较。op 集合与 SQL 路径对齐。**类型强转**：聚合值可能 Long/Double/BigDecimal，用户字面量可能 Integer/String → 比较前统一转 `BigDecimal`（Number→BigDecimal）。
-        - **orderBy**：内存 GROUP BY 产出 group → 新增**内存多键比较器** `MemoryRowComparator`，按 `List<OrderFieldBean>` 逐字段排序（name→大写化 alias 取值，desc 生效，nullsFirst 生效），类型强转同 having。
+        - **orderBy**：内存 GROUP BY 产出 group → 新增**内存多键比较器** `MemoryOrderByComparator`，按 `List<OrderFieldBean>` 逐字段排序（name→大写化 alias 取值，desc 生效，nullsFirst 生效），类型强转同 having。
         - **顺序（D3）**：先 orderBy → 再 limit/offset（与 SQL `ORDER BY ... LIMIT` 一致）。orderBy 缺席时内存路径无序（沿用 D5 既有裁定），SQL 路径无 ORDER BY 子句。
         - **executeJoin 不感知 having/orderBy**（R1 m4）：having/orderBy 必须在 memoryGroupBy 之后应用，`MetaJoinExecutor.executeJoin` 签名不变。
 
 - **失败路径显式化（#24，无静默跳过）**：having/orderBy 引用未选定 measure/dimension name → 显式失败（`ERR_AGGR_HAVING_UNKNOWN_NAME` / `ERR_AGGR_ORDER_BY_UNKNOWN_NAME`）；不支持的 op（SQL 路径 + 内存路径）→ 显式失败；having/orderBy 均缺席时既有行为零变化（SQL 无 HAVING/ORDER BY 子句，内存路径无过滤/无排序）。
 
-- **Anti-Hollow**：三条路径在运行时真实生成 HAVING/ORDER BY 子句（SQL 路径）/ 真实调用 MemoryFilterEvaluator + MemoryRowComparator（内存路径），非空方法体/非 stub。端到端测试覆盖：单表 entity / external-sql / JOIN 同库 3 条 / 跨库 1 条 各至少 1 条断言 having 过滤生效 + orderBy 排序正确。
+- **Anti-Hollow**：三条路径在运行时真实生成 HAVING/ORDER BY 子句（SQL 路径）/ 真实调用 MemoryFilterEvaluator + MemoryOrderByComparator（内存路径），非空方法体/非 stub。端到端测试覆盖：单表 entity / external-sql / JOIN 同库 3 条 / 跨库 1 条 各至少 1 条断言 having 过滤生效 + orderBy 排序正确。
 
 **D11.4 — 多列算术 having（plan 2026-07-18-1500-2 落地；收口 Opt-2/Opt-3 两处 `Deferred But Adjudicated`「多列 having 算术表达式」）**：
 
@@ -1381,7 +1381,7 @@ granularity→分桶表达式表（三条路径一致复用，含 entity）：
         - **标识符白名单复用 §2.7.1 D3**：expression 内的列引用须通过白名单正则 `^[A-Za-z_][A-Za-z0-9_]*$` 校验，列名取自该表 `MetaTableFieldResolver` 解析的可用列名集合（external→buildSql JSON columnName；sql→SELECT 解析列名）。
         - **值参数绑定（对齐 FilterToSqlTranslator 模式）**：expression 内的字面量（numeric/string 等）使用 PreparedStatement 参数绑定，**禁止裸字符串拼接**。
     - **跨库内存路径执行契约（Decision：内存不可算显式失败，对齐 D10 铁律）**：
-        - 按 D10 内存 GROUP BY 契约，跨库 JOIN 聚合复用 `MetaJoinExecutor.executeJoin` 取合并行后内存聚合。**expression 型 Measure 的内存可计算性受限**：D10 既有的 `aggFunc` 内存可计算性铁律（sum/count/avg/min/max/countDistinct 六种）只覆盖「裸列 + 标量 aggFunc」，不覆盖「任意 expression + aggFunc 组合」。
+        - 按 D10 内存 GROUP BY 契约，跨库 JOIN 聚合复用 `MetaJoinExecutor.executeJoin` 取合并行后内存聚合。**expression 型 Measure 的内存可计算性受限**：D10 既有的 `aggFunc` 内存可计算性铁律（sum/count/avg/min/max/count_distinct 六种）只覆盖「裸列 + 标量 aggFunc」，不覆盖「任意 expression + aggFunc 组合」。
         - **裁定**：**expression 型 Measure 在跨库路径 首版显式失败**（`metadata.aggr-expression-memory-not-computable`，对齐 D10 既有「不在上列的 aggFunc（含 expression 型 Measure）→ 显式失败抛 inline ErrorCode」铁律）。理由：(1) 内存求值 expression 需要解析表达式语法树 + 在 Java 侧实现等价算子/函数（CASE WHEN/STDDEV/DATE_TRUNC 等），等同于在内存里实现一个 SQL 方言子集，复杂度过高且语义无法保证与 SQL pushdown 一致；(2) 跨库路径已是「精确-当-容纳/超限-失败」的内存聚合（D10），expression 内存计算复杂度叠加规模守卫会进一步放大风险；(3) 跨库场景典型为联邦查询（OLTP MySQL + OLAP ClickHouse），expression 型 Measure 本就更适合 pushdown 到 OLAP 库的 external/sql 路径，而非跨库内存路径。
         - **successor 评估项（deferred）**：若后续需求要求跨库路径支持 expression 型 Measure 的子集（仅算术 + 基本函数，如 `PRICE*QTY` 算术表达式），successor plan 须在内存路径新增 expression 内存求值器（可复用 D11 `MemoryFilterEvaluator` 模式），并定义可算表达式白名单。本 D12 不预先裁定该白名单。
 
@@ -1457,7 +1457,7 @@ nop-metadata-web           — nop-metadata-service
 └──────┬────────────────────────────────────┬───────────────────┘
        │                                    │
 ┌──────▼──────────┐           ┌─────────────▼───────────────────┐
-│ NopMetaIndexBuilder          │ NopMetaSearchService             │
+│ NopMetaIndexBuilder          │ NopMetaSearchProcessor           │
 │ (全量索引构建)   │           │ (增量索引: BizModel hook 调用)   │
 │ buildFullIndex() │           │ addToIndex() / removeFromIndex() │
 └──────┬──────────┘           └─────────────┬───────────────────┘
@@ -1484,11 +1484,11 @@ nop-metadata-web           — nop-metadata-service
 
 ### 7.3 索引策略
 
-- **topic**: 统一为 `"nop_meta_metadata"`（`NopMetaSearchService.TOPIC`；2026-08-04 plan-2026-08-04-1004-3 Phase 2 e2e 接线验证发现原 `"nop-meta-metadata"` 含连字符不满足 LuceneSearchEngine `isValidSimpleVarName` 校验，真实引擎下所有搜索请求失败——mock 测试未暴露；改为下划线分隔。旧 topic 索引孤儿数据经 `rebuildSearchIndex` 全量重建迁移）
+- **topic**: 统一为 `"nop_meta_metadata"`（`NopMetaSearchProcessor.TOPIC`；2026-08-04 plan-2026-08-04-1004-3 Phase 2 e2e 接线验证发现原 `"nop-meta-metadata"` 含连字符不满足 LuceneSearchEngine `isValidSimpleVarName` 校验，真实引擎下所有搜索请求失败——mock 测试未暴露；改为下划线分隔。旧 topic 索引孤儿数据经 `rebuildSearchIndex` 全量重建迁移）
 - **tagSet**: 存放 entityType 标识（如 `"Classification"`、`"MetaTable"`），过滤时通过 `SearchRequest.tags` 匹配
 - **权重**: name/title 高权重(2.0)，content 标准权重(1.0)，summary 低权重(0.5)
 - **全量索引**: GraphQL mutation `rebuildSearchIndex(entityTypes?)` 触发 `NopMetaIndexBuilder.buildFullIndex()`，遍历 DAO 查询 + `ISearchEngine.addDocs` 批量写入（幂等：按 doc.id 删除+添加），最终调用 `refreshBlocking()` 使索引可查询
-- **增量索引**: 在 6 个目标实体 BizModel 的 save/delete 方法中通过 `NopMetaSearchService` 组件调用索引更新（不依赖事件总线——当前事件仅 DB 写、非发布-订阅）
+- **增量索引**: 在 6 个目标实体 BizModel 的 save/delete 方法中通过 `NopMetaSearchProcessor` 组件调用索引更新（不依赖事件总线——当前事件仅 DB 写、非发布-订阅）
 - **导入路径**: `NopMetaModuleBizModel.importOrmModel` 持久化后对本次创建的 MetaEntity/MetaEntityField/MetaTable 批量索引，绕过 BizModel hook（因导入使用 DAO 直接持久化）
 
 ### 7.4 搜索 API
@@ -1510,7 +1510,7 @@ nop-metadata-web           — nop-metadata-service
 
 `nop-metadata-service` 模块 Maven 依赖新增：
 - `nop-search-api` (compile)
-- `nop-search-lucene` (runtime)
+- `nop-search-lucene` (optional，可插拔——替换为 search-platform-elasticsearch 或其他 nop-search-* 实现)
 
 ---
 
@@ -1530,7 +1530,7 @@ nop-metadata-web           — nop-metadata-service
 
 ## 八、待定问题
 
-- ~~`isDelta=true/false` 用同一张表（列区分）还是两张表？~~ **已裁定（P1+，2026-07-16）**：单表 + `isDelta` 列区分（`nop-metadata.orm.xml` 中 `code="IS_DELTA"` 共 8 处：NopMetaOrmModel/Entity/EntityField/EntityRelation/EntityUniqueKey/EntityIndex/Domain/Dict）。导入时同时存储 delta 定义（isDelta=true）和 x:extends 合并后的 full 定义（isDelta=false）。
+- ~~`isDelta=true/false` 用同一张表（列区分）还是两张表？~~ **已裁定（P1+，2026-07-16）**：单表 + `isDelta` 列区分（`nop-metadata.orm.xml` 中 `code="IS_DELTA"` 共 10 处：NopMetaOrmModel/Entity/EntityField/EntityRelation/EntityUniqueKey/EntityIndex/Domain/Dict/DictItem/Table）。导入时同时存储 delta 定义（isDelta=true）和 x:extends 合并后的 full 定义（isDelta=false）。
 - ~~SQL 视图字段解析：走 `EXPLAIN` 还是 `SELECT ... LIMIT 0` 还是用户手动录入？~~ **已裁定（P3-6，2026-07-16）**：字段名/别名走 AST 解析（复用 `EqlASTParser`，与血缘先例一致，可移植、无需连接）；字段类型首版仅名不取类型（方案 A，`type=null` 不伪造），LIMIT 0 经 ResultSetMetaData 取类型（方案 B）为 follow-up。详见 §4.2.1。
 - ~~MetaTableJoin 跨表关联时，左右表所属数据源不同（例如 ORM 的 MySQL 表和 SQL 定义的 ClickHouse 表），查询执行如何路由？~~ **已裁定（P4-2，2026-07-16）**：按左右 `querySpace` 是否相同分派——同库走单库 JOIN（D4），跨库（不同 querySpace）走应用层拼接（D5，各取数后内存按 join key 合并）。详见 §4.4.1。
 - ~~通用 Domain 的来源：是单独维护还是从现有 ORM 模型提取？~~ **已裁定（2026-07-22）**：MetaDomain 的来源为 ORM IOrmModel 导入时自动填充（OrmModelImporter 已实现），不在导入路径外单独维护来源。运行时从 IOrmModel.domainList 填充，不引入新的同步机制。裁定为 `adjudicated as residual-risk-only / watch-only`。

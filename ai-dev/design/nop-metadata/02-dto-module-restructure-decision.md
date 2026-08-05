@@ -60,7 +60,7 @@
 
 ## 裁定：方案 (a')
 
-> **执行更新（2026-07-21 落地，plan `311-nop-metadata-dto-module-restructure.md`）**：实际执行未按下方原始裁定移入 `nop-metadata-core`，而是**新建共享模块 `nop-metadata-api`**——全部 DTO 落在 `nop-metadata-api/.../io/nop/metadata/api/dto/`（32 个 `@DataBean`）；`nop-metadata-core` 仅保留常量类（`NopMetadataCoreConstants`）并依赖 api 模块。原始裁定文本保留为决策历史。
+> **执行更新（2026-07-21 落地，plan `311-nop-metadata-dto-module-restructure.md`）**：实际执行未按下方原始裁定移入 `nop-metadata-core`，而是**新建共享模块 `nop-metadata-api`**——全部 DTO 落在 `nop-metadata-api/.../io/nop/metadata/api/dto/`（31 个 `@DataBean`，R3.8 移除 AggregationRowDTO 后）；`nop-metadata-core` 仅保留常量类（`NopMetadataCoreConstants`）并依赖 api 模块。原始裁定文本保留为决策历史。
 
 选择将 DTO 移入 `nop-metadata-core`，理由：
 

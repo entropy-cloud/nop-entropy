@@ -237,7 +237,7 @@ Glossary 是业务术语的集合。与 Classification 的区别：Classificatio
 | reason | string(1000) | | 标注理由。**灵感来源**: OpenMetadata TagLabel.reason |
 | metadata | string | domain=json-4000 | 扩展元数据，如自动分类的 recognizer 信息。**灵感来源**: OpenMetadata TagLabel.metadata |
 | extConfig | string | domain=json-4000 | |
-| approveStatus | string(20) | nullable, ext:dict `wf/approve-status` | 审批状态（UNSUBMITTED/SUBMITTED/APPROVED/REJECTED）。实体级 `tagSet="use-approval"` 触发审批工作流 |
+| approveStatus | string(20) | nullable, ext:dict `meta/approve-status` | 审批状态（UNSUBMITTED/SUBMITTED/APPROVED/REJECTED）。实体级 `tagSet="use-approval"` 触发审批工作流 |
 | approvedBy | string(50) | nullable | 审批人用户 ID |
 | approvedAt | timestamp | nullable | 审批时间 |
 
@@ -264,7 +264,7 @@ Glossary 是业务术语的集合。与 Classification 的区别：Classificatio
 | name | string(100) | UNIQUE, mandatory | 如 "Marketing"、"Payments" |
 | displayName | string(200) | tagSet=disp | 如 "营销域"、"支付域" |
 | description | string(1000) | | |
-| domainType | string(20) | ext:dict | `Source-aligned` \| `Consumer-aligned` \| `Aggregate`。**灵感来源**: OpenMetadata Domain.domainType |
+| domainType | string(20) | ext:dict `meta/business-domain-type` | `SourceAligned` \| `ConsumerAligned` \| `Aggregate`。**灵感来源**: OpenMetadata Domain.domainType |
 | experts | string | domain=json-1000 | 专家列表。**灵感来源**: OpenMetadata Domain.experts |
 | owners | string | domain=json-1000 | 负责人 |
 | extConfig | string | domain=json-4000 | |
@@ -303,7 +303,7 @@ Glossary 是业务术语的集合。与 Classification 的区别：Classificatio
 见 §3.2.4 的行为描述。实现路径：
 - NopMetaGlossaryTerm 的 `tags` JSON 在 save/update 时触发传播引擎
 - 传播引擎创建/更新 `TagLabel{source: Classification, labelType: Derived}`
-- 使用 `(entityType, entityId, tagId, labelType=Derived)` 幂等键防重复
+- 应用层使用 `(entityType, entityId, tagId, labelType)` 幂等键防重复（`NopMetaTagLabelBizModel` 应用层去重；DB UK 为 `(entityType, entityId, tagId, source)`——幂等为 app 层语义）
 
 #### 3.3.2 资产层级上的业务域继承
 
@@ -358,7 +358,7 @@ Glossary 是业务术语的集合。与 Classification 的区别：Classificatio
 ##### 3.3.3.5 错误处理契约
 
 - **per-edge 隔离**：单条 lineage edge 的传播失败不影响其他 edge，每条 edge 独立 try/catch，失败记录 error log 后继续处理。
-- **幂等键**：`(entityType, entityId, tagId, labelType=Propagated)`。使用此四元组做 upsert 条件，避免重复传播。
+- **幂等键**：`(entityType, entityId, tagId, labelType=Propagated)`。应用层使用此四元组做 upsert 条件，避免重复传播（DB UK 为 `(entityType, entityId, tagId, source)`——幂等为 app 层语义）。
 - **非 Propagated 不覆盖**：目标端已有 `labelType=Manual` 或 `labelType=Derived` 的同 tag TagLabel 时，不覆盖，记录 warn 日志。
 
 ### 3.4 存量兼容

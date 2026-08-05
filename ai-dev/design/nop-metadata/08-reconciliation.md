@@ -18,7 +18,7 @@ Reconciliation 是 nop-metadata 的数据治理能力之一：把某张逻辑表
 
 ### 1.2 服务模型（D1 裁定）
 
-采用**可插拔 `IReconciliationService` 接口 + 内置 `LocalReconciliationService`（本地候选集匹配）**。
+采用**可插拔 `IReconciliationProcessor` 接口 + 内置 `LocalReconciliationProcessor`（本地候选集匹配）**。
 
 - 首版只实现本地匹配，候选来自 `NopMetaReconciliationEntity`（按 `entityType`+`identifierSpace` 过滤）。
 - 接口入参显式包含 `matchStrategy`，使策略可由调用方控制；接口纯接口、无外部依赖，
@@ -61,7 +61,7 @@ Reconciliation 是 nop-metadata 的数据治理能力之一：把某张逻辑表
 - `autoMatch`（bool）/`autoMatchThreshold`（double，0.0~1.0）：是否自动判定及阈值。
 - `extConfig`（json-4000）+ 审计列 + version。
 
-to-one：`metaTable`（join on metaTableId）、`metaModule`（join on metaModuleId）。索引 `IX_NOP_META_RECON_CONFIG_TABLE`(metaTableId)。
+to-one：`metaTable`（join on metaTableId）、`metaModule`（join on metaModuleId）。索引 `IX_NOP_META_RECONCILIATION_CONFIG_TABLE`(metaTableId)。
 
 > 设计草案中的 `columns[]`（多列）、`serviceUrl`（归外部 HTTP impl）、`schemaSpace`/`schedule`
 > 首版不启用，标注为 follow-up。
@@ -80,7 +80,7 @@ to-one：`metaTable`（join on metaTableId）、`metaModule`（join on metaModul
   - `selectedId`：人工确认后选中的实体 ID。
 - `extConfig`（json-4000）+ 审计列 + version。
 
-to-one：`config`、`metaTable`。索引 `IX_NOP_META_RECON_RESULT_CONFIG`(configId, executeTime)（时序）。
+to-one：`config`、`metaTable`。索引 `IX_NOP_META_RECONCILIATION_RESULT_CONFIG`(configId, executeTime)（时序）。
 
 ### 2.3 Reconciliation 实体（`NopMetaReconciliationEntity`）
 
@@ -91,7 +91,7 @@ to-one：`config`、`metaTable`。索引 `IX_NOP_META_RECON_RESULT_CONFIG`(confi
 - `lastSyncedAt`：最后同步时间。
 - `extConfig`（json-4000）+ 审计列 + version。
 
-索引 `IX_NOP_META_RECON_ENTITY_TYPE`(entityType, identifierSpace)（候选检索）。
+索引 `IX_NOP_META_RECONCILIATION_ENTITY_TYPE`(entityType, identifierSpace)（候选检索）。
 
 ---
 
@@ -126,7 +126,7 @@ to-one：`config`、`metaTable`。索引 `IX_NOP_META_RECON_RESULT_CONFIG`(confi
    取得 `items`（行列表，`List<Map>`）。`queryTableData` 失败 → 显式失败（不吞异常）。
 4. 把 `items` 传入**纯组件 `ReconciliationExecutor.execute(config, items)`**：
    - 执行器不持有 BizModel、不伪造 context、不复制取数逻辑。
-   - 逐行按 `config.columnName` 取值 → 调 `IReconciliationService` 取候选 → 按 §3.2 判定 status。
+   - 逐行按 `config.columnName` 取值 → 调 `IReconciliationProcessor` 取候选 → 按 §3.2 判定 status。
    - 汇总 `statistics` + `details` → 写一行 `NopMetaReconciliationResult` 并返回。
 5. 空候选 → 体现在结果的 UNMATCHED（非整体异常、不静默 pass）。
 
@@ -157,7 +157,7 @@ to-one：`config`、`metaTable`。索引 `IX_NOP_META_RECON_RESULT_CONFIG`(confi
 | exact | `exact` | 完全相等 → score=1.0，否则 0 |
 | fuzzy | `fuzzy` | levenshtein 归一化相似度（忽略大小写） |
 
-候选经 `LocalReconciliationService` 按 `entityType`+`identifierSpace` 从 `NopMetaReconciliationEntity`
+候选经 `LocalReconciliationProcessor` 按 `entityType`+`identifierSpace` 从 `NopMetaReconciliationEntity`
 检索，按策略计算 score，排序后取 limit。候选为空 → 返回空列表（不静默伪造候选）。
 
 **phonetic/semantic 移 follow-up**（需额外算法/模型依赖）。设计草案的 `matchParams`（algorithm/threshold/ignoreCase/ignoreDiacritics）首版不作为独立列；threshold 复用 `config.autoMatchThreshold`，ignoreCase 内置为 true。

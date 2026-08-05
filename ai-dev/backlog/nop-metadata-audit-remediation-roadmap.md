@@ -1,6 +1,6 @@
 # 审计-修复路线图：nop-metadata 全模块组
 
-> 最后更新：2026-08-05（v12 — MR3 R3.0 展开 + R3.1-R3.20 修复收口（plan-2026-08-05-0746-2）：R3.0 done + 19 项修复 done（P0-MA7.1-01 注入 / P1-MA7.2-01/MA7.5-01/MA7.6-01/MA7.6-02 / P2 家族 13 项 in-scope / 文档批量 / 命名 / helper 收敛 / 版权头 / AutoTest 增量 / UK constraint 36 个 model-first）+ 5 项 P2 裁决 deferred（R3.20，Successor 显式）；v11 的 MA7 审计收口记录保持不变
+> 最后更新：2026-08-05（v13 — MG 收尾（plan-2026-08-05-1408-3）：G.1 lessons 09-14 六条 + G.2 skills 4 文件维度沉淀 + G.3 design/docs-for-ai drift 收口（R3.15 改名/R3.8 DTO 计数/R3.19 IS_DELTA + P3 影响理解项 30+），check-doc-links --strict exit 0；**路线图全里程碑 M0→MG 收尾**）；v12 的 MR3 修复收口记录保持不变
 > 来源：`ai-dev/skills/audit-remediation-roadmap-authoring-prompt.md`
 > 目标模块组：nop-metadata（8 子模块，~283 main Java / ~97 test Java）
 > 模块组成：`nop-metadata-api`（32 main）、`nop-metadata-core`（2）、`nop-metadata-codegen`（0）、`nop-metadata-dao`（120）、`nop-metadata-meta`（0）、`nop-metadata-service`（128 main + 94 test）、`nop-metadata-web`（0）、`nop-metadata-app`（1）
@@ -209,9 +209,9 @@
 
 | # | Work Item | Status | Owner Doc | Deps | Skill |
 |---|-----------|--------|-----------|------|-------|
-| G.1 | 新失败模式提升为 lessons | todo | `ai-dev/lessons/` | MV done | none |
-| G.2 | 重复审计维度提升为 skills/ 新提示 | todo | `ai-dev/skills/` | MV done | none |
-| G.3 | 更新 docs-for-ai/ 和 design 文档 | todo | `docs-for-ai/` + `ai-dev/design/nop-metadata/` | MV done | none |
+| G.1 | 新失败模式提升为 lessons | done（plan-2026-08-05-1408-3 WS1：新增 09-14 六条 lessons（DDL 零 UK 发射 / 补日志≠修根因 / 审计计数口径 / xwf listener 结束判定 / 空洞断言测试 / 条件激活旁路面），覆盖矩阵无重复，README 索引同步） | `ai-dev/lessons/` | MV done | none |
+| G.2 | 重复审计维度提升为 skills/ 新提示 | done（plan-2026-08-05-1408-3 WS2：deep-audit-prompts.md 新增维度 22（xwf 流程语义）+ 维度 13 补 SSRF/白名单双向断言 + 共享前缀计数口径；orm-model-audit-prompt.md 补 UK DDL 物化 + model-first 落地；closure-audit-prompt.md 补 anti-hollow 调用链；roadmap-authoring 补 P2 裁决通道记录；无新增文件） | `ai-dev/skills/` | MV done | none |
+| G.3 | 更新 docs-for-ai/ 和 design 文档 | done（plan-2026-08-05-1408-3 WS3：MR4 契约影响 = 无；R3.15 改名 / R3.8 DTO 计数 / R3.19 IS_DELTA 新 drift + P3 影响理解项 30+ 修复；docs-for-ai 三文件复核一致；check-doc-links --strict exit 0） | `docs-for-ai/` + `ai-dev/design/nop-metadata/` | MV done | none |
 
 ## 框架/平台复用
 
