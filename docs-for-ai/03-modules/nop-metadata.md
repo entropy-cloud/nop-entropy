@@ -30,7 +30,7 @@ nop-metadata 是 Nop 平台的**联邦式元数据中心**，承担五类职责�
 | NopMetaLineageEdge | `nop_meta_lineage_edge` | 血缘边（source/target table + 列级 + transformType） |
 | NopMetaQualityRule | `nop_meta_quality_rule` | 质量规则定义（ruleType + entity/field/table 范围） |
 | NopMetaQualityCheckpoint | `nop_meta_quality_checkpoint` | 质量检查点（批量执行 + cron 调度） |
-| NopMetaQualityResult | `nop_meta_quality_result` | 单规则执行结果（PASS/FAIL/SKIP） |
+| NopMetaQualityResult | `nop_meta_quality_result` | 单规则执行结果（PASS/FAIL/SKIP；含 checkpointId/runId 幂等键列 + 复合 UK） |
 | NopMetaQualityScore | `nop_meta_quality_score` | 单表质量评分（按规则通过率聚合） |
 | NopMetaProfilingRule | `nop_meta_profiling_rule` | 数据剖析规则 |
 | NopMetaProfilingResult | `nop_meta_profiling_result` | 数据剖析结果快照 |
@@ -94,13 +94,15 @@ query {
 ```graphql
 mutation {
   NopMetaQualityCheckpoint__executeCheckpoint(checkpointId: "cp-1") {
-    totalRuleCount
+    runId
     executedRuleCount
     ruleResults { qualityRuleId passCount failCount }
     errors { code message }
   }
 }
 ```
+
+**运行期（concurrent）幂等（R4.3）**：每次执行生成唯一 `runId`（UUID），结果行写入 `checkpointId`/`runId` 列（`NopMetaQualityResult` 复合 UK `(checkpointId, runId, qualityRuleId)` 兜底拒绝同 runId 重复写行，可空列 NULL 不参与冲突判定——单规则执行路径两列保持 null）。执行入口有 per-checkpoint 运行标记（进程内锁，覆盖 executor + autoScore + dispatchActions 全程）：**同一检查点并发/重复触发时第二次执行显式 fail-fast**（错误码 `checkpoint-already-running`），不静默重复执行、不重复投递 webhook/notify。保留的时序语义：顺序重复执行（间隔超过单次耗时）合法，每次执行 = 新 runId = 新结果行。cron 与手动并发时 cron 侧被拒绝仅记 WARN 日志。跨进程分布式锁不做（单实例 supported baseline）。
 
 ## API 契约（I*Biz 接口）
 
