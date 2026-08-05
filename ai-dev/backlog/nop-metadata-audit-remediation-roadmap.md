@@ -1,6 +1,6 @@
 # 审计-修复路线图：nop-metadata 全模块组
 
-> 最后更新：2026-08-06（v23 — **MR6 R6.6 收口（plan-2026-08-06-0105-3）**：20 条终局归类全量终态——P2-03（21 死码删除 + ERR_RECON_PARSE_PROPERTIES_FAILED 裁定 (b) 删定义 + javadoc 文档化降级，测试同步 + design 文档死码引用修正，全仓 grep 0 残留）+ docs sweep 6 项（P2-08 REGEXP SKIP 例外、P2-22 行号锚点改稳定引用、P2-23 I*Biz 包路径、P2-24 items 例外、P2-26 test-scope 注、AR-09 多 schema 段）全部落地 + watch-only 12 条终态登记（P2-05/P2-14~21/P2-25/27/AR-06/AR-09 DTO 面）+ AR-10 状态确认（P2-01/04 R6.5 fixed、P2-12 R6.2 fixed 核实）；`./mvnw test -pl nop-metadata -am -T 1C` 923/0 全绿 + check-doc-links --strict exit 0 + 独立 closure audit PASS；R6.6 → done。prior v22（MR6 R6.5 收口）保持不变）
+> 最后更新：2026-08-06（v24 — **MR7 R7.1 收口（plan-2026-08-06-0553-1）**：AR-02/AR-03 SSRF 残余变体（无括号 IPv6 `::1:3306`/`fe80::1:3306`/mapped/大写 `FE80::1:3306` 变体 + FQDN 尾点 `localhost.`/`0.0.0.0.`）双侧（JDBC + webhook）收口——HostSecurityUtil 尾点剥离 + 无括号 IPv6 带端口主动判读（头部 16 字节 IPv6 或 4 字节 `::ffff:` mapped 复用自身判内网单一事实源）；extractHost/extractWebhookHost lastIndexOf 剥离 + 首冒号回退维持单冒号语义；allowlist 语义核对（归一化后精确匹配）；判别性测试 +19（TestHostSecurityUtil +5 三类 / TestMetaDataSourceConnectionSecurity +6 / connection 包 seam 新建 3 / TestCheckpointActionDispatcherWebhookSsrf +5）；独立 closure audit 两轮（第 1 轮 NOT_READY 发现大写变体绕过 → 修复 + 回归 → 第 2 轮 READY_TO_CLOSE）；`./mvnw test -pl nop-metadata -am -T 1C` **942/0 全绿** + check-doc-links --strict exit 0 + 独立 closure audit PASS；R7.1 → done，R7.2/R7.3（plan-2026-08-06-0553-2/-3）登记 planned 待执行。prior v23（MR6 R6.6 收口）保持不变）
 > 来源：`ai-dev/skills/audit-remediation-roadmap-authoring-prompt.md`
 > 目标模块组：nop-metadata（8 子模块，~283 main Java / ~97 test Java）
 > 模块组成：`nop-metadata-api`（32 main）、`nop-metadata-core`（2）、`nop-metadata-codegen`（0）、`nop-metadata-dao`（120）、`nop-metadata-meta`（0）、`nop-metadata-service`（128 main + 94 test）、`nop-metadata-web`（0）、`nop-metadata-app`（1）
@@ -246,6 +246,16 @@
 - **计数勘误**：header "33 条" → **32 条**（P2-01~27 = 27 条 + AR-06~10 = 5 条）；R6.0 行"提级 10" → **12**、"归类 22" → **20**；AR-06 移出安全类提级清单（v16 误列入）；R6.6 行"22 条" → **20** 并补入 AR-06——与 Follow-up Backlog 表 32 行一致
 - **无静默跳过**：12 条提级候选全部 live 复核（代码路径 + 影响面逐条记录于上方），无任何候选因"没时间"被降级为归类（Minimum Rules #24）；无已确认 live defect / contract drift 被静默降级到 non-blocking 区域（20 条归类项逐条声明）
 
+### MR7 — 2026-08-05-2157 open-audit P0/P1 批量修复（SSRF 变体 / custom_sql 沙箱 / 查询质量·导入正确性）
+
+> 来源：`ai-dev/audits/2026-08-05-2157-open-audit-nop-metadata-audit-remediation.md`（1 P0 + 9 P1 → 3 个 plan；AR-11~23 P2 批已登记 `## Follow-up Backlog`）。执行顺序 {1}→{2}→{3} 独立执行（安全面优先，无依赖关系）。
+
+| # | Work Item | Status | Owner Doc | Deps | Skill |
+|---|-----------|--------|-----------|------|-------|
+| R7.1 | **AR-02/AR-03 修复（SSRF 残余变体收口）**：无括号 IPv6（`::1:3306` / `fe80::1:3306` / `::ffff:127.0.0.1:3306` / 大写 `FE80::1:3306`）+ FQDN 尾点（`localhost.` / `a.localhost.` / `127.0.0.1.` / `0.0.0.0.`）host 校验归一化——HostSecurityUtil 统一剥离一个尾点 + 无括号 IPv6 带端口主动判读（头部 16 字节 IPv6 或 4 字节 `::ffff:` mapped 才剥离，递归复用自身判内网单一事实源）；extractHost / extractWebhookHost 双侧 lastIndexOf 剥离（尾部纯数字 + 头部 IP 字面量才取头部，否则回退首冒号分割维持单冒号语义，绝不把含端口整体串交给 util）；allowlist 语义核对（精确匹配发生在归一化之后） | done（plan-2026-08-06-0553-1 Phase 1-2：red 先于修复判别性落地——TestHostSecurityUtil +5 三类（red→green 3 方法实测先红后绿 / keep-green / 反例）、TestMetaDataSourceConnectionSecurity +6（真实入口 testConnect 断言 + 大写变体）、新建 connection 包 seam 测试 3（反例 + allowlist 两测）、TestCheckpointActionDispatcherWebhookSsrf +5（含大写变体）；独立 closure audit 两轮——第 1 轮发现 isIpLiteral 小写限定致 `FE80::1:3306` 大写绕过 → 修复 `[0-9a-fA-F:.]` + 双侧回归，第 2 轮 READY_TO_CLOSE；`./mvnw test -pl nop-metadata -am -T 1C` **942/0 全绿**（基线 923 + 19）；check-plan-checklist/check-doc-links/scan-hollow 全 0；独立子 agent closure audit PASS） | `nop-metadata/nop-metadata-service/src/main/java/io/nop/metadata/service/security/HostSecurityUtil.java` + `.../connection/MetaDataSourceConnectionProcessor.java` + `.../quality/CheckpointActionDispatcher.java` + 4 个测试文件 | MR6 done | 本 plan（2026-08-06-0553-1） |
+| R7.2 | **AR-04/AR-05 修复（custom_sql 沙箱 DML/TCL + H2 文件族）**：custom_sql 只读沙箱对 DML/TCL（INSERT/UPDATE/DELETE/MERGE + COMMIT/ROLLBACK/SAVEPOINT）显式拒绝 + H2 文件库（`jdbc:h2:file:`/`h2:tcp:`）建连面封堵，补判别性回归 | planned（plan-2026-08-06-0553-2，执行顺序 {2} of 3，未执行） | `nop-metadata/nop-metadata-service/src/main/java/io/nop/metadata/service/quality/MetaQualityRuleExecutor.java` + `.../connection/MetaDataSourceConnectionProcessor.java` | R7.1 done | 本 plan（2026-08-06-0553-2） |
+| R7.3 | **AR-01/AR-06/AR-07/AR-08/AR-09/AR-10 修复（查询/质量/导入正确性批）**：JOIN 分页双绑、SLA 虚假关闭、schema 漂移、导入三态、limit 归一化、MySQL 粒度 + 回归测试 | planned（plan-2026-08-06-0553-3，执行顺序 {3} of 3，未执行） | `nop-metadata/nop-metadata-service/src/main/java/io/nop/metadata/service/query/` + `.../contract/` + `.../sync/` 等 | R7.1 done | 本 plan（2026-08-06-0553-3） |
+
 ### MG — Guard 与知识沉淀
 
 | # | Work Item | Status | Owner Doc | Deps | Skill |
@@ -320,6 +330,7 @@ M0.1 产出 `ai-dev/audits/arm-audit-dimension-matrix-nop-metadata.md`：二维�
 | MR4 | MR1+MR2+MR3 | 裁决文档（无冲突时直接 done） |
 | MR5 | MV+MG | 2026-08-05 新审计 P1 修复（SSRF/血缘 API/文档） |
 | MR6 | MR5 | Backlog 提级修复（安全 + 正确性收口） |
+| MR7 | MR6 | 2026-08-05-2157 open-audit P0/P1 批量修复（SSRF 变体 / custom_sql 沙箱 / 查询质量·导入正确性） |
 | MV | MR1+MR2+MR3+MR4 | 验证报告 + closure audit |
 | MG | MV | lessons + skills + docs |
 
@@ -446,7 +457,7 @@ graph LR
 ## Follow-up Backlog
 
 > P2 批次登记区（mission 规则：P2 不驱动 remediation plan，仅登记跟踪；来源审计路径随行标注）。
-> 登记批次：2026-08-05 两轮审计——`ai-dev/audits/2026-08-05-0655-multi-audit-nop-metadata-audit-remediation.md`（P2-01~27）+ `ai-dev/audits/2026-08-05-0655-open-audit-nop-metadata-audit-remediation.md`（AR-06~10）。
+> 登记批次：2026-08-05 两轮审计——`ai-dev/audits/2026-08-05-0655-multi-audit-nop-metadata-audit-remediation.md`（P2-01~27）+ `ai-dev/audits/2026-08-05-0655-open-audit-nop-metadata-audit-remediation.md`（AR-06~10）+ `ai-dev/audits/2026-08-05-2157-open-audit-nop-metadata-audit-remediation.md`（AR-11~23，2026-08-06 DRAFT_PLANS 轮登记；AR-01~10 为 P0/P1 已入计划 `2026-08-06-0553-{1,2,3}`）。
 
 | 编号 | 标题 | 来源 | 状态 |
 |------|------|------|------|
@@ -482,3 +493,16 @@ graph LR
 | AR-08 | createSqlTable 重复守卫查询缺 isDelta/schema 过滤，比 4 列 UK 更严（误报 ERR_SQL_VIEW_TABLE_EXISTS） | open-audit 2026-08-05-0655 | backlog |
 | AR-09 | R4.3 cron 错误路径 DTO 不携带 runId；R4.2 多 schema 语义未进模块文档 | open-audit 2026-08-05-0655 | backlog |
 | AR-10 | 先前 P2 批仍 open 状态确认（P2-01/P2-04/P2-12 抽查仍 live，无代码变更） | open-audit 2026-08-05-0655 | backlog |
+| AR-11 | judgeRegex 方言判定启发式过宽——MySQL 上真实正则错误（报错含 "regexp"）被误判 SKIP 静默消失（`MetaQualityRuleExecutor.java:710-718`；P2-08 文档化例外被意外放大到规则级 bug） | open-audit 2026-08-05-2157 | backlog |
+| AR-12 | 调度器 cpId==null 分支在 try 外抛错且用错错误码（`MetaQualityCheckpointScheduler.java:201-207` 抛 ERR_CHECKPOINT_SCHEDULER_INVALID_CRON，违反 MA7.5-01 "不外抛"契约，job 永久 FAILED） | open-audit 2026-08-05-2157 | backlog |
+| AR-13 | 质量 SQL 错误码参数名不匹配（QualityErrors `{ruleKey}` 占位恒无法解析）+ expectPassWhen 错误上下文为字面量占位符（`MetaQualityRuleExecutor.java:619-627,701-706`） | open-audit 2026-08-05-2157 | backlog |
+| AR-14 | 抛异常规则不写结果行 → autoScore 复用陈旧结果；skipCount/executedCount 语义不可对账（`MetaQualityCheckpointExecutor.java:155-163`、`MetaQualityScorer.java:129-145`、DTO 缺 totalRuleCount/ruleResults） | open-audit 2026-08-05-2157 | backlog |
+| AR-15 | freshness 负年龄恒 PASS（时钟偏移/未来时间戳掩盖新鲜度违约，`MetaQualityRuleExecutor.java:720-725,238-241`） | open-audit 2026-08-05-2157 | backlog |
+| AR-16 | 完整 SQL（含 custom_sql 字面量）以 INFO 级写日志（`MetaQualityRuleExecutor.java:616,632,654`；R6.2 刚治理 rawJdbcUrl，同类面未治理） | open-audit 2026-08-05-2157 | backlog |
+| AR-17 | R6.3 per-key 锁 + REQUIRES_NEW 改变 syncExternalTables 原子性契约（中途失败时已同步表持久化、异常上抛、事件缺失；`NopMetaDataSourceBizModel.java:508-519`，未文档化） | open-audit 2026-08-05-2157 | backlog |
+| AR-18 | 导入内容手拼 JSON 不转义（`OrmModelImporter.java:208-216`）+ buildSql 反序列化未类型化裸 ClassCastException（`MetaTableFieldResolver.java:340-359`） | open-audit 2026-08-05-2157 | backlog |
+| AR-19 | 跨库内存过滤与 SQL 路径语义漂移——LIKE 正则转义缺失 / NULL 比较相反 / 空 or 节点相反（`MemoryFilterEvaluator.java:101-110,223-246,171-181`） | open-audit 2026-08-05-2157 | backlog |
+| AR-20 | MySQL 上 NULLS FIRST/LAST 无条件拼接（语法错误）+ 跨库 join 键类型精确类比较（INT vs BIGINT 误拒）（`AggregationHelper.java:342-345`、`CrossDbJoinMerger.java:122-159`） | open-audit 2026-08-05-2157 | backlog |
+| AR-21 | R6.4 fail-loud 在自动化标注路径被 catch-all 吞掉 + 无绑定分类时全局回退 lexicographically-first（`AutoClassificationProcessor.java:218-228,260-271`、`LineageTagPropagationProcessor.java:177-188`） | open-audit 2026-08-05-2157 | backlog |
+| AR-22 | SLA 未知时间单位静默按毫秒解析（week 变 1ms → 恒 stale，`MetaContractChecker.java:353-355`） | open-audit 2026-08-05-2157 | backlog |
+| AR-23 | 杂项批：delete 先摘 cron 后提交（删除失败丢调度）/ 索引重建不清陈旧文档、refresh 失败仅 warn、搜索 limit 负数直通引擎 / ExternalTableStructureReader 异常统一 ERR_DIALECT_NOT_SUPPORTED + NULL 精度归 0 / reconciliation 全量候选池 + 无长度上限 levenshtein / profiler 整列载入内存 / 模块版本 read-then-insert 无唯一约束竞态 / manifest 跨 DRAFTING 模块解析 / 事件快照 Map 分支跳过敏感列脱敏（各文件行号见审计原文） | open-audit 2026-08-05-2157 | backlog |
