@@ -225,7 +225,7 @@ alter table nop_meta_business_domain add constraint UK_NOP_META_BUSINESS_DOMAIN_
 alter table nop_meta_orm_model add constraint UK_NOP_META_ORM_MODEL_MODULE_NAME unique (NOP_TENANT_ID,meta_module_id,model_name,is_delta);
 
                 alter table nop_meta_table drop constraint UK_NOP_META_TABLE_MODULE_NAME;
-alter table nop_meta_table add constraint UK_NOP_META_TABLE_MODULE_NAME unique (NOP_TENANT_ID,meta_module_id,table_name,is_delta);
+alter table nop_meta_table add constraint UK_NOP_META_TABLE_MODULE_NAME unique (NOP_TENANT_ID,meta_module_id,table_name,is_delta,meta_schema);
 
                 alter table nop_meta_pipeline drop constraint UK_NOP_META_PIPELINE_MODULE_NAME;
 alter table nop_meta_pipeline add constraint UK_NOP_META_PIPELINE_MODULE_NAME unique (NOP_TENANT_ID,meta_module_id,pipeline_name);

@@ -75,6 +75,31 @@ public class TestNopMetaDdlUniqueKeyEmission extends JunitBaseTestCase {
                 "UK_NOP_META_MODULE_ID_VER must still be emitted on (moduleId, moduleVersion)");
     }
 
+    /**
+     * R4.2（plan-2026-08-05-1625-1）：UK_NOP_META_TABLE_MODULE_NAME 扩展 metaSchema 维度
+     * （多 schema 同名表可共存，metaSchema null 语义裁定 = 路径 A 保持可空）。
+     */
+    @Test
+    public void testTableUniqueKeyIncludesMetaSchemaDimension() {
+        OrmEntityModel table = entityModel("io.nop.metadata.dao.entity.NopMetaTable");
+        assertTrue(hasUniqueKeyColumn(table, "UK_NOP_META_TABLE_MODULE_NAME", "META_SCHEMA"),
+                "UK_NOP_META_TABLE_MODULE_NAME must include metaSchema dimension (multi-schema support)");
+
+        for (String dialect : new String[]{"mysql", "oracle", "postgresql"}) {
+            String sql = DdlSqlCreator.forDialect(dialect).createTable(table, false);
+            String schemaCol = "postgresql".equals(dialect) ? "meta_schema" : "META_SCHEMA";
+            String ukLine = null;
+            for (String line : sql.split("\\n")) {
+                if (line.contains("UK_NOP_META_TABLE_MODULE_NAME") && line.contains("unique")) {
+                    ukLine = line;
+                    break;
+                }
+            }
+            assertTrue(ukLine != null && ukLine.contains(schemaCol),
+                    dialect + " DDL unique constraint must include metaSchema column, actual: " + sql);
+        }
+    }
+
     private OrmEntityModel entityModel(String name) {
         return (OrmEntityModel) orm.getOrmModel().getEntityModel(name);
     }

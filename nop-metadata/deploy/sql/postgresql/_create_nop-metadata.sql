@@ -221,7 +221,7 @@ CREATE TABLE nop_meta_table(
   remark VARCHAR(200)  ,
   meta_schema VARCHAR(100)  ,
   business_domain_id VARCHAR(32)  ,
-  constraint UK_NOP_META_TABLE_MODULE_NAME unique (meta_module_id,table_name,is_delta),
+  constraint UK_NOP_META_TABLE_MODULE_NAME unique (meta_module_id,table_name,is_delta,meta_schema),
   constraint PK_nop_meta_table primary key (meta_table_id)
 );
 

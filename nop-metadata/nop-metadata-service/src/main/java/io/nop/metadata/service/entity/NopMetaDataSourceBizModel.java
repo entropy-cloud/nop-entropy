@@ -451,7 +451,7 @@ public class NopMetaDataSourceBizModel extends CrudBizModel<NopMetaDataSource> i
             table.setMetaModuleId(metaModuleId);
             table.setIsDelta((byte) 0);
             table.setTableName(info.getTableName());
-            table.setMetaSchema(info.getSchema());
+            table.setMetaSchema(infoSchema);
             table.setDisplayName(info.getTableName());
             table.setTableType(_NopMetadataCoreConstants.TABLE_TYPE_EXTERNAL);
             table.setQuerySpace(dataSource.getQuerySpace());
@@ -459,7 +459,7 @@ public class NopMetaDataSourceBizModel extends CrudBizModel<NopMetaDataSource> i
             table.setBuildSql(columnsJson);
             tableDao.saveEntity(table);
         } else {
-            table.setMetaSchema(info.getSchema());
+            table.setMetaSchema(infoSchema);
             table.setQuerySpace(dataSource.getQuerySpace());
             table.setDescription(info.getRemark());
             table.setBuildSql(columnsJson);

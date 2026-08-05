@@ -19,7 +19,7 @@
     </x:post-extends>
 
     <keys>
-        <key name="UK_NOP_META_TABLE_MODULE_NAME" props="metaModuleId,tableName,isDelta"/>
+        <key name="UK_NOP_META_TABLE_MODULE_NAME" props="metaModuleId,tableName,isDelta,metaSchema"/>
     </keys>
 
     <props>

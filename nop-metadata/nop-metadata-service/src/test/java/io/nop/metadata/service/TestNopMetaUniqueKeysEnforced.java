@@ -78,8 +78,9 @@ public class TestNopMetaUniqueKeysEnforced extends JunitBaseTestCase {
         OrmEntityModel model = (OrmEntityModel) orm.getOrmModel().getEntityModel("io.nop.metadata.dao.entity.NopMetaTable");
         assertNotNull(model);
         // MA7.3-01：双重存储（delta+full 同模块各存一份表记录）要求 UK 带 isDelta 维度
-        assertTrue(hasUniqueKeyWithColumns(model, "metaModuleId", "tableName", "isDelta"),
-                "NopMetaTable must declare UK on (metaModuleId, tableName, isDelta): " + ukNames(model));
+        // R4.2（plan-2026-08-05-1625-1）：UK 扩展 metaSchema 维度（路径 A 保持可空，多 schema 同名表共存）
+        assertTrue(hasUniqueKeyWithColumns(model, "metaModuleId", "tableName", "isDelta", "metaSchema"),
+                "NopMetaTable must declare UK on (metaModuleId, tableName, isDelta, metaSchema): " + ukNames(model));
     }
 
     @Test

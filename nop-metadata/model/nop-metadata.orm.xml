@@ -1314,7 +1314,7 @@
                         i18n-en:displayName="Business Domain Id"/>
             </columns>
             <unique-keys>
-                <unique-key name="UK_NOP_META_TABLE_MODULE_NAME" columns="metaModuleId,tableName,isDelta" constraint="UK_NOP_META_TABLE_MODULE_NAME"
+                <unique-key name="UK_NOP_META_TABLE_MODULE_NAME" columns="metaModuleId,tableName,isDelta,metaSchema" constraint="UK_NOP_META_TABLE_MODULE_NAME"
                             i18n-en:displayName="Unique Table Name Per Module"/>
             </unique-keys>
             <relations>

@@ -7,8 +7,10 @@ import io.nop.api.core.annotations.core.Name;
 import io.nop.api.core.annotations.core.Optional;
 import io.nop.api.core.annotations.ioc.InjectValue;
 import io.nop.api.core.beans.FieldSelectionBean;
+import io.nop.api.core.beans.FilterBeans;
 import io.nop.api.core.beans.TreeBean;
 import io.nop.api.core.beans.query.OrderFieldBean;
+import io.nop.api.core.beans.query.QueryBean;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.biz.crud.CrudBizModel;
 import io.nop.core.context.IServiceContext;
@@ -32,6 +34,7 @@ import io.nop.metadata.dao.entity.NopMetaModule;
 import io.nop.metadata.dao.entity.NopMetaProfilingResult;
 import io.nop.metadata.dao.entity.NopMetaTable;
 import io.nop.metadata.service.NopMetadataErrors;
+import io.nop.metadata.service.NopMetadataArgs;
 import io.nop.metadata.service.connection.IMetaDataSourceConnectionProcessor;
 import io.nop.metadata.service.event.MetaModelChangedEventPublisher;
 import io.nop.metadata.service.field.ResolvedTableField;
@@ -158,6 +161,16 @@ public class NopMetaTableBizModel extends CrudBizModel<NopMetaTable> implements 
         IEntityDao<NopMetaModule> moduleDao = daoFor(NopMetaModule.class);
         NopMetaModule module = moduleDao.requireEntityById(metaModuleId);
         IEntityDao<NopMetaTable> tableDao = dao();
+        // R4.2（plan-2026-08-05-1625-1 D5）：4 列 UK 含可空 META_SCHEMA 后 SQL 表（恒 null-schema）
+        // 第二次创建不再被 DB 层 UK 拦截——补 find-or-fail 守卫保持 fail-fast 语义
+        QueryBean dupQuery = new QueryBean();
+        dupQuery.addFilter(FilterBeans.eq(NopMetaTable.PROP_NAME_metaModuleId, metaModuleId));
+        dupQuery.addFilter(FilterBeans.eq(NopMetaTable.PROP_NAME_tableName, tableName));
+        if (tableDao.findFirstByQuery(dupQuery) != null) {
+            throw new NopMetadataException(NopMetadataErrors.ERR_SQL_VIEW_TABLE_EXISTS)
+                    .param(NopMetadataArgs.ARG_META_MODULE_ID, metaModuleId)
+                    .param(NopMetadataArgs.ARG_TABLE_NAME, tableName);
+        }
         NopMetaTable table = tableDao.newEntity();
         table.setMetaModuleId(metaModuleId);
         table.setIsDelta((byte) 0);

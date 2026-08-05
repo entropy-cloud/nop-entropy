@@ -172,7 +172,7 @@
 | # | Work Item | Status | Owner Doc | Deps | Skill |
 |---|-----------|--------|-----------|------|-------|
 | R4.1 | 跨维度 P1 裁决与冲突修复 | done（plan-2026-08-05-1408-1：MR4 跨维度裁决完成——8 项 Successor: MR4 项终局裁决（全部终局 deferred，0 提升）+ 跨维度 P1 无冲突核对） | `ai-dev/audits/arm-index-nop-metadata.md` | MR1+MR2+MR3 done | `closure-audit-prompt.md` |
-| R4.2 | 多 schema 支持专项（P2-MA3-03 终局 successor：metaSchema null 语义裁定 → UK 列维度扩展或 schema 维度列契约变更 + 存量迁移，model-first，plan-first 声明） | todo | `nop-metadata/model/nop-metadata.orm.xml` | R4.1 done | `orm-model-audit-prompt.md` |
+| R4.2 | 多 schema 支持专项（P2-MA3-03 终局 successor：metaSchema null 语义裁定 → UK 列维度扩展或 schema 维度列契约变更 + 存量迁移，model-first，plan-first 声明） | done（plan-2026-08-05-1625-1：null 语义裁定 = 路径 A（保持可空）→ UK_NOP_META_TABLE_MODULE_NAME 扩展为 (metaModuleId, tableName, isDelta, metaSchema) model-first 落地 + 三方言 DDL/_add_tenant tenant 变体再生成同步 + 存量非租户升级 ALTER SQL（upgrade-nop-meta-table-uk.sql 三方言）+ upsertExternalTable 归一化存储对齐 + createSqlTable find-or-fail 守卫（sql-view-table-exists 错误码）+ 多 schema e2e 回归测试（860/0 全绿）） | `nop-metadata/model/nop-metadata.orm.xml` | R4.1 done | `orm-model-audit-prompt.md` |
 | R4.3 | 调度可靠性专项（P2-MA7.5-05 终局 successor：检查点执行幂等——runId/checkpointId 列 + 复合 UK（ORM 变更 Protected Area）+ 执行入口运行标记/分布式锁设计） | todo | `nop-metadata/model/nop-metadata.orm.xml` + `nop-metadata/nop-metadata-service/src/main/java/io/nop/metadata/service/quality/` | R4.1 done | `open-ended-adversarial-review-prompt.md` |
 
 **R4.1 裁决记录（plan-2026-08-05-1408-1 Phase 1 骨架，Phase 2 终局填写）**：
