@@ -58,7 +58,7 @@ public class TestGenErrorCodesYaml extends BaseTestCase {
                 io.nop.log.core.LogErrors.class,
                 io.nop.config.ConfigErrors.class,
                 DbToolExpErrors.class,
-                io.nop.ai.core.AiCoreErrors.class,
+                io.nop.ai.core.NopAiCoreErrors.class,
                 io.nop.ai.coder.AiCoderErrors.class,
                 io.nop.batch.dsl.BatchDslErrors.class,
                 io.nop.batch.dao.NopBatchDaoErrors.class,
