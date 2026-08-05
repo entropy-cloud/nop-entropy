@@ -182,6 +182,55 @@ public class TestMetaDataSourceConnectionSecurity {
                 "external host with userinfo must pass the host check (not blocked)");
     }
 
+    // ===== SSRF 主机归一化统一（共享 HostSecurityUtil，JDK 解析语义）=====
+
+    /** IP 记法变体归一化（P1-01/AR-01）：十进制整数 / 短格式 / 前导零 全部必须拒绝。 */
+    @Test
+    public void testIpNotationVariantsRejected() {
+        String[] internalHosts = {
+                "2130706433",        // → 127.0.0.1（十进制整数）
+                "0.1",               // → 0.0.0.1（短格式，0.0.0.0/8）
+                "0.256",             // → 0.0.1.0（短格式，0.0.0.0/8）
+                "010.0.0.1",         // → 10.0.0.1（前导零严格十进制）
+                "0169.254.169.254"   // → 169.254.169.254（前导零严格十进制）
+        };
+        for (String host : internalHosts) {
+            NopException ex = assertThrows(NopException.class,
+                    () -> service.testConnect("jdbc",
+                            "{\"jdbcUrl\":\"jdbc:mysql://" + host + ":3306/db\"," + BASE_CFG + "}"),
+                    "IP notation variant must be rejected: " + host);
+            assertEquals(NopMetadataErrors.ERR_DATASOURCE_JDBC_URL_BLOCKED.getErrorCode(),
+                    ex.getErrorCode(),
+                    "IP notation variant must fail with ERR_DATASOURCE_JDBC_URL_BLOCKED: " + host);
+        }
+    }
+
+    /** 127.1（短格式 loopback）回归向量：已被既有 fast path 拦截，归一化后仍拒绝。 */
+    @Test
+    public void testShortFormLoopbackRejected() {
+        NopException ex = assertThrows(NopException.class,
+                () -> service.testConnect("jdbc",
+                        "{\"jdbcUrl\":\"jdbc:mysql://127.1:3306/db\"," + BASE_CFG + "}"),
+                "short form loopback (127.1 -> 127.0.0.1) must be rejected");
+        assertEquals(NopMetadataErrors.ERR_DATASOURCE_JDBC_URL_BLOCKED.getErrorCode(), ex.getErrorCode());
+    }
+
+    /** JDK 严格十进制语义下的外部地址（行为反向变更：inet_aton 八进制假设废弃）→ 放行。 */
+    @Test
+    public void testStrictDecimalExternalHostsPass() {
+        String[] externalHosts = {
+                "0177.0.0.1",   // JDK 严格十进制 → 177.0.0.1（外部；旧 inet_aton 八进制语义误判为 127.0.0.1）
+                "172.16",       // JDK → 172.0.0.16（第二段 0，非 RFC1918）
+                "8.8.8.8",      // 外部 IP
+                "example.com"   // 外部 hostname
+        };
+        for (String host : externalHosts) {
+            assertDoesNotThrow(() -> service.testConnect("jdbc",
+                            "{\"jdbcUrl\":\"jdbc:mysql://" + host + ":3306/db\"," + BASE_CFG + "}"),
+                    "external host must pass the host check (not blocked): " + host);
+        }
+    }
+
     // ===== driverClassName 白名单 =====
 
     /** 非白名单 driverClassName（任意类加载攻击）必须失败。 */

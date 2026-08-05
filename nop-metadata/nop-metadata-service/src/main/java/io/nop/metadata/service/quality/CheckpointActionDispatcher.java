@@ -13,11 +13,10 @@ import io.nop.metadata.core._NopMetadataCoreConstants;
 import io.nop.metadata.dao.entity.NopMetaQualityCheckpoint;
 import io.nop.metadata.service.NopMetadataErrors;
 import io.nop.metadata.service.NopMetadataException;
+import io.nop.metadata.service.security.HostSecurityUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.net.InetAddress;
-import java.net.UnknownHostException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -298,215 +297,15 @@ public class CheckpointActionDispatcher {
     }
 
     /**
-     * 是否内网/保留段主机（RFC1918 + RFC3927 link-local + loopback）。与 MetaDataSourceConnectionProcessor 一致。
+     * 是否内网/保留段主机（RFC1918 + RFC3927 link-local + loopback + 0.0.0.0/8 + IP 记法变体）。
+     * 统一委托 {@link HostSecurityUtil}（与 MetaDataSourceConnectionProcessor 共享同一实现，
+     * 语义与 JDK 解析一致，消除注释漂移与双实现差异）。
      *
-     * <p>MA7.6-04 修复：除纯字符串比对外，追加 IP 记法变体归一化——十进制整数（2130706433 → 127.0.0.1）、
-     * 八进制/十六进制点分变体（0177.0.0.1、0x7f.0.0.1）、0.0.0.0、IPv4-mapped IPv6（::ffff:127.0.0.1）、
-     * IPv6 loopback/link-local 字面量。所有归一化都是确定性字符串/字面量解析，不触发 DNS
+     * <p>所有归一化都是确定性字符串/字面量解析，不触发 DNS
      * （仅对含 {@code :} 的 IPv6 字面量调用 {@link InetAddress#getByName}，字面量解析不查 DNS）。
      */
     static boolean isInternalHost(String host) {
-        if (host == null || host.isEmpty()) {
-            return false;
-        }
-        String h = host.toLowerCase().trim();
-        // hostname/IP fast path（维持既有字符串比对行为，不触发 DNS）
-        if ("localhost".equals(h) || h.endsWith(".localhost")) {
-            return true;
-        }
-        if (h.equals("127.0.0.1") || h.startsWith("127.")) {
-            return true;
-        }
-        if (h.startsWith("10.") || h.startsWith("192.168.")) {
-            return true;
-        }
-        if (h.startsWith("172.")) {
-            String[] parts = h.split("\\.");
-            if (parts.length >= 2) {
-                try {
-                    int second = Integer.parseInt(parts[1]);
-                    if (second >= 16 && second <= 31) {
-                        return true;
-                    }
-                } catch (NumberFormatException ignored) {
-                    // 非数字段不算 RFC1918
-                }
-            }
-        }
-        if (h.startsWith("169.254.")) {
-            return true;
-        }
-        if ("::1".equals(h) || "0:0:0:0:0:0:0:1".equals(h)) {
-            return true;
-        }
-        // ===== MA7.6-04：IP 记法变体归一化（纯确定性字符串/字面量解析，不触发 DNS）=====
-        // 点分 IPv4（八进制 0177.0.0.1 / 十六进制 0x7f.0.0.1 变体）
-        if (looksLikeDottedIpv4(h)) {
-            int[] octets = parseDottedIpv4(h);
-            if (octets != null && isInternalIpv4(octets)) {
-                return true;
-            }
-        }
-        // 十进制/十六进制整数（InetAddress 支持的整数点分形式，2130706433 → 127.0.0.1；0 → 0.0.0.0）
-        if (isAllDigits(h) || isHexInteger(h)) {
-            long v = parseIpv4Integer(h);
-            if (v >= 0 && v <= 0xFFFFFFFFL) {
-                int[] octets = {
-                        (int) (v >> 24) & 0xFF, (int) (v >> 16) & 0xFF,
-                        (int) (v >> 8) & 0xFF, (int) v & 0xFF};
-                if (isInternalIpv4(octets)) {
-                    return true;
-                }
-            }
-        }
-        // IPv4-mapped IPv6：::ffff:a.b.c.d → 取 IPv4 段复核
-        int ffffIdx = h.lastIndexOf("::ffff:");
-        if (ffffIdx >= 0) {
-            String tail = h.substring(ffffIdx + 7);
-            if (looksLikeDottedIpv4(tail)) {
-                int[] octets = parseDottedIpv4(tail);
-                if (octets != null && isInternalIpv4(octets)) {
-                    return true;
-                }
-            }
-        }
-        // IPv6 字面量（仅含 ':' 的输入才进入；字面量解析不查 DNS）
-        if (h.indexOf(':') >= 0) {
-            return isInternalIpv6Literal(h);
-        }
-        return false;
-    }
-
-    private static boolean isAllDigits(String h) {
-        if (h.isEmpty()) {
-            return false;
-        }
-        for (int i = 0; i < h.length(); i++) {
-            if (!Character.isDigit(h.charAt(i))) {
-                return false;
-            }
-        }
-        return true;
-    }
-
-    private static boolean isHexInteger(String h) {
-        return h.startsWith("0x") && h.length() > 2;
-    }
-
-    /** 解析十进制或十六进制整数形式 IPv4；非法/越界返回 0。 */
-    private static long parseIpv4Integer(String h) {
-        try {
-            return h.startsWith("0x") ? Long.parseLong(h.substring(2), 16) : Long.parseLong(h);
-        } catch (NumberFormatException e) {
-            return 0;
-        }
-    }
-
-    /** 4 段点分形式（每段数字，可为十进制/八进制/十六进制）。 */
-    private static boolean looksLikeDottedIpv4(String h) {
-        int dotCount = 0;
-        for (int i = 0; i < h.length(); i++) {
-            char c = h.charAt(i);
-            if (c == '.') {
-                dotCount++;
-            } else if (!Character.isDigit(c) && !(c >= 'a' && c <= 'f') && c != 'x' && c != 'X') {
-                return false;
-            }
-        }
-        return dotCount == 3;
-    }
-
-    /** 解析点分 IPv4，每段支持十进制/八进制（前导 0）/十六进制（0x）；任一段非法或越界返回 null。 */
-    private static int[] parseDottedIpv4(String h) {
-        String[] parts = h.split("\\.");
-        if (parts.length != 4) {
-            return null;
-        }
-        int[] octets = new int[4];
-        for (int i = 0; i < 4; i++) {
-            String p = parts[i];
-            int radix = 10;
-            String digits = p;
-            if (p.startsWith("0x") || p.startsWith("0X")) {
-                radix = 16;
-                digits = p.substring(2);
-            } else if (p.length() > 1 && p.startsWith("0")) {
-                radix = 8;
-            }
-            if (digits.isEmpty()) {
-                return null;
-            }
-            try {
-                octets[i] = Integer.parseInt(digits, radix);
-            } catch (NumberFormatException e) {
-                return null;
-            }
-            if (octets[i] < 0 || octets[i] > 255) {
-                return null;
-            }
-        }
-        return octets;
-    }
-
-    /** RFC1918 + link-local + loopback + 0.0.0.0/8（0.0.0.0 多数平台 connect 等效 localhost）。 */
-    private static boolean isInternalIpv4(int[] o) {
-        if (o[0] == 0) {
-            return true;              // 0.0.0.0/8（含 0.0.0.0）
-        }
-        if (o[0] == 127) {
-            return true;              // loopback
-        }
-        if (o[0] == 10) {
-            return true;              // RFC1918
-        }
-        if (o[0] == 192 && o[1] == 168) {
-            return true;
-        }
-        if (o[0] == 172 && o[1] >= 16 && o[1] <= 31) {
-            return true;
-        }
-        if (o[0] == 169 && o[1] == 254) {
-            return true;              // link-local
-        }
-        return false;
-    }
-
-    /** IPv6 字面量内网判定：loopback（::1）、link-local（fe80::/10）、IPv4-mapped（::ffff:a.b.c.d）。 */
-    private static boolean isInternalIpv6Literal(String h) {
-        InetAddress addr;
-        try {
-            addr = InetAddress.getByName(h);
-        } catch (UnknownHostException e) {
-            // 非合法字面量：无法确定为内网，视为外部（不破坏合法外网主机）
-            return false;
-        }
-        byte[] b = addr.getAddress();
-        if (b == null || b.length != 16) {
-            return false;
-        }
-        // IPv4-mapped ::ffff:a.b.c.d
-        if (isAllZero(b, 0, 10) && b[10] == (byte) 0xFF && b[11] == (byte) 0xFF) {
-            int[] o = {b[12] & 0xFF, b[13] & 0xFF, b[14] & 0xFF, b[15] & 0xFF};
-            return isInternalIpv4(o);
-        }
-        // loopback ::1
-        if (isAllZero(b, 0, 15) && b[15] == 1) {
-            return true;
-        }
-        // link-local fe80::/10
-        if ((b[0] & 0xFF) == 0xFE && (b[1] & 0xC0) == 0x80) {
-            return true;
-        }
-        return false;
-    }
-
-    private static boolean isAllZero(byte[] b, int from, int to) {
-        for (int i = from; i < to; i++) {
-            if (b[i] != 0) {
-                return false;
-            }
-        }
-        return true;
+        return HostSecurityUtil.isInternalHost(host);
     }
 
     /** 维度13-04：method 白名单校验（仅 POST/PUT）。 */

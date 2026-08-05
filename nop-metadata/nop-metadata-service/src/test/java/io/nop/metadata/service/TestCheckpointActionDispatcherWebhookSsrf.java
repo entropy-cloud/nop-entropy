@@ -184,11 +184,43 @@ public class TestCheckpointActionDispatcherWebhookSsrf {
                 "decimal integer IPv4 (2130706433 = 127.0.0.1) must be blocked");
     }
 
-    /** 八进制点分 0177.0.0.1（= 127.0.0.1）必须被拒。 */
+    /** 短格式 IPv4（1-2 段位移解析，0.0.0.0/8）必须被拒。 */
     @Test
-    public void testOctalDottedIpv4Blocked() {
-        assertWebhookBlocked("http://0177.0.0.1/", "internal/link-local/loopback host not in allowed-hosts",
-                "octal dotted IPv4 (0177.0.0.1 = 127.0.0.1) must be blocked");
+    public void testShortFormIpv4Blocked() {
+        assertWebhookBlocked("http://0.1/", "internal/link-local/loopback host not in allowed-hosts",
+                "short form 0.1 (-> 0.0.0.1, 0.0.0.0/8) must be blocked");
+        assertWebhookBlocked("http://0.256/", "internal/link-local/loopback host not in allowed-hosts",
+                "short form 0.256 (-> 0.0.1.0, 0.0.0.0/8) must be blocked");
+    }
+
+    /** 前导零按严格十进制解析（废弃 inet_aton 八进制）：010.0.0.1 → 10.0.0.1、0169.254.169.254 → link-local，必须被拒。 */
+    @Test
+    public void testLeadingZeroStrictDecimalBlocked() {
+        assertWebhookBlocked("http://0127.0.0.1/", "internal/link-local/loopback host not in allowed-hosts",
+                "leading-zero 0127.0.0.1 (-> 127.0.0.1 strict decimal) must be blocked");
+        assertWebhookBlocked("http://0169.254.169.254/", "internal/link-local/loopback host not in allowed-hosts",
+                "leading-zero 0169.254.169.254 (-> 169.254.169.254 strict decimal) must be blocked");
+    }
+
+    /** 八进制点分 0177.0.0.1：JDK 21+ 严格十进制解析为 177.0.0.1（外部），必须放行
+     * （旧 inet_aton 八进制假设"= 127.0.0.1"错误，本用例按 JDK 语义改写，非削弱保护）。 */
+    @Test
+    public void testOctalDottedIpv4Allowed() {
+        mockHttpClient.responseStatus = 200;
+        assertDoesNotThrow(() -> dispatchWebhook("http://0177.0.0.1/"));
+        assertEquals(1, mockHttpClient.fetchCallCount,
+                "0177.0.0.1 (JDK strict decimal -> 177.0.0.1 external) must reach IHttpClient.fetch");
+        assertEquals("http://0177.0.0.1/", mockHttpClient.lastRequest.getUrl(),
+                "request URL passed through correctly");
+    }
+
+    /** 二段短格式 172.16：JDK → 172.0.0.16（第二段 0，非 RFC1918），必须放行（向 JDK 语义收敛）。 */
+    @Test
+    public void testTwoSegment172ExternalAllowed() {
+        mockHttpClient.responseStatus = 200;
+        assertDoesNotThrow(() -> dispatchWebhook("http://172.16/"));
+        assertEquals(1, mockHttpClient.fetchCallCount,
+                "172.16 (JDK -> 172.0.0.16, not RFC1918) must reach IHttpClient.fetch");
     }
 
     /** IPv4-mapped IPv6 [::ffff:127.0.0.1] 必须被拒。 */

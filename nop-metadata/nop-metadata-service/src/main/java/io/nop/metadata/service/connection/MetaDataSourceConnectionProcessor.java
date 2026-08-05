@@ -9,6 +9,7 @@ import io.nop.dao.jdbc.datasource.SimpleDataSource;
 import io.nop.metadata.core._NopMetadataCoreConstants;
 import io.nop.metadata.service.NopMetadataErrors;
 import io.nop.metadata.service.NopMetadataException;
+import io.nop.metadata.service.security.HostSecurityUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -235,9 +236,9 @@ public class MetaDataSourceConnectionProcessor implements IMetaDataSourceConnect
                         .param("reason", "dangerous parameter/token present: " + dangerous);
             }
         }
-        // (3) 主机白名单：默认禁内网（RFC1918 + link-local + localhost）
+        // (3) 主机白名单：默认禁内网（RFC1918 + link-local + loopback + 0.0.0.0/8 + IP 记法变体归一化）
         String host = extractHost(jdbcUrl);
-        if (host != null && !host.isEmpty() && isInternalHost(host)
+        if (host != null && !host.isEmpty() && HostSecurityUtil.isInternalHost(host)
                 && !resolveAllowedInternalHosts().contains(host.toLowerCase())) {
             throw new NopMetadataException(NopMetadataErrors.ERR_DATASOURCE_JDBC_URL_BLOCKED)
                     .param("jdbcUrl", redactJdbcUrl(jdbcUrl))
@@ -339,39 +340,10 @@ public class MetaDataSourceConnectionProcessor implements IMetaDataSourceConnect
         return Math.min(a, b);
     }
 
-    /** 是否内网/保留段主机（RFC1918 + RFC3927 link-local + loopback）。 */
+    /** 是否内网/保留段主机（RFC1918 + RFC3927 link-local + loopback + 0.0.0.0/8 + IP 记法变体）。
+     *  统一委托 {@link HostSecurityUtil}（与 webhook 校验共享同一实现，语义与 JDK 解析一致）。 */
     private static boolean isInternalHost(String host) {
-        String h = host.toLowerCase();
-        if ("localhost".equals(h) || h.endsWith(".localhost")) {
-            return true;
-        }
-        if (h.equals("127.0.0.1") || h.startsWith("127.")) {
-            return true;
-        }
-        if (h.startsWith("10.") || h.startsWith("192.168.")) {
-            return true;
-        }
-        if (h.startsWith("172.")) {
-            String[] parts = h.split("\\.");
-            if (parts.length >= 2) {
-                try {
-                    int second = Integer.parseInt(parts[1]);
-                    if (second >= 16 && second <= 31) {
-                        return true;
-                    }
-                } catch (NumberFormatException ignored) {
-                    // 非数字段不算 RFC1918，落入后续检查
-                }
-            }
-        }
-        if (h.startsWith("169.254.")) {
-            return true;
-        }
-        // IPv6 loopback
-        if ("::1".equals(h) || "0:0:0:0:0:0:0:1".equals(h)) {
-            return true;
-        }
-        return false;
+        return HostSecurityUtil.isInternalHost(host);
     }
 
     /** AR-02: driverClassName 必须在白名单内（防任意类加载攻击）。 */
