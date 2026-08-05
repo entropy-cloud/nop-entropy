@@ -1759,10 +1759,10 @@
                 </to-one>
             </relations>
             <unique-keys>
-                <unique-key columns="sourceTableId,targetTableId,transformType"
+                <unique-key columns="sourceTableId,sourceColumn,targetTableId,targetColumn"
                             constraint="UK_NOP_META_LINEAGE_EDGE_SRC_TGT_TYPE"
                             name="UK_NOP_META_LINEAGE_EDGE_SRC_TGT_TYPE"
-                            i18n-en:displayName="Unique Lineage Edge Per Source-Target-Transform"/>
+                            i18n-en:displayName="Unique Lineage Edge Per Source-Column-Target-Column"/>
             </unique-keys>
         </entity>
         <entity className="io.nop.metadata.dao.entity.NopMetaQualityRule" createTimeProp="createTime"

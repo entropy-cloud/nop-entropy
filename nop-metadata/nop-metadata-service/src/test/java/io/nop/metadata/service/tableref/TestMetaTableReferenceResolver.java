@@ -2,6 +2,8 @@ package io.nop.metadata.service.tableref;
 
 import io.nop.api.core.annotations.autotest.NopTestConfig;
 import io.nop.api.core.annotations.core.OptionalBoolean;
+import io.nop.api.core.beans.FilterBeans;
+import io.nop.api.core.beans.query.QueryBean;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.autotest.junit.JunitBaseTestCase;
 import io.nop.dao.api.IDaoProvider;
@@ -195,6 +197,13 @@ public class TestMetaTableReferenceResolver extends JunitBaseTestCase {
 
     private String ensureModuleId() {
         IEntityDao<NopMetaModule> dao = daoProvider.daoFor(NopMetaModule.class);
+        // MR3 P2-MA6.6-001：UK 发射后 moduleId+version 有 DB 唯一约束，重复调用必须幂等（查重后插入）
+        QueryBean q = new QueryBean();
+        q.addFilter(FilterBeans.eq(NopMetaModule.PROP_NAME_moduleId, "nop/test-resolver"));
+        NopMetaModule existing = dao.findFirstByQuery(q);
+        if (existing != null) {
+            return existing.getMetaModuleId();
+        }
         NopMetaModule m = dao.newEntity();
         m.setModuleId("nop/test-resolver");
         m.setModuleName("test-resolver");
@@ -237,6 +246,13 @@ public class TestMetaTableReferenceResolver extends JunitBaseTestCase {
 
     private NopMetaEntity saveMetaEntity(String entityName, String tableName, String querySpace) {
         IEntityDao<NopMetaEntity> dao = daoProvider.daoFor(NopMetaEntity.class);
+        // UK_NOP_META_ENTITY_MODEL_NAME（ormModelId,entityName）发射后需幂等：同一 entityName 复用已有行
+        QueryBean q = new QueryBean();
+        q.addFilter(FilterBeans.eq(NopMetaEntity.PROP_NAME_entityName, entityName));
+        NopMetaEntity existing = dao.findFirstByQuery(q);
+        if (existing != null) {
+            return existing;
+        }
         NopMetaEntity e = dao.newEntity();
         e.setOrmModelId(ensureOrmModelId());
         e.setEntityName(entityName);
@@ -251,6 +267,13 @@ public class TestMetaTableReferenceResolver extends JunitBaseTestCase {
     private String ensureOrmModelId() {
         IEntityDao<io.nop.metadata.dao.entity.NopMetaOrmModel> dao =
                 daoProvider.daoFor(io.nop.metadata.dao.entity.NopMetaOrmModel.class);
+        // UK_NOP_META_ORM_MODEL_MODULE_NAME（metaModuleId,modelName,isDelta）发射后需幂等
+        QueryBean q = new QueryBean();
+        q.addFilter(FilterBeans.eq(io.nop.metadata.dao.entity.NopMetaOrmModel.PROP_NAME_modelName, "test-model"));
+        io.nop.metadata.dao.entity.NopMetaOrmModel existing = dao.findFirstByQuery(q);
+        if (existing != null) {
+            return existing.getOrmModelId();
+        }
         io.nop.metadata.dao.entity.NopMetaOrmModel m = dao.newEntity();
         m.setMetaModuleId(ensureModuleId());
         m.setModelName("test-model");

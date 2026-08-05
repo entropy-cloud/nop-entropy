@@ -17,7 +17,7 @@
     </x:post-extends>
 
     <keys>
-        <key name="UK_NOP_META_LINEAGE_EDGE_SRC_TGT_TYPE" props="sourceTableId,targetTableId,transformType"/>
+        <key name="UK_NOP_META_LINEAGE_EDGE_SRC_TGT_TYPE" props="sourceTableId,sourceColumn,targetTableId,targetColumn"/>
     </keys>
 
     <props>

@@ -1915,8 +1915,12 @@
                         stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Remark"/>
             </columns>
             <unique-keys>
-                <unique-key name="UK_NOP_META_LINEAGE_EDGE_SRC_TGT_TYPE" columns="sourceTableId,targetTableId,transformType" constraint="UK_NOP_META_LINEAGE_EDGE_SRC_TGT_TYPE"
-                            i18n-en:displayName="Unique Lineage Edge Per Source-Target-Transform"/>
+                <!-- 列级血缘的自然键 = 源表+源列+目标表+目标列（代码 dedup key sourceId|sourceColumn|targetColumn）；
+                     表级边（sourceColumn/targetColumn 为 NULL）在 H2/MySQL/PostgreSQL 唯一索引中 NULL 视为互异，
+                     不互相冲突。原先声明为 (sourceTableId,targetTableId,transformType) 会把同一表对的多条列级边
+                     （如 x<-a 与 y<-b）误判为重复（MR3 R3.19 发射 UK 后暴露），故按代码语义修正。 -->
+                <unique-key name="UK_NOP_META_LINEAGE_EDGE_SRC_TGT_TYPE" columns="sourceTableId,sourceColumn,targetTableId,targetColumn" constraint="UK_NOP_META_LINEAGE_EDGE_SRC_TGT_TYPE"
+                            i18n-en:displayName="Unique Lineage Edge Per Source-Column-Target-Column"/>
             </unique-keys>
             <relations>
                 <to-one displayName="源表" name="sourceTable"

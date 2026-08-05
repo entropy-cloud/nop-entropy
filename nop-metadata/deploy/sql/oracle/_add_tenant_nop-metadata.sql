@@ -279,7 +279,7 @@ alter table nop_meta_data_contract add constraint UK_NOP_META_CONTRACT_NAME uniq
 alter table nop_meta_reconciliation_config add constraint UK_NOP_META_RECONCILIATION_CONFIG_NAME unique (NOP_TENANT_ID,CONFIG_NAME);
 
                 alter table nop_meta_lineage_edge drop constraint UK_NOP_META_LINEAGE_EDGE_SRC_TGT_TYPE;
-alter table nop_meta_lineage_edge add constraint UK_NOP_META_LINEAGE_EDGE_SRC_TGT_TYPE unique (NOP_TENANT_ID,SOURCE_TABLE_ID,TARGET_TABLE_ID,TRANSFORM_TYPE);
+alter table nop_meta_lineage_edge add constraint UK_NOP_META_LINEAGE_EDGE_SRC_TGT_TYPE unique (NOP_TENANT_ID,SOURCE_TABLE_ID,SOURCE_COLUMN,TARGET_TABLE_ID,TARGET_COLUMN);
 
                 alter table nop_meta_tag_label drop constraint UK_NOP_META_TAG_LABEL;
 alter table nop_meta_tag_label add constraint UK_NOP_META_TAG_LABEL unique (NOP_TENANT_ID,ENTITY_TYPE,ENTITY_ID,TAG_ID,SOURCE);

@@ -1,6 +1,7 @@
 package io.nop.metadata.service;
 
 import io.nop.api.core.annotations.autotest.NopTestConfig;
+import io.nop.api.core.annotations.core.OptionalBoolean;
 import io.nop.autotest.junit.JunitBaseTestCase;
 import io.nop.orm.IOrmTemplate;
 import io.nop.orm.ddl.DdlSqlCreator;
@@ -26,7 +27,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * <p>UK_NOP_META_ORM_MODEL_MODULE_NAME / UK_NOP_META_TABLE_MODULE_NAME 同时补
  * isDelta 列维度（MA7.3-01 双重存储相容性裁决），断言其列清单含 IS_DELTA。
  */
-@NopTestConfig(localDb = true)
+@NopTestConfig(localDb = true, initDatabaseSchema = OptionalBoolean.TRUE)
 public class TestNopMetaDdlUniqueKeyEmission extends JunitBaseTestCase {
 
     @Inject

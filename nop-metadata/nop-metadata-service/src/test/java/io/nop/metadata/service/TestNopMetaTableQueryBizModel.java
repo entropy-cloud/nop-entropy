@@ -195,16 +195,20 @@ public class TestNopMetaTableQueryBizModel extends JunitBaseTestCase {
 
     /**
      * MA7.4-03 回归：queryTableData 省略 limit 时不得把全表拉入内存——缺省 1000 行封顶。
-     * 用 H2 SYSTEM_RANGE 生成 1500 行大结果集（sql 表路径，走 withConnection 全量 JDBC 读取），
+     * 用真实 H2 表造 1500 行大结果集（sql 表路径，走 withConnection 全量 JDBC 读取；
+     * 不用 SYSTEM_RANGE：EQL AST 解析器不支持 H2 函数调用，createSqlTable 的
+     * SqlSelectFieldExtractor 会抛 sql-view-parse-failed），
      * 断言省略 limit 的查询只返回 DEFAULT_QUERY_LIMIT 行。
      */
     @Test
     @SuppressWarnings("unchecked")
     public void testQueryTableDataDefaultLimitCapsUnboundedResult() throws Exception {
         String dbUrl = "jdbc:h2:mem:meta_q_limit;DB_CLOSE_DELAY=-1";
+        seedTable(dbUrl, "CREATE TABLE limit_src (id INT NOT NULL, val INT)",
+                "INSERT INTO limit_src SELECT X, X FROM SYSTEM_RANGE(1, 1500)");
         saveDataSource("ds-q-limit", "qs_q_limit", "jdbc", "ACTIVE", dbUrl);
 
-        String tableId = createSqlTable("SELECT X AS ID, X AS VAL FROM SYSTEM_RANGE(1, 1500)",
+        String tableId = createSqlTable("SELECT ID AS ID, VAL AS VAL FROM LIMIT_SRC",
                 "sql_limit_tab", "qs_q_limit");
 
         Map<String, Object> result = queryTableData(tableId, null, null, null);

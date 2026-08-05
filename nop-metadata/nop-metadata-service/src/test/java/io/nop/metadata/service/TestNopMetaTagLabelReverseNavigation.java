@@ -135,8 +135,10 @@ public class TestNopMetaTagLabelReverseNavigation extends JunitBaseTestCase {
         NopMetaTagLabel l1 = newLabel("label-cas-001");
         l1.setTagId("tag-cas-001");
         labelDao.saveEntity(l1);
+        // UK_NOP_META_TAG_LABEL(entityType,entityId,tagId,source) 发射后同一 tag 的多条标注需区分 entityId
         NopMetaTagLabel l2 = newLabel("label-cas-002");
         l2.setTagId("tag-cas-001");
+        l2.setEntityId("tbl-002");
         labelDao.saveEntity(l2);
         labelDao.flushSession();
 

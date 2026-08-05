@@ -653,7 +653,7 @@ CREATE TABLE nop_meta_lineage_edge(
   updated_by VARCHAR(50) NOT NULL ,
   update_time TIMESTAMP NOT NULL ,
   remark VARCHAR(200)  ,
-  constraint UK_NOP_META_LINEAGE_EDGE_SRC_TGT_TYPE unique (source_table_id,target_table_id,transform_type),
+  constraint UK_NOP_META_LINEAGE_EDGE_SRC_TGT_TYPE unique (source_table_id,source_column,target_table_id,target_column),
   constraint PK_nop_meta_lineage_edge primary key (lineage_edge_id)
 );
 

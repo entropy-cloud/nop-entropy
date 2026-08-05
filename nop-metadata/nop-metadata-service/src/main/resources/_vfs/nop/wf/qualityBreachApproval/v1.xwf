@@ -10,7 +10,17 @@
         <auth id="auth1" actorType="all" actorId="all" allowStart="true"/>
     </auths>
 
-    <start startStepName="owner-investigate"/>
+    <start startStepName="owner-investigate">
+        <!-- 启动参数由 QualityAlertWorkflowProcessor.createAlertWorkflow 传入（MA7.6-02 启动路径修复后
+             参数必须显式声明，否则 _start_ 动作校验抛 unknown-action-arg）。不声明 persist：persist 参数
+             在空 args 启动时会向 NopWfVar 写入 null 值行，触发 mandatory fieldType 违约（引擎 persist 循环
+             无 null 守卫）；参数值经 saveWfParams 存于 record.params（仅存实际传入的 key），
+             verify 步骤脚本从 wfRt.wf.record.params 读取。 -->
+        <arg name="ruleId" type="String" displayName="规则ID"/>
+        <arg name="tableId" type="String" displayName="目标表ID"/>
+        <arg name="severity" type="String" displayName="严重级别"/>
+        <arg name="message" type="String" displayName="告警消息"/>
+    </start>
     <end/>
 
     <steps>
@@ -35,19 +45,19 @@
                 <c:script><![CDATA[
                     const svc = inject('io.nop.metadata.service.quality.QualityAlertWorkflowProcessor');
                     const resultId = wfRt.wf.bizEntityId;
-                    const ruleId = wfVars.ruleId;
+                    // ruleId 从 record.params 读取（saveWfParams 仅持久化实际传入的启动参数；未传入则
+                    // params 无该 key → null → fail-closed reject。不能用 wfVars：arg 未声明 persist 时
+                    // 引擎不写入 globalVars，且 persist 参数在空 args 启动时写 null 值行触发 mandatory
+                    // fieldType 违约）
+                    const ruleId = wfRt.wf.record.params != null ? wfRt.wf.record.params.ruleId : null;
                     if (resultId == null || ruleId == null) {
                         // 规则/结果缺失：fail-closed 置 reject 回退 owner 处理，不静默通过（MA7.6-03）
                         wfRt.currentStep.record.appState = 'reject';
                     } else {
-                        try {
-                            const passed = svc.reJudge(ruleId, resultId);
-                            wfRt.currentStep.record.appState = passed ? 'agree' : 'reject';
-                        } catch (e) {
-                            // reJudge 失败（规则/表/结果缺失或连库失败）：fail-closed 置 reject 回退 owner，
-                            // 流程不卡死在 verify 步骤（MA7.6-03）
-                            wfRt.currentStep.record.appState = 'reject';
-                        }
+                        // reJudgeFailClosed：reJudge 异常（规则/表/结果缺失或连库失败）在 Java 侧捕获转
+                        // reject（fail-closed，流程不卡死在 verify）——XLang 不支持 try/catch 语句（MA7.6-03）
+                        const passed = svc.reJudgeFailClosed(ruleId, resultId);
+                        wfRt.currentStep.record.appState = passed ? 'agree' : 'reject';
                     }
                 ]]></c:script>
             </source>

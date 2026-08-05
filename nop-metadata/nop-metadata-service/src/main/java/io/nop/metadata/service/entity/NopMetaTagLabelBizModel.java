@@ -92,10 +92,12 @@ public class NopMetaTagLabelBizModel extends CrudBizModel<NopMetaTagLabel> imple
 
         if ("Manual".equals(labelType)) {
             entity.setState("Confirmed");
-            dao().updateEntity(entity);
+            // 实体刚经 super.save 保存，处于 SAVING 态；updateEntity 仅接受 MANAGED 态（P2-MA5-401
+            // 激活本路径后暴露：DAO 级检查抛 update-entity-not-managed），saveOrUpdate 兼容两种状态。
+            dao().saveOrUpdateEntity(entity);
         } else if ("Derived".equals(labelType) || "Propagated".equals(labelType) || "Automated".equals(labelType)) {
             entity.setState("Suggested");
-            dao().updateEntity(entity);
+            dao().saveOrUpdateEntity(entity);
             trySubmitForApproval(entity, context);
         } else {
             throw new NopMetadataException(ERR_TAG_LABEL_INVALID_LABEL_TYPE)

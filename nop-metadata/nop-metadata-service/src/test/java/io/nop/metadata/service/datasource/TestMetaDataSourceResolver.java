@@ -8,6 +8,8 @@ import io.nop.dao.api.IDaoProvider;
 import io.nop.dao.api.IEntityDao;
 import io.nop.metadata.dao.entity.NopMetaDataSource;
 import io.nop.metadata.service.NopMetadataErrors;
+import io.nop.orm.IOrmSessionFactory;
+import io.nop.core.lang.sql.SQL;
 import jakarta.inject.Inject;
 import org.junit.jupiter.api.Test;
 
@@ -29,6 +31,9 @@ public class TestMetaDataSourceResolver extends JunitBaseTestCase {
 
     @Inject
     IDaoProvider daoProvider;
+
+    @Inject
+    IOrmSessionFactory ormFactory;
 
     private final MetaDataSourceResolver resolver = new MetaDataSourceResolver();
 
@@ -74,23 +79,37 @@ public class TestMetaDataSourceResolver extends JunitBaseTestCase {
      * AR-03: 多个数据源匹配同一 querySpace（历史数据违反 ORM 层 UK_NOP_META_DS_QUERY_SPACE）→
      * 显式失败抛 ERR_DATASOURCE_DUPLICATE_QUERY_SPACE（拒绝取首条，防路由劫持）。
      *
-     * <p>本测试在 H2 集成测试库中直接 INSERT 多行同 querySpace 数据（绕过 ORM 层 UK 校验），
-     * 验证 runtime 兜底检测生效。
+     * <p>MR3 P2-MA6.6-001 后 DB 真实发射 UK 约束，无法再经 DAO 插入同 querySpace 两行；
+     * 本测试先 DROP 该 UK 模拟"UK 引入前的历史数据"，插入两行后恢复约束，再验证 runtime 兜底检测生效。
      */
     @Test
     public void testResolveMultiMatchThrowsDuplicate() {
-        saveDataSource("ds-multi-a", "qs_multi", "jdbc", "ACTIVE");
-        saveDataSource("ds-multi-b", "qs_multi", "jdbc", "ACTIVE");
-        IEntityDao<NopMetaDataSource> dsDao = daoProvider.daoFor(NopMetaDataSource.class);
-        NopException ex = assertThrows(NopException.class,
-                () -> resolver.resolveActiveOrThrow(dsDao, "qs_multi"),
-                "multi-match querySpace must explicitly fail with ERR_DATASOURCE_DUPLICATE_QUERY_SPACE");
-        assertEquals(NopMetadataErrors.ERR_DATASOURCE_DUPLICATE_QUERY_SPACE.getErrorCode(),
-                ex.getErrorCode(),
-                "multi-match must explicitly fail with ERR_DATASOURCE_DUPLICATE_QUERY_SPACE");
-        assertEquals("qs_multi", ex.getParam("querySpace"));
-        assertEquals(2, ex.getParam("dataSourceCount"),
-                "dataSourceCount must be 2 for multi-match");
+        // 模拟历史库（无 UK）：先移除约束再插入同 querySpace 两行
+        ormFactory.getJdbcTemplate().executeUpdate(SQL.begin()
+                .sql("ALTER TABLE NOP_META_DATA_SOURCE DROP CONSTRAINT UK_NOP_META_DS_QUERY_SPACE")
+                .end());
+        try {
+            saveDataSource("ds-multi-a", "qs_multi", "jdbc", "ACTIVE");
+            saveDataSource("ds-multi-b", "qs_multi", "jdbc", "ACTIVE");
+            IEntityDao<NopMetaDataSource> dsDao = daoProvider.daoFor(NopMetaDataSource.class);
+            NopException ex = assertThrows(NopException.class,
+                    () -> resolver.resolveActiveOrThrow(dsDao, "qs_multi"),
+                    "multi-match querySpace must explicitly fail with ERR_DATASOURCE_DUPLICATE_QUERY_SPACE");
+            assertEquals(NopMetadataErrors.ERR_DATASOURCE_DUPLICATE_QUERY_SPACE.getErrorCode(),
+                    ex.getErrorCode(),
+                    "multi-match must explicitly fail with ERR_DATASOURCE_DUPLICATE_QUERY_SPACE");
+            assertEquals("qs_multi", ex.getParam("querySpace"));
+            assertEquals(2, ex.getParam("dataSourceCount"),
+                    "dataSourceCount must be 2 for multi-match");
+        } finally {
+            // 先删除重复行（UK 不允许重复数据存在）再恢复约束
+            ormFactory.getJdbcTemplate().executeUpdate(SQL.begin()
+                    .sql("DELETE FROM NOP_META_DATA_SOURCE WHERE QUERY_SPACE = 'qs_multi'")
+                    .end());
+            ormFactory.getJdbcTemplate().executeUpdate(SQL.begin()
+                    .sql("ALTER TABLE NOP_META_DATA_SOURCE ADD CONSTRAINT UK_NOP_META_DS_QUERY_SPACE UNIQUE (QUERY_SPACE)")
+                    .end());
+        }
     }
 
     private void saveDataSource(String id, String querySpace, String datasourceType, String status) {

@@ -22,6 +22,7 @@ import io.nop.core.context.ServiceContextImpl;
 import io.nop.wf.api.WfReference;
 import io.nop.wf.core.IWorkflow;
 import io.nop.wf.core.IWorkflowManager;
+import io.nop.wf.core.NopWfCoreConstants;
 import io.nop.metadata.service.NopMetadataException;
 import jakarta.annotation.Nullable;
 import jakarta.inject.Inject;
@@ -80,10 +81,12 @@ public class QualityAlertWorkflowProcessor {
         vars.put("tableId", rule.getEntityId());
         vars.put("severity", rule.getSeverity());
         vars.put("message", result.getMessage());
+        // 业务对象信息必须经 start args 传入：WorkflowEngineImpl.removeStdStartParam 会以 args 中的
+        // bizObjName/bizObjId 覆盖 record 上预先 set 的值（args 缺失时覆盖为 null）
+        vars.put(NopWfCoreConstants.PARAM_BIZ_OBJ_NAME, "NopMetaQualityResult");
+        vars.put(NopWfCoreConstants.PARAM_BIZ_OBJ_ID, result.getQualityResultId());
 
         IWorkflow wf = wfManager.newWorkflow("qualityBreachApproval", 1L);
-        wf.getRecord().setBizObjName("NopMetaQualityResult");
-        wf.getRecord().setBizObjId(result.getQualityResultId());
 
         // MA7.6-02：显式 ctx > 当前线程绑定 ctx > 新建脱离请求 ctx 三级兜底，杜绝 null ctx NPE
         IServiceContext ctx = serviceContext != null ? serviceContext : IServiceContext.getCtx();
@@ -132,6 +135,21 @@ public class QualityAlertWorkflowProcessor {
         daoFor(NopMetaQualityResult.class).updateEntity(result);
 
         return "PASS".equals(judgment.getStatus());
+    }
+
+    /**
+     * MA7.6-03 fail-closed 包装：reJudge 内部异常（规则/结果/目标表缺失或连库失败）转 false（reject），
+     * 供 xwf verify 脚本调用（XLang 不支持 try/catch 语句，异常处理必须在 Java 侧完成——脚本侧
+     * try/catch 会在 XLang 编译期抛 not-supported-node）。
+     */
+    public boolean reJudgeFailClosed(String ruleId, String resultId) {
+        try {
+            return reJudge(ruleId, resultId);
+        } catch (Exception e) {
+            LOG.warn("nop.meta.quality-alert.rejudge-failed: ruleId={}, resultId={}",
+                    ruleId, resultId, e);
+            return false;
+        }
     }
 
     private NopMetaTable resolveTargetTableOrThrow(NopMetaQualityRule rule) {

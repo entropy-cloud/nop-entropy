@@ -20,6 +20,7 @@ import io.nop.metadata.dao.entity.NopMetaQualityRule;
 import io.nop.metadata.dao.entity.NopMetaQualityScore;
 import io.nop.metadata.dao.entity.NopMetaTable;
 import io.nop.metadata.service.quality.MetaQualityCheckpointScheduler;
+import io.nop.orm.IOrmTemplate;
 import jakarta.inject.Inject;
 import org.junit.jupiter.api.Test;
 
@@ -68,6 +69,9 @@ public class TestMetaQualityCheckpointScheduler extends JunitBaseTestCase {
 
     @Inject
     IGraphQLEngine graphQLEngine;
+
+    @Inject
+    IOrmTemplate orm;
 
     // ===== (a) 成功触发：cron job 注册 → fireNow → 结果落盘 =====
 
@@ -375,19 +379,25 @@ public class TestMetaQualityCheckpointScheduler extends JunitBaseTestCase {
     }
 
     private void updateCheckpointValidations(String checkpointId, String validations) {
-        IEntityDao<NopMetaQualityCheckpoint> dao = daoProvider.daoFor(NopMetaQualityCheckpoint.class);
-        NopMetaQualityCheckpoint cp = dao.getEntityById(checkpointId);
-        assertNotNull(cp, "checkpoint must exist: " + checkpointId);
-        cp.setValidations(validations);
-        dao.updateEntity(cp);
+        orm.runInSession(session -> {
+            IEntityDao<NopMetaQualityCheckpoint> dao = daoProvider.daoFor(NopMetaQualityCheckpoint.class);
+            NopMetaQualityCheckpoint cp = dao.getEntityById(checkpointId);
+            assertNotNull(cp, "checkpoint must exist: " + checkpointId);
+            cp.setValidations(validations);
+            dao.updateEntity(cp);
+            return null;
+        });
     }
 
     private void updateCheckpointCron(String checkpointId, String cron) {
-        IEntityDao<NopMetaQualityCheckpoint> dao = daoProvider.daoFor(NopMetaQualityCheckpoint.class);
-        NopMetaQualityCheckpoint cp = dao.getEntityById(checkpointId);
-        assertNotNull(cp, "checkpoint must exist: " + checkpointId);
-        cp.setExtConfig("{\"schedule\":\"" + cron + "\",\"autoScore\":true}");
-        dao.updateEntity(cp);
+        orm.runInSession(session -> {
+            IEntityDao<NopMetaQualityCheckpoint> dao = daoProvider.daoFor(NopMetaQualityCheckpoint.class);
+            NopMetaQualityCheckpoint cp = dao.getEntityById(checkpointId);
+            assertNotNull(cp, "checkpoint must exist: " + checkpointId);
+            cp.setExtConfig("{\"schedule\":\"" + cron + "\",\"autoScore\":true}");
+            dao.updateEntity(cp);
+            return null;
+        });
     }
 
     private long countResults(String ruleId) {
