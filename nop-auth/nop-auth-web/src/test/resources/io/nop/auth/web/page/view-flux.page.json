@@ -350,7 +350,7 @@
           "body": {
             "type": "button",
             "visible": "${file != null}",
-            "label": "${fileComponentFileStatus.name}(${fileComponentFileStatus.fileSize})",
+            "label": "${fileComponentFileStatus?.name}(${fileComponentFileStatus?.fileSize})",
             "level": "link",
             "onClick": {
               "type": "api",
@@ -380,7 +380,7 @@
               "title": "文件列表",
               "body": {
                 "type": "table",
-                "source": "${file-listComponentFileStatusList}",
+                "source": "${file-listComponentFileStatusList || []}",
                 "columns": [
                   {
                     "name": "name",

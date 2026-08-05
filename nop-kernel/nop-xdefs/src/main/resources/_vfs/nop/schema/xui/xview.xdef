@@ -232,7 +232,6 @@
                xdef:name="UiEmbedPageModel"
                xdef:ref="UiPageModel"
                xdef:bean-tag-prop="type">
-            <data>xjson</data>
             <override>xjson</override>
         </embed>
     </xdef:define>

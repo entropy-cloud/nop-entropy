@@ -349,7 +349,7 @@
                 "type": "action",
                 "visibleOn": "${file != null}",
                 "actionType": "download",
-                "label": "${fileComponentFileStatus.name}(${fileComponentFileStatus.fileSize})",
+                "label": "${fileComponentFileStatus?.name}(${fileComponentFileStatus?.fileSize})",
                 "leve": "link",
                 "api": {
                   "method": "get",
@@ -381,7 +381,7 @@
                   "title": "文件列表",
                   "body": {
                     "type": "table",
-                    "source": "${file-listComponentFileStatusList}",
+                    "source": "${file-listComponentFileStatusList || []}",
                     "columns": [
                       {
                         "name": "name",
