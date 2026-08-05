@@ -81,6 +81,14 @@ public class CheckpointActionDispatcher {
     /** 维度13-04：webhook 超时（秒），默认 30s。BizModel 经 {@code @InjectValue} 注入；测试时 setter 覆盖。 */
     protected int webhookTimeoutSeconds = DEFAULT_WEBHOOK_TIMEOUT_SECONDS;
 
+    /**
+     * 维度13-04（R6.2）：平台全局重定向跟随开关镜像（{@code nop.http.client.follow-redirects}）。
+     * 默认 false（与平台默认一致）；显式 true 时 dispatchWebhook 在 fetch 前 fail-closed 拒绝——webhook
+     * 路径不允许跟随重定向（跳转目标不经 {@link #validateWebhookUrl} 复核，经典重定向 SSRF 绕过面）。
+     * BizModel 经 {@code @InjectValue} 注入；测试时 setter 覆盖。
+     */
+    protected boolean followRedirectsEnabled = false;
+
     public CheckpointActionDispatcher(IHttpClient httpClient, IMessageService messageService) {
         this.httpClient = httpClient;
         this.messageService = messageService;
@@ -92,6 +100,19 @@ public class CheckpointActionDispatcher {
     public void configureWebhookSsrf(String allowedHostsCsv, int timeoutSeconds) {
         this.webhookAllowedHostsCsv = allowedHostsCsv == null ? "" : allowedHostsCsv;
         this.webhookTimeoutSeconds = timeoutSeconds > 0 ? timeoutSeconds : DEFAULT_WEBHOOK_TIMEOUT_SECONDS;
+    }
+
+    /**
+     * 维度13-04（R6.2）：显式配置 webhook 重定向跟随策略（fail-closed）。
+     *
+     * <p>{@code followRedirectsEnabled} 镜像平台全局 {@code nop.http.client.follow-redirects} 配置：
+     * 部署开启全局跟随（true）时，dispatchWebhook 在 fetch 前显式拒绝投递（不依赖 HttpClientConfig 默认值、
+     * 不产生未复核跳转）；false/缺省（默认）放行——此时重定向跟随被平台客户端禁用，3xx 响应由
+     * {@code dispatchWebhook} 的显式 3xx 拒绝分支兜底。新增 setter 对既有 4 处 2 参
+     * {@code configureWebhookSsrf(url, timeout)} 调用点零影响。
+     */
+    public void configureRedirectPolicy(boolean followRedirectsEnabled) {
+        this.followRedirectsEnabled = followRedirectsEnabled;
     }
 
     /** 维度13-04：解析后的允许内网主机集合（小写）。 */
@@ -182,6 +203,8 @@ public class CheckpointActionDispatcher {
      *   <li>主机白名单：默认禁内网（RFC1918 + 169.254 + localhost）；显式配置 {@code webhook-allowed-hosts} 后允许。</li>
      *   <li>method 白名单：POST/PUT（避免 GET 触发副作用、TRACE 泄露等）。</li>
      *   <li>显式 timeout：默认 30s，避免长卡死。</li>
+     *   <li>重定向 fail-closed（R6.2）：全局 {@code nop.http.client.follow-redirects} 开启时 fetch 前显式拒绝；
+     *       客户端直返 3xx 时显式归类为投递失败（跳转目标不经 {@link #validateWebhookUrl} 复核）。</li>
      * </ul>
      * 失败时显式抛 ErrorCode（不静默跳过、不返回 200/默认值）。
      */
@@ -212,6 +235,16 @@ public class CheckpointActionDispatcher {
         // 维度13-04：显式 timeout（毫秒）。默认 30s，避免长卡死。
         request.setTimeout(webhookTimeoutSeconds * 1000L);
 
+        // 维度13-04（R6.2）：重定向跟随 fail-closed 门禁（per-dispatchWebhook、fetch 前）——部署开启全局
+        // 跟随（nop.http.client.follow-redirects=true）时显式拒绝投递，不产生未经 validateWebhookUrl 复核的跳转。
+        if (followRedirectsEnabled) {
+            throw new NopMetadataException(NopMetadataErrors.ERR_CHECKPOINT_WEBHOOK_REDIRECT_NOT_ALLOWED)
+                    .param("checkpointId", cp.getCheckpointId())
+                    .param("url", url)
+                    .param("reason", "redirect following enabled globally (nop.http.client.follow-redirects=true) "
+                            + "but webhook redirects are fail-closed");
+        }
+
         IHttpResponse response = httpClient.fetch(request, null);
         if (response == null) {
             throw new NopMetadataException(NopMetadataErrors.ERR_CHECKPOINT_WEBHOOK_NULL_RESPONSE)
@@ -219,6 +252,13 @@ public class CheckpointActionDispatcher {
                     .param("url", url);
         }
         int status = response.getHttpStatus();
+        // 维度13-04（R6.2）：3xx 显式归类为投递失败（互补面——客户端未跟随时直返 3xx），不落入隐含的非 2xx 分支
+        if (status >= 300 && status < 400) {
+            throw new NopMetadataException(NopMetadataErrors.ERR_CHECKPOINT_WEBHOOK_REDIRECT_NOT_ALLOWED)
+                    .param("checkpointId", cp.getCheckpointId())
+                    .param("url", url)
+                    .param("reason", "redirect response status " + status);
+        }
         if (status < 200 || status >= 300) {
             throw new NopMetadataException(NopMetadataErrors.ERR_CHECKPOINT_WEBHOOK_NON_2XX)
                     .param("checkpointId", cp.getCheckpointId())

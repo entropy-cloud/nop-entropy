@@ -118,6 +118,14 @@ public class NopMetaQualityCheckpointBizModel extends CrudBizModel<NopMetaQualit
     @InjectValue(value = "@cfg:nop.metadata.checkpoint.webhook-timeout-seconds|0")
     protected int webhookTimeoutSeconds = 0;
 
+    /**
+     * 维度13-04（R6.2）：平台全局重定向跟随开关镜像（{@code nop.http.client.follow-redirects}，默认 false）。
+     * 经 {@code configureRedirectPolicy} 注入 dispatcher——webhook 路径 fail-closed：全局开启跟随时不产生
+     * 未经 SSRF 复核的跳转（dispatchWebhook 在 fetch 前显式拒绝），不依赖 HttpClientConfig 默认值。
+     */
+    @InjectValue(value = "@cfg:nop.http.client.follow-redirects|false")
+    protected boolean httpClientFollowRedirects = false;
+
     /** 共享 table-reference 解析器（架构基线 §4.4.3 D3）。 */
     private final MetaTableReferenceResolver tableRefResolver = new MetaTableReferenceResolver(
             new MetaDataSourceResolver(), new io.nop.metadata.service.field.MetaTableFieldResolver());
@@ -400,12 +408,14 @@ public class NopMetaQualityCheckpointBizModel extends CrudBizModel<NopMetaQualit
      * 延迟初始化动作分发器。httpClient/messageService 由 IoC 注入（@Nullable——宿主未注册实现时为 null）。
      * 均为 null 时分发器仍可创建（webhook/notify 配置存在时在 dispatch 时显式失败，不静默跳过）。
      *
-     * <p>维度13-04：把 webhook SSRF 配置（allowed-hosts + timeout）经 {@code configureWebhookSsrf} 注入到 dispatcher。
+     * <p>维度13-04：把 webhook SSRF 配置（allowed-hosts + timeout）经 {@code configureWebhookSsrf} 注入到 dispatcher；
+     * R6.2：重定向跟随开关经 {@code configureRedirectPolicy} 注入（fail-closed 门禁，不依赖 HttpClientConfig 默认值）。
      */
     private CheckpointActionDispatcher ensureActionDispatcher() {
         if (actionDispatcher == null) {
             actionDispatcher = new CheckpointActionDispatcher(httpClient, messageService);
             actionDispatcher.configureWebhookSsrf(webhookAllowedHostsCsv, webhookTimeoutSeconds);
+            actionDispatcher.configureRedirectPolicy(httpClientFollowRedirects);
         }
         return actionDispatcher;
     }

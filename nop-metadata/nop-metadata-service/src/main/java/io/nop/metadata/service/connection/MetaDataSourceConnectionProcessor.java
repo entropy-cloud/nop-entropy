@@ -224,7 +224,6 @@ public class MetaDataSourceConnectionProcessor implements IMetaDataSourceConnect
         if (!protocolOk) {
             throw new NopMetadataException(NopMetadataErrors.ERR_DATASOURCE_JDBC_URL_BLOCKED)
                     .param("jdbcUrl", redactJdbcUrl(jdbcUrl))
-                    .param(NopMetadataErrors.ARG_RAW_JDBC_URL, jdbcUrl)
                     .param("reason", "protocol not in whitelist (mysql/postgresql/h2)");
         }
         // (2) 危险参数黑名单
@@ -232,7 +231,6 @@ public class MetaDataSourceConnectionProcessor implements IMetaDataSourceConnect
             if (lower.contains(dangerous)) {
                 throw new NopMetadataException(NopMetadataErrors.ERR_DATASOURCE_JDBC_URL_BLOCKED)
                         .param("jdbcUrl", redactJdbcUrl(jdbcUrl))
-                        .param(NopMetadataErrors.ARG_RAW_JDBC_URL, jdbcUrl)
                         .param("reason", "dangerous parameter/token present: " + dangerous);
             }
         }
@@ -242,7 +240,6 @@ public class MetaDataSourceConnectionProcessor implements IMetaDataSourceConnect
                 && !resolveAllowedInternalHosts().contains(host.toLowerCase())) {
             throw new NopMetadataException(NopMetadataErrors.ERR_DATASOURCE_JDBC_URL_BLOCKED)
                     .param("jdbcUrl", redactJdbcUrl(jdbcUrl))
-                    .param(NopMetadataErrors.ARG_RAW_JDBC_URL, jdbcUrl)
                     .param("reason", "internal/link-local/loopback host not in allowed-hosts: " + host);
         }
     }

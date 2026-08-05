@@ -312,6 +312,73 @@ public class TestCheckpointActionDispatcherWebhookSsrf {
                 "body contains summary checkpointId: " + bodyStr);
     }
 
+    // ===== R6.2：重定向 fail-closed（P2-11）=====
+
+    /** 3xx 响应必须显式归类为投递失败（客户端未跟随时直返 3xx），reason 标记 redirect，不依赖 Location 头。 */
+    @Test
+    public void testRedirect3xxRejected() {
+        for (int status : new int[]{301, 302, 307, 308}) {
+            mockHttpClient.reset();
+            mockHttpClient.responseStatus = status;
+            Map<String, Object> s = summary();
+            String actions = "[{\"actionType\":\"webhook\",\"enabled\":true,\"config\":{\"url\":\"https://example.com/hook\"}}]";
+            cp.setActions(actions);
+            assertDoesNotThrow(() -> dispatcher.dispatch(cp, s),
+                    "3xx rejection must be recorded as error (per-action isolation)");
+            List<Map<String, Object>> errors = errorsOf(s);
+            assertEquals(1, errors.size(), "exactly one webhook error for status " + status);
+            String errorMsg = String.valueOf(errors.get(0).get("error"));
+            assertTrue(errorMsg.contains("checkpoint-webhook-redirect-not-allowed"),
+                    "3xx must fail with redirect-not-allowed ErrorCode: " + errorMsg);
+            assertTrue(errorMsg.contains("redirect"),
+                    "error reason must mark redirect: " + errorMsg);
+            assertEquals(1, mockHttpClient.fetchCallCount,
+                    "3xx must reach IHttpClient.fetch (rejected after response): " + status);
+        }
+    }
+
+    /** 全局重定向跟随开启（followRedirects=true）时，fetch 前显式拒绝（fail-closed，不产生未复核跳转）。 */
+    @Test
+    public void testRedirectFollowingEnabledFailsClosed() {
+        dispatcher.configureRedirectPolicy(true);
+        Map<String, Object> s = summary();
+        String actions = "[{\"actionType\":\"webhook\",\"enabled\":true,\"config\":{\"url\":\"https://example.com/hook\"}}]";
+        cp.setActions(actions);
+        assertDoesNotThrow(() -> dispatcher.dispatch(cp, s),
+                "gate rejection must be recorded as error (per-action isolation)");
+        List<Map<String, Object>> errors = errorsOf(s);
+        assertEquals(1, errors.size(), "exactly one webhook error");
+        String errorMsg = String.valueOf(errors.get(0).get("error"));
+        assertTrue(errorMsg.contains("checkpoint-webhook-redirect-not-allowed"),
+                "enabled follow-redirects must fail with redirect-not-allowed ErrorCode: " + errorMsg);
+        assertTrue(errorMsg.contains("redirect"),
+                "gate error must reference redirect: " + errorMsg);
+        assertEquals(0, mockHttpClient.fetchCallCount,
+                "gate rejection must NOT reach IHttpClient.fetch (fail-closed before any request)");
+    }
+
+    /** 默认（false/缺省）与显式 false：正常投递，3xx 才被显式拒绝（互补面，不误伤 2xx 正路径）。 */
+    @Test
+    public void testRedirectFollowingDisabledDefaultAllowed() {
+        // 缺省（未调用 setter）→ 正常投递
+        mockHttpClient.responseStatus = 200;
+        assertDoesNotThrow(() -> dispatchWebhook("https://example.com/hook"));
+        assertEquals(1, mockHttpClient.fetchCallCount,
+                "default (redirects disabled) must reach IHttpClient.fetch");
+        // 显式 false → 正常投递
+        mockHttpClient.reset();
+        dispatcher.configureRedirectPolicy(false);
+        assertDoesNotThrow(() -> dispatchWebhook("https://example.com/hook"));
+        assertEquals(1, mockHttpClient.fetchCallCount,
+                "explicit false must reach IHttpClient.fetch");
+        // 显式 false + 2xx → 无 errors
+        Map<String, Object> s = summary();
+        String actions = "[{\"actionType\":\"webhook\",\"enabled\":true,\"config\":{\"url\":\"https://example.com/hook\"}}]";
+        cp.setActions(actions);
+        assertDoesNotThrow(() -> dispatcher.dispatch(cp, s));
+        assertEquals(0, errorsOf(s).size(), "2xx with redirects disabled must deliver without errors");
+    }
+
     // ===== helpers =====
 
     private void assertWebhookBlocked(String url, String expectedReasonFragment, String msg) {

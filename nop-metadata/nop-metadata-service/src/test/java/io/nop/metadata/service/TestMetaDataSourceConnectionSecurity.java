@@ -7,6 +7,7 @@ import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -326,7 +327,9 @@ public class TestMetaDataSourceConnectionSecurity {
 
     /**
      * 验证错误消息中 jdbcUrl 参数已被脱敏（不包含明文凭据）。
-     * 使用协议白名单拒绝路径（凭据在协议校验之前即被 redact），不依赖 host 提取路径。
+     * 使用协议白名单拒绝路径（凭据在协议校验之前即被 redact，不依赖 host 提取路径）。
+     *
+     * <p>R6.2（P2-12）：错误响应不再携带 rawJdbcUrl 明文凭据参数——断言参数不存在 + 消息无凭据。
      */
     @Test
     public void testErrorResponseContainsRedactedUrl() {
@@ -338,12 +341,40 @@ public class TestMetaDataSourceConnectionSecurity {
         String redactedUrl = String.valueOf(ex.getParam("jdbcUrl"));
         assertEquals("jdbc:oracle:thin://192.168.1.1:1521/XE", redactedUrl,
                 "jdbcUrl param must be redacted in error response");
-        String rawUrl = String.valueOf(ex.getParam("rawJdbcUrl"));
-        assertEquals("jdbc:oracle:thin://admin:secret@192.168.1.1:1521/XE", rawUrl,
-                "rawJdbcUrl param must contain the full URL");
-        // 验证凭据不在 redacted URL 中
-        assertTrue(!redactedUrl.contains("admin:secret"),
-                "redacted URL must not contain credentials");
+        assertNoPlaintextCredentialLeak(ex, "admin:secret");
+    }
+
+    /** 危险参数拒绝路径：错误响应不含 rawJdbcUrl 参数、不含明文凭据（P2-12 补强，参数路径）。 */
+    @Test
+    public void testDangerousParamErrorContainsNoCredentials() {
+        NopException ex = assertThrows(NopException.class,
+                () -> service.testConnect("jdbc",
+                        "{\"jdbcUrl\":\"jdbc:mysql://admin:secret@example.com:3306/db?allowMultiQueries=true\","
+                                + BASE_CFG + "}"));
+        assertEquals(NopMetadataErrors.ERR_DATASOURCE_JDBC_URL_BLOCKED.getErrorCode(),
+                ex.getErrorCode());
+        assertNoPlaintextCredentialLeak(ex, "admin:secret");
+    }
+
+    /** 内网主机拒绝路径：错误响应不含 rawJdbcUrl 参数、不含明文凭据（P2-12 补强，主机路径）。 */
+    @Test
+    public void testInternalHostErrorContainsNoCredentials() {
+        NopException ex = assertThrows(NopException.class,
+                () -> service.testConnect("jdbc",
+                        "{\"jdbcUrl\":\"jdbc:mysql://admin:secret@169.254.169.254:3306/db\","
+                                + BASE_CFG + "}"));
+        assertEquals(NopMetadataErrors.ERR_DATASOURCE_JDBC_URL_BLOCKED.getErrorCode(),
+                ex.getErrorCode());
+        assertNoPlaintextCredentialLeak(ex, "admin:secret");
+    }
+
+    /** P2-12：错误路径异常不得携带 rawJdbcUrl 明文凭据参数（仅脱敏 jdbcUrl 参数），消息亦不得回显凭据。 */
+    private static void assertNoPlaintextCredentialLeak(NopException ex, String credential) {
+        assertNull(ex.getParam("rawJdbcUrl"),
+                "rawJdbcUrl param must not be present in error (plaintext credential leak surface)");
+        String msg = String.valueOf(ex.getMessage());
+        assertTrue(!msg.contains(credential),
+                "error message must not contain plaintext credentials: " + msg);
     }
 
     // ===== 建连超时（loginTimeout）=====

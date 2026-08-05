@@ -77,6 +77,11 @@ interface QualityErrors extends NopMetadataArgs {
             ErrorCode.define("nop.err.metadata.checkpoint-webhook-non-2xx",
                     "Quality checkpoint webhook returned non-2xx HTTP status: {checkpointId} url={url} status={status}",
                     ARG_CHECKPOINT_ID, ARG_URL, ARG_STATUS);
+    ErrorCode ERR_CHECKPOINT_WEBHOOK_REDIRECT_NOT_ALLOWED =
+            ErrorCode.define("nop.err.metadata.checkpoint-webhook-redirect-not-allowed",
+                    "Quality checkpoint webhook redirect is not allowed (fail-closed policy): "
+                            + "{checkpointId} url={url} reason={reason}",
+                    ARG_CHECKPOINT_ID, ARG_URL, ARG_REASON);
     ErrorCode ERR_SCORE_TABLE_NOT_FOUND =
             ErrorCode.define("nop.err.metadata.score-table-not-found",
                     "Quality score target table not found (NopMetaTable missing): {metaTableId}", ARG_META_TABLE_ID);
