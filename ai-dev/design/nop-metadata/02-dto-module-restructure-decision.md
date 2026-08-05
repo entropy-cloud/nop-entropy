@@ -6,7 +6,9 @@
 
 ## Problem
 
-`nop-metadata-dao` 包含 `I*Biz` 接口（如 `INopMetaTableBiz`），其方法返回 `Map<String, Object>`。DTO 定义在 `nop-metadata-service/.../dto/`。由于 `nop-metadata-dao` 不能依赖 `nop-metadata-service`（Maven 禁止循环依赖），接口无法引用 DTO 类型，导致无法实现强类型 GraphQL schema 推导。
+> **执行更新（2026-07-21 落地）**：下述问题已解决——I*Biz 接口已全量 DTO 化（如 `INopMetaTableBiz` 返回 `api.dto` 类型而非 `Map<String, Object>`），DTO 统一落在 `io.nop.metadata.api.dto` 包。本节保留为执行前的历史问题陈述。
+
+执行前，`nop-metadata-dao` 包含 `I*Biz` 接口（如 `INopMetaTableBiz`），其方法返回 `Map<String, Object>`，DTO 定义在 `nop-metadata-service/.../dto/`。由于 `nop-metadata-dao` 不能依赖 `nop-metadata-service`（Maven 禁止循环依赖），接口无法引用 DTO 类型，导致无法实现强类型 GraphQL schema 推导。
 
 ## 候选方案评估
 
@@ -58,6 +60,8 @@
 
 ## 裁定：方案 (a')
 
+> **执行更新（2026-07-21 落地，plan `311-nop-metadata-dto-module-restructure.md`）**：实际执行未按下方原始裁定移入 `nop-metadata-core`，而是**新建共享模块 `nop-metadata-api`**——全部 DTO 落在 `nop-metadata-api/.../io/nop/metadata/api/dto/`（32 个 `@DataBean`）；`nop-metadata-core` 仅保留常量类（`NopMetadataCoreConstants`）并依赖 api 模块。原始裁定文本保留为决策历史。
+
 选择将 DTO 移入 `nop-metadata-core`，理由：
 
 1. **变更范围最小**：不新建模块，不移动 I*Biz 接口，不修改框架核心
@@ -70,7 +74,7 @@
 
 1. 将 `nop-metadata-service/.../dto/` 下 24 个 DTO 移入 `nop-metadata-core/.../dto/`
 2. 将 `nop-metadata-dao/.../dto/` 下 `ErrorDTO` + `KeyValueDTO` 移入 `nop-metadata-core/.../dto/`
-3. 包名从 `io.nop.metadata.service.dto` / `io.nop.metadata.dao.dto` 统一为 `io.nop.metadata.core.dto`
+3. 包名从 `io.nop.metadata.service.dto` / `io.nop.metadata.dao.dto` 统一为 `io.nop.metadata.api.dto`（最终执行结论，见上方执行更新）
 4. `nop-metadata-dao` 的 pom.xml 新增 `nop-metadata-core` 依赖
 5. 更新所有 import 语句（BizModel、Test）
 6. 变更 I*Biz 接口返回类型为对应 DTO

@@ -38,7 +38,7 @@
 
 - **发布机制（主路径）**：**直接 DB 写入事件行**——事件发布 helper 在写路径内 `saveEntity` 一条 `NopMetaModelChangedEvent`。
   - 理由：(a) 不依赖 `IMessageService` 的订阅者注册机制（nop-metadata 首版无订阅者）；(b) 直接持久化最简单可测、可被 GraphQL query 暴露；(c) 与「审计日志」目标一致。
-  - `IMessageService` 可叠加（non-blocking overlay）：已 live 核实 `nop-metadata-service` pom 依赖链 `nop-metadata-service → nop-sys-dao → nop-message-core` 传递 `SysDaoMessageService`（`implements IMessageService`），可直接 `@Inject`。首版**不强制**叠加，topic 命名规范见 §6.1 留给 follow-up。
+  - `IMessageService` 可叠加（non-blocking overlay）：live 复核 `nop-metadata-service` pom 依赖树中**不存在** nop-sys-*/nop-message-* 构件，`SysDaoMessageService` 不可经依赖链直接 `@Inject`；如需叠加需显式新增对应依赖。首版**不强制**叠加，topic 命名规范见 §6.1 留给 follow-up。
 - **消费路径（首版至少一条）**：**GraphQL query 查询事件历史**（审计/下游拉取）。`NopMetaModelChangedEvent` CRUD 自动暴露后，`__findPage` 可按 `entityType`/`changeSource`/`changeTime` 过滤查询事件列表。这收口「至少一条消费路径可用」且不需要推送基建。
 
 **收口 Open Question「是否需要支持 GraphQL 订阅？」→ 首版用 query（拉取）非 subscription（推送）；subscription 依赖推送基建，为 follow-up。**

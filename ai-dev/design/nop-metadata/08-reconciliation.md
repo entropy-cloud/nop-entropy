@@ -122,7 +122,7 @@ to-one：`config`、`metaTable`。索引 `IX_NOP_META_RECON_RESULT_CONFIG`(confi
 
 1. 加载 config；config 不存在 → 显式失败（抛 ErrorCode，不 NPE）。
 2. 校验 `columnName` 在目标表 `MetaTableFieldResolver` 解析字段集合内；非法 → 显式失败。
-3. BizModel 注入并调用 `NopMetaTableBizModel.queryTableData(metaTableId, null, null, null, context)`
+3. BizModel 注入 `INopMetaTableBiz` 接口并调用 `queryTableData(metaTableId, null, null, null, null, context)`
    取得 `items`（行列表，`List<Map>`）。`queryTableData` 失败 → 显式失败（不吞异常）。
 4. 把 `items` 传入**纯组件 `ReconciliationExecutor.execute(config, items)`**：
    - 执行器不持有 BizModel、不伪造 context、不复制取数逻辑。
@@ -130,10 +130,10 @@ to-one：`config`、`metaTable`。索引 `IX_NOP_META_RECON_RESULT_CONFIG`(confi
    - 汇总 `statistics` + `details` → 写一行 `NopMetaReconciliationResult` 并返回。
 5. 空候选 → 体现在结果的 UNMATCHED（非整体异常、不静默 pass）。
 
-> 取数接线裁定（B2 方案 b）：仓库无跨 BizModel 注入另一 BizModel 的生产先例，
-> 且 `INopMetaTableBiz` 是空接口（无 queryTableData 声明）。首版由 config BizModel
-> 注入 `NopMetaTableBizModel` 具体类调用 `queryTableData`。提取共享 table-data fetcher
-> （重构 queryTableData）为 Non-Blocking Follow-up。
+> 取数接线裁定（B2 方案 b，已落地）：`INopMetaTableBiz` 接口声明 `queryTableData`/`queryJoinData`/
+> `queryAggregation` 等 7 个方法（返回 api.dto 类型）。`NopMetaReconciliationConfigBizModel` 注入
+> `INopMetaTableBiz` 接口（而非具体类）调用 `queryTableData`，共享 table-data fetcher 提取为
+> Non-Blocking Follow-up。
 
 ### 3.4 人工确认（行为契约）
 

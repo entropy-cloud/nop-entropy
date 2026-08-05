@@ -104,7 +104,7 @@ MetaDataSource                    — 数据源定义（全局）
 - 首版 `password` 以**明文**存于 `connectionConfig` JSON（与 free-form 存储一致）；加密/脱敏为独立 follow-up（见 Non-Goals），不引入加密体系以免范围蔓延。
 
 **按需建连（架构基线约束）**：
-- 连接服务 `MetaDataSourceConnectionService`（service 层，IoC bean）提供 **callback 式接口** `withConnection(datasourceType, connectionConfig, BiConsumer<Connection, DatabaseMetaData>)`——内部建连、执行 action、finally 关闭。另提供 `testConnect(...)` 一次性读元数据返回结果 Map。
+- 连接服务 `MetaDataSourceConnectionProcessor`（service 层，IoC bean，实现接口 `IMetaDataSourceConnectionProcessor`）提供 **callback 式接口** `withConnection(datasourceType, connectionConfig, BiConsumer<Connection, DatabaseMetaData>)`——内部建连、执行 action、finally 关闭。另提供 `testConnect(...)` 一次性读元数据返回结果 Map。
 - 连接通过平台 `SimpleDataSource`（`nop-dao`）从配置按需构建（不池化、**不注册**到 ORM `querySpace` 路由，符合"纯元数据用途"约束），同时服务 P2-1（testConnection）和后续 P2-2/P2-4/P2-6（open → N 条查询 → close）。
 
 **方言识别（D3，不持久化）**：
@@ -186,7 +186,7 @@ NopMetaCatalog                    — 物理运行时统计快照（每表每收
 - 大小/分区/lastModified 方言特定，首版不实现 → 记 `null` + `details.unavailable` 显式列出字段名（**不静默跳过整行、不伪造 0**）。
 - 单表失败（SQL 异常）收集到 `errors` 不中断整批（`orm().clearSession()` 隔离）。
 
-**schema 限定（D1）**：`NopMetaTable.schema` 列（plan 2026-07-17-0852-3 已补，可空，描述 external/sql 逻辑表的源 schema；entity 类型表留空，schema 由 `baseEntity.dbSchema` 承担）持久化了同步阶段读到的 `TABLE_SCHEM`。`collectCatalog(schemaPattern)` 的 `schemaPattern` 显式入参仍可限定物理 schema（覆盖默认）；未传时执行器默认取 `NopMetaTable.schema`（非空时，BizModel 层解析，plan 0852-3 Phase 3），null=不过滤（依赖连接默认 schema）。批量 `collectCatalog` 改为**逐表默认 schema 解析**（每表 schema 可能不同，替代旧「单一 schemaPattern 透传循环内所有表」）。同名不同 schema 表已可区分（去重键 `(metaModuleId, schema, tableName)`，见 §2.5.1）。
+**schema 限定（D1）**：`NopMetaTable.metaSchema` 列（plan 2026-07-17-0852-3 已补，可空，描述 external/sql 逻辑表的源 schema；entity 类型表留空，schema 由 `baseEntity.dbSchema` 承担）持久化了同步阶段读到的 `TABLE_SCHEM`。`collectCatalog(schemaPattern)` 的 `schemaPattern` 显式入参仍可限定物理 schema（覆盖默认）；未传时执行器默认取 `NopMetaTable.metaSchema`（非空时，BizModel 层解析，plan 0852-3 Phase 3），null=不过滤（依赖连接默认 schema）。批量 `collectCatalog` 改为**逐表默认 schema 解析**（每表 schema 可能不同，替代旧「单一 schemaPattern 透传循环内所有表」）。同名不同 schema 表已可区分（去重键 `(metaModuleId, metaSchema, tableName)`，见 §2.5.1）。
 
 完整规格见 `05-metadata-import.md` §四。收集入口为 `NopMetaDataSource__collectCatalog(dataSourceId, schemaPattern?)` GraphQL mutation；dataSourceId 不存在/DISABLED/非 jdbc 均显式失败（不静默跳过）。
 
@@ -408,11 +408,11 @@ MetaTableJoin                   — 表关联
 
 **系统模块 `nop/meta-external`**：
 - 全局唯一（`moduleId="nop/meta-external"`），`status=RELEASED`，由 `syncExternalTables` 在首次同步时惰性创建（若已存在则复用）。
-- 外部表的 `querySpace` 取自数据源的 `querySpace`；`(metaModuleId, schema, tableName)` 复合键用于幂等 upsert（plan 2026-07-17-0852-3 收敛自 `(metaModuleId, tableName)`——使同一数据源下不同 schema 的同名表可区分、互不覆盖；querySpace 不在键内，跨数据源同名同 schema 仍覆盖，见 §2.5.1 末段 cross-ds decision）。
+- 外部表的 `querySpace` 取自数据源的 `querySpace`；`(metaModuleId, metaSchema, tableName)` 复合键用于幂等 upsert（plan 2026-07-17-0852-3 收敛自 `(metaModuleId, tableName)`——使同一数据源下不同 schema 的同名表可区分、互不覆盖；querySpace 不在键内，跨数据源同名同 schema 仍覆盖，见 §2.5.1 末段 cross-ds decision）。
 
 **syncExternalTables 契约（D2）**：
 - GraphQL mutation：`NopMetaDataSource__syncExternalTables(dataSourceId, schemaPattern?)` → 返回 `Map<String,Object>`（`{syncedTableCount: int, errors: [...]}`）。`schemaPattern` 可选，限定扫描的 schema。
-- 行为：按 `dataSourceId` 加载 NopMetaDataSource → 不存在抛 `metadata.datasource-not-found`（不 NPE）→ `status == DISABLED` 抛 `metadata.datasource-disabled`（不静默通过）→ **复用 P2-1 callback 式连接服务 `withConnection(...)`**（callback 内由 `DatabaseMetaData.getDatabaseProductName()` 运行时取方言 + 执行结构读取）→ 按 D1 方案写入 MetaTable（`tableType=external`，`buildSql` 存列 JSON，`schema` 列持久化 JDBC `TABLE_SCHEM`）→ 幂等 upsert（按 `(metaModuleId, schema, tableName)` 复合键去重，plan 0852-3）→ 单表失败收集到 `errors` 不中断整批（`orm().clearSession()` 隔离）→ callback 结束自动释放连接。
+- 行为：按 `dataSourceId` 加载 NopMetaDataSource → 不存在抛 `metadata.datasource-not-found`（不 NPE）→ `status == DISABLED` 抛 `metadata.datasource-disabled`（不静默通过）→ **复用 P2-1 callback 式连接服务 `withConnection(...)`**（callback 内由 `DatabaseMetaData.getDatabaseProductName()` 运行时取方言 + 执行结构读取）→ 按 D1 方案写入 MetaTable（`tableType=external`，`buildSql` 存列 JSON，`metaSchema` 列持久化 JDBC `TABLE_SCHEM`）→ 幂等 upsert（按 `(metaModuleId, metaSchema, tableName)` 复合键去重，plan 0852-3）→ 单表失败收集到 `errors` 不中断整批（`orm().clearSession()` 隔离）→ callback 结束自动释放连接。
 - **方言范围**：首版支持 MySQL / PostgreSQL / H2（结构读取走标准 JDBC `DatabaseMetaData.getTables()` / `getColumns()`，跨方言可移植，等价于 `information_schema.COLUMNS` 信息）。其余方言（ClickHouse `system.columns`、Oracle 等）在读取器入口显式抛 `UnsupportedOperationException`（快速失败，非静默跳过），多方言全覆盖为 follow-up。
 - **非 jdbc 类型**：连接服务显式抛 `UnsupportedOperationException`（继承 P2-1 行为，不静默成功）。
 - **跨数据源行为（Decision，plan 0852-3 Phase 2）**：去重键含 schema 维度但**不含 querySpace**——跨数据源、同名同 schema 的表会互相覆盖（与 1905-1 收敛前语义一致）。仅 schema 维度被纳入，使「同数据源不同 schema 同名表」可区分；「跨数据源同名同 schema」的 querySpace 维度纳入属 follow-up（非阻塞理由：应用层 upsert 仍幂等，迁移需评估跨数据源覆盖语义破坏面）。
@@ -613,7 +613,7 @@ MetaQualityResult                — 质量执行结果（时序数据）
 
 **field 级列引用约定（D1）**：`entityType=field` 规则的 `entityId` 指向 external NopMetaTable.metaTableId（不指向 MetaEntityField——external 表无该实体）；物理列名取自 `params.column`（字符串）。规则在 external 表上必须先 sync 该表结构（syncExternalTables 已写入 buildSql JSON，但执行不依赖列存在性校验——物理 SQL 直接执行，方言/列不存在由数据库显式报错）。
 
-**schema 限定（D1）**：复用 Catalog 的 `qualifyTable(schema, tableName)` 策略——执行 action 可选 `schemaPattern` 参数限定物理 SQL（`<schemaPattern>.<tableName>`）；null/空串**默认取持久化的 `NopMetaTable.schema`**（plan 2026-07-17-0852-3 Phase 3：默认 schema 解析在 BizModel 层，使「sync 持久化一次 → 多次执行无需重传」成立；显式入参仍可覆盖）。entity/sql 类型表 schema 由 baseEntity.dbSchema 承担（external/sql 表 schema 由 sync 写入）。
+**schema 限定（D1）**：复用 Catalog 的 `qualifyTable(schema, tableName)` 策略——执行 action 可选 `schemaPattern` 参数限定物理 SQL（`<schemaPattern>.<tableName>`）；null/空串**默认取持久化的 `NopMetaTable.metaSchema`**（plan 2026-07-17-0852-3 Phase 3：默认 schema 解析在 BizModel 层，使「sync 持久化一次 → 多次执行无需重传」成立；显式入参仍可覆盖）。entity/sql 类型表 schema 由 baseEntity.dbSchema 承担（external/sql 表 schema 由 sync 写入）。
 
 **执行机制（D2）**：选定 **BizModel action + withConnection**（不选 nop-batch processor），理由：与本模块既有 external 执行能力（collectCatalog / syncExternalTables）一致；可被 Nop AutoTest 端到端验证；可被 GraphQL 直接暴露。`09-gap-analysis-extended.md` §4.4 的 nop-batch 建议作为"定时调度"后续选项记录，首版不用。
 
@@ -801,7 +801,7 @@ MetaQualityResult                — 质量执行结果（时序数据）
 **发布机制 + 消费路径（D2）**：
 
 - **发布机制（主路径）**：**直接 DB 写入事件行**——事件发布 helper（`service/event/MetaModelChangedEventPublisher`，IoC bean，`@Inject IEntityDao<NopMetaModelChangedEvent>`）在写路径内 `saveEntity` 一条 `NopMetaModelChangedEvent`。理由：不依赖 `IMessageService` 订阅者注册机制（首版无订阅者）、最简单可测、与审计日志目标一致、可被 GraphQL query 直接暴露。
-- **IMessageService overlay（可选，已 live 核实可用）**：`nop-metadata-service` pom 依赖链 `nop-metadata-service → nop-sys-dao` 传递 `SysDaoMessageService`（`implements IMessageService`，来自 `nop-message-core`），可直接 `@Inject`。首版**不强制**叠加，topic 命名 `nop-metadata.{entityType}.changed` 为 follow-up。
+- **IMessageService overlay（可选，live 复核：无现成依赖链）**：`nop-metadata-service` pom 依赖树中**不存在** nop-sys-*/nop-message-* 构件，`SysDaoMessageService` 不可经依赖链直接 `@Inject`；如需叠加 `IMessageService` 需显式新增对应依赖。首版**不强制**叠加，topic 命名 `nop-metadata.{entityType}.changed` 为 follow-up。
 - **消费路径（首版至少一条）**：**GraphQL query 查询事件历史**（审计/下游拉取）。`NopMetaModelChangedEvent` CRUD 自动暴露后，`__findPage` 可按 `entityType`/`changeSource`/`changeTime`/`transactionId` 过滤查询。收口「至少一条消费路径可用」且不需要推送基建。
 
 收口 Open Question「是否 GraphQL Subscription？」→ 首版用 query（拉取）非 subscription（推送）；subscription 依赖推送基建为 follow-up。
@@ -949,7 +949,7 @@ orm.xml
 - 无别名时取列名：`proj.getExpr()` 为 `SqlColumnName` 时取 `getName()`。
 - 无别名且为表达式列（非 `SqlColumnName`）：标记 `<expr_N>`（N 为序号），**不静默跳过、不返回空名**。
 
-**通配符 `*`/`t.*`（SqlAllProjection）裁定：显式失败**。纯语法 AST 无法展开为具体列，首版不引入 LIMIT 0 经 ResultSetMetaData 展开路径（见下方类型获取）。失败抛 `metadata.sql-wildcard-not-supported`，要求用户改写为显式列。**不静默跳过、不返回空、不伪造**。LIMIT 0 展开通配符为 follow-up。
+**通配符 `*`/`t.*`（SqlAllProjection）裁定：显式失败**。纯语法 AST 无法展开为具体列，首版不引入 LIMIT 0 经 ResultSetMetaData 展开路径（见下方类型获取）。失败抛 `metadata.sql-view-wildcard-not-supported`，要求用户改写为显式列。**不静默跳过、不返回空、不伪造**。LIMIT 0 展开通配符为 follow-up。
 
 **多语句裁定：显式失败**。`program.getStatements().size() != 1` 抛 `metadata.sql-multi-statement`，不允许 `SELECT 1; DELETE...` 这类多语句作为视图 sourceSql。
 
@@ -1004,7 +1004,7 @@ orm.xml
 | tableType | 执行机制 | querySpace 归属 | 失败语义 |
 |-----------|---------|----------------|---------|
 | `entity` | 经平台 ORM：按 `entityName` 取其 `IOrmEntityDao`（`daoProvider().dao(entityName)`）→ `findAllByQuery(query)`（filter/limit/offset 委托 `QueryBean`）→ 按实体列名投影转 `Map`（列名取自 `IEntityModel.getColumns()`）。注：不使用 `orm().findListByQuery(QueryBean)`，因其经 MdxQueryExecutor 要求 `QueryBean.fields` 非空（字段投影/聚合入口），非"取全部实体行"语义 | 来自 `NopMetaEntity.querySpace`（import 时写入 `NopMetaTable.querySpace`）；ORM 内部按实体 querySpace 路由 | **实体未注册于运行时 `IOrmSessionFactory` 时显式失败抛 inline ErrorCode（不静默空集）**——经 `orm().isValidEntityName(entityName)` 前置校验 |
-| `external` | 经 `IMetaDataSourceConnectionService.withConnection` 跑限定表名的原生 SQL（`SELECT ... FROM <table> [WHERE] [LIMIT/OFFSET]`） | querySpace→`NopMetaDataSource`（D2 解析） | querySpace 无数据源/DISABLED/非 jdbc（由 withConnection 抛）显式失败 |
+| `external` | 经 `IMetaDataSourceConnectionProcessor.withConnection` 跑限定表名的原生 SQL（`SELECT ... FROM <table> [WHERE] [LIMIT/OFFSET]`） | querySpace→`NopMetaDataSource`（D2 解析） | querySpace 无数据源/DISABLED/非 jdbc（由 withConnection 抛）显式失败 |
 | `sql` | 经 `withConnection` 执行 `sourceSql`（包一层子查询 `SELECT * FROM (<sourceSql>) _t [WHERE] [LIMIT/OFFSET]`） | 见 D2 | querySpace null/无数据源/DISABLED/非 jdbc/sourceSql 不可解析 显式失败 |
 
 返回字段集合与 `MetaTableFieldResolver`（§2.5.2 D2）对应 tableType 分派一致。entity 路径前置——实体须注册于运行时 `IOrmSessionFactory`（即 `orm().isValidEntityName(entityName) == true`），否则显式失败抛 inline ErrorCode（**不静默空集**）。
@@ -1019,7 +1019,7 @@ orm.xml
 - **"平台 ORM querySpace fallback" 分支首版不做**（移入 Non-Blocking Follow-up）。理由：无清晰机制对平台 querySpace 跑任意用户 SQL 文本（平台 querySpace 由 `IOrmSessionFactory` 管理，无通用 JDBC 连接入口跑裸 SQL）；首版强制 sql 表显式关联一个已注册外部数据源。
 - querySpace→数据源解析由共享组件 `MetaDataSourceResolver`（`.../service/datasource/`）承担：`NopMetaDataSource.querySpace == 目标 querySpace` 的 `findFirstByQuery` 首条（多匹配取首条，首版不强制唯一性、不记 warning，与 baseline §2.7.1 D1 现状一致）。找不到/DISABLED 显式失败抛 inline ErrorCode。
 
-**querySpace→数据源解析共享组件**：`MetaDataSourceResolver.resolveActiveOrThrow(IEntityDao<NopMetaDataSource>, querySpace)` 返回 ACTIVE 数据源；querySpace null/无匹配→`metadata.datasource-resolve-not-found`；匹配到 DISABLED→`metadata.datasource-resolve-disabled`；多匹配→首条（`findFirstByQuery`）。本组件独立实现，**不强制重构既有三处 `resolveDataSourceOrThrow` 重复**（NopMetaTableBizModel profiling / NopMetaQualityRuleBizModel / NopMetaProfilingRuleBizModel，见 plan 0800-1 Non-Blocking Follow-up）——既有实现行为正确（取首条、显式失败），重复不构成 live defect。
+**querySpace→数据源解析共享组件**：`MetaDataSourceResolver.resolveActiveOrThrow(IEntityDao<NopMetaDataSource>, querySpace)` 返回 ACTIVE 数据源；querySpace null/无匹配→`metadata.datasource-resolve-no-datasource`；匹配到 DISABLED→`metadata.datasource-resolve-disabled`；多匹配→首条（`findFirstByQuery`）。本组件独立实现，**不强制重构既有三处 `resolveDataSourceOrThrow` 重复**（NopMetaTableBizModel profiling / NopMetaQualityRuleBizModel / NopMetaProfilingRuleBizModel，见 plan 0800-1 Non-Blocking Follow-up）——既有实现行为正确（取首条、显式失败），重复不构成 live defect。
 
 **失败路径显式化（不静默空集、不吞异常，对齐 Minimum Rules #24）**：表不存在 / querySpace 无数据源 / DISABLED / 非 jdbc（由 withConnection 抛）/ sql querySpace null 或无匹配 / 实体未注册 / 不支持的方言 / sourceSql 不可解析 / 未知 tableType 均显式失败抛 inline ErrorCode。
 
@@ -1105,9 +1105,9 @@ querySpace 解析规则（plan 0700-2 D1.1 扩展）：entity 端点 querySpace 
 - **同库判定（querySpace 字符串不可靠 + 连接可达性实测）**：**显式承认 querySpace 字符串相等对混合端点语义不可靠**（entity querySpace 是 ORM `IOrmSessionFactory` 注册体系，external querySpace 是 `NopMetaDataSource` 注册体系，两套独立注册表，字符串相等不保证同一物理库）。故同库判定采用**连接可达性实测**：选定 external `withConnection` 作为基准连接（候选 A），**实测 entity 物理表是否在该连接的 `DatabaseMetaData.getTables(null, entitySchema, entityTableName, null)` 结果集中**（先有鸡先有蛋问题已解决——先按候选 A 选定基准连接，再实测对端表可见性）。
   - **可见 → 同库**：跑原生 `GROUP BY over JOIN`，产出**正确**（非截断近似）聚合结果。
   - **不可见 → 不可同库**：**D10 内存 GROUP BY**（复用 `executeJoin` 取合并行 → 内存聚合，精确-当-容纳 / 超限-失败）。超限时显式失败（`checkSizeLimit`），限内全量精确聚合（不静默降级、不截断近似）。
-- **schema 限定**：即便两表在同一连接可见，entity schema（`NopMetaEntity.dbSchema`）与 external schema（`NopMetaTable.schema`）可能不同。JOIN SQL 中两侧表名**显式 `<schema>.<table>` 限定**（沿用 P2-multi-schema 持久化的 schema 列）：
-  - entity 侧：`<entitySchema>.<entityPhysicalTable> <entityAlias>`（entitySchema 取 `NopMetaEntity.dbSchema`，可空 → 不限定）。
-  - external 侧：external → `<extSchema>.<extTableName> <extAlias>` 或 `<extTableName> <extAlias>`（schema 取 `NopMetaTable.schema`，可空 → 不限定）；sql → `(<sourceSql>) <extAlias>`（无 schema 限定，子查询合成）。
+- **schema 限定**：即便两表在同一连接可见，entity schema（`NopMetaEntity.dbSchema`）与 external schema（`NopMetaTable.metaSchema`）可能不同。JOIN SQL 中两侧表名**显式 `<schema>.<table>` 限定**（沿用 P2-multi-schema 持久化的 metaSchema 列）：
+  - entity 侧：`<entityDbSchema>.<tableName> <entityAlias>` 或 `<tableName> <entityAlias>`（schema 取 `NopMetaEntity.dbSchema`，可空 → 不限定）
+  - external 侧：external → `<extSchema>.<extTableName> <extAlias>` 或 `<extTableName> <extAlias>`（schema 取 `NopMetaTable.metaSchema`，可空 → 不限定）；sql → `(<sourceSql>) <extAlias>`（无 schema 限定，子查询合成）。
   - schema 缺失（两端点都无 schema 且数据库默认 schema 不匹配）→ 由连接可达性实测兜底（不可见即显式失败，不静默空集）；显式 schema 列非空时按该 schema 限定 + 可达性实测，不静默放弃限定。
 - **measure/dimension 物理列解析与 side 复用（F1-2 处理：仅 table 侧套用 side resolver）**：
   - **entity 侧**：经 `entityFieldId → metaEntityId → columnCode`（无歧义，与 D8 entity-entity 路径一致）；SQL 中以 entity 别名（l./r.）限定。**不套用 `JoinExternalSideResolver`**（该 resolver 构造面向 table↔table 上下文，F1-2）；entity 侧若提供 side，须与端点一致（与 D9 entity side 一致性校验同范式）。
@@ -1163,9 +1163,9 @@ querySpace 解析规则（plan 0700-2 D1.1 扩展）：entity 端点 querySpace 
 
 - **取数载体（plan 0700-2 D1.3 扩展）**：entity 端点经 ORM DAO（`fetchEntityRows`，行 key 为 camelCase 属性名）；external/sql 端点经 `withConnection`（`fetchTableRows`，行 key 为物理列名）。
 - **join key 匹配**：按 `leftField`/`rightField` 列值**字符串相等**匹配（`String.valueOf(leftVal).equals(String.valueOf(rightVal))`）。各侧按自己的命名空间取值（entity 侧按属性名、table 侧按物理列名），跨侧仅按值相等。命名空间错配（字段名在 row Map 找不到）**显式失败不静默空集**（D1.4 Anti-Hollow）。跨库类型差异由调用方建模保证；首版**不做隐式类型转换**，不匹配即不关联。
-- **结果 schema**：左表列 + 右表列。右表列名与左表冲突时加 `<alias>_` 前缀（`alias` 取自 `NopMetaTableJoin.alias`；alias 为空时用 `right`）。冲突前缀字符为下划线 `_`（与 live code `MetaJoinExecutor.mergeRow` 一致；非点号 `.`，以免被 SQL/EQL 解析为 schema 限定符）。
+- **结果 schema**：左表列 + 右表列。右表列名与左表冲突时加 `<alias>_` 前缀（`alias` 取自 `NopMetaTableJoin.alias`；alias 为空时用 `right`）。冲突前缀字符为下划线 `_`（与 live code `CrossDbJoinMerger.mergeRow` 一致；非点号 `.`，以免被 SQL/EQL 解析为 schema 限定符）。
 - **分页**：跨库拼接首版**不保证 LIMIT/OFFSET 全局语义**（内存合并无全局序）——明确文档化为已知限制；limit/offset 仅作为合并后结果集的**截断提示**（取前 limit 行，从 offset 起），调用方如需精确分页应在单表侧先行过滤。
-- **规模上限**：单侧结果集行数上限 `MetaJoinExecutor.MAX_CROSS_DB_ROWS`（默认 10000，可调）；超限显式失败抛 inline ErrorCode（防 OOM，不静默截断）。
+- **规模上限**：单侧结果集行数上限 `CrossDbConfigHolder.maxCrossDbRows`（默认 10000，可调；由包内 `CrossDbJoinMerger` 执行 `checkSizeLimit`）；超限显式失败抛 inline ErrorCode（防 OOM，不静默截断）。
 - **`joinType` 语义**：`inner`（仅保留匹配行）/`left`（保留左表全部 + 右表匹配列，未匹配右列填 null）/`right`（**首版显式不支持**——抛 inline ErrorCode，不静默降级为 left、不静默返回左表全集）。跨库 right 语义（保留右表全部）与同库 right 一致不支持。
 
 **默认过滤器自动应用**（收口 0700-2 Non-Blocking Follow-up）：JOIN/聚合/单表查询执行前，由共享 `DefaultFilterApplicator` 自动注入该表 `isDefault=true` 的 `NopMetaTableFilter.definition`（TreeBean）到 filter 树（与用户 filter AND 合并）。单表（0800-1）/JOIN/聚合（0800-2）共用同一 helper。
@@ -1208,7 +1208,7 @@ granularity→分桶表达式表（三条路径一致复用，含 entity）：
 | `day` | `DATE_TRUNC('day', col)` | `DATE_FORMAT(col, '%Y-%m-%d')` |
 | `hour` | `DATE_TRUNC('hour', col)` | `DATE_FORMAT(col, '%Y-%m-%d %H:00:00')` |
 
-- 非约定 granularity 值（不在上表）→ 显式失败抛 inline ErrorCode（`metadata.aggr-granularity-not-supported`，§2.5.2 D1）。
+- 非约定 granularity 值（不在上表）→ 显式失败抛 inline ErrorCode（`metadata.granularity-not-supported`，§2.5.2 D1）。
 - 方言不在首版支持集（H2/MySQL/PostgreSQL）→ 显式失败抛 inline ErrorCode（`metadata.aggr-unsupported-dialect`，不静默）。
 
 **D7.1 — entity 路径 granularity 下沉机制裁定（plan `2026-07-18-1100-2` 落地）**：
@@ -1221,7 +1221,7 @@ granularity→分桶表达式表（三条路径一致复用，含 entity）：
     - **拒绝「跨库内存路径 dimension 内存分桶」作为本节范围**：跨库 JOIN 聚合（D10）走内存 GROUP BY，其 dimension 经端点命名空间取分组值（无 SQL 表达式层）；时间维度内存分桶需另行设计且规模风险不同，属 successor（见 plan `2026-07-18-1100-2` Deferred「跨库内存路径 dimension 内存分桶」）。
 - **与 §4.4.1 D1.5 拒绝候选 B 的区别澄清（关键）**：D1.5（混合端点 JOIN）显式「拒绝候选 B：`IJdbcTransaction.getConnection` 取 entity 连接」——其拒绝理由仅适用于**混合端点**（external 端点的物理表几乎不可能在平台库 Connection 可见，连接可达性实测不可达 → 跨库内存路径）。**本节为单表 entity 聚合**：entity 物理表（`NopMetaEntity.tableName`）就在平台 querySpace（同一物理库），候选 a 的可达性天然成立（visibility 不需要运行时实测），D1.5 拒绝理由**不适用**。本机制与 §4.4.3 D1（`TableReferenceExecutor.executeOnPlatformConnection`）+ §4.4.2 D12.2（expression 型 Measure entity 路径 bypass EQL）共享同一 Connection 入口与同一先例。
 - **ORM 隐式过滤旁路语义不变（与 D6 一致）**：无论 entity 聚合走 `orm().executeQuery` EQL 路径还是本节 bypass 物理 Connection 路径，均为**物理表直查、绕过 ORM 实体隐式过滤**（租户/逻辑删除/版本）。D6 既有「首版不限制 + 显式文档提示」语义在本机制下完全保留。
-- **失败路径显式化（沿用既有 ErrorCode，不静默直查、不静默降级裸列）**：granularity 不约定 → `metadata.aggr-granularity-not-supported`（`GranularityBucketing.translate` 既有抛点）；方言不支持 → `metadata.aggr-unsupported-dialect`（`executeExternalAggregation` 既有 `SUPPORTED_DIALECTS` 检查，bypass 路径在 `productName` 取得后同等校验）；entity querySpace 非 JDBC 事务 → `metadata.tableref-entity-query-space-not-jdbc`（`TableReferenceExecutor` 既有抛点）。无静默 fallback 裸物理列。
+- **失败路径显式化（沿用既有 ErrorCode，不静默直查、不静默降级裸列）**：granularity 不约定 → `metadata.granularity-not-supported`（`GranularityBucketing.translate` 既有抛点）；方言不支持 → `metadata.aggr-unsupported-dialect`（`executeExternalAggregation` 既有 `SUPPORTED_DIALECTS` 检查，bypass 路径在 `productName` 取得后同等校验）；entity querySpace 非 JDBC 事务 → `metadata.tableref-entity-query-space-not-jdbc`（`TableReferenceExecutor` 既有抛点）。无静默 fallback 裸物理列。
 - **Anti-Hollow（plan `2026-07-18-1100-2` 落地）**：`executeEntityAggregation` 在运行时真实调用 `GranularityBucketing.translate`（entity 路径新增分桶逻辑，非 `:346` 旧裸列直查）；`TableReferenceExecutor.execute` 在运行时被 entity 聚合路径真实调用（非空方法体、非静默跳过）；端到端测试覆盖 entity 路径各 granularity 分桶 + entity 与 external/sql 路径同 granularity 结果一致。
 
 **默认过滤器自动应用**：聚合查询执行前同样由 `DefaultFilterApplicator` 注入 `isDefault=true` 过滤器（与 JOIN/单表共用）。
@@ -1257,7 +1257,7 @@ granularity→分桶表达式表（三条路径一致复用，含 entity）：
 
 **D10 — 跨库 JOIN 聚合内存 GROUP BY 契约（plan 1500-2 落地）**：
 
-把 D8/D9/D1.5 反复 deferred 的「跨 querySpace（跨库）JOIN 聚合」（entity↔entity / external↔external / 混合端点）从「显式失败」推进到「可执行」。统一路径：**复用 `MetaJoinExecutor.executeJoin`（公开入口，`MetaJoinExecutor.java:139`）取得已合并的 JOIN 行 → 内存 GROUP BY**。`executeJoin` 内部已完成跨库取数（`fetchEntityRows`/`fetchTableRows`）+ `MAX_CROSS_DB_ROWS` 规模守卫（`checkSizeLimit`）+ 命名空间规范化（D1.4）+ joinType 语义（D5），本节复用其产出，**不直接调用 private 取数/合并方法**。
+把 D8/D9/D1.5 反复 deferred 的「跨 querySpace（跨库）JOIN 聚合」（entity↔entity / external↔external / 混合端点）从「显式失败」推进到「可执行」。统一路径：**复用 `MetaJoinExecutor.executeJoin`（公开入口，`MetaJoinExecutor.java:101`）取得已合并的 JOIN 行 → 内存 GROUP BY**。`executeJoin` 内部已完成跨库取数（`fetchEntityRows`/`fetchTableRows`）+ `CrossDbConfigHolder.maxCrossDbRows` 规模守卫（`CrossDbJoinMerger.checkSizeLimit`）+ 命名空间规范化（D1.4）+ joinType 语义（D5），本节复用其产出，**不直接调用 private 取数/合并方法**。
 
 - **aggFunc 内存可计算性**：
     - `sum`：累加数值（null 跳过）。
@@ -1266,11 +1266,11 @@ granularity→分桶表达式表（三条路径一致复用，含 entity）：
     - `min`/`max`：比较取极值（null 跳过；全 null → null）。
     - `countDistinct`：内存去重（`LinkedHashSet`），结果 = 去重后基数。
     - 不在上列的 aggFunc（含 `expression` 型 Measure）→ 显式失败抛 inline `ErrorCode`（与同库路径一致，不静默跳过、不当 0 返回）。
-- **规模上限语义（精确-当-容纳 / 超限-失败，Anti-Hollow 核心）**：复用 `executeJoin` 时，其内部 `checkSizeLimit`（`MetaJoinExecutor.java:822`）在任一侧行数 > `MAX_CROSS_DB_ROWS`（`:70`，默认 10000）时**直接抛异常**（不截断、不返回部分集）。故经 `executeJoin` 复用路径，跨库聚合语义为「**两侧均在上限内 → 内存全量精确聚合**；任一侧超限 → 显式失败」。**不存在「截断后近似」中间态**。结果可标 `crossDb:true` 表示数据经应用层拼接（聚合值本身精确），**不得**在「超限即失败」路径上声明一个永远无法为 true 的 `truncated:true` 标志（死结果标志）。
+- **规模上限语义（精确-当-容纳 / 超限-失败，Anti-Hollow 核心）**：复用 `executeJoin` 时，其内部委派 `CrossDbJoinMerger.checkSizeLimit`（`CrossDbJoinMerger.java:100`）在任一侧行数 > `CrossDbConfigHolder.maxCrossDbRows`（默认 10000）时**直接抛异常**（不截断、不返回部分集）。故经 `executeJoin` 复用路径，跨库聚合语义为「**两侧均在上限内 → 内存全量精确聚合**；任一侧超限 → 显式失败」。**不存在「截断后近似」中间态**。结果可标 `crossDb:true` 表示数据经应用层拼接（聚合值本身精确），**不得**在「超限即失败」路径上声明一个永远无法为 true 的 `truncated:true` 标志（死结果标志）。
 - **合并行 measure/dimension 值提取的命名空间（Anti-Hollow 核心，与同库 SQL 路径严格区分）**：`executeJoin` 返回的合并行 `Map` 的 key **按端点来源保留各自命名空间**（D1.4 不归一到单一命名空间）：
     - **entity 端点行 key = camelCase 属性名**（`NopMetaEntityField.fieldName`，对应 `fetchEntityRows` 的 `orm_propValueByName` 输出，**非 columnCode**）。
     - **external/sql 端点行 key = 物理列名**（`ResultSetMetaData.getColumnLabel`，H2 常大写）。
-    - **右侧端点（无论 entity 还是 table）字段名与左侧冲突时**，`MetaJoinExecutor.mergeRow` 对右 key 加 `<alias>_`（underscore）前缀（alias 取自 `NopMetaTableJoin.alias`，空则 `right`；前缀字符为下划线 `_`，与 §4.4.1 D5 一致，非点号）。
+    - **右侧端点（无论 entity 还是 table）字段名与左侧冲突时**，`CrossDbJoinMerger.mergeRow` 对右 key 加 `<alias>_`（underscore）前缀（alias 取自 `NopMetaTableJoin.alias`，空则 `right`；前缀字符为下划线 `_`，与 §4.4.1 D5 一致，非点号）。
     - 故内存 GROUP BY 提取 measure/dimension 值时**必须按端点来源 + 冲突前缀规则用对应的 key**：entity 侧解析为 `NopMetaEntityField.fieldName`（属性名）取值；table 侧解析为物理列名取值；**右侧冲突字段须按 `<alias>_<name>` 取值，否则会取到左侧值（静默错数据）**。右侧字段取值规则：优先查 `<alias>_<rawKey>` 是否存在于合并行，存在则用前缀键（冲突态），否则用裸键（非冲突态）。
     - **与同库 SQL 路径严格区分**：同库路径在 SQL 文本中用 columnCode（entity）/物理列（table）+ `l.`/`r.` 别名限定；内存路径在合并行 `Map` 中按上述命名空间 key 取值。两条路径的取值机制不同，不可混用。
     - **取值失败语义（#24 反空壳要害）**：measure/dimension 的 key 在合并行找不到 → 显式失败抛 inline `ErrorCode`，**绝不静默返回 null/0**（否则 SUM 静默为 0、COUNT 静默漏计，违反 #24）。
@@ -1278,15 +1278,15 @@ granularity→分桶表达式表（三条路径一致复用，含 entity）：
 - **分页**：内存合并无全局序，`limit`/`offset` 仅作合并后截断提示（沿用 D5 分页裁定，跨库无全局序），文档化为已知限制。
 - **实现接线**：`MetaAggregationExecutor.executeCrossDbJoinAggregation`（新增）在运行时被 `executeJoinAggregation` 的跨库分支真实调用（entity↔entity 跨 querySpace / external↔external 跨 querySpace / 混合端点不可同库 均进入）。measure/dimension 侧别解析复用既有 resolver 语义：entity↔entity 复用 `JoinFieldResolver`（entityFieldId→metaEntityId 判定侧别 + fieldName 取值）；external↔external 复用 `JoinExternalSideResolver`（side 必填 + 列名存在性校验）；混合端点复用 `JoinMixedSideResolver`（entity 侧 fieldName / table 侧 side 必填）。内存 GROUP BY 按 dimension 值分组 → 按 aggFunc 内存累加 → 输出 items。
 - **失败路径显式化（#24，无静默跳过/无静默降级/无空 items/无伪造值）**：
-    - **超限**（`executeJoin` 内 `checkSizeLimit` 显式失败，本路径不吞异常）。
-    - **join key 命名空间错配**（`executeJoin` 内 `requireFieldInRowKeys` 已校验，显式失败）。
+    - **超限**（`executeJoin` 委派 `CrossDbJoinMerger.checkSizeLimit` 显式失败，本路径不吞异常）。
+    - **join key 命名空间错配**（`executeJoin` 委派 `CrossDbJoinMerger.requireFieldInRowKeys` 已校验，显式失败）。
     - **measure/dimension key 在合并行缺失**（本节新增显式失败，**绝不静默返回 null/0**）。
     - **side 缺失**（external/sql 端点 side 必填，沿用 D9）。
     - **joinType=right**（由 `loadValidatedJoin` 抛，沿用 D5）。
     - **self-join**（entity↔entity leftEntityId==rightEntityId / external↔external leftTableId==rightTableId，双侧别名机制不足，沿用 D8/D9）。
     - **空端点**（entity/table 端点解析失败，由 `resolveEndpoint` 抛）。
-- **范围裁定（收口 deferred）**：本 D10 收口 D8 Deferred「跨 querySpace entity-entity JOIN 聚合」+ D9 Deferred「跨 querySpace external↔external JOIN 聚合」+ D1.5 Deferred「不可同库混合端点聚合」（三者均 deferred → plan 1500-2）。**大基数 countDistinct 精确去重**（接近/超 `MAX_CROSS_DB_ROWS` 的去重）为 optimization candidate（超限即失败已满足当前结果面，非静默近似）。
-- **Anti-Hollow**：`executeCrossDbJoinAggregation` 在运行时被 `executeJoinAggregation` 跨库分支真实调用（非空方法体、非静默跳过）；复用的 `MetaJoinExecutor.executeJoin`(`:139`) 被真实调用并产出合并行（非仅类型存在）；内存 GROUP BY 产出真实聚合值（按端点命名空间取值，entity 端点组合聚合值正确非静默 0）。
+- **范围裁定（收口 deferred）**：本 D10 收口 D8 Deferred「跨 querySpace entity-entity JOIN 聚合」+ D9 Deferred「跨 querySpace external↔external JOIN 聚合」+ D1.5 Deferred「不可同库混合端点聚合」（三者均 deferred → plan 1500-2）。**大基数 countDistinct 精确去重**（接近/超 `CrossDbConfigHolder.maxCrossDbRows` 的去重）为 optimization candidate（超限即失败已满足当前结果面，非静默近似）。
+- **Anti-Hollow**：`executeCrossDbJoinAggregation` 在运行时被 `executeJoinAggregation` 跨库分支真实调用（非空方法体、非静默跳过）；复用的 `MetaJoinExecutor.executeJoin`(`:101`) 被真实调用并产出合并行（非仅类型存在）；内存 GROUP BY 产出真实聚合值（按端点命名空间取值，entity 端点组合聚合值正确非静默 0）。
 
 **D11 — 聚合查询 having/orderBy 增强（plan 2026-07-18-0900-2 落地）**：
 
@@ -1367,7 +1367,7 @@ granularity→分桶表达式表（三条路径一致复用，含 entity）：
         - 同一份 expression 文本在三条路径上语义一致，避免 per-path 分叉（混合方案的契约漂移风险）。
     - **拒绝的替代方案及理由**：
         - **拒绝 EQL**：EQL 编译器校验函数名（§4.4.2 D7 已实测 `FORMATDATETIME` 被判 unknown-function），无法表达 `STDDEV_SAMP` / `DATE_TRUNC` / 复杂 `CASE WHEN` 等 BI 表达式常见结构。entity 路径 D6 既有 `orm().executeQuery` 载体虽 `allowUnderscoreName(true)` 放宽了表名下划线，但**未放宽函数名白名单**——expression 内的函数仍受 EQL 编译器校验。EQL 保留字（`PRECISION`/`SCALE`/`NUMBER` 等）还会进一步引发编译失败（见 D8 `ERR_AGGR_JOIN_COMPILE_FAILED` 已知风险）。
-        - **拒绝平台表达式引擎**（如 XLang/Xpl 或独立表达式求值器）：纯内存求值，无法 pushdown 到数据库 SQL；与「聚合下沉到 SQL」的 D6 铁律冲突；要取得聚合结果必须把全表/全 join 集合加载到内存（违反 D10 跨库 `MAX_CROSS_DB_ROWS` 规模守卫，且单库路径无法利用 DB 索引/聚合下推）；语义在 DB pushdown 与内存计算两套实现间分叉，引入 contract drift。
+        - **拒绝平台表达式引擎**（如 XLang/Xpl 或独立表达式求值器）：纯内存求值，无法 pushdown 到数据库 SQL；与「聚合下沉到 SQL」的 D6 铁律冲突；要取得聚合结果必须把全表/全 join 集合加载到内存（违反 D10 跨库 `CrossDbConfigHolder.maxCrossDbRows` 规模守卫，且单库路径无法利用 DB 索引/聚合下推）；语义在 DB pushdown 与内存计算两套实现间分叉，引入 contract drift。
         - **拒绝混合方案**（entity 走 EQL + external 走原生 SQL 片段）：同一份 expression 文本在不同 tableType 路径上语义不一致——EQL 函数白名单与方言原生函数集不同；用户需要按 tableType 分别编写 expression，违反「Measure 是逻辑层概念、与底层物理实现解耦」的 §2.5 契约；维护两套语义等价校验成本高。
 
 - **D12.2 — 三条路径执行契约**：
@@ -1377,7 +1377,7 @@ granularity→分桶表达式表（三条路径一致复用，含 entity）：
         - **成功or 决定 successor 技术调研项（Decision：作为 successor 技术调研项）**：D12 **不预先裁定** entity 路径是否保留 `orm().executeQuery` EQL 路径作为「EQL 兼容子集」快路径（仅支持 EQL 已知函数的 expression 走快路径、其余走 bypass）。该决定属 successor 技术调研项——successor plan 须在实现阶段评估：是否值得为 EQL 兼容 expression 维护双路径（性能 vs 复杂度）。D12 仅锁定 **bypass EQL 是 expression 型 Measure 在 entity 路径的安全默认选型**。
         - **SQL 形态**：`SELECT <维度>, <agg>(<expression>) FROM <物理表> [WHERE] GROUP BY <维度>`，`<expression>` 为用户提供的方言原生 SQL 片段，列引用须取自 `MetaTableFieldResolver` 解析的物理列名（entity 路径为 `NopMetaEntityField.columnCode`）。物理表取自 `NopMetaEntity.tableName`。
     - **external-sql 路径执行契约（Decision：复用 withConnection 原生 SQL + 标识符白名单 + 参数绑定）**：
-        - 经 `IMetaDataSourceConnectionService.withConnection`（querySpace→`NopMetaDataSource`，对齐 §4.4 D1 external/sql 路径）跑原生聚合 SQL：`SELECT <维度>, <agg>(<expression>) FROM <表/子查询> [WHERE] GROUP BY <维度>`。FROM 子句按 tableType 构造（external→`FROM <tableName>`；sql→`FROM (<sourceSql>) _t`，与 D6 聚合 external/sql 路径 `buildFromClause` 同范式）。
+        - 经 `IMetaDataSourceConnectionProcessor.withConnection`（querySpace→`NopMetaDataSource`，对齐 §4.4 D1 external/sql 路径）跑原生聚合 SQL：`SELECT <维度>, <agg>(<expression>) FROM <表/子查询> [WHERE] GROUP BY <维度>`。FROM 子句按 tableType 构造（external→`FROM <tableName>`；sql→`FROM (<sourceSql>) _t`，与 D6 聚合 external/sql 路径 `buildFromClause` 同范式）。
         - **标识符白名单复用 §2.7.1 D3**：expression 内的列引用须通过白名单正则 `^[A-Za-z_][A-Za-z0-9_]*$` 校验，列名取自该表 `MetaTableFieldResolver` 解析的可用列名集合（external→buildSql JSON columnName；sql→SELECT 解析列名）。
         - **值参数绑定（对齐 FilterToSqlTranslator 模式）**：expression 内的字面量（numeric/string 等）使用 PreparedStatement 参数绑定，**禁止裸字符串拼接**。
     - **跨库内存路径执行契约（Decision：内存不可算显式失败，对齐 D10 铁律）**：

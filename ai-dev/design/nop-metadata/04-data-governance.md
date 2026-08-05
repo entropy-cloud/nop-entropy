@@ -88,19 +88,19 @@ MetaDomain                        — 域定义
 
 ```
 MetaDict                          — 字典定义
-  ├── modelId                     → MetaOrmModel
+  ├── metaDictId                  — PK（seq）
+  ├── ormModelId                  → MetaOrmModel
   ├── isDelta                     — true: 本模块声明, false: 合并后
   ├── dictName                    — "DocStatus"（唯一标识）
-  ├── displayName                 — "单据状态"
+  ├── label                       — 字典标签
   ├── valueType                   — "string" | "int"
-  ├── static                      — 是否静态（不可运行时修改）
+  ├── locale                      — 区域
+  ├── staticDict                  — 是否静态（不可运行时修改）
   ├── normalized                  — 是否归一化
   ├── tagSet
-  ├── isGlobal                    — 是否为通用字典
-  ├── sourceModuleId              — 来源模块
   ├── deprecated                  — 是否已废弃
-  ├── internal                    — 是否内部使用
-  └── extConfig
+  └── internal                    — 是否内部使用
+  （无 isGlobal/sourceModuleId/extConfig——这些字段属 NopMetaDomain 而非 NopMetaDict）
 
 MetaDictItem                      — 字典项
   ├── dictId                      → MetaDict

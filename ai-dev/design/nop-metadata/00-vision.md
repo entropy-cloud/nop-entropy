@@ -34,7 +34,7 @@
 | ORM 模型散落在 `model/*.orm.xml`，无统一浏览入口 | `nop-metadata` 解析所有模块的 ORM 模型，写入结构化实体，提供搜索/浏览 API |
 | 模型变更后无法判断影响范围（哪些报表/API 会挂） | 版本化的模块模型 + 引用追踪 |
 | 多个项目/版本之间无法对比模型差异 | 模块版本体系 + Delta 感知的 diff |
-| 缺乏 BI 语义层的指标/维度独立管理 | `MetaTableMeasure` + `MetaTableField` 作为一等实体 |
+| 缺乏 BI 语义层的指标/维度独立管理 | `MetaTableMeasure` 作为一等实体；表字段为运行时动态解析（`resolveTableFields` → `MetaTableFieldResolver` + `ResolvedTableFieldDTO`，无 `MetaTableField` 实体） |
 | 外部数据库（MySQL/ClickHouse 等）的表无法纳入 Nop 的统一元数据管理 | `MetaDataSource` + `MetaTable`，通过扫描或注册导入 |
 | 跨数据源的查询需要手写代码拼接 | ORM querySpace 路由 + MetaTable 统一语义层，查询走现有 IOrmTemplate |
 

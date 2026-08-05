@@ -266,9 +266,7 @@ sequenceDiagram
 
 | 存量元素 | 与新设计的关系 |
 |---------|--------------|
-| `NopMetaDataContractBizModel.activateContract()` | 标记 `@Deprecated`，内部改为调用 `submitForApproval`。因 `tagSet="use-approval"` 是编译期决定，一旦启用审批不存在"不走工作流"的路径 |
-| `NopMetaDataContractBizModel.deprecateContract()` | 同上 |
-| `NopMetaDataContractBizModel.retireContract()` | 同上 |
+| ~~`activateContract`/`deprecateContract`/`retireContract`（@Deprecated 委托 `submitForApproval`）~~ | **已删除**（2026-07-23 commit eefba0320）——三个方法 live 代码不再存在（0 命中），无 @Deprecated 委托路径；仅保留 `approve`/`reject`/`checkContract`/`checkContractReadOnly`，审批路径统一走 `submitForApproval` |
 | 非审批实体的 TagLabel | 不加入 `tagSet="use-approval"`，state 直接写库，保持 Phase 1 的简单行为。`approveStatus`/`approvedBy`/`approvedAt` 字段仍然存在但 unused |
 
 ---
@@ -286,6 +284,8 @@ sequenceDiagram
 ```
 
 #### 3.6.2 `activateContract` 标记 @Deprecated 的调用者影响
+
+> **执行更新（2026-07-23 commit eefba0320）**：下述 @Deprecated 迁移影响已被**删除方案**取代——三个方法 live 已移除，客户端不存在"收到 @Deprecated 警告"的过渡期；改用 `submitForApproval` 的客户端语义与下方描述一致（同步→异步）。
 
 `activateContract()` 从"立即改状态"变为"启动工作流等审批"，这是一个同步→异步的语义变化。客户端调用者须知：
 
@@ -332,7 +332,7 @@ sequenceDiagram
 - ✅ `NopMetaDataContract` 增加 `tagSet="use-approval"` + `approveStatus`/`approvedBy`/`approvedAt` 字段（ORM model）
 - ✅ 实体级 `tagSet="use-approval"` 触发 codegen 生成 `x:extends="/nop/wf/base/approval-support.xbiz"` 的 `_NopMetaDataContract.xbiz`
 - ✅ xmeta 配置 `wf:wfName="metaDataContractApproval"`
-- ✅ 保留现有 `activateContract`/`deprecateContract`/`retireContract` 签名兼容（标记 `@Deprecated`，委托给 `submitForApproval`）
+- ✅ `activateContract`/`deprecateContract`/`retireContract` 已随 2026-07-23 commit eefba0320 **删除**（live 0 命中）——审批路径统一为 `submitForApproval`，无 `@Deprecated` 委托兼容层
 - ✅ 定义 `metaDataContractApproval/v1.xwf` 工作流模型（`_vfs/nop/metadata/wf/metaDataContractApproval/v1.xwf`）
 - ✅ `NopMetaDataContractBizModel` Java `@BizMutation` 全量 override `approve`/`reject`（设置 approveStatus/approvedBy/approvedAt + 驱动 status 业务状态转换 DRAFT→ACTIVE / ACTIVE→DEPRECATED / DEPRECATED→RETIRED；reject 回退 DRAFT + 写入 remark）
 - ✅ 集成测试：approve/reject 守卫测试 + checkContract 全部通过

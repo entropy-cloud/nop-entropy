@@ -34,7 +34,7 @@
 | 数据质量扩展（剖析/评分） | 06-data-quality-extended.md | ✅ |
 | AI 集成（GraphQL 自动暴露） | 07-ai-integration.md | ✅ |
 | Reconciliation 对账 | 08-reconciliation.md | ✅ |
-| Catalog 收集 | JdbcModelDiscoverer | ✅ 已有能力 |
+| Catalog 收集 | `collectCatalog`/`collectCatalogForTable` + `MetaCatalogCollector`（service/catalog/，05-metadata-import.md §四） | ✅ 已有能力 |
 | 数据源同步 | 手工触发 | ✅ 已有能力 |
 
 ---
@@ -53,14 +53,14 @@
 | # | 功能 | 说明 |
 |---|------|------|
 | 3 | **Manifest 快照实现** | 导入 ORM 模型时生成完整元数据快照（05-metadata-import.md） |
-| 4 | **质量检查执行方式** | 复用 nop-batch/nop-job 执行 MetaQualityRule，不需要单独的验证框架（06-data-quality-extended.md） |
+| 4 | **质量检查执行方式** | 已裁定：BizModel action + withConnection callback 执行 MetaQualityRule（`NopMetaQualityRuleBizModel.executeQualityRule`），不引入 nop-batch 验证框架（06-data-quality-extended.md §1.3 明确否决 nop-batch） |
 
 ### 3.3 不需要设计的功能
 
 | 功能 | 原因 |
 |------|------|
 | 数据源自动同步 | 手工触发即可，后续通过 CDC（Debezium）+ nop-stream 实现增量同步 |
-| Catalog 收集 | 已有 JdbcModelDiscoverer |
+| Catalog 收集 | 已有 `MetaCatalogCollector`（`collectCatalog`/`collectCatalogForTable`，见 05-metadata-import.md §四） |
 | OpenLineage 标准集成 | 解决业务问题即可，不遵循小众标准 |
 | 临时表血缘 | 中间表建模后是普通血缘，不建模则在 transformExpression 中记录 |
 
@@ -119,27 +119,17 @@ MetaManifest                     — 元数据快照
   └── statistics                 — 统计信息
 ```
 
-实现路径：在 OrmModelImporter 导入完成后，自动生成 Manifest 快照。
+实现路径：手动 action `NopMetaModule__generateManifest(metaModuleId)`（`NopMetaModuleBizModel.generateManifest`）；`importOrmModel` 不自动触发，导入时自动生成为 Non-Blocking Follow-up（05-metadata-import.md §2.3）。
 
 ### 4.4 质量检查执行方式
 
-不需要单独的验证执行框架，直接复用 nop-batch：
+已裁定为 **BizModel action + withConnection callback**，不采用独立的批处理验证框架（`06-data-quality-extended.md` §1.3 明确否决 nop-batch；早期「复用 nop-batch」草案为被否决选项，不作为当前设计）：
 
 ```
-MetaQualityRule → nop-batch processor → SQL 执行 → MetaQualityResult
+MetaQualityRule → NopMetaQualityRuleBizModel.executeQualityRule（withConnection callback 内执行 SQL）→ MetaQualityResult
 ```
 
-配置示例：
-```xml
-<!-- 质量检查批处理器 -->
-<batch-task name="quality-check">
-    <orm-reader entity="nop_metadata.MetaQualityRule">
-        <where>status='active'</where>
-    </orm-reader>
-    <processor name="quality-rule-executor"/>
-    <orm-writer entity="nop_metadata.MetaQualityResult"/>
-</batch-task>
-```
+- nop-batch/nop-job 仅作为「定时调度」的后续可选适配（`06-data-quality-extended.md` §1.3），非执行主路径。
 
 ---
 
@@ -153,7 +143,7 @@ MetaQualityRule → nop-batch processor → SQL 执行 → MetaQualityResult
 ### Phase 2: 实现细节完善（P1）
 
 - [x] 实现 Manifest 快照生成 — 05-metadata-import.md
-- [x] 设计质量检查执行方式（复用 nop-batch）— 06-data-quality-extended.md
+- [x] 设计质量检查执行方式（BizModel action + withConnection callback，否决 nop-batch）— 06-data-quality-extended.md
 
 ---
 

@@ -60,7 +60,7 @@ MetaModule                        — 模块（版本管理基本粒度）
   ├── displayName                 — "Nop 认证模块"
   ├── version                     — long，模块版本号（发布后不可变）
   ├── baseModuleId                → MetaModule（Delta 继承的 base 模块版本，null 表示无继承）
-  ├── status                      — "drafting" | "released" | "deprecated"
+  ├── status                      — "DRAFTING" | "RELEASED" | "DEPRECATED"（dict `meta/module-status`，大写值）
   ├── importedAt                  — 导入时间
   │
   ├── mavenGroupId                — Maven groupId（如 "io.nop"）
@@ -76,9 +76,9 @@ MetaModule                        — 模块（版本管理基本粒度）
 
 **状态流转**:
 ```
-drafting → released → deprecated
+DRAFTING → RELEASED → DEPRECATED
                 ↑
-  (新版本 drafting)
+  (新版本 DRAFTING)
 ```
 
 ### 2.2 Delta 继承链
@@ -173,10 +173,10 @@ orm.xml → buildModule(moduleVersion = max(same moduleId)+1, status=DRAFTING)
 
 ```
 1. 用户在 UI 上选择模块版本
-2. 检查 MetaModule.status = drafting（只有 drafting 可发布）
+2. 检查 MetaModule.status = DRAFTING（只有 DRAFTING 可发布）
 3. 设置 MetaModule.status = released
 4. version 字段在 import 时已分配，发布后不可变
-5. 发布 MetaModuleChangedEvent 事件（事件模型实体未建模，当前为 non-blocking follow-up）
+5. 发布 `NopMetaModelChangedEvent` 事件（实体已建模：`nop-metadata.orm.xml` NopMetaModelChangedEvent + dict `meta/change-source`；`releaseModule` 经 `MetaModelChangedEventPublisher` 发布 UI 事件，见 10-event-model.md）
 ```
 
 > **修正**：原 §4.2 第 2 步写"检查所有 MetaOrmModel 的 status = released"，但 MetaOrmModel 不再有 status 字段（status 在 MetaModule 上），此处修正为"检查 MetaModule.status = drafting"。
@@ -185,7 +185,7 @@ orm.xml → buildModule(moduleVersion = max(same moduleId)+1, status=DRAFTING)
 
 ```
 1. 用户选择废弃某个模块版本
-2. 设置 MetaModule.status = deprecated
+2. 设置 MetaModule.status = DEPRECATED
 3. 该版本下的模型仍然可查，但标记为已废弃
 ```
 
@@ -206,7 +206,7 @@ orm.xml → buildModule(moduleVersion = max(same moduleId)+1, status=DRAFTING)
 - 已 RELEASED 的模块再次调用 releaseModule 抛异常（不可变性：拒绝重复 release，不静默返回）
 - "不可变"仅指 releaseModule 拒绝重复 release；通用 CRUD 路径的不可变性强制为后续 plan（标准 CRUD 仍可修改已发布模块数据）
 
-**ErrorCode**（在 `NopMetaModuleBizModel` 内 inline 定义，nop-metadata 无独立 Errors 类）:
+**ErrorCode**（集中定义于 `NopMetadataErrors` 接口——`ModuleErrors.java` 声明 `module-not-found`/`module-not-drafting`，经 `NopMetadataErrors extends AggregationErrors/JoinErrors/QualityErrors/...` 聚合可达）:
 
 - `metadata.module-not-found`: "Module not found: {metaModuleId}"
 - `metadata.module-not-drafting`: "Module is not in drafting status: {status}"

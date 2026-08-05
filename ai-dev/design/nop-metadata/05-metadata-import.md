@@ -209,11 +209,11 @@ entity/sql 类型表收集（需 `querySpace → 数据源` 解析，entity 的 
 
 ### 4.5 schema 限定策略（D1）
 
-**建模现状（plan 2026-07-17-0852-3 已补）**：`NopMetaTable.schema` 列（propId 17，可空）已新增并贯通——`ExternalTableStructureReader.read` 读取 JDBC `TABLE_SCHEM` 持久化到该列；同步去重键收敛为 `(metaModuleId, schema, tableName)`（见架构基线 §2.5.1）。
+**建模现状（plan 2026-07-17-0852-3 已补）**：`NopMetaTable.metaSchema` 列（propId 17，可空）已新增并贯通——`ExternalTableStructureReader.read` 读取 JDBC `TABLE_SCHEM` 持久化到该列；同步去重键收敛为 `(metaModuleId, metaSchema, tableName)`（见架构基线 §2.5.1）。
 
 **默认 schema 解析（plan 0852-3 Phase 3）**：`collectCatalog(schemaPattern)` / `collectCatalogForTable(schemaPattern)` 在 BizModel 层解析默认 schema——
 - 传入 `schemaPattern` 时用 `<schemaPattern>.<tableName>`（显式覆盖持久化 schema）；
-- 不传时默认取 `NopMetaTable.schema`（持久化值），仍 null 则依赖连接默认 schema。
+- 不传时默认取 `NopMetaTable.metaSchema`（持久化值），仍 null 则依赖连接默认 schema。
 - 批量 `collectCatalog` 改为**逐表默认 schema 解析**（每表 schema 可能不同，替代旧「单一 schemaPattern 透传循环内所有表」）。
 
 **与 §四 Catalog 的关系**：Catalog 收集的 schema 限定语义已与 sync 持久化的 schema 列贯通。同名不同 schema 表的去重在 sync 层完成（dedup key 含 schema）；Catalog 执行只需默认按持久化 schema 命中正确表。
@@ -221,7 +221,7 @@ entity/sql 类型表收集（需 `querySpace → 数据源` 解析，entity 的 
 ### 4.6 collectCatalog action 契约（D2）
 
 - **落点**：action 放在 `NopMetaDataSourceBizModel`（与现有 `testConnection`/`syncExternalTables` 一致——三者均以 `dataSourceId` 为入口键）。GraphQL mutation 名为 `NopMetaDataSource__collectCatalog`。
-- **签名**：`@BizMutation collectCatalog(@Name("dataSourceId") String id, @Name("schemaPattern") String schemaPattern, IServiceContext context)` → 返回 `Map{collectedCount: int, errors: [...]}`。
+- **签名**：`@BizMutation collectCatalog(@Name("dataSourceId") String id, @Optional @Name("schemaPattern") String schemaPattern, IServiceContext context)` → 返回 `CollectCatalogResultDTO{tableCount: int, tables: CollectCatalogTableDTO[], errors: [...]}`（api/dto；`schemaPattern` 为 `@Optional`，不传则按持久化 metaSchema 解析）。
 - **`schemaPattern` 语义**：限定 COUNT/索引查询的物理 schema（见 §4.5），**不过滤 NopMetaTable 行**（schema 不存于该表）；null 时依赖连接默认 schema。
 - **行为**：加载 NopMetaDataSource → 不存在抛 `metadata.datasource-not-found`（不 NPE）→ `status==DISABLED` 抛 `metadata.datasource-disabled`（不静默通过）→ **复用 P2-1 `withConnection` callback 建连**（callback 内遍历该 querySpace 的 external NopMetaTable + 收集统计）→ 写入 NopMetaCatalog（每次追加新行，`collectedAt=now`）→ 单表失败收集 errors 不中断 → callback 结束自动释放连接。
 - **非 jdbc 类型**：连接服务显式抛 `UnsupportedOperationException`（继承 P2-1/P2-2 行为，不静默成功）。

@@ -11,8 +11,8 @@
 
 ## Design Decisions
 
-- DTO 放在 `nop-metadata-core/.../dto/`（共享模块，dao 层 I*Biz 接口和 service 层 BizModel 均可引用）。
-- 共享 DTO（如 `ErrorDTO` / `KeyValueDTO`）也放在 `nop-metadata-core/.../dto/`（统一定位）。
+- DTO 放在 `nop-metadata-api/.../dto/`（共享模块，dao 层 I*Biz 接口和 service 层 BizModel 均可引用；全部 32 个 `@DataBean` 位于 `io.nop.metadata.api.dto` 包）。
+- 共享 DTO（如 `ErrorDTO` / `KeyValueDTO`）也放在 `nop-metadata-api/.../dto/`（统一定位）。
 - 字段命名与原 Map key 完全一致，便于迁移期前后兼容对照。
 - 每个方法新增 DTO 返回的 overload，原 Map 版本保留（避免现有测试集体失效）；新代码用 DTO 版本。
 - `@DataBean` 注解由 `io.nop.api.core.annotations.data.DataBean` 提供。
@@ -21,23 +21,22 @@
 
 ### 1. 共享 DTO
 
-#### `ErrorDTO`（放在 `nop-metadata-dao/.../dto/`）
+#### `ErrorDTO`（放在 `nop-metadata-api/.../dto/`）
 - `String code` — 错误码（如 `metadata.datasource-connect-failed`）
 - `String message` — 错误摘要
 - `String detail` — 上下文详情（可选）
 
-#### `KeyValueDTO`（放在 `nop-metadata-dao/.../dto/`）
+#### `KeyValueDTO`（放在 `nop-metadata-api/.../dto/`）
 - `String name`
 - `String value`
 
 ### 2. Aggregation（来源：`NopMetaTableBizModel.queryAggregation`）
 
 #### `AggregationResultDTO`
-- `List<AggregationRowDTO> items`
+- `List<Map<String, Object>> items` — 行结构为扁平 alias-key Map（measure/dimension 别名 → 值）
 
-#### `AggregationRowDTO`
-- `Map<String, Object> dimensions` — 维度值（dimensionName → value）
-- `Map<String, Object> measures` — 指标聚合值（measureName → aggValue）
+> 注：早期曾设计 `AggregationRowDTO`（嵌套 dimensions/measures），与执行器实际产出的扁平行结构不匹配，
+> 全仓零引用，已于 MR3（P2-MA6.1-001）移除死 DTO。
 
 ### 3. Profiling（来源：`NopMetaTableBizModel.profileTable` / `NopMetaProfilingRuleBizModel.executeProfilingRule`）
 
@@ -132,18 +131,26 @@
 
 ### 11. Quality Rule Execution（来源：`NopMetaQualityRuleBizModel.executeQualityRule` / `executeQualityRulesForDataSource`）
 
-#### `QualityRuleResultDTO`
-- `String qualityRuleId`
-- `int resultCount`
-- `int passCount`
-- `int failCount`
-- `List<ErrorDTO> errors`
+#### `QualityRuleExecuteResultDTO`（`executeQualityRule` 返回）
+- `String qualityResultId`
+- `String status`
+- `Object actualValue`
+- `Object expectedValue`
+- `String message`
+- `Map<String, Object> details`
 
 #### `QualityRulesForDataSourceResultDTO`
 - `String dataSourceId`
 - `int totalRuleCount`
-- `int executedRuleCount`
-- `List<QualityRuleResultDTO> ruleResults`
+- `int executedCount`
+- `List<QualityRuleExecuteResultDTO> results`
+- `List<ErrorDTO> errors`
+
+#### `QualityRuleResultDTO`（仅作为 `CheckpointExecutionResultDTO.ruleResults` 元素，非 executeQualityRule 返回）
+- `String qualityRuleId`
+- `int resultCount`
+- `int passCount`
+- `int failCount`
 - `List<ErrorDTO> errors`
 
 ### 12. Quality Checkpoint Execution（来源：`NopMetaQualityCheckpointBizModel.executeCheckpoint`）
@@ -158,20 +165,21 @@
 ### 13. Quality Score（来源：`NopMetaQualityScoreBizModel.computeQualityScore`）
 
 #### `QualityScoreResultDTO`
-- `String metaTableId`
+- `String scoreId`
 - `String qualityScoreId`
-- `double score`
-- `int totalRules`
-- `int passedRules`
-- `int failedRules`
-- `int skippedRules`
+- `double overallScore`
+- `Map<String, Object> dimensionScores`
+- `Map<String, Object> ruleSummary`
+- `Map<String, Object> trend`
 
 ### 14. Contract Check（来源：`NopMetaDataContractBizModel.checkContract`）
 
 #### `ContractCheckResultDTO`
-- `String contractId`
-- `boolean passed`
-- `List<ErrorDTO> errors`
+- `Timestamp timestamp`
+- `String status`
+- `String message`
+- `Map<String, Object> qualitySummary`
+- `Map<String, Object> slaSummary`
 
 ### 15. Import ORM Models（来源：`NopMetaModuleBizModel.importOrmModels`）
 
@@ -200,7 +208,7 @@
 | NopMetaLineageEdgeBizModel | extractLineageFromSql | LineageExtractResultDTO |
 | NopMetaLineageEdgeBizModel | extractColumnLineageFromSql | LineageExtractResultDTO |
 | NopMetaLineageEdgeBizModel | extractMeasureLineage | LineageExtractResultDTO |
-| NopMetaQualityRuleBizModel | executeQualityRule | QualityRuleResultDTO |
+| NopMetaQualityRuleBizModel | executeQualityRule | QualityRuleExecuteResultDTO |
 | NopMetaQualityRuleBizModel | executeQualityRulesForDataSource | QualityRulesForDataSourceResultDTO |
 | NopMetaQualityCheckpointBizModel | executeCheckpoint | CheckpointExecutionResultDTO |
 | NopMetaQualityScoreBizModel | computeQualityScore | QualityScoreResultDTO |
@@ -210,6 +218,6 @@
 
 ## Notes
 
-- 所有 DTO 放在 `nop-metadata-core/.../dto/`（`io.nop.metadata.core.dto` 包），供 `nop-metadata-dao` 的 I*Biz 接口和 `nop-metadata-service` 的 BizModel 共同引用。
+- 所有 DTO 放在 `nop-metadata-api/.../dto/`（`io.nop.metadata.api.dto` 包），供 `nop-metadata-dao` 的 I*Biz 接口和 `nop-metadata-service` 的 BizModel 共同引用。
 - `Map<String, Object>` 内部嵌套结构（如查询行数据 items）保留 Map，因为 schema 跟随物理表结构动态变化，强行引入 DTO 反而损失灵活性（这是 plan Non-Goals 中"50+ @SuppressWarnings 完整 DTO 化延后"的同一裁定）。
 - 每个 BizModel 新增 DTO overload；原 Map 版本保留兼容。新增方法以 `@BizQuery` / `@BizMutation` 直接暴露给 GraphQL（xbiz 自动生成 schema 时 DTO 字段就是 GraphQL field，前端可用 selection 下推）。
