@@ -5,6 +5,54 @@
 > 最后更新：2026-08-05
 > 来源：9 个历史审计来源（07-19 ~ 07-23 五轮，multi+open 双轨）+ 本 mission 3 个 M0 交付物自身；本索引不登记 nop-ai 等其他 mission 的 arm 文件。
 
+## MR6 裁决记录（plan-2026-08-05-2154-1，2026-08-05 live 复核；R6.0 → done）
+
+- **Backlog 32 条全部终态（12 提级 + 20 归类，0 悬置）**，归属与 roadmap MR6 段「R6.0 裁决记录」双向一致（grep 32 条可追溯）；计数勘误 33/10/22 → 32/12/20（header "33 条"为错误计数）
+- **提级 12 条（全部经 live 代码复核确认，归属 R6.1~R6.5 行）**：
+
+| 编号 | 归属 | 提级依据（live 复核） |
+|------|------|----------------------|
+| P2-10 | R6.1 | `MetaQualityRuleExecutor.java:67-83` 黑名单缺 PG_READ_BINARY_FILE/RUNSCRIPT/PG_LS_LOGDIR/PG_LS_WALDIR/PG_STAT_FILE/SCRIPT；分词（:368 下划线保留成单 token）不命中即原样执行——已知绕过面（:323 注释自认） |
+| P2-13 | R6.1 | `ExpressionMeasureValidator.java:63` "SET TRANSACTION" 双 token 条目 vs scanBlacklist :469-489 单 token 匹配永不命中；:79 "INTO OUTFILE/DUMPFILE" 需 word 后跟 `(` 才成 FUNCTION_CALL（:412-413）亦永不命中——死条目 |
+| P2-11 | R6.2 | `CheckpointActionDispatcher.java:207-215` webhook 请求未设置重定向策略；HttpRequest 无 per-request 字段，跟随与否完全由全局 HttpClientConfig 决定（:33 默认 false；JdkHttpClient.java:92 → NEVER）——部署开启即 302 跳转目标不复核 |
+| P2-12 | R6.2 | `MetaDataSourceConnectionProcessor.java:225-247` 三错误路径均 `.param(ARG_RAW_JDBC_URL, jdbcUrl)` 原始 URL（可含 user:pass@）；`TestMetaDataSourceConnectionSecurity.java:341-343` 断言含完整凭据——params 随异常序列化进日志/错误响应 |
+| AR-07 | R6.3 | R4.2 后 UK 含可空 META_SCHEMA；`NopMetaDataSourceBizModel.java:428-468` upsertExternalTable find-then-insert 非原子——NULL-schema 并发同名表两插皆成功（NULL≠NULL 不参与 UK），DB 防线移除 Java 无法兜底 |
+| AR-08 | R6.3 | `NopMetaTableBizModel.java:164-173` createSqlTable 守卫仅按 (metaModuleId, tableName) 查重无 isDelta/schema 过滤——比 4 列 UK 更严，delta 行/异 schema 行存在时误报 ERR_SQL_VIEW_TABLE_EXISTS |
+| P2-06 | R6.4 | `AggregationHelper.java:496-506` checkTableExists catch SQLException → LOG.warn + false——真实故障被归类为业务性"表不可见"（ERR_FIELD_RESOLVE_NO_FIELDS 语义漂移） |
+| P2-07 | R6.4 | `NopMetaModuleBizModel.java:217-234` parseDeltaModel catch → LOG.warn + 降级 fullModel——x:extends 存在时 delta=full 语义不等价，delta 覆盖声明丢失 |
+| P2-09 | R6.4 | `NopMetaTagLabelBizModel.java:128-129` 提审失败仅 LOG.warn 继续——标签保存成功但永不进审批流，用户侧零感知 |
+| P2-01 | R6.5 | `NopMetaSearchProcessor.java:56-66/:77-87` fail-closed 分支 throw 不带 cause 无日志——索引故障根因丢失 |
+| P2-02 | R6.5 | `AutoClassificationProcessor.java:129-134` 正则编译失败 catch → continue 无日志——非法正则使规则永久失效且不可观测 |
+| P2-04 | R6.5 | 4 处 catch 静默返回默认值：`MetaQualityCheckpointExecutor.java:349-358`→emptyList / `MetaQualityScorer.java:249-264`→null / `NopMetaQualityCheckpointBizModel.java:351-364`→true / `MetaQualityCheckpointScheduler.java:253-261`→null——配置损坏与"用户没配"不可区分 |
+
+- **终局归类 20 条（归属 R6.6 行，每条附 Why Not Blocking Closure）**：
+
+| 编号 | 归类 | Why Not Blocking Closure |
+|------|------|--------------------------|
+| P2-03 | out-of-scope improvement（**单独裁定：修入 R6.6 批量**） | 21 死码零引用零行为影响（211 定义 vs 191 使用，清单与审计逐一相符）；RECON 路径 LOG.warn 留证非静默；R6.6 删码 + ERR_RECON_PARSE_PROPERTIES_FAILED 二选一落地 |
+| P2-05 | watch-only residual | 占位符 100% 匹配（live 复核 567 裸串 vs 181 ARG_* 并存），无运行时缺陷，纯维护性风险 |
+| P2-08 | docs batch | SKIP + LOG.warn + reason 完全可见（`MetaQualityRuleExecutor.java:540-547`），合理语义建模非静默跳过，仅文档字面张力 |
+| P2-14 | watch-only residual | 错标快照命名误导，聚合核心由 TestAggregation* 65 测端到端约束 |
+| P2-15 | watch-only residual | trivial 镜像为覆盖缺口，非运行时缺陷 |
+| P2-16 | watch-only residual | 纯常量镜像，同文件反射扫描 testAllErrorsUseNopErrPrefix 独立价值保留 |
+| P2-17 | watch-only residual | 手工清单的保护力退化风险，非当前缺陷 |
+| P2-18 | watch-only residual | 页面冒烟 0 页面也通过为测试强度问题，web 模块 1 测试 |
+| P2-19 | watch-only residual | 死分支 + 弱断言退化，无运行时影响 |
+| P2-20 | watch-only residual | 正则无 DOTALL/user.dir 依赖为稳健性问题，有真实约束力（mock 时钟门禁） |
+| P2-21 | watch-only residual | 生产只走同步 fetch 潜伏未激活；私有方法直测为安全逻辑合理取舍 |
+| P2-22 | docs batch | 行号锚点失效但引用对象（列名/约束）仍正确，纯锚点格式 |
+| P2-23 | docs batch | I*Biz 包路径纯表述，接口存在性与签名 100% 核实通过 |
+| P2-24 | docs batch | items List\<Map\> 例外 DTO javadoc 已声明，规范文档缺一句 |
+| P2-25 | watch-only residual | nop-dataset 经 nop-core 传递，内核固定依赖风险为零 |
+| P2-26 | docs batch | compile 依赖 100% 一致，仅 test-scope 信息不完整 |
+| P2-27 | watch-only residual | 与 nop-auth-dao 一致的标准仓库模式（precompile 代码生成用） |
+| AR-06 | watch-only residual（**归属纠正：R6.0 提级清单移出，补入 R6.6**） | 全仓 0 消费方（仅 DTO 定义 + `NopMetaLineageEdgeBizModel.java:130` 赋值点），无实际暴露；修复 = api 公共面变更无需求驱动 |
+| AR-09 | docs batch（主）+ watch-only residual（DTO 面） | `MetaQualityCheckpointScheduler.java:242-250` buildErrorResult 缺 runId 无运行时缺陷（错误路径 DTO 仅展示用）；docs-for-ai 零 metaSchema 提及（live 复核实证），R6.6 补多 schema 段 |
+| AR-10 | watch-only residual（状态确认） | P2-01/P2-04/P2-12 仍 live 已确认（git log 无变更实证）——已随提级进入修复队列（R6.5/R6.2），无独立修复项 |
+
+- **无静默跳过 / 无降级**：12 条提级候选全部 live 复核，无候选因"没时间"被降级（Minimum Rules #24）；20 条归类逐条声明，无已确认 live defect / contract drift 被静默降级到 non-blocking 区域（P2-03 契约漂移项显式裁定修入 R6.6 批量）
+- 追踪一致性：roadmap MR6 段「R6.0 裁决记录」与本表逐条一致（grep 32 条可追溯）；Follow-up Backlog 登记表结构不变（保留登记批次与来源路径）
+
 ## MV audit 段（plan-2026-08-05-1408-2，2026-08-05 独立子代理 closure audit）
 
 - **V.1 全量验证实测**：`./mvnw clean install -DskipTests -pl nop-metadata -am -T 1C` BUILD SUCCESS（22.2s）+ `./mvnw test -pl nop-metadata -am -T 1C` BUILD SUCCESS（3:16）；nop-metadata 子树 surefire 汇总 **858 tests / 0 failures / 0 errors / 0 skipped**（service 857 + web 1，94+1 报告文件；计数复核排除 TestNopMetaDictI18n 文件名数字假象）；与 MR3 857/0（service 口径）、MR4 858 收口一致；pre-existing 清单（rocksdb 性能 flaky + TestAsyncSnapshotPipeline 超时竞态）本跑均绿；MR4 收口观察的 RefactorWf.refactorName 未复现；0 新失败无归因
