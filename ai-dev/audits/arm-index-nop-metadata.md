@@ -7,13 +7,15 @@
 
 ## MR6 裁决记录（plan-2026-08-05-2154-1，2026-08-05 live 复核；R6.0 → done）
 
+> **R6.1 收口（plan-2026-08-05-2157-1，2026-08-05）**：P2-10/P2-13 两行 → fixed（本段表格内标注 plan 引用 + 修复摘要 + 测试证据）；roadmap R6.1 → done。
+
 - **Backlog 32 条全部终态（12 提级 + 20 归类，0 悬置）**，归属与 roadmap MR6 段「R6.0 裁决记录」双向一致（grep 32 条可追溯）；计数勘误 33/10/22 → 32/12/20（header "33 条"为错误计数）
 - **提级 12 条（全部经 live 代码复核确认，归属 R6.1~R6.5 行）**：
 
 | 编号 | 归属 | 提级依据（live 复核） |
 |------|------|----------------------|
-| P2-10 | R6.1 | `MetaQualityRuleExecutor.java:67-83` 黑名单缺 PG_READ_BINARY_FILE/RUNSCRIPT/PG_LS_LOGDIR/PG_LS_WALDIR/PG_STAT_FILE/SCRIPT；分词（:368 下划线保留成单 token）不命中即原样执行——已知绕过面（:323 注释自认） |
-| P2-13 | R6.1 | `ExpressionMeasureValidator.java:63` "SET TRANSACTION" 双 token 条目 vs scanBlacklist :469-489 单 token 匹配永不命中；:79 "INTO OUTFILE/DUMPFILE" 需 word 后跟 `(` 才成 FUNCTION_CALL（:412-413）亦永不命中——死条目 |
+| P2-10 | R6.1 → **fixed（plan-2026-08-05-2157-1 Phase 1）** | `MetaQualityRuleExecutor.java:67-83` 黑名单缺 PG_READ_BINARY_FILE/RUNSCRIPT/PG_LS_LOGDIR/PG_LS_WALDIR/PG_STAT_FILE/SCRIPT；分词（:368 下划线保留成单 token）不命中即原样执行——已知绕过面（:323 注释自认）。修复：`CUSTOM_SQL_FORBIDDEN_WORDS` 17→**23** 项补全 + 注释同步；`TestMetaQualityRuleExecutorCustomSqlSandbox` +1（12→13）`testR61NewKeywordsBlockedViaJudgeEntry`——6 绕过向量经 judge 公开入口（null conn）断言 `ERR_QUALITY_CUSTOM_SQL_BLOCKED` + sqlHash 接线参数（调用链 judge → judgeCustomSql → validateCustomSqlSandbox 证明）；`./mvnw test -pl nop-metadata -am -T 1C` 901/0 全绿 |
+| P2-13 | R6.1 → **fixed（plan-2026-08-05-2157-1 Phase 2）** | `ExpressionMeasureValidator.java:63` "SET TRANSACTION" 双 token 条目 vs scanBlacklist :469-489 单 token 匹配永不命中；:79 "INTO OUTFILE/DUMPFILE" 需 word 后跟 `(` 才成 FUNCTION_CALL（:412-413）亦永不命中——死条目。修复（裁定路径 A 拆分）：KEYWORD_BLACKLIST 增 SET/TRANSACTION/INTO/OUTFILE/DUMPFILE 单 token 条目（INTO 经 tokenizer 语义复核无真实误伤面一并加入），FUNCTION_BLACKLIST 删 2 死条目，注释同步；`TestExpressionMeasureValidator` +5（24→29）——SET TRANSACTION 向量（reason ∈ {SET,TRANSACTION}）/ 独立 TRANSACTION 向量钉死条目 / INTO OUTFILE 向量（reason ∈ {INTO,OUTFILE,DUMPFILE}，对裁定中立）+ 标识符嵌入/字符串字面量负例；`./mvnw test -pl nop-metadata -am -T 1C` 901/0 全绿 |
 | P2-11 | R6.2 | `CheckpointActionDispatcher.java:207-215` webhook 请求未设置重定向策略；HttpRequest 无 per-request 字段，跟随与否完全由全局 HttpClientConfig 决定（:33 默认 false；JdkHttpClient.java:92 → NEVER）——部署开启即 302 跳转目标不复核 |
 | P2-12 | R6.2 | `MetaDataSourceConnectionProcessor.java:225-247` 三错误路径均 `.param(ARG_RAW_JDBC_URL, jdbcUrl)` 原始 URL（可含 user:pass@）；`TestMetaDataSourceConnectionSecurity.java:341-343` 断言含完整凭据——params 随异常序列化进日志/错误响应 |
 | AR-07 | R6.3 | R4.2 后 UK 含可空 META_SCHEMA；`NopMetaDataSourceBizModel.java:428-468` upsertExternalTable find-then-insert 非原子——NULL-schema 并发同名表两插皆成功（NULL≠NULL 不参与 UK），DB 防线移除 Java 无法兜底 |
