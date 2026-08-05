@@ -55,14 +55,21 @@ public class MetaQualityRuleExecutor {
      */
 
     /**
-     * 维度13-03：custom_sql 危险关键字黑名单（MA7.1-02 修复后为 token 级匹配，R6.1 补全 6 缺项）。
+     * 维度13-03：custom_sql 危险关键字黑名单（MA7.1-02 修复后为 token 级匹配，R6.1 补全 PG 文件族/脚本导出族
+     * 6 缺项，AR-04/AR-05 补 DML/TCL 族与 H2 文件读写族）。
      * <ul>
      *   <li>单 token 条目：分词后按 token 精确匹配（不做子串匹配，避免字符串字面量误伤也避免
-     *       {@code UNION} 拼接变体绕过——token 化使空白/注释/反引号变体全部归一）。
-     *       PostgreSQL 文件/目录访问族（PG_READ_FILE/PG_READ_BINARY_FILE/PG_LS_DIR/PG_LS_LOGDIR/
-     *       PG_LS_WALDIR/PG_STAT_FILE/COPY）与脚本导出族（H2 RUNSCRIPT/SCRIPT、SYS_EXEC）全覆盖。</li>
+     *       {@code UNION} 拼接变体绕过——token 化使空白/注释/反引号变体全部归一）。</li>
+     *   <li>DML 族（INSERT/UPDATE/DELETE/MERGE/REPLACE）与 TCL 族（COMMIT/ROLLBACK/SAVEPOINT/SET/TRANSACTION）
+     *       以及 RENAME/LOCK/UNLOCK 逐项对齐模块内兄弟校验器 {@code ExpressionMeasureValidator.KEYWORD_BLACKLIST}
+     *       ——custom_sql 规则在外部数据源账户上执行（MySQL/PG 驱动"先执行后报错"语义使篡改生效），DML/TCL
+     *       全部拒绝。</li>
+     *   <li>文件访问族全覆盖：PostgreSQL 文件/目录访问族（PG_READ_FILE/PG_READ_BINARY_FILE/PG_LS_DIR/
+     *       PG_LS_LOGDIR/PG_LS_WALDIR/PG_STAT_FILE/COPY）、脚本导出族（H2 RUNSCRIPT/SCRIPT、SYS_EXEC）、
+     *       H2 文件读写族（FILE_READ/FILE_WRITE/BACKUP/CSVWRITE/CSVREAD）。</li>
      *   <li>多 token 条目（{@link #CUSTOM_SQL_FORBIDDEN_SEQUENCES}）：按连续 token 序列匹配，
-     *       {@code INTO\tOUTFILE} / 注释分隔的 {@code INTO} 与 {@code OUTFILE} / 多空白分隔一律命中。</li>
+     *       {@code INTO\tOUTFILE} / 注释分隔的 {@code INTO} 与 {@code OUTFILE} / 多空白分隔一律命中；
+     *       {@code LOAD XML} 序列覆盖 H2 的 {@code LOAD XML INFILE} 文件读。</li>
      *   <li>{@code ;} 与 MySQL 可执行注释（{@code /*!} 开头）在归一化前显式拒绝。</li>
      * </ul>
      */
@@ -71,16 +78,21 @@ public class MetaQualityRuleExecutor {
             "LOAD_FILE",
             "CALL", "EXEC", "EXECUTE",
             "SHUTDOWN",
-            "DROP", "TRUNCATE", "ALTER", "CREATE", "GRANT", "REVOKE",
+            "DROP", "TRUNCATE", "ALTER", "CREATE", "GRANT", "REVOKE", "RENAME",
+            "INSERT", "UPDATE", "DELETE", "MERGE", "REPLACE",
+            "COMMIT", "ROLLBACK", "SAVEPOINT", "SET", "TRANSACTION",
+            "LOCK", "UNLOCK",
             "INFORMATION_SCHEMA",
             "COPY", "PG_READ_FILE", "PG_READ_BINARY_FILE", "PG_LS_DIR", "PG_LS_LOGDIR", "PG_LS_WALDIR",
-            "PG_STAT_FILE", "SYS_EXEC", "RUNSCRIPT", "SCRIPT");
+            "PG_STAT_FILE", "SYS_EXEC", "RUNSCRIPT", "SCRIPT",
+            "FILE_READ", "FILE_WRITE", "BACKUP", "CSVWRITE", "CSVREAD");
 
     /** 多 token 危险序列（归一化分词后的连续 token 序列）。 */
     private static final String[][] CUSTOM_SQL_FORBIDDEN_SEQUENCES = {
             {"INTO", "OUTFILE"},
             {"INTO", "DUMPFILE"},
             {"LOAD", "DATA"},
+            {"LOAD", "XML"},
             {"MYSQL", "USER"},
             {"MYSQL", "SCHEMAS"}
     };
@@ -323,9 +335,12 @@ public class MetaQualityRuleExecutor {
      * 反引号限定 {@code mysql}.{@code user}）全部命中。fail-closed：字符串字面量内含黑名单 token
      * （如 {@code SELECT 'UNION'}）同样被拒，属预期行为（宁可误拒不放过）。
      *
-     * <p><b>安全边界</b>：黑名单覆盖截至 2026-08-05 已确认的已知危险关键字（含 PostgreSQL 文件/目录
-     * 访问族 PG_READ_BINARY_FILE/PG_LS_LOGDIR/PG_LS_WALDIR/PG_STAT_FILE 与 H2 RUNSCRIPT/SCRIPT 等，
-     * R6.1 补齐）。future SQL 方言新增的同类关键字（如 MERGE/REPLACE）不在当前集合内，需阶段性审查更新。
+     * <p><b>安全边界</b>：黑名单覆盖截至 2026-08-06 已确认的已知危险关键字——DML 族
+     * （INSERT/UPDATE/DELETE/MERGE/REPLACE）、TCL 族（COMMIT/ROLLBACK/SAVEPOINT/SET/TRANSACTION）、
+     * RENAME/LOCK/UNLOCK、PostgreSQL 文件/目录访问族（PG_READ_BINARY_FILE/PG_LS_LOGDIR/PG_LS_WALDIR/
+     * PG_STAT_FILE/COPY 等）、脚本导出族（H2 RUNSCRIPT/SCRIPT、SYS_EXEC）与 H2 文件读写族
+     * （FILE_READ/FILE_WRITE/BACKUP/CSVWRITE/CSVREAD）；条目集合与 {@code ExpressionMeasureValidator.KEYWORD_BLACKLIST}
+     * 逐项对齐（AR-04/AR-05 补齐）。future SQL 方言新增的同类关键字需阶段性审查更新。
      * 本校验不检查 SQL 语义——PreparedStatement 参数绑定通道由调用方保证。
      */
     static void validateCustomSqlSandbox(String sql, String ruleKey, String sqlHash) {

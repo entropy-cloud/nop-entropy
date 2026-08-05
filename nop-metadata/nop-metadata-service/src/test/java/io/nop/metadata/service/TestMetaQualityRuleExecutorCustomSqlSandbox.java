@@ -228,6 +228,145 @@ public class TestMetaQualityRuleExecutorCustomSqlSandbox {
         assertEquals(NopMetadataErrors.ERR_QUALITY_CUSTOM_SQL_BLOCKED.getErrorCode(), ex.getErrorCode());
     }
 
+    // ===== AR-04/AR-05（plan-2026-08-06-0553-2）：DML/TCL 族 + H2 文件读写族拦截 =====
+
+    /**
+     * AR-04：DML 族（INSERT/UPDATE/DELETE/MERGE/REPLACE）全部被拒——规则 SQL 不得修改外部数据源数据
+     * （MySQL/PG 驱动"先执行后报错"语义使篡改生效）。
+     */
+    @Test
+    public void testDmlStatementsBlocked() {
+        String[] payloads = {
+                "DELETE FROM t",                                     // DELETE
+                "UPDATE t SET a=1",                                  // UPDATE
+                "INSERT INTO t SELECT * FROM s",                     // INSERT（外带写入形态）
+                "MERGE INTO t USING s ON t.id=s.id WHEN MATCHED THEN UPDATE SET t.a=s.a",  // MERGE
+                "REPLACE INTO t SELECT * FROM s"                     // REPLACE
+        };
+        for (String payload : payloads) {
+            NopException ex = assertThrows(NopException.class,
+                    () -> validateCustomSqlSandbox(payload),
+                    "DML statement must be blocked: " + payload);
+            assertEquals(NopMetadataErrors.ERR_QUALITY_CUSTOM_SQL_BLOCKED.getErrorCode(),
+                    ex.getErrorCode(),
+                    "must throw ERR_QUALITY_CUSTOM_SQL_BLOCKED for payload: " + payload);
+            String reason = String.valueOf(ex.getParam("reason"));
+            assertTrue(reason.contains("forbidden keyword"),
+                    "reason must mention 'forbidden keyword': " + reason + " (payload=" + payload + ")");
+            assertNotNull(ex.getParam("sqlHash"),
+                    "sqlHash param must be present for audit (payload=" + payload + ")");
+        }
+    }
+
+    /**
+     * AR-04：CTE 包装的 DML（{@code WITH x AS (DELETE FROM t) SELECT 1}）经 {@code judge} 公开入口被拒
+     * （token 化后 DELETE 暴露）——沿 {@code testR61NewKeywordsBlockedViaJudgeEntry} 接线先例，
+     * sqlHash 参数证明调用链经 judge → judgeCustomSql → validateCustomSqlSandbox。
+     */
+    @Test
+    public void testCteWrappedDmlBlockedViaJudgeEntry() {
+        NopException ex = assertThrows(NopException.class,
+                () -> judgeCustomSqlViaPublicEntry("WITH x AS (DELETE FROM t) SELECT 1"),
+                "CTE-wrapped DML must be blocked via judge entry");
+        assertEquals(NopMetadataErrors.ERR_QUALITY_CUSTOM_SQL_BLOCKED.getErrorCode(), ex.getErrorCode());
+        assertNotNull(ex.getParam("sqlHash"),
+                "sqlHash proves sandbox check reached from judgeCustomSql (CTE-DML)");
+        String reason = String.valueOf(ex.getParam("reason"));
+        assertTrue(reason.contains("forbidden keyword"),
+                "reason must mention 'forbidden keyword': " + reason);
+    }
+
+    /**
+     * AR-04：TCL 族（COMMIT/ROLLBACK/SAVEPOINT/SET/TRANSACTION）+ RENAME/LOCK/UNLOCK 全部被拒
+     * （黑名单条目逐项对齐 {@code ExpressionMeasureValidator.KEYWORD_BLACKLIST}）。
+     */
+    @Test
+    public void testTclAndRenameLockUnlockBlocked() {
+        String[] payloads = {
+                "COMMIT",                                            // COMMIT
+                "ROLLBACK",                                          // ROLLBACK
+                "SAVEPOINT sp1",                                     // SAVEPOINT
+                "SET TRANSACTION ISOLATION LEVEL SERIALIZABLE",     // SET / TRANSACTION
+                "START TRANSACTION",                                 // TRANSACTION（唯一钉住）
+                "RENAME TABLE a TO b",                               // RENAME（唯一钉住）
+                "LOCK TABLE t IN EXCLUSIVE MODE",                    // LOCK（唯一钉住）
+                "UNLOCK TABLES"                                      // UNLOCK（唯一钉住）
+        };
+        for (String payload : payloads) {
+            NopException ex = assertThrows(NopException.class,
+                    () -> validateCustomSqlSandbox(payload),
+                    "TCL/RENAME/LOCK/UNLOCK must be blocked: " + payload);
+            assertEquals(NopMetadataErrors.ERR_QUALITY_CUSTOM_SQL_BLOCKED.getErrorCode(),
+                    ex.getErrorCode(),
+                    "must throw ERR_QUALITY_CUSTOM_SQL_BLOCKED for payload: " + payload);
+        }
+    }
+
+    /**
+     * AR-05：H2 文件读写族（FILE_WRITE/BACKUP/CSVWRITE + LOAD XML 序列）全部被拒——宿主文件读写面封堵。
+     */
+    @Test
+    public void testH2FileFamilyBlocked() {
+        String[] payloads = {
+                "SELECT FILE_WRITE('/tmp/x','data')",               // FILE_WRITE
+                "BACKUP TO '/tmp/b'",                                // BACKUP
+                "SELECT CSVWRITE('/tmp/x','SELECT * FROM t')",      // CSVWRITE
+                "LOAD XML INFILE '/tmp/x'"                           // LOAD XML 序列
+        };
+        for (String payload : payloads) {
+            NopException ex = assertThrows(NopException.class,
+                    () -> validateCustomSqlSandbox(payload),
+                    "H2 file-family keyword must be blocked: " + payload);
+            assertEquals(NopMetadataErrors.ERR_QUALITY_CUSTOM_SQL_BLOCKED.getErrorCode(),
+                    ex.getErrorCode(),
+                    "must throw ERR_QUALITY_CUSTOM_SQL_BLOCKED for payload: " + payload);
+            assertNotNull(ex.getParam("sqlHash"),
+                    "sqlHash param must be present for audit (payload=" + payload + ")");
+        }
+    }
+
+    /**
+     * AR-05：H2 文件读族（FILE_READ/CSVREAD）经 {@code judge} 公开入口被拒——{@code SELECT FILE_READ('/etc/passwd')}
+     * 类规则可读应用宿主机任意文件并回显，必须封堵；sqlHash 参数提供接线证据。
+     */
+    @Test
+    public void testH2FileReadBlockedViaJudgeEntry() {
+        String[] payloads = {
+                "SELECT FILE_READ('/etc/passwd')",
+                "SELECT * FROM CSVREAD('/etc/passwd')"
+        };
+        for (String payload : payloads) {
+            NopException ex = assertThrows(NopException.class,
+                    () -> judgeCustomSqlViaPublicEntry(payload),
+                    "H2 file-read keyword must be blocked via judge entry: " + payload);
+            assertEquals(NopMetadataErrors.ERR_QUALITY_CUSTOM_SQL_BLOCKED.getErrorCode(),
+                    ex.getErrorCode(),
+                    "must throw ERR_QUALITY_CUSTOM_SQL_BLOCKED via judge entry: " + payload);
+            assertNotNull(ex.getParam("sqlHash"),
+                    "sqlHash proves sandbox check reached from judgeCustomSql (payload=" + payload + ")");
+            String reason = String.valueOf(ex.getParam("reason"));
+            assertTrue(reason.contains("forbidden keyword"),
+                    "reason must mention 'forbidden keyword': " + reason + " (payload=" + payload + ")");
+        }
+    }
+
+    /**
+     * AR-04/AR-05 反例：合法 SELECT（不含黑名单词的形态）不被误杀——tokenizer 不剥离字符串字面量
+     * （javadoc :323-324 + {@code testUnionInsideStringLiteralBlockedFailClosed} 钉死的既有语义），
+     * 故反例一律避开"关键字样字面量"，采用无黑名单词形态。
+     */
+    @Test
+    public void testSafeSqlWithoutBlacklistedWordsAllowed() {
+        String[] safePayloads = {
+                "SELECT updated_at FROM t WHERE updated_at >= '2026-01-01'",
+                "SELECT COUNT(*) FROM ext_sql_t WHERE 1=0",
+                "SELECT id FROM ext_sql_t"
+        };
+        for (String payload : safePayloads) {
+            validateCustomSqlSandbox(payload);  // 不抛异常即通过
+        }
+    }
+
     /** 普通注释（-- 行注释 / 块注释）中的危险词随注释剥离，安全语句不被误杀。 */
     @Test
     public void testSafeSqlWithPlainCommentAllowed() {
