@@ -1,10 +1,3 @@
-/**
- * Copyright (c) 2017-2024 Nop Platform. All rights reserved.
- * Author: canonical_entropy@163.com
- * Blog:   https://www.zhihu.com/people/canonical-entropy
- * Gitee:  https://github.com/entropy-cloud/nop-entropy
- * Github: https://github.com/entropy-cloud/nop-entropy
- */
 
 package io.nop.metadata.service.profiling;
 
@@ -189,7 +182,9 @@ public class MetaTableProfiler {
             try {
                 cs.setEmptyCount(queryLong(conn, "SELECT COUNT(*) FROM " + fromClause + " WHERE " + col.name + " = ''"));
             } catch (SQLException e) {
-                // 类型名含字符串关键字但实际不支持 = '' 比较（如 CLOB）→ emptyCount 无意义，记 0 不中断
+                // 类型名含字符串关键字但实际不支持 = '' 比较（如 CLOB）→ emptyCount 无意义，记 0 不中断；
+                // 但真实 SQL 错误（列被删/权限/连接失败）不能静默吞掉——记录日志供区分（MA6.2-002）
+                LOG.warn("nop.metadata.profiler.empty-count-query-failed: col={}", col.name, e);
                 cs.setEmptyCount(0L);
             }
         } else {

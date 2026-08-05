@@ -1,10 +1,3 @@
-/**
- * Copyright (c) 2017-2024 Nop Platform. All rights reserved.
- * Author: canonical_entropy@163.com
- * Blog:   https://www.zhihu.com/people/canonical-entropy
- * Gitee:  https://github.com/entropy-cloud/nop-entropy
- * Github: https://github.com/entropy-cloud/nop-entropy
- */
 
 package io.nop.metadata.service.quality;
 
@@ -16,6 +9,7 @@ import io.nop.core.lang.json.JsonTool;
 import io.nop.dao.api.IDaoProvider;
 import io.nop.dao.api.IEntityDao;
 import io.nop.job.api.IJobScheduler;
+import io.nop.job.api.JobDetail;
 import io.nop.job.api.spec.JobSpec;
 import io.nop.job.api.spec.TriggerSpec;
 import io.nop.metadata.core._NopMetadataCoreConstants;
@@ -25,6 +19,7 @@ import io.nop.metadata.dao.entity.NopMetaQualityCheckpoint;
 import io.nop.metadata.service.entity.NopMetaQualityCheckpointBizModel;
 import io.nop.metadata.service.NopMetadataErrors;
 import io.nop.metadata.service.NopMetadataException;
+import io.nop.metadata.service.NopMetadataHelper;
 import jakarta.annotation.Nullable;
 import jakarta.annotation.PostConstruct;
 import jakarta.inject.Inject;
@@ -33,6 +28,7 @@ import org.slf4j.LoggerFactory;
 
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -58,11 +54,12 @@ import java.util.Map;
  *
  * <p><b>失败路径显式化（Minimum Rules #24）</b>：
  * <ul>
- *   <li>未知 checkpointId（cron 触发时检查点已被删除）→ {@code executeCheckpoint} 抛
- *       {@code ERR_CHECKPOINT_NOT_FOUND}（经 invoker 转 {@code JobFireResult.ERROR}，不静默）</li>
- *   <li>status 非 ACTIVE（运行时被 PAUSED/DISABLED 但 cron job 未及时移除）→ executor 抛
- *       {@code ERR_CHECKPOINT_NOT_ACTIVE}（同上）</li>
- *   <li>空/非法 cron → scanner 注册期 catch 显式跳过并记录（D4 容错，不静默、不抛崩）</li>
+ *   <li>未知 checkpointId（cron 触发时检查点已被删除）/ status 非 ACTIVE / 空规则集 / 不支持动作 /
+ *       规则目标表缺失 → {@code executeCheckpoint} 抛对应 inline ErrorCode，{@link #executeScheduledCheckpoint}
+ *       捕获后记 ERROR 并返回带错误信息的正常结果（MA7.5-01：不向外抛——invoker 会把异常转
+ *       {@code JobFireResult.ERROR}，LocalJobScheduler 将 job 永久置 FAILED 且修复配置无法复活）</li>
+ *   <li>空/非法 cron → scanner 注册期 catch 显式跳过并记录（D4 容错，不静默、不抛崩）；运行时 cron 被改为
+ *       非法值导致 {@code addJob} 失败 → 移除旧 job 防过期调度残留（MA7.5-03）</li>
  * </ul>
  *
  * <p><b>方法签名说明（D3）</b>：{@link #executeScheduledCheckpoint(Map)} 接收 {@code Map<String,Object>} 而非
@@ -193,11 +190,13 @@ public class MetaQualityCheckpointScheduler {
      * beanMethod 调用入口（D3 path b）：经 {@code BeanMethodJobInvoker} 反射调用，复用既有
      * {@code executeCheckpoint} 编排链。接收 {@code Map}（规避 R2 形参名反射依赖）。
      *
-     * <p>失败路径显式化：未知 checkpointId / status 非 ACTIVE 由 {@code executeCheckpoint} / executor
-     * 抛 inline ErrorCode，经 invoker 转 {@code JobFireResult.ERROR}（不静默吞掉）。
+     * <p>失败路径显式化：未知 checkpointId / status 非 ACTIVE / 空规则集等 checkpoint 级业务错误由
+     * {@code executeCheckpoint} / executor 抛 inline ErrorCode，本方法捕获后记 ERROR 日志并返回
+     * 带错误信息的正常结果（MA7.5-01）——若让异常传播到 invoker，会转 {@code JobFireResult.ERROR} 使
+     * LocalJobScheduler 将 job 永久置 FAILED（修复配置也无法复活，仅重启 JVM 可恢复）。
      *
      * @param params jobParams（移除 beanName/methodName 后）：{@code {checkpointId: <id>}}
-     * @return {@code executeCheckpoint} 的执行摘要 Map
+     * @return {@code executeCheckpoint} 的执行摘要 Map；checkpoint 级错误时为带 executionErrors 的摘要
      */
     public CheckpointExecutionResultDTO executeScheduledCheckpoint(Map<String, Object> params) {
         Object cpId = params.get(PARAM_CHECKPOINT_ID);
@@ -207,13 +206,45 @@ public class MetaQualityCheckpointScheduler {
                     .param("cron", "<n/a>");
         }
         String checkpointId = String.valueOf(cpId);
-        // null context 安全：computeQualityScore 内部从不解引用 context（架构基线 §2.7.3.1 D3 R2 核实）
-        return checkpointBizModel.executeCheckpoint(checkpointId, null, null);
+        try {
+            // null context 安全：computeQualityScore 内部从不解引用 context（架构基线 §2.7.3.1 D3 R2 核实）
+            return checkpointBizModel.executeCheckpoint(checkpointId, null, null);
+        } catch (Exception e) {
+            // MA7.5-01：checkpoint 级执行错误不向外抛——否则 invoker 转 JobFireResult.ERROR 后
+            // LocalJobScheduler 将 job 永久置 FAILED（addJob(allowUpdate=true) 仅对 WAITING/SUSPENDED
+            // 重排程，FAILED 不复活，唯一恢复手段是重启 JVM）。记录日志并返回正常结果，job 存活按 cron
+            // 继续触发；配置修复后下一次触发即恢复。
+            LOG.error("nop.meta.checkpoint-scheduler.scheduled-exec-failed: checkpointId={} error={}",
+                    checkpointId, NopMetadataHelper.toErrorMessage(e), e);
+            return buildErrorResult(checkpointId, e);
+        }
     }
 
     // ============================================================
     // helpers
     // ============================================================
+
+    /** 构建 checkpoint 级错误的结果 DTO（executionErrors 记录错误，job 存活不抛异常，MA7.5-01）。 */
+    private static CheckpointExecutionResultDTO buildErrorResult(String checkpointId, Exception e) {
+        CheckpointExecutionResultDTO dto = new CheckpointExecutionResultDTO();
+        dto.setCheckpointId(checkpointId);
+        Map<String, Object> err = new LinkedHashMap<>();
+        err.put("source", "scheduler");
+        err.put("error", NopMetadataHelper.toErrorMessage(e));
+        dto.getExecutionErrors().add(err);
+        return dto;
+    }
+
+    /** 读取调度器中该检查点当前注册 job 的 cron（addJob 失败时的诊断用；无 job / 读失败返回 null）。 */
+    private String readRegisteredCron(String checkpointId) {
+        try {
+            JobDetail detail = scheduler.getJobDetail(jobName(checkpointId));
+            return detail != null && detail.getTriggerSpec() != null
+                    ? detail.getTriggerSpec().getCronExpr() : null;
+        } catch (Exception e) {
+            return null;
+        }
+    }
 
     /** jobName 约定：前缀 + checkpointId。 */
     public static String jobName(String checkpointId) {
@@ -239,8 +270,22 @@ public class MetaQualityCheckpointScheduler {
             return false;
         }
         JobSpec spec = buildJobSpec(checkpointId, cron, cp.getDisplayName());
-        // addJob 内部 buildTrigger 可能因非法 cron 抛异常——由调用方 catch（D4 容错）
-        scheduler.addJob(spec, true);
+        try {
+            // addJob 内部 buildTrigger 可能因非法 cron 抛异常（如 ERR_JOB_TRIGGER_PARSE_CRON_EXPR_FAIL）
+            scheduler.addJob(spec, true);
+        } catch (Exception e) {
+            // MA7.5-03：addJob 失败（如 cron 被运维改为非法值）时，旧 job（旧 cron）仍留在调度器继续触发，
+            // 检查点会按过期时间表运行（可能凌晨误跑）且运维误以为已停用。清理残留 job；
+            // removeJob 自身失败不掩盖 addJob 失败原因。
+            LOG.error("nop.meta.checkpoint-scheduler.add-job-failed: checkpointId={} oldCron={} newCron={}",
+                    checkpointId, readRegisteredCron(checkpointId), cron, e);
+            try {
+                scheduler.removeJob(jobName(checkpointId));
+            } catch (Exception re) {
+                LOG.error("nop.meta.checkpoint-scheduler.remove-stale-job-failed: checkpointId={}", checkpointId, re);
+            }
+            return false;
+        }
         LOG.info("nop.meta.checkpoint-scheduler.registered: checkpointId={} cron={}", checkpointId, cron);
         return true;
     }

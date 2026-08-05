@@ -1,0 +1,2 @@
+_chgType,QUALITY_RULE_ID,RULE_NAME,DISPLAY_NAME,RULE_TYPE,ENTITY_TYPE,ENTITY_ID,SEVERITY,SQL_EXPRESSION,THRESHOLD,PARAMS,EXT_CONFIG,VERSION,CREATED_BY,CREATE_TIME,UPDATED_BY,UPDATE_TIME,REMARK
+A,@var:NopMetaQualityRule@qualityRuleId,auto-test-qrule-01,Auto Test Quality Rule,not_null,table,auto-test-table-01,ERROR,,,,,0,autotest-ref,*,autotest-ref,*,

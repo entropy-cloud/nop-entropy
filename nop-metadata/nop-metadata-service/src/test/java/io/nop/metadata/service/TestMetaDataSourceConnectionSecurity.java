@@ -1,10 +1,3 @@
-/**
- * Copyright (c) 2017-2024 Nop Platform. All rights reserved.
- * Author: canonical_entropy@163.com
- * Blog:   https://www.zhihu.com/people/canonical-entropy
- * Gitee:  https://github.com/entropy-cloud/nop-entropy
- * Github: https://github.com/entropy-cloud/nop-entropy
- */
 package io.nop.metadata.service;
 
 import io.nop.api.core.exceptions.NopException;
@@ -12,6 +5,7 @@ import io.nop.metadata.service.connection.MetaDataSourceConnectionProcessor;
 import io.nop.metadata.service.NopMetadataErrors;
 import org.junit.jupiter.api.Test;
 
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -144,6 +138,48 @@ public class TestMetaDataSourceConnectionSecurity {
                         "{\"jdbcUrl\":\"jdbc:mysql://localhost:3306/db\"," + BASE_CFG + "}"));
         assertEquals(NopMetadataErrors.ERR_DATASOURCE_JDBC_URL_BLOCKED.getErrorCode(),
                 ex.getErrorCode());
+    }
+
+    // ===== MA7.2-01：userinfo / IPv6 字面量主机提取 =====
+
+    /** userinfo 旁路：jdbc:mysql://user:pass@内网IP → host 必须取 @ 之后，内网主机被拒。 */
+    @Test
+    public void testUserinfoBypassRejected() {
+        NopException ex = assertThrows(NopException.class,
+                () -> service.testConnect("jdbc",
+                        "{\"jdbcUrl\":\"jdbc:mysql://user:pass@169.254.169.254:3306/db\"," + BASE_CFG + "}"),
+                "userinfo-prefixed internal host must be rejected");
+        assertEquals(NopMetadataErrors.ERR_DATASOURCE_JDBC_URL_BLOCKED.getErrorCode(), ex.getErrorCode());
+        assertTrue(String.valueOf(ex.getParam("reason")).contains("host"),
+                "reason must mention host: " + ex.getParam("reason"));
+    }
+
+    /** IPv6 loopback 字面量 [::1] 必须被拒（host 不得提取为 "["）。 */
+    @Test
+    public void testIpv6LoopbackRejected() {
+        NopException ex = assertThrows(NopException.class,
+                () -> service.testConnect("jdbc",
+                        "{\"jdbcUrl\":\"jdbc:mysql://[::1]:3306/db\"," + BASE_CFG + "}"),
+                "IPv6 loopback literal must be rejected");
+        assertEquals(NopMetadataErrors.ERR_DATASOURCE_JDBC_URL_BLOCKED.getErrorCode(), ex.getErrorCode());
+    }
+
+    /** IPv4-mapped IPv6 [::ffff:127.0.0.1] 必须被拒（归一化为 127.0.0.1 复核）。 */
+    @Test
+    public void testIpv4MappedIpv6LoopbackRejected() {
+        NopException ex = assertThrows(NopException.class,
+                () -> service.testConnect("jdbc",
+                        "{\"jdbcUrl\":\"jdbc:mysql://[::ffff:127.0.0.1]:3306/db\"," + BASE_CFG + "}"),
+                "IPv4-mapped IPv6 loopback must be rejected");
+        assertEquals(NopMetadataErrors.ERR_DATASOURCE_JDBC_URL_BLOCKED.getErrorCode(), ex.getErrorCode());
+    }
+
+    /** userinfo + 外网主机 → host 校验通过（进入实际建连，不抛 ERR_DATASOURCE_JDBC_URL_BLOCKED）。 */
+    @Test
+    public void testUserinfoWithExternalHostPassesHostCheck() {
+        assertDoesNotThrow(() -> service.testConnect("jdbc",
+                        "{\"jdbcUrl\":\"jdbc:mysql://user:pass@example.com:3306/db\"," + BASE_CFG + "}"),
+                "external host with userinfo must pass the host check (not blocked)");
     }
 
     // ===== driverClassName 白名单 =====

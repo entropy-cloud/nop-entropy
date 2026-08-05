@@ -105,8 +105,12 @@ public class NopMetaTagLabelBizModel extends CrudBizModel<NopMetaTagLabel> imple
 
     private String getWfNameFromMeta() {
         try {
+            // wf:wfName 是 xmeta 根节点属性（NopMetaTagLabel.xmeta 根元素 attr），不在 props map 中——
+            // SchemaImpl.getProp 只读 props 恒返回 null，导致自动提审静默失效（P2-MA5-401）。
+            // 改经 IExtensibleObject.prop_get 读取根属性，与 approval-support.xbiz:30 的
+            // objMeta['wf:wfName'] 属性访问同机制（missing 时因名称含 ':' 不抛未知属性，返回 null）。
             Object val = bizObjectManager().getBizObject("NopMetaTagLabel")
-                    .getObjMeta().getProp("wf:wfName");
+                    .getObjMeta().prop_get("wf:wfName");
             return val instanceof String ? (String) val : null;
         } catch (Exception e) {
             // R2.11（P2-MA4-001）：不静默吞异常——记录完整异常（含堆栈），调用方按 wfName==null 降级（不自动提审）

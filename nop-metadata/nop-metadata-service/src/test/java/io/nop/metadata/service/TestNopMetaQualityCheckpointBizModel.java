@@ -1,10 +1,3 @@
-/**
- * Copyright (c) 2017-2024 Nop Platform. All rights reserved.
- * Author: canonical_entropy@163.com
- * Blog:   https://www.zhihu.com/people/canonical-entropy
- * Gitee:  https://gitee.com/canonical-entropy/nop-entropy
- * Github: https://github.com/entropy-cloud/nop-entropy
- */
 package io.nop.metadata.service;
 
 import io.nop.api.core.annotations.autotest.NopTestConfig;
@@ -232,6 +225,32 @@ public class TestNopMetaQualityCheckpointBizModel extends JunitBaseTestCase {
         assertTrue(data.contains("__missing_rule__"), "missing ruleId recorded in errors: " + data);
         assertTrue(data.contains("__missing_table__"), "missing tableId recorded in errors: " + data);
         assertEquals(1, countResults("r-cp-pm"), "valid rule result written despite missing refs");
+    }
+
+    // ===== MA7.5-02：单规则执行异常计入 errorCount（全量失败时摘要不再"0 错误"） =====
+
+    /**
+     * 规则执行抛异常（目标表不存在 → ERR_CHECKPOINT_RULE_TARGET_TABLE_NOT_FOUND）时：
+     * <ul>
+     *   <li>checkpoint 整体不报错（per-rule 失败隔离，不中断）</li>
+     *   <li>executedRuleCount=1、errorCount=1——修复前异常规则只进 errors 列表，errorCount 恒 0，
+     *       全量失败时告警侧看到"0 执行 0 错误"假象</li>
+     *   <li>异常规则出现在 executionErrors（含 qualityRuleId）</li>
+     * </ul>
+     */
+    @Test
+    public void testExecuteCheckpointExceptionRuleCountedInErrorCount() {
+        // entityId 指向不存在的表 → executeSingleRule 抛 ERR_CHECKPOINT_RULE_TARGET_TABLE_NOT_FOUND
+        saveRule("r-cp-throw", "volume", "table", "__missing_table__", null, null, "{\"minRows\":1}");
+        saveCheckpoint("cp-throw", "ACTIVE", "[{\"ruleIds\":[\"r-cp-throw\"]}]", null);
+
+        GraphQLResponseBean resp = exec("cp-throw");
+        assertFalse(resp.hasError(), "exception rule must be isolated (no global error): " + resp);
+        String data = String.valueOf(resp.getData());
+        assertTrue(data.contains("executedRuleCount=1"), "exception-failing rule must count as executed: " + data);
+        assertTrue(data.contains("errorCount=1"),
+                "exception-failing rule must count in errorCount (was 0 before fix): " + data);
+        assertTrue(data.contains("r-cp-throw"), "exception-failing rule must appear in executionErrors: " + data);
     }
 
     // ===== D6 自动评分触发 =====

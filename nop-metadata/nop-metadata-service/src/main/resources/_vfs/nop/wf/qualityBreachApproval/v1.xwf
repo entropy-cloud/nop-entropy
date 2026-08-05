@@ -33,14 +33,21 @@
             </assignment>
             <source>
                 <c:script><![CDATA[
-                    const svc = inject('io.nop.metadata.service.quality.QualityAlertWorkflowService');
+                    const svc = inject('io.nop.metadata.service.quality.QualityAlertWorkflowProcessor');
                     const resultId = wfRt.wf.bizEntityId;
                     const ruleId = wfVars.ruleId;
-                    if (resultId != null && ruleId != null) {
-                        const passed = svc.reJudge(ruleId, resultId);
-                        wfRt.currentStep.record.appState = passed ? 'agree' : 'reject';
+                    if (resultId == null || ruleId == null) {
+                        // 规则/结果缺失：fail-closed 置 reject 回退 owner 处理，不静默通过（MA7.6-03）
+                        wfRt.currentStep.record.appState = 'reject';
                     } else {
-                        wfRt.currentStep.record.appState = 'agree';
+                        try {
+                            const passed = svc.reJudge(ruleId, resultId);
+                            wfRt.currentStep.record.appState = passed ? 'agree' : 'reject';
+                        } catch (e) {
+                            // reJudge 失败（规则/表/结果缺失或连库失败）：fail-closed 置 reject 回退 owner，
+                            // 流程不卡死在 verify 步骤（MA7.6-03）
+                            wfRt.currentStep.record.appState = 'reject';
+                        }
                     }
                 ]]></c:script>
             </source>

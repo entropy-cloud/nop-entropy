@@ -1,10 +1,3 @@
-/**
- * Copyright (c) 2017-2024 Nop Platform. All rights reserved.
- * Author: canonical_entropy@163.com
- * Blog:   https://www.zhihu.com/people/canonical-entropy
- * Gitee:  https://github.com/entropy-cloud/nop-entropy
- * Github: https://github.com/entropy-cloud/nop-entropy
- */
 
 package io.nop.metadata.service.quality;
 
@@ -54,7 +47,8 @@ import java.util.Set;
  *   <li>配置了 store/webhook/notify 之外的动作类型且 enabled=true → 抛 {@link #NopMetadataErrors.ERR_CHECKPOINT_ACTION_NOT_SUPPORTED}（D4）</li>
  *   <li>解析后规则集为空 → 抛 {@link #NopMetadataErrors.ERR_CHECKPOINT_NO_RULES}（D2，不静默空集）</li>
  *   <li>引用的 ruleId/tableId 不存在 → 记入 errors 不中断（D2 per-item 隔离）</li>
- *   <li>单规则执行抛异常 → 记入 errors、clearSession、不中断后续规则（D3 失败隔离）</li>
+ *   <li>单规则执行抛异常 → 记入 errors、errorCount+1、clearSession、不中断后续规则（D3 失败隔离，
+ *       MA7.5-02：异常失败规则计入 errorCount，全量失败时摘要不再呈现"0 错误"假象）</li>
  *   <li>entityType=database 规则 → 写 SKIP 结果行（不剔除，与 §2.7.1 D1 单规则语义一致）</li>
  * </ul>
  *
@@ -160,6 +154,9 @@ public class MetaQualityCheckpointExecutor {
             } catch (Exception e) {
                 LOG.error("checkpoint execute failed for rule: {}", rule.getQualityRuleId(), e);
                 errors.add(buildExecutionErrorEntry(rule, e));
+                // MA7.5-02：异常失败的规则必须计入 errorCount（此前只进 errors 列表——全量失败时摘要
+                // 显示 executedCount=0/errorCount=0 的"0 错误"假象，掩盖外部数据源宕机等链路故障）
+                errorCount++;
                 // 失败隔离：清理未刷出的脏实体，不影响已 flush 的规则与后续规则
                 orm.clearSession();
             }

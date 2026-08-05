@@ -1,10 +1,3 @@
-/**
- * Copyright (c) 2017-2024 Nop Platform. All rights reserved.
- * Author: canonical_entropy@163.com
- * Blog:   https://www.zhihu.com/people/canonical-entropy
- * Gitee:  https://github.com/entropy-cloud/nop-entropy
- * Github: https://github.com/entropy-cloud/nop-entropy
- */
 package io.nop.metadata.service;
 
 import io.nop.api.core.ApiErrors;
@@ -112,6 +105,86 @@ public class TestMetaQualityRuleExecutorCustomSqlSandbox {
                     () -> validateCustomSqlSandbox(payload),
                     "case-insensitive match must reject: " + payload);
         }
+    }
+
+    // ===== MA7.1-02：黑名单绕过变体回归 =====
+
+    /** 空白变体（tab/多空格/注释分隔）必须命中 INTO OUTFILE token 序列。 */
+    @Test
+    public void testWhitespaceVariantsBlocked() {
+        String[] variants = {
+                "SELECT * INTO\tOUTFILE '/tmp/x'",
+                "SELECT * INTO  OUTFILE '/tmp/x'",
+                "SELECT * INTO/**/OUTFILE '/tmp/x'",
+                "SELECT * INTO OUTFILE '/tmp/x'"
+        };
+        for (String payload : variants) {
+            NopException ex = assertThrows(NopException.class,
+                    () -> validateCustomSqlSandbox(payload),
+                    "whitespace/comment variant must be rejected: " + payload);
+            assertEquals(NopMetadataErrors.ERR_QUALITY_CUSTOM_SQL_BLOCKED.getErrorCode(),
+                    ex.getErrorCode(),
+                    "must throw ERR_QUALITY_CUSTOM_SQL_BLOCKED for variant: " + payload);
+        }
+    }
+
+    /** 反引号限定名变体（`mysql`.`user`）必须命中 MYSQL.USER token 序列。 */
+    @Test
+    public void testBacktickQualifiedNameBlocked() {
+        NopException ex = assertThrows(NopException.class,
+                () -> validateCustomSqlSandbox("SELECT * FROM `mysql`.`user`"),
+                "backtick-qualified mysql.user must be rejected");
+        assertEquals(NopMetadataErrors.ERR_QUALITY_CUSTOM_SQL_BLOCKED.getErrorCode(), ex.getErrorCode());
+    }
+
+    /** 新增关键字：COPY（PG 服务端文件写）必须命中。 */
+    @Test
+    public void testCopyStatementBlocked() {
+        NopException ex = assertThrows(NopException.class,
+                () -> validateCustomSqlSandbox("COPY orders TO '/tmp/export.csv' WITH (FORMAT csv)"),
+                "PG COPY statement must be rejected");
+        assertEquals(NopMetadataErrors.ERR_QUALITY_CUSTOM_SQL_BLOCKED.getErrorCode(), ex.getErrorCode());
+    }
+
+    /** 新增关键字：PG_READ_FILE / PG_LS_DIR / SYS_EXEC 缺项补齐。 */
+    @Test
+    public void testMissingKeywordsNowBlocked() {
+        String[] payloads = {
+                "SELECT pg_read_file('/etc/passwd')",
+                "SELECT pg_ls_dir('/')",
+                "SELECT sys_exec('id')"
+        };
+        for (String payload : payloads) {
+            NopException ex = assertThrows(NopException.class,
+                    () -> validateCustomSqlSandbox(payload),
+                    "newly added keyword must be blocked: " + payload);
+            assertEquals(NopMetadataErrors.ERR_QUALITY_CUSTOM_SQL_BLOCKED.getErrorCode(), ex.getErrorCode());
+        }
+    }
+
+    /** MySQL 可执行注释（/*! 开头）显式拒绝（剥离后校验 = 绕过）。 */
+    @Test
+    public void testExecutableCommentBlocked() {
+        NopException ex = assertThrows(NopException.class,
+                () -> validateCustomSqlSandbox("SELECT 1 /*!50000 UNION SELECT 2*/"),
+                "executable comment must be rejected");
+        assertEquals(NopMetadataErrors.ERR_QUALITY_CUSTOM_SQL_BLOCKED.getErrorCode(), ex.getErrorCode());
+    }
+
+    /** fail-closed 语义固化：字符串字面量内含黑名单 token（'UNION'）同样被拒（token 级匹配，不误放行）。 */
+    @Test
+    public void testUnionInsideStringLiteralBlockedFailClosed() {
+        NopException ex = assertThrows(NopException.class,
+                () -> validateCustomSqlSandbox("SELECT 'UNION'"),
+                "UNION token inside string literal is rejected (fail-closed, documented behavior)");
+        assertEquals(NopMetadataErrors.ERR_QUALITY_CUSTOM_SQL_BLOCKED.getErrorCode(), ex.getErrorCode());
+    }
+
+    /** 普通注释（-- 行注释 / 块注释）中的危险词随注释剥离，安全语句不被误杀。 */
+    @Test
+    public void testSafeSqlWithPlainCommentAllowed() {
+        validateCustomSqlSandbox("SELECT COUNT(*) FROM orders -- daily count\n");
+        validateCustomSqlSandbox("SELECT COUNT(*) FROM orders /* daily count */");
     }
 
     /** sqlHash 稳定性：相同 SQL 产出相同 hash；不同 SQL 产出不同 hash（审计追溯基础）。 */

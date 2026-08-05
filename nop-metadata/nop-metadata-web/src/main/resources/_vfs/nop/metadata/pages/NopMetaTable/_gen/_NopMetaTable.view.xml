@@ -24,6 +24,9 @@
                 <!--模块版本ID-->
                 <col id="metaModuleId" mandatory="true" sortable="true"/>
 
+                <!--是否Delta-->
+                <col id="isDelta" mandatory="true" sortable="true"/>
+
                 <!--表名-->
                 <col id="tableName" mandatory="true" sortable="true"/>
 
@@ -77,26 +80,26 @@
         <form id="view" editMode="view" title="查看-逻辑表" i18n-en:title="View Meta Table">
             <layout>
  metaTableId[逻辑表ID] metaModuleId[模块版本ID]
- tableName[表名] displayName[显示名]
- tableType[表类型] querySpace[查询空间]
- sourceSql[来源SQL] baseEntityId[主要实体ID]
- description[描述] buildSql[合成SQL]
- createdBy[创建人] createTime[创建时间]
- updatedBy[修改人] updateTime[修改时间]
- remark[备注] metaSchema[源schema]
- businessDomainId[业务域ID] 
+ isDelta[是否Delta] tableName[表名]
+ displayName[显示名] tableType[表类型]
+ querySpace[查询空间] sourceSql[来源SQL]
+ baseEntityId[主要实体ID] description[描述]
+ buildSql[合成SQL] createdBy[创建人]
+ createTime[创建时间] updatedBy[修改人]
+ updateTime[修改时间] remark[备注]
+ metaSchema[源schema] businessDomainId[业务域ID]
 </layout>
         </form>
         <form id="add" editMode="add" title="新增-逻辑表" i18n-en:title="Add Meta Table" x:prototype="edit"/>
         <form id="edit" editMode="edit" title="编辑-逻辑表" i18n-en:title="Edit Meta Table">
             <layout>
  metaTableId[逻辑表ID] metaModuleId[模块版本ID]
- tableName[表名] displayName[显示名]
- tableType[表类型] querySpace[查询空间]
- sourceSql[来源SQL] baseEntityId[主要实体ID]
- description[描述] buildSql[合成SQL]
- remark[备注] metaSchema[源schema]
- businessDomainId[业务域ID] 
+ isDelta[是否Delta] tableName[表名]
+ displayName[显示名] tableType[表类型]
+ querySpace[查询空间] sourceSql[来源SQL]
+ baseEntityId[主要实体ID] description[描述]
+ buildSql[合成SQL] remark[备注]
+ metaSchema[源schema] businessDomainId[业务域ID]
 </layout>
         </form>
         <form id="query" editMode="query" title="查询条件" i18n-en:title="Query Condition" x:abstract="true"/>

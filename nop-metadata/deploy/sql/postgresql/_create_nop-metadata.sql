@@ -21,6 +21,7 @@ CREATE TABLE nop_meta_module(
   updated_by VARCHAR(50) NOT NULL ,
   update_time TIMESTAMP NOT NULL ,
   remark VARCHAR(200)  ,
+  constraint UK_NOP_META_MODULE_ID_VER unique (module_id,module_version),
   constraint PK_nop_meta_module primary key (meta_module_id)
 );
 
@@ -38,6 +39,8 @@ CREATE TABLE nop_meta_data_source(
   updated_by VARCHAR(50) NOT NULL ,
   update_time TIMESTAMP NOT NULL ,
   remark VARCHAR(200)  ,
+  constraint UK_NOP_META_DS_QUERY_SPACE unique (query_space),
+  constraint UK_NOP_META_DATA_SOURCE_NAME unique (name),
   constraint PK_nop_meta_data_source primary key (data_source_id)
 );
 
@@ -54,6 +57,7 @@ CREATE TABLE nop_meta_semantic_type(
   updated_by VARCHAR(50) NOT NULL ,
   update_time TIMESTAMP NOT NULL ,
   remark VARCHAR(200)  ,
+  constraint UK_NOP_META_SEM_TYPE_NAME unique (type_name),
   constraint PK_nop_meta_semantic_type primary key (semantic_type_id)
 );
 
@@ -75,6 +79,7 @@ CREATE TABLE nop_meta_quality_rule(
   updated_by VARCHAR(50) NOT NULL ,
   update_time TIMESTAMP NOT NULL ,
   remark VARCHAR(200)  ,
+  constraint UK_NOP_META_QRULE_NAME unique (rule_name),
   constraint PK_nop_meta_quality_rule primary key (quality_rule_id)
 );
 
@@ -93,6 +98,7 @@ CREATE TABLE nop_meta_reconciliation_entity(
   updated_by VARCHAR(50) NOT NULL ,
   update_time TIMESTAMP NOT NULL ,
   remark VARCHAR(200)  ,
+  constraint UK_NOP_META_RECONCILIATION_ENTITY_ID unique (entity_id,entity_type),
   constraint PK_nop_meta_reconciliation_entity primary key (recon_entity_id)
 );
 
@@ -134,6 +140,7 @@ CREATE TABLE nop_meta_glossary(
   updated_by VARCHAR(50) NOT NULL ,
   update_time TIMESTAMP NOT NULL ,
   remark VARCHAR(200)  ,
+  constraint UK_NOP_META_GLOSSARY_NAME unique (name),
   constraint PK_nop_meta_glossary primary key (glossary_id)
 );
 
@@ -153,6 +160,7 @@ CREATE TABLE nop_meta_classification(
   updated_by VARCHAR(50) NOT NULL ,
   update_time TIMESTAMP NOT NULL ,
   remark VARCHAR(200)  ,
+  constraint UK_NOP_META_CLASSIFICATION_NAME unique (name),
   constraint PK_nop_meta_classification primary key (classification_id)
 );
 
@@ -172,6 +180,7 @@ CREATE TABLE nop_meta_business_domain(
   updated_by VARCHAR(50) NOT NULL ,
   update_time TIMESTAMP NOT NULL ,
   remark VARCHAR(200)  ,
+  constraint UK_NOP_META_BUSINESS_DOMAIN_PARENT_NAME unique (parent_domain_id,name),
   constraint PK_nop_meta_business_domain primary key (business_domain_id)
 );
 
@@ -188,12 +197,14 @@ CREATE TABLE nop_meta_orm_model(
   updated_by VARCHAR(50) NOT NULL ,
   update_time TIMESTAMP NOT NULL ,
   remark VARCHAR(200)  ,
+  constraint UK_NOP_META_ORM_MODEL_MODULE_NAME unique (meta_module_id,model_name,is_delta),
   constraint PK_nop_meta_orm_model primary key (orm_model_id)
 );
 
 CREATE TABLE nop_meta_table(
   meta_table_id VARCHAR(32) NOT NULL ,
   meta_module_id VARCHAR(32) NOT NULL ,
+  is_delta INT4 default 0  NOT NULL ,
   table_name VARCHAR(100) NOT NULL ,
   display_name VARCHAR(200)  ,
   table_type VARCHAR(20) NOT NULL ,
@@ -210,6 +221,7 @@ CREATE TABLE nop_meta_table(
   remark VARCHAR(200)  ,
   meta_schema VARCHAR(100)  ,
   business_domain_id VARCHAR(32)  ,
+  constraint UK_NOP_META_TABLE_MODULE_NAME unique (meta_module_id,table_name,is_delta),
   constraint PK_nop_meta_table primary key (meta_table_id)
 );
 
@@ -228,6 +240,7 @@ CREATE TABLE nop_meta_pipeline(
   updated_by VARCHAR(50) NOT NULL ,
   update_time TIMESTAMP NOT NULL ,
   remark VARCHAR(200)  ,
+  constraint UK_NOP_META_PIPELINE_MODULE_NAME unique (meta_module_id,pipeline_name),
   constraint PK_nop_meta_pipeline primary key (pipeline_id)
 );
 
@@ -247,6 +260,7 @@ CREATE TABLE nop_meta_quality_checkpoint(
   updated_by VARCHAR(50) NOT NULL ,
   update_time TIMESTAMP NOT NULL ,
   remark VARCHAR(200)  ,
+  constraint UK_NOP_META_QCHECKPOINT_NAME unique (checkpoint_name),
   constraint PK_nop_meta_quality_checkpoint primary key (checkpoint_id)
 );
 
@@ -263,6 +277,7 @@ CREATE TABLE nop_meta_manifest(
   updated_by VARCHAR(50) NOT NULL ,
   update_time TIMESTAMP NOT NULL ,
   remark VARCHAR(200)  ,
+  constraint UK_NOP_META_MANIFEST_MODULE_VER unique (meta_module_id,manifest_version),
   constraint PK_nop_meta_manifest primary key (manifest_id)
 );
 
@@ -307,6 +322,8 @@ CREATE TABLE nop_meta_glossary_term(
   updated_by VARCHAR(50) NOT NULL ,
   update_time TIMESTAMP NOT NULL ,
   remark VARCHAR(200)  ,
+  constraint UK_NOP_META_GLOSSARY_TERM_FQN unique (fully_qualified_name),
+  constraint UK_NOP_META_GLOSSARY_TERM_G_FQN unique (glossary_id,fully_qualified_name),
   constraint PK_nop_meta_glossary_term primary key (glossary_term_id)
 );
 
@@ -327,6 +344,8 @@ CREATE TABLE nop_meta_tag(
   updated_by VARCHAR(50) NOT NULL ,
   update_time TIMESTAMP NOT NULL ,
   remark VARCHAR(200)  ,
+  constraint UK_NOP_META_TAG_FQN unique (fully_qualified_name),
+  constraint UK_NOP_META_TAG_CLS_FQN unique (classification_id,fully_qualified_name),
   constraint PK_nop_meta_tag primary key (tag_id)
 );
 
@@ -353,6 +372,7 @@ CREATE TABLE nop_meta_data_product(
   updated_by VARCHAR(50) NOT NULL ,
   update_time TIMESTAMP NOT NULL ,
   remark VARCHAR(200)  ,
+  constraint UK_NOP_META_DATA_PRODUCT_DOMAIN_NAME unique (business_domain_id,name),
   constraint PK_nop_meta_data_product primary key (data_product_id)
 );
 
@@ -388,6 +408,7 @@ CREATE TABLE nop_meta_entity(
   updated_by VARCHAR(50) NOT NULL ,
   update_time TIMESTAMP NOT NULL ,
   remark VARCHAR(200)  ,
+  constraint UK_NOP_META_ENTITY_MODEL_NAME unique (orm_model_id,entity_name),
   constraint PK_nop_meta_entity primary key (meta_entity_id)
 );
 
@@ -415,6 +436,7 @@ CREATE TABLE nop_meta_domain(
   updated_by VARCHAR(50) NOT NULL ,
   update_time TIMESTAMP NOT NULL ,
   remark VARCHAR(200)  ,
+  constraint UK_NOP_META_DOMAIN_MODEL_NAME unique (orm_model_id,domain_name),
   constraint PK_nop_meta_domain primary key (meta_domain_id)
 );
 
@@ -437,6 +459,7 @@ CREATE TABLE nop_meta_dict(
   updated_by VARCHAR(50) NOT NULL ,
   update_time TIMESTAMP NOT NULL ,
   remark VARCHAR(200)  ,
+  constraint UK_NOP_META_DICT_MODEL_NAME unique (orm_model_id,dict_name),
   constraint PK_nop_meta_dict primary key (meta_dict_id)
 );
 
@@ -459,6 +482,7 @@ CREATE TABLE nop_meta_table_dimension(
   update_time TIMESTAMP NOT NULL ,
   remark VARCHAR(200)  ,
   side VARCHAR(20)  ,
+  constraint UK_NOP_META_DIM_TABLE_NAME unique (meta_table_id,dimension_name),
   constraint PK_nop_meta_table_dimension primary key (dimension_id)
 );
 
@@ -482,6 +506,7 @@ CREATE TABLE nop_meta_table_measure(
   update_time TIMESTAMP NOT NULL ,
   remark VARCHAR(200)  ,
   side VARCHAR(20)  ,
+  constraint UK_NOP_META_MEASURE_TABLE_NAME unique (meta_table_id,measure_name),
   constraint PK_nop_meta_table_measure primary key (measure_id)
 );
 
@@ -500,6 +525,7 @@ CREATE TABLE nop_meta_table_filter(
   updated_by VARCHAR(50) NOT NULL ,
   update_time TIMESTAMP NOT NULL ,
   remark VARCHAR(200)  ,
+  constraint UK_NOP_META_FILTER_TABLE_NAME unique (meta_table_id,filter_name),
   constraint PK_nop_meta_table_filter primary key (filter_id)
 );
 
@@ -537,6 +563,7 @@ CREATE TABLE nop_meta_profiling_rule(
   updated_by VARCHAR(50) NOT NULL ,
   update_time TIMESTAMP NOT NULL ,
   remark VARCHAR(200)  ,
+  constraint UK_NOP_META_PROFRULE_TABLE_NAME unique (meta_table_id,rule_name),
   constraint PK_nop_meta_profiling_rule primary key (profiling_rule_id)
 );
 
@@ -563,6 +590,7 @@ CREATE TABLE nop_meta_data_contract(
   approve_status VARCHAR(20)  ,
   approved_by VARCHAR(50)  ,
   approved_at TIMESTAMP  ,
+  constraint UK_NOP_META_CONTRACT_NAME unique (contract_name),
   constraint PK_nop_meta_data_contract primary key (contract_id)
 );
 
@@ -585,6 +613,7 @@ CREATE TABLE nop_meta_reconciliation_config(
   updated_by VARCHAR(50) NOT NULL ,
   update_time TIMESTAMP NOT NULL ,
   remark VARCHAR(200)  ,
+  constraint UK_NOP_META_RECONCILIATION_CONFIG_NAME unique (config_name),
   constraint PK_nop_meta_reconciliation_config primary key (config_id)
 );
 
@@ -624,6 +653,7 @@ CREATE TABLE nop_meta_lineage_edge(
   updated_by VARCHAR(50) NOT NULL ,
   update_time TIMESTAMP NOT NULL ,
   remark VARCHAR(200)  ,
+  constraint UK_NOP_META_LINEAGE_EDGE_SRC_TGT_TYPE unique (source_table_id,target_table_id,transform_type),
   constraint PK_nop_meta_lineage_edge primary key (lineage_edge_id)
 );
 
@@ -650,6 +680,7 @@ CREATE TABLE nop_meta_tag_label(
   approve_status VARCHAR(20)  ,
   approved_by VARCHAR(50)  ,
   approved_at TIMESTAMP  ,
+  constraint UK_NOP_META_TAG_LABEL unique (entity_type,entity_id,tag_id,source),
   constraint PK_nop_meta_tag_label primary key (tag_label_id)
 );
 
@@ -686,6 +717,7 @@ CREATE TABLE nop_meta_entity_field(
   updated_by VARCHAR(50) NOT NULL ,
   update_time TIMESTAMP NOT NULL ,
   remark VARCHAR(200)  ,
+  constraint UK_NOP_META_FIELD_ENTITY_NAME unique (meta_entity_id,field_name),
   constraint PK_nop_meta_entity_field primary key (entity_field_id)
 );
 
@@ -710,6 +742,7 @@ CREATE TABLE nop_meta_entity_relation(
   updated_by VARCHAR(50) NOT NULL ,
   update_time TIMESTAMP NOT NULL ,
   remark VARCHAR(200)  ,
+  constraint UK_NOP_META_REL_ENTITY_NAME unique (meta_entity_id,relation_name),
   constraint PK_nop_meta_entity_relation primary key (relation_id)
 );
 
@@ -728,6 +761,7 @@ CREATE TABLE nop_meta_entity_unique_key(
   updated_by VARCHAR(50) NOT NULL ,
   update_time TIMESTAMP NOT NULL ,
   remark VARCHAR(200)  ,
+  constraint UK_NOP_META_UK_ENTITY_NAME unique (meta_entity_id,uk_name),
   constraint PK_nop_meta_entity_unique_key primary key (unique_key_id)
 );
 
@@ -746,6 +780,7 @@ CREATE TABLE nop_meta_entity_index(
   updated_by VARCHAR(50) NOT NULL ,
   update_time TIMESTAMP NOT NULL ,
   remark VARCHAR(200)  ,
+  constraint UK_NOP_META_IDX_ENTITY_NAME unique (meta_entity_id,index_name),
   constraint PK_nop_meta_entity_index primary key (index_id)
 );
 
@@ -766,6 +801,7 @@ CREATE TABLE nop_meta_table_join(
   remark VARCHAR(200)  ,
   left_table_id VARCHAR(32)  ,
   right_table_id VARCHAR(32)  ,
+  constraint UK_NOP_META_JOIN_TABLE_ALIAS unique (meta_table_id,alias),
   constraint PK_nop_meta_table_join primary key (join_id)
 );
 
@@ -787,6 +823,7 @@ CREATE TABLE nop_meta_dict_item(
   updated_by VARCHAR(50) NOT NULL ,
   update_time TIMESTAMP NOT NULL ,
   remark VARCHAR(200)  ,
+  constraint UK_NOP_META_DICT_ITEM_VALUE unique (meta_dict_id,item_value),
   constraint PK_nop_meta_dict_item primary key (dict_item_id)
 );
 
@@ -1153,6 +1190,8 @@ CREATE TABLE nop_meta_reconciliation_result(
       COMMENT ON COLUMN nop_meta_table.meta_table_id IS '逻辑表ID';
                     
       COMMENT ON COLUMN nop_meta_table.meta_module_id IS '模块版本ID';
+                    
+      COMMENT ON COLUMN nop_meta_table.is_delta IS '是否Delta';
                     
       COMMENT ON COLUMN nop_meta_table.table_name IS '表名';
                     

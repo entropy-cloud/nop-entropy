@@ -802,6 +802,7 @@ prop:
       dimensions: 表维度集
       displayName: 显示名
       filters: 表过滤器集
+      isDelta: 是否Delta
       joinAsLeftTable: 作为左表的关联集
       joinAsRightTable: 作为右表的关联集
       joins: 表关联集

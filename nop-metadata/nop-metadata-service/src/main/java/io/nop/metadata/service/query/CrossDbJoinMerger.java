@@ -1,10 +1,3 @@
-/**
- * Copyright (c) 2017-2024 Nop Platform. All rights reserved.
- * Author: canonical_entropy@163.com
- * Blog:   https://www.zhihu.com/people/canonical-entropy
- * Gitee:  https://github.com/entropy-cloud/nop-entropy
- * Github: https://github.com/entropy-cloud/nop-entropy
- */
 
 package io.nop.metadata.service.query;
 
@@ -80,6 +73,7 @@ class CrossDbJoinMerger {
             if (rawLeftKey == null) {
                 if (_NopMetadataCoreConstants.JOIN_TYPE_LEFT.equals(joinType)) {
                     merged.add(mergeRow(l, null, alias, leftKeys));
+                    checkMergedSizeLimit(merged.size(), joinId);
                 }
                 continue;
             }
@@ -88,13 +82,27 @@ class CrossDbJoinMerger {
             if (matches != null && !matches.isEmpty()) {
                 for (Map<String, Object> r : matches) {
                     merged.add(mergeRow(l, r, alias, leftKeys));
+                    checkMergedSizeLimit(merged.size(), joinId);
                 }
             } else if (_NopMetadataCoreConstants.JOIN_TYPE_LEFT.equals(joinType)) {
                 merged.add(mergeRow(l, null, alias, leftKeys));
+                checkMergedSizeLimit(merged.size(), joinId);
             }
         }
 
         return truncate(merged, limit, offset);
+    }
+
+    /**
+     * MA7.4-04：合并产物（笛卡尔积）上限——两侧各 ≤ maxCrossDbRows 时乘积最坏
+     * maxCrossDbRows^2 行入内存，需在合并过程中逐行计数并快速失败。
+     */
+    private void checkMergedSizeLimit(int mergedRows, String joinId) {
+        if (mergedRows > maxCrossDbRows) {
+            throw new NopMetadataException(NopMetadataErrors.ERR_JOIN_CROSS_DB_SIZE_LIMIT)
+                    .param("joinId", joinId).param("side", "merged").param("rows", mergedRows)
+                    .param("limit", maxCrossDbRows);
+        }
     }
 
     private void checkSizeLimit(int rows, String side, String joinId) {

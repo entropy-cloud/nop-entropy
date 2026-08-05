@@ -1,10 +1,3 @@
-/**
- * Copyright (c) 2017-2024 Nop Platform. All rights reserved.
- * Author: canonical_entropy@163.com
- * Blog:   https://www.zhihu.com/people/canonical-entropy
- * Gitee:  https://github.com/entropy-cloud/nop-entropy
- * Github: https://github.com/entropy-cloud/nop-entropy
- */
 
 package io.nop.metadata.service.sync;
 
@@ -38,7 +31,7 @@ import java.util.List;
  * {@link NopMetadataErrors#ERR_DATASOURCE_TYPE_NOT_SUPPORTED}；快速失败，非静默跳过）。
  *
  * <p>每张扫描到的表读取其 {@code TABLE_SCHEM} 并填入 {@link ExternalTableInfo#getSchema()}，
- * 供 BizModel 持久化到 {@code NopMetaTable.schema}（架构基线 §2.3.2 / §2.5.1）。
+ * 供 BizModel 持久化到 {@code NopMetaTable.metaSchema}（架构基线 §2.3.2 / §2.5.1）。
  */
 public class ExternalTableStructureReader {
 

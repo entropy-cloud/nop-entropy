@@ -13,9 +13,9 @@ import org.slf4j.LoggerFactory;
 
 import java.util.List;
 
-public class NopMetaSearchService {
+public class NopMetaSearchProcessor {
 
-    private static final Logger LOG = LoggerFactory.getLogger(NopMetaSearchService.class);
+    private static final Logger LOG = LoggerFactory.getLogger(NopMetaSearchProcessor.class);
 
     /**
      * Search index topic（Lucene 主题必须为合法简单变量名，`isValidSimpleVarName` 校验；

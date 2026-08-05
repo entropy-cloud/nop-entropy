@@ -5,6 +5,7 @@ import io.nop.api.core.annotations.biz.BizMutation;
 import io.nop.api.core.annotations.biz.BizQuery;
 import io.nop.api.core.annotations.core.Name;
 import io.nop.api.core.annotations.core.Optional;
+import io.nop.api.core.annotations.ioc.InjectValue;
 import io.nop.api.core.beans.FieldSelectionBean;
 import io.nop.api.core.beans.TreeBean;
 import io.nop.api.core.beans.query.OrderFieldBean;
@@ -40,7 +41,7 @@ import io.nop.metadata.service.query.MetaAggregationExecutor;
 import io.nop.metadata.service.query.MetaJoinExecutor;
 import io.nop.metadata.service.query.MetaQueryContext;
 import io.nop.metadata.service.NopMetadataHelper;
-import io.nop.metadata.service.search.NopMetaSearchService;
+import io.nop.metadata.service.search.NopMetaSearchProcessor;
 import io.nop.metadata.service.sqlview.SqlViewField;
 import io.nop.metadata.service.sqlview.SqlViewFieldTypeInferrer;
 import io.nop.metadata.service.tableref.TableReference;
@@ -59,6 +60,15 @@ import java.util.Set;
 @BizModel("NopMetaTable")
 public class NopMetaTableBizModel extends CrudBizModel<NopMetaTable> implements INopMetaTableBiz {
 
+    /** MA7.4-03：queryTableData 缺省 limit（省略时避免全表拉入内存） */
+    public static final int DEFAULT_QUERY_LIMIT = 1000;
+
+    /** MA7.4-03：queryTableData limit 上限（防单次查询内存放大） */
+    public static final int DEFAULT_MAX_QUERY_LIMIT = 10000;
+
+    @InjectValue(value = "@cfg:nop.metadata.query.max-limit|0")
+    protected int configuredMaxQueryLimit = 0;
+
     private static final Logger LOG = LoggerFactory.getLogger(NopMetaTableBizModel.class);
 
     @Inject
@@ -68,7 +78,7 @@ public class NopMetaTableBizModel extends CrudBizModel<NopMetaTable> implements 
     protected MetaModelChangedEventPublisher eventPublisher;
 
     @Inject
-    protected NopMetaSearchService searchService;
+    protected NopMetaSearchProcessor searchService;
 
     static final String EVENT_ENTITY_TYPE = "NopMetaTable";
 
@@ -150,6 +160,7 @@ public class NopMetaTableBizModel extends CrudBizModel<NopMetaTable> implements 
         IEntityDao<NopMetaTable> tableDao = dao();
         NopMetaTable table = tableDao.newEntity();
         table.setMetaModuleId(metaModuleId);
+        table.setIsDelta((byte) 0);
         table.setTableName(tableName);
         table.setDisplayName(displayName != null ? displayName : tableName);
         table.setTableType(_NopMetadataCoreConstants.TABLE_TYPE_SQL);
@@ -204,6 +215,7 @@ public class NopMetaTableBizModel extends CrudBizModel<NopMetaTable> implements 
         String tableType = table.getTableType();
         QueryTableDataResultDTO result = new QueryTableDataResultDTO();
         result.setTableType(tableType);
+        limit = normalizeQueryLimit(limit);
         if (_NopMetadataCoreConstants.TABLE_TYPE_ENTITY.equals(tableType)) {
             result.setItems(queryAction.queryEntityData(table, filter, limit, offset, daoProvider(), orm()));
         } else if (_NopMetadataCoreConstants.TABLE_TYPE_EXTERNAL.equals(tableType)) {
@@ -329,5 +341,17 @@ public class NopMetaTableBizModel extends CrudBizModel<NopMetaTable> implements 
 
     private SearchableDoc toSearchableDoc(NopMetaTable entity) {
         return NopMetadataHelper.toSearchableDoc(entity);
+    }
+
+    /**
+     * 归一化 queryTableData 的 limit（MA7.4-03）：缺省给默认值，超上限封顶，
+     * 防止省略 limit 的大表查询把全表拉入内存序列化。
+     */
+    private Long normalizeQueryLimit(Long limit) {
+        if (limit == null || limit <= 0) {
+            return (long) DEFAULT_QUERY_LIMIT;
+        }
+        long max = configuredMaxQueryLimit > 0 ? configuredMaxQueryLimit : DEFAULT_MAX_QUERY_LIMIT;
+        return Math.min(limit, max);
     }
 }

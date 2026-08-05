@@ -8,7 +8,7 @@ import io.nop.core.context.IServiceContext;
 import io.nop.metadata.biz.INopMetaClassificationBiz;
 import io.nop.metadata.dao.entity.NopMetaClassification;
 import io.nop.metadata.service.NopMetadataHelper;
-import io.nop.metadata.service.search.NopMetaSearchService;
+import io.nop.metadata.service.search.NopMetaSearchProcessor;
 import io.nop.search.api.SearchableDoc;
 import jakarta.inject.Inject;
 
@@ -19,7 +19,7 @@ import java.util.Set;
 public class NopMetaClassificationBizModel extends CrudBizModel<NopMetaClassification> implements INopMetaClassificationBiz {
 
     @Inject
-    protected NopMetaSearchService searchService;
+    protected NopMetaSearchProcessor searchService;
 
     public NopMetaClassificationBizModel() {
         setEntityName(NopMetaClassification.class.getName());

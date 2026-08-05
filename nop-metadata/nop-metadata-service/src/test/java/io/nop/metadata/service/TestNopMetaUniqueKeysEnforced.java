@@ -1,10 +1,3 @@
-/**
- * Copyright (c) 2017-2024 Nop Platform. All rights reserved.
- * Author: canonical_entropy@163.com
- * Blog:   https://www.zhihu.com/people/canonical-entropy
- * Gitee:  https://github.com/entropy-cloud/nop-entropy
- * Github: https://github.com/entropy-cloud/nop-entropy
- */
 package io.nop.metadata.service;
 
 import io.nop.api.core.annotations.autotest.NopTestConfig;
@@ -67,8 +60,9 @@ public class TestNopMetaUniqueKeysEnforced extends JunitBaseTestCase {
     public void testNopMetaOrmModelHasNaturalUniqueKey() {
         OrmEntityModel model = (OrmEntityModel) orm.getOrmModel().getEntityModel("io.nop.metadata.dao.entity.NopMetaOrmModel");
         assertNotNull(model);
-        assertTrue(hasUniqueKeyWithColumns(model, "metaModuleId", "modelName"),
-                "NopMetaOrmModel must declare UK on (metaModuleId, modelName): " + ukNames(model));
+        // MA7.3-01：双重存储（delta+full 同模块各存一份）要求 UK 带 isDelta 维度，否则补 constraint 后导入即失败
+        assertTrue(hasUniqueKeyWithColumns(model, "metaModuleId", "modelName", "isDelta"),
+                "NopMetaOrmModel must declare UK on (metaModuleId, modelName, isDelta): " + ukNames(model));
     }
 
     @Test
@@ -83,8 +77,9 @@ public class TestNopMetaUniqueKeysEnforced extends JunitBaseTestCase {
     public void testNopMetaTableHasNaturalUniqueKey() {
         OrmEntityModel model = (OrmEntityModel) orm.getOrmModel().getEntityModel("io.nop.metadata.dao.entity.NopMetaTable");
         assertNotNull(model);
-        assertTrue(hasUniqueKeyWithColumns(model, "metaModuleId", "tableName"),
-                "NopMetaTable must declare UK on (metaModuleId, tableName): " + ukNames(model));
+        // MA7.3-01：双重存储（delta+full 同模块各存一份表记录）要求 UK 带 isDelta 维度
+        assertTrue(hasUniqueKeyWithColumns(model, "metaModuleId", "tableName", "isDelta"),
+                "NopMetaTable must declare UK on (metaModuleId, tableName, isDelta): " + ukNames(model));
     }
 
     @Test

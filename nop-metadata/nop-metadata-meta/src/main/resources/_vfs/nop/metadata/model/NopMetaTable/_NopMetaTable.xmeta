@@ -19,7 +19,7 @@
     </x:post-extends>
 
     <keys>
-        <key name="UK_NOP_META_TABLE_MODULE_NAME" props="metaModuleId,tableName"/>
+        <key name="UK_NOP_META_TABLE_MODULE_NAME" props="metaModuleId,tableName,isDelta"/>
     </keys>
 
     <props>
@@ -31,67 +31,71 @@
               queryable="true" sortable="true" insertable="true" updatable="true" ext:relation="metaModule">
             <schema type="java.lang.String" precision="32"/>
         </prop>
-        <prop name="tableName" displayName="表名" propId="3" i18n-en:displayName="Table Name" mandatory="true"
+        <prop name="isDelta" displayName="是否Delta" propId="3" i18n-en:displayName="Is Delta" mandatory="true"
+              queryable="true" sortable="true" insertable="true" updatable="true" defaultValue="0">
+            <schema domain="boolFlag" type="java.lang.Byte"/>
+        </prop>
+        <prop name="tableName" displayName="表名" propId="4" i18n-en:displayName="Table Name" mandatory="true"
               queryable="true" sortable="true" insertable="true" updatable="true">
             <schema type="java.lang.String" precision="100"/>
         </prop>
-        <prop name="displayName" displayName="显示名" propId="4" i18n-en:displayName="Display Name" tagSet="disp"
+        <prop name="displayName" displayName="显示名" propId="5" i18n-en:displayName="Display Name" tagSet="disp"
               queryable="true" sortable="true" insertable="true" updatable="true">
             <schema type="java.lang.String" precision="200"/>
         </prop>
-        <prop name="tableType" displayName="表类型" propId="5" i18n-en:displayName="Table Type" mandatory="true"
+        <prop name="tableType" displayName="表类型" propId="6" i18n-en:displayName="Table Type" mandatory="true"
               queryable="true" sortable="true" insertable="true" updatable="true">
             <schema type="java.lang.String" precision="20" dict="meta/table-type"/>
         </prop>
-        <prop name="querySpace" displayName="查询空间" propId="6" i18n-en:displayName="Query Space" queryable="true"
+        <prop name="querySpace" displayName="查询空间" propId="7" i18n-en:displayName="Query Space" queryable="true"
               sortable="true" insertable="true" updatable="true">
             <schema type="java.lang.String" precision="100"/>
         </prop>
-        <prop name="sourceSql" displayName="来源SQL" propId="7" i18n-en:displayName="Source Sql" tagSet="sensitive"
+        <prop name="sourceSql" displayName="来源SQL" propId="8" i18n-en:displayName="Source Sql" tagSet="sensitive"
               queryable="true" sortable="true" insertable="true" updatable="true">
             <schema domain="mediumtext" type="java.lang.String" precision="16777215"/>
         </prop>
-        <prop name="baseEntityId" displayName="主要实体ID" propId="8" i18n-en:displayName="Base Entity Id" queryable="true"
+        <prop name="baseEntityId" displayName="主要实体ID" propId="9" i18n-en:displayName="Base Entity Id" queryable="true"
               sortable="true" insertable="true" updatable="true">
             <schema type="java.lang.String" precision="32"/>
         </prop>
-        <prop name="description" displayName="描述" propId="9" i18n-en:displayName="Description" queryable="true"
+        <prop name="description" displayName="描述" propId="10" i18n-en:displayName="Description" queryable="true"
               sortable="true" insertable="true" updatable="true">
             <schema type="java.lang.String" precision="1000"/>
         </prop>
-        <prop name="buildSql" displayName="合成SQL" propId="10" i18n-en:displayName="Build Sql" tagSet="sensitive"
+        <prop name="buildSql" displayName="合成SQL" propId="11" i18n-en:displayName="Build Sql" tagSet="sensitive"
               queryable="true" sortable="true" insertable="true" updatable="true">
             <schema domain="mediumtext" type="java.lang.String" precision="16777215"/>
         </prop>
-        <prop name="version" displayName="数据版本" propId="11" i18n-en:displayName="Version" mandatory="true"
+        <prop name="version" displayName="数据版本" propId="12" i18n-en:displayName="Version" mandatory="true"
               queryable="true" sortable="true" insertable="false" updatable="false" internal="true">
             <schema domain="version" type="java.lang.Long"/>
         </prop>
-        <prop name="createdBy" displayName="创建人" propId="12" i18n-en:displayName="Created By" mandatory="true"
+        <prop name="createdBy" displayName="创建人" propId="13" i18n-en:displayName="Created By" mandatory="true"
               queryable="true" sortable="true" insertable="false" updatable="false">
             <schema domain="createdBy" type="java.lang.String" precision="50"/>
         </prop>
-        <prop name="createTime" displayName="创建时间" propId="13" i18n-en:displayName="Create Time" mandatory="true"
+        <prop name="createTime" displayName="创建时间" propId="14" i18n-en:displayName="Create Time" mandatory="true"
               queryable="true" sortable="true" insertable="false" updatable="false">
             <schema domain="createTime" type="java.sql.Timestamp"/>
         </prop>
-        <prop name="updatedBy" displayName="修改人" propId="14" i18n-en:displayName="Updated By" mandatory="true"
+        <prop name="updatedBy" displayName="修改人" propId="15" i18n-en:displayName="Updated By" mandatory="true"
               queryable="true" sortable="true" insertable="false" updatable="false">
             <schema domain="updatedBy" type="java.lang.String" precision="50"/>
         </prop>
-        <prop name="updateTime" displayName="修改时间" propId="15" i18n-en:displayName="Update Time" mandatory="true"
+        <prop name="updateTime" displayName="修改时间" propId="16" i18n-en:displayName="Update Time" mandatory="true"
               queryable="true" sortable="true" insertable="false" updatable="false">
             <schema domain="updateTime" type="java.sql.Timestamp"/>
         </prop>
-        <prop name="remark" displayName="备注" propId="16" i18n-en:displayName="Remark" queryable="true" sortable="true"
+        <prop name="remark" displayName="备注" propId="17" i18n-en:displayName="Remark" queryable="true" sortable="true"
               insertable="true" updatable="true">
             <schema domain="remark" type="java.lang.String" precision="200"/>
         </prop>
-        <prop name="metaSchema" displayName="源schema" propId="17" i18n-en:displayName="Meta Schema" queryable="true"
+        <prop name="metaSchema" displayName="源schema" propId="18" i18n-en:displayName="Meta Schema" queryable="true"
               sortable="true" insertable="true" updatable="true">
             <schema type="java.lang.String" precision="100"/>
         </prop>
-        <prop name="businessDomainId" displayName="业务域ID" propId="18" i18n-en:displayName="Business Domain Id"
+        <prop name="businessDomainId" displayName="业务域ID" propId="19" i18n-en:displayName="Business Domain Id"
               queryable="true" sortable="true" insertable="true" updatable="true">
             <schema type="java.lang.String" precision="32"/>
         </prop>

@@ -36,7 +36,6 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
-import java.util.function.Function;
 
 public class AggregationHelper {
     private static final Logger LOG = LoggerFactory.getLogger(AggregationHelper.class);
@@ -283,30 +282,32 @@ public class AggregationHelper {
         return map;
     }
 
-    public static Function<String, String> nameResolverFor(Map<String, String> nameToExpr,
-                                                            NopMetaTable table,
-                                                            List<String> measureNames,
-                                                            List<String> dimensionNames,
-                                                            String clause) {
-        return name -> {
-            if (!FilterToSqlTranslator.IDENTIFIER_PATTERN.matcher(name).matches()) {
+    public static FilterToSqlTranslator.FieldResolver nameResolverFor(Map<String, String> nameToExpr,
+                                                                        NopMetaTable table,
+                                                                        List<String> measureNames,
+                                                                        List<String> dimensionNames,
+                                                                        String clause) {
+        return (node, name) -> {
+            String expr = nameToExpr.get(name);
+            if (expr != null) {
+                if (expr.indexOf('?') >= 0) {
+                    throw new NopMetadataException(NopMetadataErrors.ERR_AGGR_EXPRESSION_HAVING_ORDER_BY_UNSUPPORTED)
+                            .param(NopMetadataErrors.ARG_META_TABLE_ID, table.getMetaTableId())
+                            .param(NopMetadataErrors.ARG_MEASURE_NAME, name)
+                            .param(NopMetadataErrors.ARG_CLAUSE, clause);
+                }
+                return expr;
+            }
+            // MA7.1-01：非白名单 name 一律禁止原样透传。唯一例外是 preprocessHavingArithmetic 已完成
+            // token 级白名单替换并显式标记（HAVING_EXPR_RESOLVED_ATTR）的 expr 叶子。
+            if (Boolean.TRUE.equals(node.getAttr(MetaAggregationExecutor.HAVING_EXPR_RESOLVED_ATTR))) {
                 return name;
             }
-            String expr = nameToExpr.get(name);
-            if (expr == null) {
-                throw new NopMetadataException(NopMetadataErrors.ERR_AGGR_HAVING_UNKNOWN_NAME)
-                        .param(NopMetadataErrors.ARG_META_TABLE_ID, table.getMetaTableId())
-                        .param(NopMetadataErrors.ARG_NAME, name)
-                        .param(NopMetadataErrors.ARG_SELECTED_MEASURES, String.valueOf(measureNames))
-                        .param(NopMetadataErrors.ARG_SELECTED_DIMENSIONS, String.valueOf(dimensionNames));
-            }
-            if (expr.indexOf('?') >= 0) {
-                throw new NopMetadataException(NopMetadataErrors.ERR_AGGR_EXPRESSION_HAVING_ORDER_BY_UNSUPPORTED)
-                        .param(NopMetadataErrors.ARG_META_TABLE_ID, table.getMetaTableId())
-                        .param(NopMetadataErrors.ARG_MEASURE_NAME, name)
-                        .param(NopMetadataErrors.ARG_CLAUSE, clause);
-            }
-            return expr;
+            throw new NopMetadataException(NopMetadataErrors.ERR_AGGR_HAVING_UNKNOWN_NAME)
+                    .param(NopMetadataErrors.ARG_META_TABLE_ID, table.getMetaTableId())
+                    .param(NopMetadataErrors.ARG_NAME, name)
+                    .param(NopMetadataErrors.ARG_SELECTED_MEASURES, String.valueOf(measureNames))
+                    .param(NopMetadataErrors.ARG_SELECTED_DIMENSIONS, String.valueOf(dimensionNames));
         };
     }
 

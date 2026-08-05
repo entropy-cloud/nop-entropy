@@ -1,10 +1,3 @@
-/**
- * Copyright (c) 2017-2024 Nop Platform. All rights reserved.
- * Author: canonical_entropy@163.com
- * Blog:   https://www.zhihu.com/people/canonical-entropy
- * Gitee:  https://github.com/entropy-cloud/nop-entropy
- * Github: https://github.com/entropy-cloud/nop-entropy
- */
 package io.nop.metadata.service;
 
 import io.nop.api.core.exceptions.NopException;
@@ -173,6 +166,46 @@ public class TestCheckpointActionDispatcherWebhookSsrf {
         HttpRequest lastReq = mockHttpClient.lastRequest;
         assertNotNull(lastReq, "request must be passed to client");
         assertEquals("https://example.com/webhook", lastReq.getUrl());
+    }
+
+    // ===== MA7.6-04：IP 记法变体绕过 =====
+
+    /** 0.0.0.0（多数平台 connect 等效 localhost）必须被拒。 */
+    @Test
+    public void testZeroZeroZeroZeroBlocked() {
+        assertWebhookBlocked("http://0.0.0.0/", "internal/link-local/loopback host not in allowed-hosts",
+                "0.0.0.0 must be blocked");
+    }
+
+    /** 十进制整数 2130706433（= 127.0.0.1）必须被拒。 */
+    @Test
+    public void testDecimalIntegerIpv4Blocked() {
+        assertWebhookBlocked("http://2130706433/", "internal/link-local/loopback host not in allowed-hosts",
+                "decimal integer IPv4 (2130706433 = 127.0.0.1) must be blocked");
+    }
+
+    /** 八进制点分 0177.0.0.1（= 127.0.0.1）必须被拒。 */
+    @Test
+    public void testOctalDottedIpv4Blocked() {
+        assertWebhookBlocked("http://0177.0.0.1/", "internal/link-local/loopback host not in allowed-hosts",
+                "octal dotted IPv4 (0177.0.0.1 = 127.0.0.1) must be blocked");
+    }
+
+    /** IPv4-mapped IPv6 [::ffff:127.0.0.1] 必须被拒。 */
+    @Test
+    public void testIpv4MappedIpv6Blocked() {
+        assertWebhookBlocked("http://[::ffff:127.0.0.1]/", "internal/link-local/loopback host not in allowed-hosts",
+                "IPv4-mapped IPv6 (::ffff:127.0.0.1 = 127.0.0.1) must be blocked");
+    }
+
+    /** allowlist 放行语义保持：内网 IP 显式配置进 allowlist 后允许。 */
+    @Test
+    public void testInternalHostAllowedWhenIpInAllowlist() {
+        dispatcher.configureWebhookSsrf("127.0.0.1", 30);
+        mockHttpClient.responseStatus = 200;
+        assertDoesNotThrow(() -> dispatchWebhook("http://127.0.0.1:8080/hook"));
+        assertEquals(1, mockHttpClient.fetchCallCount,
+                "allowlisted internal IP must reach IHttpClient.fetch");
     }
 
     // ===== Method 白名单 =====

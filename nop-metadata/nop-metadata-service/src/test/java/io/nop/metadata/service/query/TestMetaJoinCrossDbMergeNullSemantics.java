@@ -1,10 +1,3 @@
-/**
- * Copyright (c) 2017-2024 Nop Platform. All rights reserved.
- * Author: canonical_entropy@163.com
- * Blog:   https://www.zhihu.com/people/canonical-entropy
- * Gitee:  https://github.com/entropy-cloud/nop-entropy
- * Github: https://github.com/entropy-cloud/nop-entropy
- */
 package io.nop.metadata.service.query;
 
 import io.nop.api.core.exceptions.NopException;
@@ -121,6 +114,48 @@ public class TestMetaJoinCrossDbMergeNullSemantics {
         List<Map<String, Object>> merged = invokeCrossDbMerge(join, left, right);
         assertEquals(1, merged.size(), "same-type integer keys must match");
         assertEquals("R", merged.get(0).get("extra"));
+    }
+
+    /**
+     * MA7.4-04：合并产物（笛卡尔积）必须有上限——两侧各 ≤ maxCrossDbRows 时，
+     * 高基数重复 join 键的乘积可到 maxCrossDbRows^2 行入内存。构造小上限 merger，
+     * 用重复键驱动乘积超限，断言 ERR_JOIN_CROSS_DB_SIZE_LIMIT（side=merged）。
+     */
+    @Test
+    public void testMergedProductOverflowThrowsExplicitly() {
+        CrossDbJoinMerger capped = new CrossDbJoinMerger(3);
+        NopMetaTableJoin join = newJoin("id", "id", "inner");
+
+        List<Map<String, Object>> left = rows(
+                row("id", "K", "name", "L1"),
+                row("id", "K", "name", "L2"));
+        List<Map<String, Object>> right = rows(
+                row("id", "K", "extra", "R1"),
+                row("id", "K", "extra", "R2"),
+                row("id", "K", "extra", "R3"));
+
+        NopException ex = assertThrows(NopException.class,
+                () -> capped.crossDbMerge(join, left, right, null, null),
+                "merged product (2x3=6 > 3) must fail fast with ERR_JOIN_CROSS_DB_SIZE_LIMIT");
+        assertEquals(NopMetadataErrors.ERR_JOIN_CROSS_DB_SIZE_LIMIT.getErrorCode(),
+                ex.getErrorCode(), "merged-side overflow must throw ERR_JOIN_CROSS_DB_SIZE_LIMIT");
+        assertEquals("merged", ex.getParam("side"), "overflow side must be reported as merged");
+    }
+
+    @Test
+    public void testMergedProductWithinLimitStillWorks() {
+        CrossDbJoinMerger capped = new CrossDbJoinMerger(10);
+        NopMetaTableJoin join = newJoin("id", "id", "inner");
+
+        List<Map<String, Object>> left = rows(
+                row("id", "K", "name", "L1"),
+                row("id", "K", "name", "L2"));
+        List<Map<String, Object>> right = rows(
+                row("id", "K", "extra", "R1"),
+                row("id", "K", "extra", "R2"));
+
+        List<Map<String, Object>> merged = capped.crossDbMerge(join, left, right, null, null);
+        assertEquals(4, merged.size(), "2x2=4 within limit 10 must succeed");
     }
 
     // ============================ helpers ============================

@@ -1,10 +1,3 @@
-/**
- * Copyright (c) 2017-2024 Nop Platform. All rights reserved.
- * Author: canonical_entropy@163.com
- * Blog:   https://www.zhihu.com/people/canonical-entropy
- * Gitee:  https://github.com/entropy-cloud/nop-entropy
- * Github: https://github.com/entropy-cloud/nop-entropy
- */
 
 package io.nop.metadata.service.query;
 
@@ -172,6 +165,9 @@ public class MetaAggregationExecutor {
             String finalSql = substituteAndValidateHavingExpr(userExpr, nameToExpr, table,
                     measureNames, dimensionNames);
             having.setAttr(FilterBeanConstants.FILTER_ATTR_NAME, finalSql);
+            // MA7.1-01：显式标记该叶子——name 已是逐 token 白名单校验后的 SQL 表达式，
+            // nameResolverFor 仅对带此标记的叶子允许直通，原始用户 name 一律显式失败。
+            having.setAttr(HAVING_EXPR_RESOLVED_ATTR, Boolean.TRUE);
             return;
         }
         List<TreeBean> children = having.getChildren();
@@ -184,6 +180,14 @@ public class MetaAggregationExecutor {
     }
 
     public static final String HAVING_EXPR_ATTR = "expr";
+
+    /**
+     * expr 叶子预处理完成后设置在叶子上的标记（MA7.1-01 修复）：标识该 leaf 的 {@code name} 已是
+     * {@link #substituteAndValidateHavingExpr} 逐 token 白名单校验后的 SQL 表达式。
+     * {@code AggregationHelper.nameResolverFor} 仅对带此标记的叶子允许直通拼接；未带标记的原始用户
+     * name 一律抛 {@code ERR_AGGR_HAVING_UNKNOWN_NAME}，禁止原样进入 HAVING SQL。
+     */
+    public static final String HAVING_EXPR_RESOLVED_ATTR = "havingExprResolved";
 
     static String substituteAndValidateHavingExpr(String userExpr, Map<String, String> nameToExpr,
                                                     NopMetaTable table, List<String> measureNames,

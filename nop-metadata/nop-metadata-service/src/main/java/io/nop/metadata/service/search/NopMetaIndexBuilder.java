@@ -49,7 +49,7 @@ public class NopMetaIndexBuilder {
             entityTypes = List.of("Classification", "Tag", "GlossaryTerm", "MetaTable", "MetaEntity", "MetaEntityField");
         }
 
-        String topic = NopMetaSearchService.TOPIC;
+        String topic = NopMetaSearchProcessor.TOPIC;
         List<IndexResult> results = new ArrayList<>();
 
         for (String entityType : entityTypes) {

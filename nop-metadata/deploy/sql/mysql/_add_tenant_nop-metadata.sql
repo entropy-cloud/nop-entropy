@@ -194,4 +194,112 @@ alter table nop_meta_profiling_result add primary key (NOP_TENANT_ID, PROFILING_
 alter table nop_meta_reconciliation_result drop primary key;
 alter table nop_meta_reconciliation_result add primary key (NOP_TENANT_ID, RESULT_ID);
 
+alter table nop_meta_module drop constraint UK_NOP_META_MODULE_ID_VER;
+alter table nop_meta_module add constraint UK_NOP_META_MODULE_ID_VER unique (NOP_TENANT_ID,MODULE_ID,MODULE_VERSION);
 
+                alter table nop_meta_data_source drop constraint UK_NOP_META_DS_QUERY_SPACE;
+alter table nop_meta_data_source add constraint UK_NOP_META_DS_QUERY_SPACE unique (NOP_TENANT_ID,QUERY_SPACE);
+
+                alter table nop_meta_data_source drop constraint UK_NOP_META_DATA_SOURCE_NAME;
+alter table nop_meta_data_source add constraint UK_NOP_META_DATA_SOURCE_NAME unique (NOP_TENANT_ID,NAME);
+
+                alter table nop_meta_semantic_type drop constraint UK_NOP_META_SEM_TYPE_NAME;
+alter table nop_meta_semantic_type add constraint UK_NOP_META_SEM_TYPE_NAME unique (NOP_TENANT_ID,TYPE_NAME);
+
+                alter table nop_meta_quality_rule drop constraint UK_NOP_META_QRULE_NAME;
+alter table nop_meta_quality_rule add constraint UK_NOP_META_QRULE_NAME unique (NOP_TENANT_ID,RULE_NAME);
+
+                alter table nop_meta_reconciliation_entity drop constraint UK_NOP_META_RECONCILIATION_ENTITY_ID;
+alter table nop_meta_reconciliation_entity add constraint UK_NOP_META_RECONCILIATION_ENTITY_ID unique (NOP_TENANT_ID,ENTITY_ID,ENTITY_TYPE);
+
+                alter table nop_meta_glossary drop constraint UK_NOP_META_GLOSSARY_NAME;
+alter table nop_meta_glossary add constraint UK_NOP_META_GLOSSARY_NAME unique (NOP_TENANT_ID,NAME);
+
+                alter table nop_meta_classification drop constraint UK_NOP_META_CLASSIFICATION_NAME;
+alter table nop_meta_classification add constraint UK_NOP_META_CLASSIFICATION_NAME unique (NOP_TENANT_ID,NAME);
+
+                alter table nop_meta_business_domain drop constraint UK_NOP_META_BUSINESS_DOMAIN_PARENT_NAME;
+alter table nop_meta_business_domain add constraint UK_NOP_META_BUSINESS_DOMAIN_PARENT_NAME unique (NOP_TENANT_ID,PARENT_DOMAIN_ID,NAME);
+
+                alter table nop_meta_orm_model drop constraint UK_NOP_META_ORM_MODEL_MODULE_NAME;
+alter table nop_meta_orm_model add constraint UK_NOP_META_ORM_MODEL_MODULE_NAME unique (NOP_TENANT_ID,META_MODULE_ID,MODEL_NAME,IS_DELTA);
+
+                alter table nop_meta_table drop constraint UK_NOP_META_TABLE_MODULE_NAME;
+alter table nop_meta_table add constraint UK_NOP_META_TABLE_MODULE_NAME unique (NOP_TENANT_ID,META_MODULE_ID,TABLE_NAME,IS_DELTA);
+
+                alter table nop_meta_pipeline drop constraint UK_NOP_META_PIPELINE_MODULE_NAME;
+alter table nop_meta_pipeline add constraint UK_NOP_META_PIPELINE_MODULE_NAME unique (NOP_TENANT_ID,META_MODULE_ID,PIPELINE_NAME);
+
+                alter table nop_meta_quality_checkpoint drop constraint UK_NOP_META_QCHECKPOINT_NAME;
+alter table nop_meta_quality_checkpoint add constraint UK_NOP_META_QCHECKPOINT_NAME unique (NOP_TENANT_ID,CHECKPOINT_NAME);
+
+                alter table nop_meta_manifest drop constraint UK_NOP_META_MANIFEST_MODULE_VER;
+alter table nop_meta_manifest add constraint UK_NOP_META_MANIFEST_MODULE_VER unique (NOP_TENANT_ID,META_MODULE_ID,MANIFEST_VERSION);
+
+                alter table nop_meta_glossary_term drop constraint UK_NOP_META_GLOSSARY_TERM_FQN;
+alter table nop_meta_glossary_term add constraint UK_NOP_META_GLOSSARY_TERM_FQN unique (NOP_TENANT_ID,FULLY_QUALIFIED_NAME);
+
+                alter table nop_meta_glossary_term drop constraint UK_NOP_META_GLOSSARY_TERM_G_FQN;
+alter table nop_meta_glossary_term add constraint UK_NOP_META_GLOSSARY_TERM_G_FQN unique (NOP_TENANT_ID,GLOSSARY_ID,FULLY_QUALIFIED_NAME);
+
+                alter table nop_meta_tag drop constraint UK_NOP_META_TAG_FQN;
+alter table nop_meta_tag add constraint UK_NOP_META_TAG_FQN unique (NOP_TENANT_ID,FULLY_QUALIFIED_NAME);
+
+                alter table nop_meta_tag drop constraint UK_NOP_META_TAG_CLS_FQN;
+alter table nop_meta_tag add constraint UK_NOP_META_TAG_CLS_FQN unique (NOP_TENANT_ID,CLASSIFICATION_ID,FULLY_QUALIFIED_NAME);
+
+                alter table nop_meta_data_product drop constraint UK_NOP_META_DATA_PRODUCT_DOMAIN_NAME;
+alter table nop_meta_data_product add constraint UK_NOP_META_DATA_PRODUCT_DOMAIN_NAME unique (NOP_TENANT_ID,BUSINESS_DOMAIN_ID,NAME);
+
+                alter table nop_meta_entity drop constraint UK_NOP_META_ENTITY_MODEL_NAME;
+alter table nop_meta_entity add constraint UK_NOP_META_ENTITY_MODEL_NAME unique (NOP_TENANT_ID,ORM_MODEL_ID,ENTITY_NAME);
+
+                alter table nop_meta_domain drop constraint UK_NOP_META_DOMAIN_MODEL_NAME;
+alter table nop_meta_domain add constraint UK_NOP_META_DOMAIN_MODEL_NAME unique (NOP_TENANT_ID,ORM_MODEL_ID,DOMAIN_NAME);
+
+                alter table nop_meta_dict drop constraint UK_NOP_META_DICT_MODEL_NAME;
+alter table nop_meta_dict add constraint UK_NOP_META_DICT_MODEL_NAME unique (NOP_TENANT_ID,ORM_MODEL_ID,DICT_NAME);
+
+                alter table nop_meta_table_dimension drop constraint UK_NOP_META_DIM_TABLE_NAME;
+alter table nop_meta_table_dimension add constraint UK_NOP_META_DIM_TABLE_NAME unique (NOP_TENANT_ID,META_TABLE_ID,DIMENSION_NAME);
+
+                alter table nop_meta_table_measure drop constraint UK_NOP_META_MEASURE_TABLE_NAME;
+alter table nop_meta_table_measure add constraint UK_NOP_META_MEASURE_TABLE_NAME unique (NOP_TENANT_ID,META_TABLE_ID,MEASURE_NAME);
+
+                alter table nop_meta_table_filter drop constraint UK_NOP_META_FILTER_TABLE_NAME;
+alter table nop_meta_table_filter add constraint UK_NOP_META_FILTER_TABLE_NAME unique (NOP_TENANT_ID,META_TABLE_ID,FILTER_NAME);
+
+                alter table nop_meta_profiling_rule drop constraint UK_NOP_META_PROFRULE_TABLE_NAME;
+alter table nop_meta_profiling_rule add constraint UK_NOP_META_PROFRULE_TABLE_NAME unique (NOP_TENANT_ID,META_TABLE_ID,RULE_NAME);
+
+                alter table nop_meta_data_contract drop constraint UK_NOP_META_CONTRACT_NAME;
+alter table nop_meta_data_contract add constraint UK_NOP_META_CONTRACT_NAME unique (NOP_TENANT_ID,CONTRACT_NAME);
+
+                alter table nop_meta_reconciliation_config drop constraint UK_NOP_META_RECONCILIATION_CONFIG_NAME;
+alter table nop_meta_reconciliation_config add constraint UK_NOP_META_RECONCILIATION_CONFIG_NAME unique (NOP_TENANT_ID,CONFIG_NAME);
+
+                alter table nop_meta_lineage_edge drop constraint UK_NOP_META_LINEAGE_EDGE_SRC_TGT_TYPE;
+alter table nop_meta_lineage_edge add constraint UK_NOP_META_LINEAGE_EDGE_SRC_TGT_TYPE unique (NOP_TENANT_ID,SOURCE_TABLE_ID,TARGET_TABLE_ID,TRANSFORM_TYPE);
+
+                alter table nop_meta_tag_label drop constraint UK_NOP_META_TAG_LABEL;
+alter table nop_meta_tag_label add constraint UK_NOP_META_TAG_LABEL unique (NOP_TENANT_ID,ENTITY_TYPE,ENTITY_ID,TAG_ID,SOURCE);
+
+                alter table nop_meta_entity_field drop constraint UK_NOP_META_FIELD_ENTITY_NAME;
+alter table nop_meta_entity_field add constraint UK_NOP_META_FIELD_ENTITY_NAME unique (NOP_TENANT_ID,META_ENTITY_ID,FIELD_NAME);
+
+                alter table nop_meta_entity_relation drop constraint UK_NOP_META_REL_ENTITY_NAME;
+alter table nop_meta_entity_relation add constraint UK_NOP_META_REL_ENTITY_NAME unique (NOP_TENANT_ID,META_ENTITY_ID,RELATION_NAME);
+
+                alter table nop_meta_entity_unique_key drop constraint UK_NOP_META_UK_ENTITY_NAME;
+alter table nop_meta_entity_unique_key add constraint UK_NOP_META_UK_ENTITY_NAME unique (NOP_TENANT_ID,META_ENTITY_ID,UK_NAME);
+
+                alter table nop_meta_entity_index drop constraint UK_NOP_META_IDX_ENTITY_NAME;
+alter table nop_meta_entity_index add constraint UK_NOP_META_IDX_ENTITY_NAME unique (NOP_TENANT_ID,META_ENTITY_ID,INDEX_NAME);
+
+                alter table nop_meta_table_join drop constraint UK_NOP_META_JOIN_TABLE_ALIAS;
+alter table nop_meta_table_join add constraint UK_NOP_META_JOIN_TABLE_ALIAS unique (NOP_TENANT_ID,META_TABLE_ID,ALIAS);
+
+                alter table nop_meta_dict_item drop constraint UK_NOP_META_DICT_ITEM_VALUE;
+alter table nop_meta_dict_item add constraint UK_NOP_META_DICT_ITEM_VALUE unique (NOP_TENANT_ID,META_DICT_ID,ITEM_VALUE);
+
+                

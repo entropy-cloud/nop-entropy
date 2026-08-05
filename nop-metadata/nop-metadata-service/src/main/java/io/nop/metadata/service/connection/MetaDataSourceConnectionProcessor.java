@@ -1,10 +1,3 @@
-/**
- * Copyright (c) 2017-2024 Nop Platform. All rights reserved.
- * Author: canonical_entropy@163.com
- * Blog:   https://www.zhihu.com/people/canonical-entropy
- * Gitee:  https://github.com/entropy-cloud/nop-entropy
- * Github: https://github.com/entropy-cloud/nop-entropy
- */
 
 package io.nop.metadata.service.connection;
 
@@ -266,7 +259,13 @@ public class MetaDataSourceConnectionProcessor implements IMetaDataSourceConnect
         return CREDENTIAL_PATTERN.matcher(jdbcUrl).replaceAll("$1");
     }
 
-    /** 从 jdbcUrl 粗提取 host（jdbc:h2:mem / jdbc:h2:file 不返回 host，跳过内网校验）。 */
+    /**
+     * 从 jdbcUrl 粗提取 host（jdbc:h2:mem / jdbc:h2:file 不返回 host，跳过内网校验）。
+     *
+     * <p>MA7.2-01 修复：(a) 剥离 userinfo（{@code user:pass@host} 取最后一个 {@code @} 之后），
+     * 防止把用户名当 host；(b) 支持 IPv6 字面量 {@code [::1]} / {@code [::ffff:127.0.0.1]}，
+     * IPv4-mapped 形式归一化为 IPv4 段供内网校验。
+     */
     private static String extractHost(String jdbcUrl) {
         // jdbc:mysql://host:port/db  |  jdbc:postgresql://host:port/db
         int schemeEnd = jdbcUrl.indexOf("://");
@@ -280,9 +279,58 @@ public class MetaDataSourceConnectionProcessor implements IMetaDataSourceConnect
         int q = rest.indexOf('?');
         int end = minPositive(minPositive(slash, comma), q);
         String hostPort = end > 0 ? rest.substring(0, end) : rest;
+        // 剥离 userinfo：user:pass@host 形式取最后一个 @ 之后（用户名/密码可能含 @ 编码变体）
+        int lastAt = hostPort.lastIndexOf('@');
+        if (lastAt >= 0) {
+            hostPort = hostPort.substring(lastAt + 1);
+        }
+        // IPv6 字面量形如 [::1] 或 [::ffff:127.0.0.1]:3306
+        if (hostPort.startsWith("[")) {
+            int closeBracket = hostPort.indexOf(']');
+            if (closeBracket > 0) {
+                return normalizeIpv4MappedHost(hostPort.substring(1, closeBracket));
+            }
+            return null;
+        }
         int colon = hostPort.indexOf(':');
         String host = colon > 0 ? hostPort.substring(0, colon) : hostPort;
         return host.isEmpty() ? null : host;
+    }
+
+    /** IPv4-mapped IPv6（{@code ::ffff:a.b.c.d}）→ IPv4 段；其余形式原样返回。 */
+    private static String normalizeIpv4MappedHost(String host) {
+        String h = host.toLowerCase();
+        int idx = h.lastIndexOf("::ffff:");
+        if (idx < 0) {
+            return host;
+        }
+        String tail = h.substring(idx + 7);
+        return isIpv4Literal(tail) ? tail : host;
+    }
+
+    private static boolean isIpv4Literal(String s) {
+        String[] parts = s.split("\\.");
+        if (parts.length != 4) {
+            return false;
+        }
+        for (String p : parts) {
+            if (p.isEmpty() || p.length() > 3) {
+                return false;
+            }
+            for (int i = 0; i < p.length(); i++) {
+                if (!Character.isDigit(p.charAt(i))) {
+                    return false;
+                }
+            }
+            try {
+                if (Integer.parseInt(p) > 255) {
+                    return false;
+                }
+            } catch (NumberFormatException e) {
+                return false;
+            }
+        }
+        return true;
     }
 
     private static int minPositive(int a, int b) {

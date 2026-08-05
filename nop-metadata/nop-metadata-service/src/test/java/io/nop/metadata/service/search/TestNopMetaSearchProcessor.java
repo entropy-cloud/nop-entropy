@@ -14,17 +14,17 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
-class TestNopMetaSearchService {
+class TestNopMetaSearchProcessor {
 
     @Mock
     ISearchEngine searchEngine;
 
-    NopMetaSearchService service;
+    NopMetaSearchProcessor service;
 
     @BeforeEach
     void setUp() {
         MockitoAnnotations.openMocks(this);
-        service = new NopMetaSearchService();
+        service = new NopMetaSearchProcessor();
         service.searchEngine = searchEngine;
         // Default: fail-close = false (propagate exceptions)
         service.setSearchIndexFailOpen(false);
@@ -39,14 +39,14 @@ class TestNopMetaSearchService {
 
         service.addToIndex("TestEntity", "test-id", doc);
 
-        verify(searchEngine).addDoc(eq(NopMetaSearchService.TOPIC), eq(doc));
+        verify(searchEngine).addDoc(eq(NopMetaSearchProcessor.TOPIC), eq(doc));
     }
 
     @Test
     void testRemoveFromIndex() {
         service.removeFromIndex("TestEntity", "test-id");
 
-        verify(searchEngine).removeDocs(eq(NopMetaSearchService.TOPIC), eq(List.of("test-id")));
+        verify(searchEngine).removeDocs(eq(NopMetaSearchProcessor.TOPIC), eq(List.of("test-id")));
     }
 
     @Test
@@ -111,7 +111,7 @@ class TestNopMetaSearchService {
 
     @Test
     void testSearchIndexFailOpen_defaultIsFalse() {
-        NopMetaSearchService fresh = new NopMetaSearchService();
+        NopMetaSearchProcessor fresh = new NopMetaSearchProcessor();
         assertFalse(fresh.isSearchIndexFailOpen(), "default fail-close");
     }
 }

@@ -29,72 +29,76 @@ public class _NopMetaTable extends DynamicOrmEntity{
     public static final String PROP_NAME_metaModuleId = "metaModuleId";
     public static final int PROP_ID_metaModuleId = 2;
     
+    /* 是否Delta: IS_DELTA TINYINT */
+    public static final String PROP_NAME_isDelta = "isDelta";
+    public static final int PROP_ID_isDelta = 3;
+    
     /* 表名: TABLE_NAME VARCHAR */
     public static final String PROP_NAME_tableName = "tableName";
-    public static final int PROP_ID_tableName = 3;
+    public static final int PROP_ID_tableName = 4;
     
     /* 显示名: DISPLAY_NAME VARCHAR */
     public static final String PROP_NAME_displayName = "displayName";
-    public static final int PROP_ID_displayName = 4;
+    public static final int PROP_ID_displayName = 5;
     
     /* 表类型: TABLE_TYPE VARCHAR */
     public static final String PROP_NAME_tableType = "tableType";
-    public static final int PROP_ID_tableType = 5;
+    public static final int PROP_ID_tableType = 6;
     
     /* 查询空间: QUERY_SPACE VARCHAR */
     public static final String PROP_NAME_querySpace = "querySpace";
-    public static final int PROP_ID_querySpace = 6;
+    public static final int PROP_ID_querySpace = 7;
     
     /* 来源SQL: SOURCE_SQL VARCHAR */
     public static final String PROP_NAME_sourceSql = "sourceSql";
-    public static final int PROP_ID_sourceSql = 7;
+    public static final int PROP_ID_sourceSql = 8;
     
     /* 主要实体ID: BASE_ENTITY_ID VARCHAR */
     public static final String PROP_NAME_baseEntityId = "baseEntityId";
-    public static final int PROP_ID_baseEntityId = 8;
+    public static final int PROP_ID_baseEntityId = 9;
     
     /* 描述: DESCRIPTION VARCHAR */
     public static final String PROP_NAME_description = "description";
-    public static final int PROP_ID_description = 9;
+    public static final int PROP_ID_description = 10;
     
     /* 合成SQL: BUILD_SQL VARCHAR */
     public static final String PROP_NAME_buildSql = "buildSql";
-    public static final int PROP_ID_buildSql = 10;
+    public static final int PROP_ID_buildSql = 11;
     
     /* 数据版本: VERSION BIGINT */
     public static final String PROP_NAME_version = "version";
-    public static final int PROP_ID_version = 11;
+    public static final int PROP_ID_version = 12;
     
     /* 创建人: CREATED_BY VARCHAR */
     public static final String PROP_NAME_createdBy = "createdBy";
-    public static final int PROP_ID_createdBy = 12;
+    public static final int PROP_ID_createdBy = 13;
     
     /* 创建时间: CREATE_TIME TIMESTAMP */
     public static final String PROP_NAME_createTime = "createTime";
-    public static final int PROP_ID_createTime = 13;
+    public static final int PROP_ID_createTime = 14;
     
     /* 修改人: UPDATED_BY VARCHAR */
     public static final String PROP_NAME_updatedBy = "updatedBy";
-    public static final int PROP_ID_updatedBy = 14;
+    public static final int PROP_ID_updatedBy = 15;
     
     /* 修改时间: UPDATE_TIME TIMESTAMP */
     public static final String PROP_NAME_updateTime = "updateTime";
-    public static final int PROP_ID_updateTime = 15;
+    public static final int PROP_ID_updateTime = 16;
     
     /* 备注: REMARK VARCHAR */
     public static final String PROP_NAME_remark = "remark";
-    public static final int PROP_ID_remark = 16;
+    public static final int PROP_ID_remark = 17;
     
     /* 源schema: META_SCHEMA VARCHAR */
     public static final String PROP_NAME_metaSchema = "metaSchema";
-    public static final int PROP_ID_metaSchema = 17;
+    public static final int PROP_ID_metaSchema = 18;
     
     /* 业务域ID: BUSINESS_DOMAIN_ID VARCHAR */
     public static final String PROP_NAME_businessDomainId = "businessDomainId";
-    public static final int PROP_ID_businessDomainId = 18;
+    public static final int PROP_ID_businessDomainId = 19;
     
 
-    private static int _PROP_ID_BOUND = 19;
+    private static int _PROP_ID_BOUND = 20;
 
     
     /* relation: 元数据模块 */
@@ -149,7 +153,7 @@ public class _NopMetaTable extends DynamicOrmEntity{
     protected static final List<String> PK_PROP_NAMES = Arrays.asList(PROP_NAME_metaTableId);
     protected static final int[] PK_PROP_IDS = new int[]{PROP_ID_metaTableId};
 
-    private static final String[] PROP_ID_TO_NAME = new String[19];
+    private static final String[] PROP_ID_TO_NAME = new String[20];
     private static final Map<String,Integer> PROP_NAME_TO_ID = new HashMap<>();
     static{
       
@@ -158,6 +162,9 @@ public class _NopMetaTable extends DynamicOrmEntity{
       
           PROP_ID_TO_NAME[PROP_ID_metaModuleId] = PROP_NAME_metaModuleId;
           PROP_NAME_TO_ID.put(PROP_NAME_metaModuleId, PROP_ID_metaModuleId);
+      
+          PROP_ID_TO_NAME[PROP_ID_isDelta] = PROP_NAME_isDelta;
+          PROP_NAME_TO_ID.put(PROP_NAME_isDelta, PROP_ID_isDelta);
       
           PROP_ID_TO_NAME[PROP_ID_tableName] = PROP_NAME_tableName;
           PROP_NAME_TO_ID.put(PROP_NAME_tableName, PROP_ID_tableName);
@@ -215,6 +222,9 @@ public class _NopMetaTable extends DynamicOrmEntity{
     
     /* 模块版本ID: META_MODULE_ID */
     private java.lang.String _metaModuleId;
+    
+    /* 是否Delta: IS_DELTA */
+    private java.lang.Byte _isDelta;
     
     /* 表名: TABLE_NAME */
     private java.lang.String _tableName;
@@ -344,6 +354,9 @@ public class _NopMetaTable extends DynamicOrmEntity{
             case PROP_ID_metaModuleId:
                return getMetaModuleId();
         
+            case PROP_ID_isDelta:
+               return getIsDelta();
+        
             case PROP_ID_tableName:
                return getTableName();
         
@@ -420,6 +433,16 @@ public class _NopMetaTable extends DynamicOrmEntity{
                        err-> newTypeConversionError(PROP_NAME_metaModuleId));
                }
                setMetaModuleId(typedValue);
+               break;
+            }
+        
+            case PROP_ID_isDelta:{
+               java.lang.Byte typedValue = null;
+               if(value != null){
+                   typedValue = ConvertHelper.toByte(value,
+                       err-> newTypeConversionError(PROP_NAME_isDelta));
+               }
+               setIsDelta(typedValue);
                break;
             }
         
@@ -606,6 +629,13 @@ public class _NopMetaTable extends DynamicOrmEntity{
                break;
             }
         
+            case PROP_ID_isDelta:{
+               onInitProp(propId);
+               this._isDelta = (java.lang.Byte)value;
+               
+               break;
+            }
+        
             case PROP_ID_tableName:{
                onInitProp(propId);
                this._tableName = (java.lang.String)value;
@@ -758,6 +788,25 @@ public class _NopMetaTable extends DynamicOrmEntity{
         if(onPropSet(PROP_ID_metaModuleId,value)){
             this._metaModuleId = value;
             internalClearRefs(PROP_ID_metaModuleId);
+            
+        }
+    }
+    
+    /**
+     * 是否Delta: IS_DELTA
+     */
+    public final java.lang.Byte getIsDelta(){
+         onPropGet(PROP_ID_isDelta);
+         return _isDelta;
+    }
+
+    /**
+     * 是否Delta: IS_DELTA
+     */
+    public final void setIsDelta(java.lang.Byte value){
+        if(onPropSet(PROP_ID_isDelta,value)){
+            this._isDelta = value;
+            internalClearRefs(PROP_ID_isDelta);
             
         }
     }

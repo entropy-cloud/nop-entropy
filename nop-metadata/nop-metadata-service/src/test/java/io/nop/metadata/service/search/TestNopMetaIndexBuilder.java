@@ -47,8 +47,8 @@ class TestNopMetaIndexBuilder {
         assertNotNull(results);
         assertEquals(6, results.size());
 
-        verify(searchEngine, times(6)).addDocs(eq(NopMetaSearchService.TOPIC), anyList());
-        verify(searchEngine, times(6)).refreshBlocking(NopMetaSearchService.TOPIC);
+        verify(searchEngine, times(6)).addDocs(eq(NopMetaSearchProcessor.TOPIC), anyList());
+        verify(searchEngine, times(6)).refreshBlocking(NopMetaSearchProcessor.TOPIC);
     }
 
     @Test
@@ -67,8 +67,8 @@ class TestNopMetaIndexBuilder {
         assertEquals(1, results.size());
         assertEquals("Classification", results.get(0).getEntityType());
 
-        verify(searchEngine).addDocs(eq(NopMetaSearchService.TOPIC), anyList());
-        verify(searchEngine).refreshBlocking(NopMetaSearchService.TOPIC);
+        verify(searchEngine).addDocs(eq(NopMetaSearchProcessor.TOPIC), anyList());
+        verify(searchEngine).refreshBlocking(NopMetaSearchProcessor.TOPIC);
     }
 
     @Test

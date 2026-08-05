@@ -41,7 +41,7 @@ public class NopMetaSearchBizModel {
     protected NopMetaIndexBuilder indexBuilder;
 
     @Inject
-    protected NopMetaSearchService searchService;
+    protected NopMetaSearchProcessor searchService;
 
     @Inject
     @Nullable
@@ -70,7 +70,7 @@ public class NopMetaSearchBizModel {
         }
 
         SearchRequest request = new SearchRequest();
-        request.setTopic(NopMetaSearchService.TOPIC);
+        request.setTopic(NopMetaSearchProcessor.TOPIC);
         request.setTags(entityType != null ? Collections.singleton(entityType) : null);
         request.setQuery(query);
         request.setLimit(limit);

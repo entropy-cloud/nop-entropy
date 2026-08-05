@@ -243,13 +243,16 @@ public class NopMetaLineageEdgeQueryAction {
         Map<String, NopMetaLineageEdge> existingEdgeMap = batchLoadExistingColumnParseEdgeMap(resolvedSourceIds, targetId, dao);
         List<NopMetaLineageEdge> toSave = new ArrayList<>();
         List<NopMetaLineageEdge> toUpdate = new ArrayList<>();
+        // 同批去重：同一表达式内重复列引用（如 a.x + a.x）产生同键候选，toSave 内待插项不在
+        // existingEdgeMap 中，第二条同键候选会重复 INSERT（MA7.4-02）——用已见键集合拦截
+        Set<String> seenKeys = new HashSet<>();
         int extracted = 0;
         for (int i = 0; i < resolvedCandidates.size(); i++) {
             ColumnLineageCandidate c = resolvedCandidates.get(i);
             String sourceId = resolvedSourceIds.get(i);
             String key = sourceId + "|" + c.getSourceColumn() + "|" + c.getTargetColumn();
             NopMetaLineageEdge existing = existingEdgeMap.get(key);
-            if (existing == null) {
+            if (existing == null && seenKeys.add(key)) {
                 NopMetaLineageEdge edge = dao.newEntity();
                 edge.setSourceTableId(sourceId);
                 edge.setTargetTableId(targetId);
@@ -258,7 +261,7 @@ public class NopMetaLineageEdgeQueryAction {
                 edge.setLineageSource(_NopMetadataCoreConstants.LINEAGE_SOURCE_SQL_PARSE);
                 edge.setTransformType(c.getTransformType());
                 toSave.add(edge);
-            } else if (!c.getTransformType().equals(existing.getTransformType())) {
+            } else if (existing != null && !c.getTransformType().equals(existing.getTransformType())) {
                 existing.setTransformType(c.getTransformType());
                 toUpdate.add(existing);
             }

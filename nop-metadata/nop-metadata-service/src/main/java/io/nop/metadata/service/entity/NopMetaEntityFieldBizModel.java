@@ -9,7 +9,7 @@ import io.nop.metadata.biz.INopMetaEntityFieldBiz;
 import io.nop.metadata.dao.entity.NopMetaEntity;
 import io.nop.metadata.dao.entity.NopMetaEntityField;
 import io.nop.metadata.service.NopMetadataHelper;
-import io.nop.metadata.service.search.NopMetaSearchService;
+import io.nop.metadata.service.search.NopMetaSearchProcessor;
 import io.nop.search.api.SearchableDoc;
 import jakarta.inject.Inject;
 
@@ -19,7 +19,7 @@ import java.util.Set;
 @BizModel("NopMetaEntityField")
 public class NopMetaEntityFieldBizModel extends CrudBizModel<NopMetaEntityField> implements INopMetaEntityFieldBiz{
     @Inject
-    protected NopMetaSearchService searchService;
+    protected NopMetaSearchProcessor searchService;
 
     public NopMetaEntityFieldBizModel() {
         setEntityName(NopMetaEntityField.class.getName());

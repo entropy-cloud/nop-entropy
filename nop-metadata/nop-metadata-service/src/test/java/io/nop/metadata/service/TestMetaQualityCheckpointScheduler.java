@@ -1,10 +1,3 @@
-/**
- * Copyright (c) 2017-2024 Nop Platform. All rights reserved.
- * Author: canonical_entropy@163.com
- * Blog:   https://www.zhihu.com/people/canonical-entropy
- * Gitee:  https://gitee.com/canonical-entropy/nop-entropy
- * Github: https://github.com/entropy-cloud/nop-entropy
- */
 package io.nop.metadata.service;
 
 import io.nop.api.core.annotations.autotest.NopTestConfig;
@@ -18,6 +11,7 @@ import io.nop.dao.api.IDaoProvider;
 import io.nop.dao.api.IEntityDao;
 import io.nop.graphql.core.engine.IGraphQLEngine;
 import io.nop.job.api.IJobScheduler;
+import io.nop.job.api.JobState;
 import io.nop.metadata.dao.entity.NopMetaDataSource;
 import io.nop.metadata.dao.entity.NopMetaModule;
 import io.nop.metadata.dao.entity.NopMetaQualityCheckpoint;
@@ -187,6 +181,85 @@ public class TestMetaQualityCheckpointScheduler extends JunitBaseTestCase {
         // IoC init 完成 = scanner @PostConstruct 未抛崩（否则 bean 注入会失败）
     }
 
+    // ===== (f) MA7.5-01：checkpoint 级业务错误不杀死 cron job =====
+
+    /**
+     * 检查点配置级业务错误（validations 引用已删除规则 → 规则集为空 → ERR_CHECKPOINT_NO_RULES）触发时，
+     * executeScheduledCheckpoint 必须把错误转为日志 + 正常结果，job 存活（MA7.5-01）：
+     * <ul>
+     *   <li>fireNow 首次触发返回 true（job 正常执行）</li>
+     *   <li>fireNow 第二次仍返回 true——修复前异常经 invoker 转 JobFireResult.ERROR → job 被 LocalJobScheduler
+     *       置 FAILED，fireNow 对 FAILED job 直接返回 false（fireNow 门禁），job 永久死亡</li>
+     *   <li>job 状态为 WAITING（已重新排程），而非 FAILED</li>
+     *   <li>修复配置（validations 指向存在的规则）后 registerCheckpoint → fireNow → 结果正常落盘（无需重启 JVM）</li>
+     * </ul>
+     */
+    @Test
+    public void testScheduledCheckpointBusinessErrorDoesNotKillJob() throws Exception {
+        String dbUrl = "jdbc:h2:mem:meta_cron_survive;DB_CLOSE_DELAY=-1";
+        seedTable(dbUrl, "CREATE TABLE ext_surv (id INT NOT NULL)", "INSERT INTO ext_surv VALUES (1)");
+        PreparedEnv env = prepare(dbUrl, "qs_cron_survive");
+        String tableId = env.tableId("EXT_SURV");
+        saveRule("r-survive-vol", "volume", "table", tableId, null, null, "{\"minRows\":1}"); // PASS
+
+        // broken config: validations reference a deleted rule -> empty rule set -> ERR_CHECKPOINT_NO_RULES
+        saveCheckpointWithSchedule("cp-survive", "ACTIVE",
+                "[{\"ruleIds\":[\"__deleted_rule__\"]}]", null, "0 0/5 * * * ?");
+        checkpointScheduler.registerCheckpoint("cp-survive");
+
+        String jobName = MetaQualityCheckpointScheduler.jobName("cp-survive");
+        IJobScheduler scheduler = checkpointScheduler.getScheduler();
+        assertTrue(scheduler.getJobNames().contains(jobName), "job must be registered: " + scheduler.getJobNames());
+
+        assertTrue(scheduler.fireNow(jobName), "first fire must execute the job");
+        assertTrue(scheduler.fireNow(jobName),
+                "job must survive checkpoint-level business error (second fire must still work; "
+                        + "before fix the job was FAILED and fireNow returned false)");
+        assertEquals(JobState.WAITING, scheduler.getJobState(jobName),
+                "job must be re-scheduled (WAITING) after business error, not FAILED");
+
+        // 配置修复可复活 job（无需重启 JVM）
+        updateCheckpointValidations("cp-survive", "[{\"ruleIds\":[\"r-survive-vol\"]}]");
+        checkpointScheduler.registerCheckpoint("cp-survive");
+        assertTrue(scheduler.fireNow(jobName), "fireNow after config fix must execute");
+        assertEquals(1, countResults("r-survive-vol"), "fixed config must write result rows");
+    }
+
+    // ===== (g) MA7.5-03：cron 改为非法值 → 旧 job 残留清理 =====
+
+    /**
+     * 检查点原 cron 合法已注册；把 cron 改为非法值后 registerCheckpoint → addJob 抛
+     * ERR_JOB_TRIGGER_PARSE_CRON_EXPR_FAIL → 旧 job（旧 cron）必须被 removeJob 清理（MA7.5-03）：
+     * <ul>
+     *   <li>合法 cron 注册 → job 在 getJobNames 中</li>
+     *   <li>非法 cron 重新注册 → addJob 失败 → 旧 job 从调度器移除（不再按过期时间表触发）</li>
+     *   <li>cron 修正回合法值 → registerCheckpoint → job 重新注册（配置修复可恢复调度）</li>
+     * </ul>
+     */
+    @Test
+    public void testInvalidCronUpdateRemovesStaleJob() {
+        String checkpointId = "cp-stale-cron";
+        IJobScheduler scheduler = checkpointScheduler.getScheduler();
+        String jobName = MetaQualityCheckpointScheduler.jobName(checkpointId);
+
+        saveCheckpointWithSchedule(checkpointId, "ACTIVE", "[]", null, "0 0/5 * * * ?");
+        checkpointScheduler.registerCheckpoint(checkpointId);
+        assertTrue(scheduler.getJobNames().contains(jobName),
+                "valid cron must register job: " + scheduler.getJobNames());
+
+        // cron 改为非法值 → addJob 抛错 → 旧 job 必须被移除（否则继续按旧 cron 触发）
+        updateCheckpointCron(checkpointId, "not-a-valid-cron");
+        checkpointScheduler.registerCheckpoint(checkpointId);
+        assertFalse(scheduler.getJobNames().contains(jobName),
+                "stale job with old cron must be removed after invalid cron update: " + scheduler.getJobNames());
+
+        // 修正回合法值 → 重新注册成功（配置修复可恢复调度）
+        updateCheckpointCron(checkpointId, "0 0/6 * * * ?");
+        checkpointScheduler.registerCheckpoint(checkpointId);
+        assertTrue(scheduler.getJobNames().contains(jobName),
+                "job must be re-registered after cron fixed: " + scheduler.getJobNames());
+    }
+
     // ===== helpers =====
 
     private void seedTable(String dbUrl, String createDdl, String... inserts) throws Exception {
@@ -299,6 +372,22 @@ public class TestMetaQualityCheckpointScheduler extends JunitBaseTestCase {
         module.setImportedAt(new Timestamp(System.currentTimeMillis()));
         moduleDao.saveEntity(module);
         return module.getMetaModuleId();
+    }
+
+    private void updateCheckpointValidations(String checkpointId, String validations) {
+        IEntityDao<NopMetaQualityCheckpoint> dao = daoProvider.daoFor(NopMetaQualityCheckpoint.class);
+        NopMetaQualityCheckpoint cp = dao.getEntityById(checkpointId);
+        assertNotNull(cp, "checkpoint must exist: " + checkpointId);
+        cp.setValidations(validations);
+        dao.updateEntity(cp);
+    }
+
+    private void updateCheckpointCron(String checkpointId, String cron) {
+        IEntityDao<NopMetaQualityCheckpoint> dao = daoProvider.daoFor(NopMetaQualityCheckpoint.class);
+        NopMetaQualityCheckpoint cp = dao.getEntityById(checkpointId);
+        assertNotNull(cp, "checkpoint must exist: " + checkpointId);
+        cp.setExtConfig("{\"schedule\":\"" + cron + "\",\"autoScore\":true}");
+        dao.updateEntity(cp);
     }
 
     private long countResults(String ruleId) {

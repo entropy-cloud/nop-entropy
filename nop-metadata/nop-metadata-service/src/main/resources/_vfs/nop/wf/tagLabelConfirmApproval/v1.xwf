@@ -11,14 +11,19 @@
             <source>
                 <c:script><![CDATA[
                     // 幂等：仅在 approveStatus=SUBMITTED 时调用 approve（避免 before-end/after-end 重复触发，
-                    // 参照平台 approval-form 测试流模式）。wf 正常结束即视为审批通过。
-                    const bizObjManager = inject('nopBizObjectManager');
-                    const entityBizObj = bizObjManager.getBizObject('NopMetaTagLabel');
-                    const entityId = wfRt.wf.bizEntityId;
-                    if (entityId != null) {
-                        const entity = entityBizObj.invoke('requireEntity', {id: entityId}, null, wfRt.svcCtx);
-                        if (entity.approveStatus === 'SUBMITTED') {
-                            entityBizObj.invoke('approve', {id: entityId}, null, wfRt.svcCtx);
+                    // 参照平台 approval-form 测试流模式）。wf 正常结束（agree 正路径）即视为审批通过；
+                    // 但经基模板 oa.xwf 的 disagree 动作结束（wf.record.appState='disagree'，驳回/退回路径）
+                    // 不视为通过——不得调用 approve（MA7.6-01：驳回即通过 / 发起人可自批）。
+                    const wfAppState = wfRt.wf.record.appState;
+                    if (wfAppState !== 'disagree') {
+                        const bizObjManager = inject('nopBizObjectManager');
+                        const entityBizObj = bizObjManager.getBizObject('NopMetaTagLabel');
+                        const entityId = wfRt.wf.bizEntityId;
+                        if (entityId != null) {
+                            const entity = entityBizObj.invoke('requireEntity', {id: entityId}, null, wfRt.svcCtx);
+                            if (entity.approveStatus === 'SUBMITTED') {
+                                entityBizObj.invoke('approve', {id: entityId}, null, wfRt.svcCtx);
+                            }
                         }
                     }
                 ]]></c:script>

@@ -1,10 +1,3 @@
-/**
- * Copyright (c) 2017-2024 Nop Platform. All rights reserved.
- * Author: canonical_entropy@163.com
- * Blog:   https://www.zhihu.com/people/canonical-entropy
- * Gitee:  https://github.com/entropy-cloud/nop-entropy
- * Github: https://github.com/entropy-cloud/nop-entropy
- */
 
 package io.nop.metadata.service.entity;
 
@@ -36,7 +29,7 @@ import io.nop.metadata.dao.entity.NopMetaTable;
 import io.nop.metadata.service.connection.IMetaDataSourceConnectionProcessor;
 import io.nop.metadata.service.datasource.MetaDataSourceResolver;
 import io.nop.metadata.service.quality.MetaQualityRuleExecutor;
-import io.nop.metadata.service.quality.QualityAlertWorkflowService;
+import io.nop.metadata.service.quality.QualityAlertWorkflowProcessor;
 import io.nop.metadata.service.quality.QualityResultWriter;
 import io.nop.metadata.service.quality.QualityRuleJudgment;
 import io.nop.metadata.service.tableref.MetaTableReferenceResolver;
@@ -100,7 +93,7 @@ public class NopMetaQualityRuleBizModel extends CrudBizModel<NopMetaQualityRule>
     private final QualityResultWriter resultWriter = new QualityResultWriter();
 
     @Inject
-    protected QualityAlertWorkflowService alertWorkflowService;
+    protected QualityAlertWorkflowProcessor alertWorkflowService;
 
     /** 按 table-reference 形态分派 Connection 获取（§4.4.3 D1/D2）。延迟初始化（需 orm()）。 */
     private TableReferenceExecutor tableRefExecutor;
@@ -163,11 +156,11 @@ public class NopMetaQualityRuleBizModel extends CrudBizModel<NopMetaQualityRule>
 
         NopMetaQualityResult row = appendQualityResult(rule.getQualityRuleId(), judgment);
 
-        // 触发告警工作流：FAIL + severity=ERROR
+        // 触发告警工作流：FAIL + severity=ERROR（MA7.6-02：显式传递上下文，createAlertWorkflow 内部再兜底）
         if ("FAIL".equals(judgment.getStatus())
                 && _NopMetadataCoreConstants.QUALITY_SEVERITY_ERROR.equals(rule.getSeverity())) {
             try {
-                alertWorkflowService.createAlertWorkflow(row);
+                alertWorkflowService.createAlertWorkflow(row, context);
             } catch (Exception e) {
                 LOG.error("Failed to create alert workflow for quality rule: {}", rule.getQualityRuleId(), e);
             }

@@ -350,8 +350,8 @@
                 </to-many>
             </relations>
             <unique-keys>
-                <unique-key columns="moduleId,moduleVersion" name="UK_NOP_META_MODULE_ID_VER"
-                            i18n-en:displayName="Unique Module Id And Version"/>
+                <unique-key columns="moduleId,moduleVersion" constraint="UK_NOP_META_MODULE_ID_VER"
+                            name="UK_NOP_META_MODULE_ID_VER" i18n-en:displayName="Unique Module Id And Version"/>
             </unique-keys>
         </entity>
         <entity className="io.nop.metadata.dao.entity.NopMetaDataSource" createTimeProp="createTime"
@@ -397,9 +397,9 @@
                 </index>
             </indexes>
             <unique-keys>
-                <unique-key columns="querySpace" name="UK_NOP_META_DS_QUERY_SPACE"
-                            i18n-en:displayName="Unique Query Space"/>
-                <unique-key columns="name" name="UK_NOP_META_DATA_SOURCE_NAME"
+                <unique-key columns="querySpace" constraint="UK_NOP_META_DS_QUERY_SPACE"
+                            name="UK_NOP_META_DS_QUERY_SPACE" i18n-en:displayName="Unique Query Space"/>
+                <unique-key columns="name" constraint="UK_NOP_META_DATA_SOURCE_NAME" name="UK_NOP_META_DATA_SOURCE_NAME"
                             i18n-en:displayName="Unique Datasource Name"/>
             </unique-keys>
         </entity>
@@ -472,8 +472,8 @@
                 </to-many>
             </relations>
             <unique-keys>
-                <unique-key columns="metaModuleId,modelName" name="UK_NOP_META_ORM_MODEL_MODULE_NAME"
-                            i18n-en:displayName="Unique Model Name Per Module"/>
+                <unique-key columns="metaModuleId,modelName,isDelta" constraint="UK_NOP_META_ORM_MODEL_MODULE_NAME"
+                            name="UK_NOP_META_ORM_MODEL_MODULE_NAME" i18n-en:displayName="Unique Model Name Per Module"/>
             </unique-keys>
         </entity>
         <entity className="io.nop.metadata.dao.entity.NopMetaSemanticType" createTimeProp="createTime"
@@ -512,7 +512,7 @@
                         stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Remark"/>
             </columns>
             <unique-keys>
-                <unique-key columns="typeName" name="UK_NOP_META_SEM_TYPE_NAME"
+                <unique-key columns="typeName" constraint="UK_NOP_META_SEM_TYPE_NAME" name="UK_NOP_META_SEM_TYPE_NAME"
                             i18n-en:displayName="Unique Semantic Type Name"/>
             </unique-keys>
         </entity>
@@ -654,8 +654,8 @@
                 </to-many>
             </relations>
             <unique-keys>
-                <unique-key columns="ormModelId,entityName" name="UK_NOP_META_ENTITY_MODEL_NAME"
-                            i18n-en:displayName="Unique Entity Name Per Model"/>
+                <unique-key columns="ormModelId,entityName" constraint="UK_NOP_META_ENTITY_MODEL_NAME"
+                            name="UK_NOP_META_ENTITY_MODEL_NAME" i18n-en:displayName="Unique Entity Name Per Model"/>
             </unique-keys>
         </entity>
         <entity className="io.nop.metadata.dao.entity.NopMetaEntityField" createTimeProp="createTime"
@@ -750,8 +750,8 @@
                 </to-one>
             </relations>
             <unique-keys>
-                <unique-key columns="metaEntityId,fieldName" name="UK_NOP_META_FIELD_ENTITY_NAME"
-                            i18n-en:displayName="Unique Field Name Per Entity"/>
+                <unique-key columns="metaEntityId,fieldName" constraint="UK_NOP_META_FIELD_ENTITY_NAME"
+                            name="UK_NOP_META_FIELD_ENTITY_NAME" i18n-en:displayName="Unique Field Name Per Entity"/>
             </unique-keys>
         </entity>
         <entity className="io.nop.metadata.dao.entity.NopMetaEntityRelation" createTimeProp="createTime"
@@ -821,8 +821,8 @@
                 </to-one>
             </relations>
             <unique-keys>
-                <unique-key columns="metaEntityId,relationName" name="UK_NOP_META_REL_ENTITY_NAME"
-                            i18n-en:displayName="Unique Relation Name Per Entity"/>
+                <unique-key columns="metaEntityId,relationName" constraint="UK_NOP_META_REL_ENTITY_NAME"
+                            name="UK_NOP_META_REL_ENTITY_NAME" i18n-en:displayName="Unique Relation Name Per Entity"/>
             </unique-keys>
         </entity>
         <entity className="io.nop.metadata.dao.entity.NopMetaEntityUniqueKey" createTimeProp="createTime"
@@ -877,8 +877,8 @@
                 </to-one>
             </relations>
             <unique-keys>
-                <unique-key columns="metaEntityId,ukName" name="UK_NOP_META_UK_ENTITY_NAME"
-                            i18n-en:displayName="Unique UK Name Per Entity"/>
+                <unique-key columns="metaEntityId,ukName" constraint="UK_NOP_META_UK_ENTITY_NAME"
+                            name="UK_NOP_META_UK_ENTITY_NAME" i18n-en:displayName="Unique UK Name Per Entity"/>
             </unique-keys>
         </entity>
         <entity className="io.nop.metadata.dao.entity.NopMetaEntityIndex" createTimeProp="createTime"
@@ -933,8 +933,8 @@
                 </to-one>
             </relations>
             <unique-keys>
-                <unique-key columns="metaEntityId,indexName" name="UK_NOP_META_IDX_ENTITY_NAME"
-                            i18n-en:displayName="Unique Index Name Per Entity"/>
+                <unique-key columns="metaEntityId,indexName" constraint="UK_NOP_META_IDX_ENTITY_NAME"
+                            name="UK_NOP_META_IDX_ENTITY_NAME" i18n-en:displayName="Unique Index Name Per Entity"/>
             </unique-keys>
         </entity>
         <entity className="io.nop.metadata.dao.entity.NopMetaDomain" createTimeProp="createTime" createrProp="createdBy"
@@ -1007,8 +1007,8 @@
                 </to-one>
             </relations>
             <unique-keys>
-                <unique-key columns="ormModelId,domainName" name="UK_NOP_META_DOMAIN_MODEL_NAME"
-                            i18n-en:displayName="Unique Domain Name Per Model"/>
+                <unique-key columns="ormModelId,domainName" constraint="UK_NOP_META_DOMAIN_MODEL_NAME"
+                            name="UK_NOP_META_DOMAIN_MODEL_NAME" i18n-en:displayName="Unique Domain Name Per Model"/>
             </unique-keys>
         </entity>
         <entity className="io.nop.metadata.dao.entity.NopMetaDict" createTimeProp="createTime" createrProp="createdBy"
@@ -1077,8 +1077,8 @@
                 </to-many>
             </relations>
             <unique-keys>
-                <unique-key columns="ormModelId,dictName" name="UK_NOP_META_DICT_MODEL_NAME"
-                            i18n-en:displayName="Unique Dict Name Per Model"/>
+                <unique-key columns="ormModelId,dictName" constraint="UK_NOP_META_DICT_MODEL_NAME"
+                            name="UK_NOP_META_DICT_MODEL_NAME" i18n-en:displayName="Unique Dict Name Per Model"/>
             </unique-keys>
         </entity>
         <entity className="io.nop.metadata.dao.entity.NopMetaDictItem" createTimeProp="createTime"
@@ -1138,8 +1138,8 @@
                 </to-one>
             </relations>
             <unique-keys>
-                <unique-key columns="metaDictId,itemValue" name="UK_NOP_META_DICT_ITEM_VALUE"
-                            i18n-en:displayName="Unique Item Value Per Dict"/>
+                <unique-key columns="metaDictId,itemValue" constraint="UK_NOP_META_DICT_ITEM_VALUE"
+                            name="UK_NOP_META_DICT_ITEM_VALUE" i18n-en:displayName="Unique Item Value Per Dict"/>
             </unique-keys>
         </entity>
         <entity className="io.nop.metadata.dao.entity.NopMetaTable" createTimeProp="createTime" createrProp="createdBy"
@@ -1152,42 +1152,44 @@
                         i18n-en:displayName="Meta Table Id"/>
                 <column code="META_MODULE_ID" displayName="模块版本ID" mandatory="true" name="metaModuleId" precision="32"
                         propId="2" stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Meta Module Id"/>
-                <column code="TABLE_NAME" displayName="表名" mandatory="true" name="tableName" precision="100" propId="3"
+                <column code="IS_DELTA" defaultValue="0" displayName="是否Delta" domain="boolFlag" mandatory="true"
+                        name="isDelta" propId="3" stdDataType="byte" stdSqlType="TINYINT" i18n-en:displayName="Is Delta"/>
+                <column code="TABLE_NAME" displayName="表名" mandatory="true" name="tableName" precision="100" propId="4"
                         stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Table Name"/>
-                <column code="DISPLAY_NAME" displayName="显示名" name="displayName" precision="200" propId="4"
+                <column code="DISPLAY_NAME" displayName="显示名" name="displayName" precision="200" propId="5"
                         stdDataType="string" stdSqlType="VARCHAR" tagSet="disp" i18n-en:displayName="Display Name"/>
-                <column code="TABLE_TYPE" displayName="表类型" mandatory="true" name="tableType" precision="20" propId="5"
+                <column code="TABLE_TYPE" displayName="表类型" mandatory="true" name="tableType" precision="20" propId="6"
                         stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Table Type"
                         ext:dict="meta/table-type"/>
-                <column code="QUERY_SPACE" displayName="查询空间" name="querySpace" precision="100" propId="6"
+                <column code="QUERY_SPACE" displayName="查询空间" name="querySpace" precision="100" propId="7"
                         stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Query Space"/>
                 <column code="SOURCE_SQL" displayName="来源SQL" domain="mediumtext" name="sourceSql" precision="16777215"
-                        propId="7" stdDataType="string" stdSqlType="VARCHAR" tagSet="sensitive"
+                        propId="8" stdDataType="string" stdSqlType="VARCHAR" tagSet="sensitive"
                         i18n-en:displayName="Source Sql"/>
-                <column code="BASE_ENTITY_ID" displayName="主要实体ID" name="baseEntityId" precision="32" propId="8"
+                <column code="BASE_ENTITY_ID" displayName="主要实体ID" name="baseEntityId" precision="32" propId="9"
                         stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Base Entity Id"/>
-                <column code="DESCRIPTION" displayName="描述" name="description" precision="1000" propId="9"
+                <column code="DESCRIPTION" displayName="描述" name="description" precision="1000" propId="10"
                         stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Description"/>
                 <column code="BUILD_SQL" displayName="合成SQL" domain="mediumtext" name="buildSql" precision="16777215"
-                        propId="10" stdDataType="string" stdSqlType="VARCHAR" tagSet="sensitive"
+                        propId="11" stdDataType="string" stdSqlType="VARCHAR" tagSet="sensitive"
                         i18n-en:displayName="Build Sql"/>
-                <column code="VERSION" displayName="数据版本" domain="version" mandatory="true" name="version" propId="11"
+                <column code="VERSION" displayName="数据版本" domain="version" mandatory="true" name="version" propId="12"
                         stdDataType="long" stdSqlType="BIGINT" i18n-en:displayName="Version"/>
                 <column code="CREATED_BY" displayName="创建人" domain="createdBy" mandatory="true" name="createdBy"
-                        precision="50" propId="12" stdDataType="string" stdSqlType="VARCHAR"
+                        precision="50" propId="13" stdDataType="string" stdSqlType="VARCHAR"
                         i18n-en:displayName="Created By"/>
                 <column code="CREATE_TIME" displayName="创建时间" domain="createTime" mandatory="true" name="createTime"
-                        propId="13" stdDataType="timestamp" stdSqlType="TIMESTAMP" i18n-en:displayName="Create Time"/>
+                        propId="14" stdDataType="timestamp" stdSqlType="TIMESTAMP" i18n-en:displayName="Create Time"/>
                 <column code="UPDATED_BY" displayName="修改人" domain="updatedBy" mandatory="true" name="updatedBy"
-                        precision="50" propId="14" stdDataType="string" stdSqlType="VARCHAR"
+                        precision="50" propId="15" stdDataType="string" stdSqlType="VARCHAR"
                         i18n-en:displayName="Updated By"/>
                 <column code="UPDATE_TIME" displayName="修改时间" domain="updateTime" mandatory="true" name="updateTime"
-                        propId="15" stdDataType="timestamp" stdSqlType="TIMESTAMP" i18n-en:displayName="Update Time"/>
-                <column code="REMARK" displayName="备注" domain="remark" name="remark" precision="200" propId="16"
+                        propId="16" stdDataType="timestamp" stdSqlType="TIMESTAMP" i18n-en:displayName="Update Time"/>
+                <column code="REMARK" displayName="备注" domain="remark" name="remark" precision="200" propId="17"
                         stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Remark"/>
-                <column code="META_SCHEMA" displayName="源schema" name="metaSchema" precision="100" propId="17"
+                <column code="META_SCHEMA" displayName="源schema" name="metaSchema" precision="100" propId="18"
                         stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Meta Schema"/>
-                <column code="BUSINESS_DOMAIN_ID" displayName="业务域ID" name="businessDomainId" precision="32" propId="18"
+                <column code="BUSINESS_DOMAIN_ID" displayName="业务域ID" name="businessDomainId" precision="32" propId="19"
                         stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Business Domain Id"/>
             </columns>
             <indexes>
@@ -1317,8 +1319,8 @@
                 </to-many>
             </relations>
             <unique-keys>
-                <unique-key columns="metaModuleId,tableName" name="UK_NOP_META_TABLE_MODULE_NAME"
-                            i18n-en:displayName="Unique Table Name Per Module"/>
+                <unique-key columns="metaModuleId,tableName,isDelta" constraint="UK_NOP_META_TABLE_MODULE_NAME"
+                            name="UK_NOP_META_TABLE_MODULE_NAME" i18n-en:displayName="Unique Table Name Per Module"/>
             </unique-keys>
         </entity>
         <entity className="io.nop.metadata.dao.entity.NopMetaTableDimension" createTimeProp="createTime"
@@ -1386,8 +1388,8 @@
                 </to-one>
             </relations>
             <unique-keys>
-                <unique-key columns="metaTableId,dimensionName" name="UK_NOP_META_DIM_TABLE_NAME"
-                            i18n-en:displayName="Unique Dimension Name Per Table"/>
+                <unique-key columns="metaTableId,dimensionName" constraint="UK_NOP_META_DIM_TABLE_NAME"
+                            name="UK_NOP_META_DIM_TABLE_NAME" i18n-en:displayName="Unique Dimension Name Per Table"/>
             </unique-keys>
         </entity>
         <entity className="io.nop.metadata.dao.entity.NopMetaTableMeasure" createTimeProp="createTime"
@@ -1456,8 +1458,8 @@
                 </to-one>
             </relations>
             <unique-keys>
-                <unique-key columns="metaTableId,measureName" name="UK_NOP_META_MEASURE_TABLE_NAME"
-                            i18n-en:displayName="Unique Measure Name Per Table"/>
+                <unique-key columns="metaTableId,measureName" constraint="UK_NOP_META_MEASURE_TABLE_NAME"
+                            name="UK_NOP_META_MEASURE_TABLE_NAME" i18n-en:displayName="Unique Measure Name Per Table"/>
             </unique-keys>
         </entity>
         <entity className="io.nop.metadata.dao.entity.NopMetaTableFilter" createTimeProp="createTime"
@@ -1513,8 +1515,8 @@
                 </to-one>
             </relations>
             <unique-keys>
-                <unique-key columns="metaTableId,filterName" name="UK_NOP_META_FILTER_TABLE_NAME"
-                            i18n-en:displayName="Unique Filter Name Per Table"/>
+                <unique-key columns="metaTableId,filterName" constraint="UK_NOP_META_FILTER_TABLE_NAME"
+                            name="UK_NOP_META_FILTER_TABLE_NAME" i18n-en:displayName="Unique Filter Name Per Table"/>
             </unique-keys>
         </entity>
         <entity className="io.nop.metadata.dao.entity.NopMetaTableJoin" createTimeProp="createTime"
@@ -1608,8 +1610,8 @@
                 </to-one>
             </relations>
             <unique-keys>
-                <unique-key columns="metaTableId,alias" name="UK_NOP_META_JOIN_TABLE_ALIAS"
-                            i18n-en:displayName="Unique Join Alias Per Table"/>
+                <unique-key columns="metaTableId,alias" constraint="UK_NOP_META_JOIN_TABLE_ALIAS"
+                            name="UK_NOP_META_JOIN_TABLE_ALIAS" i18n-en:displayName="Unique Join Alias Per Table"/>
             </unique-keys>
         </entity>
         <entity className="io.nop.metadata.dao.entity.NopMetaPipeline" createTimeProp="createTime"
@@ -1673,7 +1675,8 @@
                 </to-many>
             </relations>
             <unique-keys>
-                <unique-key columns="metaModuleId,pipelineName" name="UK_NOP_META_PIPELINE_MODULE_NAME"
+                <unique-key columns="metaModuleId,pipelineName" constraint="UK_NOP_META_PIPELINE_MODULE_NAME"
+                            name="UK_NOP_META_PIPELINE_MODULE_NAME"
                             i18n-en:displayName="Unique Pipeline Name Per Module"/>
             </unique-keys>
         </entity>
@@ -1757,6 +1760,7 @@
             </relations>
             <unique-keys>
                 <unique-key columns="sourceTableId,targetTableId,transformType"
+                            constraint="UK_NOP_META_LINEAGE_EDGE_SRC_TGT_TYPE"
                             name="UK_NOP_META_LINEAGE_EDGE_SRC_TGT_TYPE"
                             i18n-en:displayName="Unique Lineage Edge Per Source-Target-Transform"/>
             </unique-keys>
@@ -1826,7 +1830,7 @@
                 </to-many>
             </relations>
             <unique-keys>
-                <unique-key columns="ruleName" name="UK_NOP_META_QRULE_NAME"
+                <unique-key columns="ruleName" constraint="UK_NOP_META_QRULE_NAME" name="UK_NOP_META_QRULE_NAME"
                             i18n-en:displayName="Unique Quality Rule Name"/>
             </unique-keys>
         </entity>
@@ -1943,8 +1947,8 @@
                 </to-one>
             </relations>
             <unique-keys>
-                <unique-key columns="checkpointName" name="UK_NOP_META_QCHECKPOINT_NAME"
-                            i18n-en:displayName="Unique Checkpoint Name"/>
+                <unique-key columns="checkpointName" constraint="UK_NOP_META_QCHECKPOINT_NAME"
+                            name="UK_NOP_META_QCHECKPOINT_NAME" i18n-en:displayName="Unique Checkpoint Name"/>
             </unique-keys>
         </entity>
         <entity className="io.nop.metadata.dao.entity.NopMetaManifest" createTimeProp="createTime"
@@ -1995,7 +1999,8 @@
                 </to-one>
             </relations>
             <unique-keys>
-                <unique-key columns="metaModuleId,manifestVersion" name="UK_NOP_META_MANIFEST_MODULE_VER"
+                <unique-key columns="metaModuleId,manifestVersion" constraint="UK_NOP_META_MANIFEST_MODULE_VER"
+                            name="UK_NOP_META_MANIFEST_MODULE_VER"
                             i18n-en:displayName="Unique Manifest Version Per Module"/>
             </unique-keys>
         </entity>
@@ -2114,7 +2119,8 @@
                 </to-many>
             </relations>
             <unique-keys>
-                <unique-key columns="metaTableId,ruleName" name="UK_NOP_META_PROFRULE_TABLE_NAME"
+                <unique-key columns="metaTableId,ruleName" constraint="UK_NOP_META_PROFRULE_TABLE_NAME"
+                            name="UK_NOP_META_PROFRULE_TABLE_NAME"
                             i18n-en:displayName="Unique Profiling Rule Name Per Table"/>
             </unique-keys>
         </entity>
@@ -2253,8 +2259,8 @@
                 </to-one>
             </relations>
             <unique-keys>
-                <unique-key columns="contractName" name="UK_NOP_META_CONTRACT_NAME"
-                            i18n-en:displayName="Unique Contract Name"/>
+                <unique-key columns="contractName" constraint="UK_NOP_META_CONTRACT_NAME"
+                            name="UK_NOP_META_CONTRACT_NAME" i18n-en:displayName="Unique Contract Name"/>
             </unique-keys>
         </entity>
         <entity className="io.nop.metadata.dao.entity.NopMetaReconciliationConfig" createTimeProp="createTime"
@@ -2336,7 +2342,8 @@
                 </to-many>
             </relations>
             <unique-keys>
-                <unique-key columns="configName" name="UK_NOP_META_RECONCILIATION_CONFIG_NAME"
+                <unique-key columns="configName" constraint="UK_NOP_META_RECONCILIATION_CONFIG_NAME"
+                            name="UK_NOP_META_RECONCILIATION_CONFIG_NAME"
                             i18n-en:displayName="Unique Reconciliation Config Name"/>
             </unique-keys>
         </entity>
@@ -2451,7 +2458,8 @@
                 </index>
             </indexes>
             <unique-keys>
-                <unique-key columns="entityId,entityType" name="UK_NOP_META_RECONCILIATION_ENTITY_ID"
+                <unique-key columns="entityId,entityType" constraint="UK_NOP_META_RECONCILIATION_ENTITY_ID"
+                            name="UK_NOP_META_RECONCILIATION_ENTITY_ID"
                             i18n-en:displayName="Unique Reconciliation Entity Id Per Type"/>
             </unique-keys>
         </entity>
@@ -2627,7 +2635,8 @@
                 </to-many>
             </relations>
             <unique-keys>
-                <unique-key columns="name" name="UK_NOP_META_GLOSSARY_NAME" i18n-en:displayName="Unique Glossary Name"/>
+                <unique-key columns="name" constraint="UK_NOP_META_GLOSSARY_NAME" name="UK_NOP_META_GLOSSARY_NAME"
+                            i18n-en:displayName="Unique Glossary Name"/>
             </unique-keys>
         </entity>
         <entity className="io.nop.metadata.dao.entity.NopMetaGlossaryTerm" createTimeProp="createTime"
@@ -2725,10 +2734,10 @@
                 </to-many>
             </relations>
             <unique-keys>
-                <unique-key columns="fullyQualifiedName" name="UK_NOP_META_GLOSSARY_TERM_FQN"
-                            i18n-en:displayName="Unique Term Fully Qualified Name"/>
-                <unique-key columns="glossaryId,fullyQualifiedName" name="UK_NOP_META_GLOSSARY_TERM_G_FQN"
-                            i18n-en:displayName="Unique Term Per Glossary"/>
+                <unique-key columns="fullyQualifiedName" constraint="UK_NOP_META_GLOSSARY_TERM_FQN"
+                            name="UK_NOP_META_GLOSSARY_TERM_FQN" i18n-en:displayName="Unique Term Fully Qualified Name"/>
+                <unique-key columns="glossaryId,fullyQualifiedName" constraint="UK_NOP_META_GLOSSARY_TERM_G_FQN"
+                            name="UK_NOP_META_GLOSSARY_TERM_G_FQN" i18n-en:displayName="Unique Term Per Glossary"/>
             </unique-keys>
         </entity>
         <entity className="io.nop.metadata.dao.entity.NopMetaClassification" createTimeProp="createTime"
@@ -2785,8 +2794,8 @@
                 </to-many>
             </relations>
             <unique-keys>
-                <unique-key columns="name" name="UK_NOP_META_CLASSIFICATION_NAME"
-                            i18n-en:displayName="Unique Classification Name"/>
+                <unique-key columns="name" constraint="UK_NOP_META_CLASSIFICATION_NAME"
+                            name="UK_NOP_META_CLASSIFICATION_NAME" i18n-en:displayName="Unique Classification Name"/>
             </unique-keys>
         </entity>
         <entity className="io.nop.metadata.dao.entity.NopMetaTag" createTimeProp="createTime" createrProp="createdBy"
@@ -2870,10 +2879,10 @@
                 </to-many>
             </relations>
             <unique-keys>
-                <unique-key columns="fullyQualifiedName" name="UK_NOP_META_TAG_FQN"
+                <unique-key columns="fullyQualifiedName" constraint="UK_NOP_META_TAG_FQN" name="UK_NOP_META_TAG_FQN"
                             i18n-en:displayName="Unique Tag Fully Qualified Name"/>
-                <unique-key columns="classificationId,fullyQualifiedName" name="UK_NOP_META_TAG_CLS_FQN"
-                            i18n-en:displayName="Unique Tag Per Classification"/>
+                <unique-key columns="classificationId,fullyQualifiedName" constraint="UK_NOP_META_TAG_CLS_FQN"
+                            name="UK_NOP_META_TAG_CLS_FQN" i18n-en:displayName="Unique Tag Per Classification"/>
             </unique-keys>
         </entity>
         <entity className="io.nop.metadata.dao.entity.NopMetaTagLabel" createTimeProp="createTime"
@@ -2967,8 +2976,8 @@
                 </to-one>
             </relations>
             <unique-keys>
-                <unique-key columns="entityType,entityId,tagId,source" name="UK_NOP_META_TAG_LABEL"
-                            i18n-en:displayName="Unique Tag Label"/>
+                <unique-key columns="entityType,entityId,tagId,source" constraint="UK_NOP_META_TAG_LABEL"
+                            name="UK_NOP_META_TAG_LABEL" i18n-en:displayName="Unique Tag Label"/>
             </unique-keys>
         </entity>
         <entity className="io.nop.metadata.dao.entity.NopMetaBusinessDomain" createTimeProp="createTime"
@@ -3045,7 +3054,8 @@
                 </to-many>
             </relations>
             <unique-keys>
-                <unique-key columns="parentDomainId,name" name="UK_NOP_META_BUSINESS_DOMAIN_PARENT_NAME"
+                <unique-key columns="parentDomainId,name" constraint="UK_NOP_META_BUSINESS_DOMAIN_PARENT_NAME"
+                            name="UK_NOP_META_BUSINESS_DOMAIN_PARENT_NAME"
                             i18n-en:displayName="Unique Domain Name Per Parent"/>
             </unique-keys>
         </entity>
@@ -3125,7 +3135,8 @@
                 </to-one>
             </relations>
             <unique-keys>
-                <unique-key columns="businessDomainId,name" name="UK_NOP_META_DATA_PRODUCT_DOMAIN_NAME"
+                <unique-key columns="businessDomainId,name" constraint="UK_NOP_META_DATA_PRODUCT_DOMAIN_NAME"
+                            name="UK_NOP_META_DATA_PRODUCT_DOMAIN_NAME"
                             i18n-en:displayName="Unique Product Name Per Domain"/>
             </unique-keys>
         </entity>

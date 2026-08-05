@@ -1,10 +1,3 @@
-/**
- * Copyright (c) 2017-2024 Nop Platform. All rights reserved.
- * Author: canonical_entropy@163.com
- * Blog:   https://www.zhihu.com/people/canonical-entropy
- * Gitee:  https://gitee.com/canonical-entropy/nop-entropy
- * Github: https://github.com/entropy-cloud/nop-entropy
- */
 package io.nop.metadata.service.entity;
 
 
@@ -77,7 +70,7 @@ import java.util.Map;
 import java.util.Set;
 
 import io.nop.metadata.service.NopMetadataHelper;
-import io.nop.metadata.service.search.NopMetaSearchService;
+import io.nop.metadata.service.search.NopMetaSearchProcessor;
 import io.nop.search.api.SearchableDoc;
 import io.nop.metadata.service.NopMetadataException;
 import jakarta.inject.Inject;
@@ -95,7 +88,7 @@ public class NopMetaModuleBizModel extends CrudBizModel<NopMetaModule> implement
     static final String EVENT_ENTITY_TYPE = "NopMetaModule";
 
     @Inject
-    protected NopMetaSearchService searchService;
+    protected NopMetaSearchProcessor searchService;
 
     @InjectValue("@cfg:nop.metadata.platform-version|2.0.0-SNAPSHOT")
     protected String platformVersion;
@@ -315,7 +308,7 @@ public class NopMetaModuleBizModel extends CrudBizModel<NopMetaModule> implement
                 orm().save(rel);
             }
 
-            NopMetaTable table = importer.buildEntityTable(em);
+            NopMetaTable table = importer.buildEntityTable(em, isDelta);
             table.setMetaModuleId(moduleId);
             table.setBaseEntityId(entityId);
             orm().save(table);

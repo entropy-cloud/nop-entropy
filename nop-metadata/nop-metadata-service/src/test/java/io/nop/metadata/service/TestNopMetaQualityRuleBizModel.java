@@ -1,10 +1,3 @@
-/**
- * Copyright (c) 2017-2024 Nop Platform. All rights reserved.
- * Author: canonical_entropy@163.com
- * Blog:   https://www.zhihu.com/people/canonical-entropy
- * Gitee:  https://gitee.com/canonical-entropy/nop-entropy
- * Github: https://github.com/entropy-cloud/nop-entropy
- */
 package io.nop.metadata.service;
 
 import io.nop.api.core.annotations.autotest.NopTestConfig;
@@ -127,7 +120,7 @@ public class TestNopMetaQualityRuleBizModel extends JunitBaseTestCase {
     /** custom_sql：同一数据（3行），expectPassWhen gt 0 PASS / eq 0 FAIL；不返回单值 ERROR。 */
     @Test
     public void testExecuteCustomSqlPassFailAndNoSingleValue() throws Exception {
-        String dbUrl = "jdbc:h2:mem:meta_q_sql;DB_CLOSE_DELAY=-1";
+        String dbUrl = "jdbc:h2:mem:meta_q_sql_qrule;DB_CLOSE_DELAY=-1";
         seedTable(dbUrl, "CREATE TABLE ext_sql_t (id INT NOT NULL)",
                 "INSERT INTO ext_sql_t VALUES (1)", "INSERT INTO ext_sql_t VALUES (2)", "INSERT INTO ext_sql_t VALUES (3)");
         PreparedEnv env = prepare(dbUrl, "qs_q_sql");
@@ -280,16 +273,20 @@ public class TestNopMetaQualityRuleBizModel extends JunitBaseTestCase {
         // 确保时间戳不同（executeTime 精度为秒，强制间隔 2 秒）
         IClock saved = CoreMetrics.defaultClock();
         long t0 = CoreMetrics.currentTimeMillis();
-        CoreMetrics.registerClock(new IClock() {
-            @Override public long currentTimeMillis() { return t0 + 2000; }
-            @Override public long nanoTime() { return System.nanoTime(); }
-            @Override public LocalDate currentDate() { return LocalDate.now(); }
-            @Override public LocalDateTime currentDateTime() { return LocalDateTime.now(); }
-        });
-        GraphQLResponseBean r2 = exec("r-ts");
-        CoreMetrics.registerClock(saved);
-        assertFalse(r2.hasError(), "second exec should not error: " + r2);
-        assertEquals(2, countResults("r-ts"), "time-series: 2 result rows after second exec (appended, not overwritten)");
+        try {
+            CoreMetrics.registerClock(new IClock() {
+                @Override public long currentTimeMillis() { return t0 + 2000; }
+                @Override public long nanoTime() { return System.nanoTime(); }
+                @Override public LocalDate currentDate() { return LocalDate.now(); }
+                @Override public LocalDateTime currentDateTime() { return LocalDateTime.now(); }
+            });
+            GraphQLResponseBean r2 = exec("r-ts");
+            assertFalse(r2.hasError(), "second exec should not error: " + r2);
+            assertEquals(2, countResults("r-ts"), "time-series: 2 result rows after second exec (appended, not overwritten)");
+        } finally {
+            // MA6.5-004：假时钟必须 finally 恢复，exec 抛异常也不泄漏到同类后续测试
+            CoreMetrics.registerClock(saved);
+        }
     }
 
     // ===== judgeByRuleId（P1-MA4-401/701：空洞断言 → 行为断言） =====

@@ -1,6 +1,7 @@
 {
   "metaTableId": "",
   "metaModuleId": "",
+  "isDelta": 0,
   "tableName": "",
   "displayName": "",
   "tableType": "",

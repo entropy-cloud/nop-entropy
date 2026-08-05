@@ -12,7 +12,7 @@ import io.nop.metadata.biz.INopMetaTagBiz;
 import io.nop.metadata.dao.entity.NopMetaClassification;
 import io.nop.metadata.dao.entity.NopMetaTag;
 import io.nop.metadata.service.NopMetadataHelper;
-import io.nop.metadata.service.search.NopMetaSearchService;
+import io.nop.metadata.service.search.NopMetaSearchProcessor;
 import io.nop.search.api.SearchableDoc;
 import jakarta.inject.Inject;
 
@@ -20,7 +20,7 @@ import jakarta.inject.Inject;
 public class NopMetaTagBizModel extends CrudBizModel<NopMetaTag> implements INopMetaTagBiz {
 
     @Inject
-    protected NopMetaSearchService searchService;
+    protected NopMetaSearchProcessor searchService;
 
     public NopMetaTagBizModel() {
         setEntityName(NopMetaTag.class.getName());

@@ -14,7 +14,7 @@ import io.nop.metadata.biz.INopMetaGlossaryTermBiz;
 import io.nop.metadata.dao.entity.NopMetaGlossaryTerm;
 import io.nop.metadata.dao.entity.NopMetaTagLabel;
 import io.nop.metadata.service.NopMetadataHelper;
-import io.nop.metadata.service.search.NopMetaSearchService;
+import io.nop.metadata.service.search.NopMetaSearchProcessor;
 import io.nop.search.api.SearchableDoc;
 import jakarta.inject.Inject;
 import org.slf4j.Logger;
@@ -37,7 +37,7 @@ public class NopMetaGlossaryTermBizModel extends CrudBizModel<NopMetaGlossaryTer
     }
 
     @Inject
-    protected NopMetaSearchService searchService;
+    protected NopMetaSearchProcessor searchService;
 
     @Override
     public NopMetaGlossaryTerm save(@Name("data") Map<String, Object> data, IServiceContext context) {

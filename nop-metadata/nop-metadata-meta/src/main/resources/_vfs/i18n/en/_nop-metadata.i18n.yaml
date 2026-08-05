@@ -793,6 +793,7 @@ prop:
     NopMetaTable:
       metaTableId: Meta Table Id
       metaModuleId: Meta Module Id
+      isDelta: Is Delta
       tableName: Table Name
       displayName: Display Name
       tableType: Table Type

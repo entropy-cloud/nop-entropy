@@ -4,7 +4,7 @@ import io.nop.api.core.exceptions.ErrorCode;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.metadata.dao.entity.NopMetaQualityResult;
 import io.nop.metadata.service.NopMetadataException;
-import io.nop.metadata.service.quality.QualityAlertWorkflowService;
+import io.nop.metadata.service.quality.QualityAlertWorkflowProcessor;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -13,7 +13,7 @@ import static org.junit.jupiter.api.Assertions.*;
  * 验证质量告警工作流相关服务的单元测试。
  * 覆盖新 ErrorCode 常量 + BizModel 基本 reject 守卫。
  */
-public class TestQualityAlertWorkflowServices {
+public class TestQualityAlertWorkflowProcessor {
 
     @Test
     public void testNewErrorCodesDefined() {
@@ -37,11 +37,11 @@ public class TestQualityAlertWorkflowServices {
 
     @Test
     public void testCreateAlertWorkflowThrowsWhenWfManagerNull() {
-        QualityAlertWorkflowService svc = new QualityAlertWorkflowService();
+        QualityAlertWorkflowProcessor svc = new QualityAlertWorkflowProcessor();
         NopMetaQualityResult result = new NopMetaQualityResult();
         result.setQualityResultId("test-id");
         NopException ex = assertThrows(NopMetadataException.class,
-                () -> svc.createAlertWorkflow(result));
+                () -> svc.createAlertWorkflow(result, null));
         assertEquals("nop.err.metadata.workflow-manager-unavailable", ex.getErrorCode());
     }
 }

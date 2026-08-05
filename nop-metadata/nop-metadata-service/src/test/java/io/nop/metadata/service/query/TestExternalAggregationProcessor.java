@@ -1,5 +1,8 @@
 package io.nop.metadata.service.query;
 
+import io.nop.api.core.beans.FilterBeanConstants;
+import io.nop.api.core.beans.FilterBeans;
+import io.nop.api.core.beans.TreeBean;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.dao.api.IDaoProvider;
 import io.nop.dao.api.IEntityDao;
@@ -249,5 +252,67 @@ public class TestExternalAggregationProcessor {
     @Test
     public void testContainsIgnoreCaseNoMatch() {
         assertFalse(containsIgnoreCase(Collections.singleton("ABC"), "xyz"));
+    }
+
+    // ===== MA7.1-01：HAVING 叶子 name SQL 注入防护 =====
+
+    /** 测试用 MetaQueryContext（mirror testExecuteWithNoDataSourceThrows 的装配）。 */
+    private static MetaQueryContext testCtx() {
+        IDaoProvider daoProvider = mock(IDaoProvider.class);
+        IEntityDao<NopMetaDataSource> dsDao = mock(IEntityDao.class);
+        when(daoProvider.daoFor(NopMetaDataSource.class)).thenReturn(dsDao);
+        when(dsDao.findAllByQuery(any())).thenReturn(Collections.emptyList());
+        return new MetaQueryContext(daoProvider, mock(IOrmTemplate.class),
+                mock(IMetaDataSourceConnectionProcessor.class),
+                new TableReferenceExecutor(mock(IMetaDataSourceConnectionProcessor.class), mock(IOrmTemplate.class)),
+                new MetaDataSourceResolver(), new MetaTableFieldResolver(), new FilterToSqlTranslator());
+    }
+
+    private static NopMetaTable externalTable() {
+        NopMetaTable table = new NopMetaTable();
+        table.setMetaTableId("test-table");
+        table.setTableType("external");
+        table.setTableName("EXT_TABLE");
+        return table;
+    }
+
+    /** having 叶子 name 含 SQL payload（未命中 nameToExpr 且未标记）→ 必须显式失败，禁止进入 SQL 文本。 */
+    @Test
+    public void testHavingLeafSqlPayloadRejected() {
+        TreeBean having = FilterBeans.gt("(SELECT COUNT(*) FROM mysql.user WHERE user='root')", 1);
+        NopException ex = assertThrows(NopException.class, () ->
+                buildExternalAggregationSql(externalTable(), Collections.emptyList(), Collections.emptyList(),
+                        null, having, Collections.emptyList(), Collections.emptyMap(),
+                        Collections.emptyList(), Collections.emptyList(), null, null, "mysql", testCtx()));
+        assertEquals(NopMetadataErrors.ERR_AGGR_HAVING_UNKNOWN_NAME.getErrorCode(), ex.getErrorCode(),
+                "SQL payload in having leaf name must fail with ERR_AGGR_HAVING_UNKNOWN_NAME, "
+                        + "not flow into HAVING SQL: " + ex.getMessage());
+    }
+
+    /** having 叶子 name 为未选定的普通标识符 → 维持既有显式失败语义。 */
+    @Test
+    public void testHavingLeafUnknownIdentifierRejected() {
+        TreeBean having = FilterBeans.gt("notSelectedMeasure", 1);
+        NopException ex = assertThrows(NopException.class, () ->
+                buildExternalAggregationSql(externalTable(), Collections.emptyList(), Collections.emptyList(),
+                        null, having, Collections.emptyList(), Collections.emptyMap(),
+                        Collections.emptyList(), Collections.emptyList(), null, null, "mysql", testCtx()));
+        assertEquals(NopMetadataErrors.ERR_AGGR_HAVING_UNKNOWN_NAME.getErrorCode(), ex.getErrorCode());
+    }
+
+    /** expr 算术叶子（preprocess 显式标记）仍可解析拼接，不落入注入拒绝路径（MA7.1-01 不回归）。 */
+    @Test
+    public void testHavingArithmeticExprLeafStillResolvable() {
+        Map<String, String> nameToExpr = new LinkedHashMap<>();
+        nameToExpr.put("sumA", "SUM(AMOUNT)");
+        nameToExpr.put("sumB", "SUM(DISCOUNT)");
+        TreeBean having = new TreeBean("gt");
+        having.setAttr(MetaAggregationExecutor.HAVING_EXPR_ATTR, "sumA - sumB");
+        having.setAttr(FilterBeanConstants.FILTER_ATTR_VALUE, 10);
+        String sql = buildExternalAggregationSql(externalTable(), Collections.emptyList(), Collections.emptyList(),
+                null, having, Collections.emptyList(), nameToExpr,
+                Arrays.asList("sumA", "sumB"), Collections.emptyList(), null, null, "mysql", testCtx());
+        assertTrue(sql.contains("HAVING SUM(AMOUNT) - SUM(DISCOUNT) > ?"),
+                "expr-arithmetic leaf must still be inlined into HAVING: " + sql);
     }
 }

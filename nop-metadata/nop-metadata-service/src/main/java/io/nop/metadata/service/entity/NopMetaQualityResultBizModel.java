@@ -22,7 +22,7 @@ public class NopMetaQualityResultBizModel extends CrudBizModel<NopMetaQualityRes
     /**
      * 同意"已修复"场景：重新执行规则判定。
      * 当前被 {@code qualityBreachApproval} 工作流的 agree 路径通过 c:script 直接调用
-     * QualityAlertWorkflowService.reJudge() 处理，此方法保留作为 wf-approval:notifyResult 的回调入口。
+     * QualityAlertWorkflowProcessor.reJudge() 处理，此方法保留作为 wf-approval:notifyResult 的回调入口。
      */
     @BizMutation
     public NopMetaQualityResult approve(@Name("id") String id, IServiceContext context) {

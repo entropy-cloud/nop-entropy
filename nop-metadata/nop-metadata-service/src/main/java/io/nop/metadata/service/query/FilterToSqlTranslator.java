@@ -1,10 +1,3 @@
-/**
- * Copyright (c) 2017-2024 Nop Platform. All rights reserved.
- * Author: canonical_entropy@163.com
- * Blog:   https://www.zhihu.com/people/canonical-entropy
- * Gitee:  https://github.com/entropy-cloud/nop-entropy
- * Github: https://github.com/entropy-cloud/nop-entropy
- */
 
 package io.nop.metadata.service.query;
 
@@ -17,7 +10,6 @@ import io.nop.metadata.service.NopMetadataException;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.function.Function;
 import java.util.regex.Pattern;
 
 /**
@@ -49,6 +41,18 @@ public class FilterToSqlTranslator {
      * fieldResolver 命中失败（plan 2026-07-18-0900-2：having 引用未选定的 measure/dimension name）→ 显式失败。
      * 调用方应优先在反查表构建阶段用更具体的 {@code ERR_AGGR_HAVING_UNKNOWN_NAME} 失败；本 ErrorCode 为防御性兜底。
      */
+
+    /**
+     * 叶子条件 name → SQL 表达式解析回调（HAVING 聚合表达式路径，plan 2026-07-18-0900-2）。
+     *
+     * <p>相比裸 {@code Function<String,String>}，回调额外接收叶子 {@code TreeBean} 节点，使调用方可以区分
+     * 「未命中反查表的原始用户输入」（必须显式失败）与「已由预处理显式标记的表达式产物」（才允许直通拼接）。
+     * 该区分是 MA7.1-01 修复的核心：任何未显式标记的原始 name 都不得进入 SQL 文本。
+     */
+    @FunctionalInterface
+    public interface FieldResolver {
+        String resolve(TreeBean node, String name);
+    }
 
     /** 翻译结果：{@code sql} 为 WHERE 片段（不含 "WHERE" 关键字，无 filter 时为 null），{@code params} 为绑定参数。 */
     public static final class TranslatedFilter {
@@ -86,7 +90,8 @@ public class FilterToSqlTranslator {
      *
      * <p>当 {@code fieldResolver} 非空时，叶子条件的 {@code name} 经回调解析为 SQL 表达式（如 {@code SUM(AMOUNT)}），
      * **跳过 {@link #validateIdentifier}**（因聚合表达式含括号会触发白名单失败）；该表达式中的列名已在 measure/dimension
-     * 加载时经白名单校验。{@code fieldResolver} 为空时维持既有 {@code requireField + validateIdentifier} 行为。
+     * 加载时经白名单校验。回调返回 null/空 → 显式失败；回调收到原始用户 name 且未显式标记为已验证表达式 → 必须显式失败
+     * （MA7.1-01：禁止任何原样透传进入 SQL 文本）。{@code fieldResolver} 为空时维持既有 {@code requireField + validateIdentifier} 行为。
      *
      * <p>递归 and/or/not 逻辑完全复用既有 {@code joinChildren}/{@code translateNot}。既有 {@link #translate(TreeBean)}
      * 行为不变（委托 {@code translate(filter, null)}）。
@@ -95,7 +100,7 @@ public class FilterToSqlTranslator {
      * @param fieldResolver 叶子条件 name → SQL 表达式的回调（非空时跳过标识符白名单）；可空
      * @return 翻译结果（{@code sql} 为 null 表示无 WHERE/HAVING）
      */
-    public TranslatedFilter translate(TreeBean filter, Function<String, String> fieldResolver) {
+    public TranslatedFilter translate(TreeBean filter, FieldResolver fieldResolver) {
         if (filter == null) {
             return new TranslatedFilter(null, new ArrayList<>());
         }
@@ -104,7 +109,7 @@ public class FilterToSqlTranslator {
         return new TranslatedFilter(sql, params);
     }
 
-    private String translateNode(TreeBean node, List<Object> params, Function<String, String> fieldResolver) {
+    private String translateNode(TreeBean node, List<Object> params, FieldResolver fieldResolver) {
         String op = node.getTagName();
         if (op == null) {
             throw new NopMetadataException(NopMetadataErrors.ERR_FILTER_UNSUPPORTED_OP).param("op", String.valueOf(op));
@@ -145,7 +150,7 @@ public class FilterToSqlTranslator {
     }
 
     private String joinChildren(TreeBean node, String sep, List<Object> params,
-                                 Function<String, String> fieldResolver, boolean wrapIfMulti) {
+                                 FieldResolver fieldResolver, boolean wrapIfMulti) {
         List<TreeBean> children = node.getChildren();
         if (children == null || children.isEmpty()) {
             // and/or 无子节点 → 视为无过滤（返回恒真，避免拼出空括号）；调用方拼 WHERE 时会忽略 null/空
@@ -168,7 +173,7 @@ public class FilterToSqlTranslator {
         return wrapIfMulti ? "(" + joined + ")" : joined;
     }
 
-    private String translateNot(TreeBean node, List<Object> params, Function<String, String> fieldResolver) {
+    private String translateNot(TreeBean node, List<Object> params, FieldResolver fieldResolver) {
         List<TreeBean> children = node.getChildren();
         if (children == null || children.isEmpty()) {
             return null;
@@ -182,7 +187,7 @@ public class FilterToSqlTranslator {
     }
 
     private String translateComparison(String op, TreeBean node, List<Object> params,
-                                        Function<String, String> fieldResolver) {
+                                        FieldResolver fieldResolver) {
         String col = requireField(node, fieldResolver);
         String sqlOp = sqlOpOf(op);
         Object value = node.getAttr(FilterBeanConstants.FILTER_ATTR_VALUE);
@@ -194,7 +199,7 @@ public class FilterToSqlTranslator {
         return col + " " + sqlOp + " ?";
     }
 
-    private String translateIn(TreeBean node, List<Object> params, Function<String, String> fieldResolver,
+    private String translateIn(TreeBean node, List<Object> params, FieldResolver fieldResolver,
                                 boolean negated) {
         String col = requireField(node, fieldResolver);
         Object value = node.getAttr(FilterBeanConstants.FILTER_ATTR_VALUE);
@@ -230,7 +235,7 @@ public class FilterToSqlTranslator {
         return sb.toString();
     }
 
-    private String translateBetween(TreeBean node, List<Object> params, Function<String, String> fieldResolver) {
+    private String translateBetween(TreeBean node, List<Object> params, FieldResolver fieldResolver) {
         String col = requireField(node, fieldResolver);
         Object min = node.getAttr(FilterBeanConstants.FILTER_ATTR_MIN);
         Object max = node.getAttr(FilterBeanConstants.FILTER_ATTR_MAX);
@@ -252,7 +257,7 @@ public class FilterToSqlTranslator {
         return sb.toString();
     }
 
-    private String translateNullCheck(TreeBean node, Function<String, String> fieldResolver, String sqlSuffix) {
+    private String translateNullCheck(TreeBean node, FieldResolver fieldResolver, String sqlSuffix) {
         String col = requireField(node, fieldResolver);
         return col + " " + sqlSuffix;
     }
@@ -261,14 +266,14 @@ public class FilterToSqlTranslator {
      * 解析叶子条件的字段名：若提供 {@code fieldResolver}，经回调解析为 SQL 表达式（跳过白名单，因聚合表达式含括号）；
      * 否则按既有 {@code validateIdentifier} 白名单校验裸列名。
      */
-    private String requireField(TreeBean node, Function<String, String> fieldResolver) {
+    private String requireField(TreeBean node, FieldResolver fieldResolver) {
         Object nameObj = node.getAttr(FilterBeanConstants.FILTER_ATTR_NAME);
         if (nameObj == null || nameObj.toString().isEmpty()) {
             throw new NopMetadataException(NopMetadataErrors.ERR_FILTER_MISSING_FIELD).param("op", String.valueOf(node.getTagName()));
         }
         String name = nameObj.toString();
         if (fieldResolver != null) {
-            String resolved = fieldResolver.apply(name);
+            String resolved = fieldResolver.resolve(node, name);
             if (resolved == null || resolved.isEmpty()) {
                 // fieldResolver 命中失败（未选定 measure/dimension name）→ 显式失败（不静默跳过、不伪造）
                 throw new NopMetadataException(NopMetadataErrors.ERR_FILTER_FIELD_RESOLVER_MISS)

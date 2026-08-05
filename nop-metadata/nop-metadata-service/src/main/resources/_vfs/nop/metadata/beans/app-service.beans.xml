@@ -29,9 +29,9 @@
     <bean id="io.nop.metadata.service.event.MetaModelChangedEventPublisher"
           class="io.nop.metadata.service.event.MetaModelChangedEventPublisher" ioc:default="true"/>
 
-    <!-- 质量告警工作流服务（质量规则 FAIL+ERROR 时创建 nop-wf 工作流实例，支持 re-judge 验证）。 -->
-    <bean id="io.nop.metadata.service.quality.QualityAlertWorkflowService"
-          class="io.nop.metadata.service.quality.QualityAlertWorkflowService" ioc:default="true"/>
+    <!-- 质量告警工作流处理器（质量规则 FAIL+ERROR 时创建 nop-wf 工作流实例，支持 re-judge 验证）。 -->
+    <bean id="io.nop.metadata.service.quality.QualityAlertWorkflowProcessor"
+          class="io.nop.metadata.service.quality.QualityAlertWorkflowProcessor" ioc:default="true"/>
 
     <!-- 质量检查点 cron 定时调度器（架构基线 §2.7.3.1 / plan 2026-07-17-1308-1，普通 IoC bean 非 BizModel）。
          启动 scanner 全量注册 ACTIVE 检查点的 cron job + 运行时增量（save/delete override 调用）。
@@ -44,12 +44,12 @@
     <bean id="io.nop.metadata.service.search.NopMetaIndexBuilder"
           class="io.nop.metadata.service.search.NopMetaIndexBuilder" ioc:default="true"/>
 
-    <!-- 搜索引擎增量索引服务（plan 312 Phase 3）：BizModel save/delete hook 调用的增量索引更新（addDoc/removeDocs）。
+    <!-- 搜索引擎增量索引处理器（plan 312 Phase 3）：BizModel save/delete hook 调用的增量索引更新（addDoc/removeDocs）。
          封装 ISearchEngine 调用 + 容错日志。
          默认 fail-close（搜索异常传播给调用方，由 BizModel 边界转为 GraphQL 错误）。
          设置 nop.metadata.search.fail-open=true 切换为 fail-open（ERROR 日志 + 吞异常）。 -->
-    <bean id="io.nop.metadata.service.search.NopMetaSearchService"
-          class="io.nop.metadata.service.search.NopMetaSearchService" ioc:default="true">
+    <bean id="io.nop.metadata.service.search.NopMetaSearchProcessor"
+          class="io.nop.metadata.service.search.NopMetaSearchProcessor" ioc:default="true">
         <property name="searchIndexFailOpen" value="${nop.metadata.search.fail-open:false}"/>
     </bean>
 

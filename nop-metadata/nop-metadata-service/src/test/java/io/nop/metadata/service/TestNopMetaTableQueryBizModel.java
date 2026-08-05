@@ -1,10 +1,3 @@
-/**
- * Copyright (c) 2017-2024 Nop Platform. All rights reserved.
- * Author: canonical_entropy@163.com
- * Blog:   https://www.zhihu.com/people/canonical-entropy
- * Gitee:  https://gitee.com/canonical-entropy/nop-entropy
- * Github: https://github.com/entropy-cloud/nop-entropy
- */
 package io.nop.metadata.service;
 
 import io.nop.api.core.annotations.autotest.NopTestConfig;
@@ -25,6 +18,7 @@ import io.nop.metadata.dao.entity.NopMetaEntity;
 import io.nop.metadata.dao.entity.NopMetaModule;
 import io.nop.metadata.biz.INopMetaTableBiz;
 import io.nop.metadata.api.dto.QueryTableDataResultDTO;
+import io.nop.metadata.service.entity.NopMetaTableBizModel;
 import io.nop.metadata.dao.entity.NopMetaTable;
 import jakarta.inject.Inject;
 import org.junit.jupiter.api.Test;
@@ -179,7 +173,7 @@ public class TestNopMetaTableQueryBizModel extends JunitBaseTestCase {
     @Test
     @SuppressWarnings("unchecked")
     public void testQuerySqlTableReturnsRows() throws Exception {
-        String dbUrl = "jdbc:h2:mem:meta_q_sql;DB_CLOSE_DELAY=-1";
+        String dbUrl = "jdbc:h2:mem:meta_q_sql_query;DB_CLOSE_DELAY=-1";
         seedTable(dbUrl, "CREATE TABLE sql_src (id INT NOT NULL, val INT)",
                 "INSERT INTO sql_src VALUES (1, 100)",
                 "INSERT INTO sql_src VALUES (2, 200)");
@@ -197,6 +191,27 @@ public class TestNopMetaTableQueryBizModel extends JunitBaseTestCase {
         Map<String, Object> row0 = findRowById(items, 1);
         assertNotNull(row0, "row with id=1 must exist");
         assertEquals(100, toInt(row0.get("VAL")), "val must match seeded data");
+    }
+
+    /**
+     * MA7.4-03 回归：queryTableData 省略 limit 时不得把全表拉入内存——缺省 1000 行封顶。
+     * 用 H2 SYSTEM_RANGE 生成 1500 行大结果集（sql 表路径，走 withConnection 全量 JDBC 读取），
+     * 断言省略 limit 的查询只返回 DEFAULT_QUERY_LIMIT 行。
+     */
+    @Test
+    @SuppressWarnings("unchecked")
+    public void testQueryTableDataDefaultLimitCapsUnboundedResult() throws Exception {
+        String dbUrl = "jdbc:h2:mem:meta_q_limit;DB_CLOSE_DELAY=-1";
+        saveDataSource("ds-q-limit", "qs_q_limit", "jdbc", "ACTIVE", dbUrl);
+
+        String tableId = createSqlTable("SELECT X AS ID, X AS VAL FROM SYSTEM_RANGE(1, 1500)",
+                "sql_limit_tab", "qs_q_limit");
+
+        Map<String, Object> result = queryTableData(tableId, null, null, null);
+        @SuppressWarnings("unchecked")
+        List<Map<String, Object>> items = (List<Map<String, Object>>) result.get("items");
+        assertEquals(NopMetaTableBizModel.DEFAULT_QUERY_LIMIT, items.size(),
+                "queryTableData without limit must be capped at DEFAULT_QUERY_LIMIT, not return all 1500 rows");
     }
 
     // ===== 方案 B 字段类型推断（plan 0900-1，架构基线 §4.2.1）=====

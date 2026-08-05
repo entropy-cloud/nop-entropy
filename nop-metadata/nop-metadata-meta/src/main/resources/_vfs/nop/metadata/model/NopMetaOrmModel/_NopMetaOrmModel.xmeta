@@ -17,7 +17,7 @@
     </x:post-extends>
 
     <keys>
-        <key name="UK_NOP_META_ORM_MODEL_MODULE_NAME" props="metaModuleId,modelName"/>
+        <key name="UK_NOP_META_ORM_MODEL_MODULE_NAME" props="metaModuleId,modelName,isDelta"/>
     </keys>
 
     <props>

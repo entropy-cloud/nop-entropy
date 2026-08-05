@@ -415,6 +415,30 @@ public class TestNopMetaLineageEdgeBizModel extends LineageTestBase {
     }
 
     /**
+     * MA7.4-02 回归：表达式内重复列引用（a.x + a.x）产 2 条同键候选——同批去重后只建 1 条边，
+     * 不产生重复 INSERT（UK 未物化时重复行真实落库的缺口）。
+     */
+    @Test
+    public void testExtractColumnLineageDuplicateColumnReferenceDeduplicated() {
+        String moduleId = ensureModule("mod-col-dup");
+        String src1 = saveTable(moduleId, "DUP_SRC");
+        String sqlViewId = saveSqlTable(moduleId, "V_DUP",
+                "SELECT t1.a + t1.a AS total FROM DUP_SRC t1");
+
+        GraphQLResponseBean resp = execute(
+                "mutation { NopMetaLineageEdge__extractColumnLineageFromSql(metaTableId: \"" + sqlViewId + "\") { edgeCount unresolved errors } }");
+        assertFalse(resp.hasError(), "should not error: " + resp);
+
+        long count = countColumnSqlParseEdges(src1, sqlViewId);
+        assertEquals(1L, count,
+                "a.x + a.x must produce exactly 1 edge (same-batch duplicate key dedup, MA7.4-02): " + count);
+
+        NopMetaLineageEdge e = findColumnEdge(src1, sqlViewId, "a", "total");
+        assertNotNull(e, "total<-src1.a edge must exist");
+        assertEquals(_NopMetadataCoreConstants.LINEAGE_TRANSFORM_DERIVED, e.getTransformType());
+    }
+
+    /**
      * transformType aggregated（D3）：SUM(t1.a) → aggregated。聚合检测优先 instanceof SqlAggregateFunction。
      */
     @Test

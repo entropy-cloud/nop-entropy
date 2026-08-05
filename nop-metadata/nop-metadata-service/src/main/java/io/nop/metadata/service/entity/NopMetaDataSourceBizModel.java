@@ -1,10 +1,3 @@
-/**
- * Copyright (c) 2017-2024 Nop Platform. All rights reserved.
- * Author: canonical_entropy@163.com
- * Blog:   https://www.zhihu.com/people/canonical-entropy
- * Gitee:  https://github.com/entropy-cloud/nop-entropy
- * Github: https://github.com/entropy-cloud/nop-entropy
- */
 
 package io.nop.metadata.service.entity;
 
@@ -456,6 +449,7 @@ public class NopMetaDataSourceBizModel extends CrudBizModel<NopMetaDataSource> i
         if (table == null) {
             table = tableDao.newEntity();
             table.setMetaModuleId(metaModuleId);
+            table.setIsDelta((byte) 0);
             table.setTableName(info.getTableName());
             table.setMetaSchema(info.getSchema());
             table.setDisplayName(info.getTableName());

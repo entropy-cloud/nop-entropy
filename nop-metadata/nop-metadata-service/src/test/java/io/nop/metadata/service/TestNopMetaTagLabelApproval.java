@@ -115,6 +115,37 @@ public class TestNopMetaTagLabelApproval extends JunitBaseTestCase {
         assertEquals("Suggested", saved.getState(), "Derived labelType should result in state=Suggested");
     }
 
+    /**
+     * P2-MA5-401：Derived 标签经 Java save 路径保存后必须自动提审（xmeta 根属性 wf:wfName 读取修复）。
+     * 修复前 getWfNameFromMeta 用 SchemaImpl.getProp 只读 props map → wf:wfName（根元素属性）恒 null →
+     * triggerApprovalIfNeeded 提前返回 → approveStatus 恒 null（自动提审静默失效）；修复后
+     * submitForApproval 被真实调用 → approveStatus=SUBMITTED。
+     */
+    @Test
+    public void testDerivedLabelAutoSubmitsForApproval() {
+        String tagId = ensureTag("tag-approval-autosubmit", "cls-approval-autosubmit");
+
+        Map<String, Object> data = new HashMap<>();
+        data.put("tagLabelId", "tlabel-autosubmit-001");
+        data.put("source", "Classification");
+        data.put("tagId", tagId);
+        data.put("labelType", "Derived");
+        data.put("entityType", "NopMetaEntityField");
+        data.put("entityId", "field-autosubmit-001");
+
+        GraphQLResponseBean resp = execute(
+                "mutation($data:Map) { NopMetaTagLabel__save(data:$data) { tagLabelId state approveStatus } }",
+                Map.of("data", data));
+        assertFalse(resp.hasError(), "save Derived TagLabel should not error: " + resp);
+
+        NopMetaTagLabel saved = daoProvider.daoFor(NopMetaTagLabel.class).getEntityById("tlabel-autosubmit-001");
+        assertNotNull(saved);
+        assertEquals("Suggested", saved.getState(), "Derived label should stay Suggested");
+        assertEquals("SUBMITTED", saved.getApproveStatus(),
+                "Derived label must auto-submit for approval (approveStatus=SUBMITTED; was null "
+                        + "when the wf:wfName root-attr read was broken)");
+    }
+
     @Test
     public void testApproveMutation() {
         String id = "tlabel-approve-001";

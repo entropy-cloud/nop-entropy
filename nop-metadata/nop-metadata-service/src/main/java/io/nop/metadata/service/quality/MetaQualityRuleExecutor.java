@@ -1,10 +1,3 @@
-/**
- * Copyright (c) 2017-2024 Nop Platform. All rights reserved.
- * Author: canonical_entropy@163.com
- * Blog:   https://www.zhihu.com/people/canonical-entropy
- * Gitee:  https://github.com/entropy-cloud/nop-entropy
- * Github: https://github.com/entropy-cloud/nop-entropy
- */
 
 package io.nop.metadata.service.quality;
 
@@ -25,8 +18,10 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Timestamp;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.regex.Pattern;
@@ -60,26 +55,32 @@ public class MetaQualityRuleExecutor {
      */
 
     /**
-     * 维度13-03：custom_sql 危险关键字黑名单（trim + 大写后 whole-word/inclusive 匹配）。
+     * 维度13-03：custom_sql 危险关键字黑名单（MA7.1-02 修复后为 token 级匹配）。
      * <ul>
-     *   <li>分号：禁多语句（避免 stacked queries）。</li>
-     *   <li>UNION：禁跨表读取。</li>
-     *   <li>INTO OUTFILE / INTO DUMPFILE：禁文件写入。</li>
-     *   <li>LOAD DATA：禁文件读取。</li>
-     *   <li>CALL / EXEC：禁调用存储过程（用户配置范围外）。</li>
-     *   <li>SHUTDOWN / DROP / TRUNCATE / ALTER / CREATE / GRANT / REVOKE：禁 DDL/DCL。</li>
+     *   <li>单 token 条目：分词后按 token 精确匹配（不做子串匹配，避免字符串字面量误伤也避免
+     *       {@code UNION} 拼接变体绕过——token 化使空白/注释/反引号变体全部归一）。</li>
+     *   <li>多 token 条目（{@link #CUSTOM_SQL_FORBIDDEN_SEQUENCES}）：按连续 token 序列匹配，
+     *       {@code INTO\tOUTFILE} / 注释分隔的 {@code INTO} 与 {@code OUTFILE} / 多空白分隔一律命中。</li>
+     *   <li>{@code ;} 与 MySQL 可执行注释（{@code /*!} 开头）在归一化前显式拒绝。</li>
      * </ul>
      */
-    private static final Set<String> CUSTOM_SQL_FORBIDDEN_KEYWORDS = unmodifiableSet(
-            ";",
+    private static final Set<String> CUSTOM_SQL_FORBIDDEN_WORDS = unmodifiableSet(
             "UNION",
-            "INTO OUTFILE", "INTO DUMPFILE",
-            "LOAD DATA", "LOAD_FILE",
+            "LOAD_FILE",
             "CALL", "EXEC", "EXECUTE",
             "SHUTDOWN",
             "DROP", "TRUNCATE", "ALTER", "CREATE", "GRANT", "REVOKE",
             "INFORMATION_SCHEMA",
-            "MYSQL.USER", "MYSQL.SCHEMAS");
+            "COPY", "PG_READ_FILE", "PG_LS_DIR", "SYS_EXEC");
+
+    /** 多 token 危险序列（归一化分词后的连续 token 序列）。 */
+    private static final String[][] CUSTOM_SQL_FORBIDDEN_SEQUENCES = {
+            {"INTO", "OUTFILE"},
+            {"INTO", "DUMPFILE"},
+            {"LOAD", "DATA"},
+            {"MYSQL", "USER"},
+            {"MYSQL", "SCHEMAS"}
+    };
 
     /** 维度13-03：sqlHash 用的固定 salt（不防碰撞，只防明文反查，便于审计）。 */
     private static final String SQL_HASH_SALT = "nop.metadata.custom_sql.v1";
@@ -308,13 +309,18 @@ public class MetaQualityRuleExecutor {
     }
 
     /**
-     * 维度13-03：SQL 内容白名单校验。trim + 大写后匹配危险关键字，命中即抛 ErrorCode。
+     * 维度13-03：SQL 内容白名单校验（MA7.1-02 修复：token 级匹配替代子串匹配）。
      * <p><b>核心防御</b>：PreparedStatement 不解决 custom_sql 注入（SQL 文本本身是用户配置），
      * 因此白名单是唯一可控的注入面收口。失败时显式抛 ErrorCode（不静默跳过、不返回 0）。
      *
-     * <p><b>安全边界</b>：toUpperCase() 后匹配黑名单关键字（DROP/ALTER/TRUNCATE/INSERT/UPDATE/DELETE/EXEC/CREATE）。
-     * 大写转换绕过：SQL 关键字不区分大小写，toUpperCase() 使小写/混合大小写输入同样命中黑名单。
-     * 边界：不会防御 future SQL 方言新增的同类关键字（如 MERGE/REPLACE），需阶段性审查更新。
+     * <p><b>匹配算法</b>：先拒绝 {@code ;}（多语句）与 MySQL 可执行注释（{@code /*!} 开头，剥离即绕过）；
+     * 然后剥离普通注释（块注释、{@code --} 行注释、{@code #} 行注释）并归一化空白，再按非字母数字
+     * 分词：单 token 黑名单条目做 token 集合精确匹配，多 token 条目做连续 token 序列匹配。
+     * 归一化使空白/注释/反引号变体（{@code INTO\tOUTFILE}、注释分隔的 {@code INTO} 与 {@code OUTFILE}、
+     * 反引号限定 {@code mysql}.{@code user}）全部命中。fail-closed：字符串字面量内含黑名单 token
+     * （如 {@code SELECT 'UNION'}）同样被拒，属预期行为（宁可误拒不放过）。
+     *
+     * <p><b>安全边界</b>：不防御 future SQL 方言新增的同类关键字（如 MERGE/REPLACE），需阶段性审查更新。
      * 本校验不检查 SQL 语义——PreparedStatement 参数绑定通道由调用方保证。
      */
     static void validateCustomSqlSandbox(String sql, String ruleKey, String sqlHash) {
@@ -322,14 +328,68 @@ public class MetaQualityRuleExecutor {
             return;
         }
         String upper = sql.trim().toUpperCase();
-        for (String keyword : CUSTOM_SQL_FORBIDDEN_KEYWORDS) {
-            if (upper.contains(keyword)) {
-                throw new NopMetadataException(NopMetadataErrors.ERR_QUALITY_CUSTOM_SQL_BLOCKED)
-                        .param("ruleKey", String.valueOf(ruleKey))
-                        .param("reason", "forbidden keyword present: " + keyword)
-                        .param("sqlHash", sqlHash);
+        if (upper.contains(";")) {
+            throw customSqlBlocked("forbidden keyword present: ;", ruleKey, sqlHash);
+        }
+        if (upper.contains("/*!")) {
+            // MySQL 可执行注释 /*!...*/ 会被服务器执行，剥离后校验 = 绕过，故显式拒绝
+            throw customSqlBlocked("executable comment present: /*!", ruleKey, sqlHash);
+        }
+        List<String> tokens = tokenizeSqlForSandbox(upper);
+        for (String word : CUSTOM_SQL_FORBIDDEN_WORDS) {
+            if (tokens.contains(word)) {
+                throw customSqlBlocked("forbidden keyword present: " + word, ruleKey, sqlHash);
             }
         }
+        for (String[] sequence : CUSTOM_SQL_FORBIDDEN_SEQUENCES) {
+            if (containsTokenSequence(tokens, sequence)) {
+                throw customSqlBlocked("forbidden keyword present: " + String.join(" ", sequence), ruleKey, sqlHash);
+            }
+        }
+    }
+
+    private static NopException customSqlBlocked(String reason, String ruleKey, String sqlHash) {
+        return new NopMetadataException(NopMetadataErrors.ERR_QUALITY_CUSTOM_SQL_BLOCKED)
+                .param("ruleKey", String.valueOf(ruleKey))
+                .param("reason", reason)
+                .param("sqlHash", sqlHash);
+    }
+
+    /** 归一化 SQL：剥离普通注释（块注释/行注释）并折叠空白，返回大写 token 流文本。 */
+    private static List<String> tokenizeSqlForSandbox(String upperSql) {
+        String s = upperSql.replaceAll("/\\*.*?\\*/", " ");
+        s = s.replaceAll("--[^\\n]*", " ");
+        s = s.replaceAll("#[^\\n]*", " ");
+        s = s.replaceAll("\\s+", " ").trim();
+        if (s.isEmpty()) {
+            return new ArrayList<>();
+        }
+        List<String> tokens = new ArrayList<>();
+        for (String token : s.split("[^A-Za-z0-9_]+")) {
+            if (!token.isEmpty()) {
+                tokens.add(token);
+            }
+        }
+        return tokens;
+    }
+
+    private static boolean containsTokenSequence(List<String> tokens, String[] sequence) {
+        if (tokens.size() < sequence.length) {
+            return false;
+        }
+        for (int i = 0; i <= tokens.size() - sequence.length; i++) {
+            boolean match = true;
+            for (int j = 0; j < sequence.length; j++) {
+                if (!sequence[j].equals(tokens.get(i + j))) {
+                    match = false;
+                    break;
+                }
+            }
+            if (match) {
+                return true;
+            }
+        }
+        return false;
     }
 
     /** 维度13-03：SHA-256 短摘要（前 16 字符 hex）用于审计追溯，不防碰撞。null 返回 null。 */

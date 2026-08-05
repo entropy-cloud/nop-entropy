@@ -17,6 +17,8 @@ import io.nop.metadata.service.tableref.MetaTableReferenceResolver;
 import io.nop.metadata.service.tableref.TableReference;
 import io.nop.metadata.service.tableref.TableReferenceExecutor;
 import io.nop.orm.IOrmTemplate;
+import io.nop.core.context.IServiceContext;
+import io.nop.core.context.ServiceContextImpl;
 import io.nop.wf.api.WfReference;
 import io.nop.wf.core.IWorkflow;
 import io.nop.wf.core.IWorkflowManager;
@@ -31,9 +33,9 @@ import java.sql.DatabaseMetaData;
 import java.util.HashMap;
 import java.util.Map;
 
-public class QualityAlertWorkflowService {
+public class QualityAlertWorkflowProcessor {
 
-    private static final Logger LOG = LoggerFactory.getLogger(QualityAlertWorkflowService.class);
+    private static final Logger LOG = LoggerFactory.getLogger(QualityAlertWorkflowProcessor.class);
 
     @Inject
     protected IDaoProvider daoProvider;
@@ -54,8 +56,14 @@ public class QualityAlertWorkflowService {
 
     /**
      * 在质量规则 FAIL + severity=ERROR 时创建质量告警工作流实例
+     *
+     * @param result         触发告警的质量结果行
+     * @param serviceContext 服务上下文；null 时兜底取当前线程绑定的服务上下文（{@link IServiceContext#getCtx()}），
+     *                       仍为空则新建脱离请求的 {@link ServiceContextImpl}。MA7.6-02：此前恒传 null →
+     *                       WfRuntime 构造器直接解引用 {@code serviceContext.getEvalScope()} → 确定性 NPE →
+     *                       告警流静默不创建。
      */
-    public WfReference createAlertWorkflow(NopMetaQualityResult result) {
+    public WfReference createAlertWorkflow(NopMetaQualityResult result, IServiceContext serviceContext) {
         if (wfManager == null) {
             throw new NopMetadataException(NopMetadataErrors.ERR_WORKFLOW_MANAGER_UNAVAILABLE)
                     .param(NopMetadataErrors.ARG_QUALITY_RESULT_ID, result.getQualityResultId());
@@ -76,7 +84,13 @@ public class QualityAlertWorkflowService {
         IWorkflow wf = wfManager.newWorkflow("qualityBreachApproval", 1L);
         wf.getRecord().setBizObjName("NopMetaQualityResult");
         wf.getRecord().setBizObjId(result.getQualityResultId());
-        wf.start(vars, null);
+
+        // MA7.6-02：显式 ctx > 当前线程绑定 ctx > 新建脱离请求 ctx 三级兜底，杜绝 null ctx NPE
+        IServiceContext ctx = serviceContext != null ? serviceContext : IServiceContext.getCtx();
+        if (ctx == null) {
+            ctx = new ServiceContextImpl();
+        }
+        wf.start(vars, ctx);
         return wf.getWfReference();
     }
 
