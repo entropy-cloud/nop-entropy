@@ -43,12 +43,9 @@ public class TestNopMetadataErrorsCentralized {
 
         // 模块异常辅助 ErrorCode
         assertNotNull(NopMetadataErrors.ERR_DATASOURCE_TYPE_NOT_SUPPORTED);
-        assertNotNull(NopMetadataErrors.ERR_MANIFEST_BUILD_FAILED);
         assertNotNull(NopMetadataErrors.ERR_ORM_RESOURCE_NOT_FOUND);
         assertNotNull(NopMetadataErrors.ERR_ORM_RESOURCE_READ_FAILED);
-        assertNotNull(NopMetadataErrors.ERR_RECON_PARSE_PROPERTIES_FAILED);
         assertNotNull(NopMetadataErrors.ERR_QUALITY_EXPECT_PASS_WHEN_INVALID);
-        assertNotNull(NopMetadataErrors.ERR_DTO_SERIALIZE_FAILED);
     }
 
     /** 验证 ARG_* 参数常量已引入，避免魔法字符串。 */
@@ -94,8 +91,8 @@ public class TestNopMetadataErrorsCentralized {
     @Test
     public void testNopMetadataExceptionConstructors() {
         // (ErrorCode)
-        NopMetadataException e3 = new NopMetadataException(NopMetadataErrors.ERR_MANIFEST_BUILD_FAILED);
-        assertEquals(NopMetadataErrors.ERR_MANIFEST_BUILD_FAILED.getErrorCode(), e3.getErrorCode());
+        NopMetadataException e3 = new NopMetadataException(NopMetadataErrors.ERR_MODULE_NOT_FOUND);
+        assertEquals(NopMetadataErrors.ERR_MODULE_NOT_FOUND.getErrorCode(), e3.getErrorCode());
 
         // (ErrorCode, Throwable)
         NopMetadataException e4 = new NopMetadataException(

@@ -77,9 +77,6 @@ interface DataSourceErrors extends NopMetadataArgs {
     ErrorCode ERR_TABLE_NOT_FOUND =
             ErrorCode.define("nop.err.metadata.table-not-found",
                     "Meta table not found: {metaTableId}", ARG_META_TABLE_ID);
-    ErrorCode ERR_QUERY_TABLE_NOT_FOUND =
-            ErrorCode.define("nop.err.metadata.query-table-not-found",
-                    "NopMetaTable not found for queryTableData: {metaTableId}", ARG_META_TABLE_ID);
     ErrorCode ERR_QUERY_UNSUPPORTED_TABLE_TYPE =
             ErrorCode.define("nop.err.metadata.query-unsupported-table-type",
                     "Unsupported tableType for queryTableData: {metaTableId} tableType={tableType}",

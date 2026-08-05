@@ -4,7 +4,6 @@ import io.nop.api.core.annotations.autotest.NopTestConfig;
 import io.nop.api.core.annotations.core.OptionalBoolean;
 import io.nop.api.core.beans.graphql.GraphQLRequestBean;
 import io.nop.api.core.beans.graphql.GraphQLResponseBean;
-import io.nop.api.core.exceptions.NopException;
 import io.nop.auth.core.login.UserContextImpl;
 import io.nop.auth.dao.entity.NopAuthUser;
 import io.nop.autotest.junit.JunitBaseTestCase;
@@ -17,7 +16,6 @@ import io.nop.graphql.core.engine.IGraphQLEngine;
 import io.nop.metadata.dao.entity.NopMetaClassification;
 import io.nop.metadata.dao.entity.NopMetaTag;
 import io.nop.metadata.dao.entity.NopMetaTagLabel;
-import io.nop.metadata.service.NopMetadataException;
 import jakarta.inject.Inject;
 import org.junit.jupiter.api.Test;
 
@@ -212,20 +210,9 @@ public class TestNopMetaTagLabelApproval extends JunitBaseTestCase {
 
     @Test
     public void testErrorCodesDefined() {
-        assertNotNull(NopMetadataErrors.ERR_TAG_LABEL_NOT_FOUND);
-        assertEquals("nop.err.metadata.tag-label-not-found",
-                NopMetadataErrors.ERR_TAG_LABEL_NOT_FOUND.getErrorCode());
         assertNotNull(NopMetadataErrors.ERR_TAG_LABEL_INVALID_LABEL_TYPE);
         assertEquals("nop.err.metadata.tag-label-invalid-label-type",
                 NopMetadataErrors.ERR_TAG_LABEL_INVALID_LABEL_TYPE.getErrorCode());
-    }
-
-    @Test
-    public void testNotFoundError() {
-        NopException ex = new NopMetadataException(NopMetadataErrors.ERR_TAG_LABEL_NOT_FOUND)
-                .param(NopMetadataErrors.ARG_TAG_LABEL_ID, "nonexistent");
-        assertEquals("nop.err.metadata.tag-label-not-found", ex.getErrorCode());
-        assertTrue(ex.getMessage().contains("nonexistent"));
     }
 
     /**

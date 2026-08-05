@@ -33,14 +33,8 @@ interface SqlErrors extends NopMetadataArgs {
             ErrorCode.define("nop.err.metadata.sql-type-inference-failed",
                     "Sql view type inference failed (LIMIT 0 execution or ResultSetMetaData read failed): "
                             + "{error} querySpace={querySpace}", ARG_ERROR, ARG_QUERY_SPACE);
-    ErrorCode ERR_SQL_VIEW_MODULE_NOT_FOUND =
-            ErrorCode.define("nop.err.metadata.sql-view-module-not-found",
-                    "MetaModule not found for createSqlTable: {metaModuleId}", ARG_META_MODULE_ID);
     ErrorCode ERR_SQL_VIEW_TABLE_EXISTS =
             ErrorCode.define("nop.err.metadata.sql-view-table-exists",
                     "Sql view table already exists in module: {metaModuleId} tableName={tableName}",
                     ARG_META_MODULE_ID, ARG_TABLE_NAME);
-    ErrorCode ERR_SQL_VIEW_TABLE_NOT_FOUND =
-            ErrorCode.define("nop.err.metadata.sql-view-table-not-found",
-                    "NopMetaTable not found for resolveTableFields: {metaTableId}", ARG_META_TABLE_ID);
 }

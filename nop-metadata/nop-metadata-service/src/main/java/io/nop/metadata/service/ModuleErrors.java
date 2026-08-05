@@ -24,10 +24,6 @@ interface ModuleErrors extends NopMetadataArgs {
             ErrorCode.define("nop.err.metadata.module-delta-parse-failed",
                     "Delta model parse failed (x:extends present, delta=full fallback would lose delta "
                             + "overrides): {path} -- {error}", ARG_PATH, ARG_ERROR);
-    ErrorCode ERR_MANIFEST_BUILD_FAILED =
-            ErrorCode.define("nop.err.metadata.manifest-build-failed",
-                    "MetaManifest build failed: {metaModuleId} -- {error}",
-                    ARG_META_MODULE_ID, ARG_ERROR);
     ErrorCode ERR_MANIFEST_MODULE_NULL =
             ErrorCode.define("nop.err.metadata.manifest-module-null",
                     "MetaManifest build failed: module is null",

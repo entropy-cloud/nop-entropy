@@ -32,9 +32,6 @@ interface ReconErrors extends NopMetadataArgs {
             ErrorCode.define("nop.err.metadata.recon-fetch-table-data-failed",
                     "queryTableData failed for reconciliation: configId={configId} metaTableId={metaTableId} "
                             + "-- {error}", ARG_CONFIG_ID, ARG_META_TABLE_ID, ARG_ERROR);
-    ErrorCode ERR_RECON_RESULT_NOT_FOUND =
-            ErrorCode.define("nop.err.metadata.recon-result-not-found",
-                    "Reconciliation result not found: {resultId}", ARG_RESULT_ID);
     ErrorCode ERR_RECON_DETAILS_EMPTY =
             ErrorCode.define("nop.err.metadata.recon-details-empty",
                     "Reconciliation result has empty details, cannot confirm: resultId={resultId}", ARG_RESULT_ID);
@@ -49,7 +46,4 @@ interface ReconErrors extends NopMetadataArgs {
             ErrorCode.define("nop.err.metadata.recon-invalid-selection",
                     "Reconciliation selection value is invalid: resultId={resultId} value={value}",
                     ARG_RESULT_ID, ARG_VALUE);
-    ErrorCode ERR_RECON_PARSE_PROPERTIES_FAILED =
-            ErrorCode.define("nop.err.metadata.recon-parse-properties-failed",
-                    "Reconciliation parseProperties failed: {error}", ARG_ERROR);
 }

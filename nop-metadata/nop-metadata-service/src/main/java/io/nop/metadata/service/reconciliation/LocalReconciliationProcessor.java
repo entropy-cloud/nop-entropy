@@ -167,6 +167,16 @@ public class LocalReconciliationProcessor implements IReconciliationProcessor {
         return Math.round(v * 10000.0) / 10000.0;
     }
 
+    /**
+     * 解析对账行 properties JSON 为 Map。
+     *
+     * <p>降级语义（裁定 (b)，plan 2026-08-06-0105-3 R6-6；历史引用：plan 2026-07-19-1250-3
+     * "静默吞异常修复"）：单行 properties 损坏属于 per-row 数据质量问题，不应使整批对账失败。
+     * 因此解析失败时 LOG.warn 留证（含 JSON 摘要 + 完整 stack trace）+ 返回空 Map 降级，
+     * 后续处理以空 properties 继续（其余字段照常比对）。该行为显式文档化于此处——
+     * 对应 ErrorCode ERR_RECON_PARSE_PROPERTIES_FAILED 已于 R6-6 死码清理中删除
+     * （实现从未抛出该码，定义与行为不一致属契约漂移）。
+     */
     @SuppressWarnings("unchecked")
     private static java.util.Map<String, Object> parseProperties(String propertiesJson) {
         if (propertiesJson == null || propertiesJson.trim().isEmpty()) {

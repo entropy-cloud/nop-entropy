@@ -55,20 +55,6 @@ interface MiscErrors extends NopMetadataArgs {
     ErrorCode ERR_PROFILING_TABLE_NOT_FOUND =
             ErrorCode.define("nop.err.metadata.profiling-table-not-found",
                     "Profiling target table not found: {metaTableId}", ARG_META_TABLE_ID);
-    ErrorCode ERR_PROFILING_TABLE_NOT_EXTERNAL =
-            ErrorCode.define("nop.err.metadata.profiling-table-not-external",
-                    "Profiling target table is not external (first version supports external-only execution): "
-                            + "{metaTableId} tableType={tableType}", ARG_META_TABLE_ID, ARG_TABLE_TYPE);
-    ErrorCode ERR_PROFILING_NO_DATASOURCE =
-            ErrorCode.define("nop.err.metadata.profiling-no-datasource",
-                    "No registered MetaDataSource for querySpace of target table: "
-                            + "{metaTableId} querySpace={querySpace}", ARG_META_TABLE_ID, ARG_QUERY_SPACE);
-    ErrorCode ERR_PROFILING_DATASOURCE_DISABLED =
-            ErrorCode.define("nop.err.metadata.profiling-datasource-disabled",
-                    "MetaDataSource is disabled, cannot profile table: {dataSourceId}", ARG_DATA_SOURCE_ID);
-    ErrorCode ERR_PROFILING_TABLE_FAILED =
-            ErrorCode.define("nop.err.metadata.profiling-table-failed",
-                    "Profile table failed: {metaTableId} -- {error}", ARG_META_TABLE_ID, ARG_ERROR);
     ErrorCode ERR_PROFILING_INVALID_IDENTIFIER =
             ErrorCode.define("nop.err.metadata.profiling-invalid-identifier",
                     "Identifier (column/table/schema) does not match whitelist ^[A-Za-z_][A-Za-z0-9_]*$: {identifier}",
@@ -82,13 +68,6 @@ interface MiscErrors extends NopMetadataArgs {
 
     // ===== Contract =====
 
-    ErrorCode ERR_CONTRACT_NOT_FOUND =
-            ErrorCode.define("nop.err.metadata.contract-not-found",
-                    "Data contract not found: {contractId}", ARG_CONTRACT_ID);
-    ErrorCode ERR_CONTRACT_INVALID_TRANSITION =
-            ErrorCode.define("nop.err.metadata.contract-invalid-transition",
-                    "Invalid contract status transition: contractId={contractId} currentStatus={currentStatus} "
-                            + "expectedStatus={expectedStatus}", ARG_CONTRACT_ID, ARG_CURRENT_STATUS, ARG_EXPECTED_STATUS);
     ErrorCode ERR_CONTRACT_QUALITY_EXPECTATIONS_INVALID =
             ErrorCode.define("nop.err.metadata.contract-quality-expectations-invalid",
                     "Failed to parse qualityExpectations JSON for contract: {contractId} error={error}",
@@ -100,9 +79,6 @@ interface MiscErrors extends NopMetadataArgs {
 
     // ===== TagLabel =====
 
-    ErrorCode ERR_TAG_LABEL_NOT_FOUND =
-            ErrorCode.define("nop.err.metadata.tag-label-not-found",
-                    "TagLabel not found: {tagLabelId}", ARG_TAG_LABEL_ID);
     ErrorCode ERR_TAG_LABEL_INVALID_LABEL_TYPE =
             ErrorCode.define("nop.err.metadata.tag-label-invalid-label-type",
                     "Unknown or unsupported labelType for approval trigger: {labelType}",
@@ -119,10 +95,6 @@ interface MiscErrors extends NopMetadataArgs {
             ErrorCode.define("nop.err.metadata.propagate-unsupported-entity-type",
                     "Tag propagation only supports entityType=NopMetaTable, got: {entityType}",
                     ARG_ENTITY_TYPE);
-    ErrorCode ERR_PROPAGATE_DEPTH_EXCEEDED =
-            ErrorCode.define("nop.err.metadata.propagate-depth-exceeded",
-                    "Lineage propagation depth exceeded max (3) at entityType={entityType} entityId={entityId} depth={depth}",
-                    ARG_ENTITY_TYPE, ARG_ENTITY_ID);
 
     // ===== AutoClassification =====
 
@@ -153,12 +125,6 @@ interface MiscErrors extends NopMetadataArgs {
             ErrorCode.define("nop.err.metadata.checkpoint-not-found",
                     "Quality checkpoint not found: {checkpointId}", ARG_CHECKPOINT_ID);
 
-    // ===== Profiling rule =====
-
-    ErrorCode ERR_PROFILING_RULE_NOT_FOUND =
-            ErrorCode.define("nop.err.metadata.profiling-rule-not-found",
-                    "Profiling rule not found: {profilingRuleId}", ARG_PROFILING_RULE_ID);
-
     // ===== Event =====
 
     ErrorCode ERR_EVENT_SNAPSHOT_SERIALIZE_FAILED =
@@ -176,18 +142,8 @@ interface MiscErrors extends NopMetadataArgs {
             ErrorCode.define("nop.err.metadata.catalog-aggregate-no-row",
                     "Catalog aggregate SQL returned no row (logical impossibility): {sql}", ARG_SQL);
 
-    // ===== DTO =====
-
-    ErrorCode ERR_DTO_SERIALIZE_FAILED =
-            ErrorCode.define("nop.err.metadata.dto-serialize-failed",
-                    "DTO serialize failed: {entityType} -- {error}", ARG_ENTITY_TYPE, ARG_ERROR);
-
     // ===== Search =====
 
-    ErrorCode ERR_SEARCH_INDEX_REBUILD_FAILED =
-            ErrorCode.define("nop.err.metadata.search-index-rebuild-failed",
-                    "Search index rebuild failed: {entityType} -- {error}",
-                    ARG_ENTITY_TYPE, ARG_ERROR);
     ErrorCode ERR_SEARCH_ENGINE_UNAVAILABLE =
             ErrorCode.define("nop.err.metadata.search-engine-unavailable",
                     "Search engine is not available: {error}",

@@ -82,17 +82,6 @@ interface AggregationErrors extends NopMetadataArgs {
             ErrorCode.define("nop.err.metadata.aggr-unsupported-table-type",
                     "SqlAggregationProcessor requires TABLE_TYPE_SQL, got: {tableType}",
                     ARG_TABLE_TYPE);
-    ErrorCode ERR_AGGR_JOIN_MIXED_ENDPOINT_DEFERRED =
-            ErrorCode.define("nop.err.metadata.aggr-join-mixed-endpoint-deferred",
-                    "Mixed-endpoint (entity<->external/sql) JOIN aggregation is deferred: "
-                            + "{joinId} leftEndpointType={leftEndpointType} rightEndpointType={rightEndpointType}",
-                    ARG_JOIN_ID, ARG_LEFT_ENDPOINT_TYPE, ARG_RIGHT_ENDPOINT_TYPE);
-    ErrorCode ERR_AGGR_JOIN_MIXED_CROSS_DB_DEFERRED =
-            ErrorCode.define("nop.err.metadata.aggr-join-mixed-cross-db-deferred",
-                    "Mixed-endpoint JOIN aggregation: entity physical table is not visible in the selected external "
-                            + "connection: {joinId} entityPhysicalTable={entityPhysicalTable} entitySchema={entitySchema} "
-                            + "externalQuerySpace={externalQuerySpace}",
-                    ARG_JOIN_ID, ARG_ENTITY_PHYSICAL_TABLE, ARG_ENTITY_SCHEMA, ARG_EXTERNAL_QUERY_SPACE);
     ErrorCode ERR_AGGR_JOIN_MIXED_ENTITY_TABLE_EMPTY =
             ErrorCode.define("nop.err.metadata.aggr-join-mixed-entity-table-empty",
                     "Mixed-endpoint JOIN aggregation: entity physical table name (NopMetaEntity.tableName) is empty, "
@@ -114,11 +103,6 @@ interface AggregationErrors extends NopMetadataArgs {
                             + "{metaTableId} name={name} declaredSide={declaredSide} resolvedSide={resolvedSide} "
                             + "fieldMetaEntityId={fieldMetaEntityId} joinId={joinId}",
                     ARG_META_TABLE_ID, ARG_NAME, ARG_DECLARED_SIDE, ARG_RESOLVED_SIDE, ARG_FIELD_META_ENTITY_ID, ARG_JOIN_ID);
-    ErrorCode ERR_AGGR_JOIN_EXTERNAL_CROSS_QUERY_SPACE =
-            ErrorCode.define("nop.err.metadata.aggr-join-external-cross-query-space",
-                    "Cross-querySpace (cross-DB) external<->external JOIN aggregation is deferred: "
-                            + "{joinId} leftQuerySpace={leftQuerySpace} rightQuerySpace={rightQuerySpace}",
-                    ARG_JOIN_ID, ARG_LEFT_QUERY_SPACE, ARG_RIGHT_QUERY_SPACE);
     ErrorCode ERR_AGGR_JOIN_SELF_JOIN =
             ErrorCode.define("nop.err.metadata.aggr-join-self-join",
                     "Self-join (leftEntityId == rightEntityId) is not supported for JOIN aggregation: "
@@ -131,11 +115,6 @@ interface AggregationErrors extends NopMetadataArgs {
                             + "rightEntityId={rightEntityId} joinId={joinId}",
                     ARG_META_TABLE_ID, ARG_NAME, ARG_ENTITY_FIELD_ID, ARG_FIELD_META_ENTITY_ID,
                     ARG_LEFT_ENTITY_ID, ARG_RIGHT_ENTITY_ID, ARG_JOIN_ID);
-    ErrorCode ERR_AGGR_JOIN_CROSS_QUERY_SPACE =
-            ErrorCode.define("nop.err.metadata.aggr-join-cross-query-space",
-                    "Cross-querySpace (cross-DB) entity-entity JOIN aggregation is deferred: "
-                            + "{joinId} leftQuerySpace={leftQuerySpace} rightQuerySpace={rightQuerySpace}",
-                    ARG_JOIN_ID, ARG_LEFT_QUERY_SPACE, ARG_RIGHT_QUERY_SPACE);
     ErrorCode ERR_AGGR_JOIN_COMPILE_FAILED =
             ErrorCode.define("nop.err.metadata.aggr-join-compile-failed",
                     "Entity JOIN aggregation SQL failed to compile via EQL: {joinId} -- {error}",
