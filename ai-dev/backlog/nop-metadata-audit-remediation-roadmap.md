@@ -205,6 +205,14 @@
 | V.2 | 独立子代理 closure audit | done（plan-2026-08-05-1408-2 Phase 2：独立子代理 fresh session task `ses_02f355fa8ffeNDYHj3BHpcml4X` audit 完成，结论 READY_TO_CLOSE——P0 追踪矩阵 4/4 PASS + P1 12/12 PASS（10 fixed + 2 watch-only）+ Anti-Hollow 4/4 PASS + deferred 分类 8/8 PASS；0 untraceable；3 条 Minor 观察显式记录为非阻塞；追踪矩阵写入 arm-index `## MV audit 段`） | `ai-dev/audits/arm-index-nop-metadata.md` | V.1 | `closure-audit-prompt.md` |
 | V.3 | 所有 P0/P1 finding 可追溯至修复或 deferred | done（plan-2026-08-05-1408-2 Phase 3：追踪矩阵完整性核对通过——P0 4 行全部终态（1 fixed + 3 done）、P1 12 行全部终态（10 fixed + 2 watch-only）、P2 终局 8 项全部终态（4 watch-only residual + 4 out-of-scope improvement，2 项带 Successor R4.2/R4.3）；无 untraceable finding、无终态悬置；V.2 问题清单 3 条 Minor 全部处置为显式非阻塞；MG 输入清单（G.1/G.2/G.3 候选）已记录） | `ai-dev/audits/arm-index-nop-metadata.md` | V.2 | `closure-audit-prompt.md` |
 
+### MR5 — 2026-08-05 两轮新审计 P1 批量修复（SSRF / 血缘 API / 文档+治理）
+
+| # | Work Item | Status | Owner Doc | Deps | Skill |
+|---|-----------|--------|-----------|------|-------|
+| R5.1 | **P1-01/P1-02/AR-01/AR-02 修复（SSRF 主机校验归一化统一）**：共享 `HostSecurityUtil`（JDK 严格十进制 + 1-4 段位移 + mod 2^32 截断语义 + 0x fail-closed 超集，纯确定性不触发 DNS）→ `MetaDataSourceConnectionProcessor.isInternalHost` + `CheckpointActionDispatcher.isInternalHost` 双侧接线（删除各自重复实现，废弃 inet_aton 八进制）；行为反向变更声明：172.16~31 二段形式与 0177.0.0.1 由拦截变放行（向 JDK 语义收敛）；回归测试：TestHostSecurityUtil（16）+ TestMetaDataSourceConnectionSecurity（+3）+ TestCheckpointActionDispatcherWebhookSsrf（+3，testOctalDottedIpv4Blocked 改写为放行断言） | done（plan-2026-08-05-1842-1 Phase 1-3，`./mvnw test -pl nop-metadata -am -T 1C` 889/0 全绿） | `nop-metadata/nop-metadata-service/src/main/java/io/nop/metadata/service/security/HostSecurityUtil.java` + `nop-metadata/nop-metadata-service/src/main/java/io/nop/metadata/service/connection/MetaDataSourceConnectionProcessor.java` + `nop-metadata/nop-metadata-service/src/main/java/io/nop/metadata/service/quality/CheckpointActionDispatcher.java` + 3 个测试文件 | P1-01, P1-02, AR-01, AR-02 | 本 plan（2026-08-05-1842-1） |
+| R5.2 | P1-03/AR-03 修复（血缘公开 API 显式错误） | todo | `nop-metadata/nop-metadata-service/src/main/java/io/nop/metadata/service/lineage/`（待 plan 2026-08-05-1842-2 展开） | P1-03, AR-03 | plan（2026-08-05-1842-2） |
+| R5.3 | P1-04/05/06 + AR-04/05 修复（文档契约漂移 + 审计追踪登记） | todo | `ai-dev/audits/` + `docs-for-ai/`（待 plan 2026-08-05-1842-3 展开） | P1-04, P1-05, P1-06, AR-04, AR-05 | plan（2026-08-05-1842-3） |
+
 ### MG — Guard 与知识沉淀
 
 | # | Work Item | Status | Owner Doc | Deps | Skill |
@@ -399,3 +407,43 @@ graph LR
 7. 既有审计文件不动——`ai-dev/audits/` 下非 `arm-*nop-metadata*` 的历史审计（含 nop-ai 的 `arm-index.md`）仅作基线引用，禁止覆盖
 8. Finding ID 格式：`P<级别>-<里程碑>-<序号>`
 9. 手编生成产物（`_gen/`、`_*.xml`、`_app.orm.xml`）仍禁止——改源模型（`nop-metadata/model/nop-metadata.orm.xml`）后经 `mvn clean install -DskipTests` 重新生成（见 AGENTS.md）
+
+## Follow-up Backlog
+
+> P2 批次登记区（mission 规则：P2 不驱动 remediation plan，仅登记跟踪；来源审计路径随行标注）。
+> 登记批次：2026-08-05 两轮审计——`ai-dev/audits/2026-08-05-0655-multi-audit-nop-metadata-audit-remediation.md`（P2-01~27）+ `ai-dev/audits/2026-08-05-0655-open-audit-nop-metadata-audit-remediation.md`（AR-06~10）。
+
+| 编号 | 标题 | 来源 | 状态 |
+|------|------|------|------|
+| P2-01 | NopMetaSearchProcessor fail-closed 分支丢失原始异常链且无日志（`NopMetaSearchProcessor.java:56-66,77-87`） | multi-audit 2026-08-05-0655 | backlog |
+| P2-02 | AutoClassificationProcessor 正则编译失败静默 continue 无日志（`AutoClassificationProcessor.java:129-134`） | multi-audit 2026-08-05-0655 | backlog |
+| P2-03 | 21 个错误码死码（含 ERR_RECON_PARSE_PROPERTIES_FAILED 契约漂移） | multi-audit 2026-08-05-0655 | backlog |
+| P2-04 | 4 处辅助函数 catch 后无日志静默返回默认值（MetaQualityCheckpointExecutor/Scorer/BizModel/Scheduler） | multi-audit 2026-08-05-0655 | backlog |
+| P2-05 | .param() 键 399 处裸字符串 vs ~120 处 ARG_* 常量双风格并存 | multi-audit 2026-08-05-0655 | backlog |
+| P2-06 | AggregationHelper.checkTableExists 将 getTables SQLException 归类为"表不可见"（`AggregationHelper.java:496-506`） | multi-audit 2026-08-05-0655 | backlog |
+| P2-07 | NopMetaModuleBizModel.parseDeltaModel 解析失败降级 delta=full | multi-audit 2026-08-05-0655 | backlog |
+| P2-08 | judgeRegex 对"方言不支持 REGEXP"用 SKIP 状态（建议模块文档补例外说明） | multi-audit 2026-08-05-0655 | backlog |
+| P2-09 | NopMetaTagLabelBizModel 提审失败仅 LOG.warn 继续，用户侧无感知 | multi-audit 2026-08-05-0655 | backlog |
+| P2-10 | custom_sql 黑名单已知遗漏（pg_read_binary_file / RUNSCRIPT / PG_LS_LOGDIR / PG_LS_WALDIR / PG_STAT_FILE / SCRIPT 等） | multi-audit 2026-08-05-0655 | backlog |
+| P2-11 | webhook 请求未显式关闭重定向跟随（依赖 HttpClientConfig 默认 false） | multi-audit 2026-08-05-0655 | backlog |
+| P2-12 | rawJdbcUrl（含明文凭据）作为错误参数保留可能进入日志/错误响应 | multi-audit 2026-08-05-0655 | backlog |
+| P2-13 | ExpressionMeasureValidator 两个黑名单条目因分词机制永远无法命中（死条目） | multi-audit 2026-08-05-0655 | backlog |
+| P2-14 | TestAutoNopMetaAggregationCrud 错标快照测试（实际 NopMetaModule__findPage） | multi-audit 2026-08-05-0655 | backlog |
+| P2-15 | NopMetadataHelperTest.testToSearchableDoc* 只镜像 trivial 字段复制 | multi-audit 2026-08-05-0655 | backlog |
+| P2-16 | TestNopMetadataErrorsCentralized.testArgConstantsIntroduced 纯常量镜像 | multi-audit 2026-08-05-0655 | backlog |
+| P2-17 | TestAllEntitiesHaveBizModels 手工维护 39 实体清单（建议反射扫描） | multi-audit 2026-08-05-0655 | backlog |
+| P2-18 | NopMetadataWebPagesTest 纯页面编译冒烟且无法检测页面被删空 | multi-audit 2026-08-05-0655 | backlog |
+| P2-19 | testToErrorMessageNopException 死分支 + 弱断言 | multi-audit 2026-08-05-0655 | backlog |
+| P2-20 | TestCoreMetricsUsage 脆弱的源码静态扫描测试（正则无 DOTALL） | multi-audit 2026-08-05-0655 | backlog |
+| P2-21 | 反射测私有方法 + MockHttpClient 双通道行为不一致（潜伏） | multi-audit 2026-08-05-0655 | backlog |
+| P2-22 | ai-dev 设计文档 orm.xml 行号锚点全部失效 | multi-audit 2026-08-05-0655 | backlog |
+| P2-23 | 模块文档 I*Biz 接口包路径表述易误读（`nop-metadata-dao/.../biz/`） | multi-audit 2026-08-05-0655 | backlog |
+| P2-24 | 模块文档未声明 items 为 List<Map<String,Object>> 的合理例外 | multi-audit 2026-08-05-0655 | backlog |
+| P2-25 | service pom 未直接声明 nop-dataset（经 nop-core 传递） | multi-audit 2026-08-05-0655 | backlog |
+| P2-26 | 模块文档依赖表未记录 test-scope 基建依赖 | multi-audit 2026-08-05-0655 | backlog |
+| P2-27 | dao 模块 test-scope 声明 nop-metadata-codegen 但无 src/test 目录 | multi-audit 2026-08-05-0655 | backlog |
+| AR-06 | LineageExtractResultDTO.sourceTables 被填充为 unresolved 列表（字段语义与名称相反，0 消费方） | open-audit 2026-08-05-0655 | backlog |
+| AR-07 | R4.2 可空 META_SCHEMA 入 UK 后 DB 层不再拦截 NULL-schema 重复行（find-then-insert 竞态退化，建议原子 upsert 或空串占位） | open-audit 2026-08-05-0655 | backlog |
+| AR-08 | createSqlTable 重复守卫查询缺 isDelta/schema 过滤，比 4 列 UK 更严（误报 ERR_SQL_VIEW_TABLE_EXISTS） | open-audit 2026-08-05-0655 | backlog |
+| AR-09 | R4.3 cron 错误路径 DTO 不携带 runId；R4.2 多 schema 语义未进模块文档 | open-audit 2026-08-05-0655 | backlog |
+| AR-10 | 先前 P2 批仍 open 状态确认（P2-01/P2-04/P2-12 抽查仍 live，无代码变更） | open-audit 2026-08-05-0655 | backlog |
