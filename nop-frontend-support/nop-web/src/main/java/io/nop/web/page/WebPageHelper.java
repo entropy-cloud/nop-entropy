@@ -19,6 +19,7 @@ import io.nop.core.lang.json.DeltaJsonOptions;
 import io.nop.core.lang.json.JObject;
 import io.nop.core.lang.json.JsonTool;
 import io.nop.core.lang.json.delta.JsonCleaner;
+import io.nop.core.lang.json.delta.JsonMerger;
 import io.nop.core.lang.json.utils.JsonTransformHelper;
 import io.nop.core.lang.json.utils.SourceLocationHelper;
 import io.nop.core.resource.IResource;
@@ -59,6 +60,26 @@ public class WebPageHelper {
 
         Map<String, Object> map = JsonTool.instance().loadDeltaBean(resource, JObject.class, options);
         return map;
+    }
+
+    /**
+     * 将 view/embed 配置中声明的 override 内容以 delta 合并语义（Io.nop.core.lang.json.delta.JsonMerger）
+     * 应用到已加载的页面 JSON 上：map 按 key 合并（! 前缀强制覆盖）、list 按唯一键(id/name)合并、无唯一键整段替换。
+     * override 为 null 或空 map 时原样返回 base，保证既有渲染输出不变。
+     */
+    public static Map<String, Object> applyViewOverride(Map<String, Object> base, Object override) {
+        if (override == null || isEmptyMapOrList(override))
+            return base;
+        Object merged = JsonMerger.instance().merge(base, override);
+        return merged instanceof Map ? (Map<String, Object>) merged : base;
+    }
+
+    private static boolean isEmptyMapOrList(Object value) {
+        if (value instanceof Map)
+            return ((Map<?, ?>) value).isEmpty();
+        if (value instanceof Collection)
+            return ((Collection<?>) value).isEmpty();
+        return false;
     }
 
     public static void checkPageFile(String path) {

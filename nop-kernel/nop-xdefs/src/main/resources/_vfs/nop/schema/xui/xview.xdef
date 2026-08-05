@@ -214,6 +214,27 @@
                xdef:bean-tag-prop="type"
                xdef:ref="UiContainerModel" xdef:bean-body-prop="body" xdef:body-type="list">
         </group>
+
+        <!--
+        embed: 内嵌外部页面/视图容器。path 指向外部 view.xml 或 page.yaml（也可以是缺省后缀的页面名，
+        flux 模式同一目录同名 .flux.yaml 优先），将其渲染结果作为当前槽位(complex 四槽位 /
+        tabs tab / wizard step / group body)的内容直接输出，并经 <override> 内容做 delta 合并。
+        本质是 UiContainerModel 的第七种子类型，用于让标准容器外壳能够内嵌外部页面，弥补
+        complex 槽位类型封闭的缺口（经典场景：complex 外壳 + body 槽内嵌 gantt/kanban/calendar 等
+        flux 专有页面，页面本体以独立 view.xml / page.yaml 维护）。
+        注意: override 走 Io.nop.core.lang.json.delta.JsonMerger 合并语义——map 按 key 合并
+        (前缀 ! 强制覆盖), list 按唯一键(id/name)合并、无唯一键则整段替换, 支持 x:override。
+        @path 外部 view.xml / page.yaml 的 v-path（或页面名）
+        @page path 指向 view.xml 时，选择其中 <pages> 下的页面名
+        @grid path 指向 view.xml 时，选择其中 <grids> 下的 grid id（内嵌表格）
+        -->
+        <embed name="!string" path="v-path" page="string" grid="string" title="string"
+               xdef:name="UiEmbedPageModel"
+               xdef:ref="UiPageModel"
+               xdef:bean-tag-prop="type">
+            <data>xjson</data>
+            <override>xjson</override>
+        </embed>
     </xdef:define>
 
     <pages xdef:key-attr="name" xdef:body-type="list">
@@ -223,6 +244,7 @@
         <tabs name="!string" xdef:ref="UiTabsModel"/>
         <wizard name="!string" xdef:ref="UiWizardModel"/>
         <group name="!string" xdef:ref="UiGroupModel"/>
+        <embed name="!string" xdef:ref="UiEmbedPageModel" />
         <complex name="!string" xdef:name="UiComplexPageModel" xdef:ref="UiPageModel" xdef:bean-tag-prop="type">
             <header xdef:ref="UiContainerModel" xdef:body-type="list" xdef:bean-body-prop="body" />
             <footer xdef:ref="UiContainerModel" xdef:body-type="list" xdef:bean-body-prop="body" />
