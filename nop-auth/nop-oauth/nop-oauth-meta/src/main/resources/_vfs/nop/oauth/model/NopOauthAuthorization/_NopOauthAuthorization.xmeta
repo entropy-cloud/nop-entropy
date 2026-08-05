@@ -57,7 +57,7 @@
               updatable="true">
             <schema type="java.sql.Timestamp"/>
         </prop>
-        <prop name="authorizationCodeExpiresAt" displayName="AuthorizationCode过期使劲按" propId="10"
+        <prop name="authorizationCodeExpiresAt" displayName="AuthorizationCode过期时间" propId="10"
               i18n-en:displayName="Authorization Code Expires At" queryable="true" sortable="true" insertable="true"
               updatable="true">
             <schema type="java.sql.Timestamp"/>

@@ -81,7 +81,7 @@ CREATE TABLE nop_oauth_registered_client(
                     
       COMMENT ON COLUMN nop_oauth_authorization.AUTHORIZATION_CODE_ISSUED_AT IS 'AuthorizationCode发放时间';
                     
-      COMMENT ON COLUMN nop_oauth_authorization.AUTHORIZATION_CODE_EXPIRES_AT IS 'AuthorizationCode过期使劲按';
+      COMMENT ON COLUMN nop_oauth_authorization.AUTHORIZATION_CODE_EXPIRES_AT IS 'AuthorizationCode过期时间';
                     
       COMMENT ON COLUMN nop_oauth_authorization.AUTHORIZATION_CODE_METADATA IS 'AuthorizationCode元数据';
                     

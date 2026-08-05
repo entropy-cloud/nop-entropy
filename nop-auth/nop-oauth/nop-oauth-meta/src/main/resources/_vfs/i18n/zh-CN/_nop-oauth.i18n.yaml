@@ -13,7 +13,7 @@ prop:
       accessTokenType: AccessToken类型
       accessTokenValue: AccessToken
       attributes: 扩展属性
-      authorizationCodeExpiresAt: AuthorizationCode过期使劲按
+      authorizationCodeExpiresAt: AuthorizationCode过期时间
       authorizationCodeIssuedAt: AuthorizationCode发放时间
       authorizationCodeMetadata: AuthorizationCode元数据
       authorizationCodeValue: AuthorizationCode值

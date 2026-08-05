@@ -57,7 +57,7 @@ public class _NopOauthAuthorization extends DynamicOrmEntity{
     public static final String PROP_NAME_authorizationCodeIssuedAt = "authorizationCodeIssuedAt";
     public static final int PROP_ID_authorizationCodeIssuedAt = 9;
     
-    /* AuthorizationCode过期使劲按: AUTHORIZATION_CODE_EXPIRES_AT TIMESTAMP */
+    /* AuthorizationCode过期时间: AUTHORIZATION_CODE_EXPIRES_AT TIMESTAMP */
     public static final String PROP_NAME_authorizationCodeExpiresAt = "authorizationCodeExpiresAt";
     public static final int PROP_ID_authorizationCodeExpiresAt = 10;
     
@@ -294,7 +294,7 @@ public class _NopOauthAuthorization extends DynamicOrmEntity{
     /* AuthorizationCode发放时间: AUTHORIZATION_CODE_ISSUED_AT */
     private java.sql.Timestamp _authorizationCodeIssuedAt;
     
-    /* AuthorizationCode过期使劲按: AUTHORIZATION_CODE_EXPIRES_AT */
+    /* AuthorizationCode过期时间: AUTHORIZATION_CODE_EXPIRES_AT */
     private java.sql.Timestamp _authorizationCodeExpiresAt;
     
     /* AuthorizationCode元数据: AUTHORIZATION_CODE_METADATA */
@@ -1298,7 +1298,7 @@ public class _NopOauthAuthorization extends DynamicOrmEntity{
     }
     
     /**
-     * AuthorizationCode过期使劲按: AUTHORIZATION_CODE_EXPIRES_AT
+     * AuthorizationCode过期时间: AUTHORIZATION_CODE_EXPIRES_AT
      */
     public final java.sql.Timestamp getAuthorizationCodeExpiresAt(){
          onPropGet(PROP_ID_authorizationCodeExpiresAt);
@@ -1306,7 +1306,7 @@ public class _NopOauthAuthorization extends DynamicOrmEntity{
     }
 
     /**
-     * AuthorizationCode过期使劲按: AUTHORIZATION_CODE_EXPIRES_AT
+     * AuthorizationCode过期时间: AUTHORIZATION_CODE_EXPIRES_AT
      */
     public final void setAuthorizationCodeExpiresAt(java.sql.Timestamp value){
         if(onPropSet(PROP_ID_authorizationCodeExpiresAt,value)){

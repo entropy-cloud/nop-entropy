@@ -45,7 +45,7 @@
                 <!--AuthorizationCode发放时间-->
                 <col id="authorizationCodeIssuedAt" sortable="true"/>
 
-                <!--AuthorizationCode过期使劲按-->
+                <!--AuthorizationCode过期时间-->
                 <col id="authorizationCodeExpiresAt" sortable="true"/>
 
                 <!--AuthorizationCode元数据-->
@@ -128,7 +128,7 @@
  principalName[客户端名称] authorizationGrantType[授权类型]
  authorizedScopes[授权范围] attributes[扩展属性]
  state[状态码] authorizationCodeValue[AuthorizationCode值]
- authorizationCodeIssuedAt[AuthorizationCode发放时间] authorizationCodeExpiresAt[AuthorizationCode过期使劲按]
+ authorizationCodeIssuedAt[AuthorizationCode发放时间] authorizationCodeExpiresAt[AuthorizationCode过期时间]
  authorizationCodeMetadata[AuthorizationCode元数据] accessTokenValue[AccessToken]
  accessTokenIssuedAt[AccessToken发放时间] accessTokenExpiresAt[AccessToken过期时间]
  accessTokenMetadata[AccessToken元数据] accessTokenType[AccessToken类型]
@@ -150,7 +150,7 @@
  principalName[客户端名称] authorizationGrantType[授权类型]
  authorizedScopes[授权范围] attributes[扩展属性]
  state[状态码] authorizationCodeValue[AuthorizationCode值]
- authorizationCodeIssuedAt[AuthorizationCode发放时间] authorizationCodeExpiresAt[AuthorizationCode过期使劲按]
+ authorizationCodeIssuedAt[AuthorizationCode发放时间] authorizationCodeExpiresAt[AuthorizationCode过期时间]
  authorizationCodeMetadata[AuthorizationCode元数据] accessTokenValue[AccessToken]
  accessTokenIssuedAt[AccessToken发放时间] accessTokenExpiresAt[AccessToken过期时间]
  accessTokenMetadata[AccessToken元数据] accessTokenType[AccessToken类型]

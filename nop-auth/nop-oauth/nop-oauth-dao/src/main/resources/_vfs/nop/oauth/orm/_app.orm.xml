@@ -40,7 +40,7 @@
                 <column code="AUTHORIZATION_CODE_ISSUED_AT" displayName="AuthorizationCode发放时间"
                         name="authorizationCodeIssuedAt" propId="9" stdDataType="timestamp" stdSqlType="TIMESTAMP"
                         i18n-en:displayName="Authorization Code Issued At"/>
-                <column code="AUTHORIZATION_CODE_EXPIRES_AT" displayName="AuthorizationCode过期使劲按"
+                <column code="AUTHORIZATION_CODE_EXPIRES_AT" displayName="AuthorizationCode过期时间"
                         name="authorizationCodeExpiresAt" propId="10" stdDataType="timestamp" stdSqlType="TIMESTAMP"
                         i18n-en:displayName="Authorization Code Expires At"/>
                 <column code="AUTHORIZATION_CODE_METADATA" displayName="AuthorizationCode元数据"
