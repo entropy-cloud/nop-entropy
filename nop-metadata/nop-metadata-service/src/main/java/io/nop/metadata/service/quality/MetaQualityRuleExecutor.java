@@ -55,10 +55,12 @@ public class MetaQualityRuleExecutor {
      */
 
     /**
-     * 维度13-03：custom_sql 危险关键字黑名单（MA7.1-02 修复后为 token 级匹配）。
+     * 维度13-03：custom_sql 危险关键字黑名单（MA7.1-02 修复后为 token 级匹配，R6.1 补全 6 缺项）。
      * <ul>
      *   <li>单 token 条目：分词后按 token 精确匹配（不做子串匹配，避免字符串字面量误伤也避免
-     *       {@code UNION} 拼接变体绕过——token 化使空白/注释/反引号变体全部归一）。</li>
+     *       {@code UNION} 拼接变体绕过——token 化使空白/注释/反引号变体全部归一）。
+     *       PostgreSQL 文件/目录访问族（PG_READ_FILE/PG_READ_BINARY_FILE/PG_LS_DIR/PG_LS_LOGDIR/
+     *       PG_LS_WALDIR/PG_STAT_FILE/COPY）与脚本导出族（H2 RUNSCRIPT/SCRIPT、SYS_EXEC）全覆盖。</li>
      *   <li>多 token 条目（{@link #CUSTOM_SQL_FORBIDDEN_SEQUENCES}）：按连续 token 序列匹配，
      *       {@code INTO\tOUTFILE} / 注释分隔的 {@code INTO} 与 {@code OUTFILE} / 多空白分隔一律命中。</li>
      *   <li>{@code ;} 与 MySQL 可执行注释（{@code /*!} 开头）在归一化前显式拒绝。</li>
@@ -71,7 +73,8 @@ public class MetaQualityRuleExecutor {
             "SHUTDOWN",
             "DROP", "TRUNCATE", "ALTER", "CREATE", "GRANT", "REVOKE",
             "INFORMATION_SCHEMA",
-            "COPY", "PG_READ_FILE", "PG_LS_DIR", "SYS_EXEC");
+            "COPY", "PG_READ_FILE", "PG_READ_BINARY_FILE", "PG_LS_DIR", "PG_LS_LOGDIR", "PG_LS_WALDIR",
+            "PG_STAT_FILE", "SYS_EXEC", "RUNSCRIPT", "SCRIPT");
 
     /** 多 token 危险序列（归一化分词后的连续 token 序列）。 */
     private static final String[][] CUSTOM_SQL_FORBIDDEN_SEQUENCES = {
@@ -320,7 +323,9 @@ public class MetaQualityRuleExecutor {
      * 反引号限定 {@code mysql}.{@code user}）全部命中。fail-closed：字符串字面量内含黑名单 token
      * （如 {@code SELECT 'UNION'}）同样被拒，属预期行为（宁可误拒不放过）。
      *
-     * <p><b>安全边界</b>：不防御 future SQL 方言新增的同类关键字（如 MERGE/REPLACE），需阶段性审查更新。
+     * <p><b>安全边界</b>：黑名单覆盖截至 2026-08-05 已确认的已知危险关键字（含 PostgreSQL 文件/目录
+     * 访问族 PG_READ_BINARY_FILE/PG_LS_LOGDIR/PG_LS_WALDIR/PG_STAT_FILE 与 H2 RUNSCRIPT/SCRIPT 等，
+     * R6.1 补齐）。future SQL 方言新增的同类关键字（如 MERGE/REPLACE）不在当前集合内，需阶段性审查更新。
      * 本校验不检查 SQL 语义——PreparedStatement 参数绑定通道由调用方保证。
      */
     static void validateCustomSqlSandbox(String sql, String ruleKey, String sqlHash) {

@@ -280,6 +280,77 @@ public class TestExpressionMeasureValidator {
     }
 
     // ============================================================
+    // R6.1（P2-13）：死条目修正回归（SET TRANSACTION / INTO OUTFILE / INTO DUMPFILE 拆分为单 token）
+    // ============================================================
+
+    /**
+     * R6.1（P2-13）：{@code SET TRANSACTION} 类表达式 → unsafe，reason 命中目标集合 {SET, TRANSACTION}
+     * 之一（scanBlacklist 按 token 流顺序首命中，SET 在前则 reason=SET，断言不钉死具体成员）。
+     */
+    @Test
+    public void testR61SetTransactionBlocked() {
+        NopException ex = assertThrows(NopException.class,
+                () -> ExpressionMeasureValidator.validateStatic("SET TRANSACTION ISOLATION LEVEL READ COMMITTED",
+                        ExpressionMeasureValidator.ValidationOptions.saveTimeLoose(), MT, MN),
+                "SET TRANSACTION must be blocked (was a dead two-token entry)");
+        assertEquals(NopMetadataErrors.ERR_AGGR_EXPRESSION_UNSAFE.getErrorCode(), ex.getErrorCode());
+        String reason = String.valueOf(ex.getParam("reason"));
+        assertTrue(reason.contains("SET") || reason.contains("TRANSACTION"),
+                "reason must hit {SET, TRANSACTION}: " + reason);
+    }
+
+    /**
+     * R6.1（P2-13）：独立 TRANSACTION 向量（不带 SET）唯一钉住 TRANSACTION 条目
+     * （防 SET 先抛导致 TRANSACTION 从未被直接命中）。
+     */
+    @Test
+    public void testR61TransactionAloneBlocked() {
+        NopException ex = assertThrows(NopException.class,
+                () -> ExpressionMeasureValidator.validateStatic("TRANSACTION ISOLATION LEVEL READ COMMITTED",
+                        ExpressionMeasureValidator.ValidationOptions.saveTimeLoose(), MT, MN),
+                "bare TRANSACTION must be blocked (pins the TRANSACTION entry itself)");
+        assertEquals(NopMetadataErrors.ERR_AGGR_EXPRESSION_UNSAFE.getErrorCode(), ex.getErrorCode());
+        String reason = String.valueOf(ex.getParam("reason"));
+        assertTrue(reason.contains("TRANSACTION"),
+                "reason must pin TRANSACTION: " + reason);
+    }
+
+    /**
+     * R6.1（P2-13）：{@code x INTO OUTFILE '/tmp/f'} → unsafe，reason 命中集合 {INTO, OUTFILE, DUMPFILE}
+     * 之一（INTO 加入后首命中 INTO；未加入则 OUTFILE 首命中——断言对两种落点均成立，对裁定中立）。
+     */
+    @Test
+    public void testR61IntoOutfileBlocked() {
+        NopException ex = assertThrows(NopException.class,
+                () -> ExpressionMeasureValidator.validateStatic("x INTO OUTFILE '/tmp/f'",
+                        ExpressionMeasureValidator.ValidationOptions.saveTimeLoose(), MT, MN),
+                "INTO OUTFILE must be blocked (was a dead two-token function-list entry)");
+        assertEquals(NopMetadataErrors.ERR_AGGR_EXPRESSION_UNSAFE.getErrorCode(), ex.getErrorCode());
+        String reason = String.valueOf(ex.getParam("reason"));
+        assertTrue(reason.contains("INTO") || reason.contains("OUTFILE") || reason.contains("DUMPFILE"),
+                "reason must hit {INTO, OUTFILE, DUMPFILE}: " + reason);
+    }
+
+    /** R6.1（P2-13）负例：标识符嵌入 TRANSACTION（TRANSACTION_COUNT）不误伤（word-boundary）。 */
+    @Test
+    public void testR61IdentifierEmbeddingTransactionNotFalsePositive() {
+        ExpressionMeasureValidator.ValidatedExpression r =
+                ExpressionMeasureValidator.validateStatic("TRANSACTION_COUNT * 2",
+                        ExpressionMeasureValidator.ValidationOptions.saveTimeLoose(), MT, MN);
+        assertEquals("TRANSACTION_COUNT * ?", r.sqlFragment);
+        assertTrue(r.identifiers.contains("TRANSACTION_COUNT"));
+    }
+
+    /** R6.1（P2-13）负例：字符串字面量内的 INTO OUTFILE 不误伤（分词阶段已收集为 ?）。 */
+    @Test
+    public void testR61StringLiteralIntoOutfileNotFalsePositive() {
+        ExpressionMeasureValidator.ValidatedExpression r =
+                ExpressionMeasureValidator.validateStatic("CASE WHEN status = 'INTO OUTFILE' THEN 1 ELSE 0 END",
+                        ExpressionMeasureValidator.ValidationOptions.saveTimeLoose(), MT, MN);
+        assertEquals("CASE WHEN status = ? THEN ? ELSE ? END", r.sqlFragment);
+    }
+
+    // ============================================================
     // 失败路径：too-long（> 1000 字符）
     // ============================================================
 

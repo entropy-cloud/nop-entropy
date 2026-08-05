@@ -52,7 +52,13 @@ public final class ExpressionMeasureValidator {
     /**
      * 关键字黑名单（dialect-independent 通用集，word-boundary 匹配）。
      *
-     * <p>含 DML / DDL / DCL / 事务 / 过程调用 / 系统副作用关键字。
+     * <p>含 DML / DDL / DCL / 事务 / 文件写入子句 / 过程调用 / 系统副作用关键字。
+     * <p>R6.1（P2-13）死条目修正：原双 token 条目 {@code "SET TRANSACTION"} 与
+     * {@code "INTO OUTFILE"}/{@code "INTO DUMPFILE"} 经分词后拆为多个独立 IDENTIFIER token，
+     * scanBlacklist 单 token 集合匹配永不命中——已拆分为可命中的单 token 条目
+     * （SET / TRANSACTION / INTO / OUTFILE / DUMPFILE）。表达式上下文（SELECT 片段）中这些词
+     * 均非合法列运算关键字（且均为各方言保留字，无真实标识符误伤面），over-block 符合
+     * "拒绝比放行安全"既定哲学。
      */
     private static final Set<String> KEYWORD_BLACKLIST = Collections.unmodifiableSet(new LinkedHashSet<>(Arrays.asList(
             // DDL
@@ -60,7 +66,9 @@ public final class ExpressionMeasureValidator {
             // DML (除 SELECT 系列外)
             "INSERT", "UPDATE", "DELETE", "MERGE", "REPLACE",
             // DCL / TCL
-            "GRANT", "REVOKE", "COMMIT", "ROLLBACK", "SAVEPOINT", "SET TRANSACTION",
+            "GRANT", "REVOKE", "COMMIT", "ROLLBACK", "SAVEPOINT", "SET", "TRANSACTION",
+            // 文件写入子句（SELECT ... INTO OUTFILE/DUMPFILE）
+            "INTO", "OUTFILE", "DUMPFILE",
             // 过程调用
             "CALL", "EXEC", "EXECUTE",
             // 其他系统副作用
@@ -72,11 +80,14 @@ public final class ExpressionMeasureValidator {
      *
      * <p>含 MySQL / PostgreSQL / 通用已知的副作用函数。dialect-specific 函数支持（如 MySQL 不支持 {@code DATE_TRUNC}）
      * 由 {@link #checkDialectSupported} 在 SQL 构造阶段按方言校验。
+     *
+     * <p>R6.1（P2-13）死条目修正：原 {@code "INTO OUTFILE"}/{@code "INTO DUMPFILE"} 双 token 条目
+     * 要求 word 后紧跟 {@code (} 才成 FUNCTION_CALL，永不命中——已移入 {@link #KEYWORD_BLACKLIST}
+     * 为单 token 条目（INTO / OUTFILE / DUMPFILE）。
      */
     private static final Set<String> FUNCTION_BLACKLIST = Collections.unmodifiableSet(new LinkedHashSet<>(Arrays.asList(
             // MySQL 副作用
             "SLEEP", "BENCHMARK", "LOAD_FILE", "GET_LOCK", "RELEASE_LOCK",
-            "INTO OUTFILE", "INTO DUMPFILE",
             // PostgreSQL 副作用
             "PG_SLEEP", "PG_TERMINATE_BACKEND", "COPY",
             // 通用文件 / 命令

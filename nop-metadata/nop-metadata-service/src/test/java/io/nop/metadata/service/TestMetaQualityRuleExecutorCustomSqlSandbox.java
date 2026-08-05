@@ -4,6 +4,7 @@ import io.nop.api.core.ApiErrors;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.metadata.service.quality.MetaQualityRuleExecutor;
 import io.nop.metadata.service.NopMetadataErrors;
+import io.nop.metadata.service.tableref.TableReference;
 import org.junit.jupiter.api.Test;
 
 import java.lang.reflect.InvocationTargetException;
@@ -169,6 +170,53 @@ public class TestMetaQualityRuleExecutorCustomSqlSandbox {
                 () -> validateCustomSqlSandbox("SELECT 1 /*!50000 UNION SELECT 2*/"),
                 "executable comment must be rejected");
         assertEquals(NopMetadataErrors.ERR_QUALITY_CUSTOM_SQL_BLOCKED.getErrorCode(), ex.getErrorCode());
+    }
+
+    // ===== R6.1（P2-10）：黑名单 6 缺项补全 + judge 公开入口端到端接线验证 =====
+
+    /**
+     * R6.1（P2-10）：6 个补全关键字（PG_READ_BINARY_FILE / RUNSCRIPT / PG_LS_LOGDIR / PG_LS_WALDIR /
+     * PG_STAT_FILE / SCRIPT）从 {@code judge} 公开入口（null Connection）到
+     * {@code ERR_QUALITY_CUSTOM_SQL_BLOCKED} 抛错链路全部成立。
+     *
+     * <p>不选 {@code SCRIPT 'CREATE TABLE ...'}——字符串内 CREATE 已触发既有黑名单，无法唯一钉住
+     * SCRIPT 条目；本组 {@code SCRIPT TO} 向量唯一钉住 SCRIPT。
+     */
+    @Test
+    public void testR61NewKeywordsBlockedViaJudgeEntry() {
+        String[] payloads = {
+                "SELECT pg_read_binary_file('/etc/passwd')",
+                "RUNSCRIPT FROM '/tmp/evil.sql'",
+                "SELECT PG_LS_LOGDIR()",
+                "SELECT PG_LS_WALDIR()",
+                "SELECT PG_STAT_FILE('/etc/passwd')",
+                "SCRIPT TO '/tmp/backup.sql'"
+        };
+        for (String payload : payloads) {
+            NopException ex = assertThrows(NopException.class,
+                    () -> judgeCustomSqlViaPublicEntry(payload),
+                    "R6.1 new keyword must be blocked via judge entry: " + payload);
+            assertEquals(NopMetadataErrors.ERR_QUALITY_CUSTOM_SQL_BLOCKED.getErrorCode(),
+                    ex.getErrorCode(),
+                    "must throw ERR_QUALITY_CUSTOM_SQL_BLOCKED via judge entry: " + payload);
+            // 接线验证：sqlHash 参数仅在 judgeCustomSql 内（沙箱校验前 :271-272）写入——异常携带该参数
+            // 证明调用链确实经 judge → judgeCustomSql → validateCustomSqlSandbox（null conn 下错误码
+            // 从沙箱校验分支抛出），而非测试直接构造错误码
+            assertNotNull(ex.getParam("sqlHash"),
+                    "sqlHash param must be present (proves sandbox check reached from judgeCustomSql): " + payload);
+            String reason = String.valueOf(ex.getParam("reason"));
+            assertTrue(reason.contains("forbidden keyword"),
+                    "reason must mention 'forbidden keyword': " + reason + " (payload=" + payload + ")");
+        }
+    }
+
+    /** judge 公开入口（9 参）执行 custom_sql 路径：null conn——沙箱校验在触连前抛错即可达错误码。 */
+    private static void judgeCustomSqlViaPublicEntry(String sql) {
+        MetaQualityRuleExecutor executor = new MetaQualityRuleExecutor();
+        TableReference ref = new TableReference(
+                TableReference.Kind.EXTERNAL, "mt-test", "T_VALID_TABLE", null,
+                null, null, null, null);
+        executor.judge(null, ref, null, "custom_sql", "table", null, sql, null, null);
     }
 
     /** fail-closed 语义固化：字符串字面量内含黑名单 token（'UNION'）同样被拒（token 级匹配，不误放行）。 */
