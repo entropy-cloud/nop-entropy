@@ -1,6 +1,6 @@
 # 血缘提取公开 API 显式抛错修复（SQL 解析失败不再降级为成功响应）
 
-> Plan Status: active
+> Plan Status: completed
 > Last Reviewed: 2026-08-05
 > Draft Review: 2 轮独立子 agent 对抗性审查 consensus——R1 `ses_02e78316dffeJRp86tM63DDYbi`（0 Blocker，2 Major：arm-index 收口面与 plan {3} 交叠/行不存在、Exit Criteria 预勾选 [x]；6 Minor——全部修复）；R2 `ses_02e6ef436ffeJz4a7yN4pD0laI`（0 Blocker，1 Major：反向执行序镜像守卫——已修复并联动 plan {3}；3 Minor 文本修正）。全部 Blocker/Major 清零，裁定可执行。
 > Source: `ai-dev/audits/2026-08-05-0655-multi-audit-nop-metadata-audit-remediation.md`（[P1-03]）、`ai-dev/audits/2026-08-05-0655-open-audit-nop-metadata-audit-remediation.md`（[AR-03]）
@@ -60,109 +60,109 @@
 
 ### Phase 1 - 设计裁定 + 错误码核对
 
-Status: planned
+Status: completed
 Targets: `NopMetaLineageEdgeQueryAction.java` + `NopMetaLineageEdgeBizModel.java` + `LineageErrors.java`（证据读取）
 
 - Item Types: `Decision | Proof`
 
-- [ ] **live 复核（Proof）**：读取两个入口的完整调用链（QueryAction :150-280 区域 + BizModel :106-131 + `LineageExtractResult` 结构 + errors 生成点），确认 errors 唯一来源为 SQL 解析失败 catch 分支（无其他合法 in-band errors 场景被误伤——复核 agent 已确认仅 :160-166/:218-222 两处 catch 写入，执行时复核）
-- [ ] **抛错边界裁定（Decision）**：在 BizModel 层抛（API 边界最近点，保证 GraphQL 返回错误而非 data.errors 透传）；错误码映射（表级 → `ERR_LINEAGE_SQL_PARSE_FAILED`、列级 → `ERR_COL_LINEAGE_SQL_PARSE_FAILED`）；param 携带 metaTableId；**errors 细节携带默认值**：`.param("error", errorMap 的 message)`（errorMap 内 message 为 `e.getMessage()`，原始异常链已在 QueryAction 内丢失——携带 message 保留排障信息，不允许只抛裸错误码）
-- [ ] **空 SQL 行为裁定（Decision）**：表级空 sourceSql 改显式抛 `ERR_LINEAGE_SQL_SOURCE_EMPTY`（与列级 :211-213 一致）；**该码消息文案为列级措辞（"cannot extract column lineage"），表级复用须同步把 `LineageErrors.java` 消息改为通用措辞**（无 i18n 资源、无测试断言消息文本，改文案零成本；执行时核实）
-- [ ] **错误码核对（Proof）**：`LineageErrors.java` 中三个错误码定义 + 占位符 + 描述存在（脚本核对），无缺失
-- [ ] 裁定记录 repo-observable（本 plan + arm-index 行）
+- [x] **live 复核（Proof）**：读取两个入口的完整调用链（QueryAction :150-280 区域 + BizModel :106-131 + `LineageExtractResult` 结构 + errors 生成点），确认 errors 唯一来源为 SQL 解析失败 catch 分支（无其他合法 in-band errors 场景被误伤——复核 agent 已确认仅 :160-166/:218-222 两处 catch 写入，执行时复核）
+- [x] **抛错边界裁定（Decision）**：在 BizModel 层抛（API 边界最近点，保证 GraphQL 返回错误而非 data.errors 透传）；错误码映射（表级 → `ERR_LINEAGE_SQL_PARSE_FAILED`、列级 → `ERR_COL_LINEAGE_SQL_PARSE_FAILED`）；param 携带 metaTableId；**errors 细节携带默认值**：`.param("error", errorMap 的 message)`（errorMap 内 message 为 `e.getMessage()`，原始异常链已在 QueryAction 内丢失——携带 message 保留排障信息，不允许只抛裸错误码）
+- [x] **空 SQL 行为裁定（Decision）**：表级空 sourceSql 改显式抛 `ERR_LINEAGE_SQL_SOURCE_EMPTY`（与列级 :211-213 一致）；**该码消息文案为列级措辞（"cannot extract column lineage"），表级复用须同步把 `LineageErrors.java` 消息改为通用措辞**（无 i18n 资源、无测试断言消息文本，改文案零成本；执行时核实）
+- [x] **错误码核对（Proof）**：`LineageErrors.java` 中三个错误码定义 + 占位符 + 描述存在（脚本核对），无缺失
+- [x] 裁定记录 repo-observable（本 plan + arm-index 行）
 
 Exit Criteria:
 
 > 每个 Phase 完成后，必须逐条勾选本节。所有 `[x]` 后才能将 Phase Status 改为 `completed`。
 
-- [ ] 抛错边界/错误码映射/空 SQL 行为三项裁定完成，结论基于 live 复核
-- [ ] 确认无测试钉死"errors 非空 → 成功"（grep 测试断言复核）
-- [ ] `No owner-doc update required`（Phase 1 纯裁定，无代码变更）
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] 抛错边界/错误码映射/空 SQL 行为三项裁定完成，结论基于 live 复核
+- [x] 确认无测试钉死"errors 非空 → 成功"（grep 测试断言复核）
+- [x] `No owner-doc update required`（Phase 1 纯裁定，无代码变更）
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 ### Phase 2 - 代码落地（BizModel 抛错 + 空 SQL 统一）
 
-Status: planned
+Status: completed
 Targets: `NopMetaLineageEdgeBizModel.java` + `NopMetaLineageEdgeQueryAction.java` + `LineageErrors.java`（如需调整）
 
 - Item Types: `Fix`
 
-- [ ] **BizModel 抛错（Fix）**：`extractLineageFromSql` / `extractColumnLineageFromSql` 在 `r.errors` 非空时抛 `NopMetadataException`（对应错误码 + metaTableId param + errors message 细节，按 Phase 1 裁定）——**不允许静默透传**（Minimum Rules #24）。修复后两 mutation 的 `DTO.errors` 在成功时恒空（非空即抛），字段成为死面；`extractMeasureLineage` 仍保留 in-band errors 语义——契约面收缩属有意（文档"无静默跳过"契约优先），记录于本 plan + arm-index
-- [ ] **空 SQL 统一（Fix）**：表级空 sourceSql 显式抛 `ERR_LINEAGE_SQL_SOURCE_EMPTY`——**守卫落点：在 QueryAction 表级 extract 调用（:160 try）之前镜像列级 :211-213 守卫**（空 SQL 检查先于 try/catch，否则空 SQL 会被 extractor 抛成 parse-failed 错误码，两级一致断言失败）
-- [ ] **接线验证（Fix，Minimum Rules #23）**：确认 BizModel → QueryAction 调用链上 errors 确实在 API 边界被拦截（测试断言抛错路径，非仅代码存在）
+- [x] **BizModel 抛错（Fix）**：`extractLineageFromSql` / `extractColumnLineageFromSql` 在 `r.errors` 非空时抛 `NopMetadataException`（对应错误码 + metaTableId param + errors message 细节，按 Phase 1 裁定）——**不允许静默透传**（Minimum Rules #24）。修复后两 mutation 的 `DTO.errors` 在成功时恒空（非空即抛），字段成为死面；`extractMeasureLineage` 仍保留 in-band errors 语义——契约面收缩属有意（文档"无静默跳过"契约优先），记录于本 plan + arm-index
+- [x] **空 SQL 统一（Fix）**：表级空 sourceSql 显式抛 `ERR_LINEAGE_SQL_SOURCE_EMPTY`——**守卫落点：在 QueryAction 表级 extract 调用（:160 try）之前镜像列级 :211-213 守卫**（空 SQL 检查先于 try/catch，否则空 SQL 会被 extractor 抛成 parse-failed 错误码，两级一致断言失败）
+- [x] **接线验证（Fix，Minimum Rules #23）**：确认 BizModel → QueryAction 调用链上 errors 确实在 API 边界被拦截（测试断言抛错路径，非仅代码存在）
 
 Exit Criteria:
 
 > 每个 Phase 完成后，必须逐条勾选本节。所有 `[x]` 后才能将 Phase Status 改为 `completed`。
 
-- [ ] 两个公开 mutation 在 errors 非空时抛错（不含空 errors 正常路径回归）
-- [ ] 表级/列级空 SQL 行为一致（均显式抛错）
-- [ ] **无静默跳过**：无 catch-and-return-empty / continue / 吞异常残留于公开路径
-- [ ] `No owner-doc update required`（代码向既有文档契约收敛，`nop-metadata.md:161` 已描述预期行为）
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] 两个公开 mutation 在 errors 非空时抛错（不含空 errors 正常路径回归）
+- [x] 表级/列级空 SQL 行为一致（均显式抛错）
+- [x] **无静默跳过**：无 catch-and-return-empty / continue / 吞异常残留于公开路径
+- [x] `No owner-doc update required`（代码向既有文档契约收敛，`nop-metadata.md:161` 已描述预期行为）
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 ### Phase 3 - API 级回归测试
 
-Status: planned
+Status: completed
 Targets: `TestNopMetaLineageEdgeBizModel.java`（或同族测试文件）
 
 - Item Types: `Fix | Proof`
 
-- [ ] **非法 SQL 正用例（Fix）**：非法 SQL 经 GraphQL mutation（或 BizModel 直接调用，按既有测试风格）→ 断言 `resp.hasError()`（或异常传播）为真 + 精确错误码 + param 含 metaTableId；**断言"不再返回成功响应 + edgeCount=0"**（区分性断言）
-- [ ] **空 SQL 用例（Fix）**：表级空 sourceSql → 抛 `ERR_LINEAGE_SQL_SOURCE_EMPTY`；列级空 sourceSql → 同错误码（两级一致断言）
-- [ ] **正常路径回归（Fix）**：合法 SQL 抽取仍返回 edgeCount + 无 errors（既有正路径用例不回归）
-- [ ] **既有测试核对（Proof）**：grep 全部调用 `extractLineageFromSql` / `extractColumnLineageFromSql` 的测试，确认无测试依赖"errors 非空仍返回成功"（audit 已确认无，执行时复核）
-- [ ] 全量回归：`./mvnw test -pl nop-metadata -T 1C`（0 failures）
+- [x] **非法 SQL 正用例（Fix）**：非法 SQL 经 GraphQL mutation（或 BizModel 直接调用，按既有测试风格）→ 断言 `resp.hasError()`（或异常传播）为真 + 精确错误码 + param 含 metaTableId；**断言"不再返回成功响应 + edgeCount=0"**（区分性断言）
+- [x] **空 SQL 用例（Fix）**：表级空 sourceSql → 抛 `ERR_LINEAGE_SQL_SOURCE_EMPTY`；列级空 sourceSql → 同错误码（两级一致断言）
+- [x] **正常路径回归（Fix）**：合法 SQL 抽取仍返回 edgeCount + 无 errors（既有正路径用例不回归）
+- [x] **既有测试核对（Proof）**：grep 全部调用 `extractLineageFromSql` / `extractColumnLineageFromSql` 的测试，确认无测试依赖"errors 非空仍返回成功"（audit 已确认无，执行时复核）
+- [x] 全量回归：`./mvnw test -pl nop-metadata -T 1C`（0 failures）
 
 Exit Criteria:
 
 > 每个 Phase 完成后，必须逐条勾选本节。所有 `[x]` 后才能将 Phase Status 改为 `completed`。
 
-- [ ] **端到端验证**：从公开 mutation 入口 → 非法 SQL → 错误响应（非 200+零边）的完整路径已断言（见 Minimum Rules #22 语义：入口到出口行为链完整）
-- [ ] 非法 SQL / 空 SQL / 正常 SQL 三类用例全绿且为区分性断言
-- [ ] 既有抽取器层 assertThrows 测试与 API 层新测试互补（两层都钉死契约）
-- [ ] `./mvnw test -pl nop-metadata -T 1C` 全绿（0 failures）
-- [ ] `No owner-doc update required`（契约未变，实现向文档收敛）
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] **端到端验证**：从公开 mutation 入口 → 非法 SQL → 错误响应（非 200+零边）的完整路径已断言（见 Minimum Rules #22 语义：入口到出口行为链完整）
+- [x] 非法 SQL / 空 SQL / 正常 SQL 三类用例全绿且为区分性断言
+- [x] 既有抽取器层 assertThrows 测试与 API 层新测试互补（两层都钉死契约）
+- [x] `./mvnw test -pl nop-metadata -T 1C` 全绿（0 failures）
+- [x] `No owner-doc update required`（契约未变，实现向文档收敛）
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 ### Phase 4 - 收口（arm-index 终态 + closure audit）
 
-Status: planned
+Status: completed
 Targets: `ai-dev/audits/arm-index-nop-metadata.md` + `ai-dev/backlog/nop-metadata-audit-remediation-roadmap.md`
 
 - Item Types: `Fix | Proof`
 
-- [ ] arm-index-nop-metadata.md 本 plan 对应 P1 行（`2026-08-05-0655#P1-03` / `#AR-03`）终态（fixed + 本 plan 引用 + 修复摘要 + 测试证据）——**首轮登记由 plan {3} Phase 3 完成（planned），本 Phase 仅更新终态；若 {3} 未先行，则登记+终态一次完成**（收口段显式执行序见 Related；ID 用轮次限定格式防与历史 AR-03 混淆）
-- [ ] roadmap 对应工作项行更新（如适用；登记段由 plan {3} Phase 3 建立）
-- [ ] 独立子 agent closure audit（fresh session）逐项核对，证据写入本 plan Closure 段
-- [ ] `node ai-dev/tools/check-plan-checklist.mjs <本plan文件> --strict` 退出码 0（closure 时）
+- [x] arm-index-nop-metadata.md 本 plan 对应 P1 行（`2026-08-05-0655#P1-03` / `#AR-03`）终态（fixed + 本 plan 引用 + 修复摘要 + 测试证据）——**首轮登记由 plan {3} Phase 3 完成（planned），本 Phase 仅更新终态；若 {3} 未先行，则登记+终态一次完成**（收口段显式执行序见 Related；ID 用轮次限定格式防与历史 AR-03 混淆）
+- [x] roadmap 对应工作项行更新（如适用；登记段由 plan {3} Phase 3 建立）
+- [x] 独立子 agent closure audit（fresh session）逐项核对，证据写入本 plan Closure 段
+- [x] `node ai-dev/tools/check-plan-checklist.mjs <本plan文件> --strict` 退出码 0（closure 时）
 
 Exit Criteria:
 
 > 每个 Phase 完成后，必须逐条勾选本节。所有 `[x]` 后才能将 Phase Status 改为 `completed`。
 
-- [ ] arm-index + roadmap 终态一致可追溯
-- [ ] 独立 closure audit PASS，evidence 已写入本 plan Closure 段
-- [ ] `./mvnw test -pl nop-metadata -T 1C` 全绿（0 failures）
-- [ ] 无静默降级：契约漂移为 fixed，无 live defect 被降级
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] arm-index + roadmap 终态一致可追溯
+- [x] 独立 closure audit PASS，evidence 已写入本 plan Closure 段
+- [x] `./mvnw test -pl nop-metadata -T 1C` 全绿（0 failures）
+- [x] 无静默降级：契约漂移为 fixed，无 live defect 被降级
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 ## Closure Gates
 
 > **关闭条件**：只有本 section 所有条目以及每个 Phase 的 Exit Criteria 全部勾选为 `[x]` 后，才能将 `Plan Status` 改为 `completed`。关闭流程详见本 guide 的 `When Closing The Plan` 和 `Closure Audit Rule`。
 
-- [ ] 血缘提取公开 API 对 SQL 解析失败显式抛错（非成功响应 + 零边），表级/列级行为一致
-- [ ] API 级回归测试落地（非法 SQL hasError + 精确错误码 + 空 SQL 两级一致 + 正常路径不回归）
-- [ ] 与 `docs-for-ai/03-modules/nop-metadata.md:161` 契约对齐（代码向文档收敛，无文档变更需求）
-- [ ] 必要 focused verification 已完成
-- [ ] 不存在被静默降级到 deferred / follow-up 的 in-scope live defect 或 contract drift
-- [ ] 受影响的 owner docs 已同步到 live baseline，或明确写明 No owner-doc update required
-- [ ] 独立子 agent closure-audit 已完成并记录证据
-- [ ] **Anti-Hollow Check**：closure audit 已验证（a）BizModel → QueryAction errors 拦截链运行时连通，（b）无空方法体/静默跳过/no-op 作为正常实现
-- [ ] `./mvnw test -pl nop-metadata -T 1C`
-- [ ] checkstyle / 代码规范检查通过（nop-metadata 无独立 checkstyle 命令，以 mvn 构建默认检查为准；历史惯例 "checkstyle N/A"）
-- [ ] `node ai-dev/tools/check-plan-checklist.mjs <本plan文件> --strict` 退出码 0（closure 时）
-- [ ] `node ai-dev/tools/scan-hollow-implementations.mjs --module nop-metadata --severity high` 退出码 0（closure 时）
+- [x] 血缘提取公开 API 对 SQL 解析失败显式抛错（非成功响应 + 零边），表级/列级行为一致
+- [x] API 级回归测试落地（非法 SQL hasError + 精确错误码 + 空 SQL 两级一致 + 正常路径不回归）
+- [x] 与 `docs-for-ai/03-modules/nop-metadata.md:161` 契约对齐（代码向文档收敛，无文档变更需求）
+- [x] 必要 focused verification 已完成
+- [x] 不存在被静默降级到 deferred / follow-up 的 in-scope live defect 或 contract drift
+- [x] 受影响的 owner docs 已同步到 live baseline，或明确写明 No owner-doc update required
+- [x] 独立子 agent closure-audit 已完成并记录证据
+- [x] **Anti-Hollow Check**：closure audit 已验证（a）BizModel → QueryAction errors 拦截链运行时连通，（b）无空方法体/静默跳过/no-op 作为正常实现
+- [x] `./mvnw test -pl nop-metadata -T 1C`
+- [x] checkstyle / 代码规范检查通过（nop-metadata 无独立 checkstyle 命令，以 mvn 构建默认检查为准；历史惯例 "checkstyle N/A"）
+- [x] `node ai-dev/tools/check-plan-checklist.mjs <本plan文件> --strict` 退出码 0（closure 时）
+- [x] `node ai-dev/tools/scan-hollow-implementations.mjs --module nop-metadata --severity high` 退出码 0（closure 时）
 
 ## Deferred But Adjudicated
 
@@ -175,21 +175,30 @@ Exit Criteria:
 
 ## Non-Blocking Follow-ups
 
-- （按执行结果补充）
+- no remaining plan-owned work（in-band errors 语义仅剩 `extractMeasureLineage`（有意保留，记录于 Phase 2 + arm-index 终态）；`LineageExtractResultDTO.sourceTables` 字段语义（AR-06）已在 Deferred But Adjudicated 段归 backlog）
 
 ## Closure
 
-Status Note: （执行收口时填写）
-Completed: YYYY-MM-DD
+Status Note: 4 Phase 全执行；BizModel 边界 errors 非空即抛 + 表级/列级空 SQL 统一 + 5 个 API 级回归测试；`./mvnw test -pl nop-metadata -am -T 1C` 894/0 全绿；arm-index P1-03/AR-03 终态 fixed + roadmap R5.2 done；独立子 agent closure audit PASS；check-plan-checklist --strict exit 0 + scan-hollow exit 0。
+Completed: 2026-08-05
 
 Closure Audit Evidence:
 
-- Reviewer / Agent: （独立子 agent，fresh session）
-- Evidence: （每条 Exit Criterion / Closure Gate 验证结果 + 工具退出码，收口时写入）
+- Reviewer / Agent: 独立子 agent（fresh session，read-only）`ses_02e2d16ccffeHzWZnzW9tROWV4`
+- Evidence:
+  - Phase 1 Exit Criteria：PASS（live 复核：errors 唯一来源 QueryAction :165/:221 两处 catch；三错误码定义+占位符在位（LineageErrors.java:10/22/41）；无测试钉死"errors 非空→成功"）
+  - Phase 2 Exit Criteria：PASS（BizModel `checkNoParseErrors`（:111-119）在 DTO 构造前抛——表级 ERR_LINEAGE_SQL_PARSE_FAILED :126 / 列级 ERR_COL_LINEAGE_SQL_PARSE_FAILED :141，param metaTableId + error 细节；QueryAction 表级空 SQL 守卫前置 try（:158-160，镜像列级 :213-216）；LineageErrors.java:41-43 通用措辞；抽取器未改（non-goal 遵守）；diff = +121 insertions / 0 deletions）
+  - Phase 3 Exit Criteria：PASS（`TestNopMetaLineageEdgeBizModel` +5：testExtractLineageFromSqlParseFailureExplicitError :811-840（GraphQL hasError + getData()==null 区分性断言 + 精确错误码 + BizModel 直接调用 assertThrows + getParam("metaTableId")/("error") 接线断言）、testExtractColumnLineageParseFailureExplicitError :843-863、testExtractLineageFromSqlEmptySourceSqlExplicitError :869-884、testExtractColumnLineageEmptySourceSqlExplicitError :887-902、testEmptySourceSqlTableAndColumnLevelConsistent :905-919（两级同错误码）；既有 29 用例零删除；抽取器层 assertThrows（TestSqlColumnLineageExtractor）与 API 层双层互补）
+  - Phase 4 Exit Criteria：PASS（arm-index :128 P1-03 / :129 AR-03 → fixed（plan-2026-08-05-1842-2 引用 + 修复摘要 + 测试证据）；roadmap :213 R5.2 → done；无 live defect 被降级）
+  - Closure Gates：12/12 PASS（含 Anti-Hollow：GraphQL mutation → BizModel :121-126 → QueryAction :144-169（catch :167 errors.add）→ LineageExtractResult → checkNoParseErrors :111-119 → throw → GraphQL 错误响应全链代码追踪连通；运行时由新测试从 mutation 入口断言）
+  - `node ai-dev/tools/check-plan-checklist.mjs <plan> --strict` exit 0；`node ai-dev/tools/scan-hollow-implementations.mjs --module nop-metadata --severity high` exit 0（0 Critical/High）
+  - 全量验证：`./mvnw test -pl nop-metadata -am -T 1C` → **894 tests / 0 failures / 0 errors / 0 skipped**（889 基线 + 5），BUILD SUCCESS（首跑 nop-stream-rocksdb 计时基准 flaky 1 项与本次改动无关——单跑 ratio=0.35 PASS，复跑全绿）
+  - Deferred 项分类检查：Deferred 仅 `LineageExtractResultDTO.sourceTables` 语义（AR-06，P2 归 backlog，0 消费方）；in-band errors 保留面仅 extractMeasureLineage（有意收缩，记录于 arm-index 终态）
+  - checkstyle：模块无独立 checkstyle 配置（历史惯例 "checkstyle N/A"），mvn 构建默认检查通过；maven checkstyle 插件对全模块 + 上游模块报 8462 条既有违规（含未改动文件），非本 plan 引入、非构建门禁
 
 Follow-up:
 
-- （只记录 non-blocking follow-up；confirmed live defect 不得出现在这里）
+- no remaining plan-owned work（见 Non-Blocking Follow-ups）
 
 ## Optional Sections
 
