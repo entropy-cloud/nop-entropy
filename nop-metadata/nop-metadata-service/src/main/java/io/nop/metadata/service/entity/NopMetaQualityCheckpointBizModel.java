@@ -366,7 +366,9 @@ public class NopMetaQualityCheckpointBizModel extends CrudBizModel<NopMetaQualit
             // 仅显式 false 关闭；null / 缺失 → 默认开启
             return config == null || config.isAutoScoreEffective();
         } catch (Exception e) {
-            // extConfig 不可解析 → 默认开启（不静默伪造关闭）
+            // extConfig 不可解析 → 默认开启（不静默伪造关闭），但留 WARN 根因
+            LOG.warn("checkpoint {} extConfig is not valid JSON, auto-score defaults to on",
+                    cp.getCheckpointId(), e);
             return true;
         }
     }

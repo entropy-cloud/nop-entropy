@@ -206,7 +206,7 @@ public class MetaQualityCheckpointExecutor {
         Set<String> tableIds = new LinkedHashSet<>();
 
         // 解析 validations JSON：[{ruleIds:[...], tableIds:[...]}]
-        List<Map<String, Object>> validations = parseValidations(cp.getValidations());
+        List<Map<String, Object>> validations = parseValidations(cp.getValidations(), cp.getCheckpointId());
         for (Map<String, Object> v : validations) {
             explicitRuleIds.addAll(asStringList(v.get("ruleIds")));
             tableIds.addAll(asStringList(v.get("tableIds")));
@@ -346,7 +346,7 @@ public class MetaQualityCheckpointExecutor {
     // ============================================================
 
     @SuppressWarnings("unchecked")
-    private static List<Map<String, Object>> parseValidations(String validationsJson) {
+    private static List<Map<String, Object>> parseValidations(String validationsJson, String checkpointId) {
         if (validationsJson == null || validationsJson.trim().isEmpty()) {
             return java.util.Collections.emptyList();
         }
@@ -354,6 +354,9 @@ public class MetaQualityCheckpointExecutor {
         try {
             parsed = JsonTool.parse(validationsJson);
         } catch (Exception e) {
+            // validations 不可解析 → 空规则集（ERR_CHECKPOINT_NO_RULES 兜底显式失败），但留 WARN 根因
+            LOG.warn("checkpoint {} validations is not valid JSON, falling back to empty rule set",
+                    checkpointId, e);
             return java.util.Collections.emptyList();
         }
         if (!(parsed instanceof List)) {

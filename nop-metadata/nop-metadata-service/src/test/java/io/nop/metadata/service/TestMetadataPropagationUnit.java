@@ -4,6 +4,7 @@ package io.nop.metadata.service;
 import io.nop.api.core.beans.FilterBeans;
 import io.nop.api.core.beans.query.QueryBean;
 import io.nop.api.core.exceptions.NopException;
+import io.nop.biz.api.IBizObject;
 import io.nop.biz.api.IBizObjectManager;
 import io.nop.core.context.IServiceContext;
 import io.nop.dao.api.IDaoProvider;
@@ -235,6 +236,97 @@ public class TestMetadataPropagationUnit {
 
         List<NopMetaTagLabel> result = classificationService.suggestTags("NopMetaTable", "entity-table-1", context);
         assertTrue(result.isEmpty());
+    }
+
+    /**
+     * P2-02 回归：含非法正则 pattern 的规则必须被跳过但可观测（LOG.warn 记录 pattern +
+     * classificationId + ruleIndex + throwable），合法规则仍生效；同一非法 pattern 在
+     * field×rule 双层循环内按 (classificationId, pattern) 单次调用去重，不逐字段刷屏。
+     *
+     * <p>正路径断言（非法规则跳过 + 合法规则命中 → 标签生成）当前仓库不存在，本测试从零
+     * 搭建：沿 :213-219 discoverClassification 装配雏形（Manual 标签 → tag → classification
+     * → config），bizObjectManager 嵌套 mock（getBizObject().invoke("save",...) 返回标签）。
+     * 日志断言复用 Logback ListAppender 模式（TestMetaTableProfilerSecurity 先例）。
+     */
+    @Test
+    @SuppressWarnings("unchecked")
+    public void testAutoClassifyInvalidPatternSkippedValidRuleStillWorks() {
+        NopMetaTable entityTable = new NopMetaTable();
+        entityTable.setMetaTableId("entity-table-1");
+        entityTable.setTableType("entity");
+        entityTable.setBaseEntityId("entity-1");
+        when(tableDao.getEntityById("entity-table-1")).thenReturn(entityTable);
+
+        NopMetaTagLabel manualLabel = createTagLabel("ml-1", "NopMetaTable", "entity-table-1", "tag-1", "Manual");
+        NopMetaTag manualTag = new NopMetaTag();
+        manualTag.setTagId("tag-1");
+        manualTag.setClassificationId("cls-1");
+        when(tagLabelDao.findAllByQuery(any(QueryBean.class)))
+                .thenReturn(Collections.singletonList(manualLabel));
+        when(tagDao.getEntityById("tag-1")).thenReturn(manualTag);
+
+        NopMetaClassification cls = new NopMetaClassification();
+        cls.setClassificationId("cls-1");
+        cls.setAutoClassificationConfig(
+                "[{\"pattern\":\"[unclosed\",\"tagFQN\":\"cls-1:tag-a\"},"
+                        + "{\"pattern\":\"user\",\"tagFQN\":\"cls-1:tag-b\"}]");
+        when(clsDao.getEntityById("cls-1")).thenReturn(cls);
+
+        NopMetaEntityField field1 = new NopMetaEntityField();
+        field1.setFieldName("user_name");
+        NopMetaEntityField field2 = new NopMetaEntityField();
+        field2.setFieldName("created_at");
+        when(fieldDao.findAllByQuery(any(QueryBean.class)))
+                .thenReturn(List.of(field1, field2));
+
+        NopMetaTag tagB = new NopMetaTag();
+        tagB.setTagId("tag-b");
+        tagB.setClassificationId("cls-1");
+        when(tagDao.findFirstByQuery(any(QueryBean.class))).thenReturn(tagB);
+
+        when(tagLabelDao.findFirstByQuery(any(QueryBean.class))).thenReturn(null);
+
+        NopMetaTagLabel created = createTagLabel("tl-new", "NopMetaTable", "entity-table-1", "tag-b", "Automated");
+        IBizObject bizObject = mock(IBizObject.class);
+        when(bizObjectManager.getBizObject("NopMetaTagLabel")).thenReturn(bizObject);
+        when(bizObject.invoke(eq("save"), any(), any(), any())).thenReturn(created);
+
+        ch.qos.logback.classic.Logger logger =
+                (ch.qos.logback.classic.Logger) org.slf4j.LoggerFactory.getLogger(AutoClassificationProcessor.class);
+        ch.qos.logback.core.read.ListAppender<ch.qos.logback.classic.spi.ILoggingEvent> appender =
+                new ch.qos.logback.core.read.ListAppender<>();
+        appender.start();
+        logger.addAppender(appender);
+        try {
+            List<NopMetaTagLabel> result = classificationService.suggestTags("NopMetaTable", "entity-table-1", context);
+
+            // 正路径：非法规则被跳过，合法规则命中并生成标签
+            assertNotNull(result);
+            assertEquals(1, result.size(),
+                    "invalid-pattern rule must be skipped while valid rule still applies (P2-02)");
+            assertEquals("tag-b", result.get(0).getTagId());
+
+            // 非法 pattern 必须可观测（LOG.warn 含 pattern + 上下文）
+            boolean warnLogged = appender.list.stream().anyMatch(e ->
+                    e.getLevel() == ch.qos.logback.classic.Level.WARN
+                            && e.getFormattedMessage().contains("Invalid auto-classification rule pattern")
+                            && e.getFormattedMessage().contains("[unclosed")
+                            && e.getFormattedMessage().contains("cls-1"));
+            assertTrue(warnLogged,
+                    "invalid pattern must be logged with WARN including pattern and classificationId (P2-02), got: "
+                            + appender.list.stream().map(ch.qos.logback.classic.spi.ILoggingEvent::getFormattedMessage)
+                            .collect(java.util.stream.Collectors.toList()));
+
+            // 同一非法 pattern 跨多个字段不刷屏（单次调用内去重）
+            long invalidPatternWarns = appender.list.stream().filter(e ->
+                    e.getLevel() == ch.qos.logback.classic.Level.WARN
+                            && e.getFormattedMessage().contains("Invalid auto-classification rule pattern")
+                            && e.getFormattedMessage().contains("[unclosed")).count();
+            assertEquals(1L, invalidPatternWarns,
+                    "same invalid pattern must be warned once per invocation despite multiple fields (P2-02)");
+        } finally {
+            logger.detachAppender(appender);
+        }
     }
 
     private static NopMetaTagLabel createTagLabel(String id, String entityType, String entityId,

@@ -56,10 +56,9 @@ public class NopMetaSearchProcessor {
         try {
             searchEngine.addDoc(TOPIC, searchableDoc);
         } catch (Exception e) {
-            if (searchIndexFailOpen) {
-                LOG.error("addToIndex failed for entityType={}, entityId={}", entityType, entityId, e);
-            } else {
-                throw new NopMetadataException(NopMetadataErrors.ERR_SEARCH_INDEX_ADD_FAILED)
+            LOG.error("addToIndex failed for entityType={}, entityId={}", entityType, entityId, e);
+            if (!searchIndexFailOpen) {
+                throw new NopMetadataException(NopMetadataErrors.ERR_SEARCH_INDEX_ADD_FAILED, e)
                         .param(NopMetadataErrors.ARG_ENTITY_TYPE, entityType)
                         .param(NopMetadataErrors.ARG_ENTITY_ID, entityId);
             }
@@ -77,10 +76,9 @@ public class NopMetaSearchProcessor {
         try {
             searchEngine.removeDocs(TOPIC, List.of(entityId));
         } catch (Exception e) {
-            if (searchIndexFailOpen) {
-                LOG.error("removeFromIndex failed for entityType={}, entityId={}", entityType, entityId, e);
-            } else {
-                throw new NopMetadataException(NopMetadataErrors.ERR_SEARCH_INDEX_REMOVE_FAILED)
+            LOG.error("removeFromIndex failed for entityType={}, entityId={}", entityType, entityId, e);
+            if (!searchIndexFailOpen) {
+                throw new NopMetadataException(NopMetadataErrors.ERR_SEARCH_INDEX_REMOVE_FAILED, e)
                         .param(NopMetadataErrors.ARG_ENTITY_TYPE, entityType)
                         .param(NopMetadataErrors.ARG_ENTITY_ID, entityId);
             }

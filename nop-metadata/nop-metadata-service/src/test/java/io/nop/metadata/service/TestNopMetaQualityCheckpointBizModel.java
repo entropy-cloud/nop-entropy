@@ -22,6 +22,7 @@ import io.nop.metadata.dao.entity.NopMetaTable;
 import io.nop.metadata.service.entity.NopMetaQualityCheckpointBizModel;
 import io.nop.metadata.service.mock.MockHttpClient;
 import io.nop.metadata.service.mock.MockMessageService;
+import io.nop.metadata.service.quality.MetaQualityCheckpointExecutor;
 import jakarta.inject.Inject;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -211,6 +212,93 @@ public class TestNopMetaQualityCheckpointBizModel extends JunitBaseTestCase {
                 "[{\"ruleIds\":[\"__nope_rule__\"],\"tableIds\":[\"__nope_table__\"]}]", null);
         GraphQLResponseBean resp = exec("cp-missing");
         assertTrue(resp.hasError(), "all-missing-refs resolves to empty set, must fail: " + resp);
+    }
+
+    // ===== P2-04：corrupt validations → ERR_CHECKPOINT_NO_RULES + WARN 日志（配置损坏可观测） =====
+
+    /**
+     * P2-04 回归：validations 为损坏 JSON 时 parseValidations 回退空规则集（ERR_CHECKPOINT_NO_RULES
+     * 兜底显式失败），但必须留 WARN 根因日志（修复前配置损坏被报为"空规则集"且无日志）。
+     *
+     * <p>精确错误码断言经 raw impl 直接调用（:559-562 先例）；日志断言用 Logback ListAppender
+     * （TestMetaTableProfilerSecurity 先例）。
+     */
+    @Test
+    public void testCorruptValidationsFailsWithNoRulesAndLogsWarn() {
+        saveCheckpoint("cp-badval", "ACTIVE", "{{{not-json", null);
+
+        ch.qos.logback.classic.Logger logger =
+                (ch.qos.logback.classic.Logger) org.slf4j.LoggerFactory.getLogger(MetaQualityCheckpointExecutor.class);
+        ch.qos.logback.core.read.ListAppender<ch.qos.logback.classic.spi.ILoggingEvent> appender =
+                new ch.qos.logback.core.read.ListAppender<>();
+        appender.start();
+        logger.addAppender(appender);
+        try {
+            GraphQLResponseBean resp = exec("cp-badval");
+            assertTrue(resp.hasError(),
+                    "corrupt validations must fail via ERR_CHECKPOINT_NO_RULES (no silent empty run): " + resp);
+
+            NopException rawEx = assertThrows(NopException.class,
+                    () -> checkpointBizModel.executeCheckpoint("cp-badval", "PUBLIC", null),
+                    "raw impl must fail-fast with ERR_CHECKPOINT_NO_RULES on corrupt validations");
+            assertEquals(NopMetadataErrors.ERR_CHECKPOINT_NO_RULES.getErrorCode(), rawEx.getErrorCode(),
+                    "corrupt validations must surface ERR_CHECKPOINT_NO_RULES error code (P2-04)");
+
+            boolean warnLogged = appender.list.stream().anyMatch(e ->
+                    e.getLevel() == ch.qos.logback.classic.Level.WARN
+                            && e.getFormattedMessage().contains("validations is not valid JSON")
+                            && e.getFormattedMessage().contains("cp-badval"));
+            assertTrue(warnLogged,
+                    "corrupt validations must be logged with WARN including checkpointId (P2-04), got: "
+                            + appender.list.stream().map(ch.qos.logback.classic.spi.ILoggingEvent::getFormattedMessage)
+                            .collect(java.util.stream.Collectors.toList()));
+        } finally {
+            logger.detachAppender(appender);
+        }
+    }
+
+    /**
+     * P2-04 回归：checkpoint extConfig 为损坏 JSON 时 readAutoScoreConfig 保持"默认开启"语义
+     * （autoScore=true、评分照常落盘、不抛异常），但必须留 WARN 根因日志。
+     */
+    @Test
+    public void testCorruptExtConfigAutoScoreDefaultsOnAndLogsWarn() throws Exception {
+        String dbUrl = "jdbc:h2:mem:meta_cp_badext;DB_CLOSE_DELAY=-1";
+        seedTable(dbUrl, "CREATE TABLE ext_badext (id INT NOT NULL)",
+                "INSERT INTO ext_badext VALUES (1)", "INSERT INTO ext_badext VALUES (2)");
+        PreparedEnv env = prepare(dbUrl, "qs_cp_badext");
+        String tableId = env.tableId("EXT_BADEXT");
+
+        saveRule("r-badext-vol", "volume", "table", tableId, null, null, "{\"minRows\":1}"); // PASS
+        saveCheckpointWithExt("cp-badext", "ACTIVE",
+                "[{\"tableIds\":[\"" + tableId + "\"]}]", null, "{{{corrupt");
+
+        ch.qos.logback.classic.Logger logger =
+                (ch.qos.logback.classic.Logger) org.slf4j.LoggerFactory.getLogger(NopMetaQualityCheckpointBizModel.class);
+        ch.qos.logback.core.read.ListAppender<ch.qos.logback.classic.spi.ILoggingEvent> appender =
+                new ch.qos.logback.core.read.ListAppender<>();
+        appender.start();
+        logger.addAppender(appender);
+        try {
+            GraphQLResponseBean resp = exec("cp-badext");
+            assertFalse(resp.hasError(), "corrupt extConfig must not error (default-on semantics): " + resp);
+            String data = String.valueOf(resp.getData());
+            assertTrue(data.contains("autoScore=true"),
+                    "corrupt extConfig must default autoScore to true (no silent fake-off): " + data);
+            assertEquals(1, countScores(tableId),
+                    "auto-score must still write a row with corrupt extConfig (default-on, P2-04)");
+
+            boolean warnLogged = appender.list.stream().anyMatch(e ->
+                    e.getLevel() == ch.qos.logback.classic.Level.WARN
+                            && e.getFormattedMessage().contains("extConfig is not valid JSON")
+                            && e.getFormattedMessage().contains("cp-badext"));
+            assertTrue(warnLogged,
+                    "corrupt extConfig must be logged with WARN including checkpointId (P2-04), got: "
+                            + appender.list.stream().map(ch.qos.logback.classic.spi.ILoggingEvent::getFormattedMessage)
+                            .collect(java.util.stream.Collectors.toList()));
+        } finally {
+            logger.detachAppender(appender);
+        }
     }
 
     /** 部分引用缺失但规则集非空 → 执行有效规则、缺失项记入 errors 不中断（per-item 隔离）。 */

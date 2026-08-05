@@ -256,6 +256,9 @@ public class MetaQualityCheckpointScheduler {
             return detail != null && detail.getTriggerSpec() != null
                     ? detail.getTriggerSpec().getCronExpr() : null;
         } catch (Exception e) {
+            // scheduler 查询失败 → null（诊断用，不影响主流程），但留 WARN 根因
+            LOG.warn("nop.meta.checkpoint-scheduler.read-registered-cron-failed: checkpointId={}",
+                    checkpointId, e);
             return null;
         }
     }

@@ -22,8 +22,10 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 import java.util.regex.Pattern;
 
@@ -115,6 +117,9 @@ public class AutoClassificationProcessor {
         IEntityDao<NopMetaTagLabel> tagLabelDao = daoProvider.daoFor(NopMetaTagLabel.class);
 
         List<MatchResult> matches = new ArrayList<>();
+        // 同一非法 pattern 位于 field×rule 双层循环内会对每个字段重复命中——按
+        // (classificationId, pattern) 在单次调用内去重，避免日志刷屏（P2-02）。
+        Set<String> warnedInvalidPatterns = new HashSet<>();
         for (NopMetaEntityField field : fields) {
             String fieldName = field.getFieldName();
             String stdDataType = field.getStdDataType();
@@ -130,6 +135,11 @@ public class AutoClassificationProcessor {
                 try {
                     compiled = Pattern.compile(pattern, Pattern.CASE_INSENSITIVE);
                 } catch (Exception e) {
+                    String warnKey = classification.getClassificationId() + "|" + pattern;
+                    if (warnedInvalidPatterns.add(warnKey)) {
+                        LOG.warn("Invalid auto-classification rule pattern pattern={} classificationId={} ruleIndex={}",
+                                pattern, classification.getClassificationId(), i, e);
+                    }
                     continue;
                 }
 

@@ -14,6 +14,8 @@ import io.nop.metadata.dao.entity.NopMetaQualityScore;
 import io.nop.metadata.dao.entity.NopMetaTable;
 import io.nop.metadata.service.NopMetadataErrors;
 import io.nop.metadata.service.NopMetadataException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -44,6 +46,8 @@ import java.util.Set;
  * </ul>
  */
 public class MetaQualityScorer {
+
+    private static final Logger LOG = LoggerFactory.getLogger(MetaQualityScorer.class);
 
     /** 趋势 stable 阈值：|changeRate| &lt; 此值视为 stable（架构基线 §2.7.4 D5）。 */
     public static final double TREND_STABLE_THRESHOLD = 1.0d;
@@ -259,6 +263,9 @@ public class MetaQualityScorer {
             Object dim = ((Map<String, Object>) parsed).get("dimension");
             return dim != null ? String.valueOf(dim) : null;
         } catch (Exception e) {
+            // extConfig 不可解析 → 回退静态 ruleType 映射（不静默伪造），但留 WARN 根因
+            LOG.warn("quality rule {} extConfig is not valid JSON, falling back to ruleType mapping",
+                    rule.getQualityRuleId(), e);
             return null;
         }
     }
