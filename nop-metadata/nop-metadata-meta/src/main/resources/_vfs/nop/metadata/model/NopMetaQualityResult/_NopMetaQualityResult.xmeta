@@ -16,7 +16,9 @@
         <meta-gen:DefaultMetaPostExtends xpl:lib="/nop/core/xlib/meta-gen.xlib"/>
     </x:post-extends>
 
-    <keys/>
+    <keys>
+        <key name="UK_NOP_META_QUALITY_RESULT_CP_RUN_RULE" props="checkpointId,runId,qualityRuleId"/>
+    </keys>
 
     <props>
         <prop name="qualityResultId" displayName="结果ID" propId="1" i18n-en:displayName="Quality Result Id" tagSet="seq"
@@ -78,6 +80,14 @@
         <prop name="isFalsePositive" displayName="是否误报" propId="15" i18n-en:displayName="Is False Positive"
               queryable="true" sortable="true" insertable="true" updatable="true" defaultValue="0">
             <schema domain="boolFlag" type="java.lang.Byte"/>
+        </prop>
+        <prop name="checkpointId" displayName="检查点ID" propId="16" i18n-en:displayName="Checkpoint Id" queryable="true"
+              sortable="true" insertable="true" updatable="true">
+            <schema type="java.lang.String" precision="32"/>
+        </prop>
+        <prop name="runId" displayName="执行批次ID" propId="17" i18n-en:displayName="Run Id" queryable="true"
+              sortable="true" insertable="true" updatable="true">
+            <schema type="java.lang.String" precision="32"/>
         </prop>
         <prop name="qualityRule" displayName="质量规则" i18n-en:displayName="Quality Rule" tagSet="pub,ref-pub"
               ext:kind="to-one" internal="true" queryable="true" ext:joinLeftProp="qualityRuleId"

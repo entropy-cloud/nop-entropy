@@ -297,6 +297,9 @@ CREATE TABLE nop_meta_quality_result(
   UPDATE_TIME TIMESTAMP NOT NULL ,
   REMARK VARCHAR2(200)  ,
   IS_FALSE_POSITIVE SMALLINT default 0   ,
+  CHECKPOINT_ID VARCHAR2(32)  ,
+  RUN_ID VARCHAR2(32)  ,
+  constraint UK_NOP_META_QUALITY_RESULT_CP_RUN_RULE unique (CHECKPOINT_ID,RUN_ID,QUALITY_RULE_ID),
   constraint PK_nop_meta_quality_result primary key (QUALITY_RESULT_ID)
 );
 
@@ -1344,6 +1347,10 @@ CREATE TABLE nop_meta_reconciliation_result(
       COMMENT ON COLUMN nop_meta_quality_result.REMARK IS '备注';
                     
       COMMENT ON COLUMN nop_meta_quality_result.IS_FALSE_POSITIVE IS '是否误报';
+                    
+      COMMENT ON COLUMN nop_meta_quality_result.CHECKPOINT_ID IS '检查点ID';
+                    
+      COMMENT ON COLUMN nop_meta_quality_result.RUN_ID IS '执行批次ID';
                     
       COMMENT ON TABLE nop_meta_glossary_term IS '词汇表术语';
                 

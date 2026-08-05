@@ -90,11 +90,12 @@ public class MetaQualityCheckpointExecutor {
      * 层按表触发自动评分（§2.7.3 D6，executor 不感知 scorer）。
      *
      * @param cp            检查点（非 null，已由 BizModel 加载）
+     * @param runId         执行批次 ID（UUID，由入口一次生成；本次执行的幂等键载体之一）
      * @param schemaPattern 可选 schema 限定（null/空串表示依赖连接默认 schema）
-     * @return 执行摘要 {@code {checkpointId, executedCount, passCount, failCount, errorCount,
+     * @return 执行摘要 {@code {checkpointId, runId, executedCount, passCount, failCount, errorCount,
      *         affectedTableIds:[...], results:[...], errors:[...]}}
      */
-    public Map<String, Object> execute(NopMetaQualityCheckpoint cp, String schemaPattern) {
+    public Map<String, Object> execute(NopMetaQualityCheckpoint cp, String runId, String schemaPattern) {
         // D5：状态门禁——非 ACTIVE 显式失败（不静默跳过）
         if (!_NopMetadataCoreConstants.CHECKPOINT_STATUS_ACTIVE.equals(cp.getStatus())) {
             throw new NopMetadataException(NopMetadataErrors.ERR_CHECKPOINT_NOT_ACTIVE)
@@ -128,7 +129,7 @@ public class MetaQualityCheckpointExecutor {
         for (NopMetaQualityRule rule : resolution.rules) {
             try {
                 QualityRuleJudgment judgment = executeSingleRule(cp, rule, schemaPattern);
-                resultWriter.append(resultDao, rule.getQualityRuleId(), judgment);
+                resultWriter.append(resultDao, rule.getQualityRuleId(), cp.getCheckpointId(), runId, judgment);
                 orm.flushSession();
 
                 // 收集受影响表：仅非 database 规则（database 规则 SKIP 不命中 NopMetaTable），
@@ -165,6 +166,7 @@ public class MetaQualityCheckpointExecutor {
         int executedCount = passCount + failCount + errorCount + skipCount;
         Map<String, Object> summary = new LinkedHashMap<>();
         summary.put("checkpointId", cp.getCheckpointId());
+        summary.put("runId", runId);
         summary.put("executedCount", executedCount);
         summary.put("passCount", passCount);
         summary.put("failCount", failCount);

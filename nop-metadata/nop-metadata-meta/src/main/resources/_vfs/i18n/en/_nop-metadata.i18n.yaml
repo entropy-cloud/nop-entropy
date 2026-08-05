@@ -663,6 +663,8 @@ prop:
       updateTime: Update Time
       remark: Remark
       isFalsePositive: Is False Positive
+      checkpointId: Checkpoint Id
+      runId: Run Id
       qualityRule: Quality Rule
       qualityRule.displayName: Quality Rule
       detailsComponent: null

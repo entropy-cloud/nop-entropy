@@ -18,6 +18,7 @@ public class CheckpointExecutionResultDTO implements Serializable {
     private static final long serialVersionUID = 1L;
 
     private String checkpointId;
+    private String runId;
     private int totalRuleCount;
     private int executedRuleCount;
     private int passCount;
@@ -37,6 +38,14 @@ public class CheckpointExecutionResultDTO implements Serializable {
 
     public void setCheckpointId(String checkpointId) {
         this.checkpointId = checkpointId;
+    }
+
+    public String getRunId() {
+        return runId;
+    }
+
+    public void setRunId(String runId) {
+        this.runId = runId;
     }
 
     public int getTotalRuleCount() {

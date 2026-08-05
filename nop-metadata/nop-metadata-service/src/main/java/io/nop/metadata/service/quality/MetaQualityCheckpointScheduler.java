@@ -214,10 +214,24 @@ public class MetaQualityCheckpointScheduler {
             // LocalJobScheduler 将 job 永久置 FAILED（addJob(allowUpdate=true) 仅对 WAITING/SUSPENDED
             // 重排程，FAILED 不复活，唯一恢复手段是重启 JVM）。记录日志并返回正常结果，job 存活按 cron
             // 继续触发；配置修复后下一次触发即恢复。
-            LOG.error("nop.meta.checkpoint-scheduler.scheduled-exec-failed: checkpointId={} error={}",
-                    checkpointId, NopMetadataHelper.toErrorMessage(e), e);
+            if (isConcurrentRunRejection(e)) {
+                // R4.3（Minor-8）：cron tick 与手动执行并发被运行标记 fail-fast 拒绝——预期运维噪音，降级 WARN
+                // （区别于真实故障的 ERROR，避免 MA7.5-01 catch-all 转 ERROR 造成运维误读）
+                LOG.warn("nop.meta.checkpoint-scheduler.scheduled-exec-skipped: checkpointId={} "
+                        + "(already running, concurrent execution rejected fail-fast)", checkpointId);
+            } else {
+                LOG.error("nop.meta.checkpoint-scheduler.scheduled-exec-failed: checkpointId={} error={}",
+                        checkpointId, NopMetadataHelper.toErrorMessage(e), e);
+            }
             return buildErrorResult(checkpointId, e);
         }
+    }
+
+    /** R4.3：运行期并发重复触发（ERR_CHECKPOINT_ALREADY_RUNNING）判定——仅该错误码降级 WARN。 */
+    private static boolean isConcurrentRunRejection(Exception e) {
+        return e instanceof NopException
+                && NopMetadataErrors.ERR_CHECKPOINT_ALREADY_RUNNING.getErrorCode()
+                .equals(((NopException) e).getErrorCode());
     }
 
     // ============================================================

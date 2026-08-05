@@ -13,6 +13,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
 
 /**
  * Test mock for {@link IHttpClient}. Instance-level state, safe for parallel test execution.
@@ -23,6 +25,11 @@ public class MockHttpClient implements IHttpClient {
     public int responseStatus = 200;
     public String responseBody = "{}";
     public RuntimeException throwOnFetch = null;
+    /**
+     * R4.3 并发测试钩子：非 null 时 fetch 阻塞直到 latch 释放（模拟 webhook 慢端点，用于把
+     * executeCheckpoint 的第一请求钉在 dispatchActions 窗口内，验证第二请求 fail-fast）。
+     */
+    public CountDownLatch blockLatch = null;
 
     public int fetchCallCount = 0;
     public HttpRequest lastRequest = null;
@@ -32,6 +39,7 @@ public class MockHttpClient implements IHttpClient {
         responseStatus = 200;
         responseBody = "{}";
         throwOnFetch = null;
+        blockLatch = null;
         fetchCallCount = 0;
         lastRequest = null;
         recordedRequests.clear();
@@ -54,7 +62,20 @@ public class MockHttpClient implements IHttpClient {
         if (throwOnFetch != null) {
             throw throwOnFetch;
         }
+        awaitIfBlocked();
         return new MockHttpResponse(responseStatus, responseBody);
+    }
+
+    /** 阻塞直到 blockLatch 释放（blockLatch 为 null 时不阻塞，保持既有行为）。 */
+    private void awaitIfBlocked() {
+        CountDownLatch latch = blockLatch;
+        if (latch != null) {
+            try {
+                latch.await(30, TimeUnit.SECONDS);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+            }
+        }
     }
 
     private void recordCall(HttpRequest request) {

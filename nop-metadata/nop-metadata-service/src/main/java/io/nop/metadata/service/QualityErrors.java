@@ -24,6 +24,10 @@ interface QualityErrors extends NopMetadataArgs {
             ErrorCode.define("nop.err.metadata.checkpoint-scheduler-invalid-cron",
                     "Quality checkpoint schedule cron expression is invalid: "
                             + "{checkpointId} cron={cron}", ARG_CHECKPOINT_ID, ARG_CRON);
+    ErrorCode ERR_CHECKPOINT_ALREADY_RUNNING =
+            ErrorCode.define("nop.err.metadata.checkpoint-already-running",
+                    "Quality checkpoint is already running, concurrent execution rejected (fail-fast): "
+                            + "{checkpointId}", ARG_CHECKPOINT_ID);
     ErrorCode ERR_CHECKPOINT_NOT_ACTIVE =
             ErrorCode.define("nop.err.metadata.checkpoint-not-active",
                     "Quality checkpoint is not ACTIVE (paused/disabled), cannot execute: "

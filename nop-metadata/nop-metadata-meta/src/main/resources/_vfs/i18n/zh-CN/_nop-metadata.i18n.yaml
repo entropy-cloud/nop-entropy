@@ -648,6 +648,7 @@ prop:
       version: 数据版本
     NopMetaQualityResult:
       actualValue: 实际值
+      checkpointId: 检查点ID
       createTime: 创建时间
       createdBy: 创建人
       details: 详情
@@ -661,6 +662,7 @@ prop:
       qualityRule.displayName: 质量规则
       qualityRuleId: 规则ID
       remark: 备注
+      runId: 执行批次ID
       status: 状态
       status_label: 状态
       updateTime: 修改时间

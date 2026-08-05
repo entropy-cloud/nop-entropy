@@ -289,6 +289,32 @@ public class TestNopMetaQualityRuleBizModel extends JunitBaseTestCase {
         }
     }
 
+    /**
+     * R4.3（plan-2026-08-05-1625-2）单规则路径回归：无检查点上下文 → 结果行 checkpointId/runId 保持 null
+     * （不写哨兵值），时序追加语义与修复前一致（复合 UK 任一列 NULL 不参与冲突判定，多行追加合法）。
+     */
+    @Test
+    public void testSingleRuleResultRowsKeepCheckpointContextNull() throws Exception {
+        String dbUrl = "jdbc:h2:mem:meta_q_nullctx;DB_CLOSE_DELAY=-1";
+        seedTable(dbUrl, "CREATE TABLE ext_nullctx (id INT NOT NULL)", "INSERT INTO ext_nullctx VALUES (1)");
+        PreparedEnv env = prepare(dbUrl, "qs_q_nullctx");
+        String tId = env.tableId("EXT_NULLCTX");
+
+        saveRule(env, "r-nullctx", "volume", "table", tId, null, null, "{\"minRows\":1}");
+
+        GraphQLResponseBean r1 = exec("r-nullctx");
+        assertFalse(r1.hasError(), "single-rule exec should not error: " + r1);
+        NopMetaQualityResult row = findResult("r-nullctx");
+        assertNotNull(row, "result row must exist");
+        assertNull(row.getCheckpointId(), "single-rule path must keep checkpointId null");
+        assertNull(row.getRunId(), "single-rule path must keep runId null");
+
+        // 再次执行仍合法（NULL 不参与 UK 冲突判定，时序追加语义保持）
+        GraphQLResponseBean r2 = exec("r-nullctx");
+        assertFalse(r2.hasError(), "second single-rule exec should not error: " + r2);
+        assertEquals(2, countResults("r-nullctx"), "time-series append preserved for single-rule path");
+    }
+
     // ===== judgeByRuleId（P1-MA4-401/701：空洞断言 → 行为断言） =====
 
     /** 正路径：真实规则 + 真实 H2 表 → judgeByRuleId 返回真实判定（status + actualValue）。 */

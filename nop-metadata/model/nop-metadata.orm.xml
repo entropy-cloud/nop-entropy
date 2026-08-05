@@ -2081,6 +2081,10 @@
                 <column code="IS_FALSE_POSITIVE" displayName="是否误报" name="isFalsePositive" propId="15"
                         stdDataType="byte" stdSqlType="TINYINT" domain="boolFlag"
                         i18n-en:displayName="Is False Positive"/>
+                <column code="CHECKPOINT_ID" displayName="检查点ID" name="checkpointId" precision="32" propId="16"
+                        stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Checkpoint Id"/>
+                <column code="RUN_ID" displayName="执行批次ID" name="runId" precision="32" propId="17"
+                        stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Run Id"/>
             </columns>
             <relations>
                 <to-one displayName="质量规则" name="qualityRule"
@@ -2097,6 +2101,11 @@
                     <column name="executeTime"/>
                 </index>
             </indexes>
+            <unique-keys>
+                <unique-key name="UK_NOP_META_QUALITY_RESULT_CP_RUN_RULE"
+                        columns="checkpointId,runId,qualityRuleId"
+                        constraint="UK_NOP_META_QUALITY_RESULT_CP_RUN_RULE"/>
+            </unique-keys>
         </entity>
 
         <!-- =====================================================

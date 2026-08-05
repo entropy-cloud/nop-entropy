@@ -59,6 +59,12 @@
 
                 <!--是否误报-->
                 <col id="isFalsePositive" sortable="true"/>
+
+                <!--检查点ID-->
+                <col id="checkpointId" sortable="true"/>
+
+                <!--执行批次ID-->
+                <col id="runId" sortable="true"/>
             </cols>
         </grid>
         <grid id="pick-list" x:prototype="list" x:abstract="true"/>
@@ -74,6 +80,7 @@
  createdBy[创建人] createTime[创建时间]
  updatedBy[修改人] updateTime[修改时间]
  remark[备注] isFalsePositive[是否误报]
+ checkpointId[检查点ID] runId[执行批次ID]
 </layout>
         </form>
         <form id="add" editMode="add" title="新增-质量结果" i18n-en:title="Add Meta Quality Result" x:prototype="edit"/>
@@ -84,6 +91,7 @@
  actualValue[实际值] expectedValue[期望值]
  message[结果描述] details[详情]
  remark[备注] isFalsePositive[是否误报]
+ checkpointId[检查点ID] runId[执行批次ID]
 </layout>
         </form>
         <form id="query" editMode="query" title="查询条件" i18n-en:title="Query Condition" x:abstract="true"/>

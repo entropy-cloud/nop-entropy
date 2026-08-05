@@ -236,6 +236,9 @@ alter table nop_meta_quality_checkpoint add constraint UK_NOP_META_QCHECKPOINT_N
                 alter table nop_meta_manifest drop constraint UK_NOP_META_MANIFEST_MODULE_VER;
 alter table nop_meta_manifest add constraint UK_NOP_META_MANIFEST_MODULE_VER unique (NOP_TENANT_ID,meta_module_id,manifest_version);
 
+                alter table nop_meta_quality_result drop constraint UK_NOP_META_QUALITY_RESULT_CP_RUN_RULE;
+alter table nop_meta_quality_result add constraint UK_NOP_META_QUALITY_RESULT_CP_RUN_RULE unique (NOP_TENANT_ID,checkpoint_id,run_id,quality_rule_id);
+
                 alter table nop_meta_glossary_term drop constraint UK_NOP_META_GLOSSARY_TERM_FQN;
 alter table nop_meta_glossary_term add constraint UK_NOP_META_GLOSSARY_TERM_FQN unique (NOP_TENANT_ID,fully_qualified_name);
 

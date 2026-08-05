@@ -37,11 +37,16 @@ public class QualityResultWriter {
      * @param resultDao     结果实体 DAO（由调用方按其上下文获取，BizModel 用 {@code daoFor(...)}，
      *                      checkpoint executor 用 {@code daoProvider.daoFor(...)}）
      * @param qualityRuleId 规则 ID
+     * @param checkpointId  检查点 ID（检查点执行路径非 null；单规则路径为 null）
+     * @param runId         执行批次 ID（UUID，每次执行唯一；检查点执行路径非 null；单规则路径为 null）。
+     *                      配合复合 UK {@code UK_NOP_META_QUALITY_RESULT_CP_RUN_RULE (checkpointId, runId,
+     *                      qualityRuleId)} 兜底拒绝同一次执行的重复写行
      * @param judgment      判定结果（status/actualValue/expectedValue/message/details 全显式填充）
      * @return 已保存的结果行
      */
     public NopMetaQualityResult append(IEntityDao<NopMetaQualityResult> resultDao,
-                                       String qualityRuleId, QualityRuleJudgment judgment) {
+                                       String qualityRuleId, String checkpointId, String runId,
+                                       QualityRuleJudgment judgment) {
         String status = judgment.getStatus();
         if (status == null || !ALLOWED_STATUSES.contains(status)) {
             // 落盘前 fail-fast：非法 status 不静默写入（参照 xmeta dict 校验语义）
@@ -50,6 +55,8 @@ public class QualityResultWriter {
         }
         NopMetaQualityResult row = resultDao.newEntity();
         row.setQualityRuleId(qualityRuleId);
+        row.setCheckpointId(checkpointId);
+        row.setRunId(runId);
         row.setExecuteTime(CoreMetrics.currentTimestamp());
         row.setStatus(status);
         row.setActualValue(judgment.getActualValue());

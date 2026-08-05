@@ -81,8 +81,16 @@ public class _NopMetaQualityResult extends DynamicOrmEntity{
     public static final String PROP_NAME_isFalsePositive = "isFalsePositive";
     public static final int PROP_ID_isFalsePositive = 15;
     
+    /* 检查点ID: CHECKPOINT_ID VARCHAR */
+    public static final String PROP_NAME_checkpointId = "checkpointId";
+    public static final int PROP_ID_checkpointId = 16;
+    
+    /* 执行批次ID: RUN_ID VARCHAR */
+    public static final String PROP_NAME_runId = "runId";
+    public static final int PROP_ID_runId = 17;
+    
 
-    private static int _PROP_ID_BOUND = 16;
+    private static int _PROP_ID_BOUND = 18;
 
     
     /* relation: 质量规则 */
@@ -95,7 +103,7 @@ public class _NopMetaQualityResult extends DynamicOrmEntity{
     protected static final List<String> PK_PROP_NAMES = Arrays.asList(PROP_NAME_qualityResultId);
     protected static final int[] PK_PROP_IDS = new int[]{PROP_ID_qualityResultId};
 
-    private static final String[] PROP_ID_TO_NAME = new String[16];
+    private static final String[] PROP_ID_TO_NAME = new String[18];
     private static final Map<String,Integer> PROP_NAME_TO_ID = new HashMap<>();
     static{
       
@@ -144,6 +152,12 @@ public class _NopMetaQualityResult extends DynamicOrmEntity{
           PROP_ID_TO_NAME[PROP_ID_isFalsePositive] = PROP_NAME_isFalsePositive;
           PROP_NAME_TO_ID.put(PROP_NAME_isFalsePositive, PROP_ID_isFalsePositive);
       
+          PROP_ID_TO_NAME[PROP_ID_checkpointId] = PROP_NAME_checkpointId;
+          PROP_NAME_TO_ID.put(PROP_NAME_checkpointId, PROP_ID_checkpointId);
+      
+          PROP_ID_TO_NAME[PROP_ID_runId] = PROP_NAME_runId;
+          PROP_NAME_TO_ID.put(PROP_NAME_runId, PROP_ID_runId);
+      
     }
 
     
@@ -191,6 +205,12 @@ public class _NopMetaQualityResult extends DynamicOrmEntity{
     
     /* 是否误报: IS_FALSE_POSITIVE */
     private java.lang.Byte _isFalsePositive;
+    
+    /* 检查点ID: CHECKPOINT_ID */
+    private java.lang.String _checkpointId;
+    
+    /* 执行批次ID: RUN_ID */
+    private java.lang.String _runId;
     
 
     public _NopMetaQualityResult(){
@@ -310,6 +330,12 @@ public class _NopMetaQualityResult extends DynamicOrmEntity{
         
             case PROP_ID_isFalsePositive:
                return getIsFalsePositive();
+        
+            case PROP_ID_checkpointId:
+               return getCheckpointId();
+        
+            case PROP_ID_runId:
+               return getRunId();
         
            default:
               return super.orm_propValue(propId);
@@ -472,6 +498,26 @@ public class _NopMetaQualityResult extends DynamicOrmEntity{
                break;
             }
         
+            case PROP_ID_checkpointId:{
+               java.lang.String typedValue = null;
+               if(value != null){
+                   typedValue = ConvertHelper.toString(value,
+                       err-> newTypeConversionError(PROP_NAME_checkpointId));
+               }
+               setCheckpointId(typedValue);
+               break;
+            }
+        
+            case PROP_ID_runId:{
+               java.lang.String typedValue = null;
+               if(value != null){
+                   typedValue = ConvertHelper.toString(value,
+                       err-> newTypeConversionError(PROP_NAME_runId));
+               }
+               setRunId(typedValue);
+               break;
+            }
+        
            default:
               super.orm_propValue(propId,value);
         }
@@ -582,6 +628,20 @@ public class _NopMetaQualityResult extends DynamicOrmEntity{
             case PROP_ID_isFalsePositive:{
                onInitProp(propId);
                this._isFalsePositive = (java.lang.Byte)value;
+               
+               break;
+            }
+        
+            case PROP_ID_checkpointId:{
+               onInitProp(propId);
+               this._checkpointId = (java.lang.String)value;
+               
+               break;
+            }
+        
+            case PROP_ID_runId:{
+               onInitProp(propId);
+               this._runId = (java.lang.String)value;
                
                break;
             }
@@ -873,6 +933,44 @@ public class _NopMetaQualityResult extends DynamicOrmEntity{
         if(onPropSet(PROP_ID_isFalsePositive,value)){
             this._isFalsePositive = value;
             internalClearRefs(PROP_ID_isFalsePositive);
+            
+        }
+    }
+    
+    /**
+     * 检查点ID: CHECKPOINT_ID
+     */
+    public final java.lang.String getCheckpointId(){
+         onPropGet(PROP_ID_checkpointId);
+         return _checkpointId;
+    }
+
+    /**
+     * 检查点ID: CHECKPOINT_ID
+     */
+    public final void setCheckpointId(java.lang.String value){
+        if(onPropSet(PROP_ID_checkpointId,value)){
+            this._checkpointId = value;
+            internalClearRefs(PROP_ID_checkpointId);
+            
+        }
+    }
+    
+    /**
+     * 执行批次ID: RUN_ID
+     */
+    public final java.lang.String getRunId(){
+         onPropGet(PROP_ID_runId);
+         return _runId;
+    }
+
+    /**
+     * 执行批次ID: RUN_ID
+     */
+    public final void setRunId(java.lang.String value){
+        if(onPropSet(PROP_ID_runId,value)){
+            this._runId = value;
+            internalClearRefs(PROP_ID_runId);
             
         }
     }

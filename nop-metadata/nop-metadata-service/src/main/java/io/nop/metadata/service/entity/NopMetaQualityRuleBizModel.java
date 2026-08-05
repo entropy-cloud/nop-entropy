@@ -340,9 +340,10 @@ public class NopMetaQualityRuleBizModel extends CrudBizModel<NopMetaQualityRule>
      * 将单规则判定结果追加为一行新的 NopMetaQualityResult（时序语义：executeTime=now，不覆盖旧行）。
      *
      * <p>委托共享 {@link QualityResultWriter}（§2.7.3 D3），与检查点编排路径共用同一写入逻辑，不复制。
+     * 无检查点上下文：checkpointId/runId 传 null（复合 UK 中任一列 NULL 不参与冲突判定，时序追加语义保持）。
      */
     private NopMetaQualityResult appendQualityResult(String qualityRuleId, QualityRuleJudgment judgment) {
-        return resultWriter.append(daoFor(NopMetaQualityResult.class), qualityRuleId, judgment);
+        return resultWriter.append(daoFor(NopMetaQualityResult.class), qualityRuleId, null, null, judgment);
     }
 
     private static QualityRuleExecuteResultDTO buildSingleResultDto(NopMetaQualityResult row, QualityRuleJudgment j) {

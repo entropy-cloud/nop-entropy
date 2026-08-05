@@ -6,6 +6,7 @@ import io.nop.api.core.beans.FilterBeans;
 import io.nop.api.core.beans.graphql.GraphQLRequestBean;
 import io.nop.api.core.beans.graphql.GraphQLResponseBean;
 import io.nop.api.core.beans.query.QueryBean;
+import io.nop.api.core.exceptions.NopException;
 import io.nop.autotest.junit.JunitBaseTestCase;
 import io.nop.dao.api.IDaoProvider;
 import io.nop.dao.api.IEntityDao;
@@ -18,6 +19,7 @@ import io.nop.metadata.dao.entity.NopMetaQualityResult;
 import io.nop.metadata.dao.entity.NopMetaQualityRule;
 import io.nop.metadata.dao.entity.NopMetaQualityScore;
 import io.nop.metadata.dao.entity.NopMetaTable;
+import io.nop.metadata.service.entity.NopMetaQualityCheckpointBizModel;
 import io.nop.metadata.service.mock.MockHttpClient;
 import io.nop.metadata.service.mock.MockMessageService;
 import jakarta.inject.Inject;
@@ -28,10 +30,17 @@ import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.Statement;
 import java.sql.Timestamp;
+import java.util.List;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicReference;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
@@ -80,6 +89,9 @@ public class TestNopMetaQualityCheckpointBizModel extends JunitBaseTestCase {
 
     @Inject
     IDaoProvider daoProvider;
+
+    @Inject
+    NopMetaQualityCheckpointBizModel checkpointBizModel;
 
     // ===== (a)+(b) 混合规则集执行 + 摘要计数 =====
 
@@ -425,6 +437,150 @@ public class TestNopMetaQualityCheckpointBizModel extends JunitBaseTestCase {
         assertEquals(1, countResults("r-ns-vol"), "checkpoint result still written when autoScore=false");
     }
 
+    // ===== R4.3：运行期幂等——runId/checkpointId 落盘 + 复合 UK + 并发 fail-fast =====
+
+    /**
+     * 端到端 + 接线验证（Minimum Rules #22/#23）：executeCheckpoint 执行后：
+     * <ul>
+     *   <li>结果行含非 null 的 checkpointId/runId（runId = 32 位 UUID hex，每次执行唯一）</li>
+     *   <li>DTO 摘要返回 runId（GraphQL 响应含 runId=...）——接线连通，非空壳</li>
+     *   <li>runId 传递链 BizModel → executor → writer 运行时连通（断言落盘行）</li>
+     * </ul>
+     */
+    @Test
+    public void testCheckpointResultRowsCarryRunIdAndCheckpointId() throws Exception {
+        String dbUrl = "jdbc:h2:mem:meta_cp_runid;DB_CLOSE_DELAY=-1";
+        seedTable(dbUrl, "CREATE TABLE ext_run (id INT NOT NULL)", "INSERT INTO ext_run VALUES (1)");
+        PreparedEnv env = prepare(dbUrl, "qs_cp_runid");
+        String tableId = env.tableId("EXT_RUN");
+
+        saveRule("r-run-vol", "volume", "table", tableId, null, null, "{\"minRows\":1}"); // PASS
+        saveCheckpoint("cp-run", "ACTIVE",
+                "[{\"tableIds\":[\"" + tableId + "\"]}]", null);
+
+        GraphQLResponseBean resp = exec("cp-run");
+        assertFalse(resp.hasError(), "checkpoint with runId wiring should not error: " + resp);
+        String data = String.valueOf(resp.getData());
+        assertTrue(data.contains("runId="), "DTO summary must carry runId: " + data);
+
+        NopMetaQualityResult row = findResult("r-run-vol");
+        assertNotNull(row, "result row must exist");
+        assertEquals("cp-run", row.getCheckpointId(), "result row must carry checkpointId");
+        assertNotNull(row.getRunId(), "result row must carry runId");
+        assertEquals(32, row.getRunId().length(), "runId must be 32-char UUID hex (StringHelper.generateUUID)");
+        // 区分性断言：两次顺序执行（锁已释放）产生两个不同 runId（时序语义保留）
+        GraphQLResponseBean resp2 = exec("cp-run");
+        assertFalse(resp2.hasError(), "sequential re-execution must still succeed: " + resp2);
+        List<NopMetaQualityResult> rows = findResultsOrderedByTime("r-run-vol");
+        assertEquals(2, rows.size(), "sequential execution appends a new row per runId");
+        assertFalse(rows.get(0).getRunId().equals(rows.get(1).getRunId()),
+                "each execution must generate a distinct runId");
+    }
+
+    /**
+     * 复合 UK 兜底（区分性断言）：同一 (checkpointId, runId, qualityRuleId) 二次写入被 DB 唯一约束拒绝
+     * （同 runId 重复写行 fail-fast）；不同 runId 写入合法（时序语义不受影响）。
+     */
+    @Test
+    public void testSameRunIdDuplicateWriteRejectedByUk() throws Exception {
+        String dbUrl = "jdbc:h2:mem:meta_cp_uk;DB_CLOSE_DELAY=-1";
+        seedTable(dbUrl, "CREATE TABLE ext_uk (id INT NOT NULL)", "INSERT INTO ext_uk VALUES (1)");
+        PreparedEnv env = prepare(dbUrl, "qs_cp_uk");
+        String tableId = env.tableId("EXT_UK");
+
+        saveRule("r-uk-vol", "volume", "table", tableId, null, null, "{\"minRows\":1}"); // PASS
+        saveCheckpoint("cp-uk", "ACTIVE",
+                "[{\"tableIds\":[\"" + tableId + "\"]}]", null);
+
+        GraphQLResponseBean resp = exec("cp-uk");
+        assertFalse(resp.hasError(), "first execution must succeed: " + resp);
+        NopMetaQualityResult row = findResult("r-uk-vol");
+        assertNotNull(row, "result row must exist");
+
+        // 同 (checkpointId, runId, qualityRuleId) 手工二次写入 → DB 复合 UK 拒绝（fail-fast，非静默重复）
+        assertThrows(Exception.class, () -> saveQualityResultRow("cp-uk", row.getRunId(), "r-uk-vol", "PASS"),
+                "duplicate (checkpointId, runId, qualityRuleId) write must be rejected by composite UK");
+        assertEquals(1, countResults("r-uk-vol"), "no duplicate row may land");
+
+        // 不同 runId（新执行）→ 合法写入（区分性断言：UK 只拦同 runId，不破坏时序追加语义）
+        saveQualityResultRow("cp-uk", "another-run-1234567890abcdef", "r-uk-vol", "PASS");
+        assertEquals(2, countResults("r-uk-vol"), "a different runId must be accepted (time-series append)");
+    }
+
+    /**
+     * 运行期（concurrent）重复触发 fail-fast（R4.3 核心修复面）：第一请求经 webhook 阻塞钉在
+     * dispatchActions 窗口内（锁仍持有）时，第二请求必须显式 fail-fast：
+     * <ul>
+     *   <li>第二请求 GraphQL 报错（错误码 checkpoint-already-running，非静默重复执行）+ raw impl 精确错误码</li>
+     *   <li>不重复投递（dispatchActions 窗口内 fetchCallCount = 1——断言覆盖 dispatch 窗口）</li>
+     *   <li>执行完成后结果行 = 1（并发拒绝不产生重复结果行）</li>
+     *   <li>第一请求完成后锁释放：后续再次执行成功（非永久锁死）</li>
+     * </ul>
+     */
+    @Test
+    public void testConcurrentExecuteCheckpointFailFast() throws Exception {
+        String dbUrl = "jdbc:h2:mem:meta_cp_race;DB_CLOSE_DELAY=-1";
+        seedTable(dbUrl, "CREATE TABLE ext_race (id INT NOT NULL)", "INSERT INTO ext_race VALUES (1)");
+        PreparedEnv env = prepare(dbUrl, "qs_cp_race");
+        String tableId = env.tableId("EXT_RACE");
+
+        saveRule("r-race-vol", "volume", "table", tableId, null, null, "{\"minRows\":1}"); // PASS
+        saveCheckpoint("cp-race", "ACTIVE",
+                "[{\"tableIds\":[\"" + tableId + "\"]}]",
+                "[{\"actionType\":\"webhook\",\"enabled\":true,\"config\":{\"url\":\"http://mock-hook/race\"}}]");
+
+        // 阻塞 webhook：把第一请求钉在 dispatchActions 窗口（锁覆盖范围内）
+        mockHttpClient.blockLatch = new CountDownLatch(1);
+
+        ExecutorService pool = Executors.newFixedThreadPool(2);
+        AtomicReference<GraphQLResponseBean> first = new AtomicReference<>();
+        AtomicReference<GraphQLResponseBean> second = new AtomicReference<>();
+        CountDownLatch secondDone = new CountDownLatch(1);
+        try {
+            pool.submit(() -> {
+                first.set(exec("cp-race"));
+                return null;
+            });
+
+            // 等第一请求进入 webhook fetch（dispatchActions 窗口内、锁持有中）
+            awaitTrue(() -> mockHttpClient.fetchCallCount == 1, 10_000, "first request must reach webhook fetch");
+
+            // 第二请求到达 → 运行标记命中 → fail-fast（非静默重复执行）
+            second.set(exec("cp-race"));
+            secondDone.countDown();
+
+            assertTrue(second.get().hasError(),
+                    "concurrent duplicate execution must fail-fast: " + second.get());
+            String msg = second.get().getErrors().get(0).getMessage();
+            assertTrue(msg.contains("already running"),
+                    "fail-fast message must be the ERR_CHECKPOINT_ALREADY_RUNNING description: " + msg);
+            // 精确错误码断言（GraphQL 错误体只有 message，错误码经 raw impl 直接调用验证——
+            // 注入的 raw impl 与 GraphQL 代理路径汇聚同一实例，scheduler 注入实证）
+            NopException rawEx = assertThrows(NopException.class,
+                    () -> checkpointBizModel.executeCheckpoint("cp-race", "PUBLIC", null),
+                    "raw impl must fail-fast with ERR_CHECKPOINT_ALREADY_RUNNING while lock held");
+            assertEquals(NopMetadataErrors.ERR_CHECKPOINT_ALREADY_RUNNING.getErrorCode(), rawEx.getErrorCode());
+            // 窗口断言（dispatchActions 窗口内，A 事务未提交、锁持有中）：
+            // B 被 fail-fast 拒绝，未到达 dispatch——webhook 仍只被 A 调了一次
+            assertEquals(1, mockHttpClient.fetchCallCount, "no duplicate webhook dispatch (dispatch window)");
+        } finally {
+            // 释放第一请求，随后可再次执行（锁在 finally 释放，无永久锁死）
+            mockHttpClient.blockLatch.countDown();
+            secondDone.await(10, TimeUnit.SECONDS);
+            pool.shutdown();
+            assertTrue(pool.awaitTermination(10, TimeUnit.SECONDS), "both requests must finish");
+        }
+
+        assertFalse(first.get().hasError(), "first request must complete successfully: " + first.get());
+        assertEquals(1, countResults("r-race-vol"), "first request wrote exactly one result row");
+
+        // 顺序执行（锁已释放）→ 成功（fail-fast 不误伤合法顺序执行）
+        GraphQLResponseBean third = exec("cp-race");
+        assertFalse(third.hasError(), "sequential re-execution after completion must succeed: " + third);
+        assertEquals(2, countResults("r-race-vol"), "sequential execution appends a new row");
+        assertEquals(2, mockHttpClient.fetchCallCount, "sequential execution dispatches again");
+    }
+
     // ===== D4：webhook 动作（post-commit dispatch）=====
 
     /**
@@ -626,7 +782,7 @@ public class TestNopMetaQualityCheckpointBizModel extends JunitBaseTestCase {
         return graphQLEngine.executeGraphQL(graphQLEngine.newGraphQLContext(req(
                 "mutation { NopMetaQualityCheckpoint__executeCheckpoint(checkpointId: \"" + checkpointId
                         + "\", schemaPattern: \"PUBLIC\") { "
-                        + "checkpointId executedRuleCount passCount failCount errorCount "
+                        + "checkpointId runId executedRuleCount passCount failCount errorCount "
                         + "affectedTableIds autoScore scoreSkipped executionErrors "
                         + "} }")));
     }
@@ -709,6 +865,37 @@ public class TestNopMetaQualityCheckpointBizModel extends JunitBaseTestCase {
         return dao.countByQuery(q);
     }
 
+    /** R4.3 复合 UK 测试辅助：直接写一行指定 (checkpointId, runId, qualityRuleId) 的质量结果。 */
+    private void saveQualityResultRow(String checkpointId, String runId, String ruleId, String status) {
+        IEntityDao<NopMetaQualityResult> dao = daoProvider.daoFor(NopMetaQualityResult.class);
+        NopMetaQualityResult row = dao.newEntity();
+        row.setQualityRuleId(ruleId);
+        row.setCheckpointId(checkpointId);
+        row.setRunId(runId);
+        row.setStatus(status);
+        row.setExecuteTime(new Timestamp(System.currentTimeMillis()));
+        row.setVersion(1L);
+        row.setCreatedBy("autotest");
+        row.setUpdatedBy("autotest");
+        Timestamp now = new Timestamp(System.currentTimeMillis());
+        row.setCreateTime(now);
+        row.setUpdateTime(now);
+        dao.saveEntity(row);
+    }
+
+    /** 轮询等待条件成立（超时抛断言失败）。 */
+    private static void awaitTrue(java.util.function.BooleanSupplier cond, long timeoutMs, String message)
+            throws InterruptedException {
+        long deadline = System.currentTimeMillis() + timeoutMs;
+        while (System.currentTimeMillis() < deadline) {
+            if (cond.getAsBoolean()) {
+                return;
+            }
+            Thread.sleep(50);
+        }
+        throw new AssertionError("timeout waiting for: " + message);
+    }
+
     private long countScores(String metaTableId) {
         IEntityDao<NopMetaQualityScore> dao = daoProvider.daoFor(NopMetaQualityScore.class);
         QueryBean q = new QueryBean();
@@ -729,6 +916,15 @@ public class TestNopMetaQualityCheckpointBizModel extends JunitBaseTestCase {
         QueryBean q = new QueryBean();
         q.addFilter(FilterBeans.eq(NopMetaQualityResult.PROP_NAME_qualityRuleId, ruleId));
         return dao.findFirstByQuery(q);
+    }
+
+    /** 按 executeTime 排序返回该规则全部结果行（区分性断言：两次执行不同 runId）。 */
+    private List<NopMetaQualityResult> findResultsOrderedByTime(String ruleId) {
+        IEntityDao<NopMetaQualityResult> dao = daoProvider.daoFor(NopMetaQualityResult.class);
+        QueryBean q = new QueryBean();
+        q.addFilter(FilterBeans.eq(NopMetaQualityResult.PROP_NAME_qualityRuleId, ruleId));
+        q.addOrderField(NopMetaQualityResult.PROP_NAME_executeTime, false);
+        return dao.findAllByQuery(q);
     }
 
     private void saveDataSource(String id, String querySpace, String datasourceType,

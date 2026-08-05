@@ -126,6 +126,14 @@ public class TestMetaQualityCheckpointScheduler extends JunitBaseTestCase {
         // autoScore 在 cron 路径自动生效（评分逻辑与触发源解耦）
         assertEquals(1, countScores(tableId),
                 "autoScore must trigger in cron path → QualityScore written");
+        // R4.3：cron 路径结果行同样携带幂等键（checkpointId/runId 非 null，runId=32 位 UUID hex）
+        NopMetaQualityResult cronRow = findResult("r-cron-vol");
+        assertNotNull(cronRow, "cron-path result row must exist");
+        assertEquals("cp-cron", cronRow.getCheckpointId(),
+                "cron-path result row must carry checkpointId");
+        assertNotNull(cronRow.getRunId(), "cron-path result row must carry runId");
+        assertEquals(32, cronRow.getRunId().length(),
+                "cron-path runId must be 32-char UUID hex");
     }
 
     // ===== (b) 非 ACTIVE 状态：registerCheckpoint 不注册 =====
@@ -405,6 +413,13 @@ public class TestMetaQualityCheckpointScheduler extends JunitBaseTestCase {
         QueryBean q = new QueryBean();
         q.addFilter(FilterBeans.eq(NopMetaQualityResult.PROP_NAME_qualityRuleId, ruleId));
         return dao.countByQuery(q);
+    }
+
+    private NopMetaQualityResult findResult(String ruleId) {
+        IEntityDao<NopMetaQualityResult> dao = daoProvider.daoFor(NopMetaQualityResult.class);
+        QueryBean q = new QueryBean();
+        q.addFilter(FilterBeans.eq(NopMetaQualityResult.PROP_NAME_qualityRuleId, ruleId));
+        return dao.findFirstByQuery(q);
     }
 
     private long countScores(String metaTableId) {

@@ -12,6 +12,7 @@ import io.nop.api.core.annotations.ioc.InjectValue;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.api.core.message.IMessageService;
 import io.nop.biz.crud.CrudBizModel;
+import io.nop.commons.util.StringHelper;
 import io.nop.core.context.IServiceContext;
 import io.nop.core.lang.json.JsonTool;
 import io.nop.dao.txn.ITransactionTemplate;
@@ -21,6 +22,7 @@ import io.nop.metadata.api.dto.CheckpointExecutionResultDTO;
 import io.nop.metadata.api.dto.CheckpointExtConfig;
 import io.nop.metadata.dao.entity.NopMetaQualityCheckpoint;
 import io.nop.metadata.service.connection.IMetaDataSourceConnectionProcessor;
+import io.nop.metadata.service.NopMetadataException;
 import io.nop.metadata.service.datasource.MetaDataSourceResolver;
 import io.nop.metadata.service.quality.CheckpointActionDispatcher;
 import io.nop.metadata.service.quality.MetaQualityCheckpointExecutor;
@@ -38,6 +40,7 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * 质量检查点 BizModel：基线 CRUD（{@link CrudBizModel}）+ 检查点批量执行（架构基线 §2.7.3）。
@@ -134,6 +137,17 @@ public class NopMetaQualityCheckpointBizModel extends CrudBizModel<NopMetaQualit
     /** 结果动作分发器（webhook/notify 投递）。延迟初始化，依赖注入的 httpClient/messageService。 */
     private CheckpointActionDispatcher actionDispatcher;
 
+    /**
+     * 运行期（concurrent）幂等守卫：per-checkpoint 进程内运行标记（R4.3，plan-2026-08-05-1625-2）。
+     *
+     * <p>非阻塞获取（{@link ConcurrentHashMap#putIfAbsent}），命中即 fail-fast 抛
+     * {@link #NopMetadataErrors.ERR_CHECKPOINT_ALREADY_RUNNING}——blocking 实现会让并发重复变串行重复。
+     * 锁覆盖 executor + autoScore + dispatchActions 全程（获取于 requireEntity 之后、executor 之前，
+     * 方法体最外层 finally 释放），与 LocalJobScheduler 平台守卫（按 job 名防 cron 自重叠）职责互补：
+     * 本锁按 checkpointId 补手动路径与手动×cron 交叉残余面。
+     */
+    private final Map<String, Object> checkpointRunLocks = new ConcurrentHashMap<>();
+
     public NopMetaQualityCheckpointBizModel() {
         setEntityName(NopMetaQualityCheckpoint.class.getName());
     }
@@ -160,47 +174,62 @@ public class NopMetaQualityCheckpointBizModel extends CrudBizModel<NopMetaQualit
                                                            @Optional @Name("schemaPattern") String schemaPattern,
                                                            IServiceContext context) {
         NopMetaQualityCheckpoint cp = requireEntity(checkpointId, "executeCheckpoint", context);
-        Map<String, Object> summary = ensureCheckpointExecutor().execute(cp, schemaPattern);
 
-        CheckpointExecutionResultDTO dto = new CheckpointExecutionResultDTO();
-        dto.setCheckpointId((String) summary.get("checkpointId"));
-        Object executedCount = summary.get("executedCount");
-        dto.setExecutedRuleCount(executedCount instanceof Number ? ((Number) executedCount).intValue() : 0);
-        Object passCount = summary.get("passCount");
-        dto.setPassCount(passCount instanceof Number ? ((Number) passCount).intValue() : 0);
-        Object failCount = summary.get("failCount");
-        dto.setFailCount(failCount instanceof Number ? ((Number) failCount).intValue() : 0);
-        Object errorCount = summary.get("errorCount");
-        dto.setErrorCount(errorCount instanceof Number ? ((Number) errorCount).intValue() : 0);
-        Object affectedTableIds = summary.get("affectedTableIds");
-        if (affectedTableIds instanceof List) {
-            dto.setAffectedTableIds((List<String>) affectedTableIds);
+        // R4.3 运行期幂等：非阻塞获取 per-checkpoint 运行标记，命中（已有执行在进行中）即 fail-fast，
+        // 不静默重复执行（Minimum Rules #24）。顺序重复执行（上次执行已完成）不受影响——标记在 finally 释放。
+        if (checkpointRunLocks.putIfAbsent(checkpointId, Boolean.TRUE) != null) {
+            throw new NopMetadataException(NopMetadataErrors.ERR_CHECKPOINT_ALREADY_RUNNING)
+                    .param("checkpointId", checkpointId);
         }
-        Object results = summary.get("results");
-        if (results instanceof List) {
-            dto.setExecutionResults((List<Map<String, Object>>) results);
-        }
-        Object errors = summary.get("errors");
-        if (errors instanceof List) {
-            dto.setExecutionErrors((List<Map<String, Object>>) errors);
-        }
+        // runId = UUID：每次执行唯一，作为幂等键载体（结果行 + 摘要 + DTO），复合 UK 兜底拒绝同 runId 重复写行
+        String runId = StringHelper.generateUUID();
+        try {
+            Map<String, Object> summary = ensureCheckpointExecutor().execute(cp, runId, schemaPattern);
 
-        // D6：自动评分触发——按 affectedTableIds 逐表重算评分（复用既有 scorer，零落盘逻辑复制）
-        triggerAutoScoring(cp, summary, context);
+            CheckpointExecutionResultDTO dto = new CheckpointExecutionResultDTO();
+            dto.setCheckpointId((String) summary.get("checkpointId"));
+            dto.setRunId(runId);
+            Object executedCount = summary.get("executedCount");
+            dto.setExecutedRuleCount(executedCount instanceof Number ? ((Number) executedCount).intValue() : 0);
+            Object passCount = summary.get("passCount");
+            dto.setPassCount(passCount instanceof Number ? ((Number) passCount).intValue() : 0);
+            Object failCount = summary.get("failCount");
+            dto.setFailCount(failCount instanceof Number ? ((Number) failCount).intValue() : 0);
+            Object errorCount = summary.get("errorCount");
+            dto.setErrorCount(errorCount instanceof Number ? ((Number) errorCount).intValue() : 0);
+            Object affectedTableIds = summary.get("affectedTableIds");
+            if (affectedTableIds instanceof List) {
+                dto.setAffectedTableIds((List<String>) affectedTableIds);
+            }
+            Object results = summary.get("results");
+            if (results instanceof List) {
+                dto.setExecutionResults((List<Map<String, Object>>) results);
+            }
+            Object errors = summary.get("errors");
+            if (errors instanceof List) {
+                dto.setExecutionErrors((List<Map<String, Object>>) errors);
+            }
 
-        // 从 summary 读取 autoScore/scoreSkipped（triggerAutoScoring 写入 summary）
-        Object autoScore = summary.get("autoScore");
-        if (autoScore instanceof Boolean) {
-            dto.setAutoScore((Boolean) autoScore);
-        }
-        Object scoreSkipped = summary.get("scoreSkipped");
-        if (scoreSkipped instanceof Boolean) {
-            dto.setScoreSkipped((Boolean) scoreSkipped);
-        }
+            // D6：自动评分触发——按 affectedTableIds 逐表重算评分（复用既有 scorer，零落盘逻辑复制）
+            triggerAutoScoring(cp, summary, context);
 
-        // D4：结果动作投递——store 提交后才触发 webhook/notify（post-commit dispatch）
-        dispatchActions(cp, summary);
-        return dto;
+            // 从 summary 读取 autoScore/scoreSkipped（triggerAutoScoring 写入 summary）
+            Object autoScore = summary.get("autoScore");
+            if (autoScore instanceof Boolean) {
+                dto.setAutoScore((Boolean) autoScore);
+            }
+            Object scoreSkipped = summary.get("scoreSkipped");
+            if (scoreSkipped instanceof Boolean) {
+                dto.setScoreSkipped((Boolean) scoreSkipped);
+            }
+
+            // D4：结果动作投递——store 提交后才触发 webhook/notify（post-commit dispatch）
+            dispatchActions(cp, summary);
+            return dto;
+        } finally {
+            // 最外层 finally 释放运行标记（覆盖 executor + autoScore + dispatchActions 全程）
+            checkpointRunLocks.remove(checkpointId);
+        }
     }
 
     // ============================================================

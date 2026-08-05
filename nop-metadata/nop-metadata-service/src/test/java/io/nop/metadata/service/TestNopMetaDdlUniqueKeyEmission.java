@@ -100,6 +100,41 @@ public class TestNopMetaDdlUniqueKeyEmission extends JunitBaseTestCase {
         }
     }
 
+    /**
+     * R4.3（plan-2026-08-05-1625-2）：NopMetaQualityResult 新增复合 UK
+     * UK_NOP_META_QUALITY_RESULT_CP_RUN_RULE (checkpointId, runId, qualityRuleId)——防同 runId 重复写行。
+     * 断言三方言 DDL 物化发射（防 R3.19 类零 UK 发射复发）+ 模型层 UK 声明存在。
+     */
+    @Test
+    public void testNopMetaQualityResultUniqueKeyEmission() {
+        OrmEntityModel result = entityModel("io.nop.metadata.dao.entity.NopMetaQualityResult");
+        assertNotNull(result, "NopMetaQualityResult model must be loaded");
+        assertTrue(hasUniqueKeyColumn(result, "UK_NOP_META_QUALITY_RESULT_CP_RUN_RULE", "CHECKPOINT_ID"),
+                "UK must include checkpointId dimension");
+        assertTrue(hasUniqueKeyColumn(result, "UK_NOP_META_QUALITY_RESULT_CP_RUN_RULE", "RUN_ID"),
+                "UK must include runId dimension");
+        assertTrue(hasUniqueKeyColumn(result, "UK_NOP_META_QUALITY_RESULT_CP_RUN_RULE", "QUALITY_RULE_ID"),
+                "UK must include qualityRuleId dimension");
+
+        for (String dialect : new String[]{"mysql", "oracle", "postgresql"}) {
+            String sql = DdlSqlCreator.forDialect(dialect).createTable(result, false);
+            assertTrue(sql.contains("UK_NOP_META_QUALITY_RESULT_CP_RUN_RULE"),
+                    dialect + " DDL must emit constraint UK_NOP_META_QUALITY_RESULT_CP_RUN_RULE, actual: " + sql);
+            String runIdCol = "postgresql".equals(dialect) ? "run_id" : "RUN_ID";
+            String ruleCol = "postgresql".equals(dialect) ? "quality_rule_id" : "QUALITY_RULE_ID";
+            String ukLine = null;
+            for (String line : sql.split("\\n")) {
+                if (line.contains("UK_NOP_META_QUALITY_RESULT_CP_RUN_RULE") && line.contains("unique")) {
+                    ukLine = line;
+                    break;
+                }
+            }
+            assertTrue(ukLine != null && ukLine.contains(runIdCol) && ukLine.contains(ruleCol),
+                    dialect + " DDL unique constraint must include (CHECKPOINT_ID,RUN_ID,QUALITY_RULE_ID), actual: "
+                            + sql);
+        }
+    }
+
     private OrmEntityModel entityModel(String name) {
         return (OrmEntityModel) orm.getOrmModel().getEntityModel(name);
     }
