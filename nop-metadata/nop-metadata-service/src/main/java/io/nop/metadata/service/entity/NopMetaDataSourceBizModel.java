@@ -7,6 +7,7 @@ import io.nop.api.core.annotations.biz.BizModel;
 import io.nop.api.core.annotations.biz.BizMutation;
 import io.nop.api.core.annotations.core.Name;
 import io.nop.api.core.annotations.core.Optional;
+import io.nop.api.core.annotations.txn.TransactionPropagation;
 import io.nop.api.core.beans.FilterBeans;
 import io.nop.api.core.beans.query.QueryBean;
 import io.nop.api.core.exceptions.ErrorCode;
@@ -17,6 +18,8 @@ import io.nop.biz.crud.CrudBizModel;
 import io.nop.core.context.IServiceContext;
 import io.nop.core.lang.json.JsonTool;
 import io.nop.dao.api.IEntityDao;
+import io.nop.dao.txn.ITransaction;
+import io.nop.dao.txn.ITransactionTemplate;
 import io.nop.metadata.biz.INopMetaDataSourceBiz;
 import io.nop.metadata.core._NopMetadataCoreConstants;
 import io.nop.metadata.api.dto.CollectCatalogResultDTO;
@@ -55,6 +58,7 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
 
 @BizModel("NopMetaDataSource")
@@ -153,6 +157,9 @@ public class NopMetaDataSourceBizModel extends CrudBizModel<NopMetaDataSource> i
      *       列结构序列化为 JSON 存入 buildSql（子方案 A2）</li>
      *   <li>幂等 upsert：按 (metaModuleId, schema, tableName) 复合键去重（plan 0852-3 收敛自
      *       {@code (metaModuleId, tableName)}），同名不同 schema 不再互相覆盖；重复同步更新而非追加</li>
+     *   <li>NULL-schema 并发防护（AR-07，plan-2026-08-05-2157-3）：每表 upsert 在 per-key 锁 +
+     *       {@code REQUIRES_NEW} 独立事务内执行（锁跨 find→insert→flush→commit），并发同键双插
+     *       收敛为 update，不产生静默重复行（详见 {@link #upsertExternalTableGuarded}）</li>
      *   <li>单表失败收集到 errors 不中断整批（flushSession 隔离 + clearSession 清理失败态）</li>
      * </ul>
      *
@@ -183,8 +190,7 @@ public class NopMetaDataSourceBizModel extends CrudBizModel<NopMetaDataSource> i
                     List<ExternalTableInfo> tables = structureReader.read(conn, metaData, schemaPattern);
                     for (ExternalTableInfo table : tables) {
                         try {
-                            upsertExternalTable(externalModuleId, dataSource, table);
-                            orm().flushSession();
+                            upsertExternalTableGuarded(externalModuleId, dataSource, table);
                             syncedCount.incrementAndGet();
                         } catch (Exception e) {
                             LOG.error("syncExternalTables failed for table: {}", table.getTableName(), e);
@@ -415,6 +421,10 @@ public class NopMetaDataSourceBizModel extends CrudBizModel<NopMetaDataSource> i
      * {@code (metaModuleId, tableName)}，使同一数据源下不同 schema 的同名表可区分、互不覆盖）。
      * 存在则更新（querySpace/description/buildSql/schema 列快照），不存在则新建。
      *
+     * <p><b>并发防护（AR-07）</b>：本方法不自行加锁/提交——调用方必须经
+     * {@link #upsertExternalTableGuarded}（per-key 锁 + REQUIRES_NEW 独立事务提交）进入，
+     * 否则 NULL-schema 并发双插会绕过 4 列 UK（NULL≠NULL）产生静默重复行。
+     *
      * <p><b>跨数据源行为（Decision，plan 0852-3 Phase 2）</b>：去重键仍**不含 querySpace**——
      * 跨数据源、同名同 schema 的表会互相覆盖（与 1905-1 收敛前语义一致）。仅 schema 维度被纳入，
      * 使「同数据源不同 schema 同名表」可区分；「跨数据源同名同 schema」的 querySpace 维度纳入属
@@ -473,6 +483,39 @@ public class NopMetaDataSourceBizModel extends CrudBizModel<NopMetaDataSource> i
             return null;
         }
         return schema;
+    }
+
+    /**
+     * 单实例 per-key 锁（路径 C'，plan-2026-08-05-2157-3 Phase 1 裁定）：按
+     * {@code (metaModuleId, tableName, normalizedSchema)} 键持锁，锁覆盖 find→insert/update→flush→commit。
+     *
+     * <p><b>为什么必须跨 commit</b>（执行期裁定，路径 C 调整记录）：{@code syncExternalTables} 的整体事务
+     * 由框架在 BizModel 返回后提交（commit 在方法之外）；若锁只覆盖 find→insert→flush（路径 C 原样），
+     * 后到线程在独立会话（READ_COMMITTED）的 find 无法看见先到线程未提交的行——竞态保留。故每表 upsert
+     * 包在 {@link TransactionPropagation#REQUIRES_NEW} 独立事务中，锁内 flush + commit，后到线程的 find
+     * 才能看见先到线程已提交的行并收敛为 update（并发失败方不报错、不追加、不静默跳过）。
+     *
+     * <p>key 集合有界（受元数据规模约束），长期持有可接受；单实例 baseline（R4.3 已裁定），
+     * 多实例残余面见 plan Deferred But Adjudicated 段。
+     */
+    private static final Map<String, Object> EXTERNAL_TABLE_UPSERT_LOCKS = new ConcurrentHashMap<>();
+
+    private static String tableLockKey(String metaModuleId, String tableName, String normalizedSchema) {
+        return metaModuleId + '\u0000' + tableName + '\u0000' + normalizedSchema;
+    }
+
+    /** per-key 锁内执行单表 upsert + flush + 独立事务提交；失败向上抛（由调用方收集到 errors[]）。 */
+    private void upsertExternalTableGuarded(String metaModuleId, NopMetaDataSource dataSource, ExternalTableInfo info) {
+        String lockKey = tableLockKey(metaModuleId, info.getTableName(), normalizeSchemaForMatch(info.getSchema()));
+        Object lock = EXTERNAL_TABLE_UPSERT_LOCKS.computeIfAbsent(lockKey, k -> new Object());
+        synchronized (lock) {
+            ITransactionTemplate txnTemplate = orm().getSessionFactory().txn();
+            txnTemplate.runInTransaction(null, TransactionPropagation.REQUIRES_NEW, (ITransaction txn) -> {
+                upsertExternalTable(metaModuleId, dataSource, info);
+                orm().flushSession();
+                return null;
+            });
+        }
     }
 
     /**

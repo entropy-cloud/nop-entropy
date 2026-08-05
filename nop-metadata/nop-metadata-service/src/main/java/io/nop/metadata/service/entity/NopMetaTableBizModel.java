@@ -162,10 +162,18 @@ public class NopMetaTableBizModel extends CrudBizModel<NopMetaTable> implements 
         NopMetaModule module = moduleDao.requireEntityById(metaModuleId);
         IEntityDao<NopMetaTable> tableDao = dao();
         // R4.2（plan-2026-08-05-1625-1 D5）：4 列 UK 含可空 META_SCHEMA 后 SQL 表（恒 null-schema）
-        // 第二次创建不再被 DB 层 UK 拦截——补 find-or-fail 守卫保持 fail-fast 语义
+        // 第二次创建不再被 DB 层 UK 拦截——补 find-or-fail 守卫保持 fail-fast 语义。
+        // R6.3（plan-2026-08-05-2157-3 Phase 2，AR-08）：守卫逐字对齐 4 列 UK
+        // (metaModuleId, tableName, isDelta, metaSchema)——补 isDelta=0 + metaSchema IS NULL 过滤，
+        // 使已导入 delta 行 / 异 schema 行存在时不误报 ERR_SQL_VIEW_TABLE_EXISTS；
+        // 仅真重复（同模块同表名同 isDelta=0 同 null-schema）仍 fail-fast。
+        // 不做「null 或空串归一」：'' 与 NULL 在 UK 中是两个不同键（DB 允许共存），
+        // 空串归一会误伤外部 NULL-schema 行的 '' 哨兵形态（误报面复发）。
         QueryBean dupQuery = new QueryBean();
         dupQuery.addFilter(FilterBeans.eq(NopMetaTable.PROP_NAME_metaModuleId, metaModuleId));
         dupQuery.addFilter(FilterBeans.eq(NopMetaTable.PROP_NAME_tableName, tableName));
+        dupQuery.addFilter(FilterBeans.eq(NopMetaTable.PROP_NAME_isDelta, (byte) 0));
+        dupQuery.addFilter(FilterBeans.isNull(NopMetaTable.PROP_NAME_metaSchema));
         if (tableDao.findFirstByQuery(dupQuery) != null) {
             throw new NopMetadataException(NopMetadataErrors.ERR_SQL_VIEW_TABLE_EXISTS)
                     .param(NopMetadataArgs.ARG_META_MODULE_ID, metaModuleId)

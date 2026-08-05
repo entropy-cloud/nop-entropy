@@ -443,6 +443,74 @@ public class TestNopMetaTableBizModel extends JunitBaseTestCase {
         assertTrue(resp.hasError(), "non-existent module must explicitly fail: " + resp);
     }
 
+    // ===== createSqlTable 守卫过滤（AR-08，plan-2026-08-05-2157-3 Phase 2）=====
+
+    /**
+     * AR-08 回归 (a)：同模块同表名已存在 isDelta=1（delta 行）→ createSqlTable 必须成功
+     * （不再误报 ERR_SQL_VIEW_TABLE_EXISTS）。4 列 UK 含 isDelta 维度，delta 行与 SQL 行可共存。
+     */
+    @Test
+    public void testCreateSqlTableDeltaRowDoesNotBlockCreate() {
+        String moduleId = ensureExternalSystemModuleId();
+        saveSqlRow(moduleId, "sql_delta_guard", (byte) 1, null);
+
+        GraphQLResponseBean resp = graphQLEngine.executeGraphQL(graphQLEngine.newGraphQLContext(req(
+                "mutation { NopMetaTable__createSqlTable(sql: \"SELECT id FROM t\", "
+                        + "tableName: \"sql_delta_guard\", metaModuleId: \"" + moduleId + "\") { metaTableId tableName tableType } }")));
+        assertFalse(resp.hasError(), "delta row must not block createSqlTable: " + resp);
+    }
+
+    /**
+     * AR-08 回归 (b)：同模块同表名已存在异 schema 行（metaSchema=S1）→ createSqlTable 必须成功
+     * （不再误报 ERR_SQL_VIEW_TABLE_EXISTS）。4 列 UK 含 metaSchema 维度，异 schema 行与
+     * null-schema SQL 行可共存。
+     */
+    @Test
+    public void testCreateSqlTableOtherSchemaRowDoesNotBlockCreate() {
+        String moduleId = ensureExternalSystemModuleId();
+        saveSqlRow(moduleId, "sql_schema_guard", (byte) 0, "S1");
+
+        GraphQLResponseBean resp = graphQLEngine.executeGraphQL(graphQLEngine.newGraphQLContext(req(
+                "mutation { NopMetaTable__createSqlTable(sql: \"SELECT id FROM t\", "
+                        + "tableName: \"sql_schema_guard\", metaModuleId: \"" + moduleId + "\") { metaTableId tableName tableType } }")));
+        assertFalse(resp.hasError(), "other-schema row must not block createSqlTable: " + resp);
+    }
+
+    /**
+     * AR-08 回归 (c)：真重复（同模块同表名同 isDelta=0 同 null-schema）仍 fail-fast 抛
+     * ERR_SQL_VIEW_TABLE_EXISTS——守卫过滤后不放行重复行。既有断言见
+     * {@code TestNopMetaTableMultiSchemaUpsert.testCreateSqlTableDuplicateFailsFast}，此处补
+     * isDelta=0 + null-schema 先存行的同键二次创建显式失败断言。
+     */
+    @Test
+    public void testCreateSqlTableTrueDuplicateStillFailsFast() {
+        String moduleId = ensureExternalSystemModuleId();
+        saveSqlRow(moduleId, "sql_true_dup_guard", (byte) 0, null);
+
+        GraphQLResponseBean resp = graphQLEngine.executeGraphQL(graphQLEngine.newGraphQLContext(req(
+                "mutation { NopMetaTable__createSqlTable(sql: \"SELECT id FROM t\", "
+                        + "tableName: \"sql_true_dup_guard\", metaModuleId: \"" + moduleId + "\") { metaTableId tableName tableType } }")));
+        assertTrue(resp.hasError(), "true duplicate (isDelta=0 + null-schema) must still fail fast: " + resp);
+        String msg = resp.getErrors().get(0).getMessage();
+        assertNotNull(msg, "error must carry a message");
+        assertTrue(msg.contains("already exists"), "error must be the sql-view-table-exists code, got: " + msg);
+    }
+
+    /** 手工建一张 NopMetaTable 行（指定 isDelta + metaSchema，用于守卫过滤测试）。 */
+    private void saveSqlRow(String moduleId, String tableName, byte isDelta, String metaSchema) {
+        IEntityDao<NopMetaTable> tableDao = daoProvider.daoFor(NopMetaTable.class);
+        NopMetaTable t = tableDao.newEntity();
+        t.setMetaModuleId(moduleId);
+        t.setTableName(tableName);
+        t.setDisplayName(tableName);
+        t.setTableType("sql");
+        t.setIsDelta(isDelta);
+        t.setMetaSchema(metaSchema);
+        t.setSourceSql("SELECT 1");
+        t.setVersion(1L);
+        tableDao.saveEntity(t);
+    }
+
     /** previewSqlFields 返回字段列表，且不产生任何持久化副作用（表行数不变）。 */
     @Test
     @SuppressWarnings("unchecked")
