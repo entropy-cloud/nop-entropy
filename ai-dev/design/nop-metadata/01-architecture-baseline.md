@@ -498,7 +498,7 @@ MetaPipeline                     — 数据处理管道
 
 > 收口 §八 follow-up「expression 型 Measure 输出列的列级血缘处理」。本节为 **design-first**：交付 edge model + 取值裁定 + 列引用提取契约，**不产出实现代码**。实现属 successor plan（依 D1-D5 裁定落地 `extractMeasureLineage` action + 边产出 + 召回 + 测试）。
 
-经 live repo 核实（`NopMetaLineageEdgeBizModel.bfsForward:423-443` + `getImpactAnalysis:401-474` + `ExpressionMeasureValidator.ValidatedExpression.identifiers` + `nop-metadata.orm.xml:1427-1486` NopMetaLineageEdge 列定义 + dict `meta/lineage-source` / `meta/lineage-transform` 现值），五项裁定如下。
+经 live repo 核实（`NopMetaLineageEdgeBizModel.bfsForward:423-443` + `getImpactAnalysis:401-474` + `ExpressionMeasureValidator.ValidatedExpression.identifiers` + `nop-metadata.orm.xml` NopMetaLineageEdge 列定义 + dict `meta/lineage-source` / `meta/lineage-transform` 现值），五项裁定如下。
 
 - **D1 — edge model 裁定（自环边 + BFS 语义隔离，仅经边直接查询召回）**：expression 型 Measure `M` 挂载在 `NopMetaTable T`（`M.tableId == T.metaTableId`），其 `expression` 引用 `T` 自身列集合内的列（JOIN 上下文 `l.`/`r.` 限定列为 Non-Goal，deferred）。每识别一个源列 `C` 产一条**自环边** `(sourceTableId=T.metaTableId, targetTableId=T.metaTableId, sourceColumn=C, targetColumn=M.measureName, transformType=aggregated[D4], lineageSource=measure_parse[D4])`。三项候选经裁定：
   - **(a) 自环边（sourceTableId == targetTableId == T.metaTableId）—— 选定**。复用既有 ORM 列（无结构变更，遵守 Non-Goal「不修改 MetaLineageEdge ORM 结构」）；与 sql_parse 列级边同一 `MetaLineageEdge` 实体，无新表/新实体（避免 Protected Area）。
@@ -710,7 +710,7 @@ MetaQualityResult                — 质量执行结果（时序数据）
 经裁定，cron 表达式存 `NopMetaQualityCheckpoint.extConfig`（json-4000, propId 9）的 `schedule` 键，**不新增专用 `schedule` 列**。
 
 - **选定 extConfig JSON 的理由**：(1) `extConfig` 已承载 `autoScore` 等配置（见 D6 `readAutoScoreConfig`），cron 同属「检查点执行配置」语义，内聚一致；(2) **无 ORM 结构变更**（避免触发 Protected Area 结构变更 + codegen 重生成 `_gen/`/`_app.orm.xml` 的成本与风险），落地更快更稳；(3) 检查点目录量级小（元数据目录，典型几十条），scanner 启动时全量加载 active 检查点 + 解析 extConfig JSON 无性能问题。
-- **拒绝新增专用 `schedule` 列**：虽查询友好（`WHERE schedule IS NOT NULL`）且 `NopMetaPipeline` 有 `schedule VARCHAR(200)` 先例（`nop-metadata.orm.xml:1386`），但属 ORM 结构变更（Protected Area，需 codegen 重生成），且 per-checkpoint cron 查询需求（"找所有定时检查点"）可经 extConfig 全量扫描满足（N 小）。列定义（若选此方案）：code=`SCHEDULE` / name=`schedule` / propId=`16` / stdDataType=`string` / stdSqlType=`VARCHAR` / precision=`200` / mandatory=`false` / 无 dict —— **本裁定未采用此方案，仅作记录**。
+- **拒绝新增专用 `schedule` 列**：虽查询友好（`WHERE schedule IS NOT NULL`）且 `NopMetaPipeline` 有 `schedule VARCHAR(200)` 先例（`nop-metadata.orm.xml` `NopMetaPipeline.schedule` 列），但属 ORM 结构变更（Protected Area，需 codegen 重生成），且 per-checkpoint cron 查询需求（"找所有定时检查点"）可经 extConfig 全量扫描满足（N 小）。列定义（若选此方案）：code=`SCHEDULE` / name=`schedule` / propId=`16` / stdDataType=`string` / stdSqlType=`VARCHAR` / precision=`200` / mandatory=`false` / 无 dict —— **本裁定未采用此方案，仅作记录**。
 - **无 ORM 列变更** → 本 plan **不触发** Protected Area ORM 结构变更（D2 选 extConfig）。
 
 **D3 — 调用入口裁定（path b：`IServiceContext`-free 包装方法，消除 R1/R2）**：
@@ -1134,7 +1134,7 @@ querySpace 解析规则（plan 0700-2 D1.1 扩展）：entity 端点 querySpace 
   - join 字段：entity 侧 `join.leftField`/`join.rightField`（属性名字符串）解析回物理列（`entityPropToCol`）；external 侧 `join.leftField`/`join.rightField` 直接是物理列名（校验属于该表解析列集合）。
   - aggFunc / granularity 分桶 / 默认过滤器自动应用：与 D9 external↔external 同范式（withConnection 原生 SQL，方言支持 H2/MySQL/PostgreSQL）。
 - **失败路径显式化（#24，无静默跳过/无静默降级 D5/无空 items/无伪造值）**：
-  - **不可同库**（entity 物理表在选定 external 连接不可见）→ `ERR_AGGR_JOIN_MIXED_CROSS_DB_DEFERRED`（指向 1500-2，不静默降级）。
+  - **不可同库**（entity 物理表在选定 external 连接不可见）→ 走 **D10 内存 GROUP BY**（`CrossDbInMemoryAggregationProcessor`，精确-当-容纳 / 超限-显式失败，不静默降级；R6-6 更新：早期 `ERR_AGGR_JOIN_MIXED_CROSS_DB_DEFERRED` 的 deferred 语义已被 1500-2 D10 替代，该码已删除）。
   - **缺 external datasource**（external 端点 querySpace 未注册 ACTIVE NopMetaDataSource）→ `ERR_..._DATASOURCE_*`（沿用既有数据源解析失败语义）。
   - **`joinType=right`** → 由 `loadValidatedJoin` 抛 `ERR_JOIN_TYPE_RIGHT_UNSUPPORTED`（沿用 1200-1/0852-1）。
   - **self-join（entity 端点 == 同一 entity + table 端点 == 同一 table）** → 防御性显式失败（与 D9 self-join 守卫同源：双侧别名机制不足）。
@@ -1241,7 +1241,7 @@ granularity→分桶表达式表（三条路径一致复用，含 entity）：
 - **端点归属判定（无歧义）**：每个 Measure/Dimension 的 `entityFieldId` 是 `NopMetaEntityField` 主键 → 加载 `NopMetaEntityField.metaEntityId` 判定属于左/右 entity，解析物理列 `columnCode` 后在 SQL 中以 `l.<col>` / `r.<col>` 限定。**entity 字段归属无歧义**（每字段绑定唯一 `metaEntityId`）。
 - **执行载体**：同库 entity↔entity → `orm().executeQuery` 跑原生 `SELECT <group l./r. cols>, <agg(l./r. col)> FROM <leftPhysical> l INNER|LEFT JOIN <rightPhysical> r ON l.<lf>=r.<rf> [WHERE] GROUP BY ...`（`allowUnderscoreName(true)`，与 D6 entity 聚合一致）。
 - **聚合语义**：与单表路径一致（aggFunc sum/count/avg/min/max/count_distinct、默认过滤器自动应用、`expression` 型 Measure 显式不支持）。
-- **失败路径显式化（无静默跳过/无静默降级单表/无空 items）**：join 不存在/不归属/joinType=right/未知 joinType（由 `loadValidatedJoin` 抛）；任一端点非 entity（external/sql table 端点 → `ERR_AGGR_JOIN_ENDPOINT_NOT_ENTITY`，指向 external/sql JOIN 聚合 deferred）；self-join（`leftEntityId == rightEntityId`，字段归属两侧均命中、无法表达右别名 → `ERR_AGGR_JOIN_SELF_JOIN`）；跨 querySpace（跨库 → `ERR_AGGR_JOIN_CROSS_QUERY_SPACE`，指向跨库 deferred）；字段 `metaEntityId` 既不等于左也不等于右 entity（→ `ERR_AGGR_JOIN_FIELD_SIDE_UNRESOLVED`，带 measureName/dimensionName + joinId）；EQL 编译失败（保留字物理列名如 PRECISION/SCALE/NUMBER，或歧义列 → `ERR_AGGR_JOIN_COMPILE_FAILED`，含迁移指引）。
+- **失败路径显式化（无静默跳过/无静默降级单表/无空 items）**：join 不存在/不归属/joinType=right/未知 joinType（由 `loadValidatedJoin` 抛）；任一端点非 entity（external/sql table 端点 → `ERR_AGGR_JOIN_ENDPOINT_NOT_ENTITY`，指向 external/sql JOIN 聚合 deferred）；self-join（`leftEntityId == rightEntityId`，字段归属两侧均命中、无法表达右别名 → `ERR_AGGR_JOIN_SELF_JOIN`）；跨 querySpace（跨库 → **D10 内存 GROUP BY**，`CrossDbInMemoryAggregationProcessor`，精确-当-容纳 / 超限-显式失败；R6-6 更新：早期 `ERR_AGGR_JOIN_CROSS_QUERY_SPACE` deferred 语义已被 1500-2 D10 替代，该码已删除）；字段 `metaEntityId` 既不等于左也不等于右 entity（→ `ERR_AGGR_JOIN_FIELD_SIDE_UNRESOLVED`，带 measureName/dimensionName + joinId）；EQL 编译失败（保留字物理列名如 PRECISION/SCALE/NUMBER，或歧义列 → `ERR_AGGR_JOIN_COMPILE_FAILED`，含迁移指引）。
 - **EQL 保留字风险裁定**：`MetaJoinExecutor.executeSameDbJoin`（行级 JOIN）为规避 EQL 保留字仅投影 join-key 列；本 JOIN 聚合路径须投影两侧任意 measure/dimension 物理列，遇 EQL 编译失败经 `orm().executeQuery` 的 try/catch 收口为 `ERR_AGGR_JOIN_COMPILE_FAILED`（显式失败 + 迁移指引，不静默退化）。这与单表 entity 聚合路径的 EQL 风险一致（单表路径同样投影任意物理列，EQL 失败由通用 exec 错误承载）。
 - **Deferred（已裁定）**：external/sql 端点的 JOIN 聚合（`NopMetaTableMeasure/Dimension` 对 external/sql 表的 `entityFieldId` 为裸列名字符串，无 `metaEntityId`/side/endpointTableId，同名列无法判定左右侧 → 需 ORM 结构变更，Protected Area plan-first；**plan 1200-1 D9 已落地 side 列后此部分收口**）；跨 querySpace（跨库）entity-entity JOIN 聚合（**plan 1500-2 D10 已落地**：复用 `executeJoin` + 内存 GROUP BY，精确-当-容纳 / 超限-失败）；混合端点（entity ↔ external/sql）JOIN 聚合（**同库部分已由 plan 1500-1 D1.5 落地；跨库部分 plan 1500-2 D10 已落地**）。不可同库部分经内存 GROUP BY 执行（限内精确），超限显式失败，不静默跳过。
 
@@ -1390,7 +1390,7 @@ granularity→分桶表达式表（三条路径一致复用，含 entity）：
         - **successor 评估项（deferred）**：若后续需求要求跨库路径支持 expression 型 Measure 的子集（仅算术 + 基本函数，如 `PRICE*QTY` 算术表达式），successor plan 须在内存路径新增 expression 内存求值器（可复用 D11 `MemoryFilterEvaluator` 模式），并定义可算表达式白名单。本 D12 不预先裁定该白名单。
 
 - **D12.3 — 安全模型（标识符白名单 + 参数绑定 + 拒绝危险关键字）**：
-    - **注入面**：用户提供 `expression` 文本（存于 `NopMetaTableMeasure.expression` 列，VARCHAR(1000)，`nop-metadata.orm.xml:1160`），是 SQL 注入的潜在入口。
+    - **注入面**：用户提供 `expression` 文本（存于 `NopMetaTableMeasure.expression` 列，VARCHAR(1000)，`nop-metadata.orm.xml` `NopMetaTableMeasure.expression` 列），是 SQL 注入的潜在入口。
     - **防御点（三道闸门）**：
         - **parse 阶段关键字/函数黑名单（新增，successor 实现）**：在 expression 入库前或执行前解析 expression，**拒绝危险关键字/DDL/DML/副作用函数**——包括但不限于 `INSERT` / `UPDATE` / `DELETE` / `DROP` / `CREATE` / `ALTER` / `TRUNCATE` / `CALL` / `EXEC` / `GRANT` / `REVOKE` / `MERGE` / `MERGE INTO` 等 DML/DDL 关键字；拒绝有副作用的函数（如 MySQL `SLEEP` / `BENCHMARK` / `LOAD_FILE` / `INTO OUTFILE` / `GET_LOCK`，PostgreSQL `PG_SLEEP` / `COPY`，H2 暂无已知副作用函数需单独处理）。具体黑名单由 successor plan 在实现阶段按方言分列，但**关键字拒绝属硬约束**，不可降级为 advisory。
         - **标识符白名单（复用 §2.7.1 D3）**：expression 内的列引用须经白名单正则 `^[A-Za-z_][A-Za-z0-9_]*$` 校验，且须取自该表 `MetaTableFieldResolver` 解析的可用列集合——拒绝未在列集合中出现的标识符（不静默放行裸字符串）。
@@ -1410,7 +1410,7 @@ granularity→分桶表达式表（三条路径一致复用，含 entity）：
 - **D12.5 — save-time 校验裁定（裁定是否需要，实现属 successor）**：
     - **裁定**：expression 型 Measure **需要 save-time 语法/安全预检**——入库前调 D12.3 parse 阶段校验（关键字/函数黑名单 + 标识符白名单），不可解析/不安全/容量超限一律显式失败（不静默存入）。这与 §2.5.2 D2 既有 save override 模式一致（`CrudBizModel.save` 在持久化前执行校验）。
     - **实现属 successor plan**：本 D12 仅裁定「需要」，具体 save override 代码与失败 ErrorCode 接线属 successor。
-    - **容量约束（硬裁定）**：expression 列为 VARCHAR(1000)（`nop-metadata.orm.xml:1160`，`precision="1000" stdSqlType="VARCHAR"`）。expression 内容超 1000 字符 → save 阶段显式失败 `metadata.aggr-expression-too-long`（不截断、不静默存入截断后的脏数据，对齐 §2.5.2 D1 `Filter.definition` json-4000 同铁律）。
+    - **容量约束（硬裁定）**：expression 列为 VARCHAR(1000)（`nop-metadata.orm.xml` `NopMetaTableMeasure.expression` 列，`precision="1000" stdSqlType="VARCHAR"`）。expression 内容超 1000 字符 → save 阶段显式失败 `metadata.aggr-expression-too-long`（不截断、不静默存入截断后的脏数据，对齐 §2.5.2 D1 `Filter.definition` json-4000 同铁律）。
 
 - **范围裁定（Out of Scope for successor of this D12）**：
     - ~~多列 having 算术表达式（`HAVING SUM(a)-SUM(b)>100`）随 expression 实现 successor 一并（依赖 D12 表达式语言裁定）。~~ **已收口**（plan `2026-07-18-1500-2` 落地，见 D11.4）：三条 SQL 路径一致支持 + 跨库内存显式失败 + 复用 D12.1 安全模型 + Phase 1 字面量禁止。
@@ -1539,7 +1539,7 @@ nop-metadata-web           — nop-metadata-service
 - ~~MetaTableJoin 跨表关联时，左右表所属数据源不同（例如 ORM 的 MySQL 表和 SQL 定义的 ClickHouse 表），查询执行如何路由？~~ **已裁定（P4-2，2026-07-16）**：按左右 `querySpace` 是否相同分派——同库走单库 JOIN（D4），跨库（不同 querySpace）走应用层拼接（D5，各取数后内存按 join key 合并）。详见 §4.4.1。
 - ~~通用 Domain 的来源：是单独维护还是从现有 ORM 模型提取？~~ **已裁定（2026-07-22）**：MetaDomain 的来源为 ORM IOrmModel 导入时自动填充（OrmModelImporter 已实现），不在导入路径外单独维护来源。运行时从 IOrmModel.domainList 填充，不引入新的同步机制。裁定为 `adjudicated as residual-risk-only / watch-only`。
 - ~~数据契约的 SLA 定义格式：JSON Schema vs 自定义 DSL？~~ **已裁定（P4-4，2026-07-16）**：`schema` 列存 JSON Schema 文档（mediumtext + stdDomain json，首版仅存储不执行逐行校验），`sla` 列存结构化 JSON（json-4000 + stdDomain json，约定键 refreshFrequency/maxLatency/retention）。拒绝自定义 DSL（详见 `04-data-governance.md` §2.3 D1 裁定 + §5.2 D2 检查语义）。
-- **expression 型 Measure 是否引入跨设计域待定问题（D12 评估，2026-07-18）**：经 §4.4.2 D12 评估，**新增 1 项 follow-up**——expression 型 Measure 的聚合输出不直接对应单一源列（`<agg>(<expression>)` 是 derived 表达式），其列级血缘（§2.6.1 sql_parse）处理为 follow-up（建议标记 `transformType=derived`、`sourceColumn=unresolved:derived-expression`，不伪造单一源列映射），不阻塞 D12 裁定；其他设计域无新增待定问题：(1) 数据契约（§4-4）不感知 expression 值（运行时计算）；(2) Catalog/质量执行（§4.4.3）不直接相关；(3) 不引入新 ORM 结构变更（`expression` 列已存在，`nop-metadata.orm.xml:1160`）。
+- **expression 型 Measure 是否引入跨设计域待定问题（D12 评估，2026-07-18）**：经 §4.4.2 D12 评估，**新增 1 项 follow-up**——expression 型 Measure 的聚合输出不直接对应单一源列（`<agg>(<expression>)` 是 derived 表达式），其列级血缘（§2.6.1 sql_parse）处理为 follow-up（建议标记 `transformType=derived`、`sourceColumn=unresolved:derived-expression`，不伪造单一源列映射），不阻塞 D12 裁定；其他设计域无新增待定问题：(1) 数据契约（§4-4）不感知 expression 值（运行时计算）；(2) Catalog/质量执行（§4.4.3）不直接相关；(3) 不引入新 ORM 结构变更（`expression` 列已存在，`nop-metadata.orm.xml` `NopMetaTableMeasure.expression` 列）。
   - ~~建议标记 `transformType=derived`、`sourceColumn=unresolved:derived-expression`，不伪造单一源列映射~~ **已裁定（design-first，plan 2026-07-18-1500-1，2026-07-18）**：覆盖原建议。裁定为 **flat-collect 多边**（每识别列一条边，`sourceColumn=识别列名`、`targetColumn=measureName`、`transformType=aggregated`、`lineageSource=measure_parse`）——flat-collect 提供列级精确影响分析，占位符单边无法回答"AMOUNT 变更影响哪些 measure"。完整裁定见 §2.6.1（D1 edge model + D3 flat-collect + D4 取值 + D5 列引用提取契约）+ §2.6.2（D2 召回路径）。
     - **design-first 部分：done**（plan 2026-07-18-1500-1，本节裁定 + §2.6.1/§2.6.2 写入）。
     - **实现部分：done**（plan 2026-07-18-1800-1，2026-07-19，依 D1-D5 裁定 + 本 plan 新增 D6 replace 语义裁定落地 `extractMeasureLineage` action + dict `measure_parse` 新增值 + flat-collect 自环边产出 + 直接边查询召回 + per-measure 失败隔离 + 表级前置失败 + D6 replace 重抽 + 8 条端到端测试，462 tests）。

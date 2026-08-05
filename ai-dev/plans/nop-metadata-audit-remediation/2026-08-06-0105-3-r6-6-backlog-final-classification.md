@@ -1,6 +1,6 @@
 # R6-6 Backlog 终局归类批量（20 条：P2-03 死码清理 + docs sweep + watch-only 登记）
 
-> Plan Status: active
+> Plan Status: completed
 > Last Reviewed: 2026-08-06
 > Draft Review: R1 `ses_02d13db4dffedYP35obG17Sn3D`（0 Blocker / 2 Major / 5 Minor——Major-1 测试同步遗漏第 4 个引用（TestNopMetaTagLabelApproval.java:186-199 ERR_TAG_LABEL_NOT_FOUND）→ 已补入测试同步项 + Phase 1 Exit Criteria 测试类名；Major-2 P2-22 范围虚假放大（"8 篇"实为 01-architecture-baseline.md 1 篇 5 处锚点 :501/:713/:1393/:1413/:1542）→ 已精确化；Minor-1 Deferred 计数 10→12（括号枚举与基线一致）；Minor-2 基线计数加"审计时点"限定 + live 已变说明；Minor-3 design 文档死码引用（01-architecture-baseline.md:1137/:1244、aggregation-processor-split.md:194）→ 已加专用处置项；Minor-4 compile → test-compile；Minor-5 AR-09 指定插入位置策略已加）。R2 `ses_02d0512bcffenQlXs7Oek92ZLn`（7 项声称修复全部 PASS，0 Blocker / 0 Major——3 Minor 处置：F1 12-data-contract-and-governance-workflow.md:351 历史实现记录引用 ERR_TAG_LABEL_NOT_FOUND → 显式豁免（历史记录性质，理由入执行记录）；F2 "10 个 Errors 类"→ 实际 6 个含死码文件（逐文件计数已核实）已修正；F3 TestNopMetadataErrorsCentralized:97-98 构造器断言 → 改为替换为存活码（非删除）已修正）。consensus 达成。
 > Mission: nop-metadata-audit-remediation
@@ -67,93 +67,93 @@
 
 ### Phase 1 - P2-03：21 死码删除 + ERR_RECON 契约落地
 
-Status: planned
-Targets: `nop-metadata/nop-metadata-service/src/main/java/io/nop/metadata/service/*Errors.java`（6 个含死码文件：AggregationErrors/MiscErrors/ModuleErrors/DataSourceErrors/ReconErrors/SqlErrors）+ `TestNopMetadataErrorsCentralized.java` + `TestNopMetaTagLabelApproval.java` + `reconciliation/LocalReconciliationProcessor.java`（javadoc，如裁定 (b)）
+Status: completed
+Targets: `nop-metadata/nop-metadata-service/src/main/java/io/nop/metadata/service/*Errors.java`（6 个含死码文件：AggregationErrors/MiscErrors/ModuleErrors/DataSourceErrors/ReconErrors/SqlErrors）+ `TestNopMetadataErrorsCentralized.java` + `TestNopMetaTagLabelApproval.java` + `nop-metadata/nop-metadata-service/src/main/java/io/nop/metadata/service/reconciliation/LocalReconciliationProcessor.java`（javadoc，如裁定 (b)）
 
 - Item Types: `Fix | Decision | Proof`
 
-- [ ] **前置复核（Proof）**：基于 R6.4/R6.5 落地后的基线，重跑死码脚本（`rg -o 'ERR_[A-Z0-9_]+' nop-metadata/nop-metadata-service/src/main/java -g '!**/*Errors.java' | sort -u`），与 21 码清单比对——R6.4 若新增错误码 use/定义，清单需相应增删；记录比对结果（审计时点 211/191，当前 live use≈233，以重跑为准）
-- [ ] **ERR_RECON_PARSE_PROPERTIES_FAILED 裁定（Decision）**：二选一落地，推荐 (b)（删除定义 + `LocalReconciliationProcessor.parseProperties` javadoc 文档化降级语义：per-row 数据损坏 warn 留证 + 空 Map 降级，不中断整批对账）；若执行裁定 (a)（实现改抛该码）需记录理由并改 `parseProperties` 抛错 + 对应测试。裁定写入本 plan + arm-index
-- [ ] 删除 21 死码定义（Fix，按清单逐码删除，保留注释结构；同文件相邻非死码不动）
-- [ ] **测试同步（Fix，2 个文件）**：`TestNopMetadataErrorsCentralized` 删除 ERR_MANIFEST_BUILD_FAILED（:46 断言段）、ERR_RECON_PARSE_PROPERTIES_FAILED（:49）、ERR_DTO_SERIALIZE_FAILED（:51）对应断言；**:97-98 为 `(ErrorCode)` 构造器断言——不删除（保留构造器覆盖 + javadoc 真实性），改为替换为存活码（如 ERR_ORM_RESOURCE_NOT_FOUND）**；`TestNopMetaTagLabelApproval` 删除 ERR_TAG_LABEL_NOT_FOUND 断言（:186-188 断言段 + :196-199 testNotFoundError 改写/删除，同方法中非死码 `ERR_TAG_LABEL_INVALID_LABEL_TYPE` 断言保留）；其余断言（如 ERR_QUALITY_EXPECT_PASS_WHEN_INVALID）保留；若裁定 (a) 则 ERR_RECON_PARSE_PROPERTIES_FAILED 保留定义 + 补 throw 路径测试
-- [ ] **design 文档死码引用处置（Fix）**：`01-architecture-baseline.md:1137/:1244`、`aggregation-processor-split.md:194` 对 ERR_AGGR_JOIN_MIXED_CROSS_DB_DEFERRED/ERR_AGGR_JOIN_CROSS_QUERY_SPACE 的描述——修正为现有行为或记录"删码前既有 drift（路由已改，文档未同步）"，不允许留下指向不存在常量的现行行为表述；`12-data-contract-and-governance-workflow.md:351`（历史实现记录引用 ERR_TAG_LABEL_NOT_FOUND）显式豁免——"已实现"记录性质，豁免理由写入执行记录
-- [ ] **删码复核（Proof，判别性）**：删除后重跑脚本 0 引用缺失（main + test 双口径）；`grep -rn` 各死码全仓 0 命中（除文档/历史审计引用外）
-- [ ] 若裁定 (b)：`LocalReconciliationProcessor.parseProperties` javadoc 增补降级语义说明（含 plan 2026-07-19-1250-3 历史引用）
+- [x] **前置复核（Proof）**：基于 R6.4/R6.5 落地后的基线，重跑死码脚本（`rg -o 'ERR_[A-Z0-9_]+' nop-metadata/nop-metadata-service/src/main/java -g '!**/*Errors.java' | sort -u`），与 21 码清单比对——R6.4 若新增错误码 use/定义，清单需相应增删；记录比对结果（审计时点 211/191，当前 live use≈233，以重跑为准）
+- [x] **ERR_RECON_PARSE_PROPERTIES_FAILED 裁定（Decision）**：二选一落地，推荐 (b)（删除定义 + `LocalReconciliationProcessor.parseProperties` javadoc 文档化降级语义：per-row 数据损坏 warn 留证 + 空 Map 降级，不中断整批对账）；若执行裁定 (a)（实现改抛该码）需记录理由并改 `parseProperties` 抛错 + 对应测试。裁定写入本 plan + arm-index
+- [x] 删除 21 死码定义（Fix，按清单逐码删除，保留注释结构；同文件相邻非死码不动）
+- [x] **测试同步（Fix，2 个文件）**：`TestNopMetadataErrorsCentralized` 删除 ERR_MANIFEST_BUILD_FAILED（:46 断言段）、ERR_RECON_PARSE_PROPERTIES_FAILED（:49）、ERR_DTO_SERIALIZE_FAILED（:51）对应断言；**:97-98 为 `(ErrorCode)` 构造器断言——不删除（保留构造器覆盖 + javadoc 真实性），改为替换为存活码（如 ERR_ORM_RESOURCE_NOT_FOUND）**；`TestNopMetaTagLabelApproval` 删除 ERR_TAG_LABEL_NOT_FOUND 断言（:186-188 断言段 + :196-199 testNotFoundError 改写/删除，同方法中非死码 `ERR_TAG_LABEL_INVALID_LABEL_TYPE` 断言保留）；其余断言（如 ERR_QUALITY_EXPECT_PASS_WHEN_INVALID）保留；若裁定 (a) 则 ERR_RECON_PARSE_PROPERTIES_FAILED 保留定义 + 补 throw 路径测试
+- [x] **design 文档死码引用处置（Fix）**：`01-architecture-baseline.md:1137/:1244`、`aggregation-processor-split.md:194` 对 ERR_AGGR_JOIN_MIXED_CROSS_DB_DEFERRED/ERR_AGGR_JOIN_CROSS_QUERY_SPACE 的描述——修正为现有行为或记录"删码前既有 drift（路由已改，文档未同步）"，不允许留下指向不存在常量的现行行为表述；`12-data-contract-and-governance-workflow.md:351`（历史实现记录引用 ERR_TAG_LABEL_NOT_FOUND）显式豁免——"已实现"记录性质，豁免理由写入执行记录
+- [x] **删码复核（Proof，判别性）**：删除后重跑脚本 0 引用缺失（main + test 双口径）；`grep -rn` 各死码全仓 0 命中（除文档/历史审计引用外）
+- [x] 若裁定 (b)：`LocalReconciliationProcessor.parseProperties` javadoc 增补降级语义说明（含 plan 2026-07-19-1250-3 历史引用）
 
 Exit Criteria:
 
 > 每个 Phase 完成后，必须逐条勾选本节。所有 `[x]` 后才能将 Phase Status 改为 `completed`。
 
-- [ ] 前置复核结论已记录（清单与 R6.4/R6.5 后基线一致或已增删）
-- [ ] ERR_RECON 裁定已记录（(a)/(b) + 理由）
-- [ ] **端到端验证**：删除后全仓 grep 0 引用缺失；`./mvnw test-compile -pl nop-metadata -am` 通过（覆盖测试侧修改——`./mvnw compile` 不编译 test 源码）+ 相关测试类通过（`TestNopMetadataErrorsCentralized` / `TestNopMetaTagLabelApproval` 更新后绿）
-- [ ] **无静默跳过**：死码删除不留空壳定义；裁定 (b) 时降级行为有 javadoc 文档化（非静默）
-- [ ] `No owner-doc update required`（死码删除零行为影响；R6.0 已裁定 out-of-scope improvement 清理项——design 文档死码引用按专用项处置）
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] 前置复核结论已记录（清单与 R6.4/R6.5 后基线一致或已增删）
+- [x] ERR_RECON 裁定已记录（(a)/(b) + 理由）
+- [x] **端到端验证**：删除后全仓 grep 0 引用缺失；`./mvnw test-compile -pl nop-metadata -am` 通过（覆盖测试侧修改——`./mvnw compile` 不编译 test 源码）+ 相关测试类通过（`TestNopMetadataErrorsCentralized` / `TestNopMetaTagLabelApproval` 更新后绿）
+- [x] **无静默跳过**：死码删除不留空壳定义；裁定 (b) 时降级行为有 javadoc 文档化（非静默）
+- [x] `No owner-doc update required`（死码删除零行为影响；R6.0 已裁定 out-of-scope improvement 清理项——design 文档死码引用按专用项处置）
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 ### Phase 2 - docs sweep（P2-08/P2-22/P2-23/P2-24/P2-26/AR-09）
 
-Status: planned
+Status: completed
 Targets: `docs-for-ai/03-modules/nop-metadata.md` + `docs-for-ai/01-repo-map/module-groups.md`（如涉及）+ `ai-dev/design/nop-metadata/01-architecture-baseline.md`（仅此 1 篇含行号锚点）
 
 - Item Types: `Fix | Proof`
 
-- [ ] P2-08：`docs-for-ai/03-modules/nop-metadata.md` 质量规则章节补 REGEXP 方言不支持 → SKIP + LOG.warn + reason 的例外说明（对照 `MetaQualityRuleExecutor.java:540-547` live 行为）
-- [ ] P2-22：`ai-dev/design/nop-metadata/01-architecture-baseline.md` 5 处 orm.xml 行号锚点（:501/:713/:1393/:1413/:1542）修正（改为列名/约束名稳定引用或删除行号；对照 live orm.xml）——**仅此 1 篇，其余 7 篇无行号锚点不在范围**
-- [ ] P2-23：模块文档 I*Biz 接口包路径表述修正（核对实际接口位置——`nop-metadata-api` 或 `dao/biz/`，以 live 为准）
-- [ ] P2-24：模块文档补 items `List<Map<String,Object>>` 合理例外声明
-- [ ] P2-26：模块文档依赖表补 test-scope 基建依赖说明
-- [ ] AR-09：模块文档补多 schema 段（插入位置执行时裁定，建议在"同步外部表/数据源"相关章节之后新增独立小节；内容：metaSchema 可空语义、4 列 UK `(metaModuleId, tableName, isDelta, metaSchema)`、R4.2 upgrade SQL 部署说明 `upgrade-nop-meta-table-uk.sql` 三方言）
-- [ ] 复核：`node ai-dev/tools/check-doc-links.mjs --strict` exit 0
+- [x] P2-08：`docs-for-ai/03-modules/nop-metadata.md` 质量规则章节补 REGEXP 方言不支持 → SKIP + LOG.warn + reason 的例外说明（对照 `MetaQualityRuleExecutor.java:540-547` live 行为）
+- [x] P2-22：`ai-dev/design/nop-metadata/01-architecture-baseline.md` 5 处 orm.xml 行号锚点（:501/:713/:1393/:1413/:1542）修正（改为列名/约束名稳定引用或删除行号；对照 live orm.xml）——**仅此 1 篇，其余 7 篇无行号锚点不在范围**
+- [x] P2-23：模块文档 I*Biz 接口包路径表述修正（核对实际接口位置——`nop-metadata-api` 或 `dao/biz/`，以 live 为准）
+- [x] P2-24：模块文档补 items `List<Map<String,Object>>` 合理例外声明
+- [x] P2-26：模块文档依赖表补 test-scope 基建依赖说明
+- [x] AR-09：模块文档补多 schema 段（插入位置执行时裁定，建议在"同步外部表/数据源"相关章节之后新增独立小节；内容：metaSchema 可空语义、4 列 UK `(metaModuleId, tableName, isDelta, metaSchema)`、R4.2 upgrade SQL 部署说明 `upgrade-nop-meta-table-uk.sql` 三方言）
+- [x] 复核：`node ai-dev/tools/check-doc-links.mjs --strict` exit 0
 
 Exit Criteria:
 
 > 每个 Phase 完成后，必须逐条勾选本节。所有 `[x]` 后才能将 Phase Status 改为 `completed`。
 
-- [ ] 6 项文档修改全部落地（逐项核对修改内容与 live 代码一致）
-- [ ] **文档-代码一致性抽查（Proof）**：P2-08 对照 MetaQualityRuleExecutor:540-547、P2-22 对照 live orm.xml、AR-09 对照 upgrade SQL 文件名，修改内容与 live repo 一致
-- [ ] `node ai-dev/tools/check-doc-links.mjs --strict` exit 0（0 errors）
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] 6 项文档修改全部落地（逐项核对修改内容与 live 代码一致）
+- [x] **文档-代码一致性抽查（Proof）**：P2-08 对照 MetaQualityRuleExecutor:540-547、P2-22 对照 live orm.xml、AR-09 对照 upgrade SQL 文件名，修改内容与 live repo 一致
+- [x] `node ai-dev/tools/check-doc-links.mjs --strict` exit 0（0 errors）
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 ### Phase 3 - watch-only 终态登记 + 收口（closure audit）
 
-Status: planned
+Status: completed
 Targets: `ai-dev/audits/arm-index-nop-metadata.md` + `ai-dev/backlog/nop-metadata-audit-remediation-roadmap.md`
 
 - Item Types: `Fix | Proof`
 
-- [ ] **watch-only 终态登记（Fix）**：P2-05、P2-14~21（8 条）、P2-25/27、AR-06、AR-10 在 arm-index §P2 终态一致（R6.0 归类表已登记，核对 20 条全量可追溯、无遗漏）；AR-10 状态确认：核对 R6.5 已落地（P2-01/P2-04 fixed）+ R6.2（P2-12 fixed），AR-10 使命完成标注
-- [ ] roadmap MR6 R6.6 行 → done（注明 plan 引用 + 各归类项终态摘要）
-- [ ] 独立子 agent closure audit（fresh session）逐项核对 Phase Exit Criteria + Closure Gates，证据写入本 plan Closure 段
-- [ ] `node ai-dev/tools/check-plan-checklist.mjs <本plan文件> --strict` 退出码 0（closure 时）
-- [ ] `node ai-dev/tools/check-doc-links.mjs --strict` exit 0（涉及 arm-index/roadmap/docs 变更后）
+- [x] **watch-only 终态登记（Fix）**：P2-05、P2-14~21（8 条）、P2-25/27、AR-06、AR-10 在 arm-index §P2 终态一致（R6.0 归类表已登记，核对 20 条全量可追溯、无遗漏）；AR-10 状态确认：核对 R6.5 已落地（P2-01/P2-04 fixed）+ R6.2（P2-12 fixed），AR-10 使命完成标注
+- [x] roadmap MR6 R6.6 行 → done（注明 plan 引用 + 各归类项终态摘要）
+- [x] 独立子 agent closure audit（fresh session）逐项核对 Phase Exit Criteria + Closure Gates，证据写入本 plan Closure 段
+- [x] `node ai-dev/tools/check-plan-checklist.mjs <本plan文件> --strict` 退出码 0（closure 时）
+- [x] `node ai-dev/tools/check-doc-links.mjs --strict` exit 0（涉及 arm-index/roadmap/docs 变更后）
 
 Exit Criteria:
 
 > 每个 Phase 完成后，必须逐条勾选本节。所有 `[x]` 后才能将 Phase Status 改为 `completed`。
 
-- [ ] arm-index + roadmap 终态一致可追溯（20 条全量终态，R6.6 行 done）
-- [ ] 独立 closure audit PASS，evidence 已写入本 plan Closure 段
-- [ ] `./mvnw test -pl nop-metadata -am -T 1C` 全绿（0 failures）
-- [ ] 无静默降级：无 in-scope live defect 被降级（20 条全部为 R6.0 已裁定归类，无翻案）
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] arm-index + roadmap 终态一致可追溯（20 条全量终态，R6.6 行 done）
+- [x] 独立 closure audit PASS，evidence 已写入本 plan Closure 段
+- [x] `./mvnw test -pl nop-metadata -am -T 1C` 全绿（0 failures）
+- [x] 无静默降级：无 in-scope live defect 被降级（20 条全部为 R6.0 已裁定归类，无翻案）
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 ## Closure Gates
 
 > **关闭条件**：只有本 section 所有条目以及每个 Phase 的 Exit Criteria 全部勾选为 `[x]` 后，才能将 `Plan Status` 改为 `completed`。关闭流程详见本 guide 的 `When Closing The Plan` 和 `Closure Audit Rule`。
 
-- [ ] 21 死码删除完成，脚本复核 0 引用缺失（防误删）；TestNopMetadataErrorsCentralized 同步更新后全绿
-- [ ] ERR_RECON_PARSE_PROPERTIES_FAILED 契约落地（(a) 或 (b)，记录理由）
-- [ ] docs sweep 6 项全部落地，check-doc-links --strict exit 0
-- [ ] 20 条终局归类全量可追溯（arm-index + roadmap 一致），AR-10 状态确认完成
-- [ ] 不存在被静默降级到 deferred / follow-up 的 in-scope live defect
-- [ ] 受影响的 owner docs 已同步到 live baseline，或明确写明 No owner-doc update required
-- [ ] 独立子 agent closure-audit 已完成并记录证据（fresh session，见 Closure 段）
-- [ ] **Anti-Hollow Check**：closure audit 已验证（a）死码删除非空壳（grep 0 残留 + 编译通过），（b）无空方法体/静默跳过/no-op 作为正常实现
-- [ ] `./mvnw test -pl nop-metadata -am -T 1C` 全绿
-- [ ] checkstyle / 代码规范检查通过（nop-metadata 无独立 checkstyle 命令，以 mvn 构建默认检查为准）
-- [ ] `node ai-dev/tools/check-plan-checklist.mjs <本plan文件> --strict` 退出码 0（closure 时）
-- [ ] `node ai-dev/tools/scan-hollow-implementations.mjs --module nop-metadata --severity high` 退出码 0（closure 时）
+- [x] 21 死码删除完成，脚本复核 0 引用缺失（防误删）；TestNopMetadataErrorsCentralized 同步更新后全绿
+- [x] ERR_RECON_PARSE_PROPERTIES_FAILED 契约落地（(a) 或 (b)，记录理由）
+- [x] docs sweep 6 项全部落地，check-doc-links --strict exit 0
+- [x] 20 条终局归类全量可追溯（arm-index + roadmap 一致），AR-10 状态确认完成
+- [x] 不存在被静默降级到 deferred / follow-up 的 in-scope live defect
+- [x] 受影响的 owner docs 已同步到 live baseline，或明确写明 No owner-doc update required
+- [x] 独立子 agent closure-audit 已完成并记录证据（fresh session，见 Closure 段）
+- [x] **Anti-Hollow Check**：closure audit 已验证（a）死码删除非空壳（grep 0 残留 + 编译通过），（b）无空方法体/静默跳过/no-op 作为正常实现
+- [x] `./mvnw test -pl nop-metadata -am -T 1C` 全绿
+- [x] checkstyle / 代码规范检查通过（nop-metadata 无独立 checkstyle 命令，以 mvn 构建默认检查为准）
+- [x] `node ai-dev/tools/check-plan-checklist.mjs <本plan文件> --strict` 退出码 0（closure 时）
+- [x] `node ai-dev/tools/scan-hollow-implementations.mjs --module nop-metadata --severity high` 退出码 0（closure 时）
 
 ## Deferred But Adjudicated
 
@@ -179,14 +179,24 @@ Exit Criteria:
 
 ## Closure
 
-Status Note: 待完成（draft 阶段，未执行）。
-Completed: —
+Status Note: 全 3 Phase 完成——P2-03 21 死码删除 + ERR_RECON 契约裁定 (b) 落地 + docs sweep 6 项 + watch-only 12 条终态登记 + AR-10 状态确认；roadmap R6.6 → done + arm-index §P2 20 条全量终态一致；独立子 agent closure audit PASS；工具全绿（check-plan-checklist / check-doc-links / scan-hollow exit 0）。
+Completed: 2026-08-06
 
 Closure Audit Evidence:
 
-- Reviewer / Agent: 待独立子 agent（fresh session）执行
-- Evidence: 待填写
+- Reviewer / Agent: 独立子 agent（fresh session，task `ses_02c836b03ffeYjKDExQdDT7Y3x`，纯只读核查，未修改任何文件）
+- Evidence:
+  - **Phase 1（P2-03）5/5 PASS**：① 21 码全仓 grep 0 命中（唯一残留 = parseProperties javadoc 中对已删码名的说明性提及，注释非代码）；② 定义计数 194、6 个 Errors 文件无空壳定义残留；③ ERR_RECON 裁定 (b) javadoc 在位（LocalReconciliationProcessor.java:170-179，warn + JSON 摘要 + stack trace + emptyMap 降级，不中断整批）；④ 测试同步实证（TestNopMetadataErrorsCentralized 无死码引用、构造器断言用存活码 ERR_MODULE_NOT_FOUND；TestNopMetaTagLabelApproval 无 ERR_TAG_LABEL_NOT_FOUND、testNotFoundError 已删、NopException import 已移除）；⑤ design 文档 drift 修正（01-architecture-baseline.md:1137/:1244 → D10 内存 GROUP BY 现行行为 + "该码已删除"标注；aggregation-processor-split.md:194 仅含移除注记；12-data-contract-and-governance-workflow.md:351 历史记录豁免）
+  - **Phase 2（docs sweep）6/6 PASS**：P2-08（nop-metadata.md:125，对照 MetaQualityRuleExecutor.java:546-551）、P2-23（:137 io.nop.metadata.biz 包，37 接口文件实证）、P2-24（:141 items 例外声明）、P2-26（:187 test-scope 注）、AR-09（:127-133 多 schema 段 + 三方言 upgrade SQL 文件实证）、P2-22（`rg 'orm\.xml:[0-9]+'` 0 命中）
+  - **Phase 3（登记）3/3 PASS**：arm-index §P2 20 行全量终态（6 done + 13 终态登记 + AR-10 使命完成）+ R6.6 收口 blockquote；roadmap :228 R6.6 → done + header v23；20 条全量可追溯无遗漏
+  - **工具退出码全 0**：`./mvnw test-compile -pl nop-metadata/nop-metadata-service -am -q -T 1C` 0；focused 测试（TestNopMetadataErrorsCentralized 6 + TestNopMetaTagLabelApproval 7）0 failures；`./mvnw test -pl nop-metadata -am -T 1C` **923/0** BUILD SUCCESS；check-doc-links --strict 0 errors；scan-hollow --severity high 0 发现；check-plan-checklist --strict 0
+  - **Anti-Hollow 检查 PASS**：死码删除非空壳（grep 0 残留 + test-compile + 全量测试通过）；无空方法体/静默跳过/no-op 作为正常实现（删码后全仓编译 + 923 测试覆盖证明无 dangling 引用）
+  - **Deferred 项分类检查 PASS**：P2-04（R6.5 已裁定 out-of-scope，ERR_CHECKPOINT_NO_RULES 兜底防静默执行）+ 12 条 watch-only（arm-index 逐条 Why Not Blocking Closure 在位）；ERR_RECON 契约漂移已落地解决（裁定 (b) + javadoc），未被降级为 deferred
+  - Minor 观察（已处置）：closure audit 指出 roadmap/arm-index 收口表述先于 plan 勾选（anticipatory writing）——closure 时全部兑现（本 Closure 段证据 + 工具复跑全 0）；TestNopMetaTagLabelApproval 残留未用 NopMetadataException import ——已移除（7/7 复跑绿）
 
 Follow-up:
 
-- 待填写
+- AR-06（sourceTables 语义与名称相反）：0 消费方保持原状；如未来出现消费方需先裁定字段语义（api 公共面变更）
+- P2-05（.param 双风格）：渐进统一到 NopMetadataArgs.ARG_* 常量（维护性优化，非缺陷）
+- 工作树提交由 mission 流程/用户决定（本 plan 执行不代提交）
+- 无 remaining plan-owned work

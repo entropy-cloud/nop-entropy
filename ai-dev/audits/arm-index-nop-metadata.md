@@ -2,7 +2,7 @@
 
 > **M0.2 交付物** — mission `nop-metadata-audit-remediation` 的 M0.2 工作项（按 `ai-dev/skills/audit-remediation-roadmap-authoring-prompt.md` §6.1）。
 > 状态：done
-> 最后更新：2026-08-06（MR6 R6.5 收口，见 MR6 裁决记录段）
+> 最后更新：2026-08-06（MR6 R6.6 收口，见 MR6 裁决记录段；20 条终局归类全量终态——P2-03 死码清理 + docs sweep 6 项落地 + watch-only 12 条登记，roadmap R6.6 → done）
 > 来源：9 个历史审计来源（07-19 ~ 07-23 五轮，multi+open 双轨）+ 本 mission 3 个 M0 交付物自身；本索引不登记 nop-ai 等其他 mission 的 arm 文件。
 
 ## MR6 裁决记录（plan-2026-08-05-2154-1，2026-08-05 live 复核；R6.0 → done）
@@ -16,6 +16,8 @@
 > **R6.4 收口（plan-2026-08-06-0105-1，2026-08-06）**：P2-06/P2-07/P2-09 三行 → fixed（本段表格内标注 plan 引用 + 修复摘要 + 测试证据）；roadmap R6.4 → done。三处静默降级全部 fail-loud（显式错误码 + cause 保留），回归测试钉死新语义；`./mvnw test -pl nop-metadata -am -T 1C` **919/0 全绿**（baseline 909 + 新增 8 判别性测试 + web +2）。
 >
 > **R6.5 收口（plan-2026-08-06-0105-2，2026-08-06）**：P2-01/P2-02/P2-04 三行 → fixed（本段表格内标注 plan 引用 + 修复摘要 + 测试证据）；roadmap R6.5 → done。三项日志类 finding 全部落地（异常链保留 + 每处 catch 补日志，行为语义保持）；`./mvnw test -pl nop-metadata -am -T 1C` **925/0 全绿**（R6.4 919 + 新增 6 判别性测试；全量 `-am` 偶遇预存在 nop-stream rocksdb 性能 flaky 单跑复绿 2/2，非本 plan 引入，按 R6.3 降级口径记录）。
+>
+> **R6.6 收口（plan-2026-08-06-0105-3，2026-08-06）**：20 条终局归类全量终态——**有动作 8 条全部落地**：P2-03（21 死码删除 + ERR_RECON_PARSE_PROPERTIES_FAILED 裁定 (b) 删定义 + parseProperties javadoc 文档化降级，全仓 grep 0 残留 + 测试同步 + design 文档死码引用修正，923/0 全绿）、P2-08（模块文档补 REGEXP 方言 SKIP 例外）、P2-22（5 处 orm.xml 行号锚点改稳定引用）、P2-23（I*Biz 包路径修正）、P2-24（items 例外声明）、P2-26（test-scope 依赖注）、AR-09（多 schema 段落地 + runId DTO 面 watch-only 登记）；**纯登记 12 条**（P2-05/P2-14~21/P2-25/27/AR-06 watch-only 终态确认 + AR-10 状态确认：P2-01/P2-04 R6.5 fixed、P2-12 R6.2 fixed 均已核实）；roadmap R6.6 → done。`./mvnw test -pl nop-metadata -am -T 1C` **923/0 全绿**（R6.5 925 减 2 个随删码删除的测试方法）；`node ai-dev/tools/check-doc-links.mjs --strict` exit 0（0 errors）。
 
 - **Backlog 32 条全部终态（12 提级 + 20 归类，0 悬置）**，归属与 roadmap MR6 段「R6.0 裁决记录」双向一致（grep 32 条可追溯）；计数勘误 33/10/22 → 32/12/20（header "33 条"为错误计数）
 - **提级 12 条（全部经 live 代码复核确认，归属 R6.1~R6.5 行）**：
@@ -39,26 +41,26 @@
 
 | 编号 | 归类 | Why Not Blocking Closure |
 |------|------|--------------------------|
-| P2-03 | out-of-scope improvement（**单独裁定：修入 R6.6 批量**） | 21 死码零引用零行为影响（211 定义 vs 191 使用，清单与审计逐一相符）；RECON 路径 LOG.warn 留证非静默；R6.6 删码 + ERR_RECON_PARSE_PROPERTIES_FAILED 二选一落地 |
-| P2-05 | watch-only residual | 占位符 100% 匹配（live 复核 567 裸串 vs 181 ARG_* 并存），无运行时缺陷，纯维护性风险 |
-| P2-08 | docs batch | SKIP + LOG.warn + reason 完全可见（`MetaQualityRuleExecutor.java:540-547`），合理语义建模非静默跳过，仅文档字面张力 |
-| P2-14 | watch-only residual | 错标快照命名误导，聚合核心由 TestAggregation* 65 测端到端约束 |
-| P2-15 | watch-only residual | trivial 镜像为覆盖缺口，非运行时缺陷 |
-| P2-16 | watch-only residual | 纯常量镜像，同文件反射扫描 testAllErrorsUseNopErrPrefix 独立价值保留 |
-| P2-17 | watch-only residual | 手工清单的保护力退化风险，非当前缺陷 |
-| P2-18 | watch-only residual | 页面冒烟 0 页面也通过为测试强度问题，web 模块 1 测试 |
-| P2-19 | watch-only residual | 死分支 + 弱断言退化，无运行时影响 |
-| P2-20 | watch-only residual | 正则无 DOTALL/user.dir 依赖为稳健性问题，有真实约束力（mock 时钟门禁） |
-| P2-21 | watch-only residual | 生产只走同步 fetch 潜伏未激活；私有方法直测为安全逻辑合理取舍 |
-| P2-22 | docs batch | 行号锚点失效但引用对象（列名/约束）仍正确，纯锚点格式 |
-| P2-23 | docs batch | I*Biz 包路径纯表述，接口存在性与签名 100% 核实通过 |
-| P2-24 | docs batch | items List\<Map\> 例外 DTO javadoc 已声明，规范文档缺一句 |
-| P2-25 | watch-only residual | nop-dataset 经 nop-core 传递，内核固定依赖风险为零 |
-| P2-26 | docs batch | compile 依赖 100% 一致，仅 test-scope 信息不完整 |
-| P2-27 | watch-only residual | 与 nop-auth-dao 一致的标准仓库模式（precompile 代码生成用） |
-| AR-06 | watch-only residual（**归属纠正：R6.0 提级清单移出，补入 R6.6**） | 全仓 0 消费方（仅 DTO 定义 + `NopMetaLineageEdgeBizModel.java:130` 赋值点），无实际暴露；修复 = api 公共面变更无需求驱动 |
-| AR-09 | docs batch（主）+ watch-only residual（DTO 面） | `MetaQualityCheckpointScheduler.java:242-250` buildErrorResult 缺 runId 无运行时缺陷（错误路径 DTO 仅展示用）；docs-for-ai 零 metaSchema 提及（live 复核实证），R6.6 补多 schema 段 |
-| AR-10 | watch-only residual（状态确认） | P2-01/P2-04/P2-12 仍 live 已确认（git log 无变更实证）——已随提级进入修复队列（R6.5/R6.2），无独立修复项；P2-01/P2-04 已于 R6.5（plan-2026-08-06-0105-2）修复 → fixed，P2-12 已于 R6.2 修复 → fixed，本行仅保留状态确认轨迹 |
+| P2-03 | out-of-scope improvement（**单独裁定：修入 R6.6 批量**）→ **done（plan-2026-08-06-0105-3 Phase 1）** | 21 死码零引用零行为影响（211 定义 vs 191 使用，清单与审计逐一相符）；RECON 路径 LOG.warn 留证非静默；R6.6 删码 + ERR_RECON_PARSE_PROPERTIES_FAILED 二选一落地 |
+| P2-05 | watch-only residual → **终态登记（R6.6）** | 占位符 100% 匹配（live 复核 567 裸串 vs 181 ARG_* 并存），无运行时缺陷，纯维护性风险 |
+| P2-08 | docs batch → **done（plan-2026-08-06-0105-3 Phase 2）** | SKIP + LOG.warn + reason 完全可见（`MetaQualityRuleExecutor.java:540-547`），合理语义建模非静默跳过，仅文档字面张力 |
+| P2-14 | watch-only residual → **终态登记（R6.6）** | 错标快照命名误导，聚合核心由 TestAggregation* 65 测端到端约束 |
+| P2-15 | watch-only residual → **终态登记（R6.6）** | trivial 镜像为覆盖缺口，非运行时缺陷 |
+| P2-16 | watch-only residual → **终态登记（R6.6）** | 纯常量镜像，同文件反射扫描 testAllErrorsUseNopErrPrefix 独立价值保留 |
+| P2-17 | watch-only residual → **终态登记（R6.6）** | 手工清单的保护力退化风险，非当前缺陷 |
+| P2-18 | watch-only residual → **终态登记（R6.6）** | 页面冒烟 0 页面也通过为测试强度问题，web 模块 1 测试 |
+| P2-19 | watch-only residual → **终态登记（R6.6）** | 死分支 + 弱断言退化，无运行时影响 |
+| P2-20 | watch-only residual → **终态登记（R6.6）** | 正则无 DOTALL/user.dir 依赖为稳健性问题，有真实约束力（mock 时钟门禁） |
+| P2-21 | watch-only residual → **终态登记（R6.6）** | 生产只走同步 fetch 潜伏未激活；私有方法直测为安全逻辑合理取舍 |
+| P2-22 | docs batch → **done（plan-2026-08-06-0105-3 Phase 2）** | 行号锚点失效但引用对象（列名/约束）仍正确，纯锚点格式 |
+| P2-23 | docs batch → **done（plan-2026-08-06-0105-3 Phase 2）** | I*Biz 包路径纯表述，接口存在性与签名 100% 核实通过 |
+| P2-24 | docs batch → **done（plan-2026-08-06-0105-3 Phase 2）** | items List\<Map\> 例外 DTO javadoc 已声明，规范文档缺一句 |
+| P2-25 | watch-only residual → **终态登记（R6.6）** | nop-dataset 经 nop-core 传递，内核固定依赖风险为零 |
+| P2-26 | docs batch → **done（plan-2026-08-06-0105-3 Phase 2）** | compile 依赖 100% 一致，仅 test-scope 信息不完整 |
+| P2-27 | watch-only residual → **终态登记（R6.6）** | 与 nop-auth-dao 一致的标准仓库模式（precompile 代码生成用） |
+| AR-06 | watch-only residual（**归属纠正：R6.0 提级清单移出，补入 R6.6**）→ **终态登记（R6.6）** | 全仓 0 消费方（仅 DTO 定义 + `NopMetaLineageEdgeBizModel.java:130` 赋值点），无实际暴露；修复 = api 公共面变更无需求驱动 |
+| AR-09 | docs batch（主）→ **done（plan-2026-08-06-0105-3 Phase 2）** + watch-only residual（DTO 面）→ **终态登记（R6.6）** | `MetaQualityCheckpointScheduler.java:242-250` buildErrorResult 缺 runId 无运行时缺陷（错误路径 DTO 仅展示用）；docs-for-ai 零 metaSchema 提及（live 复核实证），R6.6 补多 schema 段 |
+| AR-10 | watch-only residual（状态确认）→ **使命完成（R6.6）** | P2-01/P2-04/P2-12 仍 live 已确认（git log 无变更实证）——已随提级进入修复队列（R6.5/R6.2），无独立修复项；P2-01/P2-04 已于 R6.5（plan-2026-08-06-0105-2）修复 → fixed，P2-12 已于 R6.2 修复 → fixed，本行仅保留状态确认轨迹 |
 
 - **无静默跳过 / 无降级**：12 条提级候选全部 live 复核，无候选因"没时间"被降级（Minimum Rules #24）；20 条归类逐条声明，无已确认 live defect / contract drift 被静默降级到 non-blocking 区域（P2-03 契约漂移项显式裁定修入 R6.6 批量）
 - 追踪一致性：roadmap MR6 段「R6.0 裁决记录」与本表逐条一致（grep 32 条可追溯）；Follow-up Backlog 登记表结构不变（保留登记批次与来源路径）

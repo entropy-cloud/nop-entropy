@@ -190,8 +190,8 @@ BizModel.queryAggregation()
 
 ### MixedSameDbJoinAggregationProcessor
 - **Input**: `AggregationContext` + resolved `Endpoint` left/right + `NopMetaTableJoin`
-- **Output**: `List<Map<String, Object>>` — items rows (may delegate to CrossDbInMemoryAggregationProcessor if cross-DB)
-- **Error Codes**: ERR_AGGR_JOIN_MIXED_ENTITY_TABLE_EMPTY, ERR_AGGR_JOIN_MIXED_CROSS_DB_DEFERRED, ERR_AGGR_JOIN_SIDE_REQUIRED, ERR_AGGR_JOIN_FIELD_NOT_ON_SIDE, ERR_AGGR_UNSUPPORTED_DIALECT
+- **Output**: `List<Map<String, Object>>` — items rows (may delegate to CrossDbInMemoryAggregationProcessor if entity table not visible in external connection)
+- **Error Codes**: ERR_AGGR_JOIN_MIXED_ENTITY_TABLE_EMPTY, ERR_AGGR_JOIN_SIDE_REQUIRED, ERR_AGGR_JOIN_FIELD_NOT_ON_SIDE, ERR_AGGR_UNSUPPORTED_DIALECT (R6-6: removed stale ERR_AGGR_JOIN_MIXED_CROSS_DB_DEFERRED — the not-visible case now delegates to the in-memory cross-DB processor)
 
 ### CrossDbInMemoryAggregationProcessor
 - **Input**: `AggregationContext` + resolved `Endpoint` left/right + `NopMetaTableJoin`

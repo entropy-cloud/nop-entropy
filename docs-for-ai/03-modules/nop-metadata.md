@@ -122,11 +122,23 @@ mutation {
 
 **运行期（concurrent）幂等（R4.3）**：每次执行生成唯一 `runId`（UUID），结果行写入 `checkpointId`/`runId` 列（`NopMetaQualityResult` 复合 UK `(checkpointId, runId, qualityRuleId)` 兜底拒绝同 runId 重复写行，可空列 NULL 不参与冲突判定——单规则执行路径两列保持 null）。执行入口有 per-checkpoint 运行标记（进程内锁，覆盖 executor + autoScore + dispatchActions 全程）：**同一检查点并发/重复触发时第二次执行显式 fail-fast**（错误码 `checkpoint-already-running`），不静默重复执行、不重复投递 webhook/notify。保留的时序语义：顺序重复执行（间隔超过单次耗时）合法，每次执行 = 新 runId = 新结果行。cron 与手动并发时 cron 侧被拒绝仅记 WARN 日志。跨进程分布式锁不做（单实例 supported baseline）。
 
+**regex 规则方言例外（P2-08）**：regex 规则执行时若目标数据库方言不支持 `REGEXP` 运算符（如部分嵌入式/低版本库），`MetaQualityRuleExecutor.judgeRegex` 返回 **SKIP** 判定 + `LOG.warn` 留证 + `details.reason="regexp-unsupported-dialect"` 标记——这是"无静默跳过"原则下经裁定的显式例外（SKIP 本身是可见结果而非静默跳过，调用方/页面可据此区分"未执行"与"通过"）；其余失败路径（SQL 执行失败等）仍显式抛错。
+
+## 多 schema 支持（R4.2）
+
+`NopMetaTable.metaSchema` 记录外部源 schema，使**多 schema 同名外部表可共存**（单模块内同表名不同源 schema 互不冲突）：
+
+- **metaSchema 可空语义**：`metaSchema`（`META_SCHEMA VARCHAR(100)`）为**可空列**——`NULL` 表示默认 schema（entity 表 `OrmModelImporter.buildEntityTable` 与 SQL 表 `NopMetaTableBizModel.createSqlTable` 均保持 null）；external 表由 `upsertExternalTable` 写入实际源 schema，匹配前经 `normalizeSchemaForMatch` 归一化（null/空串/纯空白 → null）。
+- **4 列 UK**：`NopMetaTable` 唯一键 `UK_NOP_META_TABLE_MODULE_NAME = (metaModuleId, tableName, isDelta, metaSchema)`（`nop-metadata.orm.xml` `NopMetaTable` unique-key，R4.2 在 R3.19 三列基础上扩展 schema 维度）。租户部署的 UK 变体 `(NOP_TENANT_ID, META_MODULE_ID, TABLE_NAME, IS_DELTA, META_SCHEMA)` 由 xgen 从模型派生再生成（`_add_tenant_nop-metadata.sql`，禁止手编）。
+- **存量部署升级 SQL**：非租户存量库（R4.2 前 3 列 UK）需执行 `deploy/sql/{mysql,postgresql,oracle}/upgrade-nop-meta-table-uk.sql`（drop + add 4 列 UK，三方言）。**前置条件**：R3.19 前零 UK 时代建库可能存在 `(metaModuleId, tableName, isDelta)` 重复行，须先去重，否则 `add constraint` 显式失败（fail-fast by design）。新装库由 `_create_nop-metadata.sql` 覆盖，无需 upgrade 脚本。
+
 ## API 契约（I*Biz 接口）
 
-每个 BizModel 都实现了对应的 `INopMeta*Biz` 接口（位于 `nop-metadata-dao/.../biz/`），声明全部自定义 `@BizQuery` / `@BizMutation` 方法签名。跨模块 `@Inject INopMeta*Biz` 可直接调用接口方法，避免依赖具体实现类。
+每个 BizModel 都实现了对应的 `INopMeta*Biz` 接口（位于 `nop-metadata-dao` 模块的 `io.nop.metadata.biz` 包），声明全部自定义 `@BizQuery` / `@BizMutation` 方法签名。跨模块 `@Inject INopMeta*Biz` 可直接调用接口方法，避免依赖具体实现类。
 
 **例外（Pseudo-BizModel）**：`NopMetaSearchBizModel`（`@BizModel("NopMetaSearch")`，位于 `nop-metadata-service/.../search/`）无对应 `INopMetaSearchBiz` 接口——其搜索索引跨 NopMetaTable / NopMetaEntity / NopMetaEntityField / NopMetaGlossaryTerm 等多实体，无单一对应实体；当前无跨模块调用方（接口 deferred），`rebuildSearchIndex` / `searchMetadata` 两方法仅经 GraphQL 访问。
+
+**items 返回类型合理例外（P2-24）**：`queryTableData` / `queryAggregation` / `queryJoinData` 的返回 `items` 为 `List<Map<String,Object>>`（原始行 Map 列表）而非强类型 DTO——这是经裁定的合理例外：行结构由任意外部源 schema / 用户选择 Measure-Dimension 动态决定，无法预先声明固定 DTO 字段；API 契约仍以 `items` 语义（列名 → 值）对外稳定。
 
 主要 I*Biz 接口（plan 2026-07-19-1250-3 Phase 1 补齐）：
 
@@ -172,6 +184,8 @@ mutation {
 | `nop-metadata-web` | `nop-metadata-service` + Web 入口 |
 | `nop-metadata-app` | `nop-metadata-web` + Quarkus 启动器 |
 
+**test-scope 基建依赖（P2-26）**：上表只列 compile 依赖；`nop-metadata-service` 还以 `test` scope 引入基建依赖——`nop-metadata-codegen`（DDL/codegen 验证）、`nop-search-core`（搜索测试）、`nop-job-local`（cron 调度 AutoTest，生产环境由宿主应用提供调度器）、`nop-autotest-junit`（Nop AutoTest）、junit-jupiter(+params)、H2/MySQL 驱动（`localDb` 测试）与 mockito-core。这些依赖不参与运行时装配，仅为测试支撑。
+
 `INopMeta*Biz` 接口驻留在 `nop-metadata-dao` 而非 `nop-metadata-api`，因为这些接口的类型参数引用 `dao.entity.*` 实体类，移入 api 会导致循环依赖（api → dao → api）。
 
 ## 失败路径显式化
@@ -185,7 +199,7 @@ nop-metadata 严格遵循"无静默跳过"原则（plan 2026-07-19-1250-3 Phase 
 ## 参考文档
 
 - 平台主文档：`docs-for-ai/03-modules/nop-metadata.md`（本文档）
-- I*Biz 接口契约（`nop-metadata-dao/.../biz/INopMeta*Biz.java`）：每个 BizModel 都有对应接口声明全部自定义方法签名（唯一例外：NopMetaSearchBizModel Pseudo-BizModel 无接口，见上「API 契约」段）
+- I*Biz 接口契约（`nop-metadata-dao` 模块 `io.nop.metadata.biz` 包 `INopMeta*Biz.java`）：每个 BizModel 都有对应接口声明全部自定义方法签名（唯一例外：NopMetaSearchBizModel Pseudo-BizModel 无接口，见上「API 契约」段）
 - DTO 规格（`nop-metadata-api/.../dto/`）：31 个 `@DataBean` DTO 类承载 API 返回值强类型契约
 - ErrorCode 集中化（`nop-metadata-service/.../NopMetadataErrors.java`）：跨文件去重 + ARG_* 参数常量
 - 模块级异常（`NopMetadataException`）：替代 `IllegalArgumentException` / `UnsupportedOperationException` / 裸 `RuntimeException`
