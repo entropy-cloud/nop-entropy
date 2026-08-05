@@ -40,7 +40,7 @@ interface LineageErrors extends NopMetadataArgs {
                     ARG_META_TABLE_ID, ARG_TABLE_TYPE);
     ErrorCode ERR_LINEAGE_SQL_SOURCE_EMPTY =
             ErrorCode.define("nop.err.metadata.lineage-sql-source-empty",
-                    "Sql table sourceSql is empty, cannot extract column lineage: {metaTableId}", ARG_META_TABLE_ID);
+                    "Sql table sourceSql is empty, cannot extract lineage: {metaTableId}", ARG_META_TABLE_ID);
     ErrorCode ERR_LINEAGE_GRAPH_TOO_LARGE =
             ErrorCode.define("nop.err.metadata.lineage-graph-too-large",
                     "Lineage graph edge count exceeds size limit (abort to avoid OOM): "

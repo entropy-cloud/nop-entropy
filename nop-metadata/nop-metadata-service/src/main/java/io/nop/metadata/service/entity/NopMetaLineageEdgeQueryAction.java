@@ -155,6 +155,9 @@ public class NopMetaLineageEdgeQueryAction {
                     .param("tableType", targetTable.getTableType());
         }
         String sourceSql = targetTable.getSourceSql();
+        if (sourceSql == null || sourceSql.trim().isEmpty()) {
+            throw new NopMetadataException(NopMetadataErrors.ERR_LINEAGE_SQL_SOURCE_EMPTY).param("metaTableId", metaTableId);
+        }
         List<Map<String, Object>> errors = new ArrayList<>();
         List<SqlTableReference> refs;
         try {

@@ -5,6 +5,7 @@ import io.nop.api.core.annotations.core.OptionalBoolean;
 import io.nop.api.core.beans.graphql.GraphQLResponseBean;
 import io.nop.api.core.beans.FilterBeans;
 import io.nop.api.core.beans.query.QueryBean;
+import io.nop.api.core.exceptions.NopException;
 import io.nop.core.context.IServiceContext;
 import io.nop.core.context.ServiceContextImpl;
 import io.nop.dao.api.IDaoProvider;
@@ -25,6 +26,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
@@ -795,6 +797,125 @@ public class TestNopMetaLineageEdgeBizModel extends LineageTestBase {
         assertTrue(data.contains("cte-wildcard") || data.contains("cte-or-derived-column-not-found")
                         || data.contains("passthrough-no-source-column"),
                 "wildcard CTE output must be explicitly unresolved with reason: " + data);
+    }
+
+    // ===== 血缘公开 API 显式抛错（plan 2026-08-05-1842-2：SQL 解析失败不再降级为成功响应）=====
+
+    /**
+     * 表级非法 SQL → 显式抛错：SQL 解析失败不再降级为"HTTP 200 + edgeCount=0"成功响应，
+     * GraphQL 返回错误 + 精确错误码 + metaTableId param。
+     *
+     * <p>Anti-Hollow/接线：BizModel 直接调用路径断言异常携带 metaTableId + error 细节 param，
+     * 证明 QueryAction 收集的 errors 确实在 API 边界被拦截（非仅存在代码）。
+     */
+    @Test
+    public void testExtractLineageFromSqlParseFailureExplicitError() {
+        String moduleId = ensureModule("mod-ext-bad-sql");
+        // 表级抽取器（EqlASTParser）对可解析的 DELETE/UPDATE 不抛错（walk 收集表名），
+        // 用非 SELECT 语句（INSERT）触发解析失败 → 表级映射 ERR_LINEAGE_SQL_PARSE_FAILED
+        String sqlViewId = saveSqlTable(moduleId, "V_BAD_SQL", "INSERT INTO t VALUES (1)");
+
+        // GraphQL 入口：错误响应（非成功响应 + 零边）
+        GraphQLResponseBean resp = execute(
+                "mutation { NopMetaLineageEdge__extractLineageFromSql(metaTableId: \"" + sqlViewId + "\") { edgeCount errors } }");
+        assertTrue(resp.hasError(),
+                "parse failure must surface as GraphQL error (not success + edgeCount=0): " + resp);
+        assertNull(resp.getData(),
+                "no success data payload may be returned on parse failure: " + resp);
+        String errorCode = resp.getErrorCode();
+        assertNotNull(errorCode, "GraphQL response must carry errorCode extension: " + resp);
+        assertTrue(errorCode.contains("nop.err.metadata.lineage-sql-parse-failed"),
+                "table-level parse failure must map to ERR_LINEAGE_SQL_PARSE_FAILED, got: " + errorCode);
+
+        // BizModel 直接调用（接线验证）：异常携带 metaTableId + error 细节 param
+        NopException ex = assertThrows(NopException.class,
+                () -> lineageBiz.extractLineageFromSql(sqlViewId, svcCtx),
+                "BizModel must throw (not return DTO) when QueryAction collected parse errors");
+        assertEquals("nop.err.metadata.lineage-sql-parse-failed", ex.getErrorCode(),
+                "exception errorCode must be ERR_LINEAGE_SQL_PARSE_FAILED");
+        assertEquals(sqlViewId, ex.getParam("metaTableId"),
+                "exception must carry metaTableId param");
+        assertNotNull(ex.getParam("error"),
+                "exception must carry original parse error message detail");
+    }
+
+    /** 列级非法 SQL → 显式抛 ERR_COL_LINEAGE_SQL_PARSE_FAILED（GraphQL 错误，非成功响应 + 零边）。 */
+    @Test
+    public void testExtractColumnLineageParseFailureExplicitError() {
+        String moduleId = ensureModule("mod-col-bad-sql");
+        String sqlViewId = saveSqlTable(moduleId, "V_COL_BAD_SQL", "DELETE FROM t WHERE x=1");
+
+        GraphQLResponseBean resp = execute(
+                "mutation { NopMetaLineageEdge__extractColumnLineageFromSql(metaTableId: \"" + sqlViewId + "\") { edgeCount errors } }");
+        assertTrue(resp.hasError(),
+                "column-level parse failure must surface as GraphQL error (not success + edgeCount=0): " + resp);
+        assertNull(resp.getData(), "no success data payload may be returned on parse failure: " + resp);
+        String errorCode = resp.getErrorCode();
+        assertNotNull(errorCode, "GraphQL response must carry errorCode extension: " + resp);
+        assertTrue(errorCode.contains("nop.err.metadata.col-lineage-sql-parse-failed"),
+                "column-level parse failure must map to ERR_COL_LINEAGE_SQL_PARSE_FAILED, got: " + errorCode);
+
+        NopException ex = assertThrows(NopException.class,
+                () -> lineageBiz.extractColumnLineageFromSql(sqlViewId, svcCtx),
+                "BizModel must throw when QueryAction collected column parse errors");
+        assertEquals("nop.err.metadata.col-lineage-sql-parse-failed", ex.getErrorCode());
+        assertEquals(sqlViewId, ex.getParam("metaTableId"));
+    }
+
+    /**
+     * 表级空 sourceSql → 显式抛 ERR_LINEAGE_SQL_SOURCE_EMPTY（与列级行为一致，
+     * 修复前表级被降级为成功响应 + 零边）。
+     */
+    @Test
+    public void testExtractLineageFromSqlEmptySourceSqlExplicitError() {
+        String moduleId = ensureModule("mod-ext-empty-sql");
+        String sqlViewId = saveSqlTable(moduleId, "V_EMPTY_SQL", "");
+
+        GraphQLResponseBean resp = execute(
+                "mutation { NopMetaLineageEdge__extractLineageFromSql(metaTableId: \"" + sqlViewId + "\") { edgeCount errors } }");
+        assertTrue(resp.hasError(), "table-level empty sourceSql must fast-fail (not success + 0 edges): " + resp);
+        assertNull(resp.getData(), "no success data payload on empty sourceSql: " + resp);
+        String errorCode = resp.getErrorCode();
+        assertNotNull(errorCode, "GraphQL response must carry errorCode extension: " + resp);
+        assertTrue(errorCode.contains("nop.err.metadata.lineage-sql-source-empty"),
+                "table-level empty sourceSql must map to ERR_LINEAGE_SQL_SOURCE_EMPTY, got: " + errorCode);
+        assertTrue(resp.getErrors().get(0).getMessage().contains(sqlViewId),
+                "error must carry metaTableId in message: " + resp);
+    }
+
+    /** 列级空 sourceSql → 同一错误码（两级行为一致断言）。 */
+    @Test
+    public void testExtractColumnLineageEmptySourceSqlExplicitError() {
+        String moduleId = ensureModule("mod-col-empty-sql");
+        String sqlViewId = saveSqlTable(moduleId, "V_COL_EMPTY_SQL", "");
+
+        GraphQLResponseBean resp = execute(
+                "mutation { NopMetaLineageEdge__extractColumnLineageFromSql(metaTableId: \"" + sqlViewId + "\") { edgeCount errors } }");
+        assertTrue(resp.hasError(), "column-level empty sourceSql must fast-fail: " + resp);
+        assertNull(resp.getData(), "no success data payload on empty sourceSql: " + resp);
+        String errorCode = resp.getErrorCode();
+        assertNotNull(errorCode, "GraphQL response must carry errorCode extension: " + resp);
+        assertTrue(errorCode.contains("nop.err.metadata.lineage-sql-source-empty"),
+                "column-level empty sourceSql must map to ERR_LINEAGE_SQL_SOURCE_EMPTY, got: " + errorCode);
+        assertTrue(resp.getErrors().get(0).getMessage().contains(sqlViewId),
+                "error must carry metaTableId in message: " + resp);
+    }
+
+    /** 两级空 SQL 行为一致性（同为 ERR_LINEAGE_SQL_SOURCE_EMPTY，无降级差异）。 */
+    @Test
+    public void testEmptySourceSqlTableAndColumnLevelConsistent() {
+        String moduleId = ensureModule("mod-empty-consistent");
+        String tableLevel = saveSqlTable(moduleId, "V_EMP_CONS_T", "");
+        String columnLevel = saveSqlTable(moduleId, "V_EMP_CONS_C", "");
+
+        GraphQLResponseBean rTable = execute(
+                "mutation { NopMetaLineageEdge__extractLineageFromSql(metaTableId: \"" + tableLevel + "\") { edgeCount } }");
+        GraphQLResponseBean rColumn = execute(
+                "mutation { NopMetaLineageEdge__extractColumnLineageFromSql(metaTableId: \"" + columnLevel + "\") { edgeCount } }");
+        assertEquals(rColumn.getErrorCode(), rTable.getErrorCode(),
+                "table-level and column-level empty sourceSql must surface the SAME error code: "
+                        + rTable.getErrorCode() + " vs " + rColumn.getErrorCode());
+        assertTrue(rTable.getErrorCode().contains("nop.err.metadata.lineage-sql-source-empty"));
     }
 
 }

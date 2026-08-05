@@ -7,6 +7,7 @@ import io.nop.api.core.annotations.core.Name;
 import io.nop.api.core.annotations.core.Optional;
 import io.nop.api.core.annotations.ioc.InjectValue;
 import io.nop.api.core.beans.query.QueryBean;
+import io.nop.api.core.exceptions.ErrorCode;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.biz.crud.CrudBizModel;
 import io.nop.core.context.IServiceContext;
@@ -103,11 +104,26 @@ public class NopMetaLineageEdgeBizModel extends CrudBizModel<NopMetaLineageEdge>
         return result;
     }
 
+    /**
+     * SQL 解析失败（QueryAction 内已收集进 errors 列表）必须在 API 边界显式抛错，
+     * 不允许以成功响应 + 零边返回（"无静默跳过"契约，docs-for-ai/03-modules/nop-metadata.md）。
+     */
+    private void checkNoParseErrors(NopMetaLineageEdgeQueryAction.LineageExtractResult r,
+                                    String metaTableId, ErrorCode errorCode) {
+        if (r.errors != null && !r.errors.isEmpty()) {
+            Object detail = r.errors.get(0).get("error");
+            throw new NopMetadataException(errorCode)
+                    .param("metaTableId", metaTableId)
+                    .param("error", detail != null ? detail : "");
+        }
+    }
+
     @BizMutation
     public LineageExtractResultDTO extractLineageFromSql(@Name("metaTableId") String metaTableId,
                                                           IServiceContext context) {
         NopMetaLineageEdgeQueryAction.LineageExtractResult r =
                 queryAction().extractLineageFromSql(metaTableId, daoProvider(), dao());
+        checkNoParseErrors(r, metaTableId, NopMetadataErrors.ERR_LINEAGE_SQL_PARSE_FAILED);
         LineageExtractResultDTO dto = new LineageExtractResultDTO();
         dto.setMetaTableId(metaTableId);
         dto.setEdgeCount(r.edgeCount);
@@ -122,6 +138,7 @@ public class NopMetaLineageEdgeBizModel extends CrudBizModel<NopMetaLineageEdge>
                                                                 IServiceContext context) {
         NopMetaLineageEdgeQueryAction.LineageExtractResult r =
                 queryAction().extractColumnLineageFromSql(metaTableId, daoProvider(), dao());
+        checkNoParseErrors(r, metaTableId, NopMetadataErrors.ERR_COL_LINEAGE_SQL_PARSE_FAILED);
         LineageExtractResultDTO dto = new LineageExtractResultDTO();
         dto.setMetaTableId(metaTableId);
         dto.setEdgeCount(r.edgeCount);
