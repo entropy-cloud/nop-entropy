@@ -1,6 +1,6 @@
 # R6-3 NULL-schema 重复行防护 + createSqlTable 重复守卫过滤（AR-07/AR-08）
 
-> Plan Status: active
+> Plan Status: completed
 > Last Reviewed: 2026-08-05
 > Draft Review: R1 `ses_02d972abcffeiHR3WBNv3d0qiW`（2 Blocker：三选一决策结构自相矛盾（A 单独不充分/B 撞 Oracle R4.2 D1 陷阱/C 需跨 flush）——已重写为组合裁定 + R4.2 D1 承接 + 锁跨 flush 约束 + 回退裁定；并发验证空壳化（顺序双插 vacuous）——已改并发双插为唯一判别性验证 + 测试规格（预建 module/latch/稳定失败要求）；4 Major：Phase 2 过滤语义（null 或空串 vs UK 对齐）——已改 isDelta=0 AND metaSchema IS NULL 逐字对齐 + 路径 B 交互测试；B 路径读路径 blast radius/迁移范围/owner-doc 条件化——已入 Baseline 枚举 5 处消费方；测试命令 -am 统一）；R2 `ses_02d8bd24effe5sTI7IBnCw6yFn`（结论：**可以直接执行**，0 Blocker / 0 Major；4 条 Minor 建议已吸收——测试先行顺序 + session 隔离排查 + ≥20 轮稳定失败判定标准入测试规格，arm-index 注记形式执行时裁定）。consensus 达成。
 > Mission: nop-metadata-audit-remediation
@@ -63,93 +63,94 @@
 
 ### Phase 1 - upsertExternalTable NULL-schema 重复行防护
 
-Status: planned
+Status: completed
 Targets: `nop-metadata/nop-metadata-service/src/main/java/io/nop/metadata/service/entity/NopMetaDataSourceBizModel.java` + `TestNopMetaTableMultiSchemaUpsert.java`（或新建并发测试文件）
 
 - Item Types: `Decision | Fix | Proof`
 
-- [ ] **防护方案裁定（Decision，组合裁定而非三选一）**：AR-07 的 NULL-schema 场景决定**任一独立选项均不充分**，必须按组合裁定：
+- [x] **防护方案裁定（Decision，组合裁定而非三选一）**：AR-07 的 NULL-schema 场景决定**任一独立选项均不充分**，必须按组合裁定：
   - **路径 A（DB 原子 upsert）单独不充分**：NULL-schema 下 `metaSchema` 为 NULL，UK 不参与冲突判定（NULL≠NULL），DB 原生 upsert（ON DUPLICATE KEY/MERGE）对 NULL 键同样无法收敛双插（方言差异 + 平台无抽象，已核实）——A 只能作为非 NULL-schema 场景的加固，不能独立收口 AR-07。**不选 A 作为主方案**（成本高收益低），执行时可记录为 watch-only 加固候选。
   - **路径 B（空串占位）必须承接 R4.2 D1 陷阱分析**：R4.2 已裁定并文档化 (1) GraphQL 可观测变更（主流值 NULL→哨兵）、(2) 全量迁移、(3) Oracle `''`≡NULL（INSERT ORA-01400 / SET 静默 no-op / ALTER ORA-02296）三类陷阱——本 plan 若选 B 必须逐条回应：Oracle 方言升级 SQL 变体、INSERT 运行时语义、读路径 5 处消费方回归（枚举见 Baseline）、迁移范围（entity/SQL 行 + createSqlTable 写路径同步）。**B 的落库语义改变属公开契约变更，不允许"No owner-doc update required"默认成立**——需显式声明变更面并同步 owner doc（R4.2 D1 裁定原文要求）。
   - **路径 C（应用层并发防护）必须覆盖 flush**：`syncExternalTables` 的 flush 在 `upsertExternalTable` 之外（:186-187）——锁若只包住 upsertExternalTable 则 T1 行未 flush、T2 同键 find 查不到，竞态保留。**锁必须跨 upsert+flush**（锁放 `syncExternalTables` 层按 `(metaModuleId, tableName, normalizedSchema)` 键持锁，覆盖 flush；或锁内 flush）。单实例 baseline（R4.3 已裁定）下 per-key 锁 + 重试闭环可收口。
   - **推荐组合（执行时可调整但需记录理由）**：路径 C（per-key 锁跨 flush）+ 失败路径显式错误/重试；路径 B 作为备选（须先完成 R4.2 D1 陷阱回应 + 读路径回归）。**回退裁定**：选定路径在端到端验证失败时，按"记录失败原因 → 切换 B/C 组合"流程，不得以削弱验证（如改顺序双插）代替修复。
   - 裁定约束：不允许"维持现状（无任何防护）"的模糊态；裁定结果写入本 plan + arm-index §P2；若涉及 ORM 模型列/UK 变更，按 Protected Area plan-first 声明（本 plan 即裁决载体）+ model-first 再生成 + 三方言 DDL 同步（沿 R3.19/R4.2/R4.3 先例）
-- [ ] 按裁定落地（Fix）：`upsertExternalTable` 防护实现（路径 C：锁跨 flush；或路径 B：空串占位 + 读路径归一 + 迁移），错误路径显式抛错或重试收敛，不静默吞
-- [ ] **回归测试（Fix，判别性验证，无替代）**：**并发双插测试为 AR-07 修复的唯一判别性验证**——双线程同时 `syncExternalTables` 同一 NULL-schema 外部表（或直插路径），断言仅 1 行落盘（无重复行）+ 并发失败方按裁定语义可见（错误进 errors[] 或重试收敛为 update）。测试规格：预创建外部表所属 module（`ensureExternalSystemModule` :482-499 本身是 find-then-insert，双线程会竞态 NopMetaModule UK——测试须先建 module 隔离该竞态）；用 CountDownLatch/CyclicBarrier 对齐线程起点；**测试先行**——先写测试，在未修复代码上必须观察到失败（或按 fallback 记录组合证明）；若测试在未修复代码上通过，先排查 session 隔离/共享事务（两线程共享 session 时 flush-before-query 会让 buggy 代码假通过），而非直接认定修复有效。**稳定失败判定标准**：无插桩前提下 find→flush 窗口无法真正确定性放大，现实手段 = latch 对齐起点 + 多轮累积（≥20 轮中 ≥1 轮失败即判 buggy 代码下可稳定失败，记录轮数）；若无法复现，记录"窗口极小 + 断言 1 行 + 代码审查证据"的组合证明。**"顺序双插断言单行"不作为验证项**（未修复代码上顺序两次 sync 也是 1 行，属 vacuous 测试）；既有两 schema 共存 + 单 schema update 回归用例不回归（:73-86，S1/S2 断言 :76-79）
-- [ ] 若路径 B：存量 NULL-schema 行迁移处置（升级 SQL 三方言含 Oracle 变体或 Java 一次性归一化）+ 读路径 5 处消费方回归测试（profile/catalog/quality 链）+ createSqlTable 写路径同步裁定，写入 plan 执行项 + deploy/sql 或迁移文档
+  - **执行期裁定调整（2026-08-06，路径 C → C'）**：先写判别性测试（未修复代码 20/20 轮复现 errors=0 + 2 行 NULL-schema 静默重复）后，按路径 C 原样（锁覆盖 find→insert→flush，不跨 commit）实现发现**竞态保留**——每线程 mutation 的整体事务由框架在 BizModel 返回后提交（commit 在锁外），后到线程在独立会话（READ_COMMITTED）的 find 无法看见先到线程未提交的行，仍会双插。故裁定调整为 **路径 C'：per-key 锁 + 每表 `REQUIRES_NEW` 独立事务提交（锁跨 find→insert→flush→commit）**——锁内独立事务的 commit 使后到线程 find 可见先到行并收敛为 update（并发失败方不报错、不追加、不静默跳过）；锁 key 按 (metaModuleId, tableName, normalizedSchema)。B 路径不选（无哨兵落库 → 无读路径 blast radius、无 Oracle 陷阱、无迁移）；`No owner-doc update required` 成立（metaSchema 存储语义不变）。
+- [x] 按裁定落地（Fix）：`upsertExternalTable` 防护实现（路径 C'：`EXTERNAL_TABLE_UPSERT_LOCKS` per-key 锁 + `upsertExternalTableGuarded` 内 `REQUIRES_NEW` 事务包 upsert + flush），错误路径显式抛错（catch → errors[] 收集，不静默吞）
+- [x] **回归测试（Fix，判别性验证，无替代）**：**并发双插测试为 AR-07 修复的唯一判别性验证**——新建 `TestNopMetaTableConcurrentNullSchemaUpsert`（20 轮 × 2 线程，CountDownLatch 对齐起点，GraphQL 公开入口 `NopMetaDataSource__syncExternalTables`）：每轮独立物理库 + 独立表名；预创建 `nop/meta-external` 模块隔离 module UK 竞态；TABLE_SCHEM 置 null（JDK 动态代理仅覆写 getTables 结果集该列，其余委托真实连接）使真实 upsert 走 NULL-schema 分支。**测试先行证据**：未修复代码上 20/20 轮均 errors=0 + 2 行（schemas=[null, null]）静默重复 → 测试失败；修复后 20/20 轮 1 行 0 错误 → 测试通过（判别性成立，非 vacuous；顺序双插不作为验证项）。既有两 schema 共存 + 单 schema update 回归用例不回归（TestNopMetaTableMultiSchemaUpsert 2/2 绿）
+- [x] 若路径 B：存量 NULL-schema 行迁移处置（升级 SQL 三方言含 Oracle 变体或 Java 一次性归一化）+ 读路径 5 处消费方回归测试（profile/catalog/quality 链）+ createSqlTable 写路径同步裁定，写入 plan 执行项 + deploy/sql 或迁移文档 —— **不适用（路径 C'，不落哨兵值，无迁移面）**
 
 Exit Criteria:
 
 > 每个 Phase 完成后，必须逐条勾选本节。所有 `[x]` 后才能将 Phase Status 改为 `completed`。
 
-- [ ] 防护方案裁定已记录（组合裁定 + 回退裁定，无"维持现状"状态）
-- [ ] **端到端验证**：syncExternalTables 入口 → upsertExternalTable → DB 落盘，NULL-schema **并发**双插场景仅 1 行（判别性测试断言；顺序双插不作为验证项）
-- [ ] **接线验证**：防护机制（per-key 锁跨 flush / 空串占位归一）在 `upsertExternalTable` 运行时确实生效（测试经公开入口断言，非直接测工具）
-- [ ] **无静默跳过**：无 catch-and-continue 引入；失败路径显式抛错或按裁定记录降级理由（并发失败方 errors[] 可见或重试收敛，与裁定一致）
-- [ ] 既有 `TestNopMetaTableMultiSchemaUpsert` 全部用例不回归；`./mvnw test -pl nop-metadata -am -T 1C` 相关测试类全绿
-- [ ] 若涉及模型/DDL 变更：`./mvnw clean install -DskipTests -pl nop-metadata -am -T 1C` 再生成通过 + deploy/sql 三方言（含 oracle）/upgrade SQL 同步（沿先例）
-- [ ] 若走路径 B：`No owner-doc update required` **不成立**——需显式声明 metaSchema 存储语义变更面（GraphQL 可观测）并同步 owner doc（R4.2 D1 要求）；路径 C 下 `No owner-doc update required` 成立
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] 防护方案裁定已记录（组合裁定 + 回退裁定，无"维持现状"状态）——路径 C' 裁定 + 调整理由记录（见 Item 1）
+- [x] **端到端验证**：syncExternalTables 入口 → upsertExternalTable → DB 落盘，NULL-schema **并发**双插场景仅 1 行（判别性测试断言 20/20 轮 1 行 0 错误；顺序双插不作为验证项）
+- [x] **接线验证**：防护机制（per-key 锁 + REQUIRES_NEW commit）在 `upsertExternalTable` 运行时确实生效（测试经 GraphQL 公开入口断言，非直接测工具；未修复代码 20/20 轮失败 → 修复后 20/20 轮通过）
+- [x] **无静默跳过**：无 catch-and-continue 引入；失败路径显式抛错（errors[] 收集，与既有 per-table 错误隔离语义一致）；并发失败方收敛为 update（不报错不追加）
+- [x] 既有 `TestNopMetaTableMultiSchemaUpsert` 全部用例不回归；`./mvnw test -pl nop-metadata -am -T 1C` 相关测试类全绿（909/0 全绿）
+- [x] 若涉及模型/DDL 变更：`./mvnw clean install -DskipTests -pl nop-metadata -am -T 1C` 再生成通过 + deploy/sql 三方言（含 oracle）/upgrade SQL 同步（沿先例）—— **不适用（路径 C' 无 ORM/DDL 变更）**
+- [x] 若走路径 B：`No owner-doc update required` **不成立**——需显式声明 metaSchema 存储语义变更面（GraphQL 可观测）并同步 owner doc（R4.2 D1 要求）；路径 C 下 `No owner-doc update required` 成立 —— **路径 C'：成立（metaSchema 存储语义不变）**
+- [x] `ai-dev/logs/` 对应日期条目已更新（2026-08-06 条目）
 
 ### Phase 2 - createSqlTable 重复守卫过滤
 
-Status: planned
+Status: completed
 Targets: `nop-metadata/nop-metadata-service/src/main/java/io/nop/metadata/service/entity/NopMetaTableBizModel.java` + `TestNopMetaTableBizModel.java`（或 TestNopMetaTableMultiSchemaUpsert）
 
 - Item Types: `Fix | Proof`
 
-- [ ] 守卫查询（:166-169）补过滤：`eq(isDelta, 0)` + `metaSchema IS NULL`（`FilterBeans.eq(prop, null)` 或 `isNull`，执行时按 FilterBeans API 裁定）——**逐字对齐 4 列 UK `(metaModuleId, tableName, isDelta=0, metaSchema=NULL)` 语义**，不是"null 或空串归一"（`''` 与 NULL 在 UK 中是不同键；空串归一会误伤路径 B 产生的 `""` 外部行，AR-08 误报面复发）
-- [ ] **回归测试（Fix）**：补——(a) 同模块同表名 isDelta=1（delta 行）先存在 → createSqlTable 成功（不再误报 `ERR_SQL_VIEW_TABLE_EXISTS`）；(b) 同模块同表名异 schema 行先存在 → createSqlTable 成功（不再误报）；(c) 真重复（同 isDelta=0 + null-schema）→ 仍抛 `ERR_SQL_VIEW_TABLE_EXISTS`（fail-fast 保持）；(d) 若 Phase 1 走路径 B：`""` 外部行与 createSqlTable 交互测试（`""` 外部行存在时 createSqlTable 同表名不误报，因守卫只匹配 IS NULL）——**Phase 1 路径 B 裁定结果决定本项是否必须**，执行时按 Phase 1 产物衔接；(e) 既有正/负路径用例（:343-406）不回归
-- [ ] 接线验证：测试经 GraphQL `NopMetaTable__createSqlTable` 或 BizModel 公开入口断言（沿既有测试模式），不直接测守卫私有逻辑
+- [x] 守卫查询（:166-169）补过滤：`eq(isDelta, 0)` + `metaSchema IS NULL`（执行时裁定用 `FilterBeans.isNull`，语义与 `FilterBeans.eq(prop, null)` 等价且 SQL 表达无歧义）——**逐字对齐 4 列 UK `(metaModuleId, tableName, isDelta=0, metaSchema=NULL)` 语义**，不是"null 或空串归一"（`''` 与 NULL 在 UK 中是不同键；空串归一会误伤路径 B 产生的 `""` 外部行，AR-08 误报面复发）。注释同步（含不归一理由）
+- [x] **回归测试（Fix）**：补——(a) 同模块同表名 isDelta=1（delta 行）先存在 → createSqlTable 成功（`testCreateSqlTableDeltaRowDoesNotBlockCreate`，不再误报 `ERR_SQL_VIEW_TABLE_EXISTS`）；(b) 同模块同表名异 schema 行先存在 → createSqlTable 成功（`testCreateSqlTableOtherSchemaRowDoesNotBlockCreate`）；(c) 真重复（同 isDelta=0 + null-schema）→ 仍抛 `ERR_SQL_VIEW_TABLE_EXISTS`（`testCreateSqlTableTrueDuplicateStillFailsFast`，fail-fast 保持；与既有 `TestNopMetaTableMultiSchemaUpsert.testCreateSqlTableDuplicateFailsFast` 双钉）；(d) 若 Phase 1 走路径 B：`""` 外部行与 createSqlTable 交互测试——**不适用（Phase 1 裁定路径 C'，无 `""` 哨兵落库）**；(e) 既有正/负路径用例（:343-406）不回归（26/26 绿）
+- [x] 接线验证：测试经 GraphQL `NopMetaTable__createSqlTable` 公开入口断言（沿既有测试模式），不直接测守卫私有逻辑
 
 Exit Criteria:
 
 > 每个 Phase 完成后，必须逐条勾选本节。所有 `[x]` 后才能将 Phase Status 改为 `completed`。
 
-- [ ] **端到端验证**：createSqlTable 入口 → 守卫查询 → 成功创建/显式失败，对 delta 行/异 schema 行/真重复三类场景断言成立（Phase 1 走 B 时补 `""` 外部行交互断言）
-- [ ] **无静默跳过**：守卫过滤后真重复仍 fail-fast（无放行重复行）；无 catch-and-continue 引入
-- [ ] 既有 createSqlTable 用例（:343-406）不回归；`./mvnw test -pl nop-metadata -am -T 1C` 相关测试类全绿
-- [ ] `No owner-doc update required`（docs-for-ai 无 createSqlTable 守卫细节章节；行为与 4 列 UK 语义对齐为修正方向）
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] **端到端验证**：createSqlTable 入口 → 守卫查询 → 成功创建/显式失败，对 delta 行/异 schema 行/真重复三类场景断言成立（Phase 1 走 C' → `""` 外部行交互断言不适用，已按 Phase 1 产物衔接）
+- [x] **无静默跳过**：守卫过滤后真重复仍 fail-fast（无放行重复行）；无 catch-and-continue 引入
+- [x] 既有 createSqlTable 用例（:343-406）不回归；`./mvnw test -pl nop-metadata -am -T 1C` 相关测试类全绿（909/0 全绿）
+- [x] `No owner-doc update required`（docs-for-ai 无 createSqlTable 守卫细节章节；行为与 4 列 UK 语义对齐为修正方向）
+- [x] `ai-dev/logs/` 对应日期条目已更新（2026-08-06 条目）
 
 ### Phase 3 - 收口（arm-index 终态 + closure audit）
 
-Status: planned
+Status: completed
 Targets: `ai-dev/audits/arm-index-nop-metadata.md` + `ai-dev/backlog/nop-metadata-audit-remediation-roadmap.md`
 
 - Item Types: `Fix | Proof`
 
-- [ ] arm-index §P2 对应行（AR-07/AR-08）终态 = fixed + 本 plan 引用 + 修复摘要 + 测试证据
-- [ ] roadmap MR6 R6.3 行 → done（注明 plan 引用 + 测试计数）
-- [ ] 独立子 agent closure audit（fresh session）逐项核对 Phase Exit Criteria + Closure Gates，证据写入本 plan Closure 段
-- [ ] `node ai-dev/tools/check-plan-checklist.mjs <本plan文件> --strict` 退出码 0（closure 时）
-- [ ] `node ai-dev/tools/check-doc-links.mjs --strict` exit 0（涉及 arm-index/roadmap 变更后）
+- [x] arm-index §P2 对应行（AR-07/AR-08）终态 = fixed + 本 plan 引用 + 修复摘要 + 测试证据
+- [x] roadmap MR6 R6.3 行 → done（注明 plan 引用 + 测试计数 909/0）
+- [x] 独立子 agent closure audit（fresh session）逐项核对 Phase Exit Criteria + Closure Gates，证据写入本 plan Closure 段
+- [x] `node ai-dev/tools/check-plan-checklist.mjs <本plan文件> --strict` 退出码 0（closure 时）
+- [x] `node ai-dev/tools/check-doc-links.mjs --strict` exit 0（涉及 arm-index/roadmap 变更后）
 
 Exit Criteria:
 
 > 每个 Phase 完成后，必须逐条勾选本节。所有 `[x]` 后才能将 Phase Status 改为 `completed`。
 
-- [ ] arm-index + roadmap 终态一致可追溯（AR-07/AR-08 两行 fixed）
-- [ ] 独立 closure audit PASS，evidence 已写入本 plan Closure 段
-- [ ] `./mvnw test -pl nop-metadata -am -T 1C` 全绿（0 failures）
-- [ ] 无静默降级：两项正确性 finding 为 fixed，无 live defect 被降级
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] arm-index + roadmap 终态一致可追溯（AR-07/AR-08 两行 fixed）
+- [x] 独立 closure audit PASS，evidence 已写入本 plan Closure 段
+- [x] `./mvnw test -pl nop-metadata -am -T 1C` 全绿（0 failures）—— 909/0/0/0（service 908 + web 1 口径，`-pl nop-metadata/nop-metadata-service -am`）
+- [x] 无静默降级：两项正确性 finding 为 fixed，无 live defect 被降级
+- [x] `ai-dev/logs/` 对应日期条目已更新（2026-08-06 条目）
 
 ## Closure Gates
 
 > **关闭条件**：只有本 section 所有条目以及每个 Phase 的 Exit Criteria 全部勾选为 `[x]` 后，才能将 `Plan Status` 改为 `completed`。关闭流程详见本 guide 的 `When Closing The Plan` 和 `Closure Audit Rule`。
 
-- [ ] AR-07：upsertExternalTable NULL-schema 重复行防线恢复（路径 A/B/C 落地），并发双插不产生静默重复行
-- [ ] AR-08：createSqlTable 守卫查询与 4 列 UK 语义一致（isDelta/schema 过滤），真重复仍 fail-fast
-- [ ] 必要 focused verification 已完成（双侧回归测试 + 既有用例不回归）
-- [ ] 不存在被静默降级到 deferred / follow-up 的 in-scope live defect 或 contract drift
-- [ ] 受影响的 owner docs 已同步到 live baseline，或明确写明 No owner-doc update required
-- [ ] 独立子 agent closure-audit 已完成并记录证据
-- [ ] **Anti-Hollow Check**：closure audit 已验证（a）防护机制在 `upsertExternalTable`/`createSqlTable` 运行时确实生效（非仅存在），（b）无空方法体/静默跳过/no-op 作为正常实现
-- [ ] `./mvnw test -pl nop-metadata -am -T 1C`
-- [ ] checkstyle / 代码规范检查通过（nop-metadata 无独立 checkstyle 命令，以 mvn 构建默认检查为准；历史惯例 "checkstyle N/A"）
-- [ ] `node ai-dev/tools/check-plan-checklist.mjs <本plan文件> --strict` 退出码 0（closure 时）
-- [ ] `node ai-dev/tools/scan-hollow-implementations.mjs --module nop-metadata --severity high` 退出码 0（closure 时）
+- [x] AR-07：upsertExternalTable NULL-schema 重复行防线恢复（路径 C' 落地：per-key 锁 + REQUIRES_NEW 独立事务提交），并发双插不产生静默重复行（20/20 轮 1 行 0 错误）
+- [x] AR-08：createSqlTable 守卫查询与 4 列 UK 语义一致（isDelta/schema 过滤），真重复仍 fail-fast
+- [x] 必要 focused verification 已完成（双侧回归测试 + 既有用例不回归——26/2/1 全绿 + 909/0 全量）
+- [x] 不存在被静默降级到 deferred / follow-up 的 in-scope live defect 或 contract drift（Deferred But Adjudicated 段仅 watch-only 残余 + out-of-scope 项）
+- [x] 受影响的 owner docs 已同步到 live baseline，或明确写明 No owner-doc update required（路径 C'：成立，metaSchema 存储语义不变；arm-index + roadmap 已同步）
+- [x] 独立子 agent closure-audit 已完成并记录证据（fresh session `ses_02d29d01bffeDAKGsxPLFBlkU5`，PASS，见 Closure 段）
+- [x] **Anti-Hollow Check**：closure audit 已验证（a）防护机制在 `upsertExternalTable`/`createSqlTable` 运行时确实生效（syncExternalTables:193 → upsertExternalTableGuarded:508-515 调用链 + 守卫 4 filter :172-176 + 判别性测试公开入口断言），（b）无空方法体/静默跳过/no-op 作为正常实现
+- [x] `./mvnw test -pl nop-metadata -am -T 1C` —— `./mvnw test -pl nop-metadata/nop-metadata-service -am -T 1C` → 909 tests / 0 failures / 0 errors / 0 skipped（BUILD SUCCESS；全量 `-pl nop-metadata -am` 的预存在 rocksdb 性能 flaky 单跑复绿，非本 plan 引入）
+- [x] checkstyle / 代码规范检查通过（nop-metadata 无独立 checkstyle 命令，以 mvn 构建默认检查为准；历史惯例 "checkstyle N/A"）
+- [x] `node ai-dev/tools/check-plan-checklist.mjs <本plan文件> --strict` 退出码 0（closure 时）
+- [x] `node ai-dev/tools/scan-hollow-implementations.mjs --module nop-metadata --severity high` 退出码 0（closure 时，0 发现）
 
 ## Deferred But Adjudicated
 
@@ -181,14 +182,22 @@ Exit Criteria:
 
 ## Closure
 
-Status Note: 待执行完成后填写（为什么这个 plan 可以关闭）
-Completed: YYYY-MM-DD
+Status Note: AR-07/AR-08 两项正确性 finding 已修复并钉死（路径 C' per-key 锁 + REQUIRES_NEW 提交；守卫 4 filter 对齐 UK）；无静默降级、无契约漂移；Owner doc 同步（arm-index + roadmap 终态）；构建全绿。可以关闭。
+Completed: 2026-08-06
 
 Closure Audit Evidence:
 
-- Reviewer / Agent: <<独立子 agent，fresh session>>
-- Evidence: <<逐条 Exit Criterion / Closure Gate 验证结果 + 工具退出码 + Anti-Hollow 调用链追踪>>
+- Reviewer / Agent: 独立子 agent，fresh session `ses_02d29d01bffeDAKGsxPLFBlkU5`（未复用执行 session，纯只读核查，未改任何文件）
+- Evidence: **PASS**——逐项 Exit Criterion / Closure Gate live 核实：
+  - AR-07：`NopMetaDataSourceBizModel.java` `upsertExternalTableGuarded`（:508）per-key 锁（`EXTERNAL_TABLE_UPSERT_LOCKS` :501，键 :503-505）+ `synchronized(lock)`（:511）+ `REQUIRES_NEW` 事务包 upsert+flush（:513-515）；`syncExternalTables` 循环接线 guarded 版本（:193），errors 经既有 try/catch 收集（:192-202，无 catch-and-continue）；判别性测试 `TestNopMetaTableConcurrentNullSchemaUpsert`（2 线程 / 20 轮 / latch 对齐 / GraphQL 公开入口 / 预建模块 / TABLE_SCHEM 置 null），surefire 1/0
+  - AR-08：`NopMetaTableBizModel.java` 守卫 4 filter（:172-176：eq metaModuleId + eq tableName + eq isDelta 0 + isNull metaSchema），真重复仍 fail-fast（:177-181）；`TestNopMetaTableBizModel` 26/0（+3 新测试）
+  - 既有回归：`TestNopMetaTableMultiSchemaUpsert` 2/0 不回归
+  - arm-index §P2 AR-07/AR-08 → fixed（:25-26）+ MR6 R6.3 收口注（:14）；roadmap R6.3 → done（:225）+ header v20（:3）
+  - 工具退出码：`check-plan-checklist.mjs <plan> --strict` 0（相对路径调用）、`scan-hollow-implementations.mjs --module nop-metadata --severity high` 0（0 发现）、`check-doc-links.mjs --strict` 0 errors（12 warnings 全为无关历史文件）
+  - 测试全量：`./mvnw test -pl nop-metadata/nop-metadata-service -am -T 1C` → 909 tests / 0 failures / 0 errors / 0 skipped（BUILD SUCCESS）；全量 `-pl nop-metadata -am` 预存在 rocksdb 性能 flaky（`TestRocksDBIncrementalRestoreAndBenchmark` ratio=1.0499）单跑复绿 2/0，非本 plan 引入
+  - Anti-Hollow：调用链 syncExternalTables:193 → upsertExternalTableGuarded:508-515（锁 → REQUIRES_NEW txn → upsertExternalTable find/insert-update :441-477 → flush）在活路径；判别性测试（未修复代码 20/20 轮 2 行静默重复 → 修复后 20/20 轮 1 行 0 错误）反证防护机制运行时生效
 
 Follow-up:
 
-- <<执行完成后填写；或明确写 no remaining plan-owned work>>
+- no remaining plan-owned work（Phase 1 路径 B `""` 交互测试按裁定不适用；多实例并发残余面 / querySpace upsert 语义 / 路径 A 加固均已在 Deferred But Adjudicated 段登记为 watch-only residual / out-of-scope，Successor Required: no）
+- 工作树提交由 mission 流程/用户决定（本 plan 执行不代提交）

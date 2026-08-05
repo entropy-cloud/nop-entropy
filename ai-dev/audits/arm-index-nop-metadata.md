@@ -2,7 +2,7 @@
 
 > **M0.2 交付物** — mission `nop-metadata-audit-remediation` 的 M0.2 工作项（按 `ai-dev/skills/audit-remediation-roadmap-authoring-prompt.md` §6.1）。
 > 状态：done
-> 最后更新：2026-08-05
+> 最后更新：2026-08-06（MR6 R6.3 收口，见 MR6 裁决记录段）
 > 来源：9 个历史审计来源（07-19 ~ 07-23 五轮，multi+open 双轨）+ 本 mission 3 个 M0 交付物自身；本索引不登记 nop-ai 等其他 mission 的 arm 文件。
 
 ## MR6 裁决记录（plan-2026-08-05-2154-1，2026-08-05 live 复核；R6.0 → done）
@@ -10,6 +10,8 @@
 > **R6.1 收口（plan-2026-08-05-2157-1，2026-08-05）**：P2-10/P2-13 两行 → fixed（本段表格内标注 plan 引用 + 修复摘要 + 测试证据）；roadmap R6.1 → done。
 >
 > **R6.2 收口（plan-2026-08-05-2157-2，2026-08-05）**：P2-11/P2-12 两行 → fixed（本段表格内标注 plan 引用 + 修复摘要 + 测试证据）；roadmap R6.2 → done。
+>
+> **R6.3 收口（plan-2026-08-05-2157-3，2026-08-06）**：AR-07/AR-08 两行 → fixed（本段表格内标注 plan 引用 + 修复摘要 + 测试证据）；roadmap R6.3 → done。
 
 - **Backlog 32 条全部终态（12 提级 + 20 归类，0 悬置）**，归属与 roadmap MR6 段「R6.0 裁决记录」双向一致（grep 32 条可追溯）；计数勘误 33/10/22 → 32/12/20（header "33 条"为错误计数）
 - **提级 12 条（全部经 live 代码复核确认，归属 R6.1~R6.5 行）**：
@@ -20,8 +22,8 @@
 | P2-13 | R6.1 → **fixed（plan-2026-08-05-2157-1 Phase 2）** | `ExpressionMeasureValidator.java:63` "SET TRANSACTION" 双 token 条目 vs scanBlacklist :469-489 单 token 匹配永不命中；:79 "INTO OUTFILE/DUMPFILE" 需 word 后跟 `(` 才成 FUNCTION_CALL（:412-413）亦永不命中——死条目。修复（裁定路径 A 拆分）：KEYWORD_BLACKLIST 增 SET/TRANSACTION/INTO/OUTFILE/DUMPFILE 单 token 条目（INTO 经 tokenizer 语义复核无真实误伤面一并加入），FUNCTION_BLACKLIST 删 2 死条目，注释同步；`TestExpressionMeasureValidator` +5（24→29）——SET TRANSACTION 向量（reason ∈ {SET,TRANSACTION}）/ 独立 TRANSACTION 向量钉死条目 / INTO OUTFILE 向量（reason ∈ {INTO,OUTFILE,DUMPFILE}，对裁定中立）+ 标识符嵌入/字符串字面量负例；`./mvnw test -pl nop-metadata -am -T 1C` 901/0 全绿 |
 | P2-11 | R6.2 → **fixed（plan-2026-08-05-2157-2 Phase 1）** | `CheckpointActionDispatcher.java:207-215` webhook 请求未设置重定向策略；HttpRequest 无 per-request 字段，跟随与否完全由全局 HttpClientConfig 决定（:33 默认 false；JdkHttpClient.java:92 → NEVER）——部署开启即 302 跳转目标不复核。修复（路径 A 裁定：显式配置门禁[唯一合格路径] + 3xx 显式拒绝[互补面]）：dispatcher 新增 `configureRedirectPolicy(boolean)` setter（新增 setter 对既有 4 处 2 参 `configureWebhookSsrf` 调用点零影响）+ per-dispatchWebhook 门禁（`nop.http.client.follow-redirects=true` 时 fetch 前显式抛新错误码 `ERR_CHECKPOINT_WEBHOOK_REDIRECT_NOT_ALLOWED`，0 网络调用）+ fetch 后 3xx（300-399）显式归类投递失败（同错误码，reason 标记 redirect，不落入隐含非 2xx 分支）；BizModel `@InjectValue("@cfg:nop.http.client.follow-redirects|false")` 沿既有 webhook-allowed-hosts 模式接线；`TestCheckpointActionDispatcherWebhookSsrf` +3（19→22）：301/302/307/308 显式拒绝（错误码 + reason 含 redirect，不依赖 Location 头）/ followRedirects=true 门禁拒绝（fetchCallCount=0）/ 缺省与显式 false 正常投递（2xx 无 errors）；`./mvnw test -pl nop-metadata -am -T 1C` 906/0 全绿 |
 | P2-12 | R6.2 → **fixed（plan-2026-08-05-2157-2 Phase 2）** | `MetaDataSourceConnectionProcessor.java:225-247` 三错误路径均 `.param(ARG_RAW_JDBC_URL, jdbcUrl)` 原始 URL（可含 user:pass@）；`TestMetaDataSourceConnectionSecurity.java:341-343` 断言含完整凭据——params 随异常序列化进日志/错误响应。修复：三处 `.param(ARG_RAW_JDBC_URL, jdbcUrl)` 全部移除（仅保留脱敏 `jdbcUrl` 参数 + reason）；`NopMetadataArgs.ARG_RAW_JDBC_URL` 常量删除（全仓 grep 确认无其他消费方）；`TestMetaDataSourceConnectionSecurity` 改写 `testErrorResponseContainsRedactedUrl`（断言 `rawJdbcUrl` 参数不存在 + 消息无 `admin:secret` 凭据，脱敏 URL 断言保留）+ 补 2 条（危险参数路径 / 内网主机路径各一条无明文凭据断言，25→27）；`./mvnw test -pl nop-metadata -am -T 1C` 906/0 全绿 |
-| AR-07 | R6.3 | R4.2 后 UK 含可空 META_SCHEMA；`NopMetaDataSourceBizModel.java:428-468` upsertExternalTable find-then-insert 非原子——NULL-schema 并发同名表两插皆成功（NULL≠NULL 不参与 UK），DB 防线移除 Java 无法兜底 |
-| AR-08 | R6.3 | `NopMetaTableBizModel.java:164-173` createSqlTable 守卫仅按 (metaModuleId, tableName) 查重无 isDelta/schema 过滤——比 4 列 UK 更严，delta 行/异 schema 行存在时误报 ERR_SQL_VIEW_TABLE_EXISTS |
+| AR-07 | R6.3 | R4.2 后 UK 含可空 META_SCHEMA；`NopMetaDataSourceBizModel.java:428-468` upsertExternalTable find-then-insert 非原子——NULL-schema 并发同名表两插皆成功（NULL≠NULL 不参与 UK），DB 防线移除 Java 无法兜底 → **fixed（plan-2026-08-05-2157-3 Phase 1：组合裁定落地路径 C'——per-key 锁（`EXTERNAL_TABLE_UPSERT_LOCKS`，按 (metaModuleId, tableName, normalizedSchema) 键持锁）+ 每表 `REQUIRES_NEW` 独立事务提交，锁跨 find→insert→flush→commit（执行期裁定调整记录：路径 C 原样锁定不跨 commit 时后到线程独立事务 find 不可见先到未提交行，竞态保留，故锁内独立事务提交）；`upsertExternalTableGuarded` 接线 syncExternalTables 循环；并发失败方收敛为 update 不报错不追加；判别性测试 `TestNopMetaTableConcurrentNullSchemaUpsert`（20 轮并发双插，TABLE_SCHEM 置 null 走真实 NULL-schema 分支——未修复代码 20/20 轮 2 行 0 错误静默重复 → 修复后 20/20 轮 1 行 0 错误））** |
+| AR-08 | R6.3 | `NopMetaTableBizModel.java:164-173` createSqlTable 守卫仅按 (metaModuleId, tableName) 查重无 isDelta/schema 过滤——比 4 列 UK 更严，delta 行/异 schema 行存在时误报 ERR_SQL_VIEW_TABLE_EXISTS → **fixed（plan-2026-08-05-2157-3 Phase 2：守卫补 `eq(isDelta,0)` + `isNull(metaSchema)` 逐字对齐 4 列 UK（非 null/空串归一——`''` 与 NULL 是 UK 中两个不同键）；`TestNopMetaTableBizModel` +3（23→26）：delta 行/异 schema 行存在时创建成功 + 真重复（同 isDelta=0 + null-schema）仍 fail-fast）** |
 | P2-06 | R6.4 | `AggregationHelper.java:496-506` checkTableExists catch SQLException → LOG.warn + false——真实故障被归类为业务性"表不可见"（ERR_FIELD_RESOLVE_NO_FIELDS 语义漂移） |
 | P2-07 | R6.4 | `NopMetaModuleBizModel.java:217-234` parseDeltaModel catch → LOG.warn + 降级 fullModel——x:extends 存在时 delta=full 语义不等价，delta 覆盖声明丢失 |
 | P2-09 | R6.4 | `NopMetaTagLabelBizModel.java:128-129` 提审失败仅 LOG.warn 继续——标签保存成功但永不进审批流，用户侧零感知 |
