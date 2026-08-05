@@ -163,4 +163,54 @@ public class TestHostSecurityUtil {
         assertFalse(HostSecurityUtil.isInternalHost("   "));
         assertFalse(HostSecurityUtil.isInternalHost(null));
     }
+
+    // ===== AR-02/AR-03 残余变体（plan-2026-08-06-0553-1 Phase 1）：FQDN 尾点 + 无括号 IPv6 带端口 =====
+
+    /** red→green：localhost. / a.localhost. 尾点 FQDN——当前前缀不命中判外部，修复后剥离尾点按 localhost 判内网。 */
+    @Test
+    public void testTrailingDotFqdnInternal() {
+        assertTrue(HostSecurityUtil.isInternalHost("localhost."),
+                "localhost. (trailing-dot FQDN, resolves to 127.0.0.1) must be internal");
+        assertTrue(HostSecurityUtil.isInternalHost("a.localhost."),
+                "a.localhost. (trailing-dot FQDN) must be internal");
+    }
+
+    /** red→green：0.0.0.0. 数字尾点——当前前缀不命中判外部，修复后剥离尾点按 0.0.0.0/8 判内网。 */
+    @Test
+    public void testTrailingDotNumericInternal() {
+        assertTrue(HostSecurityUtil.isInternalHost("0.0.0.0."),
+                "0.0.0.0. (trailing dot) must be internal after normalization");
+    }
+
+    /** red→green：无括号 IPv6 带端口——当前整串交给 getByName 解析为外部地址，修复后主动剥离端口按头部判定。 */
+    @Test
+    public void testUnbracketedIpv6WithPortInternal() {
+        assertTrue(HostSecurityUtil.isInternalHost("::1:3306"),
+                "::1:3306 must be internal (loopback ::1 + port)");
+        assertTrue(HostSecurityUtil.isInternalHost("::ffff:127.0.0.1:3306"),
+                "::ffff:127.0.0.1:3306 must be internal (IPv4-mapped 127.0.0.1 + port)");
+    }
+
+    /** keep-green：修复前已通过的回归守卫——127.0.0.1.（前缀已拦）/ fe80::1:3306（JDK 解析 link-local）修复后必须保持。 */
+    @Test
+    public void testKeepGreenRegressionGuards() {
+        assertTrue(HostSecurityUtil.isInternalHost("127.0.0.1."),
+                "127.0.0.1. kept internal (127. prefix already blocked)");
+        assertTrue(HostSecurityUtil.isInternalHost("fe80::1:3306"),
+                "fe80::1:3306 kept internal (JDK 26 parses as link-local)");
+        assertTrue(HostSecurityUtil.isInternalHost("FE80::1:3306"),
+                "FE80::1:3306 uppercase kept internal (same link-local judgment, no prefix special-casing)");
+    }
+
+    /** 反例：外网 host / 外网 IPv6 / 带括号形态（util 输入契约不带方括号，调用方已剥离）必须保持放行。 */
+    @Test
+    public void testReverseCasesStayExternal() {
+        assertFalse(HostSecurityUtil.isInternalHost("example.com"));
+        assertFalse(HostSecurityUtil.isInternalHost("example.com."),
+                "example.com. (external FQDN) must stay external");
+        assertFalse(HostSecurityUtil.isInternalHost("2001:db8::1"),
+                "2001:db8::1 (documentation IPv6) must stay external");
+        assertFalse(HostSecurityUtil.isInternalHost("[2001:db8::1]:3306"),
+                "bracketed form is out of util contract (caller strips brackets) - must stay external");
+    }
 }

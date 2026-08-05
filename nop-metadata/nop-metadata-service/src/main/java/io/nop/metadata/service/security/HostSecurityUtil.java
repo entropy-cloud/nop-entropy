@@ -46,6 +46,29 @@ public final class HostSecurityUtil {
         if (h.isEmpty()) {
             return false;
         }
+        // FQDN 尾点归一化（AR-03）：统一剥离一个尾 '.'（仅一个；example.com.. 剥一个后剩余 example.com.
+        // 不再递归处理，按既有判定路径走——纯 hostname 无前缀命中即判外部，不存在静默放行路径）。
+        // localhost. / a.localhost. 剥离后命中 localhost 判定；127.0.0.1. / 0.0.0.0. 剥离后走数字字面量路径。
+        if (h.length() > 1 && h.charAt(h.length() - 1) == '.') {
+            h = h.substring(0, h.length() - 1);
+        }
+        // 无括号 IPv6 带端口主动判读（AR-02）：含多个冒号且尾部为纯数字（端口候选）时，仅当头部解析为
+        // IP 字面量（16 字节 IPv6 或 4 字节 ::ffff: IPv4-mapped）才剥离端口按头部判定；否则按整个串判定
+        // （::1 无端口：头部 ":" 非 IP 字面量 → 整个串走 IPv6 字面量路径）。
+        // 必须是主动判读而非异常回退——JDK 26 上 getByName("::1:3306") 不抛异常（解析为 0:0:0:0:0:0:1:3306），
+        // 异常回退永不触发，不主动剥离端口就会把"带端口整体串"解析成外部地址而放行。
+        int firstColon = h.indexOf(':');
+        if (firstColon >= 0 && firstColon != h.lastIndexOf(':')) {
+            int lastColon = h.lastIndexOf(':');
+            String tail = h.substring(lastColon + 1);
+            if (isAllDigits(tail)) {
+                String head = h.substring(0, lastColon);
+                if (isIpLiteral(head)) {
+                    // 头部判定直接复用本工具自身判内网逻辑（mapped 头部由下方 ::ffff: 分支判内网），单一事实源
+                    return isInternalHost(head);
+                }
+            }
+        }
         // IPv4-mapped IPv6：::ffff:a.b.c.d → 取 IPv4 段复用 IPv4 判定
         int ffffIdx = h.lastIndexOf("::ffff:");
         if (ffffIdx >= 0) {
@@ -74,6 +97,50 @@ public final class HostSecurityUtil {
         }
         // hostname fast path（维持既有字符串比对行为，不触发 DNS）
         return isInternalHostname(h);
+    }
+
+    /**
+     * 尾段是否为纯数字（端口候选）。空串不算（`::1:` 尾空段不是端口，整个串按既有路径判定）。
+     */
+    private static boolean isAllDigits(String s) {
+        if (s.isEmpty()) {
+            return false;
+        }
+        for (int i = 0; i < s.length(); i++) {
+            if (s.charAt(i) < '0' || s.charAt(i) > '9') {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    /**
+     * 头部是否为 IP 字面量（16 字节 IPv6 字面量，或 4 字节 {@code ::ffff:} IPv4-mapped 形式——
+     * JDK 的 getByName 对 mapped 形式返回 Inet4Address）。
+     *
+     * <p>DNS 安全：仅对"含至少 2 个冒号且字符集 ⊆ [0-9a-f:.]"的串尝试字面量解析（合法 IPv6 字面量
+     * 至少含 2 个冒号，hostname 头部被前置排除），解析失败即非字面量，不会把 hostname 交给解析器。
+     */
+    private static boolean isIpLiteral(String head) {
+        int colons = 0;
+        for (int i = 0; i < head.length(); i++) {
+            char c = head.charAt(i);
+            if (c == ':') {
+                colons++;
+            } else if (!((c >= '0' && c <= '9') || (c >= 'a' && c <= 'f') || c == '.')) {
+                return false;
+            }
+        }
+        if (colons < 2) {
+            return false;
+        }
+        try {
+            InetAddress addr = InetAddress.getByName(head);
+            byte[] b = addr.getAddress();
+            return b != null && (b.length == 4 || b.length == 16);
+        } catch (UnknownHostException e) {
+            return false;
+        }
     }
 
     /** 数字字面量候选：仅含 ASCII 数字与点（1-4 段），且不以点开头/结尾。 */

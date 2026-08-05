@@ -14,6 +14,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.sql.DataSource;
+import java.net.InetAddress;
+import java.net.UnknownHostException;
 import java.util.regex.Pattern;
 import java.sql.Connection;
 import java.sql.DatabaseMetaData;
@@ -290,6 +292,18 @@ public class MetaDataSourceConnectionProcessor implements IMetaDataSourceConnect
             }
             return null;
         }
+        // 无括号 IPv6 带端口（::1:3306 / fe80::1:5432 / ::ffff:127.0.0.1:3306）：按 lastIndexOf(':') 分割，
+        // 仅当尾部为纯数字（端口候选）且头部解析为 IP 地址（16 字节 IPv6 字面量或 4 字节 ::ffff: IPv4-mapped，
+        // 仅字面量解析绝不触发 DNS）时取头部；否则回退既有首冒号分割语义（127.0.0.1:3306 / localhost:3306 /
+        // example.com:3306 等单冒号形态维持现状，绝不把"含端口整体串"交给 HostSecurityUtil——整体串含冒号
+        // 会走 IPv6 判定路径解析失败放行，导致基础防护全线失效）；无端口形态（::1）原样返回。
+        int lastColon = hostPort.lastIndexOf(':');
+        if (hostPort.indexOf(':') != lastColon) {
+            String tail = hostPort.substring(lastColon + 1);
+            if (isAllDigits(tail) && isIpLiteral(hostPort.substring(0, lastColon))) {
+                return hostPort.substring(0, lastColon);
+            }
+        }
         int colon = hostPort.indexOf(':');
         String host = colon > 0 ? hostPort.substring(0, colon) : hostPort;
         return host.isEmpty() ? null : host;
@@ -304,6 +318,50 @@ public class MetaDataSourceConnectionProcessor implements IMetaDataSourceConnect
         }
         String tail = h.substring(idx + 7);
         return isIpv4Literal(tail) ? tail : host;
+    }
+
+    /** 尾段是否为纯数字（端口候选）。空串不算（`::1:` 尾空段不是端口）。 */
+    private static boolean isAllDigits(String s) {
+        if (s.isEmpty()) {
+            return false;
+        }
+        for (int i = 0; i < s.length(); i++) {
+            if (s.charAt(i) < '0' || s.charAt(i) > '9') {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    /**
+     * 头部是否为 IP 字面量（16 字节 IPv6 字面量，或 4 字节 {@code ::ffff:} IPv4-mapped 形式——
+     * JDK 的 getByName 对 mapped 形式返回 Inet4Address）。与 HostSecurityUtil 判内网前的剥离判读共用同一规则。
+     *
+     * <p>DNS 安全：仅对"含至少 2 个冒号且字符集 ⊆ [0-9a-fA-F:.]"的串尝试字面量解析（合法 IPv6 字面量
+     * 至少含 2 个冒号，hostname 头部被前置排除），解析失败即非字面量，不会把 hostname 交给解析器。
+     * 十六进制大小写均接受——URL 原样传入未小写化，`FE80::1:3306` 大写形态必须命中同一判定（不按前缀特判）。
+     */
+    private static boolean isIpLiteral(String head) {
+        int colons = 0;
+        for (int i = 0; i < head.length(); i++) {
+            char c = head.charAt(i);
+            if (c == ':') {
+                colons++;
+            } else if (!((c >= '0' && c <= '9') || (c >= 'a' && c <= 'f')
+                    || (c >= 'A' && c <= 'F') || c == '.')) {
+                return false;
+            }
+        }
+        if (colons < 2) {
+            return false;
+        }
+        try {
+            InetAddress addr = InetAddress.getByName(head);
+            byte[] b = addr.getAddress();
+            return b != null && (b.length == 4 || b.length == 16);
+        } catch (UnknownHostException e) {
+            return false;
+        }
     }
 
     private static boolean isIpv4Literal(String s) {

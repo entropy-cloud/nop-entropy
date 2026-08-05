@@ -232,6 +232,70 @@ public class TestMetaDataSourceConnectionSecurity {
         }
     }
 
+    // ===== AR-02/AR-03 残余变体（plan-2026-08-06-0553-1 Phase 2）：无括号 IPv6 + FQDN 尾点 =====
+
+    /** 无括号 IPv6 loopback + 端口（::1:3306）必须被拒（AR-02 残余变体，驱动实测可建连 ::1 loopback）。 */
+    @Test
+    public void testUnbracketedIpv6LoopbackWithPortRejected() {
+        NopException ex = assertThrows(NopException.class,
+                () -> service.testConnect("jdbc",
+                        "{\"jdbcUrl\":\"jdbc:mysql://::1:3306/db\"," + BASE_CFG + "}"),
+                "unbracketed IPv6 loopback with port must be rejected");
+        assertEquals(NopMetadataErrors.ERR_DATASOURCE_JDBC_URL_BLOCKED.getErrorCode(), ex.getErrorCode());
+        assertTrue(String.valueOf(ex.getParam("reason")).contains("host"),
+                "reason must mention host: " + ex.getParam("reason"));
+    }
+
+    /** 无括号 IPv6 link-local + 端口（fe80::1:5432）必须被拒（首字符非 ':' 时既有首冒号截断变体）。 */
+    @Test
+    public void testUnbracketedIpv6LinkLocalWithPortRejected() {
+        NopException ex = assertThrows(NopException.class,
+                () -> service.testConnect("jdbc",
+                        "{\"jdbcUrl\":\"jdbc:postgresql://fe80::1:5432/db\"," + BASE_CFG + "}"),
+                "unbracketed IPv6 link-local with port must be rejected");
+        assertEquals(NopMetadataErrors.ERR_DATASOURCE_JDBC_URL_BLOCKED.getErrorCode(), ex.getErrorCode());
+    }
+
+    /** 无括号 IPv6 link-local + 端口，大写十六进制（FE80::1:5432）必须被拒——同一通用判定，不按前缀特判。 */
+    @Test
+    public void testUnbracketedIpv6UppercaseLinkLocalWithPortRejected() {
+        NopException ex = assertThrows(NopException.class,
+                () -> service.testConnect("jdbc",
+                        "{\"jdbcUrl\":\"jdbc:mysql://FE80::1:5432/db\"," + BASE_CFG + "}"),
+                "uppercase unbracketed IPv6 link-local with port must be rejected");
+        assertEquals(NopMetadataErrors.ERR_DATASOURCE_JDBC_URL_BLOCKED.getErrorCode(), ex.getErrorCode());
+    }
+
+    /** 无端口无括号 IPv6（jdbc:mysql://::1/db）必须被拒（无端口形态原样返回 → util 判 loopback 内网）。 */
+    @Test
+    public void testUnbracketedIpv6WithoutPortRejected() {
+        NopException ex = assertThrows(NopException.class,
+                () -> service.testConnect("jdbc",
+                        "{\"jdbcUrl\":\"jdbc:mysql://::1/db\"," + BASE_CFG + "}"),
+                "unbracketed IPv6 loopback without port must be rejected");
+        assertEquals(NopMetadataErrors.ERR_DATASOURCE_JDBC_URL_BLOCKED.getErrorCode(), ex.getErrorCode());
+    }
+
+    /** IPv4-mapped 无括号变体（::ffff:127.0.0.1:3306）必须被拒（mapped 头部 4 字节判定，防 16 字节限定回退放行）。 */
+    @Test
+    public void testUnbracketedIpv4MappedWithPortRejected() {
+        NopException ex = assertThrows(NopException.class,
+                () -> service.testConnect("jdbc",
+                        "{\"jdbcUrl\":\"jdbc:mysql://::ffff:127.0.0.1:3306/db\"," + BASE_CFG + "}"),
+                "unbracketed IPv4-mapped loopback with port must be rejected");
+        assertEquals(NopMetadataErrors.ERR_DATASOURCE_JDBC_URL_BLOCKED.getErrorCode(), ex.getErrorCode());
+    }
+
+    /** FQDN 尾点 localhost.（jdbc:mysql://localhost.:3306/db）必须被拒（AR-03 JDBC 侧直接证据，jshell 实测解析到 127.0.0.1）。 */
+    @Test
+    public void testTrailingDotLocalhostRejected() {
+        NopException ex = assertThrows(NopException.class,
+                () -> service.testConnect("jdbc",
+                        "{\"jdbcUrl\":\"jdbc:mysql://localhost.:3306/db\"," + BASE_CFG + "}"),
+                "trailing-dot localhost FQDN must be rejected");
+        assertEquals(NopMetadataErrors.ERR_DATASOURCE_JDBC_URL_BLOCKED.getErrorCode(), ex.getErrorCode());
+    }
+
     // ===== driverClassName 白名单 =====
 
     /** 非白名单 driverClassName（任意类加载攻击）必须失败。 */

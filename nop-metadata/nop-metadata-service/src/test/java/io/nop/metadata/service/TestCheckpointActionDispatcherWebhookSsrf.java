@@ -240,6 +240,43 @@ public class TestCheckpointActionDispatcherWebhookSsrf {
                 "allowlisted internal IP must reach IHttpClient.fetch");
     }
 
+    // ===== AR-02/AR-03 残余变体（plan-2026-08-06-0553-1 Phase 2）：无括号 IPv6 + FQDN 尾点 =====
+
+    /** 无括号 IPv6 loopback + 端口（http://::1:3306/）必须被拒（AR-02 webhook 侧变体）。 */
+    @Test
+    public void testUnbracketedIpv6LoopbackWithPortBlocked() {
+        assertWebhookBlocked("http://::1:3306/", "internal/link-local/loopback host not in allowed-hosts",
+                "unbracketed IPv6 loopback with port must be blocked");
+    }
+
+    /** 无括号 IPv6 link-local + 端口（http://fe80::1:3306/，首字符非 ':' 截断变体）必须被拒。 */
+    @Test
+    public void testUnbracketedIpv6LinkLocalWithPortBlocked() {
+        assertWebhookBlocked("http://fe80::1:3306/", "internal/link-local/loopback host not in allowed-hosts",
+                "unbracketed IPv6 link-local with port must be blocked");
+    }
+
+    /** 无括号 IPv6 link-local + 端口，大写十六进制（http://FE80::1:3306/）必须被拒——同一通用判定，不按前缀特判。 */
+    @Test
+    public void testUnbracketedIpv6UppercaseLinkLocalWithPortBlocked() {
+        assertWebhookBlocked("http://FE80::1:3306/", "internal/link-local/loopback host not in allowed-hosts",
+                "uppercase unbracketed IPv6 link-local with port must be blocked");
+    }
+
+    /** IPv4-mapped 无括号变体（http://::ffff:127.0.0.1:3306/）必须被拒。 */
+    @Test
+    public void testUnbracketedIpv4MappedWithPortBlocked() {
+        assertWebhookBlocked("http://::ffff:127.0.0.1:3306/", "internal/link-local/loopback host not in allowed-hosts",
+                "unbracketed IPv4-mapped loopback with port must be blocked");
+    }
+
+    /** FQDN 尾点 localhost.（http://localhost.:8080/）必须被拒（AR-03 webhook 侧直接证据，jshell 实测解析到 127.0.0.1）。 */
+    @Test
+    public void testTrailingDotLocalhostBlocked() {
+        assertWebhookBlocked("http://localhost.:8080/", "internal/link-local/loopback host not in allowed-hosts",
+                "trailing-dot localhost FQDN must be blocked");
+    }
+
     // ===== Method 白名单 =====
 
     /** GET 触发副作用/CSRF，必须被拒。 */
