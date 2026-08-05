@@ -2,7 +2,7 @@
 
 > **M0.3 交付物** — mission `nop-metadata-audit-remediation` 的 M0.3 工作项（按 `ai-dev/skills/audit-remediation-roadmap-authoring-prompt.md` 步骤 2）。
 > 状态：done
-> 最后更新：2026-08-04（v2 — MA3 复核回填：11-04 证据指针更新、MISSING-AUTH/post-commit-SEMANTIC 复核结论、RACE 初步复核结论）
+> 最后更新：2026-08-05（v3 — 追加 2026-08-05 两轮审计（multi-audit + open-audit）11 个 P1 登记段，见 §2026-08-05 两轮审计 P1 登记段）
 > 遍历范围：9 个历史审计来源（07-19 / 07-20×2 / 07-21×2 / 07-23×2，multi+open 双轨 + 07-20 deep 目录）+ 全部 nop-metadata 相关已 completed 修复 plan（`ls ai-dev/plans/ | grep -i "nop-metadata"` 全量 86 份，逐份核对 `Deferred But Adjudicated` / `Closure` 段）。
 > **Finding ID 轮次限定约定**（本清单强制）：`<YYYY-MM-DD-HHmm>#<来源内编号>`（如 `2026-07-19-1118#维度01-01`），杜绝跨轮裸编号冲突；roadmap 后续新发现使用 `P<级别>-<里程碑>-<序号>`。
 
@@ -26,6 +26,24 @@
 | `2026-07-21-2039#维度16-01` | 19/40 BizModel 零测试（07 plan 已补 5 个高风险；剩余 14 个 CRUD-only BizModel） | P1 | watch-only（plan 07/10 裁定 out-of-scope improvement，CRUD-only 风险由 DAO 层测试 + 框架继承覆盖兜底） | MA4.4/MA4.7 审计复核 |
 
 > 说明：roadmap 规则 1 只处理 P0/P1。P1 中 2 项为已裁定 watch-only residual（有明确 `Why Not Blocking` 记录），1 项 live 确认 open 且为机械修复（MR2 归属）。
+
+## 2026-08-05 两轮审计 P1 登记段（plan-2026-08-05-1842-3 Phase 3，AR-05 治理缺口闭合）
+
+> 登记对象：2026-08-05 两轮新审计全部 11 个 P1——`ai-dev/audits/2026-08-05-0655-multi-audit-nop-metadata-audit-remediation.md`（P1-01~06）+ `ai-dev/audits/2026-08-05-0655-open-audit-nop-metadata-audit-remediation.md`（AR-01~05）。此前从未登记入 arm-index / roadmap（MV closure audit "P1 12/12 PASS + 0 untraceable" 口径不覆盖这两轮输入），本批登记恢复可追溯；ID 采用轮次限定格式 `2026-08-05-0655#P1-xx` / `#AR-0x`（沿用本清单头部约定，防与历史 P1-MA*-* 及历史 AR-01/02 混淆）。完整终态行见 `ai-dev/audits/arm-index-nop-metadata.md` §P1 汇总表（11 行全部 fixed，本表为摘要镜像）。
+
+| 轮次限定 ID | 标题 | 状态 | 承接 plan |
+|------------|------|------|----------|
+| `2026-08-05-0655#P1-01` | JDBC 建连 SSRF：isInternalHost 缺 IP 记法变体归一化（十进制整数/前导零/短格式放行） | fixed | plan-2026-08-05-1842-1（共享 HostSecurityUtil + 回归测试，889/0 全绿） |
+| `2026-08-05-0655#P1-02` | webhook SSRF：短格式 IPv4 遗漏 + 八进制语义与 JDK 错配 | fixed | plan-2026-08-05-1842-1（dispatcher 委托共享工具，废弃 inet_aton 八进制） |
+| `2026-08-05-0655#P1-03` | 血缘公开 API 解析失败降级为成功响应（违反"无静默跳过"契约） | fixed | plan-2026-08-05-1842-2（BizModel 边界 errors 非空即抛 + 空 SQL 两级统一，894/0 全绿） |
+| `2026-08-05-0655#P1-04` | 模块文档实体表格 21/39（18 个实体缺失） | fixed | plan-2026-08-05-1842-3（表格补全 39 行，表名与 orm.xml 一致） |
+| `2026-08-05-0655#P1-05` | source-anchors.md META-004 transformType 枚举错误 | fixed | plan-2026-08-05-1842-3（:168 修正 direct/derived/aggregated） |
+| `2026-08-05-0655#P1-06` | "每个 BizModel 都有接口"全称断言与 NopMetaSearch 例外冲突 | fixed | plan-2026-08-05-1842-3（裁定 (b)：文档例外声明） |
+| `2026-08-05-0655#AR-01` | 同 P1-01（已知未修复复核，追踪矩阵遗漏项） | fixed | plan-2026-08-05-1842-1（同 P1-01 证据） |
+| `2026-08-05-0655#AR-02` | 同 P1-02（已知未修复复核，追踪矩阵遗漏项） | fixed | plan-2026-08-05-1842-1（同 P1-02 证据） |
+| `2026-08-05-0655#AR-03` | 同 P1-03（已知未修复复核，追踪矩阵遗漏项） | fixed | plan-2026-08-05-1842-2（同 P1-03 证据） |
+| `2026-08-05-0655#AR-04` | 文档契约漂移三件仍 live（实体表/META-004 枚举/I*Biz 断言） | fixed | plan-2026-08-05-1842-3（同 P1-04/05/06 证据） |
+| `2026-08-05-0655#AR-05` | 治理缺口：两轮审计 11 个 P1 未入 arm-index/roadmap | fixed | plan-2026-08-05-1842-3（本登记段 + arm-index §P1 + roadmap MR5 段，追踪口径修复） |
 
 ## P0 即时通道裁定
 

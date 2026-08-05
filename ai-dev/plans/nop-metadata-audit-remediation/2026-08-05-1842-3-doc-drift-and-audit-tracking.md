@@ -1,6 +1,6 @@
 # 文档契约漂移修复 + 审计追踪治理（实体表 21/39、META-004 枚举、I*Biz 断言、multi-audit P1 入库）
 
-> Plan Status: active
+> Plan Status: completed
 > Last Reviewed: 2026-08-05
 > Draft Review: 2 轮独立子 agent 对抗性审查 consensus——R1 `ses_02e781917ffemIWTq8vvO6WfJo`（1 Blocker：默认方向 (a) 与"纯文档计划/无代码变更"Closure Gates 矛盾——改为默认 (b) + (a) 分支构建/测试门禁指引；2 Major：40→39 接口计数、选项 (a) 无测试处置；6 Minor——全部修复）；R2 `ses_02ee342ffePAoJ7mU5p24LQl`（0 Blocker 0 Major，8 Minor 文本/路径修正——已修复）。全部 Blocker/Major 清零，裁定可执行。
 > Source: `ai-dev/audits/2026-08-05-0655-multi-audit-nop-metadata-audit-remediation.md`（[P1-04][P1-05][P1-06]）、`ai-dev/audits/2026-08-05-0655-open-audit-nop-metadata-audit-remediation.md`（[AR-04][AR-05]）
@@ -59,100 +59,102 @@
 
 ### Phase 1 - 模块文档实体表格补全 + I*Biz 断言裁定
 
-Status: planned
+Status: completed
 Targets: `docs-for-ai/03-modules/nop-metadata.md`
 
 - Item Types: `Fix | Decision | Proof`
 
-- [ ] **实体表格补全（Fix）**：以 `nop-metadata/model/nop-metadata.orm.xml` 为准补全缺失 18 个实体行（表名与 orm.xml 逐一核对），或显式注明"以下为核心实体，完整清单见 orm.xml（39 个）"——执行时裁定，以读者不误判模块实体总量为准
-- [ ] **I*Biz 断言裁定（Decision，默认方向 (b)）**：二选一——(a) 在 `nop-metadata-dao/src/main/java/io/nop/metadata/biz/` 新增 `INopMetaSearchBiz`（声明 rebuildSearchIndex + searchMetadata 两方法，`NopMetaSearchBizModel implements` 之，对齐其余 39 个接口模式，无行为变更）；(b) `nop-metadata.md:109` 显式声明 NopMetaSearch 为 Pseudo-BizModel 例外。**默认方向 (b)**：audit 允许二选一、接口无跨模块调用方（`ai-dev/plans/10-nop-metadata-search-integration.md:18,136` 记录 deferred）、本 plan 主题为文档治理，纯文档路径风险最低。**若执行者裁定选 (a)**，本 plan 不再是纯文档计划，必须同时：(i) Closure Gates 恢复 `./mvnw compile` + `./mvnw test -pl nop-metadata-dao,nop-metadata-service -am`；(ii) 按 Minimum Rule #25 在 `TestNopMetaBizInterfaceCompleteness` 补 INopMetaSearchBiz 方法签名断言（不允许 "No new test required" 豁免）；(iii) 记录 nop-metadata-api/dao 公共面新增声明。裁定结论与理由写入本 plan Phase 1 记录
-- [ ] **全称断言文本修正（Fix）**：按裁定结果使 `:109` 断言与实现一致（补接口则保持原文；声明例外则加例外说明）
-- [ ] 交叉核对：表格其余 21 行表名与 orm.xml 无漂移（audit 已确认无错误，执行时复核）
+> **Phase 1 裁定记录（2026-08-05 执行）**：实体表格裁定 = 全量补全（39 行完整表格，含 18 个缺失实体，表名与 orm.xml 逐一核对 39/39 一致，无漂移）；I*Biz 断言裁定 = **方向 (b)**（默认路径）——NopMetaSearchBizModel 为 Pseudo-BizModel（跨多实体无单一实体），无跨模块调用方，纯文档例外声明，不改代码不新增接口（无 INopMetaSearchBiz，无签名/行为变更）；`docs-for-ai/03-modules/nop-metadata.md:109` 全称断言后追加例外声明段 + 参考文档 :168 同断言同步加例外注记。
+
+- [x] **实体表格补全（Fix）**：以 `nop-metadata/model/nop-metadata.orm.xml` 为准补全缺失 18 个实体行（表名与 orm.xml 逐一核对），或显式注明"以下为核心实体，完整清单见 orm.xml（39 个）"——执行时裁定，以读者不误判模块实体总量为准
+- [x] **I*Biz 断言裁定（Decision，默认方向 (b)）**：二选一——(a) 在 `nop-metadata-dao/src/main/java/io/nop/metadata/biz/` 新增 `INopMetaSearchBiz`（声明 rebuildSearchIndex + searchMetadata 两方法，`NopMetaSearchBizModel implements` 之，对齐其余 39 个接口模式，无行为变更）；(b) `nop-metadata.md:109` 显式声明 NopMetaSearch 为 Pseudo-BizModel 例外。**默认方向 (b)**：audit 允许二选一、接口无跨模块调用方（`ai-dev/plans/10-nop-metadata-search-integration.md:18,136` 记录 deferred）、本 plan 主题为文档治理，纯文档路径风险最低。**若执行者裁定选 (a)**，本 plan 不再是纯文档计划，必须同时：(i) Closure Gates 恢复 `./mvnw compile` + `./mvnw test -pl nop-metadata-dao,nop-metadata-service -am`；(ii) 按 Minimum Rule #25 在 `TestNopMetaBizInterfaceCompleteness` 补 INopMetaSearchBiz 方法签名断言（不允许 "No new test required" 豁免）；(iii) 记录 nop-metadata-api/dao 公共面新增声明。裁定结论与理由写入本 plan Phase 1 记录
+- [x] **全称断言文本修正（Fix）**：按裁定结果使 `:109` 断言与实现一致（补接口则保持原文；声明例外则加例外说明）
+- [x] 交叉核对：表格其余 21 行表名与 orm.xml 无漂移（audit 已确认无错误，执行时复核）
 
 Exit Criteria:
 
 > 每个 Phase 完成后，必须逐条勾选本节。所有 `[x]` 后才能将 Phase Status 改为 `completed`。
 
-- [ ] 模块文档实体清单覆盖 39 个实体（或显式入口说明），表名与 orm.xml 一致（rg 复核）
-- [ ] `:109` 断言与实现一致（接口存在 或 例外声明在位）
-- [ ] `node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0（本 plan 修改 docs 后必跑）
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] 模块文档实体清单覆盖 39 个实体（或显式入口说明），表名与 orm.xml 一致（rg 复核）
+- [x] `:109` 断言与实现一致（接口存在 或 例外声明在位）
+- [x] `node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0（本 plan 修改 docs 后必跑）
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 ### Phase 2 - source-anchors.md META-004 枚举修正
 
-Status: planned
+Status: completed
 Targets: `docs-for-ai/04-reference/source-anchors.md`
 
 - Item Types: `Fix | Proof`
 
-- [ ] **枚举修正（Fix）**：`:168` 改为 `direct/derived/aggregated`，交叉检查 META-004 同包注释（source-anchors.md META-004 行描述）
-- [ ] **三方核实（Proof）**：常量类（`_NopMetadataCoreConstants.java:149-159`）/ dict（`nop-metadata-meta/src/main/resources/_vfs/dict/meta/lineage-transform.dict.yaml`）/ extractor（`SqlColumnLineageExtractor.java:479-492`）三处与实际枚举一致（文档修正后，全仓仅文档一处为错误表述，三方核对全通过）
-- [ ] 全文件 grep 复核 `expression`/`aggregate` 残留在 source-anchors.md 中与 transformType 相关的表述（防同类错误复发）
+- [x] **枚举修正（Fix）**：`:168` 改为 `direct/derived/aggregated`，交叉检查 META-004 同包注释（source-anchors.md META-004 行描述）
+- [x] **三方核实（Proof）**：常量类（`_NopMetadataCoreConstants.java:149-159`）/ dict（`nop-metadata-meta/src/main/resources/_vfs/dict/meta/lineage-transform.dict.yaml`）/ extractor（`SqlColumnLineageExtractor.java:479-492`）三处与实际枚举一致（文档修正后，全仓仅文档一处为错误表述，三方核对全通过）
+- [x] 全文件 grep 复核 `expression`/`aggregate` 残留在 source-anchors.md 中与 transformType 相关的表述（防同类错误复发）
 
 Exit Criteria:
 
 > 每个 Phase 完成后，必须逐条勾选本节。所有 `[x]` 后才能将 Phase Status 改为 `completed`。
 
-- [ ] source-anchors.md 中 transformType 枚举与代码三方一致（grep 复核）
-- [ ] `node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] source-anchors.md 中 transformType 枚举与代码三方一致（grep 复核）
+- [x] `node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 ### Phase 3 - 治理修复：11 个 P1 登记入 arm-index + roadmap
 
-Status: planned
+Status: completed
 Targets: `ai-dev/audits/arm-index-nop-metadata.md` + `ai-dev/backlog/nop-metadata-audit-remediation-roadmap.md`
 
 - Item Types: `Fix | Decision`
 
-- [ ] **P1 登记（Fix，AR-05 主体）**：在 `arm-index-nop-metadata.md` P1 汇总表登记 11 个 P1（P1-01..06 + AR-01..05），**ID 采用轮次限定格式 `2026-08-05-0655#P1-01` 等**（沿用 arm-unclosed-findings 约定，避免与历史 `P1-MA*-*` 及历史 AR-01/02 混淆），状态 = planned，附来源审计路径 + 本批 remediation plan 引用（`{1}`/`{2}`/`{3}`）；**镜像守卫：若 {1}/{2} 先行收口已将自身行写为 fixed，登记时不得回退状态（已 fixed 行保持 fixed + 补 plan 引用，缺失行才新增 planned）**；同时更新"未闭包 P1 数"口径（原 0 项 → 11 项 planned/视先行收口情况，注明来源轮次）
-- [ ] **roadmap 登记（Fix）**：roadmap **新增 MR5 工作项段**（11 个 P1 全部登记为 planned + plan 引用，标注来源 multi-audit 2026-08-05-0655 + open-audit 2026-08-05-0655）——AR-05 要求 arm-index + roadmap 双登记，**不允许跳过**（roadmap MR1-4 已 done，新段承接本轮输入）；**同步 roadmap 头部注记**（"M0→MG 收尾"口径后追加 MR5 说明）
-- [ ] **arm-unclosed-findings 登记（Fix）**：`arm-unclosed-findings-nop-metadata.md` 追加登记段：11 项 P1 → 状态 planned，承接 plan 引用 + 指向 arm-index（该文件是 mission 的"未闭包清单"，防止第二份索引 stale）
-- [ ] **追踪口径修复（Decision）**：在 arm-index 汇总段注明 MV closure audit "P1 12/12 PASS + 0 untraceable" 口径不覆盖 2026-08-05 两轮审计输入，本批登记后恢复可追溯（修复声明口径，不回写历史 audit 结论）
-- [ ] 交叉核对：**逐 ID 核对新增登记段 11 行**（或 grep 登记段内 "multi-audit 2026-08-05" 标记），**不得使用 `AR-0[1-5]` 模式 grep 全文件**（arm-index 历史行已有 AR-01/AR-02 等 12 处命中，会产生假阳性）
+- [x] **P1 登记（Fix，AR-05 主体）**：在 `arm-index-nop-metadata.md` P1 汇总表登记 11 个 P1（P1-01..06 + AR-01..05），**ID 采用轮次限定格式 `2026-08-05-0655#P1-01` 等**（沿用 arm-unclosed-findings 约定，避免与历史 `P1-MA*-*` 及历史 AR-01/02 混淆），状态 = planned，附来源审计路径 + 本批 remediation plan 引用（`{1}`/`{2}`/`{3}`）；**镜像守卫：若 {1}/{2} 先行收口已将自身行写为 fixed，登记时不得回退状态（已 fixed 行保持 fixed + 补 plan 引用，缺失行才新增 planned）**；同时更新"未闭包 P1 数"口径（原 0 项 → 11 项 planned/视先行收口情况，注明来源轮次）
+- [x] **roadmap 登记（Fix）**：roadmap **新增 MR5 工作项段**（11 个 P1 全部登记为 planned + plan 引用，标注来源 multi-audit 2026-08-05-0655 + open-audit 2026-08-05-0655）——AR-05 要求 arm-index + roadmap 双登记，**不允许跳过**（roadmap MR1-4 已 done，新段承接本轮输入）；**同步 roadmap 头部注记**（"M0→MG 收尾"口径后追加 MR5 说明）
+- [x] **arm-unclosed-findings 登记（Fix）**：`arm-unclosed-findings-nop-metadata.md` 追加登记段：11 项 P1 → 状态 planned，承接 plan 引用 + 指向 arm-index（该文件是 mission 的"未闭包清单"，防止第二份索引 stale）
+- [x] **追踪口径修复（Decision）**：在 arm-index 汇总段注明 MV closure audit "P1 12/12 PASS + 0 untraceable" 口径不覆盖 2026-08-05 两轮审计输入，本批登记后恢复可追溯（修复声明口径，不回写历史 audit 结论）
+- [x] 交叉核对：**逐 ID 核对新增登记段 11 行**（或 grep 登记段内 "multi-audit 2026-08-05" 标记），**不得使用 `AR-0[1-5]` 模式 grep 全文件**（arm-index 历史行已有 AR-01/AR-02 等 12 处命中，会产生假阳性）
 
 Exit Criteria:
 
 > 每个 Phase 完成后，必须逐条勾选本节。所有 `[x]` 后才能将 Phase Status 改为 `completed`。
 
-- [ ] 11 个 P1 全部在 arm-index 可查（登记段逐 ID 核对，grep 命中 11 项）
-- [ ] roadmap MR5 段登记在位（11 项，不允许跳过）
-- [ ] arm-unclosed-findings-nop-metadata.md 登记段在位
-- [ ] 追踪矩阵口径说明已更新（无 untraceable finding）
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] 11 个 P1 全部在 arm-index 可查（登记段逐 ID 核对，grep 命中 11 项）
+- [x] roadmap MR5 段登记在位（11 项，不允许跳过）
+- [x] arm-unclosed-findings-nop-metadata.md 登记段在位
+- [x] 追踪矩阵口径说明已更新（无 untraceable finding）
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 ### Phase 4 - 收口（文档链接检查 + closure audit）
 
-Status: planned
+Status: completed
 Targets: 全量文档检查 + closure audit
 
 - Item Types: `Proof`
 
-- [ ] `node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0（全量）
-- [ ] 独立子 agent closure audit（fresh session）逐项核对，证据写入本 plan Closure 段
-- [ ] `node ai-dev/tools/check-plan-checklist.mjs <本plan文件> --strict` 退出码 0（closure 时）
+- [x] `node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0（全量）
+- [x] 独立子 agent closure audit（fresh session）逐项核对，证据写入本 plan Closure 段
+- [x] `node ai-dev/tools/check-plan-checklist.mjs <本plan文件> --strict` 退出码 0（closure 时）
 
 Exit Criteria:
 
 > 每个 Phase 完成后，必须逐条勾选本节。所有 `[x]` 后才能将 Phase Status 改为 `completed`。
 
-- [ ] check-doc-links --strict 0 errors
-- [ ] 独立 closure audit PASS，evidence 已写入本 plan Closure 段
-- [ ] 无静默降级：文档契约漂移 + 治理缺口为 fixed，无 live defect 被降级
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] check-doc-links --strict 0 errors
+- [x] 独立 closure audit PASS，evidence 已写入本 plan Closure 段
+- [x] 无静默降级：文档契约漂移 + 治理缺口为 fixed，无 live defect 被降级
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 ## Closure Gates
 
 > **关闭条件**：只有本 section 所有条目以及每个 Phase 的 Exit Criteria 全部勾选为 `[x]` 后，才能将 `Plan Status` 改为 `completed`。关闭流程详见本 guide 的 `When Closing The Plan` 和 `Closure Audit Rule`。
 
-- [ ] 三处文档契约漂移（实体表 / META-004 枚举 / I*Biz 断言）与 live repo 一致
-- [ ] 11 个 P1 全部登记入 arm-index（planned + plan 引用）+ roadmap MR5 段 + arm-unclosed-findings 登记段，无 untraceable finding
-- [ ] 必要 focused verification 已完成（grep 核对 + check-doc-links）
-- [ ] 不存在被静默降级到 deferred / follow-up 的 in-scope live defect 或 contract drift
-- [ ] 受影响的 owner docs 已同步到 live baseline
-- [ ] 独立子 agent closure-audit 已完成并记录证据
-- [ ] **Anti-Hollow Check**：closure audit 已验证文档表述与 live repo 一致（抽样核对实体表行数 / 枚举值 / 接口文件存在性），无空头声明
-- [ ] `node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0
-- [ ] 构建验证按裁定分支：默认 (b) 纯文档路径 → `./mvnw` 验证条目删除（guide 纯文档计划条款）；若执行者选 (a)（新增 INopMetaSearchBiz）→ 必须 `./mvnw compile` + `./mvnw test -pl nop-metadata-dao,nop-metadata-service -am` 通过，且接口签名断言测试（TestNopMetaBizInterfaceCompleteness 扩展）全绿
+- [x] 三处文档契约漂移（实体表 / META-004 枚举 / I*Biz 断言）与 live repo 一致
+- [x] 11 个 P1 全部登记入 arm-index（planned + plan 引用）+ roadmap MR5 段 + arm-unclosed-findings 登记段，无 untraceable finding
+- [x] 必要 focused verification 已完成（grep 核对 + check-doc-links）
+- [x] 不存在被静默降级到 deferred / follow-up 的 in-scope live defect 或 contract drift
+- [x] 受影响的 owner docs 已同步到 live baseline
+- [x] 独立子 agent closure-audit 已完成并记录证据
+- [x] **Anti-Hollow Check**：closure audit 已验证文档表述与 live repo 一致（抽样核对实体表行数 / 枚举值 / 接口文件存在性），无空头声明
+- [x] `node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0
+- [x] 构建验证按裁定分支：默认 (b) 纯文档路径 → `./mvnw` 验证条目删除（guide 纯文档计划条款）；若执行者选 (a)（新增 INopMetaSearchBiz）→ 必须 `./mvnw compile` + `./mvnw test -pl nop-metadata-dao,nop-metadata-service -am` 通过，且接口签名断言测试（TestNopMetaBizInterfaceCompleteness 扩展）全绿
 
 ## Deferred But Adjudicated
 
@@ -165,21 +167,29 @@ Exit Criteria:
 
 ## Non-Blocking Follow-ups
 
-- （按执行结果补充）
+- （按执行结果补充）：无 plan-owned 剩余工作（Deferred But Adjudicated 段 P2 批次 27+5 项已登记 roadmap Follow-up Backlog，不属本 plan）
 
 ## Closure
 
-Status Note: （执行收口时填写）
-Completed: YYYY-MM-DD
+Status Note: 4 Phase 全执行。默认裁定方向 (b)（纯文档计划，零代码变更）：实体表格 21→39 补全（表名与 orm.xml 39/39 一致）+ source-anchors.md META-004 枚举修正（direct/derived/aggregated）+ I*Biz 全称断言例外声明（NopMetaSearchBizModel Pseudo-BizModel）；11 个 P1（P1-01~06 + AR-01~05）全部登记入 arm-index P1 汇总表（轮次限定 ID，grep 11/11）+ roadmap MR5 段（R5.3 done）+ arm-unclosed-findings 登记段；追踪口径修复（MV "12/12 PASS" 不覆盖两轮新审计输入已注明）；`check-doc-links --strict` exit 0；独立子 agent closure audit PASS。
+Completed: 2026-08-05
 
 Closure Audit Evidence:
 
-- Reviewer / Agent: （独立子 agent，fresh session）
-- Evidence: （每条 Exit Criterion / Closure Gate 验证结果 + 工具退出码，收口时写入）
+- Reviewer / Agent: 独立子 agent（fresh session，read-only，task `ses_02e1ac94affe3StBEkxgI8CeoA`）
+- Audit Session: `ses_02e1ac94affe3StBEkxgI8CeoA`（未复用本 plan 执行 session）
+- Evidence:
+  - Phase 1 Exit Criteria：PASS —— 实体表格 39/39（orm.xml 39 个 `<entity>` vs 文档 39 行，0 缺失 0 漂移，脚本核对；标题「核心实体（39 个，完整清单与 orm.xml 一致）」nop-metadata.md:19）；I*Biz 例外声明在位（:129-131 + 参考文档 :188），live 核实 biz/ 目录 39 个 INopMeta*Biz 接口、0 个 INopMetaSearchBiz、NopMetaSearchBizModel 存在（service/search/）
+  - Phase 2 Exit Criteria：PASS —— source-anchors.md:168 `transformType: direct/derived/aggregated`；三方一致（`_NopMetadataCoreConstants.java:149/154/159` direct/derived/aggregated + `lineage-transform.dict.yaml` 3 options + `SqlColumnLineageExtractor.java:482-492` resolveTransformType）；grep 无 transformType 相关 expression/aggregate 残留
+  - Phase 3 Exit Criteria：PASS —— arm-index 11 个轮次限定 ID 各恰好 1 次（grep -c 全 1），行全部终态 fixed + plan-2026-08-05-1842-1/2/3 引用；MR5 批次批注 + 追踪口径修复段在位（arm-index:138-140）；roadmap MR5 段 R5.1/R5.2/R5.3 全 done（R5.3 引用本 plan），头部 v15；arm-unclosed-findings 登记段 11 行 + 指向 arm-index（:30-46）
+  - Phase 4 Exit Criteria：PASS —— `node ai-dev/tools/check-doc-links.mjs --strict` exit 0（0 errors；14 warnings 均为 ai-dev/plans 历史文件既有 + 本 plan 文件自身 2 条非阻塞 warning，非 error）；`node ai-dev/tools/check-plan-checklist.mjs ai-dev/plans/nop-metadata-audit-remediation/2026-08-05-1842-3-doc-drift-and-audit-tracking.md --strict` exit 0；`git status --porcelain` 确认变更仅 7 个 .md 文件（docs-for-ai 2 + ai-dev 5），零代码变更（纯文档计划）
+  - Closure Gates：全部 PASS —— 三处文档契约漂移与 live repo 一致（Anti-Hollow 实测：39 实体行数 / 3 枚举值 / 39 接口文件存在性逐项 live 核对）；11 个 P1 全登记无 untraceable；无 in-scope live defect 被降级（Deferred 仅 P2 批次，已归 roadmap Follow-up Backlog）；owner docs 已同步；构建验证按裁定分支 (b) 纯文档路径删除 mvnw 条目（guide 纯文档计划条款，零代码变更）
+  - Deferred 项分类检查：P2 批次（multi-audit P2-01~27 + open-audit AR-06~10）为 out-of-scope improvement，已在 roadmap ## Follow-up Backlog 登记，无 live defect 降级
+  - 文档链接检查：`check-doc-links --strict` exit 0（首跑 1 error 为本批 source-anchors.md:168 新增的 `dict/meta/...` 相对路径引用，已修正为模块全路径后 exit 0）
 
 Follow-up:
 
-- （只记录 non-blocking follow-up；confirmed live defect 不得出现在这里）
+- 无 plan-owned 剩余工作（P2 批次 32 项登记于 roadmap Follow-up Backlog，按 backlog 跟踪）
 
 ## Optional Sections
 

@@ -14,20 +14,36 @@ nop-metadata 是 Nop 平台的**联邦式元数据中心**，承担五类职责�
 - 跨库 JOIN：同库走原生 JOIN SQL，跨库走应用层拼接（限流 + 显式失败）
 - 元数据变更事件（`NopMetaModelChangedEvent`）：表/模块/数据源 CRUD 自动记录 before/after 快照
 
-## 核心实体
+## 核心实体（39 个，完整清单与 `nop-metadata/model/nop-metadata.orm.xml` 一致）
 
 | 实体 | 表名 | 用途 |
 |------|------|------|
 | NopMetaModule | `nop_meta_module` | 业务模块（聚合多张逻辑表的命名空间） |
-| NopMetaTable | `nop_meta_table` | 逻辑表（tableType: entity/external/sql） |
+| NopMetaOrmModel | `nop_meta_orm_model` | ORM 模型（importOrmModel 导入的模型定义快照，含 sourceContent/isDelta） |
 | NopMetaDataSource | `nop_meta_data_source` | 外部数据源配置（jdbc 类型 + 连接信息） |
+| NopMetaTable | `nop_meta_table` | 逻辑表（tableType: entity/external/sql） |
 | NopMetaEntity | `nop_meta_entity` | ORM 实体（与 NopMetaOrmModel 关联） |
 | NopMetaEntityField | `nop_meta_entity_field` | 实体字段 |
+| NopMetaEntityRelation | `nop_meta_entity_relation` | 实体关系定义 |
+| NopMetaEntityUniqueKey | `nop_meta_entity_unique_key` | 实体唯一键定义 |
+| NopMetaEntityIndex | `nop_meta_entity_index` | 实体索引定义 |
+| NopMetaDomain | `nop_meta_domain` | 域定义（stdDomain 声明） |
+| NopMetaDict | `nop_meta_dict` | 元数据字典定义 |
+| NopMetaDictItem | `nop_meta_dict_item` | 字典项 |
+| NopMetaSemanticType | `nop_meta_semantic_type` | 语义类型定义（typeName + 字段语义标注） |
 | NopMetaTableJoin | `nop_meta_table_join` | 跨表 JOIN 关联定义（端点 + joinType + 关联字段） |
 | NopMetaTableMeasure | `nop_meta_table_measure` | 指标定义（aggFunc + 字段引用 + expression） |
 | NopMetaTableDimension | `nop_meta_table_dimension` | 维度定义（granularity + 字段引用） |
 | NopMetaTableFilter | `nop_meta_table_filter` | 通用 filter 定义（TreeBean） |
+| NopMetaPipeline | `nop_meta_pipeline` | 数据管道（pipeline 定义） |
 | NopMetaLineageEdge | `nop_meta_lineage_edge` | 血缘边（source/target table + 列级 + transformType） |
+| NopMetaGlossary | `nop_meta_glossary` | 词汇表 |
+| NopMetaGlossaryTerm | `nop_meta_glossary_term` | 词汇表术语 |
+| NopMetaClassification | `nop_meta_classification` | 分类体系 |
+| NopMetaTag | `nop_meta_tag` | 分类标签 |
+| NopMetaTagLabel | `nop_meta_tag_label` | 语义标注（标签-对象关联，含提审/审批流） |
+| NopMetaBusinessDomain | `nop_meta_business_domain` | 业务组织域 |
+| NopMetaDataProduct | `nop_meta_data_product` | 数据产品（资产关联） |
 | NopMetaQualityRule | `nop_meta_quality_rule` | 质量规则定义（ruleType + entity/field/table 范围） |
 | NopMetaQualityCheckpoint | `nop_meta_quality_checkpoint` | 质量检查点（批量执行 + cron 调度） |
 | NopMetaQualityResult | `nop_meta_quality_result` | 单规则执行结果（PASS/FAIL/SKIP；含 checkpointId/runId 幂等键列 + 复合 UK） |
@@ -35,10 +51,12 @@ nop-metadata 是 Nop 平台的**联邦式元数据中心**，承担五类职责�
 | NopMetaProfilingRule | `nop_meta_profiling_rule` | 数据剖析规则 |
 | NopMetaProfilingResult | `nop_meta_profiling_result` | 数据剖析结果快照 |
 | NopMetaReconciliationConfig | `nop_meta_reconciliation_config` | 对账配置 |
+| NopMetaReconciliationEntity | `nop_meta_reconciliation_entity` | 对账候选实体缓存（匹配候选集来源） |
 | NopMetaReconciliationResult | `nop_meta_reconciliation_result` | 对账结果（含每行 UNMATCHED/MATCHED 状态） |
 | NopMetaCatalog | `nop_meta_catalog` | catalog 运行时统计时序快照（rowCount/sizeBytes/lastModified） |
 | NopMetaDataContract | `nop_meta_data_contract` | 数据契约（quality + SLA） |
 | NopMetaManifest | `nop_meta_manifest` | 模块清单（自包含 JSON 快照） |
+| NopMetaModelChangedEvent | `nop_meta_model_changed_event` | 元数据变更事件（表/模块/数据源 CRUD 的 before/after 快照） |
 
 ## 典型使用场景
 
@@ -108,6 +126,8 @@ mutation {
 
 每个 BizModel 都实现了对应的 `INopMeta*Biz` 接口（位于 `nop-metadata-dao/.../biz/`），声明全部自定义 `@BizQuery` / `@BizMutation` 方法签名。跨模块 `@Inject INopMeta*Biz` 可直接调用接口方法，避免依赖具体实现类。
 
+**例外（Pseudo-BizModel）**：`NopMetaSearchBizModel`（`@BizModel("NopMetaSearch")`，位于 `nop-metadata-service/.../search/`）无对应 `INopMetaSearchBiz` 接口——其搜索索引跨 NopMetaTable / NopMetaEntity / NopMetaEntityField / NopMetaGlossaryTerm 等多实体，无单一对应实体；当前无跨模块调用方（接口 deferred），`rebuildSearchIndex` / `searchMetadata` 两方法仅经 GraphQL 访问。
+
 主要 I*Biz 接口（plan 2026-07-19-1250-3 Phase 1 补齐）：
 
 - `INopMetaTableBiz` — profileTable / createSqlTable / previewSqlFields / resolveTableFields / queryTableData / queryJoinData / queryAggregation
@@ -165,7 +185,7 @@ nop-metadata 严格遵循"无静默跳过"原则（plan 2026-07-19-1250-3 Phase 
 ## 参考文档
 
 - 平台主文档：`docs-for-ai/03-modules/nop-metadata.md`（本文档）
-- I*Biz 接口契约（`nop-metadata-dao/.../biz/INopMeta*Biz.java`）：每个 BizModel 都有对应接口声明全部自定义方法签名
+- I*Biz 接口契约（`nop-metadata-dao/.../biz/INopMeta*Biz.java`）：每个 BizModel 都有对应接口声明全部自定义方法签名（唯一例外：NopMetaSearchBizModel Pseudo-BizModel 无接口，见上「API 契约」段）
 - DTO 规格（`nop-metadata-api/.../dto/`）：31 个 `@DataBean` DTO 类承载 API 返回值强类型契约
 - ErrorCode 集中化（`nop-metadata-service/.../NopMetadataErrors.java`）：跨文件去重 + ARG_* 参数常量
 - 模块级异常（`NopMetadataException`）：替代 `IllegalArgumentException` / `UnsupportedOperationException` / 裸 `RuntimeException`
