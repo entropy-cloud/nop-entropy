@@ -1,6 +1,6 @@
 # R4.2 多 schema 支持专项（P2-MA3-03 终局 successor：metaSchema null 语义裁定 → UK 列维度扩展 + 存量迁移 + 写入路径同步）
 
-> Plan Status: active
+> Plan Status: completed
 > Last Reviewed: 2026-08-05
 > Draft Review: 3 轮独立子 agent 对抗性审查通过——R1 `ses_02ef3abffffeXeh8YKus2aQEmd`（2 Blocker：Oracle ''=NULL 方言语义 + _add_tenant tenant UK 变体遗漏；5 Major：TestNopMetaUniqueKeysEnforced 列数断言 / createSqlTable 第三写点 / Non-Goal 冲突 / 存量 NULL 主流 / RACE 残余面）；R2 `ses_02ee60d20ffeNAukr5GQ2kNQy6`（2 Major：createSqlTable fail-fast 回归 + 非租户存量升级路径；3 Minor）；R3 `ses_02edf79bbffeZB6N4E6qQ2d9Fb`（0 Blocker，共识达成；2 Major 文本级更正——_add_tenant 实为 xgen 生成产物非手写脚本 + Baseline ORA-30657 残留，已修复；3 Minor 已修复）。全部 Blocker/Major 清零，裁定可执行。
 > Mission: nop-metadata-audit-remediation
@@ -151,25 +151,25 @@ Exit Criteria:
 
 ### Phase 4 - 收口（roadmap R4.2 → done + arm-index 终态 + closure audit）
 
-Status: planned
+Status: completed
 Targets: `ai-dev/backlog/nop-metadata-audit-remediation-roadmap.md` + `ai-dev/audits/arm-index-nop-metadata.md`
 
 - Item Types: `Decision | Proof`
 
-- [ ] arm-index P2-MA3-03 行终态更新（fixed，附 plan 引用 + 修复摘要）
-- [ ] roadmap R4.2 行 → done（注明计划引用与修复摘要）
-- [ ] 独立子 agent closure audit（fresh session，closure-audit-prompt.md）：逐项核对本 plan 全部 Phase Exit Criteria + Closure Gates，证据写入本 plan Closure 段
-- [ ] `node ai-dev/tools/check-plan-checklist.mjs <本plan文件> --strict` 退出码 0（closure 时）
+- [x] arm-index P2-MA3-03 行终态更新（fixed，附 plan 引用 + 修复摘要）
+- [x] roadmap R4.2 行 → done（注明计划引用与修复摘要）
+- [x] 独立子 agent closure audit（fresh session，closure-audit-prompt.md）：逐项核对本 plan 全部 Phase Exit Criteria + Closure Gates，证据写入本 plan Closure 段
+- [x] `node ai-dev/tools/check-plan-checklist.mjs <本plan文件> --strict` 退出码 0（closure 时）
 
 Exit Criteria:
 
 > 每个 Phase 完成后，必须逐条勾选本节。所有 `[x]` 后才能将 Phase Status 改为 `completed`。
 
-- [ ] arm-index + roadmap R4.2 终态一致可追溯
-- [ ] 独立 closure audit PASS，evidence 已写入本 plan Closure 段
-- [ ] 无静默降级：null 语义裁定与 UK 变更无 live defect 被降级为 deferred
-- [ ] 文档变化：roadmap + arm-index 更新；docs-for-ai 按 Phase 3 核实结果处理
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] arm-index + roadmap R4.2 终态一致可追溯
+- [x] 独立 closure audit PASS，evidence 已写入本 plan Closure 段
+- [x] 无静默降级：null 语义裁定与 UK 变更无 live defect 被降级为 deferred
+- [x] 文档变化：roadmap + arm-index 更新；docs-for-ai 按 Phase 3 核实结果处理
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 ## Phase 1 Adjudication Records（2026-08-05 live 复核 + 裁定，repo-observable）
 
@@ -222,21 +222,21 @@ Why（显式覆盖三方言 unique 语义 + Oracle `''`=NULL 约束）：
 
 > **关闭条件**：只有本 section 所有条目以及每个 Phase 的 Exit Criteria 全部勾选为 `[x]` 后，才能将 `Plan Status` 改为 `completed`。关闭流程详见本 guide 的 `When Closing The Plan` 和 `Closure Audit Rule`。
 
-- [ ] metaSchema null 语义已裁定（live 证据 + 三方言 unique 语义 + Oracle `''`=NULL 约束），UK 变更落地（model-first），多 schema 同名表可共存
-- [ ] 所有 3 个 in-scope 写路径与 UK 语义一致（upsertExternalTable / buildEntityTable / createSqlTable），无接线断裂
-- [ ] **`_add_tenant_*.sql` 三方言 tenant UK 变体已同步**（含 metaSchema 维度），租户部署下修复不被静默撤销
-- [ ] 存量迁移方案落地或明确裁定（NULL 行为主流非例外；路径 B 含重复行处置 + Oracle 适配；**非租户存量部署升级路径已显式裁定**）
-- [ ] 必要 focused verification 已完成（多 schema upsert e2e + 单 schema 回归 + DDL 断言 + UK 列数断言更新 + **createSqlTable 重复守卫测试**）
-- [ ] 不存在被静默降级到 deferred / follow-up 的 in-scope live defect 或 contract drift（含 RACE null-schema 族残余面显式记录）
-- [ ] 受影响的 owner docs 已同步到 live baseline，或明确写明 No owner-doc update required
-- [ ] 独立子 agent closure-audit 已完成并记录证据
-- [ ] **Anti-Hollow Check**：closure audit 已验证（a）upsert 写入路径与新 UK 的运行时连通（e2e 两 schema 两行落盘），（b）无空方法体/静默跳过/no-op 作为正常实现
-- [ ] `./mvnw clean install -DskipTests -pl nop-metadata -am -T 1C`
-- [ ] `./mvnw test -pl nop-metadata -T 1C`（0 failures）
-- [ ] checkstyle / 代码规范检查通过（nop-metadata 无独立 checkstyle 命令，以 mvn 构建默认检查为准；历史惯例 "checkstyle N/A"）
-- [ ] `node ai-dev/tools/check-plan-checklist.mjs <本plan文件> --strict` 退出码 0（closure 时）
-- [ ] `node ai-dev/tools/scan-hollow-implementations.mjs --module nop-metadata --severity high` 退出码 0（closure 时）
-- [ ] `node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0（若修改 docs-for-ai/ 则必跑）
+- [x] metaSchema null 语义已裁定（live 证据 + 三方言 unique 语义 + Oracle `''`=NULL 约束），UK 变更落地（model-first），多 schema 同名表可共存
+- [x] 所有 3 个 in-scope 写路径与 UK 语义一致（upsertExternalTable / buildEntityTable / createSqlTable），无接线断裂
+- [x] **`_add_tenant_*.sql` 三方言 tenant UK 变体已同步**（含 metaSchema 维度），租户部署下修复不被静默撤销
+- [x] 存量迁移方案落地或明确裁定（NULL 行为主流非例外；路径 B 含重复行处置 + Oracle 适配；**非租户存量部署升级路径已显式裁定**）
+- [x] 必要 focused verification 已完成（多 schema upsert e2e + 单 schema 回归 + DDL 断言 + UK 列数断言更新 + **createSqlTable 重复守卫测试**）
+- [x] 不存在被静默降级到 deferred / follow-up 的 in-scope live defect 或 contract drift（含 RACE null-schema 族残余面显式记录）
+- [x] 受影响的 owner docs 已同步到 live baseline，或明确写明 No owner-doc update required
+- [x] 独立子 agent closure-audit 已完成并记录证据
+- [x] **Anti-Hollow Check**：closure audit 已验证（a）upsert 写入路径与新 UK 的运行时连通（e2e 两 schema 两行落盘），（b）无空方法体/静默跳过/no-op 作为正常实现
+- [x] `./mvnw clean install -DskipTests -pl nop-metadata -am -T 1C`
+- [x] `./mvnw test -pl nop-metadata -T 1C`（0 failures）
+- [x] checkstyle / 代码规范检查通过（nop-metadata 无独立 checkstyle 命令，以 mvn 构建默认检查为准；历史惯例 "checkstyle N/A"）
+- [x] `node ai-dev/tools/check-plan-checklist.mjs <本plan文件> --strict` 退出码 0（closure 时）
+- [x] `node ai-dev/tools/scan-hollow-implementations.mjs --module nop-metadata --severity high` 退出码 0（closure 时）
+- [x] `node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0（若修改 docs-for-ai/ 则必跑）
 
 ## Deferred But Adjudicated
 
@@ -256,15 +256,15 @@ Why（显式覆盖三方言 unique 语义 + Oracle `''`=NULL 约束）：
 
 ### SQL 表「恒 null-schema」语义（createSqlTable 写路径）
 
-- Classification: `watch-only residual`（Phase 1 裁定确认后登记）
-- Why Not Blocking Closure: `NopMetaTableBizModel.createSqlTable`（:161-169）创建的 tableType=SQL 表不设 metaSchema（null）——语义为「SQL 视图无 schema 维度」；**唯一性保障 = Phase 1 裁定的 createSqlTable 重复守卫（find-or-fail，裁定选项 a）或路径 B/C 的 DB 层约束（选项 b）**；若裁定选项 (c)（显式接受静默重复），须在 Phase 1 记录 Why（修正 Round-2 审查指出的错误：原理由「归一规则保证唯一性」不成立——normalizeSchemaForMatch 仅存在于 upsertExternalTable 匹配逻辑，createSqlTable 无此逻辑）
+- Classification: `watch-only residual`（Phase 1 D5 裁定确认后登记）
+- Why Not Blocking Closure: `NopMetaTableBizModel.createSqlTable`（:161-169）创建的 tableType=SQL 表不设 metaSchema（null）——语义为「SQL 视图无 schema 维度」；**唯一性保障 = Phase 1 D5 裁定的 createSqlTable 重复守卫（find-or-fail，错误码 ERR_SQL_VIEW_TABLE_EXISTS，已落地）**——Round-2 审查指出的原理错误已同步更正：normalizeSchemaForMatch 仅存在于 upsertExternalTable 匹配逻辑，createSqlTable 无此逻辑，唯一性保障来自守卫而非「归一规则」
 - Successor Required: `no`
 - Successor Path: —
 
 ### 存量非租户部署 UK 升级（Round-2 Major-2）
 
-- Classification: `out-of-scope improvement`（Phase 1 若裁定此路径）或 `landed`（Phase 1 若裁定产出 ALTER SQL）
-- Why Not Blocking Closure: （若裁定 out-of-scope）R3.19 先例（isDelta 维度）亦无迁移脚本；存量非租户部署升级为运维流程问题，不改变代码正确性——但须显式记录，不得沉默
+- Classification: `landed`（Phase 1 D3 裁定产出 ALTER SQL；产物 `deploy/sql/{mysql,oracle,postgresql}/upgrade-nop-meta-table-uk.sql` 三方言齐备）
+- Why Not Blocking Closure: R3.19 先例（isDelta 维度）确无迁移脚本，但那是既有功能正确性修复；本 plan 是新能力，升级产物成本极低且消除「新能力静默不可用」面——已落地，存量库运维按文件内前置注释处置 pre-R3.19 重复行
 - Successor Required: `no`
 - Successor Path: —
 
@@ -281,17 +281,26 @@ Why（显式覆盖三方言 unique 语义 + Oracle `''`=NULL 约束）：
 
 ## Closure
 
-Status Note: 待执行后填写
-Completed: YYYY-MM-DD
+Status Note: R4.2 多 schema 支持专项全部 Phase 落地——metaSchema null 语义裁定 = 路径 A（保持可空 + UK 扩展 4 列，model-first），三方言 DDL/tenant 变体/_gen 再生成，3 写路径同步 + createSqlTable find-or-fail 守卫，行为回归测试 860/0 全绿，独立子 agent closure audit PASS，可关闭。
+Completed: 2026-08-05
 
 Closure Audit Evidence:
 
-- Reviewer / Agent: 待独立子 agent 填写
-- Evidence: 待填写（每条 Exit Criterion 的验证结果 + check-plan-checklist exit 0 + Anti-Hollow 检查结果 + Deferred 项分类检查）
+- Reviewer / Agent: independent closure-audit subagent（fresh session，task `ses_02ecb9297ffeVNhafBYHebblfn`）
+- Evidence:
+  - 逐 Closure Gate 验证 15/15 PASS：UK 模型变更（orm.xml:1317 4 列 `(metaModuleId,tableName,isDelta,metaSchema)` + metaSchema 保持可空 :1310-1311）；3 写路径接线（NopMetaDataSourceBizModel:454/:462 归一化存储 infoSchema + :441 normalizeSchemaForMatch 匹配 / OrmModelImporter:176-185 不设 metaSchema / NopMetaTableBizModel:166-173 find-or-fail 守卫）；`_add_tenant_` 三方言 tenant UK 变体含 META_SCHEMA（:228，diff 仅 2 行再生成痕迹零手编）；upgrade-nop-meta-table-uk.sql 三方言 drop/add 4 列 UK；focused tests（TestNopMetaTableMultiSchemaUpsert 2 方法行为断言：两 schema 两行 + re-sync 不追加 + 重复创建显式失败 / TestNopMetaDdlUniqueKeyEmission.testTableUniqueKeyIncludesMetaSchemaDimension 模型 + 三方言 DDL 文本 / TestNopMetaUniqueKeysEnforced :81-83 4 列精确断言）；docs 追溯链（roadmap:175 done + arm-index:156 R4.2 fixed + ai-dev/logs/2026/08-05.md 条目）
+  - Anti-Hollow 调用链追踪 PASS：`syncExternalTables`（:163-164 @BizMutation）→ `upsertExternalTable`（:186）→ `normalizeSchemaForMatch`（:438）→ 候选匹配（:441）→ saveEntity/updateEntity 存 infoSchema（:454/:462）→ e2e 测试经 GraphQL 引擎 + 真实 H2 JDBC（CREATE SCHEMA S1/S2）两行落盘；`createSqlTable`（:166-173）→ QueryBean findFirstByQuery → 命中抛 NopMetadataException(ERR_SQL_VIEW_TABLE_EXISTS)（SqlErrors.java:40）——均为活路径真实逻辑，无空方法体/静默跳过/no-op
+  - `node ai-dev/tools/check-plan-checklist.mjs ai-dev/plans/nop-metadata-audit-remediation/2026-08-05-1625-1-r4-2-multi-schema-support.md --strict` 退出码 0（无未勾选项 + Closure Evidence 已写入）
+  - `node ai-dev/tools/scan-hollow-implementations.mjs --module nop-metadata --severity high` 退出码 0（0 findings）
+  - `node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0（docs-for-ai 未改动；20 warnings 为历史计划相对路径引用，非 errors）
+  - `./mvnw clean install -DskipTests -pl nop-metadata -am -T 1C` BUILD SUCCESS（生成产物 `_app.orm.xml`/`_NopMetaTable.xmeta`/三方言 DDL 与模型逐字一致，diff 无无关漂移）
+  - `./mvnw test -pl nop-metadata -T 1C` → **860 tests / 0 failures / 0 errors / 0 skipped**（service 859 + web 1；858 基线 + 2 新增 TestNopMetaTableMultiSchemaUpsert）
+  - Deferred 分类检查 PASS：cross-datasource querySpace（out-of-scope，0852-3 follow-up）/ null-schema 族 RACE residual（D4 显式 watch-only）/ SQL 表恒 null-schema（D5 守卫保障，归一规则原理错误已更正）/ 存量非租户升级（D3 landed，升级 SQL 三方言落地）/ 多租户 schema 隔离（out-of-scope）——无 in-scope live defect 或 contract drift 被降级
+  - 审计 Minor 处置：① Phase 4 勾选 + Closure evidence 写入（本次）；② Deferred 段「存量非租户部署 UK 升级」Classification 条件式文本 → `landed`；③ check-doc-links BROKEN_LINK warnings 为相对路径解析产物（exit 0，非 errors）
 
 Follow-up:
 
-- 待执行后填写
+- no remaining plan-owned work（R4.3 调度幂等由独立 plan 2026-08-05-1625-2 承接，非本 plan 范围）
 
 ## Optional Sections
 
