@@ -1,6 +1,6 @@
 # R4.3 调度可靠性专项（P2-MA7.5-05 终局 successor：检查点执行幂等——runId/checkpointId 列 + 复合 UK + 执行入口运行标记）
 
-> Plan Status: active
+> Plan Status: completed
 > Last Reviewed: 2026-08-05
 > Draft Review: 3 轮独立子 agent 对抗性审查通过——R1 `ses_02ef391dbffen2Wuz99iWcl2Qq`（0 Blocker，3 Major：幂等范围收窄 / DTO runId 字段 / 锁释放时点；6 Minor）；R2 `ses_02ee5fb67ffeBVCi7WBXQXZTIv`（0 Blocker，共识达成，3 Minor 先项）；R3 `ses_02edf6a79ffeGPLFWAK75wZdbq`（0 Blocker，共识达成；2 Minor：错误码落点改 QualityErrors.java + 分布式锁例外条款收紧，已修复；1 Trivial 已处置）。全部 Blocker/Major 清零，裁定可执行。
 > Mission: nop-metadata-audit-remediation
@@ -75,124 +75,137 @@
 
 ### Phase 1 - 幂等键设计裁定 + 运行标记机制裁定
 
-Status: planned
+Status: completed
 Targets: `NopMetaQualityCheckpointBizModel.java` + `MetaQualityCheckpointExecutor.java` + `QualityResultWriter.java` + `LocalJobScheduler.java`（证据读取）
 
 - Item Types: `Decision | Proof`
 
-- [ ] **live 复核调用链与残余面（Proof）**：读取 `executeCheckpoint`（:159-，含 dispatchActions 投递段 :201-203 附近）+ `MetaQualityCheckpointExecutor.execute`（:97-176，per-rule append :131）+ `QualityResultWriter.append`（:43-61）+ 单规则路径（`NopMetaQualityRuleBizModel:344-346`）；核对 `LocalJobScheduler` 平台守卫覆盖范围（WAITING 门 :233-234、running 占位 :263、fireNow 检查 :180-188）与残余面（手动双击 / 手动×cron 并发）
-- [ ] **runId 语义裁定（Decision）**：**runId = UUID**（`StringHelper.generateUUID()` 仓库主键惯例；反向约束：非 UUID 的「checkpointId+时间戳」类方案在 ms 粒度顺序执行时撞 runId 会让 UK 错误拒绝合法执行）——生成时机（executeCheckpoint 入口一次生成）、载体（结果行 + 摘要返回 + DTO）、传递链（BizModel → executor → writer）；单规则路径 runId/checkpointId 置 null
-- [ ] **复合 UK 设计裁定（Decision）**：`NopMetaQualityResult` 复合 UK 列清单（候选如 `(checkpointId, runId, qualityRuleId)` 防同次执行同规则重复写行——resolveRules 按 ruleId 去重保证每次执行每规则一行，UK 仅兜底同 runId 重复写）——核对与现有 `IX_NOP_META_QRESULT_RULE` 索引、时序追加语义兼容；**可空列进 UK 的语义确认**：三方言一致——复合唯一索引中任一列 NULL 即不参与冲突判定（存量全 NULL 行不冲突、单规则路径 NULL/NULL 不受约束、检查点路径非 NULL 完全强制），**无需数据迁移**；列契约（checkpointId/runId 可空）
-- [ ] **运行标记机制裁定（Decision）**：执行入口防重入机制——进程内锁（per-checkpoint 锁 map，**BizModel 实例字段**——raw impl 与 GraphQL 代理路径汇聚同一 raw 实例，scheduler :211 注入 raw impl 实证）；**锁获取语义 = 非阻塞（putIfAbsent/try-lock），命中即 fail-fast——blocking 实现会让并发重复变串行重复，修复目标落空**（Round-2 审查 E）；**锁作用域 = requireEntity 之后、executor 之前获取，方法体最外层 finally 释放（覆盖 executor + autoScore + dispatchActions 全程，锁不能放 dispatch 内部 try/catch 里）**（Major-3）；与 LocalJobScheduler 平台守卫职责边界（平台按 job 名守卫 cron 自重叠，模块按 checkpointId 守卫手动路径与手动×cron 交叉，均非阻塞拒绝，无死锁）；多实例分布式锁面裁定（当前单实例 baseline 是否必做，裁定不做则显式记录）
-- [ ] **cron 路径 fail-fast 语义裁定（Decision，Minor-8）**：cron tick 与手动执行并发时 cron 侧被 fail-fast 拒绝 → 使用专用错误码 + **`MetaQualityCheckpointScheduler.executeScheduledCheckpoint` catch 分支（:212-219 当前无条件 LOG.error）按错误码降级 WARN**——避免 MA7.5-01 catch-all 转 ERROR 造成运维误读
-- [ ] **错误码落点裁定（Decision，Round-3 Minor-1）**：`NopMetadataErrors` 为聚合接口（extends QualityErrors/MiscErrors 等，零常量），checkpoint 子域错误码在 `QualityErrors.java`（如 ERR_CHECKPOINT_* 系）/`MiscErrors.java`（ERR_CHECKPOINT_NOT_FOUND 在 :147）——新错误码**写入子域接口文件（QualityErrors.java），经 `NopMetadataErrors` 聚合公开**，不写入聚合接口
-- [ ] **升级 SQL 落点裁定（Decision，Round-2 Minor-C）**：`deploy/sql/` 无 `_alter` 目录——落点确定为（新建 `deploy/sql/{dialect}/_alter_*.sql` 或 docs 段），**本项为 Phase 2 执行时裁定**（Phase 2 引用，不在 Phase 1 交付）
-- [ ] 裁定记录 repo-observable（本 plan + arm-index P2-MA7.5-05 行）
+- [x] **live 复核调用链与残余面（Proof）**：读取 `executeCheckpoint`（:159-，含 dispatchActions 投递段 :201-203 附近）+ `MetaQualityCheckpointExecutor.execute`（:97-176，per-rule append :131）+ `QualityResultWriter.append`（:43-61）+ 单规则路径（`NopMetaQualityRuleBizModel:344-346`）；核对 `LocalJobScheduler` 平台守卫覆盖范围（WAITING 门 :233-234、running 占位 :263、fireNow 检查 :180-188）与残余面（手动双击 / 手动×cron 并发）
+- [x] **runId 语义裁定（Decision）**：**runId = UUID**（`StringHelper.generateUUID()` 仓库主键惯例；反向约束：非 UUID 的「checkpointId+时间戳」类方案在 ms 粒度顺序执行时撞 runId 会让 UK 错误拒绝合法执行）——生成时机（executeCheckpoint 入口一次生成）、载体（结果行 + 摘要返回 + DTO）、传递链（BizModel → executor → writer）；单规则路径 runId/checkpointId 置 null
+- [x] **复合 UK 设计裁定（Decision）**：`NopMetaQualityResult` 复合 UK 列清单（候选如 `(checkpointId, runId, qualityRuleId)` 防同次执行同规则重复写行——resolveRules 按 ruleId 去重保证每次执行每规则一行，UK 仅兜底同 runId 重复写）——核对与现有 `IX_NOP_META_QRESULT_RULE` 索引、时序追加语义兼容；**可空列进 UK 的语义确认**：三方言一致——复合唯一索引中任一列 NULL 即不参与冲突判定（存量全 NULL 行不冲突、单规则路径 NULL/NULL 不受约束、检查点路径非 NULL 完全强制），**无需数据迁移**；列契约（checkpointId/runId 可空）
+- [x] **运行标记机制裁定（Decision）**：执行入口防重入机制——进程内锁（per-checkpoint 锁 map，**BizModel 实例字段**——raw impl 与 GraphQL 代理路径汇聚同一 raw 实例，scheduler :211 注入 raw impl 实证）；**锁获取语义 = 非阻塞（putIfAbsent/try-lock），命中即 fail-fast——blocking 实现会让并发重复变串行重复，修复目标落空**（Round-2 审查 E）；**锁作用域 = requireEntity 之后、executor 之前获取，方法体最外层 finally 释放（覆盖 executor + autoScore + dispatchActions 全程，锁不能放 dispatch 内部 try/catch 里）**（Major-3）；与 LocalJobScheduler 平台守卫职责边界（平台按 job 名守卫 cron 自重叠，模块按 checkpointId 守卫手动路径与手动×cron 交叉，均非阻塞拒绝，无死锁）；多实例分布式锁面裁定（当前单实例 baseline 是否必做，裁定不做则显式记录）
+- [x] **cron 路径 fail-fast 语义裁定（Decision，Minor-8）**：cron tick 与手动执行并发时 cron 侧被 fail-fast 拒绝 → 使用专用错误码 + **`MetaQualityCheckpointScheduler.executeScheduledCheckpoint` catch 分支（:212-219 当前无条件 LOG.error）按错误码降级 WARN**——避免 MA7.5-01 catch-all 转 ERROR 造成运维误读
+- [x] **错误码落点裁定（Decision，Round-3 Minor-1）**：`NopMetadataErrors` 为聚合接口（extends QualityErrors/MiscErrors 等，零常量），checkpoint 子域错误码在 `QualityErrors.java`（如 ERR_CHECKPOINT_* 系）/`MiscErrors.java`（ERR_CHECKPOINT_NOT_FOUND 在 :147）——新错误码**写入子域接口文件（QualityErrors.java），经 `NopMetadataErrors` 聚合公开**，不写入聚合接口
+- [x] **升级 SQL 落点裁定（Decision，Round-2 Minor-C）**：`deploy/sql/` 无 `_alter` 目录——落点确定为（新建 `deploy/sql/{dialect}/_alter_*.sql` 或 docs 段），**本项为 Phase 2 执行时裁定**（Phase 2 引用，不在 Phase 1 交付）
+- [x] 裁定记录 repo-observable（本 plan + arm-index P2-MA7.5-05 行）
 
 Exit Criteria:
 
 > 每个 Phase 完成后，必须逐条勾选本节。所有 `[x]` 后才能将 Phase Status 改为 `completed`。
 
-- [ ] runId/复合 UK/运行标记三项设计裁定完成（含 runId=UUID、锁作用域/释放时点、cron fail-fast 语义），结论 + Why 基于 live 复核（非复制旧文），repo-observable
-- [ ] 与平台守卫（LocalJobScheduler）职责边界清晰（平台守卫不动，模块内标记只补残余面）
-- [ ] `No owner-doc update required`（Phase 1 纯裁定，无代码变更；docs-for-ai 不变）
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] runId/复合 UK/运行标记三项设计裁定完成（含 runId=UUID、锁作用域/释放时点、cron fail-fast 语义），结论 + Why 基于 live 复核（非复制旧文），repo-observable
+- [x] 与平台守卫（LocalJobScheduler）职责边界清晰（平台守卫不动，模块内标记只补残余面）
+- [x] `No owner-doc update required`（Phase 1 纯裁定，无代码变更；docs-for-ai 不变）
+- [x] `ai-dev/logs/` 对应日期条目已更新
+
+## Phase 1 Adjudication Records（2026-08-05 live 复核 + 裁定，repo-observable）
+
+- **D1 runId 语义 = runId 为 UUID**（`io.nop.commons.util.StringHelper.generateUUID()`，StringHelper.java:1078，仓库主键惯例）：executeCheckpoint 入口**一次生成**（锁获取后、executor 前）；载体 = 结果行（新列）+ 执行摘要（summary 新键）+ DTO（`CheckpointExecutionResultDTO` 新字段 runId）；传递链 = BizModel → `MetaQualityCheckpointExecutor.execute(cp, runId, schemaPattern)` → `QualityResultWriter.append(resultDao, qualityRuleId, checkpointId, runId, judgment)`；单规则路径（`NopMetaQualityRuleBizModel.appendQualityResult:344-346`）runId/checkpointId 传 null。Why：非 UUID 的「checkpointId+时间戳」方案在 ms 粒度顺序执行时可能撞 runId → UK 错误拒绝合法顺序执行（时序语义破坏）
+- **D2 复合 UK = `UK_NOP_META_QUALITY_RESULT_CP_RUN_RULE` unique (checkpointId, runId, qualityRuleId)**（带 `constraint` 属性，R3.19 教训——DDL 以 constraint 非空为发射门）：resolveRules 按 ruleId 去重（executor :203-248 `seen` 集合）保证每次执行每规则至多一行，UK 仅兜底「同 runId 重复写行」；现有 `IX_NOP_META_QRESULT_RULE`（qualityRuleId, executeTime）非唯一索引**保留**（查询支持）；与时序追加语义兼容
+- **D3 可空列进 UK 语义（三方言一致）**：复合唯一索引中任一列 NULL → 该行不参与冲突判定——存量全 NULL 行不冲突、单规则路径 (NULL, NULL, qualityRuleId) 不受约束（多次执行多行合法）、检查点路径非 NULL 完全强制。**无需数据迁移**。列契约：checkpointId/runId 可空 VARCHAR(32)（propId 16/17）
+- **D4 运行标记机制 = per-checkpoint 进程内锁 map（BizModel 实例字段）**：raw impl 与 GraphQL 代理路径汇聚同一 raw 实例（scheduler `setCheckpointBizModel` 注入 raw impl，scheduler :111-113 实证；GraphQL dispatch 到 BizProxy 委托同一 raw 实例）→ 锁状态对两条路径统一生效；**锁获取语义 = 非阻塞 putIfAbsent，命中即 fail-fast**（blocking 实现会让并发重复变串行重复，修复目标落空——Round-2 审查 E）；**锁作用域 = requireEntity 之后、executor 之前获取，方法体最外层 finally 释放**（覆盖 executor + autoScore + dispatchActions 全程，不放 dispatch 内部 try/catch——Major-3）
+- **D5 与平台守卫职责边界**：LocalJobScheduler 按 job 名守卫 cron 自重叠（WAITING 门 :233-234 + running 占位 :263 + fireNow running 检查 :180-188），**平台代码不动**；模块内锁按 checkpointId 补手动路径 + 手动×cron 交叉残余面；两侧均非阻塞拒绝、无死锁（锁 map 无嵌套等待）
+- **D6 cron fail-fast 语义（Minor-8）**：cron tick 与手动执行并发 → cron 侧 fail-fast 拒绝（专用错误码 `ERR_CHECKPOINT_ALREADY_RUNNING`）→ `executeScheduledCheckpoint` catch 分支（:212-220）按错误码降级 **WARN**（并发冲突属预期运维噪音），其余错误维持 ERROR + MA7.5-01 存活返回语义
+- **D7 错误码落点（Round-3 Minor-1）**：新错误码写入 `QualityErrors.java`（checkpoint 子域归属文件，既有 ERR_CHECKPOINT_* 系），经 `NopMetadataErrors` 聚合接口公开（:26-28 extends QualityErrors 实证）；不写入聚合接口（零常量聚合接口）
+- **D8 升级 SQL 落点（Round-2 Minor-C）**：沿 R4.2 先例（`deploy/sql/{dialect}/upgrade-nop-meta-table-uk.sql` 手写保留文件）——新建 `deploy/sql/{dialect}/upgrade-nop-meta-quality-result-uk.sql`（非 `_` 前缀生成物，手写保留文件），含 ALTER ADD CONSTRAINT 语句 + NULL 语义依据注释；Phase 2 交付
+- **D9 多实例分布式锁面 = 裁定「不做」**：当前 supported baseline 为单实例部署（MR4 终局裁定）；平台守卫已覆盖单 JVM 自重叠；多实例每实例各执行一次的重复投递面需专门分布式锁设计，非当前活跃缺陷路径——设计记录写入本 plan Deferred 段，Phase 4 落定 Successor Required = no（不悬置）
+
 
 ### Phase 2 - model-first ORM 变更 + 生成管线 + DDL 再生成
 
-Status: planned
+Status: completed
 Targets: `nop-metadata/model/nop-metadata.orm.xml`（NopMetaQualityResult）+ `deploy/sql/**` + `_gen/`（生成产物）
 
 - Item Types: `Fix | Proof`
 
-- [ ] 按 Phase 1 裁定修改 `NopMetaQualityResult`：新增 checkpointId/runId 列（可空，propId 接续 16/17）+ 复合 UK（含 constraint 属性，防 DDL 零 UK 发射——R3.19 教训）+（如裁定）索引调整——**只改源模型，禁止手编 `_gen/` 与 `_*.xml`**（AGENTS.md Hard Stop）
-- [ ] `./mvnw clean install -DskipTests -pl nop-metadata -am -T 1C` 重新生成 `_gen/` + `deploy/sql/*/_create_nop-metadata.sql` 三方言 DDL（codegen 管线 `orm/deploy/sql` xgen），核对 `_NopMetaQualityResult.java` 等生成文件；**全文件 git diff 复核**（除 NopMetaQualityResult 列 + UK 外零无关漂移；`_drop_`/`_add_tenant_` 文件同时重生成，同样全量 diff 核对）（Minor-4）
-- [ ] 存量库升级路径：新列可空 + 复合 UK 对存量全 NULL 行安全（SQL 标准复合唯一索引 NULL 不参与冲突判定，ALTER ADD CONSTRAINT 可安全执行，无需数据迁移）——升级 SQL 落点按 Phase 2 裁定确定（新建 `deploy/sql/{dialect}/_alter_*.sql` 或 docs 段）+ ALTER 语句 + NULL 语义依据记录（Minor-5）
+- [x] 按 Phase 1 裁定修改 `NopMetaQualityResult`：新增 checkpointId/runId 列（可空，propId 接续 16/17）+ 复合 UK（含 constraint 属性，防 DDL 零 UK 发射——R3.19 教训）+（如裁定）索引调整——**只改源模型，禁止手编 `_gen/` 与 `_*.xml`**（AGENTS.md Hard Stop）
+- [x] `./mvnw clean install -DskipTests -pl nop-metadata -am -T 1C` 重新生成 `_gen/` + `deploy/sql/*/_create_nop-metadata.sql` 三方言 DDL（codegen 管线 `orm/deploy/sql` xgen），核对 `_NopMetaQualityResult.java` 等生成文件；**全文件 git diff 复核**（除 NopMetaQualityResult 列 + UK 外零无关漂移；`_drop_`/`_add_tenant_` 文件同时重生成，同样全量 diff 核对）（Minor-4）
+- [x] 存量库升级路径：新列可空 + 复合 UK 对存量全 NULL 行安全（SQL 标准复合唯一索引 NULL 不参与冲突判定，ALTER ADD CONSTRAINT 可安全执行，无需数据迁移）——升级 SQL 落点按 Phase 2 裁定确定（新建 `deploy/sql/{dialect}/_alter_*.sql` 或 docs 段）+ ALTER 语句 + NULL 语义依据记录（Minor-5）
 
 Exit Criteria:
 
 > 每个 Phase 完成后，必须逐条勾选本节。所有 `[x]` 后才能将 Phase Status 改为 `completed`。
 
-- [ ] orm.xml 变更与 Phase 1 裁定一致（列 + UK + 索引）
-- [ ] `_gen/` 重新生成，无手编生成产物；deploy/sql 全文件 git diff 核对（除 NopMetaQualityResult 列+UK 外零差异）
-- [ ] 三方言 DDL 再生成，新列 + 复合 UK 约束发射（DDL 断言测试可验证）
-- [ ] 存量库升级路径明确（新列可空 → 无数据迁移 + NULL 语义依据；升级 SQL 落点确定）
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] orm.xml 变更与 Phase 1 裁定一致（列 + UK + 索引）
+- [x] `_gen/` 重新生成，无手编生成产物；deploy/sql 全文件 git diff 核对（除 NopMetaQualityResult 列+UK 外零差异）
+- [x] 三方言 DDL 再生成，新列 + 复合 UK 约束发射（DDL 断言测试可验证）
+- [x] 存量库升级路径明确（新列可空 → 无数据迁移 + NULL 语义依据；升级 SQL 落点确定）
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 ### Phase 3 - 运行标记 + 幂等写入落地 + 接线
 
-Status: planned
+Status: completed
 Targets: `NopMetaQualityCheckpointBizModel.java` + `MetaQualityCheckpointExecutor.java` + `QualityResultWriter.java` + `CheckpointExecutionResultDTO.java`（nop-metadata-api）+ `MetaQualityCheckpointScheduler.java`（buildErrorResult + catch 分支）+ `QualityErrors.java`（新错误码）+ 测试文件
 
 - Item Types: `Fix | Proof`
 
-- [ ] **执行入口运行标记（Fix）**：按 Phase 1 裁定在 `executeCheckpoint` 入口实现防重入（进程内 per-checkpoint 锁，BizModel 实例字段）——**锁获取于 requireEntity 之后、executor 之前，最外层 finally 释放（覆盖 executor + autoScore + dispatchActions 全程）；非阻塞获取（putIfAbsent/try-lock），命中即 fail-fast**；并发或运行期重复触发同检查点时 **fail-fast（专用错误码返回，cron 侧 WARN 级）而非静默重复执行**（Minimum Rules #24：不静默跳过、不吞异常）
-- [ ] **cron 侧 WARN 接线（Fix，Round-2 Minor-D）**：新专用错误码写入 **`QualityErrors.java`（checkpoint 子域错误码归属文件，经 `NopMetadataErrors` 聚合公开）**；`MetaQualityCheckpointScheduler.executeScheduledCheckpoint` catch 分支（:212-219）按错误码降级 WARN（保持 MA7.5-01 存活语义，仅日志级别区分并发冲突与真实故障）
-- [ ] **runId 生成与传递（Fix，Major-2）**：`executeCheckpoint` 入口生成 UUID runId，经 executor 传递至 `resultWriter.append`；**`CheckpointExecutionResultDTO` 新增 runId 字段**（nop-metadata-api 公共面变更，plan-first 声明——本 plan 即裁决载体）+ 摘要携带 + `MetaQualityCheckpointScheduler.buildErrorResult` 同步
-- [ ] **幂等写入（Fix）**：`QualityResultWriter.append` 增加 checkpointId/runId 参数（可空，单规则路径传 null），落盘时写入新列；复合 UK 兜底（同 runId 重复写行 → DB 唯一约束拒绝）
-- [ ] **接线验证（Fix，Minimum Rules #23）**：确认 executeCheckpoint → executor → writer 调用链上新参数运行时确实传递（非空壳——测试断言落盘行含 runId/checkpointId）
-- [ ] **行为回归测试（Fix，Test-Mandated Feature Rule）**：
+- [x] **执行入口运行标记（Fix）**：按 Phase 1 裁定在 `executeCheckpoint` 入口实现防重入（进程内 per-checkpoint 锁，BizModel 实例字段）——**锁获取于 requireEntity 之后、executor 之前，最外层 finally 释放（覆盖 executor + autoScore + dispatchActions 全程）；非阻塞获取（putIfAbsent/try-lock），命中即 fail-fast**；并发或运行期重复触发同检查点时 **fail-fast（专用错误码返回，cron 侧 WARN 级）而非静默重复执行**（Minimum Rules #24：不静默跳过、不吞异常）
+- [x] **cron 侧 WARN 接线（Fix，Round-2 Minor-D）**：新专用错误码写入 **`QualityErrors.java`（checkpoint 子域错误码归属文件，经 `NopMetadataErrors` 聚合公开）**；`MetaQualityCheckpointScheduler.executeScheduledCheckpoint` catch 分支（:212-219）按错误码降级 WARN（保持 MA7.5-01 存活语义，仅日志级别区分并发冲突与真实故障）
+- [x] **runId 生成与传递（Fix，Major-2）**：`executeCheckpoint` 入口生成 UUID runId，经 executor 传递至 `resultWriter.append`；**`CheckpointExecutionResultDTO` 新增 runId 字段**（nop-metadata-api 公共面变更，plan-first 声明——本 plan 即裁决载体）+ 摘要携带 + `MetaQualityCheckpointScheduler.buildErrorResult` 同步
+- [x] **幂等写入（Fix）**：`QualityResultWriter.append` 增加 checkpointId/runId 参数（可空，单规则路径传 null），落盘时写入新列；复合 UK 兜底（同 runId 重复写行 → DB 唯一约束拒绝）
+- [x] **接线验证（Fix，Minimum Rules #23）**：确认 executeCheckpoint → executor → writer 调用链上新参数运行时确实传递（非空壳——测试断言落盘行含 runId/checkpointId）
+- [x] **行为回归测试（Fix，Test-Mandated Feature Rule）**：
   - e2e：保存 ACTIVE 检查点 + cron/fireNow 触发 → 结果行含 checkpointId/runId；**同一 runId 二次写入被复合 UK 拒绝**（区分性断言）
   - 并发/运行期重复触发：并发双击同检查点 → 第二次执行 fail-fast（不产生重复结果行/不重复投递 action——**断言覆盖 dispatchActions 窗口**）
   - 单规则路径回归：`NopMetaQualityRuleBizModel` 单规则执行 → 结果行 checkpointId/runId 为 null，行为与修复前一致
   - **`TestQualityResultWriter` 3 个调用点适配新签名**（:34/:49/:62，编译期可见）+ 新增 UK 拒绝单测（Minor-7）
   - `TestNopMetaDdlUniqueKeyEmission` 增加 NopMetaQualityResult 复合 UK 发射断言（防 R3.19 类零 UK 发射复发）
-- [ ] 全量回归：`./mvnw test -pl nop-metadata -T 1C`（0 failures；pre-existing 失败按 MR3/MR4 惯例归因记录）
+- [x] 全量回归：`./mvnw test -pl nop-metadata -T 1C`（0 failures；pre-existing 失败按 MR3/MR4 惯例归因记录）
 
 Exit Criteria:
 
 > 每个 Phase 完成后，必须逐条勾选本节。所有 `[x]` 后才能将 Phase Status 改为 `completed`。
 
-- [ ] **端到端验证**：从触发入口（fireNow/手动 executeCheckpoint）到结果落盘 + 投递出口的完整路径已验证，**运行期重复触发**不再产生重复结果/投递——见 Minimum Rules #22
-- [ ] **接线验证**：runId/checkpointId 从 executeCheckpoint → executor → writer 运行时传递连通（断言落盘行含新列）+ DTO runId 字段经 GraphQL mutation 返回——见 Minimum Rules #23
-- [ ] **无静默跳过**：重复触发/并发触发为显式 fail-fast（专用错误码/已运行返回），非 continue/空 catch/吞异常——见 Minimum Rules #24
-- [ ] 新增行为有明确测试覆盖（幂等拒绝 + fail-fast + dispatchActions 窗口断言 + 单规则 null 回归 + DDL 断言），区分性断言
-- [ ] `./mvnw test -pl nop-metadata -T 1C` 全绿（0 failures）
-- [ ] 文档变化：**`CheckpointExecutionResultDTO` runId 字段为公开契约确定性扩展**（新增字段非破坏性）——同步 `docs-for-ai/03-modules/nop-metadata.md`（新列 + DTO runId 字段）+ `ai-dev/design/nop-metadata/` 对应文档；`NopMetaQualityResult` 新列经 xmeta 暴露面同步记录（Minor-6）
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] **端到端验证**：从触发入口（fireNow/手动 executeCheckpoint）到结果落盘 + 投递出口的完整路径已验证，**运行期重复触发**不再产生重复结果/投递——见 Minimum Rules #22
+- [x] **接线验证**：runId/checkpointId 从 executeCheckpoint → executor → writer 运行时传递连通（断言落盘行含新列）+ DTO runId 字段经 GraphQL mutation 返回——见 Minimum Rules #23
+- [x] **无静默跳过**：重复触发/并发触发为显式 fail-fast（专用错误码/已运行返回），非 continue/空 catch/吞异常——见 Minimum Rules #24
+- [x] 新增行为有明确测试覆盖（幂等拒绝 + fail-fast + dispatchActions 窗口断言 + 单规则 null 回归 + DDL 断言），区分性断言
+- [x] `./mvnw test -pl nop-metadata -T 1C` 全绿（0 failures）
+- [x] 文档变化：**`CheckpointExecutionResultDTO` runId 字段为公开契约确定性扩展**（新增字段非破坏性）——同步 `docs-for-ai/03-modules/nop-metadata.md`（新列 + DTO runId 字段）+ `ai-dev/design/nop-metadata/` 对应文档；`NopMetaQualityResult` 新列经 xmeta 暴露面同步记录（Minor-6）
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 ### Phase 4 - 收口（roadmap R4.3 → done + arm-index 终态 + closure audit）
 
-Status: planned
+Status: completed
 Targets: `ai-dev/backlog/nop-metadata-audit-remediation-roadmap.md` + `ai-dev/audits/arm-index-nop-metadata.md`
 
 - Item Types: `Decision | Proof`
 
-- [ ] arm-index P2-MA7.5-05 行终态更新（fixed，措辞收窄为「运行期重复触发」，附 plan 引用 + 修复摘要）
-- [ ] **Deferred Successor Required 值确定（Decision，Round-3 Minor-2）**：跨进程分布式锁条目 Successor Required 落定（`yes | no`），不留占位符——裁定「不做」则 no 并登记终局；裁定「需要设计」则 yes 并登记 roadmap successor 行（不允许悬挂）
-- [ ] roadmap R4.3 行 → done（注明计划引用与修复摘要）
-- [ ] 独立子 agent closure audit（fresh session，closure-audit-prompt.md）：逐项核对本 plan 全部 Phase Exit Criteria + Closure Gates，证据写入本 plan Closure 段
-- [ ] `node ai-dev/tools/check-plan-checklist.mjs <本plan文件> --strict` 退出码 0（closure 时）
+- [x] arm-index P2-MA7.5-05 行终态更新（fixed，措辞收窄为「运行期重复触发」，附 plan 引用 + 修复摘要）
+- [x] **Deferred Successor Required 值确定（Decision，Round-3 Minor-2）**：跨进程分布式锁条目 Successor Required 落定（`yes | no`），不留占位符——裁定「不做」则 no 并登记终局；裁定「需要设计」则 yes 并登记 roadmap successor 行（不允许悬挂）
+- [x] roadmap R4.3 行 → done（注明计划引用与修复摘要）
+- [x] 独立子 agent closure audit（fresh session，closure-audit-prompt.md）：逐项核对本 plan 全部 Phase Exit Criteria + Closure Gates，证据写入本 plan Closure 段
+- [x] `node ai-dev/tools/check-plan-checklist.mjs <本plan文件> --strict` 退出码 0（closure 时）
 
 Exit Criteria:
 
 > 每个 Phase 完成后，必须逐条勾选本节。所有 `[x]` 后才能将 Phase Status 改为 `completed`。
 
-- [ ] arm-index + roadmap R4.3 终态一致可追溯
-- [ ] 独立 closure audit PASS，evidence 已写入本 plan Closure 段
-- [ ] 无静默降级：幂等缺失（P2-MA7.5-05）为 fixed，无 live defect 被降级
-- [ ] 文档变化：roadmap + arm-index 更新；docs-for-ai 按 Phase 3 核实结果处理
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] arm-index + roadmap R4.3 终态一致可追溯
+- [x] 独立 closure audit PASS，evidence 已写入本 plan Closure 段
+- [x] 无静默降级：幂等缺失（P2-MA7.5-05）为 fixed，无 live defect 被降级
+- [x] 文档变化：roadmap + arm-index 更新；docs-for-ai 按 Phase 3 核实结果处理
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 ## Closure Gates
 
 > **关闭条件**：只有本 section 所有条目以及每个 Phase 的 Exit Criteria 全部勾选为 `[x]` 后，才能将 `Plan Status` 改为 `completed`。关闭流程详见本 guide 的 `When Closing The Plan` 和 `Closure Audit Rule`。
 
-- [ ] 幂等键设计已裁定并落地（runId=UUID/checkpointId 列 + 复合 UK，model-first），**运行期（concurrent）重复触发**不再产生重复结果/投递
-- [ ] 执行入口运行标记落地（锁覆盖 executor + autoScore + dispatchActions 全程，最外层 finally 释放），并发/运行期重复触发 fail-fast（无静默重复执行）
-- [ ] **`CheckpointExecutionResultDTO` runId 字段已落地**（nop-metadata-api，plan-first 声明），摘要 + buildErrorResult 同步
-- [ ] 单规则路径（无 checkpoint 上下文）行为不回归（新列 null，时序追加语义保持）
-- [ ] 必要 focused verification 已完成（运行期幂等 e2e + fail-fast + dispatchActions 窗口断言 + 单规则回归 + DDL 断言）
-- [ ] 不存在被静默降级到 deferred / follow-up 的 in-scope live defect 或 contract drift
-- [ ] 受影响的 owner docs 已同步到 live baseline（DTO runId + xmeta 新列暴露面），或明确写明 No owner-doc update required
-- [ ] 独立子 agent closure-audit 已完成并记录证据
-- [ ] **Anti-Hollow Check**：closure audit 已验证（a）executeCheckpoint → executor → writer 调用链运行时连通（runId 确实传递并落盘），（b）无空方法体/静默跳过/no-op 作为正常实现
-- [ ] `./mvnw clean install -DskipTests -pl nop-metadata -am -T 1C`
-- [ ] `./mvnw test -pl nop-metadata -T 1C`（0 failures）
-- [ ] checkstyle / 代码规范检查通过（nop-metadata 无独立 checkstyle 命令，以 mvn 构建默认检查为准；历史惯例 "checkstyle N/A"）
-- [ ] `node ai-dev/tools/check-plan-checklist.mjs <本plan文件> --strict` 退出码 0（closure 时）
-- [ ] `node ai-dev/tools/scan-hollow-implementations.mjs --module nop-metadata --severity high` 退出码 0（closure 时）
-- [ ] `node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0（若修改 docs-for-ai/ 则必跑）
+- [x] 幂等键设计已裁定并落地（runId=UUID/checkpointId 列 + 复合 UK，model-first），**运行期（concurrent）重复触发**不再产生重复结果/投递
+- [x] 执行入口运行标记落地（锁覆盖 executor + autoScore + dispatchActions 全程，最外层 finally 释放），并发/运行期重复触发 fail-fast（无静默重复执行）
+- [x] **`CheckpointExecutionResultDTO` runId 字段已落地**（nop-metadata-api，plan-first 声明），摘要 + buildErrorResult 同步
+- [x] 单规则路径（无 checkpoint 上下文）行为不回归（新列 null，时序追加语义保持）
+- [x] 必要 focused verification 已完成（运行期幂等 e2e + fail-fast + dispatchActions 窗口断言 + 单规则回归 + DDL 断言）
+- [x] 不存在被静默降级到 deferred / follow-up 的 in-scope live defect 或 contract drift
+- [x] 受影响的 owner docs 已同步到 live baseline（DTO runId + xmeta 新列暴露面），或明确写明 No owner-doc update required
+- [x] 独立子 agent closure-audit 已完成并记录证据
+- [x] **Anti-Hollow Check**：closure audit 已验证（a）executeCheckpoint → executor → writer 调用链运行时连通（runId 确实传递并落盘），（b）无空方法体/静默跳过/no-op 作为正常实现
+- [x] `./mvnw clean install -DskipTests -pl nop-metadata -am -T 1C`
+- [x] `./mvnw test -pl nop-metadata -T 1C`（0 failures）
+- [x] checkstyle / 代码规范检查通过（nop-metadata 无独立 checkstyle 命令，以 mvn 构建默认检查为准；历史惯例 "checkstyle N/A"）
+- [x] `node ai-dev/tools/check-plan-checklist.mjs <本plan文件> --strict` 退出码 0（closure 时）
+- [x] `node ai-dev/tools/scan-hollow-implementations.mjs --module nop-metadata --severity high` 退出码 0（closure 时）
+- [x] `node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0（若修改 docs-for-ai/ 则必跑）
 
 ## Deferred But Adjudicated
 
@@ -200,8 +213,8 @@ Exit Criteria:
 
 - Classification: `out-of-scope improvement`
 - Why Not Blocking Closure: 当前 supported baseline 为单实例部署（MR4 终局裁定）；LocalJobScheduler 平台守卫已覆盖单 JVM 自重叠；多实例部署时每实例各执行一次的重复投递面需配置触发或专门分布式锁设计，非当前单实例活跃缺陷路径；Phase 1 裁定后若判定「必须」仅设计记录 + 登记 successor（Phase 4 落定 Successor Required 值，不悬置）
-- Successor Required: `yes | no`（Phase 4 收口时落定）
-- Successor Path: （如需要）登记 roadmap 或专门 plan
+- Successor Required: `no`（Phase 4 收口落定：Phase 1 D9 裁定「不做」——单实例 supported baseline 下非活跃缺陷路径；多实例部署扩展登记为 roadmap watch-only 观察项，不立项）
+- Successor Path: —
 
 ### 顺序重复执行（两次完整执行，间隔超过单次耗时）
 
@@ -223,17 +236,29 @@ Exit Criteria:
 
 ## Closure
 
-Status Note: 待执行后填写
-Completed: YYYY-MM-DD
+Status Note: R4.3 全部 4 Phase 完成——运行期（concurrent）重复触发幂等落地（runId/checkpointId 列 + 复合 UK + 执行入口运行标记 fail-fast），行为回归测试 867/0 全绿，独立子 agent closure audit PASS，无 in-scope 剩余工作。
+Completed: 2026-08-05
 
 Closure Audit Evidence:
 
-- Reviewer / Agent: 待独立子 agent 填写
-- Evidence: 待填写（每条 Exit Criterion 的验证结果 + check-plan-checklist exit 0 + Anti-Hollow 检查结果 + Deferred 项分类检查）
+- Reviewer / Agent: 独立子 agent（fresh session task `ses_02ea6e58cffenmoLD9t7O6PFQK`，closure-audit-prompt.md 流程）
+- Evidence:
+  - Phase 1（裁定）：`## Phase 1 Adjudication Records` D1-D9 在位（plan:101-111）；live 复核（executeCheckpoint :159-204 / executor :97-176,:131 / writer :43-61 / ruleBizModel :346 / scheduler :111-113 raw impl 注入 / orm.xml 无幂等列）——PASS
+  - Phase 2（model-first）：orm.xml:2084-2087 checkpointId(16)/runId(17) 可空列 + UK `UK_NOP_META_QUALITY_RESULT_CP_RUN_RULE`（:2104-2108，constraint 属性）；三方言 `_create_`/`_add_tenant_` 再生成含新列+UK（tenant 变体 NOP_TENANT_ID 维度经 xgen 派生）；`upgrade-nop-meta-quality-result-uk.sql` 三方言手写保留文件；生成物 git diff 零无关漂移（clean install 复跑稳定）——PASS
+  - Phase 3（Fix + 接线）：Anti-Hollow 调用链追踪——lock map 字段（BizModel:149）+ putIfAbsent 于 requireEntity 后（:176/:180）+ fail-fast 抛 ERR_CHECKPOINT_ALREADY_RUNNING（:181-183）+ runId 生成（:185）+ 最外层 finally 释放（:229-232）+ dto.setRunId（:191）；executor 透传 append（:132）+ summary runId（:169）；writer 写两列（:58-59）；单规则路径 null/null（RuleBizModel:346）；scheduler WARN 降级 isConcurrentRunRejection（:217-225/:231-235）；DTO runId 字段（DTO:21,43-49）；QualityErrors.java:27-29 错误码——PASS
+  - Phase 3（测试）：BizModel +3（runId/checkpointId 落盘 + 顺序执行不同 runId / 同 runId UK 拒绝 + 不同 runId 区分 / 并发 fail-fast dispatch 窗口——GraphQL 消息 + raw impl 精确错误码 + fetchCallCount=1 + 释放后顺序执行成功）；RuleBizModel +1（null/null + 时序追加）；Writer 5 测试 5 参适配 + 接线/null 保持；DDL 三方言发射断言；Scheduler fireNow 断言——PASS
+  - 构建：`./mvnw clean install -DskipTests -pl nop-metadata -am -T 1C` BUILD SUCCESS（22.5s）；`./mvnw test -pl nop-metadata -T 1C` **867 tests / 0 failures / 0 errors / 0 skipped**（860 基线 + 7）——PASS
+  - 文档：docs-for-ai/03-modules/nop-metadata.md（实体表行 + 幂等段）+ 01-architecture-baseline.md（D7 + 摘要 runId）+ api-dto-spec.md（DTO runId）；owner-doc→代码一致性抽样 3 断言全对（错误码串 / UK 名 / propId）——PASS
+  - Phase 4：roadmap R4.3 → done（plan 引用 + 修复摘要）；arm-index P2-MA7.5-05 两处终态（措辞收窄「运行期重复触发」+ 修复摘要）；Deferred 分布式锁 Successor Required = no 落定——PASS
+  - 工具：`check-plan-checklist --strict` exit 0（全勾选 + Closure Evidence 写入）；`scan-hollow-implementations --module nop-metadata --severity high` exit 0；`check-doc-links --strict` exit 0（0 errors；4 条 plan 文件裸相对路径 warning 为 draft 期即有，非回归）
+  - Anti-Hollow 检查：调用链 executeCheckpoint → executor → writer 运行时连通（断言落盘行含 runId/checkpointId + GraphQL DTO 返回 runId + 并发窗口 fetchCallCount 断言）；无空方法体/静默跳过/no-op——PASS
+  - Deferred 项分类检查：P2-MA7.5-05 为 fixed（非降级）；顺序重复执行 = 保留时序语义（Major-1 边界，plan Purpose + arm-index 措辞同步）；分布式锁 = 单实例 baseline out-of-scope（Successor Required: no，无悬挂）——PASS
 
 Follow-up:
 
-- 待执行后填写
+- 跨进程分布式锁（多实例部署幂等）：out-of-scope improvement，Successor Required: no——多实例部署扩展时按需立项（roadmap watch-only 观察项）
+- 顺序重复执行（两次完整执行间隔超过单次耗时）：watch-only residual（时序追加语义 = 设计意图，Successor Required: no）
+- no remaining plan-owned work
 
 ## Optional Sections
 

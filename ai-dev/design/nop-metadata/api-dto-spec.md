@@ -156,6 +156,7 @@
 
 #### `CheckpointExecutionResultDTO`
 - `String checkpointId`
+- `String runId`（R4.3 新增：本次执行批次 ID，UUID；每次执行唯一，幂等键载体）
 - `int totalRuleCount`
 - `int executedRuleCount`
 - `List<QualityRuleResultDTO> ruleResults`
