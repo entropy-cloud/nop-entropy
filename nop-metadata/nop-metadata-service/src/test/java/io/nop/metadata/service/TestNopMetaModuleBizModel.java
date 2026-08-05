@@ -118,6 +118,71 @@ public class TestNopMetaModuleBizModel extends JunitBaseTestCase {
                 "The failed entry should carry an error message: " + data);
     }
 
+    /**
+     * P2-07（R6.4）：malformed delta（x:extends 存在 + 部分覆盖缺 mandatory tableName）必须 fail-fast 抛
+     * ERR_MODEL_DELTA_PARSE_FAILED，不得静默降级 delta=full。
+     *
+     * <p>判别器：fixture 规格 = base 含合法实体 BaseE + delta 部分覆盖 BaseE 且缺少 mandatory 属性
+     * tableName。full load（importOrmModel:164）merge 后 tableName 来自 base（合法；merge 后
+     * result.isValidated()=true 跳过 XDslValidator）；parseDeltaModel（:180）filtered 阶段 validator
+     * 检查 delta 原始节点 → ERR_XDSL_ATTR_VALUE_IS_EMPTY → fail-fast。错误码判别：若 fixture 意外死在
+     * full-load 阶段，错误码 ≠ ERR_MODEL_DELTA_PARSE_FAILED，测试自动红（预期可能先红一次属正常迭代；
+     * 注：原 duplicate-key fixture 方案经实测不成立——delta 内部重复 key 在 merge 阶段
+     * ChildNodeMap.addByUniqueAttr 即抛 ERR_XDSL_MULTIPLE_NODE_HAS_SAME_UNIQUE_ATTR_VALUE，
+     * 到不了 parseDeltaModel，故改为本实测验证过的窄窗口 FULL OK + FILTERED FAIL）。
+     */
+    @Test
+    public void testImportOrmModelMalformedDeltaFailsFast() {
+        GraphQLResponseBean impResp = execute(
+                "mutation { NopMetaModule__importOrmModel(path: \"/test/orm/delta-partial-override.orm.xml\")" +
+                        " { metaModuleId } }");
+        assertTrue(impResp.hasError(), "malformed delta import must fail-fast: " + impResp);
+        String errorCode = impResp.getErrorCode();
+        assertNotNull(errorCode, "error must carry an error code: " + impResp);
+        assertTrue(errorCode.contains("nop.err.metadata.module-delta-parse-failed"),
+                "error must carry ERR_MODEL_DELTA_PARSE_FAILED (discriminator), got: " + errorCode);
+        assertFalse(errorCode.contains("nop.err.xlang"),
+                "fixture must fail inside parseDeltaModel, not at full-load (discriminator): " + errorCode);
+
+        // 事务回滚验证：失败后无 module/orm-model 残留（无部分状态——module 已在 parse 前 save）
+        GraphQLResponseBean moduleResp = execute("query { NopMetaModule__findPage { total } }");
+        assertFalse(moduleResp.hasError(), "module query should not error: " + moduleResp);
+        String moduleData = String.valueOf(moduleResp.getData());
+        assertTrue(moduleData.contains("total=0"),
+                "failed import must leave no module row (transaction rollback): " + moduleData);
+
+        GraphQLResponseBean ormResp = execute("query { NopMetaOrmModel__findPage { total } }");
+        assertFalse(ormResp.hasError(), "orm model query should not error: " + ormResp);
+        assertTrue(String.valueOf(ormResp.getData()).contains("total=0"),
+                "failed import must leave no orm model row (transaction rollback): " + ormResp);
+    }
+
+    /**
+     * P2-07（R6.4）：批量导入 [有效路径, malformed-delta 路径] → per-path 失败显式记录
+     * （success=false + error 文本含裁定码子串），整批不中断、有效路径成功。
+     */
+    @Test
+    public void testImportOrmModelsBatchMalformedDelta() {
+        GraphQLResponseBean response = execute(
+                "mutation { NopMetaModule__importOrmModels(paths:" +
+                        " [\"/nop/metadata/orm/app.orm.xml\"," +
+                        " \"/test/orm/delta-partial-override.orm.xml\"])" +
+                        " { metaModuleId moduleName success error } }");
+        assertFalse(response.hasError(),
+                "batch importOrmModels must not abort the whole batch: " + response);
+
+        String data = String.valueOf(response.getData());
+        long entryCount = countOccurrences(data, "success=");
+        assertTrue(entryCount >= 2,
+                "Batch import should return at least 2 result entries: " + data);
+        assertTrue(data.contains("success=true"),
+                "The valid path entry should be marked success=true: " + data);
+        assertTrue(data.contains("success=false"),
+                "The malformed delta entry should be marked success=false: " + data);
+        assertTrue(data.contains("nop.err.metadata.module-delta-parse-failed"),
+                "The failed entry error should carry ERR_MODEL_DELTA_PARSE_FAILED: " + data);
+    }
+
     @Test
     public void testReleaseModuleStatusTransition() {
         // 导入模块（首次）：version=1, status=DRAFTING

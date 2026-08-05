@@ -6,7 +6,11 @@ import io.nop.api.core.beans.FilterBeans;
 import io.nop.api.core.beans.graphql.GraphQLRequestBean;
 import io.nop.api.core.beans.graphql.GraphQLResponseBean;
 import io.nop.api.core.beans.query.QueryBean;
+import io.nop.auth.core.login.UserContextImpl;
+import io.nop.auth.dao.entity.NopAuthUser;
 import io.nop.autotest.junit.JunitBaseTestCase;
+import io.nop.core.context.IServiceContext;
+import io.nop.core.context.ServiceContextImpl;
 import io.nop.dao.api.IDaoProvider;
 import io.nop.dao.api.IEntityDao;
 import io.nop.graphql.core.IGraphQLExecutionContext;
@@ -35,6 +39,29 @@ public class TestNopMetaTagLabelApprovalIntegration extends JunitBaseTestCase {
     IDaoProvider daoProvider;
 
     private Timestamp now = new Timestamp(System.currentTimeMillis());
+
+    private static final String TEST_USER_ID = "u-approval-int-autotest";
+
+    /**
+     * wf 启动需要真实操作人（见 TestNopMetaTagLabelApproval.ensureUser 注记；P2-09 fail-loud
+     * 之后测试环境必须能真实启动 tagLabelConfirmApproval 工作流，正路径 save 才不会如实失败）。
+     */
+    private void ensureUser() {
+        IEntityDao<NopAuthUser> userDao = daoProvider.daoFor(NopAuthUser.class);
+        if (userDao.getEntityById(TEST_USER_ID) == null) {
+            NopAuthUser user = userDao.newEntity();
+            user.setUserName("approval-int-autotest");
+            user.setUserId(TEST_USER_ID);
+            user.setNickName(user.getUserName());
+            user.setPassword("123");
+            user.setOpenId(TEST_USER_ID);
+            user.setUserType(1);
+            user.setStatus(1);
+            user.setGender(1);
+            user.setTenantId("0");
+            userDao.saveEntity(user);
+        }
+    }
 
     private String ensureTag(String tagId, String classificationId) {
         IEntityDao<NopMetaClassification> clsDao = daoProvider.daoFor(NopMetaClassification.class);
@@ -203,7 +230,13 @@ public class TestNopMetaTagLabelApprovalIntegration extends JunitBaseTestCase {
         GraphQLRequestBean request = new GraphQLRequestBean();
         request.setQuery(query);
         request.setVariables(vars);
-        IGraphQLExecutionContext context = graphQLEngine.newGraphQLContext(request);
+        ensureUser();
+        IServiceContext svcCtx = new ServiceContextImpl();
+        UserContextImpl userContext = new UserContextImpl();
+        userContext.setUserId(TEST_USER_ID);
+        userContext.setUserName("approval-int-autotest");
+        svcCtx.setUserContext(userContext);
+        IGraphQLExecutionContext context = graphQLEngine.newGraphQLContext(request, svcCtx);
         return graphQLEngine.executeGraphQL(context);
     }
 }

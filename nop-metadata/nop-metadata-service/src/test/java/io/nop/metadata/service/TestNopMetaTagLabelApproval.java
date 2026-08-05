@@ -5,7 +5,11 @@ import io.nop.api.core.annotations.core.OptionalBoolean;
 import io.nop.api.core.beans.graphql.GraphQLRequestBean;
 import io.nop.api.core.beans.graphql.GraphQLResponseBean;
 import io.nop.api.core.exceptions.NopException;
+import io.nop.auth.core.login.UserContextImpl;
+import io.nop.auth.dao.entity.NopAuthUser;
 import io.nop.autotest.junit.JunitBaseTestCase;
+import io.nop.core.context.IServiceContext;
+import io.nop.core.context.ServiceContextImpl;
 import io.nop.dao.api.IDaoProvider;
 import io.nop.dao.api.IEntityDao;
 import io.nop.graphql.core.IGraphQLExecutionContext;
@@ -34,6 +38,31 @@ public class TestNopMetaTagLabelApproval extends JunitBaseTestCase {
     IDaoProvider daoProvider;
 
     private Timestamp now = new Timestamp(System.currentTimeMillis());
+
+    private static final String TEST_USER_ID = "u-approval-autotest";
+
+    /**
+     * wf 启动需要真实操作人（approval-support.xbiz ApprovalFlowHelper.start → start-step
+     * invokeAction 的 allowCallByUser 校验）。P2-09 fail-loud 之前，wf 启动失败被 trySubmitForApproval
+     * 吞掉（approveStatus=SUBMITTED 先于 wf 启动设置，旧测试因此误判"提审成功"）；fail-loud 之后
+     * 测试环境必须能真实启动工作流，否则正路径 save 会如实失败。
+     */
+    private void ensureUser() {
+        IEntityDao<NopAuthUser> userDao = daoProvider.daoFor(NopAuthUser.class);
+        if (userDao.getEntityById(TEST_USER_ID) == null) {
+            NopAuthUser user = userDao.newEntity();
+            user.setUserName("approval-autotest");
+            user.setUserId(TEST_USER_ID);
+            user.setNickName(user.getUserName());
+            user.setPassword("123");
+            user.setOpenId(TEST_USER_ID);
+            user.setUserType(1);
+            user.setStatus(1);
+            user.setGender(1);
+            user.setTenantId("0");
+            userDao.saveEntity(user);
+        }
+    }
 
     private String ensureTag(String tagId, String classificationId) {
         IEntityDao<NopMetaClassification> clsDao = daoProvider.daoFor(NopMetaClassification.class);
@@ -199,6 +228,50 @@ public class TestNopMetaTagLabelApproval extends JunitBaseTestCase {
         assertTrue(ex.getMessage().contains("nonexistent"));
     }
 
+    /**
+     * P2-09（R6.4）：提审失败必须 fail-loud——不得 LOG.warn 后继续（标签保存成功但永不进审批流，
+     * 用户侧零感知 = 静默数据丢失）。
+     *
+     * <p>判别性失败路径（确定性真实失败，零 mock）：save 的 data 预置 approveStatus=APPROVED
+     * （∉ {null, UNSUBMITTED, REJECTED}）的 Derived 标签 → submitForApproval XPL
+     * （approval-support.xbiz:19-26）抛 nop.err.wf.approve.invalid-status → save 抛
+     * ERR_TAG_LABEL_SUBMIT_APPROVAL_FAILED（cause 保留原始异常链）+ 标签不落库
+     * （save 为 CREATE 语义，事务回滚后按 tagLabelId 查询无该行）。
+     *
+     * <p>禁止方案：wfName 指向不存在的工作流——wf:wfName 硬编码于 xmeta 根属性，测试资源 delta
+     * 覆盖 xmeta 为全 test classpath 全局，会打挂同容器正路径测试（:124-147）。
+     */
+    @Test
+    public void testDerivedLabelApprovalFailureFailsLoud() {
+        String tagId = ensureTag("tag-approval-failloud", "cls-approval-failloud");
+
+        Map<String, Object> data = new HashMap<>();
+        data.put("tagLabelId", "tlabel-failloud-001");
+        data.put("source", "Classification");
+        data.put("tagId", tagId);
+        data.put("labelType", "Derived");
+        data.put("entityType", "NopMetaEntityField");
+        data.put("entityId", "field-failloud-001");
+        data.put("approveStatus", "APPROVED");
+
+        GraphQLResponseBean resp = execute(
+                "mutation($data:Map) { NopMetaTagLabel__save(data:$data) { tagLabelId state approveStatus } }",
+                Map.of("data", data));
+        assertTrue(resp.hasError(),
+                "save with non-submittable approveStatus must fail-loud (no silent skip): " + resp);
+
+        String errorCode = resp.getErrorCode();
+        assertNotNull(errorCode, "error must carry an error code: " + resp);
+        assertTrue(errorCode.contains("nop.err.metadata.tag-label-submit-approval-failed"),
+                "error must carry ERR_TAG_LABEL_SUBMIT_APPROVAL_FAILED (discriminator), got: " + errorCode);
+        assertFalse(errorCode.contains("nop.err.wf.approve.invalid-status"),
+                "the inner invalid-status error must be wrapped (outer code is the adjudicated one): " + errorCode);
+
+        // 事务回滚验证：save 为 CREATE 语义，失败后标签不落库（无"已保存但永不进审批流"的静默中间态）
+        NopMetaTagLabel saved = daoProvider.daoFor(NopMetaTagLabel.class).getEntityById("tlabel-failloud-001");
+        assertNull(saved, "failed save must leave no TagLabel row (transaction rollback)");
+    }
+
     private void saveTagLabel(String id, String labelType, String state) {
         String tagId = ensureTag("tag-approval-base", "cls-approval-base");
         NopMetaTagLabel label = daoProvider.daoFor(NopMetaTagLabel.class).newEntity();
@@ -221,7 +294,18 @@ public class TestNopMetaTagLabelApproval extends JunitBaseTestCase {
         GraphQLRequestBean request = new GraphQLRequestBean();
         request.setQuery(query);
         request.setVariables(vars);
-        IGraphQLExecutionContext context = graphQLEngine.newGraphQLContext(request);
+        IServiceContext svcCtx = newServiceContext();
+        IGraphQLExecutionContext context = graphQLEngine.newGraphQLContext(request, svcCtx);
         return graphQLEngine.executeGraphQL(context);
+    }
+
+    private IServiceContext newServiceContext() {
+        ensureUser();
+        ServiceContextImpl ctx = new ServiceContextImpl();
+        UserContextImpl userContext = new UserContextImpl();
+        userContext.setUserId(TEST_USER_ID);
+        userContext.setUserName("approval-autotest");
+        ctx.setUserContext(userContext);
+        return ctx;
     }
 }

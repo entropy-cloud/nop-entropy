@@ -20,6 +20,10 @@ interface ModuleErrors extends NopMetadataArgs {
     ErrorCode ERR_ORM_RESOURCE_READ_FAILED =
             ErrorCode.define("nop.err.metadata.orm-resource-read-failed",
                     "ORM resource read failed: {path} -- {error}", ARG_PATH, ARG_ERROR);
+    ErrorCode ERR_MODEL_DELTA_PARSE_FAILED =
+            ErrorCode.define("nop.err.metadata.module-delta-parse-failed",
+                    "Delta model parse failed (x:extends present, delta=full fallback would lose delta "
+                            + "overrides): {path} -- {error}", ARG_PATH, ARG_ERROR);
     ErrorCode ERR_MANIFEST_BUILD_FAILED =
             ErrorCode.define("nop.err.metadata.manifest-build-failed",
                     "MetaManifest build failed: {metaModuleId} -- {error}",

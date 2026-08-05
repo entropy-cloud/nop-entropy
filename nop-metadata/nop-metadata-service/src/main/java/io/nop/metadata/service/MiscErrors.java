@@ -107,6 +107,11 @@ interface MiscErrors extends NopMetadataArgs {
             ErrorCode.define("nop.err.metadata.tag-label-invalid-label-type",
                     "Unknown or unsupported labelType for approval trigger: {labelType}",
                     ARG_LABEL_TYPE);
+    ErrorCode ERR_TAG_LABEL_SUBMIT_APPROVAL_FAILED =
+            ErrorCode.define("nop.err.metadata.tag-label-submit-approval-failed",
+                    "TagLabel submit for approval failed (label saved but never enters approval flow would be "
+                            + "silent data loss): {tagLabelId} -- {error}",
+                    ARG_TAG_LABEL_ID, ARG_ERROR);
 
     // ===== Propagation =====
 

@@ -499,8 +499,13 @@ public class AggregationHelper {
                 return true;
             }
         } catch (SQLException e) {
-            LOG.warn("checkTableExists: getTables failed (treated as not visible): schema={}, table={}",
+            // P2-06：真实故障（权限缺失/元数据面异常）不得归类为"表不可见"——显式抛错保留原始异常链，
+            // 由调用方决定回退或失败，避免 ERR_FIELD_RESOLVE_NO_FIELDS 语义漂移。
+            LOG.warn("checkTableExists: getTables failed (metadata lookup error, not a missing table): schema={}, table={}",
                     schema, tableName, e);
+            throw new NopMetadataException(NopMetadataErrors.ERR_AGGR_TABLE_VISIBILITY_CHECK_FAILED, e)
+                    .param(NopMetadataErrors.ARG_SCHEMA, schema)
+                    .param(NopMetadataErrors.ARG_TABLE_NAME, tableName);
         }
         return false;
     }

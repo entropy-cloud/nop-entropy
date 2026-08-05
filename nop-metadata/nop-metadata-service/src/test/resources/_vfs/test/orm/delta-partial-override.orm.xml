@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<orm ext:appName="nop-test-delta-partial" ext:entityPackageName="io.nop.test.delta"
+     ext:basePackageName="io.nop.test.delta" ext:mavenGroupId="io.github.entropy-cloud"
+     ext:mavenArtifactId="nop-test-delta-partial" ext:mavenVersion="1.0.0-SNAPSHOT"
+     x:schema="/nop/schema/orm/orm.xdef" xmlns:x="/nop/schema/xdsl.xdef" xmlns:ext="ext"
+     x:extends="delta-base-one-entity.orm.xml">
+    <!-- P2-07 fixture：delta 对 base 实体做部分覆盖——缺少 mandatory 属性 tableName。
+         full 加载（importOrmModel:164）merge 后 tableName 来自 base（合法，且 merge 后
+         result.isValidated()=true 跳过 XDslValidator，见 DslNodeLoader.loadFromNode）；
+         parseDeltaModel（:180）在 filtered 阶段 validator 直接检查 delta 原始节点 →
+         tableName 缺失 → ERR_XDSL_ATTR_VALUE_IS_EMPTY → fail-fast 抛 ERR_MODEL_DELTA_PARSE_FAILED。
+         判别器：若 fixture 意外死在 full-load 阶段（错误码 ≠ ERR_MODEL_DELTA_PARSE_FAILED），
+         测试自动红，据此调整 fixture。注：duplicate-key 方案（原 spec）经实测不成立——
+         delta 内部重复 key 在 merge 阶段（ChildNodeMap.addByUniqueAttr）即抛错，永远到不了
+         parseDeltaModel；本 fixture 为实测验证过的窄窗口（FULL OK + FILTERED FAIL）。 -->
+    <entities>
+        <entity className="io.nop.test.delta.BaseE" name="io.nop.test.delta.BaseE"
+                displayName="PartialOverride">
+            <columns>
+                <column name="extra" code="EXTRA" propId="2" stdDataType="string"
+                        stdSqlType="VARCHAR" precision="32" mandatory="true" tagSet="seq"/>
+            </columns>
+        </entity>
+    </entities>
+</orm>

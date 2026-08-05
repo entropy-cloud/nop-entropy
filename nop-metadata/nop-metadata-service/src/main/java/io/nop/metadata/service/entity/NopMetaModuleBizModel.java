@@ -213,6 +213,9 @@ public class NopMetaModuleBizModel extends CrudBizModel<NopMetaModule> implement
      * 解析 delta 定义（未展开 x:extends）。无 x:extends 时返回 fullModel 本身。
      * 有 x:extends 时使用 {@link DslNodeLoader#loadDslNodeFromResource} 的 filtered 阶段
      * （x:include 已解析但 x:extends 未合并）获取原始 delta 节点，再通过 {@link DslModelParser} 解析为 OrmModel。
+     *
+     * <p>P2-07：x:extends 存在时 delta=full 语义不等价（delta 覆盖声明丢失），解析失败不得静默降级——
+     * fail-fast 抛 {@code ERR_MODEL_DELTA_PARSE_FAILED}（保留原始异常链），由调用方事务回滚保证无部分状态。
      */
     private OrmModel parseDeltaModel(IResource resource, OrmModel fullModel, String sourceContent) {
         if (!hasExtends(sourceContent))
@@ -227,10 +230,14 @@ public class NopMetaModuleBizModel extends CrudBizModel<NopMetaModule> implement
             if (parsed instanceof OrmModel)
                 return (OrmModel) parsed;
         } catch (Exception e) {
-            LOG.warn("parseDeltaModel failed, falling back to full model as delta", e);
+            LOG.warn("parseDeltaModel failed for resource {}, fail-fast (no delta=full fallback)",
+                    resource.getPath(), e);
+            throw new NopMetadataException(NopMetadataErrors.ERR_MODEL_DELTA_PARSE_FAILED, e)
+                    .param(NopMetadataErrors.ARG_PATH, resource.getPath());
         }
-        // 降级：delta 解析失败时，delta=full（内容相同）
-        return fullModel;
+        throw new NopMetadataException(NopMetadataErrors.ERR_MODEL_DELTA_PARSE_FAILED)
+                .param(NopMetadataErrors.ARG_PATH, resource.getPath())
+                .param(NopMetadataErrors.ARG_ERROR, "parsed delta node is not an OrmModel");
     }
 
     private static boolean hasExtends(String sourceContent) {

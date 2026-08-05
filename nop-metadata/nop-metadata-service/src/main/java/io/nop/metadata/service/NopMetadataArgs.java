@@ -21,6 +21,7 @@ public interface NopMetadataArgs {
     String ARG_QUERY_SPACE = "querySpace";
     String ARG_TABLE_TYPE = "tableType";
     String ARG_TABLE_NAME = "tableName";
+    String ARG_SCHEMA = "schema";
     String ARG_COLUMN_NAME = "columnName";
     String ARG_DATABASE_PRODUCT_NAME = "databaseProductName";
     String ARG_ERROR = "error";

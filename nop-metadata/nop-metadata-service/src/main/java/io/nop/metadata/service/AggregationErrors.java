@@ -73,6 +73,11 @@ interface AggregationErrors extends NopMetadataArgs {
             ErrorCode.define("nop.err.metadata.aggr-exec-failed",
                     "Aggregation SQL execution failed: metaTableId={metaTableId} -- {error}",
                     ARG_META_TABLE_ID, ARG_ERROR);
+    ErrorCode ERR_AGGR_TABLE_VISIBILITY_CHECK_FAILED =
+            ErrorCode.define("nop.err.metadata.aggr-table-visibility-check-failed",
+                    "Table visibility check failed (metadata lookup error, not a missing table): "
+                            + "schema={schema} tableName={tableName} -- {error}",
+                    ARG_SCHEMA, ARG_TABLE_NAME, ARG_ERROR);
     ErrorCode ERR_AGGR_UNSUPPORTED_TABLE_TYPE =
             ErrorCode.define("nop.err.metadata.aggr-unsupported-table-type",
                     "SqlAggregationProcessor requires TABLE_TYPE_SQL, got: {tableType}",

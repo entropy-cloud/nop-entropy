@@ -27,7 +27,9 @@ import java.util.Map;
 import java.util.UUID;
 
 import static io.nop.metadata.service.NopMetadataErrors.ERR_TAG_LABEL_INVALID_LABEL_TYPE;
+import static io.nop.metadata.service.NopMetadataErrors.ERR_TAG_LABEL_SUBMIT_APPROVAL_FAILED;
 import static io.nop.metadata.service.NopMetadataErrors.ARG_LABEL_TYPE;
+import static io.nop.metadata.service.NopMetadataErrors.ARG_TAG_LABEL_ID;
 
 @BizModel("NopMetaTagLabel")
 public class NopMetaTagLabelBizModel extends CrudBizModel<NopMetaTagLabel> implements INopMetaTagLabelBiz {
@@ -126,8 +128,13 @@ public class NopMetaTagLabelBizModel extends CrudBizModel<NopMetaTagLabel> imple
             bizObjectManager().getBizObject("NopMetaTagLabel")
                     .invoke("submitForApproval", Map.of("id", entity.getTagLabelId()), null, context);
         } catch (Exception e) {
-            LOG.warn("submitForApproval failed for TagLabel {} (workflow may not be available)",
+            // P2-09（R6.4）：提审失败不得静默跳过——标签已保存但永不进审批流对用户零感知，
+            // 属静默数据丢失。fail-loud 抛 ERR_TAG_LABEL_SUBMIT_APPROVAL_FAILED（保留原始异常链），
+            // save 事务整体回滚，用户侧可见错误。
+            LOG.warn("submitForApproval failed for TagLabel {}, fail-loud (no silent skip)",
                     entity.getTagLabelId(), e);
+            throw new NopMetadataException(ERR_TAG_LABEL_SUBMIT_APPROVAL_FAILED, e)
+                    .param(ARG_TAG_LABEL_ID, entity.getTagLabelId());
         }
     }
 

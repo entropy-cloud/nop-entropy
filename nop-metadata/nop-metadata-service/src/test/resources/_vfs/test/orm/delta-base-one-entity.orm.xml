@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<orm ext:appName="nop-test-delta-base" ext:entityPackageName="io.nop.test.delta"
+     ext:basePackageName="io.nop.test.delta" ext:mavenGroupId="io.github.entropy-cloud"
+     ext:mavenArtifactId="nop-test-delta-base" ext:mavenVersion="1.0.0-SNAPSHOT"
+     x:schema="/nop/schema/orm/orm.xdef" xmlns:x="/nop/schema/xdsl.xdef" xmlns:ext="ext">
+    <!-- P2-07 fixture：base 含一个合法实体 BaseE（merge 时 delta 的部分覆盖并入 base，merged 合法）。 -->
+    <entities>
+        <entity className="io.nop.test.delta.BaseE" name="io.nop.test.delta.BaseE" tableName="base_e"
+                displayName="BaseE" registerShortName="true">
+            <columns>
+                <column name="sid" code="SID" primary="true" propId="1" stdDataType="string"
+                        stdSqlType="VARCHAR" precision="32" mandatory="true" tagSet="seq"/>
+            </columns>
+        </entity>
+    </entities>
+</orm>
