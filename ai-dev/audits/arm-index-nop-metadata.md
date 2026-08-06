@@ -2,8 +2,48 @@
 
 > **M0.2 交付物** — mission `nop-metadata-audit-remediation` 的 M0.2 工作项（按 `ai-dev/skills/audit-remediation-roadmap-authoring-prompt.md` §6.1）。
 > 状态：done
-> 最后更新：2026-08-06（MR7 R7.3 收口，见 MR7 R7.3 收口记录段；AR-01/AR-06/AR-07/AR-08/AR-09/AR-10 六项修复落地 + AR-06 治理纠正 + R3.x claimed-fixed 抽查，roadmap R7.3 → done，MR7 全段收口）
+> 最后更新：2026-08-06（MR8 R8.0 收口，见 MR8 裁决记录段；Follow-up Backlog AR-11~23 共 13 条逐项裁决——提级 19 + 归类 3，0 悬置，roadmap MR8 段 R8.0 → done，MR8 全段收口）
 > 来源：9 个历史审计来源（07-19 ~ 07-23 五轮，multi+open 双轨）+ 本 mission 3 个 M0 交付物自身；本索引不登记 nop-ai 等其他 mission 的 arm 文件。
+
+## MR8 裁决记录（plan-2026-08-06-0832-1，2026-08-06 live 复核；R8.0 → done）
+
+> **R8.0 收口（plan-2026-08-06-0832-1 全 3 Phase）**：Follow-up Backlog AR-11~23 共 13 条逐项裁决——**提级 19 项 + 终局归类 3 项，0 悬置**；每条附 live 复核依据 / Why Not Blocking Closure；roadmap MR8 段新增 R8.1~R8.4 修复工作项行（Deps = R8.0 done）解除后续修复 plan 门禁；本 plan 为纯裁决 + 文档变更（无代码变更），构建验证由 `./mvnw test -pl nop-metadata -am -T 1C` 承接；check-doc-links --strict exit 0；独立子 agent closure audit PASS。
+
+- **提级 19 项（归属 roadmap MR8 段 R8.1~R8.4 行，全部经 live 复核确认，无翻案、无静默跳过）**：
+
+| 编号 | 归属组 | 提级依据（live 复核，2026-08-06） |
+|------|--------|----------------------------------|
+| AR-16 | R8.2（诊断与日志） | `MetaQualityRuleExecutor.java:631,647,669` 三处 `LOG.info` 完整 SQL/custom_sql 字面量（queryLong/queryTimestamp 含源 SQL 内嵌字面量、querySingleValue 含 custom_sql 原始文本——敏感字面量可落盘）；R6.2 rawJdbcUrl 同类面已治理本面未治理；custom_sql 已有 sqlHash（:286-287）可替代 |
+| AR-11 | R8.1（质量执行/评分） | `MetaQualityRuleExecutor.java:725-733` isRegexpUnsupported 子串启发式 `contains("regexp")||contains("syntax")||function&&not found`——MySQL（支持 REGEXP）非法 pattern 报错含 "regexp" 被误判 SKIP，失败规则静默消失；P2-08 文档化例外被放大到规则级 bug（行为收紧须同步 docs 例外说明） |
+| AR-12 | R8.1 | `MetaQualityCheckpointScheduler.java:201-208` cpId==null 在 try（:209）外抛 `ERR_CHECKPOINT_SCHEDULER_INVALID_CRON`——命中即逃逸到 invoker 永久 FAILED（MA7.5-01 要消除的模式）+ 错误码与实际失败不符 |
+| AR-13 | R8.1 | `QualityErrors.java:16-22` ERR_QUALITY_SQL_NO_ROW/FAILED 声明 `{ruleKey}` 占位但 throw 点（MetaQualityRuleExecutor.java:634-642）只设 sql/error 从不设 ruleKey——占位恒渲染字面量；:720 evalExpectPassWhen 错误上下文为字面量 `<evalExpectPassWhen>` |
+| AR-14 | R8.1 | `MetaQualityCheckpointExecutor.java:156-164` 异常规则不写 ERROR 结果行 → `MetaQualityScorer.java:130,315` findLatestResult 复用陈旧行（可能旧 PASS）→ 失败运行后评分仍显健康；`CheckpointExecutionResultDTO.java:22,28` totalRuleCount/ruleResults 检查点路径从不填充（setRuleResults 0 调用点）+ 缺 skipCount |
+| AR-15 | R8.1 | `MetaQualityRuleExecutor.java:735-740` ageMinutesFromNow 可负（DB 时钟超前/未来时间戳），:250-253 `ageMinutes > maxAgeMinutes` 判 FAIL——负值恒 PASS 掩盖新鲜度违约 |
+| AR-18 | R8.3（导入与内存过滤） | `OrmModelImporter.java:208-216` buildJoinConditionsJson 手拼 JSON 不转义（buildIndexColumnsJson :218-227 同型）——left/right 含 `"`/`\` 产出非法 JSON 静默入库；`MetaTableFieldResolver.java:339-359` `(List<Map<String,Object>>) parsed` 未类型化——元素非 Map 时 :367 裸 ClassCastException |
+| AR-19 | R8.3 | `MemoryFilterEvaluator.java:101-110` LIKE `%`→`.*`/`_`→`.` 元字符未转义匹配面扩大；:223-246 compareValues null→±1 与 SQL NULL 比较语义相反；:171-174 空 or 节点=false vs SQL=TRUE——与 FilterToSqlTranslator 语义漂移 |
+| AR-20 | R8.4（杂项正确性） | `AggregationHelper.java:342-345` 无方言判断拼接 `NULLS FIRST/LAST`（MySQL 语法错误）；`CrossDbJoinMerger.java:122-159` join 键 `Class.equals` 精确类比较——INT vs BIGINT 数值相等误拒 |
+| AR-21 | R8.4 | `AutoClassificationProcessor.doCreateAutomatedLabel` catch→LOG.error+null + `LineageTagPropagationProcessor.java:177-188` 同型 catch-all——R6.4 提审 fail-loud 被吞（标签 Suggested 落库但审批流静默不建）；无绑定分类时 `allEnabled.sort(lexicographic).get(0)` 全局回退 |
+| AR-22 | R8.4 | `MetaContractChecker.java:358-361` toDurationMillis default 分支 MILLISECONDS——`{"interval":1,"unit":"week"}` → 1ms → 恒 stale，配置笔误零错误信号 |
+| AR-17 | R8.4 | `NopMetaDataSourceBizModel.java:508-521` per-key 锁 + REQUIRES_NEW 每表独立提交实证；scan 级失败已同步表持久化 + 异常上抛 + 事件不达（:207 publishEventWithSnapshots）；模块文档 §失败路径（nop-metadata.md:211）只声明 per-row 隔离未声明原子性变化；重试幂等收敛但事件缺失使下游失同步，修复成本低 |
+| AR-23① | R8.4 | `NopMetaQualityCheckpointBizModel.java:265-292` delete override 先 `notifySchedulerUnregister` 后 `super.delete`——删除失败时 cron 已摘除，检查点仍在但调度静默丢失 |
+| AR-23② | R8.4 | `NopMetaIndexBuilder.java:55-120` buildFullIndex 只 addDocs 无 rebuild 前 topic 清理——陈旧文档永久残留，重建后搜索返回幽灵 |
+| AR-23③ | R8.2 | `NopMetaIndexBuilder.java:108-112` refreshBlocking 失败仅 LOG.warn——索引未刷新但 IndexResult 仍报 indexed=N 成功，搜索静默陈旧 |
+| AR-23④ | R8.2 | `NopMetaSearchBizModel.java:66-70` searchMetadata limit 只钳上限不拒负数——负 limit 直通引擎无显式错误码 |
+| AR-23⑤ | R8.2 | `ExternalTableStructureReader.java:81-84` getTables 扫描 SQLException 统一抛 ERR_DIALECT_NOT_SUPPORTED（product "unknown"）——真实故障误归类不可诊断；:155-158 safeInt NULL 精度归 0 |
+| AR-23⑨ | R8.4 | `NopMetaModuleBizModel.java:618-638` buildGlobalClassNameToModuleId `moduleDao.findAll()` 无 status 过滤——RELEASED 模块 manifest 可解析到 DRAFTING 模块实体 |
+| AR-23⑩ | R8.4 | `MetaModelChangedEventPublisher.java:201-203` buildEntitySnapshot Map 分支原样拷贝——AR-07 敏感列脱敏契约缺口（publishEvent/buildSnapshot 参数为 Object，传 Map 合法绕过脱敏）；当前 0 Map 调用方但为 API 级契约缺口 |
+
+- **终局归类 3 项（归属 R8.0 行，每条附 Why Not Blocking Closure）**：
+
+| 编号 | 归类 | Why Not Blocking Closure（live 复核，2026-08-06） |
+|------|------|--------------------------------------------------|
+| AR-23⑥ | optimization candidate | `LocalReconciliationProcessor.java:92-102` 每行全量候选池 + :137-163 levenshteinDistance O(n×m) 无长度上限——性能面 O(rows×candidates×len²)，但对账为用户显式触发的低频运维批量操作，元数据规模受限，无正确性缺陷；无规模实测证据表明活跃缺陷路径 |
+| AR-23⑦ | optimization candidate | `MetaTableProfiler.java:260-275` loadSortedDoubles 全列载入内存——profileTable 为用户显式单表触发，median/percentile 需排序值；超大表 OOM 异常 fail-loud 无数据损坏，非默认自动执行路径 |
+| AR-23⑧ | watch-only residual（**live 复核翻案**） | 审计主张"无唯一约束"已过期：`UK_NOP_META_MANIFEST_MODULE_VER (metaModuleId, manifestVersion)`（orm.xml:2246 constraint=）+ `UK_NOP_META_MODULE_ID_VER (moduleId, moduleVersion)`（orm.xml:299 constraint=）R3.19 36 UK constraint 批已在位（三方言 DDL 实证 deploy/sql/*/_create_*.sql）；并发 read-then-insert 败者由 DB UK fail-loud 拒绝——无静默重复无损坏，重试收敛；残余 = 并发败者收到显式错误（非幂等），非活跃静默缺陷路径 |
+
+- **无静默跳过 / 无降级**：13 条全部 live 复核，无候选因"没时间"被降级（Minimum Rules #15/#16）；3 项归类逐条声明 Why Not Blocking Closure，无已确认 live defect / contract drift 被静默降级（AR-17/AR-23①⑤⑨②③④⑩ 全部提级）
+- **分组建议**：R8.1 质量执行/评分正确性组（AR-11/12/13/14/15）；R8.2 诊断与日志组（AR-16 + AR-23③⑤④）；R8.3 导入与内存过滤组（AR-18/19）；R8.4 杂项正确性组（AR-20/21/22/17 + AR-23①②⑨⑩）——与 roadmap MR8 段「R8.0 裁决记录」双向一致（grep 13 条可追溯）
+- 追踪一致性：roadmap MR8 段「R8.0 裁决记录」与本段逐条一致（AR-11~23 全部终态）；Follow-up Backlog 登记表结构不变（保留登记批次与来源路径，终态走本段 + roadmap MR8 段）
 
 ## MR7 R7.3 收口记录（plan-2026-08-06-0553-3，2026-08-06 执行完成 + closure audit PASS）
 
