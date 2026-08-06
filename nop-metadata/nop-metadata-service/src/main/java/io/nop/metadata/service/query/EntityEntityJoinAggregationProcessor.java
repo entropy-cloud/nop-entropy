@@ -120,7 +120,10 @@ public class EntityEntityJoinAggregationProcessor implements AggregationProcesso
                 params.addAll(hf.getParams());
             }
         }
-        String orderByClause = buildOrderByClause(orderBy, nameToExpr, table, measureNames, dimensionNames, "ORDER_BY");
+        // AR-20a：entity-entity JOIN 走 ORM 路径（orm().executeQuery），无方言 API——与 via-EQL 同裁定：
+        // 保持既有行为（dialect=null 走 AggregationHelper 默认分支），残余登记
+        // plan 2026-08-06-1228-1 Deferred But Adjudicated（ORM 背后接 MySQL 的部署场景）。
+        String orderByClause = buildOrderByClause(orderBy, nameToExpr, table, measureNames, dimensionNames, "ORDER_BY", null);
         if (!orderByClause.isEmpty()) {
             sql.append(" ORDER BY ").append(orderByClause);
         }

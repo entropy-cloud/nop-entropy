@@ -27,7 +27,10 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  *   <li>左 null + 右 null：inner join 不匹配（不输出），left join 保留左行（右列 null）</li>
  *   <li>右 null：不被任何左行匹配（不进 rightIndex）</li>
  *   <li>左 null + 右非 null：不匹配（inner 丢弃，left 保留）</li>
- *   <li>类型不一致（Integer vs Long vs BigDecimal）显式抛 ERR_JOIN_CROSS_DB_KEY_TYPE_MISMATCH</li>
+ *   <li>整型族跨类型（Integer vs Long / Byte vs Integer 等）数值等值键匹配通过（AR-20b re-adjudication，
+ *       stringKey 匹配下整型等值键必然同串，精确类比较为过度防护）</li>
+ *   <li>非整型不匹配（Integer vs BigDecimal / Integer vs String）仍显式抛
+ *       ERR_JOIN_CROSS_DB_KEY_TYPE_MISMATCH（避免静默精度失配/错配）</li>
  * </ul>
  */
 public class TestMetaJoinCrossDbMergeNullSemantics {
@@ -78,18 +81,68 @@ public class TestMetaJoinCrossDbMergeNullSemantics {
         assertEquals("R1", merged.get(0).get("extra"));
     }
 
+    /**
+     * AR-20b re-adjudication（plan 2026-08-06-1228-1 Phase 2）：Integer vs Long 整型等值键由"显式拒绝"
+     * 改为"匹配通过"——merge 匹配走 stringKey（String.valueOf），Long.toString(1)="1"=Integer.toString(1)，
+     * 数值等值键必然同串，精确类比较（Class.equals）是过度防护（INT vs BIGINT 跨库 join 数值相等被误拒）；
+     * 旧裁定（"silent String coercion is forbidden"）的 coercion 担忧仅对非整型成立。
+     */
     @Test
-    public void testTypeMismatchIntegerVsLongThrowsExplicitly() {
+    public void testIntegerVsLongKeysMatchNumerically() {
         NopMetaTableJoin join = newJoin("id", "id", "inner");
         List<Map<String, Object>> left = rows(row("id", 1, "name", "L_int"));
         List<Map<String, Object>> right = rows(row("id", 1L, "extra", "R_long"));
 
+        List<Map<String, Object>> merged = invokeCrossDbMerge(join, left, right);
+        assertEquals(1, merged.size(),
+                "Integer 1 vs Long 1 are numerically equal integer-family keys and must match: " + merged);
+        assertEquals("R_long", merged.get(0).get("extra"));
+    }
+
+    /** 整型族内其它跨类型组合（Byte vs Integer / Short vs Long）同样数值等值匹配（AR-20b）。 */
+    @Test
+    public void testOtherIntegerFamilyCrossTypeMatches() {
+        NopMetaTableJoin join = newJoin("id", "id", "inner");
+        List<Map<String, Object>> left = rows(row("id", (byte) 1, "name", "L_byte"));
+        List<Map<String, Object>> right = rows(row("id", 1, "extra", "R_int"));
+
+        List<Map<String, Object>> merged = invokeCrossDbMerge(join, left, right);
+        assertEquals(1, merged.size(), "Byte 1 vs Integer 1 must match: " + merged);
+
+        NopMetaTableJoin join2 = newJoin("id", "id", "inner");
+        List<Map<String, Object>> left2 = rows(row("id", (short) 2, "name", "L_short"));
+        List<Map<String, Object>> right2 = rows(row("id", 2L, "extra", "R_long"));
+        List<Map<String, Object>> merged2 = invokeCrossDbMerge(join2, left2, right2);
+        assertEquals(1, merged2.size(), "Short 2 vs Long 2 must match: " + merged2);
+    }
+
+    /** 单列内整型族混型（Integer + Long）→ 兼容不抛（AR-20b）。 */
+    @Test
+    public void testMixedIntegerFamilyWithinColumnMatches() {
+        NopMetaTableJoin join = newJoin("id", "id", "inner");
+        List<Map<String, Object>> left = rows(
+                row("id", 1, "name", "L1"),
+                row("id", 2L, "name", "L2"));
+        List<Map<String, Object>> right = rows(
+                row("id", 1L, "extra", "R1"),
+                row("id", 2, "extra", "R2"));
+
+        List<Map<String, Object>> merged = invokeCrossDbMerge(join, left, right);
+        assertEquals(2, merged.size(),
+                "mixed Integer/Long keys within a column are compatible and must both match: " + merged);
+    }
+
+    /** 非整型不匹配（Integer vs BigDecimal）维持拒绝——BigDecimal("1.0")="1.0" vs Integer 1="1" 数值等但不同串，放宽会静默失配。 */
+    @Test
+    public void testTypeMismatchIntegerVsBigDecimalStillThrows() {
+        NopMetaTableJoin join = newJoin("id", "id", "inner");
+        List<Map<String, Object>> left = rows(row("id", 1, "name", "L_int"));
+        List<Map<String, Object>> right = rows(row("id", new java.math.BigDecimal("1.0"), "extra", "R_dec"));
+
         NopException ex = assertThrows(NopException.class,
                 () -> invokeCrossDbMerge(join, left, right),
-                "Integer vs Long key must explicitly fail (silent String coercion is forbidden)");
-        assertEquals(NopMetadataErrors.ERR_JOIN_CROSS_DB_KEY_TYPE_MISMATCH.getErrorCode(),
-                ex.getErrorCode(),
-                "must throw ERR_JOIN_CROSS_DB_KEY_TYPE_MISMATCH");
+                "Integer vs BigDecimal key must still explicitly fail (silent precision loss is forbidden)");
+        assertEquals(NopMetadataErrors.ERR_JOIN_CROSS_DB_KEY_TYPE_MISMATCH.getErrorCode(), ex.getErrorCode());
     }
 
     @Test

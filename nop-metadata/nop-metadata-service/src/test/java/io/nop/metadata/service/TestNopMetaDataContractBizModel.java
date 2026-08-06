@@ -183,6 +183,71 @@ public class TestNopMetaDataContractBizModel extends JunitBaseTestCase {
         assertLatestResultWritten(id, "FAIL");
     }
 
+    // ===== AR-22（plan 2026-08-06-1228-1 Phase 4）：SLA 时间单位 week/w + 未知单位 fail-fast =====
+
+    /** week = 7 天：catalog 6 天前收集 + 1 week 频率 → 新鲜（修复前 week 落 default 按 1ms 解析 → 恒 stale → FAIL，实测 red） */
+    @Test
+    public void testCheckContractSlaWeekUnitFresh() {
+        String tableId = saveExternalTable("EXT_SLA_WEEK_FRESH");
+        long sixDaysAgo = System.currentTimeMillis() - 6L * 24L * 60L * 60L * 1000L;
+        saveCatalog(tableId, sixDaysAgo, null);
+
+        String id = saveContract("c-sla-week-fresh", "ACTIVE", tableId, null,
+                "{\"refreshFrequency\":{\"interval\":1,\"unit\":\"week\"}}");
+        GraphQLResponseBean resp = check(id);
+        assertFalse(resp.hasError(), "check should not error: " + resp);
+        assertCheckStatus(resp, "PASS");
+        assertLatestResultContains(id, "\"slaFresh\":true");
+        assertLatestResultContains(id, "\"collectionStale\":false");
+    }
+
+    /** week = 7 天（非无穷）：catalog 8 天前收集 → 超期 FAIL（week 语义边界） */
+    @Test
+    public void testCheckContractSlaWeekUnitStale() {
+        String tableId = saveExternalTable("EXT_SLA_WEEK_STALE");
+        long eightDaysAgo = System.currentTimeMillis() - 8L * 24L * 60L * 60L * 1000L;
+        saveCatalog(tableId, eightDaysAgo, null);
+
+        String id = saveContract("c-sla-week-stale", "ACTIVE", tableId, null,
+                "{\"refreshFrequency\":{\"interval\":1,\"unit\":\"week\"}}");
+        GraphQLResponseBean resp = check(id);
+        assertFalse(resp.hasError(), "check should not error: " + resp);
+        assertCheckStatus(resp, "FAIL");
+        assertLatestResultContains(id, "\"collectionStale\":true");
+    }
+
+    /** "w" 缩写 = week：interval 2 w = 14 天，catalog 13 天前 → 新鲜（修复前按 1ms 解析实测 red） */
+    @Test
+    public void testCheckContractSlaWShortUnit() {
+        String tableId = saveExternalTable("EXT_SLA_W_SHORT");
+        long thirteenDaysAgo = System.currentTimeMillis() - 13L * 24L * 60L * 60L * 1000L;
+        saveCatalog(tableId, thirteenDaysAgo, null);
+
+        String id = saveContract("c-sla-w-short", "ACTIVE", tableId, null,
+                "{\"refreshFrequency\":{\"interval\":2,\"unit\":\"w\"}}");
+        GraphQLResponseBean resp = check(id);
+        assertFalse(resp.hasError(), "check should not error: " + resp);
+        assertCheckStatus(resp, "PASS");
+        assertLatestResultContains(id, "\"slaFresh\":true");
+    }
+
+    /** 未知单位（如 "fortnight"）→ 显式 ERR_CONTRACT_SLA_INVALID（修复前静默按 1ms 解析实测 red） */
+    @Test
+    public void testCheckContractSlaUnknownUnitFailsLoud() {
+        String tableId = saveExternalTable("EXT_SLA_UNKNOWN_UNIT");
+        saveCatalog(tableId, System.currentTimeMillis(), null);
+
+        String id = saveContract("c-sla-unknown-unit", "ACTIVE", tableId, null,
+                "{\"refreshFrequency\":{\"interval\":1,\"unit\":\"fortnight\"}}");
+        GraphQLResponseBean resp = check(id);
+        assertTrue(resp.hasError(),
+                "unknown sla time unit must fail loudly (no silent 1ms parsing): " + resp);
+        String errorCode = resp.getErrorCode();
+        assertNotNull(errorCode, "error must carry an error code: " + resp);
+        assertTrue(errorCode.contains("nop.err.metadata.contract-sla-invalid"),
+                "unknown unit must reuse ERR_CONTRACT_SLA_INVALID, got: " + errorCode);
+    }
+
     @Test
     public void testCheckContractQualityPassSlaStaleFail() {
         String ruleId = saveQualityRule("qr-mix-1");

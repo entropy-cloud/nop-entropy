@@ -80,7 +80,6 @@ public class ExternalExternalJoinAggregationProcessor implements AggregationProc
         FilterToSqlTranslator.TranslatedFilter havingTf = having == null ? null
                 : ctx.filterTranslator().translate(having,
                         nameResolverFor(nameToExpr, table, measureNames, dimensionNames, "HAVING"));
-        String orderByClause = buildOrderByClause(orderBy, nameToExpr, table, measureNames, dimensionNames, "ORDER_BY");
 
         final List<Map<String, Object>>[] holder = newArrayHolder();
         final List<JoinMeasureSpec> _measures = measures;
@@ -93,6 +92,10 @@ public class ExternalExternalJoinAggregationProcessor implements AggregationProc
                                 .param("databaseProductName", String.valueOf(dialect))
                                 .param("metaTableId", table.getMetaTableId());
                     }
+                    // AR-20a：方言在 lambda 内才可得，ORDER BY 构建移入 lambda（MySQL 上 NULLS FIRST/LAST
+                    // 按方言裁定省略或 fail-fast，见 AggregationHelper.buildOrderByClause）。
+                    String orderByClause = buildOrderByClause(orderBy, nameToExpr, table, measureNames,
+                            dimensionNames, "ORDER_BY", dialect);
                     for (JoinMeasureSpec m : _measures) {
                         if (m.isExpression()) {
                             ExpressionMeasureValidator.checkDialectSupported(m.validatedExpression, dialect,

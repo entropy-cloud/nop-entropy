@@ -11,6 +11,7 @@ import io.nop.dao.api.IEntityDao;
 import io.nop.graphql.core.IGraphQLExecutionContext;
 import io.nop.graphql.core.engine.IGraphQLEngine;
 import io.nop.api.core.beans.graphql.GraphQLErrorBean;
+import io.nop.core.context.IServiceContext;
 import io.nop.metadata.core._NopMetadataCoreConstants;
 import io.nop.metadata.dao.entity.NopMetaClassification;
 import io.nop.metadata.dao.entity.NopMetaEntity;
@@ -337,8 +338,43 @@ public class TestMetadataPropagationIntegration extends JunitBaseTestCase {
         GraphQLRequestBean request = new GraphQLRequestBean();
         request.setQuery(query);
         request.setVariables(vars);
-        IGraphQLExecutionContext context = graphQLEngine.newGraphQLContext(request);
+        // P2-09/R6.4 环境注记：wf 启动需要真实操作人（allowCallByUser 校验），autotest 环境无操作人
+        // （svcCtx.getUserId()=null → requireUser 抛 unknown-entity）——suggestTags/propagateTags 生成的
+        // Automated/Propagated 标签 save 路径触发提审，无用户时正路径 fail-loud 如实失败（沿
+        // TestNopMetaTagLabelApproval 先例注入真实用户）。
+        IServiceContext svcCtx = newServiceContext();
+        IGraphQLExecutionContext context = graphQLEngine.newGraphQLContext(request, svcCtx);
         return graphQLEngine.executeGraphQL(context);
+    }
+
+    private IServiceContext newServiceContext() {
+        ensureUser();
+        io.nop.core.context.ServiceContextImpl ctx = new io.nop.core.context.ServiceContextImpl();
+        io.nop.auth.core.login.UserContextImpl userContext = new io.nop.auth.core.login.UserContextImpl();
+        userContext.setUserId(TEST_USER_ID);
+        userContext.setUserName("propagation-autotest");
+        ctx.setUserContext(userContext);
+        return ctx;
+    }
+
+    private static final String TEST_USER_ID = "u-propagation-autotest";
+
+    private void ensureUser() {
+        IEntityDao<io.nop.auth.dao.entity.NopAuthUser> userDao =
+                daoProvider.daoFor(io.nop.auth.dao.entity.NopAuthUser.class);
+        if (userDao.getEntityById(TEST_USER_ID) == null) {
+            io.nop.auth.dao.entity.NopAuthUser user = userDao.newEntity();
+            user.setUserName("propagation-autotest");
+            user.setUserId(TEST_USER_ID);
+            user.setNickName(user.getUserName());
+            user.setPassword("123");
+            user.setOpenId(TEST_USER_ID);
+            user.setUserType(1);
+            user.setStatus(1);
+            user.setGender(1);
+            user.setTenantId("0");
+            userDao.saveEntity(user);
+        }
     }
 
     private String getErrorMessages(GraphQLResponseBean resp) {

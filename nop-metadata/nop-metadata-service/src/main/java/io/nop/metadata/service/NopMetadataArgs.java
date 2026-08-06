@@ -58,6 +58,8 @@ public interface NopMetadataArgs {
     String ARG_SIZE = "size";
     String ARG_COUNT = "count";
     String ARG_STATEMENT_KIND = "statementKind";
+    String ARG_DESC = "desc";
+    String ARG_NULLS_FIRST = "nullsFirst";
     String ARG_EXTRACTED_COUNT = "extractedCount";
     String ARG_RESULT_SET_COUNT = "resultSetCount";
     String ARG_REF_KIND = "refKind";
@@ -97,6 +99,7 @@ public interface NopMetadataArgs {
     String ARG_TABLES = "tables";
     String ARG_UNSUPPORTED_TOKEN = "unsupportedToken";
     String ARG_ENTITY_TYPE = "entityType";
+    String ARG_TAG_ID = "tagId";
     String ARG_TAG_LABEL_ID = "tagLabelId";
     String ARG_LABEL_TYPE = "labelType";
     String ARG_DATA_PRODUCT_ID = "dataProductId";

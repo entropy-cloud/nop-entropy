@@ -3,6 +3,7 @@ package io.nop.metadata.service.entity;
 
 import io.nop.api.core.beans.FilterBeans;
 import io.nop.api.core.beans.query.QueryBean;
+import io.nop.api.core.exceptions.NopException;
 import io.nop.metadata.service.NopMetadataException;
 import io.nop.biz.api.IBizObjectManager;
 import io.nop.core.context.IServiceContext;
@@ -22,8 +23,11 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 
+import static io.nop.metadata.service.NopMetadataErrors.ARG_ENTITY_ID;
 import static io.nop.metadata.service.NopMetadataErrors.ARG_ENTITY_TYPE;
+import static io.nop.metadata.service.NopMetadataErrors.ARG_TAG_ID;
 import static io.nop.metadata.service.NopMetadataErrors.ERR_PROPAGATE_UNSUPPORTED_ENTITY_TYPE;
+import static io.nop.metadata.service.NopMetadataErrors.ERR_TAG_LABEL_SAVE_FAILED;
 
 
 
@@ -152,7 +156,12 @@ public class LineageTagPropagationProcessor {
                             depth + 1, visited, results, context);
                 }
             } catch (Exception e) {
-                LOG.error("propagation failed for edge edgeId={}", edge.getLineageEdgeId(), e);
+                // AR-21（plan 2026-08-06-1228-1 Phase 3）：后台传播路径保留 per-edge 隔离（单边失败不中断
+                // 整条血缘传播），但内层不再静默返回 null（内层抛错）——此处 LOG.error 含完整上下文留证，
+                // 失败可观测（显式裁定语义：传播失败可观测但不中断批处理）。
+                LOG.error("propagation failed for edge edgeId={} sourceTableId={} targetTableId={} tagId={}",
+                        edge.getLineageEdgeId(), edge.getSourceTableId(), edge.getTargetTableId(),
+                        sourceLabel.getTagId(), e);
             }
         }
     }
@@ -180,10 +189,21 @@ public class LineageTagPropagationProcessor {
             if (result instanceof NopMetaTagLabel) {
                 return (NopMetaTagLabel) result;
             }
+            // AR-21：invoke 返回非实体（极低概率边缘）不静默无日志——显式留证后按空结果处理（残余登记 plan）。
+            LOG.warn("Propagated TagLabel save invoke returned non-entity result for entityId={} tagId={} resultType={}",
+                    targetEntityId, tagId, result == null ? "null" : result.getClass().getName());
             return null;
+        } catch (NopException e) {
+            // AR-21：已带错误码的异常原样上抛（外层 propagateEdge 按后台路径隔离语义 LOG.error 留证并继续），
+            // 不再被 catch-all 吞掉静默返回 null。
+            throw e;
         } catch (Exception e) {
-            LOG.error("Failed to save propagated TagLabel for entityId={} tagId={}", targetEntityId, tagId, e);
-            return null;
+            LOG.warn("Propagated TagLabel save failed for entityId={} tagId={}, fail-loud (no silent drop)",
+                    targetEntityId, tagId, e);
+            throw new NopMetadataException(ERR_TAG_LABEL_SAVE_FAILED, e)
+                    .param(ARG_ENTITY_TYPE, ENTITY_TYPE_NOP_META_TABLE)
+                    .param(ARG_ENTITY_ID, targetEntityId)
+                    .param(ARG_TAG_ID, tagId);
         }
     }
 

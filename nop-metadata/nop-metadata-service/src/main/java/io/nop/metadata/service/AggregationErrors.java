@@ -135,6 +135,12 @@ interface AggregationErrors extends NopMetadataArgs {
                     "orderBy references a measure/dimension name not in the user-selected measures/dimensions set: "
                             + "{metaTableId} name={name} selectedMeasures={selectedMeasures} selectedDimensions={selectedDimensions}",
                     ARG_META_TABLE_ID, ARG_NAME, ARG_SELECTED_MEASURES, ARG_SELECTED_DIMENSIONS);
+    ErrorCode ERR_AGGR_ORDER_BY_NULLS_UNSUPPORTED =
+            ErrorCode.define("nop.err.metadata.aggr-order-by-nulls-unsupported",
+                    "orderBy nullsFirst cannot be expressed on this dialect (MySQL default: NULLs first in ASC, "
+                            + "last in DESC; no NULLS FIRST/LAST syntax): "
+                            + "databaseProductName={databaseProductName} name={name} desc={desc} nullsFirst={nullsFirst}",
+                    ARG_DATABASE_PRODUCT_NAME, ARG_NAME, ARG_DESC, ARG_NULLS_FIRST);
     ErrorCode ERR_AGGR_HAVING_UNSUPPORTED_OP =
             ErrorCode.define("nop.err.metadata.aggr-having-unsupported-op",
                     "MemoryFilterEvaluator: having op not supported in first version: {op} name={name}",

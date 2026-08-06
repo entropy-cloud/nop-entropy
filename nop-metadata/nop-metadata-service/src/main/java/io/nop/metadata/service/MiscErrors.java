@@ -88,6 +88,13 @@ interface MiscErrors extends NopMetadataArgs {
                     "TagLabel submit for approval failed (label saved but never enters approval flow would be "
                             + "silent data loss): {tagLabelId} -- {error}",
                     ARG_TAG_LABEL_ID, ARG_ERROR);
+    // AR-21（plan 2026-08-06-1228-1 Phase 3）：自动化/传播路径标签保存本身失败（与提交提审失败 ERR_TAG_LABEL_SUBMIT_APPROVAL_FAILED
+    // 语义区分——该码消息描述"已保存但未进审批流"，用于"保存即失败"会误导定位）——显式错误码，不再被 catch-all 吞掉静默返回 null。
+    ErrorCode ERR_TAG_LABEL_SAVE_FAILED =
+            ErrorCode.define("nop.err.metadata.tag-label-save-failed",
+                    "TagLabel save failed (automated/propagated label could not be persisted, failing loudly "
+                            + "instead of silent drop): {entityType} entityId={entityId} tagId={tagId} -- {error}",
+                    ARG_ENTITY_TYPE, ARG_ENTITY_ID, ARG_TAG_ID, ARG_ERROR);
 
     // ===== Propagation =====
 

@@ -3,6 +3,7 @@ package io.nop.metadata.service.entity;
 
 import io.nop.api.core.beans.FilterBeans;
 import io.nop.api.core.beans.query.QueryBean;
+import io.nop.api.core.exceptions.NopException;
 import io.nop.metadata.service.NopMetadataException;
 import io.nop.core.lang.json.JsonTool;
 import io.nop.biz.api.IBizObjectManager;
@@ -29,10 +30,13 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.regex.Pattern;
 
+import static io.nop.metadata.service.NopMetadataErrors.ARG_ENTITY_ID;
 import static io.nop.metadata.service.NopMetadataErrors.ARG_ENTITY_TYPE;
 import static io.nop.metadata.service.NopMetadataErrors.ARG_TABLE_TYPE;
+import static io.nop.metadata.service.NopMetadataErrors.ARG_TAG_ID;
 import static io.nop.metadata.service.NopMetadataErrors.ERR_AUTOCLASSIFY_UNSUPPORTED_ENTITY_TYPE;
 import static io.nop.metadata.service.NopMetadataErrors.ERR_AUTOCLASSIFY_UNSUPPORTED_TABLE_TYPE;
+import static io.nop.metadata.service.NopMetadataErrors.ERR_TAG_LABEL_SAVE_FAILED;
 
 public class AutoClassificationProcessor {
 
@@ -172,14 +176,13 @@ public class AutoClassificationProcessor {
         }
 
         List<NopMetaTagLabel> createdLabels = new ArrayList<>();
+        // AR-21（plan 2026-08-06-1228-1 Phase 3）：用户触发路径（GraphQL @BizMutation suggestTags）
+        // fail-loud——doCreateAutomatedLabel 抛错不在此吞掉，异常上抛到请求边界（BizMutation 事务包装
+        // 整体回滚，沿 R6.4 先例）；单标签失败不再静默跳过其余标签。
         for (MatchResult m : bestByTagId.values()) {
-            try {
-                NopMetaTagLabel created = doCreateAutomatedLabel(tagLabelDao, entityId, m.tagId, context);
-                if (created != null) {
-                    createdLabels.add(created);
-                }
-            } catch (Exception e) {
-                LOG.warn("Failed to create automated TagLabel for entityId={} tagId={}", entityId, m.tagId, e);
+            NopMetaTagLabel created = doCreateAutomatedLabel(tagLabelDao, entityId, m.tagId, context);
+            if (created != null) {
+                createdLabels.add(created);
             }
         }
 
@@ -222,8 +225,11 @@ public class AutoClassificationProcessor {
         if (allEnabled.isEmpty()) {
             return null;
         }
-        allEnabled.sort(Comparator.comparing(NopMetaClassification::getClassificationId));
-        return allEnabled.get(0);
+        // AR-21（plan 2026-08-06-1228-1 Phase 3）：无 Manual 标签绑定分类时不再任意回退
+        // lexicographically-first 全局分类（会为无关表套用任意分类的规则）——显式「无分类」结果 + 日志留证。
+        LOG.warn("No classification bound to table metaTableId={} via Manual labels; skipping "
+                + "auto-classification (no arbitrary global fallback)", metaTableId);
+        return null;
     }
 
     private List<NopMetaEntityField> getEntityFields(String baseEntityId) {
@@ -263,10 +269,21 @@ public class AutoClassificationProcessor {
             if (result instanceof NopMetaTagLabel) {
                 return (NopMetaTagLabel) result;
             }
+            // AR-21：invoke 返回非实体（极低概率边缘）不静默无日志——显式留证后按空结果处理（残余登记 plan）。
+            LOG.warn("Automated TagLabel save invoke returned non-entity result for entityId={} tagId={} resultType={}",
+                    entityId, tagId, result == null ? "null" : result.getClass().getName());
             return null;
+        } catch (NopException e) {
+            // AR-21：已带错误码（如 R6.4 ERR_TAG_LABEL_SUBMIT_APPROVAL_FAILED 提审失败）原样上抛，
+            // 不再被 catch-all 吞掉（标签 Suggested 落库但审批流静默不建 = 调用方零感知）。
+            throw e;
         } catch (Exception e) {
-            LOG.error("Failed to save automated TagLabel for entityId={} tagId={}", entityId, tagId, e);
-            return null;
+            LOG.warn("Automated TagLabel save failed for entityId={} tagId={}, fail-loud (no silent drop)",
+                    entityId, tagId, e);
+            throw new NopMetadataException(ERR_TAG_LABEL_SAVE_FAILED, e)
+                    .param(ARG_ENTITY_TYPE, ENTITY_TYPE_NOP_META_TABLE)
+                    .param(ARG_ENTITY_ID, entityId)
+                    .param(ARG_TAG_ID, tagId);
         }
     }
 

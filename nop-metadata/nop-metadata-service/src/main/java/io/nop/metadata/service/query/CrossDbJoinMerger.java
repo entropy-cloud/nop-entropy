@@ -114,10 +114,17 @@ class CrossDbJoinMerger {
     }
 
     /**
-     * Verify that all non-null key values on each side have the same Java type.
+     * Verify that all non-null key values on each side have compatible Java types.
      * Iterates all rows (bounded by maxCrossDbRows check in crossDbMerge).
      * If a side has no non-null keys or only one side has keys, validation passes
      * (no cross-side type comparison possible).
+     *
+     * <p>AR-20b（plan 2026-08-06-1228-1 Phase 2）：整型族（Byte/Short/Integer/Long/BigInteger）
+     * 跨类型视为兼容——merge 匹配走 {@code stringKey}（{@code String.valueOf}），整型等值键必然同串
+     * （{@code Long.toString(1)="1"=Integer.toString(1)}），精确类比较是过度防护（INT vs BIGINT
+     * 跨库 join 数值相等被误拒）；非整型不匹配（如 BigDecimal vs Integer、String vs Integer）维持拒绝——
+     * {@code BigDecimal("1.0")="1.0" vs Integer 1="1"} 数值等但不同串、{@code Float 0.1f vs Double 0.1}
+     * 同串但数值不等，放宽会静默失配/错配。
      */
     private void verifyCrossDbKeyTypeConsistency(NopMetaTableJoin join,
                                                  List<Map<String, Object>> leftRows, String leftField,
@@ -127,7 +134,7 @@ class CrossDbJoinMerger {
         if (leftType == null || rightType == null) {
             return;
         }
-        if (!leftType.equals(rightType)) {
+        if (!leftType.equals(rightType) && !(isIntegerFamily(leftType) && isIntegerFamily(rightType))) {
             throw new NopMetadataException(NopMetadataErrors.ERR_JOIN_CROSS_DB_KEY_TYPE_MISMATCH)
                     .param("joinId", join.getJoinId())
                     .param("leftType", leftType.getName())
@@ -135,9 +142,16 @@ class CrossDbJoinMerger {
         }
     }
 
+    /** 整型族：数值等值经 stringKey 必然同串，跨类型（INT vs BIGINT）视为兼容（AR-20b）。 */
+    private static boolean isIntegerFamily(Class<?> type) {
+        return type == Byte.class || type == Short.class || type == Integer.class
+                || type == Long.class || type == java.math.BigInteger.class;
+    }
+
     /**
      * Return the Java type of the first non-null key value in the column.
-     * Validates that ALL non-null values in that column share the same type.
+     * Validates that ALL non-null values in that column share the same type
+     * (integer-family mixed values are accepted, AR-20b).
      * Returns null if no non-null key is found.
      */
     private static Class<?> firstNonNullKeyType(List<Map<String, Object>> rows, String field) {
@@ -150,6 +164,10 @@ class CrossDbJoinMerger {
             if (resultType == null) {
                 resultType = type;
             } else if (!resultType.equals(type)) {
+                if (isIntegerFamily(resultType) && isIntegerFamily(type)) {
+                    // 单列内整型族混型（如 Integer + Long）→ 兼容（stringKey 匹配语义下数值等值成立）
+                    continue;
+                }
                 throw new NopMetadataException(NopMetadataErrors.ERR_JOIN_CROSS_DB_KEY_TYPE_MISMATCH)
                         .param("leftType", resultType.getName())
                         .param("rightType", type.getName());

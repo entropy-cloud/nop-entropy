@@ -315,4 +315,84 @@ public class TestExternalAggregationProcessor {
         assertTrue(sql.contains("HAVING SUM(AMOUNT) - SUM(DISCOUNT) > ?"),
                 "expr-arithmetic leaf must still be inlined into HAVING: " + sql);
     }
+
+    // ===== AR-20a（plan 2026-08-06-1228-1 Phase 1）：外部 JDBC 聚合路径 MySQL 上 NULLS FIRST/LAST =====
+
+    private static List<io.nop.api.core.beans.query.OrderFieldBean> orderByWithNulls(String name, boolean desc,
+                                                                                      Boolean nullsFirst) {
+        io.nop.api.core.beans.query.OrderFieldBean f = desc
+                ? io.nop.api.core.beans.query.OrderFieldBean.desc(name)
+                : io.nop.api.core.beans.query.OrderFieldBean.asc(name);
+        f.setNullsFirst(nullsFirst);
+        return Collections.singletonList(f);
+    }
+
+    /** MySQL + nullsFirst=true+ASC（与 MySQL 默认一致）→ SQL 不含 NULLS FIRST（修复前产出非法 SQL）。 */
+    @Test
+    public void testBuildExternalAggregationSqlMySqlNullsFirstAscOmitsClause() {
+        Map<String, String> nameToExpr = new LinkedHashMap<>();
+        nameToExpr.put("total", "SUM(AMOUNT)");
+        String sql = buildExternalAggregationSql(externalTable(), Collections.emptyList(), Collections.emptyList(),
+                null, null, orderByWithNulls("total", false, true), nameToExpr,
+                Collections.singletonList("total"), Collections.emptyList(), null, null, "MySQL", testCtx());
+        assertFalse(sql.contains("NULLS"),
+                "MySQL + nullsFirst=true+ASC must omit NULLS clause (equals MySQL default): " + sql);
+        assertTrue(sql.contains("ORDER BY SUM(AMOUNT) ASC"),
+                "ORDER BY ASC must be preserved: " + sql);
+    }
+
+    /** MySQL + nullsFirst=false+DESC（与 MySQL 默认一致）→ SQL 不含 NULLS LAST。 */
+    @Test
+    public void testBuildExternalAggregationSqlMySqlNullsLastDescOmitsClause() {
+        Map<String, String> nameToExpr = new LinkedHashMap<>();
+        nameToExpr.put("total", "SUM(AMOUNT)");
+        String sql = buildExternalAggregationSql(externalTable(), Collections.emptyList(), Collections.emptyList(),
+                null, null, orderByWithNulls("total", true, false), nameToExpr,
+                Collections.singletonList("total"), Collections.emptyList(), null, null, "MySQL", testCtx());
+        assertFalse(sql.contains("NULLS"),
+                "MySQL + nullsFirst=false+DESC must omit NULLS clause (equals MySQL default): " + sql);
+    }
+
+    /** MySQL 无法表达的组合（NULLS LAST in ASC）→ 显式错误码（修复前静默产出非法 SQL）。 */
+    @Test
+    public void testBuildExternalAggregationSqlMySqlNullsLastAscFailsFast() {
+        Map<String, String> nameToExpr = new LinkedHashMap<>();
+        nameToExpr.put("total", "SUM(AMOUNT)");
+        NopException ex = assertThrows(NopException.class, () ->
+                buildExternalAggregationSql(externalTable(), Collections.emptyList(), Collections.emptyList(),
+                        null, null, orderByWithNulls("total", false, false), nameToExpr,
+                        Collections.singletonList("total"), Collections.emptyList(), null, null, "MySQL", testCtx()),
+                "MySQL cannot express NULLS LAST in ASC -> explicit ErrorCode, not illegal SQL");
+        assertEquals(NopMetadataErrors.ERR_AGGR_ORDER_BY_NULLS_UNSUPPORTED.getErrorCode(), ex.getErrorCode());
+        assertEquals("MySQL", ex.getParam("databaseProductName"));
+    }
+
+    /** MySQL 无法表达的组合（NULLS FIRST in DESC）→ 显式错误码。 */
+    @Test
+    public void testBuildExternalAggregationSqlMySqlNullsFirstDescFailsFast() {
+        Map<String, String> nameToExpr = new LinkedHashMap<>();
+        nameToExpr.put("total", "SUM(AMOUNT)");
+        NopException ex = assertThrows(NopException.class, () ->
+                buildExternalAggregationSql(externalTable(), Collections.emptyList(), Collections.emptyList(),
+                        null, null, orderByWithNulls("total", true, true), nameToExpr,
+                        Collections.singletonList("total"), Collections.emptyList(), null, null, "MySQL", testCtx()),
+                "MySQL cannot express NULLS FIRST in DESC -> explicit ErrorCode, not illegal SQL");
+        assertEquals(NopMetadataErrors.ERR_AGGR_ORDER_BY_NULLS_UNSUPPORTED.getErrorCode(), ex.getErrorCode());
+    }
+
+    /** H2/PostgreSQL 路径：nullsFirst 显式 → 子句保留（keep-green）。 */
+    @Test
+    public void testBuildExternalAggregationSqlH2PostgresqlKeepNullsClause() {
+        Map<String, String> nameToExpr = new LinkedHashMap<>();
+        nameToExpr.put("total", "SUM(AMOUNT)");
+        String h2 = buildExternalAggregationSql(externalTable(), Collections.emptyList(), Collections.emptyList(),
+                null, null, orderByWithNulls("total", false, true), nameToExpr,
+                Collections.singletonList("total"), Collections.emptyList(), null, null, "H2", testCtx());
+        assertTrue(h2.contains("NULLS FIRST"), "H2 must keep NULLS FIRST: " + h2);
+
+        String pg = buildExternalAggregationSql(externalTable(), Collections.emptyList(), Collections.emptyList(),
+                null, null, orderByWithNulls("total", true, false), nameToExpr,
+                Collections.singletonList("total"), Collections.emptyList(), null, null, "PostgreSQL", testCtx());
+        assertTrue(pg.contains("NULLS LAST"), "PostgreSQL must keep NULLS LAST: " + pg);
+    }
 }

@@ -87,7 +87,7 @@ public class MetaContractChecker {
         boolean qualityHasError = Boolean.TRUE.equals(qualitySummary.get("hasError"));
 
         // SLA 路径
-        Map<String, Object> slaSummary = evaluateSla(entityTableId, slaMap, nowMs);
+        Map<String, Object> slaSummary = evaluateSla(contractId, entityTableId, slaMap, nowMs);
 
         // D2 归并规则
         String status;
@@ -237,7 +237,8 @@ public class MetaContractChecker {
      * 已配置 SLA——无论 slaMap 内容，避免"仅含 retention 等其它键的 map 静默 pass"残余面）；
      * 仅当 slaMap 为空（无 SLA 配置）才保持既有 pass 语义（上方早退分支）。
      */
-    private Map<String, Object> evaluateSla(String entityTableId, Map<String, Object> slaMap, long nowMs) {
+    private Map<String, Object> evaluateSla(String contractId, String entityTableId, Map<String, Object> slaMap,
+                                             long nowMs) {
         Map<String, Object> summary = new LinkedHashMap<>();
         if (slaMap == null || slaMap.isEmpty()) {
             // 无 SLA 配置 → slaFresh=true（不影响归并）
@@ -262,14 +263,14 @@ public class MetaContractChecker {
             summary.put("lastModified", latest.getLastModified());
 
             // refreshFrequency ↔ collectedAt
-            Long refreshMs = toDurationMillis(slaMap.get("refreshFrequency"), "interval", "unit");
+            Long refreshMs = toDurationMillis(contractId, slaMap.get("refreshFrequency"), "interval", "unit");
             if (refreshMs != null) {
                 long collectedMs = latest.getCollectedAt() != null ? latest.getCollectedAt().getTime() : 0L;
                 collectionStale = (nowMs - collectedMs) > refreshMs;
             }
 
             // maxLatency ↔ lastModified（lastModified 为空记 unknown 不判定，v1 恒走此分支）
-            Long maxLatencyMs = toDurationMillis(slaMap.get("maxLatency"), "value", "unit");
+            Long maxLatencyMs = toDurationMillis(contractId, slaMap.get("maxLatency"), "value", "unit");
             if (maxLatencyMs != null) {
                 if (latest.getLastModified() == null) {
                     summary.put("maxLatencyStatus", "unknown");
@@ -307,12 +308,13 @@ public class MetaContractChecker {
     /**
      * 把 SLA 中的 {interval/value, unit} 结构归一为毫秒。
      *
+     * @param contractId  契约 ID（错误定位用）
      * @param durationMap refreshFrequency({interval,unit}) 或 maxLatency({value,unit})
      * @param amountKey   量值键名（refreshFrequency 用 "interval"，maxLatency 用 "value"）
      * @param unitKey     单位键名（统一 "unit"）
      */
     @SuppressWarnings("unchecked")
-    private Long toDurationMillis(Object durationMap, String amountKey, String unitKey) {
+    private Long toDurationMillis(String contractId, Object durationMap, String amountKey, String unitKey) {
         if (durationMap == null) {
             return null;
         }
@@ -359,9 +361,18 @@ public class MetaContractChecker {
             case "d":
                 tu = TimeUnit.DAYS;
                 break;
+            case "week":
+            case "w":
+                // AR-22（plan 2026-08-06-1228-1 Phase 4）：week/w 补入映射（7 天）——
+                // 修复前落入 default 静默按 1ms 解析（{"interval":1,"unit":"week"} → 恒 stale 零错误信号）
+                return TimeUnit.DAYS.toMillis((long) amount * 7);
             default:
-                tu = TimeUnit.MILLISECONDS;
-                break;
+                // AR-22：未知单位不再静默按毫秒解析——显式抛既有错误码 ERR_CONTRACT_SLA_INVALID（fail-fast），
+                // unit 值拼入 error 文本（该码消息模板只声明 {contractId}/{error}，不扩展模板避免影响
+                // :81/:383 既有渲染）。
+                throw new NopMetadataException(NopMetadataErrors.ERR_CONTRACT_SLA_INVALID)
+                        .param("contractId", contractId)
+                        .param("error", "unknown sla time unit: " + unit);
         }
         return tu.toMillis((long) amount);
     }

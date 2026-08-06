@@ -311,9 +311,14 @@ public class AggregationHelper {
         };
     }
 
+    /**
+     * 构造 ORDER BY 子句。
+     *
+     * @param dialect 方言名（H2/MySQL/PostgreSQL；null = ORM 路径方言不可得，保持 H2 语义拼接 NULLS FIRST/LAST）
+     */
     public static String buildOrderByClause(List<OrderFieldBean> orderBy, Map<String, String> nameToExpr,
                                              NopMetaTable table, List<String> measureNames,
-                                             List<String> dimensionNames, String clause) {
+                                             List<String> dimensionNames, String clause, String dialect) {
         if (orderBy == null || orderBy.isEmpty()) {
             return "";
         }
@@ -341,7 +346,23 @@ public class AggregationHelper {
             sb.append(expr).append(f.isDesc() ? " DESC" : " ASC");
             Boolean nullsFirst = f.getNullsFirst();
             if (nullsFirst != null) {
-                sb.append(nullsFirst ? " NULLS FIRST" : " NULLS LAST");
+                if ("MySQL".equalsIgnoreCase(dialect)) {
+                    // AR-20a：MySQL 无 NULLS FIRST/LAST 语法。MySQL 默认 NULL 在 ASC 中居前、DESC 中居后——
+                    // 与默认一致时省略子句（语义不变）；MySQL 无法表达的组合（NULLS LAST in ASC /
+                    // NULLS FIRST in DESC）显式 fail-fast（不做 CASE 表达式模拟，见 plan 2026-08-06-1228-1）。
+                    boolean matchesMySqlDefault = (nullsFirst && !f.isDesc()) || (!nullsFirst && f.isDesc());
+                    if (!matchesMySqlDefault) {
+                        throw new NopMetadataException(NopMetadataErrors.ERR_AGGR_ORDER_BY_NULLS_UNSUPPORTED)
+                                .param(NopMetadataErrors.ARG_DATABASE_PRODUCT_NAME, dialect)
+                                .param(NopMetadataErrors.ARG_NAME, String.valueOf(name))
+                                .param(NopMetadataErrors.ARG_DESC, f.isDesc())
+                                .param(NopMetadataErrors.ARG_NULLS_FIRST, nullsFirst);
+                    }
+                } else {
+                    // H2/PostgreSQL 支持 NULLS FIRST/LAST；dialect==null（ORM 路径，EntityAggregationProcessor
+                    // via-EQL / EntityEntityJoinAggregationProcessor 裁定）保持既有拼接行为。
+                    sb.append(nullsFirst ? " NULLS FIRST" : " NULLS LAST");
+                }
             }
         }
         return sb.toString();
@@ -582,7 +603,7 @@ public class AggregationHelper {
                 sql.append(" HAVING ").append(hf.getSql());
             }
         }
-        String orderByClause = buildOrderByClause(orderBy, nameToExpr, table, measureNames, dimensionNames, "ORDER_BY");
+        String orderByClause = buildOrderByClause(orderBy, nameToExpr, table, measureNames, dimensionNames, "ORDER_BY", dialect);
         if (!orderByClause.isEmpty()) {
             sql.append(" ORDER BY ").append(orderByClause);
         }

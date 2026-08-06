@@ -135,7 +135,10 @@ public class EntityAggregationProcessor implements AggregationProcessor {
                 params.addAll(hf.getParams());
             }
         }
-        String orderByClause = buildOrderByClause(orderBy, nameToExpr, table, measureNames, dimensionNames, "ORDER_BY");
+        // AR-20a：via-EQL 路径经 orm().executeQuery，IOrmTemplate 无方言 API——显式裁定保持既有行为
+        // （H2 语义拼接 NULLS FIRST/LAST，dialect=null 走 AggregationHelper 默认分支），残余登记
+        // plan 2026-08-06-1228-1 Deferred But Adjudicated（ORM 背后接 MySQL 的部署场景）。
+        String orderByClause = buildOrderByClause(orderBy, nameToExpr, table, measureNames, dimensionNames, "ORDER_BY", null);
         if (!orderByClause.isEmpty()) {
             sql.append(" ORDER BY ").append(orderByClause);
         }
@@ -225,7 +228,9 @@ public class EntityAggregationProcessor implements AggregationProcessor {
                     params.addAll(hf.getParams());
                 }
             }
-            String orderByClause = buildOrderByClause(orderBy, nameToExpr, table, measureNames, dimensionNames, "ORDER_BY");
+            // AR-20a：bypass-EQL 路径 productName 在 lambda 内可得，方言感知 ORDER BY 构建
+            String orderByClause = buildOrderByClause(orderBy, nameToExpr, table, measureNames, dimensionNames,
+                    "ORDER_BY", productName);
             if (!orderByClause.isEmpty()) {
                 sql.append(" ORDER BY ").append(orderByClause);
             }

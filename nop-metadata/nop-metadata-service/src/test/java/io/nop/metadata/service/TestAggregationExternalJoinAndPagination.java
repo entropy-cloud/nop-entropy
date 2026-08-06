@@ -803,6 +803,50 @@ public class TestAggregationExternalJoinAndPagination extends JunitBaseTestCase 
         assertEquals(30, toInt(getIgnoreCase(memoryItems.get(0), "TOTAL")), "SUM(AMOUNT) for A = 30");
     }
 
+    /**
+     * AR-20b 端到端（plan 2026-08-06-1228-1 Phase 2，Minimum Rules #22）：跨库 join 一侧 join 键为
+     * INT（H2 → Integer）、另一侧为 BIGINT（H2 → Long）——修复前经
+     * {@code CrossDbJoinMerger.verifyCrossDbKeyTypeConsistency} 精确类比较抛
+     * {@code ERR_JOIN_CROSS_DB_KEY_TYPE_MISMATCH}（INT vs BIGINT 数值相等误拒）；修复后整型族数值等值
+     * 键匹配（stringKey 语义），聚合产出正确 join 结果。
+     */
+    @Test
+    @SuppressWarnings("unchecked")
+    public void testCrossDbJoinIntVsBigintKeyMatches() throws Exception {
+        String qs1 = "qs_e2e_int";
+        String qs2 = "qs_e2e_bigint";
+        String dbUrl1 = "jdbc:h2:mem:" + qs1 + ";DB_CLOSE_DELAY=-1";
+        String dbUrl2 = "jdbc:h2:mem:" + qs2 + ";DB_CLOSE_DELAY=-1";
+        seedH2(dbUrl1, "CREATE TABLE EXT_FACT_INT (CAT_ID INT, AMOUNT INT)",
+                "INSERT INTO EXT_FACT_INT VALUES (1, 10)",
+                "INSERT INTO EXT_FACT_INT VALUES (1, 20)",
+                "INSERT INTO EXT_FACT_INT VALUES (2, 30)");
+        seedH2(dbUrl2, "CREATE TABLE EXT_DIM_BIG (CAT_ID BIGINT, CAT_NAME VARCHAR(20))",
+                "INSERT INTO EXT_DIM_BIG VALUES (1, 'A')",
+                "INSERT INTO EXT_DIM_BIG VALUES (2, 'B')");
+        _helper.saveDataSource("ds-" + qs1, qs1, dbUrl1);
+        _helper.saveDataSource("ds-" + qs2, qs2, dbUrl2);
+        _helper.syncExternalTables("ds-" + qs1);
+        _helper.syncExternalTables("ds-" + qs2);
+        String factTableId = _helper.externalTableId("EXT_FACT_INT");
+        String dimTableId = _helper.externalTableId("EXT_DIM_BIG");
+        String joinId = _helper.createTableTableJoin(factTableId, "inner", factTableId, dimTableId,
+                "CAT_ID", "CAT_ID", "dim");
+        _helper.createMeasureWithSide(factTableId, "total", "AMOUNT", "sum", "left");
+        _helper.createDimensionWithSide(factTableId, "cat", "CAT_NAME", "categorical", null, "right");
+
+        List<Map<String, Object>> items = queryAggregationItems(factTableId,
+                Arrays.asList("total"), Arrays.asList("cat"), null, joinId, null, null, null, null);
+
+        assertNotNull(items, "items must not be null");
+        assertEquals(2, items.size(),
+                "INT vs BIGINT join keys are numerically equal and must both match (groups A,B): " + items);
+        assertEquals("A", getIgnoreCase(items.get(0), "CAT"), "group A first: " + items);
+        assertEquals("B", getIgnoreCase(items.get(1), "CAT"), "group B second: " + items);
+        assertEquals(30, toInt(getIgnoreCase(items.get(0), "TOTAL")), "SUM(AMOUNT) for A = 10+20 = 30");
+        assertEquals(30, toInt(getIgnoreCase(items.get(1), "TOTAL")), "SUM(AMOUNT) for B = 30");
+    }
+
     // ============================================================
     // JOIN 路径 expression
     // ============================================================

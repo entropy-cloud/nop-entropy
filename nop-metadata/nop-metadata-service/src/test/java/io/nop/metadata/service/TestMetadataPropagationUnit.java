@@ -29,6 +29,7 @@ import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
@@ -122,6 +123,11 @@ public class TestMetadataPropagationUnit {
         assertNotNull(secondResult);
     }
 
+    /**
+     * AR-21 re-adjudication（plan 2026-08-06-1228-1 Phase 3）：propagateEdge 单边失败 → 不中断整批
+     * （per-edge 隔离保持），但失败已 LOG.error 可观测（不再"静默返回空结果"——内层 doCreatePropagatedLabel
+     * 不再 catch-all 吞掉后返回 null，而是抛 ERR_TAG_LABEL_SAVE_FAILED 到外层 catch 留证后继续）。
+     */
     @Test
     public void testPropagationPerEdgeIsolation() {
         NopMetaTagLabel sourceLabel = createTagLabel("tlabel-1", "NopMetaTable", "table-1", "tag-1", "Manual");
@@ -134,14 +140,45 @@ public class TestMetadataPropagationUnit {
                 .thenReturn(List.of(edge1, edge2));
 
         when(tagLabelDao.findFirstByQuery(any(QueryBean.class)))
-                .thenReturn(null);
+                .thenReturn(sourceLabel) // getSourceLabels(tagId path) — 旧测试此处返回 null 致 sourceLabels 为空，
+                // propagateTags 早退返回空，原"静默空结果"断言是假绿（真实行为从未到达边缘循环）
+                .thenReturn(null) // edge-1: hasExistingPropagatedLabel
+                .thenReturn(null); // edge-2: hasExistingPropagatedLabel
 
+        IBizObject bizObject = mock(IBizObject.class);
         when(bizObjectManager.getBizObject("NopMetaTagLabel"))
-                .thenThrow(new RuntimeException("edge-1 fail")) // first edge fails
-                .thenReturn(null); // second edge call - null means mock returns; but we need to handle the invoke
+                .thenThrow(new RuntimeException("edge-1 fail")) // first edge fails (inner catch-all no longer swallows)
+                .thenReturn(bizObject); // second edge succeeds
+        NopMetaTagLabel created = createTagLabel("tl-edge2", "NopMetaTable", "table-3", "tag-1", "Propagated");
+        when(bizObject.invoke(eq("save"), any(), any(), any())).thenReturn(created);
 
-        List<NopMetaTagLabel> result = propagationService.propagateTags("NopMetaTable", "table-1", "tag-1", context);
-        assertTrue(result.isEmpty());
+        ch.qos.logback.classic.Logger logger =
+                (ch.qos.logback.classic.Logger) org.slf4j.LoggerFactory.getLogger(LineageTagPropagationProcessor.class);
+        ch.qos.logback.core.read.ListAppender<ch.qos.logback.classic.spi.ILoggingEvent> appender =
+                new ch.qos.logback.core.read.ListAppender<>();
+        appender.start();
+        logger.addAppender(appender);
+        try {
+            List<NopMetaTagLabel> result = propagationService.propagateTags("NopMetaTable", "table-1", "tag-1", context);
+
+            // 隔离保持：edge-1 失败不中断 edge-2 的传播
+            assertEquals(1, result.size(),
+                    "edge-1 failure must not interrupt edge-2 propagation (per-edge isolation kept): " + result);
+            assertEquals("tag-1", result.get(0).getTagId());
+            assertEquals("tl-edge2", result.get(0).getTagLabelId());
+
+            // 失败可观测：LOG.error 含 edgeId + 上下文（不再静默返回空结果）
+            boolean errLogged = appender.list.stream().anyMatch(e ->
+                    e.getLevel() == ch.qos.logback.classic.Level.ERROR
+                            && e.getFormattedMessage().contains("propagation failed for edge")
+                            && e.getFormattedMessage().contains("edge-1"));
+            assertTrue(errLogged,
+                    "edge-1 failure must be observable via LOG.error (AR-21), got: "
+                            + appender.list.stream().map(ch.qos.logback.classic.spi.ILoggingEvent::getFormattedMessage)
+                            .collect(java.util.stream.Collectors.toList()));
+        } finally {
+            logger.detachAppender(appender);
+        }
     }
 
     // ===== AutoClassificationProcessor Tests =====
@@ -327,6 +364,95 @@ public class TestMetadataPropagationUnit {
         } finally {
             logger.detachAppender(appender);
         }
+    }
+
+    /**
+     * AR-21（plan 2026-08-06-1228-1 Phase 3）：用户触发路径 suggestTags 标签保存/提审失败 →
+     * fail-loud——内层 doCreateAutomatedLabel 的 catch-all（LOG.error + return null）已删除，异常
+     * 以 ERR_TAG_LABEL_SAVE_FAILED 上抛到请求边界（cause 保留），不再静默吞掉（修复前返回空结果实测 red）。
+     */
+    @Test
+    @SuppressWarnings("unchecked")
+    public void testSuggestTagsSaveFailureFailsLoud() {
+        NopMetaTable entityTable = new NopMetaTable();
+        entityTable.setMetaTableId("entity-table-1");
+        entityTable.setTableType("entity");
+        entityTable.setBaseEntityId("entity-1");
+        when(tableDao.getEntityById("entity-table-1")).thenReturn(entityTable);
+
+        NopMetaTagLabel manualLabel = createTagLabel("ml-1", "NopMetaTable", "entity-table-1", "tag-1", "Manual");
+        NopMetaTag manualTag = new NopMetaTag();
+        manualTag.setTagId("tag-1");
+        manualTag.setClassificationId("cls-1");
+        when(tagLabelDao.findAllByQuery(any(QueryBean.class)))
+                .thenReturn(Collections.singletonList(manualLabel));
+        when(tagDao.getEntityById("tag-1")).thenReturn(manualTag);
+
+        NopMetaClassification cls = new NopMetaClassification();
+        cls.setClassificationId("cls-1");
+        cls.setAutoClassificationConfig("[{\"pattern\":\"user\",\"tagFQN\":\"cls-1:tag-a\"}]");
+        when(clsDao.getEntityById("cls-1")).thenReturn(cls);
+
+        NopMetaEntityField field = new NopMetaEntityField();
+        field.setFieldName("user_name");
+        when(fieldDao.findAllByQuery(any(QueryBean.class)))
+                .thenReturn(List.of(field));
+
+        NopMetaTag tagA = new NopMetaTag();
+        tagA.setTagId("tag-a");
+        tagA.setClassificationId("cls-1");
+        when(tagDao.findFirstByQuery(any(QueryBean.class))).thenReturn(tagA);
+
+        when(tagLabelDao.findFirstByQuery(any(QueryBean.class))).thenReturn(null);
+
+        RuntimeException boom = new RuntimeException("save boom");
+        IBizObject bizObject = mock(IBizObject.class);
+        when(bizObjectManager.getBizObject("NopMetaTagLabel")).thenReturn(bizObject);
+        when(bizObject.invoke(eq("save"), any(), any(), any())).thenThrow(boom);
+
+        NopException ex = assertThrows(NopException.class,
+                () -> classificationService.suggestTags("NopMetaTable", "entity-table-1", context),
+                "user-triggered suggestTags must fail loudly to the request boundary (AR-21)");
+        assertEquals(NopMetadataErrors.ERR_TAG_LABEL_SAVE_FAILED.getErrorCode(), ex.getErrorCode());
+        assertSame(boom, ex.getCause(), "original exception must be preserved as cause");
+        assertEquals("tag-a", ex.getParam(NopMetadataErrors.ARG_TAG_ID));
+        assertEquals("entity-table-1", ex.getParam(NopMetadataErrors.ARG_ENTITY_ID));
+    }
+
+    /**
+     * AR-21（plan 2026-08-06-1228-1 Phase 3）：无 Manual 标签绑定分类 → 不再任意回退
+     * lexicographically-first 全局分类（修复前 allEnabled.sort(...).get(0) 会为无关表套用任意分类规则，
+     * 该分类规则命中即产标签——本测试的 cls-a 规则必命中 user_name 字段，修复前返回非空实测 red）。
+     */
+    @Test
+    @SuppressWarnings("unchecked")
+    public void testAutoClassifyNoBoundClassificationNoArbitraryFallback() {
+        NopMetaTable entityTable = new NopMetaTable();
+        entityTable.setMetaTableId("entity-table-1");
+        entityTable.setTableType("entity");
+        entityTable.setBaseEntityId("entity-1");
+        when(tableDao.getEntityById("entity-table-1")).thenReturn(entityTable);
+
+        // 无 Manual 标签（tagLabelDao.findAllByQuery 默认返回空列表）
+        NopMetaClassification clsA = new NopMetaClassification();
+        clsA.setClassificationId("cls-a");
+        clsA.setAutoClassificationConfig("[{\"pattern\":\"user\",\"tagFQN\":\"cls-a:tag-x\"}]");
+        NopMetaClassification clsB = new NopMetaClassification();
+        clsB.setClassificationId("cls-b");
+        clsB.setAutoClassificationConfig("[{\"pattern\":\"user\",\"tagFQN\":\"cls-b:tag-y\"}]");
+        when(clsDao.findAllByQuery(any(QueryBean.class))).thenReturn(List.of(clsA, clsB));
+
+        NopMetaEntityField field = new NopMetaEntityField();
+        field.setFieldName("user_name");
+        when(fieldDao.findAllByQuery(any(QueryBean.class))).thenReturn(List.of(field));
+
+        List<NopMetaTagLabel> result = classificationService.suggestTags("NopMetaTable", "entity-table-1", context);
+
+        assertTrue(result.isEmpty(),
+                "no bound classification must not fall back to lexicographically-first classification (AR-21): "
+                        + result);
+        // 未触发任何标签保存/提审（任意回退路径全被移除）
+        Mockito.verify(bizObjectManager, Mockito.never()).getBizObject(any());
     }
 
     private static NopMetaTagLabel createTagLabel(String id, String entityType, String entityId,

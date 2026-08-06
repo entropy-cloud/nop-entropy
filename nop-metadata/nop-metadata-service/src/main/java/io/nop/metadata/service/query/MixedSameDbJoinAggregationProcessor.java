@@ -105,7 +105,6 @@ public class MixedSameDbJoinAggregationProcessor implements AggregationProcessor
         FilterToSqlTranslator.TranslatedFilter havingTf = having == null ? null
                 : ctx.filterTranslator().translate(having,
                         nameResolverFor(nameToExpr, table, measureNames, dimensionNames, "HAVING"));
-        String orderByClause = buildOrderByClause(orderBy, nameToExpr, table, measureNames, dimensionNames, "ORDER_BY");
 
         final String _entityFrom = entityFrom;
         final String _tableFrom = tableFrom;
@@ -117,7 +116,6 @@ public class MixedSameDbJoinAggregationProcessor implements AggregationProcessor
         final List<JoinDimensionSpec> _dims = dims;
         final FilterToSqlTranslator.TranslatedFilter _filterTf = filterTf;
         final FilterToSqlTranslator.TranslatedFilter _havingTf = havingTf;
-        final String _orderByClause = orderByClause;
 
         final List<Map<String, Object>>[] holder = newArrayHolder();
         ctx.connectionService().withConnection(dataSource.getDatasourceType(), dataSource.getConnectionConfig(),
@@ -128,6 +126,10 @@ public class MixedSameDbJoinAggregationProcessor implements AggregationProcessor
                                 .param("databaseProductName", String.valueOf(dialect))
                                 .param("metaTableId", table.getMetaTableId());
                     }
+                    // AR-20a：方言在 lambda 内才可得，ORDER BY 构建移入 lambda（MySQL 上 NULLS FIRST/LAST
+                    // 按方言裁定省略或 fail-fast，见 AggregationHelper.buildOrderByClause）。
+                    String orderByClause = buildOrderByClause(orderBy, nameToExpr, table, measureNames,
+                            dimensionNames, "ORDER_BY", dialect);
                     for (JoinMeasureSpec m : _measures) {
                         if (m.isExpression()) {
                             ExpressionMeasureValidator.checkDialectSupported(m.validatedExpression, dialect,
@@ -136,7 +138,7 @@ public class MixedSameDbJoinAggregationProcessor implements AggregationProcessor
                     }
                     StringBuilder sql = buildMixedSameDbJoinSql(_measures, _dims, _entityFrom, _tableFrom,
                             _entityAlias, _tableAlias, _entityJoinColumn, _tableJoinColumn, join, _filterTf,
-                            _havingTf, _orderByClause, dialect, limit, offset);
+                            _havingTf, orderByClause, dialect, limit, offset);
                     List<Object> params = new ArrayList<>();
                     for (JoinMeasureSpec m : _measures) {
                         if (m.expressionParams != null) {
