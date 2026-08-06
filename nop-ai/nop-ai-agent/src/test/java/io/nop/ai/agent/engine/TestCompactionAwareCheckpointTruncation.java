@@ -51,6 +51,8 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import io.nop.ai.agent.support.ChatResponseFixtures;
+import io.nop.ai.api.chat.messages.ChatToolCallMessage;
 
 /**
  * Plan 188 — compaction-aware checkpoint truncation tests.
@@ -118,10 +120,7 @@ public class TestCompactionAwareCheckpointTruncation {
     }
 
     private static ChatResponse assistantWithToolCalls(ChatToolCall... calls) {
-        ChatAssistantMessage msg = new ChatAssistantMessage();
-        msg.setContent("");
-        msg.setToolCalls(List.of(calls));
-        return ChatResponse.success(msg);
+        return ChatResponseFixtures.assistantWithToolCalls("", calls);
     }
 
     private static ChatResponse finalAssistant(String content) {
@@ -281,8 +280,8 @@ public class TestCompactionAwareCheckpointTruncation {
             ChatToolCall tc = new ChatToolCall();
             tc.setId(id);
             tc.setName("bash");
-            assistantMsg.setToolCalls(Collections.singletonList(tc));
             ctx.addMessage(assistantMsg);
+            ctx.addMessage(ChatToolCallMessage.fromChatToolCall(tc));
             ctx.addMessage(new ChatToolResponseMessage(id, "bash", "X".repeat(200)));
         }
     }

@@ -49,6 +49,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import io.nop.ai.agent.support.ChatResponseFixtures;
 
 /**
  * Phase 3 end-to-end engine-wiring tests for {@link DBSessionStore}.
@@ -434,10 +435,7 @@ public class TestDBSessionStoreEngineWiring {
         call.setId(callId);
         call.setName(toolName);
         call.setArguments(args);
-        ChatAssistantMessage msg = new ChatAssistantMessage();
-        msg.setContent("");
-        msg.setToolCalls(List.of(call));
-        return ChatResponse.success(msg);
+        return ChatResponseFixtures.assistantWithToolCalls("", call);
     }
 
     static ChatResponse finalResponse(String content) {

@@ -42,6 +42,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import io.nop.ai.agent.support.ChatResponseFixtures;
 
 /**
  * Plan 211 (L3-3) Phase 2 end-to-end + wiring verification (Minimum Rules #22
@@ -99,10 +100,7 @@ public class TestSessionGoalTrackerEndToEnd {
             @Override
             public CompletionStage<ChatResponse> callAsync(ChatRequest request, ICancelToken cancelToken) {
                 chatCallCount.incrementAndGet();
-                ChatAssistantMessage msg = new ChatAssistantMessage();
-                msg.setContent("reading");
-                msg.setToolCalls(List.of(toolCall));
-                return CompletableFuture.completedFuture(ChatResponse.success(msg));
+                return CompletableFuture.completedFuture(ChatResponseFixtures.assistantWithToolCalls("reading", toolCall));
             }
 
             @Override
@@ -172,14 +170,11 @@ public class TestSessionGoalTrackerEndToEnd {
             @Override
             public CompletionStage<ChatResponse> callAsync(ChatRequest request, ICancelToken cancelToken) {
                 int n = chatCallCount.incrementAndGet();
-                ChatAssistantMessage msg = new ChatAssistantMessage();
                 if (n < 4) {
-                    msg.setContent("reading");
-                    msg.setToolCalls(List.of(toolCall));
+                    return CompletableFuture.completedFuture(ChatResponseFixtures.assistantWithToolCalls("reading", toolCall));
                 } else {
-                    msg.setContent("done");
+                    return CompletableFuture.completedFuture(ChatResponseFixtures.assistantText("done"));
                 }
-                return CompletableFuture.completedFuture(ChatResponse.success(msg));
             }
 
             @Override
@@ -216,10 +211,7 @@ public class TestSessionGoalTrackerEndToEnd {
             @Override
             public CompletionStage<ChatResponse> callAsync(ChatRequest request, ICancelToken cancelToken) {
                 chatCallCount.incrementAndGet();
-                ChatAssistantMessage msg = new ChatAssistantMessage();
-                msg.setContent("reading");
-                msg.setToolCalls(List.of(toolCall));
-                return CompletableFuture.completedFuture(ChatResponse.success(msg));
+                return CompletableFuture.completedFuture(ChatResponseFixtures.assistantWithToolCalls("reading", toolCall));
             }
 
             @Override

@@ -54,6 +54,7 @@ import java.util.concurrent.atomic.AtomicReference;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import io.nop.ai.agent.support.ChatResponseFixtures;
 
 /**
  * Phase 3 end-to-end tests:
@@ -169,9 +170,7 @@ public class TestCallAgentSendMessageEndToEnd {
 
             private ChatResponse buildResponse() {
                 int n = callCount.getAndIncrement();
-                ChatAssistantMessage msg = new ChatAssistantMessage();
                 if (n == 0) {
-                    msg.setContent("");
                     ChatToolCall toolCall = new ChatToolCall();
                     toolCall.setId("e2e-call-1");
                     toolCall.setName("call-agent");
@@ -179,13 +178,12 @@ public class TestCallAgentSendMessageEndToEnd {
                     args.put("agentId", "test-agent");
                     args.put("input", "what is the answer?");
                     toolCall.setArguments(args);
-                    msg.setToolCalls(List.of(toolCall));
+                    return ChatResponseFixtures.assistantWithToolCalls("", toolCall);
                 } else if (n == 1) {
-                    msg.setContent(subAgentResponse);
+                    return ChatResponseFixtures.assistantText(subAgentResponse);
                 } else {
-                    msg.setContent("The sub-agent replied with the answer.");
+                    return ChatResponseFixtures.assistantText("The sub-agent replied with the answer.");
                 }
-                return ChatResponse.success(msg);
             }
 
             @Override
@@ -264,9 +262,7 @@ public class TestCallAgentSendMessageEndToEnd {
 
             private ChatResponse buildResponse() {
                 int n = callCount.getAndIncrement();
-                ChatAssistantMessage msg = new ChatAssistantMessage();
                 if (n == 0) {
-                    msg.setContent("");
                     ChatToolCall toolCall = new ChatToolCall();
                     toolCall.setId("e2e-send-1");
                     toolCall.setName("send-message");
@@ -274,11 +270,10 @@ public class TestCallAgentSendMessageEndToEnd {
                     args.put("targetSessionId", "e2e-target-sess");
                     args.put("input", "async hello from parent");
                     toolCall.setArguments(args);
-                    msg.setToolCalls(List.of(toolCall));
+                    return ChatResponseFixtures.assistantWithToolCalls("", toolCall);
                 } else {
-                    msg.setContent(senderResponse);
+                    return ChatResponseFixtures.assistantText(senderResponse);
                 }
-                return ChatResponse.success(msg);
             }
 
             @Override

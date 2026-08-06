@@ -45,6 +45,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import io.nop.ai.agent.support.ChatResponseFixtures;
 
 /**
  * Phase 1 unit tests for {@link IAgentEngine#resumeSession}: verifies the
@@ -214,10 +215,7 @@ public class TestResumeSession {
 
     @SuppressWarnings("unused")
     private static ChatResponse assistantWithToolCalls(ChatToolCall... calls) {
-        ChatAssistantMessage msg = new ChatAssistantMessage();
-        msg.setContent("");
-        msg.setToolCalls(List.of(calls));
-        return ChatResponse.success(msg);
+        return ChatResponseFixtures.assistantWithToolCalls("", calls);
     }
 
     private static IToolManager stubToolManager() {

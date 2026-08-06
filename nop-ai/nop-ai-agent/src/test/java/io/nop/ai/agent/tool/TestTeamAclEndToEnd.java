@@ -57,6 +57,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import io.nop.ai.agent.support.ChatResponseFixtures;
 
 /**
  * End-to-end ACL test (plan 228 Phase 3).
@@ -196,14 +197,11 @@ public class TestTeamAclEndToEnd {
 
             private ChatResponse buildResponse() {
                 int n = callCount.getAndIncrement();
-                ChatAssistantMessage msg = new ChatAssistantMessage();
                 if (n < script.length && script[n] != null) {
-                    msg.setContent("");
-                    msg.setToolCalls(List.of(script[n]));
+                    return ChatResponseFixtures.assistantWithToolCalls("", script[n]);
                 } else {
-                    msg.setContent("Done.");
+                    return ChatResponseFixtures.assistantText("done.");
                 }
-                return ChatResponse.success(msg);
             }
 
             @Override

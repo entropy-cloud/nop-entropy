@@ -42,6 +42,7 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import io.nop.ai.agent.support.ChatResponseFixtures;
 
 /**
  * Phase 2 dispatch-path drop-in + end-to-end + backward-compat tests for
@@ -97,10 +98,7 @@ public class TestFileBackedCheckpointDispatchPath {
     }
 
     private static ChatResponse assistantWithToolCalls(ChatToolCall... calls) {
-        ChatAssistantMessage msg = new ChatAssistantMessage();
-        msg.setContent("");
-        msg.setToolCalls(List.of(calls));
-        return ChatResponse.success(msg);
+        return ChatResponseFixtures.assistantWithToolCalls("", calls);
     }
 
     private static ChatResponse finalAssistant(String content) {

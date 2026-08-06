@@ -26,6 +26,8 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import io.nop.ai.api.chat.messages.ChatToolCallMessage;
+import io.nop.ai.agent.support.ChatResponseFixtures;
 
 /**
  * Phase 1 functional tests for {@link FileBackedSessionStore}: verifies the
@@ -654,14 +656,12 @@ public class TestFileBackedSessionStore {
         user.setMessageId("m1");
         msgs.add(user);
 
-        ChatAssistantMessage assistant = new ChatAssistantMessage();
-        assistant.setContent("calling tool");
-        assistant.setMessageId("m2");
         ChatToolCall call = new ChatToolCall();
         call.setId("call_1");
         call.setName("echo");
         call.setArguments(Map.of("x", "y"));
-        assistant.setToolCalls(List.of(call));
+        ChatAssistantMessage assistant = ChatResponseFixtures.foldedAssistantWithToolCalls("calling tool", call);
+        assistant.setMessageId("m2");
         msgs.add(assistant);
 
         ChatToolResponseMessage toolResp = ChatToolResponseMessage.fromToolCall(call, "result");

@@ -16,7 +16,7 @@ import io.nop.ai.agent.session.CompactConfig;
 import io.nop.ai.agent.session.InMemorySessionStore;
 import io.nop.ai.agent.session.InSessionCompactionSnapshotArchive;
 import io.nop.ai.agent.session.ICompactionSnapshotArchive;
-import io.nop.ai.api.chat.messages.ChatAssistantMessage;
+import io.nop.ai.agent.support.ChatResponseFixtures;
 import io.nop.ai.api.chat.messages.ChatMessage;
 import io.nop.ai.api.chat.messages.ChatSystemMessage;
 import io.nop.ai.api.chat.messages.ChatToolCall;
@@ -79,13 +79,11 @@ public class TestCompactionSnapshotArchive {
                 CompactConfig.DEFAULT_COMPRESSION_MODEL);
     }
 
-    private ChatAssistantMessage assistantWithToolCall(String id, String name) {
-        ChatAssistantMessage msg = new ChatAssistantMessage();
+    private void assistantWithToolCall(List<ChatMessage> messages, String id, String name) {
         ChatToolCall call = new ChatToolCall();
         call.setId(id);
         call.setName(name);
-        msg.setToolCalls(Collections.singletonList(call));
-        return msg;
+        messages.add(ChatResponseFixtures.foldedAssistantWithToolCalls(null, call));
     }
 
     /** Build messages with large tool results so MicroCompressionCompactor actually reduces. */
@@ -95,7 +93,7 @@ public class TestCompactionSnapshotArchive {
         messages.add(new ChatUserMessage("goal"));
         for (int i = 0; i < turns; i++) {
             String id = "tc-" + i;
-            messages.add(assistantWithToolCall(id, "bash"));
+            assistantWithToolCall(messages, id, "bash");
             messages.add(new ChatToolResponseMessage(id, "bash", "X".repeat(5000)));
         }
         return messages;

@@ -7,6 +7,7 @@ import io.nop.ai.agent.message.DeferredAckMailbox;
 import io.nop.ai.agent.message.IMailbox;
 import io.nop.ai.agent.message.LocalAgentMessenger;
 import io.nop.ai.agent.model.AgentExecStatus;
+import io.nop.ai.agent.support.ChatResponseFixtures;
 import io.nop.ai.api.chat.ChatRequest;
 import io.nop.ai.api.chat.ChatResponse;
 import io.nop.ai.api.chat.IChatService;
@@ -276,9 +277,7 @@ public class TestActorRuntimeEndToEnd {
 
             private ChatResponse buildResponse() {
                 int n = callCount.getAndIncrement();
-                ChatAssistantMessage msg = new ChatAssistantMessage();
                 if (n == 0) {
-                    msg.setContent("");
                     ChatToolCall toolCall = new ChatToolCall();
                     toolCall.setId("actor-e2e-1");
                     toolCall.setName("send-message");
@@ -286,7 +285,7 @@ public class TestActorRuntimeEndToEnd {
                     args.put("targetSessionId", SESSION_ID);
                     args.put("input", "async hello from agent");
                     toolCall.setArguments(args);
-                    msg.setToolCalls(List.of(toolCall));
+                    return ChatResponseFixtures.assistantWithToolCalls("", toolCall);
                 } else {
                     // Give the Actor's consumption loop time to poll + ack
                     // before the execution completes and destroyActor runs.
@@ -295,9 +294,8 @@ public class TestActorRuntimeEndToEnd {
                     } catch (InterruptedException e) {
                         Thread.currentThread().interrupt();
                     }
-                    msg.setContent("done");
+                    return ChatResponseFixtures.assistantText("done");
                 }
-                return ChatResponse.success(msg);
             }
 
             @Override

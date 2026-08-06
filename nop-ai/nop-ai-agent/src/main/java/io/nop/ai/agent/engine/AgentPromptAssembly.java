@@ -300,7 +300,8 @@ ChatOptions options = buildChatOptions(ChatOptionsHelper.toChatOptions(agentMode
      *
      * @return {@code true} when the iteration must be skipped (blocked)
      */
-    public boolean checkOutputGuardrail(AgentExecutionContext ctx, ChatAssistantMessage assistantMsg) {
+    public boolean checkOutputGuardrail(AgentExecutionContext ctx, ChatAssistantMessage assistantMsg,
+                                        List<ChatToolCall> toolCalls) {
         String outputContent = getOutputContent(assistantMsg);
         GuardrailResult outputGuardrailResult = contentGuardrail.check(GuardrailDirection.OUTPUT, outputContent, ctx);
         if (outputGuardrailResult.isBlock()) {
@@ -312,8 +313,12 @@ ChatOptions options = buildChatOptions(ChatOptionsHelper.toChatOptions(agentMode
             // every tool_call_id MUST receive a matching tool response —
             // otherwise the next LLM call sends an unpaired assistant
             // tool_call (HTTP 400 tool_call_id mismatch).
-            if (assistantMsg.hasToolCalls()) {
-                for (ChatToolCall tc : assistantMsg.getToolCalls()) {
+            // Plan 327: toolCalls source switched from the legacy
+            // assistantMsg.getToolCalls() folded field to the
+            // ChatToolCallMessage items extracted from response.getMessages()
+            // (passed in by ReActAgentExecutor).
+            if (toolCalls != null && !toolCalls.isEmpty()) {
+                for (ChatToolCall tc : toolCalls) {
                     ctx.addMessage(ChatToolResponseMessage.error(
                             tc.getId(), tc.getName(), blockText));
                 }

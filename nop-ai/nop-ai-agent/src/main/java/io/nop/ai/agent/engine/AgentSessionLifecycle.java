@@ -846,10 +846,23 @@ public class AgentSessionLifecycle {
             return null;
         }
         for (ChatMessage msg : messages) {
-            if (msg instanceof ChatAssistantMessage) {
+            // Plan 327: primary path — discrete ChatToolCallMessage items
+            // (the canonical form from response.getMessages()).
+            if (msg instanceof io.nop.ai.api.chat.messages.ChatToolCallMessage) {
+                io.nop.ai.api.chat.messages.ChatToolCallMessage tcm =
+                        (io.nop.ai.api.chat.messages.ChatToolCallMessage) msg;
+                if (callId.equals(tcm.getCallId())) {
+                    return Checkpoint.computeIdempotencyKey(CheckpointType.TOOL_EXECUTION,
+                            tcm.getName(), tcm.getCallId(), tcm.getArgumentsText());
+                }
+            } else if (msg instanceof ChatAssistantMessage) {
+                // Transition fallback (plan 329 removes): session history
+                // may still carry the folded ChatAssistantMessage.toolCalls
+                // form during the dual-track window.
                 ChatAssistantMessage assistantMsg = (ChatAssistantMessage) msg;
-                if (assistantMsg.hasToolCalls()) {
-                    for (ChatToolCall tc : assistantMsg.getToolCalls()) {
+                List<ChatToolCall> toolCalls = assistantMsg.getToolCalls();
+                if (toolCalls != null) {
+                    for (ChatToolCall tc : toolCalls) {
                         if (callId.equals(tc.getId())) {
                             return Checkpoint.computeIdempotencyKey(CheckpointType.TOOL_EXECUTION,
                                     tc.getName(), tc.getId(), tc.getArgumentsText());

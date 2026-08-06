@@ -46,6 +46,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
+import io.nop.ai.agent.support.ChatResponseFixtures;
 
 public class TestHookInReActLoop {
 
@@ -83,17 +84,11 @@ public class TestHookInReActLoop {
         toolCall.setId(toolCallId);
         toolCall.setName(toolName);
         toolCall.setArguments(args != null ? args : Map.of());
-        ChatAssistantMessage msg = new ChatAssistantMessage();
-        msg.setContent("");
-        msg.setToolCalls(List.of(toolCall));
-        return ChatResponse.success(msg);
+        return ChatResponseFixtures.assistantWithToolCalls("", toolCall);
     }
 
     private ChatResponse multiToolCallResponse(List<ChatToolCall> toolCalls) {
-        ChatAssistantMessage msg = new ChatAssistantMessage();
-        msg.setContent("");
-        msg.setToolCalls(toolCalls);
-        return ChatResponse.success(msg);
+        return ChatResponseFixtures.assistantWithToolCalls("", toolCalls);
     }
 
     private IToolManager simpleToolManager() {

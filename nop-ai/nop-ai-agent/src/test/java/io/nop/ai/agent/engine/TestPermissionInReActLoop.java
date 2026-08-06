@@ -42,6 +42,7 @@ import java.util.stream.Collectors;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import io.nop.ai.agent.support.ChatResponseFixtures;
 
 public class TestPermissionInReActLoop {
 
@@ -62,10 +63,7 @@ public class TestPermissionInReActLoop {
     }
 
     private ChatResponse buildSuccessResponseWithToolCalls(List<ChatToolCall> toolCalls) {
-        ChatAssistantMessage msg = new ChatAssistantMessage();
-        msg.setContent("");
-        msg.setToolCalls(toolCalls);
-        return ChatResponse.success(msg);
+        return ChatResponseFixtures.assistantWithToolCalls("", toolCalls);
     }
 
     @Test

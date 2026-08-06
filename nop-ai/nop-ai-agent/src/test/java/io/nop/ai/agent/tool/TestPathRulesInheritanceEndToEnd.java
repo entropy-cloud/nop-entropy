@@ -6,6 +6,7 @@ import io.nop.ai.agent.engine.AgentExecutionResult;
 import io.nop.ai.agent.engine.AgentMessageRequest;
 import io.nop.ai.agent.engine.DefaultAgentEngine;
 import io.nop.ai.agent.model.AgentExecStatus;
+import io.nop.ai.agent.support.ChatResponseFixtures;
 import io.nop.ai.api.chat.ChatRequest;
 import io.nop.ai.api.chat.ChatResponse;
 import io.nop.ai.api.chat.IChatService;
@@ -159,33 +160,30 @@ public class TestPathRulesInheritanceEndToEnd {
             private ChatResponse build(ChatRequest request) {
                 String agent = identifyAgent(request);
                 long turns = countAssistantMessages(request);
-                ChatAssistantMessage msg = new ChatAssistantMessage();
 
                 if (agent.contains("parent rules agent A")) {
                     if (turns == 0) {
-                        msg.setContent("");
-                        msg.setToolCalls(List.of(callAgentToolCall("a-call-1",
-                                "test-sub-agent-path-rules", "read some files")));
+                        return ChatResponseFixtures.assistantWithToolCalls("",
+                                callAgentToolCall("a-call-1",
+                                        "test-sub-agent-path-rules", "read some files"));
                     } else {
-                        msg.setContent("A done.");
+                        return ChatResponseFixtures.assistantText("A done.");
                     }
                 } else if (agent.contains("sub rules agent B")) {
                     if (turns == 0) {
-                        msg.setContent("");
-                        msg.setToolCalls(List.of(
+                        return ChatResponseFixtures.assistantWithToolCalls("",
                                 toolCallWithPath("b-parent-deny", "read-file",
                                         "/workspace/secret/key"),
                                 toolCallWithPath("b-own-deny", "read-file",
                                         "/workspace/temp/file"),
                                 toolCallWithPath("b-allowed", "read-file",
-                                        "/workspace/src/Main.java")));
+                                        "/workspace/src/Main.java"));
                     } else {
-                        msg.setContent("B done.");
+                        return ChatResponseFixtures.assistantText("B done.");
                     }
                 } else {
-                    msg.setContent("fallback");
+                    return ChatResponseFixtures.assistantText("fallback");
                 }
-                return ChatResponse.success(msg);
             }
 
             @Override
@@ -259,36 +257,34 @@ public class TestPathRulesInheritanceEndToEnd {
             private ChatResponse build(ChatRequest request) {
                 String agent = identifyAgent(request);
                 long turns = countAssistantMessages(request);
-                ChatAssistantMessage msg = new ChatAssistantMessage();
 
                 if (agent.contains("nested parent agent A")) {
                     if (turns == 0) {
-                        msg.setContent("");
-                        msg.setToolCalls(List.of(callAgentToolCall("a-call-1",
-                                "test-nested-middle-rules", "delegate to B")));
+                        return ChatResponseFixtures.assistantWithToolCalls("",
+                                callAgentToolCall("a-call-1",
+                                        "test-nested-middle-rules", "delegate to B"));
                     } else {
-                        msg.setContent("A done.");
+                        return ChatResponseFixtures.assistantText("A done.");
                     }
                 } else if (agent.contains("nested middle agent B")) {
                     if (turns == 0) {
-                        msg.setContent("");
-                        msg.setToolCalls(List.of(callAgentToolCall("b-call-1",
-                                "test-nested-leaf-rules", "delegate to C")));
+                        return ChatResponseFixtures.assistantWithToolCalls("",
+                                callAgentToolCall("b-call-1",
+                                        "test-nested-leaf-rules", "delegate to C"));
                     } else {
-                        msg.setContent("B done.");
+                        return ChatResponseFixtures.assistantText("B done.");
                     }
                 } else if (agent.contains("nested leaf agent C")) {
                     if (turns == 0) {
-                        msg.setContent("");
-                        msg.setToolCalls(List.of(toolCallWithPath("c-deny", "read-file",
-                                "/shared/secret/key")));
+                        return ChatResponseFixtures.assistantWithToolCalls("",
+                                toolCallWithPath("c-deny", "read-file",
+                                        "/shared/secret/key"));
                     } else {
-                        msg.setContent("C done.");
+                        return ChatResponseFixtures.assistantText("C done.");
                     }
                 } else {
-                    msg.setContent("fallback");
+                    return ChatResponseFixtures.assistantText("fallback");
                 }
-                return ChatResponse.success(msg);
             }
 
             @Override

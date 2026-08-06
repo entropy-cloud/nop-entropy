@@ -42,6 +42,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import io.nop.ai.agent.support.ChatResponseFixtures;
 
 public class TestPathAccessCheckerInReActLoop {
 
@@ -62,10 +63,7 @@ public class TestPathAccessCheckerInReActLoop {
     }
 
     private ChatResponse buildSuccessResponseWithToolCalls(List<ChatToolCall> toolCalls) {
-        ChatAssistantMessage msg = new ChatAssistantMessage();
-        msg.setContent("");
-        msg.setToolCalls(toolCalls);
-        return ChatResponse.success(msg);
+        return ChatResponseFixtures.assistantWithToolCalls("", toolCalls);
     }
 
     private IChatService mockChatService(ChatToolCall toolCall) {

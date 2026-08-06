@@ -36,6 +36,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import io.nop.ai.agent.support.ChatResponseFixtures;
 
 public class TestEndToEndReAct {
 
@@ -87,10 +88,7 @@ public class TestEndToEndReAct {
         toolCall.setName("test-calculator");
         toolCall.setArguments(Map.of("expr", "2+2"));
 
-        ChatAssistantMessage toolMsg = new ChatAssistantMessage();
-        toolMsg.setContent("");
-        toolMsg.setToolCalls(List.of(toolCall));
-        ChatResponse toolResponse = ChatResponse.success(toolMsg);
+        ChatResponse toolResponse = ChatResponseFixtures.assistantWithToolCalls("", toolCall);
 
         ChatAssistantMessage finalMsg = new ChatAssistantMessage();
         finalMsg.setContent("The result of 2+2 is 4.");
@@ -182,10 +180,7 @@ public class TestEndToEndReAct {
         toolCall.setName("test-calculator");
         toolCall.setArguments(Map.of("expr", "3*3"));
 
-        ChatAssistantMessage toolMsg = new ChatAssistantMessage();
-        toolMsg.setContent("");
-        toolMsg.setToolCalls(List.of(toolCall));
-        ChatResponse toolResponse = ChatResponse.success(toolMsg);
+        ChatResponse toolResponse = ChatResponseFixtures.assistantWithToolCalls("", toolCall);
 
         ChatAssistantMessage finalMsg = new ChatAssistantMessage();
         finalMsg.setContent("The result is 9.");

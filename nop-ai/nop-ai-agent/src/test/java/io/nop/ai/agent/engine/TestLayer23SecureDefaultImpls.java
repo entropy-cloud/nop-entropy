@@ -53,6 +53,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import io.nop.ai.agent.support.ChatResponseFixtures;
 
 /**
  * Plan 200 end-to-end + wiring verification (Minimum Rules #22, #23):
@@ -106,14 +107,11 @@ public class TestLayer23SecureDefaultImpls {
 
             private ChatResponse build(ChatRequest request) {
                 int turn = n.getAndIncrement();
-                ChatAssistantMessage msg = new ChatAssistantMessage();
                 if (turn < turns.length) {
-                    msg.setContent("");
-                    msg.setToolCalls(turns[turn]);
+                    return ChatResponseFixtures.assistantWithToolCalls("", turns[turn]);
                 } else {
-                    msg.setContent("done");
+                    return ChatResponseFixtures.assistantText("Task completed.");
                 }
-                return ChatResponse.success(msg);
             }
 
             @Override

@@ -55,6 +55,7 @@ import java.util.concurrent.atomic.AtomicReference;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import io.nop.ai.agent.support.ChatResponseFixtures;
 
 /**
  * End-to-end test for the 3 team communication tools (plan 225 Phase 2).
@@ -185,31 +186,27 @@ public class TestTeamToolsEndToEnd {
 
             private ChatResponse buildResponse() {
                 int n = callCount.getAndIncrement();
-                ChatAssistantMessage msg = new ChatAssistantMessage();
                 switch (n) {
-                    case 0:
-                        msg.setContent("");
+                    case 0: {
                         Map<String, Object> sendArgs = new HashMap<>();
                         sendArgs.put("to", "worker");
                         sendArgs.put("body", "hello from lead");
-                        msg.setToolCalls(List.of(makeToolCall("e2e-1", "team-send-message", sendArgs)));
-                        break;
-                    case 1:
-                        msg.setContent("");
+                        return ChatResponseFixtures.assistantWithToolCalls("",
+                                makeToolCall("e2e-1", "team-send-message", sendArgs));
+                    }
+                    case 1: {
                         Map<String, Object> taskArgs = new HashMap<>();
                         taskArgs.put("subject", "E2E task");
                         taskArgs.put("description", "test task from e2e");
-                        msg.setToolCalls(List.of(makeToolCall("e2e-2", "team-task-create", taskArgs)));
-                        break;
+                        return ChatResponseFixtures.assistantWithToolCalls("",
+                                makeToolCall("e2e-2", "team-task-create", taskArgs));
+                    }
                     case 2:
-                        msg.setContent("");
-                        msg.setToolCalls(List.of(makeToolCall("e2e-3", "team-status", new HashMap<>())));
-                        break;
+                        return ChatResponseFixtures.assistantWithToolCalls("",
+                                makeToolCall("e2e-3", "team-status", new HashMap<>()));
                     default:
-                        msg.setContent("All team operations completed.");
-                        break;
+                        return ChatResponseFixtures.assistantText("All team operations completed.");
                 }
-                return ChatResponse.success(msg);
             }
 
             @Override
@@ -292,17 +289,14 @@ public class TestTeamToolsEndToEnd {
 
             private ChatResponse buildResponse() {
                 int n = callCount.getAndIncrement();
-                ChatAssistantMessage msg = new ChatAssistantMessage();
                 if (n == 0) {
-                    msg.setContent("");
                     Map<String, Object> args = new HashMap<>();
                     args.put("to", "nobody");
                     args.put("body", "hello");
-                    msg.setToolCalls(List.of(makeToolCall("noop-1", "team-send-message", args)));
+                    return ChatResponseFixtures.assistantWithToolCalls("", makeToolCall("noop-1", "team-send-message", args));
                 } else {
-                    msg.setContent("Team tools not available, proceeding without.");
+                    return ChatResponseFixtures.assistantText("done");
                 }
-                return ChatResponse.success(msg);
             }
 
             @Override

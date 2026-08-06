@@ -4,6 +4,7 @@ import io.nop.ai.agent.engine.AgentExecutionContext;
 import io.nop.ai.agent.model.AgentModel;
 import io.nop.ai.agent.session.CompactionResult;
 import io.nop.ai.agent.session.CompactConfig;
+import io.nop.ai.agent.support.ChatResponseFixtures;
 import io.nop.ai.api.chat.messages.ChatAssistantMessage;
 import io.nop.ai.api.chat.messages.ChatMessage;
 import io.nop.ai.api.chat.messages.ChatSystemMessage;
@@ -40,17 +41,14 @@ public class TestLayer2TurnPruningStrategy {
         return new CompactionContext(messages, config, "s1", "agent1", execCtx, null);
     }
 
-    private ChatAssistantMessage assistantWithToolCalls(String... ids) {
-        ChatAssistantMessage msg = new ChatAssistantMessage();
-        List<ChatToolCall> calls = new ArrayList<>();
-        for (String id : ids) {
-            ChatToolCall call = new ChatToolCall();
-            call.setId(id);
-            call.setName("bash");
-            calls.add(call);
+    private void assistantWithToolCalls(List<ChatMessage> messages, String... ids) {
+        ChatToolCall[] calls = new ChatToolCall[ids.length];
+        for (int i = 0; i < ids.length; i++) {
+            calls[i] = new ChatToolCall();
+            calls[i].setId(ids[i]);
+            calls[i].setName("bash");
         }
-        msg.setToolCalls(calls);
-        return msg;
+        messages.add(ChatResponseFixtures.foldedAssistantWithToolCalls(null, calls));
     }
 
     private ChatToolResponseMessage toolResponse(String toolCallId, String content) {
@@ -63,7 +61,7 @@ public class TestLayer2TurnPruningStrategy {
         messages.add(new ChatUserMessage("initial goal"));
         for (int i = 0; i < turns; i++) {
             String id = "tc-" + i;
-            messages.add(assistantWithToolCalls(id));
+            assistantWithToolCalls(messages, id);
             messages.add(toolResponse(id, "result-" + i + "-" + "X".repeat(40)));
         }
         return messages;
@@ -165,7 +163,7 @@ public class TestLayer2TurnPruningStrategy {
         List<ChatMessage> messages = new ArrayList<>();
         messages.add(new ChatSystemMessage("system"));
         messages.add(new ChatUserMessage("goal"));
-        messages.add(assistantWithToolCalls("tc-1"));
+        assistantWithToolCalls(messages, "tc-1");
         messages.add(toolResponse("tc-1", "result"));
 
         CompactionContext ctx = ctxWith(messages, 30, 0.15);

@@ -44,6 +44,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import io.nop.ai.agent.support.ChatResponseFixtures;
 
 /**
  * W3-2 Phase 2 integration tests: declarative {@code <filter-chain>} assembly
@@ -232,10 +233,7 @@ public class TestAgentFilterChainWiring {
                     call.setId("c1");
                     call.setName(toolName);
                     call.setArguments(Map.of("x", 1));
-                    ChatAssistantMessage msg = new ChatAssistantMessage();
-                    msg.setContent("");
-                    msg.setToolCalls(List.of(call));
-                    return CompletableFuture.completedFuture(ChatResponse.success(msg));
+                    return CompletableFuture.completedFuture(ChatResponseFixtures.assistantWithToolCalls("", call));
                 }
                 ChatAssistantMessage msg = new ChatAssistantMessage();
                 msg.setContent("final");
@@ -350,10 +348,7 @@ public class TestAgentFilterChainWiring {
                     call.setId("c1");
                     call.setName("dummy-tool");
                     call.setArguments(Map.of("x", 1));
-                    ChatAssistantMessage msg = new ChatAssistantMessage();
-                    msg.setContent("");
-                    msg.setToolCalls(List.of(call));
-                    return CompletableFuture.completedFuture(ChatResponse.success(msg));
+                    return CompletableFuture.completedFuture(ChatResponseFixtures.assistantWithToolCalls("", call));
                 }
                 ChatAssistantMessage msg = new ChatAssistantMessage();
                 msg.setContent("final");

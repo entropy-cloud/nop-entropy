@@ -41,6 +41,7 @@ import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import io.nop.ai.agent.support.ChatResponseFixtures;
 
 /**
  * Phase 2 end-to-end + wiring-verification tests for the deferred-ack mailbox
@@ -259,9 +260,7 @@ public class TestMailboxEndToEnd {
 
             private ChatResponse buildResponse() {
                 int n = callCount.getAndIncrement();
-                ChatAssistantMessage msg = new ChatAssistantMessage();
                 if (n == 0) {
-                    msg.setContent("");
                     ChatToolCall toolCall = new ChatToolCall();
                     toolCall.setId("mb-e2e-1");
                     toolCall.setName("send-message");
@@ -269,11 +268,10 @@ public class TestMailboxEndToEnd {
                     args.put("targetSessionId", SESSION_ID);
                     args.put("input", "async hello from agent");
                     toolCall.setArguments(args);
-                    msg.setToolCalls(List.of(toolCall));
+                    return ChatResponseFixtures.assistantWithToolCalls("", toolCall);
                 } else {
-                    msg.setContent("done");
+                    return ChatResponseFixtures.assistantText("done");
                 }
-                return ChatResponse.success(msg);
             }
 
             @Override

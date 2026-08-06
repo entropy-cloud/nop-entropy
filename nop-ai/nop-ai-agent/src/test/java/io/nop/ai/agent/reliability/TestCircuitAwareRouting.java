@@ -56,6 +56,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import io.nop.ai.agent.support.ChatResponseFixtures;
 
 /**
  * Plan 213 (circuit-aware-routing) tests: the circuit-aware routing resolution
@@ -489,10 +490,7 @@ public class TestCircuitAwareRouting {
                 modelsCalled.add(key);
                 ChatResponse resp;
                 if (n == 0) {
-                    ChatAssistantMessage msg = new ChatAssistantMessage();
-                    msg.setContent("");
-                    msg.setToolCalls(List.of(toolCall));
-                    resp = ChatResponse.success(msg);
+                    resp = ChatResponseFixtures.assistantWithToolCalls("", toolCall);
                 } else {
                     ChatAssistantMessage msg = new ChatAssistantMessage();
                     msg.setContent("Done.");

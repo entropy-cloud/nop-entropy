@@ -4,6 +4,7 @@ import io.nop.ai.agent.model.AgentExecStatus;
 import io.nop.ai.agent.session.AgentSession;
 import io.nop.ai.agent.session.InMemorySessionStore;
 import io.nop.ai.agent.session.ISessionStore;
+import io.nop.ai.agent.support.ChatResponseFixtures;
 import io.nop.ai.api.chat.ChatRequest;
 import io.nop.ai.api.chat.ChatResponse;
 import io.nop.ai.api.chat.IChatService;
@@ -153,9 +154,7 @@ public class TestDefaultAgentEngineMultiTurn {
         toolCall.setName("test-calculator");
         toolCall.setArguments(Map.of("expr", "2+2"));
 
-        ChatAssistantMessage toolMsg = new ChatAssistantMessage();
-        toolMsg.setContent("");
-        toolMsg.setToolCalls(List.of(toolCall));
+        ChatResponse toolResponse = ChatResponseFixtures.assistantWithToolCalls("", toolCall);
 
         ChatAssistantMessage finalMsg1 = new ChatAssistantMessage();
         finalMsg1.setContent("The result of 2+2 is 4.");
@@ -165,7 +164,7 @@ public class TestDefaultAgentEngineMultiTurn {
 
         AtomicInteger callIdx = new AtomicInteger(0);
         List<ChatResponse> responses = List.of(
-                ChatResponse.success(toolMsg),
+                toolResponse,
                 ChatResponse.success(finalMsg1),
                 ChatResponse.success(finalMsg2)
         );

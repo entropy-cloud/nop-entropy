@@ -5,6 +5,7 @@ import io.nop.ai.agent.engine.ITokenEstimator;
 import io.nop.ai.agent.model.AgentModel;
 import io.nop.ai.agent.session.CompactionResult;
 import io.nop.ai.agent.session.CompactConfig;
+import io.nop.ai.agent.support.ChatResponseFixtures;
 import io.nop.ai.api.chat.ChatRequest;
 import io.nop.ai.api.chat.ChatResponse;
 import io.nop.ai.api.chat.IChatService;
@@ -50,17 +51,14 @@ public class TestLayer3FullSummaryStrategy {
         return new CompactionContext(messages, config(0.15, 5), "s1", "agent1", execCtx, null);
     }
 
-    private ChatAssistantMessage assistantWithToolCalls(String... ids) {
-        ChatAssistantMessage msg = new ChatAssistantMessage();
-        List<ChatToolCall> calls = new ArrayList<>();
-        for (String id : ids) {
-            ChatToolCall call = new ChatToolCall();
-            call.setId(id);
-            call.setName("bash");
-            calls.add(call);
+    private void assistantWithToolCalls(List<ChatMessage> messages, String... ids) {
+        ChatToolCall[] calls = new ChatToolCall[ids.length];
+        for (int i = 0; i < ids.length; i++) {
+            calls[i] = new ChatToolCall();
+            calls[i].setId(ids[i]);
+            calls[i].setName("bash");
         }
-        msg.setToolCalls(calls);
-        return msg;
+        messages.add(ChatResponseFixtures.foldedAssistantWithToolCalls(null, calls));
     }
 
     private ChatToolResponseMessage toolResponse(String toolCallId, String content) {
@@ -73,7 +71,7 @@ public class TestLayer3FullSummaryStrategy {
         messages.add(new ChatUserMessage("initial goal"));
         for (int i = 0; i < turns; i++) {
             String id = "tc-" + i;
-            messages.add(assistantWithToolCalls(id));
+            assistantWithToolCalls(messages, id);
             messages.add(toolResponse(id, "result-" + i + "-padding-" + "X".repeat(40)));
         }
         return messages;
@@ -146,7 +144,7 @@ public class TestLayer3FullSummaryStrategy {
         messages.add(new ChatUserMessage(Layer3FullSummaryStrategy.SUMMARY_MARKER + "\n## Goal\nold goal"));
         for (int i = 0; i < 40; i++) {
             String id = "tc-" + i;
-            messages.add(assistantWithToolCalls(id));
+            assistantWithToolCalls(messages, id);
             messages.add(toolResponse(id, "result-" + i + "-" + "X".repeat(30)));
         }
 

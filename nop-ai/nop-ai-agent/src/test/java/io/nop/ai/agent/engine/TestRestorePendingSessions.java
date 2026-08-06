@@ -45,6 +45,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import io.nop.ai.agent.support.ChatResponseFixtures;
 
 /**
  * Plan 184 functional tests for {@link IAgentEngine#restorePendingSessions}:
@@ -148,10 +149,7 @@ public class TestRestorePendingSessions {
         call.setId(callId);
         call.setName(toolName);
         call.setArguments(args);
-        ChatAssistantMessage msg = new ChatAssistantMessage();
-        msg.setContent("");
-        msg.setToolCalls(List.of(call));
-        return ChatResponse.success(msg);
+        return ChatResponseFixtures.assistantWithToolCalls("", call);
     }
 
     static ChatResponse finalResponse(String content) {

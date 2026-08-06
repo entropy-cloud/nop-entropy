@@ -6,6 +6,7 @@ import io.nop.ai.agent.engine.AgentExecutionResult;
 import io.nop.ai.agent.engine.AgentMessageRequest;
 import io.nop.ai.agent.engine.DefaultAgentEngine;
 import io.nop.ai.agent.model.AgentExecStatus;
+import io.nop.ai.agent.support.ChatResponseFixtures;
 import io.nop.ai.api.chat.ChatRequest;
 import io.nop.ai.api.chat.ChatResponse;
 import io.nop.ai.api.chat.IChatService;
@@ -176,31 +177,28 @@ public class TestSubAgentPathPermissionEndToEnd {
             private ChatResponse build(ChatRequest request) {
                 String agent = identifyAgent(request);
                 long assistantTurns = countAssistantMessages(request);
-                ChatAssistantMessage msg = new ChatAssistantMessage();
 
                 if (agent.contains("parent path agent P")) {
                     if (assistantTurns == 0) {
-                        msg.setContent("");
-                        msg.setToolCalls(List.of(callAgentToolCall("p-call-1",
-                                "test-sub-agent-path", "read some files")));
+                        return ChatResponseFixtures.assistantWithToolCalls("",
+                                callAgentToolCall("p-call-1",
+                                        "test-sub-agent-path", "read some files"));
                     } else {
-                        msg.setContent("Parent done.");
+                        return ChatResponseFixtures.assistantText("Parent done.");
                     }
                 } else if (agent.contains("sub path agent S")) {
                     if (assistantTurns == 0) {
-                        msg.setContent("");
-                        msg.setToolCalls(List.of(
+                        return ChatResponseFixtures.assistantWithToolCalls("",
                                 toolCallWithPath("s-outside", "read-file",
                                         "/workspace/project-b/secret"),
                                 toolCallWithPath("s-inside", "read-file",
-                                        "/workspace/project-a/src/Main.java")));
+                                        "/workspace/project-a/src/Main.java"));
                     } else {
-                        msg.setContent("Sub done.");
+                        return ChatResponseFixtures.assistantText("Sub done.");
                     }
                 } else {
-                    msg.setContent("fallback");
+                    return ChatResponseFixtures.assistantText("fallback");
                 }
-                return ChatResponse.success(msg);
             }
 
             @Override
@@ -272,15 +270,12 @@ public class TestSubAgentPathPermissionEndToEnd {
 
             private ChatResponse build() {
                 int n = callCount++;
-                ChatAssistantMessage msg = new ChatAssistantMessage();
                 if (n == 0) {
-                    msg.setContent("");
-                    msg.setToolCalls(List.of(
-                            toolCallWithPath("r1", "read-file", "/workspace/project-a/src/Main.java")));
+                    return ChatResponseFixtures.assistantWithToolCalls("",
+                            toolCallWithPath("r1", "read-file", "/workspace/project-a/src/Main.java"));
                 } else {
-                    msg.setContent("done");
+                    return ChatResponseFixtures.assistantText("done");
                 }
-                return ChatResponse.success(msg);
             }
 
             @Override
@@ -370,39 +365,37 @@ public class TestSubAgentPathPermissionEndToEnd {
             private ChatResponse build(ChatRequest request) {
                 String agent = identifyAgent(request);
                 long assistantTurns = countAssistantMessages(request);
-                ChatAssistantMessage msg = new ChatAssistantMessage();
 
                 if (agent.contains("parent path agent P")) {
                     // A: first turn → call-agent(B); second turn → final
                     if (assistantTurns == 0) {
-                        msg.setContent("");
-                        msg.setToolCalls(List.of(callAgentToolCall("a-call-1",
-                                "test-middle-agent-path", "delegate to C")));
+                        return ChatResponseFixtures.assistantWithToolCalls("",
+                                callAgentToolCall("a-call-1",
+                                        "test-middle-agent-path", "delegate to C"));
                     } else {
-                        msg.setContent("A done.");
+                        return ChatResponseFixtures.assistantText("A done.");
                     }
                 } else if (agent.contains("middle path agent B")) {
                     // B: first turn → call-agent(C); second turn → final
                     if (assistantTurns == 0) {
-                        msg.setContent("");
-                        msg.setToolCalls(List.of(callAgentToolCall("b-call-1",
-                                "test-leaf-agent-path", "do work")));
+                        return ChatResponseFixtures.assistantWithToolCalls("",
+                                callAgentToolCall("b-call-1",
+                                        "test-leaf-agent-path", "do work"));
                     } else {
-                        msg.setContent("B done.");
+                        return ChatResponseFixtures.assistantText("B done.");
                     }
                 } else if (agent.contains("leaf path agent C")) {
                     // C: first turn → try path outside A's scope (should be denied); second turn → final
                     if (assistantTurns == 0) {
-                        msg.setContent("");
-                        msg.setToolCalls(List.of(toolCallWithPath("c-outside", "read-file",
-                                "/workspace/project-b/x")));
+                        return ChatResponseFixtures.assistantWithToolCalls("",
+                                toolCallWithPath("c-outside", "read-file",
+                                        "/workspace/project-b/x"));
                     } else {
-                        msg.setContent("C done.");
+                        return ChatResponseFixtures.assistantText("C done.");
                     }
                 } else {
-                    msg.setContent("fallback");
+                    return ChatResponseFixtures.assistantText("fallback");
                 }
-                return ChatResponse.success(msg);
             }
 
             @Override
@@ -461,32 +454,29 @@ public class TestSubAgentPathPermissionEndToEnd {
             private ChatResponse build(ChatRequest request) {
                 String agent = identifyAgent(request);
                 long assistantTurns = countAssistantMessages(request);
-                ChatAssistantMessage msg = new ChatAssistantMessage();
 
                 if (agent.contains("parent no-workdir agent N")) {
                     if (assistantTurns == 0) {
-                        msg.setContent("");
-                        msg.setToolCalls(List.of(callAgentToolCall("n-call-1",
-                                "test-sub-agent-path", "read files")));
+                        return ChatResponseFixtures.assistantWithToolCalls("",
+                                callAgentToolCall("n-call-1",
+                                        "test-sub-agent-path", "read files"));
                     } else {
-                        msg.setContent("N done.");
+                        return ChatResponseFixtures.assistantText("N done.");
                     }
                 } else if (agent.contains("sub path agent S")) {
                     // Sub-agent attempts a path that would be outside any parent scope
                     // — but since parent has NO workDir, there is no confinement.
                     // The path is allowed (passes the absent constraint, then the global deny-list).
                     if (assistantTurns == 0) {
-                        msg.setContent("");
-                        msg.setToolCalls(List.of(
+                        return ChatResponseFixtures.assistantWithToolCalls("",
                                 toolCallWithPath("s-anywhere", "read-file",
-                                        "/workspace/project-z/arbitrary")));
+                                        "/workspace/project-z/arbitrary"));
                     } else {
-                        msg.setContent("Sub done.");
+                        return ChatResponseFixtures.assistantText("Sub done.");
                     }
                 } else {
-                    msg.setContent("fallback");
+                    return ChatResponseFixtures.assistantText("fallback");
                 }
-                return ChatResponse.success(msg);
             }
 
             @Override

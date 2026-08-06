@@ -14,10 +14,10 @@ import io.nop.ai.agent.memory.InMemoryVectorAdapter;
 import io.nop.ai.agent.memory.NoOpEmbeddingAdapter;
 import io.nop.ai.agent.memory.NoOpVectorAdapter;
 import io.nop.ai.agent.model.AgentExecStatus;
+import io.nop.ai.agent.support.ChatResponseFixtures;
 import io.nop.ai.api.chat.ChatRequest;
 import io.nop.ai.api.chat.ChatResponse;
 import io.nop.ai.api.chat.IChatService;
-import io.nop.ai.api.chat.messages.ChatAssistantMessage;
 import io.nop.ai.api.chat.messages.ChatToolCall;
 import io.nop.ai.api.chat.messages.ChatToolResponseMessage;
 import io.nop.ai.api.chat.stream.ChatStreamChunk;
@@ -146,11 +146,9 @@ public class TestAdapterBackedMemoryEndToEnd {
         };
     }
 
-    private ChatAssistantMessage turn(int n, String writeKey, String writtenContent, String searchQuery) {
-        ChatAssistantMessage msg = new ChatAssistantMessage();
+    private ChatResponse turn(int n, String writeKey, String writtenContent, String searchQuery) {
         if (n == 0) {
             // turn 1: write-memory (add)
-            msg.setContent("");
             ChatToolCall call = new ChatToolCall();
             call.setId("w1");
             call.setName("write-memory");
@@ -160,21 +158,19 @@ public class TestAdapterBackedMemoryEndToEnd {
             args.put("type", "note");
             args.put("content", writtenContent);
             call.setArguments(args);
-            msg.setToolCalls(List.of(call));
+            return ChatResponseFixtures.assistantWithToolCalls("", call);
         } else if (n == 1) {
             // turn 2: search-memory
-            msg.setContent("");
             ChatToolCall call = new ChatToolCall();
             call.setId("s1");
             call.setName("search-memory");
             Map<String, Object> args = new HashMap<>();
             args.put("query", searchQuery);
             call.setArguments(args);
-            msg.setToolCalls(List.of(call));
+            return ChatResponseFixtures.assistantWithToolCalls("", call);
         } else {
-            msg.setContent("Done.");
+            return ChatResponseFixtures.assistantText("Done.");
         }
-        return msg;
     }
 
     /**
@@ -192,12 +188,12 @@ public class TestAdapterBackedMemoryEndToEnd {
             @Override
             public CompletionStage<ChatResponse> callAsync(ChatRequest request, ICancelToken cancelToken) {
                 return CompletableFuture.completedFuture(
-                        ChatResponse.success(turn(callCount.getAndIncrement(), writeKey, writtenContent, searchQuery)));
+                        turn(callCount.getAndIncrement(), writeKey, writtenContent, searchQuery));
             }
 
             @Override
             public ChatResponse call(ChatRequest request, ICancelToken cancelToken) {
-                return ChatResponse.success(turn(callCount.getAndIncrement(), writeKey, writtenContent, searchQuery));
+                return turn(callCount.getAndIncrement(), writeKey, writtenContent, searchQuery);
             }
 
             @Override

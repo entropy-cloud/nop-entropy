@@ -6,10 +6,12 @@ import io.nop.ai.agent.reliability.CheckpointType;
 import io.nop.ai.agent.reliability.FileBackedCheckpointManager;
 import io.nop.ai.agent.session.AgentSession;
 import io.nop.ai.agent.session.FileBackedSessionStore;
+import io.nop.ai.agent.support.ChatResponseFixtures;
 import io.nop.ai.api.chat.ChatRequest;
 import io.nop.ai.api.chat.ChatResponse;
 import io.nop.ai.api.chat.IChatService;
 import io.nop.ai.api.chat.messages.ChatAssistantMessage;
+import io.nop.ai.api.chat.messages.ChatMessage;
 import io.nop.ai.api.chat.messages.ChatToolCall;
 import io.nop.ai.api.chat.messages.ChatUserMessage;
 import io.nop.ai.api.chat.stream.ChatStreamChunk;
@@ -248,12 +250,11 @@ public class TestRestoreSessionIdempotencyDivergence {
 
     private void persistSessionWithToolCall(Harness h, String sessionId, ChatToolCall tc) {
         AgentSession session = AgentSession.create(sessionId, "test-react-agent");
-        ChatAssistantMessage assistantMsg = new ChatAssistantMessage();
-        assistantMsg.setContent("");
-        assistantMsg.setToolCalls(List.of(tc));
-        session.appendMessages(List.of(
-                new ChatUserMessage("hi"),
-                assistantMsg));
+        ChatResponse resp = ChatResponseFixtures.assistantWithToolCalls("", tc);
+        List<ChatMessage> msgs = new ArrayList<>();
+        msgs.add(new ChatUserMessage("hi"));
+        msgs.addAll(resp.getMessages());
+        session.appendMessages(msgs);
         session.setStatus(AgentExecStatus.running);
         h.store.save(session);
     }

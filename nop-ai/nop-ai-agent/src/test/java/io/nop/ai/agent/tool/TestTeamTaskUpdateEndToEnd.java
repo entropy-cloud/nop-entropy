@@ -52,6 +52,7 @@ import java.util.concurrent.atomic.AtomicReference;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import io.nop.ai.agent.support.ChatResponseFixtures;
 
 /**
  * End-to-end tests for the {@code team-task-update} state machine (plan 227
@@ -400,14 +401,11 @@ public class TestTeamTaskUpdateEndToEnd {
             private ChatResponse buildResponse() {
                 int n = callCount.getAndIncrement();
                 ChatToolCall[] s = scriptRef.get();
-                ChatAssistantMessage msg = new ChatAssistantMessage();
                 if (n < s.length && s[n] != null) {
-                    msg.setContent("");
-                    msg.setToolCalls(List.of(s[n]));
+                    return ChatResponseFixtures.assistantWithToolCalls("", s[n]);
                 } else {
-                    msg.setContent("Done.");
+                    return ChatResponseFixtures.assistantText("All done.");
                 }
-                return ChatResponse.success(msg);
             }
 
             @Override

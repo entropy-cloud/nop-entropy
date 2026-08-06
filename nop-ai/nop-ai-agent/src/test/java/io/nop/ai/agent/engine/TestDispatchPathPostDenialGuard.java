@@ -43,6 +43,7 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import io.nop.ai.agent.support.ChatResponseFixtures;
 
 /**
  * Phase 2 end-to-end tests: verifies the Layer 3 post-denial-guard
@@ -160,10 +161,7 @@ public class TestDispatchPathPostDenialGuard {
     }
 
     private static ChatResponse assistantWithToolCalls(ChatToolCall... calls) {
-        ChatAssistantMessage msg = new ChatAssistantMessage();
-        msg.setContent("");
-        msg.setToolCalls(List.of(calls));
-        return ChatResponse.success(msg);
+        return ChatResponseFixtures.assistantWithToolCalls("", calls);
     }
 
     private static ChatResponse finalAssistant(String content) {

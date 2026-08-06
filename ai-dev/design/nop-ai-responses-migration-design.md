@@ -155,8 +155,8 @@ Responses wire → 消息体系：
 - `nop-ai-agent/04-tool-invocation.md`：工具循环语义不变（并发 fan-out 保留），仅消息载体切换为 `ChatToolCallMessage`。
 - `nop-ai-gateway/01-architecture.md`：`AiDialectBackendMessageConverter` 的 frontend/backend 双方言结构不变，本重构后双方言输入输出统一为消息序列，前端方言（Codex 场景）可后续接入。
 - 实施路径（获批后拆 `ai-dev/plans/`，每 Phase 独立验证）：
-  - Phase 0：消息类型体系改造（新增 `ChatToolCallMessage`/`ChatReasoningMessage`，删除寄居字段与 `ChatCustomMessage`）+ 序列化 golden test。
+  - Phase 0：消息类型体系改造（新增 `ChatToolCallMessage`/`ChatReasoningMessage`，删除寄居字段与 `ChatCustomMessage`）+ 序列化 golden test。（✅ plan 325 已落地：新增 `ChatToolCallMessage`(`tool_call`)/`ChatReasoningMessage`(`reasoning`)，`ChatToolResponseMessage` 改名 `callId` + type `tool_output`，删 `ChatCustomMessage`，`ApiStyle.RESPONSES` 枚举 + `normalizeFinishReason` 扩展，golden test 全绿。寄居字段 `think`/`toolCalls` 保留待 Phase 4/plan 329 删除）
   - Phase 1：dialect 层改造（4 个既有方言基于新消息体系，既有测试全绿）。
-  - Phase 2：agent 引擎切换（`ReActAgentExecutor` 提取 `ChatToolCallMessage`，工具循环回归）。
+  - Phase 2：agent 引擎切换（`ReActAgentExecutor` 提取 `ChatToolCallMessage`，工具循环回归）。（✅ plan 327 已落地：引擎从 `response.getMessages()` 提取 `ChatToolCallMessage` → `List<ChatToolCall>` 喂既有 fan-out；5 个辅助生产引用点迁移；85 个 mock-LLM 测试迁移到 `ChatResponseFixtures` 双轨产出；3404 测试全绿。）
   - Phase 3：流式 `ChatStreamChunk` item 增量重构 + UI 文本消费适配。
   - Phase 4：`ResponsesDialect` + 流式/非流式集成测试（mock Responses wire fixture）。

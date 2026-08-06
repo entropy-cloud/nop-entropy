@@ -4,7 +4,7 @@ import io.nop.ai.agent.engine.AgentExecutionContext;
 import io.nop.ai.agent.model.AgentModel;
 import io.nop.ai.agent.session.CompactionResult;
 import io.nop.ai.agent.session.CompactConfig;
-import io.nop.ai.api.chat.messages.ChatAssistantMessage;
+import io.nop.ai.agent.support.ChatResponseFixtures;
 import io.nop.ai.api.chat.messages.ChatMessage;
 import io.nop.ai.api.chat.messages.ChatSystemMessage;
 import io.nop.ai.api.chat.messages.ChatToolCall;
@@ -70,17 +70,14 @@ public class TestReferenceCompactionStrategy {
                 execCtx, null, archive);
     }
 
-    private ChatAssistantMessage assistantWithToolCalls(String... toolCallIds) {
-        ChatAssistantMessage msg = new ChatAssistantMessage();
-        List<ChatToolCall> calls = new ArrayList<>();
-        for (String id : toolCallIds) {
-            ChatToolCall call = new ChatToolCall();
-            call.setId(id);
-            call.setName("read-file");
-            calls.add(call);
+    private void assistantWithToolCalls(List<ChatMessage> messages, String... toolCallIds) {
+        ChatToolCall[] calls = new ChatToolCall[toolCallIds.length];
+        for (int i = 0; i < toolCallIds.length; i++) {
+            calls[i] = new ChatToolCall();
+            calls[i].setId(toolCallIds[i]);
+            calls[i].setName("read-file");
         }
-        msg.setToolCalls(calls);
-        return msg;
+        messages.add(ChatResponseFixtures.foldedAssistantWithToolCalls(null, calls));
     }
 
     private ChatToolResponseMessage fileToolResponse(String toolCallId, String content) {
@@ -107,7 +104,7 @@ public class TestReferenceCompactionStrategy {
         List<ChatMessage> messages = new ArrayList<>();
         messages.add(new ChatSystemMessage("system"));
         messages.add(new ChatUserMessage("goal"));
-        messages.add(assistantWithToolCalls("tc-1"));
+        assistantWithToolCalls(messages, "tc-1");
         messages.add(fileToolResponse("tc-1", original));
 
         CompactConfig config = new CompactConfig(0, null, true, 0, 8000);
@@ -185,7 +182,7 @@ public class TestReferenceCompactionStrategy {
         List<ChatMessage> messages = new ArrayList<>();
         messages.add(new ChatSystemMessage("system"));
         messages.add(new ChatUserMessage("goal"));
-        messages.add(assistantWithToolCalls("tc-1"));
+        assistantWithToolCalls(messages, "tc-1");
         messages.add(fileToolResponse("tc-1", shortContent));
 
         // force older via maxRecent=0
@@ -229,7 +226,7 @@ public class TestReferenceCompactionStrategy {
         List<ChatMessage> messages = new ArrayList<>();
         messages.add(new ChatSystemMessage("system"));
         messages.add(new ChatUserMessage("goal"));
-        messages.add(assistantWithToolCalls("tc-1"));
+        assistantWithToolCalls(messages, "tc-1");
         messages.add(fileToolResponse("tc-1", original));
 
         CompactionContext ctx = ctxWith(messages, archive); // defaults: maxRecent=6
@@ -266,7 +263,7 @@ public class TestReferenceCompactionStrategy {
         List<ChatMessage> messages = new ArrayList<>();
         messages.add(new ChatSystemMessage("system"));
         messages.add(new ChatUserMessage("goal"));
-        messages.add(assistantWithToolCalls("tc-1", "tc-2"));
+        assistantWithToolCalls(messages, "tc-1", "tc-2");
         messages.add(fileToolResponse("tc-1", contentA));
         messages.add(fileToolResponse("tc-2", contentB));
 
@@ -311,7 +308,7 @@ public class TestReferenceCompactionStrategy {
         List<ChatMessage> messages = new ArrayList<>();
         messages.add(new ChatSystemMessage("system"));
         messages.add(new ChatUserMessage("goal"));
-        messages.add(assistantWithToolCalls("tc-1"));
+        assistantWithToolCalls(messages, "tc-1");
         messages.add(fileToolResponse("tc-1", original));
 
         // Use a config with a low token threshold so the pipeline does NOT

@@ -35,6 +35,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import io.nop.ai.agent.support.ChatResponseFixtures;
 
 public class TestDefaultAgentEngineCancel {
 
@@ -54,10 +55,7 @@ public class TestDefaultAgentEngineCancel {
         toolCall.setName(toolName);
         toolCall.setArguments(Map.of("expr", "1+1"));
 
-        ChatAssistantMessage msg = new ChatAssistantMessage();
-        msg.setContent("");
-        msg.setToolCalls(List.of(toolCall));
-        return ChatResponse.success(msg);
+        return ChatResponseFixtures.assistantWithToolCalls("", toolCall);
     }
 
     private IChatService createToolCallChatService(ChatResponse response) {

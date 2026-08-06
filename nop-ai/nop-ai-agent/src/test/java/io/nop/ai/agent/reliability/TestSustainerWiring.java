@@ -42,6 +42,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import io.nop.ai.agent.support.ChatResponseFixtures;
 
 /**
  * Plan 212 (L3-8) Phase 1 wiring + zero-regression test (Minimum Rules #23
@@ -139,10 +140,7 @@ public class TestSustainerWiring {
             @Override
             public CompletionStage<ChatResponse> callAsync(ChatRequest request, ICancelToken cancelToken) {
                 chatCallCount.incrementAndGet();
-                ChatAssistantMessage msg = new ChatAssistantMessage();
-                msg.setContent("reading");
-                msg.setToolCalls(List.of(toolCall));
-                return CompletableFuture.completedFuture(ChatResponse.success(msg));
+                return CompletableFuture.completedFuture(ChatResponseFixtures.assistantWithToolCalls("reading", toolCall));
             }
 
             @Override
@@ -195,10 +193,7 @@ public class TestSustainerWiring {
             @Override
             public CompletionStage<ChatResponse> callAsync(ChatRequest request, ICancelToken cancelToken) {
                 chatCallCount.incrementAndGet();
-                ChatAssistantMessage msg = new ChatAssistantMessage();
-                msg.setContent("reading");
-                msg.setToolCalls(List.of(toolCall));
-                return CompletableFuture.completedFuture(ChatResponse.success(msg));
+                return CompletableFuture.completedFuture(ChatResponseFixtures.assistantWithToolCalls("reading", toolCall));
             }
 
             @Override

@@ -38,6 +38,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import io.nop.ai.agent.support.ChatResponseFixtures;
 
 /**
  * Wiring verification (Minimum Rules #23, Anti-Hollow): proves
@@ -178,10 +179,7 @@ public class TestRuleGraphGuardrailWiring {
                 int n = chatCallCount.getAndIncrement();
                 ChatResponse resp;
                 if (n == 0) {
-                    ChatAssistantMessage msg = new ChatAssistantMessage();
-                    msg.setContent("echo beta response");
-                    msg.setToolCalls(List.of(toolCall));
-                    resp = ChatResponse.success(msg);
+                    resp = ChatResponseFixtures.assistantWithToolCalls("echo beta response", toolCall);
                 } else {
                     ChatAssistantMessage msg = new ChatAssistantMessage();
                     msg.setContent("done");
@@ -251,10 +249,7 @@ public class TestRuleGraphGuardrailWiring {
                 int n = chatCallCount.getAndIncrement();
                 ChatResponse resp;
                 if (n == 0) {
-                    ChatAssistantMessage msg = new ChatAssistantMessage();
-                    msg.setContent("echoing");
-                    msg.setToolCalls(List.of(toolCall));
-                    resp = ChatResponse.success(msg);
+                    resp = ChatResponseFixtures.assistantWithToolCalls("echoing", toolCall);
                 } else {
                     ChatAssistantMessage msg = new ChatAssistantMessage();
                     msg.setContent("echo done");

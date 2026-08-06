@@ -40,6 +40,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import io.nop.ai.agent.support.ChatResponseFixtures;
 
 /**
  * Plan 205 (L2-21) Phase 2 focused tests covering the five required scenarios
@@ -354,10 +355,7 @@ public class TestModelSwitchedMessage {
                 messagesSentToLlm.add(new ArrayList<>(request.getMessages()));
                 ChatResponse resp;
                 if (n == 0) {
-                    ChatAssistantMessage msg = new ChatAssistantMessage();
-                    msg.setContent("");
-                    msg.setToolCalls(List.of(toolCall));
-                    resp = ChatResponse.success(msg);
+                    resp = ChatResponseFixtures.assistantWithToolCalls("", toolCall);
                 } else {
                     ChatAssistantMessage msg = new ChatAssistantMessage();
                     msg.setContent("Done.");
@@ -444,10 +442,7 @@ public class TestModelSwitchedMessage {
                 int n = chatCallCount.getAndIncrement();
                 ChatResponse resp;
                 if (n == 0) {
-                    ChatAssistantMessage msg = new ChatAssistantMessage();
-                    msg.setContent("");
-                    msg.setToolCalls(List.of(toolCall));
-                    resp = ChatResponse.success(msg);
+                    resp = ChatResponseFixtures.assistantWithToolCalls("", toolCall);
                 } else {
                     ChatAssistantMessage msg = new ChatAssistantMessage();
                     msg.setContent("Done.");

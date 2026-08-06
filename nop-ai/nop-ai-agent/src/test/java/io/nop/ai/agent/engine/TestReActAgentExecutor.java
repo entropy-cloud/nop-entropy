@@ -72,16 +72,12 @@ public class TestReActAgentExecutor {
     }
 
     private ChatResponse buildSuccessResponse(String content) {
-        ChatAssistantMessage msg = new ChatAssistantMessage();
-        msg.setContent(content);
-        return ChatResponse.success(msg);
+        return io.nop.ai.agent.support.ChatResponseFixtures.assistantText(content);
     }
 
     private ChatResponse buildSuccessResponseWithToolCalls(List<ChatToolCall> toolCalls) {
-        ChatAssistantMessage msg = new ChatAssistantMessage();
-        msg.setContent("");
-        msg.setToolCalls(toolCalls);
-        return ChatResponse.success(msg);
+        return io.nop.ai.agent.support.ChatResponseFixtures.assistantWithToolCalls("",
+                toolCalls.toArray(new ChatToolCall[0]));
     }
 
     private ChatResponse buildErrorResponse(String errorMessage) {

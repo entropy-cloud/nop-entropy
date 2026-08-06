@@ -45,6 +45,7 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import io.nop.ai.agent.support.ChatResponseFixtures;
 
 /**
  * Phase 2 integration tests verifying per-agent glob path-rule enforcement in
@@ -78,10 +79,7 @@ public class TestPerAgentPathRulesWiring {
             public CompletionStage<ChatResponse> callAsync(ChatRequest request, ICancelToken cancelToken) {
                 int n = callCount.getAndIncrement();
                 if (n == 0) {
-                    ChatAssistantMessage msg = new ChatAssistantMessage();
-                    msg.setContent("");
-                    msg.setToolCalls(List.of(toolCall));
-                    return CompletableFuture.completedFuture(ChatResponse.success(msg));
+                    return CompletableFuture.completedFuture(ChatResponseFixtures.assistantWithToolCalls("", toolCall));
                 }
                 ChatAssistantMessage msg = new ChatAssistantMessage();
                 msg.setContent("Done.");

@@ -175,11 +175,24 @@ public class Layer2TurnPruningStrategy implements ICompressionStrategy {
      * Defensive check: assert that no orphaned tool_call or tool_response exists
      * in the pruned result. Throws if boundary integrity was violated (this would
      * indicate a bug in the grouping logic).
+     *
+     * <p>Plan 327: collects tool-call IDs from BOTH the canonical
+     * {@code ChatToolCallMessage} items (new form) and the legacy folded
+     * {@code ChatAssistantMessage.toolCalls} field (transition form). This
+     * dual-read ensures boundary integrity is verified regardless of which
+     * history format the session currently carries. The legacy read will be
+     * removed in plan 329 when the folded field is deleted.
      */
     static void assertBoundaryIntegrity(List<ChatMessage> messages) {
         Set<String> calledIds = new HashSet<>();
         for (ChatMessage msg : messages) {
-            if (msg instanceof ChatAssistantMessage) {
+            if (msg instanceof io.nop.ai.api.chat.messages.ChatToolCallMessage) {
+                io.nop.ai.api.chat.messages.ChatToolCallMessage tcm =
+                        (io.nop.ai.api.chat.messages.ChatToolCallMessage) msg;
+                if (tcm.getCallId() != null) {
+                    calledIds.add(tcm.getCallId());
+                }
+            } else if (msg instanceof ChatAssistantMessage) {
                 ChatAssistantMessage asm = (ChatAssistantMessage) msg;
                 if (asm.getToolCalls() != null) {
                     for (io.nop.ai.api.chat.messages.ChatToolCall tc : asm.getToolCalls()) {

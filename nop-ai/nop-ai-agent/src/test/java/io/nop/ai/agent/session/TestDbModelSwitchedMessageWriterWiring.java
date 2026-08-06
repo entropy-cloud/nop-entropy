@@ -47,6 +47,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import io.nop.ai.agent.support.ChatResponseFixtures;
 
 /**
  * Plan 205 (L2-21) Phase 2 end-to-end wiring test (Minimum Rules #22
@@ -103,10 +104,7 @@ public class TestDbModelSwitchedMessageWriterWiring {
         toolCall.setName("test-calculator");
         toolCall.setArguments(Map.of("expr", "2+2"));
 
-        ChatAssistantMessage toolMsg = new ChatAssistantMessage();
-        toolMsg.setContent("");
-        toolMsg.setToolCalls(List.of(toolCall));
-        ChatResponse toolResponse = ChatResponse.success(toolMsg);
+        ChatResponse toolResponse = ChatResponseFixtures.assistantWithToolCalls("", toolCall);
         toolResponse.setRequestId("req-switch-turn-1");
         toolResponse.setUsage(new ChatUsage(100, 20));
 
@@ -240,10 +238,7 @@ public class TestDbModelSwitchedMessageWriterWiring {
         toolCall.setName("test-calculator");
         toolCall.setArguments(Map.of("expr", "3+3"));
 
-        ChatAssistantMessage toolMsg = new ChatAssistantMessage();
-        toolMsg.setContent("");
-        toolMsg.setToolCalls(List.of(toolCall));
-        ChatResponse toolResponse = ChatResponse.success(toolMsg);
+        ChatResponse toolResponse = ChatResponseFixtures.assistantWithToolCalls("", toolCall);
         toolResponse.setRequestId("req-no-switch-1");
         toolResponse.setUsage(new ChatUsage(80, 10));
 

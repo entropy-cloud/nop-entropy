@@ -93,6 +93,7 @@ import io.nop.ai.api.chat.IChatService;
 import io.nop.ai.api.chat.messages.ChatAssistantMessage;
 import io.nop.ai.api.chat.messages.ChatMessage;
 import io.nop.ai.api.chat.messages.ChatToolCall;
+import io.nop.ai.api.chat.messages.ChatToolCallMessage;
 import io.nop.ai.api.chat.messages.ChatToolDefinition;
 import io.nop.ai.api.chat.messages.ChatUserMessage;
 import io.nop.ai.toolkit.api.IToolManager;
@@ -671,7 +672,11 @@ public class ReActAgentExecutor implements IAgentExecutor {
                     break;
                 }
 
-                ChatAssistantMessage assistantMsg = llmResult.response.getMessage();
+                ChatAssistantMessage assistantMsg = extractAssistantMessage(llmResult.response);
+                // Plan 327: tool calls are extracted from the canonical
+                // response.getMessages() sequence (ChatToolCallMessage items),
+                // replacing the legacy assistantMsg.getToolCalls() folded field.
+                List<ChatToolCall> responseToolCalls = extractToolCalls(llmResult.response);
                 ctx.addMessage(assistantMsg);
 
                 if (llmResult.response.getUsage() != null) {
@@ -744,7 +749,7 @@ public class ReActAgentExecutor implements IAgentExecutor {
 
                 Map<String, Object> llmPayload = new HashMap<>();
                 llmPayload.put("iteration", ctx.getCurrentIteration());
-                llmPayload.put("hasToolCalls", assistantMsg.hasToolCalls());
+                llmPayload.put("hasToolCalls", !responseToolCalls.isEmpty());
                 hookInvoker.publishEvent(AgentEventType.LLM_RESPONSE_RECEIVED, sessionId, agentName, llmPayload);
 
                 HookResult postReasoningResult = hookInvoker.executeWithMiddleware(AgentLifecyclePoint.POST_REASONING, ctx, agentName, null, null);
@@ -770,7 +775,7 @@ public class ReActAgentExecutor implements IAgentExecutor {
             continue;
         }
 
-        if (promptAssembly.checkOutputGuardrail(ctx, assistantMsg)) {
+        if (promptAssembly.checkOutputGuardrail(ctx, assistantMsg, responseToolCalls)) {
             ctx.setCurrentIteration(ctx.getCurrentIteration() + 1);
             continue;
         }
@@ -780,16 +785,17 @@ public class ReActAgentExecutor implements IAgentExecutor {
                 // applied) and before the tool-dispatch / completion-judge
                 // branch (design nop-ai-agent-reliability.md §5.3). This is the
                 // single call site covering both branches: the engine extracts
-                // the request-level tool-call signatures from
-                // assistantMsg.getToolCalls() (empty when the LLM produced no
-                // tool calls — the completion-judge branch). With the shipped
-                // NoOpGoalTracker default recordIteration is an explicit no-op,
-                // so this is zero-regression.
+                // the request-level tool-call signatures from the
+                // responseToolCalls extracted via ChatToolCallMessage (empty
+                // when the LLM produced no tool calls — the completion-judge
+                // branch). With the shipped NoOpGoalTracker default
+                // recordIteration is an explicit no-op, so this is
+                // zero-regression.
                 goalTracker.recordIteration(sessionId,
                         new IterationSnapshot(ctx.getCurrentIteration(),
-                                buildToolCallSignatures(assistantMsg)));
+                                buildToolCallSignatures(responseToolCalls)));
 
-                if (!assistantMsg.hasToolCalls()) {
+                if (responseToolCalls.isEmpty()) {
                     CompletionDecision decision = completionJudge.decide(assistantMsg, ctx);
 
                     if (decision.isComplete()) {
@@ -838,7 +844,7 @@ public class ReActAgentExecutor implements IAgentExecutor {
                 List<ChatToolCall> allowedCalls = new ArrayList<>();
 
                 dispatchLoop:
-                for (ChatToolCall chatToolCall : assistantMsg.getToolCalls()) {
+                for (ChatToolCall chatToolCall : responseToolCalls) {
                     chatToolCall = toolCallRepairer.repair(chatToolCall, ctx);
 
                     String toolName = chatToolCall.getName();
@@ -1035,19 +1041,25 @@ public class ReActAgentExecutor implements IAgentExecutor {
 
     /**
      * Plan 211 (L3-3): build the stable tool-call signatures for an iteration
-     * from the assistant message's requested tool calls (design
+     * from the iteration's requested tool calls (design
      * {@code nop-ai-agent-reliability.md} §5.3). Each signature is
      * {@code toolName:stableArgsString} where {@code stableArgsString} is the
      * args map serialised with sorted keys, so key-order differences across
      * iterations do not produce different signatures. Returns an empty list
      * when the LLM produced no tool calls (the completion-judge branch).
+     *
+     * <p>Plan 327: the source switched from
+     * {@code assistantMsg.getToolCalls()} (legacy folded field) to the
+     * {@link ChatToolCallMessage} items extracted from
+     * {@code response.getMessages()} (see {@link #extractToolCalls}). The
+     * signature computation itself is unchanged.
      */
-    private static List<String> buildToolCallSignatures(ChatAssistantMessage assistantMsg) {
-        if (!assistantMsg.hasToolCalls()) {
+    private static List<String> buildToolCallSignatures(List<ChatToolCall> toolCalls) {
+        if (toolCalls == null || toolCalls.isEmpty()) {
             return List.of();
         }
         List<String> signatures = new ArrayList<>();
-        for (ChatToolCall call : assistantMsg.getToolCalls()) {
+        for (ChatToolCall call : toolCalls) {
             String name = call.getName();
             Map<String, Object> args = call.getArguments();
             String stableArgs = args != null && !args.isEmpty()
@@ -1056,6 +1068,64 @@ public class ReActAgentExecutor implements IAgentExecutor {
             signatures.add(name + ":" + stableArgs);
         }
         return signatures;
+    }
+
+    /**
+     * Plan 327: extract the requested tool calls from a response's canonical
+     * message sequence (design conclusion #9). The agent engine reads the
+     * discrete {@link ChatToolCallMessage} items from
+     * {@code response.getMessages()} — this is the post-migration canonical
+     * source, replacing the legacy folded
+     * {@code ChatAssistantMessage.getToolCalls()} field. Each
+     * {@link ChatToolCallMessage} carries {@code callId/name/arguments}; we
+     * reconstruct a {@link ChatToolCall} (setting {@code id = callId}) so the
+     * downstream fan-out ({@link AgentToolDispatcher#executeAllowedCalls}) and
+     * callId-pairing logic operate unchanged.
+     *
+     * <p>Returns an empty list when the response carries no tool calls (the
+     * completion-judge branch) or when {@code response.getMessages()} is null
+     * (defensive: a pre-326 response with only the legacy {@code message}
+     * field populated and no {@code messages} sequence is treated as
+     * tool-call-free).
+     */
+    private static List<ChatToolCall> extractToolCalls(io.nop.ai.api.chat.ChatResponse response) {
+        List<ChatMessage> messages = response.getMessages();
+        if (messages == null || messages.isEmpty()) {
+            return List.of();
+        }
+        List<ChatToolCall> toolCalls = new ArrayList<>();
+        for (ChatMessage msg : messages) {
+            if (msg instanceof ChatToolCallMessage) {
+                ChatToolCallMessage tcm = (ChatToolCallMessage) msg;
+                ChatToolCall call = new ChatToolCall();
+                call.setId(tcm.getCallId());
+                call.setName(tcm.getName());
+                call.setArguments(tcm.getArguments());
+                toolCalls.add(call);
+            }
+        }
+        return toolCalls;
+    }
+
+    /**
+     * Plan 327: find the first {@link ChatAssistantMessage} in a response's
+     * canonical message sequence. This replaces the legacy
+     * {@link ChatResponse#getMessage()} accessor (now {@code @Deprecated}),
+     * reading directly from the canonical {@code response.getMessages()}
+     * carrier. Falls back to {@link ChatResponse#getMessage()} when the
+     * canonical sequence is absent (defensive for pre-327 response
+     * construction paths).
+     */
+    private static ChatAssistantMessage extractAssistantMessage(io.nop.ai.api.chat.ChatResponse response) {
+        List<ChatMessage> messages = response.getMessages();
+        if (messages != null) {
+            for (ChatMessage msg : messages) {
+                if (msg instanceof ChatAssistantMessage) {
+                    return (ChatAssistantMessage) msg;
+                }
+            }
+        }
+        return response.getMessage();
     }
 
     private void handleCancellation(AgentExecutionContext ctx, String sessionId, String agentName) {

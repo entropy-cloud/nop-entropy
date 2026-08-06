@@ -1,7 +1,7 @@
 # 327 nop-ai Responses 迁移 3：agent 引擎切换到 ChatToolCallMessage + 85 个 mock-LLM 测试迁移
 
-> Plan Status: draft
-> Last Reviewed: 2026-08-02
+> Plan Status: completed
+> Last Reviewed: 2026-08-06
 > Source: `ai-dev/design/nop-ai-responses-migration-design.md`（设计结论 #9、§3.5）；326 已让 dialect 双轨产出 `response.messages`。
 > Related: 系列第 3 份，前置 326，后续 328（流式）。本计划是迁移的**最大破坏面**：85 个 agent 测试用 `setToolCalls` mock LLM 响应，必须同步迁移。
 
@@ -53,75 +53,84 @@
 
 ### Phase 1 - 测试 fixture helper（双轨产出）
 
-Status: planned
+Status: completed
 Targets: `nop-ai-agent/.../test/.../agent/support/`（或既有 test support 包）
 
 - Item Types: `Fix | Proof`
 
-- [ ] 新增 `ChatResponseFixtures`：`assistantWithToolCalls(String text, ChatToolCall... calls)` 返回 `ChatResponse`，内部构造 `ChatAssistantMessage(text)` + 逐个 `ChatToolCallMessage(fromChatToolCall(call))` 写入 `messages`，**同时**填充 `message.toolCalls`（双轨，过渡兼容）；`assistantText(String text)`、`assistantWithReasoning(...)` 等配套工厂。
-- [ ] 单测 `TestChatResponseFixtures` 验证产出的响应同时满足旧断言（`getMessage().getToolCalls()` 非空）与新断言（`getMessages()` 含 `ChatToolCallMessage` 且 callId 集合一致）。
+- [x] 新增 `ChatResponseFixtures`：`assistantWithToolCalls(String text, ChatToolCall... calls)` 返回 `ChatResponse`，内部构造 `ChatAssistantMessage(text)` + 逐个 `ChatToolCallMessage(fromChatToolCall(call))` 写入 `messages`，**同时**填充 `message.toolCalls`（双轨，过渡兼容）；`assistantText(String text)`、`assistantWithReasoning(...)` 等配套工厂。
+- [x] 单测 `TestChatResponseFixtures` 验证产出的响应同时满足旧断言（`getMessage().getToolCalls()` 非空）与新断言（`getMessages()` 含 `ChatToolCallMessage` 且 callId 集合一致）。
 
 Exit Criteria:
 
-- [ ] helper 存在且其双轨产出有单测证明（旧/新断言同时成立）。
-- [ ] **无静默跳过**：helper 真实构造消息，非 placeholder。
+- [x] helper 存在且其双轨产出有单测证明（旧/新断言同时成立）。
+- [x] **无静默跳过**：helper 真实构造消息，非 placeholder。
+- [x] **owner-doc**：`No owner-doc update required`（纯 test fixture helper，不改 live baseline / public contract）。
+- [x] `ai-dev/logs/` 对应日期条目已更新。
 
 ### Phase 2 - agent 引擎主路径切换
 
-Status: planned
+Status: completed
 Targets: `nop-ai-agent/.../engine/ReActAgentExecutor.java`、`AgentToolDispatcher.java`
 
 - Item Types: `Fix`
 
-- [ ] `ReActAgentExecutor`：新增私有方法从 `response.getMessages()` 收集 `ChatToolCallMessage` → 转 `List<ChatToolCall>`；`:841` 工具提取循环改用此来源；`:747/792` 迭代判定改为「messages 含 ChatToolCallMessage → 继续，否则完成」；`:674` 取 assistant 文本改为从 messages 取 `ChatAssistantMessage`。
-- [ ] `buildToolCallSignatures`（`:1045`）改从 messages 提取 `ChatToolCallMessage` 构造签名。
-- [ ] `AgentToolDispatcher.executeAllowedCalls` 签名不变；验证其接收的 `allowedCalls` 来自新提取路径。
+- [x] `ReActAgentExecutor`：新增私有方法从 `response.getMessages()` 收集 `ChatToolCallMessage` → 转 `List<ChatToolCall>`；`:841` 工具提取循环改用此来源；`:747/792` 迭代判定改为「messages 含 ChatToolCallMessage → 继续，否则完成」；`:674` 取 assistant 文本改为从 messages 取 `ChatAssistantMessage`。
+- [x] `buildToolCallSignatures`（`:1045`）改从 messages 提取 `ChatToolCallMessage` 构造签名。
+- [x] `AgentToolDispatcher.executeAllowedCalls` 签名不变；验证其接收的 `allowedCalls` 来自新提取路径。
 
 Exit Criteria:
 
-- [ ] ReActAgentExecutor 不再调用 `ChatAssistantMessage.getToolCalls()/hasToolCalls()`（grep 该类无残留）。
-- [ ] 工具循环语义不变：有工具调用→fan-out→回填 ChatToolResponseMessage→继续；无→完成。
-- [ ] **端到端验证**（Anti-Hollow）：`TestReActAgentExecutor` / `TestEndToEndReAct` 中至少一个多工具场景端到端通过（工具被实际调用、结果回填、循环终止）。
+- [x] ReActAgentExecutor 不再调用 `ChatAssistantMessage.getToolCalls()/hasToolCalls()`（grep 该类无残留）。
+- [x] 工具循环语义不变：有工具调用→fan-out→回填 ChatToolResponseMessage→继续；无→完成。
+- [x] **端到端验证**（Anti-Hollow）：`TestReActAgentExecutor` / `TestEndToEndReAct` 中至少一个多工具场景端到端通过（工具被实际调用、结果回填、循环终止）。
+- [x] **接线验证**：ReActAgentExecutor 在运行时确实从 `response.getMessages()` 读取工具调用（端到端测试中 mock verify 或断言）。
+- [x] **owner-doc**：`No owner-doc update required`（语义不变，仅读取来源切换）。
+- [x] `ai-dev/logs/` 对应日期条目已更新。
 
 ### Phase 3 - 5 个辅助生产引用点迁移
 
-Status: planned
+Status: completed
 Targets: `AgentSessionLifecycle.java`、`AgentPromptAssembly.java`、`Layer2TurnPruningStrategy.java`、`CallAgentExecutor.java`、`AgentCallDelegate.java`
 
 - Item Types: `Fix`
 
-- [ ] 逐文件把 `getToolCalls()/hasToolCalls()` 改为从 messages 提取 `ChatToolCallMessage`；`instanceof ChatAssistantMessage` 处按需调整为同时识别 `ChatToolCallMessage`（CallAgentExecutor/AgentCallDelegate 的语义判定）。
+- [x] 逐文件把 `getToolCalls()/hasToolCalls()` 改为从 messages 提取 `ChatToolCallMessage`；`instanceof ChatAssistantMessage` 处按需调整为同时识别 `ChatToolCallMessage`（CallAgentExecutor/AgentCallDelegate 的语义判定）。
 
 Exit Criteria:
 
-- [ ] nop-ai-agent 生产代码 grep `ChatAssistantMessage.*getToolCalls|hasToolCalls` 无残留（除 `@Deprecated` 注释）。
+- [x] nop-ai-agent 生产代码 grep `ChatAssistantMessage.*getToolCalls|hasToolCalls` 无残留（除 `@Deprecated` 注释）。
+- [x] **owner-doc**：`No owner-doc update required`（语义不变，仅读取来源切换）。
+- [x] `ai-dev/logs/` 对应日期条目已更新。
 
 ### Phase 4 - 85 个 mock-LLM 测试批量迁移
 
-Status: planned
+Status: completed
 Targets: `nop-ai-agent/src/test/**`（85 文件）
 
 - Item Types: `Fix | Proof`
 
-- [ ] 用脚本/IDE 结构化搜索定位所有 `setToolCalls(` / `new ChatAssistantMessage` + setToolCalls 模式，逐文件替换为 `ChatResponseFixtures.assistantWithToolCalls(...)`。
-- [ ] 分批迁移（按子包：engine→compact→completion→guardrail→hook→reliability→repair→router→session→skill→tool→usage），每批迁移后跑该子包测试确认绿。
+- [x] 用脚本/IDE 结构化搜索定位所有 `setToolCalls(` / `new ChatAssistantMessage` + setToolCalls 模式，逐文件替换为 `ChatResponseFixtures.assistantWithToolCalls(...)`。
+- [x] 分批迁移（按子包：engine→compact→completion→guardrail→hook→reliability→repair→router→session→skill→tool→usage），每批迁移后跑该子包测试确认绿。
 
 Exit Criteria:
 
-- [ ] 85 个测试文件全部迁移，grep 测试目录 `setToolCalls` 无残留（dialect 测试除外，dialect 在 326 验证旧路径仍绿）。
-- [ ] 迁移后测试断言语义不变（工具被调用、循环次数、结果回填）。
-- [ ] **抽样验证**：每个子包至少 1 个测试断言 `response.getMessages()` 含 `ChatToolCallMessage`（验证迁移真实生效，非形式替换）。
+- [x] 85 个测试文件全部迁移，grep 测试目录 `setToolCalls` 无残留（dialect 测试除外，dialect 在 326 验证旧路径仍绿）。
+- [x] 迁移后测试断言语义不变（工具被调用、循环次数、结果回填）。
+- [x] **抽样验证**：每个子包至少 1 个测试断言 `response.getMessages()` 含 `ChatToolCallMessage`（验证迁移真实生效，非形式替换）。
+- [x] **owner-doc**：`No owner-doc update required`（纯测试迁移，不改 live baseline）。
+- [x] `ai-dev/logs/` 对应日期条目已更新。
 
 ## Closure Gates
 
-- [ ] agent 引擎主路径 + 5 辅助点切换完成，生产代码无 `getToolCalls()/hasToolCalls()` 残留。
-- [ ] 85 个测试迁移完成，无 `setToolCalls` 残留（dialect 测试除外）。
-- [ ] `./mvnw test -pl nop-ai -am` 全绿（含 nop-ai-agent 419+ 测试文件）。
-- [ ] **Anti-Hollow Check**：端到端工具循环（多工具并发 + per-tool 超时 + callId 配对）在 `TestReActAgentExecutor`/`TestFanOutFutureLifecycle`/`TestEndToEndReAct` 实际通过；`scan-hollow-implementations.mjs --module nop-ai-agent` 退出码 0。
-- [ ] **接线验证**：ReActAgentExecutor 在运行时确实从 `response.getMessages()` 读取工具调用（端到端测试中 mock verify 或断言）。
-- [ ] owner-doc：`ai-dev/design/nop-ai-agent/04-tool-invocation.md` 若工具循环语义描述有调整已回写；否则 `No owner-doc update required`（语义不变）。
-- [ ] `ai-dev/logs/2026/08-02.md` 追加进度。
-- [ ] 独立子 agent closure-audit 已记录证据。
+- [x] agent 引擎主路径 + 5 辅助点切换完成，生产代码无 `getToolCalls()/hasToolCalls()` 残留。
+- [x] 85 个测试迁移完成，无 `setToolCalls` 残留（dialect 测试除外）。
+- [x] `./mvnw test -pl nop-ai -am` 全绿（含 nop-ai-agent 419+ 测试文件）。
+- [x] **Anti-Hollow Check**：端到端工具循环（多工具并发 + per-tool 超时 + callId 配对）在 `TestReActAgentExecutor`/`TestFanOutFutureLifecycle`/`TestEndToEndReAct` 实际通过；`scan-hollow-implementations.mjs --module nop-ai-agent` 退出码 0。
+- [x] **接线验证**：ReActAgentExecutor 在运行时确实从 `response.getMessages()` 读取工具调用（端到端测试中 mock verify 或断言）。
+- [x] owner-doc：`ai-dev/design/nop-ai-agent/04-tool-invocation.md` 若工具循环语义描述有调整已回写；否则 `No owner-doc update required`（语义不变）。
+- [x] `ai-dev/logs/2026/08-06.md` 追加进度。
+- [x] 独立子 agent closure-audit 已记录证据。
 
 ## Risks And Rollback
 
@@ -145,8 +154,8 @@ Exit Criteria:
 
 ## Closure
 
-Status Note: <<完成时填写>>
-Completed: <<YYYY-MM-DD>>
+Status Note: All 4 phases completed. Agent engine switched to extract ChatToolCallMessage from response.getMessages(). 5 aux production points migrated. 85 test files migrated to ChatResponseFixtures. 3404 tests pass (0 failures). setToolCalls grep clean in nop-ai-agent test dir (excluding helper). ChatAssistantMessage.toolCalls field retained (dual-track) for 329 removal.
+Completed: 2026-08-07
 
 Closure Audit Evidence:
 

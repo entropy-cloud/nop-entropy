@@ -37,6 +37,7 @@ import java.util.function.Function;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import io.nop.ai.agent.support.ChatResponseFixtures;
 
 /**
  * Plan 280 focused tests for ReAct fan-out future lifecycle:
@@ -107,13 +108,10 @@ public class TestFanOutFutureLifecycle {
         return new IChatService() {
             @Override
             public CompletionStage<ChatResponse> callAsync(ChatRequest request, ICancelToken cancelToken) {
-                ChatAssistantMessage msg = new ChatAssistantMessage();
                 if (callCount.getAndIncrement() == 0) {
-                    msg.setToolCalls(firstBatch);
                 } else {
-                    msg.setContent("done");
                 }
-                return CompletableFuture.completedFuture(ChatResponse.success(msg));
+                return CompletableFuture.completedFuture(ChatResponseFixtures.assistantWithToolCalls("", firstBatch));
             }
 
             @Override

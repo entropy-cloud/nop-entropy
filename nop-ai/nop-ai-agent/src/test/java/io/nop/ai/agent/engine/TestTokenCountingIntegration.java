@@ -49,6 +49,8 @@ import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import io.nop.ai.api.chat.messages.ChatToolCallMessage;
+import io.nop.ai.agent.support.ChatResponseFixtures;
 
 /**
  * End-to-end integration test for token counting (L2-16).
@@ -194,12 +196,10 @@ public class TestTokenCountingIntegration {
 
         for (int i = 0; i < 5; i++) {
             String id = "tc-" + i;
-            ChatAssistantMessage asm = new ChatAssistantMessage();
             ChatToolCall call = new ChatToolCall();
             call.setId(id);
             call.setName("bash");
-            asm.setToolCalls(List.of(call));
-            messages.add(asm);
+            messages.add(ChatResponseFixtures.foldedAssistantWithToolCalls(null, call));
             messages.add(new ChatToolResponseMessage(id, "bash", "X".repeat(4000)));
         }
 

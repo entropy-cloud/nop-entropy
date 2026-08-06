@@ -5,6 +5,7 @@ import io.nop.ai.agent.compact.MicroCompressionCompactor;
 import io.nop.ai.agent.compact.NoOpContextCompactor;
 import io.nop.ai.agent.model.AgentExecStatus;
 import io.nop.ai.agent.model.AgentModel;
+import io.nop.ai.agent.support.ChatResponseFixtures;
 import io.nop.ai.api.chat.ChatRequest;
 import io.nop.ai.api.chat.ChatResponse;
 import io.nop.ai.api.chat.IChatService;
@@ -127,12 +128,10 @@ public class TestCompactionIntegration {
 
         for (int i = 0; i < 20; i++) {
             String id = "tc-" + i;
-            ChatAssistantMessage assistantMsg = new ChatAssistantMessage();
             ChatToolCall toolCall = new ChatToolCall();
             toolCall.setId(id);
             toolCall.setName("bash");
-            assistantMsg.setToolCalls(Collections.singletonList(toolCall));
-            ctx.addMessage(assistantMsg);
+            ctx.addMessage(ChatResponseFixtures.foldedAssistantWithToolCalls(null, toolCall));
             ctx.addMessage(new ChatToolResponseMessage(id, "bash", "X".repeat(5000)));
         }
 
@@ -188,12 +187,10 @@ public class TestCompactionIntegration {
         ctx.addMessage(new ChatUserMessage("hello"));
         for (int i = 0; i < 20; i++) {
             String id = "tc-" + i;
-            ChatAssistantMessage assistantMsg = new ChatAssistantMessage();
             ChatToolCall toolCall = new ChatToolCall();
             toolCall.setId(id);
             toolCall.setName("bash");
-            assistantMsg.setToolCalls(Collections.singletonList(toolCall));
-            ctx.addMessage(assistantMsg);
+            ctx.addMessage(ChatResponseFixtures.foldedAssistantWithToolCalls(null, toolCall));
             ctx.addMessage(new ChatToolResponseMessage(id, "bash", "X".repeat(5000)));
         }
 
@@ -236,12 +233,10 @@ public class TestCompactionIntegration {
         ctx.addMessage(new ChatUserMessage("hello"));
         for (int i = 0; i < 20; i++) {
             String id = "tc-" + i;
-            ChatAssistantMessage assistantMsg = new ChatAssistantMessage();
             ChatToolCall toolCall = new ChatToolCall();
             toolCall.setId(id);
             toolCall.setName("bash");
-            assistantMsg.setToolCalls(Collections.singletonList(toolCall));
-            ctx.addMessage(assistantMsg);
+            ctx.addMessage(ChatResponseFixtures.foldedAssistantWithToolCalls(null, toolCall));
             ctx.addMessage(new ChatToolResponseMessage(id, "bash", "content-" + i));
         }
 
@@ -280,12 +275,10 @@ public class TestCompactionIntegration {
 
         for (int i = 0; i < 20; i++) {
             String id = "tc-" + i;
-            ChatAssistantMessage assistantMsg = new ChatAssistantMessage();
             ChatToolCall toolCall = new ChatToolCall();
             toolCall.setId(id);
             toolCall.setName("bash");
-            assistantMsg.setToolCalls(Collections.singletonList(toolCall));
-            ctx.addMessage(assistantMsg);
+            ctx.addMessage(ChatResponseFixtures.foldedAssistantWithToolCalls(null, toolCall));
             ctx.addMessage(new ChatToolResponseMessage(id, "bash", "X".repeat(5000)));
         }
 

@@ -4,6 +4,7 @@ import io.nop.ai.agent.engine.AgentExecutionContext;
 import io.nop.ai.agent.model.AgentModel;
 import io.nop.ai.agent.session.CompactionResult;
 import io.nop.ai.agent.session.CompactConfig;
+import io.nop.ai.agent.support.ChatResponseFixtures;
 import io.nop.ai.api.chat.messages.ChatMessage;
 import io.nop.ai.api.chat.messages.ChatSystemMessage;
 import io.nop.ai.api.chat.messages.ChatUserMessage;
@@ -194,12 +195,10 @@ public class TestPipelineCompactor {
 
         List<ChatMessage> toolMsgs = new ArrayList<>();
         for (int i = 0; i < 10; i++) {
-            io.nop.ai.api.chat.messages.ChatAssistantMessage asm = new io.nop.ai.api.chat.messages.ChatAssistantMessage();
             io.nop.ai.api.chat.messages.ChatToolCall call = new io.nop.ai.api.chat.messages.ChatToolCall();
             call.setId("tc-" + i);
             call.setName("bash");
-            asm.setToolCalls(Collections.singletonList(call));
-            messages.add(asm);
+            messages.add(ChatResponseFixtures.foldedAssistantWithToolCalls(null, call));
             io.nop.ai.api.chat.messages.ChatToolResponseMessage resp =
                     new io.nop.ai.api.chat.messages.ChatToolResponseMessage("tc-" + i, "bash", "X".repeat(5000));
             messages.add(resp);

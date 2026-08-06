@@ -2,6 +2,7 @@ package io.nop.ai.agent.compact;
 
 import io.nop.ai.agent.session.CompactionResult;
 import io.nop.ai.agent.session.CompactConfig;
+import io.nop.ai.agent.support.ChatResponseFixtures;
 import io.nop.ai.api.chat.messages.ChatAssistantMessage;
 import io.nop.ai.api.chat.messages.ChatMessage;
 import io.nop.ai.api.chat.messages.ChatSystemMessage;
@@ -40,17 +41,14 @@ public class TestMicroCompressionCompactor {
         return new ChatToolResponseMessage(toolCallId, toolName, content);
     }
 
-    private ChatAssistantMessage assistantWithToolCalls(String... toolCallIds) {
-        ChatAssistantMessage msg = new ChatAssistantMessage();
-        List<ChatToolCall> calls = new ArrayList<>();
-        for (String id : toolCallIds) {
-            ChatToolCall call = new ChatToolCall();
-            call.setId(id);
-            call.setName("bash");
-            calls.add(call);
+    private void assistantWithToolCalls(List<ChatMessage> messages, String... toolCallIds) {
+        ChatToolCall[] calls = new ChatToolCall[toolCallIds.length];
+        for (int i = 0; i < toolCallIds.length; i++) {
+            calls[i] = new ChatToolCall();
+            calls[i].setId(toolCallIds[i]);
+            calls[i].setName("bash");
         }
-        msg.setToolCalls(calls);
-        return msg;
+        messages.add(ChatResponseFixtures.foldedAssistantWithToolCalls(null, calls));
     }
 
     @Test
@@ -61,7 +59,7 @@ public class TestMicroCompressionCompactor {
 
         for (int i = 0; i < 10; i++) {
             String id = "tc-" + i;
-            messages.add(assistantWithToolCalls(id));
+            assistantWithToolCalls(messages, id);
             messages.add(toolResponse(id, "bash", "X".repeat(5000)));
         }
 
@@ -77,7 +75,7 @@ public class TestMicroCompressionCompactor {
         List<ChatMessage> messages = new ArrayList<>();
         messages.add(new ChatSystemMessage("system prompt"));
         messages.add(new ChatUserMessage("hello"));
-        messages.add(assistantWithToolCalls("tc-1"));
+        assistantWithToolCalls(messages, "tc-1");
         messages.add(toolResponse("tc-1", "bash", "A".repeat(5000)));
 
         CompactionResult result = compactor.compact(makeContext(messages, 0));
@@ -92,7 +90,7 @@ public class TestMicroCompressionCompactor {
         List<ChatMessage> messages = new ArrayList<>();
         messages.add(new ChatSystemMessage("system"));
         messages.add(new ChatUserMessage("first user message"));
-        messages.add(assistantWithToolCalls("tc-1"));
+        assistantWithToolCalls(messages, "tc-1");
         messages.add(toolResponse("tc-1", "bash", "A".repeat(5000)));
         messages.add(new ChatUserMessage("second user message"));
 
@@ -116,7 +114,7 @@ public class TestMicroCompressionCompactor {
 
         for (int i = 0; i < 10; i++) {
             String id = "tc-" + i;
-            messages.add(assistantWithToolCalls(id));
+            assistantWithToolCalls(messages, id);
             messages.add(toolResponse(id, "bash", "content-" + i));
         }
 
@@ -139,9 +137,9 @@ public class TestMicroCompressionCompactor {
         List<ChatMessage> messages = new ArrayList<>();
         messages.add(new ChatSystemMessage("system"));
         messages.add(new ChatUserMessage("hello"));
-        messages.add(assistantWithToolCalls("tc-1"));
+        assistantWithToolCalls(messages, "tc-1");
         messages.add(toolResponse("tc-1", "bash", "A".repeat(5000)));
-        messages.add(assistantWithToolCalls("tc-2"));
+        assistantWithToolCalls(messages, "tc-2");
         messages.add(toolResponse("tc-2", "ask-oracle", "B".repeat(5000)));
 
         CompactionResult result = compactor.compact(makeContext(messages, 0));
@@ -162,7 +160,7 @@ public class TestMicroCompressionCompactor {
         List<ChatMessage> messages = new ArrayList<>();
         messages.add(new ChatSystemMessage("system"));
         messages.add(new ChatUserMessage("hello"));
-        messages.add(assistantWithToolCalls("tc-1"));
+        assistantWithToolCalls(messages, "tc-1");
         messages.add(toolResponse("tc-1", "bash", "short content"));
 
         CompactionResult result = compactor.compact(makeContext(messages, 10));
@@ -179,7 +177,7 @@ public class TestMicroCompressionCompactor {
 
         for (int i = 0; i < 8; i++) {
             String id = "tc-" + i;
-            messages.add(assistantWithToolCalls(id));
+            assistantWithToolCalls(messages, id);
             messages.add(toolResponse(id, "bash", "A".repeat(4000)));
         }
 
@@ -201,7 +199,7 @@ public class TestMicroCompressionCompactor {
 
         for (int i = 0; i < 20; i++) {
             String id = "tc-" + i;
-            messages.add(assistantWithToolCalls(id));
+            assistantWithToolCalls(messages, id);
             messages.add(toolResponse(id, "bash", "A".repeat(1000)));
         }
 
@@ -221,7 +219,7 @@ public class TestMicroCompressionCompactor {
 
         for (int i = 0; i < 10; i++) {
             String id = "tc-" + i;
-            messages.add(assistantWithToolCalls(id));
+            assistantWithToolCalls(messages, id);
             messages.add(toolResponse(id, "bash", "content-" + i));
         }
 
@@ -263,7 +261,7 @@ public class TestMicroCompressionCompactor {
         List<ChatMessage> messages = new ArrayList<>();
         messages.add(new ChatSystemMessage("system"));
         messages.add(new ChatUserMessage("hello"));
-        messages.add(assistantWithToolCalls("tc-1"));
+        assistantWithToolCalls(messages, "tc-1");
         messages.add(toolResponse("tc-1", "bash", "A".repeat(5000)));
 
         CompactionResult result = compactor.compact(makeContext(messages, 0));
@@ -283,7 +281,7 @@ public class TestMicroCompressionCompactor {
         messages.add(new ChatUserMessage("hello"));
         ChatAssistantMessage assistantMsg = new ChatAssistantMessage("thinking...");
         messages.add(assistantMsg);
-        messages.add(assistantWithToolCalls("tc-1"));
+        assistantWithToolCalls(messages, "tc-1");
         messages.add(toolResponse("tc-1", "bash", "A".repeat(5000)));
 
         CompactionResult result = compactor.compact(makeContext(messages, 0));

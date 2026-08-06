@@ -13,6 +13,7 @@ import io.nop.ai.agent.message.NoOpAgentMessenger;
 import io.nop.ai.agent.model.AgentExecStatus;
 import io.nop.ai.agent.session.AgentSession;
 import io.nop.ai.agent.session.InMemorySessionStore;
+import io.nop.ai.agent.support.ChatResponseFixtures;
 import io.nop.ai.api.chat.ChatRequest;
 import io.nop.ai.api.chat.ChatResponse;
 import io.nop.ai.api.chat.IChatService;
@@ -118,10 +119,8 @@ public class TestCallAgentAsyncEndToEnd {
 
             private ChatResponse build() {
                 int i = n.getAndIncrement();
-                ChatAssistantMessage msg = new ChatAssistantMessage();
                 if (i == 0) {
                     // Parent round 1: emit call-agent tool call.
-                    msg.setContent("");
                     ChatToolCall toolCall = new ChatToolCall();
                     toolCall.setId("async-e2e-tool-1");
                     toolCall.setName("call-agent");
@@ -129,15 +128,14 @@ public class TestCallAgentAsyncEndToEnd {
                     args.put("agentId", "test-agent");
                     args.put("input", "compute the answer");
                     toolCall.setArguments(args);
-                    msg.setToolCalls(List.of(toolCall));
+                    return ChatResponseFixtures.assistantWithToolCalls("", toolCall);
                 } else if (i == 1) {
                     // Sub-agent round 1: plain reply.
-                    msg.setContent(subAgentReply);
+                    return ChatResponseFixtures.assistantText(subAgentReply);
                 } else {
                     // Parent round 2: final answer referencing the sub result.
-                    msg.setContent("Parent incorporated: " + subAgentReply);
+                    return ChatResponseFixtures.assistantText("Parent incorporated: " + subAgentReply);
                 }
-                return ChatResponse.success(msg);
             }
 
             @Override

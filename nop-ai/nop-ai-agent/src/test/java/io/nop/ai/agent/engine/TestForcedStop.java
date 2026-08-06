@@ -45,6 +45,8 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import io.nop.ai.agent.support.ChatResponseFixtures;
+import io.nop.ai.api.chat.messages.ChatToolCallMessage;
 
 public class TestForcedStop {
 
@@ -103,13 +105,10 @@ public class TestForcedStop {
         return new IChatService() {
             @Override
             public CompletionStage<ChatResponse> callAsync(ChatRequest request, ICancelToken cancelToken) {
-                ChatAssistantMessage msg = new ChatAssistantMessage();
-                msg.setContent(content);
                 ChatToolCall call = new ChatToolCall();
                 call.setId("tc-1");
                 call.setName("test-tool");
-                msg.setToolCalls(Collections.singletonList(call));
-                return CompletableFuture.completedFuture(ChatResponse.success(msg));
+                return CompletableFuture.completedFuture(ChatResponseFixtures.assistantWithToolCalls(content, call));
             }
 
             @Override
@@ -153,12 +152,10 @@ public class TestForcedStop {
         messages.add(new ChatSystemMessage("system"));
         messages.add(new ChatUserMessage("goal"));
         for (int i = 0; i < turns; i++) {
-            ChatAssistantMessage asm = new ChatAssistantMessage();
             ChatToolCall call = new ChatToolCall();
             call.setId("tc-" + i);
             call.setName("test-tool");
-            asm.setToolCalls(Collections.singletonList(call));
-            messages.add(asm);
+            messages.add(ChatResponseFixtures.foldedAssistantWithToolCalls(null, call));
             messages.add(new ChatToolResponseMessage("tc-" + i, "test-tool", "result-" + i));
         }
         return messages;
@@ -300,13 +297,10 @@ public class TestForcedStop {
                     return CompletableFuture.completedFuture(
                             ChatResponse.success(new ChatAssistantMessage("## Goal\ne2e goal\n## Progress\ndone")));
                 }
-                ChatAssistantMessage msg = new ChatAssistantMessage();
-                msg.setContent("thinking");
                 ChatToolCall call = new ChatToolCall();
                 call.setId("tc-x");
                 call.setName("test-tool");
-                msg.setToolCalls(Collections.singletonList(call));
-                return CompletableFuture.completedFuture(ChatResponse.success(msg));
+                return CompletableFuture.completedFuture(ChatResponseFixtures.assistantWithToolCalls("thinking", call));
             }
 
             @Override

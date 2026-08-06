@@ -44,6 +44,7 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import io.nop.ai.agent.support.ChatResponseFixtures;
 
 /**
  * W5-3 (BAIL): integration tests for the fourth HookResult state. Verifies
@@ -94,10 +95,7 @@ public class TestBailInReActLoop {
         toolCall.setId(toolCallId);
         toolCall.setName(toolName);
         toolCall.setArguments(args != null ? args : Map.of());
-        ChatAssistantMessage msg = new ChatAssistantMessage();
-        msg.setContent("");
-        msg.setToolCalls(List.of(toolCall));
-        return ChatResponse.success(msg);
+        return ChatResponseFixtures.assistantWithToolCalls("", toolCall);
     }
 
     private IToolManager simpleToolManager(AtomicInteger toolCallCount) {

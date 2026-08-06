@@ -39,6 +39,7 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import io.nop.ai.agent.support.ChatResponseFixtures;
 
 /**
  * Phase 1 tests for {@link AgentToolExecuteContext}:
@@ -220,14 +221,11 @@ public class TestAgentToolExecuteContext {
 
     private static ChatResponse buildResponse(AtomicInteger callCount, ChatToolCall toolCall) {
         int n = callCount.getAndIncrement();
-        ChatAssistantMessage msg = new ChatAssistantMessage();
         if (n == 0) {
-            msg.setContent("");
-            msg.setToolCalls(List.of(toolCall));
+            return ChatResponseFixtures.assistantWithToolCalls("", toolCall);
         } else {
-            msg.setContent("done");
+            return ChatResponseFixtures.assistantText("done.");
         }
-        return ChatResponse.success(msg);
     }
 
     static class CapturingToolManager implements IToolManager {

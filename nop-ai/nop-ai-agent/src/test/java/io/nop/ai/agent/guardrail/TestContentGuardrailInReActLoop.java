@@ -44,6 +44,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import io.nop.ai.agent.support.ChatResponseFixtures;
 
 public class TestContentGuardrailInReActLoop {
 
@@ -167,10 +168,7 @@ public class TestContentGuardrailInReActLoop {
                 int n = chatCallCount.getAndIncrement();
                 ChatResponse resp;
                 if (n == 0) {
-                    ChatAssistantMessage msg = new ChatAssistantMessage();
-                    msg.setContent("Reading file.");
-                    msg.setToolCalls(List.of(toolCall));
-                    resp = ChatResponse.success(msg);
+                    resp = ChatResponseFixtures.assistantWithToolCalls("Reading file.", toolCall);
                 } else {
                     ChatAssistantMessage msg = new ChatAssistantMessage();
                     msg.setContent("Done.");
@@ -292,10 +290,7 @@ public class TestContentGuardrailInReActLoop {
                 int n = chatCallCount.getAndIncrement();
                 ChatResponse resp;
                 if (n == 0) {
-                    ChatAssistantMessage msg = new ChatAssistantMessage();
-                    msg.setContent("Reading file.");
-                    msg.setToolCalls(List.of(toolCall));
-                    resp = ChatResponse.success(msg);
+                    resp = ChatResponseFixtures.assistantWithToolCalls("Reading file.", toolCall);
                 } else {
                     ChatAssistantMessage msg = new ChatAssistantMessage();
                     msg.setContent("Done.");
@@ -432,10 +427,7 @@ public class TestContentGuardrailInReActLoop {
                 int n = chatCallCount.getAndIncrement();
                 ChatResponse resp;
                 if (n == 0) {
-                    ChatAssistantMessage msg = new ChatAssistantMessage();
-                    msg.setContent("original output");
-                    msg.setToolCalls(List.of(toolCall));
-                    resp = ChatResponse.success(msg);
+                    resp = ChatResponseFixtures.assistantWithToolCalls("original output", toolCall);
                 } else {
                     ChatAssistantMessage msg = new ChatAssistantMessage();
                     msg.setContent("Done.");
@@ -535,10 +527,7 @@ public class TestContentGuardrailInReActLoop {
                 int n = chatCallCount.getAndIncrement();
                 ChatResponse resp;
                 if (n == 0) {
-                    ChatAssistantMessage msg = new ChatAssistantMessage();
-                    msg.setContent("Echoing.");
-                    msg.setToolCalls(List.of(toolCall));
-                    resp = ChatResponse.success(msg);
+                    resp = ChatResponseFixtures.assistantWithToolCalls("Echoing.", toolCall);
                 } else {
                     ChatAssistantMessage msg = new ChatAssistantMessage();
                     msg.setContent("Echo done.");

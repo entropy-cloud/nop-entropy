@@ -51,6 +51,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import io.nop.ai.agent.support.ChatResponseFixtures;
 
 /**
  * Plan 193 focused verification of secure-by-default Layer 1 wiring. Verifies
@@ -122,14 +123,11 @@ public class TestSecureByDefault {
 
             private ChatResponse build(ChatRequest request) {
                 int turn = n.getAndIncrement();
-                ChatAssistantMessage msg = new ChatAssistantMessage();
                 if (turn == 0) {
-                    msg.setContent("");
-                    msg.setToolCalls(List.of(firstTurnCall));
+                    return ChatResponseFixtures.assistantWithToolCalls("", firstTurnCall);
                 } else {
-                    msg.setContent("done");
+                    return ChatResponseFixtures.assistantText("Task completed.");
                 }
-                return ChatResponse.success(msg);
             }
 
             @Override
@@ -427,14 +425,11 @@ public class TestSecureByDefault {
             @Override
             public CompletionStage<ChatResponse> callAsync(ChatRequest req, ICancelToken cancelToken) {
                 int turn = n.getAndIncrement();
-                ChatAssistantMessage msg = new ChatAssistantMessage();
                 if (turn == 0) {
-                    msg.setContent("");
-                    msg.setToolCalls(List.of(toolCall));
+                    return CompletableFuture.completedFuture(ChatResponseFixtures.assistantWithToolCalls("", toolCall));
                 } else {
-                    msg.setContent("done");
+                    return CompletableFuture.completedFuture(ChatResponseFixtures.assistantText("Task completed."));
                 }
-                return CompletableFuture.completedFuture(ChatResponse.success(msg));
             }
 
             @Override

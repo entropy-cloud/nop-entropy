@@ -39,6 +39,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import io.nop.ai.agent.support.ChatResponseFixtures;
 
 /**
  * W5-3 (BAIL) Phase 3: end-to-end integration tests proving the full path
@@ -350,10 +351,7 @@ public class TestBailEndToEnd {
         toolCall.setId("c1");
         toolCall.setName("test-tool");
         toolCall.setArguments(Map.of());
-        ChatAssistantMessage toolMsg = new ChatAssistantMessage();
-        toolMsg.setContent("");
-        toolMsg.setToolCalls(List.of(toolCall));
-        ChatResponse toolResponse = ChatResponse.success(toolMsg);
+        ChatResponse toolResponse = ChatResponseFixtures.assistantWithToolCalls("", toolCall);
 
         IChatService chatService = chatServiceForSequence(List.of(
                 toolResponse,

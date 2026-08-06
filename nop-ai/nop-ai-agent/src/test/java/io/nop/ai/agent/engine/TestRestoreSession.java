@@ -50,6 +50,7 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
+import io.nop.ai.agent.support.ChatResponseFixtures;
 
 /**
  * Phase 2 functional tests for {@link IAgentEngine#restoreSession}: verifies
@@ -163,10 +164,7 @@ public class TestRestoreSession {
         call.setId(callId);
         call.setName(toolName);
         call.setArguments(args);
-        ChatAssistantMessage msg = new ChatAssistantMessage();
-        msg.setContent("");
-        msg.setToolCalls(List.of(call));
-        return ChatResponse.success(msg);
+        return ChatResponseFixtures.assistantWithToolCalls("", call);
     }
 
     static ChatResponse finalResponse(String content) {

@@ -49,6 +49,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import io.nop.ai.agent.support.ChatResponseFixtures;
 
 /**
  * Integration test proving the Skill engine is wired into the ReAct loop:
@@ -406,10 +407,7 @@ public class TestSkillEngineInReActLoop {
                 int n = chatCallCount.getAndIncrement();
                 ChatResponse resp;
                 if (n == 0) {
-                    ChatAssistantMessage msg = new ChatAssistantMessage();
-                    msg.setContent("Using skill tool.");
-                    msg.setToolCalls(List.of(skillToolCall));
-                    resp = ChatResponse.success(msg);
+                    resp = ChatResponseFixtures.assistantWithToolCalls("Using skill tool.", skillToolCall);
                 } else {
                     ChatAssistantMessage msg = new ChatAssistantMessage();
                     msg.setContent("Done.");

@@ -4,6 +4,7 @@ import io.nop.ai.agent.engine.AgentMessageRequest;
 import io.nop.ai.agent.engine.DefaultAgentEngine;
 import io.nop.ai.agent.engine.AgentExecutionResult;
 import io.nop.ai.agent.model.AgentExecStatus;
+import io.nop.ai.agent.support.ChatResponseFixtures;
 import io.nop.ai.api.chat.ChatRequest;
 import io.nop.ai.api.chat.ChatResponse;
 import io.nop.ai.api.chat.IChatService;
@@ -83,9 +84,7 @@ public class TestSessionStoreIntraExecutionPersistence {
         toolCall.setName("test-calculator");
         toolCall.setArguments(Map.of("expr", "2+2"));
 
-        ChatAssistantMessage toolMsg = new ChatAssistantMessage();
-        toolMsg.setContent("");
-        toolMsg.setToolCalls(List.of(toolCall));
+        ChatResponse toolResponse = ChatResponseFixtures.assistantWithToolCalls("", toolCall);
 
         ChatAssistantMessage finalMsg = new ChatAssistantMessage();
         finalMsg.setContent("The result is 4.");
@@ -117,7 +116,7 @@ public class TestSessionStoreIntraExecutionPersistence {
                     }
                 }
                 if (idx == 0) {
-                    return ChatResponse.success(toolMsg);
+                    return toolResponse;
                 }
                 return ChatResponse.success(finalMsg);
             }
@@ -189,16 +188,14 @@ public class TestSessionStoreIntraExecutionPersistence {
         toolCall.setName("test-calculator");
         toolCall.setArguments(Map.of("expr", "1+1"));
 
-        ChatAssistantMessage toolMsg = new ChatAssistantMessage();
-        toolMsg.setContent("");
-        toolMsg.setToolCalls(List.of(toolCall));
+        ChatResponse toolResponse = ChatResponseFixtures.assistantWithToolCalls("", toolCall);
 
         ChatAssistantMessage finalMsg = new ChatAssistantMessage();
         finalMsg.setContent("Result is 2.");
 
         AtomicInteger idx = new AtomicInteger(0);
         List<ChatResponse> responses = List.of(
-                ChatResponse.success(toolMsg),
+                toolResponse,
                 ChatResponse.success(finalMsg));
 
         IChatService chatService = new IChatService() {

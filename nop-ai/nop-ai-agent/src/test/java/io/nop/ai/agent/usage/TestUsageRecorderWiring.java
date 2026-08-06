@@ -45,6 +45,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import io.nop.ai.agent.support.ChatResponseFixtures;
 
 /**
  * Plan 201 (L2-17) Phase 1 end-to-end wiring test (Minimum Rules #22, #23):
@@ -256,10 +257,7 @@ public class TestUsageRecorderWiring {
         toolCall.setName("test-calculator");
         toolCall.setArguments(Map.of("expr", "2+2"));
 
-        ChatAssistantMessage toolMsg = new ChatAssistantMessage();
-        toolMsg.setContent("");
-        toolMsg.setToolCalls(List.of(toolCall));
-        ChatResponse toolResponse = ChatResponse.success(toolMsg);
+        ChatResponse toolResponse = ChatResponseFixtures.assistantWithToolCalls("", toolCall);
         toolResponse.setRequestId("req-turn-1");
         toolResponse.setUsage(new ChatUsage(100, 20));
 

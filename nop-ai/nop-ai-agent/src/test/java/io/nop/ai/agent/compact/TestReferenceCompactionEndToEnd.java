@@ -12,7 +12,7 @@ import io.nop.ai.agent.model.AgentModel;
 import io.nop.ai.agent.reliability.NoOpCheckpoint;
 import io.nop.ai.agent.session.AgentSession;
 import io.nop.ai.agent.session.InMemorySessionStore;
-import io.nop.ai.api.chat.messages.ChatAssistantMessage;
+import io.nop.ai.agent.support.ChatResponseFixtures;
 import io.nop.ai.api.chat.messages.ChatMessage;
 import io.nop.ai.api.chat.messages.ChatSystemMessage;
 import io.nop.ai.api.chat.messages.ChatToolCall;
@@ -79,13 +79,11 @@ public class TestReferenceCompactionEndToEnd {
         return m;
     }
 
-    private ChatAssistantMessage assistantWithToolCall(String toolCallId, String toolName) {
-        ChatAssistantMessage msg = new ChatAssistantMessage();
+    private void assistantWithToolCall(List<ChatMessage> messages, String toolCallId, String toolName) {
         ChatToolCall call = new ChatToolCall();
         call.setId(toolCallId);
         call.setName(toolName);
-        msg.setToolCalls(List.of(call));
-        return msg;
+        messages.add(ChatResponseFixtures.foldedAssistantWithToolCalls(null, call));
     }
 
     private String longContent(int chars) {
@@ -142,12 +140,12 @@ public class TestReferenceCompactionEndToEnd {
         String originalLong = longContent(500);
         ctx.getMessages().add(new ChatSystemMessage("system"));
         ctx.getMessages().add(new ChatUserMessage("goal"));
-        ctx.getMessages().add(assistantWithToolCall("tc-old", "read-file"));
+        assistantWithToolCall(ctx.getMessages(), "tc-old", "read-file");
         ctx.getMessages().add(new ChatToolResponseMessage("tc-old", "read-file", originalLong));
         // 6 trailing short tool responses push tc-old out of the recent window
         for (int i = 0; i < 6; i++) {
             String id = "tc-recent-" + i;
-            ctx.getMessages().add(assistantWithToolCall(id, "bash"));
+            assistantWithToolCall(ctx.getMessages(), id, "bash");
             ctx.getMessages().add(new ChatToolResponseMessage(id, "bash", "short-result-" + i));
         }
         // Mark the context as needing compaction so performCompaction's

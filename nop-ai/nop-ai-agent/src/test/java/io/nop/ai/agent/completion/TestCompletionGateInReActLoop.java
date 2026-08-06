@@ -8,6 +8,7 @@ import io.nop.ai.agent.engine.DefaultAgentEventPublisher;
 import io.nop.ai.agent.engine.ReActAgentExecutor;
 import io.nop.ai.agent.model.AgentExecStatus;
 import io.nop.ai.agent.model.AgentModel;
+import io.nop.ai.agent.support.ChatResponseFixtures;
 import io.nop.ai.api.chat.ChatRequest;
 import io.nop.ai.api.chat.ChatResponse;
 import io.nop.ai.api.chat.IChatService;
@@ -84,13 +85,6 @@ public class TestCompletionGateInReActLoop {
     private static ChatAssistantMessage assistantNoTools(String content) {
         ChatAssistantMessage msg = new ChatAssistantMessage();
         msg.setContent(content);
-        return msg;
-    }
-
-    private static ChatAssistantMessage assistantWithTools(String content, ChatToolCall... calls) {
-        ChatAssistantMessage msg = new ChatAssistantMessage();
-        msg.setContent(content);
-        msg.setToolCalls(List.of(calls));
         return msg;
     }
 
@@ -251,7 +245,7 @@ public class TestCompletionGateInReActLoop {
                 int n = chatCallCount.getAndIncrement();
                 ChatResponse resp;
                 if (n == 1) {
-                    resp = ChatResponse.success(assistantWithTools("using tool", toolCall));
+                    resp = ChatResponseFixtures.assistantWithToolCalls("using tool", toolCall);
                 } else {
                     resp = ChatResponse.success(assistantNoTools("no tools"));
                 }

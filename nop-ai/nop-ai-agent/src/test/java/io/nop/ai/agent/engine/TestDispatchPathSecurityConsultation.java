@@ -43,6 +43,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import io.nop.ai.agent.support.ChatResponseFixtures;
 
 /**
  * Phase 3 end-to-end tests: verifies the Layer 2 dispatch-path consultation is
@@ -126,10 +127,7 @@ public class TestDispatchPathSecurityConsultation {
         toolCall.setId("call_shell_1");
         toolCall.setName("shell.exec");
         toolCall.setArguments(Map.of("command", "ls"));
-        ChatAssistantMessage toolMsg = new ChatAssistantMessage();
-        toolMsg.setContent("");
-        toolMsg.setToolCalls(List.of(toolCall));
-        ChatResponse toolResponse = ChatResponse.success(toolMsg);
+        ChatResponse toolResponse = ChatResponseFixtures.assistantWithToolCalls("", toolCall);
 
         ChatAssistantMessage finalMsg = new ChatAssistantMessage();
         finalMsg.setContent("done");
@@ -338,10 +336,7 @@ public class TestDispatchPathSecurityConsultation {
         toolCall.setId("call_read_1");
         toolCall.setName("fs.read");
         toolCall.setArguments(Map.of("path", "in.txt"));
-        ChatAssistantMessage toolMsg = new ChatAssistantMessage();
-        toolMsg.setContent("");
-        toolMsg.setToolCalls(List.of(toolCall));
-        ChatResponse toolResponse = ChatResponse.success(toolMsg);
+        ChatResponse toolResponse = ChatResponseFixtures.assistantWithToolCalls("", toolCall);
         ChatAssistantMessage finalMsg = new ChatAssistantMessage();
         finalMsg.setContent("done");
         ChatResponse finalResponse = ChatResponse.success(finalMsg);

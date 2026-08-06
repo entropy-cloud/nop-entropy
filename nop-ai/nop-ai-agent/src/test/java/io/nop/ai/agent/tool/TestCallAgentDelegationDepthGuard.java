@@ -39,6 +39,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import io.nop.ai.agent.support.ChatResponseFixtures;
 
 /**
  * Plan 278 Phase 3 (AR-05): focused tests verifying the delegation recursion
@@ -352,8 +353,6 @@ public class TestCallAgentDelegationDepthGuard {
             }
 
             // Return a call-agent tool call (first turn only).
-            ChatAssistantMessage msg = new ChatAssistantMessage();
-            msg.setContent("");
             ChatToolCall toolCall = new ChatToolCall();
             toolCall.setId("depth-" + callCount.get());
             toolCall.setName("call-agent");
@@ -361,8 +360,7 @@ public class TestCallAgentDelegationDepthGuard {
             args.put("agentId", targetAgent);
             args.put("input", "recurse");
             toolCall.setArguments(args);
-            msg.setToolCalls(List.of(toolCall));
-            return ChatResponse.success(msg);
+            return ChatResponseFixtures.assistantWithToolCalls("", toolCall);
         }
 
         @Override

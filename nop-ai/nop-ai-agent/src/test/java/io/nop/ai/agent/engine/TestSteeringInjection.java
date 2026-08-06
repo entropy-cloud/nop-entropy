@@ -55,6 +55,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import io.nop.ai.agent.support.ChatResponseFixtures;
 
 /**
  * Focused + end-to-end + zero-regression tests for the steering injection
@@ -409,10 +410,8 @@ public class TestSteeringInjection {
 
             private ChatResponse buildResponse() {
                 int n = callCount.getAndIncrement();
-                ChatAssistantMessage msg = new ChatAssistantMessage();
                 if (n == 0) {
                     // Round 1: emit send-message tool call targeting self
-                    msg.setContent("");
                     ChatToolCall toolCall = new ChatToolCall();
                     toolCall.setId("steer-e2e-tool-1");
                     toolCall.setName("send-message");
@@ -420,7 +419,7 @@ public class TestSteeringInjection {
                     args.put("targetSessionId", sessionId);
                     args.put("input", "STEERING_E2E_MARKER");
                     toolCall.setArguments(args);
-                    msg.setToolCalls(List.of(toolCall));
+                    return ChatResponseFixtures.assistantWithToolCalls("", toolCall);
                 } else {
                     // Give the Actor time to poll + enqueue
                     try {
@@ -428,9 +427,8 @@ public class TestSteeringInjection {
                     } catch (InterruptedException e) {
                         Thread.currentThread().interrupt();
                     }
-                    msg.setContent("done after steering injection");
+                    return ChatResponseFixtures.assistantText("done after steering injection");
                 }
-                return ChatResponse.success(msg);
             }
 
             @Override
@@ -542,17 +540,14 @@ public class TestSteeringInjection {
 
             private ChatResponse buildResponse() {
                 int n = callCount.getAndIncrement();
-                ChatAssistantMessage msg = new ChatAssistantMessage();
                 if (n == 0) {
-                    msg.setContent("");
                     ChatToolCall toolCall = new ChatToolCall();
                     toolCall.setId("noop-steer-tool-1");
                     toolCall.setName("noop-tool");
-                    msg.setToolCalls(List.of(toolCall));
+                    return ChatResponseFixtures.assistantWithToolCalls("", toolCall);
                 } else {
-                    msg.setContent("done");
+                    return ChatResponseFixtures.assistantText("done");
                 }
-                return ChatResponse.success(msg);
             }
 
             @Override

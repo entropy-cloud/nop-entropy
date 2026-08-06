@@ -41,6 +41,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import io.nop.ai.agent.support.ChatResponseFixtures;
 
 /**
  * Plan 214 Phase 2 end-to-end test: verifies the dispatch-path conflict
@@ -103,10 +104,7 @@ public class TestConflictDetectionDispatchPath {
         toolCall.setId(toolCallId);
         toolCall.setName(toolName);
         toolCall.setArguments(args);
-        ChatAssistantMessage toolMsg = new ChatAssistantMessage();
-        toolMsg.setContent("");
-        toolMsg.setToolCalls(List.of(toolCall));
-        ChatResponse toolResponse = ChatResponse.success(toolMsg);
+        ChatResponse toolResponse = ChatResponseFixtures.assistantWithToolCalls("", toolCall);
 
         ChatAssistantMessage finalMsg = new ChatAssistantMessage();
         finalMsg.setContent("done");

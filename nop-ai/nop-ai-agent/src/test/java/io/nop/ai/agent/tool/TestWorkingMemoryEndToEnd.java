@@ -10,10 +10,10 @@ import io.nop.ai.agent.memory.InMemoryAiMemoryStore;
 import io.nop.ai.agent.memory.InMemoryMemoryStoreProvider;
 import io.nop.ai.agent.memory.IAiMemoryStore;
 import io.nop.ai.agent.model.AgentExecStatus;
+import io.nop.ai.agent.support.ChatResponseFixtures;
 import io.nop.ai.api.chat.ChatRequest;
 import io.nop.ai.api.chat.ChatResponse;
 import io.nop.ai.api.chat.IChatService;
-import io.nop.ai.api.chat.messages.ChatAssistantMessage;
 import io.nop.ai.api.chat.messages.ChatToolCall;
 import io.nop.ai.api.chat.messages.ChatToolResponseMessage;
 import io.nop.ai.api.chat.stream.ChatStreamChunk;
@@ -166,10 +166,8 @@ public class TestWorkingMemoryEndToEnd {
 
             private ChatResponse buildResponse() {
                 int n = callCount.getAndIncrement();
-                ChatAssistantMessage msg = new ChatAssistantMessage();
                 if (n == 0) {
                     // First turn: emit write-memory
-                    msg.setContent("");
                     ChatToolCall toolCall = new ChatToolCall();
                     toolCall.setId("e2e-write-1");
                     toolCall.setName("write-memory");
@@ -181,10 +179,9 @@ public class TestWorkingMemoryEndToEnd {
                     args.put("pinned", true);
                     args.put("content", writtenContent);
                     toolCall.setArguments(args);
-                    msg.setToolCalls(List.of(toolCall));
+                    return ChatResponseFixtures.assistantWithToolCalls("", toolCall);
                 } else if (n == 1) {
                     // Second turn: emit read-memory
-                    msg.setContent("");
                     ChatToolCall toolCall = new ChatToolCall();
                     toolCall.setId("e2e-read-1");
                     toolCall.setName("read-memory");
@@ -192,12 +189,11 @@ public class TestWorkingMemoryEndToEnd {
                     args.put("action", "key");
                     args.put("key", "user-pref");
                     toolCall.setArguments(args);
-                    msg.setToolCalls(List.of(toolCall));
+                    return ChatResponseFixtures.assistantWithToolCalls("", toolCall);
                 } else {
                     // Final turn: incorporate the read-back content
-                    msg.setContent("Acknowledged user preference.");
+                    return ChatResponseFixtures.assistantText("Acknowledged user preference.");
                 }
-                return ChatResponse.success(msg);
             }
 
             @Override

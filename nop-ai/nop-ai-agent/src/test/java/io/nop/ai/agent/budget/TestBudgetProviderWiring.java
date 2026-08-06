@@ -47,6 +47,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import io.nop.ai.agent.support.ChatResponseFixtures;
 
 /**
  * Plan 206 (L2-22) Phase 2 wiring + end-to-end test (Minimum Rules #22, #23,
@@ -135,16 +136,10 @@ public class TestBudgetProviderWiring {
         toolCallB.setName("test-calculator");
         toolCallB.setArguments(Map.of("expr", "2+2"));
 
-        ChatAssistantMessage toolMsg1 = new ChatAssistantMessage();
-        toolMsg1.setContent("");
-        toolMsg1.setToolCalls(List.of(toolCallA));
-        ChatResponse resp1 = ChatResponse.success(toolMsg1);
+        ChatResponse resp1 = ChatResponseFixtures.assistantWithToolCalls("", toolCallA);
         resp1.setRequestId("req-b-1");
 
-        ChatAssistantMessage toolMsg2 = new ChatAssistantMessage();
-        toolMsg2.setContent("");
-        toolMsg2.setToolCalls(List.of(toolCallB));
-        ChatResponse resp2 = ChatResponse.success(toolMsg2);
+        ChatResponse resp2 = ChatResponseFixtures.assistantWithToolCalls("", toolCallB);
         resp2.setRequestId("req-b-2");
 
         ChatAssistantMessage finalMsg = new ChatAssistantMessage();

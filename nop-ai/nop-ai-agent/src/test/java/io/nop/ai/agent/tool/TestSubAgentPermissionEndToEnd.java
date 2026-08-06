@@ -8,6 +8,7 @@ import io.nop.ai.agent.engine.DefaultAgentEngine;
 import io.nop.ai.agent.model.AgentExecStatus;
 import io.nop.ai.agent.security.AllowAllPathAccessChecker;
 import io.nop.ai.agent.security.AllowAllToolAccessChecker;
+import io.nop.ai.agent.support.ChatResponseFixtures;
 import io.nop.ai.api.chat.ChatRequest;
 import io.nop.ai.api.chat.ChatResponse;
 import io.nop.ai.api.chat.IChatService;
@@ -182,32 +183,29 @@ public class TestSubAgentPermissionEndToEnd {
             private ChatResponse build(ChatRequest request) {
                 String agent = identifyAgent(request);
                 long assistantTurns = countAssistantMessages(request);
-                ChatAssistantMessage msg = new ChatAssistantMessage();
 
                 if (agent.contains("parent agent P")) {
                     // Parent: first turn → call-agent; second turn → final answer
                     if (assistantTurns == 0) {
-                        msg.setContent("");
-                        msg.setToolCalls(List.of(callAgentToolCall("p-call-1",
-                                "test-sub-agent-wide", "do risky stuff")));
+                        return ChatResponseFixtures.assistantWithToolCalls("",
+                                callAgentToolCall("p-call-1",
+                                        "test-sub-agent-wide", "do risky stuff"));
                     } else {
-                        msg.setContent("Parent done.");
+                        return ChatResponseFixtures.assistantText("Parent done.");
                     }
                 } else if (agent.contains("sub agent S")) {
                     // Sub-agent: first turn → try forbidden tools; second turn → final
                     if (assistantTurns == 0) {
-                        msg.setContent("");
-                        msg.setToolCalls(List.of(
+                        return ChatResponseFixtures.assistantWithToolCalls("",
                                 toolCall("s-write", "write-file"),
                                 toolCall("s-bash", "bash"),
-                                toolCall("s-read", "read-file")));
+                                toolCall("s-read", "read-file"));
                     } else {
-                        msg.setContent("Sub done.");
+                        return ChatResponseFixtures.assistantText("Sub done.");
                     }
                 } else {
-                    msg.setContent("fallback");
+                    return ChatResponseFixtures.assistantText("fallback");
                 }
-                return ChatResponse.success(msg);
             }
 
             @Override
@@ -298,16 +296,13 @@ public class TestSubAgentPermissionEndToEnd {
 
             private ChatResponse build() {
                 int n = callCount.getAndIncrement();
-                ChatAssistantMessage msg = new ChatAssistantMessage();
                 if (n == 0) {
-                    msg.setContent("");
-                    msg.setToolCalls(List.of(
+                    return ChatResponseFixtures.assistantWithToolCalls("",
                             toolCall("r1", "read-file"),
-                            toolCall("r2", "write-file")));
+                            toolCall("r2", "write-file"));
                 } else {
-                    msg.setContent("done");
+                    return ChatResponseFixtures.assistantText("done");
                 }
-                return ChatResponse.success(msg);
             }
 
             @Override
@@ -408,38 +403,36 @@ public class TestSubAgentPermissionEndToEnd {
             private ChatResponse build(ChatRequest request) {
                 String agent = identifyAgent(request);
                 long assistantTurns = countAssistantMessages(request);
-                ChatAssistantMessage msg = new ChatAssistantMessage();
 
                 if (agent.contains("parent agent P")) {
                     // A: first turn → call-agent(B); second turn → final
                     if (assistantTurns == 0) {
-                        msg.setContent("");
-                        msg.setToolCalls(List.of(callAgentToolCall("a-call-1",
-                                "test-middle-agent", "delegate to C")));
+                        return ChatResponseFixtures.assistantWithToolCalls("",
+                                callAgentToolCall("a-call-1",
+                                        "test-middle-agent", "delegate to C"));
                     } else {
-                        msg.setContent("A done.");
+                        return ChatResponseFixtures.assistantText("A done.");
                     }
                 } else if (agent.contains("middle agent B")) {
                     // B: first turn → call-agent(C); second turn → final
                     if (assistantTurns == 0) {
-                        msg.setContent("");
-                        msg.setToolCalls(List.of(callAgentToolCall("b-call-1",
-                                "test-leaf-agent", "do work")));
+                        return ChatResponseFixtures.assistantWithToolCalls("",
+                                callAgentToolCall("b-call-1",
+                                        "test-leaf-agent", "do work"));
                     } else {
-                        msg.setContent("B done.");
+                        return ChatResponseFixtures.assistantText("B done.");
                     }
                 } else if (agent.contains("leaf agent C")) {
                     // C: first turn → try write-file (should be denied); second turn → final
                     if (assistantTurns == 0) {
-                        msg.setContent("");
-                        msg.setToolCalls(List.of(toolCall("c-write", "write-file")));
+                        return ChatResponseFixtures.assistantWithToolCalls("",
+                                toolCall("c-write", "write-file"));
                     } else {
-                        msg.setContent("C done.");
+                        return ChatResponseFixtures.assistantText("C done.");
                     }
                 } else {
-                    msg.setContent("fallback");
+                    return ChatResponseFixtures.assistantText("fallback");
                 }
-                return ChatResponse.success(msg);
             }
 
             @Override
