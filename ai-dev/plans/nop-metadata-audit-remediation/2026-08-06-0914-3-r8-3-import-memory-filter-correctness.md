@@ -1,6 +1,6 @@
 # R8.3 导入与内存过滤正确性组修复（AR-18, AR-19）
 
-> Plan Status: active
+> Plan Status: completed
 > Last Reviewed: 2026-08-06
 > Mission: nop-metadata-audit-remediation
 > Work Item: MR8（R8.3 导入与内存过滤正确性组）
@@ -62,81 +62,81 @@
 
 ### Phase 1 - AR-18 JSON 构造与 buildSql 类型化
 
-Status: planned
+Status: completed
 Targets: `OrmModelImporter.java`（nop-metadata-dao）+ `MetaTableFieldResolver.java` + 相关测试
 
 - Item Types: `Fix | Proof`
 
-- [ ] AR-18a：`buildJoinConditionsJson` / `buildIndexColumnsJson` 改结构化序列化（`JsonTool.stringify` 或等效），含特殊字符（`"`/`\`）的 left/right/index 字段名不再产出非法 JSON；持久化格式不变（同为 JSON 文本）
-- [ ] AR-18b：`MetaTableFieldResolver` buildSql 反序列化——逐元素 `instanceof Map` 校验（含 null 元素），非法元素 → 复用既有错误码 `ERR_FIELD_RESOLVE_EXTERNAL_BUILD_SQL_INVALID` + 元素下标/原因参数（如裁定追加则同步 ErrorCode 消息模板；否则不加参数，保持既有模板），不再裸 ClassCastException
-- [ ] 判别性测试：AR-18a —— join 条件/索引列名含 `"`/`\` → 导入后 JSON 可重新解析（`JsonTool.parse` 不抛）+ 值完整保留（修复前非法 JSON 实测 red）；AR-18b —— buildSql 为 `[123, {...}]` 混合类型 → 显式错误码（非 ClassCastException）；修复前 red 实测
-- [ ] 回归：`OrmModelImporter` 既有导入测试（含 TestNopMetaModuleImportConsistency）/ `MetaTableFieldResolver` 相关测试全绿
+- [x] AR-18a：`buildJoinConditionsJson` / `buildIndexColumnsJson` 改结构化序列化（`JsonTool.stringify` 或等效），含特殊字符（`"`/`\`）的 left/right/index 字段名不再产出非法 JSON；持久化格式不变（同为 JSON 文本）
+- [x] AR-18b：`MetaTableFieldResolver` buildSql 反序列化——逐元素 `instanceof Map` 校验（含 null 元素），非法元素 → 复用既有错误码 `ERR_FIELD_RESOLVE_EXTERNAL_BUILD_SQL_INVALID` + 元素下标/原因参数（如裁定追加则同步 ErrorCode 消息模板；否则不加参数，保持既有模板），不再裸 ClassCastException
+- [x] 判别性测试：AR-18a —— join 条件/索引列名含 `"`/`\` → 导入后 JSON 可重新解析（`JsonTool.parse` 不抛）+ 值完整保留（修复前非法 JSON 实测 red）；AR-18b —— buildSql 为 `[123, {...}]` 混合类型 → 显式错误码（非 ClassCastException）；修复前 red 实测
+- [x] 回归：`OrmModelImporter` 既有导入测试（含 TestNopMetaModuleImportConsistency）/ `MetaTableFieldResolver` 相关测试全绿
 
 Exit Criteria:
 
-- [ ] 特殊字符输入下 JSON 合法可解析（判别性测试实证）；非法 buildSql 元素显式错误码（判别性测试实证）
-- [ ] **无静默跳过**：非法 JSON/类型不再静默入库；非法 buildSql 不再裸 CCE（fail-fast + 显式错误码）（Minimum Rules #24）
-- [ ] 持久化格式兼容（既有库内 JSON 数据可正常读取）
-- [ ] 若错误码模板变更：arm-index / 错误码清单同步
-- [ ] `ai-dev/logs/2026/08-06.md` 已更新
+- [x] 特殊字符输入下 JSON 合法可解析（判别性测试实证）；非法 buildSql 元素显式错误码（判别性测试实证）
+- [x] **无静默跳过**：非法 JSON/类型不再静默入库；非法 buildSql 不再裸 CCE（fail-fast + 显式错误码）（Minimum Rules #24）
+- [x] 持久化格式兼容（既有库内 JSON 数据可正常读取）
+- [x] 若错误码模板变更：arm-index / 错误码清单同步
+- [x] `ai-dev/logs/2026/08-06.md` 已更新
 
 ### Phase 2 - AR-19 内存过滤与 SQL 路径语义对齐
 
-Status: planned
+Status: completed
 Targets: `MemoryFilterEvaluator.java` + 相关测试 + `docs-for-ai/03-modules/nop-metadata.md`（复核）
 
 - Item Types: `Fix | Proof`
 
-- [ ] AR-19a：LIKE 实现修正——**先转义正则元字符（`.`、`(`、`+` 等，`%`/`_` 保留不转义），再替换 `%`→`.*`、`_`→`.`**（或逐字符构造等效实现）；`LIKE 'a.b'` 不再匹配 `aXb`，同时 `%xx%`/`a_b` 通配语义保持
-- [ ] AR-19b：比较含 null 一律 false（`eq/ne/gt/ge/lt/le` 中任一侧 null → false），仅 is-null/not-null 判空；**IN/BETWEEN 波及面（逐条对照 `FilterToSqlTranslator` 行为钉死）**：IN 列表含 null 元素时与 SQL UNKNOWN 语义对齐（null 不参与匹配）、rowVal=null → false、BETWEEN 单边 null 边界 → 单边比较（不产生假 false）、BETWEEN rowVal=null → false；**NOT 包装复核**：`NOT (x < 100)` 遇 x=NULL → SQL UNKNOWN → 排除，内存路径 not(false)=true 会保留——与 SQL 三值逻辑对齐（:83-88 evalNot 现状核对）；`HAVING x < 100` 聚合 NULL 组内存路径与 SQL 路径一致（排除）
-- [ ] AR-19c：空 or 节点 → true（与 SQL 无过滤语义一致）；空 and 节点语义与 SQL 对照复核（保持一致）
-- [ ] 判别性测试：LIKE 字面量元字符（`a.b`/`a(b)` 不扩匹配）+ **通配保持回归**（`%xx%` 仍匹配中间、`a_b` 仍单字符）；NULL 比较（HAVING x<100 NULL 组排除 / IN 含 null / BETWEEN 单边 null 边界与 rowVal=null 逐项对照 translator / **NOT 包装下 NULL 三值语义**）；空 or 节点（结果集不缩水）四组，对照 `FilterToSqlTranslator` 语义；修复前 red 实测
-- [ ] docs 复核：核对 `docs-for-ai/03-modules/nop-metadata.md` 查询分页契约段（:139-144）与其它 filter/HAVING 求值相关表述——该段为 limit/offset 分页语义，AR-19 不影响 → 记录 `No owner-doc update required`；如复核发现 filter 求值语义表述漂移则同步
-- [ ] 回归：`TestMemoryFilterAndOrderBy` / `TestFilterToSqlTranslator` / `TestCrossDbInMemoryAggregationProcessor` / 跨库聚合 e2e 全绿
+- [x] AR-19a：LIKE 实现修正——**先转义正则元字符（`.`、`(`、`+` 等，`%`/`_` 保留不转义），再替换 `%`→`.*`、`_`→`.`**（或逐字符构造等效实现）；`LIKE 'a.b'` 不再匹配 `aXb`，同时 `%xx%`/`a_b` 通配语义保持
+- [x] AR-19b：比较含 null 一律 false（`eq/ne/gt/ge/lt/le` 中任一侧 null → false），仅 is-null/not-null 判空；**IN/BETWEEN 波及面（逐条对照 `FilterToSqlTranslator` 行为钉死）**：IN 列表含 null 元素时与 SQL UNKNOWN 语义对齐（null 不参与匹配）、rowVal=null → false、BETWEEN 单边 null 边界 → 单边比较（不产生假 false）、BETWEEN rowVal=null → false；**NOT 包装复核**：`NOT (x < 100)` 遇 x=NULL → SQL UNKNOWN → 排除，内存路径 not(false)=true 会保留——与 SQL 三值逻辑对齐（:83-88 evalNot 现状核对）；`HAVING x < 100` 聚合 NULL 组内存路径与 SQL 路径一致（排除）
+- [x] AR-19c：空 or 节点 → true（与 SQL 无过滤语义一致）；空 and 节点语义与 SQL 对照复核（保持一致）
+- [x] 判别性测试：LIKE 字面量元字符（`a.b`/`a(b)` 不扩匹配）+ **通配保持回归**（`%xx%` 仍匹配中间、`a_b` 仍单字符）；NULL 比较（HAVING x<100 NULL 组排除 / IN 含 null / BETWEEN 单边 null 边界与 rowVal=null 逐项对照 translator / **NOT 包装下 NULL 三值语义**）；空 or 节点（结果集不缩水）四组，对照 `FilterToSqlTranslator` 语义；修复前 red 实测
+- [x] docs 复核：核对 `docs-for-ai/03-modules/nop-metadata.md` 查询分页契约段（:139-144）与其它 filter/HAVING 求值相关表述——该段为 limit/offset 分页语义，AR-19 不影响 → 记录 `No owner-doc update required`；如复核发现 filter 求值语义表述漂移则同步
+- [x] 回归：`TestMemoryFilterAndOrderBy` / `TestFilterToSqlTranslator` / `TestCrossDbInMemoryAggregationProcessor` / 跨库聚合 e2e 全绿
 
 Exit Criteria:
 
-- [ ] 三处语义漂移实测收敛（判别性测试 red→green；与 FilterToSqlTranslator 行为对照一致）+ LIKE 通配保持回归通过
-- [ ] **端到端验证**：跨库内存聚合路径（外部↔外部 join + HAVING/LIKE）与同库 SQL 路径对同一数据产出一致结果集（Minimum Rules #22）
-- [ ] **无静默跳过**：语义对齐不引入静默降级（如 null 比较直接 false 是显式语义，非吞异常）（Minimum Rules #24）
-- [ ] docs 复核结论记录（预期 `No owner-doc update required`，如发现漂移则已同步）+ check-doc-links --strict exit 0
-- [ ] `ai-dev/logs/2026/08-06.md` 已更新
+- [x] 三处语义漂移实测收敛（判别性测试 red→green；与 FilterToSqlTranslator 行为对照一致）+ LIKE 通配保持回归通过
+- [x] **端到端验证**：跨库内存聚合路径（外部↔外部 join + HAVING/LIKE）与同库 SQL 路径对同一数据产出一致结果集（Minimum Rules #22）
+- [x] **无静默跳过**：语义对齐不引入静默降级（如 null 比较直接 false 是显式语义，非吞异常）（Minimum Rules #24）
+- [x] docs 复核结论记录（预期 `No owner-doc update required`，如发现漂移则已同步）+ check-doc-links --strict exit 0
+- [x] `ai-dev/logs/2026/08-06.md` 已更新
 
 ### Phase 3 - 收口
 
-Status: planned
+Status: completed
 Targets: roadmap MR8 段 + arm-index §P2 + 全量验证
 
 - Item Types: `Fix | Proof`
 
-- [ ] roadmap MR8 段 R8.3 行 → done（注明 2 项 finding 终态 + 测试计数基线变化）
-- [ ] arm-index §P2 AR-18 / AR-19 → fixed（含修复 commit 引用）
-- [ ] `node ai-dev/tools/check-plan-checklist.mjs <plan-file> --strict` exit 0
-- [ ] `node ai-dev/tools/scan-hollow-implementations.mjs --module nop-metadata --severity high` exit 0
-- [ ] `./mvnw test -pl nop-metadata -am -T 1C` 全绿（记录计数基线）
-- [ ] 独立子 agent closure audit（fresh session）PASS + Closure 段证据写入
+- [x] roadmap MR8 段 R8.3 行 → done（注明 2 项 finding 终态 + 测试计数基线变化）
+- [x] arm-index §P2 AR-18 / AR-19 → fixed（含修复 commit 引用）
+- [x] `node ai-dev/tools/check-plan-checklist.mjs <plan-file> --strict` exit 0
+- [x] `node ai-dev/tools/scan-hollow-implementations.mjs --module nop-metadata --severity high` exit 0
+- [x] `./mvnw test -pl nop-metadata -am -T 1C` 全绿（记录计数基线）
+- [x] 独立子 agent closure audit（fresh session）PASS + Closure 段证据写入
 
 Exit Criteria:
 
-- [ ] roadmap MR8 段与 arm-index §P2 双向一致（AR-18/19 逐条可追溯）
-- [ ] 全量测试通过（0 failures/errors/skipped）+ 工具验证 exit 0
-- [ ] 独立 closure audit READY_TO_CLOSE（含 Anti-Hollow 调用链追踪）
-- [ ] `ai-dev/logs/2026/08-06.md` 已更新
+- [x] roadmap MR8 段与 arm-index §P2 双向一致（AR-18/19 逐条可追溯）
+- [x] 全量测试通过（0 failures/errors/skipped）+ 工具验证 exit 0
+- [x] 独立 closure audit READY_TO_CLOSE（含 Anti-Hollow 调用链追踪）
+- [x] `ai-dev/logs/2026/08-06.md` 已更新
 
 ## Closure Gates
 
 > 关闭条件：本 section 所有条目与每个 Phase 的 Exit Criteria 全部 `[x]` 后，才能将 Plan Status 改为 `completed`。
 
-- [ ] AR-18 + AR-19 两个已确认 live defect 全部修复（判别性测试 red→green 证据在案）
-- [ ] 无已确认 live defect / contract drift 被降级到 deferred / follow-up
-- [ ] docs-for-ai 内存过滤/查询语义表述复核完成（无漂移则显式记录 `No owner-doc update required`）
-- [ ] 必要 focused verification 已完成（每项 finding 至少一条判别性测试 + 通配保持回归）
-- [ ] 独立子 agent / 独立审阅者 closure-audit 完成并记录证据
-- [ ] **Anti-Hollow Check**：closure audit 已验证（a）内存过滤路径在跨库聚合执行链上真实被调用（不只是类型存在），（b）无空方法体/静默跳过/no-op 作为正常实现
-- [ ] `./mvnw test -pl nop-metadata -am -T 1C`
-- [ ] `node ai-dev/tools/check-plan-checklist.mjs <plan-file> --strict` exit 0
-- [ ] `node ai-dev/tools/check-doc-links.mjs --strict` exit 0
-- [ ] checkstyle / 代码规范检查通过（历史惯例：插件仅 -Pqa profile，按仓库惯例）
+- [x] AR-18 + AR-19 两个已确认 live defect 全部修复（判别性测试 red→green 证据在案）
+- [x] 无已确认 live defect / contract drift 被降级到 deferred / follow-up
+- [x] docs-for-ai 内存过滤/查询语义表述复核完成（无漂移则显式记录 `No owner-doc update required`）
+- [x] 必要 focused verification 已完成（每项 finding 至少一条判别性测试 + 通配保持回归）
+- [x] 独立子 agent / 独立审阅者 closure-audit 完成并记录证据
+- [x] **Anti-Hollow Check**：closure audit 已验证（a）内存过滤路径在跨库聚合执行链上真实被调用（不只是类型存在），（b）无空方法体/静默跳过/no-op 作为正常实现
+- [x] `./mvnw test -pl nop-metadata -am -T 1C`
+- [x] `node ai-dev/tools/check-plan-checklist.mjs <plan-file> --strict` exit 0
+- [x] `node ai-dev/tools/check-doc-links.mjs --strict` exit 0
+- [x] checkstyle / 代码规范检查通过（历史惯例：插件仅 -Pqa profile，按仓库惯例）
 
 ## Deferred But Adjudicated
 
@@ -149,13 +149,18 @@ Exit Criteria:
 
 ## Closure
 
-Status Note: （关闭时填写）
-Completed: （关闭时填写）
+Status Note: 2026-08-06 全 3 Phase 完成 + 独立 closure audit READY_TO_CLOSE 后关闭。修复 commit `c8ccf3c44`（9 文件 +657/-57）。
+Completed: 2026-08-06（Plan Status → completed；roadmap MR8 段 R8.3 → done（v30 header + 里程碑表 MR8 行）；arm-index MR8 R8.3 收口记录段（AR-18/AR-19 → fixed 含 commit 引用）+ §P2 两行 fixed 标注；日志收口条目）
+Reviewer / Agent: 独立子 agent closure audit（fresh session `ses_02abed2b0ffeIJeMqehNmQgIJ9`，只读复验，未修改任何文件）——VERDICT PASS（READY_TO_CLOSE）
 
 Closure Audit Evidence:
 
-（关闭时由独立子 agent 填写）
+- 独立子 agent closure audit（fresh session `ses_02abed2b0ffeIJeMqehNmQgIJ9`，只读复验，未修改任何文件）：**VERDICT PASS（READY_TO_CLOSE）**
+- 逐项 live code 证据：AR-18a PASS（OrmModelImporter.java:216-224/:227-237 JsonTool.stringify + 键名不变 + 普通值格式兼容；TestOrmModelImporterJsonEncoding 5/5）；AR-18b PASS（MetaTableFieldResolver.java:355-372 逐元素 instanceof Map + elementIndex :369 + cause 保留 + FieldErrors.java:18-21 模板同步 + NopMetadataArgs.java:57 ARG_ELEMENT_INDEX；TestMetaTableFieldResolverBuildSql 5/5，判别性：旧代码 CCE/NPE 会 fail）；AR-19 PASS（MemoryFilterEvaluator.java:63 行保留=恰 TRUE；:94-102 NOT 3VL；:138-153 IN null 语义；:163-173 BETWEEN；:190-226 evalAll/evalAny 空节点恒真 + 3VL 聚合；:326-345 toLikeRegex 元字符转义 %/_ 保留；与 FilterToSqlTranslator.java:155-158/:176-187/:238-256 逐点对照一致）；判别性测试 PASS（TestMemoryFilterAndOrderBy +9，旧实现逐项可证 fail——audit 独立复跑 35/35 green）；Anti-Hollow PASS（CrossDbInMemoryAggregationProcessor.java:85-87 构造 MemoryFilterEvaluator + filter 调用 + MetaAggregationExecutor.java:136/144 分派；e2e testCrossDbMemoryHavingMatchesSameDbSqlPath 经真实 queryAggregation RPC 双路径一致结果集断言——内存过滤若静默跳过则组 B 残留 size=2 测试必 fail；OrmModelImporter 经 NopMetaModuleBizModel.persistModelGraph:404-469 导入链真实调用）；无空方法体/静默跳过/no-op；无 live defect 降级（Deferred 段显式「无」）
+- 工具验证（audit 独立复跑）：check-plan-checklist --strict exit 0（unchecked 20 项为 Phase 3/Closure Gates 勾选前的待办，收口后 0）+ check-doc-links --strict exit 0（No errors found）
+- 非阻塞观察 2 条（audit 指出，已处置）：① 日志缺 R8.3 条目——本收口已写入 `ai-dev/logs/2026/08-06.md`；② 本地 ~/.m2 存在修复前 nop-metadata-dao 快照——closure 前已以 `-am` 全量重跑刷新（1016/0 全绿实证）
 
 Follow-up:
 
-（关闭时填写）
+- 内存过滤 LIKE 前缀匹配等性能优化（watch-only，Non-Goal 非缺陷，随跨库查询性能批次）
+- AR-19 修复后若发现 FilterToSqlTranslator 侧残留语义差 → 记录为 successor 观察项（当前复核无）
