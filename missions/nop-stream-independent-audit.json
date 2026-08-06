@@ -1,0 +1,22 @@
+{
+  "name": "nop-stream-independent-audit",
+  "description": "Independent deep audit of nop-stream capability vs design intent: freeze evidence schema/source manifest/finding corpus (item 4), qualify gated environments (item 5), audit Java/XDSL/Delta entries, checkpoint/state/window/CEP semantics, control/data plane, connectors and test effectiveness, then dispose every current and historical finding and issue a bounded production-readiness decision",
+  "agent": "build",
+  "roadmapPath": "ai-dev/backlog/nop-stream-independent-audit-roadmap.md",
+  "plansDir": "ai-dev/plans",
+  "planGuide": "ai-dev/plans/00-plan-authoring-and-execution-guide.md",
+  "auditsDir": "ai-dev/audits/nop-stream-independent-audit",
+  "contextDir": "docs-for-ai/00-start-here",
+  "moduleDir": "nop-stream",
+  "prompts": {
+    "multiAudit": "ai-dev/skills/deep-audit-prompts.md",
+    "openAudit": "ai-dev/skills/open-ended-adversarial-review-prompt.md"
+  },
+  "commands": {
+    "test": "./mvnw test -pl nop-stream -am -T 1C",
+    "build": "./mvnw clean install -pl nop-stream -am -T 1C -DskipTests",
+    "lint": "echo 'lint not configured'",
+    "typecheck": "echo 'typecheck not configured'"
+  },
+  "commitFormat": "feat(nop-stream): <description>"
+}
