@@ -10,6 +10,9 @@ import io.nop.metadata.dao.entity.NopMetaTable;
 import io.nop.metadata.dao.entity.NopMetaTag;
 import io.nop.metadata.service.NopMetadataHelper;
 import io.nop.search.api.ISearchEngine;
+import io.nop.search.api.SearchHit;
+import io.nop.search.api.SearchRequest;
+import io.nop.search.api.SearchResponse;
 import io.nop.search.api.SearchableDoc;
 import jakarta.annotation.Nullable;
 import jakarta.inject.Inject;
@@ -25,6 +28,13 @@ import java.util.Set;
 public class NopMetaIndexBuilder {
 
     private static final Logger LOG = LoggerFactory.getLogger(NopMetaIndexBuilder.class);
+
+    /**
+     * AR-23②（R8.4b）：部分重建类型级清理的枚举上限。SearchRequest 无分页——枚举空 query + tags 过滤
+     * 的 search 被 limit 截断；设为显式上限（沿 {@code CrossDbConfigHolder.maxCrossDbRows} 10000 常量先例），
+     * 超限部分（真实场景类型文档数远小于上限）为 watch-only residual（裁定记录于 plan + arm-index）。
+     */
+    private static final int PURGE_ENUMERATION_LIMIT = 10000;
 
     @Inject
     @Nullable
@@ -45,12 +55,27 @@ public class NopMetaIndexBuilder {
             return Collections.singletonList(result);
         }
 
+        // AR-23②（R8.4b）清理粒度裁定：全量重建（entityTypes == null，默认全部 6 类型）用 removeTopic 循环前
+        // 一次清理整个 topic（不 per-type 循环内多次——避免真实引擎清掉前一个类型刚写入的文档）；显式传类型子集
+        // 走类型级枚举清理（效果等价，调用面不同；显式传全部 6 类型也归入类型级路径，与 null 默认路径语义一致）。
+        boolean fullRebuild = entityTypes == null;
         if (entityTypes == null) {
             entityTypes = List.of("Classification", "Tag", "GlossaryTerm", "MetaTable", "MetaEntity", "MetaEntityField");
         }
 
         String topic = NopMetaSearchProcessor.TOPIC;
         List<IndexResult> results = new ArrayList<>();
+        boolean topicPurgeFailed = false;
+
+        if (fullRebuild) {
+            try {
+                searchEngine.removeTopic(topic);
+            } catch (Exception e) {
+                // 清理失败显式反映（不吞掉）：topic 清理失败时陈旧文档残留 + 新文档叠加——每个类型行都标记失败
+                LOG.warn("Failed to purge topic before full index rebuild", e);
+                topicPurgeFailed = true;
+            }
+        }
 
         for (String entityType : entityTypes) {
             IndexResult result = new IndexResult();
@@ -94,6 +119,18 @@ public class NopMetaIndexBuilder {
                 continue;
             }
 
+            if (fullRebuild) {
+                // 全量重建：topic 级清理已在循环前执行；若清理失败，在每个类型行显式标记（failed += 1 + errors）
+                if (topicPurgeFailed) {
+                    result.setFailed(result.getFailed() + 1);
+                    result.setErrors(List.of("Topic purge failed before rebuild"));
+                }
+            } else {
+                // AR-23②：部分重建在 addDocs 前按类型级清理该类型现有 docId（空 query + tags 过滤枚举；
+                // getDocsByTerm 是死路——只查 FIELD_CONTENT 分词不能按 tag 枚举，明确排除）
+                purgeStaleDocsForType(topic, entityType, result);
+            }
+
             if (!docs.isEmpty()) {
                 try {
                     searchEngine.addDocs(topic, docs);
@@ -121,6 +158,42 @@ public class NopMetaIndexBuilder {
         }
 
         return results;
+    }
+
+    /**
+     * AR-23②（R8.4b）：部分重建的类型级清理——在 addDocs 前枚举该类型现有 docId 并 {@code removeDocs}，
+     * 使被删除实体的陈旧文档在重建后不再残留（幽灵搜索结果）。
+     *
+     * <p>枚举机制（裁定）：{@code getDocsByTerm} 是死路——只查 FIELD_CONTENT 分词不能按 tag 枚举；
+     * 唯一可行 = 空 query + tags 过滤的 search。SearchRequest 无分页，枚举被 {@link #PURGE_ENUMERATION_LIMIT}
+     * 截断（超限部分 watch-only residual，真实场景类型文档数远小于上限）。
+     *
+     * <p>无静默跳过：清理失败显式反映在 IndexResult（failed += 1 + errors，沿 R8.2 AR-23③ 先例），不吞掉。
+     */
+    private void purgeStaleDocsForType(String topic, String entityType, IndexResult result) {
+        SearchRequest request = new SearchRequest();
+        request.setTopic(topic);
+        request.setQuery("");
+        request.setTags(Collections.singleton(entityType));
+        request.setLimit(PURGE_ENUMERATION_LIMIT);
+        try {
+            SearchResponse response = searchEngine.search(request);
+            List<String> docIds = new ArrayList<>();
+            if (response != null && response.getItems() != null) {
+                for (SearchHit hit : response.getItems()) {
+                    if (hit.getId() != null) {
+                        docIds.add(hit.getId());
+                    }
+                }
+            }
+            if (!docIds.isEmpty()) {
+                searchEngine.removeDocs(topic, docIds);
+            }
+        } catch (Exception e) {
+            LOG.warn("Failed to purge stale docs for type={}", entityType, e);
+            result.setFailed(result.getFailed() + 1);
+            result.setErrors(List.of("Stale doc purge failed for type: " + entityType));
+        }
     }
 
     private List<SearchableDoc> buildClassificationDocs(IndexResult result) {

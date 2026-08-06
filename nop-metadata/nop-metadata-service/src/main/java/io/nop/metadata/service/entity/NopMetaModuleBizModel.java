@@ -621,8 +621,15 @@ public class NopMetaModuleBizModel extends CrudBizModel<NopMetaModule> implement
         IEntityDao<NopMetaEntity> entityDao = daoFor(NopMetaEntity.class);
 
         // metaModuleId → moduleId（业务标识）
+        // AR-23⑨（R8.4b）：排除 DRAFTING 模块——DRAFTING 模块的实体不得进入全局 className 索引，
+        // 否则 RELEASED 模块的 manifest 可解析到未发布元数据。用 not-eq(DRAFTING) 而非 eq(RELEASED)：
+        // DEPRECATED 模块的元数据仍应可解析（audit 只点名 DRAFTING；eq 会把 DEPRECATED 也剔出索引，
+        // manifest 解析变 unresolved）。
         Map<String, String> moduleBizId = new HashMap<>();
-        for (NopMetaModule m : moduleDao.findAll())
+        QueryBean moduleQ = new QueryBean();
+        moduleQ.addFilter(FilterBeans.ne(NopMetaModule.PROP_NAME_status,
+                _NopMetadataCoreConstants.MODULE_STATUS_DRAFTING));
+        for (NopMetaModule m : moduleDao.findAllByQuery(moduleQ))
             moduleBizId.put(m.getMetaModuleId(), m.getModuleId());
 
         // ormModelId → metaModuleId（仅 full 模型）

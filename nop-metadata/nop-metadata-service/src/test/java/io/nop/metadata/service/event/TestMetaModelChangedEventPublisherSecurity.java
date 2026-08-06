@@ -190,16 +190,43 @@ public class TestMetaModelChangedEventPublisherSecurity {
     }
 
     /**
-     * 非 ORM 实体（Map）路径：不走脱敏分支（POJO/Map 由调用方自行保证不含敏感字段）。
-     * 验证 Map 路径不受 buildEntitySnapshot 改动影响（向后兼容）。
+     * <b>AR-23⑩（R8.4b）re-adjudication</b>：非 ORM 实体（Map）路径不再"调用方自行保证"——Map 分支现在
+     * 同样应用敏感列脱敏（fallback 列名集，大小写敏感与 ORM 分支对齐）。原测试（testMapEntityPathUnchanged
+     * 断言"Map 路径不受影响（caller responsibility）"）与修复意图正面冲突，按裁定更新为脱敏断言：
+     * <ul>
+     *   <li>(i) Map 含敏感 key（connectionConfig/password 族 fallback 名）→ 快照值为 REDACTED_VALUE
+     *       （修复前原样拷贝实测 red）</li>
+     *   <li>(ii) 非敏感 key 原样保留</li>
+     *   <li>(iii) 大小写变体（"Password"）不脱敏（与 ORM 分支一致，keep-red 负例钉死大小写敏感语义）</li>
+     * </ul>
      */
     @Test
-    public void testMapEntityPathUnchanged() {
+    public void testMapEntityPathRedactsSensitiveKeys() {
         Map<String, Object> mapEntity = new LinkedHashMap<>();
+        mapEntity.put("connectionConfig", "{\"password\":\"MAP_SECRET_PWD\"}");
+        mapEntity.put("password", "mapPlainPassword123!");
         mapEntity.put("foo", "bar");
+        mapEntity.put("Password", "caseVariantNotRedacted");
+
         MetaModelChangedEventPublisher publisher = new MetaModelChangedEventPublisher(null);
         Map<String, Object> snapshot = publisher.buildEntitySnapshot(mapEntity);
+
+        // (i) fallback 敏感列名 → 脱敏（修复前原样拷贝 → 实测 red）
+        assertEquals(MetaModelChangedEventPublisher.REDACTED_VALUE, snapshot.get("connectionConfig"),
+                "Map path must redact fallback-sensitive key connectionConfig (AR-23⑩)");
+        assertEquals(MetaModelChangedEventPublisher.REDACTED_VALUE, snapshot.get("password"),
+                "Map path must redact fallback-sensitive key password (AR-23⑩)");
+        assertFalse(String.valueOf(snapshot.get("connectionConfig")).contains("MAP_SECRET_PWD"),
+                "redacted value must NOT contain the real secret");
+        assertFalse(String.valueOf(snapshot.get("password")).contains("mapPlainPassword123!"),
+                "redacted value must NOT contain the real password");
+
+        // (ii) 非敏感 key 原样保留
         assertEquals("bar", snapshot.get("foo"),
-                "Map entity path must work unchanged (caller responsibility for sensitive fields)");
+                "non-sensitive Map key must be preserved unchanged");
+
+        // (iii) 大小写变体不脱敏（与 ORM 分支一致——SENSITIVE_COLUMN_FALLBACK.contains 精确匹配）
+        assertEquals("caseVariantNotRedacted", snapshot.get("Password"),
+                "case-variant key must NOT be redacted (case-sensitive semantics aligned with ORM branch)");
     }
 }

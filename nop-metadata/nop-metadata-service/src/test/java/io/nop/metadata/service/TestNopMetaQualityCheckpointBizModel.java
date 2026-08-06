@@ -23,9 +23,12 @@ import io.nop.metadata.service.entity.NopMetaQualityCheckpointBizModel;
 import io.nop.metadata.service.mock.MockHttpClient;
 import io.nop.metadata.service.mock.MockMessageService;
 import io.nop.metadata.service.quality.MetaQualityCheckpointExecutor;
+import io.nop.metadata.service.quality.MetaQualityCheckpointScheduler;
+import io.nop.job.api.IJobScheduler;
 import jakarta.inject.Inject;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.mockito.Mockito;
 
 import java.sql.Connection;
 import java.sql.DriverManager;
@@ -42,6 +45,7 @@ import java.util.concurrent.atomic.AtomicReference;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -94,6 +98,9 @@ public class TestNopMetaQualityCheckpointBizModel extends JunitBaseTestCase {
 
     @Inject
     NopMetaQualityCheckpointBizModel checkpointBizModel;
+
+    @Inject
+    MetaQualityCheckpointScheduler checkpointScheduler;
 
     // ===== (a)+(b) 混合规则集执行 + 摘要计数 =====
 
@@ -961,6 +968,61 @@ public class TestNopMetaQualityCheckpointBizModel extends JunitBaseTestCase {
         assertNotNull(dto.getRuleResults().get(0).getMessage(), "ruleResult must carry message");
     }
 
+    // ===== AR-23①（R8.4b）：delete 顺序修正——删除失败时调度保留 =====
+
+    /**
+     * AR-23① 判别性测试（Mockito spy 注入点 = {@code doDelete} + 真实 LocalJobScheduler 观察 job 存留）：
+     * <ul>
+     *   <li><b>接线前置断言</b>：BizModel 的 {@code scheduler} 字段非 null（防空心——若调度器未注入，
+     *       "job 保留"断言恒真无判别力）</li>
+     *   <li>(i) {@code doThrow().when(spy).doDelete(...)}（<b>不打在 delete 本身上</b>——否则真实 override
+     *       方法体不执行，两版本都不调 unregister，空心）→ {@code spy.delete} 真实 override 体先
+     *       {@code super.delete} → doDelete 抛错 → 异常传播（fail-loud）+ {@code notifySchedulerUnregister}
+     *       不执行 → cron job 仍注册（修复前先摘后删：job 已移除 → 实测 red）</li>
+     *   <li>(ii) 删除成功（GraphQL 真实入口，事务提交）→ unregister 执行 → job 移除（keep-green）</li>
+     * </ul>
+     */
+    @Test
+    @SuppressWarnings({"unchecked", "rawtypes"})
+    public void testDeleteFailureKeepsSchedule() throws Exception {
+        // 接线前置断言：BizModel 的 scheduler 确实被 IoC 注入（否则 unregister 恒 no-op，断言空心）
+        java.lang.reflect.Field schedulerField =
+                NopMetaQualityCheckpointBizModel.class.getDeclaredField("scheduler");
+        schedulerField.setAccessible(true);
+        assertNotNull(schedulerField.get(checkpointBizModel),
+                "checkpointBizModel must have scheduler wired (anti-hollow precondition)");
+
+        saveCheckpointWithSchedule("cp-del-fail", "ACTIVE",
+                "[{\"ruleIds\":[\"__any__\"]}]", null, "0 0/5 * * * ?");
+        checkpointScheduler.registerCheckpoint("cp-del-fail");
+        String jobName = MetaQualityCheckpointScheduler.jobName("cp-del-fail");
+        IJobScheduler scheduler = checkpointScheduler.getScheduler();
+        assertTrue(scheduler.getJobNames().contains(jobName),
+                "job must be registered before delete: " + scheduler.getJobNames());
+
+        NopMetaQualityCheckpointBizModel spy = Mockito.spy(checkpointBizModel);
+        Mockito.doThrow(new RuntimeException("simulated DB delete failure"))
+                .when(spy).doDelete(Mockito.anyString(), Mockito.anySet(), Mockito.any(), Mockito.any());
+
+        // (i) 方法内删除失败 → 异常正常传播（fail-loud，不吞错）→ unregister 不执行 → cron 保留
+        assertThrows(RuntimeException.class, () -> spy.delete("cp-del-fail", null),
+                "delete failure must propagate (fail-loud, no silent swallow)");
+        assertTrue(scheduler.getJobNames().contains(jobName),
+                "job must survive delete failure (unregister runs only after successful delete; "
+                        + "before AR-23① fix it was unregistered first): " + scheduler.getJobNames());
+        assertNotNull(daoProvider.daoFor(NopMetaQualityCheckpoint.class).getEntityById("cp-del-fail"),
+                "checkpoint row must survive failed delete");
+
+        // (ii) 删除成功（GraphQL 真实入口，事务提交后）→ unregister 执行 → job 移除（keep-green）
+        GraphQLResponseBean delResp = graphQLEngine.executeGraphQL(graphQLEngine.newGraphQLContext(req(
+                "mutation { NopMetaQualityCheckpoint__delete(id: \"cp-del-fail\") }")));
+        assertFalse(delResp.hasError(), "delete via GraphQL should succeed: " + delResp);
+        assertFalse(scheduler.getJobNames().contains(jobName),
+                "job must be unregistered after successful delete: " + scheduler.getJobNames());
+        assertNull(daoProvider.daoFor(NopMetaQualityCheckpoint.class).getEntityById("cp-del-fail"),
+                "checkpoint row must be gone after successful delete");
+    }
+
     // ===== helpers =====
 
     private GraphQLResponseBean exec(String checkpointId) {
@@ -1022,6 +1084,15 @@ public class TestNopMetaQualityCheckpointBizModel extends JunitBaseTestCase {
 
     private void saveCheckpoint(String checkpointId, String status, String validations, String actions) {
         saveCheckpointWithExt(checkpointId, status, validations, actions, null);
+    }
+
+    /** AR-23①：带 schedule cron 的检查点（extConfig 承载 schedule，D4 语义）。 */
+    private void saveCheckpointWithSchedule(String checkpointId, String status, String validations,
+                                             String actions, String cron) {
+        String extConfig = cron != null
+                ? "{\"schedule\":\"" + cron + "\",\"autoScore\":true}"
+                : "{\"autoScore\":true}";
+        saveCheckpointWithExt(checkpointId, status, validations, actions, extConfig);
     }
 
     private void saveCheckpointWithExt(String checkpointId, String status, String validations,

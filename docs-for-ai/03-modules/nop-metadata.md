@@ -214,6 +214,7 @@ nop-metadata 严格遵循"无静默跳过"原则（plan 2026-07-19-1250-3 Phase 
 - 表不存在 / 数据源不存在 / DISABLED / 非 jdbc 类型 / 不支持的方言 / SQL 解析失败 / 字段引用非法 → **显式抛 `NopException` + ErrorCode**，不静默空集、不伪造值
 - **外部表结构扫描故障分类（AR-23⑤，R8.2）**：`syncExternalTables` 扫描外部库时的真实故障（连接中断/权限/元数据访问失败——含 `getDatabaseProductName` / `getTables` 抛 `SQLException`）显式抛 `nop.err.metadata.external-table-scan-failed`（携带**真实** `databaseProductName` + 原始异常消息），与方言不支持（`datasource-type-not-supported`，方言白名单门禁）区分——真实扫描故障不再误报为"方言不支持"；`COLUMN_SIZE` / `DECIMAL_DIGITS` 为 NULL 时 `precision`/`scale` 保留 **JSON null**（不伪造 0，structure JSON 消费方不读这两个字段）
 - 批量操作（syncExternalTables / collectCatalog / executeCheckpoint）per-row try/catch 隔离失败 + 收集到 errors 列表，不中断整批
+- **syncExternalTables 原子性契约（AR-17，R8.4b）**：`syncExternalTables` 是**部分持久化**语义（非全量原子）——每表 upsert 在 per-key 锁 + `REQUIRES_NEW` 独立事务内独立提交（R6.3 裁定，plan-2026-08-05-2157-3）：scan 中途失败或单表失败时**已同步表保持持久化**（不整体回滚），失败表记入 `errors` 且不中断整批；**scan 级失败**（`structureReader.read` 抛 / 连接中断）异常向上传播（fail-loud），且失败路径**仍发布**变更事件（`NopMetaModelChangedEvent`，changeSource=SYNC）——事件行经 `REQUIRES_NEW` 独立事务提交（沿每表 upsert 先例），不随外层事务回滚消失；事件价值是"sync 尝试发生 + 已部分持久化"的下游通知（dataSource 实体在 sync 期间不变，before/after 快照等同，非实体 diff）
 - ErrorCode 已集中到 `NopMetadataErrors.java`，命名前缀 `nop.err.metadata.*`（plan Phase 2 渐进迁移）
 
 ## 参考文档

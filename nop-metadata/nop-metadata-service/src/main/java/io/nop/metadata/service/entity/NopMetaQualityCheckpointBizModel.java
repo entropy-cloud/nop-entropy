@@ -271,13 +271,20 @@ public class NopMetaQualityCheckpointBizModel extends CrudBizModel<NopMetaQualit
     }
 
     /**
-     * delete override（§2.7.3.1 D4 运行时增量）：删除前先移除该检查点的 cron job，避免删除后 cron 仍触发
-     * （触发时 {@code executeCheckpoint} 会因检查点不存在抛 {@code NopMetadataErrors.ERR_CHECKPOINT_NOT_FOUND}，但提前移除更干净）。
+     * delete override（§2.7.3.1 D4 运行时增量）：先删除（{@code super.delete}）成功后再移除该检查点的 cron job。
+     *
+     * <p><b>AR-23①（R8.4b）顺序修正</b>：原实现先 {@code notifySchedulerUnregister} 后删除——方法内删除失败
+     * （DB 错误）时 cron 已摘除、检查点行仍在，调度静默丢失（恢复需重新 save/enable）。swap 后删除失败异常
+     * 正常传播（fail-loud），unregister 不执行、cron 保留。残余窗口（显式裁定）：外层事务 commit 在 action
+     * 返回后由 decorator 执行，commit 阶段失败仍是"cron 已摘除但检查点行存在"——接受为残余（commit 失败概率低、
+     * {@code MetaQualityCheckpointScheduler.executeScheduledCheckpoint} 对残留 cron 存活兜底、调度器 init()
+     * {@code @PostConstruct} 重注册自愈），不引入 commit 后置回调（超 scope）。
      */
     @Override
     public boolean delete(@Name("id") String id, IServiceContext context) {
+        boolean deleted = super.delete(id, context);
         notifySchedulerUnregister(id);
-        return super.delete(id, context);
+        return deleted;
     }
 
     private void notifySchedulerRegister(String checkpointId) {
@@ -299,7 +306,10 @@ public class NopMetaQualityCheckpointBizModel extends CrudBizModel<NopMetaQualit
         try {
             scheduler.unregisterCheckpoint(checkpointId);
         } catch (Exception e) {
-            LOG.warn("nop.meta.checkpoint-scheduler.unregister-before-delete-failed: checkpointId={}", checkpointId, e);
+            // AR-23①（R8.4b）：删除成功后才摘 cron；此处仍是删除成功后的旁路失败——unregister 失败残留 cron
+            // 属已接受成本（显式裁定）：残留 job 每 tick 经 executeScheduledCheckpoint 存活兜底打 ERROR 日志
+            // （不转 FAILED），调度器 init() 重注册自愈。日志键语义 = unregister 发生在 delete 之后。
+            LOG.warn("nop.meta.checkpoint-scheduler.unregister-after-delete-failed: checkpointId={}", checkpointId, e);
         }
     }
 

@@ -200,7 +200,21 @@ public class MetaModelChangedEventPublisher {
             return map;
         }
         if (entity instanceof Map) {
-            return new LinkedHashMap<>((Map<String, Object>) entity);
+            // AR-23⑩（R8.4b）：Map 分支应用敏感列脱敏——原实现原样拷贝（new LinkedHashMap<>((Map) entity)）
+            // 可合法绕过 AR-07 脱敏契约（publishEvent/buildSnapshot 参数为 Object，传 Map 的调用方绕过）。
+            // 语义裁定：大小写敏感、与 ORM 分支对齐（SENSITIVE_COLUMN_FALLBACK.contains(key) 精确匹配，
+            // 复用 isSensitiveColumn(null, key) 同一判定路径，不引入大小写不敏感语义——避免两分支脱敏语义分叉）；
+            // Map 无 column model，仅 fallback 列名集可应用。
+            Map<String, Object> map = new LinkedHashMap<>();
+            for (Map.Entry<String, Object> entry : ((Map<String, Object>) entity).entrySet()) {
+                String key = entry.getKey();
+                if (isSensitiveColumn(null, key)) {
+                    map.put(key, REDACTED_VALUE);
+                } else {
+                    map.put(key, entry.getValue());
+                }
+            }
+            return map;
         }
         // 非 ORM 实体（POJO）：stringify→parse 取 Map（防御路径，本 helper 实际只接收 ORM 实体）
         Object parsed = JsonTool.parse(JsonTool.stringify(entity));

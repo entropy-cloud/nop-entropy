@@ -6,17 +6,25 @@ import io.nop.api.core.beans.graphql.GraphQLRequestBean;
 import io.nop.api.core.beans.graphql.GraphQLResponseBean;
 import io.nop.autotest.junit.JunitBaseTestCase;
 import io.nop.core.lang.json.JsonTool;
+import io.nop.dao.api.IEntityDao;
 import io.nop.graphql.core.IGraphQLExecutionContext;
 import io.nop.graphql.core.engine.IGraphQLEngine;
+import io.nop.metadata.dao.entity.NopMetaEntity;
+import io.nop.metadata.dao.entity.NopMetaModule;
+import io.nop.metadata.dao.entity.NopMetaOrmModel;
+import io.nop.metadata.service.entity.NopMetaModuleBizModel;
 import jakarta.inject.Inject;
 import org.junit.jupiter.api.Test;
 
+import java.lang.reflect.Method;
+import java.sql.Timestamp;
 import java.util.List;
 import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 @NopTestConfig(localDb = true, initDatabaseSchema = OptionalBoolean.TRUE)
@@ -28,6 +36,12 @@ public class TestNopMetaModuleBizModel extends JunitBaseTestCase {
 
     @Inject
     IGraphQLEngine graphQLEngine;
+
+    @Inject
+    NopMetaModuleBizModel moduleBizModel;
+
+    @Inject
+    io.nop.dao.api.IDaoProvider daoProvider;
 
     @Test
     public void testImportOrmModel() {
@@ -400,6 +414,104 @@ public class TestNopMetaModuleBizModel extends JunitBaseTestCase {
                 "mutation { NopMetaModule__generateManifest(metaModuleId: \"__not_exist__\") { manifestId } }");
         assertTrue(resp.hasError(),
                 "generateManifest with non-existent metaModuleId must error (fast fail): " + resp);
+    }
+
+    // ===== AR-23⑨（R8.4b）：buildGlobalClassNameToModuleId 排除 DRAFTING 模块 =====
+
+    /**
+     * 判别性测试（不同 moduleId 场景，避免同模块 reimport 空心）：模块 A（RELEASED）与模块 B（DRAFTING）
+     * 各含 className com.x.Y → 全局 className 索引仅映射 A。修复前 {@code findAll()} 无 status 过滤，
+     * 两行 put 到同一 key，last-writer-wins 不确定（实测 red）；修复后 DRAFTING 不进入索引，确定性映射 A。
+     */
+    @Test
+    @SuppressWarnings("unchecked")
+    public void testBuildGlobalClassNameToModuleIdExcludesDrafting() throws Exception {
+        saveModule("mm-a", "A", "RELEASED");
+        saveModule("mm-b", "B", "DRAFTING");
+        saveOrmModel("om-a", "mm-a");
+        saveOrmModel("om-b", "mm-b");
+        saveEntity("e-a", "om-a", "com.x.Y");
+        saveEntity("e-b", "om-b", "com.x.Y");
+
+        Map<String, String> map = buildGlobalClassNameToModuleIdReflectively();
+        assertEquals("A", map.get("com.x.Y"),
+                "className in a RELEASED module must resolve to that module only (DRAFTING module "
+                        + "with the same className excluded; before AR-23⑨ last-writer-wins was "
+                        + "non-deterministic): " + map);
+    }
+
+    /**
+     * 仅 DRAFTING 模块含 className → 不可解析（map 无该 key——RELEASED 模块 manifest 不会解析到未发布元数据）。
+     */
+    @Test
+    @SuppressWarnings("unchecked")
+    public void testBuildGlobalClassNameToModuleIdDraftingOnlyUnresolvable() throws Exception {
+        saveModule("mm-c", "C", "DRAFTING");
+        saveOrmModel("om-c", "mm-c");
+        saveEntity("e-c", "om-c", "com.y.Z");
+
+        Map<String, String> map = buildGlobalClassNameToModuleIdReflectively();
+        assertNull(map.get("com.y.Z"),
+                "className in a DRAFTING-only module must not resolve (unpublished metadata): " + map);
+    }
+
+    /**
+     * DEPRECATED 分叉裁定（not-eq(DRAFTING) 语义）：DEPRECATED 模块的元数据仍应可解析——
+     * 若用 eq(RELEASED) 会把 DEPRECATED 也剔出索引（manifest 解析变 unresolved）。
+     */
+    @Test
+    @SuppressWarnings("unchecked")
+    public void testBuildGlobalClassNameToModuleIdKeepsDeprecated() throws Exception {
+        saveModule("mm-d", "D", "DEPRECATED");
+        saveOrmModel("om-d", "mm-d");
+        saveEntity("e-d", "om-d", "com.d.W");
+
+        Map<String, String> map = buildGlobalClassNameToModuleIdReflectively();
+        assertEquals("D", map.get("com.d.W"),
+                "DEPRECATED module must stay resolvable (not-eq(DRAFTING), not eq(RELEASED)): " + map);
+    }
+
+    @SuppressWarnings("unchecked")
+    private Map<String, String> buildGlobalClassNameToModuleIdReflectively() throws Exception {
+        // 沿 TestNopMetaDataSourceBizModel.serializeColumnsReflectively 反射先例（private 方法直测，
+        // 经注入的 IoC bean 实例——daoProvider 依赖由 IoC 提供）
+        Method m = NopMetaModuleBizModel.class.getDeclaredMethod("buildGlobalClassNameToModuleId");
+        m.setAccessible(true);
+        return (Map<String, String>) m.invoke(moduleBizModel);
+    }
+
+    private void saveModule(String metaModuleId, String moduleId, String status) {
+        IEntityDao<NopMetaModule> dao = daoProvider.daoFor(NopMetaModule.class);
+        NopMetaModule m = dao.newEntity();
+        m.setMetaModuleId(metaModuleId);
+        m.setModuleId(moduleId);
+        m.setModuleName(moduleId);
+        m.setDisplayName(moduleId);
+        m.setModuleVersion(1L);
+        m.setStatus(status);
+        m.setImportedAt(new Timestamp(System.currentTimeMillis()));
+        dao.saveEntity(m);
+    }
+
+    private void saveOrmModel(String ormModelId, String metaModuleId) {
+        IEntityDao<NopMetaOrmModel> dao = daoProvider.daoFor(NopMetaOrmModel.class);
+        NopMetaOrmModel om = dao.newEntity();
+        om.setOrmModelId(ormModelId);
+        om.setMetaModuleId(metaModuleId);
+        om.setModelName(ormModelId);
+        om.setIsDelta((byte) 0);
+        dao.saveEntity(om);
+    }
+
+    private void saveEntity(String metaEntityId, String ormModelId, String className) {
+        IEntityDao<NopMetaEntity> dao = daoProvider.daoFor(NopMetaEntity.class);
+        NopMetaEntity e = dao.newEntity();
+        e.setMetaEntityId(metaEntityId);
+        e.setOrmModelId(ormModelId);
+        e.setIsDelta((byte) 0);
+        e.setEntityName(className);
+        e.setClassName(className);
+        dao.saveEntity(e);
     }
 
     private static int countOccurrences(String text, String token) {

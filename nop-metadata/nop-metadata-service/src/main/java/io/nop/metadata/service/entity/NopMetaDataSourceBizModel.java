@@ -161,6 +161,11 @@ public class NopMetaDataSourceBizModel extends CrudBizModel<NopMetaDataSource> i
      *       {@code REQUIRES_NEW} 独立事务内执行（锁跨 find→insert→flush→commit），并发同键双插
      *       收敛为 update，不产生静默重复行（详见 {@link #upsertExternalTableGuarded}）</li>
      *   <li>单表失败收集到 errors 不中断整批（flushSession 隔离 + clearSession 清理失败态）</li>
+     *   <li><b>部分持久化契约（AR-17，R8.4b）</b>：每表 upsert 在 per-key 锁 + REQUIRES_NEW 独立事务内
+     *       独立提交——scan 中途失败/单表失败时<b>已同步表保持持久化</b>（非全量原子，显式契约而非漂移）；
+     *       scan 级失败（structureReader.read 抛 / 连接中断）异常向上传播（fail-loud）且<b>失败路径仍发布
+     *       事件</b>——事件发布经 REQUIRES_NEW 独立事务存活（不随外层回滚消失），下游可追踪
+     *       "sync 尝试发生 + 已部分持久化"</li>
      * </ul>
      *
      * @param dataSourceId  目标数据源 ID
@@ -185,25 +190,36 @@ public class NopMetaDataSourceBizModel extends CrudBizModel<NopMetaDataSource> i
         AtomicInteger syncedCount = new AtomicInteger(0);
         List<ErrorDTO> errors = new ArrayList<>();
 
-        connectionService.withConnection(dataSource.getDatasourceType(), dataSource.getConnectionConfig(),
-                (Connection conn, DatabaseMetaData metaData) -> {
-                    List<ExternalTableInfo> tables = structureReader.read(conn, metaData, schemaPattern);
-                    for (ExternalTableInfo table : tables) {
-                        try {
-                            upsertExternalTableGuarded(externalModuleId, dataSource, table);
-                            syncedCount.incrementAndGet();
-                        } catch (Exception e) {
-                            LOG.error("syncExternalTables failed for table: {}", table.getTableName(), e);
-                            ErrorDTO errDTO = new ErrorDTO();
-                            errDTO.setCode(table.getTableName());
-                            errDTO.setMessage(NopMetadataHelper.toErrorMessage(e));
-                            errors.add(errDTO);
-                            orm().clearSession();
+        try {
+            connectionService.withConnection(dataSource.getDatasourceType(), dataSource.getConnectionConfig(),
+                    (Connection conn, DatabaseMetaData metaData) -> {
+                        List<ExternalTableInfo> tables = structureReader.read(conn, metaData, schemaPattern);
+                        for (ExternalTableInfo table : tables) {
+                            try {
+                                upsertExternalTableGuarded(externalModuleId, dataSource, table);
+                                syncedCount.incrementAndGet();
+                            } catch (Exception e) {
+                                LOG.error("syncExternalTables failed for table: {}", table.getTableName(), e);
+                                ErrorDTO errDTO = new ErrorDTO();
+                                errDTO.setCode(table.getTableName());
+                                errDTO.setMessage(NopMetadataHelper.toErrorMessage(e));
+                                errors.add(errDTO);
+                                orm().clearSession();
+                            }
                         }
-                    }
-                });
+                    });
 
-        orm().flushSession();
+            orm().flushSession();
+        } catch (RuntimeException e) {
+            // AR-17（R8.4b）：scan 级失败（structureReader.read 抛 / 连接中断）——try/catch 包住整个
+            // withConnection 块（界定范围 = 连接中断与扫描失败都走此面）。已同步表已经 per-table
+            // REQUIRES_NEW 独立提交持久化（部分持久化契约），事件行不能随之消失：在 REQUIRES_NEW
+            // 独立事务中发布事件（沿 upsertExternalTableGuarded 先例），否则重抛使外层事务回滚、
+            // 事件行随之消失（空壳修复）。事件发布自身失败不掩盖原始异常（LOG.error 留证后仍重抛）。
+            publishSyncScanFailureEvent(dataSource, dataSourceId, beforeSnapshot, context, e);
+            throw e;
+        }
+
         String afterSnapshot = eventPublisher.buildSnapshot(dataSource, EVENT_ENTITY_TYPE, dataSourceId);
         eventPublisher.publishEventWithSnapshots(
                 _NopMetadataCoreConstants.CHANGE_EVENT_TYPE_ENTITY_UPDATED,
@@ -216,6 +232,33 @@ public class NopMetaDataSourceBizModel extends CrudBizModel<NopMetaDataSource> i
         result.setSyncedTableCount(syncedCount.get());
         result.setErrors(errors);
         return result;
+    }
+
+    /**
+     * AR-17（R8.4b）：scan 级失败路径的事件发布——REQUIRES_NEW 独立事务（沿
+     * {@link #upsertExternalTableGuarded} :512-517 先例），使事件行在重抛导致的外层事务回滚后仍存活
+     * （下游可追踪"sync 尝试发生 + 已部分持久化"）。快照语义：dataSource 实体在 sync 期间不变，
+     * before/after 等同——事件价值是 sync 尝试的下游通知，不是实体 diff。
+     *
+     * <p>事件发布自身失败（罕见）不掩盖原始异常：LOG.error 留证后仍由调用方重抛原异常（fail-loud）。
+     */
+    private void publishSyncScanFailureEvent(NopMetaDataSource dataSource, String dataSourceId,
+                                             String beforeSnapshot, IServiceContext context,
+                                             RuntimeException cause) {
+        try {
+            ITransactionTemplate txnTemplate = orm().getSessionFactory().txn();
+            txnTemplate.runInTransaction(null, TransactionPropagation.REQUIRES_NEW, (ITransaction txn) -> {
+                eventPublisher.publishEventWithSnapshots(
+                        _NopMetadataCoreConstants.CHANGE_EVENT_TYPE_ENTITY_UPDATED,
+                        EVENT_ENTITY_TYPE, dataSourceId, dataSource.getName(),
+                        MetaModelChangedEventPublisher.CHANGE_SOURCE_SYNC,
+                        beforeSnapshot, beforeSnapshot,
+                        MetaModelChangedEventPublisher.newTransactionId(), context);
+                return null;
+            });
+        } catch (Exception e) {
+            LOG.error("publish sync scan failure event failed: dataSourceId={}", dataSourceId, e);
+        }
     }
 
     /**

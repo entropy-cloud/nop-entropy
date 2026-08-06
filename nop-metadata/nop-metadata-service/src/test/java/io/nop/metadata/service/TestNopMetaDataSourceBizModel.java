@@ -6,19 +6,31 @@ import io.nop.api.core.beans.FilterBeans;
 import io.nop.api.core.beans.graphql.GraphQLRequestBean;
 import io.nop.api.core.beans.graphql.GraphQLResponseBean;
 import io.nop.api.core.beans.query.QueryBean;
+import io.nop.api.core.exceptions.NopException;
 import io.nop.autotest.junit.JunitBaseTestCase;
 import io.nop.core.lang.json.JsonTool;
 import io.nop.dao.api.IDaoProvider;
 import io.nop.dao.api.IEntityDao;
 import io.nop.graphql.core.IGraphQLExecutionContext;
 import io.nop.graphql.core.engine.IGraphQLEngine;
+import io.nop.metadata.core._NopMetadataCoreConstants;
 import io.nop.metadata.dao.entity.NopMetaDataSource;
+import io.nop.metadata.dao.entity.NopMetaModelChangedEvent;
+import io.nop.metadata.dao.entity.NopMetaTable;
 import io.nop.metadata.service.entity.NopMetaDataSourceBizModel;
+import io.nop.metadata.service.event.MetaModelChangedEventPublisher;
 import io.nop.metadata.service.sync.ExternalColumnInfo;
+import io.nop.metadata.service.sync.ExternalTableInfo;
+import io.nop.metadata.service.sync.ExternalTableStructureReader;
 import jakarta.inject.Inject;
 import org.junit.jupiter.api.Test;
 
+import java.lang.reflect.Field;
 import java.lang.reflect.Method;
+import java.sql.Connection;
+import java.sql.DatabaseMetaData;
+import java.sql.DriverManager;
+import java.sql.Statement;
 import java.sql.Timestamp;
 import java.util.List;
 import java.util.Map;
@@ -37,6 +49,9 @@ public class TestNopMetaDataSourceBizModel extends JunitBaseTestCase {
 
     @Inject
     IDaoProvider daoProvider;
+
+    @Inject
+    NopMetaDataSourceBizModel dataSourceBizModel;
 
     @Test
     public void testConnectionSuccessRealConnect() {
@@ -154,6 +169,119 @@ public class TestNopMetaDataSourceBizModel extends JunitBaseTestCase {
         Method m = NopMetaDataSourceBizModel.class.getDeclaredMethod("serializeColumns", List.class);
         m.setAccessible(true);
         return (String) m.invoke(new NopMetaDataSourceBizModel(), columns);
+    }
+
+    // ===== AR-17（R8.4b）：syncExternalTables 契约——部分持久化 + scan 级失败事件面 =====
+
+    /**
+     * scan 级失败判别性测试（失败注入裁定 = 反射替换 private final structureReader——structureReader 为
+     * private final 内联 new，无注入缝；Java 21 允许 setAccessible + set 实例 final 字段）：
+     * <ul>
+     *   <li>scan 级失败（structureReader.read 抛）→ 原始异常向上传播（fail-loud，不吞、不被事件发布掩盖）</li>
+     *   <li><b>事件仍发布且独立提交存活</b>：修复前事件缺失（publishEventWithSnapshots 在 withConnection
+     *       之后不达）——实测 red；修复后事件行在 REQUIRES_NEW 独立事务中提交，重抛后仍可查询</li>
+     * </ul>
+     */
+    @Test
+    public void testSyncExternalTablesScanFailurePublishesEventAndRethrows() throws Exception {
+        saveDataSource("ds-scan-fail", "qs_scan_fail", "jdbc", "ACTIVE",
+                "{\"jdbcUrl\":\"jdbc:h2:mem:meta_scan_fail;DB_CLOSE_DELAY=-1\","
+                        + "\"username\":\"sa\",\"password\":\"\",\"driverClassName\":\"org.h2.Driver\"}");
+
+        Field structureReaderField = NopMetaDataSourceBizModel.class.getDeclaredField("structureReader");
+        structureReaderField.setAccessible(true);
+        ExternalTableStructureReader original =
+                (ExternalTableStructureReader) structureReaderField.get(dataSourceBizModel);
+        ExternalTableStructureReader failingReader = new ExternalTableStructureReader() {
+            @Override
+            public List<ExternalTableInfo> read(Connection conn, DatabaseMetaData metaData, String schemaPattern) {
+                throw new NopMetadataException(NopMetadataErrors.ERR_EXTERNAL_TABLE_SCAN_FAILED)
+                        .param(NopMetadataErrors.ARG_DATABASE_PRODUCT_NAME, "H2")
+                        .param(NopMetadataErrors.ARG_ERROR, "simulated scan failure");
+            }
+        };
+        structureReaderField.set(dataSourceBizModel, failingReader);
+        try {
+            NopException ex = assertThrows(NopException.class,
+                    () -> dataSourceBizModel.syncExternalTables("ds-scan-fail", "PUBLIC", null),
+                    "scan-level failure must propagate (fail-loud, no silent swallow)");
+            assertEquals(NopMetadataErrors.ERR_EXTERNAL_TABLE_SCAN_FAILED.getErrorCode(), ex.getErrorCode(),
+                    "original scan failure must surface (not masked by event publish)");
+
+            List<NopMetaModelChangedEvent> events = findSyncEvents("ds-scan-fail");
+            assertEquals(1, events.size(),
+                    "scan failure must still publish an event row surviving the rethrow "
+                            + "(before AR-17 the event was missing): " + events);
+            assertEquals(MetaModelChangedEventPublisher.CHANGE_SOURCE_SYNC, events.get(0).getChangeSource());
+            assertEquals(_NopMetadataCoreConstants.CHANGE_EVENT_TYPE_ENTITY_UPDATED, events.get(0).getEventType());
+            assertEquals("ds-scan-fail", events.get(0).getEntityId());
+        } finally {
+            // 共享 bean 恢复原 reader（防测试间泄漏）
+            structureReaderField.set(dataSourceBizModel, original);
+        }
+    }
+
+    /**
+     * per-table 部分失败 keep-green（真实入口完整走通，Minimum Rules #22）：两表同步，一表因 REMARK
+     * 超 description 列长（VARCHAR(1000)）失败 → 已同步表持久化（REQUIRES_NEW 独立提交存活，不被失败表
+     * clearSession 影响）+ 失败表进 errors 不中断整批 + 事件正常发布。
+     */
+    @Test
+    public void testSyncExternalTablesPerTableFailureIsolatedAndEventPublished() throws Exception {
+        String dbUrl = "jdbc:h2:mem:meta_sync_ptf;DB_CLOSE_DELAY=-1";
+        seedTable(dbUrl, "CREATE TABLE ext_pt_ok (id INT NOT NULL)", "INSERT INTO ext_pt_ok VALUES (1)");
+        // REMARK 3000 字符 > description VARCHAR(1000) → upsert 时 DB 报 value-too-long
+        seedTable(dbUrl, "CREATE TABLE ext_pt_bad (id INT NOT NULL)",
+                "COMMENT ON TABLE ext_pt_bad IS '" + "x".repeat(3000) + "'");
+        saveDataSource("ds-pt-fail", "qs_pt_fail", "jdbc", "ACTIVE",
+                "{\"jdbcUrl\":\"" + dbUrl + "\",\"username\":\"sa\",\"password\":\"\","
+                        + "\"driverClassName\":\"org.h2.Driver\"}");
+
+        GraphQLResponseBean resp = execute(
+                "mutation { NopMetaDataSource__syncExternalTables(dataSourceId: \"ds-pt-fail\", "
+                        + "schemaPattern: \"PUBLIC\") { syncedTableCount errors { code message } } }");
+        assertFalse(resp.hasError(), "per-table failure must not globally error: " + resp);
+
+        String data = String.valueOf(resp.getData());
+        assertTrue(data.contains("syncedTableCount=1"),
+                "OK table must sync (syncedTableCount=1): " + data);
+        assertTrue(data.contains("EXT_PT_BAD"),
+                "failing table must be recorded in errors (not silently skipped): " + data);
+
+        // 已同步表持久化（per-table REQUIRES_NEW 独立提交，不被失败表 clearSession 影响）
+        assertNotNull(findExternalTable("EXT_PT_OK"), "OK table must be persisted despite sibling failure");
+        assertNull(findExternalTable("EXT_PT_BAD"), "failing table must not be persisted");
+
+        // 成功路径事件正常发布
+        List<NopMetaModelChangedEvent> events = findSyncEvents("ds-pt-fail");
+        assertEquals(1, events.size(), "success-path sync must publish one event: " + events);
+    }
+
+    private List<NopMetaModelChangedEvent> findSyncEvents(String entityId) {
+        IEntityDao<NopMetaModelChangedEvent> dao = daoProvider.daoFor(NopMetaModelChangedEvent.class);
+        QueryBean q = new QueryBean();
+        q.addFilter(FilterBeans.eq(NopMetaModelChangedEvent.PROP_NAME_entityId, entityId));
+        q.addFilter(FilterBeans.eq(NopMetaModelChangedEvent.PROP_NAME_changeSource,
+                MetaModelChangedEventPublisher.CHANGE_SOURCE_SYNC));
+        return dao.findAllByQuery(q);
+    }
+
+    private NopMetaTable findExternalTable(String tableName) {
+        IEntityDao<NopMetaTable> dao = daoProvider.daoFor(NopMetaTable.class);
+        QueryBean q = new QueryBean();
+        q.addFilter(FilterBeans.eq(NopMetaTable.PROP_NAME_tableName, tableName));
+        q.addFilter(FilterBeans.eq("tableType", "external"));
+        return dao.findFirstByQuery(q);
+    }
+
+    private void seedTable(String dbUrl, String createDdl, String... extraStatements) throws Exception {
+        try (Connection c = DriverManager.getConnection(dbUrl, "sa", "");
+             Statement st = c.createStatement()) {
+            st.execute(createDdl);
+            for (String stmt : extraStatements) {
+                st.execute(stmt);
+            }
+        }
     }
 
     private GraphQLResponseBean execute(String query) {
