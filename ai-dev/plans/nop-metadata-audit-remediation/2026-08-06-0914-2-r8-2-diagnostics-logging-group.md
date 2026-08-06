@@ -1,6 +1,6 @@
 # R8.2 诊断与日志组修复（AR-16, AR-23③, AR-23⑤, AR-23④）
 
-> Plan Status: active
+> Plan Status: completed
 > Last Reviewed: 2026-08-06
 > Mission: nop-metadata-audit-remediation
 > Work Item: MR8（R8.2 诊断与日志组）
@@ -124,39 +124,39 @@ Exit Criteria:
 
 ### Phase 4 - 收口
 
-Status: planned
+Status: completed
 Targets: roadmap MR8 段 + arm-index §P2 + 全量验证
 
 - Item Types: `Fix | Proof`
 
-- [ ] roadmap MR8 段 R8.2 行 → done（注明 4 项 finding 终态 + 测试计数基线变化）
-- [ ] arm-index §P2 AR-16 / AR-23③⑤④ → fixed（含修复 commit 引用）
-- [ ] `node ai-dev/tools/check-plan-checklist.mjs <plan-file> --strict` exit 0
-- [ ] `node ai-dev/tools/scan-hollow-implementations.mjs --module nop-metadata --severity high` exit 0
-- [ ] `./mvnw test -pl nop-metadata -am -T 1C` 全绿（记录计数基线）
-- [ ] 独立子 agent closure audit（fresh session）PASS + Closure 段证据写入
+- [x] roadmap MR8 段 R8.2 行 → done（注明 4 项 finding 终态 + 测试计数基线变化）
+- [x] arm-index §P2 AR-16 / AR-23③⑤④ → fixed（含修复 commit 引用）
+- [x] `node ai-dev/tools/check-plan-checklist.mjs <plan-file> --strict` exit 0
+- [x] `node ai-dev/tools/scan-hollow-implementations.mjs --module nop-metadata --severity high` exit 0
+- [x] `./mvnw test -pl nop-metadata -am -T 1C` 全绿（记录计数基线）
+- [x] 独立子 agent closure audit（fresh session）PASS + Closure 段证据写入
 
 Exit Criteria:
 
-- [ ] roadmap MR8 段与 arm-index §P2 双向一致（AR-16 + AR-23③⑤④ 逐条可追溯）
-- [ ] 全量测试通过（0 failures/errors/skipped）+ 工具验证 exit 0
-- [ ] 独立 closure audit READY_TO_CLOSE（含 Anti-Hollow 调用链追踪）
-- [ ] `ai-dev/logs/2026/08-06.md` 已更新
+- [x] roadmap MR8 段与 arm-index §P2 双向一致（AR-16 + AR-23③⑤④ 逐条可追溯）
+- [x] 全量测试通过（0 failures/errors/skipped）+ 工具验证 exit 0
+- [x] 独立 closure audit READY_TO_CLOSE（含 Anti-Hollow 调用链追踪）
+- [x] `ai-dev/logs/2026/08-06.md` 已更新
 
 ## Closure Gates
 
 > 关闭条件：本 section 所有条目与每个 Phase 的 Exit Criteria 全部 `[x]` 后，才能将 Plan Status 改为 `completed`。
 
-- [ ] AR-16 + AR-23③⑤④ 四个已确认 live defect 全部修复（判别性测试 red→green 证据在案）
-- [ ] 无已确认 live defect / contract drift 被降级到 deferred / follow-up
-- [ ] 错误码新增/变更与 arm-index / 模块文档一致（若适用）；service 模块 DTO 形状变更（int→Integer）消费者兼容实证在案
-- [ ] 必要 focused verification 已完成（每项 finding 至少一条判别性测试）
-- [ ] 独立子 agent / 独立审阅者 closure-audit 完成并记录证据
-- [ ] **Anti-Hollow Check**：closure audit 已验证（a）refresh 失败入 IndexResult / limit 拒绝 / 日志脱敏在运行时真实连通，（b）无空方法体/静默跳过/no-op 作为正常实现
-- [ ] `./mvnw test -pl nop-metadata -am -T 1C`
-- [ ] `node ai-dev/tools/check-plan-checklist.mjs <plan-file> --strict` exit 0
-- [ ] `node ai-dev/tools/check-doc-links.mjs --strict` exit 0
-- [ ] checkstyle / 代码规范检查通过（历史惯例：插件仅 -Pqa profile，按仓库惯例）
+- [x] AR-16 + AR-23③⑤④ 四个已确认 live defect 全部修复（判别性测试 red→green 证据在案）
+- [x] 无已确认 live defect / contract drift 被降级到 deferred / follow-up
+- [x] 错误码新增/变更与 arm-index / 模块文档一致（若适用）；service 模块 DTO 形状变更（int→Integer）消费者兼容实证在案
+- [x] 必要 focused verification 已完成（每项 finding 至少一条判别性测试）
+- [x] 独立子 agent / 独立审阅者 closure-audit 完成并记录证据
+- [x] **Anti-Hollow Check**：closure audit 已验证（a）refresh 失败入 IndexResult / limit 拒绝 / 日志脱敏在运行时真实连通，（b）无空方法体/静默跳过/no-op 作为正常实现
+- [x] `./mvnw test -pl nop-metadata -am -T 1C`
+- [x] `node ai-dev/tools/check-plan-checklist.mjs <plan-file> --strict` exit 0
+- [x] `node ai-dev/tools/check-doc-links.mjs --strict` exit 0
+- [x] checkstyle / 代码规范检查通过（历史惯例：插件仅 -Pqa profile，按仓库惯例）
 
 ## Deferred But Adjudicated
 
@@ -170,13 +170,28 @@ Exit Criteria:
 
 ## Closure
 
-Status Note: （关闭时填写）
-Completed: （关闭时填写）
+Status Note: 2026-08-06 收口——全 4 Phase 完成 + 独立子 agent closure audit（fresh session）PASS；判别性测试 +11 red→green 实测（git stash 逐项 red）；`./mvnw test -pl nop-metadata -am -T 1C` 997/0 全绿（R8.1 986 基线 + 11）；check-plan-checklist / check-doc-links / scan-hollow 全 exit 0；roadmap MR8 R8.2 → done（v29）+ arm-index R8.2 收口记录（AR-16/23③⑤④ → fixed，commit `c3325f17b`）。
+Completed: 2026-08-06
 
 Closure Audit Evidence:
 
-（关闭时由独立子 agent 填写）
+- Reviewer / Agent: 独立子 agent（general，fresh session `ses_02ae70f48ffeHgrYy10HpID03T`，non-self-audit）
+- Verdict: passes closure audit（首轮 needs revision 仅指 plan 收口记录未落——修复与测试经独立复跑全绿后，本轮全部补齐）
+- Evidence: 见下方逐项 live 证据 + Anti-Hollow 调用链追踪 + 独立复跑结果
+
+独立子 agent closure audit（fresh session）——**逐项证据**：
+
+- **AR-16 ✅**（live 证据 `MetaQualityRuleExecutor.java:644/:665/:690`）：三处 `LOG.info` 只输出 sqlHash（`sqlHashOf` :427），完整 SQL 降 DEBUG（:645/:666/:691）；details sqlHash 保持（custom_sql :295-296）；`TestMetaQualityRuleExecutorLogRedaction` 3/3 经 `judge` 真实入口 + mock JDBC 边界 + ListAppender 行为断言（INFO 不含 13800138000/张小明 + 含 sqlHash），独立复跑全绿
+- **AR-23③ ✅**（live 证据 `NopMetaIndexBuilder.java:108-116`）：refreshBlocking 失败 → `failed += 1`（:114，非 docs.size()）+ `errors` 含 "refresh"（:115）+ `setIndexed(docs.size())`（:119）在 catch 之外；`TestNopMetaIndexBuilder.testBuildFullIndex_refreshFailureReportedInResult` 真实 builder + mock ISearchEngine 边界，独立复跑全绿
+- **AR-23⑤ ✅**（live 证据 `ExternalTableStructureReader.java:81-86/:118-125/:138-143/:160-169` + `ExternalColumnInfo.java:14-15` + `DataSourceErrors.java:24-27`）：扫描故障 → `ERR_EXTERNAL_TABLE_SCAN_FAILED`（真实 productName + 原始消息；getDatabaseProductName 失败同归类 productName 如实 "unknown"）；方言门禁不误伤；`safeInt`→Integer / `safeOrdinal` int（null 保底 0）；`ERR_DIALECT_NOT_SUPPORTED` 0 引用删除；serializeColumns JSON null（`NopMetaDataSourceBizModel.java:547-566`，调用链 syncExternalTables→read→upsertExternalTable→serializeColumns 核实）；`TestExternalTableStructureReader` 8/8 + `TestNopMetaDataSourceBizModel` 7/7（含 2 新 JSON null 兼容），独立复跑全绿
+- **AR-23④ ✅**（live 证据 `NopMetaSearchBizModel.java:66-75` + `MiscErrors.java:159-161`）：limit<0 → `ERR_SEARCH_LIMIT_INVALID` + `.param(ARG_LIMIT)` 在 SearchRequest 构造（:77）之前；null→20 / >100→100 保持；`TestNopMetadataSearchIntegration` 18/18（+2：错误码 + verify never search + 归一化语义），独立复跑全绿
+- **Anti-Hollow 调用链追踪 PASS**：(a) judge→judgeCustomSql/judgeVolume/judgeFreshness→querySingleValue/queryLong/queryTimestamp→LOG；(b) buildFullIndex→addDocs→refreshBlocking→IndexResult 字段断言（mock 抛错→断言，运行时连通实证）；(c) syncExternalTables→structureReader.read→错误码；(d) searchMetadata→limit 检查→request→engine（verify never）
+- **工具/验证独立复跑**：focused 5 测试类复跑全绿（3/8/5/18/7，报告汇总 997/0）；check-doc-links --strict exit 0；scan-hollow --severity high exit 0
+- **Doc 一致性抽样**：docs-for-ai nop-metadata.md:158 searchMetadata limit 契约 + :215 扫描故障分类 + IndexResult refresh 语义 ↔ live code 一致；roadmap R8.2 → done；arm-index R8.2 收口记录 → fixed（commit 引用在案）
+- **Minor 观察（非阻塞）**：ERR_SEARCH_LIMIT_INVALID 描述 "positive integer" 措辞稍严（实现仅拒绝 <0，0 语义保持——scope 裁定"仅加负数显式拒绝"）；serializeColumns 反射测试（沿 CustomSqlSandbox 先例）；log AR-16 行号引用漂移（:642→:644 等，cosmetic）；LOG.debug 完整 SQL 行保留为裁定方案 (a) 的有意残余；watch-only follow-up（details sqlHash 化）登记于 Non-Blocking 段
+- **验证范围**：`./mvnw test -pl nop-metadata -am -T 1C`（聚合器 + 全部传递依赖）= effective full-test ✅
 
 Follow-up:
 
-（关闭时填写）
+- AR-23②（索引重建不清陈旧文档）由 R8.4 组承接（roadmap R8.4 行）——本 plan 不处理（Out Of Scope）
+- 登记同类敏感面（watch-only）：`judgeCustomSql` :300 `j.getDetails().put("sql", sql)` 完整 custom_sql 落 details（DB 持久化面）——随未来质量结果 schema 治理批次评估 sqlHash 化（plan §Non-Blocking Follow-ups）
