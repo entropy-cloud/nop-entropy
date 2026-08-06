@@ -406,6 +406,155 @@ nop 拦截是"改写/拒绝"，增加 BAIL 语义（对标 parlant hooks.py + gr
 
 消息/checkpoint/session-store 在 POST_REASONING 前已落账——BAIL 是"不作用 + 重新提示"，非"未发生"（与 `checkOutputGuardrail` 同边界）。
 
+### 增量 4：决策链场景测试（CheckpointTestHarness）— final
+
+> **Status: final**（plan 2249）。case 模型 + harness I/O 契约 + matchedRule 映射表已固化，可直接编码。
+
+nop 已有**内容层** guardrail 测试（增量 1 的 `GuardrailTestSuite`，测 `IContentGuardrail.check()` 对单条字符串的拦截）和**组件级**单元测试（`TestSecurityCheckpointChain` 测 chain 短路、各 `TestDefault*Checker` 测单个 checker 孤立行为）。但**没有数据驱动的全 checkpoint 链场景测试**——即"给定 tool call + 安全上下文配置，跑完 `AgentSecurityConsultation.buildCheckpointChain()` 构建的完整 7-checkpoint 链，断言最终 ALLOW/DENY 及命中检查点"。本节补这一层。
+
+#### 关键架构约束（决定本测试框架形态）
+
+1. **harness 直接构造 `AgentSecurityConsultation`**，而非"从 `DefaultAgentEngine` 提取 chain"。`SecurityCheckpointChain` 是 `ReActAgentExecutor` 的 `private final` 字段（每次执行时构建），engine 无 getter。harness 用 `Default*` 组件装配 `AgentSecurityConsultation`（13 个依赖，见裁定 C），再调其 **public** `buildCheckpointChain()`。
+2. **`evaluate()` 不返回 layer/rule**——`SecurityCheckpointChain.evaluate(ctx)` 只返回 `Decision` 枚举（ALLOW/DENY/DENY_AND_BREAK）。命中检查点经 `IAuditLogger` 侧信道捕获：每个 checkpoint 的 deny 路径写 `AuditEvent`（含 `matchedRule` 字段），harness 用 `CollectingAuditLogger` 提取。
+3. **case 模型无 `prior`/消息历史字段**——`SecurityCheckpoint.CheckContext` 无 message 字段；7 个 checkpoint 全部针对**单个 tool call + 静态安全上下文**评估，不消费消息历史（区别于 ArbiterOS 的 prior/current 范式）。多轮场景测试留 successor。
+4. **harness 每 case 构造全新 consultation + 全新 `AgentExecutionContext`**——`evaluate()` 的 deny 路径有副作用（写 AuditEvent、调 `hookInvoker.publishEvent()`、突变 context addMessage/setStatus、记 `denialLedger`/`postDenialGuard`）。全新实例隔离副作用、避免跨 case 状态泄漏（尤其 `DefaultDenialLedger` 的阈值累积与 `DefaultPostDenialGuard` 的 fingerprint 累积）。
+
+#### 裁定 A — `CheckpointTestCase` 数据模型（不可变值对象）
+
+| 字段 | 类型 | 语义 |
+|------|------|------|
+| `id` | `String` | 稳定用例标识（如 `tdl-001`），用于断言与回归 |
+| `category` | `String` | 场景分类（如 `tool-deny-list`、`path-sensitive`、`channel-matrix`） |
+| `toolName` | `String` | 被测工具名（如 `bash`、`read-file`、`shell.exec`） |
+| `args` | `Map<String,Object>` | 工具调用参数（含 `path`/`file` 等 `ToolPathArgKeys.KEYS` 路径参数） |
+| `channelKind` | `ChannelKind`（可空） | 请求来源渠道（WEBUI/API/DM/GROUP）；null 表示未设置 |
+| `principal` | `Principal`（可空） | 调用者身份（role/userId）；null 表示未设置 |
+| `workDir` | `String`（可空） | 工作目录，影响 pathAccess 与 Layer 2 writesOutsideWorkspace 评估 |
+| `sessionId` | `String` | 会话标识（用于 denialLedger/postDenialGuard/fingerprint 隔离） |
+| `expectedDecision` | `Decision` | 期望决策：`ALLOW` / `DENY` / `DENY_AND_BREAK` |
+| `expectedMatchedRule` | `String`（可空） | 期望命中的 `AuditEvent.matchedRule`（见映射表裁定 B）；null 表示不校验具体规则 |
+| `description` | `String`（可空） | 人类可读说明 |
+
+> **无 `prior`/消息历史字段**：checkpoint 不消费消息历史（约束 3），故 case 模型不携带消息列表。`write-intent-conflict` 场景通过 `prePopulatedConflicts`（裁定 C harness 装配参数）在 registry 中预置另一会话的 intent 来模拟跨会话冲突，而非通过历史消息。
+
+#### 裁定 B — 7-checkpoint → `AuditEvent.matchedRule` 映射表（从 live code 提取）
+
+每个 checkpoint 的 deny 路径在 `AgentSecurityConsultation.java` 写 `AuditEvent` 时携带的 `matchedRule`（经 `CollectingAuditLogger` 侧信道捕获）：
+
+| Checkpoint（链顺序） | `matchedRule` 来源 | live code 位置 |
+|----------------------|--------------------|----------------|
+| 1. postDenial | `"layer3_post_denial_guard"`（固定字面量） | `AgentSecurityConsultation.java:139` |
+| 2. toolAccess | `accessResult.getMatchedRule()`；`DefaultToolAccessChecker` → `"hardcoded_deny_list"` | `:166`；`DefaultToolAccessChecker.java:23` |
+| 3. permission | `perm.getMatchedRuleId()`；`AllowAllPermissionProvider` allow 时为 null；自定义 deny provider 时为动态规则 id | `:192` |
+| 4. pathAccess | `pathResult.getMatchedRule()`；`DefaultPathAccessChecker` 子规则见下 | `:403`；`DefaultPathAccessChecker.java` |
+| 5. layer2（matrix） | `"layer2_permission_matrix"`（固定字面量） | `:457` |
+| 6. layer3（approval） | `"layer3_approval_gate"`（固定字面量） | `:501` |
+| 7. conflict | `"layer2_conflict_strategy"`（固定字面量） | `:608` |
+| 附属：denialLedger 阈值触发 | `"layer3_denial_ledger"`（仅当 per-session 否决计数达 `DefaultDenialLedger` 阈值，threshold=3） | `:354` |
+
+`DefaultPathAccessChecker` 子规则（pathAccess checkpoint 捕获的 `matchedRule`）：
+
+| 子规则 | 触发条件 |
+|--------|---------|
+| `path_traversal_defense` | path 含 `..` 目录穿越 |
+| `sensitive_path_prefix` | path 命中 `~/.ssh/`、`~/.aws/`、`/etc/`、`/boot/` 等敏感前缀 |
+| `sensitive_path_env_file` | 文件名为 `.env` 或 `.env.*` |
+| `sensitive_path_filename` | 文件名为 `id_rsa`、`.netrc`、`.bash_history` 等 |
+| `sensitive_path_symlink` | symlink 解析后真实路径命中敏感规则 |
+| 无 rule（fail-closed deny） | 真实路径解析失败（matchedRule=null） |
+
+> **注意**：`"path_access_checker"` 字面量出现在 `handleDenialAndCheckThreshold` 的 `matchedRule` 形参（`:221`），但那是写入 denialLedger 的 `DenialRecord.matchedRule`，**不是** checkpoint 路径上 `AuditEvent.matchedRule` 的来源。`CollectingAuditLogger` 捕获到的是 `pathResult.getMatchedRule()`（即上表子规则）。harness 校验 pathAccess 命中时用子规则值。
+
+#### 裁定 C — Harness 装配（`buildDefaultConsultation`）
+
+harness 的 `buildDefaultConsultation()` 用 `Default*` 组件装配 `AgentSecurityConsultation` 的 13 个构造参数，与 `DefaultAgentEngine` 的 engine 默认对齐：
+
+| 参数 | 装配实例 | 说明 |
+|------|---------|------|
+| `postDenialGuard` | `new DefaultPostDenialGuard()` | fingerprint 跟踪 |
+| `auditLogger` | `new CollectingAuditLogger()` | **测试侧信道**（提取为 production 类，见裁定 D） |
+| `toolAccessChecker` | `new DefaultToolAccessChecker()` | deny-list |
+| `permissionProvider` | `new AllowAllPermissionProvider()` | **engine 默认**（`DefaultAgentEngine.java:143`），非 `DefaultPermissionProvider`（后者无规则时 deny-all） |
+| `pathAccessChecker` | `new DefaultPathAccessChecker()` | 敏感路径/穿越防御 |
+| `securityLevelResolver` | `new DefaultSecurityLevelResolver()` | trusted-by-default 分类 |
+| `permissionMatrix` | `new DefaultPermissionMatrix()` | channel × level |
+| `approvalGate` | `new DefaultApprovalGate()` | RESTRICTED defense-in-depth deny |
+| `denialLedger` | `new DefaultDenialLedger()` | per-session 阈值（threshold=3） |
+| `conflictStrategy` | `FailFastStrategy.failFast()` | 跨会话冲突 fail-fast |
+| `writeIntentRegistry` | `new InMemoryWriteIntentRegistry()` | （可注入预置冲突） |
+| `toolPlanResolver` | `new AgentToolPlanResolver(stubToolManager)` | stub `IToolManager`（参考 `TestConflictDetectionDispatchPath.stubToolManager()`） |
+| `hookInvoker` | `new AgentHookInvoker(new DefaultHookRegistry(), null)` | null publisher 安全（`publishEvent` 对 null 有防御） |
+
+> **装配助手可被覆盖**：`write-intent-conflict` 场景需在 registry 中预置另一会话的 `WriteIntent`（harness 提供 `withPrePopulatedConflict(...)` 或构造期注入 registry）。其余场景用默认装配。
+
+`CheckContext` 构造：`SecurityCheckpoint.CheckContext.create(sessionId, agentName, chatToolCall, executionContext, workDir, agentModel)`——harness 用 case 提供的 sessionId/workDir 构造最小 `AgentModel`（仅设 workDir）与 `AgentExecutionContext`（设 channelKind/principal）。
+
+#### 裁定 D — `CollectingAuditLogger` 提取为 production 类
+
+`CollectingAuditLogger implements IAuditLogger` 当前在 5 个测试文件中以 inner class 复制粘贴存在（`TestConflictDetectionDispatchPath`、`TestLayer23SecureDefaultImpls`、`TestDispatchPathApprovalGate`、`TestLayer23SecureDefaults`、`TestAuditLoggerDefault`）。本框架提取为 `io.nop.ai.agent.guardrail.test.CollectingAuditLogger` **production 类**（main source，与 `GuardrailTestSuite` 同包），供 harness 与下游测试复用。接口契约：`log(AuditEvent)` 累积事件；`getEvents()` 返回不可变快照；`firstDenyMatchedRule()` / `hasDenyWithRule(String)` 查询助手。
+
+#### 裁定 E — `CheckpointTestResult` / `CheckpointTestReport` 度量
+
+`CheckpointTestResult`（不可变，per-case）：`actualDecision`（Decision）+ `actualMatchedRule`（可空，首个 DENY AuditEvent 的 matchedRule）+ `passed`（actualDecision 与 expected 一致 **且** expectedMatchedRule 为 null 或被命中）。**无静默跳过**：`evaluate()` 抛异常或 chain 为 null 时 harness 显式失败（抛 `NopAiAgentException`，非跳过该 case）。
+
+`CheckpointTestReport`（不可变，聚合）度量集：
+
+| 度量 | 定义 |
+|------|------|
+| `passRate` | verdict=passed 的比例 |
+| `denyRate` | actualDecision≠ALLOW 的比例 |
+| per-`category` | 分场景的 pass/deny 计数 |
+| per-`matchedRule` | 分命中检查点（matchedRule）的计数，定位哪层 checkpoint 命中/未命中 |
+| per-case `CheckpointTestResult` 详情 | 每条用例的 actual + pass/fail，供回归快照 |
+
+首版为**可度量记录**（report 提供具体数值可断言），不内置硬 fail-fast 阈值（与增量 1 裁定 D 一致；门禁策略由消费方裁定）。
+
+#### SPI 契约汇总（可直接编码）
+
+| 组件 | 入口 | 输入 → 输出 |
+|------|------|-------------|
+| `CheckpointTestCase` | （不可变值对象） | 字段见裁定 A |
+| `CheckpointTestHarness` | `runCase(CheckpointTestCase)` | `CheckpointTestCase` → `CheckpointTestResult`（构造 consultation+chain+CheckContext，调真实 `chain.evaluate()`，从 `CollectingAuditLogger` 提取 matchedRule） |
+| `CollectingAuditLogger` | `log` / `getEvents` / `firstDenyMatchedRule` | `IAuditLogger` 实现，累积 `AuditEvent` 供断言 |
+| `CheckpointTestRunner` | `run(List<CheckpointTestCase>)` | 批量 case → `CheckpointTestReport`（逐条调 harness，聚合度量） |
+| `CheckpointTestReport` | （不可变值对象） | 度量字段见裁定 E |
+| `CheckpointTestCaseLoader` | `loadDirectory(vfsDir)` / `load(IResource)` | YAML resource → `List<CheckpointTestCase>`（复用 `ResourceHelper` + `JsonTool.parseYaml`，与 `CorpusLoader` 同构） |
+
+**端到端数据流**：YAML 语料 → `CheckpointTestCaseLoader` → `List<CheckpointTestCase>` → `CheckpointTestRunner` → 每 case `CheckpointTestHarness.runCase()`（构造 consultation → `buildCheckpointChain()` → `CheckContext.create()` → 真实 `chain.evaluate()` → `CollectingAuditLogger` 捕获）→ `CheckpointTestResult` → 聚合 `CheckpointTestReport`。**无静默跳过**（Minimum Rules #24）：`evaluate()` 抛异常或 chain 为 null 时 harness 显式失败；loader 解析错误 fail-loud。
+
+#### 单 call 可触发的 matchedRule 覆盖上限
+
+约束：postDenial 需跨 call 累积 fingerprint（单 call 无历史，不可触发）；security-level 经 `DefaultContentTrustEvaluator` 对 AGENT_GENERATED 恒 trusted → 高影响工具只到 ELEVATED → `DefaultApprovalGate` 批准 ELEVATED → Layer 3 无单 call DENY。故单 call 场景语料可覆盖的 matchedRule 为：`hardcoded_deny_list`（toolAccess）+ pathAccess 子规则（`sensitive_path_prefix` 等）+ `layer2_permission_matrix`（matrix）+ `layer2_conflict_strategy`（conflict）——共 ≥ 4 个不同 matchedRule。postDenial/Layer3/`layer3_denial_ledger` 的场景测试留 successor（需多轮重放或多 case 共享 ledger）。
+
+#### 基线结果摘要（plan 2249 Phase 5）
+
+用 `CheckpointTestRunner` 对 Default* 装配的完整 7-checkpoint 链跑全量语料（`/nop/ai/agent/checkpoint-test/corpus/`，6 场景目录 / 21 case），基线 report：
+
+| 度量 | 值 |
+|------|----|
+| total cases | 21 |
+| passed | 21（passRate = 1.0） |
+| failed | 0 |
+| DENY | 15（denyRate ≈ 0.714） |
+| ALLOW | 6 |
+
+per-category：
+
+| category | total | passed | denied |
+|----------|-------|--------|--------|
+| benign | 4 | 4 | 0 |
+| channel-matrix | 3 | 3 | 2 |
+| path-sensitive | 4 | 4 | 4 |
+| path-traversal | 3 | 3 | 3 |
+| tool-deny-list | 4 | 4 | 4 |
+| write-intent-conflict | 3 | 3 | 2 |
+
+per-matchedRule（命中的检查点分布）：`(allow)`=6、`hardcoded_deny_list`=4、`path_traversal_defense`=3、`sensitive_path_prefix`=2、`layer2_permission_matrix`=2、`layer2_conflict_strategy`=2、`sensitive_path_env_file`=1、`sensitive_path_filename`=1 ——共 7 个不同 DENY matchedRule，覆盖 toolAccess + pathAccess + layer2-matrix + conflict 四层。
+
+**漏报/误报裁定**：基线中 **0 漏报**（无 unsafe case 被 ALLOW——所有 deny 场景均被目标层拦截）、**0 误报**（无 safe case 被 DENY——benign 4/4 ALLOW，channel-matrix 与 conflict 的 ALLOW 对照 case 也正确放行）。语料在设计时即按 checkpoint 链的实际语义声明期望决策，Default* 链正确执行了这些语义。channel-matrix 的 `cmat-003`（ELEVATED over WEBUI → ALLOW）与 write-intent-conflict 的 `wcon-003`（无 seeded conflict → ALLOW）是显式的 safe 对照 case，验证矩阵/冲突层不会误拒合法操作。
+
+**已知单 call 非覆盖（设计性，非漏报）**：postDenial（`layer3_post_denial_guard`，需跨 call fingerprint 累积）、Layer 3 approval gate（`layer3_approval_gate`，RESTRICTED 在 trusted-by-default 下不可达）、denial-ledger 阈值（`layer3_denial_ledger`，需同 session 累积 ≥3 次否决）。这三层的场景测试留 successor（需多轮重放或多 case 共享 ledger/guard），已在 plan 2249 `Deferred But Adjudicated` 记录为 non-blocking。
+
 ### 与 hook-skill-engine 的边界
 
 - guardrail-contract：规则定义 + 测试闭环 + 关系建模（本篇）

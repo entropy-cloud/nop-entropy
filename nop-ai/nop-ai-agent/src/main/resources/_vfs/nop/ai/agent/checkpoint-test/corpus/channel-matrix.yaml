@@ -1,0 +1,39 @@
+# channel-matrix scenario: the DefaultPermissionMatrix denies ELEVATED
+# operations over the GROUP channel (matchedRule "layer2_permission_matrix").
+# shell.exec / code.exec are high-impact tools; under the trusted-by-default
+# resolver they classify as ELEVATED (not RESTRICTED), so GROUP denies them.
+# The WEBUI control case (cmat-003) allows ELEVATED and reaches ALLOW.
+- id: cmat-001
+  category: channel-matrix
+  toolName: shell.exec
+  args:
+    command: "ls -la"
+  channelKind: GROUP
+  principalRole: USER
+  sessionId: s-cmat-001
+  expectedDecision: DENY
+  expectedMatchedRule: layer2_permission_matrix
+  description: "ELEVATED shell.exec over GROUP channel denied at layer2"
+
+- id: cmat-002
+  category: channel-matrix
+  toolName: code.exec
+  args:
+    command: "whoami"
+  channelKind: GROUP
+  principalRole: USER
+  sessionId: s-cmat-002
+  expectedDecision: DENY
+  expectedMatchedRule: layer2_permission_matrix
+  description: "ELEVATED code.exec over GROUP channel denied at layer2"
+
+- id: cmat-003
+  category: channel-matrix
+  toolName: shell.exec
+  args:
+    command: "ls -la"
+  channelKind: WEBUI
+  principalRole: USER
+  sessionId: s-cmat-003
+  expectedDecision: ALLOW
+  description: "ELEVATED shell.exec over WEBUI channel allowed (control)"

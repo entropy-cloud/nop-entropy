@@ -1,0 +1,36 @@
+# path-traversal scenario: directory-traversal payloads (containing "..") must
+# DENY at the pathAccess checkpoint (matchedRule "path_traversal_defense").
+# The traversal check runs before path normalization, so it is deterministic
+# regardless of workDir.
+- id: ptrav-001
+  category: path-traversal
+  toolName: read-file
+  args:
+    path: "../../etc/passwd"
+  workDir: /tmp/work
+  sessionId: s-ptrav-001
+  expectedDecision: DENY
+  expectedMatchedRule: path_traversal_defense
+  description: "relative .. traversal denied at pathAccess"
+
+- id: ptrav-002
+  category: path-traversal
+  toolName: read-file
+  args:
+    path: "/tmp/../etc/shadow"
+  workDir: /tmp
+  sessionId: s-ptrav-002
+  expectedDecision: DENY
+  expectedMatchedRule: path_traversal_defense
+  description: "absolute path with .. component denied at pathAccess"
+
+- id: ptrav-003
+  category: path-traversal
+  toolName: read-file
+  args:
+    file: "data/../../secret"
+  workDir: /tmp/work
+  sessionId: s-ptrav-003
+  expectedDecision: DENY
+  expectedMatchedRule: path_traversal_defense
+  description: "traversal under the 'file' arg key denied at pathAccess"

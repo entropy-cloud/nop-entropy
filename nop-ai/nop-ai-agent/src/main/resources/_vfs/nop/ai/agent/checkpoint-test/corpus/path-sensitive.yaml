@@ -1,0 +1,46 @@
+# path-sensitive scenario: sensitive paths must DENY at the pathAccess
+# checkpoint. Uses non-deny-listed tools (read-file) so the call reaches the
+# pathAccess checkpoint (toolAccess runs first and allows read-file).
+# matchedRule comes from DefaultPathAccessChecker sub-rules.
+- id: psen-001
+  category: path-sensitive
+  toolName: read-file
+  args:
+    path: /etc/passwd
+  workDir: /tmp
+  sessionId: s-psen-001
+  expectedDecision: DENY
+  expectedMatchedRule: sensitive_path_prefix
+  description: "sensitive prefix /etc/ denied at pathAccess"
+
+- id: psen-002
+  category: path-sensitive
+  toolName: read-file
+  args:
+    path: "~/.ssh/config"
+  sessionId: s-psen-002
+  expectedDecision: DENY
+  expectedMatchedRule: sensitive_path_prefix
+  description: "sensitive prefix ~/.ssh/ (expanded to HOME) denied at pathAccess"
+
+- id: psen-003
+  category: path-sensitive
+  toolName: read-file
+  args:
+    path: /tmp/wf/.env
+  workDir: /tmp/wf
+  sessionId: s-psen-003
+  expectedDecision: DENY
+  expectedMatchedRule: sensitive_path_env_file
+  description: "sensitive filename .env denied at pathAccess"
+
+- id: psen-004
+  category: path-sensitive
+  toolName: read-file
+  args:
+    path: /tmp/wf/id_rsa
+  workDir: /tmp/wf
+  sessionId: s-psen-004
+  expectedDecision: DENY
+  expectedMatchedRule: sensitive_path_filename
+  description: "sensitive filename id_rsa denied at pathAccess"

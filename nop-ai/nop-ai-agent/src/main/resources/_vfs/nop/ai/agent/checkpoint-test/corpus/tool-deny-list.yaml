@@ -1,0 +1,46 @@
+# tool-deny-list scenario: deny-listed tools must DENY at the toolAccess
+# checkpoint (matchedRule "hardcoded_deny_list"). The toolAccess checkpoint
+# runs before pathAccess/layer2, so even a benign-looking path argument does
+# not matter — the tool is blocked by name first.
+- id: tdl-001
+  category: tool-deny-list
+  toolName: bash
+  args:
+    command: "rm -rf /tmp/scratch"
+  sessionId: s-tdl-001
+  expectedDecision: DENY
+  expectedMatchedRule: hardcoded_deny_list
+  description: "deny-listed bash tool denied at toolAccess"
+
+- id: tdl-002
+  category: tool-deny-list
+  toolName: write-file
+  args:
+    path: /tmp/work/notes.txt
+    content: "hello"
+  workDir: /tmp/work
+  sessionId: s-tdl-002
+  expectedDecision: DENY
+  expectedMatchedRule: hardcoded_deny_list
+  description: "deny-listed write-file tool denied at toolAccess"
+
+- id: tdl-003
+  category: tool-deny-list
+  toolName: delete-file
+  args:
+    path: /tmp/work/old.txt
+  workDir: /tmp/work
+  sessionId: s-tdl-003
+  expectedDecision: DENY
+  expectedMatchedRule: hardcoded_deny_list
+  description: "deny-listed delete-file tool denied at toolAccess"
+
+- id: tdl-004
+  category: tool-deny-list
+  toolName: http-request
+  args:
+    url: "https://example.com"
+  sessionId: s-tdl-004
+  expectedDecision: DENY
+  expectedMatchedRule: hardcoded_deny_list
+  description: "deny-listed http-request tool denied at toolAccess"

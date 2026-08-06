@@ -1,0 +1,40 @@
+# write-intent-conflict scenario: a cross-session write-intent conflict must
+# DENY at the conflict checkpoint (matchedRule "layer2_conflict_strategy").
+# The harness seeds the WriteIntentRegistry with another session's intent on
+# the same normalized path before building the consultation. The control case
+# (wcon-003) has no seeded conflict and reaches ALLOW.
+- id: wcon-001
+  category: write-intent-conflict
+  toolName: edit-file
+  args:
+    path: /tmp/wf-target1.txt
+  workDir: /tmp
+  sessionId: s-wcon-001
+  expectedDecision: DENY
+  expectedMatchedRule: layer2_conflict_strategy
+  description: "cross-session write-intent conflict denied at conflict checkpoint"
+  prePopConflictPath: /tmp/wf-target1.txt
+  prePopConflictSession: other-session
+
+- id: wcon-002
+  category: write-intent-conflict
+  toolName: edit-file
+  args:
+    path: /tmp/wf-target2.txt
+  workDir: /tmp
+  sessionId: s-wcon-002
+  expectedDecision: DENY
+  expectedMatchedRule: layer2_conflict_strategy
+  description: "second cross-session write-intent conflict denied at conflict checkpoint"
+  prePopConflictPath: /tmp/wf-target2.txt
+  prePopConflictSession: other-session
+
+- id: wcon-003
+  category: write-intent-conflict
+  toolName: edit-file
+  args:
+    path: /tmp/wf-noconflict.txt
+  workDir: /tmp
+  sessionId: s-wcon-003
+  expectedDecision: ALLOW
+  description: "no seeded conflict → ALLOW (control)"

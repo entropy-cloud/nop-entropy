@@ -1,0 +1,6 @@
+# Intentionally malformed fixture for TestCheckpointTestCaseLoader: the root
+# is a mapping, not a list. Kept in a SEPARATE vfs directory
+# (checkpoint-test-fixtures, not the corpus dir) so it does not pollute the
+# real corpus scan. The loader must reject this fail-loud rather than silently
+# producing an empty result.
+not-a-list: true
