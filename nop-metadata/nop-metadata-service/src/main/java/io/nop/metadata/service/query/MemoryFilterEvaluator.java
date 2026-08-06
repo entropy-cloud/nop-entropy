@@ -27,6 +27,14 @@ import java.util.Map;
  * <p>**类型强转（R1 M2）**：聚合值可能 Long/Double/BigDecimal/Integer/null，用户字面量可能 Integer/String/BigDecimal →
  * 比较前 Number 统一转 BigDecimal；非 Number 类型走 Comparable.compareTo（不静默转 0）。
  *
+ * <p>**三值逻辑（AR-19，plan 2026-08-06-0914-3）**：与 {@link FilterToSqlTranslator} 的 SQL 语义对齐——
+ * 比较（eq/ne/gt/ge/lt/le/like/in/between）任一侧为 null → UNKNOWN（null 结果），仅 is-null/not-null 判空；
+ * NOT 包装按 SQL 三值逻辑传播（NOT UNKNOWN = UNKNOWN）；空 and/or 节点 → 无过滤（恒真）；
+ * 行保留条件 = 求值结果恰为 TRUE（UNKNOWN/FALSE 均排除）。
+ *
+ * <p>**LIKE（AR-19）**：先转义正则元字符（`.`、`(`、`+` 等；`%`/`_` 保留不转义），再替换 `%`→`.*`、`_`→`.`——
+ * 字面量元字符不再扩大匹配面，通配符语义保持。
+ *
  * <p>**大小写匹配（R1 m2）**：叶子条件 name 与 group 行 key 比对 case-insensitive（与 safeAlias 大写化对齐）。
  *
  * <p>**name 反查**：name（用户选定的 measure/dimension name）→ alias（safeAlias 大写化）经调用方传入的 nameToAlias 反查表；
@@ -48,19 +56,22 @@ final class MemoryFilterEvaluator {
         this.dimensionNames = dimensionNames;
     }
 
-    /** 按求值结果过滤行（不修改原列表，返回新列表）。 */
+    /** 按求值结果过滤行（不修改原列表，返回新列表）。UNKNOWN/FALSE 均排除（与 SQL 结果集语义一致）。 */
     List<Map<String, Object>> filter(List<Map<String, Object>> rows) {
         List<Map<String, Object>> out = new ArrayList<>(rows.size());
         for (Map<String, Object> row : rows) {
-            if (evaluate(having, row)) {
+            if (Boolean.TRUE.equals(evaluate(having, row))) {
                 out.add(row);
             }
         }
         return out;
     }
 
-    @SuppressWarnings("unchecked")
-    private boolean evaluate(TreeBean node, Map<String, Object> row) {
+    /**
+     * 三值求值：返回 Boolean.TRUE / Boolean.FALSE / null（UNKNOWN，与 SQL 三值逻辑对齐）。
+     * 比较含 null 不抛异常——显式 UNKNOWN 语义（非吞异常、非静默降级）。
+     */
+    private Boolean evaluate(TreeBean node, Map<String, Object> row) {
         // plan 2026-07-18-1500-2：多列算术 having 在跨库内存路径显式失败（对齐 D12.2）
         // 检测点选在 evaluate 入口（R2 NEW-4）：错误上下文更清晰（含 op + name）。
         // 多列算术 leaf 经 setAttr/getAttr 承载 expr 属性；命中即拒绝，不静默跳过 / 不静默返回 false。
@@ -83,29 +94,35 @@ final class MemoryFilterEvaluator {
             case FilterBeanConstants.FILTER_OP_NOT:
                 List<TreeBean> notChildren = node.getChildren();
                 if (notChildren == null || notChildren.isEmpty()) {
+                    // SQL 空 not 节点 → 无过滤（translateNot 空子节点返回 null）
                     return true;
                 }
-                return !evaluate(notChildren.get(0), row);
+                Boolean inner = evaluate(notChildren.get(0), row);
+                // SQL 三值：NOT UNKNOWN = UNKNOWN
+                return inner == null ? null : !inner;
             case FilterBeanConstants.FILTER_OP_EQ:
-                return compareValues(getRowValue(node, row), getLiteral(node, FilterBeanConstants.FILTER_ATTR_VALUE)) == 0;
-            case FilterBeanConstants.FILTER_OP_NE:
-                return compareValues(getRowValue(node, row), getLiteral(node, FilterBeanConstants.FILTER_ATTR_VALUE)) != 0;
+                return compareEqual(getRowValue(node, row), getLiteral(node, FilterBeanConstants.FILTER_ATTR_VALUE));
+            case FilterBeanConstants.FILTER_OP_NE: {
+                Boolean eq = compareEqual(getRowValue(node, row), getLiteral(node, FilterBeanConstants.FILTER_ATTR_VALUE));
+                return eq == null ? null : !eq;
+            }
             case FilterBeanConstants.FILTER_OP_GT:
-                return compareValues(getRowValue(node, row), getLiteral(node, FilterBeanConstants.FILTER_ATTR_VALUE)) > 0;
+                return compareGt(getRowValue(node, row), getLiteral(node, FilterBeanConstants.FILTER_ATTR_VALUE));
             case FilterBeanConstants.FILTER_OP_GE:
-                return compareValues(getRowValue(node, row), getLiteral(node, FilterBeanConstants.FILTER_ATTR_VALUE)) >= 0;
+                return compareGe(getRowValue(node, row), getLiteral(node, FilterBeanConstants.FILTER_ATTR_VALUE));
             case FilterBeanConstants.FILTER_OP_LT:
-                return compareValues(getRowValue(node, row), getLiteral(node, FilterBeanConstants.FILTER_ATTR_VALUE)) < 0;
+                return compareLt(getRowValue(node, row), getLiteral(node, FilterBeanConstants.FILTER_ATTR_VALUE));
             case FilterBeanConstants.FILTER_OP_LE:
-                return compareValues(getRowValue(node, row), getLiteral(node, FilterBeanConstants.FILTER_ATTR_VALUE)) <= 0;
+                return compareLe(getRowValue(node, row), getLiteral(node, FilterBeanConstants.FILTER_ATTR_VALUE));
             case FilterBeanConstants.FILTER_OP_LIKE: {
                 Object rowVal = getRowValue(node, row);
                 Object literal = getLiteral(node, FilterBeanConstants.FILTER_ATTR_VALUE);
                 if (rowVal == null || literal == null) {
-                    return false;
+                    // SQL: col LIKE NULL → UNKNOWN
+                    return null;
                 }
                 String s = String.valueOf(rowVal);
-                String pattern = String.valueOf(literal).replace("%", ".*").replace("_", ".");
+                String pattern = toLikeRegex(String.valueOf(literal));
                 return s.matches(pattern);
             }
             case FilterBeanConstants.FILTER_OP_IN: {
@@ -118,12 +135,22 @@ final class MemoryFilterEvaluator {
                 Collection<?> coll = (literal instanceof Collection)
                         ? (Collection<?>) literal
                         : java.util.Arrays.asList((Object[]) literal);
+                if (rowVal == null) {
+                    // SQL: col IN (...) 且 col 为 NULL → UNKNOWN（NULL 元素也不会匹配 NULL 行）
+                    return null;
+                }
+                boolean sawNull = false;
                 for (Object v : coll) {
-                    if (compareValues(rowVal, v) == 0) {
+                    if (v == null) {
+                        sawNull = true;
+                        continue;
+                    }
+                    if (compareEqual(rowVal, v) == Boolean.TRUE) {
                         return true;
                     }
                 }
-                return false;
+                // 无匹配但列表含 NULL → SQL IN 谓词为 UNKNOWN（行被排除）；无 NULL 元素 → FALSE
+                return sawNull ? null : false;
             }
             case FilterBeanConstants.FILTER_OP_BETWEEN: {
                 Object rowVal = getRowValue(node, row);
@@ -133,10 +160,14 @@ final class MemoryFilterEvaluator {
                     throw new NopMetadataException(NopMetadataErrors.ERR_FILTER_BETWEEN_MISSING_BOUNDS)
                             .param("name", String.valueOf(node.getAttr(FilterBeanConstants.FILTER_ATTR_NAME)));
                 }
-                if (min != null && compareValues(rowVal, min) < 0) {
+                if (rowVal == null) {
+                    // SQL: col BETWEEN ... 且 col 为 NULL → UNKNOWN
+                    return null;
+                }
+                if (min != null && compareLt(rowVal, min) == Boolean.TRUE) {
                     return false;
                 }
-                if (max != null && compareValues(rowVal, max) > 0) {
+                if (max != null && compareGt(rowVal, max) == Boolean.TRUE) {
                     return false;
                 }
                 return true;
@@ -156,28 +187,82 @@ final class MemoryFilterEvaluator {
         }
     }
 
-    private boolean evalAll(List<TreeBean> children, Map<String, Object> row) {
+    private Boolean evalAll(List<TreeBean> children, Map<String, Object> row) {
         if (children == null || children.isEmpty()) {
+            // SQL 空 and 节点 → 无过滤（joinChildren 空 → null）→ 恒真
             return true;
         }
+        boolean sawUnknown = false;
         for (TreeBean c : children) {
-            if (!evaluate(c, row)) {
+            Boolean r = evaluate(c, row);
+            if (Boolean.FALSE.equals(r)) {
                 return false;
             }
-        }
-        return true;
-    }
-
-    private boolean evalAny(List<TreeBean> children, Map<String, Object> row) {
-        if (children == null || children.isEmpty()) {
-            return false;
-        }
-        for (TreeBean c : children) {
-            if (evaluate(c, row)) {
-                return true;
+            if (r == null) {
+                sawUnknown = true;
             }
         }
-        return false;
+        // SQL 三值 AND：无 false 但有 UNKNOWN → UNKNOWN
+        return sawUnknown ? null : true;
+    }
+
+    private Boolean evalAny(List<TreeBean> children, Map<String, Object> row) {
+        if (children == null || children.isEmpty()) {
+            // SQL 空 or 节点 → 无过滤（joinChildren 空 → null）→ 恒真（修复前 false → 语义相反）
+            return true;
+        }
+        boolean sawUnknown = false;
+        for (TreeBean c : children) {
+            Boolean r = evaluate(c, row);
+            if (Boolean.TRUE.equals(r)) {
+                return true;
+            }
+            if (r == null) {
+                sawUnknown = true;
+            }
+        }
+        // SQL 三值 OR：无 true 但有 UNKNOWN → UNKNOWN
+        return sawUnknown ? null : false;
+    }
+
+    /** eq/ne：任一侧 null → UNKNOWN（SQL NULL 比较语义）；否则数值/Comparable 比较。 */
+    private static Boolean compareEqual(Object a, Object b) {
+        if (a == null || b == null) {
+            return null;
+        }
+        return compareValues(a, b) == 0;
+    }
+
+    /** gt：任一侧 null → UNKNOWN；否则 a > b。 */
+    private static Boolean compareGt(Object a, Object b) {
+        if (a == null || b == null) {
+            return null;
+        }
+        return compareValues(a, b) > 0;
+    }
+
+    /** ge：任一侧 null → UNKNOWN；否则 a >= b。 */
+    private static Boolean compareGe(Object a, Object b) {
+        if (a == null || b == null) {
+            return null;
+        }
+        return compareValues(a, b) >= 0;
+    }
+
+    /** lt：任一侧 null → UNKNOWN；否则 a < b。 */
+    private static Boolean compareLt(Object a, Object b) {
+        if (a == null || b == null) {
+            return null;
+        }
+        return compareValues(a, b) < 0;
+    }
+
+    /** le：任一侧 null → UNKNOWN；否则 a <= b。 */
+    private static Boolean compareLe(Object a, Object b) {
+        if (a == null || b == null) {
+            return null;
+        }
+        return compareValues(a, b) <= 0;
     }
 
     /** 取叶子条件的聚合值（按 name 反查 alias，从 row case-insensitive 取值）。 */
@@ -217,19 +302,11 @@ final class MemoryFilterEvaluator {
     }
 
     /**
-     * 比较两值：Number → BigDecimal 统一比较；其他 → {@link Comparable}。null 处理：null 视为小于一切（与 SQL NULL 语义近似）。
+     * 比较两非 null 值：Number → BigDecimal 统一比较；其他 → {@link Comparable}。
+     * 调用方保证任一参数为 null 时不进入本方法（null 语义由三值逻辑层处理，与 SQL 一致）。
      */
     @SuppressWarnings({"unchecked", "rawtypes"})
     private static int compareValues(Object a, Object b) {
-        if (a == null && b == null) {
-            return 0;
-        }
-        if (a == null) {
-            return -1;
-        }
-        if (b == null) {
-            return 1;
-        }
         BigDecimal ab = toBigDecimal(a);
         BigDecimal bb = toBigDecimal(b);
         if (ab != null && bb != null) {
@@ -243,6 +320,28 @@ final class MemoryFilterEvaluator {
         }
         // 类型不可比较时回退到字符串比较（不静默失败）
         return String.valueOf(a).compareTo(String.valueOf(b));
+    }
+
+    /** LIKE 字面量 → 正则：先转义正则元字符（`%`/`_` 保留），再替换 `%`→`.*`、`_`→`.`（AR-19）。 */
+    private static String toLikeRegex(String literal) {
+        StringBuilder sb = new StringBuilder(literal.length() + 8);
+        for (int i = 0; i < literal.length(); i++) {
+            char c = literal.charAt(i);
+            if (c == '%') {
+                sb.append(".*");
+            } else if (c == '_') {
+                sb.append(".");
+            } else if (isRegexMetachar(c)) {
+                sb.append('\\').append(c);
+            } else {
+                sb.append(c);
+            }
+        }
+        return sb.toString();
+    }
+
+    private static boolean isRegexMetachar(char c) {
+        return "\\.[]{}()<>*+-=!?^$|".indexOf(c) >= 0;
     }
 
     /** 值→BigDecimal 转换（Integer/Long/Double/Float/BigDecimal/BigInteger 等）。非数值返回 null。 */
@@ -259,8 +358,8 @@ final class MemoryFilterEvaluator {
         return null;
     }
 
-    /** 测试可访问的求值入口（仅用于单元测试，避免直接构造内部类）。 */
-    static boolean evaluateForTest(TreeBean having, Map<String, String> nameToAlias, NopMetaTable table,
+    /** 测试可访问的求值入口（仅用于单元测试，避免直接构造内部类）。返回三值结果（null = UNKNOWN）。 */
+    static Boolean evaluateForTest(TreeBean having, Map<String, String> nameToAlias, NopMetaTable table,
                                      List<String> measureNames, List<String> dimensionNames, Map<String, Object> row) {
         return new MemoryFilterEvaluator(having, nameToAlias, table, measureNames, dimensionNames).evaluate(having, row);
     }

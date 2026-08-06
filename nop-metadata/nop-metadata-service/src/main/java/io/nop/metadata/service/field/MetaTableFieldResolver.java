@@ -336,26 +336,39 @@ public class MetaTableFieldResolver {
         return fields;
     }
 
-    @SuppressWarnings("unchecked")
+    /**
+     * 解析 external 表 buildSql JSON（AR-18b，plan 2026-08-06-0914-3）：逐元素 {@code instanceof Map}
+     * 校验（含 null 元素），非法元素 → 显式 {@link NopMetadataErrors#ERR_FIELD_RESOLVE_EXTERNAL_BUILD_SQL_INVALID}
+     * + 元素下标参数（不再裸 ClassCastException / NullPointerException）；JSON 损坏/非数组 → 同一错误码
+     * （cause 保留原始解析异常），不静默入库、不静默跳过。
+     */
     private List<ResolvedTableField> resolveExternalFields(NopMetaTable table) {
         String buildSql = table.getBuildSql();
         if (buildSql == null || buildSql.trim().isEmpty()) {
             throw new NopMetadataException(NopMetadataErrors.ERR_FIELD_RESOLVE_EXTERNAL_BUILD_SQL_INVALID)
                     .param(NopMetadataErrors.ARG_META_TABLE_ID, table.getMetaTableId());
         }
-        List<Map<String, Object>> columnList;
+        Object parsed;
         try {
-            Object parsed = JsonTool.parse(buildSql);
-            if (!(parsed instanceof List)) {
-                throw new NopMetadataException(NopMetadataErrors.ERR_FIELD_RESOLVE_EXTERNAL_BUILD_SQL_INVALID)
-                        .param(NopMetadataErrors.ARG_META_TABLE_ID, table.getMetaTableId());
-            }
-            columnList = (List<Map<String, Object>>) parsed;
-        } catch (NopException e) {
-            throw e;
+            parsed = JsonTool.parse(buildSql);
         } catch (Exception e) {
             throw new NopMetadataException(NopMetadataErrors.ERR_FIELD_RESOLVE_EXTERNAL_BUILD_SQL_INVALID, e)
                     .param(NopMetadataErrors.ARG_META_TABLE_ID, table.getMetaTableId());
+        }
+        if (!(parsed instanceof List)) {
+            throw new NopMetadataException(NopMetadataErrors.ERR_FIELD_RESOLVE_EXTERNAL_BUILD_SQL_INVALID)
+                    .param(NopMetadataErrors.ARG_META_TABLE_ID, table.getMetaTableId());
+        }
+        List<?> rawList = (List<?>) parsed;
+        List<Map<String, Object>> columnList = new ArrayList<>(rawList.size());
+        for (int i = 0; i < rawList.size(); i++) {
+            Object el = rawList.get(i);
+            if (!(el instanceof Map)) {
+                throw new NopMetadataException(NopMetadataErrors.ERR_FIELD_RESOLVE_EXTERNAL_BUILD_SQL_INVALID)
+                        .param(NopMetadataErrors.ARG_META_TABLE_ID, table.getMetaTableId())
+                        .param(NopMetadataErrors.ARG_ELEMENT_INDEX, i);
+            }
+            columnList.add((Map<String, Object>) el);
         }
         if (columnList.isEmpty()) {
             throw new NopMetadataException(NopMetadataErrors.ERR_FIELD_RESOLVE_NO_FIELDS)

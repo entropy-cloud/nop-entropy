@@ -15,6 +15,7 @@ import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -197,6 +198,197 @@ public class TestMemoryFilterAndOrderBy {
                 FilterBeans.gt("total", 20), names, table(), Arrays.asList("total"), Arrays.asList(),
                 rows);
         assertEquals(2, filtered.size(), "should filter out TOTAL=10");
+    }
+
+    // ============ AR-19 语义对齐（plan 2026-08-06-0914-3 Phase 2：与 FilterToSqlTranslator 对照） ============
+
+    @Test
+    public void testLikeEscapesLiteralMetachars() {
+        Map<String, String> names = nameToAlias("cat", "CAT");
+        // 字面量 `.` 必须按字面匹配——修复前 `%`→`.*`/`_`→`.` 后直接 matches，`.` 未转义 → aXb 被匹配（red）
+        assertFalse(MemoryFilterEvaluator.evaluateForTest(
+                FilterBeans.like("cat", "a.b"), names, table(), Arrays.asList(), Arrays.asList("cat"),
+                row("CAT", "aXb")), "literal '.' in LIKE must not match any char");
+        assertTrue(MemoryFilterEvaluator.evaluateForTest(
+                FilterBeans.like("cat", "a.b"), names, table(), Arrays.asList(), Arrays.asList("cat"),
+                row("CAT", "a.b")), "literal '.' in LIKE must match the literal dot");
+        // 字面量括号（捕获组）/加号（量词）转义
+        assertTrue(MemoryFilterEvaluator.evaluateForTest(
+                FilterBeans.like("cat", "(ab)"), names, table(), Arrays.asList(), Arrays.asList("cat"),
+                row("CAT", "(ab)")), "literal parentheses must match literally (old regex group '(ab)' never matched '(ab)')");
+        assertFalse(MemoryFilterEvaluator.evaluateForTest(
+                FilterBeans.like("cat", "x+y"), names, table(), Arrays.asList(), Arrays.asList("cat"),
+                row("CAT", "xxy")), "literal '+' must not act as quantifier");
+        assertTrue(MemoryFilterEvaluator.evaluateForTest(
+                FilterBeans.like("cat", "x+y"), names, table(), Arrays.asList(), Arrays.asList("cat"),
+                row("CAT", "x+y")), "literal '+' must match the plus sign");
+    }
+
+    @Test
+    public void testLikeWildcardsPreserved() {
+        Map<String, String> names = nameToAlias("cat", "CAT");
+        // 通配保持回归：% 中间匹配、_ 单字符
+        assertTrue(MemoryFilterEvaluator.evaluateForTest(
+                FilterBeans.like("cat", "%xx%"), names, table(), Arrays.asList(), Arrays.asList("cat"),
+                row("CAT", "1xx2")), "%xx% must still match middle content");
+        assertFalse(MemoryFilterEvaluator.evaluateForTest(
+                FilterBeans.like("cat", "%xx%"), names, table(), Arrays.asList(), Arrays.asList("cat"),
+                row("CAT", "1x2")), "%xx% must not match without xx");
+        assertTrue(MemoryFilterEvaluator.evaluateForTest(
+                FilterBeans.like("cat", "a_b"), names, table(), Arrays.asList(), Arrays.asList("cat"),
+                row("CAT", "axb")), "a_b must match single char");
+        assertFalse(MemoryFilterEvaluator.evaluateForTest(
+                FilterBeans.like("cat", "a_b"), names, table(), Arrays.asList(), Arrays.asList("cat"),
+                row("CAT", "axxb")), "a_b must not match two chars");
+    }
+
+    @Test
+    public void testNullComparisonsMatchSqlThreeValued() {
+        Map<String, String> names = nameToAlias("total", "TOTAL");
+        // HAVING x < 100 聚合为 NULL → SQL UNKNOWN → 排除（修复前 compareValues(null,100)=-1 → 保留 → red）
+        assertNull(MemoryFilterEvaluator.evaluateForTest(
+                FilterBeans.lt("total", 100), names, table(), Arrays.asList("total"), Arrays.asList(),
+                row("TOTAL", null)), "NULL group by x<100 must be UNKNOWN (SQL semantics)");
+        // eq/ne/gt/ge/le 同族：任一侧 null → SQL UNKNOWN → 排除
+        assertNull(MemoryFilterEvaluator.evaluateForTest(
+                FilterBeans.eq("total", 100), names, table(), Arrays.asList("total"), Arrays.asList(),
+                row("TOTAL", null)));
+        assertNull(MemoryFilterEvaluator.evaluateForTest(
+                FilterBeans.ne("total", 100), names, table(), Arrays.asList("total"), Arrays.asList(),
+                row("TOTAL", null)), "NULL <> 100 must also be UNKNOWN");
+        assertNull(MemoryFilterEvaluator.evaluateForTest(
+                FilterBeans.gt("total", 100), names, table(), Arrays.asList("total"), Arrays.asList(),
+                row("TOTAL", null)));
+        assertNull(MemoryFilterEvaluator.evaluateForTest(
+                FilterBeans.ge("total", 100), names, table(), Arrays.asList("total"), Arrays.asList(),
+                row("TOTAL", null)));
+        assertNull(MemoryFilterEvaluator.evaluateForTest(
+                FilterBeans.le("total", 100), names, table(), Arrays.asList("total"), Arrays.asList(),
+                row("TOTAL", null)));
+        // 字面量 null：col = NULL / col <> NULL → SQL UNKNOWN → 排除
+        assertNull(MemoryFilterEvaluator.evaluateForTest(
+                FilterBeans.eq("total", null), names, table(), Arrays.asList("total"), Arrays.asList(),
+                row("TOTAL", 30)), "col = NULL must be UNKNOWN");
+        assertNull(MemoryFilterEvaluator.evaluateForTest(
+                FilterBeans.ne("total", null), names, table(), Arrays.asList("total"), Arrays.asList(),
+                row("TOTAL", 30)), "col <> NULL must be UNKNOWN");
+        assertNull(MemoryFilterEvaluator.evaluateForTest(
+                FilterBeans.eq("total", null), names, table(), Arrays.asList("total"), Arrays.asList(),
+                row("TOTAL", null)));
+    }
+
+    @Test
+    public void testFilterListExcludesNullGroups() {
+        Map<String, String> names = nameToAlias("total", "TOTAL");
+        List<Map<String, Object>> rows = Arrays.asList(
+                row("TOTAL", null),
+                row("TOTAL", 50));
+        List<Map<String, Object>> filtered = MemoryFilterEvaluator.filterForTest(
+                FilterBeans.lt("total", 100), names, table(), Arrays.asList("total"), Arrays.asList(),
+                rows);
+        assertEquals(1, filtered.size(), "NULL group must be excluded (SQL UNKNOWN): " + filtered);
+        assertEquals(50, ((Number) filtered.get(0).get("TOTAL")).intValue());
+    }
+
+    @Test
+    public void testInWithNullSemantics() {
+        Map<String, String> names = nameToAlias("cat", "CAT");
+        TreeBean inWithNull = FilterBeans.in("cat", Arrays.asList("A", null));
+        assertTrue(MemoryFilterEvaluator.evaluateForTest(
+                inWithNull, names, table(), Arrays.asList(), Arrays.asList("cat"),
+                row("CAT", "A")), "matched element must pass even if list contains null");
+        assertNull(MemoryFilterEvaluator.evaluateForTest(
+                inWithNull, names, table(), Arrays.asList(), Arrays.asList("cat"),
+                row("CAT", "B")), "no match + list contains null → SQL UNKNOWN → excluded");
+        // rowVal=null → SQL UNKNOWN（修复前 null==null 元素命中 → 保留 → red）
+        assertNull(MemoryFilterEvaluator.evaluateForTest(
+                inWithNull, names, table(), Arrays.asList(), Arrays.asList("cat"),
+                row("CAT", null)), "rowVal null → SQL UNKNOWN → excluded");
+        assertNull(MemoryFilterEvaluator.evaluateForTest(
+                FilterBeans.in("cat", Arrays.asList((Object) null)), names, table(),
+                Arrays.asList(), Arrays.asList("cat"),
+                row("CAT", null)), "IN (NULL) with NULL row must be UNKNOWN (SQL)");
+        // 纯 null 列表 + 非 null rowVal → UNKNOWN → 排除
+        assertNull(MemoryFilterEvaluator.evaluateForTest(
+                FilterBeans.in("cat", Arrays.asList((Object) null)), names, table(),
+                Arrays.asList(), Arrays.asList("cat"),
+                row("CAT", "A")), "IN (NULL) must be UNKNOWN");
+    }
+
+    @Test
+    public void testBetweenNullSemantics() {
+        Map<String, String> names = nameToAlias("total", "TOTAL");
+        // 单边 null 边界 → 单边比较（与 FilterToSqlTranslator 一致：min==null → 仅 max 比较）
+        TreeBean maxOnly = FilterBeans.between("total", null, 50);
+        assertTrue(MemoryFilterEvaluator.evaluateForTest(
+                maxOnly, names, table(), Arrays.asList("total"), Arrays.asList(),
+                row("TOTAL", 30)), "single-side max bound must keep 30");
+        assertFalse(MemoryFilterEvaluator.evaluateForTest(
+                maxOnly, names, table(), Arrays.asList("total"), Arrays.asList(),
+                row("TOTAL", 60)), "single-side max bound must reject 60");
+        // rowVal=null → SQL UNKNOWN（修复前 compareValues(null,50)=-1 不触发比较 → true → 保留 → red）
+        assertNull(MemoryFilterEvaluator.evaluateForTest(
+                maxOnly, names, table(), Arrays.asList("total"), Arrays.asList(),
+                row("TOTAL", null)), "NULL row in BETWEEN → SQL UNKNOWN → excluded");
+        TreeBean both = FilterBeans.between("total", 10, 50);
+        assertNull(MemoryFilterEvaluator.evaluateForTest(
+                both, names, table(), Arrays.asList("total"), Arrays.asList(),
+                row("TOTAL", null)), "NULL row in full BETWEEN → SQL UNKNOWN → excluded");
+        TreeBean minOnly = FilterBeans.between("total", 10, null);
+        assertNull(MemoryFilterEvaluator.evaluateForTest(
+                minOnly, names, table(), Arrays.asList("total"), Arrays.asList(),
+                row("TOTAL", null)));
+    }
+
+    @Test
+    public void testNotWrapsNullThreeValued() {
+        Map<String, String> names = nameToAlias("total", "TOTAL");
+        // NOT (x < 100) 遇 x=NULL → SQL NOT UNKNOWN = UNKNOWN → 排除
+        // 修复前 evalNot = !evaluate = !false = true → 保留（语义相反）→ red
+        TreeBean notLt = FilterBeans.not(FilterBeans.lt("total", 100));
+        assertNull(MemoryFilterEvaluator.evaluateForTest(
+                notLt, names, table(), Arrays.asList("total"), Arrays.asList(),
+                row("TOTAL", null)), "NOT (x<100) with NULL must be UNKNOWN (SQL 3VL)");
+        assertTrue(MemoryFilterEvaluator.evaluateForTest(
+                notLt, names, table(), Arrays.asList("total"), Arrays.asList(),
+                row("TOTAL", 150)), "NOT (x<100) with 150 must pass");
+        assertFalse(MemoryFilterEvaluator.evaluateForTest(
+                notLt, names, table(), Arrays.asList("total"), Arrays.asList(),
+                row("TOTAL", 50)), "NOT (x<100) with 50 must fail");
+        // NOT(IN ...) 遇 UNKNOWN 同族
+        TreeBean notInNull = FilterBeans.not(FilterBeans.in("cat", Arrays.asList((Object) null)));
+        assertNull(MemoryFilterEvaluator.evaluateForTest(
+                notInNull, nameToAlias("cat", "CAT"), table(), Arrays.asList(), Arrays.asList("cat"),
+                row("CAT", "A")), "NOT (IN NULL) must be UNKNOWN (SQL NOT UNKNOWN = UNKNOWN)");
+    }
+
+    @Test
+    public void testEmptyOrAndNodesReturnNoFilter() {
+        Map<String, String> names = nameToAlias("total", "TOTAL");
+        List<Map<String, Object>> rows = Arrays.asList(
+                row("TOTAL", 10),
+                row("TOTAL", 30));
+        // 空 or 节点（无子节点，与 alwaysTrue 不同——FilterBeans.or() 零参返回 alwaysTrue，
+        // 空节点需显式构造）→ SQL 无过滤（joinChildren 空 → null → 无 WHERE）→ 全部保留（修复前 false → 全排除 → red）
+        TreeBean emptyOr = new io.nop.api.core.beans.TreeBean(io.nop.api.core.beans.FilterBeanConstants.FILTER_OP_OR);
+        TreeBean emptyAnd = new io.nop.api.core.beans.TreeBean(io.nop.api.core.beans.FilterBeanConstants.FILTER_OP_AND);
+        assertEquals(2, MemoryFilterEvaluator.filterForTest(
+                emptyOr, names, table(), Arrays.asList("total"), Arrays.asList(), rows).size(),
+                "empty or node must keep all rows (no filter)");
+        // 空 and 节点 → SQL 同型无过滤 → 全部保留
+        assertEquals(2, MemoryFilterEvaluator.filterForTest(
+                emptyAnd, names, table(), Arrays.asList("total"), Arrays.asList(), rows).size(),
+                "empty and node must keep all rows (no filter)");
+        assertTrue(MemoryFilterEvaluator.evaluateForTest(
+                emptyOr, names, table(), Arrays.asList("total"), Arrays.asList(),
+                row("TOTAL", 10)));
+        assertTrue(MemoryFilterEvaluator.evaluateForTest(
+                emptyAnd, names, table(), Arrays.asList("total"), Arrays.asList(),
+                row("TOTAL", 10)));
+        assertTrue(MemoryFilterEvaluator.evaluateForTest(
+                new io.nop.api.core.beans.TreeBean(io.nop.api.core.beans.FilterBeanConstants.FILTER_OP_NOT),
+                names, table(), Arrays.asList("total"), Arrays.asList(),
+                row("TOTAL", 10)), "empty not node → no filter");
     }
 
     // ============ MemoryOrderByComparator 测试 ============

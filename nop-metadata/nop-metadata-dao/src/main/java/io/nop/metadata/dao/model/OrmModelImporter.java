@@ -6,6 +6,7 @@ import io.nop.api.core.time.CoreMetrics;
 import io.nop.commons.type.StdDataType;
 import io.nop.commons.type.StdSqlType;
 import io.nop.commons.util.StringHelper;
+import io.nop.core.lang.json.JsonTool;
 import io.nop.metadata.dao.entity.NopMetaDict;
 import io.nop.metadata.dao.entity.NopMetaDictItem;
 import io.nop.metadata.dao.entity.NopMetaDomain;
@@ -29,7 +30,9 @@ import io.nop.orm.model.OrmModelConstants;
 import io.nop.orm.model.OrmUniqueKeyModel;
 
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 
 /**
  * 将平台 {@link IOrmModel}（解析自 model/*.orm.xml）拆解为 nop_metadata 的结构化实体。
@@ -205,25 +208,33 @@ public class OrmModelImporter {
         return items;
     }
 
+    /**
+     * join 条件结构化序列化（AR-18，plan 2026-08-06-0914-3）：手拼字符串 JSON 在 left/right 值含
+     * {@code "}/{@code \} 时产出非法 JSON 静默入库——统一改 {@link JsonTool#stringify}，任何输入值
+     * 均产出可解析 JSON，持久化格式不变（同为 JSON 数组文本）。
+     */
     private String buildJoinConditionsJson(IEntityRelationModel rel) {
-        List<String> parts = new ArrayList<>();
+        List<Map<String, Object>> list = new ArrayList<>();
         for (IEntityJoinConditionModel join : rel.getJoin()) {
-            String left = join.getLeftProp() != null ? join.getLeftProp() : StringHelper.toString(join.getLeftValue(), "");
-            String right = join.getRightProp() != null ? join.getRightProp() : StringHelper.toString(join.getRightValue(), "");
-            parts.add("{\"leftProp\":\"" + left + "\",\"rightProp\":\"" + right + "\"}");
+            Map<String, Object> m = new LinkedHashMap<>();
+            m.put("leftProp", join.getLeftProp() != null ? join.getLeftProp() : StringHelper.toString(join.getLeftValue(), ""));
+            m.put("rightProp", join.getRightProp() != null ? join.getRightProp() : StringHelper.toString(join.getRightValue(), ""));
+            list.add(m);
         }
-        return "[" + StringHelper.join(parts, ",") + "]";
+        return JsonTool.stringify(list);
     }
 
     private String buildIndexColumnsJson(OrmIndexModel idxModel) {
-        List<String> parts = new ArrayList<>();
+        List<Map<String, Object>> list = new ArrayList<>();
         if (idxModel.getColumns() != null) {
             for (OrmIndexColumnModel col : idxModel.getColumns()) {
-                boolean desc = Boolean.TRUE.equals(col.getDesc());
-                parts.add("{\"fieldName\":\"" + col.getName() + "\",\"desc\":" + desc + "}");
+                Map<String, Object> m = new LinkedHashMap<>();
+                m.put("fieldName", col.getName());
+                m.put("desc", Boolean.TRUE.equals(col.getDesc()));
+                list.add(m);
             }
         }
-        return "[" + StringHelper.join(parts, ",") + "]";
+        return JsonTool.stringify(list);
     }
 
     static byte b(boolean v) {

@@ -18,7 +18,7 @@ interface FieldErrors extends NopMetadataArgs {
     ErrorCode ERR_FIELD_RESOLVE_EXTERNAL_BUILD_SQL_INVALID =
             ErrorCode.define("nop.err.metadata.field-resolve-external-build-sql-invalid",
                     "Failed to parse external table buildSql JSON (expecting JSON array of column descriptors): "
-                            + "{metaTableId}", ARG_META_TABLE_ID);
+                            + "{metaTableId} elementIndex={elementIndex}", ARG_META_TABLE_ID, ARG_ELEMENT_INDEX);
     ErrorCode ERR_FIELD_RESOLVE_UNKNOWN_TABLE_TYPE =
             ErrorCode.define("nop.err.metadata.field-resolve-unknown-table-type",
                     "Unknown tableType for field resolution: {metaTableId} tableType={tableType}",

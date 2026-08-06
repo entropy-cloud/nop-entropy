@@ -731,6 +731,78 @@ public class TestAggregationExternalJoinAndPagination extends JunitBaseTestCase 
         }
     }
 
+    /**
+     * AR-19 端到端（plan 2026-08-06-0914-3 Phase 2，Minimum Rules #22）：同一份数据在
+     * 跨库内存聚合路径（fact/dim 分属两个数据源 → in-memory GROUP BY + MemoryFilterEvaluator having）
+     * 与同库 SQL 路径（fact/dim 同一数据源 → SQL JOIN + SQL HAVING）下，同一 having
+     * （measure 比较 + dimension LIKE）产出一致结果集。
+     */
+    @Test
+    @SuppressWarnings("unchecked")
+    public void testCrossDbMemoryHavingMatchesSameDbSqlPath() throws Exception {
+        // ===== 配置 A：跨库内存路径（fact 在 qs1、dim 在 qs2）=====
+        String qs1 = "qs_e2e_mem_1";
+        String qs2 = "qs_e2e_mem_2";
+        String dbUrl1 = "jdbc:h2:mem:" + qs1 + ";DB_CLOSE_DELAY=-1";
+        String dbUrl2 = "jdbc:h2:mem:" + qs2 + ";DB_CLOSE_DELAY=-1";
+        seedH2(dbUrl1, "CREATE TABLE EXT_FACT_E2E (CAT_ID INT, AMOUNT INT)",
+                "INSERT INTO EXT_FACT_E2E VALUES (1, 10)",
+                "INSERT INTO EXT_FACT_E2E VALUES (1, 20)",
+                "INSERT INTO EXT_FACT_E2E VALUES (2, 30)");
+        seedH2(dbUrl2, "CREATE TABLE EXT_DIM_E2E (CAT_ID INT, CAT_NAME VARCHAR(20))",
+                "INSERT INTO EXT_DIM_E2E VALUES (1, 'A')",
+                "INSERT INTO EXT_DIM_E2E VALUES (2, 'B')");
+        _helper.saveDataSource("ds-" + qs1, qs1, dbUrl1);
+        _helper.saveDataSource("ds-" + qs2, qs2, dbUrl2);
+        _helper.syncExternalTables("ds-" + qs1);
+        _helper.syncExternalTables("ds-" + qs2);
+        String memFact = _helper.externalTableId("EXT_FACT_E2E");
+        String memDim = _helper.externalTableId("EXT_DIM_E2E");
+        String memJoin = _helper.createTableTableJoin(memFact, "inner", memFact, memDim, "CAT_ID", "CAT_ID", "dim");
+        _helper.createMeasureWithSide(memFact, "total", "AMOUNT", "sum", "left");
+        _helper.createDimensionWithSide(memFact, "cat", "CAT_NAME", "categorical", null, "right");
+
+        // ===== 配置 B：同库 SQL 路径（fact + dim 同一数据源；NopMetaTable UK 无 datasource 维度，
+        // 同表名跨库会 upsert 串行，故 SQL 配置用独立表名、数据内容一致）=====
+        String qs3 = "qs_e2e_sql";
+        String dbUrl3 = "jdbc:h2:mem:" + qs3 + ";DB_CLOSE_DELAY=-1";
+        seedH2(dbUrl3, "CREATE TABLE EXT_FACT_E2E_SQL (CAT_ID INT, AMOUNT INT)",
+                "INSERT INTO EXT_FACT_E2E_SQL VALUES (1, 10)",
+                "INSERT INTO EXT_FACT_E2E_SQL VALUES (1, 20)",
+                "INSERT INTO EXT_FACT_E2E_SQL VALUES (2, 30)",
+                "CREATE TABLE EXT_DIM_E2E_SQL (CAT_ID INT, CAT_NAME VARCHAR(20))",
+                "INSERT INTO EXT_DIM_E2E_SQL VALUES (1, 'A')",
+                "INSERT INTO EXT_DIM_E2E_SQL VALUES (2, 'B')");
+        _helper.saveDataSource("ds-" + qs3, qs3, dbUrl3);
+        _helper.syncExternalTables("ds-" + qs3);
+        String sqlFact = _helper.externalTableId("EXT_FACT_E2E_SQL");
+        String sqlDim = _helper.externalTableId("EXT_DIM_E2E_SQL");
+        String sqlJoin = _helper.createTableTableJoin(sqlFact, "inner", sqlFact, sqlDim, "CAT_ID", "CAT_ID", "dim");
+        _helper.createMeasureWithSide(sqlFact, "total", "AMOUNT", "sum", "left");
+        _helper.createDimensionWithSide(sqlFact, "cat", "CAT_NAME", "categorical", null, "right");
+
+        // ===== 同一 having：measure 比较 + dimension LIKE =====
+        TreeBean having = FilterBeans.and(
+                FilterBeans.ge("total", 30),
+                FilterBeans.like("cat", "A%"));
+
+        List<Map<String, Object>> memoryItems = queryAggregationItems(memFact,
+                Arrays.asList("total"), Arrays.asList("cat"), null, memJoin, null, null, having, null);
+        List<Map<String, Object>> sqlItems = queryAggregationItems(sqlFact,
+                Arrays.asList("total"), Arrays.asList("cat"), null, sqlJoin, null, null, having, null);
+
+        // 两路径一致：恰好组 A（total=30, CAT=A）——组 B 被 LIKE 排除
+        assertEquals(1, memoryItems.size(), "cross-DB memory having must keep exactly group A: " + memoryItems);
+        assertEquals(memoryItems.size(), sqlItems.size(),
+                "memory path and SQL path must agree on group count: memory=" + memoryItems + " sql=" + sqlItems);
+        assertEquals("A", getIgnoreCase(memoryItems.get(0), "CAT"), "memory path group: " + memoryItems);
+        assertEquals("A", getIgnoreCase(sqlItems.get(0), "CAT"), "SQL path group: " + sqlItems);
+        assertEquals(toInt(getIgnoreCase(memoryItems.get(0), "TOTAL")),
+                toInt(getIgnoreCase(sqlItems.get(0), "TOTAL")),
+                "memory and SQL paths must agree on measure value");
+        assertEquals(30, toInt(getIgnoreCase(memoryItems.get(0), "TOTAL")), "SUM(AMOUNT) for A = 30");
+    }
+
     // ============================================================
     // JOIN 路径 expression
     // ============================================================

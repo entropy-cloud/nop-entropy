@@ -54,6 +54,7 @@ public interface NopMetadataArgs {
     String ARG_DATA_SOURCE_COUNT = "dataSourceCount";
     String ARG_INDEX = "index";
     String ARG_EDGE = "edge";
+    String ARG_ELEMENT_INDEX = "elementIndex";
     String ARG_SIZE = "size";
     String ARG_COUNT = "count";
     String ARG_STATEMENT_KIND = "statementKind";
