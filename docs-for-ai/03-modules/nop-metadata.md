@@ -113,16 +113,20 @@ query {
 mutation {
   NopMetaQualityCheckpoint__executeCheckpoint(checkpointId: "cp-1") {
     runId
+    totalRuleCount
     executedRuleCount
-    ruleResults { qualityRuleId passCount failCount }
+    skipCount
+    ruleResults { qualityRuleId status message }
     errors { code message }
   }
 }
 ```
 
+**执行结果 DTO（AR-14，R8.1）**：检查点路径填充 `totalRuleCount`（= 解析后规则集大小，含异常/SKIP 规则）、`skipCount`（显式 SKIP 计数）与 `ruleResults`（每条规则一个条目，含异常规则补写的 ERROR 条目——`ruleResults` 条目数 = `totalRuleCount`，计数可对账；条目字段为 qualityRuleId + status + message；resultCount/passCount/failCount/errors 为单规则执行路径语义，检查点路径保持默认值）。
+
 **运行期（concurrent）幂等（R4.3）**：每次执行生成唯一 `runId`（UUID），结果行写入 `checkpointId`/`runId` 列（`NopMetaQualityResult` 复合 UK `(checkpointId, runId, qualityRuleId)` 兜底拒绝同 runId 重复写行，可空列 NULL 不参与冲突判定——单规则执行路径两列保持 null）。执行入口有 per-checkpoint 运行标记（进程内锁，覆盖 executor + autoScore + dispatchActions 全程）：**同一检查点并发/重复触发时第二次执行显式 fail-fast**（错误码 `checkpoint-already-running`），不静默重复执行、不重复投递 webhook/notify。保留的时序语义：顺序重复执行（间隔超过单次耗时）合法，每次执行 = 新 runId = 新结果行。cron 与手动并发时 cron 侧被拒绝仅记 WARN 日志。跨进程分布式锁不做（单实例 supported baseline）。
 
-**regex 规则方言例外（P2-08）**：regex 规则执行时若目标数据库方言不支持 `REGEXP` 运算符（如部分嵌入式/低版本库），`MetaQualityRuleExecutor.judgeRegex` 返回 **SKIP** 判定 + `LOG.warn` 留证 + `details.reason="regexp-unsupported-dialect"` 标记——这是"无静默跳过"原则下经裁定的显式例外（SKIP 本身是可见结果而非静默跳过，调用方/页面可据此区分"未执行"与"通过"）；其余失败路径（SQL 执行失败等）仍显式抛错。
+**regex 规则方言例外（P2-08，R8.1 收窄）**：regex 规则执行时若目标数据库方言**真实不支持** `REGEXP` 运算符（按方言不支持签名集合匹配：`not supported` / `unknown function` / `syntax error at or near`（PostgreSQL 不支持 REGEXP 运算符的真实签名）），`MetaQualityRuleExecutor.judgeRegex` 返回 **SKIP** 判定 + `LOG.warn` 留证 + `details.reason="regexp-unsupported-dialect"` 标记——这是"无静默跳过"原则下经裁定的显式例外（SKIP 本身是可见结果而非静默跳过，调用方/页面可据此区分"未执行"与"通过"）。**SKIP 仅保留给真实方言不支持场景**：MySQL/H2 等支持 REGEXP 的方言上，规则级正则错误（如非法 pattern，报错消息可能含 "regexp"/"syntax" 字样）显式 **ERROR**（status=ERROR + message），不误判 SKIP——失败规则不得从 pass/fail 统计中静默消失（AR-11 行为收紧）；其余失败路径（SQL 执行失败等）仍显式报 ERROR。
 
 ## 多 schema 支持（R4.2）
 

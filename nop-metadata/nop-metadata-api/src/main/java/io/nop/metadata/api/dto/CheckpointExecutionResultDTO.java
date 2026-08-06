@@ -24,6 +24,7 @@ public class CheckpointExecutionResultDTO implements Serializable {
     private int passCount;
     private int failCount;
     private int errorCount;
+    private int skipCount;
     private List<String> affectedTableIds = new ArrayList<>();
     private List<QualityRuleResultDTO> ruleResults = new ArrayList<>();
     private List<ErrorDTO> errors = new ArrayList<>();
@@ -102,6 +103,15 @@ public class CheckpointExecutionResultDTO implements Serializable {
 
     public void setErrorCount(int errorCount) {
         this.errorCount = errorCount;
+    }
+
+    /** AR-14（R8.1）：显式 SKIP 计数（database 规则 / 方言不支持等），与 totalRuleCount 对账。 */
+    public int getSkipCount() {
+        return skipCount;
+    }
+
+    public void setSkipCount(int skipCount) {
+        this.skipCount = skipCount;
     }
 
     public List<String> getAffectedTableIds() {

@@ -20,6 +20,7 @@ import io.nop.http.api.client.IHttpClient;
 import io.nop.metadata.biz.INopMetaQualityCheckpointBiz;
 import io.nop.metadata.api.dto.CheckpointExecutionResultDTO;
 import io.nop.metadata.api.dto.CheckpointExtConfig;
+import io.nop.metadata.api.dto.QualityRuleResultDTO;
 import io.nop.metadata.dao.entity.NopMetaQualityCheckpoint;
 import io.nop.metadata.service.connection.IMetaDataSourceConnectionProcessor;
 import io.nop.metadata.service.NopMetadataException;
@@ -198,6 +199,9 @@ public class NopMetaQualityCheckpointBizModel extends CrudBizModel<NopMetaQualit
             CheckpointExecutionResultDTO dto = new CheckpointExecutionResultDTO();
             dto.setCheckpointId((String) summary.get("checkpointId"));
             dto.setRunId(runId);
+            // AR-14：填充 totalRuleCount/skipCount（此前检查点路径从不填充，计数不可对账）
+            Object totalRuleCount = summary.get("totalRuleCount");
+            dto.setTotalRuleCount(totalRuleCount instanceof Number ? ((Number) totalRuleCount).intValue() : 0);
             Object executedCount = summary.get("executedCount");
             dto.setExecutedRuleCount(executedCount instanceof Number ? ((Number) executedCount).intValue() : 0);
             Object passCount = summary.get("passCount");
@@ -206,13 +210,20 @@ public class NopMetaQualityCheckpointBizModel extends CrudBizModel<NopMetaQualit
             dto.setFailCount(failCount instanceof Number ? ((Number) failCount).intValue() : 0);
             Object errorCount = summary.get("errorCount");
             dto.setErrorCount(errorCount instanceof Number ? ((Number) errorCount).intValue() : 0);
+            Object skipCount = summary.get("skipCount");
+            dto.setSkipCount(skipCount instanceof Number ? ((Number) skipCount).intValue() : 0);
             Object affectedTableIds = summary.get("affectedTableIds");
             if (affectedTableIds instanceof List) {
                 dto.setAffectedTableIds((List<String>) affectedTableIds);
             }
             Object results = summary.get("results");
             if (results instanceof List) {
-                dto.setExecutionResults((List<Map<String, Object>>) results);
+                List<Map<String, Object>> resultList = (List<Map<String, Object>>) results;
+                dto.setExecutionResults(resultList);
+                // AR-14 映射契约：summary.results 条目 → QualityRuleResultDTO（qualityRuleId + status + message；
+                // resultCount/passCount/failCount/errors 保持单规则路径语义默认值）。条目数 = totalRuleCount
+                // （含异常规则的 ERROR 条目），计数可对账。
+                dto.setRuleResults(mapRuleResults(resultList));
             }
             Object errors = summary.get("errors");
             if (errors instanceof List) {
@@ -377,6 +388,26 @@ public class NopMetaQualityCheckpointBizModel extends CrudBizModel<NopMetaQualit
     // ============================================================
     // helpers
     // ============================================================
+
+    /**
+     * AR-14 映射契约：summary.results 条目（{qualityRuleId, ruleName, status, actualValue, expectedValue,
+     * message}）→ {@link QualityRuleResultDTO}（qualityRuleId + status + message；resultCount/passCount/
+     * failCount/errors 保持单规则路径语义默认值，形状不对应的字段不硬映射）。
+     */
+    private static List<QualityRuleResultDTO> mapRuleResults(List<Map<String, Object>> results) {
+        List<QualityRuleResultDTO> list = new ArrayList<>();
+        for (Map<String, Object> r : results) {
+            QualityRuleResultDTO dto = new QualityRuleResultDTO();
+            Object ruleId = r.get("qualityRuleId");
+            dto.setQualityRuleId(ruleId != null ? String.valueOf(ruleId) : null);
+            Object status = r.get("status");
+            dto.setStatus(status != null ? String.valueOf(status) : null);
+            Object message = r.get("message");
+            dto.setMessage(message != null ? String.valueOf(message) : null);
+            list.add(dto);
+        }
+        return list;
+    }
 
     // ============================================================
     // D4：结果动作投递（transaction-isolated dispatch）

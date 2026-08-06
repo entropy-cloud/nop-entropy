@@ -4,10 +4,14 @@ package io.nop.metadata.service.quality;
 import io.nop.dao.api.IDaoProvider;
 import io.nop.dao.api.IEntityDao;
 import io.nop.job.api.IJobScheduler;
+import io.nop.metadata.api.dto.CheckpointExecutionResultDTO;
 import io.nop.metadata.dao.entity.NopMetaQualityCheckpoint;
 import org.junit.jupiter.api.Test;
 
+import java.util.Collections;
+
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyBoolean;
@@ -76,5 +80,29 @@ public class TestMetaQualityCheckpointSchedulerCronReadFailure {
         } finally {
             logger.detachAppender(appender);
         }
+    }
+
+    /**
+     * AR-12（R8.1）判别性测试：job 参数缺失 checkpointId（遗留/损坏 job 参数）时
+     * {@code executeScheduledCheckpoint} 必须在 try 边界内返回错误结果而非向外抛——
+     * 修复前 cpId==null 分支在 try 之外直接 throw，异常逃逸到 BeanMethodJobInvoker 会转
+     * {@code JobFireResult.ERROR} 使 job 永久 FAILED（MA7.5-01 要消除的失败模式）。
+     * 错误码语义与缺失 checkpointId 匹配（checkpoint-missing-id，不再复用 invalid-cron）。
+     */
+    @Test
+    public void testMissingCheckpointIdReturnsErrorResultInsteadOfThrowing() {
+        MetaQualityCheckpointScheduler service = new MetaQualityCheckpointScheduler();
+        // checkpointBizModel 未注入也不可达：缺失 checkpointId 在调用 raw impl 之前已显式失败
+        assertDoesNotThrow(() -> service.executeScheduledCheckpoint(Collections.emptyMap()),
+                "missing checkpointId must not escape to invoker (MA7.5-01, was throwing outside try before AR-12)");
+
+        CheckpointExecutionResultDTO dto = service.executeScheduledCheckpoint(Collections.emptyMap());
+        assertFalse(dto.getExecutionErrors().isEmpty(),
+                "error result must carry executionErrors (buildErrorResult path)");
+        String error = String.valueOf(dto.getExecutionErrors().get(0).get("error"));
+        assertTrue(error.contains("checkpoint-missing-id"),
+                "error code must be ERR_CHECKPOINT_MISSING_ID (missing-checkpoint-id semantics), got: " + error);
+        assertTrue(!error.contains("invalid-cron"),
+                "must NOT reuse ERR_CHECKPOINT_SCHEDULER_INVALID_CRON (wrong semantics), got: " + error);
     }
 }

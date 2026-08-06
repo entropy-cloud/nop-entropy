@@ -32,6 +32,7 @@ import java.sql.DriverManager;
 import java.sql.Statement;
 import java.sql.Timestamp;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -864,14 +865,111 @@ public class TestNopMetaQualityCheckpointBizModel extends JunitBaseTestCase {
         assertEquals(1, countResults("r-nff-vol"), "store must survive notify failure (post-commit)");
     }
 
+    // ===== AR-14（R8.1）：异常规则补写 ERROR 结果行 + DTO 计数对账 =====
+
+    /**
+     * 端到端判别性测试（Minimum Rules #22）：抛异常规则补写 ERROR 结果行（clearSession 后存活），
+     * 本次 run 的 autoScore 即用 ERROR 行重算该表——不再复用前一轮旧 PASS：
+     * <ul>
+     *   <li>run 1：规则 PASS → 1 行 PASS 结果 + score=100</li>
+     *   <li>破坏物理表 → run 2：规则执行抛 SQLException → 追加 ERROR 结果行（修复前异常规则只进
+     *       errors 列表，无结果行 → findLatestResult 复用旧 PASS → 评分仍显健康）</li>
+     *   <li>run 2 autoScore 用 ERROR 行重算（affectedTableIds 含该表）→ score 从 100 降至 0</li>
+     * </ul>
+     */
+    @Test
+    public void testExceptionRuleWritesErrorRowAndRescoresWithError() throws Exception {
+        String dbUrl = "jdbc:h2:mem:meta_cp_errrow;DB_CLOSE_DELAY=-1";
+        seedTable(dbUrl, "CREATE TABLE ext_er (id INT NOT NULL)",
+                "INSERT INTO ext_er VALUES (1)", "INSERT INTO ext_er VALUES (2)");
+        PreparedEnv env = prepare(dbUrl, "qs_cp_errrow");
+        String tableId = env.tableId("EXT_ER");
+
+        saveRule("r-er-vol", "volume", "table", tableId, null, null, "{\"minRows\":1}"); // PASS
+        saveCheckpoint("cp-er", "ACTIVE", "[{\"tableIds\":[\"" + tableId + "\"]}]", null);
+
+        // run 1：PASS + score=100
+        GraphQLResponseBean resp1 = exec("cp-er");
+        assertFalse(resp1.hasError(), "run 1 must succeed: " + resp1);
+        assertEquals(1, countResults("r-er-vol"), "run 1 must write 1 result row");
+        assertEquals("PASS", findResult("r-er-vol").getStatus(), "run 1 result must be PASS");
+        assertEquals(1, countScores(tableId), "run 1 must auto-score once");
+        assertEquals(100.0, findLatestScore(tableId).getOverallScore(), 0.001, "run 1 score = 100");
+
+        // 破坏物理表（规则仍挂载于 NopMetaTable）→ run 2 规则执行抛 SQLException
+        Thread.sleep(10); // executeTime 毫秒精度，保证 run 2 行严格晚于 run 1 行（findLatestResult 确定性）
+        dropExternalTable(dbUrl, "EXT_ER");
+
+        GraphQLResponseBean resp2 = exec("cp-er");
+        assertFalse(resp2.hasError(), "exception rule must be isolated (no global error): " + resp2);
+        String data = String.valueOf(resp2.getData());
+        assertTrue(data.contains("errorCount=1"), "exception rule must count in errorCount: " + data);
+        assertTrue(data.contains("totalRuleCount=1"), "DTO must fill totalRuleCount=1: " + data);
+
+        // ERROR 结果行落盘（clearSession 后存活）+ 最新行为 ERROR（不再是旧 PASS）
+        assertEquals(2, countResults("r-er-vol"),
+                "exception rule must append an ERROR result row (before AR-14 only errors list, no row)");
+        NopMetaQualityResult latest = findLatestResult("r-er-vol");
+        assertNotNull(latest, "latest result row must exist");
+        assertEquals("ERROR", latest.getStatus(), "latest result row must be ERROR");
+        assertNotNull(latest.getRunId(), "ERROR row must carry runId (composite UK reconcile)");
+
+        // 本次 run autoScore 用 ERROR 行重算（affectedTableIds 含该表）→ 评分从 100 降至 0
+        assertEquals(2, countScores(tableId), "run 2 must auto-score again (table in affectedTableIds)");
+        assertEquals(0.0, findLatestScore(tableId).getOverallScore(), 0.001,
+                "score must reflect ERROR row (was stale 100 from old PASS before AR-14)");
+    }
+
+    /**
+     * DTO 计数对账（AR-14 映射契约）：PASS + ERROR（异常规则）+ SKIP（database 规则）混合 → raw impl
+     * 直接断言 {@code totalRuleCount=3 / ruleResults 条目数=3（含 ERROR 条目）/ skipCount=1 /
+     * passCount=1 / errorCount=1}——修复前 totalRuleCount/ruleResults 从不填充、无 skipCount 字段。
+     */
+    @Test
+    public void testCheckpointDtoCountsReconcile() throws Exception {
+        String dbUrl = "jdbc:h2:mem:meta_cp_recon;DB_CLOSE_DELAY=-1";
+        seedTable(dbUrl, "CREATE TABLE ext_rc (id INT NOT NULL)", "INSERT INTO ext_rc VALUES (1)");
+        PreparedEnv env = prepare(dbUrl, "qs_cp_recon");
+        String tableId = env.tableId("EXT_RC");
+
+        saveRule("r-rc-vol", "volume", "table", tableId, null, null, "{\"minRows\":1}");              // PASS
+        saveRule("r-rc-throw", "volume", "table", "__missing_table__", null, null, "{\"minRows\":1}"); // ERROR
+        saveRule("r-rc-db", "volume", "database", "some-db", null, null, "{\"minRows\":1}");           // SKIP
+        saveCheckpoint("cp-rc", "ACTIVE",
+                "[{\"ruleIds\":[\"r-rc-vol\",\"r-rc-throw\",\"r-rc-db\"]}]", null);
+
+        io.nop.metadata.api.dto.CheckpointExecutionResultDTO dto =
+                checkpointBizModel.executeCheckpoint("cp-rc", "PUBLIC", null);
+
+        assertEquals(3, dto.getTotalRuleCount(), "totalRuleCount = resolved rule set size (3)");
+        assertEquals(3, dto.getExecutedRuleCount(), "executedCount = pass+fail+error+skip");
+        assertEquals(1, dto.getPassCount(), "passCount = 1 (volume)");
+        assertEquals(1, dto.getErrorCount(), "errorCount = 1 (missing-table exception rule)");
+        assertEquals(1, dto.getSkipCount(), "skipCount = 1 (database rule)");
+        assertEquals(3, dto.getRuleResults().size(),
+                "ruleResults entries must equal totalRuleCount (incl. ERROR entry, before AR-14 never filled)");
+
+        Map<String, String> statusByRule = new java.util.HashMap<>();
+        for (io.nop.metadata.api.dto.QualityRuleResultDTO r : dto.getRuleResults()) {
+            assertNotNull(r.getQualityRuleId(), "ruleResult must carry qualityRuleId");
+            assertNotNull(r.getStatus(), "ruleResult must carry status");
+            statusByRule.put(r.getQualityRuleId(), r.getStatus());
+        }
+        assertEquals("PASS", statusByRule.get("r-rc-vol"));
+        assertEquals("ERROR", statusByRule.get("r-rc-throw"));
+        assertEquals("SKIP", statusByRule.get("r-rc-db"));
+        assertNotNull(dto.getRuleResults().get(0).getMessage(), "ruleResult must carry message");
+    }
+
     // ===== helpers =====
 
     private GraphQLResponseBean exec(String checkpointId) {
         return graphQLEngine.executeGraphQL(graphQLEngine.newGraphQLContext(req(
                 "mutation { NopMetaQualityCheckpoint__executeCheckpoint(checkpointId: \"" + checkpointId
                         + "\", schemaPattern: \"PUBLIC\") { "
-                        + "checkpointId runId executedRuleCount passCount failCount errorCount "
+                        + "checkpointId runId totalRuleCount executedRuleCount passCount failCount errorCount skipCount "
                         + "affectedTableIds autoScore scoreSkipped executionErrors "
+                        + "ruleResults { qualityRuleId status message } "
                         + "} }")));
     }
 
@@ -1004,6 +1102,23 @@ public class TestNopMetaQualityCheckpointBizModel extends JunitBaseTestCase {
         QueryBean q = new QueryBean();
         q.addFilter(FilterBeans.eq(NopMetaQualityResult.PROP_NAME_qualityRuleId, ruleId));
         return dao.findFirstByQuery(q);
+    }
+
+    /** 该规则最新一条结果（executeTime DESC 取首，与 MetaQualityScorer.findLatestResult 同语义）。 */
+    private NopMetaQualityResult findLatestResult(String ruleId) {
+        IEntityDao<NopMetaQualityResult> dao = daoProvider.daoFor(NopMetaQualityResult.class);
+        QueryBean q = new QueryBean();
+        q.addFilter(FilterBeans.eq(NopMetaQualityResult.PROP_NAME_qualityRuleId, ruleId));
+        q.addOrderField(NopMetaQualityResult.PROP_NAME_executeTime, true);
+        return dao.findFirstByQuery(q);
+    }
+
+    /** 直接对外部 H2 库执行 DDL（模拟外部源物理表变化，规则挂载的 NopMetaTable 行保留）。 */
+    private void dropExternalTable(String dbUrl, String tableName) throws Exception {
+        try (Connection c = DriverManager.getConnection(dbUrl, "sa", "");
+             Statement st = c.createStatement()) {
+            st.execute("DROP TABLE " + tableName);
+        }
     }
 
     /** 按 executeTime 排序返回该规则全部结果行（区分性断言：两次执行不同 runId）。 */

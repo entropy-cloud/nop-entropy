@@ -2,8 +2,12 @@
 
 > **M0.2 交付物** — mission `nop-metadata-audit-remediation` 的 M0.2 工作项（按 `ai-dev/skills/audit-remediation-roadmap-authoring-prompt.md` §6.1）。
 > 状态：done
-> 最后更新：2026-08-06（MR8 R8.0 收口，见 MR8 裁决记录段；Follow-up Backlog AR-11~23 共 13 条逐项裁决——提级 19 + 归类 3，0 悬置，roadmap MR8 段 R8.0 → done，MR8 全段收口）
+> 最后更新：2026-08-06（MR8 R8.1 收口，见 MR8 R8.1 收口记录段——AR-11~15 五项修复落地；roadmap MR8 段 R8.1 → done，MR8 段 R8.2~R8.4 待后续 plan）
 > 来源：9 个历史审计来源（07-19 ~ 07-23 五轮，multi+open 双轨）+ 本 mission 3 个 M0 交付物自身；本索引不登记 nop-ai 等其他 mission 的 arm 文件。
+
+## MR8 R8.1 收口记录（plan-2026-08-06-0914-1，2026-08-06 执行完成 + closure audit READY_TO_CLOSE）
+
+> **R8.1 收口（plan-2026-08-06-0914-1 全 4 Phase）**：AR-11~15 五项质量执行/评分正确性缺陷全部落地——AR-11 judgeRegex 方言判定子串启发式 → 签名集合匹配（`REGEXP_UNSUPPORTED_SIGNATURES` = not supported / unknown function / syntax error at or near（PG 真实签名）；裸 regexp/syntax 排除——MySQL "Got error...regexp" / H2 "syntax" 字面量 → 显式 ERROR）+ docs-for-ai P2-08 例外说明收窄；AR-12 cpId==null 分支移入 try 内 + 新错误码 `ERR_CHECKPOINT_MISSING_ID`（删除语义不符且 0 引用的 INVALID_CRON 死码）+ buildErrorResult 复用（MA7.5-01 全路径不外抛）；AR-13 ErrorCode 声明 `{ruleKey}` → `{sqlHash}` + throw 点 `.param(ARG_SQL_HASH, sqlHashOf(sql))` 替代 `.param("sql", sql)`（SQL 原文不进错误消息，与 R8.2 AR-16 脱敏一致）+ evalExpectPassWhen 签名增加 ruleKey（替换 `<evalExpectPassWhen>` 字面量）；AR-14 异常规则 catch 中 clearSession 之后补写 ERROR 结果行 + flushSession（不被 clearSession 清掉）+ 非 database 异常规则表进 affectedTableIds（本次 run autoScore 用 ERROR 行重算，不再复用陈旧 PASS）+ summary 补 totalRuleCount/skipCount + `CheckpointExecutionResultDTO` 新增 skipCount + `QualityRuleResultDTO` 确定性新增 status/message（nop-metadata-api 两个确定性扩展 plan-first）+ BizModel mapRuleResults 映射契约（ruleResults 条目数 = totalRuleCount）；AR-15 负年龄 fail-loud（`age<0` → FAIL + details.rawAgeMinutes + "in the future (clock skew suspected)" 诊断消息，不钳制）。判别性测试 **+16 red→green 实测**（git stash 逐项 red 实证：freshness 3 / regex dialect 6 / error params 3 / cron-read-failure +1 / scheduler e2e 遗留 job +1 / checkpoint BizModel +2——AR-14 red 实测 totalRuleCount=0/affectedTableIds=[]，AR-13 red 实测 sqlHash null/`<evalExpectPassWhen>` 字面量，AR-12 red 实测异常逃逸 + job FAILED，AR-15 red 实测未来时间戳 PASS，AR-11 red 实测 MySQL/H2 消息 SKIP）；`./mvnw test -pl nop-metadata -am -T 1C` **986/0 全绿**（R7.3 970 基线 + 16）+ check-plan-checklist --strict exit 0 + check-doc-links --strict exit 0 + scan-hollow --severity high exit 0；独立子 agent closure audit（fresh session）READY_TO_CLOSE——Exit Criteria/Closure Gates 全 PASS + Anti-Hollow 调用链追踪（异常分支 resultWriter.append 运行时连通实证）+ 无 live defect 降级。
 
 ## MR8 裁决记录（plan-2026-08-06-0832-1，2026-08-06 live 复核；R8.0 → done）
 

@@ -12,6 +12,8 @@ import io.nop.dao.api.IEntityDao;
 import io.nop.graphql.core.engine.IGraphQLEngine;
 import io.nop.job.api.IJobScheduler;
 import io.nop.job.api.JobState;
+import io.nop.job.api.spec.JobSpec;
+import io.nop.job.api.spec.TriggerSpec;
 import io.nop.metadata.dao.entity.NopMetaDataSource;
 import io.nop.metadata.dao.entity.NopMetaModule;
 import io.nop.metadata.dao.entity.NopMetaQualityCheckpoint;
@@ -237,8 +239,53 @@ public class TestMetaQualityCheckpointScheduler extends JunitBaseTestCase {
         assertEquals(1, countResults("r-survive-vol"), "fixed config must write result rows");
     }
 
-    // ===== (g) MA7.5-03：cron 改为非法值 → 旧 job 残留清理 =====
+    // ===== (f2) AR-12：job 参数缺失 checkpointId（遗留/损坏 job 参数）→ 错误结果而非抛错，job 存活 =====
 
+    /**
+     * AR-12（R8.1）端到端判别性测试：手工构造缺 checkpointId 的 beanMethod JobSpec（模拟遗留/损坏 job）
+     * 直接 addJob → fireNow 经真实 {@code BeanMethodJobInvoker} → {@code executeScheduledCheckpoint}：
+     * <ul>
+     *   <li>首次 fireNow 返回 true（job 正常执行，参数缺失被显式错误结果承接）</li>
+     *   <li>job 状态 WAITING（已重排程）而非 FAILED——修复前 cpId==null 在 try 外抛错，异常经 invoker
+     *       转 JobFireResult.ERROR 使 job 永久 FAILED</li>
+     *   <li>第二次 fireNow 仍返回 true（job 存活，配置修复后下一次触发即可恢复）</li>
+     * </ul>
+     */
+    @Test
+    public void testLegacyJobMissingCheckpointIdSurvives() {
+        IJobScheduler scheduler = checkpointScheduler.getScheduler();
+        String jobName = MetaQualityCheckpointScheduler.jobName("cp-legacy-broken");
+
+        JobSpec spec = new JobSpec();
+        spec.setJobName(jobName);
+        spec.setJobGroup("nop-metadata");
+        spec.setJobInvoker("beanMethod");
+        // 遗留/损坏 job 参数：含 beanName/methodName（BeanMethodJobInvoker 约定）但缺 checkpointId
+        java.util.Map<String, Object> jobParams = new java.util.HashMap<>();
+        jobParams.put("beanName", MetaQualityCheckpointScheduler.BEAN_NAME);
+        jobParams.put("methodName", MetaQualityCheckpointScheduler.SCHEDULED_METHOD_NAME);
+        spec.setJobParams(jobParams);
+        TriggerSpec trigger = new TriggerSpec();
+        trigger.setCronExpr("0 0/5 * * * ?");
+        spec.setTriggerSpec(trigger);
+        scheduler.addJob(spec, true);
+
+        assertTrue(scheduler.getJobNames().contains(jobName), "legacy job must be registered: " + scheduler.getJobNames());
+
+        assertTrue(scheduler.fireNow(jobName),
+                "first fire must execute with error result (not throw to invoker)");
+        assertEquals(JobState.WAITING, scheduler.getJobState(jobName),
+                "job must stay alive (WAITING) after missing-checkpointId fire, not FAILED (AR-12, MA7.5-01)");
+        assertTrue(scheduler.fireNow(jobName),
+                "second fire must still work (job not permanently failed)");
+        assertEquals(JobState.WAITING, scheduler.getJobState(jobName),
+                "job must remain WAITING after second fire");
+
+        // 清理：移除手工 job，避免影响其他测试
+        scheduler.removeJob(jobName);
+    }
+
+    // ===== (g) MA7.5-03：cron 改为非法值 → 旧 job 残留清理 =====
     /**
      * 检查点原 cron 合法已注册；把 cron 改为非法值后 registerCheckpoint → addJob 抛
      * ERR_JOB_TRIGGER_PARSE_CRON_EXPR_FAIL → 旧 job（旧 cron）必须被 removeJob 清理（MA7.5-03）：

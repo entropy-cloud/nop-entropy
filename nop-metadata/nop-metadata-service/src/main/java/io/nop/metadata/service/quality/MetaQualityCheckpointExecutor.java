@@ -161,6 +161,25 @@ public class MetaQualityCheckpointExecutor {
                 errorCount++;
                 // 失败隔离：清理未刷出的脏实体，不影响已 flush 的规则与后续规则
                 orm.clearSession();
+                // AR-14：抛异常规则补写 ERROR 结果行——否则 findLatestResult 取到前一轮旧行（可能旧 PASS），
+                // 失败运行后自动评分仍显健康。时序：append 必须在 clearSession **之后**（clear 前 append 的
+                // 未 flush 行会被清掉静默丢失）；新写行 flush 落盘。失败规则的表（非 database）同样进入
+                // affectedTableIds，使本次 run 的 autoScore 即用 ERROR 行重算该表。catch 路径也进
+                // summary.results，保证 ruleResults 条目数与 totalRuleCount/errorCount 可对账。
+                QualityRuleJudgment errorJudgment = buildErrorJudgment(rule, e);
+                results.add(buildResultEntry(rule, errorJudgment));
+                if (!_NopMetadataCoreConstants.QUALITY_ENTITY_TYPE_DATABASE.equals(rule.getEntityType())
+                        && rule.getEntityId() != null) {
+                    affectedTableIds.add(rule.getEntityId());
+                }
+                try {
+                    resultWriter.append(resultDao, rule.getQualityRuleId(), cp.getCheckpointId(), runId, errorJudgment);
+                    orm.flushSession();
+                } catch (Exception appendEx) {
+                    // ERROR 行落盘失败不掩盖原始规则异常——errors 已含原始失败，此处留证即可
+                    LOG.error("checkpoint failed to append ERROR result row for rule: {}",
+                            rule.getQualityRuleId(), appendEx);
+                }
             }
         }
 
@@ -168,10 +187,14 @@ public class MetaQualityCheckpointExecutor {
         Map<String, Object> summary = new LinkedHashMap<>();
         summary.put("checkpointId", cp.getCheckpointId());
         summary.put("runId", runId);
+        // AR-14：totalRuleCount = 解析后规则集大小（含异常/SKIP 规则），与 ruleResults 条目数对账；
+        // skipCount = 显式 SKIP 计数（此前只作局部变量从未进摘要）
+        summary.put("totalRuleCount", resolution.rules.size());
         summary.put("executedCount", executedCount);
         summary.put("passCount", passCount);
         summary.put("failCount", failCount);
         summary.put("errorCount", errorCount);
+        summary.put("skipCount", skipCount);
         summary.put("affectedTableIds", new ArrayList<>(affectedTableIds));
         summary.put("results", results);
         summary.put("errors", errors);
@@ -414,6 +437,17 @@ public class MetaQualityCheckpointExecutor {
         m.put("expectedValue", j.getExpectedValue());
         m.put("message", j.getMessage());
         return m;
+    }
+
+    /** AR-14：异常规则的 ERROR 判定（用于补写 ERROR 结果行 + summary.results 条目）。 */
+    private static QualityRuleJudgment buildErrorJudgment(NopMetaQualityRule rule, Exception e) {
+        QualityRuleJudgment j = new QualityRuleJudgment();
+        j.setStatus(_NopMetadataCoreConstants.QUALITY_RESULT_STATUS_ERROR);
+        j.setMessage("checkpoint rule execution failed: " + NopMetadataHelper.toErrorMessage(e));
+        j.getDetails().put("ruleType", rule.getRuleType());
+        j.getDetails().put("entityType", rule.getEntityType());
+        j.getDetails().put("error", NopMetadataHelper.toErrorMessage(e));
+        return j;
     }
 
     private static Map<String, Object> buildExecutionErrorEntry(NopMetaQualityRule rule, Exception e) {

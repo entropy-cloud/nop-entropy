@@ -15,15 +15,15 @@ interface QualityErrors extends NopMetadataArgs {
                     ARG_RULE_KEY, ARG_REASON, ARG_SQL_HASH);
     ErrorCode ERR_QUALITY_SQL_NO_ROW =
             ErrorCode.define("nop.err.metadata.quality-sql-no-row",
-                    "Quality custom_sql returned no rows: {ruleKey}", ARG_RULE_KEY);
+                    "Quality rule SQL returned no rows: {sqlHash}", ARG_SQL_HASH);
     ErrorCode ERR_QUALITY_SQL_FAILED =
             ErrorCode.define("nop.err.metadata.quality-sql-failed",
-                    "Quality rule SQL execution failed: {ruleKey} -- {error}",
-                    ARG_RULE_KEY, ARG_ERROR);
-    ErrorCode ERR_CHECKPOINT_SCHEDULER_INVALID_CRON =
-            ErrorCode.define("nop.err.metadata.checkpoint-scheduler-invalid-cron",
-                    "Quality checkpoint schedule cron expression is invalid: "
-                            + "{checkpointId} cron={cron}", ARG_CHECKPOINT_ID, ARG_CRON);
+                    "Quality rule SQL execution failed: {sqlHash} -- {error}",
+                    ARG_SQL_HASH, ARG_ERROR);
+    ErrorCode ERR_CHECKPOINT_MISSING_ID =
+            ErrorCode.define("nop.err.metadata.checkpoint-missing-id",
+                    "Quality checkpoint scheduled job params are missing required 'checkpointId' "
+                            + "(legacy/corrupt job params; execution skipped with error result, MA7.5-01)");
     ErrorCode ERR_CHECKPOINT_ALREADY_RUNNING =
             ErrorCode.define("nop.err.metadata.checkpoint-already-running",
                     "Quality checkpoint is already running, concurrent execution rejected (fail-fast): "

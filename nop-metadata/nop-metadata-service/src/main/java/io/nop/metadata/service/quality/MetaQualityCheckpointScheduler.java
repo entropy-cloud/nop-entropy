@@ -199,14 +199,15 @@ public class MetaQualityCheckpointScheduler {
      * @return {@code executeCheckpoint} 的执行摘要 Map；checkpoint 级错误时为带 executionErrors 的摘要
      */
     public CheckpointExecutionResultDTO executeScheduledCheckpoint(Map<String, Object> params) {
-        Object cpId = params.get(PARAM_CHECKPOINT_ID);
-        if (cpId == null) {
-            throw new NopMetadataException(NopMetadataErrors.ERR_CHECKPOINT_SCHEDULER_INVALID_CRON)
-                    .param("checkpointId", "<null>")
-                    .param("cron", "<n/a>");
-        }
-        String checkpointId = String.valueOf(cpId);
+        String checkpointId = null;
         try {
+            // AR-12：缺失 checkpointId（遗留/损坏 job 参数）在 try 边界内显式失败——
+            // 若让异常逃逸到 invoker 会转 JobFireResult.ERROR 使 job 永久 FAILED（MA7.5-01 要消除的模式）。
+            Object cpId = params != null ? params.get(PARAM_CHECKPOINT_ID) : null;
+            if (cpId == null) {
+                throw new NopMetadataException(NopMetadataErrors.ERR_CHECKPOINT_MISSING_ID);
+            }
+            checkpointId = String.valueOf(cpId);
             // null context 安全：computeQualityScore 内部从不解引用 context（架构基线 §2.7.3.1 D3 R2 核实）
             return checkpointBizModel.executeCheckpoint(checkpointId, null, null);
         } catch (Exception e) {

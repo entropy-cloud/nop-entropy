@@ -5,6 +5,7 @@ import io.nop.metadata.service.quality.MetaQualityRuleExecutor;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -18,14 +19,15 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 public class TestEvalExpectPassWhenErrorPath {
 
     /**
-     * 通过反射调用 {@link MetaQualityRuleExecutor} 的 private static evalExpectPassWhen 方法。
+     * 通过反射调用 {@link MetaQualityRuleExecutor} 的 private static evalExpectPassWhen 方法
+     * （AR-13/R8.1：签名增加 ruleKey 参数，错误上下文可归属）。
      */
     private boolean invokeEvalExpectPassWhen(String expr, double value) throws Exception {
         java.lang.reflect.Method m = MetaQualityRuleExecutor.class.getDeclaredMethod(
-                "evalExpectPassWhen", String.class, double.class);
+                "evalExpectPassWhen", String.class, double.class, String.class);
         m.setAccessible(true);
         try {
-            return (boolean) m.invoke(null, expr, value);
+            return (boolean) m.invoke(null, expr, value, "test-rule");
         } catch (java.lang.reflect.InvocationTargetException e) {
             if (e.getCause() instanceof RuntimeException) {
                 throw (RuntimeException) e.getCause();
@@ -75,6 +77,9 @@ public class TestEvalExpectPassWhenErrorPath {
     /**
      * plan 2026-07-19-1250-3 Phase 5 AR-11 核心：非法数字表达式必须显式抛 {@link NopException}
      * 携带 {@code ERR_QUALITY_EXPECT_PASS_WHEN_INVALID}，而非 NumberFormatException 破坏整个 checkpoint。
+     *
+     * <p>AR-13（R8.1）判别断言：错误上下文必须为真实 ruleKey（"test-rule"），而非字面量
+     * {@code <evalExpectPassWhen>}（修复前所有规则都报 qualityRuleId=<evalExpectPassWhen>，错误不可归属）。
      */
     @Test
     public void testInvalidNumericExpressionThrowsNopException() {
@@ -82,6 +87,8 @@ public class TestEvalExpectPassWhenErrorPath {
                 () -> invokeEvalExpectPassWhen("gt abc", 5.0));
         assertTrue(ex.getErrorCode().contains("expect-pass-when"),
                 "ErrorCode must be ERR_QUALITY_EXPECT_PASS_WHEN_INVALID: " + ex.getErrorCode());
+        assertEquals("test-rule", String.valueOf(ex.getParam("qualityRuleId")),
+                "error context must carry the real ruleKey (was <evalExpectPassWhen> literal before AR-13)");
     }
 
     @Test

@@ -246,15 +246,24 @@ public class MetaQualityRuleExecutor {
             j.setExpectedValue(maxAgeMinutes);
         }
         j.getDetails().put("maxAgeMinutes", maxAgeMinutes);
+        // AR-15（R8.1）：暴露原始差值（可为负——DB 时钟超前/未来时间戳），供判定与审计追溯
+        j.getDetails().put("rawAgeMinutes", ageMinutes);
 
         boolean pass = true;
-        if (maxAgeMinutes != null && ageMinutes > maxAgeMinutes) {
+        String failReason = null;
+        if (ageMinutes < 0) {
+            // AR-15 fail-loud 语义裁定：负年龄（未来时间戳）不再恒 PASS——时钟偏移异常本身即新鲜度违约，
+            // 钳制为 0 会继续掩盖违约。显式 FAIL + details 暴露原始差值。
             pass = false;
+            failReason = "maxTimestamp is in the future (clock skew suspected)";
+        } else if (maxAgeMinutes != null && ageMinutes > maxAgeMinutes) {
+            pass = false;
+            failReason = "ageMinutes=" + ageMinutes + " exceeds maxAgeMinutes=" + maxAgeMinutes;
         }
         j.setStatus(pass ? "PASS" : "FAIL");
         j.setMessage(pass
                 ? "freshness ok: ageMinutes=" + ageMinutes + " (maxTs=" + maxTs + ")"
-                : "freshness fail: ageMinutes=" + ageMinutes + " exceeds maxAgeMinutes=" + maxAgeMinutes);
+                : "freshness fail: " + failReason + " (maxTs=" + maxTs + ", ageMinutes=" + ageMinutes + ")");
         return j;
     }
 
@@ -313,7 +322,9 @@ public class MetaQualityRuleExecutor {
             pass = value == 0.0;
             j.getDetails().put("expectPassWhen", "default: eq 0");
         } else {
-            pass = evalExpectPassWhen(expectPassWhen, value);
+            // AR-13（R8.1）：调用点线程化传入真实 ruleKey（judgeCustomSql :285 已有 ruleKey 变量），
+            // 错误上下文可归属（替换字面量 <evalExpectPassWhen>）
+            pass = evalExpectPassWhen(expectPassWhen, value, ruleKey);
             j.getDetails().put("expectPassWhen", expectPassWhen);
         }
         j.setStatus(pass ? "PASS" : "FAIL");
@@ -631,15 +642,18 @@ public class MetaQualityRuleExecutor {
         LOG.info("qualityRule SQL: {}", sql);
         try (PreparedStatement st = conn.prepareStatement(sql); ResultSet rs = st.executeQuery()) {
             if (!rs.next()) {
+                // AR-13（R8.1）：静态调用链无 ruleKey 上下文——ErrorCode 声明已改为 {sqlHash}；
+                // 不设完整 SQL 参数（NopException.getMessage 会无条件拼入 params，完整 SQL 落日志
+                // 与 R8.2 AR-16 脱敏目标冲突）
                 throw new NopMetadataException(NopMetadataErrors.ERR_QUALITY_SQL_NO_ROW)
-                        .param("sql", sql);
+                        .param(NopMetadataErrors.ARG_SQL_HASH, sqlHashOf(sql));
             }
             return rs.getLong(1);
         } catch (SQLException e) {
-            // AR-13: ErrorCode 描述含 {error} 占位符，throw 时同时设置 sql + error 参数（原仅设置 sql）
+            // AR-13: ErrorCode 描述含 {error} 占位符，throw 时同时设置 sqlHash + error 参数（原仅设置 sql）
             throw new NopMetadataException(NopMetadataErrors.ERR_QUALITY_SQL_FAILED, e)
-                    .param("sql", sql)
-                    .param("error", messageOf(e));
+                    .param(NopMetadataErrors.ARG_SQL_HASH, sqlHashOf(sql))
+                    .param(NopMetadataErrors.ARG_ERROR, messageOf(e));
         }
     }
 
@@ -651,10 +665,10 @@ public class MetaQualityRuleExecutor {
             }
             return rs.getTimestamp(1);
         } catch (SQLException e) {
-            // AR-13: ErrorCode 描述含 {error} 占位符，throw 时同时设置 sql + error 参数（原仅设置 sql）
+            // AR-13: ErrorCode 描述含 {error} 占位符，throw 时同时设置 sqlHash + error 参数（原仅设置 sql）
             throw new NopMetadataException(NopMetadataErrors.ERR_QUALITY_SQL_FAILED, e)
-                    .param("sql", sql)
-                    .param("error", messageOf(e));
+                    .param(NopMetadataErrors.ARG_SQL_HASH, sqlHashOf(sql))
+                    .param(NopMetadataErrors.ARG_ERROR, messageOf(e));
         }
     }
 
@@ -690,7 +704,7 @@ public class MetaQualityRuleExecutor {
         }
     }
 
-    private static boolean evalExpectPassWhen(String expectPassWhen, double value) {
+    private static boolean evalExpectPassWhen(String expectPassWhen, double value, String ruleKey) {
         String s = expectPassWhen.trim().toLowerCase();
         try {
             if ("true".equals(s) || "eq 1".equals(s) || "eq1".equals(s)) {
@@ -716,11 +730,33 @@ public class MetaQualityRuleExecutor {
         } catch (NumberFormatException e) {
             // plan 2026-07-19-1250-3 Phase 5 AR-11：显式抛 ErrorCode（与模块内其它 ErrorCode 路径一致）
             // expectPassWhen 配置错误属于规则定义问题，应快速失败（裁定为 ERR_QUALITY_EXPECT_PASS_WHEN_INVALID）。
+            // AR-13（R8.1）：错误上下文从字面量 <evalExpectPassWhen> 改为真实 ruleKey（judgeCustomSql 内可归属）
             throw new NopMetadataException(NopMetadataErrors.ERR_QUALITY_EXPECT_PASS_WHEN_INVALID, e)
-                    .param(NopMetadataErrors.ARG_QUALITY_RULE_ID, "<evalExpectPassWhen>")
+                    .param(NopMetadataErrors.ARG_QUALITY_RULE_ID, ruleKey)
                     .param(NopMetadataErrors.ARG_EXPR, expectPassWhen);
         }
     }
+
+    /**
+     * 方言不支持 REGEXP 的签名集合（AR-11/R8.1 收窄：子串启发式 → 签名匹配）。
+     *
+     * <ul>
+     *   <li><b>"not supported"</b> —— 通用"不支持"声明（低版本/嵌入式方言）</li>
+     *   <li><b>"unknown function"</b> —— REGEXP 未实现为内建函数时的声明</li>
+     *   <li><b>"syntax error at or near"</b> —— PostgreSQL 真实签名：PG 不支持 REGEXP 运算符，
+     *       报错即含此短语</li>
+     * </ul>
+     *
+     * <p>显式<b>排除</b>裸 "regexp"/"syntax" 子串：MySQL（支持 REGEXP）非法 pattern 报错
+     * "Got error ... from regexp" 含 "regexp"、H2 非法 pattern 消息可能含 "syntax"——这些是
+     * <b>规则级正则错误</b>（方言支持 REGEXP），必须走 ERROR 而非 SKIP（AR-11：失败规则不得
+     * 从 pass/fail 统计中静默消失）。
+     */
+    private static final String[] REGEXP_UNSUPPORTED_SIGNATURES = {
+            "not supported",
+            "unknown function",
+            "syntax error at or near"
+    };
 
     private static boolean isRegexpUnsupported(SQLException e) {
         String msg = e.getMessage();
@@ -728,8 +764,12 @@ public class MetaQualityRuleExecutor {
             return false;
         }
         String lower = msg.toLowerCase();
-        return lower.contains("regexp") || lower.contains("syntax")
-                || lower.contains("function") && lower.contains("not found");
+        for (String signature : REGEXP_UNSUPPORTED_SIGNATURES) {
+            if (lower.contains(signature)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     static long ageMinutesFromNow(Timestamp ts) {
