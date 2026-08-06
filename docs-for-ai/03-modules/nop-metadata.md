@@ -136,6 +136,21 @@ mutation {
 
 每个 BizModel 都实现了对应的 `INopMeta*Biz` 接口（位于 `nop-metadata-dao` 模块的 `io.nop.metadata.biz` 包），声明全部自定义 `@BizQuery` / `@BizMutation` 方法签名。跨模块 `@Inject INopMeta*Biz` 可直接调用接口方法，避免依赖具体实现类。
 
+## 查询分页契约（AR-09 裁定，plan 2026-08-06-0553-3）
+
+`queryTableData` / `queryJoinData` / `queryAggregation` 的 `limit` 语义（两个入口差异为有意裁定）：
+
+- **`queryTableData`**（数据浏览入口）：`limit` 缺省（null/≤0）给默认值 1000，超大 limit 静默封顶（上限 10000 或配置 `nop.metadata.query.max-limit`）——浏览语义下封顶安全。
+- **`queryJoinData` / `queryAggregation`**（分析/分页入口）：`limit < 0` → **显式拒绝**（`nop.err.metadata.pagination-limit-invalid`，错误可诊断，不做静默钳制——静默改 limit 会让分页语义静默漂移）；`limit` 缺省（null/0）给默认值 1000（**有界**，不提供"无界"选项）；`limit > Integer.MAX_VALUE` → 截断层显式拒绝（`pagination-limit-too-large`）；`offset` 为 null 或 ≤0 视为不偏移。三条 JOIN 路径（同库 table-table / external↔external / mixed）与跨库内存合并路径语义一致。
+
+## 导入失败路径语义（AR-08 裁定，plan 2026-08-06-0553-3）
+
+`importOrmModel` / `importOrmModels`（NopMetaModule）按 **per-path 独立事务**（REQUIRES_NEW）执行：DB 持久化 + 搜索索引写入 + 变更事件在同一事务单元内——
+
+- **成功**：三态一致提交（DB 行落库 + 索引文档写入 + 事件行写入）。
+- **失败**（任一阶段）：内层事务回滚 DB + 已写索引文档反向清理（removeDocs 对账）+ 事件不写入——三态一致回滚，不存在"报失败但数据已提交"的静默分裂；批量路径 per-path 隔离（单路径失败不中断其余路径，结果按路径 success/error 返回）。
+- **级联删除索引清理**：`NopMetaModule` / `NopMetaEntity` 删除前收集被级联删除子实体 id，删除后 removeFromIndex（模块：MetaEntity/MetaEntityField/MetaTable；实体：MetaEntity + 其 MetaEntityField），搜索不再返回已删实体。
+
 **例外（Pseudo-BizModel）**：`NopMetaSearchBizModel`（`@BizModel("NopMetaSearch")`，位于 `nop-metadata-service/.../search/`）无对应 `INopMetaSearchBiz` 接口——其搜索索引跨 NopMetaTable / NopMetaEntity / NopMetaEntityField / NopMetaGlossaryTerm 等多实体，无单一对应实体；当前无跨模块调用方（接口 deferred），`rebuildSearchIndex` / `searchMetadata` 两方法仅经 GraphQL 访问。
 
 **items 返回类型合理例外（P2-24）**：`queryTableData` / `queryAggregation` / `queryJoinData` 的返回 `items` 为 `List<Map<String,Object>>`（原始行 Map 列表）而非强类型 DTO——这是经裁定的合理例外：行结构由任意外部源 schema / 用户选择 Measure-Dimension 动态决定，无法预先声明固定 DTO 字段；API 契约仍以 `items` 语义（列名 → 值）对外稳定。

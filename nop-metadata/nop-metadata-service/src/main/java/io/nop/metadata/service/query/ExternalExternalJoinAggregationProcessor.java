@@ -113,12 +113,9 @@ public class ExternalExternalJoinAggregationProcessor implements AggregationProc
                     if (havingTf != null && havingTf.getSql() != null && !havingTf.getSql().isEmpty()) {
                         params.addAll(havingTf.getParams());
                     }
-                    if (limit != null) {
-                        params.add(limit);
-                    }
-                    if (offset != null && offset > 0) {
-                        params.add(offset);
-                    }
+                    // AR-01（plan 2026-08-06-0553-3 Phase 1）：LIMIT/OFFSET 占位符参数由
+                    // AggregationHelper.executeJdbcQuery 统一绑定（此处【不得】params.add(limit/offset)，
+                    // 否则占位符数 < 绑定数必然抛 SQLException；对照先例 ExternalAggregationProcessor :83-85）。
                     final String sqlText = sql.toString();
                     LOG.info("queryAggregation external<->external JOIN SQL: {}", sqlText);
                     holder[0] = executeJdbcQuery(conn, sqlText, params, limit, offset, table.getMetaTableId());

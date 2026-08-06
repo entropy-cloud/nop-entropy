@@ -2,8 +2,16 @@
 
 > **M0.2 交付物** — mission `nop-metadata-audit-remediation` 的 M0.2 工作项（按 `ai-dev/skills/audit-remediation-roadmap-authoring-prompt.md` §6.1）。
 > 状态：done
-> 最后更新：2026-08-06（MR6 R6.6 收口，见 MR6 裁决记录段；20 条终局归类全量终态——P2-03 死码清理 + docs sweep 6 项落地 + watch-only 12 条登记，roadmap R6.6 → done）
+> 最后更新：2026-08-06（MR7 R7.3 收口，见 MR7 R7.3 收口记录段；AR-01/AR-06/AR-07/AR-08/AR-09/AR-10 六项修复落地 + AR-06 治理纠正 + R3.x claimed-fixed 抽查，roadmap R7.3 → done，MR7 全段收口）
 > 来源：9 个历史审计来源（07-19 ~ 07-23 五轮，multi+open 双轨）+ 本 mission 3 个 M0 交付物自身；本索引不登记 nop-ai 等其他 mission 的 arm 文件。
+
+## MR7 R7.3 收口记录（plan-2026-08-06-0553-3，2026-08-06 执行完成 + closure audit PASS）
+
+> **R7.3 收口（plan-2026-08-06-0553-3 全 3 Phase）**：AR-01（P0）/AR-06/AR-07/AR-08/AR-09/AR-10 六项全部落地——AR-01 三处 JOIN 分页双绑修复（executeJdbcQuery 统一绑定，entity-entity 正确路径未动）+ AR-09 limit 归一化（ERR_PAGINATION_LIMIT_INVALID 入口显式拒绝 + 缺省有界 + truncate long 运算）+ AR-06 SLA 虚假关闭实际修复 + AR-07 检查点 metaSchema 回退 + AR-10 MySQL 粒度模板 + AR-08 导入 per-path 事务三态一致 + 级联删除索引清理；判别性测试 +17 red→green（修复前 focused 实测 red，导入两测 git checkout 旧代码实测）；独立 closure audit（fresh session `ses_02b95ac6affekrnpZrVP2KjuBh`）READY_TO_CLOSE——Exit Criteria/Closure Gates 全 PASS + Anti-Hollow 调用链逐链追踪 + 74/74 focused 全绿；`./mvnw test -pl nop-metadata -am -T 1C` **970/0 全绿**；check-plan-checklist/check-doc-links/scan-hollow 全 0；plan completed + roadmap R7.3 → done（MR7 全段收口）。
+>
+> **AR-06 治理纠正（plan-2026-08-06-0553-3 Phase 2）**：MA7.6-05（SLA 配置 + 无 Catalog → 静默 PASS）登记状态纠正为 **"R3.14 虚假关闭 → 本次（R7.3）实际修复"**——git 逐行核对 commit 9b769490e 对 `MetaContractChecker.java` 的 diff **仅删 7 行版权头**（real diff lines = 0，脚本核验），commit message 声称的 "MA7.6-05：slaFresh=false" 从未落地；本计划落地 slaFresh=false（无 Catalog 即不满足任何已配置 SLA）+ 死分支删除 + 可诊断失败消息（"no Catalog data"）+ 3 个判别性测试（red→green）。
+>
+> **R3.x claimed-fixed 抽查（plan-2026-08-06-0553-3 Phase 2）**：对 roadmap/arm-index 中 R3.x 声称 fixed 的 P2 项做单 commit（9b769490e）diff 存在性核验——18 个目标文件 17 个 REAL_DIFF（R3.6 P2-MA5-401 / R3.8 P2-MA6.1-001 / R3.9 P2-MA6.2-002 / R3.10 P2-MA6.5-001/004 / R3.11 P2-MA7.1-02 / R3.12 P2-MA7.4-02/03/04 / R3.13 P2-MA7.5-02/03 / R3.14 P2-MA7.6-03/04 / R3.15 P2-MA4-501 / R3.19 P2-MA6.6-001 + MA7.3-01 全部含非版权头实质 diff，spot-check R3.6/R3.9/R3.13 小 diff 内容属实）；**唯一 COPYRIGHT_ONLY = R3.14 P2-MA7.6-05（即 AR-06）**——无其他虚假关闭，无未处置项（AR-06 已在本次实际修复）。
 
 ## MR6 裁决记录（plan-2026-08-05-2154-1，2026-08-05 live 复核；R6.0 → done）
 

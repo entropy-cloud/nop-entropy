@@ -19,13 +19,22 @@ package io.nop.metadata.service.query;
  * <p>使用方式：
  * <pre>
  *   SqlPagination.appendLimitOffset(sb, limit, offset, "MySQL");
- *   // 占位 ? 仍由调用方按原有条件绑定：
+ *   // 占位 ? 的绑定存在两种模式，调用方必须与其 SQL 执行路径保持一致（AR-01，plan 2026-08-06-0553-3）：
+ *   //
+ *   // 模式 A（调用方绑定）：SQL 经 orm().executeQuery / 自建 PreparedStatement 由调用方按序绑定：
  *   //   if (limit != null) params.add(limit);
  *   //   if (offset != null && offset > 0) params.add(offset);
+ *   //   例：MetaJoinExecutor.executeSameDbJoin（entity-entity 路径，唯一绑定点）。
+ *   //
+ *   // 模式 B（executeJdbcQuery 内部绑定）：经 MetaJoinExecutor.executeJdbcQuery /
+ *   //   AggregationHelper.executeJdbcQuery 执行的 SQL，limit/offset 由该方法在 filter 参数之后
+ *   //   内部绑定——调用方【不得】再把 limit/offset 加进 params（否则占位符数 < 绑定数必然抛
+ *   //   SQLException）。例：MetaJoinExecutor.executeSameDbTableJoin / ExternalExternalJoinAggregationProcessor /
+ *   //   MixedSameDbJoinAggregationProcessor / ExternalAggregationProcessor（先例）。
  *   // MySQL offset-only 时 helper 已直接拼入常量 LIMIT 18446744073709551615，不占参数位。
  * </pre>
  *
- * <p><b>绑定顺序约定</b>：调用方应按 {@code filter 参数 → limit 参数 → offset 参数} 的顺序绑定，
+ * <p><b>绑定顺序约定</b>：两种模式下均按 {@code filter 参数 → limit 参数 → offset 参数} 的顺序绑定，
  * 因为 helper 先拼 LIMIT（一个 ? 占位），后拼 OFFSET（一个 ? 占位）。
  */
 public final class SqlPagination {
@@ -46,7 +55,12 @@ public final class SqlPagination {
     /**
      * 按方言追加 LIMIT/OFFSET 子句到 {@code sb}。
      *
-     * <p><b>不</b>在此方法绑定参数值。调用方需按原有条件绑定：
+     * <p><b>不</b>在此方法绑定参数值。绑定责任在调用方，两种模式（AR-01 后，见类级 javadoc）：
+     * <ul>
+     *   <li><b>调用方绑定</b>（模式 A）：调用方按序绑定 limit/offset：</li>
+     *   <li><b>executeJdbcQuery 内部绑定</b>（模式 B）：经 {@code MetaJoinExecutor.executeJdbcQuery} /
+     *       {@code AggregationHelper.executeJdbcQuery} 执行的路径由该方法内部绑定——调用方不得预加参数。</li>
+     * </ul>
      * <pre>
      *   if (limit != null) params.add(limit);
      *   if (offset != null && offset > 0) params.add(offset);

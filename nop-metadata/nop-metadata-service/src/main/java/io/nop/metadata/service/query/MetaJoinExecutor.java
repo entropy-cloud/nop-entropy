@@ -352,16 +352,11 @@ public class MetaJoinExecutor {
         // AR-04: SQL build 完成在 callback 外（filter/SELECT/FROM 部分），dialect-aware LIMIT/OFFSET
         // 在 callback 内补入（避免 callback 内重建 SQL，保持与 entity-entity 路径一致的代码组织）。
         // 默认按 H2 语义（offset-only 合法），如果 productName==MySQL 则需"无限大 LIMIT"占位。
-        // 这里在 callback 外预先拼好 LIMIT/OFFSET 占位符（带 dialect 适配）；占位符参数由 executeJdbcQuery 绑定。
-        // 由于 withConnection callback 内才知 dialect，但同库 table-table 路径 limit/offset 通常由合并后内存截断
-        // （参考 crossDbMerge），此处保守按 H2 方言（与 NopMetaTableBizModel 外层 SQL 构造一致）。
+        // 这里在 callback 外预先拼好 LIMIT/OFFSET 占位符（带 dialect 适配）。
+        // AR-01（plan 2026-08-06-0553-3 Phase 1）：占位符参数由 executeJdbcQuery 统一绑定——
+        // 此处【不得】再 params.add(limit/offset)，否则占位符数 < 绑定数必然抛 SQLException
+        // （对照正确先例 fetchTableRows :454-455 / ExternalAggregationProcessor :83-85）。
         SqlPagination.appendLimitOffset(sql, limit, offset, null);
-        if (limit != null) {
-            params.add(limit);
-        }
-        if (offset != null && offset > 0) {
-            params.add(offset);
-        }
 
         final String sqlText = sql.toString();
         LOG.info("queryJoinData same-DB table-table SQL: {}", sqlText);

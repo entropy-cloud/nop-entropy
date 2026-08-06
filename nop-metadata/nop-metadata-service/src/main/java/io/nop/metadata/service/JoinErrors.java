@@ -98,4 +98,7 @@ interface JoinErrors extends NopMetadataArgs {
     ErrorCode ERR_PAGINATION_LIMIT_TOO_LARGE =
             ErrorCode.define("nop.err.metadata.pagination-limit-too-large",
                     "Pagination limit exceeds Integer.MAX_VALUE: {limit}", ARG_LIMIT);
+    ErrorCode ERR_PAGINATION_LIMIT_INVALID =
+            ErrorCode.define("nop.err.metadata.pagination-limit-invalid",
+                    "Pagination limit must be null or a positive integer: {limit}", ARG_LIMIT);
 }

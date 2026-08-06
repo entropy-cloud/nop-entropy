@@ -210,6 +210,52 @@ public class TestNopMetaDataContractBizModel extends JunitBaseTestCase {
         assertLatestResultWritten(id, "ERROR");
     }
 
+    // ===== AR-06（plan 2026-08-06-0553-3 Phase 2）：SLA 已配置但无 Catalog 数据 → 不再静默 PASS =====
+
+    /** SLA 已配置 + 无 Catalog 记录（catalogAvailable=false）→ FAIL（修复前静默 PASS） */
+    @Test
+    public void testCheckContractSlaConfiguredNoCatalogFails() {
+        String tableId = saveExternalTable("EXT_SLA_NO_CATALOG");
+        // 无 catalog 行：catalogAvailable=false，SLA 配置存在
+        String id = saveContract("c-sla-no-cat", "ACTIVE", tableId, null,
+                "{\"refreshFrequency\":{\"interval\":1,\"unit\":\"day\"}}");
+        GraphQLResponseBean resp = check(id);
+        assertFalse(resp.hasError(), "check should not error: " + resp);
+        assertCheckStatus(resp, "FAIL");
+        assertLatestResultContains(id, "\"slaFresh\":false");
+        assertLatestResultContains(id, "\"catalogAvailable\":false");
+        assertLatestResultContains(id, "no Catalog data");
+        assertLatestResultWritten(id, "FAIL");
+    }
+
+    /** SLA map 非空但仅含非时间键（如 retention）+ 无 Catalog → 仍 FAIL（裁定：无数据即不满足任何已配置 SLA） */
+    @Test
+    public void testCheckContractSlaRetentionOnlyNoCatalogFails() {
+        String tableId = saveExternalTable("EXT_SLA_RETENTION_ONLY");
+        String id = saveContract("c-sla-retention", "ACTIVE", tableId, null,
+                "{\"retention\":{\"interval\":30,\"unit\":\"day\"}}");
+        GraphQLResponseBean resp = check(id);
+        assertFalse(resp.hasError(), "check should not error: " + resp);
+        assertCheckStatus(resp, "FAIL");
+        assertLatestResultContains(id, "\"slaFresh\":false");
+        assertLatestResultContains(id, "\"catalogAvailable\":false");
+    }
+
+    /** 无 SLA 配置（slaMap 为空）→ 保持既有 pass 语义（无 SLA 不判定） */
+    @Test
+    public void testCheckContractNoSlaNoCatalogKeepsPass() {
+        String ruleId = saveQualityRule("qr-nosla-1");
+        saveQualityResult(ruleId, "PASS", "ok");
+        String tableId = saveExternalTable("EXT_NOSLA");
+        // 无 SLA、无 catalog、有质量规则
+        String id = saveContract("c-nosla", "ACTIVE", tableId,
+                "{\"qualityRuleIds\":[\"" + ruleId + "\"]}", null);
+        GraphQLResponseBean resp = check(id);
+        assertFalse(resp.hasError(), "check should not error: " + resp);
+        assertCheckStatus(resp, "PASS");
+        assertLatestResultContains(id, "\"slaFresh\":true");
+    }
+
     @Test
     public void testCheckContractRuleIdNotExistError() {
         String id = saveContract("c-bad-rule", "ACTIVE", null,

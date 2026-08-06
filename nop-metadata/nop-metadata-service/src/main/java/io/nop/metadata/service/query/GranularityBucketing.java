@@ -40,9 +40,14 @@ public final class GranularityBucketing {
         H2_PG_TEMPLATES.put("hour", "DATE_TRUNC('hour',%s)");
 
         MYSQL_TEMPLATES.put("year", "DATE_FORMAT(%s,'%Y-01-01 00:00:00')");
-        MYSQL_TEMPLATES.put("quarter", "DATE_FORMAT(%s,'%Y-%m-01 00:00:00')");
+        // AR-10（plan 2026-08-06-0553-3 Phase 2）：quarter 桶 = 季度首日 00:00:00——
+        // QUARTER(%s)*3-2 ∈ {1,4,7,10}（修复前 %Y-%m-01 是月首，同一季度拆 3 桶）
+        MYSQL_TEMPLATES.put("quarter", "CONCAT(YEAR(%s),'-',LPAD((QUARTER(%s)*3-2),2,'0'),'-01 00:00:00')");
         MYSQL_TEMPLATES.put("month", "DATE_FORMAT(%s,'%Y-%m-01 00:00:00')");
-        MYSQL_TEMPLATES.put("week", "DATE_FORMAT(%s,'%Y-%m-%d 00:00:00')");
+        // AR-10：week 桶 = ISO 周语义周一 00:00:00——WEEKDAY(%s)∈{0..6}（周一=0），DATE_SUB 回到本周一；
+        // 必须含午夜截断（对齐 H2/PG DATE_TRUNC('week') 产出周一 00:00:00）；%x-%v 是周数字符串非日期，
+        // 不得直接作为 bucket 键（修复前与 day 逐字节相同）
+        MYSQL_TEMPLATES.put("week", "DATE_FORMAT(DATE_SUB(%s, INTERVAL WEEKDAY(%s) DAY), '%Y-%m-%d 00:00:00')");
         MYSQL_TEMPLATES.put("day", "DATE_FORMAT(%s,'%Y-%m-%d 00:00:00')");
         MYSQL_TEMPLATES.put("hour", "DATE_FORMAT(%s,'%Y-%m-%d %H:00:00')");
     }
@@ -79,6 +84,9 @@ public final class GranularityBucketing {
                     .param("granularity", granularity)
                     .param("dimensionName", String.valueOf(dimensionName));
         }
-        return String.format(tpl, columnExpr);
+        // AR-10（plan 2026-08-06-0553-3 Phase 2）：文本替换而非 String.format——MySQL 模板内嵌
+        // DATE_FORMAT 的 %Y/%m/%d 等格式符会被 String.format 当作占位符解析（UnknownFormatConversionException，
+        // 旧模板在 MySQL 路径实际从未能执行）；%s 是模板唯一占位符，逐字替换为列表达式。
+        return tpl.replace("%s", columnExpr);
     }
 }

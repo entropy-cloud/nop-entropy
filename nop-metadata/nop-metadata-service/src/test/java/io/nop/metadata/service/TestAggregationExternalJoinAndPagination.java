@@ -139,6 +139,73 @@ public class TestAggregationExternalJoinAndPagination extends JunitBaseTestCase 
     }
 
     // ============================================================
+    // 分页参数（AR-01 双绑 + AR-09 limit 归一化，plan 2026-08-06-0553-3 Phase 1）
+    // ============================================================
+
+    @Test
+    @SuppressWarnings("unchecked")
+    public void testExternalExternalJoinAggregationPagination() throws Exception {
+        String querySpace = "qs_ext_join_page";
+        String dbUrl = "jdbc:h2:mem:" + querySpace + ";DB_CLOSE_DELAY=-1";
+        _helper.seedFactDimTables(dbUrl);
+        _helper.saveDataSource("ds-" + querySpace, querySpace, dbUrl);
+        _helper.syncExternalTables("ds-" + querySpace);
+        String factTableId = _helper.tableId("EXT_FACT");
+        String dimTableId = _helper.tableId("EXT_DIM");
+
+        String joinId = _helper.createTableTableJoin(factTableId, "inner", factTableId, dimTableId,
+                "CAT_ID", "CAT_ID", "dim");
+        _helper.createMeasureWithSide(factTableId, "total", "AMOUNT", "sum", "left");
+        _helper.createDimensionWithSide(factTableId, "cat", "CAT_NAME", "categorical", null, "right");
+
+        // AR-01：双绑 bug 修复前 limit!=null 必抛 SQLException；修复后按行键断言分页结果
+        List<Map<String, Object>> items = queryAggregationItems(factTableId,
+                Arrays.asList("total"), Arrays.asList("cat"), null, joinId, 2L, 1L, null, null);
+
+        assertNotNull(items, "items must not be null");
+        // 2 个分组（A,B）offset=1 后应剩 1 个（SQL LIMIT 2 OFFSET 1）
+        assertEquals(1, items.size(), "limit=2 offset=1 on 2 groups must yield 1 group: " + items);
+        Map<String, Object> row = items.get(0);
+        String cat = String.valueOf(getIgnoreCase(row, "CAT"));
+        assertTrue("A".equals(cat) || "B".equals(cat),
+                "remaining group must be A or B (row-key based, no implicit order): " + items);
+        assertEquals(30, toInt(getIgnoreCase(row, "TOTAL")), "remaining group SUM(AMOUNT) must be 30: " + items);
+    }
+
+    @Test
+    @SuppressWarnings("unchecked")
+    public void testMixedSameDbJoinAggregationPagination() throws Exception {
+        _helper.importModel();
+        NopMetaEntity leftEntity = _helper.findMetaEntityByTable("nop_meta_module");
+        String leftTableId = _helper.findEntityTableId("nop_meta_module");
+
+        String querySpace = "qs_mixed_page";
+        String dbUrl = "jdbc:h2:mem:" + querySpace + ";DB_CLOSE_DELAY=-1";
+        _helper.seedMixedSameDbTables(dbUrl);
+        _helper.saveDataSource("ds-" + querySpace, querySpace, dbUrl);
+        _helper.syncExternalTables("ds-" + querySpace);
+        String dimTableId = _helper.externalTableId("MIXED_DIM");
+
+        String joinId = _helper.createMixedJoin(leftTableId, "inner", leftEntity.getMetaEntityId(), dimTableId,
+                "status", "STATUS_VAL", "dim");
+        String statusFieldId = _helper.findEntityFieldId("nop_meta_module", "status");
+        _helper.createMeasureWithSide(leftTableId, "cnt", statusFieldId, "count", "left");
+        _helper.createDimensionWithSide(leftTableId, "cat", "CAT_NAME", "categorical", null, "right");
+
+        // AR-01：mixed 同库路径同样双绑，limit!=null 必炸；修复后分页正确
+        List<Map<String, Object>> items = queryAggregationItems(leftTableId,
+                Arrays.asList("cnt"), Arrays.asList("cat"), null, joinId, 2L, 1L, null, null);
+
+        assertNotNull(items, "items must not be null");
+        // 2 个分组（Category A, Category B）offset=1 后应剩 1 个
+        assertEquals(1, items.size(), "limit=2 offset=1 on 2 groups must yield 1 group: " + items);
+        Map<String, Object> row = items.get(0);
+        String cat = String.valueOf(getIgnoreCase(row, "CAT"));
+        assertTrue("Category A".equals(cat) || "Category B".equals(cat),
+                "remaining group must be Category A or B (row-key based, no implicit order): " + items);
+    }
+
+    // ============================================================
     // external↔external 跨库 JOIN 聚合（D10 内存 GROUP BY）
     // ============================================================
 

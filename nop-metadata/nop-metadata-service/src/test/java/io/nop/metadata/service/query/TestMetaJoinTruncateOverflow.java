@@ -75,6 +75,55 @@ public class TestMetaJoinTruncateOverflow {
                 ex.getErrorCode());
     }
 
+    // ============================================================
+    // AR-09（plan 2026-08-06-0553-3 Phase 1）：负 limit 显式拒绝 + int 溢出 long 运算
+    // ============================================================
+
+    @Test
+    public void testNegativeLimitThrowsExplicitErrorCode() {
+        List<Map<String, Object>> rows = seededRows(10);
+        NopException ex = assertThrows(NopException.class,
+                () -> merger.truncate(rows, -5L, null),
+                "negative limit must throw ERR_PAGINATION_LIMIT_INVALID (not bare IllegalArgumentException)");
+        assertEquals(NopMetadataErrors.ERR_PAGINATION_LIMIT_INVALID.getErrorCode(), ex.getErrorCode());
+    }
+
+    @Test
+    public void testLimitIntOverflowWithOffsetDoesNotThrow() {
+        // 溢出用例必须 seed >= 1 行：空 rows 时 min(0, 0+MAX)=0，subList(0,0) 不抛异常，red 不会触发
+        List<Map<String, Object>> rows = seededRows(10);
+        List<Map<String, Object>> result = merger.truncate(rows, (long) Integer.MAX_VALUE, 1L);
+        assertEquals(9, result.size(),
+                "limit=Integer.MAX_VALUE offset=1 on 10 rows must yield 9 rows (long math, no int overflow)");
+    }
+
+    @Test
+    public void testAggregationTruncateCrossDbNegativeLimit() {
+        List<Map<String, Object>> rows = seededRows(10);
+        NopException ex = assertThrows(NopException.class,
+                () -> invokeAggregationTruncate(rows, -5L, null),
+                "aggregation negative limit must throw ERR_PAGINATION_LIMIT_INVALID");
+        assertEquals(NopMetadataErrors.ERR_PAGINATION_LIMIT_INVALID.getErrorCode(), ex.getErrorCode());
+    }
+
+    @Test
+    public void testAggregationTruncateCrossDbLimitOverflowWithOffsetDoesNotThrow() {
+        List<Map<String, Object>> rows = seededRows(10);
+        List<Map<String, Object>> result = invokeAggregationTruncate(rows, (long) Integer.MAX_VALUE, 1L);
+        assertEquals(9, result.size(),
+                "aggregation limit=Integer.MAX_VALUE offset=1 on 10 rows must yield 9 rows (long math)");
+    }
+
+    private static List<Map<String, Object>> seededRows(int n) {
+        List<Map<String, Object>> rows = new ArrayList<>();
+        for (int i = 0; i < n; i++) {
+            Map<String, Object> r = new LinkedHashMap<>();
+            r.put("k", i);
+            rows.add(r);
+        }
+        return rows;
+    }
+
     @SuppressWarnings("unchecked")
     private static List<Map<String, Object>> invokeAggregationTruncate(List<Map<String, Object>> rows,
                                                                         Long limit, Long offset) {

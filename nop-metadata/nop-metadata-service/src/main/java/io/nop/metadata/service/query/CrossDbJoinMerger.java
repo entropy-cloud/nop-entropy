@@ -240,10 +240,16 @@ class CrossDbJoinMerger {
         }
         int to = rows.size();
         if (limit != null) {
+            // AR-09（plan 2026-08-06-0553-3 Phase 1）：负 limit 显式拒绝（defense-in-depth，
+            // 入口归一化已拒绝，此处兜底直接调用本方法的路径）
+            if (limit < 0) {
+                throw new NopMetadataException(NopMetadataErrors.ERR_PAGINATION_LIMIT_INVALID).param("limit", limit);
+            }
             if (limit > Integer.MAX_VALUE) {
                 throw new NopMetadataException(NopMetadataErrors.ERR_PAGINATION_LIMIT_TOO_LARGE).param("limit", limit);
             }
-            to = Math.min(rows.size(), from + limit.intValue());
+            // AR-09：long 运算防 int 溢出（from + limit 溢出为负 → subList 裸 IllegalArgumentException）
+            to = (int) Math.min(rows.size(), (long) from + limit);
         }
         return new ArrayList<>(rows.subList(from, to));
     }

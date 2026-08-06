@@ -91,7 +91,8 @@ public class MetaQualityCheckpointExecutor {
      *
      * @param cp            检查点（非 null，已由 BizModel 加载）
      * @param runId         执行批次 ID（UUID，由入口一次生成；本次执行的幂等键载体之一）
-     * @param schemaPattern 可选 schema 限定（null/空串表示依赖连接默认 schema）
+     * @param schemaPattern 可选 schema 限定（null/空串时按各规则目标表 NopMetaTable.metaSchema 回退，
+     *                      与单规则路径 resolveDefaultSchema 语义一致，AR-07）
      * @return 执行摘要 {@code {checkpointId, runId, executedCount, passCount, failCount, errorCount,
      *         affectedTableIds:[...], results:[...], errors:[...]}}
      */
@@ -285,12 +286,28 @@ public class MetaQualityCheckpointExecutor {
                 daoProvider.daoFor(NopMetaEntityField.class),
                 orm);
 
-        // 按 ref 形态分派 Connection 获取并执行（复用 §2.7.1 judge 算法，本层不重写判定）
+        // 按 ref 形态分派 Connection 获取并执行（复用 §2.7.1 judge 算法，本层不重写判定）。
+        // AR-07（plan 2026-08-06-0553-3 Phase 2）：schema 解析与单规则路径（NopMetaQualityRuleBizModel
+        // resolveDefaultSchema）语义一致——schemaPattern 为 null/空/纯空白时回退目标表 metaSchema，
+        // 否则同一规则在"手动单规则执行"与"检查点/cron"两个入口评估同一物理表。
+        String effectiveSchema = resolveDefaultSchema(schemaPattern, table);
         return tableRefExecutor.execute(ref,
-                (conn, metaData, productName) -> ruleExecutor.judge(conn, ref, schemaPattern,
+                (conn, metaData, productName) -> ruleExecutor.judge(conn, ref, effectiveSchema,
                         rule.getRuleType(), rule.getEntityType(),
                         rule.getParams(), rule.getSqlExpression(),
                         rule.getThreshold(), productName));
+    }
+
+    /**
+     * 默认 schema 解析（AR-07）：未显式传 schemaPattern（null/空/纯空白）且 {@code table.metaSchema}
+     * 非空 → 默认取 {@code table.metaSchema}；否则维持入参。与
+     * {@code NopMetaQualityRuleBizModel.resolveDefaultSchema} 同语义（单规则路径）。
+     */
+    private static String resolveDefaultSchema(String schemaPattern, NopMetaTable table) {
+        if (schemaPattern != null && !schemaPattern.trim().isEmpty()) {
+            return schemaPattern;
+        }
+        return table.getMetaSchema();
     }
 
     // ============================================================

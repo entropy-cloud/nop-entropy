@@ -171,7 +171,8 @@ public class NopMetaQualityCheckpointBizModel extends CrudBizModel<NopMetaQualit
      * 评分结果（scoreId/overallScore）与评分 errors 记入摘要。
      *
      * @param checkpointId  检查点 ID
-     * @param schemaPattern 可选 schema 限定（null/空串表示依赖连接默认 schema）
+     * @param schemaPattern 可选 schema 限定（null/空串时按各规则目标表 NopMetaTable.metaSchema 回退，
+     *                      与单规则路径 resolveDefaultSchema 语义一致，AR-07）
      * @param context       服务上下文
      * @return {@code {checkpointId, executedCount, passCount, failCount, errorCount, affectedTableIds:[...],
      *         autoScore, scoreResults:[{metaTableId, scoreId, overallScore}], results:[...], errors:[...]}}

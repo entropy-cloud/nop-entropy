@@ -178,11 +178,13 @@ public class TestNopMetaJoinBizModel extends JunitBaseTestCase {
         String joinId = createTableJoin(leftTableId, "inner", leftTableId, rightTableId,
                 "order_id", "order_id", "rg");
 
-        QueryJoinDataResultDTO result = nopMetaTableBizModel.queryJoinData(leftTableId, joinId, null, null, null, null, svcCtx);
+        // AR-01/AR-09（plan 2026-08-06-0553-3 Phase 1）：带分页参数（limit=2, offset=1）经真实入口调用——
+        // 双绑 bug 修复前此处必抛 SQLException（占位符数 < 绑定数）；修复后 2 行跳过 1 行剩 1 行。
+        QueryJoinDataResultDTO result = nopMetaTableBizModel.queryJoinData(leftTableId, joinId, null, 2L, 1L, null, svcCtx);
         List<Map<String, Object>> items = result.getItems();
         assertNotNull(items, "items must not be null");
-        // inner join：order_id=1→CN, order_id=2→US，2 行真实关联（stub 立即失败此断言）
-        assertEquals(2, items.size(), "same-DB sql-sql join must return 2 real associated rows: " + items);
+        // inner join：order_id=1→CN, order_id=2→US；limit=2 offset=1 后剩 1 行真实关联（stub 立即失败此断言）
+        assertEquals(1, items.size(), "same-DB sql-sql join with limit=2 offset=1 must return 1 row: " + items);
         // 接线验证：左 join key + 右 join key（rg_ 前缀）同时存在且值匹配（证明 withConnection JOIN 真实执行）。
         // 说明：同库 JOIN 仅投影 join key 列（与 entity-entity 同库路径一致，防保留字裸拼接 parse-fail），
         // 不投影全部列——故断言 join key 而非 region 列。
@@ -318,6 +320,49 @@ public class TestNopMetaJoinBizModel extends JunitBaseTestCase {
 
         assertTrue(queryJoinDataHasError(leftTableId, joinId),
                 "join field not in table column set must explicitly fail (not silent empty)");
+    }
+
+    /**
+     * 端到端分页验证（plan 2026-08-06-0553-3 Phase 1 Exit Criteria）：
+     * 经 GraphQL 语义层调用 queryJoinData(limit=2, offset=1) —— 从 API 参数到结果集完整路径，
+     * 2 行 seed 数据跳过 1 行后剩 1 行（双绑 bug 修复前此调用必 500）。
+     */
+    @Test
+    @SuppressWarnings("unchecked")
+    public void testSameDbSqlTableJoinPaginationViaGraphQL() throws Exception {
+        String querySpace = "qs_join_samedb_page";
+        String dbUrl = "jdbc:h2:mem:" + querySpace + ";DB_CLOSE_DELAY=-1";
+        seedH2(dbUrl, "CREATE TABLE orders (order_id INT, amt INT)",
+                "INSERT INTO orders VALUES (1, 100)",
+                "INSERT INTO orders VALUES (2, 200)",
+                "CREATE TABLE regions (order_id INT, region VARCHAR(20))",
+                "INSERT INTO regions VALUES (1, 'CN')",
+                "INSERT INTO regions VALUES (2, 'US')");
+        saveDataSource("ds-" + querySpace, querySpace, dbUrl);
+        String leftTableId = saveSqlTableManual("SELECT order_id, amt FROM orders", querySpace);
+        String rightTableId = saveSqlTableManual("SELECT order_id, region FROM regions", querySpace);
+
+        String joinId = createTableJoin(leftTableId, "inner", leftTableId, rightTableId,
+                "order_id", "order_id", "rg");
+
+        io.nop.api.core.beans.graphql.GraphQLRequestBean request =
+                new io.nop.api.core.beans.graphql.GraphQLRequestBean();
+        request.setQuery("query { NopMetaTable__queryJoinData(metaTableId: \"" + leftTableId
+                + "\", joinId: \"" + joinId + "\", limit: 2, offset: 1) { items } }");
+        io.nop.api.core.beans.graphql.GraphQLResponseBean resp =
+                graphQLEngine.executeGraphQL(graphQLEngine.newGraphQLContext(request));
+        assertFalse(resp.hasError(), "GraphQL queryJoinData(limit=2, offset=1) must succeed: " + resp);
+        Map<String, Object> data = (Map<String, Object>) resp.getData();
+        Map<String, Object> qj = (Map<String, Object>) data.get("NopMetaTable__queryJoinData");
+        assertNotNull(qj, "queryJoinData must return non-null Map result");
+        List<Map<String, Object>> items = (List<Map<String, Object>>) qj.get("items");
+        assertNotNull(items, "items must not be null");
+        assertEquals(1, items.size(), "limit=2 offset=1 on 2 joined rows must yield 1 row: " + items);
+        Map<String, Object> row0 = items.get(0);
+        Object leftKey = getIgnoreCase(row0, "ORDER_ID");
+        assertNotNull(leftKey, "left join key ORDER_ID must be present: " + row0.keySet());
+        int oid = ((Number) leftKey).intValue();
+        assertTrue(oid == 1 || oid == 2, "order_id must be real seeded value (1/2): " + oid);
     }
 
     // ===== helpers =====

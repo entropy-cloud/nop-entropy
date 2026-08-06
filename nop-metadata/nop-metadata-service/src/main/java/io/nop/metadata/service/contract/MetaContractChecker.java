@@ -231,6 +231,11 @@ public class MetaContractChecker {
     /**
      * SLA 新鲜度评估（D2 钉死算法）。
      * refreshFrequency↔collectedAt、maxLatency↔lastModified，时间归一为毫秒。
+     *
+     * <p>AR-06（plan 2026-08-06-0553-3 Phase 2 契约裁定）：SLA 已配置（slaMap 非空）但
+     * {@code catalogAvailable=false}（无 Catalog 数据）→ {@code slaFresh=false}（无数据即不满足任何
+     * 已配置 SLA——无论 slaMap 内容，避免"仅含 retention 等其它键的 map 静默 pass"残余面）；
+     * 仅当 slaMap 为空（无 SLA 配置）才保持既有 pass 语义（上方早退分支）。
      */
     private Map<String, Object> evaluateSla(String entityTableId, Map<String, Object> slaMap, long nowMs) {
         Map<String, Object> summary = new LinkedHashMap<>();
@@ -274,9 +279,13 @@ public class MetaContractChecker {
                     dataStale = (nowMs - lastModMs) > maxLatencyMs;
                 }
             }
+        } else {
+            // AR-06：无 Catalog 数据即不满足任何已配置 SLA（note 供失败消息可诊断）
+            summary.put("note", "no catalog data");
         }
 
-        boolean slaFresh = !collectionStale && !dataStale;
+        // AR-06：catalogAvailable=false → slaFresh=false（此前恒 true 致 SLA 静默 PASS）
+        boolean slaFresh = catalogAvailable && !collectionStale && !dataStale;
         summary.put("collectionStale", collectionStale);
         summary.put("dataStale", dataStale);
         summary.put("slaFresh", slaFresh);
@@ -392,18 +401,25 @@ public class MetaContractChecker {
                 sb.append("; ");
             }
             sb.append("SLA not satisfied (");
+            boolean first = true;
             if (Boolean.TRUE.equals(slaSummary.get("collectionStale"))) {
                 sb.append("collection stale");
+                first = false;
             }
             if (Boolean.TRUE.equals(slaSummary.get("dataStale"))) {
-                if (sb.charAt(sb.length() - 1) != '(') {
+                if (!first) {
                     sb.append(',');
                 }
                 sb.append("data stale");
+                first = false;
             }
-            if (!slaSummary.containsKey("collectionStale") && !slaSummary.containsKey("dataStale")
-                    && Boolean.FALSE.equals(slaSummary.get("catalogAvailable"))) {
-                sb.append("no Catalog record");
+            if (Boolean.FALSE.equals(slaSummary.get("catalogAvailable"))) {
+                // AR-06：原不可达死分支（collectionStale/dataStale 两 key 恒存在）删除——
+                // 无 Catalog 数据的原因文本保留可诊断信息，避免 "SLA not satisfied ()" 空括号
+                if (!first) {
+                    sb.append(',');
+                }
+                sb.append("no Catalog data");
             }
             sb.append(')');
         }

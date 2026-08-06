@@ -260,6 +260,11 @@ public class NopMetaTableBizModel extends CrudBizModel<NopMetaTable> implements 
                                                   @Optional @Name("selection") FieldSelectionBean selection,
                                                   IServiceContext context) {
         NopMetaTable table = requireEntity(metaTableId, "query", context);
+        // AR-09（plan 2026-08-06-0553-3 Phase 1 裁定 (c)）：拒绝点固定在 BizModel 入口——
+        // 三条 JOIN SQL 路径的 LIMIT 占位符直接把负值绑给 DB（appendLimitOffset 对 limit=-5 仍生成
+        // LIMIT ?，DB 层报错被包装为 ERR_JOIN_TABLE_EXEC_FAILED / ERR_AGGR_EXEC_FAILED，错误不可诊断），
+        // 若只在截断层拒绝则新错误码在 3/5 路径永远不触发；截断层 long 运算 + 负值拒绝为 defense-in-depth。
+        limit = normalizeJoinQueryLimit(limit);
         Map<String, Object> raw = joinExecutor.executeJoin(table, joinId, filter, limit, offset, buildQueryContext());
         QueryJoinDataResultDTO result = new QueryJoinDataResultDTO();
         Object items = raw.get("items");
@@ -284,6 +289,8 @@ public class NopMetaTableBizModel extends CrudBizModel<NopMetaTable> implements 
                                                   @Optional @Name("selection") FieldSelectionBean selection,
                                                   IServiceContext context) {
         NopMetaTable table = requireEntity(metaTableId, "query", context);
+        // AR-09（plan 2026-08-06-0553-3 Phase 1 裁定 (c)）：拒绝点固定在 BizModel 入口（同 queryJoinData）
+        limit = normalizeJoinQueryLimit(limit);
         Map<String, Object> raw = aggregationExecutor.executeAggregation(table, measures, dimensions, filter, joinId, limit, offset,
                 having, orderBy, buildQueryContext());
         AggregationResultDTO result = new AggregationResultDTO();
@@ -374,5 +381,32 @@ public class NopMetaTableBizModel extends CrudBizModel<NopMetaTable> implements 
         }
         long max = configuredMaxQueryLimit > 0 ? configuredMaxQueryLimit : DEFAULT_MAX_QUERY_LIMIT;
         return Math.min(limit, max);
+    }
+
+    /**
+     * 归一化 queryJoinData / queryAggregation 的 limit（AR-09，plan 2026-08-06-0553-3 Phase 1 裁定 (a)/(b)/(d)）：
+     * <ul>
+     *   <li>{@code limit < 0} → 显式拒绝 {@code ERR_PAGINATION_LIMIT_INVALID}——负 limit 是参数错误，
+     *       静默钳制到默认值会掩盖调用方 bug，且 LIMIT ? 占位符会把负值绑给 DB 得到不可诊断的 SQL 错误。</li>
+     *   <li>{@code limit == null 或 0} → 缺省值 {@link #DEFAULT_QUERY_LIMIT}（有界，不提供"无界"选项，
+     *       裁定 (d) 沿用 queryTableData 的缺省语义）。</li>
+     *   <li>{@code limit > 0} → 原样透传；超 {@code Integer.MAX_VALUE} 由截断层
+     *       {@code ERR_PAGINATION_LIMIT_TOO_LARGE} 显式拒绝，不做静默封顶。</li>
+     * </ul>
+     *
+     * <p>与 {@link #normalizeQueryLimit}（queryTableData）的差异（裁定 (b)，文档化于
+     * {@code docs-for-ai/03-modules/nop-metadata.md}）：queryTableData 是数据浏览入口，对超大 limit
+     * 静默封顶；queryJoinData/queryAggregation 是分析/分页入口，非法 limit 显式拒绝——静默改 limit
+     * 会让分页语义静默漂移，两入口差异为有意裁定。
+     */
+    private Long normalizeJoinQueryLimit(Long limit) {
+        if (limit != null && limit < 0) {
+            throw new NopMetadataException(NopMetadataErrors.ERR_PAGINATION_LIMIT_INVALID)
+                    .param(NopMetadataErrors.ARG_LIMIT, limit);
+        }
+        if (limit == null || limit == 0) {
+            return (long) DEFAULT_QUERY_LIMIT;
+        }
+        return limit;
     }
 }

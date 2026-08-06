@@ -149,12 +149,9 @@ public class MixedSameDbJoinAggregationProcessor implements AggregationProcessor
                     if (_havingTf != null && _havingTf.getSql() != null && !_havingTf.getSql().isEmpty()) {
                         params.addAll(_havingTf.getParams());
                     }
-                    if (limit != null) {
-                        params.add(limit);
-                    }
-                    if (offset != null && offset > 0) {
-                        params.add(offset);
-                    }
+                    // AR-01（plan 2026-08-06-0553-3 Phase 1）：LIMIT/OFFSET 占位符参数由
+                    // AggregationHelper.executeJdbcQuery 统一绑定（此处【不得】params.add(limit/offset)，
+                    // 否则占位符数 < 绑定数必然抛 SQLException；对照先例 ExternalAggregationProcessor :83-85）。
                     final String sqlText = sql.toString();
                     LOG.info("queryAggregation mixed same-DB entity<->external/sql JOIN SQL: {}", sqlText);
                     holder[0] = executeJdbcQuery(conn, sqlText, params, limit, offset, table.getMetaTableId());
